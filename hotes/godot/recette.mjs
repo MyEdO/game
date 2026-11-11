@@ -233,6 +233,9 @@ for (const rel of depot ? MANUSCRITS : []) {
   mkdirSync(dirname(join(dossierDesProjetsLivres(depot), rel)), { recursive: true })
   cpSync(join(dossierDesProjetsLivres(), rel), join(dossierDesProjetsLivres(depot), rel))
 }
+/** Le dossier des modèles que lisent les preuves : `--modeles`, sinon celui du projet, que le serveur sert ou dont
+ *  l'export servi en `--statique` a fabriqué les scènes. */
+const DOSSIER_SERVI = o.modeles ?? fileURLToPath(new URL('./projet/modeles', import.meta.url))
 const srv = await servir({ web: o.web, ...(o.modeles && { modeles: o.modeles }), ...(o.statique && { statique: true }), ...(depot && { depot }) })
 const session = await launchSession({ width: 1280, height: 720, timeoutMs: 30000, args: WEBGL_LOGICIEL })
 const garde = consoleGuard(session)
@@ -393,11 +396,10 @@ async function prouverLEmbleme(elementId) {
  *  chaque surface de son élément (manifeste du dossier servi) dont cette palette colore l'emplacement porte sa couleur
  *  (`wfrpEcran.corps[id].couleurs`) ; une vue qui en porte se capture. */
 async function prouverLesTeintes() {
-  const dossier = o.modeles ?? fileURLToPath(new URL('./projet/modeles', import.meta.url))
   const v = await vue()
   const attendues = Object.entries(v.corps.combattants).flatMap(([id, c]) =>
     (c?.montes ?? []).filter((m) => m.element !== null && m.palette).flatMap((m) =>
-      (JSON.parse(readFileSync(join(dossier, `${m.element}.manifeste.json`), 'utf8')).surfaces ?? [])
+      (JSON.parse(readFileSync(join(DOSSIER_SERVI, `${m.element}.manifeste.json`), 'utf8')).surfaces ?? [])
         .filter((s) => m.palette[s.palette] !== undefined)
         .map((s) => ({ id, ligne: m.ligne, nom: s.nom, couleur: m.palette[s.palette] }))))
   if (!attendues.length) return noter('aucune surface teinte dans la vue')
@@ -2797,14 +2799,14 @@ async function prouverLaPile() {
   await attendreLAtelier('Object.keys(a.pile).length > 0', 120000)
   const a = await atelier()
   const { fichiersDuModele } = await chargerAssets(["export { fichiersDuModele } from '/hotes/godot/asset/modeles.ts';"])
-  const lu = (id) => { const f = fichiersDuModele(id); return { glb: readFileSync(join(o.web, 'modeles', f.glb)), manifeste: JSON.parse(readFileSync(join(o.web, 'modeles', f.manifeste), 'utf8')) } }
+  const lu = (id) => { const f = fichiersDuModele(id); return { glb: readFileSync(join(DOSSIER_SERVI, f.glb)), manifeste: JSON.parse(readFileSync(join(DOSSIER_SERVI, f.manifeste), 'utf8')) } }
   const base = lu(a.base)
   const elements = [...Object.values(a.montes), ...Object.values(a.lignes)].map(lu)
   const { evaluer } = await chargerEvaluateur()
   const { mesures } = await evaluer({
     base: base.glb, manifeste: base.manifeste, elements: elements.map((e) => e.glb),
     couches: elements.map(({ manifeste: { couche, couvre = [], categorie } }) => (couche ? { couche, couvre, categorie } : null)),
-    silhouettes: a.composition.morphes, clips: [base.manifeste.clips.idle],
+    silhouettes: a.composition.morphes, clips: [base.manifeste.clips.repos],
   })
   noter(`pile : fusion ${JSON.stringify(a.pile)} ; évaluateur ${JSON.stringify(mesures.pile)}`)
   for (const [compte, attendu] of Object.entries(mesures.pile)) {

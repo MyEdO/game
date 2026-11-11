@@ -202,16 +202,16 @@ static func porte_un_blason(element: String) -> bool:
 	return modeles.surfaces[element].any(func(surface: Dictionary) -> bool: return surface.get("blason", false))
 
 
-## Le GLB du modèle `id`, sous celui de ses fichiers de la réponse retenue (`fichiers`) que nomme la `forme` du listage,
+## Le modèle `id`, de celui de ses fichiers de la réponse retenue (`fichiers`) que nomme la `forme` du listage,
 ## en instance neuve de sa scène empaquetée, qui porte en métadonnée `MATERIAUX` chaque matériau du GLB par son nom
 ## (`GLTFState.get_materials`, ceux qu'aucune primitive ne porte compris) : téléchargé et lu une fois par chargement des
 ## modèles, chaque demande d'un même fichier attendant la première (`_lire`). Les instances d'un même fichier partagent
 ## ses meshes, ses skins, ses matériaux et ses clips : un porteur qui en change un en fait le sien (`materiau_local`,
 ## `cuire_les_formes`, `boucler`). `null` (et une erreur à `recueil`) s'il n'y a pas de fichier ou s'il ne se lit pas, et
 ## un fichier qui ne s'est pas téléchargé se redemande.
-func scene_du_glb(id: String, recueil: Array[String]) -> Node3D:
+func scene_du_modele(id: String, recueil: Array[String]) -> Node3D:
 	if not modeles.fichiers.has(id) or not modeles.fichiers[id].has(forme):
-		recueil.append("glb-absent : %s" % id)
+		recueil.append("modele-absent : %s" % id)
 		return null
 	var fichier: String = modeles.fichiers[id][forme]
 	var lecture: Lecture = _lectures.get(fichier)
@@ -243,8 +243,8 @@ func _lire(id: String, fichier: String, lecture: Lecture) -> void:
 
 ## Les `octets` de la scène fabriquée du modèle `id` (`FabriqueDeModeles`) en scène empaquetée, `null` (et une erreur à
 ## `recueil`) s'ils ne se chargent pas. Godot ne charge une ressource que d'un fichier : les octets passent par un
-## fichier temporaire, retiré à la sortie, et la scène se charge hors du cache des ressources, où elle porterait le
-## chemin d'un fichier qui n'existe plus.
+## fichier temporaire, retiré à la sortie. La scène se charge hors du cache des ressources et perd le chemin de ce
+## fichier : ses instances n'ont pas de fichier de scène (`Node.scene_file_path`), comme celles d'un GLB lu.
 static func _paquet_charge(id: String, octets: PackedByteArray, recueil: Array[String]) -> PackedScene:
 	var fichier := FileAccess.create_temp(FileAccess.WRITE, "modele", "scn")
 	if fichier == null:
@@ -255,6 +255,8 @@ static func _paquet_charge(id: String, octets: PackedByteArray, recueil: Array[S
 	var paquet := ResourceLoader.load(fichier.get_path(), "PackedScene", ResourceLoader.CACHE_MODE_IGNORE) as PackedScene
 	if paquet == null:
 		recueil.append("scene-illisible : %s" % id)
+		return null
+	paquet.resource_path = ""
 	return paquet
 
 
@@ -287,6 +289,7 @@ static func scene_lue(id: String, octets: PackedByteArray, recueil: Array[String
 		return null
 	var scene := document.generate_scene(etat) as Node3D
 	if scene == null:
+		recueil.append("glb-illisible : %s (scène vide)" % id)
 		return null
 	var par_nom := {}
 	for materiau in etat.get_materials():
@@ -295,8 +298,8 @@ static func scene_lue(id: String, octets: PackedByteArray, recueil: Array[String
 	return scene
 
 
-## Chaque clip de `noms` que porte `lecteur` mis en boucle pour ce lecteur seul : les instances d'un même GLB partagent
-## leurs clips (`scene_du_glb`). La bibliothèque qui en porte un est remplacée par une bibliothèque propre au lecteur,
+## Chaque clip de `noms` que porte `lecteur` mis en boucle pour ce lecteur seul : les instances d'un même modèle partagent
+## leurs clips (`scene_du_modele`). La bibliothèque qui en porte un est remplacée par une bibliothèque propre au lecteur,
 ## qui porte les mêmes clips, sauf chaque clip à boucler, copié puis bouclé ; un clip déjà en boucle reste.
 static func boucler(lecteur: AnimationPlayer, noms: Array) -> void:
 	var a_copier := {}
@@ -426,7 +429,7 @@ func monter(id: String, element: String, recueil: Array[String]) -> bool:
 	var sous := squelette
 	if sous == null:
 		return false
-	var scene := await scene_du_glb(element, recueil)
+	var scene := await scene_du_modele(element, recueil)
 	if demande != _demandes.get(id):
 		if scene != null:
 			scene.free()
@@ -463,7 +466,7 @@ func monter(id: String, element: String, recueil: Array[String]) -> bool:
 	var ligne := ""
 	if not rangement.is_empty():
 		ligne = "%s#%s" % [rangement.id, id]
-		var copie := await scene_du_glb(element, recueil)
+		var copie := await scene_du_modele(element, recueil)
 		if demande != _demandes.get(id):
 			for noeud in noeuds:
 				noeud.free()

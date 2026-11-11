@@ -1,6 +1,6 @@
 extends SceneTree
 
-## Les corps partagés (#3946, `MontageDeComposition.scene_du_glb`) : sur le pont figé de l'atelier (`PontFige`, l'atelier
+## Les corps partagés (#3946, `MontageDeComposition.scene_du_modele`) : sur le pont figé de l'atelier (`PontFige`, l'atelier
 ## figé par la sonde, `hotes/godot/recettes/atelier.ts`, `figerLeRepos`), la base humanoïde demandée par plusieurs
 ## montages n'est téléchargée et lue qu'une fois : chaque corps est une instance de la même scène empaquetée, qui
 ## partage ses meshes, et aucun nœud ne reste hors de l'arbre. Un clip bouclé pour un corps
@@ -78,7 +78,7 @@ func _recetter() -> void:
 	MontageDeComposition.retenir_les_modeles(lu.modeles, lu.listage)
 	var relu := MontageDeComposition.new()
 	root.add_child(relu)
-	relu.poser_le_modele(base, await relu.scene_du_glb(BASE, relu.erreurs))
+	relu.poser_le_modele(base, await relu.scene_du_modele(BASE, relu.erreurs))
 	_verifier(relu.modele != null and _meshes(relu) != meshes, "les modèles retenus de nouveau, la base n'est pas relue")
 	_verifier(_meshes(second) == meshes, "les modèles retenus de nouveau, un corps posé perd ses meshes")
 	for faute in _fautes:
@@ -89,7 +89,7 @@ func _recetter() -> void:
 
 ## La scène de la base tirée par `montage` au rang `rang` de `scenes`.
 func _tirer(montage: MontageDeComposition, scenes: Array[Node3D], rang: int) -> void:
-	scenes[rang] = await montage.scene_du_glb(BASE, montage.erreurs)
+	scenes[rang] = await montage.scene_du_modele(BASE, montage.erreurs)
 
 
 ## Les images passées jusqu'à ce que `tenu` le soit, au plus `IMAGES_D_ATTENTE`.

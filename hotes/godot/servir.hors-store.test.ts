@@ -1,10 +1,11 @@
 /**
  * LE SERVEUR DE L'EXPORT WEB (#3086, `pont/CONTRAT.md`, section « Atelier 3D ») : `GET modeles/listage.json` rend
- * `{ manifestes, osDesRigides, erreurs }`, les seuls manifestes validés contre leur GLB et de chacun les os qui portent
- * ses meshes rigides, en `no-store` ; `GET modeles/<fichier>` sert le fichier en `no-store`, 404 hors du dossier ou
- * absent ; une URI malformée reçoit 400 et un dossier des modèles illisible passe dans `erreurs`, le serveur continue.
- * `deposerLesModeles` (#3778, #3946) écrit sous `modeles/` de l'export les mêmes fichiers sans les GLB, le même listage
- * en forme `scene`, et fait fabriquer la scène de chaque modèle listé ; servi en `statique`, l'export rend ce dépôt.
+ * `{ manifestes, osDesRigides, erreurs, forme }`, les seuls manifestes validés contre leur GLB, de chacun les os qui
+ * portent ses meshes rigides et la forme `glb`, en `no-store` ; `GET modeles/<fichier>` sert le fichier en `no-store`,
+ * 404 hors du dossier ou absent ; une URI malformée reçoit 400 et un dossier des modèles illisible passe dans
+ * `erreurs`, le serveur continue. `deposerLesModeles` (#3778, #3946) écrit sous `modeles/` de l'export les mêmes
+ * fichiers sans les GLB ni leur fiche d'import, le même listage en forme `scene`, et fait fabriquer la scène de chaque
+ * modèle listé ; servi en `statique`, l'export rend ce dépôt.
  * Avec un dépôt (#3508, section « Éditeur ») : `GET depot/<id>` rend un projet manuscrit, prose matérialisée ;
  * `PUT depot/<id>` écrit à sa place un texte en forme dépôt de ce projet, et refuse tout autre texte sans rien écrire.
  */
@@ -94,15 +95,16 @@ describe('servir', () => {
     expect(await (await fetch(`${url}index.html`)).text()).toBe('<html></html>');
   });
 
-  it('l’export statique porte sous `modeles/` le dossier sans ses GLB et le listage du serveur en forme `scene`, et fait fabriquer la scène de chaque modèle listé', async () => {
+  it('l’export statique porte sous `modeles/` le dossier sans ses GLB ni leur fiche d’import et le listage du serveur en forme `scene`, et fait fabriquer la scène de chaque modèle listé', async () => {
     const url = await demarrer();
     const sortie = join(racine, 'export');
     const cible = join(sortie, 'modeles');
+    writeFileSync(join(modeles, 'epee.glb.import'), '[remap]');
     const commandes = deposerLesModeles(modeles, sortie, (aFabriquer) => aFabriquer);
     const servi = await (await fetch(`${url}modeles/${LISTAGE}`)).json();
     expect(servi.forme).toBe('glb');
     expect(JSON.parse(readFileSync(join(cible, LISTAGE), 'utf8'))).toEqual({ ...servi, forme: 'scene' });
-    expect(listerDossier(cible)).toEqual([...listerDossier(modeles).filter((f) => !f.endsWith('.glb')), LISTAGE].sort());
+    expect(listerDossier(cible)).toEqual([...listerDossier(modeles).filter((f) => !/\.glb(\.import)?$/.test(f)), LISTAGE].sort());
     expect(commandes).toEqual(Object.keys(servi.manifestes).map((id) => ({ id, glb: join(modeles, `${id}.glb`), scene: join(cible, `${id}.scn`) })));
     const statique = await servir({ web: sortie, statique: true });
     serveurs.push(statique);

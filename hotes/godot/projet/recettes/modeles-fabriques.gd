@@ -5,8 +5,9 @@ extends SceneTree
 ## écrit dans le projet la scène d'une base à textures, d'un véhicule à clips et d'un élément skinné. Servi en forme
 ## `scene`, chacun se charge de sa scène fabriquée, jamais de son GLB, et sa scène vaut celle que son GLB donne à la
 ## lecture, nœud par nœud et ressource par ressource (meshes, skins, os, clips, matériaux et leur table `MATERIAUX`),
-## hors ses textures : chacune a la taille de la sienne, compressée, avec ses mipmaps. Les matériaux de ses meshes sont
-## ceux de sa table. La base se pose depuis sa scène fabriquée, avec son squelette, son lecteur et ses matériaux.
+## hors ses textures : chacune a la taille de la sienne, compressée (RGTC pour une normale), avec ses mipmaps. Aucun de
+## ses nœuds ne porte de fichier de scène. Les matériaux de ses meshes sont ceux de sa table. La base se pose depuis sa
+## scène fabriquée, avec son squelette, son lecteur et ses matériaux.
 
 const RECETTE_AUTONOME := true
 const FIGE := "res://recettes/vues/chemin.json"
@@ -15,8 +16,8 @@ const VEHICULE := "vehicule--baliste"
 const SKINNE := "humanoide--vetement--chemise"
 ## Les images laissées à la lecture des modèles.
 const IMAGES_D_ATTENTE := 600
-## Les propriétés d'un nœud ou d'une ressource qui disent d'où il vient, pas ce qu'il est.
-const PROVENANCES := ["script", "owner", "scene_file_path", "resource_path", "resource_scene_unique_id", "resource_local_to_scene"]
+## La propriété de matériau qui porte une texture de normales.
+const NORMALE := ".normal_texture"
 var _fautes: Array[String] = []
 ## Les textures comparées : `{ ou, lue, fabriquee }`.
 var _textures: Array[Dictionary] = []
@@ -76,7 +77,7 @@ func _tirer(montage: MontageDeComposition, modeles: Dictionary, listage: Diction
 	MontageDeComposition.retenir_les_modeles(modeles, listage)
 	var scenes := {}
 	for id: String in ids:
-		scenes[id] = await montage.scene_du_glb(id, montage.erreurs)
+		scenes[id] = await montage.scene_du_modele(id, montage.erreurs)
 	return scenes
 
 
@@ -92,6 +93,7 @@ func _comparer_les_scenes(id: String, lue: Node, fabriquee: Node) -> void:
 	var vus := {}
 	for i in noeuds_lus.size():
 		_comparer(noeuds_lus[i], noeuds_fabriques[i], "%s:%s" % [id, lue.get_path_to(noeuds_lus[i])], vus)
+		_verifier(noeuds_fabriques[i].scene_file_path == noeuds_lus[i].scene_file_path, "%s:%s : fichier de scène %s" % [id, lue.get_path_to(noeuds_lus[i]), noeuds_fabriques[i].scene_file_path])
 	var table: Dictionary = fabriquee.get_meta(MontageDeComposition.MATERIAUX)
 	for piece: MeshInstance3D in fabriquee.find_children("*", "MeshInstance3D", true, false):
 		for surface in piece.mesh.get_surface_count():
@@ -100,7 +102,7 @@ func _comparer_les_scenes(id: String, lue: Node, fabriquee: Node) -> void:
 
 
 ## Les écarts de `fabrique` à `lu`, à `ou` : deux objets valent par leur classe et par chacune de leurs propriétés
-## enregistrées, hors `PROVENANCES` ; deux textures se retiennent (`_textures`) ; un objet de `vus` est déjà comparé.
+## enregistrées ; deux textures se retiennent (`_textures`) ; un objet de `vus` est déjà comparé.
 func _comparer(lu: Variant, fabrique: Variant, ou: String, vus: Dictionary) -> void:
 	if lu is Texture2D and fabrique is Texture2D:
 		if not vus.has(lu):
@@ -116,7 +118,7 @@ func _comparer(lu: Variant, fabrique: Variant, ou: String, vus: Dictionary) -> v
 			_fautes.append("%s : %s / %s" % [ou, lu.get_class(), fabrique.get_class()])
 			return
 		for propriete in lu.get_property_list():
-			if propriete.usage & PROPERTY_USAGE_STORAGE and not propriete.name in PROVENANCES:
+			if propriete.usage & PROPERTY_USAGE_STORAGE:
 				_comparer(lu.get(propriete.name), fabrique.get(propriete.name), "%s.%s" % [ou, propriete.name], vus)
 	elif lu is Dictionary:
 		if lu.keys() != fabrique.keys():
@@ -134,12 +136,14 @@ func _comparer(lu: Variant, fabrique: Variant, ou: String, vus: Dictionary) -> v
 		_fautes.append("%s : %s / %s" % [ou, str(lu).left(80), str(fabrique).left(80)])
 
 
-## La texture fabriquée de `texture` a la taille de la texture lue, compressée, avec ses mipmaps.
+## La texture fabriquée de `texture` a la taille de la texture lue, compressée (RGTC à deux canaux pour une normale, et
+## elle seule), avec ses mipmaps et son nom.
 func _verifier_la_texture(texture: Dictionary) -> void:
 	var lue: Image = texture.lue.get_image()
 	var fabriquee: Image = texture.fabriquee.get_image()
 	_verifier(fabriquee.get_size() == lue.get_size(), "%s : texture de %s au lieu de %s" % [texture.ou, fabriquee.get_size(), lue.get_size()])
 	_verifier(not lue.is_compressed() and fabriquee.is_compressed(), "%s : texture fabriquée non compressée (format %d)" % [texture.ou, fabriquee.get_format()])
+	_verifier((fabriquee.get_format() == Image.FORMAT_RGTC_RG) == texture.ou.ends_with(NORMALE), "%s : texture fabriquée au format %d" % [texture.ou, fabriquee.get_format()])
 	_verifier(fabriquee.has_mipmaps(), "%s : texture fabriquée sans mipmaps" % texture.ou)
 	_verifier(texture.fabriquee.resource_name == texture.lue.resource_name, "%s : texture renommée" % texture.ou)
 

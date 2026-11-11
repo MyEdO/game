@@ -8,16 +8,6 @@ extends SceneTree
 ##
 ##   godot --headless --path <projet> --script res://outils/fabrique_de_modeles.gd -- <commande.json>
 
-## La source de compression (`Image.CompressSource`) de la texture d'un canal de matériau, `COMPRESS_SOURCE_GENERIC`
-## pour tout autre : ce que l'import de textures de Godot retient (`editor/import/resource_importer_texture.cpp`,
-## Godot 4.7-stable).
-const SOURCES := {
-	BaseMaterial3D.TEXTURE_ALBEDO: Image.COMPRESS_SOURCE_SRGB,
-	BaseMaterial3D.TEXTURE_EMISSION: Image.COMPRESS_SOURCE_SRGB,
-	BaseMaterial3D.TEXTURE_NORMAL: Image.COMPRESS_SOURCE_NORMAL,
-}
-
-
 func _initialize() -> void:
 	var commande: Variant = JSON.parse_string(FileAccess.get_file_as_string("".join(OS.get_cmdline_user_args())))
 	if not commande is Array:
@@ -36,7 +26,8 @@ func _initialize() -> void:
 ## La scène du GLB `octets` du modèle `id`, lue comme à l'exécution (`MontageDeComposition.scene_lue`), chaque texture
 ## de ses matériaux (`MontageDeComposition.MATERIAUX`) compressée (`compressee`), empaquetée et enregistrée sous `chemin`
 ## telle que Godot la charge (`MontageDeComposition._paquet_charge`) ; une erreur à `recueil` si elle ne se lit pas ou ne
-## s'enregistre pas.
+## s'enregistre pas. La source de compression d'une texture (`Image.CompressSource`) est celle de l'import de textures
+## de Godot (`editor/import/resource_importer_texture.cpp`, `compress/channel_pack` à son défaut, Godot 4.7-stable).
 static func fabriquer(id: String, octets: PackedByteArray, chemin: String, recueil: Array[String]) -> void:
 	var scene := MontageDeComposition.scene_lue(id, octets, recueil)
 	if scene == null:
@@ -47,7 +38,7 @@ static func fabriquer(id: String, octets: PackedByteArray, chemin: String, recue
 			var texture := materiau.get_texture(canal)
 			if texture != null:
 				if not compressees.has(texture):
-					compressees[texture] = compressee(texture, SOURCES.get(canal, Image.COMPRESS_SOURCE_GENERIC))
+					compressees[texture] = compressee(texture, Image.COMPRESS_SOURCE_NORMAL if canal == BaseMaterial3D.TEXTURE_NORMAL else Image.COMPRESS_SOURCE_SRGB)
 				materiau.set_texture(canal, compressees[texture])
 	var paquet := PackedScene.new()
 	var code := paquet.pack(scene)

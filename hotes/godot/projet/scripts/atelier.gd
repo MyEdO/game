@@ -272,7 +272,7 @@ func _recharger() -> void:
 func _poser(base: Variant, montes: Dictionary, emblemes: Dictionary, chargement: RefCounted) -> void:
 	var scene: Node3D = null
 	if base != null:
-		scene = await _montage.scene_du_glb(base.id, _erreurs)
+		scene = await _montage.scene_du_modele(base.id, _erreurs)
 	if chargement != _chargement:
 		if scene != null:
 			scene.free()

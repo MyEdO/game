@@ -35,7 +35,7 @@ var _coupees: Array[MeshInstance3D] = []
 
 
 ## Le corps `vehicule` (`null` : aucun), s'il a changé depuis le dernier reçu : le GLB de son élément tiré par `montage`
-## (`MontageDeComposition.scene_du_glb`), peint de sa `palette` et de son `embleme` (`peindre_l_element`, un emblème
+## (`MontageDeComposition.scene_du_modele`), peint de sa `palette` et de son `embleme` (`peindre_l_element`, un emblème
 ## qu'aucune surface ne reçoit donne `blason-sans-surface` aux erreurs de `montage`), posé à la place du précédent, puis
 ## `placer` joué sur sa scène nue, avant toute pièce ; le GLB de chacune de ses pièces peint de la sienne et monté à son
 ## poste (`monter_au_poste`), le GLB de chacune de ses Améliorations peint de la palette du véhicule et monté à sa place
@@ -49,14 +49,14 @@ func monter(vehicule: Variant, montage: MontageDeComposition, placer: Callable) 
 	_recu = recu
 	var chargement := RefCounted.new()
 	_chargement = chargement
-	var posee: Node3D = null if vehicule == null else await montage.scene_du_glb(vehicule.element, montage.erreurs)
+	var posee: Node3D = null if vehicule == null else await montage.scene_du_modele(vehicule.element, montage.erreurs)
 	var pieces: Array[Node3D] = []
 	var montees: Array[Node3D] = []
 	if posee != null:
 		for poste in vehicule.postes:
-			pieces.append(await montage.scene_du_glb(poste.element, montage.erreurs))
+			pieces.append(await montage.scene_du_modele(poste.element, montage.erreurs))
 		for montee in vehicule.ameliorations:
-			montees.append(await montage.scene_du_glb(montee.element, montage.erreurs))
+			montees.append(await montage.scene_du_modele(montee.element, montage.erreurs))
 	if chargement != _chargement:
 		for lot in [pieces, montees, [posee]]:
 			for piece in lot:

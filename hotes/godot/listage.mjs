@@ -81,12 +81,13 @@ export function listage(dossier) {
   }
 }
 
-/** Le dossier des modèles `dossier` déposé sous `modeles/` de `sortie`, en fichiers statiques : ses fichiers sans ses GLB,
- *  son listage (`LISTAGE`) en forme `scene`, et la scène de chaque modèle du listage, que `fabriquer` reçoit à
+/** Le dossier des modèles `dossier` déposé sous `modeles/` de `sortie`, en fichiers statiques : ses fichiers sans ses GLB
+ *  ni leur fiche d'import par Godot (`<glb>.import`), son listage (`LISTAGE`) en forme `scene`, et la scène de chaque modèle du listage, que `fabriquer` reçoit à
  *  fabriquer (`{ id, glb, scene }` : le GLB à lire, la scène à écrire). Rend ce que `fabriquer` rend. */
 export function deposerLesModeles(dossier, sortie, fabriquer) {
   const cible = join(sortie, 'modeles')
-  cpSync(dossier, cible, { recursive: true, filter: (source) => !source.endsWith(fichiersDuModele('').glb) })
+  const glb = fichiersDuModele('').glb
+  cpSync(dossier, cible, { recursive: true, filter: (source) => !source.endsWith(glb) && !source.endsWith(`${glb}.import`) })
   const servi = listage(dossier)
   writeFileSync(join(cible, LISTAGE), JSON.stringify({ ...servi, forme: 'scene' }))
   return fabriquer(Object.keys(servi.manifestes).map((id) => {
