@@ -217,8 +217,8 @@ describe('deux bornes : une seule graphie, et rien d’emboîté (#1463 L4, vagu
     ).toEqual([]);
   });
 
-  it('A — `rand` (borne haute d100 portée par l’ENTITÉ) est un RESTE NOMMÉ, borné à cinq documents', () => {
-    const PORTEURS_DE_RAND = ['astrology.json', 'eyes.json', 'hairs.json', 'species.json', 'stars.json'];
+  it('A — `rand` (borne haute d100 portée par l’ENTITÉ) est un RESTE NOMMÉ, borné à quatre documents', () => {
+    const PORTEURS_DE_RAND = ['astrology.json', 'eyes.json', 'hairs.json', 'stars.json'];
     // Reste ANCRÉ au pilotage de #1463 : sa cible est un document TABLE dédié (DESIGN v2 S1), donc
     // il appartient à la vague `reference`/`pick,table` — pas à celle-ci. Ce qu'on verrouille ici,
     // c'est son PÉRIMÈTRE : il ne doit pas s'étendre à un sixième document en attendant.

@@ -26,11 +26,10 @@ const doc = document(
     family: z.string(),
     /** Variante régionale/sous-espèce — absente pour l'espèce nominale. */
     variant: z.string().optional(),
-    /** id STABLE — colonne d'espèce des tables Âge/Taille/Yeux/Cheveux (`raceKeySchema`, #313). */
+    /** LDB 04 l.93 ; LDB 05 l.701-768 */
     refChar: raceKeySchema,
     /** LDB 05 l.214 */
     refCareer: idDe('carrieresAleatoires', 'colonne'),
-    rand: z.number(),
     movement: z.number(),
     fate: nommerChamps(z.strictObject({ fate: z.number(), resilience: z.number(), extra: z.number() }), {
       fate: { label: 'Destin' },
@@ -62,10 +61,9 @@ const doc = document(
     variant: { label: 'Variante', hint: 'Variante régionale/sous-espèce' },
     refChar: {
       label: 'Colonne d’apparence',
-      hint: 'Détermine la colonne des tables Âge/Taille/Yeux/Cheveux consultées à la création',
+      hint: 'Race de l’espèce : sa rangée du Tableau des Races aléatoires et sa colonne des tables Âge/Taille/Yeux/Cheveux',
     },
     refCareer: { label: 'Colonne du Tableau des Carrières' },
-    rand: { label: 'Seuil aléatoire (d100)' },
     movement: { label: 'Mouvement' },
     fate: { label: 'Destin / Résilience' },
     baseChar: { label: 'Caractéristiques de base' },

@@ -68,6 +68,7 @@ import type * as tableauDesOups from './schemas/defs/oups';
 import type * as tableDesTalentsAleatoires from './schemas/defs/talents-aleatoires';
 import { tableDeCarrieres as tableAvecPortion } from './schemas/defs/carrieres-aleatoires';
 import type * as tableDesCarrieresAleatoires from './schemas/defs/carrieres-aleatoires';
+import type * as tableauDesRacesAleatoires from './schemas/defs/especes-aleatoires';
 import type * as tableauDesEvenements from './schemas/defs/interludeEvents';
 import type * as tableDesPeripeties from './schemas/defs/peripeties';
 import { trappings, findTrappingById } from './apparencesObjets';
@@ -137,6 +138,7 @@ import pregensJson from './pregens.json';
 import oupsJson from './oups.json';
 import talentsAleatoiresJson from './talents-aleatoires.json';
 import carrieresAleatoiresJson from './carrieres-aleatoires.json';
+import especesAleatoiresJson from './especes-aleatoires.json';
 import interludeEventsJson from './interludeEvents.json';
 import tavernGamesJson from './tavernGames.json';
 import peripetiesJson from './peripeties.json';
@@ -744,12 +746,11 @@ export interface SpeciesData {
   family: string;
   /** Variante régionale/sous-espèce (« Middenheim », « Norse »…) — absent pour l'espèce nominale. */
   variant?: string;
-  /** id STABLE (`RaceKey`, #313) — colonne des tables Âge/Taille/Yeux/Cheveux (`details.age`/
-   *  `details.taille`/`hairs.color`/`eyes.color`). */
+  /** Race de l'espèce (`RaceKey`, #313) : sa rangée de `especes-aleatoires.json` et sa colonne des tables
+   *  Âge/Taille/Yeux/Cheveux (`details.age`/`details.taille`/`hairs.color`/`eyes.color`). LDB 04 l.93 */
   refChar: RaceKey;
   /** Id de sa colonne de base dans `carrieres-aleatoires.json` (LDB 05 l.214). */
   refCareer: string;
-  rand: number;
   desc: string;
   movement: number;
   fate: { fate: number; resilience: number; extra: number };
@@ -3131,6 +3132,19 @@ export function carrieresOffertesAvec(tiree: string, sp: SpeciesData): string[] 
   const variante = carrieresAleatoires.find((d) => d.kind === 'variante' && d.carriere === tiree && d.colonnes.includes(sp.refCareer));
   const variantes = (variante?.entries ?? []).map((r) => r.id).filter((id) => id !== tiree && admise(findCareerById(id)));
   return [...substitutions, ...variantes];
+}
+/** Les documents du Tableau des Races aléatoires, un par table imprimée (LDB 04 l.93-101 ; NADJ 14 l.66-75 ;
+ *  ADE II 02 l.112-121), chaque rangée l'espèce nominale de sa race — app-owned éditable au Codex (`setDataset`),
+ *  même référence. */
+export const especesAleatoires = especesAleatoiresJson as (DocumentARangees<RangeeDe<typeof tableauDesRacesAleatoires>> & { die: string })[];
+/** La seule table du Tableau des Races aléatoires dont les races des rangées égalent `races`, lue à l'appel. */
+export function tableDesRacesAleatoires(races: ReadonlySet<RaceKey>): (typeof especesAleatoires)[number] {
+  const racesDe = (t: (typeof especesAleatoires)[number]) => new Set(t.entries.map((r) => garanti(findSpeciesById(r.id), r.id, 'espèce du Tableau des Races aléatoires').refChar));
+  const tables = especesAleatoires.filter((t) => {
+    const r = racesDe(t);
+    return r.size === races.size && [...races].every((x) => r.has(x));
+  });
+  return garanti(tables.length === 1 ? tables[0] : undefined, [...races].join(', '), `table unique du Tableau des Races aléatoires (${tables.length} trouvée(s)) pour les races`);
 }
 /** Événements « Entre deux aventures » (LDB d100) — app-owned éditable ; consommé par `interludeEvents.ts`. */
 export const interludeEvents = rangeesDe<typeof tableauDesEvenements>(interludeEventsJson) as InterludeEvent[];

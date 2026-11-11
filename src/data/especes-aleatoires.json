@@ -1,0 +1,175 @@
+[
+  {
+    "id": "races-ldb",
+    "type": "especes-aleatoires",
+    "label": "Tableau des Races aléatoires",
+    "die": "d100",
+    "source": {
+      "book": "livre-de-base",
+      "page": 24,
+      "note": "Tableau des Races aléatoires, LDB 04 l.93-101"
+    },
+    "entries": [
+      {
+        "id": "humains-reiklander",
+        "min": 1,
+        "max": 90
+      },
+      {
+        "id": "halflings",
+        "min": 91,
+        "max": 94
+      },
+      {
+        "id": "nains",
+        "min": 95,
+        "max": 98
+      },
+      {
+        "id": "hauts-elfes",
+        "min": 99,
+        "max": 99
+      },
+      {
+        "id": "elfes-sylvains",
+        "min": 100,
+        "max": 100
+      }
+    ]
+  },
+  {
+    "id": "races-gnome",
+    "type": "especes-aleatoires",
+    "label": "Tableau des Races aléatoires — avec le Gnome",
+    "die": "d100",
+    "source": {
+      "book": "nuits-agitees-et-dures-journees",
+      "page": 87,
+      "note": "Tableau des Races aléatoires, NADJ 14 l.66-75"
+    },
+    "entries": [
+      {
+        "id": "humains-reiklander",
+        "min": 1,
+        "max": 89
+      },
+      {
+        "id": "halflings",
+        "min": 90,
+        "max": 93
+      },
+      {
+        "id": "nains",
+        "min": 94,
+        "max": 97
+      },
+      {
+        "id": "gnomes",
+        "min": 98,
+        "max": 98
+      },
+      {
+        "id": "hauts-elfes",
+        "min": 99,
+        "max": 99
+      },
+      {
+        "id": "elfes-sylvains",
+        "min": 100,
+        "max": 100
+      }
+    ]
+  },
+  {
+    "id": "races-ogre",
+    "type": "especes-aleatoires",
+    "label": "Tableau des Races aléatoires — avec l’Ogre",
+    "die": "d100",
+    "source": {
+      "book": "archives-de-l-empire-2",
+      "page": 18,
+      "note": "Tableau des Races aléatoires, ADE II 02 l.112-121 ; la VF a perdu la colonne 1d100, bornes prises à la VO (« Grabbing a Bite », l.94-97)"
+    },
+    "entries": [
+      {
+        "id": "humains-reiklander",
+        "min": 1,
+        "max": 89
+      },
+      {
+        "id": "halflings",
+        "min": 90,
+        "max": 93
+      },
+      {
+        "id": "nains",
+        "min": 94,
+        "max": 97
+      },
+      {
+        "id": "ogres",
+        "min": 98,
+        "max": 98
+      },
+      {
+        "id": "hauts-elfes",
+        "min": 99,
+        "max": 99
+      },
+      {
+        "id": "elfes-sylvains",
+        "min": 100,
+        "max": 100
+      }
+    ]
+  },
+  {
+    "id": "races-gnome-et-ogre",
+    "type": "especes-aleatoires",
+    "label": "Tableau des Races aléatoires — avec le Gnome et l’Ogre",
+    "die": "d100",
+    "source": {
+      "book": "nuits-agitees-et-dures-journees",
+      "page": 87,
+      "note": "Tableaux des Races aléatoires, NADJ 14 l.66-75 et ADE II 02 l.112-121 (bornes de la VO « Grabbing a Bite », l.94-97), fusionnés"
+    },
+    "maison": "NADJ 14 l.70 et la VO d’ADE II (« Grabbing a Bite », l.95) ôtent chacun 1 valeur à la seule plage Humain (LDB 04 l.97 : 01-90 → 01-89) pour leur race ; Halfling et Nain gardent 4 valeurs chacun et se décalent. Avec les deux races, Humain cède 2 valeurs.",
+    "entries": [
+      {
+        "id": "humains-reiklander",
+        "min": 1,
+        "max": 88
+      },
+      {
+        "id": "halflings",
+        "min": 89,
+        "max": 92
+      },
+      {
+        "id": "nains",
+        "min": 93,
+        "max": 96
+      },
+      {
+        "id": "gnomes",
+        "min": 97,
+        "max": 97
+      },
+      {
+        "id": "ogres",
+        "min": 98,
+        "max": 98
+      },
+      {
+        "id": "hauts-elfes",
+        "min": 99,
+        "max": 99
+      },
+      {
+        "id": "elfes-sylvains",
+        "min": 100,
+        "max": 100
+      }
+    ]
+  }
+]
