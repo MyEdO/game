@@ -477,6 +477,16 @@ export function collectionALaCle(schema: unknown, racine: unknown, suite: string
   return atteinte;
 }
 
+/** Le pas `[cle]` résolu par la marque de la LISTE au bout de `prefixe` dans `racine` : l'élément dont la
+ *  clé vaut `cle` (`undefined` si aucun), et `par`, le nom de la clé de la liste ; `undefined` quand
+ *  `prefixe` ne mène à aucune liste marquée. */
+export function elementDeLaListe(schema: unknown, racine: unknown, prefixe: string, cle: string): { readonly element: unknown; readonly par: string } | undefined {
+  const liste = atteindre(schema, racine, prefixe);
+  const marque = liste?.marque;
+  if (marque?.forme !== 'liste' || !Array.isArray(liste?.valeur)) return undefined;
+  return { element: liste.valeur.find((e) => marque.de(e) === cle), par: marque.nom };
+}
+
 /** Le document d'un FICHIER, tel qu'un lecteur d'espace le reçoit : son schéma et sa racine (le JSON
  *  disque en phase 2 de `npm run gen`, la racine vivante au régime vivant) ; `undefined` : aucun. */
 export type AccesAuxDocuments = (fichier: string) => { readonly schema: unknown; readonly racine: unknown } | undefined;
@@ -497,9 +507,7 @@ function sourceDesSpecs(lue: CleLue, doc: { readonly schema: unknown; readonly r
   const [element] = pas.slice(-2);
   const prefixe = pas.slice(0, -2).reduce(suiteAvecPas, '');
   if (pas.length < 2 || !('cle' in element) || baseDe(lue) !== cleDesSpecs(cleNichee(lue.fichier, prefixe), element.cle)) return undefined;
-  const liste = atteindre(doc.schema, doc.racine, prefixe);
-  const marque = liste?.marque;
-  const el = marque?.forme === 'liste' && Array.isArray(liste?.valeur) ? liste.valeur.find((e) => marque.de(e) === element.cle) : undefined;
+  const el = elementDeLaListe(doc.schema, doc.racine, prefixe, element.cle)?.element;
   const source = estObjet(el) ? el.specsSource : undefined;
   if (typeof source !== 'string') return undefined;
   const declaration: SourceDeSpecs | undefined = (SOURCES_DE_SPECS as Record<string, SourceDeSpecs>)[source];

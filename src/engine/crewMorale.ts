@@ -62,7 +62,7 @@ export interface MoraleBand extends BandeOuverte {
 }
 
 /** Moral de départ d'un nouvel équipage / nouveau capitaine (MDG 14). */
-export const MORALE_BASE: number = crewMoraleJson.base;
+export const moraleBase = (): number => crewMoraleJson.base;
 export const MORALE_FACTORS: MoraleFactor[] = crewMoraleJson.factors as MoraleFactor[];
 export const MORALE_BANDS: MoraleBand[] = crewMoraleJson.bands as MoraleBand[];
 

@@ -55,6 +55,10 @@ describe('modelesDeLAtelier', () => {
     expect([modeles.bases[0].clips, modeles.bases[0].vitesseAuSol]).toEqual([{ marche: 'Walk_Loop', repos: 'Idle_Loop' }, 1.25]);
   });
 
+  it('une base publie les os de ses chaînes (#3842)', () => {
+    expect(modelesDeLAtelier({ humanoide: { ...humanoide, chaines: { cape: ['cape_1', 'cape_2'], jupe: ['jupe_1'] } } }, { humanoide: [] }).bases[0].osDeChaine).toEqual(['cape_1', 'cape_2', 'jupe_1']);
+  });
+
   it('une base sans table des rôles tenus à deux mains la publie vide (#3319)', () => {
     expect(modeles.bases[0].clipsDeuxMains).toEqual({});
     expect(modeles.bases[0].prisesOccupees).toEqual({});
@@ -118,11 +122,11 @@ describe('modelesDeLAtelier', () => {
       .toEqual({ hallebarde: { repere: secondePrise, maniement: 'hampe' }, estoc: { repere: secondePrise, maniement: null } });
   });
 
-  it('chaque élément servi qui a une couche donne les zones qu’il couvre et les éléments qu’il masque, ceux de couche plus intérieure ou sans couche, et lui seul (#2972)', () => {
-    expect(modeles.couches).toEqual({ chemise: { couvre: ['torse'], masque: ['epee', 'bouclier', 'teteNaine', 'broche'] }, teteNaine: { couvre: ['tete'], masque: ['epee', 'bouclier', 'broche'] } });
+  it('chaque élément servi qui a une couche donne son rang, s’il est un accessoire, les zones qu’il couvre et les éléments qu’il masque, ceux de couche plus intérieure ou sans couche, et lui seul (#2972, #3842)', () => {
+    expect(modeles.couches).toEqual({ chemise: { rang: 2, accessoire: false, couvre: ['torse'], masque: ['epee', 'bouclier', 'teteNaine', 'broche'] }, teteNaine: { rang: 0, accessoire: false, couvre: ['tete'], masque: ['epee', 'bouclier', 'broche'] } });
     const { couvre: _, ...sansZones } = { ...broche, couche: 'tenue' };
     expect(modelesDeLAtelier({ humanoide, chemise, broche: sansZones }, { humanoide: [], chemise: ['root'], broche: ['root'] }).couches)
-      .toEqual({ chemise: { couvre: ['torse'], masque: [] }, broche: { couvre: [], masque: [] } });
+      .toEqual({ chemise: { rang: 2, accessoire: false, couvre: ['torse'], masque: [] }, broche: { rang: 2, accessoire: true, couvre: [], masque: [] } });
   });
 
   it('les emblèmes sont la sous-liste `embleme` de la garde-robe, chacun réduit à son id, son libellé et son dessin', () => {

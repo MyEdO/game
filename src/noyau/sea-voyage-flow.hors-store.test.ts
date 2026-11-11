@@ -19,7 +19,8 @@ import { itemFromTrappingById } from '../engine/items';
 import { bankWithdraw } from './interludeFlow';
 import { traumaById } from '../engine/trauma';
 import { byId, maladies, species } from '../data';
-import { setDataset, resetData, deDeLaTable, setDeDeTable } from '../data/overrides';
+import { setDataset, resetData } from '../data/overrides';
+import { sousLeDe } from '../data/deDeLaTable.testkit';
 import type { Combatant } from '../engine/types';
 import { buildEncounter } from './monde/encounterAuthoring';
 import { emptyScene, type Scene } from './monde/scene';
@@ -1186,17 +1187,13 @@ describe('Événement de bord RACONTÉ → carte-parchemin (#371 LOT 4, non couv
 
   it('l’étape d’événement de bord tire au `die` de la table en donnée, jamais à un dé recopié (MDG 15 l.134 ; #1667)', () => {
     const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { cadence: 'jourParJour' })!;
-    const imprime = deDeLaTable('seaBoardEvents')!;
-    setDeDeTable('seaBoardEvents', 'd10');
-    try {
+    sousLeDe('seaBoardEvents', 'd10', () => {
       set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysToEvent: 1, forcedEventId: undefined } } });
       runSeaDay(get, set);
       const etape = get().pendingCascade!.participants.find((s) => s.kind === 'mer-evenement-de-bord')!;
       expect(formatDice(etape.table!.spec!)).toBe('1d10');
       expect(tableStepDef(SEA_BOARD_EVENT_TABLE)!.die, 'la table tirable suit le dé écrit').toBe(10);
-    } finally {
-      setDeDeTable('seaBoardEvents', imprime);
-    }
+    });
   });
 
   /** L'Humeur de Manann DÉCALE le d100 de l'événement (MDG 15 l.85) : elle est le `mod` de la table

@@ -22,7 +22,7 @@ import { seedBattleRng } from '../noyau/battleRng';
 import { scenario } from '../scenes/test-scenarios/13-bataille-de-masse';
 import { MassBattleView } from './MassBattleView';
 import { addCondition } from '../engine/conditions';
-import { deDeLaTable, setDeDeTable } from '../data/overrides';
+import { sousLeDe } from '../data/deDeLaTable.testkit';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -143,13 +143,9 @@ describe('MassBattleView — affectation aux Scènes (ADE II 8)', () => {
   it('7. « Tirer un facteur » nomme le dé de la table, lu sur la donnée à chaque rendu (ADE II 08 l.311)', () => {
     const tirer = (el: HTMLElement) => [...el.querySelectorAll('button')].find((b) => b.textContent?.startsWith('Tirer un facteur'));
     expect(tirer(monter())?.textContent).toBe('Tirer un facteur (1d10)');
-    const imprime = deDeLaTable('massBattleHazards')!;
-    try {
-      setDeDeTable('massBattleHazards', '1d12');
+    sousLeDe('massBattleHazards', '1d12', () => {
       act(() => root?.unmount()); container?.remove();
       expect(tirer(monter())?.textContent).toBe('Tirer un facteur (1d12)');
-    } finally {
-      setDeDeTable('massBattleHazards', imprime);
-    }
+    });
   });
 });

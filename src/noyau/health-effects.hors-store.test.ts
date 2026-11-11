@@ -233,7 +233,7 @@ describe('Effet setVessel (navire de campagne, MDG 13-15)', () => {
     applyEffects(banc.getState, banc.setState, [{ type: 'setVessel', vehicleId: 'cogue' }]);
     const v = banc.getState().vessel;
     expect(v?.vehicleId).toBe('cogue');
-    expect(v?.morale.score).toBe(75); // MORALE_BASE (nouvel équipage)
+    expect(v?.morale.score).toBe(75); // moraleBase() (nouvel équipage)
     expect(v?.wounds).toBeUndefined(); // coque intacte (aucun hullMax authoré)
     expect(banc.getState().journal.some((l) => /navire|cogue/i.test(l))).toBe(true);
   });

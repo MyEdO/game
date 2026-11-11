@@ -1,7 +1,7 @@
 /**
  * GARDE STRUCTURELLE (#1692) — le seam d'ÉCRITURE des datasets est UNIQUE.
  *
- * `setDataset`/`setObjectDataset`/`setDeDeTable`/`resetData` (`src/data/overrides.ts`) sont les seules portes qui
+ * `setDataset`/`setObjectDataset`/`setEnTete`/`resetData` (`src/data/overrides.ts`) sont les seules portes qui
  * mutent un dataset : elles écrivent son contenu EN PLACE **et** versionnent l'écriture
  * (`bumperDataset`, `src/data/versionDataset.ts`). Un `push`/`splice` posé directement sur le binding
  * exporté change bien la donnée, mais AUCUN index mémoïsé ne l'apprend — le monde de la donnée et
@@ -96,7 +96,7 @@ describe('#1692 — aucune écriture de dataset hors du seam `overrides.ts`', ()
     expect(ecrituresHorsSeam('copie.ts', parDocument, parBinding)).toHaveLength(1);
     const parChaine = `import { critiqueEntries } from '../data/criticals';\ncritiqueEntries('criticals-ldb-tete').push(ligne);\n`;
     expect(ecrituresHorsSeam('copie.ts', parChaine, parBinding)).toHaveLength(1);
-    const parLeSeam = `import { setDeDeTable } from '../data/overrides';\nsetDeDeTable('criticalsCorps', '2d10');\n`;
+    const parLeSeam = `import { setEnTete } from '../data/overrides';\nsetEnTete('criticalsCorps', [{ ancetre: '[criticals-ldb-corps]', champ: 'die', valeur: '2d10' }]);\n`;
     expect(ecrituresHorsSeam('copie.ts', parLeSeam, parBinding)).toEqual([]);
   });
 
