@@ -172,7 +172,8 @@ export interface ManannMood {
   applied: string[];
 }
 
-export const MANANN_BASE: ManannMood = { score: EVENTS.manann.base, applied: [] };
+/** Humeur de Manann d'un registre NEUF, sa base lue à l'appel. */
+export const manannBase = (): ManannMood => ({ score: EVENTS.manann.base, applied: [] });
 
 /** Applique un facteur d'Humeur (id du tableau EFFET SUR L'HUMEUR DE MANANN) : roule ses dés signés,
  *  UNE seule fois par navire (l.85) — déjà appliqué → no-op. PUR (nouvel état). */

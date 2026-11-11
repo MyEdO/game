@@ -960,7 +960,7 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
           <label className="dr">Table de hauteur
             <select value={o.hauteur.table.id} onChange={(e) => upd({ hauteur: { table: { id: e.target.value } } })}>
               {!o.hauteur.table.id && <option value="">— (choisir une table) —</option>}
-              {fallTables.map((t) => (<option key={t.id} value={t.id}>{t.label}</option>))}
+              {fallTables().map((t) => (<option key={t.id} value={t.id}>{t.label}</option>))}
             </select>
           </label>
         )}
