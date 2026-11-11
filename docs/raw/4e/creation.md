@@ -668,8 +668,8 @@ Les compagnons de campagne et *Le Zoo impérial* impriment des Personnages prêt
 | Malmir Giluviel | `EDOC 16 l.1042` | `EDOC 16 l.1167` | `EDOC 16 l.1175` | `EDOC 16 l.1183` |
 | Kirsten Krank | `EDOC 16 l.1199` | `EDOC 16 l.1315` | `EDOC 16 l.1327` | `EDOC 16 l.1335` |
 | Sigrid Sommerfeld | `MSRC 19 l.498` | `MSRC 19 l.635` | `MSRC 19 l.641` | `MSRC 19 l.645` |
-| Erina Eberhauer | `PDTC 01 l.3` | `PDTC 01 l.157` | `PDTC 01 l.163` | `PDTC 01 l.167` |
-| Golthog | `PDTC 01 l.204` | `PDTC 01 l.355` | `PDTC 01 l.361` | `PDTC 01 l.367` |
+| Erina Eberhauer | `PDTP 01 l.3` | `PDTP 01 l.157` | `PDTP 01 l.163` | `PDTP 01 l.167` |
+| Golthog | `PDTP 01 l.204` | `PDTP 01 l.355` | `PDTP 01 l.361` | `PDTP 01 l.367` |
 | Erich Massenbach | `ZI 14 l.55` | `ZI 14 l.180` | `ZI 14 l.180` | `ZI 14 l.202` |
 | Jorunn Gromsdottir | `ZI 14 l.219` | `ZI 14 l.359` | `ZI 14 l.365` | `ZI 14 l.369` |
 | Lynathryn Chantenuit | `ZI 14 l.386` | `ZI 14 l.490` | `ZI 14 l.496` | `ZI 14 l.510` |
@@ -692,7 +692,7 @@ Spécialisations imprimées par ces fiches : Bon marcheur (Rural) `EDOC 16 l.493
 | `ADE I ANNEXE I l.XX` | Archives de l'Empire vol. 1, Annexe I |
 | `EDOC 16 l.XX` | L'Ennemi dans l'Ombre — Compagnon, chapitre 12 — prétirés |
 | `MSRC 19 l.XX` | Mort sur le Reik — Compagnon, chapitre 17 — prétiré |
-| `PDTC 01 l.XX` | Le Pouvoir derrière le Trône — Compagnon, prétirés |
+| `PDTP 01 l.XX` | Le Pouvoir derrière le Trône — Prétirés |
 | `ZI 14 l.XX` | Le Zoo impérial, Expéditions prévues — prétirés |
 
 ---

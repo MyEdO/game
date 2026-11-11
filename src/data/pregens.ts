@@ -1,4 +1,4 @@
-/** EDOC 16 l.421 ; MSRC 19 l.498 ; ZI 14 l.55 ; PDTC 01 l.3 */
+/** EDOC 16 l.421 ; MSRC 19 l.498 ; ZI 14 l.55 ; PDTP 01 l.3 */
 import type { CharKey, Characteristics, Combatant } from '../engine/types';
 import { enPieces, type Money } from '../engine/money';
 import { rollDice, type DiceSpec, type RNG } from '../engine/dice';
