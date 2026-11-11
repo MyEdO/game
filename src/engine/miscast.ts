@@ -351,6 +351,11 @@ const TABLE_IDS_VDM: Record<MiscastSeverity, string> = { mineure: 'miscast-mineu
 /** Fichier des tables de miscast, lié par le type au `file` de son def (#3923). */
 const FICHIER_DES_MISCAST: typeof miscastDef.file = 'miscast.json';
 
+/** Catégorie Codex des LIGNES d'une table déclarée : celle de la niche `[id].entries` de son document
+ *  (`categorieDeLaNiche`, dérivée de l'exposition) ; `undefined` pour une table que le Codex n'expose pas. */
+export const categorieDesLignesDeLaTable = (tableId: string): string | undefined =>
+  categorieDeLaNiche(FICHIER_DES_MISCAST, suiteDesEntrees(tableId));
+
 /** Les datasets du seam qui portent les rangées des documents du fichier des miscast (#1667), dérivés
  *  de `DATASET_DE_LA_CATEGORIE` : le témoin de TOUT lecteur mémoïsé de ces tables. */
 export const MISCAST_DATASETS: readonly CleDeDataset[] = Object.values(DATASET_DE_LA_CATEGORIE)
@@ -382,7 +387,7 @@ export function miscastDie(tableId: string): DeDeTable {
  *  l'exposition). Une table de plus n'ajoute aucune ligne ici. Absente quand la table n'expose pas ses lignes
  *  (aucune fiche à viser : une pastille reliée à rien ne promet rien, arbitrage user 2026-07-18). */
 export function miscastRowSource(tableId: string, rowId: string): EffectSource | undefined {
-  const categorie = categorieDeLaNiche(FICHIER_DES_MISCAST, suiteDesEntrees(tableId));
+  const categorie = categorieDesLignesDeLaTable(tableId);
   return categorie && estSourceKind(categorie) ? { kind: categorie, id: rowId } : undefined;
 }
 
@@ -426,9 +431,9 @@ function miscastTables(): Record<MiscastSeverity, Row[]> {
 const doOps = (ops: GameOp[]): Flow => ({ kind: 'do', effect: { type: 'ops', on: 'target', ops } });
 
 /** Catégorie Codex de la LIGNE tirée sur la table d'une sévérité sous le jeu EN VIGUEUR — porte (b) de
- *  `entryCategoryOf` (`src/data`) : celle de sa table (`categorieDeLaNiche`). */
+ *  `entryCategoryOf` (`src/data`) : celle de sa table (`categorieDesLignesDeLaTable`). */
 const categorieDesLignes = (severity: MiscastSeverity): string | undefined =>
-  categorieDeLaNiche(FICHIER_DES_MISCAST, suiteDesEntrees(miscastTableId(severity)));
+  categorieDesLignesDeLaTable(miscastTableId(severity));
 
 /** Construit le nœud de Flow `test` d'une entrée (« Test de X Difficulté ou onFail » ; palier
  *  `onFailHard` via Condition Flow `slThreshold ≤ dr` dans la branche d'échec — comme Lot 4b). La

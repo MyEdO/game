@@ -144,6 +144,11 @@ export type ExpositionCodex =
   | { readonly keys: readonly string[] }
   | { readonly exempt: { readonly kind: 'vocabulaire-app-interne' | 'dette'; readonly raison: string; readonly ticket?: string } };
 
+type ExpositionEditHorsNiche =
+  | { readonly dataset: string }
+  | { readonly object: 'single' | 'record' }
+  | { readonly none: string; readonly dataset?: string };
+type ExpositionNiche = { readonly niche: { readonly categories: Readonly<Record<string, string>> } };
 /**
  * Ce que l'ÉDITEUR édite : le dataset-liste dont ce document est une entrée, l'OBJET de configuration
  * qu'il forme à lui seul (`single`) ou dont il est une valeur (`record`), les TABLEAUX NICHÉS qu'il
@@ -158,11 +163,6 @@ export type ExpositionCodex =
  * entier ; le fichier PARENT est réécrit au save. Ses clés SONT les clés Codex du document : la
  * fabrique les pose en `codex.keys`, qu'un def à route niche ne déclare pas.
  */
-type ExpositionEditHorsNiche =
-  | { readonly dataset: string }
-  | { readonly object: 'single' | 'record' }
-  | { readonly none: string; readonly dataset?: string };
-type ExpositionNiche = { readonly niche: { readonly categories: Readonly<Record<string, string>> } };
 export type ExpositionEdit = ExpositionEditHorsNiche | ExpositionNiche;
 
 /** EXPOSITION d'un document au handle : où il se lit (Codex) et où il s'édite. */
