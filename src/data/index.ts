@@ -62,6 +62,8 @@ import type * as imparfaites from './schemas/defs/miscast';
 import type { VisuelDEffet, Projectile } from './schemas/defs/rendus';
 import type { VisuelDeLumiere } from './schemas/defs/lightTones';
 import type * as signesAstrologiques from './schemas/defs/stars';
+import type * as couleurDesYeux from './schemas/defs/eyes';
+import type * as couleurDesCheveux from './schemas/defs/hairs';
 import type * as tableauDesOups from './schemas/defs/oups';
 import type * as tableDesTalentsAleatoires from './schemas/defs/talents-aleatoires';
 import { tableDeCarrieres as tableAvecPortion } from './schemas/defs/carrieres-aleatoires';
@@ -1588,13 +1590,11 @@ export interface PsychologyData extends StatusData {
    *  Résistance, ou à une difficulté propre). « Sans Peur (Ennemi) » force Accessible à part (par-combattant). */
   test?: { skill?: RefDesignee; difficulty?: import('../engine/types').Difficulty };
 }
-/** Tables Couleur des Yeux / Cheveux (LDB 05 l.698-744) : 2d10, par colonne `RaceKey` (#313). */
+/** Rangée des Tableaux de couleur des yeux / des cheveux (LDB 05 l.742-768), par colonne `RaceKey` (#313). */
 export interface DetailColorData {
   id: string;
-  /** Deux datasets partagent CE contrat (`eyes.json` et `hairs.json`) : le `type` dit lequel. */
-  type: 'eyes' | 'hairs';
   label: string;
-  /** Borne haute 2d10 (incluse). */
+  /** Borne haute cumulée (incluse) du dé de la table. */
   rand: number;
   /** Override de `rand` PAR RACE (`RaceKey`, #313) quand une édition utilise d'autres bornes que le
    *  LDB (ex. gnome NADJ, #420) ; défaut = `rand`. Lu par `rollDetail`. */
@@ -2917,8 +2917,18 @@ const axeParId = indexParId('axes', allAxes);
 export const findAxisById: (id: string) => AxisData | undefined = axeParId;
 /** Socle par défaut d'une campagne SANS `activeAxes` déclaré (`WorldMap.activeAxes`). */
 export const coreAxisIds = memoParVersion('axes', (): string[] => allAxes.filter((a) => a.core).map((a) => a.id));
-export const eyes = eyesJson as DetailColorData[];
-export const hairs = hairsJson as DetailColorData[];
+/** Le Tableau de couleur des yeux (`eyes.json`, LDB 05 l.742-754), document à rangées tiré à son dé. */
+export const tableDesYeux = eyesJson as DocumentARangees<DetailColorData> & { die: string };
+/** Le Tableau de couleur des cheveux (`hairs.json`, LDB 05 l.756-768), document à rangées tiré à son dé. */
+export const tableDesCheveux = hairsJson as DocumentARangees<DetailColorData> & { die: string };
+/** Les rangées du Tableau de couleur des yeux. */
+export const eyes = rangeesDe<typeof couleurDesYeux>(tableDesYeux) as DetailColorData[];
+/** Les rangées du Tableau de couleur des cheveux. */
+export const hairs = rangeesDe<typeof couleurDesCheveux>(tableDesCheveux) as DetailColorData[];
+/** Le dé du Tableau de couleur des yeux, lu à l'appel. */
+export const eyesDie = (): DeDeTable => deDeTirageDe<typeof couleurDesYeux>(tableDesYeux);
+/** Le dé du Tableau de couleur des cheveux, lu à l'appel. */
+export const hairsDie = (): DeDeTable => deDeTirageDe<typeof couleurDesCheveux>(tableDesCheveux);
 /** Calendrier impérial — tables de CONTENU éditables au Codex (cf. `engine/clock.ts` pour la mécanique). */
 export const calendarMonths = calendarMonthsJson as { id: string; type: 'calendarMonths'; label: string; days: number }[];
 export const calendarIntercalary = calendarIntercalaryJson as { id: string; type: 'calendarIntercalary'; label: string; afterMonth: number }[];

@@ -386,7 +386,6 @@ const ZEROS: Readonly<Record<string, readonly string[]>> = {
   ActivityStakeEntry: ['stakeForm'],
   AdvanceCostBand: ['max', 'min'],
   CritDoc: ['die'],
-  DetailColorData: ['randByRace'],
   DomainData: ['grantGroups'],
   EtatData: ['severity'],
   GodData: ['grantGroups'],
