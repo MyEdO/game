@@ -34,7 +34,7 @@ import {
   draftLevel,
   careerCharKeys,
   coastalSwapAvailable,
-  careerRollPool,
+  carrieresOffertes,
   withCoastalSwap,
   speciesTalentChoiceEntries,
   unresolvedTrappingSlots,
@@ -321,11 +321,11 @@ describe('Riverains ⇄ Côtiers (MDG 09 l.9, #393 P2 correctif utilisateur)', (
   const swappableSpecies = allSpecies.find((s) => coastalSwapAvailable(withSpecies(newDraft(1), s.id)))!;
   const swappable = () => withSpecies(newDraft(1234), swappableSpecies.id);
 
-  it('la table effective exclut Riverains XOR Côtiers selon la bascule — jamais les deux', () => {
-    const off = careerRollPool({ ...swappable(), coastalSwap: false });
+  it('les carrières offertes portent Riverains XOR Côtiers selon la bascule — jamais les deux', () => {
+    const off = carrieresOffertes({ ...swappable(), coastalSwap: false });
     expect(off.some((c) => c.class.id === 'cotiers')).toBe(false);
     expect(off.some((c) => c.class.id === 'riverains')).toBe(true);
-    const on = careerRollPool({ ...swappable(), coastalSwap: true });
+    const on = carrieresOffertes({ ...swappable(), coastalSwap: true });
     expect(on.some((c) => c.class.id === 'riverains')).toBe(false);
     expect(on.some((c) => c.class.id === 'cotiers')).toBe(true);
   });

@@ -64,7 +64,8 @@ import type { VisuelDeLumiere } from './schemas/defs/lightTones';
 import type * as signesAstrologiques from './schemas/defs/stars';
 import type * as tableauDesOups from './schemas/defs/oups';
 import type * as tableDesTalentsAleatoires from './schemas/defs/talents-aleatoires';
-import { tableDeCarrieres as tableAvecPortion, type rangee as rangeeDeCarrieres } from './schemas/defs/carrieres-aleatoires';
+import { tableDeCarrieres as tableAvecPortion } from './schemas/defs/carrieres-aleatoires';
+import type * as tableDesCarrieresAleatoires from './schemas/defs/carrieres-aleatoires';
 import type * as tableauDesEvenements from './schemas/defs/interludeEvents';
 import type * as tableDesPeripeties from './schemas/defs/peripeties';
 import { trappings, findTrappingById } from './apparencesObjets';
@@ -3097,19 +3098,17 @@ export const rangeesDesTalentsAleatoires = (): RangeeDe<typeof tableDesTalentsAl
   rangeesDe<typeof tableDesTalentsAleatoires>(talentsAleatoires, 'talents-aleatoires');
 /** Le dé du Tableau des Talents aléatoires, lu à l'appel. */
 export const talentsAleatoiresDie = (): DeDeTable => deDeTirageDe<typeof tableDesTalentsAleatoires>(talentsAleatoires, 'talents-aleatoires');
-/** Une rangée du Tableau des Classes et Carrières aléatoires : la Carrière qu'elle désigne, à sa fourchette. */
-export type RangeeDeCarrieres = z.output<typeof rangeeDeCarrieres>;
 /** Les documents du Tableau des Classes et Carrières aléatoires (LDB 05 l.214-299) : une colonne de base
  *  par colonne imprimée, les portions (`colonne` posée, MDG 09 l.9) et les variantes (`carriere` posée,
  *  AA 02 l.109-128) — app-owned éditable au Codex (`setDataset`), même référence. */
-export const carrieresAleatoires = carrieresAleatoiresJson as (DocumentARangees<RangeeDeCarrieres> & { die: string; colonne?: string; carriere?: string; colonnes?: string[] })[];
+export const carrieresAleatoires = carrieresAleatoiresJson as (DocumentARangees<RangeeDe<typeof tableDesCarrieresAleatoires>> & { die: string; colonne?: string; carriere?: string; colonnes?: string[] })[];
 /** La colonne de base `id`, lue à l'appel. */
 export const colonneDeCarrieres = (id: string) =>
   garanti(carrieresAleatoires.find((d) => d.id === id && d.colonne === undefined && d.carriere === undefined), id, 'colonne du Tableau des Classes et Carrières aléatoires');
 /** La portion qui remplace une étendue de la colonne `colonne` (MDG 09 l.9), lue à l'appel. */
 export const portionDeLaColonne = (colonne: string) => carrieresAleatoires.find((d) => d.colonne === colonne);
 /** La table effective de la colonne `colonne`, avec ou sans sa portion, et son dé : lue par `rollCareer`. */
-export function tableDeCarrieres(colonne: string, avecPortion: boolean): { die: DeDeTable; entries: RangeeDeCarrieres[] } {
+export function tableDeCarrieres(colonne: string, avecPortion: boolean): { die: DeDeTable; entries: RangeeDe<typeof tableDesCarrieresAleatoires>[] } {
   const base = colonneDeCarrieres(colonne);
   return { die: deDeLaTableTiree(base), entries: tableAvecPortion(base.entries, avecPortion ? portionDeLaColonne(colonne)?.entries : undefined) };
 }
@@ -3282,15 +3281,20 @@ export function speciesSingular(speciesId: string | undefined): PlayerText {
   const race = t(`espece.individu.${sp.refChar}`);
   return sp.variant ? dataLabel(`${race} (${sp.variant})`) : race;
 }
+/** Les carrières que le tirage de `sp` peut offrir sur sa table effective (`tableDeCarrieres`), avec ou sans sa
+ *  portion : les rangées, et ce que leur tirage offre en plus (`carrieresOffertesAvec`). */
+export function carrieresTirables(sp: SpeciesData, avecPortion: boolean): CareerData[] {
+  const ids = new Set(tableDeCarrieres(sp.refCareer, avecPortion).entries.flatMap((r) => [r.id, ...carrieresOffertesAvec(r.id, sp)]));
+  return careers.filter((c) => ids.has(c.id));
+}
 /**
  * Carrières accessibles à une espèce (Tableau des Classes et Carrières aléatoires, LDB 05
- * l.197+, l.360) : les rangées de sa colonne et de sa portion, et ce que leur tirage offre en plus
- * (`carrieresOffertesAvec`). `ignoreRestrictions` = LDB 05 l.362.
+ * l.197+, l.360) : celles que son tirage offre, avec ou sans le remplacement (`carrieresTirables`).
+ * `ignoreRestrictions` = LDB 05 l.314-316.
  */
 export function careersForSpecies(sp: SpeciesData, ignoreRestrictions = false): CareerData[] {
   if (ignoreRestrictions) return careers;
-  const tirees = [colonneDeCarrieres(sp.refCareer), portionDeLaColonne(sp.refCareer)].flatMap((d) => d?.entries.map((r) => r.id) ?? []);
-  const ids = new Set(tirees.flatMap((id) => [id, ...carrieresOffertesAvec(id, sp)]));
+  const ids = new Set([false, true].flatMap((avecPortion) => carrieresTirables(sp, avecPortion).map((c) => c.id)));
   return careers.filter((c) => ids.has(c.id));
 }
 const carriereParId = indexParId('careers', careers);

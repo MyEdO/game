@@ -63,7 +63,7 @@ import {
 import { adresseDeCreation, deFamille, tirageSous, type AdresseDeCreation } from '../../engine/adresseDeCreation';
 import { dotationsDuHeros, emplacementsDeDotation, emplacementTranche, estEmplacementRacine } from '../../engine/trappingChoices';
 import { refKey, talentMaxReached, acquerirTalent, type PorteurDeTalents, skillSlots, talentSlots, statutOuRefus } from '../../engine/careerSlots';
-import { findSpeciesById, findTalentById, specPoolOf, careers, careersForSpecies, colonneDeCarrieres, portionDeLaColonne, tableDeCarrieres, findCareerById, levelsForCareer, advancementLabel, refLabel, findStarById, celestialHouses, SpeciesData, CareerLevelData, trappingRefLabel, type AdvancementRef } from '../../data';
+import { findSpeciesById, findTalentById, specPoolOf, careersForSpecies, carrieresTirables, portionDeLaColonne, levelsForCareer, advancementLabel, refLabel, findStarById, celestialHouses, SpeciesData, CareerLevelData, trappingRefLabel, type AdvancementRef, type CareerData } from '../../data';
 import { estSpecialisable, type RefDesignee, type RefASpecialisation, memeSpecialisation } from '../../data/schemas/grammaire/ref';
 import type { Appearance } from '../../engine/authoringAppearance';
 import { generateName } from '../../engine/names';
@@ -286,17 +286,13 @@ export const coastalSwapAvailable = (d: CreatorDraft): boolean => {
   return col !== undefined && portionDeLaColonne(col) !== undefined;
 };
 
-/** Les carrières que le tirage du brouillon peut désigner, aux Classes près (MDG 09 l.9 : remplacement, pas
- *  cumul) : sans remplacement, la Classe de la portion est écartée ; avec, celle des rangées qu'elle remplace. */
-export const careerRollPool = (d: CreatorDraft): typeof careers => {
-  const col = draftSpecies(d)?.refCareer;
-  const portion = col === undefined ? undefined : portionDeLaColonne(col);
-  if (col === undefined || !portion) return careers;
-  const effective = new Set(tableDeCarrieres(col, true).entries);
-  const ecartees = d.coastalSwap ? colonneDeCarrieres(col).entries.filter((r) => !effective.has(r)) : portion.entries;
-  const ecarteesParClasse = new Set(ecartees.map((r) => garanti(findCareerById(r.id), r.id, 'carrière').class.id));
-  return careers.filter((c) => !ecarteesParClasse.has(c.class.id));
-};
+/** Les carrières offertes au brouillon : toutes sans le filtre de race (`careersForSpecies`), sinon celles que le tirage
+ *  offre sur la table effective de son espèce, au remplacement près (`carrieresTirables`) ; aucune sans espèce. */
+export function carrieresOffertes(d: CreatorDraft): CareerData[] {
+  const sp = draftSpecies(d);
+  if (!sp) return [];
+  return d.ignoreRestrictions ? careersForSpecies(sp, true) : carrieresTirables(sp, d.coastalSwap);
+}
 
 /** Bascule Riverains ↔ Côtiers (MDG 09 l.9 : « avant de lancer les dés ») — VERROUILLÉE dès qu'un
  *  jet existe (`careerRolls` non vide) : sans cette garde, cocher/décocher effaçait les jets et
@@ -310,7 +306,7 @@ export function withCoastalSwap(d: CreatorDraft, coastalSwap: boolean): CreatorD
   return { ...d, coastalSwap, careerRolls: [], careerFreeRolls: 0 };
 }
 
-/** Lève ou rétablit le filtre des carrières par espèce (`careersForSpecies`). */
+/** Lève ou rétablit le filtre des carrières par espèce (`carrieresOffertes`). */
 export function withIgnoreRestrictions(d: CreatorDraft, ignoreRestrictions: boolean): CreatorDraft {
   return ignoreRestrictions === d.ignoreRestrictions ? d : { ...d, ignoreRestrictions };
 }
@@ -819,9 +815,9 @@ const STEP_VALIDATORS: Record<StepId, (c: StepCtx) => string | null> = {
   species: ({ sp }) => (sp ? null : t('crea.choisirRace')),
   career: ({ d, sp, level }) => {
     if (!d.careerId) return t('crea.choisirCarriere');
-    // La carrière reste offerte à l'espèce courante, sous le filtre courant (`careersForSpecies`) : changer d'espèce
-    // ou rétablir le filtre ne laisse pas passer une carrière hors liste.
-    if (sp && !careersForSpecies(sp, d.ignoreRestrictions).some((c) => c.id === d.careerId)) return t('crea.carriereHorsEspece');
+    // La carrière reste offerte au brouillon (`carrieresOffertes`) : changer d'espèce, rétablir le filtre ou basculer
+    // le remplacement ne laisse pas passer une carrière hors liste.
+    if (sp && !carrieresOffertes(d).some((c) => c.id === d.careerId)) return t('crea.carriereHorsEspece');
     if (!level) return t('crea.carriereSansNiveau1');
     return null;
   },
