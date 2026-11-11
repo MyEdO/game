@@ -353,8 +353,8 @@ describe('bornesSchema — les deux bornes d’un réglage vont par paire', () =
     // 30→31 (#700, 2026-09-30) : `porte-secrete-rayon-m` (1..20 m), LDB 09 l.399 ne chiffre pas la distance.
     // 31→30 (#700, 2026-10-05) : `fenetre-hauteur-allege` supprimée, l'allège est une donnée de la croisée.
     // 30→31 (#700, 2026-10-05) : `fouille-piece-minutes` (1..120 min), LDB 12 l.200 ne chiffre pas la durée.
-    // 31→32 (#1652, 2026-11-07) : `cibleVulnerablePct` (10..300 %), MDG 15 l.150/171 ne chiffre pas la cible vulnérable.
-    // 32→33 (#3612, 2026-11-08) : `market-evaluation-delai-jours` (0..30 jours), LDB 59 l.41 ne borne pas les nouvelles tentatives d'Évaluation.
+    // 31→32 (#1652, 2026-11-07) : `cible-vulnerable-pct` (10..300 %), MDG 15 l.150/171 ne chiffre pas la cible vulnérable.
+    // 32→33 (#3612, 2026-11-08) : `marche-evaluation-delai-jours` (0..30 jours), LDB 59 l.41 ne borne pas les nouvelles tentatives d'Évaluation.
     expect(bornees.length, 'plus aucun réglage borné : la sonde ne mesure rien.').toBe(33);
     expect(
       bornees.filter((r) => r.kind !== 'param').map((r) => r.id),

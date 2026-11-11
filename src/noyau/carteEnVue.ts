@@ -41,7 +41,7 @@ export interface CarteEnVue { plan: PlanDeLaCarte; reprendre: GesteDuNoyau | nul
 /** Les modes qu'un trajet offre : les siens, et en selle quand il se fait à pied et que tout le groupe est monté
  *  (EDOC 07 l.140). */
 function modesDuTrajet(s: Jeu, modes: readonly TravelMode[]): TravelMode[] {
-  const enSelle = !!rule('travel-allures') && modes.includes('pied') && partyFullyMounted(s.party, s.possessions);
+  const enSelle = !!rule('voyage-allures') && modes.includes('pied') && partyFullyMounted(s.party, s.possessions);
   return [...modes, ...(enSelle ? ['monture'] : [])];
 }
 

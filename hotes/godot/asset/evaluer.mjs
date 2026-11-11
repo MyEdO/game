@@ -74,6 +74,13 @@ if (pas !== undefined && !(pas > 0)) {
   process.exit(2)
 }
 
+/** Sort avec le code `code` une fois les sorties standard et d'erreur écrites : `process.exit` seul tronque une sortie
+ *  en tuyau. */
+async function sortir(code) {
+  await Promise.all([process.stdout, process.stderr].map((flux) => new Promise((resolve) => flux.write('', resolve))))
+  process.exit(code)
+}
+
 /** Un écart (`Ecart`, `evaluateur/ecart.ts`) en une ligne. */
 const ligneDEcart = (e) =>
   `[${e.garde}/${e.code}]${e.mesh ? ` ${e.mesh}` : ''}${e.clip ? ` ${e.clip}` : ''}${e.t === undefined ? '' : ` t=${e.t.toFixed(3)}`} : ${e.detail} (valeur ${typeof e.valeur === 'number' ? +e.valeur.toPrecision(6) : e.valeur}, seuil ${e.seuil ?? '—'})`
@@ -99,13 +106,13 @@ if (values.porte) {
     console.log(`PASSE ${nom} : code ${r.code}`)
     process.stdout.write(r.sortie)
   }
-  process.exit(resultats.some((r) => r.code !== 0) ? 1 : 0)
+  await sortir(resultats.some((r) => r.code !== 0) ? 1 : 0)
 }
 
 const { evaluer } = await chargerEvaluateur()
 const couche = (glb) => {
-  const { couche, couvre = [] } = JSON.parse(readFileSync(manifesteVoisin(glb), 'utf8'))
-  return couche ? { couche, couvre } : null
+  const { couche, couvre = [], categorie } = JSON.parse(readFileSync(manifesteVoisin(glb), 'utf8'))
+  return couche ? { couche, couvre, categorie } : null
 }
 const FORMES_D_ARMES = new Set(JSON.parse(readFileSync(new URL('../../../src/data/trappings.json', import.meta.url), 'utf8'))
   .filter((t) => t.shape && ['melee', 'distance'].includes(t.categorie)).map((t) => t.shape.id))
@@ -165,13 +172,13 @@ try {
       if (values.json) etats.push({ etat, fiche })
     }
     if (values.json) writeFileSync(values.json, `${JSON.stringify({ etats }, null, 2)}\n`)
-    process.exit(ecarts ? 1 : 0)
+    await sortir(ecarts ? 1 : 0)
   }
   const fiche = await evaluer(entree)
   afficherFiche(fiche)
   if (values.json) writeFileSync(values.json, `${JSON.stringify(fiche, null, 2)}\n`)
-  process.exit(fiche.ecarts.length ? 1 : 0)
+  await sortir(fiche.ecarts.length ? 1 : 0)
 } catch (erreur) {
   console.error(erreur instanceof Error ? erreur.message : String(erreur))
-  process.exit(1)
+  await sortir(1)
 }

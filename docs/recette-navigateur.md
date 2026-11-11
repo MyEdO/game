@@ -650,8 +650,8 @@ Exemple : `__wfrp.testCompetence(id, { stake: { authored: 'Recette de compétenc
 La recette clique ensuite « Lancer » puis les gestes de résultat ; ces helpers préparent,
 ils ne remplacent pas le chemin joueur.
 
-Une règle optionnelle se prépare par `__wfrp.rules('tavern-games', true)`, jamais
-`flag('tavern-games')` : `flag` refuse désormais les identifiants de règles en renvoyant à
+Une règle optionnelle se prépare par `__wfrp.rules('jeux-de-taverne', true)`, jamais
+`flag('jeux-de-taverne')` : `flag` refuse désormais les identifiants de règles en renvoyant à
 `rules`. À l'ouverture d'un interlude, résoudre les cérémonies successives avec une portée
 explicite avant de mesurer ses affordances.
 
@@ -867,7 +867,7 @@ pas la cible d'UX.
 | `quality('id', label?, advantage?)` | ajoute un Atout/Défaut à l'arme ACTIVE + Avantages | ne touche que `weapons[0]` ; `null` vaut absent (un `undefined` passé par CDP arrive `null`) : qualité par défaut « Déstabilisante », Avantage inchangé |
 | `condition('id', name?, n?)` | applique un État via le VRAI `addCondition` (déclenche les triggers) | — |
 | `disease(heroId, maladieId, { phase? })` | contracte une maladie via le VRAI cycle (`contractDisease` + `tickDisease` de l'incubation) ; `phase:'active'` la déclare en avançant son horloge — jamais un état forgé (localisation de cloque, transitions, `infectedMinutes` réels) | `maladieId` inconnu → `✗` ; défaut = phase d'incubation. Ex. `disease('hero-1','crampes-abdominales')` n'existe pas (crampes = SYMPTÔME) → passer par la maladie porteuse (`colique`, `vers-de-carie`, `vers-du-reik`) |
-| `bladeTrap(defenderId, attackerId, defSL?)` | ouvre l'étape « Piège-lame » sans forcer un Critique défensif | assigne un `uid` factice à l'arme de l'attaquant si absent |
+| `piegeALame(defenderId, attackerId, defSL?)` | ouvre l'étape « Piège-lame » sans forcer un Critique défensif | assigne un `uid` factice à l'arme de l'attaquant si absent |
 | `focus('id', spell?, dr?)` | met un combattant en Focalisation (test d'interruption au coup suivant) | c'est aussi le raccourci LÉGITIME de SETUP pour poser un DR de Focalisation ARBITRAIRE sur un sort à CN élevé et sauter le grind multi-Rounds du bouton « Focaliser » (ci-dessous) — pas seulement l'éprouve d'interruption |
 | `fear(heroId, enemyId, indice?)` | pose une Peur + simule l'approche de la source | positions requises (`✗` sinon) |
 | `talent('id', talentId, opts?)` | octroie un Talent à un combattant — `opts` = `times` (nombre, défaut 1) OU `{ spec?, times? }` pour un talent `specsSource` (ex. `talent('hero-1','magie-du-chaos',{spec:'tzeentch'})` — la spec posée EST l'id lu par `chaosDomainOf`, `engine/combatFeatures/dispatch.ts`) | sans `spec`, un talent `specsSource` reste sans mécanique lisible |

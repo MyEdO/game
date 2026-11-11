@@ -138,7 +138,7 @@ describe('bonnet-de-fou (LDB 71 l.20) — +4 Blessures (attrMod exécutable) + p
   });
 });
 
-describe('racine-de-mandragore (LDB 71 l.35) — gate d’action par Round (actGate)', () => {
+describe('racine-de-mandragore (LDB 71 l.35) — gate d’action par Round (testDAgir)', () => {
   function battleWith(h: Combatant): BattleState {
     return {
       combatants: [h], order: [h.id], turn: 0, round: 1, action: null, selectedSpellId: null,
@@ -148,7 +148,7 @@ describe('racine-de-mandragore (LDB 71 l.35) — gate d’action par Round (actG
 
   it('applier testDAgir : échec du Test → étape de CHOIX ; « garder le Mouvement » consomme l’Action de la battle', () => {
     const h = hero('h1');
-    h.activeEffects = [{ label: 'Racine de mandragore', bonus: 0, duration: { scale: 'clock', until: 99999 }, actGate: { characteristic: 'force-mentale' } }];
+    h.activeEffects = [{ label: 'Racine de mandragore', bonus: 0, duration: { scale: 'clock', until: 99999 }, testDAgir: { characteristic: 'force-mentale' } }];
     banc.setState({ party: [h], battle: battleWith(h), mode: 'battle' });
     const get = banc.getState;
     const set = banc.setState;
@@ -156,10 +156,10 @@ describe('racine-de-mandragore (LDB 71 l.35) — gate d’action par Round (actG
     // Échec du Test → l'applier insère l'étape de choix Action/Mouvement.
     const out = applierDe('testDAgir')!(get, set, { id: 's1', kind: 'testDAgir', actorId: 'h1', result: { roll: 99, target: 30, sl: -6, success: false } } as never, h, { steps: [], index: 0 });
     expect(out?.insert?.[0]?.kind).toBe('choixDAgir');
-    expect(out?.insert?.[0]?.options?.map((o: { key: string }) => o.key)).toEqual(['action', 'move']);
+    expect(out?.insert?.[0]?.options?.map((o: { key: string }) => o.key)).toEqual(['action', 'mouvement']);
 
     // Choix « garder le Mouvement » → l'Action du tour est consommée sur la battle COURANTE.
-    applierDe('choixDAgir')!(get, set, { ...out!.insert![0], chosen: 'move' } as never, h, { steps: [], index: 0 });
+    applierDe('choixDAgir')!(get, set, { ...out!.insert![0], chosen: 'mouvement' } as never, h, { steps: [], index: 0 });
     expect(banc.getState().battle!.acted).toBe(true);
   });
 

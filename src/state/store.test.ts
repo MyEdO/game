@@ -143,7 +143,7 @@ describe('stepPartyDir — pas clavier BLOQUÉ (#792) : silence remplacé par MO
 
     let blocked = 0;
     const off = bus.on(EVT.MOVE_BLOCKED, () => { blocked += 1; });
-    useGame.getState().stepPartyDir('up');
+    useGame.getState().stepPartyDir('haut');
     off();
 
     expect(useGame.getState().partyPos).toEqual({ x: 4, y: 4 }); // aucun déplacement fantôme

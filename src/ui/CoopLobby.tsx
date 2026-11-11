@@ -66,19 +66,19 @@ export function CoopLobby() {
           <input value={name} onChange={(e) => setName(e.target.value)} placeholder={t("coop.name.placeholder")} autoFocus />
         </label>
         <Grid cols={2} gap="lg" align="stretch">
-          <CoopSection title={t("coop.host.section")}>
-            <p className="hint">{t("coop.host.hint")}</p>
+          <CoopSection title={t("coop.hote.section")}>
+            <p className="hint">{t("coop.hote.aide")}</p>
             <button
               className="btn btn-primary"
               disabled={!name.trim() || busy}
               onClick={async () => {
                 setError('');
                 setBusy(true);
-                if (!(await hostStart(name.trim()))) setError(t("coop.host.error"));
+                if (!(await hostStart(name.trim()))) setError(t("coop.hote.erreur"));
                 setBusy(false);
               }}
             >
-              {t("coop.host.btn")}
+              {t("coop.hote.bouton")}
             </button>
           </CoopSection>
           <CoopSection title={t("coop.join.section")}>
@@ -112,7 +112,7 @@ export function CoopLobby() {
         </CoopSection>
         <Row className="hint" gap="xs" justify="center">
           <Icon id={net.connection === 'reconnexion' ? 'coop/away' : 'ui/wait'} size="sm" />
-          {net.hostAway ? t("coop.invite.attente.hoteAbsent")
+          {net.hoteAbsent ? t("coop.invite.attente.hoteAbsent")
             : net.connection === 'reconnexion' ? t("coop.invite.attente.reconnexion")
             : t("coop.invite.attente.defaut")}
         </Row>
@@ -127,9 +127,9 @@ export function CoopLobby() {
       {/* Charger en session : le salon survit (`applyLoadedSave` préserve `net`), l'invité
           suit au snapshot — c'est LE chemin pour reprendre une partie coop sauvegardée. */}
       <Row gap="md" className="coop-actions">
-        <button className="btn" onClick={() => setLoadOpen(true)}><Icon id="file/open" /> {t("coop.host.loadGame")}</button>
+        <button className="btn" onClick={() => setLoadOpen(true)}><Icon id="file/open" /> {t("coop.hote.chargerUnePartie")}</button>
         <button className="btn btn-primary" onClick={() => setScreen('party')}>
-          {t("coop.host.compose")}
+          {t("coop.hote.composer")}
         </button>
       </Row>
       {loadOpen && <SaveLoadModal mode="load" onClose={() => setLoadOpen(false)} />}

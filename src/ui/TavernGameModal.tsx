@@ -47,9 +47,9 @@ function ChoixDeProfil({ titre, profils, choisi, onChoisir, fiche, game }: {
  * influençable Chance/Pacte/Résilience, rendue par l'arbitre `ActiveModal`) ; à son retour, le
  * réducteur de la séquence décide de la manche. Une situation = une modale : tant que l'arbitre
  * tient une modale, la table CÈDE (patron `CombatStartSplash.tsx:20-21`, `ActiveModal.tsx:66`). Le jeu présenté ici est celui du RÉGIME en vigueur
- * (`findTavernGameById` : complet, ou rapide sous la règle `tavern-games-rapides` — le formulaire
+ * (`findTavernGameById` : complet, ou rapide sous la règle `jeux-de-taverne-rapides` — le formulaire
  * n'offre alors ni mise ni table, le jeu n'en portant plus). Affiche l'issue et la mise éventuelle. Ouverte via
- * `ouvrirLesJeux` (affordance montrée seulement si l'option `tavern-games` est active).
+ * `ouvrirLesJeux` (affordance montrée seulement si l'option `jeux-de-taverne` est active).
  */
 export function TavernGameModal() {
   const state = useGame((s) => s.tavernGames);

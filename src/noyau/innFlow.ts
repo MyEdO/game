@@ -9,7 +9,7 @@
  * Succès → rumeur commerciale via le générateur EXISTANT `generateTradeRumour` (`landMarketFlow.ts`,
  * MSRC 13 l.180), affichée par le panneau « Rumeurs déjà glanées » (déjà câblé sur `store.tradeRumours`)
  * — zéro prose de rumeur inventée ici. Échec → Exténué (EDOC 8 l.133, `ActivityDef.failExtenue`),
- * comme la version voyage (`travelPostes.ts`). Durée en POLICY maison (`inn-gather-info-minutes`,
+ * comme la version voyage (`travelPostes.ts`). Durée en POLICY maison (`auberge-recueillir-informations-minutes`,
  * `engine/policy.ts`) : l'horloge de campagne avance quelle que soit l'issue — « tout est horodaté ».
  */
 import { battleRng } from './battleRng';
@@ -27,9 +27,9 @@ import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 const ACTIVITY_ID = 'recueillir-informations';
 const INN_GOSSIP_KIND = 'rumeurDAuberge';
 
-/** Durée (minutes) de l'Activité jouée à l'auberge — `rule('inn-gather-info-minutes')`, maison éditable. */
+/** Durée (minutes) de l'Activité jouée à l'auberge — `rule('auberge-recueillir-informations-minutes')`, maison éditable. */
 export function innGatherInfoMinutes(): number {
-  return Number(rule('inn-gather-info-minutes'));
+  return Number(rule('auberge-recueillir-informations-minutes'));
 }
 
 /** Ouvre le Test de Ragot de l'auberge (activité `recueillir-informations`, contexte `auberge`). Silence

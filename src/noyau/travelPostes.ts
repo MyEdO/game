@@ -249,7 +249,7 @@ export function buildWeatherResistanceSteps(get: Get, weather: Weather): BuiltCa
 /** Jets d'EXPOSITION de fin d'Étape (l.73) à insérer : un par héros vivant devant un Test de Résistance
  *  (météo × équipement via `stageExposureDifficulty`). Protection magique = pas de jet (issue directe). */
 function buildExposureSteps(state: { party: Combatant[] }, stage: StageContext): BuiltCascadeStep[] {
-  if (!rule('travel-attraper-froid')) return [];
+  if (!rule('voyage-attraper-froid')) return [];
   const party = state.party;
   const tent = partyHasTent(party);
   const out: BuiltCascadeStep[] = [];

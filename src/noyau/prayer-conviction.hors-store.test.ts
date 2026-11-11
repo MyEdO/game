@@ -1,6 +1,6 @@
 /**
  * « Prêchez, ma sœur ! » (LDB 40 l.40-42) — câblage cast : une Prière murmurée (`discreet`) subit une
- * Difficulté d'un cran plus dure quand l'option `prayer-conviction` est active.
+ * Difficulté d'un cran plus dure quand l'option `priere-conviction` est active.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, beforeEach, expect } from 'vitest';
@@ -20,7 +20,7 @@ function priest(): Combatant {
   return p as Combatant;
 }
 
-/** Cible du Test d'une Prière (à voix haute vs discrète), option `prayer-conviction` supposée réglée. */
+/** Cible du Test d'une Prière (à voix haute vs discrète), option `priere-conviction` supposée réglée. */
 function castTarget(discreet: boolean): number {
   const p = priest();
   banc.setState({ battle: null, party: [p], journal: [], pendingCast: null, pendingCascade: null, gameTime: 8 * 60 });
@@ -34,14 +34,14 @@ function castTarget(discreet: boolean): number {
 
 describe('Prêchez, ma sœur ! (LDB 40 l.42)', () => {
   it('option active : Prière discrète = Difficulté d’un cran plus dure (−10 à la cible)', () => {
-    setRule('prayer-conviction', true);
+    setRule('priere-conviction', true);
     const aloud = castTarget(false);
     const whispered = castTarget(true);
     expect(whispered).toBe(aloud - 10); // Intermédiaire (+0) → Complexe (−10)
   });
 
   it('option désactivée : la discrétion demandée reste sans effet', () => {
-    setRule('prayer-conviction', false);
+    setRule('priere-conviction', false);
     expect(castTarget(true)).toBe(castTarget(false));
   });
 });

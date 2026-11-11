@@ -5,7 +5,7 @@
  * ENCHAÎNÉS le même jour cumulent leur budget (l'accumulateur unique `travelDayHours` (état du jeu) keyé sur
  * `dayIndex(gameTime)`) ; l'allure choisie au départ borne la journée, et la marche forcée (case cochée)
  * se teste dès que le cumul dépasse 6 h (un seul Test/jour). Portes maison : départ terrestre/fluvial de l'aube au crépuscule
- * (`travel-departure-gate`), privation de sommeil au jour franchi sans nuit (`travel-sleep-forced`).
+ * (`voyage-heure-de-depart`), privation de sommeil au jour franchi sans nuit (`voyage-privation-de-sommeil`).
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -144,7 +144,7 @@ describe('#340 — porte d’heure de départ (terre & fleuve, maison ON par dé
   });
 
   it('porte débrayable : désactivée, un départ de nuit part directement', () => {
-    setRule('travel-departure-gate', false);
+    setRule('voyage-heure-de-depart', false);
     setup(16);
     banc.setState({ gameTime: campaignStart() + 15 * 60 });
     get().partirEnVoyage('r1', 'pied');
@@ -162,7 +162,7 @@ describe('#340 — nuit forcée (privation de sommeil, maison, défaut ON [arbit
   });
 
   it('débrayable : désactivée, franchir un jour sans dormir ne coûte pas d’Exténué', () => {
-    setRule('travel-sleep-forced', false);
+    setRule('voyage-privation-de-sommeil', false);
     setup(16);
     banc.setState({ gameTime: campaignStart(), lastNightDay: dayIndex(campaignStart()), lastUpkeepDay: dayIndex(campaignStart()) });
     const before = stacks(get().party[0], 'extenue');
@@ -172,9 +172,9 @@ describe('#340 — nuit forcée (privation de sommeil, maison, défaut ON [arbit
 });
 
 describe('#340 — voguer de nuit (÷2 mer, MDG 15 l.76) câblé sur une règle maison', () => {
-  it('la capacité de navigation nocturne est portée par `sea-night-sailing` (défaut ON)', () => {
-    expect(rule('sea-night-sailing')).toBe(true); // navire équipé pour la nuit → distance pleine
-    setRule('sea-night-sailing', false);
-    expect(rule('sea-night-sailing')).toBe(false); // OFF → seaMilesPerDay(m, false) applique le ÷2
+  it('la capacité de navigation nocturne est portée par `mer-voguer-de-nuit` (défaut ON)', () => {
+    expect(rule('mer-voguer-de-nuit')).toBe(true); // navire équipé pour la nuit → distance pleine
+    setRule('mer-voguer-de-nuit', false);
+    expect(rule('mer-voguer-de-nuit')).toBe(false); // OFF → seaMilesPerDay(m, false) applique le ÷2
   });
 });

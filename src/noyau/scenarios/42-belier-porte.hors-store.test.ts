@@ -150,7 +150,7 @@ describe('Bélier — porte (belier-porte) : engin de siège CREWÉ, jamais une 
     const destinations = [...reach.keys()].filter((k) => k !== `${start.x},${start.y}`);
     expect(destinations.length).toBeGreaterThan(0);
     // Toutes dans le plafond maison (chebyshev ≤ vitesse de poussée) depuis la case du chef.
-    const cap = Number(rule('siege-engine-push-speed'));
+    const cap = Number(rule('engin-de-siege-vitesse-de-poussee'));
     for (const k of reach.keys()) {
       const [x, y] = k.split(',').map(Number);
       expect(chebyshev({ x, y }, start)).toBeLessThanOrEqual(cap);
@@ -189,10 +189,10 @@ describe('Bélier — porte (belier-porte) : engin de siège CREWÉ, jamais une 
     expect(banc.getState().battle!.order).not.toContain(ram.id);
   });
 
-  it('portée de poussée PLAFONNÉE à la vitesse maison (`siege-engine-push-speed`, défaut 2 cases) — RAW muet, ADE II 8 l.258', () => {
+  it('portée de poussée PLAFONNÉE à la vitesse maison (`engin-de-siege-vitesse-de-poussee`, défaut 2 cases) — RAW muet, ADE II 8 l.258', () => {
     const { soldat, ram } = startBelier();
     setActive(soldat.id);
-    const cap = Number(rule('siege-engine-push-speed'));
+    const cap = Number(rule('engin-de-siege-vitesse-de-poussee'));
     expect(cap).toBe(2);
     const start = { ...soldat.pos! };
     banc.getState().pousserLEngin();

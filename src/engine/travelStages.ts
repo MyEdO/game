@@ -91,7 +91,7 @@ export function weatherFromRoll(roll: number, season: Season): Weather {
  * Le canon laisse le découpage « à la discrétion du MJ » (l.23) sans formule de distance ; on
  * dérive un nombre depuis la distance (paliers documentés, fidèles aux exemples : village proche =
  * 1, ville à ville = 2-4) PUIS on applique le « bonus d'Étapes » d'auteur (l.40 : « augmentez le
- * nombre d'Étapes de 2 ou plus ») — lu PAR DÉFAUT sur la règle optionnelle `travel-etapes-count-bonus`
+ * nombre d'Étapes de 2 ou plus ») — lu PAR DÉFAUT sur la règle optionnelle `voyage-etapes-supplementaires`
  * (point de lecture UNIQUE ; les tests purs passent le paramètre). Minimum 1 (l.25/27).
  *
  * Modificateur de MOUVEMENT du groupe (EDOC 8 l.25) : « Une fois le nombre d'Étapes déterminé, il
@@ -100,12 +100,12 @@ export function weatherFromRoll(roll: number, season: Season): Weather {
  * de 1 ou 2 Étapes. Si tous les Personnages ont [...] un Mouvement de 6 ou plus, le nombre total
  * d'Étapes est réduit de moitié pour atteindre un résultat minimum de 1. » `groupMinMovement` (absent
  * par défaut = comportement inchangé) porte ce score ; le choix « 1 ou 2 » est lu sur la règle
- * optionnelle `travel-etapes-low-move-bonus` (EDOC 8 l.25 — MJ décide, valeur maison). La division
+ * optionnelle `voyage-etapes-groupe-lent` (EDOC 8 l.25 — MJ décide, valeur maison). La division
  * par deux arrondit à l'inférieur (RAW ne précise pas l'arrondi ; plancher à 1 dans tous les cas).
  */
 export function stageCount(
   distanceKm: number,
-  countBonus = Number(rule('travel-etapes-count-bonus')),
+  countBonus = Number(rule('voyage-etapes-supplementaires')),
   groupMinMovement?: number,
 ): number {
   const km = Math.max(0, distanceKm);
@@ -118,7 +118,7 @@ export function stageCount(
   else base = 4 + Math.ceil((km - 150) / 50);
   let stages = base + Math.max(0, Math.floor(countBonus));
   if (groupMinMovement != null) {
-    if (groupMinMovement <= 3) stages += Math.max(0, Math.floor(Number(rule('travel-etapes-low-move-bonus'))));
+    if (groupMinMovement <= 3) stages += Math.max(0, Math.floor(Number(rule('voyage-etapes-groupe-lent'))));
     else if (groupMinMovement >= 6) stages = Math.floor(stages / 2);
   }
   return Math.max(1, stages);
@@ -238,7 +238,7 @@ export function weatherLightningNervous(w: Weather): boolean {
 
 /** Une caractéristique est-elle « physique » au sens EDOC 8 l.82 (liste MAISON éditable) ? */
 export function isPhysicalTestChar(char: CharKey): boolean {
-  return weatherPhysicalTestChars.includes(char);
+  return weatherPhysicalTestChars().includes(char);
 }
 /** Méthode d'Approvisionnement (LDB 09 l.565-572, option « Trouver de la nourriture et des herbes »). */
 export type ForageMethod = 'recherche' | 'chasse' | 'piegeage';

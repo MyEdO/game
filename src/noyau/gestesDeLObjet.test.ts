@@ -1,7 +1,7 @@
 /**
  * LES GESTES D'UN OBJET (#3328, `gestesDeLObjet`) : chaque geste n'existe que pour l'objet qu'il touche, et se ferme
  * par le verdict que son verbe applique : en combat, `refusDInventaire` ; l'Évaluation et la Détection, `refusDEvaluation`
- * (le délai maison après une Évaluation manquée, `market-evaluation-delai-jours` ; une tentative par détecteur, LDB 10 l.336) ;
+ * (le délai maison après une Évaluation manquée, `marche-evaluation-delai-jours` ; une tentative par détecteur, LDB 10 l.336) ;
  * poser au sol, une scène où le poser (`refusDePoser`) ; le geste présent et refusé, sa raison dite.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';

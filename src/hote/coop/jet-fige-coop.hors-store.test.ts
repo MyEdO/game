@@ -25,7 +25,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDe
 
 const NET = (mode: 'hote' | 'invite', mySeat: number, invite: string): NetState => ({
   mode, mySeat, roomCode: 'ABCDEF', seatNames: { 0: 'Hôte', 1: 'Antoine' }, presence: {},
-  connection: 'connecte', hostAway: false, ownership: { [invite]: 1 }, slots: [1, 1, 0, 0], rangs: {}, gmSeat: 0,
+  connection: 'connecte', hoteAbsent: false, ownership: { [invite]: 1 }, slots: [1, 1, 0, 0], rangs: {}, gmSeat: 0,
 });
 
 /** L'hôte du siège 0 et l'invité du siège 1 ; `chezLInvite` rend l'état de l'invité après le dernier instantané. */

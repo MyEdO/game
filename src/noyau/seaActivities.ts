@@ -10,7 +10,7 @@
  *    Test étendu de Marchandage Complexe (−10), 10 DR en ≤ 3 tentatives → % récupéré
  *    (`opportunityTradePct`, table verbatim `sea-cargo.json`).
  *  - Cartographie (l.288-290) : Métier (Cartographe) Complexe (−10) → une Carte marine (trapping
- *    `carte-marine`, +2 DR d'Orientation via la règle `sea-chart-orientation-dr`) d'une valeur de DR CO
+ *    `carte-marine`, +2 DR d'Orientation via la règle `mer-carte-orientation-dr`) d'une valeur de DR CO
  *    (prix d'instance). Les deux ports désignés (l.290) exigeraient un graphe de ports : simplifiés en
  *    « toute route » par cette règle maison éditable.
  *  - Planque gratuite lors de la Cartographie (l.292) : dépôt optionnel (`pick.stashGold`) dans

@@ -8,6 +8,7 @@ import { nommerChamps, nommerNoeud, metaDesChamps, type MetaDesChamps } from './
 import { tableTotale } from '../../../lib/tableTotale';
 import type { Dir8 } from '../../../geometry/dir8';
 import type { FormuleSansTirage } from '../../../engine/ops';
+import type { RegleOptionnelleId } from '../../../engine/policy';
 import { z } from 'zod';
 import { parseStatus } from '../../../engine/money';
 import { parseDice, totalDuDe } from '../../../engine/dice';
@@ -589,7 +590,7 @@ export function variantOf<T extends z.ZodRawShape, K extends Extract<keyof T, st
  *  par le champ `variants?: Variant[]` de toute entrée à variante réglée (`activeVariant`/`effectiveEntry`,
  *  `src/engine/variants.ts`). */
 export type Variant = {
-  when: { rule: string; equals?: z.infer<typeof ruleValueSchema> };
+  when: { rule: RegleOptionnelleId; equals?: z.infer<typeof ruleValueSchema> };
   desc?: string;
   source?: SourceRef;
   [field: string]: unknown;

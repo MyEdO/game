@@ -196,7 +196,7 @@ export function creerLeSalon(ports: PortsDuSalon): Salon {
       onSeatClosed: (seat) => siegeFerme(get, set, seat),
     });
     rh.onFatal = () => {
-      get().ecrireAuJournal(t('coop.hostLinkLost'));
+      get().ecrireAuJournal(t('coop.hote.lienPerdu'));
       quitter(set);
     };
     rh.onJoin = (seat, gname) => {
@@ -247,7 +247,7 @@ export function creerLeSalon(ports: PortsDuSalon): Salon {
         fail(reason);
       };
       rg.onHostAway = (away) => {
-        if (get().net.mode === 'invite') set({ net: { ...get().net, hostAway: away } });
+        if (get().net.mode === 'invite') set({ net: { ...get().net, hoteAbsent: away } });
       };
       rg.onConnState = (s) => {
         if (get().net.mode === 'invite') set({ net: { ...get().net, connection: s === 'connecte' ? 'connecte' : 'reconnexion' } });

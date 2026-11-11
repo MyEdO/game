@@ -28,7 +28,7 @@ function reussirEtJouer(banc: Banc, dr: number, gestes: Gestes = {}): CascadeSte
   const pc = banc.getState().pendingCast!;
   banc.setState({ pendingCast: { ...pc, result: { ...pc.result!, cast: true, sl: dr, isCritical: false, isFumble: false } } });
   banc.getState().jetValider('incantation');
-  const oui = (v: boolean | undefined) => (v ? 'yes' : 'no');
+  const oui = (v: boolean | undefined) => (v ? 'oui' : 'non');
   return draineEtapes(banc.getState, 20, (e) => (e.kind === 'testDeclenche' ? gestes.calme : undefined), (e) => {
     if (e.kind === 'personneChoisie') return gestes.personne;
     if (e.kind !== 'choixDeclenche') return undefined;

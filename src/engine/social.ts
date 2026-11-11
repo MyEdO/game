@@ -9,12 +9,12 @@
  * il s'applique TOUJOURS dès que la couche est présente (ce n'est pas une option).
  *
  * Trois règles optionnelles l'enrichissent (registre `policy.ts`, groupe « Social ») :
- *  - `social-status-reaction-roll` (l.54 + l.63-67/90) : 1d10 avant le Test → 1-2 « Braver le
+ *  - `social-reaction-au-statut` (l.54 + l.63-67/90) : 1d10 avant le Test → 1-2 « Braver le
  *    Statut » (aucun mod), 3-8 réactions classiques (mod normal), 9-10 « Opinions extrêmes »
  *    (mod inversé).
- *  - `social-begging-bonus` (l.92) : un Bronze qui mendie auprès d'un Argent (« juste au-dessus »)
+ *  - `social-mendicite-statut` (l.92) : un Bronze qui mendie auprès d'un Argent (« juste au-dessus »)
  *    obtient +10 au lieu de −10.
- *  - `social-charm-intra-tier` (l.88, « Le MJ peut décider, plus rarement, d'appliquer ces
+ *  - `social-statut-meme-echelon` (l.88, « Le MJ peut décider, plus rarement, d'appliquer ces
  *    modificateurs à ceux qui sont de Standing différent au sein d'un même Échelon ») : ±10 entre
  *    deux personnes du MÊME Échelon selon leur Standing.
  *
@@ -97,9 +97,9 @@ export function capriciousDR(roll: number): number {
 
 /** Mod social RAW (LDB 08) d'un `actor` envers une `target`, options de `policy.ts` comprises.
  *  - (a) inter-Échelon : actor > target → +10, < → −10, = → 0 (RAW de base, toujours actif).
- *  - (b) si même Échelon ET règle `social-charm-intra-tier` : ±10 selon le Standing.
- *  - (c) règle `social-begging-bonus` + actor Bronze + target Argent + `opts.begging` → force +10.
- *  - (d) règle `social-status-reaction-roll` : enveloppe le résultat via un 1d10 PRÉ-TIRÉ par l'appelant
+ *  - (b) si même Échelon ET règle `social-statut-meme-echelon` : ±10 selon le Standing.
+ *  - (c) règle `social-mendicite-statut` + actor Bronze + target Argent + `opts.begging` → force +10.
+ *  - (d) règle `social-reaction-au-statut` : enveloppe le résultat via un 1d10 PRÉ-TIRÉ par l'appelant
  *        (`opts.reactionRoll`, RNG SEEDÉ, UN seul tirage par Test) — 1-2 → 0, 3-8 → mod, 9-10 → −mod.
  *        PUR : aucun tirage ici. */
 export function statusCharmMod(
@@ -114,12 +114,12 @@ export function statusCharmMod(
     mod = da > dt ? 10 : -10;
     // (c) Mendicité (LDB 08 l.63) : Bronze → Argent « juste au-dessus » → +10 au lieu de −10.
     if (
-      rule('social-begging-bonus') && opts?.begging &&
+      rule('social-mendicite-statut') && opts?.begging &&
       actor.tier === 'bronze' && target.tier === 'argent'
     ) {
       mod = 10;
     }
-  } else if (rule('social-charm-intra-tier') && actor.standing !== target.standing) {
+  } else if (rule('social-statut-meme-echelon') && actor.standing !== target.standing) {
     // (b) Intra-Échelon (option, l.88) : ±10 selon le Standing.
     mod = actor.standing > target.standing ? 10 : -10;
   } else {
@@ -148,7 +148,7 @@ export function statusCharmLabel(
   if (!mod) return undefined;
   const sign = mod > 0 ? '+' : '−';
   const cmp = mod > 0 ? '>' : '<'; // le comparateur SUIT le sens du mod (cohérent même en mendicité)
-  const beg = rule('social-begging-bonus') && opts?.begging && actor.tier === 'bronze' && target.tier === 'argent';
+  const beg = rule('social-mendicite-statut') && opts?.begging && actor.tier === 'bronze' && target.tier === 'argent';
   const side = actor.tier === target.tier && !beg
     ? `${libelleDEchelon(actor.tier)} ${actor.standing}${cmp}${target.standing}` // intra-Échelon : compare le Standing
     : `${libelleDEchelon(actor.tier)}${cmp}${libelleDEchelon(target.tier)}`;

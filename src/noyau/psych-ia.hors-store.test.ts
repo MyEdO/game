@@ -64,11 +64,11 @@ describe('Psychologie IA (Terreur au début du Round, LDB 21 l.9, l.54-56)', () 
     H.size = 'enorme';
     E.characteristics['force-mentale'] = 10;
     E.followsCharacterRules = regles;
-    setRule('psych-acquisition-optional', true);
+    setRule('psycho-acquisition-optionnelle', true);
     try {
       openRoundStartPsych(banc.getState, banc.setState);
     } finally {
-      resetRule('psych-acquisition-optional');
+      resetRule('psycho-acquisition-optionnelle');
     }
     const e = banc.getState().battle!.combatants.find((c) => c.id === E.id)!;
     expect(e.conditions.find((c) => c.id === 'brise')!.value, 'au-delà du Bonus de FM 1').toBeGreaterThan(1);
@@ -96,11 +96,11 @@ describe('Psychologie IA (Terreur au début du Round, LDB 21 l.9, l.54-56)', () 
     H.aiControlled = true;
     H.characteristics['force-mentale'] = 10;
     H.terreursSubies = [];
-    setRule('psych-acquisition-optional', true);
+    setRule('psycho-acquisition-optionnelle', true);
     try {
       openRoundStartPsych(banc.getState, banc.setState);
     } finally {
-      resetRule('psych-acquisition-optional');
+      resetRule('psycho-acquisition-optionnelle');
     }
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     const brise = h.conditions.find((c) => c.id === 'brise')?.value ?? 0;

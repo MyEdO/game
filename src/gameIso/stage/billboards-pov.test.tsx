@@ -110,7 +110,7 @@ async function monterCadre(frame: StageFrame): Promise<void> {
 }
 
 const cadrePov = (facing: Dir8, partyPos: { x: number; y: number }): StageFrame =>
-  ({ mode: 'pov', partyPos, facing, indoor: false, cid: HÉROS.id });
+  ({ mode: 'subjectif', partyPos, facing, indoor: false, cid: HÉROS.id });
 
 /** Le cadre de PLATEAU au cran `rot` — l'autre branche de l'union, celle que le lot ne doit PAS avoir
  *  fait basculer dans le regard perspective. */

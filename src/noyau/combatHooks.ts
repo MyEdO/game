@@ -17,7 +17,7 @@ import type { Get, Set as SetFn } from './flowTypes';
 import type { BattleState } from './etat';
 import type { Combatant, Weapon } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
-import { rule } from '../engine/policy';
+import { rule, type RegleOptionnelleId } from '../engine/policy';
 import type { EffectTrigger } from '../engine/flowCore';
 import { tablesPosees } from './tablesPosees';
 
@@ -47,7 +47,7 @@ export interface CombatHook {
   id: string;
   phase: EffectTrigger;
   order?: number;
-  enabledIf?: string;
+  enabledIf?: RegleOptionnelleId;
   run(ctx: CombatHookCtx): void;
 }
 

@@ -69,9 +69,9 @@ export const scenario: TestScenario = {
     // LDB 77
     'Un PNJ typé par le profil standard de son espèce propose un jeu de taverne depuis son dialogue ' +
     // NADJ 16
-    '(Effet openTavernGames, option `tavern-games` pré-activée) : la table s’ouvre sur son offre et ' +
+    '(Effet openTavernGames, option `jeux-de-taverne` pré-activée) : la table s’ouvre sur son offre et ' +
     'l’opposant joue sa fiche.',
   partyNote: 'Soldat · Chasseur',
-  rules: { 'tavern-games': true },
+  rules: { 'jeux-de-taverne': true },
   construire: (idNeuf) => ({ party: groupeDeScenario(idNeuf, 'soldat', 'chasseur'), scene: construireScene() }),
 };

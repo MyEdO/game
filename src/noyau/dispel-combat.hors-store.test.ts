@@ -104,7 +104,7 @@ describe('Dissipation permanente — Action de combat', () => {
   // est un DR (`caster.dispel.total`, l'accumulateur RÉEL), jamais la cible du Test (`pendingDispel.value`,
   // en points de pourcentage — un DR vaut une dizaine, `tests.ts:98`). Le volet OFF reste au Livre de
   // base (`LDB 46 l.154-162`, aucun bonus) ; le volet ON rougit si `dispelOwnSpellDR` se débranche.
-  it('dissipe son propre Sort : +1 DR CUMULÉ seulement sous `magic-vdm-incantation`', () => {
+  it('dissipe son propre Sort : +1 DR CUMULÉ seulement sous `magie-vdm-incantation`', () => {
     const freshMage = () => mk('mage', ['forme-bestiale'], {
       activeEffects: [{ label: 'Malédiction', characteristic: 'agilite', bonus: -10, duration: { scale: 'rounds', left: 9 },
         spell: { spellId: 'malefice', ni: 3, casterId: 'mage', label: 'Maléfice' } }],
@@ -113,13 +113,13 @@ describe('Dissipation permanente — Action de combat', () => {
       const mage = freshMage();
       const battle = { combatants: [mage], order: ['mage'], turn: 0, round: 1, acted: false, over: false, log: [] } as unknown as BattleState;
       banc.setState({ battle, pendingDispel: null, pendingVictory: null }); // la victoire du Round précédent ne tient plus la main
-      if (rule) setRule('magic-vdm-incantation', true);
+      if (rule) setRule('magie-vdm-incantation', true);
       banc.getState().dissiperLeSort('mage', 'malefice', 'mage');
       const pd = banc.getState().pendingDispel!;
       banc.setState({ pendingDispel: { ...pd, result: { roll: 10, target: pd.value, sl: 1, success: true } } });
       banc.getState().jetValider('dissipation');
       const total = banc.getState().battle!.combatants.find((c) => c.id === 'mage')!.dispel!.total;
-      if (rule) resetRule('magic-vdm-incantation');
+      if (rule) resetRule('magie-vdm-incantation');
       return total;
     };
     expect(roundDR(false)).toBe(1); // OFF (LDB 46 l.154-162) : le DR du jet seul (sl:1), aucun bonus.

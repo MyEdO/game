@@ -13,6 +13,7 @@
  * citation est portée par la spec/table qui l'emploie ; ce qui n'est pas
  * modélisable reste une op `narrative` (journalisée, arbitrage MJ, rien d'inventé).
  */
+import type { RegleOptionnelleId } from './policy';
 import type { FabriqueDId } from './fabriqueDId';
 import { RNG, roll, type DiceSpec, type EffetSigne, rollDice, totalDuDe } from './dice';
 import { bonus, effectiveChar, effectiveArmourAt, blessuresReconciliees } from './characteristics';
@@ -157,7 +158,7 @@ export type FormuleDe<J> =
    *  `rule(id)`) — terme GÉNÉRAL : toute quantité qu'un livre ne chiffre pas (`maison`) reste ÉDITABLE
    *  au panneau in-game au lieu d'être figée dans le moteur. Une règle non numérique (ou inconnue) vaut
    *  0, comme toute formule malformée. */
-  | { rule: string }
+  | { rule: RegleOptionnelleId }
   /** BORNE BASSE d'un terme (`max(minimum, of)`) — clause d'ENTRÉE du livre, portée par la formule
    *  qui la reçoit : « inutilisable pour 1d10 – (Bonus d'Endurance) Rounds (minimum de 1) »
    *  (`AA 07 l.113`, `LDB 18 l.88`) s'écrit `{minimum:1, of:{sum:[…]}}`. Récursif. `minimum` nomme CE
@@ -1151,10 +1152,10 @@ export type GameOp =
   | { op: 'loseTurn'; what?: 'action' | 'movement' }
   /** GATE d'action par Round (Racine de mandragore, LDB 71 l.35 : « Les utilisateurs doivent réussir un
    *  Test de Force Mentale à chaque Round pour effectuer une Action ou un Mouvement (un au choix) ») —
-   *  `ActiveEffect.actGate` vérifié au DÉBUT du tour du porteur en combat (cadence-aware : héros manuel =
+   *  `ActiveEffect.testDAgir` vérifié au DÉBUT du tour du porteur en combat (cadence-aware : héros manuel =
    *  étape de cascade influençable + choix Action/Mouvement ; IA/auto = jet inline, l'Action est gardée).
    *  Hors combat (pas de Rounds) : inerte. */
-  | { op: 'actGate'; characteristic: CharKey }
+  | { op: 'testDAgir'; characteristic: CharKey }
   /** Bonus/malus aux Tests LIÉS À UNE MALADIE (contraction, cycle quotidien, Test de fin) —
    *  Fleur de lune « +30 à tous les Tests associés pour résister à la [Peste noire] » (LDB 71 l.26),
    *  Racine de terre +10 (LDB 72 l.28), Tonique digestif +20 (l.32). `diseases` = ids ciblés (absent =
@@ -2782,16 +2783,16 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         lines.push(...grantDiseaseSymptom(target, o.disease, o.symptomId, o.severity));
         break;
       }
-      case 'actGate': {
+      case 'testDAgir': {
         // Gate d'action par Round (Racine de mandragore) : le drapeau est lu au début du tour du porteur
         // en combat (`resolveActGates`, couche state) — cadence-aware, jamais un jet silencieux de héros.
         target.activeEffects = target.activeEffects ?? [];
         target.activeEffects.push({
           label: nomDeSource(ctx), bonus: 0,
           duration: durationFromCtx(ctx),
-          actGate: { characteristic: o.characteristic },
+          testDAgir: { characteristic: o.characteristic },
         });
-        lines.push(t('op.actGate', { name: target.label, char: CHAR_LABELS[o.characteristic], src: nomDeSource(ctx) }));
+        lines.push(t('op.testDAgir', { name: target.label, char: CHAR_LABELS[o.characteristic], src: nomDeSource(ctx) }));
         break;
       }
       case 'noBreath': {

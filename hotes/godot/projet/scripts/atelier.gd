@@ -161,6 +161,7 @@ func _ready() -> void:
 	_cible.add_child(_marques)
 	_recueil = _erreurs
 	_montage.erreurs = _erreurs
+	_montage.empilee.connect(_publier)
 	%Recharger.pressed.connect(_recharger)
 	%Lecture.pressed.connect(_lire)
 	%Pause.pressed.connect(_mettre_en_pause)
@@ -1601,8 +1602,9 @@ func _publier() -> void:
 ## (`plages`, avec sa valeur), la composition courante avec ce que `composer` en a monté, ce qui y manque, le texte de
 ## son refus et celui de « Copier », les mesures du gabarit posé (`GabaritDuSquelette.mesures`), l'échelle de l'orbite
 ## (`cadre`), la position des os de la base (`_positions_des_os`), la boîte des meshes skinnés montés (`_peaux`), que
-## la publication attend tant que le skin d'un mesh skinné monté n'a pas ses os au serveur de rendu, le véhicule posé
-## (`_vehicule_publie`) et l'échantillon posé (`_echantillon_publie`).
+## la publication attend tant que le skin d'un mesh skinné monté n'a pas ses os au serveur de rendu, le bilan de la
+## pile des couches que porte la fusion (`MontageDeComposition.pile_posee`), le véhicule posé (`_vehicule_publie`) et
+## l'échantillon posé (`_echantillon_publie`).
 func _publier_l_ecran() -> void:
 	await get_tree().process_frame
 	if _peaux_a_mesurer:
@@ -1661,6 +1663,7 @@ func _publier_l_ecran() -> void:
 			peaux = _peaux_mesurees,
 			morphes = _morphes_des_meshes(),
 			couleurs = _montage.couleurs_posees(),
+			pile = _montage.pile_posee(),
 			vehicule = _vehicule_publie(),
 			echantillon = _echantillon_publie(),
 		},

@@ -237,11 +237,11 @@ describe('previewAttack — plafond des Difficultés NOMMÉ et cible écrêtée 
 
   it('la BORNE suit la POLICY : « Tests supérieurs à 100 % » (LDB 12 l.73-77) active ⇒ cible 110, aucun écrêtage', () => {
     // La borne n'est pas un nombre en dur du monteur : `clampTarget` lit `targetMax`, que la règle
-    // optionnelle `test-over-100` porte à 999 (`engine/testPolicy.ts`). Le même aperçu rend alors la
+    // optionnelle `test-plus-de-100` porte à 999 (`engine/testPolicy.ts`). Le même aperçu rend alors la
     // cible entière, et le DR gagne ses tranches au-delà de 100 (LDB 12 l.77).
     const a = combatant({ id: 'A', advantage: 6 });
     const b = foe();
-    setRule('test-over-100', true);
+    setRule('test-plus-de-100', true);
     const p = previewAttack(mkGet([a, b]), a, b);
     expect(p.target).toBe(110);
     expect(p.clamped).toBeUndefined();

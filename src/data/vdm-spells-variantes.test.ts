@@ -1,7 +1,7 @@
 /**
  * CÂBLAGE des variantes réglées de `spells.json` (#729, chantier VDM) — Les Vents de Magie RÉVISE
  * 18 Sorts du Livre de base sans les republier : chaque delta est une variante gatée par la règle
- * optionnelle `magic-vdm-incantation` (`src/engine/policy.ts`), jamais une seconde entrée.
+ * optionnelle `magie-vdm-incantation` (`src/engine/policy.ts`), jamais une seconde entrée.
  *
  * Ce test prouve la CHAÎNE RÉELLE, pas un contexte forgé : il part de la donnée committée
  * (`spells.json`), passe par le point de lecture unique (`findSpellById`, `src/data/index.ts`), et
@@ -23,7 +23,7 @@ import { learnableSpells } from '../engine/grimoire';
 import type { Combatant } from '../engine/types';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
-const RULE = 'magic-vdm-incantation';
+const RULE = 'magie-vdm-incantation';
 
 afterEach(() => resetRule(RULE));
 
@@ -43,7 +43,7 @@ const sorcier = (): Combatant =>
   }) as unknown as Combatant);
 
 describe('donnée — 18 Sorts révisés par VDM, gatés par la RÈGLE (jamais par le livre)', () => {
-  it('le catalogue porte exactement les 18 variantes curées, toutes sur `magic-vdm-incantation`', () => {
+  it('le catalogue porte exactement les 18 variantes curées, toutes sur `magie-vdm-incantation`', () => {
     expect(CARRIERS).toEqual([
       'bouclier-ceruleen', 'caresse-de-laniph', 'coeurs-ardents', 'creuset-de-chamon', 'destrier-d-ombre',
       'forme-bestiale', 'grands-feux-d-u-zhul', 'illusion', 'jumeau-malefique', 'l-egide-d-aqshy',

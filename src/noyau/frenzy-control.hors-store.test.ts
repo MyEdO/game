@@ -51,7 +51,7 @@ describe('Contrôle de la Frénésie (LDB 10 l.251-255) — fin de Round, opt-in
     const steps = collectRoundEndTestSteps(banc.getState, H);
     expect(steps).toHaveLength(1);
     expect(steps[0].kind).toBe('choixDeclenche');
-    expect(steps[0].defaultChoice).toBe('no');
+    expect(steps[0].defaultChoice).toBe('non');
     expect(steps[0].label).toContain('Contrôle de la Frénésie');
   });
 
@@ -69,7 +69,7 @@ describe('Contrôle de la Frénésie (LDB 10 l.251-255) — fin de Round, opt-in
     const p = banc.getState().pendingCascade!;
     const choice = p.participants.find((s) => s.kind === 'choixDeclenche')!;
     expect(choice).toBeTruthy();
-    banc.getState().jetRegler('cascade', 'choix', 'yes', choice.id);
+    banc.getState().jetRegler('cascade', 'choix', 'oui', choice.id);
     banc.getState().jetValider('cascade'); // applier choixDeclenche → pousse l'étape de Test de Calme
     const p2 = banc.getState().pendingCascade!;
     const test = p2.participants.find((s) => s.kind === 'testDeclenche' && s.rollLabel === 'Calme')!;
@@ -88,7 +88,7 @@ describe('Contrôle de la Frénésie (LDB 10 l.251-255) — fin de Round, opt-in
     openRoundEndCascade(banc.getState, banc.setState);
     const p = banc.getState().pendingCascade!;
     const choice = p.participants.find((s) => s.kind === 'choixDeclenche')!;
-    banc.getState().jetRegler('cascade', 'choix', 'no', choice.id);
+    banc.getState().jetRegler('cascade', 'choix', 'non', choice.id);
     banc.getState().jetValider('cascade');
     expect(banc.getState().pendingCascade?.participants.some((s) => s.kind === 'testDeclenche') ?? false).toBe(false);
     expect(isFrenzied(H)).toBe(true);

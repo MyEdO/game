@@ -146,8 +146,8 @@ export function collectHeroRoundEndUpkeep(get: Get, c: Combatant): BuiltCascadeS
     const choix = choiceStep({
       id: `sortProlongeChoix-${c.id}-${spellId}`, kind: 'sortProlongeChoix', actorId: c.id,
       icon: 'ui/think', label: stepProlonger(dataLabel(e.label), true),
-      options: [{ key: 'yes', label: t('opt.tenterProlonger', { de: deElide(testSkillLabel(TEST_PROLONGATION)!), quoi: e.label }) }, { key: 'no', label: t('opt.renoncer') }],
-      defaultChoice: 'no',
+      options: [{ key: 'oui', label: t('opt.tenterProlonger', { de: deElide(testSkillLabel(TEST_PROLONGATION)!), quoi: e.label }) }, { key: 'non', label: t('opt.renoncer') }],
+      defaultChoice: 'non',
       meta: { sourceSpellId: spellId },
     });
     pousseSi(steps, choix);
@@ -199,7 +199,7 @@ export const TABLES = {
       const effect = findAwaitingExtension(hero, step);
       if (!effect) return;
       const spellId = effect.spell?.spellId ?? effect.sourceSpellId;
-      if (step.chosen === 'yes') {
+      if (step.chosen === 'oui') {
         // Ligne montée par le MONTEUR CANONIQUE, canal HORS combat (`testValue`) comme son jumeau inline
         // (hook `end-of-round`) : les pénalités que le canal `combat` ajouterait visent les Tests de combat
         // qui engagent la perception (`LDB 16 l.45`), ce qu'un Test de Force Mentale de prolongation n'est

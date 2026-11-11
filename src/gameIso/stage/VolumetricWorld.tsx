@@ -47,7 +47,7 @@ export type WorldFrame =
       zoom: number;
     }
   | {
-      mode: 'pov';
+      mode: 'subjectif';
       partyPos: { x: number; y: number; z?: number };
       facing: Dir8;
       indoor: boolean;
@@ -121,7 +121,7 @@ export function VolumetricWorld({ scene, mpt, frame, tintAt, keepEl, nappeVue, t
   const bases = new Map(poses.map((p) => [p.c.id, { x: p.x, y: p.y, z: p.z }]));
   // En POV le meneur ne porte AUCUN billboard (on regarde par ses yeux) : sa base entre quand même
   // dans la table, car c'est son glissement que la caméra suit.
-  if (frame.mode === 'pov' && frame.cid) bases.set(frame.cid, { x: frame.partyPos.x, y: frame.partyPos.y, z: frame.partyPos.z ?? 0 });
+  if (frame.mode === 'subjectif' && frame.cid) bases.set(frame.cid, { x: frame.partyPos.x, y: frame.partyPos.y, z: frame.partyPos.z ?? 0 });
   const solM = (x: number, y: number, z: number) => hauteurDe(scene, { x, y, z });
   const anim: StageWalkAnim = {
     glide: (cid) => {
@@ -154,7 +154,7 @@ export function VolumetricWorld({ scene, mpt, frame, tintAt, keepEl, nappeVue, t
   const frameCam = useMemo<StageFrame>(
     () => (frame.mode === 'plateau'
       ? { mode: 'plateau', dims: frame.dims, cam: { x: camRendu!.x, y: camRendu!.y }, yawAt: frame.yawAt, zoom: frame.zoom }
-      : { mode: 'pov', partyPos: frame.partyPos, facing: frame.facing, indoor: frame.indoor, cid: frame.cid, ...(frame.eyeH !== undefined ? { eyeH: frame.eyeH } : {}) }),
+      : { mode: 'subjectif', partyPos: frame.partyPos, facing: frame.facing, indoor: frame.indoor, cid: frame.cid, ...(frame.eyeH !== undefined ? { eyeH: frame.eyeH } : {}) }),
     // Le CRAN de vue (`dims`) entre par sa référence : l'hôte le retient déjà sur sa géométrie
     // (`MondeDeCampagne.dimsVue`), et le sérialiser ici en ferait une seconde vérité à tenir d'accord.
     [cléCadre, frame.mode === 'plateau' ? frame.dims : null],

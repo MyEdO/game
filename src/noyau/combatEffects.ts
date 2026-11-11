@@ -36,7 +36,7 @@ import type { IdDeLigneDeButin } from './designations';
 import { documentDuNarratif, indiceDuNarratif, objetDuNarratif, presetDuNarratif } from './monde/resolveursDuNarratif';
 import { revealClue, discreditClue } from './monde/clues';
 import { creatureSemee, navireSeme, findCreatureById, findVehicleById, refLabel, WATER_EXPOSURE, diseaseLabel, nightStakeRef, combatStakeRef, flowStakeRef, testSkillLabel } from '../data';
-import { MORALE_BASE } from '../engine/crewMorale';
+import { moraleBase } from '../engine/crewMorale';
 import { clampSaboteurDR, shipboardSouls } from './shipCrew';
 import { harvestProfileFor, harvestSizeOf, harvestYield, testsDeRecolte } from '../engine/harvest';
 import { applySummon } from './summonFlow';
@@ -904,7 +904,7 @@ export function openSkillTest(
   const psychMod = spec.vsGroups?.length && isSocial ? (c: Combatant) => socialPsychMod(c, spec.vsGroups!) : undefined;
   // 1d10 « réaction au Statut » (option, LDB 08 l.40/59) tiré UNE fois par Test (RNG seedé) — appliqué à
   // tous les candidats de façon cohérente (la réaction de l'interlocuteur ne dépend pas du héros choisi).
-  const reactionRoll = tgtStatus && rule('social-status-reaction-roll') ? battleRng().int(1, 10) : undefined;
+  const reactionRoll = tgtStatus && rule('social-reaction-au-statut') ? battleRng().int(1, 10) : undefined;
   const statusMod = tgtStatus ? (c: Combatant) => statusCharmMod(actorStatus(c), tgtStatus, { begging: spec.begging, reactionRoll }) : undefined;
   // Capricieux (MSRC 15 l.149-159) : la créature-interlocuteur tire un d10 (UNE fois, seedé,
   // INDÉPENDANT du héros choisi — c'est SA réaction) ; la table rend un delta de DR appliqué au Test
@@ -926,7 +926,7 @@ export function openSkillTest(
   // par Trait psy « contenu » (LDB 21), chacune liée à SA fiche par le producteur (`socialPsychLines`),
   // puis la ligne de Statut (LDB 08). Σ de ces lignes === `socialMod(c)` — la garde d'exactitude du
   // monteur le vérifie à chaque passage.
-  // Sous la règle optionnelle `social-status-reaction-roll`, la VALEUR de la ligne de Statut porte le
+  // Sous la règle optionnelle `social-reaction-au-statut`, la VALEUR de la ligne de Statut porte le
   // d10 de réaction (annulé 1-2, inversé 9-10) alors que son LIBELLÉ décrit la base RAW : les deux
   // divergent alors — le libellé est celui que la modale affiche déjà en sous-titre (`psychDetail`).
   const socialLines = (c: Combatant): ModLine[] => {
@@ -1155,10 +1155,10 @@ function ouvrirLeChoixDuFlow(get: Get, set: SetFn, node: Extract<Flow, { kind: '
     title: label, purpose: 'test', icon: node.icon ?? 'ui/think',
     id: `choixDeFlux-${node.prompt}`, kind: 'choixDeFlux', actorId: decideur.id, label: dataLabel(node.prompt),
     options: [
-      { key: 'yes', label: dataLabel(node.prompt), ...detailDeBranche(node.yes) },
-      { key: 'no', label: t('opt.renoncer'), ...detailDeBranche(node.no) },
+      { key: 'oui', label: dataLabel(node.prompt), ...detailDeBranche(node.yes) },
+      { key: 'non', label: t('opt.renoncer'), ...detailDeBranche(node.no) },
     ],
-    defaultChoice: 'yes',
+    defaultChoice: 'oui',
     meta: { choiceYes: node.yes, choiceNo: node.no ?? EMPTY_FLOW, after, flowLabel: label, ...(sl !== undefined ? { flowSl: sl } : {}) },
   });
   return true;
@@ -1187,8 +1187,8 @@ function demanderLesVolontaires(get: Get, set: SetFn, e: EffectOp, question: str
   const etapes = heros.map((h, i) => choiceStep({
     id: `volontaireDeFlux-${question}-${h.id}`, kind: 'volontaireDeFlux', actorId: h.id, icon: 'ui/think',
     label: stepPrecision(dataLabel(question), dataLabel(h.label)),
-    options: [{ key: 'yes', label: dataLabel(question) }, { key: 'no', label: t('opt.renoncer') }],
-    defaultChoice: 'no',
+    options: [{ key: 'oui', label: dataLabel(question) }, { key: 'non', label: t('opt.renoncer') }],
+    defaultChoice: 'non',
     ...(i === heros.length - 1 ? { meta } : {}),
   }));
   startCascade(get, set, { title: label, purpose: 'test', icon: 'ui/think', steps: etapes.filter((x): x is BuiltCascadeStep => !!x) });
@@ -1587,7 +1587,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // LDB 46 l.14-20, #1702, #2312.
       const sp = findSpellById(e.spell);
       if (!sp) return;
-      const learnable = (h: Combatant) => verdictApprentissage(h, sp) === 'ok';
+      const learnable = (h: Combatant) => verdictApprentissage(h, sp) === 'eligible';
       const who = env.mutateHero(
         e.heroId,
         (h) => (learnable(h) ? { ...h, spells: [...(h.spells ?? []), sp.id] } : h),
@@ -1595,16 +1595,16 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       );
       if (!who) { env.log(e.heroId ? t('eff.heroUnknown', { id: e.heroId }) : t('eff.learnSpellNoOne', { spell: sp.label })); return; }
       const verdict = verdictApprentissage(who, sp);
-      env.log(t(verdict === 'deja-connu' ? 'pf.spellAlreadyKnown' : verdict === 'non-eligible' ? 'pf.spellCannotLearn' : 'eff.learnSpell', { name: who.label, spell: sp.label }));
+      env.log(t(verdict === 'dejaConnu' ? 'pf.spellAlreadyKnown' : verdict === 'nonEligible' ? 'pf.spellCannotLearn' : 'eff.learnSpell', { name: who.label, spell: sp.label }));
     },
   },
   petitePriere: {
     group: 'Récompenses', label: libelleEffet('petitePriere'), icon: 'faith/prayer',
     make: () => ({ type: 'petitePriere', reward: EMPTY_FLOW }),
     apply: (e, env) => {
-      // « Petites Prières » (LDB 25 l.22-24, option `prayer-petites`) : un NON-Béni prie dans un site
+      // « Petites Prières » (LDB 25 l.22-24, option `priere-petites`) : un NON-Béni prie dans un site
       // sacré → 1d100 secret, exaucé sur 01 (pourcentage relevé s'il a la Compétence Prière).
-      if (!rule('prayer-petites')) return; // option désactivée → ignorée
+      if (!rule('priere-petites')) return; // option désactivée → ignorée
       const pool = env.get().party;
       const isBeni = (h: Combatant) => effectiveTalents(h).some((t) => t.talentId === 'beni' && (t.times ?? 1) >= 1);
       const target = e.heroId
@@ -1618,9 +1618,9 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
         return;
       }
       // Seuil : « exaucé sur 01 » ; LDB 25 l.22-24 — silence, valeur maison (règle
-      // `prayer-petites-bonus-per-advance`) pour le « le MJ peut augmenter ce pourcentage ».
+      // `priere-petites-bonus-par-avance`) pour le « le MJ peut augmenter ce pourcentage ».
       const priereAdv = target.skills.find((sk) => sk.id === 'priere')?.advances ?? 0;
-      const threshold = 1 + Math.max(0, priereAdv) * Number(rule('prayer-petites-bonus-per-advance'));
+      const threshold = 1 + Math.max(0, priereAdv) * Number(rule('priere-petites-bonus-par-avance'));
       const roll = d100(battleRng());
       if (petitePriereAnswered(roll, threshold)) {
         env.log(t('eff.petitePriereOk', { name: target.label, roll, threshold }));
@@ -2075,17 +2075,17 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   },
   setVessel: {
     group: 'Navigation', label: libelleEffet('setVessel'), icon: 'travel/anchor',
-    make: () => ({ type: 'setVessel', vehicleId: navireSeme(), morale: MORALE_BASE }),
+    make: () => ({ type: 'setVessel', vehicleId: navireSeme(), morale: moraleBase() }),
     apply: (e, env) => {
       // Pose le NAVIRE DE CAMPAGNE (`state.vessel`) — comme le champ de scénario `ContenuDeScenario.vessel`,
-      // mais authorable. Moral neuf par défaut (MORALE_BASE) ; coque intacte sauf `hull*` authoré.
+      // mais authorable. Moral neuf par défaut (`moraleBase`) ; coque intacte sauf `hull*` authoré.
       const v = findVehicleById(e.vehicleId);
       if (!v?.ship) return; // ref invalide (validée par `refs`) : no-op
       env.set({
         vessel: {
           vehicleId: e.vehicleId,
           ...(e.label?.trim() ? { label: e.label.trim() } : {}), // #230 — nom d'instance (affichage)
-          morale: { score: e.morale ?? MORALE_BASE, lastMoraleWeek: 0, factors: [] },
+          morale: { score: e.morale ?? moraleBase(), lastMoraleWeek: 0, factors: [] },
           ...(e.hullMax != null ? { wounds: { current: e.hullCurrent ?? e.hullMax, max: e.hullMax } } : {}),
           ...(e.saboteurDR != null ? { saboteurDR: e.saboteurDR } : {}),
           ...(e.waterLitres != null ? { waterLitres: Math.max(0, e.waterLitres) } : {}),
@@ -2434,20 +2434,20 @@ export const TABLES = {
     /** Décision d'un nœud `choice` de `runFlow` (`ouvrirLeChoixDuFlow`) : la branche choisie, puis la
      *  continuation du Flow, sous le libellé et le DR du Flow qui l'a ouverte. */
     choixDeFlux: (get, set, step) => {
-      if (step.chosen !== 'yes' && step.chosen !== 'no') return;
-      const branche = (step.chosen === 'yes' ? step.meta?.choiceYes : step.meta?.choiceNo) ?? EMPTY_FLOW;
+      if (step.chosen !== 'oui' && step.chosen !== 'non') return;
+      const branche = (step.chosen === 'oui' ? step.meta?.choiceYes : step.meta?.choiceNo) ?? EMPTY_FLOW;
       jouerFlowEntier(runFlow(get, set, { kind: 'seq', steps: [branche, step.meta?.after ?? EMPTY_FLOW] }, step.meta?.flowLabel, step.meta?.flowSl));
       return { consequences: freeCons([]) };
     },
     /** Réponse d'un héros à la question des VOLONTAIRES (`demanderLesVolontaires`) : la dernière étape de la
      *  série joue la feuille sur chaque héros qui a dit oui, puis la continuation du Flow. MDG 15 l.196 */
     volontaireDeFlux: (get, set, step, _hero, sctx) => {
-      if (step.chosen !== 'yes' && step.chosen !== 'no') return;
+      if (step.chosen !== 'oui' && step.chosen !== 'non') return;
       const feuille = step.meta?.choiceYes;
       if (!feuille || feuille.kind !== 'do' || feuille.effect.type !== 'ops') return { consequences: freeCons([]) };
       const e = feuille.effect;
       const oui = sctx.steps.slice(0, sctx.index + 1)
-        .filter((x) => x.kind === 'volontaireDeFlux' && x.id.startsWith(`volontaireDeFlux-${(e.on as CibleDeVolontaires).volontaires}-`) && x.chosen === 'yes' && x.actorId)
+        .filter((x) => x.kind === 'volontaireDeFlux' && x.id.startsWith(`volontaireDeFlux-${(e.on as CibleDeVolontaires).volontaires}-`) && x.chosen === 'oui' && x.actorId)
         .map((x) => x.actorId!);
       if (!oui.length) get().ecrireAuJournal(t('eff.volontairesAucun', { question: (e.on as CibleDeVolontaires).volontaires }));
       const feuilles: Flow[] = oui.map((heroId) => ({ kind: 'do', effect: { ...e, on: 'hero', heroId } }));

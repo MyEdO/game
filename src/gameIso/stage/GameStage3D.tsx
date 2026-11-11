@@ -228,7 +228,7 @@ export type StageFrame =
    * position, elle, glisse. Statu quo du POV SVG — même arbitrage d'ingénierie.
    */
   | {
-      mode: 'pov';
+      mode: 'subjectif';
       partyPos: { x: number; y: number; z?: number };
       facing: Dir8;
       indoor: boolean;
@@ -249,7 +249,7 @@ export type StageFrame =
  * et il n'y a alors ni proximité à trier ni voile à tenir. PURE.
  */
 export function centreDuGroupe(frame: StageFrame, actors: readonly ActorPose[]): { x: number; y: number } | null {
-  if (frame.mode === 'pov') return { x: frame.partyPos.x, y: frame.partyPos.y };
+  if (frame.mode === 'subjectif') return { x: frame.partyPos.x, y: frame.partyPos.y };
   const héros = actors.filter((a) => a.c.kind === 'hero');
   if (héros.length === 0) return null;
   return {
@@ -414,15 +414,15 @@ export function GameStage3D({ scene, lecture, mpt, frame, tintAt, keepEl, nappeV
   const cameraRef = useRef<THREE.Camera | null>(null);
   /** Le maillage du monde CUIT, vivant — le picking y résout les faces de décor volumique. */
   const mondeMeshRef = useRef<WorldPickMesh | null>(null);
-  const pov = frame.mode === 'pov';
+  const pov = frame.mode === 'subjectif';
   // STYLE DE CE REGARD (#1176, `viewPolicy`) : ce que la vue choisit de MONTRER — les nappes de
   // brume et le soleil ci-dessous en descendent. La GÉOMÉTRIE de la frame (cadrage, cran d'art,
   // projection) ne passe pas par là : elle se dérive de `frame` comme avant.
-  const politique = viewPolicy(frame.mode === 'pov' ? { pov: true } : { view: frame.dims.view });
+  const politique = viewPolicy(frame.mode === 'subjectif' ? { pov: true } : { view: frame.dims.view });
   // CAP du regard première personne — 8 états DISCRETS, et la SEULE entrée d'art de cette vue : la vue
   // d'entité s'y branche (`billboardView` perspective), et le cran de l'atlas de décor s'en dérive.
   // Les deux sortent du MÊME examen du cadre : le cap est la source du cran, pas un second calcul.
-  const { povFacing, camRot } = frame.mode === 'pov'
+  const { povFacing, camRot } = frame.mode === 'subjectif'
     ? { povFacing: frame.facing, camRot: povArtRot(frame.facing) }
     : { povFacing: null, camRot: artRot(frame.dims) };
   // REGARD COURANT ({cran, cap}) lu par les passes qui NE SE REJOUENT PAS au regard : le montage des
@@ -440,7 +440,7 @@ export function GameStage3D({ scene, lecture, mpt, frame, tintAt, keepEl, nappeV
   const baseDesBoards = useRef('');
   // MILIEU de la première personne (`null` = vue de plateau) : la SEULE entrée de la brume et du fond.
   // La portée de rendu s'en dérive déjà (`povDepth`) — même donnée, même verdict d'intérieur.
-  const povIndoor = frame.mode === 'pov' ? frame.indoor : null;
+  const povIndoor = frame.mode === 'subjectif' ? frame.indoor : null;
   // GAMMA de la courbe de brume du milieu (`AMBIANCE.pov.depth`), posé au shader dans la frame.
   const gammaBrume = povIndoor === null ? null : fogCurveOf(povIndoor).gamma;
   // BRUME authorée de la scène (#1247) — même porte que le semis (`sceneWeatherFx` : une météo
@@ -839,7 +839,7 @@ export function GameStage3D({ scene, lecture, mpt, frame, tintAt, keepEl, nappeV
     // au-delà de ces quelques lignes ne connaît le regard employé.
     let camera: FrameCamera;
     let f: Stage3dFraming | null = null;
-    if (frame.mode === 'pov') {
+    if (frame.mode === 'subjectif') {
       // La caméra GLISSE avec le marcheur : la case logique du groupe plus le décalage MONDE de
       // l'instant (`anim.glide`, mètres → cases). Repère de `walkGlideM` : dx = est, dz = sud.
       const g = frame.cid && anim ? anim.glide(frame.cid) : null;
@@ -995,10 +995,10 @@ export function GameStage3D({ scene, lecture, mpt, frame, tintAt, keepEl, nappeV
     const posée = plaqueRef.current;
     if (!posée) return;
     const écrit = posée.reposer(
-      decalque && frame.mode !== 'pov' ? { plaque: decalque, dims: frame.dims, mpt } : null,
+      decalque && frame.mode !== 'subjectif' ? { plaque: decalque, dims: frame.dims, mpt } : null,
     );
     if (écrit) dessiner();
-  }, [decalque, mpt, frame.mode === 'pov' ? null : dimsKey(frame.dims)]);
+  }, [decalque, mpt, frame.mode === 'subjectif' ? null : dimsKey(frame.dims)]);
 
   // ── GROUPE BRUME (#1247) : les nappes de la météo, montées au seul changement de PLAN — c'est-à-dire
   // à la scène, à la météo, au bâti et au regard, jamais au pas du groupe (le plan est retenu plus haut).

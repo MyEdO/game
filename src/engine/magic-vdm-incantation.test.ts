@@ -1,5 +1,5 @@
 /**
- * Règles d'incantation révisées des Vents de Magie (`VDM 02 l.5-7`), option `magic-vdm-incantation` :
+ * Règles d'incantation révisées des Vents de Magie (`VDM 02 l.5-7`), option `magie-vdm-incantation` :
  * deux deltas câblés au moteur — Dégâts d'un Projectile magique (`VDM 02 l.68`, folio 20) et
  * « Puissance totale » d'une Incantation Critique (`VDM 02 l.55`, folio 20). Option OFF = LDB.
  */
@@ -12,7 +12,7 @@ import type { PendingCast } from '../noyau/pendings';
 import type { Combatant } from './types';
 import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
-const RULE = 'magic-vdm-incantation';
+const RULE = 'magie-vdm-incantation';
 
 function mk(p: Partial<Combatant> = {}): Combatant {
   return blessuresSurLeProfil({
@@ -34,7 +34,7 @@ const crit = (cast: boolean, sl: number): CastResult => ({ cast, roll: 44, targe
 afterEach(() => resetRule(RULE));
 
 describe('Registre des règles optionnelles — l’option VDM s’auto-rend dans le panneau (#733)', () => {
-  it('entrée `magic-vdm-incantation` : groupe Magie, drapeau, DÉSACTIVÉE par défaut, réf VDM', () => {
+  it('entrée `magie-vdm-incantation` : groupe Magie, drapeau, DÉSACTIVÉE par défaut, réf VDM', () => {
     const def = ruleDef(RULE);
     expect(def).toBeTruthy();
     expect(def!.group).toBe('Magie');

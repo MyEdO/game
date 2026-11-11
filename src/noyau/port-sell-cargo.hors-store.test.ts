@@ -71,7 +71,7 @@ function setup(port: PortProfile, party: Combatant[], enc = 40): void {
 describe('la vente de cargaison au port — cascade Ragot → acheteur → Marchandage (#275/#274)', () => {
   // Bandes automatiques du d100 (LDB 12 l.28, 01-05 auto-succès / 96-00 auto-échec) OFF pour ces tests :
   // les cibles construites (0 ou ≥ 100) doivent trancher SEULES, sans les 10 % de rolls « forcés ».
-  beforeEach(() => setRule('test-auto-bands', 'off'));
+  beforeEach(() => setRule('test-bandes-auto', 'off'));
 
   it('port producteur (Ragot requis), groupe VIDE → refus IMMÉDIAT (aucun candidat au Ragot), aucun jet', () => {
     setup({ taille: 4, richesse: 4, production: ['bois-mer'] }, []);
@@ -94,7 +94,7 @@ describe('la vente de cargaison au port — cascade Ragot → acheteur → March
   });
 
   it('port SANS relation au bien (gossip nul), acheteur GARANTI (Taille énorme → cible ≥ 100), groupe VIDE (aucun marchandeur) → vente conclue au prix d’offre', async () => {
-    // relation 'no-produce' (bois absent de production/surplus) : gossip=null, target=(taille+demande)×10.
+    // relation 'sansProduction' (bois absent de production/surplus) : gossip=null, cible=(taille+demande)×10.
     // Groupe VIDE = branche « aucun marchandeur » (seul un parti vide y mène : tout héros marchande à sa
     // Sociabilité de base). Sous SOCLE POSSESSIONS, un crédit de groupe (`distributeCredit`) sans héros
     // n'a AUCUN bénéficiaire : le revenu se prouve donc sur la LIGNE de vente (montant en CO, jamais 0 sc),
@@ -181,7 +181,7 @@ function setupBuy(party: Combatant[], offerEnc = 20, basePrice = 10): void {
 }
 
 describe('l’achat de cargaison au port — Marchandage d’achat SURFACÉ par cascade openRoll (#266)', () => {
-  beforeEach(() => setRule('test-auto-bands', 'off'));
+  beforeEach(() => setRule('test-bandes-auto', 'off'));
 
   it('groupe VIDE / sans bourse → refusé AVANT tout jet : la bourse ne couvre pas le prix plancher (MDG 15 l.335)', () => {
     // Sans marchandeur, le plancher est le prix plein : 10 Enc × 10 CO. Aucune bourse → refus du devis.
@@ -248,7 +248,7 @@ const ligneDe = (kind: string, step: CascadeStep, actor: Combatant): string => {
 };
 
 describe('Marchandage portuaire et Négociateur (MDG 15 l.335/385 → LDB 59 l.43, LDB 10 l.818 ; arbitrage #2547)', () => {
-  beforeEach(() => setRule('test-auto-bands', 'off'));
+  beforeEach(() => setRule('test-bandes-auto', 'off'));
 
   it('achat : PJ Négociateur gagnant de 6 DR ou plus → remise de 30 %', () => {
     const hero = tousLesHerosDeScenario(idsDeTest)[0];

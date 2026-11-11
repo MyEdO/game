@@ -75,7 +75,7 @@ const anim: StageWalkAnim = {
 };
 
 const cadre = (pos: { x: number; y: number } = GROUPE): StageFrame =>
-  ({ mode: 'pov', partyPos: pos, facing: 'N', indoor: false, cid: null });
+  ({ mode: 'subjectif', partyPos: pos, facing: 'N', indoor: false, cid: null });
 
 const respirer = (ms: number): Promise<void> => respirerBanc(ms, () => battre?.());
 

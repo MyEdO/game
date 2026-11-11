@@ -24,7 +24,7 @@ describe('bandes ouvertes — la valeur extrême tombe dans la bande extrême', 
   });
 
   it('Navigation (MDG 13) : Repères, Poursuite et Vitesse maximum ouvertes aux deux bouts écrits', () => {
-    expect(orientationOutcome(-1000, false).outcome).toBe('drift-major');
+    expect(orientationOutcome(-1000, false).outcome).toBe('derive-majeure');
     expect(orientationOutcome(1000, false).outcome).toBe('exact');
     expect(pursuitDistanceGain(0, -1000)).toBe(pursuitDistanceGain(0, -4));
     expect(pursuitDistanceGain(0, 1000)).toBe(pursuitDistanceGain(0, 4));

@@ -1,5 +1,5 @@
 /**
- * Câblage RÉEL de « Puissance totale » révisée (`VDM 02 l.55`, option `magic-vdm-incantation`)
+ * Câblage RÉEL de « Puissance totale » révisée (`VDM 02 l.55`, option `magie-vdm-incantation`)
  * jusqu'au budget de Surincantation : le DR de l'Incantation Critique augmente du chiffre des
  * DIZAINES du lancer, et cette DR sert à allouer les pas. Passe par la VRAIE action de modale
  * (réglages `incantation.effetCritique` et `incantation.surincantationDuree`) — aucun budget recalculé à la main dans le test.
@@ -16,7 +16,7 @@ import { cliquerSurLeCombattant } from './combatOrParty';
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
-const RULE = 'magic-vdm-incantation';
+const RULE = 'magie-vdm-incantation';
 
 /** Incantation CRITIQUE (double 44 réussi) à DR 8 = le NI d'Allure démoniaque, figé au jet (`niRequired`).
  *  `LDB 47 l.17` ; `VDM 02 l.55`, `l.196`. */

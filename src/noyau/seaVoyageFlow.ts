@@ -82,7 +82,7 @@ import { addCondition } from '../engine/conditions';
 import { effectiveChar, blessuresPosees } from '../engine/characteristics';
 import { findSeaHazard, findWhirlpool, strandingOccurs, strandingPenaltyLine, debrisEntangleFor } from '../engine/seaPerils';
 import {
-  evenementsDeBord, deDesEvenementsDeBord, deDesEvenementsDePort, deDuVoyageRapide, rollPortEvent, rollDaysToNextEvent, MANANN_BASE, seaBoardEventById,
+  evenementsDeBord, deDesEvenementsDeBord, deDesEvenementsDePort, deDuVoyageRapide, rollPortEvent, rollDaysToNextEvent, manannBase, seaBoardEventById,
   spoilCargoByEnc, spoilCargoByPct, cargoTotalEnc, cargoOverload, overloadMaxEnc, overloadMarks, resolveFastVoyage, FAST_VOYAGE_PALIERS,
   meteosActives, modificateursAuCarenage, modificateursApresUnEvenement, evitementDuPeril, sommeDesModificateurs,
   type CargoOverload, type SeaEventDef, type ManannMood, type PortProfile, type CargoLot,
@@ -130,7 +130,7 @@ import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { FragmentDeTables, GenreDEtape, PartDeTable } from './tablesPosees';
 
 /** Id du prédicat de succès des Tests d'équipage résolus PAR CASCADE (MDG 14 l.13) — le flux naval
- *  injecte `crewTestSuccess` (socle unique, règle optionnelle `crew-test-zero-success` comprise) dans
+ *  injecte `crewTestSuccess` (socle unique, règle optionnelle `equipage-zero-dr-succes` comprise) dans
  *  la machinerie générique, qui reste ignorante du domaine (quarantaine d'import #328 intacte). */
 export const CREW_TEST_SUCCESS_RULE = 'crew-test';
 
@@ -308,7 +308,7 @@ export function touchParty(get: Get, set: Set): void {
 
 /** Humeur de Manann du navire de campagne (défaut : registre neuf). */
 export function vesselManann(vessel: CampaignVessel | null): ManannMood {
-  return vessel?.manann ?? { ...MANANN_BASE, applied: [...MANANN_BASE.applied] };
+  return vessel?.manann ?? manannBase();
 }
 
 /** Facteur de Moral de disette (MDG 14 l.171). */
@@ -808,13 +808,13 @@ function buildOverspeedStep(get: Get, index: number): BuiltCascadeStep | undefin
 }
 
 /** Cadence infra-journalière du tableau (1 Test par heure/minute/Round selon la bande, l.129-140) mappée
- *  sur le grain JOUR de la boucle de voyage (règle maison éditable `sea-overspeed-tests-per-day`, #443,
- *  même patron que `exposure-night-*-count`). `n − 1` Tests supplémentaires réutilisent le MÊME meneur
+ *  sur le grain JOUR de la boucle de voyage (règle maison éditable `mer-survitesse-tests-par-jour`, #443,
+ *  même patron que `exposition-tests-nuit-*`). `n − 1` Tests supplémentaires réutilisent le MÊME meneur
  *  (composition figée au début du jour, comme les autres étapes de tronc). Exportée pour test direct
  *  (#524) : le référent M lit `sea.modeToday`, jamais recalculable depuis le seul `apply('equipage-progression')`
  *  qui écrase ce champ à sa propre politique. */
 export function buildOverspeedSteps(get: Get): BuiltCascadeStep[] {
-  const n = Math.max(1, Math.round(Number(rule('sea-overspeed-tests-per-day'))));
+  const n = Math.max(1, Math.round(Number(rule('mer-survitesse-tests-par-jour'))));
   const out: BuiltCascadeStep[] = [];
   for (let i = 0; i < n; i++) {
     const st = buildOverspeedStep(get, i);
@@ -825,7 +825,7 @@ export function buildOverspeedSteps(get: Get): BuiltCascadeStep[] {
 }
 
 /** Étape MONO « Salissures » (MDG 13 l.144-159, `mer-salissures`, applier ci-dessous), Test du
- *  vaisseau ; Difficulté : règle maison `sea-salissures-difficulty` (LDB 12 l.137). `undefined` =
+ *  vaisseau ; Difficulté : règle maison `mer-salissures-difficulte` (LDB 12 l.137). `undefined` =
  *  semaine déjà testée, ou moins de 7 jours en mer. */
 function buildFoulingStep(get: Get): BuiltCascadeStep | undefined {
   const vessel = get().vessel;
@@ -838,7 +838,7 @@ function buildFoulingStep(get: Get): BuiltCascadeStep | undefined {
   return monoStep({
     id: 'mer-salissures', kind: 'mer-salissures', monde: true, icon: 'travel/sail-ship',
     label: composeRollLabel(hull, t('sv.foulingTest'), { characteristic: 'endurance' }),
-    difficulty: rule('sea-salissures-difficulty') as Difficulty,
+    difficulty: rule('mer-salissures-difficulte') as Difficulty,
     ligne: ligneDuVaisseau(hull),
     stake: voyageStakeRef('mer-salissures'),
     meta: { week },
@@ -908,7 +908,7 @@ function buildPostProgressionSteps(get: Get, set: Set): BuiltCascadeStep[] {
   }
   // 5. Orientation quotidienne (« un Test par jour de voyage », ch.13 l.311), + Carte marine (+DR, MDG 15 l.290).
   const chartDR = get().party.some((h) => h.items?.some((it) => it.trappingId === 'carte-marine'))
-    ? Number(rule('sea-chart-orientation-dr')) : 0;
+    ? Number(rule('mer-carte-orientation-dr')) : 0;
   const orientStep = buildVoyageCrewStep(get, 'orientation', 'equipage-orientation', chartDR ? { extraDR: chartDR } : {});
   pousseSi(out, orientStep);
   // 7. Infestation de la cale : Test étendu d'EXTERMINATION (MDG 14 l.98-104), à la difficulté de l'op `infestation`.
@@ -1108,10 +1108,10 @@ export function buildSeaPlan(
 
 // ── LONGS VOYAGES TRÈS RAPIDES (MDG 15 l.21-37) ──────────────────────────────────────────────────
 
-/** Voguer de nuit, porté par la règle maison `sea-night-sailing` faute d'équipage de campagne
+/** Voguer de nuit, porté par la règle maison `mer-voguer-de-nuit` faute d'équipage de campagne
  *  modélisé (#340). MDG 15 l.76 ; MDG 14 l.39. */
 function voguerDeNuit(): boolean {
-  return rule('sea-night-sailing') === true;
+  return rule('mer-voguer-de-nuit') === true;
 }
 
 /** Milles d'un jour de CROISIÈRE au M `m` (hors vent, événement et Test de Progression). MDG 15
@@ -1275,7 +1275,7 @@ function buildSeaBoardEventStep(get: Get): BuiltCascadeStep | undefined {
 
 const SEA_BOARD_EVENT_KIND = 'mer-evenement-de-bord';
 const SEA_BOARD_EVENT_STEP_ID = 'mer-evenement-de-bord';
-export const SEA_BOARD_EVENT_TABLE = 'sea-board-events';
+export const SEA_BOARD_EVENT_TABLE = 'evenements-de-bord';
 
 // Table DÉRIVÉE du catalogue (`sea-events.json` : chaque entrée porte déjà `min`/`max`/`id`) — aucune
 // plage réécrite à la main ; FAMILLE (`famillesTirables`) mémoïsée sur `seaBoardEvents`.
@@ -1607,14 +1607,14 @@ export function continueSeaDayAfterExposure(get: Get, set: Set, doneSteps?: Casc
   if (doneSteps) noteSeaLine(get, set, lignesResolues(doneSteps));
   const sea = plan.sea;
 
-  // DISSIPATION (purge #T3) : les pénalités d'Exposition s'échoient après `exposure-expire-hours`
+  // DISSIPATION (purge #T3) : les pénalités d'Exposition s'échoient après `exposition-dissipation-heures`
   // (règle ÉDITABLE, défaut 24 h) — MÊME règle que le répit au camp (`restFlow`), un seul réglage
   // gouverne les deux répits. Elle tourne ICI — APRÈS l'application des échecs du jour (l'applier de
   // cascade a déjà couru, chemin immédiat comme chemin surfacé) et à CHAQUE jour de mer, y compris les
   // jours cléments : sinon une pénalité prise un jour froid resterait PERMANENTE faute d'horloge posée.
   for (const h of get().party) {
     if (h.dead) continue;
-    expireOnRespite(h, get().gameTime + Number(rule('exposure-expire-hours')) * 60);
+    expireOnRespite(h, get().gameTime + Number(rule('exposition-dissipation-heures')) * 60);
   }
   set({ party: [...get().party] });
 
@@ -1816,7 +1816,7 @@ function runRestart(get: Get, set: Set, eng: Combatant, restart: NonNullable<Ste
  *  ôte la propulsion à vapeur du navire ; le Coup Critique à la Coque (`hullCritical`) est roulé. Les
  *  effets de VITESSE (`mSet`/`mMod`, pendant `durationRounds`/`coolMinutes` + le redémarrage `restart`)
  *  IMMOBILISENT le moteur : la journée perd la fraction de milles correspondante (durée convertie en
- *  minutes via la règle maison `combat-round-seconds`, LDB 13 l.13). */
+ *  minutes via la règle maison `combat-round-secondes`, LDB 13 l.13). */
 export function applySteamBreakdown(get: Get, set: Set, b: SteamBreakdownEntry, rng: RNG): void {
   // « Fuite de vapeur » (l.326-328) : un jet de vapeur ébouillante la personne au moteur → sauvegarde
   // d'Initiative INFLUENÇABLE (modale) ; échec = dégâts ignorant l'Armure. Suspend la boucle maritime.
@@ -1842,7 +1842,7 @@ export function applySteamBreakdown(get: Get, set: Set, b: SteamBreakdownEntry, 
   if (b.hullCritical) applyVesselCritical(get, set, rollShipCritical('coque', rng));
 
   // IMMOBILISATION du moteur : fenêtre à vitesse réduite (`mMod`) ou nulle (`mSet:0`) → fraction perdue.
-  const secPerRound = Number(rule('combat-round-seconds')); // LDB 13 l.13 (MJ décide, valeur maison)
+  const secPerRound = Number(rule('combat-round-secondes')); // LDB 13 l.13 (MJ décide, valeur maison)
   let windowMin = 0;
   if (b.durationRounds) windowMin += tirer(b.durationRounds, rng) * secPerRound / 60; // « les 1d10 prochains Rounds »
   if (b.coolMinutes) windowMin += tirer(b.coolMinutes, rng); // « attendre 20+1d10 minutes »
@@ -1914,10 +1914,10 @@ function openAuthoredSeaAmbush(get: Get, set: Set, route: MapRoute | undefined, 
 }
 
 /** Id de la Scène d'abordage GÉNÉRIQUE (construite à la volée, re-enregistrée à chaque abordage dérivé). */
-const BOARDING_SCENE_ID = 'sea-boarding-generic';
+const BOARDING_SCENE_ID = 'abordage-generique';
 
-/** Taille de la vague d'abordage : la règle maison `boardingWaveSize`. */
-const tailleDeVague = (): number => Math.max(1, Math.round(Number(rule('boardingWaveSize'))));
+/** Taille de la vague d'abordage : la règle maison `abordage-taille-de-vague`. */
+const tailleDeVague = (): number => Math.max(1, Math.round(Number(rule('abordage-taille-de-vague'))));
 
 /** Les marins du navire hostile, chef mis à part, et ceux de la première vague. MDG 15 l.150, l.171 */
 function premiereVague(b: SeaBoarding): { marins: number; vague: number } {
@@ -2069,11 +2069,11 @@ function seaDecider(get: Get): string {
 }
 
 /** NAVIRE HOSTILE en vue (op `navireHostile`) : il n'approche que s'il juge le navire de campagne vulnérable —
- *  son effectif atteint `cibleVulnerablePct` % des âmes à bord, ou il aligne plus de grands canons (valeur
+ *  son effectif atteint `cible-vulnerable-pct` % des âmes à bord, ou il aligne plus de grands canons (valeur
  *  maison) ; sinon il passe son chemin. Rend les lignes. MDG 15 l.150-151, l.171-173 */
 export function navireHostileEnVue(get: Get, set: Set, coque: Combatant, o: Extract<GameOp, { op: 'navireHostile' }>, label: string): string[] {
   const ames = shipboardSouls(get()).total;
-  const vulnerable = o.equipage.nombre * 100 >= ames * Number(rule('cibleVulnerablePct')) || (o.grandsCanons ?? 0) > (coque.postes?.length ?? 0);
+  const vulnerable = o.equipage.nombre * 100 >= ames * Number(rule('cible-vulnerable-pct')) || (o.grandsCanons ?? 0) > (coque.postes?.length ?? 0);
   if (!vulnerable) return [t('sv.hostilePasse', { label })];
   openPirateHail(get, set, { shipRef: o.navire.id, crewRef: o.equipage.id, ...(o.chef ? { chefRef: o.chef.id } : {}), nombre: o.equipage.nombre, label }, o.exigence === 'fouille');
   return [];
@@ -2082,7 +2082,7 @@ export function navireHostileEnVue(get: Get, set: Set, coque: Combatant, o: Extr
 /** Interpellation du navire hostile (A5.3 #327) : cascade AUTONOME (patron Ouragan `resolveSeaDayEvent`)
  *  d'une SEULE étape de CHOIX — fuir / combattre, et se soumettre quand il exige de fouiller la cale
  *  (`fouille`). L'applier `merPiratesSommation` reprend `runSeaDay` à la fermeture. Le pillage
- *  (`piratePillagePct`) et le tribut à Stromfels sont RAW-mués (MDG 15 l.171-173 décrit l'extorsion sans la
+ *  (`pirate-pillage-pct`) et le tribut à Stromfels sont RAW-mués (MDG 15 l.171-173 décrit l'extorsion sans la
  *  chiffrer) → paramètre maison + choix joueur. */
 function openPirateHail(get: Get, set: Set, b: SeaBoarding, fouille: boolean): void {
   patchSea(get, set, { boarding: b });
@@ -2094,7 +2094,7 @@ function openPirateHail(get: Get, set: Set, b: SeaBoarding, fouille: boolean): v
       // MDG 13 l.362-370
       { key: 'fuir', label: t('opt.fuir'), detail: t('sv.detailFuir') },
       { key: 'combattre', label: t('opt.combattre'), detail: t('sv.detailCombattre') },
-      ...(fouille ? [{ key: 'soumettre', label: t('opt.soumettre'), detail: t('sv.detailSoumettre', { pct: Number(rule('piratePillagePct')) }) }] : []),
+      ...(fouille ? [{ key: 'soumettre', label: t('opt.soumettre'), detail: t('sv.detailSoumettre', { pct: Number(rule('pirate-pillage-pct')) }) }] : []),
     ],
   });
 }
@@ -2665,7 +2665,7 @@ export const TABLES = {
       const dr = total + (sea.lighthouseDR ?? 0);
       const out = orientationOutcome(dr, !!sea.minorDrift);
       const j = [`Orientation (DR ${dr >= 0 ? '+' : ''}${dr}${sea.lighthouseDR ? `, phare +${sea.lighthouseDR}` : ''}) : ${out.desc}`];
-      if (out.outcome === 'drift-minor') patchSea(get, set, { minorDrift: true });
+      if (out.outcome === 'derive-mineure') patchSea(get, set, { minorDrift: true });
       if (out.rollCourseChange) {
         const cc = rollCourseChange(rng, out.courseChangeBonus);
         j.push(t('sv.courseChange', { die: formatDice(deDuChangementDeCap()), roll: cc.roll, side: t(cc.side === 'tribord' ? 'sv.sideTribord' : 'sv.sideBabord'), desc: cc.desc }));
@@ -2808,13 +2808,13 @@ export const TABLES = {
       return { consequences: freeCons(j) };
     },
     /** CHOIX face au navire hostile (A5.3 #327). fuir → Poursuite ; combattre → abordage immédiat ;
-     *  se soumettre → pillage `piratePillagePct` de la cale + CHOIX du tribut (étape insérée). */
+     *  se soumettre → pillage `pirate-pillage-pct` de la cale + CHOIX du tribut (étape insérée). */
     'merPiratesSommation': (get, set, step) => {
       const j: string[] = [];
       if (step.chosen === 'combattre') {
         startChaseBoarding(get, set); // abordage immédiat (rencontre AUTHORÉE de la route)
       } else if (step.chosen === 'soumettre') {
-        const pct = Number(rule('piratePillagePct'));
+        const pct = Number(rule('pirate-pillage-pct'));
         const vessel = get().vessel;
         if (vessel?.cargo?.length) {
           const r = spoilCargoByPct(vessel.cargo, pct);

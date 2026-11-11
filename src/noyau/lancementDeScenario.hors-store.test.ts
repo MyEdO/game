@@ -35,8 +35,8 @@ describe('menu des scénarios de test → lancerScenario', () => {
     expect(s.scene?.id).toBe('test-bataille-de-masse');
   });
 
-  it('règle `interlude-enabled` coupée (LDB 21 l.108) : « Lancer » n’ouvre aucun interlude, la bataille démarre', () => {
-    setRule('interlude-enabled', false);
+  it('règle `interlude-actif` coupée (LDB 21 l.108) : « Lancer » n’ouvre aucun interlude, la bataille démarre', () => {
+    setRule('interlude-actif', false);
     try {
       lancer('bataille-de-masse');
       const s = banc.getState();
@@ -44,7 +44,7 @@ describe('menu des scénarios de test → lancerScenario', () => {
       expect(s.massBattle?.round).toBe(1);
       expect(s.screen).toBe('massBattle');
     } finally {
-      resetRule('interlude-enabled');
+      resetRule('interlude-actif');
     }
   });
 });

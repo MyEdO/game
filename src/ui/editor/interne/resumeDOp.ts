@@ -130,7 +130,7 @@ export function opSummary(o: GameOp): string {
     case 'aggravateSymptom': return `${refLabel('symptoms', { id: o.symptomId })} → ${o.severity} (${refLabel('maladies', { id: o.disease })})`;
     case 'attenuateSymptom': return `${refLabel('symptoms', { id: o.symptomId })} → échelon inférieur (${refLabel('maladies', { id: o.disease })})`;
     case 'grantSymptom': return `+ ${refLabel('symptoms', { id: o.symptomId })} (${refLabel('maladies', { id: o.disease })})`;
-    case 'actGate': return `Test de ${CHAR_LABELS[o.characteristic]} chaque Round pour agir`;
+    case 'testDAgir': return `Test de ${CHAR_LABELS[o.characteristic]} chaque Round pour agir`;
     case 'delayed': return `${o.ops.length} op(s) différée(s)${o.afterDuration ? ' (à la dissipation)' : ''}`;
     case 'preventInfection': return 'pas d’infection';
     case 'aideMedicale': return 'Aide Médicale';

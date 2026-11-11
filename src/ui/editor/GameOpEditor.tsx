@@ -87,7 +87,7 @@ const OP_ICON: Record<GameOp['op'], IconIdInput> = {
   augmentWeapon: 'item/weapon', cureDisease: 'medical/infection', reduceDiseaseDays: 'medical/infection',
   preventInfection: 'medical/infection', aideMedicale: 'medical/crutch', cureCriticalWound: 'medical/crutch', amputer: 'medical/crutch', diseaseTestMod: 'medical/infection',
   suppressSymptom: 'medical/infection', aggravateSymptom: 'medical/infection', attenuateSymptom: 'medical/infection', grantSymptom: 'medical/infection',
-  actGate: 'ui/wait', delayed: 'ui/wait', suppressPsych: 'mechanic/mind',
+  testDAgir: 'ui/wait', delayed: 'ui/wait', suppressPsych: 'mechanic/mind',
   suffocate: 'mechanic/ward', noBreath: 'mechanic/ward', noHunger: 'mechanic/ward', ignoreAnimosity: 'mechanic/ward', weatherWard: 'mechanic/ward',
   damageArmour: 'item/armour', damageWornGear: 'item/armour', reduceToZero: 'journal/damage', banish: 'magic/area', martyr: 'action/defend',
   giveTrapping: 'item/misc', perRound: 'ui/wait', summon: 'mechanic/invoke', scheduleRespawn: 'ui/wait',
@@ -113,7 +113,7 @@ const OP_GROUPS: [string, GameOp['op'][]][] = [
   ['Zones', ['zone']],
   ['Projection & téléportation', ['push', 'teleport', 'chain']],
   ['Soin avancé', ['cureDisease', 'reduceDiseaseDays', 'preventInfection', 'aideMedicale', 'cureCriticalWound', 'diseaseTestMod', 'suppressSymptom', 'aggravateSymptom', 'attenuateSymptom', 'grantSymptom']],
-  ['Divers', ['suppressPsych', 'suffocate', 'noBreath', 'noHunger', 'weatherWard', 'damageArmour', 'damageWornGear', 'martyr', 'giveTrapping', 'perRound', 'delayed', 'loseTurn', 'actGate', 'removeShipPoste', 'light']],
+  ['Divers', ['suppressPsych', 'suffocate', 'noBreath', 'noHunger', 'weatherWard', 'damageArmour', 'damageWornGear', 'martyr', 'giveTrapping', 'perRound', 'delayed', 'loseTurn', 'testDAgir', 'removeShipPoste', 'light']],
   ['Séquelles & mobilité', ['amputer', 'skillMod', 'moveScale', 'moveMod', 'offTerrainMod', 'maxWeaponHands', 'disarm', 'handGate', 'senseLoss']],
   ['Atouts/Défauts d’arme (passifs)', ['weaponRollMod', 'weaponDamageMod', 'armourPierce', 'critOnRoll']],
   ['Contrôle', ['rollThreshold', 'rollTable', 'rollMutation', 'spendAdvantage']],
@@ -256,7 +256,7 @@ export function FormulaField(props: FormulaFieldProps) {
         </select>
         {shape === 'regle' && (
           <select aria-label="Règle optionnelle" value={typeof value === 'object' && value != null && 'rule' in value ? value.rule : ''}
-            onChange={(e) => onChange({ rule: e.target.value })}>
+            onChange={(e) => onChange({ rule: paramsDeRegle()[e.target.selectedIndex].id })}>
             {paramsDeRegle().map((r) => <option key={r.id} value={r.id}>{r.label}</option>)}
           </select>
         )}
@@ -960,7 +960,7 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
           <label className="dr">Table de hauteur
             <select value={o.hauteur.table.id} onChange={(e) => upd({ hauteur: { table: { id: e.target.value } } })}>
               {!o.hauteur.table.id && <option value="">— (choisir une table) —</option>}
-              {fallTables.map((t) => (<option key={t.id} value={t.id}>{t.label}</option>))}
+              {fallTables().map((t) => (<option key={t.id} value={t.id}>{t.label}</option>))}
             </select>
           </label>
         )}

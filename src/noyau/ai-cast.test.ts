@@ -201,13 +201,13 @@ describe('aiOvercastPlan — Surincantation automatique de l’IA (LDB 47 l.28-3
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 // aiOvercastPlan — axe Dégâts VDM (#885 : le nerf du Projectile sans jamais sa contrepartie)
 // ════════════════════════════════════════════════════════════════════════════════════════════════
-describe('aiOvercastPlan — axe Dégâts (VDM 02 l.198, option `magic-vdm-incantation`)', () => {
-  afterEach(() => resetRule('magic-vdm-incantation'));
+describe('aiOvercastPlan — axe Dégâts (VDM 02 l.198, option `magie-vdm-incantation`)', () => {
+  afterEach(() => resetRule('magie-vdm-incantation'));
   const eusapia = () => creatureToCombatant(findCreatureById('eusapia-balacanon')!, 'e1', { x: 0, y: 0 });
   const carreau = findSpellById('carreau')!; // NI 4, Projectile magique
 
   it('option ON, aucune cible neuve à portée → le reliquat ENTIER rejoint l’axe Dégâts (jamais gaspillé)', () => {
-    setRule('magic-vdm-incantation', true);
+    setRule('magie-vdm-incantation', true);
     const c = eusapia();
     const plan = aiOvercastPlan(c, 'h1', carreau, jetDuCarreau(true, 8), [foeAt('h1', 1, 0)], undefined, true); // 8 − NI 4 = +4 DR, budget VDM = 4
     expect(plan.overcast).toEqual({ range: 0, zone: 0, duration: 0, targets: 0, damage: 4 });
@@ -220,7 +220,7 @@ describe('aiOvercastPlan — axe Dégâts (VDM 02 l.198, option `magic-vdm-incan
   });
 
   it('sort NON-missile (`missile=false`) : l’axe Dégâts n’est JAMAIS proposé, même option ON', () => {
-    setRule('magic-vdm-incantation', true);
+    setRule('magie-vdm-incantation', true);
     const c = eusapia();
     const plan = aiOvercastPlan(c, 'h1', carreau, jetDuCarreau(true, 8), [foeAt('h1', 1, 0)], undefined, false);
     expect(plan).toEqual({}); // aucune cible neuve, et l'axe Dégâts fermé par `missile=false` → rien à allouer

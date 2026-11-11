@@ -136,10 +136,10 @@ describe('resolveVolley — Test d’équipage RATÉ : la bordée manque en bloc
 /**
  * Seuil de succès d'un Test d'équipage — MDG 14 l.13 : « Si le total est de 1 DR ou plus, le résultat
  * global est un succès. Le MJ peut aussi considérer un résultat de 0 comme un succès en fonction des
- * circonstances. » La seconde phrase est la règle optionnelle `crew-test-zero-success`.
+ * circonstances. » La seconde phrase est la règle optionnelle `equipage-zero-dr-succes`.
  */
 describe('crewTestSuccess — seuil de succès du Test d’équipage (MDG 14 l.13)', () => {
-  afterEach(() => resetRule('crew-test-zero-success'));
+  afterEach(() => resetRule('equipage-zero-dr-succes'));
 
   it('par défaut : 1 DR ou plus = succès, 0 = échec', () => {
     expect(crewTestSuccess(1)).toBe(true);
@@ -149,7 +149,7 @@ describe('crewTestSuccess — seuil de succès du Test d’équipage (MDG 14 l.1
   });
 
   it('règle optionnelle « 0 DR compte comme un succès » : le 0 bascule, le négatif reste un échec', () => {
-    setRule('crew-test-zero-success', true);
+    setRule('equipage-zero-dr-succes', true);
     expect(crewTestSuccess(0)).toBe(true);
     expect(crewTestSuccess(1)).toBe(true);
     expect(crewTestSuccess(-1)).toBe(false);
@@ -158,7 +158,7 @@ describe('crewTestSuccess — seuil de succès du Test d’équipage (MDG 14 l.1
   it('bordée à DR 0 : muette par défaut, portante sous l’option (les DEUX bords)', () => {
     const volleyAt0 = () => volee([poste(['g1'])], hull(40), 0, crewTestSuccess(0), [gunner('g1')], fixed(34));
     expect(volleyAt0()[0].coup.damage ?? 0).toBe(0); // défaut : 0 = échec → la bordée manque
-    setRule('crew-test-zero-success', true);
+    setRule('equipage-zero-dr-succes', true);
     expect(volleyAt0()[0].coup.damage).toBe(14); // Succès Minime : 14 + 0
     expect(volleyAt0()[0].coup.woundsLost).toBe(10); // 14 − BE 4
   });

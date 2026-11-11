@@ -2271,7 +2271,7 @@
     "type": "primitives.manifest",
     "label": "CiblesAcquises/ciblesDAnimositeAcquise/ciblesDePhobieDuNoir/traitAcquis/traitsPsyPossedes/TypeAcquis",
     "fichier": "src/engine/psychology.ts",
-    "concept": "les Cibles d’un Trait psy acquis en cours de partie (ADE II 09 l.9, l.15, règle `psych-acquisition-optional`) : les candidats et la Cible par défaut (`CiblesAcquises`) de l’Animosité qu’offre le tueur (`ciblesDAnimositeAcquise`, Races de l’appartenance du porteur et vue perçue du tueur) et de la Phobie du noir qu’offrent les Terreurs subies (`ciblesDePhobieDuNoir`, `Combatant.terreursSubies`), et le Trait acquis envers la Cible retenue avec les Traits possédés qu’il remplace (`traitAcquis`, `traitsPsyPossedes` : fiche et suspensions d’un effet) — lectures révisables #3045",
+    "concept": "les Cibles d’un Trait psy acquis en cours de partie (ADE II 09 l.9, l.15, règle `psycho-acquisition-optionnelle`) : les candidats et la Cible par défaut (`CiblesAcquises`) de l’Animosité qu’offre le tueur (`ciblesDAnimositeAcquise`, Races de l’appartenance du porteur et vue perçue du tueur) et de la Phobie du noir qu’offrent les Terreurs subies (`ciblesDePhobieDuNoir`, `Combatant.terreursSubies`), et le Trait acquis envers la Cible retenue avec les Traits possédés qu’il remplace (`traitAcquis`, `traitsPsyPossedes` : fiche et suspensions d’un effet) — lectures révisables #3045",
     "perimetre": "Animosité sur un Destin dépensé, Phobie du noir sur une Terreur ratée",
     "verrou": "src/engine/animosite-acquise.test.ts, src/engine/phobie-du-noir.test.ts"
   },

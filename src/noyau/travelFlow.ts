@@ -157,7 +157,7 @@ export interface TravelPlan {
   departAt?: number;
   /** Allure choisie (heures de route par jour ; > heures RAW = marche forcée). */
   hoursPerDay: number;
-  /** Allure EDOC (règle `travel-allures`) : en selle = pas/trot/galop (EDOC 07 l.140-144) ; sur un
+  /** Allure EDOC (règle `voyage-allures`) : en selle = pas/trot/galop (EDOC 07 l.140-144) ; sur un
    *  attelage, `'galop'` = allure forcée (EDOC 07 l.229). Absent = cadence de base. */
   allure?: Allure;
   /** Attelage « Endommagé » (Problème de véhicule) : au pas jusqu'à réparation (EDOC 07 l.278-280). */
@@ -294,7 +294,7 @@ function markMarchedToday(get: Get, set: Set, dayKey: number): void {
 /** Un départ terrestre/fluvial est-il BLOQUÉ par la porte d'heure maison (#340) ? Vrai si la règle est
  *  active ET l'heure courante n'est pas dans le créneau aube→crépuscule. La mer est exemptée en amont. */
 function departureGated(get: Get): boolean {
-  return rule('travel-departure-gate') === true && !isTravelDaylight(get().gameTime);
+  return rule('voyage-heure-de-depart') === true && !isTravelDaylight(get().gameTime);
 }
 
 /** « Attendre l'aube » (porte de départ, #340) : joue une nuit de sommeil (repos) — le groupe repart au
@@ -366,7 +366,7 @@ export function devisDeTrajet(s: Jeu, route: MapRoute, fromId: string, mode: Tra
       : base; // transport : cadence quotidienne du véhicule — LDB 51 silence, valeur maison (heures de route standard)
   const allure: Allure | undefined = mode === 'monture'
     ? (opts.allure ?? 'pas')
-    : opts.allure === 'galop' && rule('travel-allures') && vehicleTravel(mode)?.draft ? 'galop' : undefined;
+    : opts.allure === 'galop' && rule('voyage-allures') && vehicleTravel(mode)?.draft ? 'galop' : undefined;
   const kmh = travelSpeed(s.party, s.possessions, mode, route.speed?.[mode], allure);
   const prior = hoursTravelledToday(s);
   const premierJour = travelDayBudget(mode, hours, prior);
@@ -410,7 +410,7 @@ export function refusDeDepart(s: Jeu, routeId: string, mode: TravelMode, opts: O
     return garanti(route.refus, route.id, 'raison du trajet fermé (`mapRouteSchema`)').texte;
   }
   // EDOC 07 l.140
-  if (mode === 'monture' && !rule('travel-allures')) return t('tf.refusMode');
+  if (mode === 'monture' && !rule('voyage-allures')) return t('tf.refusMode');
   if (mode === 'monture' && !partyFullyMounted(s.party, s.possessions)) return t('tf.refusMonture');
   if (!route.modes.includes(mode === 'monture' ? 'pied' : mode) || (mode === 'mer') !== !!route.sea) return t('tf.refusMode');
   if (mode === 'mer') return refusDuDepartEnMer(() => s);
@@ -429,7 +429,7 @@ export function partirEnVoyage(get: Get, set: Set, routeId: string, mode: Travel
   const { from, route, to } = trajetDIci(get(), routeId) as Exclude<ReturnType<typeof trajetDIci>, string>;
   const { party } = get();
 
-  // Porte d'heure de départ (maison `travel-departure-gate`, #340) : terre (pied/monture) et fleuve
+  // Porte d'heure de départ (maison `voyage-heure-de-depart`, #340) : terre (pied/monture) et fleuve
   // JOUÉ ne s'ébranlent que de l'aube au crépuscule. La MER est exemptée (voguer de nuit = équipage +
   // installations, MDG 15 l.76). De nuit → on mémorise le trajet et on propose « Attendre l'aube ».
   if (mode !== 'mer' && (mode === 'pied' || mode === 'monture' || descenteJouee(get, route, mode)) && departureGated(get)) {
@@ -505,7 +505,7 @@ export function partirEnVoyage(get: Get, set: Set, routeId: string, mode: Travel
   // Coque transitoire du véhicule du trajet (`Combatant` à PV depuis `vehicles.json` hull) — encaisse les
   // Dégâts des Problèmes de véhicule (`applyVehicleProblem`). Créée sous les Étapes EDOC, ou dès que
   // l'allure est FORCÉE (EDOC 07 l.253 : Échec Stupéfiant de Conduite d'attelage → Problème de véhicule).
-  const vehicle = mode !== 'pied' && mode !== 'monture' && (rule('travel-etapes') || allure === 'galop')
+  const vehicle = mode !== 'pied' && mode !== 'monture' && (rule('voyage-etapes') || allure === 'galop')
     ? (() => { const v = findVehicleById(mode); return v ? vehicleCombatant(v) : undefined; })()
     : undefined;
   const plan: TravelPlan = {
@@ -513,7 +513,7 @@ export function partirEnVoyage(get: Get, set: Set, routeId: string, mode: Travel
     hoursPerDay: hours, km: route.km, kmDone: 0, interrupted: false,
     ...(allure ? { allure } : {}),
     // Postes initialisés depuis les rôles PERSISTANTS (`travelRole`) — réutilisés chaque Étape (EDOC 8).
-    postes: rule('travel-etapes') ? stageAssignmentFromRoles(party) : undefined,
+    postes: rule('voyage-etapes') ? stageAssignmentFromRoles(party) : undefined,
     ...(vehicle ? { vehicle } : {}),
   };
   set({ travelPlan: plan, worldMapOpen: false, travelRecap: null, billetEnMain: billet, ...quitterLeLieu });
@@ -703,7 +703,7 @@ function runTravelDays(get: Get, set: Set): void {
     // `prior.mount` = heures DÉJÀ chevauchées aujourd'hui : l'endurance se compte sur le jour, pas le trajet (#340).
     if (plan.mode === 'monture') resolveMountedTravelDay(get, set, hoursToday, plan.allure ?? 'pas', recapDay, prior.mount);
 
-    // Sous-système OPTIONNEL « Voyage par Étapes » (EDOC 8, parent `travel-etapes`) + PÉRIPÉTIES du
+    // Sous-système OPTIONNEL « Voyage par Étapes » (EDOC 8, parent `voyage-etapes`) + PÉRIPÉTIES du
     // jour (d'auteur puis table d10 RAW). TOUS les JETS du jour (Activités d'Étape, Exposition de fin
     // d'Étape, Survie/Perception des péripéties) sont des ÉTAPES d'une CASCADE influençable
     // (`purpose:'travelDay'`, Chance/Pacte/Résilience) — plus d'auto-résolution inline. Ordre RAW (l.10)
@@ -797,7 +797,7 @@ function buildTravelDayCascade(
   // Ce qui DÉPEND du résultat (contexte de jour, Test de Résistance de traversée, postes d'Étape) vit
   // dans son APPLIER, qui l'`insert` derrière elle : c'est le canal du séquenceur pour « ces étapes-là
   // n'existent qu'une fois le dé connu ». L'ordre des dés reste météo → Résistance → postes.
-  if (rule('travel-etapes')) {
+  if (rule('voyage-etapes')) {
     pousseSi(steps, tableStep({
       id: STAGE_WEATHER_STEP_ID, kind: STAGE_WEATHER_KIND, worldOwner: true, icon: 'travel/wave',
       label: t('step.stageWeather'),

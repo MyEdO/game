@@ -106,7 +106,7 @@ function vendLotTerrestre(): void {
 }
 
 describe('Marchandage PORTUAIRE soutenu : le Soutien ne départage pas (LDB 12 l.160 / l.189-190)', () => {
-  beforeEach(() => setRule('test-auto-bands', 'off'));
+  beforeEach(() => setRule('test-bandes-auto', 'off'));
 
   it('CÂBLAGE : la porte du seam pose la Compétence NUE en `step.base`, le Soutien en ligne de mod', () => {
     const { leader, helper } = pairAvecSoutien();
@@ -210,7 +210,7 @@ function setupLand(nue: number): Combatant {
 const bargainLineOf = (): string => get().journal.find((l) => /Marchandage \(/.test(l)) ?? '';
 
 describe('Marchandage TERRESTRE soutenu : `resolveOpposed` est le seul juge (MSRC 13 l.127)', () => {
-  beforeEach(() => setRule('test-auto-bands', 'off'));
+  beforeEach(() => setRule('test-bandes-auto', 'off'));
 
   it('ACHAT, DR égal : Compétence NUE sous celle du marchand → surcoût, alors que la valeur SOUTENUE la dépasse', () => {
     const { seed, nue, merchant } = findTie(probeLandBuy);
@@ -256,7 +256,7 @@ function marchanderEgalite(): void {
 }
 
 describe('Marchandage AMBULANT soutenu : le Soutien ne départage pas (LDB 12 l.160 / l.189-190)', () => {
-  beforeEach(() => setRule('test-auto-bands', 'off'));
+  beforeEach(() => setRule('test-bandes-auto', 'off'));
   afterEach(() => { vi.restoreAllMocks(); });
 
   it('CÂBLAGE : `marchand.marchander` fond le Soutien dans `playerSkill` et en porte le détail (`support`)', () => {

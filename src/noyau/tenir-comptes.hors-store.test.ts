@@ -1,5 +1,5 @@
 /**
- * « Tenir les comptes » (LDB 59 l.9-11) — câblage marchand : quand l'option `market-tenir-comptes`
+ * « Tenir les comptes » (LDB 59 l.9-11) — câblage marchand : quand l'option `marche-tenir-comptes`
  * est active, un objet dont le prix listé est ≤ au niveau de Statut du groupe s'achète SANS débit
  * (« autant de fois que nécessaire »). Consomme `statusBudgetBrass` (engine/money), jusque-là inerte.
  */
@@ -32,7 +32,7 @@ beforeEach(() => { banc.getState().ensemencerLeTirage(4); });
 
 describe('Tenir les comptes (LDB 59 l.9-11)', () => {
   it('option active : un objet ≤ Statut du groupe est acquis sans débit', () => {
-    setRule('market-tenir-comptes', true);
+    setRule('marche-tenir-comptes', true);
     banc.setState({ party: [richHero()], scene: merchantScene() });
     creditBourse(banc.getState, banc.setState, banc.getState().party[0].id, { gold: 50, silver: 0, brass: 0 });
     banc.getState().ouvrirLeMarchand('pnj');
@@ -45,7 +45,7 @@ describe('Tenir les comptes (LDB 59 l.9-11)', () => {
   });
 
   it('option désactivée : même achat débité normalement (RAW)', () => {
-    setRule('market-tenir-comptes', false);
+    setRule('marche-tenir-comptes', false);
     banc.setState({ party: [richHero()], scene: merchantScene() });
     creditBourse(banc.getState, banc.setState, banc.getState().party[0].id, { gold: 50, silver: 0, brass: 0 });
     banc.getState().ouvrirLeMarchand('pnj');

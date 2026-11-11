@@ -341,7 +341,7 @@ describe('Bascule de regard — la CUISSON du monde ne se rejoue jamais (#1385)'
       // se juge sur l'IMAGE qu'il fait peindre, jamais sur 60 ms de mur : c'est dans ce rendu qu'une
       // dep reforgée recuirait le monde.
       const marque = scènes.length;
-      await act(async () => { useGame.getState().stepPartyDir(b % 2 ? 'down' : 'up'); });
+      await act(async () => { useGame.getState().stepPartyDir(b % 2 ? 'bas' : 'haut'); });
       await attendreQue(() => scènes.length > marque, PLAFOND_ATTENTE_MS);
       expect(scènes.length, 'PRÉMISSE : aucune image peinte après le pas — un recuit de pas resterait hors de la mesure')
         .toBeGreaterThan(marque);

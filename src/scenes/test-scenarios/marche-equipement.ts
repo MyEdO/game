@@ -138,9 +138,9 @@ export const scenario: TestScenario = {
     'd’armure souple/Flexible/rigide avec échange auto, cape cosmétique, 2 sets d’armes) ; Troc (onglet du ' +
     'panneau marchand : ratio de Disponibilité, échange objet↔objet sans argent) ; Aubergiste → jeux de taverne ' +
     // NADJ 16
-    '(Effet openTavernGames, option `tavern-games` pré-activée).',
+    '(Effet openTavernGames, option `jeux-de-taverne` pré-activée).',
   partyNote: 'Négociant (épée non identifiée + maille endommagée + dague) + Maître d’armes (sac garni)',
   // Jeux de taverne pré-activés (NADJ 16) — modifiable au panneau Règles maison, comme le Voyage par Étapes.
-  rules: { 'tavern-games': true },
+  rules: { 'jeux-de-taverne': true },
   construire: (idNeuf) => ({ party: [negociant(idNeuf), maitreArmes(idNeuf)], scene: construireScene() }),
 };
