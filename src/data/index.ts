@@ -458,9 +458,9 @@ const CATEGORIES_DES_TABLES_TIREES: readonly string[] = [
 /** POOLS des tables tirées, une entrée par catégorie de leurs fichiers, lue sur la racine VIVANTE
  *  (`entreeDeCategorie`) : une édition au Codex y entre. */
 function poolsDesTablesTirees(): Record<string, (id: string) => boolean> {
-  return Object.fromEntries(Object.keys(DATASET_DE_LA_CATEGORIE)
-    .filter((c) => FICHIERS_DES_TABLES_TIREES.includes(DATASET_DE_LA_CATEGORIE[c].fichier) || CATEGORIES_DES_TABLES_TIREES.includes(c))
-    .map((c) => [c, (id: string) => entreeDeCategorie(c, id) !== undefined]));
+  return tableTotale(Object.keys(DATASET_DE_LA_CATEGORIE)
+    .filter((c) => FICHIERS_DES_TABLES_TIREES.includes(DATASET_DE_LA_CATEGORIE[c].fichier) || CATEGORIES_DES_TABLES_TIREES.includes(c)),
+  (c) => (id: string) => entreeDeCategorie(c, id) !== undefined);
 }
 
 /** POOLS d'ids par catégorie Codex, pour les familles dont le foyer DESCEND à l'entrée jouée. Une
