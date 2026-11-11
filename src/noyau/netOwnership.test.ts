@@ -162,12 +162,12 @@ describe('possession réseau (netOwnership)', () => {
   });
 
   it("sort ENNEMI ('*') : tout le monde peut agir (Contre-sort multi)", () => {
-    // Wrapper-fold : l'incantation est une étape `jet:'cast'` de la cascade. Sort ENNEMI → la cascade
+    // Wrapper-fold : l'incantation est une étape `jet:'incantation'` de la cascade. Sort ENNEMI → la cascade
     // est ouverte avec `groupOwner:true` → l'entrée `cascade`
     // met l'owner à '*' (moment partagé + Contre-sort multi en coop). `pendingCast` coexiste comme data.
     const s = base({
       pendingCast: { casterId: 'e1', targetId: 'h1' } as Jeu['pendingCast'],
-      pendingCascade: cascadeDeTest([{ id: 'c', jet: 'cast', kind: 'cast', actorId: 'e1', groupOwner: true }]),
+      pendingCascade: cascadeDeTest([{ id: 'c', jet: 'incantation', kind: 'cast', actorId: 'e1', groupOwner: true }]),
     });
     expect(modalOwnerOf(s)).toBe('*');
     expect(intentAllowedFor(s, 1, 'castCounterspell')).toBe(true);
@@ -182,7 +182,7 @@ describe('possession réseau (netOwnership)', () => {
     });
     expect(intentAllowedFor(s, 0, 'jetValider', ['cascade'])).toBe(true);
     expect(intentAllowedFor(s, 1, 'jetValider', ['cascade'])).toBe(false);
-    expect(intentAllowedFor(s, 1, 'fenetreValider', ['roundStart'])).toBe(false);
+    expect(intentAllowedFor(s, 1, 'fenetreValider', ['debutDuRound'])).toBe(false);
   });
 
   it("valider l'étape (`jetValider('cascade')`) : le propriétaire de la fenêtre — l'acteur de l'étape, tous sur une étape de groupe", () => {
@@ -328,7 +328,7 @@ describe('Activités d’interlude en coop (audit M7/M8) — chacun mène SES h�
   const interludeState = (over: Partial<Jeu> = {}): Jeu => base({
     battle: null,
     interlude: { weeks: 2, phase: 'activities', perHero: { h1: { eventRoll: 1, left: 2, revenueBrass: 0 }, h2: { eventRoll: 2, left: 2, revenueBrass: 0 } } },
-    bank: [{ uid: 'depot-h2', heroId: 'h2', kind: 'stash', brass: 100, rate: 0 }],
+    bank: [{ uid: 'depot-h2', heroId: 'h2', kind: 'planque', brass: 100, rate: 0 }],
     ...over,
   } as Partial<Jeu>);
 
@@ -338,7 +338,7 @@ describe('Activités d’interlude en coop (audit M7/M8) — chacun mène SES h�
     expect(intentAllowedFor(s, 1, 'fenetreChoisir', ['interlude', 'pratiquer', true, 'h1'])).toBe(false);
     expect(intentAllowedFor(s, 0, 'fenetreChoisir', ['interlude', 'ouvrage', 'dague', 'h1'])).toBe(true);
     expect(intentAllowedFor(s, 0, 'fenetreChoisir', ['interlude', 'talent', 'chanceux', 'h2'])).toBe(false);
-    expect(intentAllowedFor(s, 1, 'deposerALaBanque', ['h2', 'stash', 120])).toBe(true);
+    expect(intentAllowedFor(s, 1, 'deposerALaBanque', ['h2', 'planque', 120])).toBe(true);
   });
 
   it('Entraînement, Faveur et préparation de bataille (héros en 1er argument) : son propriétaire agit, pas les autres', () => {
@@ -362,7 +362,7 @@ describe('Activités d’interlude en coop (audit M7/M8) — chacun mène SES h�
   it('modale de jet d’Activité (arbitre M8) : owner = héros du pending', () => {
     const s = interludeState({ pendingActivity: { heroId: 'h2', kind: 'catalog', activityId: 'revenus' } as Jeu['pendingActivity'] });
     expect(modalOwnerOf(s)).toBe('h2');
-    expect(intentAllowedFor(s, 1, 'jetLancer', ['activity'])).toBe(true);
-    expect(intentAllowedFor(s, 0, 'jetLancer', ['activity'])).toBe(false);
+    expect(intentAllowedFor(s, 1, 'jetLancer', ['activite'])).toBe(true);
+    expect(intentAllowedFor(s, 0, 'jetLancer', ['activite'])).toBe(false);
   });
 });

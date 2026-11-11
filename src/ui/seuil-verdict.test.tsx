@@ -95,7 +95,7 @@ describe('#2389 — la rangée seuil dit le verdict de SON étape', () => {
     const seuil = moraleBand(60).desertionRoll!;
     expect(seuil).toBe(4);
     openPortAt(useGame.getState, useGame.setState, { id: 'P', label: 'Erengrad', pos: { x: 0, y: 0 }, scene: { id: 'monde-p' }, port: { taille: 3, richesse: 3, production: ['bois-mer'] } } as never);
-    useGame.getState().fenetreChoisir('shoreLeave', 'accorder', true);
+    useGame.getState().fenetreChoisir('relacheATerre', 'accorder', true);
     render();
     poser(seuil);
     expect(ligne()).toContain(String(t('seuil.sousLeSeuil')));

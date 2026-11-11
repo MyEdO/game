@@ -112,7 +112,7 @@ describe('Interlude en coop : la table de taverne est celle de l’hôte', () =>
     const banc = ouvrirLeBanc({ reglesMaison: { 'tavern-games': true }, etat: { party: [a, b], net: { ...NET_DE_L_HOTE(b.id), mode: 'guest', mySeat: 1 } } });
     const journal = banc.getState().journal.length;
     banc.actions.ouvrirLesJeux();
-    banc.actions.jouerALaTaverne(b.id, { gameId: 'dominos', opponent: { kind: 'hero', id: a.id } });
+    banc.actions.jouerALaTaverne(b.id, { gameId: 'dominos', opponent: { kind: 'heros', id: a.id } });
     expect(banc.getState().tavernGames).toBeNull();
     expect(banc.getState().sequence ?? null).toBeNull();
     expect(banc.getState().journal.slice(journal)).toEqual([HOTE_SEUL, HOTE_SEUL]);

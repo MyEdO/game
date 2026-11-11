@@ -4,7 +4,7 @@
  * Une réponse ne se choisit que si la conversation est CE QUE LE JOUEUR A SOUS LES YEUX. Le verdict
  * « une surface tient la main » vit à l'ARBITRE (`surfaceTientLaMain`, `noyau/modalArbiter.ts`),
  * dérivé de ses registres ; `conversationRepond` le consomme, donc le VERBE et les touches
- * `dialogue-choice-N` avec lui.
+ * `dialogue-reponse-N` avec lui.
  *
  * Contrats POSITIFS, un par surface : sous chacune la conversation ne répond pas ; au témoin, elle
  * répond.
@@ -15,7 +15,7 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { Jeu } from './etat';
 import { conversationRepond } from './dialogue';
 import { withActingSeat } from './netOwnership';
-import { makeShowcaseParty } from '../data/pregens';
+import { groupeVitrineDeScenario } from '../scenes/test-scenarios/_heros';
 import type { Dialogue } from './monde/scene';
 import { t } from '../i18n';
 
@@ -34,7 +34,7 @@ const dlg: Dialogue = {
 function temoin(over: Partial<Jeu> = {}) {
   banc.setState({
     screen: 'campaign', mode: 'exploration', battle: null, scene: null, flags: {}, journal: [],
-    party: makeShowcaseParty(idsDeTest), dialogueHistory: [], merchant: null, tavernGames: null,
+    party: groupeVitrineDeScenario(idsDeTest), dialogueHistory: [], merchant: null, tavernGames: null,
     document: null, pendingLoot: null, pendingTest: null, pendingLogQueue: [], pendingOrders: [],
     worldMapOpen: false, port: null, landMarket: null,
     dialogue: { dialogue: dlg, nodeId: 'n1', session: 1 },

@@ -53,6 +53,8 @@ export const TYPES = {
   structure: { espace: 'structures.json', catalogue: 'structures' },
   career: { espace: 'careers.json', catalogue: 'carrières' },
   species: { espace: 'species.json', catalogue: 'espèces' },
+  // LDB 05 l.214 : `species.json › refCareer` nomme sa colonne du Tableau des Classes et Carrières aléatoires.
+  carrieresAleatoires: { espace: 'carrieres-aleatoires.json', catalogue: 'colonnes du Tableau des Classes et Carrières aléatoires' },
   navalTrait: { espace: 'naval-traits.json', catalogue: 'traits navals' },
   // PORT du catalogue naval : `MapPlace.port.ref` résout AU PARSE, toutes les réfs mortes nommées.
   navalPort: { espace: 'naval-ports.json', catalogue: 'ports' },
@@ -60,6 +62,7 @@ export const TYPES = {
   crewRole: { espace: 'crew-roles.json', catalogue: 'rôles d’équipage' },
   crewTestType: { espace: 'crew-test-types.json#types', catalogue: 'types de Test d’équipage' },
   table: { espace: 'tables.json', catalogue: 'tables' },
+  mutationTable: { espace: 'mutationTables.json', catalogue: 'tables de mutation' },
   etat: { espace: 'etats.json', catalogue: 'états' },
   maladie: { espace: 'maladies.json', catalogue: 'maladies' },
   symptome: { espace: 'symptoms.json', catalogue: 'symptômes' },

@@ -14,7 +14,7 @@ import { seedBattleRng } from '../../noyau/battleRng';
 import { isStructure } from '../../engine/structures';
 import { couvertDepuisDifficulte } from '../../engine/cover';
 import { findStructureById } from '../../data';
-import { pregen, PREGEN } from '../../data/pregens';
+import { herosDeScenario } from '../../scenes/test-scenarios/_heros';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -91,7 +91,7 @@ function carte(): Scene {
   } as Scene;
 }
 
-const groupe = () => [pregen(idsDeTest, PREGEN.chasseur), pregen(idsDeTest, PREGEN.soldat)];
+const groupe = () => [herosDeScenario(idsDeTest, 'chasseur'), herosDeScenario(idsDeTest, 'soldat')];
 
 /** Ouvre le combat de la fixture sur une carte NEUVE et rend l'état de bataille. */
 function ouvrirCombat() {
@@ -99,7 +99,7 @@ function ouvrirCombat() {
   banc.setState({ party: groupe() });
   banc.getState().lancerLaScene(carte());
   banc.getState().lancerLeCombat(ENC);
-  banc.getState().fenetreValider('roundStart');
+  banc.getState().fenetreValider('debutDuRound');
   return banc.getState().battle!;
 }
 type Bataille = ReturnType<typeof ouvrirCombat>;

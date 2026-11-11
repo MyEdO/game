@@ -31,7 +31,7 @@ import type { Flow, JetFixe } from './flowCore';
 import type { Season } from './travelStages';
 // Tronc commun cargaison (partagé avec le commerce terrestre MSRC, `landCargo.ts`) — modèle de lot,
 // tirage saisonnier, prix de base. Re-exporté pour les importeurs historiques de ce module.
-import { type CargoDef, type Voie, findCargoById, isTradeHubColumn, marchandisesDe, rollSeasonalCargo } from './cargo';
+import { type CargoDef, type Voie, findCargoById, isTradeHubColumn, rollSeasonalCargo } from './cargo';
 import { tableTotale } from '../lib/tableTotale';
 
 /** La voie du catalogue que porte la table de ce livre (MDG 15 l.406-418). */
@@ -107,14 +107,14 @@ export const deDesEvenementsDeBord = (): DeDeTable => deDeLaTableTiree(EVENTS.bo
 const evenementsDePort = memoParVersion('seaPortEvents', () => tableOuverte(PORT_EVENTS));
 /** Le dé du Tableau des événements d'escale, lu à l'appel. */
 export const deDesEvenementsDePort = (): DeDeTable => deDeLaTableTiree(EVENTS.portEvents);
-const PALIERS_DE_VOYAGE_RAPIDE = tableOuverte(FAST_VOYAGE_PALIERS);
+const paliersDeVoyageRapide = memoParVersion('seaFastVoyage', () => tableOuverte(FAST_VOYAGE_PALIERS));
 /** Le dé du tableau du Voyage rapide, lu à l'appel. */
 export const deDuVoyageRapide = (): DeDeTable => deDeLaTableTiree(EVENTS.fastVoyage);
 /** `test` exige `skill` et `difficulty` au parse (`exigerDuTest`, `defs/sea-cargo.ts`). */
 export const OPPORTUNITE = CARGO.opportunite as SeaCargoData['opportunite'] & { test: JetFixe<'skill' | 'difficulty'> };
 /** La table du Prix d'offre telle que `findTableEntry` la lit (`tableOuverte`, tronc commun — sa
  *  dernière bande est OUVERTE, MDG 15 l.383 « 4 ou plus »). */
-const bandesDuPrixDOffre = memoParVersion('seaCargo', () => tableOuverte(CARGO.sell.offerPrice));
+const bandesDuPrixDOffre = memoParVersion('seaCargo', () => tableOuverte(CARGO.vente.offerPrice));
 export const findManannFactor = (id: string): ManannFactor | undefined => EVENTS.manann.factors.find((f) => f.id === id);
 
 // ── Surcharge de la cale (MDG 12 l.70-75) ──────────────────────────────────────────────────────
@@ -221,7 +221,7 @@ export function resolveFastVoyage(
   const roll = rollDice(deDuVoyageRapide(), rng);
   const manannTens = Math.trunc(manannScore / 10); // « la dizaine de l'Humeur de Manann » (l.26/l.28)
   const result = roll - Math.max(0, weeksAtSea) + manannTens + crewDR;
-  return { roll, manannTens, result, palier: findTableEntry(PALIERS_DE_VOYAGE_RAPIDE, result) };
+  return { roll, manannTens, result, palier: findTableEntry(paliersDeVoyageRapide(), result) };
 }
 
 // ── Commerce maritime (l.309-436) ────────────────────────────────────────────────────────────────
@@ -279,7 +279,7 @@ export function profilDuMarche(port: PortProfile, alterations: readonly Alterati
 
 /** Cargaison ALÉATOIRE de la saison (l.402-418) : d100 dans la colonne saisonnière (tableau MARITIME). PUR. */
 export function rollRandomCargo(season: Season, rng: RNG): CargoDef {
-  return rollSeasonalCargo([...marchandisesDe(VOIE_MARITIME)], season, rng);
+  return rollSeasonalCargo(VOIE_MARITIME, season, rng);
 }
 
 /** Enc DISPONIBLE d'une cargaison à l'achat (l.323-331) : « additionnez la Taille et la Richesse du
@@ -289,13 +289,13 @@ export function rollCargoAvailability(port: PortProfile, cargoId: string, rng: R
   const d = d10(rng);
   if (d === 1) return { d, enc: 0 };
   const surplus = port.surplus?.[cargoId] ?? 0;
-  return { d, enc: (port.taille + port.richesse + surplus) * d * CARGO.buy.availabilityMultiplier };
+  return { d, enc: (port.taille + port.richesse + surplus) * d * CARGO.achat.availabilityMultiplier };
 }
 
 /** Compétence Marchandage d'un commerçant pris au hasard (l.337 : 3d10+40 ; deux 10+ → Négociateur.
  *  Marienburg/Lothern l.349 : 3d10+55 ; un 10 suffit). PUR. */
 export function rollMerchantSkill(cosmopolite: boolean, rng: RNG): { value: number; negotiator: boolean } {
-  const spec = cosmopolite ? CARGO.buy.bigPortSkill : CARGO.buy.merchantSkill;
+  const spec = cosmopolite ? CARGO.achat.bigPortSkill : CARGO.achat.merchantSkill;
   const dice = Array.from({ length: spec.d10 }, () => d10(rng));
   const tens = dice.filter((d) => d >= 10).length;
   return { value: dice.reduce((a, b) => a + b, 0) + spec.plus, negotiator: cosmopolite ? tens >= 1 : tens >= 2 };
@@ -312,7 +312,7 @@ export function rollMerchantOpposition(merchantValue: number, rng: RNG): TestRes
 
 /** DR de camp du Marchandage d'ACHAT (MDG 15 l.335-341). PUR — écart de camp ouvert en #1140. */
 export function buySellerDR(partial: boolean, surplus: boolean): number {
-  return (partial ? CARGO.buy.partialPurchaseSellerDR : 0) + (surplus ? CARGO.buy.surplusSellerDR : 0);
+  return (partial ? CARGO.achat.partialPurchaseSellerDR : 0) + (surplus ? CARGO.achat.surplusSellerDR : 0);
 }
 
 /** Relation d'un port à une cargaison à la VENTE (l.360-372). PUR. */
@@ -337,19 +337,19 @@ export interface SellChance {
  *  sinon traité comme un port en Surplus, l.368). PUR. */
 export function sellChance(port: PortProfile, cargoId: string, milles: number): SellChance {
   let rel = sellRelation(port, cargoId);
-  if (rel === 'produces' && milles < CARGO.sell.producesGossip.minMilles) rel = 'surplus'; // l.368
+  if (rel === 'produces' && milles < CARGO.vente.producesGossip.minMilles) rel = 'surplus'; // l.368
   const demand = port.demande?.[cargoId] ?? 0;
   if (rel === 'no-produce') {
     return {
       gossip: null,
-      target: (port.taille + demand) * CARGO.sell.noProduceTargetPerSize + (isTradeHubColumn(port.production) ? CARGO.sell.commerceBonus : 0),
-      sellerDR: CARGO.sell.sellerDR.noProduce + (demand > 0 ? CARGO.sell.sellerDR.demand : 0),
+      target: (port.taille + demand) * CARGO.vente.noProduceTargetPerSize + (isTradeHubColumn(port.production) ? CARGO.vente.commerceBonus : 0),
+      sellerDR: CARGO.vente.sellerDR.noProduce + (demand > 0 ? CARGO.vente.sellerDR.demand : 0),
     };
   }
   if (rel === 'produces') {
-    return { gossip: { difficulty: CARGO.sell.producesGossip.difficulty }, target: port.taille * CARGO.sell.producesGossip.targetPerSize, sellerDR: CARGO.sell.sellerDR.produces };
+    return { gossip: { difficulty: CARGO.vente.producesGossip.difficulty }, target: port.taille * CARGO.vente.producesGossip.targetPerSize, sellerDR: CARGO.vente.sellerDR.produces };
   }
-  return { gossip: { difficulty: CARGO.sell.surplusGossip.difficulty }, target: port.taille * CARGO.sell.surplusGossip.targetPerSize, sellerDR: CARGO.sell.sellerDR.surplus };
+  return { gossip: { difficulty: CARGO.vente.surplusGossip.difficulty }, target: port.taille * CARGO.vente.surplusGossip.targetPerSize, sellerDR: CARGO.vente.sellerDR.surplus };
 }
 
 /** PRIX D'OFFRE d'un acheteur trouvé (l.374-383) : % du prix de base selon Richesse + Taille + Demande. PUR.
@@ -372,7 +372,7 @@ export function offerPricePct(port: PortProfile, cargoId: string): number {
 /** BRADER une cargaison invendable (l.399) : « pour un quart de son prix de base dans n'importe quel
  *  Lieu … "commerce" … ou … Demande pour ce bien ». `null` si le port ne s'y prête pas. PUR. */
 export function dumpingPricePct(port: PortProfile, cargoId: string): number | null {
-  return isTradeHubColumn(port.production) || (port.demande?.[cargoId] ?? 0) > 0 ? CARGO.sell.dumpingPctOfBase : null;
+  return isTradeHubColumn(port.production) || (port.demande?.[cargoId] ?? 0) > 0 ? CARGO.vente.dumpingPctOfBase : null;
 }
 
 /** Issue du COMMERCE D'OPPORTUNITÉ (Activité en mer, l.276-286) : Test étendu de Marchandage Complexe

@@ -22,6 +22,7 @@ import { verdictApprentissage } from '../engine/grimoire';
 import { applyFall } from '../engine/movement';
 import { bonus, effectiveChar } from '../engine/characteristics';
 import { sceneNpc } from './monde/sceneNpc';
+import { dialoguesDeLaScene, type Dialogue } from './monde/scene';
 import { bestForTests, partyBest, partyAssisted, peutTenter, possesses, soutienDetail, isSocialTest, socialPsychMod, socialPsychLabel, socialPsychLines, testValue } from '../engine/skills';
 import { statusCharmMod, statusCharmLabel, actorStatus, capriciousDR } from '../engine/social';
 import { statutDeDonnee } from '../engine/money';
@@ -180,7 +181,7 @@ export function entityPickables(ent: SceneEntity, flags: Drapeaux, objetDe: Trap
 
 /**
  * Clé du drapeau qui ferme UNE feuille donneuse d'une action authorée : en combat, on ramasse un objet
- * à la fois (`pickup` de `actions.json`), et ce qui est pris ne se redonne pas — ni au ramassage suivant, ni
+ * à la fois (`ramassage` de `actions.json`), et ce qui est pris ne se redonne pas — ni au ramassage suivant, ni
  * à la fouille en exploration. `index` = rang de la feuille dans `flowEffects(action.flow)`, STABLE
  * parce que le document de scène n'est jamais réécrit : l'état de jeu vit dans les drapeaux.
  */
@@ -289,7 +290,7 @@ export function applyEffectsLoot(get: Get, set: SetFn, effects: Effect[], title:
 /** Attribue la ligne `uid` du butin (`pendingLoot` ou `pendingVictory`) au héros choisi :
  *  l'Effet d'origine s'applique avec ce heroId (qualités/teinte/identification conservées), la
  *  ligne quitte la fenêtre. Source unique de l'attribution (victoire ET fenêtre de loot), corps des choix
- *  `loot.ligne` et `victory.ligne`. */
+ *  `butin.ligne` et `victoire.ligne`. */
 export function attribuerLaLigne(get: Get, set: SetFn, key: 'pendingLoot' | 'pendingVictory', uid: IdDeLigneDeButin, heroId: string) {
   const bucket = garanti(get()[key], key, 'butin ouvert');
   const ligne = garanti(bucket.gear?.find((g) => g.uid === uid), uid, 'ligne de butin');
@@ -300,7 +301,7 @@ export function attribuerLaLigne(get: Get, set: SetFn, key: 'pendingLoot' | 'pen
   set(retrait);
 }
 
-/** Les créatures que le choix `victory.depecer` offre : les vaincues de `pendingVictory` à profil de récolte. ZI 13 */
+/** Les créatures que le choix `victoire.depecer` offre : les vaincues de `pendingVictory` à profil de récolte. ZI 13 */
 export function creaturesDeLaRecolte(s: Jeu): string[] {
   const pv = s.pendingVictory;
   if (!pv) return [];
@@ -310,7 +311,7 @@ export function creaturesDeLaRecolte(s: Jeu): string[] {
 /** Refus du dépeçage de la créature `creatureId` de la victoire : ses pièces sont déjà récoltées ; `null` sinon. */
 export const refusDeDepecer = (s: Jeu, creatureId: string): string | null => (s.pendingVictory?.harvested?.includes(creatureId) ? t('eff.dejaDepecee') : null);
 
-/** Les créatures que le choix `victory.depecer` accepte : celles de la récolte que rien ne refuse. ZI 13 */
+/** Les créatures que le choix `victoire.depecer` accepte : celles de la récolte que rien ne refuse. ZI 13 */
 export const creaturesADepecer = (s: Jeu): string[] => creaturesDeLaRecolte(s).filter((id) => refusDeDepecer(s, id) === null);
 
 /** Récolte « Précieuses Entrailles » (ZI) d'une créature vaincue (écran de victoire) : un nœud Flow
@@ -447,10 +448,10 @@ export type Applique = typeof OPS_DIFFEREES | undefined;
  * conséquence se dit, et il n'y a aucune suite à confier.
  *
  * Exceptions nommées, toutes deux une avance du CURSEUR de la cascade après l'appel :
- * - `advanceCombatJet` (`jetValider('attack')`). Il retient le curseur tant qu'une fenêtre `pending*` est
+ * - `advanceCombatJet` (`jetValider('attaque')`). Il retient le curseur tant qu'une fenêtre `pending*` est
  *   ouverte ; un coup suspendu sur une ÉTAPE (sauvegarde, Déviation) l'a poussée dans la cascade, et le
  *   curseur avance DESSUS (`combatSlice.ts` `advanceCombatJet`).
- * - la validation qui clôt l'étape COURANTE (`jetValider('fumble')`, la Maladresse) : l'après-coup qui tient
+ * - la validation qui clôt l'étape COURANTE (`jetValider('maladresse')`, la Maladresse) : l'après-coup qui tient
  *   la main a poussé ses étapes DERRIÈRE elle, et le curseur avance dessus.
  *
  * Ce qui suit AILLEURS (horloge, dialogue, retrait de décor, seam de Test raté) n'est PAS exempté :
@@ -1282,7 +1283,8 @@ function ecrireEntree<K extends 'flags' | 'etats'>(env: EffectEnv, champ: K, cle
  *  l'appelant), ce qui co-localise la validation d'un effet AVEC son application (fin du switch parallèle). */
 export interface EffectRefCtx {
   sceneIds: ReadonlySet<string>;
-  dialogueIds: ReadonlySet<string>;
+  /** Les dialogues de la scène (`dialoguesDeLaScene`). */
+  dialogues: ReadonlyMap<string, Dialogue>;
   encounterIds: ReadonlySet<string>;
   /** Entités `personnage` de la scène — les PNJ qu'un effet peut désigner (soigneur…). */
   entityIds: ReadonlySet<string>;
@@ -1405,10 +1407,11 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     group: 'Narration', label: libelleEffet('startDialogue'), icon: 'journal/dialogue',
     make: () => ({ type: 'startDialogue', dialogue: '' }),
     apply: (e, env) => {
-      const dlg = env.get().scene?.dialogues.find((d) => d.id === e.dialogue);
+      const scene = env.get().scene;
+      const dlg = scene && dialoguesDeLaScene(scene).get(e.dialogue);
       if (dlg) env.set({ dialogue: ouvrirDialogue(env.get(), dlg, e.speakerId) });
     },
-    refs: (e, ctx) => ctx.dialogueIds.has(e.dialogue) ? [] : [{ level: 'error', message: `Effet → dialogue inexistant « ${e.dialogue} »` }],
+    refs: (e, ctx) => ctx.dialogues.has(e.dialogue) ? [] : [{ level: 'error', message: `Effet → dialogue inexistant « ${e.dialogue} »` }],
     ouvreDialogue: (e) => e.dialogue,
   },
   endDialogue: {
@@ -2193,7 +2196,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   medicalAid: {
     group: 'Combat & social', label: libelleEffet('medicalAid'), icon: 'medical/aid',
     // tarif par défaut : « aide médicale 4-6 pistoles » (LDB 75) → 5 pa
-    make: () => ({ type: 'medicalAid', acts: [{ act: 'wounds', cost: { silver: 5 } }], entityId: '' }),
+    make: () => ({ type: 'medicalAid', acts: [{ act: 'blessures', cost: { silver: 5 } }], entityId: '' }),
     apply: (e, env) => { openMedicalAidEffect(env.get, env.set, e); }, // soins payants d'un PNJ : ouvre son infirmerie (actes tarifés)
     // Le soigneur PORTE ses stats : sans entité résolvable, l'infirmerie n'a ni nom ni fiche à lire —
     // et sans la Compétence Guérison sur cette fiche, l'acte n'a aucune valeur à jouer (LDB 09 l.30).

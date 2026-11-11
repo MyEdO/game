@@ -37,7 +37,7 @@ function setup() {
   banc.setState({ party: [hero] });
   banc.getState().lancerLaScene(testScene());
   banc.getState().lancerLeCombat('enc-mutants');
-  banc.getState().fenetreValider('roundStart');
+  banc.getState().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = banc.getState().battle!;
   const H = b.combatants.find((c) => c.kind === 'hero')!;
@@ -64,8 +64,8 @@ function souffler(H: Combatant, E: Combatant, type: string) {
   H.advantage = 3;
   banc.getState().armerLAttaque('souffle');
   cliquerSurLeCombattant(banc.getState, E.id);
-  banc.getState().jetLancer('maneuver');
-  banc.getState().jetValider('maneuver');
+  banc.getState().jetLancer('manoeuvre');
+  banc.getState().jetValider('manoeuvre');
 }
 
 function finDeRound() {

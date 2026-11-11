@@ -10,7 +10,7 @@
       "note": "ch.15 « Longs voyages » — Générer les cargaisons disponibles, table des prix (l.436)."
     }
   },
-  "buy": {
+  "achat": {
     "availabilityMultiplier": 10,
     "merchantSkill": {
       "d10": 3,
@@ -28,7 +28,7 @@
       "note": "ch.15 « Longs voyages » — COMMERCE MARITIME, Acheter (Type de cargaison/Taille/Marchandage, l.315-341)."
     }
   },
-  "sell": {
+  "vente": {
     "offerPrice": [
       {
         "min": 1,

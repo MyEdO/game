@@ -7,9 +7,9 @@ import type { EntityAppearance, EspeceDApparence } from '../engine/authoringAppe
 import type { PlayerText } from '../i18n/playerText';
 import type { EntreeDeLivre } from './source/livre-extrait';
 import { t } from '../i18n';
-import type { Sexe, SourceRef, SecondaryRef, RaceKey, RefCareerId, DescRef, FoyerDeRegle, Maniement, MatiereDArmure } from './schemas/grammaire/valeurs';
+import type { Sexe, SourceRef, SecondaryRef, RaceKey, DescRef, FoyerDeRegle, Maniement, MatiereDArmure, Settlement } from './schemas/grammaire/valeurs';
 import { dansLaSousListe, espaceDe, idsDe, idsDeLaSousListe, lireLEspace, porteLeMarqueur, type FeuilleDId, type RefASpecialisation, type RefDesignee, type RefTypee, type TypeEntite } from './schemas/grammaire/ref';
-import { cleNichee, libelleDeLElement, lireCleDEspace, retenuParFiltre, suivreLeChemin } from './schemas/grammaire/cle-d-espace';
+import { cleNichee, libelleDeLElement, lireCleDEspace, retenuParFiltre, suiteAvecPas, suivreLeChemin } from './schemas/grammaire/cle-d-espace';
 import { VOCABULAIRES } from './schemas/grammaire/vocabulaires';
 import { CATEGORIE_CODEX_DU_FICHIER, DATASET_DE_LA_CATEGORIE, DATASET_DE_L_ESPACE, type CleDeDataset, type DatasetDeCategorie } from './schemas/_cles-de-dataset.generated';
 import { RACINES_VIVANTES } from './schemas/_racines-vivantes.generated';
@@ -55,13 +55,21 @@ import { SHIP_CRIT_SET, RIVER_CRIT_SET, type ShipCritSet } from './shipCriticals
 import { STRUCTURE_CRITICALS } from './structureCriticals';
 import { ARTILLERY_MISFIRE } from './artilleryMisfire';
 import miscastRawJson from './miscast.json';
-import { deDeTirageDe, rangeesDe } from './rangees';
+import { deDeTirageDe, rangeesDe, type RangeeDe } from './rangees';
+import type { DocumentARangees } from './schemas/grammaire/document';
 import { deDeLaTableTiree, type DeDeTable } from '../engine/tables';
 import type * as imparfaites from './schemas/defs/miscast';
 import type { VisuelDEffet, Projectile } from './schemas/defs/rendus';
 import type { VisuelDeLumiere } from './schemas/defs/lightTones';
 import type * as signesAstrologiques from './schemas/defs/stars';
+import type * as couleurDesYeux from './schemas/defs/eyes';
+import type * as couleurDesCheveux from './schemas/defs/hairs';
 import type * as tableauDesOups from './schemas/defs/oups';
+import type * as tableDesTalentsAleatoires from './schemas/defs/talents-aleatoires';
+import { tableDeCarrieres as tableAvecPortion } from './schemas/defs/carrieres-aleatoires';
+import type * as tableDesCarrieresAleatoires from './schemas/defs/carrieres-aleatoires';
+import type * as tableauDesRacesAleatoires from './schemas/defs/especes-aleatoires';
+import type * as tableauDesCargaisons from './schemas/defs/cargaisons-aleatoires';
 import type * as tableauDesEvenements from './schemas/defs/interludeEvents';
 import type * as tableDesPeripeties from './schemas/defs/peripeties';
 import { trappings, findTrappingById } from './apparencesObjets';
@@ -129,6 +137,10 @@ import type { PresetDePersonnage } from './schemas/defs/presets-de-personnage';
 import godsJson from './gods.json';
 import pregensJson from './pregens.json';
 import oupsJson from './oups.json';
+import talentsAleatoiresJson from './talents-aleatoires.json';
+import carrieresAleatoiresJson from './carrieres-aleatoires.json';
+import especesAleatoiresJson from './especes-aleatoires.json';
+import cargaisonsAleatoiresJson from './cargaisons-aleatoires.json';
 import interludeEventsJson from './interludeEvents.json';
 import tavernGamesJson from './tavernGames.json';
 import peripetiesJson from './peripeties.json';
@@ -177,7 +189,7 @@ import type { LandCargoData } from './schemas/defs/land-cargo';
  *  avec `ctx.sl = DR`. La mécanique vit ICI (GameOp éditables), le flux `pendingGrapple` n'orchestre que le choix. */
 export interface GrappleRule {
   init: import('../engine/ops').GameOp[];
-  win: { damage: import('../engine/ops').GameOp[]; entangle: import('../engine/ops').GameOp[]; free: import('../engine/ops').GameOp[] };
+  win: { degats: import('../engine/ops').GameOp[]; empetrer: import('../engine/ops').GameOp[]; liberer: import('../engine/ops').GameOp[] };
   source?: SourceRef;
 }
 export const GRAPPLE = grappleJson as GrappleRule;
@@ -283,7 +295,7 @@ export const ACTIVITY_STAKES = activitiesStakeJson as ActivityStakeEntry[];
  *  de code qui l'exécutent. Le CODE derrière ces ids vit dans `src/noyau/actionRegistry.ts` —
  *  `src/data` n'en dépend jamais. */
 export interface ActionDef {
-  id: string;
+  id: ActionId;
   label: string;
   icon: string;
   surface:
@@ -299,7 +311,7 @@ export interface ActionDef {
   /** L'action ARME son `mode` dans `battle.action` (mode à bouton). */
   armed?: true;
   /** Champ de POSTURE pré-armée basculé par l'action (`BattleState.stances`, spec HUD §1a G5). */
-  stance?: 'heldGround' | 'intoCrowd';
+  stance?: 'tirImmobile' | 'dansLeTas';
   coutAction: 'action' | 'mouvement' | 'gratuit' | 'aucun';
   /** Arbitrage NON-verbatim du coût — la RAISON en clair (même patron que `TraitData.maison`). */
   maison?: string;
@@ -316,9 +328,11 @@ export interface ActionDef {
   /** L'action fait naître un panneau-paramètre de SON alvéole : la surface y pose l'ancre. */
   panneau?: boolean;
   /** Entrée HÔTE d'un `surface: 'geste-secondaire'` : l'alvéole de CETTE action porte le geste. */
-  hote?: { id: string };
+  hote?: { id: ActionId };
 }
 export const ACTIONS = actionsJson as ActionDef[];
+/** Id d'une action du registre : l'union GÉNÉRÉE des ids de `actions.json` (`scripts/gen-espaces.mts`). */
+export type ActionId = IdsParEspace['actions.json'];
 /** Action par id STABLE (jamais par libellé). */
 export const findActionById = (id: string): ActionDef | undefined => ACTIONS.find((a) => a.id === id);
 
@@ -445,10 +459,12 @@ const STAKE_ENTRY_POOLS: Record<string, (id: string) => boolean> = {
   // Critiques de COQUE : une catégorie Codex par jeu × Localisation (`registry.ts`, clusters
   // « Critiques de navire » / « Critiques fluviaux »). Dérivées des jeux CHARGÉS, jamais recopiées :
   // une Localisation de plus dans un `.json` entre ici sans une ligne de code.
-  ...shipCritPools(SHIP_CRIT_SET, 'shipCriticals'),
-  ...shipCritPools(RIVER_CRIT_SET, 'riverCriticals'),
+  ...shipCritPools(SHIP_CRIT_SET),
+  ...shipCritPools(RIVER_CRIT_SET),
   miscastMinor: (id) => rangeesDe<typeof imparfaites>(miscastRawJson, 'miscast-mineure').some((r) => r.id === id),
   miscastMajor: (id) => rangeesDe<typeof imparfaites>(miscastRawJson, 'miscast-majeure').some((r) => r.id === id),
+  miscastMinorVdm: (id) => rangeesDe<typeof imparfaites>(miscastRawJson, 'miscast-mineure-vdm').some((r) => r.id === id),
+  miscastMajorVdm: (id) => rangeesDe<typeof imparfaites>(miscastRawJson, 'miscast-majeure-vdm').some((r) => r.id === id),
   miscastWrath: (id) => rangeesDe<typeof imparfaites>(miscastRawJson, 'miscast-colere').some((r) => r.id === id),
   mutations: (id) => mutations.some((m) => m.id === id),
   mutationTables: (id) => mutationTables.some((t) => t.id === id),
@@ -478,14 +494,13 @@ const STAKE_ENTRY_POOLS: Record<string, (id: string) => boolean> = {
   skills: (id) => !!byId('skill', id),
 };
 
-/** POOLS d'ids d'un jeu de Critiques de coque, une entrée par Localisation — les clés sont celles des
- *  catégories Codex (`shipCriticalsGreement`…), et la MEME dérivation (préfixe + segment capitalisé)
- *  que `shipCritEntryCodexCategory` (`engine/shipCritical.ts`) côté producteur. */
-function shipCritPools(set: ShipCritSet, prefixe: string): Record<string, (id: string) => boolean> {
-  return Object.fromEntries(Object.entries(set.tables).map(([loc, rows]) => [
-    `${prefixe}${loc[0].toUpperCase()}${loc.slice(1)}`,
-    (id: string) => (rows ?? []).some((r) => r.id === id),
-  ]));
+/** POOLS d'ids d'un jeu de Critiques de coque, une entrée par Localisation exposée au Codex — la clé est
+ *  la catégorie de sa table (`categorieDeLaNiche`), celle que lit `shipCritEntryCodexCategory` côté producteur. */
+function shipCritPools(set: ShipCritSet): Record<string, (id: string) => boolean> {
+  return Object.fromEntries(Object.entries(set.tables).flatMap(([loc, rows]) => {
+    const categorie = categorieDeLaNiche(set.fichier, suiteAvecPas('tables', { champ: loc }));
+    return categorie === undefined ? [] : [[categorie, (id: string) => (rows ?? []).some((r) => r.id === id)]];
+  }));
 }
 
 /** CATALOGUE d'ENTRÉES d'un `kind` : où vit la fiche de l'entrée JOUÉE, quand la clé en nomme une.
@@ -734,13 +749,11 @@ export interface SpeciesData {
   family: string;
   /** Variante régionale/sous-espèce (« Middenheim », « Norse »…) — absent pour l'espèce nominale. */
   variant?: string;
-  /** id STABLE (`RaceKey`, #313) — colonne des tables Âge/Taille/Yeux/Cheveux (`details.age`/
-   *  `details.taille`/`hairs.color`/`eyes.color`). */
+  /** Race de l'espèce (`RaceKey`, #313) : sa rangée de `especes-aleatoires.json` et sa colonne des tables
+   *  Âge/Taille/Yeux/Cheveux (`details.age`/`details.taille`/`hairs.color`/`eyes.color`). LDB 04 l.93 */
   refChar: RaceKey;
-  /** id STABLE (`RefCareerId`, #313) — colonne du Tableau des Classes et Carrières aléatoires
-   *  (`CareerData.rand`). */
-  refCareer: RefCareerId;
-  rand: number;
+  /** Id de sa colonne de base dans `carrieres-aleatoires.json` (LDB 05 l.214). */
+  refCareer: string;
   desc: string;
   movement: number;
   fate: { fate: number; resilience: number; extra: number };
@@ -775,7 +788,7 @@ export interface SpeciesData {
   arcaneDomainsBonusOf?: CharKey;
   /** Règle optionnelle (`src/data/reglesOptionnelles.json`) dont l'activation OUVRE l'espèce au
    *  joueur — lu par `speciesAllowed` (`engine/creation`). Absent = espèce ouverte sans condition.
-   *  NADJ 14 l.5 */
+   *  NADJ 14 l.5 ; ADE II 02 l.110 */
   gatedByRule?: { id: string };
 }
 export interface ClassData {
@@ -788,9 +801,6 @@ export interface ClassData {
   grantGroups?: string[];
   /** Possessions de départ (`TrappingRef` : id du catalogue + quantité, ou `{text}` flavor hors catalogue). */
   trappings: TrappingRef[];
-  /** Classe dont cette Classe peut remplacer la portion du tableau des Carrières aléatoires
-   *  (MDG 09 l.9). Lu par `remplacementsDeClasse` (`noyau/creation/brouillon`). */
-  remplace?: { id: string };
   desc: string;
   source: SourceRef;
 }
@@ -807,9 +817,11 @@ export interface CareerData {
   /** Ids de `groups.json` accordés au titulaire de cette carrière (`groupesDe`), en plus de ceux de
    *  sa Classe. Absent = la carrière n'ouvre aucun Groupe d'appartenance. */
   grantGroups?: string[];
-  /** Tableau des Classes et Carrières aléatoires (LDB 05 l.197+) : borne haute d100 par colonne
-   *  d'espèce (`SpeciesData.refCareer`). Clé ABSENTE = carrière INDISPONIBLE pour cette espèce (l.360). */
-  rand: Partial<Record<RefCareerId, number | null>>;
+  /** Les races qui tirent cette carrière au Tableau des Classes et Carrières aléatoires (AA 02 l.137 ;
+   *  ADE I 07 l.11-23). Absent = celles de ses colonnes. */
+  races?: RaceKey[];
+  /** La carrière tirée au Tableau à la place de laquelle celle-ci peut se choisir (ADE I 07 l.11). */
+  aLaPlaceDe?: string;
   desc: string;
   source: SourceRef;
 }
@@ -1016,8 +1028,6 @@ export interface TalentData {
   specsOpen?: boolean;
   /** Trait de créature conféré, la spécialisation de l'instance en argument (`traitsConferes`). LDB 10 l.506, l.548 */
   confereTrait?: { id: string };
-  /** Borne haute de plage d100 sur le Tableau des Talents aléatoires (null = hors table). */
-  rand?: number | null;
   source: SourceRef;
   /** Emplacements SECONDAIRES du même Talent (`sourceRefs.ts`), l'ancre `source` restant la seule à
    *  porter la `desc`. */
@@ -1139,12 +1149,9 @@ export interface TrappingData {
    *  `'moyenne'` (« distance inférieure à leur Portée Courte » interdite, l.251). Propagé jusqu'à `Weapon`,
    *  lu par `firedAttackBlock` (`belowMinRangeBand`). Absent = pas de minimale. */
   minRangeBand?: import('../engine/types').RangeBandId;
-  /** Munition REPRÉSENTATIVE (`TrappingData`, `categorie:'ammunition'`) d'une arme de siège — les
-   *  familles `armes-de-siege`/`munition-de-siege` (`ammoFamily`) regroupent des munitions non-interchangeables
-   *  (carreau de baliste ≠ boulet de canon ≠ bombe de mortier ≠ balles de pierrier, MDG 12 l.410-424) ; le
-   *  `subType` seul ne discrimine pas la bonne famille pour le hint joueur. Propagé jusqu'à `Weapon`,
-   *  résolu en libellé FR par `ammoFamilyLabel`. Absent = hint générique de la famille (`ammoFamilyLabel`). */
-  defaultAmmo?: { id: string };
+  /** Les munitions (`categorie:'ammunition'`) d'une arme de siège, la représentative en tête : les seules qu'elle
+   *  charge (`chargeLArme`). AA 10 l.150 ; MDG 12 l.410-424 */
+  munitions?: string[];
   /** EMPREINTE de grille (côté N×N) de l'affût POSÉ en combat — recopiée sur `Combatant.footprint`
    *  (`footprintN`), MÊME champ que `VehicleData.ship.footprint`. ADE II 8 l.239/258 (profil + description
    *  physique du tronc suspendu sur portique à roues) ne chiffre aucune Taille en cases : la valeur posée
@@ -1587,13 +1594,11 @@ export interface PsychologyData extends StatusData {
    *  Résistance, ou à une difficulté propre). « Sans Peur (Ennemi) » force Accessible à part (par-combattant). */
   test?: { skill?: RefDesignee; difficulty?: import('../engine/types').Difficulty };
 }
-/** Tables Couleur des Yeux / Cheveux (LDB 05 l.698-744) : 2d10, par colonne `RaceKey` (#313). */
+/** Rangée des Tableaux de couleur des yeux / des cheveux (LDB 05 l.742-768), par colonne `RaceKey` (#313). */
 export interface DetailColorData {
   id: string;
-  /** Deux datasets partagent CE contrat (`eyes.json` et `hairs.json`) : le `type` dit lequel. */
-  type: 'eyes' | 'hairs';
   label: string;
-  /** Borne haute 2d10 (incluse). */
+  /** Borne haute cumulée (incluse) du dé de la table. */
   rand: number;
   /** Override de `rand` PAR RACE (`RaceKey`, #313) quand une édition utilise d'autres bornes que le
    *  LDB (ex. gnome NADJ, #420) ; défaut = `rand`. Lu par `rollDetail`. */
@@ -2403,7 +2408,7 @@ export function findRegleById(id: string): RegleData | undefined {
 }
 /** Tables numériques de Disponibilité & de Troc (LDB 59 « Faire son marché » p.290-291) — app-owned
  *  éditable ; consommé par `engine/disponibilite` (mêmes références). */
-export interface DispoPctRow { availability: TestedAvailability; pct: Record<'village' | 'ville' | 'cite', number>; source: SourceRef }
+export interface DispoPctRow { availability: TestedAvailability; pct: Record<Settlement, number>; source: SourceRef }
 export interface BarterRatioRow { give: Availability; ratios: Record<Availability, { give: number; get: number }>; source: SourceRef }
 export interface DispoData { dispoPct: DispoPctRow[]; barterRatios: BarterRatioRow[] }
 export const disponibilite = disponibiliteJson as DispoData;
@@ -2506,11 +2511,10 @@ const vehiculeParId = indexParId('vehicles', vehicles);
 export const findVehicleById: (id: string) => VehicleData | undefined = vehiculeParId;
 
 /** Archétypes de marchand (#2, donnée éditable — aucun archétype en dur dans le code) — FOYER UNIQUE
- *  app-owned, indexé par `merchantArchetypeById` :
+ *  app-owned, indexé par `findMerchantArchetypeById` :
  *  ajouter un archétype = une entrée JSON ici, rien d'autre. */
 export const MERCHANT_ARCHETYPES = merchantsJson as MerchantArchetypeDef[];
-export const merchantArchetypeById: Map<string, MerchantArchetypeDef> = new Map(MERCHANT_ARCHETYPES.map((m) => [m.id, m]));
-export const findMerchantArchetypeById = (id: string): MerchantArchetypeDef | undefined => merchantArchetypeById.get(id);
+export const findMerchantArchetypeById: (id: string) => MerchantArchetypeDef | undefined = indexParId('merchants', MERCHANT_ARCHETYPES);
 
 /** Structures destructibles de siège (ADE II 8) — catalogue app-owned éditable au Codex. Modèle à PV
  *  calqué sur la facette `hull` des véhicules ; lu par `engine/structures.ts` (`structureCombatant`). */
@@ -2917,8 +2921,18 @@ const axeParId = indexParId('axes', allAxes);
 export const findAxisById: (id: string) => AxisData | undefined = axeParId;
 /** Socle par défaut d'une campagne SANS `activeAxes` déclaré (`WorldMap.activeAxes`). */
 export const coreAxisIds = memoParVersion('axes', (): string[] => allAxes.filter((a) => a.core).map((a) => a.id));
-export const eyes = eyesJson as DetailColorData[];
-export const hairs = hairsJson as DetailColorData[];
+/** Le Tableau de couleur des yeux (`eyes.json`, LDB 05 l.742-754), document à rangées tiré à son dé. */
+export const tableDesYeux = eyesJson as DocumentARangees<DetailColorData> & { die: string };
+/** Le Tableau de couleur des cheveux (`hairs.json`, LDB 05 l.756-768), document à rangées tiré à son dé. */
+export const tableDesCheveux = hairsJson as DocumentARangees<DetailColorData> & { die: string };
+/** Les rangées du Tableau de couleur des yeux. */
+export const eyes = rangeesDe<typeof couleurDesYeux>(tableDesYeux) as DetailColorData[];
+/** Les rangées du Tableau de couleur des cheveux. */
+export const hairs = rangeesDe<typeof couleurDesCheveux>(tableDesCheveux) as DetailColorData[];
+/** Le dé du Tableau de couleur des yeux, lu à l'appel. */
+export const eyesDie = (): DeDeTable => deDeTirageDe<typeof couleurDesYeux>(tableDesYeux);
+/** Le dé du Tableau de couleur des cheveux, lu à l'appel. */
+export const hairsDie = (): DeDeTable => deDeTirageDe<typeof couleurDesCheveux>(tableDesCheveux);
 /** Calendrier impérial — tables de CONTENU éditables au Codex (cf. `engine/clock.ts` pour la mécanique). */
 export const calendarMonths = calendarMonthsJson as { id: string; type: 'calendarMonths'; label: string; days: number }[];
 export const calendarIntercalary = calendarIntercalaryJson as { id: string; type: 'calendarIntercalary'; label: string; afterMonth: number }[];
@@ -3078,11 +3092,63 @@ export const gods = godsJson as GodData[];
 /** Banques de noms — UN document par race jouable, d'`id` égal à son `RaceKey` (celui de
  *  `species.refChar`) : `engine/names` retrouve la banque par cet id (#1467 L1b V-FLIP-RECORD). */
 export const names = namesJson as NamePool[];
-/** Personnages pré-tirés (DÉFINITIONS) — app-owned éditable au Codex ; la FABRIQUE (`createHero`)
+/** Prétirés officiels (fiches imprimées) — éditables au Codex ; la FABRIQUE (`heroDeFiche`)
  *  vit dans `pregens.ts`, qui consomme CE tableau (même référence → mutation live de l'éditeur). */
-export const pregens = pregensJson as PregenDef[];
+export const pregens = pregensJson as unknown as PregenDef[];
 /** Tableau des Oups ! (LDB Maladresses) — app-owned éditable ; consommé par `oups.ts` (même référence). */
 export const oups = rangeesDe<typeof tableauDesOups>(oupsJson) as OupsRow[];
+/** Les documents du Tableau des Talents aléatoires (LDB 05 l.514-531), patron `mutationTables` : le dé est
+ *  un champ de l'entrée-document — app-owned éditable au Codex (`setDataset`), même référence. */
+export const talentsAleatoires = talentsAleatoiresJson as (DocumentARangees<RangeeDe<typeof tableDesTalentsAleatoires>> & { die: string })[];
+/** Les rangées du Tableau des Talents aléatoires, lues à l'appel : tirées par `rollRandomTalent` (`engine/character.ts`). */
+export const rangeesDesTalentsAleatoires = (): RangeeDe<typeof tableDesTalentsAleatoires>[] =>
+  rangeesDe<typeof tableDesTalentsAleatoires>(talentsAleatoires, 'talents-aleatoires');
+/** Le dé du Tableau des Talents aléatoires, lu à l'appel. */
+export const talentsAleatoiresDie = (): DeDeTable => deDeTirageDe<typeof tableDesTalentsAleatoires>(talentsAleatoires, 'talents-aleatoires');
+/** Les documents du Tableau des Classes et Carrières aléatoires (LDB 05 l.214-299), par `kind` : une colonne
+ *  par colonne imprimée, les portions (MDG 09 l.9) et les variantes (AA 02 l.109-128) — app-owned éditable au
+ *  Codex (`setDataset`), même référence. */
+export const carrieresAleatoires = carrieresAleatoiresJson as (DocumentARangees<RangeeDe<typeof tableDesCarrieresAleatoires>> & { die: string } & (
+  | { kind: 'colonne' }
+  | { kind: 'portion'; colonne: string }
+  | { kind: 'variante'; carriere: string; colonnes: string[] }
+))[];
+/** La colonne de base `id`, lue à l'appel. */
+export const colonneDeCarrieres = (id: string) =>
+  garanti(carrieresAleatoires.find((d) => d.id === id && d.kind === 'colonne'), id, 'colonne du Tableau des Classes et Carrières aléatoires');
+/** La portion qui remplace une étendue de la colonne `colonne` (MDG 09 l.9), lue à l'appel. */
+export const portionDeLaColonne = (colonne: string) => carrieresAleatoires.find((d) => d.kind === 'portion' && d.colonne === colonne);
+/** La table effective de la colonne `colonne`, avec ou sans sa portion, et son dé : lue par `rollCareer`. */
+export function tableDeCarrieres(colonne: string, avecPortion: boolean): { die: DeDeTable; entries: RangeeDe<typeof tableDesCarrieresAleatoires>[] } {
+  const base = colonneDeCarrieres(colonne);
+  return { die: deDeLaTableTiree(base), entries: tableAvecPortion(base.entries, avecPortion ? portionDeLaColonne(colonne)?.entries : undefined) };
+}
+/** Les carrières que le tirage de `tiree` offre en plus à l'espèce `sp`, admises à sa race (`races`) : celles qui
+ *  se choisissent à sa place (`aLaPlaceDe`, ADE I 07 l.11-23), puis celles de sa variante portée par la colonne
+ *  de `sp` (AA 02 l.109-128). */
+export function carrieresOffertesAvec(tiree: string, sp: SpeciesData): string[] {
+  const admise = (c: CareerData | undefined) => c?.races?.includes(sp.refChar) === true;
+  const substitutions = careers.filter((c) => c.aLaPlaceDe === tiree && admise(c)).map((c) => c.id);
+  const variante = carrieresAleatoires.find((d) => d.kind === 'variante' && d.carriere === tiree && d.colonnes.includes(sp.refCareer));
+  const variantes = (variante?.entries ?? []).map((r) => r.id).filter((id) => id !== tiree && admise(findCareerById(id)));
+  return [...substitutions, ...variantes];
+}
+/** Les documents du Tableau des Races aléatoires, un par table imprimée (LDB 04 l.93-101 ; NADJ 14 l.66-75 ;
+ *  ADE II 02 l.112-121), chaque rangée l'espèce nominale de sa race — app-owned éditable au Codex (`setDataset`),
+ *  même référence. */
+export const especesAleatoires = especesAleatoiresJson as (DocumentARangees<RangeeDe<typeof tableauDesRacesAleatoires>> & { die: string })[];
+/** La seule table du Tableau des Races aléatoires dont les races des rangées égalent `races`, lue à l'appel. */
+export function tableDesRacesAleatoires(races: ReadonlySet<RaceKey>): (typeof especesAleatoires)[number] {
+  const racesDe = (t: (typeof especesAleatoires)[number]) => new Set(t.entries.map((r) => garanti(findSpeciesById(r.id), r.id, 'espèce du Tableau des Races aléatoires').refChar));
+  const tables = especesAleatoires.filter((t) => {
+    const r = racesDe(t);
+    return r.size === races.size && [...races].every((x) => r.has(x));
+  });
+  return garanti(tables.length === 1 ? tables[0] : undefined, [...races].join(', '), `table unique du Tableau des Races aléatoires (${tables.length} trouvée(s)) pour les races`);
+}
+/** Les documents du Tableau des cargaisons, un par voie et colonne saisonnière (MDG 15 l.404-418 ; MSRC 13
+ *  l.69-78) — app-owned éditable au Codex (`setDataset`), même référence. */
+export const cargaisonsAleatoires = cargaisonsAleatoiresJson as (DocumentARangees<RangeeDe<typeof tableauDesCargaisons>> & { die: string; voie: string; saison: string })[];
 /** Événements « Entre deux aventures » (LDB d100) — app-owned éditable ; consommé par `interludeEvents.ts`. */
 export const interludeEvents = rangeesDe<typeof tableauDesEvenements>(interludeEventsJson) as InterludeEvent[];
 /** Péripéties de voyage (1d10) — app-owned éditable ; consommé par `peripeties.ts` (même référence). */
@@ -3242,14 +3308,21 @@ export function speciesSingular(speciesId: string | undefined): PlayerText {
   const race = t(`espece.individu.${sp.refChar}`);
   return sp.variant ? dataLabel(`${race} (${sp.variant})`) : race;
 }
+/** Les carrières que le tirage de `sp` peut offrir sur sa table effective (`tableDeCarrieres`), avec ou sans sa
+ *  portion : les rangées, et ce que leur tirage offre en plus (`carrieresOffertesAvec`). */
+export function carrieresTirables(sp: SpeciesData, avecPortion: boolean): CareerData[] {
+  const ids = new Set(tableDeCarrieres(sp.refCareer, avecPortion).entries.flatMap((r) => [r.id, ...carrieresOffertesAvec(r.id, sp)]));
+  return careers.filter((c) => ids.has(c.id));
+}
 /**
  * Carrières accessibles à une espèce (Tableau des Classes et Carrières aléatoires, LDB 05
- * l.197+ : « certaines ont des restrictions liées à la Race », l.360). `ignoreRestrictions`
- * = option « Mais je veux jouer un elfe sylvain Flagellant ! » (l.362, accord du MJ).
+ * l.197+, l.360) : celles que son tirage offre, avec ou sans le remplacement (`carrieresTirables`).
+ * `ignoreRestrictions` = LDB 05 l.314-316.
  */
-export function careersForSpecies(refCareer: RefCareerId, ignoreRestrictions = false): CareerData[] {
+export function careersForSpecies(sp: SpeciesData, ignoreRestrictions = false): CareerData[] {
   if (ignoreRestrictions) return careers;
-  return careers.filter((c) => c.rand?.[refCareer] != null);
+  const ids = new Set([false, true].flatMap((avecPortion) => carrieresTirables(sp, avecPortion).map((c) => c.id)));
+  return careers.filter((c) => ids.has(c.id));
 }
 const carriereParId = indexParId('careers', careers);
 /** Résout une Carrière par son `id` STABLE. Le libellé ne sert qu'à l'affichage. */
@@ -3607,6 +3680,15 @@ export function entreeDeCategorie(category: string, id: string): { id: string; l
   const d = DATASET_DE_LA_CATEGORIE[category];
   const entrees = suivreLeChemin(RACINES_VIVANTES[d.fichier], d.chemin) as readonly { id: string; label: string }[] | undefined;
   return entrees && indexParId(d.cle, entrees)(id);
+}
+/** CATÉGORIE CODEX de la collection nichée au bout de `suite` dans `fichier` (`[id].entries`, `tables.coque`) :
+ *  celle dont le dataset porte l'espace `fichier#suite` (`DATASET_DE_L_ESPACE` → `DATASET_DE_LA_CATEGORIE`),
+ *  tables générées depuis le `niche.categories` du def ; `undefined` pour une collection que le Codex n'expose pas. */
+export function categorieDeLaNiche(fichier: string, suite: string): string | undefined {
+  const espace = cleNichee(fichier, suite);
+  if (!Object.prototype.hasOwnProperty.call(DATASET_DE_L_ESPACE, espace)) return undefined;
+  const { cle } = DATASET_DE_L_ESPACE[espace];
+  return Object.keys(DATASET_DE_LA_CATEGORIE).find((c) => DATASET_DE_LA_CATEGORIE[c].cle === cle);
 }
 /** Résout une entrée de dataset par (catégorie, `id`) — rendu/lookup des refs structurées. Une catégorie
  *  sans `case` se lit par la porte générique `entreeDeCategorie`. */

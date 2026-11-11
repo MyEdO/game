@@ -6,7 +6,7 @@
  * rejoint les dépôts.
  */
 import { describe, it, expect } from 'vitest';
-import { drainer, table } from './pont.testkit';
+import { drainer, table, enFocus } from './pont.testkit';
 import type { Bouton, Choix, Element, Entite, Formulaire, Saisie } from '../../../src/hote/elements';
 import type { Suite } from './pont';
 import { t } from '../../../src/i18n';
@@ -23,15 +23,15 @@ describe('l’ouvrage et le dépôt par le pont', () => {
     let suite = drainer(appel, appel('demarrer', { scenario: 'entre-deux-aventures', graine: 7 })).suite;
     for (let pas = 0; suite.vue.disposition !== 'interlude'; pas++) {
       expect(pas, 'les dés d’Événement tombent').toBeLessThan(8);
-      suite = jouer(suite.vue.zones['fenetre.gestes'].find((x): x is Bouton => x.type === 'bouton' && x.focus)!.jeu);
+      suite = jouer(enFocus(suite.vue)!.jeu);
     }
     const durin = parId(heros(suite, 'durin'));
     expect(valeur(durin.activite, 'Artisanat').refus, 'l’ouvrage s’engage').toBeNull();
     const depot = durin['depot/durin'] as Formulaire;
-    expect(saisie(depot, 'kind').valeurs.map((v) => [v.libelle, v.refus]), 'un artisan Bronze planque, sans investir ni Mécénat ici').toEqual([
+    expect(saisie(depot, 'genre').valeurs.map((v) => [v.libelle, v.refus]), 'un artisan Bronze planque, sans investir ni Mécénat ici').toEqual([
       ['Investir', 'Durin (forgeron) : investir en banque exige le Statut Argent ou Or.'], ['Planquer', null], ['Mécénat', 'Le Mécénat ne se pratique pas ici.'],
     ]);
-    expect(depot.champs.find((c) => c.nom === 'amountBrass'), 'le montant, par pistole, jusqu’à la bourse').toMatchObject({ type: 'saisieNombre', min: 12, max: 4800, pas: 12 });
+    expect(depot.champs.find((c) => c.nom === 'montant'), 'le montant, par pistole, jusqu’à la bourse').toMatchObject({ type: 'saisieNombre', min: 12, max: 4800, pas: 12 });
     const hilde = parId(heros(suite, 'hilde'));
     expect(valeur(hilde.activite, 'Artisanat').refus, 'sans Métier, aucun ouvrage').toBe('Hilde (marchande) ne possède aucune Compétence Métier — impossible de fabriquer.');
 
@@ -51,7 +51,7 @@ describe('l’ouvrage et le dépôt par le pont', () => {
     expect(apres.ouvrage, 'l’ouvrage engagé ne s’offre plus').toBeUndefined();
     expect(apres.pratiquer, 'l’Artisanat en cours se poursuit').toMatchObject({ type: 'bouton', refus: null });
 
-    suite = jouer({ type: depot.verbe, args: ['durin', 'stash', 120] });
+    suite = jouer({ type: depot.verbe, args: ['durin', 'planque', 120] });
     expect((suite.vue.zones['fenetre.corps'].find((e) => e.id === 'repit/depots') as Entite).elements.map((b) => (b as Bouton).libelle), 'la planque rejoint les dépôts').toHaveLength(1);
   });
 });

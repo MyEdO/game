@@ -9,7 +9,7 @@ import { applyEffects } from './combatEffects';
 import { gainCorruption, corruptionTarget } from './corruptionFlow';
 import { draineCascade, avanceEtapeCascade } from './cascade.testkit';
 import type { RevealEntry } from './pendings';
-import { makePregens, PREGEN } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { createHero } from '../engine/character';
 import mutationTables from '../data/mutationTables.json';
 import type { Combatant } from '../engine/types';
@@ -20,9 +20,9 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 function party2() {
-  const all = makePregens(idsDeTest);
+  const all = tousLesHerosDeScenario(idsDeTest);
   // Sans Talent aléatoire (`talentsRolled: false`) : aucun tirage d'Âme pure (LDB 10 l.52).
-  const a = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Sigmund', id: all[0].id, seed: PREGEN.soldat, talentsRolled: false });
+  const a = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Sigmund', id: all[0].id, seed: 101, talentsRolled: false });
   const b = all[1];
   return { a, b, party: [a, b] as Combatant[] };
 }
@@ -220,7 +220,7 @@ describe('gainCorruption : seuil → mutation → limites (l.80-95)', () => {
     banc.setState({ pendingCorruption: { ...banc.getState().pendingCorruption!, roll: 99, target: 5, sl: -9, success: false } });
     banc.getState().jetValider('corruption');
     expect(banc.getState().pendingRenounce).toBeTruthy();
-    banc.getState().fenetreChoisir('renounce', 'renier', false); // subir la mutation
+    banc.getState().fenetreChoisir('renier', 'renier', false); // subir la mutation
     draineCascade(banc.getState);
     const after = banc.getState().party.find((h) => h.id === a.id)!;
     expect(after.mutations?.length).toBe(1);
@@ -362,7 +362,7 @@ describe('corruptionTarget — #152 : reconditionné sur followsCharacterRules (
       battle: { combatants: [npc], log: [] } as never,
       pendingRenounce: { heroId: npc.id, testRoll: 99, testTarget: 30 },
     });
-    banc.getState().fenetreChoisir('renounce', 'renier', true);
+    banc.getState().fenetreChoisir('renier', 'renier', true);
     expect(banc.getState().pendingRenounce).toBeNull();
     expect(npc.resilience).toBe(0); // trouvé via followsCharacterRules → « Je te renie ! » a pu s'appliquer
   });

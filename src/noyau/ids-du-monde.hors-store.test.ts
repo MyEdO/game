@@ -16,7 +16,7 @@ import type { Combatant } from '../engine/types';
 import { ouvrirLaPartie, nouvelEntete } from '../hote/partie';
 import { empreinte, jouerUnGeste, lireLeFichier, rejouer } from '../hoteTexte/partieTexte';
 import { ouvrirLeBanc } from './banc.testkit';
-import { makeShowcaseParty } from '../data/pregens';
+import { groupeVitrineDeScenario } from '../scenes/test-scenarios/_heros';
 import { pregens } from '../data';
 import { fabriqueLocale } from '../engine/fabriqueDId';
 import { testScenarios } from '../scenes/test-scenarios';
@@ -160,7 +160,7 @@ describe('un uid porté par deux combattants n’est pas masqué par la désigna
 
 describe('un geste refusé ne consomme aucun id (#2907)', () => {
   it('un recrutement refusé, groupe plein, laisse le compteur', () => {
-    const banc = ouvrirLeBanc({ etat: { party: makeShowcaseParty(fabriqueLocale('groupe')) } });
+    const banc = ouvrirLeBanc({ etat: { party: groupeVitrineDeScenario(fabriqueLocale('groupe')) } });
     const avant = banc.getState().prochainId;
     banc.getState().recruterLeHeros({ pretire: pregens[0].id });
     expect(banc.getState().party).toHaveLength(4);

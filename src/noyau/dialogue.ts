@@ -2,7 +2,7 @@
  * DIALOGUE — ce qu'une réponse OFFRE et ce qu'elle ANNONCE viennent de sa DONNÉE (#1869).
  *
  * Des fonctions PURES (elles LISENT l'état, n'en écrivent aucun), source UNIQUE des surfaces qui servent
- * une réponse — la fenêtre (`ui/DialogueBox`), les touches `dialogue-choice-N` (`state/clavier/keybindings`) et
+ * une réponse — la fenêtre (`ui/DialogueBox`), les touches `dialogue-reponse-N` (`state/clavier/keybindings`) et
  * l'écran d'un hôte du noyau (`conversationEnVue`) :
  *  · `ouvrirDialogue` — la SEULE fabrique d'un état de conversation : tout ouvreur y passe, et la
  *    conversation naît avec sa `session`, l'id MONOTONE qui regroupe SES tours à la relecture ;
@@ -59,7 +59,7 @@ export function ouvrirDialogue(
 /**
  * LA CONVERSATION RÉPOND-ELLE ? Prédicat NOMMÉ, UNIQUE, de toutes les portes par lesquelles une
  * réponse se choisit — le choix `dialogue.reponse` (donc aussi l'intent coop appliqué par l'hôte) et
- * les touches `dialogue-choice-N`. Trois termes, aucun recopié ailleurs :
+ * les touches `dialogue-reponse-N`. Trois termes, aucun recopié ailleurs :
  *  · une conversation est OUVERTE ;
  *  · CE siège décide pour le groupe (décision de groupe, #1262) ;
  *  · aucune surface ne tient la main (`surfaceTientLaMain`, l'arbitre) — la conversation est CE

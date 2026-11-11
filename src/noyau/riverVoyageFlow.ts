@@ -709,14 +709,14 @@ function resolveRiverPerilConsequence(get: Get, set: Set, peril: NonNullable<Ret
     damageVesselHull(get, set, coque, dmg);
     j.push(t('rv.hullHit', { peril: peril.label, dmg, note, cur: coque.wounds.current, max: coque.wounds.max }));
   };
-  if (peril.kind === 'navTest' && peril.onFail) {
+  if (peril.kind === 'navigation' && peril.onFail) {
     // Débris (l.125) : Test de Navigation d'évitement INFLUENÇABLE (step.result), +Savoir (l.13) → contrôle gardé.
     const res = step.result;
     const savoir = Number(step.meta?.savoir ?? 0);
     const avoided = res ? riverControlKept(res.success, res.sl, savoir) : false;
     j.push(t('rv.avoidManeuver', { peril: peril.label, issue: t(res ? (avoided ? 'rv.avoided' : 'rv.collided') : 'rv.noPilotCollision') }));
     if (!avoided) for (let i = 0; i < peril.onFail.hullHits; i++) damageHull(peril.onFail.damagePerHit, t('rv.fragCollision'));
-  } else if (peril.kind === 'detect' && peril.onHit) {
+  } else if (peril.kind === 'perception' && peril.onHit) {
     // Rochers / eaux peu profondes (l.136) : succès AUTO avec la Compétence Navigation ; sinon Agilité (+0),
     // INFLUENÇABLE (#270) si le jet se surface pour le barreur (`riverPerilDetect`).
     const pilotId = step.actorId;
@@ -956,7 +956,7 @@ export const TABLES = {
       // Rejeu POST-POSE de la chance du péril : l'étape `riverPerilCheck` est déjà posée, ce dé en est la
       // conséquence — porte du canal (`deMonde`), un dé par péril (même position RNG qu'inline).
       if (deMonde(rng) > Math.max(0, Math.min(100, chancePct))) return;
-      if (peril.kind === 'navTest') {
+      if (peril.kind === 'navigation') {
         // Le Test d'évitement est INFLUENÇABLE → étape-jet insérée juste après (chance PUIS jet, ordre inline).
         const hasPilot = !!step.meta?.hasPilot;
         // Le barreur est RE-RÉSOLU au moment de l'insertion (acteur + Soutien du moment) et la ligne se

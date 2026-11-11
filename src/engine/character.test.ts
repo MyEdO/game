@@ -1,7 +1,8 @@
 import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
-import { findSpeciesById, talentConcrete, talents, specPoolOf, firstLevel, careerLevels, species } from '../data';
+import { findSpeciesById, talentConcrete, talents, talentsAleatoires, rangeesDesTalentsAleatoires, specPoolOf, firstLevel, careerLevels, species } from '../data';
 import { setDataset } from '../data/overrides';
+import { findTableEntry } from './tables';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import type { Combatant } from './types';
 import {
@@ -34,8 +35,9 @@ describe('speciesSkillDefaults — 3×+5 / 3×+3 (LDB 05 l.484)', () => {
 describe('Talent d’espèce tiré — Tableau des Talents aléatoires (LDB 05 l.484)', () => {
   // Le tirage vit à l'adresse `especeTirage(PREALABLES, 0)`, quels que soient les Talents possédés : les
   // emplacements préalables non tenus portent un Talent hors du Tableau.
-  const PREALABLES = Math.max(1, ...talents.filter((t) => t.rand != null).map((t) => specPoolOf(t).length));
-  const horsTableau = talents.find((t) => t.rand == null && !specPoolOf(t).length)!;
+  const DU_TABLEAU = new Set<string>(rangeesDesTalentsAleatoires().map((r) => r.id));
+  const PREALABLES = Math.max(1, ...talents.filter((t) => DU_TABLEAU.has(t.id)).map((t) => specPoolOf(t).length));
+  const horsTableau = talents.find((t) => !DU_TABLEAU.has(t.id) && !specPoolOf(t).length)!;
   const tirage = (seed: number, possedes: RefDesignee[] = [], opts: { randomSpecPicks?: Record<string, string> } = {}) => {
     const prealables = [...possedes, ...Array.from({ length: PREALABLES - possedes.length }, () => ({ id: horsTableau.id }))];
     const out = resolveSpeciesTalentsDetail({ ...sp(), talents: [...prealables, { random: 1 }] }, { seed, ...opts });
@@ -46,7 +48,7 @@ describe('Talent d’espèce tiré — Tableau des Talents aléatoires (LDB 05 l
 
   it('renvoie un talent de la table, non doublon sans Talent possédé', () => {
     const t = tirage(1);
-    expect(talents.find((x) => x.id === t.ref.id)?.rand).toBeDefined();
+    expect(DU_TABLEAU).toContain(t.ref.id);
     expect(t.doublon).toBe(false);
   });
 
@@ -69,6 +71,39 @@ describe('Talent d’espèce tiré — Tableau des Talents aléatoires (LDB 05 l
     const toutes = pool.map((spec) => ({ id: tire.ref.id, spec }));
     expect(tirage(seed, toutes)).toEqual({ ref: { id: tire.ref.id, spec: specA }, doublon: true });
     expect(tirage(seed, [], { randomSpecPicks: { [ADRESSE]: specB } })).toEqual({ ref: { id: tire.ref.id, spec: specB }, doublon: false });
+  });
+
+  it('le tirage suit le `die` du document `talents-aleatoires`, jamais un d100 recopié (LDB 05 l.514 ; #3578)', () => {
+    const imprimes = [...talentsAleatoires];
+    setDataset('talentsAleatoires', imprimes.map((d) => ({ ...d, die: 'd10' })));
+    try {
+      const atteignables = new Set(Array.from({ length: 10 }, (_, i) => findTableEntry(rangeesDesTalentsAleatoires(), i + 1).id));
+      const tires = new Set(Array.from({ length: 200 }, (_, i) => tirage(i + 1).ref.id));
+      expect(tires, 'un 1d10 n’atteint que les rangées de 1 à 10').toEqual(atteignables);
+    } finally {
+      setDataset('talentsAleatoires', imprimes);
+    }
+  });
+
+  it('à graine égale, la suite des tirages est celle du d100 d’avant le document (témoin : b1acab5ac, `roll(1, 100)`)', () => {
+    // 6 tirages Reiklander, graines 1 à 12 ; « ! » = doublon.
+    const TEMOIN = [
+      'ame-pure lire-ecrire reflexes-foudroyants reflexes-foudroyants! costaud sens-aiguise(ouie)',
+      'dur-a-cuire fuite imperturbable tres-resistant bonnes-jambes noblesse',
+      'doigts-de-fee bonnes-jambes bonnes-jambes! oreille-absolue sens-de-l-orientation sens-de-l-orientation!',
+      'bonnes-jambes affable imperturbable resistance(chaos) doigts-de-fee doigts-de-fee!',
+      'ame-pure sixieme-sens tres-resistant affinite-avec-les-animaux ame-pure! ame-pure!',
+      'affinite-avec-les-animaux affable artiste(calligraphie) resistance(chaos) tres-resistant vivacite',
+      'vision-nocturne doue-en-calcul ame-pure ame-pure! sixieme-sens fuite',
+      'resistance(chaos) affable oreille-absolue resistance(corruption)! sens-aiguise(ouie) sens-de-l-orientation',
+      'sens-aiguise(ouie) ame-pure ambidextre chanceux ame-pure! tres-resistant',
+      'lire-ecrire resistance(chaos) doigts-de-fee sixieme-sens reflexes-foudroyants chanceux',
+      'doue-en-calcul tres-resistant affable maitre-artisan(alchimiste) guerrier-ne doue-en-calcul!',
+      'ame-pure vision-nocturne doigts-de-fee sixieme-sens imperturbable attirant',
+    ];
+    const suite = (seed: number) => resolveSpeciesTalentsDetail({ ...sp(), talents: [{ random: 6 }] }, { seed })
+      .map((t) => `${t.ref.id}${t.ref.spec ? `(${t.ref.spec})` : ''}${t.tirage!.doublon ? '!' : ''}`).join(' ');
+    expect(TEMOIN.map((_, i) => suite(i + 1))).toEqual(TEMOIN);
   });
 });
 

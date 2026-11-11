@@ -65,8 +65,8 @@ describe('engine/healing — gate compétence & cibles', () => {
 
   it('availableHealModes : « wounds » bloqué si déjà soigné cette rencontre ; « bleed » indépendant', () => {
     const t = hero({ wounds: blessuresDeBase(12, 5), conditions: [{ id: 'hemorragique', value: 2 }] });
-    expect(availableHealModes(t)).toEqual(['wounds', 'bleed']);
-    expect(availableHealModes({ ...t, soinRencontreUtilise: true })).toEqual(['bleed']);
+    expect(availableHealModes(t)).toEqual(['blessures', 'hemorragie']);
+    expect(availableHealModes({ ...t, soinRencontreUtilise: true })).toEqual(['hemorragie']);
   });
 
   it('healableTargets (combat) : soi + alliés adjacents (Chebyshev ≤ 1), inconscient inclus', () => {
@@ -142,16 +142,16 @@ describe('engine/healing — healDifficulty (mode → Difficulté, variante comb
 
   it('variante LDB (défaut) : wounds/bleed/ammo tous Intermédiaire (+0)', () => {
     resetRule('combat-aa-blessures');
-    expect(healDifficulty('wounds')).toBe('intermediaire');
-    expect(healDifficulty('bleed')).toBe('intermediaire');
-    expect(healDifficulty('ammo')).toBe('intermediaire');
+    expect(healDifficulty('blessures')).toBe('intermediaire');
+    expect(healDifficulty('hemorragie')).toBe('intermediaire');
+    expect(healDifficulty('munition')).toBe('intermediaire');
   });
 
   it('variante AA : bleed devient Accessible (+20), wounds/ammo restent Intermédiaire (+0)', () => {
     setRule('combat-aa-blessures', 'aa');
-    expect(healDifficulty('wounds')).toBe('intermediaire');
-    expect(healDifficulty('bleed')).toBe('accessible');
-    expect(healDifficulty('ammo')).toBe('intermediaire');
+    expect(healDifficulty('blessures')).toBe('intermediaire');
+    expect(healDifficulty('hemorragie')).toBe('accessible');
+    expect(healDifficulty('munition')).toBe('intermediaire');
   });
 });
 

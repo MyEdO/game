@@ -15,7 +15,7 @@ const BASE: BaseDUnElement = {
   chaines: { jupe: ['jupe_avant_01'] },
   zones: ['torse', 'bras_haut', 'hanches', 'cuisses', 'tete'],
   silhouettes: ['feminin', 'corpulence', 'carrure_moins', 'carrure_plus'],
-  prises: { main: { os: 'hand_r', position: [0, 0.09, 0], rotation: [0, 0, 0] }, off: { os: 'hand_l', position: [0, 0.09, 0], rotation: [0, 0, 0] } },
+  prises: { main: { os: 'hand_r', position: [0, 0.09, 0], rotation: [0, 0, 0] }, secondaire: { os: 'hand_l', position: [0, 0.09, 0], rotation: [0, 0, 0] } },
 };
 
 /** Les matériaux du GLB de test, un par surface que nomment les manifestes de ce fichier. */

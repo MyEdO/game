@@ -183,7 +183,7 @@ export function riverCritical(location: string): CritDef | undefined {
 
 // ── Dangers (l.119-166) ──────────────────────────────────────────────────────────────────────────
 
-export type RiverPerilKind = 'navTest' | 'obstacle' | 'detect';
+export type RiverPerilKind = 'navigation' | 'obstacle' | 'perception';
 export interface RiverPerilDef {
   id: string;
   label: string;

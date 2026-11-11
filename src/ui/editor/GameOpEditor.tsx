@@ -98,7 +98,7 @@ const OP_ICON: Record<GameOp['op'], IconIdInput> = {
   armourPierce: 'item/weapon', critOnRoll: 'journal/critical', spendAdvantage: 'flag/focus', rollThreshold: 'nav/dice',
   rollTable: 'nav/dice', rollMutation: 'nav/mutation', charDamage: 'mechanic/stat-mod',
   intoxicate: 'item/consumable', narrative: 'journal/detail',
-  shipMorale: 'travel/anchor', manann: 'travel/anchor', shipCritical: 'travel/anchor', navireMod: 'travel/anchor', meteoImposee: 'nautical/wind', cargaison: 'item/misc', provisions: 'item/consumable', equipage: 'travel/anchor', perilDeMer: 'nautical/wind', navireHostile: 'travel/anchor', infestation: 'medical/infection', combatEnMer: 'action/attack', marcheDuPort: 'merchant/cart', commission: 'merchant/cart',
+  shipMorale: 'travel/anchor', manann: 'travel/anchor', shipCritical: 'travel/anchor', navireMod: 'travel/anchor', meteoImposee: 'nautical/wind', cargaison: 'item/misc', provisions: 'item/consumable', equipage: 'travel/anchor', perilDeMer: 'nautical/wind', navireHostile: 'travel/anchor', infestation: 'medical/infection', combatEnMer: 'action/attack', marcheDuPort: 'merchant/cart', commission: 'merchant/cart', constructeurDEscale: 'travel/anchor', rationsDEscale: 'item/consumable',
 };
 
 /** TOUTES les op du vocabulaire, groupées par intention d'auteur. Libellé de groupe = texte SEUL
@@ -894,7 +894,7 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
                 onChange={(radiusM) => upd({ radiusM })} />
             </label>
             <label className="dr">Ton
-              <select value={o.tone ?? ''} onChange={(e) => upd({ tone: e.target.value || undefined })}>
+              <select value={o.tone?.id ?? ''} onChange={(e) => upd({ tone: e.target.value ? { id: e.target.value } : undefined })}>
                 <option value="">— ton par défaut —</option>
                 {lightTones.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
               </select>
@@ -1011,8 +1011,8 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
         {op.op === 'rollMutation' && (
           <>
             <label className="dr">Table de Corruption
-              <select value={o.table} onChange={(e) => upd({ table: e.target.value })}>
-                {!o.table && <option value="">— (choisir une table) —</option>}
+              <select value={o.table.id} onChange={(e) => upd({ table: { id: e.target.value } })}>
+                {!o.table.id && <option value="">— (choisir une table) —</option>}
                 {mutationTables.map((t) => (<option key={t.id} value={t.id}>{t.label}</option>))}
               </select>
             </label>

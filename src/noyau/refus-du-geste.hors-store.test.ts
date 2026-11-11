@@ -95,7 +95,7 @@ describe('#3610 — refusDuGeste : l’offre est la projection du refus de son g
     const ecarts: string[] = [];
     for (let pas = 0; pas < 8 && banc.getState().battle && !banc.getState().battle!.over; pas++) {
       const s = banc.getState();
-      if (s.battle!.turn < 0) { banc.actions.fenetreValider('roundStart'); continue; }
+      if (s.battle!.turn < 0) { banc.actions.fenetreValider('debutDuRound'); continue; }
       ecarts.push(...ecartsDuTour(s, `${id}#${pas}`));
       advanceTurn(banc.getState, banc.setState);
     }
@@ -113,15 +113,15 @@ describe('#3610 — Dissiper : le mode s’offre une fois, chaque Sort dissipabl
     ...extra,
   }) as unknown as Combatant);
 
-  it('dispel une fois, dispel-spell par Sort, son geste admis par le corps qu’il déclare', () => {
+  it('dissipation une fois, dissipation-sort par Sort, son geste admis par le corps qu’il déclare', () => {
     const banc = ouvrirLeBanc();
     const sort = (spellId: string, casterId: string) => ({ label: spellId, characteristic: 'agilite', bonus: -10, duration: { scale: 'rounds', left: 9 }, spell: { spellId, ni: 2, casterId, label: spellId } });
     const cible = mk('cible', { kind: 'enemy', pos: { x: 5, y: 5 }, activeEffects: [sort('malefice', 'e1'), sort('aveuglement', 'e2')] } as never);
     banc.setState({ battle: { combatants: [mk('mage'), cible], order: ['mage', 'cible'], turn: 0, round: 1, acted: false, over: null, log: [], reachable: new Map(), movementUsed: 0 } as never });
     const s = banc.getState();
     const offres = offresDeLActif({ active: s.battle!.combatants[0], battle: s.battle!, netMode: s.net.mode, gameTime: s.gameTime, state: s });
-    expect(offres.filter((o) => o.actionId === 'dispel').map((o) => o.geste)).toEqual([{ verbe: 'armerLeMode', args: ['dispel'] }]);
-    expect(offres.filter((o) => o.actionId === 'dispel-spell').map((o) => o.geste)).toEqual([
+    expect(offres.filter((o) => o.actionId === 'dissipation').map((o) => o.geste)).toEqual([{ verbe: 'armerLeMode', args: ['dissipation'] }]);
+    expect(offres.filter((o) => o.actionId === 'dissipation-sort').map((o) => o.geste)).toEqual([
       { verbe: 'dissiperLeSort', args: ['mage', 'malefice', 'e1'] },
       { verbe: 'dissiperLeSort', args: ['mage', 'aveuglement', 'e2'] },
     ]);

@@ -219,7 +219,7 @@ describe('cliquet — champs ÉTRANGERS présentés par les catégories éditabl
     stakes: ['template', 'form'],
     // #1684 : les deux catalogues de cargaisons fusionnent en `cargoes`, dont la charge se partitionne
     // DEUX fois — par `voie` (déclarée : `wine` est terrestre) et par la valeur BOOLÉENNE `echangeable`
-    // (marchandise ⟺ `avail`/`price`, marqueur ⟺ `hint`/`tradeHub`, `affinerEntree` de `defs/cargoes.ts`).
+    // (marchandise ⟺ `price`, marqueur ⟺ `hint`/`tradeHub`, `affinerEntree` de `defs/cargoes.ts`).
     // `chargeParDiscriminant` ne partitionne que par les valeurs d'UN champ chaîne : c'est ce qui soldera
     // cette ligne.
     cargoes: ['echangeable', 'hint', 'tradeHub'],

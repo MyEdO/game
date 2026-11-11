@@ -34,7 +34,7 @@ import {
   draftLevel,
   careerCharKeys,
   coastalSwapAvailable,
-  careerRollPool,
+  carrieresOffertes,
   withCoastalSwap,
   speciesTalentChoiceEntries,
   unresolvedTrappingSlots,
@@ -56,7 +56,7 @@ import { spells, stars, celestialHouses, species as allSpecies, careersForSpecie
 // Page blanche : `newDraft` ne pré-tire plus race/carrière — les tests posent explicitement les
 // mêmes défauts dérivés qu'avant (1ʳᵉ espèce du LDB, sa 1ʳᵉ carrière accessible).
 const DEFAULT_SPECIES = allSpecies.find((s) => s.source.book === 'livre-de-base')!;
-const DEFAULT_CAREER = careersForSpecies(DEFAULT_SPECIES.refCareer)[0]!;
+const DEFAULT_CAREER = careersForSpecies(DEFAULT_SPECIES)[0]!;
 const draft = () => withCareer(withSpecies(newDraft(1234), DEFAULT_SPECIES.id), DEFAULT_CAREER.id);
 
 /** Spécialisation par défaut des jokers de carrière (1re du pool LIBRE) + répartition par défaut des
@@ -221,7 +221,7 @@ describe('relance d\'un Talent tiré doublon (LDB 05 l.484)', () => {
 describe('changer d’espèce ou de carrière écarte les spécialisations des emplacements de SA famille', () => {
   const a = adresseDeCreation;
   const autreEspece = allSpecies.find((s) => s.id !== DEFAULT_SPECIES.id)!.id;
-  const autreCarriere = careersForSpecies(DEFAULT_SPECIES.refCareer).find((c) => c.id !== DEFAULT_CAREER.id)!.id;
+  const autreCarriere = careersForSpecies(DEFAULT_SPECIES).find((c) => c.id !== DEFAULT_CAREER.id)!.id;
   const d = () => ({ ...draft(), specChoices: { [a.especeTalent(0)]: 'e', [a.carriereCompetence(0)]: 'c', [a.ajout('metier')]: 'x', [a.signe(1)]: 's' } });
 
   it('l’espèce écarte les emplacements d’espèce et les ajouts, garde la carrière et le signe', () => {
@@ -290,7 +290,7 @@ describe('agentivité (#393, amendement « ossature enforcée ») — aucun rés
   });
   it('validation étape 3 : le geste est EXIGÉ pour les voies aux dés, pas pour les 100 Points', () => {
     expect(validateStep(draft(), 'chars')).toBe('Tirez vos Caractéristiques aux dés.');
-    expect(validateStep({ ...draft(), charMode: 'pointBuy' as const }, 'chars')).not.toMatch(/aux dés/);
+    expect(validateStep({ ...draft(), charMode: 'repartition' as const }, 'chars')).not.toMatch(/aux dés/);
   });
   it('talents aléatoires : AUCUN tiré avant le geste (ni liste ni résolution), révélés après — figés par le seed', () => {
     const d = draft(); // Reiklander : « 3 Talent aléatoire »
@@ -321,11 +321,11 @@ describe('Riverains ⇄ Côtiers (MDG 09 l.9, #393 P2 correctif utilisateur)', (
   const swappableSpecies = allSpecies.find((s) => coastalSwapAvailable(withSpecies(newDraft(1), s.id)))!;
   const swappable = () => withSpecies(newDraft(1234), swappableSpecies.id);
 
-  it('la table effective exclut Riverains XOR Côtiers selon la bascule — jamais les deux', () => {
-    const off = careerRollPool({ ...swappable(), coastalSwap: false });
+  it('les carrières offertes portent Riverains XOR Côtiers selon la bascule — jamais les deux', () => {
+    const off = carrieresOffertes({ ...swappable(), coastalSwap: false });
     expect(off.some((c) => c.class.id === 'cotiers')).toBe(false);
     expect(off.some((c) => c.class.id === 'riverains')).toBe(true);
-    const on = careerRollPool({ ...swappable(), coastalSwap: true });
+    const on = carrieresOffertes({ ...swappable(), coastalSwap: true });
     expect(on.some((c) => c.class.id === 'riverains')).toBe(false);
     expect(on.some((c) => c.class.id === 'cotiers')).toBe(true);
   });
@@ -372,9 +372,9 @@ describe('bonus de PX (LDB 04/05)', () => {
     expect(charsXp(draft())).toBe(0); // pas de bonus pour un tirage jamais lancé (#393 agentivité)
     const d = rollDraftChars(draft());
     expect(charsXp(d)).toBe(50);
-    expect(charsXp({ ...d, charMode: 'reassigned' })).toBe(25);
+    expect(charsXp({ ...d, charMode: 'reassigne' })).toBe(25);
     expect(charsXp({ ...d, charRerolls: 1 })).toBe(0);
-    expect(charsXp({ ...d, charMode: 'pointBuy' })).toBe(0);
+    expect(charsXp({ ...d, charMode: 'repartition' })).toBe(0);
   });
 });
 
@@ -399,7 +399,7 @@ describe('validation des étapes', () => {
     expect(validateStep(ok, 'chars')).toBeNull();
   });
   it('Caractéristiques : réassignation = permutation stricte des dix jets', () => {
-    const d = { ...readyDraft(), charMode: 'reassigned' as const };
+    const d = { ...readyDraft(), charMode: 'reassigne' as const };
     expect(validateStep(d, 'chars')).toBeNull();
     const bad = { ...d, assignment: { ...d.assignment, 'capacite-de-combat': d.assignment['capacite-de-tir'] } };
     expect(validateStep(bad, 'chars')).toMatch(/une seule fois/);
@@ -531,7 +531,7 @@ describe('Magie mineure à la création (LDB 10 l.714) — BFM sorts inclus au T
   /** Talent « +5 FM » (Imperturbable, LDB 10) au quota : verrouille la source UNIQUE des +5 de
    *  talent (`baseWithTalents`, jamais une boucle manuelle re-implémentée dans `pettySpellQuota`).
    *  Humains (Tiléens) portent le choix « Imperturbable ou Affable » (Affable = Sociabilité, témoin
-   *  neutre) ; BFM figé en `pointBuy` pour franchir la décade sans dépendre du tirage. */
+   *  neutre) ; BFM figé en `repartition` pour franchir la décade sans dépendre du tirage. */
   it('talent « +5 FM » (Imperturbable) : quota supérieur au témoin sans bonus de FM', () => {
     const tileenSorcererDraft = (talentPick: 'imperturbable' | 'affable') => {
       const base = withCareer(withSpecies(newDraft(4321), 'humains-tileens'), 'sorcier');
@@ -542,7 +542,7 @@ describe('Magie mineure à la création (LDB 10 l.714) — BFM sorts inclus au T
       }
       return {
         ...base,
-        charMode: 'pointBuy' as const,
+        charMode: 'repartition' as const,
         pointBuy: { ...base.pointBuy, 'force-mentale': 7 }, // base 20 + 7 = 27 (bonus 2), à la frontière de décade
         charsRolled: true,
         talentsRolled: true,

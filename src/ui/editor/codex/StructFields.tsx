@@ -15,12 +15,11 @@ import type { DiseaseSymptom } from '../../../data/schemas/defs/maladies';
 import { formatDice, parseDice } from '../../../engine/dice';
 import type { CombatFeature, CastingKind } from '../../../engine/combatFeatures/types';
 import type { AdvancementRef, DotationDePossession, TrappingRef, CountSpec, DomainData, HarvestRarity, HarvestDanger, TalentTest, TestMatch, SpecEntry } from '../../../data';
-import { dispoSaisonniereSchema, harvestDangerSchema, harvestRaritySchema, matiereDArmureSchema, type MatiereDArmure } from '../../../data/schemas/grammaire/valeurs';
+import { harvestDangerSchema, harvestRaritySchema, matiereDArmureSchema, type MatiereDArmure } from '../../../data/schemas/grammaire/valeurs';
 import type { RefDesignee } from '../../../data/schemas/grammaire/ref';
 import { optionsDuNoeud } from '../../../data/schemas/grammaire/meta';
 import { missileBypassSchema } from '../../../data/schemas/defs/domains';
-import { specEntryId, specEntryLabel, charAbr, findCreatureById, findVehicleById, seasonLabel } from '../../../data';
-import type { z } from 'zod';
+import { specEntryId, specEntryLabel, charAbr, findCreatureById, findVehicleById } from '../../../data';
 import { slugId } from '../../../data/slug';
 import { ConditionEditor } from '../ConditionEditor';
 import { isOptionalNote, type OptionalEntry } from '../../../engine/statEntry';
@@ -38,7 +37,6 @@ import type { GameOp } from '../../../engine/ops';
 import type { CrewTarget } from '../../../data/shipCriticals';
 import { NumberField } from '../../NumberField';
 import { ProseField } from '../../ProseField';
-import { PlageField } from '../../PlageField';
 import { OptionChooser } from '../../OptionChooser';
 import type { OptionalRule, RuleValue } from '../../../engine/policy';
 
@@ -49,9 +47,6 @@ const DIFFICULTIES = Object.keys(DIFFICULTY_LABELS) as Difficulty[];
  *  def, or `crewHit.crewTarget` est imbriqué (garde `ref-field-cles.test.ts`). */
 const CFG_STATIONS: RefFieldCfg = { ds: 'shipStations' };
 const CFG_ROLE: RefFieldCfg = { ds: 'crewRoles', single: true };
-
-/** Les quatre colonnes saisonnières d'une cargaison, telles que la grammaire les déclare. */
-type DispoSaisonniere = z.infer<typeof dispoSaisonniereSchema>;
 
 /** 1°ʳᵉ référence d'un slot qui porte une LISTE de réfs (`reverseFailed.skills` : Pilote → Ramer OU
  *  Voile) — le contrôle MONO de cet atelier n'édite que celle-là, les suivantes sont conservées. PURE. */
@@ -563,37 +558,6 @@ export function CharKeysField({ value, onChange }: { value: CharKey[] | undefine
           </label>
         ))}
       </div>
-    </div>
-  );
-}
-
-/* ─────────────────────────────────────────────────────────────────────────────
- * 6) cargoes `avail` — DISPONIBILITÉ SAISONNIÈRE : quatre colonnes d100, chacune une
- *    fourchette `{min, max}` (`dispoSaisonniereSchema`). Une `PlageField` par saison.
- * ──────────────────────────────────────────────────────────────────────────── */
-
-/** Les quatre colonnes, DÉRIVÉES du nœud de grammaire : la liste des saisons n'est écrite qu'une
- *  fois dans le dépôt (`parSaison`, `schemas/grammaire/valeurs.ts`). */
-const SAISONS_DE_DISPO = Object.keys(dispoSaisonniereSchema.shape) as (keyof DispoSaisonniere)[];
-
-export function DispoSaisonniereField(
-  { label, value, onChange }: { label: string; value: DispoSaisonniere | undefined; onChange: (v: DispoSaisonniere) => void },
-) {
-  const colonnes = value ?? ({} as Partial<DispoSaisonniere>);
-  return (
-    <div className="ed-field">
-      <span>{label}</span>
-      {SAISONS_DE_DISPO.map((saison) => (
-        <PlageField
-          key={saison}
-          label={seasonLabel(saison)}
-          // MDG 15 l.406-418 / MSRC 13 l.73-78 : les quatre colonnes sont tirées au d100, et chacune
-          // couvre 1 à 100 d'un seul tenant (refine de def, `catalogueSaisonnier`).
-          domaine={{ nom: 'd100', min: 1, max: 100 }}
-          value={colonnes[saison]}
-          onChange={(f) => f && onChange({ ...(colonnes as DispoSaisonniere), [saison]: f as { min: number; max: number } })}
-        />
-      ))}
     </div>
   );
 }

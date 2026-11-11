@@ -9,7 +9,7 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { applyEffects } from './combatEffects';
 import { flowFromEffects } from './monde/flow';
 import { EMPTY_FLOW } from '../engine/flowCore';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { hasTalent } from '../engine/magic';
 import { setRule } from '../engine/policy';
 import type { Combatant } from '../engine/types';
@@ -21,7 +21,7 @@ const reward = flowFromEffects([{ type: 'giveXp', amount: 50 }]);
 
 /** Un héros NON-Béni auquel on garantit d'être « entendu » (Prière avancée → seuil très haut). */
 function laypersonSurePray(): Combatant {
-  const p = makePregens(idsDeTest).find((h) => !hasTalent(h as Combatant, 'beni'))! as Combatant;
+  const p = tousLesHerosDeScenario(idsDeTest).find((h) => !hasTalent(h as Combatant, 'beni'))! as Combatant;
   const sk = p.skills.find((s) => s.id === 'priere');
   if (sk) sk.advances = 200; else p.skills.push({ id: 'priere', characteristic: 'sociabilite', advances: 200 } as never);
   p.xp = 0;
@@ -51,7 +51,7 @@ describe('Petites Prières (LDB 25) — effet de scène', () => {
 
   it('un Béni est renvoyé à la prière normale (pas de Petite Prière)', () => {
     setRule('prayer-petites', true);
-    const beni = makePregens(idsDeTest).find((h) => hasTalent(h as Combatant, 'beni')) as Combatant | undefined;
+    const beni = tousLesHerosDeScenario(idsDeTest).find((h) => hasTalent(h as Combatant, 'beni')) as Combatant | undefined;
     if (!beni) return; // aucun Béni dans les pregens → cas non applicable
     beni.xp = 0;
     banc.setState({ party: [beni], journal: [] });

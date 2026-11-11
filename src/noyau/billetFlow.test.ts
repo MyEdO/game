@@ -22,7 +22,7 @@ const carte: WorldMap = {
   places: [{ id: 'A', label: 'A', pos: { x: 0, y: 0 }, scene: { id: 'a' } }, { id: 'B', label: 'B', pos: { x: 9, y: 0 }, scene: { id: 'b' } }],
   routes: [route],
 };
-/** L'état que `jetValider('bargain')` écrit après un Marchandage du billet gagné au départ de A. */
+/** L'état que `jetValider('marchandage')` écrit après un Marchandage du billet gagné au départ de A. */
 const gagneDepuisA = { [cleDeBillet('r', 'diligence', 'A')]: { won: true, drNet: 6, negotiator: true } };
 
 describe('#2534 M1 — route à double sens, billet d’auteur au départ de A, marchandé et gagné', () => {

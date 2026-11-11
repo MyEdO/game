@@ -153,10 +153,9 @@ const doc = document(
     /** ADE II 8 l.251/253 */
     minRangeBand: z.enum(RANGEES_DE_REGLE['portee-d-une-arme']).optional(),
     siegeFootprint: z.number().optional(),
-    /** Munition REPRÉSENTATIVE d'une arme de siège, désignée dans la sous-liste `ammunition` — discrimine
-     *  pierrier/canon/baliste/mortier là où le Groupe `armes-de-siege` seul ne le fait pas (hint joueur,
-     *  `ammoFamilyLabel`). */
-    defaultAmmo: ref('trapping', undefined, 'ammunition').optional(),
+    /** Les munitions d'une arme de siège, la représentative en tête (`chargeLArme`). AA 10 l.150 ; MDG 12 l.410-424 ;
+     *  AA 10 l.198-221 */
+    munitions: refs('trapping', { sousListe: 'ammunition' }).optional(),
     ...apparenceDObjetSchema.shape,
     /** #3086 D6(c), #3116 */
     rangement: ref('gardeRobe', undefined, 'emplacement').optional(),
@@ -247,9 +246,9 @@ const doc = document(
       label: 'Empreinte au sol',
       hint: 'Taille occupée sur la grille par l’engin de siège une fois posé en combat',
     },
-    defaultAmmo: {
-      label: 'Munition représentative',
-      hint: 'Munition affichée par défaut pour cette arme de siège (indication au joueur)',
+    munitions: {
+      label: 'Munitions',
+      hint: 'Munitions que tire cette arme de siège, la représentative en tête (indication au joueur)',
     },
     ...metaDesChamps(apparenceDObjetSchema, { exigees: true }),
     requiresMastery: {

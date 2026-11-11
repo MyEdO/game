@@ -19,7 +19,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterAll } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { findTavernGameById } from '../engine/tavernGame';
 import { jouerALaTaverne, tavernGameValue, tavernNpcOffers } from './tavernFlow';
 import { sceneNpc } from './monde/sceneNpc';
@@ -64,7 +64,7 @@ function pnjDeScene(id: string, label: string, pariFinal: number, offre?: { id: 
 }
 
 function poseScene(entities: ReturnType<typeof pnjDeScene>[]): void {
-  const party = makePregens(idsDeTest).slice(0, 2) as Combatant[];
+  const party = tousLesHerosDeScenario(idsDeTest).slice(0, 2) as Combatant[];
   set({ party, scene: { ...emptyScene('scene-test'), entities }, battle: null, sequence: null, pendingCascade: null });
 }
 
@@ -86,7 +86,7 @@ describe('#1279 S4-b — l’adversaire de taverne à FICHE', () => {
     const jeu = findTavernGameById('dominos')!;
     const challenger = get().party[0]!;
 
-    jouerALaTaverne(get, set, challenger.id, { gameId: 'dominos', opponent: { kind: 'npc', id: 'pnj-plantule' } });
+    jouerALaTaverne(get, set, challenger.id, { gameId: 'dominos', opponent: { kind: 'pnj', id: 'pnj-plantule' } });
 
     const seq = activeSequence<{ opponentValue: number; opponentName: string; opponentId?: string }>(get)!;
     expect(seq.payload.opponentId).toBe('pnj-plantule');
@@ -100,7 +100,7 @@ describe('#1279 S4-b — l’adversaire de taverne à FICHE', () => {
     const challenger = get().party[0]!;
     const jeu = findTavernGameById('dominos')!;
 
-    jouerALaTaverne(get, set, challenger.id, { gameId: 'dominos', opponent: { kind: 'npc', id: 'pnj-plantule' } });
+    jouerALaTaverne(get, set, challenger.id, { gameId: 'dominos', opponent: { kind: 'pnj', id: 'pnj-plantule' } });
     const seq = activeSequence<{ opponentValue: number }>(get)!;
 
     expect(seq.payload.opponentValue).not.toBe(tavernGameValue(challenger, jeu));
@@ -121,7 +121,7 @@ describe('#1279 S4-b — l’adversaire de taverne à FICHE', () => {
     poseScene([pnjDeScene('pnj-plantule', 'Plantule', 55)]);
     const challenger = get().party[0]!;
 
-    jouerALaTaverne(get, set, challenger.id, { gameId: 'dominos', opponent: { kind: 'npc', id: 'pnj-fantome' } });
+    jouerALaTaverne(get, set, challenger.id, { gameId: 'dominos', opponent: { kind: 'pnj', id: 'pnj-fantome' } });
 
     expect(activeSequence(get)).toBeNull();
     expect(get().journal.slice(-1)[0]).toBe(t('tavern.adversaireAbsent', { jeu: findTavernGameById('dominos')!.label }));
@@ -145,7 +145,7 @@ describe('#1906 — une partie REFUSÉE le dit au journal, jamais un retour muet
   });
 
   it('adversaire héros sorti du groupe', () => {
-    jouerALaTaverne(get, set, get().party[0]!.id, { gameId: 'dominos', opponent: { kind: 'hero', id: 'heros-parti' } });
+    jouerALaTaverne(get, set, get().party[0]!.id, { gameId: 'dominos', opponent: { kind: 'heros', id: 'heros-parti' } });
     expect(activeSequence(get)).toBeNull();
     expect(get().journal.slice(-1)[0]).toBe(t('tavern.adversaireAbsent', { jeu: dominos() }));
   });
@@ -181,7 +181,7 @@ describe('#1279 S4-b — le PNJ authoré par PRESET (forme réelle de la campagn
   
   it('un PNJ à `presetId` joue de SON profil de campagne — nom et Compétence, jamais un repli générique', () => {
     set({
-      party: makePregens(idsDeTest).slice(0, 2) as Combatant[],
+      party: tousLesHerosDeScenario(idsDeTest).slice(0, 2) as Combatant[],
       campaignNarratif: scenarioEdoConstruit.narratif,
       scene: { ...emptyScene('scene-test'), entities: scenarioEdoConstruit.scene.entities },
       battle: null, sequence: null, pendingCascade: null,
@@ -197,7 +197,7 @@ describe('#1279 S4-b — le PNJ authoré par PRESET (forme réelle de la campagn
 
   it('la scène EDO le déclare joueur de taverne, et la modale lit son jeu ET sa mise authorés', () => {
     set({
-      party: makePregens(idsDeTest).slice(0, 2) as Combatant[],
+      party: tousLesHerosDeScenario(idsDeTest).slice(0, 2) as Combatant[],
       campaignNarratif: scenarioEdoConstruit.narratif,
       scene: { ...emptyScene('scene-test'), entities: scenarioEdoConstruit.scene.entities },
       battle: null, sequence: null, pendingCascade: null,
@@ -211,7 +211,7 @@ describe('#1279 S4-b — le PNJ authoré par PRESET (forme réelle de la campagn
 /**
  * LE NOM VIENT DE L'ENTITÉ (L2 #1548) — un PNJ de taverne renommé par l'auteur joue et s'affiche sous
  * SON nom, jamais sous le libellé d'espèce de la fiche qu'il référence. Même invariant que l'infirmerie
- * (`scenarios/arene-flow.hors-store.test.ts` « Frère Anselm ») : la fiche donne les VALEURS, l'entité donne le NOM — et il
+ * (`scenarios/arene-flow.hors-store.test.ts` « Prêtre ») : la fiche donne les VALEURS, l'entité donne le NOM — et il
  * est résolu par la projection UNIQUE `sceneNpc`, pas recomposé au site.
  */
 describe('L2 #1548 — le PNJ de taverne RENOMMÉ garde son nom', () => {
@@ -233,7 +233,7 @@ describe('L2 #1548 — le PNJ de taverne RENOMMÉ garde son nom', () => {
     poseScene([pnjRenomme('pnj-gerta', 'Gerta la Rusée', 'Batelière')]);
     const challenger = get().party[0]!;
 
-    jouerALaTaverne(get, set, challenger.id, { gameId: 'dominos', opponent: { kind: 'npc', id: 'pnj-gerta' } });
+    jouerALaTaverne(get, set, challenger.id, { gameId: 'dominos', opponent: { kind: 'pnj', id: 'pnj-gerta' } });
 
     const seq = activeSequence<{ opponentName: string; opponentValue: number }>(get)!;
     expect(seq.payload.opponentName).toBe('Gerta la Rusée');
@@ -252,7 +252,7 @@ describe('#1279 S4-b — l’adversaire de scène GARDE sa rangée dans la manch
     poseScene([pnjDeScene('pnj-plantule', 'Plantule', 55)]);
     const challenger = get().party[0]!;
 
-    jouerALaTaverne(get, set, challenger.id, { gameId: 'dominos', opponent: { kind: 'npc', id: 'pnj-plantule' } });
+    jouerALaTaverne(get, set, challenger.id, { gameId: 'dominos', opponent: { kind: 'pnj', id: 'pnj-plantule' } });
 
     const rows = get().pendingCascade?.participants.flatMap((s) => s.participants ?? []) ?? [];
     expect(rows.map((r) => r.id).sort()).toEqual([challenger.id, 'pnj-plantule'].sort());

@@ -52,6 +52,7 @@ const CALQUES := "user://calques"
 @onready var _monde: Monde = $Monde
 @onready var _navires: MontageDesNavires = $Navires
 @onready var _interface: CanvasLayer = $Interface
+@onready var _defilement: ScrollContainer = $Interface/Outils/Defilement
 @onready var _refus: Label = $Interface/Avis/Refus
 @onready var _panne: Label = $Interface/Avis/Panne
 @onready var _pont: PontDuNoyau = get_node("/root/Pont")
@@ -68,17 +69,25 @@ var _tenu: Variant = null
 var _campagne := ""
 ## Par chemin de planche, sa texture lue.
 var _planches := {}
+## Si une publication de l'écran attend que l'interface soit mise en page (`_publier_l_ecran`).
+var _a_publier := false
+## Si un conteneur de l'interface a placé ses enfants (`Container.sort_children`), ou si une publication a été demandée,
+## depuis la dernière image.
+var _remis_en_page := false
 
 
 func _ready() -> void:
 	_zones = Zone.racines(_interface)
 	for zone in _zones:
 		zone.geste.connect(_jouer)
-	for defilement in _interface.find_children("*", "ScrollContainer", true, false):
-		(defilement as ScrollContainer).get_v_scroll_bar().value_changed.connect(func(_valeur: float) -> void: _publier_l_ecran())
+	_defilement.get_v_scroll_bar().value_changed.connect(func(_valeur: float) -> void: _publier_l_ecran())
 	for pages in _interface.find_children("*", "TabContainer", true, false):
 		(pages as TabContainer).tab_clicked.connect(func(_onglet: int) -> void: _publier_l_ecran())
+	for conteneur in _interface.find_children("*", "Container", true, false):
+		(conteneur as Container).sort_children.connect(_suivre_la_mise_en_page)
 	get_tree().node_added.connect(func(noeud: Node) -> void:
+		if noeud is Container and _interface.is_ancestor_of(noeud):
+			(noeud as Container).sort_children.connect(_suivre_la_mise_en_page)
 		if noeud is LineEdit and _interface.is_ancestor_of(noeud):
 			(noeud as LineEdit).text_changed.connect(func(_texte: String) -> void: _publier_l_ecran())
 		elif noeud is TextEdit and _interface.is_ancestor_of(noeud):
@@ -246,15 +255,29 @@ func _unhandled_input(event: InputEvent) -> void:
 	get_viewport().set_input_as_handled()
 
 
+## Un conteneur de l'interface a replacé ses enfants : la publication attendue attend l'image suivante.
+func _suivre_la_mise_en_page() -> void:
+	_remis_en_page = true
+
+
 ## Ce que l'écran porte, une fois la vue mise en page : ses boutons (`PontDuNoyau.boutons_a_l_ecran`), ses champs de
-## texte (`PontDuNoyau.saisies_a_l_ecran`), le point de
+## texte (`PontDuNoyau.saisies_a_l_ecran`), le défilement de son panneau (`PontDuNoyau.defilement_publie`), le point de
 ## chaque case de la couche éditée (`Monde.points`), et l'éditeur : ses zones, sa surcouche, le nombre d'arêtes posées
 ## sur le monde, les noms posés sur le monde, son calque et s'il est posé, sa planche lue. Republié quand un défilement
-## du panneau bouge, qu'un onglet se choisit ou qu'un champ de texte change ; rien si l'éditeur a quitté l'écran
-## entre-temps (l'essai ouvre le
-## combat).
+## du panneau bouge, qu'un onglet se choisit ou qu'un champ de texte change, une fois l'interface mise en page : à la
+## première image entière où aucun de ses conteneurs n'a replacé ses enfants ni aucune demande n'est venue, la première
+## attente pouvant reprendre dans l'image de la demande, avant ses appels différés (`SceneTree.process_frame`) ; une seule publication pour les demandes qui
+## l'attendent ; rien si l'éditeur a quitté l'écran entre-temps (l'essai ouvre le combat).
 func _publier_l_ecran() -> void:
+	_remis_en_page = true
+	if _a_publier:
+		return
+	_a_publier = true
 	await get_tree().process_frame
+	while _remis_en_page and is_inside_tree():
+		_remis_en_page = false
+		await get_tree().process_frame
 	if not is_inside_tree():
 		return
-	_pont.publier_l_ecran({boutons = PontDuNoyau.boutons_a_l_ecran([_interface]), saisies = PontDuNoyau.saisies_a_l_ecran([_interface]), cases = _monde.points(int(_vue.couche)), editeur = {zones = _vue.zones, surcouche = _surcouche, aretes = _monde.volume.ce_qui_est_pose().aretes, noms = _monde.noms(), calque = _calque, calque_pose = _monde.calque_pose()}})
+	_a_publier = false
+	_pont.publier_l_ecran({boutons = PontDuNoyau.boutons_a_l_ecran([_interface]), saisies = PontDuNoyau.saisies_a_l_ecran([_interface]), panneau = PontDuNoyau.defilement_publie(_defilement), cases = _monde.points(int(_vue.couche)), editeur = {zones = _vue.zones, surcouche = _surcouche, aretes = _monde.volume.ce_qui_est_pose().aretes, noms = _monde.noms(), calque = _calque, calque_pose = _monde.calque_pose()}})

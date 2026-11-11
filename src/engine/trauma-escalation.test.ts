@@ -198,7 +198,7 @@ describe('#166 — « Épaule luxée »/« Genou démis » : membre désactivé 
     const cD = C({ traumas: [{ uid: 't6', label: 'x', location: 'brasD', targetDR: 6, recoveryPenalty: [{ op: 'testMod', characteristic: 'capacite-de-combat', amount: -10 }] }] });
     expect(recoverDisabledLimb(cD, 't6').penalty).toEqual([{ op: 'testMod', characteristic: 'capacite-de-combat', amount: -10, weaponHand: 'main' }]);
     const cG = C({ traumas: [{ uid: 't7', label: 'x', location: 'brasG', targetDR: 6, recoveryPenalty: [{ op: 'testMod', characteristic: 'capacite-de-combat', amount: -10 }] }] });
-    expect(recoverDisabledLimb(cG, 't7').penalty).toEqual([{ op: 'testMod', characteristic: 'capacite-de-combat', amount: -10, weaponHand: 'off' }]);
+    expect(recoverDisabledLimb(cG, 't7').penalty).toEqual([{ op: 'testMod', characteristic: 'capacite-de-combat', amount: -10, weaponHand: 'secondaire' }]);
   });
 
   it('Sonné « jusqu’à Aide Médicale » (Épaule luxée/Genou démis) : `unlockBy:medicalAid` le retient, l’Aide le retire', () => {

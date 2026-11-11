@@ -8,7 +8,7 @@
  */
 import { useEffect } from 'react';
 import { useGame } from '../state/store';
-import { runBindingById, runBindingUpById } from '../state/clavier/keybindings';
+import { SENS_DE_L_ECRAN, runBindingById, runBindingUpById, type IdDeRaccourci } from '../state/clavier/keybindings';
 import { resoudreEchap } from '../state/clavier/resoudreEchap';
 import { visibleFocusables } from './focus';
 import { dialogueDuDessus, surfaceFocalisee } from './useDismissLayer';
@@ -52,10 +52,10 @@ export type PadButton = 'A' | 'B' | 'X' | 'Y' | 'LB' | 'RB' | 'LT' | 'RT' | 'Bac
 
 /** POV : croix/stick → intention CAP-RELATIVE (haut/bas = avance/recul, gauche/droite = pivot du regard).
  *  Le pas latéral (strafe) vit sur les gâchettes LB/RB (cf. `padButton`). */
-const POV_DIR: Record<PadDir, string> = { up: 'pov-forward', down: 'pov-back', left: 'pov-turn-l', right: 'pov-turn-r' };
+const POV_DIR: Record<PadDir, IdDeRaccourci> = { up: 'subjectif-avant', down: 'subjectif-arriere', left: 'subjectif-pivot-gauche', right: 'subjectif-pivot-droite' };
 
 /** Direction (croix/stick) : sur la CARTE elle pilote le curseur de combat via le MÊME id de raccourci
- *  que les flèches (`cursor-<dir>`) ; en menu/modale elle déplace le focus DOM (haut/gauche = arrière,
+ *  que les flèches (`curseur-<sens>`) ; en menu/modale elle déplace le focus DOM (haut/gauche = arrière,
  *  bas/droite = avant). Framework-agnostique (appelée par le hook ET le shim DEV). */
 export function padDir(dir: PadDir): void {
   const ctx = padContext();
@@ -63,8 +63,8 @@ export function padDir(dir: PadDir): void {
     // Carte : combat → curseur de visée ; exploration iso → pas du groupe ; POV → avance/recul + pivot.
     // Les trois `when` sont DISJOINTS (inBattle ⊥ exploration!povActive ⊥ exploringPov) → un seul agit ;
     // même registre, aucun chemin parallèle.
-    runBindingById('cursor-' + dir, useGame.getState);
-    runBindingById('explore-' + dir, useGame.getState);
+    runBindingById(`curseur-${SENS_DE_L_ECRAN[dir]}`, useGame.getState);
+    runBindingById(`exploration-${SENS_DE_L_ECRAN[dir]}`, useGame.getState);
     runBindingById(POV_DIR[dir], useGame.getState);
     return;
   }
@@ -76,7 +76,7 @@ export function padDir(dir: PadDir): void {
  *  `padDir` (marche tenue du groupe, iso et POV) se terminent ici. Les mêmes ids, dans le même ordre —
  *  la manette n'a pas plus de chemin propre à la fin du geste qu'à son début. */
 export function padDirUp(dir: PadDir): void {
-  runBindingUpById('explore-' + dir, useGame.getState);
+  runBindingUpById(`exploration-${SENS_DE_L_ECRAN[dir]}`, useGame.getState);
   runBindingUpById(POV_DIR[dir], useGame.getState);
 }
 
@@ -89,7 +89,7 @@ export function padButton(name: PadButton): void {
   const ae = document.activeElement as HTMLElement | null;
   switch (name) {
     case 'A': // valider : carte = commencer le Round (si pause) PUIS commit du curseur ; menu/modale = activer le focus.
-      if (ctx === 'map') { runBindingById('round-start', get); runBindingById('cursor-commit', get); } // gardés par `when` → un seul agit
+      if (ctx === 'map') { runBindingById('debut-de-round', get); runBindingById('curseur-valider', get); } // gardés par `when` → un seul agit
       else ae?.click();
       break;
     case 'B': // annuler : la couture UNIQUE du congédiement (pile de couches puis échelle du registre) ;
@@ -102,30 +102,30 @@ export function padButton(name: PadButton): void {
       if (ctx === 'map') {
         const bar = document.querySelector<HTMLElement>(CONSOLE_SEL);
         if (bar) visibleFocusables(bar)[0]?.focus();
-        else runBindingById('toggle-pov', get); // exploration : X commute la vue subjective
+        else runBindingById('subjectif-basculer', get); // exploration : X commute la vue subjective
       } else if (ctx === 'menu') ae?.blur();
       break;
     case 'Y': // fin du tour (carte et menu ; inerte en modale)
-      if (ctx !== 'modal') runBindingById('end-turn', get);
+      if (ctx !== 'modal') runBindingById('fin-de-tour', get);
       break;
     case 'LB': // carte : cible précédente (combat) / pas latéral gauche (POV) — gardes `when` disjointes
-      if (ctx === 'map') { runBindingById('target-prev', get); runBindingById('pov-strafe-l', get); }
+      if (ctx === 'map') { runBindingById('cible-precedente', get); runBindingById('subjectif-gauche', get); }
       break;
     case 'RB': // carte : cible suivante (combat) / pas latéral droit (POV) ; menu : GESTE SECONDAIRE
       // de l'alvéole focalisée — le MÊME chemin que le clic droit et la touche Menu (l'alvéole écoute
       // `contextmenu`), sans rien voler : RB n'a aucun geste en contexte menu. A reste le geste
       // primaire — l'y doubler d'un appui long ferait attendre le seuil à TOUT bouton de la console.
-      if (ctx === 'map') { runBindingById('target-next', get); runBindingById('pov-strafe-r', get); }
+      if (ctx === 'map') { runBindingById('cible-suivante', get); runBindingById('subjectif-droite', get); }
       else if (ctx === 'menu') ae?.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
       break;
     case 'LT': // caméra : tourner à gauche (carte et menu)
-      if (ctx !== 'modal') runBindingById('cam-left', get);
+      if (ctx !== 'modal') runBindingById('camera-gauche', get);
       break;
     case 'RT': // caméra : tourner à droite (carte et menu)
-      if (ctx !== 'modal') runBindingById('cam-right', get);
+      if (ctx !== 'modal') runBindingById('camera-droite', get);
       break;
     case 'Back': // caméra : recentrer (carte et menu)
-      if (ctx !== 'modal') runBindingById('cam-recenter', get);
+      if (ctx !== 'modal') runBindingById('camera-recentrer', get);
       break;
     case 'R3': // carte : INSPECTER ce que le curseur ou le survol désigne — la touche `inspecter` du clavier.
       // RB est pris sur la carte (cible suivante) : le geste secondaire d'une entité y prend le clic
@@ -139,11 +139,11 @@ export function padButton(name: PadButton): void {
  *  de pas latéral (marche tenue) et de rotation caméra (lacet continu). Les autres ne tiennent rien. */
 export function padButtonUp(name: PadButton): void {
   const get = useGame.getState;
-  if (name === 'LB') runBindingUpById('pov-strafe-l', get);
-  else if (name === 'RB') runBindingUpById('pov-strafe-r', get);
-  else if (name === 'LT') runBindingUpById('cam-left', get);
+  if (name === 'LB') runBindingUpById('subjectif-gauche', get);
+  else if (name === 'RB') runBindingUpById('subjectif-droite', get);
+  else if (name === 'LT') runBindingUpById('camera-gauche', get);
 
-  else if (name === 'RT') runBindingUpById('cam-right', get);
+  else if (name === 'RT') runBindingUpById('camera-droite', get);
 }
 
 // ── Mapping « standard » W3C (https://w3c.github.io/gamepad/#remapping) ──────────────────────────

@@ -50,47 +50,47 @@ export type FlowVerbs =
   | (FlowVerbsBase & { kind: 'multi'; pidIsActor: boolean });
 
 export const FLOW_VERBS = {
-  attack:       { kind: 'mono',  verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'cancel', 'forceSuccess', 'setForcedRoll', 'reverse', 'confirm'], jetOwner: { pending: 'pendingAttack', field: 'attackerId' } },
+  attaque:      { kind: 'mono',  verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'cancel', 'forceSuccess', 'setForcedRoll', 'reverse', 'confirm'], jetOwner: { pending: 'pendingAttack', field: 'attackerId' } },
   defense:      { kind: 'mono',  verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'reverse', 'confirm'], jetOwner: { pending: 'pendingDefense', field: 'defenderId' } },
-  cast:         { kind: 'mono',  verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'], jetOwner: { pending: 'pendingCast', field: 'casterId' } },
-  disengage:    { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'], jetOwner: { pending: 'pendingDisengage', field: 'moverId' } },
+  incantation:  { kind: 'mono',  verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'], jetOwner: { pending: 'pendingCast', field: 'casterId' } },
+  desengagement: { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'], jetOwner: { pending: 'pendingDisengage', field: 'moverId' } },
   // « Fuir » : MULTI hétérogène (coup dans le dos du frappeur + Test `fuite` du fuyard) — `setForcedRoll`
   // sert le dé CHOISI du coup dans le dos (double 11 → Coup Critique, LDB 13 l.183).
-  flee:         { kind: 'multi', pidIsActor: true, verbs: ['roll', 'reroll', 'bonusSL', 'forceSuccess', 'setForcedRoll', 'darkPact', 'confirm'] },
+  fuite:        { kind: 'multi', pidIsActor: true, verbs: ['roll', 'reroll', 'bonusSL', 'forceSuccess', 'setForcedRoll', 'darkPact', 'confirm'] },
   auContact:    { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'], jetOwner: { pending: 'pendingAuContact', field: 'moverId' } },
-  grapple:      { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'], jetOwner: { pending: 'pendingGrapple', field: 'actorId' } },
+  empoignade:   { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'], jetOwner: { pending: 'pendingGrapple', field: 'actorId' } },
   battement:    { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'reverse', 'cancel', 'confirm'], jetOwner: { pending: 'pendingBattement', field: 'attackerId' } },
   distraire:    { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'], jetOwner: { pending: 'pendingDistraire', field: 'moverId' } },
   // Manœuvre de créature : la modale n'influence QUE le jet de l'ATTAQUANT (les jets des défenseurs
-  // vivent dans `jetValider('maneuver')`) — le porteur est donc `attackerId`, jamais la cible.
-  maneuver:     { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'], jetOwner: { pending: 'pendingManeuver', field: 'attackerId' } },
-  run:          { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'forceSuccess', 'setForcedRoll', 'darkPact', 'cancel', 'confirm'], jetOwner: { pending: 'pendingRun', field: 'combatantId' } },
+  // vivent dans `jetValider('manoeuvre')`) — le porteur est donc `attackerId`, jamais la cible.
+  manoeuvre:    { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'], jetOwner: { pending: 'pendingManeuver', field: 'attackerId' } },
+  course:       { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'forceSuccess', 'setForcedRoll', 'darkPact', 'cancel', 'confirm'], jetOwner: { pending: 'pendingRun', field: 'combatantId' } },
   // Chute VOLONTAIRE (clic sur une arête de capacité `chute`, ouverte par `cliquerLaCaseDuCombat`).
-  fall:         { kind: 'multi', pidIsActor: true, verbs: ['roll', 'reroll', 'bonusSL', 'forceSuccess', 'setForcedRoll', 'darkPact', 'cancel', 'confirm'] },
-  reload:       { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'], jetOwner: { pending: 'pendingReload', field: 'actorId' } },
-  handGate:     { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'], jetOwner: { pending: 'pendingHandGate', field: 'attackerId' } },
-  recover:      { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'], jetOwner: { pending: 'pendingStateRecovery', field: 'actorId' } },
-  focus:        { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'], jetOwner: { pending: 'pendingFocus', field: 'casterId' } },
+  chute:        { kind: 'multi', pidIsActor: true, verbs: ['roll', 'reroll', 'bonusSL', 'forceSuccess', 'setForcedRoll', 'darkPact', 'cancel', 'confirm'] },
+  rechargement: { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'], jetOwner: { pending: 'pendingReload', field: 'actorId' } },
+  mainEnsanglantee: { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'], jetOwner: { pending: 'pendingHandGate', field: 'attackerId' } },
+  recuperation: { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'], jetOwner: { pending: 'pendingStateRecovery', field: 'actorId' } },
+  focalisation: { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'], jetOwner: { pending: 'pendingFocus', field: 'casterId' } },
   // Contre-magie : `casterId` = le DISSIPEUR qui roule (le sort visé porte son propre `spellCasterId`,
   // qui ne dépense rien ici).
-  dispel:       { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'], jetOwner: { pending: 'pendingDispel', field: 'casterId' } },
-  frenzy:       { kind: 'mono', verbs: ['roll', 'reroll', 'forceSuccess', 'setForcedRoll', 'darkPact', 'cancel', 'confirm'], jetOwner: { pending: 'pendingFrenzy', field: 'combatantId' } },
-  approach:     { kind: 'mono', verbs: ['roll', 'reroll', 'forceSuccess', 'setForcedRoll', 'darkPact', 'reverse', 'cancel', 'confirm'], jetOwner: { pending: 'pendingApproach', field: 'combatantId' } },
-  ward:         { kind: 'mono', verbs: ['roll', 'reroll', 'forceSuccess', 'setForcedRoll', 'darkPact', 'cancel', 'confirm'], jetOwner: { pending: 'pendingWard', field: 'attackerId' } },
+  dissipation:  { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'], jetOwner: { pending: 'pendingDispel', field: 'casterId' } },
+  frenesie:     { kind: 'mono', verbs: ['roll', 'reroll', 'forceSuccess', 'setForcedRoll', 'darkPact', 'cancel', 'confirm'], jetOwner: { pending: 'pendingFrenzy', field: 'combatantId' } },
+  approche:     { kind: 'mono', verbs: ['roll', 'reroll', 'forceSuccess', 'setForcedRoll', 'darkPact', 'reverse', 'cancel', 'confirm'], jetOwner: { pending: 'pendingApproach', field: 'combatantId' } },
+  protection:   { kind: 'mono', verbs: ['roll', 'reroll', 'forceSuccess', 'setForcedRoll', 'darkPact', 'cancel', 'confirm'], jetOwner: { pending: 'pendingWard', field: 'attackerId' } },
   // Soin / Chirurgie : le SOIGNEUR roule et dépense (le patient ne lance rien) — `targetId` ne porte
   // aucun jet.
-  heal:         { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'reverse', 'cancel', 'confirm'], jetOwner: { pending: 'pendingHeal', field: 'healerId' } },
-  surgery:      { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'], jetOwner: { pending: 'pendingSurgery', field: 'healerId' } },
+  soins:        { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'reverse', 'cancel', 'confirm'], jetOwner: { pending: 'pendingHeal', field: 'healerId' } },
+  chirurgie:    { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'], jetOwner: { pending: 'pendingSurgery', field: 'healerId' } },
   corruption:   { kind: 'mono',  verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'resist', 'confirm'], jetOwner: { pending: 'pendingCorruption', field: 'heroId' } },
   // Test générique : `actorId` est MUTABLE (réglage `test.testeur` — le Test change de testeur en place) ; la
   // possession se résout À LA LECTURE de l'état, donc sur le testeur COURANT.
   test:         { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'reverse', 'confirm'], jetOwner: { pending: 'pendingTest', field: 'actorId' } },
-  steamSave:    { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'confirm'], jetOwner: { pending: 'pendingSteamSave', field: 'actorId' } },
-  activity:     { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'reverse', 'confirm'], jetOwner: { pending: 'pendingActivity', field: 'heroId' } },
-  bargain:      { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'], jetOwner: { pending: 'pendingBargain', field: 'playerId' } },
-  appraise:     { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'], jetOwner: { pending: 'pendingAppraise', field: 'actorId' } },
-  shanty:       { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'forceSuccess', 'setForcedRoll', 'darkPact', 'cancel', 'confirm'], jetOwner: { pending: 'pendingShanty', field: 'singerId' } },
-  counterspell: { kind: 'multi', pidIsActor: true, verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'] },
+  fuiteDeVapeur: { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'confirm'], jetOwner: { pending: 'pendingSteamSave', field: 'actorId' } },
+  activite:     { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'reverse', 'confirm'], jetOwner: { pending: 'pendingActivity', field: 'heroId' } },
+  marchandage:  { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'], jetOwner: { pending: 'pendingBargain', field: 'playerId' } },
+  evaluation:   { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'], jetOwner: { pending: 'pendingAppraise', field: 'actorId' } },
+  chansonDeMarin: { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'forceSuccess', 'setForcedRoll', 'darkPact', 'cancel', 'confirm'], jetOwner: { pending: 'pendingShanty', field: 'singerId' } },
+  contreSort:   { kind: 'multi', pidIsActor: true, verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'] },
   // `pid` = id d'ÉTAPE (`CascadeStep.id`), pas un combattant : la possession d'un geste de cascade
   // vient du owner de la modale (`modalArbiter` : acteur de l'étape courante / '*' / siège MONDE).
   // `resist` et `reverse` font exception : ils DÉPENSENT la ressource de l'acteur de l'étape (talent,
@@ -100,24 +100,24 @@ export const FLOW_VERBS = {
   cascade:      { kind: 'multi', pidIsActor: false, verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'resist', 'reverse', 'confirm'] },
   opposition:   { kind: 'multi', pidIsActor: true, verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'resist', 'confirm'] },
   // `pid` = id de ROUND (`ExtendedTestRound.id`), pas un combattant : même politique que `cascade`.
-  extendedTest: { kind: 'multi', pidIsActor: false, verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'reverse', 'cancel', 'confirm'] },
+  testEtendu:   { kind: 'multi', pidIsActor: false, verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'reverse', 'cancel', 'confirm'] },
   // LOT DE DÉS d'un étal (#1426) : des dés du MONDE, déjà tombés — le seul verbe est la POSE
   // (`setForcedRoll`). Ni `roll` (rien à lancer), ni Chance/Pacte/Résilience (on n'influence pas la
   // marchandise d'un étal). `pidIsActor: false` : un `pid` est un DÉ, jamais un combattant.
   etalLot:      { kind: 'multi', pidIsActor: false, verbs: ['setForcedRoll', 'confirm'] },
-  forceDoor:    { kind: 'multi', pidIsActor: true, verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'] },
-  shipManeuver: { kind: 'multi', pidIsActor: true, verbs: ['roll', 'reroll', 'bonusSL', 'forceSuccess', 'setForcedRoll', 'darkPact', 'cancel', 'confirm'] },
-  shipBattery:  { kind: 'multi', pidIsActor: true, verbs: ['roll', 'reroll', 'bonusSL', 'forceSuccess', 'setForcedRoll', 'darkPact', 'cancel', 'confirm'] },
+  enfoncerLaPorte: { kind: 'multi', pidIsActor: true, verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'] },
+  manoeuvreDuNavire: { kind: 'multi', pidIsActor: true, verbs: ['roll', 'reroll', 'bonusSL', 'forceSuccess', 'setForcedRoll', 'darkPact', 'cancel', 'confirm'] },
+  tirDeBatterie: { kind: 'multi', pidIsActor: true, verbs: ['roll', 'reroll', 'bonusSL', 'forceSuccess', 'setForcedRoll', 'darkPact', 'cancel', 'confirm'] },
   // Étape « batch » DANS une cascade : aucune action de clôture propre — la cascade valide l'étape (`jetValider('cascade')`).
   // PARITÉ de verbes avec l'étape MONO `cascade` : une bande met en jeu les MÊMES règles qu'une étape
   // seule — `resist` (LDB 10 l.1016-1020) s'y joue PAR RANGÉE, routé par le porteur du participant
   // (`pidIsActor:true`), jamais sur la fenêtre partagée.
-  cascadeBatch: { kind: 'multi', pidIsActor: true, verbs: ['roll', 'reroll', 'bonusSL', 'forceSuccess', 'setForcedRoll', 'darkPact', 'resist', 'reverse'] },
+  cascadeEnBande: { kind: 'multi', pidIsActor: true, verbs: ['roll', 'reroll', 'bonusSL', 'forceSuccess', 'setForcedRoll', 'darkPact', 'resist', 'reverse'] },
   // Dé d'une étape de cascade, sur une table ou nu (#942, #1508) : un tirage, pas un Test — ni influence ni clôture
   // propre, la cascade valide l'étape. `pid` = id d'ÉTAPE.
   cascadeTirage: { kind: 'multi', pidIsActor: false, verbs: ['roll', 'setForcedRoll'] },
   // Maladresse (LDB 14) : le tirage sur le Tableau des Oups ! de l'étape, puis son application. `pid` = id d'ÉTAPE.
-  fumble:       { kind: 'multi', pidIsActor: false, verbs: ['roll', 'confirm'] },
+  maladresse:   { kind: 'multi', pidIsActor: false, verbs: ['roll', 'confirm'] },
 } as const satisfies Record<string, FlowVerbs>;
 
 export type FlowKey = keyof typeof FLOW_VERBS;

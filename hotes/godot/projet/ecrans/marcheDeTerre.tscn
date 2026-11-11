@@ -6,16 +6,16 @@
 [node name="Monde" instance=ExtResource("1_monde")]
 
 [node name="Commerce" type="HBoxContainer" parent="Cadre/Marges/Colonne/Contenu"]
+theme_type_variation = &"Rangee"
 size_flags_vertical = 3
-theme_override_constants/separation = 16
 
 [node name="Achats" type="ScrollContainer" parent="Cadre/Marges/Colonne/Contenu/Commerce"]
 size_flags_horizontal = 3
 horizontal_scroll_mode = 0
 
 [node name="Offres" type="VBoxContainer" parent="Cadre/Marges/Colonne/Contenu/Commerce/Achats"]
+theme_type_variation = &"PileAeree"
 size_flags_horizontal = 3
-theme_override_constants/separation = 20
 
 [node name="Zone" type="Node" parent="Cadre/Marges/Colonne/Contenu/Commerce/Achats/Offres"]
 script = ExtResource("2_zone")
@@ -29,8 +29,8 @@ size_flags_horizontal = 3
 horizontal_scroll_mode = 0
 
 [node name="Lots" type="VBoxContainer" parent="Cadre/Marges/Colonne/Contenu/Commerce/Cargaison"]
+theme_type_variation = &"PileAeree"
 size_flags_horizontal = 3
-theme_override_constants/separation = 20
 
 [node name="Zone" type="Node" parent="Cadre/Marges/Colonne/Contenu/Commerce/Cargaison/Lots"]
 script = ExtResource("2_zone")

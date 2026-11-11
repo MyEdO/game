@@ -1847,7 +1847,9 @@
         "op": "grantNaturalWeapon",
         "label": "Tentacule",
         "attackKind": "tentacules",
-        "subType": "base",
+        "subType": {
+          "id": "base"
+        },
         "damage": 0,
         "plusBF": true,
         "bare": true

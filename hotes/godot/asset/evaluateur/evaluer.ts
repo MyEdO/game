@@ -225,7 +225,7 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
     ...gardeBudget(meshes.filter((m) => !masques.has(m)), libelle, entree.plafond ?? PLAFOND_ASSEMBLE),
     ...gardePistesDEchelle(base.scene, clips, racine, manifeste?.osAPositionAnimee ?? []),
     ...pistesDeChaine.ecarts,
-    ...gardeEchelleDuRigide(rigidesTenus(base.scene, new Set(manifeste?.prises ? [manifeste.prises.main.os, manifeste.prises.off.os] : [])), libelle),
+    ...gardeEchelleDuRigide(rigidesTenus(base.scene, new Set(manifeste?.prises ? [manifeste.prises.main.os, manifeste.prises.secondaire.os] : [])), libelle),
     ...(manifeste?.prises ? gardeTranchantDuRigide(base.scene, manifeste.prises.main, libelle, entree.armes && new Set(elements.flatMap((e, k) => (entree.armes?.[k] ? e.meshes : [])))) : []),
   );
 

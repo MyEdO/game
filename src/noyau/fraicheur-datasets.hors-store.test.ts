@@ -28,7 +28,7 @@ import { stageWeatherRows } from './travelFlow';
 // ce qu'on en LIT (l'id de table d'une nature + un alignement), jamais par un import d'effet de bord.
 import { mutationTableIdFor } from './corruptionFlow';
 import { setDataset, datasetArray, setObjectDataset, datasetObject, type ObjectDatasetKey } from '../data/overrides';
-import { marchandisesDe, findCargoById, type CargoDef } from '../engine/cargo';
+import { marchandisesDe, findCargoById, rollSeasonalCargo, type CargoDef } from '../engine/cargo';
 import { advanceCost } from '../engine/advancement';
 import { shipSizeOfLength } from '../engine/shipBuild';
 import {
@@ -58,9 +58,9 @@ const TABLES_MUTATION_LIVREES = [...(datasetArray('mutationTables') as MutationT
 const MISCAST_MINEURE_LIVREE = [...(datasetArray('miscastMinor') as MiscastTableRow[])];
 /** Les datasets des vues dérivées migrées (#1692) : restaurés par le seam, comme les autres. */
 const LISTES_LIVREES = tableTotale(
-  ['cargoes', 'advancementCosts', 'shipHullSizes', 'calendarPhases', 'calendarMonths', 'calendarIntercalary', 'stakes', 'seaBoardEvents'] as const,
+  ['cargoes', 'cargaisonsAleatoires', 'advancementCosts', 'shipHullSizes', 'calendarPhases', 'calendarMonths', 'calendarIntercalary', 'stakes', 'seaBoardEvents'] as const,
   (k) => structuredClone(datasetArray(k)),
-) as { [K in 'cargoes' | 'advancementCosts' | 'shipHullSizes' | 'calendarPhases' | 'calendarMonths' | 'calendarIntercalary' | 'stakes' | 'seaBoardEvents']: ReturnType<typeof datasetArray<K>> };
+) as { [K in 'cargoes' | 'cargaisonsAleatoires' | 'advancementCosts' | 'shipHullSizes' | 'calendarPhases' | 'calendarMonths' | 'calendarIntercalary' | 'stakes' | 'seaBoardEvents']: ReturnType<typeof datasetArray<K>> };
 const OBJETS_LIVRES = tableTotale(
   ['riverNavigation', 'seaWeather', 'disponibilite', 'seaCargo', 'landCargo'] as const, (k) => structuredClone(datasetObject(k)),
 ) as { [K in 'riverNavigation' | 'seaWeather' | 'disponibilite' | 'seaCargo' | 'landCargo']: ReturnType<typeof datasetObject<K>> };
@@ -248,6 +248,17 @@ describe('#1692 — les vues DÉRIVÉES d’un dataset suivent son édition', ()
     }
   });
 
+  it('une marchandise NEUVE rangée dans une colonne ÉDITÉE : `rollSeasonalCargo` la tire de SA colonne seule', () => {
+    for (const voie of ['mer', 'terre'] as const) {
+      const id = `cargo-${voie}-qc-1692`;
+      expect(findCargoById(id)).toBeUndefined();
+      setDataset('cargoes', [...datasetArray('cargoes'), { ...marchandisesDe(voie)[0], id, label: `Cargo ${voie} QC` } as CargoDef]);
+      setDataset('cargaisonsAleatoires', datasetArray('cargaisonsAleatoires').map((t) => (t.voie === voie && t.saison === 'ete' ? { ...t, entries: [{ ...t.entries[0], id: id as (typeof t.entries)[number]['id'], min: 1, max: 100 }] } : t)));
+      expect(rollSeasonalCargo(voie, 'ete', deFixe(37)).label).toBe(`Cargo ${voie} QC`);
+      expect(rollSeasonalCargo(voie, 'hiver', deFixe(37)).id).not.toBe(id);
+    }
+  });
+
   it('un Coût d’Augmentation ÉDITÉ : `advanceCost` lit la NOUVELLE bande', () => {
     expect(advanceCost(0, 'characteristic')).toBe(25);
     setDataset('advancementCosts', datasetArray('advancementCosts').map((b, i) => (i === 0 ? { ...b, coutCarac: 99 } : b)));
@@ -359,11 +370,11 @@ describe('#1692 — les vues DÉRIVÉES d’un dataset suivent son édition', ()
     const fiche = structuredClone(datasetObject('seaCargo'));
     const port = { taille: 1, richesse: 1, production: [] };
     expect(overloadMaxEnc(100)).toBe(fiche.overload.hardCapPct);
-    expect(offerPricePct(port, 'x')).toBe(100 + fiche.sell.offerPrice.find((b) => b.min === 2)!.pct);
+    expect(offerPricePct(port, 'x')).toBe(100 + fiche.vente.offerPrice.find((b) => b.min === 2)!.pct);
     setObjectDataset('seaCargo', {
       ...fiche,
       overload: { ...fiche.overload, hardCapPct: 175 },
-      sell: { ...fiche.sell, offerPrice: fiche.sell.offerPrice.map((b) => (b.min === 2 ? { ...b, pct: -33 } : b)) },
+      vente: { ...fiche.vente, offerPrice: fiche.vente.offerPrice.map((b) => (b.min === 2 ? { ...b, pct: -33 } : b)) },
     });
     expect(overloadMaxEnc(100)).toBe(175);
     expect(offerPricePct(port, 'x')).toBe(67);
@@ -371,9 +382,9 @@ describe('#1692 — les vues DÉRIVÉES d’un dataset suivent son édition', ()
 
   it('les règles de négoce terrestre ÉDITÉES (#3433) : lot minimal, surcoût partiel et dés du marchand servis NEUFS', () => {
     const fiche = structuredClone(datasetObject('landCargo'));
-    const { d10, plus } = fiche.buy.merchantSkill;
+    const { d10, plus } = fiche.achat.merchantSkill;
     expect(rollMerchantSkill(deFixe(1))).toBe(d10 + plus);
-    setObjectDataset('landCargo', { ...fiche, buy: { ...fiche.buy, minEnc: 20, partialSurchargePct: 15, merchantSkill: { d10: d10 + 1, plus } } });
+    setObjectDataset('landCargo', { ...fiche, achat: { ...fiche.achat, minEnc: 20, partialSurchargePct: 15, merchantSkill: { d10: d10 + 1, plus } } });
     expect(minCargoEnc()).toBe(20);
     expect(partialSurchargePct()).toBe(15);
     expect(rollMerchantSkill(deFixe(1))).toBe(d10 + 1 + plus);

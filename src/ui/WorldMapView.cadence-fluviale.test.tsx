@@ -111,7 +111,7 @@ describe('#2545 — départ fluvial : la cadence se choisit au clic et part avec
     expect(bouton(jourParJour)!.getAttribute('aria-pressed')).toBe('true');
     partir();
     expect(get().travelPlan?.river, 'la descente est JOUÉE').toBeTruthy();
-    expect(get().travelPlan?.orders?.cadence).toBe('jour-par-jour');
+    expect(get().travelPlan?.orders?.cadence).toBe('jourParJour');
   });
 
   it('clic « Descente commandée » puis « Partir » → descente commandée', () => {

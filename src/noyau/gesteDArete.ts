@@ -90,8 +90,8 @@ const REFUS_MONTE: MsgKey = 'geste.refus.monte';
 
 const refus = (cle: MsgKey, vars: Record<string, string | number> = {}): RefusGeste => ({ refus: cle, vars });
 
-/** Libellé de l'action « Descendre » (`actions.json`, id `dismount`) — l'issue que le refus monté nomme. */
-const libelleDescendre = (): string => garanti(findActionById('dismount'), 'dismount', 'action').label;
+/** Libellé de l'action « Descendre » (`actions.json`, id `pied-a-terre`) — l'issue que le refus monté nomme. */
+const libelleDescendre = (): string => garanti(findActionById('pied-a-terre'), 'pied-a-terre', 'action').label;
 
 /** Ce que dit un plan de franchissement refusé (`fallMove.ts:RefusFranchissement`). */
 export const REFUS_FRANCHISSEMENT: Readonly<Record<RefusFranchissement, MsgKey>> = {
@@ -137,7 +137,7 @@ export function gesteDArete(s: Jeu): GesteOuvert | RefusGeste {
 }
 
 /** Le Test de chute tenté consomme l'Action (LDB 13 l.86-88) : refusé quand elle est déjà prise.
- *  `tombantId` = la rangée qui déclare. Lu par « Tenter » (`jetRegler('fall', 'tenter', …)`) et par son option dans la
+ *  `tombantId` = la rangée qui déclare. Lu par « Tenter » (`jetRegler('chute', 'tenter', …)`) et par son option dans la
  *  modale (`ui/FallModal.tsx`). */
 export function refusDuTestDeChute(s: Jeu, tombantId: string): RefusGeste | null {
   const b = s.mode === 'battle' ? s.battle : null;
@@ -146,7 +146,7 @@ export function refusDuTestDeChute(s: Jeu, tombantId: string): RefusGeste | null
 }
 
 /** Se suspendre d'abord coûte, en combat, le Mouvement de `mouvementDeLaChute` : refusé quand le
- *  Mouvement restant ne le couvre pas. Lu par la déclaration (`jetRegler('fall', 'suspendre', …)`) et par son option dans la
+ *  Mouvement restant ne le couvre pas. Lu par la déclaration (`jetRegler('chute', 'suspendre', …)`) et par son option dans la
  *  modale (`ui/FallModal.tsx`). */
 export function refusDeLaSuspension(s: Jeu, tombantId: string): RefusGeste | null {
   const b = s.mode === 'battle' ? s.battle : null;
@@ -271,7 +271,7 @@ const CORPS_DU_FRANCHISSEMENT: Readonly<Record<GesteDeplacant, CorpsDuFranchisse
   /** Chute VOLONTAIRE (LDB 15 l.82) : depuis `from` (case du sauteur) vers `to` (case cardinale plus
    *  basse, `planFranchissement`) — geste JOUEUR seulement (IA hors périmètre : elle ne saute jamais). Ouvre le
    *  choix pré-jet `pendingFall` (Sauter / Tenter, et se suspendre d'abord quand la croisée l'offre),
-   *  résolu par `jetRegler('fall', …)`. Le Mouvement que `soldeDeLAction` imputera (`mouvementDeLaChute`) est
+   *  résolu par `jetRegler('chute', …)`. Le Mouvement que `soldeDeLAction` imputera (`mouvementDeLaChute`) est
    *  vérifié ici (le pas, l'allège) et à la déclaration (la suspension, `refusDeLaSuspension`). */
   chute: (get, set, verdict, from, to) => {
     const { mobile: mover, scene, battle } = verdict;
@@ -347,7 +347,7 @@ function tombantADeclarer(get: Get, set: Set, pid: string): { p: PendingFall; pa
  *  offert par la croisée et déclaré d'abord, puis le saut, avec ou sans Test (LDB 15 l.82). */
 export function reglagesDeFranchissement(get: Get, set: Set) {
   return {
-    fall: {
+    chute: {
       suspendre: (suspendre, pid) => {
         const tombant = tombantADeclarer(get, set, garanti(pid, 'fall', 'tombant'));
         if (!tombant) return;
@@ -373,12 +373,12 @@ export function reglagesDeFranchissement(get: Get, set: Set) {
         set({ pendingFall: suite });
       },
     },
-  } satisfies Pick<CorpsDesReglages, 'fall'>;
+  } satisfies Pick<CorpsDesReglages, 'chute'>;
 }
 
 /** Les clôtures du franchissement (`CloturesDuJet`) : `jetValider` les joue, tant que le flux les ouvre. */
 export function cloturesDeFranchissement(get: Get, set: Set) {
   return {
-    fall: () => settleFall(get, set, garanti(get().pendingFall, 'fall', 'chute ouverte')),
+    chute: () => settleFall(get, set, garanti(get().pendingFall, 'fall', 'chute ouverte')),
   } satisfies Partial<CloturesDuJet>;
 }

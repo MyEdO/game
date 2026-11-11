@@ -31,7 +31,7 @@ function engage(tourDe: 'heros' | 'creature', o: { tailleE: SizeCategory; taille
   g().ensemencerLeTirage(2);
   g().lancerLaScene(testScene());
   g().lancerLeCombat('enc-mutants');
-  g().fenetreValider('roundStart');
+  g().fenetreValider('debutDuRound');
   const b = g().battle!;
   const H = b.combatants.find((c) => c.kind === 'hero')!;
   const enemies = b.combatants.filter((c) => c.kind === 'enemy');

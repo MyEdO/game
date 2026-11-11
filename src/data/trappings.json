@@ -8429,7 +8429,9 @@
       {
         "op": "light",
         "radiusM": 10,
-        "tone": "chandelle"
+        "tone": {
+          "id": "chandelle"
+        }
       }
     ],
     "desc": "Fournit un éclairage sur 10 mètres lorsqu'elle est allumée.",
@@ -8726,7 +8728,9 @@
       {
         "op": "light",
         "radiusM": 10,
-        "tone": "lanterne"
+        "tone": {
+          "id": "lanterne"
+        }
       }
     ]
   },
@@ -8749,7 +8753,9 @@
       {
         "op": "light",
         "radiusM": 20,
-        "tone": "lanterne"
+        "tone": {
+          "id": "lanterne"
+        }
       }
     ],
     "desc": "Des obturateurs protègent la flamme du vent, et permet également de diriger la lumière dans un arc de 90° ou de l'obscurcir complètement. Fournit un éclairage sur 20 mètres, ou 30 quand il est ciblé.",
@@ -8782,7 +8788,9 @@
       {
         "op": "light",
         "radiusM": 20,
-        "tone": "lanterne"
+        "tone": {
+          "id": "lanterne"
+        }
       }
     ],
     "desc": "Fournit un éclairage sur 20 mètres.",
@@ -9125,9 +9133,10 @@
     "rendu": {
       "id": "baliste"
     },
-    "defaultAmmo": {
-      "id": "carreau-de-baliste"
-    },
+    "munitions": [
+      "carreau-de-baliste",
+      "carreau-nain-norse"
+    ],
     "soloSimple": true,
     "enc": 20,
     "availability": "limitee",
@@ -9177,6 +9186,9 @@
     "rendu": {
       "id": "catapulte"
     },
+    "munitions": [
+      "bombe-incendiaire-mortier"
+    ],
     "indirect": true,
     "enc": 25,
     "availability": "limitee",
@@ -9229,6 +9241,9 @@
     "rendu": {
       "id": "catapulte"
     },
+    "munitions": [
+      "bombe-incendiaire-mortier"
+    ],
     "indirect": true,
     "enc": 40,
     "availability": "limitee",
@@ -9281,6 +9296,9 @@
     "rendu": {
       "id": "catapulte"
     },
+    "munitions": [
+      "bombe-incendiaire-mortier"
+    ],
     "indirect": true,
     "enc": 65,
     "availability": "limitee",
@@ -9499,9 +9517,10 @@
     "rendu": {
       "id": "canon"
     },
-    "defaultAmmo": {
-      "id": "boulet-et-poudre"
-    },
+    "munitions": [
+      "boulet-et-poudre",
+      "mitraille-et-poudre"
+    ],
     "enc": 30,
     "availability": "limitee",
     "reach": null,
@@ -9554,9 +9573,10 @@
     "rendu": {
       "id": "canon"
     },
-    "defaultAmmo": {
-      "id": "boulet-et-poudre"
-    },
+    "munitions": [
+      "boulet-et-poudre",
+      "mitraille-et-poudre"
+    ],
     "enc": 50,
     "availability": "exotique",
     "reach": null,
@@ -9609,9 +9629,10 @@
     "rendu": {
       "id": "canon"
     },
-    "defaultAmmo": {
-      "id": "boulet-et-poudre"
-    },
+    "munitions": [
+      "boulet-et-poudre",
+      "mitraille-et-poudre"
+    ],
     "enc": 75,
     "availability": "exotique",
     "reach": null,
@@ -9664,9 +9685,10 @@
     "rendu": {
       "id": "mortier"
     },
-    "defaultAmmo": {
-      "id": "bombe-de-mortier"
-    },
+    "munitions": [
+      "bombe-de-mortier",
+      "bombe-incendiaire-mortier"
+    ],
     "indirect": true,
     "enc": 50,
     "availability": "exotique",
@@ -9713,9 +9735,10 @@
     "rendu": {
       "id": "canon"
     },
-    "defaultAmmo": {
-      "id": "balles-et-poudre-pierrier"
-    },
+    "munitions": [
+      "balles-et-poudre-pierrier",
+      "petites-munitions-et-poudre-pierrier"
+    ],
     "enc": 5,
     "availability": "rare",
     "reach": null,
@@ -13624,9 +13647,10 @@
     "rendu": {
       "id": "baliste"
     },
-    "defaultAmmo": {
-      "id": "carreau-de-baliste"
-    },
+    "munitions": [
+      "carreau-de-baliste",
+      "carreau-nain-norse"
+    ],
     "minRangeBand": "courte",
     "availability": "rare",
     "reach": null,
@@ -13863,9 +13887,10 @@
     "rendu": {
       "id": "canon"
     },
-    "defaultAmmo": {
-      "id": "boulet-et-poudre"
-    },
+    "munitions": [
+      "boulet-et-poudre",
+      "mitraille-et-poudre"
+    ],
     "minRangeBand": "courte",
     "availability": "exotique",
     "reach": null,
@@ -14191,9 +14216,10 @@
     "rendu": {
       "id": "mortier"
     },
-    "defaultAmmo": {
-      "id": "bombe-de-mortier"
-    },
+    "munitions": [
+      "bombe-de-mortier",
+      "bombe-incendiaire-mortier"
+    ],
     "indirect": true,
     "minRangeBand": "moyenne",
     "availability": "exotique",

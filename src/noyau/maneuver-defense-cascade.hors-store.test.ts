@@ -33,7 +33,7 @@ describe('Défense de manœuvre de zone — cascade influençable (héros) vs si
     banc.setState({ party: [H1, H2] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.getState().ensemencerLeTirage(2);
     const b = banc.getState().battle!;
     const enemies = b.combatants.filter((c) => c.kind === 'enemy');

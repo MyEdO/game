@@ -308,24 +308,24 @@ describe('#1852 — la file des gratuites S’ARRÊTE à la première fenêtre o
 });
 
 describe('#1852 — hôte ORPHELIN : le prédicat est TOTAL, et le curseur ne s’y pose jamais', () => {
-  const JETS: HostJet[] = ['attack', 'defense', 'fumble', 'cast', 'test', 'extended', 'disengage', 'forceDoor'];
+  const JETS: HostJet[] = ['attaque', 'defense', 'maladresse', 'incantation', 'test', 'testEtendu', 'desengagement', 'enfoncerLaPorte'];
 
   // Le prédicat dit « cette étape a de quoi rendre un corps » : il doit couvrir TOUTES les causes de
   // `null` du hook de props du jet (`useXJetProps`), slot ET acteurs, sinon le renderer inconditionnel
   // de `CascadeModal` rend `{...null!}` — un crash, pas une fenêtre vide.
   const battleDe = (...ids: string[]) => ({ combatants: ids.map((id) => ({ id })) } as never);
   const ETAT_COMPLET: Record<HostJet, Record<string, unknown>> = {
-    attack: { battle: battleDe('a', 'h'), pendingAttack: { attackerId: 'a', targetId: 'h' } },
+    attaque: { battle: battleDe('a', 'h'), pendingAttack: { attackerId: 'a', targetId: 'h' } },
     defense: { battle: battleDe('a', 'h'), pendingDefense: { attackerId: 'a', defenderId: 'h' } },
-    fumble: { battle: battleDe('h') }, // sans slot : la donnée est `step.fumble`
-    cast: { pendingCast: {} },
+    maladresse: { battle: battleDe('h') }, // sans slot : la donnée est `step.maladresse`
+    incantation: { pendingCast: {} },
     test: { pendingTest: {} },
-    extended: { battle: battleDe('h'), pendingExtendedTest: { actorId: 'h' } },
-    disengage: { pendingDisengage: {} },
-    forceDoor: { pendingForceDoor: {} },
+    testEtendu: { battle: battleDe('h'), pendingExtendedTest: { actorId: 'h' } },
+    desengagement: { pendingDisengage: {} },
+    enfoncerLaPorte: { pendingForceDoor: {} },
   };
   const etape = (jet: HostJet): CascadeStep =>
-    ({ id: `x-${jet}`, kind: 'k', jet, actorId: 'h', ...(jet === 'fumble' ? { fumble: { weapon: 'Épée' } } : {}) } as never);
+    ({ id: `x-${jet}`, kind: 'k', jet, actorId: 'h', ...(jet === 'maladresse' ? { maladresse: { weapon: 'Épée' } } : {}) } as never);
 
   it('pour CHAQUE jet hôté : donnée complète ⇒ pas orphelin ; slot vidé ⇒ orphelin', () => {
     for (const jet of JETS) {
@@ -339,14 +339,14 @@ describe('#1852 — hôte ORPHELIN : le prédicat est TOTAL, et le curseur ne s�
   it('2ᵉ cause de `null` du hook : l’ACTEUR a quitté le `battle` ⇒ orphelin', () => {
     // useDefenseJetProps:51 / useAttackJetProps:57 / useFumbleJetProps:26 /
     // useExtendedTestJetProps:34 — `if (!attacker || !target) return null`.
-    for (const jet of ['attack', 'defense', 'fumble', 'extended'] as HostJet[]) {
+    for (const jet of ['attaque', 'defense', 'maladresse', 'testEtendu'] as HostJet[]) {
       expect(hoteOrphelin({ ...ETAT_COMPLET[jet], battle: battleDe('personne') } as never, etape(jet)), `${jet} sans acteur`).toBe(true);
       expect(hoteOrphelin({ ...ETAT_COMPLET[jet], battle: null } as never, etape(jet)), `${jet} hors combat`).toBe(true);
     }
   });
 
-  it('Maladresse : sa donnée vit SUR l’étape (`step.fumble`), invisible au slot ⇒ orphelin sans elle', () => {
-    expect(hoteOrphelin(ETAT_COMPLET.fumble as never, { id: 'f', kind: cleDeFixture('k'), jet: 'fumble', actorId: 'h' })).toBe(true);
+  it('Maladresse : sa donnée vit SUR l’étape (`step.maladresse`), invisible au slot ⇒ orphelin sans elle', () => {
+    expect(hoteOrphelin(ETAT_COMPLET.maladresse as never, { id: 'f', kind: cleDeFixture('k'), jet: 'maladresse', actorId: 'h' })).toBe(true);
   });
 
   it('une étape déjà VALIDÉE (`committed`) n’est jamais orpheline : elle a rendu sa donnée', () => {
@@ -372,7 +372,7 @@ describe('#1852 — hôte ORPHELIN : le prédicat est TOTAL, et le curseur ne s�
   });
 
   it('l’ARBITRE n’élit pas la cascade quand le corps de l’étape `cast` s’efface (ciblage carte)', () => {
-    const casc = cascadeDeTest([{ id: 'c', kind: cleDeFixture('castJet'), jet: 'cast', actorId: 'h' }]);
+    const casc = cascadeDeTest([{ id: 'c', kind: cleDeFixture('castJet'), jet: 'incantation', actorId: 'h' }]);
     expect(pickActiveModalKey({ pendingCast: {} as never, pendingCascade: casc })).toBe('cascade');
     expect(pickActiveModalKey({ pendingCast: { pickingTargets: true } as never, pendingCascade: casc })).toBeNull();
   });
@@ -432,7 +432,7 @@ describe('#1852 — un combattant ne décide qu’UNE fois son tour', () => {
     enemy.traits = [];
     enemy.size = 'enorme'; // écart de Taille → Terreur (LDB 85 l.383)
     banc.setState({ battle: { ...g().battle!, turn: -1 }, pendingRoundStart: { round: 1 } } as never);
-    g().fenetreValider('roundStart');
+    g().fenetreValider('debutDuRound');
     const joues = () => aiTurnLog().filter((r) => r.id === enemy.id && r.round === 1).length;
     const bande = g().pendingCascade?.participants.find((st) => st.kind === 'combatPsych');
     expect([bande?.combatPsych?.kind, bande?.participants?.map((pa) => pa.id)], 'chemin : la Terreur du héros ouvre sa bande').toEqual(['terreur', [hero.id]]);

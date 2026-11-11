@@ -64,7 +64,7 @@ const GESTES = [
   ['ouvrirLaCourse', () => g().ouvrirLaCourse({ x: 1, y: 3 }, { path: [{ x: 1, y: 2 }, { x: 1, y: 3 }], cost: 2 })],
   ['armerLaFinDuTour', () => g().armerLaFinDuTour()],
   ['prendreLaPanoplie', () => g().prendreLaPanoplie('a', 'lo-hache')],
-  ['armerLeMode', () => g().armerLeMode('dispel')],
+  ['armerLeMode', () => g().armerLeMode('dissipation')],
   ['desarmerLeMode', () => g().desarmerLeMode()],
   ['incanterLeSort', () => g().incanterLeSort('a', 'forme-bestiale')],
   ['focaliserLeSort', () => g().focaliserLeSort('a', 'arme-aethyrique')],
@@ -73,7 +73,7 @@ const GESTES = [
 
 describe('le verdict de la barre : chaque geste refusé le dit, et ne change rien d’autre', () => {
   it.each(GESTES)('%s : en combat clos, personne n’agit', (_v, geste) => {
-    enBataille({ over: 'victory' });
+    enBataille({ over: 'victoire' });
     const avant = empreinte();
     geste();
     expect([refus(), empreinte()]).toEqual([t('barre.personneNAgit'), avant]);
@@ -207,16 +207,16 @@ describe('admis, chaque geste joue encore', () => {
 
   it('armerLeMode arme le mode, desarmerLeMode le désarme', () => {
     enBataille();
-    g().armerLeMode('dispel');
+    g().armerLeMode('dissipation');
     const arme = g().battle!.action;
     g().desarmerLeMode();
-    expect([refus() ?? null, arme, g().battle!.action]).toEqual([null, 'dispel', null]);
+    expect([refus() ?? null, arme, g().battle!.action]).toEqual([null, 'dissipation', null]);
   });
 
   it('incanterLeSort arme l’incantation', () => {
     enBataille();
     g().incanterLeSort('a', 'forme-bestiale');
-    expect([refus() ?? null, g().battle!.action, g().battle!.selectedSpellId]).toEqual([null, 'cast', 'forme-bestiale']);
+    expect([refus() ?? null, g().battle!.action, g().battle!.selectedSpellId]).toEqual([null, 'incantation', 'forme-bestiale']);
   });
 
   it('focaliserLeSort ouvre la Focalisation', () => {

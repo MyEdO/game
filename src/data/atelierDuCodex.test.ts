@@ -6,6 +6,11 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { enregistrerEntree } from './atelierDuCodex';
 import { datasetArray, deDeLaTable, resetData, setDataset } from './overrides';
+import { effectTableDie, findEffectTableById } from './effectTables';
+import { findTableEntry } from '../engine/tables';
+import { miscastDie, miscastRowAt } from '../engine/miscast';
+import { deDuVoyageRapide, resolveFastVoyage } from '../engine/seaVoyage';
+import { makeRNG } from '../engine/dice';
 
 type Entree = Record<string, unknown>;
 const traits = () => datasetArray('traits') as unknown as Entree[];
@@ -76,5 +81,41 @@ describe('enregistrerEntree — dé de tirage de la table (#1667)', () => {
     const issue = enregistrerEntree('drunkenness', { ...rangees()[0], label: 42 }, 0, '2d10');
     expect(issue.ok).toBe(false);
     expect(deDeLaTable('drunkenness')).toBe('d10');
+  });
+});
+
+describe('enregistrerEntree — les tables tirées s’éditent et le lecteur suit (#1667)', () => {
+  afterEach(() => resetData());
+
+  it('table d’effets : le dé et une rangée édités changent ce que tire le lecteur', () => {
+    const tables = datasetArray('effectTables') as unknown as Entree[];
+    const index = tables.findIndex((t) => t.id === 'allure-demoniaque-nurgle');
+    const table = tables[index] as { entries: Entree[] };
+    expect(findTableEntry(findEffectTableById('allure-demoniaque-nurgle').entries, 10).label).toBe(table.entries[9].label);
+    const entries = table.entries.map((r, i) => (i === table.entries.length - 1 ? { ...r, max: 20, label: 'Rangée éditée' } : r));
+    expect(enregistrerEntree('effectTables', { ...table, die: 'd20', entries }, index).ok).toBe(true);
+    expect(effectTableDie('allure-demoniaque-nurgle').sides).toBe(20);
+    expect(findTableEntry(findEffectTableById('allure-demoniaque-nurgle').entries, 15).label).toBe('Rangée éditée');
+  });
+
+  it('miscast VDM : une rangée puis le dé édités changent ce que tire le lecteur', () => {
+    const rangees = datasetArray('miscastMinorVdm') as unknown as Entree[];
+    // Lecture AVANT l'édition : le lecteur mémoïsé est construit, l'édition doit l'invalider.
+    expect(miscastRowAt('miscast-mineure-vdm', 1).label).toBe(rangees[0].label);
+    expect(enregistrerEntree('miscastMinorVdm', { ...rangees[0], label: 'Contrecoup édité' }, 0).ok).toBe(true);
+    expect(miscastRowAt('miscast-mineure-vdm', 1).label).toBe('Contrecoup édité');
+    expect(enregistrerEntree('miscastMinorVdm', rangees[1], 1, '2d50').ok).toBe(true);
+    expect(miscastDie('miscast-mineure-vdm')).toMatchObject({ n: 2, sides: 50 });
+  });
+
+  it('Voyage rapide : une rangée puis le dé édités changent ce que tire le lecteur', () => {
+    const paliers = datasetArray('seaFastVoyage') as unknown as Entree[];
+    const parfait = paliers.findIndex((p) => p.id === 'parfait');
+    // Lecture AVANT l'édition : le lecteur mémoïsé est construit, l'édition doit l'invalider.
+    expect(resolveFastVoyage(20, 0, 0, makeRNG(1)).palier.label).toBe(paliers[parfait].label);
+    expect(enregistrerEntree('seaFastVoyage', { ...paliers[parfait], label: 'Palier édité' }, parfait).ok).toBe(true);
+    expect(resolveFastVoyage(20, 0, 0, makeRNG(1)).palier.label).toBe('Palier édité');
+    expect(enregistrerEntree('seaFastVoyage', paliers[0], 0, 'd20').ok).toBe(true);
+    expect(deDuVoyageRapide()).toMatchObject({ n: 1, sides: 20 });
   });
 });

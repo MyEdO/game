@@ -52,7 +52,7 @@ import { registerScene } from './monde/registreDesScenes';
 import { vehicleCombatant } from '../engine/vehicle';
 import { type StakeRef, type VoyageStakeId, voyageStakeRef, conditionLabel, findVehicleById, findCrewRoleById, findCrewTestTypeById, findNavalTrait, NAVAL_TRAITS, diseaseLabel, refLabel, libelleOuAbsence, testSkillLabel } from '../data';
 import { profilNavalDe } from '../engine/coque';
-import { installCost, rollSteamBreakdown, steamBreakdownTriggered, shipSizeOfLength, propulsionDuNavire, STEAM_SKILL, type PropulsionDuNavire, type SteamBreakdownEntry } from '../engine/shipBuild';
+import { installCost, prixDeLaReparation, rollPortRepair, rollSteamBreakdown, steamBreakdownTriggered, shipSizeOfLength, propulsionDuNavire, STEAM_SKILL, type PropulsionDuNavire, type SteamBreakdownEntry } from '../engine/shipBuild';
 import { COMPETENCE_DU_MODE, estCompetenceDePropulsion, type PropulsionKind } from '../engine/propulsion';
 import { deMonde, formatDice, roll as rollDice, tirer, type RNG, type Tirage } from '../engine/dice';
 import { facesDuDe, findTableEntry } from '../engine/tables';
@@ -1877,7 +1877,7 @@ function openSteamSave(get: Get, set: Set, failDamage: Tirage, rng: RNG): void {
   });
 }
 
-/** Résout la sauvegarde d'Initiative d'une « Fuite de vapeur » (appelée par `jetValider('steamSave')`) : ÉCHEC →
+/** Résout la sauvegarde d'Initiative d'une « Fuite de vapeur » (appelée par `jetValider('fuiteDeVapeur')`) : ÉCHEC →
  *  ébouillanté (`scaldOps` déjà roulés), puis le RESTE de la journée reprend (la cascade `'crew-progression'`
  *  s'était fermée SANS insérer la suite du jour, cf. son applier — `pendingSteamSave` suspendait). */
 export function resolveSteamSave(get: Get, set: Set, p: PendingSteamSave): void {
@@ -2229,7 +2229,7 @@ export function devisDeChantier(vessel: CampaignVessel, bourse: Money, refusHote
   const v = findVehicleById(vessel.vehicleId);
   const { max, current, missing } = blessuresDeCoqueARestaurer(vessel);
   const lissage = shipHasNavalTrait(vesselNavalTraits(vessel), 'lissage');
-  const reparationGold = Math.ceil(missing * (lissage ? 1.5 : 1));
+  const reparationGold = Math.ceil(prixDeLaReparation(missing, lissage));
   const foulLevel = vessel.fouling?.level ?? 0;
   const carenagePct = foulingEffects(foulLevel).repairPctOfBase;
   const carenageGold = Math.ceil((v?.purchase?.price?.gold ?? 0) * (carenagePct / 100));
@@ -2244,25 +2244,33 @@ export function devisDeChantier(vessel: CampaignVessel, bourse: Money, refusHote
   };
 }
 
-/** RÉPARATION au port (ch.13 l.643) : le constructeur naval local restaure TOUT pour « 1 CO par
- *  Blessure restaurée » (+50 % si la coque est Lissée, ch.12 l.295) ; « Chaque Test réussi prend 1d10
- *  heures … et restaure 1d10 Blessures » → le temps passe d'autant. Purge aussi les Critiques notés
- *  en voyage (remise en état). Refus si la bourse ne suit pas. */
+/** RÉPARATION au port : Tests de Métier (Constructeur de navires) du constructeur local, ou du constructeur de
+ *  l'escale (`vessel.constructeurDEscale`), jusqu'à la coque pleine ; le prix suit les Blessures restaurées, le temps
+ *  les heures des Tests, ou la durée du constructeur de l'escale. Purge les Critiques notés en voyage. Refus si la
+ *  bourse ne couvre pas le devis. MDG 13 l.641-643 ; MDG 12 l.295 ; MDG 15 l.255 */
 export function portRepairVessel(get: Get, set: Set): string[] {
   const vessel = get().vessel;
   const v = vessel ? findVehicleById(vessel.vehicleId) : undefined;
   if (!vessel || !v?.hull) { refuserGeste(get, set, t('sv.noVesselToRepair')); return []; }
   const devis = devisDeChantier(vessel, partyMoneyTotal(get), refusDeGesteSurLeGroupe(get()));
   if (devis.refusReparation) { refuserGeste(get, set, devis.refusReparation); return []; }
-  const { max, missing, lissage, reparationGold: cost } = devis;
-  const costMoney = toMoney({ gold: cost });
+  const { max, missing, lissage } = devis;
   const rng = battleRng();
-  let hours = 0;
-  for (let healed = 0; healed < missing; healed += rollDice(1, 10, rng)) hours += rollDice(1, 10, rng); // 1d10 h / 1d10 B (l.643)
-  payFromGroup(get, set, costMoney, { purpose: 'réparation navire' });
+  const constructeur = vessel.constructeurDEscale;
+  const competence = constructeur?.competence ?? REPARATION.constructeurLocal;
+  let restaurees = 0, heures = 0, prix = 0, tests = 0, reussis = 0;
+  while (restaurees < missing) {
+    const passe = rollPortRepair(competence, missing - restaurees, rng, { lissage });
+    tests++;
+    if (passe.success) reussis++;
+    restaurees += passe.wounds; heures += passe.hours; prix += passe.costGold;
+  }
+  const cost = Math.ceil(prix);
+  payFromGroup(get, set, toMoney({ gold: cost }), { purpose: 'réparation navire' });
   set({ vessel: { ...get().vessel!, wounds: { current: max, max }, criticals: [] } });
-  get().avancerLHorloge(Math.max(1, hours) * 60);
-  return [t('sv.hullRefit', { ship: v.label, missing, cost, lissage: lissage ? t('sv.fragSmoothed') : '', hours: Math.max(1, hours) })];
+  const duree = constructeur ? t('sv.dureeJours', { n: constructeur.jours }) : t('sv.dureeHeures', { n: Math.max(1, heures) });
+  get().avancerLeTemps(constructeur ? constructeur.jours * MINUTES_PER_DAY : Math.max(1, heures) * 60);
+  return [t('sv.hullRefit', { ship: v.label, missing, cost, lissage: lissage ? t('sv.fragSmoothed', { pct: REPARATION.lissageRepairSurcoutPct }) : '', duree, competence, reussis, tests })];
 }
 
 /** CARÉNAGE en cale sèche (Salissures, ch.13 l.150-159) : « pour récurer un bateau de Taille Moyenne ou
@@ -2345,8 +2353,8 @@ export function openPortAt(get: Get, set: Set, to: MapPlace): void {
   finalizePortArrivalTo(get, set, to, true);
 }
 
-/** ÉVÉNEMENT DE PORT (2d10 ± Humeur, ch.15 l.127-129 + Tableau l.239-263). `shoreLeave` = permission de
- *  faire relâche à terre accordée par le capitaine (`fenetreChoisir('shoreLeave', 'accorder', …)`, MDG 15 l.245) : gate les
+/** ÉVÉNEMENT DE PORT (2d10 ± Humeur, ch.15 l.127-129 + Tableau l.239-263). `relacheATerre` = permission de
+ *  faire relâche à terre accordée par le capitaine (`fenetreChoisir('relacheATerre', 'accorder', …)`, MDG 15 l.245) : gate les
  *  rangées `relache` — les DEUX entrées de la table qui la référencent nommément, Embrigadement (l.245,
  *  « cet événement n'a pas lieu » si refusée) et Fête de Manann (l.260, le bonus d'Humeur suppose « le
  *  capitaine autorise… à faire relâche »).
@@ -2451,7 +2459,7 @@ export function finalizePortArrival(get: Get, set: Set, arrival: NonNullable<Pen
 /** Les choix du port (`CorpsDesChoix`, MDG 15 l.245) : la relâche à terre. */
 export function choixDuVoyageEnMer(get: Get, set: Set) {
   return {
-    shoreLeave: { accorder: (accorder) => trancherLaRelache(get, set, accorder) },
+    relacheATerre: { accorder: (accorder) => trancherLaRelache(get, set, accorder) },
   } satisfies Partial<CorpsDesChoix>;
 }
 

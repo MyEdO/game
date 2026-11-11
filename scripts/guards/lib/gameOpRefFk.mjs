@@ -72,17 +72,10 @@ export const GAMEOP_FIELD_TARGETS = {
   'condition.onlyIfCondition': { coveredBy: '`refuserEtatsInconnus` (src/data/schemas/grammaire/mecanique.ts), appelé par `refusLoose`' },
   'condition.unlessCondition': { coveredBy: '`refuserEtatsInconnus` (src/data/schemas/grammaire/mecanique.ts), appelé par `refusLoose` ; dialecte miscast : feuille `idDe(\'etat\')`' },
   'removeCondition.id': { coveredBy: '`refuserEtatsInconnus` (src/data/schemas/grammaire/mecanique.ts), appelé par `refusLoose` et par le dialecte miscast `jsonOpSchema` (src/data/schemas/defs/miscast.ts)' },
-  'wounds.onlyGroups': { coveredBy: '`refusLoose` (src/data/schemas/grammaire/mecanique.ts) par `refusDeLId(\'groupe\', id, CIBLE_D_APPARTENANCE)`' },
   'condition.onlyGroups': { coveredBy: '`refusLoose` (src/data/schemas/grammaire/mecanique.ts) par `refusDeLId(\'groupe\', id, CIBLE_D_APPARTENANCE)`' },
   // ── Champs que le parse ne juge pas (lot L1c #1468) ──
   'skillDRBonus.testType': { registry: 'crewTestTypes' },
-  'grantNaturalWeapon.qualities': { registry: 'qualities' },
-  'grantNaturalWeapon.subType': { registry: 'weaponGroups' },
-  'rollMutation.table': { registry: 'mutationTables' },
   'manann.factorId': { registry: 'seaManannFactors' },
-  // Tons de lumière (lightTones.json) — APPARENCE d'une source, résolue au bord du rendu.
-  // Absent = `flamme`.
-  'light.tone': { registry: 'lightTones' },
   // ── Psychologie (psychology.json) ──
   'beginPsych.sourceId': { nonRef: 'id de combattant RUNTIME — la créature SOURCE d\'une Peur/Terreur (`targetedTrigger` le pose, src/engine/psychology.ts ; purgé à la mort par `clearPsychOf`), jamais authoré en donnée' },
   // ── Champs qui ne visent AUCUN registre ──

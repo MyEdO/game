@@ -13,7 +13,7 @@ import type { ArmourBypass, SujetDuJet } from '../data/schemas/grammaire/mecaniq
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import type { CibleEtendue, ProfilDePropulsion, ProfilDeVoile } from '../data/schemas/grammaire/valeurs';
 import type { StagePosting } from './activities';
-import type { NightStakeId } from '../data/index';
+import type { ActionId, NightStakeId } from '../data/index';
 
 declare const MAXIMUM_DES_BLESSURES: unique symbol;
 /**
@@ -390,6 +390,9 @@ export const FIRE_ARCS = ['proue', 'tribord', 'poupe', 'babord'] as const;
  *  vit ici pour que `Weapon`/`ItemInstance` le portent sans dépendance engine→state. */
 export type FireArc = (typeof FIRE_ARCS)[number];
 
+/** Une main du porteur : la directrice ou la secondaire. */
+export type Main = 'main' | 'secondaire';
+
 export interface Weapon extends ProprietesIntrinsequesDArme {
   label: string;
   type: 'melee' | 'ranged';
@@ -427,7 +430,7 @@ export interface Weapon extends ProprietesIntrinsequesDArme {
    *  liste d'ids en dur. VDM 05 *Défaut* : « Tous les Atouts de l'arme disparaissent ». Le nom du champ
    *  d'op reste `removeType` : il est PERSISTÉ en donnée, son rename appartient à #1468 (L1c). */
   removedTypes?: ('atout' | 'defaut')[];
-  /** `id` de munition REPRÉSENTATIVE d'une arme de siège (cf. `TrappingData.defaultAmmo`) — discrimine la
+  /** `id` de munition REPRÉSENTATIVE d'une arme de siège (la première de `TrappingData.munitions`) — discrimine la
    *  bonne famille de munition (pierrier/canon/baliste/mortier) là où `subType` seul ne le fait pas. Lu par
    *  `ammoFamilyLabel` pour le hint joueur. */
   defaultAmmo?: string;
@@ -444,8 +447,8 @@ export interface Weapon extends ProprietesIntrinsequesDArme {
   organicProjectile?: boolean;
   /** Nombre de mains requises (1 ou 2). Dérivé de `(2M)` / arc / arbalète. */
   hands?: 1 | 2;
-  /** Main qui tient l'arme dans le loadout actif ('off' → pénalité de main secondaire). */
-  hand?: 'main' | 'off';
+  /** Main qui tient l'arme dans le loadout actif ('secondaire' → pénalité de main secondaire). */
+  hand?: Main;
   /** uid de l'ItemInstance source (loadout) — pour matcher un choix d'arme. Absent : Mains nues/Crochet. */
   uid?: string;
   /** id de trapping SOURCE d'une arme « built-in » (Mains nues = 'mains-nues') — marqueur STABLE,
@@ -703,9 +706,9 @@ export type EffectSourceKind =
   | 'tavernGame'
   // Une RANGÉE tirée d'un tableau d'Incantation Imparfaite / de Colère des dieux (`LDB 46`, `LDB 40`) :
   // l'entité source des effets d'un contrecoup est la LIGNE, dont la fiche Codex vit dans la catégorie
-  // que SA table déclare (`MiscastTableDef.codexCategory`). Le `kind` porte donc le NOM de cette
+  // de SA table (`categorieDeLaNiche`, `src/data`). Le `kind` porte donc le NOM de cette
   // catégorie, et `miscastRowSource` (`engine/miscast.ts`) est le seul à le fabriquer, depuis la donnée.
-  | 'miscastMinor' | 'miscastMajor' | 'miscastWrath';
+  | 'miscastMinor' | 'miscastMajor' | 'miscastMinorVdm' | 'miscastMajorVdm' | 'miscastWrath';
 
 /** Catégorie Codex de CHAQUE nature de source — table TOTALE, SOURCE UNIQUE des deux consommateurs :
  *  le routage d'affichage d'une pastille (`chipCodex`) ET la descente de l'ENJEU d'un jet à l'entité qui
@@ -716,7 +719,8 @@ export const CATEGORY_BY_SOURCE_KIND: Record<EffectSourceKind, string> = {
   quality: 'qualities', disease: 'maladies', symptom: 'symptoms', mutation: 'mutations',
   condition: 'etats', psychology: 'psychologies', maneuver: 'maneuvers', creature: 'creatures',
   activity: 'activities', rule: 'regles', tavernGame: 'tavernGames',
-  miscastMinor: 'miscastMinor', miscastMajor: 'miscastMajor', miscastWrath: 'miscastWrath',
+  miscastMinor: 'miscastMinor', miscastMajor: 'miscastMajor', miscastMinorVdm: 'miscastMinorVdm', miscastMajorVdm: 'miscastMajorVdm',
+  miscastWrath: 'miscastWrath',
 };
 
 /**
@@ -942,7 +946,7 @@ export interface ActiveEffect {
   /** RESTREINT un `testModChar:'capacite-de-combat'` à l'arme tenue dans CETTE main (op `testMod.weaponHand`, #193 —
    *  Épaule luxée « Tests effectués avec ce bras », LDB 18/AA) : lu par `combatValue`/`defenseValue`
    *  (parade), jamais l'autre main. Absent = les deux mains (comportement historique). */
-  testModHand?: 'main' | 'off';
+  testModHand?: Main;
   /** RESTREINT `testMod`/`testModChar` aux Tests classés « déplacement » (op `testMod.movementOnly`,
    *  #193 — Genou démis « Tests impliquant cette jambe », LDB 18/AA) — MÊME catégorie `SkillData.movement`
    *  que l'État À Terre/Empêtré (engine/conditions `isMovementSkill`). Lu par `testValue`/`defenseValue`
@@ -1289,70 +1293,36 @@ export type DeckCoverClass = 'imparfaite' | 'moyenne' | 'totale';
  *  (`LDB 14 l.72/81/86`) plus l'absence de couvert. Barème et fusion : `engine/cover.ts`. */
 export type CoverClass = 'none' | DeckCoverClass;
 
-/** Pièce d'artillerie MONTÉE — forme AUTHORÉE/STOCKÉE (donnée de scène, #222). La base (Dégâts/Qualités/Enc/
- *  Portée…) n'est PLUS matérialisée : elle est HYDRATÉE au spawn depuis `trappingId` par `hydratePoste`
- *  (`itemFromTrappingById`/`buildWeapon`, coutures UNIQUES). Ne persiste QUE la réf catalogue + l'état propre
- *  au poste (côté, équipage, recharge, munitions, dérogations) ; l'uid d'instance se dérive de la place (#2907). */
-export interface AuthoredShipPoste {
-  /** Réf catalogue de la pièce (SOURCE de la base — hydratée en `item` au spawn). */
-  trappingId: string;
-  /** Dérogations d'INSTANCE : enchants ajoutés à CETTE pièce (magie/qualité hors catalogue), repliés sur
-   *  l'arme dérivée par `mannedPosteWeapon` (`applyEnchants`). Hors base catalogue → persistés à part. */
-  enchants?: WeaponEnchant[];
-  /** Côté de montage relatif au cap → arc de tir (`inFireArc`). NAVAL : toujours authoré (bordée).
-   *  EMPLACEMENT AU SOL (siège) : ABSENT = pivot libre (tir omni, aucune contrainte d'arc) ; présent =
-   *  arc relatif à l'orientation-monde DU CHEF de pièce (pas d'une coque). */
-  side?: FireArc;
-  /** COUVERT du servant à ce poste (`DeckCoverClass`) : gun-port (Sabord) → `totale`, Plat-bord → `moyenne`,
-   *  Murs blindés → `totale` ; absent = tir depuis le pont, à découvert. La coque y ajoute ses
-   *  Améliorations couvrantes au tir (`couvertDuPoste`). */
-  cover?: DeckCoverClass;
-  /** Équipage servant la pièce ; `crewIds[0]` = chef de pièce (nominé pour le Test, Arme d'équipe). */
-  crewIds?: string[];
-  /** À répétition (Indice) (LDB 62 l.229/231) / Salve : munitions restantes dans le chargeur de LA PIÈCE
-   *  — même cycle que toute arme (elle remplit et vide son chargeur), écrit par `loadWeapon`/
-   *  `spendChamberedRound`/`unloadWeapon`. Absent = pas de chargeur, ou chargeur vide. */
-  chambered?: number;
-  /** Recharge (MDG 12 / LDB 62 l.333) — Test ÉTENDU de Projectiles, PAS d'auto-rechargement passif.
-   *  `loaded === false` = la pièce a tiré et reste muette tant que l'équipage n'a pas complété le Test
-   *  (absent / `true` = prête à tirer). */
-  loaded?: boolean;
-  /** DR cumulés du Test étendu de recharge (vers `reloadDRTarget` = Recharge N, ×2 si sous-effectif).
-   *  Remis à 0 si la recharge est INTERROMPUE (servants réassignés avant la fin, LDB 62 l.335). */
-  reloadProgress?: number;
-  /** STOCK DE MUNITIONS du poste (MDG 12 l.410-424, « Munitions pour pièces d'artillerie ») — le coffre
-   *  à boulets DE LA PIÈCE (boulet/mitraille pour un canon, carreau pour une baliste, bombe pour un
-   *  mortier…), des `ItemInstance` `kind:'ammo'` avec leur `qty`. AUTHORÉ avec le poste et PERSISTANT
-   *  (la coque vit dans la scène/sauvegarde). Fondu au pool du chef par `compatibleAmmo` (source unique) ;
-   *  consommé au tir (individuel comme bordée). */
-  ammo?: ItemInstance[];
-  /** Munition SÉLECTIONNÉE du poste (uid dans `ammo` — « boulet ou mitraille ? ») : le choix PERSISTANT de
-   *  la pièce (fiche du navire), sous le choix ponctuel du héros-chef (`Combatant.ammoUid`, hotbar). */
-  ammoUid?: string;
-  /** Munition CAPTURÉE dans le coup chargé de la pièce (uid dans `ammo`) : posée à l'achèvement du Test
-   *  étendu de recharge, consommée au tir. La munition se fixe AU CHARGEMENT : changer la sélection
-   *  d'une pièce chargée la DÉCHARGE (arbitrage utilisateur 2026-08-16, AskUserQuestion). */
-  loadedAmmoUid?: string;
-  /** Ancre spatiale optionnelle de la pièce dans l'espace de la scène (authorable). Absente → dérivée
-   *  (emplacement au sol = pos de l'entité ; coque = empreinte décalée par l'arc). Index-only, aucun effet combat. */
-  anchor?: { x: number; y: number; z?: number };
-}
+/** Pièce d'artillerie MONTÉE — forme AUTHORÉE/STOCKÉE (donnée de scène, #222) : l'entrée de son schéma
+ *  (`authoredShipPosteSchema`), telle qu'un auteur l'écrit. La pièce et son coffre désignent le catalogue ;
+ *  `hydratePoste` les matérialise au spawn, chaque uid d'instance dérivé de la place (#2907). */
+export type AuthoredShipPoste = import('zod').z.input<typeof import('../data/schemas/defs-scenes/scene').authoredShipPosteSchema>;
 
 /** Pièce d'artillerie MONTÉE — forme VIVANTE (runtime, sur le Combattant-coque). Étend `AuthoredShipPoste`
  *  avec l'arme HYDRATÉE (`item`, base résolue de `trappingId` au spawn par `hydratePoste`). Au spawn, le chef
  *  de pièce (`crewIds[0]`) la SERT via `Combatant.mannedPoste`. La LOGIQUE (arc, placement, support) vit en
  *  `noyau/monde/shipPostes.ts` ; ce TYPE pur vit ici pour que `Combatant` le porte sans dépendance engine→state. */
-export interface ShipPoste extends Omit<AuthoredShipPoste, 'trappingId'> {
-  /** L'arme HYDRATÉE (instance complète — base via `trappingId` + `qualities`/`enchants` propres). Jamais
-   *  persistée : re-résolue à chaque spawn depuis la réf, cf. `hydratePoste`. */
+export interface ShipPoste extends Omit<AuthoredShipPoste, 'trappingId' | 'ammo' | 'selectedAmmo'> {
+  /** L'arme HYDRATÉE (instance complète, base via `trappingId`). Jamais persistée : re-résolue à chaque spawn
+   *  depuis la réf, cf. `hydratePoste`. */
   item: ItemInstance;
+  /** Le coffre MATÉRIALISÉ de la pièce : des `ItemInstance` `kind:'ammo'` avec leur `qty`, fondues au pool du chef
+   *  par `compatibleAmmo` (source unique), consommées au tir (individuel comme bordée). MDG 12 l.410-424 */
+  ammo?: ItemInstance[];
+  /** Munition SÉLECTIONNÉE du poste (uid dans `ammo`) : le choix PERSISTANT de la pièce, sous le choix ponctuel du
+   *  héros-chef (`Combatant.ammoUid`, hotbar). MDG 12 l.410-424 */
+  ammoUid?: string;
+  /** Munition CAPTURÉE dans le coup chargé de la pièce (uid dans `ammo`) : posée à l'achèvement du Test étendu de
+   *  recharge, consommée au tir. La munition se fixe AU CHARGEMENT : changer la sélection d'une pièce chargée la
+   *  DÉCHARGE (arbitrage utilisateur 2026-08-16, AskUserQuestion). */
+  loadedAmmoUid?: string;
 }
 
-/** Set d'armes nommé (les 2 mains). `off` ignoré si l'arme `main` est à 2 mains. uids → ItemInstance. */
+/** Set d'armes nommé (les 2 mains). `secondaire` ignoré si l'arme `main` est à 2 mains. uids → ItemInstance. */
 export interface WeaponLoadout {
   id: string;
   main?: string;
-  off?: string;
+  secondaire?: string;
 }
 
 /** Les trois zones ADRESSABLES de la console, nommées par leur FONCTION : la donnée du porteur ne
@@ -1361,12 +1331,12 @@ export interface WeaponLoadout {
 export type ZoneBarre = 'arsenal' | 'accesRapide' | 'capacites';
 
 /** UNE case posée : l'action du registre (`src/data/actions.json`) et la CLÉ DÉCLARÉE de la case,
- *  qui distingue les N alvéoles d'une même action (`sort-<spellId>`, `advantage-<skillId>`,
- *  `q-objet-<trappingId>`, `attaque-<attackId>`, `self-<maneuverId>`, ou `ActionDef.keys[0]`).
+ *  qui distingue les N alvéoles d'une même action (`sort-<spellId>`, `avantage-<skillId>`,
+ *  `q-objet-<trappingId>`, `attaque-<attackId>`, `soi-<maneuverId>`, ou `ActionDef.keys[0]`).
  *  Cette clé est une identité de MODÈLE, déclarée au site de la case — jamais un uid d'INSTANCE
  *  (boire une potion changerait l'uid et tuerait l'adresse), jamais un libellé. */
 export interface EntreeBarre {
-  actionId: string;
+  actionId: ActionId;
   cle: string;
 }
 
@@ -1698,7 +1668,7 @@ export interface Combatant {
    *  gatée impose un Test de Dextérité (+20) AVANT toute Action employant l'arme qu'elle tient
    *  (`attackHandGate`) ; sur un Échec, l'objet glisse (op `disarm`). Le gate tient TANT QUE l'État
    *  Hémorragique tient — `removeCondition` purge ce marqueur dès que l'Hémorragique tombe à 0. */
-  handGates?: ('main' | 'off')[];
+  handGates?: Main[];
   /** Points de Corruption (LDB 19) — dérive de l'âme vers le Chaos. Gagnés par expositions/
    *  Sombres Pactes/contrecoups magiques ; au-delà de BFM+BE : Test `corrompu` (LDB 19 l.70). Persisté. */
   corruption?: number;

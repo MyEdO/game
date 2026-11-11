@@ -10,7 +10,7 @@
  * UNE ENTRÉE = (`actionId` du registre `src/data/actions.json`, `cle` de la case) — la clé est celle
  * que la console DÉCLARE pour l'alvéole (`sort-<spellId>`, `q-objet-<trappingId>`…, ou
  * `ActionDef.keys[0]`) : sans elle, « Boule de feu » et « Lumière » seraient la MÊME adresse (toutes
- * deux `cast-spell`). C'est une identité de MODÈLE : jamais un uid d'INSTANCE (consommer une potion
+ * deux `incantation`). C'est une identité de MODÈLE : jamais un uid d'INSTANCE (consommer une potion
  * changerait l'uid et tuerait l'adresse), jamais un libellé.
  *
  * ZONE = OBJET CREUX (`Record<number, …>`), jamais un tableau à trous : le snapshot de partie passe
@@ -18,14 +18,10 @@
  * ici, « case VIDÉE ». Poser une case au rang 3 aurait donc vidé les rangs 0-2 au rechargement.
  * Clé ABSENTE = rang laissé au pré-remplissage déduit ; `null` = case vidée par le joueur.
  *
- * LECTURE et ÉCRITURE n'ont pas la même sévérité :
- *  • ÉCRITURE = porte UNIQUE et FAIL-FAST : id hors registre, rang hors borne, zone inconnue, arsenal
- *    sans set → `throw`. Rien d'invalide n'entre dans la donnée du porteur.
- *  • LECTURE = TOLÉRANTE : une save d'une autre version peut porter un id que ce binaire ne connaît
- *    plus ; l'entrée est ignorée (avertie une fois) et la case reste VIDE — la déduction ne la
- *    reprend pas, le joueur l'avait remplie.
+ * L'`actionId` est typé par les ids du registre (`ActionId`) : un id hors registre ne compile pas, et une
+ * save qui en porterait un autre est d'un autre `FORMAT_SAVE`, refusée au chargement (#2404).
+ * ÉCRITURE = porte UNIQUE et FAIL-FAST : rang hors borne, zone inconnue, arsenal sans set → `throw`.
  */
-import { findActionById } from '../data/index';
 import type { Combatant, DispositionConsole, EntreeBarre, ZoneBarre } from '../engine/types';
 
 
@@ -50,9 +46,6 @@ export interface AdresseBarre {
 
 const ZONES: ZoneBarre[] = ['arsenal', 'accesRapide', 'capacites'];
 
-/** Ids déjà signalés à la lecture — un avertissement par id, pas un par rendu. */
-const inconnusSignales = new Set<string>();
-
 /** L'IDENTITÉ d'une entrée, en une clé comparable : c'est elle qui distingue deux cases de la MÊME
  *  action (deux sorts, deux armes à recharger, deux objets). */
 export function cleEntree(e: EntreeBarre): string {
@@ -67,12 +60,9 @@ function zoneValide(zone: ZoneBarre): void {
 
 /** PRÉ-REMPLISSAGE d'une zone : les entrées que la situation DÉDUIT, à la file, bornées à la zone —
  *  au-delà, le geste déduit ne paraît pas.
- *  FAIL-FAST : la déduction est du CODE, pas de la donnée de save — un id qu'aucune entrée du
- *  registre ne porte est un bug de la console, il se voit tout de suite. */
+ *  FAIL-FAST : deux cases de même identité sont un bug de la console, il se voit tout de suite. */
 export function dispositionDeduite(zone: ZoneBarre, entrees: EntreeBarre[]): EntreeBarre[] {
   zoneValide(zone);
-  const inconnu = entrees.find((e) => !findActionById(e.actionId));
-  if (inconnu) throw new Error(`disposition déduite : « ${inconnu.actionId} » n'est pas une action du registre`);
   // L'ADRESSE EXIGE L'UNICITÉ : deux cases de même identité dans une même zone rendraient la même
   // alvéole deux fois et en perdraient une autre. C'est un bug de la console, pas une donnée.
   const vues = new Set<string>();
@@ -119,14 +109,6 @@ export function resoudreDisposition(
       retenues.set(i, null);
       continue;
     }
-    if (!findActionById(pose.actionId)) {
-      if (!inconnusSignales.has(pose.actionId)) {
-        inconnusSignales.add(pose.actionId);
-        console.warn(`disposition de console : action « ${pose.actionId} » inconnue du registre — case laissée vide`);
-      }
-      retenues.set(i, null);
-      continue;
-    }
     retenues.set(i, pose);
     clesPosees.add(cleEntree(pose));
   }
@@ -144,13 +126,10 @@ function verifierAdresse({ zone, index, setId }: AdresseBarre): void {
 }
 
 /** PORTE UNIQUE D'ÉCRITURE de la disposition. Rend un porteur NEUF ; refuse (throw) tout ce qui ne
- *  s'adresserait à rien : id hors registre, rang hors borne, zone inconnue, arsenal sans set.
+ *  s'adresserait à rien : rang hors borne, zone inconnue, arsenal sans set.
  *  POSER DÉPLACE : la même entrée déjà posée ailleurs dans la zone quitte son ancien rang. */
 export function poserDansBarre(c: Combatant, adresse: AdresseBarre, entree: EntreeBarre | null): Combatant {
   verifierAdresse(adresse);
-  if (entree && !findActionById(entree.actionId)) {
-    throw new Error(`disposition : « ${entree.actionId} » n'est pas une action du registre`);
-  }
   const { zone, index, setId } = adresse;
   const barre: DispositionConsole = { ...(c.barre ?? {}) };
   const actuels = poseesDe(barre, zone, setId) ?? {};

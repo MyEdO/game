@@ -9,7 +9,7 @@ import { describe, it, expect, afterAll, beforeAll } from 'vitest';
 import { DESIGNATIONS } from '../noyau/index';
 import { CHOIX, REGLAGES, VERBES } from './verbes.generated';
 import type { Forme } from './formes';
-import { gesteDuVerbe, SANS_PISTE } from './geste';
+import { argumentsDuVerbe, gesteDuVerbe, SANS_PISTE } from './geste';
 import { ErreurDeGeste, nouvelEntete, ouvrirLaPartie } from './partie';
 
 /** Les désignations que les formes d'une liste de paramètres portent. */
@@ -56,37 +56,42 @@ describe('la valeur d’un réglage de jet ou d’un choix de fenêtre se contr�
   const refus = refusDe('jetRegler');
 
   it('une valeur à la forme de son réglage passe', () => {
-    expect(refus(['attack', 'localisation', 'tete'])).toBeNull();
-    expect(refus(['attack', 'localisation', null])).toBeNull();
-    expect(refus(['cast', 'surincantationDuree', 2])).toBeNull();
+    expect(refus(['attaque', 'localisation', 'tete'])).toBeNull();
+    expect(refus(['attaque', 'localisation', null])).toBeNull();
+    expect(refus(['incantation', 'surincantationDuree', 2])).toBeNull();
   });
 
   it('une valeur d’une autre forme, un réglage ou un flux que la partie ne déclare pas se refusent', () => {
-    expect(refus(['attack', 'localisation', 42]), 'un nombre n’est pas une Localisation').not.toBeNull();
-    expect(refus(['attack', 'deuxArmes', 'oui']), 'une bascule est un booléen').not.toBeNull();
-    expect(refus(['cast', 'surincantationDuree', true]), 'des pas sont un nombre').not.toBeNull();
-    expect(refus(['cast', 'localisation', 'tete'])).toContain('n’est pas un réglage du flux cast');
-    expect(refus(['run', 'localisation', 'tete'])).toContain('n’est pas un flux réglé');
+    expect(refus(['attaque', 'localisation', 42]), 'un nombre n’est pas une Localisation').not.toBeNull();
+    expect(refus(['attaque', 'deuxArmes', 'oui']), 'une bascule est un booléen').not.toBeNull();
+    expect(refus(['incantation', 'surincantationDuree', true]), 'des pas sont un nombre').not.toBeNull();
+    expect(refus(['incantation', 'localisation', 'tete'])).toContain('n’est pas un réglage du flux incantation');
+    expect(refus(['course', 'localisation', 'tete'])).toContain('n’est pas un flux réglé');
   });
 
   it('un id que l’état ne désigne pas se refuse en nommant les ids valides', () => {
-    expect(refus(['shanty', 'chanson', 'pas-une-chanson'])).toContain('pas-une-chanson');
+    expect(refus(['chansonDeMarin', 'chanson', 'pas-une-chanson'])).toContain('pas-une-chanson');
   });
   describe('un choix de fenêtre', () => {
     const choix = refusDe('fenetreChoisir');
 
     it('une valeur à la forme de son choix passe', () => {
-      expect(choix(['fateSave', 'issue', 'accept'])).toBeNull();
-      expect(choix(['renounce', 'renier', false])).toBeNull();
-      expect(choix(['medic', 'patient', etat.party[0].id])).toBeNull();
+      expect(choix(['destin', 'issue', 'accepter'])).toBeNull();
+      expect(choix(['renier', 'renier', false])).toBeNull();
+      expect(choix(['infirmerie', 'patient', etat.party[0].id])).toBeNull();
     });
 
     it('une valeur d’une autre forme, un id que l’état ne désigne pas, un choix ou une fenêtre que la partie ne déclare pas se refusent', () => {
-      expect(choix(['fateSave', 'issue', 'fuir']), 'une issue hors du Destin').not.toBeNull();
-      expect(choix(['renounce', 'renier', 'oui']), 'renier est un booléen').not.toBeNull();
-      expect(choix(['medic', 'patient', 'pas-un-heros'])).toContain('pas-un-heros');
-      expect(choix(['medic', 'paie', 'x'])).toContain('n’est pas un choix de la fenêtre medic');
+      expect(choix(['destin', 'issue', 'fuir']), 'une issue hors du Destin').not.toBeNull();
+      expect(choix(['renier', 'renier', 'oui']), 'renier est un booléen').not.toBeNull();
+      expect(choix(['infirmerie', 'patient', 'pas-un-heros'])).toContain('pas-un-heros');
+      expect(choix(['infirmerie', 'paie', 'x'])).toContain('n’est pas un choix de la fenêtre infirmerie');
       expect(choix(['cascade', 'abandon', true])).toContain('n’est pas une fenêtre à choix');
+    });
+
+    it('la rangée (`pid`) d’un choix de rangée désigne un héros du groupe, aucun flux de jet ouvert', () => {
+      const heroId = etat.party[0].id;
+      expect(argumentsDuVerbe(etat, 'fenetreChoisir', ['repos', 'couchage', 'commune', heroId], VERBES.fenetreChoisir)).toEqual(['repos', 'couchage', 'commune', heroId]);
     });
   });
 });

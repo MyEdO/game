@@ -2,6 +2,7 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** LDB 46 ; VDM 02 ; LDB 40. */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
+import { suiteDesEntrees } from '../grammaire/cle-d-espace';
 import { formulaSchema, formulaSinSchema, plageOuverteSchema, sourceRefSchema } from '../grammaire/valeurs';
 import { idDe, ref, refOuSpec } from '../grammaire/ref';
 import { deitySkillPickSchema, exigerDuTest, flowTestSchema, MESSAGE_DUREE_DE_DIVINITE, refuserEtatsInconnus } from '../grammaire/mecanique';
@@ -115,21 +116,25 @@ export const rangee = nommerChamps(z.strictObject({
   source: { label: 'source' },
 });
 
+/** Catégorie Codex de chaque document-table → son id, dans l'ordre de la donnée. */
+const CATEGORIES = {
+  miscastMinor: 'miscast-mineure', miscastMajor: 'miscast-majeure',
+  miscastMinorVdm: 'miscast-mineure-vdm', miscastMajorVdm: 'miscast-majeure-vdm',
+  miscastWrath: 'miscast-colere',
+} as const;
+
 const doc = document(
   'miscast',
   famille,
+  {},
+  {},
   {
-    /** Catégorie Codex où vivent les LIGNES de ce tableau quand elles y sont exposées. Les deux
-     *  révisions VDM n'en ont pas : le Codex n'expose que les trois tableaux du Livre de base, un
-     *  renvoi y serait mort. */
-    codexCategory: z.string().optional(),
-  },
-  {
-    codexCategory: { label: 'Catégorie Codex des lignes', hint: 'Clé de la catégorie Compendium qui expose les rangées (absente = tableau non exposé)' },
-  },
-  {
-    codex: { keys: ['miscastMinor', 'miscastMajor', 'miscastWrath'] },
-    edit: { niche: { categories: { miscastMinor: '[miscast-mineure].entries', miscastMajor: '[miscast-majeure].entries', miscastWrath: '[miscast-colere].entries' } } },
+    codex: { keys: Object.keys(CATEGORIES) },
+    edit: {
+      niche: {
+        categories: Object.fromEntries(Object.entries(CATEGORIES).map(([categorie, id]) => [categorie, suiteDesEntrees(id)])),
+      },
+    },
   },
   { rangee, deDeTirage: true },
 );

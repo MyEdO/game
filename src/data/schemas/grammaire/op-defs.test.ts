@@ -85,8 +85,8 @@ describe('OP_DEFS — payload strict par op, repli nominatif, rouge au SITE', ()
     }
   });
 
-  it('un `onlyGroups` de `wounds`/`condition` (ops loose) est jugé AU CHAMP : liste d’ids de Groupe connus (#1473)', () => {
-    for (const base of [{ op: 'wounds', amount: 1 }, { op: 'condition', id: conditionIds()[0] }]) {
+  it('un `onlyGroups` de `condition` (op loose) est jugé AU CHAMP : liste d’ids de Groupe connus (#1473)', () => {
+    for (const base of [{ op: 'condition', id: conditionIds()[0] }]) {
       expect(gameOpSchema.safeParse({ ...base, onlyGroups: ['demon'] }).success, base.op).toBe(true);
       for (const [onlyGroups, chemin, message] of [
         [['groupe-fantome'], 'onlyGroups.0', '« groupe-fantome » est absent du catalogue des groupes (groups.json).'],

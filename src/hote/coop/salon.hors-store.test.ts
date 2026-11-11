@@ -14,7 +14,7 @@ import { initialNet, type NetState } from '../../noyau/etat';
 import { tableDeDissipation } from '../../noyau/tableDeDissipation.testkit';
 import { applyEffects } from '../../noyau/combatEffects';
 import { affichés, narratif, hero as heroDesIndices, fixtureScene } from '../../noyau/monde/clues.fixture';
-import { makePregens } from '../../data/pregens';
+import { tousLesHerosDeScenario } from '../../scenes/test-scenarios/_heros';
 import { spawnEnemy } from '../../noyau/monde/spawn';
 import { t } from '../../i18n';
 
@@ -182,13 +182,13 @@ describe('salon — l’action d’un invité part en intention, sauf l’élect
     expect(banc.getState().pendingDispel).toBeNull();
   });
 
-  it('Dissiper, porteur à 1 Sort : rien à élire, le geste part avec son verdict d’armement', () => {
+  it('Dissiper, porteur à 1 Sort : rien à élire, rien d’armé : le geste part tel quel', () => {
     banc.setState(tableDeDissipation('guest', { e1: 1 }));
     const envoyer = vi.fn();
     emettreIntentInvite(banc.getState, 'cliquerLaCase', banc.getState().cliquerLaCase as never, envoyer, [caseDe('e1'), 'e1']);
     expect(banc.getState().dispelCarrierId).toBeNull();
     expect(banc.getState().pendingDispel, 'le commit s’est joué EN LOCAL').toBeNull();
-    expect(envoyer.mock.calls).toEqual([['cliquerLaCase', [caseDe('e1'), 'e1', { approche: false }]]]);
+    expect(envoyer.mock.calls).toEqual([['cliquerLaCase', [caseDe('e1'), 'e1']]]);
   });
 
   it('carnet : `marquerLesIndices` part en intention et ne se joue pas localement (#2415)', () => {
@@ -203,7 +203,7 @@ describe('salon — l’action d’un invité part en intention, sauf l’élect
   });
 
   it('clics du champ : la frappe d’un ennemi et le clic-sol partent, l’action locale ne joue pas', () => {
-    const h = makePregens(idsDeTest)[0]; h.id = 'h1'; h.pos = { x: 6, y: 10 };
+    const h = tousLesHerosDeScenario(idsDeTest)[0]; h.id = 'h1'; h.pos = { x: 6, y: 10 };
     const enemy = spawnEnemy({ ref: 'humain' }, 'e1', { x: 7, y: 10 });
     const w = 22, hh = 16;
     banc.setState({
@@ -223,7 +223,7 @@ describe('salon — l’action d’un invité part en intention, sauf l’élect
 describe('salon — le verbe de l’offre d’un invité : il part, l’attaque s’arme avant', () => {
   /** Le duel du héros `h1` de l'invité (siège 0 de la table) contre `e1`, à son tour. */
   function duel(): void {
-    const h = makePregens(idsDeTest)[0]; h.id = 'h1'; h.pos = { x: 6, y: 10 };
+    const h = tousLesHerosDeScenario(idsDeTest)[0]; h.id = 'h1'; h.pos = { x: 6, y: 10 };
     const enemy = spawnEnemy({ ref: 'humain' }, 'e1', { x: 7, y: 10 });
     const w = 22, hh = 16;
     banc.setState({
@@ -257,7 +257,7 @@ describe('salon — le verbe de l’offre d’un invité : il part, l’attaque 
 
 describe('salon — lobby : une attribution refusée laisse `net` inchangé et dit son refus (#3059 F10)', () => {
   const hote = (): NetState => ({ ...initialNet(), mode: 'host', roomCode: 'ABC234', seatNames: { 0: 'Hôte', 1: 'Anna' }, rangs: { h: 0 } });
-  beforeEach(() => { banc.setState({ net: hote(), party: [{ ...makePregens(idsDeTest)[0], id: 'h' }], battle: null }); });
+  beforeEach(() => { banc.setState({ net: hote(), party: [{ ...tousLesHerosDeScenario(idsDeTest)[0], id: 'h' }], battle: null }); });
 
   it('netAssignSlot vers un emplacement occupé, puis hors de la table ; netAssign et setGmSeat hors de la table', () => {
     const avant = banc.getState().net;

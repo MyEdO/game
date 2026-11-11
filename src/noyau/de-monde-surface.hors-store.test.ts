@@ -6,7 +6,7 @@ import { t } from '../i18n';
 import { actorIn } from './monde/combatants';
 import { runCascadeImmediate, lireDeEtape, tableStepDef, naturalRollForTableRow, rollTableStep, startCascade, pushStep, suspendActiveCascade, poserCurseurCascade, stepReady } from './cascade';
 import { fixtureText } from '../i18n/fixtureText';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { emptyScene, type Scene } from './monde/scene';
 import { campaignStart } from '../engine/clock';
 import { setRule } from '../engine/policy';
@@ -87,7 +87,7 @@ describe('#1426 socle — un siège qui POSSÈDE le monde VOIT son dé (porteur 
   });
 
   it('CONTRÔLE POSITIF — la surface d’un jet de monde est celle d’un jet de HÉROS, même montage', () => {
-    const h = makePregens(idsDeTest)[0];
+    const h = tousLesHerosDeScenario(idsDeTest)[0];
     set({ party: [h], battle: null });
     const series = (surface: () => Surface) => {
       resetDesFixes(); resetCadence();
@@ -118,7 +118,7 @@ describe('#1426 socle — un siège qui POSSÈDE le monde VOIT son dé (porteur 
    * ROUTE de possession (`conduitParLeSiegeDuMonde` : monde, ennemi de bac-à-sable).
    */
   it('HÔTE-MJ (`gmSeat` === siège du héros) : le héros garde SA fenêtre (M) ; le dé de MONDE, lui, rend V', () => {
-    const h = makePregens(idsDeTest)[0];
+    const h = tousLesHerosDeScenario(idsDeTest)[0];
     set({ party: [h], battle: null });
     set({ net: { ...get().net, mode: 'host', mySeat: 0, gmSeat: 0, ownership: { [h.id]: 0 } } });
     expect(seatOwns(get(), 0, h.id), 'précondition : le siège MJ POSSÈDE bien ce héros').toBe(true);
@@ -151,7 +151,7 @@ describe('#1426 socle — un siège qui POSSÈDE le monde VOIT son dé (porteur 
    * (V), le joueur tient son héros (M).
    */
   it('un Test SUBI et un jet volontaire du MÊME porteur rendent la MÊME série (la classe a disparu)', () => {
-    const h = makePregens(idsDeTest)[0];
+    const h = tousLesHerosDeScenario(idsDeTest)[0];
     set({ party: [h], battle: null });
     const requete = (actionLabel: string) => (): Surface => surfaceHerosDe(h, cleDeFixture('x'), actionLabel);
     const serie = (surface: () => Surface) => {
@@ -191,7 +191,7 @@ const enFile = (cs: Combatant[]) => ({ combatants: cs, order: cs.map((c) => c.id
  */
 describe('#1426 socle — la surface se juge sur l’ID du porteur (combat comme hors combat)', () => {
   it('héros du GROUPE resté hors de la file d’un combat OUVERT : son siège le tient → surfacé', () => {
-    const [h1, h2] = makePregens(idsDeTest);
+    const [h1, h2] = tousLesHerosDeScenario(idsDeTest);
     set({ party: [h1!, h2!], battle: enFile([h1!, ennemiDeSonde()]) });
     expect(actorIn(get(), h2!.id), 'précondition : la recherche « file OU groupe » ne le trouve pas').toBeUndefined();
     expect(surfaceOf(get, h2!.id), 'il est pourtant dans le groupe, tenu par le siège 0').toBe(true);
@@ -199,7 +199,7 @@ describe('#1426 socle — la surface se juge sur l’ID du porteur (combat comme
 
   it('ennemi sans siège MJ : possédé par REPLI, tenu par personne → d’office (et surfacé dès qu’un MJ siège)', () => {
     const e = ennemiDeSonde();
-    set({ party: makePregens(idsDeTest).slice(0, 1), battle: enFile([e]) });
+    set({ party: tousLesHerosDeScenario(idsDeTest).slice(0, 1), battle: enFile([e]) });
     expect(seatOwns(get(), 0, e.id), 'le repli de possession rend vrai — c’est l’ACTION, pas la tenue du dé').toBe(true);
     expect(surfaceOf(get, e.id), 'aucun humain ne le tient : son étape se résout d’office').toBe(false);
     set({ net: { ...get().net, mode: 'host', mySeat: 0, gmSeat: 1 } });
@@ -207,7 +207,7 @@ describe('#1426 socle — la surface se juge sur l’ID du porteur (combat comme
   });
 
   it('porteur nommé mais INCONNU (mort, hors partie) : aucun siège → d’office', () => {
-    set({ party: makePregens(idsDeTest).slice(0, 1), battle: null });
+    set({ party: tousLesHerosDeScenario(idsDeTest).slice(0, 1), battle: null });
     expect(surfaceOf(get, 'porteur-fantome')).toBe(false);
   });
 });
@@ -727,7 +727,7 @@ function prepareJourTerrestre(seed: number): void {
   seedBattleRng(seed);
   siegeDuMonde();
   setRule('travel-etapes', true);
-  set({ party: makePregens(idsDeTest).slice(0, 3), gameTime: campaignStart(), travelPlan: null, pendingRest: null, pendingCascade: null, suspendedCascades: [], travelRecap: null, journal: [], battle: null });
+  set({ party: tousLesHerosDeScenario(idsDeTest).slice(0, 3), gameTime: campaignStart(), travelPlan: null, pendingRest: null, pendingCascade: null, suspendedCascades: [], travelRecap: null, journal: [], battle: null });
   get().chargerLeProjet({ scenes: [scenePlate('monde-a'), scenePlate('monde-b')], entryId: 'monde-a', worldMap: carteMonde, projet: null });
   set({ gameTime: campaignStart() });
 }
@@ -741,14 +741,14 @@ function prepareJourMaritime(seed: number): void {
   seedBattleRng(seed);
   siegeDuMonde();
   set({
-    party: makePregens(idsDeTest).slice(0, 3),
+    party: tousLesHerosDeScenario(idsDeTest).slice(0, 3),
     scene: scenePlate('monde-a') as never,
     battle: null, worldMap: carteMer, travelPlan: null, travelRecap: null,
     pendingRest: null, pendingCascade: null, suspendedCascades: [],
     gameTime: 8 * 60, lastUpkeepDay: 0, journal: [],
     vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } },
   } as never);
-  const plan = buildSeaPlan(get, 'rmer', 'A', 'B', carteMer.routes[0], { cadence: 'jour-par-jour' })!;
+  const plan = buildSeaPlan(get, 'rmer', 'A', 'B', carteMer.routes[0], { cadence: 'jourParJour' })!;
   set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysToEvent: 1, forcedEventId: undefined } } });
 }
 const ouvreJourMaritime = (seed: number): void => { prepareJourMaritime(seed); runSeaDay(get, set); };
@@ -880,7 +880,7 @@ describe('#1426 — les portes du curseur', () => {
   it('la PORTE publique pose le curseur ET résout la table qu’aucun siège ne joue', () => {
     setCadence('rapide');
     seedBattleRng(11);
-    set({ party: makePregens(idsDeTest).slice(0, 1), pendingCascade: null, suspendedCascades: [], battle: null });
+    set({ party: tousLesHerosDeScenario(idsDeTest).slice(0, 1), pendingCascade: null, suspendedCascades: [], battle: null });
     startCascade(get, set, {
       title: 'Portes', purpose: 'test',
       steps: [etapeAffichage('p0'), etapeTableMonde('p1')],
@@ -921,7 +921,7 @@ describe('#1426 — les portes du curseur', () => {
   it('CHARGE — les étapes résolues d’office se franchissent à profondeur de pile CONSTANTE, et la séquence se ferme', () => {
     setCadence('rapide');
     seedBattleRng(13);
-    set({ party: makePregens(idsDeTest).slice(0, 1), pendingCascade: null, suspendedCascades: [], battle: null });
+    set({ party: tousLesHerosDeScenario(idsDeTest).slice(0, 1), pendingCascade: null, suspendedCascades: [], battle: null });
     profondeurs.length = 0;
     const steps = [...Array(PAS_DE_CHARGE)].map((_, i) => etapeTableMonde(`charge-${i}`, cleDeFixture('sonde-charge')));
     startCascade(get, set, { title: 'Charge', purpose: 'test', steps });
@@ -998,7 +998,7 @@ describe('#1426 LOT 1 — table sous le curseur : la fenêtre la joue quand un s
   it('(c) cadence AUTO — la table est FRANCHIE dans le même geste que l’étape qui la précède', () => {
     setCadence('rapide');
     seedBattleRng(3);
-    set({ party: makePregens(idsDeTest).slice(0, 1), pendingCascade: null, suspendedCascades: [], battle: null });
+    set({ party: tousLesHerosDeScenario(idsDeTest).slice(0, 1), pendingCascade: null, suspendedCascades: [], battle: null });
     startCascade(get, set, {
       title: 'Franchissement', purpose: 'test',
       steps: [etapeAffichage('av'), etapeTableMonde('t'), etapeAffichage('ap')],
@@ -1013,7 +1013,7 @@ describe('#1426 LOT 1 — table sous le curseur : la fenêtre la joue quand un s
   it('(c) REPRISE — une séquence parquée qui revient SUR une table (cadence auto) avance encore', () => {
     setCadence('rapide');
     seedBattleRng(5);
-    set({ party: makePregens(idsDeTest).slice(0, 1), pendingCascade: null, suspendedCascades: [], battle: null });
+    set({ party: tousLesHerosDeScenario(idsDeTest).slice(0, 1), pendingCascade: null, suspendedCascades: [], battle: null });
     startCascade(get, set, {
       title: 'Reprise', purpose: 'test',
       steps: [etapeAffichage('sus', cleDeFixture('sonde-suspend')), etapeTableMonde('t2'), etapeAffichage('fin')],
@@ -1032,7 +1032,7 @@ describe('#1426 LOT 1 — table sous le curseur : la fenêtre la joue quand un s
   it('(c) `pushStep` — une table APPENDUE sous le curseur (cadence auto) naît résolue', () => {
     setCadence('rapide');
     seedBattleRng(7);
-    set({ party: makePregens(idsDeTest).slice(0, 1), pendingCascade: null, suspendedCascades: [], battle: null });
+    set({ party: tousLesHerosDeScenario(idsDeTest).slice(0, 1), pendingCascade: null, suspendedCascades: [], battle: null });
     pushStep(set, etapeTableMonde('t3'), 'test');
     expect(get().pendingCascade!.cursor).toBe(0);
     expect(etapeCourante()!.table!.result, 'l’append est une porte du curseur comme les autres').toBeTruthy();
@@ -1042,7 +1042,7 @@ describe('#1426 LOT 1 — table sous le curseur : la fenêtre la joue quand un s
   it('(d) CONTRÔLE POSITIF — cadence manuelle : une table d’ACTEUR attend sa fenêtre, exactement comme celle du monde', () => {
     siegeDuMonde();
     seedBattleRng(3);
-    const heros = makePregens(idsDeTest)[0];
+    const heros = tousLesHerosDeScenario(idsDeTest)[0];
     set({ party: [heros], pendingCascade: null, suspendedCascades: [], battle: null });
     const etape = tableStep({
       id: 'ctrl-1', kind: cleDeFixture('ctrl-table'), actorId: heros.id,

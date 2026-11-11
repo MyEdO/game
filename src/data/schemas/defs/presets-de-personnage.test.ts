@@ -59,7 +59,7 @@ describe('presets-de-personnage.json — preset de personnage entier (#3086)', (
       ['pièce de l’ensemble de la tenue', { pieces: ['baudrier', chemise] }, { path: '0.pieces.1', message: `« ${chemise} » est porté deux fois : déjà par l’ensemble de la tenue « uniforme-de-soldat ».` }],
       ['pièce en double', { pieces: ['baudrier', 'baudrier'] }, { path: '0.pieces.1', message: '« baudrier » est porté deux fois : déjà par pieces[0].' }],
       ['pièce et ensemble d’un objet', { pieces: ['baudrier', casque] }, { path: '0.objets.0', message: `« ${casque} » est porté deux fois : déjà par pieces[1].` }],
-      ['objet aux deux mains', { prises: { main: { id: 'hallebarde' }, off: { id: 'hallebarde' } } }, { path: '0.prises.off', message: '« hallebarde » est porté deux fois : déjà par la prise main.' }],
+      ['objet aux deux mains', { prises: { main: { id: 'hallebarde' }, secondaire: { id: 'hallebarde' } } }, { path: '0.prises.secondaire', message: '« hallebarde » est porté deux fois : déjà par la prise main.' }],
       ['pièce d’un objet en double', { objets: ['heaume', 'heaume', 'plastron'] }, { path: '0.objets.1', message: `« ${casque} » est porté deux fois : déjà par l’objet « heaume ».` }],
       ['objet tenu et rangé', { objets: ['heaume', 'hallebarde'] }, { path: '0.objets.1', message: '« hallebarde » est porté deux fois : déjà par la prise main.' }],
     ];

@@ -75,7 +75,7 @@ describe('cataloguesDeComposition', () => {
 
   it('un enum nommé publie ses valeurs, celui d’une clé de record aussi', () => {
     expect(catalogues.sex.map((c) => c.id)).toEqual(['M', 'F']);
-    expect(catalogues.prises).toEqual([{ id: 'main', label: 'Main directrice' }, { id: 'off', label: 'Main secondaire' }]);
+    expect(catalogues.prises).toEqual([{ id: 'main', label: 'Main directrice' }, { id: 'secondaire', label: 'Main secondaire' }]);
   });
 
   it('les axes, dans leur ordre : la forme dérivée du schéma, le libellé de sa méta, sa liste, les bornes et le neutre de la corpulence', () => {
@@ -112,9 +112,9 @@ describe('lireComposition', () => {
   it('une composition absente, enveloppée ou fautive est refusée, chaque faute à son chemin', () => {
     expect(lireComposition(undefined)).toMatchObject({ ok: false, fautes: [{ chemin: [] }] });
     expect(lireComposition(soldat)).toMatchObject({ ok: false });
-    expect(lireComposition({ ...composition, prises: { main: { id: 'hallebarde' }, off: { id: 'hallebarde' } } })).toEqual({
+    expect(lireComposition({ ...composition, prises: { main: { id: 'hallebarde' }, secondaire: { id: 'hallebarde' } } })).toEqual({
       ok: false,
-      fautes: [{ chemin: ['prises', 'off'], message: expect.stringContaining('porté deux fois') }],
+      fautes: [{ chemin: ['prises', 'secondaire'], message: expect.stringContaining('porté deux fois') }],
     });
   });
 

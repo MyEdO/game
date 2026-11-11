@@ -33,7 +33,7 @@ import {
 import { plafondDeMiseDOpportunite, plafondDePlanque, seaActivitiesCatalog, seaActivityBlocked, seaActivityRefus } from './seaActivities';
 import { decidingSeat } from './netOwnership';
 import { seatOwns } from './sieges';
-import type { IdDeHeros } from './designations';
+import type { IdDeHeros, IdDeRangee } from './designations';
 import { herosDeLaSeance, type AxeDuGroupe, type AxeDuHerosDeLaSeance } from './partyFlow';
 import {
   BAISSES_DE_PRIX_MAX, MODES_DE_MARCHE, barterRefusal, catalogEntryOf, contexteDAchat, demandeDuTroc, devisDeTroc, devisDeVente, devisDuPanier, exemplaireCede, libelleDeLaRepartition, objetsAReparer,
@@ -57,7 +57,7 @@ import { bulkCarriers } from './carriers';
 import { carrierFreeEnc, findCargoById } from '../engine/cargo';
 import { entreesDuLieu, refusDEntrerAuPoint } from './lieuFlow';
 import {
-  VERBE_DE_CHOIX, declarationDuChoix, type AxeDe, type AxeDuChoix, type CorpsDesChoix, type FenetreAChoix, type OuvertsDuChoix,
+  VERBE_DE_CHOIX, declarationDuChoixNomme, estAxeDe, estFenetreAChoix, type AxeDe, type AxeDuChoix, type CorpsDesChoix, type FenetreAChoix, type OuvertsDuChoix,
 } from './choixDesFenetres';
 
 /** Le réglage de l'axe `axe` de la fenêtre `fenetre`, sur le héros `pid` d'un choix de rangée : ses valeurs `valeurs`,
@@ -127,7 +127,7 @@ const enVente = (m: MerchantState, it: ItemInstance): boolean => (m.sellCart ?? 
 /** Le héros `pid` d'une rangée, hors de toute rangée tout héros : un héros du groupe. */
 const duGroupe = (s: Jeu, pid: IdDeHeros | undefined): boolean => pid === undefined || s.party.some((h) => h.id === pid);
 /** Chaque ligne du butin `lignes`, au héros `pid` du groupe. */
-const lignesDuButin = (fenetre: 'loot' | 'victory', lignes: (s: Jeu) => readonly LootGear[] | undefined) =>
+const lignesDuButin = (fenetre: 'butin' | 'victoire', lignes: (s: Jeu) => readonly LootGear[] | undefined) =>
   reglage(fenetre, 'ligne', (s, pid) => (duGroupe(s, pid) ? (lignes(s) ?? []).map((g) => ouverte(g.uid, g.label)) : []));
 /** La nuit à régler, au dormeur `pid` (hors de toute rangée, la troupe). */
 const nuitDuDormeur = (s: Jeu, pid: IdDeHeros | undefined) => {
@@ -160,7 +160,7 @@ const duCatalogue = (r: ActivityResolver | undefined): boolean => r !== 'craftEx
 /** L'ouvrage d'Artisanat à engager, le héros n'en ayant pas en cours. LDB 23 l.76 */
 const aEngager = (r: ActivityResolver | undefined, h: Combatant): boolean => r === 'craftExtended' && !h.craft;
 /** Le choix de la cible `cle` de l'Activité composée du catalogue : chacune de `liste`, fermée par son refus (`refusDeLaValeur`). */
-const cibleDuCatalogue = <T>(axe: 'objet' | 'sort' | 'traitPsy', cle: keyof CompositionDActivite['cibles'], liste: (h: Combatant, def: ActivityDef) => readonly T[], valeur: (x: T) => string, libelle: (x: T) => string) =>
+const cibleDuCatalogue = <T>(axe: 'objet' | 'sort' | 'traitPsychologique', cle: keyof CompositionDActivite['cibles'], liste: (h: Combatant, def: ActivityDef) => readonly T[], valeur: (x: T) => string, libelle: (x: T) => string) =>
   reglage('interlude', axe, (s, pid) => {
     const lu = composee(s, pid, duCatalogue);
     return lu ? liste(lu.h, lu.def).map((x) => ouverte(valeur(x), libelle(x), refusDeLaValeur(s, lu.h.id, lu.c, axe, valeur(x)))) : [];
@@ -192,8 +192,8 @@ const choixDuMarche = (fenetre: FenetreDuMarche) => {
       return achat ? bulkCarriers(s).map((c) => ouverte(c.id, t('valeur.porteur', { nom: c.label, libre: carrierFreeEnc(c), capacite: c.capacity }), f.refusDuPorteur(s, c.id))) : [];
     }, (s) => brouillon(s)?.porteur ?? null),
     // De 1 à la borne du devis.
-    enc: (s: Jeu): Reglage => {
-      const base = { geste: { verbe: VERBE_DE_CHOIX, fenetre, axe: 'enc' as const }, libelle: libelleDuChoix(fenetre, 'enc'), note: null };
+    encombrement: (s: Jeu): Reglage => {
+      const base = { geste: { verbe: VERBE_DE_CHOIX, fenetre, axe: 'encombrement' as const }, libelle: libelleDuChoix(fenetre, 'encombrement'), note: null };
       const achat = brouillon(s);
       const max = achat ? f.devis(s, achat.porteur, achat.offre).max : 0;
       return achat && max >= 1
@@ -222,35 +222,35 @@ const postesDuHeros = (s: Jeu, pid: IdDeHeros | undefined, retenu: (postes: read
 
 /** L'issue du Sauvetage par le Destin, dans l'ordre de la fenêtre : celles que sa source offre (`fateSaveOptions`), puis
  *  la mort acceptée. LDB 17 l.29-32 */
-const ISSUES_DU_DESTIN = ['negate', 'survive', 'accept'] as const;
+const ISSUES_DU_DESTIN = ['eviter', 'survivre', 'accepter'] as const;
 
 /** Les valeurs ouvertes de chaque choix, table TOTALE sur `ChoixDesFenetres`. */
 export const OUVERTS_DU_CHOIX = {
-  fateSave: {
-    issue: reglage('fateSave', 'issue', (s) => {
+  destin: {
+    issue: reglage('destin', 'issue', (s) => {
       const p = s.pendingFateSave;
       const offertes = p ? fateSaveOptions(p.source) : [];
-      return p ? ISSUES_DU_DESTIN.filter((v) => v === 'accept' || offertes.includes(v)).map((v) => ouverte(v, t(`valeur.issue.${v}`))) : [];
+      return p ? ISSUES_DU_DESTIN.filter((v) => v === 'accepter' || offertes.includes(v)).map((v) => ouverte(v, t(`valeur.issue.${v}`))) : [];
     }),
   },
   // LDB 17 l.67
-  renounce: { renier: reglage('renounce', 'renier', ouiNon((s) => !!s.pendingRenounce, (s, renier) => (renier && (corruptionTarget(s, s.pendingRenounce?.heroId)?.resilience ?? 0) <= 0 ? libelleDeLaFermeture('sansResilience') : null))) },
-  mountTarget: {
-    cible: reglage('mountTarget', 'cible', (s) => DESIGNATIONS.IdDuCoupleMonte.lire(s).map((id) => ouverte(id, garanti(DESIGNATIONS.IdDuCoupleMonte.nom(s, id), id, 'couple monté')))),
+  renier: { renier: reglage('renier', 'renier', ouiNon((s) => !!s.pendingRenounce, (s, renier) => (renier && (corruptionTarget(s, s.pendingRenounce?.heroId)?.resilience ?? 0) <= 0 ? libelleDeLaFermeture('sansResilience') : null))) },
+  cibleDeMonture: {
+    cible: reglage('cibleDeMonture', 'cible', (s) => DESIGNATIONS.IdDuCoupleMonte.lire(s).map((id) => ouverte(id, garanti(DESIGNATIONS.IdDuCoupleMonte.nom(s, id), id, 'couple monté')))),
   },
-  council: {
-    paie: reglage('council', 'paie', (s) => (s.pendingCouncil?.phase === 'choix'
+  conseil: {
+    paie: reglage('conseil', 'paie', (s) => (s.pendingCouncil?.phase === 'choix'
       ? payChoices().map(({ factorId }) => ouverte(factorId, garanti(findMoraleFactor(factorId), factorId, 'choix de paie').label, refusDeChoixDePaie(s, factorId)))
       : [])),
   },
-  shoreLeave: { accorder: reglage('shoreLeave', 'accorder', ouiNon((s) => !!s.pendingShoreLeave)) },
-  medic: {
-    patient: reglage('medic', 'patient', (s) => {
+  relacheATerre: { accorder: reglage('relacheATerre', 'accorder', ouiNon((s) => !!s.pendingShoreLeave)) },
+  infirmerie: {
+    patient: reglage('infirmerie', 'patient', (s) => {
       const verrou = soinEnCours(s) ? libelleDeLaFermeture('soinEnCours') : null;
       return s.party.map((h) => ouverte(h.id, h.label, verrou ?? (isHealable(h) ? null : t('medic.patientSansSoin'))));
     }, (s) => s.medic?.patientId ?? null),
-    abandon: reglage('medic', 'abandon', (s) => (s.medic?.surgery || s.pendingSurgery ? [ouverte(true, libelleDuChoix('medic', 'abandon'))] : [])),
-    plaie: reglage('medic', 'plaie', (s) => plaiesNommees(s).map((p) => ouverte(p.uid, p.libelle)), (s) => s.medic?.surgery?.traumaUid ?? s.pendingHeal?.plaie ?? null),
+    abandon: reglage('infirmerie', 'abandon', (s) => (s.medic?.surgery || s.pendingSurgery ? [ouverte(true, libelleDuChoix('infirmerie', 'abandon'))] : [])),
+    plaie: reglage('infirmerie', 'plaie', (s) => plaiesNommees(s).map((p) => ouverte(p.uid, p.libelle)), (s) => s.medic?.surgery?.traumaUid ?? s.pendingHeal?.plaie ?? null),
   },
   dialogue: { reponse: reglage('dialogue', 'reponse', (s) => reponsesDuNoeud(s).map((r) => ouverte(r.id, r.label, r.refus ?? (conversationRepond(s) ? null : t('barre.mainTenue'))))) },
   // EDO 02 l.91 : seuls les héros vivants se désignent.
@@ -259,14 +259,14 @@ export const OUVERTS_DU_CHOIX = {
   },
   // MDG 15 l.268 : une Activité par héros, ou aucune ; fermée pour tous (`seaActivityBlocked`), ou pour ce héros seul
   // (`seaActivityRefus`, LDB 09 l.30). Hors de toute rangée, chaque Activité avec ce qui la ferme pour tous.
-  seaActivities: {
-    activite: reglage('seaActivities', 'activite', (s, pid) => {
+  activitesEnMer: {
+    activite: reglage('activitesEnMer', 'activite', (s, pid) => {
       const hero = pid === undefined ? undefined : herosDeLaSemaine(s, pid);
       if (!s.pendingSeaActivities || (pid !== undefined && !hero)) return [];
       return [ouverte(null, t('valeur.activite.repos')), ...seaActivitiesCatalog().map((def) => ouverte(def.id, def.label, seaActivityBlocked(s, def) ?? (hero && seaActivityRefus(hero, def)) ?? null))];
     }, (s, pid) => choixDuHeros(s, pid)?.activityId ?? null),
-    investir: quantite('seaActivities', 'investir', (s, pid) => (herosDeLaSemaine(s, pid) && activiteChoisie(s, pid)?.resolver === 'opportunityTrade' ? plafondDeMiseDOpportunite(s, pid) : null), (s, pid) => choixDuHeros(s, pid)?.investGold ?? 0),
-    cacher: quantite('seaActivities', 'cacher', (s, pid) => {
+    investir: quantite('activitesEnMer', 'investir', (s, pid) => (herosDeLaSemaine(s, pid) && activiteChoisie(s, pid)?.resolver === 'opportunityTrade' ? plafondDeMiseDOpportunite(s, pid) : null), (s, pid) => choixDuHeros(s, pid)?.investGold ?? 0),
+    cacher: quantite('activitesEnMer', 'cacher', (s, pid) => {
       const hero = herosDeLaSemaine(s, pid);
       return hero && activiteChoisie(s, pid)?.resolver === 'seaChart' ? plafondDePlanque(s, hero) : null;
     }, (s, pid) => choixDuHeros(s, pid)?.stashGold ?? 0),
@@ -322,27 +322,27 @@ export const OUVERTS_DU_CHOIX = {
       return demande ? [ouverte(true, libelleDuChoix('marchand', 'troquer'), devisDeTroc(m, s.party, demande).refus)] : [];
     }),
   },
-  loot: { ligne: lignesDuButin('loot', (s) => s.pendingLoot?.gear) },
+  butin: { ligne: lignesDuButin('butin', (s) => s.pendingLoot?.gear) },
   // ZI 13
-  victory: {
-    ligne: lignesDuButin('victory', (s) => s.pendingVictory?.gear),
-    depecer: reglage('victory', 'depecer', (s) => creaturesDeLaRecolte(s).map((id) => ouverte(id, garanti(DESIGNATIONS.IdDeCreatureADepecer.nom(s, id), id, 'créature à dépecer'), refusDeDepecer(s, id)))),
+  victoire: {
+    ligne: lignesDuButin('victoire', (s) => s.pendingVictory?.gear),
+    depecer: reglage('victoire', 'depecer', (s) => creaturesDeLaRecolte(s).map((id) => ouverte(id, garanti(DESIGNATIONS.IdDeCreatureADepecer.nom(s, id), id, 'créature à dépecer'), refusDeDepecer(s, id)))),
   },
   // LDB 66
-  rest: {
-    couchage: reglage('rest', 'couchage', (s, pid) => {
+  repos: {
+    couchage: reglage('repos', 'couchage', (s, pid) => {
       const nuit = nuitDuDormeur(s, pid);
       return nuit ? lodgingOptions(nuit.p.places).map((v) => duRepos(v, 'couchage')) : [];
     }, (s, pid) => (pid === undefined ? null : s.pendingRest?.perHero[pid]?.lodging ?? null)),
-    pitance: reglage('rest', 'pitance', (s, pid) => {
+    pitance: reglage('repos', 'pitance', (s, pid) => {
       const nuit = nuitDuDormeur(s, pid);
       return nuit ? (nuit.dormeur ? foodOptions(nuit.p.places, nuit.dormeur) : nourrituresDeTroupe(nuit.p.places)).map((v) => duRepos(v, 'pitance')) : [];
     }, (s, pid) => (pid === undefined ? null : s.pendingRest?.perHero[pid]?.food ?? null)),
   },
   // LDB 17 l.25, LDB 11 l.97-103
-  roundStart: {
-    promouvoir: reglage('roundStart', 'promouvoir', (s) => actFirstIds(s).map((id) => combattant(s, id))),
-    viser: reglage('roundStart', 'viser', (s) => {
+  debutDuRound: {
+    promouvoir: reglage('debutDuRound', 'promouvoir', (s) => actFirstIds(s).map((id) => combattant(s, id))),
+    viser: reglage('debutDuRound', 'viser', (s) => {
       const tireurs = preemptShooterIds(() => s);
       return tireurs.length || s.preemptAiming ? [ouverte(null, t('valeur.viser.aucun')), ...tireurs.map((id) => combattant(s, id))] : [];
     }, (s) => s.preemptAiming),
@@ -372,7 +372,7 @@ export const OUVERTS_DU_CHOIX = {
     retirerLaQualite: qualitesDeLOuvrage('retirerLaQualite', visee),
     objet: cibleDuCatalogue('objet', 'itemUid', (h, def) => { const { armes, artefacts } = ciblesDActivite(h, def); return [...armes, ...artefacts]; }, (i) => i.uid, (i) => i.label),
     sort: cibleDuCatalogue('sort', 'spellId', (h, def) => ciblesDActivite(h, def).sorts, (x) => x.spell.id, (x) => auPrix(x.spell.label, t('interlude.px', { px: x.cost }))),
-    traitPsy: cibleDuCatalogue('traitPsy', 'traitPsy', (h, def) => ciblesDActivite(h, def).traitsPsy, (x) => x.cle, (x) => libelleDePsy(x.trait.type, x.trait.cible)),
+    traitPsychologique: cibleDuCatalogue('traitPsychologique', 'traitPsy', (h, def) => ciblesDActivite(h, def).traitsPsy, (x) => x.cle, (x) => libelleDePsy(x.trait.type, x.trait.cible)),
     pratiquer: reglage('interlude', 'pratiquer', (s, pid) => {
       const lu = composee(s, pid, () => true);
       return lu ? [ouverte(true, libelleDuChoix('interlude', 'pratiquer'), refusDeLaComposition(s, lu.h.id, lu.c))] : [];
@@ -405,8 +405,8 @@ export const OUVERTS_DU_CHOIX = {
 
 /** Le réglage du choix `axe` de la fenêtre `fenetre` dans l'état `s`, sur le héros `pid` d'un choix de rangée
  *  (`OUVERTS_DU_CHOIX`). */
-export const reglageDuChoixDeFenetre = (s: Jeu, fenetre: FenetreAChoix, axe: AxeDuChoix, pid?: IdDeHeros): Reglage =>
-  (OUVERTS_DU_CHOIX[fenetre] as Readonly<Record<string, (s: Jeu, pid: IdDeHeros | undefined) => Reglage>>)[axe](s, pid);
+export const reglageDuChoixDeFenetre = (s: Jeu, fenetre: FenetreAChoix, axe: AxeDuChoix, pid?: IdDeRangee): Reglage =>
+  (OUVERTS_DU_CHOIX[fenetre] as Readonly<Record<string, (s: Jeu, pid: IdDeRangee | undefined) => Reglage>>)[axe](s, pid);
 
 /** Un réglage ouvre-t-il une valeur ? */
 const ouvreUneValeur = (r: Reglage): boolean => !!r.bornes || !!r.valeurs?.length;
@@ -429,7 +429,7 @@ export const reglagesDesChoix = (s: Jeu, gestes: readonly GesteDuJeu[]): Reglage
   gestes.flatMap((g) => {
     if (g.verbe !== VERBE_DE_CHOIX || !g.fenetre || !g.axe) return [];
     const fenetre = g.fenetre as FenetreAChoix;
-    const deRangee = declarationDuChoix(fenetre, g.axe)?.portee === 'rangee';
+    const deRangee = declarationDuChoixNomme(fenetre, g.axe)?.portee === 'rangee';
     return [reglageDuChoixDeFenetre(s, fenetre, g.axe), ...(deRangee ? [reglageDeLaRangee(s, fenetre, g.axe)] : [])];
   });
 
@@ -442,7 +442,7 @@ const dansLesBornes = (valeur: unknown, bornes: NonNullable<Reglage['bornes']>):
  *  bourse, cale). La validation de la semaine reste fermée jusqu'à ce qu'il se reprenne. */
 export function semaineAReprendre(s: Jeu): boolean {
   return Object.keys(s.pendingSeaActivities?.picks ?? {}).some((pid) => herosDeLaSemaine(s, pid) && (['activite', 'investir', 'cacher'] as const).some((axe) => {
-    const lu = reglageDuChoixDeFenetre(s, 'seaActivities', axe, pid);
+    const lu = reglageDuChoixDeFenetre(s, 'activitesEnMer', axe, pid);
     if (lu.bornes) return !dansLesBornes(lu.courant, lu.bornes);
     if (axe !== 'activite') return false;
     const lue = lu.valeurs?.find((v) => v.valeur === lu.courant);
@@ -455,13 +455,20 @@ export function semaineAReprendre(s: Jeu): boolean {
  *  de l'hôte dans l'état d'un invité, le choix du héros d'un autre siège, une valeur que l'état n'ouvre pas ou hors de
  *  ses bornes, ou la raison qui la ferme ; `null` : il se joue. */
 export function refusDuChoix(s: Jeu, fenetre: unknown, axe: unknown, valeur: unknown, pid?: unknown): string | null {
-  const declaration = declarationDuChoix(fenetre, axe);
-  if (!declaration) return t('choix.refus.inconnu');
-  if (!garanti(fenetreDuRegistre(fenetre), String(fenetre), 'fenêtre à choix').ouverte(s)) return t('choix.refus.fermee');
-  if ((typeof pid === 'string') !== (declaration.portee === 'rangee')) return t('choix.refus.rangee');
+  return estFenetreAChoix(fenetre) && estAxeDe(fenetre, axe)
+    ? refusDuChoixNomme(s, fenetre, axe, valeur, typeof pid === 'string' ? pid : undefined)
+    : t('choix.refus.inconnu');
+}
+
+/** Ce qui refuse le choix `axe` de la fenêtre `fenetre` à la valeur `valeur`, sur la rangée `pid` d'un choix de rangée
+ *  (`refusDuChoix`) ; `null` : il se joue. */
+export function refusDuChoixNomme(s: Jeu, fenetre: FenetreAChoix, axe: AxeDuChoix, valeur: unknown, pid?: IdDeRangee): string | null {
+  const declaration = garanti(declarationDuChoixNomme(fenetre, axe), `${fenetre}.${axe}`, 'choix déclaré');
+  if (!garanti(fenetreDuRegistre(fenetre), fenetre, 'fenêtre à choix').ouverte(s)) return t('choix.refus.fermee');
+  if ((pid !== undefined) !== (declaration.portee === 'rangee')) return t('choix.refus.rangee');
   if (declaration.qui === 'hote' && s.net.mode === 'guest') return t('choix.refus.hoteSeul');
   if (declaration.portee === 'rangee' && declaration.qui === 'proprietaire' && !seatOwns(s, decidingSeat(s), pid as IdDeHeros)) return t('choix.refus.autreSiege');
-  const lu = reglageDuChoixDeFenetre(s, fenetre as FenetreAChoix, axe as AxeDuChoix, pid as IdDeHeros | undefined);
+  const lu = reglageDuChoixDeFenetre(s, fenetre, axe, pid);
   if (lu.bornes) return dansLesBornes(valeur, lu.bornes) ? null : t('choix.refus.bornes');
   const lue = lu.valeurs?.find((v) => v.valeur === valeur);
   return lue ? lue.refus : t('choix.refus.valeur');
@@ -474,7 +481,7 @@ export function creerChoixDeFenetre(get: Get, set: Set, corps: CorpsDesChoix): P
     fenetreChoisir: (...[fenetre, axe, valeur, pid]) => {
       const refus = refusDuChoix(get(), fenetre, axe, valeur, pid);
       if (refus) { refuserGesteDuSiege(get, set, refus); return; }
-      (corps[fenetre] as unknown as Readonly<Record<string, (v: unknown, pid: IdDeHeros | undefined) => void>>)[axe](valeur, pid);
+      (corps[fenetre] as unknown as Readonly<Record<string, (v: unknown, pid: IdDeRangee | undefined) => void>>)[axe](valeur, pid);
     },
   };
 }

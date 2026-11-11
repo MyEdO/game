@@ -44,7 +44,7 @@ function setupCoop(opts: { heros?: number; invites?: number[] } = {}): { H: Comb
   banc.setState({ party });
   g().lancerLaScene(testScene());
   g().lancerLeCombat('enc-mutants');
-  g().fenetreValider('roundStart');
+  g().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = g().battle!;
   const H = b.combatants.filter((c) => c.kind === 'hero');
@@ -234,7 +234,7 @@ describe('#1117 L4 — RAFALE de seuils de Corruption (LDB 19 l.70) : une file, 
     expect(g().pendingCorruption, 'le slot reste VIDE : le second ne double pas la fenêtre').toBeNull();
     expect(g().corruptionQueue.map((q) => q.heroId), 'la file n’a pas bougé').toEqual([H[1].id]);
 
-    g().fenetreChoisir('renounce', 'renier', true); // « Je te renie ! » : −1 Résilience, aucune mutation
+    g().fenetreChoisir('renier', 'renier', true); // « Je te renie ! » : −1 Résilience, aucune mutation
     expect(g().pendingCorruption?.heroId, 'la décision rendue, le seuil en file reçoit SA fenêtre').toBe(H[1].id);
     expect(g().pendingCorruption?.kind).toBe('seuil');
     expect(g().corruptionQueue).toEqual([]);

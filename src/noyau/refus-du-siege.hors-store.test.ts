@@ -38,7 +38,7 @@ function poser(netMode: 'host' | 'local'): void {
   const order = ['doc', 'al'];
   banc.setState({
     mode: 'battle', scene: testScene(), party: [doc, al],
-    battle: { combatants: [doc, al], order, baseOrder: order, turn: 0, round: 1, action: 'heal', selectedSpellId: null, reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: true, log: [], over: null } as never,
+    battle: { combatants: [doc, al], order, baseOrder: order, turn: 0, round: 1, action: 'soins', selectedSpellId: null, reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: true, log: [], over: null } as never,
     pendingHeal: null, pendingRun: null, refus: null,
     net: netMode === 'host'
       ? { ...NET0, mode: 'host', mySeat: 0, gmSeat: undefined, ownership: { doc: 1, al: 0 }, slots: [1, 1, 0, 0], seatNames: { 0: 'Hôte', 1: 'Invité' } }
@@ -49,7 +49,7 @@ function poser(netMode: 'host' | 'local'): void {
 /** Le geste est le CLIC du combattant ; `ouvrirLaGuerison` est sa machinerie (#3370). La Course, Action dépensée, n'a pas de
  *  geste : le clic de case ne l'offre pas (`resolveMovement`). */
 const gestes: [string, string, unknown[], 'pendingHeal'][] = [
-  ['heal', 'cliquerLaCase', [{ x: 6, y: 5 }, 'al'], 'pendingHeal'],
+  ['soins', 'cliquerLaCase', [{ x: 6, y: 5 }, 'al'], 'pendingHeal'],
 ];
 
 describe('Refus d’un geste en coop : dit au siège qui a agi, jamais chez l’hôte', () => {

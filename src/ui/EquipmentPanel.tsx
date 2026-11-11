@@ -255,11 +255,11 @@ export function EquipmentPanel({ hero }: { hero: Combatant }) {
           const conjured = !!(hero.items ?? []).find((it) => it.uid === lo.main)?.conjured;
           const setActive = hero.activeLoadoutId === lo.id;
           const mainItem = weapons.find((w) => w.uid === lo.main);
-          const offItem = weapons.find((w) => w.uid === lo.off);
+          const offItem = weapons.find((w) => w.uid === lo.secondaire);
           const mainTwoHanded = setADeuxMains(hero, lo);
           // Verdict du noyau : la cellule (`null` = vider) et chaque arme candidate.
           const refusMain = (uid: string | null) => refusEmplacementDeMain({ battle }, hero, lo.id, 'main', uid);
-          const refusOff = (uid: string | null) => refusEmplacementDeMain({ battle }, hero, lo.id, 'off', uid);
+          const refusOff = (uid: string | null) => refusEmplacementDeMain({ battle }, hero, lo.id, 'secondaire', uid);
           const refusSuppression = refusDeSupprimerSet({ battle }, hero, lo.id);
           return (
             <div key={lo.id} className={`set-card ${setActive ? 'active' : ''} ${conjured ? 'conjured' : ''}`}>
@@ -290,10 +290,10 @@ export function EquipmentPanel({ hero }: { hero: Combatant }) {
                       item={offItem}
                       fallback={weaponFallback(offItem, conjured)}
                       refus={refusOff(null) ?? undefined}
-                      value={lo.off ?? ''}
+                      value={lo.secondaire ?? ''}
                       desc="2nde — arme de mêlée à une main, bouclier ou pistolet"
                       options={[{ key: '', label: mainTwoHanded ? '— (2 mains) —' : '— vide —' }, ...weapons.filter((w) => w.uid !== lo.main && !refusOff(w.uid)).map(weaponOpt)]}
-                      onSelect={(v) => garnirLaPanoplie(hero.id, lo.id, 'off', v || null)}
+                      onSelect={(v) => garnirLaPanoplie(hero.id, lo.id, 'secondaire', v || null)}
                     />
                     <span className="set-slot-cap">2nde <CodexRef category="regles" id="main-secondaire" label="Attaque de la main secondaire" className="off-malus">{avecSigne(penaliteDeMainSecondaire(hero))}</CodexRef></span>
                   </div>

@@ -24,8 +24,14 @@ const SOURCE_REGLAGES = 'src/noyau/reglagesDuJet.ts'
 const INTERFACE_REGLAGES = 'ReglagesDuJet'
 const SOURCE_CHOIX = 'src/noyau/choixDesFenetres.ts'
 const INTERFACE_CHOIX = 'ChoixDesFenetres'
+const SOURCE_LEXIQUE = 'src/noyau/fabriquesDuNoyau.ts'
+const LEXIQUE = 'MotDuLexique'
+const SOURCE_IDS = 'src/data/schemas/_ids.generated.ts'
+const INDEX_DES_IDS = 'IdsParEspace'
 /** Longueur au-delà de laquelle un type anonyme ne s'écrit plus déplié, mais par son genre. */
 const LONGUEUR_D_UN_NOM = 40
+/** Le nom d'un objet anonyme trop long pour s'écrire déplié (`nomDuType`). */
+const OBJET_ANONYME = 'objet'
 
 /** Le nom DÉCLARÉ d'un type : son alias, son interface ou sa classe ; `null` : anonyme. */
 function nomDeclare(type) {
@@ -41,7 +47,7 @@ function nomDuType(checker, type) {
   const ecrit = checker.typeToString(type)
   if (ecrit.length <= LONGUEUR_D_UN_NOM) return ecrit
   if (!(type.flags & TypeFlags.Object)) return 'type'
-  return checker.getSignaturesOfType(type, SignatureKind.Call).length ? 'fonction' : 'objet'
+  return checker.getSignaturesOfType(type, SignatureKind.Call).length ? 'fonction' : OBJET_ANONYME
 }
 
 /** Le nœud de type DÉCLARÉ d'un symbole (paramètre, champ), s'il en a un. */
@@ -389,13 +395,26 @@ function chainesNues(session, racine, decl, designes) {
   return [...new Set(nues)]
 }
 
-/** L'interface `nom` du fichier `source` du programme. */
+/** L'interface ou l'alias de type `nom` du fichier `source` du programme. */
 function interfaceDe(session, racine, source, nom) {
   const sf = session.program.getSourceFile(path.resolve(racine, source).replaceAll('\\', '/'))
   let decl
-  sf?.forEachChild((n) => { if (ts.isInterfaceDeclaration(n) && n.name.text === nom) decl = n })
-  if (!decl) throw new Error(`verbesDeLaPartie : interface \`${nom}\` introuvable dans ${source}`)
+  sf?.forEachChild((n) => { if ((ts.isInterfaceDeclaration(n) || ts.isTypeAliasDeclaration(n)) && n.name.text === nom) decl = n })
+  if (!decl) throw new Error(`verbesDeLaPartie : type \`${nom}\` introuvable dans ${source}`)
   return decl
+}
+
+/** Les chaînes littérales du type `type`, lui-même ou membres de son union. */
+const chainesDuType = (type) => (type.isUnionType() ? type.getTypes() : [type]).filter((t) => t.flags & TypeFlags.StringLiteral).map((t) => t.value)
+
+/** Les mots de `MotDuLexique` (src/noyau/fabriquesDuNoyau.ts), et les ids de chaque espace de `IdsParEspace`
+ *  (src/data/schemas/_ids.generated.ts), lus par le vérificateur. */
+function lexiqueLu(session, racine) {
+  const { checker } = session
+  const lexique = new Set(chainesDuType(checker.getTypeAtLocation(interfaceDe(session, racine, SOURCE_LEXIQUE, LEXIQUE).name)))
+  const index = checker.getTypeAtLocation(interfaceDe(session, racine, SOURCE_IDS, INDEX_DES_IDS).name)
+  const espaces = checker.getPropertiesOfType(index).map((e) => new Set(chainesDuType(checker.getTypeOfSymbol(e))))
+  return { lexique, espaces }
 }
 
 /** Les axes de chaque clé de l'interface `nom` du fichier `source` (les réglages de chaque flux de jet, `ReglagesDuJet` ;
@@ -439,12 +458,102 @@ function parametresDOffre(checker, decl) {
   return trouves
 }
 
+/** La clé désignée de la forme `f` : sa désignation, ou les clés d'une union de chaînes désignées, triées et jointes ;
+ *  `null` pour toute autre forme (littéral, nombre, objet…). */
+function cleDesignee(f) {
+  const membres = (f.genre === 'union' ? f.membres : [f]).filter((m) => m.genre !== 'null' && m.genre !== 'absent')
+  if (!membres.length || !membres.every((m) => m.genre === 'chaine' && m.designe)) return null
+  return [...new Set(membres.map((m) => m.designe.cle))].sort().join(' | ')
+}
+
+/** L'objet `f` est-il anonyme : son type s'écrit déplié (`{ … }`) ou par son genre (`nomDuType`) ? */
+const objetAnonyme = (f) => f.genre === 'objet' && (f.type.startsWith('{') || f.type === OBJET_ANONYME)
+
+/** Les objets anonymes de l'union `membres` qu'un champ littéral commun discrimine : leurs champs se qualifient par ce
+ *  discriminant. */
+function discrimines(membres) {
+  const objets = membres.filter(objetAnonyme)
+  if (objets.length < 2) return new Set()
+  const litteral = (o, nom) => o.champs.some((c) => c.nom === nom && c.forme.genre === 'litteral')
+  return objets[0].champs.some((c) => objets.every((o) => litteral(o, c.nom))) ? new Set(objets) : new Set()
+}
+
+/** Pose `poser(nom, forme)` pour chaque champ d'objet anonyme que la forme `f` porte, à travers objets anonymes,
+ *  tableaux, tuples et unions ; le champ d'un type nommé se qualifie par son type, celui d'un membre d'union
+ *  discriminée par son discriminant : aucun n'est posé. */
+function champsAnonymes(f, poser) {
+  if (f.genre === 'tableau') champsAnonymes(f.element, poser)
+  else if (f.genre === 'tuple') for (const e of f.elements) champsAnonymes(e, poser)
+  else if (f.genre === 'union') {
+    const qualifies = discrimines(f.membres)
+    for (const m of f.membres) if (!qualifies.has(m)) champsAnonymes(m, poser)
+  } else if (objetAnonyme(f)) {
+    for (const c of f.champs) { poser(c.nom, c.forme); champsAnonymes(c.forme, poser) }
+  }
+}
+
+/** Un nom, un type désigné (`.claude/rules/verbes-du-noyau.md`) : chaque paramètre des verbes `verbes`, et chaque champ
+ *  de leurs objets anonymes (`champsAnonymes`), dont la forme est désignée (`cleDesignee`) garde, sous un même nom, une
+ *  même clé désignée ; deux clés sous un nom lèvent, en nommant le nom, chaque clé et un verbe de chacune. */
+export function unNomUnTypeDesigne(verbes) {
+  /** Nom → clé désignée → premier verbe qui la porte. */
+  const cles = new Map()
+  for (const [verbe, parametres] of Object.entries(verbes)) {
+    const poser = (nom, f) => {
+      const cle = cleDesignee(f)
+      if (!cle) return
+      const parCle = cles.get(nom) ?? cles.set(nom, new Map()).get(nom)
+      if (!parCle.has(cle)) parCle.set(cle, verbe)
+    }
+    for (const p of parametres) { poser(p.nom, p.forme); champsAnonymes(p.forme, poser) }
+  }
+  const doubles = [...cles].filter(([, parCle]) => parCle.size > 1)
+  if (doubles.length) {
+    const dits = doubles.map(([nom, parCle]) => `\`${nom}\` : ${[...parCle].map(([cle, verbe]) => `\`${cle}\` (${verbe})`).join(', ')}`)
+    throw new Error(`verbesDeLaPartie : un nom de paramètre désigne deux types (une chose déjà désignée ailleurs garde le même type et le même nom de paramètre) : ${dits.join(' ; ')}`)
+  }
+}
+
+/** Les mots de l'id `s`, coupé à chaque tiret et avant chaque majuscule, en minuscules (`Mots<S>`,
+ *  src/noyau/fabriquesDuNoyau.ts). */
+const motsDe = (s) => s.split('-').flatMap((p) => p.split(/(?=[A-Z])/)).filter(Boolean).map((m) => m.toLowerCase())
+
+/** Les littéraux des paramètres des verbes `verbes` en mots du lexique (`.claude/rules/verbes-du-noyau.md`) : chaque
+ *  membre chaîne littéral d'un paramètre, à travers champs, tableaux, tuples, unions et types récursifs de `formes`, ne
+ *  prend que des mots de `lexique` ; une union dont chaque membre est un id d'un même espace de `espaces` recopie cet
+ *  espace, c'est une donnée, hors du lexique. Un mot hors du lexique lève, en nommant le verbe, le paramètre, le membre
+ *  et ses mots en faute. */
+export function litterauxDuLexique(verbes, formes, lexique, espaces) {
+  const fautes = []
+  const recopieUnEspace = (membres) => membres.length > 0 && membres.every((m) => m.genre === 'litteral' && typeof m.valeur === 'string')
+    && espaces.some((ids) => membres.every((m) => ids.has(m.valeur)))
+  const visiter = (f, ou, vus) => {
+    switch (f.genre) {
+      case 'litteral': {
+        const hors = typeof f.valeur === 'string' ? motsDe(f.valeur).filter((m) => !lexique.has(m)) : []
+        if (hors.length) fautes.push(`${ou} \`${f.valeur}\` (${hors.join(', ')})`)
+        return
+      }
+      case 'union': if (!recopieUnEspace(f.membres.filter((m) => m.genre !== 'null' && m.genre !== 'absent'))) for (const m of f.membres) visiter(m, ou, vus); return
+      case 'tableau': visiter(f.element, ou, vus); return
+      case 'tuple': for (const e of f.elements) visiter(e, ou, vus); return
+      case 'objet': for (const c of f.champs) visiter(c.forme, `${ou}.${c.nom}`, vus); return
+      case 'dictionnaire': visiter(f.cle, ou, vus); visiter(f.valeur, ou, vus); for (const c of f.champs ?? []) visiter(c.forme, `${ou}.${c.nom}`, vus); return
+      case 'ref': if (!vus.has(f.type)) visiter(formes[f.type], ou, new Set(vus).add(f.type)); return
+      default:
+    }
+  }
+  for (const [verbe, parametres] of Object.entries(verbes)) for (const p of parametres) visiter(p.forme, `${verbe}(${p.nom})`, new Set())
+  if (fautes.length) throw new Error(`verbesDeLaPartie : un littéral de paramètre prend un mot hors de \`${LEXIQUE}\` (${SOURCE_LEXIQUE}) : ${[...new Set(fautes)].join(', ')}`)
+}
+
 /** La partie lue de son type : ses verbes, par nom, ou les seuls `noms`, leurs paramètres dans l'ordre de l'appel
  *  (`ParametreDeVerbe`, src/hote/formes.ts), la forme de la valeur de chaque réglage de jet et de chaque choix de
- *  fenêtre, et celle de chaque type récursif qu'une forme référence (`formes`). */
+ *  fenêtre, et celle de chaque type récursif qu'une forme référence (`formes`) ; un nom de paramètre qui désigne deux
+ *  types lève (`unNomUnTypeDesigne`), un littéral de paramètre hors du lexique aussi (`litterauxDuLexique`). */
 export function partieLue(racine = process.cwd(), noms = null) {
   const fichier = path.resolve(racine, SOURCE).replaceAll('\\', '/')
-  const session = repoProgram(racine, () => [fichier])
+  const session = repoProgram(racine, () => [fichier, ...[SOURCE_LEXIQUE, SOURCE_IDS].map((f) => path.resolve(racine, f).replaceAll('\\', '/'))])
   try {
     const decl = interfaceDe(session, racine, SOURCE, INTERFACE)
     const { checker } = session
@@ -463,13 +572,17 @@ export function partieLue(racine = process.cwd(), noms = null) {
       const qs = signature.getParameters()
       verbes[p.name] = (qs.length === 1 && parametresDuReste(checker, p.name, qs[0], designes, refs)) || qs.map((q) => parametre(checker, p.name, q, designes, refs))
     }
+    unNomUnTypeDesigne(verbes)
     const reglages = axesLus(session, racine, designes, refs, SOURCE_REGLAGES, INTERFACE_REGLAGES)
     const choix = axesLus(session, racine, designes, refs, SOURCE_CHOIX, INTERFACE_CHOIX)
+    const formes = formesReferencees(checker, designes, refs)
+    const { lexique, espaces } = lexiqueLu(session, racine)
+    litterauxDuLexique(verbes, formes, lexique, espaces)
     return {
       verbes: Object.fromEntries(Object.entries(verbes).sort(([a], [b]) => parUnitesDeCode(a, b))),
       reglages,
       choix,
-      formes: formesReferencees(checker, designes, refs),
+      formes,
     }
   } finally {
     libererSessions([session])

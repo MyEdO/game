@@ -63,7 +63,7 @@ export interface InitiativeStripProps {
   preemptArmedId?: string | null;
   /** LDB 10. */
   onPreempt?: (id: string) => void;
-  /** INTERRUPTEUR de la demande de pause au prochain Round (entrée `raise-hand` du registre) : il vit
+  /** INTERRUPTEUR de la demande de pause au prochain Round (entrée `pause` du registre) : il vit
    *  ICI parce que c'est l'ENCHAÎNEMENT DES ROUNDS qu'il suspend, pas une action du tour. État
    *  RÉPLIQUÉ (`battle.handRaisedBy` voyage dans le snapshot) : chaque siège voit qui demande la
    *  pause, et chacun ne retire que la SIENNE (bascule gratuite). ABSENT = le siège n'est pas dessiné :
@@ -146,9 +146,9 @@ export function InitiativeStrip(p: InitiativeStripProps) {
           c'est CE marqueur que lit la garde d'atteignabilité des actions (la frise est une surface au
           même titre que la console). */}
       {p.hand && (
-        <span className="is-hand" data-action="raise-hand" data-raised={p.hand.raised ? '' : undefined}>
+        <span className="is-hand" data-action="pause" data-raised={p.hand.raised ? '' : undefined}>
           <GatedAction
-            id="raise-hand"
+            id="pause"
             label={p.hand.label}
             ariaLabel={p.hand.ariaLabel}
             enabled={!p.hand.reason}

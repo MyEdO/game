@@ -7,7 +7,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { creerPartie, etatInitialDuJeu, type EntreesDeLaPartie, type Partie } from './index';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { statutLePlusHaut } from '../engine/statut.testkit';
 import { emptyScene } from './monde/scene';
 import { toBrass, priceToMoney, add as moneyAdd, fromBrass } from '../engine/money';
@@ -28,7 +28,7 @@ function ouvrir(tenirComptes: boolean, objets: ItemInstance[] = [], mode: 'local
   const entrees: EntreesDeLaPartie = { graine: 4, reglesMaison: { 'market-tenir-comptes': tenirComptes }, cadence: 'manuel', desFixes: false, persisterLeHeros: () => {} };
   const partie = creerPartie({
     ...etatInitialDuJeu(),
-    party: makePregens(idsDeTest).slice(0, 1).map((h) => withBourseMoney({ ...h, career, careerLevel, items: [...(h.items ?? []), ...objets] }, { gold: 50, silver: 0, brass: 0 }, idsDeTest)),
+    party: tousLesHerosDeScenario(idsDeTest).slice(0, 1).map((h) => withBourseMoney({ ...h, career, careerLevel, items: [...(h.items ?? []), ...objets] }, { gold: 50, silver: 0, brass: 0 }, idsDeTest)),
     scene,
     net: { ...etatInitialDuJeu().net, mode },
   }, entrees);

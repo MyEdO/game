@@ -1,13 +1,13 @@
 import type { FabriqueDId } from '../../engine/fabriqueDId';
-import { makeShowcaseParty, PREGEN, idDuPretire } from '../../data/pregens';
-import { gabaritDObjet, loadWeapon } from '../../engine/items';
+import { groupeVitrineDeScenario, idDuHerosDeScenario } from './_heros';
+import { loadWeapon } from '../../engine/items';
 import type { AuthoredShipPoste, Combatant } from '../../engine/types';
 import { buildScene } from '../../noyau/mapSpec';
 import type { TestScenario } from './_shared';
 import type { Scene } from '../../noyau/monde/scene';
 
 // Ids STABLES des 2 canonniers (le Soldat + le Chasseur du groupe d'arène) qui SERVENT les pierriers.
-const GUNNERS = [idDuPretire(PREGEN.soldat), idDuPretire(PREGEN.chasseur)] as const;
+const GUNNERS = [idDuHerosDeScenario('soldat'), idDuHerosDeScenario('chasseur')] as const;
 
 /**
  * Un poste de PIERRIER (canon léger de pont, MDG 12) monté à tribord de la barge, servi par `chefId`,
@@ -17,10 +17,7 @@ const GUNNERS = [idDuPretire(PREGEN.soldat), idDuPretire(PREGEN.chasseur)] as co
  * `applyShipPostes` la sert au chef (`mannedPoste`) → l'attaque dédiée « Servir le pierrier ».
  */
 function pierrierPoste(chefId: string): AuthoredShipPoste {
-  // Les uids des munitions se dérivent de leur place : le coffre du poste que sert `chefId`.
-  const balles = { ...gabaritDObjet('balles-et-poudre-pierrier')!, uid: `pierrier-${chefId}-balles`, qty: 10 }; // de quoi bombarder plusieurs Rounds (Recharge entre chaque tir)
-  const mitraille = { ...gabaritDObjet('petites-munitions-et-poudre-pierrier')!, uid: `pierrier-${chefId}-mitraille`, qty: 6 };
-  return { trappingId: 'pierrier', side: 'tribord', crewIds: [chefId], ammo: [balles, mitraille], ammoUid: balles.uid };
+  return { trappingId: 'pierrier', side: 'tribord', crewIds: [chefId], ammo: { 'balles-et-poudre-pierrier': 10, 'petites-munitions-et-poudre-pierrier': 6 }, selectedAmmo: { id: 'balles-et-poudre-pierrier' } };
 }
 
 /**
@@ -29,7 +26,7 @@ function pierrierPoste(chefId: string): AuthoredShipPoste {
  * combat par `applyShipPostes`). Les 2 autres (Tueur + Sorcier) gardent leur arme de mêlée pour l'abordage.
  */
 function makeNavalParty(idNeuf: FabriqueDId): Combatant[] {
-  const party = makeShowcaseParty(idNeuf);
+  const party = groupeVitrineDeScenario(idNeuf);
   for (const id of GUNNERS) {
     const g = party.find((h) => h.id === id);
     // Chargé d'emblée → tir dès le 1er Round. L'état de charge vit sur CHAQUE arme (arbitrage 2026-08-16).

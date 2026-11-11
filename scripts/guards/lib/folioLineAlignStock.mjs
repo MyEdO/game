@@ -44,13 +44,17 @@
 // est donc classée `hors-forme`, c'est-à-dire INVISIBLE — pas jugée, et pas comptée ici non plus.
 // `obsessions.json#(racine)` est hors de la seconde collection par CETTE cécité, pas par résolution :
 // sa citation nue `ref` est devenue une note préfixée à la migration `2026-08-28-l1b-8c`.
-// Mesure de l'élargissement (motif CHERCHÉ dans la note au lieu d'être ancré) : 872 → 678
-// `hors-forme`, `scanned` 270 → 462, non-jugeables 2 → 4 (`obsessions.json#obsessions` REVIENDRAIT,
-// plus `vents-tourbillonnants.json#force-des-vents`), et 14 désalignements NEUFS apparaîtraient —
-// 2 causes seulement : `eyes.json` ×10 (une note unique, qui DIT elle-même « pagination Marker
-// estimée entre les folios 37 et 41 » — déclaré 40, mesuré 39) et `weather.json` ×4 (« EDOC 8
-// l.52-59 » — déclaré 33, mesuré 32). Le cliquet étant DÉCROISSANT-SEULEMENT, l'élargissement exige
-// d'ARBITRER ces 14 au `Source/` d'abord : le régénérateur REFUSERAIT de les écrire.
+// Mesure de l'élargissement (motif CHERCHÉ dans la note au lieu d'être ancré), rejouée le 2026-11-11
+// (#3578 L3) : 791 → 558 `hors-forme`, `scanned` 613 → 844, non-jugeables 10 → 12
+// (`obsessions.json#obsessions` REVIENDRAIT, plus `vents-tourbillonnants.json#force-des-vents`), et
+// 34 désalignements NEUFS apparaîtraient (32 → 66), 6 causes : `miscast.json` ×21 (« LDB 40 l.68-89 »
+// — déclaré 218, mesuré 219), `carrieres-aleatoires.json` ×5 (« MDG 09 l.9 » — déclaré 64, mesuré
+// 63), `weather.json` ×4 (« EDOC 8 l.52-59 » — déclaré 33, mesuré 32), `mutationTables.json` ×2
+// (« LDB 19 l.83 » — déclarés 184 et 185, mesuré 183), `eyes.json` ×1 (« LDB 05 l.742-754 » : le
+// titre l.742 précède l'ancre `data-folio="40"` l.744 — déclaré 40, mesuré 39) et
+// `presets-de-personnage.json#gladiateur` ×1 (« LDB 08 l.1216 » — déclaré 72, mesuré 71). Le cliquet
+// étant DÉCROISSANT-SEULEMENT, l'élargissement exige d'ARBITRER ces 34 au `Source/` d'abord : le
+// régénérateur REFUSERAIT de les écrire.
 
 export const FOLIO_LINE_ALIGN_RATCHET = [
   { fichier: 'src/data/careers.json', ref: 'alchimiste-ordinaire', occurrence: 1 },
@@ -89,6 +93,8 @@ export const FOLIO_LINE_ALIGN_RATCHET = [
 
 export const FOLIO_LINE_ALIGN_NON_JUGEABLE = [
   { fichier: 'src/data/mutations.json', ref: 'crete-sur-la-tete', occurrence: 1 },
+  { fichier: 'src/data/pregens.json', ref: 'erina-eberhauer', occurrence: 1 },
+  { fichier: 'src/data/pregens.json', ref: 'golthog', occurrence: 1 },
   { fichier: 'src/data/reglesOptionnelles.json', ref: 'corruption-tables-edoc', occurrence: 1 },
   { fichier: 'src/data/reglesOptionnelles.json', ref: 'vents-tourbillonnants', occurrence: 1 },
   { fichier: 'src/data/reseau-routier.json', ref: 'auberge-relais', occurrence: 1 },

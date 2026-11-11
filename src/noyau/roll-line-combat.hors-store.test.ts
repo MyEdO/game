@@ -139,12 +139,12 @@ describe('Guérison en combat (combatSlice) — canal HORS COMBAT (`testValue`),
     const nue = skillBaseValue(doc, { skill: { id: 'guerison' } });
     expect(v, 'l’État sépare la nue de la valeur jetée').toBeLessThan(nue);
 
-    banc.setState({ battle: { ...get().battle!, action: 'heal' } }); // le Soin se commet depuis son mode armé (`HEAL_MODE`)
+    banc.setState({ battle: { ...get().battle!, action: 'soins' } }); // le Soin se commet depuis son mode armé (`HEAL_MODE`)
     get().ouvrirLaGuerison('bl');
     const ph = get().pendingHeal!;
     expect(ph.target).toBe(clampTarget(v + DIFFICULTY_MODIFIERS[ph.difficulty]).target);
 
-    get().jetRegler('heal', 'mode', 'bleed');
+    get().jetRegler('soins', 'mode', 'hemorragie');
     const ph2 = get().pendingHeal!;
     expect(ph2.target).toBe(clampTarget(v + DIFFICULTY_MODIFIERS[ph2.difficulty]).target);
 

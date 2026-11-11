@@ -586,7 +586,21 @@
     "group": "Création",
     "kind": "flag",
     "default": false,
-    "hint": "Ajoute le Gnome (Nuits agitées) comme race jouable : il devient une option du Tableau des Races aléatoires (borne 98, partagée avec l’Ogre) et apparaît dans la grille de sélection. Désactivé par défaut."
+    "hint": "Ajoute le Gnome (Nuits agitées) comme race jouable : le Tableau des Races aléatoires devient celui de Nuits agitées (la table maison avec l’Ogre) et le Gnome apparaît dans la grille de sélection. Désactivé par défaut."
+  },
+  {
+    "id": "creation-ogre-jouable",
+    "type": "reglesOptionnelles",
+    "label": "Ogre jouable (ADE II)",
+    "ref": "ADE II 02 l.110",
+    "source": {
+      "book": "archives-de-l-empire-2",
+      "page": 18
+    },
+    "group": "Création",
+    "kind": "flag",
+    "default": false,
+    "hint": "Ajoute l’Ogre (Archives de l’Empire II) comme race jouable : le Tableau des Races aléatoires devient celui des Archives (la table maison avec le Gnome) et l’Ogre apparaît dans la grille de sélection. Désactivé par défaut."
   },
   {
     "id": "creation-signes-astraux",
@@ -738,7 +752,7 @@
     "type": "reglesOptionnelles",
     "label": "Assister une Entreprise coûte un créneau (maison)",
     "ref": "LDB 12 l.189 / ADE II 8 l.81",
-    "maison": "#257 — LDB 23 l.5 / ADE II 8 l.65 bornent le budget par « participer à une Activité » ; le Soutien (LDB 12 l.187-200) et Planification (ADE II 8 l.81) ne chiffrent aucun coût d’Activité pour l’assistant. Défaut `false` : `jetValider('activity')` ne décompte que le meneur.",
+    "maison": "#257 — LDB 23 l.5 / ADE II 8 l.65 bornent le budget par « participer à une Activité » ; le Soutien (LDB 12 l.187-200) et Planification (ADE II 8 l.81) ne chiffrent aucun coût d’Activité pour l’assistant. Défaut `false` : `jetValider('activite')` ne décompte que le meneur.",
     "group": "Activités",
     "kind": "flag",
     "default": false,

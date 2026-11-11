@@ -2,7 +2,7 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { seedBattleRng } from './battleRng';
-import { pregenParty, PREGEN } from '../data/pregens';
+import { groupeDeScenario } from '../scenes/test-scenarios/_heros';
 import { applyEffects, EFFECT_HANDLERS, type EffectRefCtx } from './combatEffects';
 import type { Effect } from '../data/schemas/defs-scenes/effets';
 import { armyMight, armyStartMight, nomDArmee } from './massBattleFlow';
@@ -29,7 +29,7 @@ function battleEffect(spec: Partial<MassBattleSpec> = {}): Extract<Effect, { typ
 
 function apply(effects: Effect[]) {
   seedBattleRng(1234);
-  banc.setState({ party: pregenParty(idsDeTest, PREGEN.soldat, PREGEN.chasseur), battle: null, massBattle: null });
+  banc.setState({ party: groupeDeScenario(idsDeTest, 'soldat', 'chasseur'), battle: null, massBattle: null });
   applyEffects(banc.getState, banc.setState, effects);
 }
 
@@ -113,7 +113,7 @@ describe('Effet startMassBattle — sans catalogue ni situations (tirage aléato
 
 describe('Effet startMassBattle — validation des rencontres (refs)', () => {
   const ctx = (ids: string[]): EffectRefCtx => ({
-    sceneIds: new Set(), dialogueIds: new Set(), encounterIds: new Set(ids), entityIds: new Set(), npcSheet: () => undefined, within: () => true, walkable: () => true,
+    sceneIds: new Set(), dialogues: new Map(), encounterIds: new Set(ids), entityIds: new Set(), npcSheet: () => undefined, within: () => true, walkable: () => true,
   });
   it('signale une rencontre mappée inexistante et valide celles présentes', () => {
     const eff = battleEffect({ sceneEncounters: { charge: 'enc-charge', intrus: 'enc-absent' } });

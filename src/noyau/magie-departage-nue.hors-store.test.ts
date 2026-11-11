@@ -62,7 +62,7 @@ describe('LDB 12 l.160 — dé POSÉ sur un Test opposé d’incantation (#1150)
       // `base: 30` sur le jet de départ = une valeur TESTÉE quelconque : elle ne doit pas servir au départage.
       { id: 'A', interactive: true, declared: 'solo', result: { dispelled: false, counter: { ...RATE }, casterNetSL: 7, log: '' } },
     ] } } as never);
-    st().jetImposerLeResultat('counterspell', POSE, 'A');
+    st().jetImposerLeResultat('contreSort', POSE, 'A');
 
     const part = P<{ participants: { result: { dispelled: boolean; counter: { roll: number; sl: number; base?: number } } }[] }>('pendingCounterspell').participants[0];
     expect(part.result.counter.roll).toBe(POSE);
@@ -78,7 +78,7 @@ describe('LDB 12 l.160 — dé POSÉ sur un Test opposé d’incantation (#1150)
     banc.setState({ pendingCounterspell: { participants: [
       { id: 'A', interactive: true, declared: 'solo', result: { dispelled: false, counter: { ...RATE }, casterNetSL: 7, log: '' } },
     ] } } as never);
-    st().jetImposerLeResultat('counterspell', POSE, 'A');
+    st().jetImposerLeResultat('contreSort', POSE, 'A');
 
     const part = P<{ participants: { result: { dispelled: boolean; counter: { base?: number } } }[] }>('pendingCounterspell').participants[0];
     expect(part.result.counter.base, 'Int 30 + 45 Augmentations').toBe(75);

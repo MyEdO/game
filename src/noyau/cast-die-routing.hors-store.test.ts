@@ -52,10 +52,10 @@ describe('dé choisi d’un flux MULTI d’incantation — routage par pid + pla
         { id: 'B', interactive: true, declared: 'solo', result: { dispelled: false, counter: { ...rateTR }, casterNetSL: 7, log: '' } },
       ] },
     } as never);
-    st().jetForcerLaReussite('counterspell', 'B');
+    st().jetForcerLaReussite('contreSort', 'B');
     const apres = heroResilience('B');
     expect(apres, 'la Résilience de B n’a pas été dépensée').toBe(2);
-    st().jetImposerLeResultat('counterspell', CHOISI, 'B');
+    st().jetImposerLeResultat('contreSort', CHOISI, 'B');
 
     const parts = P<{ participants: { result: { dispelled: boolean; counter: { roll: number; sl: number; success: boolean } } }[] }>('pendingCounterspell').participants;
     const [cA, cB] = [parts[0].result, parts[1].result];

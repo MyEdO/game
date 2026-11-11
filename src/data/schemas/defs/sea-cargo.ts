@@ -32,7 +32,7 @@ const offerPriceSchema = z
     if (ecarts.length) {
       ctx.addIssue({
         code: 'custom',
-        message: `sea-cargo.json › sell.offerPrice : les bandes ne couvrent pas Richesse + Taille + Demande d'un seul tenant depuis 1 — ${ecarts.join(' ; ')}.`,
+        message: `sea-cargo.json › vente.offerPrice : les bandes ne couvrent pas Richesse + Taille + Demande d'un seul tenant depuis 1 — ${ecarts.join(' ; ')}.`,
       });
     }
   });
@@ -43,7 +43,7 @@ export const issueDuTestSchema = enumNomme({ success: 'Succès', failure: 'Éche
 const champs = {
   /** MDG 15 l.436 */
   prixDuLivre: prixDuLivreSchema,
-  buy: nommerChamps(z.strictObject({
+  achat: nommerChamps(z.strictObject({
     availabilityMultiplier: z.number(),
     merchantSkill: nommerChamps(z.strictObject({ d10: z.number(), plus: z.number() }), { d10: { label: 'Dés à dix faces' }, plus: { label: 'Ajout' } }),
     bigPortSkill: nommerChamps(z.strictObject({ d10: z.number(), plus: z.number() }), { d10: { label: 'Dés à dix faces' }, plus: { label: 'Ajout' } }),
@@ -58,7 +58,7 @@ const champs = {
     surplusSellerDR: { label: 'DR du vendeur pour surplus' },
     source: { label: 'Source' },
   }),
-  sell: nommerChamps(z.strictObject({
+  vente: nommerChamps(z.strictObject({
     offerPrice: offerPriceSchema,
     noProduceTargetPerSize: z.number(),
     commerceBonus: z.number(),
@@ -138,8 +138,8 @@ const doc = document(
   champs,
   {
     prixDuLivre: { label: 'Unité du prix du livre', hint: 'Points d’Encombrement que couvre un prix de base du livre' },
-    buy: { label: "Règles d'achat", hint: 'Barème de Marchandage et bonus de disponibilité à l’achat' },
-    sell: { label: 'Règles de vente', hint: 'Barème de prix, Ragot préalable, DR de camp du Marchandage de vente' },
+    achat: { label: "Règles d'achat", hint: 'Barème de Marchandage et bonus de disponibilité à l’achat' },
+    vente: { label: 'Règles de vente', hint: 'Barème de prix, Ragot préalable, DR de camp du Marchandage de vente' },
     overload: { label: 'Surcharge', hint: 'Paliers de surcharge de cale (malus de Mouvement/manœuvre)' },
     opportunite: {
       label: "Commerce d'opportunité",

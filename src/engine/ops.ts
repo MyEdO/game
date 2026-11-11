@@ -27,7 +27,7 @@ import { applyFall } from './movement';
 import { hullShipSize } from './shipBuild';
 import { findFallTable, type ShipCritKey } from '../data/shipCriticals';
 import type { SeaWeather } from './seaWeather';
-import { ALL_MAGIC, type CastPenalty, type Difficulty } from './types';
+import { ALL_MAGIC, type CastPenalty, type Difficulty, type Main } from './types';
 import { refCouvre, type Id, type RefASpecialisation, type RefDesignee } from '../data/schemas/grammaire/ref';
 import { contexteDeTestSchema, type NatureDInfluence, type SourceRef } from '../data/schemas/grammaire/valeurs';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
@@ -436,7 +436,7 @@ export type GameOp =
   | { op: 'wounds'; amount: Formula; perSL?: PerSL; onlyGroups?: string[]; ignoreTB?: boolean; ignoreAP?: boolean;
       /** Quand les PA sont déduits (`ignoreAP:false`), IGNORE en plus les PA d'une matière (Cieux/Métal =
        *  `metal`, Ombres = `nonMagic`) — attribut de Domaine (l'arc d'Azyr perce le métal). */
-      bypassArmour?: 'metal' | 'nonMagic';
+      bypassArmour?: ArmourBypass;
       /** Localisation dont les PA sont déduits (quand `ignoreAP:false`). `corps` (défaut) ou `least` =
        *  la Localisation la MOINS protégée (En Flammes brûle là où l'armure protège le moins, LDB 16 l.84). */
       apFrom?: 'corps' | 'least';
@@ -838,7 +838,7 @@ export type GameOp =
    *  aux Tests classés « déplacement » (`SkillData.movement` — Athlétisme/Chevaucher/Escalade/Esquive/Natation,
    *  MÊME catégorie que l'État À Terre/Empêtré) — lu par `testValue`/`defenseValue` (Esquive). Absent des deux
    *  = comportement historique (global, comme avant #193). */
-  | { op: 'testMod'; amount: number; characteristic?: CharKey; movementOnly?: boolean; sense?: PairedSense; diseases?: string[]; exceptSkills?: { id: string }[]; weaponHand?: 'main' | 'off' }
+  | { op: 'testMod'; amount: number; characteristic?: CharKey; movementOnly?: boolean; sense?: PairedSense; diseases?: string[]; exceptSkills?: { id: string }[]; weaponHand?: Main }
   /** Immunité à l'EXPOSITION météo (froid/pluie/neige/tempête) tant que le Sort dure — Peau de loup
    *  d'hiver (Ulric), Protection contre la pluie. Lu par `exposureNight` (engine/exposure). */
   | { op: 'weatherWard' }
@@ -881,7 +881,7 @@ export type GameOp =
   /** Accorde une ARME NATURELLE (Dent et griffe : Morsure BF+3 / Arme BF+4 ; Incarnation de Wyssan) :
    *  attaque ADDITIONNELLE de mêlée injectée dans `c.weapons` (recomputeLoadout), retirée à
    *  l'expiration. Dégâts SB-relatifs par défaut (`+BF+`+damage), `qualities` (Magique…) portés. */
-  | { op: 'grantNaturalWeapon'; label: string; damage: Formula; damagePlus?: number; plusBF?: boolean; bare?: boolean; qualities?: string[]; attackKind?: string; subType?: string }
+  | { op: 'grantNaturalWeapon'; label: string; damage: Formula; plusBF?: boolean; bare?: boolean; qualities?: string[]; attackKind?: string; subType?: { id: string } }
   /** ATTAQUE GRATUITE accordée par un talent/état (Frénésie : 1 attaque d'Arme/Round ; Assaut féroce :
    *  attaque supplémentaire à la touche ; Frappe réactive : riposte quand on est Chargé). Effet IMPUR (ouvre
    *  une frappe) RÉSOLU par la couche state (`accorderLAttaqueGratuite` de `combatFlow`, appelé par `runCombatFlow`
@@ -922,8 +922,8 @@ export type GameOp =
   | { op: 'push'; meters: Formula }
   /** TÉLÉPORTATION du lanceur (Téléportation, LDB 47 l.517 / Portail d'Ombre / Eau de la terre, LDB 48 l.671/719) : le
    *  lanceur se déplace de `meters` mètres (+`perSL` « +metersFormula par `every` DR ») en survolant les
-   *  obstacles. Op IMPURE (pose le mode 'teleport' = choix de case d'arrivée) — INERTE dans applyOps,
-   *  résolue par combatFlow (`applyCast` : scan + `flyReachable`, puis pose différée `action:'teleport'`). */
+   *  obstacles. Op IMPURE (pose le mode 'teleportation' = choix de case d'arrivée) — INERTE dans applyOps,
+   *  résolue par combatFlow (`applyCast` : scan + `flyReachable`, puis pose différée `action:'teleportation'`). */
   | { op: 'teleport'; meters: Formula; perSL?: { every: number; metersFormula: Formula } }
   /** ATTAQUES EN CHAÎNE (LDB 47 l.340) : si le Projectile réduit la cible à 0 Blessure, il rebondit sur
    *  l'ennemi le plus proche (≤ `hopMeters` m, dans la portée initiale), mêmes Dégâts, jusqu'à `maxBounces`
@@ -961,7 +961,7 @@ export type GameOp =
    *  DÉTACHE à l'expiration (`dropExpiredGrantedMutations`) ; PERMANENTE si `duration:'permanent'` OU si le
    *  ctx ne porte aucune durée (exactement `grantTrait`). Le chemin CORRUPTION (corruptionFlow →
    *  `attachMutation` direct) reste permanent, intouché. PUR (moteur : profil du personnage). */
-  | { op: 'rollMutation'; table: string; duration?: 'permanent' }
+  | { op: 'rollMutation'; table: { id: string }; duration?: 'permanent' }
   /** Perte PERMANENTE de Caractéristique (Vers de carie « −1d10 Initiative… », MSRC 16 l.94-97) : décrémente
    *  la Caractéristique de BASE (`c.characteristics`), jamais sous 0 — irréversible « sauf par des moyens
    *  magiques ou miraculeux » (l.103). `amount` = Formula (1d10). Distincte de `charMod` (temporisé, effet
@@ -1131,14 +1131,14 @@ export type GameOp =
    *  les mains par `items.lacherLArme`, sauf un objet source `disarmImmune` ; une arme DÉRIVÉE
    *  (`derivedFromItem`) ne se lâche pas ; une arme à deux mains (`Weapon.hands`) est tenue par les deux.
    *  Main RÉSOLUE depuis `ctx.location` (convention DROITIER
-   *  partagée avec `handAmputated` : `brasD`→`main`, `brasG`→`off`) ; localisation `corps` ou absente
+   *  partagée avec `handAmputated` : `brasD`→`main`, `brasG`→`secondaire`) ; localisation `corps` ou absente
    *  (« Choisissez au hasard l'un de vos deux bras ») → tirage aléatoire (`ctx.rng`). Sans objet tenu
    *  dans cette main : inerte (journalisé). */
   | { op: 'disarm' }
   /** Main « ensanglantée » (Aux Armes bras 46-50, l.2569 : Main ensanglantée) — pose un marqueur PAR-MAIN
    *  (`Combatant.handGates`), DISTINCT du compteur global Hémorragique, qui impose un Test de Dextérité
    *  (+20) AVANT toute Action employant l'arme tenue par cette main (`attackHandGate` ; Échec → op `disarm`).
-   *  Main RÉSOLUE depuis `ctx.location` (convention DROITIER, comme `disarm` : `brasD`→`main`, `brasG`→`off`).
+   *  Main RÉSOLUE depuis `ctx.location` (convention DROITIER, comme `disarm` : `brasD`→`main`, `brasG`→`secondaire`).
    *  Le gate tient tant que l'Hémorragique tient (`removeCondition` purge le marqueur à 0). */
   | { op: 'handGate' }
   /** Perte d'un organe sensoriel PAIRÉ (œil/oreille). Porté par une séquelle dont l'entrée déclare son
@@ -1222,9 +1222,9 @@ export type GameOp =
    *  (`noyau/monde/vision.ts`) qui la ramène aux cases du brouillard de guerre. Côté OBJET (`passive`) :
    *  INERTE dans applyOps — lu par `combatantLights` (vision) pour les objets PORTÉS/TENUS. Côté SORT :
    *  pousse un `ActiveEffect.light` temporisé (durée), lu au MÊME point.
-   *  `tone` : id d'un `lightTones` — APPARENCE seule (couleur/intensité/vacillement), résolue au bord
+   *  `tone` : référence à un `lightTones` — APPARENCE seule (couleur/intensité/vacillement), résolue au bord
    *  du rendu et jamais ici ; absent = `flamme`. Le RAYON reste seul à porter une conséquence de règle. */
-  | { op: 'light'; radiusM: number; tone?: string; durationRounds?: Formula }
+  | { op: 'light'; radiusM: number; tone?: { id: string } }
   /** Boisson alcoolisée : enregistre UN échec de Résistance à l'alcool (LDB 09 l.475) sur la cible —
    *  −10 aux CC/CT/Ag/Dex/Int (plafond −30), et Ivresse (1d10) au seuil BE. Posé sur la branche `fail`
    *  du Flow de consommable d'une boisson (le Test de Résistance à l'alcool est le nœud `test` du Flow). */
@@ -1293,6 +1293,12 @@ export type GameOp =
   /** COMMISSION de transport : un port de destination est tiré au hasard parmi les ports de la carte hors l'escale ;
    *  à l'accostage dans ce port, la bourse du groupe reçoit `montant`. Op de NAVIRE. MDG 15 l.261 */
   | { op: 'commission'; montant: { brass: Formula } }
+  /** CONSTRUCTEUR DE NAVIRES D'ESCALE : jusqu'à l'appareillage, la réparation au port se teste à Métier (Constructeur
+   *  de navires) `competence` et prend `duree` jours. Op de NAVIRE. MDG 15 l.255 */
+  | { op: 'constructeurDEscale'; competence: number; duree: Formula }
+  /** RATIONS D'ESCALE : jusqu'à l'appareillage, la ration-jour de cale s'achète au port à `montant`. Op de NAVIRE.
+   *  MDG 15 l.262 */
+  | { op: 'rationsDEscale'; montant: { brass: Formula } }
   /** MARCHÉ D'UN PORT altéré : au port de l'escale jusqu'au départ du navire, les colonnes de l'Index basculent
    *  (`colonnes`), OU un client offre au plus `offre.enc` Enc d'une cargaison tirée au hasard pour la saison à
    *  `offre.remisePct` % sous son prix de base ; OU, dans un autre port tiré au hasard, la Demande d'une cargaison
@@ -1307,7 +1313,7 @@ export interface AggravationMeteo { de: Formula; seuil: number; meteo: Partial<S
 
 /** Les ops de NAVIRE : résolues sur la seule cible `navire` d'un EffectOp (`noyau/navireOps.ts`), inertes
  *  partout ailleurs. */
-export const OPS_DU_NAVIRE = ['shipMorale', 'manann', 'shipCritical', 'navireMod', 'meteoImposee', 'cargaison', 'provisions', 'equipage', 'perilDeMer', 'navireHostile', 'infestation', 'combatEnMer', 'commission'] as const satisfies readonly GameOp['op'][];
+export const OPS_DU_NAVIRE = ['shipMorale', 'manann', 'shipCritical', 'navireMod', 'meteoImposee', 'cargaison', 'provisions', 'equipage', 'perilDeMer', 'navireHostile', 'infestation', 'combatEnMer', 'commission', 'constructeurDEscale', 'rationsDEscale'] as const satisfies readonly GameOp['op'][];
 export type OpDuNavire = Extract<GameOp, { op: (typeof OPS_DU_NAVIRE)[number] }>;
 export const estOpDuNavire = (o: GameOp): o is OpDuNavire => (OPS_DU_NAVIRE as readonly string[]).includes(o.op);
 
@@ -2440,7 +2446,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         const dmg = o.damageBonus != null ? Math.max(0, formuleDuCtx(o.damageBonus, ref, ctx)) : undefined;
         // LDB 42 l.145 ; LDB 43 l.252,281
         const lo = activeLoadout(target);
-        const held = [lo?.main, lo?.off]
+        const held = [lo?.main, lo?.secondaire]
           .map((u) => objetDeSlot(target, u))
           .filter((i): i is ItemInstance => !!i && isWeaponActive(target, i.uid));
         const item = held.find((i) => !o.requiresWeapon || o.requiresWeapon.includes(i.shape?.id ?? ''));
@@ -2873,7 +2879,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         // propre flux de mutation). Durée du ctx par défaut → ActiveEffect porteur qui la détache à
         // l'expiration ; permanente (`duration:'permanent'` OU ctx sans durée) → aucun porteur (comme grantTrait).
         const dur = o.duration === 'permanent' ? { scale: 'permanent' as const } : durationFromCtx(ctx);
-        const m = attachMutation(target, rollMutation(o.table, rng), rng);
+        const m = attachMutation(target, rollMutation(o.table.id, rng), rng);
         if (dur.scale !== 'permanent') {
           target.activeEffects = target.activeEffects ?? [];
           target.activeEffects.push({ label: nomDeSource(ctx, 'mutation'), bonus: 0, duration: dur, grantedMutation: m });
@@ -2896,7 +2902,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         break;
       }
       case 'grantNaturalWeapon': {
-        const n = Math.max(0, formuleDuCtx(o.damage, ref, ctx) + (o.damagePlus ?? 0));
+        const n = Math.max(0, formuleDuCtx(o.damage, ref, ctx));
         const accordees = (target.activeEffects ?? []).flatMap((e) => (e.naturalWeapon ? [e.naturalWeapon] : []));
         const weapon = armeNaturelleAccordee(o, n, { uid: uidDArme(`nat-sort-${norm(o.label)}`, accordees), source }); // #2907
         target.activeEffects = target.activeEffects ?? [];
@@ -3047,6 +3053,8 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
       case 'infestation':
       case 'combatEnMer':
       case 'commission':
+      case 'constructeurDEscale':
+      case 'rationsDEscale':
       case 'marcheDuPort':
         // Effets IMPURS (grille + initiative / reconstitution programmée / zones de bataille / ouverture
         // d'une frappe / interruption de Focalisation / désarmement-bris de Piège-lame / poussée /
@@ -3158,9 +3166,8 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         // Chemin SORT : pose un ActiveEffect.light TEMPORISÉ (durée du sort), lu par `combatantLights`
         // (vision) au MÊME point que la lumière d'un objet porté. (Côté OBJET le `passive` n'est jamais
         // exécuté par applyOps → l'op est naturellement inerte là-bas.)
-        const dur: Duration = durationFromOp(o, ctx, ref);
-        const lumière = o.tone ? { radiusM: o.radiusM, tone: o.tone } : { radiusM: o.radiusM };
-        applyActiveEffect(target, { label: nomDeSource(ctx, 'lumiere'), bonus: 0, light: lumière, duration: dur });
+        const lumière = o.tone ? { radiusM: o.radiusM, tone: o.tone.id } : { radiusM: o.radiusM };
+        applyActiveEffect(target, { label: nomDeSource(ctx, 'lumiere'), bonus: 0, light: lumière, duration: durationFromCtx(ctx) });
         lines.push(t('op.light', { name: target.label, n: o.radiusM, src: nomDeSource(ctx) }));
         break;
       }
@@ -3197,9 +3204,9 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
       case 'disarm': {
         // Main RÉSOLUE depuis la localisation du coup courant (convention DROITIER, `handAmputated`) ;
         // `corps`/absente (« au hasard l'un de vos deux bras ») → tirage aléatoire.
-        const hand: 'main' | 'off' = ctx.location === 'brasG' ? 'off' : ctx.location === 'brasD' ? 'main' : rng.int(0, 1) === 0 ? 'main' : 'off';
+        const hand: Main = ctx.location === 'brasG' ? 'secondaire' : ctx.location === 'brasD' ? 'main' : rng.int(0, 1) === 0 ? 'main' : 'secondaire';
         const tenue = (target.weapons ?? []).find((w) => estUneVraieArme(w) && w.derivedFromItem == null
-          && (w.hands === 2 || (w.hand === 'off') === (hand === 'off')));
+          && (w.hands === 2 || (w.hand === 'secondaire') === (hand === 'secondaire')));
         const objet = tenue ? objetSourceDeLArme(target, tenue) : undefined;
         if (objet && itemCapability(objet, 'disarmImmune')) {
           // Poing de fer ogre (ADE II 02 l.694-698) : « solidement fixé... il ne pourra pas en être désarmé ».
@@ -3219,7 +3226,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
       case 'handGate': {
         // Main gatée résolue depuis la Localisation du coup (convention DROITIER partagée avec `disarm`) —
         // un Critique Main ensanglantée frappe toujours un bras (`brasG`/`brasD`) ; `corps`/absente → au hasard.
-        const hand: 'main' | 'off' = ctx.location === 'brasG' ? 'off' : ctx.location === 'brasD' ? 'main' : rng.int(0, 1) === 0 ? 'main' : 'off';
+        const hand: Main = ctx.location === 'brasG' ? 'secondaire' : ctx.location === 'brasD' ? 'main' : rng.int(0, 1) === 0 ? 'main' : 'secondaire';
         target.handGates = [...(target.handGates ?? []).filter((h) => h !== hand), hand];
         lines.push(t('op.handGate', { name: target.label }));
         break;

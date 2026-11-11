@@ -18,6 +18,7 @@
  *  • la CAPTURE de touche du panneau de remap lui-même (`ui/KeyBindingsPanel.tsx`).
  */
 import type { GameState } from '../store';
+import type { PasRelatif } from '../../noyau/actionsDuNoyau';
 import { activeCombatant } from '../../noyau/combatFlow';
 import { controlsActive } from '../../noyau/netOwnership';
 import { reponsesDuNoeud, conversationRepond, COUCHE_CONVERSATION } from '../../noyau/dialogue';
@@ -35,6 +36,7 @@ import { SEUIL_MAINTIEN_MS, arreterLacet, demarrerLacet, pasYaw } from '../stage
 import { arreterMarche, demarrerMarche } from '../stageWalk';
 import { clearTrackedTimer, scheduleFlowTimer } from '../../web/minuteries';
 import { t, type MsgKey } from '../../i18n';
+import type { VerrouDesMots } from '../../noyau/fabriquesDuNoyau';
 import { fouilleOuverte } from '../../noyau/interactionsDExploration';
 import { jouerLOffreDeLEcran } from '../registreOffres';
 
@@ -117,8 +119,32 @@ export function modsMatch(declares: readonly KeyMod[], tenus: readonly KeyMod[],
   return !restants.includes('ctrl') && !restants.includes('alt');
 }
 
+/** Le sens ÉCRAN d'une touche de direction, en mots d'id (`curseur-haut`), par la direction écran qu'elle pousse. */
+export const SENS_DE_L_ECRAN = { up: 'haut', down: 'bas', left: 'gauche', right: 'droite' } as const satisfies Record<ScreenDir, string>;
+type SensDeLEcran = (typeof SENS_DE_L_ECRAN)[ScreenDir];
+/** Le rang d'une touche de chiffre (`Digit1` à `Digit9`). */
+const RANGS_DE_TOUCHE = [1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
+type RangDeTouche = (typeof RANGS_DE_TOUCHE)[number];
+
+/** L'id d'un raccourci du registre : la clé de sa surcharge persistée (`keyOverrides`) et de son appel par la manette
+ *  (`runBindingById`). */
+export type IdDeRaccourci =
+  | 'subjectif-avant' | 'subjectif-arriere' | 'subjectif-gauche' | 'subjectif-droite' | 'subjectif-pivot-gauche'
+  | 'subjectif-pivot-droite' | 'subjectif-basculer' | 'camera-gauche' | 'camera-droite' | 'camera-recentrer' | 'vue-basculer'
+  | 'decor-reveler' | 'fouiller-piece' | 'inspecter' | 'panoplie-changer' | 'debut-de-round' | 'tir-rapide-armer'
+  | `curseur-${SensDeLEcran}` | 'cible-suivante' | 'cible-precedente' | 'curseur-valider' | 'intention-annuler' | 'curseur-annuler'
+  | 'fin-de-tour' | 'apercu-effacer' | 'annulation-deplacement' | `dialogue-reponse-${RangDeTouche}` | `capacite-${RangDeTouche}`
+  | `exploration-${SensDeLEcran}` | 'interlude-sortie' | 'mode-desarmer' | 'menu-ouvrir' | 'editeur-pivot-gauche'
+  | 'editeur-pivot-droite' | 'editeur-panoramique' | 'editeur-annuler' | 'editeur-retablir' | 'editeur-retablir-maj'
+  | 'editeur-copier' | 'editeur-coller' | 'editeur-dupliquer' | 'editeur-supprimer' | `editeur-decaler-${SensDeLEcran}`
+  | 'editeur-echap';
+
+/** VERROU : un id de raccourci ne prend que des mots du lexique (#3924), ses rangs de chiffre à part. */
+const verrouDesRaccourcis: VerrouDesMots<IdDeRaccourci> = true;
+void verrouDesRaccourcis;
+
 export interface KeyBinding {
-  id: string;
+  id: IdDeRaccourci;
   /** Touche(s) par DÉFAUT, par POSITION physique (event.code), jamais le caractère. */
   codes: string[];
   /** Modificateurs tenus EXIGÉS, et exhaustifs : absent = touche NUE, qui refuse Ctrl/Alt tenus mais
@@ -129,7 +155,7 @@ export interface KeyBinding {
    *  pause de Round ⇄ fin de tour ⇄ curseur, les portes d'Échap). Toute autre collision de
    *  touche dans le registre est un accident, et la garde `keybindings.test.ts` la refuse. La
    *  déclaration est SYMÉTRIQUE : chaque membre d'une paire nomme l'autre. */
-  sharedBy?: string[];
+  sharedBy?: IdDeRaccourci[];
   /** Clé de libellé pour l'écran Options (remap) — résolue à l'affichage (`bindingLabel`), jamais au
    *  chargement : ce tableau est construit à l'évaluation du module. */
   labelKey: MsgKey;
@@ -213,7 +239,7 @@ const preemptCur = (s: GameState) => inBattle(s) && !!s.preemptAiming && mapLive
 const curOrPreempt = (s: GameState) => curMap(s) || preemptCur(s);
 /** Un mode de `battle.action` est ARMÉ SANS SORTIE déclarée : le registre n'expose aucune action
  *  d'interlude pour le mode de ciblage courant (Dissiper, Soigner, Incanter, Munition, Poussée), là
- *  où bordée et téléportation ont la leur — que `interlude-exit` prend. Sans ce prédicat, Échap
+ *  où bordée et téléportation ont la leur — que `interlude-sortie` prend. Sans ce prédicat, Échap
  *  n'avait aucun barreau pour ces armés-là et retombait sur le menu système. */
 const armeSansInterlude = (s: GameState) => inBattle(s) && !!s.battle!.action && !currentInterludeAction(() => s);
 /** Contexte d'EXPLORATION (carte hors combat) : écran de jeu, mode exploration. La conversation et
@@ -235,58 +261,58 @@ export const cibleDInspection = (s: GameState): string | null => {
 };
 /** Pas clavier d'exploration ISO (ZQSD) : code physique → direction ÉCRAN. Réservé à la vue iso (hors POV,
  *  où ces mêmes touches sont cap-relatives — cf. `exploringPov` ci-dessus, résolu AVANT par ordre de tableau). */
-const EXPLORE_STEP: { code: string; dir: ScreenDir; labelKey: MsgKey; povId: string }[] = [
-  { code: 'KeyW', dir: 'up', labelKey: 'key.exploreUp', povId: 'pov-forward' },
-  { code: 'KeyS', dir: 'down', labelKey: 'key.exploreDown', povId: 'pov-back' },
-  { code: 'KeyA', dir: 'left', labelKey: 'key.exploreLeft', povId: 'pov-strafe-l' },
-  { code: 'KeyD', dir: 'right', labelKey: 'key.exploreRight', povId: 'pov-strafe-r' },
+const EXPLORE_STEP: { code: string; dir: ScreenDir; labelKey: MsgKey; povId: IdDeRaccourci }[] = [
+  { code: 'KeyW', dir: 'up', labelKey: 'key.exploreUp', povId: 'subjectif-avant' },
+  { code: 'KeyS', dir: 'down', labelKey: 'key.exploreDown', povId: 'subjectif-arriere' },
+  { code: 'KeyA', dir: 'left', labelKey: 'key.exploreLeft', povId: 'subjectif-gauche' },
+  { code: 'KeyD', dir: 'right', labelKey: 'key.exploreRight', povId: 'subjectif-droite' },
 ];
 /** Pas clavier d'exploration en vue SUBJECTIVE (ZQSD cap-relatifs) : mêmes touches physiques, autre
  *  vocabulaire de direction — un seul mécanisme de marche tenue pour les deux vues (`stageWalk`). */
-const POV_STEP: { id: string; code: string; rel: 'forward' | 'back' | 'left' | 'right'; labelKey: MsgKey; isoId: string }[] = [
-  { id: 'pov-forward', code: 'KeyW', rel: 'forward', labelKey: 'key.povForward', isoId: 'explore-up' },
-  { id: 'pov-back', code: 'KeyS', rel: 'back', labelKey: 'key.povBack', isoId: 'explore-down' },
-  { id: 'pov-strafe-l', code: 'KeyA', rel: 'left', labelKey: 'key.povStrafeL', isoId: 'explore-left' },
-  { id: 'pov-strafe-r', code: 'KeyD', rel: 'right', labelKey: 'key.povStrafeR', isoId: 'explore-right' },
+const POV_STEP: { id: IdDeRaccourci; code: string; rel: PasRelatif; labelKey: MsgKey; isoId: IdDeRaccourci }[] = [
+  { id: 'subjectif-avant', code: 'KeyW', rel: 'avant', labelKey: 'key.povForward', isoId: 'exploration-haut' },
+  { id: 'subjectif-arriere', code: 'KeyS', rel: 'arriere', labelKey: 'key.povBack', isoId: 'exploration-bas' },
+  { id: 'subjectif-gauche', code: 'KeyA', rel: 'gauche', labelKey: 'key.povStrafeL', isoId: 'exploration-gauche' },
+  { id: 'subjectif-droite', code: 'KeyD', rel: 'droite', labelKey: 'key.povStrafeR', isoId: 'exploration-droite' },
 ];
 
 /** Contexte de l'ÉDITEUR de scène — le hook est monté au niveau application, l'écran arbitre. */
 const enEditeur = (s: GameState) => s.screen === 'editor';
 /** Décalage de la sélection d'une case, au sens ÉCRAN (mêmes flèches que le curseur de combat). */
-const EDITEUR_NUDGE: { dir: string; code: string; dx: number; dy: number; labelKey: MsgKey; curseurId: string }[] = [
-  { dir: 'up', code: 'ArrowUp', dx: 0, dy: -1, labelKey: 'key.editeurNudgeUp', curseurId: 'cursor-up' },
-  { dir: 'down', code: 'ArrowDown', dx: 0, dy: 1, labelKey: 'key.editeurNudgeDown', curseurId: 'cursor-down' },
-  { dir: 'left', code: 'ArrowLeft', dx: -1, dy: 0, labelKey: 'key.editeurNudgeLeft', curseurId: 'cursor-left' },
-  { dir: 'right', code: 'ArrowRight', dx: 1, dy: 0, labelKey: 'key.editeurNudgeRight', curseurId: 'cursor-right' },
+const EDITEUR_NUDGE: { dir: ScreenDir; code: string; dx: number; dy: number; labelKey: MsgKey; curseurId: IdDeRaccourci }[] = [
+  { dir: 'up', code: 'ArrowUp', dx: 0, dy: -1, labelKey: 'key.editeurNudgeUp', curseurId: 'curseur-haut' },
+  { dir: 'down', code: 'ArrowDown', dx: 0, dy: 1, labelKey: 'key.editeurNudgeDown', curseurId: 'curseur-bas' },
+  { dir: 'left', code: 'ArrowLeft', dx: -1, dy: 0, labelKey: 'key.editeurNudgeLeft', curseurId: 'curseur-gauche' },
+  { dir: 'right', code: 'ArrowRight', dx: 1, dy: 0, labelKey: 'key.editeurNudgeRight', curseurId: 'curseur-droite' },
 ];
 
 export const KEYBINDINGS: KeyBinding[] = [
   // ── Vue SUBJECTIVE (POV) — AVANT les cam-*/pas-iso (mêmes codes physiques) : find = 1er `when` vrai, donc
   //    tant que `povActive`, ces raccourcis GAGNENT (ZQSD cap-relatif, A/E pivotent le regard) ; hors POV
-  //    `exploringPov` est faux → cam-* et pas-iso reprennent la main. `toggle-pov` (F) commute la vue. ──
+  //    `exploringPov` est faux → cam-* et pas-iso reprennent la main. `subjectif-basculer` (F) commute la vue. ──
   ...POV_STEP.map(({ id, code, rel, labelKey, isoId }): KeyBinding => ({
     id, codes: [code], labelKey, section: 'pov', sharedBy: [isoId], when: exploringPov,
     run: (g) => demarrerMarche(g, { vue: 'pov', rel }), runUp: () => arreterMarche({ vue: 'pov', rel }),
   })),
-  { id: 'pov-turn-l', codes: ['KeyQ'], labelKey: 'key.povTurnL', section: 'pov', sharedBy: ['cam-left', 'editeur-rot-l'], when: exploringPov, unePression: true, run: (g) => g().pivoterLeGroupe(-1) },
-  { id: 'pov-turn-r', codes: ['KeyE'], labelKey: 'key.povTurnR', section: 'pov', sharedBy: ['cam-right', 'editeur-rot-r'], when: exploringPov, unePression: true, run: (g) => g().pivoterLeGroupe(1) },
-  { id: 'toggle-pov', codes: ['KeyF'], labelKey: 'key.togglePov', section: 'pov', when: exploring, run: (g) => g().togglePov() },
+  { id: 'subjectif-pivot-gauche', codes: ['KeyQ'], labelKey: 'key.povTurnL', section: 'pov', sharedBy: ['camera-gauche', 'editeur-pivot-gauche'], when: exploringPov, unePression: true, run: (g) => g().pivoterLeGroupe(-1) },
+  { id: 'subjectif-pivot-droite', codes: ['KeyE'], labelKey: 'key.povTurnR', section: 'pov', sharedBy: ['camera-droite', 'editeur-pivot-droite'], when: exploringPov, unePression: true, run: (g) => g().pivoterLeGroupe(1) },
+  { id: 'subjectif-basculer', codes: ['KeyF'], labelKey: 'key.togglePov', section: 'pov', when: exploring, run: (g) => g().togglePov() },
   // `when` : l'ÉCRAN DE JEU. Le hook est monté au niveau application (tous les écrans) — la caméra du
   // jeu ne tourne donc pas depuis l'éditeur, qui a la sienne sur les mêmes touches physiques.
-  { id: 'cam-left', codes: ['KeyQ'], labelKey: 'key.camLeft', section: 'camera', sharedBy: ['pov-turn-l', 'editeur-rot-l'], when: (s) => s.screen === 'campaign', run: (g) => tournerCamera(g, -1), runUp: () => relacherCamera() },
-  { id: 'cam-right', codes: ['KeyE'], labelKey: 'key.camRight', section: 'camera', sharedBy: ['pov-turn-r', 'editeur-rot-r'], when: (s) => s.screen === 'campaign', run: (g) => tournerCamera(g, 1), runUp: () => relacherCamera() },
+  { id: 'camera-gauche', codes: ['KeyQ'], labelKey: 'key.camLeft', section: 'camera', sharedBy: ['subjectif-pivot-gauche', 'editeur-pivot-gauche'], when: (s) => s.screen === 'campaign', run: (g) => tournerCamera(g, -1), runUp: () => relacherCamera() },
+  { id: 'camera-droite', codes: ['KeyE'], labelKey: 'key.camRight', section: 'camera', sharedBy: ['subjectif-pivot-droite', 'editeur-pivot-droite'], when: (s) => s.screen === 'campaign', run: (g) => tournerCamera(g, 1), runUp: () => relacherCamera() },
   // Recentrer : le panoramique manuel ET le zoom reviennent au repos d'un seul geste. Le zoom y est
   // joint parce que la molette avance par incréments continus (`useStageCamera`, `deltaY × 0.0015`) —
   // aucune suite de crans ne retombe exactement sur 1. Hors combat le focal est le leader du groupe
   // (`stageFocus`), en combat l'unité active : `resetCamPan` suffit dans les deux cas.
-  { id: 'cam-recenter', codes: ['KeyC'], labelKey: 'key.camRecenter', section: 'camera', when: (s) => s.screen === 'campaign', run: (g) => { g().resetCamPan(); g().setZoom(1); } },
-  // Vue ISO ⇄ TOP au clavier. Muette en POV : la vue subjective a sa propre bascule (`toggle-pov`).
-  { id: 'toggle-view', codes: ['KeyV'], labelKey: 'key.toggleView', section: 'camera', when: (s) => s.screen === 'campaign' && !s.povActive, run: (g) => g().toggleViewMode() },
+  { id: 'camera-recentrer', codes: ['KeyC'], labelKey: 'key.camRecenter', section: 'camera', when: (s) => s.screen === 'campaign', run: (g) => { g().resetCamPan(); g().setZoom(1); } },
+  // Vue ISO ⇄ TOP au clavier. Muette en POV : la vue subjective a sa propre bascule (`subjectif-basculer`).
+  { id: 'vue-basculer', codes: ['KeyV'], labelKey: 'key.toggleView', section: 'camera', when: (s) => s.screen === 'campaign' && !s.povActive, run: (g) => g().toggleViewMode() },
   // RÉVÉLER les utilisables (#1687) : geste MAINTENU sur les deux positions d'Alt — il dure ce que dure
   // l'appui, en exploration comme en combat (ce que le monde offre ne dépend pas du mode). L'état qu'il
   // pose est lu par les halos et les plaques de nom (`builders/interactHalos`, `stage/PlaquesDeNom`).
   {
-    id: 'decor.reveler', codes: ['AltLeft', 'AltRight'], mods: [], labelKey: 'key.reveler', section: 'exploration',
+    id: 'decor-reveler', codes: ['AltLeft', 'AltRight'], mods: [], labelKey: 'key.reveler', section: 'exploration',
     when: (s) => exploring(s) || inBattle(s),
     run: (g) => g().setReveler(true), runUp: (g) => g().setReveler(false),
   },
@@ -307,14 +333,14 @@ export const KEYBINDINGS: KeyBinding[] = [
   // Commuter le SET d'armes au poing (LDB 13 l.106) : la touche FAIT TOURNER les sets de la colonne de la
   // console, dans l'ordre où ils y sont dessinés. Sa garde EST le gate du registre (`set-commutable`).
   {
-    id: 'switch-loadout', codes: ['KeyX'], labelKey: 'key.switchLoadout', section: 'combat',
+    id: 'panoplie-changer', codes: ['KeyX'], labelKey: 'key.switchLoadout', section: 'combat',
     when: (s) => {
       if (!cur(s)) return false;
       const active = activeCombatant(s.battle!);
-      return !!active && actionGate('switch-loadout', { active, battle: s.battle!, netMode: s.net.mode, gameTime: s.gameTime }).ok;
+      return !!active && actionGate('panoplie', { active, battle: s.battle!, netMode: s.net.mode, gameTime: s.gameTime }).ok;
     },
     // La touche CHOISIT le set suivant (geste de clavier) ; l'EXÉCUTION passe par le registre
-    // d'actions (le geste de `switch-loadout`) — le clavier est un CONSOMMATEUR du registre, pas
+    // d'actions (le geste de `panoplie`) — le clavier est un CONSOMMATEUR du registre, pas
     // un 5ᵉ espace d'ids qui appellerait le store en direct.
     run: (g) => {
       const s = g();
@@ -322,30 +348,30 @@ export const KEYBINDINGS: KeyBinding[] = [
       const sets = active?.loadouts ?? [];
       if (!active || !sets.length) return;
       const i = sets.findIndex((l) => l.id === active.activeLoadoutId);
-      jouerLOffreDeLEcran(s, 'switch-loadout', { loadoutId: sets[(i + 1) % sets.length].id });
+      jouerLOffreDeLEcran(s, 'panoplie', { loadoutId: sets[(i + 1) % sets.length].id });
     },
   },
   // Pause d'initiative de début de Round (LDB 17 l.25) : Espace/Entrée = « Commencer le round » (le SEUL
   // geste possible) → passage de Round jouable SANS souris. AVANT les bindings curseur/fin-de-tour (mêmes
   // touches) : sa garde `pendingRoundStart` arbitre. notWhenControlFocused : si le bouton « Commencer » est
   // focalisé, son activation native suffit (pas de double appel). La touche est un CONSOMMATEUR du
-  // registre d'actions (`round-start`) : l'arbitrage solo/coop vit dans SON dispatcher, une seule fois.
+  // registre d'actions (`debut-de-round`) : l'arbitrage solo/coop vit dans SON dispatcher, une seule fois.
   {
-    id: 'round-start', codes: ['Space', 'Enter', 'NumpadEnter'], labelKey: 'verbe.roundStart.valider', section: 'combat', notWhenControlFocused: true, sharedBy: ['end-turn', 'cursor-commit', 'editeur-pan'],
+    id: 'debut-de-round', codes: ['Space', 'Enter', 'NumpadEnter'], labelKey: 'verbe.debutDuRound.valider', section: 'combat', notWhenControlFocused: true, sharedBy: ['fin-de-tour', 'curseur-valider', 'editeur-panoramique'],
     when: (s) => inBattle(s) && !!s.pendingRoundStart && !s.preemptAiming, // visée Tir rapide armée → Entrée TIRE (curseur), pas « commencer »
-    run: (g) => jouerLOffreDeLEcran(g(), 'round-start'),
+    run: (g) => jouerLOffreDeLEcran(g(), 'debut-de-round'),
   },
   // Tir rapide (talent, LDB 11 l.97-103) au CLAVIER : pendant la pause, `T` arme la visée d'interruption du 1ᵉʳ tireur
   // éligible (puis cycle les suivants, puis désarme) et pose le curseur sur la cible la plus proche → flèches/Tab
   // visent, Entrée TIRE, Échap annule. Réutilise le curseur de combat existant (aucun chemin parallèle).
   {
-    id: 'preempt-arm', codes: ['KeyT'], labelKey: 'key.preemptArm', section: 'combat',
+    id: 'tir-rapide-armer', codes: ['KeyT'], labelKey: 'key.preemptArm', section: 'combat',
     when: (s) => inBattle(s) && !!s.pendingRoundStart && preemptShooterIds(() => s).length > 0,
     run: (g) => {
       const shooters = preemptShooterIds(g);
       const i = g().preemptAiming ? shooters.indexOf(g().preemptAiming!) : -1;
       const next = i + 1 < shooters.length ? shooters[i + 1] : null; // tireur suivant, puis désarme après le dernier
-      g().fenetreChoisir('roundStart', 'viser', next);
+      g().fenetreChoisir('debutDuRound', 'viser', next);
       if (next) g().snapCursorToTarget(1); else g().clearCursor(); // pose le curseur sur la cible la plus proche
     },
   },
@@ -354,89 +380,89 @@ export const KEYBINDINGS: KeyBinding[] = [
   //    `notWhenControlFocused` : un CONTRÔLE focalisé possède ses propres flèches (menu, infobulle de
   //    règle d'un bouton de pool, liste à roving tabindex). Sans cette garde, le curseur tactique
   //    court AVEC lui sur la même touche — le ↓ qui devait ouvrir la porte de la fiche déplaçait
-  //    aussi la visée (recette B3a, capture 04). Même doctrine que `round-start`/`end-turn` pour
+  //    aussi la visée (recette B3a, capture 04). Même doctrine que `debut-de-round`/`fin-de-tour` pour
   //    Espace/Entrée, étendue aux flèches : la touche appartient au contrôle qui a le focus.
-  { id: 'cursor-up', codes: ['ArrowUp'], labelKey: 'key.cursorUp', section: 'curseur', notWhenControlFocused: true, sharedBy: ['editeur-nudge-up'], when: curOrPreempt, run: (g) => g().moveCursor('up') },
-  { id: 'cursor-down', codes: ['ArrowDown'], labelKey: 'key.cursorDown', section: 'curseur', notWhenControlFocused: true, sharedBy: ['editeur-nudge-down'], when: curOrPreempt, run: (g) => g().moveCursor('down') },
-  { id: 'cursor-left', codes: ['ArrowLeft'], labelKey: 'key.cursorLeft', section: 'curseur', notWhenControlFocused: true, sharedBy: ['editeur-nudge-left'], when: curOrPreempt, run: (g) => g().moveCursor('left') },
-  { id: 'cursor-right', codes: ['ArrowRight'], labelKey: 'key.cursorRight', section: 'curseur', notWhenControlFocused: true, sharedBy: ['editeur-nudge-right'], when: curOrPreempt, run: (g) => g().moveCursor('right') },
+  { id: 'curseur-haut', codes: ['ArrowUp'], labelKey: 'key.cursorUp', section: 'curseur', notWhenControlFocused: true, sharedBy: ['editeur-decaler-haut'], when: curOrPreempt, run: (g) => g().moveCursor('up') },
+  { id: 'curseur-bas', codes: ['ArrowDown'], labelKey: 'key.cursorDown', section: 'curseur', notWhenControlFocused: true, sharedBy: ['editeur-decaler-bas'], when: curOrPreempt, run: (g) => g().moveCursor('down') },
+  { id: 'curseur-gauche', codes: ['ArrowLeft'], labelKey: 'key.cursorLeft', section: 'curseur', notWhenControlFocused: true, sharedBy: ['editeur-decaler-gauche'], when: curOrPreempt, run: (g) => g().moveCursor('left') },
+  { id: 'curseur-droite', codes: ['ArrowRight'], labelKey: 'key.cursorRight', section: 'curseur', notWhenControlFocused: true, sharedBy: ['editeur-decaler-droite'], when: curOrPreempt, run: (g) => g().moveCursor('right') },
   // Tab : aimante le curseur sur la cible valide suivante (cycle proche→loin) ; gardé sur ≥1 cible
   // (sinon Tab garde sa nav normale). `²/~` = cible précédente.
   {
-    id: 'target-next', codes: ['Tab'], labelKey: 'key.targetNext', section: 'curseur',
+    id: 'cible-suivante', codes: ['Tab'], labelKey: 'key.targetNext', section: 'curseur',
     when: (s) => curOrPreempt(s) && validTargets(() => s).length > 0,
     run: (g) => g().snapCursorToTarget(1),
   },
   {
-    id: 'target-prev', codes: ['Backquote'], labelKey: 'key.targetPrev', section: 'curseur',
+    id: 'cible-precedente', codes: ['Backquote'], labelKey: 'key.targetPrev', section: 'curseur',
     when: (s) => curOrPreempt(s) && validTargets(() => s).length > 0,
     run: (g) => g().snapCursorToTarget(-1),
   },
   // Valider/annuler le curseur — AVANT end-turn/clear-preview : avec un curseur posé, Entrée commet
   // et Échap désélectionne ; sans curseur, Entrée finit le tour et Échap purge l'aperçu (1er match).
   // PAS `notWhenControlFocused` (#199) : un `combatCursor` n'existe QUE si une flèche a déjà été
-  // pressée (bindings `cursor-*`, gardés par `curOrPreempt`) — on est donc DÉJÀ dans un flux clavier,
+  // pressée (bindings `curseur-*`, gardés par `curOrPreempt`) — on est donc DÉJÀ dans un flux clavier,
   // jamais dans le cas « Tab a posé le focus sur un bouton, Entrée doit l'activer » que la garde protège
   // ailleurs. Sans ce retrait, le focus RÉSIDUEL d'un bouton de barre d'action cliqué à la souris (ex.
-  // « Pousser ») pour ENTRER dans le mode-CASE masquait `cursor-commit` : Entrée retombait sur
+  // « Pousser ») pour ENTRER dans le mode-CASE masquait `curseur-valider` : Entrée retombait sur
   // l'activation native du bouton encore focalisé (qui ferme le mode, aucune poussée commise).
   {
-    id: 'cursor-commit', codes: ['Enter', 'NumpadEnter'], labelKey: 'key.cursorCommit', section: 'curseur', sharedBy: ['round-start', 'end-turn'],
+    id: 'curseur-valider', codes: ['Enter', 'NumpadEnter'], labelKey: 'key.cursorCommit', section: 'curseur', sharedBy: ['debut-de-round', 'fin-de-tour'],
     when: (s) => curOrPreempt(s) && !!s.combatCursor,
     run: (g) => g().commitCursor(),
   },
   // INTENTION armée depuis l'interface (spec HUD zone 4) : Échap la dissout AVANT tout autre usage de
   // la touche — c'est l'annulation la plus récente, celle que le joueur vient d'ouvrir.
   {
-    id: 'intent-cancel', codes: [CODE_ECHAP], labelKey: 'key.intentCancel', section: 'combat', sharedBy: ['cursor-cancel', 'clear-preview', 'toggle-menu', 'interlude-exit', 'action-disarm', 'editeur-echap'],
+    id: 'intention-annuler', codes: [CODE_ECHAP], labelKey: 'key.intentCancel', section: 'combat', sharedBy: ['curseur-annuler', 'apercu-effacer', 'menu-ouvrir', 'interlude-sortie', 'mode-desarmer', 'editeur-echap'],
     when: (s) => !!s.localIntent,
     run: (g) => g().desarmerLeMode(),
   },
   {
-    id: 'cursor-cancel', codes: [CODE_ECHAP], labelKey: 'key.cursorCancel', section: 'curseur', sharedBy: ['clear-preview', 'toggle-menu', 'intent-cancel', 'interlude-exit', 'action-disarm', 'editeur-echap'],
+    id: 'curseur-annuler', codes: [CODE_ECHAP], labelKey: 'key.cursorCancel', section: 'curseur', sharedBy: ['apercu-effacer', 'menu-ouvrir', 'intention-annuler', 'interlude-sortie', 'mode-desarmer', 'editeur-echap'],
     when: (s) => !!s.combatCursor || preemptCur(s), // armé sans cible en vue : Échap désarme quand même le Tir rapide
-    run: (g) => { if (g().preemptAiming) g().fenetreChoisir('roundStart', 'viser', null); g().clearCursor(); if (g().battle?.preview) g().effacerLApercu(); },
+    run: (g) => { if (g().preemptAiming) g().fenetreChoisir('debutDuRound', 'viser', null); g().clearCursor(); if (g().battle?.preview) g().effacerLApercu(); },
   },
   {
-    id: 'end-turn', codes: ['Space', 'Enter', 'NumpadEnter'], labelKey: 'key.endTurn', section: 'combat', notWhenControlFocused: true, sharedBy: ['round-start', 'cursor-commit', 'editeur-pan'],
+    id: 'fin-de-tour', codes: ['Space', 'Enter', 'NumpadEnter'], labelKey: 'key.endTurn', section: 'combat', notWhenControlFocused: true, sharedBy: ['debut-de-round', 'curseur-valider', 'editeur-panoramique'],
     // Fin du tour : action NOMMÉE du registre (`actions.json`), jouée par son geste — la touche
     // ne connaît plus la méthode du store.
-    when: (s) => cur(s), run: (g) => jouerLOffreDeLEcran(g(), 'end-turn'),
+    when: (s) => cur(s), run: (g) => jouerLOffreDeLEcran(g(), 'fin-de-tour'),
   },
   {
-    id: 'clear-preview', codes: [CODE_ECHAP], labelKey: 'key.clearPreview', section: 'combat', sharedBy: ['cursor-cancel', 'toggle-menu', 'intent-cancel', 'interlude-exit', 'action-disarm', 'editeur-echap'],
+    id: 'apercu-effacer', codes: [CODE_ECHAP], labelKey: 'key.clearPreview', section: 'combat', sharedBy: ['curseur-annuler', 'menu-ouvrir', 'intention-annuler', 'interlude-sortie', 'mode-desarmer', 'editeur-echap'],
     when: (s) => !!s.battle?.preview,
     run: (g) => g().effacerLApercu(),
   },
-  // ANNULER LE DÉPLACEMENT du tour (`undo-move`) : la touche du geste adossé à la gouttière de
+  // ANNULER LE DÉPLACEMENT du tour (`annulation-deplacement`) : la touche du geste adossé à la gouttière de
   // Mouvement de la console. Sa garde EST le gate du registre (`deplacement-annulable`) — la touche
   // ne recopie aucun prédicat, et elle se tait exactement quand le geste n'est pas rendu à l'écran.
   {
-    id: 'undo-move', codes: ['Backspace'], labelKey: 'key.undoMove', section: 'combat', sharedBy: ['editeur-supprimer'],
+    id: 'annulation-deplacement', codes: ['Backspace'], labelKey: 'key.undoMove', section: 'combat', sharedBy: ['editeur-supprimer'],
     when: (s) => {
       if (!cur(s)) return false;
       const active = activeCombatant(s.battle!);
-      return !!active && actionGate('undo-move', { active, battle: s.battle!, netMode: s.net.mode, gameTime: s.gameTime }).ok;
+      return !!active && actionGate('annulation-deplacement', { active, battle: s.battle!, netMode: s.net.mode, gameTime: s.gameTime }).ok;
     },
-    run: (g) => jouerLOffreDeLEcran(g(), 'undo-move'),
+    run: (g) => jouerLOffreDeLEcran(g(), 'annulation-deplacement'),
   },
   // ── RÉPONSES d'un DIALOGUE (1-9) : la touche du RANG choisit la réponse NUMÉROTÉE à l'écran.
   //    Le rang est celui de la liste VISIBLE (`reponsesDuNoeud`, source unique partagée avec la
   //    fenêtre) : une réponse masquée par son `when` ne consomme pas de numéro, et une réponse
   //    FERMÉE (siège qui ne décide pas, bourse trop courte) est inerte à la touche comme au clic —
-  //    c'est le MÊME `enabled`. Déclarées AVANT `hotbar-N` (mêmes codes physiques) : un dialogue
+  //    c'est le MÊME `enabled`. Déclarées AVANT `capacite-N` (mêmes codes physiques) : un dialogue
   //    ouvert EN COMBAT donne les chiffres à la conversation, pas à la grille de capacités.
   //    `coucheDialogue` les rend audibles pendant la conversation, où tout le reste se tait.
   //    `conversationRepond` (siège + `surfaceTientLaMain`) est le prédicat que lit aussi le refus du choix
   //    `dialogue.reponse` (`OUVERTS_DU_CHOIX`) : la touche ne s'offre pas quand le choix refuserait — sous la
   //    fenêtre de jet, le marché ou l'écran plein qu'une réponse vient d'ouvrir.
-  ...Array.from({ length: 9 }, (_, i): KeyBinding => ({
-    id: `dialogue-choice-${i + 1}`, codes: [`Digit${i + 1}`], labelKey: 'key.dialogueChoice', labelParams: { n: i + 1 }, section: 'dialogue',
-    ...(i < TOUCHES_IMPRIMEES ? { sharedBy: [`hotbar-${i + 1}`] } : {}),
+  ...RANGS_DE_TOUCHE.map((n): KeyBinding => ({
+    id: `dialogue-reponse-${n}`, codes: [`Digit${n}`], labelKey: 'key.dialogueChoice', labelParams: { n }, section: 'dialogue',
+    ...(n <= TOUCHES_IMPRIMEES ? { sharedBy: [`capacite-${n}`] } : {}),
     coucheDialogue: true,
     when: conversationRepond,
     run: (g) => {
-      const r = reponsesDuNoeud(g()).find((x) => x.rang === i + 1);
+      const r = reponsesDuNoeud(g()).find((x) => x.rang === n);
       if (r?.enabled) g().fenetreChoisir('dialogue', 'reponse', r.id); // l'`id` de la DONNÉE, jamais le rang
     },
   })),
@@ -444,11 +470,11 @@ export const KEYBINDINGS: KeyBinding[] = [
   // — spec HUD zone 8, `docs/plans/2026-08-16-spec-hud-combat.md`), via le pont `hotbar` publié par la
   // `CombatConsole`. La touche d'un rang vide ou fermé ne déclenche rien, et ne glisse pas au voisin.
   // Inactif hors de son tour / pendant une modale.
-  ...Array.from({ length: TOUCHES_IMPRIMEES }, (_, i): KeyBinding => ({
-    id: `hotbar-${i + 1}`, codes: [`Digit${i + 1}`], labelKey: 'key.hotbarSlot', labelParams: { n: i + 1 }, section: 'hotbar',
-    sharedBy: [`dialogue-choice-${i + 1}`],
+  ...RANGS_DE_TOUCHE.slice(0, TOUCHES_IMPRIMEES).map((n): KeyBinding => ({
+    id: `capacite-${n}`, codes: [`Digit${n}`], labelKey: 'key.hotbarSlot', labelParams: { n }, section: 'hotbar',
+    sharedBy: [`dialogue-reponse-${n}`],
     when: (s) => inBattle(s) && controlsActive(s) && noModal(s),
-    run: () => { const sl = hotbar.capacites[i]; if (sl?.run && !sl.disabled) sl.run(); },
+    run: () => { const sl = hotbar.capacites[n - 1]; if (sl?.run && !sl.disabled) sl.run(); },
   })),
   // ── Pas clavier d'EXPLORATION ISO (ZQSD) : un pas du groupe vers la surface voisine CONNECTÉE dans le
   //    sens écran poussé (rampes/tabliers via exploreStepDest) → le multi-couche, injouable au clic
@@ -456,7 +482,7 @@ export const KEYBINDINGS: KeyBinding[] = [
   //    mêmes ZQSD sont cap-relatifs (bindings pov-* ci-dessus, résolus AVANT). Les flèches restent au SEUL
   //    curseur de combat (garde `cur`) — plus de partage de codes avec l'exploration.
   ...EXPLORE_STEP.map(({ code, dir, labelKey, povId }): KeyBinding => ({
-    id: `explore-${dir}`, codes: [code], labelKey, section: 'exploration', sharedBy: [povId], when: (s) => exploring(s) && !s.povActive,
+    id: `exploration-${SENS_DE_L_ECRAN[dir]}`, codes: [code], labelKey, section: 'exploration', sharedBy: [povId], when: (s) => exploring(s) && !s.povActive,
     run: (g) => demarrerMarche(g, { vue: 'iso', dir }), runUp: () => arreterMarche({ vue: 'iso', dir }),
   })),
   // Menu système PLEIN ÉCRAN (pause) : Échap l'OUVRE quand rien d'autre ne réclame la touche. Placé
@@ -471,27 +497,27 @@ export const KEYBINDINGS: KeyBinding[] = [
   // y sont atteignables : une sortie qui COMMET (renoncer à un enchaînement, se poser sur sa case)
   // se clique, la touche d'annulation ne la déclenche pas.
   {
-    id: 'interlude-exit', codes: [CODE_ECHAP], labelKey: 'key.interludeExit', section: 'combat',
-    sharedBy: ['cursor-cancel', 'clear-preview', 'intent-cancel', 'toggle-menu', 'action-disarm', 'editeur-echap'],
+    id: 'interlude-sortie', codes: [CODE_ECHAP], labelKey: 'key.interludeExit', section: 'combat',
+    sharedBy: ['curseur-annuler', 'apercu-effacer', 'intention-annuler', 'menu-ouvrir', 'mode-desarmer', 'editeur-echap'],
     when: (s) => inBattle(s) && controlsActive(s) && !!currentInterludeAction(() => s)?.exitSafe,
     run: (g) => { const def = currentInterludeAction(g); if (def) jouerLOffreDeLEcran(g(), def.id); },
   },
   // MODE ARMÉ SANS INTERLUDE (Dissiper, Soigner, Incanter, Munition, Poussée) : la touche prend le
   // désarmement CANONIQUE du noyau (`desarmerLeMode`, celui du re-clic sur la case et de
-  // `battery-cancel`), sans quoi Échap ouvrirait le menu système par-dessus le mode resté armé.
+  // `annulation-bordee`), sans quoi Échap ouvrirait le menu système par-dessus le mode resté armé.
   {
-    id: 'action-disarm', codes: [CODE_ECHAP], labelKey: 'key.actionDisarm', section: 'combat',
-    sharedBy: ['cursor-cancel', 'clear-preview', 'intent-cancel', 'interlude-exit', 'toggle-menu', 'editeur-echap'],
+    id: 'mode-desarmer', codes: [CODE_ECHAP], labelKey: 'key.actionDisarm', section: 'combat',
+    sharedBy: ['curseur-annuler', 'apercu-effacer', 'intention-annuler', 'interlude-sortie', 'menu-ouvrir', 'editeur-echap'],
     when: (s) => cur(s) && armeSansInterlude(s),
     run: (g) => g().desarmerLeMode(),
   },
   {
-    id: 'toggle-menu', codes: [CODE_ECHAP], labelKey: 'key.toggleMenu', section: 'systeme', sharedBy: ['cursor-cancel', 'clear-preview', 'intent-cancel', 'interlude-exit', 'action-disarm', 'editeur-echap'],
+    id: 'menu-ouvrir', codes: [CODE_ECHAP], labelKey: 'key.toggleMenu', section: 'systeme', sharedBy: ['curseur-annuler', 'apercu-effacer', 'intention-annuler', 'interlude-sortie', 'mode-desarmer', 'editeur-echap'],
     // Un interlude de ciblage OCCUPE Échap, même quand sa sortie n'est pas atteignable à la touche
     // (`exitSafe: false`) : la touche ne doit pas ouvrir le menu par-dessus un ciblage en cours.
-    // MAIS il ne l'occupe QU'AU SIÈGE QUI LE TIENT : `interlude-exit` exige `controlsActive`, donc
+    // MAIS il ne l'occupe QU'AU SIÈGE QUI LE TIENT : `interlude-sortie` exige `controlsActive`, donc
     // pendant le ciblage d'un AUTRE joueur, un siège qui n'a pas la main n'aurait ni sortie ni menu.
-    // Garde COMPLÉMENTAIRE d'`action-disarm` : un mode armé sans interlude occupe la touche au siège
+    // Garde COMPLÉMENTAIRE d'`mode-desarmer` : un mode armé sans interlude occupe la touche au siège
     // qui le tient, et la rend au menu chez les autres (même frontière que ci-dessus).
     when: (s) =>
       s.screen === 'campaign' && !s.gameMenuOpen && noModal(s) &&
@@ -505,13 +531,13 @@ export const KEYBINDINGS: KeyBinding[] = [
   // d'un clavier AZERTY) — la doctrine du registre l'emporte sur l'habitude du raccourci système.
   // L'état de l'éditeur (sélection, presse-papier, pile d'annulation) est LOCAL à React : ces `run`
   // passent par le pont `editeurBridge`, et ne font rien tant que l'éditeur n'a pas publié.
-  { id: 'editeur-rot-l', codes: ['KeyQ'], labelKey: 'key.editeurRotL', section: 'editeur', sharedBy: ['cam-left', 'pov-turn-l'], when: enEditeur, run: () => editeur.tourner?.(-1) },
-  { id: 'editeur-rot-r', codes: ['KeyE'], labelKey: 'key.editeurRotR', section: 'editeur', sharedBy: ['cam-right', 'pov-turn-r'], when: enEditeur, run: () => editeur.tourner?.(1) },
+  { id: 'editeur-pivot-gauche', codes: ['KeyQ'], labelKey: 'key.editeurRotL', section: 'editeur', sharedBy: ['camera-gauche', 'subjectif-pivot-gauche'], when: enEditeur, run: () => editeur.tourner?.(-1) },
+  { id: 'editeur-pivot-droite', codes: ['KeyE'], labelKey: 'key.editeurRotR', section: 'editeur', sharedBy: ['camera-droite', 'subjectif-pivot-droite'], when: enEditeur, run: () => editeur.tourner?.(1) },
   // Geste MAINTENU : le panoramique dure tant que la touche est tenue (`runUp` le termine, et le
   // relâchement de sécurité du hook le termine aussi quand la fenêtre perd le focus).
   {
-    id: 'editeur-pan', codes: ['Space'], labelKey: 'key.editeurPan', section: 'editeur', notWhenControlFocused: true,
-    sharedBy: ['round-start', 'end-turn'], when: enEditeur,
+    id: 'editeur-panoramique', codes: ['Space'], labelKey: 'key.editeurPan', section: 'editeur', notWhenControlFocused: true,
+    sharedBy: ['debut-de-round', 'fin-de-tour'], when: enEditeur,
     run: () => editeur.pan?.(true), runUp: () => editeur.pan?.(false),
   },
   { id: 'editeur-annuler', codes: ['KeyZ'], mods: ['ctrl'], labelKey: 'key.editeurAnnuler', section: 'editeur', when: enEditeur, run: () => editeur.annuler?.() },
@@ -523,16 +549,16 @@ export const KEYBINDINGS: KeyBinding[] = [
   { id: 'editeur-copier', codes: ['KeyC'], mods: ['ctrl'], labelKey: 'key.editeurCopier', section: 'editeur', when: enEditeur, run: () => editeur.copier?.() },
   { id: 'editeur-coller', codes: ['KeyV'], mods: ['ctrl'], labelKey: 'key.editeurColler', section: 'editeur', when: enEditeur, run: () => editeur.coller?.() },
   { id: 'editeur-dupliquer', codes: ['KeyD'], mods: ['ctrl'], labelKey: 'key.editeurDupliquer', section: 'editeur', when: enEditeur, run: () => editeur.dupliquer?.() },
-  { id: 'editeur-supprimer', codes: ['Delete', 'Backspace'], labelKey: 'key.editeurSupprimer', section: 'editeur', sharedBy: ['undo-move'], when: enEditeur, run: () => editeur.supprimer?.() },
+  { id: 'editeur-supprimer', codes: ['Delete', 'Backspace'], labelKey: 'key.editeurSupprimer', section: 'editeur', sharedBy: ['annulation-deplacement'], when: enEditeur, run: () => editeur.supprimer?.() },
   ...EDITEUR_NUDGE.map(({ dir, code, dx, dy, labelKey, curseurId }): KeyBinding => ({
-    id: `editeur-nudge-${dir}`, codes: [code], labelKey, section: 'editeur', notWhenControlFocused: true,
+    id: `editeur-decaler-${SENS_DE_L_ECRAN[dir]}`, codes: [code], labelKey, section: 'editeur', notWhenControlFocused: true,
     sharedBy: [curseurId], when: enEditeur, run: () => editeur.deplacer?.(dx, dy),
   })),
   // UNE seule entrée d'annulation pour l'éditeur : c'est le PONT qui arbitre, par la PRÉSENCE de sa
   // commande — le menu fichier ne publie `fermerMenuFichier` que tant qu'il est ouvert.
   {
     id: 'editeur-echap', codes: [CODE_ECHAP], labelKey: 'key.editeurEchap', section: 'editeur',
-    sharedBy: ['cursor-cancel', 'clear-preview', 'intent-cancel', 'interlude-exit', 'action-disarm', 'toggle-menu'],
+    sharedBy: ['curseur-annuler', 'apercu-effacer', 'intention-annuler', 'interlude-sortie', 'mode-desarmer', 'menu-ouvrir'],
     when: enEditeur,
     run: () => { if (editeur.fermerMenuFichier) editeur.fermerMenuFichier(); else editeur.deselectionner?.(); },
   },
@@ -610,11 +636,11 @@ export function elireBinding(
 }
 
 /** Le raccourci d'`id` donné (ids uniques au registre, garde `keybindings.test.ts`). */
-export const bindingParId = (id: string): KeyBinding | undefined => KEYBINDINGS.find((k) => k.id === id);
+export const bindingParId = (id: IdDeRaccourci): KeyBinding | undefined => KEYBINDINGS.find((k) => k.id === id);
 
 /** Exécute un raccourci par son `id` (s'il s'applique au contexte courant) — table d'intentions PARTAGÉE
  *  par le clavier ET la manette : un seul endroit porte les couches, la garde `when` et l'action `run`. */
-export function runBindingById(id: string, get: () => GameState): void {
+export function runBindingById(id: IdDeRaccourci, get: () => GameState): void {
   const b = bindingParId(id);
   if (b && bindingApplies(b, get())) b.run(get);
 }
@@ -622,7 +648,7 @@ export function runBindingById(id: string, get: () => GameState): void {
 /** RELÂCHE un raccourci par son `id` — pendant du précédent pour les gestes MAINTENUS (`runUp`), que
  *  la manette doit signaler comme le clavier : sans lui, un geste tenu armé par `runBindingById` n'a
  *  aucune fin. Sans garde `when` : un geste s'arrête même si le contexte a changé pendant qu'il durait. */
-export function runBindingUpById(id: string, get: () => GameState): void {
+export function runBindingUpById(id: IdDeRaccourci, get: () => GameState): void {
   bindingParId(id)?.runUp?.(get);
 }
 

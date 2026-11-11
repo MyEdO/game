@@ -38,7 +38,7 @@ export interface FieldDesc {
   /** Bornes d'un champ `number` lues sur son nœud (`bornesDuNoeud`). */
   bornes?: BornesDuNombre;
   /** Le CONTEXTE du porteur du formulaire où vit ce champ (`formulaireDe`, `noyau/sceneEditLecture.ts`) : ce qu'il offre
-   *  sous lui, et ses choix. */
+   *  sous lui, et ses choix ; d'un record, les clés qu'il offre (`champsDuRecord`). */
   contexte?: ContexteDuChamp;
 }
 
@@ -46,11 +46,13 @@ export interface FieldDesc {
  *  admis). */
 export interface ChoixDuContexte { valeur: unknown; libelle: string; refus: string | null }
 
-/** Le contexte du porteur d'un formulaire, à un chemin de sa donnée : le chemin est-il offert (`cheminOffert`), et les
- *  choix qu'il y pose, dans leur ordre (`choixDuChamp`), qui priment sur ceux du nœud (`choixDuNoeud`,
- *  `variantesAChoisir`) ; `undefined` : ceux du nœud. */
+/** Le contexte du porteur d'un formulaire, à un chemin de sa donnée : le chemin est-il offert (`cheminOffert`), s'y
+ *  écrit-il entier, retrait compris, là où la donnée vaut `actuelle` (`ecritureOfferte`), et les choix qu'il y pose, dans
+ *  leur ordre (`choixDuChamp`), qui priment sur ceux du nœud (`choixDuNoeud`, `variantesAChoisir`) ; `undefined` : ceux
+ *  du nœud. */
 export interface ContexteDuChamp {
   offert: (chemin: readonly (string | number)[]) => boolean;
+  ecrivable: (chemin: readonly (string | number)[], actuelle: unknown) => boolean;
   choix: (chemin: readonly (string | number)[]) => readonly ChoixDuContexte[] | undefined;
 }
 
@@ -209,6 +211,27 @@ export function champDeLElement(liste: FieldDesc, rang: number): FieldDesc {
   const kind = kindDuNoeud('', noeud);
   const bornes = kind === 'number' ? bornesDuNoeud(noeud) : undefined;
   return { key: String(rang), label: `${liste.label} ${rang + 1}`, kind, nullable: false, noeud, ...(bornes ? { bornes } : {}), ...(liste.contexte ? { contexte: liste.contexte } : {}) };
+}
+
+/** Le nœud de la clé et celui de la valeur du nœud quand sa seule forme est un record ; `undefined` sinon. */
+export function recordDuNoeud(noeud: unknown): { cle: unknown; valeur: unknown } | undefined {
+  const n = seuleForme(noeud);
+  if (defDe(n)?.type !== 'record') return undefined;
+  const enfant = (segment: string) => enfantsDe(n).find((e) => e.segment === segment)?.noeud;
+  return { cle: enfant('{clé}'), valeur: enfant('{}') };
+}
+
+/** Les champs du record du champ `record` (`recordDuNoeud`), de donnée `donnee`, au chemin `ici` : une entrée par clé
+ *  admise que son contexte y pose (`FieldDesc.contexte`), sinon par valeur de sa clé (`choixDuNoeud`), puis par clé que
+ *  la donnée porte hors d'elles ; chacune nommée par le libellé de sa clé, vidable, puisqu'elle se retire de son record,
+ *  au contexte du record. */
+export function champsDuRecord(record: FieldDesc, donnee: Record<string, unknown>, ici: readonly (string | number)[]): FieldDesc[] {
+  const { cle, valeur } = recordDuNoeud(record.noeud)!;
+  const offertes = record.contexte?.choix(ici)?.filter((c) => c.refus === null) ?? choixDuNoeud(cle) ?? [];
+  const cles = [...offertes.map((o) => ({ cle: String(o.valeur), libelle: o.libelle })), ...Object.keys(donnee).filter((k) => !offertes.some((o) => o.valeur === k)).map((k) => ({ cle: k, libelle: k }))];
+  const kind = kindDuNoeud('', valeur);
+  const bornes = kind === 'number' ? bornesDuNoeud(valeur) : undefined;
+  return cles.map((c) => ({ key: c.cle, label: c.libelle, kind, nullable: true, noeud: valeur, ...(bornes ? { bornes } : {}), ...(record.contexte ? { contexte: record.contexte } : {}) }));
 }
 
 /** Une variante d'une union : la valeur de son discriminant (vide : la variante d'une union à présence qui ne le porte

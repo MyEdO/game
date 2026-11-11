@@ -30,7 +30,7 @@ import { isBestial, traitCapability, maneuverPaidByMovement } from '../engine/tr
 import { isFrenzied } from '../engine/psychology';
 import { creatureAttacks, attaqueDeCle, attaquesNaturelles, attaqueNaturelle, type AttackKind, type CreatureAttack } from '../engine/creatureAttacks';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
-import { attackKindSchema } from '../data/schemas/defs/maneuvers';
+import { attackKindSchema } from '../data/schemas/grammaire/valeurs';
 import { findTalentById, findPsychologyById, combatStakeRef, dataLabel, type ManeuverDef, type ManeuverMeasure } from '../data';
 import { startCascade } from './cascade';
 import { freeCons } from './rollSeam';
@@ -75,11 +75,11 @@ export function emitCreatureAttackAnim(attacker: Combatant, kind: AttackKind): v
 /** Chiffre flottant de Dégâts sur le pion touché — MÊME canal FX que les attaques/sorts (`useCombatFx`
  *  écoute `ANIM_FLOAT`). Sans ça, les Dégâts d'une manœuvre n'apparaissaient QUE dans le journal. */
 function floatDamage(tgt: Combatant, wl: number): void {
-  if (wl > 0) bus.emit(EVT.ANIM_FLOAT, { to: tgt.id, text: t('fx.blessures', { n: wl }), kind: 'damage' });
+  if (wl > 0) bus.emit(EVT.ANIM_FLOAT, { to: tgt.id, text: t('fx.blessures', { n: wl }), kind: 'blessures' });
 }
 /** Étiquette flottante d'ÉTAT/issue (Pétrifié, Esquivé…) sur le pion — feedback visuel de la manœuvre. */
 function floatTag(tgt: Combatant, text: string): void {
-  bus.emit(EVT.ANIM_FLOAT, { to: tgt.id, text, kind: 'condition' });
+  bus.emit(EVT.ANIM_FLOAT, { to: tgt.id, text, kind: 'etat' });
 }
 
 /** Conséquence POST-TOUCHE d'une manœuvre (op IMPURE de géométrie, `TablesDuJeu.apresToucheDeManoeuvre`) —

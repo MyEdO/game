@@ -60,23 +60,23 @@ export type IdDObjet = string;
 export type IdDEntiteDeScene = string;
 /** Ce que le clic d'une case désigne (`cliquerLaCase`) : en combat un combattant, hors combat une entité de la scène. */
 export type IdDuClic = string;
-/** Un combattant que le choix `roundStart.promouvoir` accepte (`actFirstIds`, `turnEconomy.ts`). */
+/** Un combattant que le choix `debutDuRound.promouvoir` accepte (`actFirstIds`, `turnEconomy.ts`). */
 export type IdDeCombattantPromouvable = string;
-/** Un tireur que le choix `roundStart.viser` et `declencherLeTirPreventif` acceptent (`preemptShooterIds`, `targeting.ts`). */
+/** Un tireur que le choix `debutDuRound.viser` et `declencherLeTirPreventif` acceptent (`preemptShooterIds`, `targeting.ts`). */
 export type IdDeTireurRapide = string;
-/** Une chanson que le réglage `shanty.chanson` accepte (`chansonsDuChanteur`, `shipCrew.ts`). */
+/** Une chanson que le réglage `chansonDeMarin.chanson` accepte (`chansonsDuChanteur`, `shipCrew.ts`). */
 export type IdDeChanson = string;
 /** Une forme d'arme invoquée que le lanceur du Sort en attente peut donner (`conjureFormOptions`), par l'id de son arme. LDB 47 */
 export type IdDeFormeConjuree = string;
-/** Un choix de paie que le choix `council.paie` accepte (`choixDePaieOuverts`, `shipCrew.ts`). */
+/** Un choix de paie que le choix `conseil.paie` accepte (`choixDePaieOuverts`, `shipCrew.ts`). */
 export type IdDeChoixDePaie = string;
-/** Une créature que le choix `victory.depecer` accepte (`creaturesADepecer`, `combatEffects.ts`). */
+/** Une créature que le choix `victoire.depecer` accepte (`creaturesADepecer`, `combatEffects.ts`). */
 export type IdDeCreatureADepecer = string;
 /** Un adversaire que le réglage `battement.adversaire` accepte (`adversairesDuBattement`, `combatManeuvers.ts`). */
 export type IdDAdversaireDuBattement = string;
 /** Un adversaire que le réglage `distraire.adversaire` accepte (`adversairesADistraire`, `combatManeuvers.ts`). */
 export type IdDAdversaireADistraire = string;
-/** Le cavalier ou la monture que le choix `mountTarget.cible` accepte (`idsDuCoupleMonte`, `targetingModes.ts`). */
+/** Le cavalier ou la monture que le choix `cibleDeMonture.cible` accepte (`idsDuCoupleMonte`, `targetingModes.ts`). */
 export type IdDuCoupleMonte = string;
 /** Une Activité en mer du catalogue (`seaActivitiesCatalog`, MDG 15 l.268). */
 export type IdDActiviteEnMer = string;
@@ -162,7 +162,8 @@ export type IdDeStation = string;
 export type IdDePoste = string;
 /** Un trait naval du catalogue (`naval-traits.json`) : Amélioration ou trait de navire. */
 export type IdDeTraitNaval = string;
-/** La rangée d'un flux de jet à plusieurs jets ouvert, par l'id de son slot (`RollFlowHandlers.rangees`). */
+/** La rangée d'un flux de jet à plusieurs jets ouvert, par l'id de son slot (`RollFlowHandlers.rangees`), ou d'un choix de
+ *  fenêtre, par l'id de son héros (`CorpsDesChoix`). */
 export type IdDeRangee = string;
 /** Une Compétence du catalogue (`skills.json`). */
 export type IdDeCompetence = string;
@@ -345,7 +346,7 @@ export const DESIGNATIONS = {
     },
   },
   IdDeTraitNaval: { mot: 'id de trait naval', lire: () => ids(NAVAL_TRAITS), nom: (_s, id) => labelParmi(NAVAL_TRAITS, id) },
-  IdDeRangee: { mot: 'id de rangée', lire: (s) => sansDoublon(FLUX_A_RANGEES.flatMap((flux) => FLOW_HANDLERS[flux].rangees(() => s))), nom: nomDeCombattant },
+  IdDeRangee: { mot: 'id de rangée', lire: (s) => sansDoublon([...FLUX_A_RANGEES.flatMap((flux) => FLOW_HANDLERS[flux].rangees(() => s)), ...ids(s.party)]), nom: nomDeCombattant },
   IdDeCompetence: { mot: 'id de Compétence', lire: () => ids(skills), nom: (_s, id) => labelParmi(skills, id) },
   IdDeManoeuvre: { mot: 'id de Manœuvre', lire: () => ids(maneuvers), nom: (_s, id) => labelParmi(maneuvers, id) },
   IdDAttaque: { mot: 'id d’attaque', lire: (s) => ids(lesAttaques(s)), nom: (s, id) => labelParmi(lesAttaques(s), id) },

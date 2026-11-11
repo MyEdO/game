@@ -93,7 +93,7 @@ import { formatTrait } from '../../engine/traits/dispatch';
 import { relireTrait, parseSkillRef } from '../../data/refFormatLivre';
 import { refsEnLignes, lignesEnRefs } from '../editor/codex/CodexEdit';
 import { SaisieEnBrouillon } from '../compendium/refField/SaisieEnBrouillon';
-import { makePregens } from '../../data/pregens';
+import { pretires } from '../../data/pregens';
 import { toMoney } from '../../engine/money';
 import { RoseAxes } from '../RoseAxes';
 import { CharStatsGrid } from '../CharStatsGrid';
@@ -126,15 +126,15 @@ import { gabaritDObjet, type GabaritDObjet } from '../../engine/items';
 // ── Données réelles pour les spécimens vivants (aucune donnée inventée), lues VIVANTES (#1692) ──
 const especeHumaine = memoParVersion('species', () => species.find((s) => s.id === 'humains-reiklander') ?? species[0]);
 export const sectionsDEspeces = memoParVersion('species', (): PickGridSection[] => {
-  const parFamille = new Map<string, typeof species>();
+  const parRace = new Map<string, typeof species>();
   for (const sp of species) {
-    const arr = parFamille.get(sp.family) ?? [];
+    const arr = parRace.get(sp.refChar) ?? [];
     arr.push(sp);
-    parFamille.set(sp.family, arr);
+    parRace.set(sp.refChar, arr);
   }
-  return [...parFamille.entries()].slice(0, 3).map(([family, list]) => ({
-    id: family,
-    label: family,
+  return [...parRace.entries()].slice(0, 3).map(([race, list]) => ({
+    id: race,
+    label: list[0].family,
     items: list.slice(0, 3).map((sp) => ({
       id: sp.id,
       label: sp.label,
@@ -144,7 +144,7 @@ export const sectionsDEspeces = memoParVersion('species', (): PickGridSection[] 
 export const carriereExemple = memoParVersion('careers', () => careers.find((c) => c.id === 'agitateur') ?? careers[0]);
 export const niveauxDeLaCarriereExemple = memoParVersion(['careers', 'careerLevels'], () => levelsForCareer(carriereExemple().id));
 export const signeAstralExemple = memoParVersion('stars', () => stars[0]);
-export const herosExemples = memoParVersion('pregens', () => makePregens(fabriqueLocale('galerie')));
+export const herosExemples = memoParVersion('pregens', () => pretires(fabriqueLocale('galerie')));
 export const herosExemple = () => herosExemples()[0];
 export const herosExempleB = () => herosExemples()[1] ?? herosExemples()[0];
 
@@ -668,7 +668,7 @@ const FIG_ZONE_BADGES_CRIT: ZoneBadgeSpec[] = [
  *  d'ALLOCATION à rubrique gravée (`sub` = le `.rf` de la planche, étape 5) — les états de la
  *  primitive, aucune rangée recodée. */
 function PlaqueRowDemo() {
-  if (!herosExemple()) return <p className="hint">Aucun pregen disponible.</p>;
+  if (!herosExemple()) return <p className="hint">Aucun prétiré disponible.</p>;
   const ch = tableTotale(CHAR_KEYS, (k) => effectiveChar(herosExemple(), k));
   const [k1, k2, k3] = CHAR_KEYS;
   return (
@@ -751,7 +751,7 @@ function DetailFrameDemo() {
 }
 
 function HeroSheetDemo() {
-  if (!herosExemple()) return <p className="hint">Aucun pregen disponible.</p>;
+  if (!herosExemple()) return <p className="hint">Aucun prétiré disponible.</p>;
   return (
     <Stack>
       <p className="hint">`header` (bande identité+rose) : composé tel quel par le détail candidat de l'écran d'équipe.</p>
@@ -797,7 +797,7 @@ function CreatorDiceDemo() {
  *  2026-07-17, « ça ne va pas être possible » sur deux `row` désalignées) : valeur au-dessus, piste
  *  pleine largeur — l'aside de la fiche l'utilise pour Blessures ET Encombrement, mêmes barres. */
 function LifeBarDemo() {
-  if (!herosExemple()) return <p className="hint">Aucun pregen disponible.</p>;
+  if (!herosExemple()) return <p className="hint">Aucun prétiré disponible.</p>;
   return (
     <Stack>
       <LifeBar
@@ -820,7 +820,7 @@ function LifeBarDemo() {
 }
 
 function PortraitTileDemo() {
-  if (!herosExemple()) return <p className="hint">Aucun pregen disponible.</p>;
+  if (!herosExemple()) return <p className="hint">Aucun prétiré disponible.</p>;
   return (
     <Row>
       <PortraitTile c={herosExemple()} variant="identity" size="md" />
@@ -993,7 +993,7 @@ function CoopBannerDemo() {
  *  partie en cours, tous deux sont fermés avec leur raison. */
 function GearAssignListDemo() {
   const heros = herosExemples().slice(0, 3);
-  if (!heros.length) return <p className="hint">Aucun pregen disponible.</p>;
+  if (!heros.length) return <p className="hint">Aucun prétiré disponible.</p>;
   const gear: LootGear[] = [
     { uid: 'demo-lame', label: 'Lame finement ouvragée', magic: true, effect: { type: 'giveTrapping', trappingId: 'arme-simple', qualities: ['precise'], identified: false } },
     { uid: 'demo-cle', label: 'Clé en fer', magic: false, effect: { type: 'giveTrapping', custom: 'Clé en fer' } },
@@ -1151,14 +1151,14 @@ function ParchmentCardDemo() {
 }
 
 function InfluenceRowDemo() {
-  if (!herosExemple()) return <p className="hint">Aucun pregen disponible.</p>;
+  if (!herosExemple()) return <p className="hint">Aucun prétiré disponible.</p>;
   // Jet POSÉ et RATÉ, jamais relancé : la vitrine montre le cycle d'influence AU COMPLET (les
   // fenêtres sont dérivées des prédicats du seam, aucune n'est forcée ici).
   return <InfluenceRow actor={herosExemple()} roll={{ rolled: true, failed: true }} onReroll={() => {}} onBonusSL={() => {}} onDarkPact={() => {}} onForce={() => {}} />;
 }
 
 function VsHeaderDemo() {
-  if (!herosExemple()) return <p className="hint">Aucun pregen disponible.</p>;
+  if (!herosExemple()) return <p className="hint">Aucun prétiré disponible.</p>;
   return <VsHeader actor={herosExemple()} target={herosExempleB()} label="Épée · Dégâts 6 + DR" />;
 }
 
@@ -1241,7 +1241,7 @@ function MenuCardDemo() {
 }
 
 function RoseAxesDemo() {
-  if (herosExemples().length < 2) return <p className="hint">Aucun pregen disponible.</p>;
+  if (herosExemples().length < 2) return <p className="hint">Aucun prétiré disponible.</p>;
   const CORE = allAxes.filter((a) => a.core);
   const heroes = herosExemples().slice(0, 3);
   return (
@@ -1268,7 +1268,7 @@ function RoseAxesDemo() {
  *  (`CharacterCreator.tsx`) : titre + sous-titre, compteur d'allocation à droite, contenu réel
  *  (rangées de caractéristiques de carrière du pré-tiré). */
 function BandDemo() {
-  if (!herosExemple()) return <p className="hint">Aucun pregen disponible.</p>;
+  if (!herosExemple()) return <p className="hint">Aucun prétiré disponible.</p>;
   const careerKeys = CHAR_KEYS.slice(0, 3);
   const alloc = CAREER_CHAR_ADVANCES - 2;
   return (
@@ -1478,7 +1478,7 @@ function RollLineDemo() {
 
 /** Panneau de jet unique : l'issue d'un Test opposé, gagnant accentué. */
 function RollPanelDemo() {
-  if (!herosExemple()) return <p className="hint">Aucun pregen disponible.</p>;
+  if (!herosExemple()) return <p className="hint">Aucun prétiré disponible.</p>;
   return (
     <RollPanel
       rows={[
@@ -1518,7 +1518,7 @@ function RecapLineDemo() {
     <RecapLineList
       lines={[
         { text: 'Gustav franchit le mur (DR +2).', tone: 'ok', icon: 'action/force' },
-        { text: 'Grunni rate son embuscade.', tone: 'bad', segments: [{ text: 'Grunni', team: 'enemy' }, { text: ' rate son embuscade.' }] },
+        { text: 'Harbull rate son embuscade.', tone: 'bad', segments: [{ text: 'Harbull', team: 'enemy' }, { text: ' rate son embuscade.' }] },
         { text: 'La nuit tombe sur le campement.', tone: 'info' },
         { text: '**Gustav** rejoint les compagnons au bord du chemin. La pluie a laissé de longues traces sur les pierres et chacun prend le temps de retrouver ses affaires avant de repartir.\n\nLe groupe observe les maisons, les fenêtres encore éclairées et les silhouettes qui traversent la place. Ce témoin synthétique conserve plusieurs paragraphes pour vérifier la lecture dans une rangée étroite.\n\n- Vérifier le passage près du vieux mur.\n- Rejoindre les compagnons sous le porche.\n- Consulter le [repère de lecture](https://example.com/recette-2001).', tone: 'ok', icon: 'action/force' },
       ]}
@@ -1528,7 +1528,7 @@ function RecapLineDemo() {
 
 /** Bilan multi-jets : une pile de jets d'un même temps (nuit de repos). */
 function MultiRollListDemo() {
-  if (!herosExemple()) return <p className="hint">Aucun pregen disponible.</p>;
+  if (!herosExemple()) return <p className="hint">Aucun prétiré disponible.</p>;
   return (
     <MultiRollList
       entries={[
@@ -1541,7 +1541,7 @@ function MultiRollListDemo() {
 
 /** Corps de révélation : le Coup Critique tiré sur table, avec ses effets expliqués. */
 function RevealBodyDemo() {
-  if (!herosExemple()) return <p className="hint">Aucun pregen disponible.</p>;
+  if (!herosExemple()) return <p className="hint">Aucun prétiré disponible.</p>;
   return (
     <RevealBody
       entry={{
@@ -1635,7 +1635,7 @@ function SpectatorChipDemo() {
 /** Colonne d'États : rack d'alvéoles RÉSERVÉES (les cases sont dessinées même vides) contre la
  *  forme libre, qui ne montre que ce qui est porté. */
 function StateChipsDemo() {
-  if (!herosExemple()) return <p className="hint">Aucun pregen disponible.</p>;
+  if (!herosExemple()) return <p className="hint">Aucun prétiré disponible.</p>;
   return (
     <Row>
       <StateChips c={herosExemple()} max={3} reserve />
@@ -1647,7 +1647,7 @@ function StateChipsDemo() {
 /** Frise d'initiative : cartouche de Round, entrée courante au trait, entrées passées atténuées. */
 function InitiativeStripDemo() {
   const equipe = herosExemples().slice(0, 3);
-  if (!equipe.length) return <p className="hint">Aucun pregen disponible.</p>;
+  if (!equipe.length) return <p className="hint">Aucun prétiré disponible.</p>;
   return (
     <InitiativeStrip
       order={equipe.map((c) => c.id)}
@@ -1665,7 +1665,7 @@ function InitiativeStripDemo() {
 /** Bande de groupe : une carte identitaire par héros (portrait, Blessures, États, nom dessous). */
 function PartyDockDemo() {
   const equipe = herosExemples().slice(0, 4);
-  if (!equipe.length) return <p className="hint">Aucun pregen disponible.</p>;
+  if (!equipe.length) return <p className="hint">Aucun prétiré disponible.</p>;
   return <PartyDock heroes={equipe} onOpen={() => {}} />;
 }
 
@@ -1675,8 +1675,8 @@ function PartyDockDemo() {
  *  la partie (`useGame`) : la galerie étant un écran de l'application EN COURS (`App.tsx`),
  *  l'amorcer d'ici injecterait un combat factice dans la partie du joueur. Ce qui reste en balisage
  *  de maquette est ce que la console rend EN LIGNE, indissociable du store : la coque, les travées,
- *  la colonne de sets (chaque vignette dispatche `switch-loadout`), le conduit d'Avantage et le coin
- *  de fin de tour (dispatch `end-turn`). Le pont se dimensionne sur la FENÊTRE : la piste positionnée
+ *  la colonne de sets (chaque vignette dispatche `panoplie`), le conduit d'Avantage et le coin
+ *  de fin de tour (dispatch `fin-de-tour`). Le pont se dimensionne sur la FENÊTRE : la piste positionnée
  *  d'un champ défilant (`.gallery-scene-track`) le montre à la largeur de recette du bureau. */
 function CombatConsoleMock() {
   const actif = herosExemple();
@@ -1695,20 +1695,20 @@ function CombatConsoleMock() {
                 <span className="cc-bay-head">ÉPÉE ET BOUCLIER</span>
                 <div className="cc-arsenal-body">
                   <div className="cc-sets" role="group" aria-label="Sets d’armes">
-                    <button type="button" data-set="s1" data-action="switch-loadout" className="chip cc-set on" aria-label="Épée et bouclier">
+                    <button type="button" data-set="s1" data-action="panoplie" className="chip cc-set on" aria-label="Épée et bouclier">
                       <i className="cc-set-n">1</i>
                       <Icon id="item/weapon" size="sm" />
                       <span className="cc-key">X</span>
                     </button>
-                    <button type="button" data-set="s2" data-action="switch-loadout" className="chip cc-set" aria-label="Arquebuse, VIDE">
+                    <button type="button" data-set="s2" data-action="panoplie" className="chip cc-set" aria-label="Arquebuse, VIDE">
                       <i className="cc-set-n">2</i>
                       <Icon id="item/weapon" size="sm" />
                       <i className="cc-set-load">VIDE</i>
                     </button>
                   </div>
                   <div className="cc-grid cc-grid-left" aria-label="Arsenal">
-                    <ConsoleCell cell={{ key: 'attack', id: 'attack', family: 'arme', label: 'Attaquer', icon: <Icon id="action/attack" />, run: rien }} />
-                    <ConsoleCell cell={{ key: 'shoot', id: 'shoot', family: 'arme', label: 'Tirer', icon: <Icon id="action/shoot" />, on: true, run: rien }} />
+                    <ConsoleCell cell={{ key: 'attaque', id: 'attaque', family: 'arme', label: 'Attaquer', icon: <Icon id="action/attack" />, run: rien }} />
+                    <ConsoleCell cell={{ key: 'tir', id: 'attaque', family: 'arme', label: 'Tirer', icon: <Icon id="action/shoot" />, on: true, run: rien }} />
                     <ConsoleCell cell={{ key: 'charge', id: 'charge', family: 'attaque', label: 'Charger', icon: <Icon id="action/attack" />, gate: 'Déjà engagé au contact' }} />
                     <ConsoleCell cell={undefined} />
                   </div>
@@ -1717,7 +1717,7 @@ function CombatConsoleMock() {
               <div className="cc-quick">
                 <span className="cc-bay-head">ACCÈS RAPIDE</span>
                 <div className="cc-grid cc-grid-quick" aria-label="Accès rapide">
-                  <ConsoleCell cell={{ key: 'consume', id: 'consume', family: 'geste', label: 'Potion de soin', icon: <Icon id="action/consume" />, run: rien }} />
+                  <ConsoleCell cell={{ key: 'usage-objet', id: 'usage-objet', family: 'geste', label: 'Potion de soin', icon: <Icon id="action/consume" />, run: rien }} />
                   <ConsoleCell cell={undefined} />
                 </div>
               </div>
@@ -1725,7 +1725,7 @@ function CombatConsoleMock() {
           </div>
           <ConsoleArch
             active={actif}
-            move={{ value: 3, max: 4, spend: 1, geste: { key: 'undo-move', id: 'undo-move', family: 'mouvement', label: 'Annuler le déplacement', icon: <Icon id="ui/undo" />, run: rien } }}
+            move={{ value: 3, max: 4, spend: 1, geste: { key: 'annulation-deplacement', id: 'annulation-deplacement', family: 'mouvement', label: 'Annuler le déplacement', icon: <Icon id="ui/undo" />, run: rien } }}
             action={{ value: 1, max: 1 }}
           />
           <div className="cc-bay cc-bay-right">
@@ -1737,13 +1737,13 @@ function CombatConsoleMock() {
               <span className="cc-conduit-plate">2/6</span>
             </div>
             <div className="cc-grid cc-grid-right" aria-label="Capacités">
-              <ConsoleCell hotkey={1} cell={{ key: 'dodge', id: 'dodge', family: 'defense', label: 'Esquiver', icon: <Icon id="action/defend" />, run: rien }} advantage={2} />
-              <ConsoleCell hotkey={2} cell={{ key: 'cast', id: 'cast', family: 'magie', label: 'Incanter', icon: <Icon id="action/cast" />, adv: 3, run: rien }} advantage={2} />
+              <ConsoleCell hotkey={1} cell={{ key: 'defensive', id: 'defensive', family: 'defense', label: 'Esquiver', icon: <Icon id="action/defend" />, run: rien }} advantage={2} />
+              <ConsoleCell hotkey={2} cell={{ key: 'incantation', id: 'incantation', family: 'magie', label: 'Incanter', icon: <Icon id="action/cast" />, adv: 3, run: rien }} advantage={2} />
               <ConsoleCell hotkey={3} cell={undefined} />
             </div>
           </div>
           <div className="cc-corner">
-            <button type="button" data-cell="end-turn" data-action="end-turn" className="chip cc-cell cc-end">
+            <button type="button" data-cell="fin-de-tour" data-action="fin-de-tour" className="chip cc-cell cc-end">
               <span className="cc-ico"><Icon id="ui/turn-end" /></span>
               <span className="cc-lbl">Fin du tour</span>
               <span className="cc-key">F</span>
@@ -1827,7 +1827,7 @@ function LogDrawerDemo() {
 /** Panneau d'inspection : identité, badges de camp, statbloc — modale de lecture seule. */
 function InspectPanelDemo() {
   const [ouvert, setOuvert] = useState(false);
-  if (!herosExempleB()) return <p className="hint">Aucun pregen disponible.</p>;
+  if (!herosExempleB()) return <p className="hint">Aucun prétiré disponible.</p>;
   return (
     <>
       <button type="button" className="btn" onClick={() => setOuvert(true)}>Inspecter un combattant</button>
@@ -1838,7 +1838,7 @@ function InspectPanelDemo() {
 
 /** Panneau d'équipement : cellules par localisation × couche, cartes de set, récap en main. */
 function EquipmentPanelDemo() {
-  if (!herosExemple()) return <p className="hint">Aucun pregen disponible.</p>;
+  if (!herosExemple()) return <p className="hint">Aucun prétiré disponible.</p>;
   return <EquipmentPanel hero={herosExemple()} />;
 }
 

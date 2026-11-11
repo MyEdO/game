@@ -6,7 +6,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { pregenParty, PREGEN } from '../data/pregens';
+import { groupeDeScenario } from '../scenes/test-scenarios/_heros';
 import { addCondition } from '../engine/conditions';
 import type { Combatant } from '../engine/types';
 
@@ -15,7 +15,7 @@ const aucunEtat = (nom: string) => `${nom} n'a aucun État à retirer.`;
 
 /** Un banc hors combat : un Prêtre capable de prier et son allié, la fiche de l'allié ajustée par `allie`. */
 function auTemple(allie: (h: Combatant) => void = () => {}): { banc: Banc; pretre: Combatant; cible: Combatant } {
-  const [pretre, cible] = pregenParty(idsDeTest, PREGEN.pretre, PREGEN.soldat);
+  const [pretre, cible] = groupeDeScenario(idsDeTest, 'pretre', 'soldat');
   const priere = pretre.skills.find((s) => s.id === 'priere');
   if (priere) priere.advances = Math.max(priere.advances, 5);
   else pretre.skills.push({ id: 'priere', characteristic: 'sociabilite', advances: 5 });
@@ -29,14 +29,14 @@ function benir(banc: Banc, pretreId: string, cibleId: string): string[] {
   const avant = banc.getState().journal.length;
   banc.getState().incanterLeSort(pretreId, 'benediction-de-tenacite', cibleId);
   expect(banc.getState().pendingCast?.targetId, 'témoin : le lancer s’ouvre sur la cible').toBe(cibleId);
-  banc.getState().jetLancer('cast');
+  banc.getState().jetLancer('incantation');
   if (!banc.getState().pendingCast!.result!.cast) {
     const p = banc.getState().party.find((c) => c.id === pretreId)!;
     p.resilience = (p.resilience ?? 0) + 1;
-    banc.getState().jetForcerLaReussite('cast');
+    banc.getState().jetForcerLaReussite('incantation');
   }
   expect(banc.getState().pendingCast!.result!.cast, 'témoin : la Bénédiction réussit').toBe(true);
-  banc.getState().jetValider('cast');
+  banc.getState().jetValider('incantation');
   return banc.getState().journal.slice(avant);
 }
 

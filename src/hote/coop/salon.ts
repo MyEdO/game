@@ -13,7 +13,7 @@
  * stockage du jeton, l'abonnement aux écritures de l'état et l'enrobage des actions de l'invité.
  */
 import {
-  appliquerLIntentionDUnSiege, argsAvecVerdictLocal, attribuerLEmplacement, attribuerLeHeros, buildDeLaCoop, fermerLeSiege,
+  appliquerLIntentionDUnSiege, argsAvecIntentionLocale, attribuerLEmplacement, attribuerLeHeros, buildDeLaCoop, fermerLeSiege,
   initialNet, instantaneDeLaCoop, intentEluLocalement, poserLeSiegeMJ, preparerLIntentLocal, refusDAttribuerLEmplacement, refusDAttribuerLeHeros,
   refusDuSiegeMJ, refuserGesteDuSiege, type Get, type NetState, type Set,
 } from '../../noyau/index';
@@ -65,8 +65,8 @@ export interface PortsDuSalon extends PortsDuRelais {
  *    demander — et se joue ENTIER chez le client, par son action locale. Rien ne part : le porteur élu est hors
  *    instantané, l'exécuter chez l'hôte y ferait naître un panneau étranger et n'en montrerait aucun à l'émetteur ;
  *  - sinon l'émetteur PRÉPARE chez lui ce que l'hôte ne pose pas (`preparerLIntentLocal` : l'intention qu'arme une
- *    offre jouée chez l'hôte), puis l'intent PART, avec le VERDICT D'ARMEMENT calculé ICI (`argsAvecVerdictLocal`) :
- *    l'intention est locale au client, l'hôte ne peut pas la relire dans son propre état.
+ *    offre jouée chez l'hôte), puis l'intent PART, avec l'intention ARMÉE ICI (`argsAvecIntentionLocale`) : elle est
+ *    locale au client, l'hôte ne peut pas la relire dans son propre état, il la juge.
  */
 export function emettreIntentInvite(
   get: Get,
@@ -80,7 +80,7 @@ export function emettreIntentInvite(
     return;
   }
   preparerLIntentLocal(get, name, args);
-  envoyer(name, argsAvecVerdictLocal(get, name, args));
+  envoyer(name, argsAvecIntentionLocale(get, name, args));
 }
 
 /** HÔTE : siège FERMÉ (départ définitif, fin de grâce) — `fermerLeSiege` (spec §6). */

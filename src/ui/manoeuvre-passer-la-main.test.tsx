@@ -29,7 +29,7 @@ function souffleLance(gmSeat: number | undefined): Combatant {
   useGame.setState({ screen: 'campaign', party: [hero] });
   useGame.getState().lancerLaScene(testScene());
   useGame.getState().lancerLeCombat('enc-mutants');
-  useGame.getState().fenetreValider('roundStart');
+  useGame.getState().fenetreValider('debutDuRound');
   vi.clearAllTimers();
   useGame.setState({ net: { ...useGame.getState().net, gmSeat } });
   const b = useGame.getState().battle!;
@@ -47,7 +47,7 @@ function souffleLance(gmSeat: number | undefined): Combatant {
   useGame.setState({ battle: { ...b, turn: b.order.indexOf(H.id), movementUsed: 0, acted: false } });
   useGame.getState().armerLAttaque('souffle');
   cliquerSurLeCombattant(useGame.getState, E.id);
-  useGame.getState().jetLancer('maneuver');
+  useGame.getState().jetLancer('manoeuvre');
   return E;
 }
 

@@ -81,13 +81,13 @@ import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 
 /**
  * Adversaire d'une partie — TROIS formes, chacune JOUE une fiche (`tavernGameValue`) :
- *  · `hero` : un compagnon du groupe ;
- *  · `npc` : un PNJ de la SCÈNE (`sceneNpc`) — `NADJ 04 l.72`, `EDO 01 l.200` ;
+ *  · `heros` : un compagnon du groupe ;
+ *  · `pnj` : un PNJ de la SCÈNE (`sceneNpc`) — `NADJ 04 l.72`, `EDO 01 l.200` ;
  *  · `profil` : un habitué sans entité de scène, au profil standard choisi (`pnjAuProfil`, `LDB 77 l.7`).
  */
 export type TavernOpponent =
-  | { kind: 'hero'; id: IdDeHeros }
-  | { kind: 'npc'; id: IdDEntiteDeScene }
+  | { kind: 'heros'; id: IdDeHeros }
+  | { kind: 'pnj'; id: IdDEntiteDeScene }
   | { kind: 'profil'; id: IdDeProfilStandard };
 
 /** Résultat de la dernière partie (affiché dans la modale). Étend l'issue moteur des libellés/mise. */
@@ -194,11 +194,11 @@ export function refusDOuvrirLaTaverne(s: Pick<Jeu, 'net'>): string | null {
   return refusDeTableDHote(s) ?? (rule('tavern-games') ? null : t('tavern.optionEteinte'));
 }
 
-/** OUVRE la table. `npcId` = le PNJ qui PROPOSE la partie (son dialogue vient de l'ouvrir) : la
+/** OUVRE la table. `entityId` = le PNJ qui PROPOSE la partie (son dialogue vient de l'ouvrir) : la
  *  modale s'ouvre sur SON offre. GÉNÉRIQUE — tout PNJ à `tavernGame` en hérite, aucun n'est nommé. */
-export function ouvrirLesJeux(get: Get, set: Set, npcId?: string): void {
+export function ouvrirLesJeux(get: Get, set: Set, entityId?: string): void {
   if (refuseSi(get, set, refusDOuvrirLaTaverne)) return;
-  set({ tavernGames: { result: null, ...(npcId ? { npcId } : {}) } });
+  set({ tavernGames: { result: null, ...(entityId ? { npcId: entityId } : {}) } });
 }
 
 /** Id de la définition de séquence des jeux de taverne (donnée : écrit dans les saves). */
@@ -373,7 +373,7 @@ interface PartiePrete {
 export function refusDAdversaire(s: Jeu, gameId: string, challengerId: string, kind: TavernOpponent['kind'], designe?: string): string | null {
   if (kind === 'profil') return null;
   if (findTavernGameById(gameId)?.team) return t('tavern.equipeContreLaSalle');
-  if (kind === 'hero') return s.party.some((h) => !h.dead && h.id !== challengerId) ? null : t('tavern.aucunCompagnon');
+  if (kind === 'heros') return s.party.some((h) => !h.dead && h.id !== challengerId) ? null : t('tavern.aucunCompagnon');
   if (designe !== undefined) return null;
   return tavernNpcOffers(s.scene, presetDuNarratif(s.campaignNarratif)).length ? null : t('tavern.personneDansLaSalle');
 }
@@ -397,8 +397,8 @@ function preparerLaPartie(s: Jeu, heroId: string, opts: ReglageDePartie): Partie
   const opp = opts.opponent;
   const refusDuVisAVis = refusDAdversaire(s, game.id, challenger.id, opp.kind, opp.id);
   if (refusDuVisAVis) return { refus: refusDuVisAVis };
-  const opponentActor = opp.kind === 'hero' ? s.party.find((h) => h.id === opp.id)
-    : opp.kind === 'npc' ? sceneNpc(s.scene, opp.id, presetDuNarratif(s.campaignNarratif))
+  const opponentActor = opp.kind === 'heros' ? s.party.find((h) => h.id === opp.id)
+    : opp.kind === 'pnj' ? sceneNpc(s.scene, opp.id, presetDuNarratif(s.campaignNarratif))
       : pnjAuProfil(opp.id, HABITUE);
   if (!!game.team !== (opts.allyProfil !== undefined)) {
     return { refus: t(game.team ? 'tavern.equipeSansCoequipier' : 'tavern.coequipierHorsEquipe', { jeu: game.label }) };
@@ -2497,7 +2497,7 @@ function finalizeTavernGame(
 
 export function creerActionsDeTaverne(get: Get, set: Set) {
   return {
-    ouvrirLesJeux: (npcId?: string) => ouvrirLesJeux(get, set, npcId),
+    ouvrirLesJeux: (entityId?: string) => ouvrirLesJeux(get, set, entityId),
     jouerALaTaverne: (heroId, partie) => jouerALaTaverne(get, set, heroId, partie),
   } satisfies FabriqueDuNoyau;
 }

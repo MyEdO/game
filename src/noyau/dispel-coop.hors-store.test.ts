@@ -10,7 +10,7 @@
  * l'hôte, qui exécutait `designerLeSupport` DANS SON PROPRE STORE — un panneau étranger s'ouvrait
  * chez l'hôte, et l'invité n'en voyait jamais aucun (son élection n'existait nulle part).
  *
- * La couture est celle, déjà écrite, du verdict d'armement (`localIntent.argsAvecVerdictLocal`) : ce
+ * La couture est celle, déjà écrite, de l'intention armée (`localIntent.argsAvecIntentionLocale`) : ce
  * qui est un mode d'écran se calcule et se JOUE chez l'émetteur. Ici le mode de ciblage DÉCLARE que
  * son clic n'est qu'une élection (`TargetingMode.electionLocale`), et `emettreIntentInvite` la joue
  * en local au lieu d'émettre. Seul le COMMIT (`dissiperLeSort`, allowlisté) voyage.

@@ -1470,7 +1470,9 @@
               {
                 "op": "light",
                 "radiusM": 20,
-                "tone": "magique"
+                "tone": {
+                  "id": "magique"
+                }
               },
               {
                 "op": "narrative",
@@ -16255,7 +16257,9 @@
               {
                 "op": "light",
                 "radiusM": 10,
-                "tone": "magique"
+                "tone": {
+                  "id": "magique"
+                }
               },
               {
                 "op": "narrative",

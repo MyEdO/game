@@ -13,7 +13,7 @@ import { z } from 'zod';
 import { emptyNarratif } from '../monde/campaignNarratif';
 import { emptyScene, type Scene } from '../monde/scene';
 import { addEffectZone, addTrigger, avecLaValeur, gestesDeLaListe, type Segment } from '../sceneEdit';
-import { formulaireDe } from '../sceneEditLecture';
+import { formulaireDe, type CadreDuPorteur } from '../sceneEditLecture';
 import { newOp, valeurNeuveDe, variantesAChoisir } from '../valeursNeuves';
 import { champDeLElement, champsDeclares, champsOfferts, choixDuNoeud, elementDuNoeud, formeAuPoint, unionDuNoeud, varianteCourante, type FieldDesc } from '../codex/editFields';
 import { editer, ouvrirLEdition, refusDeLaValeur, sceneEditee, type GesteDEdition, type SessionDEdition } from './session';
@@ -30,6 +30,9 @@ import { optionalEntrySchema } from '../../data/schemas/defs/creatures';
 
 /** Un narratif vide : aucun preset de PNJ, aucune entrée à référencer. */
 const NARRATIF_VIDE = emptyNarratif();
+
+/** Le cadre d'un porteur d'une scène vide, au narratif vide. */
+const CADRE_VIDE: CadreDuPorteur = { scene: emptyScene('s', 4, 4), narratif: NARRATIF_VIDE };
 
 type Zone = NonNullable<Scene['effectZones']>[number];
 type Declencheur = Scene['triggers'][number];
@@ -56,7 +59,7 @@ function champ(champs: readonly FieldDesc[], donnee: unknown, cle: Segment, ...r
 
 describe('la description du formulaire d’une zone d’effet', () => {
   it('offre son Test de traversée, ses effets à la traversée et à chaque Round, chacun une liste d’ops, et son rendu ; absent, le Test s’ajoute vide', () => {
-    const champs = formulaireDe('zone', zone(), NARRATIF_VIDE);
+    const champs = formulaireDe('zone', zone(), CADRE_VIDE);
     expect(champs.map((c) => [c.key, c.label, c.nullable])).toEqual([['crossTest', 'Test de traversée', true], ['onCross', 'à la traversée', true], ['perRound', 'par Round', true], ['rendu', 'rendu', true]]);
     expect(valeurNeuveDe(champs[0].noeud)).toEqual({});
     for (const liste of champs.slice(1, 3)) expect(unionDuNoeud(elementDuNoeud(liste.noeud))?.discriminant, liste.key).toBe('op');
@@ -64,7 +67,7 @@ describe('la description du formulaire d’une zone d’effet', () => {
 
   it('décrit le Test présent : la référence de Compétence au catalogue, la caractéristique et la difficulté au choix, les nombres bornés, sa garde en Condition, ses listes, son enjeu choisi par variante', () => {
     const z = zone({ crossTest: { skill: { id: 'athletisme' as never }, characteristic: 'force', requireSL: 2 } });
-    const champs = formulaireDe('zone', z, NARRATIF_VIDE);
+    const champs = formulaireDe('zone', z, CADRE_VIDE);
     const competence = champ(champs, z, 'crossTest', 'skill', 'id');
     expect(competence).toMatchObject({ nullable: false });
     expect(choixDuNoeud(competence.noeud)).toEqual(choixDeLaFeuilleDId({ type: 'skill' }).map((e) => ({ valeur: e.id, libelle: e.label })));
@@ -91,7 +94,7 @@ describe('la description du formulaire d’une zone d’effet', () => {
 
   it('une op se choisit parmi toutes, chacune nommée, neuve par `newOp` ; typée, elle se décrit champ par champ, son `op` tenu par le choix', () => {
     const z = zone({ onCross: [{ op: 'charMod', characteristic: 'force', mod: -10 }] as never });
-    const champs = formulaireDe('zone', z, NARRATIF_VIDE);
+    const champs = formulaireDe('zone', z, CADRE_VIDE);
     const op = champ(champs, z, 'onCross', 0);
     expect(op).toMatchObject({ key: '0', label: 'à la traversée 1', nullable: false });
     const variantes = variantesAChoisir(op.noeud, z.onCross![0])!;
@@ -105,11 +108,11 @@ describe('la description du formulaire d’une zone d’effet', () => {
   });
 
   it('une op de `OPS_NON_TYPEES` choisie n’a pas de forme déclarée : sa saisie reste en JSON', () => {
-    expect(OPS_NON_TYPEES).toContain('wounds');
-    const valeur = { op: 'wounds', amount: 5 };
-    const noeud = elementDuNoeud(formulaireDe('zone', zone({ onCross: [valeur] as never }), NARRATIF_VIDE)[1].noeud);
+    expect(OPS_NON_TYPEES).toContain('condition');
+    const valeur = { op: 'condition', id: 'sonne' };
+    const noeud = elementDuNoeud(formulaireDe('zone', zone({ onCross: [valeur] as never }), CADRE_VIDE)[1].noeud);
     const u = unionDuNoeud(noeud)!;
-    expect(varianteCourante(u, valeur)).toMatchObject({ cle: 'wounds', noeud: undefined });
+    expect(varianteCourante(u, valeur)).toMatchObject({ cle: 'condition', noeud: undefined });
     expect(formeAuPoint(noeud, valeur)).toBeUndefined();
   });
 });
@@ -128,8 +131,8 @@ describe('la description de la condition d’entrée d’un déclencheur', () =>
   it('une Condition `all` qui porte un `not` : chaque union se choisit par variante nommée, la liste élément par élément', () => {
     const when: Condition = { kind: 'all', of: [{ kind: 'flag', expr: 'porte' }, { kind: 'not', of: { kind: 'foeInLoS' } }] };
     const d = declencheur(when);
-    const champs = formulaireDe('declencheur', d, NARRATIF_VIDE);
-    expect(champs.map((c) => [c.key, c.nullable])).toEqual([['when', true]]);
+    const champs = formulaireDe('declencheur', d, CADRE_VIDE);
+    expect(champs.map((c) => [c.key, c.nullable]), 'la condition d’entrée, absente admise, puis le flux, requis').toEqual([['when', true], ['flow', false]]);
     const variantes = variantesAChoisir(champs[0].noeud, when)!;
     expect(variantes).toHaveLength(35);
     expect(new Set(variantes.map((v) => v.libelle)).size, 'chacune nommée par son schéma, d’un nom propre').toBe(35);
@@ -146,7 +149,7 @@ describe('la description de la condition d’entrée d’un déclencheur', () =>
 
   it('une variante qui est elle-même une union se choisit au même chemin, nommée par l’énumération de son discriminant ; ni `kind` ni `what` ne s’écrivent en champ', () => {
     const has = { kind: 'has', who: 'target', what: 'group', value: 'x' } as Condition;
-    const noeud = formulaireDe('declencheur', declencheur(has), NARRATIF_VIDE)[0].noeud;
+    const noeud = formulaireDe('declencheur', declencheur(has), CADRE_VIDE)[0].noeud;
     const interne = varianteCourante(unionDuNoeud(noeud)!, has)!.noeud;
     const u = unionDuNoeud(interne)!;
     expect(u.discriminant).toBe('what');
@@ -239,7 +242,7 @@ describe('le geste `valeur` de la session', () => {
   });
 
   it('ajoute, change de variante, remplit, monte et retire les ops d’une liste ; la liste vidée quitte la zone', () => {
-    const element = elementDuNoeud(formulaireDe('zone', laZone(depart), NARRATIF_VIDE)[1].noeud);
+    const element = elementDuNoeud(formulaireDe('zone', laZone(depart), CADRE_VIDE)[1].noeud);
     const neuve = valeurNeuveDe(element);
     const ajoutee = jouer(depart, ['onCross'], gestesDeLaListe([], neuve).ajouter);
     expect(laZone(ajoutee).onCross).toEqual([neuve]);
@@ -296,14 +299,16 @@ describe('le geste `valeur` de la session', () => {
     expect(refusDeLaValeur(ajoute, geste({ sorte: 'zone', id: 'nulle-part' }, ['crossTest', 'characteristic'], ['force']))).toBe('nonOffert');
     expect(laZone(jouer(jouer(ajoute, ['crossTest', 'skill'], valeurNeuveDe(refOuSpec('skill'))), ['crossTest', 'skill', 'id'], 'athletisme')).crossTest, 'la référence de Compétence se choisit').toEqual({ skill: { id: 'athletisme' } });
 
-    const avecOps = jouer(depart, ['onCross'], [{ op: 'wounds', amount: 5 }]);
-    expect(laZone(jouer(avecOps, ['onCross', 0], { op: 'wounds', amount: 3 })).onCross, 'une op non typée s’écrit en JSON que son schéma parse').toEqual([{ op: 'wounds', amount: 3 }]);
+    const avecOps = jouer(depart, ['onCross'], [{ op: 'condition', id: 'sonne' }]);
+    expect(laZone(jouer(avecOps, ['onCross', 0], { op: 'condition', id: 'assourdi' })).onCross, 'une op non typée s’écrit en JSON que son schéma parse').toEqual([{ op: 'condition', id: 'assourdi' }]);
     expect(refusDeLaValeur(avecOps, geste(porteur, ['onCross', 0], [null])), 'un JSON illisible').toBe('illisible');
     expect(refusDeLaValeur(avecOps, geste(porteur, ['onCross', 0], [{ op: 'pas-une-op' }]))).toBe('horsSorte');
-    expect(refusDeLaValeur(avecOps, geste(porteur, ['onCross', 0, 'amount'], [3])), 'une op sans forme déclarée n’offre aucun champ').toBe('nonOffert');
+    expect(refusDeLaValeur(avecOps, geste(porteur, ['onCross', 0, 'id'], ['aveugle'])), 'une op sans forme déclarée n’offre aucun champ').toBe('nonOffert');
     const avecHas = surDeclencheur(depart, ['when'], recast(CONDITION_TOUJOURS, 'has'));
     expect(refusDeLaValeur(avecHas, geste(surTrig, ['when', 'what'], ['trait'])), 'un discriminant se change par le choix de la variante').toBe('nonOffert');
-    expect(refusDeLaValeur(avecHas, geste(surTrig, ['flow'], [{ kind: 'seq', steps: [] }])), 'le flux n’est pas offert').toBe('nonOffert');
+    for (const chemin of [['once'], ['rect', 'z']] as Segment[][]) {
+      expect(refusDeLaValeur(avecHas, geste(surTrig, chemin, [1])), `${chemin.join('/')} : un champ qu’un geste dédié écrit, hors du formulaire`).toBe('nonOffert');
+    }
     expect(refusDeLaValeur(avecHas, geste(surTrig, ['when', 'who'], ['caster']))).toBeNull();
   });
 });
@@ -326,11 +331,11 @@ describe('les choix d’une union réunissent ses références, ses énumératio
 
   it('les choix d’une feuille unique et sa valeur neuve sont inchangés : la difficulté d’un Test de traversée, le Trait d’une condition d’entrée', () => {
     const z = zone({ crossTest: { characteristic: 'force' } });
-    const difficulte = champ(formulaireDe('zone', z, NARRATIF_VIDE), z, 'crossTest', 'difficulty').noeud;
+    const difficulte = champ(formulaireDe('zone', z, CADRE_VIDE), z, 'crossTest', 'difficulty').noeud;
     expect(choixDuNoeud(difficulte)).toEqual(Object.entries(DIFFICULTY_LABELS).map(([valeur, libelle]) => ({ valeur, libelle })));
     expect(valeurNeuveDe(difficulte)).toBe(Object.keys(DIFFICULTY_LABELS)[0]);
     const d = declencheur({ kind: 'has', who: 'target', what: 'trait', value: 'a-distance' } as Condition);
-    const trait = champ(formulaireDe('declencheur', d, NARRATIF_VIDE), d, 'when', 'value').noeud;
+    const trait = champ(formulaireDe('declencheur', d, CADRE_VIDE), d, 'when', 'value').noeud;
     expect(choixDuNoeud(trait)).toEqual(choixDeLaFeuilleDId({ type: 'trait' }).map((e) => ({ valeur: e.id, libelle: e.label })));
     expect(valeurNeuveDe(trait)).toBe(ids('trait')[0]);
   });

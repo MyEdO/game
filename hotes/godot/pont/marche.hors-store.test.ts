@@ -5,7 +5,7 @@
  * bradage et son transfert vers un porteur co-localisé.
  */
 import { afterEach, describe, it, expect } from 'vitest';
-import { drainer, table } from './pont.testkit';
+import { drainer, table, gestesDessines } from './pont.testkit';
 import type { Bouton, Element, Entite, Formulaire, Saisie } from '../../../src/hote/elements';
 import type { Pont, Suite } from './pont';
 
@@ -21,7 +21,7 @@ function marche(scenario: string, verbe: string, cle: string) {
   const vider = (jusqua?: string) => {
     for (let pas = 0; s.vue.projection.fenetre && s.vue.projection.fenetre.cle !== jusqua; pas++) {
       expect(pas, 'les fenêtres se vident').toBeLessThan(30);
-      const g = s.vue.zones['fenetre.gestes'];
+      const g = gestesDessines(s.vue);
       s = jouer((g.find((x): x is Bouton => x.type === 'bouton' && x.focus) ?? g.find((x): x is Bouton => x.type === 'bouton' && !x.refus)!).jeu);
     }
   };
@@ -50,7 +50,7 @@ describe('le marché de cargaison par le pont', () => {
     expect(dans(corps(compose)['offre/laine-terre'], 'acheter'), 'l’achat composé, pressé').toMatchObject({ presse: true });
     const reglages = Object.fromEntries(compose.vue.zones['fenetre.reglages'].map((e) => [e.id, e]));
     expect(reglages['fenetreChoisir@marcheDeTerre#porteur'], 'chaque porteur de vrac et sa place, le retenu pressé').toMatchObject({ valeurs: [{ libelle: 'Charrette · 25/25 Enc libres', presse: true }, { libelle: 'Mule · 14/14 Enc libres', presse: false }] });
-    expect(Object.keys(reglages), 'le porteur, l’Enc, la conclusion').toEqual(['fenetreChoisir@marcheDeTerre#porteur', 'fenetreChoisir@marcheDeTerre#enc', 'fenetreChoisir@marcheDeTerre#acheter']);
+    expect(Object.keys(reglages), 'le porteur, l’Enc, la conclusion').toEqual(['fenetreChoisir@marcheDeTerre#porteur', 'fenetreChoisir@marcheDeTerre#encombrement', 'fenetreChoisir@marcheDeTerre#acheter']);
   });
 
   it('un lot acheté : son porteur et son Enc, sa vente, son bradage, son transfert vers la mule', () => {

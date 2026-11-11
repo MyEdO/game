@@ -131,12 +131,12 @@ function clotureDeCascade(done: PendingCascade): void {
 /**
  * Conséquence d'une ISSUE de TEST ÉTENDU (`PendingExtendedTest.outcome`, #273 Étape 1) — calque exact
  * de `CascadeApplier` ci-dessus (mute get/set, renvoie des `Consequence[]`), appliquée à la CLÔTURE du
- * Test étendu (`jetValider('extendedTest')`, noyau/testsDeScene.ts) qu'il ait atteint sa cible OU buté sur `maxAttempts`.
+ * Test étendu (`jetValider('testEtendu')`, noyau/testsDeScene.ts) qu'il ait atteint sa cible OU buté sur `maxAttempts`.
  * `reached` = `total ≥ targetDR` ; `false` = borne d'essais épuisée sans réussir (Commerce d'opportunité,
  * MDG 15 : « 10 DR en ≤ 3 tentatives » — l'échec de la borne EST une issue, jamais une boucle infinie).
  * Table séparée des appliers (`TablesDuJeu.issuesDeTestEtendu` : un Test étendu n'est PAS une étape de
  * cascade — `pendingExtendedTest` coexiste comme porteur de données à côté d'une cascade-hôte à 1 étape
- * `jet:'extended'`).
+ * `jet:'testEtendu'`).
  */
 export type ExtendedTestOutcomeApplier = (
   get: Get,
@@ -647,7 +647,7 @@ export function stepOpposedFreeze(step: CascadeStep | undefined): OpposedRowFree
 /**
  * Lance d'office les participants SANS influence (pilotes automatiques — `resolveRemainingCascade`/
  * `runCascadeImmediate`) : même Test générique que la modale (`rollBatchParticipant`), même opposition
- * figée, simplement sans le cycle Chance/Résilience du flux `cascadeBatch`.
+ * figée, simplement sans le cycle Chance/Résilience du flux `cascadeEnBande`.
  *
  * `autoResolved` — la rangée est roulée SANS FENÊTRE (`runCascadeImmediate` : bande de témoins d'une
  * fin de combat, cadence auto) : elle porte l'étampe `meta.autoResolved`, que `commitStep` lit pour
@@ -799,16 +799,16 @@ export function setCascadeAmount(get: Get, set: Set, stepId: string, n: number):
   poserLaCourante(get, set, { ...cur, amount: clampStepAmount(cur.quantity, n) });
 }
 
-/** La Maladresse (LDB 14) que joue l'étape COURANTE de `p` (`jet:'fumble'`), absente sinon : la rangée du flux `fumble`. */
-export function maladresseCourante(p: PendingCascade | null | undefined): (CascadeStep & { fumble: NonNullable<CascadeStep['fumble']> }) | undefined {
+/** La Maladresse (LDB 14) que joue l'étape COURANTE de `p` (`jet:'maladresse'`), absente sinon : la rangée du flux `maladresse`. */
+export function maladresseCourante(p: PendingCascade | null | undefined): (CascadeStep & { maladresse: NonNullable<CascadeStep['maladresse']> }) | undefined {
   const cur = p?.participants[p.cursor];
   return cur && estUneMaladresse(cur) ? cur : undefined;
 }
 
-const estUneMaladresse = (st: CascadeStep): st is CascadeStep & { fumble: NonNullable<CascadeStep['fumble']> } => st.jet === 'fumble' && !!st.fumble;
+const estUneMaladresse = (st: CascadeStep): st is CascadeStep & { maladresse: NonNullable<CascadeStep['maladresse']> } => st.jet === 'maladresse' && !!st.maladresse;
 
 /** Le refus d'un geste sur l'étape `stepId` qui n'est pas l'étape COURANTE (`refusDEtape`), `null` si elle l'est. Garde
- *  des verbes du flux `fumble`, dont l'étape ne sert aucune interaction de cascade. */
+ *  des verbes du flux `maladresse`, dont l'étape ne sert aucune interaction de cascade. */
 export function refusHorsDeLEtapeCourante(s: Pick<Jeu, 'pendingCascade'>, stepId: string): string | null {
   const p = s.pendingCascade;
   const cur = p?.participants[p.cursor];

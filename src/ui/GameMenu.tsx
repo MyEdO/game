@@ -9,7 +9,7 @@ import { CoopMenuSection, GmSoloToggle } from './CoopPanels';
 import { t } from '../i18n';
 
 /**
- * Menu SYSTÈME plein écran (pause) — bouton ☰ de la barre HUD ET touche Échap (binding `toggle-menu`,
+ * Menu SYSTÈME plein écran (pause) — bouton ☰ de la barre HUD ET touche Échap (binding `menu-ouvrir`,
  * `state.gameMenuOpen`) l'ouvrent quand aucune modale n'est active. Voile sombre + colonne d'entrées :
  * MÊME langage que le menu principal (`MainMenu`), tous deux composant `MenuCard`. Contenu STRICT à six
  * entrées (Reprendre · Sauvegarder/Charger · Coopération · Options · Fin de séance · Quitter) ; la

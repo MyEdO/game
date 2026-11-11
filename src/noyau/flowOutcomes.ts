@@ -84,9 +84,9 @@ export function describeEncounterPsych(pe: PendingEncounterPsych, name: string):
  *  portés par `target`). */
 export function describeHeal(ph: PendingHeal, target: Combatant): string {
   if (ph.roll == null) return '';
-  const wounds = ph.mode === 'wounds';
-  const trauma = ph.mode === 'trauma';
-  const ammo = ph.mode === 'ammo';
+  const wounds = ph.mode === 'blessures';
+  const trauma = ph.mode === 'traumatisme';
+  const ammo = ph.mode === 'munition';
   const rawPreview = wounds ? healWoundsDelta(ph.intBonus, ph.sl, ph.success) : 0;
   const preview = wounds ? cappedHealAmount(target, rawPreview) : rawPreview;
   if (ph.success) {
@@ -173,7 +173,7 @@ export function describeBargain(pb: PendingBargain): string {
   if (!won && drNet >= SL_ASTOUNDING) return t('out.bargainSuspicious', { who: pb.opposant.label });
   const c = pb.contrepartie;
   if (c.kind === 'billet') return won ? t('out.bargainWonBillet') : t('out.bargainLostBillet');
-  if (c.mode === 'sell') return verdictDeVente({ won, drNet, negotiator: pb.negotiator });
+  if (c.mode === 'vente') return verdictDeVente({ won, drNet, negotiator: pb.negotiator });
   return won ? t('out.bargainWonBuy', { discount: t('out.fragDiscount', { pct: bargainPct(won, drNet, pb.negotiator) }) }) : t('out.bargainLostBuy');
 }
 
@@ -185,10 +185,10 @@ export function verdictDeVente(o: BargainOutcome): string {
 }
 
 /** Évaluation / Détection d'artefact (LDB 59 l.41 / 10 l.310-312) : issue de la popin. La VALIDATION
- *  applique la révélation + l'estimation chiffrée à part (jetValider('appraise')). */
+ *  applique la révélation + l'estimation chiffrée à part (jetValider('evaluation')). */
 export function describeAppraise(pa: PendingAppraise): string {
   if (pa.roll == null) return '';
-  const detect = pa.mode === 'detect';
+  const detect = pa.mode === 'detection';
   if (detect) {
     return pa.success
       ? t('out.detectSomething', { name: pa.actorName, item: pa.itemName })
@@ -289,7 +289,7 @@ export function describeDisengage(pd: PendingDisengage): string {
 
 /** Désengagement — phase 'fuir' : issue du coup dans le dos + Test `fuite`, montrée INLINE (popin).
  *  Les deux jets sont INFLUENÇABLES (slots `backstab`/`touche`) ; l'État Brisé (LDB 15 l.66) est
- *  calculé ici pour la narration, appliqué par `jetValider('flee')`. Jet manquant → issue
+ *  calculé ici pour la narration, appliqué par `jetValider('fuite')`. Jet manquant → issue
  *  indéterminée à ce stade (chaîne vide). */
 export function describeDisengageFlee(pd: PendingDisengage): string {
   const res = fleeBackstab(pd)?.result;

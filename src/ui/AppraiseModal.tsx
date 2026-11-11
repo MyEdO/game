@@ -15,7 +15,7 @@ import { t } from '../i18n';
 import { useGesteDeJet } from './useGesteDeJet';
 
 /** Enjeu servi par chaque mode d'Évaluation. */
-const APPRAISE_STAKE: Record<NonNullable<PendingAppraise['mode']>, FlowStakeId> = { evaluate: 'appraise-evaluate', detect: 'appraise-detect' };
+const APPRAISE_STAKE: Record<NonNullable<PendingAppraise['mode']>, FlowStakeId> = { evaluation: 'appraise-evaluate', detection: 'appraise-detect' };
 
 /** Vue pure de la modale d'Évaluation (testable sans store). */
 export function AppraiseModalView({
@@ -45,7 +45,7 @@ export function AppraiseModalView({
   owned?: boolean;
 }) {
   const rolled = pa.roll != null;
-  const detect = pa.mode === 'detect';
+  const detect = pa.mode === 'detection';
   // Repli aligné sur le flux (`openAppraise`) : le libellé vient du REGISTRE par id stable.
   const skill = libelleDEvaluation(pa);
   // La ligne figée à l'ouverture (`openAppraise`, Soutien LDB 12 compris) : celle que le résolveur jette.
@@ -77,8 +77,8 @@ export function AppraiseModalView({
 
   return (
     <RollShell
-      flowKey="appraise"
-      stake={flowStakeRef(APPRAISE_STAKE[pa.mode ?? 'evaluate'])}
+      flowKey="evaluation"
+      stake={flowStakeRef(APPRAISE_STAKE[pa.mode ?? 'evaluation'])}
       title={detect ? "Détecter l'aura" : 'Évaluer'}
       /* QUI évalue → portrait dans la ligne de jet (plus de nom en clair) ; la cible/DR vit dans le cadre. */
       subtitle={<>{pa.itemName}</>}
@@ -99,12 +99,12 @@ export function AppraiseModalView({
 export function AppraiseModal() {
   const pa = useGame((s) => s.pendingAppraise);
   const party = useGame((s) => s.party);
-  const roll = useGesteDeJet('jetLancer', 'appraise');
-  const reroll = useGesteDeJet('jetRelancer', 'appraise');
-  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'appraise');
-  const darkPact = useGesteDeJet('jetPactiser', 'appraise');
-  const confirm = useGesteDeJet('jetValider', 'appraise');
-  const cancel = useGesteDeJet('jetAnnuler', 'appraise');
+  const roll = useGesteDeJet('jetLancer', 'evaluation');
+  const reroll = useGesteDeJet('jetRelancer', 'evaluation');
+  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'evaluation');
+  const darkPact = useGesteDeJet('jetPactiser', 'evaluation');
+  const confirm = useGesteDeJet('jetValider', 'evaluation');
+  const cancel = useGesteDeJet('jetAnnuler', 'evaluation');
   // COOP (#1017) : ABONNEMENT à `net` AVANT le retour anticipé — une ré-attribution de siège en cours
   // de fenêtre re-rend la modale (sinon `owned` reste figé sur le 1er rendu).
   useGame((s) => s.net);

@@ -18,7 +18,8 @@ import { hasBargainBonus } from '../engine/combatFeatures/dispatch';
 import { appraiseEstimate } from '../engine/appraisal';
 import { makeRNG } from '../engine/dice';
 import { hasTalent } from '../engine/magic';
-import { rollStock, fullStock, availabilitySearchBonus, barterRatio, availabilityAfterHalvings, priceAfterHalvings, isTradable, outOfTradeReason, type Settlement, type CatalogItem, type StockLine } from '../engine/disponibilite';
+import { rollStock, fullStock, availabilitySearchBonus, barterRatio, availabilityAfterHalvings, priceAfterHalvings, isTradable, outOfTradeReason, type CatalogItem, type StockLine } from '../engine/disponibilite';
+import type { Settlement } from '../data/schemas/grammaire/valeurs';
 import type { Availability } from '../engine/types';
 import { t, t as msg } from '../i18n'; // `msg` : alias local — `t` est aussi le nom d'un trapping résolu dans ce flux
 import { priceToMoney, add as moneyAdd, canAfford, fromBrass, toBrass, formatMoney, statusBudgetBrass, type Money } from '../engine/money';
@@ -90,8 +91,8 @@ export interface MerchantState {
 }
 
 /** Le côté d'un marché négocié : l'achat ou la vente (LDB 59 l.43). */
-export type ModeDeMarche = 'buy' | 'sell';
-export const MODES_DE_MARCHE = ['buy', 'sell'] as const satisfies readonly ModeDeMarche[];
+export type ModeDeMarche = 'achat' | 'vente';
+export const MODES_DE_MARCHE = ['achat', 'vente'] as const satisfies readonly ModeDeMarche[];
 
 /** Le Troc vide : rien de cédé, rien de reçu. */
 export const BROUILLON_DE_TROC_VIDE: BrouillonDeTroc = Object.freeze({ cede: null, recu: null, quantite: 1 });
@@ -506,13 +507,13 @@ function possessionDUnite(unit: UniteVendue, ownerId: string): Parameters<typeof
 /** Ce qui refuse de refuser le marché `mode` de l'échoppe `m` : aucun marché négocié de ce côté ; `null` : il se
  *  refuse. */
 export function refusDeRefusDuMarche(m: MerchantState, mode: ModeDeMarche): string | null {
-  return (mode === 'buy' ? m.bargainBuy : m.bargainSell) == null ? t('mf.rienARefuser') : null;
+  return (mode === 'achat' ? m.bargainBuy : m.bargainSell) == null ? t('mf.rienARefuser') : null;
 }
 
 function refuserLeMarche(get: Get, set: Set, mode: ModeDeMarche): void {
   const m = garanti(get().merchant, 'marchand', 'échoppe ouverte');
   // Refuser une négociation → annule ce côté + VERROU PARTAGÉ (plus de marchandage achat NI vente jusqu'au réassort).
-  const patch = mode === 'buy' ? { cart: [], bargainBuy: null } : { bargainSell: null };
+  const patch = mode === 'achat' ? { cart: [], bargainBuy: null } : { bargainSell: null };
   set((s) => ({
     merchant: { ...s.merchant!, ...patch, bargainLocked: true },
     merchantStocks: { ...s.merchantStocks, [m.entityId]: { ...s.merchantStocks[m.entityId], bargainLocked: true } },
@@ -860,7 +861,7 @@ export function refusDeMarchandage(s: Pick<Jeu, 'scene' | 'party'>, m: MerchantS
   if (mkt === 'sans-marchandage' || mkt === 'simplifie') return t('mf.marchandageOte');
   if (m.soured) return t('mf.marchandMefiant');
   if (m.bargainLocked) return t('mf.marchandageVerrouille');
-  if (mode === 'buy' ? m.bargainBuy : m.bargainSell) return t('mf.dejaMarchande');
+  if (mode === 'achat' ? m.bargainBuy : m.bargainSell) return t('mf.dejaMarchande');
   return partyAssisted(s.party, { skill: { id: 'marchandage' }, characteristic: 'sociabilite' }) ? null : t('mf.sansNegociateur');
 }
 
@@ -869,7 +870,7 @@ function marchanderLePrix(get: Get, set: Set, mode: ModeDeMarche): void {
   // L'ouverture refuse un archétype inconnu (`openMerchantByArchetype`) : ouvert, il est garanti.
   const arch = garanti(findMerchantArchetypeById(m.archetype), m.archetype, 'marchandage');
   // Le marchand est un PNJ de scène : sa fiche porte le portrait de la ligne adverse.
-  ouvrirMarchandage(get, set, { kind: 'marchand', mode, titre: msg(mode === 'buy' ? 'out.bargainTitreAchat' : 'out.bargainTitreVente') }, { label: arch.label, valeur: arch.bargainSkill, portrait: sceneNpc(get().scene, m.entityId, presetDuNarratif(get().campaignNarratif)) });
+  ouvrirMarchandage(get, set, { kind: 'marchand', mode, titre: msg(mode === 'achat' ? 'out.bargainTitreAchat' : 'out.bargainTitreVente') }, { label: arch.label, valeur: arch.bargainSkill, portrait: sceneNpc(get().scene, m.entityId, presetDuNarratif(get().campaignNarratif)) });
 }
 
 /** « Conclure » le Marchandage : fige l'issue sur sa contrepartie — les prix de la visite du marchand
@@ -892,7 +893,7 @@ function acquitterLeMarchandage(get: Get, set: Set): void {
     pendingBargain: null,
     ...(c.kind === 'billet'
       ? { marchandagesDeBillet: { ...s.marchandagesDeBillet, [cleDeBillet(c.routeId, c.vehicule, c.depuis)]: outcome } }
-      : { merchant: s.merchant ? { ...s.merchant, ...(c.mode === 'buy' ? { bargainBuy: outcome } : { bargainSell: outcome }), soured: s.merchant.soured || botch } : s.merchant }),
+      : { merchant: s.merchant ? { ...s.merchant, ...(c.mode === 'achat' ? { bargainBuy: outcome } : { bargainSell: outcome }), soured: s.merchant.soured || botch } : s.merchant }),
   }));
 }
 
@@ -904,20 +905,20 @@ const DETECT_TALENT = 'detection-d-artefact';
  *  libellé (`libelleDEvaluation`). Détection : Talent « Détection d'artefact »
  *  (`LDB 10 l.336`). Les Caractéristiques associées sont celles de `skills.json`. */
 export const APPRAISE_SKILL = {
-  evaluate: { skill: { id: 'evaluation' }, characteristic: 'intelligence' },
-  detect: { skill: { id: 'intuition' }, characteristic: 'initiative' },
+  evaluation: { skill: { id: 'evaluation' }, characteristic: 'intelligence' },
+  detection: { skill: { id: 'intuition' }, characteristic: 'initiative' },
 } as const satisfies Record<string, TestIds>;
 
 /** Un mode de l'évaluation (`APPRAISE_SKILL`) : l'Évaluation (LDB 59 l.41) ou la Détection d'artefact (LDB 10 l.336). */
 export type ModeDEvaluation = keyof typeof APPRAISE_SKILL;
 /** Le mode d'`evaluerLObjet` appelé sans mode. */
-export const MODE_D_EVALUATION_PAR_DEFAUT = 'evaluate' satisfies ModeDEvaluation;
+export const MODE_D_EVALUATION_PAR_DEFAUT = 'evaluation' satisfies ModeDEvaluation;
 
 /** Meilleur détecteur du groupe : meilleure Intuition PARMI les porteurs du Talent (c'est LUI qui
  *  touche l'objet — pas un partyBest global comme l'Évaluation). null si personne ne l'a. */
 function bestDetector(party: Combatant[]): { actor: Combatant; value: number; support: SupportDetail } | null {
   const holders = party.filter((h) => hasTalent(h, DETECT_TALENT));
-  const best = partyAssisted(holders, APPRAISE_SKILL.detect); // Soutien (LDB 12)
+  const best = partyAssisted(holders, APPRAISE_SKILL.detection); // Soutien (LDB 12)
   return best ? { actor: best.actor, value: best.value, support: best.support } : null;
 }
 
@@ -927,7 +928,7 @@ const sansDetection = (party: Combatant[], cible: CibleDeDetection): Combatant[]
 /** Meneur de l'Évaluation (Soutien LDB 12) ou de la Détection de `cible` (`bestDetector`, parmi ceux qui ne l'ont pas
  *  tentée) ; `null` = personne qui puisse tenter. */
 function appraiseLeader(party: Combatant[], mode: ModeDEvaluation, cible: CibleDeDetection = {}): { actor: Combatant; value: number; support: SupportDetail } | null {
-  return mode === 'detect' ? bestDetector(sansDetection(party, cible)) : partyAssisted(party, APPRAISE_SKILL.evaluate);
+  return mode === 'detection' ? bestDetector(sansDetection(party, cible)) : partyAssisted(party, APPRAISE_SKILL.evaluation);
 }
 
 /** Ce que la Détection lit de sa cible (objet porté ou ligne de butin) : qui l'a déjà tentée. */
@@ -935,26 +936,26 @@ interface CibleDeDetection { label?: string; detectTriedBy?: readonly string[] }
 
 /** Détection : le refus nomme le Talent, pas la Compétence — LDB 10 l.336. */
 const appraiseNobody = (mode: ModeDEvaluation): string => refusPersonneNePeutTenter(
-  mode === 'detect' ? { action: refLabel('talents', { id: DETECT_TALENT }) } : { skill: APPRAISE_SKILL[mode].skill },
+  mode === 'detection' ? { action: refLabel('talents', { id: DETECT_TALENT }) } : { skill: APPRAISE_SKILL[mode].skill },
 );
 
 /** Refus NOMMÉ d'une Évaluation que personne ne peut tenter (LDB 09 l.30) ; `null` sinon. Le geste de l'UI en dérive. */
 export function appraiseRefus(party: Combatant[]): string | null {
-  return appraiseLeader(party, 'evaluate') ? null : appraiseNobody('evaluate');
+  return appraiseLeader(party, 'evaluation') ? null : appraiseNobody('evaluation');
 }
 
 /** Refus de la Détection d'artefact de `cible` : personne n'a le Talent, ou chacun de ses porteurs l'a déjà tentée
  *  sur elle ; `null` sinon. LDB 10 l.336 */
 export function refusDeDetection(party: Combatant[], cible: CibleDeDetection & { label: string }): string | null {
-  if (!bestDetector(party)) return appraiseNobody('detect');
-  return appraiseLeader(party, 'detect', cible) ? null : t('mf.detectDejaTentee', { label: cible.label });
+  if (!bestDetector(party)) return appraiseNobody('detection');
+  return appraiseLeader(party, 'detection', cible) ? null : t('mf.detectDejaTentee', { label: cible.label });
 }
 
 /** Démarreur PARTAGÉ Évaluation/Détection — sur un objet d'inventaire (`itemUid`) OU une ligne de
  *  butin encore en fenêtre (`gear`). Une seule modale, un seul flux de jet (`FLOWS.appraise`, `rollFlowSpecs.ts`). */
 function openAppraise(
   get: Get, set: Set,
-  target: { itemUid?: string; gear?: { scope: 'loot' | 'victory'; uid: IdDeLigneDeButin } },
+  target: { itemUid?: string; gear?: { scope: 'butin' | 'victoire'; uid: IdDeLigneDeButin } },
   itemName: string, mode: ModeDEvaluation, trappingId?: string, cible: CibleDeDetection = {},
 ): void {
   const best = garanti(appraiseLeader(get().party, mode, cible), itemName, 'meneur de l’évaluation (`refusDEvaluation`)');
@@ -976,12 +977,12 @@ export function gameDay(s: Pick<Jeu, 'gameTime'>): number {
 }
 
 /** Ce qu'évalue `evaluerLObjet` : l'objet qu'un héros du groupe porte, sinon la ligne d'un butin encore en fenêtre
- *  (`loot` puis `victory`) ; sa cible ouverte (`openAppraise`) et ce que lisent ses refus. `null` : l'uid ne désigne ni
+ *  (`butin` puis `victoire`) ; sa cible ouverte (`openAppraise`) et ce que lisent ses refus. `null` : l'uid ne désigne ni
  *  l'un ni l'autre. */
-function aEvaluer(s: Jeu, uid: string): { target: Parameters<typeof openAppraise>[2]; cible: CibleDEvaluation; trappingId?: string } | null {
+function cibleAEvaluer(s: Jeu, uid: string): { target: Parameters<typeof openAppraise>[2]; cible: CibleDEvaluation; trappingId?: string } | null {
   const item = s.party.find((h) => h.id === porteurDeLObjet(s, uid))?.items?.find((i) => i.uid === uid);
   if (item) return { target: { itemUid: uid }, cible: item, trappingId: item.trappingId };
-  for (const scope of ['loot', 'victory'] as const) {
+  for (const scope of ['butin', 'victoire'] as const) {
     const ligne = ligneDuButin(s, scope, uid);
     if (ligne) return { target: { gear: { scope, uid } }, cible: { ...ligne.effect, label: ligne.label }, trappingId: ligne.effect.trappingId };
   }
@@ -997,35 +998,35 @@ type CibleDEvaluation = CibleDeDetection & { label: string; appraiseTriedDay?: n
 const joursAvantDeRetenter = (cible: CibleDEvaluation, jour: number): number =>
   (cible.appraiseTriedDay === undefined ? 0 : Math.max(0, cible.appraiseTriedDay + Number(rule('market-evaluation-delai-jours')) - jour));
 
-/** Refus de l'Évaluation (`evaluate`) ou de la Détection d'artefact (`detect`) de `cible` au jour `jour` : manquée trop
+/** Refus de l'Évaluation (`evaluation`) ou de la Détection d'artefact (`detection`) de `cible` au jour `jour` : manquée trop
  *  récemment (règle maison `market-evaluation-delai-jours`), personne ne peut la tenter (LDB 09 l.30), ou chaque
  *  détecteur l'a déjà tentée (LDB 10 l.336) ; `null` sinon. Le verbe et la fenêtre du butin le lisent. */
 export function refusDEvaluation(party: Combatant[], cible: CibleDEvaluation, mode: ModeDEvaluation, jour: number): string | null {
-  if (mode === 'detect') return refusDeDetection(party, cible);
+  if (mode === 'detection') return refusDeDetection(party, cible);
   const jours = joursAvantDeRetenter(cible, jour);
   return jours > 0 ? t('mf.appraiseRetenter', { label: cible.label, jours }) : appraiseRefus(party);
 }
 
 /** Évaluation (LDB 59 l.41) ou Détection d'artefact (LDB 10 l.336) d'un objet porté par un héros, ou d'une ligne de
  *  butin ENCORE en fenêtre, révélée avant de choisir qui l'emporte. Chaque refus est dit. */
-export function evaluerLObjet(get: Get, set: Set, uid: IdDObjet | IdDeLigneDeButin, mode: ModeDEvaluation = MODE_D_EVALUATION_PAR_DEFAUT): void {
-  if (porteurDeLObjet(get(), uid) && (refuseSi(get, set, refusDInventaire) || refuseSi(get, set, (s) => refusDuHerosPorteur(s, uid)))) return;
-  const cible = aEvaluer(get(), uid);
+export function evaluerLObjet(get: Get, set: Set, aEvaluer: IdDObjet | IdDeLigneDeButin, mode: ModeDEvaluation = MODE_D_EVALUATION_PAR_DEFAUT): void {
+  if (porteurDeLObjet(get(), aEvaluer) && (refuseSi(get, set, refusDInventaire) || refuseSi(get, set, (s) => refusDuHerosPorteur(s, aEvaluer)))) return;
+  const cible = cibleAEvaluer(get(), aEvaluer);
   if (!cible) return void refuserGeste(get, set, t('pf.objetSansPorteur'));
   if (refuseSi(get, set, (s) => refusDEvaluation(s.party, cible.cible, mode, gameDay(s)))) return;
   openAppraise(get, set, cible.target, cible.cible.label, mode, cible.trappingId, cible.cible);
 }
 
 /** La ligne `uid` du butin `scope` encore en fenêtre. */
-const ligneDuButin = (s: Jeu, scope: 'loot' | 'victory', uid: string) => (scope === 'loot' ? s.pendingLoot : s.pendingVictory)?.gear?.find((g) => g.uid === uid);
+const ligneDuButin = (s: Jeu, scope: 'butin' | 'victoire', uid: string) => (scope === 'butin' ? s.pendingLoot : s.pendingVictory)?.gear?.find((g) => g.uid === uid);
 
 /** Patch la cible de l'Évaluation/Détection — objet porté (party) ou ligne de butin en fenêtre. */
-function patchAppraiseTarget(get: Get, set: Set, pa: { itemUid?: string; gear?: { scope: 'loot' | 'victory'; uid: IdDeLigneDeButin } },
+function patchAppraiseTarget(get: Get, set: Set, pa: { itemUid?: string; gear?: { scope: 'butin' | 'victoire'; uid: IdDeLigneDeButin } },
   { detecteur, ...patch }: { identified?: boolean; magicKnown?: boolean; detecteur?: string; appraiseTriedDay?: number }): void {
   /** La Détection tentée par `detecteur` s'ajoute à la liste de sa cible. LDB 10 l.336 */
   const avecDetecteur = (cible: { detectTriedBy?: string[] }) => (detecteur ? { detectTriedBy: [...(cible.detectTriedBy ?? []), detecteur] } : {});
   if (pa.gear) {
-    const key = pa.gear.scope === 'loot' ? 'pendingLoot' : 'pendingVictory';
+    const key = pa.gear.scope === 'butin' ? 'pendingLoot' : 'pendingVictory';
     const { uid } = pa.gear;
     set((s) => {
       const bucket = s[key];
@@ -1059,7 +1060,7 @@ function acquitterLEvaluation(get: Get, set: Set): void {
   const pa = get().pendingAppraise;
   if (!pa) return;
   set({ pendingAppraise: null });
-  if (pa.mode === 'detect') {
+  if (pa.mode === 'detection') {
     // Qualités MAGIQUES de la cible : sur une ligne de butin on les connaît (effet) ; sur un objet
     // porté, l'ajout est fondu dans `qualities` → on compte 1 règle (cas du butin du jeu).
     const line = pa.gear ? ligneDuButin(get(), pa.gear.scope, pa.gear.uid) : undefined;
@@ -1102,7 +1103,7 @@ export function creerActionsDuMarchand(get: Get, set: Set) {
   return {
     ouvrirLeMarchand: (entityId) => ouvrirLeMarchand(get, set, entityId),
     ouvrirLaBoutique: (serviceId) => ouvrirLaBoutique(get, set, serviceId),
-    evaluerLObjet: (uid, mode) => evaluerLObjet(get, set, uid, mode),
+    evaluerLObjet: (aEvaluer, mode) => evaluerLObjet(get, set, aEvaluer, mode),
   } satisfies FabriqueDuNoyau;
 }
 
@@ -1159,8 +1160,8 @@ export function validationsDuMarchand(get: Get, set: Set) {
 
 export function cloturesDuMarchand(get: Get, set: Set) {
   return {
-    bargain: () => acquitterLeMarchandage(get, set),
-    appraise: () => acquitterLEvaluation(get, set),
+    marchandage: () => acquitterLeMarchandage(get, set),
+    evaluation: () => acquitterLEvaluation(get, set),
   } satisfies Partial<CloturesDuJet>;
 }
 
