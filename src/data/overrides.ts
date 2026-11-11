@@ -33,7 +33,6 @@ import {
 // même que celle lue par le moteur → l'édition Codex (splice en place) reste visible en jeu.
 import type { TraumaFiche } from '../engine/trauma';
 import { versDisque } from './schemas/grammaire/prose';
-import { parseDiceRequired } from '../engine/dice';
 import { ACTIVITIES } from '../engine/activities';
 import { MOUNT_PROFILES } from '../engine/mountTravel';
 import { MOUNT_INCIDENTS, VEHICLE_PROBLEMS, encounterTable } from '../engine/travelTables';
@@ -47,8 +46,8 @@ import { MORALE_FACTORS, MORALE_BANDS } from '../engine/crewMorale';
 import { STEAM_BREAKDOWNS } from '../engine/shipBuild';
 import { DATASET_FICHIER_DERIVE, DATASET_SUITE_DERIVE, DATASETS_EDITABLES_DERIVE } from './schemas/exposition-derivee';
 import { poserRegimeVivant } from './schemas/grammaire/idsVivants';
-import { atteindre, idsDeLEspace, lectureDeLEspace, type AccesAuxDocuments } from './schemas/grammaire/collection-cle';
-import { lireCleDEspace } from './schemas/grammaire/cle-d-espace';
+import { atteindre, elementDeLaListe, idsDeLEspace, lectureDeLEspace, type AccesAuxDocuments } from './schemas/grammaire/collection-cle';
+import { estPrefixeDeSuite, lireCleDEspace, pasDeLaSuite, suiteAvecPas } from './schemas/grammaire/cle-d-espace';
 import { lectureDuVocabulaire } from './schemas/grammaire/vocabulaires';
 import { SCHEMA_DEFS } from './schemas/_registry.generated';
 import { RACINES_VIVANTES } from './schemas/_racines-vivantes.generated';
@@ -387,47 +386,120 @@ const idsVivantsDeLEspace = (cle: string): ReadonlySet<string> | undefined =>
   lectureVivante(cle) && idsDeLEspace(cle, (c) => lectureVivante(c) ?? lectureDeVocabulaire(c));
 poserRegimeVivant(idsVivantsDeLEspace);
 
-/** Le PORTEUR du dé de tirage de la collection `cible` dans `racine` : son ancêtre objet le plus proche
- *  qui porte un `die` (le document d'une table, `tableTiree`, ou la racine qui le partage entre ses
- *  tables), trouvé par IDENTITÉ ; `undefined` quand aucun ancêtre n'en porte — le dé est alors un champ
- *  de l'ENTRÉE (`setDataset`), ou la table n'en a pas. */
-function porteurDuDe(racine: unknown, cible: unknown): Record<string, unknown> | undefined {
-  const ancetres: Record<string, unknown>[] = [];
-  const chercher = (v: unknown): boolean => {
-    if (v === cible) return true;
-    if (v === null || typeof v !== 'object') return false;
-    const objet = !Array.isArray(v);
-    if (objet) ancetres.push(v as Record<string, unknown>);
-    for (const enfant of Object.values(v)) if (chercher(enfant)) return true;
-    if (objet) ancetres.pop();
-    return false;
-  };
-  return chercher(racine) ? ancetres.reverse().find((n) => typeof n.die === 'string') : undefined;
+/** Une écriture d'EN-TÊTE : le champ `champ` du nœud ANCÊTRE de la collection d'une catégorie de niche,
+ *  nommé par son préfixe de suite `ancetre` (`''`, la racine) ; `valeur` `undefined` retire le champ. */
+export interface EcritureDEnTete {
+  readonly ancetre: string;
+  readonly champ: string;
+  readonly valeur: unknown;
 }
 
-/** Porteur du dé de chaque dataset-tableau dont la table tire au dé d'un ancêtre (#1667). */
-const PORTEUR_DU_DE = new Map<DatasetKey, Record<string, unknown>>();
-for (const k of DATASET_KEYS) {
-  const porteur = porteurDuDe(RACINES_VIVANTES[DATASET_FICHIER_DERIVE[k]], ARRAYS[k]);
-  if (porteur) PORTEUR_DU_DE.set(k, porteur);
+/** Le nœud au bout de `ancetre` sur la racine vivante de `fichier` ; un pas `[clé]` se résout par la
+ *  marque de la liste parente (`elementDeLaListe`). `undefined` dès qu'un pas ne mène nulle part. */
+function noeudAuPrefixe(fichier: string, ancetre: string): unknown {
+  const schema = SCHEMA_DU_FICHIER.get(fichier);
+  const racine = RACINES_VIVANTES[fichier];
+  let v: unknown = racine;
+  let prefixe = '';
+  for (const pas of pasDeLaSuite(ancetre)) {
+    if ('rang' in pas) throw new Error(`en-tête de ${fichier} : « ${ancetre} » porte un pas « [] », qui ne désigne pas UN nœud.`);
+    v = 'champ' in pas ? (estObjet(v) ? v[pas.champ] : undefined) : elementDeLaListe(schema, racine, prefixe, pas.cle)?.element;
+    prefixe = suiteAvecPas(prefixe, pas);
+  }
+  return v;
 }
-/** Seeds des dés de table, pour `resetData()`. */
-const DE_SEED = new Map([...PORTEUR_DU_DE].map(([k, porteur]) => [k, porteur.die as string] as const));
 
-/** Le DÉ DE TIRAGE de la table du dataset `key`, quand un ancêtre de sa collection le porte. */
+/** HORS DE L'EN-TÊTE, par fichier puis par ancêtre : tout pas `champ` d'un chemin de collection du
+ *  fichier, et la clé `par` de tout pas `[clé]` — une collection s'écrit par `setDataset`. */
+const HORS_EN_TETE = new Map<string, Map<string, Set<string>>>();
+/** Les préfixes ANCÊTRES des collections de chaque fichier. */
+const ANCETRES_DU_FICHIER = new Map<string, Set<string>>();
+for (const cle of CLES_DE_DATASET) {
+  const suite = DATASET_SUITE_DERIVE[cle];
+  if (!suite) continue;
+  const fichier = DATASET_FICHIER_DERIVE[cle];
+  const exclus = HORS_EN_TETE.get(fichier) ?? new Map<string, Set<string>>();
+  const ancetres = ANCETRES_DU_FICHIER.get(fichier) ?? new Set<string>();
+  HORS_EN_TETE.set(fichier, exclus);
+  ANCETRES_DU_FICHIER.set(fichier, ancetres);
+  const exclure = (ancetre: string, champ: string): void => { exclus.set(ancetre, (exclus.get(ancetre) ?? new Set()).add(champ)); };
+  let prefixe = '';
+  for (const pas of pasDeLaSuite(suite)) {
+    ancetres.add(prefixe);
+    if ('champ' in pas) exclure(prefixe, pas.champ);
+    else if ('cle' in pas) {
+      const lu = elementDeLaListe(SCHEMA_DU_FICHIER.get(fichier), RACINES_VIVANTES[fichier], prefixe, pas.cle);
+      if (!lu) throw new Error(`en-tête de ${fichier} : le pas « [${pas.cle}] » de « ${suite} » ne traverse pas une liste marquée.`);
+      exclure(suiteAvecPas(prefixe, pas), lu.par);
+    }
+    prefixe = suiteAvecPas(prefixe, pas);
+  }
+}
+
+/** Le nœud d'en-tête `ancetre` de la catégorie `cle`, où `champ` peut s'écrire. LÈVE sur un ancêtre qui
+ *  n'est pas un préfixe strict de la suite de sa collection, un nœud qui n'est pas un objet, ou un champ
+ *  hors de l'en-tête (`HORS_EN_TETE`). */
+function noeudDEnTete(cle: DatasetKey, ancetre: string, champ: string): Record<string, unknown> {
+  const suite = DATASET_SUITE_DERIVE[cle];
+  const fichier = DATASET_FICHIER_DERIVE[cle];
+  if (!suite || ancetre === suite || !estPrefixeDeSuite(ancetre, suite))
+    throw new Error(`en-tête de '${cle}' : « ${ancetre} » n'est pas un ancêtre de sa collection (« ${suite} ») — une entrée s'écrit par \`setDataset\`.`);
+  const noeud = noeudAuPrefixe(fichier, ancetre);
+  if (!estObjet(noeud)) throw new Error(`en-tête de '${cle}' : « ${ancetre} » n'est pas un nœud objet — un nœud tableau n'a pas d'en-tête.`);
+  if (HORS_EN_TETE.get(fichier)?.get(ancetre)?.has(champ))
+    throw new Error(`en-tête de '${cle}' : « ${champ} » de « ${ancetre} » est un pas d'un chemin de collection ou une clé d'élément — hors de l'en-tête, \`setDataset\` l'écrit.`);
+  return noeud;
+}
+
+/** Les champs d'en-tête d'un nœud : tous ses champs, moins ceux que `HORS_EN_TETE` exclut. */
+const champsDEnTete = (fichier: string, ancetre: string, noeud: Record<string, unknown>): string[] =>
+  Object.keys(noeud).filter((c) => !HORS_EN_TETE.get(fichier)?.get(ancetre)?.has(c));
+
+/** GRAINE de l'en-tête de chaque fichier, par ancêtre objet, pour `resetData()`, qui la repose EN PLACE (`poserEnPlace`). */
+const GRAINE_EN_TETE = new Map<string, Map<string, Record<string, unknown>>>();
+for (const [fichier, ancetres] of ANCETRES_DU_FICHIER) {
+  const graine = new Map<string, Record<string, unknown>>();
+  for (const ancetre of ancetres) {
+    const noeud = noeudAuPrefixe(fichier, ancetre);
+    if (estObjet(noeud)) graine.set(ancetre, tableTotale(champsDEnTete(fichier, ancetre, noeud), (c) => structuredClone(noeud[c])));
+  }
+  GRAINE_EN_TETE.set(fichier, graine);
+}
+
+/** Écrit EN PLACE un clone de chaque valeur (la porte ne garde aucune référence de l'appelant) dans des
+ *  champs de l'EN-TÊTE de la catégorie de niche `cle` (#1667) et VERSIONNE l'écriture
+ *  pour toutes les clés de son fichier — un champ d'une racine partagée (`rencontres-edoc.json`) l'est
+ *  par toutes ses tables. LÈVE avant toute écriture sur une écriture hors de l'en-tête (`noeudDEnTete`) ;
+ *  la validation de la valeur reste à la transaction de l'atelier (`enregistrerEntree`). */
+export function setEnTete(cle: DatasetKey, ecritures: readonly EcritureDEnTete[]): void {
+  const poses = ecritures.map((e) => [noeudDEnTete(cle, e.ancetre, e.champ), e] as const);
+  for (const [noeud, { champ, valeur }] of poses) {
+    if (valeur === undefined) delete noeud[champ];
+    else noeud[champ] = structuredClone(valeur);
+  }
+  for (const c of CLES_DU_FICHIER.get(DATASET_FICHIER_DERIVE[cle]) ?? []) bumperDataset(c);
+}
+
+/** La valeur du champ d'en-tête `champ` de l'ancêtre `ancetre` de la catégorie `cle` (`noeudDEnTete`). */
+export function champDEnTete(cle: DatasetKey, ancetre: string, champ: string): unknown {
+  return noeudDEnTete(cle, ancetre, champ)[champ];
+}
+
+/** L'ANCÊTRE le plus proche de la collection de `cle` qui porte un dé de tirage `die` (le document d'une
+ *  table, `tableTiree`, ou la racine qui le partage entre ses tables), par sa suite ; `undefined` quand
+ *  aucun n'en porte — le dé est alors un champ de l'ENTRÉE (`setDataset`), ou la table n'en a pas. */
+export function ancetreDuDe(cle: DatasetKey): string | undefined {
+  const suite = DATASET_SUITE_DERIVE[cle];
+  if (!suite) return undefined;
+  const fichier = DATASET_FICHIER_DERIVE[cle];
+  const prefixes = pasDeLaSuite(suite).slice(0, -1).reduce((acc, pas) => [...acc, suiteAvecPas(acc[acc.length - 1], pas)], ['']);
+  return prefixes.reverse().find((a) => { const n = noeudAuPrefixe(fichier, a); return estObjet(n) && typeof n.die === 'string'; });
+}
+
+/** Le DÉ DE TIRAGE de la table du dataset `key`, quand un ancêtre de sa collection le porte (`ancetreDuDe`). */
 export function deDeLaTable(key: DatasetKey): string | undefined {
-  return PORTEUR_DU_DE.get(key)?.die as string | undefined;
-}
-
-/** Écrit EN PLACE le DÉ DE TIRAGE de la table du dataset `key` sur son porteur et VERSIONNE l'écriture
- *  pour toutes les clés de son fichier (#1667) — un dé partagé (`rencontres-edoc.json`) l'est par toutes
- *  ses tables. LÈVE sur une expression illisible, et sur un dataset dont aucun ancêtre ne porte le dé. */
-export function setDeDeTable(key: DatasetKey, die: string): void {
-  const porteur = PORTEUR_DU_DE.get(key);
-  if (!porteur) throw new Error(`setDeDeTable('${key}') : aucun ancêtre de la collection ne porte de dé de tirage — un dé d'ENTRÉE s'écrit par \`setDataset\`.`);
-  parseDiceRequired(die, `${key} › die`);
-  porteur.die = die;
-  for (const cle of CLES_DU_FICHIER.get(DATASET_FICHIER_DERIVE[key]) ?? []) bumperDataset(cle);
+  const ancetre = ancetreDuDe(key);
+  return ancetre === undefined ? undefined : (champDEnTete(key, ancetre, 'die') as string);
 }
 
 /** Ce dataset a-t-il une route d'ÉDITION déclarée ? (sinon `datasetFile` refuse — #1530) */
@@ -460,12 +532,15 @@ export function datasetObjectSerializeRoot(key: ObjectDatasetKey): unknown {
  *  garde `sizesJson.rangedMod`) : une réassignation du parent lui laisserait une référence morte. */
 function mergeInPlace(target: Record<string, unknown>, next: Record<string, unknown>): void {
   for (const k of Object.keys(target)) if (!(k in next)) delete target[k];
-  for (const [k, v] of Object.entries(next)) {
-    const cur = target[k];
-    if (Array.isArray(cur) && Array.isArray(v)) cur.splice(0, cur.length, ...v);
-    else if (estObjet(cur) && estObjet(v)) mergeInPlace(cur, v);
-    else target[k] = v;
-  }
+  for (const [k, v] of Object.entries(next)) poserEnPlace(target, k, v);
+}
+
+/** Pose `v` au champ `k` de `target` EN PLACE (`mergeInPlace`) : un sous-objet ou sous-tableau garde son identité. */
+function poserEnPlace(target: Record<string, unknown>, k: string, v: unknown): void {
+  const cur = target[k];
+  if (Array.isArray(cur) && Array.isArray(v)) cur.splice(0, cur.length, ...v);
+  else if (estObjet(cur) && estObjet(v)) mergeInPlace(cur, v);
+  else target[k] = v;
 }
 
 /** Remplace EN PLACE le contenu d'un dataset-objet (réf stable, jusqu'aux tables nichées). */
@@ -476,7 +551,12 @@ export function setObjectDataset<K extends ObjectDatasetKey>(key: K, next: (type
 
 /** Réinitialise tous les datasets (tableaux ET objets) au seed d'origine (JSON app-owned). */
 export function resetData(): void {
-  for (const [k, die] of DE_SEED) PORTEUR_DU_DE.get(k)!.die = die;
+  for (const [fichier, graine] of GRAINE_EN_TETE)
+    for (const [ancetre, champs] of graine) {
+      const noeud = noeudAuPrefixe(fichier, ancetre) as Record<string, unknown>;
+      for (const c of champsDEnTete(fichier, ancetre, noeud)) if (!(c in champs)) delete noeud[c];
+      for (const [c, v] of Object.entries(champs)) poserEnPlace(noeud, c, structuredClone(v));
+    }
   for (const k of DATASET_KEYS) {
     const arr = ARRAYS[k] as unknown[];
     arr.splice(0, arr.length, ...structuredClone(SEED[k]));

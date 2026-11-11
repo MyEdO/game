@@ -6,7 +6,7 @@
  */
 import type { Combatant } from '../engine/types';
 import { refCouvre } from '../data/schemas/grammaire/ref';
-import { crewRoleValue, competencesDuRole, moraleBand, MORALE_BASE, undercrewPenalty, weeklyCrewWageBrass, recalcMorale, payChoiceCostBrass, payChoices, isPayChoice, isFreePayChoice, freePayChoiceId, recommendedPayChoiceId, type CrewAssignment, type UndercrewPenalty } from '../engine/crewMorale';
+import { crewRoleValue, competencesDuRole, moraleBand, moraleBase, undercrewPenalty, weeklyCrewWageBrass, recalcMorale, payChoiceCostBrass, payChoices, isPayChoice, isFreePayChoice, freePayChoiceId, recommendedPayChoiceId, type CrewAssignment, type UndercrewPenalty } from '../engine/crewMorale';
 import { fromBrass, canAfford, formatMoney, type Money } from '../engine/money';
 import { partyMoneyTotal, payFromGroup } from './bourseFlow';
 import { cadenceAuto } from '../engine/cadence';
@@ -160,11 +160,11 @@ export function withCrewActed(crewActed: Record<string, string[]> | undefined, s
 /**
  * Moral effectif d'un navire pour un Test d'équipage (la bande de Moral pèse en ±DR, MDG 14). Pont CAMPAGNE → COMBAT :
  * la coque `Combatant` ne porte AUCUN Moral (il vit sur `CampaignVessel`, recalc hebdomadaire) → on lit `vessel.morale.score`
- * si la coque EST le navire de campagne, sinon `MORALE_BASE` (75, équipage neuf). Dérivé à l'usage, jamais stocké sur la coque.
+ * si la coque EST le navire de campagne, sinon `moraleBase()` (équipage neuf). Dérivé à l'usage, jamais stocké sur la coque.
  */
 export function shipMoraleScore(get: Get, ship: Combatant): number {
   const vessel = get().vessel;
-  return vessel && ship.creatureId === vessel.vehicleId ? vessel.morale.score : MORALE_BASE;
+  return vessel && ship.creatureId === vessel.vehicleId ? vessel.morale.score : moraleBase();
 }
 
 /**

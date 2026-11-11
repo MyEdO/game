@@ -3,7 +3,7 @@ import { VEHICLES_LIST } from '../engine/travel';
 import { vehicleCombatant } from '../engine/vehicle';
 import { shipHitLocation } from '../engine/combat';
 import { rigDuNavire } from '../engine/shipBuild';
-import { shipCritSet, SHIP_CRIT_SET_IDS } from './shipCriticals';
+import { shipCritSet, shipCritSetIds } from './shipCriticals';
 
 // MDG 12 = navires MARITIMES (18). Les bateaux FLUVIAUX MSRC (propulsion:'fluvial') ont aussi une
 // facette `ship` mais relèvent de leur propre table (MSRC 7) — couverts par `16-embuscade-fluviale`.
@@ -73,7 +73,7 @@ describe('Jeu de Critiques d’une COQUE — vocabulaire fermé, résolution fai
   const hulls = VEHICLES_LIST.filter((v) => v.hull);
 
   it('les coques ne portent qu’un id de jeu CHARGÉ (absent = `ship-criticals` MDG 13, seule autre valeur `river-criticals`)', () => {
-    expect(SHIP_CRIT_SET_IDS).toEqual(['ship-criticals', 'river-criticals']);
+    expect(shipCritSetIds()).toEqual(['ship-criticals', 'river-criticals']);
     const distinct = [...new Set(hulls.map((v) => v.hull!.criticalTable).filter((t) => t != null))];
     expect(distinct).toEqual(['river-criticals']);
     for (const v of hulls) expect(() => shipCritSet(v.hull!.criticalTable), v.id).not.toThrow();

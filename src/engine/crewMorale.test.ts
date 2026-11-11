@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { MORALE_BASE, MORALE_FACTORS, MORALE_BANDS, moraleBand, recalcMorale, resolveCrewTest, tickShipMorale, payChoices, payChoiceCostBrass, isPayChoice, findMoraleFactor } from './crewMorale';
+import { moraleBase, MORALE_FACTORS, MORALE_BANDS, moraleBand, recalcMorale, resolveCrewTest, tickShipMorale, payChoices, payChoiceCostBrass, isPayChoice, findMoraleFactor } from './crewMorale';
 import { setDataset } from '../data/overrides';
 import { makeRNG, type RNG } from './dice';
 import { desEnSuite } from './dice.testkit';
@@ -15,7 +15,7 @@ const FACTORS_SEED = structuredClone(MORALE_FACTORS);
  */
 describe('Moral d’équipage — données verbatim + recalcul hebdomadaire', () => {
   it('débute à 75 (nouveau capitaine / nouvel équipage)', () => {
-    expect(MORALE_BASE).toBe(75);
+    expect(moraleBase()).toBe(75);
   });
 
   it('catalogue complet : 28 facteurs (ids stables) + 4 bandes contiguës couvrant tout le spectre', () => {

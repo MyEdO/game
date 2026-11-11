@@ -143,10 +143,11 @@
 // - `composition` : Soldat, manquants et copie validée côté Node ; une couleur changée à l'onglet Couleurs, posée dans
 //   la composition et sur les matériaux de la pièce ; pièce skinnée montée et démontée, courtaud, corpulence aux
 //   bornes, marche au clavier au corps neutre et couplage de la racine au temps du clip, puis repos.
-// - `preset` (`--preset <id>`) : sur le dossier des modèles du projet, à deviceScaleFactor 2, la base du preset choisie à
-//   l'onglet Outils, puis le preset à l'onglet Personnage ; le personnage composé sans erreur, chaque chose qu'il porte
-//   montée dans la scène ou nommée manquante, capturé de face, de trois quarts et de dos (glissés au bouton droit de l'orbite) : ce que
-//   le jeu montrera d'un preset.
+// - `preset` (`--preset <id>`) : sur le dossier des modèles du projet, à deviceScaleFactor 2, la base du preset choisie
+//   en tête du panneau, puis le preset à l'onglet Personnage ; le personnage composé sans erreur, chaque chose qu'il porte
+//   montée dans la scène ou nommée manquante ; la fusion porte la pile des couches (#3842), au bilan de l'évaluateur
+//   sur les mêmes éléments et les mêmes formes ; puis capturé de face, de trois quarts et de dos (glissés au bouton
+//   droit de l'orbite) : ce que le jeu montrera d'un preset.
 // Chaque étape est assertée ; une assertion fausse, une erreur relevée par le pont (`erreursGlobales`) ou une erreur de
 // console rendent un code non nul.
 //
@@ -207,7 +208,7 @@ import { gestesDessines } from './pont/dessines.ts'
 import { dossierDesProjetsLivres, listerProjetsLivres, PROJETS_MANUSCRITS } from '../../scripts/guards/lib/projetsLivres.mjs'
 import { ATTENTE_ECHUE, clic, consoleGuard, evaluate, geste, launchSession, molette, poserFichier, realKey, realKeyDown, realKeyUp, shot, sleep, waitFor } from '../../scripts/recette/lib.mjs'
 
-import { chargerAssets } from './asset/charger.mjs'
+import { chargerAssets, chargerEvaluateur } from './asset/charger.mjs'
 
 const chaine = { type: 'string' }
 const { values: o } = parseArgs({
@@ -2781,8 +2782,37 @@ const TOUT_EST_MONTE = `JSON.stringify(a.composition.montes.filter((m) => m.elem
 /** Les radians de lacet par pixel d'un glissé de l'orbite (`MiseEnPage.RADIANS_PAR_PIXEL`). */
 const RADIANS_PAR_PIXEL = 0.005
 
+/** L'écart relatif admis entre un compte du bilan de la pile que porte la fusion de Godot et celui de l'évaluateur : Godot
+ *  quantifie les poids de peau sur 16 bits et cuit les formes par son propre calcul, ce qui déplace quelques points d'un
+ *  côté à l'autre d'un seuil de la pile. */
+const TOLERANCE_DE_LA_PILE = 0.01
+
+/** La fusion de l'atelier porte la pile des couches de l'évaluateur (#3842) : le bilan que l'atelier publie (`pile`,
+ *  `MontageDeComposition.pile_posee`) est, à `TOLERANCE_DE_LA_PILE` près, celui que l'évaluateur mesure
+ *  (`mesures.pile`) sur les mêmes éléments montés, aux formes de la composition (`composition.morphes`). */
+async function prouverLaPile() {
+  await attendreLAtelier('Object.keys(a.pile).length > 0', 120000)
+  const a = await atelier()
+  const { fichiersDuModele } = await chargerAssets(["export { fichiersDuModele } from '/hotes/godot/asset/modeles.ts';"])
+  const lu = (id) => { const f = fichiersDuModele(id); return { glb: readFileSync(join(o.web, 'modeles', f.glb)), manifeste: JSON.parse(readFileSync(join(o.web, 'modeles', f.manifeste), 'utf8')) } }
+  const base = lu(a.base)
+  const elements = [...Object.values(a.montes), ...Object.values(a.lignes)].map(lu)
+  const { evaluer } = await chargerEvaluateur()
+  const { mesures } = await evaluer({
+    base: base.glb, manifeste: base.manifeste, elements: elements.map((e) => e.glb),
+    couches: elements.map(({ manifeste: { couche, couvre = [], categorie } }) => (couche ? { couche, couvre, categorie } : null)),
+    silhouettes: a.composition.morphes, clips: [base.manifeste.clips.idle],
+  })
+  noter(`pile : fusion ${JSON.stringify(a.pile)} ; évaluateur ${JSON.stringify(mesures.pile)}`)
+  for (const [compte, attendu] of Object.entries(mesures.pile)) {
+    assert.ok(Math.abs(a.pile[compte] - attendu) <= TOLERANCE_DE_LA_PILE * Math.max(attendu, 1 / TOLERANCE_DE_LA_PILE), `pile, ${compte} : ${a.pile[compte]} dans la fusion, ${attendu} à l'évaluateur`)
+  }
+  assert.ok(mesures.pile.couverts > 0 && mesures.pile.masques > 0, 'la tenue du preset empile des couches')
+}
+
 /** Le preset `--preset` composé dans l'atelier, sur les modèles du projet, et capturé de face, de trois quarts et de dos :
- *  sa base choisie à l'onglet Outils, le preset à l'onglet Personnage, aucune erreur publiée. */
+ *  sa base choisie en tête du panneau, le preset à l'onglet Personnage, aucune erreur publiée ; sa fusion porte la pile
+ *  des couches de l'évaluateur (`prouverLaPile`). */
 async function parcoursPreset() {
   const preset = JSON.parse(readFileSync(new URL('../../src/data/presets-de-personnage.json', import.meta.url), 'utf8')).find((x) => x.id === o.preset)
   assert.ok(preset, `--preset ${o.preset} : un preset de src/data/presets-de-personnage.json`)
@@ -2790,9 +2820,8 @@ async function parcoursPreset() {
   await session.rpc('Page.reload')
   await waitFor(session, '!!globalThis.wfrpEcran && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
   await cliquerBouton('Atelier')
-  await attendreLAtelier('Array.isArray(a.erreurs)', 120000)
-  await cliquerBouton('Outils')
-  await cliquerAmene('humanoide', 1)
+  await attendreLAtelier('b.some((x) => x.cle === "modele/corps")', 120000)
+  await choisirDansLaListe('modele/corps', 'humanoide')
   await attendreLAtelier('a.base === "humanoide"', 120000)
   await cliquerBouton('Personnage')
   await cliquerAmene(preset.label, -1)
@@ -2802,6 +2831,7 @@ async function parcoursPreset() {
   const a = await atelier()
   assert.deepEqual(a.erreurs, [], `${preset.label} composé sans erreur`)
   noter(`${preset.label} : montés ${a.composition.montes.filter((m) => m.element).map((m) => m.element).join(', ')} ; manquants ${a.composition.manquants.map((m) => m.label).join(', ') || 'aucun'}`)
+  await prouverLaPile()
   let lacet = 0
   for (const [nom, cible] of VUES_DU_PRESET) {
     const dx = -Math.round((cible - lacet) / RADIANS_PAR_PIXEL)

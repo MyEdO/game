@@ -27,7 +27,8 @@ import {
   XP_STAR_ROLLED,
 } from './creation';
 import { careersForSpecies, findSpeciesById, species, stars, type SpeciesData } from '../data';
-import { deDeLaTable, setDataset, setDeDeTable } from '../data/overrides';
+import { setDataset } from '../data/overrides';
+import { sousLeDe } from '../data/deDeLaTable.testkit';
 
 describe('bonus de PX des choix aléatoires (LDB 04 l.91 / 05 l.208-341)', () => {
   it('valeurs verbatim', () => {
@@ -293,16 +294,9 @@ describe('Couleur des yeux / des cheveux — le tirage suit le dé de sa table (
   const humain = findSpeciesById('humains-reiklander')!;
   const tirages = (tirer: typeof rollEyes) => new Set(Array.from({ length: 300 }, (_, seed) => tirer(humain.refChar, makeRNG(seed))));
   it('à 1d10 posé par le seam, aucune couleur au-delà du seuil 10 (LDB 05 l.745-749, l.759-763)', () => {
-    const yeux = deDeLaTable('eyes')!;
-    const cheveux = deDeLaTable('hairs')!;
-    setDeDeTable('eyes', '1d10');
-    setDeDeTable('hairs', '1d10');
-    try {
+    sousLeDe('eyes', '1d10', () => sousLeDe('hairs', '1d10', () => {
       expect(tirages(rollEyes)).toEqual(new Set(['Au choix', 'Vert', 'Bleu pâle', 'Bleu', 'Gris pâle']));
       expect(tirages(rollHair)).toEqual(new Set(['Blond blanc', 'Blond doré', 'Blond roux', 'Brun doré', 'Brun clair']));
-    } finally {
-      setDeDeTable('eyes', yeux);
-      setDeDeTable('hairs', cheveux);
-    }
+    }));
   });
 });
