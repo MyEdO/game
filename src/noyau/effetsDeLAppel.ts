@@ -543,7 +543,7 @@ export function vitrineDesEffets(): VitrineDesEffets {
   const lumieres = lightTones.map((t) => ({
     id: t.id,
     label: t.label,
-    source: sourceDuTon(t, { x: caseDeLaCible.x, y: caseDeLaCible.y, z: 0, hM: FLAME_LIFT_M }, RAYON_DE_LUMIERE_DE_LA_VITRINE),
+    source: sourceDuTon(t, { cle: t.id, x: caseDeLaCible.x, y: caseDeLaCible.y, z: 0, hM: FLAME_LIFT_M }, RAYON_DE_LUMIERE_DE_LA_VITRINE),
   }));
   const attaques = Object.fromEntries(siegeEngines().map((t) => {
     const rendu = catalogue(t.rendu?.id ?? REPLI.ranged);
