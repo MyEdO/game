@@ -103,7 +103,7 @@ export function resolveActGates(get: Get, set: SetFn, c: Combatant): ActGateOutc
         ligne: { test: { characteristic: char }, combat: { kind: 'test' } },
         difficulty: 'intermediaire',
         label: t('turn.actGate', { label }),
-        stake: combatStakeRef('act-gate', src ? { entryId: src.id, entryCategory: CATEGORY_BY_SOURCE_KIND[src.kind] } : {}),
+        stake: combatStakeRef('agir-malgre-effet', src ? { entryId: src.id, entryCategory: CATEGORY_BY_SOURCE_KIND[src.kind] } : {}),
       });
       continue;
     }

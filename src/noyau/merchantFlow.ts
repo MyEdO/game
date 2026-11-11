@@ -431,7 +431,7 @@ export function ouvrirLaBoutique(get: Get, set: Set, serviceId: string): void {
  *  canonique `openPartyTest` (side `partyBest`) — la surface se dérive des PORTEURS réels du jet, la
  *  fenêtre est influençable (Chance/Résilience) et le siège MJ la voit ; la continuation (avance de la
  *  journée + réassort visible/inline) vit ICI, keyée par `kind`. */
-const MERCHANT_RAGOT_KIND = 'merchant-ragot';
+const MERCHANT_RAGOT_KIND = 'marchand-ragot';
 
 /** Continuation PARTAGÉE (jet réussi/raté OU absence de candidat au Ragot) : avance la journée (« journée
  *  entière », LDB 59 l.50), puis même porte que l'ouverture (#273) — siège MJ → tirage VISIBLE ; sinon

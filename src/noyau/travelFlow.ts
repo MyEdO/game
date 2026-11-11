@@ -762,8 +762,8 @@ function currentSeason(get: Get): Season {
  * rangée n'est rendue inatteignable par un décalage (`naturalRollForTableRow` rend un naturel pour
  * chacune de ses lignes, cf. `de-monde-surface.hors-store.test.ts`).
  */
-const STAGE_WEATHER_KIND = 'stage-weather';
-const STAGE_WEATHER_STEP_ID = 'stage-weather';
+const STAGE_WEATHER_KIND = 'etape-meteo';
+const STAGE_WEATHER_STEP_ID = 'etape-meteo';
 const stageWeatherTableId = (season: Season): string => `stage-weather-${season}`;
 
 /** Les rangées de la table d'une saison : la fourchette AUTHORÉE de `weather.json`, l'id stable étant
@@ -815,9 +815,9 @@ function buildTravelDayCascade(
   const perilDie = route.perilDie ?? get().worldMap?.params?.perilDie ?? TRAVEL_DEFAULTS.perilDie;
   if (estFaceDeSeuil(perilDie)) {
     pousseSi(steps, tableStep({
-      id: 'land-peril', kind: 'landPeril', worldOwner: true, icon: 'ui/warning', label: t('step.landPeril'),
+      id: 'route-peripetie', kind: 'landPeril', worldOwner: true, icon: 'ui/warning', label: t('step.landPeril'),
       table: { tableId: perilThresholdTableId(perilDie), spec: peripetieSeuilDie() },
-      stake: voyageStakeRef('land-peril', { seuil: perilDie }),
+      stake: voyageStakeRef('route-peripetie', { seuil: perilDie }),
       meta: { destLabel: dest.destLabel, seuil: perilDie },
     }));
   }
@@ -960,7 +960,7 @@ const tablesDeSeuil = memoParVersion('peripeties', () => {
   }]));
 });
 
-const PERIL_TABLE_ID = 'land-peril-table';
+const PERIL_TABLE_ID = 'route-peripetie-table';
 
 /** La table des péripéties — FAMILLE dérivée de `peripeties` (éditable au Codex) : une rangée par
  *  entrée, son `roll` pour fourchette, son id pour clé. */
@@ -1220,7 +1220,7 @@ function buildForcedPaceStep(driver: { actor: Combatant; value: number; support?
     id: `land-forced-${galloped}`, kind: 'landForcedPace', actor: driver.actor, icon: 'travel/cart',
     label: t('step.conduiteForcee'), rollLabel: 'Conduite d’attelage',
     difficulty: 'intermediaire',
-    stake: voyageStakeRef('land-forced-pace'),
+    stake: voyageStakeRef('route-allure-forcee'),
     ligne: {
       test: { skill: { id: 'conduite-d-attelage' } }, valeur: driver.value + (penalty?.value ?? 0), soutien: driver.support,
       ...(penalty ? { dansLaValeur: [penalty] } : {}),
@@ -1380,9 +1380,9 @@ export const TABLES = {
       if (!tiree) return {};
       if (tiree.roll !== step.meta?.seuil) return { consequences: freeCons(tiree.lines) };
       const table = tableStep({
-        id: 'land-peril-table', kind: 'landPerilTable', worldOwner: true, icon: 'ui/warning', label: t('step.landPerilTable'),
+        id: 'route-peripetie-table', kind: 'landPerilTable', worldOwner: true, icon: 'ui/warning', label: t('step.landPerilTable'),
         table: { tableId: PERIL_TABLE_ID, spec: peripetieDie() },
-        stake: voyageStakeRef('land-peril-table'),
+        stake: voyageStakeRef('route-peripetie-table'),
         meta: { destLabel: String(step.meta?.destLabel ?? '') },
       });
       return { consequences: freeCons(tiree.lines), insert: table ? [table] : [] };
@@ -1415,7 +1415,7 @@ export const TABLES = {
         const st = best && monoStep({
           id: 'peril-survie', kind: 'landPerilSurvie', actor: best.actor, icon: 'travel/compass', label: t('step.landPerilSurvie'),
           rollLabel: refLabel('skills', { id: 'survie-en-exterieur' }), difficulty: 'accessible',
-          stake: voyageStakeRef('land-peril-survie'),
+          stake: voyageStakeRef('route-peripetie-survie'),
           ligne: { test: { skill: { id: 'survie-en-exterieur' } }, valeur: best.value, soutien: best.support },
         });
         if (st) return { consequences: freeCons(j), insert: [st] };
@@ -1428,7 +1428,7 @@ export const TABLES = {
         const st = best && monoStep({
           id: 'peril-perception', kind: 'landPerilPerception', actor: best.actor, icon: 'ui/eye', label: t('step.landPerilPerception'),
           rollLabel: refLabel('skills', { id: 'perception' }), difficulty: 'accessible',
-          stake: voyageStakeRef('land-peril-perception'),
+          stake: voyageStakeRef('route-peripetie-perception'),
           ligne: { test: { skill: { id: 'perception' } }, valeur: best.value, soutien: best.support },
           meta: { destLabel, configured, ambushScene: route.ambush?.scene.id ?? '', ambushEntry: route.ambush?.entry ?? '', ambushEnc: route.ambush?.encounter ?? '' },
         });
@@ -1522,7 +1522,7 @@ export const TABLES = {
             id: `${step.id}-control`, kind: 'landForcedPaceControl', actor: driver.actor, icon: 'travel/cart',
             label: t('step.reprendreControle'), rollLabel: 'Conduite d’attelage',
             difficulty: 'intermediaire',
-            stake: voyageStakeRef('land-forced-pace-control'),
+            stake: voyageStakeRef('route-allure-forcee-controle'),
             // MÊME jet que le km (Conduite d'attelage soutenue, `LDB 12 l.189`) : ni la pénalité de km
             // (`EDOC 07 l.253` ne la reconduit pas), ni une valeur figée. Les deux surfaces — étape
             // influençable et repli sans pilote ci-dessous — lisent le MÊME conducteur soutenu.

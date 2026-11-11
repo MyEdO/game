@@ -73,7 +73,7 @@ function setup(worldMap: WorldMap, departWeather?: Scene['weather'], party: Comb
 
 /** POSE le dé de Météo d'Étape (« Dés fixés ») sur la rangée `id` de la table de la saison courante. */
 function poseMeteo(id: string): void {
-  const meteo = get().pendingCascade!.participants.find((s) => s.kind === 'stage-weather')!;
+  const meteo = get().pendingCascade!.participants.find((s) => s.kind === 'etape-meteo')!;
   const saison = seasonOfMonth(toDate(get().gameTime).month);
   const rangee = tableStepDef(`stage-weather-${saison}`)!.rows.find((r) => r.id === id)!;
   get().jetImposerLeResultat('cascadeTirage', rangee.min, meteo.id);
@@ -118,7 +118,7 @@ describe('#2533 (1) — halte de voyage : le lieu de la ROUTE, la météo du JOU
     draineCascade(get);
     expect(get().pendingRest?.travelHalt).toBe(true);
     expect(activeExposureSeverity(get)).toBe('extreme');
-    expect(etapesDeLaNuit(), 'abri de fortune sous l’averse du jour').toContain('shelter');
+    expect(etapesDeLaNuit(), 'abri de fortune sous l’averse du jour').toContain('abri-de-fortune');
   });
 
   it('test opposé, Étapes allumées : beau temps posé sur la route, tempête sur la scène de départ — aucune Exposition', () => {
@@ -129,7 +129,7 @@ describe('#2533 (1) — halte de voyage : le lieu de la ROUTE, la météo du JOU
     poseMeteo('beau');
     draineCascade(get);
     expect(activeExposureSeverity(get)).toBe('clement');
-    expect(etapesDeLaNuit()).not.toContain('shelter');
+    expect(etapesDeLaNuit()).not.toContain('abri-de-fortune');
   });
 
   it('Étapes éteintes (défaut) : la route n’a pas de météo, la nuit lit la scène de départ (#2533 c.6071899887)', () => {
@@ -223,7 +223,7 @@ describe('#2533 — reprise d’un jour interrompu : le jour interrompu est FINI
     get().reprendreLeVoyage();
     const log = get().travelPlan!.log!;
     expect(log, 'le jour interrompu est clos, tel quel').toEqual([jourInterrompu]);
-    expect(get().pendingCascade?.participants[0].kind, 'la journée neuve tire sa Météo d’Étape').toBe('stage-weather');
+    expect(get().pendingCascade?.participants[0].kind, 'la journée neuve tire sa Météo d’Étape').toBe('etape-meteo');
   });
 
   it('à pied, nuit passée en scène puis reprise : une carte = un jour, la journée neuve a sa météo', () => {
@@ -238,7 +238,7 @@ describe('#2533 — reprise d’un jour interrompu : le jour interrompu est FINI
     const log = get().travelPlan!.log!;
     expect(log).toHaveLength(1);
     expect(log[0].hours).toBeLessThanOrEqual(6.01);
-    expect(get().pendingCascade?.participants[0].kind).toBe('stage-weather');
+    expect(get().pendingCascade?.participants[0].kind).toBe('etape-meteo');
   });
 
   it('allure forcée, conducteur joueur : la journée neuve ouvre la Conduite d’attelage à la porte, aucun Test roulé hors porte', () => {
@@ -278,8 +278,8 @@ describe('#2533 — Plein air réussi dispense la nuit de son Exposition (EDOC 0
     expect(get().travelPlan!.log![0].pleinAir).toBe(true);
     expect(activeExposureSeverity(get)).toBe('clement');
     const nuit = etapesDeLaNuit();
-    expect(nuit).not.toContain('shelter');
-    expect(nuit).not.toContain('exposure');
+    expect(nuit).not.toContain('abri-de-fortune');
+    expect(nuit).not.toContain('exposition-nocturne');
   });
 
   it('test opposé, échec : les deux Expositions se jouent (LDB 18 l.328, EDOC 08 l.90)', () => {
@@ -287,7 +287,7 @@ describe('#2533 — Plein air réussi dispense la nuit de son Exposition (EDOC 0
     expect(jour).toContain('stageExposure');
     expect(get().travelPlan!.log![0].pleinAir).toBeUndefined();
     expect(activeExposureSeverity(get)).toBe('extreme');
-    expect(etapesDeLaNuit()).toContain('shelter');
+    expect(etapesDeLaNuit()).toContain('abri-de-fortune');
   });
 });
 

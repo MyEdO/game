@@ -122,14 +122,14 @@ describe('#1117 — la Surprise DIT ses issues en chips d’ops, avant comme apr
    * ne pointait que l'État : la conséquence tenait lieu de règle.
    */
   it('le ⓘ du titre ouvre la RÈGLE d’embuscade, la chip ouvre l’État — deux portes distinctes', () => {
-    const stake = resolveStake(combatStakeRef('ambush-surprise'));
+    const stake = resolveStake(combatStakeRef('embuscade-reperer'));
     expect(stake.rule, 'le foyer du jet est la règle qui l’EXIGE, pas son issue').toEqual({ category: 'regles', id: 'embuscade-surprise' });
     // La fiche existe, et son texte est le passage du Source qui exige le Test opposé.
     const fiche = regles.find((r) => r.id === 'embuscade-surprise')!;
     expect(fiche.desc).toContain('Test opposé de **Discrétion/Perception**');
     expect(fiche.desc, 'le passage dit POURQUOI un seul embusqué tire').toContain('le Personnage ayant la Discrétion la plus faible');
     // Le Test de Vigilance, lui, garde son foyer sur le TALENT : c'est le talent qui en énonce la règle.
-    expect(resolveStake(combatStakeRef('ambush-vigilance')).rule).toEqual({ category: 'talents', id: 'vigilance' });
+    expect(resolveStake(combatStakeRef('embuscade-vigilance')).rule).toEqual({ category: 'talents', id: 'vigilance' });
   });
 
   it('APRÈS le jet perdu : le verdict est le MÊME bloc, filtré à la branche réalisée', () => {
@@ -169,7 +169,7 @@ describe('#1117 — la Surprise DIT ses issues en chips d’ops, avant comme apr
         // Surprise dit ce qu'il met en jeu (`ambushSurprise`). SEULE divergence, celle que ce test
         // mesure : la Difficulté DIFFICILE (le site réel oppose à l'Intermédiaire, où un défaut
         // d'affichage de la Difficulté passerait inaperçu).
-        { skill: { id: 'perception' }, difficulty: 'difficile', label: 'Guet', stake: combatStakeRef('ambush-surprise'),
+        { skill: { id: 'perception' }, difficulty: 'difficile', label: 'Guet', stake: combatStakeRef('embuscade-reperer'),
           opposed: { attacker: 'agilite', attackerSkill: 'discretion', attackerLabel: 'Discrétion' } },
         EMPTY_FLOW, EMPTY_FLOW,
       ),

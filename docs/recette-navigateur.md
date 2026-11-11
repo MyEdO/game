@@ -967,16 +967,16 @@ fois le jour RÉSOLU en route **commandée** (les Tests d'équipage de routine s
 `voyageCadence.ts`) : `await __wfrp.advanceSeaDay()` puis lire l'écran de traversée. Pour jouer une
 étape d'équipage À LA MAIN avant qu'elle n'entre au PV, s'arrêter dessus par son `kind` — les kinds
 RÉELS passés à `buildVoyageCrewStep` (`seaVoyageFlow.ts`, 3ᵉ argument — à ne pas confondre avec le
-`testTypeId` du 2ᵉ) sont `crew-progression`, `crew-orientation`, `crew-embuscade`, `crew-phare`, et en
-crise `crew-poursuite` ou `crew-tourbillon` :
+`testTypeId` du 2ᵉ) sont `equipage-progression`, `equipage-orientation`, `equipage-embuscade`, `equipage-phare`, et en
+crise `equipage-poursuite` ou `equipage-tourbillon` :
 
 ```js
-await __wfrp.advanceSeaDay({ stopAt: 'crew-orientation' });  // rend la main AVANT le Test d'Orientation
+await __wfrp.advanceSeaDay({ stopAt: 'equipage-orientation' });  // rend la main AVANT le Test d'Orientation
 __wfrp.modal();                                          // la modale de cascade est intacte
 ```
 
 `stopAt:'sea-progression-choice'` vise le CHOIX de progression (une étape de décision), pas un Test
-d'équipage : pour le Test lui-même, viser `crew-progression`.
+d'équipage : pour le Test lui-même, viser `equipage-progression`.
 
 **Doctrine `advanceSeaDay`/`skipToArrival`** : même doctrine que `fastForward` — SETUP et
 accélération du BRUIT de routine, jamais un raccourci qui saute une décision du joueur. La halte de
@@ -1034,7 +1034,7 @@ le résout inline. Garde de ré-entrance : ce FM ne ré-émet jamais le trigger 
 - `combatFlow.applyAttackResult` — l'**ATTAQUANT** rate son jet d'attaque (CC/CT) **et** le **DÉFENSEUR**
   rate sa Parade/Esquive (Test opposé) — le porteur uniquement, pas la défense d'un non-porteur ;
 - `triggeredEffects.resolveInlineFlowTest` + `combat/triggeredTest` (inline ennemi/auto) ;
-- `cascade.commitStep` (seam CENTRAL des Tests différés d'entretien : `faim`/`recovery`/`disease-tick`/… ).
+- `cascade.commitStep` (seam CENTRAL des Tests différés d'entretien : `faim`/`recuperation`/`maladie-test-quotidien`/… ).
 
 **Cadence observée en recette** : après *Lancer*, compter **~2,5 s** avant que *Appliquer* soit stable
 (résolution de la défense adverse + animation d'attaque) — attendre cette tempo avant de lire le résultat.

@@ -640,7 +640,7 @@ export interface ShipManeuverParticipant extends RollParticipant {
   navigation: RefDesignee;
   /** Sens NARRATIVEMENT sollicité par CE Test précis (ex. Vigie du phare, MDG 13 l.337 — visuel), posé
    *  À LA CONSTRUCTION de l'étape par l'appelant qui connaît le contexte (`buildVoyageCrewStep`, kind
-   *  `'crew-phare'`, `seaVoyageFlow.ts`). Restreint les `skillMod` sense-scopés (Surdité, LDB 18) via
+   *  `'equipage-phare'`, `seaVoyageFlow.ts`). Restreint les `skillMod` sense-scopés (Surdité, LDB 18) via
    *  `crewRoleValue`/`testValue`. Absent pour les Tests d'équipage sans sens narratif dédié
    *  (manœuvre, bordée…). */
   sense?: PairedSense;
@@ -1749,7 +1749,7 @@ export interface CascadeStepMeta {
   onSuccess?: Flow;
   /** Branche d'échec d'une étape `triggeredTest`. */
   onFail?: Flow;
-  /** Ops d'échec d'un Test de cycle de maladie (`disease-tick`, `engine/disease.ts`), appliquées à plat
+  /** Ops d'échec d'un Test de cycle de maladie (`maladie-test-quotidien`, `engine/disease.ts`), appliquées à plat
    *  par `applyOps` (`noyau/restFlow.ts`). */
   opsEchec?: GameOp[];
   /** Branche OUI d'une étape `triggeredChoice` (décision opt-in acceptée — Frappe réactive « tenter »). */
@@ -2405,7 +2405,7 @@ export interface PendingHeal {
   healerName: string;
   targetId: string;
   targetName: string;
-  /** L'acte (réglage `soins.mode`). Hors combat, `surgery`/`recovery` : le brouillon de l'opération que
+  /** L'acte (réglage `soins.mode`). Hors combat, `surgery`/`recuperation` : le brouillon de l'opération que
    *  `jetLancer('soins')` arme (`acteDeSoin.ts`). */
   mode: HealMode;
   intBonus: number; // Bonus d'Intelligence du soigneur

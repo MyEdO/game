@@ -208,7 +208,7 @@ function pursuitRoundBand(get: Get, p: PursuitPayload, label: string): BuiltCasc
     kind: PURSUIT_MOVE_KIND,
     icon: 'travel/foot',
     label: stepManche(p.manche, dataLabel(label)),
-    stake: combatStakeRef('pursuit-move', { values: { distance: p.distance, evasion: p.escapeAt } }),
+    stake: combatStakeRef('poursuite-manche', { values: { distance: p.distance, evasion: p.escapeAt } }),
     meta: { round: p.manche },
   }, participants);
 }

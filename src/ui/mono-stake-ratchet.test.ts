@@ -65,7 +65,7 @@ const BASELINE: Record<string, string> = {
   // MAGIE — le renvoi vise la fiche du SORT (design §4), lot magie.
   incantation: 'L2 — renvoi CodexRef vers la fiche du sort',
   focalisation: 'L2 — renvoi CodexRef vers la fiche du sort',
-  // ACTIVITÉS — `activite` est SOLDÉ (L3 : `ActivityDef.stake`, dataset `activity`).
+  // ACTIVITÉS — `activite` est SOLDÉ (L3 : `ActivityDef.stake`, dataset `activite`).
   marchandage: 'L3 — négoce (marchand), lot des activités marchandes',
   // ÉQUIPAGE & NAVIRE — jumeaux, à doter avec leurs types de Test (même patron).
   manoeuvreDuNavire: 'L4 — Test d’équipage, entryId = type de Test',
@@ -95,7 +95,7 @@ describe('cliquet — une modale de jet dit son ENJEU (#1117 L1b)', () => {
 
   it('FAIL-CLOSED : une coquille synthétique sans enjeu est DÉTECTÉE, avec enjeu elle ne l’est pas', () => {
     const sans = `<RollShell flowKey="course" title="X" rows={[]} />`;
-    const avec = `<RollShell flowKey="course" stake={flowStakeRef('run-roll')} title="X" rows={[]} />`;
+    const avec = `<RollShell flowKey="course" stake={flowStakeRef('course-test')} title="X" rows={[]} />`;
     // Une prop d'une AUTRE balise ne doit pas compter — l'enjeu doit être SUR la coquille.
     const voisin = `<div stake={x}><RollShell flowKey="course" title="X" /></div>`;
     // `flowKey` d'une RANGÉE (RollRowData) : hors périmètre, l'enjeu est porté par la coquille.

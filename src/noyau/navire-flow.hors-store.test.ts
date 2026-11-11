@@ -144,7 +144,7 @@ describe('Présages divins : seul un Prêtre ou une Nonne de Manann prie (MDG 15
     const [h, ...reste] = get().party;
     set({ party: [{ ...h, skills: [...(h.skills ?? []), { id: 'priere', characteristic: 'sociabilite', advances: 20 }], talents: [...h.talents, ...talents] }, ...reste] });
   };
-  const etapeDePriere = () => get().pendingCascade?.participants.find((s) => s.stake && 'key' in s.stake && s.stake.key?.kind === 'sea-priere-manann');
+  const etapeDePriere = () => get().pendingCascade?.participants.find((s) => s.stake && 'key' in s.stake && s.stake.key?.kind === 'mer-priere-manann');
 
   it('albatros, sans Prêtre de Manann (Prière seule) : aucun Test, l’Humeur et le Moral tombent', () => {
     prier([]);
@@ -258,7 +258,7 @@ describe('Navire et climat en grammaire (#1652 lot 2 — MDG 15)', () => {
       const plan = buildSeaPlan(get, 'r1', 'A', 'B', carte.routes[0])!;
       // Légère brise, vent arrière : aucun pourcentage de vent, le M du jour est le M de base.
       set({ travelPlan: { ...plan, sea: { ...plan.sea!, weather: { ...plan.sea!.weather, vent: 'legere-brise' }, windFrom: 'ouest' } } });
-      applierDe('crew-progression')!(get, set, { id: 'p', kind: 'crew-progression', label: fixtureText('Progression'), result: { roll: 0, target: 0, sl: 2, success: true } }, undefined, { steps: [], index: 0 });
+      applierDe('equipage-progression')!(get, set, { id: 'p', kind: 'equipage-progression', label: fixtureText('Progression'), result: { roll: 0, target: 0, sl: 2, success: true } }, undefined, { steps: [], index: 0 });
       return get().travelPlan!.sea!.effMToday;
     };
     const sans = progression([]);
@@ -992,7 +992,7 @@ describe('Nœuds hors combat (#1652 lot 7 — MDG 15 l.159-164, l.174-178, l.194
     jouerFlowEntier(runFlow(get, set, consequence('infestation-de-rats'), 'Infestation de rats'));
     expect(get().vessel!.infestation?.targetDR).toBe(10);
     set({ travelPlan: buildSeaPlan(get, 'r1', 'A', 'B', carte.routes[0])! });
-    const appliquer = (sl: number) => applierDe('crew-extermination')!(get, set, { id: 'crew-extermination', kind: 'crew-extermination', label: fixtureText('extermination'), result: { roll: 0, target: 0, sl, success: sl >= 0 } } as never, undefined, { steps: [], index: 0 });
+    const appliquer = (sl: number) => applierDe('equipage-extermination')!(get, set, { id: 'equipage-extermination', kind: 'equipage-extermination', label: fixtureText('extermination'), result: { roll: 0, target: 0, sl, success: sl >= 0 } } as never, undefined, { steps: [], index: 0 });
     appliquer(6);
     expect(get().vessel!.infestation?.progres).toBe(6);
     appliquer(4);

@@ -104,7 +104,7 @@ describe('#1262 V2 — la journée en MER se possède (classe #1268)', () => {
 
     get().jetRegler('cascade', 'choix', 'crew', choix.id);
     get().jetValider('cascade');
-    const bande = parKind('crew-progression')!;
+    const bande = parKind('equipage-progression')!;
     expect(bande, 'la voie ÉQUIPAGE insère sa bande').toBeTruthy();
     // La possession se DÉDUIT du nombre de porteurs (`bandStep`) : `groupOwner` à plusieurs, le porteur
     // à un seul. Ce qui est verrouillé ici, c'est qu'elle ne soit JAMAIS absente — l'owner `undefined`

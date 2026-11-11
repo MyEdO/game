@@ -176,7 +176,7 @@ describe('#1262 lot 5b — TABLES : le dé reste À POSER, la charge dit de quoi
       table: { tableId: STRUCTURE_CRIT_TABLE, spec: { n: 1, sides: 100 } },
       options: [{ key: 'devier', label: fixtureText('Dévier') }, { key: 'subir', label: fixtureText('Subir') }],
       defaultChoice: 'devier',
-      stake: combatStakeRef('crit-severity'),
+      stake: combatStakeRef('critique-severite'),
     })!;
     expect(stepInteraction(st), 'tant que le dé n’est pas tombé, c’est un TIRAGE').toBe('table');
     expect(st.options!.map((o) => o.key), 'les voies sont RECOPIÉES par le mint').toEqual(['devier', 'subir']);
@@ -190,7 +190,7 @@ describe('#1262 lot 5b — TABLES : le dé reste À POSER, la charge dit de quoi
       id: 'y', kind: 'deviation', label: fixtureText('Blessure critique'), actorId: 'a',
       table: { tableId: STRUCTURE_CRIT_TABLE, spec: { n: 1, sides: 100 } },
       options: [{ key: 'subir', label: fixtureText('Subir') }], defaultChoice: 'devier',
-      stake: combatStakeRef('crit-severity'),
+      stake: combatStakeRef('critique-severite'),
     })).toThrow(/defaultChoice/);
   });
 

@@ -113,7 +113,7 @@ describe('gangrène — progression journalière (l.135+)', () => {
     // l.176) ; issues INJECTÉES : tout raté, BE 0 → Localisation perdue dès le 1er échec.
     const { specs, defer } = porteEntretien();
     tickDisease(c, 3 * MINUTES_PER_DAY, makeRNG(6), defer, 0);
-    const gangrenes = specs.filter((s) => s.kind === 'disease-gangrene');
+    const gangrenes = specs.filter((s) => s.kind === 'maladie-gangrene');
     expect(gangrenes.length, 'un Test par journée pleine').toBe(3);
     expect(gangrenes[0].test, 'la porte sait ce qui est testé').toEqual({ skill: { id: 'resistance' } });
     expect(gangrenes[0].difficulty).toBe('accessible');

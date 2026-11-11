@@ -136,8 +136,8 @@ describe('#27 Forcer le rythme (MDG 13 l.95-107)', () => {
     // évince les lignes précoces comme « Forcer le rythme ».
     const day = get().travelPlan!.log!.slice(-1)[0]!.lines.map((l) => l.text).join('\n');
     expect(day).toMatch(/Forcer le rythme/);
-    expect(kinds.indexOf('sea-epuisement')).toBeGreaterThan(kinds.indexOf('sea-force-pace'));
-    const bande = vues.find((st) => st.kind === 'sea-epuisement')!;
+    expect(kinds.indexOf('mer-epuisement')).toBeGreaterThan(kinds.indexOf('mer-forcer-le-rythme'));
+    const bande = vues.find((st) => st.kind === 'mer-epuisement')!;
     expect(bande.participants!.find((r) => r.id === marin.id)?.difficulty, 'qui a forcé teste en Complexe').toBe('complexe');
   });
 
@@ -149,8 +149,8 @@ describe('#27 Forcer le rythme (MDG 13 l.95-107)', () => {
     const kinds = await runOneSeaDay();
     const day = get().travelPlan!.log!.slice(-1)[0]!.lines.map((l) => l.text).join('\n');
     expect(day).toContain('Forcer le rythme : Personne dans le groupe ne peut tenter le Test de Voile (Cogue). Le navire garde son allure.');
-    expect(kinds).not.toContain('sea-force-pace');
-    expect(kinds).not.toContain('sea-epuisement');
+    expect(kinds).not.toContain('mer-forcer-le-rythme');
+    expect(kinds).not.toContain('mer-epuisement');
   });
 });
 

@@ -262,7 +262,7 @@ function buildExposureSteps(state: { party: Combatant[] }, stage: StageContext):
       id: `expo-${id}`, kind: 'stageExposure', actor: h, icon: 'rest/cold', label: t('step.exposition'),
       rollLabel: refLabel('skills', { id: 'resistance' }), difficulty: diff as Difficulty,
       // MÊME Test d'Exposition que la nuit de repos : EDOC 08 l.90 renvoie à LDB p181, donc MÊME entrée.
-      stake: voyageStakeRef('voyage-exposure', { chars: exposureFirstFailChars('froid') }),
+      stake: voyageStakeRef('voyage-exposition', { chars: exposureFirstFailChars('froid') }),
       ligne: { test: { skill: { id: 'resistance' }, characteristic: 'endurance' } },
       meta: { weatherLabel: dataLabel(weatherCondition(stage.weather).label), warded: isWeatherWarded(h), coldSeason: isColdSeason(stage.season) },
     });
@@ -423,9 +423,9 @@ export const TABLES = {
       const jours = get().travelPlan?.recap?.days ?? [];
       if (bilan.pleinAir && jours.length) jours[jours.length - 1].pleinAir = true;
       const rencontre = bilan.rencontre ? tableStep({
-        id: 'stage-encounter', kind: 'stageEncounter', worldOwner: true, icon: 'ui/warning', label: t(ENCOUNTER_KEY[bilan.rencontre]),
+        id: 'etape-rencontre', kind: 'stageEncounter', worldOwner: true, icon: 'ui/warning', label: t(ENCOUNTER_KEY[bilan.rencontre]),
         table: { tableId: tableDeRencontre(bilan.rencontre), spec: encounterDie() },
-        stake: voyageStakeRef('stage-encounter'),
+        stake: voyageStakeRef('etape-rencontre'),
       }) : undefined;
       return { consequences: freeCons(lignesDuBilan(get(), bilan)), insert: [...(rencontre ? [rencontre] : []), ...(bilan.pleinAir ? [] : buildExposureSteps(get(), plan.stage))] };
     },

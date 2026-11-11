@@ -10,7 +10,7 @@
       "note": "ch.11 « Règles du commerce » — TABLEAU DES PRIX DE BASE (l.91)."
     }
   },
-  "wineQuality": {
+  "qualiteDuVin": {
     "die": "d10",
     "entries": [
       {
@@ -82,16 +82,16 @@
     ]
   },
   "achat": {
-    "availabilityMultiplier": 10,
-    "merchantSkill": {
+    "multiplicateurDeDisponibilite": 10,
+    "competenceDuMarchand": {
       "d10": 2,
       "plus": 30
     },
-    "partialSurchargePct": 10,
-    "minEnc": 10,
-    "wineEvalDifficulty": "intermediaire",
-    "wineEvalEasyDifficulty": "accessible",
-    "wineAlcoholResistThreshold": 50,
+    "pctSurcoutPartiel": 10,
+    "encMin": 10,
+    "difficulteEvaluationVin": "intermediaire",
+    "difficulteEvaluationVinFacile": "accessible",
+    "seuilResistanceAlcool": 50,
     "source": {
       "book": "mort-sur-le-reik-compagnon",
       "page": 73,
@@ -99,10 +99,10 @@
     }
   },
   "vente": {
-    "targetPerSize": 10,
-    "commerceBonus": 30,
-    "dumpingPctOfBase": 50,
-    "offerByRichesse": [
+    "cibleParTaille": 10,
+    "bonusDeCommerce": 30,
+    "pctDeBradage": 50,
+    "offreParRichesse": [
       {
         "min": 1,
         "max": 1,
@@ -140,7 +140,7 @@
       "note": "ch.11 « Règles du commerce » — VENTE, table Mise à prix par Richesse (l.133-160)."
     }
   },
-  "gossip": {
+  "ragot": {
     "difficulty": "complexe",
     "mod": -10,
     "source": {
@@ -149,7 +149,7 @@
       "note": "ch.11 « Règles du commerce » — Test de Ragot Complexe (–10) pour une rumeur commerciale (l.180)."
     }
   },
-  "rumours": {
+  "rumeurs": {
     "die": "d100",
     "entries": [
       {

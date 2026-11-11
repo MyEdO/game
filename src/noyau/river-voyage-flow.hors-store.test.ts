@@ -589,7 +589,7 @@ describe('péril fluvial — la ligne du Test d’évitement nomme la Compétenc
  */
 describe('chavirage — le redressement s’ouvre Round par Round (#1104a)', () => {
   const capsizeStep = () => ({
-    id: 'river-capsize', kind: 'riverCapsize' as const, actorId: get().party[0].id, icon: 'nautical/wind',
+    id: 'fleuve-chavirage', kind: 'riverCapsize' as const, actorId: get().party[0].id, icon: 'nautical/wind',
     label: fixtureText('Retirer la voile (chavirage)'), rollLabel: 'Voile', base: 40, difficulty: 'accessible' as const,
     target: 60, result: { roll: 95, target: 60, sl: -3, success: false }, interactive: true, meta: { savoir: 0 },
   });
@@ -734,7 +734,7 @@ describe('chavirage — le compte de Rounds de redressement a un plancher (#1112
     const plan = buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0])!;
     set({ travelPlan: { ...plan, vehicle: { ...plan.vehicle!, characteristics: { ...plan.vehicle!.characteristics, endurance: 0 } } } });
     const step = {
-      id: 'river-capsize', kind: 'riverCapsize' as const, actorId: get().party[0].id, icon: 'nautical/wind',
+      id: 'fleuve-chavirage', kind: 'riverCapsize' as const, actorId: get().party[0].id, icon: 'nautical/wind',
       label: fixtureText('Retirer la voile (chavirage)'), rollLabel: 'Voile', base: 40, difficulty: 'accessible' as const,
       target: 60, result: { roll: 95, target: 60, sl: -3, success: false }, interactive: true, meta: { savoir: 0 },
     };
@@ -791,7 +791,7 @@ describe('enjeu des étapes de voyage — data-driven, valeurs calculées (#1117
   });
 
   it('le gabarit qui manque une valeur JETTE (la donnée et le flux ne divergent pas en silence)', () => {
-    expect(() => resolveStake(voyageStakeRef('river-nav'))).toThrow(/driftKm/);
+    expect(() => resolveStake(voyageStakeRef('fleuve-navigation'))).toThrow(/driftKm/);
     // FAIL-CLOSED à l'autre bout : demander l'enjeu d'un `kind` SANS gabarit JETTE — une étape muette
     // en silence est exactement ce que #1117 supprime.
     // @ts-expect-error — `kind-inexistant` n'est l'id d'aucun enjeu de voyage
@@ -826,9 +826,9 @@ describe('renvoi Codex au niveau ÉTAPE (#1117)', () => {
   });
 
   it('les fiches créées portent leur SOURCE (livre + folio + ligne)', () => {
-    // Périmètre : les fiches derrière les enjeux FLUVIAUX (`river-*`) — le catalogue d'enjeux sert aussi
+    // Périmètre : les fiches derrière les enjeux FLUVIAUX (`fleuve-*`) — le catalogue d'enjeux sert aussi
     // la mer, dont les fiches viennent d'un autre livre.
-    const ids = new Set(VOYAGE_STAKES.filter((s) => s.id.startsWith('river-')).flatMap((s) => (s.rule?.type === 'regle' ? [s.rule.id] : [])));
+    const ids = new Set(VOYAGE_STAKES.filter((s) => s.id.startsWith('fleuve-')).flatMap((s) => (s.rule?.type === 'regle' ? [s.rule.id] : [])));
     expect(ids.size, 'des étapes fluviales portent bien une fiche').toBeGreaterThan(0);
     for (const f of regles.filter((r) => ids.has(r.id))) {
       expect(f.source.book).toBe('mort-sur-le-reik-compagnon');

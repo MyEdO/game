@@ -305,7 +305,7 @@ describe('Incident de tir + Salve — la table est une ÉTAPE, servie après LA 
     expect(hero.wounds.current, 'aucune Blessure avant les dés').toBe(30);
     poser(9); // l'arme tient l'Incident de tir
     const table = etapeCourante()!;
-    expect(table.table?.tableId, 'le 2ᵉ dé est la TABLE (AA 10 l.264), pas un dé nu').toBe('artillery-salve-misfire');
+    expect(table.table?.tableId, 'le 2ᵉ dé est la TABLE (AA 10 l.264), pas un dé nu').toBe('artillerie-salve-incident');
     expect(stepInteraction(table)).toBe('table');
     poser(2); // ligne 1-4 « Bras principal » : « La pièce d’artillerie est détruite »
     expect(etapeCourante(), 'aucune 2ᵉ sauvegarde : UNE par Incident').toBeUndefined();

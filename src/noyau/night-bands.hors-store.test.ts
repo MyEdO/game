@@ -112,7 +112,7 @@ describe('CLÉ de bande = (entrée de règle, JOUR)', () => {
 
   it('la fabrique SÉPARE aussi deux jets de même entrée le MÊME jour chez le MÊME héros (deux fenêtres)', () => {
     const mono = (id: string, day: number) => nuit({
-      id, kind: 'trauma-fracture', label: 'Convalescence', base: 40, difficulty: 'accessible', target: 60, meta: { day },
+      id, kind: 'convalescence-fracture', label: 'Convalescence', base: 40, difficulty: 'accessible', target: 60, meta: { day },
     });
     const out = nightBands([mono('a', 4), mono('b', 4)]);
     expect(out).toHaveLength(2); // deux Convalescences échéant le même jour : deux fenêtres, jamais un doublon
@@ -126,7 +126,7 @@ describe('CLÉ de bande = (entrée de règle, JOUR)', () => {
    * (`nightRowId`) viseraient sinon la mauvaise. Le jour ne suffit pas : il faut aussi le rang.
    */
   const conv = (id: string, day?: number) => nuit({
-    id, kind: 'trauma-fracture', label: 'Convalescence', base: 40, difficulty: 'accessible', target: 60,
+    id, kind: 'convalescence-fracture', label: 'Convalescence', base: 40, difficulty: 'accessible', target: 60,
     ...(day !== undefined ? { meta: { day } } : {}),
   });
 
@@ -269,7 +269,7 @@ describe('gueule de bois (LDB 09 l.485) — due par TOUTE rangée du dessoûlage
     set({ pendingCascade: { ...p, participants: p.participants.map((s) => (s.id === desso.id ? { ...s, participants: rows } : s)) } });
     get().jetValider('cascade');
 
-    const hangover = bandsOf('dessoulage-hangover');
+    const hangover = bandsOf('dessoulage-gueule-de-bois');
     expect(hangover, 'le 2ᵉ Test est dû « une fois tous les effets dissipés », pas aux seuls perdants').toHaveLength(1);
     expect(hangover[0].participants!.map((r) => r.id)).toEqual(['h1', 'h2']);
   });
@@ -309,7 +309,7 @@ describe('une bande par MALADIE', () => {
 });
 
 /**
- * Le `kind` 'exposure' a TROIS producteurs (nuit de repos, effet de scène `exposureNight`, entretien
+ * Le `kind` 'exposition-nocturne' a TROIS producteurs (nuit de repos, effet de scène `exposureNight`, entretien
  * de mer) et UN SEUL applier — d'escalade cumulative (LDB 18 l.330/334). Si l'un d'eux restait MONO,
  * l'applier de bande RENONCERAIT sur ses étapes : jets lancés, aucune conséquence, en silence (le
  * sinistre du migrateur psy). Garde STRUCTURELLE : tout FICHIER qui construit une étape d'Exposition
@@ -426,7 +426,7 @@ describe('SONDE B — ids de bande UNIQUES dans la séquence', () => {
       get().jetValider('cascade');
     }
 
-    const hangovers = vus.filter((v) => v.kind === 'dessoulage-hangover');
+    const hangovers = vus.filter((v) => v.kind === 'dessoulage-gueule-de-bois');
     expect(hangovers, 'chaque Dessoûlage doit sa gueule de bois (LDB 09 l.485)').toHaveLength(2);
     const ids = vus.map((v) => v.id);
     const doublons = ids.filter((id, i) => ids.indexOf(id) !== i);
@@ -459,14 +459,14 @@ describe('SONDE D — Exposition (chaleur) de bout en bout : drop → cancelsRow
 
     // UN SEUL délestage inséré (h2 n'a rien de lourd à jeter — sa conséquence est immédiate).
     const cur = () => { const c = get().pendingCascade!; return c.participants[c.cursor]; };
-    expect(cur().kind).toBe('exposure-heat-drop');
+    expect(cur().kind).toBe('exposition-delestage');
     expect(cur().actorId).toBe('h1');
     expect(cur().meta?.cancelsRowId).toBe(`${wave0.id}:h1`);
     get().jetRegler('cascade', 'choix', 'jeter', cur().id);
     get().jetValider('cascade');
 
     const wave1 = cur();
-    expect(wave1.kind).toBe('exposure');
+    expect(wave1.kind).toBe('exposition-nocturne');
     expect(wave1.meta?.wave).toBe(1);
     expect(Object.fromEntries(wave1.participants!.map((r) => [r.id, r.meta?.priorFails])))
       .toEqual({ h1: 0, h2: 1 }); // h1 : échec ANNULÉ par le délestage ; h2 : échec bien compté

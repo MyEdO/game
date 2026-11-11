@@ -228,7 +228,7 @@ function mutationTableStep(hero: Combatant, tableId: string, ctx: PendingMutatio
     label: stepDetail(t('step.mutation'), mutationTablePlayerLabel(tableId)),
     table: { tableId, spec: mutationTableDie(tableId) },
     mutation: { ...ctx, tableId },
-    stake: combatStakeRef('mutation-table'),
+    stake: combatStakeRef('mutation-tableau'),
   });
 }
 
