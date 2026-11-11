@@ -49,6 +49,10 @@ describe('prétirés officiels — fiches imprimées figées (#3884)', () => {
     expect(groupeVitrine(idsDeTest).map((h) => h.id)).toEqual(GROUPE_VITRINE.map(idDuPretire));
   });
 
+  it('aucune dotation texte n’imprime une quantité aux dés (elle est un `count.roll`, tiré à l’engagement)', () => {
+    for (const d of pregens) for (const t of d.trappings) if ('text' in t) expect(t.text, d.id).not.toMatch(/\d+d\d+/);
+  });
+
   it('`richesseDuPretire` tire le dé imprimé dans sa monnaie, bornes comprises', () => {
     const d = { richesse: { n: 3, sides: 10 }, monnaie: 'silver' } as PregenDef;
     expect(richesseDuPretire(d, borne('min'))).toEqual({ gold: 0, silver: 3, brass: 0 });

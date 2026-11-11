@@ -252,7 +252,13 @@
     ],
     "trappings": [
       {
-        "text": "1d10 chiffons"
+        "id": "chiffons",
+        "count": {
+          "roll": {
+            "n": 1,
+            "sides": 10
+          }
+        }
       },
       {
         "id": "hache-de-lancer",
@@ -422,7 +428,13 @@
         "id": "necessaire-d-ecriture"
       },
       {
-        "text": "Nécessaire d’écriture et 1d10 feuilles de parchemin"
+        "id": "feuille-de-parchemin",
+        "count": {
+          "roll": {
+            "n": 1,
+            "sides": 10
+          }
+        }
       },
       {
         "id": "bourse"
@@ -845,7 +857,13 @@
         }
       },
       {
-        "text": "1d10 allumettes"
+        "id": "allumette",
+        "count": {
+          "roll": {
+            "n": 1,
+            "sides": 10
+          }
+        }
       },
       {
         "id": "capuchon"

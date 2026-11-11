@@ -2,6 +2,8 @@
 import type { CharKey, Characteristics, Combatant } from '../engine/types';
 import { enPieces, type Money } from '../engine/money';
 import { rollDice, type DiceSpec, type RNG } from '../engine/dice';
+import { buildInventory } from '../engine/items';
+import type { ItemInstance } from '../engine/types';
 import { heroDeFiche, type FicheDeHeros } from '../engine/heroDeFiche';
 import type { FabriqueDId } from '../engine/fabriqueDId';
 import type { IdDeHerosDuRoster } from '../lib/idDeHerosDuRoster';
@@ -35,17 +37,16 @@ export interface PregenDef {
   monnaie: keyof Money;
 }
 
-/** La quantité imprimée d'une possession : `count` fixe, 1 sans `count`. */
-function quantite(d: PregenDef, count: CountSpec | undefined): number {
-  if (!count) return 1;
-  if ('fixed' in count) return count.fixed;
-  throw new Error(`Prétiré « ${d.id} » : quantité tirée (${count.roll.n}d${count.roll.sides}) — une fiche imprimée ne tire rien.`);
-}
+/** La dotation à quantité tirée aux dés (`count.roll`) : elle se tire à l'engagement, jamais sur la fiche. */
+const estTiree = (t: PregenDef['trappings'][number]): t is Extract<PregenDef['trappings'][number], { id: string }> & { count: { roll: DiceSpec } } => !!t.count && 'roll' in t.count;
+
+/** La quantité fixe imprimée d'une possession : `count.fixed`, 1 sans `count`. */
+const quantite = (count: CountSpec | undefined): number => (count && 'fixed' in count ? count.fixed : 1);
 
 /** L'id STABLE du héros du prétiré `id`. */
 export const idDuPretire = (id: string): IdDeHerosDuRoster => `pretire-${id}` as IdDeHerosDuRoster;
 
-/** La fiche de héros du prétiré `d`. */
+/** La fiche de héros du prétiré `d` : ses possessions à compte fixe ou texte, sans dé (`possessionsTireesDuPretire` porte les autres). */
 export function ficheDuPretire(d: PregenDef): FicheDeHeros {
   return {
     speciesId: d.species.id,
@@ -56,7 +57,7 @@ export function ficheDuPretire(d: PregenDef): FicheDeHeros {
     charAdvances: d.charAdvances,
     skills: Object.entries(d.skills).flatMap(([id, a]) => (typeof a === 'number' ? [{ id, advances: a }] : Object.entries(a).map(([spec, advances]) => ({ id, spec, advances })))),
     talents: d.talents.map(({ id, spec, times }) => ({ id, ...(spec ? { spec } : {}), times: times ?? 1 })),
-    trappings: d.trappings.map((t) => ('text' in t ? { text: t.text, qte: quantite(d, t.count) } : { id: t.id, ...(t.spec ? { spec: t.spec } : {}), qte: quantite(d, t.count) })),
+    trappings: d.trappings.filter((t) => !estTiree(t)).map((t) => ('text' in t ? { text: t.text, qte: quantite(t.count) } : { id: t.id, ...(t.spec ? { spec: t.spec } : {}), qte: quantite(t.count) })),
     spells: d.spells,
     fate: d.fate,
     resilience: d.resilience,
@@ -79,6 +80,11 @@ export function pretire(idNeuf: FabriqueDId, id: string): Combatant {
 /** Les héros de tous les prétirés, dans l'ordre de `pregens.json`. */
 export function pretires(idNeuf: FabriqueDId): Combatant[] {
   return pregens.map((d) => heroDuPretire(d, idNeuf));
+}
+
+/** Les possessions du prétiré `d` imprimées à quantité aux dés, tirées sur `rng` (`buildInventory`). */
+export function possessionsTireesDuPretire(d: PregenDef, rng: RNG, idNeuf: FabriqueDId): ItemInstance[] {
+  return buildInventory(d.trappings.filter(estTiree), rng, idNeuf);
 }
 
 /** La Richesse de départ imprimée du prétiré `d`, tirée sur `rng`. */
