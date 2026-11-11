@@ -9,7 +9,8 @@
     "!scripts/test/lib/**",
     "src/**/*.generated.ts",
     "src/hoteTexte/serveur.ts",
-    "hotes/godot/pont/entree.ts"
+    "hotes/godot/pont/entree.ts",
+    "hotes/godot/recettes/*.ts"
   ],
   "project": [
     "src/**/*.{ts,tsx}",
