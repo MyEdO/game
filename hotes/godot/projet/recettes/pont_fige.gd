@@ -5,10 +5,11 @@ extends PontDuNoyau
 ## rendent leur réponse figée, toute autre méthode la réponse figée sous `fige[<méthode>]` à la clé de son entrée
 ## (`JSON.stringify`), `modeles/listage.json` le listage figé et tout autre chemin le fichier du projet, rien s'il est
 ## absent (le dépôt de l'éditeur), chaque paramètre de l'adresse celui de `fige.parametres` ; il garde les entrées
-## reçues hors de ces trois, et le dernier écran publié.
+## reçues hors de ces trois, les chemins requêtés et le dernier écran publié.
 
 var fige: Dictionary
 var entrees: Array[String] = []
+var requetes: Array[String] = []
 var ecran: Dictionary = {}
 
 
@@ -41,6 +42,7 @@ func appeler(methode: String, entree: Variant = null) -> Dictionary:
 
 
 func requeter(relative: String, recueil: Array[String], _methode := HTTPClient.METHOD_GET, _corps := "") -> PackedByteArray:
+	requetes.append(relative)
 	if relative == "modeles/listage.json":
 		return JSON.stringify(fige.listage).to_utf8_buffer()
 	var chemin := "res://%s" % relative
