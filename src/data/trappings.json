@@ -8429,7 +8429,9 @@
       {
         "op": "light",
         "radiusM": 10,
-        "tone": "chandelle"
+        "tone": {
+          "id": "chandelle"
+        }
       }
     ],
     "desc": "Fournit un éclairage sur 10 mètres lorsqu'elle est allumée.",
@@ -8726,7 +8728,9 @@
       {
         "op": "light",
         "radiusM": 10,
-        "tone": "lanterne"
+        "tone": {
+          "id": "lanterne"
+        }
       }
     ]
   },
@@ -8749,7 +8753,9 @@
       {
         "op": "light",
         "radiusM": 20,
-        "tone": "lanterne"
+        "tone": {
+          "id": "lanterne"
+        }
       }
     ],
     "desc": "Des obturateurs protègent la flamme du vent, et permet également de diriger la lumière dans un arc de 90° ou de l'obscurcir complètement. Fournit un éclairage sur 20 mètres, ou 30 quand il est ciblé.",
@@ -8782,7 +8788,9 @@
       {
         "op": "light",
         "radiusM": 20,
-        "tone": "lanterne"
+        "tone": {
+          "id": "lanterne"
+        }
       }
     ],
     "desc": "Fournit un éclairage sur 20 mètres.",

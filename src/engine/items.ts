@@ -728,12 +728,12 @@ export function unarmedWeapon(resolveTrapping: TrappingResolver = findTrappingBy
  *  (trait, mutation : `recomputeLoadout`) et Sort (`ops.ts`, effet actif). Les attaques naturelles des
  *  Traits de créature ont leur propre construction (`creatureEquip.weaponFromTrait`, `LDB 85 l.35`). */
 export function armeNaturelleAccordee(
-  op: { label: string; attackKind?: string; subType?: string; plusBF?: boolean; bare?: boolean; qualities?: string[] },
+  op: { label: string; attackKind?: string; subType?: { id: string }; plusBF?: boolean; bare?: boolean; qualities?: string[] },
   flat: number,
   extra: Pick<WeaponSpec, 'uid' | 'source'>,
 ): Weapon {
   return buildWeapon({
-    label: op.label, attackKind: op.attackKind, subType: op.subType, natural: true,
+    label: op.label, attackKind: op.attackKind, subType: op.subType?.id, natural: true,
     damage: { plusBF: op.plusBF !== false, flat, bare: op.bare ? true : undefined },
     qualities: (op.qualities ?? []).map((id) => ({ id })), ...extra,
   });
@@ -969,7 +969,7 @@ export function recomputeLoadout(c: Combatant): void {
   ];
   for (const { cle, source, ops } of naturalWeaponPassives) for (const op of ops ?? []) {
     if (op.op !== 'grantNaturalWeapon') continue;
-    const flat = (typeof op.damage === 'number' ? op.damage : 0) + (op.damagePlus ?? 0);
+    const flat = typeof op.damage === 'number' ? op.damage : 0;
     weapons.push({ hand: 'main', ...armeNaturelleAccordee(op, flat, { uid: uidDArme(cle, weapons), source }) });
   }
   // Armes NATURELLES accordées par un Sort (op `grantNaturalWeapon` — Dent et griffe : Morsure/Arme ;

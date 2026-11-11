@@ -14,8 +14,7 @@ import {
   creatures, careerLevels, species, gods, etats, maladies, weaponGroups,
   talents, skills, domains,
   byId, findTalentById, findTrappingById, findSeaShantyById,
-  findWeaponGroupById, findGroupById, findQualityById, findCrewTestTypeById, findLightToneById,
-  mutationTables,
+  findWeaponGroupById, findGroupById, findCrewTestTypeById,
   specLabel, refLabel, specEntryId, specEntryLabel, SPEC_SOURCES, type SpecsSource, type SpecEntry, books,
 } from './index';
 import { gameOpSchema } from './schemas/grammaire/mecanique';
@@ -612,14 +611,8 @@ describe('postes d’artillerie — réf catalogue hydratée, jamais une base co
 // dans `scripts/guards/lib/gameOpRefFk.mjs` (`registry` | `coveredBy` | `nonRef`). Les registres des
 // champs que le parse ne juge pas sont câblés ICI, où ils sont typés.
 describe('GameOp — toute référence de la donnée committée est jugée au parse ou résout dans son registre (#847, #1473)', () => {
-  const MUTATION_TABLE_IDS = new Set(mutationTables.map((t) => t.id));
-
   const resolvers: Record<string, (id: string) => boolean> = {
-    qualities: (id) => !!findQualityById(id),
-    weaponGroups: (id) => !!findWeaponGroupById(id),
     crewTestTypes: (id) => !!findCrewTestTypeById(id),
-    mutationTables: (id) => MUTATION_TABLE_IDS.has(id),
-    lightTones: (id) => !!findLightToneById(id),
     seaManannFactors: (id) => MANANN_FACTORS.some((f) => f.id === id),
   };
 
@@ -742,15 +735,15 @@ describe('GameOp — toute référence de la donnée committée est jugée au pa
   });
 
   it('la garde n’est pas vacante — une op à référence fantôme est REFUSÉE (contre-épreuve)', () => {
-    const fixture = (tone: string) => [{
+    const fixture = (testType: string) => [{
       file: 'fixture.json',
-      data: [{ effects: [{ flow: { effect: { ops: [{ op: 'light', radiusM: 3, tone }] } } }] }],
+      data: [{ effects: [{ flow: { effect: { ops: [{ op: 'skillDRBonus', testType, bonus: 1 }] } } }] }],
     }];
-    expect(scanGameOpRefs({ sources: fixture('flamme'), resolvers }).offenders).toEqual([]);
-    const out = scanGameOpRefs({ sources: fixture('ton-fantome'), resolvers }).offenders;
+    expect(scanGameOpRefs({ sources: fixture('manoeuvre'), resolvers }).offenders).toEqual([]);
+    const out = scanGameOpRefs({ sources: fixture('test-fantome'), resolvers }).offenders;
     expect(out).toHaveLength(1);
-    expect(out[0].registry).toBe('lightTones');
-    expect(out[0].path).toBe('fixture.json[0].effects[0].flow.effect.ops[0].tone');
+    expect(out[0].registry).toBe('crewTestTypes');
+    expect(out[0].path).toBe('fixture.json[0].effects[0].flow.effect.ops[0].testType');
   });
 
   it('un champ NON-RÉFÉRENCE porte sa justification, un champ jugé ailleurs nomme son refus', () => {

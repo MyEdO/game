@@ -225,7 +225,7 @@ export function newOp(op: GameOp['op'] | string): GameOp {
     case 'spendAdvantage': return { op: 'spendAdvantage', amount: 1 };
     case 'rollThreshold': return { op: 'rollThreshold', sides: 10, thresholds: [] };
     case 'rollTable': return { op: 'rollTable', die: 'd10', entries: [] };
-    case 'rollMutation': return { op: 'rollMutation', table: '' };
+    case 'rollMutation': return { op: 'rollMutation', table: { id: '' } };
     case 'narrative': return { op: 'narrative', text: '' };
     case 'shipMorale': return { op: 'shipMorale', delta: { sign: 1, dice: { n: 1, sides: 10 } } };
     case 'manann': return { op: 'manann', delta: { sign: 1, dice: { n: 1, sides: 10 } } };

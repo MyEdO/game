@@ -17,7 +17,7 @@ import type { Flow } from '../../data/schemas/defs-scenes/effets';
 import type { Condition, EffectOp, PartySelector } from '../../engine/flowCore';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
 import { contexteDeTestSchema } from '../../data/schemas/grammaire/valeurs';
-import { armourBypassCategorieSchema, loseTurnWhatSchema, senseSchema, tablesDeCiblesSchema, zoneShapeSchema } from '../../data/schemas/grammaire/mecanique';
+import { armourBypassCategorieSchema, loseTurnWhatSchema, ressourceDeDestinSchema, senseSchema, tablesDeCiblesSchema, zoneShapeSchema } from '../../data/schemas/grammaire/mecanique';
 import { INDICE_TEMPLATE, seuilDeBourse, type ActorRef, type CompareOp, type CompareSubject } from '../../engine/flowCore';
 import { estCausePersistante, type GameOp, type Formula, type FormuleSansTirage, type ResolveWindow } from '../../engine/ops';
 import type { Camp, Relation } from '../../engine/relations';
@@ -344,7 +344,6 @@ export function humanizeCondition(c: Condition, etats: readonly EtatDeclare[], n
 // GameOp
 // ---------------------------------------------------------------------------
 
-const RESOURCE_LABEL = { fortune: 'Chance', fate: 'Destin' } as const;
 const ATTR_LABEL = { wounds: 'Blessures', fortune: 'Chance', resolve: 'Détermination' } as const;
 /** Libellé JOUEUR du volet matériau d'`armourPierce.bypass` (LDB 62 l.270) — `undefined`/nombre = pas de volet matériau. */
 const armourBypassCatLabel = (b: ArmourBypass | undefined): string | undefined =>
@@ -459,7 +458,7 @@ export function humanizeOp(o: GameOp): string {
     case 'corruption': return t('codex.op.corruption', { n: signe(o.amount) });
     case 'sinMod': return t(o.amount >= 0 ? 'codex.op.sinMod.gagne' : 'codex.op.sinMod.perd', { n: Math.abs(o.amount) });
     case 'corruptionExposure': return t('codex.op.corruptionExposure');
-    case 'gainResource': return `${t(o.amount >= 0 ? 'codex.op.gainResource.gagne' : 'codex.op.gainResource.perd', { n: Math.abs(o.amount), res: RESOURCE_LABEL[o.resource] })}${o.temporary ? t('codex.op.gainResource.temporaire') : ''}`;
+    case 'gainResource': return `${t(o.amount >= 0 ? 'codex.op.gainResource.gagne' : 'codex.op.gainResource.perd', { n: Math.abs(o.amount), res: libelleDeValeur(ressourceDeDestinSchema, o.resource) })}${o.temporary ? t('codex.op.gainResource.temporaire') : ''}`;
     case 'gainAdvantage': return t('codex.op.gainAdvantage', { n: humanizeFormula(o.amount) });
     case 'topUpAdvantage': return t('codex.op.topUpAdvantage', { n: humanizeFormula(o.amount) });
     case 'castPenalty': return effetDeContrecoup(o);
@@ -546,7 +545,7 @@ export function humanizeOp(o: GameOp): string {
       negatifs: o.addNegativeSL ? t('codex.op.rollTable.negatifs') : '',
       extra: o.extraRollsPerStep ? t('codex.op.rollTable.extra', { n: o.extraRollsPerStep }) : '',
     }) + ('entries' in o ? rangeesLisibles(o) : '');
-    case 'rollMutation': return t(o.duration === 'permanent' ? 'codex.op.rollMutation.permanente' : 'codex.op.rollMutation', { table: o.table });
+    case 'rollMutation': return t(o.duration === 'permanent' ? 'codex.op.rollMutation.permanente' : 'codex.op.rollMutation', { table: o.table.id });
     case 'charDamage': return t('codex.op.charDamage', { n: humanizeFormula(o.amount), car: CHAR_LABELS[o.characteristic] });
     case 'summon': return `${t('codex.op.summon', { n: humanizeFormula(o.count), nom: creatureLabel(o.ref) })}${o.allyOfCaster === false ? t('codex.op.summon.hostile') : ''}`;
     case 'scheduleRespawn': return t('codex.op.scheduleRespawn', { nom: creatureLabel(o.ref), n: humanizeFormula(o.delayDays) });

@@ -24,7 +24,7 @@ import { progressionModeSchema } from './naval-progression';
 import { missileBypassSchema } from './domains';
 import { waterAppliesToSchema, waterTableSchema } from './water-exposure';
 import { rigSchema, posteSideSchema } from './vehicles';
-import { attackKindSchema } from './maneuvers';
+import { attackKindSchema } from '../grammaire/valeurs';
 import { trappingCategorieSchema } from './trappings';
 import { critTableSchema } from './criticals';
 import { favorLevelSchema } from '../defs-scenes/effets';

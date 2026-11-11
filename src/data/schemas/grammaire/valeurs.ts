@@ -164,6 +164,26 @@ export const varianteDeCibleSchema = enumNomme({ groupe: 'un Groupe', individu: 
 export type VarianteDeCible = z.infer<typeof varianteDeCibleSchema>;
 
 /**
+ * FAMILLE d'attaque d'une manœuvre et d'une arme naturelle (`AttackKind`, `src/engine/creatureAttacks.ts`) — le libellé est
+ * celui de la FAMILLE, jamais l'affichage d'une manœuvre PRÉCISE (`ManeuverDef.label`, ex. « Souffle
+ * (Feu) ») : plusieurs `ManeuverDef` partagent un `kind` (6 souffles, 2 étreintes, 4 hurlements).
+ */
+export const attackKindSchema = enumNomme({
+  arme: 'Arme / griffes',
+  morsure: 'Morsure',
+  caudale: 'Attaque caudale',
+  cornes: 'Cornes',
+  souffle: 'Souffle',
+  vomi: 'Vomissement',
+  tentacules: 'Tentacules',
+  etreinte: 'Étreinte',
+  regard: 'Regard pétrifiant',
+  langue: 'Langue préhensile',
+  hurlement: 'Hurlement',
+  pietinement: 'Piétinement',
+});
+
+/**
  * Alignement d'une source de Corruption (`ChaosAlign`, `src/engine/corruption.ts`) — UNE déclaration
  * pour les deux nœuds qui portent ce vocabulaire : la charge de l'op `corruption`
  * (`grammaire/mecanique.ts`) et l'effet de scène `corruption.align` (`defs-scenes/effets.ts`).

@@ -83,7 +83,7 @@ describe('lightTones.json — le catalogue livré, et les bornes qui le tiennent
     const authorés: [string, string][] = [];
     for (const p of propsData) if (p.light?.tone) authorés.push([`props/${p.id}`, p.light.tone]);
     for (const t of trappings)
-      for (const op of t.passive ?? []) if (op.op === 'light' && op.tone) authorés.push([`trappings/${t.id}`, op.tone]);
+      for (const op of t.passive ?? []) if (op.op === 'light' && op.tone) authorés.push([`trappings/${t.id}`, op.tone.id]);
     expect(authorés.length).toBeGreaterThan(0); // sinon ce garde ne mesure rien
     expect(authorés.filter(([, tone]) => !ids.has(tone))).toEqual([]);
   });

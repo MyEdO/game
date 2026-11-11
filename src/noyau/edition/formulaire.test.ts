@@ -108,11 +108,11 @@ describe('la description du formulaire d’une zone d’effet', () => {
   });
 
   it('une op de `OPS_NON_TYPEES` choisie n’a pas de forme déclarée : sa saisie reste en JSON', () => {
-    expect(OPS_NON_TYPEES).toContain('wounds');
-    const valeur = { op: 'wounds', amount: 5 };
+    expect(OPS_NON_TYPEES).toContain('condition');
+    const valeur = { op: 'condition', id: 'sonne' };
     const noeud = elementDuNoeud(formulaireDe('zone', zone({ onCross: [valeur] as never }), CADRE_VIDE)[1].noeud);
     const u = unionDuNoeud(noeud)!;
-    expect(varianteCourante(u, valeur)).toMatchObject({ cle: 'wounds', noeud: undefined });
+    expect(varianteCourante(u, valeur)).toMatchObject({ cle: 'condition', noeud: undefined });
     expect(formeAuPoint(noeud, valeur)).toBeUndefined();
   });
 });
@@ -299,11 +299,11 @@ describe('le geste `valeur` de la session', () => {
     expect(refusDeLaValeur(ajoute, geste({ sorte: 'zone', id: 'nulle-part' }, ['crossTest', 'characteristic'], ['force']))).toBe('nonOffert');
     expect(laZone(jouer(jouer(ajoute, ['crossTest', 'skill'], valeurNeuveDe(refOuSpec('skill'))), ['crossTest', 'skill', 'id'], 'athletisme')).crossTest, 'la référence de Compétence se choisit').toEqual({ skill: { id: 'athletisme' } });
 
-    const avecOps = jouer(depart, ['onCross'], [{ op: 'wounds', amount: 5 }]);
-    expect(laZone(jouer(avecOps, ['onCross', 0], { op: 'wounds', amount: 3 })).onCross, 'une op non typée s’écrit en JSON que son schéma parse').toEqual([{ op: 'wounds', amount: 3 }]);
+    const avecOps = jouer(depart, ['onCross'], [{ op: 'condition', id: 'sonne' }]);
+    expect(laZone(jouer(avecOps, ['onCross', 0], { op: 'condition', id: 'assourdi' })).onCross, 'une op non typée s’écrit en JSON que son schéma parse').toEqual([{ op: 'condition', id: 'assourdi' }]);
     expect(refusDeLaValeur(avecOps, geste(porteur, ['onCross', 0], [null])), 'un JSON illisible').toBe('illisible');
     expect(refusDeLaValeur(avecOps, geste(porteur, ['onCross', 0], [{ op: 'pas-une-op' }]))).toBe('horsSorte');
-    expect(refusDeLaValeur(avecOps, geste(porteur, ['onCross', 0, 'amount'], [3])), 'une op sans forme déclarée n’offre aucun champ').toBe('nonOffert');
+    expect(refusDeLaValeur(avecOps, geste(porteur, ['onCross', 0, 'id'], ['aveugle'])), 'une op sans forme déclarée n’offre aucun champ').toBe('nonOffert');
     const avecHas = surDeclencheur(depart, ['when'], recast(CONDITION_TOUJOURS, 'has'));
     expect(refusDeLaValeur(avecHas, geste(surTrig, ['when', 'what'], ['trait'])), 'un discriminant se change par le choix de la variante').toBe('nonOffert');
     for (const chemin of [['once'], ['rect', 'z']] as Segment[][]) {

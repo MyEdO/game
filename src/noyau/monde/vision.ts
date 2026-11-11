@@ -266,7 +266,7 @@ export function combatantLights(c: {
     const held = !!it.equipped || (c.weapons ?? []).some((w) => w.uid === it.uid);
     if (!held) continue;
     for (const op of it.passive ?? []) {
-      if (op.op === 'light' && op.radiusM > rM) { rM = op.radiusM; tone = op.tone; }
+      if (op.op === 'light' && op.radiusM > rM) { rM = op.radiusM; tone = op.tone?.id; }
     }
   }
   for (const e of c.activeEffects ?? []) {

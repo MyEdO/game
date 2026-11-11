@@ -117,6 +117,11 @@ const NOMMES = [
   'esquive|parade|init|resist|auto',
   'feeding|praying|cowering|standing|howling',
   'fixed|variable|all',
+  // `apFromSchema`, `ressourceDeDestinSchema`, `arrondiSchema` (#3606 M2a) : les vocabulaires des ops `wounds`,
+  // `gainResource` et `lifeSteal`.
+  'corps|least',
+  'fortune|fate',
+  'floor|ceil',
   'gable|stone-entry|chimney|sign|window-band|belfry',
   'flag|param|mode',
   'fleche|carreau|balle|boulet|pierre|objet-lance|trait-magique|jet-de-flammes|jet-de-souffle',
