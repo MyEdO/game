@@ -75,7 +75,7 @@ describe('un tour complet par le pont', () => {
     const economie = (id: string) => suite.vue.zones['combat.offres'].find((o): o is Choix => o.type === 'choix' && o.valeurs.some((v) => v.id === id));
     expect(economie('charge'), 'la Charge se range sous le Mouvement qu’elle prend, nommé une fois').toMatchObject({ libelle: 'Mouvement' });
     expect(economie('charge')!.valeurs.find((v) => v.id === 'charge')?.libelle, 'chaque offre de la barre a son libellé, sans son coût').toBe('Charger');
-    expect(economie('end-turn'), 'la fin du tour, qui ne prend rien, se range sous le tour').toMatchObject({ libelle: 'Tour' });
+    expect(economie('fin-de-tour'), 'la fin du tour, qui ne prend rien, se range sous le tour').toMatchObject({ libelle: 'Tour' });
     expect(suite.vue.zones['combat.actif'][0]?.nom, 'le panneau nomme l’actif').toBe(heros.nom);
     expect(suite.vue.zones['combat.ordre'].filter((p) => p.ton === 'alerte').map((p) => p.libelle), 'le bandeau de l’ordre met en avant celui qui joue, lui seul').toEqual([heros.nom]);
     ({ suite } = jouer({ type: 'armerLIntention', args: ['charge'] }));

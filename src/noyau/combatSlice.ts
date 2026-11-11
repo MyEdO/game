@@ -833,7 +833,7 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!battle || battle.over) return;
       const active = activeCombatant(battle);
       if (!active) return;
-      // Les attaques IMMÉDIATES que l'offre `maneuver-area` énumère (`attaques-de-zone`), abordables (`availableAttacks`).
+      // Les attaques IMMÉDIATES que l'offre `attaque-zone` énumère (`attaques-de-zone`), abordables (`availableAttacks`).
       if (!availableAttacks(active, battle).some((x) => x.kind === kind && attaqueImmediate(x))) return;
       set({ battle: { ...battle, action: null } }); // referme le menu avant la résolution
       // Hurlement (LDB 85 l.170) : PAS de jet d'attaquant — chaque cible tire son 1d10 + Test de
@@ -1152,11 +1152,11 @@ export function createCombatSlice(get: Get, set: Set) {
      *  (le siège agissant quand l'hôte applique l'intent d'un invité, sinon le siège local), jamais d'un argument — la
      *  demande d'un joueur ne peut pas être signée d'un autre. Le retrait est gratuit : tant que le Round n'a pas tourné,
      *  un joueur qui s'est ravisé rend la table à son enchaînement ; il ne retire QUE son siège, la pause tient tant
-     *  qu'un autre siège la demande. Refusée, et dite, au verdict de l'offre qui la déclare (`raise-hand`). */
+     *  qu'un autre siège la demande. Refusée, et dite, au verdict de l'offre qui la déclare (`pause`). */
     leverLaMain: (levee: boolean) => {
       const b = get().battle;
       if (!b) return;
-      const refus = refusDeLOffreHorsDuTour(get(), 'raise-hand');
+      const refus = refusDeLOffreHorsDuTour(get(), 'pause');
       if (refus) return void refuserGesteDuSiege(get, set, refus);
       const seat = decidingSeat(get());
       const deja = b.handRaisedBy ?? [];
@@ -1191,7 +1191,7 @@ export function createCombatSlice(get: Get, set: Set) {
     },
 
     /** Prend le set d'armes `loadoutId` de `heroId`, Action gratuite (LDB 13 l.106) : en combat, l'actif, au plafond
-     *  MAISON de 1×/tour, AUTORISÉ même Engagé (`switch-loadout`, `actions.json`) ; hors combat, depuis la fiche. */
+     *  MAISON de 1×/tour, AUTORISÉ même Engagé (`panoplie`, `actions.json`) ; hors combat, depuis la fiche. */
     prendreLaPanoplie: (heroId: string, loadoutId: string) => {
       const s = get();
       const hero = actorIn(s, heroId);
@@ -1324,9 +1324,9 @@ export function createCombatSlice(get: Get, set: Set) {
       bus.emit(EVT.SCENE_DIRTY);
     },
 
-    // ── Ramasser un objet d'un décor : en combat, un à la fois, au prix de l'Action (`pickup` de `actions.json`) ──
+    // ── Ramasser un objet d'un décor : en combat, un à la fois, au prix de l'Action (`ramassage` de `actions.json`) ──
     /** Ramasse l'objet `key` du décor `entityId`. Hors combat, un objet posé au sol (`ramasserHorsCombat`). En combat,
-     *  l'actif (`heroId`, s'il est nommé) au verdict de l'offre `pickup` (`refuseParSonEntree`), à portée (`aPorteeDe`). */
+     *  l'actif (`heroId`, s'il est nommé) au verdict de l'offre `ramassage` (`refuseParSonEntree`), à portée (`aPorteeDe`). */
     ramasserLObjet: (entityId: string, key: string, heroId?: string) => {
       const s = get();
       if (!s.battle) return ramasserHorsCombat(get, set, entityId, key, heroId);
@@ -1334,7 +1334,7 @@ export function createCombatSlice(get: Get, set: Set) {
       if (barre.forme !== 'ouverte') return void refuserGesteDuSiege(get, set, barre.raison);
       const { active, battle } = barre;
       if (heroId !== undefined && heroId !== active.id) return void refuserGesteDuSiege(get, set, t('cs.ramasserHorsDuTour', { name: actorIn(s, heroId)?.label ?? heroId }));
-      if (refuseParSonEntree(get, set, 'pickup', active, battle, { entityId, pickKey: key })) return;
+      if (refuseParSonEntree(get, set, 'ramassage', active, battle, { entityId, pickKey: key })) return;
       const scene = s.scene!;
       const ent = scene.entities.find((e) => e.id === entityId && e.kind === 'prop');
       const pickable = ent && entityPickables(ent, s.flags, objetDuNarratif(s.campaignNarratif), s.objetsAuSol).find((p) => p.key === key);
@@ -1649,7 +1649,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const barre = barreDuGeste(get());
       if (barre.forme !== 'ouverte') return void refuserGesteDuSiege(get, set, barre.raison);
       const { active: healer, battle } = barre;
-      if (refuseParSonEntree(get, set, 'heal', healer, battle)) return;
+      if (refuseParSonEntree(get, set, 'soins', healer, battle)) return;
       if (battle.action !== 'soins') return void refuserGesteDuSiege(get, set, t('heal.soinNonArme')); // le commit du mode armé (`HEAL_MODE`)
       const target = inBattleId(battle, targetId);
       if (!target) return void refuserGesteDuSiege(get, set, t('medic.patientIntrouvable'));
@@ -1758,7 +1758,7 @@ export function createCombatSlice(get: Get, set: Set) {
     // Préfixe store `opposition` ≠ clé de flux `castOpposition` (handler passé explicitement).
     /** Focalise le sort d'Arcane ou de Domaine `spellId` de `lanceurId` (Test étendu de Focalisation, LDB 46) : OUVRE
      *  la modale. En combat, l'actif à sa barre ou l'IA pour elle-même (`runEnemyAI`), au verdict de l'entrée
-     *  `focus-spell` ; hors combat, un lanceur du groupe. */
+     *  `focalisation` ; hors combat, un lanceur du groupe. */
     focaliserLeSort: (lanceurId: string, spellId: string) => {
       const s = get();
       const battle = s.battle;
@@ -1773,8 +1773,8 @@ export function createCombatSlice(get: Get, set: Set) {
           const refus = refusDuTourDe(s, lanceur.id, t('cs.horsDuTour', { name: lanceur.label }));
           if (refus) return void refuserGesteDuSiege(get, set, refus);
         }
-        // Action, sort focalisable, Compétence, contrecoup (LDB 46/40) : le verdict de l'entrée `focus-spell`.
-        if (refuseParSonEntree(get, set, 'focus-spell', lanceur, battle, { spellId })) return;
+        // Action, sort focalisable, Compétence, contrecoup (LDB 46/40) : le verdict de l'entrée `focalisation`.
+        if (refuseParSonEntree(get, set, 'focalisation', lanceur, battle, { spellId })) return;
       } else {
         if (!isArcaneSpell(spell)) {
           get().ecrireAuJournal(t('cs.cannotFocus'));
@@ -1804,7 +1804,7 @@ export function createCombatSlice(get: Get, set: Set) {
       if (battle) {
         const refus = refusDuTourDe(s, lanceur.id, t('cs.horsDuTour', { name: lanceur.label }));
         if (refus) return void refuserGesteDuSiege(get, set, refus);
-        if (refuseParSonEntree(get, set, 'dispel', lanceur, battle)) return;
+        if (refuseParSonEntree(get, set, 'dissipation', lanceur, battle)) return;
       }
       if (!actorHasSkill(lanceur, { id: 'langue', spec: 'magick' })) return void refuserGesteDuSiege(get, set, t('cs.cannotDispel'));
       const population = battle ? battle.combatants : s.party;

@@ -826,7 +826,7 @@ export function canTakeAction(c: Combatant): boolean {
 }
 
 /** Le combattant peut-il ENTRER en Frénésie : un Test de Force Mentale, donc son Action (`canTakeAction`), capable
- *  et pas déjà en Frénésie. Prédicat unique du héros (offre `frenzy`, `entrerEnFrenesie`) et de l'IA
+ *  et pas déjà en Frénésie. Prédicat unique du héros (offre `frenesie`, `entrerEnFrenesie`) et de l'IA
  *  (`aiMaybeFrenzy`). LDB 21 l.31 ; LDB 13 l.106 ; LDB 16 l.125 */
 export function peutEntrerEnFrenesie(c: Combatant): boolean {
   return canTakeAction(c) && isFrenzyCapable(c) && !isFrenzied(c);

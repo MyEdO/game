@@ -211,7 +211,7 @@ export function CampaignView() {
   // LDB 10.
   const preemptAiming = useGame((s) => s.preemptAiming);
   const canPreemptIds = preemptShooterIds(useGame.getState); // source UNIQUE (partagée avec le ciblage clavier)
-  // PAUSE AU PROCHAIN ROUND (`raise-hand`) : l'interrupteur du pied de frise. Verdict d'offre et
+  // PAUSE AU PROCHAIN ROUND (`pause`) : l'interrupteur du pied de frise. Verdict d'offre et
   // dispatcher viennent du REGISTRE — la vue ne connaît qu'un id d'action, et la bascule repasse par
   // la MÊME offre que la pose (le relais lit la main levée), ce qui rend l'annulation gratuite et symétrique.
   // La commande n'est DESSINÉE qu'en coop (pertinence de SITE : elle s'adresse aux autres joueurs,
@@ -222,7 +222,7 @@ export function CampaignView() {
   const mainsLevees = battle?.handRaisedBy ?? [];
   const handRaised = mainsLevees.includes(mySeat);
   const autresMains = mainsLevees.filter((s) => s !== mySeat).length;
-  const handDef = findActionById('raise-hand')!;
+  const handDef = findActionById('pause')!;
   const handVerdict = battle
     ? actionGate(handDef.id, {
         active: (inBattleId(battle, battle.order[battle.turn]) ?? battle.combatants[0])!,

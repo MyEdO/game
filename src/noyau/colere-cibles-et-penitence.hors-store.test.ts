@@ -137,13 +137,13 @@ describe('Colère des dieux — 76-80 « Vous avez péché contre moi » (LDB 40
     const effet = (H.activeEffects ?? []).find((e) => e.prayerForAction)!;
     expect(effet.duration).toMatchObject({ scale: 'rounds', left: 7 });
 
-    for (const id of ['attaque', 'defend', 'heal', 'dispel']) {
+    for (const id of ['attaque', 'defensive', 'soins', 'dissipation']) {
       expect(gate(H, id), id).toMatchObject({ ok: false, reason: expect.stringMatching(/Test de Prière pour son Action/) });
     }
-    expect(gate(H, 'cast-spell', 'arme-aethyrique').ok).toBe(false);
-    expect(gate(H, 'cast-spell', GUERISON).ok).toBe(true);
+    expect(gate(H, 'incantation', 'arme-aethyrique').ok).toBe(false);
+    expect(gate(H, 'incantation', GUERISON).ok).toBe(true);
     expect(gate(H, 'mouvement').ok).toBe(true);
-    expect(gate(H, 'use-item').ok, 'Action gratuite, LDB 13 l.106').toBe(true);
+    expect(gate(H, 'usage-objet').ok, 'Action gratuite, LDB 13 l.106').toBe(true);
 
     castSpell(banc.getState, banc.setState, reluDans(banc.getState, H), reluDans(banc.getState, E), 'arme-aethyrique');
     expect(banc.getState().pendingCast).toBeNull();
@@ -156,10 +156,10 @@ describe('Colère des dieux — 76-80 « Vous avez péché contre moi » (LDB 40
     const { H } = penitent(1); // 1d10 = 1 → 1 + 2 = 3 Rounds
     for (let r = 0; r < 2; r++) tickDurations(H);
     expect(prayerForActionBy(H)).not.toBeNull();
-    expect(gate(H, 'defend').ok).toBe(false);
+    expect(gate(H, 'defensive').ok).toBe(false);
     tickDurations(H);
     expect(prayerForActionBy(H)).toBeNull();
-    expect(gate(H, 'defend').ok).toBe(true);
+    expect(gate(H, 'defensive').ok).toBe(true);
   });
 
   it('l\'IA sous pénitence ne choisit qu\'une Prière (ou son Mouvement), jamais une attaque', () => {

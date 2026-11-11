@@ -159,8 +159,8 @@ export function figerVuesDeLEcran(): VueFigee[] {
   s = jouer('jouer', enFocus(s));
   for (let tours = 0; s.vue.projection.fenetre?.etape?.genre !== 'defenseJet'; tours++) {
     if (tours > 4) throw new Error(`aucune Défense après ${tours} fins de tour : ${JSON.stringify(s.vue.projection.fenetre)}`);
-    s = jouer('jouer', offre(s, 'end-turn'));
-    if (s.vue.projection.combat!.finDeTourArmee) s = jouer('jouer', offre(s, 'end-turn'));
+    s = jouer('jouer', offre(s, 'fin-de-tour'));
+    if (s.vue.projection.combat!.finDeTourArmee) s = jouer('jouer', offre(s, 'fin-de-tour'));
   }
   figer('Défense', s);
   s = jouer('jouer', enFocus(s));
@@ -175,7 +175,7 @@ export function figerVuesDeLEcran(): VueFigee[] {
     }
     const offres = s.vue.zones['combat.offres'].flatMap((x) => x.valeurs).filter((b) => !b.refus);
     return c.intention && c.cibles.liste.length ? clicDuCombattant(s.vue, c.cibles.liste[0])!
-      : (offres.find((o) => !c.intention && (o.id === 'charge' || o.id === 'attaque')) ?? offres.find((o) => o.id === 'end-turn')!).jeu;
+      : (offres.find((o) => !c.intention && (o.id === 'charge' || o.id === 'attaque')) ?? offres.find((o) => o.id === 'fin-de-tour')!).jeu;
   };
   for (let pas = 0; s.vue.projection.fenetre?.etape?.genre !== 'critical'; pas++) {
     const c = s.vue.projection.combat!;
@@ -221,7 +221,7 @@ export function figerVuesDeLEcran(): VueFigee[] {
   const magie = unPont([]);
   s = viderLesFenetres(magie.jouer, magie.jouer('demarrer', { scenario: 'magie', graine: 7 }));
   s = viderLesFenetres(magie.jouer, magie.jouer('jouer', { type: CLIC_DU_CHAMP, args: [{ x: 16, y: 11 }] }));
-  const sorts = s.vue.zones['combat.offres'].find((c): c is Choix => c.id === 'offre/cast-spell')!;
+  const sorts = s.vue.zones['combat.offres'].find((c): c is Choix => c.id === 'offre/incantation')!;
   s = magie.jouer('jouer', sorts.valeurs.find((b) => b.libelle === 'Fléchette')!.jeu);
   figer('sort choisi parmi ceux de l’actif', s);
   figer('fiche du lanceur, son statbloc et ses sorts', magie.appeler('fiche', { fiche: { porteur: s.vue.projection.combat!.actif!.id } }));

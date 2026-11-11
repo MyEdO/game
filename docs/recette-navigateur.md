@@ -292,8 +292,8 @@ ne garde que ce relevé. Exit ≠ 0 avec la liste des défauts. Résidu mesuré 
 | `shot` | capture PNG nommée (`session, nom, dossier, { ancre, neutraliser = false }`), dossier absolu créé si absent ; défaut `DOSSIER_CAPTURES` hors arbre (`os.tmpdir()/recette-captures/<hash racine>`), partagé par les trois CLI. Un dossier relatif explicite lève avant CDP/écriture ; rend le chemin écrit. Le même nom dans ce dossier stable remplace volontairement la capture précédente. `{ancre}` fait DÉFILER un sélecteur en vue avant la capture — à 360 px les écrans s'empilent et le sujet passe sous le pli. Par DÉFAUT la capture ne change RIEN à l'état qu'elle capture (#2001 E : un `blur` d'office fermait le tiroir du journal avant la photo). `{neutraliser:true}` se DEMANDE : `Escape` si le focus est sur un `<select>` (son popup est NATIF et reste ouvert après `selectOption`), puis `blur` du focus. ⚠ Ce retrait MUTE l'écran : tout ce qui se ferme à la perte du focus se ferme avec lui, et une mesure clavier est cassée — jamais de `shot` neutralisant entre le focus posé et la frappe qui le consomme |
 | `dernierTelechargement` | le DERNIER fichier téléchargé par la page (`session, { timeoutMs = 15000 }`) → `{ chemin, nom, contenu }`, contenu lu en UTF-8 : le plus récent du dossier `telechargements` du profil jetable (`DOSSIER_TELECHARGEMENTS`, posé par `launchSession`) que la session n'a pas encore rendu. Attend un fichier COMPLET (aucun `.crdownload`) ; à l'échéance, LÈVE en nommant le dossier et les téléchargements en cours. Geste : cliquer le VRAI bouton d'export (« Exporter JSON », « Exporter forme dépôt (dev) » de l'éditeur), puis lire. Le dossier est purgé avec le profil |
 | `consoleGuard` | collecte la console de LA session courante (piège du buffer partagé, § « Pièges vécus » ci-dessous), TOUS niveaux avec leur niveau (`log`, `info`, `warning`, `error`), les exceptions et les entrées `Log` (réseau, 404, CSP, avertissements du navigateur). `errors()` JUGE (erreurs `Runtime` et `Log`, exceptions) ; `warnings()` se LISTE au rendu — une absence d'export n'est jamais un « zéro » ; `log`/`info` sont enregistrés sans juger. « Console à 0 erreur » = `errors()` vide DEPUIS L'AMORÇAGE : `openApp(url, { console: true })` pose le garde AVANT `Page.navigate` (`session.console`), `Log.enable` compris |
-| `ouvrirRound` | OUVRE le Round en pause (« Commencer le combat » / « Commencer le round N ») au vrai bouton de phase — `cliquerAction(session, 'round-start', { racine: '.cc-phase' })`. C'est le premier geste après `__wfrp.fight(id)` |
-| `finDuTour` | FINIT le tour du héros actif à la PLAQUE `end-turn` : si l'Action n'est pas dépensée, le premier clic ARME le garde-fou (`endTurnArmed`, lu par `__wfrp.battle()`) et un SECOND clic passe la main. Rend le nombre de clics. Le texte de la plaque (« Fin du tourAction non dépensée ») ne se vise pas : c'est son `data-action` |
+| `ouvrirRound` | OUVRE le Round en pause (« Commencer le combat » / « Commencer le round N ») au vrai bouton de phase — `cliquerAction(session, 'debut-de-round', { racine: '.cc-phase' })`. C'est le premier geste après `__wfrp.fight(id)` |
+| `finDuTour` | FINIT le tour du héros actif à la PLAQUE `fin-de-tour` : si l'Action n'est pas dépensée, le premier clic ARME le garde-fou (`endTurnArmed`, lu par `__wfrp.battle()`) et un SECOND clic passe la main. Rend le nombre de clics. Le texte de la plaque (« Fin du tourAction non dépensée ») ne se vise pas : c'est son `data-action` |
 | `prochainGeste` / `piloterCombat` / `avancerDeRounds` | le PILOTE de combat, au geste du joueur : `prochainGeste(lecture)` (PURE, lecture `LECTURE_COMBAT` = `__wfrp.battle()` + `__wfrp.auto()` + fenêtre au DOM) rend `fini`, `resoudre`, `ouvrirRound`, `finirTour` ou `attendre` ; `piloterCombat(session, { arret, budget = 300 })` boucle observer → geste jusqu'à `arret(lecture)` ou la fin du combat, lève en nommant la dernière lecture, et rend `{ lecture }` (lecture finale). `LECTURE_COMBAT.fenetre` porte l'IDENTITÉ de la fenêtre ouverte (`IDENTITE_FENETRE`, rangée `resoudreModales`), et `arret` est consulté à chaque lecture du pilote ET de `resoudreModales` : la recette s'ARRÊTE sur la modale qu'elle vise, laissée ouverte — arrêt sur la Défense : `piloterCombat(session, { arret: (e) => e.fenetre?.jet === 'defense' })`. `avancerDeRounds(session, n, { arret })` s'arrête au Round courant + n, ou plus tôt sur l'`arret` de l'appelant, même retour |
 | `capturerPion` | PNG recadré autour de la case du combattant (`tileScreenPos`), agrandi `zoom` fois. `{dir}` suit la validation absolue et le défaut `DOSSIER_CAPTURES` de `shot` ; rend le chemin écrit. |
 | `espionReseau` ⚠ à POSER AVANT le geste mesuré | les URL que la page DEMANDE : patch `fetch`/`XMLHttpRequest` DANS la page **et** `Network.requestWillBeSent` (CDP), réunis. `await esp.urls()` rend tout, `await esp.correspondant('/source/')` filtre. C'est la preuve d'une requête ABSENTE (« la fiche du Codex ne charge aucun chapitre »). **Jamais l'inventaire de ressources de l'API `performance`** : son tampon est BORNÉ (250 entrées) et l'app le sature à l'amorçage — il a rendu un faux « aucune requête » en recette C5 |
@@ -577,7 +577,7 @@ ou `node -e` : Git Bash y casse les antislashs, les regex et l'accentué (fricti
 | Exploration (dock) | carte du monde : `.worldmap-btn[title^="Carte du monde"]` (« Carte du monde — voyager », ou « … voyage interrompu (reprendre) ») — monté SEULEMENT quand la scène est un lieu de la carte du monde ou qu'un voyage est en cours ; `clickButtonByText(session, 'Carte du monde', { exact: false })` le vise par son `title` | `src/ui/ExplorationDock.tsx`, condition dans `src/ui/CampaignView.tsx` |
 | Portraits du groupe | fiche d'un héros : `button.ptile[aria-label^="<héros>"]` (`aria-label` = nom, suivi de « — geste secondaire (clic droit, appui long, touche Menu) : inspecter » quand le geste d'inspection est offert) ; `clickButtonByText(session, '<héros>', { exact: false, dans: '.party-dock' })` ; la valeur des Blessures en texte ne remplace pas ce nom ARIA | `src/ui/PortraitTile.tsx` |
 | Carte de scène (marche) | marcher vers un déclencheur : clic RÉEL sur sa case, `__wfrp.tileScreenPos({x, y})` puis `geste(session, { surface: SURFACE_CARTE, x, y }, {}, clic())` au centre de la boîte rendue — ZQSD/WASD bute contre les décors et n'arrive pas fiablement | `__wfrp` (`tileScreenPos`) |
-| Console de combat | fin de tour `.combat-console [data-action="end-turn"]` (`finDuTour`) ; ouverture du Round `.cc-phase [data-action="round-start"]` (« Commencer le combat », `ouvrirRound`) ; cases d'action par `cliquerAction(session, actionId, { cell? })` — `actionId` est l'id du REGISTRE (`src/data/actions.json` : l'attaque armée est `'attaque'`, jamais l'id de mode de ciblage `attack`) —, `cell` = `data-cell` stable quand plusieurs capacités partagent l'action ; ambiguïté refusée avant événement | `src/ui/console/CombatConsole.tsx` |
+| Console de combat | fin de tour `.combat-console [data-action="fin-de-tour"]` (`finDuTour`) ; ouverture du Round `.cc-phase [data-action="debut-de-round"]` (« Commencer le combat », `ouvrirRound`) ; cases d'action par `cliquerAction(session, actionId, { cell? })` — `actionId` est l'id du REGISTRE (`src/data/actions.json` : l'attaque armée est `'attaque'`, jamais l'id de mode de ciblage `attack`) —, `cell` = `data-cell` stable quand plusieurs capacités partagent l'action ; ambiguïté refusée avant événement | `src/ui/console/CombatConsole.tsx` |
 
 ### Gabarit — Journal adressé dans un projet à copie adressée
 
@@ -1078,8 +1078,8 @@ loin, ARMÉ d'un arc par la scène (hors du dôme, c'est la condition « provena
 ```js
 __wfrp.scenario('dome', 11)              // lancement (combat direct)
 // 1. Ilyanwe a un arsenal COURT (4 sorts, en donnée de la scène) : chaque sort est SA PROPRE alvéole
-//    de la console (data-action='cast-spell', data-cell='sort-<id>') ; le libellé est le nom du sort.
-//    Kit : cliquerAction(session, 'cast-spell', { cell: 'sort-dome' }).
+//    de la console (data-action='incantation', data-cell='sort-<id>') ; le libellé est le nom du sort.
+//    Kit : cliquerAction(session, 'incantation', { cell: 'sort-dome' }).
 //    Cliquer l'alvéole « Dôme » ouvre DIRECTEMENT la modale d'Incantation (aucun ciblage préalable) ;
 //    après « Lancer », le bouton devient « Poser la zone » → CLIQUER SA PROPRE CASE (Portée « Vous »,
 //    gabarit 3×3 annoncé par la modale). Le sort est NI 7 : un jet moyen rend DR 4 (« Réussite trop
@@ -1108,10 +1108,10 @@ __wfrp.scenario('dome', 11)              // lancement (combat direct)
 //    couvre pas la mêlée).
 ```
 
-Pour viser exactement le Dôme dans le kit, l'action est `cast-spell` et la cellule est
-`sort-dome` : `cliquerAction(session, 'cast-spell', { cell: 'sort-dome' })`.
+Pour viser exactement le Dôme dans le kit, l'action est `incantation` et la cellule est
+`sort-dome` : `cliquerAction(session, 'incantation', { cell: 'sort-dome' })`.
 Équivalent par sélecteur :
-`cliquerSelecteur(session, '.combat-console [data-action="cast-spell"][data-cell="sort-dome"]')`.
+`cliquerSelecteur(session, '.combat-console [data-action="incantation"][data-cell="sort-dome"]')`.
 `sort-dome` est une identité de cellule, pas un id d'action.
 Après le vrai lancer, le dé d'incantation se lit dans
 `__wfrp.store.getState().pendingCast?.result?.roll` ; avant résultat, `result` est nul.
@@ -1524,7 +1524,7 @@ console. ») — les verbes `ooc*` sont des lanceurs HORS combat et ne produisai
   garde le focus résiduel du clic souris qui a ouvert le mode (corrigé : `cursor-commit` n'a plus la
   garde `notWhenControlFocused`, `src/state/clavier/keybindings.ts`). `Échap` annule le curseur ;
   le geste « ANNULER » de la gouttière de Mouvement (nom accessible « Annuler le déplacement »,
-  action `undo-move` ; post-commit, tant qu'aucune Action n'a été prise) défait aussi une poussée
+  action `annulation-deplacement` ; post-commit, tant qu'aucune Action n'a été prise) défait aussi une poussée
   commise au clavier, comme au clic (`src/state/push-keyboard-commit.test.ts`).
 
 - **Combat naval — l'arc de bordée d'une pièce montée (`weapon.mountSide`)** : `firedAttackBlock`
@@ -1878,7 +1878,7 @@ Gestes du JOUEUR, re-mesurés au code (frictions des recettes #2177, #2199, #200
 
 - **Ouvrir le combat** : `__wfrp.fight(id)` (ou la rencontre déclenchée au pas) pose la PAUSE de début
   de Round ; « Commencer le combat » est un geste du joueur — `ouvrirRound` clique la case de phase
-  `data-action="round-start"` (`.cc-phase`). La pause d'un Round SUIVANT (« Commencer le round N »,
+  `data-action="debut-de-round"` (`.cc-phase`). La pause d'un Round SUIVANT (« Commencer le round N »,
   `pendingRoundStart`) tient la main de la même façon (`src/noyau/modalArbiter.ts`, entrée `debutDuRound`) :
   aucun tour ne commence tant qu'elle n'est pas confirmée.
 - **Cibler une attaque** : le PORTRAIT de la frise d'initiative (`button.ptile` d'une `.is-cell`,
@@ -1889,12 +1889,12 @@ Gestes du JOUEUR, re-mesurés au code (frictions des recettes #2177, #2199, #200
   n'est posé que pour un ciblage d'ENTITÉ d'un AUTRE mode (sort, Soin, Frappe Mortelle, 2ᵉ frappe… :
   `ciblageEntiteArme`, `src/noyau/targetingModes.ts`). Deux combattants de même nom : résoudre l'id
   d'abord (piège « Roster du HUD » ci-dessus).
-- **Finir le tour** : la plaque porte le crochet STABLE `data-action="end-turn"`
+- **Finir le tour** : la plaque porte le crochet STABLE `data-action="fin-de-tour"`
   (`src/ui/console/CombatConsole.tsx`) dans ses DEUX états — « Fin du tour » et sa note (« Action non
   dépensée », « Tour fini », « ESPACE »), puis, ARMÉE (`battle().endTurnArmed`) quand l'Action n'est
   pas dépensée, « Finir quand même » et sa note « Finir quand même ? » (`endNote`, `.cc-lbl`). Son texte change : jamais un
   `clickButtonByText('Fin du tour')`. `finDuTour` clique la plaque et confirme l'armement au second
-  clic ; `cliquerAction(session, 'end-turn')` est le clic unitaire.
+  clic ; `cliquerAction(session, 'fin-de-tour')` est le clic unitaire.
 - **Ouvrir une Défense** : `__wfrp.attaque(attaquantId, defenseurId)`, celle d'une attaque GRATUITE d'IA
   `__wfrp.attaqueGratuite(attaquantId, defenseurId, type?)` (table « Combat — triche de mise en
   place ») ; en pilotage, un `arret` sur `fenetre.jet === 'defense'` (`piloterCombat`,

@@ -70,7 +70,7 @@ export function deposerAuSol(get: Get, set: Set, lot: ItemInstance[], pos: Pt): 
 
 /** Pose au sol l'objet `uid` et le contenu de son contenant (`lotDeLObjet`) : ils quittent leur porteur (`sansLeLot`,
  *  armes re-dérivées), l'objet déséquipé et libre, et se déposent (`deposerAuSol`). Hors combat, à la case du groupe ; en
- *  combat, à celle de l'actif qui le porte, Action gratuite (`drop-item` de `actions.json`). */
+ *  combat, à celle de l'actif qui le porte, Action gratuite (`depot` de `actions.json`). */
 export function poserLObjet(get: Get, set: Set, uid: string): void {
   const s = get();
   const refus = s.battle ? refusDePoserEnCombat(s, uid) : refusDePoser(s, uid);

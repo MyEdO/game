@@ -181,7 +181,7 @@ export function entityPickables(ent: SceneEntity, flags: Drapeaux, objetDe: Trap
 
 /**
  * Clé du drapeau qui ferme UNE feuille donneuse d'une action authorée : en combat, on ramasse un objet
- * à la fois (`pickup` de `actions.json`), et ce qui est pris ne se redonne pas — ni au ramassage suivant, ni
+ * à la fois (`ramassage` de `actions.json`), et ce qui est pris ne se redonne pas — ni au ramassage suivant, ni
  * à la fouille en exploration. `index` = rang de la feuille dans `flowEffects(action.flow)`, STABLE
  * parce que le document de scène n'est jamais réécrit : l'état de jeu vit dans les drapeaux.
  */

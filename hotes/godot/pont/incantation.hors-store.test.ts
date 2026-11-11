@@ -32,16 +32,16 @@ describe('l’incantation par le pont', () => {
     expect(suite.vue.zones['combat.actif'][0]).toMatchObject({ nom: 'Aelindra, Haute Sorcière' });
 
     const offres = suite.vue.zones['combat.offres'];
-    const sorts = offres.find((c): c is Choix => c.id === 'offre/cast-spell')!;
+    const sorts = offres.find((c): c is Choix => c.id === 'offre/incantation')!;
     expect(sorts, 'les sorts de l’actif sont un choix à eux').toMatchObject({ type: 'liste', libelle: 'Lancer ce sort' });
-    expect(offres.find((c) => c.id === 'economie/action')!.valeurs.map((b) => b.id), 'l’offre par candidat quitte la rangée de sa part').not.toContain('cast-spell');
+    expect(offres.find((c) => c.id === 'economie/action')!.valeurs.map((b) => b.id), 'l’offre par candidat quitte la rangée de sa part').not.toContain('incantation');
     const flechette = sorts.valeurs.find((b) => b.libelle === 'Fléchette')!;
     expect(flechette.jeu, 'chaque sort joue le verbe de son offre, l’actif pour lanceur').toEqual({ type: 'incanterLeSort', args: [suite.vue.projection.combat!.actif!.id, 'flechette'] });
-    const focaliser = offres.find((c): c is Choix => c.id === 'offre/focus-spell')!;
+    const focaliser = offres.find((c): c is Choix => c.id === 'offre/focalisation')!;
     expect(focaliser.valeurs.find((b) => b.libelle === 'Fléchette')?.refus, 'un sort qui ne se focalise pas est refusé avec sa raison').toBe('ce Sort ne se focalise pas');
 
     suite = jouer(appel('jouer', flechette.jeu));
-    const armes = suite.vue.zones['combat.offres'].find((c) => c.id === 'offre/cast-spell')!.valeurs.filter((b) => b.presse).map((b) => b.libelle);
+    const armes = suite.vue.zones['combat.offres'].find((c) => c.id === 'offre/incantation')!.valeurs.filter((b) => b.presse).map((b) => b.libelle);
     expect(armes, 'le sort choisi est pressé, seul').toEqual(['Fléchette']);
     const [cible] = suite.vue.projection.combat!.cibles.liste;
     suite = jouer(appel('jouer', clicDuCombattant(suite.vue, cible)!));

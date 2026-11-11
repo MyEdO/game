@@ -220,7 +220,7 @@ describe('TILE_MODES — garde structurelle : aperçu non-vide sur une tuile val
 
 /**
  * SORTIE de l'interlude `poseDeLaZone` (#1411 P0-B) — UN mode, DEUX sources (sort de ZdE après jet,
- * pilonnage indirect de siège) : l'entrée du registre `place-zone-back` doit MORDRE pour les deux,
+ * pilonnage indirect de siège) : l'entrée du registre `retour-zone` doit MORDRE pour les deux,
  * routée par `placingZoneOf` comme le commit l'est déjà (`commitPlacedZone`).
  */
 describe('interlude `poseDeLaZone` — la sortie du registre MORD, par source', () => {
@@ -230,7 +230,7 @@ describe('interlude `poseDeLaZone` — la sortie du registre MORD, par source', 
     combat({ selectedAttack: 'servir-mortier' });
     banc.setState({ pendingSiegeAim: { gunnerId: 'h1', weaponUid: 'w', radius: 2, rangeTiles: 10 } as never });
     expect(currentTargetingMode(banc.getState).id).toBe('poseDeLaZone');
-    banc.jouerLaCase('place-zone-back');
+    banc.jouerLaCase('retour-zone');
     expect(banc.getState().pendingSiegeAim, 'le placeur de siège doit être refermé').toBeNull();
     expect(banc.getState().battle!.selectedAttack, 'l’option « Servir … » se désarme avec lui').toBeUndefined();
     expect(currentTargetingMode(banc.getState).id).not.toBe('poseDeLaZone');
@@ -240,7 +240,7 @@ describe('interlude `poseDeLaZone` — la sortie du registre MORD, par source', 
     combat();
     banc.setState({ pendingCast: { casterId: 'h1', spellId: 'carreau', result: { cast: true }, zone: { placing: true, radius: 2 } } as never });
     expect(currentTargetingMode(banc.getState).id).toBe('poseDeLaZone');
-    banc.jouerLaCase('place-zone-back');
+    banc.jouerLaCase('retour-zone');
     expect(banc.getState().pendingCast, 'le sort JETÉ survit : on revient à sa modale').not.toBeNull();
     expect(banc.getState().pendingCast!.zone!.placing).toBe(false);
     expect(currentTargetingMode(banc.getState).id).not.toBe('poseDeLaZone');
@@ -281,7 +281,7 @@ describe('téléportation — les cases se lisent à la clé de `flyReachable`, 
 
     it(`z=${z} : « Rester sur place » SORT du mode, et un clic valide TÉLÉPORTE`, () => {
       const { hero } = armer(z);
-      banc.jouerLaCase('teleport-place');
+      banc.jouerLaCase('sur-place');
       expect(banc.getState().battle!.action, 'la sortie doit désarmer la téléportation').toBeNull();
       const { hero: h2 } = armer(z);
       banc.getState().cliquerLaCase({ x: 7, y: 6, ...(z ? { z } : {}) });

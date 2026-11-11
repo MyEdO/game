@@ -90,8 +90,8 @@ const REFUS_MONTE: MsgKey = 'geste.refus.monte';
 
 const refus = (cle: MsgKey, vars: Record<string, string | number> = {}): RefusGeste => ({ refus: cle, vars });
 
-/** Libellé de l'action « Descendre » (`actions.json`, id `dismount`) — l'issue que le refus monté nomme. */
-const libelleDescendre = (): string => garanti(findActionById('dismount'), 'dismount', 'action').label;
+/** Libellé de l'action « Descendre » (`actions.json`, id `pied-a-terre`) — l'issue que le refus monté nomme. */
+const libelleDescendre = (): string => garanti(findActionById('pied-a-terre'), 'pied-a-terre', 'action').label;
 
 /** Ce que dit un plan de franchissement refusé (`fallMove.ts:RefusFranchissement`). */
 export const REFUS_FRANCHISSEMENT: Readonly<Record<RefusFranchissement, MsgKey>> = {

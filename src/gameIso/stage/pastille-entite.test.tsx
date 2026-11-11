@@ -16,7 +16,7 @@ import { tileCenter, type Dims } from '../../geometry/iso';
 import { VH, VW } from './useStageCamera';
 import { flowFromEffects } from '../../noyau/monde/flow';
 import { itemFromTrappingById, unarmedWeapon } from '../../engine/items';
-import { ACTIONS, type ActionDef } from '../../data/index';
+import { ACTIONS, type ActionDef, type ActionId } from '../../data/index';
 import { ACTION_CANDIDATES, ACTION_PORTEURS, declarerPorteur } from '../../noyau/actionRegistry';
 import type { Combatant, ShipPoste } from '../../engine/types';
 import { combattantDeTest, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
@@ -520,7 +520,7 @@ describe('Pastille d’entité HORS COMBAT — à portée elle est là, et aucun
  */
 describe('Pastille d’entité — le REGISTRE est la surface (aucun id d’action dans le rendu)', () => {
   const FABRIQUÉE: ActionDef = {
-    id: 'geste-fabrique', label: 'Geste fabriqué', icon: 'action/mount', surface: 'pastille-entite',
+    id: 'geste-fabrique' as ActionId, label: 'Geste fabriqué', icon: 'action/mount', surface: 'pastille-entite',
     gate: 'toujours', candidates: 'candidats-fabriques', coutAction: 'gratuit',
   } as ActionDef;
 

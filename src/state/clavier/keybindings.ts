@@ -312,10 +312,10 @@ export const KEYBINDINGS: KeyBinding[] = [
     when: (s) => {
       if (!cur(s)) return false;
       const active = activeCombatant(s.battle!);
-      return !!active && actionGate('switch-loadout', { active, battle: s.battle!, netMode: s.net.mode, gameTime: s.gameTime }).ok;
+      return !!active && actionGate('panoplie', { active, battle: s.battle!, netMode: s.net.mode, gameTime: s.gameTime }).ok;
     },
     // La touche CHOISIT le set suivant (geste de clavier) ; l'EXÉCUTION passe par le registre
-    // d'actions (le geste de `switch-loadout`) — le clavier est un CONSOMMATEUR du registre, pas
+    // d'actions (le geste de `panoplie`) — le clavier est un CONSOMMATEUR du registre, pas
     // un 5ᵉ espace d'ids qui appellerait le store en direct.
     run: (g) => {
       const s = g();
@@ -323,18 +323,18 @@ export const KEYBINDINGS: KeyBinding[] = [
       const sets = active?.loadouts ?? [];
       if (!active || !sets.length) return;
       const i = sets.findIndex((l) => l.id === active.activeLoadoutId);
-      jouerLOffreDeLEcran(s, 'switch-loadout', { loadoutId: sets[(i + 1) % sets.length].id });
+      jouerLOffreDeLEcran(s, 'panoplie', { loadoutId: sets[(i + 1) % sets.length].id });
     },
   },
   // Pause d'initiative de début de Round (LDB 17 l.25) : Espace/Entrée = « Commencer le round » (le SEUL
   // geste possible) → passage de Round jouable SANS souris. AVANT les bindings curseur/fin-de-tour (mêmes
   // touches) : sa garde `pendingRoundStart` arbitre. notWhenControlFocused : si le bouton « Commencer » est
   // focalisé, son activation native suffit (pas de double appel). La touche est un CONSOMMATEUR du
-  // registre d'actions (`round-start`) : l'arbitrage solo/coop vit dans SON dispatcher, une seule fois.
+  // registre d'actions (`debut-de-round`) : l'arbitrage solo/coop vit dans SON dispatcher, une seule fois.
   {
     id: 'round-start', codes: ['Space', 'Enter', 'NumpadEnter'], labelKey: 'verbe.debutDuRound.valider', section: 'combat', notWhenControlFocused: true, sharedBy: ['end-turn', 'cursor-commit', 'editeur-pan'],
     when: (s) => inBattle(s) && !!s.pendingRoundStart && !s.preemptAiming, // visée Tir rapide armée → Entrée TIRE (curseur), pas « commencer »
-    run: (g) => jouerLOffreDeLEcran(g(), 'round-start'),
+    run: (g) => jouerLOffreDeLEcran(g(), 'debut-de-round'),
   },
   // Tir rapide (talent, LDB 11 l.97-103) au CLAVIER : pendant la pause, `T` arme la visée d'interruption du 1ᵉʳ tireur
   // éligible (puis cycle les suivants, puis désarme) et pose le curseur sur la cible la plus proche → flèches/Tab
@@ -402,14 +402,14 @@ export const KEYBINDINGS: KeyBinding[] = [
     id: 'end-turn', codes: ['Space', 'Enter', 'NumpadEnter'], labelKey: 'key.endTurn', section: 'combat', notWhenControlFocused: true, sharedBy: ['round-start', 'cursor-commit', 'editeur-pan'],
     // Fin du tour : action NOMMÉE du registre (`actions.json`), jouée par son geste — la touche
     // ne connaît plus la méthode du store.
-    when: (s) => cur(s), run: (g) => jouerLOffreDeLEcran(g(), 'end-turn'),
+    when: (s) => cur(s), run: (g) => jouerLOffreDeLEcran(g(), 'fin-de-tour'),
   },
   {
     id: 'clear-preview', codes: [CODE_ECHAP], labelKey: 'key.clearPreview', section: 'combat', sharedBy: ['cursor-cancel', 'toggle-menu', 'intent-cancel', 'interlude-exit', 'action-disarm', 'editeur-echap'],
     when: (s) => !!s.battle?.preview,
     run: (g) => g().effacerLApercu(),
   },
-  // ANNULER LE DÉPLACEMENT du tour (`undo-move`) : la touche du geste adossé à la gouttière de
+  // ANNULER LE DÉPLACEMENT du tour (`annulation-deplacement`) : la touche du geste adossé à la gouttière de
   // Mouvement de la console. Sa garde EST le gate du registre (`deplacement-annulable`) — la touche
   // ne recopie aucun prédicat, et elle se tait exactement quand le geste n'est pas rendu à l'écran.
   {
@@ -417,9 +417,9 @@ export const KEYBINDINGS: KeyBinding[] = [
     when: (s) => {
       if (!cur(s)) return false;
       const active = activeCombatant(s.battle!);
-      return !!active && actionGate('undo-move', { active, battle: s.battle!, netMode: s.net.mode, gameTime: s.gameTime }).ok;
+      return !!active && actionGate('annulation-deplacement', { active, battle: s.battle!, netMode: s.net.mode, gameTime: s.gameTime }).ok;
     },
-    run: (g) => jouerLOffreDeLEcran(g(), 'undo-move'),
+    run: (g) => jouerLOffreDeLEcran(g(), 'annulation-deplacement'),
   },
   // ── RÉPONSES d'un DIALOGUE (1-9) : la touche du RANG choisit la réponse NUMÉROTÉE à l'écran.
   //    Le rang est celui de la liste VISIBLE (`reponsesDuNoeud`, source unique partagée avec la
@@ -479,7 +479,7 @@ export const KEYBINDINGS: KeyBinding[] = [
   },
   // MODE ARMÉ SANS INTERLUDE (Dissiper, Soigner, Incanter, Munition, Poussée) : la touche prend le
   // désarmement CANONIQUE du noyau (`desarmerLeMode`, celui du re-clic sur la case et de
-  // `battery-cancel`), sans quoi Échap ouvrirait le menu système par-dessus le mode resté armé.
+  // `annulation-bordee`), sans quoi Échap ouvrirait le menu système par-dessus le mode resté armé.
   {
     id: 'action-disarm', codes: [CODE_ECHAP], labelKey: 'key.actionDisarm', section: 'combat',
     sharedBy: ['cursor-cancel', 'clear-preview', 'intent-cancel', 'interlude-exit', 'toggle-menu', 'editeur-echap'],

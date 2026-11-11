@@ -10,6 +10,7 @@ import { creerReglageDuJet, creerVerbesDeJet, type CloturesDuJet } from './rollF
 import type { CorpsDesReglages, VerbeDeReglage } from './reglagesDuJet';
 import type { ActionDeJet, FlowKey, NomDeVerbeDeJet } from './flowVerbs';
 import type { Majuscule } from './intentionsDeSiege';
+import type { IdsParEspace } from '../data/schemas/_ids.generated';
 import { choixDuCombat, cloturesDuCombat, createCombatSlice, reglagesDuCombat, sortiesDuCombat, validationsDuCombat } from './combatSlice';
 import { creerSortieDeFenetre, type SortiesDeFenetre } from './sortieDeFenetre';
 import { creerValidationDeFenetre, type ValidationsDeFenetre } from './validationDeFenetre';
@@ -105,30 +106,43 @@ type Verrou<Noms extends string, Lexique extends string> = [Exclude<Noms, Lexiqu
 export type VerrouDuLexique<Noms extends string> = Verrou<Noms, NomDeVerbe>;
 /** `true` si et seulement si `Noms` est du lexique de la machinerie ; sinon, les noms en faute. */
 export type VerrouDeLaMachinerie<Noms extends string> = Verrou<Noms, NomDeMachinerie>;
-/** Les mots d'un id d'un domaine de verbe (littéral, axe) : les actions du lexique, et les mots que ses domaines
- *  nomment (#3614). */
+/** Les mots d'un id d'un domaine de verbe (littéral, axe), d'un id d'offre et d'un littéral de paramètre de verbe (lu par
+ *  `partieLue`, scripts/docs/lib/verbesDeLaPartie.mjs) : les actions du lexique, et les mots que ses domaines nomment
+ *  (#3614). */
 type MotDuLexique = ActionDuLexique | ActionDeLaMachinerie | ActionDeFenetre
-  | 'a' | 'abandon' | 'accepter' | 'achat' | 'activite' | 'activites' | 'alea' | 'ambition' | 'aneantissement'
-  | 'approche' | 'arriere' | 'attaque' | 'au' | 'avant' | 'baisser' | 'bande' | 'bataille' | 'battement' | 'batterie'
-  | 'blessures' | 'bordee' | 'butin' | 'cacher' | 'campagne' | 'carte' | 'cascade' | 'chanson' | 'chapitre'
-  | 'chercher' | 'chirurgie' | 'chute' | 'cible' | 'commande' | 'commandes' | 'conseil' | 'contact' | 'contre'
-  | 'corruption' | 'couchage' | 'course' | 'courte' | 'dans' | 'de' | 'debut' | 'defaite' | 'defense' | 'degats'
-  | 'depart' | 'depecer' | 'desengagement' | 'designation' | 'destin' | 'detection' | 'dialogue' | 'dissipation'
-  | 'distraire' | 'document' | 'droite' | 'du' | 'ecran' | 'empetrer' | 'empoignade' | 'en' | 'encombrement'
-  | 'ensanglantee' | 'entrainement' | 'etal' | 'etendu' | 'evaluation' | 'eviter' | 'file' | 'fin' | 'focalisation'
-  | 'frappe' | 'frenesie' | 'fuite' | 'gauche' | 'hemorragie' | 'heros' | 'immobile' | 'incantation' | 'infirmerie'
-  | 'interaction' | 'interlude' | 'investir' | 'issue' | 'jeter' | 'jeux' | 'jour' | 'journal' | 'la' | 'le'
-  | 'liberer' | 'lieu' | 'ligne' | 'longue' | 'lot' | 'main' | 'maladresse' | 'manoeuvre' | 'marchand' | 'marchandage'
-  | 'marche' | 'marin' | 'masse' | 'mecenat' | 'mer' | 'monde' | 'monture' | 'mortelle' | 'motivation' | 'munition'
-  | 'navire' | 'objet' | 'offre' | 'opposition' | 'oter' | 'ouverture' | 'ouvrage' | 'paie' | 'panier' | 'par'
-  | 'passer' | 'patient' | 'payer' | 'personnelle' | 'pitance' | 'plaie' | 'planque' | 'plein' | 'pnj' | 'port'
-  | 'porte' | 'porteur' | 'poste' | 'poussee' | 'pratiquer' | 'prix' | 'profil' | 'promouvoir' | 'protection'
-  | 'psychologique' | 'qualite' | 'quantite' | 'rallier' | 'reassigne' | 'recevoir' | 'rechargement' | 'recit'
-  | 'recuperation' | 'reeducation' | 'refuser' | 'refute' | 'relache' | 'renier' | 'repartition' | 'repli' | 'reponse'
-  | 'repos' | 'repousser' | 'revele' | 'round' | 'scene' | 'seance' | 'secondaire' | 'seconde' | 'siege' | 'soins'
-  | 'solo' | 'sort' | 'soutenu' | 'survivre' | 'talent' | 'tas' | 'taverne' | 'teleportation' | 'terre' | 'test'
-  | 'tir' | 'tirage' | 'tire' | 'trait' | 'traumatisme' | 'troc' | 'troquer' | 'vapeur' | 'vendre' | 'vente'
-  | 'victoire' | 'vider' | 'visee' | 'viser' | 'voyage';
+  | 'a' | 'abandon' | 'accepter' | 'achat' | 'activite' | 'activites' | 'adversaire' | 'alea' | 'ambition'
+  | 'aneantissement' | 'annulation' | 'approche' | 'arme' | 'armes' | 'arriere' | 'aspersion' | 'attaque' | 'au'
+  | 'avant' | 'avantage' | 'baisser' | 'balayage' | 'bandages' | 'bande' | 'bataille' | 'battement' | 'batterie'
+  | 'blessures' | 'bord' | 'bordee' | 'bouclier' | 'bras' | 'briser' | 'butin' | 'cacher' | 'campagne' | 'carte'
+  | 'cascade' | 'caudale' | 'chanson' | 'chapitre' | 'charge' | 'chercher' | 'chirurgie' | 'choix' | 'chute' | 'cible'
+  | 'cibles' | 'commande' | 'commandes' | 'commune' | 'conjuree' | 'conseil' | 'contact' | 'contre' | 'corde' | 'cornes'
+  | 'corps' | 'corruption' | 'couchage' | 'coups' | 'course' | 'courte' | 'critique' | 'critiques' | 'd' | 'dans' | 'de'
+  | 'debut' | 'declaration' | 'defaite' | 'defense' | 'defensive' | 'degats' | 'dehors' | 'depart' | 'depecer'
+  | 'deplacement' | 'depot' | 'desengagement' | 'designation' | 'destin' | 'detection' | 'determination' | 'deux'
+  | 'dexterite' | 'dialogue' | 'direction' | 'discret' | 'dissipation' | 'distraire' | 'document' | 'droite' | 'du'
+  | 'duree' | 'ecran' | 'effet' | 'empetrer' | 'empoignade' | 'empoigner' | 'en' | 'encombrement' | 'ensanglantee'
+  | 'entrainement' | 'equipe' | 'esquive' | 'etal' | 'etat' | 'etendu' | 'etreinte' | 'evaluation' | 'eviter' | 'f'
+  | 'file' | 'fin' | 'focalisation' | 'forme' | 'frappe' | 'frenesie' | 'fuir' | 'fuite' | 'g' | 'galop' | 'gauche'
+  | 'guerison' | 'hemorragie' | 'heros' | 'hurlement' | 'ignorer' | 'immobile' | 'immuniser' | 'incantation'
+  | 'ineluctable' | 'infirmerie' | 'interaction' | 'interlude' | 'investir' | 'issue' | 'jambe' | 'jeter' | 'jets'
+  | 'jeux' | 'jour' | 'journal' | 'la' | 'langue' | 'le' | 'les' | 'liberation' | 'liberer' | 'lieu' | 'ligne'
+  | 'localisation' | 'longue' | 'lot' | 'm' | 'main' | 'maison' | 'maladresse' | 'manoeuvre' | 'marchand'
+  | 'marchandage' | 'marche' | 'marin' | 'masse' | 'mecenat' | 'mer' | 'mise' | 'mode' | 'monde' | 'monture' | 'morsure'
+  | 'mortelle' | 'motivation' | 'mouvement' | 'munition' | 'nature' | 'navire' | 'normal' | 'objet' | 'offre'
+  | 'opposition' | 'oter' | 'ouverture' | 'ouvrage' | 'paie' | 'panier' | 'panoplie' | 'par' | 'parade' | 'pas'
+  | 'passer' | 'patient' | 'pause' | 'payer' | 'personnelle' | 'physique' | 'piece' | 'pied' | 'pietinement' | 'pitance'
+  | 'place' | 'plaie' | 'planque' | 'plein' | 'pnj' | 'port' | 'porte' | 'portee' | 'porteur' | 'poste' | 'posture'
+  | 'poussee' | 'pratiquer' | 'privee' | 'prix' | 'profil' | 'promouvoir' | 'protection' | 'psychologie'
+  | 'psychologique' | 'puissance' | 'qualite' | 'quantite' | 'rallier' | 'ramassage' | 'ration' | 'reaction'
+  | 'reassigne' | 'recevoir' | 'rechargement' | 'recit' | 'recuperation' | 'reeducation' | 'refuser' | 'refute'
+  | 'regard' | 'relache' | 'relevement' | 'renier' | 'renoncement' | 'repartition' | 'repas' | 'repli' | 'reponse'
+  | 'repos' | 'repousse' | 'repousser' | 'retenir' | 'retour' | 'revele' | 'rien' | 'riposte' | 'roulade' | 'round'
+  | 'sacrifier' | 'sans' | 'scene' | 'seance' | 'secondaire' | 'seconde' | 'selle' | 'service' | 'ses' | 'siege'
+  | 'social' | 'soi' | 'soins' | 'solo' | 'sort' | 'souffle' | 'soutenu' | 'spirituelle' | 'supplementaires' | 'sur'
+  | 'surincantation' | 'survivre' | 'suspendre' | 'table' | 'talent' | 'tas' | 'taverne' | 'teleportation'
+  | 'tentacules' | 'terre' | 'test' | 'testeur' | 'tete' | 'tir' | 'tirage' | 'tire' | 'tour' | 'trait' | 'traumatisme'
+  | 'troc' | 'troquer' | 'trot' | 'un' | 'usage' | 'validation' | 'vapeur' | 'vendre' | 'vente' | 'victoire' | 'vider'
+  | 'virage' | 'visee' | 'viser' | 'vomi' | 'voyage' | 'zone';
 /** Les mots de `S`, coupé à chaque tiret et avant chaque majuscule, en minuscules (`traitPsychologique` : `trait`,
  *  `psychologique`). */
 type Mots<S extends string, Cur extends string = ''> = S extends `${infer C}${infer R}`
@@ -137,7 +151,7 @@ type Mots<S extends string, Cur extends string = ''> = S extends `${infer C}${in
       : Mots<R, `${Cur}${C}`>
   : Cur extends '' ? never : Cur;
 /** VERROU : tout verbe du noyau se nomme dans le lexique des verbes, toute machinerie dans le sien ; chaque domaine de
- *  verbe vidé de ses mots étrangers ne prend que des mots du lexique (#3614). */
+ *  verbe vidé de ses mots étrangers, et chaque id d'offre (`actions.json`), ne prend que des mots du lexique (#3614). */
 const verrousDuLexique: [
   VerrouDuLexique<keyof ActionsDuNoyau>,
   VerrouDeLaMachinerie<keyof MachinerieDuNoyau>,
@@ -162,7 +176,8 @@ const verrousDuLexique: [
   Verrou<Mots<ClueState['statut']>, MotDuLexique>,
   Verrou<Mots<FlowKey>, MotDuLexique>,
   Verrou<Mots<HostJet>, MotDuLexique>,
-] = [true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true];
+  Verrou<Mots<IdsParEspace['actions.json']>, MotDuLexique>,
+] = [true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true];
 void verrousDuLexique;
 
 /** Le corps de la clôture de chaque flux, que seul `jetValider(flux)` appelle : un flux sans clôture ne compile pas. */

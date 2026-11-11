@@ -90,7 +90,7 @@ describe('#2968 L18 — Type de Souffle, règle optionnelle requise et espèce d
 });
 
 describe('#2968 L18 — action armée', () => {
-  const RANG_SOIN = actionsJson.findIndex((a) => a.id === 'heal');
+  const RANG_SOIN = actionsJson.findIndex((a) => a.id === 'soins');
 
   it('`actions.json › armed` : `true` sur une action à mode parse, une chaîne ou une action sans mode est refusée', () => {
     expect(schemaActions.safeParse(actionsJson).success).toBe(true);

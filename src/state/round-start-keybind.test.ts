@@ -2,7 +2,7 @@
  * Le passage au Round suivant (pause d'initiative `pendingRoundStart`, LDB 17 l.25) doit être
  * jouable au CLAVIER/MANETTE — sinon un joueur sans souris reste bloqué à chaque frontière de Round.
  * Le binding `round-start` (Espace/Entrée, partagé par la manette via runBindingById) joue l'offre
- * `round-start` par le verbe qu'elle déclare (`fenetreValider`), et n'est actif QUE pendant la pause.
+ * `debut-de-round` par le verbe qu'elle déclare (`fenetreValider`), et n'est actif QUE pendant la pause.
  */
 import { describe, it, expect } from 'vitest';
 import { KEYBINDINGS, runBindingById } from './clavier/keybindings';

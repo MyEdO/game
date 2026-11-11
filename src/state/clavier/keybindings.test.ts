@@ -323,7 +323,7 @@ describe('raccourcis — Échap pendant un INTERLUDE de ciblage par la carte', (
 describe('raccourcis — Échap pendant l’interlude d’un AUTRE siège (coop)', () => {
   const escapes = (s: GameState) => KEYBINDINGS.filter((k) => k.codes.includes('Escape') && k.when(s)).map((k) => k.id);
   const H = (id: string) => ({ id, kind: 'hero', label: id, pos: { x: 5, y: 5 }, conditions: [], activeEffects: [], wounds: { current: 10, max: 10 }, chars: {}, skills: [], talents: [], weapons: [], items: [], advantage: 0 });
-  /** Bordée en cours (interlude `battery-cancel`, `exitSafe`), tour du héros `turn`, siège local `mySeat`. */
+  /** Bordée en cours (interlude `annulation-bordee`, `exitSafe`), tour du héros `turn`, siège local `mySeat`. */
   const table = (turn: number, mySeat: number) =>
     fake({
       party: [H('h1'), H('h2')] as never,

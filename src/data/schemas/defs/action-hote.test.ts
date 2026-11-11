@@ -25,7 +25,7 @@ describe('#2968 L01 — action hôte désignée par `ref(\'action\')`', () => {
 
   it('actions.json › hote : une référence écrite en id nu est refusée, au champ lui-même', () => {
     const porteur = actionsJson.findIndex((a) => 'hote' in a);
-    const r = schema.safeParse(avecHote('cast-spell'));
+    const r = schema.safeParse(avecHote('incantation'));
     expect(r.success).toBe(false);
     expect(r.success ? [] : r.error.issues.map((i) => i.path.join('.'))).toContain(`${porteur}.hote`);
   });

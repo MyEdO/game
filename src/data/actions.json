@@ -87,7 +87,7 @@
     ]
   },
   {
-    "id": "aim",
+    "id": "visee",
     "type": "actions",
     "label": "Viser",
     "icon": "action/aim",
@@ -113,7 +113,7 @@
     ]
   },
   {
-    "id": "reload",
+    "id": "rechargement",
     "type": "actions",
     "label": "Recharger",
     "icon": "journal/reload",
@@ -132,11 +132,11 @@
     },
     "keys": [
       "g4-recharger",
-      "reload:"
+      "rechargement-"
     ]
   },
   {
-    "id": "select-ammo",
+    "id": "munition",
     "type": "actions",
     "label": "Choisir la munition",
     "icon": "action/shoot",
@@ -148,7 +148,7 @@
     "maison": "fixe la munition à charger ; le coût réel est celui du Rechargement qui suit."
   },
   {
-    "id": "pushback",
+    "id": "repousse",
     "type": "actions",
     "label": "Repousser",
     "icon": "ui/undo",
@@ -210,7 +210,7 @@
     ]
   },
   {
-    "id": "heal",
+    "id": "soins",
     "type": "actions",
     "label": "Soigner",
     "icon": "journal/heal",
@@ -226,12 +226,12 @@
       "type": "skill"
     },
     "keys": [
-      "heal",
+      "soins",
       "q-soigner"
     ]
   },
   {
-    "id": "water",
+    "id": "aspersion",
     "type": "actions",
     "label": "Asperger d’eau",
     "icon": "action/water",
@@ -242,11 +242,11 @@
     "coutAction": "action",
     "maison": "coût repris du site historique sans verbatim de coût cité ni Test exigé — à re-vérifier au Source (MDG).",
     "keys": [
-      "water"
+      "aspersion"
     ]
   },
   {
-    "id": "use-item",
+    "id": "usage-objet",
     "type": "actions",
     "label": "Utiliser un objet",
     "icon": "action/consume",
@@ -261,12 +261,12 @@
       "note": "LDB 13 l.106 « Actions gratuites »"
     },
     "keys": [
-      "item-",
+      "objet-",
       "q-objet-"
     ]
   },
   {
-    "id": "defend",
+    "id": "defensive",
     "type": "actions",
     "label": "Défensive",
     "icon": "flag/defensive",
@@ -284,11 +284,11 @@
       "note": "LDB 13 « OPTION : Sur la défensive »"
     },
     "keys": [
-      "defend"
+      "defensive"
     ]
   },
   {
-    "id": "disengage",
+    "id": "desengagement",
     "type": "actions",
     "label": "Se désengager",
     "icon": "melee/disengage",
@@ -309,11 +309,11 @@
       "note": "LDB 15 l.45-49"
     },
     "keys": [
-      "disengage"
+      "desengagement"
     ]
   },
   {
-    "id": "cast-spell",
+    "id": "incantation",
     "type": "actions",
     "label": "Lancer ce sort",
     "icon": "action/cast",
@@ -329,13 +329,13 @@
     ]
   },
   {
-    "id": "focus-spell",
+    "id": "focalisation",
     "type": "actions",
     "label": "Focaliser",
     "icon": "flag/focus",
     "surface": "geste-secondaire",
     "hote": {
-      "id": "cast-spell"
+      "id": "incantation"
     },
     "gate": [
       "action-libre-hors-frenesie",
@@ -350,7 +350,7 @@
     }
   },
   {
-    "id": "dispel",
+    "id": "dissipation",
     "type": "actions",
     "label": "Dissiper",
     "icon": "action/dispel",
@@ -372,11 +372,11 @@
       "note": "LDB 46 l.156-162"
     },
     "keys": [
-      "dispel"
+      "dissipation"
     ]
   },
   {
-    "id": "dispel-spell",
+    "id": "dissipation-sort",
     "type": "actions",
     "label": "Dissiper ce sort",
     "icon": "action/dispel",
@@ -396,7 +396,7 @@
     }
   },
   {
-    "id": "gain-advantage",
+    "id": "avantage",
     "type": "actions",
     "label": "Tester la Compétence",
     "icon": "action/aim",
@@ -410,11 +410,11 @@
       "type": "regle"
     },
     "keys": [
-      "advantage-"
+      "avantage-"
     ]
   },
   {
-    "id": "stand",
+    "id": "relevement",
     "type": "actions",
     "label": "Se relever",
     "icon": "action/stand-up",
@@ -435,11 +435,11 @@
       "page": 167
     },
     "keys": [
-      "stand"
+      "relevement"
     ]
   },
   {
-    "id": "roll-fire",
+    "id": "roulade",
     "type": "actions",
     "label": "Se rouler au sol",
     "icon": "action/roll-fire",
@@ -457,11 +457,11 @@
       "type": "etat"
     },
     "keys": [
-      "roll-fire"
+      "roulade"
     ]
   },
   {
-    "id": "free-entangle",
+    "id": "liberation",
     "type": "actions",
     "label": "Se libérer",
     "icon": "action/break-free",
@@ -479,7 +479,7 @@
       "type": "etat"
     },
     "keys": [
-      "free-entangle"
+      "liberation"
     ]
   },
   {
@@ -534,7 +534,7 @@
     ]
   },
   {
-    "id": "frenzy",
+    "id": "frenesie",
     "type": "actions",
     "label": "Frénésie",
     "icon": "flag/frenzy",
@@ -550,11 +550,11 @@
       "type": "talent"
     },
     "keys": [
-      "frenzy"
+      "frenesie"
     ]
   },
   {
-    "id": "self-maneuver",
+    "id": "manoeuvre-sur-soi",
     "type": "actions",
     "label": "Manœuvre sur soi",
     "icon": "flag/frenzy",
@@ -565,11 +565,11 @@
     "coutAction": "action",
     "maison": "la Métamorphose consomme DEUX Actions (celle-ci puis le tour perdu) — plafond maison, aucun verbatim de coût cité.",
     "keys": [
-      "self-"
+      "soi-"
     ]
   },
   {
-    "id": "select-attack",
+    "id": "attaque-trait",
     "type": "actions",
     "label": "Choisir l’attaque",
     "icon": "action/attack",
@@ -587,7 +587,7 @@
     ]
   },
   {
-    "id": "maneuver-area",
+    "id": "attaque-zone",
     "type": "actions",
     "label": "Attaque de zone",
     "icon": "action/attack",
@@ -601,7 +601,7 @@
     ]
   },
   {
-    "id": "resolve-psych-immune",
+    "id": "determination-psychologie",
     "type": "actions",
     "label": "Immunité Psychologie",
     "icon": "action/defend",
@@ -616,7 +616,7 @@
     }
   },
   {
-    "id": "resolve-ignore-crit",
+    "id": "determination-critique",
     "type": "actions",
     "label": "Ignorer les modificateurs de critique",
     "icon": "journal/heal",
@@ -631,7 +631,7 @@
     }
   },
   {
-    "id": "resolve-remove-condition",
+    "id": "determination-etat",
     "type": "actions",
     "label": "Retirer un État",
     "icon": "resource/resolve",
@@ -647,7 +647,7 @@
     }
   },
   {
-    "id": "mount",
+    "id": "mise-en-selle",
     "type": "actions",
     "label": "Monter",
     "icon": "action/mount",
@@ -662,11 +662,11 @@
       "type": "regle"
     },
     "keys": [
-      "mount"
+      "mise-en-selle"
     ]
   },
   {
-    "id": "dismount",
+    "id": "pied-a-terre",
     "type": "actions",
     "label": "Descendre",
     "icon": "action/dismount",
@@ -684,11 +684,11 @@
       "type": "regle"
     },
     "keys": [
-      "dismount"
+      "pied-a-terre"
     ]
   },
   {
-    "id": "man-poste",
+    "id": "service-poste",
     "type": "actions",
     "label": "Servir cette pièce",
     "icon": "action/serve-engine",
@@ -703,11 +703,11 @@
       "note": "LDB 13 l.106 « Actions gratuites »"
     },
     "keys": [
-      "man-poste"
+      "service-poste"
     ]
   },
   {
-    "id": "leave-poste",
+    "id": "abandon-poste",
     "type": "actions",
     "label": "Quitter la pièce",
     "icon": "action/leave-post",
@@ -721,11 +721,11 @@
       "note": "LDB 13 l.106 « Actions gratuites »"
     },
     "keys": [
-      "leave-poste"
+      "abandon-poste"
     ]
   },
   {
-    "id": "push-engine",
+    "id": "poussee",
     "type": "actions",
     "label": "Pousser",
     "icon": "action/serve-engine",
@@ -741,11 +741,11 @@
     "coutAction": "mouvement",
     "maison": "pousser l’engin dépense le MOUVEMENT de tout l’équipage — arbitrage maison (aucun Test, la guideline ne tranche pas).",
     "keys": [
-      "push-engine"
+      "poussee"
     ]
   },
   {
-    "id": "aid-team",
+    "id": "direction-equipe",
     "type": "actions",
     "label": "Diriger l’équipe",
     "icon": "action/lead",
@@ -761,11 +761,11 @@
       "type": "talent"
     },
     "keys": [
-      "aid-team"
+      "direction-equipe"
     ]
   },
   {
-    "id": "pickup",
+    "id": "ramassage",
     "type": "actions",
     "label": "Ramasser",
     "icon": "action/pick-up",
@@ -776,17 +776,17 @@
     "coutAction": "action",
     "maison": "ramasser n’exige aucun Test (LDB 13 l.106) ; une arme lâchée se reprend d’une Action (CRB 036 l.80) : l’imputation à l’Action est notre arbitrage.",
     "keys": [
-      "pickup-"
+      "ramassage-"
     ]
   },
   {
-    "id": "drop-item",
+    "id": "depot",
     "type": "actions",
     "label": "Poser au sol",
     "icon": "action/pick-up",
     "surface": "geste-secondaire",
     "hote": {
-      "id": "use-item"
+      "id": "usage-objet"
     },
     "gate": "toujours",
     "run": "poserLObjet",
@@ -800,7 +800,7 @@
     "maison": "poser à terre n’exige aucun Test (LDB 13 l.106 ; CRB 034 l.37-39) : en faire une Action gratuite est notre arbitrage."
   },
   {
-    "id": "maneuver-ship",
+    "id": "manoeuvre-du-navire",
     "type": "actions",
     "label": "Manœuvrer",
     "icon": "action/steer-ship",
@@ -816,11 +816,11 @@
       "type": "regle"
     },
     "keys": [
-      "maneuver-ship"
+      "manoeuvre-du-navire"
     ]
   },
   {
-    "id": "battery",
+    "id": "bordee",
     "type": "actions",
     "label": "Bordée",
     "icon": "action/aim",
@@ -839,11 +839,11 @@
       "type": "regle"
     },
     "keys": [
-      "battery"
+      "bordee"
     ]
   },
   {
-    "id": "sing-shanty",
+    "id": "chanson-de-marin",
     "type": "actions",
     "label": "Chanson de marin",
     "icon": "scenario/opera",
@@ -860,11 +860,11 @@
       "type": "talent"
     },
     "keys": [
-      "sing-shanty"
+      "chanson-de-marin"
     ]
   },
   {
-    "id": "ship-reload",
+    "id": "rechargement-piece",
     "type": "actions",
     "label": "Recharger la pièce",
     "icon": "journal/reload",
@@ -880,11 +880,11 @@
       "type": "quality"
     },
     "keys": [
-      "ship-reload"
+      "rechargement-piece"
     ]
   },
   {
-    "id": "undo-move",
+    "id": "annulation-deplacement",
     "type": "actions",
     "label": "Annuler le déplacement",
     "icon": "ui/undo",
@@ -894,11 +894,11 @@
     "coutAction": "aucun",
     "maison": "annulation d’un déplacement non commis — affordance d’interface, aucun coût de jeu.",
     "keys": [
-      "undo-move"
+      "annulation-deplacement"
     ]
   },
   {
-    "id": "end-turn",
+    "id": "fin-de-tour",
     "type": "actions",
     "label": "Fin du tour",
     "icon": "ui/turn-end",
@@ -908,11 +908,11 @@
     "coutAction": "aucun",
     "maison": "clôture du tour — ne dépense rien (ce qui reste est perdu).",
     "keys": [
-      "end-turn"
+      "fin-de-tour"
     ]
   },
   {
-    "id": "round-start",
+    "id": "debut-de-round",
     "type": "actions",
     "label": "Commencer le round",
     "icon": "ui/round-start",
@@ -923,7 +923,7 @@
     "maison": "ouverture du Round depuis la pause d’initiative — geste de table, aucun coût de jeu."
   },
   {
-    "id": "raise-hand",
+    "id": "pause",
     "type": "actions",
     "label": "Pause au prochain Round",
     "icon": "ui/wait",
@@ -933,11 +933,11 @@
     "coutAction": "aucun",
     "maison": "demande de pause au prochain début de Round — geste de table (coop), aucun coût de jeu.",
     "keys": [
-      "raise-hand"
+      "pause"
     ]
   },
   {
-    "id": "switch-loadout",
+    "id": "panoplie",
     "type": "actions",
     "label": "Changer de set d’armes",
     "icon": "item/weapon",
@@ -954,7 +954,7 @@
     }
   },
   {
-    "id": "cleave-end",
+    "id": "fin-balayage",
     "type": "actions",
     "label": "Terminer",
     "icon": "ui/done",
@@ -968,7 +968,7 @@
     "maison": "clore le balayage ne commet aucun acte de jeu — coût nul, arbitrage d’interface."
   },
   {
-    "id": "dual-strike-skip",
+    "id": "renoncement-frappe",
     "type": "actions",
     "label": "Renoncer",
     "icon": "ui/undo",
@@ -982,7 +982,7 @@
     "maison": "renoncer à la 2ᵉ frappe ne dépense rien de plus (l’Action est déjà payée) — coût nul, arbitrage d’interface."
   },
   {
-    "id": "overcast-validate",
+    "id": "validation-surincantation",
     "type": "actions",
     "label": "Valider",
     "icon": "action/aim",
@@ -996,7 +996,7 @@
     "maison": "revenir à la modale avec les cibles désignées ne commet aucun acte de jeu — coût nul, arbitrage d’interface."
   },
   {
-    "id": "place-zone-back",
+    "id": "retour-zone",
     "type": "actions",
     "label": "Retour",
     "icon": "ui/undo",
@@ -1010,7 +1010,7 @@
     "maison": "reposer le gabarit — retour à la modale du sort, ou placeur du pilonnage refermé — ne commet aucun acte de jeu : coût nul, arbitrage d’interface."
   },
   {
-    "id": "battery-cancel",
+    "id": "annulation-bordee",
     "type": "actions",
     "label": "Annuler",
     "icon": "ui/undo",
@@ -1024,7 +1024,7 @@
     "maison": "désarmer la désignation de bordée ne commet aucun acte de jeu — coût nul, arbitrage d’interface."
   },
   {
-    "id": "teleport-place",
+    "id": "sur-place",
     "type": "actions",
     "label": "Rester sur place",
     "icon": "ui/done",
