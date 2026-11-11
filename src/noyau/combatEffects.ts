@@ -22,7 +22,7 @@ import { verdictApprentissage } from '../engine/grimoire';
 import { applyFall } from '../engine/movement';
 import { bonus, effectiveChar } from '../engine/characteristics';
 import { sceneNpc } from './monde/sceneNpc';
-import { dialoguesDeLaScene, type Dialogue } from './monde/scene';
+import { dialoguesDeLaScene } from './monde/scene';
 import { bestForTests, partyBest, partyAssisted, peutTenter, possesses, soutienDetail, isSocialTest, socialPsychMod, socialPsychLabel, socialPsychLines, testValue } from '../engine/skills';
 import { statusCharmMod, statusCharmLabel, actorStatus, capriciousDR } from '../engine/social';
 import { statutDeDonnee } from '../engine/money';
@@ -42,7 +42,7 @@ import { harvestProfileFor, harvestSizeOf, harvestYield, testsDeRecolte } from '
 import { applySummon } from './summonFlow';
 import { contractDisease, applyContraction, diseaseDefs } from '../engine/disease';
 import { memoParVersion } from '../data/versionDataset';
-import { HEAL_SKILL, type HealMode } from '../engine/healing';
+import { HEAL_SKILL } from '../engine/healing';
 import { ouvrirLeMedecin } from './medicFlow';
 import { ouvrirLesContagions } from './combatFlow';
 import { activeSeaPrecipitation, openPortAt, setVesselHull } from './seaVoyageFlow';
@@ -1283,10 +1283,8 @@ function ecrireEntree<K extends 'flags' | 'etats'>(env: EffectEnv, champ: K, cle
  *  l'appelant), ce qui co-localise la validation d'un effet AVEC son application (fin du switch parallèle). */
 export interface EffectRefCtx {
   sceneIds: ReadonlySet<string>;
-  /** Les dialogues de la scène (`dialoguesDeLaScene`). */
-  dialogues: ReadonlyMap<string, Dialogue>;
   encounterIds: ReadonlySet<string>;
-  /** Entités `personnage` de la scène — les PNJ qu'un effet peut désigner (soigneur…). */
+  /** Les personnages de la scène (`PERSONNAGES_DE_LA_SCENE`). */
   entityIds: ReadonlySet<string>;
   /** LA FICHE derrière une entité `personnage`, par la MÊME projection que le runtime (`sceneNpc`) —
    *  un handler peut ainsi exiger une COMPÉTENCE du PNJ désigné, pas seulement son existence. Fourni
@@ -1405,14 +1403,13 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   },
   startDialogue: {
     group: 'Narration', label: libelleEffet('startDialogue'), icon: 'journal/dialogue',
-    make: () => ({ type: 'startDialogue', dialogue: '' }),
+    make: () => ({ type: 'startDialogue', dialogue: { id: '' } }),
     apply: (e, env) => {
       const scene = env.get().scene;
-      const dlg = scene && dialoguesDeLaScene(scene).get(e.dialogue);
-      if (dlg) env.set({ dialogue: ouvrirDialogue(env.get(), dlg, e.speakerId) });
+      const dlg = scene && dialoguesDeLaScene(scene).get(e.dialogue.id);
+      if (dlg) env.set({ dialogue: ouvrirDialogue(env.get(), dlg, e.speakerId?.id) });
     },
-    refs: (e, ctx) => ctx.dialogues.has(e.dialogue) ? [] : [{ level: 'error', message: `Effet → dialogue inexistant « ${e.dialogue} »` }],
-    ouvreDialogue: (e) => e.dialogue,
+    ouvreDialogue: (e) => e.dialogue.id,
   },
   endDialogue: {
     group: 'Narration', label: libelleEffet('endDialogue'), icon: 'ui/close',
@@ -2164,8 +2161,8 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   },
   openMerchant: {
     group: 'Combat & social', label: libelleEffet('openMerchant'), icon: 'merchant/cart',
-    make: () => ({ type: 'openMerchant', entityId: '' }),
-    apply: (e, env) => { env.get().ouvrirLeMarchand(e.entityId); }, // ouvre la boutique de l'entité (Marchand inclus dans un dialogue, #2)
+    make: () => ({ type: 'openMerchant', entityId: { id: '' } }),
+    apply: (e, env) => { env.get().ouvrirLeMarchand(e.entityId.id); }, // ouvre la boutique de l'entité (Marchand inclus dans un dialogue, #2)
   },
   openPort: {
     group: 'Navigation', label: libelleEffet('openPort'), icon: 'travel/anchor',
@@ -2196,15 +2193,15 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   medicalAid: {
     group: 'Combat & social', label: libelleEffet('medicalAid'), icon: 'medical/aid',
     // tarif par défaut : « aide médicale 4-6 pistoles » (LDB 75) → 5 pa
-    make: () => ({ type: 'medicalAid', acts: [{ act: 'blessures', cost: { silver: 5 } }], entityId: '' }),
+    make: () => ({ type: 'medicalAid', acts: [{ act: 'blessures', cost: { silver: 5 } }], entityId: { id: '' } }),
     apply: (e, env) => { openMedicalAidEffect(env.get, env.set, e); }, // soins payants d'un PNJ : ouvre son infirmerie (actes tarifés)
-    // Le soigneur PORTE ses stats : sans entité résolvable, l'infirmerie n'a ni nom ni fiche à lire —
-    // et sans la Compétence Guérison sur cette fiche, l'acte n'a aucune valeur à jouer (LDB 09 l.30).
+    // Le soigneur PORTE ses stats (LDB 09 l.30) ; un soigneur absent de la scène, le parse le refuse
+    // (`PERSONNAGES_DE_LA_SCENE`).
     refs: (e, ctx) => {
-      if (!ctx.entityIds.has(e.entityId)) return [{ level: 'error', message: `Soins payants → PNJ soigneur inexistant « ${e.entityId || '(aucun)'} »` }];
-      const npc = ctx.npcSheet(e.entityId);
-      if (!npc) return [{ level: 'error', message: `Soins payants → le PNJ « ${e.entityId} » n'a aucune fiche (ni réf de bestiaire, ni profil, ni preset)` }];
-      return possesses(npc, { id: HEAL_SKILL }) ? [] : [{ level: 'error', message: `Soins payants → le PNJ « ${e.entityId} » ne possède pas la Compétence Guérison` }];
+      if (!ctx.entityIds.has(e.entityId.id)) return [];
+      const npc = ctx.npcSheet(e.entityId.id);
+      if (!npc) return [{ level: 'error', message: `Soins payants → le PNJ « ${e.entityId.id} » n'a aucune fiche (ni réf de bestiaire, ni profil, ni preset)` }];
+      return possesses(npc, { id: HEAL_SKILL }) ? [] : [{ level: 'error', message: `Soins payants → le PNJ « ${e.entityId.id} » ne possède pas la Compétence Guérison` }];
     },
   },
   castSpell: {
@@ -2372,17 +2369,17 @@ export function applyEffects(get: Get, set: SetFn, effects: Effect[], sl?: numbe
  * choisit les patients ; le PNJ effectue les jets (la Chance interroge `actorIn(healerId)` →
  * introuvable pour un PNJ → boutons inertes).
  */
-function openMedicalAidEffect(get: Get, set: SetFn, e: { acts?: { act: HealMode; cost?: { gold?: number; silver?: number; brass?: number } }[]; entityId: string }): void {
+function openMedicalAidEffect(get: Get, set: SetFn, e: Extract<Effect, { type: 'medicalAid' }>): void {
   const acts = e.acts ?? [];
   if (!acts.length) return;
   // LE soigneur est une entité de la scène, et sa FICHE est la source unique de ce qu'il vaut : sa
   // valeur de Guérison et son Bonus d'Intelligence s'y LISENT. Sans fiche, ou sans la Compétence
   // Avancée Guérison sur cette fiche (LDB 09 l.30), aucune infirmerie ne s'ouvre — et le refus se DIT.
-  const npc = sceneNpc(get().scene, e.entityId, presetDuNarratif(get().campaignNarratif));
-  if (!npc) { get().ecrireAuJournal(t('eff.medicNoNpc', { id: e.entityId || '(aucun)' })); return; }
+  const npc = sceneNpc(get().scene, e.entityId.id, presetDuNarratif(get().campaignNarratif));
+  if (!npc) { get().ecrireAuJournal(t('eff.medicNoNpc', { id: e.entityId.id || '(aucun)' })); return; }
   if (!possesses(npc, { id: HEAL_SKILL })) { get().ecrireAuJournal(t('eff.medicNoHealSkill', { name: npc.label })); return; }
   ouvrirLeMedecin(get, set, undefined, {
-    id: e.entityId,
+    id: e.entityId.id,
     label: npc.label,
     skill: { id: HEAL_SKILL, value: testValue(npc, { skill: { id: HEAL_SKILL } }) },
     intBonus: bonus(effectiveChar(npc, 'intelligence')),

@@ -220,6 +220,18 @@ export function pasDeDonnee(noeuds: readonly unknown[], cle: string | number): u
   });
 }
 
+/** Les nœuds de schéma au chemin de DONNÉE `chemin` de `donnee` sous `schema` : à chaque pas, ceux de son enfant
+ *  (`pasDeDonnee`), `ouverts` par sa valeur, absente comprise. */
+export function noeudsAuChemin(schema: unknown, donnee: unknown, chemin: readonly (string | number)[]): unknown[] {
+  let valeur = donnee;
+  let noeuds = ouverts([schema], valeur);
+  for (const pas of chemin) {
+    valeur = estConteneur(valeur) ? valeur[pas] : undefined;
+    noeuds = ouverts(pasDeDonnee(noeuds, pas), valeur);
+  }
+  return noeuds;
+}
+
 /** Ce que la co-descente présente à chaque point de la DONNÉE. */
 export interface PointDeDonnee {
   /** Les nœuds de schéma du point, déjà `ouverts` par sa valeur. */
