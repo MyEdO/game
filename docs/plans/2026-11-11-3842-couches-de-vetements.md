@@ -41,7 +41,9 @@ que la couche, la catégorie et les chaînes de la base, déjà déclarées.
    côté, à 3 cm derrière lui au plus ou 1 cm devant. C'est le test de couverture des gardes (`visiterLaCouverture`),
    écrit une seule fois.
 2. **Retenir.** Il reprend, au point couvrant, les poids de peau de sa couverture, tout entier jusqu'à 1 cm d'elle, de
-   moins en moins jusqu'à 3 cm. Sous plusieurs couvertures, la plus extérieure passe d'abord.
+   moins en moins jusqu'à 3 cm. Sous plusieurs couvertures, la plus extérieure passe d'abord. Réduit à quatre os,
+   chaque os gardé perd le poids du plus fort os écarté : deux voisins qui n'écartent pas le même os gardent des poids
+   voisins.
 3. **Ne pas retenir à tort.** Une couverture qui flotte sur une chaîne (jupe, cape) ne retient pas ce qu'une chaîne ne
    porte pas. Une couverture qui tient à une autre partie du corps (ni les mêmes os, ni un os et son parent) ne retient
    rien : c'est l'échec documenté de Roblox.
@@ -72,30 +74,32 @@ nomme (`couche-percee-au-repos`).
 
 ## Lot 2 : le montage Godot
 
-- **Une seule fonction.** Le pont gagne une méthode `pile` qui appelle `resoudreLaPile` ; le montage ne recode rien.
-  L'ordre des couches (`ordreDesCouches`, dont la règle de l'accessoire) quitte la garde `traversee` pour le cœur pur,
-  que le pont et l'évaluateur appellent tous deux ; la catégorie y entre typée (`CategorieDElement`).
-- **Une pièce de pile** est la base, ou un élément monté avec toutes ses surfaces skinnées visibles et fondues. Une
-  pièce que `refondre` ne fond pas (skin hors du repère du squelette, huit poids) sort aussi de la pile de
-  l'évaluateur, pour que les deux résolvent le même ensemble.
+- **Une seule fonction.** La page résout la pile par `resoudreLaPile`, la fonction de l'évaluateur ; le montage ne
+  recode rien. L'ordre des couches (`ordreDesCouches`, dont la règle de l'accessoire et le vote de même couche) est au
+  cœur pur (`asset/pile.ts`), que la page et l'évaluateur appellent tous deux, sur des surfaces neutres sans forme ni
+  gabarit.
+- **Une pièce de pile** est le corps de la base, ou un élément monté qui déclare une couche, par ses surfaces skinnées
+  visibles et fondues. Godot fond toute pièce skinnée publiée : aucune des 120 pièces skinnées du projet n'a de
+  transformation propre ni de second jeu d'influences, que la porte refuse (`influences-au-dela-de-4`). Les deux
+  résolvent donc le même ensemble.
 - **Où.** Dans `MontageDeComposition.refondre`, sur ce qu'il fond : positions (formes cuites par `cuire_les_formes`),
-  indices, os et poids de chaque surface, couche et catégorie de son élément, parents et chaînes de la base, et, pour
-  deux pièces de même couche et de même catégorie, leurs positions neutres (les tableaux du mesh gardé en `FORMES`),
-  sur lesquelles l'ordre se vote. La fusion porte le résultat ; les meshes propres des pièces restent ceux de leur
-  auteur.
-- **Sans geler l'image.** Le calcul coûte 1,0 à 2,3 s par personnage sous Node. `refondre` fond tout de suite sans la
-  pile, demande la pile par un rappel (`JavaScriptBridge.create_callback`, le patron de `choisir_une_image`), et
-  refond à la réponse si ce qui est fondu n'a pas changé. Le résultat se garde par signature de ce qui est fondu, pour
-  qu'un habillage ou une couleur ne recalcule rien. Le coût se mesure dans l'export avant d'arrêter ces choix.
-- **Sans pont** (recette autonome, pont figé, hors Web) : la fusion se fait sans pile. Les recettes autonomes
-  prouvent la fusion, pas la pile ; la pile se prouve par la recette d'export.
-- **Échange.** Tableaux typés encodés en base64 dans le JSON du pont, pas des nombres JSON.
-- **Os gagnés.** Une pièce reprend des os absents de son skin : la fusion les lie au repère que la base leur donne.
-- **Preuve.** Une recette d'export (`hotes/godot/recette.mjs`) compare, pour une tenue sous une silhouette non nulle,
-  les poids, les reculs et les triangles de la fusion à ceux de l'évaluateur, à une tolérance fixée (Godot quantifie
-  les poids sur 16 bits).
-- **Tant que le lot 2 n'est pas fait, la PR reste en brouillon** : l'évaluateur mesurerait un montage que le jeu ne
-  fait pas.
+  indices, os et poids de chaque surface, positions sans forme (le mesh gardé en `FORMES`), rang de couche et accessoire
+  de son élément (`couches` de `modeles`), parents du squelette et os de chaîne de la base (`osDeChaine`). La fusion
+  porte le résultat ; les meshes propres des pièces restent ceux de leur auteur.
+- **Sans geler l'image.** Le calcul coûte 1,4 s pour le Soldat sous Node, 4 à 6 s dans l'export (Chromium sans carte
+  graphique, demande et réponse d'environ 1 Mo chacune). La page le fait hors du fil de l'image, dans un fil de fond
+  (`pile.worker.ts`, embarqué dans le bundle du pont) : `wfrpPont.resoudreLaPile(demande, rendre)`. `refondre` fond
+  tout de suite sans la pile, la demande, et refond à la réponse si ce qui est fondu n'a pas changé. La réponse se
+  garde tant que la demande ne change pas : un habillage ou une couleur ne recalcule rien.
+- **Sans page** (recette autonome, hors Web) : la fusion se fait sans pile.
+- **Échange.** Tableaux typés encodés en base64 dans le JSON, pas des nombres JSON (`CONTRAT.md`, « Pile des
+  couches »).
+- **Os gagnés.** Une pièce reprend des os absents de son skin : la fusion les lie au repère que leur donne la
+  première pièce fondue qui les porte.
+- **Preuve.** La recette autonome `pile-des-couches.gd` prouve la pose d'une pile reçue sur la fusion (sommets, os,
+  poids, triangles). La recette d'export (`recette.mjs --parcours preset`) prouve que Godot demande la bonne pile : le
+  bilan que porte la fusion est celui de l'évaluateur sur les mêmes éléments et les mêmes formes, à 1 % près (Godot
+  quantifie les poids sur 16 bits).
 
 ## Ce que la pile ne ferme pas
 
@@ -115,5 +119,4 @@ nomme (`couche-percee-au-repos`).
 - Toute pièce qui couvre est opaque : un triangle couvert ne se voit pas. C'est le cas de toutes les pièces publiées.
 - Les réglages (3 cm, 1 cm, 3 mm, moitiés) sont des constantes de la méthode, les mêmes pour toute pièce, réglées sur
   six clips des trois tenues puis vérifiées aux portes complètes.
-- L'ordre de même couche se vote dans l'évaluateur sur le repos neutre sous gabarit, dans Godot sans gabarit : les
-  deux sont le même repos sous les passes de la porte. Le lot 2 aligne les deux.
+- L'ordre de même couche se vote sur le repos neutre, sans forme ni gabarit, dans l'évaluateur comme dans Godot.

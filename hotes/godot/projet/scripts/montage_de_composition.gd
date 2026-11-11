@@ -21,6 +21,8 @@ const PASSES_DE_TOUR := 2
 const FORMES := &"formes"
 ## La métadonnée d'un mesh dont les shape keys sont cuites : le poids cuit de chacune, par nom de clé.
 const POIDS := &"poids_des_formes"
+## La métadonnée du mesh d'une pièce skinnée : par surface, son maillage de la demande de pile (`_maillage`).
+const MAILLAGES := &"maillages_de_pile"
 ## Le calque d'une pièce dessinée seule ; une pièce fondue (`refondre`) n'est sur aucun.
 const CALQUE := 1
 ## Les poids d'un sommet d'une pièce rigide fondue : tout sur son os.
@@ -28,6 +30,9 @@ const POIDS_RIGIDE := [1.0, 0.0, 0.0, 0.0]
 ## Les canaux libres d'un mesh (`Mesh.ARRAY_CUSTOM0` à `3`), qu'aucun `BaseMaterial3D` ne lit : une pièce fondue les
 ## laisse.
 const CANAUX_LIBRES := [Mesh.ARRAY_CUSTOM0, Mesh.ARRAY_CUSTOM1, Mesh.ARRAY_CUSTOM2, Mesh.ARRAY_CUSTOM3]
+
+## La fusion porte la pile des couches reçue (`recevoir_la_pile`).
+signal empilee
 
 
 ## Le GLB d'un fichier de `modeles/`, en vol jusqu'à `lue`, puis reçu (`octets`) ou en échec (`erreurs`).
@@ -86,6 +91,13 @@ var _suivis: Dictionary = {}
 var fusion: MeshInstance3D = null
 ## Une refonte est-elle demandée pour la fin de l'image (`_demander_la_refonte`) ?
 var _refonte_demandee := false
+## La pile des couches résolue (`recevoir_la_pile`) : la `signature` de sa demande, son `bilan` et, par maillage de la
+## demande, ses tableaux (`maillages`) ; `{}` sans elle.
+var pile: Dictionary = {}
+## La signature de la demande de pile de ce qui est fondu (`_empiler`), `""` sans pile à résoudre.
+var _pile_fondue := ""
+## La signature de la demande de pile en vol, `""` sans elle.
+var _pile_demandee := ""
 
 
 ## La réponse `reponse` de `modeles` retenue : les GLB lus et les emblèmes rastérisés sous la précédente sont oubliés.
@@ -1090,6 +1102,20 @@ static func cuire_les_formes(mesh: MeshInstance3D, morphes: Dictionary) -> void:
 ## repère du mesh (`uv1_triplanar` ou `uv2_triplanar` hors du monde), une surface qui n'est pas en triangles ou qui
 ## porte huit poids par sommet. La recette autonome `projet/recettes/fusion-des-pieces.gd` le vérifie.
 
+## @contrat Pile des couches
+## Dans une tenue fondue, la couche du dessous cède à celle qui la couvre (#3842) : à chaque refonte,
+## `MontageDeComposition.refondre` demande à la page la pile de ce qu'il fond
+## (`wfrpPont.resoudreLaPile(demande, rendre)`, `PontDuNoyau.resoudre_la_pile`), que la page résout hors du fil de
+## l'image par la fonction de l'évaluateur (`resoudreLaPile`, `asset/pile.ts`). Une pièce de la demande est le corps de
+## la base, ou un élément monté qui déclare une couche (`couches` de `modeles`), par ses surfaces skinnées visibles et
+## fondues, dans l'ordre où Godot les fond ; une tenue d'une seule pièce ne demande rien. La fusion se dessine d'abord
+## telle que ses auteurs l'ont faite ; à la réponse, si ce qui est fondu n'a pas changé (même demande), elle se refond
+## avec, pour chaque maillage, ses sommets reculés, ses triangles encore dessinés, ses os et ses poids, un os gagné lié
+## au repère que lui donne la première pièce fondue qui le porte. La réponse est gardée tant que la demande ne change
+## pas : un habillage ou une couleur ne redemandent rien. Les meshes propres des pièces restent ceux de leurs auteurs.
+## Sans page (recette autonome, hors Web), la fusion se fait sans pile. La recette autonome
+## `projet/recettes/pile-des-couches.gd` vérifie la pose d'une pile reçue.
+
 ## La refonte des pièces demandée pour la fin de l'image (`refondre`), une seule fois quel que soit le nombre de
 ## demandes.
 func _demander_la_refonte() -> void:
@@ -1099,8 +1125,8 @@ func _demander_la_refonte() -> void:
 
 
 ## Les meshes visibles du modèle fondus en `fusion`, une surface par matériau équivalent (`_signature`), chaque pièce
-## fondue retirée de tout calque, chaque autre rendue au sien (`CALQUE`) ; l'ancienne `fusion` libérée, aucune sans
-## squelette ou sans pièce à fondre.
+## fondue retirée de tout calque, chaque autre rendue au sien (`CALQUE`) ; chaque maillage que la pile résout fondu tel
+## qu'elle le rend (`_empiler`) ; l'ancienne `fusion` libérée, aucune sans squelette ou sans pièce à fondre.
 func refondre() -> void:
 	_refonte_demandee = false
 	if is_instance_valid(fusion):
@@ -1110,20 +1136,36 @@ func refondre() -> void:
 		return
 	var skin := Skin.new()
 	var liaisons := {}
-	var outils := {}
+	var fondues := {}
+	var reperes := {}
 	for noeud in modele.find_children("*", "MeshInstance3D", true, false):
 		var piece := noeud as MeshInstance3D
 		var renvois := _renvois(piece, skin, liaisons)
 		piece.layers = CALQUE if renvois.is_empty() else 0
 		if renvois.is_empty():
 			continue
+		fondues[piece] = renvois
+		if piece.skin != null:
+			for liaison in piece.skin.get_bind_count():
+				reperes.get_or_add(piece.skin.get_bind_name(liaison), piece.skin.get_bind_pose(liaison))
+	var resolus := _empiler(fondues)
+	var outils := {}
+	for piece: MeshInstance3D in fondues:
 		for surface in piece.mesh.get_surface_count():
+			var resolu: Dictionary = resolus.get([piece, surface], {})
+			var renvois: PackedInt32Array = fondues[piece]
+			if not resolu.is_empty():
+				if resolu.indices.is_empty():
+					continue
+				renvois = renvois.duplicate()
+				for rang in range(renvois.size(), resolu.noms.size()):
+					renvois.append(_liaison(skin, liaisons, resolu.noms[rang], reperes[StringName(resolu.noms[rang])]))
 			var materiau := piece.get_active_material(surface)
 			var cle := _signature(materiau)
 			if not outils.has(cle):
 				outils[cle] = SurfaceTool.new()
 				(outils[cle] as SurfaceTool).set_material(materiau)
-			(outils[cle] as SurfaceTool).append_from(_surface_liee(piece, surface, renvois), 0, Transform3D.IDENTITY)
+			(outils[cle] as SurfaceTool).append_from(_surface_liee(piece, surface, renvois, resolu), 0, Transform3D.IDENTITY)
 	if outils.is_empty():
 		return
 	var mesh := ArrayMesh.new()
@@ -1135,6 +1177,99 @@ func refondre() -> void:
 	fusion.skin = skin
 	squelette.add_child(fusion)
 	fusion.skeleton = fusion.get_path_to(squelette)
+
+
+## Par maillage que la pile des couches résout (`[pièce, surface]`), ses tableaux résolus, parmi les pièces `fondues` ;
+## aucun tant que la pile de ce qui est fondu n'est pas reçue (`recevoir_la_pile`), demandée à la page si elle ne
+## l'est pas déjà. Les pièces de la demande : les meshes de la base, puis ceux de chaque élément monté qui déclare une
+## couche (`couches` de `modeles`), chacun par ses surfaces skinnées fondues.
+func _empiler(fondues: Dictionary) -> Dictionary:
+	var couches: Dictionary = modeles.get("couches", {})
+	var porteurs: Array = [[_pieces_de_la_base, {rang = -1, accessoire = false}]]
+	for id in pieces:
+		if couches.has(montes[id]):
+			porteurs.append([pieces[id], couches[montes[id]]])
+	var demandees := []
+	var sujets := []
+	for porteur in porteurs:
+		var maillages := []
+		for piece: MeshInstance3D in porteur[0]:
+			if piece.skin != null and fondues.has(piece):
+				for surface in piece.mesh.get_surface_count():
+					maillages.append(_maillage(piece, surface))
+					sujets.append([piece, surface])
+		if not maillages.is_empty():
+			demandees.append({rang = porteur[1].rang, accessoire = porteur[1].accessoire, maillages = maillages})
+	_pile_fondue = ""
+	if demandees.size() < 2:
+		return {}
+	var parents := {}
+	for os in squelette.get_bone_count():
+		if squelette.get_bone_parent(os) != -1:
+			parents[squelette.get_bone_name(os)] = squelette.get_bone_name(squelette.get_bone_parent(os))
+	var demande := JSON.stringify({pieces = demandees, parents = parents, osDeChaine = base.get("osDeChaine", [])})
+	_pile_fondue = demande.sha256_text()
+	var resolus := {}
+	var pont := get_node_or_null("/root/Pont") as PontDuNoyau
+	if pile.get("signature") == _pile_fondue:
+		for rang in sujets.size():
+			resolus[sujets[rang]] = pile.maillages[rang]
+	elif _pile_demandee != _pile_fondue and pont != null and pont.est_pret():
+		_pile_demandee = _pile_fondue
+		pont.resoudre_la_pile(demande, recevoir_la_pile.bind(_pile_fondue))
+	return resolus
+
+
+## La surface `surface` de `piece` en maillage de la demande de pile (`MaillageDeLaPile`, `CONTRAT.md`, « Pile des
+## couches ») : ses tableaux en base64, ses os nommés par les liaisons de son skin, ses positions sans forme si elle a
+## des shape keys (`FORMES`). Il est gardé sur le mesh de la pièce (`MAILLAGES`), qu'une cuisson des formes remplace.
+func _maillage(piece: MeshInstance3D, surface: int) -> Dictionary:
+	var gardes: Dictionary = piece.mesh.get_meta(MAILLAGES, {})
+	if gardes.has(surface):
+		return gardes[surface]
+	var tableaux := piece.mesh.surface_get_arrays(surface)
+	var sommets: PackedVector3Array = tableaux[Mesh.ARRAY_VERTEX]
+	var indices: PackedInt32Array = tableaux[Mesh.ARRAY_INDEX] if tableaux[Mesh.ARRAY_INDEX] != null else PackedInt32Array(range(sommets.size()))
+	var maillage := {
+		positions = Marshalls.raw_to_base64(sommets.to_byte_array()),
+		indices = Marshalls.raw_to_base64(indices.to_byte_array()),
+		os = Marshalls.raw_to_base64((tableaux[Mesh.ARRAY_BONES] as PackedInt32Array).to_byte_array()),
+		poids = Marshalls.raw_to_base64((tableaux[Mesh.ARRAY_WEIGHTS] as PackedFloat32Array).to_byte_array()),
+		noms = _os_de_la_piece(piece),
+	}
+	if piece.has_meta(FORMES):
+		var neutres: PackedVector3Array = (piece.get_meta(FORMES) as ArrayMesh).surface_get_arrays(surface)[Mesh.ARRAY_VERTEX]
+		maillage.neutres = Marshalls.raw_to_base64(neutres.to_byte_array())
+	gardes[surface] = maillage
+	piece.mesh.set_meta(MAILLAGES, gardes)
+	return maillage
+
+
+## La réponse `reponse` de la page à la demande de pile de signature `signature` (`PileResolue`, `CONTRAT.md`, « Pile des
+## couches ») : gardée, fondue (`refondre`) et dite (`empilee`) si elle répond à ce qui est fondu, oubliée sinon.
+func recevoir_la_pile(reponse: Dictionary, signature: String) -> void:
+	if _pile_demandee == signature:
+		_pile_demandee = ""
+	if reponse.get("ok") != true or signature != _pile_fondue:
+		return
+	var maillages := []
+	for piece in reponse.pieces:
+		for maillage in piece.maillages:
+			maillages.append({
+				positions = Marshalls.base64_to_raw(maillage.positions).to_vector3_array(),
+				indices = Marshalls.base64_to_raw(maillage.indices).to_int32_array(),
+				os = Marshalls.base64_to_raw(maillage.os).to_int32_array(),
+				poids = Marshalls.base64_to_raw(maillage.poids).to_float32_array(),
+				noms = maillage.noms,
+			})
+	pile = {signature = signature, bilan = reponse.bilan, maillages = maillages}
+	refondre()
+	empilee.emit()
+
+
+## Le bilan de la pile des couches que porte la fusion (`BilanDePile`, `asset/pile.ts`), `{}` si elle n'en porte pas.
+func pile_posee() -> Dictionary:
+	return pile.bilan if _pile_fondue != "" and pile.get("signature") == _pile_fondue else {}
 
 
 ## Par liaison de `piece` (une seule pour une pièce rigide), le rang de la liaison de `skin` qui la porte, ajoutée à
@@ -1209,11 +1344,19 @@ static func _signature(materiau: Material) -> String:
 
 ## La surface `surface` de `piece` en mesh d'une surface, chaque sommet lié aux liaisons de la fusion par `renvois` : ses
 ## os renvoyés pour une pièce skinnée ; tout sur la liaison de son os pour une pièce rigide (`POIDS_RIGIDE`) ; sans ses
-## canaux libres (`CANAUX_LIBRES`).
-static func _surface_liee(piece: MeshInstance3D, surface: int, renvois: PackedInt32Array) -> ArrayMesh:
+## canaux libres (`CANAUX_LIBRES`). Avec `resolu`, ses tableaux résolus par la pile des couches (`recevoir_la_pile`),
+## ses sommets, ses triangles, ses os et ses poids sont ceux-là.
+static func _surface_liee(piece: MeshInstance3D, surface: int, renvois: PackedInt32Array, resolu: Dictionary) -> ArrayMesh:
 	var tableaux := piece.mesh.surface_get_arrays(surface)
 	var os := PackedInt32Array()
-	if piece.skin == null:
+	if not resolu.is_empty():
+		tableaux[Mesh.ARRAY_VERTEX] = resolu.positions
+		tableaux[Mesh.ARRAY_INDEX] = resolu.indices
+		tableaux[Mesh.ARRAY_WEIGHTS] = resolu.poids
+		os = (resolu.os as PackedInt32Array).duplicate()
+		for rang in os.size():
+			os[rang] = renvois[os[rang]]
+	elif piece.skin == null:
 		var poids := PackedFloat32Array()
 		var quatre := PackedInt32Array([renvois[0], renvois[0], renvois[0], renvois[0]])
 		for _sommet in (tableaux[Mesh.ARRAY_VERTEX] as PackedVector3Array).size():

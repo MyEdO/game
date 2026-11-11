@@ -13,6 +13,8 @@
  * Un point retenu devant sa couverture, ou à moins de `JEU_M` derrière elle, recule à `JEU_M`, et ses voisins d'arête
  * reculent avec lui sans qu'aucun triangle se retourne (`ENTRAINEMENT`). Un triangle dont les trois points sont retenus
  * tout entiers ne se dessine plus.
+ *
+ * Qui couvre qui se lit aux couches déclarées, et se mesure entre deux pièces de même couche (`ordreDesCouches`).
  */
 
 /** La distance, en mètres, au-delà de laquelle une couche n'en couvre plus une autre : l'épaisseur d'une manche
@@ -48,7 +50,7 @@ export interface MaillageDePile {
   indices: Uint32Array;
   /** Par sommet, `INFLUENCES` rangs dans `noms`. */
   os: Uint16Array;
-  /** Par sommet, `INFLUENCES` poids, de somme 1. */
+  /** Par sommet, `INFLUENCES` poids, que `resoudreLaPile` ramène à une somme de 1. */
   poids: Float32Array;
   /** Les noms des os que `os` désigne. */
   noms: string[];
@@ -146,6 +148,87 @@ export function visiterLaCouverture(
       visite(e, t, 1 - bb - bc, bb, bc, tx, ty, tz);
     }
   }
+}
+
+/** Une surface posée : ses positions à plat et ses triangles, par trois indices de sommet. */
+export interface SurfaceDePile {
+  readonly positions: Float32Array;
+  readonly indices: ArrayLike<number>;
+}
+
+/** Les normales de sommet de `surface`, somme des normales de ses triangles pondérées par leur aire. */
+export function normalesDesSommets({ positions: p, indices }: SurfaceDePile): Float32Array {
+  const normales = new Float32Array(p.length);
+  for (let t = 0; t + 2 < indices.length; t += 3) {
+    const [a, b, c] = [indices[t], indices[t + 1], indices[t + 2]];
+    const [ux, uy, uz] = [p[b * 3] - p[a * 3], p[b * 3 + 1] - p[a * 3 + 1], p[b * 3 + 2] - p[a * 3 + 2]];
+    const [vx, vy, vz] = [p[c * 3] - p[a * 3], p[c * 3 + 1] - p[a * 3 + 1], p[c * 3 + 2] - p[a * 3 + 2]];
+    const [nx, ny, nz] = [uy * vz - uz * vy, uz * vx - ux * vz, ux * vy - uy * vx];
+    for (const s of [a, b, c]) { normales[s * 3] += nx; normales[s * 3 + 1] += ny; normales[s * 3 + 2] += nz; }
+  }
+  return normales;
+}
+
+/** Ce que l'ordre des couches lit d'une pièce d'une tenue. */
+export interface CoucheDePile {
+  /** Le rang de sa couche dans `COUCHES` (`element.ts`), `RANG_DU_CORPS` pour le corps. */
+  readonly rang: number;
+  /** Vrai pour un accessoire : à couche égale, il se porte par-dessus ce qui n'en est pas un. */
+  readonly accessoire: boolean;
+  /** Ses surfaces au repos neutre, sans forme ni gabarit. */
+  readonly neutres: readonly SurfaceDePile[];
+}
+
+/** Les voix des sommets de `sujet` que `couverture` couvre : pour `sujet` s'ils sont devant leur triangle couvrant le
+ *  plus proche, contre lui s'ils sont derrière (à distance égale, derrière). */
+function voter(sujet: SurfaceDePile, couverture: Couverture): { pour: number; contre: number } {
+  const p = sujet.positions, n = normalesDesSommets(sujet);
+  let pour = 0, contre = 0;
+  for (let s = 0; s < p.length / 3; s++) {
+    let derriere = Infinity, devant = Infinity;
+    visiterLaCouverture(p[s * 3], p[s * 3 + 1], p[s * 3 + 2], n[s * 3], n[s * 3 + 1], n[s * 3 + 2], couverture, (e) => {
+      if (e > 0) derriere = Math.min(derriere, e);
+      if (e < 0) devant = Math.min(devant, -e);
+    });
+    if (derriere < Infinity && derriere <= devant) contre++;
+    else if (devant < Infinity) pour++;
+  }
+  return { pour, contre };
+}
+
+/** Dit, pour deux pièces d'une tenue, si `e` couvre `f` : couche plus extérieure ; à couche égale, un accessoire couvre
+ *  ce qui n'en est pas un ; sinon celle dont les sommets sont devant l'autre au repos neutre, à la majorité des voix
+ *  (`voter`), chaque paire votée une fois. Sans sommet de l'une couvert par l'autre, ou à égalité, aucune ne couvre
+ *  l'autre. */
+export function ordreDesCouches<E extends CoucheDePile>(): (e: E, f: E) => boolean {
+  const couvertures = new Map<SurfaceDePile, Couverture>();
+  const couvertureDeLaSurface = (s: SurfaceDePile): Couverture => {
+    const connue = couvertures.get(s) ?? couvertureDe(s.positions, s.indices);
+    couvertures.set(s, connue);
+    return connue;
+  };
+  const avances = new Map<E, Map<E, number>>();
+  /** Les voix pour `e` moins les voix pour `f`. */
+  const avance = (e: E, f: E): number => {
+    const deE = avances.get(e) ?? new Map<E, number>();
+    avances.set(e, deE);
+    let voix = deE.get(f);
+    if (voix === undefined) {
+      voix = 0;
+      for (const se of e.neutres) for (const sf of f.neutres) {
+        const [deSe, deSf] = [voter(se, couvertureDeLaSurface(sf)), voter(sf, couvertureDeLaSurface(se))];
+        voix += deSe.pour + deSf.contre - deSe.contre - deSf.pour;
+      }
+      deE.set(f, voix);
+    }
+    return voix;
+  };
+  return (e, f) => {
+    if (e === f || f.rang > e.rang) return false;
+    if (f.rang < e.rang) return true;
+    if (e.accessoire !== f.accessoire) return e.accessoire;
+    return (avances.get(f)?.has(e) ? -avance(f, e) : avance(e, f)) > 0;
+  };
 }
 
 /** Une pièce résolue qui en couvre d'autres : la surface d'un de ses maillages, ses poids résolus et ceux de son auteur. */
@@ -420,19 +503,24 @@ function blocsRigides(voisins: ReadonlyMap<Point, ReadonlyMap<Point, number>>, p
 }
 
 /** Pose sur chaque sommet de `q` les poids `repris` (par nom d'os, pour la part qu'ils disent) mêlés aux siens pour la
- *  part `reste`, réduits à `INFLUENCES` os et ramenés à 1, et le recul `recul`. */
+ *  part `reste`, réduits à `INFLUENCES` os et ramenés à 1, et le recul `recul`. Chaque os gardé perd le poids du plus
+ *  fort os écarté : un os s'éteint avant de sortir, et deux points voisins qui n'écartent pas le même os gardent des
+ *  poids voisins. */
 function appliquer(q: Point, repris: ReadonlyMap<string, number>, reste: number, recul: Vecteur | undefined): void {
   for (const [m, s] of q.membres) {
     if (reste < 1) {
       const melange = poidsParNom(m, s, reste, new Map(repris));
-      const forts = [...melange.entries()].sort((x, y) => y[1] - x[1]).slice(0, INFLUENCES);
-      const somme = forts.reduce((t, [, pk]) => t + pk, 0);
+      const tries = [...melange.entries()].sort((x, y) => y[1] - x[1]);
+      const forts = tries.slice(0, INFLUENCES);
+      let ecarte = tries[INFLUENCES]?.[1] ?? 0;
+      if (forts[0][1] <= ecarte) ecarte = 0;
+      const somme = forts.reduce((t, [, pk]) => t + pk - ecarte, 0);
       for (let k = 0; k < INFLUENCES; k++) {
         const fort = forts[k];
         let rang = 0;
-        if (fort) { rang = m.noms.indexOf(fort[0]); if (rang < 0) rang = m.noms.push(fort[0]) - 1; }
+        if (fort && fort[1] > ecarte) { rang = m.noms.indexOf(fort[0]); if (rang < 0) rang = m.noms.push(fort[0]) - 1; }
         m.os[s * INFLUENCES + k] = rang;
-        m.poids[s * INFLUENCES + k] = fort ? fort[1] / somme : 0;
+        m.poids[s * INFLUENCES + k] = fort ? (fort[1] - ecarte) / somme : 0;
       }
     }
     if (recul) for (let k = 0; k < 3; k++) m.positions[s * 3 + k] += recul[k];
@@ -440,18 +528,22 @@ function appliquer(q: Point, repris: ReadonlyMap<string, number>, reste: number,
 }
 
 /** Résout la pile `pieces` en place : `couvre(e, f)` dit si la pièce `e` couvre la pièce `f`. */
-export function resoudreLaPile(pieces: readonly PieceDePile[], couvre: (e: PieceDePile, f: PieceDePile) => boolean, squelette: SqueletteDePile): BilanDePile {
-  const ordre: PieceDePile[] = [];
+export function resoudreLaPile<P extends PieceDePile>(pieces: readonly P[], couvre: (e: P, f: P) => boolean, squelette: SqueletteDePile): BilanDePile {
+  for (const { poids } of pieces.flatMap((p) => p.maillages)) for (let s = 0; s < poids.length; s += INFLUENCES) {
+    const somme = poids[s] + poids[s + 1] + poids[s + 2] + poids[s + 3];
+    if (somme > 0) for (let k = 0; k < INFLUENCES; k++) poids[s + k] /= somme;
+  }
+  const ordre: P[] = [];
   for (const restantes = new Set(pieces); restantes.size;) {
-    let libre: PieceDePile | null = null, moins = Infinity;
+    let libre: P | null = null, moins = Infinity;
     for (const f of restantes) {
       const dessus = [...restantes].filter((e) => couvre(e, f)).length;
       if (dessus < moins) { moins = dessus; libre = f; }
     }
-    ordre.push(libre as PieceDePile);
-    restantes.delete(libre as PieceDePile);
+    ordre.push(libre as P);
+    restantes.delete(libre as P);
   }
-  const resolues: PieceDePile[] = [];
+  const resolues: P[] = [];
   const couvrantsDe = new Map<PieceDePile, Couvrant[]>();
   const origines = new Map(pieces.flatMap((p) => p.maillages).map((m) => [m, { os: Uint16Array.from(m.os), poids: Float32Array.from(m.poids), noms: m.noms }]));
   const retenir = (piece: PieceDePile): void => {

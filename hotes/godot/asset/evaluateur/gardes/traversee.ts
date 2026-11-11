@@ -1,8 +1,8 @@
 /**
  * GARDE DE LA TRAVERSÉE DES COUCHES (#2972, #3319, #3842) : une couche ne passe pas devant celle qui la couvre. Le
- * corps est sous toute couche ; un mesh skinné d'élément est sous ceux des éléments de couche plus extérieure (`COUCHES`,
- * `element.ts`) et sous ceux de l'élément de même couche qui le couvre (`ordreDesCouches`). Les meshes masqués au montage
- * (`sansLesZonesMasquees`) ne sont ni sujets ni couvertures.
+ * corps est sous toute couche ; un mesh skinné d'élément est sous ceux des éléments qui couvrent le sien
+ * (`ordreDesCouches`, `pile.ts`). Les meshes masqués au montage (`sansLesZonesMasquees`) ne sont ni sujets ni
+ * couvertures.
  *
  * Un triangle de la couverture couvre un sommet d'un sujet selon `visiterLaCouverture` (`pile.ts`), qui donne son écart
  * signé e, positif derrière. Une doublure tournée vers le corps ne couvre rien.
@@ -20,7 +20,7 @@ import type { Ecart, LibelleDeMesh } from '../ecart.ts';
 import type { Echantillon, Pose } from '../echantillonnage.ts';
 import { ECART_DE_SUIVI_M } from './suiviDuCorps.ts';
 import { RANG_DU_CORPS } from '../../element.ts';
-import { couvertureDe, visiterLaCouverture } from '../../pile.ts';
+import { couvertureDe, normalesDesSommets, visiterLaCouverture } from '../../pile.ts';
 
 const GARDE = 'traversee';
 
@@ -42,12 +42,9 @@ export interface PercementAuRepos {
   readonly pire: number;
 }
 
-/** Ce que la couverture fait des sommets d'un sujet au repos : la liaison, les sommets devant (`devant`) ou derrière
- *  (`derriere`) leur triangle couvrant le plus proche, et le percement. */
+/** Ce que la couverture fait des sommets d'un sujet au repos : la liaison et le percement. */
 interface ReleveSous {
   readonly liaison: LiaisonDeCouches | null;
-  readonly devant: number;
-  readonly derriere: number;
   readonly percement: PercementAuRepos | null;
 }
 
@@ -82,20 +79,8 @@ function poserTriangle(p: Float32Array, a: number, b: number, c: number): boolea
   return true;
 }
 
-/** Les normales de sommet de `m` aux positions `p`, somme des normales de ses triangles pondérées par leur aire. */
-export function normalesDe(m: Mesh, p: Float32Array): Float32Array {
-  const indices = indicesDe(m, p.length / 3);
-  const normales = new Float32Array(p.length);
-  for (let t = 0; t + 2 < indices.length; t += 3) {
-    const sommets = [indices[t], indices[t + 1], indices[t + 2]];
-    forme.a.set(p[sommets[0] * 3], p[sommets[0] * 3 + 1], p[sommets[0] * 3 + 2]);
-    forme.b.set(p[sommets[1] * 3], p[sommets[1] * 3 + 1], p[sommets[1] * 3 + 2]);
-    forme.c.set(p[sommets[2] * 3], p[sommets[2] * 3 + 1], p[sommets[2] * 3 + 2]);
-    normale.subVectors(forme.c, forme.b).cross(projection.subVectors(forme.a, forme.b));
-    for (const s of sommets) { normales[s * 3] += normale.x; normales[s * 3 + 1] += normale.y; normales[s * 3 + 2] += normale.z; }
-  }
-  return normales;
-}
+/** Les normales de sommet de `m` aux positions `p` (`normalesDesSommets`). */
+export const normalesDe = (m: Mesh, p: Float32Array): Float32Array => normalesDesSommets({ positions: p, indices: indicesDe(m, p.length / 3) });
 
 /** Ce que `couverture` fait des sommets de `sujet` dans la pose `repos`. */
 function releverSous(sujet: Mesh, couverture: SkinnedMesh, repos: Pick<Pose, 'positions'>): ReleveSous {
@@ -104,15 +89,13 @@ function releverSous(sujet: Mesh, couverture: SkinnedMesh, repos: Pick<Pose, 'po
   const pc = positionsDe(repos, couverture);
   const surface = couvertureDe(pc, indicesDe(couverture, pc.length / 3));
   const sommets: number[] = [], triangles: number[] = [], barycentres: number[] = [];
-  let devant = 0, derriere = 0, perces = 0, pire = 0;
+  let perces = 0, pire = 0;
   for (let s = 0; s < ps.length / 3; s++) {
-    let retenu = -1, auPlusPresDerriere = Infinity, plusProcheDevant = -Infinity, plusLoinDevant = 0, bx = 0, by = 0, bz = 0;
+    let retenu = -1, auPlusPresDerriere = Infinity, plusLoinDevant = 0, bx = 0, by = 0, bz = 0;
     visiterLaCouverture(ps[s * 3], ps[s * 3 + 1], ps[s * 3 + 2], ns[s * 3], ns[s * 3 + 1], ns[s * 3 + 2], surface, (e, t, a, b, c) => {
       if (e > 0 && e < auPlusPresDerriere) { retenu = t; auPlusPresDerriere = e; bx = a; by = b; bz = c; }
-      if (e < 0) { plusProcheDevant = Math.max(plusProcheDevant, e); plusLoinDevant = Math.min(plusLoinDevant, e); }
+      if (e < 0) plusLoinDevant = Math.min(plusLoinDevant, e);
     });
-    if (retenu >= 0 && auPlusPresDerriere <= -plusProcheDevant) derriere++;
-    else if (plusProcheDevant > -Infinity) devant++;
     if (plusLoinDevant < -ECART_DE_SUIVI_M) { perces++; pire = Math.min(pire, plusLoinDevant); }
     if (retenu < 0) continue;
     sommets.push(s);
@@ -121,25 +104,8 @@ function releverSous(sujet: Mesh, couverture: SkinnedMesh, repos: Pick<Pose, 'po
   }
   return {
     liaison: sommets.length ? { sujet, couverture, sommets: Uint32Array.from(sommets), triangles: Uint32Array.from(triangles), barycentres: Float32Array.from(barycentres) } : null,
-    devant, derriere,
     percement: perces ? { sujet, couverture, sommets: perces, pire } : null,
   };
-}
-
-type Relever = (sujet: SkinnedMesh, couverture: SkinnedMesh) => ReleveSous;
-
-/** Lequel de deux éléments de même couche, de meshes `a` et `b`, couvre l'autre. Chaque sommet de l'un qu'un triangle de
- *  l'autre couvre vote : pour son mesh s'il est devant son triangle couvrant le plus proche, pour l'autre s'il est
- *  derrière (à distance égale, derrière). `'a'` ou `'b'` à la majorité des voix ; `null` si aucun sommet de l'un n'est
- *  couvert par l'autre, ou à égalité. */
-function ordreDesReleves(a: readonly SkinnedMesh[], b: readonly SkinnedMesh[], relever: Relever): 'a' | 'b' | null {
-  let pourA = 0, pourB = 0;
-  for (const ma of a) for (const mb of b) {
-    const aSousB = relever(ma, mb), bSousA = relever(mb, ma);
-    pourA += aSousB.devant + bSousA.derriere;
-    pourB += aSousB.derriere + bSousA.devant;
-  }
-  return pourA > pourB ? 'a' : pourB > pourA ? 'b' : null;
 }
 
 /** Par zone, le rang le plus extérieur des éléments de `elements` qui la couvrent ; rend les meshes d'un rang donné
@@ -151,31 +117,6 @@ export function sansLesZonesMasquees(elements: readonly { readonly rang: number;
     const zone = zoneDe(m);
     return zone === undefined || (couvrant.get(zone) ?? RANG_DU_CORPS) <= rang;
   });
-}
-
-/** Les meshes skinnés d'un élément et le rang de sa couche dans `COUCHES`. */
-export interface CoucheDElement {
-  readonly rang: number;
-  readonly meshes: readonly SkinnedMesh[];
-  /** Vrai pour un accessoire : à couche égale, il se porte par-dessus un vêtement ou une armure. */
-  readonly accessoire?: boolean;
-}
-
-/** Dit, pour deux éléments d'une tenue, si `e` couvre `f` : couche plus extérieure ; à couche égale, un accessoire
- *  couvre ce qui n'en est pas un ; sinon l'ordre mesuré au repos `neutre` (`ordreDesReleves`), chaque paire relevée une
- *  fois. */
-export function ordreDesCouches<E extends CoucheDElement>(neutre: Pick<Pose, 'positions'>): (e: E, f: E) => boolean {
-  const relever = releverDans(neutre);
-  const votes = new Map<E, Map<E, boolean>>();
-  return (e, f) => {
-    if (e === f || f.rang > e.rang) return false;
-    if (f.rang < e.rang) return true;
-    if (Boolean(e.accessoire) !== Boolean(f.accessoire)) return Boolean(e.accessoire);
-    const deE = votes.get(e) ?? new Map<E, boolean>();
-    votes.set(e, deE);
-    if (!deE.has(f)) deE.set(f, ordreDesReleves(f.meshes, e.meshes, relever) === 'b');
-    return deE.get(f) as boolean;
-  };
 }
 
 /** Les couches liées au repos : les liaisons du corps sous chaque élément, et de chaque élément sous ceux qui le
@@ -199,9 +140,9 @@ function releverDans(pose: Pick<Pose, 'positions'>): (sujet: Mesh, couverture: S
   };
 }
 
-/** Les couches de `corps` et `elements` liées dans la pose `repos` ; `couvre(e, f)` dit si l'élément `e` couvre `f`
- *  (`ordreDesCouches`). */
-export function lierLesCouches<E extends CoucheDElement>(corps: readonly Mesh[], elements: readonly E[], repos: Pick<Pose, 'positions'>, couvre: (e: E, f: E) => boolean): CouchesAuRepos {
+/** Les couches de `corps` et des meshes skinnés de chacun des `elements` liées dans la pose `repos` ; `couvre(e, f)` dit
+ *  si l'élément `e` couvre `f` (`ordreDesCouches`, `pile.ts`). */
+export function lierLesCouches<E extends { readonly meshes: readonly SkinnedMesh[] }>(corps: readonly Mesh[], elements: readonly E[], repos: Pick<Pose, 'positions'>, couvre: (e: E, f: E) => boolean): CouchesAuRepos {
   const relever = releverDans(repos);
   const parPaire = elements.flatMap((e) => {
     const sujets = [...corps, ...elements.filter((f) => couvre(e, f)).flatMap((f) => f.meshes)];
