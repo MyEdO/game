@@ -5,7 +5,7 @@
 import { describe, it, expect } from 'vitest';
 import { makeRNG } from '../engine/dice';
 import { findTableEntry } from '../engine/tables';
-import { OBSESSIONS, OBSESSIONS_SOURCE, TIRAGE_DE_CIBLE } from './obsessions';
+import { OBSESSIONS, obsessionsSource, TIRAGE_DE_CIBLE } from './obsessions';
 import { attachMutation } from '../engine/corruption';
 import { gameOpSchema } from './schemas/grammaire/mecanique';
 import { parsePsychTraits } from '../engine/psych/registry';
@@ -31,7 +31,7 @@ const groupeDuJet = (jet: number): string => findTableEntry([...OBSESSIONS], jet
 describe('Tableau des Obsessions (EDOC 12 l.170)', () => {
   it('couvre 2d10 sans trou ni chevauchement, source EDOC folio 69', () => {
     for (let jet = 2; jet <= 20; jet++) expect(OBSESSIONS.filter((e) => e.min <= jet && jet <= e.max)).toHaveLength(1);
-    expect(OBSESSIONS_SOURCE).toEqual({
+    expect(obsessionsSource()).toEqual({
       book: 'ennemi-dans-l-ombre-compagnon',
       page: 69,
       note: 'Tableau des Obsessions, EDOC 12 l.170',

@@ -15,7 +15,7 @@ import obsessionsJson from './obsessions.json';
 /** Le Tableau des Obsessions : plage du dé de tirage → id du Groupe-Cible. */
 export const OBSESSIONS = rangeesDe<typeof obsessions>(obsessionsJson);
 /** Provenance (livre + folio) — traçabilité (EDOC 12 folio 69). */
-export const OBSESSIONS_SOURCE = obsessionsJson.source;
+export const obsessionsSource = () => obsessionsJson.source;
 /** Le dé du Tableau des Obsessions, lu à l'appel. */
 export const obsessionsDie = (): DeDeTable => deDeTirageDe<typeof obsessions>(obsessionsJson);
 

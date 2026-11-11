@@ -5,7 +5,8 @@
  */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { enregistrerEntree } from './atelierDuCodex';
-import { champDEnTete, datasetArray, deDeLaTable, resetData, setDataset } from './overrides';
+import { ancetreDuDe, champDEnTete, datasetArray, deDeLaTable, resetData, setDataset, type DatasetKey } from './overrides';
+import { CATEGORY_DATASET_DERIVE } from './schemas/exposition-derivee';
 import { effectTableDie, findEffectTableById } from './effectTables';
 import { findTableEntry } from '../engine/tables';
 import { miscastDie, miscastRowAt } from '../engine/miscast';
@@ -85,6 +86,20 @@ describe('enregistrerEntree — écritures d’en-tête de la table (#1667)', ()
     expect(rangees()[0]).toBe(entree);
     expect(deDeLaTable('drunkenness')).toBe('d10');
     expect(champDEnTete('drunkenness', '', 'ajout')).toBeUndefined();
+  });
+
+  it('toute catégorie dont un ancêtre porte le dé refuse un dé illisible et garde le sien', () => {
+    const portees = Object.entries(CATEGORY_DATASET_DERIVE).flatMap(([categorie, ds]) => {
+      const ancetre = ancetreDuDe(ds as DatasetKey);
+      return ancetre === undefined ? [] : [{ categorie, ds: ds as DatasetKey, ancetre }];
+    });
+    expect(portees.length).toBeGreaterThan(0);
+    for (const { categorie, ds, ancetre } of portees) {
+      const avantDe = deDeLaTable(ds);
+      const issue = enregistrerEntree(categorie, (datasetArray(ds) as unknown as Entree[])[0], 0, [{ ancetre, champ: 'die', valeur: 'beaucoup' }]);
+      expect(issue.ok, categorie).toBe(false);
+      expect(deDeLaTable(ds), categorie).toBe(avantDe);
+    }
   });
 });
 

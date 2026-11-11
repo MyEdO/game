@@ -4,8 +4,12 @@
  * restaure le seed d'origine.
  */
 import { describe, it, expect, afterEach } from 'vitest';
-import { etats } from './index';
-import { setDataset, resetData, datasetArray, ancetreDuDe, champDEnTete, deDeLaTable, setEnTete } from './overrides';
+import { etats, weatherPhysicalTestChars, structureCriticalsLabel } from './index';
+import { setDataset, resetData, datasetArray, ancetreDuDe, champDEnTete, deDeLaTable, setEnTete, type DatasetKey } from './overrides';
+import { SHIP_CRIT_SET, RIVER_CRIT_SET, findFallTable, shipCritSetIds } from './shipCriticals';
+import { obsessionsSource } from './obsessions';
+import { moraleBase } from '../engine/crewMorale';
+import { manannBase } from '../engine/seaVoyage';
 import { versionDuDataset } from './versionDataset';
 import { critiqueDie } from './criticals';
 import { encounterDie } from '../engine/travelTables';
@@ -90,5 +94,47 @@ describe('overrides — en-tête d’une catégorie de niche, porte `setEnTete` 
     resetData();
     expect(deDeLaTable('seaBoardEvents')).toBe('d100');
     expect(champDEnTete('seaBoardEvents', '', 'ajout')).toBeUndefined();
+  });
+});
+
+describe('overrides — tout lecteur d’un champ d’en-tête le lit à l’appel (#1667)', () => {
+  afterEach(() => resetData());
+
+  const chute = { id: 'chute-ecrite', label: 'Chute écrite', bandes: [] };
+  const lecteurs: { fichier: string; cle: DatasetKey; ancetre: string; champ: string; valeur: unknown; lire: () => unknown; attendu: unknown }[] = [
+    { fichier: 'crew-morale', cle: 'crewMoraleFactors', ancetre: '', champ: 'base', valeur: 40, lire: moraleBase, attendu: 40 },
+    { fichier: 'sea-events', cle: 'seaManannFactors', ancetre: 'manann', champ: 'base', valeur: 7, lire: () => manannBase().score, attendu: 7 },
+    { fichier: 'ship-criticals', cle: 'shipCriticalsCoque', ancetre: '', champ: 'shrapnelHit', valeur: [], lire: () => SHIP_CRIT_SET.shrapnelHit, attendu: [] },
+    { fichier: 'ship-criticals', cle: 'shipCriticalsCoque', ancetre: '', champ: 'replisSansExpose', valeur: { cible: 'greement' }, lire: () => SHIP_CRIT_SET.replisSansExpose, attendu: { cible: 'greement' } },
+    { fichier: 'river-criticals', cle: 'riverCriticalsCoque', ancetre: '', champ: 'replisSansExpose', valeur: { cible: 'greement' }, lire: () => RIVER_CRIT_SET.replisSansExpose, attendu: { cible: 'greement' } },
+    { fichier: 'ship-criticals', cle: 'shipCriticalsCoque', ancetre: '', champ: 'tablesDeChute', valeur: [chute], lire: () => findFallTable(chute.id), attendu: chute },
+    { fichier: 'weather', cle: 'weather', ancetre: '', champ: 'physicalTestChars', valeur: ['sociabilite'], lire: weatherPhysicalTestChars, attendu: ['sociabilite'] },
+    { fichier: 'obsessions', cle: 'obsessions', ancetre: '', champ: 'source', valeur: { book: 'x', page: 1 }, lire: obsessionsSource, attendu: { book: 'x', page: 1 } },
+    { fichier: 'ship-criticals', cle: 'shipCriticalsCoque', ancetre: '', champ: 'id', valeur: 'jeu-ecrit', lire: shipCritSetIds, attendu: ['jeu-ecrit', 'river-criticals'] },
+    { fichier: 'river-criticals', cle: 'riverCriticalsCoque', ancetre: '', champ: 'id', valeur: 'jeu-ecrit', lire: () => RIVER_CRIT_SET.id, attendu: 'jeu-ecrit' },
+    { fichier: 'structure-criticals', cle: 'structureCriticals', ancetre: '', champ: 'label', valeur: 'Libellé écrit', lire: structureCriticalsLabel, attendu: 'Libellé écrit' },
+  ];
+
+  it.each(lecteurs)('$fichier › $ancetre $champ : la valeur écrite par `setEnTete` est lue, `resetData` rend la graine', ({ cle, ancetre, champ, valeur, lire, attendu }) => {
+    const graine = structuredClone(lire());
+    expect(graine, 'la graine diffère de la valeur écrite').not.toEqual(attendu);
+    setEnTete(cle, [{ ancetre, champ, valeur }]);
+    expect(lire()).toEqual(attendu);
+    resetData();
+    expect(lire()).toEqual(graine);
+  });
+});
+
+describe('overrides — `setEnTete` ne garde aucune référence de l’appelant (#1667)', () => {
+  afterEach(() => resetData());
+
+  it('un même objet écrit sur deux racines : `resetData` rend à chacune SA graine', () => {
+    const graines = [structuredClone(SHIP_CRIT_SET.replisSansExpose), structuredClone(RIVER_CRIT_SET.replisSansExpose)];
+    const valeur = { cible: 'greement' };
+    setEnTete('shipCriticalsCoque', [{ ancetre: '', champ: 'replisSansExpose', valeur }]);
+    setEnTete('riverCriticalsCoque', [{ ancetre: '', champ: 'replisSansExpose', valeur }]);
+    resetData();
+    expect([SHIP_CRIT_SET.replisSansExpose, RIVER_CRIT_SET.replisSansExpose]).toEqual(graines);
+    expect(valeur, 'la valeur de l’appelant reste la sienne').toEqual({ cible: 'greement' });
   });
 });

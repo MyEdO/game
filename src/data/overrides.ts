@@ -466,7 +466,8 @@ for (const [fichier, ancetres] of ANCETRES_DU_FICHIER) {
   GRAINE_EN_TETE.set(fichier, graine);
 }
 
-/** Écrit EN PLACE des champs de l'EN-TÊTE de la catégorie de niche `cle` (#1667) et VERSIONNE l'écriture
+/** Écrit EN PLACE un clone de chaque valeur (la porte ne garde aucune référence de l'appelant) dans des
+ *  champs de l'EN-TÊTE de la catégorie de niche `cle` (#1667) et VERSIONNE l'écriture
  *  pour toutes les clés de son fichier — un champ d'une racine partagée (`rencontres-edoc.json`) l'est
  *  par toutes ses tables. LÈVE avant toute écriture sur une écriture hors de l'en-tête (`noeudDEnTete`) ;
  *  la validation de la valeur reste à la transaction de l'atelier (`enregistrerEntree`). */
@@ -474,7 +475,7 @@ export function setEnTete(cle: DatasetKey, ecritures: readonly EcritureDEnTete[]
   const poses = ecritures.map((e) => [noeudDEnTete(cle, e.ancetre, e.champ), e] as const);
   for (const [noeud, { champ, valeur }] of poses) {
     if (valeur === undefined) delete noeud[champ];
-    else noeud[champ] = valeur;
+    else noeud[champ] = structuredClone(valeur);
   }
   for (const c of CLES_DU_FICHIER.get(DATASET_FICHIER_DERIVE[cle]) ?? []) bumperDataset(c);
 }
