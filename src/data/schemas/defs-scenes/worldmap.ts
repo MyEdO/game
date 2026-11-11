@@ -9,7 +9,7 @@ import { nommerChamps } from '../grammaire/meta';
  */
 import { z } from 'zod';
 import { proseNommee } from '../grammaire/prose';
-import { effectSchema, waterExposureModeSchema } from './effets';
+import { effetHorsSceneSchema, waterExposureModeSchema } from './effets';
 import { conditionCondCtxSchema } from '../grammaire/campagne';
 import { enumNomme, pointDuPlanSchema } from '../grammaire/valeurs';
 import { LIEUX_DE_LA_CARTE, ROUTES_DE_LA_CARTE, routeBilletSchema, provenancesDeRouteSchema } from '../grammaire/route';
@@ -141,7 +141,7 @@ export const mapPlaceSchema = nommerChamps(z.strictObject({
 export const routePerilSchema = nommerChamps(z.strictObject({
   label: z.string(),
   chancePct: z.number(),
-  effects: z.array(effectSchema),
+  effects: z.array(effetHorsSceneSchema),
 }).superRefine((peril, ctx) => refuserLesIndividus(peril.effects, ctx, 'une péripétie de route')), { label: { label: "libellé" , texte: { regime: "designation"} }, chancePct: { label: "probabilité" }, effects: { label: "effets" } });
 
 /** Une référence à un lieu de la carte (`ref(LIEUX_DE_LA_CARTE)`). */

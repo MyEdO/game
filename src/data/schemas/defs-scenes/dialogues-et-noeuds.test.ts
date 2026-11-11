@@ -1,8 +1,10 @@
 /**
- * #2968 L15 — le nœud d'un dialogue (`start`, `choices[].next`) et le dialogue d'une entité (`dialogueId`) se
- * désignent par `ref(portee)` : `{ id }` jugé au parse contre la collection `nodes` du MÊME dialogue, `dialogues`
- * de la MÊME scène, que chacun ouvre (`ouvrirPortees`). Fixtures : référence connue, inconnue, écrite en id nu,
- * d'une portée ÉTRANGÈRE (le nœud d'un autre dialogue, le dialogue d'une autre scène), et portée locale.
+ * #2968 L15, #3606 M2d — le nœud d'un dialogue (`start`, `choices[].next`), le dialogue d'une entité (`dialogueId`) et
+ * d'un effet `startDialogue`, et l'entité d'un effet (`startDialogue.speakerId`, `openMerchant.entityId`,
+ * `medicalAid.entityId`) se désignent par `ref(portee)` : `{ id }` jugé au parse contre la collection `nodes` du MÊME
+ * dialogue, `dialogues` ou `entities` de la MÊME scène, que chacun ouvre (`ouvrirPortees`). Fixtures : référence
+ * connue, inconnue, écrite en id nu, d'une portée ÉTRANGÈRE (le nœud d'un autre dialogue, le dialogue ou l'entité
+ * d'une autre scène), et portée locale.
  */
 import { describe, expect, it } from 'vitest';
 import { sceneSchema } from './scene';
@@ -30,6 +32,11 @@ const hub = (retouche: (copie: Scene) => void): Scene => {
   return copie;
 };
 
+/** Le chemin de l'effet du premier choix du premier nœud du dialogue du médecin, et le hub où cet effet vaut `effet`. */
+const RANG_DIALOGUE = HUB.dialogues.findIndex((d) => d.id === 'dlg-medecin');
+const EFFET = `dialogues.${RANG_DIALOGUE}.nodes.0.choices.0.flow.steps.0.effect`;
+const avecEffet = (effet: unknown) => hub((c) => Object.assign(c.dialogues[RANG_DIALOGUE].nodes[0].choices[0].flow!.steps![0], { effect: effet }));
+
 const PORTEURS = [
   {
     porteur: 'scenes[].dialogues[].start', chemin: 'dialogues.0.start', connue: 'echelle', etrangere: 'rumeurs', catalogue: 'nœuds du dialogue', collection: 'nodes',
@@ -43,6 +50,22 @@ const PORTEURS = [
     porteur: 'scenes[].entities[].dialogueId', chemin: `entities.${RANG_ENTITE}.dialogueId`, connue: 'dlg-garde', etrangere: 'dlg-prisonnier', catalogue: 'dialogues de la scène', collection: 'dialogues',
     avec: (v: unknown) => hub((c) => Object.assign(c.entities[RANG_ENTITE], { dialogueId: v })),
   },
+  {
+    porteur: 'effet startDialogue.dialogue', chemin: `${EFFET}.dialogue`, connue: 'dlg-garde', etrangere: 'dlg-prisonnier', catalogue: 'dialogues de la scène', collection: 'dialogues',
+    avec: (v: unknown) => avecEffet({ type: 'startDialogue', dialogue: v }),
+  },
+  {
+    porteur: 'effet startDialogue.speakerId', chemin: `${EFFET}.speakerId`, connue: 'maitre', etrangere: 'prisonnier', catalogue: 'entités de la scène', collection: 'entities',
+    avec: (v: unknown) => avecEffet({ type: 'startDialogue', dialogue: { id: 'dlg-garde' }, speakerId: v }),
+  },
+  {
+    porteur: 'effet openMerchant.entityId', chemin: `${EFFET}.entityId`, connue: 'medecin', etrangere: 'prisonnier', catalogue: 'entités de la scène', collection: 'entities',
+    avec: (v: unknown) => avecEffet({ type: 'openMerchant', entityId: v }),
+  },
+  {
+    porteur: 'effet medicalAid.entityId', chemin: `${EFFET}.entityId`, connue: 'medecin', etrangere: 'prisonnier', catalogue: 'entités de la scène', collection: 'entities',
+    avec: (v: unknown) => avecEffet({ type: 'medicalAid', acts: [{ act: 'blessures' }], entityId: v }),
+  },
 ];
 
 describe('#2968 L15 — dialogues et nœuds désignés par `ref(portee)`', () => {
@@ -52,7 +75,7 @@ describe('#2968 L15 — dialogues et nœuds désignés par `ref(portee)`', () =>
         expect(sceneSchema.safeParse(s).success).toBe(true);
         return mesureDuParse(sceneSchema, s).reperes.filter((r) => r.type === cible);
       }).length;
-    expect([compte(areneProjet, 'local:nodes'), compte(areneProjet, 'local:dialogues')]).toEqual([9 + 14, 9]);
+    expect([compte(areneProjet, 'local:nodes'), compte(areneProjet, 'local:dialogues')]).toEqual([9 + 14, 9 + 1]);
     expect([compte(loupEtSaumureProjet, 'local:nodes'), compte(loupEtSaumureProjet, 'local:dialogues')]).toEqual([8 + 23, 8]);
   });
 

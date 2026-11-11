@@ -120,3 +120,15 @@ describe('#2968 L13 — routes et lieux de la carte désignés par `ref(portee)`
     expect(Object.keys(IDS_PAR_ESPACE).filter((c) => /worldMap|places|routes/.test(c))).toEqual([]);
   });
 });
+
+describe('`routePerilSchema` — un péril de route n’a pas de scène : ses effets sont l’union HORS SCÈNE (`effetHorsSceneSchema`)', () => {
+  const avecPeril = (effet: unknown) => carte((c) => Object.assign(c.routes[LIBRE], { perils: [{ label: 'Péripétie', chancePct: 10, effects: [effet] }] }));
+
+  it('un péril qui porte un `startDialogue` est refusé au parse', () => {
+    expect(messages(avecPeril({ type: 'startDialogue', dialogue: { id: 'dlg' } })).some((m) => m.startsWith(`routes.${LIBRE}.perils.0.effects.0`))).toBe(true);
+  });
+
+  it('un péril qui porte un effet sans portée de la scène parse', () => {
+    expect(worldMapSchema.safeParse(avecPeril({ type: 'journal', desc: 'Un colporteur partage la route.' })).success).toBe(true);
+  });
+});

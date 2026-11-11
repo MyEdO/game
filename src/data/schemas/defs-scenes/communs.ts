@@ -17,6 +17,13 @@ import { ID_D_ENTREE } from '../../source/dossier';
 /** Les scènes du projet, que désignent un lieu de la carte, son point d'intérêt, l'embuscade d'une route et
  *  l'effet `transition`. */
 export const SCENES_DU_PROJET = { collection: 'scenes', catalogue: 'scènes du projet' } as const satisfies PorteeLocale;
+/** Les dialogues de la scène, que désignent `entities[].dialogueId` et l'effet `startDialogue`. */
+export const DIALOGUES_DE_LA_SCENE = { collection: 'dialogues', catalogue: 'dialogues de la scène' } as const satisfies PorteeLocale;
+/** Les entités de la scène, que désignent le locuteur de l'effet `startDialogue` et l'entité des effets `openMerchant`
+ *  et `medicalAid`. */
+export const ENTITES_DE_LA_SCENE = { collection: 'entities', catalogue: 'entités de la scène' } as const satisfies PorteeLocale;
+/** Les portées locales qu'ouvre la scène (`sceneSchema`). */
+export const PORTEES_DE_LA_SCENE: readonly PorteeLocale[] = [DIALOGUES_DE_LA_SCENE, ENTITES_DE_LA_SCENE];
 
 /** `Pt` (`noyau/monde/path.ts`) — case, `z` = couche d'empilement (absent = base). */
 export const ptSchema = nommerChamps(z.strictObject({ x: z.number(), y: z.number(), z: z.number().optional() }), { x: { label: "abscisse" }, y: { label: "ordonnée" }, z: { label: "étage" } });

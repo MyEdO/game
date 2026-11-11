@@ -916,7 +916,7 @@ export function renameDialogue(scene: Scene, from: string, to: string): Scene {
   const declares = dialoguesDeLaScene(scene);
   if (!next || next === from || declares.has(next) || !declares.has(from)) return scene;
   const copie = structuredClone(scene);
-  for (const { effet } of sitesDeLaScene(copie).effets) if (effet.type === 'startDialogue' && effet.dialogue === from) effet.dialogue = next;
+  for (const { effet } of sitesDeLaScene(copie).effets) if (effet.type === 'startDialogue' && estObjet(effet.dialogue) && effet.dialogue.id === from) effet.dialogue = { id: next };
   const renomme = { ...copie, dialogues: copie.dialogues.map((d) => (d.id === from ? { ...d, id: next } : d)) };
   return renomme.entities.filter((e) => e.dialogueId?.id === from).reduce((s, e) => editEntity(s, e.id, { dialogueId: { id: next } }), renomme);
 }
