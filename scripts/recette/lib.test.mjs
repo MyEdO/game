@@ -1525,6 +1525,27 @@ test('brancherCdp : un appel sur socket FERMÉE est REJETÉ sans pendre, typé c
   assert.deepEqual(ws.envoyes, [])
 })
 
+test('brancherCdp : la page PLANTE, tout appel sur SA session, en vol ou à venir, est rejeté typé, sans passer pour une navigation', async () => {
+  const ecoutes = { message: [], close: [] }
+  const envoyes = []
+  const ws = { addEventListener: (t, fn) => ecoutes[t].push(fn), send: (brut) => envoyes.push(JSON.parse(brut).method), readyState: WebSocket.OPEN }
+  const dire = (m) => ecoutes.message.forEach((fn) => fn({ data: JSON.stringify(m) }))
+  const session = brancherCdp(ws, { sessionId: 'S' })
+  let regle = false
+  const enVol = bornee(session.rpc('Runtime.evaluate', { expression: '1' }).finally(() => { regle = true }))
+  const duNavigateur = bornee(session.rpcNavigateur('Target.closeTarget', { targetId: 'T' }), 50)
+  dire({ method: 'Inspector.targetCrashed', sessionId: 'autre' })
+  await new Promise((r) => setTimeout(r))
+  assert.equal(regle, false)
+  dire({ method: 'Inspector.targetCrashed', sessionId: 'S' })
+  const issue = await enVol
+  assert.equal(issue.code, kitRecette.PAGE_PLANTEE)
+  assert.equal(isNavigationError(issue), false)
+  assert.equal((await bornee(session.rpc('Runtime.evaluate', { expression: '2' }))).code, kitRecette.PAGE_PLANTEE)
+  assert.deepEqual(envoyes, ['Runtime.evaluate', 'Target.closeTarget'])
+  assert.equal(await duNavigateur, 'PENDU')
+})
+
 test('attacherSession : close() d’une session dont la socket est déjà FERMÉE se résout', async () => {
   const { ws, opts } = attacheFactice()
   const s = await attacherSession('/tmp/s.json', opts)

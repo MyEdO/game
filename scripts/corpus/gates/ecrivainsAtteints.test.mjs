@@ -875,9 +875,9 @@ const ATTENDU = {
     "scripts/test/verrou.mjs",
   ],
   'test:noyau': ['scripts/guards/lib/protectionWorktree.mjs'],
-  // #2928, #2948, #3778, ECRIT_LU (`scripts/gates/toutes.mjs`).
-  'pont:godot': ['scripts/guards/lib/protectionWorktree.mjs', 'hotes/godot/construire.mjs', 'hotes/godot/listage.mjs'],
-  'godot:sonde': ['scripts/guards/lib/protectionWorktree.mjs', 'hotes/godot/construire.mjs', 'hotes/godot/listage.mjs'],
+  // #2928, #2948, #3778, #3935, ECRIT_LU (`scripts/gates/toutes.mjs`).
+  'pont:godot': ['scripts/guards/lib/protectionWorktree.mjs', 'hotes/godot/construire.mjs', 'hotes/godot/listage.mjs', 'hotes/godot/planches.mjs'],
+  'godot:sonde': ['scripts/guards/lib/protectionWorktree.mjs', 'hotes/godot/construire.mjs', 'hotes/godot/listage.mjs', 'hotes/godot/planches.mjs'],
   // #3145, ECRIT_LU (`scripts/gates/toutes.mjs`) : `environnement.mjs` écrit le venv et son témoin sous
   // `~/.cache/wfrp-personnage-3d/`, hors de l'arbre.
   'personnage-3d:tests': ['scripts/personnage-3d/environnement.mjs'],

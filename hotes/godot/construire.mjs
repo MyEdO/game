@@ -15,7 +15,7 @@
 // (`hotes/godot/recettes/editeur.ts`) écrits dans la copie ; la CI la joue
 // (`npm run godot:sonde`). `--export --sortie <dossier>` y écrit le bundle,
 // puis l'export Web du projet (`export_presets.cfg`) et, à côté, le dossier des modèles et son listage
-// (`deposerLesModeles`, #3778) : un site statique, que `deploy.yml` publie et que `recette.mjs` joue au navigateur, sur le modèle d'export que
+// (`deposerLesModeles`, #3778) et les planches (`deposerLesPlanches`, #3935) : un site statique, que `deploy.yml` publie et que `recette.mjs` joue au navigateur, sur le modèle d'export que
 // son préréglage nomme (`modeleDuPreset`) : tiré par tranches (`Range`) de l'archive des modèles publiée, vérifié par sa
 // somme épinglée (`EDITEUR.modeles`), gardé sous `CACHE` (#2943), donné par `custom_template/release`. Godot ne
 // travaille que sur une copie du projet sous le dossier temporaire : l'arbre n'en reçoit rien, ni les modèles d'export
@@ -36,6 +36,7 @@ import { listerDossier } from '../../scripts/guards/lib/lister.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { chargerAssets } from './asset/charger.mjs'
 import { deposerLesModeles, listage } from './listage.mjs'
+import { deposerLesPlanches } from './planches.mjs'
 
 const { DOSSIER_DES_MODELES, enCacheOuTire, recupererModeles, recupererEpingles, verifierSomme, figerVuesDeLEcran, figerLeVehicule, figerLeRepos, figerLeDecor, figerLeChemin, figerLEditeurDuNavire } = await chargerAssets([
   "export { figerVuesDeLEcran } from '/hotes/godot/recettes/ecran.ts';",
@@ -393,6 +394,7 @@ async function principal() {
   const sortie = verdict(exporter(await editeur(), options.sortie, await modeleWeb()))
   if (sortie) return sortie
   deposerLesModeles(DOSSIER_DES_MODELES, options.sortie)
+  deposerLesPlanches(options.sortie)
   console.log(`[godot] export Web : ${listerDossier(options.sortie).map((f) => `${f} ${octets(statSync(join(options.sortie, f)).size)}`).join(', ')}`)
   return 0
 }
