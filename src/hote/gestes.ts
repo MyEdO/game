@@ -126,7 +126,7 @@ const LECTEURS: readonly { lire: (s: Jeu) => object | null; regle?: (g: GesteDuJ
   { lire: fenetreDuSoin },
   { lire: fenetreDuButin, regle: parmi(REGLAGES_DU_BUTIN) },
   { lire: fenetreDeDetermination, regle: parmi(VERBES_DU_JET_PSY) },
-  // Le repos règle ses dormeurs dans son corps (`reposEnVue`), l'interlude l'Activité que compose chaque héros
+  // Le repos règle la nuit de ses dormeurs sur leurs cartes (`reposEnVue`), l'interlude l'Activité que compose chaque héros
   // (`interludeEnVue`) : ils ne nomment aucun réglage, la fenêtre ne redit pas leurs choix.
   { lire: reposEnVue, regle: sesChoix },
   { lire: interludeEnVue, regle: sesChoix },

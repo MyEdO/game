@@ -19,12 +19,12 @@ describe('l’Effet de scène « nouveau héros » par le pont', () => {
     const signer = suite.vue.zones['exploration.gestes'].find((b) => b.libelle.startsWith('Avis d’enrôlement'));
     expect(signer, 'à portée, l’avis offre son geste d’exploration').toBeDefined();
     expect(suite.vue.zones['creation.titre'], 'aucune création avant le geste').toEqual([]);
-    const groupe = suite.vue.zones['groupe.heros'].map((b) => b.libelle);
+    const groupe = suite.vue.zones['groupe.heros'].map((c) => c.nom);
 
     ({ suite } = drainer(appel, appel('jouer', signer!.jeu)));
     expect(suite.vue.zones['creation.titre'][0]?.texte, 'la création ouverte à sa première page').toBe('Race · 1/10');
     expect(suite.vue.zones['groupe.gestes'].find((b) => b.id === 'creation')?.presse, 'comme par « Nouveau héros », son bouton pressé').toBe(true);
-    expect(suite.vue.zones['groupe.heros'].map((b) => b.libelle), 'la partie n’a pas changé de groupe').toEqual(groupe);
+    expect(suite.vue.zones['groupe.heros'].map((c) => c.nom), 'la partie n’a pas changé de groupe').toEqual(groupe);
 
     const tirage = suite.vue.zones['creation.corps'].find((e): e is Bouton => e.type === 'bouton' && e.id === 'tirage')!;
     ({ suite } = drainer(appel, appel('creation', tirage.jeu)));

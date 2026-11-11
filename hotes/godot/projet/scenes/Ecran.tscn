@@ -45,6 +45,13 @@ theme_type_variation = &"Panneau"
 
 [node name="Pile" type="VBoxContainer" parent="Interface/Droite"]
 
+[node name="Gestes" type="HBoxContainer" parent="Interface/Droite/Pile"]
+alignment = 2
+
+[node name="Zone" type="Node" parent="Interface/Droite/Pile/Gestes"]
+script = ExtResource("1_zone")
+source = "groupe.gestes"
+
 [node name="Titre" type="VBoxContainer" parent="Interface/Droite/Pile"]
 
 [node name="Zone" type="Node" parent="Interface/Droite/Pile/Titre"]
@@ -65,7 +72,7 @@ script = ExtResource("1_zone")
 source = "journal.lignes"
 ajout = true
 
-[node name="Bas" type="PanelContainer" parent="Interface"]
+[node name="Pied" type="PanelContainer" parent="Interface"]
 visible = false
 anchors_preset = 12
 anchor_top = 1.0
@@ -76,20 +83,29 @@ grow_horizontal = 2
 grow_vertical = 0
 theme_type_variation = &"Panneau"
 
-[node name="Pile" type="VBoxContainer" parent="Interface/Bas"]
+[node name="Pile" type="VBoxContainer" parent="Interface/Pied"]
+theme_type_variation = &"PileSerree"
 
-[node name="Offres" type="VBoxContainer" parent="Interface/Bas/Pile"]
+[node name="Offres" type="VBoxContainer" parent="Interface/Pied/Pile"]
 
-[node name="Zone" type="Node" parent="Interface/Bas/Pile/Offres" node_paths=PackedStringArray("masque")]
+[node name="Zone" type="Node" parent="Interface/Pied/Pile/Offres" node_paths=PackedStringArray("masque")]
 script = ExtResource("1_zone")
 source = "combat.offres"
 masque = NodePath("../../..")
 
-[node name="Exploration" type="HFlowContainer" parent="Interface/Bas/Pile"]
+[node name="Exploration" type="HFlowContainer" parent="Interface/Pied/Pile"]
 
-[node name="Zone" type="Node" parent="Interface/Bas/Pile/Exploration" node_paths=PackedStringArray("masque")]
+[node name="Zone" type="Node" parent="Interface/Pied/Pile/Exploration" node_paths=PackedStringArray("masque")]
 script = ExtResource("1_zone")
 source = "exploration.gestes"
+masque = NodePath("../../..")
+
+[node name="Heros" type="HFlowContainer" parent="Interface/Pied/Pile"]
+theme_type_variation = &"Cartes"
+
+[node name="Zone" type="Node" parent="Interface/Pied/Pile/Heros" node_paths=PackedStringArray("masque")]
+script = ExtResource("1_zone")
+source = "groupe.heros"
 masque = NodePath("../../..")
 
 [node name="Haut" type="PanelContainer" parent="Interface"]
@@ -130,33 +146,6 @@ mouse_filter = 2
 script = ExtResource("1_zone")
 source = "combat.apercu"
 masque = NodePath("../..")
-
-[node name="Groupe" type="VBoxContainer" parent="Interface"]
-theme_type_variation = &"Pile"
-anchors_preset = 9
-anchor_bottom = 1.0
-offset_left = 8.0
-offset_top = 120.0
-offset_bottom = -220.0
-grow_vertical = 2
-mouse_filter = 2
-
-[node name="Defilement" type="ScrollContainer" parent="Interface/Groupe"]
-size_flags_vertical = 3
-horizontal_scroll_mode = 0
-
-[node name="Heros" type="VBoxContainer" parent="Interface/Groupe/Defilement"]
-theme_type_variation = &"PileSerree"
-
-[node name="Zone" type="Node" parent="Interface/Groupe/Defilement/Heros"]
-script = ExtResource("1_zone")
-source = "groupe.heros"
-
-[node name="Gestes" type="VBoxContainer" parent="Interface/Groupe"]
-
-[node name="Zone" type="Node" parent="Interface/Groupe/Gestes"]
-script = ExtResource("1_zone")
-source = "groupe.gestes"
 
 [node name="Dialogue" type="PanelContainer" parent="Interface"]
 visible = false

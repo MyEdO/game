@@ -183,7 +183,7 @@ export function figerVuesDeLEcran(): VueFigee[] {
     s = jouer('jouer', presse(s));
   }
   figer('Coup Critique', s);
-  s = appeler('fiche', s.vue.zones['groupe.heros'][0].jeu);
+  s = appeler('fiche', s.vue.zones['groupe.heros'][0].elements.find((e): e is Bouton => e.type === 'bouton' && e.id.startsWith('fiche/'))!.jeu);
   figer('fiche du héros, son statbloc', s);
   const possessions = s.vue.zones['fiche.sections'].find((e) => e.id === 'section/possessions')!.elements;
   s = appeler('fiche', possessions.find((e): e is Bouton => e.type === 'bouton')!.jeu);

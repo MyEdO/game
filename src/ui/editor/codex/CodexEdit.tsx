@@ -34,7 +34,7 @@ import { ProseField } from '../../ProseField';
 import { SourceRefField, SuiviDesSaisies, useSaisieEnCours, useSuiviDesSaisies } from '../../SourceRefField';
 import { useClesDeRangees } from '../../useClesDeRangees';
 import { PlageField, type PlageDomaine, type PlageValue } from '../../PlageField';
-import { formatDice, parseDice, totalDuDe } from '../../../engine/dice';
+import { type DiceSpec, formatDice, parseDice, totalDuDe } from '../../../engine/dice';
 import { deDeLaTableTiree, facesDuDe } from '../../../engine/tables';
 import { GatedAction } from '../../GatedAction';
 import { raceKeySchema } from '../../../data/schemas/grammaire/valeurs';
@@ -74,7 +74,7 @@ import { OPTIONAL_RULES, type RuleKind, type RuleValue } from '../../../engine/p
 import { VARIANT_RESOLVED_FIELDS as TALENT_VARIANT_FIELDS } from '../../../data/schemas/defs/talents';
 import { VARIANT_RESOLVED_FIELDS as SPELL_VARIANT_FIELDS } from '../../../data/schemas/defs/spells';
 import { Grid } from '../../Layout';
-import { entryKey, findTrappingById } from '../../../data';
+import { entryKey, findTrappingById, starSubDie } from '../../../data';
 import { estObjet } from '../../../lib/objet.mjs';
 
 /** Catégories à VARIANTES réglées (#563/#564), avec les champs que leur résolution APPLIQUE — valeurs
@@ -180,8 +180,9 @@ const porteAlsoIn = (categoryKey: string): boolean => {
  * SOURCE UNIQUE : utilisée par le filtre de `CodexEdit` ET par le garde-fou `no-json-fields.test` (qui
  * vérifie qu'aucun champ d'aucun dataset éditable ne retombe en `kind:'json'`). Ajouter un éditeur dédié
  * = ajouter sa/ses clé(s) ici (et le composant dans le rendu). */
-/** Les tables d'événements de mer (`sea-events.json`), dont la `consequence` est un Flow de racine `evenementDeMer`. */
-const EVENEMENTS_DE_MER: readonly string[] = ['seaBoardEvents', 'seaPortEvents'];
+/** Les tables tirées de `sea-events.json` (événements de bord, d'escale, paliers du Voyage rapide), dont la
+ *  `consequence` est un Flow de racine `evenementDeMer`. */
+const EVENEMENTS_DE_MER: readonly string[] = ['seaBoardEvents', 'seaPortEvents', 'seaFastVoyage'];
 
 export function dedicatedFieldKeys(categoryKey: string): Set<string> {
   const k = new Set<string>();
@@ -245,7 +246,7 @@ export function dedicatedFieldKeys(categoryKey: string): Set<string> {
   // `dispoPct`/`barterRatios` (tableaux top-level) → éditeur GÉNÉRIQUE commun (`GenericArrayField`).
   if (categoryKey === 'disponibilite') add('dispoPct', 'barterRatios');
   // Fourchettes à DEUX bornes (#1659) — toutes servies par la MÊME primitive (`PlageField`) : la
-  // longueur de coque (bande finale ouverte, MDG 12 l.129), le sous-tirage astral (1d10, ADE II 03
+  // longueur de coque (bande finale ouverte, MDG 12 l.129), le sous-tirage astral (ADE II 03
   // l.63) ci-dessus, et les quatre colonnes de disponibilité saisonnière (d100). Sans cette ligne,
   // `avail` retombait sur le sous-formulaire générique et rendait ses clefs techniques à l'écran.
   if (categoryKey === 'shipHullSizes') add('lengthM');
@@ -382,6 +383,7 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
   const isWeather = categoryKey === 'weather';
   // Table d'effets : ses `entries` (plages de son dé → opérations) ont leur éditeur dédié (#1667).
   const isEffectTable = categoryKey === 'effectTables';
+  const deDeLEntree = typeof entry.die === 'string' ? parseDice(entry.die) : null;
   // Arme DÉRIVÉE (WeaponField) : portée par une Mutation (Tentacule…) OU une Possession (prothèse-arme).
   const hasDerivedWeapon = categoryKey === 'mutations' || categoryKey === 'trappings';
   const hasConsumable = categoryKey === 'trappings';
@@ -402,7 +404,7 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
   const hasTrappings = categoryKey === 'classes' || categoryKey === 'careerLevels' || categoryKey === 'creatures' || categoryKey === 'pregens';
   // Niveau de carrière : `characteristics` = CharKey[] (vocab fermé) → multi-sélection (pas de saisie libre).
   const hasCharKeys = categoryKey === 'careerLevels';
-  // Étoile : `sub` = la fourchette du 1d10 interne (Étoile du Sorcier, ADE II 03 l.63) → `PlageField`.
+  // Étoile : `sub` = la fourchette du sous-tirage (`starSubDie`, ADE II 03 l.63) → `PlageField`.
   const hasStarSub = categoryKey === 'stars';
   // Cargaison : `avail` = quatre colonnes d100, une fourchette par saison.
   const hasDispoSaisonniere = categoryKey === 'cargoes';
@@ -610,9 +612,9 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
         {isTriggered && <TriggeredEffectsField noeud={noeudDe('effects')} value={entry.effects as TriggeredEffect[] | undefined} onChange={(v) => edit('effects', v)} />}
         {hasConsumable && <TriggeredEffectsField noeud={noeudDe('onHitEffects')} label="effets à la touche de l’arme (onHit → Flow d’ops, ADE II)" value={entry.onHitEffects as TriggeredEffect[] | undefined} onChange={(v) => edit('onHitEffects', v.length ? v : undefined)} />}
         {isManeuver && <ManeuverDefField entry={entry} edit={edit} />}
-        {isMutationTable && <MutationTableField domaine={domaineDuDe(entry.die)} value={entry.entries as MutationRange[] | undefined} onChange={(v) => edit('entries', v)} />}
-        {isEffectTable && <EffectTableRowsField domaine={domaineDuDe(entry.die)} value={entry.entries as EffectTableRow[] | undefined} onChange={(v) => edit('entries', v)} />}
-        {isWeather && <WeatherRangesField domaine={domaineDuDe(entry.die)} value={entry.entries as { min: number; max: number; weather: string }[] | undefined} onChange={(v) => edit('entries', v)} />}
+        {isMutationTable && <MutationTableField domaine={domaineDuDe(deDeLEntree)} value={entry.entries as MutationRange[] | undefined} onChange={(v) => edit('entries', v)} />}
+        {isEffectTable && <EffectTableRowsField domaine={domaineDuDe(deDeLEntree)} value={entry.entries as EffectTableRow[] | undefined} onChange={(v) => edit('entries', v)} />}
+        {isWeather && <WeatherRangesField domaine={domaineDuDe(deDeLEntree)} value={entry.entries as { min: number; max: number; weather: string }[] | undefined} onChange={(v) => edit('entries', v)} />}
         {hasDerivedWeapon && <WeaponField value={entry.derivedWeapon as ArmeDerivee | undefined} onChange={(v) => edit('derivedWeapon', v)} />}
         {hasConsumable && (
           <div className="ed-field">
@@ -643,9 +645,7 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
         {hasStarSub && (
           <PlageField
             label="Sous-tirage"
-            // ADE II 03 l.63 : « L'Étoile du Sorcier | Lancez un 1d10 » — le dé et son domaine sont un
-            // fait de la TABLE, cité ici ; la primitive n'en connaît aucun.
-            domaine={{ nom: '1d10', min: 1, max: 10 }}
+            domaine={domaineDuDe(starSubDie())}
             optionnelle
             activation="sous-tirage"
             value={entry.sub as PlageValue | undefined}
@@ -1539,8 +1539,7 @@ function DeDeTirageField({ value, onChange }: { value: string; onChange: (die: s
   );
 }
 
-function domaineDuDe(die: unknown): PlageDomaine {
-  const spec = typeof die === 'string' ? parseDice(die) : null;
+function domaineDuDe(spec: DiceSpec | null): PlageDomaine {
   return spec ? { nom: formatDice(spec), min: totalDuDe(spec, spec.n), max: totalDuDe(spec, spec.n * spec.sides) } : {};
 }
 
