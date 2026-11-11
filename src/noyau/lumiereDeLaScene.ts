@@ -38,6 +38,9 @@ const ENERGIE_DES_SOURCES = 2.5;
 const TON_HORS_CATALOGUE: LightToneDef = { id: MISSING_ID, type: 'lightTones', label: MISSING_LABEL, color: MISSING_TONE, intensity: 1 };
 
 export interface SourceDeLumiere {
+  /** Sa clé, la même d'une vue à l'autre : ce qui la porte (`LightSource.srcId`), posé (`posee/<id>`) ou qui se
+   *  déplace (`portee/<id>`). L'hôte y réconcilie son foyer (#3947). */
+  cle: string;
   /** Foyer en cases (x, y), sa couche, et sa hauteur (m) au-dessus du zéro de la scène. */
   x: number;
   y: number;
@@ -53,8 +56,8 @@ export interface SourceDeLumiere {
   son: SonDEffet | null;
 }
 
-/** La source du ton `ton` (`lightTones.json`) au foyer `foyer`, qui éclaire `rayonCases` cases. */
-export function sourceDuTon(ton: LightToneDef, foyer: Pick<SourceDeLumiere, 'x' | 'y' | 'z' | 'hM'>, rayonCases: number): SourceDeLumiere {
+/** La source du ton `ton` (`lightTones.json`) au foyer `foyer`, sous sa clé, qui éclaire `rayonCases` cases. */
+export function sourceDuTon(ton: LightToneDef, foyer: Pick<SourceDeLumiere, 'cle' | 'x' | 'y' | 'z' | 'hM'>, rayonCases: number): SourceDeLumiere {
   return {
     ...foyer,
     rayonCases,
@@ -96,8 +99,8 @@ function melange(a: string, b: string, t: number): string {
  * de profondeur (`brume` : sa couleur, puis où elle commence et où elle couvre tout, en cases au-delà du point que la
  * caméra vise, ou depuis l'œil en immersion, `depuisLOeil` : celle d'un intérieur quand le groupe est sous un toit,
  * sinon resserrée par la brume de la météo, `povTightenK`) viennent de l'ambiance du lieu, la nuit et la météo les
- * teintent ; chaque source ponctuelle (`sources` : son foyer en cases, sa couche, sa hauteur en mètres, son rayon en
- * cases, sa couleur, son énergie, son vacillement ou `null`, ce qu'elle montre, `visuel` (`feu`, `flammeche`, `lueur`)
+ * teintent ; chaque source ponctuelle (`sources` : sa clé, la même d'une vue à l'autre, son foyer en cases, sa couche,
+ * sa hauteur en mètres, son rayon en cases, sa couleur, son énergie, son vacillement ou `null`, ce qu'elle montre, `visuel` (`feu`, `flammeche`, `lueur`)
  * ou `null`, et le son qu'elle joue en boucle, `son` ou `null`, tous deux de son ton, `lightTones.json`, #3783) vient
  * des lumières posées et portées de la scène (`sceneLightSources`, `sourceDuTon`).
  * @contrat Lumière
@@ -141,6 +144,7 @@ export function lumiereDeLaScene(etat: VisionInput & { scene: Scene }, regard: R
       const ton = catalogEntry(findLightToneById, s.tone ?? DEFAULT_LIGHT_TONE_ID, 'lightTones', TON_HORS_CATALOGUE);
       const z = s.z ?? 0;
       return sourceDuTon(ton, {
+        cle: `${s.carried ? 'portee' : 'posee'}/${s.srcId ?? ''}`,
         x: s.pos.x + (s.foyer?.x ?? 0),
         y: s.pos.y + (s.foyer?.y ?? 0),
         z,

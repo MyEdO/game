@@ -24,8 +24,6 @@ import { TypeFlags } from 'typescript/unstable/sync';
 //   - `registry` : un champ d'op que le parse ne juge pas — op de `OPS_NON_TYPEES`
 //     (`src/data/schemas/grammaire/mecanique.ts`) ou champ à plat d'une op typée ; il meurt au typage de
 //     son op par une référence EMBOÎTÉE, lot L1c #1468 ;
-//   - `coveredBy` : un champ d'op loose jugé au parse par un refus nommé (`refusLoose`, même fichier) ;
-//     il meurt au typage de son op, lot L1c #1468 ;
 //   - les `nonRef` ne visent aucun registre : ils restent, justifiés.
 //
 // POURQUOI PARTIR DU CHAMP, PAS DU LITTÉRAL. `scripts/guards/lib/registryIdBranch.mjs` a mesuré
@@ -62,17 +60,10 @@ const OPS_TYPE = 'GameOp';
  * `op.champ` :
  *   - `{ registry }`            — référence DURE : la valeur doit résoudre dans ce registre.
  *   - `{ nonRef }`              — la valeur n'est la clé d'aucun registre ; le texte dit quoi et qui la lit.
- *   - `{ coveredBy }`           — champ de référence gardé AILLEURS (garde nommée), pas ré-vérifié ici.
- * Ces trois formes sont l'ensemble FERMÉ du format : `src/data/refs-migrated.test.ts` refuse toute clé
- * hors `registry`/`nonRef`/`coveredBy`, et toute valeur non résolue est un offenseur.
+ * Ces deux formes sont l'ensemble FERMÉ du format : `src/data/refs-migrated.test.ts` refuse toute clé
+ * hors `registry`/`nonRef`, et toute valeur non résolue est un offenseur.
  */
 export const GAMEOP_FIELD_TARGETS = {
-  // ── États (etats.json) et Groupes (groups.json) des ops loose ──
-  'condition.id': { coveredBy: '`refuserEtatsInconnus` (src/data/schemas/grammaire/mecanique.ts), appelé par `refusLoose` et par le dialecte miscast `jsonOpSchema` (src/data/schemas/defs/miscast.ts)' },
-  'condition.onlyIfCondition': { coveredBy: '`refuserEtatsInconnus` (src/data/schemas/grammaire/mecanique.ts), appelé par `refusLoose`' },
-  'condition.unlessCondition': { coveredBy: '`refuserEtatsInconnus` (src/data/schemas/grammaire/mecanique.ts), appelé par `refusLoose` ; dialecte miscast : feuille `idDe(\'etat\')`' },
-  'removeCondition.id': { coveredBy: '`refuserEtatsInconnus` (src/data/schemas/grammaire/mecanique.ts), appelé par `refusLoose` et par le dialecte miscast `jsonOpSchema` (src/data/schemas/defs/miscast.ts)' },
-  'condition.onlyGroups': { coveredBy: '`refusLoose` (src/data/schemas/grammaire/mecanique.ts) par `refusDeLId(\'groupe\', id, CIBLE_D_APPARTENANCE)`' },
   // ── Champs que le parse ne juge pas (lot L1c #1468) ──
   'skillDRBonus.testType': { registry: 'crewTestTypes' },
   'manann.factorId': { registry: 'seaManannFactors' },

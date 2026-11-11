@@ -10,7 +10,7 @@ extends Node3D
 
 ## Netteté de la projection d'une texture de matière sur les trois axes (`texturer`).
 const NETTETE_DU_MOTIF := 4.0
-## Le kit des arêtes (`CONTRAT.md`, section « Plateau ») : une pièce par nœud racine, `<famille>--<pièce>`.
+## Le kit des arêtes (`CONTRAT.md`, méthode `aretes`) : une pièce par nœud racine, `<famille>--<pièce>`.
 const KIT := "res://kit/kit.glb"
 
 ## Ce qui se pose sur une arête dont le kit n'a pas la pièce, ou sans kit au projet : un mur, une porte fermée, le seuil
@@ -42,8 +42,6 @@ var _coques := {}
 var _matieres := {}
 ## Le kit des arêtes, hors de l'arbre, `null` sans kit au projet.
 var _kit: Node3D
-## Les arêtes posées (`poser_les_aretes`).
-var _aretes_posees: Array = []
 ## Les clés des arêtes, des nappes de toit et des couronnes cachées à la caméra (`cacher`).
 var _cachees := {aretes = [], toits = [], couronnes = []}
 ## Les clés des couronnes retirées (`retirer_les_couronnes`).
@@ -113,19 +111,29 @@ func poser_les_nappes(toits: Array, couronnes: Array) -> void:
 	_montrer_le_pose()
 
 
-## Les arêtes `aretes` (`CONTRAT.md`, section « Plateau »), chacune sur le côté de sa case, debout à son pied
-## (`_piece`), cachée si `cacher` la nomme ; à la place des précédentes.
+## Les arêtes `aretes` (`CONTRAT.md`, méthode `aretes`), chacune sur le côté de sa case, debout à son pied (`_piece`),
+## cachée si `cacher` la nomme ; réconciliées par clé : une arête inchangée à la même échelle garde sa pièce, une arête
+## changée (une porte ouverte) reçoit la sienne, une arête partie la quitte.
 func poser_les_aretes(aretes: Array) -> void:
-	if aretes == _aretes_posees:
-		return
-	_aretes_posees = aretes
-	for arete in _aretes.get_children():
-		_aretes.remove_child(arete)
-		arete.free()
-	for a in aretes:
+	var posees := {}
+	for piece in _aretes.get_children():
+		posees[piece.get_meta("cle")] = piece
+	for a: Dictionary in aretes:
+		var posee: Node3D = posees.get(a.cle)
+		posees.erase(a.cle)
+		var voulue := [a, metres_par_case]
+		if posee != null and posee.get_meta("posee") == voulue:
+			continue
+		if posee != null:
+			_aretes.remove_child(posee)
+			posee.free()
 		var piece := _piece(a)
 		piece.set_meta("cle", a.cle)
+		piece.set_meta("posee", voulue)
 		_aretes.add_child(piece)
+	for partie: Node3D in posees.values():
+		_aretes.remove_child(partie)
+		partie.free()
 	_montrer_le_pose()
 
 

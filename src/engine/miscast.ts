@@ -114,12 +114,12 @@ export type JsonFormula =
 type JsonOp = {
   op: string;
   // condition
-  id?: string;
+  id?: { id: string };
   value?: JsonFormula;
   durationRounds?: JsonFormula;
   /** `GameOp['condition'].perRound` / gate d'État — LITTÉRAUX (pas des formules) : recopiés tels quels. */
   perRound?: true;
-  unlessCondition?: string;
+  unlessCondition?: { id: string };
   /** `GameOp['condition'].escapeStrength` (Empêtré : force de désengagement, ex. Tenue indisciplinée
    *  LDB 46) — déjà une `Formula` runtime valide, jamais sin-paramétrée : copiée telle quelle. */
   escapeStrength?: Formula;

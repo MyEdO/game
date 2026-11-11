@@ -12,10 +12,12 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { actionGate } from './actionRegistry';
-import { hasCondition, raisonRefusDetermination, ACTE_DE_DEVERROUILLAGE } from '../engine/conditions';
+import { hasCondition, raisonRefusDetermination } from '../engine/conditions';
 import { findConditionById } from '../data/index';
 import { t } from '../i18n';
 import type { Combatant, ConditionInstance } from '../engine/types';
+import { libelleDeValeur } from '../data/schemas/grammaire/meta';
+import { acteDeDeverrouillageSchema } from '../data/schemas/grammaire/valeurs';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -84,7 +86,7 @@ describe('Détermination — « Retirez un État » relève d’À Terre à 0 Bl
   it('verrou de Critique (`unlockBy`) : la dépense est REFUSÉE — point NON débité, aucun soin rendu', () => {
     const { H } = setup(0, 1, { unlockBy: 'medicalAid' });
     expect(raisonRefusDetermination(vivant(H.id), 'a-terre'))
-      .toBe(t('cond.lockedByAct', { acte: ACTE_DE_DEVERROUILLAGE.medicalAid }));
+      .toBe(t('cond.lockedByAct', { acte: libelleDeValeur(acteDeDeverrouillageSchema, 'medicalAid') }));
     banc.getState().depenserLaDetermination(H.id, 'retirerUnEtat', 'a-terre');
     const apres = vivant(H.id);
     expect(hasCondition(apres, 'a-terre')).toBe(true);

@@ -19,6 +19,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { isDeepStrictEqual } from 'node:util';
 import { serializeDataset } from '../../src/data/serialize.ts';
+import { estObjet } from '../../src/lib/objet.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const AVANT = { dice: { n: 1, sides: 10 } };
@@ -36,7 +37,7 @@ for (const { fichier, type, cle } of CIBLES) {
   const brut = readFileSync(chemin, 'utf8');
   const doc = JSON.parse(brut);
   if (brut !== serializeDataset(doc)) { arrets.push(`${fichier} : forme non canonique`); continue; }
-  if (doc === null || typeof doc !== 'object' || Array.isArray(doc) || doc.type !== type) { arrets.push(`${fichier} : racine qui n'est pas le document \`${type}\``); continue; }
+  if (!estObjet(doc) || doc.type !== type) { arrets.push(`${fichier} : racine qui n'est pas le document \`${type}\``); continue; }
   if (isDeepStrictEqual(doc[cle], APRES)) continue;
   if (!isDeepStrictEqual(doc[cle], AVANT)) { arrets.push(`${fichier} › ${cle} : forme inattendue ${JSON.stringify(doc[cle])}`); continue; }
   doc[cle] = { ...APRES };

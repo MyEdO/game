@@ -1,6 +1,7 @@
 ## Une source de lumière (`vue.lumiere.sources`, `CONTRAT.md`, section « Lumière ») posée à son foyer : sa lampe, qui vacille
 ## si son ton vacille, ce qu'elle montre (#3783 : le feu et sa fumée, la flammèche, la lueur), des gerbes continues dont
-## les particules naissent d'avance (`preprocess`, `Effets.gerbe_de`), et le son qu'elle joue en boucle à son point.
+## les particules naissent d'avance (`preprocess`, `Effets.gerbe_de`), et le son qu'elle joue en boucle à son point. Posée
+## à nouveau (`poser`), la même flamme et le même son restent, sans repartir de zéro (#3947).
 class_name Foyer
 extends Node3D
 
@@ -25,26 +26,45 @@ const SON_LIBERE_S := 0.5
 var _lampe := OmniLight3D.new()
 var _energie := 0.0
 var _scintillement: Variant = null
+## Ce que le foyer montre et joue : son visuel, sa couleur, l'échelle du plateau et son son (`poser`).
+var _montre: Array = []
+## La flamme et le son posés, `null` sans eux.
+var _flamme: Node3D = null
+var _son: AudioStreamPlayer3D = null
+
+
+func _init() -> void:
+	add_child(_lampe)
 
 
 ## Pose la source `source` sur un plateau de `metres_par_case` mètres par case : sa lampe de `rayonCases` cases, ses
-## gerbes à l'échelle du plateau, son son en boucle.
+## gerbes à l'échelle du plateau, son son en boucle ; la flamme et le son déjà posés restent s'ils sont les mêmes.
 func poser(source: Dictionary, metres_par_case: float) -> void:
 	_lampe.omni_range = source.rayonCases
 	_lampe.light_color = Color(source.couleur)
 	_lampe.light_energy = source.energie
-	add_child(_lampe)
 	_energie = source.energie
 	_scintillement = source.scintillement
+	var montre := [source.visuel, source.couleur, metres_par_case, source.son]
+	if montre == _montre:
+		return
+	_montre = montre
+	if _flamme != null:
+		_flamme.free()
+		_flamme = null
+	if _son != null:
+		_son.free()
+		_son = null
 	if source.visuel != null:
-		var flamme := Node3D.new()
-		flamme.name = source.visuel
-		flamme.scale = MiseEnPage.echelle_au_plateau(metres_par_case)
-		add_child(flamme)
+		_flamme = Node3D.new()
+		_flamme.name = source.visuel
+		_flamme.scale = MiseEnPage.echelle_au_plateau(metres_par_case)
+		add_child(_flamme)
 		for recette: Dictionary in FLAMMES[source.visuel]:
-			flamme.add_child(Effets.gerbe_continue(recette, recette.taille, Color(source.couleur)))
+			_flamme.add_child(Effets.gerbe_continue(recette, recette.taille, Color(source.couleur)))
 	if source.son != null:
-		add_child(Effets.son_en_boucle(source.son))
+		_son = Effets.son_en_boucle(source.son)
+		add_child(_son)
 
 
 ## La lampe vacille, si son ton vacille.

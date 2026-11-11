@@ -50,8 +50,8 @@ describe('Condition {slThreshold} — issue échelonnée sur la marge', () => {
   it('Flow if(slThreshold) branche sur la marge (Regard : ≥6 → Pétrifié)', () => {
     const flow: Flow = {
       kind: 'if', cond: { kind: 'slThreshold', op: '>=', value: 6 },
-      then: { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: 'petrifie' }] } },
-      else: { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: 'sonne' }] } },
+      then: { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'petrifie' } }] } },
+      else: { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'sonne' } }] } },
     };
     const hi = mk({ id: 'h' });
     runPureFlowLines(hi, mk({ id: 'a' }), flow, { idNeuf: idsDeTest, rng: desDuTest, sl: 6 });

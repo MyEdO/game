@@ -33,8 +33,8 @@ export function opWithRefValue<T>(op: T, field: string, valeur: unknown): T {
  *  (sentinelle vide), par la raison visible portée par la rangée, et par le gate pré-persist du
  *  Codex (`validateEntry`). Un nouveau champ-réf s'ajoute ICI, jamais dans une nième liste. */
 export const OP_REF_FIELDS: Partial<Record<GameOp['op'], readonly OpRefField[]>> = {
-  condition: [{ field: 'id', ds: 'etats', label: 'État', required: true }],
-  removeCondition: [{ field: 'id', ds: 'etats', label: 'État', required: false }],
+  condition: [{ field: 'id.id', ds: 'etats', label: 'État', required: true }],
+  removeCondition: [{ field: 'id.id', ds: 'etats', label: 'État', required: false }],
   endPsych: [{ field: 'type.id', ds: 'psychologies', label: 'Trait psychologique', required: true, sauf: 'instance' }],
   beginPsych: [{ field: 'type.id', ds: 'psychologies', label: 'État psychologique', required: true }],
   grantPsychTrait: [{ field: 'psychType.id', ds: 'psychologies', label: 'Trait psychologique', required: true }],

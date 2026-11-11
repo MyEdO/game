@@ -421,7 +421,7 @@ describe('#1874 C0 — cibles d’un Effet `ops` : la table vient de la racine',
   });
 
   it('racine `maladie` : une seule cible, AUCUN sélecteur, le résumé la nomme', () => {
-    const f: Effect = { type: 'ops', ops: [{ op: 'condition', id: 'sonne' }] } as Effect;
+    const f: Effect = { type: 'ops', ops: [{ op: 'condition', id: { id: 'sonne' } }] } as Effect;
     expect(selectsDeCible(monte(f, 'maladie'))).toEqual([]);
     expect(effectSummary(f, ctxDeCatalogue('maladie'))).toMatch(/^Le malade : /);
   });

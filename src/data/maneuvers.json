@@ -81,8 +81,12 @@
               "ops": [
                 {
                   "op": "condition",
-                  "id": "a-terre",
-                  "unlessCondition": "a-terre"
+                  "id": {
+                    "id": "a-terre"
+                  },
+                  "unlessCondition": {
+                    "id": "a-terre"
+                  }
                 }
               ]
             }
@@ -144,12 +148,16 @@
               "ops": [
                 {
                   "op": "condition",
-                  "id": "empetre",
+                  "id": {
+                    "id": "empetre"
+                  },
                   "grapple": true,
                   "escapeStrength": {
                     "charOf": "force"
                   },
-                  "unlessCondition": "empetre"
+                  "unlessCondition": {
+                    "id": "empetre"
+                  }
                 }
               ]
             }
@@ -209,7 +217,9 @@
                 "ops": [
                   {
                     "op": "condition",
-                    "id": "empetre",
+                    "id": {
+                      "id": "empetre"
+                    },
                     "grapple": true,
                     "escapeStrength": {
                       "charOf": "force"
@@ -310,7 +320,9 @@
                   "ops": [
                     {
                       "op": "condition",
-                      "id": "petrifie"
+                      "id": {
+                        "id": "petrifie"
+                      }
                     }
                   ]
                 }
@@ -344,7 +356,9 @@
                 "ops": [
                   {
                     "op": "condition",
-                    "id": "sonne",
+                    "id": {
+                      "id": "sonne"
+                    },
                     "value": 0,
                     "valuePerSL": {
                       "every": 2,
@@ -469,7 +483,9 @@
                 "ops": [
                   {
                     "op": "condition",
-                    "id": "sonne"
+                    "id": {
+                      "id": "sonne"
+                    }
                   }
                 ]
               }
@@ -557,7 +573,9 @@
                   "ops": [
                     {
                       "op": "condition",
-                      "id": "brise"
+                      "id": {
+                        "id": "brise"
+                      }
                     }
                   ]
                 }
@@ -571,7 +589,9 @@
                 "ops": [
                   {
                     "op": "condition",
-                    "id": "assourdi",
+                    "id": {
+                      "id": "assourdi"
+                    },
                     "value": 3
                   }
                 ]
@@ -615,7 +635,9 @@
                 "ops": [
                   {
                     "op": "condition",
-                    "id": "assourdi",
+                    "id": {
+                      "id": "assourdi"
+                    },
                     "value": 3
                   }
                 ]
@@ -641,7 +663,9 @@
                   "ops": [
                     {
                       "op": "condition",
-                      "id": "brise",
+                      "id": {
+                        "id": "brise"
+                      },
                       "value": 3
                     }
                   ]
@@ -685,7 +709,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "sonne",
+                "id": {
+                  "id": "sonne"
+                },
                 "valuePerSL": {
                   "every": 1,
                   "amount": 1

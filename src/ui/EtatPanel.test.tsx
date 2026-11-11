@@ -314,7 +314,7 @@ describe('EtatPanel', () => {
       c.conditions = [{ id: 'inconscient', value: 1 } as never];
       c.activeEffects = [{
         label: 'Purifier la chair', bonus: 0, duration: { scale: 'rounds', left: 4 },
-        opsPerRound: [{ op: 'condition', id: 'inconscient', value: 1, unlessCondition: 'inconscient' }],
+        opsPerRound: [{ op: 'condition', id: { id: 'inconscient' }, value: 1, unlessCondition: { id: 'inconscient' } }],
       } as never];
     });
     const html = renderToStaticMarkup(<EtatPanel hero={hero} />);
