@@ -500,7 +500,7 @@ export function SpeciesRaceScreen({ d, setD }: StepProps): ReactNode {
       </span>
       <span className="dicewell-copy">
         <span className="dicewell-txt">
-          Jet : <b>{d.speciesRoll.roll}</b> — borne {rolledFamily} · +{speciesXp(d)} PX {kept ? 'conservé' : '(choix libre)'}
+          Jet : <b>{d.speciesRoll.roll}</b> — rangée {rolledFamily} · +{speciesXp(d)} PX {kept ? 'conservé' : '(choix libre)'}
         </span>
       </span>
     </div>
