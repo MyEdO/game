@@ -821,7 +821,7 @@ describe('l’éditeur de carte par le pont, le combat et l’ameublement', () =
     const deux = presser(valeursDeLInspecteur(une, 'valeur/usable/actions/ajouter')[0]);
     const formulaire = (e: Edition, id: string) => e.vue.zones['editeur.inspecteur'].find((el) => el.id === id) as Formulaire | undefined;
     expect(formulaire(deux, 'identifier/action/fouiller-2')?.champs.map((c) => c.type)).toEqual(['fixe', 'saisieTexte']);
-    expect(formulaire(deux, 'valeur/usable/actions/1/flow/steps')?.champs.map((c) => c.type), 'les pas de l’enchaînement, récursifs, se saisissent en JSON').toEqual(['fixe', 'fixe', 'saisieJson']);
+    expect(boutonDe(deux, 'valeur/usable/actions/1/flow/steps/ajouter').libelle, 'les pas de l’enchaînement s’ajoutent au formulaire (#3606 M2b)').toMatch(/^Ajouter/);
     const renommee = editionDe(appel('editer', { type: 'identifier', args: ['fouiller-2', 'coffre'] }));
     expect(formulaire(renommee, 'identifier/action/coffre')?.champs[1]).toMatchObject({ valeur: 'coffre' });
     expect(erreurDe(appel('editer', { type: 'identifier', args: ['coffre'] })).categorie, 'sans action désignée').toBe('validation');
@@ -1327,6 +1327,74 @@ describe('l’éditeur de carte par le pont, le formulaire tiré du schéma (#36
     expect(option('valeur/onCross/0/characteristic', 'Agilité').presse, 'rouverte, les ops de la zone').toBe(true);
     expect(formulaire('valeur/onCross/1/amount').champs[2]).toMatchObject({ valeur: 2 });
     expect(validation(), 'rouverte du dépôt, la validation ne dit aucune erreur').toMatch(sansErreur);
+  });
+
+  it('un flux s’écrit branche par branche : l’action d’un décor et le flux d’une op à la traversée d’une zone reçoivent une séquence, un pas « Effet » et un pas « Si » ; enregistrés, la validation ne dit aucune erreur (#3606 M2b)', { timeout: 120_000 }, () => {
+    const { appel } = table();
+    let e = editionDe(appel('editer', { ouvrir: servi.id, projet: JSON.stringify(servi) }));
+    const jouer = (edition: unknown) => (e = editionDe(appel('editer', { edition })));
+    const presser = (id: string) => (e = editionDe(appel('editer', boutonDe(e, id).jeu)));
+    const option = (id: string, libelle: string) => valeursDeLInspecteur(e, id).find((b) => b.libelle === libelle) ?? (() => { throw new Error(`aucune valeur ${libelle} sous ${id}`); })();
+    const choisir = (id: string, libelle: string) => (e = editionDe(appel('editer', option(id, libelle).jeu)));
+    const formulaire = (id: string) => e.vue.zones['editeur.inspecteur'].find((el): el is Formulaire => el.type === 'formulaire' && el.id === id) ?? (() => { throw new Error(`aucun formulaire ${id}`); })();
+    const saisir = (id: string, valeur: unknown) => {
+      const [porteur, chemin] = formulaire(id).champs.map((c) => (c.type === 'fixe' ? c.valeur : undefined));
+      return (e = editionDe(appel('editer', { type: 'valeur', args: [porteur, chemin, valeur] })));
+    };
+    /** Le flux d'id `flux` reçoit une séquence, où s'écrit un pas « Effet » par `effet`, puis un pas « Si » de condition
+     *  « Drapeaux » `drapeau` ; un troisième pas ajouté se retire. */
+    const ecrireLeFlux = (flux: string, effet: (pas: string) => void, drapeau: string) => {
+      expect(option(`${flux}/kind`, 'Séquence').presse, 'le flux neuf est une séquence').toBe(true);
+      presser(`${flux}/steps/ajouter`);
+      choisir(`${flux}/steps/0/kind`, 'Séquence');
+      presser(`${flux}/steps/0/steps/ajouter`);
+      choisir(`${flux}/steps/0/steps/0/kind`, 'Effet');
+      effet(`${flux}/steps/0/steps/0/effect`);
+      presser(`${flux}/steps/ajouter`);
+      choisir(`${flux}/steps/1/kind`, 'Si');
+      choisir(`${flux}/steps/1/cond/kind`, 'Drapeaux');
+      saisir(`${flux}/steps/1/cond/expr`, drapeau);
+      presser(`${flux}/steps/ajouter`);
+      presser(`${flux}/steps/2/retirer`);
+    };
+    const validation = () => (e.vue.zones['editeur.validation'][0] as Ligne).texte;
+
+    presser('scenes/ajouter');
+    presser('outil/prop');
+    presser(valeursDe(e, 'decors').find((b) => b.id === 'prop/brasero')!.id);
+    jouer({ geste: 'appui', point: point(5, 5) });
+    jouer({ geste: 'relache', point: point(5, 5) });
+    e = editionDe(appel('editer', valeursDeLInspecteur(e, 'valeur/usable/ajouter')[0].jeu));
+    ecrireLeFlux('valeur/usable/actions/0/flow', (pas) => {
+      choisir(`${pas}/type`, 'Définir un indicateur');
+      saisir(`${pas}/flag`, 'braise');
+    }, 'braise');
+
+    presser('outil/zone'); presser('zone/effect');
+    jouer({ geste: 'appui', point: point(1, 1) });
+    jouer({ geste: 'relache', point: point(2, 2) });
+    presser('valeur/onCross/0/retirer');
+    presser('valeur/onCross/ajouter');
+    choisir('valeur/onCross/0/op', 'Infestation du navire');
+    e = editionDe(appel('editer', valeursDeLInspecteur(e, 'valeur/onCross/0/crewTestType/id')[0].jeu));
+    ecrireLeFlux('valeur/onCross/0/chaqueNuit', (pas) => {
+      presser(`${pas}/ops/ajouter`);
+      choisir(`${pas}/ops/0/op`, 'Points de Corruption');
+      saisir(`${pas}/ops/0/amount`, 1);
+    }, 'rats');
+    expect(validation()).toMatch(/^Validation : (aucun défaut|0 erreur\(s\))/);
+
+    const enregistree = editionDe(appel('editer', boutonDe(e, 'enregistrer').jeu));
+    const scene = (JSON.parse(enregistree.depot!.texte) as { scenes: Scene[] }).scenes.find((sc) => sc.effectZones?.some((z) => z.onCross?.some((o) => o.op === 'infestation')))!;
+    const si = (drapeau: string) => ({ kind: 'if', cond: { kind: 'flag', expr: drapeau }, then: { kind: 'seq', steps: [] } });
+    expect(scene.entities?.find((en) => en.usable)?.usable?.actions?.[0].flow).toEqual({ kind: 'seq', steps: [
+      { kind: 'seq', steps: [{ kind: 'do', effect: { type: 'setFlag', flag: 'braise' } }] },
+      si('braise'),
+    ] });
+    expect(scene.effectZones!.flatMap((z) => z.onCross ?? []).find((o) => o.op === 'infestation')).toMatchObject({ chaqueNuit: { kind: 'seq', steps: [
+      { kind: 'seq', steps: [{ kind: 'do', effect: { type: 'ops', ops: [{ op: 'corruption', amount: 1 }] } }] },
+      si('rats'),
+    ] } });
   });
 
   it('la musique, le message d’introduction sur plusieurs lignes, les ancres de bataille, les groupes du lieu et l’apparence d’une ouverture s’écrivent par leurs écrivains dédiés ; enregistrés, rouverts du dépôt, ils sont relus et la validation ne dit aucune erreur', { timeout: 120_000 }, () => {
