@@ -11,7 +11,7 @@
  */
 import type { Jeu } from './etat';
 import type { IdDeRangee } from './designations';
-import type { PendingBattement, PendingDistraire, PendingManeuver, PendingRun, PendingFall, TombantParticipant, PendingShipManeuver, ShipManeuverParticipant, PendingShipBattery, ShipBatteryParticipant, PendingShanty, PendingFocus, PendingDispel, PendingFrenzy, PendingApproach, PendingWard, PendingReload, PendingStateRecovery, PendingTest, PendingSteamSave, PendingAppraise, PendingBargain, PendingHeal, PendingSurgery, PendingCorruption, PendingAttack, PendingHandGate, PendingDefense, PendingCast, PendingDisengage, FleeSlot, FleeBackstabSlot, PendingAuContact, PendingGrapple, PendingCounterspell, CounterParticipant, PendingExtendedTest, ExtendedTestRound, PendingForceDoor, PendingEtalLot, EtalLotRow, ForceDoorParticipant, PendingCastOpposition, OppositionParticipant, PendingCascade, CascadeStep, CascadeRoll, BatchParticipant } from './pendings';
+import type { IssueOpposee, PendingBattement, PendingDistraire, PendingManeuver, PendingRun, PendingFall, TombantParticipant, PendingShipManeuver, ShipManeuverParticipant, PendingShipBattery, ShipBatteryParticipant, PendingShanty, PendingFocus, PendingDispel, PendingFrenzy, PendingApproach, PendingWard, PendingReload, PendingStateRecovery, PendingTest, PendingSteamSave, PendingAppraise, PendingBargain, PendingHeal, PendingSurgery, PendingCorruption, PendingAttack, PendingHandGate, PendingDefense, PendingCast, PendingDisengage, FleeSlot, FleeBackstabSlot, PendingAuContact, PendingGrapple, PendingCounterspell, CounterParticipant, PendingExtendedTest, ExtendedTestRound, PendingForceDoor, PendingEtalLot, EtalLotRow, ForceDoorParticipant, PendingCastOpposition, OppositionParticipant, PendingCascade, CascadeStep, CascadeRoll, BatchParticipant } from './pendings';
 import { fleeBackstab, fleeTouche, fleeToucheDu } from './pendings';
 import type { PendingActivity, PendingActivityFields, ActivityOppositionOn } from './interludeFlow';
 import type { Combatant, ReverseQuery, Weapon } from '../engine/types';
@@ -499,8 +499,8 @@ const refusDeRenoncer = (s: Jeu, porteurId: string): string =>
  *  (`resolveOpposed`/`disengageOutcome`). Désengagement (Esquive), Au Contact (Corps à corps), Empoignade
  *  (Force), Distraire (Athlétisme) : ces flux ne différaient QUE par le champ du jet acteur, la fonction
  *  de jet et le champ du foe figé (les commentaires les appelaient « CALQUE EXACT »). Chance « +1 DR »
- *  re-oppose (lentille `bumpSL`) ; Résilience « Je ne faillirai pas ! » = l'emporter (issue 'success'). */
-function opposedBinaryFlow<P extends import('./rollFlowFactory').PendingBase & { result?: unknown }>(cfg: {
+ *  re-oppose (lentille `bumpSL`) ; Résilience « Je ne faillirai pas ! » = l'emporter (issue 'reussite'). */
+function opposedBinaryFlow<P extends import('./rollFlowFactory').PendingBase & { result: IssueOpposee | null }>(cfg: {
   key: RollFlowSpec<P>['key'];
   actorId: (p: P) => string;
   rollActor: (s: Jeu, actor: Combatant) => TestResult;
@@ -536,7 +536,7 @@ function opposedBinaryFlow<P extends import('./rollFlowFactory').PendingBase & {
     caps: { forced: true },
     resolve: (s, p, actor) => (actor && cfg.foeTR(p) != null ? opposedPatch(p, cfg.rollActor(s, actor)) : null),
     outcome: (p) => testOutcome(cfg.actorTR(p)),
-    perdu: (p) => p.result != null && p.result !== 'success',
+    perdu: (p) => p.result != null && p.result !== 'reussite',
     lens: {
       actorTR: (p) => cfg.actorTR(p) ?? null,
       applyRoll: (_s, slot, _actor, _get, tr) => opposedPatch(slot, tr),
@@ -545,7 +545,7 @@ function opposedBinaryFlow<P extends import('./rollFlowFactory').PendingBase & {
       // FIGÉ de l'adversaire DÉTRUIRAIT la réussite déjà payée par le point.
       // `cancelled:false` STRUCTUREL : le foe est figé, aucun verbe ne lui ouvre de forçage (#1000).
       floorSL: (p) => opposedForcedFloor(cfg.foeTR(p)?.sl ?? 0, false),
-      forceWin: (slot, _actor, tr) => (slot.result && tr ? ({ result: 'success' as const } as Partial<P>) : null),
+      forceWin: (slot, _actor, tr) => (slot.result && tr ? ({ result: 'reussite' } as Partial<P>) : null),
     },
   });
 }
@@ -976,7 +976,7 @@ export const FLOWS = paresseux({
         // FENÊTRE PRÉ-JET : sans jet posé, la cible du dé choisi est celle que le jet naturel aurait
         // employée — `castTestTarget` (miroir de `resolveCasting`) avec le MÊME ward et la MÊME
         // Difficulté que la branche de jet normal ci-dessous. Jet posé : sa cible fait foi.
-        const discreet = !!p.discreet && castInfoIsPrayer(spell) && !!rule('prayer-conviction');
+        const discreet = !!p.discreet && castInfoIsPrayer(spell) && !!rule('priere-conviction');
         const tgt = p.result?.target ?? castTestTarget(
           actor, spell,
           p.missile ? 'intermediaire' : discreetPrayerDifficulty('intermediaire', discreet),
@@ -1001,9 +1001,9 @@ export const FLOWS = paresseux({
       // Ward = pénalité « Sorcière » (LDB 42) + bonus conditionnel de Domaine (Aqshy près des flammes,
       // LDB 48) + bonus d'ENVIRONNEMENT (Vie/Ghyran +10 en zone rurale/sauvage, LDB 48 l.690).
       const ward = castContextMods(s, actor, target, spell).total + windsMagicModOf(s.battle);
-      // « Prêchez, ma sœur ! » (LDB 40 l.40-42, option `prayer-conviction`) : une Prière murmurée
+      // « Prêchez, ma sœur ! » (LDB 40 l.40-42, option `priere-conviction`) : une Prière murmurée
       // subit une Difficulté d'un cran plus dure. Ne concerne QUE les Prières (`castInfoIsPrayer`).
-      const discreet = !!p.discreet && castInfoIsPrayer(spell) && !!rule('prayer-conviction');
+      const discreet = !!p.discreet && castInfoIsPrayer(spell) && !!rule('priere-conviction');
       const difficulty = discreetPrayerDifficulty('intermediaire', discreet);
       const res = p.missile
         ? resolveMagicMissile(actor, target, spell, battleRng(), p.focused, ward, seaMagicContext(s))

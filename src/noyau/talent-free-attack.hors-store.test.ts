@@ -102,7 +102,7 @@ describe('Talents d’attaque déclenchée (grantFreeAttack en donnée)', () => 
     const choice = banc.getState().pendingCascade!;
     expect(choice.participants[choice.cursor].kind).toBe('choixDeclenche');
     expect(banc.getState().battle!.combatants.find((c) => c.id === H.id)!.freeAttacksThisTurn?.['frappe-reactive']).toBeUndefined();
-    driveChoice('yes');
+    driveChoice('oui');
     // 2) Test d'Init INFLUENÇABLE (étape `testDeclenche`).
     const test = banc.getState().pendingCascade!;
     expect(test.participants[test.cursor].kind).toBe('testDeclenche');
@@ -116,7 +116,7 @@ describe('Talents d’attaque déclenchée (grantFreeAttack en donnée)', () => 
     const { H, E } = setup();
     H.talents = [...(H.talents ?? []), { talentId: 'frappe-reactive', times: 1 }];
     resolveFreeAttacks(banc.getState, banc.setState, H, 'onCharged', E);
-    driveChoice('no');
+    driveChoice('non');
     expect(banc.getState().pendingCascade).toBeNull(); // pas de Test d'Init
     expect(banc.getState().battle!.combatants.find((c) => c.id === H.id)!.freeAttacksThisTurn?.['frappe-reactive']).toBeUndefined();
   });

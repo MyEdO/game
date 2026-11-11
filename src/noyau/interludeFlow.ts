@@ -85,7 +85,7 @@ export interface InterludeHeroState {
    *  ne dit plus, une fois dépensé, s'il en a jamais eu. Lu par `resetInterruptedFavorProgress`
    *  (noyau/favorFlow) : sans emplacement possible, aucune chaîne de Faveur ne casse. */
   granted: number;
-  /** Devoir elfique APPLIQUÉ (règle optionnelle `interlude-elf-duty` active + elfe + ≥3 semaines) —
+  /** Devoir elfique APPLIQUÉ (règle optionnelle `interlude-devoir-elfique` active + elfe + ≥3 semaines) —
    *  source UNIQUE de la conséquence : l'UI rend ce drapeau, elle ne re-dérive jamais la règle. */
   elfDuty?: boolean;
   /** A entrepris Revenus — maintient les Niveaux 3-4 (« Avec le pouvoir », LDB 23 l.33). */
@@ -184,7 +184,7 @@ function purseStep(): CascadeStep {
 
 /** Ouvre l'interlude : événements tirés et appliqués, commandes livrées, écran dédié. */
 export function ouvrirLInterlude(get: Get, set: Set, weeks = 1): void {
-  if (!rule('interlude-enabled')) return; // LDB 21 l.108
+  if (!rule('interlude-actif')) return; // LDB 21 l.108
   if (get().battle) {
     get().ecrireAuJournal(msg('if.inCombat'));
     return;
@@ -235,8 +235,8 @@ function finishInterludeEvent(get: Get, set: Set, hero: Combatant, roll: number)
   const lines: string[] = [msg('if.eventLine', { name: hero.label, roll, label: ev.label, text: ev.desc })];
   let left = st.left;
   if (ev.fx?.loseActivity && !ev.fx.partyWide) left -= 1; // l'Événement de groupe ôte au dénouement de groupe
-  // LDB 23 l.56 ; règle optionnelle `interlude-elf-duty` (LDB 23 l.54).
-  const elfDuty = rule('interlude-elf-duty') && groupsFor({ speciesId: hero.species }).includes('elfe') && itl.weeks >= 3;
+  // LDB 23 l.56 ; règle optionnelle `interlude-devoir-elfique` (LDB 23 l.54).
+  const elfDuty = rule('interlude-devoir-elfique') && groupsFor({ speciesId: hero.species }).includes('elfe') && itl.weeks >= 3;
   if (elfDuty) {
     left -= 1;
     lines.push(msg('if.elfDuty', { name: hero.label }));

@@ -774,9 +774,9 @@ describe('Activité SOUTENABLE — Planification (l.81 : « peut aider au Test �
   });
 
   // #257 — RAW muet (LDB 12 l.189 « apporter son soutien » / ADE II 8 l.81) : le coût d'Activité de
-  // l'assistant est un arbitrage éditable (flag `interlude-assist-costs-activity`, policy.ts).
+  // l'assistant est un arbitrage éditable (flag `interlude-assister-coute-un-creneau`, policy.ts).
   it('assistant GRATUIT par défaut : seul le meneur perd un créneau', () => {
-    resetRule('interlude-assist-costs-activity');
+    resetRule('interlude-assister-coute-un-creneau');
     start({}, partyWithWarLore());
     const [a, b] = banc.getState().party.map((h) => h.id);
     poster('planification', a, b);
@@ -787,7 +787,7 @@ describe('Activité SOUTENABLE — Planification (l.81 : « peut aider au Test �
   });
 
   it('flag activé : chaque assistant doté d’un créneau en dépense un', () => {
-    setRule('interlude-assist-costs-activity', true);
+    setRule('interlude-assister-coute-un-creneau', true);
     try {
       start({}, partyWithWarLore());
       const [a, b] = banc.getState().party.map((h) => h.id);
@@ -797,7 +797,7 @@ describe('Activité SOUTENABLE — Planification (l.81 : « peut aider au Test �
       expect(leftOf(a)).toBe(2); // meneur : −1
       expect(leftOf(b)).toBe(2); // assistant : −1 aussi
     } finally {
-      resetRule('interlude-assist-costs-activity');
+      resetRule('interlude-assister-coute-un-creneau');
     }
   });
 });

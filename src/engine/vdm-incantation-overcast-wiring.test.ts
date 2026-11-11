@@ -1,5 +1,5 @@
 /**
- * Câblage de l'axe Dégâts de la Surincantation révisée (`VDM 02 l.198`, `magic-vdm-incantation`) :
+ * Câblage de l'axe Dégâts de la Surincantation révisée (`VDM 02 l.198`, `magie-vdm-incantation`) :
  * le Projectile magique peut regagner en Dégâts le DR que `missileDamageSL` lui retire sous
  * l'option. Chaque cas est mesuré OPTION OFF puis ON sur le MÊME appel — le volet OFF est la
  * garde de non-régression du Livre de base, le volet ON rougit si le point de lecture est
@@ -11,7 +11,7 @@ import { evaluateMissile, missileDamageSL, type CastResult } from './magic';
 import type { Combatant } from './types';
 import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
-const RULE = 'magic-vdm-incantation';
+const RULE = 'magie-vdm-incantation';
 
 afterEach(() => resetRule(RULE));
 

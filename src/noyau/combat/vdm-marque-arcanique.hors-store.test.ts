@@ -22,7 +22,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * fiche (`effectiveTalents`) ET +DR de Talent de la ligne « Tests » (`talentTestSLBonus`).
  * `VDM 02 l.238` · `VDM 13 l.461` · `LDB 10 l.19`
  */
-const RULE = 'magic-vdm-incantation';
+const RULE = 'magie-vdm-incantation';
 /** Hysh (Domaine de la Lumière) : sa rangée 10 octroie `empreint-de-hysh`, dont la ligne « Tests »
  *  désigne Recherche. */
 const DOMAIN = 'lumiere';

@@ -110,10 +110,10 @@ const FIXTURES: Partial<Record<FlowKey, Fix>> = {
   }) },
   dissipation: { make: (win) => ({ battle: arena(), pendingDispel: { casterId: 'A', value: 40, result: win ? WIN : LOSE } }) },
   // ── Opposés BINAIRES (issue = jet de l'ACTEUR, foe figé) ──
-  desengagement: { make: (win) => ({ battle: arena(), pendingDisengage: { moverId: 'A', atk: { roll: 40, target: 45, success: true, sl: 1, isDouble: false }, def: win ? WIN : LOSE, result: win ? 'success' : 'fail' } }) },
-  auContact: { make: (win) => ({ battle: arena(), pendingAuContact: { moverId: 'A', atk: { roll: 40, target: 45, success: true, sl: 1, isDouble: false }, def: win ? WIN : LOSE, result: win ? 'success' : 'fail' } }) },
-  empoignade: { make: (win) => ({ battle: arena(), pendingGrapple: { actorId: 'A', atk: { roll: 40, target: 45, success: true, sl: 1, isDouble: false }, def: win ? WIN : LOSE, result: win ? 'success' : 'fail' } }) },
-  distraire: { make: (win) => ({ battle: arena(), pendingDistraire: { moverId: 'A', defRoll: { roll: 40, target: 45, success: true, sl: 1, isDouble: false }, atk: win ? WIN : LOSE, result: win ? 'success' : 'fail' } }) },
+  desengagement: { make: (win) => ({ battle: arena(), pendingDisengage: { moverId: 'A', atk: { roll: 40, target: 45, success: true, sl: 1, isDouble: false }, def: win ? WIN : LOSE, result: win ? 'reussite' : 'echec' } }) },
+  auContact: { make: (win) => ({ battle: arena(), pendingAuContact: { moverId: 'A', atk: { roll: 40, target: 45, success: true, sl: 1, isDouble: false }, def: win ? WIN : LOSE, result: win ? 'reussite' : 'echec' } }) },
+  empoignade: { make: (win) => ({ battle: arena(), pendingGrapple: { actorId: 'A', atk: { roll: 40, target: 45, success: true, sl: 1, isDouble: false }, def: win ? WIN : LOSE, result: win ? 'reussite' : 'echec' } }) },
+  distraire: { make: (win) => ({ battle: arena(), pendingDistraire: { moverId: 'A', defRoll: { roll: 40, target: 45, success: true, sl: 1, isDouble: false }, atk: win ? WIN : LOSE, result: win ? 'reussite' : 'echec' } }) },
   // ── Fuir (flux MULTI HÉTÉROGÈNE : slot `backstab` du frappeur 'B' — déjà résolu, il fait perdre des
   //    PB donc le Test `fuite` est dû — + slot `touche` du fuyard 'A', celui que la Chance influence) ──
   fuite: { pid: 'A', make: (win) => ({

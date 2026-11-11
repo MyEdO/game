@@ -65,14 +65,14 @@ export function sortiesDIssueDeCombat(get: Get, set: Set) {
     },
     /** Ferme l'écran de l'ANÉANTISSEMENT hors combat (`checkPartyWiped`) : pas de bataille à reprendre, retour au menu. */
     aneantissement: () => {
-      get().denouerLeVol('defaite'); // le convoi est pillé (landRobberyLossPct, #327)
+      get().denouerLeVol('defaite'); // le convoi est pillé (vol-terrestre-defaite-pct, #327)
       set({ partyWiped: false, battle: null, screen: 'menu' });
     },
     /** Ferme l'écran du REPLI : dans une Scène de COMBAT de bataille de masse (ADE II 08), la défaite tactique ne met
      *  PAS fin à la partie : les héros sont repoussés (soignés, le combat de scène est une abstraction), l'issue
      *  `combatLost` alimente le camp allié (Duel l.223 : −20 ; Percée l.175 : Charge), et la bataille CONTINUE. */
     repli: () => {
-      get().denouerLeVol('defaite'); // combat perdu = le convoi est pillé (landRobberyLossPct, #327)
+      get().denouerLeVol('defaite'); // combat perdu = le convoi est pillé (vol-terrestre-defaite-pct, #327)
       const heal = (c: import('../engine/types').Combatant): import('../engine/types').Combatant => ({
         ...c, wounds: { ...c.wounds, current: c.wounds.max }, conditions: [], criticalWounds: 0, dead: false, outOfRencontre: false,
       });
@@ -82,7 +82,7 @@ export function sortiesDIssueDeCombat(get: Get, set: Set) {
     },
     /** Ferme l'écran de DÉFAITE hors bataille de masse : reprise standard (retour à la scène / redémarrage). */
     defaite: () => {
-      get().denouerLeVol('defaite'); // combat perdu = le convoi est pillé (landRobberyLossPct, #327)
+      get().denouerLeVol('defaite'); // combat perdu = le convoi est pillé (vol-terrestre-defaite-pct, #327)
       if (get().scene) set({ mode: 'exploration', battle: null });
       resumeSuspendedCascade(get, set); // teardown de combat (couture universelle), comme la victoire
     },

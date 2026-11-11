@@ -212,10 +212,10 @@ export const REGLAGES_DU_JET = {
     sacrifier: { ...horsDuJet, effet: 'clot', offre: (s) => (s.pendingDisengage?.phase === 'choice' && s.pendingDisengage.canSacrifice ? null : 'nonOffert') },
     fuir: { ...horsDuJet, effet: 'clot', offre: (s) => (s.pendingDisengage?.phase === 'choice' && s.pendingDisengage.canFuir !== false ? null : 'nonOffert') },
   },
-  auContact: { issue: { ...horsDuJet, effet: 'clot', offre: (s) => (s.pendingAuContact?.phase === 'choice' && s.pendingAuContact.result === 'success' ? null : 'nonOffert') } },
+  auContact: { issue: { ...horsDuJet, effet: 'clot', offre: (s) => (s.pendingAuContact?.phase === 'choice' && s.pendingAuContact.result === 'reussite' ? null : 'nonOffert') } },
   empoignade: {
     briser: { ...horsDuJet, effet: 'clot', offre: (s) => (s.pendingGrapple?.phase === 'roll' && !s.pendingGrapple.def && s.pendingGrapple.canBreak ? null : 'nonOffert') },
-    issue: { ...horsDuJet, effet: 'clot', offre: (s) => (s.pendingGrapple?.phase === 'options' && s.pendingGrapple.result === 'success' ? null : 'nonOffert') },
+    issue: { ...horsDuJet, effet: 'clot', offre: (s) => (s.pendingGrapple?.phase === 'options' && s.pendingGrapple.result === 'reussite' ? null : 'nonOffert') },
   },
   chute: {
     tenter: { ...horsDuJet, portee: 'rangee', effet: 'fige' },

@@ -214,11 +214,11 @@ describe('journée en mer — la journée est UNE cascade `purpose:travelDay` (#
  * (`cascade.ts`) est sous quarantaine d'import naval (#328) : le flux propriétaire lui INJECTE son
  * prédicat (`reglesDeSucces['crew-test']`), l'étape ne portant que l'id.
  * Sans cette injection, une étape de voyage retomberait sur le seuil générique et IGNORERAIT la règle
- * optionnelle `crew-test-zero-success`.
+ * optionnelle `equipage-zero-dr-succes`.
  */
 describe('Test d’équipage par CASCADE — seuil de succès injecté par le flux naval (MDG 14 l.13, #1019)', () => {
   beforeEach(freshState);
-  afterEach(() => resetRule('crew-test-zero-success'));
+  afterEach(() => resetRule('equipage-zero-dr-succes'));
 
   /** Avance la journée jusqu'à l'étape d'équipage `kind` (non encore jouée), et la rend. */
   function driveToCrewStep(kind: string): CascadeStep | undefined {
@@ -257,7 +257,7 @@ describe('Test d’équipage par CASCADE — seuil de succès injecté par le fl
   });
 
   it('DR total 0 → SUCCÈS sous la règle optionnelle « 0 DR compte comme un succès » (l.13, 2ᵉ phrase)', () => {
-    setRule('crew-test-zero-success', true);
+    setRule('equipage-zero-dr-succes', true);
     const r = crewStepAtZero();
     expect(r.sl).toBe(0);
     expect(r.success).toBe(true); // le bord qui manquait avant l'injection
@@ -368,7 +368,7 @@ describe('Carte marine (MDG 15) — Orientation & Planque (#147)', () => {
     return extra;
   }
 
-  it('un héros portant une Carte marine → +2 DR au Test d’Orientation quotidien (règle maison sea-chart-orientation-dr)', () => {
+  it('un héros portant une Carte marine → +2 DR au Test d’Orientation quotidien (règle maison mer-carte-orientation-dr)', () => {
     const chart = itemFromTrappingById('carte-marine', idsDeTest)!;
     set({ party: get().party.map((h, i) => (i === 0 ? { ...h, items: [...(h.items ?? []), chart] } : h)) } as never);
     get().partirEnVoyage('r1', 'mer', { cadence: 'jourParJour' });
@@ -1136,7 +1136,7 @@ describe('Cogue pirate (#327 A5.3) — l’op `navireHostile` PRÉSENTE les 3 ch
     const cur = get().pendingCascade!.participants[get().pendingCascade!.cursor];
     get().jetRegler('cascade', 'choix', 'soumettre', cur.id);
     get().jetValider('cascade');
-    expect(get().vessel!.cargo!.reduce((n, l) => n + l.enc, 0)).toBe(0); // cale vidée (piratePillagePct 100 %)
+    expect(get().vessel!.cargo!.reduce((n, l) => n + l.enc, 0)).toBe(0); // cale vidée (pirate-pillage-pct 100 %)
     const p2 = get().pendingCascade;
     expect(p2?.participants.some((s) => s.kind === 'merPiratesTribut')).toBe(true); // choix du tribut offert
   });
@@ -1323,7 +1323,7 @@ describe('Port désert — #150 (resolvePortArrival appelé APRÈS purge de trav
     // Humeur de Manann neutre (mod 0) : 2d10 = 2+3 = 5 → « Port désert ». Puis 2d10 = 1+1 (heures, sans effet ici).
     resolvePortArrival(get, set, { taille: 2, richesse: 1, production: [] }, seq(2, 3, 1, 1));
     expect(get().pendingCascade?.participants[0].kind).toBe('choixDeFlux');
-    avanceEtapeCascade(get, undefined, () => 'yes');
+    avanceEtapeCascade(get, undefined, () => 'oui');
     expect(get().vessel!.morale.score).toBeLessThan(75);
     expect(get().vessel!.morale.score).toBeGreaterThanOrEqual(65);
   });
@@ -2111,7 +2111,7 @@ describe('Précipitations sur le pont — Tests d’équipage du jour de mer (MD
 
 describe('Survitesse — « Ça va lâcher, capitaine ! » (#443, MDG 13 l.121-142)', () => {
   beforeEach(freshState);
-  afterEach(() => resetRule('sea-overspeed-tests-per-day'));
+  afterEach(() => resetRule('mer-survitesse-tests-par-jour'));
 
   // Cogue : sail.m = 5 (M de conception). Légère brise + vent arrière/latéral = pctSail 0 (aucun mod de
   // vent) → `eff.m` dépend UNIQUEMENT du modificateur `m` du navire (deterministe, aucun bruit de la météo tirée).
@@ -2199,8 +2199,8 @@ describe('Survitesse — « Ça va lâcher, capitaine ! » (#443, MDG 13 l.121-1
     expect(st!.meta?.overspeedDamage).toBe(8);
   });
 
-  it('règle éditable `sea-overspeed-tests-per-day` (#443, cadence infra-journalière mappée sur le jour) : N=2 → deux Tests de survitesse insérés', () => {
-    setRule('sea-overspeed-tests-per-day', 2);
+  it('règle éditable `mer-survitesse-tests-par-jour` (#443, cadence infra-journalière mappée sur le jour) : N=2 → deux Tests de survitesse insérés', () => {
+    setRule('mer-survitesse-tests-par-jour', 2);
     planWithSea(5);
     const out = apply('equipage-progression', 2, true);
     expect(out?.insert?.filter((s) => s.kind === 'mer-survitesse').length).toBe(2);
@@ -2351,10 +2351,10 @@ describe('Exposition en mer — les pénalités subies s’échoient à 24 h, ja
     expect(exposureScales()).toHaveLength(subies); // les pénalités existent toujours, mais horlogées
   });
 
-  it('la règle ÉDITABLE `exposure-expire-hours` gouverne AUSSI le répit de MER (48 h ⇒ échéance à 48 h)', () => {
+  it('la règle ÉDITABLE `exposition-dissipation-heures` gouverne AUSSI le répit de MER (48 h ⇒ échéance à 48 h)', () => {
     // Le chemin de mer portait 24 h EN DUR : régler la règle sur 48 h laissait la mer court-circuiter le
     // réglage du joueur. Une seule règle pour les deux répits (camp `restFlow` ET jour de mer).
-    setRule('exposure-expire-hours', 48);
+    setRule('exposition-dissipation-heures', 48);
     seedBattleRng(3);
     const t0 = get().gameTime;
     seaDay('glaciale');
@@ -2364,7 +2364,7 @@ describe('Exposition en mer — les pénalités subies s’échoient à 24 h, ja
     expect(echeances.length).toBeGreaterThan(0);
     for (const u of echeances) expect(u).toBeGreaterThanOrEqual(t0 + 48 * 60);
   });
-  afterEach(() => resetRule('exposure-expire-hours'));
+  afterEach(() => resetRule('exposition-dissipation-heures'));
 });
 
 /**
@@ -2741,7 +2741,7 @@ describe('journée commandée parquée sur une décision : le PV du jour est ver
 
 describe('Salissures — Test de Résistance hebdomadaire du vaisseau par la porte des jets (#1105, MDG 13 l.148)', () => {
   beforeEach(freshState);
-  afterEach(() => resetRule('sea-salissures-difficulty'));
+  afterEach(() => resetRule('mer-salissures-difficulte'));
 
   /** 7ᵉ jour en mer, en semaine 1 : le Test de la semaine est dû. */
   function septiemeJour(fouling?: { level: number; lastWeek: number }) {
@@ -2775,8 +2775,8 @@ describe('Salissures — Test de Résistance hebdomadaire du vaisseau par la por
     expect(st!.target).toBe(effectiveChar(get().travelPlan!.vehicle!, 'endurance') + DIFFICULTY_MODIFIERS.intermediaire);
   });
 
-  it('règle maison `sea-salissures-difficulty` (LDB 12 l.137) : la Difficulté éditée entre dans la cible', () => {
-    setRule('sea-salissures-difficulty', 'complexe');
+  it('règle maison `mer-salissures-difficulte` (LDB 12 l.137) : la Difficulté éditée entre dans la cible', () => {
+    setRule('mer-salissures-difficulte', 'complexe');
     septiemeJour();
     const st = jusquAuxSalissures(5);
     expect(st!.difficulty).toBe('complexe');

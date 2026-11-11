@@ -249,10 +249,10 @@ export function capToSuccesMinime(total: number): number { return Math.min(SUCCE
 /**
  * SUCCÈS d'un Test d'équipage à partir de son total de DR (MDG 14 l.13) — SOURCE UNIQUE : aucun
  * `total >= 1` en dur ailleurs (moteur, flux de voyage, combat, modale). La règle optionnelle
- * `crew-test-zero-success` (l.13, seconde phrase) abaisse le seuil à 0. PUR.
+ * `equipage-zero-dr-succes` (l.13, seconde phrase) abaisse le seuil à 0. PUR.
  */
 export function crewTestSuccess(total: number): boolean {
-  return total >= (rule('crew-test-zero-success') ? 0 : 1);
+  return total >= (rule('equipage-zero-dr-succes') ? 0 : 1);
 }
 
 export function undercrewPenalty(nominal: number, present: number): UndercrewPenalty {

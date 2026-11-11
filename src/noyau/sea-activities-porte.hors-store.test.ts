@@ -196,7 +196,7 @@ describe('#1262 V2 L5 — les Activités en mer passent par la PORTE', () => {
     expect(eteint.target).toBe(travelActivitySpec(cible, def)!.target);
     expect(eteint.target).toBe(99);
 
-    setRule('test-over-100', true);
+    setRule('test-plus-de-100', true);
     const actif = avecActivite(def, () => buildSeaGenericStep(get, set, cible, def))!;
     expect(actif.target, 'le plafond se lève avec la règle').toBeGreaterThan(99);
     expect(actif.target, 'la cible est la valeur PLEINE : 80 Dex + 200 avances, Difficulté intermédiaire (+0)').toBe(280);

@@ -1,5 +1,5 @@
 /**
- * LE RÉGIME RAPIDE — règle optionnelle `tavern-games-rapides` (#1279 Sf).
+ * LE RÉGIME RAPIDE — règle optionnelle `jeux-de-taverne-rapides` (#1279 Sf).
  *
  * `NADJ 16 l.9-11`, verbatim : « **OPTION : JEUX DE TAVERNE RAPIDES** — Pour certains groupes, les
  * jets de dés peuvent gêner le plaisir du jeu de rôle. Si vous souhaitez que vos parties de taverne
@@ -58,11 +58,11 @@ beforeEach(() => {
 });
 
 describe('Régime RAPIDE — la règle optionnelle, DISTINCTE de l’ouverture de la fonctionnalité', () => {
-  it('elle est ÉTEINTE par défaut, et n’est pas `tavern-games`', () => {
-    expect(TAVERN_FAST_RULE).toBe('tavern-games-rapides');
+  it('elle est ÉTEINTE par défaut, et n’est pas `jeux-de-taverne`', () => {
+    expect(TAVERN_FAST_RULE).toBe('jeux-de-taverne-rapides');
     expect(tavernFastRegime(), 'par défaut : le jeu complet').toBe(false);
     // Ouvrir la fonctionnalité ne bascule PAS le régime — deux règles, deux décisions.
-    setRule('tavern-games', true);
+    setRule('jeux-de-taverne', true);
     expect(tavernFastRegime()).toBe(false);
   });
 

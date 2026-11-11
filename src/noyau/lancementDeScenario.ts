@@ -5,7 +5,7 @@
  * `Partie.lancer` (`partie.ts`). Le noyau ne lit ni le registre des
  * scénarios ni leur fiche : l'hôte construit le lancement (`lancementDuScenario`, `scenes/test-scenarios/_shared.ts`).
  */
-import { setRule, type RuleValue } from '../engine/policy';
+import { entreesDeRegles, setRule, type RegleOptionnelleId, type RuleValue } from '../engine/policy';
 import type { Combatant } from '../engine/types';
 import type { MassBattleSpec } from '../engine/massBattle';
 import type { Money } from '../engine/money';
@@ -37,7 +37,7 @@ export interface ContenuDeScenario {
 /** Le contenu construit, plus ce que le lancement règle : les règles optionnelles pré-activées, la bourse du
  *  meneur, le combat direct et les semaines d'interlude ouvertes avant la bataille de masse (ADE II 8 l.65). */
 export interface LancementDeScenario extends ContenuDeScenario {
-  regles?: Readonly<Record<string, RuleValue>>;
+  regles?: Readonly<Partial<Record<RegleOptionnelleId, RuleValue>>>;
   bourse?: Money;
   combatDirect?: string;
   semainesDInterlude?: number;
@@ -45,7 +45,7 @@ export interface LancementDeScenario extends ContenuDeScenario {
 
 /** POSE du lancement : règles, groupe, projet ou scène. */
 export function poserLeLancement(get: Get, l: LancementDeScenario): void {
-  if (l.regles) for (const [id, v] of Object.entries(l.regles)) setRule(id, v);
+  if (l.regles) for (const [id, v] of entreesDeRegles(l.regles)) setRule(id, v);
   get().fixerLeGroupe(l.party);
   if (l.extraScenes?.length || l.worldMap || l.narratif) get().chargerLeProjet({ scenes: [l.scene, ...(l.extraScenes ?? [])], entryId: l.scene.id, worldMap: l.worldMap ?? null, narratif: l.narratif, projet: null });
   else get().lancerLaScene(l.scene);

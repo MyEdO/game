@@ -80,7 +80,7 @@ const anim: StageWalkAnim = {
 };
 
 /** Le cadre de PREMIÈRE PERSONNE au cap `facing` — la forme que le pas de POV passe au stage. */
-const cadrePov = (facing: Dir8): StageFrame => ({ mode: 'pov', partyPos: { x: 6, y: 6 }, facing, indoor: false, cid: HÉROS.id });
+const cadrePov = (facing: Dir8): StageFrame => ({ mode: 'subjectif', partyPos: { x: 6, y: 6 }, facing, indoor: false, cid: HÉROS.id });
 
 function écran(
   frame: StageFrame,

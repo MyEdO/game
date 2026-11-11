@@ -15,13 +15,13 @@
  *    second tirage caché.
  *
  * LES DEUX RÉGIMES DU CHAPITRE (l.9-11) ne se jouent PAS ici : le catalogue les sert à la source
- * (`engine/tavernGame.findTavernGameById`, règle optionnelle `tavern-games-rapides`). Sous le régime
+ * (`engine/tavernGame.findTavernGameById`, règle optionnelle `jeux-de-taverne-rapides`). Sous le régime
  * rapide, un jeu arrive sans forme de tour, sans mise, sans camps ni Test combiné — toutes les
  * familles ci-dessous restent donc au repos d'elles-mêmes, et la manche opposée ordinaire (sans cible
  * de cumul : elle dénoue à la première clôture) est ce qui se joue. Aucun `if` de régime dans ce
  * fichier, aucun jeu nommé au code.
  *
- * Réservé aux tables qui activent l'option `tavern-games`.
+ * Réservé aux tables qui activent l'option `jeux-de-taverne`.
  */
 import { DIFFICULTY_LABELS, type Combatant, type Difficulty } from '../engine/types';
 import type { FlowTest } from '../engine/flowCore';
@@ -188,10 +188,10 @@ export function refusDeTableDHote(s: Pick<Jeu, 'net'>): string | null {
   return s.net.mode === 'invite' ? t('tavern.hoteSeul') : null;
 }
 
-/** Refus d'ouvrir la table : table d'hôte (`refusDeTableDHote`), puis option `tavern-games`
+/** Refus d'ouvrir la table : table d'hôte (`refusDeTableDHote`), puis option `jeux-de-taverne`
  *  éteinte. Verdict UNIQUE du geste, de l'Effet qui l'ouvre et de l'écran ; `null` s'il ouvre. */
 export function refusDOuvrirLaTaverne(s: Pick<Jeu, 'net'>): string | null {
-  return refusDeTableDHote(s) ?? (rule('tavern-games') ? null : t('tavern.optionEteinte'));
+  return refusDeTableDHote(s) ?? (rule('jeux-de-taverne') ? null : t('tavern.optionEteinte'));
 }
 
 /** OUVRE la table. `entityId` = le PNJ qui PROPOSE la partie (son dialogue vient de l'ouvrir) : la
@@ -1154,7 +1154,7 @@ function tavernTeamClose(ctx: SequenceCloseCtx<TavernPayload>, game: TavernGame)
  * symétrie serait une bourse de PNJ — elle n'existe pas, et l'inventer serait du contenu maison.
  *
  * `NADJ 16 l.11` — le régime RAPIDE (Test opposé de Pari, dont la source nomme l'Al-zahr en
- * exemple) est la règle optionnelle `tavern-games-rapides` : active, le catalogue ne rend plus de
+ * exemple) est la règle optionnelle `jeux-de-taverne-rapides` : active, le catalogue ne rend plus de
  * mise ni de pot (`findTavernGameById`), et la table entière ci-dessous reste au repos.
  * `NADJ 16 l.19` — le « Spécial » (Chance en relance du lancer, Maîtrise des dés) -> #1306.
  */

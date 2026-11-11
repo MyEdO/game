@@ -1,7 +1,7 @@
 /**
  * Jours de mer jugés par le NOYAU (#3059) : le geste `partirEnVoyage` en traversée RAPIDE pose
  * `sea.fast.days` au M de croisière du navire (gréement + Améliorations), au rythme de la règle maison
- * `sea-night-sailing`, et refuse d'appareiller un navire sans M ou à la cale surchargée. L'estimation
+ * `mer-voguer-de-nuit`, et refuse d'appareiller un navire sans M ou à la cale surchargée. L'estimation
  * de la carte du monde lit les mêmes fonctions. MDG 12 l.70-75 ; MDG 12 l.293 ; MDG 15 l.25 ;
  * MDG 15 l.57-70 ; MDG 15 l.76.
  */
@@ -58,11 +58,11 @@ const COGUE_SURCHARGEE: Navire = { vehicleId: 'cogue', cargo: [{ uid: 'lot-1', c
 
 describe('#3059 — jours de mer : une seule durée pour la carte et le noyau', () => {
   it('cogue (M 5) qui vogue de nuit : 550 milles en 7 jours', () => {
-    expect(joursDeLaTraverseeRapide(COGUE, { 'sea-night-sailing': true })).toBe(7);
+    expect(joursDeLaTraverseeRapide(COGUE, { 'mer-voguer-de-nuit': true })).toBe(7);
   });
 
   it('sans voguer de nuit : la distance du jour est divisée par deux, 550 milles en 13 jours', () => {
-    expect(joursDeLaTraverseeRapide(COGUE, { 'sea-night-sailing': false })).toBe(13);
+    expect(joursDeLaTraverseeRapide(COGUE, { 'mer-voguer-de-nuit': false })).toBe(13);
   });
 
   it('cogue au Lissage (M 6) : 550 milles en 6 jours', () => {

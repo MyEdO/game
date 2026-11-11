@@ -350,8 +350,8 @@ export function collectRoundEndTestSteps(get: Get, c: Combatant): BuiltCascadeSt
         const choix = choiceStep({
           id: `choixDeclenche-${c.id}-${prompt}`, kind: 'choixDeclenche', actorId: c.id,
           icon: 'ui/think', label: dataLabel(prompt),
-          options: [{ key: 'yes', label: dataLabel(prompt) }, { key: 'no', label: t('opt.renoncer') }],
-          defaultChoice: 'no',
+          options: [{ key: 'oui', label: dataLabel(prompt) }, { key: 'non', label: t('opt.renoncer') }],
+          defaultChoice: 'non',
           // ENTITÉ PORTEUSE (ids) : le OUI ouvre LE Test — il en dérive son enjeu (#1262 V2 L6d).
           meta: { choiceYes: eff.flow, choiceNo: EMPTY_FLOW, after: EMPTY_FLOW, opsDeCtx: porterOpsCtx({ idNeuf: get().forgerUnId, rng: battleRng(), caster: c, ...(eff.source ? { source: eff.source } : {}) }) },
         });
@@ -598,7 +598,7 @@ function choiceAffordable(get: Get, decider: Combatant | undefined, advantageCos
  *  - coût d'Avantage resté GABARIT, ou coût d'Avantage d'un décideur HORS COMBAT (`LDB 14 l.219`) : le
  *    nœud n'est pas offert, et jamais rendu gratuit ; la branche `no` puis la continuation se jouent.
  *  - DÉCIDEUR SURFACÉ (`surfaceOf` : un siège humain QUELCONQUE le tient, cadence manuelle) → étape de
- *    CHOIX `choixDeclenche` dans la cascade (`options` yes/no, `defaultChoice:'no'`, la possession posée
+ *    CHOIX `choixDeclenche` dans la cascade (`options` oui/non, `defaultChoice:'non'`, la possession posée
  *    par le mint `choiceStep`) ; les Flows `yes`/`no`, le `cost`, l'`after`, le contexte d'ops PORTÉ
  *    (`porterOpsCtx`) et le contexte `freeAttack` voyagent dans le `meta` (sérialisable).
  *  - sinon (ennemi / cadence auto) → décision AUTO inline : oui si le coût est payable (l'IA saisit la
@@ -628,8 +628,8 @@ export function resolveFlowChoice(ctx: ExecCtx, node: Extract<Flow, { kind: 'cho
     pushChoice(ctx.set, {
       id: `choixDeclenche-${decider.id}-${node.prompt}`,
       kind: 'choixDeclenche', actorId: decider.id, icon: node.icon ?? 'ui/think', label: dataLabel(node.prompt),
-      options: [{ key: 'yes', label: dataLabel(yesLabel), ...(abordable ? {} : { refus: t('opt.avantageInsuffisant', { n: node.advantageCost ?? 0, dispo: spendableAdvantage(ctx.get().battle, decider) }) }) }, { key: 'no', label: t('opt.renoncer') }],
-      defaultChoice: 'no',
+      options: [{ key: 'oui', label: dataLabel(yesLabel), ...(abordable ? {} : { refus: t('opt.avantageInsuffisant', { n: node.advantageCost ?? 0, dispo: spendableAdvantage(ctx.get().battle, decider) }) }) }, { key: 'non', label: t('opt.renoncer') }],
+      defaultChoice: 'non',
       meta: {
         choiceYes: node.yes, choiceNo: node.no ?? EMPTY_FLOW, after,
         ...(node.advantageCost != null ? { choiceCost: node.advantageCost } : {}),
@@ -899,7 +899,7 @@ export const TABLES = {
     },
     /**
      * Étape de cascade GÉNÉRIQUE `choixDeclenche` — UN applier pour TOUTE décision opt-in (zéro applier par
-     * mécanique). Reconstruit le décideur depuis get()/hero ; sur `chosen==='yes'` ET coût payable, dépense le
+     * mécanique). Reconstruit le décideur depuis get()/hero ; sur `chosen==='oui'` ET coût payable, dépense le
      * coût + joue la branche `yes` (via `runCombatFlow` — peut empiler une étape `testDeclenche` cadence-aware,
      * Frappe réactive) ; sinon joue `no`. Puis la continuation `after`, dans le MÊME contexte : la cible de la
      * branche et le contexte d'ops PORTÉ (`ctxRepris`), en combat comme hors combat. Le contexte `freeAttack`
@@ -907,7 +907,7 @@ export const TABLES = {
      */
     choixDeclenche: (get, set, step, hero) => {
       if (!hero) return;
-      const yes = step.chosen === 'yes';
+      const yes = step.chosen === 'oui';
       const cost = typeof step.meta?.choiceCost === 'number' ? step.meta.choiceCost : undefined;
       const yesFlow = step.meta?.choiceYes;
       const noFlow = step.meta?.choiceNo;

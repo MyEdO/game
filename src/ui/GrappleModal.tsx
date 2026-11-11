@@ -38,10 +38,10 @@ export function GrappleModal() {
   const foe = battle.combatants.find((c) => c.id === pd.foeId);
   if (!actor || !foe) return null;
   const rolled = !!pd.def;
-  const winnerIndex = pd.result === 'success' ? 1 : pd.result === 'failure' ? 0 : null;
+  const winnerIndex = pd.result === 'reussite' ? 1 : pd.result === 'echec' ? 0 : null;
   const outcome =
-    pd.result === 'success' ? `${actor.label} l'emporte — à toi de choisir.`
-    : pd.result === 'failure' ? `${foe.label} l'emporte : +1 Avantage.`
+    pd.result === 'reussite' ? `${actor.label} l'emporte — à toi de choisir.`
+    : pd.result === 'echec' ? `${foe.label} l'emporte : +1 Avantage.`
     : 'Égalité parfaite : l’Empoignade se poursuit.';
 
   // Test OPPOSÉ de Force : la Difficulté est DÉCLARÉE UNE fois pour l'opposition entière
@@ -65,7 +65,7 @@ export function GrappleModal() {
     onRoll: roll,
     rerolled: !!pd.rerolled,
     // Égalité comprise : l'opposition n'est pas emportée (LDB 17 l.68).
-    lost: pd.result !== 'success',
+    lost: pd.result !== 'reussite',
     onReroll: reroll,
     onBonusSL: bonusSL,
     onDarkPact: darkPact,
@@ -75,7 +75,7 @@ export function GrappleModal() {
   });
 
   const issue = pd.def
-    ? [recapLineOfEvent(ev(pd.result === 'success' ? 'esquive' : 'attaque', outcome, actor.id, foe.id), battle.combatants)]
+    ? [recapLineOfEvent(ev(pd.result === 'reussite' ? 'esquive' : 'attaque', outcome, actor.id, foe.id), battle.combatants)]
     : undefined;
 
   if (pd.phase === 'options') {

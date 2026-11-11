@@ -800,7 +800,7 @@ const ENTREES_HORS_DES_VERBES_DE_LA_BARRE: Readonly<Record<string, EntreeDOffre>
     const pz = placingZoneOf(etat);
     if (!pz) return null;
     switch (pz.source) {
-      case 'cast': return geste('jetRegler', 'incantation', 'carte', null);
+      case 'incantation': return geste('jetRegler', 'incantation', 'carte', null);
       case 'siege': return geste('fenetreFermer', 'viseeDeSiege');
       default: return pz.source satisfies never;
     }

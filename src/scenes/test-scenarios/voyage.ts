@@ -14,7 +14,7 @@ import type { Scene } from '../../noyau/monde/scene';
 /**
  * « Voyage & temps long » : tout le temps long en un trajet. Réunit le Voyage & Nourriture (carte du
  * monde, haltes de nuit, récupération des blessés, faim/maladie/cauchemars/Exposition, péripéties +
- * embuscade), le Voyage par ÉTAPES EDOC (postes d'Activité PERSISTANTS par héros + règle `travel-etapes`
+ * embuscade), le Voyage par ÉTAPES EDOC (postes d'Activité PERSISTANTS par héros + règle `voyage-etapes`
  * activable au panneau Règles maison) et l'Entre-deux-aventures (interlude d'Activités à l'arrivée).
  */
 /** Quatre héros, chacun à son POSTE de voyage (Étapes EDOC) ; Greta cumule le « mauvais état » qui fait
@@ -216,7 +216,7 @@ export const scenario: TestScenario = {
   title: 'Voyage & temps long',
   tests:
     'Carte du monde, voyage à pied/diligence, postes d’Étapes PERSISTANTS par héros (Plein air/Aguets/Cartes/' +
-    'Fourrage, règle travel-etapes activable), HALTES de nuit (modale de Repos), LONG voyage 96 km = 3 nuits, ' +
+    'Fourrage, règle voyage-etapes activable), HALTES de nuit (modale de Repos), LONG voyage 96 km = 3 nuits, ' +
     'bilan de nuit COMPLET (récupération des blessés, faim RAW, Vérole de Greta + contagion, cauchemars, ' +
     'Exposition sous la pluie), péripéties + embuscade + reprise, et INTERLUDE d’Activités à l’arrivée (Revenus/' +
     'Artisanat/banque/Apprentissage, le temps passe) — la cité d’arrivée est le lieu `altdorf` de la carte : ' +
@@ -229,6 +229,6 @@ export const scenario: TestScenario = {
     extraScenes: [construireHameau(), construireBourg(), construireCite(), construireEmbuscade()],
     worldMap: construireCarte(),
   }),
-  rules: { 'travel-etapes': true }, // mode Étapes EDOC pré-activé (coupable au panneau Règles maison)
+  rules: { 'voyage-etapes': true }, // mode Étapes EDOC pré-activé (coupable au panneau Règles maison)
   money: { gold: 6, silver: 10, brass: 0 },
 };

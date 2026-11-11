@@ -82,7 +82,7 @@ describe('curated garanti QUEL QUE SOIT le mode de marché (chemin réel `ouvrir
   }
 
   it('la règle GLOBALE « simplifie » (sans override d’entité) garantit le curated de même', () => {
-    setRule('market-mode', 'simplifie');
+    setRule('marche-mode', 'simplifie');
     banc.setState({ party: [hero()], scene: sceneWithAvitailleur() });
     banc.getState().ouvrirLeMarchand('pnj');
     expect(banc.getState().merchant!.stock.map((l) => l.id)).toContain('mitraille-et-poudre');

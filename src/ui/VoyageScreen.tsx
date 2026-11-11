@@ -262,7 +262,7 @@ export function voyageTiles(
         : plan.mode === 'pied' ? 'À pied'
           : travelModeLabels()[plan.mode] ?? plan.mode,
   });
-  // Météo du jour EN COURS (règle `travel-etapes`, EDOC 8) — absente si la règle est éteinte ou
+  // Météo du jour EN COURS (règle `voyage-etapes`, EDOC 8) — absente si la règle est éteinte ou
   // qu'aucun jour n'est encore engagé.
   if (dayWeather) tiles.push({ key: 'meteo', icon: 'rest/rain', label: 'Météo', value: weatherCondition(dayWeather).label });
   const mounts = partyMounts(party, possessions);

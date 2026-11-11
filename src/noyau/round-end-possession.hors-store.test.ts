@@ -109,7 +109,7 @@ describe('#1262 lot 2 — l’entretien de fin de Round du héros d’un INVITÉ
     const choix = etapes().find((s) => s.kind === 'choixDeclenche');
     expect(choix, 'l’opt-in de l’invité n’est plus jeté : sa fenêtre de décision existe').toBeTruthy();
     expect(choix!.actorId).toBe(H.id);
-    expect(choix!.defaultChoice, 'Renoncer par défaut — personne ne décide à sa place').toBe('no');
+    expect(choix!.defaultChoice, 'Renoncer par défaut — personne ne décide à sa place').toBe('non');
     expect(modalOwnerOf(g())).toBe(H.id);
   });
 
@@ -180,7 +180,7 @@ describe('#1262 lot 2 — l’entretien de fin de Round du héros d’un INVITÉ
     const choix = etapes().find((s) => s.kind === 'sortProlongeChoix');
     expect(choix).toBeTruthy();
     expect(choix!.actorId).toBe(H.id);
-    expect(choix!.defaultChoice).toBe('no');
+    expect(choix!.defaultChoice).toBe('non');
     expect(modalOwnerOf(g())).toBe(H.id);
     expect(seatOwns(g(), 1, H.id), 'la fenêtre est au siège 1, qui possède le porteur').toBe(true);
   });
@@ -286,8 +286,8 @@ describe('#1262 lot 4 — les producteurs mintés : la CIBLE ne bouge pas, la ba
     expect(step, 'l’étape est produite').toBeTruthy();
     expect({ target: step.target, base: step.base }, 'un choix ne lance aucun dé : ni cible ni base')
       .toEqual({ target: undefined, base: undefined });
-    expect(step.options?.map((o) => o.key)).toEqual(['yes', 'no']);
-    expect(step.defaultChoice).toBe('no');
+    expect(step.options?.map((o) => o.key)).toEqual(['oui', 'non']);
+    expect(step.defaultChoice).toBe('non');
     expect(step.meta?.sourceSpellId, 'l’effet visé reste désigné par son id STABLE (#142)').toBe('ailes-de-l-aigle');
     expect({ actorId: step.actorId, groupOwner: step.groupOwner })
       .toEqual({ actorId: H.id, groupOwner: undefined });

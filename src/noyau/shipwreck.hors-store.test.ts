@@ -84,10 +84,10 @@ function freshState() {
     suspendedCascades: [],
   } as never);
   // Bandes auto désactivées : les Tests de Natation sont pilotés par la seule valeur (déterminisme).
-  setRule('test-auto-bands', 'off');
+  setRule('test-bandes-auto', 'off');
 }
 
-afterEach(() => { resetRule('test-auto-bands'); resetRule('mer-naufrage-natation'); resetCadence(); });
+afterEach(() => { resetRule('test-bandes-auto'); resetRule('mer-naufrage-natation'); resetCadence(); });
 
 describe('beginShipwreck — cascade de survie (héros pilotés par un humain, défaut des tests)', () => {
   beforeEach(freshState);

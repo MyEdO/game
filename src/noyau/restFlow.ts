@@ -230,8 +230,8 @@ export function sleepParty(
   }
 
   // Contagion de promiscuité (chambrée/campement — Toux et éternuements, LDB 20 l.206) : 1 Test de Contraction par nuit de repos.
-  // Règle optionnelle « Utilisation des Maladies » : désactivée si disease-mode = off.
-  for (const c of rule('disease-mode') === 'off' ? [] : runContagion(party, n, rng)) {
+  // Règle optionnelle « Utilisation des Maladies » : désactivée si maladie-mode = off.
+  for (const c of rule('maladie-mode') === 'off' ? [] : runContagion(party, n, rng)) {
     entries.push({ actorId: c.actorId, icon: 'medical/infection', label: t('rf.contagionLabel', { disease: diseaseLabel(c.dz) }), text: c.log.join(' '), tone: 'bad' });
     journal.push(...c.log);
   }
@@ -478,7 +478,7 @@ export function buildNightCascade(get: Get, set: Set, p: PendingRest, opts: { fe
         if (count > 0) steps.push(...buildExposureBand(party, camperIds, count));
       }
     }
-    for (const h of campers) expireOnRespite(h, get().gameTime + Number(rule('exposure-expire-hours')) * 60); // dissipation maison
+    for (const h of campers) expireOnRespite(h, get().gameTime + Number(rule('exposition-dissipation-heures')) * 60); // dissipation maison
   }
 
   // Récupération + cauchemars : un jet = une étape ; sans jet (PB plein/affamé/instable) → eager.

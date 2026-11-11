@@ -319,7 +319,7 @@ export interface NetState {
   /** Vue INVITÉ : sa propre connexion (préservée à l'application des snapshots). */
   connection: 'connecte' | 'reconnexion';
   /** Vue INVITÉ : l'hôte est-il momentanément déconnecté ? */
-  hostAway: boolean;
+  hoteAbsent: boolean;
   ownership: Record<string, number>;
   slots: number[];
   rangs: Record<string, number>;
@@ -330,7 +330,7 @@ export interface NetState {
 }
 export const initialNet = (): NetState => ({
   mode: 'local', mySeat: 0, roomCode: null, seatNames: {}, presence: {},
-  connection: 'connecte', hostAway: false, ownership: {}, slots: [0, 0, 0, 0], rangs: {},
+  connection: 'connecte', hoteAbsent: false, ownership: {}, slots: [0, 0, 0, 0], rangs: {},
 });
 
 /** Les champs de JEU de l'état (#2817 D5) : tout hôte les porte ; aucun champ d'interface. */
@@ -420,7 +420,7 @@ export interface EtatDeJeu {
   dialogueHistory: DialogueTurn[];
   /** Marchand ouvert (#2) : instantané du stock pour la visite (Disponibilité figée). */
   merchant: MerchantState | null;
-  /** Jeux de taverne ouverts (option `tavern-games`, NADJ 16) — null = fermé ; `result` = dernière partie. */
+  /** Jeux de taverne ouverts (option `jeux-de-taverne`, NADJ 16) — null = fermé ; `result` = dernière partie. */
   tavernGames: tavernFlow.TavernGamesState | null;
   /** Stock PERSISTANT par marchand (#T3 re-stock) : déplété entre visites, re-tiré seulement après
    *  `restockDays` écoulés. `rolledAt` = gameTime du dernier tirage. `bargainLocked` = le joueur a négocié
@@ -660,7 +660,7 @@ export interface EtatDeJeu {
   /** Dernier jour calendaire (index d'horloge) où une NUIT a été jouée (`sleepParty`/`buildNightCascade`)
    *  — garde de la « nuit forcée » maison (#340) : un jour franchi au-delà sans sommeil coûte 1 Exténué. */
   lastNightDay: number;
-  /** Départ de voyage BLOQUÉ par la porte d'heure (maison `travel-departure-gate`, #340) : terre/fleuve
+  /** Départ de voyage BLOQUÉ par la porte d'heure (maison `voyage-heure-de-depart`, #340) : terre/fleuve
    *  de nuit → « Attendre l'aube » (nuit jouée) ou annuler. `null` = pas de départ en attente. */
   pendingDeparture: { mode: import('../engine/travel').TravelMode; cause: 'nuit' | 'budget'; dawnAt: number } | null;
   /** Navire de campagne PERSISTANT (MDG 13-14) — porte son `vehicleId` et son MORAL (recalculé chaque

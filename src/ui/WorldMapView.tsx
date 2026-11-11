@@ -101,7 +101,7 @@ export function WorldMapView({ initialRouteId, hereId }: { initialRouteId?: stri
   const [mode, setMode] = useState<TravelMode>('pied');
   const [classeId, setClasseId] = useState('');
   const [forced, setForced] = useState(false);
-  /** Allure en selle (EDOC 07 l.140) — règle optionnelle `travel-allures`. */
+  /** Allure en selle (EDOC 07 l.140) — règle optionnelle `voyage-allures`. */
   const [allure, setAllure] = useState<Allure>('pas');
   /** Attelage forcé au pas de course (EDOC 07 l.229). */
   const [forceGallop, setForceGallop] = useState(false);
@@ -200,9 +200,9 @@ export function WorldMapView({ initialRouteId, hereId }: { initialRouteId?: stri
     setSeaPace(0);
   };
 
-  // « En selle » (EDOC 7, règle `travel-allures`) : mode IMPLICITE des routes praticables à pied,
+  // « En selle » (EDOC 7, règle `voyage-allures`) : mode IMPLICITE des routes praticables à pied,
   // quand chaque héros vivant a une monture utilisable.
-  const alluresOn = !!rule('travel-allures');
+  const alluresOn = !!rule('voyage-allures');
   const mounted = alluresOn && partyFullyMounted(party, possessions);
   const allures = mounted ? availableAllures(partyMounts(party, possessions)) : [];
   const modeChoices: TravelMode[] = selRoute
@@ -662,7 +662,7 @@ export function WorldMapView({ initialRouteId, hereId }: { initialRouteId?: stri
               {seaOverload?.palierId && <span className="wm-provision-item short">{t('wm.caleSurchargee', { pct: seaOverload.ratioPct, palier: seaOverload.label, suite: t('wm.caleEffets', { m: seaOverload.mMod, dr: seaOverload.drDeManoeuvre }) })}</span>}
             </div>
           )}
-          {mode === 'mer' && vessel ? <ShipRolesPanel /> : rule('travel-etapes') && <TravelRolesPanel />}
+          {mode === 'mer' && vessel ? <ShipRolesPanel /> : rule('voyage-etapes') && <TravelRolesPanel />}
           {/* STATIONS à bord, EMPILÉES sous les postes (maquette validée 2026-09-04) : partout où un
               bateau porte l'équipage — le navire de campagne en mer, et le bateau du trajet FLUVIAL
               (même gate qu'au départ, `travelFlow.partirEnVoyage`). Le fleuve n'a PAS de roster de

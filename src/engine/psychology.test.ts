@@ -126,7 +126,7 @@ describe('Acquisition de Traits psychologiques (ADE II Annexe I, règle FACULTAT
     ...p,
   }) as unknown as Combatant);
 
-  afterEach(() => resetRule('psych-acquisition-optional'));
+  afterEach(() => resetRule('psycho-acquisition-optionnelle'));
 
   it('toutes les fonctions sont INERTES tant que la règle est éteinte (défaut)', () => {
     const c = mk();
@@ -135,14 +135,14 @@ describe('Acquisition de Traits psychologiques (ADE II Annexe I, règle FACULTAT
   });
 
   it('Animosité acquise : Test de Calme Intermédiaire (+0) (ADE II 09 l.15)', () => {
-    setRule('psych-acquisition-optional', true);
+    setRule('psycho-acquisition-optionnelle', true);
     const c = mk();
     expect(calmeDeLAnimositeAcquise(c, fixed(50))!.target).toBe(calmeValue(c));
     expect(traumaOnImpossibleAmbition(c, fixed(50))!.test.target, 'Accessible (+20), pour comparaison').toBe(calmeValue(c) + 20);
   });
 
   it('Trauma : Ambition rendue impossible → Calme Accessible raté → Trauma ; réussite → rien', () => {
-    setRule('psych-acquisition-optional', true);
+    setRule('psycho-acquisition-optionnelle', true);
     expect(traumaOnImpossibleAmbition(mk(), fixed(100))).toMatchObject({ trait: { type: 'trauma' } });
     const ok = traumaOnImpossibleAmbition(mk(), fixed(1));
     expect(ok!.test.success).toBe(true);

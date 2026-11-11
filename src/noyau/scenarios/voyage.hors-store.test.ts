@@ -1,7 +1,7 @@
 import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, beforeEach, expect, afterEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
-import { setRule, resetRule } from '../../engine/policy';
+import { entreesDeRegles, setRule, resetRule } from '../../engine/policy';
 import { seedBattleRng } from '../../noyau/battleRng';
 import { distributeCredit } from '../../noyau/bourseFlow';
 import { interludeCatalog } from '../../noyau/interludeFlow';
@@ -55,9 +55,9 @@ describe('16-voyage — Scenes produites par buildScene', () => {
 });
 
 describe('16-voyage — intégration Voyage par Étapes', () => {
-  afterEach(() => resetRule('travel-etapes'));
+  afterEach(() => resetRule('voyage-etapes'));
   it('règle pré-activée → postes résolus, véhicule à coque bâti, météo d’Étape journalisée', () => {
-    for (const [id, v] of Object.entries(scenario.rules ?? {})) setRule(id, v as any);
+    for (const [id, v] of entreesDeRegles(scenario.rules ?? {})) setRule(id, v);
     seedBattleRng(7);
     banc.getState().fixerLeGroupe(scenario.construire(idsDeTest).party);
     // La LONGUE route part du hameau : on entre à p-hameau pour la prendre en diligence.

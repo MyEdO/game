@@ -469,7 +469,7 @@ export function refusDePrepaDeBataille(mb: MassBattleState, hero: Combatant, def
 
 /** Le Soutien d'une préparation coûte-t-il un créneau d'Activité à chaque assistant ? Décision UNIQUE de
  *  la confirmation et de la note du volet. #257 */
-export const soutienCouteUneActivite = (): boolean => rule('interlude-assist-costs-activity') === true;
+export const soutienCouteUneActivite = (): boolean => rule('interlude-assister-coute-un-creneau') === true;
 
 /** La note de Soutien d'une préparation SOUTENABLE (`def.assisted`), ou `null`. LDB 12 l.187-200 */
 export function noteDeSoutien(def: ActivityDef): string | null {

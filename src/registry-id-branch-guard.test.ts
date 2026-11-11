@@ -188,7 +188,7 @@ describe('garde-fou « branchement par identité dans du code générique » (#8
 
     const row = [
       'function HouseRuleRow({ regle }: { regle: OptionalRule }) {',
-      "  return regle.id === 'fortune-mid-session' ? <FortuneButton /> : null;",
+      "  return regle.id === 'chance-en-cours-de-session' ? <FortuneButton /> : null;",
       '}',
     ].join('\n');
     expect(rules(row, 'fixture.tsx')).toEqual(['id-equality']);
@@ -425,7 +425,7 @@ describe('garde-fou « branchement par identité dans du code générique » (#8
     const evasions = [
       "const has = c.talents.some((t) => t.talentId === 'frenesie');",
       "const sk = c.skills.find((s) => s.id === 'resistance');",
-      "const isFortune = FORTUNE.id === 'fortune-mid-session';",
+      "const isFortune = FORTUNE.id === 'chance-en-cours-de-session';",
       "const noyau = REGISTRE[0];\nconst estCadence = noyau.id === 'combat-cadence';",
     ].join('\n');
     expect(scanRegistryIdBranch('fixture.ts', evasions)).toEqual([]);

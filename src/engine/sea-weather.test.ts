@@ -186,11 +186,11 @@ describe('effets d’ambiance — Précipitations / Température / Visibilité (
     expect(dailyWaterLitres('chaude')).toBe(3);
     expect(dailyWaterLitres('mediane')).toBe(3); // régime de bord « 2 à 3 litres » (MDG 14 l.242)
   });
-  it('règle `sea-water-litres-mediane` surchargée (borne basse 2 L) : suit la surcharge', () => {
-    setRule('sea-water-litres-mediane', 2);
+  it('règle `mer-eau-litres-mediane` surchargée (borne basse 2 L) : suit la surcharge', () => {
+    setRule('mer-eau-litres-mediane', 2);
     expect(dailyWaterLitres('mediane')).toBe(2);
     expect(dailyWaterLitres('caniculaire')).toBe(4); // bandes déjà chiffrées : jamais affectées
-    resetRule('sea-water-litres-mediane');
+    resetRule('mer-eau-litres-mediane');
     expect(dailyWaterLitres('mediane')).toBe(3);
   });
 

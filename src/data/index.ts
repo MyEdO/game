@@ -789,7 +789,7 @@ export interface SpeciesData {
   /** Règle optionnelle (`src/data/reglesOptionnelles.json`) dont l'activation OUVRE l'espèce au
    *  joueur — lu par `speciesAllowed` (`engine/creation`). Absent = espèce ouverte sans condition.
    *  NADJ 14 l.5 ; ADE II 02 l.110 */
-  gatedByRule?: { id: string };
+  gatedByRule?: { id: IdsParEspace['reglesOptionnelles.json'] };
 }
 export interface ClassData {
   /** id STABLE (slug du libellé) — cible de `CareerData.class`. */
@@ -940,7 +940,7 @@ export interface SkillData {
    *  LISTE = la MEILLEURE des Caractéristiques citées chez le porteur). Lu par `altCharKey`
    *  (`engine/skills`), POINT UNIQUE : le moteur ne nomme plus aucune compétence. */
   altChar?: {
-    gatedByRule: { id: string };
+    gatedByRule: { id: IdsParEspace['reglesOptionnelles.json'] };
     from?: CharKey;
     chars: Record<string, CharKey | CharKey[]>;
   };
@@ -1942,7 +1942,7 @@ export interface QualityCapabilities {
   fumbleOn9?: boolean;    // Dangereuse : Maladresse sur tout Test raté incluant un 9
   fumbleDigits?: number[]; // Seuil de Maladresse paramétrable (chiffre en dizaines OU unités) — AA 08 l.544
   pushback?: boolean;     // Perturbante : repousse au lieu de blesser
-  bladeTrap?: boolean;    // Piège-lame : piéger/briser une lame sur un Critique défensif
+  piegeALame?: boolean;    // Piège-lame : piéger/briser une lame sur un Critique défensif
   damagesArmour?: boolean;// Taille : endommage l'armure/le bouclier frappé
   // (Taillade « État sur Critique » n'est PLUS une capability : `effects:[{trigger:'onCrit'}]` data-driven.)
   // Armes à feu / chargeurs
@@ -2120,7 +2120,7 @@ export interface DomainData {
   environmentBonus?: { environments: string[]; mod: number };
   /** Domaine de la SORCELLERIE (LDB 49) : marqueur DONNÉE. Un Sort dont le `domainId` porte ce marqueur
    *  active le mode Sorcellerie (composant obligatoire sinon Imparfaite Mineure systématique, +1 Corruption
-   *  par jet d'Imparfaite, État Hémorragique possible) — gated par la règle optionnelle `magic-sorcellerie`. */
+   *  par jet d'Imparfaite, État Hémorragique possible) — gated par la règle optionnelle `magie-sorcellerie`. */
   sorcery?: boolean;
   /** Modificateur des Vents de Magie EN MER (MDG 02 l.178-186). Règle d'application (l.178) :
    *  « Les modificateurs suivants s'appliquent aux tentatives de Focalisation et d'Incantation en mer. »
@@ -3581,7 +3581,7 @@ const sortParId = indexParId('spells', spells);
 /** Résout un Sort par son `id` STABLE, sous la forme EFFECTIVE des règles optionnelles actives
  *  (`effectiveEntry`, `src/engine/variants.ts`) — POINT UNIQUE de lecture d'un sort par id : moteur,
  *  store et UI passent tous par ici, aucun ne relit `spells.json` par lui-même. Une variante réglée
- *  (VDM, `magic-vdm-incantation`) y republie ses champs de `VARIANT_RESOLVED_FIELDS`
+ *  (VDM, `magie-vdm-incantation`) y republie ses champs de `VARIANT_RESOLVED_FIELDS`
  *  (`src/data/schemas/defs/spells.ts`). Sans variante active, l'entrée de base est rendue telle quelle. */
 export function findSpellById(id: string): SpellData | undefined {
   return effectiveEntry(sortParId(id));

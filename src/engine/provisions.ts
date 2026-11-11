@@ -22,7 +22,7 @@
  *    `dailyWaterUpkeep`, sur le MÊME patron que la Faim (Tests de plus en plus durs LDB 18 l.338, dégâts
  *    réduits du BE min 1). L'accès à l'eau est décidé par l'APPELANT (`hasWater`) : abondante par
  *    défaut au Reikland (rivières/puits/auberges) ; à sec en mer (`vessel.waterLitres` épuisé, MDG
- *    ch.14) ou sous la règle optionnelle `water-scarcity` (siège, désert, souterrain). « Ni nourriture
+ *    ch.14) ou sous la règle optionnelle `penurie-d-eau` (siège, désert, souterrain). « Ni nourriture
  *    ni boisson … ne peuvent pas récupérer » (LDB 18 l.338) → `isDeprived` = affamé OU assoiffé, lu par `rest.ts`.
  *
  * La nourriture = objets « Ration (1 jour) » (trappings LDB 66 l.20) dans l'inventaire du héros.
@@ -288,7 +288,7 @@ export function applySoifTest(c: Combatant, success: boolean, be: number, rng: R
 
 /**
  * Entretien QUOTIDIEN d'eau d'UN personnage (LDB 18 l.340). `hasWater` = l'accès à l'eau ce jour, décidé par
- * l'appelant (Reikland : toujours vrai sauf règle `water-scarcity` ; mer : `vessel.waterLitres` > 0).
+ * l'appelant (Reikland : toujours vrai sauf règle `penurie-d-eau` ; mer : `vessel.waterLitres` > 0).
  * A de l'eau → boit, la soif se dissipe. Sinon : Test QUOTIDIEN (LDB 18 l.340), de plus en plus dur (−10 ×
  * Tests, LDB 18 l.338). `deferTest` : le Test devient une ÉTAPE de cascade (résolu par `applySoifTest`).
  * Mute `c.thirst`. `resVal`/`be` passés par l'appelant (cycle d'import, cf. en-tête).

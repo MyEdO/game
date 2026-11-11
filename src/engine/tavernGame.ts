@@ -3,7 +3,7 @@
  * data-driven : un jeu = une entrée de `tavernGames.json` (Compétence/carac du jeu, forme de tour,
  * mise, plafond de DR, départage…), sa règle recopiée VERBATIM.
  *
- * DEUX RÉGIMES OFFICIELS, qui coexistent (le second est une règle optionnelle, `tavern-games-rapides`) :
+ * DEUX RÉGIMES OFFICIELS, qui coexistent (le second est une règle optionnelle, `jeux-de-taverne-rapides`) :
  *  - COMPLET : chaque jeu joue SES règles (manches, mises et pot, passages de lancers, camps, Test
  *    combiné), portées par sa donnée et jouées par le socle de séquence (`noyau/sequenceCore`) ;
  *  - RAPIDE (ch.16 l.9-11, verbatim l.11) : « effectuez un Test opposé de Compétence Intermédiaire (+0)
@@ -140,9 +140,9 @@ export interface TavernGame {
 export const TAVERN_GAMES = tavernGamesJson as TavernGame[];
 const jeuParId = indexParId('tavernGames', TAVERN_GAMES);
 
-/** Id de la règle optionnelle du RÉGIME RAPIDE (`engine/policy.ts`) — DISTINCTE de `tavern-games`,
+/** Id de la règle optionnelle du RÉGIME RAPIDE (`engine/policy.ts`) — DISTINCTE de `jeux-de-taverne`,
  *  qui ouvre la fonctionnalité : le régime ne se déduit pas de l'ouverture. */
-export const TAVERN_FAST_RULE = 'tavern-games-rapides';
+export const TAVERN_FAST_RULE = 'jeux-de-taverne-rapides';
 
 /** La table joue-t-elle au régime RAPIDE (`NADJ 16 l.9-11`) ? Lecture UNIQUE de la règle. */
 export function tavernFastRegime(): boolean {

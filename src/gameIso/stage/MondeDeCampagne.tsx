@@ -326,7 +326,7 @@ function CorpsDuMonde() {
   const frameMonde = useMemo<WorldFrame>(
     () => (pov
       // L'ŒIL suit le CORPS : attablé, on regarde depuis sa place, pas depuis la case d'abord.
-      ? { mode: 'pov', partyPos: posDeRendu, facing: capPov ?? 'S', indoor, cid: partyLeader?.id ?? null, ...(partySeat && scene ? { eyeH: seatedEyeH(scene, partySeat, partyPos.z ?? 0) } : {}) }
+      ? { mode: 'subjectif', partyPos: posDeRendu, facing: capPov ?? 'S', indoor, cid: partyLeader?.id ?? null, ...(partySeat && scene ? { eyeH: seatedEyeH(scene, partySeat, partyPos.z ?? 0) } : {}) }
       : { mode: 'plateau', dims: dimsVue, camAt: camAtStable, yawAt: yawAtStable, zoom: zoomVue }),
     [pov, posDeRendu.x, posDeRendu.y, posDeRendu.z, capPov, indoor, partyLeader?.id, partySeat?.anchor.h, dimsVue, zoomVue, camAtStable, yawAtStable],
   );

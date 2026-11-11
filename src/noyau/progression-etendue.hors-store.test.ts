@@ -118,9 +118,9 @@ describe('Poste servi à effectif COMPLET — la cible appliquée est celle anno
 });
 
 describe('Règle optionnelle « DR 0 = ±1 » lue par le pas canonique (LDB 12 l.185)', () => {
-  afterEach(() => resetRule('test-extended-min-sl'));
+  afterEach(() => resetRule('test-etendu-dr-minimum'));
   it('Rechargement, réussite à DR 0 sous la règle : la progression gagne 1 DR', () => {
-    setRule('test-extended-min-sl', true);
+    setRule('test-etendu-dr-minimum', true);
     const arbalete = { uid: 'arb', label: 'Arbalète', type: 'ranged', group: 'arbalete', damage: { flat: 9, plusBF: false }, range: 60,
       reload: 2, loaded: false, reloadProgress: 0, qualities: [{ id: 'recharge', value: 2 }] } as unknown as Weapon;
     const tireur = combattantDeTest({ id: 't', label: 'Tireur', kind: 'hero', weapons: [unarmedWeapon(), arbalete], pos: { x: 5, y: 5 } });

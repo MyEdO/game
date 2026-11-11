@@ -1,14 +1,14 @@
 /**
  * CÂBLAGE des variantes réglées de `spells.json` (#729, chantier VDM), part de l'AFFICHAGE : la fiche
  * Codex RÉELLE (`registry.ts`) lit la forme effective (`findSpellById`) sous la règle optionnelle
- * `magic-vdm-incantation`. La donnée et ses consommateurs moteur : `src/data/vdm-spells-variantes.test.ts`.
+ * `magie-vdm-incantation`. La donnée et ses consommateurs moteur : `src/data/vdm-spells-variantes.test.ts`.
  */
 import { describe, it, expect, afterEach } from 'vitest';
 import { setRule, resetRule } from '../../engine/policy';
 import { findSpellById, spells, type SpellData } from '../../data/index';
 import { CODEX } from './registry';
 
-const RULE = 'magic-vdm-incantation';
+const RULE = 'magie-vdm-incantation';
 
 afterEach(() => resetRule(RULE));
 

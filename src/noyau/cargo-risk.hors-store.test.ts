@@ -78,15 +78,15 @@ describe('Vol terrestre GRADUÉ par l’issue (#327 A5.1) — applyLandCargoRaid
     expect(r.losses).toHaveLength(0);
   });
 
-  it('fuite : retire landRobberyFleePct (défaut 25 %) de l’Enc du convoi', () => {
+  it('fuite : retire vol-terrestre-fuite-pct (défaut 25 %) de l’Enc du convoi', () => {
     const r = applyLandCargoRaid(slice([lot('vin-eau-de-vie', 40)]), 'fuite');
     expect(r.pct).toBe(25);
     expect(r.losses.reduce((n, l) => n + l.removed, 0)).toBe(10);
   });
 
-  it('défaite : retire landRobberyLossPct (défaut 75 %) — et respecte la surcharge éditable', () => {
+  it('défaite : retire vol-terrestre-defaite-pct (défaut 75 %) — et respecte la surcharge éditable', () => {
     expect(applyLandCargoRaid(slice([lot('vin-eau-de-vie', 40)]), 'defaite').losses.reduce((n, l) => n + l.removed, 0)).toBe(30);
-    setRule('landRobberyLossPct', 50);
+    setRule('vol-terrestre-defaite-pct', 50);
     expect(applyLandCargoRaid(slice([lot('vin-eau-de-vie', 40)]), 'defaite').losses.reduce((n, l) => n + l.removed, 0)).toBe(20);
   });
 });
@@ -152,8 +152,8 @@ describe('Cogue pirate — se soumettre : pillage + tribut (#327 A5.3)', () => {
     } as never);
   });
 
-  it('soumission : pillage piratePillagePct (100 %) de la cale puis insère le choix du tribut ; livrer retire un marin', () => {
-    expect(Number(rule('piratePillagePct'))).toBe(100);
+  it('soumission : pillage pirate-pillage-pct (100 %) de la cale puis insère le choix du tribut ; livrer retire un marin', () => {
+    expect(Number(rule('pirate-pillage-pct'))).toBe(100);
     startCascade(get, set, { title: 'Cogue pirate', purpose: 'test', steps: [hailStep()] });
     get().jetRegler('cascade', 'choix', 'soumettre', 'merPiratesSommation');
     get().jetValider('cascade');

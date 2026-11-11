@@ -519,7 +519,7 @@ export function acheterLeSort(get: Get, set: Set, heroId: string, spellId: strin
     const clone: Combatant = structuredClone(h);
     const full = spellCost(clone, sp);
     if (full == null) {
-      msg = t(verdictApprentissage(clone, sp) === 'deja-connu' ? 'pf.spellAlreadyKnown' : 'pf.spellCannotLearn', { name: clone.label, spell: sp.label });
+      msg = t(verdictApprentissage(clone, sp) === 'dejaConnu' ? 'pf.spellAlreadyKnown' : 'pf.spellCannotLearn', { name: clone.label, spell: sp.label });
       return h;
     }
     // Recherche universitaire (ACE 12 l.55) : « mémoriser un sort pour 100PX de moins que
@@ -549,7 +549,7 @@ export function acheterLeSort(get: Get, set: Set, heroId: string, spellId: strin
   return result;
 }
 
-/** Composant d'incantation (LDB 46 l.107-113, règle optionnelle `magic-composant`) : achète un
+/** Composant d'incantation (LDB 46 l.107-113, règle optionnelle `magie-composant`) : achète un
  *  composant pour un Sort d'Arcane/Domaine CONNU du héros — coût = NI pistoles d'argent (l.113),
  *  prélevé sur la Bourse de l'incantateur. « acheté pour un Sort spécifique […], ne marche que pour ce
  *  Sort. » Le composant absorbe le contrecoup à l'incantation (consumé) — cf. applyMiscast. */

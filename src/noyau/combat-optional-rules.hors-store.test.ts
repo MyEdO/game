@@ -49,8 +49,8 @@ function setBattle(combatants: Combatant[]): BattleState {
   return battle;
 }
 
-// ── Règle 1 : « Sur la Défensive » (combat-defensive-stance, LDB 13 l.118) ──
-describe('combat-defensive-stance — Action « Sur la Défensive » (LDB 13 l.118)', () => {
+// ── Règle 1 : « Sur la Défensive » (combat-sur-la-defensive, LDB 13 l.118) ──
+describe('combat-sur-la-defensive — Action « Sur la Défensive » (LDB 13 l.118)', () => {
   it('défaut (true) : prendreLaDefensive pose defensiveStance et consomme l’Action', () => {
     const h = hero({});
     setBattle([h, enemy({})]);
@@ -61,7 +61,7 @@ describe('combat-defensive-stance — Action « Sur la Défensive » (LDB 13 l.1
   });
 
   it('désactivée : l’Action est refusée (pas de defensiveStance, Action intacte)', () => {
-    setRule('combat-defensive-stance', false);
+    setRule('combat-sur-la-defensive', false);
     const h = hero({});
     setBattle([h, enemy({})]);
     banc.getState().prendreLaDefensive();
@@ -71,8 +71,8 @@ describe('combat-defensive-stance — Action « Sur la Défensive » (LDB 13 l.1
   });
 });
 
-// ── Règle 2 : « Déviation Critique » (combat-critical-deflect, LDB 63 l.30) ──
-describe('combat-critical-deflect — offre de Déviation Critique (LDB 63 l.30)', () => {
+// ── Règle 2 : « Déviation Critique » (combat-deviation-critique, LDB 63 l.30) ──
+describe('combat-deviation-critique — offre de Déviation Critique (LDB 63 l.30)', () => {
   beforeEach(() => { seedBattleRng(424242); });
 
   const critWeapon: Weapon = { label: 'Gourdin', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [] };
@@ -94,7 +94,7 @@ describe('combat-critical-deflect — offre de Déviation Critique (LDB 63 l.30)
   });
 
   it('désactivée : pas d’offre de déviation → le Critique est subi directement (criticalWounds +1)', () => {
-    setRule('combat-critical-deflect', false);
+    setRule('combat-deviation-critique', false);
     const e = enemy({});
     const h = hero({ armour: { tete: 0, brasG: 0, brasD: 0, corps: 3, jambeG: 0, jambeD: 0 }, criticalWounds: 0 });
     setBattle([e, h]);
@@ -112,7 +112,7 @@ describe('combat-critical-deflect — offre de Déviation Critique (LDB 63 l.30)
   });
 
   it('désactivée : un ENNEMI blindé ne dévie plus automatiquement (subit le Critique)', () => {
-    setRule('combat-critical-deflect', false);
+    setRule('combat-deviation-critique', false);
     const e = enemy({ armour: { tete: 0, brasG: 0, brasD: 0, corps: 3, jambeG: 0, jambeD: 0 }, criticalWounds: 0 });
     const h = hero({});
     setBattle([h, e]);
@@ -138,7 +138,7 @@ describe('combat-critical-deflect — offre de Déviation Critique (LDB 63 l.30)
   });
 
   it('opposé désactivé : ENNEMI blindé ne dévie PLUS (subit le Critique sec — bug rule-gate)', () => {
-    setRule('combat-critical-deflect', false);
+    setRule('combat-deviation-critique', false);
     const e = enemy({ armour: { ...armoured }, criticalWounds: 0 });
     setBattle([hero({}), e]);
     applyCoupCritiqueSec(banc.getState, banc.setState, e, 11, 'double', { attackerId: 'h1' }, []);
@@ -148,8 +148,8 @@ describe('combat-critical-deflect — offre de Déviation Critique (LDB 63 l.30)
   });
 });
 
-// ── Règle 3 : « Tir dans un corps à corps » (combat-ranged-melee-penalty, LDB 14 l.112-116) ──
-describe('combat-ranged-melee-penalty — −20 + tir égaré (LDB 14 l.112-116)', () => {
+// ── Règle 3 : « Tir dans un corps à corps » (combat-tir-dans-la-melee, LDB 14 l.112-116) ──
+describe('combat-tir-dans-la-melee — −20 + tir égaré (LDB 14 l.112-116)', () => {
   const bow: Weapon = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 7 }, range: 30, qualities: [] } as Weapon;
 
   // « Tir dans la mêlée » = la cible est Engagée avec un ALLIÉ du tireur. Tireur HÉROS (arc), cible
@@ -170,7 +170,7 @@ describe('combat-ranged-melee-penalty — −20 + tir égaré (LDB 14 l.112-116)
   });
 
   it('désactivée : pas de −20 NI artefact d’aperçu (inMelee reste false)', () => {
-    setRule('combat-ranged-melee-penalty', false);
+    setRule('combat-tir-dans-la-melee', false);
     const { shooter, targetEnemy } = meleeShotSetup();
     const e = attackEnv(banc.getState, shooter, targetEnemy, bow);
     expect(e.inMelee).toBe(false); // pas d'artefact d'affichage
@@ -178,8 +178,8 @@ describe('combat-ranged-melee-penalty — −20 + tir égaré (LDB 14 l.112-116)
   });
 });
 
-// ── Règle 4 : « Cible Inconsciente » (combat-helpless-mode, LDB 16 l.113) ──
-describe('combat-helpless-mode — cible Inconsciente (LDB 16 l.113)', () => {
+// ── Règle 4 : « Cible Inconsciente » (combat-cible-inconsciente, LDB 16 l.113) ──
+describe('combat-cible-inconsciente — cible Inconsciente (LDB 16 l.113)', () => {
   beforeEach(() => { seedBattleRng(7); });
 
   const sword: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 3 }, qualities: [] } as Weapon;
@@ -194,7 +194,7 @@ describe('combat-helpless-mode — cible Inconsciente (LDB 16 l.113)', () => {
   });
 
   it('mort-auto : resolveMelee marque autoKill sur une cible Inconsciente en MÊLÉE', () => {
-    setRule('combat-helpless-mode', 'mort-auto');
+    setRule('combat-cible-inconsciente', 'mort-auto');
     const atk = enemy({});
     const def = hero({ conditions: [{ id: 'inconscient', value: 1 }] });
     const res = resolveMelee(atk, def, sword, makeRNG(1), { defense: 'none' });
@@ -203,7 +203,7 @@ describe('combat-helpless-mode — cible Inconsciente (LDB 16 l.113)', () => {
   });
 
   it('mort-auto + mêlée : applyAttackResult TUE une cible SANS Destin (dead via chemin normal)', () => {
-    setRule('combat-helpless-mode', 'mort-auto');
+    setRule('combat-cible-inconsciente', 'mort-auto');
     const atk = hero({ id: 'h1', pos: { x: 0, y: 0 } });
     const victim = enemy({ id: 'e1', pos: { x: 1, y: 0 }, wounds: blessuresDeBase(20), conditions: [{ id: 'inconscient', value: 1 }] });
     setBattle([atk, victim]);
@@ -220,7 +220,7 @@ describe('combat-helpless-mode — cible Inconsciente (LDB 16 l.113)', () => {
   });
 
   it('mort-auto + mêlée : un HÉROS à Destin déclenche le sauvetage (pendingFateSave), pas une mort sèche', () => {
-    setRule('combat-helpless-mode', 'mort-auto');
+    setRule('combat-cible-inconsciente', 'mort-auto');
     const atk = enemy({ id: 'e1', pos: { x: 0, y: 0 } });
     const victim = hero({ id: 'h1', pos: { x: 1, y: 0 }, fate: 2, wounds: blessuresDeBase(12), conditions: [{ id: 'inconscient', value: 1 }] });
     setBattle([atk, victim]);

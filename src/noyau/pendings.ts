@@ -543,6 +543,9 @@ export interface PendingBattement {
   /** Réussite forcée par Résilience (LDB 17 l.68) → le joueur peut CHOISIR la valeur du dé. */
   forced?: boolean;
 }
+/** L'issue d'un Test opposé pour celui qui le mène : il l'emporte, le perd, ou statu quo. */
+export type IssueOpposee = 'reussite' | 'echec' | 'egalite';
+
 /** Distraire en attente (LDB 10 l.364 / AA 13 l.51) : Mouvement, Test OPPOSÉ Athlétisme (mover) vs
  *  Calme (foe). Modale OPPOSÉE calquée sur `PendingDisengage`/`PendingAuContact` : le jet de Calme du
  *  foe (`defRoll`) est FIGÉ à l'ouverture ; seul le jet d'Athlétisme du mover (`atk`) se (re)joue.
@@ -552,7 +555,7 @@ export interface PendingDistraire {
   foeId: string; // adversaire distrait
   atk: TestResult | null; // jet d'Athlétisme du mover (mover = « attaquant » du Test opposé) — null = pas lancé
   defRoll: TestResult; // jet de Calme du foe, figé à l'ouverture (jamais relancé)
-  result: 'success' | 'failure' | 'tie' | null; // 'success' = le mover l'emporte ; 'tie' = statu quo
+  result: IssueOpposee | null; // 'reussite' = le mover l'emporte ; 'egalite' = statu quo
   /** Relance par Chance de l'Athlétisme déjà effectuée (1 max/Test, LDB 12 l.40). */
   rerolled?: boolean;
   /** Réussite forcée par Résilience (LDB 17 l.68) → l'emporte simplement (issue binaire). */
@@ -1277,7 +1280,7 @@ export interface PendingDisengage {
   phase: 'choice' | 'esquive' | 'fuir'; // 'choice' = menu ; 'esquive' = Test d'Esquive ; 'fuir' = coup dans le dos SUBI + Test `fuite` influençable
   atk: TestResult | null; // Esquive : jet de Corps à corps du foe, figé (jamais relancé)
   def: TestResult | null; // Esquive : jet d'Esquive du mover
-  result: 'success' | 'failure' | 'tie' | null; // 'tie' = égalité parfaite du Test opposé → statu quo
+  result: IssueOpposee | null; // 'egalite' = égalité parfaite du Test opposé → statu quo
   /** « Fuir » (l.63-66) : les DEUX jets de la fuite, en slots du flux MULTI hétérogène `flee` —
    *  le coup dans le dos du FRAPPEUR (`backstab`) puis le Test de la fiche `fuite` du FUYARD (`touche`). Chaque
    *  slot porte son propre cycle d'influence et son `interactive` (le contrôleur de SON acteur).
@@ -1317,7 +1320,7 @@ export function fleeToucheDu(pd: PendingDisengage): boolean {
   return !!r?.hit && (r.woundsLost ?? 0) > 0;
 }
 
-/** « Au Contact » en attente (LDB 62 l.176, Option « Longueur d'arme », règle `combat-weapon-reach`) :
+/** « Au Contact » en attente (LDB 62 l.176, Option « Longueur d'arme », règle `combat-longueur-arme`) :
  *  Test opposé de Corps à corps `mover` vs `foe` pour entrer dans la longueur d'arme. Le VAINQUEUR
  *  choisit « combat normal » (retire l'état au contact) ou « au contact » (le pose). Calque
  *  `PendingDisengage` : le jet du foe (`atk`) est figé, seul le jet du mover (`def`, Corps à corps)
@@ -1329,7 +1332,7 @@ export interface PendingAuContact {
   phase: 'roll' | 'choice';
   atk: TestResult | null; // jet de Corps à corps du foe, figé (jamais relancé)
   def: TestResult | null; // jet de Corps à corps du mover (influençable)
-  result: 'success' | 'failure' | 'tie' | null; // 'success' = le mover (héros) l'emporte ; 'tie' = statu quo
+  result: IssueOpposee | null; // 'reussite' = le mover (héros) l'emporte ; 'egalite' = statu quo
   /** Relance par Chance du jet du mover déjà effectuée (1 max/Test, LDB 12 l.40). */
   rerolled?: boolean;
 }
@@ -1346,7 +1349,7 @@ export interface PendingGrapple {
   canBreak: boolean; // Avantage STRICTEMENT supérieur → peut Briser l'Empoignade gratuitement
   atk: TestResult | null; // jet de Force du foe, figé (jamais relancé)
   def: TestResult | null; // jet de Force de l'acteur (influençable)
-  result: 'success' | 'failure' | 'tie' | null; // 'success' = l'acteur l'emporte ; 'tie' = statu quo
+  result: IssueOpposee | null; // 'reussite' = l'acteur l'emporte ; 'egalite' = statu quo
   /** Relance par Chance du jet de l'acteur déjà effectuée (1 max/Test, LDB 12 l.40). */
   rerolled?: boolean;
 }
@@ -1369,7 +1372,7 @@ export interface PendingCast {
   forced?: boolean;
   /** Dé FIXÉ par le joueur (option « Dés fixés », `PendingBase.fixed`). */
   fixed?: boolean;
-  /** « Prêchez, ma sœur ! » (LDB 40 l.40-42, option `prayer-conviction`) : Prière entonnée
+  /** « Prêchez, ma sœur ! » (LDB 40 l.40-42, option `priere-conviction`) : Prière entonnée
    *  DISCRÈTEMENT / sans conviction (murmurée) → Difficulté d'un cran plus dure (`discreetPrayerDifficulty`).
    *  Ne concerne que les Prières ; absent/faux = à voix haute (Intermédiaire, RAW). */
   discreet?: boolean;

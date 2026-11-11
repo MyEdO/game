@@ -94,7 +94,7 @@ function findSeed(probe: (s: number) => { merchant: number; merchantSL: number }
 }
 
 describe('#1153 L2 — PORT : l’État ne se fond plus dans la grandeur du départage (LDB 12 l.160)', () => {
-  beforeEach(() => setRule('test-auto-bands', 'off'));
+  beforeEach(() => setRule('test-bandes-auto', 'off'));
 
   it('la porte du seam pose la Compétence NUE en `base` et laisse l’État dans la CIBLE', () => {
     const [leader] = tousLesHerosDeScenario(idsDeTest);
@@ -162,7 +162,7 @@ function probeLandBuy(seed: number): { merchant: number; merchantSL: number; her
 const bargainLineOf = (): string => get().journal.find((l) => /Marchandage \(/.test(l)) ?? '';
 
 describe('#1153 L2 — MARCHÉ TERRESTRE : l’État ne se fond plus dans la grandeur du départage', () => {
-  beforeEach(() => setRule('test-auto-bands', 'off'));
+  beforeEach(() => setRule('test-bandes-auto', 'off'));
 
   it('ACHAT, DR égal : le marchandeur Empoisonné l’emporte par sa Compétence — remise, jamais surcoût', () => {
     // Ici le dé du héros est TIRÉ par le flux : on cherche la graine où il égalise déjà les DR.

@@ -83,7 +83,7 @@ describe('Enfoncer une porte à plusieurs (objet BE/B, jets indépendants)', () 
   // (LDB 12 l.102, DR = dizaines du JET), l'ancien `1` codé en dur donnait le DR MINIMAL (planché à 1) au lieu
   // du MAXIMAL. RAW LDB 17 l.68 « vous choisissez le résultat » = LE MEILLEUR → dizaines de la cible.
   it('Fast DR : le dé forcé vise le DR MAXIMAL (dizaines de la cible), PAS 1', () => {
-    setRule('test-fast-sl', true); // règle optionnelle : sur une réussite, DR = dizaines du jet
+    setRule('test-dr-rapide', true); // règle optionnelle : sur une réussite, DR = dizaines du jet
     const [a] = heroes();
     a.characteristics['capacite-de-combat'] = 65; // Bagarre (Corps à corps) → cible ~65 (dizaines 6)
     banc.setState({ party: [a] });

@@ -155,7 +155,7 @@ describe('Empoignade — store + funnel (LDB 14 l.159/161/169)', () => {
     banc.setState({ pendingGrapple: { ...pd,
       def: { roll: 30, target: 40, success: true, sl: 2, isDouble: false },
       atk: { roll: 50, target: 40, success: true, sl: 0, isDouble: false },
-      result: 'success' } });
+      result: 'reussite' } });
     banc.getState().jetValider('empoignade');
     expect(banc.getState().pendingGrapple?.phase).toBe('options');
     const before = live(E.id).wounds.current;
@@ -174,7 +174,7 @@ describe('Empoignade — store + funnel (LDB 14 l.159/161/169)', () => {
     setGrapple(h, e);
     banc.getState().ouvrirLEmpoignade(E.id);
     const pd = banc.getState().pendingGrapple!;
-    banc.setState({ pendingGrapple: { ...pd, def: pd.atk, result: 'success', phase: 'roll' } });
+    banc.setState({ pendingGrapple: { ...pd, def: pd.atk, result: 'reussite', phase: 'roll' } });
     banc.getState().jetValider('empoignade');
     banc.getState().jetRegler('empoignade', 'issue', 'empetrer');
     expect(hasCondition(live(E.id), COND.empetre)).toBe(true);
@@ -194,7 +194,7 @@ describe('Empoignade — store + funnel (LDB 14 l.159/161/169)', () => {
     banc.setState({ pendingGrapple: { ...pd,
       def: { roll: 30, target: 40, success: true, sl: 1, isDouble: false },
       atk: { roll: 50, target: 40, success: true, sl: 0, isDouble: false },
-      result: 'success', phase: 'roll' } });
+      result: 'reussite', phase: 'roll' } });
     banc.getState().jetValider('empoignade');
     banc.getState().jetRegler('empoignade', 'issue', 'liberer');
     expect(stacks(live(H.id), COND.empetre)).toBe(1); // 3 − (1 + DR 1) = 1
@@ -231,7 +231,7 @@ describe('Empoignade — store + funnel (LDB 14 l.159/161/169)', () => {
     e.advantage = 1;
     banc.getState().ouvrirLEmpoignade(E.id);
     const pd = banc.getState().pendingGrapple!;
-    banc.setState({ pendingGrapple: { ...pd, def: pd.atk, result: 'failure' } });
+    banc.setState({ pendingGrapple: { ...pd, def: pd.atk, result: 'echec' } });
     banc.getState().jetValider('empoignade');
     expect(live(E.id).advantage).toBe(2); // +1 Avantage (l.161)
     expect(banc.getState().pendingGrapple).toBeNull();
