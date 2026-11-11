@@ -92,7 +92,7 @@ describe('Aux Armes p.89 — qualités de mêlée câblées', () => {
     expect(choix?.kind).toBe('choice');
     if (choix?.kind !== 'choice') throw new Error('nœud de choix absent');
     expect(choix.advantageCost).toBe('$indice'); // X = l'Indice imprimé (1A / 2A), jamais un coût figé
-    const sup = choix.yes.kind === 'do' && choix.yes.effect.type === 'ops' ? choix.yes.effect.ops : undefined;
+    const sup = choix.oui.kind === 'do' && choix.oui.effect.type === 'ops' ? choix.oui.effect.ops : undefined;
     expect(sup?.[0]).toMatchObject({ op: 'condition', id: 'hemorragique' });
     expect(findQualityById('taillade')?.capabilities).toBeUndefined(); // plus de capability bespoke
   });
@@ -107,7 +107,7 @@ describe('Aux Armes p.89 — qualités de mêlée câblées', () => {
     expect(choice.advantageCost).toBe(2);
     // Branche `yes` = Test OPPOSÉ Force/Athlétisme des deux côtés (défenseur jette F+athletisme,
     // attaquant pré-jeté opposed{F+athletisme}).
-    const test = choice.yes;
+    const test = choice.oui;
     expect(test.kind).toBe('test');
     if (test.kind !== 'test') throw new Error('yes doit être un test');
     expect(test.test.characteristic).toBe('force');

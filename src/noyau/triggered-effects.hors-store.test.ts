@@ -85,13 +85,13 @@ describe('fireTriggers — Traits et Atouts sur le même système flow+déclench
     const victime = mk({ id: 'vi' });
     const flow: Flow = {
       kind: 'choice', prompt: 'Renverser', advantageCost: 2,
-      yes: {
+      oui: {
         kind: 'test',
         test: { characteristic: 'force', skill: { id: 'athletisme' } },
         success: { kind: 'seq', steps: [] },
         fail: { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: 'a-terre' }] } },
       },
-      no: { kind: 'seq', steps: [] },
+      non: { kind: 'seq', steps: [] },
     } as Flow;
     expect(
       () => applyTriggeredEffects(noBattle(), porteur, [{ trigger: 'onHit', on: 'victim', flow }], 'onHit', { rng: desDuTest, victim: victime }),
@@ -100,7 +100,7 @@ describe('fireTriggers — Traits et Atouts sur le même système flow+déclench
     expect(victime.conditions, 'la cible a subi une conséquence alors qu’aucun jet n’a été joué.').toEqual([]);
   });
 
-  it('CHOICE sans routeur, cas Taillade (`choice{yes:do}`) : l’État AUTOMATIQUE joue, le choix n’est pas offert, aucune levée', () => {
+  it('CHOICE sans routeur, cas Taillade (`choice{oui:do}`) : l’État AUTOMATIQUE joue, le choix n’est pas offert, aucune levée', () => {
     const porteur = mk({ id: 'po' });
     const victime = mk({ id: 'vi' });
     const flow: Flow = {
@@ -109,7 +109,7 @@ describe('fireTriggers — Traits et Atouts sur le même système flow+déclench
         { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: 'hemorragique' }] } },
         {
           kind: 'choice', prompt: 'Ouvrir la plaie', advantageCost: 1,
-          yes: { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: 'hemorragique' }] } },
+          oui: { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: 'hemorragique' }] } },
         },
       ],
     } as Flow;
@@ -490,7 +490,7 @@ describe('onOwnTestFailed — jets d’ATTAQUE (attaquant ET défenseur, MSRC 16
     seedBattleRng(1);
     const { H, E } = combat();
     addCrampes(H); // H se défend
-    const res: AttackResult = { hit: true, attackerRoll: 20, defenderRoll: 99, netSL: 3, critical: false, advantageTo: 'attacker', defenderDefeated: false, defenderDetail: { ...missDetail(-2), mode: 'parade' }, woundsLost: 0, log: `${E.label} touche.` };
+    const res: AttackResult = { hit: true, attackerRoll: 20, defenderRoll: 99, netSL: 3, critical: false, advantageTo: 'attaquant', defenderDefeated: false, defenderDetail: { ...missDetail(-2), mode: 'parade' }, woundsLost: 0, log: `${E.label} touche.` };
     applyAttackResult(banc.getState, banc.setState, E, H, wpn(E), res);
     expect(hasCondition(banc.getState().battle!.combatants.find((c) => c.id === H.id)!, 'sonne')).toBe(true);
   });

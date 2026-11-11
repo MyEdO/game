@@ -66,7 +66,7 @@ describe('un verbe de cascade joué hors de son étape est refusé en nommant l�
     expect(get().journal).toEqual([]);
 
     const tire = courante().table!.result;
-    expect(fermeturesDuFlux(get(), 'cascadeTirage', 'deviation').roll).toBe('jetLance');
+    expect(fermeturesDuFlux(get(), 'cascadeTirage', 'deviation').lancer).toBe('jetLance');
     get().jetLancer('cascadeTirage', 'deviation');
     expect(courante().table!.result).toBe(tire);
     get().jetImposerLeResultat('cascadeTirage', 77, 'deviation');

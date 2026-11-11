@@ -2,7 +2,7 @@
  "id": "arene",
  "type": "projet",
  "label": "L’Arène",
- "icon": "scenario/arena",
+ "icon": "scenario/arene",
  "versionContenu": 1,
  "maison": "bac à sable de combat authoré pour le jeu — aucun livre ne publie cette arène ; les créatures, armes et règles qu'elle compose portent chacune sa propre source",
  "narratif": {
@@ -3768,7 +3768,7 @@
         {
          "id": "echelle-arene",
          "label": "L’échelle de l’arène.",
-         "icon": "action/attack",
+         "icon": "action/attaquer",
          "next": {
           "id": "echelle"
          }
@@ -3776,7 +3776,7 @@
         {
          "id": "contrats-expedition",
          "label": "Les contrats d’expédition.",
-         "icon": "file/document",
+         "icon": "fichier/document",
          "next": {
           "id": "contrats"
          }
@@ -3784,7 +3784,7 @@
         {
          "id": "crocheter-vieux-coffre",
          "label": "Crocheter le vieux coffre du maître.",
-         "icon": "ui/lock",
+         "icon": "interface/verrou",
          "when": {
           "kind": "flag",
           "expr": "!coffre_pris"
@@ -3846,7 +3846,7 @@
         {
          "id": "reclamer-titre-champion",
          "label": "Réclamer ton titre de CHAMPION.",
-         "icon": "scenario/arena",
+         "icon": "scenario/arene",
          "when": {
           "kind": "flag",
           "expr": "zone13_clear,!champion_fete"
@@ -3901,7 +3901,7 @@
         {
          "id": "savourer-gloire-champion",
          "label": "Savourer ta gloire de champion.",
-         "icon": "scenario/arena",
+         "icon": "scenario/arene",
          "when": {
           "kind": "flag",
           "expr": "champion_fete"
@@ -3949,7 +3949,7 @@
         {
          "id": "entrer-zone1",
          "label": "Entrer — La Cour (échauffement).",
-         "icon": "action/attack",
+         "icon": "action/attaquer",
          "when": {
           "kind": "flag",
           "expr": "!zone1_clear"
@@ -3972,7 +3972,7 @@
         {
          "id": "entrer-zone2",
          "label": "Entrer — Les Ruines.",
-         "icon": "action/attack",
+         "icon": "action/attaquer",
          "when": {
           "kind": "flag",
           "expr": "zone1_clear,!zone2_clear"
@@ -3995,7 +3995,7 @@
         {
          "id": "entrer-zone3",
          "label": "Entrer — Les Égouts.",
-         "icon": "action/attack",
+         "icon": "action/attaquer",
          "when": {
           "kind": "flag",
           "expr": "zone2_clear,!zone3_clear"
@@ -4018,7 +4018,7 @@
         {
          "id": "entrer-zone4",
          "label": "Entrer — Le Charnier.",
-         "icon": "action/attack",
+         "icon": "action/attaquer",
          "when": {
           "kind": "flag",
           "expr": "zone3_clear,!zone4_clear"
@@ -4041,7 +4041,7 @@
         {
          "id": "entrer-zone5",
          "label": "Entrer — Les Lices.",
-         "icon": "action/attack",
+         "icon": "action/attaquer",
          "when": {
           "kind": "flag",
           "expr": "zone4_clear,!zone5_clear"
@@ -4064,7 +4064,7 @@
         {
          "id": "entrer-zone6",
          "label": "Entrer — Le Marais.",
-         "icon": "action/attack",
+         "icon": "action/attaquer",
          "when": {
           "kind": "flag",
           "expr": "zone5_clear,!zone6_clear"
@@ -4087,7 +4087,7 @@
         {
          "id": "entrer-zone7",
          "label": "Entrer — Le Nid.",
-         "icon": "action/attack",
+         "icon": "action/attaquer",
          "when": {
           "kind": "flag",
           "expr": "zone6_clear,!zone7_clear"
@@ -4110,7 +4110,7 @@
         {
          "id": "entrer-zone8",
          "label": "Entrer — La Fosse.",
-         "icon": "action/attack",
+         "icon": "action/attaquer",
          "when": {
           "kind": "flag",
           "expr": "zone7_clear,!zone8_clear"
@@ -4133,7 +4133,7 @@
         {
          "id": "entrer-zone9",
          "label": "Entrer — La Caverne du Troll.",
-         "icon": "action/attack",
+         "icon": "action/attaquer",
          "when": {
           "kind": "flag",
           "expr": "zone8_clear,!zone9_clear"
@@ -4156,7 +4156,7 @@
         {
          "id": "entrer-zone10",
          "label": "Entrer — Le Nid de Vermine.",
-         "icon": "action/attack",
+         "icon": "action/attaquer",
          "when": {
           "kind": "flag",
           "expr": "zone9_clear,!zone10_clear"
@@ -4179,7 +4179,7 @@
         {
          "id": "entrer-zone11",
          "label": "Entrer — Le Cercle Maudit.",
-         "icon": "action/attack",
+         "icon": "action/attaquer",
          "when": {
           "kind": "flag",
           "expr": "zone10_clear,!zone11_clear"
@@ -4202,7 +4202,7 @@
         {
          "id": "entrer-zone12",
          "label": "Entrer — Le Sépulcre.",
-         "icon": "action/attack",
+         "icon": "action/attaquer",
          "when": {
           "kind": "flag",
           "expr": "zone11_clear,!zone12_clear"
@@ -4225,7 +4225,7 @@
         {
          "id": "entrer-zone13",
          "label": "Entrer — L’Antre du Dragon.",
-         "icon": "action/attack",
+         "icon": "action/attaquer",
          "when": {
           "kind": "flag",
           "expr": "zone12_clear,!zone13_clear"
@@ -4261,7 +4261,7 @@
         {
          "id": "contrat-foret",
          "label": "La Vieille Futaie : des hommes-bêtes ont dressé un camp — et la bande de Bella la Noire détrousse les convois.",
-         "icon": "file/document",
+         "icon": "fichier/document",
          "when": {
           "kind": "flag",
           "expr": "zone4_clear,!contrat_foret"
@@ -4289,7 +4289,7 @@
         {
          "id": "prime-foret",
          "label": "Toucher la prime — des hommes-bêtes ont dressé un camp — et la bande de Bella la Noire détrousse les convois.",
-         "icon": "resource/gold-purse",
+         "icon": "ressource/bourse",
          "when": {
           "kind": "flag",
           "expr": "contrat_foret_fait,!contrat_foret_paye"
@@ -4333,7 +4333,7 @@
         {
          "id": "contrat-marais",
          "label": "La Tourbière Noire : quelque chose de FABRIQUÉ y traîne les voyageurs sous l’eau.",
-         "icon": "file/document",
+         "icon": "fichier/document",
          "when": {
           "kind": "flag",
           "expr": "zone6_clear,!contrat_marais"
@@ -4361,7 +4361,7 @@
         {
          "id": "prime-marais",
          "label": "Toucher la prime — quelque chose de FABRIQUÉ y traîne les voyageurs sous l’eau.",
-         "icon": "resource/gold-purse",
+         "icon": "ressource/bourse",
          "when": {
           "kind": "flag",
           "expr": "contrat_marais_fait,!contrat_marais_paye"
@@ -4405,7 +4405,7 @@
         {
          "id": "contrat-village",
          "label": "Felsbach : le village ne répond plus depuis un mois. Brûle ce qui marche encore.",
-         "icon": "file/document",
+         "icon": "fichier/document",
          "when": {
           "kind": "flag",
           "expr": "zone8_clear,!contrat_village"
@@ -4433,7 +4433,7 @@
         {
          "id": "prime-village",
          "label": "Toucher la prime — le village ne répond plus depuis un mois. Brûle ce qui marche encore.",
-         "icon": "resource/gold-purse",
+         "icon": "ressource/bourse",
          "when": {
           "kind": "flag",
           "expr": "contrat_village_fait,!contrat_village_paye"
@@ -4498,7 +4498,7 @@
         {
          "id": "voir-remedes-protheses",
          "label": "Voir les remèdes et prothèses.",
-         "icon": "medical/aid",
+         "icon": "medical/soins-payants",
          "flow": {
           "kind": "seq",
           "steps": [
@@ -4729,7 +4729,7 @@
         {
          "id": "voir-garde-manger",
          "label": "Voir le garde-manger (rations, vivres, pintes).",
-         "icon": "rest/stew",
+         "icon": "repos/ragout",
          "flow": {
           "kind": "seq",
           "steps": [
@@ -4746,7 +4746,7 @@
         {
          "id": "repas-chaud",
          "label": "Repas chaud pour le groupe.",
-         "icon": "rest/stew",
+         "icon": "repos/ragout",
          "cost": {
           "silver": 4
          },
@@ -4772,7 +4772,7 @@
         {
          "id": "prendre-chambres",
          "label": "Prendre des chambres pour la nuit.",
-         "icon": "rest/bed",
+         "icon": "repos/lit",
          "flow": {
           "kind": "seq",
           "steps": [
@@ -4789,7 +4789,7 @@
         {
          "id": "ecouter-salle",
          "label": "Écouter la salle.",
-         "icon": "expedition/rumor",
+         "icon": "expedition/rumeurs",
          "next": {
           "id": "rumeurs"
          }
@@ -4923,7 +4923,7 @@
         {
          "id": "recevoir-soins",
          "label": "Recevoir des soins (actes payants).",
-         "icon": "medical/aid",
+         "icon": "medical/soins-payants",
          "flow": {
           "kind": "seq",
           "steps": [
@@ -4954,7 +4954,7 @@
         {
          "id": "recevoir-benediction",
          "label": "Recevoir la bénédiction du départ (retrouver la Chance).",
-         "icon": "faith/prayer",
+         "icon": "foi/priere",
          "when": {
           "kind": "flag",
           "expr": "!benediction_recue"
@@ -4988,7 +4988,7 @@
         {
          "id": "faire-don",
          "label": "Faire un don au tronc.",
-         "icon": "resource/gold-purse",
+         "icon": "ressource/bourse",
          "cost": {
           "gold": 1
          },
@@ -5008,7 +5008,7 @@
         {
          "id": "piller-tronc-offrandes",
          "label": "Piller le tronc des offrandes.",
-         "icon": "action/pick-up",
+         "icon": "action/ramasser",
          "when": {
           "kind": "flag",
           "expr": "!tronc_pille"
@@ -5113,7 +5113,7 @@
         {
          "id": "armes-armures-reparations",
          "label": "Armes, armures et réparations.",
-         "icon": "merchant/cart",
+         "icon": "marchand/panier",
          "flow": {
           "kind": "seq",
           "steps": [
@@ -5159,7 +5159,7 @@
         {
          "id": "voir-etal-herbes",
          "label": "Voir l’étal (herbes, potions, fournitures).",
-         "icon": "merchant/cart",
+         "icon": "marchand/panier",
          "flow": {
           "kind": "seq",
           "steps": [
@@ -16703,7 +16703,7 @@
         {
          "id": "crocheter-cage",
          "label": "Crocheter la cage.",
-         "icon": "ui/lock",
+         "icon": "interface/verrou",
          "when": {
           "kind": "flag",
           "expr": "!prisonnier_libre"
@@ -26867,7 +26867,7 @@
     "scene": {
      "id": "arene-exp-foret"
     },
-    "icon": "scenario/hamlet"
+    "icon": "scenario/hameau"
    },
    {
     "id": "marais",
@@ -26879,7 +26879,7 @@
     "scene": {
      "id": "arene-exp-marais"
     },
-    "icon": "scenario/trap"
+    "icon": "scenario/piege"
    },
    {
     "id": "village",
@@ -26891,7 +26891,7 @@
     "scene": {
      "id": "arene-exp-village"
     },
-    "icon": "journal/death"
+    "icon": "journal/mort"
    }
   ],
   "routes": [

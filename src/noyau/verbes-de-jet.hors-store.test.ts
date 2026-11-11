@@ -68,7 +68,7 @@ describe('le pilote d’auto-cadence joue le drive d’une étape-jet, chaque ge
   it('attaque en cadence Rapide : le jet d’attaque tombe et se confirme sans geste du joueur', () => {
     banc = ouvrirLeBanc({ cadence: 'rapide' });
     const { H, E } = heroFaceAUnEnnemi(banc, testScene());
-    openAttackCascade(g, banc.setState, { attackerId: H.id, targetId: E.id, location: null, result: null, weaponUid: H.weapons[0].uid }, 'Attaque', 'action/attack');
+    openAttackCascade(g, banc.setState, { attackerId: H.id, targetId: E.id, location: null, result: null, weaponUid: H.weapons[0].uid }, 'Attaque', 'action/attaquer');
     expect(g().pendingAttack?.result, 'témoin : le jet d’attaque attend').toBeNull();
     tickCombatAuto(g, banc.setState);
     banc.jusquA((s) => !s.pendingAttack, 20);
@@ -90,7 +90,7 @@ describe('la clôture `jetValider(flux)` (#3324) : jugée sur la fenêtre, comme
 
   it('avant le jet, la clôture est fermée sans un mot : l’attaque reste en attente', () => {
     const { H, E } = heroFaceAUnEnnemi(banc, testScene());
-    openAttackCascade(g, banc.setState, { attackerId: H.id, targetId: E.id, location: null, result: null, weaponUid: H.weapons[0].uid }, 'Attaque', 'action/attack');
+    openAttackCascade(g, banc.setState, { attackerId: H.id, targetId: E.id, location: null, result: null, weaponUid: H.weapons[0].uid }, 'Attaque', 'action/attaquer');
     const avant = g().pendingAttack;
     g().jetValider('attaque');
     expect(g().pendingAttack).toBe(avant);
@@ -101,7 +101,7 @@ describe('la clôture `jetValider(flux)` (#3324) : jugée sur la fenêtre, comme
     const { H } = heroFaceAUnEnnemi(banc, testScene());
     banc.setState({ pendingCastOpposition: { test: { characteristic: 'force-mentale' }, participants: [{ id: H.id, interactive: true, base: 40, target: 40, result: null }] } } as unknown as Partial<Jeu>);
     const avant = g().pendingCastOpposition;
-    expect(fermeturesDuFlux(g(), 'opposition').confirm).toBe('oppositionsDues');
+    expect(fermeturesDuFlux(g(), 'opposition').valider).toBe('oppositionsDues');
     g().jetValider('opposition');
     expect(g().refus?.texte).toBe(libelleDeLaFermeture('oppositionsDues'));
     expect(g().pendingCastOpposition).toBe(avant);
@@ -115,7 +115,7 @@ describe('la clôture `jetValider(flux)` (#3324) : jugée sur la fenêtre, comme
       ] },
     } as unknown as Partial<Jeu>);
     const avant = g().pendingFall;
-    expect(fermeturesDuFlux(g(), 'chute').confirm).toBe('declarationsDues');
+    expect(fermeturesDuFlux(g(), 'chute').valider).toBe('declarationsDues');
     g().jetValider('chute');
     expect(g().refus?.texte).toBe(libelleDeLaFermeture('declarationsDues'));
     expect(g().pendingFall).toBe(avant);
@@ -125,7 +125,7 @@ describe('la clôture `jetValider(flux)` (#3324) : jugée sur la fenêtre, comme
     const { H } = heroFaceAUnEnnemi(banc, testScene());
     banc.setState({ pendingCounterspell: { participants: [{ id: H.id, interactive: true, base: 40, target: 40, result: null }] } } as unknown as Partial<Jeu>);
     const fermetures = fermeturesDuFlux(g(), 'contreSort');
-    expect([fermetures.confirm, fermetures.cancel]).toEqual(['declarationsDues', 'declarationsDues']);
+    expect([fermetures.valider, fermetures.annuler]).toEqual(['declarationsDues', 'declarationsDues']);
     const avant = g().pendingCounterspell;
     g().jetValider('contreSort');
     expect(g().refus?.texte).toBe(libelleDeLaFermeture('declarationsDues'));
@@ -136,8 +136,8 @@ describe('la clôture `jetValider(flux)` (#3324) : jugée sur la fenêtre, comme
     const { H } = heroFaceAUnEnnemi(banc, testScene());
     const rangee = { id: H.id, interactive: true, base: 40, target: 40, declared: 'solo' as const };
     banc.setState({ pendingCounterspell: { participants: [{ ...rangee, result: null }] } } as unknown as Partial<Jeu>);
-    expect(fermeturesDuFlux(g(), 'contreSort').confirm, 'le contre-lanceur déclaré n’a pas lancé').toBe('jetNonLance');
+    expect(fermeturesDuFlux(g(), 'contreSort').valider, 'le contre-lanceur déclaré n’a pas lancé').toBe('jetNonLance');
     banc.setState({ pendingCounterspell: { participants: [{ ...rangee, result: { dispelled: false, counter: { roll: 90, target: 40, sl: -3, success: false, isDouble: false } } }] } } as unknown as Partial<Jeu>);
-    expect(fermeturesDuFlux(g(), 'contreSort').confirm, 'son jet est tombé').toBeNull();
+    expect(fermeturesDuFlux(g(), 'contreSort').valider, 'son jet est tombé').toBeNull();
   });
 });

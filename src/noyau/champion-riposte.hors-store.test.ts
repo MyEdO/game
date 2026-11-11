@@ -41,10 +41,10 @@ function setup(targetTraits: { id: string }[], heroArmourCorps = 0): { hero: Com
   return { hero, enemy };
 }
 
-/** Résultat d'attaque où le DÉFENSEUR a gagné le Test opposé (advantageTo 'defender', netSL > 0). */
+/** Résultat d'attaque où le DÉFENSEUR a gagné le Test opposé (advantageTo 'defenseur', netSL > 0). */
 const defenderWins: AttackResult = {
   hit: false, attackerRoll: 70, defenderRoll: 25, netSL: 2, location: 'corps', damage: 0, woundsLost: 0,
-  critical: false, advantageTo: 'defender', defenderDefeated: false, log: '',
+  critical: false, advantageTo: 'defenseur', defenderDefeated: false, log: '',
   defenderDetail: { target: 50, roll: 25, dr: 2 } as never,
 };
 
@@ -73,7 +73,7 @@ describe('Défense du champion / Riposte — contre-attaque (PINNING avant migra
     const { hero, enemy } = setup([{ id: 'champion' }]);
     const before = hero.wounds.current;
     applyAttackResult(banc.getState, banc.setState, hero, enemy, hero.weapons[0],
-      { ...defenderWins, parryWeapon: enemy.weapons[0], advantageTo: 'attacker', netSL: 1 });
+      { ...defenderWins, parryWeapon: enemy.weapons[0], advantageTo: 'attaquant', netSL: 1 });
     const h = banc.getState().battle!.combatants.find((c) => c.id === hero.id)!;
     expect(h.wounds.current).toBe(before);
   });

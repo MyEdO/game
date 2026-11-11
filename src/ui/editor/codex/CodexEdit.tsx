@@ -125,8 +125,8 @@ const OPS_FIELDS: Record<string, string[]> = {
   // kinds `condition`/`wounds`/`corruption`/`reduceToZero`/`castPenalty`/`suppressTalents`/`deitySkillMod`/`deityBan`/`prayerForAction`
   // que le vocabulaire `GameOp` réel), et `targetOps` (ops aux cibles de l'incantation).
   grapple: ['init'],
-  miscastMinor: ['ops', 'targetOps'], miscastMajor: ['ops', 'targetOps'], miscastWrath: ['ops', 'targetOps'],
-  miscastMinorVdm: ['ops', 'targetOps'], miscastMajorVdm: ['ops', 'targetOps'],
+  imparfaiteMineure: ['ops', 'targetOps'], imparfaiteMajeure: ['ops', 'targetOps'], colereDesDieux: ['ops', 'targetOps'],
+  imparfaiteMineureVdm: ['ops', 'targetOps'], imparfaiteMajeureVdm: ['ops', 'targetOps'],
   ...tableTotale(SHIP_CRIT_CATEGORIES, () => ['ops']),
 };
 const opsFieldsOf = (categoryKey: string): string[] => OPS_FIELDS[categoryKey] ?? [];
@@ -196,7 +196,7 @@ export function dedicatedFieldKeys(categoryKey: string): Set<string> {
   if (categoryKey === 'axes') add('skills', 'talents'); // #409 : {id,spec?}[] → SkillSpecListField/TalentSpecListField
   if (categoryKey === 'traumas') add('prosthesis'); // {id,cancels}[] → éditeur dédié (ProsthesisField)
   if (CRITICAL_CATEGORIES.includes(categoryKey)) add('traumas', 'test'); // string[] d'ids → TraumaListField (#173) ; `test` → FlowEditor (#1682)
-  if (categoryKey === 'steamBreakdowns') add('restart'); // {test,targetDR?}[] → éditeur dédié
+  if (categoryKey === 'steamBreakdowns') add('restart'); // {test,drCible?}[] → éditeur dédié
   if (categoryKey === 'vehicles') add('ponts'); // [cartes, hauteurs] → éditeur dédié (PontsField)
   add(...opsFieldsOf(categoryKey)); // ops/occupantOps/crewOps/captainOps → GameOpEditor (#157)
   if (categoryKey === 'symptoms') add('passive', 'passiveBySeverity', 'onTick', 'visiblePassive', 'visibleLocations'); // GameOp[] + test de cycle + gate visibilité → éditeurs dédiés (capabilities = sous-form générique)
@@ -363,7 +363,7 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
   // Critique localisé (LDB 6/AA, #173) : `traumas` = string[] d'ids de fiche (`traumas.json`) →
   // éditeur dédié (TraumaListField, sélecteurs id→label) au lieu du datalist générique par-label.
   const hasTraumaList = CRITICAL_CATEGORIES.includes(categoryKey);
-  // Panne de Vapeur (`steamBreakdowns`, #157) : `restart` (Test de redémarrage) = {test,targetDR?}[].
+  // Panne de Vapeur (`steamBreakdowns`, #157) : `restart` (Test de redémarrage) = {test,drCible?}[].
   const hasRestartTest = categoryKey === 'steamBreakdowns';
   // Ponts d'un navire (`vehicles.ponts`, #3686) : la paire [cartes, hauteurs].
   const hasPonts = categoryKey === 'vehicles';
@@ -515,12 +515,12 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
         {fsApi && !dir && <button className="btn small" onClick={() => fs.connectDataDir().then(
           (h) => { if (h) setConnexion((c) => ({ ...c, dir: h, needsGrant: false })); },
           (e) => setMsg(`Échec de la connexion à src/data : ${String(e)}`),
-        )}><Icon id="file/folder" size="sm" /> Connecter src/data…</button>}
+        )}><Icon id="fichier/dossier" size="sm" /> Connecter src/data…</button>}
         {fsApi && dir && needsGrant && <button className="btn small" onClick={() => fs.grantPermission(dir).then(
           (ok) => { if (ok) setConnexion((c) => ({ ...c, needsGrant: false })); },
           (e) => setMsg(`Échec de l’autorisation d’écriture dans src/data : ${String(e)}`),
         )}>Autoriser l'écriture</button>}
-        {fsApi && dir && !needsGrant && <span className="de-ok"><Icon id="file/folder" size="sm" /> connecté</span>}
+        {fsApi && dir && !needsGrant && <span className="de-ok"><Icon id="fichier/dossier" size="sm" /> connecté</span>}
         <span className="de-spacer" />
         {(msg || connexion.echec) && <span className="de-msg">{msg || connexion.echec}</span>}
         <button className="btn small" onClick={onClose}>Fermer</button>
@@ -1207,7 +1207,7 @@ function ChampsDuTest({ test, index, onChange, difficulteFacultative = false }: 
 }
 
 /** Test de REDÉMARRAGE d'un moteur à vapeur (`steamBreakdowns.restart`, MDG 12, #157) :
- *  `{test:{skill?,characteristic?,difficulty},targetDR?}[]` — Compétence OU Caractéristique + Difficulté
+ *  `{test:{skill?,characteristic?,difficulty},drCible?}[]` — Compétence OU Caractéristique + Difficulté
  *  (+ DR cumulés si Test étendu). */
 function RestartTestField({ value, onChange }: { value: RestartTest[] | undefined; onChange: (v: RestartTest[]) => void }) {
   const list = value ?? [];
@@ -1218,7 +1218,7 @@ function RestartTestField({ value, onChange }: { value: RestartTest[] | undefine
       {list.map((r, i) => (
         <div className="tf-row" key={i}>
           <ChampsDuTest test={r.test} index={i} onChange={(patch) => set(list.map((x, j) => (j === i ? { ...x, test: { ...x.test, ...patch, difficulty: patch.difficulty ?? x.test.difficulty } } : x)))} />
-          <NumberField variant="nu" label="DR cumulés (étendu)" min={1} placeholder="DR cumulés (étendu)" width={64} vide value={r.targetDR} onChange={(n) => set(list.map((x, j) => (j === i ? { ...x, targetDR: n ?? undefined } : x)))} />
+          <NumberField variant="nu" label="DR cumulés (étendu)" min={1} placeholder="DR cumulés (étendu)" width={64} vide value={r.drCible} onChange={(n) => set(list.map((x, j) => (j === i ? { ...x, drCible: n ?? undefined } : x)))} />
           <button className="btn small danger" title="Retirer" onClick={() => set(list.filter((_, j) => j !== i))}>✕</button>
         </div>
       ))}

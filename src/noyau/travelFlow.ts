@@ -669,7 +669,7 @@ function runTravelDays(get: Get, set: Set): void {
       if (forced.vehicleOut) {
         set({ travelPlan: { ...get().travelPlan!, mode: 'pied', allure: undefined } });
         log(get, set, [t('tf.vehicleOut')]);
-        recapDay.lines.push({ text: t('tf.vehicleOut'), tone: 'bad' });
+        recapDay.lines.push({ text: t('tf.vehicleOut'), tone: 'echec' });
       }
     }
 
@@ -799,7 +799,7 @@ function buildTravelDayCascade(
   // n'existent qu'une fois le dé connu ». L'ordre des dés reste météo → Résistance → postes.
   if (rule('voyage-etapes')) {
     pousseSi(steps, tableStep({
-      id: STAGE_WEATHER_STEP_ID, kind: STAGE_WEATHER_KIND, worldOwner: true, icon: 'travel/wave',
+      id: STAGE_WEATHER_STEP_ID, kind: STAGE_WEATHER_KIND, worldOwner: true, icon: 'voyage/vague',
       label: t('step.stageWeather'),
       table: { tableId: stageWeatherTableId(currentSeason(get)), spec: weatherDie(currentSeason(get)) },
       stake: voyageStakeRef(STAGE_WEATHER_KIND),
@@ -815,7 +815,7 @@ function buildTravelDayCascade(
   const perilDie = route.perilDie ?? get().worldMap?.params?.perilDie ?? TRAVEL_DEFAULTS.perilDie;
   if (estFaceDeSeuil(perilDie)) {
     pousseSi(steps, tableStep({
-      id: 'route-peripetie', kind: 'perilATerre', worldOwner: true, icon: 'ui/warning', label: t('step.perilATerre'),
+      id: 'route-peripetie', kind: 'perilATerre', worldOwner: true, icon: 'interface/attention', label: t('step.perilATerre'),
       table: { tableId: perilThresholdTableId(perilDie), spec: peripetieSeuilDie() },
       stake: voyageStakeRef('route-peripetie', { seuil: perilDie }),
       meta: { destLabel: dest.destLabel, seuil: perilDie },
@@ -878,7 +878,7 @@ export function continueTravelDayAfterCascade(get: Get, set: Set, done?: Pending
     if (fp.vehicleOut) {
       set({ travelPlan: { ...get().travelPlan!, mode: 'pied', allure: undefined } });
       log(get, set, [t('tf.vehicleOut')]);
-      recapDay?.lines.push({ text: t('tf.vehicleOut'), tone: 'bad' });
+      recapDay?.lines.push({ text: t('tf.vehicleOut'), tone: 'echec' });
     }
     if (recapDay) { recapDay.kmTo = get().travelPlan?.kmDone ?? recapDay.kmTo; recapDay.hours = fp.hours; }
   }
@@ -896,7 +896,7 @@ export function continueTravelDayAfterCascade(get: Get, set: Set, done?: Pending
       const h = get().party.find((x) => x.id === id);
       if (!h) continue;
       const r = forcedMarchTest(h, battleRng());
-      if (r) { log(get, set, [r.line]); recapDay?.entries?.push({ actorId: id, icon: 'travel/foot', label: t('step.marcheForcee'), d: r.d, text: r.gained ? t('tf.fragExtenue', { n: r.gained }) : t('tf.holdsPace'), tone: r.gained ? 'bad' : 'ok' }); }
+      if (r) { log(get, set, [r.line]); recapDay?.entries?.push({ actorId: id, icon: 'voyage/a-pied', label: t('step.marcheForcee'), d: r.d, text: r.gained ? t('tf.fragExtenue', { n: r.gained }) : t('tf.holdsPace'), tone: r.gained ? 'echec' : 'reussite' }); }
     }
     set({ party: [...get().party] });
   };
@@ -998,13 +998,13 @@ function resolveMountedTravelDay(get: Get, set: Set, hoursToday: number, allure:
   for (const o of outcomes) {
     lines.push(...o.lines);
     for (const mt of o.tests) {
-      day.entries!.push({ actorId: o.mount.hero.id, icon: 'travel/mount', label: mt.label, d: mt, text: mt.success ? t('tf.holdsPace') : t('tf.flanche'), tone: mt.success ? 'ok' : 'bad' });
+      day.entries!.push({ actorId: o.mount.hero.id, icon: 'voyage/en-selle', label: mt.label, d: mt, text: mt.success ? t('tf.holdsPace') : t('tf.flanche'), tone: mt.success ? 'reussite' : 'echec' });
     }
     for (const inc of o.incidents) {
       if (inc.riderTest) {
         day.entries!.push({
-          actorId: o.mount.hero.id, icon: 'travel/mount', label: t('tf.mountIncident', { incident: inc.entry.label }), d: inc.riderTest,
-          text: inc.riderTest.success ? t('tf.staysInSaddle') : t('tf.fallsOff'), tone: inc.riderTest.success ? 'ok' : 'bad',
+          actorId: o.mount.hero.id, icon: 'voyage/en-selle', label: t('tf.mountIncident', { incident: inc.entry.label }), d: inc.riderTest,
+          text: inc.riderTest.success ? t('tf.staysInSaddle') : t('tf.fallsOff'), tone: inc.riderTest.success ? 'reussite' : 'echec',
         });
       }
       // Chute de selle (2 mètres, EDOC 07 l.167/l.174) — Dégâts de Chute (LDB 15) via la brique partagée.
@@ -1113,12 +1113,12 @@ function forcedPaceDay(get: Get, set: Set, kmLeft: number, driver: NonNullable<R
     }
     const stupefiant = roll.sl <= -6; // Échec Stupéfiant (EDOC 07 l.253)
     out.entries.push({
-      actorId: driver.actor.id, icon: 'travel/cart', label: 'Conduite d’attelage (allure forcée)',
+      actorId: driver.actor.id, icon: 'voyage/charrette', label: 'Conduite d’attelage (allure forcée)',
       // La rangée du récap NOMME ce qui compose la valeur : le Soutien des passagers (LDB 12, fondu
       // dans `driver.value`) et les crans déjà avalés au pas de course.
       d: testDetail('Conduite d’attelage', driverLine.base, roll,
         [...driverLine.mods, ...(gallopMod ? [gallopMod] : [])]),
-      text: stupefiant ? t('tf.forcedStupefiant') : t('tf.forcedBackToWalk'), tone: 'bad',
+      text: stupefiant ? t('tf.forcedStupefiant') : t('tf.forcedBackToWalk'), tone: 'echec',
     });
     // Le jet est DÉJÀ affiché par la rangée `day.entries` (MultiRollList) du même recap — pas de
     // re-print du roll/target (#295 Lot 5) ; le verdict reste pour le journal général (surface SANS rangée).
@@ -1217,7 +1217,7 @@ function forcedPaceDriver(get: Get) {
 function buildForcedPaceStep(driver: { actor: Combatant; value: number; support?: SupportDetail }, kmLeft: number, galloped = 0, km = 0, hours = 0): BuiltCascadeStep | undefined {
   const penalty = ligneAllureForcee(galloped); // l.229, SOURCE UNIQUE avec le résolveur pur
   return monoStep({
-    id: `land-forced-${galloped}`, kind: 'rythmeForceATerre', actor: driver.actor, icon: 'travel/cart',
+    id: `land-forced-${galloped}`, kind: 'rythmeForceATerre', actor: driver.actor, icon: 'voyage/charrette',
     label: t('step.conduiteForcee'), rollLabel: 'Conduite d’attelage',
     difficulty: 'intermediaire',
     stake: voyageStakeRef('route-allure-forcee'),
@@ -1380,7 +1380,7 @@ export const TABLES = {
       if (!tiree) return {};
       if (tiree.roll !== step.meta?.seuil) return { consequences: freeCons(tiree.lines) };
       const table = tableStep({
-        id: 'route-peripetie-table', kind: 'perilATerreTable', worldOwner: true, icon: 'ui/warning', label: t('step.perilATerreTable'),
+        id: 'route-peripetie-table', kind: 'perilATerreTable', worldOwner: true, icon: 'interface/attention', label: t('step.perilATerreTable'),
         table: { tableId: PERIL_TABLE_ID, spec: peripetieDie() },
         stake: voyageStakeRef('route-peripetie-table'),
         meta: { destLabel: String(step.meta?.destLabel ?? '') },
@@ -1413,7 +1413,7 @@ export const TABLES = {
         // Survie en extérieur Accessible (+20) INFLUENÇABLE → étape-jet insérée (échec = retard + Exténué).
         const best = partyAssisted(party, { skill: { id: 'survie-en-exterieur' } }); // Soutien (LDB 12)
         const st = best && monoStep({
-          id: 'peril-survie', kind: 'perilATerreSurvie', actor: best.actor, icon: 'travel/compass', label: t('step.perilATerreSurvie'),
+          id: 'peril-survie', kind: 'perilATerreSurvie', actor: best.actor, icon: 'voyage/boussole', label: t('step.perilATerreSurvie'),
           rollLabel: refLabel('skills', { id: 'survie-en-exterieur' }), difficulty: 'accessible',
           stake: voyageStakeRef('route-peripetie-survie'),
           ligne: { test: { skill: { id: 'survie-en-exterieur' } }, valeur: best.value, soutien: best.support },
@@ -1426,7 +1426,7 @@ export const TABLES = {
         const configured = !!(route.ambush?.scene.id && route.ambush.encounter);
         const best = partyAssisted(party, { skill: { id: 'perception' } }); // Soutien (LDB 12)
         const st = best && monoStep({
-          id: 'peril-perception', kind: 'perilATerrePerception', actor: best.actor, icon: 'ui/eye', label: t('step.perilATerrePerception'),
+          id: 'peril-perception', kind: 'perilATerrePerception', actor: best.actor, icon: 'interface/oeil', label: t('step.perilATerrePerception'),
           rollLabel: refLabel('skills', { id: 'perception' }), difficulty: 'accessible',
           stake: voyageStakeRef('route-peripetie-perception'),
           ligne: { test: { skill: { id: 'perception' } }, valeur: best.value, soutien: best.support },
@@ -1519,7 +1519,7 @@ export const TABLES = {
         j.push(t('tf.vehicleProblem', { label: entry.label }));
         if (step.actorId && hero && driver) {
           const st = monoStep({
-            id: `${step.id}-control`, kind: 'rythmeForceATerreControle', actor: driver.actor, icon: 'travel/cart',
+            id: `${step.id}-control`, kind: 'rythmeForceATerreControle', actor: driver.actor, icon: 'voyage/charrette',
             label: t('step.reprendreControle'), rollLabel: 'Conduite d’attelage',
             difficulty: 'intermediaire',
             stake: voyageStakeRef('route-allure-forcee-controle'),

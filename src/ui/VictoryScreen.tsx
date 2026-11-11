@@ -64,7 +64,7 @@ export function VictoryScreen() {
   if (gear.length > 0) {
     sections.push({
       id: 'equipement',
-      titre: <><Icon id="resource/gold-purse" size="sm" /> Équipement — qui l'emporte&nbsp;?</>,
+      titre: <><Icon id="ressource/bourse" size="sm" /> Équipement — qui l'emporte&nbsp;?</>,
       enAvant: true,
       children: (
         <GearAssignList
@@ -119,7 +119,7 @@ export function VictoryScreen() {
         <>
           <ReadyRow ready={ready} />
           <button className="btn btn-primary" disabled={!!ready[net.mySeat]} onClick={dismiss}>
-            {ready[net.mySeat] ? <><Icon id="ui/wait" size="sm" /> En attente des autres…</> : 'Continuer'}
+            {ready[net.mySeat] ? <><Icon id="interface/attendre" size="sm" /> En attente des autres…</> : 'Continuer'}
           </button>
         </>
       ) : (

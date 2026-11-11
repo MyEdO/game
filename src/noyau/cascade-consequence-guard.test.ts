@@ -120,7 +120,7 @@ const DERIVEUR_KEYS = new Set([
 ]);
 /** Clés de catalogue qui RE-PRINTENT un jet hors dériveur, avec leur raison — cible de résorption. */
 const CATALOG_BASELINE = [
-  'cf.wardTestFail', 'cf.handGateFail', 'cf.handGatePass', // #410 : Tests de gate, journal = seule surface
+  'cf.testDeProtectionRate', 'cf.mainEnsanglanteeRatee', 'cf.mainEnsanglanteeReussie', // #410 : Tests de gate, journal = seule surface
   'cs.shameOvercome', 'cs.dispelRoll', // #410 : jet incisé dans la narration
   // #1318 V8c₂ — narrations de voyage (travelFlow/riverVoyageFlow) :
   'tf.beastExhausted', // bêtes de l'attelage : porteur SANS identité, dé parenthétique en justification

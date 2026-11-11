@@ -51,9 +51,9 @@ const PROBE_ID: Record<string, string> = {
   mutations: mutations[0].id, etats: etats[0].id, psychologies: psychologies[0].id,
   maneuvers: maneuvers[0].id, creatures: creatures[0].id, activities: ACTIVITY_STAKES[0].id,
   regles: regles[0].id, tavernGames: 'cerevis',
-  miscastMinor: 'mineure-signe-de-sorciere', miscastMajor: 'majeure-voix-fantomatiques',
-  miscastMinorVdm: 'mineure-vdm-signe-de-sorciere', miscastMajorVdm: 'majeure-vdm-voix-fantomatiques',
-  miscastWrath: 'colere-purifier-la-chair',
+  imparfaiteMineure: 'mineure-signe-de-sorciere', imparfaiteMajeure: 'majeure-voix-fantomatiques',
+  imparfaiteMineureVdm: 'mineure-vdm-signe-de-sorciere', imparfaiteMajeureVdm: 'majeure-vdm-voix-fantomatiques',
+  colereDesDieux: 'colere-purifier-la-chair',
 };
 
 describe('cliquet — un enjeu porte sa RÈGLE (#1117)', () => {
@@ -102,13 +102,13 @@ describe('cliquet — un enjeu porte sa RÈGLE (#1117)', () => {
     expect(POOLS_MANQUANTS, 'catégorie de source sans pool : le renvoi replierait en silence').toEqual([]);
   });
 
-  /** Cas NOMINATIF de la nature de source la plus récente (`miscastWrath`) : une rangée de Colère
+  /** Cas NOMINATIF de la nature de source la plus récente (`colereDesDieux`) : une rangée de Colère
    *  exigeant un jet renvoie à SA PROPRE fiche Codex, jamais au foyer du `kind` (amendement A). */
   it('une rangée de Colère des dieux renvoie sa règle : sa fiche, pas celle du kind', () => {
     const r = resolveStake({
-      key: { dataset: 'combat', kind: 'agir-malgre-effet', entryId: 'colere-purifier-la-chair', entryCategory: 'miscastWrath' },
+      key: { dataset: 'combat', kind: 'agir-malgre-effet', entryId: 'colere-purifier-la-chair', entryCategory: 'colereDesDieux' },
     });
-    expect(r.rule).toEqual({ category: 'miscastWrath', id: 'colere-purifier-la-chair' });
+    expect(r.rule).toEqual({ category: 'colereDesDieux', id: 'colere-purifier-la-chair' });
   });
 
   /**
@@ -172,7 +172,7 @@ describe('cliquet — un enjeu porte sa RÈGLE (#1117)', () => {
       mutations, mutationTables, interludeEvents,
       artilleryMisfire: ARTILLERY_MISFIRE,
       structureCriticals: STRUCTURE_CRITICALS,
-      miscastWrath: rangeesDe<typeof imparfaites>(miscastRawJson, 'miscast-colere'),
+      colereDesDieux: rangeesDe<typeof imparfaites>(miscastRawJson, 'miscast-colere'),
     };
     const muettes: string[] = [];
     for (const e of STAKES) {

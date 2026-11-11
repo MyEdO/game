@@ -52,15 +52,15 @@ export function FrenzyModal() {
   });
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' },
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
+    { key: 'cancel', label: t('verbe.annuler'), onClick: cancel, verbe: 'annuler' },
+    { key: 'confirm', label: t('verbe.valider'), onClick: confirm, verbe: 'valider' },
   ];
 
   return (
     <RollShell
       flowKey="frenesie"
       stake={flowStakeRef('frenesie-test')}
-      title={<><Icon id="flag/frenzy" size="sm" /> Frénésie</>}
+      title={<><Icon id="drapeau/frenesie" size="sm" /> Frénésie</>}
       subtitle={
         <>
           <strong>{c.label}</strong> tente d'entrer en Frénésie (Test de Force Mentale)

@@ -167,7 +167,7 @@ describe('jouerALaTaverne', () => {
     expect(after.roll).toBe(before.result!.roll); // même dé, la Chance n'en tire pas un autre
     // L'issue exposée (`success`) recalcule l'opposition contre le MÊME `aT` figé (calque `disengage`).
     const recomposed = resolveOpposed(aT, { roll: after.roll, target: after.target, sl: after.sl, success: evaluateTest(after.roll, after.target).success, isDouble: false });
-    expect(after.success).toBe(recomposed.winner !== 'attacker');
+    expect(after.success).toBe(recomposed.winner !== 'attaquant');
   });
 
   /**
@@ -229,7 +229,7 @@ describe('jouerALaTaverne', () => {
     // Recompose le verdict SEUL depuis le jet adverse figé + le DR final connu du joueur (`res.playerSL`) —
     // même comparaison que `resolveOpposed` côté moteur (`engine/tavernGame.resolveTavernRound`).
     const opp = resolveOpposed({ roll: 0, target: 0, sl: res.playerSL, success: res.playerSL > 0, isDouble: false }, aT);
-    const expectedWinner = opp.winner === 'attacker' ? 'player' : opp.winner === 'defender' ? 'opponent' : 'tie';
+    const expectedWinner = opp.winner === 'attaquant' ? 'player' : opp.winner === 'defenseur' ? 'opponent' : 'tie';
     expect(res.winner).toBe(expectedWinner);
     expect(res.opponentSL).toBe(aT.sl); // aucun plafond déclaré : le DR adverse passe entier
   }

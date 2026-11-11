@@ -545,7 +545,7 @@ function ouvrirDesDOps(set: SetFn, cible: Combatant, ops: GameOp[], ctx: OpsCtx,
     id: `operationsDe-${cible.id}-${demande.cle}`,
     kind: 'operationsDe',
     label: demande.libelle,
-    icon: 'journal/fall',
+    icon: 'journal/chute',
     spec: demande.spec,
     actorId: cible.id,
     ...(demande.unite ? { unite: demande.unite } : {}),
@@ -627,7 +627,7 @@ export function ouvrirChute(set: SetFn, cible: Combatant, metres: number): void 
     id: `chute-${cible.id}`,
     kind: 'chuteDe',
     label: t('op.fall.deDegats'),
-    icon: 'journal/fall',
+    icon: 'journal/chute',
     spec: D10_CHUTE,
     actorId: cible.id,
     meta: { differeLaSuite: true, chuteMetres: metres },
@@ -1047,7 +1047,7 @@ export function openSkillTest(
   // lui, tout Flow joué par `runFlow` (Escalade, Saut, Récolte…) porterait un enjeu que rien n'affiche.
   const jet = hostStep(get, { id: idDansLaSequence(get, 'test-jet', 'test'), kind: 'jetDeTestDeScene', jet: 'test', actorId: def.id, ...(spec.stake ? { stake: spec.stake } : {}) });
   if (!jet) return false; // le mint ne refuse QUE si `pendingTest` manque — rien à défaire, il vient d'être posé
-  openSequence(get, set, { title: label, icon: 'nav/dice', purpose: 'test', steps: [jet] });
+  openSequence(get, set, { title: label, icon: 'navigation/des', purpose: 'test', steps: [jet] });
   return true;
 }
 
@@ -1120,7 +1120,7 @@ export function runFlow(get: Get, set: SetFn, flow: Flow, label: string = t('eff
     choix: (node, reste) => {
       const after = reste();
       if (ouvrirLeChoixDuFlow(get, set, node, after, label, sl)) return suspendu;
-      return { kind: 'seq', steps: [node.no ?? EMPTY_FLOW, after] };
+      return { kind: 'seq', steps: [node.non ?? EMPTY_FLOW, after] };
     },
     // Vidange FINALE : la pile est vide, il n'y a plus de suite à confier — le signal est rendu tel quel
     // à l'appelant, à qui de décider (c'est lui qui sait s'il enchaîne quelque chose).
@@ -1152,14 +1152,14 @@ function ouvrirLeChoixDuFlow(get: Get, set: SetFn, node: Extract<Flow, { kind: '
   const decideur = meneurDeboutDuMonde(get()) ?? meneurDuMonde(get());
   if (node.advantageCost != null || !decideur) return false;
   openChoice(get, set, {
-    title: label, purpose: 'test', icon: node.icon ?? 'ui/think',
+    title: label, purpose: 'test', icon: node.icon ?? 'interface/reflexion',
     id: `choixDeFlux-${node.prompt}`, kind: 'choixDeFlux', actorId: decideur.id, label: dataLabel(node.prompt),
     options: [
-      { key: 'oui', label: dataLabel(node.prompt), ...detailDeBranche(node.yes) },
-      { key: 'non', label: t('opt.renoncer'), ...detailDeBranche(node.no) },
+      { key: 'oui', label: dataLabel(node.prompt), ...detailDeBranche(node.oui) },
+      { key: 'non', label: t('opt.renoncer'), ...detailDeBranche(node.non) },
     ],
     defaultChoice: 'oui',
-    meta: { choiceYes: node.yes, choiceNo: node.no ?? EMPTY_FLOW, after, flowLabel: label, ...(sl !== undefined ? { flowSl: sl } : {}) },
+    meta: { choiceYes: node.oui, choiceNo: node.non ?? EMPTY_FLOW, after, flowLabel: label, ...(sl !== undefined ? { flowSl: sl } : {}) },
   });
   return true;
 }
@@ -1185,13 +1185,13 @@ function demanderLesVolontaires(get: Get, set: SetFn, e: EffectOp, question: str
   if (!heros.length) { get().ecrireAuJournal(t('eff.volontairesAucun', { question })); return false; }
   const meta = { choiceYes: { kind: 'do' as const, effect: e }, after, flowLabel: label, ...(sl !== undefined ? { flowSl: sl } : {}) };
   const etapes = heros.map((h, i) => choiceStep({
-    id: `volontaireDeFlux-${question}-${h.id}`, kind: 'volontaireDeFlux', actorId: h.id, icon: 'ui/think',
+    id: `volontaireDeFlux-${question}-${h.id}`, kind: 'volontaireDeFlux', actorId: h.id, icon: 'interface/reflexion',
     label: stepPrecision(dataLabel(question), dataLabel(h.label)),
     options: [{ key: 'oui', label: dataLabel(question) }, { key: 'non', label: t('opt.renoncer') }],
     defaultChoice: 'non',
     ...(i === heros.length - 1 ? { meta } : {}),
   }));
-  startCascade(get, set, { title: label, purpose: 'test', icon: 'ui/think', steps: etapes.filter((x): x is BuiltCascadeStep => !!x) });
+  startCascade(get, set, { title: label, purpose: 'test', icon: 'interface/reflexion', steps: etapes.filter((x): x is BuiltCascadeStep => !!x) });
   return true;
 }
 
@@ -1366,7 +1366,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     apply: (e, env) => { if (e.desc) env.log(e.desc); },
   },
   document: {
-    group: 'Narration', label: libelleEffet('document'), icon: 'file/document',
+    group: 'Narration', label: libelleEffet('document'), icon: 'fichier/document',
     make: () => ({ type: 'document', documentId: '' }),
     suspensif: true,
     // EDO 02 l.89-95 : chaque document remis se lit avant la suite, refermé par sa sortie (`fenetreFermer('document')`) qui la rejoue.
@@ -1378,7 +1378,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     },
   },
   revealClue: {
-    group: 'Narration', label: libelleEffet('revealClue'), icon: 'ui/search',
+    group: 'Narration', label: libelleEffet('revealClue'), icon: 'interface/rechercher',
     make: () => ({ type: 'revealClue', indiceId: '' }),
     apply: (e, env) => {
       const ind = indiceDuNarratif(env.get().campaignNarratif)(e.indiceId);
@@ -1392,7 +1392,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     },
   },
   discreditClue: {
-    group: 'Narration', label: libelleEffet('discreditClue'), icon: 'ui/forbidden',
+    group: 'Narration', label: libelleEffet('discreditClue'), icon: 'interface/interdit',
     make: () => ({ type: 'discreditClue', indiceId: '' }),
     apply: (e, env) => {
       const ind = indiceDuNarratif(env.get().campaignNarratif)(e.indiceId);
@@ -1415,7 +1415,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     ouvreDialogue: (e) => e.dialogue,
   },
   endDialogue: {
-    group: 'Narration', label: libelleEffet('endDialogue'), icon: 'ui/close',
+    group: 'Narration', label: libelleEffet('endDialogue'), icon: 'interface/fermer',
     make: () => ({ type: 'endDialogue' }),
     apply: (_e, env) => {
       if (env.get().dialogue) env.get().avancerLeTemps(TIME_COST.dialogue); // clôture d'une conversation ≈ dialogue min
@@ -1423,18 +1423,18 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     },
   },
   setFlag: {
-    group: 'Narration', label: libelleEffet('setFlag'), icon: 'map-tool/start-flag',
+    group: 'Narration', label: libelleEffet('setFlag'), icon: 'outil-de-carte/depart',
     make: () => ({ type: 'setFlag', flag: '', value: true }),
     apply: (e, env) => ecrireEntree(env, 'flags', e.flag, e.value ?? true),
   },
   // États de campagne (#2539, registre `narratif.etats`) : forme et valeur contrôlées au chargement.
   poserEtat: {
-    group: 'Narration', label: libelleEffet('poserEtat'), icon: 'map-tool/start-flag',
+    group: 'Narration', label: libelleEffet('poserEtat'), icon: 'outil-de-carte/depart',
     make: () => ({ type: 'poserEtat', etat: '', valeur: '' }),
     apply: (e, env) => ecrireEntree(env, 'etats', e.etat, e.valeur),
   },
   designerHeros: {
-    group: 'Narration', label: libelleEffet('designerHeros'), icon: 'nav/entry-point',
+    group: 'Narration', label: libelleEffet('designerHeros'), icon: 'navigation/point-d-entree',
     make: () => ({ type: 'designerHeros', etat: '' }),
     suspensif: true,
     // EDO 02 l.91 : décision de GROUPE (`pendingDesignationHeros`, modale `designationHeros`) refermée
@@ -1442,7 +1442,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     apply: (e, env, suite) => (env.get().ouvrirLaDesignation({ etat: e.etat, ...(e.invite ? { invite: e.invite } : {}), suite }) ? 'suspend' : undefined),
   },
   setObjective: {
-    group: 'Narration', label: libelleEffet('setObjective'), icon: 'map-tool/start-flag',
+    group: 'Narration', label: libelleEffet('setObjective'), icon: 'outil-de-carte/depart',
     make: () => ({ type: 'setObjective', id: '', desc: '' }),
     apply: (e, env) => {
       const texte = garanti(e.desc, e.id, 'texte de l’objectif matérialisé');
@@ -1458,7 +1458,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     },
   },
   clearObjective: {
-    group: 'Narration', label: libelleEffet('clearObjective'), icon: 'ui/close',
+    group: 'Narration', label: libelleEffet('clearObjective'), icon: 'interface/fermer',
     make: () => ({ type: 'clearObjective' }),
     apply: (e, env) => {
       const before = env.get().objectives;
@@ -1478,12 +1478,12 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     },
   },
   setLight: {
-    group: 'Narration', label: libelleEffet('setLight'), icon: 'scene/light',
+    group: 'Narration', label: libelleEffet('setLight'), icon: 'scene/lumiere',
     make: () => ({ type: 'setLight', level: 0.3 }),
     apply: (e, env) => { env.set({ lightLevel: Math.max(0, Math.min(1, e.level)) }); }, // mise en scène (Lot L) : niveau borné [0,1]
   },
   setDoor: {
-    group: 'Narration', label: libelleEffet('setDoor'), icon: 'map-tool/door',
+    group: 'Narration', label: libelleEffet('setDoor'), icon: 'outil-de-carte/porte',
     make: () => ({ type: 'setDoor', x: 0, y: 0, side: 'N', open: true }),
     apply: (e, env) => {
       env.set((s: Jeu) => {
@@ -1496,7 +1496,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     },
   },
   moveEntity: {
-    group: 'Narration', label: libelleEffet('moveEntity'), icon: 'travel/foot',
+    group: 'Narration', label: libelleEffet('moveEntity'), icon: 'voyage/a-pied',
     make: () => ({ type: 'moveEntity', id: '' }),
     apply: (e, env) => {
       const sc = env.get().scene;
@@ -1509,7 +1509,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     },
   },
   playSfx: {
-    group: 'Narration', label: libelleEffet('playSfx'), icon: 'audio/volume',
+    group: 'Narration', label: libelleEffet('playSfx'), icon: 'son/volume',
     make: () => ({ type: 'playSfx', id: '' }),
     // Le son est un ÉVÉNEMENT (`EVT.SFX`) que l'hôte joue (`state/audioWiring`). Coop : `applyEffects`
     // tourne côté HÔTE, le son ponctuel scripté ne sonne donc que chez lui.
@@ -1518,7 +1518,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
 
   // ── Récompenses ────────────────────────────────────────────────────────
   giveTrapping: {
-    group: 'Récompenses', label: libelleEffet('giveTrapping'), icon: 'item/misc',
+    group: 'Récompenses', label: libelleEffet('giveTrapping'), icon: 'objet/divers',
     make: () => ({ type: 'giveTrapping', custom: '' }),
     apply: (e, env) => {
       // Objet de CATALOGUE (`trappingId`) sinon objet CUSTOM (`custom`, misc) — source unique itemFromGive.
@@ -1537,7 +1537,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     },
   },
   givePossession: {
-    group: 'Récompenses', label: libelleEffet('givePossession'), icon: 'item/misc',
+    group: 'Récompenses', label: libelleEffet('givePossession'), icon: 'objet/divers',
     make: () => ({ type: 'givePossession', nature: 'bete', ref: { id: creatureSemee(), type: 'creature' } }),
     apply: (e, env) => {
       const owner = env.hero(e.heroId);
@@ -1561,7 +1561,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     },
   },
   giveMoney: {
-    group: 'Récompenses', label: libelleEffet('giveMoney'), icon: 'resource/gold-purse',
+    group: 'Récompenses', label: libelleEffet('giveMoney'), icon: 'ressource/bourse',
     make: () => ({ type: 'giveMoney', montant: { gold: 0, silver: 0, brass: 0 } }),
     apply: (e, env) => {
       // Argent de GROUPE sans bénéficiaire unique (`mouvementDeLaBourseDuGroupe`) : une perte > total du
@@ -1573,7 +1573,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     },
   },
   giveXp: {
-    group: 'Récompenses', label: libelleEffet('giveXp'), icon: 'resource/xp',
+    group: 'Récompenses', label: libelleEffet('giveXp'), icon: 'ressource/experience',
     make: () => ({ type: 'giveXp', amount: 50 }),
     apply: (e, env) => {
       env.set((s: Jeu) => ecrireActeur(s, idsDuGroupe(s), (h) => ({ ...h, xp: (h.xp ?? 0) + e.amount })));
@@ -1581,7 +1581,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     },
   },
   learnSpell: {
-    group: 'Récompenses', label: libelleEffet('learnSpell'), icon: 'magic/power',
+    group: 'Récompenses', label: libelleEffet('learnSpell'), icon: 'magie/puissance',
     make: () => ({ type: 'learnSpell', spell: '', heroId: '' }),
     apply: (e, env) => {
       // LDB 46 l.14-20, #1702, #2312.
@@ -1599,7 +1599,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     },
   },
   petitePriere: {
-    group: 'Récompenses', label: libelleEffet('petitePriere'), icon: 'faith/prayer',
+    group: 'Récompenses', label: libelleEffet('petitePriere'), icon: 'foi/priere',
     make: () => ({ type: 'petitePriere', reward: EMPTY_FLOW }),
     apply: (e, env) => {
       // « Petites Prières » (LDB 25 l.22-24, option `priere-petites`) : un NON-Béni prie dans un site
@@ -1636,12 +1636,12 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     apply: (_e, env) => { ouvrirLaFinDeSeance(env.set); }, // la fin de séance (`fenetreValider('finDeSeance')`)
   },
   openCharacterCreator: {
-    group: 'Récompenses', label: libelleEffet('openCharacterCreator'), icon: 'ui/add',
+    group: 'Récompenses', label: libelleEffet('openCharacterCreator'), icon: 'interface/ajouter',
     make: () => ({ type: 'openCharacterCreator' }),
     apply: () => { bus.emit(EVT.HEROS_A_CREER); }, // l'hôte ouvre son assistant de création, nouveau héros
   },
   restoreFortune: {
-    group: 'Récompenses', label: libelleEffet('restoreFortune'), icon: 'resource/fortune',
+    group: 'Récompenses', label: libelleEffet('restoreFortune'), icon: 'ressource/chance',
     make: () => ({ type: 'restoreFortune' }),
     apply: (_e, env) => {
       // Début de session (LDB 17 l.41) : Chance regagnée jusqu'au maximum = Destin actuel.
@@ -1650,7 +1650,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     },
   },
   grantFavor: {
-    group: 'Récompenses', label: libelleEffet('grantFavor'), icon: 'ui/balance',
+    group: 'Récompenses', label: libelleEffet('grantFavor'), icon: 'interface/balance',
     make: () => ({ type: 'grantFavor', level: 'mineure', owedTo: '', desc: '' }),
     apply: (e, env) => {
       // Faveur de départ de campagne ou octroi narratif (#509) — cible : héros désigné, sinon le
@@ -1662,7 +1662,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
 
   // ── Afflictions ────────────────────────────────────────────────────────
   ops: {
-    group: 'Afflictions', label: libelleEffet('ops'), icon: 'mechanic/stat-mod',
+    group: 'Afflictions', label: libelleEffet('ops'), icon: 'mecanique/modificateur',
     make: () => ({ type: 'ops', on: 'party', ops: [{ op: 'wounds', amount: 5 }] }),
     apply: (feuilleAuthoree, env) => {
       // EffectOp : applique les GameOps (vocabulaire mécanique des sorts) à la cible de SCÈNE
@@ -1709,7 +1709,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     },
   },
   zoneBlast: {
-    group: 'Afflictions', label: libelleEffet('zoneBlast'), icon: 'magic/area',
+    group: 'Afflictions', label: libelleEffet('zoneBlast'), icon: 'magie/zone',
     make: () => ({ type: 'zoneBlast', center: { x: 0, y: 0 }, radius: 2, ops: [{ op: 'wounds', amount: { dice: { n: 1, sides: 10, plus: 15 } } }] }),
     apply: (e, env) => {
       // Cibles dans le disque (Chebyshev, `combatantsWithinRadius`) : en combat par position de chaque
@@ -1746,7 +1746,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     },
   },
   fall: {
-    group: 'Afflictions', label: libelleEffet('fall'), icon: 'journal/fall',
+    group: 'Afflictions', label: libelleEffet('fall'), icon: 'journal/chute',
     make: () => ({ type: 'fall', target: 'party', metres: 4 }),
     apply: (e, env) => {
       // Chute (LDB 15 l.80-84) : 3 Dégâts/mètre + 1d10, réduits par le Bonus d'Endurance mais
@@ -1798,7 +1798,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     },
   },
   inflictHunger: {
-    group: 'Afflictions', label: libelleEffet('inflictHunger'), icon: 'flag/hungry',
+    group: 'Afflictions', label: libelleEffet('inflictHunger'), icon: 'drapeau/affame',
     make: () => ({ type: 'inflictHunger', days: 1, target: 'party' }),
     apply: (e, env) => {
       // Faim (LDB 18 l.337-343) posée par l'auteur (siège, cachot, traversée sans vivres) : `days`
@@ -1823,7 +1823,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     },
   },
   inflictThirst: {
-    group: 'Afflictions', label: libelleEffet('inflictThirst'), icon: 'flag/hungry',
+    group: 'Afflictions', label: libelleEffet('inflictThirst'), icon: 'drapeau/affame',
     make: () => ({ type: 'inflictThirst', days: 1, target: 'party' }),
     apply: (e, env) => {
       // Soif (LDB 18 l.340, miroir de la Faim) posée par l'auteur — via la fonction PURE partagée
@@ -1845,7 +1845,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     },
   },
   exposureNight: {
-    group: 'Afflictions', label: libelleEffet('exposureNight'), icon: 'rest/cold',
+    group: 'Afflictions', label: libelleEffet('exposureNight'), icon: 'repos/froid',
     make: () => ({ type: 'exposureNight', kind: 'froid', count: 2, target: 'party' }),
     apply: (e, env) => {
       // Exposition (LDB 18 l.326-334) posée par l'auteur (nuit glaciale, désert, tempête) : `count` Tests
@@ -1865,7 +1865,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
         // Ligne montée ICI : au FROID la cible vient d'`exposureTarget` (le manteau manquant y est fondu,
         // et ressort en chip nommée) — une autre arithmétique que celle du monteur, à ne pas refaire.
         const st = monoStep({
-          id: `expo-${c.id}`, kind: 'exposition-nocturne', actor: c, icon: 'rest/cold',
+          id: `expo-${c.id}`, kind: 'exposition-nocturne', actor: c, icon: 'repos/froid',
           rollLabel: 'Résistance', label: stepPrecision(t('step.exposition'), t(kind === 'froid' ? 'step.froid' : 'step.chaleur')),
           difficulty: 'intermediaire',
           montee: { base: resVal, ...(kind === 'froid' ? exposureCoatMods(c) : {}), target },
@@ -1877,11 +1877,11 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // BANDE d'Exposition (#1117 L3) : une fenêtre par VAGUE, les héros exposés en rangées — les
       // vagues suivantes se déroulent APRÈS les délestages de la précédente (`nextExposureWave`).
       const band = exposureWaveBand(steps, kind, count);
-      if (band.length) openSequence(env.get, env.set, { title: t(kind === 'froid' ? 'eff.expoFroidTitre' : 'eff.expoChaleurTitre'), icon: 'rest/cold', purpose: 'test', steps: band });
+      if (band.length) openSequence(env.get, env.set, { title: t(kind === 'froid' ? 'eff.expoFroidTitre' : 'eff.expoChaleurTitre'), icon: 'repos/froid', purpose: 'test', steps: band });
     },
   },
   inflictTrauma: {
-    group: 'Afflictions', label: libelleEffet('inflictTrauma'), icon: 'journal/critical',
+    group: 'Afflictions', label: libelleEffet('inflictTrauma'), icon: 'journal/critique',
     make: () => ({ type: 'inflictTrauma', kind: 'fracture', severity: 'mineur', location: 'brasD', heroId: '' }),
     apply: (e, env) => {
       // Blessure Critique posée rétroactivement par l'éditeur (LDB 18) : déchirure/fracture via `traumaById`
@@ -1908,7 +1908,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     },
   },
   inflictNightmares: {
-    group: 'Afflictions', label: libelleEffet('inflictNightmares'), icon: 'flag/fear',
+    group: 'Afflictions', label: libelleEffet('inflictNightmares'), icon: 'drapeau/peur',
     make: () => ({ type: 'inflictNightmares', heroId: '' }),
     apply: (e, env) => {
       // Trauma « Cauchemars » (LDB 21 l.95) posé sur un héros (défaut : le premier).
@@ -1917,7 +1917,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     },
   },
   ambitionLost: {
-    group: 'Afflictions', label: libelleEffet('ambitionLost'), icon: 'journal/heartbreak',
+    group: 'Afflictions', label: libelleEffet('ambitionLost'), icon: 'journal/ambition-brisee',
     make: () => ({ type: 'ambitionLost', heroId: '' }),
     apply: (e, env) => {
       // ADE II 09 l.21
@@ -1935,7 +1935,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     },
   },
   inflictPsychology: {
-    group: 'Afflictions', label: libelleEffet('inflictPsychology'), icon: 'flag/fear',
+    group: 'Afflictions', label: libelleEffet('inflictPsychology'), icon: 'drapeau/peur',
     make: () => ({ type: 'inflictPsychology', kind: 'peur', indice: 1, label: 'Une vision terrifiante', target: 'party' }),
     apply: (e, env) => {
       // Source de Peur/Terreur SCÉNIQUE (apparition, présage) : MÊME cascade de Tests de Calme que la
@@ -1946,7 +1946,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     },
   },
   corruptionExposure: {
-    group: 'Afflictions', label: libelleEffet('corruptionExposure'), icon: 'nav/mutation',
+    group: 'Afflictions', label: libelleEffet('corruptionExposure'), icon: 'navigation/mutation',
     make: () => ({ type: 'corruptionExposure', level: 'mineure', nature: 'physique', heroId: '' }),
     apply: (e, env) => {
       // Influence corruptrice (LDB 19 l.23-75) : ouvre le Test différé par modale
@@ -1961,7 +1961,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     },
   },
   giveSin: {
-    group: 'Afflictions', label: libelleEffet('giveSin'), icon: 'ui/balance',
+    group: 'Afflictions', label: libelleEffet('giveSin'), icon: 'interface/balance',
     make: () => ({ type: 'giveSin', amount: 1, heroId: '' }),
     apply: (e, env) => {
       // Points de Péché (LDB 40 l.36) : sanction d'auteur, 1 à 3 selon la gravité — appliquée par
@@ -1980,14 +1980,14 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     },
   },
   waterExposure: {
-    group: 'Afflictions', label: libelleEffet('waterExposure'), icon: 'travel/wave',
+    group: 'Afflictions', label: libelleEffet('waterExposure'), icon: 'voyage/vague',
     make: () => ({ type: 'waterExposure', mode: 'ingestion', target: 'hero' }),
     apply: (e, env) => openWaterExposure(env.get, env.set, env.targets(e.target ?? 'hero', e.heroId), e, 'expositionHydrique'),
   },
 
   // ── Temps & repos ──────────────────────────────────────────────────────
   rest: {
-    group: 'Temps & repos', label: libelleEffet('rest'), icon: 'rest/bed',
+    group: 'Temps & repos', label: libelleEffet('rest'), icon: 'repos/lit',
     make: () => ({ type: 'rest', days: 1 }),
     apply: (e, env) => {
       // Repos déclenché par l'éditeur (trigger/dialogue) : ouvre la MODALE DE NUIT (couchage +
@@ -1997,7 +1997,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     },
   },
   mealParty: {
-    group: 'Temps & repos', label: libelleEffet('mealParty'), icon: 'rest/stew',
+    group: 'Temps & repos', label: libelleEffet('mealParty'), icon: 'repos/ragout',
     make: () => ({ type: 'mealParty' }),
     apply: (_e, env) => {
       // Repas (#T2) : tout le groupe est nourri pour la journée sans consommer de ration —
@@ -2012,7 +2012,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     },
   },
   interlude: {
-    group: 'Temps & repos', label: libelleEffet('interlude'), icon: 'time/calendar',
+    group: 'Temps & repos', label: libelleEffet('interlude'), icon: 'temps/calendrier',
     make: () => ({ type: 'interlude', weeks: 1 }),
     apply: (e, env) => {
       // « Entre deux aventures » (LDB 22-23) — via l'action store (pas d'import direct : cycle).
@@ -2020,7 +2020,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     },
   },
   setTime: {
-    group: 'Temps & repos', label: libelleEffet('setTime'), icon: 'time/clock',
+    group: 'Temps & repos', label: libelleEffet('setTime'), icon: 'temps/heure',
     make: () => ({ type: 'setTime', phase: 'nuit' }),
     apply: (e, env) => {
       // Saut EN AVANT jusqu'à la prochaine occurrence de la phase/heure visée (le temps ne recule jamais).
@@ -2032,7 +2032,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     },
   },
   delayedEffect: {
-    group: 'Temps & repos', label: libelleEffet('delayedEffect'), icon: 'ui/wait',
+    group: 'Temps & repos', label: libelleEffet('delayedEffect'), icon: 'interface/attendre',
     make: () => ({ type: 'delayedEffect', afterMinutes: 60, flow: EMPTY_FLOW, cancelFlag: '' }),
     apply: (e, env) => {
       // Échéance absolue (minute `gameTime`), résolue par `scheduleAt` (engine/clock — source unique).
@@ -2044,7 +2044,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
 
   // ── Navigation ─────────────────────────────────────────────────────────
   transition: {
-    group: 'Navigation', label: libelleEffet('transition'), icon: 'nav/entry-point',
+    group: 'Navigation', label: libelleEffet('transition'), icon: 'navigation/point-d-entree',
     make: () => ({ type: 'transition', scene: { id: '' }, entry: '' }),
     apply: (e, env) => {
       const cur = env.get();
@@ -2054,7 +2054,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     refs: (e, ctx) => ctx.sceneIds.has(e.scene.id) ? [] : [{ level: 'error', message: `Effet → scène inexistante « ${e.scene.id} »` }],
   },
   transitionBack: {
-    group: 'Navigation', label: libelleEffet('transitionBack'), icon: 'ui/undo',
+    group: 'Navigation', label: libelleEffet('transitionBack'), icon: 'interface/revenir',
     make: () => ({ type: 'transitionBack' }),
     apply: (_e, env) => {
       const prev = env.get().previousScene;
@@ -2065,7 +2065,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     },
   },
   openWorldMap: {
-    group: 'Navigation', label: libelleEffet('openWorldMap'), icon: 'travel/world',
+    group: 'Navigation', label: libelleEffet('openWorldMap'), icon: 'voyage/cosmopolite',
     make: () => ({ type: 'openWorldMap' }),
     apply: (_e, env) => {
       // « Partir en voyage » depuis une porte/route de la scène (#T2) — l'action est déjà gardée
@@ -2074,7 +2074,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     },
   },
   setVessel: {
-    group: 'Navigation', label: libelleEffet('setVessel'), icon: 'travel/anchor',
+    group: 'Navigation', label: libelleEffet('setVessel'), icon: 'voyage/ancre',
     make: () => ({ type: 'setVessel', vehicleId: navireSeme(), morale: MORALE_BASE }),
     apply: (e, env) => {
       // Pose le NAVIRE DE CAMPAGNE (`state.vessel`) — comme le champ de scénario `ContenuDeScenario.vessel`,
@@ -2103,7 +2103,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     },
   },
   adjustVessel: {
-    group: 'Navigation', label: libelleEffet('adjustVessel'), icon: 'travel/anchor',
+    group: 'Navigation', label: libelleEffet('adjustVessel'), icon: 'voyage/ancre',
     make: () => ({ type: 'adjustVessel' }),
     apply: (e, env) => {
       const vessel = env.get().vessel;
@@ -2131,13 +2131,13 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
 
   // ── Combat & social ────────────────────────────────────────────────────
   startCombat: {
-    group: 'Combat & social', label: libelleEffet('startCombat'), icon: 'action/attack',
+    group: 'Combat & social', label: libelleEffet('startCombat'), icon: 'action/attaquer',
     make: () => ({ type: 'startCombat', encounter: '' }),
     apply: (e, env) => { env.get().lancerLeCombat(e.encounter); },
     refs: (e, ctx) => ctx.encounterIds.has(e.encounter) ? [] : [{ level: 'error', message: `Effet → rencontre inexistante « ${e.encounter} »` }],
   },
   startPursuit: {
-    group: 'Combat & social', label: libelleEffet('startPursuit'), icon: 'travel/foot',
+    group: 'Combat & social', label: libelleEffet('startPursuit'), icon: 'voyage/a-pied',
     make: () => ({ type: 'startPursuit', partyRole: 'fleeing', distance: 4, skill: { id: 'athletisme' }, foes: [{ ref: { id: creatureSemee() } }], encounter: '' }),
     apply: (e, env) => { startGroundPursuit(env.get, env.set, { partyRole: e.partyRole, distance: e.distance, escapeAt: e.escapeAt, skill: e.skill.id, foes: e.foes, encounter: e.encounter || undefined, policy: e.policy }); },
     refs: (e, ctx) => {
@@ -2155,7 +2155,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     },
   },
   startMassBattle: {
-    group: 'Combat & social', label: libelleEffet('startMassBattle'), icon: 'map-tool/start-flag',
+    group: 'Combat & social', label: libelleEffet('startMassBattle'), icon: 'outil-de-carte/depart',
     make: () => ({ type: 'startMassBattle', battle: { allyMight: 50, enemyMight: 50, plannedRounds: 3 } }),
     apply: (e, env) => { env.get().amorcerLaBataille(e.battle); }, // ouvre l'écran de bataille sur le spec authoré (ADE II 08)
     // Les rencontres mappées aux Scènes de combat/menace doivent exister dans la scène courante.
@@ -2163,12 +2163,12 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       ctx.encounterIds.has(encId) ? [] : [{ level: 'error' as const, message: `Combat de masse → rencontre inexistante « ${encId} » (Scène ${sceneId})` }]),
   },
   openMerchant: {
-    group: 'Combat & social', label: libelleEffet('openMerchant'), icon: 'merchant/cart',
+    group: 'Combat & social', label: libelleEffet('openMerchant'), icon: 'marchand/panier',
     make: () => ({ type: 'openMerchant', entityId: '' }),
     apply: (e, env) => { env.get().ouvrirLeMarchand(e.entityId); }, // ouvre la boutique de l'entité (Marchand inclus dans un dialogue, #2)
   },
   openPort: {
-    group: 'Navigation', label: libelleEffet('openPort'), icon: 'travel/anchor',
+    group: 'Navigation', label: libelleEffet('openPort'), icon: 'voyage/ancre',
     make: () => ({ type: 'openPort', placeId: '' }),
     apply: (e, env) => {
       // SOURCE UNIQUE avec l'accostage en mer (`finishSeaDay`) : `openPortAt` (noyau/seaVoyageFlow).
@@ -2180,7 +2180,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     refs: (e) => (e.placeId ? [] : [{ level: 'error', message: 'Effet → Ouvrir un port : lieu manquant' }]),
   },
   openTavernGames: {
-    group: 'Combat & social', label: libelleEffet('openTavernGames'), icon: 'nav/dice',
+    group: 'Combat & social', label: libelleEffet('openTavernGames'), icon: 'navigation/des',
     make: () => ({ type: 'openTavernGames' }),
     // Option facultative : sans effet si éteinte (comme interlude). Le PROPOSEUR est celui qui PARLE
     // (`state.dialogue.speakerId`, posé par l'interaction ou `startDialogue`) quand son entité offre
@@ -2194,7 +2194,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     },
   },
   medicalAid: {
-    group: 'Combat & social', label: libelleEffet('medicalAid'), icon: 'medical/aid',
+    group: 'Combat & social', label: libelleEffet('medicalAid'), icon: 'medical/soins-payants',
     // tarif par défaut : « aide médicale 4-6 pistoles » (LDB 75) → 5 pa
     make: () => ({ type: 'medicalAid', acts: [{ act: 'blessures', cost: { silver: 5 } }], entityId: '' }),
     apply: (e, env) => { openMedicalAidEffect(env.get, env.set, e); }, // soins payants d'un PNJ : ouvre son infirmerie (actes tarifés)
@@ -2208,7 +2208,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     },
   },
   castSpell: {
-    group: 'Combat & social', label: libelleEffet('castSpell'), icon: 'magic/power',
+    group: 'Combat & social', label: libelleEffet('castSpell'), icon: 'magie/puissance',
     make: () => ({ type: 'castSpell', casterId: '', spellId: '', mode: 'jet' }),
     apply: (e, env) => {
       const { get, set } = env;
@@ -2240,8 +2240,8 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
 
   // ── Tests ──────────────────────────────────────────────────────────────
   extendedTest: {
-    group: 'Tests', label: libelleEffet('extendedTest'), icon: 'ui/key',
-    make: () => ({ type: 'extendedTest', skill: { id: 'crochetage' }, difficulty: 'intermediaire', label: 'Crocheter la serrure', targetDR: 5, flag: '', stake: flowStakeRef('test-etendu') }),
+    group: 'Tests', label: libelleEffet('extendedTest'), icon: 'interface/cle',
+    make: () => ({ type: 'extendedTest', skill: { id: 'crochetage' }, difficulty: 'intermediaire', label: 'Crocheter la serrure', drCible: 5, flag: '', stake: flowStakeRef('test-etendu') }),
     suspensif: true,
     apply: (e, env, suite) => {
       // Test ÉTENDU (LDB 12 l.187-200) : le meilleur du groupe enchaîne les Rounds, SOUTENU par les autres
@@ -2261,12 +2261,12 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
         actor: best.actor, test: { skill: e.skill, characteristic: e.characteristic },
         difficulty, valeur: best.value, soutien: best.support,
       });
-      env.get().ouvrirLeTestEtendu({ actorId: best.actor.id, label: e.label, skillLabel: garanti(testSkillLabel(e), e.skill?.id ?? e.characteristic, 'Compétence ou Caractéristique du Test étendu'), ...(e.skill ? { skill: e.skill } : {}), ...(e.characteristic ? { characteristic: e.characteristic } : {}), target, targetDR: e.targetDR, flag: e.flag, stake: e.stake ?? flowStakeRef('test-etendu'), ...(best.support.count > 0 ? { support: best.support } : {}), suite });
+      env.get().ouvrirLeTestEtendu({ actorId: best.actor.id, label: e.label, skillLabel: garanti(testSkillLabel(e), e.skill?.id ?? e.characteristic, 'Compétence ou Caractéristique du Test étendu'), ...(e.skill ? { skill: e.skill } : {}), ...(e.characteristic ? { characteristic: e.characteristic } : {}), target, drCible: e.drCible, flag: e.flag, stake: e.stake ?? flowStakeRef('test-etendu'), ...(best.support.count > 0 ? { support: best.support } : {}), suite });
       return 'suspend';
     },
   },
   forceDoor: {
-    group: 'Tests', label: libelleEffet('forceDoor'), icon: 'action/force',
+    group: 'Tests', label: libelleEffet('forceDoor'), icon: 'action/enfoncer',
     make: () => ({ type: 'forceDoor', label: 'Porte', doorBE: 3, doorB: 10, flag: '' }),
     suspensif: true,
     apply: (e, env, suite) => {
@@ -2299,7 +2299,7 @@ export function openWaterExposure(get: Get, set: SetFn, heroes: readonly Combata
     // et les deux tableaux d'exposition sont des lignes NOMMÉES sur la cible, chacune liée à la
     // fiche qui les octroie (MSRC 16).
     const step = monoStep({
-      id: `${kind}-${h.id}`, kind, actor: h, icon: 'travel/wave',
+      id: `${kind}-${h.id}`, kind, actor: h, icon: 'voyage/vague',
       rollLabel: refLabel('skills', WATER_EXPOSURE.test.skill),
       label: t('eff.waterExposure', { mode: e.mode === 'immersion' ? 'immersion' : 'ingestion', detail: detail ? ` (${detail})` : '' }),
       difficulty: WATER_EXPOSURE.test.difficulty,
@@ -2313,7 +2313,7 @@ export function openWaterExposure(get: Get, set: SetFn, heroes: readonly Combata
     });
     return step ? [step] : [];
   });
-  if (steps.length) openSequence(get, set, { title: t('eff.waterTitle'), icon: 'travel/wave', purpose: 'test', steps });
+  if (steps.length) openSequence(get, set, { title: t('eff.waterTitle'), icon: 'voyage/vague', purpose: 'test', steps });
 }
 
 /** Étape de cascade `waterExposure` (MSRC 16 l.49) : Test raté → d100 « avec un modificateur de +10

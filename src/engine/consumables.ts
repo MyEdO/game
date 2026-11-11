@@ -60,7 +60,7 @@ export function bakeConsumableFlow(flow: Flow, heroId: string, untilTime: number
       case 'seq': return { kind: 'seq', steps: f.steps.map(bake) };
       case 'if': return { kind: 'if', cond: f.cond, then: bake(f.then), ...(f.else ? { else: bake(f.else) } : {}) };
       case 'test': return { kind: 'test', test: f.test, success: bake(f.success), fail: bake(f.fail) };
-      case 'choice': return { kind: 'choice', prompt: f.prompt, ...(f.advantageCost != null ? { advantageCost: f.advantageCost } : {}), ...(f.icon ? { icon: f.icon } : {}), yes: bake(f.yes), ...(f.no ? { no: bake(f.no) } : {}) };
+      case 'choice': return { kind: 'choice', prompt: f.prompt, ...(f.advantageCost != null ? { advantageCost: f.advantageCost } : {}), ...(f.icon ? { icon: f.icon } : {}), oui: bake(f.oui), ...(f.non ? { non: bake(f.non) } : {}) };
     }
   };
   return bake(flow);

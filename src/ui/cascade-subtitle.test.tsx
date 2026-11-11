@@ -42,7 +42,7 @@ function openSteps(title: string, steps: (heroId: string) => CascadeStep[], curs
   useGame.setState({
     battle: null, party: [hero], suspendedCascades: [], journal: [],
     net: { mode: 'local', mySeat: 0, roomCode: null, seatNames: {}, presence: {}, ownership: {} } as never,
-    pendingCascade: cascadeDeTest(steps(hero.id), { title, icon: 'nav/dice', purpose: 'affichage', cursor }),
+    pendingCascade: cascadeDeTest(steps(hero.id), { title, icon: 'navigation/des', purpose: 'affichage', cursor }),
   });
   return hero;
 }
@@ -127,7 +127,7 @@ describe('sous-titre d’étape — il porte la POSITION, jamais le libellé', (
    * le dé tombe et OÙ l'on en est — jamais ce qu'on joue, que le TITRE porte.
    */
   const pasDeDe = (id: string, actorId: string, label: string): CascadeStep => dieStep({
-    id, kind: cleDeFixture('uiDieSpy'), actorId, label: fixtureText(label), icon: 'journal/critical',
+    id, kind: cleDeFixture('uiDieSpy'), actorId, label: fixtureText(label), icon: 'journal/critique',
     spec: { n: 1, sides: 10 }, seuil: { indice: 6, source: { kind: 'trait', id: 'protection' }, dome: true },
   })!;
 

@@ -248,9 +248,9 @@ function opConsequenceLine(op: GameOp): string {
 /** Ton PAR DÉFAUT d'une conséquence `ops` sans `tone` explicite — dérivé du GameOp lui-même (soin =
  *  positif, Blessures/État = négatif), jamais deviné au call-site. */
 function defaultOpsTone(ops: GameOp[]): RecapTone {
-  if (ops.some((o) => o.op === 'heal')) return 'ok';
-  if (ops.some((o) => o.op === 'wounds' || o.op === 'condition')) return 'bad';
-  return 'info';
+  if (ops.some((o) => o.op === 'heal')) return 'reussite';
+  if (ops.some((o) => o.op === 'wounds' || o.op === 'condition')) return 'echec';
+  return 'neutre';
 }
 
 /**
@@ -260,7 +260,7 @@ function defaultOpsTone(ops: GameOp[]): RecapTone {
  *
  * Le TON reste celui qui a été AUTHORÉ (#1078 LOT B2) : une conséquence `say` sans `tone` n'en reçoit
  * pas — dans le cadre d'issue d'une modale de jet, elle se rend donc à PLEINE couleur, comme les
- * lignes de `recapLineOfEvent`. L'atténuation (`tone: 'info'`) est une décision de site, jamais un
+ * lignes de `recapLineOfEvent`. L'atténuation (`tone: 'neutre'`) est une décision de site, jamais un
  * défaut technique. Une conséquence `ops`, elle, DÉRIVE son ton de l'op appliquée (soin/dégâts).
  */
 export function resultLines(cons: Consequence[]): RecapLine[] {

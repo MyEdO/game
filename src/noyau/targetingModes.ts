@@ -364,17 +364,17 @@ export function refusDAttaque(get: Get, active: Combatant, target: Combatant, op
     return { reason: 'cible-gratuite', texte: t('cs.refusCibleGratuite', { name: target.label, attaque: option.label }) };
   }
   if (!plan) return null;
-  const depensee = option.cost.action && plan.kind !== 'attack' ? refusActionDepensee(battle) : null;
+  const depensee = option.cost.action && plan.kind !== 'attaque' ? refusActionDepensee(battle) : null;
   if (depensee) return { reason: 'action-depensee', texte: depensee };
   const gesteImpose = isFrenzied(active) || !option.cost.action;
-  if (plan.kind !== 'attack' && plan.kind !== 'blocked' && !approche && !gesteImpose) {
+  if (plan.kind !== 'attaque' && plan.kind !== 'bloque' && !approche && !gesteImpose) {
     return { reason: 'approche-non-armee', texte: t('cs.refusApprocheNonArmee', { name: target.label }) };
   }
-  if (plan.kind === 'blocked') {
+  if (plan.kind === 'bloque') {
     const p = previewAttack(get, active, target, undefined, { weaponUid: option.weaponUid });
     return { reason: p.blocked ? 'los' : p.kind === 'melee' && isEngaged(active) ? 'engaged' : 'range', texte: plan.reason };
   }
-  if (plan.kind === 'attack' && !option.freeKind) {
+  if (plan.kind === 'attaque' && !option.freeKind) {
     const block = firedAttackBlock(get, active, target, option.weaponUid);
     if (block) return { reason: block.reason, texte: block.detail };
   }
@@ -427,10 +427,10 @@ function attackAffordance(get: Get, active: Combatant, target: Combatant): Hover
   // === MÊLÉE (Arme + gratuites) : approche-puis-frappe — chemin réel + réticule au survol (le clic commet) ;
   // l'aperçu est calculé depuis la case d'ARRIVÉE. Seul geste dont la Difficulté se compose depuis une arme
   // (`gesteAuTestDArme`, le prédicat du badge de l'aperçu tap-1).
-  if (!plan || plan.kind === 'blocked') return { kind: 'none' };
+  if (!plan || plan.kind === 'bloque') return { kind: 'none' };
   // `option.weaponUid` ÉPINGLE l'arme du poste servi pour l'option DÉDIÉE « Servir » (jamais pour 'arme',
   // qui reste auto-choisie parmi les armes PERSONNELLES — `pickAttackWeaponList`/addendum « un intent, une entrée »).
-  const p = apercuDuGeste(get, active, target, option, plan.kind === 'attack' ? undefined : plan.dest);
+  const p = apercuDuGeste(get, active, target, option, plan.kind === 'attaque' ? undefined : plan.dest);
   const palier = difficultyOf(p);
   return {
     kind: 'ok',
@@ -448,7 +448,7 @@ function attackAffordance(get: Get, active: Combatant, target: Combatant): Hover
     // `rollLine` → `composeDifficulty`), dans les termes de la modale — jamais recomposée ici.
     ...(palier ? { difficulty: palier } : {}),
     dmg: p.dmg, // (gratuite : Dégâts de l'arme tenue = cosmétique ; le chemin/réticule, lui, est exact)
-    path: plan.kind === 'attack' ? undefined : plan.path,
+    path: plan.kind === 'attaque' ? undefined : plan.path,
   };
 }
 
@@ -563,13 +563,13 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
     return;
   }
   // === MÊLÉE : approche-puis-frappe (le SEUL exécuteur charge/moveAttack du jeu) ===
-  if (!plan || plan.kind === 'blocked') return;
+  if (!plan || plan.kind === 'bloque') return;
   // Tap 1 : APERÇU — sauf confirmation (tests), ré-entrée du choix cavalier/monture,
   // ou re-tap de la même cible avec le même plan.
   const prev = battle.preview;
   const samePreview = !!prev && 'targetId' in prev && prev.targetId === id && prev.kind === plan.kind;
   if (!opts?.confirm && !opts?.skipMountChoice && !samePreview) {
-    set({ battle: { ...battle, preview: plan.kind === 'attack' ? { kind: 'attack', targetId: id } : { ...plan, targetId: id } } });
+    set({ battle: { ...battle, preview: plan.kind === 'attaque' ? { kind: 'attaque', targetId: id } : { ...plan, targetId: id } } });
     bus.emit(EVT.SCENE_DIRTY);
     return;
   }
@@ -584,7 +584,7 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
     }
   }
   // Peur (LDB 21 l.27) : charger / rejoindre une source de Peur = s'en RAPPROCHER (`retenuParLaPeur`).
-  if ((plan.kind === 'charge' || plan.kind === 'moveAttack') && retenuParLaPeur(get, set, active, plan.dest, { kind: 'entity', id, intentionId: opts?.intentionId })) return;
+  if ((plan.kind === 'charge' || plan.kind === 'deplacementEtAttaque') && retenuParLaPeur(get, set, active, plan.dest, { kind: 'entity', id, intentionId: opts?.intentionId })) return;
   if (battle.preview) set({ battle: { ...get().battle!, preview: null } });
   // Bénédiction de Protection (LDB 41 l.142) : la cible bénie impose un Test de FM Accessible (+20)
   // AVANT d'engager quoi que ce soit (charge comprise). Le jet du HÉROS est INFLUENÇABLE (Chance/
@@ -634,7 +634,7 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
     const repondu = declarerLaCharge(get, set, active, target, plan.adv); // LDB 10 l.500
     pa = { attackerId: active.id, targetId: target.id, location: null, result: null, fromCharge: true, ...(repondu ? {} : { chargeUndo }), ...(option.freeKind ? { freeKind: option.freeKind } : {}), ...(option.weaponUid ? { weaponUid: option.weaponUid } : {}) };
   } else {
-    if (plan.kind === 'moveAttack') {
+    if (plan.kind === 'deplacementEtAttaque') {
       // Rejoindre la cible dans la Marche restante (pas une Charge → pas de bonus), puis attaquer.
       // MÊMES mutations qu'un segment de cliquerLaCaseDuCombat (snapshot d'annulation compris).
       const b = get().battle!;

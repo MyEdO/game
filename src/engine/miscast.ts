@@ -349,7 +349,7 @@ const TABLE_IDS_VDM: Record<MiscastSeverity, string> = { mineure: 'miscast-mineu
 
 /** Les datasets du seam qui portent les rangées des 5 documents de `miscast.json` (#1667) : le témoin
  *  de TOUT lecteur mémoïsé de ces tables. */
-export const MISCAST_DATASETS = ['miscastMinor', 'miscastMajor', 'miscastMinorVdm', 'miscastMajorVdm', 'miscastWrath'] as const;
+export const MISCAST_DATASETS = ['imparfaiteMineure', 'imparfaiteMajeure', 'imparfaiteMineureVdm', 'imparfaiteMajeureVdm', 'colereDesDieux'] as const;
 
 /** Rangées RUNTIME par table (ops closées sur les Points de Péché, Tests dépliés) — MÉMOÏSÉES sur
  *  les datasets de rangées du seam (#1692) : un dépliage figé à l'import faisait jouer à `rollMiscast`

@@ -9,7 +9,7 @@
  *
  * DEUX provenances, un seul contrôle (`ForcedRollPicker`) :
  *  - **Résilience** — LDB 17 l.68 : « au lieu de lancer les dés pour un Test, vous choisissez le
- *    résultat ». Le slot est `forced` (le point est déjà dépensé par `forceSuccess`) ; le dé choisi
+ *    résultat ». Le slot est `forced` (le point est déjà dépensé par `forcerLaReussite`) ; le dé choisi
  *    doit rester une réussite (`maxForcedRoll`). INCONDITIONNEL : offert sur tout flux à Résilience,
  *    y compris un Test binaire (le dé y change le DR affiché, jamais l'issue).
  *  - **Dé fixé** — option de confort `des-fixes` (`engine/fixedDie.ts`), gatée par le prédicat
@@ -122,9 +122,9 @@ export function rowForcedDie(
   if (row.forcedRoll) return { forcedRoll: row.forcedRoll };
   if (!flowKey || row.noForcedDie || row.interactive === false) return {};
   const flow = FLOWS[flowKey];
-  if (!fluxAccepte(flowKey, 'setForcedRoll')) return {};
+  if (!fluxAccepte(flowKey, 'imposerLeResultat')) return {};
   // Un dé ne se SAISIT que là où le socle sait le RÉÉVALUER : `fixable` = l'ACCESSEUR DE DÉ du flux est
-  // complet (lire où vit le dé, réécrire l'issue re-dérivée). Même gate côté fabrique (`setForcedRoll`).
+  // complet (lire où vit le dé, réécrire l'issue re-dérivée). Même gate côté fabrique (`imposerLeResultat`).
 
   const multi = FLOW_VERBS[flowKey].kind === 'multi';
   // Le slot se résout sur le pid RÉEL : `row.pid` quand le site scope sa clé React, sinon la `key`.

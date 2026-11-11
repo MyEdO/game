@@ -1224,7 +1224,7 @@ export const palierSchema = nommerChamps(z.strictObject({ seuil: z.number().int(
  * porteur par la SHAPE, à côté du `test` (`flowTestSchema`) quand la donnée nomme le sujet, à côté de la
  * seule Difficulté quand le code le fixe.
  */
-export const cibleEtendueSchema = nommerChamps(z.strictObject({ targetDR: z.number() }), { targetDR: { label: 'DR à atteindre' } });
+export const cibleEtendueSchema = nommerChamps(z.strictObject({ drCible: z.number() }), { drCible: { label: 'DR à atteindre' } });
 export type CibleEtendue = z.infer<typeof cibleEtendueSchema>;
 
 /**

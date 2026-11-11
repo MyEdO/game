@@ -1,7 +1,7 @@
 import type { IconFamily } from '../types';
 
 /* Famille « magie — Surincantation » (CastModal : axes Portée/Zone/Durée-souffle/Puissance,
-   composant d'incantation) — distincte de action/cast (incanter). Charte : voir defs/action.ts. */
+   composant d'incantation) — distincte de action/incanter (incanter). Charte : voir defs/action.ts. */
 
 const K = 'fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"';
 const KF = 'fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"';
@@ -9,7 +9,7 @@ const F = 'fill="currentColor" stroke="none"';
 
 export const icons: IconFamily = [
   {
-    id: 'magic/range',
+    id: 'magie/portee',
     label: 'Portée',
     // Règle graduée en diagonale.
     svg:
@@ -17,7 +17,7 @@ export const icons: IconFamily = [
       `<path ${KF} d="M8.1 15.9 L9.6 17.4 M10.9 13.1 L12.4 14.6 M13.7 10.3 L15.2 11.8"/>`,
   },
   {
-    id: 'magic/area',
+    id: 'magie/zone',
     label: 'Zone / puissance',
     // Spirale d'énergie qui s'étend depuis un centre.
     svg:
@@ -25,7 +25,7 @@ export const icons: IconFamily = [
       `<circle ${F} cx="12" cy="12" r="1.7"/>`,
   },
   {
-    id: 'magic/gust',
+    id: 'magie/souffle',
     label: 'Souffle',
     // Trois lignes de vent ondulées, portées croissantes.
     svg:
@@ -34,13 +34,13 @@ export const icons: IconFamily = [
       `<path ${KF} d="M3.6 17.4 H11.4"/>`,
   },
   {
-    id: 'magic/power',
+    id: 'magie/puissance',
     label: 'Puissance critique',
     // Éclair d'incantation critique.
     svg: `<path ${F} d="M13.1 2.4 L5.9 13.6 L10.6 13.6 L8.9 21.6 L18.4 9.4 L13.4 9.4 Z"/>`,
   },
   {
-    id: 'magic/component',
+    id: 'magie/composante',
     label: 'Composant d’incantation',
     // Symbole alchimique du feu (triangle) au sommet d'une fiole.
     svg:

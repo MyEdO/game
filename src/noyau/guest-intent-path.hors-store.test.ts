@@ -291,7 +291,7 @@ describe('#2961 — annulations et jets d’un flux mono : la possession suit le
  */
 describe('#3311 — chaque verbe de jet, joué par un siège, suit la possession de son flux', () => {
   /** Les arguments du verbe de jet `v` sur `flux`, la rangée `pid` posée sur un flux multi (`VerbesDeJet`). */
-  const args = (flux: string, v: RollVerb, pid?: string): unknown[] => [flux, ...(v === 'setForcedRoll' ? [42] : []), ...(pid ? [pid] : [])];
+  const args = (flux: string, v: RollVerb, pid?: string): unknown[] => [flux, ...(v === 'imposerLeResultat' ? [42] : []), ...(pid ? [pid] : [])];
 
   it.each(FLOW_VERBS.test.verbs.map((v) => [NOM_DU_VERBE_DE_JET[v], v] as const))('Test (mono) : %s — le siège du testeur joue, un tiers est refusé', (_nom, v) => {
     setup();

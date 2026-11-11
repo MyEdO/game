@@ -105,7 +105,7 @@ describe('#1262 lot 5a — DÉFENSE : la fenêtre naît du pending, et va au si�
 
   it('interposition du chemin PILOTÉ (`openSurfacedDefense`) : étape hôte + pending cohérents', () => {
     const { enemy, hero } = setup({ x: 1, y: 0 }, [sword]);
-    openAttackCascade(banc.getState, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
+    openAttackCascade(banc.getState, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attaquer');
     banc.getState().jetLancer('attaque');
     const pa = banc.getState().pendingAttack!;
     banc.setState({ pendingCascade: null } as never); // la fenêtre d'attaque se ferme, la défense s'interpose
@@ -118,7 +118,7 @@ describe('#1262 lot 5a — DÉFENSE : la fenêtre naît du pending, et va au si�
 describe('#1262 lot 5a — ATTAQUE : l’étape hôte suit son `pendingAttack`', () => {
   it('l’étape `attack-jet` est mintée sur le pending posé, et porte l’ATTAQUANT', () => {
     const { hero, enemy } = setup({ x: 1, y: 0 }, [sword]);
-    openAttackCascade(banc.getState, banc.setState, { attackerId: hero.id, targetId: enemy.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
+    openAttackCascade(banc.getState, banc.setState, { attackerId: hero.id, targetId: enemy.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attaquer');
     expect(banc.getState().pendingAttack).not.toBeNull();
     const st = etape('attaque')!;
     expect(st.id).toBe('attack-jet-0'); // id DÉRIVÉ du compteur de la séquence d'accueil (#1852)
@@ -128,7 +128,7 @@ describe('#1262 lot 5a — ATTAQUE : l’étape hôte suit son `pendingAttack`',
 
   it('COOP : l’attaque d’un héros de l’INVITÉ s’ouvre à SON siège', () => {
     const { hero, enemy } = setup({ x: 1, y: 0 }, [sword]);
-    openAttackCascade(banc.getState, banc.setState, { attackerId: hero.id, targetId: enemy.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
+    openAttackCascade(banc.getState, banc.setState, { attackerId: hero.id, targetId: enemy.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attaquer');
     expect(modalOwnerOf(banc.getState())).toBe(hero.id);
     expect(seatOwns(banc.getState(), 1, hero.id)).toBe(true);
   });
@@ -281,7 +281,7 @@ describe('#1262 lot 5a — AFFICHAGES adossés aux situations de combat', () => 
     avanceEtapeCascade(banc.getState); // le dé du Tableau tombe à son étape → la révélation suit
     const st = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'incantationImparfaite')!;
     expect(st.label).toBe('Imparfaite');
-    expect(st.icon).toBe('fire/blast');
+    expect(st.icon).toBe('feu/explosif');
     expect(st.actorId).toBe(hero.id);
     expect(st.reveal!.title, 'la CHARGE garde son titre long').toBe('Incantation Imparfaite');
     expect(st.outcome!.length).toBeGreaterThan(0);
@@ -294,7 +294,7 @@ describe('#1262 lot 5a — AFFICHAGES adossés aux situations de combat', () => 
     avanceEtapeCascade(banc.getState);
     const st = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'incantationImparfaite')!;
     expect(st.label).toBe('Colère des dieux');
-    expect(st.icon).toBe('magic/power');
+    expect(st.icon).toBe('magie/puissance');
   });
 
   it('Critique de Structure : table RÉSOLUE + charge riche, enjeu DESCENDU à la ligne tirée', () => {

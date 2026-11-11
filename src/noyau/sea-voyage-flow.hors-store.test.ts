@@ -437,14 +437,14 @@ describe('Infestation de rats géants — Extermination des nuisibles Complexe (
 
   it('Complexe (–10) descend au Test d’équipage d’Extermination en −1 DR plat (même canal que l’Ouragan)', () => {
     get().partirEnVoyage('r1', 'mer', { cadence: 'jourParJour' });
-    set({ vessel: { ...get().vessel!, infestation: { label: 'Infestation de rats géants', crewTestType: 'extermination-nuisibles', difficulty: 'complexe', targetDR: 25, progres: 0, chaqueNuit: EMPTY_FLOW } } });
+    set({ vessel: { ...get().vessel!, infestation: { label: 'Infestation de rats géants', crewTestType: 'extermination-nuisibles', difficulty: 'complexe', drCible: 25, progres: 0, chaqueNuit: EMPTY_FLOW } } });
     expect(driveDayCaptureExtermination()).toBe(-1);
   });
 
   it('l’événement de bord FORCÉ pose l’infestation de la donnée sur le navire : Complexe, 25 DR', () => {
     const inf = infestationDeLaDonnee();
     expect(inf.difficulty).toBe('complexe');
-    expect(inf.targetDR).toBe(25);
+    expect(inf.drCible).toBe(25);
     expect(inf.progres).toBe(0);
   });
 
@@ -602,7 +602,7 @@ describe('table appliers — les 10 Tests d’équipage de VOYAGE (#275 Ronde 2 
 
   it('extermination : progression cumulée jusqu’à extermination complète (MDG 14 l.98-104)', () => {
     planWithSea();
-    set({ vessel: { ...get().vessel!, infestation: { label: 'Rats', crewTestType: 'extermination-nuisibles', difficulty: 'intermediaire', targetDR: 5, progres: 0, chaqueNuit: EMPTY_FLOW } } });
+    set({ vessel: { ...get().vessel!, infestation: { label: 'Rats', crewTestType: 'extermination-nuisibles', difficulty: 'intermediaire', drCible: 5, progres: 0, chaqueNuit: EMPTY_FLOW } } });
     apply('equipage-extermination', 3, true);
     expect(get().vessel!.infestation?.progres).toBe(3);
     apply('equipage-extermination', 2, true);
@@ -1894,7 +1894,7 @@ describe('Périls en mer — collision routée par la DONNÉE (#444, MDG 13 l.47
       const entangled = get().travelPlan!.sea!.entangled;
       expect(entangled).toBeTruthy();
       expect(entangled!.hazardId).toBe('debris-marins');
-      expect(entangled!.need).toBe(debris.freeTest!.targetDR); // cogue = Taille moyenne → bande moyenne/grande
+      expect(entangled!.need).toBe(debris.freeTest!.drCible); // cogue = Taille moyenne → bande moyenne/grande
       expect(entangled!.manDR).toBe(-1);
       expect(entangled!.mMod).toBe(0);
     } finally {
@@ -1919,7 +1919,7 @@ describe('Échouage/Empêtrement — dégagement par Test de Force (#444, applie
 
   it('Débris marins : l’étape de dégagement met en jeu SON enjeu (MDG 13 l.487-491), pas la progression bloquée de l’Échouage', () => {
     const plan = planWithSea();
-    const need = findSeaHazard('debris-marins')!.freeTest!.targetDR;
+    const need = findSeaHazard('debris-marins')!.freeTest!.drCible;
     set({ travelPlan: { ...plan, sea: { ...plan.sea!, entangled: { hazardId: 'debris-marins', label: 'Débris marins', need, progress: 0, manDR: -1, mMod: 0, difficulty: 'accessible' } } } });
     const st = apply('equipage-progression', 2, true)?.insert?.find((s) => s.kind === 'mer-degagement-debris');
     expect(st).toBeTruthy();

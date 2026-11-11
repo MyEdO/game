@@ -48,10 +48,10 @@ export function RewardRecap({ messages, xp, gold, emptyNote, sections }: {
         {hasRewards ? (
           <Row gap="lg">
             {hasXp && (
-              <Row gap="md" className="reward-stat"><Icon id="action/cast" size="sm" /> <b>{xp}</b> <span className="reward-unit">PX</span></Row>
+              <Row gap="md" className="reward-stat"><Icon id="action/incanter" size="sm" /> <b>{xp}</b> <span className="reward-unit">PX</span></Row>
             )}
             {hasGold && (
-              <Row gap="md" className="reward-stat"><Icon id="resource/gold-purse" size="sm" /> <Coins money={gold!} /></Row>
+              <Row gap="md" className="reward-stat"><Icon id="ressource/bourse" size="sm" /> <Coins money={gold!} /></Row>
             )}
           </Row>
         ) : emptyNote ? (

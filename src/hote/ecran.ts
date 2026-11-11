@@ -11,7 +11,7 @@
  */
 import {
   ACTIONS, avecSigne, batailleEnVue, fenetreDuJeu, carteEnVue, cleDuGeste, dayIndex, formatImperial, formatJourImperial, marchandEnVue, marcheEnVue, voyageEnVue, VERBE_DE_CHOIX, type AxeDuChoix, type FenetreAChoix, conditionLabel, conversationEnVue, difficultyText, documentEnVue, lieuEnVue, formatMoney, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDuSoin, ficheDuPorteur, gestesDeLObjet, interludeEnVue, jetsEnVue, porteurParId, recitEnVue, reposEnVue, toneOf,
-  type CombatEvent, type EntreeDeLaFiche, type FicheDuPorteur, type GesteAChoix, type GesteDuNoyau, type GesteFermable, type FenetreDAttaque, type FenetreDIncantation, type Jeu, type JetEnVue, type LigneDeJet, type LigneDuJournal, type ModLine, type RecapTone, type RollBreakdown, type TrajetEnVue,
+  type CombatEvent, type EntreeDeLaFiche, type FicheDuPorteur, type GesteAChoix, type GesteDuNoyau, type GesteFermable, type FenetreDAttaque, type FenetreDIncantation, type Jeu, type JetEnVue, type LigneDeJet, type LigneDuJournal, type ModLine, type RollBreakdown, type TrajetEnVue,
 } from '../noyau/index';
 import { pluriel, t } from '../i18n';
 import { garanti } from '../lib/garanti';
@@ -673,16 +673,13 @@ function revelationDeLEtape(etat: Jeu): Element[] {
   ];
 }
 
-/** Le ton d'une ligne d'issue du noyau (`RecapTone`). */
-const TON_DE_LA_LIGNE: Record<RecapTone, Ton> = { ok: 'reussite', bad: 'echec', info: 'neutre' };
-
 /** Ce que l'étape courante de la cascade dit sans le révéler (`outcome` posé par son monteur : un affichage, le contexte
  *  d'un choix), chaque ligne à son ton ; une révélation le dit déjà (`revelationDeLEtape`). */
 function issueDeLEtape(etat: Jeu): Element[] {
   const pc = etat.pendingCascade;
   const etape = pc?.participants[pc.cursor];
   if (!etape || etape.reveal) return [];
-  return (etape.outcome ?? []).map((l, i) => ligne(`issue/${i}`, l.text, l.tone ? TON_DE_LA_LIGNE[l.tone] : 'neutre'));
+  return (etape.outcome ?? []).map((l, i) => ligne(`issue/${i}`, l.text, l.tone ?? 'neutre'));
 }
 
 /** Une jauge de `courant` sur `max`. */

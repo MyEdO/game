@@ -1,5 +1,5 @@
 /**
- * L'INVENTAIRE DES FLUX À DÉ FIXÉ (#3058) : pour CHAQUE flux qui porte `setForcedRoll`, un pending fixture réel, l'id
+ * L'INVENTAIRE DES FLUX À DÉ FIXÉ (#3058) : pour CHAQUE flux qui porte `imposerLeResultat`, un pending fixture réel, l'id
  * de slot visé (multi) et la lecture du jet obtenu sur l'état que rend le propriétaire, lus par la règle du socle
  * (`fixed-die-inventaire.hors-store.test.ts`). Un flux dont la fixture manque échoue la garde.
  */
@@ -189,7 +189,7 @@ export const FIXTURES: Partial<Record<FlowKey, Fixture>> = {
     read: (s) => { const r = P<{ participants: { result: { roll: number; success: boolean } }[] }>(s, 'pendingFall').participants[0].result; return { roll: r.roll, success: r.success }; },
   },
   testEtendu: {
-    state: { pendingExtendedTest: { actorId: 'H', label: 'X', skillLabel: 'Force', target: T, targetDR: 6, total: 0, rounds: [{ id: 'r1', interactive: true, result: { roll: 88, sl: -4, success: false } }] } },
+    state: { pendingExtendedTest: { actorId: 'H', label: 'X', skillLabel: 'Force', target: T, drCible: 6, total: 0, rounds: [{ id: 'r1', interactive: true, result: { roll: 88, sl: -4, success: false } }] } },
     pid: 'r1',
     read: (s) => {
       const r = P<{ rounds: { result: { roll: number; success: boolean } }[] }>(s, 'pendingExtendedTest').rounds[0].result;
@@ -228,7 +228,7 @@ export const FIXTURES: Partial<Record<FlowKey, Fixture>> = {
   manoeuvre: { state: { pendingManeuver: { attackerId: 'H', targetId: 'E', attaque: 'm', kind: 'souffle', result: rateTR } }, read: resultRead('pendingManeuver') },
 };
 
-/** Les flux qui portent `setForcedRoll`. */
+/** Les flux qui portent `imposerLeResultat`. */
 export const FLUX = (Object.keys(FLOW_VERBS) as FlowKey[]).filter(
-  (k) => (FLOW_VERBS[k].verbs as readonly string[]).includes('setForcedRoll'),
+  (k) => (FLOW_VERBS[k].verbs as readonly string[]).includes('imposerLeResultat'),
 );

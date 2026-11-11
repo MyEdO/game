@@ -11,7 +11,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const HIT: AttackResult = {
   hit: true, attackerRoll: 40, netSL: 1, location: 'corps', damage: 3, woundsLost: 3,
-  critical: false, advantageTo: 'attacker', defenderDefeated: false, log: '',
+  critical: false, advantageTo: 'attaquant', defenderDefeated: false, log: '',
 };
 
 describe('Frénésie du héros — attaque de CC GRATUITE chaque Round (LDB 21 l.33)', () => {

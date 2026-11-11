@@ -41,7 +41,7 @@
         }
       }
     ],
-    "icon": "condition/deafened",
+    "icon": "etat/assourdi",
     "severity": 30,
     "aiThreat": 2,
     "marqueCouleur": "#9aa4b0"
@@ -82,7 +82,7 @@
     },
     "lockedReason": "il faut regagner au moins 1 Blessure",
     "resolveHeals": 1,
-    "icon": "condition/prone",
+    "icon": "etat/a-terre",
     "severity": 75,
     "aiThreat": 3,
     "marqueCouleur": "#b08a5a"
@@ -128,7 +128,7 @@
         }
       }
     ],
-    "icon": "condition/blinded",
+    "icon": "etat/aveugle",
     "severity": 65,
     "aiThreat": 4,
     "marqueCouleur": "#8a8aa8"
@@ -326,7 +326,7 @@
         }
       }
     ],
-    "icon": "condition/broken",
+    "icon": "etat/brise",
     "severity": 70,
     "marqueCouleur": "#c060c0"
   },
@@ -356,7 +356,7 @@
     "gating": {
       "movement": "none"
     },
-    "icon": "condition/entangled",
+    "icon": "etat/empetre",
     "severity": 60,
     "aiThreat": 5,
     "marqueCouleur": "#7aa050"
@@ -468,7 +468,7 @@
         }
       }
     ],
-    "icon": "condition/poisoned",
+    "icon": "etat/empoisonne",
     "severity": 55,
     "aiThreat": 4,
     "marqueCouleur": "#5fc05a",
@@ -533,7 +533,7 @@
       "enjeu": "Test d’Athlétisme — réussi : 1 pion En flammes retiré, et 1 de plus par DR.",
       "form": "descripteur"
     },
-    "icon": "condition/ablaze",
+    "icon": "etat/en-flammes",
     "severity": 58,
     "aiThreat": 5,
     "marqueCouleur": "#ff7a2a",
@@ -559,7 +559,7 @@
       }
     ],
     "perStack": true,
-    "icon": "condition/fatigued",
+    "icon": "etat/extenue",
     "severity": 20,
     "marqueCouleur": "#8a8aa0"
   },
@@ -609,7 +609,7 @@
       }
     ],
     "stacksReducedBy": "bleedIgnore",
-    "icon": "condition/bleeding",
+    "icon": "etat/hemorragique",
     "severity": 52,
     "aiThreat": 4,
     "marqueCouleur": "#d02828",
@@ -631,7 +631,7 @@
       "movement": "none",
       "cannotDefend": true
     },
-    "icon": "condition/unconscious",
+    "icon": "etat/inconscient",
     "severity": 100,
     "aiThreat": 8,
     "marqueCouleur": "#6a6a90"
@@ -743,7 +743,7 @@
       "action": "none",
       "movement": "half"
     },
-    "icon": "condition/stunned",
+    "icon": "etat/sonne",
     "severity": 80,
     "aiThreat": 6,
     "marqueCouleur": "#e0d060",
@@ -790,7 +790,7 @@
       "movement": "none",
       "cannotDefend": true
     },
-    "icon": "condition/surprised",
+    "icon": "etat/surpris",
     "severity": 40,
     "aiThreat": 4,
     "marqueCouleur": "#f0e8a0"

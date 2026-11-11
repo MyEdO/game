@@ -194,7 +194,7 @@ export function makeZone10() {
           {
             id: 'crocheter-cage',
             label: 'Crocheter la cage.',
-            icon: 'ui/lock',
+            icon: 'interface/verrou',
             when: flagWhen('!prisonnier_libre'),
             flow: testNode(
               { skill: { id: 'crochetage' }, difficulty: 'accessible', label: 'Crocheter la cage du garde-manger', stake: { authored: 'Ouvrir la cage du colporteur : sa liberté, sa bourse de 40 pistoles et 50 XP ; raté, le crochet ripe et il reste dedans.' } },

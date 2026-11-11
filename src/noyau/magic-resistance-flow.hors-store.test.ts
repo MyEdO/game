@@ -64,7 +64,7 @@ function setBattle(combatants: Combatant[]): void {
 const cr = (sl: number, niRequired?: number): CastResult =>
   ({ cast: true, roll: 44, target: 60, sl, isCritical: false, isFumble: false, log: '', ...(niRequired != null ? { niRequired } : {}) });
 
-/** Feed de combat concaténé — les lignes `cf.resistMagic*` du lancement. */
+/** Feed de combat concaténé — les lignes `cf.resistanceALaMagie*` du lancement. */
 const feed = (): string => banc.getState().battle!.log.map((e) => e.text).join('\n');
 
 /** Lance le Projectile par le VRAI chemin (`applyCast`) ; `ni` = NI requis figé au jet (gate par cible). */

@@ -8,7 +8,7 @@
  */
 import { RNG } from './dice';
 import { t } from '../i18n';
-import { rollTest, resolveOpposed, evaluateTest, isDoubleRoll, opposedReasons, exactDifficultyFromModifier, cibleMesuree, TestResult, type VerdictReason, reverseRoll } from './tests';
+import { rollTest, resolveOpposed, evaluateTest, isDoubleRoll, opposedReasons, exactDifficultyFromModifier, cibleMesuree, TestResult, type VerdictReason, type VainqueurOppose, reverseRoll } from './tests';
 import { bonus, bonusDeForce, bonusPassifDeForce, effectiveChar, baseWithTraits, forceDuPorteur } from './characteristics';
 import { woundsFromHit } from './woundsCalc';
 import { peutEtreEmpoigne } from './grapple';
@@ -534,7 +534,7 @@ export interface AttackResult {
    *  une autre fenêtre (Déviation) ne rejoue pas la sauvegarde. */
   sauvegarde?: { sauve: boolean };
   /** +1 Avantage gagné par l'attaquant (true) ou le défenseur (false), null = aucun. */
-  advantageTo: 'attacker' | 'defender' | null;
+  advantageTo: Exclude<VainqueurOppose, 'egalite'> | null;
   defenderDefeated: boolean;
   /** Détail du jet d'attaque (cible, d100, DR) — pour la modale. */
   attackerDetail?: RollBreakdown;
@@ -1212,14 +1212,14 @@ function combineOpposed(
   const [atkWhy, defWhy] = atk.sl === def.sl ? opposedReasons(opp) : [undefined, undefined];
   const atkLine = atkWhy ? { ...atkBd, decided: atkWhy } : atkBd;
   const defLine = defWhy ? { ...defBd, decided: defWhy } : defBd;
-  if (opp.winner === 'defender') {
+  if (opp.winner === 'defenseur') {
     return {
       hit: false,
       attackerRoll: atk.roll,
       defenderRoll: def.roll,
       netSL: opp.netSL,
       critical: false,
-      advantageTo: 'defender',
+      advantageTo: 'defenseur',
       defenderDefeated: false,
       attackerDetail: atkLine,
       defenderDetail: defLine,
@@ -1227,7 +1227,7 @@ function combineOpposed(
       log: `${attacker.label} rate son attaque ; ${defender.label} gagne +1 Avantage.`,
     };
   }
-  if (opp.winner === 'tie') {
+  if (opp.winner === 'egalite') {
     // Statu quo (LDB 12 l.160) : personne ne l'emporte.
     return {
       hit: false,
@@ -1648,7 +1648,7 @@ export function issueAuJet(cible: Combatant, res: AttackResult, arme: Weapon, at
   if (!res.touche) return { ligne: res.log, compte };
   const tete = phraseDeTouche(res.touche, { ...res, location: compte.relance ? lieu : res.location, woundsLost: compte.blessures }, compte.critiques.length > 0, compte.relance);
   // LDB 14 l.159
-  const empoignade = res.sansPrise === 'empoignade' ? ` ${t('cf.grappleInit', { name: res.touche.attaquant, foe: res.touche.cible })}` : '';
+  const empoignade = res.sansPrise === 'empoignade' ? ` ${t('cf.debutDEmpoignade', { name: res.touche.attaquant, foe: res.touche.cible })}` : '';
   return { ligne: `${tete}${empoignade}`, compte };
 }
 
@@ -1749,7 +1749,7 @@ function applyHit(
   if (incomingDamageNullified(defender, attacker, isMagicWeapon(weapon))) {
     return {
       hit: true, attackerRoll: atkBd.roll, attackerDetail: atkBd, netSL: dr, location: loc,
-      damage: 0, woundsLost: 0, critical: isCritical, ...(withholding ? { retenu: true as const } : {}), sansPrise: 'ethere', advantageTo: 'attacker', defenderDefeated: false,
+      damage: 0, woundsLost: 0, critical: isCritical, ...(withholding ? { retenu: true as const } : {}), sansPrise: 'ethere', advantageTo: 'attaquant', defenderDefeated: false,
       log: `${attacker.label} touche ${defender.label}… mais le coup passe au travers (Éthéré — seules les attaques magiques la blessent).`,
     };
   }
@@ -1819,7 +1819,7 @@ function applyHit(
     ...(withholding ? { retenu: true as const } : {}),
     ...(dmgProxy ? { dmgProxy } : {}),
     ...(sansPrise ? { sansPrise } : {}),
-    advantageTo: 'attacker',
+    advantageTo: 'attaquant',
     defenderDefeated: defeated,
     touche,
     log: '',

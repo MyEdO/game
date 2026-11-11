@@ -100,7 +100,7 @@ describe('RollShell.stake — prop de PREMIER RANG (#1117)', () => {
 
 /**
  * `StakeRule` — le déclencheur lui-même : il compose le patron EXISTANT de `CodexRef`
- * (`ab-codex-info` + glyphe `journal/info`, patron de la barre d'action), aucun bouton local, aucun
+ * (`ab-codex-info` + glyphe `journal/information`, patron de la barre d'action), aucun bouton local, aucun
  * caractère typographique bricolé (arbitrage user 2026-08-06 : « "la régle" ? C'est moche. Je
  * pensais que tu allais mettre un "i" a coté de "Cauchemars", pas "la régle" en dessous »). SA
  * POSITION — la ligne de titre de la fenêtre de cascade — se mesure à l'écran dans
@@ -110,7 +110,7 @@ describe('StakeRule — le déclencheur-icône (#1117, arbitrage 2026-08-06)', (
   it('porte le patron partagé, NOMMÉ par la FICHE qu’il ouvre', () => {
     const html = renderToStaticMarkup(<StakeRule rule={{ category: 'regles', id: 'trauma' }} />);
     expect(html, 'le déclencheur-icône partagé, pas un bouton local').toContain('ab-codex-info');
-    expect(html, 'l’icône vient du pipeline (journal/info), jamais un caractère bricolé').toContain('<svg');
+    expect(html, 'l’icône vient du pipeline (journal/information), jamais un caractère bricolé').toContain('<svg');
     // Le pas qui l'accueille peut s'appeler « Cauchemars » : le renvoi, lui, mène à la fiche Trauma —
     // et c'est elle qu'il annonce (#1657 B3-2b-b, `stake-rule-nom-accessible.test.tsx`).
     expect(html, 'nom accessible dérivé de la FICHE, préfixé de son rôle').toContain('aria-label="Règle : Trauma"');

@@ -503,11 +503,11 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                               frenzy/approach/test/heal + reload/recover/activity/corruption/appraise/
                               bargain) — un nouveau jet = 1 spec + 1 corps de clôture. Résilience « Je ne
                               faillirai pas ! » (LDB 17 l.68, GLOBALE) : mécanisme UNIQUE (factory
-                              `forceSuccess`/`setForcedRoll` + UI `ForcedRollPicker`). Un flux qui
+                              `forcerLaReussite`/`imposerLeResultat` + UI `ForcedRollPicker`). Un flux qui
                               l'offre déclare `caps: { forced: true }` ; son `resolve(s,p,actor,get,
                               forced?)` porte alors LES TROIS cas dans UN seul résolveur : `forced`
-                              absent = jet normal (RNG) ; `{}` = `forceSuccess` (dé par défaut : 01→DR
-                              max, ou opposé→jet courant forcé à ≥ DR+1) ; `{ roll }` = `setForcedRoll`
+                              absent = jet normal (RNG) ; `{}` = `forcerLaReussite` (dé par défaut : 01→DR
+                              max, ou opposé→jet courant forcé à ≥ DR+1) ; `{ roll }` = `imposerLeResultat`
                               (dé choisi, doit rester une réussite). PLUS de dérives `force`/`forceRoll`
                               séparées (l'ancien « code dérivé ») — la résolution forcée VIT dans le
                               résolveur du Test, à côté du jet normal. La localisation suit le dé inversé

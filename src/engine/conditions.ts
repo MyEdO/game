@@ -63,7 +63,7 @@ export function etatNonCumulable(id: string): boolean {
  *  résolveur `etatConnu` et le nom scanné dans le journal (`conditionIdInText`) le COMPOSENT, aucun
  *  n'en garde de copie. */
 export const NARRATIVE_MARKERS: readonly { id: string; label: string; severity: number; icon: string }[] = [
-  { id: 'petrifie', label: 'Pétrifié', severity: 95, icon: 'condition/petrified' },
+  { id: 'petrifie', label: 'Pétrifié', severity: 95, icon: 'etat/petrifie' },
 ];
 
 const marqueurParId = indexParId('etats', NARRATIVE_MARKERS);
@@ -150,7 +150,7 @@ function empileSurPionExistant(existing: ConditionInstance, value: number): void
 export function appliquerMortSubite(target: Combatant, log: string[]): void {
   target.wounds.current = 0;
   if (!target.conditions.some((c) => c.id === COND.inconscient)) addCondition(target, COND.inconscient);
-  log.push(t('cf.collapse', { name: target.label }));
+  log.push(t('cf.effondrement', { name: target.label }));
 }
 
 /** La Difficulté du Test qui retire l'État `id` quand sa pose n'en dicte aucune : le défaut de son Test

@@ -132,7 +132,7 @@ function clotureDeCascade(done: PendingCascade): void {
  * Conséquence d'une ISSUE de TEST ÉTENDU (`PendingExtendedTest.outcome`, #273 Étape 1) — calque exact
  * de `CascadeApplier` ci-dessus (mute get/set, renvoie des `Consequence[]`), appliquée à la CLÔTURE du
  * Test étendu (`jetValider('testEtendu')`, noyau/testsDeScene.ts) qu'il ait atteint sa cible OU buté sur `tentativesMax`.
- * `reached` = `total ≥ targetDR` ; `false` = borne d'essais épuisée sans réussir (Commerce d'opportunité,
+ * `reached` = `total ≥ drCible` ; `false` = borne d'essais épuisée sans réussir (Commerce d'opportunité,
  * MDG 15 : « 10 DR en ≤ 3 tentatives » — l'échec de la borne EST une issue, jamais une boucle infinie).
  * Table séparée des appliers (`TablesDuJeu.issuesDeTestEtendu` : un Test étendu n'est PAS une étape de
  * cascade — `pendingExtendedTest` coexiste comme porteur de données à côté d'une cascade-hôte à 1 étape
@@ -355,11 +355,11 @@ export function lireEnSeuil(seuil: SeuilDeSauvegarde, de: CascadeDeResult, nom: 
   const sauve = de.total >= seuil.indice;
   return {
     sauve,
-    ligne: t(sauve ? 'cf.wardSaved' : 'cf.wardFailed', {
+    ligne: t(sauve ? 'cf.sauvegardeReussie' : 'cf.sauvegardeRatee', {
       name: nom,
       roll: de.total,
       trait: formatWardSave(seuil.source, seuil.indice),
-      src: seuil.dome ? t('cf.wardFromDome') : '',
+      src: seuil.dome ? t('cf.sauvegardeDuDome') : '',
     }),
   };
 }
@@ -517,7 +517,7 @@ export function opposedCascadeRoll(def: TestResult, opp: OpposedRowFreeze, targe
   return {
     roll: def.roll, target, sl: def.sl,
     success: opposedBranchSuccess(o, opp.defenderMustWin),
-    ...(o.winner === 'tie' ? { statuQuo: true as const } : {}),
+    ...(o.winner === 'egalite' ? { statuQuo: true as const } : {}),
   };
 }
 
@@ -1088,7 +1088,7 @@ export function pushStep(set: Set, step: CascadeStep | ((index: number) => Casca
     // APPEND : le curseur ne bouge QUE s'il était en bilan (`cursor === participants.length`) — sinon
     // il reste posé sur l'étape en cours, et ce n'est pas une ARRIVÉE (cf. `franchirLesHotesOrphelins`).
     if (same) return { pendingCascade: poserLeCurseur(g, { ...same, participants: [...same.participants, st], seq: compteur + 1 }, same.cursor >= same.participants.length) };
-    const fresh: PendingCascade = poserLeCurseur(g, { title: st.label ?? 'Conséquences', icon: st.icon ?? 'action/attack', purpose: p, cursor: 0, log: [], participants: [st], seq: 1 });
+    const fresh: PendingCascade = poserLeCurseur(g, { title: st.label ?? 'Conséquences', icon: st.icon ?? 'action/attaquer', purpose: p, cursor: 0, log: [], participants: [st], seq: 1 });
     // Slot occupé par un AUTRE purpose : on le SUSPEND (jamais un écrasement) — même `set` atomique
     // que `suspendActiveCascade`, dont `pushStep` n'a pas le `get`.
     return cur ? { pendingCascade: fresh, suspendedCascades: [...s.suspendedCascades, cur] } : { pendingCascade: fresh };

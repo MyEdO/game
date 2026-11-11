@@ -42,7 +42,7 @@ describe('i18n — primitive t() + catalogue FR (seam, plan → #320)', () => {
     // Le libellé d'un type psy CIBLÉ DÉRIVE de psychology.json (donnée app-owned, comme etats.json),
     // pas du catalogue t().
     expect(cibleLabel('animosite')!.label).toBe(psychologyLabel('animosite'));
-    expect(cibleLabel('haine')!.icon).toBe('flag/anger'); // icône du registre <Icon>, portée par la donnée
+    expect(cibleLabel('haine')!.icon).toBe('drapeau/hostilite'); // icône du registre <Icon>, portée par la donnée
   });
 
   it('garde `out.*` : aucune clé ne re-imprime le jet (roll/sl/drow, ou {target} en paire avec {roll}) — #295 Lot 0 Décision 1b/ceinture', () => {
@@ -73,7 +73,7 @@ describe('i18n — primitive t() + catalogue FR (seam, plan → #320)', () => {
     // @ts-expect-error — des ids de Groupe ne sont pas un libellé
     void t('eff.socialPsychEnvers', { mods: 'm', groupes: groupe });
     // @ts-expect-error — un nom de Talent écrit en dur n'est pas un libellé
-    void t('cf.fearIgnored', { name: 'n', talent: 'Sans Peur' });
+    void t('cf.peurIgnoree', { name: 'n', talent: 'Sans Peur' });
     expect(t('turn.psychSuperseded', { name: 'n', psych: psychologyLabel(psy) })).toContain(psychologyLabel(psy));
     expect(t('turn.rageHate', { name: 'n', groupe: groupLabel(groupe) })).toContain(groupLabel(groupe));
     expect(t('eff.socialPsychEnvers', { mods: 'm', groupes: groupesLabel([groupe]) })).toContain(groupLabel(groupe));

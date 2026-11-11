@@ -203,11 +203,11 @@ const ARRAYS = {
   encumbranceTiers: encumbranceTiersRawJson,
   // Incantations Imparfaites Mineures/Majeures (LDB 46 ; VDM 02 l.218-263) + Colère des dieux (LDB 40)
   // — les rangées des 5 DOCUMENTS de `miscast.json`, adressées par leur id (#1467 L1b, #1667).
-  miscastMinor: rangeesDe<typeof imparfaites>(miscastRawJson, 'miscast-mineure'),
-  miscastMajor: rangeesDe<typeof imparfaites>(miscastRawJson, 'miscast-majeure'),
-  miscastMinorVdm: rangeesDe<typeof imparfaites>(miscastRawJson, 'miscast-mineure-vdm'),
-  miscastMajorVdm: rangeesDe<typeof imparfaites>(miscastRawJson, 'miscast-majeure-vdm'),
-  miscastWrath: rangeesDe<typeof imparfaites>(miscastRawJson, 'miscast-colere'),
+  imparfaiteMineure: rangeesDe<typeof imparfaites>(miscastRawJson, 'miscast-mineure'),
+  imparfaiteMajeure: rangeesDe<typeof imparfaites>(miscastRawJson, 'miscast-majeure'),
+  imparfaiteMineureVdm: rangeesDe<typeof imparfaites>(miscastRawJson, 'miscast-mineure-vdm'),
+  imparfaiteMajeureVdm: rangeesDe<typeof imparfaites>(miscastRawJson, 'miscast-majeure-vdm'),
+  colereDesDieux: rangeesDe<typeof imparfaites>(miscastRawJson, 'miscast-colere'),
   // Enjeux des cascades (`stakes.json`, tableau RACINE, #1681) : le fichier disque est DÉRIVÉ de
   // l'`exposition.edit` du def.
   stakes: STAKES,

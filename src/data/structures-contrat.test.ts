@@ -1513,7 +1513,7 @@ const reTapeFreeTest = (cles: string) => (schemas: string) => {
   const chemin = join(schemas, 'defs', 'sea-perils.ts');
   const texte = readFileSync(chemin, 'utf8');
   if (texte.split(FREE_TEST_COMPOSE).length !== 2) throw new Error(`sea-perils.ts : \`${FREE_TEST_COMPOSE}\` introuvable ou ambigu, la contrefaçon ne se pose pas.`);
-  writeFileSync(chemin, texte.replace(FREE_TEST_COMPOSE, `z.strictObject({ ${cles}, targetDR: z.number() })`), 'utf8');
+  writeFileSync(chemin, texte.replace(FREE_TEST_COMPOSE, `z.strictObject({ ${cles}, drCible: z.number() })`), 'utf8');
 };
 
 /** La sonde injectée dans CHAQUE dossier de la borne (`DOSSIERS_DE_DEFS`), une racine par dossier : la clé
@@ -1632,7 +1632,7 @@ describe('scannerRedeclarations — CONTREFACTUEL du sujet de Test (#3012)', () 
     ]);
   });
 
-  it('D1 — `{difficulty, targetDR}` sous `freeTest` : AUCUNE ligne ne naît, le littéral ne nomme aucun sujet', () => {
+  it('D1 — `{difficulty, drCible}` sous `freeTest` : AUCUNE ligne ne naît, le littéral ne nomme aucun sujet', () => {
     const diff = verdictRedecl('cfTestSansSujet');
     expect(diff.avant, 'la copie NON MUTÉE ne mesure pas le même arbre que `scannerRedeclarations(ROOT)`.').toBe(redeclarations.length);
     expect(diff.litterauxApres - diff.litterauxAvant, 'la contrefaçon n’a pas REMPLACÉ le littéral composé : le compte des littéraux a bougé.').toBe(0);

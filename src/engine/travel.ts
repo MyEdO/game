@@ -82,12 +82,12 @@ export function routeDistanceLabel(km: number, sea: boolean | undefined): string
 }
 
 /** `IconId` du pictogramme d'un mode de voyage (registre `src/data/icons/`, famille `travel/*`) :
- *  donnée `vehicle.icon` ; `'pied'`/`'monture'`/`'mer'` → id fixe, défaut véhicule → `travel/coach`. */
+ *  donnée `vehicle.icon` ; `'pied'`/`'monture'`/`'mer'` → id fixe, défaut véhicule → `voyage/diligence`. */
 export function travelModeIcon(mode: TravelMode): string {
-  if (mode === 'pied') return 'travel/foot';
-  if (mode === 'monture') return 'travel/mount';
-  if (mode === 'mer') return 'travel/anchor';
-  return vehicleById(mode)?.icon ?? 'travel/coach';
+  if (mode === 'pied') return 'voyage/a-pied';
+  if (mode === 'monture') return 'voyage/en-selle';
+  if (mode === 'mer') return 'voyage/ancre';
+  return vehicleById(mode)?.icon ?? 'voyage/diligence';
 }
 
 /** Défauts paramétrables (surchargés par la carte du monde / la route dans l'éditeur). */

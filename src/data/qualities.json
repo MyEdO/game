@@ -617,9 +617,9 @@
         "flow": {
           "kind": "choice",
           "prompt": "Renverser",
-          "icon": "condition/prone",
+          "icon": "etat/a-terre",
           "advantageCost": 2,
-          "yes": {
+          "oui": {
             "kind": "test",
             "test": {
               "characteristic": "force",
@@ -697,9 +697,9 @@
             {
               "kind": "choice",
               "prompt": "Ouvrir la plaie",
-              "icon": "condition/bleeding",
+              "icon": "etat/hemorragique",
               "advantageCost": "$indice",
-              "yes": {
+              "oui": {
                 "kind": "do",
                 "effect": {
                   "type": "ops",

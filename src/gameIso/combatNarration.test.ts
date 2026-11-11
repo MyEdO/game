@@ -14,31 +14,31 @@ describe('narrateEvent — icône déduite du kind (zéro devinage)', () => {
     expect(n.icon).toBe('journal/charge');
     expect(n.important).toBe(true);
   });
-  it('tir → action/shoot', () => {
-    expect(narrateEvent(ev('tir', 'Grunni tire sur Machin — 5 dégâts', ally2.id, foe.id), cs).icon).toBe('action/shoot');
+  it('tir → action/tirer', () => {
+    expect(narrateEvent(ev('tir', 'Grunni tire sur Machin — 5 dégâts', ally2.id, foe.id), cs).icon).toBe('action/tirer');
   });
-  it('attaque mêlée → action/attack', () => {
-    expect(narrateEvent(ev('attaque', 'Bidule attaque Machin', ally.id, foe.id), cs).icon).toBe('action/attack');
+  it('attaque mêlée → action/attaquer', () => {
+    expect(narrateEvent(ev('attaque', 'Bidule attaque Machin', ally.id, foe.id), cs).icon).toBe('action/attaquer');
   });
-  it('posture défensive → flag/defensive et important', () => {
+  it('posture défensive → drapeau/posture-defensive et important', () => {
     const n = narrateEvent(ev('defensive', 'Bidule se met en position défensive', ally.id), cs);
-    expect(n.icon).toBe('flag/defensive');
+    expect(n.icon).toBe('drapeau/posture-defensive');
     expect(n.important).toBe(true);
   });
-  it('viser → action/aim', () => {
-    expect(narrateEvent(ev('visee', 'Grunni commence à viser', ally2.id), cs).icon).toBe('action/aim');
+  it('viser → action/viser', () => {
+    expect(narrateEvent(ev('visee', 'Grunni commence à viser', ally2.id), cs).icon).toBe('action/viser');
   });
-  it('état Sonné (kind condition) → icône de effectIcons (condition/stunned)', () => {
-    expect(narrateEvent(ev('etat', 'Bidule est Sonné', ally.id), cs).icon).toBe('condition/stunned');
+  it('état Sonné (kind condition) → icône de effectIcons (etat/sonne)', () => {
+    expect(narrateEvent(ev('etat', 'Bidule est Sonné', ally.id), cs).icon).toBe('etat/sonne');
   });
-  it('hors de combat → journal/death et important', () => {
+  it('hors de combat → journal/mort et important', () => {
     const n = narrateEvent(ev('mort', 'Machin est mis hors de combat !', foe.id), cs);
-    expect(n.icon).toBe('journal/death');
+    expect(n.icon).toBe('journal/mort');
     expect(n.important).toBe(true);
   });
-  it('déplacement → journal/move mais NON important (journal seul)', () => {
+  it('déplacement → journal/mouvement mais NON important (journal seul)', () => {
     const n = narrateEvent(ev('deplacement', 'Bidule se déplace', ally.id), cs);
-    expect(n.icon).toBe('journal/move');
+    expect(n.icon).toBe('journal/mouvement');
     expect(n.important).toBe(false);
   });
 });
@@ -79,13 +79,13 @@ describe('narrateIntent — annonce d’intention IA (hors journal)', () => {
     expect(n.segments.find((s) => s.text === 'Machin')?.team).toBe('enemy');
     expect(n.segments.find((s) => s.text === 'Bidule')?.team).toBe('ally');
   });
-  it('tir → action/shoot « vise » ; mêlée → action/attack « attaque »', () => {
-    expect(narrateIntent(aim('tir'), cs)!.icon).toBe('action/shoot');
+  it('tir → action/tirer « vise » ; mêlée → action/attaquer « attaque »', () => {
+    expect(narrateIntent(aim('tir'), cs)!.icon).toBe('action/tirer');
     expect(narrateIntent(aim('tir'), cs)!.raw).toBe('Machin vise Bidule');
-    expect(narrateIntent(aim('melee'), cs)!.icon).toBe('action/attack');
+    expect(narrateIntent(aim('melee'), cs)!.icon).toBe('action/attaquer');
     expect(narrateIntent(aim('melee'), cs)!.raw).toBe('Machin attaque Bidule');
   });
-  it('sort → action/cast « lance un sort sur »', () => {
+  it('sort → action/incanter « lance un sort sur »', () => {
     expect(narrateIntent(aim('incantation'), cs)!.raw).toBe('Machin lance un sort sur Bidule');
   });
   it('combattant introuvable → null', () => {
@@ -101,6 +101,6 @@ describe('combatFeed — derniers événements importants (bandeau)', () => {
       ev('visee', 'Grunni commence à viser', ally2.id),
     ];
     const feed = combatFeed(events, cs, 2);
-    expect(feed.map((f) => f.icon)).toEqual(['journal/charge', 'action/aim']);
+    expect(feed.map((f) => f.icon)).toEqual(['journal/charge', 'action/viser']);
   });
 });

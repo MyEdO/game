@@ -173,32 +173,32 @@ const COMBAT: Site[] = [
   {
     site: 'combatFlow.ts:1859 — chute de passerelle',
     avant: `Gustav chute de la passerelle qui s'effondre.`,
-    apres: t('cf.gangwayCollapse', { name: 'Gustav' }),
+    apres: t('cf.effondrementDeLaPasserelle', { name: 'Gustav' }),
   },
   {
     site: 'combatFlow.ts:2458 — mise hors de combat',
     avant: `Gustav est mis hors de combat !`,
-    apres: t('cf.outOfAction', { name: 'Gustav' }),
+    apres: t('cf.horsDeCombat', { name: 'Gustav' }),
   },
   {
     site: 'combatFlow.ts:4011 — sort introuvable',
     avant: `Sort « Dard de feu » introuvable.`,
-    apres: t('cf.spellNotFound', { spell: 'Dard de feu' }),
+    apres: t('cf.sortIntrouvable', { spell: 'Dard de feu' }),
   },
   {
     site: 'combatFlow.ts:4017 — incantation bloquée',
     avant: `Gustav ne peut pas incanter : Propos ésotériques.`,
-    apres: t('cf.cannotCast', { name: 'Gustav', reason: 'Propos ésotériques' }),
+    apres: t('cf.incantationImpossible', { name: 'Gustav', reason: 'Propos ésotériques' }),
   },
   {
     site: 'combatFlow.ts:4396 — prière bloquée',
     avant: `Gustav ne peut pas prier : Vous abusez de ma patience.`,
-    apres: t('cf.cannotPray', { name: 'Gustav', reason: 'Vous abusez de ma patience' }),
+    apres: t('cf.priereImpossible', { name: 'Gustav', reason: 'Vous abusez de ma patience' }),
   },
   {
     site: 'combatFlow.ts:4048 — pas de ligne de vue',
     avant: `Dard de feu : pas de ligne de vue.`,
-    apres: t('cf.noLineOfSight', { spell: 'Dard de feu' }),
+    apres: t('cf.sansLigneDeVue', { spell: 'Dard de feu' }),
   },
   {
     // `effet` = le `label` de la ligne d'`oups.json` (ponctuation comprise) — la donnée, telle quelle.

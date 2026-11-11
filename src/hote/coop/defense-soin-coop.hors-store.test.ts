@@ -71,7 +71,7 @@ describe('Défense et soin en coop : la même fenêtre des deux côtés', () => 
     seedBattleRng(7);
     combat(banc, [mk('e', 'enemy', { x: 1, y: 0 }), mk('h', 'hero', { x: 0, y: 0 })], 0);
     const { guest, chezLInvite } = table(banc);
-    openAttackCascade(banc.getState, banc.setState, { attackerId: 'e', targetId: 'h', location: null, result: null, weaponUid: 'ra' }, 'Attaque', 'action/attack');
+    openAttackCascade(banc.getState, banc.setState, { attackerId: 'e', targetId: 'h', location: null, result: null, weaponUid: 'ra' }, 'Attaque', 'action/attaquer');
     banc.getState().jetLancer('attaque');
     banc.getState().jetValider('attaque');
     const vueHote = fenetreDeDefense(banc.getState());

@@ -33,7 +33,7 @@ export function StakeNote({ stake }: { stake: StakeRef }) {
   if (!text) return null;
   return (
     <div className="rm-stake">
-      {!enRangee && <Icon id="nav/dice" size="sm" />}
+      {!enRangee && <Icon id="navigation/des" size="sm" />}
       <div>
         <Prose md={text} paquet={stake.authored != null} />
       </div>
@@ -71,20 +71,20 @@ export function OutcomeNote({ onSuccess, onFail, onSuccessBy, onFailBy, realized
   onFail?: GameOp[];
   onSuccessBy?: { category: string; id: string };
   onFailBy?: { category: string; id: string };
-  realized?: 'success' | 'fail';
+  realized?: 'reussite' | 'echec';
   sl?: number;
 }) {
-  const succ = realized === 'fail' ? undefined : onSuccess;
-  const fail = realized === 'success' ? undefined : onFail;
-  const succBy = realized === 'fail' ? undefined : onSuccessBy;
-  const failBy = realized === 'success' ? undefined : onFailBy;
+  const succ = realized === 'echec' ? undefined : onSuccess;
+  const fail = realized === 'reussite' ? undefined : onFail;
+  const succBy = realized === 'echec' ? undefined : onSuccessBy;
+  const failBy = realized === 'reussite' ? undefined : onFailBy;
   if (!succ && !fail && !succBy && !failBy) return null;
   const ligne = (ops: GameOp[] | undefined, by: { category: string; id: string } | undefined) =>
     ops ? (ops.length ? <GameOpChips ops={ops} {...(sl != null ? { sl } : {})} /> : 'rien.')
       : <EntityRef category={by!.category} id={by!.id} label={refLabel(by!.category, { id: by!.id })} />;
   return (
     <div className="rm-stake">
-      <Icon id="journal/info" size="sm" />
+      <Icon id="journal/information" size="sm" />
       <div>
         {succ || succBy ? <p><b>Réussite :</b> {ligne(succ, succBy)}</p> : null}
         {fail || failBy ? <p><b>Échec :</b> {ligne(fail, failBy)}</p> : null}
@@ -115,7 +115,7 @@ export function StakeRule({ rule }: { rule?: { category: string; id: string } })
       className="ab-codex-info"
       hideIfUnknown
     >
-      <Icon id="journal/info" size="sm" />
+      <Icon id="journal/information" size="sm" />
     </CodexRef>
   );
 }

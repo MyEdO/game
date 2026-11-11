@@ -84,7 +84,7 @@ function deroule(): { issue: string; ouverts?: string[]; doubleMain: string[] } 
     if (actif && (actif.kind === 'hero' || s.net.gmSeat != null) && !ouverts().length && s.battle.turn >= 0) {
       const t = !s.battle.acted && s.battle.combatants.find((x) => x.kind !== actif.kind && vivant(x) && adj(actif, x));
       if (t) {
-        openAttackCascade(g, banc.setState, { attackerId: actif.id, targetId: t.id, location: null, result: null }, 'Attaque', 'action/attack');
+        openAttackCascade(g, banc.setState, { attackerId: actif.id, targetId: t.id, location: null, result: null }, 'Attaque', 'action/attaquer');
         if (actif.id === 'h1' || actif.id === 'e3') g().jetRegler('attaque', 'deuxArmes', true);
         continue;
       }

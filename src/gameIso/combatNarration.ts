@@ -40,10 +40,10 @@ interface ComLite {
 
 /** Icône par type d'événement (source unique pour journal + bandeau + pastilles). */
 const KIND_ICON: Record<CombatEventKind, IconId> = {
-  charge: 'journal/charge', attaque: 'action/attack', tir: 'action/shoot', sort: 'action/cast', objet: 'item/consumable', soin: 'journal/heal',
-  deplacement: 'journal/move', fuite: 'journal/flee', defensive: 'flag/defensive', visee: 'action/aim', focalisation: 'flag/focus', frenesie: 'flag/frenzy',
-  rechargement: 'journal/reload', parade: 'action/defend', esquive: 'journal/dodge', degats: 'journal/damage', critique: 'journal/critical',
-  etat: 'condition/bleeding', peur: 'flag/fear', mort: 'journal/death', round: 'journal/round', detail: 'journal/detail', information: 'journal/info',
+  charge: 'journal/charge', attaque: 'action/attaquer', tir: 'action/tirer', sort: 'action/incanter', objet: 'objet/consommable', soin: 'journal/soin',
+  deplacement: 'journal/mouvement', fuite: 'journal/fuite', defensive: 'drapeau/posture-defensive', visee: 'action/viser', focalisation: 'drapeau/focalisation', frenesie: 'drapeau/frenesie',
+  rechargement: 'journal/rechargement', parade: 'action/se-defendre', esquive: 'journal/esquive', degats: 'journal/degats', critique: 'journal/critique',
+  etat: 'etat/hemorragique', peur: 'drapeau/peur', mort: 'journal/mort', round: 'journal/fin-de-round', detail: 'journal/detail', information: 'journal/information',
 };
 
 /** L'icône de l'État (LDB 16) que nomme un événement `condition`/`detail`, par `conditionMeta`. L'État est
@@ -135,7 +135,7 @@ export function narrateIntent(aim: ActorAim, combatants: ComLite[] = []): Narrat
  *  ligne PROJETÉE, jamais journalisée (un clic refusé n'est pas un fait de jeu). Ton `strong` : c'est
  *  une réponse à un geste du joueur, elle doit se remarquer sans crier comme un critique. */
 export function narrateRefus(refus: RefusIHM, combatants: ComLite[] = []): NarratedLine {
-  return { raw: refus.texte, icon: 'ui/forbidden', important: true, tone: 'strong', segments: colorize(refus.texte, combatants) };
+  return { raw: refus.texte, icon: 'interface/interdit', important: true, tone: 'strong', segments: colorize(refus.texte, combatants) };
 }
 
 /** Les `max` derniers événements IMPORTANTS (pour le bandeau haut), ordre chronologique préservé. */

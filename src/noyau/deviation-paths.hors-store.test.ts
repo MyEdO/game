@@ -539,7 +539,7 @@ describe('Après la Blessure critique infligée (LDB 10 ; LDB 18 l.15 ; #1595 c.
     applyAttackResult(banc.getState, banc.setState, e, h, gourdin,
       { hit: true, attackerRoll: 44, netSL: 2, location: 'corps', critLocation: 'corps', damage: 5, woundsLost: 1, critical: true, advantageTo: null, defenderDefeated: false, log: 'double' });
     expect(armourSum(live('h1')), 'l’automate a dévié').toBe(17);
-    const reveles = (banc.getState().pendingCascade?.participants ?? []).filter((s) => s.reveal?.title === tr('cf.critDeflectedTitle'));
+    const reveles = (banc.getState().pendingCascade?.participants ?? []).filter((s) => s.reveal?.title === tr('cf.titreDuCritiqueDevie'));
     expect(reveles).toHaveLength(1);
   });
 });

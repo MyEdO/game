@@ -112,12 +112,12 @@ export function SaveLoadModal({ mode, onClose }: { mode: 'save' | 'load'; onClos
 
   return (
     <Modal
-      title={<><Icon id={mode === 'save' ? 'file/save' : 'file/open'} /> {mode === 'save' ? t('saveload.title.save') : t('saveload.title.load')}</>}
+      title={<><Icon id={mode === 'save' ? 'fichier/enregistrer' : 'fichier/ouvrir'} /> {mode === 'save' ? t('saveload.title.save') : t('saveload.title.load')}</>}
       onClose={onClose}
       footer={
         <>
           <button type="button" className="btn small" onClick={() => fileRef.current?.click()} title={t('saveload.import.btn.title')}>
-            <Icon id="file/import" /> {t('saveload.import.btn')}
+            <Icon id="fichier/importer" /> {t('saveload.import.btn')}
           </button>
           <input
             ref={fileRef}

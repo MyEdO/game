@@ -112,7 +112,7 @@ export const scenario: TestScenario = {
   id: 'piege-caveau',
   order: 10,
   category: 'scenarios',
-  icon: 'scenario/trap',
+  icon: 'scenario/piege',
   title: 'Le Caveau piégé',
   tests: 'Vitrine Flow+Condition : interactions (levier/clé → flags), condition composée (clé OU levier) ET NON alarme pour la herse, dalle piégée = Test d’Athlétisme à branches (esquive / piques + À Terre + alarme).',
   partyNote: 'Pré-tirés',

@@ -83,7 +83,7 @@ describe('Le héros d’un siège DISTANT garde ses fenêtres chez l’hôte (#1
     E[1].pos = { x: 11, y: 11 }; // adjacent et hors des `hitIds` → il reste une cible à enchaîner
     set({ battle: { ...g().battle! } });
     const res = { hit: true, attackerRoll: 30, netSL: 2, location: 'corps', damage: 5, woundsLost: 3,
-      critical: false, cleave: true, advantageTo: 'attacker', defenderDefeated: false, log: 'touche' } as unknown as AttackResult;
+      critical: false, cleave: true, advantageTo: 'attaquant', defenderDefeated: false, log: 'touche' } as unknown as AttackResult;
 
     maybeHeroCleave(g, set, H[0], E[0], res, false);
 

@@ -65,7 +65,7 @@ export function DistraireModal() {
     onDarkPact: darkPact,
     onForce: force,
   }, {
-    rollLabel: t('verbe.roll'),
+    rollLabel: t('verbe.lancer'),
   });
 
   const issue = pd.atk
@@ -73,8 +73,8 @@ export function DistraireModal() {
     : undefined;
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: 'Renoncer', onClick: cancel, verbe: 'cancel' },
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
+    { key: 'cancel', label: 'Renoncer', onClick: cancel, verbe: 'annuler' },
+    { key: 'confirm', label: t('verbe.valider'), onClick: confirm, verbe: 'valider' },
   ];
 
   return (

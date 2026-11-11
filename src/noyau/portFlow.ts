@@ -610,8 +610,8 @@ export const TABLES = {
       const opp = resolveOpposed(heroTR, bumpSL(merchantRoll, sellerDR));
       const netSL = opp.netSL;
       let pct = 0; // % appliqué au prix (négatif = remise pour l'acheteur)
-      if (opp.winner === 'attacker') pct = -bargainPct(true, netSL, hasBargainBonus(actor)); // remise à l'acheteur
-      else if (opp.winner === 'defender') pct = bargainPct(true, netSL, merchantNegotiator); // le vendeur monte le prix
+      if (opp.winner === 'attaquant') pct = -bargainPct(true, netSL, hasBargainBonus(actor)); // remise à l'acheteur
+      else if (opp.winner === 'defenseur') pct = bargainPct(true, netSL, merchantNegotiator); // le vendeur monte le prix
       const bargainLine = t('port.bargainLine', { name: actor.label, roll: heroTR.roll, opp: merchantRoll.roll, seller: sellerDR ? t('port.fragSellerDR', { dr: sellerDR }) : '', issue: pct === 0 ? t('port.priceUnchanged') : pct < 0 ? t('port.discount', { pct: -pct }) : t('port.surcharge', { pct }) });
       return { consequences: freeCons(finalizePortBuy(get, set, cargoId, want, basePrice, pct, bargainLine)) };
     },
@@ -630,8 +630,8 @@ export const TABLES = {
       const opp = resolveOpposed(bumpSL(heroTR, sellerDR), merchantRoll);
       const netSL = opp.netSL;
       let bargainPctVal = 0;
-      if (opp.winner === 'attacker') bargainPctVal = bargainPct(true, netSL, hasBargainBonus(actor)); // le PJ monte le prix
-      else if (opp.winner === 'defender') bargainPctVal = -bargainPct(true, netSL, merchantNegotiator); // l'acheteur le baisse
+      if (opp.winner === 'attaquant') bargainPctVal = bargainPct(true, netSL, hasBargainBonus(actor)); // le PJ monte le prix
+      else if (opp.winner === 'defenseur') bargainPctVal = -bargainPct(true, netSL, merchantNegotiator); // l'acheteur le baisse
       const bargainLine = t('port.bargainLine', { name: actor.label, roll: heroTR.roll, opp: merchantRoll.roll, seller: sellerDR ? t('port.fragSellerDRSigned', { dr: `${sellerDR > 0 ? '+' : ''}${sellerDR}` }) : '', issue: bargainPctVal === 0 ? t('port.noEffect') : t('port.pctPlain', { pct: `${bargainPctVal > 0 ? '+' : ''}${bargainPctVal}` }) });
       return { consequences: freeCons([finalizePortSale(get, set, lotId, sellEnc, offerPct, bargainPctVal, bargainLine)]) };
     },

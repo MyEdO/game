@@ -142,7 +142,7 @@
     "action": {
       "when": "manual",
       "label": "Regagner la Chance maintenant",
-      "icon": "resource/fortune",
+      "icon": "ressource/chance",
       "run": "restaurerLaFortune"
     }
   },

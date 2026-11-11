@@ -9,8 +9,8 @@ import { StakeNote, StakeRule, stakeRuleOf } from './StakeNote';
 import { fateSaveOptions, type FateSaveOption } from '../engine/fortune';
 
 const OPTION: Record<FateSaveOption, { icon: IconId; label: string }> = {
-  survivre: { icon: 'resource/lifeline', label: 'Meurs un autre jour' },
-  eviter: { icon: 'resource/fortune', label: 'Comment ça a pu rater ?' },
+  survivre: { icon: 'ressource/survivre', label: 'Meurs un autre jour' },
+  eviter: { icon: 'ressource/chance', label: 'Comment ça a pu rater ?' },
 };
 
 /** Enjeu servi par chaque fenêtre du sauvetage par le Destin. */
@@ -37,10 +37,10 @@ export function FateSaveModal() {
 
   return (
     <Modal
-      title={<><Icon id="resource/fate" size="sm" /> Le Destin <StakeRule rule={stakeRuleOf(refus)} /></>}
+      title={<><Icon id="ressource/destin" size="sm" /> Le Destin <StakeRule rule={stakeRuleOf(refus)} /></>}
       subject={hero}
       champ
-      footer={<button type="button" className="btn btn-ghost danger" onClick={choisir('accepter')} title="Le héros meurt"><Icon id="journal/death" size="sm" /> Accepter le sort</button>}
+      footer={<button type="button" className="btn btn-ghost danger" onClick={choisir('accepter')} title="Le héros meurt"><Icon id="journal/mort" size="sm" /> Accepter le sort</button>}
     >
       <Stack gap="md">
         <p className="modal-log">

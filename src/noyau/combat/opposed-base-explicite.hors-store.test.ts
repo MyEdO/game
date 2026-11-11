@@ -101,7 +101,7 @@ describe('G4 — BANDE OPPOSÉE : le départage suit la NUE sur le résolveur de
       const verdict = resolveOpposed(aT, { roll: roll.roll, target: roll.target, success: roll.success, sl: roll.sl, isDouble: false, base: row.base });
       if (verdict.decidedBy !== 'valeur') continue;
       joue = true;
-      expect(verdict.winner, 'nue du défenseur > nue de l’attaquant').toBe('defender');
+      expect(verdict.winner, 'nue du défenseur > nue de l’attaquant').toBe('defenseur');
       expect(roll.success, 'le résolveur de production applique le MÊME verdict (le défenseur résiste)').toBe(true);
     }
     expect(joue, 'aucun DR égal en 300 germes : le départage n’a pas été atteint').toBe(true);
@@ -170,7 +170,7 @@ describe('G4 — VOIE MONO : cascade opposée influençable et jet INLINE', () =
       const verdict = resolveOpposed(aT, { roll: r.roll, target: r.target, success: r.success, sl: r.sl, isDouble: false, base: step.base });
       if (verdict.decidedBy !== 'valeur') continue;
       joue = true;
-      expect(verdict.winner, 'nue 55 > nue de l’attaquant').toBe('defender');
+      expect(verdict.winner, 'nue 55 > nue de l’attaquant').toBe('defenseur');
       expect(r.success, 'l’étape conclut « résiste » — l’issue suit la NUE').toBe(true);
     }
     expect(joue, 'aucun DR égal en 300 germes : le départage n’a pas été atteint').toBe(true);
@@ -213,11 +213,11 @@ describe('ATTAQUE DU JUGE — le bonus de DR joue AVANT le départage, jamais à
     // Sans bonus : les DR diffèrent → c'est le DR qui tranche, la nue ne sert pas.
     const sansBonus = resolveOpposed(aT, def);
     expect(sansBonus.decidedBy).toBe('dr');
-    expect(sansBonus.winner).toBe('attacker');
+    expect(sansBonus.winner).toBe('attaquant');
     // +1 DR au défenseur (Piège-lame, LDB 62 l.280) : les DR s'égalisent → la nue tranche, et pour lui.
     const avecBonus = resolveOpposed(aT, bumpSL(def, 1));
     expect(avecBonus.decidedBy).toBe('valeur');
-    expect(avecBonus.winner).toBe('defender');
+    expect(avecBonus.winner).toBe('defenseur');
   });
 });
 

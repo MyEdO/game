@@ -3,7 +3,7 @@
     "id": "plein-air",
     "type": "activities",
     "label": "Plein air",
-    "icon": "nav/activity",
+    "icon": "navigation/activite",
     "contexts": [
       "voyage"
     ],
@@ -37,7 +37,7 @@
     "id": "approvisionnement",
     "type": "activities",
     "label": "Approvisionnement",
-    "icon": "action/consume",
+    "icon": "action/consommer",
     "contexts": [
       "voyage"
     ],
@@ -66,7 +66,7 @@
     "id": "recueillir-informations",
     "type": "activities",
     "label": "Recueillir des informations",
-    "icon": "char/soc",
+    "icon": "caracteristique/soc",
     "contexts": [
       "voyage",
       "auberge"
@@ -93,7 +93,7 @@
     "id": "rester-aux-aguets",
     "type": "activities",
     "label": "Rester aux aguets",
-    "icon": "action/aim",
+    "icon": "action/viser",
     "contexts": [
       "voyage"
     ],
@@ -119,7 +119,7 @@
     "id": "etablir-cartes",
     "type": "activities",
     "label": "Établir des cartes",
-    "icon": "nav/campaign",
+    "icon": "navigation/campagne",
     "contexts": [
       "voyage"
     ],
@@ -156,7 +156,7 @@
     "id": "pratiquer-competence",
     "type": "activities",
     "label": "Pratiquer une Compétence",
-    "icon": "scenario/training",
+    "icon": "scenario/entrainement",
     "contexts": [
       "voyage"
     ],
@@ -322,7 +322,7 @@
     "id": "recuperer",
     "type": "activities",
     "label": "Récupérer",
-    "icon": "nav/rest",
+    "icon": "navigation/repos",
     "contexts": [
       "voyage"
     ],
@@ -337,7 +337,7 @@
     "id": "monter-camp",
     "type": "activities",
     "label": "Monter un camp",
-    "icon": "journal/heal",
+    "icon": "journal/soin",
     "contexts": [
       "voyage"
     ],
@@ -369,7 +369,7 @@
     "id": "revenus",
     "type": "activities",
     "label": "Revenus",
-    "icon": "resource/gold-purse",
+    "icon": "ressource/bourse",
     "contexts": [
       "interlude"
     ],
@@ -387,7 +387,7 @@
     "id": "craft",
     "type": "activities",
     "label": "Artisanat",
-    "icon": "item/misc",
+    "icon": "objet/divers",
     "contexts": [
       "interlude"
     ],
@@ -405,7 +405,7 @@
     "id": "learn",
     "type": "activities",
     "label": "Apprentissage particulier",
-    "icon": "nav/compendium",
+    "icon": "navigation/compendium",
     "contexts": [
       "interlude"
     ],
@@ -423,7 +423,7 @@
     "id": "entrainement",
     "type": "activities",
     "label": "Entraînement",
-    "icon": "nav/compendium",
+    "icon": "navigation/compendium",
     "contexts": [
       "interlude"
     ],
@@ -438,7 +438,7 @@
     "id": "identify",
     "type": "activities",
     "label": "Identifier un artefact",
-    "icon": "nav/identify",
+    "icon": "navigation/identifier",
     "contexts": [
       "interlude"
     ],
@@ -464,7 +464,7 @@
     "id": "convalescence",
     "type": "activities",
     "label": "Convalescence",
-    "icon": "resource/resolve",
+    "icon": "ressource/determination",
     "contexts": [
       "interlude"
     ],
@@ -510,7 +510,7 @@
     "id": "penitence",
     "type": "activities",
     "label": "Pénitence",
-    "icon": "resource/fate",
+    "icon": "ressource/destin",
     "contexts": [
       "interlude"
     ],
@@ -576,7 +576,7 @@
     "id": "entrainement-arme-inhabituelle",
     "type": "activities",
     "label": "Entraînement avec une arme inhabituelle",
-    "icon": "action/attack",
+    "icon": "action/attaquer",
     "contexts": [
       "interlude"
     ],
@@ -621,7 +621,7 @@
     "id": "tester-objets-magiques",
     "type": "activities",
     "label": "Tester des objets magiques",
-    "icon": "nav/identify",
+    "icon": "navigation/identifier",
     "contexts": [
       "interlude"
     ],
@@ -773,7 +773,7 @@
     "id": "recherche-universitaire",
     "type": "activities",
     "label": "Recherche universitaire",
-    "icon": "nav/memorize",
+    "icon": "navigation/memoriser",
     "contexts": [
       "interlude"
     ],
@@ -808,7 +808,7 @@
     "id": "commerce-opportunite",
     "type": "activities",
     "label": "Commerce d'opportunité",
-    "icon": "resource/gold-purse",
+    "icon": "ressource/bourse",
     "contexts": [
       "mer"
     ],
@@ -833,7 +833,7 @@
     "id": "cartographie",
     "type": "activities",
     "label": "Cartographie",
-    "icon": "nav/campaign",
+    "icon": "navigation/campagne",
     "contexts": [
       "mer"
     ],
@@ -859,7 +859,7 @@
     "id": "entrainement-equipage",
     "type": "activities",
     "label": "Entraînement d'équipage",
-    "icon": "action/lead",
+    "icon": "action/commander",
     "contexts": [
       "mer"
     ],
@@ -884,7 +884,7 @@
     "id": "inspire",
     "type": "activities",
     "label": "Discours inspirant",
-    "icon": "action/lead",
+    "icon": "action/commander",
     "contexts": [
       "bataille"
     ],
@@ -924,7 +924,7 @@
     "id": "planification",
     "type": "activities",
     "label": "Planification",
-    "icon": "action/lead",
+    "icon": "action/commander",
     "contexts": [
       "bataille"
     ],
@@ -976,7 +976,7 @@
     "id": "infiltration",
     "type": "activities",
     "label": "Infiltration",
-    "icon": "scenario/ambush",
+    "icon": "scenario/embuscade",
     "contexts": [
       "bataille"
     ],
@@ -1022,7 +1022,7 @@
     "id": "rassembler-des-forces",
     "type": "activities",
     "label": "Rassembler des forces",
-    "icon": "char/soc",
+    "icon": "caracteristique/soc",
     "contexts": [
       "bataille"
     ],
@@ -1096,7 +1096,7 @@
     "id": "reperage",
     "type": "activities",
     "label": "Repérage",
-    "icon": "action/aim",
+    "icon": "action/viser",
     "contexts": [
       "bataille"
     ],
@@ -1140,7 +1140,7 @@
     "id": "sabotage",
     "type": "activities",
     "label": "Sabotage",
-    "icon": "scenario/trap",
+    "icon": "scenario/piege",
     "contexts": [
       "bataille"
     ],
@@ -1199,7 +1199,7 @@
     "id": "motivation",
     "type": "activities",
     "label": "Motivation",
-    "icon": "char/soc",
+    "icon": "caracteristique/soc",
     "contexts": [
       "bataille-round"
     ],
@@ -1249,7 +1249,7 @@
     "id": "pluie-de-fleches",
     "type": "activities",
     "label": "Pluie de flèches",
-    "icon": "action/roll-fire",
+    "icon": "action/roulade",
     "contexts": [
       "bataille-round"
     ],
@@ -1284,7 +1284,7 @@
     "id": "protection",
     "type": "activities",
     "label": "Protection",
-    "icon": "flag/defensive",
+    "icon": "drapeau/posture-defensive",
     "contexts": [
       "bataille-round"
     ],
@@ -1363,7 +1363,7 @@
     "id": "compte-a-rebours",
     "type": "activities",
     "label": "Compte à rebours",
-    "icon": "ui/warning",
+    "icon": "interface/attention",
     "contexts": [
       "bataille-round"
     ],
@@ -1452,7 +1452,7 @@
     "id": "ligne-de-mire",
     "type": "activities",
     "label": "Ligne de mire",
-    "icon": "action/aim",
+    "icon": "action/viser",
     "generalDownOn": "success",
     "contexts": [
       "bataille-round"
@@ -1509,7 +1509,7 @@
     "id": "tuez-la-bete",
     "type": "activities",
     "label": "Tuez la bête !",
-    "icon": "scenario/bestiary",
+    "icon": "scenario/bestiaire",
     "contexts": [
       "bataille-round"
     ],
@@ -1538,7 +1538,7 @@
     "id": "survol",
     "type": "activities",
     "label": "Survol",
-    "icon": "travel/mount",
+    "icon": "voyage/en-selle",
     "generalDownOn": "stupefying",
     "contexts": [
       "bataille-round"
@@ -1631,7 +1631,7 @@
     "id": "duel",
     "type": "activities",
     "label": "Duel",
-    "icon": "action/attack",
+    "icon": "action/attaquer",
     "contexts": [
       "bataille-round"
     ],
@@ -1688,7 +1688,7 @@
     "id": "intrus",
     "type": "activities",
     "label": "Intrus",
-    "icon": "flag/fear",
+    "icon": "drapeau/peur",
     "contexts": [
       "bataille-round"
     ],
@@ -1708,7 +1708,7 @@
     "id": "rassemblement",
     "type": "activities",
     "label": "Rassemblement",
-    "icon": "journal/heal",
+    "icon": "journal/soin",
     "contexts": [
       "bataille-round"
     ],
@@ -1733,7 +1733,7 @@
     "id": "dressage",
     "type": "activities",
     "label": "Dressage",
-    "icon": "action/lead",
+    "icon": "action/commander",
     "contexts": [
       "interlude"
     ],
@@ -1763,7 +1763,7 @@
     "id": "dernieres-nouvelles",
     "type": "activities",
     "label": "Dernières nouvelles",
-    "icon": "expedition/rumor",
+    "icon": "expedition/rumeurs",
     "contexts": [
       "interlude"
     ],
@@ -1805,7 +1805,7 @@
     "id": "entrainement-au-combat",
     "type": "activities",
     "label": "Entraînement au Combat",
-    "icon": "expedition/practice",
+    "icon": "expedition/entrainement",
     "contexts": [
       "interlude"
     ],
@@ -1843,7 +1843,7 @@
     "id": "observer-une-cible",
     "type": "activities",
     "label": "Observer une cible",
-    "icon": "action/aim",
+    "icon": "action/viser",
     "contexts": [
       "interlude"
     ],
@@ -1884,7 +1884,7 @@
     "id": "recherche-de-savoir",
     "type": "activities",
     "label": "Recherche de savoir",
-    "icon": "nav/compendium",
+    "icon": "navigation/compendium",
     "contexts": [
       "interlude"
     ],
@@ -1926,7 +1926,7 @@
     "id": "reputation",
     "type": "activities",
     "label": "Réputation",
-    "icon": "char/soc",
+    "icon": "caracteristique/soc",
     "contexts": [
       "interlude"
     ],
@@ -1952,7 +1952,7 @@
     "id": "semer-dissension-reperage",
     "type": "activities",
     "label": "Semer la dissension — Repérage",
-    "icon": "expedition/rumor",
+    "icon": "expedition/rumeurs",
     "contexts": [
       "interlude"
     ],
@@ -1984,7 +1984,7 @@
     "id": "semer-dissension-emeute",
     "type": "activities",
     "label": "Semer la dissension — Émeute",
-    "icon": "flag/anger",
+    "icon": "drapeau/hostilite",
     "contexts": [
       "interlude"
     ],
@@ -2017,7 +2017,7 @@
     "id": "fanmaris",
     "type": "activities",
     "label": "Tir parfait de Fanmaris",
-    "icon": "action/aim",
+    "icon": "action/viser",
     "contexts": [
       "interlude"
     ],
@@ -2055,7 +2055,7 @@
     "id": "leitdorf",
     "type": "activities",
     "label": "Défense de Leitdorf",
-    "icon": "melee/grapple",
+    "icon": "melee/empoignade",
     "contexts": [
       "interlude"
     ],
@@ -2092,7 +2092,7 @@
     "id": "alcatani",
     "type": "activities",
     "label": "Méthode Alcatani",
-    "icon": "flag/bond",
+    "icon": "drapeau/attachement",
     "contexts": [
       "interlude"
     ],
@@ -2129,7 +2129,7 @@
     "id": "punchausen",
     "type": "activities",
     "label": "Fabuleuse Vente des Aventures du comte de Punchausen",
-    "icon": "merchant/haggle",
+    "icon": "marchand/marchander",
     "contexts": [
       "interlude"
     ],
@@ -2168,7 +2168,7 @@
     "id": "remaniement-contremaitre",
     "type": "activities",
     "label": "Remaniement du contremaître",
-    "icon": "scenario/trap",
+    "icon": "scenario/piege",
     "contexts": [
       "interlude"
     ],
@@ -2200,7 +2200,7 @@
     "id": "accomplir-un-rituel",
     "type": "activities",
     "label": "Accomplir un Rituel",
-    "icon": "mechanic/invoke",
+    "icon": "mecanique/invocation",
     "contexts": [
       "interlude"
     ],
@@ -2220,7 +2220,7 @@
     "id": "ameliorer-un-familier",
     "type": "activities",
     "label": "Améliorer un familier",
-    "icon": "scenario/bestiary",
+    "icon": "scenario/bestiaire",
     "contexts": [
       "interlude"
     ],
@@ -2252,7 +2252,7 @@
     "id": "brasser-une-potion",
     "type": "activities",
     "label": "Brasser une potion",
-    "icon": "item/consumable",
+    "icon": "objet/consommable",
     "contexts": [
       "interlude"
     ],
@@ -2298,7 +2298,7 @@
     "id": "reunir-des-ingredients",
     "type": "activities",
     "label": "Réunir des ingrédients",
-    "icon": "magic/component",
+    "icon": "magie/composante",
     "contexts": [
       "interlude"
     ],
@@ -2326,7 +2326,7 @@
     "id": "alchimie-ordinaire",
     "type": "activities",
     "label": "L'alchimie ordinaire",
-    "icon": "item/misc",
+    "icon": "objet/divers",
     "contexts": [
       "interlude"
     ],
@@ -2367,7 +2367,7 @@
     "id": "haute-alchimie",
     "type": "activities",
     "label": "La Haute Alchimie",
-    "icon": "scenario/magic",
+    "icon": "scenario/magie",
     "contexts": [
       "interlude"
     ],
@@ -2409,7 +2409,7 @@
     "id": "augure",
     "type": "activities",
     "label": "Augure",
-    "icon": "nav/dice",
+    "icon": "navigation/des",
     "contexts": [
       "interlude"
     ],
@@ -2543,7 +2543,7 @@
     "id": "ecrire-des-parchemins",
     "type": "activities",
     "label": "Écrire des parchemins",
-    "icon": "nav/memorize",
+    "icon": "navigation/memoriser",
     "contexts": [
       "interlude"
     ],
@@ -2571,7 +2571,7 @@
     "id": "mendier",
     "type": "activities",
     "label": "Mendier",
-    "icon": "resource/gold-purse",
+    "icon": "ressource/bourse",
     "contexts": [
       "interlude"
     ],

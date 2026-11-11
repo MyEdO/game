@@ -1283,10 +1283,10 @@ export type GameOp =
    *  `grandsCanons` ; s'il juge le navire vulnérable il approche, et exige de fouiller la cale (`fouille`), sinon
    *  il attaque. Op de NAVIRE. MDG 15 l.150-151, l.171-173 */
   | { op: 'navireHostile'; navire: { id: string }; equipage: { id: string; nombre: number }; chef?: { id: string }; grandsCanons?: number; exigence?: 'fouille' }
-  /** INFESTATION du navire : jusqu'à ce que l'équipage cumule `targetDR` DR au Test d'équipage étendu
+  /** INFESTATION du navire : jusqu'à ce que l'équipage cumule `drCible` DR au Test d'équipage étendu
    *  `crewTestType` (`difficulty`, un Test par jour en mer), `chaqueNuit` se joue chaque nuit. Op de NAVIRE.
    *  MDG 15 l.159-164, l.174-178 ; MDG 14 l.98-104 */
-  | { op: 'infestation'; crewTestType: { id: string }; difficulty: Difficulty; targetDR: number; chaqueNuit: Flow }
+  | { op: 'infestation'; crewTestType: { id: string }; difficulty: Difficulty; drCible: number; chaqueNuit: Flow }
   /** COMBAT EN MER contre `adversaire.nombre` créatures (Traits facultatifs `optionals` posés) sur le pont du
    *  navire ; chacune est repoussée à `repousseAPct` % de ses Blessures de départ ou moins, et `victoire` se joue
    *  quand le combat est gagné. Op de NAVIRE. MDG 15 l.136-139, l.142-143, l.165-168 */

@@ -101,7 +101,7 @@ describe('applyAttackResult : defer de l’Avantage de l’attaquant', () => {
   it('deferAttackerAdvantage=true → n’incrémente PAS l’Avantage de l’attaquant', () => {
     const { h, f1 } = setupBattle();
     h.advantage = 0;
-    const res = { hit: true, attackerRoll: 10, netSL: 2, critical: false, advantageTo: 'attacker',
+    const res = { hit: true, attackerRoll: 10, netSL: 2, critical: false, advantageTo: 'attaquant',
       defenderDefeated: false, woundsLost: 0, location: 'corps', log: 'x' } as unknown as AttackResult;
     applyAttackResult(banc.getState, banc.setState, h, f1, h.weapons[0], res, { suite: { deferAttackerAdvantage: true } });
     expect(h.advantage).toBe(0);
@@ -109,7 +109,7 @@ describe('applyAttackResult : defer de l’Avantage de l’attaquant', () => {
   it('sans defer → incrémente normalement', () => {
     const { h, f1 } = setupBattle();
     h.advantage = 0;
-    const res = { hit: true, attackerRoll: 10, netSL: 2, critical: false, advantageTo: 'attacker',
+    const res = { hit: true, attackerRoll: 10, netSL: 2, critical: false, advantageTo: 'attaquant',
       defenderDefeated: false, woundsLost: 0, location: 'corps', log: 'x' } as unknown as AttackResult;
     applyAttackResult(banc.getState, banc.setState, h, f1, h.weapons[0], res);
     expect(h.advantage).toBe(1);
@@ -134,7 +134,7 @@ describe('−10 à toutes les défenses du dual-wield (LDB 10 l.767-773)', () =>
 });
 
 const hitRes = (over: Partial<AttackResult> = {}): AttackResult => ({
-  hit: true, attackerRoll: 30, netSL: 2, critical: false, advantageTo: 'attacker', defenderDefeated: false,
+  hit: true, attackerRoll: 30, netSL: 2, critical: false, advantageTo: 'attaquant', defenderDefeated: false,
   woundsLost: 0, location: 'corps', attackerDetail: { roll: 30, target: 50, success: true, sl: 2 }, log: 'touche', ...over,
 } as unknown as AttackResult);
 
@@ -162,7 +162,7 @@ describe('chaînage de l’Action « des deux armes »', () => {
 
   it('main MANQUE → pas de 2ᵉ frappe (pendingDualStrike reste null), mais −10 défense quand même posé', () => {
     setupBattle(DEUX_ARMES);
-    banc.setState({ pendingAttack: { attackerId: 'h', targetId: 'f1', location: 'corps', result: hitRes({ hit: false, advantageTo: 'defender' }), dualMode: true } as any });
+    banc.setState({ pendingAttack: { attackerId: 'h', targetId: 'f1', location: 'corps', result: hitRes({ hit: false, advantageTo: 'defenseur' }), dualMode: true } as any });
     banc.getState().jetValider('attaque');
     expect(banc.getState().pendingDualStrike).toBeNull();
     expect(banc.getState().battle!.combatants.find((c) => c.id === 'h')!.dualStrikeDefensePenalty).toBe(-10);
@@ -201,7 +201,7 @@ describe('Avantage : +1 UNIQUE et seulement si les DEUX frappes touchent (LDB 10
     h.advantage = 0;
     banc.setState({
       pendingDualStrike: { attackerId: 'h', offWeaponUid: 'o', jet: 3 } as any,
-      pendingAttack: { attackerId: 'h', targetId: 'f2', location: 'corps', result: hitRes({ hit: false, advantageTo: 'defender' }), dualSecond: true, weaponUid: 'o' } as any,
+      pendingAttack: { attackerId: 'h', targetId: 'f2', location: 'corps', result: hitRes({ hit: false, advantageTo: 'defenseur' }), dualSecond: true, weaponUid: 'o' } as any,
     });
     banc.getState().jetValider('attaque');
     expect(banc.getState().battle!.combatants.find((c) => c.id === 'h')!.advantage).toBe(0);

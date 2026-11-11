@@ -22,7 +22,7 @@ export function ShoreLeaveBody({ embedded = false }: { embedded?: boolean } = {}
   const refusAccorder = useGame((s) => refusDuChoixNomme(s, 'relacheATerre', 'accorder', true));
   const refusRefuser = useGame((s) => refusDuChoixNomme(s, 'relacheATerre', 'accorder', false));
   if (!p) return null;
-  const title = <><Icon id="travel/anchor" size="sm" /> Accostage à {p.to.label}</>;
+  const title = <><Icon id="voyage/ancre" size="sm" /> Accostage à {p.to.label}</>;
   const body = (
     <>
       <p className="modal-log">
@@ -36,8 +36,8 @@ export function ShoreLeaveBody({ embedded = false }: { embedded?: boolean } = {}
       <ChoiceButtons
         idPrefix="shore"
         options={[
-          { key: 'accorder', label: <><Icon id="travel/anchor" size="sm" /> Accorder la relâche</>, primary: true, refus: refusAccorder ?? undefined, onSelect: () => resolve(true), title: refusAccorder ? undefined : 'Autoriser l\'équipage à faire relâche à terre' },
-          { key: 'refuser', label: <><Icon id="travel/anchor" size="sm" /> Refuser la relâche</>, refus: refusRefuser ?? undefined, onSelect: () => resolve(false), title: refusRefuser ? undefined : 'Garder l\'équipage à bord — l\'Embrigadement n\'aura pas lieu' },
+          { key: 'accorder', label: <><Icon id="voyage/ancre" size="sm" /> Accorder la relâche</>, primary: true, refus: refusAccorder ?? undefined, onSelect: () => resolve(true), title: refusAccorder ? undefined : 'Autoriser l\'équipage à faire relâche à terre' },
+          { key: 'refuser', label: <><Icon id="voyage/ancre" size="sm" /> Refuser la relâche</>, refus: refusRefuser ?? undefined, onSelect: () => resolve(false), title: refusRefuser ? undefined : 'Garder l\'équipage à bord — l\'Embrigadement n\'aura pas lieu' },
         ]}
       />
   );

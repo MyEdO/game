@@ -28,7 +28,7 @@ export const scenario: TestScenario = {
   id: 'magie-hors-combat',
   order: 4,
   category: 'magie',
-  icon: 'scenario/magic-field',
+  icon: 'scenario/magie-hors-combat',
   title: 'Magie hors combat',
   tests: 'Incantation HORS COMBAT depuis la fiche : soin/bénédiction (Prêtre), Focalisation + Sort d’Arcane (Sorcier), refus des Projectiles magiques.',
   partyNote: 'Sorcier ( +Armure Aethyrique, blessée) + Prêtre (Prêtre)',

@@ -374,7 +374,7 @@ function devDriveModal(verb: 'Roll' | 'Confirm' | 'Cancel'): string {
   if (verb === 'Confirm' && open.includes('pendingRoundStart')) { useGame.getState().fenetreValider('debutDuRound'); return '✓ Round lancé'; }
   const flux = devFluxOf(open);
   if (!flux) return `✗ pas de flux pilotable parmi : ${open.join(', ')}`;
-  const deJet = verb === 'Roll' ? 'roll' : verb === 'Confirm' ? 'confirm' : 'cancel';
+  const deJet = verb === 'Roll' ? 'lancer' : verb === 'Confirm' ? 'valider' : 'annuler';
   if (!fluxAccepte(flux, deJet)) return `✗ le flux ${flux} n’a pas de geste ${deJet} (modales ouvertes : ${open.join(', ')})`;
   const nom = NOM_DU_VERBE_DE_JET[deJet];
   (s[nom] as (flux: string) => void)(flux);
@@ -397,7 +397,7 @@ function riverDayCascade(): string {
   // injouables, recette 5).
   useGame.setState({ pendingCascade: null });
   const built = buildRiverDayCascade(useGame.getState, useGame.setState, route);
-  startCascade(useGame.getState, useGame.setState, { title: 'Journée de descente', icon: 'travel/wave', purpose: 'travelDay', steps: built.steps });
+  startCascade(useGame.getState, useGame.setState, { title: 'Journée de descente', icon: 'voyage/vague', purpose: 'travelDay', steps: built.steps });
   const kinds = built.steps.map((x: { kind: string }) => x.kind).join(', ');
   return `cascade du jour posée : ${built.steps.length} étape(s) [${kinds}]`;
 }
@@ -1502,7 +1502,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       if (!open.length) return { open: [], actions: [] };
       const flux = devFluxOf(open);
       const names = flux
-        ? (['roll', 'confirm', 'cancel'] as const).filter((v) => fluxAccepte(flux, v)).map((v) => `${NOM_DU_VERBE_DE_JET[v]}('${flux}')`)
+        ? (['lancer', 'valider', 'annuler'] as const).filter((v) => fluxAccepte(flux, v)).map((v) => `${NOM_DU_VERBE_DE_JET[v]}('${flux}')`)
         : [];
       return { open, pilote: flux ? names : open.includes('pendingRoundStart') ? ["fenetreValider('debutDuRound')"] : [] };
     },

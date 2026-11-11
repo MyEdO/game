@@ -379,7 +379,7 @@ export function dumpingPricePct(port: PortProfile, cargoId: string): number | nu
  *  (−10), 10 DR en ≤ 3 tentatives — échec de 6 DR → tout perdu ; échec → moitié ; succès → +10 % ;
  *  succès de 6 DR (16+) → +20 %. Renvoie le % de l'investissement récupéré. PUR. */
 export function opportunityTradePct(totalDR: number): number {
-  const need = CARGO.opportunite.targetDR;
+  const need = CARGO.opportunite.drCible;
   for (const o of CARGO.opportunite.outcomes) {
     if (o.on === 'echec' && o.manquantMin != null && totalDR <= need - o.manquantMin) return 100 + o.pct;
   }

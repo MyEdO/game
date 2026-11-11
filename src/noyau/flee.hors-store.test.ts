@@ -105,7 +105,7 @@ describe('Fuite intégrée à la modale (store)', () => {
         moverId: H.id, foeId: E.id, canSacrifice: false, phase: 'fuir', atk: null, def: null, result: null,
         fuir: {
           participants: [
-            { id: E.id, kind: 'backstab', interactive: false, result: { hit: true, attackerRoll: 30, netSL: 1, location: 'corps', damage: 4, woundsLost: 4, critical: false, advantageTo: 'attacker', defenderDefeated: false, log: 'dans le dos' } },
+            { id: E.id, kind: 'backstab', interactive: false, result: { hit: true, attackerRoll: 30, netSL: 1, location: 'corps', damage: 4, woundsLost: 4, critical: false, advantageTo: 'attaquant', defenderDefeated: false, log: 'dans le dos' } },
             { id: H.id, kind: 'touche', interactive: true, test: testDeRegle('fuite', 'touche-en-fuyant'), jet: { success: false, roll: 70, target: 50, sl: -2 } },
           ],
         },
@@ -201,7 +201,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
         phase: 'fuir',
         fuir: {
           participants: [
-            { id: frappeur.id, kind: 'backstab', interactive: false, result: { hit: true, attackerRoll: 40, netSL: 2, location: 'corps', damage: 5, woundsLost: 5, critical: false, advantageTo: 'attacker', defenderDefeated: false, log: 'dans le dos' } },
+            { id: frappeur.id, kind: 'backstab', interactive: false, result: { hit: true, attackerRoll: 40, netSL: 2, location: 'corps', damage: 5, woundsLost: 5, critical: false, advantageTo: 'attaquant', defenderDefeated: false, log: 'dans le dos' } },
             { id: fuyard.id, kind: 'touche', interactive: true, test: testDeRegle('fuite', 'touche-en-fuyant'), jet: { success: true, roll: 10, target: 50, sl: 2 } },
           ],
         },
@@ -382,7 +382,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
         phase: 'fuir',
         fuir: {
           participants: [
-            { id: frappeur.id, kind: 'backstab', interactive: false, result: { hit: true, attackerRoll: 33, netSL: 2, location: 'corps', critLocation: 'corps', damage: 6, woundsLost: 6, critical: true, advantageTo: 'attacker', defenderDefeated: false, log: 'dans le dos' } },
+            { id: frappeur.id, kind: 'backstab', interactive: false, result: { hit: true, attackerRoll: 33, netSL: 2, location: 'corps', critLocation: 'corps', damage: 6, woundsLost: 6, critical: true, advantageTo: 'attaquant', defenderDefeated: false, log: 'dans le dos' } },
             { id: fuyard.id, kind: 'touche', interactive: true, test: testDeRegle('fuite', 'touche-en-fuyant'), jet: { success: false, roll: 70, target: 50, sl: -1 } },
           ],
         },
@@ -439,7 +439,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     const { frappeur, fuyard } = duelHeros(8);
     banc.setState({
       net: { ...banc.getState().net, mode: 'hote', mySeat: 0, ownership: { [frappeur.id]: 1 } },
-      pendingCascade: cascadeDeTest([{ id: 'disengage', kind: 'desengagement', jet: 'desengagement', actorId: fuyard.id }], { title: 'Se désengager', icon: 'action/disengage', purpose: 'combat' }),
+      pendingCascade: cascadeDeTest([{ id: 'disengage', kind: 'desengagement', jet: 'desengagement', actorId: fuyard.id }], { title: 'Se désengager', icon: 'action/se-desengager', purpose: 'combat' }),
     });
     banc.getState().jetRegler('desengagement', 'fuir', true);
     const st = banc.getState();

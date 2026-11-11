@@ -30,7 +30,7 @@ export const scenario: TestScenario = {
   id: 'porte-close',
   order: 28,
   category: 'scenarios',
-  icon: 'nav/campaign',
+  icon: 'navigation/campagne',
   title: 'La porte close',
   tests: 'Ouverture d’une porte FERMÉE en exploration (`actionnerLaPorte`), puis le passage du groupe : la porte s’ouvre au geste, le pas la franchit.',
   partyNote: 'Pré-tirés',

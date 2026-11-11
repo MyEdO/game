@@ -98,7 +98,7 @@ export const fixe = (j: JetFixe) => j.difficulty;
 export const editeur = (ft: FlowTest) => ft.easierIf;
 // lecture déclarée : marqueur qui ne couvre aucune lecture
 export const rien = 1;
-type Etendu = { type: 'extendedTest'; targetDR: number } & Pick<FlowTest, 'difficulty' | 'gate' | 'difficultyBy' | 'easierIf'>;
+type Etendu = { type: 'extendedTest'; drCible: number } & Pick<FlowTest, 'difficulty' | 'gate' | 'difficultyBy' | 'easierIf'>;
 export const etendu = (e: Etendu) => e.difficulty;
 `,
     };

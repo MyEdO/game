@@ -98,8 +98,8 @@ describe('testAnnonce — le jet vient du FLUX, en ids stables', () => {
   });
 
   it('effet `extendedTest` : Compétence spécialisée, difficulté par DÉFAUT de `resoudreFlowTest`, DR cumulé', () => {
-    const flow = { kind: 'seq', steps: [{ kind: 'do', effect: { type: 'extendedTest', skill: { id: 'metier', spec: 'charpentier' }, label: 'Réparation', targetDR: 5 } }] } as Flow;
-    expect(testAnnonce(flow, { cc })).toEqual({ skill: { id: 'metier', spec: 'charpentier' }, difficulty: 'intermediaire', targetDR: 5 });
+    const flow = { kind: 'seq', steps: [{ kind: 'do', effect: { type: 'extendedTest', skill: { id: 'metier', spec: 'charpentier' }, label: 'Réparation', drCible: 5 } }] } as Flow;
+    expect(testAnnonce(flow, { cc })).toEqual({ skill: { id: 'metier', spec: 'charpentier' }, difficulty: 'intermediaire', drCible: 5 });
   });
 
   it('flux SANS jet (ou absent) : aucun tag à annoncer', () => {

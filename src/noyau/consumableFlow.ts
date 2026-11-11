@@ -86,7 +86,7 @@ function runSceneConsumableFlow(get: Get, set: SetFn, hero: Combatant, flow: Flo
       if (!openSkillTest(get, set, ft, cc, node.success, node.fail, after, { actorId: hero.id })) jouerFlowEntier(runFlow(get, set, after, label));
       return fini;
     },
-    choix: (node) => node.no,
+    choix: (node) => node.non,
     fin: () => undefined,
   });
 }
@@ -103,7 +103,7 @@ function opsDeReussiteDuFlow(f: Flow): GameOp[] | null {
     case 'seq': return de(f.steps);
     case 'if': return de([f.then, f.else]);
     case 'test': return de([f.success]);
-    case 'choice': return de([f.yes, f.no]);
+    case 'choice': return de([f.oui, f.non]);
   }
 }
 

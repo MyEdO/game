@@ -47,7 +47,7 @@ export const scenario: TestScenario = {
   id: 'teinte-au-combat',
   order: 63,
   category: 'rendu',
-  icon: 'scenario/ambush',
+  icon: 'scenario/embuscade',
   title: 'Teinte et armure au combat — l’arme teinte, les pièces de l’armure portée',
   tests:
     'Le corps de chaque combattant porte ce que sa donnée lui donne (#3456) : la Lame aethyrique tient l’épée teinte '

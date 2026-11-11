@@ -356,7 +356,7 @@ describe('Poursuite — une manche bandifiée se possède comme la manche vive',
   /** Étape MONO de manche (une par coureur), MINTÉE : la fabrique n'accepte que des produits de la
    *  porte (#1262 V2). */
   const mono = (h: Combatant, round: string): BuiltCascadeStep => monoStep({
-    id: `pursuit-${round}-${h.id}`, kind: 'mouvementDePoursuite', actor: h, icon: 'travel/foot',
+    id: `pursuit-${round}-${h.id}`, kind: 'mouvementDePoursuite', actor: h, icon: 'voyage/a-pied',
     label: fixtureText(`Manche ${round}`), rollLabel: 'Athlétisme', difficulty: 'intermediaire',
     montee: { base: 40, target: 40 }, stake: combatStakeRef('poursuite-manche', { values: { distance: 10, evasion: 3 } }),
   })!;

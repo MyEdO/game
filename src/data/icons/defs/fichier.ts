@@ -9,7 +9,7 @@ const F = 'fill="currentColor" stroke="none"';
 
 export const icons: IconFamily = [
   {
-    id: 'file/new',
+    id: 'fichier/nouveau',
     label: 'Nouveau projet',
     // Feuillet vierge, coin corné.
     svg:
@@ -18,7 +18,7 @@ export const icons: IconFamily = [
       `<path ${KF} d="M9 11.4 H15 M9 14.3 H15 M9 17.2 H12.6"/>`,
   },
   {
-    id: 'file/open',
+    id: 'fichier/ouvrir',
     label: 'Ouvrir',
     // Dossier entrouvert, rabat soulevé.
     svg:
@@ -26,7 +26,7 @@ export const icons: IconFamily = [
       `<path ${KF} d="M3.6 11.3 H21.1 L19.3 17.4 H5.4 Z"/>`,
   },
   {
-    id: 'file/save',
+    id: 'fichier/enregistrer',
     label: 'Enregistrer',
     // Disquette : coin replié, étiquette, fente.
     svg:
@@ -35,7 +35,7 @@ export const icons: IconFamily = [
       `<path ${KF} d="M8 14.9 H16 M8 17.4 H16"/>`,
   },
   {
-    id: 'file/export',
+    id: 'fichier/exporter',
     label: 'Exporter',
     // Flèche sortant d'une corbeille vers le haut.
     svg:
@@ -43,7 +43,7 @@ export const icons: IconFamily = [
       `<path ${K} d="M12 16.4 V4.1 M8 8.1 L12 3.9 L16 8.1"/>`,
   },
   {
-    id: 'file/import',
+    id: 'fichier/importer',
     label: 'Importer',
     // Flèche entrant dans une corbeille depuis le haut.
     svg:
@@ -51,7 +51,7 @@ export const icons: IconFamily = [
       `<path ${K} d="M12 3.9 V16.1 M8 12.1 L12 16.3 L16 12.1"/>`,
   },
   {
-    id: 'file/document',
+    id: 'fichier/document',
     label: 'Document',
     // Feuillet plein de texte (scène active).
     svg:
@@ -60,7 +60,7 @@ export const icons: IconFamily = [
       `<path ${KF} d="M9 10.6 H15 M9 13.3 H15 M9 16 H15 M9 18.7 H12.6"/>`,
   },
   {
-    id: 'file/folder',
+    id: 'fichier/dossier',
     label: 'Dossier',
     // Dossier fermé, onglet supérieur.
     svg: `<path ${F} d="M3.6 6.9 C3.6 6.1 4.3 5.4 5.1 5.4 H9.9 L11.6 7.4 H18.9 C19.7 7.4 20.4 8.1 20.4 8.9 V17.1 C20.4 17.9 19.7 18.6 18.9 18.6 H5.1 C4.3 18.6 3.6 17.9 3.6 17.1 Z"/>`,

@@ -59,7 +59,7 @@ describe('parité des VERBES : une bande offre ce qu’offre l’étape mono', (
   it('`cascadeBatch` expose TOUS les verbes de rangée de `cascade` (resist compris), et la bande offre la Détermination', () => {
     const mono = FLOW_VERBS.cascade.verbs as readonly string[];
     const bande = FLOW_VERBS.cascadeEnBande.verbs as readonly string[];
-    // La validation (`confirm`) est un verbe de FENÊTRE : la cascade valide l'étape, bande comprise.
+    // La validation (`valider`) est un verbe de FENÊTRE : la cascade valide l'étape, bande comprise.
     const manquants = mono.filter((v) => !estVerbeDeFenetre(v as never) && !bande.includes(v));
     expect(manquants, 'verbe de l’étape mono absent de la bande — la rangée ne peut pas jouer sa règle').toEqual([]);
     // La Psychologie ne se testant qu'en bandes, la bande offre le verbe général de la Détermination (LDB 17 l.59) :

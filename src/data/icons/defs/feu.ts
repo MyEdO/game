@@ -8,7 +8,7 @@ const F = 'fill="currentColor" stroke="none"';
 
 export const icons: IconFamily = [
   {
-    id: 'fire/flame',
+    id: 'feu/flamme',
     label: 'Flamme',
     // Flamme simple à double lobe (braise interne).
     svg:
@@ -16,7 +16,7 @@ export const icons: IconFamily = [
       `<path ${K} d="M6.3 20.6 C9.4 21.4 14.6 21.4 17.7 20.6"/>`,
   },
   {
-    id: 'fire/blast',
+    id: 'feu/explosif',
     label: 'Poudre / explosif',
     // Bâton de poudre, mèche allumée.
     svg:

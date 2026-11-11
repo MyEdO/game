@@ -59,7 +59,7 @@ const CHEMINS = [
   ['src/data/naval-traits.json', ['[]', 'passive', '[]']],
   ['src/data/psychology.json', ['[]', 'test']],
   ['src/data/qualities.json', ['[]', 'effects', '[]', 'flow', 'then', 'test']],
-  ['src/data/qualities.json', ['[]', 'effects', '[]', 'flow', 'yes', 'test']],
+  ['src/data/qualities.json', ['[]', 'effects', '[]', 'flow', 'oui', 'test']],
   ['src/data/sea-shanties.json', ['[]', 'crewOps', '[]']],
   ['src/data/spells.json', ['[]', 'effects', 'steps', '[]', 'effect', 'ops', '[]']],
   ['src/data/spells.json', ['[]', 'effects', 'steps', '[]', 'effect', 'ops', '[]', 'onHitEffects', '[]', 'flow', 'test']],

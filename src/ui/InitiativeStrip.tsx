@@ -101,7 +101,7 @@ export function InitiativeStrip(p: InitiativeStripProps) {
               {p.turn === -1 && c.initiative !== undefined && (
                 <span className={`is-score${strikesLast(c.weapons) ? ' lente' : ''}`}
                   title={strikesLast(c.weapons) ? `${initiativeTitle(c)} — arme Lente : frappe en dernier` : initiativeTitle(c)}>
-                  {c.initiative}{strikesLast(c.weapons) ? <> <Icon id="ui/wait" size={10} /></> : null}
+                  {c.initiative}{strikesLast(c.weapons) ? <> <Icon id="interface/attendre" size={10} /></> : null}
                 </span>
               )}
               <CharFrame
@@ -123,7 +123,7 @@ export function InitiativeStrip(p: InitiativeStripProps) {
                     ? `${c.label} agit en premier ce Round — gratuit (arme Rapide)`
                     : `Dépense 1 point de Chance pour qu'${c.label} agisse en premier ce Round`}
                 >
-                  <Icon id="ui/preempt" size="sm" />{p.freeFirstIds?.includes(id) ? null : c.fortune ?? 0}
+                  <Icon id="interface/interruption" size="sm" />{p.freeFirstIds?.includes(id) ? null : c.fortune ?? 0}
                 </button>
               )}
               {p.canPreemptIds?.includes(id) && (
@@ -135,7 +135,7 @@ export function InitiativeStrip(p: InitiativeStripProps) {
                     ? `${c.label} — choisissez une cible pour son Tir rapide (re-cliquez pour annuler)`
                     : `Tir rapide : ${c.label} tire hors de son tour (épuise son Action et son Mouvement)`}
                 >
-                  <Icon id="action/shoot" size="sm" />
+                  <Icon id="action/tirer" size="sm" />
                 </button>
               )}
             </div>

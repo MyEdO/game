@@ -101,7 +101,7 @@ describe('BargainModal (#2c)', () => {
       result: {
         attacker: { roll: 20, target: 35, success: true, sl: 3, isDouble: false },
         defender: { roll: 60, target: 45, success: false, sl: -1, isDouble: false },
-        winner: 'attacker', attackerWins: true, netSL: 4, decidedBy: 'dr',
+        winner: 'attaquant', attackerWins: true, netSL: 4, decidedBy: 'dr',
       },
     };
     const html = renderToStaticMarkup(
@@ -127,7 +127,7 @@ describe('BargainModal (#2c)', () => {
       result: {
         attacker: { roll: 20, target: 50, success: true, sl: 3, isDouble: false },
         defender: { roll: 60, target: 45, success: false, sl: -1, isDouble: false },
-        winner: 'attacker',
+        winner: 'attaquant',
         attackerWins: true,
         netSL: 4,
         decidedBy: 'dr',

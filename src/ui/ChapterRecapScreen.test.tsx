@@ -37,7 +37,7 @@ const recap: ChapterRecap = {
   titre: 'Chapitre 1 — la route d’Altdorf',
   sousTitre: 'Ce que la compagnie emporte',
   px: 120,
-  chronique: [{ text: 'Atteindre Altdorf', tone: 'ok' }],
+  chronique: [{ text: 'Atteindre Altdorf', tone: 'reussite' }],
   tombes: [],
   lieux: ['Auberge La Diligence', 'Altdorf'],
 };

@@ -198,12 +198,12 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
 
   // Contrôle de Marchandage du panier (clair : ce qu'il fait + son effet).
   const buyHaggleControl = () => {
-    if (merchant.soured) return <span className="bargain-tag soured" title="Le marchand se méfie de votre monnaie"><Icon id="ui/forbidden" size="sm" /> Marchand méfiant — fini de marchander</span>;
-    if (merchant.bargainLocked) return <span className="bargain-tag locked" title="Vous avez déjà négocié puis quitté sans conclure ; revenez après son réassort"><Icon id="ui/lock" size="sm" /> Marchandage indisponible jusqu’au réassort</span>;
+    if (merchant.soured) return <span className="bargain-tag soured" title="Le marchand se méfie de votre monnaie"><Icon id="interface/interdit" size="sm" /> Marchand méfiant — fini de marchander</span>;
+    if (merchant.bargainLocked) return <span className="bargain-tag locked" title="Vous avez déjà négocié puis quitté sans conclure ; revenez après son réassort"><Icon id="interface/verrou" size="sm" /> Marchandage indisponible jusqu’au réassort</span>;
     if (merchant.bargainBuy == null) return (
       <>
-        <button className="btn small" onClick={() => onBargain('achat')}><Icon id="merchant/haggle" size="sm" /> Marchander le panier</button>
-        <CodexRef category="skills" id="marchandage" label="Marchandage" className="ab-codex-info"><Icon id="journal/info" size="sm" /></CodexRef>
+        <button className="btn small" onClick={() => onBargain('achat')}><Icon id="marchand/marchander" size="sm" /> Marchander le panier</button>
+        <CodexRef category="skills" id="marchandage" label="Marchandage" className="ab-codex-info"><Icon id="journal/information" size="sm" /></CodexRef>
       </>
     );
     return merchant.bargainBuy.won
@@ -249,7 +249,7 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
           primary={false}
           btnClassName="small"
         />
-        <strong><Icon id="merchant/cart" size="sm" /> Panier</strong>
+        <strong><Icon id="marchand/panier" size="sm" /> Panier</strong>
       </div>
       {!cart.length ? (
         <p className="empty">— panier vide —</p>
@@ -285,7 +285,7 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
           </table>
           <div className="cart-haggle">{buyHaggleControl()}</div>
           {sealed && (
-            <p className="cart-sealed" title="Refuser ou partir sans payer : le marchand ne marchandera plus avant son réassort."><Icon id="merchant/deal" size="sm" /> Prix arrêté — vous pouvez retirer des articles, puis régler ou refuser.</p>
+            <p className="cart-sealed" title="Refuser ou partir sans payer : le marchand ne marchandera plus avant son réassort."><Icon id="marchand/marche-conclu" size="sm" /> Prix arrêté — vous pouvez retirer des articles, puis régler ou refuser.</p>
           )}
           <div className="cart-total">Total : <strong><Coins money={cartTotal} /></strong>{buyDiscount > 0 && <span className="cart-disc"> (marchandé −{buyDiscount} %)</span>}</div>
           <div className="cart-actions">
@@ -316,14 +316,14 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
       <div className="merch-tab">
         <div className="cart-bar">
           {cartCount > 0
-            ? <><span className="cart-info"><Icon id="merchant/cart" size="sm" /> {cartCount} article{cartCount > 1 ? 's' : ''} · <Coins money={cartTotal} /></span><button className="btn small btn-primary" onClick={() => setBuyView('cart')}>Voir le panier →</button></>
-            : <span className="cart-info empty"><Icon id="merchant/cart" size="sm" /> Panier vide</span>}
+            ? <><span className="cart-info"><Icon id="marchand/panier" size="sm" /> {cartCount} article{cartCount > 1 ? 's' : ''} · <Coins money={cartTotal} /></span><button className="btn small btn-primary" onClick={() => setBuyView('cart')}>Voir le panier →</button></>
+            : <span className="cart-info empty"><Icon id="marchand/panier" size="sm" /> Panier vide</span>}
           {onSearchAvailability && (
             <>
               <button className="btn small" onClick={onSearchAvailability}>
-                <Icon id="ui/search" size="sm" /> Chercher activement (1 journée)
+                <Icon id="interface/rechercher" size="sm" /> Chercher activement (1 journée)
               </button>
-              <CodexRef category="regles" id="ragot-au-marche" label="Ragot au marché (bonus de Disponibilité)" className="ab-codex-info"><Icon id="journal/info" size="sm" /></CodexRef>
+              <CodexRef category="regles" id="ragot-au-marche" label="Ragot au marché (bonus de Disponibilité)" className="ab-codex-info"><Icon id="journal/information" size="sm" /></CodexRef>
             </>
           )}
         </div>
@@ -436,8 +436,8 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
       <>
         <div className="cart-bar">
           {sellCart.length > 0
-            ? <><span className="cart-info"><Icon id="merchant/cart" size="sm" /> {sellCart.length} à vendre · +<Coins money={sellCartTotal} /></span><button className="btn small btn-primary" onClick={() => setSellView('cart')}>Voir le panier →</button></>
-            : <span className="cart-info empty"><Icon id="merchant/cart" size="sm" /> Rien à vendre sélectionné</span>}
+            ? <><span className="cart-info"><Icon id="marchand/panier" size="sm" /> {sellCart.length} à vendre · +<Coins money={sellCartTotal} /></span><button className="btn small btn-primary" onClick={() => setSellView('cart')}>Voir le panier →</button></>
+            : <span className="cart-info empty"><Icon id="marchand/panier" size="sm" /> Rien à vendre sélectionné</span>}
         </div>
         <Tabs
           tabs={sellHeroes.map((h) => ({ key: h.id, label: h.label, count: (h.items ?? []).length }))}
@@ -509,7 +509,7 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
     <>
       <div className="cart-head">
         <button className="btn small" onClick={() => setSellView('browse')}>← Continuer</button>
-        <strong><Icon id="merchant/cart" size="sm" /> Vente</strong>
+        <strong><Icon id="marchand/panier" size="sm" /> Vente</strong>
       </div>
       {!sellCartItems.length ? (
         <p className="empty">— panier de vente vide —</p>
@@ -596,7 +596,7 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
   return (
     <ScreenShell
       className="merchant-overlay"
-      title={<><Icon id="resource/gold-purse" size="sm" /> Marchand</>}
+      title={<><Icon id="ressource/bourse" size="sm" /> Marchand</>}
       onClose={onClose}
       meta={{ money }}
       backdrop={merchant.backdrop}
@@ -622,12 +622,12 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
           {tab === 'vente' && (
             <div className="merch-tab">
               <div className="haggle-bar">
-                {merchant.soured ? <span className="bargain-tag soured"><Icon id="ui/forbidden" size="sm" /> Marchand méfiant — fini de marchander</span>
-                  : merchant.bargainLocked ? <span className="bargain-tag locked" title="Vous avez refusé/renié un marché ; revenez après son réassort"><Icon id="ui/lock" size="sm" /> Marchandage indisponible jusqu’au réassort</span>
+                {merchant.soured ? <span className="bargain-tag soured"><Icon id="interface/interdit" size="sm" /> Marchand méfiant — fini de marchander</span>
+                  : merchant.bargainLocked ? <span className="bargain-tag locked" title="Vous avez refusé/renié un marché ; revenez après son réassort"><Icon id="interface/verrou" size="sm" /> Marchandage indisponible jusqu’au réassort</span>
                   : merchant.bargainSell == null ? (
                       <>
-                        <button className="btn small" onClick={() => onBargain('vente')}><Icon id="merchant/haggle" size="sm" /> Marchander la vente</button>
-                        <CodexRef category="skills" id="marchandage" label="Marchandage" className="ab-codex-info"><Icon id="journal/info" size="sm" /></CodexRef>
+                        <button className="btn small" onClick={() => onBargain('vente')}><Icon id="marchand/marchander" size="sm" /> Marchander la vente</button>
+                        <CodexRef category="skills" id="marchandage" label="Marchandage" className="ab-codex-info"><Icon id="journal/information" size="sm" /></CodexRef>
                       </>
                     )
                   : <>

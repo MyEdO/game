@@ -218,7 +218,7 @@ const BASELINE = { totalCalls: 758, totalAdHocResets: 301 }; // +1 (#1117 L3 : `
 // (solde nul), qui pose aussi `screen: 'campaign'` par `set` : `setScreen` est une action du store, pas du noyau.
 // #2961, les annulations et jets `<flux><Verbe>` passent par la fabrique — 786/329 → 756/301, MESURÉ (`runSetScan` :
 // 780/326 à HEAD, 756/301 sur l'arbre du lot ; le cliquet se RESSERRE du mou de 6/3). CLIQUET: src/noyau/set-scan-guard.test.ts
-// −24/−25 — les `set({ pendingX: null })` des 21 annulations nues ont un seul site, le teardown par défaut de `cancel`
+// −24/−25 — les `set({ pendingX: null })` des 21 annulations nues ont un seul site, le teardown par défaut de `annuler`
 // (`rollFlowFactory`) ; les corps métier déménagent tels quels en `onCancel`/`onRoll`.
 // #3534, le lieu où se tient le groupe — 756/301 → 758/301, MESURÉ (`runSetScan` sur l'arbre du lot). CLIQUET: src/noyau/set-scan-guard.test.ts
 // +2 — `lieuFlow` est un flux neuf : `arriverAuLieu` pose le lieu et ouvre son écran (il remplace la transition

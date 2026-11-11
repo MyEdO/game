@@ -513,7 +513,7 @@ function factorLedger(rolls: MoraleRoll[]): NightEntry[] {
     icon: 'scenario/naval',
     label: f.label,
     text: t('crew.factorMorale', { delta: `${f.rolled >= 0 ? '+' : ''}${f.rolled}` }),
-    tone: f.rolled > 0 ? 'ok' : f.rolled < 0 ? 'bad' : 'info',
+    tone: f.rolled > 0 ? 'reussite' : f.rolled < 0 ? 'echec' : 'neutre',
   }));
 }
 

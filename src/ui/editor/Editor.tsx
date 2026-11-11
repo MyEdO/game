@@ -1181,16 +1181,16 @@ export function Editor({
 
       <div className="editor-mobile-bar">
         <button className="btn" aria-pressed={drawer === 'palette'} onClick={() => setDrawer(drawer === 'palette' ? null : 'palette')}>
-          <Icon id="map-tool/paint" size="sm" /> Outils
+          <Icon id="outil-de-carte/peindre" size="sm" /> Outils
         </button>
         <button className="btn" aria-pressed={drawer === 'inspector'} onClick={() => setDrawer(drawer === 'inspector' ? null : 'inspector')}>
-          <Icon id="ui/search" size="sm" /> Inspecteur
+          <Icon id="interface/rechercher" size="sm" /> Inspecteur
         </button>
       </div>
 
       {autosaveRecoveryHidden && (
         <button type="button" className="btn small autosave-recovery-pill" onClick={showAutosaveRecovery}>
-          <Icon id="ui/undo" size="sm" /> Sauvegarde locale en attente…
+          <Icon id="interface/revenir" size="sm" /> Sauvegarde locale en attente…
         </button>
       )}
       {autosaveRecovery && (

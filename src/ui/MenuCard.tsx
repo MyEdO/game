@@ -97,7 +97,7 @@ export function MenuSubScreen({ title, onBack, backLabel, wide, head, children }
       header={<MenuCardHead
         className="menu-sub-head"
         lead={<button type="button" className="btn small btn-ghost menu-back" onClick={onBack}>
-          <Icon id="ui/undo" size="sm" /> {backLabel ?? t('gameMenu.back')}
+          <Icon id="interface/revenir" size="sm" /> {backLabel ?? t('gameMenu.back')}
         </button>}
         title={title}
       />}

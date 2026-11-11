@@ -138,7 +138,7 @@ export function DialogueDetail({ dialogue, onChange, onRename, ctx }: {
                     <span className="eff-summary">
                       {c.label ? `« ${coupeAuMot(c.label, 38)} »` : '(choix sans texte)'}
                       {c.next ? ` → ${c.next}` : ' → fin'}
-                      {c.cost?.gold || c.cost?.silver || c.cost?.brass ? <> · <Icon id="resource/gold-purse" size="sm" /></> : ''}
+                      {c.cost?.gold || c.cost?.silver || c.cost?.brass ? <> · <Icon id="ressource/bourse" size="sm" /></> : ''}
                       {condSummary(c.when, ctx.narratif) ? ' · si ' + condSummary(c.when, ctx.narratif) : ''}
                       {flowLen(c.flow) ? ` · ${flowLen(c.flow)} bloc(s)` : ''}
                     </span>
@@ -176,7 +176,7 @@ export function DialogueDetail({ dialogue, onChange, onRename, ctx }: {
                         </select>
                       </label>
                       <span className="choice-cost" title="Coût de l’option (service payant : auberge, péage, pot-de-vin) — CO / pa / sc">
-                        <Icon id="resource/gold-purse" size="sm" />
+                        <Icon id="ressource/bourse" size="sm" />
                         {(['gold', 'silver', 'brass'] as const).map((k) => (
                           <NumberField
                             key={k}

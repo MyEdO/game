@@ -61,7 +61,7 @@ function startFight(seed = 7) {
 /** Coup Critique dont la localisation du Critique est FIGÉE (pas de re-tirage) → table déterministe. */
 const critHit = (loc: HitLocation, woundsLost = 2): AttackResult => ({
   hit: true, attackerRoll: 44, netSL: 4, location: loc, critLocation: loc, damage: 6, woundsLost,
-  critical: true, advantageTo: 'attacker', defenderDefeated: false, log: 'touche',
+  critical: true, advantageTo: 'attaquant', defenderDefeated: false, log: 'touche',
 });
 
 describe('Sévérité d’un Critique — la table LDB en étape (#942 L4)', () => {

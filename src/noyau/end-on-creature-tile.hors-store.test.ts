@@ -117,8 +117,8 @@ describe('intégration store — un héros ne peut pas FINIR sur la case d\'un e
 
     // L'attaque vise une case ADJACENTE (jamais la case de la cible).
     const plan = attackPlan(banc.getState, hero, E);
-    expect(plan.kind === 'moveAttack' || plan.kind === 'charge').toBe(true);
-    if (plan.kind === 'moveAttack' || plan.kind === 'charge') {
+    expect(plan.kind === 'deplacementEtAttaque' || plan.kind === 'charge').toBe(true);
+    if (plan.kind === 'deplacementEtAttaque' || plan.kind === 'charge') {
       expect(plan.dest).not.toEqual({ x: 8, y: 10 });
       expect(sizeFootprint(hero.size)).toBe(1); // garde-fou : le héros EST 1×1 (sinon le scénario ne teste rien)
     }

@@ -144,7 +144,7 @@ describe('ce que l’étape de la cascade annonce (`fenetre.corps`)', () => {
       const lame = ennemi.weapons[0];
       const parade = heros.weapons[0];
       const etape = choiceStep(choixPiegeLame({ defenderId: heros.id, attackerId: ennemi.id, weapon: lame, parryWeaponUid: parade.uid!, defSL: 2, roll: 34 }, heros, ennemi, parade))!;
-      const etat: Jeu = { ...partie.etat(), pendingCascade: { title: t('step.paradePiegerLame'), icon: 'item/weapon', purpose: 'combat', cursor: 0, log: [], participants: [etape], seq: 1 } };
+      const etat: Jeu = { ...partie.etat(), pendingCascade: { title: t('step.paradePiegerLame'), icon: 'objet/arme', purpose: 'combat', cursor: 0, log: [], participants: [etape], seq: 1 } };
       const corps = zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), null)['fenetre.corps'];
       expect(corps.filter((e) => e.id.startsWith('issue/')).map((e) => 'texte' in e && e.texte), 'ses deux lignes, dans l’ordre du flux').toEqual(etape.outcome!.map((l) => l.text));
     } finally {

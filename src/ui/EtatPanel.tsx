@@ -59,7 +59,7 @@ export const ETAT_ANCHOR_PSYCHOLOGIE = 'etat-psychologie';
 export const ETAT_ANCHOR_ENCOMBREMENT = 'etat-encombrement';
 
 /** Icône de repli quand aucune icône du registre ne porte la famille (jamais d'emoji). */
-const FALLBACK_ICON: IconIdInput = 'ui/warning';
+const FALLBACK_ICON: IconIdInput = 'interface/attention';
 
 /** Taille FIXE d'un cran (px) des jauges à PEU de crans du registre (Seuils, Corruption) — `NotchGauge`
  *  `cellSize`, voir sa doc pour la justification du mode fixe. */
@@ -319,7 +319,7 @@ export function EtatPanel({ hero }: { hero: Combatant }) {
                     fallback={{ body: parts || undefined }}
                     className="chip tone-warn"
                   >
-                    <Icon id="ui/warning" size="sm" />
+                    <Icon id="interface/attention" size="sm" />
                     {p.label}
                     {parts ? <em className="entity-badge">{parts}</em> : null}
                   </CodexRef>
@@ -365,7 +365,7 @@ export function EtatPanel({ hero }: { hero: Combatant }) {
             const row = (
               <PlaqueRow valueMuted
                 key={i}
-                prefix={<Icon id="medical/crutch" size="sm" />}
+                prefix={<Icon id="medical/bequille" size="sm" />}
                 content={<CodexRef category="traumas" id={t.traumaId} label={t.label}>{t.label}</CodexRef>}
                 sub={t.location ? locationLabel(t.location, hero.bodyShape) : undefined}
                 fx={(t.ops?.length ?? 0) > 0 ? <GameOpChips ops={t.ops!} /> : undefined}
@@ -411,7 +411,7 @@ export function EtatPanel({ hero }: { hero: Combatant }) {
             return (
               <PlaqueRow valueMuted
                 key={i}
-                prefix={<Icon id="nav/mutation" size="sm" />}
+                prefix={<Icon id="navigation/mutation" size="sm" />}
                 content={<CodexRef category="mutations" id={m.id} label={label}>{label}</CodexRef>}
                 sub={m.kind === 'physique' ? 'Mutation physique' : 'Mutation mentale'}
                 fx={(m.passive?.length ?? 0) > 0 ? <GameOpChips ops={m.passive!} /> : undefined}

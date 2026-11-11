@@ -21,7 +21,7 @@ import type { ReglagesDuJet } from '../../noyau/reglagesDuJet';
 /** Sortie « confirmer » d'une modale de COUP (attaque, manœuvre de créature) : elle applique le coup, ou
  *  passe la main quand une Défense surfacée va s'interposer (#1004). Source unique de son libellé. */
 export function confirmerLeCoup(awaitingDefense: boolean, confirm: () => void): RollAction {
-  return { key: 'confirm', label: t(awaitingDefense ? 'defense.passerLaMain' : 'verbe.confirm'), onClick: confirm, verbe: 'confirm' };
+  return { key: 'confirm', label: t(awaitingDefense ? 'defense.passerLaMain' : 'verbe.valider'), onClick: confirm, verbe: 'valider' };
 }
 
 /**
@@ -109,9 +109,9 @@ export function useAttackJetProps(): ComponentProps<typeof RollShell> | null {
             <div className="rm-loc-inline" data-bascule>
               <label>
                 <input type="checkbox" checked={vue.deuxArmes.active} onChange={(e) => setDualMode(e.target.checked)} />
-                <span className="mini-title"><Icon id="action/attack" size="sm" /> {vue.deuxArmes.libelle}</span>
+                <span className="mini-title"><Icon id="action/attaquer" size="sm" /> {vue.deuxArmes.libelle}</span>
               </label>
-              <CodexRef category="regles" id="combat-deux-armes" label="Combat à deux armes" className="ab-codex-info"><Icon id="journal/info" size="sm" /></CodexRef>
+              <CodexRef category="regles" id="combat-deux-armes" label="Combat à deux armes" className="ab-codex-info"><Icon id="journal/information" size="sm" /></CodexRef>
             </div>
           )}
           {vue.choixDArme && (
@@ -120,7 +120,7 @@ export function useAttackJetProps(): ComponentProps<typeof RollShell> | null {
               <select className="rm-loc-select" value={vue.choixDArme.choisie ?? ''} onChange={(e) => setWeapon(e.target.value || null)}>
                 {vue.choixDArme.options.map((o) => <option key={o.valeur ?? ''} value={o.valeur ?? ''}>{o.libelle}</option>)}
               </select>
-              <CodexRef category="regles" id="main-secondaire" label="Attaque de la main secondaire" className="ab-codex-info"><Icon id="journal/info" size="sm" /></CodexRef>
+              <CodexRef category="regles" id="main-secondaire" label="Attaque de la main secondaire" className="ab-codex-info"><Icon id="journal/information" size="sm" /></CodexRef>
             </div>
           )}
           {vue.localisation && (
@@ -129,7 +129,7 @@ export function useAttackJetProps(): ComponentProps<typeof RollShell> | null {
               <select className="rm-loc-select" value={vue.localisation.choisie ?? ''} onChange={(e) => setLocation((e.target.value as HitLocation) || null)}>
                 {vue.localisation.options.map((o) => <option key={o.valeur ?? ''} value={o.valeur ?? ''}>{o.libelle}</option>)}
               </select>
-              <CodexRef category="regles" id="viser-une-localisation" label="Viser une Localisation" className="ab-codex-info"><Icon id="journal/info" size="sm" /></CodexRef>
+              <CodexRef category="regles" id="viser-une-localisation" label="Viser une Localisation" className="ab-codex-info"><Icon id="journal/information" size="sm" /></CodexRef>
             </div>
           )}
           {/* POSTURES DE TIR — LECTURE SEULE (spec HUD §1a G5, verbatim user « plutôt qu'une option
@@ -137,41 +137,41 @@ export function useAttackJetProps(): ComponentProps<typeof RollShell> | null {
               la console (cases `posture-tir` / `posture-tas`). Aucun bouton ici, aucun setter. */}
           {vue.tirDansLeTas && (
             <Row gap="md" align="center" data-posture="dansLeTas" data-armee={vue.tirDansLeTas.armee ? '' : undefined}>
-              <span className="rm-note" data-ton="etat"><Icon id="action/aim" size="sm" /> {vue.tirDansLeTas.etat}</span>
-              <CodexRef category="regles" id="tirer-dans-le-tas" label="Tirer dans le tas" className="ab-codex-info"><Icon id="journal/info" size="sm" /></CodexRef>
+              <span className="rm-note" data-ton="etat"><Icon id="action/viser" size="sm" /> {vue.tirDansLeTas.etat}</span>
+              <CodexRef category="regles" id="tirer-dans-le-tas" label="Tirer dans le tas" className="ab-codex-info"><Icon id="journal/information" size="sm" /></CodexRef>
               <span className="rm-note" data-ton="discret">{vue.tirDansLeTas.note}</span>
             </Row>
           )}
           {vue.tirImmobile && (
             <Row gap="md" align="center" data-posture="tirImmobile" data-armee={vue.tirImmobile.armee ? '' : undefined}>
-              <span className="rm-note" data-ton="etat"><Icon id="travel/anchor" size="sm" /> {vue.tirImmobile.etat}</span>
-              <CodexRef category="regles" id="tir-en-mouvement" label="Tirer en se déplaçant" className="ab-codex-info"><Icon id="journal/info" size="sm" /></CodexRef>
+              <span className="rm-note" data-ton="etat"><Icon id="voyage/ancre" size="sm" /> {vue.tirImmobile.etat}</span>
+              <CodexRef category="regles" id="tir-en-mouvement" label="Tirer en se déplaçant" className="ab-codex-info"><Icon id="journal/information" size="sm" /></CodexRef>
               <span className="rm-note" data-ton="discret">{vue.tirImmobile.note}</span>
             </Row>
           )}
           {vue.sansLaCorde && (
             <Row gap="md" align="center">
-              {bascule(vue.sansLaCorde, 'action/aim', setHarpoonRopeCut)}
+              {bascule(vue.sansLaCorde, 'action/viser', setHarpoonRopeCut)}
               <span className="rm-note" data-ton="discret">{vue.sansLaCorde.note}</span>
             </Row>
           )}
           {vue.retenirSesCoups && (
             <Row gap="md" align="center">
-              {bascule(vue.retenirSesCoups, 'melee/pulled-punch', setWithhold)}
-              <CodexRef category="regles" id="retenir-ses-coups" label="Retenir ses coups (maîtriser sans tuer)" className="ab-codex-info"><Icon id="journal/info" size="sm" /></CodexRef>
+              {bascule(vue.retenirSesCoups, 'melee/retenir-ses-coups', setWithhold)}
+              <CodexRef category="regles" id="retenir-ses-coups" label="Retenir ses coups (maîtriser sans tuer)" className="ab-codex-info"><Icon id="journal/information" size="sm" /></CodexRef>
               {vue.retenirSesCoups.note && <span className="rm-note" data-ton="discret">{vue.retenirSesCoups.note}</span>}
             </Row>
           )}
           {vue.empoigner && (
             <Row gap="md" align="center">
-              {bascule(vue.empoigner, 'melee/grapple', setGrapple)}
-              <CodexRef category="regles" id="empoignade" label="Empoignade" className="ab-codex-info"><Icon id="journal/info" size="sm" /></CodexRef>
+              {bascule(vue.empoigner, 'melee/empoignade', setGrapple)}
+              <CodexRef category="regles" id="empoignade" label="Empoignade" className="ab-codex-info"><Icon id="journal/information" size="sm" /></CodexRef>
               {vue.empoigner.note && <span className="rm-note" data-ton="discret">{vue.empoigner.note}</span>}
             </Row>
           )}
         </div>
         {vue.bloque && (
-          <div className="rm-note" data-ton="bloque"><Icon id="ui/warning" size="sm" /> {vue.bloque}</div>
+          <div className="rm-note" data-ton="bloque"><Icon id="interface/attention" size="sm" /> {vue.bloque}</div>
         )}
         <DeterminationButton combatant={attacker} onSpend={(name) => spendResolve(attacker.id, 'retirerUnEtat', name)} />
       </>
@@ -185,7 +185,7 @@ export function useAttackJetProps(): ComponentProps<typeof RollShell> | null {
     postRollExtra: vue.attente ? <p className="rm-note" data-ton="attente">{vue.attente}</p> : undefined,
     forcedExtra: vue.critiqueALocaliser ? <CritLocationPicker current={vue.critiqueALocaliser.choisie} onSet={setCritLocation} shape={target.bodyShape} /> : undefined,
     actions: [
-      { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel', ...(vue.annulation ? { refus: vue.annulation } : {}) } as RollAction,
+      { key: 'annuler', label: t('verbe.annuler'), onClick: cancel, verbe: 'annuler', ...(vue.annulation ? { refus: vue.annulation } : {}) } as RollAction,
       confirmerLeCoup(vue.defenseAttendue, confirm),
     ],
   };

@@ -87,7 +87,7 @@ function noeudsTestDe(f: Flow | undefined): Extract<Flow, { kind: 'test' }>[] {
     case 'seq': return f.steps.flatMap(noeudsTestDe);
     case 'if': return [...noeudsTestDe(f.then), ...noeudsTestDe(f.else)];
     case 'test': return [f, ...noeudsTestDe(f.success), ...noeudsTestDe(f.fail)];
-    case 'choice': return [...noeudsTestDe(f.yes), ...noeudsTestDe(f.no)];
+    case 'choice': return [...noeudsTestDe(f.oui), ...noeudsTestDe(f.non)];
     case 'do': return [];
   }
 }
@@ -127,7 +127,7 @@ function noeudsDuFlow(f: Flow | undefined): Extract<Flow, { kind: 'test' }>[] {
     case 'test': return [f, ...noeudsDuFlow(f.success), ...noeudsDuFlow(f.fail)];
     case 'seq': return f.steps.flatMap(noeudsDuFlow);
     case 'if': return [...noeudsDuFlow(f.then), ...noeudsDuFlow(f.else)];
-    case 'choice': return [...noeudsDuFlow(f.yes), ...noeudsDuFlow(f.no)];
+    case 'choice': return [...noeudsDuFlow(f.oui), ...noeudsDuFlow(f.non)];
     default: return [];
   }
 }

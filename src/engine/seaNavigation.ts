@@ -49,8 +49,8 @@ const DATA = seaNavJson as unknown as {
   orientation: {
     testsPerDay: number;
     reperes: (BandeOuverte & { outcome: OrientationOutcome; desc: string })[];
-    driftMajorBonus: number;
-    driftSide: { tribordMax: number };
+    bonusDeDeriveMajeure: number;
+    coteDeLaDerive: { tribordMax: number };
     changementDeCap: { die: string; entries: (BandeOuverte & { outcome: CourseChangeOutcome; delayPct?: number; desc: string })[] };
   };
   phares: { voirLaLumiere: (BandeOuverte & { difficulty: Difficulty })[]; perilSpotBonus: number; clocher: { orientationDR: number; distanceDiviseur: number } };
@@ -166,7 +166,7 @@ export interface OrientationResult {
 export function orientationOutcome(dr: number, minorDriftBefore: boolean): OrientationResult {
   const row = findTableEntry(tables().reperes, dr);
   const rollCourseChange = row.outcome === 'derive' || row.outcome === 'derive-majeure' || (row.outcome === 'derive-mineure' && minorDriftBefore);
-  return { outcome: row.outcome, desc: row.desc, rollCourseChange, courseChangeBonus: row.outcome === 'derive-majeure' ? DATA.orientation.driftMajorBonus : 0 };
+  return { outcome: row.outcome, desc: row.desc, rollCourseChange, courseChangeBonus: row.outcome === 'derive-majeure' ? DATA.orientation.bonusDeDeriveMajeure : 0 };
 }
 
 export interface CourseChangeResult {
@@ -189,7 +189,7 @@ export function rollCourseChange(rng: RNG, bonus = 0): CourseChangeResult {
     roll,
     outcome: row.outcome,
     delayPct: row.delayPct ?? 0,
-    side: d10(rng) <= DATA.orientation.driftSide.tribordMax ? 'tribord' : 'babord',
+    side: d10(rng) <= DATA.orientation.coteDeLaDerive.tribordMax ? 'tribord' : 'babord',
     desc: row.desc,
   };
 }

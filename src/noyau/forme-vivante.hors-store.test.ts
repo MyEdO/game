@@ -55,7 +55,7 @@ describe('parseProject — forme vivante', () => {
       { kind: 'do', effect: { type: 'setObjective', id: 'objectif', ...MATERIALISE } },
       { kind: 'do', effect: { type: 'grantFavor', level: 'mineure', owedTo: 'Créancier', ...MATERIALISE } },
       { kind: 'test', test: { skill: { id: 'escalade' }, difficulty: 'intermediaire', stake: { authored: 'Enjeu.', adapteDe: ADAPTE } }, success: { kind: 'seq', steps: [] }, fail: { kind: 'seq', steps: [] } },
-      { kind: 'choice', prompt: 'Entrer ?', adapteDe: ADAPTE, yes: { kind: 'do', effect: { type: 'ops', ops: [{ op: 'narrative', text: 'Narration.', adapteDe: ADAPTE }] } } },
+      { kind: 'choice', prompt: 'Entrer ?', adapteDe: ADAPTE, oui: { kind: 'do', effect: { type: 'ops', ops: [{ op: 'narrative', text: 'Narration.', adapteDe: ADAPTE }] } } },
     ] };
     const recu = { ...projet(sc), narratif: { ...emptyNarratif(), ouverture: { titre: 'Titre', pitch: 'Pitch.', sousTitre: { texte: 'Ouverture.', adapteDe: ADAPTE } }, cloture: { titre: 'Fin', sousTitre: { texte: 'Clôture.', adapteDe: ADAPTE }, when: { kind: 'flag', expr: 'fin' } } }, worldMap: { ...emptyWorldMap('carte-test'), places: [{ id: 'a', label: 'A', scene: { id: 's1' }, pos: { x: 10, y: 10 } }, { id: 'b', label: 'B', scene: { id: 's1' }, pos: { x: 20, y: 10 } }], routes: [{ id: 'route', a: { id: 'a' }, b: { id: 'b' }, km: 1, modes: ['pied'], when: { kind: 'flag', expr: 'pont' }, refus: { texte: 'Pont fermé.', adapteDe: ADAPTE } }] } };
     const lu = parseProject(recu);

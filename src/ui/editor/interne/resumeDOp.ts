@@ -174,7 +174,7 @@ export function opSummary(o: GameOp): string {
     case 'provisions': return o.gateesPct !== undefined ? `${o.gateesPct} % des provisions gâtées` : o.rations !== undefined ? `+${formulaSummary(o.rations)} ration(s)` : o.eauTonneaux !== undefined ? `+${formulaSummary(o.eauTonneaux)} tonneau(x) d’eau` : `+${formulaSummary(o.jours)} j de vivres`;
     case 'perilDeMer': return o.collision !== undefined ? `Collision : ${o.collision.id}` : `Tourbillon : ${o.tourbillon.id}`;
     case 'navireHostile': return `${refLabel('vehicles', o.navire)} · ${o.equipage.nombre} × ${refLabel('creatures', o.equipage)}${o.exigence === 'fouille' ? ' · fouille' : ''}`;
-    case 'infestation': return `${refLabel('crewTestTypes', o.crewTestType)} · ${o.targetDR} DR`;
+    case 'infestation': return `${refLabel('crewTestTypes', o.crewTestType)} · ${o.drCible} DR`;
     case 'commission': return `colis livré contre ${formulaSummary(o.montant.brass)} sous de cuivre`;
     case 'constructeurDEscale': return `Constructeur de navires ${o.competence} · ${formulaSummary(o.duree)} j`;
     case 'rationsDEscale': return `ration-jour de cale à ${formulaSummary(o.montant.brass)} sous de cuivre`;

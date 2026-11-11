@@ -44,7 +44,7 @@ const bd = (label: string, roll: number, target: number): RollBreakdown => {
 const jet = (roll: number, target: number) => { const t = evaluateTest(roll, target); return { roll, target, sl: t.sl, success: t.success }; };
 const TEST: TestNomme = { skill: { id: 'athletisme' }, difficulty: 'intermediaire', label: 'Course' };
 const COUP: AttackResult = {
-  hit: true, attackerRoll: 21, netSL: 2, critical: false, advantageTo: 'attacker', defenderDefeated: false, log: '',
+  hit: true, attackerRoll: 21, netSL: 2, critical: false, advantageTo: 'attaquant', defenderDefeated: false, log: '',
   attackerDetail: bd('Corps à corps', 21, 45), defenderDetail: bd('Esquive', 60, 40),
 };
 const ATTAQUE: PendingAttack = { attackerId: H.id, targetId: E.id, location: null, result: COUP };
@@ -76,7 +76,7 @@ const FENETRES_A_JET: Partial<Record<ModalKey, Fixture>> = {
   infirmerie: {
     patch: {
       medic: {} as NonNullable<Jeu['medic']>,
-      pendingSurgery: { healerId: H.id, healerName: H.label, targetId: H.id, targetName: H.label, ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, intBonus: 3, target: 40, roll: 33, success: true, sl: 0, targetDR: 3, cumDR: 0 },
+      pendingSurgery: { healerId: H.id, healerName: H.label, targetId: H.id, targetName: H.label, ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, intBonus: 3, target: 40, roll: 33, success: true, sl: 0, drCible: 3, cumDR: 0 },
     },
     flux: ['chirurgie'],
   },
@@ -116,7 +116,7 @@ const HORS_REGISTRE_A_JET: Record<string, Fixture> = {
       pendingBargain: {
         playerId: H.id, playerName: H.label, contrepartie: { titre: fixtureText(H.label), kind: 'marchand', mode: 'achat' }, opposant: { label: 'Marchand', valeur: 40 },
         playerSkill: 45, playerBase: 45, negotiator: false, roll: tr(20, 45), merchantRoll: tr(50, 40),
-        result: { attacker: tr(20, 45), defender: tr(50, 40), winner: 'attacker', attackerWins: true, netSL: 4, decidedBy: 'dr' },
+        result: { attacker: tr(20, 45), defender: tr(50, 40), winner: 'attaquant', attackerWins: true, netSL: 4, decidedBy: 'dr' },
       },
     },
     flux: ['marchandage'],
@@ -151,7 +151,7 @@ const ETAPES_HOTES: Record<HostJet, Fixture> = {
   testEtendu: {
     patch: {
       pendingCascade: cascade(etapeHote('testEtendu')),
-      pendingExtendedTest: { actorId: H.id, label: 'Porte', skillLabel: 'Force', target: 45, targetDR: 4, total: 0, rounds: [{ id: 'r1', result: { roll: 21, sl: 2, success: true } }] },
+      pendingExtendedTest: { actorId: H.id, label: 'Porte', skillLabel: 'Force', target: 45, drCible: 4, total: 0, rounds: [{ id: 'r1', result: { roll: 21, sl: 2, success: true } }] },
     },
     flux: ['testEtendu'],
   },

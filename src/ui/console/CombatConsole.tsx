@@ -407,9 +407,9 @@ export function ConsoleArch({ active, move, action, etats, retraitDEtat }: {
 function actorStateChips(active: Combatant, battle: BattleState): EffectChip[] {
   const { assailli, cloue, renfort } = etatsDeSituation(active, battle);
   const out: EffectChip[] = [];
-  if (assailli) out.push({ key: 'a-assailli', icon: 'action/attack', label: `Assailli par ${assailli.nombre} ennemis au contact`, kind: 'state', severity: 58, indice: assailli.nombre });
-  if (cloue) out.push({ key: 'a-cloue', flagId: 'calmeApproche', icon: 'flag/fear', label: 'Cloué', kind: 'state', severity: 64 });
-  if (renfort) out.push({ key: 'a-renfort', icon: 'action/serve-engine', label: 'Renfort de pièce (le chef fait feu)', kind: 'state', severity: 40 });
+  if (assailli) out.push({ key: 'a-assailli', icon: 'action/attaquer', label: `Assailli par ${assailli.nombre} ennemis au contact`, kind: 'state', severity: 58, indice: assailli.nombre });
+  if (cloue) out.push({ key: 'a-cloue', flagId: 'calmeApproche', icon: 'drapeau/peur', label: 'Cloué', kind: 'state', severity: 64 });
+  if (renfort) out.push({ key: 'a-renfort', icon: 'action/servir-l-engin', label: 'Renfort de pièce (le chef fait feu)', kind: 'state', severity: 40 });
   return out;
 }
 
@@ -773,7 +773,7 @@ export function CombatConsole() {
     // `fantassin`) — ce que le navire offre, ce sont ses Tests d'équipage (plus bas).
     setWeapon
         ? cellFor('attaque', 'arme', { icon: <ItemIcon item={setWeapon} />, label: setWeapon.label, rule: setWeapon.trappingId ? { category: 'trappings', id: setWeapon.trappingId } : undefined, args: { attackId: 'arme' } })
-        : cellFor('attaque', 'arme', { icon: icon('melee/grapple'), label: 'Mains nues', rule: { category: 'trappings', id: 'mains-nues' }, args: { attackId: 'arme' } }),
+        : cellFor('attaque', 'arme', { icon: icon('melee/empoignade'), label: 'Mains nues', rule: { category: 'trappings', id: 'mains-nues' }, args: { attackId: 'arme' } }),
     // G4 — Recharger : le porteur de l'état est l'ARME (progression du Test étendu), et c'est ELLE
     // que le dispatcher reçoit.
     cellFor('rechargement', 'arme', {
@@ -930,7 +930,7 @@ export function CombatConsole() {
       const dr = active.focus?.spell === sp.id ? active.focus.dr : null;
       const progres = dr != null && sp.cn ? `DR ${dr}/${sp.cn}` : undefined;
       return cellFor('incantation', 'magie', {
-        key: `sort-${sp.id}`, icon: icon('magic/power'), label: sp.label, rule: { category: 'spells', id: sp.id },
+        key: `sort-${sp.id}`, icon: icon('magie/puissance'), label: sp.label, rule: { category: 'spells', id: sp.id },
         args: { spellId: sp.id }, progres,
       });
     }),
@@ -1089,7 +1089,7 @@ export function CombatConsole() {
             <SpectatorChip label={nomDuSiege(net, siegeDistant)} action={`joue ${active.label}…`} />
           ) : (
             <span className="cc-phase-label">
-              <Icon id="ui/wait" size="sm" /> {active.kind === 'enemy' ? 'Tour de l’ennemi' : `Tour de ${active.label}`}
+              <Icon id="interface/attendre" size="sm" /> {active.kind === 'enemy' ? 'Tour de l’ennemi' : `Tour de ${active.label}`}
             </span>
           )}
         </div>
@@ -1183,7 +1183,7 @@ export function CombatConsole() {
                         onClick={() => jouerLOffreDeLEcran(useGame.getState(), 'panoplie', { loadoutId: lo.id })}
                       >
                         <i className="cc-set-n">{i + 1}</i>
-                        {mainItem ? <ItemIcon item={mainItem} /> : <Icon id="item/weapon" size="sm" />}
+                        {mainItem ? <ItemIcon item={mainItem} /> : <Icon id="objet/arme" size="sm" />}
                         {/* L'état de charge se DIT à l'ÉCRAN (jamais la couleur seule — grief vision a11y,
                             jamais un `title` — grief du juge vision), en MOT ENTIER lisible. */}
                         {unloaded ? <i className="cc-set-load">VIDE</i> : null}
@@ -1266,7 +1266,7 @@ export function CombatConsole() {
             onClick={onEndTurn}
           >
             <span className="cc-ico">
-              <Icon id={arme ? 'ui/warning' : 'ui/turn-end'} />
+              <Icon id={arme ? 'interface/attention' : 'interface/fin-du-tour'} />
             </span>
             <span className="cc-lbl">{arme ? 'Finir quand même' : 'Fin du tour'}</span>
             <span className="cc-key" aria-hidden={arme || undefined}>{endNote}</span>

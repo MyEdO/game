@@ -340,7 +340,7 @@ describe('#990 site 3 — étape de cascade `meta.opposed` (Assommante, table de
     label: fixtureText('Assommante'), ...over,
   });
   const openCascade = (s: ReturnType<typeof step>) => useGame.setState({
-    pendingCascade: cascadeDeTest([s], { title: 'Assommante', icon: 'nav/dice', purpose: 'combat' }),
+    pendingCascade: cascadeDeTest([s], { title: 'Assommante', icon: 'navigation/des', purpose: 'combat' }),
   });
 
   it('Assommante (adversaire RÉEL) : « ? » avant mon jet, valeurs exactes après', () => {

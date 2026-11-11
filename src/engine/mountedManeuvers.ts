@@ -85,7 +85,7 @@ export interface BoardMountResult extends BoardingResult {
  *  - échec au Test de Chevaucher du Trait Nerveux → le sauteur tombe de 2 m — arbitrage MAISON
  *    (AGENTS.md règle 7) : l.328 est muet sur cet échec, la hauteur est extrapolée des autres chutes
  *    de selle du chapitre (EDOC 07 l.167, l.174, l.178) ;
- *  - égalité au Test opposé → statu quo de `resolveOpposed` (`winner === 'tie'`) : nul n'est éjecté, la
+ *  - égalité au Test opposé → statu quo de `resolveOpposed` (`winner === 'egalite'`) : nul n'est éjecté, la
  *    monture reste à son cavalier et le sauteur, qui n'a pas pris la selle, chute de 2 m.
  */
 export function boardMovingMount(p: BoardMountParams): BoardMountResult {
@@ -103,11 +103,11 @@ export function boardMovingMount(p: BoardMountParams): BoardMountResult {
       { attacker: p.valeurChevaucher ?? 0, defender: p.cavalier.valeurChevaucher },
     );
     const ejecte =
-      disputeSelle.winner === 'attacker' ? 'cavalier' : disputeSelle.winner === 'defender' ? 'sauteur' : undefined;
+      disputeSelle.winner === 'attaquant' ? 'cavalier' : disputeSelle.winner === 'defenseur' ? 'sauteur' : undefined;
     return {
       athletisme,
       disputeSelle,
-      aBord: disputeSelle.winner === 'attacker',
+      aBord: disputeSelle.winner === 'attaquant',
       ...(ejecte ? { ejecte } : {}),
       chuteM: CHUTE_SELLE_M,
     };

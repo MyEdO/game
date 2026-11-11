@@ -84,7 +84,7 @@ describe('chemins nommés par leur schéma', () => {
     expect(lieux).toEqual(['déclencheur « trig-0 » › alors › effet Journal › texte', 'déclencheur « trig-0 » › sinon › effet Journal › texte']);
   });
   it('distingue les deux réponses de choix des vrais Journal vides', () => {
-    const lieux = lieuxDeJournaux({ kind: 'choice', prompt: 'Choisir', yes: journalVide(), no: journalVide() });
+    const lieux = lieuxDeJournaux({ kind: 'choice', prompt: 'Choisir', oui: journalVide(), non: journalVide() });
     expect(lieux).toEqual(['déclencheur « trig-0 » › oui › effet Journal › texte', 'déclencheur « trig-0 » › non › effet Journal › texte']);
   });
   it('conserve la déclaration de prose composée', () => {
