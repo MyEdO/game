@@ -19,13 +19,13 @@ import { findActionById } from '../data/index';
 import { serializeMessage, parseMessage } from '../hote/coop/protocol';
 import type { Combatant } from '../engine/types';
 
-function combat(mode: 'local' | 'host' | 'guest' = 'host') {
+function combat(mode: 'local' | 'hote' | 'invite' = 'hote') {
   const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 4 });
   h.id = 'h1';
   h.pos = { x: 2, y: 2 };
   banc.setState({
     party: [h], scene: emptyScene('scene-test'), screen: 'campaign',
-    net: { ...banc.getState().net, mode, mySeat: mode === 'guest' ? 1 : 0, ownership: { h1: 0 }, seatNames: { 0: 'L’hôte' } },
+    net: { ...banc.getState().net, mode, mySeat: mode === 'invite' ? 1 : 0, ownership: { h1: 0 }, seatNames: { 0: 'L’hôte' } },
     battle: {
       combatants: [h], order: ['h1'], baseOrder: ['h1'], turn: 0, round: 3,
       action: null, selectedSpellId: null, reachable: new Map(), movementUsed: 0, movedPreAction: false,
@@ -82,7 +82,7 @@ describe('pause — interrupteur, jamais un latch', () => {
   });
 
   it('EN COOP : le geste est offert (témoin du refus ci-dessus)', () => {
-    combat('host');
+    combat('hote');
     expect(actionGate('pause', ctx()).ok).toBe(true);
   });
 });

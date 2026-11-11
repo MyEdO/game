@@ -1,7 +1,6 @@
 /**
  * DÉLÉGUÉ DE VERBE MANUSCRIT (#2903) : un appel direct du handler d'un verbe de flux de jet —
- * `FLOWS.<flux>.<verbe>(…)`, `FLOWS[…].<verbe>(…)`, `FLOW_HANDLERS.<flux>.<verbe>(…)`,
- * `FLOW_HANDLERS[…].<verbe>(…)` — hors des verbes de jet du noyau (`creerVerbesDeJet`,
+ * `FLOWS.<flux>.<verbe>(…)`, `FLOWS[…].<verbe>(…)` — hors des verbes de jet du noyau (`creerVerbesDeJet`,
  * `src/noyau/rollFlowSpecs.ts`). Un geste de jet passe par son verbe `jet<Verbe>(flux, …)` (#3311) : appeler le
  * handler à la main contourne son refus de frontière, la surface d'intentions dérivée (`coopFlowIntents`) et sa
  * possession (`netOwnership`, route de chaque verbe de jet).
@@ -18,14 +17,12 @@
  */
 import { ast, typescript } from './dialecte.mjs';
 
-const RACINES = new Set(['FLOWS', 'FLOW_HANDLERS']);
-
-/** `FLOWS.<flux>` ou `FLOWS[…]` (idem `FLOW_HANDLERS`) : la racine nommée, sinon `null`. */
+/** `FLOWS.<flux>` ou `FLOWS[…]` : la racine nommée, sinon `null`. */
 function racineDeHandler(n) {
   const ts = typescript();
   if (!ts.isPropertyAccessExpression(n) && !ts.isElementAccessExpression(n)) return null;
   const e = n.expression;
-  return ts.isIdentifier(e) && RACINES.has(e.text) ? e.text : null;
+  return ts.isIdentifier(e) && e.text === 'FLOWS' ? e.text : null;
 }
 
 /**
@@ -36,7 +33,7 @@ function racineDeHandler(n) {
  * @returns {{ ligne: number, texte: string }[]}
  */
 export function sitesDeDelegueManuscrit(f, verbes) {
-  if (!f.text.includes('FLOWS') && !f.text.includes('FLOW_HANDLERS')) return [];
+  if (!f.text.includes('FLOWS')) return [];
   const ts = typescript();
   const sf = ast(f);
   if (!sf) return [];

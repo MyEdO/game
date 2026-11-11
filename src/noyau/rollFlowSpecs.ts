@@ -171,7 +171,7 @@ function bargainPlayerTR(p: PendingBargain, tr: TestResult): TestResult {
 /** Jet d'attaque figé, HONORANT « Je ne faillirai pas ! » (LDB 17 l.68 : « S'il s'agit d'un Test opposé,
  *  vous l'emportez avec au moins DR +1 »). La garantie est une propriété de l'OPPOSITION, pas du jet :
  *  sur le chemin INTERPOSÉ elle voyage MARQUÉE sur l'attaque figée (suite `pilotee`) et se règle ICI, au
- *  moment où la défense est connue — même formule que le chemin inline (`FLOWS.attack.resolve` : DR du
+ *  moment où la défense est connue — même formule que le chemin inline (`FLOWS.attaque.resolve` : DR du
  *  défenseur + 1). Attaque non forcée, ou garanties annulées (#1000) → jet rendu TEL QUEL. */
 function forcedOpposedAtk(p: PendingDefense, def: TestResult): TestResult {
   if (!attaquantForce(p) || opposedForcingCancelled(p)) return p.atk;
@@ -204,14 +204,14 @@ function drDeReussiteDuTest(s: Jeu, actor: Combatant, test: SujetDuJet): number 
 }
 
 
-/** Jet d'un Test de Guérison ou de Dextérité de soin (`FLOWS.heal`, `FLOWS.surgery`) : le dé contre la cible figée du
+/** Jet d'un Test de Guérison ou de Dextérité de soin (`FLOWS.soins`, `FLOWS.chirurgie`) : le dé contre la cible figée du
  *  pending (avant bornage), +DR de réussite du soigneur combattant (`drDeReussiteDuTest`) ; un PNJ soigneur n'en a pas. */
 function jetDeSoin(s: Jeu, cible: number, actor: Combatant | undefined, test: TestDeSoin): JetPose {
   const res = evaluateTest(d100(battleRng()), cible);
   return jetPose({ ...res, ...issueDuSoin(s, actor, test, res) });
 }
 
-/** Le jet du soin déclaré `p` (`FLOWS.heal`) ; le soigneur peut être un PNJ hors `actorIn` : le jet se fait sans acteur live. */
+/** Le jet du soin déclaré `p` (`FLOWS.soins`) ; le soigneur peut être un PNJ hors `actorIn` : le jet se fait sans acteur live. */
 const jetDuSoin = (s: Jeu, p: PendingHeal, actor: Combatant | undefined): JetPose => jetDeSoin(s, cibleDuTest(p.skillValue, p.difficulty), actor, p.test);
 
 /** Issue d'un dé du soin (tiré, fixé, renversé) : le dé, +DR de réussite du soigneur combattant (`drDeReussiteDuTest`) —
@@ -311,13 +311,13 @@ function refusDuGesteDeJet(verbe: RollVerb, flux: unknown, pid: unknown): string
 }
 
 /** Les verbes de jet du noyau sur `get`/`set` : chacun refuse, et le dit, le geste que son flux n'accepte pas
- *  (`refusDuGesteDeJet`), sinon joue le handler de son flux (`FLOW_HANDLERS`) ; la clôture joue le corps de son flux
+ *  (`refusDuGesteDeJet`), sinon joue le handler de son flux (`FLOWS`) ; la clôture joue le corps de son flux
  *  (`clotures`) tant que le flux l'ouvre, et dit la fermeture qui attend une décision (`FERMETURES_DITES`). */
 export function creerVerbesDeJet(get: Get, set: Set, clotures: CloturesDuJet): VerbesDeJet {
   const jouer = (verbe: RollVerb, flux: unknown, pid: unknown, geste: (h: RollFlowHandlers, f: FlowKey, rangee: string | undefined) => void): void => {
     const refus = refusDuGesteDeJet(verbe, flux, pid);
     if (refus) { refuserGeste(get, set, refus); return; }
-    geste(FLOW_HANDLERS[flux as FlowKey], flux as FlowKey, pid as string | undefined);
+    geste(FLOWS[flux as FlowKey], flux as FlowKey, pid as string | undefined);
   };
   const simple = (verbe: Exclude<RollVerb, 'roll' | 'setForcedRoll' | 'forceSuccess' | 'cancel' | 'confirm'>) =>
     (flux: FlowKey, pid?: string) => jouer(verbe, flux, pid, (h, _f, rangee) => h[verbe](get, set, rangee));
@@ -655,8 +655,8 @@ function castRelance(s: Jeu, p: PendingCast, result: CastResult): Partial<Pendin
   return { result, ...overcastReset(p, sceneMetresPerTile(s.scene)) };
 }
 
-/** Table dont chaque entrée se CONSTRUIT au premier accès, puis se fige à sa valeur. `FLOWS` et
- *  `FLOW_HANDLERS` n'appellent donc aucune fabrique au chargement : un module en cycle d'import avec
+/** Table dont chaque entrée se CONSTRUIT au premier accès, puis se fige à sa valeur. `FLOWS`
+ *  n'appelle donc aucune fabrique au chargement : un module en cycle d'import avec
  *  `rollFlowFactory` peut être chargé en premier (#3058). */
 function paresseux<T extends Record<string, () => unknown>>(fabriques: T): { readonly [K in keyof T]: ReturnType<T[K]> } {
   const table = {} as { [K in keyof T]: ReturnType<T[K]> };
@@ -706,13 +706,15 @@ export function ligneDeFrenesie(actor: Combatant): RollLineParts {
 /** Le d100 du battle RNG contre la cible d'une ligne (`rollLine`) : la cible que la fenêtre annonce est celle du jet. */
 const jetDeLaLigne = (ligne: RollLineParts): TestResult => evaluateTest(d100(battleRng()), cibleBrute(ligne));
 
+/** Le handler de chaque flux de `FLOW_VERBS`, sous sa clé (`FlowKey`) : un flux sans handler, une clé hors flux ne
+ *  compilent pas. */
 export const FLOWS = paresseux({
   /**
    * Attaque (modale différée). Le JET INITIAL reste métier (`jetLancer('attaque')` : +1 Avantage si cible
    * Sonnée, annulation hors portée/LdV, victime de déviation dans la mêlée) — comme `jetValider('attaque')`.
    * Le cycle Chance/Pacte/Résilience/dé choisi vit ICI, identique à tous les flux.
    */
-  attack: () => makeRollFlow<PendingAttack>({
+  attaque: () => makeRollFlow<PendingAttack>({
     key: 'pendingAttack',
     onRoll: lancerLAttaque,
     rolled: (p) => !!p.result,
@@ -915,7 +917,7 @@ export const FLOWS = paresseux({
    * Surincantation automatique de l'IA, déclaration de Contre-sort ennemi) — le cycle
    * Chance/Pacte/Résilience/dé choisi vit ici.
    */
-  cast: () => makeRollFlow<PendingCast>({
+  incantation: () => makeRollFlow<PendingCast>({
     key: 'pendingCast',
     onRoll: lancerLIncantation,
     onCancel: renoncerALIncantation,
@@ -1028,7 +1030,7 @@ export const FLOWS = paresseux({
    * dans `src/noyau/combatSlice.ts`) : `counterspellEngage` consomme l'essai du Round de chaque
    * chanteur au moment de SON jet, et `jetValider('contreSort')` (store) agrège les issues.
    */
-  counterspell: () => makeRollFlow<PendingCounterspell, CounterParticipant>({
+  contreSort: () => makeRollFlow<PendingCounterspell, CounterParticipant>({
     key: 'pendingCounterspell',
     onCancel: laisserPasserLeContreSort,
     clotures: { confirm: 'toujours' },
@@ -1112,7 +1114,7 @@ export const FLOWS = paresseux({
    * Chance/+1 DR/Pacte/Résilience. `jetValider('opposition')` agrège (résisté + marge de DR par cible). Cible
    * IA = rangée témoin (jet auto-roulé à l'ouverture, openCastOpposition).
    */
-  castOpposition: () => makeRollFlow<PendingCastOpposition, OppositionParticipant>({
+  opposition: () => makeRollFlow<PendingCastOpposition, OppositionParticipant>({
     key: 'pendingCastOpposition',
     multi: { slots: (p) => p.participants, idOf: (part) => part.id, replace: (p, parts) => ({ ...p, participants: parts }) },
     rolled: (part) => !!part.result,
@@ -1193,7 +1195,7 @@ export const FLOWS = paresseux({
    * dépendance au total des Rounds précédents) vit dans `jetValider('testEtendu')` (store). Même fabrique
    * que le Contre-sort PARALLÈLE — seule la progression (un slot après l'autre) change.
    */
-  extendedTest: () => makeRollFlow<PendingExtendedTest, ExtendedTestRound>({
+  testEtendu: () => makeRollFlow<PendingExtendedTest, ExtendedTestRound>({
     key: 'pendingExtendedTest',
     // Renoncer CLÔT le Test (sans réussite) : la suite du Flow qui l'a ouvert se joue, comme après un Test raté.
     onCancel: (get, set, p) => { set({ pendingExtendedTest: null, pendingCascade: null }); reprendreLaSuite(get, set, p.suite); },
@@ -1388,7 +1390,7 @@ export const FLOWS = paresseux({
 
   /** MALADRESSE (LDB 14) de l'étape COURANTE (`jet:'maladresse'`) : le tirage sur le Tableau des Oups !, sans cible ni
    *  influence ; sa clôture applique les Oups ! (`jetValider('maladresse')`). */
-  fumble: () => makeRollFlow<PendingCascade, CascadeStep>({
+  maladresse: () => makeRollFlow<PendingCascade, CascadeStep>({
     key: 'pendingCascade',
     multi: { slots: (p) => { const m = maladresseCourante(p); return m ? [m] : []; }, idOf: (st) => st.id, replace: remplacerLEtape, refusDuSlot: refusHorsDeLEtapeCourante },
     cloture: (p) => (maladresseCourante(p) ? null : 'sansJet'),
@@ -1403,7 +1405,7 @@ export const FLOWS = paresseux({
    * Contre-sort, métier = DÉGÂTS sur objet). Test : `valeurDEnfoncement` ; bilan du Round :
    * `bilanDuRound`, lu par `jetValider('enfoncerLaPorte')`.
    */
-  forceDoor: () => makeRollFlow<PendingForceDoor, ForceDoorParticipant>({
+  enfoncerLaPorte: () => makeRollFlow<PendingForceDoor, ForceDoorParticipant>({
     key: 'pendingForceDoor',
     // Renoncer CLÔT l'enfoncement (la porte tient) : la suite du Flow qui l'a ouvert se joue.
     onCancel: (get, set, p) => { set({ pendingForceDoor: null, pendingCascade: null }); reprendreLaSuite(get, set, p.suite); },
@@ -1442,7 +1444,7 @@ export const FLOWS = paresseux({
    * choice → esquive) ; le jet du foe (`p.atk`) reste figé.
    * Issue BINAIRE (success/tie/fail) → pas de choix du dé.
    */
-  disengage: () => opposedBinaryFlow<PendingDisengage>({
+  desengagement: () => opposedBinaryFlow<PendingDisengage>({
     key: 'pendingDisengage',
     rolled: (p) => !!p.result,
     actorId: (p) => p.moverId,
@@ -1476,7 +1478,7 @@ export const FLOWS = paresseux({
    * (`p.atk`) reste FIGÉ ; seul le jet de Force de l'acteur (`p.def`) se (re)joue (Chance/+1 DR/Pacte/
    * Résilience). Issue BINAIRE (success/tie/fail) → la Résilience fait simplement l'emporter (Dégâts/Empêtré).
    */
-  grapple: () => opposedBinaryFlow<PendingGrapple>({
+  empoignade: () => opposedBinaryFlow<PendingGrapple>({
     key: 'pendingGrapple',
     rolled: (p) => !!p.result,
     actorId: (p) => p.actorId,
@@ -1497,7 +1499,7 @@ export const FLOWS = paresseux({
    * Chaque slot porte SON cycle d'influence, et son `interactive` suit le contrôleur de SON acteur.
    * Le slot `touche` est RETIRÉ dès que le coup dans le dos est résolu sans Blessure (plus de jet dû).
    */
-  flee: () => makeRollFlow<PendingDisengage, FleeSlot>({
+  fuite: () => makeRollFlow<PendingDisengage, FleeSlot>({
     key: 'pendingDisengage',
     multi: {
       slots: (p) => p.fuir?.participants ?? [],
@@ -1624,7 +1626,7 @@ export const FLOWS = paresseux({
    *  `picker` : le jet d'attaquant ne nourrit que le DR de l'OPPOSITION (`resolveManeuver` → `resolveOpposed`
    *  → marge), aucun Coup Critique ni localisation ne dépend du dé PRÉCIS (≠ attaque) → un dé
    *  choisi n'apporte rien de plus que le DR max de la Résilience par défaut. */
-  maneuver: () => makeRollFlow<PendingManeuver>({
+  manoeuvre: () => makeRollFlow<PendingManeuver>({
     key: 'pendingManeuver',
     clotures: { cancel: 'toujours' },
     rolled: (p) => !!p.result,
@@ -1653,7 +1655,7 @@ export const FLOWS = paresseux({
   }),
 
   /** Course (LDB 15 l.41) : le Test de `p.test`, posé par l'ouvreur (`testDuCavalier`), Mouvement de la monture à cheval (LDB 14 l.179). */
-  run: () => makeRollFlow<PendingRun>({
+  course: () => makeRollFlow<PendingRun>({
     key: 'pendingRun',
     // ACCESSEUR DE DÉ : le d100 du Test `course` ; la distance se REPROJETTE par `runFromTest` (engine).
     die: {
@@ -1698,7 +1700,7 @@ export const FLOWS = paresseux({
    *  lue par `metresRetenus`. `part.attempt` (déclaration pré-jet, `jetRegler('chute', 'tenter', …)`) gate le jet : `false` =
    *  chute pleine SANS Test (jamais de `roll`) ; aucune rangée ne roule tant qu'une autre n'a pas déclaré
    *  (`phaseDeChute`). */
-  fall: () => makeRollFlow<PendingFall, TombantParticipant>({
+  chute: () => makeRollFlow<PendingFall, TombantParticipant>({
     key: 'pendingFall',
     multi: { slots: (p) => p.participants, idOf: (part) => part.id, replace: (p, parts) => ({ ...p, participants: parts }), refusDuSlot: refusDuJetDeChute },
     die: {
@@ -1740,12 +1742,12 @@ export const FLOWS = paresseux({
    *  (Chance/+1 DR/Pacte/Résilience sur SON jet) ; marin PNJ = témoin (auto-roulé à l'ouverture). La SOMME des DR
    *  (essentiel ×2) + Moral nourrit la Progression — calculée à la confirmation (`jetValider('manoeuvreDuNavire')`). Forced
    *  (Résilience) = DR max du contributeur. Patron `forceDoor`. */
-  shipManeuver: () => makeRollFlow<PendingShipManeuver, ShipManeuverParticipant>(crewRoleFlowSpec('pendingShipManeuver')),
+  manoeuvreDuNavire: () => makeRollFlow<PendingShipManeuver, ShipManeuverParticipant>(crewRoleFlowSpec('pendingShipManeuver')),
 
   /** TIR DE BATTERIE = Test d'équipage des Artilleurs (MDG 14 l.128) — JUMEAU de `shipManeuver` (mêmes
    *  `rollCrewRole`/`forceCrewRole`) ; le total (`maneuverCrewTotal`) = DR PARTAGÉ de la volée, appliqué par
    *  `jetValider('tirDeBatterie')`. Forced (Résilience) = DR max du contributeur. */
-  battery: () => makeRollFlow<PendingShipBattery, ShipBatteryParticipant>(crewRoleFlowSpec('pendingShipBattery')),
+  tirDeBatterie: () => makeRollFlow<PendingShipBattery, ShipBatteryParticipant>(crewRoleFlowSpec('pendingShipBattery')),
 
   /** Étape-PARTICIPANTS d'une CASCADE (batch multi, seam de jet #275 Décision 4 cran 1) : UNE rangée par
    *  contributeur GÉNÉRIQUE de l'étape COURANTE (`pendingCascade.participants[cursor].participants`,
@@ -1758,7 +1760,7 @@ export const FLOWS = paresseux({
    *  Étape OPPOSÉE (`meta.opposed`) : le jet d'adversaire est FIGÉ, jeté UNE fois par le producteur, et
    *  chaque rangée s'y oppose (LDB 13 l.77) — l'issue vient d'`opposedCascadeRoll`, jamais de
    *  `roll ≤ cible`, au premier jet comme à chaque influence (calque de l'étape MONO `cascade`). */
-  cascadeBatch: () => makeRollFlow<PendingCascade, BatchParticipant>({
+  cascadeEnBande: () => makeRollFlow<PendingCascade, BatchParticipant>({
     key: 'pendingCascade',
     // ACCESSEUR DE DÉ propre à ce flux (calque de l'étape MONO `cascade`) : un dé CHOISI/FIXÉ doit
     // écrire une issue COMPLÈTE. L'accesseur générique `roll3Die` n'écrit que `{roll,target,sl}` ;
@@ -1836,7 +1838,7 @@ export const FLOWS = paresseux({
   /** CHANSON DE MARIN (Talent, MDG 09 l.32-40) : Test de **Divertissement (Chant)** du chanteur — la
    *  chanson doit être CHOISIE au pré-jet (OptionChooser). Réussi → effet 3 min + DR sur l'équipage
    *  (`jetValider('chansonDeMarin')`). Résilience : 01 → DR max (durée maximale). */
-  shanty: () => makeRollFlow<PendingShanty>({
+  chansonDeMarin: () => makeRollFlow<PendingShanty>({
     key: 'pendingShanty',
     rolled: (p) => !!p.result,
     actor: (s, p) => actorIn(s, p.singerId),
@@ -1850,7 +1852,7 @@ export const FLOWS = paresseux({
   }),
 
   /** Focalisation (Test étendu de magie) — vaut en combat ET hors combat (`actorIn`). */
-  focus: () => makeRollFlow<PendingFocus>({
+  focalisation: () => makeRollFlow<PendingFocus>({
     key: 'pendingFocus',
     clotures: { cancel: 'toujours' },
     die: {
@@ -1895,7 +1897,7 @@ export const FLOWS = paresseux({
 
   /** Dissipation permanente (LDB 46 l.158-160) : un Round du Test étendu de Langue (Magick). `value` porte
    *  déjà le Soutien « même Domaine ». Le DR cumule sur `caster.dispel` au confirm. Calque `focus`. */
-  dispel: () => makeRollFlow<PendingDispel>({
+  dissipation: () => makeRollFlow<PendingDispel>({
     key: 'pendingDispel',
     clotures: { cancel: 'toujours' },
     rolled: (p) => !!p.result,
@@ -1908,11 +1910,11 @@ export const FLOWS = paresseux({
   }),
 
   // (Test de Psychologie héros (Peur/Terreur/Traits ciblés, LDB 21) : PLUS de flux `psych` dédié. C'est
-  //  une CASCADE de Round — résolue par le `FLOWS.cascade` générique, applier 'combatPsych'. La Peur
+  //  une CASCADE de Round — résolue par le `FLOWS.cascade` générique, applier 'psychologieDeCombat'. La Peur
   //  forcée (Résilience) prend le DR maximal du `forceSuccess` générique, comme la psy de rencontre.)
 
   /** Entrée en Frénésie (LDB 21 l.31-35) : Test de FM. */
-  frenzy: () => makeRollFlow<PendingFrenzy>({
+  frenesie: () => makeRollFlow<PendingFrenzy>({
     key: 'pendingFrenzy',
     die: resultDie<PendingFrenzy>(),
     rolled: (p) => !!p.result,
@@ -1932,7 +1934,7 @@ export const FLOWS = paresseux({
 
   /** Approche d'une source de Peur (LDB 21 l.27) : Test SEC de `p.test` pour oser se rapprocher —
    *  distinct du Test étendu qui VAINC la Peur (flux `psych`). */
-  approach: () => makeRollFlow<PendingApproach>({
+  approche: () => makeRollFlow<PendingApproach>({
     key: 'pendingApproach',
     die: resultDie<PendingApproach>(),
     rolled: (p) => !!p.result,
@@ -1956,7 +1958,7 @@ export const FLOWS = paresseux({
   /** Bénédiction de Protection (LDB 41 l.142) : Test de Force Mentale Accessible (+20) qui DIFFÈRE la
    *  déclaration d'attaque d'un héros sur une cible bénie — succès → l'attaque est relancée ; échec →
    *  l'attaque n'a pas lieu (« choisir une cible ou une Action différente »). Frère du flux `approche`. */
-  ward: () => makeRollFlow<PendingWard>({
+  protection: () => makeRollFlow<PendingWard>({
     key: 'pendingWard',
     die: resultDie<PendingWard>(),
     rolled: (p) => !!p.result,
@@ -1976,7 +1978,7 @@ export const FLOWS = paresseux({
    *  cible. Cas de BATAILLE : Test COMBINÉ (Infiltration/Repérage, l.75/102 — un jet vs DEUX compétences,
    *  LDB 12 l.206) ou Test OPPOSÉ de « Tenez votre position » (l.161, l'ennemi a un jet FIGÉ). Le cycle
    *  Chance/Pacte/Résilience vit ICI ; l'application (Puissance/héros) vit dans `jetValider('activite')`. */
-  activity: () => makeRollFlow<PendingActivity>({
+  activite: () => makeRollFlow<PendingActivity>({
     // ACCESSEUR DE DÉ — le d100 de l'Activité, quelle que soit sa forme : simple (une cible), COMBINÉ
     // (LDB 12 l.206 : UN dé confronté à DEUX valeurs → les deux issues se re-dérivent) ou OPPOSÉ de
     // « Tenez votre position » (l'ennemi garde son jet FIGÉ, seul le DR net se recalcule).
@@ -2091,7 +2093,7 @@ export const FLOWS = paresseux({
   }),
 
   /** Rechargement (LDB 62 l.335) : Test ÉTENDU de Projectiles — le DR se cumule à l'Appliquer. */
-  reload: () => makeRollFlow<PendingReload, PendingReload, { after: number; weapon: string }>({
+  rechargement: () => makeRollFlow<PendingReload, PendingReload, { after: number; weapon: string }>({
     key: 'pendingReload',
     rolled: (p) => p.roll != null,
     actor: (s, p) => actorIn(s, p.actorId),
@@ -2114,7 +2116,7 @@ export const FLOWS = paresseux({
    *  attaque avec l'arme tenue dans la main gatée. Vrai Test joueur → Résilience GLOBALE (LDB 17 l.68) via
    *  la lentille (`caps.forced` + verbe `forceSuccess`) ; Chance « +1 DR » par `bumpSL`. Calque `reload`.
    *  L'issue (RÉUSSITE → ouvre l'attaque ; ÉCHEC → `disarm` + Action consommée) vit dans `jetValider('mainEnsanglantee')`. */
-  handGate: () => makeRollFlow<PendingHandGate>({
+  mainEnsanglantee: () => makeRollFlow<PendingHandGate>({
     key: 'pendingHandGate',
     rolled: (p) => p.roll != null,
     actor: (s, p) => actorIn(s, p.attackerId),
@@ -2126,7 +2128,7 @@ export const FLOWS = paresseux({
 
   /** « Se libérer » (Empêtré, Test opposé de Force, LDB 16 l.66) / « se rouler au sol » (En flammes,
    *  Athlétisme, LDB 16 l.84). */
-  recover: () => makeRollFlow<PendingStateRecovery>({
+  recuperation: () => makeRollFlow<PendingStateRecovery>({
     key: 'pendingStateRecovery',
     die: trDie<PendingStateRecovery>(),
     rolled: (p) => p.roll != null,
@@ -2231,7 +2233,7 @@ export const FLOWS = paresseux({
    *  au moteur teste l'Initiative sous peine d'être ébouillantée. Vrai Test JOUEUR → Résilience GLOBALE
    *  (LDB 17 l.68) via la lentille plate ; Chance « +1 DR » par `bumpSL`. L'ébouillantage (échec) est
    *  appliqué par `jetValider('fuiteDeVapeur')`, qui reprend ensuite la boucle maritime. */
-  steamSave: () => makeRollFlow<PendingSteamSave>({
+  fuiteDeVapeur: () => makeRollFlow<PendingSteamSave>({
     key: 'pendingSteamSave',
     rolled: (p) => p.roll != null,
     actor: (s, p) => actorIn(s, p.actorId),
@@ -2266,7 +2268,7 @@ export const FLOWS = paresseux({
   }),
 
   /** Évaluation (LDB 59 l.41) : révèle la qualité cachée + estime le prix. */
-  appraise: () => makeRollFlow<PendingAppraise>({
+  evaluation: () => makeRollFlow<PendingAppraise>({
     key: 'pendingAppraise',
     rolled: (p) => p.roll != null,
     actor: (s, p) => actorIn(s, p.actorId),
@@ -2280,7 +2282,7 @@ export const FLOWS = paresseux({
   }),
 
   /** Marchandage (LDB 59 l.43) : Test OPPOSÉ joueur vs opposant (marchand, vendeur de billet) — l'opposant garde son jet figé. */
-  bargain: () => makeRollFlow<PendingBargain>({
+  marchandage: () => makeRollFlow<PendingBargain>({
     key: 'pendingBargain',
     // ISSUE au goulot (`apply`) — canal NARRATIF : `jetValider('marchandage')` acquitte, il ne compose plus sa ligne.
     issue: (p) => describeBargain(p) + '.',
@@ -2337,7 +2339,7 @@ export const FLOWS = paresseux({
 
   /** Soin de Guérison (LDB 09) — combat ⇄ hors combat (`actorIn`). La Chirurgie (Test étendu
    *  multi-passes) a son propre flux `chirurgie` ci-dessous (une passe = une modale influençable). */
-  heal: () => makeRollFlow<PendingHeal>({
+  soins: () => makeRollFlow<PendingHeal>({
     key: 'pendingHeal',
     // Hors combat, le premier jet, quel que soit le geste qui le pose, part de l'infirmerie (`lancerLActeDeSoin` : refus
     // de l'acte, tarif du PNJ, opération armée) ; son brouillon se change d'acte (`soins.mode`) et ne s'annule pas.
@@ -2368,7 +2370,7 @@ export const FLOWS = paresseux({
    *  `heal` : acteur = le chirurgien (héros → Chance/Pacte/Résilience ; PNJ → influence no-op). Ici
    *  `resolve` ne fait QUE le jet de la passe (DR = `sl`) ; le CUMUL du DR + 1d10 PB + Hémorragie +
    *  le Test d'infection vivent dans `jetValider('chirurgie')` (medicFlow), comme `jetValider('testEtendu')`. */
-  surgery: () => makeRollFlow<PendingSurgery>({
+  chirurgie: () => makeRollFlow<PendingSurgery>({
     key: 'pendingSurgery',
     rolled: (p) => p.roll != null,
     actor: (s, p) => actorIn(s, p.healerId),
@@ -2380,21 +2382,6 @@ export const FLOWS = paresseux({
     lens: flatRollLens((p) => p.success ? null : cibleBrute(p)),
     die: deDuSoin<PendingSurgery>(() => 'guerison', (p) => !p.success),
   }),
-});
-
-/** Handler (runtime) par flux de `FLOW_VERBS` (flowVerbs.ts) — clé → `FLOWS.x`. `satisfies Record<FlowKey, …>`
- *  force l'EXHAUSTIVITÉ : tout flux de `FLOW_VERBS` doit avoir son handler ici (sinon `tsc` casse).
- *  Décorrélé de la clé `FLOWS` (shipBattery→battery, opposition→castOpposition). */
-export const FLOW_HANDLERS = paresseux({
-  attaque: () => FLOWS.attack, defense: () => FLOWS.defense, incantation: () => FLOWS.cast, desengagement: () => FLOWS.disengage, fuite: () => FLOWS.flee,
-  auContact: () => FLOWS.auContact, empoignade: () => FLOWS.grapple, battement: () => FLOWS.battement,
-  distraire: () => FLOWS.distraire, manoeuvre: () => FLOWS.maneuver, course: () => FLOWS.run, chute: () => FLOWS.fall, rechargement: () => FLOWS.reload, mainEnsanglantee: () => FLOWS.handGate, recuperation: () => FLOWS.recover,
-  focalisation: () => FLOWS.focus, dissipation: () => FLOWS.dispel, frenesie: () => FLOWS.frenzy, approche: () => FLOWS.approach, protection: () => FLOWS.ward,
-  soins: () => FLOWS.heal, chirurgie: () => FLOWS.surgery, corruption: () => FLOWS.corruption, test: () => FLOWS.test, fuiteDeVapeur: () => FLOWS.steamSave,
-  activite: () => FLOWS.activity, marchandage: () => FLOWS.bargain, evaluation: () => FLOWS.appraise, chansonDeMarin: () => FLOWS.shanty,
-  contreSort: () => FLOWS.counterspell, cascade: () => FLOWS.cascade, opposition: () => FLOWS.castOpposition, testEtendu: () => FLOWS.extendedTest,
-  enfoncerLaPorte: () => FLOWS.forceDoor, manoeuvreDuNavire: () => FLOWS.shipManeuver, tirDeBatterie: () => FLOWS.battery,
-  cascadeEnBande: () => FLOWS.cascadeBatch, etalLot: () => FLOWS.etalLot, cascadeTirage: () => FLOWS.cascadeTirage, maladresse: () => FLOWS.fumble,
 } satisfies Record<FlowKey, () => RollFlowHandlers>);
 
 /** Les rangées INTERACTIVES d'une opposition au Sort encore sans jet : la clôture les attend (`jetValider('opposition')`). */
@@ -2408,7 +2395,7 @@ function refusDuReglage(s: Jeu, flux: unknown, reglage: unknown, pid: unknown): 
   const declaration = declarationDuReglage(flux, reglage);
   if (!declaration) return t('jet.refus.reglageAbsent');
   if (typeof pid === 'string' ? declaration.portee !== 'rangee' : declaration.portee === 'rangee' && !declaration.toutes) return t('jet.refus.rangee');
-  return declaration.qui === 'hote' && s.net.mode === 'guest' ? t('jet.refus.hoteSeul') : null;
+  return declaration.qui === 'hote' && s.net.mode === 'invite' ? t('jet.refus.hoteSeul') : null;
 }
 
 /** Ce qui ferme maintenant le réglage `reglage` du flux `flux`, sur la rangée `pid` d'un réglage de rangée : sa phase
@@ -2418,7 +2405,7 @@ function refusDuReglage(s: Jeu, flux: unknown, reglage: unknown, pid: unknown): 
 export function fermetureDuReglage(get: Get<Jeu>, flux: FluxRegle, reglage: ReglageDuJet, pid?: string): FermetureDuJet | null {
   const declaration = garanti(declarationDuReglageNomme(flux, reglage), `${flux}.${reglage}`, 'réglage déclaré');
   const jugee = declaration.phase === 'horsDuJet' ? undefined : pid;
-  return fermetureDeLaPhase(declaration.phase, FLOW_HANDLERS[flux].fermetures(get, jugee).roll) ?? declaration.offre?.(get()) ?? null;
+  return fermetureDeLaPhase(declaration.phase, FLOWS[flux].fermetures(get, jugee).roll) ?? declaration.offre?.(get()) ?? null;
 }
 
 /** Le verbe qui règle un jet sur `get`/`set` : il refuse, et le dit, le réglage que son flux ne déclare pas
@@ -2486,7 +2473,7 @@ export function jetImmunise(s: Jeu, porteur: Combatant): { patch: Partial<Pick<J
   }
   const pc = s.pendingCascade;
   const bande = bandeCourante(s);
-  if (!pc || !bande || !(bande.combatPsych || bande.encounterPsych) || !bande.participants?.some((p) => p.id === porteur.id && !p.result)) return null;
+  if (!pc || !bande || !(bande.psychologieDeCombat || bande.psychologieDeRencontre) || !bande.participants?.some((p) => p.id === porteur.id && !p.result)) return null;
   const participants = bande.participants.map((p) => (p.id === porteur.id ? { ...p, immune: true, result: { roll: p.target, target: p.target, sl: 0, success: true } } : p));
   return { patch: { pendingCascade: { ...pc, participants: pc.participants.map((st, i) => (i === pc.cursor ? { ...st, participants } : st)) } }, ligne: null };
 }

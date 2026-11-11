@@ -21,11 +21,11 @@
  * une à la main.
  *
  * L'écriture passe TOUJOURS par le verbe de jet `jetImposerLeResultat(flux, …)` (jamais
- * `FLOW_HANDLERS[k].setForcedRoll(get,set,…)` en direct) : c'est lui que le routage d'intents coop
+ * `FLOWS[k].setForcedRoll(get,set,…)` en direct) : c'est lui que le routage d'intents coop
  * intercepte côté invité.
  */
 import { useRef } from 'react';
-import { FLOW_HANDLERS } from '../noyau/rollFlowSpecs';
+import { FLOWS } from '../noyau/rollFlowSpecs';
 import { FLOW_VERBS, fluxAccepte } from '../noyau/flowVerbs';
 import type { FlowKey } from '../noyau/flowVerbs';
 import { canFixDie } from '../noyau/netOwnership';
@@ -97,7 +97,7 @@ export function useDieCommitRegistry(): DieCommitRegistry {
  *  porte en `rollBlocked` et ferme tous ses gestes, comme tous les verbes du slot le disent. */
 export function refusDeRangee(s: GameState, flowKey: FlowKey | undefined, pid: string | undefined): string | undefined {
   if (!flowKey || pid == null || FLOW_VERBS[flowKey].kind !== 'multi') return undefined;
-  return FLOW_HANDLERS[flowKey]?.refusDuSlot(() => s, pid) ?? undefined;
+  return FLOWS[flowKey]?.refusDuSlot(() => s, pid) ?? undefined;
 }
 
 /**
@@ -121,7 +121,7 @@ export function rowForcedDie(
 ): { forcedRoll?: RollRowProps['forcedRoll']; fixedMark?: boolean } {
   if (row.forcedRoll) return { forcedRoll: row.forcedRoll };
   if (!flowKey || row.noForcedDie || row.interactive === false) return {};
-  const flow = FLOW_HANDLERS[flowKey];
+  const flow = FLOWS[flowKey];
   if (!fluxAccepte(flowKey, 'setForcedRoll')) return {};
   // Un dé ne se SAISIT que là où le socle sait le RÉÉVALUER : `fixable` = l'ACCESSEUR DE DÉ du flux est
   // complet (lire où vit le dé, réécrire l'issue re-dérivée). Même gate côté fabrique (`setForcedRoll`).

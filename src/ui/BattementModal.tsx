@@ -71,7 +71,7 @@ export function BattementModal() {
   return (
     <RollShell
       flowKey="battement"
-      stake={flowStakeRef('battement-roll')}
+      stake={flowStakeRef('battement-test')}
       title={<><Icon id="action/attack" /> Battement</>}
       /* A→B canonique (décision utilisateur 2026-08-04) : portraits + flèche annotée de la manœuvre
          — jamais une phrase « X bat l'arme de Y ». Le COÛT (l'Action) est un prérequis de ressource,
@@ -89,7 +89,7 @@ export function BattementModal() {
       }
       rows={[actorRow]}
       rolled={rolled}
-      outcome={r ? [recapLineOfEvent(ev('attack', describeBattement(pb, attacker.label, foe.label), attacker.id, foe.id), battle.combatants)] : undefined}
+      outcome={r ? [recapLineOfEvent(ev('attaque', describeBattement(pb, attacker.label, foe.label), attacker.id, foe.id), battle.combatants)] : undefined}
       actions={actions}
       onCancel={cancel}
     />

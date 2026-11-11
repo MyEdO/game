@@ -9,7 +9,7 @@
  * (`reprendreTestSubi`).
  *
  * Le cycle d'une MALADIE (`onTick.test` d'un symptôme, `dailyTest.test` d'une maladie) est lui aussi un
- * Test SUBI, mais sa porte est l'ENTRETIEN de la nuit (étape `disease-tick`, `engine/disease.ts`
+ * Test SUBI, mais sa porte est l'ENTRETIEN de la nuit (étape `maladie-test-quotidien`, `engine/disease.ts`
  * `opsDeLEchec` → applier de `noyau/restFlow.ts`) : T7/T7b le jouent par ce chemin (`nuitDuMalade`).
  *
  * Tout passe par le banc du noyau, sur la donnée RÉELLE de `src/data`, avec QUATRE héros dont le sujet n'est
@@ -254,8 +254,8 @@ describe('#1874 C0 — un Test SUBI hors combat : la conséquence tombe sur SON 
     acquitter({ success: false, sl: -1 });
     const pc = get().pendingCascade;
     expect(pc, 'le Test imbriqué doit RE-suspendre hors combat').toBeTruthy();
-    const etape = pc!.participants.find((p) => p.kind === 'triggeredTest');
-    expect(etape, 'le second jet passe par l’étape générique `triggeredTest`').toBeTruthy();
+    const etape = pc!.participants.find((p) => p.kind === 'testDeclenche');
+    expect(etape, 'le second jet passe par l’étape générique `testDeclenche`').toBeTruthy();
     expect(etape!.actorId, 'le second jet reste chez le SUJET').toBe('h3');
     expect(referentDeLEtape(etape!), 'le lanceur voyage par le meta (ids, sérialisable)').toBe('h4');
     expect(() => JSON.parse(JSON.stringify(pc)), 'la cascade doit rester sérialisable').not.toThrow();
@@ -369,7 +369,7 @@ describe('#1874 C0 — un cycle de MALADIE hors combat : la conséquence tombe s
   const cycleDe = (id: string) => noeudsDeTest().find((n) => n.fichier === 'symptoms.json' && n.entryId === id && n.chemin === '.onTick.test')!;
   const sansIds = (x: unknown): string => JSON.stringify(x).replace(/\b(it|lo)-\d+\b/g, '$1-#');
   /** Une nuit du malade `h3`, Test de cycle RATÉ ; `temoin` = la MÊME nuit, Test RÉUSSI (l'applier
-   *  `disease-tick` n'applique que l'échec). La nuit touche tout le groupe (repas) : « personne d'autre »
+   *  `maladie-test-quotidien` n'applique que l'échec). La nuit touche tout le groupe (repas) : « personne d'autre »
    *  se mesure contre ce témoin. */
   const nuit = (id: string, opts?: { temoin?: boolean; destin?: number }) => {
     decor();

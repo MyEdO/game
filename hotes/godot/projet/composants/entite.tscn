@@ -11,17 +11,30 @@ size_flags_horizontal = 3
 [node name="Pile" type="VBoxContainer" parent="."]
 theme_type_variation = &"PileSerree"
 
-[node name="Nom" type="PanelContainer" parent="Pile"]
-theme_type_variation = &"TeteDEntite"
+[node name="Tete" type="HBoxContainer" parent="Pile"]
+theme_type_variation = &"RangeeSerree"
 
-[node name="Texte" type="Label" parent="Pile/Nom"]
+[node name="Portrait" type="HBoxContainer" parent="Pile/Tete"]
+
+[node name="Zone" type="Node" parent="Pile/Tete/Portrait" node_paths=PackedStringArray("masque")]
+script = ExtResource("2_zone")
+source = "elements"
+ids = PackedStringArray("portrait")
+masque = NodePath("..")
+
+[node name="Nom" type="PanelContainer" parent="Pile/Tete"]
+theme_type_variation = &"TeteDEntite"
+size_flags_horizontal = 3
+size_flags_vertical = 4
+
+[node name="Texte" type="Label" parent="Pile/Tete/Nom"]
 theme = ExtResource("t_nom_d_entite")
 
-[node name="nom" type="Node" parent="Pile/Nom/Texte"]
+[node name="nom" type="Node" parent="Pile/Tete/Nom/Texte"]
 script = ExtResource("1_liaison")
 champ = "nom"
 
-[node name="ton" type="Node" parent="Pile/Nom/Texte"]
+[node name="ton" type="Node" parent="Pile/Tete/Nom/Texte"]
 script = ExtResource("1_liaison")
 champ = "ton"
 propriete = &"theme_type_variation"

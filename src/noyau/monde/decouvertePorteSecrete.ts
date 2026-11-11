@@ -44,7 +44,7 @@ export function testDePorteSecrete(seg: WallSeg): Flow {
     steps: [
       { kind: 'do', effect: { ...arete, attempted: true } as Effect },
       testFlow(
-        { skill: { id: 'perception' }, difficulty: secret.difficulty, label: t('eff.porteSecreteTest'), stake: flowStakeRef('perception-detect') },
+        { skill: { id: 'perception' }, difficulty: secret.difficulty, label: t('eff.porteSecreteTest'), stake: flowStakeRef('perception-detecter') },
         flowFromEffects([{ ...arete, revealed: true }, { type: 'journal', desc: t('eff.porteSecreteTrouvee') }] as Effect[]),
         EMPTY_FLOW,
       ),

@@ -220,7 +220,7 @@ export interface LandDayContext {
   /** INTERRUPTION posée par une péripétie (le voyage s'arrête, le combat/l'embuscade attend le recap). */
   interrupt?: TravelThen;
   /** Attelage FORCÉ (#270) : progression/conséquences du jour ACCUMULÉES par la chaîne de jets
-   *  `landForcedPace`/`landForcedPaceControl`, relues à la clôture pour poser `kmDone`/`gameTime`
+   *  `rythmeForceATerre`/`rythmeForceATerreControle`, relues à la clôture pour poser `kmDone`/`gameTime`
    *  (DIFFÉRÉS depuis le build, comme la vitesse fluviale `RiverDayContext`). Absent = conducteur non
    *  humain (chemin synchrone `forcedPaceDay`, kmDone/gameTime déjà posés au build). */
   forcedPaceResult?: { km: number; hours: number; vehicleOut: boolean; vehicleLame: boolean };
@@ -399,7 +399,7 @@ function trajetDIci(s: Jeu, routeId: string): { from: MapPlace; route: MapRoute;
  *  par `partirEnVoyage` et par le bouton de départ de la carte du monde (#3059). La nuit (`departureGated`)
  *  et la route du jour faite (`routeDuJourFaite`) DIFFÈRENT le départ, ils ne le refusent pas. */
 export function refusDeDepart(s: Jeu, routeId: string, mode: TravelMode, opts: OptionsDeDepart = {}): string | null {
-  if (s.net.mode === 'guest') return t('wm.hoteDecide');
+  if (s.net.mode === 'invite') return t('wm.hoteDecide');
   if (s.battle) return t('tf.refusEnCombat');
   const trajet = trajetDIci(s, routeId);
   if (typeof trajet === 'string') return trajet;
@@ -745,7 +745,7 @@ function currentSeason(get: Get): Season {
  * Construit les ÉTAPES influençables du JOUR terrestre (cascade `purpose:'travelDay'`) — la MISE EN
  * SCÈNE des jets du jour, dans l'ORDRE de résolution RAW (l.10) : (Étape EDOC) Météo tirée ici
  * (ambiance, 1 tirage), puis les postes d'Activité (l.131) + l'agrégation qui INSÈRE l'Exposition de
- * fin d'Étape (l.73) ; enfin les PÉRIPÉTIES (LDB 51 l.208) — un pas `landPeril` qui, à sa validation, tire les
+ * fin d'Étape (l.73) ; enfin les PÉRIPÉTIES (LDB 51 l.208) — un pas `perilATerre` qui, à sa validation, tire les
  * péripéties d'auteur (d100) puis la table d10 et INSÈRE le jet influençable (Survie/Perception) quand
  * la péripétie en demande un. Zéro RNG consommé au build hormis la Météo (les jets vivent dans les
  * étapes / appliers) : le build ne consomme pas d'aléa. Renvoie `[]` s'il n'y a AUCUN jet
@@ -762,8 +762,8 @@ function currentSeason(get: Get): Season {
  * rangée n'est rendue inatteignable par un décalage (`naturalRollForTableRow` rend un naturel pour
  * chacune de ses lignes, cf. `de-monde-surface.hors-store.test.ts`).
  */
-const STAGE_WEATHER_KIND = 'stage-weather';
-const STAGE_WEATHER_STEP_ID = 'stage-weather';
+const STAGE_WEATHER_KIND = 'etape-meteo';
+const STAGE_WEATHER_STEP_ID = 'etape-meteo';
 const stageWeatherTableId = (season: Season): string => `stage-weather-${season}`;
 
 /** Les rangées de la table d'une saison : la fourchette AUTHORÉE de `weather.json`, l'id stable étant
@@ -809,21 +809,21 @@ function buildTravelDayCascade(
   // PÉRIPÉTIES du jour (LDB 51 l.208) : les péripéties d'AUTEUR (une étape de MONDE par péril), puis
   // le dé de SEUIL (`peripetieSeuilDie`) — un dé de MONDE à table, sur le patron de la météo : le siège
   // qui possède l'environnement le POSE (« Dés fixés ») ou le voit passer. Sa rangée dit « aucune
-  // péripétie » ou insère le dé de la table des péripéties (`landPerilTable`). Ordre des dés : d100
+  // péripétie » ou insère le dé de la table des péripéties (`perilATerreTable`). Ordre des dés : d100
   // d'auteur ×N, dé de seuil, dé de table.
   steps.push(...buildAuthorPerilSteps(route, dest.destLabel, LAND_PERIL_INTERRUPT));
   const perilDie = route.perilDie ?? get().worldMap?.params?.perilDie ?? TRAVEL_DEFAULTS.perilDie;
   if (estFaceDeSeuil(perilDie)) {
     pousseSi(steps, tableStep({
-      id: 'land-peril', kind: 'landPeril', worldOwner: true, icon: 'ui/warning', label: t('step.landPeril'),
+      id: 'route-peripetie', kind: 'perilATerre', worldOwner: true, icon: 'ui/warning', label: t('step.perilATerre'),
       table: { tableId: perilThresholdTableId(perilDie), spec: peripetieSeuilDie() },
-      stake: voyageStakeRef('land-peril', { seuil: perilDie }),
+      stake: voyageStakeRef('route-peripetie', { seuil: perilDie }),
       meta: { destLabel: dest.destLabel, seuil: perilDie },
     }));
   }
 
   // Contexte du jour relu par la clôture (arrivée/halte, recalculée depuis `plan.kmDone` — posé avant
-  // le build sur le chemin synchrone, ou par la chaîne `landForcedPace` sur le chemin différé).
+  // le build sur le chemin synchrone, ou par la chaîne `rythmeForceATerre` sur le chemin différé).
   // L'interruption d'une péripétie s'y posera.
   set({ travelPlan: { ...get().travelPlan!, land: {
     toLabel: dest.toLabel, destLabel: dest.destLabel, marchHeroes: [...marchHeroes],
@@ -833,7 +833,7 @@ function buildTravelDayCascade(
 }
 
 /** Lignes STRUCTURÉES d'une étape de cascade DÉJÀ committée, phase-taguée (#349, dette 3) — un pas
- *  BATCH déplie ses PARTICIPANTS (chacun porte SA conséquence, `stagePosteBatch`/`weatherResistance`) ;
+ *  BATCH déplie ses PARTICIPANTS (chacun porte SA conséquence, `etapePosteEnBande`/`resistanceALaMeteo`) ;
  *  un pas MONO lit `step.outcome`. `phaseOfKind` (catalogue PARTAGÉ, `noyau/recapLine.ts`, le MÊME que
  *  l'agenda du jour EN COURS) rattache la ligne à sa phase — `undefined`
  *  pour un `kind` hors catalogue (silencieux). */
@@ -866,7 +866,7 @@ export function continueTravelDayAfterCascade(get: Get, set: Set, done?: Pending
   // build, cf. `buildTravelDayCascade`) — phase-taguées via le catalogue partagé (dette 3).
   if (recapDay && done) recapDay.lines.push(...done.participants.flatMap(stepRecapLines));
   // Attelage FORCÉ conducteur JOUEUR (#270) : gameTime/kmDone étaient DIFFÉRÉS depuis le build (la
-  // chaîne `landForcedPace` n'a résolu km/heures qu'au fil des jets) — on les pose maintenant, comme
+  // chaîne `rythmeForceATerre` n'a résolu km/heures qu'au fil des jets) — on les pose maintenant, comme
   // le chemin synchrone les pose avant le build. Absent (conducteur IA / pas d'attelage forcé) : rien
   // à faire ici, `plan.kmDone`/`gameTime` sont déjà à jour.
   const fp = ctx?.forcedPaceResult;
@@ -932,7 +932,7 @@ export function continueTravelDayAfterCascade(get: Get, set: Set, done?: Pending
 }
 
 // ── PÉRIPÉTIES du jour terrestre (cascade `travelDay`, LDB 51 l.208-221) : deux dés de MONDE à table.
-//    Le dé de SEUIL (`landPeril`) insère le dé de la TABLE (`landPerilTable`), dont l'applier résout
+//    Le dé de SEUIL (`perilATerre`) insère le dé de la TABLE (`perilATerreTable`), dont l'applier résout
 //    les kinds sans jet joueur et INSÈRE le jet influençable (Survie « éreintant » / Perception
 //    « attaque ») quand la péripétie en demande un.
 
@@ -953,19 +953,19 @@ function perilThresholdRows(face: number, faces: number): TableStepRow[] {
 const tablesDeSeuil = memoParVersion('peripeties', () => {
   const faces = facesDuDe(peripetieSeuilDie());
   return new Map<string, TableStepDef>(Array.from({ length: faces }, (_, i) => i + 1).map((face) => [perilThresholdTableId(face), {
-    label: t('step.landPeril'),
+    label: t('step.perilATerre'),
     die: faces,
     rows: perilThresholdRows(face, faces),
     lines: (roll: number) => [roll === face ? t('tf.perilEvent') : t('tf.perilNone')],
   }]));
 });
 
-const PERIL_TABLE_ID = 'land-peril-table';
+const PERIL_TABLE_ID = 'route-peripetie-table';
 
 /** La table des péripéties — FAMILLE dérivée de `peripeties` (éditable au Codex) : une rangée par
  *  entrée, son `roll` pour fourchette, son id pour clé. */
 const tableDesPeripeties = memoParVersion('peripeties', () => new Map<string, TableStepDef>([[PERIL_TABLE_ID, {
-  label: t('step.landPerilTable'),
+  label: t('step.perilATerreTable'),
   die: facesDuDe(peripetieDie()),
   rows: PERIPETIES.map((p) => ({ id: p.id, min: p.roll, max: p.roll, label: p.label })),
   lines: (roll) => {
@@ -1179,8 +1179,8 @@ function applyVehicleProblemToTravel(get: Get, set: Set, out: Pick<ForcedPaceDay
 
 /** Dégâts d'un Problème de véhicule DÉJÀ tranché (Cassé/Accident remappés le cas échéant) — coque
  *  (`applyVehicleProblem`) + occupants (`occupantOps`). Partagé par le chemin synchrone
- *  (`applyVehicleProblemToTravel`, conducteur IA) et la chaîne cascade `landForcedPace`/
- *  `landForcedPaceControl` (conducteur JOUEUR, #270) — SOURCE UNIQUE des Dégâts. */
+ *  (`applyVehicleProblemToTravel`, conducteur IA) et la chaîne cascade `rythmeForceATerre`/
+ *  `rythmeForceATerreControle` (conducteur JOUEUR, #270) — SOURCE UNIQUE des Dégâts. */
 function applyVehicleProblemEffects(get: Get, set: Set, entry: ReturnType<typeof rollVehicleProblem>, lines: string[]): { vehicleOut: boolean; vehicleLame: boolean } {
   const vehicle = get().travelPlan?.vehicle;
   if (!vehicle) return { vehicleOut: false, vehicleLame: false };
@@ -1217,10 +1217,10 @@ function forcedPaceDriver(get: Get) {
 function buildForcedPaceStep(driver: { actor: Combatant; value: number; support?: SupportDetail }, kmLeft: number, galloped = 0, km = 0, hours = 0): BuiltCascadeStep | undefined {
   const penalty = ligneAllureForcee(galloped); // l.229, SOURCE UNIQUE avec le résolveur pur
   return monoStep({
-    id: `land-forced-${galloped}`, kind: 'landForcedPace', actor: driver.actor, icon: 'travel/cart',
+    id: `land-forced-${galloped}`, kind: 'rythmeForceATerre', actor: driver.actor, icon: 'travel/cart',
     label: t('step.conduiteForcee'), rollLabel: 'Conduite d’attelage',
     difficulty: 'intermediaire',
-    stake: voyageStakeRef('land-forced-pace'),
+    stake: voyageStakeRef('route-allure-forcee'),
     ligne: {
       test: { skill: { id: 'conduite-d-attelage' } }, valeur: driver.value + (penalty?.value ?? 0), soutien: driver.support,
       ...(penalty ? { dansLaValeur: [penalty] } : {}),
@@ -1345,8 +1345,8 @@ export function sortiesDuVoyage(get: Get, set: Set) {
 
 /** Les genres d'étape que ce module déclare (table `appliers`). */
 export const GENRES_D_ETAPE = [
-  STAGE_WEATHER_KIND, 'landPeril', 'landPerilTable', 'landPerilSurvie', 'landPerilPerception',
-  'landForcedPace', 'landForcedPaceControl',
+  STAGE_WEATHER_KIND, 'perilATerre', 'perilATerreTable', 'perilATerreSurvie', 'perilATerrePerception',
+  'rythmeForceATerre', 'rythmeForceATerreControle',
 ] as const;
 /** Les interruptions de péril que ce module déclare (table `interruptionsDePeril`). */
 export const INTERRUPTIONS_DE_PERIL = [LAND_PERIL_INTERRUPT] as const;
@@ -1375,19 +1375,19 @@ export const TABLES = {
         insert: [...buildWeatherResistanceSteps(get, w), ...buildStageSteps(get, set, w, season)],
       };
     },
-    landPeril: (_get, _set, step) => {
+    perilATerre: (_get, _set, step) => {
       const tiree = step.table?.result;
       if (!tiree) return {};
       if (tiree.roll !== step.meta?.seuil) return { consequences: freeCons(tiree.lines) };
       const table = tableStep({
-        id: 'land-peril-table', kind: 'landPerilTable', worldOwner: true, icon: 'ui/warning', label: t('step.landPerilTable'),
+        id: 'route-peripetie-table', kind: 'perilATerreTable', worldOwner: true, icon: 'ui/warning', label: t('step.perilATerreTable'),
         table: { tableId: PERIL_TABLE_ID, spec: peripetieDie() },
-        stake: voyageStakeRef('land-peril-table'),
+        stake: voyageStakeRef('route-peripetie-table'),
         meta: { destLabel: String(step.meta?.destLabel ?? '') },
       });
       return { consequences: freeCons(tiree.lines), insert: table ? [table] : [] };
     },
-    landPerilTable: (get, set, step) => {
+    perilATerreTable: (get, set, step) => {
       const tiree = step.table?.result;
       const route = get().worldMap?.routes.find((r) => r.id === get().travelPlan?.routeId);
       const entry = tiree && PERIPETIES.find((p) => p.id === tiree.id);
@@ -1413,9 +1413,9 @@ export const TABLES = {
         // Survie en extérieur Accessible (+20) INFLUENÇABLE → étape-jet insérée (échec = retard + Exténué).
         const best = partyAssisted(party, { skill: { id: 'survie-en-exterieur' } }); // Soutien (LDB 12)
         const st = best && monoStep({
-          id: 'peril-survie', kind: 'landPerilSurvie', actor: best.actor, icon: 'travel/compass', label: t('step.landPerilSurvie'),
+          id: 'peril-survie', kind: 'perilATerreSurvie', actor: best.actor, icon: 'travel/compass', label: t('step.perilATerreSurvie'),
           rollLabel: refLabel('skills', { id: 'survie-en-exterieur' }), difficulty: 'accessible',
-          stake: voyageStakeRef('land-peril-survie'),
+          stake: voyageStakeRef('route-peripetie-survie'),
           ligne: { test: { skill: { id: 'survie-en-exterieur' } }, valeur: best.value, soutien: best.support },
         });
         if (st) return { consequences: freeCons(j), insert: [st] };
@@ -1426,9 +1426,9 @@ export const TABLES = {
         const configured = !!(route.ambush?.scene.id && route.ambush.encounter);
         const best = partyAssisted(party, { skill: { id: 'perception' } }); // Soutien (LDB 12)
         const st = best && monoStep({
-          id: 'peril-perception', kind: 'landPerilPerception', actor: best.actor, icon: 'ui/eye', label: t('step.landPerilPerception'),
+          id: 'peril-perception', kind: 'perilATerrePerception', actor: best.actor, icon: 'ui/eye', label: t('step.perilATerrePerception'),
           rollLabel: refLabel('skills', { id: 'perception' }), difficulty: 'accessible',
-          stake: voyageStakeRef('land-peril-perception'),
+          stake: voyageStakeRef('route-peripetie-perception'),
           ligne: { test: { skill: { id: 'perception' } }, valeur: best.value, soutien: best.support },
           meta: { destLabel, configured, ambushScene: route.ambush?.scene.id ?? '', ambushEntry: route.ambush?.entry ?? '', ambushEnc: route.ambush?.encounter ?? '' },
         });
@@ -1441,7 +1441,7 @@ export const TABLES = {
     },
     /** « Voyage éreintant » (LDB 51 l.215) : Survie en extérieur (+20) INFLUENÇABLE ; échec → +1 jour de retard et
      *  +1 Exténué chacun (`applyEreintant`). */
-    landPerilSurvie: (get, set, step, hero) => {
+    perilATerreSurvie: (get, set, step, hero) => {
       if (!step.result) return;
       // Le jet est DÉJÀ affiché par la rangée de l'étape (CascadeModal) — pas de re-print (#295 Lot 5) ;
       // succès sans effet (rien à ajouter) → aucune conséquence, l'échec parle par son effet (`applyEreintant`).
@@ -1450,7 +1450,7 @@ export const TABLES = {
     },
     /** « Attaqués ! » (LDB 51 l.221) : Perception (+20) INFLUENÇABLE ; réussie → le groupe les voit venir (sans
      *  surprise) ; l'embuscade configurée est DIFFÉRÉE derrière le récit (le `noSurprise` suit le jet). */
-    landPerilPerception: (get, set, step, hero) => {
+    perilATerrePerception: (get, set, step, hero) => {
       if (!step.result) return;
       const configured = !!step.meta?.configured;
       const destLabel = String(step.meta?.destLabel ?? '');
@@ -1468,9 +1468,9 @@ export const TABLES = {
     /** ÉTAPE-JET de Conduite d'attelage au km (#270) : succès → chaîne le km SUIVANT (`insert`, tant que le
      *  budget du jour reste) ; échec → les bêtes repassent au pas (résistance des bêtes de l'attelage, sans
      *  jet joueur — non-héros) puis, sur un Échec Stupéfiant (−6 DR, l.253), un Problème de véhicule (d100,
-     *  donnée d'auteur) — « Incontrôlable » INSÈRE la reprise de contrôle INFLUENÇABLE (`landForcedPaceControl`) ;
+     *  donnée d'auteur) — « Incontrôlable » INSÈRE la reprise de contrôle INFLUENÇABLE (`rythmeForceATerreControle`) ;
      *  les autres résultats s'appliquent inline (`applyVehicleProblemEffects`, pas de jet joueur supplémentaire). */
-    landForcedPace: (get, set, step, hero) => {
+    rythmeForceATerre: (get, set, step, hero) => {
       if (!step.result) return;
       const m = step.meta!;
       const kmLeft = Number(m.kmLeft), galloped = Number(m.galloped);
@@ -1519,10 +1519,10 @@ export const TABLES = {
         j.push(t('tf.vehicleProblem', { label: entry.label }));
         if (step.actorId && hero && driver) {
           const st = monoStep({
-            id: `${step.id}-control`, kind: 'landForcedPaceControl', actor: driver.actor, icon: 'travel/cart',
+            id: `${step.id}-control`, kind: 'rythmeForceATerreControle', actor: driver.actor, icon: 'travel/cart',
             label: t('step.reprendreControle'), rollLabel: 'Conduite d’attelage',
             difficulty: 'intermediaire',
-            stake: voyageStakeRef('land-forced-pace-control'),
+            stake: voyageStakeRef('route-allure-forcee-controle'),
             // MÊME jet que le km (Conduite d'attelage soutenue, `LDB 12 l.189`) : ni la pénalité de km
             // (`EDOC 07 l.253` ne la reconduit pas), ni une valeur figée. Les deux surfaces — étape
             // influençable et repli sans pilote ci-dessous — lisent le MÊME conducteur soutenu.
@@ -1554,7 +1554,7 @@ export const TABLES = {
     },
     /** Reprise de contrôle INFLUENÇABLE d'un attelage « Incontrôlable » (#270, EDOC 07 l.284) : succès →
      *  l'attelage est maîtrisé (pas d'Accident) ; échec → Accident (96-00 de la table, verbatim). */
-    landForcedPaceControl: (get, set, step, hero) => {
+    rythmeForceATerreControle: (get, set, step, hero) => {
       if (!step.result) return;
       const m = step.meta!;
       const finalKm = Number(m.finalKm), finalHours = Number(m.finalHours);

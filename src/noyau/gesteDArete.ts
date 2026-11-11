@@ -261,7 +261,7 @@ const CORPS_DU_FRANCHISSEMENT: Readonly<Record<GesteDeplacant, CorpsDuFranchisse
     const acted = plan.kind === 'test' ? true : battle.acted;
     // Résolution directe (Grimpant) : PAS un jet silencieux — il n'y a PAS de jet du tout, journalisé.
     const log = plan.kind === 'free' && plan.auto
-      ? [...battle.log, ev('move', t('climb.auto', { name: mover.label }), mover.id)]
+      ? [...battle.log, ev('deplacement', t('climb.auto', { name: mover.label }), mover.id)]
       : battle.log;
     set({ battle: { ...battle, log, acted, action: null, movementUsed: (battle.movementUsed ?? 0) + cost, movedPreAction: battle.movedPreAction || !battle.acted, reachable: new Map(), preview: null } });
     bus.emit(EVT.SCENE_DIRTY);
@@ -311,7 +311,7 @@ const CORPS_DU_FRANCHISSEMENT: Readonly<Record<GesteDeplacant, CorpsDuFranchisse
     if (movementRemaining(battle, mover) < cout) return void refuserGeste(get, set, t('fenetre.mouvementInsuffisant', { name: mover.label, cout }));
     if (arriveeOccupee(battle, mover, plan.to)) return void refuserGeste(get, set, t('franchir.caseOccupee', { name: mover.label }));
     placeCombatant(mover, scene, plan.to);
-    const log = [...battle.log, ev('move', t('fenetre.enjambe', { name: mover.label }), mover.id)];
+    const log = [...battle.log, ev('deplacement', t('fenetre.enjambe', { name: mover.label }), mover.id)];
     set({ battle: { ...battle, log, action: null, movementUsed: (battle.movementUsed ?? 0) + cout, movedPreAction: battle.movedPreAction || !battle.acted, reachable: new Map(), preview: null } });
     bus.emit(EVT.SCENE_DIRTY);
   },

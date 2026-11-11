@@ -34,7 +34,7 @@ function table(over: Partial<Combatant> = {}) {
   banc.setState({
     party: [h1, h2],
     scene: emptyScene('scene-test'),
-    net: { ...banc.getState().net, mode: 'host', mySeat: 0, ownership: { h1: 0, h2: 1 }, seatNames: { 0: 'L’hôte', 1: 'Rolf' } },
+    net: { ...banc.getState().net, mode: 'hote', mySeat: 0, ownership: { h1: 0, h2: 1 }, seatNames: { 0: 'L’hôte', 1: 'Rolf' } },
     battle: {
       combatants: [h1, h2], order: ['h1', 'h2'], baseOrder: ['h1', 'h2'], turn: -1, round: 2,
       action: null, selectedSpellId: null, reachable: new Map(), movementUsed: 0, movedPreAction: false,

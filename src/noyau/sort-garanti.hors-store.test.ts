@@ -24,9 +24,9 @@ describe('castSpell forceSuccess : le Flow du Sort, à DR = NI', () => {
     const banc = ouvrirLeBanc({ graine: 7, etat: { party: [w, s, p] } });
     const maintenant = banc.getState().gameTime;
     jouerFlowEntier(runFlow(banc.getState, banc.setState, garanti(w.id, 'colerique', s.id)));
-    const vues = draineEtapes(banc.getState, 20, (e) => (e.kind === 'triggeredTest' ? 100 : undefined),
+    const vues = draineEtapes(banc.getState, 20, (e) => (e.kind === 'testDeclenche' ? 100 : undefined),
       (e) => (e.kind === 'personneChoisie' ? p.id : undefined));
-    expect(vues.map((v) => v.kind), 'NI 2 : aucun palier à trancher').toEqual(['personneChoisie', 'triggeredTest']);
+    expect(vues.map((v) => v.kind), 'NI 2 : aucun palier à trancher').toEqual(['personneChoisie', 'testDeclenche']);
     const cible = banc.getState().party.find((c) => c.id === s.id)!;
     expect((cible.psychTraits ?? []).filter((t) => t.src?.id === 'colerique')).toEqual([
       { type: 'prejuge', cible: ciblePsy.individu(p.id), src: { kind: 'spell', id: 'colerique' } },

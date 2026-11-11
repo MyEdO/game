@@ -6,7 +6,7 @@
  *
  * La CHIRURGIE (Test ÉTENDU, LDB 10 l.184 / 12 l.200) est « armée » sur l'infirmerie (`medic.surgery` :
  * chirurgien figé, patient verrouillé) ; chaque passe est un jet INFLUENÇABLE (`pendingSurgery` via
- * `FLOWS.surgery` — Chance/Pacte/Résilience comme tout jet de héros), qui inflige 1d10 PB + 1 Hémorragie
+ * `FLOWS.chirurgie` — Chance/Pacte/Résilience comme tout jet de héros), qui inflige 1d10 PB + 1 Hémorragie
  * et cumule le DR (DrBar) à l'application (`jetValider('chirurgie')`). Le Test d'infection du patient (cible atteinte)
  * est un jet SUBI poussé en RÉVÉLATION témoin. Entre deux passes, Bander (wounds) et Hémorragie (bleed)
  * redeviennent des ACTES NORMAUX du même patient — jet complet (Chance/Résilience), sans interrompre le cumul.
@@ -76,7 +76,7 @@ export function plaiesNommees(s: Jeu): { uid: IdDePlaieDeLOperation; libelle: st
  *  (déjà roulé + influencé en modale) et cumule le DR (repart à 0 sous 0, LDB 12 l.174).
  *  - `kind:'chirurgie'` : chaque passe inflige 1d10 PB + 1 Hémorragie (LDB 10 l.184) ; à 0 PB → interruption.
  *    Cible atteinte → Blessure Critique réparée + Test d'infection du PATIENT (LDB 10 l.184) DIFFÉRÉ en ÉTAPE de
- *    cascade INFLUENÇABLE (`combatEndDisease`, jumeau de fin de combat).
+ *    cascade INFLUENÇABLE (`maladieDeFinDeCombat`, jumeau de fin de combat).
  *  - `kind:'reeducation'` (« Épaule luxée »/« Genou démis », LDB 18 l.120/179) : AUCUN dégât. Cible DR 6 atteinte →
  *    usage du membre rendu (séquelle « membre désactivé » retirée) + `recoveryPenalty` posé à la cible avec une
  *    durée d'horloge PARTAGÉE de 1d10 jours (charMod −10 / `moveScale` jambe) ; pas de Test d'infection.
@@ -97,7 +97,7 @@ function appliquerLaPasse(get: Get, set: Set): void {
   if (!recovery && patient.wounds.current <= 0) { // « de fortes chances de tuer » (LDB 10) : on interrompt
     log.push(t('medic.patientSinks', { patient: patient.label }));
     set({ pendingSurgery: null, medic: { ...m, surgery: undefined } });
-    finishPlayerAction(get, set, log, 'heal');
+    finishPlayerAction(get, set, log, 'soin');
     return;
   }
   if (cum >= sg.targetDR) { // cible atteinte
@@ -111,21 +111,21 @@ function appliquerLaPasse(get: Get, set: Set): void {
         log.push(...applyOps(patient, penalty, { idNeuf: get().forgerUnId, rng: battleRng(), now, defaultUntilTime: now + d10(battleRng()) * 24 * 60 }));
       }
       set({ pendingSurgery: null, medic: { ...m, surgery: undefined } });
-      finishPlayerAction(get, set, log, 'heal');
+      finishPlayerAction(get, set, log, 'soin');
       return;
     }
     if (sg.traumaUid) log.push(...removeSurgicalTrauma(patient, sg.traumaUid)); // Chirurgie : Blessure Critique réparée (s'il y en a une à opérer)
     log.push(...releaseConditionLocks(patient, 'surgery')); // verrous d'État « ne peut être retiré que par Chirurgie » (Hémorragie interne, LDB 18)
     set({ pendingSurgery: null, medic: { ...m, surgery: undefined } });
-    finishPlayerAction(get, set, log, 'heal');
+    finishPlayerAction(get, set, log, 'soin');
     // Test d'infection du PATIENT (LDB 10 l.184) : Résistance Accessible (+20) — plus un jet SILENCIEUX
-    // mais une ÉTAPE INFLUENÇABLE (cascade `combatEndDisease`, jumeau d'`openCombatEndCascade` :
+    // mais une ÉTAPE INFLUENÇABLE (cascade `maladieDeFinDeCombat`, jumeau d'`openCombatEndCascade` :
     // Chance/Résilience + auto-succès Résistance (Menace : Maladie), LDB 17/10). La contraction
     // (`applyContraction`) est appliquée à la VALIDATION de l'étape, jamais avant l'influence.
     openContractionCascade(get, set, patient, 'infection-mineure', 'accessible', t('medic.afterSurgery'));
     return;
   }
-  // Passe intermédiaire : cumule (medic.surgery), journalise, et RÉOUVRE la passe suivante (FLOWS.surgery).
+  // Passe intermédiaire : cumule (medic.surgery), journalise, et RÉOUVRE la passe suivante (FLOWS.chirurgie).
   const medic = { ...m, surgery: { ...sg, cumDR: cum, last: { roll: garanti(ps.roll, ps.healerId, 'jet de la passe'), sl: ps.sl } } };
   set({ medic, pendingSurgery: passeDeLOperation({ party: get().party, medic }), ...touchActors(get()) });
   get().ecrireAuJournal(log[0]);

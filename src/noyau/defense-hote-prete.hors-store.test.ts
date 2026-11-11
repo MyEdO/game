@@ -57,7 +57,7 @@ function jusquALaChaineDestabilisee(seed: number): boolean {
   g().jetValider('defense');
   const s = g();
   if (s.pendingDefense?.suite.mode !== 'machine' || s.pendingDefense.suite.coup.enchainement?.mode !== 'chaine') return false;
-  return (s.pendingCascade?.participants ?? []).some((p) => p.kind === 'triggeredTest');
+  return (s.pendingCascade?.participants ?? []).some((p) => p.kind === 'testDeclenche');
 }
 
 const etapeCourante = () => { const c = g().pendingCascade; return c?.participants[c.cursor]; };

@@ -58,7 +58,7 @@ describe('entrée en scène — la remise de l’interface (#2817 D5)', () => {
 
   it('chez l’invité, le changement de scène ne sauvegarde rien : la sauvegarde vit chez l’hôte', () => {
     g().chargerLeProjet({ scenes: [scene('entree-a'), scene('entree-b')], entryId: 'entree-a', projet: null });
-    useGame.setState({ net: { ...g().net, mode: 'guest', mySeat: 1 } });
+    useGame.setState({ net: { ...g().net, mode: 'invite', mySeat: 1 } });
     g().quitterLaScene('entree-b');
     expect(g().campaignSceneId, 'témoin : la scène a changé').toBe('entree-b');
     expect(saveDuStockage('auto')).toBeNull();

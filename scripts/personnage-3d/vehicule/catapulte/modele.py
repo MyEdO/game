@@ -127,7 +127,7 @@ def construire(D, extremite):
 
 
 def tir(D):
-    """Le clip `ranged` : le bras lâché contre le coussin du butoir, puis ramené au treuil (`TIR`, temps de `coup`).
+    """Le clip `tir` : le bras lâché contre le coussin du butoir, puis ramené au treuil (`TIR`, temps de `coup`).
     Sa course va du repos au contact de la face de son dessus avec la face arrière du coussin, à mi-hauteur."""
     B, R = D["BUTOIR"], D["BRAS"]
     ay, az = D["ECHEVEAU"]["axe"]
@@ -137,7 +137,7 @@ def tir(D):
     contact = math.atan2(z, y) - math.asin(R["section"][1] / 2 / math.hypot(y, z))
     course = contact + math.radians(R["repos"])
     temps = D["TIR"]
-    return ("ranged", "tir", sum(temps), {"bras": lambda t: ((0, 0, 0), (course * coup(t, temps), 0, 0))})
+    return ("tir", "tir", sum(temps), {"bras": lambda t: ((0, 0, 0), (course * coup(t, temps), 0, 0))})
 
 
 def elements(D):

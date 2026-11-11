@@ -36,7 +36,7 @@ export type { CritTableKey, JeuDeCritique };
  * `entryCategory`, `src/data/index.ts`). PUR.
  */
 function enjeuDeRangee(jeu: JeuDeCritique, location: HitLocation, entryId: string): StakeRef {
-  return combatStakeRef('crit-row-test', { entryId, entryCategory: critEntryCodexCategory(critTableKeyFor(location), jeu) });
+  return combatStakeRef('critique-ligne-test', { entryId, entryCategory: critEntryCodexCategory(critTableKeyFor(location), jeu) });
 }
 
 /**

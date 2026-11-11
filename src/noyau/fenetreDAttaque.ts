@@ -95,18 +95,18 @@ export interface FenetreDAttaque {
    *  `rollFlowFactory` (`fermetureDeLaRelance`, `fermetureDuPacte`, `fermetureDeLaResilience`). */
   influences: {
     relancee: boolean;
-    /** Le Sombre Pacte est offert : le jet n'est pas imposé (`FLOWS.attack.fermetures`). */
+    /** Le Sombre Pacte est offert : le jet n'est pas imposé (`FLOWS.attaque.fermetures`). */
     sombrePacte: boolean;
     /** La rangée n'offre aucun dé forcé (`noForcedDie` du web). LDB 16 l.113 ; LDB 17 l.68 */
     sansDeForce: boolean;
-    /** L'inversion offerte et son issue (`FLOWS.attack.reversePreview`), `null` sinon. LDB 23 l.209 ; LDB 10 */
-    inversion: { apercu: ReturnType<typeof FLOWS.attack.reversePreview> } | null;
+    /** L'inversion offerte et son issue (`FLOWS.attaque.reversePreview`), `null` sinon. LDB 23 l.209 ; LDB 10 */
+    inversion: { apercu: ReturnType<typeof FLOWS.attaque.reversePreview> } | null;
   };
   /** Test opposé tranché (`oppositionDuCoup`). */
   opposition: OppositionEnVue | null;
   /** L'issue du coup, la ligne de touche du moteur (`issueAuJet`) ; `null` avant le jet ou quand une Défense
    *  surfacée va s'interposer (#1004). */
-  issue: { genre: 'crit' | 'damage' | 'attack'; ligne: string } | null;
+  issue: { genre: 'critique' | 'degats' | 'attaque'; ligne: string } | null;
   /** Une Défense surfacée va s'interposer avant l'application (`surfacedDefensePending`). */
   defenseAttendue: boolean;
   attente: string | null;
@@ -179,7 +179,7 @@ export function fenetreDAttaque(s: Jeu): FenetreDAttaque | null {
       ? (defenseAuTir ? previewDefense(cible, { mode: defenseAuTir.mode, parryWeapon: defenseAuTir.parryWeapon, vsWeapon: arme, dodgeMods: esquive }) : undefined)
       : isInanimate(cible) ? undefined : previewDefense(cible, { vsWeapon: arme, dodgeMods: esquive });
   const defenseAnnoncee: DefenseAnnoncee | undefined = annonce && { ...annonce, difficulte: difficultyText(annonce.difficulty) };
-  const inversion = FLOWS.attack.reverseAvailable(get) ? { apercu: FLOWS.attack.reversePreview(get) } : null;
+  const inversion = FLOWS.attaque.reverseAvailable(get) ? { apercu: FLOWS.attaque.reversePreview(get) } : null;
   const bloque = apercu && (apercu.blocked || !apercu.inRange) ? t(apercu.blocked ? 'attaque.sansLigneDeVue' : 'attaque.horsDePortee') : null;
   const defenseAttendue = !!res && surfacedDefensePending(s, attaquant, cible, arme, pa);
   const bascule = (reglage: ReglageDu<'attaque'>, active: boolean, note: string | null): BasculeNommee => ({ geste: gesteDuReglage('attaque', reglage), libelle: libelleDuReglage('attaque', reglage), active, note });
@@ -257,13 +257,13 @@ export function fenetreDAttaque(s: Jeu): FenetreDAttaque | null {
       : (!bloque && defenseAnnoncee ? { pending: defenseAnnoncee } : null),
     influences: {
       relancee: !!pa.rerolled,
-      sombrePacte: FLOWS.attack.fermetures(get).darkPact !== 'jetImpose',
+      sombrePacte: FLOWS.attaque.fermetures(get).darkPact !== 'jetImpose',
       sansDeForce: isHelplessTarget(cible),
       inversion,
     },
     opposition: res ? oppositionDuCoup(res) : null,
     issue: res && !defenseAttendue
-      ? { genre: coup?.compte.critiques.length ? 'crit' : res.hit ? 'damage' : 'attack', ligne: coup?.ligne ?? res.log }
+      ? { genre: coup?.compte.critiques.length ? 'critique' : res.hit ? 'degats' : 'attaque', ligne: coup?.ligne ?? res.log }
       : null,
     defenseAttendue,
     attente: res && defenseAttendue ? t('defense.awaiting', { cible: cible.label }) : null,

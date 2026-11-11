@@ -61,7 +61,7 @@ describe('lireSalveMisfire (AA 10 l.270-277)', () => {
   it('chaque face du d10 DÉCLARÉ tombe sur une entrée de la table', () => {
     const de = artilleryMisfireDie();
     expect(de).toEqual({ n: 1, sides: 10 });
-    expect(TABLE_SALVE_MISFIRE).toBe('artillery-salve-misfire');
+    expect(TABLE_SALVE_MISFIRE).toBe('artillerie-salve-incident');
     for (let roll = 1; roll <= de.sides; roll++) {
       expect(ARTILLERY_MISFIRE.some((e) => e.id === lireSalveMisfire(roll, 1).id), `dé ${roll}`).toBe(true);
     }

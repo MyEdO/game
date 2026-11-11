@@ -54,7 +54,7 @@ function monte() {
   gob.armour = { tete: 3, brasG: 3, brasD: 3, corps: 3, jambeG: 3, jambeD: 3 };
   for (const o of foes) if (o !== gob && o !== man && o.pos && Math.abs(o.pos.x - hero.pos.x) <= 1 && Math.abs(o.pos.y - hero.pos.y) <= 1) o.pos = { x: o.pos.x + 6, y: o.pos.y };
   // Un siège MJ tient les ennemis : la Déviation se tranche à l'étape (#1426), elle suspend le coup.
-  banc.setState({ battle: { ...g().battle! }, net: { ...g().net, mode: 'host', mySeat: 0, gmSeat: 1 } });
+  banc.setState({ battle: { ...g().battle! }, net: { ...g().net, mode: 'hote', mySeat: 0, gmSeat: 1 } });
   expect(g().battle!.acted).toBe(false);
 
   g().ensemencerLeTirage(seedDuCritique());

@@ -466,7 +466,7 @@ export function refusDuChoixNomme(s: Jeu, fenetre: FenetreAChoix, axe: AxeDuChoi
   const declaration = garanti(declarationDuChoixNomme(fenetre, axe), `${fenetre}.${axe}`, 'choix déclaré');
   if (!garanti(fenetreDuRegistre(fenetre), fenetre, 'fenêtre à choix').ouverte(s)) return t('choix.refus.fermee');
   if ((pid !== undefined) !== (declaration.portee === 'rangee')) return t('choix.refus.rangee');
-  if (declaration.qui === 'hote' && s.net.mode === 'guest') return t('choix.refus.hoteSeul');
+  if (declaration.qui === 'hote' && s.net.mode === 'invite') return t('choix.refus.hoteSeul');
   if (declaration.portee === 'rangee' && declaration.qui === 'proprietaire' && !seatOwns(s, decidingSeat(s), pid as IdDeHeros)) return t('choix.refus.autreSiege');
   const lu = reglageDuChoixDeFenetre(s, fenetre, axe, pid);
   if (lu.bornes) return dansLesBornes(valeur, lu.bornes) ? null : t('choix.refus.bornes');

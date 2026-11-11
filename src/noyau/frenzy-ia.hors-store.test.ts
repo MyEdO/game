@@ -68,13 +68,13 @@ describe('Frénésie IA — ORDRE (report tant qu’un sort prime, Couche 3)', (
   it('un sort jouable (invocation, héros loin) → la meilleure action est `cast` (→ report de Frénésie)', () => {
     const e = mk('e', 'enemy', { x: 5, y: 5 }, { weapons: [] }); // état non frénétique à ce stade
     const h = mk('h', 'hero', { x: 5, y: 11 }); // loin → ni mêlée ni bonne approche
-    expect(chooseEnemyAction(input(e, [h], { spells: [summonSpell()] })).kind).toBe('cast');
+    expect(chooseEnemyAction(input(e, [h], { spells: [summonSpell()] })).kind).toBe('incantation');
   });
 
   it('sans sort jouable → la meilleure action n’est PAS un sort (pas de report)', () => {
     const e = mk('e', 'enemy', { x: 5, y: 5 }, { weapons: [MELEE] });
     const h = mk('h', 'hero', { x: 5, y: 11 });
-    expect(['cast', 'castArea', 'focus']).not.toContain(chooseEnemyAction(input(e, [h])).kind);
+    expect(['incantation', 'incantationDeZone', 'focalisation']).not.toContain(chooseEnemyAction(input(e, [h])).kind);
   });
 });
 

@@ -69,7 +69,7 @@ export function DistraireModal() {
   });
 
   const issue = pd.atk
-    ? [recapLineOfEvent(ev(pd.result === 'success' ? 'dodge' : 'attack', describeDistraire(pd, mover.label, foe.label), mover.id, foe.id), battle.combatants)]
+    ? [recapLineOfEvent(ev(pd.result === 'success' ? 'esquive' : 'attaque', describeDistraire(pd, mover.label, foe.label), mover.id, foe.id), battle.combatants)]
     : undefined;
 
   const actions: RollAction[] = [
@@ -80,7 +80,7 @@ export function DistraireModal() {
   return (
     <RollShell
       flowKey="distraire"
-      stake={flowStakeRef('distraire-roll')}
+      stake={flowStakeRef('distraire-test')}
       title="Distraire"
       extra={<VsHeader actor={mover} target={foe} label="détourner son attention (Athlétisme vs Calme)" />}
       // Choix de la cible AVANT le jet (plusieurs adversaires en Ligne de vue) — OptionChooser partagé.

@@ -33,7 +33,7 @@ export function ChapterRecapScreen() {
   const campaignDoc = useGame((s) => s.campaignDoc);
   const fermer = useGame((s) => s.fenetreFermer);
   const ajourner = () => fermer('finDeChapitre');
-  const invite = useGame((s) => s.net.mode === 'guest');
+  const invite = useGame((s) => s.net.mode === 'invite');
   const [volet, setVolet] = useState<1 | 2>(1);
   const [masque, setMasque] = useState(false);
   const seance = useSessionEnd({ fenetre: 'finDeChapitre', apercu: volet === 1 });

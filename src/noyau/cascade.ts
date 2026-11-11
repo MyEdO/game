@@ -131,7 +131,7 @@ function clotureDeCascade(done: PendingCascade): void {
 /**
  * Conséquence d'une ISSUE de TEST ÉTENDU (`PendingExtendedTest.outcome`, #273 Étape 1) — calque exact
  * de `CascadeApplier` ci-dessus (mute get/set, renvoie des `Consequence[]`), appliquée à la CLÔTURE du
- * Test étendu (`jetValider('testEtendu')`, noyau/testsDeScene.ts) qu'il ait atteint sa cible OU buté sur `maxAttempts`.
+ * Test étendu (`jetValider('testEtendu')`, noyau/testsDeScene.ts) qu'il ait atteint sa cible OU buté sur `tentativesMax`.
  * `reached` = `total ≥ targetDR` ; `false` = borne d'essais épuisée sans réussir (Commerce d'opportunité,
  * MDG 15 : « 10 DR en ≤ 3 tentatives » — l'échec de la borne EST une issue, jamais une boucle infinie).
  * Table séparée des appliers (`TablesDuJeu.issuesDeTestEtendu` : un Test étendu n'est PAS une étape de
@@ -1288,7 +1288,7 @@ function commitStep(get: Get, set: Set, steps: CascadeStep[], i: number, pilote:
   // TRACE des jets qu'aucune SURFACE n'a montrés — AVANT la conséquence : le dé se lit d'abord, l'effet
   // ensuite, comme dans la fenêtre qui ne s'est pas ouverte.
   const traces = unwitnessedTraceLines(get, step, unwitnessed, rowSurface);
-  journaliser(get, set, traces, 'info', { actorId: step.actorId });
+  journaliser(get, set, traces, 'information', { actorId: step.actorId });
   // FENÊTRE D'INSERTION (#1508) ouverte le temps que l'applier — et la continuation qui le suit —
   // tournent : une étape poussée pendant ce temps est la SUITE IMMÉDIATE de celle-ci, pas la fin de la
   // séquence. Rendue à sa valeur précédente ensuite (un applier peut en déclencher un autre).
@@ -1313,7 +1313,7 @@ function commitStep(get: Get, set: Set, steps: CascadeStep[], i: number, pilote:
     // UNIQUE `journaliser` : combat ouvert → `battle.log`, sinon `journal`.
     lines = out?.consequences ? resultLines(out.consequences) : [];
     if (out?.dejaDites) assertDejaDitesPorteSesLignes(step, lines);
-    else journaliser(get, set, lines.map((l) => l.text), 'info', { actorId: step.actorId });
+    else journaliser(get, set, lines.map((l) => l.text), 'information', { actorId: step.actorId });
     // La CONSÉQUENCE est dite ; la CONTINUATION que l'étape porte (#1508 — le reste du lot/de la pile que
     // son dé a fait attendre) se joue MAINTENANT, jamais avant : c'est ce qui garde l'ordre de l'auteur
     // dans le journal, et ce qui laisse la conséquence se mesurer sur l'état qu'elle a elle-même produit.
@@ -1327,8 +1327,8 @@ function commitStep(get: Get, set: Set, steps: CascadeStep[], i: number, pilote:
     fenetreInsertion = fenetreAvant;
   }
   // SEAM CENTRAL `onOwnTestFailed` (tests DIFFÉRÉS d'entretien + tests déclenchés de combat en cascade) :
-  // toute étape à JET RATÉ (`faim`/`recovery`/`disease-tick`/`disease-persist`/`trauma-fracture`/`contagion`/
-  // `triggeredTest`… — TOUS passent par ce `commitStep`) émet le trigger pour son acteur. L'étampe
+  // toute étape à JET RATÉ (`faim`/`recuperation`/`maladie-test-quotidien`/`maladie-persistance`/`convalescence-fracture`/`contagion`/
+  // `testDeclenche`… — TOUS passent par ce `commitStep`) émet le trigger pour son acteur. L'étampe
   // `meta.noOwnTestFailed` (posée sur le FM de palier 2 des Crampes) coupe la ré-entrance. Sous-Test du FM
   // résolu INLINE (pas de `set` threadé : ouvrir une cascade IMBRIQUÉE dans un commitStep serait fragile).
   // Une BANDE émet PAR RANGÉE PERDANTE (`batchOwnTestFailedLines`) : le trigger est dû au Test, pas à la
@@ -1340,7 +1340,7 @@ function commitStep(get: Get, set: Set, steps: CascadeStep[], i: number, pilote:
     ? batchOwnTestFailedLines(get, step)
     : ((interaction === 'jet' && step.result && !step.result.success && !(estJete(step.result) && step.result.statuQuo) && acteur && !step.meta?.noOwnTestFailed)
       ? emettreOwnTestFailed(get, acteur, step.result.sl) : []);
-  journaliser(get, set, ownTestFailedLines, 'info', { actorId: step.actorId });
+  journaliser(get, set, ownTestFailedLines, 'information', { actorId: step.actorId });
   // L'étape VALIDÉE garde sa conséquence (`outcome`) pour rester LISIBLE dans la pile à l'écran. Une
   // étape d'AFFICHAGE porte son contenu d'avance (`outcome` pré-rempli) avec un applier muet → on le
   // PRÉSERVE (sinon le journal vide l'effacerait à la validation).
@@ -1450,7 +1450,7 @@ export function resumeSuspendedCascade(get: Get, set: Set): boolean {
  * PURGE les étapes d'ENTRÉE DE ZONE des cascades PARQUÉES — couture du changement de scène
  * (`quitterLaScene`, noyau/entreeEnScene.ts). Une carte narrative d'entrée parquée (par un combat, par une
  * autre séquence) narre la scène qu'on QUITTE : reprise plus tard, elle s'afficherait par-dessus la
- * scène SUIVANTE. La purge est bornée à CETTE classe d'étapes (`reveal.kind === 'sceneEntry'`) —
+ * scène SUIVANTE. La purge est bornée à CETTE classe d'étapes (`reveal.kind === 'entreeEnScene'`) —
  * toute autre séquence parquée (un jour de voyage suspendu par un abordage, un Test de rencontre)
  * traverse la transition INTACTE, avec son curseur. Une séquence vidée de toutes ses étapes sort de
  * la pile ; une séquence MIXTE garde son curseur POSÉ SUR LA MÊME ÉTAPE — il est décalé du nombre
@@ -1459,7 +1459,7 @@ export function resumeSuspendedCascade(get: Get, set: Set): boolean {
  */
 export function dropSceneEntrySteps(get: Get, set: Set): void {
   const stack = get().suspendedCascades;
-  const isSceneEntry = (s: CascadeStep) => s.reveal?.kind === 'sceneEntry';
+  const isSceneEntry = (s: CascadeStep) => s.reveal?.kind === 'entreeEnScene';
   if (!stack.some((c) => c.participants.some(isSceneEntry))) return;
   const next = stack
     .map((c) => {

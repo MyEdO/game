@@ -26,60 +26,150 @@ size_flags_horizontal = 3
 mouse_filter = 2
 theme_type_variation = &"OssatureEnColonne"
 
-[node name="Scene" type="Control" parent="Interface/Ossature/Colonne"]
+[node name="Milieu" type="HBoxContainer" parent="Interface/Ossature/Colonne"]
 size_flags_vertical = 3
 mouse_filter = 2
+theme_type_variation = &"Ossature"
 
-[node name="Disposition" type="Node" parent="Interface/Ossature/Colonne/Scene"]
+[node name="Fiche" type="PanelContainer" parent="Interface/Ossature/Colonne/Milieu"]
+visible = false
+custom_minimum_size = Vector2(500, 0)
+theme = ExtResource("4_statbloc")
+theme_type_variation = &"Statbloc"
+
+[node name="Pile" type="VBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Fiche"]
+theme_type_variation = &"PileSerree"
+
+[node name="Tete" type="HBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Fiche/Pile"]
+
+[node name="Porteur" type="VBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Fiche/Pile/Tete"]
+size_flags_horizontal = 3
+
+[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Milieu/Fiche/Pile/Tete/Porteur" node_paths=PackedStringArray("masque")]
+script = ExtResource("1_zone")
+source = "fiche.porteur"
+masque = NodePath("../../../..")
+
+[node name="Fermer" type="VBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Fiche/Pile/Tete"]
+
+[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Milieu/Fiche/Pile/Tete/Fermer"]
+script = ExtResource("1_zone")
+source = "fiche.gestes"
+
+[node name="Defilement" type="ScrollContainer" parent="Interface/Ossature/Colonne/Milieu/Fiche/Pile"]
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="Statbloc" type="VBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Fiche/Pile/Defilement"]
+theme_type_variation = &"PileSerree"
+size_flags_horizontal = 3
+
+[node name="Profil" type="PanelContainer" parent="Interface/Ossature/Colonne/Milieu/Fiche/Pile/Defilement/Statbloc"]
+theme_type_variation = &"Profil"
+
+[node name="Colonnes" type="HFlowContainer" parent="Interface/Ossature/Colonne/Milieu/Fiche/Pile/Defilement/Statbloc/Profil"]
+theme_type_variation = &"FluxSerre"
+alignment = 1
+
+[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Milieu/Fiche/Pile/Defilement/Statbloc/Profil/Colonnes"]
+script = ExtResource("1_zone")
+source = "fiche.profil"
+
+[node name="Sections" type="TabContainer" parent="Interface/Ossature/Colonne/Milieu/Fiche/Pile/Defilement/Statbloc"]
+theme_type_variation = &"Onglets"
+
+[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Milieu/Fiche/Pile/Defilement/Statbloc/Sections"]
+script = ExtResource("1_zone")
+source = "fiche.sections"
+
+[node name="Source" type="VBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Fiche/Pile/Defilement/Statbloc"]
+
+[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Milieu/Fiche/Pile/Defilement/Statbloc/Source"]
+script = ExtResource("1_zone")
+source = "fiche.source"
+
+[node name="Objet" type="VBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Fiche/Pile"]
+
+[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Milieu/Fiche/Pile/Objet" node_paths=PackedStringArray("masque")]
+script = ExtResource("1_zone")
+source = "fiche.objet"
+masque = NodePath("..")
+
+[node name="Scene" type="Control" parent="Interface/Ossature/Colonne/Milieu"]
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="Disposition" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene"]
 script = ExtResource("2_disposition")
 
-[node name="Gauche" type="PanelContainer" parent="Interface/Ossature/Colonne/Scene"]
-visible = false
-custom_minimum_size = Vector2(300, 0)
-theme_type_variation = &"Panneau"
-
-[node name="Pile" type="VBoxContainer" parent="Interface/Ossature/Colonne/Scene/Gauche"]
-
-[node name="Actif" type="VBoxContainer" parent="Interface/Ossature/Colonne/Scene/Gauche/Pile"]
-
-[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Scene/Gauche/Pile/Actif" node_paths=PackedStringArray("masque")]
-script = ExtResource("1_zone")
-source = "combat.actif"
-masque = NodePath("../../..")
-
-[node name="Avis" type="VBoxContainer" parent="Interface/Ossature/Colonne/Scene/Gauche/Pile"]
-
-[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Scene/Gauche/Pile/Avis" node_paths=PackedStringArray("masque")]
-script = ExtResource("1_zone")
-source = "combat.avis"
-masque = NodePath("../../..")
-
-[node name="Haut" type="PanelContainer" parent="Interface/Ossature/Colonne/Scene"]
-visible = false
-anchors_preset = 5
-anchor_left = 0.5
-anchor_right = 0.5
+[node name="Hud" type="VBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 8.0
 offset_top = 8.0
+offset_right = -8.0
+offset_bottom = -8.0
 grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_type_variation = &"PileSerree"
+
+[node name="Haut" type="PanelContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Hud"]
+visible = false
 theme_type_variation = &"Panneau"
 
-[node name="Pile" type="VBoxContainer" parent="Interface/Ossature/Colonne/Scene/Haut"]
+[node name="Pile" type="VBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Hud/Haut"]
 
-[node name="Tour" type="VBoxContainer" parent="Interface/Ossature/Colonne/Scene/Haut/Pile"]
+[node name="Tour" type="VBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Hud/Haut/Pile"]
 
-[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Scene/Haut/Pile/Tour" node_paths=PackedStringArray("masque")]
+[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene/Hud/Haut/Pile/Tour" node_paths=PackedStringArray("masque")]
 script = ExtResource("1_zone")
 source = "combat.tour"
 masque = NodePath("../../..")
 
-[node name="Ordre" type="HBoxContainer" parent="Interface/Ossature/Colonne/Scene/Haut/Pile"]
+[node name="Ordre" type="ScrollContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Hud/Haut/Pile"]
+vertical_scroll_mode = 0
+
+[node name="Rangee" type="HBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Hud/Haut/Pile/Ordre"]
 theme_type_variation = &"RangeeSerree"
 
-[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Scene/Haut/Pile/Ordre"]
+[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene/Hud/Haut/Pile/Ordre/Rangee"]
 script = ExtResource("1_zone")
 source = "combat.ordre"
 
-[node name="Dialogue" type="PanelContainer" parent="Interface/Ossature/Colonne/Scene"]
+[node name="Gauche" type="PanelContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Hud"]
+visible = false
+custom_minimum_size = Vector2(360, 0)
+size_flags_horizontal = 0
+theme_type_variation = &"Panneau"
+
+[node name="Pile" type="VBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Hud/Gauche"]
+
+[node name="Actif" type="VBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Hud/Gauche/Pile"]
+
+[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene/Hud/Gauche/Pile/Actif" node_paths=PackedStringArray("masque")]
+script = ExtResource("1_zone")
+source = "combat.actif"
+masque = NodePath("../../..")
+
+[node name="Avis" type="VBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Hud/Gauche/Pile"]
+
+[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene/Hud/Gauche/Pile/Avis" node_paths=PackedStringArray("masque")]
+script = ExtResource("1_zone")
+source = "combat.avis"
+masque = NodePath("../../..")
+
+[node name="Tour" type="HFlowContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Hud/Gauche/Pile"]
+theme_type_variation = &"FluxSerre"
+
+[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene/Hud/Gauche/Pile/Tour" node_paths=PackedStringArray("masque")]
+script = ExtResource("1_zone")
+source = "combat.offres"
+masque = NodePath("../../..")
+ids = PackedStringArray("economie/aucun")
+
+[node name="Dialogue" type="PanelContainer" parent="Interface/Ossature/Colonne/Milieu/Scene"]
 visible = false
 custom_minimum_size = Vector2(660, 0)
 anchors_preset = 7
@@ -95,28 +185,28 @@ grow_horizontal = 2
 grow_vertical = 0
 theme_type_variation = &"Panneau"
 
-[node name="Pile" type="VBoxContainer" parent="Interface/Ossature/Colonne/Scene/Dialogue"]
+[node name="Pile" type="VBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Dialogue"]
 theme_type_variation = &"PileSerree"
 
-[node name="Orateur" type="VBoxContainer" parent="Interface/Ossature/Colonne/Scene/Dialogue/Pile"]
+[node name="Orateur" type="VBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Dialogue/Pile"]
 theme = ExtResource("3_titre")
 
-[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Scene/Dialogue/Pile/Orateur" node_paths=PackedStringArray("masque")]
+[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene/Dialogue/Pile/Orateur" node_paths=PackedStringArray("masque")]
 script = ExtResource("1_zone")
 source = "dialogue.orateur"
 masque = NodePath("../../..")
 
-[node name="Replique" type="VBoxContainer" parent="Interface/Ossature/Colonne/Scene/Dialogue/Pile"]
+[node name="Replique" type="VBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Dialogue/Pile"]
 
-[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Scene/Dialogue/Pile/Replique" node_paths=PackedStringArray("masque")]
+[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene/Dialogue/Pile/Replique" node_paths=PackedStringArray("masque")]
 script = ExtResource("1_zone")
 source = "dialogue.replique"
 masque = NodePath("../../..")
 
-[node name="Reponses" type="VBoxContainer" parent="Interface/Ossature/Colonne/Scene/Dialogue/Pile"]
+[node name="Reponses" type="VBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Dialogue/Pile"]
 theme_type_variation = &"PileSerree"
 
-[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Scene/Dialogue/Pile/Reponses" node_paths=PackedStringArray("masque")]
+[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene/Dialogue/Pile/Reponses" node_paths=PackedStringArray("masque")]
 script = ExtResource("1_zone")
 source = "dialogue.reponses"
 masque = NodePath("../../..")
@@ -128,7 +218,8 @@ theme_type_variation = &"Panneau"
 [node name="Pile" type="VBoxContainer" parent="Interface/Ossature/Colonne/Pied"]
 theme_type_variation = &"PileSerree"
 
-[node name="Offres" type="VBoxContainer" parent="Interface/Ossature/Colonne/Pied/Pile"]
+[node name="Offres" type="TabContainer" parent="Interface/Ossature/Colonne/Pied/Pile"]
+theme_type_variation = &"Onglets"
 
 [node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Pied/Pile/Offres" node_paths=PackedStringArray("masque")]
 script = ExtResource("1_zone")
@@ -142,14 +233,18 @@ script = ExtResource("1_zone")
 source = "exploration.gestes"
 masque = NodePath("../../..")
 
-[node name="Heros" type="HFlowContainer" parent="Interface/Ossature/Colonne/Pied/Pile"]
-theme_type_variation = &"Cartes"
+[node name="Heros" type="ScrollContainer" parent="Interface/Ossature/Colonne/Pied/Pile"]
+vertical_scroll_mode = 0
 theme = ExtResource("t_en_cartes")
 
-[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Pied/Pile/Heros" node_paths=PackedStringArray("masque")]
+[node name="Cartes" type="HBoxContainer" parent="Interface/Ossature/Colonne/Pied/Pile/Heros"]
+theme_type_variation = &"Cartes"
+size_flags_horizontal = 3
+
+[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Pied/Pile/Heros/Cartes" node_paths=PackedStringArray("masque")]
 script = ExtResource("1_zone")
 source = "groupe.heros"
-masque = NodePath("../../..")
+masque = NodePath("../../../..")
 
 [node name="Droite" type="PanelContainer" parent="Interface/Ossature"]
 custom_minimum_size = Vector2(300, 0)
@@ -197,81 +292,6 @@ mouse_filter = 2
 script = ExtResource("1_zone")
 source = "combat.apercu"
 masque = NodePath("../..")
-
-[node name="Fiche" type="PanelContainer" parent="Interface"]
-visible = false
-custom_minimum_size = Vector2(720, 560)
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -360.0
-offset_top = -290.0
-offset_right = 360.0
-offset_bottom = 270.0
-grow_horizontal = 2
-grow_vertical = 2
-theme = ExtResource("4_statbloc")
-theme_type_variation = &"Statbloc"
-
-[node name="Pile" type="VBoxContainer" parent="Interface/Fiche"]
-theme_type_variation = &"PileSerree"
-
-[node name="Tete" type="HBoxContainer" parent="Interface/Fiche/Pile"]
-
-[node name="Porteur" type="VBoxContainer" parent="Interface/Fiche/Pile/Tete"]
-size_flags_horizontal = 3
-
-[node name="Zone" type="Node" parent="Interface/Fiche/Pile/Tete/Porteur" node_paths=PackedStringArray("masque")]
-script = ExtResource("1_zone")
-source = "fiche.porteur"
-masque = NodePath("../../../..")
-
-[node name="Fermer" type="VBoxContainer" parent="Interface/Fiche/Pile/Tete"]
-
-[node name="Zone" type="Node" parent="Interface/Fiche/Pile/Tete/Fermer"]
-script = ExtResource("1_zone")
-source = "fiche.gestes"
-
-[node name="Defilement" type="ScrollContainer" parent="Interface/Fiche/Pile"]
-size_flags_vertical = 3
-horizontal_scroll_mode = 0
-
-[node name="Statbloc" type="VBoxContainer" parent="Interface/Fiche/Pile/Defilement"]
-theme_type_variation = &"PileSerree"
-size_flags_horizontal = 3
-
-[node name="Profil" type="PanelContainer" parent="Interface/Fiche/Pile/Defilement/Statbloc"]
-theme_type_variation = &"Profil"
-
-[node name="Colonnes" type="HFlowContainer" parent="Interface/Fiche/Pile/Defilement/Statbloc/Profil"]
-theme_type_variation = &"FluxSerre"
-alignment = 1
-
-[node name="Zone" type="Node" parent="Interface/Fiche/Pile/Defilement/Statbloc/Profil/Colonnes"]
-script = ExtResource("1_zone")
-source = "fiche.profil"
-
-[node name="Sections" type="VBoxContainer" parent="Interface/Fiche/Pile/Defilement/Statbloc"]
-theme_type_variation = &"PileSerree"
-
-[node name="Zone" type="Node" parent="Interface/Fiche/Pile/Defilement/Statbloc/Sections"]
-script = ExtResource("1_zone")
-source = "fiche.sections"
-
-[node name="Source" type="VBoxContainer" parent="Interface/Fiche/Pile/Defilement/Statbloc"]
-
-[node name="Zone" type="Node" parent="Interface/Fiche/Pile/Defilement/Statbloc/Source"]
-script = ExtResource("1_zone")
-source = "fiche.source"
-
-[node name="Objet" type="VBoxContainer" parent="Interface/Fiche/Pile"]
-
-[node name="Zone" type="Node" parent="Interface/Fiche/Pile/Objet" node_paths=PackedStringArray("masque")]
-script = ExtResource("1_zone")
-source = "fiche.objet"
-masque = NodePath("..")
 
 [node name="Creation" type="PanelContainer" parent="Interface"]
 visible = false

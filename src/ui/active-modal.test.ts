@@ -32,7 +32,7 @@ describe('pickActiveModalKey — priorité des modales de combat', () => {
     // pendingDefense SEUL (sans cascade) → aucune entrée 'defense' → null. La SITUATION est portée
     // par la cascade-hôte ouverte par maybeOpenDefense (CascadeModal → useDefenseJetProps).
     expect(pickActiveModalKey({ pendingDefense: {} })).toBeNull();
-    const defCascade = cascadeDeTest([{ id: 'd', kind: 'defenseJet', jet: 'defense', actorId: 'h1' }]);
+    const defCascade = cascadeDeTest([{ id: 'd', kind: 'jetDeDefense', jet: 'defense', actorId: 'h1' }]);
     expect(pickActiveModalKey({ battle, pendingDefense: defense, pendingCascade: defCascade })).toBe('cascade');
     // Défense réactive (cascade) l'emporte sur le jet d'attaque du joueur : `cascade` avant `attack` au registre.
     expect(pickActiveModalKey({ battle, pendingDefense: defense, pendingCascade: defCascade, pendingAttack: attaque })).toBe('cascade');
@@ -41,7 +41,7 @@ describe('pickActiveModalKey — priorité des modales de combat', () => {
   it('la révélation n’est PLUS une modale propre : c’est une ÉTAPE d’AFFICHAGE de la cascade', () => {
     // Elle ne PRÉEMPTE plus rien par l’ordre du registre (#942 L8) : servie à son rang dans la
     // séquence, la clé rendue reste 'cascade' — même quand un pendingDefense coexiste.
-    const revCascade = cascadeDeTest([{ id: 'r', kind: 'critical', reveal: { kind: 'critical', title: 'x', lines: [] }, actorId: 'h1' }]);
+    const revCascade = cascadeDeTest([{ id: 'r', kind: 'critique', reveal: { kind: 'critique', title: 'x', lines: [] }, actorId: 'h1' }]);
     expect(pickActiveModalKey({ pendingCascade: revCascade })).toBe('cascade');
     expect(pickActiveModalKey({ pendingDefense: {}, pendingCascade: revCascade })).toBe('cascade');
   });
@@ -56,7 +56,7 @@ describe('pickActiveModalKey — priorité des modales de combat', () => {
     // Sans cascade fumble → la Corruption l'emporte (la Maladresse n'existe QUE comme étape de cascade).
     expect(pickActiveModalKey({ pendingCorruption: {} })).toBe('corruption');
     // Cascade portant une étape `jet:'maladresse'` (donnée SUR l'étape `step.maladresse`) → 'cascade' (avant 'corruption').
-    const fumbleCascade = cascadeDeTest([{ id: 'f', kind: 'fumbleJet', jet: 'maladresse', actorId: 'h1', maladresse: { weapon: {} as Weapon, result: null } }]);
+    const fumbleCascade = cascadeDeTest([{ id: 'f', kind: 'jetDeMaladresse', jet: 'maladresse', actorId: 'h1', maladresse: { weapon: {} as Weapon, result: null } }]);
     expect(pickActiveModalKey({ battle, pendingCascade: fumbleCascade, pendingCorruption: {} })).toBe('cascade');
   });
 
@@ -69,7 +69,7 @@ describe('pickActiveModalKey — priorité des modales de combat', () => {
     // pendingAttack SEUL (sans cascade) → aucune entrée 'attack' → null. TOUS les chemins d'attaque
     // ouvrent une cascade (Charge incluse) ; cleave/dual réutilisent celle déjà ouverte.
     expect(pickActiveModalKey({ pendingAttack: {} })).toBeNull();
-    const atkCascade = cascadeDeTest([{ id: 'a', kind: 'attackJet', jet: 'attaque', actorId: 'h1' }]);
+    const atkCascade = cascadeDeTest([{ id: 'a', kind: 'jetDAttaque', jet: 'attaque', actorId: 'h1' }]);
     expect(pickActiveModalKey({ battle, pendingAttack: attaque, pendingCascade: atkCascade })).toBe('cascade');
     // Acteurs absents du combat : l'étape n'a aucun corps à rendre, l'arbitre ne l'élit pas (`sansCorps`).
     expect(pickActiveModalKey({ pendingAttack: attaque, pendingCascade: atkCascade })).toBeNull();

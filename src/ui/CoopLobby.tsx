@@ -104,17 +104,17 @@ export function CoopLobby() {
     );
   }
 
-  if (net.mode === 'guest') {
+  if (net.mode === 'invite') {
     return (
       <CoopShell title={t("coop.title.guest")} backLabel={t("coop.back.quit")} onBack={() => { leave(); setScreen('menu'); }}>
         <CoopSection title={<>Partie {net.roomCode}</>}>
           <CoopSeatList />
         </CoopSection>
         <Row className="hint" gap="xs" justify="center">
-          <Icon id={net.connection === 'reconnecting' ? 'coop/away' : 'ui/wait'} size="sm" />
-          {net.hostAway ? t("coop.guest.waiting.hostAway")
-            : net.connection === 'reconnecting' ? t("coop.guest.waiting.reconnecting")
-            : t("coop.guest.waiting.default")}
+          <Icon id={net.connection === 'reconnexion' ? 'coop/away' : 'ui/wait'} size="sm" />
+          {net.hostAway ? t("coop.invite.attente.hoteAbsent")
+            : net.connection === 'reconnexion' ? t("coop.invite.attente.reconnexion")
+            : t("coop.invite.attente.defaut")}
         </Row>
       </CoopShell>
     );

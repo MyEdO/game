@@ -106,7 +106,7 @@ describe('le verdict de la barre : chaque geste refusé le dit, et ne change rie
 describe('coop : un siège qui ne pilote pas l’actif est refusé, et le refus est dit', () => {
   it.each(GESTES)('%s', (_v, geste) => {
     enBataille();
-    banc.setState({ net: { ...initialNet(), mode: 'host', mySeat: 0, gmSeat: undefined, ownership: { a: 1, b: 0 }, slots: [1, 1, 0, 0], seatNames: { 0: 'Hôte', 1: 'Invité' } } });
+    banc.setState({ net: { ...initialNet(), mode: 'hote', mySeat: 0, gmSeat: undefined, ownership: { a: 1, b: 0 }, slots: [1, 1, 0, 0], seatNames: { 0: 'Hôte', 1: 'Invité' } } });
     const avant = empreinte();
     geste();
     expect([refus(), empreinte()]).toEqual([t('barre.nonPilote', { name: 'A' }), avant]);

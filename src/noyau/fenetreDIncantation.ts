@@ -87,7 +87,7 @@ export interface FenetreDIncantation {
   crans: ChoixNomme<number>[];
   /** La pose de la zone après le jet (`jetRegler('incantation', 'carte', 'zone')`) : la raison qui la refuse ; `null` sans zone à poser. */
   pose: { refus: string | null } | null;
-  /** Les fermetures du flux `incantation` (`FLOWS.cast.fermetures`). */
+  /** Les fermetures du flux `incantation` (`FLOWS.incantation.fermetures`). */
   fermetures: FermeturesDuJet;
   /** Pourquoi l'annulation est refusée (`fermetures.cancel`), `null` si elle est offerte. */
   annulation: string | null;

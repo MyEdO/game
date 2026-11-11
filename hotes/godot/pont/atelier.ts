@@ -9,7 +9,7 @@
  * garde-robe, où vont ses éléments liés au `squelette` ou en `surface` et ses accessoires, rigides compris ; le fichier GLB de chaque élément servi
  * (`fichiersDuModele`) et le libellé de la chose qu'il porte ; les surfaces de chaque base et de chaque élément servi
  * (`asset/surfaces.ts`), où se posent au montage la palette de la composition et les emblèmes de la garde-robe (#3111) ;
- * la table rôle → clip de chaque base et la vitesse au sol de son rôle `walk` ; chaque véhicule servi, élément sans base
+ * la table rôle → clip de chaque base et la vitesse au sol de son rôle `marche` ; chaque véhicule servi, élément sans base
  * (#2987), sous la fiche que nomme sa clé `definition` ; le rapport de l'index, dont l'élément n'est servi nulle part.
  * Monté, un véhicule porte ses pièces aux postes en vigueur (`postesEnVigueur`), celles de ses Améliorations, et cache
  * les nœuds que ses Améliorations montées ou non changent (`noeudsCaches`).
@@ -54,7 +54,7 @@ export interface ModelesDeLAtelier {
    *  ligne au plus : un accessoire `rigide` va à la ligne de son emplacement, que la base ou l'une de ses pièces
    *  l'offre (le plumet au `cimier` du casque), jamais à un point. `empreinte` vaut `glb.sha256` de la base. `clips`
    *  vaut la table rôle → clip de la base (`clips` du manifeste, « Gabarit d'une base ») et `vitesseAuSol` la vitesse
-   *  au sol en m/s de son clip du rôle `walk` (`appuis.vitesseAuSol`). */
+   *  au sol en m/s de son clip du rôle `marche` (`appuis.vitesseAuSol`). */
   bases: BaseDeLAtelier[];
   /** le fichier, sous `modeles/`, de chaque base et de chaque élément servi, à un point, à une ligne ou en véhicule
    *  (`fichiersDuModele(id).glb`). */
@@ -149,7 +149,7 @@ export interface BaseDeLAtelier {
   /** par maniement, le clip de chaque rôle qu'elle joue en tenant des deux mains un objet de ce maniement
    *  (`ManifesteDeBase.clipsDeuxMains`), vide sans table. */
   clipsDeuxMains: NonNullable<ManifesteDeBase['clipsDeuxMains']>;
-  /** la vitesse au sol en m/s du clip du rôle `walk` (`ManifesteDeBase.appuis.vitesseAuSol`). */
+  /** la vitesse au sol en m/s du clip du rôle `marche` (`ManifesteDeBase.appuis.vitesseAuSol`). */
   vitesseAuSol: number;
   /** les os de ses chaînes (`ManifesteDeBase.chaines`, section « Pile des couches »). */
   osDeChaine: string[];

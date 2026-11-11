@@ -33,7 +33,7 @@ import { validTargets, preemptShooterIds } from '../../noyau/targeting';
 import type { ScreenDir } from '../combatCursor';
 import { combatantAtTile } from '../../noyau/monde/combatGeometry';
 import { SEUIL_MAINTIEN_MS, arreterLacet, demarrerLacet, pasYaw } from '../stageYaw';
-import { arreterMarche, demarrerMarche } from '../stageWalk';
+import { arreterMarche, demarrerMarche, type PasTenu } from '../stageWalk';
 import { clearTrackedTimer, scheduleFlowTimer } from '../../web/minuteries';
 import { t, type MsgKey } from '../../i18n';
 import type { VerrouDesMots } from '../../noyau/fabriquesDuNoyau';
@@ -46,17 +46,17 @@ export const CODE_ECHAP = 'Escape';
 
 /** Section d'affichage de l'écran Options (remap) — REGROUPE les raccourcis par contexte de jeu.
  *  Purement présentationnel (le `when` de chaque binding reste l'unique arbitre d'exécution). */
-export type KeyBindingSection = 'pov' | 'camera' | 'combat' | 'curseur' | 'hotbar' | 'exploration' | 'dialogue' | 'systeme' | 'editeur';
+export type KeyBindingSection = 'subjectif' | 'camera' | 'combat' | 'curseur' | 'capacite' | 'exploration' | 'dialogue' | 'systeme' | 'editeur';
 const KEY_SECTION_KEY: Record<KeyBindingSection, MsgKey> = {
-  pov: 'key.section.pov',
-  camera: 'key.section.camera',
-  combat: 'key.section.combat',
-  curseur: 'key.section.curseur',
-  hotbar: 'key.section.hotbar',
-  exploration: 'key.section.exploration',
-  dialogue: 'key.section.dialogue',
-  systeme: 'key.section.systeme',
-  editeur: 'key.section.editeur',
+  subjectif: 'raccourci.section.subjectif',
+  camera: 'raccourci.section.camera',
+  combat: 'raccourci.section.combat',
+  curseur: 'raccourci.section.curseur',
+  capacite: 'raccourci.section.capacite',
+  exploration: 'raccourci.section.exploration',
+  dialogue: 'raccourci.section.dialogue',
+  systeme: 'raccourci.section.systeme',
+  editeur: 'raccourci.section.editeur',
 };
 
 /** Libellé d'une section de l'écran Options, résolu À L'APPEL (la carte ci-dessus porte des clés). */
@@ -142,6 +142,14 @@ export type IdDeRaccourci =
 /** VERROU : un id de raccourci ne prend que des mots du lexique (#3924), ses rangs de chiffre à part. */
 const verrouDesRaccourcis: VerrouDesMots<IdDeRaccourci> = true;
 void verrouDesRaccourcis;
+/** VERROU : une vue de marche ne prend que des mots du lexique (#3928). */
+const verrouDesVues: VerrouDesMots<PasTenu['vue']> = true;
+void verrouDesVues;
+/** Une clé de libellé, ses segments joints par des tirets. */
+type Segments<S extends string> = S extends `${infer A}.${infer B}` ? `${A}-${Segments<B>}` : S;
+/** VERROU : une section et une clé de libellé de raccourci (`raccourci.*`) ne prennent que des mots du lexique (#3928). */
+const verrouDesLibellesDeRaccourci: [VerrouDesMots<KeyBindingSection>, VerrouDesMots<Segments<Extract<MsgKey, `raccourci.${string}`>>>] = [true, true];
+void verrouDesLibellesDeRaccourci;
 
 export interface KeyBinding {
   id: IdDeRaccourci;
@@ -262,28 +270,28 @@ export const cibleDInspection = (s: GameState): string | null => {
 /** Pas clavier d'exploration ISO (ZQSD) : code physique → direction ÉCRAN. Réservé à la vue iso (hors POV,
  *  où ces mêmes touches sont cap-relatives — cf. `exploringPov` ci-dessus, résolu AVANT par ordre de tableau). */
 const EXPLORE_STEP: { code: string; dir: ScreenDir; labelKey: MsgKey; povId: IdDeRaccourci }[] = [
-  { code: 'KeyW', dir: 'up', labelKey: 'key.exploreUp', povId: 'subjectif-avant' },
-  { code: 'KeyS', dir: 'down', labelKey: 'key.exploreDown', povId: 'subjectif-arriere' },
-  { code: 'KeyA', dir: 'left', labelKey: 'key.exploreLeft', povId: 'subjectif-gauche' },
-  { code: 'KeyD', dir: 'right', labelKey: 'key.exploreRight', povId: 'subjectif-droite' },
+  { code: 'KeyW', dir: 'up', labelKey: 'raccourci.explorationHaut', povId: 'subjectif-avant' },
+  { code: 'KeyS', dir: 'down', labelKey: 'raccourci.explorationBas', povId: 'subjectif-arriere' },
+  { code: 'KeyA', dir: 'left', labelKey: 'raccourci.explorationGauche', povId: 'subjectif-gauche' },
+  { code: 'KeyD', dir: 'right', labelKey: 'raccourci.explorationDroite', povId: 'subjectif-droite' },
 ];
 /** Pas clavier d'exploration en vue SUBJECTIVE (ZQSD cap-relatifs) : mêmes touches physiques, autre
  *  vocabulaire de direction — un seul mécanisme de marche tenue pour les deux vues (`stageWalk`). */
 const POV_STEP: { id: IdDeRaccourci; code: string; rel: PasRelatif; labelKey: MsgKey; isoId: IdDeRaccourci }[] = [
-  { id: 'subjectif-avant', code: 'KeyW', rel: 'avant', labelKey: 'key.povForward', isoId: 'exploration-haut' },
-  { id: 'subjectif-arriere', code: 'KeyS', rel: 'arriere', labelKey: 'key.povBack', isoId: 'exploration-bas' },
-  { id: 'subjectif-gauche', code: 'KeyA', rel: 'gauche', labelKey: 'key.povStrafeL', isoId: 'exploration-gauche' },
-  { id: 'subjectif-droite', code: 'KeyD', rel: 'droite', labelKey: 'key.povStrafeR', isoId: 'exploration-droite' },
+  { id: 'subjectif-avant', code: 'KeyW', rel: 'avant', labelKey: 'raccourci.subjectifAvant', isoId: 'exploration-haut' },
+  { id: 'subjectif-arriere', code: 'KeyS', rel: 'arriere', labelKey: 'raccourci.subjectifArriere', isoId: 'exploration-bas' },
+  { id: 'subjectif-gauche', code: 'KeyA', rel: 'gauche', labelKey: 'raccourci.subjectifGauche', isoId: 'exploration-gauche' },
+  { id: 'subjectif-droite', code: 'KeyD', rel: 'droite', labelKey: 'raccourci.subjectifDroite', isoId: 'exploration-droite' },
 ];
 
 /** Contexte de l'ÉDITEUR de scène — le hook est monté au niveau application, l'écran arbitre. */
 const enEditeur = (s: GameState) => s.screen === 'editor';
 /** Décalage de la sélection d'une case, au sens ÉCRAN (mêmes flèches que le curseur de combat). */
 const EDITEUR_NUDGE: { dir: ScreenDir; code: string; dx: number; dy: number; labelKey: MsgKey; curseurId: IdDeRaccourci }[] = [
-  { dir: 'up', code: 'ArrowUp', dx: 0, dy: -1, labelKey: 'key.editeurNudgeUp', curseurId: 'curseur-haut' },
-  { dir: 'down', code: 'ArrowDown', dx: 0, dy: 1, labelKey: 'key.editeurNudgeDown', curseurId: 'curseur-bas' },
-  { dir: 'left', code: 'ArrowLeft', dx: -1, dy: 0, labelKey: 'key.editeurNudgeLeft', curseurId: 'curseur-gauche' },
-  { dir: 'right', code: 'ArrowRight', dx: 1, dy: 0, labelKey: 'key.editeurNudgeRight', curseurId: 'curseur-droite' },
+  { dir: 'up', code: 'ArrowUp', dx: 0, dy: -1, labelKey: 'raccourci.editeurDecalerHaut', curseurId: 'curseur-haut' },
+  { dir: 'down', code: 'ArrowDown', dx: 0, dy: 1, labelKey: 'raccourci.editeurDecalerBas', curseurId: 'curseur-bas' },
+  { dir: 'left', code: 'ArrowLeft', dx: -1, dy: 0, labelKey: 'raccourci.editeurDecalerGauche', curseurId: 'curseur-gauche' },
+  { dir: 'right', code: 'ArrowRight', dx: 1, dy: 0, labelKey: 'raccourci.editeurDecalerDroite', curseurId: 'curseur-droite' },
 ];
 
 export const KEYBINDINGS: KeyBinding[] = [
@@ -291,28 +299,28 @@ export const KEYBINDINGS: KeyBinding[] = [
   //    tant que `povActive`, ces raccourcis GAGNENT (ZQSD cap-relatif, A/E pivotent le regard) ; hors POV
   //    `exploringPov` est faux → cam-* et pas-iso reprennent la main. `subjectif-basculer` (F) commute la vue. ──
   ...POV_STEP.map(({ id, code, rel, labelKey, isoId }): KeyBinding => ({
-    id, codes: [code], labelKey, section: 'pov', sharedBy: [isoId], when: exploringPov,
-    run: (g) => demarrerMarche(g, { vue: 'pov', rel }), runUp: () => arreterMarche({ vue: 'pov', rel }),
+    id, codes: [code], labelKey, section: 'subjectif', sharedBy: [isoId], when: exploringPov,
+    run: (g) => demarrerMarche(g, { vue: 'subjectif', rel }), runUp: () => arreterMarche({ vue: 'subjectif', rel }),
   })),
-  { id: 'subjectif-pivot-gauche', codes: ['KeyQ'], labelKey: 'key.povTurnL', section: 'pov', sharedBy: ['camera-gauche', 'editeur-pivot-gauche'], when: exploringPov, unePression: true, run: (g) => g().pivoterLeGroupe(-1) },
-  { id: 'subjectif-pivot-droite', codes: ['KeyE'], labelKey: 'key.povTurnR', section: 'pov', sharedBy: ['camera-droite', 'editeur-pivot-droite'], when: exploringPov, unePression: true, run: (g) => g().pivoterLeGroupe(1) },
-  { id: 'subjectif-basculer', codes: ['KeyF'], labelKey: 'key.togglePov', section: 'pov', when: exploring, run: (g) => g().togglePov() },
+  { id: 'subjectif-pivot-gauche', codes: ['KeyQ'], labelKey: 'raccourci.subjectifPivotGauche', section: 'subjectif', sharedBy: ['camera-gauche', 'editeur-pivot-gauche'], when: exploringPov, unePression: true, run: (g) => g().pivoterLeGroupe(-1) },
+  { id: 'subjectif-pivot-droite', codes: ['KeyE'], labelKey: 'raccourci.subjectifPivotDroite', section: 'subjectif', sharedBy: ['camera-droite', 'editeur-pivot-droite'], when: exploringPov, unePression: true, run: (g) => g().pivoterLeGroupe(1) },
+  { id: 'subjectif-basculer', codes: ['KeyF'], labelKey: 'raccourci.subjectifBasculer', section: 'subjectif', when: exploring, run: (g) => g().togglePov() },
   // `when` : l'ÉCRAN DE JEU. Le hook est monté au niveau application (tous les écrans) — la caméra du
   // jeu ne tourne donc pas depuis l'éditeur, qui a la sienne sur les mêmes touches physiques.
-  { id: 'camera-gauche', codes: ['KeyQ'], labelKey: 'key.camLeft', section: 'camera', sharedBy: ['subjectif-pivot-gauche', 'editeur-pivot-gauche'], when: (s) => s.screen === 'campaign', run: (g) => tournerCamera(g, -1), runUp: () => relacherCamera() },
-  { id: 'camera-droite', codes: ['KeyE'], labelKey: 'key.camRight', section: 'camera', sharedBy: ['subjectif-pivot-droite', 'editeur-pivot-droite'], when: (s) => s.screen === 'campaign', run: (g) => tournerCamera(g, 1), runUp: () => relacherCamera() },
+  { id: 'camera-gauche', codes: ['KeyQ'], labelKey: 'raccourci.cameraGauche', section: 'camera', sharedBy: ['subjectif-pivot-gauche', 'editeur-pivot-gauche'], when: (s) => s.screen === 'campaign', run: (g) => tournerCamera(g, -1), runUp: () => relacherCamera() },
+  { id: 'camera-droite', codes: ['KeyE'], labelKey: 'raccourci.cameraDroite', section: 'camera', sharedBy: ['subjectif-pivot-droite', 'editeur-pivot-droite'], when: (s) => s.screen === 'campaign', run: (g) => tournerCamera(g, 1), runUp: () => relacherCamera() },
   // Recentrer : le panoramique manuel ET le zoom reviennent au repos d'un seul geste. Le zoom y est
   // joint parce que la molette avance par incréments continus (`useStageCamera`, `deltaY × 0.0015`) —
   // aucune suite de crans ne retombe exactement sur 1. Hors combat le focal est le leader du groupe
   // (`stageFocus`), en combat l'unité active : `resetCamPan` suffit dans les deux cas.
-  { id: 'camera-recentrer', codes: ['KeyC'], labelKey: 'key.camRecenter', section: 'camera', when: (s) => s.screen === 'campaign', run: (g) => { g().resetCamPan(); g().setZoom(1); } },
+  { id: 'camera-recentrer', codes: ['KeyC'], labelKey: 'raccourci.cameraRecentrer', section: 'camera', when: (s) => s.screen === 'campaign', run: (g) => { g().resetCamPan(); g().setZoom(1); } },
   // Vue ISO ⇄ TOP au clavier. Muette en POV : la vue subjective a sa propre bascule (`subjectif-basculer`).
-  { id: 'vue-basculer', codes: ['KeyV'], labelKey: 'key.toggleView', section: 'camera', when: (s) => s.screen === 'campaign' && !s.povActive, run: (g) => g().toggleViewMode() },
+  { id: 'vue-basculer', codes: ['KeyV'], labelKey: 'raccourci.vueBasculer', section: 'camera', when: (s) => s.screen === 'campaign' && !s.povActive, run: (g) => g().toggleViewMode() },
   // RÉVÉLER les utilisables (#1687) : geste MAINTENU sur les deux positions d'Alt — il dure ce que dure
   // l'appui, en exploration comme en combat (ce que le monde offre ne dépend pas du mode). L'état qu'il
   // pose est lu par les halos et les plaques de nom (`builders/interactHalos`, `stage/PlaquesDeNom`).
   {
-    id: 'decor-reveler', codes: ['AltLeft', 'AltRight'], mods: [], labelKey: 'key.reveler', section: 'exploration',
+    id: 'decor-reveler', codes: ['AltLeft', 'AltRight'], mods: [], labelKey: 'raccourci.decorReveler', section: 'exploration',
     when: (s) => exploring(s) || inBattle(s),
     run: (g) => g().setReveler(true), runUp: (g) => g().setReveler(false),
   },
@@ -326,14 +334,14 @@ export const KEYBINDINGS: KeyBinding[] = [
   // Menu sur un portrait) — elle ouvre la fiche de ce que le joueur désigne, en combat comme hors
   // combat (`cibleDInspection`). La manette l'atteint par R3 (`ui/useGamepad`).
   {
-    id: 'inspecter', codes: ['KeyI'], labelKey: 'key.inspecter', section: 'exploration',
+    id: 'inspecter', codes: ['KeyI'], labelKey: 'raccourci.inspecter', section: 'exploration',
     when: (s) => !!cibleDInspection(s),
     run: (g) => { const id = cibleDInspection(g()); if (id) g().setInspectId(id); },
   },
   // Commuter le SET d'armes au poing (LDB 13 l.106) : la touche FAIT TOURNER les sets de la colonne de la
   // console, dans l'ordre où ils y sont dessinés. Sa garde EST le gate du registre (`set-commutable`).
   {
-    id: 'panoplie-changer', codes: ['KeyX'], labelKey: 'key.switchLoadout', section: 'combat',
+    id: 'panoplie-changer', codes: ['KeyX'], labelKey: 'raccourci.panoplieChanger', section: 'combat',
     when: (s) => {
       if (!cur(s)) return false;
       const active = activeCombatant(s.battle!);
@@ -365,7 +373,7 @@ export const KEYBINDINGS: KeyBinding[] = [
   // éligible (puis cycle les suivants, puis désarme) et pose le curseur sur la cible la plus proche → flèches/Tab
   // visent, Entrée TIRE, Échap annule. Réutilise le curseur de combat existant (aucun chemin parallèle).
   {
-    id: 'tir-rapide-armer', codes: ['KeyT'], labelKey: 'key.preemptArm', section: 'combat',
+    id: 'tir-rapide-armer', codes: ['KeyT'], labelKey: 'raccourci.tirRapideArmer', section: 'combat',
     when: (s) => inBattle(s) && !!s.pendingRoundStart && preemptShooterIds(() => s).length > 0,
     run: (g) => {
       const shooters = preemptShooterIds(g);
@@ -382,19 +390,19 @@ export const KEYBINDINGS: KeyBinding[] = [
   //    court AVEC lui sur la même touche — le ↓ qui devait ouvrir la porte de la fiche déplaçait
   //    aussi la visée (recette B3a, capture 04). Même doctrine que `debut-de-round`/`fin-de-tour` pour
   //    Espace/Entrée, étendue aux flèches : la touche appartient au contrôle qui a le focus.
-  { id: 'curseur-haut', codes: ['ArrowUp'], labelKey: 'key.cursorUp', section: 'curseur', notWhenControlFocused: true, sharedBy: ['editeur-decaler-haut'], when: curOrPreempt, run: (g) => g().moveCursor('up') },
-  { id: 'curseur-bas', codes: ['ArrowDown'], labelKey: 'key.cursorDown', section: 'curseur', notWhenControlFocused: true, sharedBy: ['editeur-decaler-bas'], when: curOrPreempt, run: (g) => g().moveCursor('down') },
-  { id: 'curseur-gauche', codes: ['ArrowLeft'], labelKey: 'key.cursorLeft', section: 'curseur', notWhenControlFocused: true, sharedBy: ['editeur-decaler-gauche'], when: curOrPreempt, run: (g) => g().moveCursor('left') },
-  { id: 'curseur-droite', codes: ['ArrowRight'], labelKey: 'key.cursorRight', section: 'curseur', notWhenControlFocused: true, sharedBy: ['editeur-decaler-droite'], when: curOrPreempt, run: (g) => g().moveCursor('right') },
+  { id: 'curseur-haut', codes: ['ArrowUp'], labelKey: 'raccourci.curseurHaut', section: 'curseur', notWhenControlFocused: true, sharedBy: ['editeur-decaler-haut'], when: curOrPreempt, run: (g) => g().moveCursor('up') },
+  { id: 'curseur-bas', codes: ['ArrowDown'], labelKey: 'raccourci.curseurBas', section: 'curseur', notWhenControlFocused: true, sharedBy: ['editeur-decaler-bas'], when: curOrPreempt, run: (g) => g().moveCursor('down') },
+  { id: 'curseur-gauche', codes: ['ArrowLeft'], labelKey: 'raccourci.curseurGauche', section: 'curseur', notWhenControlFocused: true, sharedBy: ['editeur-decaler-gauche'], when: curOrPreempt, run: (g) => g().moveCursor('left') },
+  { id: 'curseur-droite', codes: ['ArrowRight'], labelKey: 'raccourci.curseurDroite', section: 'curseur', notWhenControlFocused: true, sharedBy: ['editeur-decaler-droite'], when: curOrPreempt, run: (g) => g().moveCursor('right') },
   // Tab : aimante le curseur sur la cible valide suivante (cycle proche→loin) ; gardé sur ≥1 cible
   // (sinon Tab garde sa nav normale). `²/~` = cible précédente.
   {
-    id: 'cible-suivante', codes: ['Tab'], labelKey: 'key.targetNext', section: 'curseur',
+    id: 'cible-suivante', codes: ['Tab'], labelKey: 'raccourci.cibleSuivante', section: 'curseur',
     when: (s) => curOrPreempt(s) && validTargets(() => s).length > 0,
     run: (g) => g().snapCursorToTarget(1),
   },
   {
-    id: 'cible-precedente', codes: ['Backquote'], labelKey: 'key.targetPrev', section: 'curseur',
+    id: 'cible-precedente', codes: ['Backquote'], labelKey: 'raccourci.ciblePrecedente', section: 'curseur',
     when: (s) => curOrPreempt(s) && validTargets(() => s).length > 0,
     run: (g) => g().snapCursorToTarget(-1),
   },
@@ -407,30 +415,30 @@ export const KEYBINDINGS: KeyBinding[] = [
   // « Pousser ») pour ENTRER dans le mode-CASE masquait `curseur-valider` : Entrée retombait sur
   // l'activation native du bouton encore focalisé (qui ferme le mode, aucune poussée commise).
   {
-    id: 'curseur-valider', codes: ['Enter', 'NumpadEnter'], labelKey: 'key.cursorCommit', section: 'curseur', sharedBy: ['debut-de-round', 'fin-de-tour'],
+    id: 'curseur-valider', codes: ['Enter', 'NumpadEnter'], labelKey: 'raccourci.curseurValider', section: 'curseur', sharedBy: ['debut-de-round', 'fin-de-tour'],
     when: (s) => curOrPreempt(s) && !!s.combatCursor,
     run: (g) => g().commitCursor(),
   },
   // INTENTION armée depuis l'interface (spec HUD zone 4) : Échap la dissout AVANT tout autre usage de
   // la touche — c'est l'annulation la plus récente, celle que le joueur vient d'ouvrir.
   {
-    id: 'intention-annuler', codes: [CODE_ECHAP], labelKey: 'key.intentCancel', section: 'combat', sharedBy: ['curseur-annuler', 'apercu-effacer', 'menu-ouvrir', 'interlude-sortie', 'mode-desarmer', 'editeur-echap'],
+    id: 'intention-annuler', codes: [CODE_ECHAP], labelKey: 'raccourci.intentionAnnuler', section: 'combat', sharedBy: ['curseur-annuler', 'apercu-effacer', 'menu-ouvrir', 'interlude-sortie', 'mode-desarmer', 'editeur-echap'],
     when: (s) => !!s.localIntent,
     run: (g) => g().desarmerLeMode(),
   },
   {
-    id: 'curseur-annuler', codes: [CODE_ECHAP], labelKey: 'key.cursorCancel', section: 'curseur', sharedBy: ['apercu-effacer', 'menu-ouvrir', 'intention-annuler', 'interlude-sortie', 'mode-desarmer', 'editeur-echap'],
+    id: 'curseur-annuler', codes: [CODE_ECHAP], labelKey: 'raccourci.curseurAnnuler', section: 'curseur', sharedBy: ['apercu-effacer', 'menu-ouvrir', 'intention-annuler', 'interlude-sortie', 'mode-desarmer', 'editeur-echap'],
     when: (s) => !!s.combatCursor || preemptCur(s), // armé sans cible en vue : Échap désarme quand même le Tir rapide
     run: (g) => { if (g().preemptAiming) g().fenetreChoisir('debutDuRound', 'viser', null); g().clearCursor(); if (g().battle?.preview) g().effacerLApercu(); },
   },
   {
-    id: 'fin-de-tour', codes: ['Space', 'Enter', 'NumpadEnter'], labelKey: 'key.endTurn', section: 'combat', notWhenControlFocused: true, sharedBy: ['debut-de-round', 'curseur-valider', 'editeur-panoramique'],
+    id: 'fin-de-tour', codes: ['Space', 'Enter', 'NumpadEnter'], labelKey: 'raccourci.finDeTour', section: 'combat', notWhenControlFocused: true, sharedBy: ['debut-de-round', 'curseur-valider', 'editeur-panoramique'],
     // Fin du tour : action NOMMÉE du registre (`actions.json`), jouée par son geste — la touche
     // ne connaît plus la méthode du store.
     when: (s) => cur(s), run: (g) => jouerLOffreDeLEcran(g(), 'fin-de-tour'),
   },
   {
-    id: 'apercu-effacer', codes: [CODE_ECHAP], labelKey: 'key.clearPreview', section: 'combat', sharedBy: ['curseur-annuler', 'menu-ouvrir', 'intention-annuler', 'interlude-sortie', 'mode-desarmer', 'editeur-echap'],
+    id: 'apercu-effacer', codes: [CODE_ECHAP], labelKey: 'raccourci.apercuEffacer', section: 'combat', sharedBy: ['curseur-annuler', 'menu-ouvrir', 'intention-annuler', 'interlude-sortie', 'mode-desarmer', 'editeur-echap'],
     when: (s) => !!s.battle?.preview,
     run: (g) => g().effacerLApercu(),
   },
@@ -438,7 +446,7 @@ export const KEYBINDINGS: KeyBinding[] = [
   // Mouvement de la console. Sa garde EST le gate du registre (`deplacement-annulable`) — la touche
   // ne recopie aucun prédicat, et elle se tait exactement quand le geste n'est pas rendu à l'écran.
   {
-    id: 'annulation-deplacement', codes: ['Backspace'], labelKey: 'key.undoMove', section: 'combat', sharedBy: ['editeur-supprimer'],
+    id: 'annulation-deplacement', codes: ['Backspace'], labelKey: 'raccourci.annulationDeplacement', section: 'combat', sharedBy: ['editeur-supprimer'],
     when: (s) => {
       if (!cur(s)) return false;
       const active = activeCombatant(s.battle!);
@@ -457,7 +465,7 @@ export const KEYBINDINGS: KeyBinding[] = [
   //    `dialogue.reponse` (`OUVERTS_DU_CHOIX`) : la touche ne s'offre pas quand le choix refuserait — sous la
   //    fenêtre de jet, le marché ou l'écran plein qu'une réponse vient d'ouvrir.
   ...RANGS_DE_TOUCHE.map((n): KeyBinding => ({
-    id: `dialogue-reponse-${n}`, codes: [`Digit${n}`], labelKey: 'key.dialogueChoice', labelParams: { n }, section: 'dialogue',
+    id: `dialogue-reponse-${n}`, codes: [`Digit${n}`], labelKey: 'raccourci.dialogueReponse', labelParams: { n }, section: 'dialogue',
     ...(n <= TOUCHES_IMPRIMEES ? { sharedBy: [`capacite-${n}`] } : {}),
     coucheDialogue: true,
     when: conversationRepond,
@@ -471,7 +479,7 @@ export const KEYBINDINGS: KeyBinding[] = [
   // `CombatConsole`. La touche d'un rang vide ou fermé ne déclenche rien, et ne glisse pas au voisin.
   // Inactif hors de son tour / pendant une modale.
   ...RANGS_DE_TOUCHE.slice(0, TOUCHES_IMPRIMEES).map((n): KeyBinding => ({
-    id: `capacite-${n}`, codes: [`Digit${n}`], labelKey: 'key.hotbarSlot', labelParams: { n }, section: 'hotbar',
+    id: `capacite-${n}`, codes: [`Digit${n}`], labelKey: 'raccourci.capacite', labelParams: { n }, section: 'capacite',
     sharedBy: [`dialogue-reponse-${n}`],
     when: (s) => inBattle(s) && controlsActive(s) && noModal(s),
     run: () => { const sl = hotbar.capacites[n - 1]; if (sl?.run && !sl.disabled) sl.run(); },
@@ -497,7 +505,7 @@ export const KEYBINDINGS: KeyBinding[] = [
   // y sont atteignables : une sortie qui COMMET (renoncer à un enchaînement, se poser sur sa case)
   // se clique, la touche d'annulation ne la déclenche pas.
   {
-    id: 'interlude-sortie', codes: [CODE_ECHAP], labelKey: 'key.interludeExit', section: 'combat',
+    id: 'interlude-sortie', codes: [CODE_ECHAP], labelKey: 'raccourci.interludeSortie', section: 'combat',
     sharedBy: ['curseur-annuler', 'apercu-effacer', 'intention-annuler', 'menu-ouvrir', 'mode-desarmer', 'editeur-echap'],
     when: (s) => inBattle(s) && controlsActive(s) && !!currentInterludeAction(() => s)?.exitSafe,
     run: (g) => { const def = currentInterludeAction(g); if (def) jouerLOffreDeLEcran(g(), def.id); },
@@ -506,13 +514,13 @@ export const KEYBINDINGS: KeyBinding[] = [
   // désarmement CANONIQUE du noyau (`desarmerLeMode`, celui du re-clic sur la case et de
   // `annulation-bordee`), sans quoi Échap ouvrirait le menu système par-dessus le mode resté armé.
   {
-    id: 'mode-desarmer', codes: [CODE_ECHAP], labelKey: 'key.actionDisarm', section: 'combat',
+    id: 'mode-desarmer', codes: [CODE_ECHAP], labelKey: 'raccourci.modeDesarmer', section: 'combat',
     sharedBy: ['curseur-annuler', 'apercu-effacer', 'intention-annuler', 'interlude-sortie', 'menu-ouvrir', 'editeur-echap'],
     when: (s) => cur(s) && armeSansInterlude(s),
     run: (g) => g().desarmerLeMode(),
   },
   {
-    id: 'menu-ouvrir', codes: [CODE_ECHAP], labelKey: 'key.toggleMenu', section: 'systeme', sharedBy: ['curseur-annuler', 'apercu-effacer', 'intention-annuler', 'interlude-sortie', 'mode-desarmer', 'editeur-echap'],
+    id: 'menu-ouvrir', codes: [CODE_ECHAP], labelKey: 'raccourci.menuOuvrir', section: 'systeme', sharedBy: ['curseur-annuler', 'apercu-effacer', 'intention-annuler', 'interlude-sortie', 'mode-desarmer', 'editeur-echap'],
     // Un interlude de ciblage OCCUPE Échap, même quand sa sortie n'est pas atteignable à la touche
     // (`exitSafe: false`) : la touche ne doit pas ouvrir le menu par-dessus un ciblage en cours.
     // MAIS il ne l'occupe QU'AU SIÈGE QUI LE TIENT : `interlude-sortie` exige `controlsActive`, donc
@@ -531,25 +539,25 @@ export const KEYBINDINGS: KeyBinding[] = [
   // d'un clavier AZERTY) — la doctrine du registre l'emporte sur l'habitude du raccourci système.
   // L'état de l'éditeur (sélection, presse-papier, pile d'annulation) est LOCAL à React : ces `run`
   // passent par le pont `editeurBridge`, et ne font rien tant que l'éditeur n'a pas publié.
-  { id: 'editeur-pivot-gauche', codes: ['KeyQ'], labelKey: 'key.editeurRotL', section: 'editeur', sharedBy: ['camera-gauche', 'subjectif-pivot-gauche'], when: enEditeur, run: () => editeur.tourner?.(-1) },
-  { id: 'editeur-pivot-droite', codes: ['KeyE'], labelKey: 'key.editeurRotR', section: 'editeur', sharedBy: ['camera-droite', 'subjectif-pivot-droite'], when: enEditeur, run: () => editeur.tourner?.(1) },
+  { id: 'editeur-pivot-gauche', codes: ['KeyQ'], labelKey: 'raccourci.editeurPivotGauche', section: 'editeur', sharedBy: ['camera-gauche', 'subjectif-pivot-gauche'], when: enEditeur, run: () => editeur.tourner?.(-1) },
+  { id: 'editeur-pivot-droite', codes: ['KeyE'], labelKey: 'raccourci.editeurPivotDroite', section: 'editeur', sharedBy: ['camera-droite', 'subjectif-pivot-droite'], when: enEditeur, run: () => editeur.tourner?.(1) },
   // Geste MAINTENU : le panoramique dure tant que la touche est tenue (`runUp` le termine, et le
   // relâchement de sécurité du hook le termine aussi quand la fenêtre perd le focus).
   {
-    id: 'editeur-panoramique', codes: ['Space'], labelKey: 'key.editeurPan', section: 'editeur', notWhenControlFocused: true,
+    id: 'editeur-panoramique', codes: ['Space'], labelKey: 'raccourci.editeurPanoramique', section: 'editeur', notWhenControlFocused: true,
     sharedBy: ['debut-de-round', 'fin-de-tour'], when: enEditeur,
     run: () => editeur.pan?.(true), runUp: () => editeur.pan?.(false),
   },
-  { id: 'editeur-annuler', codes: ['KeyZ'], mods: ['ctrl'], labelKey: 'key.editeurAnnuler', section: 'editeur', when: enEditeur, run: () => editeur.annuler?.() },
-  { id: 'editeur-retablir', codes: ['KeyY'], mods: ['ctrl'], labelKey: 'key.editeurRetablir', section: 'editeur', when: enEditeur, run: () => editeur.retablir?.() },
+  { id: 'editeur-annuler', codes: ['KeyZ'], mods: ['ctrl'], labelKey: 'raccourci.editeurAnnuler', section: 'editeur', when: enEditeur, run: () => editeur.annuler?.() },
+  { id: 'editeur-retablir', codes: ['KeyY'], mods: ['ctrl'], labelKey: 'raccourci.editeurRetablir', section: 'editeur', when: enEditeur, run: () => editeur.retablir?.() },
   // Rétablir a DEUX touches, comme partout ailleurs : Ctrl+Y et Ctrl+Maj+Z. Deux ENTRÉES et non deux
   // `codes`, parce que les modificateurs font partie de la touche — et aucun `sharedBy` avec
   // `editeur-annuler` : Ctrl+Z et Ctrl+Maj+Z sont deux touches distinctes au sens (code, mods).
-  { id: 'editeur-retablir-maj', codes: ['KeyZ'], mods: ['ctrl', 'shift'], labelKey: 'key.editeurRetablirMaj', section: 'editeur', when: enEditeur, run: () => editeur.retablir?.() },
-  { id: 'editeur-copier', codes: ['KeyC'], mods: ['ctrl'], labelKey: 'key.editeurCopier', section: 'editeur', when: enEditeur, run: () => editeur.copier?.() },
-  { id: 'editeur-coller', codes: ['KeyV'], mods: ['ctrl'], labelKey: 'key.editeurColler', section: 'editeur', when: enEditeur, run: () => editeur.coller?.() },
-  { id: 'editeur-dupliquer', codes: ['KeyD'], mods: ['ctrl'], labelKey: 'key.editeurDupliquer', section: 'editeur', when: enEditeur, run: () => editeur.dupliquer?.() },
-  { id: 'editeur-supprimer', codes: ['Delete', 'Backspace'], labelKey: 'key.editeurSupprimer', section: 'editeur', sharedBy: ['annulation-deplacement'], when: enEditeur, run: () => editeur.supprimer?.() },
+  { id: 'editeur-retablir-maj', codes: ['KeyZ'], mods: ['ctrl', 'shift'], labelKey: 'raccourci.editeurRetablirMaj', section: 'editeur', when: enEditeur, run: () => editeur.retablir?.() },
+  { id: 'editeur-copier', codes: ['KeyC'], mods: ['ctrl'], labelKey: 'raccourci.editeurCopier', section: 'editeur', when: enEditeur, run: () => editeur.copier?.() },
+  { id: 'editeur-coller', codes: ['KeyV'], mods: ['ctrl'], labelKey: 'raccourci.editeurColler', section: 'editeur', when: enEditeur, run: () => editeur.coller?.() },
+  { id: 'editeur-dupliquer', codes: ['KeyD'], mods: ['ctrl'], labelKey: 'raccourci.editeurDupliquer', section: 'editeur', when: enEditeur, run: () => editeur.dupliquer?.() },
+  { id: 'editeur-supprimer', codes: ['Delete', 'Backspace'], labelKey: 'raccourci.editeurSupprimer', section: 'editeur', sharedBy: ['annulation-deplacement'], when: enEditeur, run: () => editeur.supprimer?.() },
   ...EDITEUR_NUDGE.map(({ dir, code, dx, dy, labelKey, curseurId }): KeyBinding => ({
     id: `editeur-decaler-${SENS_DE_L_ECRAN[dir]}`, codes: [code], labelKey, section: 'editeur', notWhenControlFocused: true,
     sharedBy: [curseurId], when: enEditeur, run: () => editeur.deplacer?.(dx, dy),
@@ -557,7 +565,7 @@ export const KEYBINDINGS: KeyBinding[] = [
   // UNE seule entrée d'annulation pour l'éditeur : c'est le PONT qui arbitre, par la PRÉSENCE de sa
   // commande — le menu fichier ne publie `fermerMenuFichier` que tant qu'il est ouvert.
   {
-    id: 'editeur-echap', codes: [CODE_ECHAP], labelKey: 'key.editeurEchap', section: 'editeur',
+    id: 'editeur-echap', codes: [CODE_ECHAP], labelKey: 'raccourci.editeurEchap', section: 'editeur',
     sharedBy: ['curseur-annuler', 'apercu-effacer', 'intention-annuler', 'interlude-sortie', 'mode-desarmer', 'menu-ouvrir'],
     when: enEditeur,
     run: () => { if (editeur.fermerMenuFichier) editeur.fermerMenuFichier(); else editeur.deselectionner?.(); },
@@ -657,8 +665,8 @@ export const bindingLabel = (b: KeyBinding): string => t(b.labelKey, b.labelPara
 
 /** Touches dont le nom lisible EST un texte (traduisible) — les autres sont des SYMBOLES (`NAMED_SYMBOLS`). */
 const NAMED_KEY_KEY: Record<string, MsgKey> = {
-  Space: 'key.named.space', Enter: 'key.named.enter', NumpadEnter: 'key.named.numpadEnter', Escape: 'key.named.escape',
-  Backspace: 'key.named.backspace', Delete: 'key.named.delete',
+  Space: 'raccourci.touche.espace', Enter: 'raccourci.touche.entree', NumpadEnter: 'raccourci.touche.entreePave', Escape: 'raccourci.touche.echap',
+  Backspace: 'raccourci.touche.retourArriere', Delete: 'raccourci.touche.supprimer',
 };
 /** Glyphes de touche : aucun texte de langue (le nom `Tab` est celui gravé sur la touche). */
 const NAMED_SYMBOLS: Record<string, string> = {
@@ -676,7 +684,7 @@ export function keyLabel(code: string): string {
   if (code.startsWith('Digit')) return code.slice(5);
   const named = NAMED_KEY_KEY[code];
   if (named) return t(named);
-  if (code.startsWith('Numpad')) return t('key.named.numpad', { n: code.slice(6) });
+  if (code.startsWith('Numpad')) return t('raccourci.touche.pave', { n: code.slice(6) });
   return NAMED_SYMBOLS[code] ?? code;
 }
 

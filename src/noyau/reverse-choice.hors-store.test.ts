@@ -109,7 +109,7 @@ describe('flux `attaque` (LDB 23 l.209 — Corps à corps/Projectiles, jusqu’i
 
   it('jet raté + jeton `corps-a-corps` applicable : `reverseAvailable` OFFRE le verbe', () => {
     setup();
-    expect(FLOWS.attack.reverseAvailable(banc.getState)).toBe(true);
+    expect(FLOWS.attaque.reverseAvailable(banc.getState)).toBe(true);
   });
 
   it('PREUVE échoue sans la couture — sans appeler `jetInverser@attaque`, l’attaque reste ratée et le jeton intact (aucun automatisme)', () => {
@@ -143,7 +143,7 @@ describe('flux `attaque` (LDB 23 l.209 — Corps à corps/Projectiles, jusqu’i
         } as never,
       },
     });
-    expect(FLOWS.attack.reverseAvailable(banc.getState)).toBe(false);
+    expect(FLOWS.attaque.reverseAvailable(banc.getState)).toBe(false);
     banc.getState().jetInverser('attaque');
     expect(banc.getState().pendingAttack!.result!.attackerDetail!.roll).toBe(82);
   });

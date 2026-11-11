@@ -89,9 +89,9 @@ const EVENTS = seaEventsJson as unknown as {
   fastVoyage: { die: string; entries: FastVoyagePalier[] };
 };
 
-/** Palier de SURCHARGE de la cale (MDG 12 l.70-75) : `fromPct` = seuil strict (>) en % de la Contenance,
- *  `mMod`/`manoeuvreDR` = −M et −DR Manœuvre appliqués au navire. */
-type OverloadPalier = SeaCargoData['overload']['paliers'][number];
+/** Palier de SURCHARGE de la cale (MDG 12 l.70-75) : `pctDepuis` = seuil strict (>) en % de la Contenance,
+ *  `mMod`/`drDeManoeuvre` = −M et −DR Manœuvre appliqués au navire. */
+type OverloadPalier = SeaCargoData['surcharge']['paliers'][number];
 
 const CARGO = seaCargoJson as SeaCargoData;
 
@@ -114,13 +114,13 @@ export const deDuVoyageRapide = (): DeDeTable => deDeLaTableTiree(EVENTS.fastVoy
 export const OPPORTUNITE = CARGO.opportunite as SeaCargoData['opportunite'] & { test: JetFixe<'skill' | 'difficulty'> };
 /** La table du Prix d'offre telle que `findTableEntry` la lit (`tableOuverte`, tronc commun — sa
  *  dernière bande est OUVERTE, MDG 15 l.383 « 4 ou plus »). */
-const bandesDuPrixDOffre = memoParVersion('seaCargo', () => tableOuverte(CARGO.vente.offerPrice));
+const bandesDuPrixDOffre = memoParVersion('seaCargo', () => tableOuverte(CARGO.vente.prixDOffre));
 export const findManannFactor = (id: string): ManannFactor | undefined => EVENTS.manann.factors.find((f) => f.id === id);
 
 // ── Surcharge de la cale (MDG 12 l.70-75) ──────────────────────────────────────────────────────
 
 /** Plafond DUR de charge (% de la Contenance) : au-delà « Impossible de prendre la mer » (MDG 12 l.75). */
-export const overloadHardCapPct = (): number => CARGO.overload.hardCapPct;
+export const overloadHardCapPct = (): number => CARGO.surcharge.pctPlafond;
 
 /** État de SURCHARGE d'une cale : palier RAW atteint + effets, et `canSail` = false au-delà du plafond dur. */
 export interface CargoOverload {
@@ -132,7 +132,7 @@ export interface CargoOverload {
   /** −M appliqué au navire (MDG 12 l.72-74). */
   mMod: number;
   /** −DR Manœuvre appliqué au navire (MDG 12 l.72-74). */
-  manoeuvreDR: number;
+  drDeManoeuvre: number;
   /** `false` au-delà du plafond dur (> 150 % — MDG 12 l.75 : impossible de prendre la mer). */
   canSail: boolean;
 }
@@ -142,13 +142,13 @@ export interface CargoOverload {
 export function cargoOverload(enc: number, capacity: number): CargoOverload {
   const ratio = capacity > 0 ? enc / capacity : 0;
   let chosen: OverloadPalier | null = null;
-  for (const p of CARGO.overload.paliers) if (ratio > p.fromPct / 100) chosen = p; // paliers croissants → dernier franchi
+  for (const p of CARGO.surcharge.paliers) if (ratio > p.pctDepuis / 100) chosen = p; // paliers croissants → dernier franchi
   return {
     ratioPct: Math.round(ratio * 100),
     palierId: chosen?.id ?? null,
     label: chosen ? chosen.label : t('cargo.chargeNominale'),
     mMod: chosen?.mMod ?? 0,
-    manoeuvreDR: chosen?.manoeuvreDR ?? 0,
+    drDeManoeuvre: chosen?.drDeManoeuvre ?? 0,
     canSail: ratio <= overloadHardCapPct() / 100,
   };
 }
@@ -160,7 +160,7 @@ export function overloadMaxEnc(capacity: number): number {
 
 /** Seuils de palier de surcharge en Enc pour une Contenance `capacity` (MDG 12 l.70-75). PUR. */
 export function overloadMarks(capacity: number): number[] {
-  return CARGO.overload.paliers.map((p) => Math.round(capacity * p.fromPct / 100));
+  return CARGO.surcharge.paliers.map((p) => Math.round(capacity * p.pctDepuis / 100));
 }
 
 // ── Humeur de Manann (l.83-125) ──────────────────────────────────────────────────────────────────
@@ -289,13 +289,13 @@ export function rollCargoAvailability(port: PortProfile, cargoId: string, rng: R
   const d = d10(rng);
   if (d === 1) return { d, enc: 0 };
   const surplus = port.surplus?.[cargoId] ?? 0;
-  return { d, enc: (port.taille + port.richesse + surplus) * d * CARGO.achat.availabilityMultiplier };
+  return { d, enc: (port.taille + port.richesse + surplus) * d * CARGO.achat.multiplicateurDeDisponibilite };
 }
 
 /** Compétence Marchandage d'un commerçant pris au hasard (l.337 : 3d10+40 ; deux 10+ → Négociateur.
  *  Marienburg/Lothern l.349 : 3d10+55 ; un 10 suffit). PUR. */
 export function rollMerchantSkill(cosmopolite: boolean, rng: RNG): { value: number; negotiator: boolean } {
-  const spec = cosmopolite ? CARGO.achat.bigPortSkill : CARGO.achat.merchantSkill;
+  const spec = cosmopolite ? CARGO.achat.competenceGrandPort : CARGO.achat.competenceDuMarchand;
   const dice = Array.from({ length: spec.d10 }, () => d10(rng));
   const tens = dice.filter((d) => d >= 10).length;
   return { value: dice.reduce((a, b) => a + b, 0) + spec.plus, negotiator: cosmopolite ? tens >= 1 : tens >= 2 };
@@ -312,7 +312,7 @@ export function rollMerchantOpposition(merchantValue: number, rng: RNG): TestRes
 
 /** DR de camp du Marchandage d'ACHAT (MDG 15 l.335-341). PUR — écart de camp ouvert en #1140. */
 export function buySellerDR(partial: boolean, surplus: boolean): number {
-  return (partial ? CARGO.achat.partialPurchaseSellerDR : 0) + (surplus ? CARGO.achat.surplusSellerDR : 0);
+  return (partial ? CARGO.achat.drVendeurAchatPartiel : 0) + (surplus ? CARGO.achat.drVendeurSurplus : 0);
 }
 
 /** Relation d'un port à une cargaison à la VENTE (l.360-372). PUR. */
@@ -325,11 +325,11 @@ export function sellRelation(port: PortProfile, cargoId: string): SellRelation {
 
 export interface SellChance {
   /** Test de Ragot PRÉALABLE requis (ports qui produisent le bien) — `null` = pas de Test. */
-  gossip: { difficulty: Difficulty } | null;
+  ragot: { difficulty: Difficulty } | null;
   /** Nombre visé du d100 « trouver un acheteur » (après le Ragot éventuel). */
   target: number;
   /** ±DR du vendeur aux Tests de Marchandage de la vente (l.387-397). */
-  sellerDR: number;
+  drDuVendeur: number;
 }
 
 /** Chances de TROUVER UN ACHETEUR + DR de Marchandage à la vente (l.355-397). `milles` = distance
@@ -337,19 +337,19 @@ export interface SellChance {
  *  sinon traité comme un port en Surplus, l.368). PUR. */
 export function sellChance(port: PortProfile, cargoId: string, milles: number): SellChance {
   let rel = sellRelation(port, cargoId);
-  if (rel === 'produces' && milles < CARGO.vente.producesGossip.minMilles) rel = 'surplus'; // l.368
+  if (rel === 'produces' && milles < CARGO.vente.ragotSiProduction.millesMin) rel = 'surplus'; // l.368
   const demand = port.demande?.[cargoId] ?? 0;
   if (rel === 'no-produce') {
     return {
-      gossip: null,
-      target: (port.taille + demand) * CARGO.vente.noProduceTargetPerSize + (isTradeHubColumn(port.production) ? CARGO.vente.commerceBonus : 0),
-      sellerDR: CARGO.vente.sellerDR.noProduce + (demand > 0 ? CARGO.vente.sellerDR.demand : 0),
+      ragot: null,
+      target: (port.taille + demand) * CARGO.vente.cibleParTailleSansProduction + (isTradeHubColumn(port.production) ? CARGO.vente.bonusDeCommerce : 0),
+      drDuVendeur: CARGO.vente.drDuVendeur.sansProduction + (demand > 0 ? CARGO.vente.drDuVendeur.demande : 0),
     };
   }
   if (rel === 'produces') {
-    return { gossip: { difficulty: CARGO.vente.producesGossip.difficulty }, target: port.taille * CARGO.vente.producesGossip.targetPerSize, sellerDR: CARGO.vente.sellerDR.produces };
+    return { ragot: { difficulty: CARGO.vente.ragotSiProduction.difficulty }, target: port.taille * CARGO.vente.ragotSiProduction.cibleParTaille, drDuVendeur: CARGO.vente.drDuVendeur.production };
   }
-  return { gossip: { difficulty: CARGO.vente.surplusGossip.difficulty }, target: port.taille * CARGO.vente.surplusGossip.targetPerSize, sellerDR: CARGO.vente.sellerDR.surplus };
+  return { ragot: { difficulty: CARGO.vente.ragotSiSurplus.difficulty }, target: port.taille * CARGO.vente.ragotSiSurplus.cibleParTaille, drDuVendeur: CARGO.vente.drDuVendeur.surplus };
 }
 
 /** PRIX D'OFFRE d'un acheteur trouvé (l.374-383) : % du prix de base selon Richesse + Taille + Demande. PUR.
@@ -372,7 +372,7 @@ export function offerPricePct(port: PortProfile, cargoId: string): number {
 /** BRADER une cargaison invendable (l.399) : « pour un quart de son prix de base dans n'importe quel
  *  Lieu … "commerce" … ou … Demande pour ce bien ». `null` si le port ne s'y prête pas. PUR. */
 export function dumpingPricePct(port: PortProfile, cargoId: string): number | null {
-  return isTradeHubColumn(port.production) || (port.demande?.[cargoId] ?? 0) > 0 ? CARGO.vente.dumpingPctOfBase : null;
+  return isTradeHubColumn(port.production) || (port.demande?.[cargoId] ?? 0) > 0 ? CARGO.vente.pctDeBradage : null;
 }
 
 /** Issue du COMMERCE D'OPPORTUNITÉ (Activité en mer, l.276-286) : Test étendu de Marchandage Complexe
@@ -381,13 +381,13 @@ export function dumpingPricePct(port: PortProfile, cargoId: string): number | nu
 export function opportunityTradePct(totalDR: number): number {
   const need = CARGO.opportunite.targetDR;
   for (const o of CARGO.opportunite.outcomes) {
-    if (o.on === 'failure' && o.minMissing != null && totalDR <= need - o.minMissing) return 100 + o.pct;
+    if (o.on === 'echec' && o.manquantMin != null && totalDR <= need - o.manquantMin) return 100 + o.pct;
   }
-  if (totalDR < need) return 100 + (CARGO.opportunite.outcomes.find((o) => o.on === 'failure' && o.minMissing == null)?.pct ?? -50);
+  if (totalDR < need) return 100 + (CARGO.opportunite.outcomes.find((o) => o.on === 'echec' && o.manquantMin == null)?.pct ?? -50);
   for (const o of CARGO.opportunite.outcomes) {
-    if (o.on === 'success' && o.minExtraDR != null && totalDR >= need + o.minExtraDR) return 100 + o.pct;
+    if (o.on === 'reussite' && o.drSupplementaireMin != null && totalDR >= need + o.drSupplementaireMin) return 100 + o.pct;
   }
-  return 100 + (CARGO.opportunite.outcomes.find((o) => o.on === 'success' && o.minExtraDR == null)?.pct ?? 10);
+  return 100 + (CARGO.opportunite.outcomes.find((o) => o.on === 'reussite' && o.drSupplementaireMin == null)?.pct ?? 10);
 }
 
 // La cargaison EMBARQUÉE (CargoLot, cargoTotalEnc, removeCargo) est désormais le tronc commun de

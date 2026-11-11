@@ -89,7 +89,7 @@ describe('LDB 12 l.160 — la récupération opposée de l’IA départage sur l
     runEnemyAI(banc.getState, banc.setState, 'e');
     banc.reprendreTout();
     const log = aiTurnLog();
-    expect(log.some((r) => r.id === 'e' && r.action.startsWith('recover')), 'le tour IA n’a pas joué le recover').toBe(true);
+    expect(log.some((r) => r.id === 'e' && r.action.startsWith('liberation')), 'le tour IA n’a pas joué la libération').toBe(true);
     expect(REPLIS_DEUX_CIBLES.count, 'un départage de la voie IA est retombé sur les cibles').toBe(avant);
   });
 });

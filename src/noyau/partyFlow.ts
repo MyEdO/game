@@ -625,7 +625,7 @@ export function ouvrirLaFinDeSeance(set: Set): void {
 /** Pourquoi le menu de jeu ne clôt pas la séance : hors exploration, ou chez l'invité ; `null` = elle s'ouvre. */
 export function refusDeFinDeSeance(s: Pick<Jeu, 'mode' | 'net'>): string | null {
   if (s.mode !== 'exploration') return t('gameMenu.finDeSeance.horsExploration');
-  return s.net.mode === 'guest' ? t('gameMenu.finDeSeance.invite') : null;
+  return s.net.mode === 'invite' ? t('gameMenu.finDeSeance.invite') : null;
 }
 
 /**

@@ -85,7 +85,7 @@ describe('Effect `document` — chaque document se lit avant la suite', () => {
 
   it('chez l’invité, fermer ne rejoue rien : l’hôte tient le Flow', () => {
     runFlow(get, banc.setState, { kind: 'seq', steps: [remettre('doc-heritage'), { kind: 'do', effect: { type: 'setFlag', flag: 'suite' } }] });
-    banc.setState({ net: { ...get().net, mode: 'guest' } });
+    banc.setState({ net: { ...get().net, mode: 'invite' } });
     get().fenetreFermer('document');
     expect(get().document?.title).toBe('Document 3 : L’héritage');
     expect(get().flags.suite).toBeUndefined();

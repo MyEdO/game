@@ -74,7 +74,7 @@ describe('Scénario Commerce fluvial — qui tient la barre', () => {
     banc.setState({ party: get().party.map((h) => (h.id === 'com-otto' ? { ...h, characteristics: { ...h.characteristics, agilite: 95 } } : h)) });
     drainCascade();
     get().partirEnVoyage('r-grunburg-altdorf', 'barge', { cadence: 'jourParJour' });
-    const barre = get().pendingCascade?.participants.find((p) => p.kind === 'riverNav');
+    const barre = get().pendingCascade?.participants.find((p) => p.kind === 'fleuveNavigation');
     expect(barre?.actorId).toBe('com-gunnar');
   });
 
@@ -83,7 +83,7 @@ describe('Scénario Commerce fluvial — qui tient la barre', () => {
     const gunnar = get().party.find((h) => h.id === 'com-gunnar')!;
     expect(gunnar.skills.filter((k) => k.id === 'voile').map((k) => [k.spec, k.advances])).toEqual([['chaland', 40]]);
     get().partirEnVoyage('r-grunburg-altdorf', 'barge', { cadence: 'jourParJour' });
-    const barre = get().pendingCascade?.participants.find((p) => p.kind === 'riverNav');
+    const barre = get().pendingCascade?.participants.find((p) => p.kind === 'fleuveNavigation');
     expect(barre?.base).toBe(gunnar.characteristics.agilite + 40);
   });
 });
@@ -190,7 +190,7 @@ describe('Scénario Commerce fluvial — descente commandée sans fenêtre (#254
       banc.setState({ ecrireAuJournal: puits });
     }
     expect(decisions.length, 'le barrage posé est rencontré').toBeGreaterThan(0);
-    expect(new Set(decisions), 'le barrage (MSRC 7 l.128) est la seule décision de la descente').toEqual(new Set(['riverObstacleChoice']));
+    expect(new Set(decisions), 'le barrage (MSRC 7 l.128) est la seule décision de la descente').toEqual(new Set(['fleuveChoixDObstacle']));
     expect(get().lieu).toBe('p-altdorf');
     const jours = journal.filter((l) => /^Progression du jour/.test(l)).length;
     expect(jours, `journal :\n${journal.join('\n')}`).toBeGreaterThan(1);

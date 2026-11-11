@@ -454,8 +454,8 @@ export interface BandSpec {
    *  (`encounterPsychFlow`). Recopiées telles quelles — une charge n'est pas une forme : elle ne rend
    *  rien et ne change pas l'interaction de la bande, elle est ce que l'applier LIT pour chaque rangée
    *  résolue. */
-  combatPsych?: CascadeStep['combatPsych'];
-  encounterPsych?: CascadeStep['encounterPsych'];
+  psychologieDeCombat?: CascadeStep['psychologieDeCombat'];
+  psychologieDeRencontre?: CascadeStep['psychologieDeRencontre'];
   /** Contexte du Test des rangées (`CascadeStepCore.contexte`). */
   contexte?: ContexteDeTest;
   meta?: CascadeStepMeta;
@@ -491,8 +491,8 @@ export function bandStep(spec: BandSpec, rows: readonly BatchParticipant[]): Bui
     participants: rows.map(temoinSiSansJet),
     ...(spec.stake ? { stake: spec.stake } : {}),
     ...(spec.menace ? { menace: spec.menace } : {}),
-    ...(spec.combatPsych ? { combatPsych: spec.combatPsych } : {}),
-    ...(spec.encounterPsych ? { encounterPsych: spec.encounterPsych } : {}),
+    ...(spec.psychologieDeCombat ? { psychologieDeCombat: spec.psychologieDeCombat } : {}),
+    ...(spec.psychologieDeRencontre ? { psychologieDeRencontre: spec.psychologieDeRencontre } : {}),
     ...(spec.contexte ? { contexte: spec.contexte } : {}),
     ...(spec.meta ? { meta: spec.meta } : {}),
   // eslint-disable-next-line murs/marques -- #1262 : porte `bandStep` du seam — forger `BuiltCascadeStep` depuis sa spec est son corps de métier.
@@ -985,7 +985,7 @@ export interface ChoiceSpec {
    *  rend rien et ne change pas l'interaction de l'étape, elle est ce que l'applier LIT au commit. */
   deviation?: PendingDeviation;
   /** CHARGE de l'applier « piège-lame » (`combatFlow`) : le contexte du Test opposé de Force. */
-  bladeTrap?: PendingBladeTrap;
+  piegeLame?: PendingBladeTrap;
   meta?: CascadeStepMeta;
 }
 
@@ -1024,7 +1024,7 @@ export function choiceStep(spec: ChoiceSpec): BuiltCascadeStep | undefined {
     ...(spec.reveal ? { reveal: spec.reveal } : {}),
     ...(spec.outcome ? { outcome: spec.outcome } : {}),
     ...(spec.deviation ? { deviation: spec.deviation } : {}),
-    ...(spec.bladeTrap ? { bladeTrap: spec.bladeTrap } : {}),
+    ...(spec.piegeLame ? { piegeLame: spec.piegeLame } : {}),
     ...(spec.meta ? { meta: spec.meta } : {}),
   // eslint-disable-next-line murs/marques -- #1262 : porte `choiceStep` du seam — forger `BuiltCascadeStep` depuis sa spec est son corps de métier.
   } as BuiltCascadeStep;
@@ -1274,7 +1274,7 @@ export interface TableSpec {
    *  l'interaction de l'étape, elle est ce que l'applier LIT quand le dé est posé. */
   critSeverity?: PendingCritSeverity;
   /** CHARGE de l'applier « Imparfaite/Colère » (`combatFlow`) : sévérité, domaine, relance en cours. */
-  miscast?: PendingMiscastStep;
+  incantationImparfaite?: PendingMiscastStep;
   /** CHARGE des appliers de MUTATION (`corruptionFlow`) : le porteur, l'alignement de la source, la
    *  nature déjà tirée et la table en cours — ce que l'applier LIT pour chaîner le tirage suivant. */
   mutation?: PendingMutationStep;
@@ -1319,7 +1319,7 @@ export function tableStep(spec: TableSpec): BuiltCascadeStep | undefined {
     ...(defaut != null ? { defaultChoice: defaut } : {}),
     ...(spec.deviation ? { deviation: spec.deviation } : {}),
     ...(spec.critSeverity ? { critSeverity: spec.critSeverity } : {}),
-    ...(spec.miscast ? { miscast: spec.miscast } : {}),
+    ...(spec.incantationImparfaite ? { incantationImparfaite: spec.incantationImparfaite } : {}),
     ...(spec.mutation ? { mutation: spec.mutation } : {}),
     ...(spec.casse ? { casse: spec.casse } : {}),
     ...(spec.meta ? { meta: spec.meta } : {}),
@@ -1351,7 +1351,7 @@ export function tableStepDone(spec: TableDoneSpec): BuiltCascadeStep | undefined
     actorId: spec.actorId,
     stake: spec.stake,
     ...(spec.critSeverity ? { critSeverity: spec.critSeverity } : {}),
-    ...(spec.miscast ? { miscast: spec.miscast } : {}),
+    ...(spec.incantationImparfaite ? { incantationImparfaite: spec.incantationImparfaite } : {}),
     ...(spec.mutation ? { mutation: spec.mutation } : {}),
     ...(spec.reveal ? { reveal: spec.reveal } : {}),
     ...(spec.outcome ? { outcome: spec.outcome } : {}),
@@ -1377,7 +1377,7 @@ interface DisplayBase {
   outcome?: RecapLine[];
   /** CHARGE de l'applier « reprise de fuite » (`combatFlow`) : qui fuit, devant qui, et combien de
    *  rangs de Brisé attendent la fin du coup gratuit (LDB 15 l.68). */
-  fleeMove?: NonNullable<CascadeStep['fleeMove']>;
+  fuite?: NonNullable<CascadeStep['fuite']>;
   meta?: CascadeStepMeta;
 }
 
@@ -1413,7 +1413,7 @@ export function displayStep(spec: DisplaySpec): BuiltCascadeStep {
     ...(spec.icon ? { icon: spec.icon } : {}),
     ...(spec.worldOwner ? { worldOwner: true } : { actorId: spec.actorId }),
     ...(spec.outcome ? { outcome: spec.outcome } : {}),
-    ...(spec.fleeMove ? { fleeMove: spec.fleeMove } : {}),
+    ...(spec.fuite ? { fuite: spec.fuite } : {}),
     ...(spec.meta ? { meta: spec.meta } : {}),
   // eslint-disable-next-line murs/marques -- #1262 : porte `displayStep` du seam — forger `BuiltCascadeStep` depuis sa spec est son corps de métier.
   } as BuiltCascadeStep;

@@ -18,9 +18,9 @@ import { etatInitialDuJeu, type NetState } from '../../noyau/etat';
 import { herosDeScenario } from '../../scenes/test-scenarios/_heros';
 import type { Combatant } from '../../engine/types';
 
-const NET = (mode: 'host' | 'guest', mySeat: number, invite: string): NetState => ({
+const NET = (mode: 'hote' | 'invite', mySeat: number, invite: string): NetState => ({
   mode, mySeat, roomCode: 'ABCDEF', seatNames: { 0: 'Hôte', 1: 'Antoine' }, presence: {},
-  connection: 'ok', hostAway: false, ownership: { [invite]: 1 }, slots: [1, 1, 0, 0], rangs: {},
+  connection: 'connecte', hostAway: false, ownership: { [invite]: 1 }, slots: [1, 1, 0, 0], rangs: {},
 });
 
 /** Un sorcier en Langue (Magick) 60 : le dé 11 est un double réussi. */
@@ -41,7 +41,7 @@ describe('Incantation en coop : la même fenêtre des deux côtés, le choix au 
   it('l’invité lance l’Arme aethyrique de son héros au Critique ; l’hôte lit la même fenêtre et ne tranche pas son effet', () => {
     const H = sorcier('H');
     const L = sorcier('L');
-    const banc = ouvrirLeBanc({ desFixes: true, etat: { party: [H, L], net: NET('host', 0, L.id) } });
+    const banc = ouvrirLeBanc({ desFixes: true, etat: { party: [H, L], net: NET('hote', 0, L.id) } });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('debutDuRound');
@@ -62,7 +62,7 @@ describe('Incantation en coop : la même fenêtre des deux côtés, le choix au 
     guest.sendIntent('jetImposerLeResultat', ['incantation', 11]);
     expect(banc.getState().pendingCast!.result, 'chemin : le jet de l’invité est tombé chez l’hôte, au Critique').toMatchObject({ isCritical: true });
     host.broadcastSnapshot();
-    const chezLInvite = appliquerLInstantane(recus[recus.length - 1], { ...etatInitialDuJeu(), net: NET('guest', 1, L.id) }).etat;
+    const chezLInvite = appliquerLInstantane(recus[recus.length - 1], { ...etatInitialDuJeu(), net: NET('invite', 1, L.id) }).etat;
     const vueHote = fenetreDIncantation(banc.getState());
     // Le lecteur est pur : l'état de l'invité, sous les actions du banc, qu'il ne lit pas.
     const vueInvite = fenetreDIncantation({ ...banc.getState(), ...chezLInvite });

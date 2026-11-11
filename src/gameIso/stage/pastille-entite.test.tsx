@@ -392,7 +392,7 @@ describe('Pastille d’entité — le geste vit sur ce qui l’offre (#1411 P2-C
     const m = hero('m1', { x: 3, y: 4 }, { mountable: true } as Partial<Combatant>);
     const el = monter({
       party: [h], battle: combat([h, m]),
-      net: { mode: 'guest', mySeat: 1, gmSeat: null, ownership: { h1: 0 } },
+      net: { mode: 'invite', mySeat: 1, gmSeat: null, ownership: { h1: 0 } },
     });
     expect(pastille(el, 'm1'), 'le héros d’un autre joueur n’ouvre pas ses gestes ici').toBeNull();
   });

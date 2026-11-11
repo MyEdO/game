@@ -17,7 +17,7 @@ import { t } from '../i18n';
 import { useGesteDeJet } from './useGesteDeJet';
 
 /** Enjeu servi par chaque fenêtre d'Au contact. */
-const AU_CONTACT_STAKE: Record<PendingAuContact['phase'], FlowStakeId> = { roll: 'au-contact-roll', choice: 'au-contact-choice' };
+const AU_CONTACT_STAKE: Record<PendingAuContact['phase'], FlowStakeId> = { roll: 'au-contact-test', choice: 'au-contact-choix' };
 
 /**
  * Modale « Au Contact » (LDB 62 l.176, Option « Longueur d'arme »). Test OPPOSÉ de Corps à corps
@@ -82,7 +82,7 @@ export function AuContactModal() {
   });
 
   const issue = pd.def
-    ? [recapLineOfEvent(ev(pd.result === 'success' ? 'dodge' : 'attack', outcome, mover.id, foe.id), battle.combatants)]
+    ? [recapLineOfEvent(ev(pd.result === 'success' ? 'esquive' : 'attaque', outcome, mover.id, foe.id), battle.combatants)]
     : undefined;
 
   const actions: RollAction[] = [

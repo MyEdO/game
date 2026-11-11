@@ -94,11 +94,11 @@ describe('Péché et Colère Divine (LDB 40)', () => {
     confirmPrayerWithRoll(priest.id, ally.id, 41); // unités 1 ≤ 5
     // Le dé de la Colère tombe au rang de SON étape ; la révélation (charge riche `reveal`) suit dans
     // la MÊME séquence — on joue jusqu'à elle.
-    for (let i = 0; i < 6 && !banc.getState().pendingCascade?.participants.some((s) => s.kind === 'miscast'); i++) {
+    for (let i = 0; i < 6 && !banc.getState().pendingCascade?.participants.some((s) => s.kind === 'incantationImparfaite'); i++) {
       avanceEtapeCascade(banc.getState);
     }
-    const step = banc.getState().pendingCascade?.participants.find((s) => s.kind === 'miscast');
-    expect(step?.reveal?.kind).toBe('miscast');
+    const step = banc.getState().pendingCascade?.participants.find((s) => s.kind === 'incantationImparfaite');
+    expect(step?.reveal?.kind).toBe('incantationImparfaite');
     // d100 ∈ [1;100] + 5×10 → le jet effectif est forcément > 50.
     expect(step!.reveal!.dice).toBeGreaterThan(50);
   });

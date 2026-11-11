@@ -76,7 +76,7 @@ describe('Effet exposureNight (LDB 18 l.326-334) — BANDE influençable par VAG
     applyEffects(banc.getState, banc.setState, [{ type: 'exposureNight', kind: 'froid', count: 4, target: 'hero', heroId: party[0].id }]);
     const pc = banc.getState().pendingCascade;
     expect(pc).not.toBeNull(); // le jet est DIFFÉRÉ en modale, pas roulé en boucle
-    const bands = pc!.participants.filter((s) => s.kind === 'exposure');
+    const bands = pc!.participants.filter((s) => s.kind === 'exposition-nocturne');
     expect(bands).toHaveLength(1); // UNE fenêtre ouverte : la vague 0 (les suivantes se construisent après)
     expect(bands[0].meta?.waves).toBe(4); // les 4 Tests RAW sont déclarés, pas perdus
     expect(bands[0].participants!.map((p) => p.id)).toEqual([party[0].id]);
@@ -91,7 +91,7 @@ describe('Effet exposureNight (LDB 18 l.326-334) — BANDE influençable par VAG
     banc.getState().party[0].items = []; // aucune Possession lourde → conséquence IMMÉDIATE
     applyEffects(banc.getState, banc.setState, [{ type: 'exposureNight', kind: 'chaleur', count: 1, target: 'party' }]);
     const band = current();
-    expect(band.kind).toBe('exposure');
+    expect(band.kind).toBe('exposition-nocturne');
     expect(band.meta?.kind).toBe('chaleur');
     const row = band.participants![0];
     commitRows([{ roll: 99, target: row.target, sl: -5, success: false }]);
@@ -116,7 +116,7 @@ describe('Exposition CHALEUR — annulation par délestage d’une Possession lo
     expect((h.conditions ?? []).some((c) => c.id === 'extenue')).toBe(false); // choix non encore rendu, rien n'a été tranché
     expect(h.items).toHaveLength(1); // objet toujours en inventaire, rien n'a été jeté
     const choix = current();
-    expect(choix.kind).toBe('exposure-heat-drop');
+    expect(choix.kind).toBe('exposition-delestage');
     expect(choix.options?.map((o) => o.key).sort()).toEqual(['garder', 'jeter']);
     // La coordonnée de l'annulation est la RANGÉE, plus l'adjacence : une bande peut en produire N.
     expect(choix.meta?.cancelsRowId).toBe(`${band.id}:${row.id}`);
@@ -127,8 +127,8 @@ describe('Exposition CHALEUR — annulation par délestage d’une Possession lo
     banc.setState({ party, pendingCascade: null, journal: [] });
     const h = banc.getState().party[0];
     h.items = [heavyItem];
-    const choice = { id: 'e0-drop', kind: 'exposure-heat-drop', actorId: h.id, chosen: 'jeter', meta: { failNumber: 1 } } as unknown as import('./pendings').CascadeStep;
-    const out = applierDe('exposure-heat-drop')!(banc.getState, banc.setState, choice, h, { steps: [choice], index: 0 });
+    const choice = { id: 'e0-drop', kind: 'exposition-delestage', actorId: h.id, chosen: 'jeter', meta: { failNumber: 1 } } as unknown as import('./pendings').CascadeStep;
+    const out = applierDe('exposition-delestage')!(banc.getState, banc.setState, choice, h, { steps: [choice], index: 0 });
     expect(h.items).toHaveLength(0); // délestée
     expect((h.conditions ?? []).some((c) => c.id === 'extenue')).toBe(false); // Test ANNULÉ, pas subi
     expect(/annulé/i.test(resultLine(out?.consequences ?? []))).toBe(true);
@@ -139,8 +139,8 @@ describe('Exposition CHALEUR — annulation par délestage d’une Possession lo
     banc.setState({ party, pendingCascade: null, journal: [] });
     const h = banc.getState().party[0];
     h.items = [heavyItem];
-    const choice = { id: 'e0-drop', kind: 'exposure-heat-drop', actorId: h.id, chosen: 'garder', meta: { failNumber: 1 } } as unknown as import('./pendings').CascadeStep;
-    const out = applierDe('exposure-heat-drop')!(banc.getState, banc.setState, choice, h, { steps: [choice], index: 0 });
+    const choice = { id: 'e0-drop', kind: 'exposition-delestage', actorId: h.id, chosen: 'garder', meta: { failNumber: 1 } } as unknown as import('./pendings').CascadeStep;
+    const out = applierDe('exposition-delestage')!(banc.getState, banc.setState, choice, h, { steps: [choice], index: 0 });
     expect(h.items).toHaveLength(1); // conservé
     expect((h.conditions ?? []).some((c) => c.id === 'extenue')).toBe(true); // 1ᵉʳ échec chaleur (l.330)
     expect(/chaleur|suffoque|accablé/i.test(resultLine(out?.consequences ?? []))).toBe(true);
@@ -155,11 +155,11 @@ describe('Exposition CHALEUR — annulation par délestage d’une Possession lo
     commitRows([{ roll: 99, target: wave0.participants![0].target, sl: -5, success: false }]);
     // Le choix est courant : on JETTE → l'échec de la vague 0 est annulé, et c'est CE choix qui
     // déclenche la construction de la vague 1 (jamais avant : son escalade compterait l'échec annulé).
-    expect(current().kind).toBe('exposure-heat-drop');
+    expect(current().kind).toBe('exposition-delestage');
     banc.getState().jetRegler('cascade', 'choix', 'jeter', current().id);
     banc.getState().jetValider('cascade');
     const wave1 = current();
-    expect(wave1.kind).toBe('exposure');
+    expect(wave1.kind).toBe('exposition-nocturne');
     expect(wave1.meta?.wave).toBe(1);
     expect(wave1.participants![0].meta?.priorFails).toBe(0); // l'échec ANNULÉ ne compte pas
     banc.setState({ journal: [] });
@@ -208,12 +208,12 @@ describe('Effet inflictPsychology (Peur/Terreur scénique, LDB 21) — BANDE INF
     applyEffects(banc.getState, banc.setState, [{ type: 'inflictPsychology', kind: 'peur', indice: 2, label: 'Une ombre glaçante', target: 'party' }]);
     const pc = banc.getState().pendingCascade;
     expect(pc).not.toBeNull();
-    const steps = pc!.participants.filter((s) => s.kind === 'encounterPsych');
+    const steps = pc!.participants.filter((s) => s.kind === 'psychologieDeRencontre');
     expect(steps).toHaveLength(1); // UNE entrée de règle = UNE bande (plus une étape par héros)
     expect(steps[0].participants?.map((p) => p.id)).toEqual(party.map((h) => h.id));
     expect(steps[0].participants?.every((p) => p.result == null)).toBe(true);
-    expect(steps[0].encounterPsych?.kind).toBe('peur');
-    expect(steps[0].encounterPsych?.indice).toBe(2);
+    expect(steps[0].psychologieDeRencontre?.kind).toBe('peur');
+    expect(steps[0].psychologieDeRencontre?.indice).toBe(2);
   });
 
   it('kind terreur → bande taguée terreur, une seule rangée quand un seul héros est ciblé', () => {
@@ -221,7 +221,7 @@ describe('Effet inflictPsychology (Peur/Terreur scénique, LDB 21) — BANDE INF
     banc.setState({ party, pendingCascade: null, journal: [] });
     applyEffects(banc.getState, banc.setState, [{ type: 'inflictPsychology', kind: 'terreur', indice: 3, label: 'Un spectre hurlant', target: 'hero', heroId: party[0].id }]);
     const step = banc.getState().pendingCascade!.participants[0];
-    expect(step.encounterPsych?.kind).toBe('terreur');
+    expect(step.psychologieDeRencontre?.kind).toBe('terreur');
     expect(step.participants?.map((p) => p.id)).toEqual([party[0].id]);
   });
 });

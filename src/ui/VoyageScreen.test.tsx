@@ -162,8 +162,8 @@ describe('dayAgenda — sous-phases du jour EN COURS (arbitrage user verbatim)',
   });
 
   it('cascade travelDay : phases DÉRIVÉES des kinds présents, état fait/en cours/à venir par CURSEUR', () => {
-    const steps = [cascadeStep('stagePosteBatch'), cascadeStep('landPeril'), cascadeStep('landForcedPace')];
-    const agenda = dayAgenda(cascade(steps, 1), null); // curseur sur landPeril (index 1)
+    const steps = [cascadeStep('etapePosteEnBande'), cascadeStep('perilATerre'), cascadeStep('rythmeForceATerre')];
+    const agenda = dayAgenda(cascade(steps, 1), null); // curseur sur perilATerre (index 1)
     expect(agenda.map((a) => a.key)).toEqual(['activites', 'rencontre', 'route', 'nuit']);
     expect(agenda.find((a) => a.key === 'activites')!.state).toBe('done');
     expect(agenda.find((a) => a.key === 'rencontre')!.state).toBe('current');
@@ -172,13 +172,13 @@ describe('dayAgenda — sous-phases du jour EN COURS (arbitrage user verbatim)',
   });
 
   it('phase absente ce jour (aucun kind ne matche) : omise, pas affichée « à venir » à tort', () => {
-    const agenda = dayAgenda(cascade([cascadeStep('landPeril')], 0), null);
+    const agenda = dayAgenda(cascade([cascadeStep('perilATerre')], 0), null);
     expect(agenda.some((a) => a.key === 'activites')).toBe(false);
     expect(agenda.some((a) => a.key === 'route')).toBe(false);
   });
 
   it('jour d’ARRIVÉE (#2533) : la Nuit n’est pas une phase à venir — aucune halte ce soir-là', () => {
-    const agenda = dayAgenda(cascade([cascadeStep('landPeril')], 0), null, true);
+    const agenda = dayAgenda(cascade([cascadeStep('perilATerre')], 0), null, true);
     expect(agenda.map((a) => a.key)).toEqual(['rencontre']);
   });
 

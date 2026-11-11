@@ -59,7 +59,7 @@ export function FrenzyModal() {
   return (
     <RollShell
       flowKey="frenesie"
-      stake={flowStakeRef('frenzy-roll')}
+      stake={flowStakeRef('frenesie-test')}
       title={<><Icon id="flag/frenzy" size="sm" /> Frénésie</>}
       subtitle={
         <>
@@ -68,7 +68,7 @@ export function FrenzyModal() {
       }
       rows={[actorRow]}
       rolled={rolled}
-      outcome={r ? [recapLineOfEvent(ev('frenzy', describeFrenzy(pf, c.label), c.id), battle.combatants)] : undefined}
+      outcome={r ? [recapLineOfEvent(ev('frenesie', describeFrenzy(pf, c.label), c.id), battle.combatants)] : undefined}
       actions={actions}
       onCancel={rolled ? undefined : cancel}
     />

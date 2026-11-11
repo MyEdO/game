@@ -335,10 +335,10 @@ export function tickTraumaRecovery(c: Combatant, days: number, defer: UpkeepDefe
   c.traumas = remaining;
   // Test de fin de fracture (l.202/212) : le producteur NOMME ce qui est testé (« Test de Résistance »)
   // et DIFFÈRE — la valeur est celle de la porte (`testValue` : États compris), la conséquence est
-  // appliquée par l'applier `trauma-fracture` (`applyFractureEnd`). La porte est EXIGÉE au type : il n'y
+  // appliquée par l'applier `convalescence-fracture` (`applyFractureEnd`). La porte est EXIGÉE au type : il n'y
   // a pas de chemin où cette fracture se résout dans le dos du joueur.
   for (const f of fractureTests) {
-    defer({ kind: 'trauma-fracture', label: `Convalescence — ${f.label}`, test: { skill: { id: 'resistance' } }, difficulty: fractureEndDifficulty(f.severity),
+    defer({ kind: 'convalescence-fracture', label: `Convalescence — ${f.label}`, test: { skill: { id: 'resistance' } }, difficulty: fractureEndDifficulty(f.severity),
       meta: { severity: f.severity, location: f.location, traumaLabel: f.label } });
   }
   return log;

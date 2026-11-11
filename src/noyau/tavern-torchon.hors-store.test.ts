@@ -53,7 +53,7 @@ function partie(n: number): Combatant[] {
   return party;
 }
 
-const bande = () => get().pendingCascade?.participants.find((s) => s.kind === 'tavern-round');
+const bande = () => get().pendingCascade?.participants.find((s) => s.kind === 'taverneRound');
 const payload = () => get().sequence?.payload as {
   throwers?: { id: string; camp: string }[];
 } | undefined;
@@ -61,7 +61,7 @@ const payload = () => get().sequence?.payload as {
 /** Pose le DR des deux rangées du lancer courant, puis clôt (et enchaîne l'étape de pinte s'il y en a une). */
 function poseLancer(drLanceur: number, drDanseur: number, drAlcool?: number): void {
   const pc = get().pendingCascade!;
-  const idx = pc.participants.findIndex((s) => s.kind === 'tavern-round');
+  const idx = pc.participants.findIndex((s) => s.kind === 'taverneRound');
   const band = pc.participants[idx];
   const rows = band.participants!.map((r) => ({
     ...r,
@@ -73,9 +73,9 @@ function poseLancer(drLanceur: number, drDanseur: number, drAlcool?: number): vo
   get().jetValider('cascade');
   // Étape de pinte APPENDÉE (lancer raté d'un héros surfacé) : elle se joue dans la MÊME fenêtre.
   const pinte = get().pendingCascade?.participants[get().pendingCascade!.cursor];
-  if (pinte?.kind === 'tavern-drink') {
+  if (pinte?.kind === 'taverneBoisson') {
     const pc2 = get().pendingCascade!;
-    const j = pc2.participants.findIndex((s) => s.kind === 'tavern-drink');
+    const j = pc2.participants.findIndex((s) => s.kind === 'taverneBoisson');
     const parts = [...pc2.participants];
     const ok = (drAlcool ?? 1) >= 0;
     parts[j] = { ...pinte, result: { roll: ok ? 11 : 99, target: pinte.target!, sl: drAlcool ?? 1, success: ok } };
@@ -169,7 +169,7 @@ describe('Le torchon trempé (NADJ 16 l.109-111)', () => {
     banc.setState({ battle: null, party, journal: [], tavernGames: null, pendingCascade: null, sequence: null });
     get().jouerALaTaverne(party[0].id, { gameId: 'torchon', opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' }, allyProfil: 'elfe-haut-et-sylvain' });
     const pc = get().pendingCascade!;
-    const idx = pc.participants.findIndex((step) => step.kind === 'tavern-round');
+    const idx = pc.participants.findIndex((step) => step.kind === 'taverneRound');
     const band = pc.participants[idx];
     const participants = [...pc.participants];
     participants[idx] = { ...band, participants: band.participants!.map((row) => ({
@@ -178,7 +178,7 @@ describe('Le torchon trempé (NADJ 16 l.109-111)', () => {
     })) };
     banc.setState({ pendingCascade: { ...pc, participants, cursor: idx } });
     get().jetValider('cascade');
-    const pinte = get().pendingCascade!.participants.find((step) => step.kind === 'tavern-drink')!;
+    const pinte = get().pendingCascade!.participants.find((step) => step.kind === 'taverneBoisson')!;
     expect(pinte.base).toBe(76);
     expect(pinte.target).toBe(testValue(party[0], { skill: { id: 'resistance-a-l-alcool' } }));
   });

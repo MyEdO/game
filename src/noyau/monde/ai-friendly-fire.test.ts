@@ -42,7 +42,7 @@ describe('IA — tir ami d’une ZdE de contrôle', () => {
     const a1 = mk('a1', 'enemy', { x: 10, y: 9 });           // 2 alliés DANS le rayon de l'unique centre (la cible)
     const a2 = mk('a2', 'enemy', { x: 9, y: 10 });
     const action = chooseEnemyAction(input(caster, [foe], [a1, a2]));
-    expect(action.kind).not.toBe('castArea'); // 1 ennemi vs 2 alliés aveuglés → net < 0 → pas de ZdE
+    expect(action.kind).not.toBe('incantationDeZone'); // 1 ennemi vs 2 alliés aveuglés → net < 0 → pas de ZdE
   });
 
   it('lance la ZdE quand elle ne touche QUE des ennemis (aucun allié dans le rayon)', () => {
@@ -51,6 +51,6 @@ describe('IA — tir ami d’une ZdE de contrôle', () => {
     const f2 = mk('h2', 'hero', { x: 10, y: 11 });           // 2 ennemis groupés, alliés ailleurs
     const ally = mk('a', 'enemy', { x: 5, y: 6 });            // allié LOIN du rayon
     const action = chooseEnemyAction(input(caster, [f1, f2], [ally]));
-    expect(action.kind).toBe('castArea');
+    expect(action.kind).toBe('incantationDeZone');
   });
 });

@@ -1020,10 +1020,10 @@ describe('Aléa & fermeture', () => {
 
   it('coop : le choix de l’aléa est à l’hôte, refusé à l’invité, dans son état comme à la route', () => {
     enRound();
-    banc.setState({ net: { ...initialNet(), mode: 'host', mySeat: 0, gmSeat: undefined, ownership: {}, slots: [0, 1, 0, 0] } });
+    banc.setState({ net: { ...initialNet(), mode: 'hote', mySeat: 0, gmSeat: undefined, ownership: {}, slots: [0, 1, 0, 0] } });
     const args = ['batailleDeMasse', 'alea', 'peur'];
     expect([intentAllowedFor(banc.getState(), 0, 'fenetreChoisir', args), intentAllowedFor(banc.getState(), 1, 'fenetreChoisir', args)]).toEqual([true, false]);
-    banc.setState({ net: { ...banc.getState().net, mode: 'guest', mySeat: 1 } });
+    banc.setState({ net: { ...banc.getState().net, mode: 'invite', mySeat: 1 } });
     expect(refusDuChoixNomme(banc.getState(), 'batailleDeMasse', 'alea', 'peur')).toBe(t('choix.refus.hoteSeul'));
   });
 

@@ -27,13 +27,13 @@ describe('stakes.json — une collection, quatre cascades, leurs invariants gard
 
   it('`form` et `template` vont ensemble', () => {
     const doc = clone();
-    delete uneDe(doc, 'night').form;
+    delete uneDe(doc, 'nuit').form;
     expect(refus(doc)).toMatch(/la forme qualifie le gabarit/);
   });
 
   it('une cascade à PORTE refuse une entrée sans foyer ni catégorie d’entrée ; le voyage l’admet', () => {
     const nuit = clone();
-    delete uneDe(nuit, 'night').rule;
+    delete uneDe(nuit, 'nuit').rule;
     expect(refus(nuit)).toMatch(/ni foyer \(rule\) ni catégorie d’entrée/);
     const voyage = clone();
     delete uneDe(voyage, 'voyage', (e) => !!e.rule).rule;
@@ -42,8 +42,8 @@ describe('stakes.json — une collection, quatre cascades, leurs invariants gard
 
   it('une clé de CHARGE d’une autre cascade est refusée, en nommant la cascade', () => {
     const doc = clone();
-    uneDe(doc, 'night').entryCategory = 'symptoms';
-    expect(refus(doc)).toMatch(/« entryCategory » n’appartient qu’au\(x\) cas cascade « flow, combat »/);
+    uneDe(doc, 'nuit').entryCategory = 'symptoms';
+    expect(refus(doc)).toMatch(/« entryCategory » n’appartient qu’au\(x\) cas cascade « flux, combat »/);
   });
 
   it('l’id est la seule identité : deux entrées ne portent pas le même, une `cle` est refusée', () => {
@@ -52,7 +52,7 @@ describe('stakes.json — une collection, quatre cascades, leurs invariants gard
     b.id = a.id;
     expect(refus(doublon)).toMatch(new RegExp(`« ${a.id} » dupliqué`));
     const cle = clone();
-    uneDe(cle, 'voyage').cle = 'riverNav';
+    uneDe(cle, 'voyage').cle = 'fleuveNavigation';
     expect(refus(cle)).toMatch(/Clé non reconnue : "cle"/);
   });
 });

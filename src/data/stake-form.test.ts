@@ -9,7 +9,7 @@
  *  • `descripteur` : assemblage MÉCANIQUE assumé (ce que l'applier fait) — aucune contiguïté promise ;
  *    la porte vers la règle est exigée par le schéma (`schemas/defs/stakes.ts`), sauf au voyage.
  *
- * Un assemblage NON déclaré échoue : c'est exactement le défaut qu'avait `disease-tick` (préfixes
+ * Un assemblage NON déclaré échoue : c'est exactement le défaut qu'avait `maladie-test-quotidien` (préfixes
  * « **Blessé :** »/« **Toxine :** » fabriqués, 2ᵉ fragment à cheval sur deux folios).
  */
 import { describe, it, expect } from 'vitest';
@@ -56,8 +56,8 @@ describe('stakes — la FORME de chaque enjeu est déclarée et tenue (#1117 L0b
 
   it('le stock d’assemblages de la NUIT est NOMMÉ et borné', () => {
     // Chaque `descripteur` de nuit est un choix motivé, pas un repli.
-    expect(STAKES.filter((e) => e.cascade === 'night' && e.form === 'descripteur').map((e) => e.id).sort())
-      .toEqual(['disease-tick', 'nightmare']);
+    expect(STAKES.filter((e) => e.cascade === 'nuit' && e.form === 'descripteur').map((e) => e.id).sort())
+      .toEqual(['cauchemar', 'maladie-test-quotidien']);
   });
 
   it('FAIL-CLOSED : un fragment fabriqué ou à cheval sur deux lignes est DÉTECTÉ', () => {

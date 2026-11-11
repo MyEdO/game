@@ -14,12 +14,12 @@ const OPTION: Record<FateSaveOption, { icon: IconId; label: string }> = {
 };
 
 /** Enjeu servi par chaque fenêtre du sauvetage par le Destin. */
-const FATE_SAVE_STAKE: Record<FateSaveOption | 'choice', FlowStakeId> = { choice: 'fate-save-choice', survivre: 'fate-save-survive', eviter: 'fate-save-negate' };
+const FATE_SAVE_STAKE: Record<FateSaveOption | 'choice', FlowStakeId> = { choice: 'sauvetage-destin-choix', survivre: 'sauvetage-destin-survivre', eviter: 'sauvetage-destin-annuler' };
 
 /**
  * Sauvetage par le Destin : LDB 17 l.29 ; options l.31 (`survivre`) et l.32 (`eviter`), offertes par
  * `fateSaveOptions`, que le groupe de choix ET l'enjeu lisent (chaque option porte sa note, puis celle
- * du refus, `fate-save-choice`, dont la règle est aussi celle du titre).
+ * du refus, `sauvetage-destin-choix`, dont la règle est aussi celle du titre).
  * Pied : « Accepter le sort », la sortie de l'état courant (`docs/charte-ui.md`, `.btn-ghost` et
  * `.btn.danger`).
  */

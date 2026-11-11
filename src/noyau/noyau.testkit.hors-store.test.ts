@@ -22,7 +22,7 @@ describe('avecLesTables — la fixture vit le temps d’un test', () => {
   it('pose : la fixture remplace la table qu’elle nomme, les autres restent celles du jeu', () => {
     avecLesTables({ appliers: { [SONDE]: () => undefined } });
     expect(applierDe(SONDE)).toBeDefined();
-    expect(applierDe('triggeredBatchTest'), 'la table nommée est REMPLACÉE, pas complétée').toBeUndefined();
+    expect(applierDe('testDeclencheEnBande'), 'la table nommée est REMPLACÉE, pas complétée').toBeUndefined();
     expect(tablesPosees().crochetsDeCombat).toBe(tablesDuJeu().crochetsDeCombat);
     expect(() => avecLesTables({}), 'une seconde pose dans le même test').toThrow(/déjà posée/);
   });

@@ -57,7 +57,7 @@ function setup(net: Record<string, unknown> = {}) {
   banc.setState({
     battle, mode: 'battle', screen: 'campaign', scene: testScene(), party: [hero],
     pendingBattement: null, pendingDisengage: null, pendingCascade: null, pendingAttack: null,
-    net: { ...NET0, mode: 'host', mySeat: 0, gmSeat: undefined, ownership: { h2: 1 }, slots: [1, 0, 0, 0], seatNames: { 0: 'Hôte', 1: 'Invité' }, ...net },
+    net: { ...NET0, mode: 'hote', mySeat: 0, gmSeat: undefined, ownership: { h2: 1 }, slots: [1, 0, 0, 0], seatNames: { 0: 'Hôte', 1: 'Invité' }, ...net },
   });
   return { hero, enemy };
 }
@@ -124,7 +124,7 @@ describe('appliquerLIntentionDUnSiege — allowlist, possession, siège du trans
 
   const pregen = (id: string): Combatant => ({ ...JSON.parse(JSON.stringify(tousLesHerosDeScenario(idsDeTest)[0])), id, label: id });
   const hoteEtUnInvite = () => banc.setState({
-    party: [], journal: [], net: { ...initialNet(), mode: 'host', seatNames: { 0: 'Hôte', 1: 'Invité' }, slots: [1, 0, 0, 0] },
+    party: [], journal: [], net: { ...initialNet(), mode: 'hote', seatNames: { 0: 'Hôte', 1: 'Invité' }, slots: [1, 0, 0, 0] },
   });
 
   it('composition : `recruterLeHeros` prend le siège du transport, jamais celui des args', () => {
@@ -137,7 +137,7 @@ describe('appliquerLIntentionDUnSiege — allowlist, possession, siège du trans
     const quatre = ['h1', 'h2', 'h3', 'h4'].map(pregen);
     banc.setState({
       party: quatre, journal: [],
-      net: { ...initialNet(), mode: 'host', seatNames: { 0: 'Hôte', 1: 'Invité' }, slots: [0, 0, 0, 1], ownership: { h1: 0, h2: 0, h3: 0, h4: 0 } },
+      net: { ...initialNet(), mode: 'hote', seatNames: { 0: 'Hôte', 1: 'Invité' }, slots: [0, 0, 0, 1], ownership: { h1: 0, h2: 0, h3: 0, h4: 0 } },
     });
     expect(applyIntent(1, 'recruterLeHeros', [engage('g1')])).toBe('appliquee');
     expect(banc.getState().party.map((h) => h.id)).toEqual(['h1', 'h2', 'h3', 'h4']);
@@ -189,7 +189,7 @@ describe('#2903 — Annuler un jet par intention : seul le siège du porteur ref
     itl.perHero[h.id] = { ...itl.perHero[h.id], fx: undefined, left: 2 };
     banc.setState({
       interlude: { ...itl },
-      net: { ...NET0, mode: 'host', mySeat: 0, gmSeat: undefined, ownership: { [h.id]: 1 }, slots: [1, 0, 0, 0], seatNames: { 0: 'Hôte', 1: 'Invité' } },
+      net: { ...NET0, mode: 'hote', mySeat: 0, gmSeat: undefined, ownership: { [h.id]: 1 }, slots: [1, 0, 0, 0], seatNames: { 0: 'Hôte', 1: 'Invité' } },
     });
     expect(applyIntent(1, 'fenetreChoisir', ['interlude', 'activite', 'revenus', h.id])).toBe('appliquee');
     expect(applyIntent(1, 'fenetreChoisir', ['interlude', 'pratiquer', true, h.id])).toBe('appliquee');

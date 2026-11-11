@@ -8,7 +8,7 @@
  *
  * RÈGLE D'OR (la résolution de combat N'EST PAS atomique : `applyAttackResult` peut poser `pendingFateSave`
  * et SUSPENDRE) : un hook qui doit suspendre (modale/choix) POUSSE une étape de cascade (`pushCombatStep`,
- * comme deviation/triggeredChoice le font déjà) — il ne RETOURNE JAMAIS de valeur. Le bus `EVT.BATTLE_OVER`
+ * comme deviation/choixDeclenche le font déjà) — il ne RETOURNE JAMAIS de valeur. Le bus `EVT.BATTLE_OVER`
  * (bus.ts, fire-and-forget) est réservé aux FX/audio : c'est un faux-ami pour un hook mutateur, à NE PAS
  * utiliser ici. Contrat de pureté/sérialisabilité IDENTIQUE à CascadeApplier : l'argument est l'état
  * (get/set), jamais une closure capturée dans un pending (snapshoté/transmis en coop).

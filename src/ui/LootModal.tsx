@@ -43,7 +43,7 @@ export function LootModal() {
               gear={pl.gear}
               assignable={assignable}
               onAssign={(uid, heroId) => choisir('butin', 'ligne', uid, heroId)}
-              onAppraise={net.mode === 'guest' ? undefined : appraise}
+              onAppraise={net.mode === 'invite' ? undefined : appraise}
             />
           ),
         }] : undefined}

@@ -795,12 +795,12 @@ describe('__wfrp — setups qui écrivent un héros, joués EN COMBAT (#2198, #2
     expect(apres.order, 'au Round suivant, l’apparu a toujours son tour').toContain('renfort');
   });
 
-  it('bladeTrap : l’étape de choix est celle du flux de la mêlée (`choixPiegeLame`), lignes de portée et d’issue comprises', () => {
+  it('piegeALame : l’étape de choix est celle du flux de la mêlée (`choixPiegeLame`), lignes de portée et d’issue comprises', () => {
     const api = buildApi();
     const attaquant = useGame.getState().battle!.combatants.find((c) => c.kind === 'enemy')!;
-    expect(api.bladeTrap(heroId, attaquant.id, 3)).toMatch(/^✓/);
-    const etape = useGame.getState().pendingCascade!.participants.find((p) => p.kind === 'bladeTrap')!;
-    const pbt = etape.bladeTrap!;
+    expect(api.piegeALame(heroId, attaquant.id, 3)).toMatch(/^✓/);
+    const etape = useGame.getState().pendingCascade!.participants.find((p) => p.kind === 'piegeALame')!;
+    const pbt = etape.piegeLame!;
     const parade = combattant().weapons[0];
     expect(pbt.parryWeaponUid).toBe(parade.uid);
     const attendu = choixPiegeLame(pbt, combattant(), attaquant, parade);
@@ -1011,7 +1011,7 @@ describe('__wfrp.fastForward — avance-rapide des tours IA (garde anti-boucle, 
       battle: { ...b, order: [enemyId, hero.id], baseOrder: [enemyId, hero.id], turn: 0 },
       // Une fenêtre de défense VIVANTE, sur son étape : la main appartient au joueur.
       pendingDefense: { attackerId: b.combatants.find((c) => c.kind === 'enemy')!.id, defenderId: hero.id, weapon: hero.weapons[0], mode: 'parade', def: null, result: null } as never,
-      pendingCascade: cascadeDeTest([{ id: 'defense-jet-0', kind: 'defenseJet', jet: 'defense', actorId: hero.id }], { title: 'Défense', purpose: 'combat' }),
+      pendingCascade: cascadeDeTest([{ id: 'defense-jet-0', kind: 'jetDeDefense', jet: 'defense', actorId: hero.id }], { title: 'Défense', purpose: 'combat' }),
     });
 
     const p = buildApi().fastForward(100);

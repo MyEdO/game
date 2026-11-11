@@ -142,7 +142,7 @@ describe('F — le dénouement d’un dé joué EN COMBAT se montre dans le jour
   it('F1 — l’événement porte le kind `info` et son ACTEUR (le bandeau sait de qui il parle)', () => {
     ouvrirCombat();
     jouerSauvegarde(6);
-    expect(logDeCombat()[0].kind).toBe('info');
+    expect(logDeCombat()[0].kind).toBe('information');
     expect(logDeCombat()[0].actorId).toBe(PORTEUR.id);
   });
 

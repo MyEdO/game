@@ -86,9 +86,9 @@ describe('Test Étendu séquentiel (porte DR cumulé)', () => {
     expect(banc.getState().party[0].resilience).toBe(0); // 1 Point de Résilience dépensé
   });
 
-  it('l’enjeu vit sur l’étape `extendedJet`, que la fenêtre lit, jamais recopié sur le porteur (#1117)', () => {
+  it('l’enjeu vit sur l’étape `jetEtendu`, que la fenêtre lit, jamais recopié sur le porteur (#1117)', () => {
     const h = hero();
-    const stake = flowStakeRef('extended-test-roll');
+    const stake = flowStakeRef('test-etendu');
     banc.getState().ouvrirLeTestEtendu({ actorId: h.id, label: 'Forcer', skillLabel: 'Force', target: 50, targetDR: 5, stake });
     expect(banc.getState().pendingCascade?.participants.find((e) => e.jet === 'testEtendu')?.stake).toEqual(stake);
     expect(banc.getState().pendingExtendedTest).not.toHaveProperty('stake');

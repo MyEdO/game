@@ -1,4 +1,4 @@
-[gd_resource type="Theme" load_steps=19 format=3]
+[gd_resource type="Theme" load_steps=20 format=3]
 
 [ext_resource type="StyleBox" path="res://art/fond_panneau.tres" id="1_fond"]
 
@@ -209,6 +209,22 @@ corner_radius_top_right = 999
 corner_radius_bottom_right = 999
 corner_radius_bottom_left = 999
 
+[sub_resource type="StyleBoxFlat" id="Cadre_de_portrait"]
+bg_color = Color(0.165, 0.141, 0.11, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.56, 0.46, 0.28, 1)
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
 [sub_resource type="StyleBoxEmpty" id="Sans_fond"]
 
 [resource]
@@ -233,9 +249,8 @@ RangeeAeree/constants/separation = 24
 Mosaique/base_type = &"HFlowContainer"
 Mosaique/constants/h_separation = 32
 Mosaique/constants/v_separation = 12
-Cartes/base_type = &"HFlowContainer"
-Cartes/constants/h_separation = 12
-Cartes/constants/v_separation = 8
+Cartes/base_type = &"HBoxContainer"
+Cartes/constants/separation = 12
 FluxSerre/base_type = &"HFlowContainer"
 FluxSerre/constants/h_separation = 6
 FluxSerre/constants/v_separation = 6
@@ -269,6 +284,8 @@ Puce/base_type = &"PanelContainer"
 Puce/styles/panel = SubResource("Fond_de_puce")
 TeteDEntite/base_type = &"PanelContainer"
 TeteDEntite/styles/panel = SubResource("Sans_fond")
+Portrait/base_type = &"PanelContainer"
+Portrait/styles/panel = SubResource("Cadre_de_portrait")
 Entite/base_type = &"PanelContainer"
 Entite/styles/panel = SubResource("Sans_fond")
 neutre/styles/panel = SubResource("Anneau_neutre")

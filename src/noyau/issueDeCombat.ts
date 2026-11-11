@@ -77,7 +77,7 @@ export function sortiesDIssueDeCombat(get: Get, set: Set) {
         ...c, wounds: { ...c.wounds, current: c.wounds.max }, conditions: [], criticalWounds: 0, dead: false, outOfRencontre: false,
       });
       set({ party: get().party.map(heal), battle: null, mode: 'exploration' });
-      massBattleFlow.massBattleResumeCombat(get, set, 0, 'lost');
+      massBattleFlow.massBattleResumeCombat(get, set, 0, 'defaite');
       resumeSuspendedCascade(get, set); // teardown de combat (couture universelle), comme la victoire
     },
     /** Ferme l'écran de DÉFAITE hors bataille de masse : reprise standard (retour à la scène / redémarrage). */

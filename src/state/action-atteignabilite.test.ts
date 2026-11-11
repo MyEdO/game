@@ -302,7 +302,7 @@ describe('(c) disposition data-driven — le validateur d’écriture tient la f
   });
 
   it('CLAVIER par adresse : exactement 8 liaisons de rang, sur les 8 premiers rangs des capacités', () => {
-    const rangs = KEYBINDINGS.filter((b) => b.section === 'hotbar');
+    const rangs = KEYBINDINGS.filter((b) => b.section === 'capacite');
     expect(rangs.map((b) => b.id)).toEqual(Array.from({ length: TOUCHES_IMPRIMEES }, (_, i) => `capacite-${i + 1}`));
     expect(rangs.flatMap((b) => b.codes)).toEqual(Array.from({ length: TOUCHES_IMPRIMEES }, (_, i) => `Digit${i + 1}`));
     expect(rangs.length, 'les touches imprimées et les liaisons de rang doivent être le MÊME compte').toBe(TOUCHES_IMPRIMEES);

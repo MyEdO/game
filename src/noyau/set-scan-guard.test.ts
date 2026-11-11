@@ -11,15 +11,15 @@ import { runSetScan } from '../../scripts/guards/lib/setScan.mjs';
  * « cœur des set() sains ») ; ce cliquet borne la CROISSANCE non revue plutôt que d'exiger un helper
  * `clearPending` immédiat (aucune correction faite dans cette passe). Baseline gelée au recensement
  * (2026-07-11) : 689 set() / 280 resets ad hoc directs ; +1 set() légitime (voyage : l'applier de poste
- * SCINDÉ en `stagePoste` sans-Test + `stagePosteBatch` pour le pas batch des postes — chacun ré-émet le
+ * SCINDÉ en `etapePoste` sans-Test + `etapePosteEnBande` pour le pas batch des postes — chacun ré-émet le
  * groupe) ; +2 set() légitimes (#327 lot D : `spoilVesselCargoOnLeak` persiste la voie d'eau sur
  * `vessel.cargo`, et l'applier de soumission de la Cogue pirate y persiste le pillage — SOURCE UNIQUE).
  * +6 set() légitimes (#340 : budget d'heures PAR JOUR CALENDAIRE + portes de départ + nuit forcée —
  * `travelFlow` accumule le budget du jour `addTravelHoursToday`/`markMarchedToday`, pose/lève la porte
  * `pendingDeparture` ; `restFlow` marque la nuit jouée `lastNightDay` ×2) ; +2 resets ad hoc (la porte
  * `pendingDeparture` posée puis effacée à « Attendre l'aube »/au départ diurne — transient de carte).
- * +1 set() légitime (#341 : l'applier `weatherResistance` ré-émet le groupe après l'Exténué de traversée
- * Neige/Blizzard — MÊME patron que `stagePosteBatch`).
+ * +1 set() légitime (#341 : l'applier `resistanceALaMeteo` ré-émet le groupe après l'Exténué de traversée
+ * Neige/Blizzard — MÊME patron que `etapePosteEnBande`).
  * +3 set() légitimes (#344 : l'Exposition hydrique fluviale surfacée APRÈS le jour DIFFÈRE la halte de
  * nuit — `continueRiverDayAfterCascade` re-tague la cascade en `riverExposure` + fige la progression du
  * jour ; `continueRiverDayAfterExposure` efface ce transient puis reprend la fin du jour) ; +1 reset ad hoc

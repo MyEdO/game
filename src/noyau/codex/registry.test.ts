@@ -420,9 +420,9 @@ describe('Codex registry — règles de négoce (#3433, MDG 15 et MSRC 13)', () 
     expect(item.label).toBe(c.label);
     expect(item.source?.book).toBe('MSRC');
     const vin = item.sections!.find((s) => s.title === 'Qualité du vin (1d10)')!;
-    expect(vin.rows).toHaveLength(c.wineQuality.entries.length);
+    expect(vin.rows).toHaveLength(c.qualiteDuVin.entries.length);
     const rumeurs = item.sections!.find((s) => s.title === 'Rumeurs commerciales (1d100)')!;
-    expect(rumeurs.rows.filter((r) => r.t === 'text')).toHaveLength(c.rumours.entries.length);
+    expect(rumeurs.rows.filter((r) => r.t === 'text')).toHaveLength(c.rumeurs.entries.length);
     expect(rumeurs.rows.some((r) => r.t === 'ref' && r.category === 'cargoes')).toBe(true);
   });
 });

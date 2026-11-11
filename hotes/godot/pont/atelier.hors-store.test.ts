@@ -15,7 +15,7 @@ import { emplacementsDeRangement, gardeRobe } from '../../../src/noyau/index';
 import { modelesDeLAtelier } from './atelier';
 
 const dos = { os: 'spine', position: [0, 0.1, 0], rotation: [0, 0, 0] };
-const humanoide = { ...baseDeTest('humanoide'), emplacements: { dos }, clips: { walk: 'Walk_Loop', idle: 'Idle_Loop' }, appuis: { ...baseDeTest('humanoide').appuis, pieds: ['root'], vitesseAuSol: 1.25 } };
+const humanoide = { ...baseDeTest('humanoide'), emplacements: { dos }, clips: { marche: 'Walk_Loop', repos: 'Idle_Loop' }, appuis: { ...baseDeTest('humanoide').appuis, pieds: ['root'], vitesseAuSol: 1.25 } };
 const epee = elementSchema3('humanoide');
 const chemise = {
   schema: 3, base: 'humanoide', categorie: 'vetement', cle: { piece: 'chemise' }, liaison: { mode: 'squelette' }, couche: 'tenue', couvre: ['torse'],
@@ -51,8 +51,8 @@ describe('modelesDeLAtelier', () => {
     ]);
   });
 
-  it('une base publie sa table rôle → clip et la vitesse au sol de son rôle `walk`, au gabarit neutre', () => {
-    expect([modeles.bases[0].clips, modeles.bases[0].vitesseAuSol]).toEqual([{ walk: 'Walk_Loop', idle: 'Idle_Loop' }, 1.25]);
+  it('une base publie sa table rôle → clip et la vitesse au sol de son rôle `marche`, au gabarit neutre', () => {
+    expect([modeles.bases[0].clips, modeles.bases[0].vitesseAuSol]).toEqual([{ marche: 'Walk_Loop', repos: 'Idle_Loop' }, 1.25]);
   });
 
   it('une base publie les os de ses chaînes (#3842)', () => {

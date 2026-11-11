@@ -94,14 +94,16 @@ func appeler(methode: String, entree: Variant = null) -> Dictionary:
 ## lecture d’un clip renouvelle aussi cette publication à chaque image, après mise en page, sans remesurer `peaux`.
 ##
 ## - Au menu : `{ boutons: { texte, x, y }[] }`, le texte et le centre de chaque bouton actif.
-## - Au combat : `{ boutons: { texte, x, y, element?, choix?, ids?, retenu? }[], cases: Record<"x,y,z", [x, y]>, corps:
-##   Record<string, { base: string, elements: string[], emblemes: Record<string, string>, couleurs: Record<string,
-##   Record<string, string>> }>, navires: string[] }`, plus le point de l'écran du sol de chaque case de chaque couche
-##   du plateau, les ids des navires de la scène dont le modèle est posé (`Plateau.navires`), republiés à chaque modèle
-##   posé, et, par id de combattant dessiné avec un corps, sa base, les ids des éléments montés, par ligne de
-## `montes`, l'id de
-##   l'emblème posé, et `couleurs`, comme à l'atelier, par emplacement monté dont une surface a un matériau propre, la
-##   couleur d'albédo `#rrggbb` de ce matériau, par nom du matériau du GLB (`MontageDeComposition.couleurs_posees`).
+## - Au combat : `{ boutons: { texte, x, y, element?, choix?, ids?, retenu? }[], cases: Record<"x,y,z", [x, y]>,
+##   cadre: [x, y, largeur, hauteur], corps: Record<string, { base: string, elements: string[], emblemes:
+##   Record<string, string>, couleurs: Record<string, Record<string, string>> }>, navires: string[] }`, plus le
+##   point de l'écran du sol de chaque case de chaque couche du plateau, à l'écran ou non, la part de l'écran où le
+##   monde se voit, que l'interface ne couvre pas (`Monde.cadre`, vide avant la première mise en page), les ids des
+##   navires de la scène dont le modèle est posé (`Plateau.navires`), republiés à chaque modèle posé, et, par id de
+##   combattant dessiné avec un corps, sa base, les ids des éléments montés, par ligne de `montes`, l'id de
+##   l'emblème posé, et `couleurs`, comme à l'atelier, par emplacement monté dont une surface a un matériau propre,
+##   la couleur d'albédo `#rrggbb` de ce matériau, par nom du matériau du GLB
+##   (`MontageDeComposition.couleurs_posees`).
 ##   `element` est l'élément de la vue que dessine le composant qui porte le bouton, `"<type>/<id>"` (`bouton/fin-de-tour`
 ##   pour une offre, `bouton/<clé du geste>` pour un geste de la fenêtre, `bouton/<clé du geste>/<n>` pour la n-ième
 ##   valeur d'un choix) ; une liste déroulante publie aussi `choix`, `ids` et `retenu`, comme à l'atelier.

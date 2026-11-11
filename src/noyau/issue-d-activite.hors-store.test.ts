@@ -1,6 +1,6 @@
 /**
  * L'ISSUE D'UNE ACTIVITÉ AUX BANDES AUTOMATIQUES (LDB 12 l.25-28) : l'issue canonique du flux `activite`
- * (`FLOWS.activity.outcomeOf`) d'un Test simple ouvert par l'interlude, le dé posé par l'option des dés fixés
+ * (`FLOWS.activite.outcomeOf`) d'un Test simple ouvert par l'interlude, le dé posé par l'option des dés fixés
  * (`jetImposerLeResultat`). La cible est bornée à 01-99 par la ligne du jet ; seules les bandes départagent le dé.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
@@ -30,7 +30,7 @@ function revenusAuDe(valeur: number, extenue: number, de: number) {
   pratiquer(banc.getState, h.id, 'revenus');
   banc.getState().jetLancer('activite');
   banc.getState().jetImposerLeResultat('activite', de);
-  return FLOWS.activity.outcomeOf(banc.getState);
+  return FLOWS.activite.outcomeOf(banc.getState);
 }
 
 describe('flux `activite` : l’issue d’un Test simple suit les bandes automatiques (LDB 12 l.25-28)', () => {

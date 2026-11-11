@@ -10,6 +10,7 @@
  * L'ordre des messages est préservé malgré la compression async : chaînes send/recv.
  */
 import type { Transport } from './transport';
+import type { VerrouDesMots } from '../../noyau/index';
 
 /** L'URL WebSocket de la room `code` sur le relay d'URL HTTP `base`. */
 export function roomWsUrl(base: string, code: string, params: Record<string, string>): string {
@@ -34,7 +35,10 @@ export interface SocketLike {
   onerror: (() => void) | null;
 }
 export type MakeSocket = (url: string) => SocketLike;
-export type ConnState = 'connecting' | 'ok' | 'reconnecting' | 'lost';
+export type ConnState = 'connexion' | 'connecte' | 'reconnexion' | 'perdu';
+/** VERROU : un état de connexion ne prend que des mots du lexique (#3928). */
+const verrouDeConnState: VerrouDesMots<ConnState> = true;
+void verrouDeConnState;
 
 /** Un appel différé de l'hôte : `programmer` rend de quoi l'annuler. */
 export interface Minuterie {
@@ -66,7 +70,7 @@ export interface RelayOpts {
 }
 
 export class RelayClient {
-  state: ConnState = 'connecting';
+  state: ConnState = 'connexion';
   private ws: SocketLike | null = null;
   private arreterLePing: (() => void) | null = null;
   private annulerLeRetry: (() => void) | null = null;
@@ -109,7 +113,7 @@ export class RelayClient {
       this.lastPong = Date.now();
       this.retryDelay = 1000;
       this.retryStart = 0;
-      this.setState('ok');
+      this.setState('connecte');
       this.battre(ws);
     };
     ws.onmessage = (e) => {
@@ -131,7 +135,7 @@ export class RelayClient {
       this.ws = null;
       if (this.closed) return;
       if (e.code >= 4000) {
-        this.setState('lost');
+        this.setState('perdu');
         this.opts.onFatal?.(e.reason || 'Connexion refusée.');
         return;
       }
@@ -145,11 +149,11 @@ export class RelayClient {
   private scheduleRetry(): void {
     if (this.retryStart === 0) this.retryStart = Date.now();
     if (Date.now() - this.retryStart > RETRY_MAX_MS) {
-      this.setState('lost');
+      this.setState('perdu');
       this.opts.onFatal?.('Connexion perdue.');
       return;
     }
-    this.setState('reconnecting');
+    this.setState('reconnexion');
     this.annulerLeRetry = this.opts.minuterie.programmer(() => {
       this.annulerLeRetry = null;
       this.open();
@@ -158,7 +162,7 @@ export class RelayClient {
   }
 
   sendRaw(text: string): void {
-    if (this.state === 'ok') this.ws?.send(text);
+    if (this.state === 'connecte') this.ws?.send(text);
   }
 
   buffered(): number {
@@ -313,12 +317,12 @@ export class RoomGuest implements Transport {
       onEnvelope: (env) => this.handle(env),
       onState: (s) => {
         this.onConnState?.(s);
-        if (s === 'reconnecting') this.wasReconnecting = true;
-        if (s === 'ok' && this.wasReconnecting) {
+        if (s === 'reconnexion') this.wasReconnecting = true;
+        if (s === 'connecte' && this.wasReconnecting) {
           this.wasReconnecting = false;
           this.onReconnected?.();
         }
-        if (s === 'lost') this.closeCb?.();
+        if (s === 'perdu') this.closeCb?.();
       },
       onFatal: (reason) => this.onFatal?.(reason),
     });

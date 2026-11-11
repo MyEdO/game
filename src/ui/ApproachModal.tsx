@@ -50,8 +50,8 @@ export function ApproachModal() {
   }, {
     fortune: c.fortune ?? 0,
     resilience: c.resilience ?? 0,
-    // Offre et aperçu de l'inversion : verdicts du flux (`FLOWS.approach`).
-    ...(FLOWS.approach.reverseAvailable(useGame.getState) ? { reverse: { onReverse: reverse, preview: FLOWS.approach.reversePreview(useGame.getState) } } : {}),
+    // Offre et aperçu de l'inversion : verdicts du flux (`FLOWS.approche`).
+    ...(FLOWS.approche.reverseAvailable(useGame.getState) ? { reverse: { onReverse: reverse, preview: FLOWS.approche.reversePreview(useGame.getState) } } : {}),
   });
 
   const actions: RollAction[] = [
@@ -70,7 +70,7 @@ export function ApproachModal() {
       }
       rows={[actorRow]}
       rolled={rolled}
-      outcome={r ? [recapLineOfEvent(ev('fear', describeApproach(pa), c.id, pa.sourceId), battle.combatants)] : undefined}
+      outcome={r ? [recapLineOfEvent(ev('peur', describeApproach(pa), c.id, pa.sourceId), battle.combatants)] : undefined}
       actions={actions}
       onCancel={rolled ? undefined : cancel}
     />

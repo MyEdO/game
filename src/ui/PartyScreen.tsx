@@ -91,7 +91,7 @@ export function PartyScreen() {
   };
 
   // Le choix de campagne appartient à l'hôte (ou au solo), hors partie en cours (« Reprendre »).
-  const canPickCampaign = net.mode !== 'guest' && !inProgress;
+  const canPickCampaign = net.mode !== 'invite' && !inProgress;
   // Axes ACTIFS de la campagne (#409/#417) : `resolveActiveAxes` lit `activeAxes` sur
   // `pendingCampaign` (`ProjectDoc`, `noyau/worldMap.ts`) et retombe sur le socle `coreAxisIds`
   // si absent — SOURCE UNIQUE de ce défaut, jamais un `?? []` dispersé côté écran.
@@ -390,7 +390,7 @@ export function PartyScreenView({
   return (
     <div className="screen party-screen">
       <header className="bar">
-        {net.mode === 'guest' ? (
+        {net.mode === 'invite' ? (
           <button className="btn small" onClick={onQuitCoop}>
             {t('party.back.quit')}
           </button>
@@ -405,7 +405,7 @@ export function PartyScreenView({
             <Icon id="travel/mount" size="sm" /> Possessions
           </button>
         )}
-        {net.mode === 'guest' && (
+        {net.mode === 'invite' && (
           <span className="hint"><Icon id="ui/wait" size="sm" /> {t('party.guest.waiting')}</span>
         )}
       </header>
@@ -452,7 +452,7 @@ export function PartyScreenView({
                   }
                 }}
               >
-                {coop && (net.mode === 'host' && !h ? (
+                {coop && (net.mode === 'hote' && !h ? (
                   <label className="slot-owner">
                     <span>{t('party.slot.player')}</span>
                     <select value={seat} onChange={(e) => onAssignSlot(i, Number(e.target.value))}>
@@ -509,7 +509,7 @@ export function PartyScreenView({
       </div>
       </div>
 
-      {net.mode !== 'guest' && (
+      {net.mode !== 'invite' && (
         <Row as="footer" className="party-actions">
           <p className="party-actions-summary">{partySummaryText(party, axisIds)}</p>
           <Row className="party-actions-buttons">

@@ -256,7 +256,7 @@ const signe = (n: number): string => `${n >= 0 ? '+' : '−'}${Math.abs(n)}`;
 
 /**
  * Ouvre le TEST D'ÉQUIPAGE d'un nœud `test` de Flow (`crewTestType`) : l'étape à participants du voyage
- * (`etapeDEquipage`), dont l'applier `flowCrewTest` (`seaVoyageFlow.ts`) joue la branche du verdict
+ * (`etapeDEquipage`), dont l'applier `testDEquipage` (`seaVoyageFlow.ts`) joue la branche du verdict
  * puis `after`. Son enjeu est celui que le Test nomme (`flowTestSchema`). `false` : aucun marin
  * apte à bord, l'appelant joue l'échec. MDG 14 l.39 ; MDG 15 l.144-145
  */
@@ -264,7 +264,7 @@ export function ouvrirLeTestDEquipage(get: Get, set: Set, node: Extract<Flow, { 
   const { crewTestType, stake } = node.test;
   const type = garanti(crewTestType, label, 'type de Test d’équipage');
   const { difficulty } = resoudreFlowTest(node.test, { cc: condCtx(get) });
-  const st = etapeDEquipage(get, type, 'flowCrewTest', garanti(stake, label, 'enjeu du Test d’équipage'), { difficulty });
+  const st = etapeDEquipage(get, type, 'testDEquipage', garanti(stake, label, 'enjeu du Test d’équipage'), { difficulty });
   if (!st) return false;
   startCascade(get, set, {
     title: label, icon: 'travel/anchor', purpose: 'test',

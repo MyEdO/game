@@ -2,9 +2,9 @@
  * Migration #1681 (#1463) — les quatre datasets d'ENJEUX de cascade FUSIONNENT en une collection
  * `src/data/stakes.json` à discriminant `cascade`.
  *
- *   `night-stakes.json`   → `cascade: 'night'`,  `cle` = `kind`, `stake` → `template`, `form` absente → `'verbatim'`
+ *   `night-stakes.json`   → `cascade: 'nuit'`,  `cle` = `kind`, `stake` → `template`, `form` absente → `'verbatim'`
  *   `voyage-stakes.json`  → `cascade: 'voyage'`, `cle` = `kind`, `form: 'descripteur'` posée
- *   `flow-stakes.json`    → `cascade: 'flow'`,   `cle` = `id`
+ *   `flow-stakes.json`    → `cascade: 'flux'`,   `cle` = `id`
  *   `combat-stakes.json`  → `cascade: 'combat'`, `cle` = `kind`
  *
  * Les valeurs de `cascade` sont celles de `StakeKey.dataset` (`src/data/index.ts`), que portent déjà les
@@ -43,9 +43,9 @@ const CIBLE = 'src/data/stakes.json';
 
 /** Source → cascade, lecture de la clé de consommation, forme posée quand l'entrée n'en dit rien. */
 const SOURCES = [
-  { rel: 'src/data/night-stakes.json', cascade: 'night', cle: (e) => e.kind, formParDefaut: 'verbatim' },
+  { rel: 'src/data/night-stakes.json', cascade: 'nuit', cle: (e) => e.kind, formParDefaut: 'verbatim' },
   { rel: 'src/data/voyage-stakes.json', cascade: 'voyage', cle: (e) => e.kind, formParDefaut: 'descripteur' },
-  { rel: 'src/data/flow-stakes.json', cascade: 'flow', cle: (e) => e.id, formParDefaut: undefined },
+  { rel: 'src/data/flow-stakes.json', cascade: 'flux', cle: (e) => e.id, formParDefaut: undefined },
   { rel: 'src/data/combat-stakes.json', cascade: 'combat', cle: (e) => e.kind, formParDefaut: undefined },
 ];
 const CASCADES = new Set(SOURCES.map((s) => s.cascade));

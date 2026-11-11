@@ -1849,21 +1849,21 @@
     }
   },
   "clips": {
-    "idle": "Idle_Loop",
-    "walk": "Walk_Loop",
+    "repos": "Idle_Loop",
+    "marche": "Walk_Loop",
     "melee": "Sword_Attack",
-    "hit": "Hit_Chest",
-    "death": "Death01"
+    "coup": "Hit_Chest",
+    "mort": "Death01"
   },
   "clipsDeuxMains": {
     "lourde2m": {
-      "idle": "Lourde_Repos_Loop",
-      "walk": "Lourde_Marche_Loop",
+      "repos": "Lourde_Repos_Loop",
+      "marche": "Lourde_Marche_Loop",
       "melee": "Lourde_Attaque"
     },
     "hampe": {
-      "idle": "Hampe_Repos_Loop",
-      "walk": "Hampe_Marche_Loop",
+      "repos": "Hampe_Repos_Loop",
+      "marche": "Hampe_Marche_Loop",
       "melee": "Hampe_Attaque"
     }
   },

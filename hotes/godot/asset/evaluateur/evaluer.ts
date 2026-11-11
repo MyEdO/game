@@ -251,9 +251,9 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
     etirements.push(mesurerEtirement(aretes, sansCles, e));
     suiviDesChaines.echantillon(e);
     amplitudes.echantillon(e);
-    if (manifeste && e.clip === manifeste.clips.walk) posesDesPieds.push(...poserPieds(e, surfaces, racine));
+    if (manifeste && e.clip === manifeste.clips.marche) posesDesPieds.push(...poserPieds(e, surfaces, racine));
   }
-  const appuis = mesurerAppuis(posesDesPieds, manifeste ? { [manifeste.clips.walk]: manifeste.appuis.vitesseAuSol * (pose?.echelleDeVitesse ?? 1) } : {});
+  const appuis = mesurerAppuis(posesDesPieds, manifeste ? { [manifeste.clips.marche]: manifeste.appuis.vitesseAuSol * (pose?.echelleDeVitesse ?? 1) } : {});
   ecarts.push(...appuis.ecarts);
   ecarts.push(...gardePiedsAuSol(niveaux, new Set(entree.clipsAuSol ?? [])), ...gardeEtirement(etirements, libelle), ...gardeTraversee(traversees, libelle), ...gardeMembreDansUnVetement(membres, libelle), ...amplitudes.ecarts());
   if (sontNeutres(facteurs) && Object.values(poids).every((p) => p === 0)) ecarts.push(...gardePercementAuRepos(couches.percements, libelle));

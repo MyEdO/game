@@ -646,7 +646,7 @@
             "stake": {
               "key": {
                 "dataset": "voyage",
-                "kind": "crew-affaler-ouragan",
+                "kind": "equipage-affaler-ouragan",
                 "entryId": "ouragan",
                 "entryCategory": "seaBoardEvents"
               }
@@ -1487,7 +1487,7 @@
               "stake": {
                 "key": {
                   "dataset": "voyage",
-                  "kind": "sea-priere-manann",
+                  "kind": "mer-priere-manann",
                   "entryId": "presage-divin-albatros",
                   "entryCategory": "seaBoardEvents"
                 }
@@ -2198,7 +2198,7 @@
               "stake": {
                 "key": {
                   "dataset": "voyage",
-                  "kind": "sea-priere-manann",
+                  "kind": "mer-priere-manann",
                   "entryId": "presage-divin-feu-bleu",
                   "entryCategory": "seaBoardEvents"
                 }
@@ -2381,7 +2381,7 @@
                   "stake": {
                     "key": {
                       "dataset": "voyage",
-                      "kind": "sea-embrigadement-ragot",
+                      "kind": "mer-embrigadement-ragot",
                       "entryId": "embrigadement",
                       "entryCategory": "seaPortEvents"
                     }
@@ -2467,7 +2467,7 @@
                           "stake": {
                             "key": {
                               "dataset": "voyage",
-                              "kind": "sea-embrigadement-discretion",
+                              "kind": "mer-embrigadement-discretion",
                               "entryId": "embrigadement",
                               "entryCategory": "seaPortEvents"
                             }
@@ -2527,7 +2527,7 @@
                         "stake": {
                           "key": {
                             "dataset": "voyage",
-                            "kind": "sea-embrigadement-discretion",
+                            "kind": "mer-embrigadement-discretion",
                             "entryId": "embrigadement",
                             "entryCategory": "seaPortEvents"
                           }
@@ -2735,7 +2735,7 @@
             "stake": {
               "key": {
                 "dataset": "voyage",
-                "kind": "sea-controle-subornation",
+                "kind": "mer-controle-subornation",
                 "entryId": "controle-a-quai",
                 "entryCategory": "seaPortEvents"
               }
@@ -3290,7 +3290,7 @@
             "stake": {
               "key": {
                 "dataset": "voyage",
-                "kind": "sea-passager-clandestin",
+                "kind": "mer-passager-clandestin",
                 "entryId": "passager-clandestin",
                 "entryCategory": "seaPortEvents"
               }
@@ -3507,7 +3507,7 @@
             "stake": {
               "key": {
                 "dataset": "voyage",
-                "kind": "sea-rumeurs-commerciales",
+                "kind": "mer-rumeurs-commerciales",
                 "entryId": "rumeurs-commerciales",
                 "entryCategory": "seaPortEvents"
               }

@@ -120,7 +120,7 @@ describe('#1153 L2 — PORT : l’État ne se fond plus dans la grandeur du dép
     const opened = get().pendingCascade!.participants[0] as CascadeStep;
     expect(opened.meta?.merchantValue).toBe(merchant);
     const step = { ...opened, result: { roll: die, target: opened.target!, sl, success: true } } as CascadeStep;
-    const out = applierDe('port-buy-bargain')!(get, set, step, leader, { steps: [step], index: 0 });
+    const out = applierDe('port-achat-marchandage')!(get, set, step, leader, { steps: [step], index: 0 });
     const line = resultLine((out && 'consequences' in out ? out.consequences : undefined) ?? []);
     expect(line).toMatch(/remise de \d+ %/);
     expect(line).not.toMatch(/surcoût/);

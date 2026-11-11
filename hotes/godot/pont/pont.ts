@@ -18,7 +18,7 @@
  * faite des lecteurs du noyau. Le pont (`pont.ts`) ne porte aucune règle ; il passe par le module commun des hôtes
  * (`src/hote/`). Ticket : #2928. Les tests `*.hors-store.test.ts` de ce dossier vérifient ce contrat.
  */
-import { CLIC_DU_CHAMP, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, editer, intentionDEngagement, ouvrirLEdition, projetDuDepot, essaiDeLaScene, texteAEnregistrer, pagesDeCreation, sceneEditee, vueDeLaScene, FIRE_ARCS, ficheDEntite, libelleDuBord, lireApparenceDAuteur, lireComposition, lireSurchargesDEmblemes, siegeEngines, vehiculeDuCombattant, type FireArc, lumiereDeLaScene, effetsDeLAppel, vitrineDesEffets, type Effet, type VitrineDesEffets, meteoDuRegard, aretesDeLaCouche, naviresDeLaScene, stationsDuNavire, type EmprisesDesCases, type NavireDeLaScene, type StationDeNavire, casesDuGroupe, plateauDeLaScene, regardDuJeu, REGARDS, volumeDuRegard, type Regard, porteeDeComposition, presetDeComposition, couronnesDuMonde, toitsDuMonde, volumeDuMonde, echantillonDessine, famillesDEchantillons, type EchantillonDessine, type FamilleDEchantillons, type Composition, type GesteDEdition, type Scene, type SessionDEdition, type LectureAuSchema, type LigneDuJournal, type LumiereDeLaScene, type ProjectDoc, type Programme, type ResultatDeLAppel, type VehiculeDuCombattant, type EmblemeResolu, planDeLaCouche, type OeilDuPlan, musiqueDeLaPartie, type MusiqueDeLaPartie, zonesQuiDurent, type ZoneQuiDure, marquesDesEtats, type MarqueDEtat, type MeteoDuRegard, type NappeDuMonde, type PlateauDeLaScene, type VolumeDuMonde } from '../../../src/noyau/index';
+import { CLIC_DU_CHAMP, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, editer, intentionDEngagement, ouvrirLEdition, projetDuDepot, essaiDeLaScene, texteAEnregistrer, pagesDeCreation, sceneEditee, vueDeLaScene, FIRE_ARCS, ficheDEntite, libelleDuBord, lireApparenceDAuteur, lireComposition, lireSurchargesDEmblemes, siegeEngines, vehiculeDuCombattant, type FireArc, lumiereDeLaScene, porteeDuCombattant, type Jeu, effetsDeLAppel, vitrineDesEffets, type Effet, type VitrineDesEffets, meteoDuRegard, aretesDeLaCouche, naviresDeLaScene, stationsDuNavire, type EmprisesDesCases, type NavireDeLaScene, type StationDeNavire, casesDuGroupe, plateauDeLaScene, regardDuJeu, REGARDS, volumeDuRegard, type Regard, porteeDeComposition, presetDeComposition, couronnesDuMonde, toitsDuMonde, volumeDuMonde, echantillonDessine, famillesDEchantillons, type EchantillonDessine, type FamilleDEchantillons, type Composition, type GesteDEdition, type Scene, type SessionDEdition, type LectureAuSchema, type LigneDuJournal, type LumiereDeLaScene, type ProjectDoc, type Programme, type ResultatDeLAppel, type VehiculeDuCombattant, type EmblemeResolu, planDeLaCouche, type OeilDuPlan, musiqueDeLaPartie, type MusiqueDeLaPartie, zonesQuiDurent, type ZoneQuiDure, marquesDesEtats, type MarqueDEtat, type MeteoDuRegard, type NappeDuMonde, type PlateauDeLaScene, type VolumeDuMonde } from '../../../src/noyau/index';
 import { ErreurDeGeste, nouvelEntete, nouvellesEntrees, ouvrirLaPartie, ouvrirLeLancement, valider, type CategorieDErreur, type PartieOuverte } from '../../../src/hote/partie';
 import { envoyerLIntention, gesteDuVerbe, intentionDuGeste, SANS_PISTE } from '../../../src/hote/geste';
 import { casesAtteignables, projeter, type BornesDeLaProjection, type CaseAtteignable, type Projection } from '../../../src/hote/projection';
@@ -65,7 +65,8 @@ export interface CorpsDuCombat {
    */
   refus: string | null;
   /**
-   * Par id de combattant dessiné (`combat.voisins.liste`, sinon `exploration.heros`) : `null` pour un combattant sans
+   * Par id de combattant dessiné (`combat.voisins.liste`, sinon `exploration.heros`), puis de héros du groupe qu'elle ne
+   * dessine pas, que son portrait montre (`Portrait`, `src/hote/elements.ts`) : `null` pour un combattant sans
    * portée ; sinon sa composition sur la base (`CompositionSurLaBase`, section « Composition d'un personnage ») et
    * `base`, l'id de cette base. Sa portée se compose sur la base par `composerSurLaBase` ; sous refus, il vaut `null`.
    */
@@ -486,10 +487,16 @@ export function creerPont() {
     return [[id, { corps, centre, stations: stationsDuNavire(scene, id, emprises) }]];
   }));
 
-  /** Les corps des combattants dessinés de `projection`, chacun sa portée composée sur l'unique base servie, leurs
-   *  véhicules servis, hors des navires de `scene`, et les navires servis de `scene`. */
-  const corpsDe = (projection: Projection, scene: Scene | null): CorpsDuCombat => {
+  /** Les corps des combattants dessinés de `projection`, puis des héros du groupe de `etat` qu'elle ne dessine pas, chacun
+   *  sa portée composée sur l'unique base servie, leurs véhicules servis, hors des navires de la scène, et les navires
+   *  servis de la scène. */
+  const corpsDe = (projection: Projection, etat: Jeu): CorpsDuCombat => {
+    const { scene } = etat;
     const dessines = projection.combat?.voisins.liste ?? projection.exploration?.heros ?? [];
+    const portees = [
+      ...dessines.map(({ id, portee }) => ({ id, portee })),
+      ...etat.party.filter((h) => !dessines.some((d) => d.id === h.id)).map((h) => ({ id: h.id, portee: porteeDuCombattant(h) })),
+    ];
     const navires = scene ? naviresDeLaScene(scene) : [];
     const bases = modeles?.modeles.bases ?? [];
     const refus = !modeles
@@ -498,7 +505,7 @@ export function creerPont() {
     const base = refus === null ? bases[0] : null;
     return {
       refus,
-      combattants: Object.fromEntries(dessines.map(({ id, portee }) => [id, base && portee ? { base: base.id, ...composerSurLaBase(base, modeles!.manifestes, portee) } : null])),
+      combattants: Object.fromEntries(portees.map(({ id, portee }) => [id, base && portee ? { base: base.id, ...composerSurLaBase(base, modeles!.manifestes, portee) } : null])),
       vehicules: Object.fromEntries(dessines.flatMap(({ id, vehicule }) => {
         const corps = vehicule && modeles && !navires.some((n) => n.id === id) && corpsDuVehicule(vehicule, modeles);
         return corps ? [[id, corps]] : [];
@@ -514,7 +521,7 @@ export function creerPont() {
     const fenetre = fenetreADessiner(etat);
     return {
       projection,
-      corps: corpsDe(projection, etat.scene),
+      corps: corpsDe(projection, etat),
       disposition: fenetre?.disposition ?? null,
       zones: zonesDeLEcran(etat, projection, fenetre, o.panneau),
       cases: casesAtteignables(etat),

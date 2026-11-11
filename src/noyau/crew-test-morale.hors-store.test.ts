@@ -50,8 +50,8 @@ describe('Rude épreuve : un Test d’équipage de VOYAGE, jamais une action de 
 
   it('la traversée rapide la joue : l’étape de voyage du Test de Rude épreuve (Cuisinier ★)', () => {
     banc.setState({ party: [cook()], travelPlan: { vehicle: vesselShip(), sea: { weather: {} } } as never });
-    const etape = buildVoyageCrewStep(banc.getState, 'rude-epreuve', 'crew-voyage-rapide');
-    expect(etape?.kind).toBe('crew-voyage-rapide');
+    const etape = buildVoyageCrewStep(banc.getState, 'rude-epreuve', 'equipage-voyage-rapide');
+    expect(etape?.kind).toBe('equipage-voyage-rapide');
     expect(JSON.stringify(etape)).toContain('cuisinier');
   });
 

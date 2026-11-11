@@ -309,15 +309,15 @@ export interface CampaignVessel {
  *  `slots` : siège attribué à chacun des 4 emplacements de l'écran d'équipe (0 = hôte).
  *  `rangs` : heroId → emplacement qu'il occupe, lu par `emplacementsDuGroupe` (`sieges.ts`). */
 export interface NetState {
-  mode: 'local' | 'host' | 'guest';
+  mode: 'local' | 'hote' | 'invite';
   mySeat: number;
   /** Code de room à 6 caractères (affiché/copiable par l'hôte, voyage dans les snapshots). */
   roomCode: string | null;
   seatNames: Record<number, string>;
   /** Vue HÔTE : sièges en cours de reconnexion (absent = connecté). */
-  presence: Record<number, 'ok' | 'away'>;
+  presence: Record<number, 'present' | 'absent'>;
   /** Vue INVITÉ : sa propre connexion (préservée à l'application des snapshots). */
-  connection: 'ok' | 'reconnecting';
+  connection: 'connecte' | 'reconnexion';
   /** Vue INVITÉ : l'hôte est-il momentanément déconnecté ? */
   hostAway: boolean;
   ownership: Record<string, number>;
@@ -330,7 +330,7 @@ export interface NetState {
 }
 export const initialNet = (): NetState => ({
   mode: 'local', mySeat: 0, roomCode: null, seatNames: {}, presence: {},
-  connection: 'ok', hostAway: false, ownership: {}, slots: [0, 0, 0, 0], rangs: {},
+  connection: 'connecte', hostAway: false, ownership: {}, slots: [0, 0, 0, 0], rangs: {},
 });
 
 /** Les champs de JEU de l'état (#2817 D5) : tout hôte les porte ; aucun champ d'interface. */
@@ -478,13 +478,13 @@ export interface EtatDeJeu {
   pendingInteract: PendingInteract | null;
   pendingCast: PendingCast | null;
   /** Contre-sort à PLUSIEURS (réaction au Sort figé dans `pendingCast`) : les contre-lanceurs
-   *  enrôlés par `routeCounterspell`, chacun son jet (flux multi `FLOWS.counterspell`). Null = pas de réaction. */
+   *  enrôlés par `routeCounterspell`, chacun son jet (flux multi `FLOWS.contreSort`). Null = pas de réaction. */
   pendingCounterspell: PendingCounterspell | null;
   /** Test Étendu en cours (LDB 12 : DR cumulé vers une cible, ex. crochetage) : flux multi
-   *  SÉQUENTIEL — un Round à la fois (`FLOWS.extendedTest`), cumul dans `jetValider('testEtendu')`. */
+   *  SÉQUENTIEL — un Round à la fois (`FLOWS.testEtendu`), cumul dans `jetValider('testEtendu')`. */
   pendingExtendedTest: PendingExtendedTest | null;
   /** Enfoncer une porte à PLUSIEURS (EDO Appendice 2 : objet BE/B) : flux multi PARALLÈLE — chaque
-   *  héros frappe (`FLOWS.forceDoor`), cumul des dégâts vs B dans `jetValider('enfoncerLaPorte')`. */
+   *  héros frappe (`FLOWS.enfoncerLaPorte`), cumul des dégâts vs B dans `jetValider('enfoncerLaPorte')`. */
   pendingForceDoor: PendingForceDoor | null;
   /** DÉSIGNATION d'un héros pour un état de campagne (Effet `designerHeros`, EDO 02 l.91). */
   pendingDesignationHeros: PendingDesignationHeros | null;

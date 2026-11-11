@@ -79,7 +79,7 @@ export function FocusModal() {
       rolled={rolled}
       /* L'issue ne s'ouvre que pour ce qu'aucune autre zone n'énonce (le NI atteint) : `describeFocus`
          rend '' tant que la Focalisation progresse — pas de cadre vide, pas de progression redite. */
-      outcome={describeFocus(step) ? [recapLineOfEvent(ev('focus', describeFocus(step), caster.id), battle?.combatants ?? party)] : undefined}
+      outcome={describeFocus(step) ? [recapLineOfEvent(ev('focalisation', describeFocus(step), caster.id), battle?.combatants ?? party)] : undefined}
       actions={actions}
       onCancel={cancel}
     />

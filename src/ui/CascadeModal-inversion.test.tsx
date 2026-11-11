@@ -52,7 +52,7 @@ function bandeDePeur(jeton: boolean): void {
   openRoundEndCascade(useGame.getState, useGame.setState);
   const pc = useGame.getState().pendingCascade!;
   const band = pc.participants[0];
-  expect(band.combatPsych?.kind, 'témoin : la bande est une Peur').toBe('peur');
+  expect(band.psychologieDeCombat?.kind, 'témoin : la bande est une Peur').toBe('peur');
   const participants = band.participants!.map((p) => (p.id === H.id ? { ...p, target: 55, result: { roll: 64, target: 55, sl: -1, success: false } } : p));
   useGame.setState({ pendingCascade: { ...pc, participants: [{ ...band, participants }, ...pc.participants.slice(1)] } });
   act(() => { root.render(<CascadeBody />); });

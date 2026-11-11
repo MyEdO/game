@@ -56,7 +56,7 @@ describe('Peur de combat — la barre de la rangée = le cumul appliqué (LDB 21
     }
     banc.setState({ battle: { ...b, turn: b.order.indexOf(H.id) }, pendingCascade: null });
     openRoundEndCascade(banc.getState, banc.setState);
-    expect(band().combatPsych?.kind).toBe('peur');
+    expect(band().psychologieDeCombat?.kind).toBe('peur');
     return { H: actorIn(banc.getState(), H.id)!, E };
   }
 
@@ -150,14 +150,14 @@ describe('Cartographie à deux (EDOC 8 l.161) : la barre de chaque rangée suit 
     banc.setState({ party: [carto('a'), carto('b')],
       travelPlan: { routeId: 'r', km: 24, postes: { a: { activityId: 'etablir-cartes' }, b: { activityId: 'etablir-cartes' } }, extendedProgress: 1 } as never });
     const steps = buildStageSteps(banc.getState, banc.setState, 'beau', 'ete');
-    const batch = steps.find((s) => s.kind === 'stagePosteBatch')!;
+    const batch = steps.find((s) => s.kind === 'etapePosteEnBande')!;
     const [a, b] = ['a', 'b'].map((id) => batch.participants!.find((p) => p.id === id)!);
     a.result = { roll: 90, target: a.target!, sl: -1, success: false };
     b.result = { roll: 10, target: b.target!, sl: 1, success: true };
     expect(cumulEtenduDeRangee(b, batch.participants!)?.cum).toBe(1);
-    applierDe('stagePosteBatch')!(banc.getState, banc.setState, batch, undefined, { steps: [batch], index: 0 });
-    const agg = steps.find((s) => s.kind === 'stageAggregate')!;
-    applierDe('stageAggregate')!(banc.getState, banc.setState, agg, undefined, { steps, index: steps.indexOf(agg) });
+    applierDe('etapePosteEnBande')!(banc.getState, banc.setState, batch, undefined, { steps: [batch], index: 0 });
+    const agg = steps.find((s) => s.kind === 'etapeBilan')!;
+    applierDe('etapeBilan')!(banc.getState, banc.setState, agg, undefined, { steps, index: steps.indexOf(agg) });
     expect(banc.getState().travelPlan!.extendedProgress).toBe(1);
   });
 });

@@ -14,12 +14,12 @@ import type { Maniement } from '../data/schemas/grammaire/valeurs';
 import { maniementSchema, roleAmbiantSchema } from '../data/schemas/grammaire/valeurs';
 
 /** Rôles de combat : un clip chacun. */
-export const ROLES_DE_COMBAT = Object.freeze(['melee', 'ranged', 'cast', 'dodge', 'parry', 'hit', 'walk', 'idle'] as const);
+export const ROLES_DE_COMBAT = Object.freeze(['melee', 'tir', 'incantation', 'esquive', 'parade', 'coup', 'marche', 'repos'] as const);
 
 /** Styles d'incantation. */
-export const STYLES_DE_SORT = Object.freeze(['bolt', 'blessing'] as const);
+export const STYLES_DE_SORT = Object.freeze(['trait', 'benediction'] as const);
 
-export const ROLES_D_ANIMATION = Object.freeze([...ROLES_DE_COMBAT, 'death', ...roleAmbiantSchema.options, ...STYLES_DE_SORT] as const);
+export const ROLES_D_ANIMATION = Object.freeze([...ROLES_DE_COMBAT, 'mort', ...roleAmbiantSchema.options, ...STYLES_DE_SORT] as const);
 export type RoleDAnimation = (typeof ROLES_D_ANIMATION)[number];
 
 /** Les maniements, dans l'ordre de leur déclaration (`maniementSchema`). */

@@ -57,8 +57,8 @@ export interface MedicState {
     targetDR: number;
     cumDR: number;
     /** ENJEU d'une passe (#1117) — posé à l'ARMEMENT, où le `kind` et la cible de DR sont connus :
-     *  opérer et rééduquer ne mettent pas la même chose en jeu (`stakes.json`, `surgery-roll` vs
-     *  `surgery-recovery`). Rendu par la zone de jet embarquée (`MedicModal`). */
+     *  opérer et rééduquer ne mettent pas la même chose en jeu (`stakes.json`, `chirurgie-test` vs
+     *  `chirurgie-reeducation`). Rendu par la zone de jet embarquée (`MedicModal`). */
     stake: StakeRef;
     /** Dernière passe (affichage DrBar) — absent tant qu'aucune passe n'a été tentée. */
     last?: { roll: number; sl: number };
@@ -76,8 +76,8 @@ export function bestHealerFor(party: Combatant[], act: HealMode): { actor: Comba
 
 /** Enjeu servi par chaque acte de soin ; `chirurgie`/`reeducation` : celui de l'opération que l'acte arme. */
 export const HEAL_STAKE: Record<HealMode, FlowStakeId> = {
-  blessures: 'heal-wounds', hemorragie: 'heal-bleed', traumatisme: 'heal-trauma', munition: 'heal-ammo',
-  chirurgie: 'surgery-roll', reeducation: 'surgery-recovery',
+  blessures: 'soin-blessures', hemorragie: 'soin-hemorragie', traumatisme: 'soin-dechirure', munition: 'soin-munition-logee',
+  chirurgie: 'chirurgie-test', reeducation: 'chirurgie-reeducation',
 };
 
 /** L'acte arme-t-il une opération étendue (`medic.surgery`) ? */

@@ -9,7 +9,7 @@
  *  3. le LECTEUR (`symptomOnTick`, `tickDisease`) ne tire sa Difficulté et ses ops QUE du nœud —
  *     vérifié étape par étape sur chaque maladie porteuse (chemin DIFFÉRÉ), la COUVERTURE des
  *     porteurs et des sévérités étant elle-même assertée depuis la donnée ;
- *  4. la branche `success` est VIDE partout : le canal `disease-tick` (`noyau/restFlow.ts`) n'applique
+ *  4. la branche `success` est VIDE partout : le canal `maladie-test-quotidien` (`noyau/restFlow.ts`) n'applique
  *     que l'échec, une branche de réussite peuplée serait ignorée en silence.
  */
 import { describe, it, expect } from 'vitest';
@@ -129,7 +129,7 @@ describe('cycle de maladie — le JET vit dans le nœud `test` du Flow (#1657 B2
 
   it('MORSURE : le porteur REFUSE une branche `success` peuplée et une branche `fail` à embranchement', () => {
     // AFFORDANCE MORTE, verrouillée PAR CONSTRUCTION (`noeudTest`, option `echecSeulServi`) : le canal
-    // différé (`bandeDeNuit`, applier `disease-tick`, `noyau/restFlow.ts`) rend une liste VIDE sur
+    // différé (`bandeDeNuit`, applier `maladie-test-quotidien`, `noyau/restFlow.ts`) rend une liste VIDE sur
     // une réussite, et `spellOps` extrait les ops À PLAT — un `if` sous `fail` promettrait les ops des
     // deux côtés. Les deux formes seraient authorables sans effet, donc menteuses.
     const base = lire('symptoms.json');
@@ -168,7 +168,7 @@ describe('cycle de maladie — le JET vit dans le nœud `test` du Flow (#1657 B2
       walkFlow(n.success, () => { blocs++; });
       if (blocs !== 1 || spellOps(n.success, 'target').length) peuplees.push(nom);
     }
-    expect(peuplees, 'branche `success` peuplée : `restFlow` (applier `disease-tick`) l’ignorerait en silence').toEqual([]);
+    expect(peuplees, 'branche `success` peuplée : `restFlow` (applier `maladie-test-quotidien`) l’ignorerait en silence').toEqual([]);
   });
 
   it('`symptomOnTick` ne tire sa Difficulté et ses ops QUE du nœud (sévérité comprise)', () => {
@@ -225,7 +225,7 @@ describe('cycle de maladie — le JET vit dans le nœud `test` du Flow (#1657 B2
         const defer: UpkeepDeferTest = (spec) => { etapes.push(spec as never); };
         for (let j = 0; j < 15; j++) tickDisease(c, MINUTES_PER_DAY, rng, defer, 4);
         for (const e of etapes) {
-          if (e.kind !== 'disease-tick') continue; // gangrène/persistant : machinerie stateful, hors nœud
+          if (e.kind !== 'maladie-test-quotidien') continue; // gangrène/persistant : machinerie stateful, hors nœud
           vus++;
           const att = attendu(String(e.meta!.diseaseName), String(e.meta!.symptomId));
           const sev = c.diseases![0]?.symptoms.find((s) => s.symptomId === e.meta!.symptomId)?.severity;

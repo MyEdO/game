@@ -905,8 +905,8 @@ export type GameOp =
   /** Marqueur IMPUR de la branche de VICTOIRE d'un Test opposé de Piège-lame (LDB 62 l.280) : l'adversaire
    *  est désarmé (sa lame arrachée) et, sur un Succès Stupéfiant (marge nette ≥ 6 DR), sa lame est BRISÉE à
    *  moins qu'elle ne possède l'Atout Incassable. Résolu par la couche state (combatFlow : `applyBladeTrap`
-   *  via le hook injecté `bladeTrap` appelé par `runCombatFlow`), qui détient get/set, l'attaquant ciblé et
-   *  l'arme visée (contexte sérialisé `ctx.bladeTrap`). `applyOps` (moteur pur) le laisse INERTE — comme
+   *  via le hook injecté `piegeALame` appelé par `runCombatFlow`), qui détient get/set, l'attaquant ciblé et
+   *  l'arme visée (contexte sérialisé `ctx.piegeALame`). `applyOps` (moteur pur) le laisse INERTE — comme
    *  `grantFreeAttack`/`interruptFocus`/`summon`/`zone`. */
   | { op: 'breakBlade' }
   /** CHUTE (`LDB 15 l.80`, `l.84`) : la cible tombe de la hauteur que dit une TABLE (`hauteur.table`,
@@ -3060,7 +3060,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         // d'une frappe / interruption de Focalisation / désarmement-bris de Piège-lame / poussée /
         // téléportation / rebond de Projectile / ops différées à échéance d'horloge) — résolus par la
         // couche state (combatFlow : applySummon / scheduleRespawn → file horloge / placeSpellZone ; les
-        // hooks `freeAttack`/`focusInterrupt`/`bladeTrap` appelés par `runCombatFlow` ; `applyCast` scanne
+        // hooks `freeAttack`/`focusInterrupt`/`piegeALame` appelés par `runCombatFlow` ; `applyCast` scanne
         // push/teleport/chain ; `delayed` → `scheduleDelayedOps` aux points d'application d'un EffectOp ;
         // les ops de navire → `noyau/navireOps.ts` ; l'op du marché d'un port → `noyau/portFlow.ts`),
         // qui détient get/set et le combattant. `applyOps` (moteur pur) les laisse INERTES.

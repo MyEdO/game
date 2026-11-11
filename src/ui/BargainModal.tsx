@@ -108,7 +108,7 @@ export function BargainModalView({
       rolled={rolled}
       winnerIndex={winnerIndex}
       netSL={opposed ? pb.result!.netSL : undefined}
-      outcome={rolled ? [recapLineOfEvent(ev('info', describeBargain(pb)))] : undefined}
+      outcome={rolled ? [recapLineOfEvent(ev('information', describeBargain(pb)))] : undefined}
       actions={actions}
       onCancel={rolled || !owned ? undefined : onCancel}
     />

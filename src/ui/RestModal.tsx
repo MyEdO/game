@@ -194,10 +194,10 @@ export function RestBody({ embedded = false }: { embedded?: boolean } = {}) {
   const reglagesFooter = (
     <>
         {!p.travelHalt && <button className="btn btn-ghost" onClick={renoncer}>Annuler</button>}
-        {net.mode === 'guest' && !ready[net.mySeat] && (
+        {net.mode === 'invite' && !ready[net.mySeat] && (
           <button className="btn" onClick={() => valider('repos')}><Icon id="action/attack" size="sm" /> Prêt</button>
         )}
-        {(!online || net.mode === 'host') && (
+        {(!online || net.mode === 'hote') && (
           <GatedAction
             id="rest-sleep"
             label={<><Icon id="time/night" size="sm" /> Dormir jusqu’à l’aube</>}

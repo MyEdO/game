@@ -270,7 +270,7 @@ describe('MODE TABLE — poser le dé d’une étape à table (option « Dés fi
     const hero = combattantDeTest({ id: 'h1', label: 'Aldo', kind: 'hero' });
     banc.setState({
       party: [hero],
-      net: { mode: 'host', mySeat: 0, roomCode: 'ABCD', seatNames: {}, presence: {}, ownership: { h1: 1 }, gmSeat: null } as never,
+      net: { mode: 'hote', mySeat: 0, roomCode: 'ABCD', seatNames: {}, presence: {}, ownership: { h1: 1 }, gmSeat: null } as never,
     });
     startCascade(banc.getState, banc.setState, {
       title: 'Tirage', purpose: 'test',
@@ -352,7 +352,7 @@ describe('Étape à TABLE — l’enjeu DESCEND à la ligne jouée (#1117)', () 
   const structureStep = (id: string, forcedRoll?: number): CascadeStep => ({
     id, kind: cleDeFixture('stakeSpy'), label: fixtureText('Critique de Structure'), icon: 'nav/dice',
     table: { tableId: STRUCTURE_CRIT_TABLE, spec: { n: 1, sides: 100 }, ...(forcedRoll ? { forcedRoll } : {}) },
-    stake: combatStakeRef('structure-critical'),
+    stake: combatStakeRef('structure-critique'),
   });
 
   const ruleOf = (st: CascadeStep) => resolveStake(st.stake!).rule;
@@ -360,7 +360,7 @@ describe('Étape à TABLE — l’enjeu DESCEND à la ligne jouée (#1117)', () 
   it('AVANT le dé, l’enjeu reste au `kind` (aucune ligne n’a encore été jouée)', () => {
     const st = structureStep('s0');
     expect(st.stake!.key!.entryId).toBeUndefined();
-    expect(ruleOf(st)).toBeUndefined(); // l'entrée `structure-critical` n'a que sa catégorie d'entrées
+    expect(ruleOf(st)).toBeUndefined(); // l'entrée `structure-critique` n'a que sa catégorie d'entrées
   });
 
   it('pilote MODALE (`jetLancer(\'cascadeTirage\')`) : le renvoi vise la ligne RÉELLEMENT tirée', () => {
@@ -395,7 +395,7 @@ describe('Étape à TABLE — l’enjeu DESCEND à la ligne jouée (#1117)', () 
   it('table SANS catégorie d’entrées : l’enjeu est rendu TEL QUEL (repli déclaré)', () => {
     const st: CascadeStep = {
       id: 'n1', kind: cleDeFixture('stakeSpy'), label: fixtureText('Neutre'), icon: 'nav/dice',
-      table: { tableId: NEUTRE, spec: { n: 1, sides: 100 }, forcedRoll: 50 }, stake: combatStakeRef('structure-critical'),
+      table: { tableId: NEUTRE, spec: { n: 1, sides: 100 }, forcedRoll: 50 }, stake: combatStakeRef('structure-critique'),
     };
     startCascade(banc.getState, banc.setState, { title: 'T', purpose: 'test', steps: [st] });
     banc.getState().jetLancer('cascadeTirage', 'n1');

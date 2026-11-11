@@ -6,18 +6,19 @@
 [node name="Liste" type="VBoxContainer"]
 size_flags_horizontal = 3
 
-[node name="Libelle" type="Label" parent="."]
+[node name="Nom" type="Label" parent="."]
 
-[node name="libelle" type="Node" parent="Libelle"]
+[node name="libelle" type="Node" parent="Nom"]
 script = ExtResource("1_liaison")
 champ = "libelle"
 
-[node name="ton" type="Node" parent="Libelle"]
+[node name="ton" type="Node" parent="Nom"]
 script = ExtResource("1_liaison")
 champ = "ton"
 propriete = &"theme_type_variation"
 
 [node name="Valeurs" type="OptionButton" parent="."]
+action_mode = 1
 fit_to_longest_item = false
 clip_text = true
 

@@ -285,7 +285,7 @@ describe('CLIQUET — le libellé d’une LIGNE de jet nomme la Compétence lanc
  * VOLET 4 (#1111) — la forme « Action (Compétence) » du sous-titre Z1 (`docs/charte-ui.md`, « Contrat
  * d'affichage d'un jet ») n'a qu'un composeur, `composeRollLabel` (`src/noyau/rollSeam.ts`). Une
  * PARENTHÈSE remplie d'un libellé de Compétence ou de Caractéristique hors de lui est une seconde
- * source de la même forme (précédent : `riverVoyageFlow.ts`, étape `river-nav`, #1111).
+ * source de la même forme (précédent : `riverVoyageFlow.ts`, étape `fleuve-navigation`, #1111).
  *
  * MESURE : les quatre portes d'une parenthèse de libellé — la fabrique `stepPrecision(sujet, precision)`,
  * tout gabarit de LIBELLÉ D'ÉTAPE du catalogue FR (`step.*`, `i18n/messages/fr.ts`) dont un

@@ -25,7 +25,7 @@ const get = () => banc.getState();
 const set: Banc['setState'] = (e) => banc.setState(e);
 
 describe('#253.1 — dessoûlage : le 2ᵉ Test (gueule de bois) est une étape INFLUENÇABLE insérée', () => {
-  it('l\'applier `dessoulage` DISSIPE (1er DR) et INSÈRE une étape `dessoulage-hangover` (2ᵉ jet), sans rouler l\'Exténué', () => {
+  it('l\'applier `dessoulage` DISSIPE (1er DR) et INSÈRE une étape `dessoulage-gueule-de-bois` (2ᵉ jet), sans rouler l\'Exténué', () => {
     const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     hero.drunk = { failedTests: 3, drunk: true, result: 'joyeux' };
     banc.setState({ party: [hero], gameTime: 8 * 60 });
@@ -36,13 +36,13 @@ describe('#253.1 — dessoûlage : le 2ᵉ Test (gueule de bois) est une étape 
     const out = applierDe('dessoulage')!(get, set, step, hero, { steps: [step], index: 0 });
 
     expect(hero.drunk).toBeUndefined();                          // dissipation appliquée (1er Test)
-    expect(out?.insert?.[0]?.kind).toBe('dessoulage-hangover');   // 2ᵉ Test devenu BANDE influençable
+    expect(out?.insert?.[0]?.kind).toBe('dessoulage-gueule-de-bois');   // 2ᵉ Test devenu BANDE influençable
     expect(out?.insert?.[0]?.participants?.[0]?.result ?? null).toBeNull(); // pas encore lancé (le joueur l'influencera)
     expect(hero.conditions?.some((c) => c.id === 'extenue')).toBeFalsy(); // gueule de bois DIFFÉRÉE au 2ᵉ Test
 
     const hStep = out!.insert![0];
     hStep.participants![0].result = { roll: 10, target: hStep.participants![0].target, sl: 2, success: true };
-    applierDe('dessoulage-hangover')!(get, set, hStep, hero, { steps: [hStep], index: 0 });
+    applierDe('dessoulage-gueule-de-bois')!(get, set, hStep, hero, { steps: [hStep], index: 0 });
     expect(hero.conditions?.some((c) => c.id === 'extenue')).toBe(true); // posée par le 2ᵉ Test résolu
   });
 });

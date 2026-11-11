@@ -136,8 +136,8 @@ describe('#27 Forcer le rythme (MDG 13 l.95-107)', () => {
     // évince les lignes précoces comme « Forcer le rythme ».
     const day = get().travelPlan!.log!.slice(-1)[0]!.lines.map((l) => l.text).join('\n');
     expect(day).toMatch(/Forcer le rythme/);
-    expect(kinds.indexOf('sea-epuisement')).toBeGreaterThan(kinds.indexOf('sea-force-pace'));
-    const bande = vues.find((st) => st.kind === 'sea-epuisement')!;
+    expect(kinds.indexOf('mer-epuisement')).toBeGreaterThan(kinds.indexOf('mer-forcer-le-rythme'));
+    const bande = vues.find((st) => st.kind === 'mer-epuisement')!;
     expect(bande.participants!.find((r) => r.id === marin.id)?.difficulty, 'qui a forcé teste en Complexe').toBe('complexe');
   });
 
@@ -149,8 +149,8 @@ describe('#27 Forcer le rythme (MDG 13 l.95-107)', () => {
     const kinds = await runOneSeaDay();
     const day = get().travelPlan!.log!.slice(-1)[0]!.lines.map((l) => l.text).join('\n');
     expect(day).toContain('Forcer le rythme : Personne dans le groupe ne peut tenter le Test de Voile (Cogue). Le navire garde son allure.');
-    expect(kinds).not.toContain('sea-force-pace');
-    expect(kinds).not.toContain('sea-epuisement');
+    expect(kinds).not.toContain('mer-forcer-le-rythme');
+    expect(kinds).not.toContain('mer-epuisement');
   });
 });
 
@@ -252,7 +252,7 @@ describe('#29 Activités en mer (MDG 15 l.266-306)', () => {
     // La mise est débitée D'OFFICE (avant tout jet) — comme l'ancien bulk synchrone.
     expect(toBrass(partyMoneyTotal(get))).toBe(before - 10 * PA_PER_CO);
     expect(get().pendingExtendedTest).toBeTruthy(); // Test étendu ouvert (primitive #273 Étape 1)
-    expect(get().pendingExtendedTest!.maxAttempts).toBe(3);
+    expect(get().pendingExtendedTest!.tentativesMax).toBe(3);
     // L'enjeu est celui de l'Activité, sur l'étape que la fenêtre lit (#1117).
     expect(get().pendingCascade?.participants.find((e) => e.jet === 'testEtendu')?.stake).toEqual(activityStakeRef('commerce-opportunite'));
     await runSeaActivities();
@@ -266,7 +266,7 @@ describe('#29 Activités en mer (MDG 15 l.266-306)', () => {
 
 /** Draine la CASCADE de vente au port (le choix `vendre` au port, dernier reliquat #275/#274 — Ragot → acheteur
  *  → Marchandage, chacun un `openRoll` séparé enchaîné via `chainStep`/`programmer(…, 0)`, patron
- *  `seaVoyageFlow.ts` `sea-desertion`) : un `tick()` par itération reprend le jeton d'une étape
+ *  `seaVoyageFlow.ts` `merDesertion`) : un `tick()` par itération reprend le jeton d'une étape
  *  déférée, comme un clic UI l'espacerait. */
 async function drainPortSellCascade(): Promise<void> {
   for (let i = 0; i < 30; i++) {

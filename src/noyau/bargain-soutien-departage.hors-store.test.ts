@@ -113,7 +113,7 @@ describe('Marchandage PORTUAIRE soutenu : le Soutien ne départage pas (LDB 12 l
     setupPort([leader, helper]);
     acheterAuMarche(get, 'port', 'vessel', 'bois-mer', 20);
     const step = get().pendingCascade!.participants[0] as CascadeStep;
-    expect(step.kind).toBe('port-buy-bargain');
+    expect(step.kind).toBe('port-achat-marchandage');
     expect(step.base).toBe(45); // Niveau de Compétence NU (LDB 09 l.17) — la grandeur du départage (l.160)
     expect(step.mods?.[0]).toMatchObject({ ref: RULE_REF.soutien, value: 10 }); // 1 soutien éligible (l.189-190)
     expect(step.target).toBe(55); // …compris dans la CIBLE, là où le RAW le met
@@ -123,8 +123,8 @@ describe('Marchandage PORTUAIRE soutenu : le Soutien ne départage pas (LDB 12 l
     const { leader, helper } = pairAvecSoutien();
     setupPort([leader, helper]);
     const sl = probeMerchantSL(11, 50);
-    const step = soutenuStep('port-buy-bargain', leader.id, helper.id, sl, { cargoId: 'bois-mer', want: 20, basePrice: 10, merchantValue: 50, merchantNegotiator: false, sellerDR: 0 });
-    const out = applierDe('port-buy-bargain')!(get, set, step, leader, { steps: [step], index: 0 });
+    const step = soutenuStep('port-achat-marchandage', leader.id, helper.id, sl, { cargoId: 'bois-mer', want: 20, basePrice: 10, merchantValue: 50, merchantNegotiator: false, drDuVendeur: 0 });
+    const out = applierDe('port-achat-marchandage')!(get, set, step, leader, { steps: [step], index: 0 });
     const line = resultLine((out && 'consequences' in out ? out.consequences : undefined) ?? []);
     expect(line).toMatch(/surcoût de \d+ %/);
     expect(line).not.toMatch(/remise/);
@@ -134,8 +134,8 @@ describe('Marchandage PORTUAIRE soutenu : le Soutien ne départage pas (LDB 12 l
     const { leader, helper } = pairAvecSoutien();
     setupPort([leader, helper]);
     const sl = probeMerchantSL(11, 50);
-    const step = soutenuStep('port-sell-bargain', leader.id, helper.id, sl, { lotId: 'lot-1', sellEnc: 20, offerPct: 100, merchantValue: 50, merchantNegotiator: false, sellerDR: 0 });
-    const out = applierDe('port-sell-bargain')!(get, set, step, leader, { steps: [step], index: 0 });
+    const step = soutenuStep('port-vente-marchandage', leader.id, helper.id, sl, { lotId: 'lot-1', sellEnc: 20, offerPct: 100, merchantValue: 50, merchantNegotiator: false, drDuVendeur: 0 });
+    const out = applierDe('port-vente-marchandage')!(get, set, step, leader, { steps: [step], index: 0 });
     const line = resultLine((out && 'consequences' in out ? out.consequences : undefined) ?? []);
     expect(line).toMatch(/Marchandage \(.*\) : -\d+ %/);
   });

@@ -145,7 +145,7 @@ describe('Doctrines — comportements distincts vs standard', () => {
     const h = mk('h', 'hero', { x: 10, y: 14 }); // à portée, LdV dégagée
     expect(pickDoctrine(e, [])).toBe('tirailleurs');
     const a = chooseEnemyAction(input(e, [h]));
-    expect(a.kind).toBe('shoot');
+    expect(a.kind).toBe('tir');
   });
 
   it('ARTILLERIE pose une ZdE sur un paquet — et la décision ZdE est doctrine-AGNOSTIQUE (op-driven)', () => {
@@ -162,10 +162,10 @@ describe('Doctrines — comportements distincts vs standard', () => {
     // STANDARD (Int 20) ET ARTILLERIE (Int 40) : même décision ZdE (valeur op-driven, pas de poids de doctrine).
     const plain = mk('plain', 'enemy', { x: 10, y: 10 }, { weapons: [], characteristics: { ...CHARS, intelligence: 20 } });
     expect(pickDoctrine(plain, [])).toBe('standard');
-    expect(chooseEnemyAction(input(plain, [h1, h2], common)).kind).toBe('castArea');
+    expect(chooseEnemyAction(input(plain, [h1, h2], common)).kind).toBe('incantationDeZone');
     const arty = mk('arty', 'enemy', { x: 10, y: 10 }, { weapons: [], spells: ['carreau'], characteristics: { ...CHARS, intelligence: 40 } });
     expect(pickDoctrine(arty, [])).toBe('artillerie');
-    expect(chooseEnemyAction(input(arty, [h1, h2], common)).kind).toBe('castArea');
+    expect(chooseEnemyAction(input(arty, [h1, h2], common)).kind).toBe('incantationDeZone');
   });
 
   it('MEUTE prend la proie au FLANC/DOS (flankRear renforcé)', () => {
@@ -176,8 +176,8 @@ describe('Doctrines — comportements distincts vs standard', () => {
     const h = mk('h', 'hero', { x: 10, y: 10 });
     expect(pickDoctrine(e, [])).toBe('meute');
     const a = chooseEnemyAction(input(e, [h], { facing: { h: 'N' } }));
-    expect(a.kind).toBe('move');
-    if (a.kind === 'move') {
+    expect(a.kind).toBe('deplacement');
+    if (a.kind === 'deplacement') {
       expect(chebyshev(a.to, { x: 10, y: 10 })).toBe(1); // au contact
       expect(`${a.to.x},${a.to.y}`).not.toBe('10,9'); // pas plein front (nord)
     }
@@ -193,19 +193,19 @@ describe('Doctrines — comportements distincts vs standard', () => {
     const plain = mk('plain', 'enemy', { x: 10, y: 10 }, { weapons: [MELEE], movement: 5 });
     expect(pickDoctrine(plain, [])).toBe('standard');
     const aStd = chooseEnemyAction(input(plain, [prey, archer]));
-    expect(aStd.kind).toBe('move');
-    if (aStd.kind === 'move') expect(aStd.to.x).toBeLessThan(prey.pos!.x); // ouest, à l'abri
+    expect(aStd.kind).toBe('deplacement');
+    if (aStd.kind === 'deplacement') expect(aStd.to.x).toBeLessThan(prey.pos!.x); // ouest, à l'abri
     // HORDE (Stupide) : indifférente au danger → ne préfère PAS l'ouest (prend l'est, la case par défaut).
     const horde = mk('horde', 'enemy', { x: 10, y: 10 }, { traits: [{ id: 'stupide' } as never], weapons: [MELEE], movement: 5 });
     expect(pickDoctrine(horde, [])).toBe('horde');
     const aH = chooseEnemyAction(input(horde, [prey, archer]));
-    expect(aH.kind).toBe('move');
-    if (aH.kind === 'move') expect(aH.to.x).toBeGreaterThanOrEqual(prey.pos!.x); // PAS le contournement prudent
+    expect(aH.kind).toBe('deplacement');
+    if (aH.kind === 'deplacement') expect(aH.to.x).toBeGreaterThanOrEqual(prey.pos!.x); // PAS le contournement prudent
   });
 
   it('RACAILLE Empêtrée sous 1/3 PB ne FUIT PAS (M=0) : elle se LIBÈRE (recover empetre), pas son tour gâché', () => {
     // Une racaille très entamée déclencherait le repli « doctrine » (retreatBelow 1/3) — MAIS Empêtrée
-    // (Mouvement 0) `fleeMove` renverrait `end` (tour perdu). La garde `!empetre` la laisse atteindre le
+    // (Mouvement 0) `mouvementDeFuite` renverrait `end` (tour perdu). La garde `!empetre` la laisse atteindre le
     // fallback `recover empetre` (se libérer, LDB 16 l.66). (Fix L6 — point B.)
     const rab = mk('rab', 'enemy', { x: 5, y: 5 }, {
       groups: ['criminel'], weapons: [MELEE], movement: 0,
@@ -214,7 +214,7 @@ describe('Doctrines — comportements distincts vs standard', () => {
     });
     const h = mk('h', 'hero', { x: 11, y: 11 }); // loin (pas au contact) → aucune mêlée jouable
     expect(pickDoctrine(rab, [])).toBe('racaille');
-    expect(chooseEnemyAction(input(rab, [h], { movement: 0 }))).toEqual({ kind: 'recover', state: 'empetre' });
+    expect(chooseEnemyAction(input(rab, [h], { movement: 0 }))).toEqual({ kind: 'liberation', state: 'empetre' });
   });
 
   it('EMBUSCADE ≠ MEUTE : l’embusqué a l’initiative et NE recule JAMAIS (pas de retreatBelow), là où la racaille fuirait', () => {
@@ -229,11 +229,11 @@ describe('Doctrines — comportements distincts vs standard', () => {
     const aRab = chooseEnemyAction(input(rab, [h]));
     const aAmb = chooseEnemyAction(input(amb, [h]));
     // La racaille fuit (s’éloigne du héros) ; l’embuscade fonce dessus (s’en rapproche). Distinction nette.
-    expect(aRab.kind).toBe('move');
-    expect(aAmb.kind).toBe('move');
+    expect(aRab.kind).toBe('deplacement');
+    expect(aAmb.kind).toBe('deplacement');
     const dist = (p: { x: number; y: number }) => chebyshev(p, h.pos!);
     const d0 = dist({ x: 5, y: 5 }); // distance de départ au héros
-    if (aRab.kind === 'move' && aAmb.kind === 'move') {
+    if (aRab.kind === 'deplacement' && aAmb.kind === 'deplacement') {
       expect(dist(aRab.to)).toBeGreaterThan(d0); // racaille S'ÉLOIGNE (repli)
       expect(dist(aAmb.to)).toBeLessThan(d0); // embuscade SE RAPPROCHE (charge l'isolé)
     }
@@ -246,8 +246,8 @@ describe('Doctrines — comportements distincts vs standard', () => {
     const h = mk('h', 'hero', { x: 10, y: 10 }, { conditions: [{ id: 'surpris', value: 1 } as never] });
     expect(pickDoctrine(e, [], [h])).toBe('embuscade');
     const a = chooseEnemyAction(input(e, [h], { facing: { h: 'N' } }));
-    expect(a.kind).toBe('move');
-    if (a.kind === 'move') {
+    expect(a.kind).toBe('deplacement');
+    if (a.kind === 'deplacement') {
       expect(chebyshev(a.to, { x: 10, y: 10 })).toBe(1); // au contact
       expect(`${a.to.x},${a.to.y}`).not.toBe('10,9'); // pas plein front (nord)
     }
@@ -262,8 +262,8 @@ describe('Doctrines — comportements distincts vs standard', () => {
     const soldat = mk('soldat', 'enemy', { x: 10, y: 10 }, { groups: ['soldat'], weapons: [MELEE], movement: 5 });
     expect(pickDoctrine(soldat, [soldat])).toBe('soldats');
     const a = chooseEnemyAction(input(soldat, [prey], { squad: [ally] }));
-    expect(a.kind).toBe('move');
-    if (a.kind === 'move') {
+    expect(a.kind).toBe('deplacement');
+    if (a.kind === 'deplacement') {
       // la case d'approche reste à portée de soutien de l'allié (chebyshev ≤ ~5, pas la case isolée à l'est)
       expect(a.to.x).toBeLessThanOrEqual(prey.pos!.x);
     }

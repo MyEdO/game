@@ -9,7 +9,7 @@ const hero = (opts: Partial<Combatant>): Combatant =>
 const npc = (id: string, opts: Partial<Combatant>): Combatant =>
   ({ id, name: id, kind: 'npc', size: 'moyenne', groups: [], ...opts } as unknown as Combatant);
 
-describe('encounterPsych — Psychologie à la rencontre, HORS COMBAT (Peur/Terreur = combat seulement)', () => {
+describe('psychologieDeRencontre — Psychologie à la rencontre, HORS COMBAT (Peur/Terreur = combat seulement)', () => {
   it('rencontrer un PNJ ÉNORME (Terreur de Taille) → AUCUN Test hors combat', () => {
     expect(encounterPsych(hero({}), [sourceCombattant(npc('geant', { size: 'enorme' }))])).toBeNull();
   });

@@ -660,7 +660,7 @@ function revelationDeLEtape(etat: Jeu): Element[] {
   const pc = etat.pendingCascade;
   const r = pc?.participants[pc.cursor]?.reveal;
   if (!r) return [];
-  const crit = r.kind === 'critical' ? r.crit : undefined;
+  const crit = r.kind === 'critique' ? r.crit : undefined;
   const ton: Ton = r.subjectId && porteurParId(etat, r.subjectId)?.kind === 'hero' ? 'echec' : 'reussite';
   const prefixe = crit ? 'critique' : 'revelation';
   return [
@@ -783,7 +783,7 @@ function gestesDesCartes(etat: Jeu, gestes: (Bouton | Choix | Formulaire)[]): { 
   return { restants, parHeros };
 }
 
-/** Chaque héros du groupe en carte (`heros/`) : son nom, ses Blessures en jauge, sa bourse, le bouton qui ouvre sa
+/** Chaque héros du groupe en carte (`heros/`) : son portrait, son nom, ses Blessures en jauge, sa bourse, le bouton qui ouvre sa
  *  fiche, pressé quand elle est ouverte, qui la ferme alors, ses États en puces, puis ce que la fenêtre dit de lui
  *  (`surLesCartes`) et les gestes qui le désignent (`gestesDesCartes`), `gestes`. */
 function herosDuGroupe(etat: Jeu, ouverte: FicheOuverte | null, gestes: Map<string, Bouton[]>): Entite[] {
@@ -794,6 +794,7 @@ function herosDuGroupe(etat: Jeu, ouverte: FicheOuverte | null, gestes: Map<stri
     return {
       type: 'entite', id: `heros/${h.id}`, ton: 'neutre', nom: f.nom,
       elements: [
+        { type: 'portrait', id: 'portrait', combattant: h.id },
         jauge('blessures', t('ecran.jauge.blessures'), f.blessures),
         puce('bourse', t('ecran.bourse'), f.bourse),
         boutonDeFiche(`fiche/${h.id}`, t('ecran.fiche.ouvrir'), presse ? null : { porteur: h.id }, presse),

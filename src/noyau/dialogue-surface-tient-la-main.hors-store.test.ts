@@ -102,7 +102,7 @@ describe('coop — l’écran PAR SIÈGE de l’hôte ne refuse pas la réponse 
   // L'invité (siège 1) tient la décision de groupe ; l'hôte applique son intent DANS SON store.
   // Une surface PARTAGÉE (le document que tous lisent) met la réponse en attente.
   const repondreCommeInvite = (over: Partial<Jeu>) => {
-    temoin({ net: { ...banc.getState().net, mode: 'host', mySeat: 0, gmSeat: 1 } as Jeu['net'], ...over });
+    temoin({ net: { ...banc.getState().net, mode: 'hote', mySeat: 0, gmSeat: 1 } as Jeu['net'], ...over });
     withActingSeat(1, () => banc.getState().fenetreChoisir('dialogue', 'reponse', 'oui'));
     return banc.getState().dialogue?.nodeId;
   };

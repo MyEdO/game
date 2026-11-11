@@ -83,9 +83,9 @@ describe('GOLDEN — sauvegardes post-touche (applyAttackResult)', () => {
       {
         "before": 20,
         "lines": [
-          "info:Démon — Sauvegarde : dé 8 → 8.",
-          "attack:Hardi touche le Démon.",
-          "info:Démon ignore le coup — sauvegarde 1d10 : 8 ≥ Démoniaque (8+).",
+          "information:Démon — Sauvegarde : dé 8 → 8.",
+          "attaque:Hardi touche le Démon.",
+          "information:Démon ignore le coup — sauvegarde 1d10 : 8 ≥ Démoniaque (8+).",
         ],
         "lues": [
           "Démon — Sauvegarde : dé 8 → 8.",
@@ -118,8 +118,8 @@ describe('GOLDEN — sauvegardes post-touche (applyAttackResult)', () => {
       {
         "before": 15,
         "lines": [
-          "shoot:Hardi touche le Démon.",
-          "info:Couvert ignore le coup — sauvegarde 1d10 : 7 ≥ Protection (6+) du Dôme.",
+          "tir:Hardi touche le Démon.",
+          "information:Couvert ignore le coup — sauvegarde 1d10 : 7 ≥ Protection (6+) du Dôme.",
         ],
         "lues": [
           "Hardi touche le Démon.",

@@ -49,7 +49,7 @@ function setup(net: Record<string, unknown> = {}) {
   } as unknown as BattleState;
   banc.setState({
     battle, mode: 'battle', scene: testScene(), pendingDefense: null, pendingAttack: null, pendingCascade: null,
-    net: { ...NET0, mode: 'host', mySeat: 0, gmSeat: 2, ownership: { h: 1 }, slots: [0, 1, 0, 0], seatNames: { 0: 'Hôte', 1: 'Joueur', 2: 'MJ' }, ...net },
+    net: { ...NET0, mode: 'hote', mySeat: 0, gmSeat: 2, ownership: { h: 1 }, slots: [0, 1, 0, 0], seatNames: { 0: 'Hôte', 1: 'Joueur', 2: 'MJ' }, ...net },
   });
   return { enemy, hero };
 }

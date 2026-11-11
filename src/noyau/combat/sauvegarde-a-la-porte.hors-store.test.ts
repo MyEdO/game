@@ -500,7 +500,7 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `jetValider(
 
   /** La fenêtre de défense telle que `openDefenseCascade` la pose : son étape au curseur de la séquence de combat. */
   const fenetreDeDefense = (defenseur: Combatant) =>
-    cascadeDeTest([{ id: 'defense-jet', kind: 'defenseJet', jet: 'defense', actorId: defenseur.id }], { title: 'Défense', purpose: 'combat' });
+    cascadeDeTest([{ id: 'defense-jet', kind: 'jetDeDefense', jet: 'defense', actorId: defenseur.id }], { title: 'Défense', purpose: 'combat' });
 
   /** La sauvegarde du porteur est l'étape COURANTE, et rien n'a encore bougé. */
   const sauvegardeEnCours = (porteur: Combatant): CascadeStep => {
@@ -567,7 +567,7 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `jetValider(
     const ds = banc.getState().pendingDualStrike;
     expect(ds, 'la 2ᵉ frappe s’ouvre à la reprise').not.toBeNull();
     expect(ds!.offWeaponUid, 'la main secondaire est celle du héros').toBe('o');
-    const crit = [...(banc.getState().pendingCascade?.participants ?? [])].reverse().find((s) => s.kind === 'critical');
+    const crit = [...(banc.getState().pendingCascade?.participants ?? [])].reverse().find((s) => s.kind === 'critique');
     expect(crit, 'le Critique a bien appendu SON étape à la reprise').toBeDefined();
     expect(ds!.jet, "'ldb' : le d100 nu du Coup Critique est le dé de la table (LDB 10 l.773 ; LDB 18 l.53)").toBe(crit!.reveal?.dice);
     expect(banc.getState().pendingCascade, 'la cascade reste OUVERTE : la 2ᵉ frappe s’y rendra').not.toBeNull();
@@ -583,7 +583,7 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `jetValider(
     banc.getState().jetValider('attaque');
     expect(etapeCourante()?.kind).toBe('sauvegarde');
     poser(5); // < 8 : le coup porte — Coup Critique PUIS dépassement (LDB 18 l.17)
-    const crits = (banc.getState().pendingCascade?.participants ?? []).filter((s) => s.kind === 'critical');
+    const crits = (banc.getState().pendingCascade?.participants ?? []).filter((s) => s.kind === 'critique');
     expect(crits.map((s) => s.reveal?.origine), 'les deux Blessures critiques, dans leur ordre').toEqual(['coup-critique', 'depassement']);
     expect(crits.map((s) => s.reveal?.title)).toEqual([tr('step.coupCritique'), tr('step.blessureCritique')]);
     expect(banc.getState().pendingDualStrike!.jet, "'ldb' : le d100 nu du Coup Critique (LDB 18 l.53)").toBe(crits[0].reveal?.dice);
@@ -603,7 +603,7 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `jetValider(
     } as AttackResult;
     banc.setState({ pendingAttack: { attackerId: heros.id, targetId: cible.id, location: 'corps', dualMode: true, result: premiere } as never });
     banc.getState().jetValider('attaque');
-    const crits = (banc.getState().pendingCascade?.participants ?? []).filter((s) => s.kind === 'critical');
+    const crits = (banc.getState().pendingCascade?.participants ?? []).filter((s) => s.kind === 'critique');
     return { crits, jet: banc.getState().pendingDualStrike?.jet };
   }
 
@@ -715,7 +715,7 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `jetValider(
     sauvegardeEnCours(h1);
     poser(5); // < 6 : le coup porte sur h1 → Maladresse DUE, puis la chaîne parquée reprend
     const etapes = banc.getState().pendingCascade?.participants ?? [];
-    expect(etapes.filter((s) => s.kind === 'fumbleJet' && s.actorId === h1.id),
+    expect(etapes.filter((s) => s.kind === 'jetDeMaladresse' && s.actorId === h1.id),
       `la Maladresse de h1 est poussée — étapes vues : ${etapes.map((s) => s.kind).join(', ')}`).toHaveLength(1);
     // La chaîne est la SUITE du coup : elle vient APRÈS la Maladresse du défenseur (`APRES_COUP`).
     banc.getState().jetLancer('maladresse');

@@ -42,7 +42,7 @@ function arene() {
   } as unknown as BattleState;
   banc.setState({
     ...initialFields(), battle, mode: 'battle', scene: testScene(), party: [h2, h3],
-    net: { ...initialNet(), mode: 'host', mySeat: 0, gmSeat: undefined, ownership: { h2: 1, h3: 2 }, slots: [1, 2, 0, 0], seatNames: { 0: 'Hôte', 1: 'Invité A', 2: 'Invité B' } },
+    net: { ...initialNet(), mode: 'hote', mySeat: 0, gmSeat: undefined, ownership: { h2: 1, h3: 2 }, slots: [1, 2, 0, 0], seatNames: { 0: 'Hôte', 1: 'Invité A', 2: 'Invité B' } },
   });
 }
 
@@ -51,8 +51,8 @@ const row = (id: string, over: Partial<BatchParticipant> = {}): BatchParticipant
 /** Une bande de Peur (LDB 21 l.25) partagée par `h2` et `h3` : la fenêtre est à tous (`groupOwner`). */
 function bandeDePeur(rangees: BatchParticipant[] = [row('h2'), row('h3')]) {
   const etape: CascadeStep = {
-    id: 'bande-peur', kind: 'combatPsych', label: fixtureText('Peur'), aggregate: 'none', participants: rangees, result: null, groupOwner: true,
-    combatPsych: { kind: 'peur', sourceId: 'e1', sourceName: 'Bête', indice: 2, round: 1 },
+    id: 'bande-peur', kind: 'psychologieDeCombat', label: fixtureText('Peur'), aggregate: 'none', participants: rangees, result: null, groupOwner: true,
+    psychologieDeCombat: { kind: 'peur', sourceId: 'e1', sourceName: 'Bête', indice: 2, round: 1 },
   };
   startCascade(banc.getState, banc.setState, { title: 'Peur', purpose: 'test', steps: [etape] });
 }

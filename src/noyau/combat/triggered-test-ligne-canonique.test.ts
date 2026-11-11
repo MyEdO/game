@@ -14,7 +14,7 @@ import { refLabel } from '../../data';
 import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
 /**
- * LIGNE des étapes produites par le canal `triggeredTest` (#1153 L3) — les quatre producteurs de ce
+ * LIGNE des étapes produites par le canal `testDeclenche` (#1153 L3) — les quatre producteurs de ce
  * module montent leur ligne par le MONTEUR CANONIQUE (`rollSeam.rollStep`). Deux grandeurs jugées
  * ensemble, aucune relue du site :
  *  1. la CIBLE, RECALCULÉE ICI depuis les jumelles du moteur — canal COMBAT pour les Tests SIMPLES

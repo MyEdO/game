@@ -20,8 +20,8 @@ import { herosDeScenario } from '../../scenes/test-scenarios/_heros';
 import type { Combatant } from '../../engine/types';
 
 const NET: NetState = {
-  mode: 'host', mySeat: 0, roomCode: 'ABCDEF', seatNames: { 0: 'Hôte', 1: 'Antoine' }, presence: {},
-  connection: 'ok', hostAway: false, ownership: { L: 1 }, slots: [1, 1, 0, 0], rangs: {},
+  mode: 'hote', mySeat: 0, roomCode: 'ABCDEF', seatNames: { 0: 'Hôte', 1: 'Antoine' }, presence: {},
+  connection: 'connecte', hostAway: false, ownership: { L: 1 }, slots: [1, 1, 0, 0], rangs: {},
 };
 
 /** Un sorcier en Langue (Magick) 60, qui connaît l'Arme aethyrique. */
@@ -84,7 +84,7 @@ describe('Offres en coop : le verbe de l’offre voyage', () => {
     t.banc.setState({ battle: { ...t.banc.getState().battle!, acted: false, selectedAttack: 'autre' } });
     // Un seul jeu se branche par test : le banc joue l'invité sur l'instantané de l'hôte, puis l'hôte reprend sa place.
     const hote = { ...t.banc.getState() };
-    t.banc.setState(appliquerLInstantane(instantaneDeLaCoop(hote), { ...hote, net: { ...NET, mode: 'guest', mySeat: 1 } }).etat);
+    t.banc.setState(appliquerLInstantane(instantaneDeLaCoop(hote), { ...hote, net: { ...NET, mode: 'invite', mySeat: 1 } }).etat);
     const envoyes: [string, unknown[]][] = [];
     emettreIntentInvite(t.banc.getState, 'armerLAttaque', t.banc.getState().armerLAttaque as never, (action, args) => envoyes.push([action, args]), ['arme']);
     const invite = { ...t.banc.getState() };

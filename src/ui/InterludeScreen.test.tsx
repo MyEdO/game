@@ -299,7 +299,7 @@ describe('InterludeScreen — coop (audit M7) : chacun mène SES héros', () => 
       <InterludeScreen seam={{
         ...seam,
         phase: 'activities',
-        net: { mode: 'guest', mySeat: 1, ownership: { [a.id]: 0, [b.id]: 1 }, seatNames: { 0: 'Hôte', 1: 'Moi' } },
+        net: { mode: 'invite', mySeat: 1, ownership: { [a.id]: 0, [b.id]: 1 }, seatNames: { 0: 'Hôte', 1: 'Moi' } },
       }} />,
     );
     expect(html).toContain('interlude-owner'); // le héros de l'hôte porte son propriétaire (vignette + carte)
@@ -316,7 +316,7 @@ describe('InterludeScreen — coop (audit M7) : chacun mène SES héros', () => 
       <InterludeScreen seam={{
         ...seam,
         phase: 'activities',
-        net: { mode: 'host', mySeat: 0, ownership: { [a.id]: 0, [b.id]: 1 }, seatNames: { 0: 'Hôte', 1: 'Antoine' } },
+        net: { mode: 'hote', mySeat: 0, ownership: { [a.id]: 0, [b.id]: 1 }, seatNames: { 0: 'Hôte', 1: 'Antoine' } },
       }} />,
     );
     expect(html).toContain('Antoine');
