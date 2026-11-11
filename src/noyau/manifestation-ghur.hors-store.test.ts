@@ -43,10 +43,10 @@ const spell = (domainId: string) =>
     cn: 4, range: { kind: 'distance', value: 20, unit: 'm' }, target: { kind: 'count', n: 1 },
     duration: { kind: 'rounds', value: 3 },
     effects: {
-      kind: 'seq',
-      steps: [{
-        kind: 'do',
-        effect: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: 'aveugle' }, { op: 'charMod', characteristic: 'capacite-de-combat', mod: -10 }] },
+      kind: 'sequence',
+      etapes: [{
+        kind: 'effet',
+        effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: 'aveugle' }, { op: 'charMod', characteristic: 'capacite-de-combat', mod: -10 }] },
       }],
     },
     family: 'arcane',

@@ -11,6 +11,11 @@ export type Camp = 'party' | 'neutral' | 'hostile';
 export const campOf = (c: Pick<Combatant, 'kind'>): Camp =>
   c.kind === 'hero' ? 'party' : c.kind === 'npc' ? 'neutral' : 'hostile';
 
+/** Côté d'une confrontation vu des Personnages : le leur (`allie`) ou l'autre (`ennemi`) — armée d'une bataille de
+ *  masse, membre de rencontre, poste, portrait, ligne de récit. */
+export const EQUIPES = ['allie', 'ennemi'] as const;
+export type Equipe = (typeof EQUIPES)[number];
+
 /** Relation RELATIVE de `a` envers `b` : soi-même, allié (même camp) ou adversaire (camp différent).
  *  Structurel (id + camp) pour être consommable par les vues d'acteur (`ActorView`) comme par les
  *  `Combatant` (via `campOf`). */

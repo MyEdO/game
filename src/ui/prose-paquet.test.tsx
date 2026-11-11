@@ -42,7 +42,7 @@ function charger(mode: 'local' | 'invite' = 'local') {
   useGame.setState({ campaignNarratif: null, party: [], scene: null, document: null, flags: {}, etats: {}, identitesFigees: {}, net: { ...get().net, mode: 'local' } });
   get().chargerLeProjet({ scenes: [s], entryId: 'sc', narratif, projet: null });
   useGame.setState({ party: [heros('h1', 'humains-reiklander', 'M'), heros('h2', 'nains', 'F')] });
-  runFlow(get, useGame.setState, { kind: 'do', effect: { type: 'designerHeros', etat: 'sosie' } });
+  runFlow(get, useGame.setState, { kind: 'effet', effet: { type: 'designerHeros', etat: 'sosie' } });
   get().fenetreChoisir('designationHeros', 'heros', 'h2');
   useGame.setState({ net: { ...get().net, mode } });
 }

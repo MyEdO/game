@@ -87,11 +87,11 @@ function withArg(effects: TriggeredEffect[], arg?: string, value?: number): Trig
       // substitue `test.difficulty` (mêmes sémantique/gate que l'ancienne op `test.argDifficulty`).
       return f.test.argDifficulty && diff ? { ...f, test: { ...f.test, difficulty: diff } } : f;
     }
-    if (f.kind === 'choice') {
-      // Le COÛT d'Avantage d'un `choice` accepte le MÊME template `$indice` que les ops (Taillade : X = son
+    if (f.kind === 'choix') {
+      // Le COÛT d'Avantage d'un `choix` accepte le MÊME template `$indice` que les ops (Taillade : X = son
       // Indice, `AA 08 l.87`). Sans Indice sur l'instance, il reste tel quel : `resolveFlowChoice` n'offre
       // alors PAS le nœud (jamais un coût 0).
-      return f.advantageCost === INDICE_TEMPLATE && value !== undefined ? { ...f, advantageCost: value } : f;
+      return f.coutEnAvantage === INDICE_TEMPLATE && value !== undefined ? { ...f, coutEnAvantage: value } : f;
     }
     return f;
   };
@@ -296,30 +296,30 @@ export interface TriggerCtx { victim?: Combatant; weapon?: Weapon; rng: RNG; mar
 
 /** Flow INTERACTIF (`flowHasTest`) atteint SANS `set` (la voie cadence-aware `routeTriggeredTest` en exige un) : un `test` TOP-LEVEL se joue
  *  inline ; toute autre forme n'a pas de voie d'interaction ici — ses parties PURES jouent (l'État
- *  automatique d'un Critique de Taillade), le nœud `choice` n'est PAS offert. Un `test` ENFOUI lève
+ *  automatique d'un Critique de Taillade), le nœud `choix` n'est PAS offert. Un `test` ENFOUI lève
  *  toujours (`resolveInlineFlowTest`) : une branche de jet muette n'est jamais acceptable. */
 function resoudreSansRouteur(t: Combatant, actor: Combatant, flow: Flow, ctx: OpsCtx, get?: Get): string[] {
   if (flow.kind === 'test' || !flowHasChoiceSeulement(flow)) return resolveInlineFlowTest(t, actor, flow, ctx, get);
   return runPureFlowLines(t, actor, flow, ctx);
 }
 
-/** Le Flow ne doit son caractère interactif qu'à des nœuds `choice` (aucun `test` à jouer). */
+/** Le Flow ne doit son caractère interactif qu'à des nœuds `choix` (aucun `test` à jouer). */
 function flowHasChoiceSeulement(flow: Flow): boolean {
   switch (flow.kind) {
-    case 'do': return true;
+    case 'effet': return true;
     case 'test': return false;
-    // Un `choice` n'est PAS une feuille : ses branches portent souvent LE Test (« Vous pouvez… » →
-    // jet, Déstabilisante). Sans descendre, un `test` enfoui sous un `choice` serait rendu MUET par
-    // `runPureFlowLines`, qui n'a aucun `case 'choice'`.
-    case 'choice': return flowHasChoiceSeulement(flow.oui) && (flow.non ? flowHasChoiceSeulement(flow.non) : true);
-    case 'seq': return flow.steps.every(flowHasChoiceSeulement);
-    case 'if': return flowHasChoiceSeulement(flow.then) && (flow.else ? flowHasChoiceSeulement(flow.else) : true);
+    // Un `choix` n'est PAS une feuille : ses branches portent souvent LE Test (« Vous pouvez… » →
+    // jet, Déstabilisante). Sans descendre, un `test` enfoui sous un `choix` serait rendu MUET par
+    // `runPureFlowLines`, qui n'a aucun `case 'choix'`.
+    case 'choix': return flowHasChoiceSeulement(flow.oui) && (flow.non ? flowHasChoiceSeulement(flow.non) : true);
+    case 'sequence': return flow.etapes.every(flowHasChoiceSeulement);
+    case 'si': return flowHasChoiceSeulement(flow.alors) && (flow.sinon ? flowHasChoiceSeulement(flow.sinon) : true);
   }
 }
 
 /** Résolution INLINE d'un nœud `test` TOP-LEVEL sans routeur cadence-aware (entretien HORS COMBAT) —
  *  jumeau store-free de la branche NON-interactive de `resolveFlowTest` : jet du Test (`combatTestPenalty`
- *  comme un Test simple), puis branche `success`/`fail` jouée par `runPureFlowLines` (mêmes ops). Un `test`
+ *  comme un Test simple), puis branche `reussite`/`echec` jouée par `runPureFlowLines` (mêmes ops). Un `test`
  *  ENFOUI (hors top-level) LÈVE — un tel cas exige la voie cadence-aware (jamais de branche succès muette).
  *  `c` SUBIT le Test (son jet) ; `porteur` est le `caster` de la branche — même paire que la voie routée
  *  (`routeTriggeredTest(get, set, t, actor, …)`). */
@@ -339,7 +339,7 @@ function resolveInlineFlowTest(c: Combatant, porteur: Combatant, flow: Flow, ctx
   const skillLabel = testSkillLabel(ft) ?? 'Test';
   const rng = ctx.rng;
   const res = rollTest(base, difficulty, rng, combatTestPenalty(c, { skill: ft.skill?.id }));
-  const branch = res.success ? flow.success : flow.fail;
+  const branch = res.success ? flow.reussite : flow.echec;
   const lines = [traceLineOf({ who: c.label, label: testTraceLabel(skillLabel, difficulty), ...res }), ...runPureFlowLines(c, porteur, branch, { ...ctx, rng, caster: porteur, sl: res.sl })];
   // SEAM `onOwnTestFailed` (voie inline) : un Test déclenché RATÉ par le porteur émet le trigger (Crampes
   // abdominales, MSRC 16 l.152). La garde de RÉ-ENTRANCE de `fireOwnTestFailed` empêche un sous-Test résolu
@@ -434,11 +434,11 @@ export function ciblesDeLEffet(
     && !(eff.optional && !surfaceOf(get, t.id)));
 }
 
-/** Le Flow qu'un porteur SURFACÉ joue pour `eff` : un effet OPT-IN est emballé dans un nœud `choice`
+/** Le Flow qu'un porteur SURFACÉ joue pour `eff` : un effet OPT-IN est emballé dans un nœud `choix`
  *  (Oui/Renoncer) — le « Vous pouvez » RAW devient une étape de choix. */
 export function flowOffert(eff: TriggeredEffect): Flow {
   return eff.optional
-    ? { kind: 'choice', prompt: eff.flow.kind === 'test' ? (eff.flow.test.label ?? 'Réaction') : 'Réaction', oui: eff.flow, non: EMPTY_FLOW }
+    ? { kind: 'choix', prompt: eff.flow.kind === 'test' ? (eff.flow.test.label ?? 'Réaction') : 'Réaction', oui: eff.flow, non: EMPTY_FLOW }
     : eff.flow;
 }
 
@@ -471,11 +471,11 @@ export function applyTriggeredEffects(
     for (const t of ciblesDeLEffet(get, actor, eff, trigger, ctx)) {
       if (ctx.exercices) ctx.exercices.n++;
       // Flow PORTANT un nœud `test` (à n'importe quelle profondeur — top-level Mâchoires, ou enfoui sous
-      // `if`/`seq` : Venin/Hurlement/2 enchants) routé vers la voie cadence-aware (héros manuel → cascade
+      // `si`/`sequence` : Venin/Hurlement/2 enchants) routé vers la voie cadence-aware (héros manuel → cascade
       // influençable ; ennemi/auto → inline) plutôt qu'avalé silencieusement — seulement si l'appelant
       // fournit `set`. Un Flow `test` non routé (pas de `set`) atteindrait
       // `runPureFlowLines`, qui LÈVE (jamais de branche succès muette). Le contexte de la touche
-      // (`woundsDealt`/`margin→sl`/`location`/`attackKind`) voyage dans l'opsCtx pour les Conditions `if`.
+      // (`woundsDealt`/`margin→sl`/`location`/`attackKind`) voyage dans l'opsCtx pour les Conditions `si`.
       const flowCtx: OpsCtx = { rng, idNeuf: get().forgerUnId, caster: actor, sl: ctx.margin, source: eff.source, woundsDealt: ctx.woundsDealt, indice: ctx.indice, stacks: ctx.stacks, engagedAdvantageGap: gap, engagedAdvantageLead: lead, foeInLoS, affliction: ctx.affliction, cibleEnVue: cibleEnVueDeLInstance(), location: ctx.location, attackKind: ctx.attackKind, startleCause: ctx.startleCause, hiddenFromFoes: geom?.hiddenFromFoes, engaged: geom?.engaged, nearestFoeDist: geom?.nearestFoeDist, onOpposingAdvantage: ctx.onOpposingAdvantage, ...campAdvantageHooks(get),
         // Tampon de ré-entrance : un sous-Test (FM de palier 2 des Crampes) routé en cascade ne ré-émettra
         // pas `onOwnTestFailed` (son étape porte `meta.noOwnTestFailed`, cf. resolveFlowTest/commitStep).

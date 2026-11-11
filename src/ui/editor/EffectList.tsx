@@ -270,7 +270,7 @@ export function effectSummary(effect: Effect, ctx: Pick<Ctx, 'scenes' | 'cibles'
     case 'learnSpell': return `Apprendre : ${e.spell ? refLabel('spells', { id: e.spell }) : '?'}`;
     case 'castSpell': return `Incanter ${e.spellId ? refLabel('spells', { id: e.spellId }) : '?'} — ${e.casterId || '?'}${e.targetId ? ` → ${e.targetId}` : ''}${e.mode === 'forcerLaReussite' ? ' (garanti)' : ''}`;
     case 'petitePriere': {
-      const n = e.reward ? (e.reward.kind === 'seq' ? e.reward.steps.length : 1) : 0;
+      const n = e.reward ? (e.reward.kind === 'sequence' ? e.reward.etapes.length : 1) : 0;
       return `Petites Prières (site sacré)${e.heroId ? ` → ${e.heroId}` : ''} · ${n} bloc(s) si exaucée`;
     }
     case 'rest': return `Repos ${e.days ?? 1} nuit(s) (${e.lodging ?? 'maison'}${e.quality === 'pietre' ? ', piètre' : ''})`;
@@ -283,7 +283,7 @@ export function effectSummary(effect: Effect, ctx: Pick<Ctx, 'scenes' | 'cibles'
       const b: MassBattleSpec = e.battle ?? {};
       const rounds = b.plannedRounds ?? 1;
       const sit = b.situations?.length ? `, ${b.situations.length} situation(s)` : '';
-      return `Combat de masse : ${nomDArmee(b, 'ally')} (${b.allyMight ?? 0}) vs ${nomDArmee(b, 'enemy')} (${b.enemyMight ?? 0}) — ${rounds} Round${rounds > 1 ? 's' : ''}${sit}`;
+      return `Combat de masse : ${nomDArmee(b, 'allie')} (${b.allyMight ?? 0}) vs ${nomDArmee(b, 'ennemi')} (${b.enemyMight ?? 0}) — ${rounds} Round${rounds > 1 ? 's' : ''}${sit}`;
     }
     case 'transition': {
       const sc = ctx.scenes?.find((s) => s.id === e.scene?.id);
@@ -312,14 +312,14 @@ export function effectSummary(effect: Effect, ctx: Pick<Ctx, 'scenes' | 'cibles'
     case 'forceDoor': return `Enfoncer « ${e.label || '?'} » (BE ${e.doorBE ?? 0}, B ${e.doorB ?? 0})${e.flag ? ` → flag ${e.flag}` : ''}`;
     case 'setTime': return `Heure → ${DAY_PHASES.find((p) => p.id === e.phase)?.label ?? e.phase}`;
     case 'delayedEffect': {
-      const n = e.flow ? (e.flow.kind === 'seq' ? e.flow.steps.length : 1) : 0;
+      const n = e.flow ? (e.flow.kind === 'sequence' ? e.flow.etapes.length : 1) : 0;
       return `Différé ${scheduleSummary(e)} → ${n} bloc(s)${e.cancelFlag ? ` · annulé si ${e.cancelFlag}` : ''}`;
     }
     case 'endDialogue': return `Fermer le dialogue`;
   }
 }
 
-/** Corps DÉPLIÉ d'un effet (feuille `do` d'un Flow) : menu de type + champs spécifiques. */
+/** Corps DÉPLIÉ d'un effet (feuille `effet` d'un Flow) : menu de type + champs spécifiques. */
 export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChange: (e: Effect) => void; ctx: Ctx }) {
   const e = effect as any;
   const upd = (patch: any) => onChange({ ...e, ...patch });
@@ -1125,16 +1125,16 @@ function MassBattleFields({ identite, battle, onChange, ctx }: { identite: strin
   return (
     <div className="test-fields">
       <div className="tf-row">
-        <label className="dr" style={{ flex: 1 }}>Alliés<input value={b.allyName ?? ''} placeholder={nomDArmee({ ...b, allyName: undefined }, 'ally')} onChange={(ev) => set({ allyName: ev.target.value || undefined })} /></label>
-        <label className="dr" style={{ flex: 1 }}>Ennemis<input value={b.enemyName ?? ''} placeholder={nomDArmee({ ...b, enemyName: undefined }, 'enemy')} onChange={(ev) => set({ enemyName: ev.target.value || undefined })} /></label>
+        <label className="dr" style={{ flex: 1 }}>Alliés<input value={b.allyName ?? ''} placeholder={nomDArmee({ ...b, allyName: undefined }, 'allie')} onChange={(ev) => set({ allyName: ev.target.value || undefined })} /></label>
+        <label className="dr" style={{ flex: 1 }}>Ennemis<input value={b.enemyName ?? ''} placeholder={nomDArmee({ ...b, enemyName: undefined }, 'ennemi')} onChange={(ev) => set({ enemyName: ev.target.value || undefined })} /></label>
       </div>
       <div className="tf-row">
         <label className="dr">Puissance alliée<NumberField variant="nu" label="Puissance alliée" min={0} max={100} value={b.allyMight ?? 0} onChange={(n) => set({ allyMight: clampMight(n) })} /></label>
         <label className="dr">Puissance ennemie<NumberField variant="nu" label="Puissance ennemie" min={0} max={100} value={b.enemyMight ?? 0} onChange={(n) => set({ enemyMight: clampMight(n) })} /></label>
         <label className="dr">Estimer (force relative)
-          <select value="" onChange={(ev) => { const r = POWER_ESTIMATE.find((p) => p.id === ev.target.value); if (r) set({ allyMight: r.ally, enemyMight: r.enemy }); }}>
+          <select value="" onChange={(ev) => { const r = POWER_ESTIMATE.find((p) => p.id === ev.target.value); if (r) set({ allyMight: r.allie, enemyMight: r.ennemi }); }}>
             <option value="">— remplir les Puissances —</option>
-            {POWER_ESTIMATE.map((p) => <option key={p.id} value={p.id}>{p.label} ({p.ally}/{p.enemy})</option>)}
+            {POWER_ESTIMATE.map((p) => <option key={p.id} value={p.id}>{p.label} ({p.allie}/{p.ennemi})</option>)}
           </select>
         </label>
       </div>

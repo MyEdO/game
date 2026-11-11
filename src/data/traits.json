@@ -53,13 +53,13 @@
             "characteristic": "force-mentale",
             "difficulty": "accessible"
           },
-          "success": {
-            "kind": "seq",
-            "steps": []
+          "reussite": {
+            "kind": "sequence",
+            "etapes": []
           },
-          "fail": {
-            "kind": "do",
-            "effect": {
+          "echec": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "target",
               "ops": [
@@ -233,8 +233,8 @@
         "trigger": "onRoundEnd",
         "on": "self",
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "all",
             "of": [
               {
@@ -257,9 +257,9 @@
               }
             ]
           },
-          "then": {
-            "kind": "do",
-            "effect": {
+          "alors": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "target",
               "ops": [
@@ -346,11 +346,11 @@
         "trigger": "onHit",
         "on": "victim",
         "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
             {
-              "kind": "do",
-              "effect": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "on": "target",
                 "ops": [
@@ -476,8 +476,8 @@
         "trigger": "onSlain",
         "on": "self",
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "target",
             "ops": [
@@ -781,8 +781,8 @@
         "trigger": "onCombatStart",
         "on": "self",
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "target",
             "ops": [
@@ -963,15 +963,15 @@
         "trigger": "onHit",
         "on": "victim",
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "woundsDealt",
             "op": ">",
             "value": 0
           },
-          "then": {
-            "kind": "do",
-            "effect": {
+          "alors": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "target",
               "ops": [
@@ -1030,18 +1030,18 @@
         "trigger": "onRoundEnd",
         "on": "self",
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "engagedAdvantageGap",
             "op": ">",
             "value": 0
           },
-          "then": {
-            "kind": "seq",
-            "steps": [
+          "alors": {
+            "kind": "sequence",
+            "etapes": [
               {
-                "kind": "do",
-                "effect": {
+                "kind": "effet",
+                "effet": {
                   "type": "ops",
                   "on": "target",
                   "ops": [
@@ -1057,8 +1057,8 @@
                 }
               },
               {
-                "kind": "if",
-                "cond": {
+                "kind": "si",
+                "condition": {
                   "kind": "compare",
                   "subject": {
                     "who": "target",
@@ -1067,9 +1067,9 @@
                   "op": "<=",
                   "value": 0
                 },
-                "then": {
-                  "kind": "do",
-                  "effect": {
+                "alors": {
+                  "kind": "effet",
+                  "effet": {
                     "type": "ops",
                     "on": "target",
                     "ops": [
@@ -1190,15 +1190,15 @@
         "trigger": "onHit",
         "on": "victim",
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "woundsDealt",
             "op": ">",
             "value": 0
           },
-          "then": {
-            "kind": "do",
-            "effect": {
+          "alors": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "target",
               "ops": [
@@ -1335,8 +1335,8 @@
         "trigger": "onStartled",
         "on": "self",
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "not",
             "of": {
               "kind": "any",
@@ -1374,9 +1374,9 @@
               ]
             }
           },
-          "then": {
-            "kind": "do",
-            "effect": {
+          "alors": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "target",
               "ops": [
@@ -1583,8 +1583,8 @@
         "trigger": "onRoundStart",
         "on": "self",
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "compare",
             "subject": {
               "who": "target",
@@ -1593,9 +1593,9 @@
             "op": ">=",
             "value": 1
           },
-          "then": {
-            "kind": "do",
-            "effect": {
+          "alors": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "target",
               "ops": [
@@ -1628,9 +1628,9 @@
               ]
             }
           },
-          "else": {
-            "kind": "do",
-            "effect": {
+          "sinon": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "target",
               "ops": [
@@ -1731,11 +1731,11 @@
         "trigger": "onWoundLoss",
         "on": "engaged",
         "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
             {
-              "kind": "do",
-              "effect": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "on": "target",
                 "ops": [
@@ -1907,11 +1907,11 @@
         "trigger": "onHit",
         "on": "victim",
         "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
             {
-              "kind": "do",
-              "effect": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "on": "target",
                 "ops": [
@@ -1946,17 +1946,17 @@
         "trigger": "onHit",
         "on": "self",
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "attackKind",
             "is": "morsure"
           },
-          "then": {
-            "kind": "seq",
-            "steps": [
+          "alors": {
+            "kind": "sequence",
+            "etapes": [
               {
-                "kind": "do",
-                "effect": {
+                "kind": "effet",
+                "effet": {
                   "type": "ops",
                   "on": "caster",
                   "ops": [
@@ -1991,8 +1991,8 @@
         "trigger": "onHit",
         "on": "victim",
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "all",
             "of": [
               {
@@ -2011,9 +2011,9 @@
               }
             ]
           },
-          "then": {
-            "kind": "do",
-            "effect": {
+          "alors": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "target",
               "ops": [
@@ -2259,15 +2259,15 @@
           "max": 1
         },
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "engagedAdvantageLead",
             "op": ">",
             "value": 0
           },
-          "then": {
-            "kind": "do",
-            "effect": {
+          "alors": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "target",
               "ops": [
@@ -2292,8 +2292,8 @@
         "trigger": "onRoundEnd",
         "on": "grappled",
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "target",
             "ops": [
@@ -2318,8 +2318,8 @@
         "trigger": "onWoundLoss",
         "on": "grappled",
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "target",
             "ops": [
@@ -2362,8 +2362,8 @@
         "trigger": "onHit",
         "on": "victim",
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "target",
             "ops": [
@@ -2416,8 +2416,8 @@
         "trigger": "onTurnStart",
         "on": "self",
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "all",
             "of": [
               {
@@ -2449,9 +2449,9 @@
               }
             ]
           },
-          "then": {
-            "kind": "do",
-            "effect": {
+          "alors": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "caster",
               "ops": [
@@ -2522,8 +2522,8 @@
         "trigger": "onSlain",
         "on": "self",
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "caster",
             "ops": [
@@ -2774,14 +2774,14 @@
         "trigger": "onHit",
         "on": "victim",
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "attackKind",
             "is": "morsure"
           },
-          "then": {
-            "kind": "do",
-            "effect": {
+          "alors": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "target",
               "ops": [
@@ -2804,8 +2804,8 @@
         "trigger": "onRoundStart",
         "on": "grappled",
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "target",
             "ops": [
@@ -2845,8 +2845,8 @@
         "trigger": "onHit",
         "on": "victim",
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "target",
             "ops": [
@@ -2870,8 +2870,8 @@
         "trigger": "onRoundStart",
         "on": "grappled",
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "target",
             "ops": [
@@ -2915,13 +2915,13 @@
             "difficulty": "accessible",
             "label": "Musc hallucinogène"
           },
-          "success": {
-            "kind": "seq",
-            "steps": []
+          "reussite": {
+            "kind": "sequence",
+            "etapes": []
           },
-          "fail": {
-            "kind": "do",
-            "effect": {
+          "echec": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "target",
               "ops": [
@@ -2982,14 +2982,14 @@
         "trigger": "onHit",
         "on": "victim",
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "attackKind",
             "is": "morsure"
           },
-          "then": {
-            "kind": "do",
-            "effect": {
+          "alors": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "target",
               "ops": [
@@ -3096,8 +3096,8 @@
         "trigger": "onRoundStart",
         "on": "self",
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "caster",
             "ops": [
@@ -3185,8 +3185,8 @@
         "trigger": "onWake",
         "on": "self",
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "target",
             "ops": [

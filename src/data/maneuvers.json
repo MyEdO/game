@@ -50,8 +50,8 @@
         "trigger": "onHit",
         "on": "victim",
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "all",
             "of": [
               {
@@ -73,9 +73,9 @@
               }
             ]
           },
-          "then": {
-            "kind": "do",
-            "effect": {
+          "alors": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "target",
               "ops": [
@@ -130,15 +130,15 @@
         "trigger": "onHit",
         "on": "victim",
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "woundsDealt",
             "op": ">",
             "value": 0
           },
-          "then": {
-            "kind": "do",
-            "effect": {
+          "alors": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "target",
               "ops": [
@@ -182,11 +182,11 @@
         "trigger": "onHit",
         "on": "victim",
         "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
             {
-              "kind": "do",
-              "effect": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "on": "target",
                 "ops": [
@@ -202,8 +202,8 @@
               }
             },
             {
-              "kind": "do",
-              "effect": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "on": "target",
                 "ops": [
@@ -245,8 +245,8 @@
         "trigger": "onHit",
         "on": "victim",
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "target",
             "ops": [
@@ -293,18 +293,18 @@
         "trigger": "onHit",
         "on": "victim",
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "slThreshold",
             "op": ">=",
             "value": 6
           },
-          "then": {
-            "kind": "seq",
-            "steps": [
+          "alors": {
+            "kind": "sequence",
+            "etapes": [
               {
-                "kind": "do",
-                "effect": {
+                "kind": "effet",
+                "effet": {
                   "type": "ops",
                   "on": "target",
                   "ops": [
@@ -316,8 +316,8 @@
                 }
               },
               {
-                "kind": "do",
-                "effect": {
+                "kind": "effet",
+                "effet": {
                   "type": "ops",
                   "on": "target",
                   "ops": [
@@ -329,16 +329,16 @@
               }
             ]
           },
-          "else": {
-            "kind": "if",
-            "cond": {
+          "sinon": {
+            "kind": "si",
+            "condition": {
               "kind": "slThreshold",
               "op": ">=",
               "value": 2
             },
-            "then": {
-              "kind": "do",
-              "effect": {
+            "alors": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "on": "target",
                 "ops": [
@@ -392,8 +392,8 @@
         "trigger": "onHit",
         "on": "victim",
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "target",
             "ops": [
@@ -437,11 +437,11 @@
         "trigger": "onHit",
         "on": "victim",
         "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
             {
-              "kind": "do",
-              "effect": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "on": "target",
                 "ops": [
@@ -462,8 +462,8 @@
               }
             },
             {
-              "kind": "do",
-              "effect": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "on": "target",
                 "ops": [
@@ -475,8 +475,8 @@
               }
             },
             {
-              "kind": "do",
-              "effect": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "on": "target",
                 "ops": [
@@ -515,11 +515,11 @@
         "trigger": "onHit",
         "on": "victim",
         "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
             {
-              "kind": "do",
-              "effect": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "on": "target",
                 "ops": [
@@ -545,13 +545,13 @@
                 },
                 "difficulty": "accessible"
               },
-              "success": {
-                "kind": "seq",
-                "steps": []
+              "reussite": {
+                "kind": "sequence",
+                "etapes": []
               },
-              "fail": {
-                "kind": "do",
-                "effect": {
+              "echec": {
+                "kind": "effet",
+                "effet": {
                   "type": "ops",
                   "on": "target",
                   "ops": [
@@ -564,8 +564,8 @@
               }
             },
             {
-              "kind": "do",
-              "effect": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "on": "target",
                 "ops": [
@@ -605,11 +605,11 @@
         "trigger": "onHit",
         "on": "victim",
         "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
             {
-              "kind": "do",
-              "effect": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "on": "target",
                 "ops": [
@@ -629,13 +629,13 @@
                 },
                 "difficulty": "complexe"
               },
-              "success": {
-                "kind": "seq",
-                "steps": []
+              "reussite": {
+                "kind": "sequence",
+                "etapes": []
               },
-              "fail": {
-                "kind": "do",
-                "effect": {
+              "echec": {
+                "kind": "effet",
+                "effet": {
                   "type": "ops",
                   "on": "target",
                   "ops": [
@@ -678,8 +678,8 @@
         "trigger": "onHit",
         "on": "victim",
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "target",
             "ops": [
@@ -716,8 +716,8 @@
         "trigger": "onHit",
         "on": "self",
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "target",
             "ops": [
@@ -863,8 +863,8 @@
         "trigger": "onHit",
         "on": "self",
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "target",
             "ops": [

@@ -26,7 +26,7 @@ const relais = (): Scene => ({
   ...emptyScene('scene-test', 4, 4),
   id: 'relais',
   label: 'Le relais',
-  triggers: [{ id: 't0', rect: { x: 0, y: 0, w: 1, h: 1 }, once: true, flow: { kind: 'do', effect: { type: 'document', documentId: 'document-1' } } }],
+  triggers: [{ id: 't0', rect: { x: 0, y: 0, w: 1, h: 1 }, once: true, flow: { kind: 'effet', effet: { type: 'document', documentId: 'document-1' } } }],
 });
 
 function saisir(el: HTMLInputElement, valeur: string) {
@@ -71,6 +71,6 @@ describe('Éditeur — renommer une entrée du narratif, puis annuler', () => {
     const relu = parseProject(ecrits[0].project);
     const scene = relu.scenes.find((s) => s.id === 'relais')!;
     expect(scene.label, 'l’annulation n’a pas défait l’édition de scène').toBe('Le relais');
-    expect(scene.triggers[0].flow).toEqual({ kind: 'do', effect: { type: 'document', documentId: 'doc-lettre' } });
+    expect(scene.triggers[0].flow).toEqual({ kind: 'effet', effet: { type: 'document', documentId: 'doc-lettre' } });
   });
 });

@@ -27,8 +27,8 @@
         "trigger": "onRoundEnd",
         "on": "self",
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "target",
             "ops": [
@@ -114,8 +114,8 @@
         "trigger": "onRoundEnd",
         "on": "self",
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "target",
             "ops": [
@@ -164,16 +164,16 @@
         "trigger": "onRoundEnd",
         "on": "self",
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "hiddenFromFoes"
           },
-          "then": {
-            "kind": "seq",
-            "steps": [
+          "alors": {
+            "kind": "sequence",
+            "etapes": [
               {
-                "kind": "do",
-                "effect": {
+                "kind": "effet",
+                "effet": {
                   "type": "ops",
                   "on": "target",
                   "ops": [
@@ -186,8 +186,8 @@
                 }
               },
               {
-                "kind": "if",
-                "cond": {
+                "kind": "si",
+                "condition": {
                   "kind": "compare",
                   "subject": {
                     "who": "target",
@@ -196,9 +196,9 @@
                   "op": "<=",
                   "value": 0
                 },
-                "then": {
-                  "kind": "do",
-                  "effect": {
+                "alors": {
+                  "kind": "effet",
+                  "effet": {
                     "type": "ops",
                     "on": "target",
                     "ops": [
@@ -271,12 +271,12 @@
               }
             ]
           },
-          "success": {
-            "kind": "seq",
-            "steps": [
+          "reussite": {
+            "kind": "sequence",
+            "etapes": [
               {
-                "kind": "do",
-                "effect": {
+                "kind": "effet",
+                "effet": {
                   "type": "ops",
                   "on": "target",
                   "ops": [
@@ -293,8 +293,8 @@
                 }
               },
               {
-                "kind": "if",
-                "cond": {
+                "kind": "si",
+                "condition": {
                   "kind": "compare",
                   "subject": {
                     "who": "target",
@@ -303,9 +303,9 @@
                   "op": "<=",
                   "value": 0
                 },
-                "then": {
-                  "kind": "do",
-                  "effect": {
+                "alors": {
+                  "kind": "effet",
+                  "effet": {
                     "type": "ops",
                     "on": "target",
                     "ops": [
@@ -319,9 +319,9 @@
               }
             ]
           },
-          "fail": {
-            "kind": "seq",
-            "steps": []
+          "echec": {
+            "kind": "sequence",
+            "etapes": []
           }
         }
       }
@@ -383,8 +383,8 @@
         "trigger": "onRoundEnd",
         "on": "self",
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "target",
             "ops": [
@@ -413,12 +413,12 @@
             "label": "Résistance à l’Empoisonné",
             "argDifficulty": true
           },
-          "success": {
-            "kind": "seq",
-            "steps": [
+          "reussite": {
+            "kind": "sequence",
+            "etapes": [
               {
-                "kind": "do",
-                "effect": {
+                "kind": "effet",
+                "effet": {
                   "type": "ops",
                   "on": "target",
                   "ops": [
@@ -435,8 +435,8 @@
                 }
               },
               {
-                "kind": "if",
-                "cond": {
+                "kind": "si",
+                "condition": {
                   "kind": "compare",
                   "subject": {
                     "who": "target",
@@ -445,9 +445,9 @@
                   "op": "<=",
                   "value": 0
                 },
-                "then": {
-                  "kind": "do",
-                  "effect": {
+                "alors": {
+                  "kind": "effet",
+                  "effet": {
                     "type": "ops",
                     "on": "target",
                     "ops": [
@@ -461,9 +461,9 @@
               }
             ]
           },
-          "fail": {
-            "kind": "seq",
-            "steps": []
+          "echec": {
+            "kind": "sequence",
+            "etapes": []
           }
         }
       }
@@ -495,8 +495,8 @@
         "trigger": "onRoundEnd",
         "on": "self",
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "target",
             "ops": [
@@ -590,8 +590,8 @@
         "trigger": "onRoundEnd",
         "on": "self",
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "target",
             "ops": [
@@ -670,12 +670,12 @@
             "difficulty": "intermediaire",
             "label": "Résistance au Sonné"
           },
-          "success": {
-            "kind": "seq",
-            "steps": [
+          "reussite": {
+            "kind": "sequence",
+            "etapes": [
               {
-                "kind": "do",
-                "effect": {
+                "kind": "effet",
+                "effet": {
                   "type": "ops",
                   "on": "target",
                   "ops": [
@@ -692,8 +692,8 @@
                 }
               },
               {
-                "kind": "if",
-                "cond": {
+                "kind": "si",
+                "condition": {
                   "kind": "all",
                   "of": [
                     {
@@ -716,9 +716,9 @@
                     }
                   ]
                 },
-                "then": {
-                  "kind": "do",
-                  "effect": {
+                "alors": {
+                  "kind": "effet",
+                  "effet": {
                     "type": "ops",
                     "on": "target",
                     "ops": [
@@ -732,9 +732,9 @@
               }
             ]
           },
-          "fail": {
-            "kind": "seq",
-            "steps": []
+          "echec": {
+            "kind": "sequence",
+            "etapes": []
           }
         }
       }
@@ -771,8 +771,8 @@
         "trigger": "onRoundEnd",
         "on": "self",
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "target",
             "ops": [
@@ -809,8 +809,8 @@
         "trigger": "onRoundEnd",
         "on": "self",
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "target",
             "ops": [
@@ -847,8 +847,8 @@
         "trigger": "onRoundEnd",
         "on": "self",
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "target",
             "ops": [
@@ -880,11 +880,11 @@
         "trigger": "onRoundEnd",
         "on": "self",
         "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
             {
-              "kind": "if",
-              "cond": {
+              "kind": "si",
+              "condition": {
                 "kind": "all",
                 "of": [
                   {
@@ -911,9 +911,9 @@
                   }
                 ]
               },
-              "then": {
-                "kind": "do",
-                "effect": {
+              "alors": {
+                "kind": "effet",
+                "effet": {
                   "type": "ops",
                   "on": "target",
                   "ops": [
@@ -926,8 +926,8 @@
               }
             },
             {
-              "kind": "if",
-              "cond": {
+              "kind": "si",
+              "condition": {
                 "kind": "all",
                 "of": [
                   {
@@ -953,9 +953,9 @@
                   }
                 ]
               },
-              "then": {
-                "kind": "do",
-                "effect": {
+              "alors": {
+                "kind": "effet",
+                "effet": {
                   "type": "ops",
                   "on": "target",
                   "ops": [

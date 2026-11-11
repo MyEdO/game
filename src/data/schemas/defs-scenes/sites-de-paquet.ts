@@ -6,7 +6,7 @@
  * Sites, dans l'ordre du document :
  *  - scène : `when` des déclencheurs et des choix de dialogue ; chaque RACINE de Flow (`racinesDeFlow` :
  *    déclencheurs, actions d'entité, choix de dialogue, `onVictory`) et l'arbre entier par `walkFlow` —
- *    `cond` des `if`, `gate` et `difficultyBy[].cond` des `test`, feuilles `do` et les Flows qu'elles
+ *    `condition` des `si`, `gate` et `difficultyBy[].cond` des `test`, feuilles `effet` et les Flows qu'elles
  *    PORTENT (`carriedFlows`) ; `crossTest` des zones d'effet ;
  *  - carte du monde : `when` des lieux et des routes, Effects des péripéties de route ;
  *  - narratif : `when` de la clôture.
@@ -35,7 +35,7 @@ export interface SiteDeCondition {
   readonly condition: Objet;
 }
 
-/** Un Effet (feuille `do`, péripétie de route). */
+/** Un Effet (feuille `effet`, péripétie de route). */
 export interface SiteDEffet {
   readonly chemin: Chemin;
   readonly lieu: string;
@@ -92,8 +92,8 @@ function sitesDEffet(effet: unknown, chemin: Chemin, ou: Ou, out: Sortie): void 
 function sitesDeFlow(flow: Flow<unknown>, chemin: Chemin, ou: Ou, out: Sortie): void {
   walkFlow(flow, (noeud, sous: CheminDeFlow) => {
     const ici = [...chemin, ...sous];
-    if (noeud.kind === 'do') sitesDEffet(noeud.effect, [...ici, 'effect'], ou, out);
-    else if (noeud.kind === 'if') pousseCondition(out, noeud.cond, [...ici, 'cond'], ou);
+    if (noeud.kind === 'effet') sitesDEffet(noeud.effet, [...ici, 'effet'], ou, out);
+    else if (noeud.kind === 'si') pousseCondition(out, noeud.condition, [...ici, 'condition'], ou);
     else if (noeud.kind === 'test') sitesDeTest(noeud.test, [...ici, 'test'], ou, out);
   });
 }

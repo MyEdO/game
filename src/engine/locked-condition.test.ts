@@ -133,8 +133,8 @@ describe('Données — verrous & escapeStrength câblés (RAW)', () => {
     type Op = { op: string; id?: string; unlockBy?: string };
     const opsOf = (id: string, cond: string): Op | undefined => {
       const e = rangees().find((x) => x.id === id)!;
-      // L'effet peut vivre dans l'effet IMMÉDIAT ou dans la branche `fail` du nœud `test` de la rangée.
-      return [...((e.ops ?? []) as Op[]), ...(spellOps(e.test?.fail, 'target') as unknown as Op[])]
+      // L'effet peut vivre dans l'effet IMMÉDIAT ou dans la branche `echec` du nœud `test` de la rangée.
+      return [...((e.ops ?? []) as Op[]), ...(spellOps(e.test?.echec, 'target') as unknown as Op[])]
         .find((o) => o.op === 'condition' && o.id === cond);
     };
     // œil (Aveuglé), thorax (Sonné), clavicule (Inconscient) — LDB + jumeaux AA aa-tete-41/aa-corps-91/aa-corps-96.

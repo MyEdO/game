@@ -68,7 +68,7 @@ describe('#194 (2) — Commotion cérébrale : déclencheur « autre critique t�
     expect(trig!.whileCondition).toBe('extenue');
     expect(trig!.location).toBe('tete');
     expect(trig!.test.test.difficulty).toBe('accessible');
-    expect(hasCondOp(spellOps(trig!.test.fail, 'target') as never, 'inconscient')).toBe(true);
+    expect(hasCondOp(spellOps(trig!.test.echec, 'target') as never, 'inconscient')).toBe(true);
   });
 
   it('AA (aa-tete-76) NE porte PAS la clause (écart RAW AA 07) → aucun critTrigger armé', () => {
@@ -83,8 +83,8 @@ describe('#194 (2) — Commotion cérébrale : déclencheur « autre critique t�
       location: 'tete', whileCondition: 'extenue',
       test: {
         kind: 'test', test: { difficulty: 'accessible' },
-        success: { kind: 'seq', steps: [] },
-        fail: { kind: 'do', effect: { type: 'ops', ops: [{ op: 'condition', id: 'inconscient', value: 1 }], on: 'target' } },
+        reussite: { kind: 'sequence', etapes: [] },
+        echec: { kind: 'effet', effet: { type: 'ops', ops: [{ op: 'condition', id: 'inconscient', value: 1 }], on: 'target' } },
       },
     },
   });
@@ -94,8 +94,8 @@ describe('#194 (2) — Commotion cérébrale : déclencheur « autre critique t�
     const noeuds = fireCritTriggers(c, 'tete');
     expect(noeuds).toHaveLength(1);
     expect(noeuds[0].test.difficulty).toBe('accessible');
-    expect(hasCondOp(spellOps(noeuds[0].fail, 'target') as never, 'inconscient')).toBe(true);
-    expect(spellOps(noeuds[0].success, 'target')).toEqual([]); // le Test réussi n'octroie rien (LDB 18 l.74)
+    expect(hasCondOp(spellOps(noeuds[0].echec, 'target') as never, 'inconscient')).toBe(true);
+    expect(spellOps(noeuds[0].reussite, 'target')).toEqual([]); // le Test réussi n'octroie rien (LDB 18 l.74)
   });
 
   it('fireCritTriggers : pas d\'Exténué → aucun nœud', () => {
@@ -119,7 +119,7 @@ describe('#194 (2) — Commotion cérébrale : déclencheur « autre critique t�
     expect(crit.testFlow?.kind).toBe('test');
     const noeud = crit.testFlow as Extract<typeof crit.testFlow, { kind: 'test' }>;
     expect(noeud.test.difficulty).toBe('accessible');
-    expect(hasCondOp(spellOps(noeud.fail, 'target') as never, 'inconscient')).toBe(true);
+    expect(hasCondOp(spellOps(noeud.echec, 'target') as never, 'inconscient')).toBe(true);
     expect(hasCondOp(crit.ops as never, 'inconscient')).toBe(false); // l'issue n'est plus tranchée dans le moteur
   });
 });
@@ -131,7 +131,7 @@ describe('#194 — stampCriticalEscalation : dédup du critTrigger (une commotio
       uid: 't2', label: 'x', location: 'tete' as HitLocation,
       critTrigger: {
         location: 'tete', whileCondition: 'extenue',
-        test: { kind: 'test', test: { difficulty: 'accessible' }, success: { kind: 'seq', steps: [] }, fail: { kind: 'seq', steps: [] } },
+        test: { kind: 'test', test: { difficulty: 'accessible' }, reussite: { kind: 'sequence', etapes: [] }, echec: { kind: 'sequence', etapes: [] } },
       },
     }];
     const traumas: Trauma[] = [];

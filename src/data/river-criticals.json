@@ -36,13 +36,13 @@
               "characteristic": "initiative",
               "difficulty": "intermediaire"
             },
-            "success": {
-              "kind": "seq",
-              "steps": []
+            "reussite": {
+              "kind": "sequence",
+              "etapes": []
             },
-            "fail": {
-              "kind": "do",
-              "effect": {
+            "echec": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "ops": [
                   {
@@ -161,13 +161,13 @@
               "characteristic": "initiative",
               "difficulty": "intermediaire"
             },
-            "success": {
-              "kind": "seq",
-              "steps": []
+            "reussite": {
+              "kind": "sequence",
+              "etapes": []
             },
-            "fail": {
-              "kind": "do",
-              "effect": {
+            "echec": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "ops": [
                   {

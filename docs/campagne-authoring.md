@@ -379,7 +379,7 @@ narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; obj
   Condition et d'Effet du paquet par l'énumérateur unique `sitesDuPaquet`
   (`src/data/schemas/defs-scenes/sites-de-paquet.ts` : `when` des déclencheurs, choix, lieux, routes et
   clôture ; racines de Flow — déclencheurs, actions d'entité, choix de dialogue, `onVictory` — avec leurs
-  `if`, `gate`/`difficultyBy` de `test`, feuilles et Flows portés ; `crossTest` des zones ; périls de
+  `si`, `gate`/`difficultyBy` de `test`, feuilles et Flows portés ; `crossTest` des zones ; périls de
   route), `indices[].affaireId` et `stades[].documentId` du narratif. Une référence `etat` est en outre
   confrontée à la forme de son état (`fautesDUsageDEtat`). Tous ses lecteurs le partagent : la FK de `projetSchema` (`refsNarrativesPendantes`, scènes
   et carte), le raffinage de `narratifSchema` (références internes au narratif), le contrat des

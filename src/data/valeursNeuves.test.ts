@@ -36,6 +36,6 @@ describe('valeurs neuves de l’atelier en donnée (#3059)', () => {
   });
   it('noeudTestNeuf et blocNeuf : chaque bloc neuf d’un Flow authoré est conforme à `sceneFlowSchema`', () => {
     expect(refusHorsSentinelle(sceneFlowSchema, noeudTestNeuf())).toEqual([]);
-    for (const k of ['if', 'test', 'choice'] as const) expect(refusHorsSentinelle(sceneFlowSchema, blocNeuf(k)), k).toEqual([]);
+    for (const k of ['si', 'test', 'choix'] as const) expect(refusHorsSentinelle(sceneFlowSchema, blocNeuf(k)), k).toEqual([]);
   });
 });

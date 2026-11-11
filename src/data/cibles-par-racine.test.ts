@@ -59,11 +59,11 @@ const horsTable = (fs: Feuille[]): string[] =>
     .map((f) => `${f.site} — on:'${f.on}' hors de la table \`${f.racine}\``);
 
 /** Racine `maladie` : les blocs entre le nœud `test` PORTEUR (`.onTick.test`, `.dailyTest.test`) et la
- *  feuille. Tout autre que `seq`/`do` est rendu, nommé : `spellOps` (`engine/flowCore.ts`) l'aplatit. */
+ *  feuille. Tout autre que `sequence`/`effet` est rendu, nommé : `spellOps` (`engine/flowCore.ts`) l'aplatit. */
 const blocsAplatis = (fs: Feuille[]): string[] =>
   fs.filter((f) => f.racine === 'maladie').flatMap((f) => {
     const porteur = f.blocs.findIndex((b) => /\.(onTick|dailyTest)\.test$/.test(b.chemin));
-    return f.blocs.slice(porteur + 1).filter((b) => b.kind !== 'seq' && b.kind !== 'do')
+    return f.blocs.slice(porteur + 1).filter((b) => b.kind !== 'sequence' && b.kind !== 'effet')
       .map((b) => `${f.site} — bloc \`${b.kind}\` à ${b.chemin} : \`spellOps\` (\`engine/flowCore.ts\`) l’aplatit`);
   });
 
@@ -83,20 +83,20 @@ describe('cliquet de donnée — le `on` d’une feuille de catalogue appartient
     expect(racines.filter((r) => !vues.has(r as RacineDeCatalogue)), 'racine sans feuille : le champ porteur a glissé').toEqual([]);
   });
 
-  it('racine `maladie` : entre le Test porteur et la feuille, seulement des `seq` et des `do`', () => {
+  it('racine `maladie` : entre le Test porteur et la feuille, seulement des `sequence` et des `effet`', () => {
     expect(blocsAplatis(feuilles)).toEqual([]);
   });
 
-  it('morsure : un `if` sous l’échec du cycle d’un symptôme est rendu, nommé', () => {
-    const symptome = [{ id: 'sonde', onTick: { test: { kind: 'test', fail: { kind: 'if', cond: { kind: 'flag', expr: 'x' },
-      then: { kind: 'do', effect: { type: 'ops', ops: [] } } } } } }];
+  it('morsure : un `si` sous l’échec du cycle d’un symptôme est rendu, nommé', () => {
+    const symptome = [{ id: 'sonde', onTick: { test: { kind: 'test', echec: { kind: 'si', condition: { kind: 'flag', expr: 'x' },
+      alors: { kind: 'effet', effet: { type: 'ops', ops: [] } } } } } }];
     expect(blocsAplatis(feuillesDeCatalogue('symptoms.json', symptome)))
-      .toEqual(['symptoms.json sonde.onTick.test.fail.then.effect — bloc `if` à .onTick.test.fail : `spellOps` (`engine/flowCore.ts`) l’aplatit']);
+      .toEqual(['symptoms.json sonde.onTick.test.echec.alors.effet — bloc `si` à .onTick.test.echec : `spellOps` (`engine/flowCore.ts`) l’aplatit']);
   });
 
   it('morsure : une feuille `on:caster` dans le cycle d’un symptôme est hors table', () => {
-    const symptome = [{ id: 'sonde', onTick: { test: { kind: 'test', fail: { kind: 'do', effect: { type: 'ops', on: 'caster', ops: [] } } } } }];
+    const symptome = [{ id: 'sonde', onTick: { test: { kind: 'test', echec: { kind: 'effet', effet: { type: 'ops', on: 'caster', ops: [] } } } } }];
     expect(horsTable(feuillesDeCatalogue('symptoms.json', symptome)))
-      .toEqual(["symptoms.json sonde.onTick.test.fail.effect — on:'caster' hors de la table `maladie`"]);
+      .toEqual(["symptoms.json sonde.onTick.test.echec.effet — on:'caster' hors de la table `maladie`"]);
   });
 });

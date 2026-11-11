@@ -4,6 +4,7 @@
  * identité (label/icône/faction/équipage) ; AUCUN effet de règle — la vérité mécanique reste la coque et ses
  * `postes` (cf. `monde/shipPostes.ts`). PUR.
  */
+import type { Equipe } from '../engine/relations';
 import type { IconId } from '../data/icons';
 import { isPosteManned } from './monde/shipPostes';
 import { battleSceneById } from './massBattleFlow';
@@ -25,14 +26,14 @@ export interface Station {
   /** id `ICON_DEFS` (registre `src/data/icons`) — pièce d'artillerie servie = `action/servir-l-engin`. */
   icon: IconId;
   /** Faction dérivée du `kind` de la coque : héros → allié, ennemi → ennemi, PNJ → neutre. */
-  faction: 'ally' | 'enemy' | 'neutral';
+  faction: Equipe | 'neutre';
   assignedIds: string[];
   manned: boolean;
   side?: FireArc;
   ref: StationRef;
 }
 
-const FACTION: Record<Combatant['kind'], Station['faction']> = { hero: 'ally', enemy: 'enemy', npc: 'neutral' };
+const FACTION: Record<Combatant['kind'], Station['faction']> = { hero: 'allie', enemy: 'ennemi', npc: 'neutre' };
 
 /**
  * Indexe en Stations chaque poste des Combattants-coque (coque navale OU emplacement de siège — indifférent).
@@ -103,7 +104,7 @@ export function battleScenesToStations(
       pos,
       label: def.label,
       icon: 'action/attaquer',
-      faction: def.sceneKind === 'threat' ? 'enemy' : 'neutral',
+      faction: def.sceneKind === 'threat' ? 'ennemi' : 'neutre',
       assignedIds: heroIds,
       manned: heroIds.length > 0,
       ref: { kind: 'battleScene', sceneId },

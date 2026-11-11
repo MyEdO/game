@@ -36,7 +36,7 @@ describe('planJump', () => {
     expect(node.kind).toBe('test');
     expect(node.test.skill).toEqual({ id: 'athletisme' });
     expect(node.test).toMatchObject(testDeRegle('saut', 'sans-elan'));
-    const fall = flowEffects(node.fail)[0] as Extract<Effect, { type: 'fall' }>;
+    const fall = flowEffects(node.echec)[0] as Extract<Effect, { type: 'fall' }>;
     expect(fall.type).toBe('fall');
     expect(fall.to).toEqual({ x: 2, y: 1, z: 0 }); // tombe sur le parterre (z0) sous le gouffre (x=2)
     expect(fall.metres).toBe(4); // 1 étage ≈ 4 m

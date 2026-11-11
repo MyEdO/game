@@ -19,7 +19,7 @@
  *    → collectées par `diseasePassiveOps` → `passiveMods` (kind 'maladie', annulable par Détermination) ;
  *    les `condition` y sont MATÉRIALISÉES sur le porteur par `syncDerivedConditions` (engine/conditions).
  *  - `onTick` : cycle quotidien — soit une ÉPREUVE (`test`, le nœud `test` du Flow : jet + conséquence
- *    de la branche `fail`), DIFFÉRÉE en cascade influençable (`maladie-test-quotidien`) ; soit une conséquence
+ *    de la branche `echec`), DIFFÉRÉE en cascade influençable (`maladie-test-quotidien`) ; soit une conséquence
  *    CERTAINE (`ops`), appliquée sans jet.
  *  - `capabilities` (drapeaux irréductibles lus par la machinerie de CYCLE ci-dessous) : `blocksHealing`
  *    (Blessé/Gangrène), `amputation` (Gangrène), `contagious` (Toux),
@@ -278,7 +278,7 @@ export type CycleQuotidien =
 
 /**
  * Cycle quotidien d'une instance de symptôme (Blessé/Toxine/Vers) — lecture PURE de la donnée : les
- * ops de la branche `fail` du nœud sont extraites par `spellOps` (`flowCore`), comme `resolveCritique`.
+ * ops de la branche `echec` du nœud sont extraites par `spellOps` (`flowCore`), comme `resolveCritique`.
  * `difficulty` ABSENTE = cycle SANS jet : la conséquence `ops` du porteur est certaine. Sinon la
  * Difficulté est celle du nœud, INDEXÉE sur la sévérité EFFECTIVE de l'instance quand le symptôme le
  * prévoit (`difficultyBySeverity` — Toxine, LDB 20 l.215 : Modéré→Facile, Grave→Accessible) : le
@@ -318,10 +318,10 @@ function idsDuNoeud(node: FlowTestNode): TestIds {
   throw new Error(`nœud \`test\` sans compétence ni caractéristique : ${JSON.stringify(node.test)}`);
 }
 
-/** Ops de la branche `fail` d'un nœud `test` de maladie — le canal différé `maladie-test-quotidien` n'applique QUE
- *  l'échec (`noyau/restFlow.ts`), la branche `success` est du bruit authoré vide (contrat vérifié). */
+/** Ops de la branche `echec` d'un nœud `test` de maladie — le canal différé `maladie-test-quotidien` n'applique QUE
+ *  l'échec (`noyau/restFlow.ts`), la branche `reussite` est du bruit authoré vide (contrat vérifié). */
 function opsDeLEchec(node: FlowTestNode): GameOp[] {
-  return spellOps(node.fail, 'target');
+  return spellOps(node.echec, 'target');
 }
 /** Interprète INLINE le sous-ensemble d'ops `onFail`/inconditionnelles que le cycle de maladie peut
  *  appliquer SANS `applyOps` (contrainte sans-cycle ops↔disease de l'en-tête) : contraction, mort (Destin,

@@ -29,7 +29,7 @@ const SEA = join(ROOT, 'src/data/sea-events.json');
 const NAV = join(ROOT, 'src/data/sea-navigation.json');
 const CONSIGNE = 'consigne utilisateur 2026-11-07';
 
-const CONSTRUCTEUR = { kind: 'do', effect: { type: 'ops', on: 'navire', ops: [{ op: 'constructeurDEscale', competence: 68, duree: { dice: { n: 1, sides: 10 } } }] } };
+const CONSTRUCTEUR = { kind: 'effet', effet: { type: 'ops', on: 'navire', ops: [{ op: 'constructeurDEscale', competence: 68, duree: { dice: { n: 1, sides: 10 } } }] } };
 const MAISON_DU_CONSTRUCTEUR = `Le constructeur répare à son meilleur Métier, Constructeur de navires 68 contre Charpentier 72 − 10 (MDG 13 l.641) ; les 1d10 jours de la réparation se tirent à l'escale, et l'installation d'une Amélioration reste immédiate (${CONSIGNE}).`;
 const CONSTRUCTEUR_LOCAL = 50;
 const MAISON_DE_LA_REPARATION = `Le constructeur naval local (MDG 13 l.643) n'a pas de profil : il teste son Métier (Constructeur de navires) à 50 (${CONSIGNE}).`;

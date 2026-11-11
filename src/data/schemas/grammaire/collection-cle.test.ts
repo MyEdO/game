@@ -142,7 +142,7 @@ describe('unicité PROUVÉE à la porte — un id répété dans une liste à cl
   const noeud = { id: 'n1', desc: 'x', choices: [] };
   const CAS: [string, (d: Doc) => void, string][] = [
     ['une entité', (d) => repete(d.scenes[0].entities), 'entité'],
-    ['un déclencheur', (d) => { d.scenes[0].triggers = [{ id: 't1', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: { kind: 'seq', steps: [] } }]; repete(d.scenes[0].triggers); }, 'déclencheur'],
+    ['un déclencheur', (d) => { d.scenes[0].triggers = [{ id: 't1', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: { kind: 'sequence', etapes: [] } }]; repete(d.scenes[0].triggers); }, 'déclencheur'],
     ['un nœud de dialogue', (d) => { d.scenes[0].dialogues = [{ id: 'd1', start: { id: 'n1' }, nodes: [noeud, noeud] }]; }, 'nœud'],
     ['une réponse de dialogue', (d) => { const oui = { id: 'oui', label: 'Oui' }; d.scenes[0].dialogues = [{ id: 'd1', start: { id: 'n1' }, nodes: [{ ...noeud, choices: [oui, oui] }] }]; }, 'réponse'],
     ['un lieu', (d) => { d.worldMap = { id: 'carte', label: 'Carte', places: [lieu, lieu], routes: [] }; }, 'lieux'],

@@ -86,7 +86,7 @@ const TIR_DANS_LE_TAS = { pendingAttack: { attackerId: 'h1', targetId: 'e1', dan
 const INTENTION_CHARGE = { localIntent: { actionId: 'charge' } };
 
 /** L'état de store qui arme l'INTENTION de Course : depuis la spec § ARBITRAGE 2026-08-19, c'est LUI
- *  — et lui seul — qui allume la zone de Course du champ (nature `run`). */
+ *  — et lui seul — qui allume la zone de Course du champ (nature `course`). */
 const INTENTION_COURSE = { localIntent: { actionId: 'course' } };
 
 let root: Root | null = null;
@@ -146,24 +146,24 @@ function comptesVolumiques(): Record<string, number> {
  * disparaît : tout se voit ici.
  *
  * Tour ordinaire : « par défaut seule la zone de déplacement est affichée » (spec HUD § ARBITRAGE,
- * `docs/plans/2026-08-16-spec-hud-combat.md`, 2026-08-19). La zone de COURSE (`run`, 36 cases sur ce
+ * `docs/plans/2026-08-16-spec-hud-combat.md`, 2026-08-19). La zone de COURSE (`course`, 36 cases sur ce
  * témoin) ne se peint que sous l'intention de Course : 4ᵉ témoin ci-dessous.
  */
 const ORACLE_NEUTRE: Record<string, number> = {
-  walk: 62, rangeBand: 100, team: 2, teamActive: 1, zoneSmoke: 2, zoneFire: 1, ringContour: 2,
+  deplacement: 62, bandeDePortee: 100, equipe: 2, equipeActive: 1, zoneDeFumee: 2, zoneDeFeu: 1, anneauDeContour: 2,
 };
 const ORACLE_FOULE: Record<string, number> = {
-  walk: 62, rangeBand: 100, team: 2, teamActive: 1, zoneSmoke: 2, zoneFire: 1, ringCrowd: 2,
+  deplacement: 62, bandeDePortee: 100, equipe: 2, equipeActive: 1, zoneDeFumee: 2, zoneDeFeu: 1, anneauDeFoule: 2,
 };
 /** 3ᵉ témoin (lot intentions) : Charge ARMÉE depuis la console. Mouvement 4, aucun Trait de Course →
  *  portée de Charge = `chargeReach(4)` = 8 cases, qui couvre toute la carte 10×10 depuis (3,3) sauf
- *  les deux cases occupées par les ennemis : 98 marques `intent`, EN PLUS des portées permanentes
+ *  les deux cases occupées par les ennemis : 98 marques `intention`, EN PLUS des portées permanentes
  *  (le joueur voit la Charge par-dessus sa Marche, pas à sa place). Le reste est l'oracle neutre. */
-const ORACLE_INTENTION: Record<string, number> = { ...ORACLE_NEUTRE, intent: 98 };
-/** 4ᵉ témoin (spec § 2026-08-19) : Course ARMÉE. Sa zone se peint en nature `run` — 36 cases sur ce
- *  témoin — et RIEN en `intent` : cette intention
+const ORACLE_INTENTION: Record<string, number> = { ...ORACLE_NEUTRE, intention: 98 };
+/** 4ᵉ témoin (spec § 2026-08-19) : Course ARMÉE. Sa zone se peint en nature `course` — 36 cases sur ce
+ *  témoin — et RIEN en `intention` : cette intention
  *  délègue son affichage au champ au lieu d'écrire deux fois la même vérité. */
-const ORACLE_COURSE: Record<string, number> = { ...ORACLE_NEUTRE, run: 36 };
+const ORACLE_COURSE: Record<string, number> = { ...ORACLE_NEUTRE, course: 36 };
 
 beforeAll(() => {
   Object.defineProperty(HTMLCanvasElement.prototype, 'clientWidth', { configurable: true, get: () => TAILLE.w });
@@ -180,11 +180,11 @@ describe('Marques de cases — le monde volumique pose la population entière (#
   it('les QUATRE combats témoins portent bien TOUTES les natures (sinon la sonde ne pèse rien)', () => {
     // La RÉUNION des témoins couvre tous les slots : c'est ce qui rend la mesure non vide.
     expect(new Set([...Object.keys(ORACLE_NEUTRE), ...Object.keys(ORACLE_FOULE), ...Object.keys(ORACLE_INTENTION), ...Object.keys(ORACLE_COURSE)])).toEqual(new Set(HIGHLIGHT_SLOTS));
-    expect(ORACLE_NEUTRE.intent, 'un tour neutre n’arme AUCUNE intention').toBeUndefined();
-    expect(ORACLE_NEUTRE.run, 'un tour neutre ne peint PAS la zone de Course (spec § 2026-08-19)').toBeUndefined();
-    expect(ORACLE_COURSE.intent, 'la Course armée peint sa zone en nature `run`, jamais une 2ᵉ fois en `intent`').toBeUndefined();
-    expect(ORACLE_NEUTRE.ringCrowd, 'un tour neutre n’arme PAS le tir dans le tas').toBeUndefined();
-    expect(ORACLE_FOULE.ringContour, 'un tir dans le tas éteint les anneaux de cible').toBeUndefined();
+    expect(ORACLE_NEUTRE.intention, 'un tour neutre n’arme AUCUNE intention').toBeUndefined();
+    expect(ORACLE_NEUTRE.course, 'un tour neutre ne peint PAS la zone de Course (spec § 2026-08-19)').toBeUndefined();
+    expect(ORACLE_COURSE.intention, 'la Course armée peint sa zone en nature `course`, jamais une 2ᵉ fois en `intention`').toBeUndefined();
+    expect(ORACLE_NEUTRE.anneauDeFoule, 'un tour neutre n’arme PAS le tir dans le tas').toBeUndefined();
+    expect(ORACLE_FOULE.anneauDeContour, 'un tir dans le tas éteint les anneaux de cible').toBeUndefined();
   });
 
   it('nature par nature, le volumique pose exactement l’oracle (tour neutre)', () => {

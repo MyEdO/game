@@ -737,13 +737,13 @@ describe('GameOp — toute référence de la donnée committée est jugée au pa
   it('la garde n’est pas vacante — une op à référence fantôme est REFUSÉE (contre-épreuve)', () => {
     const fixture = (testType: string) => [{
       file: 'fixture.json',
-      data: [{ effects: [{ flow: { effect: { ops: [{ op: 'skillDRBonus', testType, bonus: 1 }] } } }] }],
+      data: [{ effects: [{ flow: { effet: { ops: [{ op: 'skillDRBonus', testType, bonus: 1 }] } } }] }],
     }];
     expect(scanGameOpRefs({ sources: fixture('manoeuvre'), resolvers }).offenders).toEqual([]);
     const out = scanGameOpRefs({ sources: fixture('test-fantome'), resolvers }).offenders;
     expect(out).toHaveLength(1);
     expect(out[0].registry).toBe('crewTestTypes');
-    expect(out[0].path).toBe('fixture.json[0].effects[0].flow.effect.ops[0].testType');
+    expect(out[0].path).toBe('fixture.json[0].effects[0].flow.effet.ops[0].testType');
   });
 
   it('un champ NON-RÉFÉRENCE porte sa justification, un champ jugé ailleurs nomme son refus', () => {

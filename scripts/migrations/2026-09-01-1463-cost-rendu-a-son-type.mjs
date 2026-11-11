@@ -124,8 +124,8 @@ for (const [f, chemin, de, vers] of RENOMMAGES) {
 // RESHAPE 1 — nœud Flow `choice` : `cost: {advantage: N}` → `advantageCost: N`.
 let choix = 0;
 for (const [f, { data }] of documents) {
-  for (const noeud of partout(data, (o) => o.kind === 'choice' && typeof o.prompt === 'string')) {
-    if (Object.hasOwn(noeud, 'advantageCost')) { choix++; continue; }
+  for (const noeud of partout(data, (o) => o.kind === 'choix' && typeof o.prompt === 'string')) {
+    if (Object.hasOwn(noeud, 'coutEnAvantage')) { choix++; continue; }
     if (!Object.hasOwn(noeud, 'cost')) continue;
     const c = noeud.cost;
     if (!c || typeof c !== 'object' || Object.keys(c).join(',') !== 'advantage' || typeof c.advantage !== 'number') {
@@ -138,7 +138,7 @@ for (const [f, { data }] of documents) {
     remplace(noeud, sortie);
   }
 }
-if (!choix) anomalies.push('nœuds Flow `choice` porteurs d’un coût : AUCUN — périmètre déplacé');
+if (!choix) anomalies.push('nœuds Flow `choix` porteurs d’un coût : AUCUN — périmètre déplacé');
 
 // RESHAPE 2 — op `grantFreeAttack` : le sous-objet `cost` est APLATI sur l'op.
 let gratuites = 0;

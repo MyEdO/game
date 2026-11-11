@@ -68,7 +68,7 @@ export const riverForces = memoParVersion('riverNavigation', (): RiverWindForceI
 export const navBaseDifficulty = (): Difficulty => DATA.navBaseDifficulty;
 export const tackDifficulty = (): Difficulty => DATA.tackDifficulty;
 export const CAPSIZE = DATA.capsize;
-export const OUT_OF_CONTROL = DATA.outOfControl;
+export const OUT_OF_CONTROL = DATA.horsDeControle;
 export const TEMPORARY_REPAIR = DATA.temporaryRepair;
 export const driftPctOfSpeed = (): number => DATA.driftPctOfSpeed;
 export const driftNavPenalty = (): number => DATA.driftNavPenalty;
@@ -120,8 +120,8 @@ export function riverControlKept(navSuccess: boolean, navSL: number, savoirBonus
 
 /** Km parcourus dans la JOURNÉE : distance de base (barge M × heures, EDOC — l.15) modulée par l'effet du
  *  vent (% l.29-33) et le facteur d'Agilité (l.17). Plancher 0. PUR. */
-export function riverDayKm(baseKmPerDay: number, windPct: number, agilityFactor: number): number {
-  return Math.max(0, baseKmPerDay * (1 + windPct / 100) * agilityFactor);
+export function riverDayKm(baseKmPerDay: number, pourcentageDuVent: number, agilityFactor: number): number {
+  return Math.max(0, baseKmPerDay * (1 + pourcentageDuVent / 100) * agilityFactor);
 }
 
 /** Distance de DÉRIVE en aval (note 2, l.38 ; hors de contrôle note 5, l.41) : 25 % de la vitesse de base. PUR. */
@@ -134,10 +134,10 @@ export function riverDriftKm(baseKmPerDay: number): number {
  *  diriger le bateau subissent un malus de -20 »). Ce sont des MALUS, pas des Difficultés : la
  *  Difficulté du Test reste `navBaseDifficulty` (MSRC 7 l.15 demande le Test sans en fixer la
  *  Difficulté — le défaut Intermédiaire +0 est celui de la table, LDB 12 l.148). PUR. */
-export function navPenaltyMods(state: { derive?: boolean; outOfControl?: boolean }): ModLine[] {
+export function navPenaltyMods(state: { derive?: boolean; horsDeControle?: boolean }): ModLine[] {
   const mods: ModLine[] = [];
   if (state.derive) mods.push({ label: t('rv.modDrift'), value: driftNavPenalty(), famille: 'circonstance', ref: RULE_REF['navigation-derive'] });
-  if (state.outOfControl) mods.push({ label: t('rv.modOutOfControl'), value: OUT_OF_CONTROL.navPenalty, famille: 'circonstance', ref: RULE_REF['navigation-greement'] });
+  if (state.horsDeControle) mods.push({ label: t('rv.modHorsDeControle'), value: OUT_OF_CONTROL.navPenalty, famille: 'circonstance', ref: RULE_REF['navigation-greement'] });
   return mods;
 }
 

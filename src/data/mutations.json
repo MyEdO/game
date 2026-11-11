@@ -1044,8 +1044,8 @@
         "trigger": "onDayStart",
         "on": "self",
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "target",
             "ops": [

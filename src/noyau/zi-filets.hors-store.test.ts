@@ -86,7 +86,7 @@ describe('Filets BARBELÉS (Zoo Impérial p.29) — Dégâts ignorant l’armure
   it('la qualité "filet-barbele" existe, hérite escapeThreshold+entangleOnFail du filet ET porte struggleDamage', () => {
     const q = findQualityById('filet-barbele');
     expect(q).toBeTruthy();
-    const op = (q!.effects![0].flow as { steps: { effect: { ops: Record<string, unknown>[] } }[] }).steps[0].effect.ops[0];
+    const op = (q!.effects![0].flow as { etapes: { effet: { ops: Record<string, unknown>[] } }[] }).etapes[0].effet.ops[0];
     expect(op).toMatchObject({ op: 'condition', id: 'empetre', escapeThreshold: 3, entangleOnFail: true, struggleDamage: 1 });
   });
 

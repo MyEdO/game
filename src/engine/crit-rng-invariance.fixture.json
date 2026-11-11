@@ -57,8 +57,8 @@
       }
     ],
     "testFlow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
         {
           "kind": "test",
           "test": {
@@ -76,16 +76,16 @@
               }
             }
           },
-          "success": {
-            "kind": "seq",
-            "steps": []
+          "reussite": {
+            "kind": "sequence",
+            "etapes": []
           },
-          "fail": {
-            "kind": "seq",
-            "steps": [
+          "echec": {
+            "kind": "sequence",
+            "etapes": [
               {
-                "kind": "do",
-                "effect": {
+                "kind": "effet",
+                "effet": {
                   "type": "ops",
                   "ops": [
                     {
@@ -97,15 +97,15 @@
                 }
               },
               {
-                "kind": "if",
-                "cond": {
+                "kind": "si",
+                "condition": {
                   "kind": "slThreshold",
                   "op": "<=",
                   "value": -2
                 },
-                "then": {
-                  "kind": "do",
-                  "effect": {
+                "alors": {
+                  "kind": "effet",
+                  "effet": {
                     "type": "ops",
                     "ops": [
                       {
@@ -118,15 +118,15 @@
                 }
               },
               {
-                "kind": "if",
-                "cond": {
+                "kind": "si",
+                "condition": {
                   "kind": "slThreshold",
                   "op": "<=",
                   "value": -4
                 },
-                "then": {
-                  "kind": "do",
-                  "effect": {
+                "alors": {
+                  "kind": "effet",
+                  "effet": {
                     "type": "ops",
                     "ops": [
                       {
@@ -142,8 +142,8 @@
           }
         },
         {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "ops": [
               {
@@ -202,13 +202,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -269,13 +269,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -343,13 +343,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -410,13 +410,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -484,13 +484,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -547,13 +547,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -610,13 +610,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -693,13 +693,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -756,13 +756,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -839,13 +839,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -940,13 +940,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -1018,13 +1018,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -1160,13 +1160,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -1229,13 +1229,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -1298,13 +1298,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -1353,8 +1353,8 @@
       }
     ],
     "testFlow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
         {
           "kind": "test",
           "test": {
@@ -1372,16 +1372,16 @@
               }
             }
           },
-          "success": {
-            "kind": "seq",
-            "steps": []
+          "reussite": {
+            "kind": "sequence",
+            "etapes": []
           },
-          "fail": {
-            "kind": "seq",
-            "steps": [
+          "echec": {
+            "kind": "sequence",
+            "etapes": [
               {
-                "kind": "do",
-                "effect": {
+                "kind": "effet",
+                "effet": {
                   "type": "ops",
                   "ops": [
                     {
@@ -1393,15 +1393,15 @@
                 }
               },
               {
-                "kind": "if",
-                "cond": {
+                "kind": "si",
+                "condition": {
                   "kind": "slThreshold",
                   "op": "<=",
                   "value": -2
                 },
-                "then": {
-                  "kind": "do",
-                  "effect": {
+                "alors": {
+                  "kind": "effet",
+                  "effet": {
                     "type": "ops",
                     "ops": [
                       {
@@ -1414,15 +1414,15 @@
                 }
               },
               {
-                "kind": "if",
-                "cond": {
+                "kind": "si",
+                "condition": {
                   "kind": "slThreshold",
                   "op": "<=",
                   "value": -4
                 },
-                "then": {
-                  "kind": "do",
-                  "effect": {
+                "alors": {
+                  "kind": "effet",
+                  "effet": {
                     "type": "ops",
                     "ops": [
                       {
@@ -1438,8 +1438,8 @@
           }
         },
         {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "ops": [
               {
@@ -1530,13 +1530,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -1630,13 +1630,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -1762,13 +1762,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -1933,13 +1933,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -2099,13 +2099,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -2313,13 +2313,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -2442,13 +2442,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -2566,13 +2566,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -2621,8 +2621,8 @@
       }
     ],
     "testFlow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
         {
           "kind": "test",
           "test": {
@@ -2640,16 +2640,16 @@
               }
             }
           },
-          "success": {
-            "kind": "seq",
-            "steps": []
+          "reussite": {
+            "kind": "sequence",
+            "etapes": []
           },
-          "fail": {
-            "kind": "seq",
-            "steps": [
+          "echec": {
+            "kind": "sequence",
+            "etapes": [
               {
-                "kind": "do",
-                "effect": {
+                "kind": "effet",
+                "effet": {
                   "type": "ops",
                   "ops": [
                     {
@@ -2661,15 +2661,15 @@
                 }
               },
               {
-                "kind": "if",
-                "cond": {
+                "kind": "si",
+                "condition": {
                   "kind": "slThreshold",
                   "op": "<=",
                   "value": -2
                 },
-                "then": {
-                  "kind": "do",
-                  "effect": {
+                "alors": {
+                  "kind": "effet",
+                  "effet": {
                     "type": "ops",
                     "ops": [
                       {
@@ -2682,15 +2682,15 @@
                 }
               },
               {
-                "kind": "if",
-                "cond": {
+                "kind": "si",
+                "condition": {
                   "kind": "slThreshold",
                   "op": "<=",
                   "value": -4
                 },
-                "then": {
-                  "kind": "do",
-                  "effect": {
+                "alors": {
+                  "kind": "effet",
+                  "effet": {
                     "type": "ops",
                     "ops": [
                       {
@@ -2706,8 +2706,8 @@
           }
         },
         {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "ops": [
               {
@@ -2795,13 +2795,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -2892,13 +2892,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -3021,13 +3021,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -3129,13 +3129,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -3295,8 +3295,8 @@
       }
     ],
     "testFlow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
         {
           "kind": "test",
           "test": {
@@ -3313,13 +3313,13 @@
               }
             }
           },
-          "success": {
-            "kind": "seq",
-            "steps": []
+          "reussite": {
+            "kind": "sequence",
+            "etapes": []
           },
-          "fail": {
-            "kind": "do",
-            "effect": {
+          "echec": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "ops": [
                 {
@@ -3333,8 +3333,8 @@
           }
         },
         {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
             {
               "kind": "test",
               "test": {
@@ -3352,16 +3352,16 @@
                   }
                 }
               },
-              "success": {
-                "kind": "seq",
-                "steps": []
+              "reussite": {
+                "kind": "sequence",
+                "etapes": []
               },
-              "fail": {
-                "kind": "seq",
-                "steps": [
+              "echec": {
+                "kind": "sequence",
+                "etapes": [
                   {
-                    "kind": "do",
-                    "effect": {
+                    "kind": "effet",
+                    "effet": {
                       "type": "ops",
                       "ops": [
                         {
@@ -3373,15 +3373,15 @@
                     }
                   },
                   {
-                    "kind": "if",
-                    "cond": {
+                    "kind": "si",
+                    "condition": {
                       "kind": "slThreshold",
                       "op": "<=",
                       "value": -2
                     },
-                    "then": {
-                      "kind": "do",
-                      "effect": {
+                    "alors": {
+                      "kind": "effet",
+                      "effet": {
                         "type": "ops",
                         "ops": [
                           {
@@ -3394,15 +3394,15 @@
                     }
                   },
                   {
-                    "kind": "if",
-                    "cond": {
+                    "kind": "si",
+                    "condition": {
                       "kind": "slThreshold",
                       "op": "<=",
                       "value": -4
                     },
-                    "then": {
-                      "kind": "do",
-                      "effect": {
+                    "alors": {
+                      "kind": "effet",
+                      "effet": {
                         "type": "ops",
                         "ops": [
                           {
@@ -3418,8 +3418,8 @@
               }
             },
             {
-              "kind": "do",
-              "effect": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "ops": [
                   {
@@ -3499,8 +3499,8 @@
       }
     ],
     "testFlow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
         {
           "kind": "test",
           "test": {
@@ -3517,13 +3517,13 @@
               }
             }
           },
-          "success": {
-            "kind": "seq",
-            "steps": []
+          "reussite": {
+            "kind": "sequence",
+            "etapes": []
           },
-          "fail": {
-            "kind": "do",
-            "effect": {
+          "echec": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "ops": [
                 {
@@ -3537,8 +3537,8 @@
           }
         },
         {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
             {
               "kind": "test",
               "test": {
@@ -3556,16 +3556,16 @@
                   }
                 }
               },
-              "success": {
-                "kind": "seq",
-                "steps": []
+              "reussite": {
+                "kind": "sequence",
+                "etapes": []
               },
-              "fail": {
-                "kind": "seq",
-                "steps": [
+              "echec": {
+                "kind": "sequence",
+                "etapes": [
                   {
-                    "kind": "do",
-                    "effect": {
+                    "kind": "effet",
+                    "effet": {
                       "type": "ops",
                       "ops": [
                         {
@@ -3577,15 +3577,15 @@
                     }
                   },
                   {
-                    "kind": "if",
-                    "cond": {
+                    "kind": "si",
+                    "condition": {
                       "kind": "slThreshold",
                       "op": "<=",
                       "value": -2
                     },
-                    "then": {
-                      "kind": "do",
-                      "effect": {
+                    "alors": {
+                      "kind": "effet",
+                      "effet": {
                         "type": "ops",
                         "ops": [
                           {
@@ -3598,15 +3598,15 @@
                     }
                   },
                   {
-                    "kind": "if",
-                    "cond": {
+                    "kind": "si",
+                    "condition": {
                       "kind": "slThreshold",
                       "op": "<=",
                       "value": -4
                     },
-                    "then": {
-                      "kind": "do",
-                      "effect": {
+                    "alors": {
+                      "kind": "effet",
+                      "effet": {
                         "type": "ops",
                         "ops": [
                           {
@@ -3622,8 +3622,8 @@
               }
             },
             {
-              "kind": "do",
-              "effect": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "ops": [
                   {
@@ -3690,13 +3690,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -3759,13 +3759,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -3828,13 +3828,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -4037,13 +4037,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -4090,13 +4090,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -4137,13 +4137,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -4191,13 +4191,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -4238,13 +4238,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -4321,8 +4321,8 @@
       }
     ],
     "testFlow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
         {
           "kind": "test",
           "test": {
@@ -4340,16 +4340,16 @@
               }
             }
           },
-          "success": {
-            "kind": "seq",
-            "steps": []
+          "reussite": {
+            "kind": "sequence",
+            "etapes": []
           },
-          "fail": {
-            "kind": "seq",
-            "steps": [
+          "echec": {
+            "kind": "sequence",
+            "etapes": [
               {
-                "kind": "do",
-                "effect": {
+                "kind": "effet",
+                "effet": {
                   "type": "ops",
                   "ops": [
                     {
@@ -4361,15 +4361,15 @@
                 }
               },
               {
-                "kind": "if",
-                "cond": {
+                "kind": "si",
+                "condition": {
                   "kind": "slThreshold",
                   "op": "<=",
                   "value": -2
                 },
-                "then": {
-                  "kind": "do",
-                  "effect": {
+                "alors": {
+                  "kind": "effet",
+                  "effet": {
                     "type": "ops",
                     "ops": [
                       {
@@ -4382,15 +4382,15 @@
                 }
               },
               {
-                "kind": "if",
-                "cond": {
+                "kind": "si",
+                "condition": {
                   "kind": "slThreshold",
                   "op": "<=",
                   "value": -4
                 },
-                "then": {
-                  "kind": "do",
-                  "effect": {
+                "alors": {
+                  "kind": "effet",
+                  "effet": {
                     "type": "ops",
                     "ops": [
                       {
@@ -4406,8 +4406,8 @@
           }
         },
         {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "ops": [
               {
@@ -4681,13 +4681,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -4740,13 +4740,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -4821,13 +4821,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -4880,13 +4880,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -5138,13 +5138,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -5236,13 +5236,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -5311,13 +5311,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -5427,8 +5427,8 @@
       }
     ],
     "testFlow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
         {
           "kind": "test",
           "test": {
@@ -5445,13 +5445,13 @@
               }
             }
           },
-          "success": {
-            "kind": "seq",
-            "steps": []
+          "reussite": {
+            "kind": "sequence",
+            "etapes": []
           },
-          "fail": {
-            "kind": "do",
-            "effect": {
+          "echec": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "ops": [
                 {
@@ -5465,8 +5465,8 @@
           }
         },
         {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
             {
               "kind": "test",
               "test": {
@@ -5484,16 +5484,16 @@
                   }
                 }
               },
-              "success": {
-                "kind": "seq",
-                "steps": []
+              "reussite": {
+                "kind": "sequence",
+                "etapes": []
               },
-              "fail": {
-                "kind": "seq",
-                "steps": [
+              "echec": {
+                "kind": "sequence",
+                "etapes": [
                   {
-                    "kind": "do",
-                    "effect": {
+                    "kind": "effet",
+                    "effet": {
                       "type": "ops",
                       "ops": [
                         {
@@ -5505,15 +5505,15 @@
                     }
                   },
                   {
-                    "kind": "if",
-                    "cond": {
+                    "kind": "si",
+                    "condition": {
                       "kind": "slThreshold",
                       "op": "<=",
                       "value": -2
                     },
-                    "then": {
-                      "kind": "do",
-                      "effect": {
+                    "alors": {
+                      "kind": "effet",
+                      "effet": {
                         "type": "ops",
                         "ops": [
                           {
@@ -5526,15 +5526,15 @@
                     }
                   },
                   {
-                    "kind": "if",
-                    "cond": {
+                    "kind": "si",
+                    "condition": {
                       "kind": "slThreshold",
                       "op": "<=",
                       "value": -4
                     },
-                    "then": {
-                      "kind": "do",
-                      "effect": {
+                    "alors": {
+                      "kind": "effet",
+                      "effet": {
                         "type": "ops",
                         "ops": [
                           {
@@ -5550,8 +5550,8 @@
               }
             },
             {
-              "kind": "do",
-              "effect": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "ops": [
                   {
@@ -5631,8 +5631,8 @@
       }
     ],
     "testFlow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
         {
           "kind": "test",
           "test": {
@@ -5649,13 +5649,13 @@
               }
             }
           },
-          "success": {
-            "kind": "seq",
-            "steps": []
+          "reussite": {
+            "kind": "sequence",
+            "etapes": []
           },
-          "fail": {
-            "kind": "do",
-            "effect": {
+          "echec": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "ops": [
                 {
@@ -5669,8 +5669,8 @@
           }
         },
         {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
             {
               "kind": "test",
               "test": {
@@ -5688,16 +5688,16 @@
                   }
                 }
               },
-              "success": {
-                "kind": "seq",
-                "steps": []
+              "reussite": {
+                "kind": "sequence",
+                "etapes": []
               },
-              "fail": {
-                "kind": "seq",
-                "steps": [
+              "echec": {
+                "kind": "sequence",
+                "etapes": [
                   {
-                    "kind": "do",
-                    "effect": {
+                    "kind": "effet",
+                    "effet": {
                       "type": "ops",
                       "ops": [
                         {
@@ -5709,15 +5709,15 @@
                     }
                   },
                   {
-                    "kind": "if",
-                    "cond": {
+                    "kind": "si",
+                    "condition": {
                       "kind": "slThreshold",
                       "op": "<=",
                       "value": -2
                     },
-                    "then": {
-                      "kind": "do",
-                      "effect": {
+                    "alors": {
+                      "kind": "effet",
+                      "effet": {
                         "type": "ops",
                         "ops": [
                           {
@@ -5730,15 +5730,15 @@
                     }
                   },
                   {
-                    "kind": "if",
-                    "cond": {
+                    "kind": "si",
+                    "condition": {
                       "kind": "slThreshold",
                       "op": "<=",
                       "value": -4
                     },
-                    "then": {
-                      "kind": "do",
-                      "effect": {
+                    "alors": {
+                      "kind": "effet",
+                      "effet": {
                         "type": "ops",
                         "ops": [
                           {
@@ -5754,8 +5754,8 @@
               }
             },
             {
-              "kind": "do",
-              "effect": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "ops": [
                   {
@@ -5822,13 +5822,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -5891,13 +5891,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -5960,13 +5960,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -6063,13 +6063,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -6119,13 +6119,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -6217,13 +6217,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -6419,13 +6419,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -6506,13 +6506,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -6839,13 +6839,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -6899,16 +6899,16 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "seq",
-        "steps": [
+      "echec": {
+        "kind": "sequence",
+        "etapes": [
           {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "ops": [
                 {
@@ -6920,15 +6920,15 @@
             }
           },
           {
-            "kind": "if",
-            "cond": {
+            "kind": "si",
+            "condition": {
               "kind": "slThreshold",
               "op": "<=",
               "value": -2
             },
-            "then": {
-              "kind": "do",
-              "effect": {
+            "alors": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "ops": [
                   {
@@ -6941,15 +6941,15 @@
             }
           },
           {
-            "kind": "if",
-            "cond": {
+            "kind": "si",
+            "condition": {
               "kind": "slThreshold",
               "op": "<=",
               "value": -4
             },
-            "then": {
-              "kind": "do",
-              "effect": {
+            "alors": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "ops": [
                   {
@@ -6962,8 +6962,8 @@
             }
           },
           {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "ops": [
                 {
@@ -7027,13 +7027,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -7087,16 +7087,16 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "seq",
-        "steps": [
+      "echec": {
+        "kind": "sequence",
+        "etapes": [
           {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "ops": [
                 {
@@ -7108,15 +7108,15 @@
             }
           },
           {
-            "kind": "if",
-            "cond": {
+            "kind": "si",
+            "condition": {
               "kind": "slThreshold",
               "op": "<=",
               "value": -2
             },
-            "then": {
-              "kind": "do",
-              "effect": {
+            "alors": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "ops": [
                   {
@@ -7129,15 +7129,15 @@
             }
           },
           {
-            "kind": "if",
-            "cond": {
+            "kind": "si",
+            "condition": {
               "kind": "slThreshold",
               "op": "<=",
               "value": -4
             },
-            "then": {
-              "kind": "do",
-              "effect": {
+            "alors": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "ops": [
                   {
@@ -7150,8 +7150,8 @@
             }
           },
           {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "ops": [
                 {
@@ -7249,13 +7249,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -7552,13 +7552,13 @@
               }
             }
           },
-          "success": {
-            "kind": "seq",
-            "steps": []
+          "reussite": {
+            "kind": "sequence",
+            "etapes": []
           },
-          "fail": {
-            "kind": "seq",
-            "steps": [
+          "echec": {
+            "kind": "sequence",
+            "etapes": [
               {
                 "kind": "test",
                 "test": {
@@ -7576,16 +7576,16 @@
                     }
                   }
                 },
-                "success": {
-                  "kind": "seq",
-                  "steps": []
+                "reussite": {
+                  "kind": "sequence",
+                  "etapes": []
                 },
-                "fail": {
-                  "kind": "seq",
-                  "steps": [
+                "echec": {
+                  "kind": "sequence",
+                  "etapes": [
                     {
-                      "kind": "do",
-                      "effect": {
+                      "kind": "effet",
+                      "effet": {
                         "type": "ops",
                         "ops": [
                           {
@@ -7597,15 +7597,15 @@
                       }
                     },
                     {
-                      "kind": "if",
-                      "cond": {
+                      "kind": "si",
+                      "condition": {
                         "kind": "slThreshold",
                         "op": "<=",
                         "value": -2
                       },
-                      "then": {
-                        "kind": "do",
-                        "effect": {
+                      "alors": {
+                        "kind": "effet",
+                        "effet": {
                           "type": "ops",
                           "ops": [
                             {
@@ -7618,15 +7618,15 @@
                       }
                     },
                     {
-                      "kind": "if",
-                      "cond": {
+                      "kind": "si",
+                      "condition": {
                         "kind": "slThreshold",
                         "op": "<=",
                         "value": -4
                       },
-                      "then": {
-                        "kind": "do",
-                        "effect": {
+                      "alors": {
+                        "kind": "effet",
+                        "effet": {
                           "type": "ops",
                           "ops": [
                             {
@@ -7642,8 +7642,8 @@
                 }
               },
               {
-                "kind": "do",
-                "effect": {
+                "kind": "effet",
+                "effet": {
                   "type": "ops",
                   "ops": [
                     {
@@ -7747,13 +7747,13 @@
               }
             }
           },
-          "success": {
-            "kind": "seq",
-            "steps": []
+          "reussite": {
+            "kind": "sequence",
+            "etapes": []
           },
-          "fail": {
-            "kind": "seq",
-            "steps": [
+          "echec": {
+            "kind": "sequence",
+            "etapes": [
               {
                 "kind": "test",
                 "test": {
@@ -7771,16 +7771,16 @@
                     }
                   }
                 },
-                "success": {
-                  "kind": "seq",
-                  "steps": []
+                "reussite": {
+                  "kind": "sequence",
+                  "etapes": []
                 },
-                "fail": {
-                  "kind": "seq",
-                  "steps": [
+                "echec": {
+                  "kind": "sequence",
+                  "etapes": [
                     {
-                      "kind": "do",
-                      "effect": {
+                      "kind": "effet",
+                      "effet": {
                         "type": "ops",
                         "ops": [
                           {
@@ -7792,15 +7792,15 @@
                       }
                     },
                     {
-                      "kind": "if",
-                      "cond": {
+                      "kind": "si",
+                      "condition": {
                         "kind": "slThreshold",
                         "op": "<=",
                         "value": -2
                       },
-                      "then": {
-                        "kind": "do",
-                        "effect": {
+                      "alors": {
+                        "kind": "effet",
+                        "effet": {
                           "type": "ops",
                           "ops": [
                             {
@@ -7813,15 +7813,15 @@
                       }
                     },
                     {
-                      "kind": "if",
-                      "cond": {
+                      "kind": "si",
+                      "condition": {
                         "kind": "slThreshold",
                         "op": "<=",
                         "value": -4
                       },
-                      "then": {
-                        "kind": "do",
-                        "effect": {
+                      "alors": {
+                        "kind": "effet",
+                        "effet": {
                           "type": "ops",
                           "ops": [
                             {
@@ -7837,8 +7837,8 @@
                 }
               },
               {
-                "kind": "do",
-                "effect": {
+                "kind": "effet",
+                "effet": {
                   "type": "ops",
                   "ops": [
                     {
@@ -8064,13 +8064,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -8151,8 +8151,8 @@
       }
     ],
     "testFlow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
         {
           "kind": "test",
           "test": {
@@ -8170,16 +8170,16 @@
               }
             }
           },
-          "success": {
-            "kind": "seq",
-            "steps": []
+          "reussite": {
+            "kind": "sequence",
+            "etapes": []
           },
-          "fail": {
-            "kind": "seq",
-            "steps": [
+          "echec": {
+            "kind": "sequence",
+            "etapes": [
               {
-                "kind": "do",
-                "effect": {
+                "kind": "effet",
+                "effet": {
                   "type": "ops",
                   "ops": [
                     {
@@ -8191,15 +8191,15 @@
                 }
               },
               {
-                "kind": "if",
-                "cond": {
+                "kind": "si",
+                "condition": {
                   "kind": "slThreshold",
                   "op": "<=",
                   "value": -2
                 },
-                "then": {
-                  "kind": "do",
-                  "effect": {
+                "alors": {
+                  "kind": "effet",
+                  "effet": {
                     "type": "ops",
                     "ops": [
                       {
@@ -8212,15 +8212,15 @@
                 }
               },
               {
-                "kind": "if",
-                "cond": {
+                "kind": "si",
+                "condition": {
                   "kind": "slThreshold",
                   "op": "<=",
                   "value": -4
                 },
-                "then": {
-                  "kind": "do",
-                  "effect": {
+                "alors": {
+                  "kind": "effet",
+                  "effet": {
                     "type": "ops",
                     "ops": [
                       {
@@ -8236,8 +8236,8 @@
           }
         },
         {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "ops": [
               {
@@ -8309,8 +8309,8 @@
       }
     ],
     "testFlow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
         {
           "kind": "test",
           "test": {
@@ -8328,16 +8328,16 @@
               }
             }
           },
-          "success": {
-            "kind": "seq",
-            "steps": []
+          "reussite": {
+            "kind": "sequence",
+            "etapes": []
           },
-          "fail": {
-            "kind": "seq",
-            "steps": [
+          "echec": {
+            "kind": "sequence",
+            "etapes": [
               {
-                "kind": "do",
-                "effect": {
+                "kind": "effet",
+                "effet": {
                   "type": "ops",
                   "ops": [
                     {
@@ -8349,15 +8349,15 @@
                 }
               },
               {
-                "kind": "if",
-                "cond": {
+                "kind": "si",
+                "condition": {
                   "kind": "slThreshold",
                   "op": "<=",
                   "value": -2
                 },
-                "then": {
-                  "kind": "do",
-                  "effect": {
+                "alors": {
+                  "kind": "effet",
+                  "effet": {
                     "type": "ops",
                     "ops": [
                       {
@@ -8370,15 +8370,15 @@
                 }
               },
               {
-                "kind": "if",
-                "cond": {
+                "kind": "si",
+                "condition": {
                   "kind": "slThreshold",
                   "op": "<=",
                   "value": -4
                 },
-                "then": {
-                  "kind": "do",
-                  "effect": {
+                "alors": {
+                  "kind": "effet",
+                  "effet": {
                     "type": "ops",
                     "ops": [
                       {
@@ -8394,8 +8394,8 @@
           }
         },
         {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "ops": [
               {
@@ -8594,13 +8594,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -8652,13 +8652,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -9059,13 +9059,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -9114,8 +9114,8 @@
       }
     ],
     "testFlow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
         {
           "kind": "test",
           "test": {
@@ -9133,16 +9133,16 @@
               }
             }
           },
-          "success": {
-            "kind": "seq",
-            "steps": []
+          "reussite": {
+            "kind": "sequence",
+            "etapes": []
           },
-          "fail": {
-            "kind": "seq",
-            "steps": [
+          "echec": {
+            "kind": "sequence",
+            "etapes": [
               {
-                "kind": "do",
-                "effect": {
+                "kind": "effet",
+                "effet": {
                   "type": "ops",
                   "ops": [
                     {
@@ -9154,15 +9154,15 @@
                 }
               },
               {
-                "kind": "if",
-                "cond": {
+                "kind": "si",
+                "condition": {
                   "kind": "slThreshold",
                   "op": "<=",
                   "value": -2
                 },
-                "then": {
-                  "kind": "do",
-                  "effect": {
+                "alors": {
+                  "kind": "effet",
+                  "effet": {
                     "type": "ops",
                     "ops": [
                       {
@@ -9175,15 +9175,15 @@
                 }
               },
               {
-                "kind": "if",
-                "cond": {
+                "kind": "si",
+                "condition": {
                   "kind": "slThreshold",
                   "op": "<=",
                   "value": -4
                 },
-                "then": {
-                  "kind": "do",
-                  "effect": {
+                "alors": {
+                  "kind": "effet",
+                  "effet": {
                     "type": "ops",
                     "ops": [
                       {
@@ -9199,8 +9199,8 @@
           }
         },
         {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "ops": [
               {
@@ -9288,13 +9288,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -9385,13 +9385,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -9514,13 +9514,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -9622,13 +9622,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -9777,8 +9777,8 @@
       }
     ],
     "testFlow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
         {
           "kind": "test",
           "test": {
@@ -9796,16 +9796,16 @@
               }
             }
           },
-          "success": {
-            "kind": "seq",
-            "steps": []
+          "reussite": {
+            "kind": "sequence",
+            "etapes": []
           },
-          "fail": {
-            "kind": "seq",
-            "steps": [
+          "echec": {
+            "kind": "sequence",
+            "etapes": [
               {
-                "kind": "do",
-                "effect": {
+                "kind": "effet",
+                "effet": {
                   "type": "ops",
                   "ops": [
                     {
@@ -9817,15 +9817,15 @@
                 }
               },
               {
-                "kind": "if",
-                "cond": {
+                "kind": "si",
+                "condition": {
                   "kind": "slThreshold",
                   "op": "<=",
                   "value": -2
                 },
-                "then": {
-                  "kind": "do",
-                  "effect": {
+                "alors": {
+                  "kind": "effet",
+                  "effet": {
                     "type": "ops",
                     "ops": [
                       {
@@ -9838,15 +9838,15 @@
                 }
               },
               {
-                "kind": "if",
-                "cond": {
+                "kind": "si",
+                "condition": {
                   "kind": "slThreshold",
                   "op": "<=",
                   "value": -4
                 },
-                "then": {
-                  "kind": "do",
-                  "effect": {
+                "alors": {
+                  "kind": "effet",
+                  "effet": {
                     "type": "ops",
                     "ops": [
                       {
@@ -9862,8 +9862,8 @@
           }
         },
         {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "ops": [
               {
@@ -9941,8 +9941,8 @@
       }
     ],
     "testFlow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
         {
           "kind": "test",
           "test": {
@@ -9960,16 +9960,16 @@
               }
             }
           },
-          "success": {
-            "kind": "seq",
-            "steps": []
+          "reussite": {
+            "kind": "sequence",
+            "etapes": []
           },
-          "fail": {
-            "kind": "seq",
-            "steps": [
+          "echec": {
+            "kind": "sequence",
+            "etapes": [
               {
-                "kind": "do",
-                "effect": {
+                "kind": "effet",
+                "effet": {
                   "type": "ops",
                   "ops": [
                     {
@@ -9981,15 +9981,15 @@
                 }
               },
               {
-                "kind": "if",
-                "cond": {
+                "kind": "si",
+                "condition": {
                   "kind": "slThreshold",
                   "op": "<=",
                   "value": -2
                 },
-                "then": {
-                  "kind": "do",
-                  "effect": {
+                "alors": {
+                  "kind": "effet",
+                  "effet": {
                     "type": "ops",
                     "ops": [
                       {
@@ -10002,15 +10002,15 @@
                 }
               },
               {
-                "kind": "if",
-                "cond": {
+                "kind": "si",
+                "condition": {
                   "kind": "slThreshold",
                   "op": "<=",
                   "value": -4
                 },
-                "then": {
-                  "kind": "do",
-                  "effect": {
+                "alors": {
+                  "kind": "effet",
+                  "effet": {
                     "type": "ops",
                     "ops": [
                       {
@@ -10026,8 +10026,8 @@
           }
         },
         {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "ops": [
               {
@@ -10092,13 +10092,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -10185,8 +10185,8 @@
       }
     ],
     "testFlow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
         {
           "kind": "test",
           "test": {
@@ -10204,16 +10204,16 @@
               }
             }
           },
-          "success": {
-            "kind": "seq",
-            "steps": []
+          "reussite": {
+            "kind": "sequence",
+            "etapes": []
           },
-          "fail": {
-            "kind": "seq",
-            "steps": [
+          "echec": {
+            "kind": "sequence",
+            "etapes": [
               {
-                "kind": "do",
-                "effect": {
+                "kind": "effet",
+                "effet": {
                   "type": "ops",
                   "ops": [
                     {
@@ -10225,15 +10225,15 @@
                 }
               },
               {
-                "kind": "if",
-                "cond": {
+                "kind": "si",
+                "condition": {
                   "kind": "slThreshold",
                   "op": "<=",
                   "value": -2
                 },
-                "then": {
-                  "kind": "do",
-                  "effect": {
+                "alors": {
+                  "kind": "effet",
+                  "effet": {
                     "type": "ops",
                     "ops": [
                       {
@@ -10246,15 +10246,15 @@
                 }
               },
               {
-                "kind": "if",
-                "cond": {
+                "kind": "si",
+                "condition": {
                   "kind": "slThreshold",
                   "op": "<=",
                   "value": -4
                 },
-                "then": {
-                  "kind": "do",
-                  "effect": {
+                "alors": {
+                  "kind": "effet",
+                  "effet": {
                     "type": "ops",
                     "ops": [
                       {
@@ -10270,8 +10270,8 @@
           }
         },
         {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "ops": [
               {
@@ -10349,8 +10349,8 @@
       }
     ],
     "testFlow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
         {
           "kind": "test",
           "test": {
@@ -10368,16 +10368,16 @@
               }
             }
           },
-          "success": {
-            "kind": "seq",
-            "steps": []
+          "reussite": {
+            "kind": "sequence",
+            "etapes": []
           },
-          "fail": {
-            "kind": "seq",
-            "steps": [
+          "echec": {
+            "kind": "sequence",
+            "etapes": [
               {
-                "kind": "do",
-                "effect": {
+                "kind": "effet",
+                "effet": {
                   "type": "ops",
                   "ops": [
                     {
@@ -10389,15 +10389,15 @@
                 }
               },
               {
-                "kind": "if",
-                "cond": {
+                "kind": "si",
+                "condition": {
                   "kind": "slThreshold",
                   "op": "<=",
                   "value": -2
                 },
-                "then": {
-                  "kind": "do",
-                  "effect": {
+                "alors": {
+                  "kind": "effet",
+                  "effet": {
                     "type": "ops",
                     "ops": [
                       {
@@ -10410,15 +10410,15 @@
                 }
               },
               {
-                "kind": "if",
-                "cond": {
+                "kind": "si",
+                "condition": {
                   "kind": "slThreshold",
                   "op": "<=",
                   "value": -4
                 },
-                "then": {
-                  "kind": "do",
-                  "effect": {
+                "alors": {
+                  "kind": "effet",
+                  "effet": {
                     "type": "ops",
                     "ops": [
                       {
@@ -10434,8 +10434,8 @@
           }
         },
         {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "ops": [
               {
@@ -10635,13 +10635,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -10688,13 +10688,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -10735,13 +10735,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -10789,13 +10789,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -10836,13 +10836,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -11448,13 +11448,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -11535,13 +11535,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -11984,13 +11984,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -12037,13 +12037,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -12084,13 +12084,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -12138,13 +12138,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -12185,13 +12185,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -12286,8 +12286,8 @@
       }
     ],
     "testFlow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
         {
           "kind": "test",
           "test": {
@@ -12305,16 +12305,16 @@
               }
             }
           },
-          "success": {
-            "kind": "seq",
-            "steps": []
+          "reussite": {
+            "kind": "sequence",
+            "etapes": []
           },
-          "fail": {
-            "kind": "seq",
-            "steps": [
+          "echec": {
+            "kind": "sequence",
+            "etapes": [
               {
-                "kind": "do",
-                "effect": {
+                "kind": "effet",
+                "effet": {
                   "type": "ops",
                   "ops": [
                     {
@@ -12326,15 +12326,15 @@
                 }
               },
               {
-                "kind": "if",
-                "cond": {
+                "kind": "si",
+                "condition": {
                   "kind": "slThreshold",
                   "op": "<=",
                   "value": -2
                 },
-                "then": {
-                  "kind": "do",
-                  "effect": {
+                "alors": {
+                  "kind": "effet",
+                  "effet": {
                     "type": "ops",
                     "ops": [
                       {
@@ -12347,15 +12347,15 @@
                 }
               },
               {
-                "kind": "if",
-                "cond": {
+                "kind": "si",
+                "condition": {
                   "kind": "slThreshold",
                   "op": "<=",
                   "value": -4
                 },
-                "then": {
-                  "kind": "do",
-                  "effect": {
+                "alors": {
+                  "kind": "effet",
+                  "effet": {
                     "type": "ops",
                     "ops": [
                       {
@@ -12371,8 +12371,8 @@
           }
         },
         {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "ops": [
               {
@@ -12434,8 +12434,8 @@
       }
     ],
     "testFlow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
         {
           "kind": "test",
           "test": {
@@ -12453,16 +12453,16 @@
               }
             }
           },
-          "success": {
-            "kind": "seq",
-            "steps": []
+          "reussite": {
+            "kind": "sequence",
+            "etapes": []
           },
-          "fail": {
-            "kind": "seq",
-            "steps": [
+          "echec": {
+            "kind": "sequence",
+            "etapes": [
               {
-                "kind": "do",
-                "effect": {
+                "kind": "effet",
+                "effet": {
                   "type": "ops",
                   "ops": [
                     {
@@ -12474,15 +12474,15 @@
                 }
               },
               {
-                "kind": "if",
-                "cond": {
+                "kind": "si",
+                "condition": {
                   "kind": "slThreshold",
                   "op": "<=",
                   "value": -2
                 },
-                "then": {
-                  "kind": "do",
-                  "effect": {
+                "alors": {
+                  "kind": "effet",
+                  "effet": {
                     "type": "ops",
                     "ops": [
                       {
@@ -12495,15 +12495,15 @@
                 }
               },
               {
-                "kind": "if",
-                "cond": {
+                "kind": "si",
+                "condition": {
                   "kind": "slThreshold",
                   "op": "<=",
                   "value": -4
                 },
-                "then": {
-                  "kind": "do",
-                  "effect": {
+                "alors": {
+                  "kind": "effet",
+                  "effet": {
                     "type": "ops",
                     "ops": [
                       {
@@ -12519,8 +12519,8 @@
           }
         },
         {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "ops": [
               {
@@ -12574,13 +12574,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -12686,16 +12686,16 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "seq",
-        "steps": [
+      "echec": {
+        "kind": "sequence",
+        "etapes": [
           {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "ops": [
                 {
@@ -12707,15 +12707,15 @@
             }
           },
           {
-            "kind": "if",
-            "cond": {
+            "kind": "si",
+            "condition": {
               "kind": "slThreshold",
               "op": "<=",
               "value": -2
             },
-            "then": {
-              "kind": "do",
-              "effect": {
+            "alors": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "ops": [
                   {
@@ -12728,15 +12728,15 @@
             }
           },
           {
-            "kind": "if",
-            "cond": {
+            "kind": "si",
+            "condition": {
               "kind": "slThreshold",
               "op": "<=",
               "value": -4
             },
-            "then": {
-              "kind": "do",
-              "effect": {
+            "alors": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "ops": [
                   {
@@ -12749,8 +12749,8 @@
             }
           },
           {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "ops": [
                 {
@@ -12849,16 +12849,16 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "seq",
-        "steps": [
+      "echec": {
+        "kind": "sequence",
+        "etapes": [
           {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "ops": [
                 {
@@ -12870,15 +12870,15 @@
             }
           },
           {
-            "kind": "if",
-            "cond": {
+            "kind": "si",
+            "condition": {
               "kind": "slThreshold",
               "op": "<=",
               "value": -2
             },
-            "then": {
-              "kind": "do",
-              "effect": {
+            "alors": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "ops": [
                   {
@@ -12891,15 +12891,15 @@
             }
           },
           {
-            "kind": "if",
-            "cond": {
+            "kind": "si",
+            "condition": {
               "kind": "slThreshold",
               "op": "<=",
               "value": -4
             },
-            "then": {
-              "kind": "do",
-              "effect": {
+            "alors": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "ops": [
                   {
@@ -12912,8 +12912,8 @@
             }
           },
           {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "ops": [
                 {
@@ -13011,13 +13011,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -13314,13 +13314,13 @@
               }
             }
           },
-          "success": {
-            "kind": "seq",
-            "steps": []
+          "reussite": {
+            "kind": "sequence",
+            "etapes": []
           },
-          "fail": {
-            "kind": "seq",
-            "steps": [
+          "echec": {
+            "kind": "sequence",
+            "etapes": [
               {
                 "kind": "test",
                 "test": {
@@ -13338,16 +13338,16 @@
                     }
                   }
                 },
-                "success": {
-                  "kind": "seq",
-                  "steps": []
+                "reussite": {
+                  "kind": "sequence",
+                  "etapes": []
                 },
-                "fail": {
-                  "kind": "seq",
-                  "steps": [
+                "echec": {
+                  "kind": "sequence",
+                  "etapes": [
                     {
-                      "kind": "do",
-                      "effect": {
+                      "kind": "effet",
+                      "effet": {
                         "type": "ops",
                         "ops": [
                           {
@@ -13359,15 +13359,15 @@
                       }
                     },
                     {
-                      "kind": "if",
-                      "cond": {
+                      "kind": "si",
+                      "condition": {
                         "kind": "slThreshold",
                         "op": "<=",
                         "value": -2
                       },
-                      "then": {
-                        "kind": "do",
-                        "effect": {
+                      "alors": {
+                        "kind": "effet",
+                        "effet": {
                           "type": "ops",
                           "ops": [
                             {
@@ -13380,15 +13380,15 @@
                       }
                     },
                     {
-                      "kind": "if",
-                      "cond": {
+                      "kind": "si",
+                      "condition": {
                         "kind": "slThreshold",
                         "op": "<=",
                         "value": -4
                       },
-                      "then": {
-                        "kind": "do",
-                        "effect": {
+                      "alors": {
+                        "kind": "effet",
+                        "effet": {
                           "type": "ops",
                           "ops": [
                             {
@@ -13404,8 +13404,8 @@
                 }
               },
               {
-                "kind": "do",
-                "effect": {
+                "kind": "effet",
+                "effet": {
                   "type": "ops",
                   "ops": [
                     {
@@ -13509,13 +13509,13 @@
               }
             }
           },
-          "success": {
-            "kind": "seq",
-            "steps": []
+          "reussite": {
+            "kind": "sequence",
+            "etapes": []
           },
-          "fail": {
-            "kind": "seq",
-            "steps": [
+          "echec": {
+            "kind": "sequence",
+            "etapes": [
               {
                 "kind": "test",
                 "test": {
@@ -13533,16 +13533,16 @@
                     }
                   }
                 },
-                "success": {
-                  "kind": "seq",
-                  "steps": []
+                "reussite": {
+                  "kind": "sequence",
+                  "etapes": []
                 },
-                "fail": {
-                  "kind": "seq",
-                  "steps": [
+                "echec": {
+                  "kind": "sequence",
+                  "etapes": [
                     {
-                      "kind": "do",
-                      "effect": {
+                      "kind": "effet",
+                      "effet": {
                         "type": "ops",
                         "ops": [
                           {
@@ -13554,15 +13554,15 @@
                       }
                     },
                     {
-                      "kind": "if",
-                      "cond": {
+                      "kind": "si",
+                      "condition": {
                         "kind": "slThreshold",
                         "op": "<=",
                         "value": -2
                       },
-                      "then": {
-                        "kind": "do",
-                        "effect": {
+                      "alors": {
+                        "kind": "effet",
+                        "effet": {
                           "type": "ops",
                           "ops": [
                             {
@@ -13575,15 +13575,15 @@
                       }
                     },
                     {
-                      "kind": "if",
-                      "cond": {
+                      "kind": "si",
+                      "condition": {
                         "kind": "slThreshold",
                         "op": "<=",
                         "value": -4
                       },
-                      "then": {
-                        "kind": "do",
-                        "effect": {
+                      "alors": {
+                        "kind": "effet",
+                        "effet": {
                           "type": "ops",
                           "ops": [
                             {
@@ -13599,8 +13599,8 @@
                 }
               },
               {
-                "kind": "do",
-                "effect": {
+                "kind": "effet",
+                "effet": {
                   "type": "ops",
                   "ops": [
                     {
@@ -13713,8 +13713,8 @@
       }
     ],
     "testFlow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
         {
           "kind": "test",
           "test": {
@@ -13731,13 +13731,13 @@
               }
             }
           },
-          "success": {
-            "kind": "seq",
-            "steps": []
+          "reussite": {
+            "kind": "sequence",
+            "etapes": []
           },
-          "fail": {
-            "kind": "do",
-            "effect": {
+          "echec": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "ops": [
                 {
@@ -13751,8 +13751,8 @@
           }
         },
         {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
             {
               "kind": "test",
               "test": {
@@ -13770,16 +13770,16 @@
                   }
                 }
               },
-              "success": {
-                "kind": "seq",
-                "steps": []
+              "reussite": {
+                "kind": "sequence",
+                "etapes": []
               },
-              "fail": {
-                "kind": "seq",
-                "steps": [
+              "echec": {
+                "kind": "sequence",
+                "etapes": [
                   {
-                    "kind": "do",
-                    "effect": {
+                    "kind": "effet",
+                    "effet": {
                       "type": "ops",
                       "ops": [
                         {
@@ -13791,15 +13791,15 @@
                     }
                   },
                   {
-                    "kind": "if",
-                    "cond": {
+                    "kind": "si",
+                    "condition": {
                       "kind": "slThreshold",
                       "op": "<=",
                       "value": -2
                     },
-                    "then": {
-                      "kind": "do",
-                      "effect": {
+                    "alors": {
+                      "kind": "effet",
+                      "effet": {
                         "type": "ops",
                         "ops": [
                           {
@@ -13812,15 +13812,15 @@
                     }
                   },
                   {
-                    "kind": "if",
-                    "cond": {
+                    "kind": "si",
+                    "condition": {
                       "kind": "slThreshold",
                       "op": "<=",
                       "value": -4
                     },
-                    "then": {
-                      "kind": "do",
-                      "effect": {
+                    "alors": {
+                      "kind": "effet",
+                      "effet": {
                         "type": "ops",
                         "ops": [
                           {
@@ -13836,8 +13836,8 @@
               }
             },
             {
-              "kind": "do",
-              "effect": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "ops": [
                   {
@@ -13917,8 +13917,8 @@
       }
     ],
     "testFlow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
         {
           "kind": "test",
           "test": {
@@ -13935,13 +13935,13 @@
               }
             }
           },
-          "success": {
-            "kind": "seq",
-            "steps": []
+          "reussite": {
+            "kind": "sequence",
+            "etapes": []
           },
-          "fail": {
-            "kind": "do",
-            "effect": {
+          "echec": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "ops": [
                 {
@@ -13955,8 +13955,8 @@
           }
         },
         {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
             {
               "kind": "test",
               "test": {
@@ -13974,16 +13974,16 @@
                   }
                 }
               },
-              "success": {
-                "kind": "seq",
-                "steps": []
+              "reussite": {
+                "kind": "sequence",
+                "etapes": []
               },
-              "fail": {
-                "kind": "seq",
-                "steps": [
+              "echec": {
+                "kind": "sequence",
+                "etapes": [
                   {
-                    "kind": "do",
-                    "effect": {
+                    "kind": "effet",
+                    "effet": {
                       "type": "ops",
                       "ops": [
                         {
@@ -13995,15 +13995,15 @@
                     }
                   },
                   {
-                    "kind": "if",
-                    "cond": {
+                    "kind": "si",
+                    "condition": {
                       "kind": "slThreshold",
                       "op": "<=",
                       "value": -2
                     },
-                    "then": {
-                      "kind": "do",
-                      "effect": {
+                    "alors": {
+                      "kind": "effet",
+                      "effet": {
                         "type": "ops",
                         "ops": [
                           {
@@ -14016,15 +14016,15 @@
                     }
                   },
                   {
-                    "kind": "if",
-                    "cond": {
+                    "kind": "si",
+                    "condition": {
                       "kind": "slThreshold",
                       "op": "<=",
                       "value": -4
                     },
-                    "then": {
-                      "kind": "do",
-                      "effect": {
+                    "alors": {
+                      "kind": "effet",
+                      "effet": {
                         "type": "ops",
                         "ops": [
                           {
@@ -14040,8 +14040,8 @@
               }
             },
             {
-              "kind": "do",
-              "effect": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "ops": [
                   {
@@ -14108,13 +14108,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -14177,13 +14177,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -14246,13 +14246,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -14593,13 +14593,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -14680,13 +14680,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -14909,13 +14909,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -14996,8 +14996,8 @@
       }
     ],
     "testFlow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
         {
           "kind": "test",
           "test": {
@@ -15015,16 +15015,16 @@
               }
             }
           },
-          "success": {
-            "kind": "seq",
-            "steps": []
+          "reussite": {
+            "kind": "sequence",
+            "etapes": []
           },
-          "fail": {
-            "kind": "seq",
-            "steps": [
+          "echec": {
+            "kind": "sequence",
+            "etapes": [
               {
-                "kind": "do",
-                "effect": {
+                "kind": "effet",
+                "effet": {
                   "type": "ops",
                   "ops": [
                     {
@@ -15036,15 +15036,15 @@
                 }
               },
               {
-                "kind": "if",
-                "cond": {
+                "kind": "si",
+                "condition": {
                   "kind": "slThreshold",
                   "op": "<=",
                   "value": -2
                 },
-                "then": {
-                  "kind": "do",
-                  "effect": {
+                "alors": {
+                  "kind": "effet",
+                  "effet": {
                     "type": "ops",
                     "ops": [
                       {
@@ -15057,15 +15057,15 @@
                 }
               },
               {
-                "kind": "if",
-                "cond": {
+                "kind": "si",
+                "condition": {
                   "kind": "slThreshold",
                   "op": "<=",
                   "value": -4
                 },
-                "then": {
-                  "kind": "do",
-                  "effect": {
+                "alors": {
+                  "kind": "effet",
+                  "effet": {
                     "type": "ops",
                     "ops": [
                       {
@@ -15081,8 +15081,8 @@
           }
         },
         {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "ops": [
               {
@@ -15154,8 +15154,8 @@
       }
     ],
     "testFlow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
         {
           "kind": "test",
           "test": {
@@ -15173,16 +15173,16 @@
               }
             }
           },
-          "success": {
-            "kind": "seq",
-            "steps": []
+          "reussite": {
+            "kind": "sequence",
+            "etapes": []
           },
-          "fail": {
-            "kind": "seq",
-            "steps": [
+          "echec": {
+            "kind": "sequence",
+            "etapes": [
               {
-                "kind": "do",
-                "effect": {
+                "kind": "effet",
+                "effet": {
                   "type": "ops",
                   "ops": [
                     {
@@ -15194,15 +15194,15 @@
                 }
               },
               {
-                "kind": "if",
-                "cond": {
+                "kind": "si",
+                "condition": {
                   "kind": "slThreshold",
                   "op": "<=",
                   "value": -2
                 },
-                "then": {
-                  "kind": "do",
-                  "effect": {
+                "alors": {
+                  "kind": "effet",
+                  "effet": {
                     "type": "ops",
                     "ops": [
                       {
@@ -15215,15 +15215,15 @@
                 }
               },
               {
-                "kind": "if",
-                "cond": {
+                "kind": "si",
+                "condition": {
                   "kind": "slThreshold",
                   "op": "<=",
                   "value": -4
                 },
-                "then": {
-                  "kind": "do",
-                  "effect": {
+                "alors": {
+                  "kind": "effet",
+                  "effet": {
                     "type": "ops",
                     "ops": [
                       {
@@ -15239,8 +15239,8 @@
           }
         },
         {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "ops": [
               {
@@ -15439,13 +15439,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -15497,13 +15497,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -15659,13 +15659,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -15863,13 +15863,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -15939,13 +15939,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -16015,13 +16015,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -16070,8 +16070,8 @@
       }
     ],
     "testFlow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
         {
           "kind": "test",
           "test": {
@@ -16089,16 +16089,16 @@
               }
             }
           },
-          "success": {
-            "kind": "seq",
-            "steps": []
+          "reussite": {
+            "kind": "sequence",
+            "etapes": []
           },
-          "fail": {
-            "kind": "seq",
-            "steps": [
+          "echec": {
+            "kind": "sequence",
+            "etapes": [
               {
-                "kind": "do",
-                "effect": {
+                "kind": "effet",
+                "effet": {
                   "type": "ops",
                   "ops": [
                     {
@@ -16110,15 +16110,15 @@
                 }
               },
               {
-                "kind": "if",
-                "cond": {
+                "kind": "si",
+                "condition": {
                   "kind": "slThreshold",
                   "op": "<=",
                   "value": -2
                 },
-                "then": {
-                  "kind": "do",
-                  "effect": {
+                "alors": {
+                  "kind": "effet",
+                  "effet": {
                     "type": "ops",
                     "ops": [
                       {
@@ -16131,15 +16131,15 @@
                 }
               },
               {
-                "kind": "if",
-                "cond": {
+                "kind": "si",
+                "condition": {
                   "kind": "slThreshold",
                   "op": "<=",
                   "value": -4
                 },
-                "then": {
-                  "kind": "do",
-                  "effect": {
+                "alors": {
+                  "kind": "effet",
+                  "effet": {
                     "type": "ops",
                     "ops": [
                       {
@@ -16155,8 +16155,8 @@
           }
         },
         {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "ops": [
               {
@@ -16244,13 +16244,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -16341,13 +16341,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -16470,13 +16470,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -16578,13 +16578,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -16733,8 +16733,8 @@
       }
     ],
     "testFlow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
         {
           "kind": "test",
           "test": {
@@ -16752,16 +16752,16 @@
               }
             }
           },
-          "success": {
-            "kind": "seq",
-            "steps": []
+          "reussite": {
+            "kind": "sequence",
+            "etapes": []
           },
-          "fail": {
-            "kind": "seq",
-            "steps": [
+          "echec": {
+            "kind": "sequence",
+            "etapes": [
               {
-                "kind": "do",
-                "effect": {
+                "kind": "effet",
+                "effet": {
                   "type": "ops",
                   "ops": [
                     {
@@ -16773,15 +16773,15 @@
                 }
               },
               {
-                "kind": "if",
-                "cond": {
+                "kind": "si",
+                "condition": {
                   "kind": "slThreshold",
                   "op": "<=",
                   "value": -2
                 },
-                "then": {
-                  "kind": "do",
-                  "effect": {
+                "alors": {
+                  "kind": "effet",
+                  "effet": {
                     "type": "ops",
                     "ops": [
                       {
@@ -16794,15 +16794,15 @@
                 }
               },
               {
-                "kind": "if",
-                "cond": {
+                "kind": "si",
+                "condition": {
                   "kind": "slThreshold",
                   "op": "<=",
                   "value": -4
                 },
-                "then": {
-                  "kind": "do",
-                  "effect": {
+                "alors": {
+                  "kind": "effet",
+                  "effet": {
                     "type": "ops",
                     "ops": [
                       {
@@ -16818,8 +16818,8 @@
           }
         },
         {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "ops": [
               {
@@ -16897,8 +16897,8 @@
       }
     ],
     "testFlow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
         {
           "kind": "test",
           "test": {
@@ -16916,16 +16916,16 @@
               }
             }
           },
-          "success": {
-            "kind": "seq",
-            "steps": []
+          "reussite": {
+            "kind": "sequence",
+            "etapes": []
           },
-          "fail": {
-            "kind": "seq",
-            "steps": [
+          "echec": {
+            "kind": "sequence",
+            "etapes": [
               {
-                "kind": "do",
-                "effect": {
+                "kind": "effet",
+                "effet": {
                   "type": "ops",
                   "ops": [
                     {
@@ -16937,15 +16937,15 @@
                 }
               },
               {
-                "kind": "if",
-                "cond": {
+                "kind": "si",
+                "condition": {
                   "kind": "slThreshold",
                   "op": "<=",
                   "value": -2
                 },
-                "then": {
-                  "kind": "do",
-                  "effect": {
+                "alors": {
+                  "kind": "effet",
+                  "effet": {
                     "type": "ops",
                     "ops": [
                       {
@@ -16958,15 +16958,15 @@
                 }
               },
               {
-                "kind": "if",
-                "cond": {
+                "kind": "si",
+                "condition": {
                   "kind": "slThreshold",
                   "op": "<=",
                   "value": -4
                 },
-                "then": {
-                  "kind": "do",
-                  "effect": {
+                "alors": {
+                  "kind": "effet",
+                  "effet": {
                     "type": "ops",
                     "ops": [
                       {
@@ -16982,8 +16982,8 @@
           }
         },
         {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "ops": [
               {
@@ -17048,13 +17048,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -17141,8 +17141,8 @@
       }
     ],
     "testFlow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
         {
           "kind": "test",
           "test": {
@@ -17160,16 +17160,16 @@
               }
             }
           },
-          "success": {
-            "kind": "seq",
-            "steps": []
+          "reussite": {
+            "kind": "sequence",
+            "etapes": []
           },
-          "fail": {
-            "kind": "seq",
-            "steps": [
+          "echec": {
+            "kind": "sequence",
+            "etapes": [
               {
-                "kind": "do",
-                "effect": {
+                "kind": "effet",
+                "effet": {
                   "type": "ops",
                   "ops": [
                     {
@@ -17181,15 +17181,15 @@
                 }
               },
               {
-                "kind": "if",
-                "cond": {
+                "kind": "si",
+                "condition": {
                   "kind": "slThreshold",
                   "op": "<=",
                   "value": -2
                 },
-                "then": {
-                  "kind": "do",
-                  "effect": {
+                "alors": {
+                  "kind": "effet",
+                  "effet": {
                     "type": "ops",
                     "ops": [
                       {
@@ -17202,15 +17202,15 @@
                 }
               },
               {
-                "kind": "if",
-                "cond": {
+                "kind": "si",
+                "condition": {
                   "kind": "slThreshold",
                   "op": "<=",
                   "value": -4
                 },
-                "then": {
-                  "kind": "do",
-                  "effect": {
+                "alors": {
+                  "kind": "effet",
+                  "effet": {
                     "type": "ops",
                     "ops": [
                       {
@@ -17226,8 +17226,8 @@
           }
         },
         {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "ops": [
               {
@@ -17305,8 +17305,8 @@
       }
     ],
     "testFlow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
         {
           "kind": "test",
           "test": {
@@ -17324,16 +17324,16 @@
               }
             }
           },
-          "success": {
-            "kind": "seq",
-            "steps": []
+          "reussite": {
+            "kind": "sequence",
+            "etapes": []
           },
-          "fail": {
-            "kind": "seq",
-            "steps": [
+          "echec": {
+            "kind": "sequence",
+            "etapes": [
               {
-                "kind": "do",
-                "effect": {
+                "kind": "effet",
+                "effet": {
                   "type": "ops",
                   "ops": [
                     {
@@ -17345,15 +17345,15 @@
                 }
               },
               {
-                "kind": "if",
-                "cond": {
+                "kind": "si",
+                "condition": {
                   "kind": "slThreshold",
                   "op": "<=",
                   "value": -2
                 },
-                "then": {
-                  "kind": "do",
-                  "effect": {
+                "alors": {
+                  "kind": "effet",
+                  "effet": {
                     "type": "ops",
                     "ops": [
                       {
@@ -17366,15 +17366,15 @@
                 }
               },
               {
-                "kind": "if",
-                "cond": {
+                "kind": "si",
+                "condition": {
                   "kind": "slThreshold",
                   "op": "<=",
                   "value": -4
                 },
-                "then": {
-                  "kind": "do",
-                  "effect": {
+                "alors": {
+                  "kind": "effet",
+                  "effet": {
                     "type": "ops",
                     "ops": [
                       {
@@ -17390,8 +17390,8 @@
           }
         },
         {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "ops": [
               {
@@ -17474,13 +17474,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -17777,13 +17777,13 @@
               }
             }
           },
-          "success": {
-            "kind": "seq",
-            "steps": []
+          "reussite": {
+            "kind": "sequence",
+            "etapes": []
           },
-          "fail": {
-            "kind": "seq",
-            "steps": [
+          "echec": {
+            "kind": "sequence",
+            "etapes": [
               {
                 "kind": "test",
                 "test": {
@@ -17801,16 +17801,16 @@
                     }
                   }
                 },
-                "success": {
-                  "kind": "seq",
-                  "steps": []
+                "reussite": {
+                  "kind": "sequence",
+                  "etapes": []
                 },
-                "fail": {
-                  "kind": "seq",
-                  "steps": [
+                "echec": {
+                  "kind": "sequence",
+                  "etapes": [
                     {
-                      "kind": "do",
-                      "effect": {
+                      "kind": "effet",
+                      "effet": {
                         "type": "ops",
                         "ops": [
                           {
@@ -17822,15 +17822,15 @@
                       }
                     },
                     {
-                      "kind": "if",
-                      "cond": {
+                      "kind": "si",
+                      "condition": {
                         "kind": "slThreshold",
                         "op": "<=",
                         "value": -2
                       },
-                      "then": {
-                        "kind": "do",
-                        "effect": {
+                      "alors": {
+                        "kind": "effet",
+                        "effet": {
                           "type": "ops",
                           "ops": [
                             {
@@ -17843,15 +17843,15 @@
                       }
                     },
                     {
-                      "kind": "if",
-                      "cond": {
+                      "kind": "si",
+                      "condition": {
                         "kind": "slThreshold",
                         "op": "<=",
                         "value": -4
                       },
-                      "then": {
-                        "kind": "do",
-                        "effect": {
+                      "alors": {
+                        "kind": "effet",
+                        "effet": {
                           "type": "ops",
                           "ops": [
                             {
@@ -17867,8 +17867,8 @@
                 }
               },
               {
-                "kind": "do",
-                "effect": {
+                "kind": "effet",
+                "effet": {
                   "type": "ops",
                   "ops": [
                     {
@@ -17972,13 +17972,13 @@
               }
             }
           },
-          "success": {
-            "kind": "seq",
-            "steps": []
+          "reussite": {
+            "kind": "sequence",
+            "etapes": []
           },
-          "fail": {
-            "kind": "seq",
-            "steps": [
+          "echec": {
+            "kind": "sequence",
+            "etapes": [
               {
                 "kind": "test",
                 "test": {
@@ -17996,16 +17996,16 @@
                     }
                   }
                 },
-                "success": {
-                  "kind": "seq",
-                  "steps": []
+                "reussite": {
+                  "kind": "sequence",
+                  "etapes": []
                 },
-                "fail": {
-                  "kind": "seq",
-                  "steps": [
+                "echec": {
+                  "kind": "sequence",
+                  "etapes": [
                     {
-                      "kind": "do",
-                      "effect": {
+                      "kind": "effet",
+                      "effet": {
                         "type": "ops",
                         "ops": [
                           {
@@ -18017,15 +18017,15 @@
                       }
                     },
                     {
-                      "kind": "if",
-                      "cond": {
+                      "kind": "si",
+                      "condition": {
                         "kind": "slThreshold",
                         "op": "<=",
                         "value": -2
                       },
-                      "then": {
-                        "kind": "do",
-                        "effect": {
+                      "alors": {
+                        "kind": "effet",
+                        "effet": {
                           "type": "ops",
                           "ops": [
                             {
@@ -18038,15 +18038,15 @@
                       }
                     },
                     {
-                      "kind": "if",
-                      "cond": {
+                      "kind": "si",
+                      "condition": {
                         "kind": "slThreshold",
                         "op": "<=",
                         "value": -4
                       },
-                      "then": {
-                        "kind": "do",
-                        "effect": {
+                      "alors": {
+                        "kind": "effet",
+                        "effet": {
                           "type": "ops",
                           "ops": [
                             {
@@ -18062,8 +18062,8 @@
                 }
               },
               {
-                "kind": "do",
-                "effect": {
+                "kind": "effet",
+                "effet": {
                   "type": "ops",
                   "ops": [
                     {
@@ -18503,13 +18503,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -18556,13 +18556,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -18603,13 +18603,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -18657,13 +18657,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -18704,13 +18704,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -18802,13 +18802,13 @@
                 }
               }
             },
-            "success": {
-              "kind": "seq",
-              "steps": []
+            "reussite": {
+              "kind": "sequence",
+              "etapes": []
             },
-            "fail": {
-              "kind": "do",
-              "effect": {
+            "echec": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "ops": [
                   {
@@ -18876,13 +18876,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -18974,13 +18974,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -19068,13 +19068,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -19377,13 +19377,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -19433,13 +19433,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -19531,13 +19531,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -19733,13 +19733,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -19820,13 +19820,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -19950,13 +19950,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -20028,13 +20028,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -20170,13 +20170,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -20239,13 +20239,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -20454,13 +20454,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -20507,13 +20507,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -20554,13 +20554,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -20608,13 +20608,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -20655,13 +20655,13 @@
           }
         }
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {

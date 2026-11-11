@@ -62,8 +62,8 @@
         "trigger": "onHit",
         "on": "victim",
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "all",
             "of": [
               {
@@ -83,9 +83,9 @@
               }
             ]
           },
-          "then": {
-            "kind": "do",
-            "effect": {
+          "alors": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "target",
               "ops": [
@@ -138,8 +138,8 @@
         "trigger": "onHit",
         "on": "victim",
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "all",
             "of": [
               {
@@ -159,9 +159,9 @@
               }
             ]
           },
-          "then": {
-            "kind": "do",
-            "effect": {
+          "alors": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "target",
               "ops": [
@@ -178,8 +178,8 @@
         "trigger": "onHit",
         "on": "victim",
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "any",
             "of": [
               {
@@ -208,9 +208,9 @@
               }
             ]
           },
-          "then": {
-            "kind": "do",
-            "effect": {
+          "alors": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "target",
               "ops": [
@@ -317,8 +317,8 @@
         "trigger": "onHit",
         "on": "victim",
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "all",
             "of": [
               {
@@ -372,9 +372,9 @@
               }
             ]
           },
-          "then": {
-            "kind": "do",
-            "effect": {
+          "alors": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "target",
               "ops": [
@@ -457,8 +457,8 @@
         "trigger": "onHit",
         "on": "victim",
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "not",
             "of": {
               "kind": "any",
@@ -490,9 +490,9 @@
               ]
             }
           },
-          "then": {
-            "kind": "do",
-            "effect": {
+          "alors": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "target",
               "ops": [
@@ -515,8 +515,8 @@
         "trigger": "onHit",
         "on": "victim",
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "any",
             "of": [
               {
@@ -533,9 +533,9 @@
               }
             ]
           },
-          "then": {
-            "kind": "do",
-            "effect": {
+          "alors": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "target",
               "ops": [
@@ -640,8 +640,8 @@
           "radiusMeters": 2
         },
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "not",
             "of": {
               "kind": "has",
@@ -651,9 +651,9 @@
               "spec": "cieux"
             }
           },
-          "then": {
-            "kind": "do",
-            "effect": {
+          "alors": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "target",
               "ops": [

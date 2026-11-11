@@ -41,7 +41,7 @@ function enjeuDeRangee(jeu: JeuDeCritique, location: HitLocation, entryId: strin
 
 /**
  * Le nœud `test` d'une rangée, ENJEU POSÉ, prêt à partir par la porte — jumelle de `miscast.mkTest` :
- * une fabrique PURE, séparée du résolveur, qui ne tire AUCUN dé. Les branches `fail`/`success` sont
+ * une fabrique PURE, séparée du résolveur, qui ne tire AUCUN dé. Les branches `echec`/`reussite` sont
  * déjà en donnée ; il n'y a rien à composer, seulement l'enjeu à nommer.
  */
 function noeudDeRangee(entry: CritEntry, jeu: JeuDeCritique, location: HitLocation): FlowTestNode | undefined {
@@ -50,8 +50,8 @@ function noeudDeRangee(entry: CritEntry, jeu: JeuDeCritique, location: HitLocati
   return noeud;
 }
 
-/** Feuille `do` d'une liste d'ops — la forme Flow d'un effet, écrite une fois pour ce module. */
-const feuille = (ops: GameOp[]): Flow => ({ kind: 'do', effect: { type: 'ops', ops } });
+/** Feuille `effet` d'une liste d'ops — la forme Flow d'un effet, écrite une fois pour ce module. */
+const feuille = (ops: GameOp[]): Flow => ({ kind: 'effet', effet: { type: 'ops', ops } });
 
 /**
  * Le(s) Test(s) d'une Amputation (LDB 18 l.237), ENJEU POSÉ, prêts à partir par la porte — fabrique
@@ -61,11 +61,11 @@ const feuille = (ops: GameOp[]): Flow => ({ kind: 'do', effect: { type: 'ops', o
  *
  * Trois formes, toutes PARAMÉTRIQUES (la DONNÉE décide, le code ne branche sur aucun cas nommé) :
  *  - `loss.difficulty` (l.171) — Test ENGLOBANT dont la réussite annule tout ; son échec joue le reste ;
- *  - `loss` sans gate (l.180) — le Test l.237 détermine LUI-MÊME la perte : `amputer` dans sa `fail` ;
+ *  - `loss` sans gate (l.180) — le Test l.237 détermine LUI-MÊME la perte : `amputer` dans sa `echec` ;
  *  - sans `loss` (l.124, l.237) — la ligne fait perdre le membre quoi qu'il arrive : `amputer` suit le
  *    Test en séquence, et le Test ne décide que des États.
  * `loss.perDR` (l.180) devient `unitesPerSL {every:1, amount:1, onFailure:true}` : `ctx.sl` de la
- * branche `fail` porte le DR, `slBonus` en tire « un orteil par DR en dessous de 0 ».
+ * branche `echec` porte le DR, `slBonus` en tire « un orteil par DR en dessous de 0 ».
  *
  * Le LIBELLÉ sépare les deux Tests d'une même ligne (`entry.label` pour le gate, la plaie pour l.237) :
  * `triggeredTestStepId` keye par (porteur, libellé, Compétence) — deux « Résistance » homonymes
@@ -83,23 +83,23 @@ export function noeudAmputation(entry: CritEntry, jeu: JeuDeCritique, location: 
   }]);
   const etats: Flow[] = [
     feuille([{ op: 'condition', id: 'a-terre', value: 1 }]),
-    { kind: 'if', cond: { kind: 'slThreshold', op: '<=', value: -2 }, then: feuille([{ op: 'condition', id: 'sonne', value: 1 }]) },
-    { kind: 'if', cond: { kind: 'slThreshold', op: '<=', value: -4 }, then: feuille([{ op: 'condition', id: 'inconscient', value: 1 }]) },
+    { kind: 'si', condition: { kind: 'slThreshold', op: '<=', value: -2 }, alors: feuille([{ op: 'condition', id: 'sonne', value: 1 }]) },
+    { kind: 'si', condition: { kind: 'slThreshold', op: '<=', value: -4 }, alors: feuille([{ op: 'condition', id: 'inconscient', value: 1 }]) },
   ];
   const noeud: FlowTestNode = {
     kind: 'test',
     test: poserEnjeu({ skill: { id: 'resistance' }, difficulty: amp.difficulty, label: traumaFicheById('amputation-plaie').label }, enjeu),
-    success: EMPTY_FLOW,
-    fail: { kind: 'seq', steps: perteGateeParCeTest ? [...etats, amputer] : etats },
+    reussite: EMPTY_FLOW,
+    echec: { kind: 'sequence', etapes: perteGateeParCeTest ? [...etats, amputer] : etats },
   };
   if (perteGateeParCeTest) return noeud;
-  const avecPerte: Flow = { kind: 'seq', steps: [noeud, amputer] };
+  const avecPerte: Flow = { kind: 'sequence', etapes: [noeud, amputer] };
   if (!amp.loss?.difficulty) return avecPerte;
   return {
     kind: 'test',
     test: poserEnjeu({ skill: { id: 'resistance' }, difficulty: amp.loss.difficulty, label: entry.label }, enjeu),
-    success: EMPTY_FLOW,
-    fail: avecPerte,
+    reussite: EMPTY_FLOW,
+    echec: avecPerte,
   };
 }
 
@@ -127,7 +127,7 @@ export interface CriticalResolved {
   ops: GameOp[];
   /** Le(s) Test(s) que la Blessure impose, à OUVRIR PAR LA PORTE canonique — le nœud `test` de la
    *  rangée (LDB 18 / AA 07) et ceux qu'un déclencheur de séquelle fait feu (`Trauma.critTrigger`,
-   *  LDB 18 l.74), enjeu posé. Un nœud `test` EST déjà un `Flow` ; plusieurs voyagent en `seq`, joué
+   *  LDB 18 l.74), enjeu posé. Un nœud `test` EST déjà un `Flow` ; plusieurs voyagent en `sequence`, joué
    *  en séquence par l'exécuteur. L'appelant (`noyau`) l'ouvre (`routeTriggeredTest`), le moteur ne le
    *  roule jamais — patron `MiscastResult.testFlow` (`miscast.ts`). */
   testFlow?: Flow;
@@ -508,7 +508,7 @@ export function resolveCritique(
     entryId: entry.id,
     label: entry.label,
     ops,
-    ...(tests.length ? { testFlow: tests.length === 1 ? tests[0] : { kind: 'seq' as const, steps: tests } } : {}),
+    ...(tests.length ? { testFlow: tests.length === 1 ? tests[0] : { kind: 'sequence' as const, etapes: tests } } : {}),
     lethal: !!entry.lethal,
     traumas,
     desc: entry.desc,

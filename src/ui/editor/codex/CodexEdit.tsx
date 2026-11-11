@@ -5,6 +5,7 @@
  * piochés dans leurs vrais datasets, param libre « 8 Tentacules +8 » conservé). Validation et
  * transaction d'enregistrement : `data/atelierDuCodex.ts` ; écriture disque : File System Access (`fsPersist`).
  */
+import type { Equipe } from '../../../engine/relations';
 import { tableTotale } from '../../../lib/tableTotale';
 import { Fragment, useEffect, useId, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
 import { datasetArray, datasetObject, datasetFile, datasetObjectFile, ancetreDuDe, deDeLaTable, type DatasetKey } from '../../../data/overrides';
@@ -18,10 +19,11 @@ import { admetLAbsence, estDerive, inferFields, offreDesRangees, videDuNoeud, ty
 import { libelleDeValeur, metaDesChamps, optionsDuNoeud } from '../../../data/schemas/grammaire/meta';
 import { categoryByKey } from '../../../noyau/codex/registry';
 import { ACTIVITY_RESOLVERS, RESOLVER_OWNER, resolversOwnedBy } from '../../../engine/activities';
-import type { ActivityContext, OutcomeBand, BattleOutcome, BattleSide, BattleOutcomeTarget, BattleOutcomeScale, BattleCond, ActivityResolver, ResolverOwner } from '../../../engine/activities';
+import type { ActivityContext, OutcomeBand, BattleOutcome, BattleOutcomeTarget, BattleOutcomeScale, BattleCond, ActivityResolver, ResolverOwner } from '../../../engine/activities';
 import { weatherCondition } from '../../../engine/travelStages';
 import { weatherIdSchema } from '../../../data/schemas/defs/weather';
-import { outcomeOnSchema, battleCondSchema, battleOutcomeTargetSchema, battleOutcomeScaleSchema, battleSideSchema } from '../../../data/schemas/defs/activities';
+import { outcomeOnSchema, battleCondSchema, battleOutcomeTargetSchema, battleOutcomeScaleSchema } from '../../../data/schemas/defs/activities';
+import { equipeSchema } from '../../../data/schemas/grammaire/valeurs';
 import { waterAppliesToSchema, waterTableSchema } from '../../../data/schemas/defs/water-exposure';
 import { ChoixDeSpec, RefField, SaisieSuggeree, reposerLId, cfgDeLaFeuille, cfgDeLaListe, cfgDuNoeudASpec, cfgDuNoeudType, refFieldCfg, libelleDeDataset, useSuggestionsPartagees, useValeursDistinctes } from '../../compendium/refField/RefField';
 import { SaisieEnBrouillon } from '../../compendium/refField/SaisieEnBrouillon';
@@ -616,14 +618,14 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
           <div className="ed-field">
             <span>effet d’un CONSOMMABLE (potion/drogue/bandage) — Flow appliqué au buveur (ops, branches, Tests « au boire »)</span>
             <FlowEditor flow={(entry.consumable as Flow | undefined) ?? EMPTY_FLOW} ctx={ctxDeCatalogue('consommable')}
-              onChange={(f) => edit('consumable', f.kind === 'seq' && f.steps.length === 0 ? undefined : f)} />
+              onChange={(f) => edit('consumable', f.kind === 'sequence' && f.etapes.length === 0 ? undefined : f)} />
           </div>
         )}
         {EVENEMENTS_DE_MER.includes(categoryKey) && (
           <div className="ed-field">
             <span>conséquence de l’événement — Flow joué à bord ou à l’escale (ops du groupe, d’un héros ou du navire, branches, Tests, choix)</span>
             <FlowEditor flow={(entry.consequence as Flow | undefined) ?? EMPTY_FLOW} ctx={ctxDeCatalogue('evenementDeMer')}
-              onChange={(f) => edit('consequence', f.kind === 'seq' && f.steps.length === 0 ? undefined : f)} />
+              onChange={(f) => edit('consequence', f.kind === 'sequence' && f.etapes.length === 0 ? undefined : f)} />
           </div>
         )}
         {hasConsumable && <ConsumableDurationField value={entry.consumableDuration as ConsumableDuration | undefined} onChange={(v) => edit('consumableDuration', v)} />}
@@ -1325,7 +1327,7 @@ const OUTCOME_ON_OPTIONS = optionsDuNoeud(outcomeOnSchema);
 const BATTLE_COND_OPTIONS = optionsDuNoeud(battleCondSchema);
 const BATTLE_TARGET_OPTIONS = optionsDuNoeud(battleOutcomeTargetSchema);
 const BATTLE_SCALE_OPTIONS = optionsDuNoeud(battleOutcomeScaleSchema);
-const BATTLE_SIDE_OPTIONS = optionsDuNoeud(battleSideSchema);
+const BATTLE_SIDE_OPTIONS = optionsDuNoeud(equipeSchema);
 
 const LIBRE = metaPourFichier('activities.json')!.freeSkill;
 
@@ -1387,7 +1389,7 @@ function BattleOutcomeListField({ value, onChange }: { value: BattleOutcome[] | 
             {BATTLE_SCALE_OPTIONS.map(([s, l]) => <option key={s} value={s}>{l}</option>)}
           </select>
           <label className="dr">montant<NumberField variant="nu" label="montant" width={72} value={o.amount} onChange={(amount) => set(i, { amount })} /></label>
-          <select value={o.side ?? ''} onChange={(e) => set(i, { side: (e.target.value || undefined) as BattleSide | undefined })}>
+          <select value={o.side ?? ''} onChange={(e) => set(i, { side: (e.target.value || undefined) as Equipe | undefined })}>
             <option value="">— camp (auto) —</option>
             {BATTLE_SIDE_OPTIONS.map(([s, l]) => <option key={s} value={s}>{l}</option>)}
           </select>

@@ -160,7 +160,7 @@ export const STRUCTURES_LOCALES = [
   { fichier: 'src/data#river-criticals', ref: '.tables', occurrence: 1 },
   { fichier: 'src/data#river-navigation', ref: '.capsize', occurrence: 1 },
   { fichier: 'src/data#river-navigation', ref: '.echouage', occurrence: 1 },
-  { fichier: 'src/data#river-navigation', ref: '.outOfControl', occurrence: 1 },
+  { fichier: 'src/data#river-navigation', ref: '.horsDeControle', occurrence: 1 },
   { fichier: 'src/data#river-navigation', ref: '.temporaryRepair', occurrence: 1 },
   { fichier: 'src/data#river-navigation', ref: '.windDirections.entries[]', occurrence: 1 },
   { fichier: 'src/data#river-navigation', ref: '.windEffect{}{}', occurrence: 1 },

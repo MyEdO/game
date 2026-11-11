@@ -217,15 +217,15 @@
         "trigger": "onOwnTestFailed",
         "on": "self",
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "slThreshold",
             "op": "<=",
             "value": -2
           },
-          "then": {
-            "kind": "do",
-            "effect": {
+          "alors": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "ops": [
                 {
@@ -252,13 +252,13 @@
               "value": -4
             }
           },
-          "success": {
-            "kind": "seq",
-            "steps": []
+          "reussite": {
+            "kind": "sequence",
+            "etapes": []
           },
-          "fail": {
-            "kind": "do",
-            "effect": {
+          "echec": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "ops": [
                 {
@@ -274,15 +274,15 @@
         "trigger": "onOwnTestFailed",
         "on": "self",
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "slThreshold",
             "op": "<=",
             "value": -6
           },
-          "then": {
-            "kind": "do",
-            "effect": {
+          "alors": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "ops": [
                 {
@@ -335,13 +335,13 @@
           },
           "difficulty": "accessible"
         },
-        "success": {
-          "kind": "seq",
-          "steps": []
+        "reussite": {
+          "kind": "sequence",
+          "etapes": []
         },
-        "fail": {
-          "kind": "do",
-          "effect": {
+        "echec": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "ops": [
               {
@@ -376,13 +376,13 @@
           },
           "difficulty": "tresFacile"
         },
-        "success": {
-          "kind": "seq",
-          "steps": []
+        "reussite": {
+          "kind": "sequence",
+          "etapes": []
         },
-        "fail": {
-          "kind": "do",
-          "effect": {
+        "echec": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "ops": [
               {
@@ -534,13 +534,13 @@
           "characteristic": "endurance",
           "difficulty": "accessible"
         },
-        "success": {
-          "kind": "seq",
-          "steps": []
+        "reussite": {
+          "kind": "sequence",
+          "etapes": []
         },
-        "fail": {
-          "kind": "do",
-          "effect": {
+        "echec": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "ops": [
               {

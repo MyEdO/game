@@ -1,5 +1,5 @@
 /**
- * LE NŒUD `choice` HORS COMBAT (#1463 β2) : le lanceur du groupe tranche chaque choix d'un Sort, une fois
+ * LE NŒUD `choix` HORS COMBAT (#1463 β2) : le lanceur du groupe tranche chaque choix d'un Sort, une fois
  * par lancer ; un choix qui coûte des Avantages n'est pas offert hors combat. LDB 14 l.219.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
@@ -12,10 +12,10 @@ import { walkFlow } from '../engine/flowCore';
 import { runCombatFlow } from './combat/triggeredTest';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
 
-/** Les Sorts dont un nœud `choice` se rencontre sans passer par la branche d'un Test. */
+/** Les Sorts dont un nœud `choix` se rencontre sans passer par la branche d'un Test. */
 const sortsAChoixDirect = spells.filter((s) => {
   let direct = false;
-  if (s.effects) walkFlow(s.effects, (f, chemin) => { if (f.kind === 'choice' && !chemin.includes('success') && !chemin.includes('fail')) direct = true; });
+  if (s.effects) walkFlow(s.effects, (f, chemin) => { if (f.kind === 'choix' && !chemin.includes('reussite') && !chemin.includes('echec')) direct = true; });
   return direct;
 });
 
@@ -44,9 +44,9 @@ describe('choix d’un Sort lancé hors combat', () => {
 });
 
 describe('choix à coût d’Avantage hors combat (LDB 14 l.219)', () => {
-  const poser = (id: string): Flow => ({ kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'condition', id, value: 1 }] } });
-  const flux: Flow = { kind: 'seq', steps: [
-    { kind: 'choice', prompt: 'Dépenser un Avantage', advantageCost: 1, oui: poser('a-terre'), non: poser('sonne') },
+  const poser = (id: string): Flow => ({ kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id, value: 1 }] } });
+  const flux: Flow = { kind: 'sequence', etapes: [
+    { kind: 'choix', prompt: 'Dépenser un Avantage', coutEnAvantage: 1, oui: poser('a-terre'), non: poser('sonne') },
     poser('aveugle'),
   ] };
 

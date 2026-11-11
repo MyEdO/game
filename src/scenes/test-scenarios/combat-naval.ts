@@ -69,7 +69,7 @@ const construireScene = (): Scene => buildScene({
         // équipage exposé (`crewIds`) = ces canonniers ; `applyShipPostes` leur pose le `mannedPoste`. Cap NORD
         // (appliqué par `orienterLesCombattants`) → la cogue, plein EST, tombe pile dans l'arc de la bordée TRIBORD
         // (octant 2) ; vire le cap (Phase 2 Manœuvre) et la cogue sort de l'arc.
-        { vehicule: { id: 'bateau-de-patrouille' }, pos: { x: 3, y: 6 }, side: 'ally', facing: 'N', label: 'Barge des aventuriers',
+        { vehicule: { id: 'bateau-de-patrouille' }, pos: { x: 3, y: 6 }, side: 'allie', facing: 'N', label: 'Barge des aventuriers',
           crewIds: [...GUNNERS], postes: [pierrierPoste(GUNNERS[0]), pierrierPoste(GUNNERS[1])] },
       ],
     },

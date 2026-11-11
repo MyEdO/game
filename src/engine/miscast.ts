@@ -415,9 +415,9 @@ function miscastTables(): Record<MiscastSeverity, Row[]> {
 // mkTest — résolution par FABRIQUE (du code, pas de la donnée)
 // ---------------------------------------------------------------------------
 
-/** Enveloppe une liste de GameOps en une feuille de Flow `do` appliquée au lanceur (`on:'target'` =
+/** Enveloppe une liste de GameOps en une feuille de Flow `effet` appliquée au lanceur (`on:'target'` =
  *  le combattant qui subit la maladresse — c'est lui la « cible » du sous-Flow joué par `applyMiscast`). */
-const doOps = (ops: GameOp[]): Flow => ({ kind: 'do', effect: { type: 'ops', on: 'target', ops } });
+const doOps = (ops: GameOp[]): Flow => ({ kind: 'effet', effet: { type: 'ops', on: 'target', ops } });
 
 /** Catégorie Codex de la LIGNE tirée sur la table d'une sévérité sous le jeu EN VIGUEUR — porte (b) de
  *  `entryCategoryOf` (`src/data`) : celle de sa table (`categorieDeLaNiche`). */
@@ -426,25 +426,25 @@ const categorieDesLignes = (severity: MiscastSeverity): string | undefined =>
 
 /** Construit le nœud de Flow `test` d'une entrée (« Test de X Difficulté ou onFail » ; palier
  *  `onFailHard` via Condition Flow `slThreshold ≤ dr` dans la branche d'échec — comme Lot 4b). La
- *  branche `success` est vide (le Test réussi = aucun effet). L'ENJEU (#1117) descend à la LIGNE qui
+ *  branche `reussite` est vide (le Test réussi = aucun effet). L'ENJEU (#1117) descend à la LIGNE qui
  *  exige ce Test : sa fiche est le foyer, et l'issue se lit aux chips d'ops de la branche d'échec —
  *  l'entrée de catalogue ne porte donc aucun gabarit. Forme DÉJÀ EMPLOYÉE par d'autres entrées de
  *  `stakes.json` (incantation-imparfaite-ligne-test, embuscade-reperer, embuscade-vigilance). */
 function mkTest(t: NestedTest, rowId: string, severity: MiscastSeverity): Flow {
   const fail: Flow = t.onFailHard
     ? {
-        kind: 'seq',
-        steps: [
+        kind: 'sequence',
+        etapes: [
           doOps(t.onFail),
-          { kind: 'if', cond: { kind: 'slThreshold', op: '<=', value: t.onFailHard.dr }, then: doOps(t.onFailHard.ops) },
+          { kind: 'si', condition: { kind: 'slThreshold', op: '<=', value: t.onFailHard.dr }, alors: doOps(t.onFailHard.ops) },
         ],
       }
     : doOps(t.onFail);
   return {
     kind: 'test',
     test: poserEnjeu(t.test, combatStakeRef('incantation-imparfaite-ligne-test', { entryId: rowId, entryCategory: categorieDesLignes(severity) })),
-    success: { kind: 'seq', steps: [] },
-    fail,
+    reussite: { kind: 'sequence', etapes: [] },
+    echec: fail,
   };
 }
 
@@ -570,8 +570,8 @@ export function rollMiscast(severity: MiscastSeverity, rng: RNG, sinPoints = 0, 
       label: `${row.label} : ${labels.join(' + ')}`,
       ops,
       targetOps,
-      // Deux Tests imbriqués éventuels → un `seq` joué cadence-aware en séquence (le 2ᵉ après le 1ᵉʳ).
-      ...(tests.length ? { testFlow: tests.length === 1 ? tests[0] : { kind: 'seq', steps: tests } } : {}),
+      // Deux Tests imbriqués éventuels → un `sequence` joué cadence-aware en séquence (le 2ᵉ après le 1ᵉʳ).
+      ...(tests.length ? { testFlow: tests.length === 1 ? tests[0] : { kind: 'sequence', etapes: tests } } : {}),
       rowId: row.id,
       tableRolls,
       log: `${label(severity)} (${roll}) : ${row.label} → ${labels.join(' + ')}`,

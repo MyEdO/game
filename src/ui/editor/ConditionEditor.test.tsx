@@ -241,7 +241,7 @@ describe('ConditionEditor — Cible de l’affliction en vue (psychologie)', () 
   it('l’Atelier d’un champ d’effets la lit sur la famille de son porteur : la psychologie l’admet, un trait non', () => {
     const offerte = (fichier: string) => {
       const ctx = { ...ctxDeCatalogue('declenche'), famille: familleDesEffets(noeudDuChamp(fichier, 'effects')) };
-      const flow: Flow = { kind: 'if', cond: { kind: 'foeInLoS' }, then: EMPTY_FLOW };
+      const flow: Flow = { kind: 'si', condition: { kind: 'foeInLoS' }, alors: EMPTY_FLOW };
       return renderToStaticMarkup(<FlowEditor flow={flow} ctx={ctx} onChange={() => {}} />).includes('value="cibleEnVue"');
     };
     expect(offerte('psychology.json')).toBe(true);

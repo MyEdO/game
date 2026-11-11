@@ -31,7 +31,7 @@ const construireScene = (): Scene => buildScene({
     { id: 'cogue-rendu', kind: 'personnage', vehicule: { id: 'cogue' }, pos: { x: 20, y: 5 }, facing: 'O', label: 'La cogue pirate' } as SceneEntity,
   ],
   encounters: [
-    { id: 'caraque', members: [{ entityId: CARAQUE, side: 'ally' }, { entityId: 'cogue-rendu', side: 'enemy' }] },
+    { id: 'caraque', members: [{ entityId: CARAQUE, side: 'allie' }, { entityId: 'cogue-rendu', side: 'ennemi' }] },
   ],
 });
 

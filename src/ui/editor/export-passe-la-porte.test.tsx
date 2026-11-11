@@ -289,7 +289,7 @@ describe('Éditeur — modale « Avancé » : ce qu’on colle passe le SCHÉMA 
   it('JSON SANS `triggers` : les triggers de la scène sont CONSERVÉS, les dialogues remplacés', async () => {
     const avecTriggers: Scene = {
       ...sceneSaine(),
-      triggers: [{ id: 't0', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: { kind: 'seq', steps: [] } }],
+      triggers: [{ id: 't0', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: { kind: 'sequence', etapes: [] } }],
     };
     await monter(avecTriggers);
     const { refus, scene } = await appliqueAvance('{"dialogues": []}');
