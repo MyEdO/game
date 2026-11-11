@@ -177,8 +177,8 @@
  * clique « Combat », puis y lit où cliquer ; il observe la partie par `vue`. L'atelier (`--parcours atelier`) clique
  * « Atelier », lit ses boutons et son état dans `wfrpEcran`, et sert un dossier de modèles neuf que la recette remplit
  * par `importer.mjs --sans-publier` ; sans `--modeles`, il sert le dossier des modèles du projet et y pose un véhicule,
- * qu'il compare à la réponse de `vehicule`, appelée de la page pour l'observer. La page s'ouvre sous `?rendu=econome`
- * (`PontDuNoyau.RENDU_ECONOME`) : une image ne se dessine que si l'écran a changé, sans anticrénelage
+ * qu'il compare à la réponse de `vehicule`, appelée de la page pour l'observer. La page s'ouvre sous `?recette=1`
+ * (`PontDuNoyau.en_recette`) : Godot y publie `wfrpEcran`, une image ne se dessine que si l'écran a changé, sans anticrénelage
  * multiéchantillon ; une lecture de la page n'attend plus le dessin d'une image, et un geste en attend un moins long. Un cran de molette de l'atelier attend
  * que `atelier.defilement` change, jamais une publication quelconque.
  * Le parcours des cadrages (`--parcours cadrages --vues <fichier>`) attend que le monde soit posé, le modèle de
@@ -2862,7 +2862,7 @@ if (!(o.parcours in PARCOURS)) throw new Error(`--parcours ${o.parcours} : ${Obj
 
 let echec = null
 try {
-  await session.rpc('Page.navigate', { url: `${srv.url}index.html?scenario=${o.scenario}&graine=${o.graine}&rendu=econome` })
+  await session.rpc('Page.navigate', { url: `${srv.url}index.html?scenario=${o.scenario}&graine=${o.graine}&recette=1` })
   await waitFor(session, '!!globalThis.wfrpEcran && wfrpEcran.boutons.length > 0', { timeoutMs: 120000, evaluerMs: FIL_DE_LA_PAGE_MS })
   await PARCOURS[o.parcours]()
   const releve = JSON.parse(await lire(`wfrpPont.appeler('erreursGlobales')`))

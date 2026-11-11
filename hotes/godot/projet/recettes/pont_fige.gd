@@ -15,6 +15,7 @@ var ecran: Dictionary = {}
 
 func _init(lu: Dictionary) -> void:
 	fige = lu
+	en_recette = true
 
 
 ## Le pont figé `lu` posé à la place du pont de l'arbre (`/root/Pont`).
@@ -51,5 +52,7 @@ func parametre(cle: String) -> String:
 	return str(fige.get("parametres", {}).get(cle, ""))
 
 
-func publier_l_ecran(publie: Dictionary) -> void:
-	ecran = publie
+func publier_l_ecran(publie: Callable) -> void:
+	var rendu: Variant = publie.call()
+	if rendu != null:
+		ecran = rendu
