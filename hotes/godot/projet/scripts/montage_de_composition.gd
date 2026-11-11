@@ -1201,7 +1201,7 @@ func _empiler(fondues: Dictionary) -> Dictionary:
 		if not maillages.is_empty():
 			demandees.append({rang = porteur[1].rang, accessoire = porteur[1].accessoire, maillages = maillages})
 	_pile_fondue = ""
-	if demandees.size() < 2:
+	if demandees.slice(1).is_empty():
 		return {}
 	var parents := {}
 	for os in squelette.get_bone_count():
