@@ -173,7 +173,7 @@ describe('deriveExposition — refus fail-fast sur defs synthétiques (#1472)', 
     expect(() =>
       deriveExposition([
         faux('un.json', { codex: { keys: ['sortsA'] }, edit: { dataset: 'sorts' } }),
-        faux('trois.json', { codex: { keys: ['sortsN'] }, edit: { niche: { categories: { sorts: 'sorts' } } } }),
+        faux('trois.json', { codex: { keys: ['sorts'] }, edit: { niche: { categories: { sorts: 'sorts' } } } }),
       ]),
     ).toThrow(/le dataset 'sorts' est édité par DEUX documents \(`un\.json` et `trois\.json`\)/);
   });

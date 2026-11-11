@@ -4,9 +4,10 @@
  * Chaque catégorie projette un tableau de `src/data` (façade `index.ts`) en `CodexItem` RICHE :
  * faits-clés + **sections structurées** dont les entités citées (compétences, talents, sorts,
  * traits, qualités…) sont des **liens `CodexRef`** vers leur propre fiche (cross-références).
- * **Ajouter une catégorie = sa clé déclarée au def (`exposition.codex.keys`), puis son entrée dans
- * `CODEX_SPECS`**, que `satisfies Record<CleCodex, …>` exige ; enrichir = ajouter des sections (data),
- * pas un composant.
+ * **Ajouter une catégorie = sa clé déclarée au def (`exposition.codex.keys`, ou sa clé de
+ * `edit.niche.categories` pour une table nichée, que `document()` pose en `codex.keys`), puis son
+ * entrée dans `CODEX_SPECS`**, que `satisfies Record<CleCodex, …>` exige ; enrichir = ajouter des
+ * sections (data), pas un composant.
  */
 import { composeRollLabel } from '../rollSeam';
 import { memoParVersion } from '../../data/versionDataset';

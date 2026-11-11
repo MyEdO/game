@@ -69,7 +69,6 @@ const doc = document(
     },
   },
   {
-    codex: { keys: ['crewMoraleFactors', 'crewMoraleBands'] },
     edit: { niche: { categories: { crewMoraleFactors: 'factors', crewMoraleBands: 'bands' } } },
   },
   {
