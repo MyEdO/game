@@ -109,7 +109,7 @@ async function monterIso(): Promise<void> {
 }
 
 /** Un PAS clavier, tel que le jeu l'émet (`keybindings` → `stepPartyDir`). */
-async function pas(dir: 'up' | 'down' | 'left' | 'right'): Promise<void> {
+async function pas(dir: 'haut' | 'bas' | 'gauche' | 'droite'): Promise<void> {
   await act(async () => { useGame.getState().stepPartyDir(dir); });
   await respirer(60);
 }
@@ -124,7 +124,7 @@ describe('Pas d’exploration — les quads SURVIVENT (#1396)', () => {
     const disposeMat = vi.spyOn(THREE.Material.prototype, 'dispose');
     const disposeGeo = vi.spyOn(THREE.BufferGeometry.prototype, 'dispose');
 
-    await pas('down');
+    await pas('bas');
 
     // PRÉMISSE — le pas a bien eu lieu : sans déplacement, « rien n'est libéré » ne dit rien.
     expect(useGame.getState().partyPos, 'le pas n’a pas bougé le groupe').not.toEqual(posAvant);
@@ -139,7 +139,7 @@ describe('Pas d’exploration — les quads SURVIVENT (#1396)', () => {
     await monterIso();
     const décor = vi.spyOn(sceneMeshes, 'collectBillboards');
 
-    await pas('down');
+    await pas('bas');
 
     expect(décor, 'un tableau d’éléments neuf pour un décor identique reforge tous les sujets').not.toHaveBeenCalled();
   });
@@ -150,7 +150,7 @@ describe('Pas d’exploration — les quads SURVIVENT (#1396)', () => {
 
     const exploréAvant = (useGame.getState().explored[useGame.getState().scene!.id] ?? []).length;
 
-    await pas('up');
+    await pas('haut');
 
     // PRÉMISSE — le pas DÉCOUVRE : sans cases neuves, l'accumulation de l'exploré ne recommet rien et
     // « une seule teinte » serait vrai de rien.
@@ -167,7 +167,7 @@ describe('Pas d’exploration — les quads SURVIVENT (#1396)', () => {
     await monterIso();
     const vue = vi.spyOn(vision, 'computeVisible');
 
-    await pas('up');
+    await pas('haut');
 
     expect(vue.mock.calls.length, 'le pas recalcule la vision du groupe plus d’une fois').toBe(1);
   });
@@ -175,7 +175,7 @@ describe('Pas d’exploration — les quads SURVIVENT (#1396)', () => {
   it('la MARCHE peint : le glissement du jeton tient le battement du stage, hors de tout commit', async () => {
     await monterIso();
     // Le pas COMMIT (position, vision, teinte) : ces images-là ne prouvent rien sur le glissement.
-    await act(async () => { useGame.getState().stepPartyDir('up'); });
+    await act(async () => { useGame.getState().stepPartyDir('haut'); });
     const avant = rendus();
 
     // …puis on laisse courir le GLISSEMENT, sans toucher au store : plus aucun commit React ne

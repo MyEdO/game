@@ -37,7 +37,7 @@ const defenseEchoue = (id: string) => {
 function monte() {
   lancerLeScenario(banc.getState, banc.setState, lancementDuScenario(testScenarios.find((sc) => sc.id === 'entrainement')!, idsDeTest));
   setRule('combat-frappe-mortelle', true);
-  setRule('combat-critical-deflect', true);
+  setRule('combat-deviation-critique', true);
   g().lancerLeCombat('enc-entrainement');
   expect(g().battle).toBeTruthy();
   if (g().pendingRoundStart) g().fenetreValider('debutDuRound');
@@ -78,7 +78,7 @@ function monte() {
 }
 
 describe('Frénésie + Coup Critique dévié + balayage (LDB 21 l.33)', () => {
-  afterEach(() => { resetRule('combat-frappe-mortelle'); resetRule('combat-critical-deflect'); });
+  afterEach(() => { resetRule('combat-frappe-mortelle'); resetRule('combat-deviation-critique'); });
 
   it('la restitution traverse l’étape critique, puis le maillon suivant rend `acted:false`', () => {
     const { man } = monte();

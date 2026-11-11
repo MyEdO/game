@@ -199,9 +199,9 @@ export function precipitationTestMods(precip: SeaPrecipitationId | undefined, sk
 
 /** Litres d'eau à boire PAR JOUR et par membre d'équipage : la bande de Température (Caniculaire 4 L,
  *  Chaude 3 L — l.209/213), sinon le régime de bord « 2 à 3 litres d'eau par jour » (MDG 14 l.242 —
- *  fourchette, valeur maison, règle `sea-water-litres-mediane`). PUR. */
+ *  fourchette, valeur maison, règle `mer-eau-litres-mediane`). PUR. */
 export function dailyWaterLitres(temp: SeaTemperatureId): number {
-  return temperatureDef(temp).litresParJour ?? Number(rule('sea-water-litres-mediane'));
+  return temperatureDef(temp).litresParJour ?? Number(rule('mer-eau-litres-mediane'));
 }
 
 /** Tests d'Exposition d'une JOURNÉE en mer pour la bande de Température (l.203-225 : « Toutes les

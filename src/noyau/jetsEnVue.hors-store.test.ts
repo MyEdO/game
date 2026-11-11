@@ -59,10 +59,10 @@ interface Fixture { patch: Partial<Jeu> | (() => Partial<Jeu>); flux: readonly J
 /** Les modales du registre qui déclarent un flux de jet (`ModalDef.flux`) : leur état, le dé tombé. */
 const FENETRES_A_JET: Partial<Record<ModalKey, Fixture>> = {
   battement: { patch: { pendingBattement: { attackerId: H.id, foeId: E.id, result: tr(34, 45) } }, flux: ['battement'] },
-  distraire: { patch: { pendingDistraire: { moverId: H.id, foeId: E.id, atk: tr(20, 50), defRoll: tr(70, 40), result: 'success' } }, flux: ['distraire'], oppose: true },
+  distraire: { patch: { pendingDistraire: { moverId: H.id, foeId: E.id, atk: tr(20, 50), defRoll: tr(70, 40), result: 'reussite' } }, flux: ['distraire'], oppose: true },
   manoeuvre: { patch: { pendingManeuver: { attackerId: H.id, kind: 'vomi', attaque: 'vomi', avantageSpent: 0, result: tr(30, 40) } }, flux: ['manoeuvre'] },
-  auContact: { patch: { pendingAuContact: { moverId: H.id, foeId: E.id, phase: 'choice', atk: tr(20, 50), def: tr(70, 40), result: 'failure' } }, flux: ['auContact'], oppose: true },
-  empoignade: { patch: { pendingGrapple: { actorId: H.id, foeId: E.id, phase: 'options', canBreak: false, atk: tr(25, 40), def: tr(35, 50), result: 'success' } }, flux: ['empoignade'], oppose: true },
+  auContact: { patch: { pendingAuContact: { moverId: H.id, foeId: E.id, phase: 'choice', atk: tr(20, 50), def: tr(70, 40), result: 'echec' } }, flux: ['auContact'], oppose: true },
+  empoignade: { patch: { pendingGrapple: { actorId: H.id, foeId: E.id, phase: 'options', canBreak: false, atk: tr(25, 40), def: tr(35, 50), result: 'reussite' } }, flux: ['empoignade'], oppose: true },
   frenesie: { patch: { pendingFrenzy: { combatantId: H.id, result: jet(12, 30) } }, flux: ['frenesie'] },
   approche: { patch: { pendingApproach: { combatantId: H.id, test: TEST, sourceId: E.id, sourceName: E.label, intent: { kind: 'entity', id: E.id }, result: jet(55, 30) } }, flux: ['approche'] },
   protection: { patch: { pendingWard: { attackerId: H.id, targetId: E.id, targetName: E.label, result: jet(10, 50) } }, flux: ['protection'] },
@@ -156,7 +156,7 @@ const ETAPES_HOTES: Record<HostJet, Fixture> = {
     flux: ['testEtendu'],
   },
   desengagement: {
-    patch: { pendingCascade: cascade(etapeHote('desengagement')), pendingDisengage: { moverId: H.id, foeId: E.id, canSacrifice: false, phase: 'esquive', atk: tr(30, 45), def: tr(20, 40), result: 'success' } },
+    patch: { pendingCascade: cascade(etapeHote('desengagement')), pendingDisengage: { moverId: H.id, foeId: E.id, canSacrifice: false, phase: 'esquive', atk: tr(30, 45), def: tr(20, 40), result: 'reussite' } },
     flux: ['desengagement'],
     oppose: true,
   },
@@ -271,7 +271,7 @@ describe('jetsEnVue — la classe des fenêtres à jet', () => {
   });
 
   it('un Test opposé dit la ligne gagnante et le DR net — égalité : aucune gagnante', () => {
-    const egalite = { ...BASE, pendingGrapple: { actorId: H.id, foeId: E.id, phase: 'options', canBreak: false, atk: tr(25, 40), def: tr(25, 40), result: 'tie' } } as Jeu;
+    const egalite = { ...BASE, pendingGrapple: { actorId: H.id, foeId: E.id, phase: 'options', canBreak: false, atk: tr(25, 40), def: tr(25, 40), result: 'egalite' } } as Jeu;
     expect(jetsEnVue(egalite)[0].oppose).toEqual({ gagnante: null, drNet: 0 });
     const attaque = jetsEnVue({ ...BASE, ...ETAPES_HOTES.attaque.patch } as Jeu)[0];
     expect(attaque.oppose).toEqual({ gagnante: 0, drNet: 2 });

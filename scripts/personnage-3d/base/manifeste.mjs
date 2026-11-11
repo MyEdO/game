@@ -4,7 +4,7 @@
 //   `zones`, `emplacements`, `prises`, `silhouettes`, `gabarit` (dont `st`, `silhouettes.bornes_de_st`), `appuis.pieds`,
 //   `osAPositionAnimee` ;
 // - déclaré par le corps (`<declaration.json>`, `champsDeclares`) : `base`, `porteur`, `bornesArticulaires`, `clips`,
-//   `clipsDeuxMains` et `surfaces` ;
+//   `clipsDeuxMains`, `prisesOccupees` et `surfaces` ;
 // - mesuré par l'évaluateur (`appuis.ts`) : `appuis.vitesseAuSol`, celle du clip du rôle `marche` ;
 // - construit avant l'export (`domaineDuGabarit`, pont `gabarit.mjs`) : `gabarit.bornes` ;
 // - pris au GLB : `glb.sha256` et `glb.octets`.

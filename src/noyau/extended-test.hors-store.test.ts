@@ -113,13 +113,13 @@ describe('Test Étendu — règle « DR 0 = ±1 minimum » (LDB 12 l.185)', () =
   });
   it('règle ON : un Round réussi à DR 0 ajoute +1', () => {
     setRound(4, 0, true);
-    setRule('test-extended-min-sl', true);
+    setRule('test-etendu-dr-minimum', true);
     banc.getState().jetValider('testEtendu');
     expect(banc.getState().pendingExtendedTest!.total).toBe(5);
   });
   it('règle ON : un Round raté à DR 0 retire 1 (puis clamp ≥ 0)', () => {
     setRound(4, 0, false);
-    setRule('test-extended-min-sl', true);
+    setRule('test-etendu-dr-minimum', true);
     banc.getState().jetValider('testEtendu');
     expect(banc.getState().pendingExtendedTest!.total).toBe(3);
   });

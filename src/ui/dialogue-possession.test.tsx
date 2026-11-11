@@ -33,7 +33,7 @@ const scene: Scene = { ...emptyScene('scn', 4, 4), entities: [pnj], dialogues: [
 
 /** État réseau : deux sièges nommés, aucun héros attribué (le dialogue n'appartient à personne). */
 const net = (over: Partial<GameState['net']>): GameState['net'] =>
-  ({ mode: 'hote', mySeat: 0, roomCode: 'ABCDEF', seatNames: { 0: 'Hôte', 1: 'Antoine' }, presence: {}, connection: 'connecte', hostAway: false, ownership: {}, slots: [0, 0, 0, 0], ...over }) as GameState['net'];
+  ({ mode: 'hote', mySeat: 0, roomCode: 'ABCDEF', seatNames: { 0: 'Hôte', 1: 'Antoine' }, presence: {}, connection: 'connecte', hoteAbsent: false, ownership: {}, slots: [0, 0, 0, 0], ...over }) as GameState['net'];
 
 const snapshot = { net: useGame.getState().net, party: useGame.getState().party };
 let container: HTMLDivElement;

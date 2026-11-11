@@ -273,7 +273,7 @@ export function buildAdvancementView(s: EtatDAvancement, hero: Combatant): Advan
 
   // Cibles de progression (LDB 07 l.137) : Niveau suivant (exige la complétion) + Niveaux inférieurs.
   // Avec l'option MJ « Sauts de Niveau » (l.140), les Niveaux supérieurs non-adjacents apparaissent aussi.
-  const gmJump = rule('advancement-career-jump') === true;
+  const gmJump = rule('progression-saut-de-niveau') === true;
   const targets: CareerTarget[] = [];
   for (const l of levels) {
     if (l.level === careerLevel) continue;

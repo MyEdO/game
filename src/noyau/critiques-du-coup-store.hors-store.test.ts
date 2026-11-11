@@ -429,7 +429,7 @@ describe("Impénétrable et Bâclée au Projectile et au Critique opposé (LDB 6
 
   /** Le Critique d'un Test opposé au double `roll` sur la cible sous Bâclée et Impénétrable, Déviation coupée. */
   function oppose(roll: number) {
-    setRule('combat-critical-deflect', false);
+    setRule('combat-deviation-critique', false);
     const { H, cible } = coup({ roll: 45, double: false, current: 20, pieces: [bacle, impenetrable()] });
     const log: string[] = [];
     applyCoupCritiqueSec(banc.getState, banc.setState, cible, roll, 'double', { attackerId: H.id, weapon: epee.label, weaponObj: epee }, log);

@@ -68,7 +68,7 @@ function fireTurnEdgeTriggers(get: Get, set: SetFn, c: Combatant | undefined, tr
 }
 
 // ============================================================================================
-// GATE D'ACTION PAR ROUND (op `actGate` — Racine de mandragore, LDB 71 l.35 : « Les utilisateurs
+// GATE D'ACTION PAR ROUND (op `testDAgir` — Racine de mandragore, LDB 71 l.35 : « Les utilisateurs
 // doivent réussir un Test de Force Mentale à chaque Round pour effectuer une Action ou un Mouvement
 // (un au choix) »). Résolu au DÉBUT du tour du porteur, cadence-aware :
 //  - porteur SURFACÉ (`surfaceOf` : un siège humain QUELCONQUE le tient, cadence manuelle) → étape de
@@ -86,10 +86,10 @@ export interface ActGateOutcome { loseMovement: boolean; lines: string[] }
 export function resolveActGates(get: Get, set: SetFn, c: Combatant): ActGateOutcome {
   const out: ActGateOutcome = { loseMovement: false, lines: [] };
   if (isOutOfAction(c) || !get().battle) return out;
-  const gates = (c.activeEffects ?? []).filter((e) => e.actGate);
-  const chars = [...new Set(gates.map((e) => e.actGate!.characteristic))];
+  const gates = (c.activeEffects ?? []).filter((e) => e.testDAgir);
+  const chars = [...new Set(gates.map((e) => e.testDAgir!.characteristic))];
   for (const char of chars) {
-    const gate = garanti(gates.find((e) => e.actGate!.characteristic === char), char, 'gate d’action');
+    const gate = garanti(gates.find((e) => e.testDAgir!.characteristic === char), char, 'gate d’action');
     const label = gate.label;
     if (surfaceOf(get, c.id)) {
       // ENJEU (#1117) : le gabarit dit la mécanique du gate ; le RENVOI descend à l'ENTITÉ qui l'exige
@@ -102,14 +102,14 @@ export function resolveActGates(get: Get, set: SetFn, c: Combatant): ActGateOutc
         actor: c,
         ligne: { test: { characteristic: char }, combat: { kind: 'test' } },
         difficulty: 'intermediaire',
-        label: t('turn.actGate', { label }),
+        label: t('turn.testDAgir', { label }),
         stake: combatStakeRef('agir-malgre-effet', src ? { entryId: src.id, entryCategory: CATEGORY_BY_SOURCE_KIND[src.kind] } : {}),
       });
       continue;
     }
     const res = rollSansPilote(get, c, rawCombatTestBase(c, { characteristic: char }), 'intermediaire', battleRng(), combatTestPenalty(c));
     out.lines.push(traceLineOf({ who: c.label, label: testTraceLabel(`${CHAR_LABELS[char]} (${label})`, 'intermediaire'), ...res }));
-    if (!res.success) { out.loseMovement = true; out.lines.push(t('turn.actGateKeepAction', { name: c.label })); }
+    if (!res.success) { out.loseMovement = true; out.lines.push(t('turn.testDAgirGardeLAction', { name: c.label })); }
   }
   return out;
 }
@@ -152,19 +152,19 @@ export const TABLES = {
     // Étape `testDAgir` (héros manuel) : succès → rien à restreindre ; échec → étape de CHOIX insérée.
     testDAgir: (_get, _set, step, hero) => {
       if (!hero || !step.result) return;
-      if (step.result.success) return { consequences: freeCons([t('turn.actGateOk', { name: hero.label })]) };
+      if (step.result.success) return { consequences: freeCons([t('turn.testDAgirReussi', { name: hero.label })]) };
       const choix = choiceStep({
         id: `choixDAgir-${hero.id}`, kind: 'choixDAgir', actorId: hero.id, icon: 'item/consumable',
         label: t('turn.choixDAgir'),
         options: [
-          { key: 'action', label: t('turn.actGateOptAction') },
-          { key: 'move', label: t('turn.actGateOptMove') },
+          { key: 'action', label: t('turn.testDAgirOptionAction') },
+          { key: 'mouvement', label: t('turn.testDAgirOptionMouvement') },
         ],
         defaultChoice: 'action',
       });
       return {
         // LDB 71
-        consequences: freeCons([t('turn.actGateFail', { name: hero.label })]),
+        consequences: freeCons([t('turn.testDAgirRate', { name: hero.label })]),
         ...(choix ? { insert: [choix] } : {}),
       };
     },
@@ -173,7 +173,7 @@ export const TABLES = {
       if (!hero) return;
       const battle = get().battle;
       if (!battle || battle.order[battle.turn] !== hero.id) return; // plus son tour → sans objet
-      if (step.chosen === 'move') {
+      if (step.chosen === 'mouvement') {
         set({ battle: { ...battle, acted: true } });
         return { consequences: freeCons([t('op.loseAction', { name: hero.label })]) };
       }

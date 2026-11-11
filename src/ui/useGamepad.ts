@@ -8,7 +8,8 @@
  */
 import { useEffect } from 'react';
 import { useGame } from '../state/store';
-import { SENS_DE_L_ECRAN, runBindingById, runBindingUpById, type IdDeRaccourci } from '../state/clavier/keybindings';
+import type { ScreenDir } from '../state/combatCursor';
+import { runBindingById, runBindingUpById, type IdDeRaccourci } from '../state/clavier/keybindings';
 import { resoudreEchap } from '../state/clavier/resoudreEchap';
 import { visibleFocusables } from './focus';
 import { dialogueDuDessus, surfaceFocalisee } from './useDismissLayer';
@@ -47,36 +48,35 @@ function focusStep(container: HTMLElement, dir: -1 | 1): void {
   els[next].focus();
 }
 
-export type PadDir = 'up' | 'down' | 'left' | 'right';
 export type PadButton = 'A' | 'B' | 'X' | 'Y' | 'LB' | 'RB' | 'LT' | 'RT' | 'Back' | 'R3';
 
 /** POV : croix/stick → intention CAP-RELATIVE (haut/bas = avance/recul, gauche/droite = pivot du regard).
  *  Le pas latéral (strafe) vit sur les gâchettes LB/RB (cf. `padButton`). */
-const POV_DIR: Record<PadDir, IdDeRaccourci> = { up: 'subjectif-avant', down: 'subjectif-arriere', left: 'subjectif-pivot-gauche', right: 'subjectif-pivot-droite' };
+const POV_DIR: Record<ScreenDir, IdDeRaccourci> = { haut: 'subjectif-avant', bas: 'subjectif-arriere', gauche: 'subjectif-pivot-gauche', droite: 'subjectif-pivot-droite' };
 
 /** Direction (croix/stick) : sur la CARTE elle pilote le curseur de combat via le MÊME id de raccourci
  *  que les flèches (`curseur-<sens>`) ; en menu/modale elle déplace le focus DOM (haut/gauche = arrière,
  *  bas/droite = avant). Framework-agnostique (appelée par le hook ET le shim DEV). */
-export function padDir(dir: PadDir): void {
+export function padDir(dir: ScreenDir): void {
   const ctx = padContext();
   if (ctx === 'map') {
     // Carte : combat → curseur de visée ; exploration iso → pas du groupe ; POV → avance/recul + pivot.
     // Les trois `when` sont DISJOINTS (inBattle ⊥ exploration!povActive ⊥ exploringPov) → un seul agit ;
     // même registre, aucun chemin parallèle.
-    runBindingById(`curseur-${SENS_DE_L_ECRAN[dir]}`, useGame.getState);
-    runBindingById(`exploration-${SENS_DE_L_ECRAN[dir]}`, useGame.getState);
+    runBindingById(`curseur-${dir}`, useGame.getState);
+    runBindingById(`exploration-${dir}`, useGame.getState);
     runBindingById(POV_DIR[dir], useGame.getState);
     return;
   }
   const container = activeContainer(ctx);
-  if (container) focusStep(container, dir === 'down' || dir === 'right' ? 1 : -1);
+  if (container) focusStep(container, dir === 'bas' || dir === 'droite' ? 1 : -1);
 }
 
 /** RELÂCHEMENT d'une direction (croix/stick revenus au repos) : les gestes MAINTENUS armés par
  *  `padDir` (marche tenue du groupe, iso et POV) se terminent ici. Les mêmes ids, dans le même ordre —
  *  la manette n'a pas plus de chemin propre à la fin du geste qu'à son début. */
-export function padDirUp(dir: PadDir): void {
-  runBindingUpById(`exploration-${SENS_DE_L_ECRAN[dir]}`, useGame.getState);
+export function padDirUp(dir: ScreenDir): void {
+  runBindingUpById(`exploration-${dir}`, useGame.getState);
   runBindingUpById(POV_DIR[dir], useGame.getState);
 }
 
@@ -148,18 +148,18 @@ export function padButtonUp(name: PadButton): void {
 
 // ── Mapping « standard » W3C (https://w3c.github.io/gamepad/#remapping) ──────────────────────────
 const BUTTON_MAP: Record<number, PadButton> = { 0: 'A', 1: 'B', 2: 'X', 3: 'Y', 4: 'LB', 5: 'RB', 6: 'LT', 7: 'RT', 8: 'Back', 11: 'R3' };
-const DPAD_INDEX: Record<PadDir, number> = { up: 12, down: 13, left: 14, right: 15 };
-const DIRS: PadDir[] = ['up', 'down', 'left', 'right'];
+const DPAD_INDEX: Record<ScreenDir, number> = { haut: 12, bas: 13, gauche: 14, droite: 15 };
+const DIRS: ScreenDir[] = ['haut', 'bas', 'gauche', 'droite'];
 const DEAD = 0.5; // zone morte du stick analogique
 const REPEAT_DELAY = 250; // 1er auto-repeat (après le déclenchement immédiat)
 const REPEAT_RATE = 110; // cadence d'auto-repeat ensuite
 
 /** Direction active ce frame : croix directionnelle OU stick au-delà de la zone morte (axe 0 = X,
  *  axe 1 = Y, Y vers le bas). Les deux sources alimentent la MÊME direction. */
-function dirActive(gp: Gamepad, dir: PadDir): boolean {
+function dirActive(gp: Gamepad, dir: ScreenDir): boolean {
   if (gp.buttons[DPAD_INDEX[dir]]?.pressed) return true;
-  const ax = dir === 'left' || dir === 'right' ? gp.axes[0] ?? 0 : gp.axes[1] ?? 0;
-  return dir === 'right' || dir === 'down' ? ax > DEAD : ax < -DEAD;
+  const ax = dir === 'gauche' || dir === 'droite' ? gp.axes[0] ?? 0 : gp.axes[1] ?? 0;
+  return dir === 'droite' || dir === 'bas' ? ax > DEAD : ax < -DEAD;
 }
 
 /**
@@ -174,7 +174,7 @@ export function useGamepad(): void {
     let raf = 0;
     let running = false;
     const prev: boolean[] = []; // état précédent de chaque bouton (détection de front montant)
-    const repeatAt: Partial<Record<PadDir, number>> = {}; // prochain instant de répétition par direction
+    const repeatAt: Partial<Record<ScreenDir, number>> = {}; // prochain instant de répétition par direction
 
     const frame = () => {
       const pads = navigator.getGamepads?.();
@@ -221,8 +221,8 @@ export function useGamepad(): void {
   useEffect(() => {
     if (!import.meta.env.DEV) return;
     const w = window as unknown as {
-      __wfrpPad?: (name: PadButton) => void; __wfrpPadDir?: (dir: PadDir) => void;
-      __wfrpPadUp?: (name: PadButton) => void; __wfrpPadDirUp?: (dir: PadDir) => void;
+      __wfrpPad?: (name: PadButton) => void; __wfrpPadDir?: (dir: ScreenDir) => void;
+      __wfrpPadUp?: (name: PadButton) => void; __wfrpPadDirUp?: (dir: ScreenDir) => void;
     };
     w.__wfrpPad = (name) => padButton(name);
     w.__wfrpPadDir = (dir) => padDir(dir);

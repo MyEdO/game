@@ -119,9 +119,6 @@ export function modsMatch(declares: readonly KeyMod[], tenus: readonly KeyMod[],
   return !restants.includes('ctrl') && !restants.includes('alt');
 }
 
-/** Le sens ÉCRAN d'une touche de direction, en mots d'id (`curseur-haut`), par la direction écran qu'elle pousse. */
-export const SENS_DE_L_ECRAN = { up: 'haut', down: 'bas', left: 'gauche', right: 'droite' } as const satisfies Record<ScreenDir, string>;
-type SensDeLEcran = (typeof SENS_DE_L_ECRAN)[ScreenDir];
 /** Le rang d'une touche de chiffre (`Digit1` à `Digit9`). */
 const RANGS_DE_TOUCHE = [1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
 type RangDeTouche = (typeof RANGS_DE_TOUCHE)[number];
@@ -132,11 +129,11 @@ export type IdDeRaccourci =
   | 'subjectif-avant' | 'subjectif-arriere' | 'subjectif-gauche' | 'subjectif-droite' | 'subjectif-pivot-gauche'
   | 'subjectif-pivot-droite' | 'subjectif-basculer' | 'camera-gauche' | 'camera-droite' | 'camera-recentrer' | 'vue-basculer'
   | 'decor-reveler' | 'fouiller-piece' | 'inspecter' | 'panoplie-changer' | 'debut-de-round' | 'tir-rapide-armer'
-  | `curseur-${SensDeLEcran}` | 'cible-suivante' | 'cible-precedente' | 'curseur-valider' | 'intention-annuler' | 'curseur-annuler'
+  | `curseur-${ScreenDir}` | 'cible-suivante' | 'cible-precedente' | 'curseur-valider' | 'intention-annuler' | 'curseur-annuler'
   | 'fin-de-tour' | 'apercu-effacer' | 'annulation-deplacement' | `dialogue-reponse-${RangDeTouche}` | `capacite-${RangDeTouche}`
-  | `exploration-${SensDeLEcran}` | 'interlude-sortie' | 'mode-desarmer' | 'menu-ouvrir' | 'editeur-pivot-gauche'
+  | `exploration-${ScreenDir}` | 'interlude-sortie' | 'mode-desarmer' | 'menu-ouvrir' | 'editeur-pivot-gauche'
   | 'editeur-pivot-droite' | 'editeur-panoramique' | 'editeur-annuler' | 'editeur-retablir' | 'editeur-retablir-maj'
-  | 'editeur-copier' | 'editeur-coller' | 'editeur-dupliquer' | 'editeur-supprimer' | `editeur-decaler-${SensDeLEcran}`
+  | 'editeur-copier' | 'editeur-coller' | 'editeur-dupliquer' | 'editeur-supprimer' | `editeur-decaler-${ScreenDir}`
   | 'editeur-echap';
 
 /** VERROU : un id de raccourci ne prend que des mots du lexique (#3924), ses rangs de chiffre à part. */
@@ -270,10 +267,10 @@ export const cibleDInspection = (s: GameState): string | null => {
 /** Pas clavier d'exploration ISO (ZQSD) : code physique → direction ÉCRAN. Réservé à la vue iso (hors POV,
  *  où ces mêmes touches sont cap-relatives — cf. `exploringPov` ci-dessus, résolu AVANT par ordre de tableau). */
 const EXPLORE_STEP: { code: string; dir: ScreenDir; labelKey: MsgKey; povId: IdDeRaccourci }[] = [
-  { code: 'KeyW', dir: 'up', labelKey: 'raccourci.explorationHaut', povId: 'subjectif-avant' },
-  { code: 'KeyS', dir: 'down', labelKey: 'raccourci.explorationBas', povId: 'subjectif-arriere' },
-  { code: 'KeyA', dir: 'left', labelKey: 'raccourci.explorationGauche', povId: 'subjectif-gauche' },
-  { code: 'KeyD', dir: 'right', labelKey: 'raccourci.explorationDroite', povId: 'subjectif-droite' },
+  { code: 'KeyW', dir: 'haut', labelKey: 'raccourci.explorationHaut', povId: 'subjectif-avant' },
+  { code: 'KeyS', dir: 'bas', labelKey: 'raccourci.explorationBas', povId: 'subjectif-arriere' },
+  { code: 'KeyA', dir: 'gauche', labelKey: 'raccourci.explorationGauche', povId: 'subjectif-gauche' },
+  { code: 'KeyD', dir: 'droite', labelKey: 'raccourci.explorationDroite', povId: 'subjectif-droite' },
 ];
 /** Pas clavier d'exploration en vue SUBJECTIVE (ZQSD cap-relatifs) : mêmes touches physiques, autre
  *  vocabulaire de direction — un seul mécanisme de marche tenue pour les deux vues (`stageWalk`). */
@@ -288,10 +285,10 @@ const POV_STEP: { id: IdDeRaccourci; code: string; rel: PasRelatif; labelKey: Ms
 const enEditeur = (s: GameState) => s.screen === 'editor';
 /** Décalage de la sélection d'une case, au sens ÉCRAN (mêmes flèches que le curseur de combat). */
 const EDITEUR_NUDGE: { dir: ScreenDir; code: string; dx: number; dy: number; labelKey: MsgKey; curseurId: IdDeRaccourci }[] = [
-  { dir: 'up', code: 'ArrowUp', dx: 0, dy: -1, labelKey: 'raccourci.editeurDecalerHaut', curseurId: 'curseur-haut' },
-  { dir: 'down', code: 'ArrowDown', dx: 0, dy: 1, labelKey: 'raccourci.editeurDecalerBas', curseurId: 'curseur-bas' },
-  { dir: 'left', code: 'ArrowLeft', dx: -1, dy: 0, labelKey: 'raccourci.editeurDecalerGauche', curseurId: 'curseur-gauche' },
-  { dir: 'right', code: 'ArrowRight', dx: 1, dy: 0, labelKey: 'raccourci.editeurDecalerDroite', curseurId: 'curseur-droite' },
+  { dir: 'haut', code: 'ArrowUp', dx: 0, dy: -1, labelKey: 'raccourci.editeurDecalerHaut', curseurId: 'curseur-haut' },
+  { dir: 'bas', code: 'ArrowDown', dx: 0, dy: 1, labelKey: 'raccourci.editeurDecalerBas', curseurId: 'curseur-bas' },
+  { dir: 'gauche', code: 'ArrowLeft', dx: -1, dy: 0, labelKey: 'raccourci.editeurDecalerGauche', curseurId: 'curseur-gauche' },
+  { dir: 'droite', code: 'ArrowRight', dx: 1, dy: 0, labelKey: 'raccourci.editeurDecalerDroite', curseurId: 'curseur-droite' },
 ];
 
 export const KEYBINDINGS: KeyBinding[] = [
@@ -390,10 +387,10 @@ export const KEYBINDINGS: KeyBinding[] = [
   //    court AVEC lui sur la même touche — le ↓ qui devait ouvrir la porte de la fiche déplaçait
   //    aussi la visée (recette B3a, capture 04). Même doctrine que `debut-de-round`/`fin-de-tour` pour
   //    Espace/Entrée, étendue aux flèches : la touche appartient au contrôle qui a le focus.
-  { id: 'curseur-haut', codes: ['ArrowUp'], labelKey: 'raccourci.curseurHaut', section: 'curseur', notWhenControlFocused: true, sharedBy: ['editeur-decaler-haut'], when: curOrPreempt, run: (g) => g().moveCursor('up') },
-  { id: 'curseur-bas', codes: ['ArrowDown'], labelKey: 'raccourci.curseurBas', section: 'curseur', notWhenControlFocused: true, sharedBy: ['editeur-decaler-bas'], when: curOrPreempt, run: (g) => g().moveCursor('down') },
-  { id: 'curseur-gauche', codes: ['ArrowLeft'], labelKey: 'raccourci.curseurGauche', section: 'curseur', notWhenControlFocused: true, sharedBy: ['editeur-decaler-gauche'], when: curOrPreempt, run: (g) => g().moveCursor('left') },
-  { id: 'curseur-droite', codes: ['ArrowRight'], labelKey: 'raccourci.curseurDroite', section: 'curseur', notWhenControlFocused: true, sharedBy: ['editeur-decaler-droite'], when: curOrPreempt, run: (g) => g().moveCursor('right') },
+  { id: 'curseur-haut', codes: ['ArrowUp'], labelKey: 'raccourci.curseurHaut', section: 'curseur', notWhenControlFocused: true, sharedBy: ['editeur-decaler-haut'], when: curOrPreempt, run: (g) => g().moveCursor('haut') },
+  { id: 'curseur-bas', codes: ['ArrowDown'], labelKey: 'raccourci.curseurBas', section: 'curseur', notWhenControlFocused: true, sharedBy: ['editeur-decaler-bas'], when: curOrPreempt, run: (g) => g().moveCursor('bas') },
+  { id: 'curseur-gauche', codes: ['ArrowLeft'], labelKey: 'raccourci.curseurGauche', section: 'curseur', notWhenControlFocused: true, sharedBy: ['editeur-decaler-gauche'], when: curOrPreempt, run: (g) => g().moveCursor('gauche') },
+  { id: 'curseur-droite', codes: ['ArrowRight'], labelKey: 'raccourci.curseurDroite', section: 'curseur', notWhenControlFocused: true, sharedBy: ['editeur-decaler-droite'], when: curOrPreempt, run: (g) => g().moveCursor('droite') },
   // Tab : aimante le curseur sur la cible valide suivante (cycle proche→loin) ; gardé sur ≥1 cible
   // (sinon Tab garde sa nav normale). `²/~` = cible précédente.
   {
@@ -490,7 +487,7 @@ export const KEYBINDINGS: KeyBinding[] = [
   //    mêmes ZQSD sont cap-relatifs (bindings pov-* ci-dessus, résolus AVANT). Les flèches restent au SEUL
   //    curseur de combat (garde `cur`) — plus de partage de codes avec l'exploration.
   ...EXPLORE_STEP.map(({ code, dir, labelKey, povId }): KeyBinding => ({
-    id: `exploration-${SENS_DE_L_ECRAN[dir]}`, codes: [code], labelKey, section: 'exploration', sharedBy: [povId], when: (s) => exploring(s) && !s.povActive,
+    id: `exploration-${dir}`, codes: [code], labelKey, section: 'exploration', sharedBy: [povId], when: (s) => exploring(s) && !s.povActive,
     run: (g) => demarrerMarche(g, { vue: 'iso', dir }), runUp: () => arreterMarche({ vue: 'iso', dir }),
   })),
   // Menu système PLEIN ÉCRAN (pause) : Échap l'OUVRE quand rien d'autre ne réclame la touche. Placé
@@ -559,7 +556,7 @@ export const KEYBINDINGS: KeyBinding[] = [
   { id: 'editeur-dupliquer', codes: ['KeyD'], mods: ['ctrl'], labelKey: 'raccourci.editeurDupliquer', section: 'editeur', when: enEditeur, run: () => editeur.dupliquer?.() },
   { id: 'editeur-supprimer', codes: ['Delete', 'Backspace'], labelKey: 'raccourci.editeurSupprimer', section: 'editeur', sharedBy: ['annulation-deplacement'], when: enEditeur, run: () => editeur.supprimer?.() },
   ...EDITEUR_NUDGE.map(({ dir, code, dx, dy, labelKey, curseurId }): KeyBinding => ({
-    id: `editeur-decaler-${SENS_DE_L_ECRAN[dir]}`, codes: [code], labelKey, section: 'editeur', notWhenControlFocused: true,
+    id: `editeur-decaler-${dir}`, codes: [code], labelKey, section: 'editeur', notWhenControlFocused: true,
     sharedBy: [curseurId], when: enEditeur, run: () => editeur.deplacer?.(dx, dy),
   })),
   // UNE seule entrée d'annulation pour l'éditeur : c'est le PONT qui arbitre, par la PRÉSENCE de sa

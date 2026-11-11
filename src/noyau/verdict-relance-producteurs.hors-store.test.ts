@@ -43,7 +43,7 @@ const producteurs: readonly (readonly [string, (H: Combatant, cible: Combatant) 
 ];
 
 describe('le verdict de relance naît sur la cible au compte, pour chaque producteur', () => {
-  beforeEach(() => { setRule('combat-aa-blessures', 'aa'); setRule('combat-sudden-death', 'off'); });
+  beforeEach(() => { setRule('combat-aa-blessures', 'aa'); setRule('combat-mort-subite', 'off'); });
 
   for (const [nom, produire, arme] of producteurs) for (const current of [0, 3]) it(`${nom}, coup non critique, cible à ${current} Blessure`, () => {
     const { H, cible } = combat(current);

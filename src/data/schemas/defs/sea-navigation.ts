@@ -82,7 +82,7 @@ const champs = {
     source: sourceRefSchema,
     reperes: z.array(
       nommerChamps(tableRange.extend({
-        outcome: z.enum(['exact', 'ok', 'drift-minor', 'drift', 'drift-major']),
+        outcome: z.enum(['exact', 'correct', 'derive-mineure', 'derive', 'derive-majeure']),
         desc: z.string(),
         source: sourceRefSchema,
       }), {

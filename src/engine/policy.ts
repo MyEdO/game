@@ -17,17 +17,21 @@
 import reglesOptionnellesJson from '../data/reglesOptionnelles.json';
 import { bumperDataset, indexParId } from '../data/versionDataset';
 import type { SourceRef } from '../data/schemas/grammaire/valeurs';
+import type { IdsParEspace } from '../data/schemas/_ids.generated';
 import { t } from '../i18n';
 
 /** Forme du contrôle qu'une règle optionnelle fait auto-rendre au panneau in-game : `flag` =
  *  interrupteur, `param` = nombre borné, `mode` = choix parmi `options`. */
+/** Id d'une règle optionnelle : l'espace `reglesOptionnelles.json` de `IdsParEspace` — un id retiré du dataset ne compile plus. */
+export type RegleOptionnelleId = IdsParEspace['reglesOptionnelles.json'];
+
 export type RuleKind = 'flag' | 'param' | 'mode';
 /** Valeur d'une règle optionnelle — union FERMÉE (miroir `ruleValueSchema`, `data/schemas/grammaire/valeurs.ts`). */
 export type RuleValue = boolean | number | string;
 
 export interface OptionalRule {
   /** Identifiant stable (clé de surcharge + persistance). */
-  id: string;
+  id: RegleOptionnelleId;
   type: 'reglesOptionnelles';
   /** Libellé affiché dans le panneau. */
   label: string;
@@ -105,14 +109,14 @@ function regleExigee(id: string): OptionalRule {
 }
 
 /** Valeur EFFECTIVE d'une règle : surcharge runtime si présente, sinon défaut. */
-export function rule(id: string): RuleValue {
+export function rule(id: RegleOptionnelleId): RuleValue {
   const regle = regleExigee(id);
   return overrides.has(id) ? overrides.get(id)! : regle.default;
 }
 
 /** Surcharge runtime (depuis le panneau in-game). Écriture et lecture jugent par le même verdict
  *  (`refusDeSurcharge`) : un id hors du registre ou une valeur non conforme LÈVE (#1463 LD.1). */
-export function setRule(id: string, value: RuleValue): void {
+export function setRule(id: RegleOptionnelleId, value: RuleValue): void {
   const refus = refusDeSurcharge(id, value);
   if (refus) throw new Error(refus);
   overrides.set(id, value);
@@ -120,10 +124,14 @@ export function setRule(id: string, value: RuleValue): void {
 }
 
 /** Retire la surcharge → retour au défaut. */
-export function resetRule(id: string): void {
+export function resetRule(id: RegleOptionnelleId): void {
   regleExigee(id);
   if (overrides.delete(id)) bumperDataset('reglesOptionnelles');
 }
+
+/** Les paires `[id, valeur]` d'un jeu de règles typé par id du registre (scénario, lancement). */
+export const entreesDeRegles = (regles: Readonly<Partial<Record<RegleOptionnelleId, RuleValue>>>): [RegleOptionnelleId, RuleValue][] =>
+  Object.entries(regles) as [RegleOptionnelleId, RuleValue][];
 
 /** Snapshot des surcharges (pour persistance). */
 export function ruleOverrides(): Record<string, RuleValue> {

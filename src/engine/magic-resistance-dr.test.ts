@@ -17,7 +17,7 @@ import {
 import type { Combatant } from './types';
 import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
-const VDM = 'magic-vdm-incantation';
+const VDM = 'magie-vdm-incantation';
 
 function mk(p: Partial<Combatant> = {}): Combatant {
   return blessuresSurLeProfil({

@@ -12,7 +12,7 @@ from mathutils import Matrix, Vector
 sys.path.insert(0, str(Path(__file__).resolve().parent / 'base'))
 
 from animation import assign_action, clear_animation  # noqa: E402
-from chaines import SEGMENTS, ajouter_chaines, cuire_chaines, rotation_du_brin  # noqa: E402
+from chaines import SEGMENTS, ajouter_chaines, cuire_chaines, rotation_du_brin, rotations_de_jupe  # noqa: E402
 from pistes import sacs  # noqa: E402
 
 OS = {
@@ -126,6 +126,14 @@ class Chaines(unittest.TestCase):
         self.assertAlmostEqual(direction(self.rig, 'cape_01').angle(BAS), 0, places=4)
         self.poser(self.clips[1], 20)
         self.assertAlmostEqual(math.degrees(direction(self.rig, 'cape_01').angle(BAS)), 20, places=3)
+
+
+class BrinsLateraux(unittest.TestCase):
+    def test_chaque_brin_lateral_s_ecarte_vers_l_exterieur_de_sa_cuisse(self):
+        jupe = rotations_de_jupe({'g': (0.0, 0.3), 'd': (0.0, 0.3)})
+        bas = Vector((0.0, 0.0, -1.0))
+        self.assertGreater((jupe['g'] @ bas).x, 0.25)
+        self.assertLess((jupe['d'] @ bas).x, -0.25)
 
 
 if __name__ == '__main__':

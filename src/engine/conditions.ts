@@ -1038,14 +1038,14 @@ export function bleedDeathRoll(c: Combatant, rng: RNG): { died: boolean; log: st
 }
 
 /** Mort Subite : LDB 18 l.42-46 ; variante `combat-aa-blessures: 'aa'` : AA 07 l.65-67 (AA 06 l.556).
- *  Portée réglable (`combat-sudden-death`) — JAMAIS les PJ : 'figurants' (défaut) = hors PNJ importants
+ *  Portée réglable (`combat-mort-subite`) — JAMAIS les PJ : 'figurants' (défaut) = hors PNJ importants
  *  (`ldb`) ou hors PNJ à Talent Chanceux (`aa`) ; 'tous' = tout PNJ ; 'off' = personne. Jamais un objet
  *  inanimé : AA 10 l.114, MDG 13 l.656, MSRC 07 l.74, EDOC 07 l.334. SOURCE UNIQUE (consommée par
  *  `isOutOfAction`, `endState` et la résolution de Blessure critique). */
 export function usesSuddenDeath(c: Combatant): boolean {
   if (c.kind === 'hero') return false; // LDB 18 l.46 ; AA 07 l.67
   if (isInanimate(c)) return false;
-  const mode = rule('combat-sudden-death');
+  const mode = rule('combat-mort-subite');
   if (mode === 'off') return false;
   if (mode === 'tous') return true;
   return rule('combat-aa-blessures') === 'aa' ? !hasTalent(c, 'chanceux') : !c.important; // AA 07 l.67 ; LDB 18 l.46

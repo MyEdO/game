@@ -293,11 +293,11 @@ export function availableAttacks(active: Combatant, battle: BattleState): Attack
     // (AA 10 l.169/171). DIRECTE (canon/baliste) : ciblage de combattant classique. Flag DONNÉE, zéro liste en dur.
     if (w) out.push({ id: 'poste', label: `Servir ${w.label}`, icon: 'action/serve-engine', targeting: 'melee', weaponUid: w.uid, cost: { action: true, advantage: 0 }, ...(w.indirect ? { indirect: true } : {}) });
   }
-  // (4) « Au Contact » (LDB 62 l.176, Option « Longueur d'arme », règle optionnelle `combat-weapon-reach`) :
+  // (4) « Au Contact » (LDB 62 l.176, Option « Longueur d'arme », règle optionnelle `combat-longueur-arme`) :
   //     Test opposé de Corps à corps pour entrer dans la longueur d'arme. Dispo si la règle est ON, l'Action
   //     dispo, et un adversaire Engagé présente une différence d'allonge pertinente. Choix EXPLICITE de
   //     l'« Attaque ▾ », pas une frappe.
-  if (rule('combat-weapon-reach') && actionDispo && battle.combatants.some((c) => auContactEligible(active, c)))
+  if (rule('combat-longueur-arme') && actionDispo && battle.combatants.some((c) => auContactEligible(active, c)))
     out.push({ id: 'aucontact', label: 'Au contact', icon: 'action/attack', targeting: 'aucontact', cost: { action: true, advantage: 0 } });
   // (5) Empoignade EN COURS (LDB 14 l.161) : action à son tour entre deux Empoignés — Test opposé de Force
   //     (Dégâts / Empêtré) ou « Briser » (Avantage supérieur). Dispo si l'Action est dispo et un adversaire

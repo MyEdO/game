@@ -267,8 +267,8 @@ describe('#1279 S4-b — l’adversaire de scène GARDE sa rangée dans la manch
  * jamais un id de PNJ nommé au code.
  */
 describe('#1279 — la table s’ouvre sur l’offre du PROPOSEUR', () => {
-  beforeEach(() => { setRule('tavern-games', true); });
-  afterAll(() => { resetRule('tavern-games'); });
+  beforeEach(() => { setRule('jeux-de-taverne', true); });
+  afterAll(() => { resetRule('jeux-de-taverne'); });
 
   it('l’Effet de dialogue du proposeur PASSE son id : la modale s’ouvre pré-sélectionnée sur lui', () => {
     poseScene([pnjDeScene('pnj-plantule', 'Plantule', 55, { id: 'dominos', stakeBrass: 12 })]);

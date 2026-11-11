@@ -192,7 +192,7 @@ describe('#1262 lot 3 — un « Vous pouvez… » ne se tranche pas chez l’hô
     const choix = etapes().find((s) => s.kind === 'choixDeclenche');
     expect(choix, 'la décision de l’invité n’est plus prise à sa place').toBeTruthy();
     expect(choix!.actorId).toBe(H.id);
-    expect(choix!.defaultChoice, 'Renoncer par défaut').toBe('no');
+    expect(choix!.defaultChoice, 'Renoncer par défaut').toBe('non');
     expect(modalOwnerOf(g())).toBe(H.id);
     expect(seatOwns(g(), 1, H.id)).toBe(true);
     const h = g().battle!.combatants.find((c) => c.id === H.id)!;

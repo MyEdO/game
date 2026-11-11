@@ -141,7 +141,7 @@ describe('Focalisation CRITIQUE (l.185-186)', () => {
   // Sous `VDM 02 l.145` (`focusCriticalDR`) : un DR bonus = BFM s'ajoute, SANS compléter au NI —
   // mesuré ici sur un Sort de NI 8 pour distinguer le delta du comportement LDB par défaut (ci-dessus).
   it('option VDM : DR bonus = Bonus de Force Mentale, sort NON complété au NI', () => {
-    setRule('magic-vdm-incantation', true);
+    setRule('magie-vdm-incantation', true);
     const w = wiz();
     w.spells = ['manifestation-de-demon-mineur', ...(w.spells ?? [])];
     w.skills.push({ id: 'focalisation', characteristic: 'force-mentale', advances: 8 } as never);
@@ -154,7 +154,7 @@ describe('Focalisation CRITIQUE (l.185-186)', () => {
     const ni = findSpellById('manifestation-de-demon-mineur')!.cn ?? 0;
     expect(after.focus?.dr).toBe(1 + 3); // 1 (DR déjà accumulé) + 3 (BFM), loin sous le NI 8
     expect(after.focus!.dr).toBeLessThan(ni);
-    resetRule('magic-vdm-incantation');
+    resetRule('magie-vdm-incantation');
   });
 
   it('Harmonisation aethyrique : pas de contrecoup sur la Focalisation Critique', () => {
@@ -174,7 +174,7 @@ describe('Focalisation CRITIQUE (l.185-186)', () => {
   // Domaine que l'incantation — la rangée « Marqué par la Magie » doit atteindre les Marques du Vent
   // FOCALISÉ. Jet figé : la graine 143 donne 88 au premier d100 (rangée 86-90 du tableau VDM).
   it('option VDM : la Focalisation Critique d’un Sort de Feu marque le lanceur (Marques d’Aqshy)', () => {
-    setRule('magic-vdm-incantation', true);
+    setRule('magie-vdm-incantation', true);
     const w = wiz();
     w.spells = ['cauteriser'];
     w.skills.push({ id: 'focalisation', characteristic: 'force-mentale', advances: 8 } as never);
@@ -187,7 +187,7 @@ describe('Focalisation CRITIQUE (l.185-186)', () => {
     const marques = findEffectTableById('vdm-marques-arcaniques-feu').entries;
     const tiree = marques.filter((r) => j.includes((r.ops[0] as { text: string }).text));
     expect(tiree, 'aucune Marque d’Aqshy dans le journal').toHaveLength(1);
-    resetRule('magic-vdm-incantation');
+    resetRule('magie-vdm-incantation');
   });
 });
 

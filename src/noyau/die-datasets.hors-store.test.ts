@@ -3,16 +3,9 @@ import artilleryMisfireJson from '../data/artillery-misfire.json';
 import { artilleryMisfireDie } from '../data/artilleryMisfire';
 import { deDeTirageDe } from '../data/rangees';
 import { RIVER_CRIT_SET } from '../data/shipCriticals';
-import { deDeLaTable, setDeDeTable, type DatasetKey } from '../data/overrides';
+import { sousLeDe } from '../data/deDeLaTable.testkit';
 import { rollShipCritical } from '../engine/shipCritical';
 import { rollStructureCritical } from '../engine/structureCritical';
-
-/** `corps` joué sous le dé `die` posé au seam (`setDeDeTable`) sur la table de `cle`, le dé imprimé rendu ensuite. */
-function sousLeDe(cle: DatasetKey, die: string, corps: () => void): void {
-  const imprime = deDeLaTable(cle)!;
-  setDeDeTable(cle, die);
-  try { corps(); } finally { setDeDeTable(cle, imprime); }
-}
 
 describe('dés authorés des tables — câblage aux lecteurs', () => {
   it.each(['2d10', 'd10+1'])('la Salve refuse une expression incompatible avec sa porte : %s', (die) => {

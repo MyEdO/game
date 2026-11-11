@@ -20,12 +20,12 @@ import { catalogEntryOf, devisDuPanier, prixDeLigne, coutDeReparation, devisDeTr
 
 const bourseDuGroupe = (p: Partie) => toBrass(p.etat().party.reduce((s, h) => moneyAdd(s, bourseOf(h)), fromBrass(0)));
 
-/** Ouvre l'armurier pour un groupe au Statut le plus haut, bourse de 50 CO, règle `market-tenir-comptes` posée. */
+/** Ouvre l'armurier pour un groupe au Statut le plus haut, bourse de 50 CO, règle `marche-tenir-comptes` posée. */
 function ouvrir(tenirComptes: boolean, objets: ItemInstance[] = [], mode: 'local' | 'invite' = 'local'): { partie: Partie; budget: number } {
   const { career, careerLevel, budget } = statutLePlusHaut();
   const scene = { ...emptyScene('marche', 4, 4), id: 'marche' };
   scene.entities.push({ id: 'pnj', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 0, y: 0 }, merchant: { archetype: { id: 'armurier' }, buyMarkup: MAJORATION } } as never);
-  const entrees: EntreesDeLaPartie = { graine: 4, reglesMaison: { 'market-tenir-comptes': tenirComptes }, cadence: 'manuel', desFixes: false, persisterLeHeros: () => {} };
+  const entrees: EntreesDeLaPartie = { graine: 4, reglesMaison: { 'marche-tenir-comptes': tenirComptes }, cadence: 'manuel', desFixes: false, persisterLeHeros: () => {} };
   const partie = creerPartie({
     ...etatInitialDuJeu(),
     party: tousLesHerosDeScenario(idsDeTest).slice(0, 1).map((h) => withBourseMoney({ ...h, career, careerLevel, items: [...(h.items ?? []), ...objets] }, { gold: 50, silver: 0, brass: 0 }, idsDeTest)),

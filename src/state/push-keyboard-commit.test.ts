@@ -39,8 +39,8 @@ describe('#199 — Entrée commet la poussée MÊME avec le focus résiduel du b
     const before = { ...soldat.pos! };
     // 1er appui : `nextCaseCursorTile` pose le curseur sur la case valide la plus proche (l'ancre elle-même,
     // coût 0) ; 2e appui : bouge réellement — comportement DOCUMENTÉ de la navigation mode-CASE, pas le bug.
-    useGame.getState().moveCursor('up');
-    useGame.getState().moveCursor('up');
+    useGame.getState().moveCursor('haut');
+    useGame.getState().moveCursor('haut');
     expect(useGame.getState().combatCursor!.tile).not.toEqual(before);
     useGame.getState().commitCursor(); // Entrée, focus résiduel du bouton « Pousser » N'EST PLUS un obstacle
     const st = useGame.getState();
@@ -54,8 +54,8 @@ describe('#199 — Entrée commet la poussée MÊME avec le focus résiduel du b
     const soldat = await ouvrirLeBelierAuTourDuSoldat();
     useGame.getState().pousserLEngin();
     const before = { ...soldat.pos! };
-    useGame.getState().moveCursor('up');
-    useGame.getState().moveCursor('up');
+    useGame.getState().moveCursor('haut');
+    useGame.getState().moveCursor('haut');
     useGame.getState().commitCursor();
     expect(useGame.getState().battle!.combatants.find((c) => c.id === soldat.id)!.pos).not.toEqual(before);
     useGame.getState().annulerLeDeplacement();
@@ -73,7 +73,7 @@ describe('42-belier-porte — le curseur clavier du mode Pousser', () => {
     const north = { x: start.x, y: start.y - 1 };
     expect(useGame.getState().battle!.reachable.has(`${north.x},${north.y}`)).toBe(true); // au menu du mode
     let found = false;
-    const dirs: Array<'up' | 'down' | 'left' | 'right'> = ['up', 'down', 'left', 'right'];
+    const dirs: Array<'haut' | 'bas' | 'gauche' | 'droite'> = ['haut', 'bas', 'gauche', 'droite'];
     for (const d1 of dirs) {
       useGame.setState({ combatCursor: null });
       useGame.getState().moveCursor(d1);

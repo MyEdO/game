@@ -3,11 +3,11 @@
  * squelette de la base, valide le manifeste de base, pose gabarit et silhouettes, mesure au repos les shape keys de la
  * base (`gardes/silhouettes.ts`), échantillonne les clips, puis appelle chaque garde de `gardes/` : `poids`,
  * `enroulement`, `budget`, `pistesDEchelle`, `chaines`, `echelleDuRigide`, `tranchantDuRigide`, `silhouettes`, `segments`, `appuis`,
- * `piedsAuSol`, `etirement`, `suiviDuCorps`, `traversee`, `amplitude`.
+ * `piedsAuSol`, `etirement`, `suiviDuCorps`, `traversee`, `membreDansUnVetement`, `membres`, `amplitude`.
  * Le corps est l'ensemble des meshes de zone de la base (`extras.zone`) ; une base sans zone est un corps d'un seul
  * tenant : ses meshes skinnés.
  */
-import { Skeleton, type Bone, type Object3D, type SkinnedMesh } from 'three';
+import { Skeleton, type Bone, type Mesh, type Object3D, type SkinnedMesh } from 'three';
 import { tableTotale } from '../../../../src/lib/tableTotale.ts';
 import { lireGlb } from '../glb.ts';
 import { chargerScene, type SceneChargee } from './chargement.ts';
@@ -32,15 +32,20 @@ import { mesurerSilhouettes, sousLesFormes, type MesuresDesSilhouettes } from '.
 import { etenduesDesSegments, gardeSegments, type MesuresDesSegments } from './gardes/segments.ts';
 import { gardeSuiviDuCorps } from './gardes/suiviDuCorps.ts';
 import { suivreLesAmplitudes } from './gardes/amplitude.ts';
-import { gardeTraversee, lierLesCouches, mesurerTraversee, sansLesZonesMasquees, type TraverseeDUnEchantillon } from './gardes/traversee.ts';
-import { COUCHES, RANG_DU_CORPS, type Couche } from '../element.ts';
+import { gardePercementAuRepos, gardeTraversee, indicesDe, lierLesCouches, mesurerTraversee, sansLesZonesMasquees, type TraverseeDUnEchantillon } from './gardes/traversee.ts';
+import { gardeMembreDansUnVetement, mesurerMembresDansUnVetement, pairesHorsDeZone, zonesVoisines, type MembreDUnEchantillon } from './gardes/membreDansUnVetement.ts';
+import { gardeMembres, mesurerMembres, ZONES_DES_MEMBRES, ZONES_DU_TRONC, type MembreDansLeTronc } from './gardes/membres.ts';
+import { COUCHES, RANG_DU_CORPS, type CategorieDElement, type Couche } from '../element.ts';
+import { meshesDuCorps, zoneDe } from './corps.ts';
+import { poserLaPile } from './pile.ts';
+import { ordreDesCouches, type BilanDePile } from '../pile.ts';
 
 /** Ce qu'un élément déclare de sa place sur le corps : sa couche, et les zones du corps qu'il masque. */
 export interface CoucheDeLElement {
   readonly couche: Couche;
   readonly couvre: readonly string[];
+  readonly categorie?: CategorieDElement;
 }
-import { meshesDuCorps, zoneDe } from './corps.ts';
 
 export interface EntreeDEvaluation {
   readonly base: Uint8Array;
@@ -92,6 +97,8 @@ export interface FicheDeMesures {
     readonly segments: MesuresDesSegments | null;
     /** Les chaînes du manifeste valide, leurs pistes et leurs rotations jouées ; aucune sans manifeste. */
     readonly chaines: readonly MesureDeChaine[];
+    /** Ce que la pile des couches a résolu au montage (`resoudreLaPile`). */
+    readonly pile: BilanDePile;
   };
 }
 
@@ -162,7 +169,8 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
   const base = await chargerScene(entree.base);
   const elements = await Promise.all((entree.elements ?? []).map(chargerScene));
   const corps = meshesDuCorps(base);
-  const zones = new Map([base, ...elements].flatMap((s) => s.meshes.map((m) => [m, zoneDe(m)] as const)));
+  const zones = new Map([base, ...elements].flatMap((s) => s.meshes.flatMap((m) => { const z = zoneDe(m); return typeof z === 'string' ? [[m, z] as const] : []; })));
+  const zone = (m: Mesh): string | undefined => zones.get(m);
   const racine = table?.racine ?? racineDu(base);
   for (const e of elements) monter(base, e);
   const meshes = [base, ...elements].flatMap((s) => s.meshes);
@@ -174,9 +182,11 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
 
   const pose = manifeste && table ? poseDuGabarit({ ...manifeste, gabarit: table }, facteurs) : null;
   const etendues = () => etenduesDesSegments(poseDeRepos(base.scene, corpsSkinne), corpsSkinne, Object.keys(pose?.echellesDesOs ?? {}));
+  const neutre = sousLesFormes(base.scene, nomsDesSilhouettes, (poserSeules) => poserSeules({}, meshes), poidsDesFormesDe(manifeste, FACTEURS_NEUTRES)).positions;
   if (manifeste) poserFormes(base.scene, poidsDesFormesDe(manifeste, FACTEURS_NEUTRES)(poidsDesSilhouettes));
   const sansGabarit = pose ? etendues() : null;
   poserFormes(base.scene, poids);
+  const fondue = poseDeRepos(base.scene, meshes).positions;
   const gabarit = manifeste && table ? appliquerGabarit(base.scene, facteurs, { ...manifeste, gabarit: table }, base.squelette ?? undefined) : null;
   base.scene.updateMatrixWorld(true);
   const segments = pose && sansGabarit ? gardeSegments(sansGabarit, etendues(), pose) : null;
@@ -187,15 +197,24 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
 
   const declarees = elements.flatMap((e, k) => {
     const c = entree.couches?.[k];
-    return c ? [{ rang: COUCHES.indexOf(c.couche), meshes: e.skinnes, couvre: c.couvre }] : [];
+    return c ? [{ rang: COUCHES.indexOf(c.couche), meshes: e.skinnes, couvre: c.couvre, accessoire: c.categorie === 'accessoire' }] : [];
   });
-  const montre = sansLesZonesMasquees(declarees, (m) => zones.get(m) as string | undefined);
+  const montre = sansLesZonesMasquees(declarees, zone);
   const corpsMontre = montre(corps, RANG_DU_CORPS);
-  const declareesMontrees = declarees.map((d) => ({ rang: d.rang, meshes: montre(d.meshes, d.rang) }));
+  const pieceDe = (rang: number, montres: readonly SkinnedMesh[], accessoire: boolean) => ({
+    rang, accessoire, meshes: montres,
+    neutres: montres.map((m) => { const positions = neutre.get(m) as Float32Array; return { positions, indices: Uint32Array.from(indicesDe(m, positions.length / 3)) }; }),
+  });
+  const declareesMontrees = declarees.map((d) => pieceDe(d.rang, montre(d.meshes, d.rang), d.accessoire));
   const visibles = new Set([...corpsMontre, ...declareesMontrees.flatMap((d) => d.meshes)]);
   const masques = new Set([...corps, ...declarees.flatMap((d) => d.meshes)].filter((m) => !visibles.has(m)));
 
   const chaines = manifeste?.chaines ?? {};
+  const silhouettes = mesurerSilhouettes({ scene: base.scene, corps: corpsSkinne, silhouettes: nomsDesSilhouettes, st: table?.st, poidsDesFormes });
+  const sansCles = sousLesFormes(base.scene, nomsDesSilhouettes, (poserSeules) => poserSeules({}, meshes), poidsDesFormes);
+  const couvre = ordreDesCouches<(typeof declareesMontrees)[number]>();
+  const pile = poserLaPile([pieceDe(RANG_DU_CORPS, montre(corpsSkinne, RANG_DU_CORPS), false), ...declareesMontrees], couvre, fondue, new Set(Object.values(chaines).flat()));
+  base.scene.updateMatrixWorld(true);
   const pistesDeChaine = gardePistesDeChaine(base.scene, clips, chaines);
   ecarts.push(
     ...gardePoids({
@@ -211,10 +230,8 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
     ...(manifeste?.prises ? gardeTranchantDuRigide(base.scene, manifeste.prises.main, libelle, entree.armes && new Set(elements.flatMap((e, k) => (entree.armes?.[k] ? e.meshes : [])))) : []),
   );
 
-  const silhouettes = mesurerSilhouettes({ scene: base.scene, corps: corpsSkinne, silhouettes: nomsDesSilhouettes, st: table?.st, poidsDesFormes });
   ecarts.push(...silhouettes.ecarts, ...(segments?.ecarts ?? []));
 
-  const sansCles = sousLesFormes(base.scene, nomsDesSilhouettes, (poserSeules) => poserSeules({}, meshes), poidsDesFormes);
   const repos = poseDeRepos(base.scene, meshes);
   const suiviDesChaines = suivreLesChaines(base.scene, chaines, repos);
   const amplitudes = suivreLesAmplitudes(base.scene, manifeste?.bornesArticulaires ?? {}, repos);
@@ -224,10 +241,17 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
   const etirements: MesureDEtirement[] = [];
   const surfaces = manifeste ? surfacesDesPieds(corpsSkinne, manifeste.appuis.pieds) : [];
   const posesDesPieds: PoseDuPied[] = [];
-  const couches = lierLesCouches(corpsMontre, declareesMontrees, repos);
+  const couches = lierLesCouches(corpsMontre, declareesMontrees, repos, couvre);
   const traversees: TraverseeDUnEchantillon[] = [];
+  const horsDeZone = pairesHorsDeZone(corpsMontre, declareesMontrees.flatMap((d) => d.meshes), zone, zonesVoisines(corps, zone, repos));
+  const membresSousVetement: MembreDUnEchantillon[] = [];
+  const dansLesZones = (noms: readonly string[]) => corps.filter((m) => noms.includes(zone(m) as string));
+  const [membres, tronc] = [dansLesZones(ZONES_DES_MEMBRES), dansLesZones(ZONES_DU_TRONC)];
+  const membresDansLeTronc: MembreDansLeTronc[] = [];
   for (const e of echantillonner(base.scene, meshes, clips, pas, gabarit)) {
-    traversees.push(...mesurerTraversee(couches, e));
+    traversees.push(...mesurerTraversee(couches.liaisons, e));
+    membresSousVetement.push(...mesurerMembresDansUnVetement(horsDeZone, e));
+    membresDansLeTronc.push(...mesurerMembres(membres, tronc, e));
     niveaux.push({ clip: e.clip, t: e.t, plusBas: plusBas(e.positions, corps) });
     etirements.push(mesurerEtirement(aretes, sansCles, e));
     suiviDesChaines.echantillon(e);
@@ -236,7 +260,8 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
   }
   const appuis = mesurerAppuis(posesDesPieds, manifeste ? { [manifeste.clips.marche]: manifeste.appuis.vitesseAuSol * (pose?.echelleDeVitesse ?? 1) } : {});
   ecarts.push(...appuis.ecarts);
-  ecarts.push(...gardePiedsAuSol(niveaux, new Set(entree.clipsAuSol ?? [])), ...gardeEtirement(etirements, libelle), ...gardeTraversee(traversees, libelle), ...amplitudes.ecarts());
+  ecarts.push(...gardePiedsAuSol(niveaux, new Set(entree.clipsAuSol ?? [])), ...gardeEtirement(etirements, libelle), ...gardeTraversee(traversees, libelle), ...gardeMembreDansUnVetement(membresSousVetement, libelle), ...gardeMembres(membresDansLeTronc, libelle), ...amplitudes.ecarts());
+  if (sontNeutres(facteurs) && Object.values(poids).every((p) => p === 0)) ecarts.push(...gardePercementAuRepos(couches.percements, libelle));
 
   const parMesh = meshes.map((m) => ({ mesh: libelle(m), triangles: trianglesDe(m) }));
   return {
@@ -256,6 +281,7 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
       silhouettes: silhouettes.mesures,
       segments: segments?.mesures ?? null,
       chaines: suiviDesChaines.mesures(pistesDeChaine.clipsPistes),
+      pile,
     },
   };
 }

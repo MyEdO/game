@@ -4,7 +4,7 @@
  * expose leur réglage passe par ici ; leur persistance reste à l'hôte (`hote/reglesMaison.ts`).
  */
 import { t } from '../i18n';
-import { loadRuleOverrides, resetRule, setRule, type RuleValue } from '../engine/policy';
+import { loadRuleOverrides, resetRule, setRule, type RegleOptionnelleId, type RuleValue } from '../engine/policy';
 import { elaguerLePersiste, rienDElague, type RetraitsDElagage } from './persistance/elagage';
 import type { Jeu } from './etat';
 
@@ -30,14 +30,14 @@ export function poserLesReglesMaisonPersistees(persiste: Readonly<Record<string,
 }
 
 /** Surcharge la règle `id` de `valeur`, si le verrou de `s` le permet ; rend vrai si elle est posée. */
-export function surchargerUneRegleMaison(s: Pick<Jeu, 'battle'>, id: string, valeur: RuleValue): boolean {
+export function surchargerUneRegleMaison(s: Pick<Jeu, 'battle'>, id: RegleOptionnelleId, valeur: RuleValue): boolean {
   if (!reglesMaisonMutables(s).mutable) return false;
   setRule(id, valeur);
   return true;
 }
 
 /** Remet la règle `id` à son défaut, si le verrou de `s` le permet ; rend vrai si elle est remise. */
-export function retablirUneRegleMaison(s: Pick<Jeu, 'battle'>, id: string): boolean {
+export function retablirUneRegleMaison(s: Pick<Jeu, 'battle'>, id: RegleOptionnelleId): boolean {
   if (!reglesMaisonMutables(s).mutable) return false;
   resetRule(id);
   return true;

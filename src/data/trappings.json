@@ -38,7 +38,7 @@
       "id": "baton"
     },
     "rangement": {
-      "id": "epaule_d"
+      "id": "dos"
     }
   },
   {
@@ -83,7 +83,7 @@
       "id": "hallebarde"
     },
     "rangement": {
-      "id": "epaule_d"
+      "id": "dos"
     },
     "bladed": true
   },
@@ -123,7 +123,7 @@
       "id": "lance"
     },
     "rangement": {
-      "id": "epaule_d"
+      "id": "dos"
     }
   },
   {
@@ -162,7 +162,7 @@
       "id": "pique"
     },
     "rangement": {
-      "id": "epaule_d"
+      "id": "dos"
     }
   },
   {
@@ -735,7 +735,7 @@
       "id": "lance_cavalerie"
     },
     "rangement": {
-      "id": "epaule_d"
+      "id": "dos"
     },
     "capabilities": {
       "improvisedWithoutCharge": true
@@ -7158,7 +7158,7 @@
     "price": null,
     "niPerGram": 20,
     "niConsumedPerDR": 1,
-    "maison": "VDM 02 l.163-165 ne fixe aucune formule de consommation de la réserve : 1 NI par point de DR bonus accordé (défaut). Le doublement (LDB 46 l.173) s'applique PLEIN dès qu'un reliquat de réserve existe (le RAW ne prévoit pas de doublement partiel/proratisé). Arbitrage MAISON supplémentaire : sous le Livre de base seul (option `magic-vdm-incantation` OFF), la réserve est INÉPUISABLE tant que l'objet est porté — `LDB 46 l.173` n'indique aucune limite ni épuisement, ce silence n'est pas une inconditionnalité RAW mais un choix d'arbitrage (la réserve réellement finie est le seul apport de `VDM 02 l.165`).",
+    "maison": "VDM 02 l.163-165 ne fixe aucune formule de consommation de la réserve : 1 NI par point de DR bonus accordé (défaut). Le doublement (LDB 46 l.173) s'applique PLEIN dès qu'un reliquat de réserve existe (le RAW ne prévoit pas de doublement partiel/proratisé). Arbitrage MAISON supplémentaire : sous le Livre de base seul (option `magie-vdm-incantation` OFF), la réserve est INÉPUISABLE tant que l'objet est porté — `LDB 46 l.173` n'indique aucune limite ni épuisement, ce silence n'est pas une inconditionnalité RAW mais un choix d'arbitrage (la réserve réellement finie est le seul apport de `VDM 02 l.165`).",
     "source": {
       "book": "livre-de-base",
       "page": 182
@@ -7195,7 +7195,7 @@
     "price": null,
     "niPerGram": 20,
     "niConsumedPerDR": 1,
-    "maison": "VDM 02 l.163-165 ne fixe aucune formule de consommation de la réserve : 1 NI par point de DR bonus accordé (défaut). Le doublement (LDB 46 l.173) s'applique PLEIN dès qu'un reliquat de réserve existe (le RAW ne prévoit pas de doublement partiel/proratisé). Arbitrage MAISON supplémentaire : sous le Livre de base seul (option `magic-vdm-incantation` OFF), la réserve est INÉPUISABLE tant que l'objet est porté — `LDB 46 l.173` n'indique aucune limite ni épuisement, ce silence n'est pas une inconditionnalité RAW mais un choix d'arbitrage (la réserve réellement finie est le seul apport de `VDM 02 l.165`).",
+    "maison": "VDM 02 l.163-165 ne fixe aucune formule de consommation de la réserve : 1 NI par point de DR bonus accordé (défaut). Le doublement (LDB 46 l.173) s'applique PLEIN dès qu'un reliquat de réserve existe (le RAW ne prévoit pas de doublement partiel/proratisé). Arbitrage MAISON supplémentaire : sous le Livre de base seul (option `magie-vdm-incantation` OFF), la réserve est INÉPUISABLE tant que l'objet est porté — `LDB 46 l.173` n'indique aucune limite ni épuisement, ce silence n'est pas une inconditionnalité RAW mais un choix d'arbitrage (la réserve réellement finie est le seul apport de `VDM 02 l.165`).",
     "source": {
       "book": "livre-de-base",
       "page": 183
@@ -7329,7 +7329,7 @@
             "mod": 20
           },
           {
-            "op": "actGate",
+            "op": "testDAgir",
             "characteristic": "force-mentale"
           }
         ]
@@ -9828,7 +9828,7 @@
       "id": "demi_lance"
     },
     "rangement": {
-      "id": "epaule_d"
+      "id": "dos"
     },
     "capabilities": {
       "improvisedWithoutCharge": true
@@ -10214,7 +10214,7 @@
       "id": "ahlspiess"
     },
     "rangement": {
-      "id": "epaule_d"
+      "id": "dos"
     }
   },
   {
@@ -10257,7 +10257,7 @@
       "id": "attrape_coquin"
     },
     "rangement": {
-      "id": "epaule_d"
+      "id": "dos"
     }
   },
   {
@@ -10313,7 +10313,7 @@
       "id": "hache_armes"
     },
     "rangement": {
-      "id": "epaule_d"
+      "id": "dos"
     },
     "bladed": true
   },
@@ -10368,7 +10368,7 @@
       "id": "pertuisane"
     },
     "rangement": {
-      "id": "epaule_d"
+      "id": "dos"
     },
     "bladed": true
   },
@@ -10422,7 +10422,7 @@
       "id": "serpe_guerre"
     },
     "rangement": {
-      "id": "epaule_d"
+      "id": "dos"
     },
     "bladed": true
   },
@@ -14429,7 +14429,7 @@
       "id": "baton"
     },
     "rangement": {
-      "id": "epaule_d"
+      "id": "dos"
     }
   },
   {

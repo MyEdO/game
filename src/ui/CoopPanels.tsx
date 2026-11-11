@@ -180,7 +180,7 @@ export function CoopBanner({ icone, children }: { icone: IconIdInput; children: 
 export function liaisonASignaler(net: NetState): { icone: IconIdInput; texte: string } | null {
   if (net.mode === 'invite' && net.connection === 'reconnexion')
     return { icone: 'ui/warning', texte: 'Reconnexion en cours…' };
-  if (net.mode === 'invite' && net.hostAway)
+  if (net.mode === 'invite' && net.hoteAbsent)
     return { icone: 'ui/wait', texte: 'L’hôte est déconnecté — la partie reprendra à son retour.' };
   if (net.mode === 'hote') {
     const away = Object.entries(net.presence)
@@ -195,9 +195,9 @@ export function liaisonASignaler(net: NetState): { icone: IconIdInput; texte: st
 export function CoopHostSections() {
   return (
     <>
-      <CoopSection title={t('coop.host.invite.section')}><CoopRoomPanel /></CoopSection>
-      <CoopSection title={t('coop.host.players.section')}><CoopSeatList /></CoopSection>
-      <CoopSection title={t('coop.host.assign.section')}><CoopAssignList /></CoopSection>
+      <CoopSection title={t('coop.hote.inviter.section')}><CoopRoomPanel /></CoopSection>
+      <CoopSection title={t('coop.hote.joueurs.section')}><CoopSeatList /></CoopSection>
+      <CoopSection title={t('coop.hote.attribution.section')}><CoopAssignList /></CoopSection>
     </>
   );
 }

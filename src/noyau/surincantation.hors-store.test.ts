@@ -147,14 +147,14 @@ describe('Surincantation — budget sur le NI effectif du jet', () => {
       expect(allouer(p, 'duration', 20)).toBe(0);
     }, {}, 11);
   });
-  it('« Puissance totale » sous `magic-vdm-incantation` : les dizaines ne donnent aucun pas à un jet sous le NI (`VDM 02 l.55`)', () => {
+  it('« Puissance totale » sous `magie-vdm-incantation` : les dizaines ne donnent aucun pas à un jet sous le NI (`VDM 02 l.55`)', () => {
     lancer(FIXTURES.puissanceVdm, (p) => {
       const res = p.etat().pendingCast!.result!;
       expect(res, 'le double 88 réussit sous le NI 5').toMatchObject({ cast: false, isCritical: true });
       expect(res.sl + 8, 'les dizaines du lancer dépassent le NI').toBeGreaterThanOrEqual(5 + 2);
       p.envoyer({ type: 'jetRegler', args: ['incantation', 'effetCritique', 'puissance'] });
       expect(allouer(p, 'duration', 20)).toBe(0);
-    }, {}, 88, { 'magic-vdm-incantation': true });
+    }, {}, 88, { 'magie-vdm-incantation': true });
   });
   it('Sort dissipé : ni lancé, ni budget, ni plan de l’IA (`LDB 46 l.156`)', () => {
     lancer(FIXTURES.critique, (p) => {

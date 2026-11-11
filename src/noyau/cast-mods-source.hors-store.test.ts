@@ -226,12 +226,12 @@ describe('castTestDRMods — gates par composante (#948)', () => {
   });
 
   it('lieu (VDM 14 l.167) : chaque kind lit SA clé, sous l’option et sur la réussite', () => {
-    setRule('magic-vdm-environnementale', true);
+    setRule('magie-vdm-environnementale', true);
     expect(castTestDRMods(NU(), 'incantation', { spell: SORT('feu'), env: ATTENUATION }), 'Atténuation : −2 DR d’Incantation muet').toBe(-2);
     expect(castTestDRMods(NU(), 'dissipation', { env: ATTENUATION }), 'Atténuation : +2 DR de Dissipation muet').toBe(2);
     expect(castTestDRMods(NU(), 'focalisation', { spell: SORT('feu'), env: ATTENUATION }), 'la clé d’Incantation fuit vers la Focalisation').toBe(0);
     expect(castTestDRMods(NU(), 'dissipation', { env: ATTENUATION, success: false }), 'modificateur de lieu appliqué à un Test RATÉ').toBe(0);
-    resetRule('magic-vdm-environnementale');
+    resetRule('magie-vdm-environnementale');
     expect(castTestDRMods(NU(), 'dissipation', { env: ATTENUATION }), 'option désactivée : le lieu modifie quand même le Test').toBe(0);
   });
 });

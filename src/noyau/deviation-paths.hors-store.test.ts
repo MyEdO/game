@@ -166,7 +166,7 @@ describe('Projectile magique — recompte à PA−n (LDB 63 l.32 ; VDM 02 l.198)
   // Les Blessures d'une touche Déviée se relisent à PA−n avec les MÊMES pas de Dégâts (`VDM 02 l.198`) :
   // l'écart PA−1 ne dépend pas des pas alloués.
   it('avec des pas de Dégâts alloués (Surincantation VDM) → même écart PA−1 qu\'à 0 pas', () => {
-    setRule('magic-vdm-incantation', true);
+    setRule('magie-vdm-incantation', true);
     const ecart = (pas: number) => (evaluateMissile(caster, mk('hero', 'T', { armour: uniformArmour(3) }), missileSpell(), cr, 'corps', pas).woundsLost ?? 0)
       - (evaluateMissile(caster, mk('hero', 'T', { armour: uniformArmour(4) }), missileSpell(), cr, 'corps', pas).woundsLost ?? 0);
     expect(ecart(3)).toBe(ecart(0));
@@ -264,7 +264,7 @@ describe('Projectile magique — Déviation Critique (LDB 46 l.30 + 63 l.30)', (
   });
 
   it('ENNEMI : règle OFF → ne dévie PLUS, subit le Critique (criticalWounds +1, PA intacte)', () => {
-    setRule('combat-critical-deflect', false);
+    setRule('combat-deviation-critique', false);
     const caster = mage('hero', 'h-mage');
     const t = mk('enemy', 'e-cible', { armour: uniformArmour(4) });
     setBattle([caster, t]);
@@ -340,8 +340,8 @@ describe('Projectile magique — Déviation Critique (LDB 46 l.30 + 63 l.30)', (
     expect(fenetres.size, 'les deux Critiques à la Localisation unique').toBe(1);
   });
 
-  it('HÉROS blindé, règle `combat-critical-deflect` OFF → la fenêtre ne porte que le dé, Critique subi', () => {
-    setRule('combat-critical-deflect', false);
+  it('HÉROS blindé, règle `combat-deviation-critique` OFF → la fenêtre ne porte que le dé, Critique subi', () => {
+    setRule('combat-deviation-critique', false);
     const caster = mage('enemy', 'e-mage');
     const t = mk('hero', 'h-cible', { armour: uniformArmour(4) });
     setBattle([caster, t]);

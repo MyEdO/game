@@ -2333,7 +2333,7 @@ const CODEX_SPECS = {
     label: 'codex.fiche.navigationMaritimeProgressionSalissuresOrientationPhares', group: 'tables', cluster: 'codex.fiche.merRiviere', sourceRef: 'MDG 13/15',
     build: () => {
       const n = datasetObject('seaNavigation');
-      const derive = n.orientation.reperes.find((r) => r.outcome === 'drift-major'); // MDG 13 l.320
+      const derive = n.orientation.reperes.find((r) => r.outcome === 'derive-majeure'); // MDG 13 l.320
       return [{
         id: 'seaNavigation', label: tr('codex.fiche.navigationMaritime'), source: src(n.workPeriodHours.source),
         sections: sections(

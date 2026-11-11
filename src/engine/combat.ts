@@ -587,7 +587,7 @@ export const DEFENSE_LABEL: Record<'parade' | 'esquive', string> = { parade: t('
  * elle n'est qu'un échantillon (chapeau l.48), et l'exemple chiffré l.96 plafonne une situation DU
  * JETEUR (« alors qu'on se trouve dans la neige jusqu'à la taille ») avec l'État d'un adversaire.
  * États DU JETEUR hors plafond : LDB 14 l.95-96 ; LDB 16 l.11, l.13 ; Soutien LDB 12 l.189.
- * Les deux plafonds sont des règles optionnelles (`combat-diff-cap-bonus`/`-malus`).
+ * Les deux plafonds sont des règles optionnelles (`combat-plafond-bonus-difficulte`/`-malus`).
  *
  * Les deux exemples du livre, VERBATIM (l.95-96) :
  *   « Si la situation nécessite l'ajout de deux pénalités ou plus, contentez-vous de faire la somme
@@ -613,8 +613,8 @@ export function combineMods(mods: ModLine[]): number {
     else if (m.value >= 0) pos += m.value;
     else neg += m.value;
   }
-  const capBonus = rule('combat-diff-cap-bonus') as number;
-  const capMalus = rule('combat-diff-cap-malus') as number;
+  const capBonus = rule('combat-plafond-bonus-difficulte') as number;
+  const capMalus = rule('combat-plafond-malus-difficulte') as number;
   return free + Math.min(capBonus, pos) + Math.max(-capMalus, neg);
 }
 
@@ -732,12 +732,12 @@ export function defenseTargetMods(
   return mods;
 }
 
-/** Option « Longueur d'Arme » (LDB 62 l.172, règle optionnelle `combat-weapon-reach`) : si l'arme de
+/** Option « Longueur d'Arme » (LDB 62 l.172, règle optionnelle `combat-longueur-arme`) : si l'arme de
  *  mêlée de l'adversaire a une Allonge SUPÉRIEURE à la vôtre, vous subissez −10 pour le toucher. La
  *  comparaison porte sur DEUX longueurs (`meleeReachRank`) : une seule non ordonnable → aucun malus.
  *  Adversaire sans arme de mêlée = Mains nues, « Personnelle » (l.28/l.158) : jamais plus long. Pure. */
 export function weaponReachPenalty(attackerWeapon: Weapon, targetMelee: Weapon | undefined): number {
-  if (!rule('combat-weapon-reach')) return 0;
+  if (!rule('combat-longueur-arme')) return 0;
   const target = meleeReachRank(targetMelee);
   const attacker = meleeReachRank(attackerWeapon);
   return target != null && attacker != null && target > attacker ? modDeRegle('allonge-longueur-d-arme', 'arme-plus-longue') : 0;
@@ -1344,7 +1344,7 @@ export function resolveMelee(
   // par le chemin normal, Destin possible). Le tir n'est PAS concerné (cf. resolveRanged).
   const helpless = isHelplessTarget(defender);
   if (helpless) atk = helplessTest(atk, 'melee');
-  const autoKill = helpless && rule('combat-helpless-mode') === 'mort-auto';
+  const autoKill = helpless && rule('combat-cible-inconsciente') === 'mort-auto';
   let res: AttackResult;
   // Difficulté COMPOSÉE ICI, une fois, avec les mods COMPLETS (flanc/dos compris — `rollMeleeAttacker`
   // les a déjà pesés sur la cible) : les deux branches la reçoivent FIGÉE, aucune ne la recompose

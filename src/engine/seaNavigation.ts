@@ -148,13 +148,13 @@ export function weeklyFoulingLevel(level: number, success: boolean): { level: nu
 
 // ── Orientation : Repères & Changement de cap (MDG 13 l.307-331) ────────────────────────────────────────
 
-export type OrientationOutcome = 'exact' | 'ok' | 'drift-minor' | 'drift' | 'drift-major';
+export type OrientationOutcome = 'exact' | 'correct' | 'derive-mineure' | 'derive' | 'derive-majeure';
 export type CourseChangeOutcome = 'aucun' | 'retard' | 'quart-de-tour' | 'demi-tour';
 
 export interface OrientationResult {
   outcome: OrientationOutcome;
   desc: string;
-  /** Le tableau Changement de cap doit être tiré (dérive avérée — `drift-minor` répété inclus). */
+  /** Le tableau Changement de cap doit être tiré (dérive avérée — `derive-mineure` répété inclus). */
   rollCourseChange: boolean;
   /** Bonus au d10 de Changement de cap (« –5 ou moins … ajoutez 2 au résultat », MDG 13 l.320). */
   courseChangeBonus: number;
@@ -165,8 +165,8 @@ export interface OrientationResult {
  *  lancez le dé », MDG 13 l.318). PUR. */
 export function orientationOutcome(dr: number, minorDriftBefore: boolean): OrientationResult {
   const row = findTableEntry(tables().reperes, dr);
-  const rollCourseChange = row.outcome === 'drift' || row.outcome === 'drift-major' || (row.outcome === 'drift-minor' && minorDriftBefore);
-  return { outcome: row.outcome, desc: row.desc, rollCourseChange, courseChangeBonus: row.outcome === 'drift-major' ? DATA.orientation.driftMajorBonus : 0 };
+  const rollCourseChange = row.outcome === 'derive' || row.outcome === 'derive-majeure' || (row.outcome === 'derive-mineure' && minorDriftBefore);
+  return { outcome: row.outcome, desc: row.desc, rollCourseChange, courseChangeBonus: row.outcome === 'derive-majeure' ? DATA.orientation.driftMajorBonus : 0 };
 }
 
 export interface CourseChangeResult {

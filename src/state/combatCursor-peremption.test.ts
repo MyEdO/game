@@ -60,7 +60,7 @@ afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); useGame.setState({ ba
 describe('curseurPerime — le curseur suit la fenêtre de geste', () => {
   it('fin de combat : la victoire périme le curseur', () => {
     duel(1);
-    get().moveCursor('right');
+    get().moveCursor('droite');
     expect(get().combatCursor, 'témoin : le curseur est posé').not.toBeNull();
     finishCombatEnd(get, useGame.setState);
     expect(get().battle!.over).toBe('victoire');
@@ -69,7 +69,7 @@ describe('curseurPerime — le curseur suit la fenêtre de geste', () => {
 
   it('tour achevé : la fin de tour périme le curseur', () => {
     duel(1);
-    get().moveCursor('right');
+    get().moveCursor('droite');
     expect(get().combatCursor, 'témoin : le curseur est posé').not.toBeNull();
     advanceTurn(get, useGame.setState);
     expect(get().combatCursor).toBeNull();
@@ -78,7 +78,7 @@ describe('curseurPerime — le curseur suit la fenêtre de geste', () => {
   it('tour achevé dans le Round : la main qui passe périme le curseur', () => {
     const { H, E } = duel(0);
     useGame.setState({ battle: { ...get().battle!, order: [H.id, E.id] } });
-    get().moveCursor('right');
+    get().moveCursor('droite');
     expect(get().combatCursor, 'témoin : le curseur est posé').not.toBeNull();
     advanceTurn(get, useGame.setState);
     expect(get().battle!.round, 'témoin : le Round ne change pas').toBe(1);
@@ -101,7 +101,7 @@ describe('curseurPerime — le curseur suit la fenêtre de geste', () => {
       movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
     };
     useGame.setState({ screen: 'campaign', party: [hero], mode: 'battle', battle, scene: testScene(), combatCursor: null, preemptAiming: null });
-    get().moveCursor('right');
+    get().moveCursor('droite');
     const pose = get().combatCursor;
     expect(pose, 'témoin : le curseur est posé').not.toBeNull();
     get().monterEnSelle();
@@ -129,7 +129,7 @@ describe('curseurPerime — le curseur suit la fenêtre de geste', () => {
 
   it('une écriture sans rapport avec la fenêtre ne périme pas le curseur', () => {
     duel(1);
-    get().moveCursor('right');
+    get().moveCursor('droite');
     const pose = get().combatCursor;
     expect(pose, 'témoin : le curseur est posé').not.toBeNull();
     get().armerLIntention('course');

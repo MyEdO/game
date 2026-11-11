@@ -44,10 +44,10 @@ export function AuContactModal() {
   const foe = battle.combatants.find((c) => c.id === pd.foeId);
   if (!mover || !foe) return null;
   const rolled = !!pd.def;
-  const winnerIndex = pd.result === 'success' ? 1 : pd.result === 'failure' ? 0 : null;
+  const winnerIndex = pd.result === 'reussite' ? 1 : pd.result === 'echec' ? 0 : null;
   const outcome =
-    pd.result === 'success' ? `${mover.label} l'emporte — à toi de choisir.`
-    : pd.result === 'failure' ? `${foe.label} l'emporte et choisit.`
+    pd.result === 'reussite' ? `${mover.label} l'emporte — à toi de choisir.`
+    : pd.result === 'echec' ? `${foe.label} l'emporte et choisit.`
     : 'Égalité parfaite : le combat se poursuit normalement.';
 
   // Test OPPOSÉ de Corps à corps : la Difficulté est DÉCLARÉE UNE fois pour l'opposition entière
@@ -72,7 +72,7 @@ export function AuContactModal() {
     rerolled: !!pd.rerolled,
     // Égalité comprise : l'opposition n'est pas emportée (LDB 17 l.68) — l'accent `winner` ne la dit
     // pas (il n'existe qu'une fois l'opposition tranchée).
-    lost: pd.result !== 'success',
+    lost: pd.result !== 'reussite',
     onReroll: reroll,
     onBonusSL: bonusSL,
     onDarkPact: darkPact,
@@ -82,7 +82,7 @@ export function AuContactModal() {
   });
 
   const issue = pd.def
-    ? [recapLineOfEvent(ev(pd.result === 'success' ? 'esquive' : 'attaque', outcome, mover.id, foe.id), battle.combatants)]
+    ? [recapLineOfEvent(ev(pd.result === 'reussite' ? 'esquive' : 'attaque', outcome, mover.id, foe.id), battle.combatants)]
     : undefined;
 
   const actions: RollAction[] = [

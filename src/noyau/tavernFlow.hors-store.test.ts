@@ -57,9 +57,9 @@ function twoHeroes(): [Combatant, Combatant] {
 beforeEach(() => {
   banc.setState({ battle: null, party: [], journal: [], tavernGames: null, pendingCascade: null });
   seedBattleRng(3);
-  setRule('tavern-games', true); // la table s'ouvre sous l'option (`refusDOuvrirLaTaverne`)
+  setRule('jeux-de-taverne', true); // la table s'ouvre sous l'option (`refusDOuvrirLaTaverne`)
 });
-afterEach(() => resetRule('tavern-games'));
+afterEach(() => resetRule('jeux-de-taverne'));
 
 describe('jouerALaTaverne', () => {
   it('HÉROS contre HÉROS : la manche s’ouvre en BANDE (une rangée par camp), jamais mono + jet figé', () => {

@@ -280,16 +280,18 @@ func _clip(role: String) -> String:
 	return _montage.clip(role)
 
 
-## Ses clips de repos et de marche en boucle, ceux de chaque table de sa base (`MontageDeComposition.tables_de_clips`).
+## Ses clips de repos et de marche en boucle (`MontageDeComposition.boucler`), ceux de chaque table de sa base
+## (`MontageDeComposition.tables_de_clips`).
 func _boucler() -> void:
 	var lecteur := _lecteur()
 	if lecteur == null:
 		return
 	var tables: Array = [_vehicule.clips] if _vehicule.scene != null else _montage.tables_de_clips()
+	var noms := []
 	for table: Dictionary in tables:
 		for role in [REPOS, MARCHE]:
-			if lecteur.has_animation(table.get(role, "")):
-				lecteur.get_animation(table[role]).loop_mode = Animation.LOOP_LINEAR
+			noms.append(table.get(role, ""))
+	MontageDeComposition.boucler(lecteur, noms)
 
 
 ## Le clip du rôle `role` joué, la file vidée ; rend s'il l'est.

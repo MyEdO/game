@@ -733,7 +733,7 @@ export function psychBranchFlow(stake: PsychStake, success: boolean): Flow {
 }
 
 // ---------------------------------------------------------------------------
-// Acquisition de Traits psychologiques (ADE II 09), règle optionnelle `psych-acquisition-optional` :
+// Acquisition de Traits psychologiques (ADE II 09), règle optionnelle `psycho-acquisition-optionnelle` :
 // fonctions PURES qui DÉCIDENT du Trait à poser ; sa pose et son déclenchement vivent dans `noyau/`.
 // ---------------------------------------------------------------------------
 
@@ -783,7 +783,7 @@ export function ciblesDePhobieDuNoir(c: Combatant, terreurs: readonly TerreurSub
 
 /** Le Test de Calme seedé de l'Animosité acquise, `null` règle éteinte. PUR. ADE II 09 l.15 */
 export function calmeDeLAnimositeAcquise(c: Combatant, rng: RNG): { success: boolean; roll: number; sl: number; target: number } | null {
-  return rule('psych-acquisition-optional') ? resolveCalmeSimple(calmeValue(c), rng) : null;
+  return rule('psycho-acquisition-optionnelle') ? resolveCalmeSimple(calmeValue(c), rng) : null;
 }
 
 /** Les Traits psy qu'une acquisition pose. ADE II 09 l.9, l.15 */
@@ -850,7 +850,7 @@ export function traumaOnImpossibleAmbition(
   c: Combatant,
   rng: RNG,
 ): { test: { success: boolean; roll: number; sl: number; target: number }; trait?: PsychTrait } | null {
-  if (!rule('psych-acquisition-optional')) return null;
+  if (!rule('psycho-acquisition-optionnelle')) return null;
   const t = rollTest(calmeValue(c), 'accessible', rng); // Calme Accessible (+20)
   const test = { success: t.success, roll: t.roll, sl: t.sl, target: t.target };
   return t.success ? { test } : { test, trait: { type: 'trauma' } };

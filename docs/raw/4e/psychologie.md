@@ -109,7 +109,7 @@ La mécanique exacte (Test simple ou étendu, Indice à surmonter) varie selon l
 
 > « Vous gagnez également +1 DR dès que vous vous en prenez au groupe, que cela soit socialement ou physiquement. *Animosité* est annulé par *Peur* et *Terreur*. » — `LDB 21 l.21`
 
-**Acquise sur un Destin dépensé** (ADE II, règle optionnelle `psych-acquisition-optional`) :
+**Acquise sur un Destin dépensé** (ADE II, règle optionnelle `psycho-acquisition-optionnelle`) :
 
 > « Si la cible est un membre de la propre Race du Personnage, il obtient une *Animosité* envers les Reiklanders, les miliciens, les nains impériaux, etc., plutôt que juste les humains ou les nains. Si la cible est un membre d'une autre Race, le Personnage est plus susceptible de développer une *Animosité* pour la Race entière, par exemple les nains, les humains, les orcs ou les elfes. » — `ADE II 09 l.15`
 
@@ -313,7 +313,7 @@ Peur spécifique envers un Type de créature, un objet ou une situation.
 
 **Règle** : traiter l'objet de la Phobie comme causant **Peur 1** (Indice augmentable si la Phobie est particulièrement forte).
 
-**Phobie du noir** (ADE II, règle optionnelle `psych-acquisition-optional`) :
+**Phobie du noir** (ADE II, règle optionnelle `psycho-acquisition-optionnelle`) :
 
 > « Cette *Phobie* est liée à la cause de la *Terreur* qu'il a subi le plus récemment ou le plus souvent. Elle doit avoir un rapport avec une créature ou une situation que le Personnage peut rencontrer fréquemment. » — `ADE II 09 l.9`
 

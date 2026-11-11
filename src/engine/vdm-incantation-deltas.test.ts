@@ -1,5 +1,5 @@
 /**
- * Deltas d'incantation des Vents de Magie sous l'option `magic-vdm-incantation` :
+ * Deltas d'incantation des Vents de Magie sous l'option `magie-vdm-incantation` :
  * Influences malveillantes (`VDM 02 l.157-159`), Tableaux des Incantations Imparfaites
  * (`VDM 02 l.218-263`) et Surincantation révisée (`VDM 02 l.194-215`).
  *
@@ -26,7 +26,7 @@ import { domains, findEffectTableById } from '../data';
 import miscastJson from '../data/miscast.json';
 import { deFixe } from './dice.testkit';
 
-const RULE = 'magic-vdm-incantation';
+const RULE = 'magie-vdm-incantation';
 
 afterEach(() => resetRule(RULE));
 

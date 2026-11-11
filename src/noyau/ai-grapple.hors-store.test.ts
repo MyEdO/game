@@ -60,7 +60,7 @@ describe('IA — Empoignade : agir quand on est Empoigné (LDB 14 l.161)', () =>
     const e = mk('e', 'enemy', { x: 5, y: 5 }, { advantage: 3, weapons: [BOW] }); grappled(e, 'h');
     const h = mk('h', 'hero', { x: 5, y: 6 }, { advantage: 0 });
     const a = chooseEnemyAction(input(e, [h], { movement: 0 }));
-    expect(a).toEqual({ kind: 'empoignade', targetId: 'h', resolution: 'break' });
+    expect(a).toEqual({ kind: 'empoignade', targetId: 'h', resolution: 'briser' });
   });
 
   it('tireur SANS Avantage supérieur (égalité) → ne PEUT pas briser → Test opposé (resolution:test)', () => {

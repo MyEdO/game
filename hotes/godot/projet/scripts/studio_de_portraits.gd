@@ -1,6 +1,6 @@
 ## Le studio des portraits (#3534) : un seul corps (`Combattant`), dans le monde propre d'un `SubViewport` hors de l'écran,
 ## vêtu tour à tour de chaque corps qu'un portrait demande (`photographier`), puis photographié en buste
-## (`MiseEnPage.cadrage_en_buste`), de face, son clip de repos arrêté. Une photo se garde par corps : un corps déjà
+## (`MiseEnPage.cadrage_en_buste`), de face, son clip de repos arrêté à sa première image. Une photo se garde par corps : un corps déjà
 ## photographié ne se revêt plus. Un seul corps de plus que le plateau, quel que soit le nombre de portraits, car chaque
 ## corps monté instancie le GLB de sa base.
 class_name StudioDePortraits
@@ -33,6 +33,11 @@ static func studio() -> StudioDePortraits:
 		_studio = load("res://scenes/StudioDePortraits.tscn").instantiate()
 		(Engine.get_main_loop() as SceneTree).root.add_child.call_deferred(_studio)
 	return _studio
+
+
+## Si aucun corps n'attend sa photo.
+static func au_repos() -> bool:
+	return _studio == null or _studio._file.is_empty()
 
 
 ## L'empreinte du corps `corps`, sous laquelle sa photo se garde.
@@ -71,6 +76,7 @@ func _photographier() -> void:
 		return
 	var demande: Dictionary = _file[0]
 	if _montage.lecteur != null:
+		_montage.lecteur.seek(0.0, true)
 		_montage.lecteur.pause()
 	var cadrage := MiseEnPage.cadrage_en_buste(_combattant.hauteur_de_la_tete())
 	_camera.position = Vector3(0.0, cadrage.x, cadrage.y)

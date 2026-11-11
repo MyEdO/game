@@ -1,5 +1,5 @@
 /**
- * Composants d'incantation (LDB 46 l.107-113, règle optionnelle `magic-composant`) :
+ * Composants d'incantation (LDB 46 l.107-113, règle optionnelle `magie-composant`) :
  *  - l.111 : « toute Incantation Imparfaite Majeure devient Mineure, et aucune Incantation
  *    Imparfaite Mineure n'a d'effet » ; le composant est « consumé ou détruit […], même si aucune
  *    Incantation Imparfaite n'a été obtenue » ;
@@ -41,7 +41,7 @@ describe('Composants d’incantation (LDB 46 l.107-113)', () => {
   });
 
   it('règle ON : un composant DÉGRADE une Imparfaite Majeure en Mineure (le contrecoup est joué une Mineure)', () => {
-    setRule('magic-composant', true);
+    setRule('magie-composant', true);
     const hero = mageInBattle();
     hero.componentSpells = [SPELL];
     banc.setState({ pendingCascade: null });
@@ -60,7 +60,7 @@ describe('Composants d’incantation (LDB 46 l.107-113)', () => {
   });
 
   it('règle ON : un composant ANNULE une Imparfaite Mineure (aucun effet, aucune table)', () => {
-    setRule('magic-composant', true);
+    setRule('magie-composant', true);
     const hero = mageInBattle();
     hero.componentSpells = [SPELL];
     banc.setState({ pendingCascade: null });
@@ -73,7 +73,7 @@ describe('Composants d’incantation (LDB 46 l.107-113)', () => {
   });
 
   it('composant consumé même sans Imparfaite (RAW « même si aucune Imparfaite n’a été obtenue »)', () => {
-    setRule('magic-composant', true);
+    setRule('magie-composant', true);
     const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'Mage', seed: 3 });
     hero.componentSpells = [SPELL];
     const lines: string[] = [];
@@ -84,7 +84,7 @@ describe('Composants d’incantation (LDB 46 l.107-113)', () => {
   });
 
   it('règle OFF : aucune dégradation, le composant n’est pas touché (Imparfaite pleine)', () => {
-    resetRule('magic-composant'); // défaut = off
+    resetRule('magie-composant'); // défaut = off
     const hero = mageInBattle();
     hero.componentSpells = [SPELL];
     banc.setState({ pendingCascade: null });
@@ -102,7 +102,7 @@ describe('Composants d’incantation (LDB 46 l.107-113)', () => {
   });
 
   it('règle ON mais PAS de composant pour ce sort : aucune dégradation', () => {
-    setRule('magic-composant', true);
+    setRule('magie-composant', true);
     const hero = mageInBattle();
     hero.componentSpells = ['un-autre-sort']; // composant pour un AUTRE sort
     banc.setState({ pendingCascade: null });
@@ -115,7 +115,7 @@ describe('Composants d’incantation (LDB 46 l.107-113)', () => {
   });
 
   it('un ENNEMI GÉNÉRIQUE (sans `followsCharacterRules`) n’a jamais de composant', () => {
-    setRule('magic-composant', true);
+    setRule('magie-composant', true);
     mageInBattle();
     const enemy = banc.getState().battle!.combatants.find((c) => c.kind === 'enemy')!;
     // #152 : la rencontre `enc-mutants` spawne le Mutant du bestiaire, flagué
@@ -131,7 +131,7 @@ describe('Composants d’incantation (LDB 46 l.107-113)', () => {
   // — un ennemi MODÉLISÉ comme personnage (PNJ humain hostile, `followsCharacterRules`) achète/consume un
   // composant comme un héros ; une créature générique (le test ci-dessus) n'en a jamais.
   it('un ENNEMI PERSONNAGE (`followsCharacterRules`) consume un composant comme un héros', () => {
-    setRule('magic-composant', true);
+    setRule('magie-composant', true);
     mageInBattle();
     const enemy = banc.getState().battle!.combatants.find((c) => c.kind === 'enemy')!;
     enemy.followsCharacterRules = true;
@@ -146,7 +146,7 @@ describe('Composants d’incantation (LDB 46 l.107-113)', () => {
   // #152 (suite #143) : le flag doit aussi profiter aux ennemis spawnés depuis le BESTIAIRE
   // (creatureToCombatant, réf de scène), pas seulement aux statblocs d'éditeur.
   it('#152 : un ennemi du BESTIAIRE flagué (CreatureData.followsCharacterRules, Cultiste) consume un composant', () => {
-    setRule('magic-composant', true);
+    setRule('magie-composant', true);
     const npc = creatureToCombatant(findCreatureById('cultiste')!, 'e1', { x: 0, y: 0 });
     npc.componentSpells = [SPELL];
     const lines: string[] = [];
@@ -156,7 +156,7 @@ describe('Composants d’incantation (LDB 46 l.107-113)', () => {
   });
 
   it('#152 : une créature GÉNÉRIQUE du bestiaire (Orc, non flaguée) n’a jamais de composant', () => {
-    setRule('magic-composant', true);
+    setRule('magie-composant', true);
     const npc = creatureToCombatant(findCreatureById('orc')!, 'e1', { x: 0, y: 0 });
     npc.componentSpells = [SPELL];
     const used = useSpellComponent(npc, SPELL, []);
@@ -165,7 +165,7 @@ describe('Composants d’incantation (LDB 46 l.107-113)', () => {
   });
 
   it('la Colère des dieux n’est jamais dégradée (composants = Sorts, pas Prières — l.113)', () => {
-    setRule('magic-composant', true);
+    setRule('magie-composant', true);
     const hero = mageInBattle();
     const out = applyMiscast(banc.getState, banc.setState, hero, 'colere', { componentDowngrade: true });
     expect(out.some((l) => /Majeure → Mineure|aucun effet/.test(l))).toBe(false);

@@ -819,7 +819,7 @@ function finishRiverDay(get: Get, set: Set, to: MapPlace, kmDay: number, dayLine
   // Horloge : à l'ARRIVÉE, la journée entière passe (+24 h) — l'entretien du jour est rattrapé par le
   // prochain `runDailyUpkeep`. Sinon (HALTE de nuit) la navigation s'arrête au crépuscule : le canon MSRC
   // ne chiffre PAS la navigation fluviale de nuit (valeur maison, cadence gouvernée par la même porte
-  // aube→crépuscule que le départ, `travel-departure-gate`, #340) et la nuit de sommeil enjambe minuit :
+  // aube→crépuscule que le départ, `voyage-heure-de-depart`, #340) et la nuit de sommeil enjambe minuit :
   // UN SEUL franchissement de jour par cycle jour+nuit (comme le voyage terrestre).
   // L'ENTRETIEN n'est jamais roulé ici (sinon la Faim s'installe avant le repas) : il se résout dans la
   // cascade de nuit (`buildNightCascade`), APRÈS `feedFromMeal`.

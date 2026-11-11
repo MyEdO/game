@@ -153,10 +153,10 @@ export function runDailyUpkeep(get: Get, set: Set, opts: { caredFor?: boolean; f
   const party = get().party;
   const lines: string[] = [];
   let rations = 0;
-  // Accès à l'eau (LDB 18 l.340) : abondant au Reikland sauf règle `water-scarcity` ; en mer, suit les
+  // Accès à l'eau (LDB 18 l.340) : abondant au Reikland sauf règle `penurie-d-eau` ; en mer, suit les
   // tonneaux du navire (`vessel.waterLitres`) — stable sur l'entretien, calculé une fois.
   const waterLitres = get().vessel?.waterLitres;
-  const hasWater = waterLitres != null ? waterLitres > 0 : rule('water-scarcity') !== true;
+  const hasWater = waterLitres != null ? waterLitres > 0 : rule('penurie-d-eau') !== true;
   for (let d = last + 1; d <= today; d++) {
     for (const h of party) {
       if (h.dead) continue;
@@ -204,8 +204,8 @@ export function runDailyUpkeep(get: Get, set: Set, opts: { caredFor?: boolean; f
         // cascade, jamais un jet roulé ici (sinon pré-résolu).
         defer({ kind: 'dessoulage', label: t('upkeep.sobering'), base: alc, test: alcool, difficulty: 'intermediaire' });
       }
-      // 2. Maladies (LDB 20 — jours calendaires, #T3). Règle optionnelle : désactivable (disease-mode off).
-      if (rule('disease-mode') !== 'off') lines.push(...dailyDiseaseUpkeep(h, battleRng(), defer, opts.caredFor));
+      // 2. Maladies (LDB 20 — jours calendaires, #T3). Règle optionnelle : désactivable (maladie-mode off).
+      if (rule('maladie-mode') !== 'off') lines.push(...dailyDiseaseUpkeep(h, battleRng(), defer, opts.caredFor));
       // 3. Convalescence des Blessures critiques (LDB 18 — jours calendaires, #T3).
       lines.push(...tickTraumaRecovery(h, 1, defer));
     }
@@ -216,10 +216,10 @@ export function runDailyUpkeep(get: Get, set: Set, opts: { caredFor?: boolean; f
     lines.push(...fireClockTriggers(get, 'onDayStart', { rng: battleRng() }));
     if (d === get().lastNightDay) lines.push(...fireClockTriggers(get, 'onWake', { rng: battleRng() }));
   }
-  // Nuit forcée (maison `travel-sleep-forced`, #340) : chaque jour calendaire franchi SANS nuit jouée
+  // Nuit forcée (maison `voyage-privation-de-sommeil`, #340) : chaque jour calendaire franchi SANS nuit jouée
   // (aucun repos depuis `lastNightDay`) inflige 1 État Exténué « privation de sommeil » par héros vivant.
   // Jamais silencieux (Consequence via applyOps `condition`) ; retiré au prochain vrai sommeil (LDB 16).
-  if (rule('travel-sleep-forced') === true) {
+  if (rule('voyage-privation-de-sommeil') === true) {
     const missed = Math.max(0, today - Math.max(last, get().lastNightDay));
     if (missed > 0) {
       for (const h of party) {

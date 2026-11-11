@@ -1,5 +1,5 @@
 /**
- * Magie ENVIRONNEMENTALE des *Vents de Magie* (`VDM 14`, option `magic-vdm-environnementale`) :
+ * Magie ENVIRONNEMENTALE des *Vents de Magie* (`VDM 14`, option `magie-vdm-environnementale`) :
  * l'état magique du LIEU (palier de Saturation + phénomènes arcaniques) modifie les Tests
  * d'Incantation / de Focalisation / de Dissipation.
  *
@@ -30,7 +30,7 @@ import { makeRNG } from './dice';
 import { datasetObject, setObjectDataset } from '../data/overrides';
 import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
-const RULE = 'magic-vdm-environnementale';
+const RULE = 'magie-vdm-environnementale';
 
 const spell = (domainId: string | null) => (domainId === null ? {} : { domainId: { id: domainId } });
 const sorcier = (talents: { talentId: string; spec?: string }[] = []): Combatant =>
@@ -123,7 +123,7 @@ describe('registre — la donnée porte le chapitre 14 en entier', () => {
   });
 });
 
-describe('option `magic-vdm-environnementale` — entrée du registre', () => {
+describe('option `magie-vdm-environnementale` — entrée du registre', () => {
   it('groupe Magie, drapeau, DÉSACTIVÉE par défaut, réf VDM', () => {
     const def = ruleDef(RULE);
     expect(def).toBeDefined();

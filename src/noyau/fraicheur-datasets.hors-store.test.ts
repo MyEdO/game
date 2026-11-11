@@ -358,7 +358,7 @@ describe('#1692 — les vues DÉRIVÉES d’un dataset suivent son édition', ()
     expect(ref(), 'la catégorie d’entrée retirée au Codex reste déclarée').toBeUndefined();
   });
 
-  it('un Événement de bord ÉDITÉ : la table tirable `sea-board-events` sert les NOUVELLES bornes', () => {
+  it('un Événement de bord ÉDITÉ : la table tirable `evenements-de-bord` sert les NOUVELLES bornes', () => {
     const evts = datasetArray('seaBoardEvents');
     const premier = evts[0];
     expect(tableStepDef(SEA_BOARD_EVENT_TABLE)!.rows[0].max).toBe(premier.max);

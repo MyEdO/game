@@ -198,12 +198,12 @@ describe("testMod.movementOnly — portée « Tests impliquant cette jambe » (#
 });
 
 describe('racine-de-mandragore (LDB 71 l.35)', () => {
-  it('« le Mouvement est réduit de moitié » + « +20 aux Tests de Calme » + gate FM par Round (actGate)', () => {
+  it('« le Mouvement est réduit de moitié » + « +20 aux Tests de Calme » + gate FM par Round (testDAgir)', () => {
     const c = makeTarget();
     drinkPure(c, 'racine-de-mandragore');
     expect(c.activeEffects!.some((e) => e.passive?.some((op) => op.op === 'moveScale' && op.num === 1 && op.den === 2))).toBe(true);
     expect(c.activeEffects!.some((e) => e.passive?.some((op) => op.op === 'skillMod' && op.skill.id === 'calme' && op.mod === 20))).toBe(true);
-    expect(c.activeEffects!.some((e) => e.actGate?.characteristic === 'force-mentale')).toBe(true);
+    expect(c.activeEffects!.some((e) => e.testDAgir?.characteristic === 'force-mentale')).toBe(true);
   });
 });
 

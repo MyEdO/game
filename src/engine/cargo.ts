@@ -210,7 +210,7 @@ export function spoilCargoByPct(lots: CargoLot[], pct: number): { lots: CargoLot
 
 /** Issue d'une péripétie dangereuse terrestre pour la cargaison du convoi. https://github.com/MyEdO/game/issues/327#issuecomment-4945245936
  *  Combat gagné = le convoi est sauf ; fuite = perte partielle ; défaite = pillage lourd.
- *  Les taux sont des paramètres MAISON (`landRobberyFleePct`/`landRobberyLossPct`). */
+ *  Les taux sont des paramètres MAISON (`vol-terrestre-fuite-pct`/`vol-terrestre-defaite-pct`). */
 export type CargoRaidOutcome = 'victoire' | 'fuite' | 'defaite';
 
 /** Pourcentage d'Enc perdu selon l'issue du combat de vol terrestre (victoire = 0 ; fuite = `fleePct` ;

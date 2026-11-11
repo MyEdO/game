@@ -79,7 +79,7 @@ function apercuPuisApplication(jet: Jet, lieu: HitLocation) {
 }
 
 describe('aperçu au jet = application, par `compteDuCoup`', () => {
-  beforeEach(() => { setRule('combat-critical-deflect', false); });
+  beforeEach(() => { setRule('combat-deviation-critique', false); });
 
   it("T1 'ldb' : un double, PA différents à la touche et au lieu relancé", () => {
     const { seed, lieu } = jetRelanceHorsDuCorps(44);
@@ -144,7 +144,7 @@ describe('aperçu au jet = application, par `compteDuCoup`', () => {
 
 /** Chaque producteur fait naître le verdict sur la cible que le compte lit. AA 07 l.25, l.52 ; LDB 18 l.53, l.55. */
 describe('le verdict de relance naît sur la cible au compte', () => {
-  beforeEach(() => { setRule('combat-aa-blessures', 'aa'); setRule('combat-sudden-death', 'off'); });
+  beforeEach(() => { setRule('combat-aa-blessures', 'aa'); setRule('combat-mort-subite', 'off'); });
 
   for (const current of [0, 3]) it('applyHit, né au jet (rederivePassiveAttack), coup non critique, cible à ' + current + ' Blessure : le compte relit le verdict de naissance', () => {
     const { H, cible, res } = auJet({ seed: 5, roll: 37, current });
@@ -249,7 +249,7 @@ describe('aperçu au jet = application, Déviation au défaut (LDB 63 l.30)', ()
 });
 
 describe("aperçu au jet = application : la touche déviée se compte sur celui qui l'encaisse", () => {
-  beforeEach(() => { setRule('combat-critical-deflect', false); });
+  beforeEach(() => { setRule('combat-deviation-critique', false); });
 
   for (const cas of ['tas', 'melee'] as const) it(`${cas} : la victime encaisse, pas la cible visée`, () => {
     const { apercu, applique, res, perdues, viseeIntacte } = devieePuisApplication(cas);

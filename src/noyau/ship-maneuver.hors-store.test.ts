@@ -492,7 +492,7 @@ describe('flux manoeuvreDuNavire (store) — bouton HUD → modale → confirm (
     expect(deriveManeuverFromCrew(shipC, crewTotal, 'maritime').dr).toBe(0);
     expect(deriveManeuverFromCrew(shipC, crewTotal, 'maritime').success).toBe(crewTestSuccess(0)); // le socle, jamais un seuil local
     expect(deriveManeuverFromCrew(shipC, crewTotal, 'maritime').success).toBe(false); // défaut RAW : 0 = échec
-    setRule('crew-test-zero-success', true);
+    setRule('equipage-zero-dr-succes', true);
     expect(deriveManeuverFromCrew(shipC, crewTotal, 'maritime').success).toBe(true); // Succès Minime → le navire vire
     expect(deriveManeuverFromCrew(shipC, crewTotal - 1, 'maritime').success).toBe(false); // −1 reste un échec
   });

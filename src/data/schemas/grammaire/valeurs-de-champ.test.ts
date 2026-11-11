@@ -281,7 +281,7 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'enemies|allies|all',
   'enemy|ally',
   'equipage|avirons|greement|coque|equipements|cargaison|gouvernail|superstructure',
-  'exact|ok|drift-minor|drift|drift-major',
+  'exact|correct|derive-mineure|derive|derive-majeure',
   'extended|terreur|binary',
   'fleeing|pursuing',
   'froid|chaleur',

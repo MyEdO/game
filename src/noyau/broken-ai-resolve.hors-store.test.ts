@@ -37,7 +37,7 @@ describe('IA Brisé — dépense PROACTIVE de Détermination (LDB 17 l.57-61), d
   it('Engagé + Détermination suffisante → se RESSAISIT (spendResource resolve→removeCondition brise)', () => {
     const enemy = foe({ conditions: [{ id: 'brise', value: 1 }], resolve: 1, engagedWith: ['h'] });
     const action = decide(enemy, [hero(6, 5)]); // héros adjacent
-    expect(action).toEqual({ kind: 'depenseDeRessource', resource: 'resolve', via: 'removeCondition', id: 'brise' });
+    expect(action).toEqual({ kind: 'depenseDeRessource', resource: 'determination', via: 'retirerEtat', id: 'brise' });
     expect(enemy.resolve).toBe(1); // décision PURE : ne dépense rien (l'exécution est dans le noyau)
   });
 

@@ -421,7 +421,7 @@ describe('une fenêtre DE PLUS sur le même coup ne perd pas la suite (sauvegard
     return vus;
   };
 
-  beforeEach(() => setRule('combat-critical-deflect', true)); // la fenêtre de Déviation existe (règle optionnelle)
+  beforeEach(() => setRule('combat-deviation-critique', true)); // la fenêtre de Déviation existe (règle optionnelle)
 
   /** Les étapes de DÉVIATION de la séquence (même lecture que `deviation-paths.hors-store.test.ts:67`). */
   const etapesDeviation = (): CascadeStep[] =>

@@ -33,7 +33,7 @@ export function setPickProbe(p: PickProbe | null): void {
 }
 
 /** Le `kind` d'une pose de zone, par source : table TOTALE sur `PlacingZone['source']`. */
-const KIND_DE_POSE = { cast: 'zone', siege: 'siege' } as const satisfies Record<PlacingZone['source'], string>;
+const KIND_DE_POSE = { incantation: 'zone', siege: 'siege' } as const satisfies Record<PlacingZone['source'], string>;
 
 /** Le geste attendu SUR LA CARTE (`__wfrp.gesteCarteAttendu`) : une pose de zone (`PlacingZone` sans sa
  *  `source`, rendue en `kind` par `KIND_DE_POSE`) ou un choix de cibles d'incantation. */
@@ -252,7 +252,7 @@ function routesRendues(map: WorldMap, lieu: string | null): { route: MapRoute; o
  *   __wfrp.hover('id')    → survol PROGRAMMATIQUE (tooltip + réticule de visée, sans souris) ; null efface
  *   __wfrp.aim('id')      → vérité state du ciblage (ok/invalid + raison, compétence, dégâts)
  *   __wfrp.pad('A'|'B'|…) → simule un BOUTON de manette (Playwright n'a pas l'API Gamepad) — MÊME chemin
- *                           que le pad réel ; __wfrp.padDir('up'|'down'|'left'|'right') → croix/stick
+ *                           que le pad réel ; __wfrp.padDir('haut'|'bas'|'gauche'|'droite') → croix/stick
  *   __wfrp.battle()       → snapshot combat (round, actif, modales, combattants en une ligne chacun, armes
  *                           tenues par `trappingId`/`apparence`/`formeResolue`)
  *   __wfrp.lastRoll()     → DERNIER Test résolu {actorId,success,sl,roll,target} (observation pure,
@@ -1089,7 +1089,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
      *  ∈ A|B|X|Y|LB|RB|LT|RT|Back. devtools n'importe RIEN de `src/ui` : il passe par window (layering). */
     pad: (name: string) => (window as unknown as { __wfrpPad?: (n: string) => void }).__wfrpPad?.(name),
 
-    /** Simule une DIRECTION de manette (croix/stick) via `window.__wfrpPadDir` — `dir` ∈ up|down|left|right.
+    /** Simule une DIRECTION de manette (croix/stick) via `window.__wfrpPadDir` — `dir` ∈ haut|bas|gauche|droite.
      *  Carte = déplace le curseur de combat ; menu/modale = déplace le focus. */
     padDir: (dir: string) => (window as unknown as { __wfrpPadDir?: (d: string) => void }).__wfrpPadDir?.(dir),
 
@@ -1841,11 +1841,11 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       const avant = lu();
       if (!avant) return `✗ héros « ${heroId} » introuvable — ${g().party.map((h) => h.id).join(', ')}`;
       const verdict = verdictApprentissage(avant, sp);
-      if (verdict === 'deja-connu') return `✗ ${avant.label} connaît déjà « ${spellId} »`;
-      if (verdict === 'non-eligible') return `✗ ${avant.label} n'a aucun Talent de lanceur pour « ${spellId} »`;
+      if (verdict === 'dejaConnu') return `✗ ${avant.label} connaît déjà « ${spellId} »`;
+      if (verdict === 'nonEligible') return `✗ ${avant.label} n'a aucun Talent de lanceur pour « ${spellId} »`;
       nePeutPasDifferer(applyEffects(() => useGame.getState(), useGame.setState, [{ type: 'learnSpell', spell: spellId, heroId }]), 'devtools.spell');
       const apres = lu();
-      return apres && verdictApprentissage(apres, sp) === 'deja-connu'
+      return apres && verdictApprentissage(apres, sp) === 'dejaConnu'
         ? `✓ ${apres.label} mémorise « ${spellId} »`
         : `✗ sort « ${spellId} » non mémorisé — voir le journal`;
     },
@@ -2104,16 +2104,16 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       if (id == null) return OPTIONAL_RULES.map((r) => `${r.group} · ${r.id} = ${JSON.stringify(rule(r.id))}  ${settingShape(r)}`);
       const def = ruleDef(id);
       if (!def) return settingUnknown(id, 'rules');
-      if (value === undefined) return `${settingDetail(def, rule(id))} — ${def.ref}`;
+      if (value === undefined) return `${settingDetail(def, rule(def.id))} — ${def.ref}`;
       if (value === null) {
         const verrou = reglesMaisonMutables(useGame.getState());
         if (!verrou.mutable) return verrou.reason;
-        remettreUneRegleMaisonWeb(id);
+        remettreUneRegleMaisonWeb(def.id);
         return settingReset(def);
       }
       const c = coerceSetting(def, value);
       if ('err' in c) return c.err;
-      setRule(id, c.v);
+      setRule(def.id, c.v);
       return settingDone(id, c.v);
     },
 

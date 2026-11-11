@@ -637,7 +637,7 @@ const DECLARATIONS_D_OPS = {
   }),
   charDRBonus: nommerChamps(z.strictObject({ op: z.literal('charDRBonus'), characteristic: charKeySchema, bonus: formuleSansTirageSchema }), { op: { label: "opération"  }, characteristic: { label: "caractéristique" }, bonus: { label: "bonus" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
   charDamage: nommerChamps(z.strictObject({ op: z.literal('charDamage'), characteristic: charKeySchema, amount: formulaSchema }), { op: { label: "opération"  }, characteristic: { label: "caractéristique" }, amount: { label: "quantité" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
-  actGate: nommerChamps(z.strictObject({ op: z.literal('actGate'), characteristic: charKeySchema }), { op: { label: "opération"  }, characteristic: { label: "caractéristique" } }),
+  testDAgir: nommerChamps(z.strictObject({ op: z.literal('testDAgir'), characteristic: charKeySchema }), { op: { label: "opération"  }, characteristic: { label: "caractéristique" } }),
   incomingSpellDRMod: nommerChamps(z.strictObject({ op: z.literal('incomingSpellDRMod'), amount: formuleSansTirageSchema }), { op: { label: "opération"  }, amount: { label: "quantité" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
   castPenalty: nommerChamps(z.strictObject({
     op: z.literal('castPenalty'),
@@ -1506,7 +1506,7 @@ export const OP_LABEL: Record<GameOp['op'], string> = {
   aggravateSymptom: 'Aggraver un symptôme',
   attenuateSymptom: 'Atténuer un symptôme',
   grantSymptom: 'Ajouter un symptôme',
-  actGate: 'Test par Round pour agir (drogue)',
+  testDAgir: 'Test par Round pour agir (drogue)',
   delayed: 'Ops différées (échéance d’horloge)',
   suppressPsych: 'Apaiser les Traits psychologiques',
   suffocate: 'Suffocation',

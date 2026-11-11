@@ -272,7 +272,7 @@ export function describeBattement(pb: PendingBattement, attackerName: string, fo
  *  est distrait ; 'tie'/'failure' → rien. Popin = MÊME phrase que la ligne de journal (`manv.distraire*`). */
 export function describeDistraire(pd: PendingDistraire, moverName: string, foeName: string): string {
   if (pd.result == null) return '';
-  return pd.result === 'success'
+  return pd.result === 'reussite'
     ? t('manv.distraire', { name: moverName, foe: foeName })
     : t('manv.distraireFail', { name: moverName, foe: foeName });
 }
@@ -280,9 +280,9 @@ export function describeDistraire(pd: PendingDistraire, moverName: string, foeNa
 /** Désengagement (LDB 15-Dépl) — phase 'esquive' : verdict du Test opposé d'Esquive (popin). Le fil
  *  journalise la conséquence (Avantage, libération des Engagements) à part. */
 export function describeDisengage(pd: PendingDisengage): string {
-  return pd.result === 'success'
+  return pd.result === 'reussite'
     ? t('out.disengageSuccess')
-    : pd.result === 'tie'
+    : pd.result === 'egalite'
       ? t('out.disengageTie')
       : t('out.disengageFail');
 }

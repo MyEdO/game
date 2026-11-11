@@ -7,7 +7,7 @@
  */
 import { tableTotale } from '../../../lib/tableTotale';
 import { Fragment, useEffect, useId, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
-import { datasetArray, datasetObject, datasetFile, datasetObjectFile, deDeLaTable, type DatasetKey } from '../../../data/overrides';
+import { datasetArray, datasetObject, datasetFile, datasetObjectFile, ancetreDuDe, deDeLaTable, type DatasetKey } from '../../../data/overrides';
 import { REF_LIST_DATASET, editableDataset, editableEntries, editableObjectDataset, enregistrerEntree, validateEntry } from '../../../data/atelierDuCodex';
 import type { RefDesignee } from '../../../data/schemas/grammaire/ref';
 import type { SteamBreakdownEntry } from '../../../engine/shipBuild';
@@ -324,6 +324,7 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
   const [entry, setEntry] = useState<Entry>(() => structuredClone(src.initial));
   // DÉ DE TIRAGE porté par un ANCÊTRE de la table (`deDeLaTable`) : commun à toutes ses rangées, il
   // s'écrit dans la même transaction que l'entrée (#1667). `undefined` : la table n'en porte pas.
+  const ancetreDuDeDeLaTable = obj ? undefined : ancetreDuDe(src.dataset as DatasetKey);
   const deImprime = obj ? undefined : deDeLaTable(src.dataset as DatasetKey);
   const [deSaisi, setDeSaisi] = useState(deImprime);
   // Libellé COURANT de l'entrée (`entryKey`), celui de sa catégorie tant qu'elle n'en porte pas (#1830).
@@ -497,7 +498,7 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
 
   const save = async () => {
     // Transaction d'enregistrement de la donnée (`enregistrerEntree`) ; l'écriture disque reste ici.
-    const issue = enregistrerEntree(categoryKey, entry, src.index, deSaisi === deImprime ? undefined : deSaisi);
+    const issue = enregistrerEntree(categoryKey, entry, src.index, deSaisi === deImprime ? [] : [{ ancetre: ancetreDuDeDeLaTable!, champ: 'die', valeur: deSaisi }]);
     if (!issue.ok) { setSchemaError(issue.erreurs.join('\n')); setMsg(''); return; }
     setSchemaError(null);
     const text = issue.texte;
@@ -1146,8 +1147,7 @@ function VariantsField({ chemin, value, resolved, entryFields, allFeatures, onCh
         <div className="ed-subfield" key={cles[i]}>
           <div className="tf-row">
             <label className="dr">Règle
-              <select aria-label={`Règle de la variante ${i + 1}`} value={v.when.rule} onChange={(e) => set(list.map((x, j) => (j === i ? { ...x, when: { ...x.when, rule: e.target.value } } : x)))}>
-                <option value="">— (choisir une règle optionnelle) —</option>
+              <select aria-label={`Règle de la variante ${i + 1}`} value={v.when.rule} onChange={(e) => set(list.map((x, j) => (j === i ? { ...x, when: { ...x.when, rule: OPTIONAL_RULES[e.target.selectedIndex].id } } : x)))}>
                 {OPTIONAL_RULES.map((r) => <option key={r.id} value={r.id}>{r.label} — {r.id}</option>)}
               </select>
             </label>
@@ -1168,7 +1168,7 @@ function VariantsField({ chemin, value, resolved, entryFields, allFeatures, onCh
           {resolved.includes('combat') && <CombatField value={v.combat as Partial<CombatFeature> | undefined} allFeatures={allFeatures} onChange={(c) => patch(i, 'combat', c)} />}
         </div>
       ))}
-      <button className="btn small" onClick={() => set([...list, { when: { rule: '' } }])}>+ Variante</button>
+      <button className="btn small" onClick={() => set([...list, { when: { rule: OPTIONAL_RULES[0].id } }])}>+ Variante</button>
     </div>
   );
 }

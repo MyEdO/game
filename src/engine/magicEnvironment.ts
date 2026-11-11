@@ -5,7 +5,7 @@
  *
  * Tout est en DONNÉE (`arcane-phenomena.json`) : aucun phénomène n'est nommé ici, et l'ajout d'un
  * phénomène ne coûte pas une ligne de moteur. Gaté par la règle optionnelle
- * `magic-vdm-environnementale` (`policy.ts`, groupe Magie) — désactivée, `environmentTestDR` rend 0
+ * `magie-vdm-environnementale` (`policy.ts`, groupe Magie) — désactivée, `environmentTestDR` rend 0
  * et le comportement du moteur est strictement celui du Livre de base.
  *
  * Consommateurs : `resolveCasting` / `castLandProbability` / `resolveFocus` (`engine/magic.ts`).
@@ -107,7 +107,7 @@ export function environmentTestDR(
   env: MagicEnvironment = {},
   caster?: Combatant,
 ): number {
-  if (rule('magic-vdm-environnementale') !== true) return 0;
+  if (rule('magie-vdm-environnementale') !== true) return 0;
   let dr = 0;
   for (const { mod, chosen, winds } of modsOf(env)) {
     if (!mod.tests.includes(test)) continue;
@@ -124,7 +124,7 @@ export function environmentTestDR(
  * `niMods` des phénomènes présents. Le calcul lui-même vit dans `effectiveCastingNumber`.
  */
 export function environmentNIMods(env: MagicEnvironment = {}): CastingNumberMod[] {
-  if (rule('magic-vdm-environnementale') !== true) return [];
+  if (rule('magie-vdm-environnementale') !== true) return [];
   const out: CastingNumberMod[] = [];
   for (const occ of env.phenomena ?? []) out.push(...(findArcanePhenomenonById(occ.id)?.niMods ?? []));
   return out;
@@ -133,7 +133,7 @@ export function environmentNIMods(env: MagicEnvironment = {}): CastingNumberMod[
 /** L'Incantation Critique est-elle ÉLARGIE aux réussites finissant par 0 (Jonction saturée,
  *  `VDM 14` folio 198) par l'un des phénomènes présents ? */
 export function environmentWidensCrit(env: MagicEnvironment = {}): boolean {
-  if (rule('magic-vdm-environnementale') !== true) return false;
+  if (rule('magie-vdm-environnementale') !== true) return false;
   return (env.phenomena ?? []).some((occ) => findArcanePhenomenonById(occ.id)?.critOnTens === true);
 }
 

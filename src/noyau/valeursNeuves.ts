@@ -171,7 +171,7 @@ export function newOp(op: GameOp['op'] | string): GameOp {
     case 'aggravateSymptom': return { op: 'aggravateSymptom', disease: '', symptomId: '', severity: 'grave' };
     case 'attenuateSymptom': return { op: 'attenuateSymptom', disease: '', symptomId: '' };
     case 'grantSymptom': return { op: 'grantSymptom', disease: '', symptomId: '' };
-    case 'actGate': return { op: 'actGate', characteristic: 'force-mentale' };
+    case 'testDAgir': return { op: 'testDAgir', characteristic: 'force-mentale' };
     case 'delayed': return { op: 'delayed', afterHours: 1, ops: [] };
     case 'preventInfection': return { op: 'preventInfection' };
     case 'aideMedicale': return { op: 'aideMedicale' };

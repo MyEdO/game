@@ -233,7 +233,7 @@ describe('Effet setVessel (navire de campagne, MDG 13-15)', () => {
     applyEffects(banc.getState, banc.setState, [{ type: 'setVessel', vehicleId: 'cogue' }]);
     const v = banc.getState().vessel;
     expect(v?.vehicleId).toBe('cogue');
-    expect(v?.morale.score).toBe(75); // MORALE_BASE (nouvel équipage)
+    expect(v?.morale.score).toBe(75); // moraleBase() (nouvel équipage)
     expect(v?.wounds).toBeUndefined(); // coque intacte (aucun hullMax authoré)
     expect(banc.getState().journal.some((l) => /navire|cogue/i.test(l))).toBe(true);
   });
@@ -408,14 +408,14 @@ describe('Effet openPort (#93 — MÊME chemin que l’accostage en mer)', () =>
 
 describe('Effet openTavernGames (NADJ 16)', () => {
   it('option active → ouvre la modale (state tavernGames posé)', () => {
-    setRule('tavern-games', true);
+    setRule('jeux-de-taverne', true);
     banc.setState({ party: tousLesHerosDeScenario(idsDeTest).slice(0, 2), tavernGames: null });
     applyEffects(banc.getState, banc.setState, [{ type: 'openTavernGames' }]);
     expect(banc.getState().tavernGames).not.toBeNull();
   });
 
   it('option éteinte → sans effet (comme interlude désactivé)', () => {
-    setRule('tavern-games', false);
+    setRule('jeux-de-taverne', false);
     banc.setState({ party: tousLesHerosDeScenario(idsDeTest).slice(0, 2), tavernGames: null });
     applyEffects(banc.getState, banc.setState, [{ type: 'openTavernGames' }]);
     expect(banc.getState().tavernGames).toBeNull();

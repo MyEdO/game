@@ -65,7 +65,7 @@ function ecouterLesTestsDInitiative(): { vus: string[]; fin: () => void } {
 }
 
 describe('#3159 — une réaction n’est offerte qu’une fois par déclencheur', () => {
-  it.each(['yes', 'no'] as const)('A : une IA charge un héros MANUEL porteur de Frappe réactive — UNE offre (%s), puis le tour du chargeur reprend', (reponse) => {
+  it.each(['oui', 'non'] as const)('A : une IA charge un héros MANUEL porteur de Frappe réactive — UNE offre (%s), puis le tour du chargeur reprend', (reponse) => {
     banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     H.talents = [...(H.talents ?? []), { talentId: 'frappe-reactive', times: 1 }];
@@ -82,7 +82,7 @@ describe('#3159 — une réaction n’est offerte qu’une fois par déclencheur
     const etapesVues = new Map<string, string>();
     banc.subscribe((st) => { for (const p of st.pendingCascade?.participants ?? []) etapesVues.set(p.id, p.kind); });
     avanceEtapeCascade(banc.getState, undefined, () => reponse);
-    if (reponse === 'yes') {
+    if (reponse === 'oui') {
       expect(etapeCourante()?.kind).toBe('testDeclenche');
       avanceEtapeCascade(banc.getState);
       expect(vif(H.id).freeAttacksThisTurn?.['frappe-reactive']).toBe(1);
@@ -244,7 +244,7 @@ describe('#3159 — classe : le bus ne joue aucun Flow à attaque gratuite, reso
       expect(vif(porteur.id).freeAttacksThisTurn).toBeUndefined();
       expect(empetre(tiers.id) + empetre(porteur.id)).toBe(0);
       resolveFreeAttacks(banc.getState, banc.setState, porteur, eff.trigger, tiers, { weapon, attackType });
-      for (let i = 0; i < 4 && etapeCourante()?.kind === 'choixDeclenche'; i++) avanceEtapeCascade(banc.getState, undefined, () => 'yes');
+      for (let i = 0; i < 4 && etapeCourante()?.kind === 'choixDeclenche'; i++) avanceEtapeCascade(banc.getState, undefined, () => 'oui');
       if (etapeCourante()?.kind === 'testDeclenche') avanceEtapeCascade(banc.getState);
       expect(imputees(porteur.id, tiers.id)).toBeLessThanOrEqual(1);
       expect(imputees(porteur.id, tiers.id) + empetre(tiers.id), 'resolveFreeAttacks a joué le Flow').toBeGreaterThan(0);

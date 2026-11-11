@@ -155,6 +155,9 @@ export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 /** Code porté par tout rejet dû à un rechargement de la page (voir `isNavigationError`). */
 export const TARGET_NAVIGATED = 'TARGET_NAVIGATED';
 
+/** Code porté par le rejet d'un appel en vol quand sa page plante (`brancherCdp`) : jamais une navigation, rien à rejouer. */
+export const PAGE_PLANTEE = 'PAGE_PLANTEE';
+
 /** Messages CDP émis quand le contexte de page a été recréé sous les pieds de l'appel en vol. */
 const NAV_MESSAGES = [
   /Inspected target navigated or closed/i,
@@ -565,7 +568,7 @@ export async function launchSession({ chromePath, width = VUE_REFERENCE.largeur,
      *  script). Rend `{ profilPurge }` : la purge est VÉRIFIÉE (`purgerProfil`), jamais supposée. */
     session.close = async () => {
       try {
-        await session.rpc('Target.closeTarget', { targetId: session.targetId });
+        await session.rpcNavigateur('Target.closeTarget', { targetId: session.targetId });
       } catch (e) {
         if (!cibleDejaPartie(e)) throw e;
       }
@@ -622,6 +625,8 @@ export function brancherCdp(ws, champs = {}) {
   let id = 0;
   const pending = new Map();
   const listeners = new Set();
+  let plantee = false;
+  const pagePlantee = () => Object.assign(new Error('la page a planté (Inspector.targetCrashed) : son processus de rendu est mort'), { code: PAGE_PLANTEE });
   const session = { chrome: null, listeners, sessionId: null, targetId: null, profile: null, contextCleared: false, ...champs };
   ws.addEventListener('message', (ev) => {
     const m = JSON.parse(typeof ev.data === 'string' ? ev.data : ev.data.toString());
@@ -632,6 +637,16 @@ export function brancherCdp(ws, champs = {}) {
       const { resolve, reject } = pending.get(m.id);
       pending.delete(m.id);
       if (m.error) reject(cdpError(m.error.message)); else resolve(m.result);
+    }
+    // Page PLANTÉE (son processus de rendu est mort) : Chrome ne répond plus à aucun appel adressé à sa
+    // session. Ceux en vol sont rejetés TYPÉS, ceux à venir le sont à l'envoi (`envoyer`).
+    if (m.method === 'Inspector.targetCrashed' && m.sessionId === session.sessionId) {
+      plantee = true;
+      for (const [mid, { reject, sessionId }] of pending) {
+        if (sessionId !== session.sessionId) continue;
+        pending.delete(mid);
+        reject(pagePlantee());
+      }
     }
     for (const fn of listeners) fn(m);
   });
@@ -652,10 +667,11 @@ export function brancherCdp(ws, champs = {}) {
   // tout de suite, typé comme une socket coupée.
   const envoyer = (method, params, sessionId) => new Promise((resolve, reject) => {
     if (ws.readyState !== WebSocket.OPEN) { reject(cibleFermee()); return; }
+    if (plantee && sessionId) { reject(pagePlantee()); return; }
     const mid = ++id;
     const msg = { id: mid, method, params };
     if (sessionId) msg.sessionId = sessionId;
-    pending.set(mid, { resolve, reject });
+    pending.set(mid, { resolve, reject, sessionId });
     ws.send(JSON.stringify(msg));
   });
   // Le domaine `Input` n'est émis que par `geste` et `frappe` : l'émetteur BRUT leur est remis par

@@ -2,7 +2,7 @@
 /**
  * Atelier du Codex — le DÉ DE TIRAGE d'une table que porte un ANCÊTRE de ses rangées (document de
  * Critiques, racine des Rencontres…) s'édite avec une rangée et s'enregistre par son seam
- * (`setDeDeTable`, #1667) ; une table dont le dé est un champ de l'entrée n'offre pas ce champ.
+ * (`setEnTete`, #1667) ; une table dont le dé est un champ de l'entrée n'offre pas ce champ.
  */
 import { describe, it, expect, afterEach, beforeAll } from 'vitest';
 import { act } from 'react';

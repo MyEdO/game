@@ -89,7 +89,7 @@ let ras!: Rasterisation;
 
 /** Le cadre de PREMIÈRE PERSONNE au cap `facing`, le groupe à sa case — le regard qui porte lui-même
  *  la position du groupe (`StageFrame`), donc le banc n'a aucun héros à monter pour l'exprimer. */
-const cadrePov = (facing: Dir8 = 'N'): StageFrame => ({ mode: 'pov', partyPos: GROUPE, facing, indoor: false, cid: null });
+const cadrePov = (facing: Dir8 = 'N'): StageFrame => ({ mode: 'subjectif', partyPos: GROUPE, facing, indoor: false, cid: null });
 
 /** Le cadre de PLATEAU — l'autre regard, celui dont la position du groupe ne vient PAS du cadre mais
  *  des héros posés (`centreDuGroupe`). */
