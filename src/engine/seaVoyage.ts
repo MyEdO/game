@@ -91,7 +91,7 @@ const EVENTS = seaEventsJson as unknown as {
 
 /** Palier de SURCHARGE de la cale (MDG 12 l.70-75) : `pctDepuis` = seuil strict (>) en % de la Contenance,
  *  `mMod`/`drDeManoeuvre` = −M et −DR Manœuvre appliqués au navire. */
-type OverloadPalier = SeaCargoData['overload']['paliers'][number];
+type OverloadPalier = SeaCargoData['surcharge']['paliers'][number];
 
 const CARGO = seaCargoJson as SeaCargoData;
 
@@ -120,7 +120,7 @@ export const findManannFactor = (id: string): ManannFactor | undefined => EVENTS
 // ── Surcharge de la cale (MDG 12 l.70-75) ──────────────────────────────────────────────────────
 
 /** Plafond DUR de charge (% de la Contenance) : au-delà « Impossible de prendre la mer » (MDG 12 l.75). */
-export const overloadHardCapPct = (): number => CARGO.overload.pctPlafond;
+export const overloadHardCapPct = (): number => CARGO.surcharge.pctPlafond;
 
 /** État de SURCHARGE d'une cale : palier RAW atteint + effets, et `canSail` = false au-delà du plafond dur. */
 export interface CargoOverload {
@@ -142,7 +142,7 @@ export interface CargoOverload {
 export function cargoOverload(enc: number, capacity: number): CargoOverload {
   const ratio = capacity > 0 ? enc / capacity : 0;
   let chosen: OverloadPalier | null = null;
-  for (const p of CARGO.overload.paliers) if (ratio > p.pctDepuis / 100) chosen = p; // paliers croissants → dernier franchi
+  for (const p of CARGO.surcharge.paliers) if (ratio > p.pctDepuis / 100) chosen = p; // paliers croissants → dernier franchi
   return {
     ratioPct: Math.round(ratio * 100),
     palierId: chosen?.id ?? null,
@@ -160,7 +160,7 @@ export function overloadMaxEnc(capacity: number): number {
 
 /** Seuils de palier de surcharge en Enc pour une Contenance `capacity` (MDG 12 l.70-75). PUR. */
 export function overloadMarks(capacity: number): number[] {
-  return CARGO.overload.paliers.map((p) => Math.round(capacity * p.pctDepuis / 100));
+  return CARGO.surcharge.paliers.map((p) => Math.round(capacity * p.pctDepuis / 100));
 }
 
 // ── Humeur de Manann (l.83-125) ──────────────────────────────────────────────────────────────────
@@ -337,19 +337,19 @@ export interface SellChance {
  *  sinon traité comme un port en Surplus, l.368). PUR. */
 export function sellChance(port: PortProfile, cargoId: string, milles: number): SellChance {
   let rel = sellRelation(port, cargoId);
-  if (rel === 'produces' && milles < CARGO.vente.producesGossip.millesMin) rel = 'surplus'; // l.368
+  if (rel === 'produces' && milles < CARGO.vente.ragotSiProduction.millesMin) rel = 'surplus'; // l.368
   const demand = port.demande?.[cargoId] ?? 0;
   if (rel === 'no-produce') {
     return {
       ragot: null,
       target: (port.taille + demand) * CARGO.vente.cibleParTailleSansProduction + (isTradeHubColumn(port.production) ? CARGO.vente.bonusDeCommerce : 0),
-      drDuVendeur: CARGO.vente.sellerDR.sansProduction + (demand > 0 ? CARGO.vente.sellerDR.demande : 0),
+      drDuVendeur: CARGO.vente.drDuVendeur.sansProduction + (demand > 0 ? CARGO.vente.drDuVendeur.demande : 0),
     };
   }
   if (rel === 'produces') {
-    return { ragot: { difficulty: CARGO.vente.producesGossip.difficulty }, target: port.taille * CARGO.vente.producesGossip.cibleParTaille, drDuVendeur: CARGO.vente.sellerDR.production };
+    return { ragot: { difficulty: CARGO.vente.ragotSiProduction.difficulty }, target: port.taille * CARGO.vente.ragotSiProduction.cibleParTaille, drDuVendeur: CARGO.vente.drDuVendeur.production };
   }
-  return { ragot: { difficulty: CARGO.vente.surplusGossip.difficulty }, target: port.taille * CARGO.vente.surplusGossip.cibleParTaille, drDuVendeur: CARGO.vente.sellerDR.surplus };
+  return { ragot: { difficulty: CARGO.vente.ragotSiSurplus.difficulty }, target: port.taille * CARGO.vente.ragotSiSurplus.cibleParTaille, drDuVendeur: CARGO.vente.drDuVendeur.surplus };
 }
 
 /** PRIX D'OFFRE d'un acheteur trouvé (l.374-383) : % du prix de base selon Richesse + Taille + Demande. PUR.

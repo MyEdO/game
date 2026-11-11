@@ -53,16 +53,16 @@
     ],
     "cibleParTailleSansProduction": 10,
     "bonusDeCommerce": 30,
-    "producesGossip": {
+    "ragotSiProduction": {
       "difficulty": "complexe",
       "cibleParTaille": 10,
       "millesMin": 100
     },
-    "surplusGossip": {
+    "ragotSiSurplus": {
       "difficulty": "tresDifficile",
       "cibleParTaille": 5
     },
-    "sellerDR": {
+    "drDuVendeur": {
       "sansProduction": 1,
       "demande": 1,
       "production": -2,
@@ -75,7 +75,7 @@
       "note": "ch.15 « Longs voyages » — Vendre, table Prix d’offre (l.374-383)."
     }
   },
-  "overload": {
+  "surcharge": {
     "pctPlafond": 150,
     "paliers": [
       {
