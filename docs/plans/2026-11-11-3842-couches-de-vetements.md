@@ -15,7 +15,7 @@ Date : 2026-11-11. Branche `chantier/3842`, base `d4b44ce6a`. Ce document est un
 - `fcbb35b5d` : les gardes de l'évaluateur `couche-percee-au-repos`, même couche (`ordreDeMemeRang`) et `membre-dans-un-vetement`. La sortie de `evaluer.mjs --porte` n'est plus tronquée. La procédure nomme les trois écarts.
 - Le commit de ce document, travail en cours compris :
   - `scripts/personnage-3d/element/champ.py`, `repeser.py` et `scripts/personnage-3d/test_champ.py` : le « champ de peau », dans sa version de l'essai 2. C'est une expérience **non retenue**, gardée pour la reprise ; aucun appelant du kit.
-  - L'expérience de masquage des faces couvertes dans l'évaluateur n'est pas appliquée : son diff (`masquage-evaluateur.patch`, sur `d4b44ce6a`) est dans l'archive du dossier de travail (section « Rejouer »).
+  - `docs/plans/2026-11-11-3842-masquage-evaluateur.md` : le diff de l'expérience de masquage des faces couvertes dans l'évaluateur, non appliqué.
 
 ## Mesures de référence (tenues publiées, évaluateur de `fcbb35b5d`)
 Les valeurs se lisent par passe, dans l'ordre neutre / feminin / corpulence / carrure_moins / carrure_plus.
