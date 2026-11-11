@@ -71,7 +71,6 @@ const doc = document(
   {},
   {},
   {
-    codex: { keys: ['oups'] },
     edit: { niche: { categories: { oups: 'entries' } } },
   },
   // LDB 14 l.23-30
