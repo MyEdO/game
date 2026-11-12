@@ -59,11 +59,11 @@ jobs:
           cat /tmp/banc-a.log /tmp/banc-b.log
           echo "banc : $(( $(date +%s) - $(cat /tmp/t0) )) s, codes $CA et $CB"
           test "$CA" = 0 && test "$CB" = 0
-      - name: Seconde passe sur le même runner, avec les rendus de quatre planches
+      - name: Seconde passe sur le même runner, avec les rendus des planches aux portraits douteux
         continue-on-error: true
         run: |
           date +%s > /tmp/t0
-          node hotes/godot/etalons.mjs --web dist/godot --planche lieu --planche attaque --planche voyage-jets --planche fiche-du-heros --rapport /tmp/rapport
+          node hotes/godot/etalons.mjs --web dist/godot --planche repit --planche lieu --planche port --planche carte-du-monde --rapport /tmp/rapport
           echo "quatre planches avec rapport : $(( $(date +%s) - $(cat /tmp/t0) )) s"
       - uses: actions/upload-artifact@v4
         with:
