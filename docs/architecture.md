@@ -642,8 +642,9 @@ src/hoteTexte/              HÔTE TEXTE du noyau (#2898) : une partie pilotable 
                             outils et leur schéma), `serveur.ts` (ce qu'ils font) ; servi par
                             `scripts/hote-texte.mjs` (SDK MCP, stdio), déclaré par `.mcp.json`.
 hotes/godot/                HÔTE GODOT du noyau (#2928, zone `hotes`) : le pont JSON que Godot appelle, dans la page de
-                            l'export web ou, hors d'une page, par un processus Node (`vivant.mjs`, #3945 : `npm run
-                            godot:ouvrir` ouvre l'éditeur Godot sur le projet, qui y joue sur le noyau vivant).
+                            l'export web ou, hors d'une page, par un processus Node (`processus.mjs` : `vivant.mjs`
+                            sous l'éditeur, #3945, que `npm run godot:ouvrir` ouvre sur le projet ; `embarque.mjs`,
+                            empaqueté à côté de l'exécutable de bureau, #3951).
                             `pont/pont.ts` (une méthode = une chaîne JSON en entrée, une en sortie, jamais une levée ;
                             gestes par le module commun, vue faite des lecteurs du noyau, jetons tenus par numéro),
                             `pont/entree.ts` (`globalThis.wfrpPont`), contrat `pont/CONTRAT.md` ; `construire.mjs
@@ -666,7 +667,13 @@ hotes/godot/                HÔTE GODOT du noyau (#2928, zone `hotes`) : le pont
                             l'export Web et, à côté, chaque modèle en scène que l'éditeur fabrique de son GLB
                             (`projet/outils/fabrique_de_modeles.gd`, textures compressées avec mipmaps, #3946), que
                             `recette.mjs` joue au navigateur : un tour complet, l'atelier, ou les vues
-                            nommées d'une scène (`--parcours cadrages`, `cadrages/`).
+                            nommées d'une scène (`--parcours cadrages`, `cadrages/`). `--bureau --sortie <dossier>`
+                            (`npm run godot:bureau`, #3951) produit l'exécutable de bureau de la plateforme, son noyau
+                            embarqué (`noyau/` : Node, le bundle, le point d'entrée) et ses modèles en scène, puis lui
+                            fait jouer une partie. Deux rendus dessinent les mêmes scènes : Forward+ hors d'une page,
+                            le rendu de compatibilité dans la page ou en repli ; `--rendus` (`npm run godot:rendus`,
+                            étape de la CI) joue en rendu réel, sous chacun des deux, les recettes déclarant
+                            `const RECETTE_RENDUE := true`.
   etalons/                  les planches (`planches/<nom>.json`, un état de partie enregistré depuis le pont par
                             `etalons.mjs --enregistrer`, que le jeu montre à `?planche=<nom>`), l'étalon de chacune
                             (`<nom>.png`, sa capture) et `valides.json` (l'empreinte des étalons validés). `npm run

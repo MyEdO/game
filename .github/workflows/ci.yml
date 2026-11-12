@@ -190,6 +190,14 @@ jobs:
       - name: Godot — scripts et recettes autonomes
         if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run godot:sonde
+      # `godot:rendus` (#3951) : les recettes rendues, en rendu réel sous chacun des deux rendus (Forward+ et
+      # compatibilité), sur un écran virtuel et le rendu logiciel de Mesa ; après `godot:sonde`, qui a déposé les
+      # modèles, les textures et l'éditeur qu'elle lit.
+      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends xvfb libgl1-mesa-dri mesa-vulkan-drivers libxcursor1 libxinerama1 libxrandr2 libxi6
+      - name: Godot — recettes rendues sous les deux rendus
+        if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+        run: npm run godot:rendus
       # `personnage-3d:tests` (#3145) : `scripts/personnage-3d/tests.py` dans le venv épinglé de
       # `scripts/personnage-3d/environnement.mjs`, sous le CPython de son `PYTHON` (marqueur `python_version` de
       # requirements.txt), après `godot:sonde`, qui écrit sous `hotes/godot/projet/modeles/` dont `test_vehicule.py` lit les

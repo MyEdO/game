@@ -1,0 +1,48 @@
+// LE PROCESSUS DU PONT (#3945, #3951) : ce que partagent ses deux points d'entrée, `vivant.mjs` (le projet en place, son
+// bundle bâti au lancement) et `embarque.mjs` (l'exécutable de bureau, son bundle bâti à l'export). Sans dépendance hors
+// de Node et de `tableTotale` : `embarque.mjs` s'empaquette en un fichier.
+import { Console } from 'node:console'
+import { createContext, runInContext } from 'node:vm'
+import { tableTotale } from '../../src/lib/tableTotale.ts'
+
+/** Le fichier du bundle du pont. */
+export const PONT = 'wfrp-pont.js'
+
+/** Les API de navigateur que le bundle lit, et que la page de Godot porte : chacune prise au global de Node, rien de plus. */
+export const API_DU_NAVIGATEUR = ['structuredClone', 'console', 'performance', 'URL', 'atob', 'btoa', 'setTimeout', 'clearTimeout', 'queueMicrotask']
+
+/** Le pont du bundle `code` évalué comme dans la page de Godot : dans un contexte qui ne porte que `API_DU_NAVIGATEUR`,
+ *  chacune prise au global de Node sauf `console`, celle donnée. Lève si l'évaluation lève. */
+export function pontDuBundle(code, console) {
+  const page = createContext(tableTotale(API_DU_NAVIGATEUR, (nom) => (nom === 'console' ? console : globalThis[nom])))
+  runInContext(code, page, { filename: PONT })
+  return page.wfrpPont
+}
+
+/**
+ * @contrat Transport
+ * - Le processus du pont (`tenirLeTuyau`, `hotes/godot/processus.mjs`) tire le pont de son bundle comme la page
+ *   (`pontDuBundle`), sa `console` sur la sortie d'erreur : sa sortie standard ne porte que les lignes du protocole.
+ * - `resoudreLaPile` va à `pont.resoudreLaPile`, qui rend sur-le-champ sans `Worker` (`pont/pileEnFond.ts`) : les réponses
+ *   sortent dans l'ordre des requêtes.
+ * - Une ligne illisible sur son entrée le tue ; la fin de son entrée ferme le serveur, et il sort en 0.
+ */
+
+/** Tient le tuyau du pont du bundle `code` : l'annonce de l'adresse `url` du serveur du jeu, puis une ligne de réponse
+ *  par ligne de requête de l'entrée standard, jusqu'à la fin de l'entrée, où `fermer` ferme le serveur. */
+export async function tenirLeTuyau(code, { url, fermer }) {
+  const pont = pontDuBundle(code, new Console(process.stderr))
+  process.stdout.write(`${JSON.stringify({ url })}\n`)
+  // L'entrée découpée aux seuls `\n`, jamais aux U+2028 et U+2029 que le `JSON.stringify` de Godot laisse bruts.
+  let reste = ''
+  for await (const morceau of process.stdin.setEncoding('utf8')) {
+    const lignes = `${reste}${morceau}`.split('\n')
+    reste = lignes.pop()
+    for (const ligne of lignes) {
+      const [methode, json] = JSON.parse(ligne)
+      if (methode === 'resoudreLaPile') pont.resoudreLaPile(json, (reponse) => process.stdout.write(`${reponse}\n`))
+      else process.stdout.write(`${pont.appeler(methode, json)}\n`)
+    }
+  }
+  fermer()
+}

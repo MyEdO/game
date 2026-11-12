@@ -2,8 +2,10 @@ class_name TransportDuProcessus
 extends PontDuNoyau.Transport
 
 ## @contrat Transport
-## Hors d'une page, Godot lance `node <pont>` au premier `rejoindre` (`projet/scripts/transport_du_processus.gd`),
-## `<pont>` le paramètre `--pont=<chemin>` du lancement, à défaut `hotes/godot/vivant.mjs`, par un tuyau bloquant.
+## Hors d'une page, Godot lance le processus du pont au premier `rejoindre` (`projet/scripts/transport_du_processus.gd`,
+## `_lancement`), par un tuyau bloquant : `node <pont>`, `<pont>` le paramètre `--pont=<chemin>` du lancement, à défaut
+## `hotes/godot/vivant.mjs` sous l'éditeur ; dans un exécutable (#3951), `noyau/node` sur `noyau/vivant.mjs`, à côté de
+## l'exécutable.
 ## La sortie standard du processus est faite de lignes terminées par `\n` : d'abord l'annonce `{"url":"http://127.0.0.1:<port>/"}`,
 ## l'adresse du serveur du jeu, attendue `ATTENTE_S` au plus, puis une ligne par requête, la chaîne que rend
 ## `wfrpPont.appeler(methode, json)`. Son entrée standard reçoit une ligne par requête, `[methode, json|null]`.
@@ -74,11 +76,11 @@ func ouvrir() -> bool:
 		return _url != ""
 	if _pid != 0:
 		return await _ouvert
-	var pont := parametre("pont")
-	var lance := OS.execute_with_pipe("node", PackedStringArray([pont if pont != "" else ProjectSettings.globalize_path("res://../vivant.mjs")]), true)
+	var lancement := _lancement()
+	var lance := OS.execute_with_pipe(lancement[0], PackedStringArray([lancement[1]]), true)
 	if lance.is_empty():
 		_mort = true
-		panne.emit("node ne se lance pas : est-il sur le PATH ?")
+		panne.emit("le processus du pont ne se lance pas : %s %s" % [lancement[0], lancement[1]])
 		return false
 	_pid = lance.pid
 	_entree = lance.stdio
@@ -153,6 +155,18 @@ func parametre(cle: String) -> String:
 		if argument.begins_with(prefixe):
 			return argument.trim_prefix(prefixe)
 	return ""
+
+
+## Le binaire et le script du processus du pont : le `node` du PATH sur le paramètre `pont` s'il est donné, sinon, sous
+## l'éditeur, sur le pont vivant du dépôt, à côté du projet ; dans un exécutable, ceux qu'il embarque à côté de lui.
+func _lancement() -> PackedStringArray:
+	var pont := parametre("pont")
+	if pont != "":
+		return PackedStringArray(["node", pont])
+	if OS.has_feature("editor"):
+		return PackedStringArray(["node", ProjectSettings.globalize_path("res://../vivant.mjs")])
+	var noyau := OS.get_executable_path().get_base_dir().path_join("noyau")
+	return PackedStringArray([noyau.path_join("node.exe" if OS.has_feature("windows") else "node"), noyau.path_join("vivant.mjs")])
 
 
 func _expirer() -> void:
