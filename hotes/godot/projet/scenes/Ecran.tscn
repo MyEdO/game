@@ -1,12 +1,14 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://scripts/zone.gd" id="1_zone"]
 [ext_resource type="Script" path="res://scripts/disposition.gd" id="2_disposition"]
 [ext_resource type="Theme" path="res://art/titre_de_fenetre.tres" id="3_titre"]
 [ext_resource type="Theme" path="res://art/statbloc.tres" id="4_statbloc"]
 [ext_resource type="Theme" path="res://art/avis.tres" id="t_avis"]
-[ext_resource type="Theme" path="res://art/petit.tres" id="t_petit"]
+[ext_resource type="Theme" path="res://art/journal.tres" id="t_journal"]
+[ext_resource type="Theme" path="res://art/ecran.tres" id="t_ecran"]
 [ext_resource type="Theme" path="res://art/entites_en_cartes.tres" id="t_en_cartes"]
+[ext_resource type="Theme" path="res://art/discret.tres" id="t_discret"]
 
 [node name="Ecran" type="Node"]
 
@@ -19,6 +21,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
+theme = ExtResource("t_ecran")
 theme_type_variation = &"Ossature"
 
 [node name="Colonne" type="VBoxContainer" parent="Interface/Ossature"]
@@ -213,7 +216,7 @@ masque = NodePath("../../..")
 
 [node name="Pied" type="PanelContainer" parent="Interface/Ossature/Colonne"]
 visible = false
-theme_type_variation = &"Panneau"
+theme_type_variation = &"Pied"
 
 [node name="Pile" type="VBoxContainer" parent="Interface/Ossature/Colonne/Pied"]
 theme_type_variation = &"PileSerree"
@@ -225,6 +228,7 @@ theme_type_variation = &"Onglets"
 script = ExtResource("1_zone")
 source = "combat.offres"
 masque = NodePath("../../..")
+repli = true
 
 [node name="Exploration" type="HFlowContainer" parent="Interface/Ossature/Colonne/Pied/Pile"]
 
@@ -232,6 +236,7 @@ masque = NodePath("../../..")
 script = ExtResource("1_zone")
 source = "exploration.gestes"
 masque = NodePath("../../..")
+repli = true
 
 [node name="Heros" type="ScrollContainer" parent="Interface/Ossature/Colonne/Pied/Pile"]
 vertical_scroll_mode = 0
@@ -244,20 +249,14 @@ size_flags_horizontal = 3
 [node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Pied/Pile/Heros/Cartes" node_paths=PackedStringArray("masque")]
 script = ExtResource("1_zone")
 source = "groupe.heros"
+formes = PackedStringArray("entite:heros")
 masque = NodePath("../../../..")
 
 [node name="Droite" type="PanelContainer" parent="Interface/Ossature"]
-custom_minimum_size = Vector2(300, 0)
-theme_type_variation = &"Panneau"
+custom_minimum_size = Vector2(320, 0)
+theme_type_variation = &"Journal"
 
 [node name="Pile" type="VBoxContainer" parent="Interface/Ossature/Droite"]
-
-[node name="Gestes" type="HBoxContainer" parent="Interface/Ossature/Droite/Pile"]
-alignment = 2
-
-[node name="Zone" type="Node" parent="Interface/Ossature/Droite/Pile/Gestes"]
-script = ExtResource("1_zone")
-source = "groupe.gestes"
 
 [node name="Titre" type="VBoxContainer" parent="Interface/Ossature/Droite/Pile"]
 
@@ -268,7 +267,7 @@ source = "journal.titre"
 [node name="Defilement" type="ScrollContainer" parent="Interface/Ossature/Droite/Pile"]
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
-theme = ExtResource("t_petit")
+theme = ExtResource("t_journal")
 
 [node name="Lignes" type="VBoxContainer" parent="Interface/Ossature/Droite/Pile/Defilement"]
 theme_type_variation = &"PileSerree"
@@ -278,6 +277,14 @@ size_flags_horizontal = 3
 script = ExtResource("1_zone")
 source = "journal.lignes"
 ajout = true
+
+[node name="Gestes" type="HBoxContainer" parent="Interface/Ossature/Droite/Pile"]
+theme = ExtResource("t_discret")
+alignment = 2
+
+[node name="Zone" type="Node" parent="Interface/Ossature/Droite/Pile/Gestes"]
+script = ExtResource("1_zone")
+source = "groupe.gestes"
 
 [node name="Apercu" type="PanelContainer" parent="Interface"]
 visible = false

@@ -13,7 +13,8 @@ import { libelleDeValeur } from '../../../data/schemas/grammaire/meta';
 import { chaosAlignSchema, contexteDeTestSchema, exposureLevelSchema } from '../../../data/schemas/grammaire/valeurs';
 import { zoneShapeSchema } from '../../../data/schemas/grammaire/mecanique';
 import { CHAR_LABELS } from '../../../engine/types';
-import { formatDice, formatEffetSigne, parseDiceRequired } from '../../../engine/dice';
+import { formatDice, formatEffetSigne } from '../../../engine/dice';
+import { deDeLaTableTiree } from '../../../engine/tables';
 import { shipLocationLabel } from '../../../engine/shipCritical';
 import { deElide } from '../../../i18n';
 import { giveTrappingLabel } from '../../../engine/items';
@@ -161,7 +162,7 @@ export function opSummary(o: GameOp): string {
     case 'loseTurn': return 'saute le tour';
     case 'removeShipPoste': return 'retire un poste de navire';
     case 'rollThreshold': return `1d${o.sides} → ${o.thresholds.length} palier(s)`;
-    case 'rollTable': return `${'tableId' in o ? `table « ${o.tableId} »` : `${formatDice(parseDiceRequired(o.die, 'rollTable.die'))} → ${o.entries.length} rangée(s)`}${o.addNegativeSL ? ' (+|DR néga.|)' : ''}${o.extraRollsPerStep ? ` +${o.extraRollsPerStep} jet/pas Surinc. (Durée)` : ''}`;
+    case 'rollTable': return `${'tableId' in o ? `table « ${o.tableId} »` : `${formatDice(deDeLaTableTiree(o))} → ${o.entries.length} rangée(s)`}${o.addNegativeSL ? ' (+|DR néga.|)' : ''}${o.extraRollsPerStep ? ` +${o.extraRollsPerStep} jet/pas Surinc. (Durée)` : ''}`;
     case 'rollMutation': return `mutation ← « ${o.table} »${o.duration === 'permanent' ? ' (perm.)' : ''}`;
     case 'narrative': return `${o.text ? `« ${coupeAuMot(o.text, 40)} »` : '(vide)'}${o.nombre !== undefined ? ` : ${formulaSummary(o.nombre)}` : ''}`;
     case 'shipMorale': return `Moral ${formatEffetSigne(o.delta)}`;

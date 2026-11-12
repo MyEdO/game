@@ -36,7 +36,6 @@ const doc = document(
   {},
   {},
   {
-    codex: { keys: ['drivingMishap'] },
     edit: { niche: { categories: { drivingMishap: 'entries' } } },
   },
   { rangee, deDeTirage: true },

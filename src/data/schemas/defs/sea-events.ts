@@ -102,7 +102,6 @@ const doc = document(
     },
   },
   {
-    codex: { keys: ['seaManannFactors', 'seaBoardEvents', 'seaPortEvents', 'seaFastVoyage'] },
     edit: {
       niche: {
         categories: {

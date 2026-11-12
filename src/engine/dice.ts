@@ -101,13 +101,6 @@ export function parseDice(s: string): DiceSpec | null {
   return dc;
 }
 
-/** Dé authoré requis, avec le chemin du champ dans le diagnostic. */
-export function parseDiceRequired(s: string, champ: string): DiceSpec {
-  const de = parseDice(s);
-  if (!de) throw new Error(`${champ} invalide : ${s}`);
-  return de;
-}
-
 /** Valeur authorée TIRÉE au dé (`tirageSchema`, `src/data/schemas/grammaire/valeurs.ts`). #1652 */
 export interface Tirage { dice: DiceSpec }
 /** Un nombre OU un tirage. */

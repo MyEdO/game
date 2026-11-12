@@ -1,0 +1,37 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/liaison.gd" id="1_liaison"]
+
+[node name="Vie" type="HBoxContainer"]
+size_flags_horizontal = 3
+theme_type_variation = &"RangeeSerree"
+
+[node name="Barre" type="ProgressBar" parent="."]
+custom_minimum_size = Vector2(48, 6)
+size_flags_horizontal = 3
+size_flags_vertical = 4
+theme_type_variation = &"Vie"
+show_percentage = false
+
+[node name="max" type="Node" parent="Barre"]
+script = ExtResource("1_liaison")
+champ = "max"
+propriete = &"max_value"
+
+[node name="courant" type="Node" parent="Barre"]
+script = ExtResource("1_liaison")
+champ = "courant"
+propriete = &"value"
+
+[node name="libelle" type="Node" parent="Barre"]
+script = ExtResource("1_liaison")
+champ = "libelle"
+propriete = &"tooltip_text"
+
+[node name="Texte" type="Label" parent="."]
+theme_type_variation = &"Mesure"
+
+[node name="texte" type="Node" parent="Texte"]
+script = ExtResource("1_liaison")
+champ = "texte"
+

@@ -77,4 +77,15 @@ describe('dé — forme UNIQUE dans la donnée authorée (#1463)', () => {
 
     expect(porteurs, 'dé(s) en CHAÎNE — un tirage s’écrit `{ dice: { n, sides, plus? } }`').toEqual([]);
   });
+
+  // `{ count, faces }` est une troisième grammaire de dé, invisible au volet `n`/`sides` : le dé d'une
+  // table tirée est sa chaîne `die`, lue par `deDeLaTableTiree` (`src/engine/tables.ts`). #3961
+  it('aucun nœud ne porte un dé `{ count, faces }`', () => {
+    const porteurs: string[] = [];
+    for (const { chemin, doc } of FICHIERS) marcherObjets(doc, (o) => {
+      if ('count' in o && 'faces' in o) porteurs.push(`${chemin} ${JSON.stringify(o)}`);
+    });
+
+    expect(porteurs, 'dé(s) `{ count, faces }` — le dé d’une table tirée s’écrit `die: "2d10"`').toEqual([]);
+  });
 });

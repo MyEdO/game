@@ -18,7 +18,7 @@ import { mecaniqueDe, noeudTest } from './mecanique';
 import { proseAdressable, proseNommee } from './prose';
 import { descendre } from './descente';
 import { nommerChamps, nommerNoeud } from './meta';
-import { document, type Exposition } from './document';
+import { document, type DeclarationExposition } from './document';
 import { sceneFlowSchema } from '../defs-scenes/effets';
 
 const LITTERAUX_D_OBJET = new Set(['object', 'strictObject', 'looseObject']);
@@ -154,7 +154,7 @@ describe('GARDE — un objet construit par une fonction de la grammaire est un p
 
 describe('lecture — `classeDeProduit` nomme la fabrique, le rôle et les clés apportées par l’appelant', () => {
   const famille = mecaniqueDe({});
-  const EXPOSITION: Exposition = { codex: { keys: ['talents'] }, edit: { dataset: 'talents.json' } };
+  const EXPOSITION: DeclarationExposition = { codex: { keys: ['talents'] }, edit: { dataset: 'talents.json' } };
   /** Les produits que rencontre la descente de `noeud`, sans descendre sous un produit. */
   const lus = (noeud: unknown): string[] => {
     const vus: string[] = [];
