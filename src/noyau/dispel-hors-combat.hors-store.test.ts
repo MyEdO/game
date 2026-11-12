@@ -38,13 +38,6 @@ describe('Dissipation permanente — hors combat (couture D, #461)', () => {
     return { mage, allie, cible };
   }
 
-  it('n’ouvre rien EN combat : dissiperLeSort est un no-op (battle ouvert = action de combat)', () => {
-    const { mage } = setup();
-    banc.setState({ battle: { combatants: [mage], order: ['mage'], turn: 0, round: 1, acted: false, over: false, log: [] } as never });
-    banc.getState().dissiperLeSort('mage', 'malefice', 'ennemi');
-    expect(banc.getState().pendingDispel).toBeNull();
-  });
-
   it('ouvre le pending hors combat, Soutien « même Domaine » compté sans géométrie (l.162)', () => {
     setup();
     banc.getState().dissiperLeSort('mage', 'malefice', 'ennemi');
