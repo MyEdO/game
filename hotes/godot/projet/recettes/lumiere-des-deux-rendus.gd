@@ -1,12 +1,13 @@
 extends SceneTree
 
-## La lumière sous chacun des deux rendus (#3951, `hotes/godot/pont/CONTRAT.md`, section « Lumière ») : cinq lampes
-## posées par `Lumiere.eclairer` au-dessus d'un sol que pose `VolumeDeScene`, une sans écran, chacune des autres
-## au-dessus d'un écran qui lui cache le sol, lu aux pixels de l'image rendue. Sous Forward+, l'écran d'un décor et celui d'un corps portent l'ombre d'une
-## lampe posée ; l'écran du luminaire d'une lampe posée et celui d'un corps sous une lampe portée n'en portent pas
-## (#3811) ; l'environnement porte l'occlusion ambiante et le brouillard volumétrique, et chacun change l'image : le
-## brouillard diffuse la lampe dans l'ombre de son écran, l'occlusion assombrit le sol au bord de l'écran. Sous le rendu
-## de compatibilité, aucune lampe ne porte d'ombre, et l'environnement ne porte ni l'une ni l'autre.
+## La lumière sous chacun des deux rendus (#3951, #3811, `hotes/godot/pont/CONTRAT.md`, section « Lumière ») : cinq
+## lampes posées par `Lumiere.eclairer` au-dessus d'un sol que pose `VolumeDeScene`, une sans écran, chacune des autres
+## au-dessus d'un écran qui lui cache le sol, lu aux pixels de l'image rendue. Sous les deux rendus, l'écran d'un décor
+## et celui d'un corps portent l'ombre d'une lampe posée ; l'écran du luminaire d'une lampe posée et celui d'un corps
+## sous une lampe portée n'en portent pas. Sous Forward+ seul, l'environnement porte l'occlusion ambiante et le
+## brouillard volumétrique, et chacun change l'image : le brouillard diffuse la lampe dans l'ombre de son écran,
+## l'occlusion assombrit le sol au bord de l'écran. Sous le rendu de compatibilité, qui n'en porte aucun, le sol dans
+## l'ombre d'un écran a le rouge d'un sol loin de toute lampe.
 ##
 ## Rendu réel, sous chacun des deux rendus : `npm run godot:rendus`.
 
@@ -19,8 +20,8 @@ const HAUTEUR_DE_LAMPE := 1.0
 const HAUTEUR_D_ECRAN := 0.5
 const DEMI_ECRAN := 0.4
 const LECTURE := 0.6
-## Par lampe : sa clé, sa case, ce qui lui fait écran, et si le sol reste éclairé sous Forward+ ; la première, sans
-## écran, dit le rouge d'un sol éclairé.
+## Par lampe : sa clé, sa case, ce qui lui fait écran, et si le sol reste éclairé ; la première, sans écran, dit le
+## rouge d'un sol éclairé.
 const LAMPES := [
 	{cle = "posee/libre", x = 22, ecran = "", eclaire = true},
 	{cle = "posee/luminaire", x = 2, ecran = "luminaire", eclaire = true},
@@ -39,6 +40,8 @@ const A_L_OMBRE := 2
 const HALO_LU := 12
 const OCCLUSION_LUE := 4
 const AMBIANTE_D_OCCLUSION := 0.5
+## L'écart de rouge le plus grand entre deux sols que la même lumière éclaire.
+const MEME_ROUGE := 3
 var _fautes: Array[String] = []
 
 
@@ -94,9 +97,8 @@ func _recetter() -> void:
 		_fautes.append("la lampe sans écran n'éclaire pas son sol : rouge %d, %d loin de toute lampe" % [lus[0], fond])
 	for rang in LAMPES.size():
 		var eclaire: bool = lus[rang] > (fond + lus[0]) / 2
-		var attendu: bool = LAMPES[rang].eclaire or not complet
-		if eclaire != attendu:
-			_fautes.append("%s sur l'écran %s : sol %s (rouge %d), attendu %s" % [LAMPES[rang].cle, LAMPES[rang].ecran, "éclairé" if eclaire else "dans l'ombre", lus[rang], "éclairé" if attendu else "dans l'ombre"])
+		if eclaire != LAMPES[rang].eclaire:
+			_fautes.append("%s sur l'écran %s : sol %s (rouge %d), attendu %s" % [LAMPES[rang].cle, LAMPES[rang].ecran, "éclairé" if eclaire else "dans l'ombre", lus[rang], "éclairé" if LAMPES[rang].eclaire else "dans l'ombre"])
 	if complet:
 		var a_l_ombre := _sol_lu(LAMPES[A_L_OMBRE])
 		environnement.volumetric_fog_enabled = false
@@ -110,6 +112,8 @@ func _recetter() -> void:
 			_fautes.append("le brouillard volumétrique ne diffuse pas la lampe dans l'ombre de son écran : rouge %d, %d sans lui" % [lus[A_L_OMBRE], sans_brouillard])
 		if occulte > sans_occlusion - OCCLUSION_LUE:
 			_fautes.append("l'occlusion ambiante n'assombrit pas le sol au bord de l'écran : rouge %d, %d sans elle" % [occulte, sans_occlusion])
+	elif absi(lus[A_L_OMBRE] - fond) > MEME_ROUGE:
+		_fautes.append("le sol dans l'ombre de son écran n'a pas le rouge d'un sol loin de toute lampe : %d, %d loin de toute lampe" % [lus[A_L_OMBRE], fond])
 	for faute in _fautes:
 		push_error("[lumiere-des-deux-rendus] " + faute)
 	print("[lumiere-des-deux-rendus] erreurs=", _fautes.size())
