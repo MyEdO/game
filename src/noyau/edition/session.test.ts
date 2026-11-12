@@ -20,6 +20,7 @@ import { buildScene, type MapSpec } from '../mapSpec';
 import { avertissementsDeLaSession, cadreDeLaSession, champDuMessage, editer, groupesDuLieu, ouvrirLEdition, planDeLaVolee, sceneEditee, vueDeLaScene, type GesteDEdition, type SessionDEdition } from './session';
 import { poserLesNavires, provenanceDesNavires } from '../planDeNavire';
 import { validateScene } from '../validateScene';
+import { bumperDataset } from '../../data/versionDataset';
 import { flowFromEffects } from '../monde/flow';
 import { fauteDAppui } from '../monde/poseDuDecor';
 import type { Effect } from '../../data/schemas/defs-scenes/effets';
@@ -810,5 +811,27 @@ describe('les postes d’une coque au formulaire tiré du schéma (#3606 M1f)', 
     const pnj = jouer(ouverte(), { geste: 'outil', outil: { mode: 'entite', kind: 'personnage', ref: 'griffon-zoo-imperial' } }, { geste: 'appui', point: point(1, 1) }, { geste: 'relache', point: point(1, 1) });
     const id = entiteDeLaSelection(sceneEditee(pnj), pnj.sel)!.id;
     expect(refusDeLaValeur(pnj, { geste: 'valeur', porteur: { sorte: 'entite', id }, chemin: ['postes'], valeur: [{ trappingId: engins[0] }] })).toBe('nonOffert');
+  });
+});
+
+describe('la validation de la session ne se refait que quand le projet change (#3993)', () => {
+  it('deux sessions au même projet rendent les mêmes avertissements ; une scène écrite ou un dataset re-daté les refait, au contenu de `validateScene`', () => {
+    const projet = { scenes: [{ ...emptyScene('valide', 4, 4), walls: [{ x: 1, y: 1, side: 'N' }] }], narratif: NARRATIF_VIDE } as unknown as Parameters<typeof ouvrirLEdition>[0];
+    const direct = (s: SessionDEdition) => validateScene([sceneEditee(s)], undefined, NARRATIF_VIDE).filter((w) => w.sceneId === s.sceneId || w.scope === 'worldMap');
+    const a = avertissementsDeLaSession(ouvrirLEdition(projet, false));
+    expect(a.length, 'le mur en impasse est averti').toBeGreaterThan(0);
+    const b = avertissementsDeLaSession(ouvrirLEdition(projet, false));
+    b.forEach((w, i) => expect(w).toBe(a[i]));
+    expect(b).toEqual(direct(ouvrirLEdition(projet, false)));
+
+    const ecrite = editer(ouvrirLEdition(projet, false), { geste: 'ajouterCouche' });
+    const c = avertissementsDeLaSession(ecrite);
+    expect(c[0]).not.toBe(a[0]);
+    expect(c).toEqual(direct(ecrite));
+
+    bumperDataset('criticalsTete');
+    const d = avertissementsDeLaSession(ecrite);
+    expect(d[0]).not.toBe(c[0]);
+    expect(d).toEqual(c);
   });
 });
