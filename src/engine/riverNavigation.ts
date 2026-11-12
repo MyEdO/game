@@ -136,8 +136,8 @@ export function riverDriftKm(baseKmPerDay: number): number {
  *  Difficulté — le défaut Intermédiaire +0 est celui de la table, LDB 12 l.148). PUR. */
 export function navPenaltyMods(state: { derive?: boolean; horsDeControle?: boolean }): ModLine[] {
   const mods: ModLine[] = [];
-  if (state.derive) mods.push({ label: t('rv.modDrift'), value: driftNavPenalty(), famille: 'circonstance', ref: RULE_REF['navigation-derive'] });
-  if (state.horsDeControle) mods.push({ label: t('rv.modHorsDeControle'), value: OUT_OF_CONTROL.navPenalty, famille: 'circonstance', ref: RULE_REF['navigation-greement'] });
+  if (state.derive) mods.push({ label: t('fleuve.modificateurDeDerive'), value: driftNavPenalty(), famille: 'circonstance', ref: RULE_REF['navigation-derive'] });
+  if (state.horsDeControle) mods.push({ label: t('fleuve.modificateurHorsDeControle'), value: OUT_OF_CONTROL.navPenalty, famille: 'circonstance', ref: RULE_REF['navigation-greement'] });
   return mods;
 }
 

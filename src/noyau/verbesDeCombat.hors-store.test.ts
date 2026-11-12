@@ -265,7 +265,7 @@ describe('Désengagement (LDB 15 l.43-49) : une option par verdict', () => {
       envoyer(partie, 'rompreLEngagement');
       expect(partie.etat().pendingDisengage).toMatchObject({ canSacrifice: false, refusEsquive: t('agate.unableToAct'), canFuir: true });
       envoyer(partie, 'jetLancer', 'desengagement');
-      expect(partie.etat().pendingDisengage, 'l’Esquive fermée s’est jouée').toMatchObject({ phase: 'choice', def: null });
+      expect(partie.etat().pendingDisengage, 'l’Esquive fermée s’est jouée').toMatchObject({ phase: 'choix', def: null });
     } finally {
       partie.fermer();
     }

@@ -619,7 +619,7 @@ describe('buildScene — encounters : marqueurs d’Avantage initial (Manœuvrab
     const hero = mk('h1', 'heros');
     const foe = mk('e1', 'ennemi');
     // Manœuvrabilité 'groupe' (+2) + Terrain 'groupe' heavy (+2) côté alliés ; Menace 'ennemis' dangereuse (+1) côté adverses.
-    expect(startAdvantagePools([hero, foe], false, s.encounters[0])).toEqual({ allies: 4, foes: 1 });
+    expect(startAdvantagePools([hero, foe], false, s.encounters[0])).toEqual({ allies: 4, adversaires: 1 });
   });
 });
 

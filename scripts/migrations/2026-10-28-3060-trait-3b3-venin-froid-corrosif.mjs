@@ -61,7 +61,7 @@ const remplacer = (liste, id, avant, apres) => {
 const ops = (liste) => ({ kind: 'do', effect: { type: 'ops', on: 'target', ops: liste } });
 const VENIN_EFFETS_AVANT = [{
   trigger: 'onHit',
-  on: 'victim',
+  on: 'victime',
   flow: {
     kind: 'if',
     cond: { kind: 'all', of: [
@@ -78,7 +78,7 @@ const VENIN_EFFETS_AVANT = [{
 }];
 const VENIN_EFFETS_APRES = [{
   trigger: 'onHit',
-  on: 'victim',
+  on: 'victime',
   flow: {
     kind: 'if',
     cond: { kind: 'all', of: [
@@ -123,7 +123,7 @@ const VOMISSEMENT_AVANT = {
   "coutEnAvantage": 3,
   "stat": "capacite-de-tir",
   "defense": "esquive",
-  "targeting": "zone",
+  "ciblage": "zone",
   "range": {
     "bonusOf": "endurance"
   },
@@ -133,7 +133,7 @@ const VOMISSEMENT_AVANT = {
   "effects": [
     {
       "trigger": "onHit",
-      "on": "victim",
+      "on": "victime",
       "flow": {
         "kind": "seq",
         "steps": [

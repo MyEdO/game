@@ -911,7 +911,7 @@ describe('useStagePointer — le décor VOLUMIQUE se désigne, et ne coûte que 
     weapons: [], armour: {}, items: [], skills: [], talents: [],
   }) as unknown as Combatant);
 
-  const pnjAssis = (id: string) => ({ kind: 'entity' as const, entityId: id });
+  const pnjAssis = (id: string) => ({ kind: 'entite' as const, entityId: id });
 
   /** Scène d'un meuble à recette (fouillable) posé en (2,3), le groupe à portée de bras. */
   const sceneMeuble = (ref: string) => {
@@ -984,7 +984,7 @@ describe('useStagePointer — le décor VOLUMIQUE se désigne, et ne coûte que 
     const arrivee = useGame.getState().partyPos;
     expect(abords, 'le groupe s’arrête SUR un abord de place').toContain(`${arrivee.x},${arrivee.y}`);
     expect(arrivee).not.toEqual({ x: 2, y: 3 });                // jamais la case du meuble
-    expect(seatPoseOf(useGame.getState().scene!, { kind: 'party', rang: 1 })).toMatchObject({ propId: 'table-1' });
+    expect(seatPoseOf(useGame.getState().scene!, { kind: 'groupe', rang: 1 })).toMatchObject({ propId: 'table-1' });
     expect(useGame.getState().pendingInteract).toBeNull();
   });
 
@@ -1067,7 +1067,7 @@ describe('useStagePointer — le décor VOLUMIQUE se désigne, et ne coûte que 
     act(() => { vi.runAllTimers(); });
 
     expect(useGame.getState().journal.join(' | '), 'aucun refus d’assise en chemin').not.toContain('Vous devez rejoindre la place');
-    expect(seatPoseOf(useGame.getState().scene!, { kind: 'party', rang: 1 }), 'assis EN UN GESTE').toMatchObject({ propId: 'table-1', slotId: 'place-3' });
+    expect(seatPoseOf(useGame.getState().scene!, { kind: 'groupe', rang: 1 }), 'assis EN UN GESTE').toMatchObject({ propId: 'table-1', slotId: 'place-3' });
     expect(useGame.getState().pendingInteract).toBeNull();
   });
 
@@ -1099,7 +1099,7 @@ describe('useStagePointer — le décor VOLUMIQUE se désigne, et ne coûte que 
     pointer.handlers.onPointerUp(ev);
     act(() => { vi.runAllTimers(); });
 
-    const pose = seatPoseOf(useGame.getState().scene!, { kind: 'party', rang: 1 });
+    const pose = seatPoseOf(useGame.getState().scene!, { kind: 'groupe', rang: 1 });
     expect(useGame.getState().journal.join(' | '), 'aucun refus : il restait trois places').not.toContain('Vous devez rejoindre la place');
     expect(pose, 'assis à une place LIBRE, en un geste').toMatchObject({ propId: 'table-1' });
     expect(pose!.slotId, 'jamais la place prise').not.toBe('place-1');

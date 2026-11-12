@@ -87,7 +87,7 @@ function RoundPanel({ mb }: { mb: MassBattleState }) {
   const scene = useGame((s) => s.scene);
   const partyZ = useGame((s) => s.partyPos.z ?? 0); // le plan suit l'étage du groupe
   const [selectedStationId, setSelectedStationId] = useState<string | undefined>(undefined);
-  const allyBonus = mb.allyMod + (mb.round === 1 ? mb.firstRoundBonus : 0);
+  const allyBonus = mb.modificateurAllie + (mb.round === 1 ? mb.firstRoundBonus : 0);
   const threatPen = massBattleThreatPenalty(mb);
   // Stations = les Scènes de la situation posées sur le plan (ancres authorées + affectation E3).
   const battleStations = battleScenesToStations(mb.situation, mb.assignment, scene);

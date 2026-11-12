@@ -114,11 +114,11 @@ describe('deriveExposition — refus fail-fast sur defs synthétiques (#1472)', 
   it('dérive normalement un jeu de defs conforme (témoin VERT du même harnais)', () => {
     const t = deriveExposition([
       faux('a.json', { codex: { keys: ['races'] }, edit: { dataset: 'species' } }),
-      faux('b.json', { codex: { keys: ['reglages'] }, edit: { object: 'single' } }),
+      faux('b.json', { codex: { keys: ['reglages'] }, edit: { object: 'unique' } }),
       faux('c.json', { codex: { exempt: { kind: 'dette', raison: 'exposition due, lot séparé', ticket: '#1' } }, edit: { none: 'rien' } }),
     ]);
     expect(t.categoryDataset).toEqual({ races: 'species' });
-    expect(t.objectCategory).toEqual({ reglages: { ds: 'reglages', mode: 'single' } });
+    expect(t.objectCategory).toEqual({ reglages: { ds: 'reglages', mode: 'unique' } });
     expect([...t.fichiersDeclares]).toEqual(['a.json', 'b.json', 'c.json']);
     expect(Object.keys(t.exempts)).toEqual(['c.json']);
   });
@@ -131,10 +131,10 @@ describe('deriveExposition — refus fail-fast sur defs synthétiques (#1472)', 
 
   it('(ii) dataset-OBJET à 0 ou 2 clés Codex : REFUS nominatif', () => {
     expect(() =>
-      deriveExposition([faux('conf.json', { codex: { keys: [] }, edit: { object: 'single' } })]),
+      deriveExposition([faux('conf.json', { codex: { keys: [] }, edit: { object: 'unique' } })]),
     ).toThrow(/`conf\.json` s'édite comme dataset-OBJET mais déclare 0 clés Codex/);
     expect(() =>
-      deriveExposition([faux('conf.json', { codex: { keys: ['x', 'y'] }, edit: { object: 'record' } })]),
+      deriveExposition([faux('conf.json', { codex: { keys: ['x', 'y'] }, edit: { object: 'parCle' } })]),
     ).toThrow(/`conf\.json` s'édite comme dataset-OBJET mais déclare 2 clés Codex/);
   });
 
@@ -149,7 +149,7 @@ describe('deriveExposition — refus fail-fast sur defs synthétiques (#1472)', 
     expect(() =>
       deriveExposition([
         faux('un.json', { codex: { keys: ['sorts'] }, edit: { dataset: 'sorts' } }),
-        faux('deux.json', { codex: { keys: ['sorts'] }, edit: { object: 'single' } }),
+        faux('deux.json', { codex: { keys: ['sorts'] }, edit: { object: 'unique' } }),
       ]),
     ).toThrow(/« sorts » est revendiquée par DEUX documents/);
     expect(() =>

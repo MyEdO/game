@@ -85,12 +85,11 @@ function presser(s: SessionDEdition, id: string): SessionDEdition {
 /** Les collections de la scène où vit le porteur de chaque sorte du geste `valeur`. */
 const COLLECTION_DU_PORTEUR = { zone: 'effectZones', declencheur: 'triggers', entite: 'entities' } as const satisfies Record<SorteDePorteur, keyof Scene>;
 
-/** La session `s` où chaque offre du geste `valeur` de son inspecteur est jouée une fois, celles qui emportent des champs
- *  après les autres, la plus profonde d'abord, jusqu'à ce qu'aucune ne reste ; chaque écriture, avec son chemin depuis la scène, s'ajoute à
+/** La session `s` où chaque offre du geste `valeur` de son inspecteur, hors de celles déjà jouées (`jouees`, leurs ids),
+ *  est jouée une fois, celles qui emportent des champs après les autres, la plus profonde d'abord, jusqu'à ce qu'aucune ne reste ; chaque écriture, avec son chemin depuis la scène, s'ajoute à
  *  `out` : le choix d'une variante écrit son discriminant (l'id de son choix, `valeur/<chemin>/<discriminant>`). */
-function jouerLInspecteur(depart: SessionDEdition, out: EcritureJouee[]): SessionDEdition {
+function jouerLInspecteur(depart: SessionDEdition, out: EcritureJouee[], jouees = new Set<string>()): SessionDEdition {
   let s = depart;
-  const jouees = new Set<string>();
   for (let n = 0; n < GESTES_AU_PLUS; n++) {
     const zones = zonesDeLEditeur(s);
     const restantes = offres(zones['editeur.inspecteur']).filter((o) => !jouees.has(o.id));
@@ -121,10 +120,10 @@ function choixDeLInspecteur(s: SessionDEdition, id: string): Choix {
 }
 
 /** La session `s` où chaque variante du choix d'id `id` de l'inspecteur, dans l'ordre du choix, est choisie à son tour,
- *  son inspecteur joué (`jouerLInspecteur`) : chaque branche d'une union récursive (le `Flow`, #3606 M2b), dont
+ *  son inspecteur joué hors des offres `jouees` (`jouerLInspecteur`) : chaque branche d'une union récursive (le `Flow`, #3606 M2b), dont
  *  l'inspecteur ne joue que la première variante non choisie. */
-function jouerLesVariantes(s: SessionDEdition, id: string, out: EcritureJouee[]): SessionDEdition {
-  return choixDeLInspecteur(s, id).valeurs.reduce((t, v) => jouerLInspecteur(presser(t, v.id), out), s);
+function jouerLesVariantes(s: SessionDEdition, id: string, out: EcritureJouee[], jouees: Set<string>): SessionDEdition {
+  return choixDeLInspecteur(s, id).valeurs.reduce((t, v) => jouerLInspecteur(presser(t, v.id), out, jouees), s);
 }
 
 /** Les fiches du Bestiaire des personnages posés : la Vouivre (ZI), dont les options portent des Traits facultatifs et
@@ -168,26 +167,33 @@ const cliquer = (s: SessionDEdition, x: number, y: number): SessionDEdition => e
  *  branche du flux de l'action qu'il reçoit (`ACTION_DU_DECOR`, `FLUX_DU_DECOR`), sur un personnage de
  *  la première des `FICHES` posé dans la scène `A_DIALOGUE`, et sur la coque
  *  `COQUE`, sélectionnée ; chacun
- *  joué à son inspecteur (`jouerLInspecteur`). */
+ *  joué à son inspecteur (`jouerLInspecteur`), une offre déjà jouée sur un porteur de la même fiche ou du même type de
+ *  décor ne s'y rejouant pas (`dejaJouees`) : un porteur de plus n'y joue que ce que son contexte offre de neuf. */
 export function ecrituresJouees(): EcritureJouee[] {
   const out: EcritureJouee[] = [];
+  const jouees = new Map<string, Set<string>>();
+  const dejaJouees = (ref: string): Set<string> => {
+    const ids = jouees.get(ref) ?? new Set<string>();
+    jouees.set(ref, ids);
+    return ids;
+  };
   let s = presser(ouvrirLEdition(paquetDuJeu(allBuiltinCampaigns[0]), false), 'scenes/ajouter');
   for (const [sorte, de, a] of [['effect', 2, 3], ['trigger', 0, 1]] as const) {
     s = presser(presser(s, 'outil/zone'), `zone/${sorte}`);
     s = jouerLInspecteur(editer(editer(s, { geste: 'appui', point: point(de, de) }), { geste: 'relache', point: point(a, a) }), out);
   }
-  FICHES.forEach((fiche, rang) => { s = jouerLInspecteur(cliquer(presser(presser(s, 'outil/personnage'), `personnage/${fiche}`), 5 + rang, 5), out); });
+  FICHES.forEach((fiche, rang) => { s = jouerLInspecteur(cliquer(presser(presser(s, 'outil/personnage'), `personnage/${fiche}`), 5 + rang, 5), out, dejaJouees(fiche)); });
   s = jouerLInspecteur(presser(cliquer(presser(presser(s, 'outil/personnage'), `personnage/${ENROLE}`), 5 + FICHES.length, 5), 'rencontre/neuve'), out);
   const aPresets = allBuiltinCampaigns.find((c) => c.id === PROJET_A_PRESETS);
   if (!aPresets) throw new Error(`aucune campagne ${PROJET_A_PRESETS}`);
   const neuve = presser(ouvrirLEdition(paquetDuJeu(aPresets), false), 'scenes/ajouter');
-  const pnj = jouerLInspecteur(cliquer(presser(presser(neuve, 'outil/personnage'), `personnage/${FICHES[0]}`), 5, 5), out);
-  const decor = jouerLInspecteur(cliquer(presser(presser(pnj, 'outil/prop'), `prop/${DECOR}`), 3, 3), out);
-  jouerLesVariantes(presser(decor, choixDeLInspecteur(decor, ACTION_DU_DECOR).valeurs[0].id), FLUX_DU_DECOR, out);
+  const pnj = jouerLInspecteur(cliquer(presser(presser(neuve, 'outil/personnage'), `personnage/${FICHES[0]}`), 5, 5), out, dejaJouees(FICHES[0]));
+  const decor = jouerLInspecteur(cliquer(presser(presser(pnj, 'outil/prop'), `prop/${DECOR}`), 3, 3), out, dejaJouees(DECOR));
+  jouerLesVariantes(presser(decor, choixDeLInspecteur(decor, ACTION_DU_DECOR).valeurs[0].id), FLUX_DU_DECOR, out, dejaJouees(DECOR));
   const aDialogue = allBuiltinCampaigns.find((c) => c.id === A_DIALOGUE.campagne);
   if (!aDialogue) throw new Error(`aucune campagne ${A_DIALOGUE.campagne}`);
   const dialogues = presser(presser(ouvrirLEdition(paquetDuJeu(aDialogue), false), `scenes/${A_DIALOGUE.scene}`), 'outil/personnage');
-  jouerLInspecteur(cliquer(presser(dialogues, `personnage/${FICHES[0]}`), A_DIALOGUE.case.x, A_DIALOGUE.case.y), out);
+  jouerLInspecteur(cliquer(presser(dialogues, `personnage/${FICHES[0]}`), A_DIALOGUE.case.x, A_DIALOGUE.case.y), out, dejaJouees(FICHES[0]));
   const campagne = allBuiltinCampaigns.find((c) => c.id === COQUE.campagne);
   if (!campagne) throw new Error(`aucune campagne ${COQUE.campagne}`);
   const barge = presser(presser(ouvrirLEdition(paquetDuJeu(campagne), false), `scenes/${COQUE.scene}`), 'outil/select');

@@ -10,7 +10,7 @@ extends SceneTree
 
 const RECETTE_AUTONOME := true
 const METRES_PAR_CASE := 2.0
-const CREPITEMENT := {id = "crepitement", fichiers = ["crepitement.ogg"], volume = 0.6}
+const CREPITEMENT := {id = "crepitement", fichiers = ["crepitement.ogg"], volume = 0.6, canal = "ambiance"}
 const CASES := [{x = 1, y = 0}, {x = 2, y = 0}, {x = 3, y = 0}]
 ## Les cases du feu une fois changées, sous la même clé : la première sortie, une neuve.
 const CASES_DEPLACEES := [{x = 2, y = 0}, {x = 3, y = 0}, {x = 4, y = 0}]

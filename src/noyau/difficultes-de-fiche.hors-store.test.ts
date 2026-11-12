@@ -166,7 +166,7 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     E.engagedWith = [H.id];
     banc.setState({
       battle: { ...g().battle! },
-      pendingDisengage: { moverId: H.id, foeId: E.id, canSacrifice: false, phase: 'choice', atk: null, def: null, result: null },
+      pendingDisengage: { moverId: H.id, foeId: E.id, canSacrifice: false, phase: 'choix', atk: null, def: null, result: null },
     });
     g().jetRegler('desengagement', 'fuir', true);
     expect(fleeTouche(g().pendingDisengage!)!.test).toMatchObject(testDeFiche('fuite', 'touche-en-fuyant'));

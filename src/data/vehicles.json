@@ -210,6 +210,7 @@
     ],
     "travel": {
       "movement": 8,
+      "medium": "fluvial",
       "classes": [
         {
           "id": "cabine",

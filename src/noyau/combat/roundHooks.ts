@@ -327,7 +327,7 @@ export const TABLES = {
               if (c.id === src.id) continue;
               const sameCamp = c.kind === src.kind;
               // `affects` absent ou `all` = aucun filtre de camp (Perturbant, LDB 85 l.262 : « Toute personne »).
-              if (aura.affects === 'enemies' && sameCamp) continue;
+              if (aura.affects === 'ennemis' && sameCamp) continue;
               if (aura.affects === 'allies' && !sameCamp) continue;
               if (combatDistance(src, c, mpt) * mpt <= rangeM) c.auraMods = [...(c.auraMods ?? []), ...projected];
             }

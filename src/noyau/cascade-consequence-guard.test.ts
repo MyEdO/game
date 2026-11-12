@@ -124,7 +124,7 @@ const CATALOG_BASELINE = [
   'cs.shameOvercome', 'cs.dispelRoll', // #410 : jet incisé dans la narration
   // #1318 V8c₂ — narrations de voyage (travelFlow/riverVoyageFlow) :
   'tf.betesEpuisees', // bêtes de l'attelage : porteur SANS identité, dé parenthétique en justification
-  'rv.holeInline', 'rv.fragRefloat', // calfatage / renflouage IA : idem
+  'fleuve.coquePerceeEnLigne', 'fleuve.fragmentDeRenflouage', // calfatage / renflouage IA : idem
   // #1318 V8c₃, #295 — `seaVoyageFlow.runRestart` : la ligne porte le DR CUMULÉ du Test étendu
   // (`lastDR`), que le patron du dériveur ne saurait dire.
   'sv.engineRestart',

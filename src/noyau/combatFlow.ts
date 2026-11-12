@@ -1274,7 +1274,7 @@ export function startDisengage(get: Get, set: SetFn, mover: Combatant): void {
       canSacrifice,
       ...(refusEsquive ? { refusEsquive } : {}), // LDB 15 l.49
       canFuir, // LDB 15 l.61
-      phase: 'choice',
+      phase: 'choix',
       atk,
       def: null,
       result: null,
@@ -1325,7 +1325,7 @@ export function completeFlee(get: Get, set: SetFn, moverId: string, foeId: strin
  *  jouera SON jet influençable, et le VAINQUEUR choisira « combat normal » ou « au contact ». */
 export function startAuContact(_get: Get, set: SetFn, mover: Combatant, foe: Combatant): void {
   const atk = rollDisengageAttack(foe, battleRng()); // Corps à corps du foe, figé (jamais relancé)
-  set({ pendingAuContact: { moverId: mover.id, foeId: foe.id, phase: 'roll', atk, def: null, result: null } });
+  set({ pendingAuContact: { moverId: mover.id, foeId: foe.id, phase: 'jet', atk, def: null, result: null } });
 }
 
 /** Ouvre l'action d'Empoignade d'un combattant à son tour (LDB 14 l.161). Test opposé de FORCE `actor`
@@ -1338,7 +1338,7 @@ const GRAPPLE_SOURCE = { kind: 'regle', id: 'empoignade' } as const;
 export function startGrapple(_get: Get, set: SetFn, actor: Combatant, foe: Combatant): void {
   const atk = rollGrappleForce(foe, battleRng()); // Force du foe, figée (jamais relancée)
   const canBreak = actor.advantage > foe.advantage;
-  set({ pendingGrapple: { actorId: actor.id, foeId: foe.id, phase: 'roll', canBreak, atk, def: null, result: null } });
+  set({ pendingGrapple: { actorId: actor.id, foeId: foe.id, phase: 'jet', canBreak, atk, def: null, result: null } });
 }
 
 /** Cœur PARTAGÉ (flux joueur ET résolveur IA) d'une victoire d'Empoignade (LDB 14 l.161) : applique
@@ -4050,7 +4050,7 @@ function jouerLaSuiteDuCoup(get: Get, set: SetFn, attacker: Combatant, target: C
   let suspendu = false;
   let portee = false;
   switch (enchainement.mode) {
-    case 'hero': portee = maybeHeroCleave(get, set, attacker, target, touche, enchainement.wasChain, restitution); break;
+    case 'heros': portee = maybeHeroCleave(get, set, attacker, target, touche, enchainement.wasChain, restitution); break;
     case 'chaine': suspendu = resumeCleaveChain(get, set, attacker, target, enchainement, restitution); break; // la chaîne reprend où elle s'est arrêtée
     case 'bordee': // l'Action rendue APRÈS le `markActed` de l'application (MDG 14 l.37), puis le coup suivant
       { const b = get().battle; if (b) set({ battle: { ...b, acted: enchainement.actedAvant } }); }
@@ -4143,16 +4143,16 @@ function applyTalentFreeAttack(get: Get, set: SetFn, actor: Combatant, op: Extra
   if (op.perChargerOncePerRound && (uses[ck] ?? 0) >= 1) return undefined; // 1 riposte par chargeur (Frappe réactive)
   const solde = spendableAdvantage(get().battle, actor); // ce que `campSpend` débite (AA 11 l.30-38)
   if (op.coutEnAvantage != null && solde < op.coutEnAvantage) return undefined; // Avantage insuffisant
-  if (op.advantageOrMovement && solde <= 0) return undefined; // LDB 10 l.78 : seule la dépense d'Avantage est jouée
+  if (op.avantageOuMouvement && solde <= 0) return undefined; // LDB 10 l.78 : seule la dépense d'Avantage est jouée
   if (op.coutEnAvantage != null) campSpend(get, actor, op.coutEnAvantage); // réserve du camp en mode groupe (AA 11 l.30-38) / le combattant (LDB)
-  else if (op.advantageOrMovement) campSpend(get, actor, 1);
+  else if (op.avantageOuMouvement) campSpend(get, actor, 1);
   actor.freeAttacksThisTurn = { ...uses, [fa.key]: (uses[fa.key] ?? 0) + 1, ...(op.perChargerOncePerRound ? { [ck]: 1 } : {}) };
   const prevActed = get().battle?.acted ?? false; // gratuite : Action préservée
   // L'Action entre AVEC le coup : la MÊME suite va à la fenêtre du défenseur SURFACÉ et à l'application
   // instantanée, et la reprise rend l'Action APRÈS son `markActed`.
   // L'ENCHAÎNEMENT se DÉCLARE comme l'attaque principale : son conducteur la porte au siège humain
   // (`jetValider('attaque')` → `hero`) ou à l'automate (`aiAttack` → `auto`), partition de `aiDriven`.
-  const enchainement: EnchainementDuCoup = aiDriven(get(), actor) ? { mode: 'auto' } : { mode: 'hero', wasChain: false };
+  const enchainement: EnchainementDuCoup = aiDriven(get(), actor) ? { mode: 'auto' } : { mode: 'heros', wasChain: false };
   const suite: SuiteDeCoup = { restitution: { prevActed }, manoeuvre: { kind: fa.key }, enchainement };
   // Défenseur SURFACÉ : la frappe passe par la MÊME couture d'ouverture que les autres gratuites
   // (patron `applyFreeAttack`) — suspendue ici, appliquée à `jetValider('defense')` (Action restaurée).
@@ -6496,7 +6496,7 @@ export function applyCast(
       // le gating « cible adverse / vivante / résiste par Talent » vit dans les Conditions Flow.
       logLines.push(...applyTriggeredEffects(get, caster, domainOnHitEffects(spell), 'onHit', { victim: t, rng: battleRng(), set }));
     }
-    // (L'arc de zone des Cieux/Azyr est un `effects` AUTHORÉ du domaine — ciblage `on:{near:'victim'}` +
+    // (L'arc de zone des Cieux/Azyr est un `effects` AUTHORÉ du domaine — ciblage `on:{near:'victime'}` +
     //  op `wounds bypassArmour:'metal'` — dispatché par le `domainOnHitEffects` ci-dessus, plus de code dédié.)
     // Ops post-incantation au LANCEUR (Bête → Peur 1) — paramètre en données (DomainData.casterOps).
     logLines.push(...domainCasterOps(caster, spell, battleRng(), get().forgerUnId));
@@ -7030,7 +7030,7 @@ export function releaseSeatsOfDowned(get: Get, set: SetFn): void {
   const party = get().party;
   const combattants = get().battle?.combatants;
   const next = releaseUnavailableSeats(scene, (o) => {
-    if (o.kind === 'party') {
+    if (o.kind === 'groupe') {
       const hero = party[o.rang - 1];
       return !!hero && !hero.dead && !isOutOfAction(hero);
     }
@@ -7058,9 +7058,9 @@ export function releaseSeatsOfCombatants<S extends Scene | null>(
   if (!scene?.seatAssignments) return scene;
   let next: Scene = scene;
   for (const c of combatants) {
-    next = releaseSeat(next, { kind: 'entity', entityId: c.id });
+    next = releaseSeat(next, { kind: 'entite', entityId: c.id });
     const rang = party.findIndex((h) => h.id === c.id) + 1;
-    if (rang) next = releaseSeat(next, { kind: 'party', rang });
+    if (rang) next = releaseSeat(next, { kind: 'groupe', rang });
   }
   return next as S;
 }
