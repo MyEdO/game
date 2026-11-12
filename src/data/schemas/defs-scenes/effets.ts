@@ -167,7 +167,7 @@ export const giveTrappingSchema = nommerChamps(z.strictObject({
 export const givePossessionSchema = nommerChamps(z.strictObject({
   type: z.literal('givePossession'),
   nature: z.enum(['bete', 'serviteur', 'vehicule']),
-  ref: z.union([refTypee(typeDePossessionSchema), statblocDeVivantSchema]),
+  ref: z.union([nommerNoeud(refTypee(typeDePossessionSchema), { label: 'Créature ou véhicule' }), statblocDeVivantSchema]),
   heroId: z.string().optional(),
 }), { type: { label: "type"  }, nature: { label: "nature"  }, ref: { label: "référence" }, heroId: { label: "héros" , texte: { regime: "technique"} } });
 
