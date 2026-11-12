@@ -32,6 +32,8 @@ import { facadeFeatureKindSchema, messageIntroductionSchema, roofProfileSchema, 
 import { champsOfferts, choixDuNoeud, elementDuNoeud, type FieldDesc, type ValeurDuChoix } from '../codex/editFields';
 import { optionsDuNoeud } from '../../data/schemas/grammaire/meta';
 import { architectureSelectionForWarning, validateScene, type Warning } from '../validateScene';
+import { memoByDeps } from '../monde/sceneMemo';
+import { versionDesDatasets } from '../../data/versionDataset';
 import { planDefectKey, planFocusAt, planFocusTiles } from '../planDefects';
 import { annuler, historiqueDe, poser, reecrire, retablir, type Historique } from './historique';
 import { appuyer, glisser, relacher, saisirLaPoignee, type ContexteDuPointeur, type EffetDuPointeur, type GesteEnCours, type PointDeCarte } from './pointeur';
@@ -97,10 +99,15 @@ export const groupesDuLieu = (): ValeurDuChoix[] => choixDuNoeud(elementDuNoeud(
 /** Le champ du texte du message d'introduction, tiré de son schéma (`messageIntroductionSchema`). */
 export const champDuMessage = (): FieldDesc => champsOfferts(messageIntroductionSchema, {}).find((f) => f.key === 'texte')!;
 
+/** La validation du projet (`validateScene`), datée par la version des datasets qu'elle lit (`versionDesDatasets`), comme
+ *  le mémo de schéma de `validateScene.ts`. */
+const validationDuProjet = memoByDeps<Warning[]>();
+
 /** Les avertissements de la validation (`validateScene`) qui concernent la scène éditée de la session `s`, ceux de la
  *  carte du monde compris. */
 export function avertissementsDeLaSession(s: SessionDEdition): Warning[] {
-  return validateScene(scenesDeLaSession(s), s.projet.worldMap, s.projet.narratif)
+  const scenes = scenesDeLaSession(s);
+  return validationDuProjet([versionDesDatasets(), ...scenes, s.projet.worldMap, s.projet.narratif], () => validateScene(scenes, s.projet.worldMap, s.projet.narratif))
     .filter((w) => w.sceneId === s.sceneId || w.scope === 'worldMap');
 }
 

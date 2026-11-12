@@ -1,10 +1,12 @@
 /**
  * LA CRÉATION D'UN HÉROS PAR LE PONT (#3328) : le bouton « Nouveau héros » ouvre l'assistant sur sa première page ;
  * chaque page se joue par ses boutons, une à la fois (un tirage ne dit son résultat qu'après son geste), ne se quitte
- * que soldée, et la dernière engage le héros, qui rejoint le groupe de la partie avec les valeurs tirées et choisies.
+ * que soldée, et la dernière engage le héros, qui rejoint le groupe de la partie avec les valeurs tirées et choisies,
+ * son entrée écrite au roster de l'hôte.
  */
 import { describe, it, expect } from 'vitest';
 import { drainer, erreurDe, ficheDuHeros, sectionDeLaFiche, suiteDe, table, enFocus } from './pont.testkit';
+import { chargerLeRoster } from '../../../src/hote/roster';
 import type { Suite } from './pont';
 import type { Bouton, Choix, Element, Jet, Puce } from '../../../src/hote/elements';
 
@@ -22,7 +24,7 @@ const titre = (s: Suite): string => s.vue.zones['creation.titre'][0]?.texte ?? '
 
 describe('la création d’un héros par le pont', () => {
   it('chaque page jouée par ses boutons, le héros engagé rejoint le groupe avec ses valeurs', () => {
-    const { appel } = table();
+    const { appel, stockage } = table();
     let s = drainer(appel, appel('demarrer', { scenario: 'marche-equipement', graine: 7 })).suite;
     while (s.vue.projection.fenetre) s = drainer(appel, appel('jouer', (enFocus(s.vue) as Bouton).jeu)).suite;
     const avant = s.vue.zones['groupe.heros'].map((c) => c.nom);
@@ -122,6 +124,8 @@ describe('la création d’un héros par le pont', () => {
     expect(fin.vue.zones['groupe.heros'].map((c) => c.nom), 'le héros rejoint le groupe').toEqual([...avant, nom]);
     expect(fin.vue.projection.exploration!.heros.some((h) => h.nom === nom), 'la partie le porte').toBe(true);
     expect(fin.zones['journal.lignes'].some((l) => l.texte.includes(nom)), 'sa bourse de départ au journal').toBe(true);
+    const [entree] = chargerLeRoster(stockage);
+    expect([entree.hero.label, `heros/${entree.hero.id}`], 'son entrée au roster de l’hôte, sous l’id du héros du groupe').toEqual([nom, fin.vue.zones['groupe.heros'].slice(-1)[0].id]);
 
     s = suiteDe(appel('fiche', ficheDuHeros(fin.vue, nom).jeu));
     const fiche = valeurs(s, 'fiche.profil');

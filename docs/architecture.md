@@ -306,7 +306,7 @@ scripts/hooks/               Répartiteur des hooks d'appel d'outil (`repartiteu
                             `regles-projection-oubli.mjs` en efface l'état au SessionStart d'une compaction
 src/lib/                     Couche NEUTRE, feuille de `COUCHES`, en amont de toutes les zones : ce que
                             plusieurs couches emploient sans qu’aucune ne le possède. `normalize.ts` :
-                            normalisation d'un nom (`norm`).
+                            normalisation d'un nom (`norm`), nom de fichier sûr (`fileSlug`).
                             `entityId.ts` : id PUR et unique dans une collection, plus petit suffixe
                             libre parmi les ids pris (`nextEntityId`) — scène, entité, faveur, set d'armes.
                             `regex.ts` : échapper une chaîne pour une regex (`echapperRegex`), alternation
@@ -337,8 +337,7 @@ src/web/                     Services d'exécution du NAVIGATEUR (`window`, `doc
                             `scheduleFlowTimer`, `clearTrackedTimer`, état d'un timer `timerEnVol`), vidé au teardown de test
                             (`clearTrackedTimers`, #405) ; seul lieu de `src/state`, `src/noyau`, `src/lib` et `src/web` où
                             `setTimeout`/`setInterval` s'écrivent (mur `murs/minuteries`, #415).
-                            `fileIo.ts` : téléchargement d'un texte (`downloadText`), nom de fichier
-                            sûr (`fileSlug`).
+                            `fileIo.ts` : téléchargement d'un texte (`downloadText`).
                             `fsPersist.ts` : persistance des datasets édités au Codex (File System
                             Access API et IndexedDB), importée par `ui/editor/codex/CodexEdit.tsx`.
 src/geometry/                Géométrie/simulation PURE, feuille de `COUCHES` (#161 : `state` en a
@@ -521,9 +520,10 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                             ne lisent ni ne posent d'état de combat ni de flux : IA (`ai.ts`), apparition
                             (`spawn.ts`), navires (`ship*.ts`), narratif de
                             campagne, pièces, vision, authoring ASCII (`asciiMap.ts`, et son export inverse `sceneToAscii.ts`).
-  monde/scene.ts            SCÈNE : fonctions PURES (tuiles, murs, portes, relief) + 34 types exportés,
-                            dont 24 `z.infer` des schémas de `data/schemas/defs-scenes/`. Restent 10
-                            MANUSCRITS : `Scene`, `SceneEntity`,
+  monde/scene.ts            SCÈNE : fonctions PURES (tuiles, murs, portes, relief) + 35 types exportés,
+                            dont 24 `z.infer` des schémas de `data/schemas/defs-scenes/`. Restent 11
+                            MANUSCRITS : `Scene`, `SceneEntity`, `SceneDuVolume` (la scène vue par son
+                            volume, tirée de `CHAMPS_DU_VOLUME`),
                             `AuMoinsUnPorteurDeFiche` (au moins un porteur de fiche, dérivé de
                             `PORTEURS_DU_TYPE`), `ActionAuthoree` (geste authoré d'une instance de décor),
                             `SceneEffectZone` (corps du document), `Layer` (l'infer du schéma dont `tiles`
@@ -604,7 +604,11 @@ src/hote/                   COMMUN AUX HÔTES du noyau (#2928) : ce qu'un hôte 
                             `roster.ts` (la procédure du roster
                             sur le `Stockage` que l'hôte fournit : charger, ajouter, retirer, mettre à jour — le
                             service `persisterLeHeros` d'un hôte qui a un stockage ; le chargement REND ses témoins de
-                            retrait et d'élagage), `reglesMaison.ts` et `preferences.ts` (leur persistance sur le même
+                            retrait et d'élagage, que `avisDuRoster` dit ; `rosterAMontrer` rend les héros et l'avis
+                            qu'un hôte montre tant que le groupe se compose, zones `groupe.roster` et `groupe.avis` ;
+                            `engagerLeHeros` écrit l'entrée du héros créé et rend l'intention que le noyau en bâtit ;
+                            `fichierDuHeros` rend le fichier d'export d'un héros, `importerAuRoster` en importe un),
+                            `reglesMaison.ts` et `preferences.ts` (leur persistance sur le même
                             `Stockage` ; un chargement de règles maison qui élague cumule son témoin sous sa propre
                             clé, que `prendreLeTemoinDesReglesMaison` consomme au montage du panneau des règles),
                             `sauvegardes.ts` (les emplacements de sauvegarde sur le même `Stockage` : écrire, lire, retirer,
