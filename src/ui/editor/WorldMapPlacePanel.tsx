@@ -26,7 +26,7 @@ import { CouvreField } from './CouvreField';
 import { ProseField } from '../ProseField';
 import { ProvenanceDuTexte } from './ProvenanceDuTexte';
 import { CONDITION_KINDS_CARTE } from '../../data/schemas/grammaire/campagne';
-import { idDEntropie } from '../../web/entropie';
+import { idDEntropie } from '../../hote/entropie';
 
 /** Libellés des Tailles de communauté (MSRC 13 l.44-50, indices 1-4). */
 const TAILLE_LABELS = ['Hameau', 'Village', 'Ville', 'Grande ville'];

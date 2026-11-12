@@ -6,6 +6,8 @@ extends PontDuNoyau.Transport
 ## `_lancement`), par un tuyau bloquant : `node <pont>`, `<pont>` le paramètre `--pont=<chemin>` du lancement, à défaut
 ## `hotes/godot/vivant.mjs` sous l'éditeur ; dans un exécutable (#3951), `noyau/node` sur `noyau/vivant.mjs`, à côté de
 ## l'exécutable.
+## Il lui passe `--stockage=<fichier>`, le fichier où vivent les sauvegardes : le paramètre `--stockage=<fichier>` du
+## lancement, à défaut `stockage.json` sous le dossier des données de l'utilisateur (`user://`).
 ## Une ligne se termine par `\n`. Son entrée standard reçoit une ligne par requête, `[methode, json|null]`.
 ## Sa sortie standard porte d'abord la ligne d'annonce `{"url":"http://127.0.0.1:<port>/"}`,
 ## l'adresse du serveur du jeu, attendue `ATTENTE_S` au plus, puis une réponse par requête.
@@ -106,7 +108,12 @@ func ouvrir() -> bool:
 	if _pid != 0:
 		return await _ouvert
 	var lancement := _lancement()
-	var lance := OS.execute_with_pipe(lancement[0], PackedStringArray([lancement[1]]), true)
+	var stockage := parametre("stockage")
+	var options := PackedStringArray([
+		lancement[1],
+		"--stockage=" + (stockage if stockage != "" else ProjectSettings.globalize_path("user://stockage.json")),
+	])
+	var lance := OS.execute_with_pipe(lancement[0], options, true)
 	if lance.is_empty():
 		_mort = true
 		panne.emit("le processus du pont ne se lance pas : %s %s" % [lancement[0], lancement[1]])

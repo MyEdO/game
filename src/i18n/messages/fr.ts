@@ -1272,6 +1272,7 @@ export const fr = {
   'ecran.groupe.recruter': 'Recruter',
   'ecran.groupe.renvoyer': 'Renvoyer',
   'ecran.groupe.lancer': 'Lancer',
+  'ecran.partie.sauvegardes': 'Sauvegardes',
   'ecran.partie.quitter': 'Quitter la partie',
   'ecran.repit.depot': 'Déposer en banque',
   'ecran.repit.genre': 'Dépôt',

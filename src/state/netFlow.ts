@@ -14,7 +14,7 @@ import { GUEST_INTENTS } from '../noyau/intentionsDeSiege';
 import { bus, EVT } from '../noyau/bus';
 import { scheduleFlowTimer, clearTrackedTimer } from '../web/minuteries';
 import { deflateB64, inflateB64 } from '../net/compress';
-import { stockageWeb } from '../web/stockageWeb';
+import { stockageWeb } from '../hote/stockageWeb';
 
 export const RELAY_URL_PROD = 'https://w4-coop-relay.gauche-c.workers.dev';
 

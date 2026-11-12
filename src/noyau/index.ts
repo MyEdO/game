@@ -16,7 +16,7 @@ export { argsAvecIntentionLocale, porteesDuTour, preparerLIntentLocal } from './
 export { previewAttack, activeCombatant } from './combatFlow';
 export { DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, FIRE_ARCS, LOCALISATIONS_DE_COUP, type Difficulty, type FireArc } from '../engine/types';
 export { formatMoney } from '../engine/money';
-export { dayIndex, formatJourImperial } from '../engine/clock';
+export { dayIndex, formatImperial, formatJourImperial } from '../engine/clock';
 export { careers, conditionLabel, findCareerById, findSpellById, levelsForCareer, lightLevels, lightTones, matieresCouvrantes, matieresDe, props, refLabel, siegeEngines, structureAppearances, trappingRefLabel, trappingsInstanciables } from '../data';
 export { isWearable, objetsDeLInventaire } from '../engine/items';
 export { candidatsDuSlot, carriereActuelle, designationsDeCarriere, parcoursDe, parcoursRetouche, talentsDuParcours, type ParcoursDeCarriere } from '../engine/pnjDeCarriere';
@@ -141,12 +141,12 @@ export { engagement, intentionDEngagement, intentionDeRenvoi, pretiresOfferts, r
 export { partieEnCours, refusDeLancer, refusDeRenvoyer } from './partyFlow';
 export type { CreatorDraft } from './creation/brouillon';
 export { apresLeGeste, brouillonDeLaPartie, pagesDeCreation, refusDeLaPage, rubriquesDeLaPage, type GesteDuBrouillon, type PageDeCreation, type RubriqueDeCreation } from './creation/vueDeLaCreation';
-export { lireLesRetraits, cumulerLesRetraits, type RetraitsDElagage } from './persistance/elagage';
+export { lireLesRetraits, cumulerLesRetraits, nommerLesRetraits, type RetraitsDElagage } from './persistance/elagage';
 export { poserLesReglesMaisonPersistees, surchargerUneRegleMaison, retablirUneRegleMaison } from './reglesMaison';
 export { PREFERENCES, preferenceDef, preferencesAPersister, poserLesPreferencesPersistees, valeurDEntree, type IdDePreference, type Preference, type PrefValue } from './preferences';
 export {
-  snapshotSave, metaDeSave, lireSave, exporterLaSauvegarde, chargerLaSave, refusDeSauvegarde,
-  type SaveGame, type SaveMeta, type ObsoleteCause, CAUSES_DE_REFUS_DE_SAVE,
+  snapshotSave, metaDeSave, lireSave, exporterLaSauvegarde, chargerLaSave, refusDeSauvegarde, estUnPointDeReprise, pointDeRepriseAGarder,
+  type SaveGame, type SaveMeta, type ObsoleteCause, type RefusDeSauvegarde, CAUSES_DE_REFUS_DE_SAVE,
 } from './persistance/save';
 export { aEcrire, campagneDUneEntree, entreesRelues, idDesignable, projetDUneEntree, type CampagneLancee, type EntreeListee, type SavedProject } from './persistance/bibliotheque';
 export { ProjetRefuse, type ProjectDoc } from './worldMap';

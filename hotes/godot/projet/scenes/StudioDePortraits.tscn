@@ -31,6 +31,3 @@ environment = SubResource("Ambiance")
 [node name="Lumiere" type="DirectionalLight3D" parent="Monde"]
 transform = Transform3D(0.866, -0.25, 0.433, 0, 0.866, 0.5, -0.5, -0.433, 0.75, 0, 2, 2)
 light_color = Color(1, 0.94, 0.84, 1)
-
-[node name="Repos" type="Timer" parent="."]
-one_shot = true

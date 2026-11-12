@@ -1,11 +1,11 @@
 /**
  * LE NOYAU EMBARQUÉ (#3951, `pont/CONTRAT.md`, section « Transport ») : le point d'entrée empaqueté
  * (`empaqueterLeProcessus`) tient seul dans son dossier `noyau/`, lit le bundle posé à côté de lui, annonce son
- * serveur, qui ne sert que `modeles/`, le dossier voisin de `noyau/`, rend une ligne par requête et sort en 0 à la fin
- * de son entrée.
+ * serveur, qui ne sert que `modeles/`, le dossier voisin de `noyau/`, rend une ligne par requête, garde le stockage du
+ * bundle au fichier de son option `--stockage` et sort en 0 à la fin de son entrée.
  */
 import { once } from 'node:events';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -16,6 +16,7 @@ import { ouvrirLeProcessus, type ProcessusDuPont } from './processus.testkit';
 
 const racine = mkdtempSync(join(tmpdir(), 'embarque-3951-'));
 const noyau = join(racine, 'noyau');
+const stockage = join(racine, 'donnees', 'stockage.json');
 let tuyau: ProcessusDuPont;
 let url = '';
 
@@ -23,8 +24,8 @@ beforeAll(async () => {
   mkdirSync(join(racine, 'modeles'), { recursive: true });
   writeFileSync(join(racine, 'modeles', LISTAGE), '{}');
   mkdirSync(noyau);
-  writeFileSync(join(noyau, PONT), "globalThis.wfrpPont = { appelerEnOctets: (methode) => JSON.stringify({ ok: true, methode }), octets: () => null }");
-  tuyau = ouvrirLeProcessus(await empaqueterLeProcessus(noyau));
+  writeFileSync(join(noyau, PONT), "globalThis.wfrpPont = { appelerEnOctets: (methode) => (localStorage.setItem('appelee', methode), JSON.stringify({ ok: true, methode })), octets: () => null }");
+  tuyau = ouvrirLeProcessus(await empaqueterLeProcessus(noyau), `--stockage=${stockage}`);
   url = (JSON.parse(await tuyau.prochaine()) as { url: string }).url;
 }, 60_000);
 afterAll(() => {
@@ -43,6 +44,10 @@ describe('noyau embarqué', () => {
 
   it('rend à une requête la ligne du pont du bundle posé à côté de lui', async () => {
     expect(await tuyau.appel('vue')).toEqual({ ok: true, methode: 'vue' });
+  });
+
+  it('ce que le bundle écrit à son stockage vit au fichier de l’option --stockage', () => {
+    expect(JSON.parse(readFileSync(stockage, 'utf8'))).toEqual({ appelee: 'vue' });
   });
 
   it('la fin de l’entrée le fait sortir en 0', async () => {

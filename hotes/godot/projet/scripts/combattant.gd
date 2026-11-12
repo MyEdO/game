@@ -48,6 +48,8 @@ var _empreinte := ""
 var _base_demandee: Variant = null
 ## Le chargement retenu : un chargement qu'un autre remplace jette son GLB.
 var _chargement: RefCounted = null
+## Les chargements de son corps en vol : sa base, chacun de ses éléments (`est_vetu`).
+var _en_vol := {}
 ## La hauteur, dans son repère, du plus haut point d'accroche de sa base au repos, sans gabarit.
 var _hauteur_de_tete := 0.0
 ## Par rôle, le clip dont la bibliothèque `BIBLIOTHEQUE` du lecteur branché porte l'alias (`""` : aucun).
@@ -156,6 +158,12 @@ func subir() -> void:
 		_jouer(COUP)
 
 
+## Si son dernier corps reçu est monté en entier : plus aucun chargement en vol, ni travail différé de son montage
+## (`MontageDeComposition.en_travail`).
+func est_vetu() -> bool:
+	return _en_vol.is_empty() and not _montage.en_travail()
+
+
 ## Son arbre d'états arrêté, la pose de son lecteur laissée à qui la fige (`StudioDePortraits`) jusqu'au prochain
 ## vêtement (`_suivre_l_etat`).
 func figer() -> void:
@@ -187,7 +195,9 @@ func vetir(corps: Variant) -> void:
 	_base_demandee = corps.base
 	var chargement := RefCounted.new()
 	_chargement = chargement
+	_en_vol[chargement] = true
 	var scene := await _montage.scene_du_modele(corps.base, _montage.erreurs)
+	_en_vol.erase(chargement)
 	if chargement != _chargement:
 		if scene != null:
 			scene.free()
@@ -245,7 +255,11 @@ func _composer() -> void:
 
 ## `element` monté à l'emplacement `id` sous l'emblème `embleme`.
 func _monter(id: String, element: String, embleme: String) -> void:
-	if await _montage.monter(id, element, _montage.erreurs):
+	var jeton := RefCounted.new()
+	_en_vol[jeton] = true
+	var monte := await _montage.monter(id, element, _montage.erreurs)
+	_en_vol.erase(jeton)
+	if monte:
 		_montage.choisir_l_embleme(id, embleme)
 	_suivre_l_etat()
 	_signaler()
