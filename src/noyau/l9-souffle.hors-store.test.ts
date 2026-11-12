@@ -35,7 +35,7 @@ describe('Souffle — délégation à l’attaque de zone du Trait (LDB 47 l.509
     caster.characteristics.endurance = 60; // BE 6 → Dégâts du Souffle
     caster.characteristics['capacite-de-tir'] = 100;
     caster.pos = { x: 10, y: 10 };
-    const foes = b.combatants.filter((c) => c.kind === 'enemy');
+    const foes = b.combatants.filter((c) => c.kind === 'ennemi');
     const T = foes[0];
     T.pos = { x: 12, y: 10 };
     T.characteristics.agilite = 5;

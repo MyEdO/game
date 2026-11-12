@@ -36,11 +36,11 @@ import { desDuTest } from '../engine/dice.testkit';
 import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /** Porteur sans séquelle. */
-const hero38 = (): Combatant => combattantDeTest({ id: 'h', label: 'H', kind: 'hero', traumas: [] });
+const hero38 = (): Combatant => combattantDeTest({ id: 'h', label: 'H', kind: 'heros', traumas: [] });
 
 /** Le MÊME porteur : `resolveCritique` lit l'Endurance (sévérité du d100). */
 const heroCritique = (): Combatant => combattantDeTest({
-  id: 'h', label: 'H', kind: 'hero', traumas: [],
+  id: 'h', label: 'H', kind: 'heros', traumas: [],
   characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 40 },
   wounds: blessuresDeBase(12, 6), bodyShape: 'humanoide', critEntriesSuffered: [],
 });
@@ -75,11 +75,11 @@ describe('forme persistée — ce que le chargement lit', () => {
       { id: 'table-1', kind: 'prop', decor: { id: 'table-ronde-4-tabourets' }, pos: { x: 5, y: 5 }, usable: { assise: true } },
       { id: 'pnj-1', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 5, y: 6 } },
     ] as typeof scene.entities;
-    const ancien = { 'table-1': { 'place-nord': { kind: 'entity' as const, entityId: 'pnj-1' } } };
+    const ancien = { 'table-1': { 'place-nord': { kind: 'entite' as const, entityId: 'pnj-1' } } };
     expect(pruneSeatAssignments({ ...scene, seatAssignments: ancien }, 4), 'l’élagage est MUET').toEqual({});
     // La MÊME assise, dite au vocabulaire courant, SURVIT : c'est bien l'id, et rien d'autre, qui
     // décide — sans cette moitié, le contrat ci-dessus passerait aussi sur une scène mal formée.
-    const courant = { 'table-1': { 'place-1': { kind: 'entity' as const, entityId: 'pnj-1' } } };
+    const courant = { 'table-1': { 'place-1': { kind: 'entite' as const, entityId: 'pnj-1' } } };
     expect(pruneSeatAssignments({ ...scene, seatAssignments: courant }, 4)).toEqual(courant);
   });
   it('une op de Talent hors grammaire (`grantTalent`) lève à `applyOps` (#1473)', () => {

@@ -20,7 +20,7 @@ export function profilDeTest(over: Partial<Characteristics> = {}): Characteristi
 /** Le combattant `over` sans ses Blessures : `over.characteristics` surcharge le profil. */
 function sansBlessuresDeTest(over: Omit<SurchargeDeCombattant, 'wounds'> = {}): Omit<Combatant, 'wounds'> {
   return {
-    id: 'c', label: 'Combattant de test', kind: 'npc',
+    id: 'c', label: 'Combattant de test', kind: 'pnj',
     movement: 4, advantage: 0,
     armour: tableTotale(LOCALISATIONS_DE_COUP, () => 0),
     skills: [], talents: [], weapons: [], traits: [], conditions: [], activeEffects: [], liveTraits: [],

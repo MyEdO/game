@@ -119,7 +119,7 @@ const NOMMES = [
   'circonstance|jet',
   'esquive|parade|init|resist|auto',
   'repas|priere|tapi|debout|hurlement',
-  'fixed|variable|all',
+  'fixe|variable|tout',
   // `apFromSchema`, `ressourceDeDestinSchema`, `arrondiSchema` (#3606 M2a) : les vocabulaires des ops `wounds`,
   // `gainResource` et `lifeSteal`.
   'corps|least',
@@ -129,7 +129,7 @@ const NOMMES = [
   'flag|param|mode',
   'fleche|carreau|balle|boulet|pierre|objet-lance|trait-magique|jet-de-flammes|jet-de-souffle',
   'interlude|voyage|mer|bataille|bataille-round|auberge',
-  'melee|ranged|zone|allFoes|allAround|self',
+  'melee|distance|zone|adversairesAutour|toutAutour|soi',
   'peau|cheveux|yeux|vet1|vet2|cuir|metal|corps|accent|bois|corne|fourrure|plume',
   'physique|mentale',
   // `availabilitySchema`, `dispoPctAvailabilitySchema`, `harvestRaritySchema`, `harvestDangerSchema` (#3691) :
@@ -192,12 +192,12 @@ const NOMMES = [
   'moderee|grave',
   'nuit|voyage|flux|combat',
   'noise|magic',
-  'self|ally|opponent|party|neutral|hostile',
+  'soi|allie|adversaire|groupe|neutre|hostile',
   'target|caster',
   'weaponGroupsMelee|weaponGroupsRanged|winds|arcaneDomains|cultBlessings|cultMiracles|cultChaos|seaShanties|ciblesPsy|groupesDAppartenance|diseases|sizes|mutations|breathTypes|damageTypes|weaponsMelee|weaponsRanged|exposureLevels|difficulties',
   'woundsCurrent|woundsMax|size|advantage',
   'onHit|onCrit|onWoundLoss|onSlain|onRoundStart|onStartled|onKill|onCharged|onGainCondition|onCombatStart|onCombatEnd|onRoundEnd|onTurnStart|onTurnEnd|onDayStart|onWake|onAttackResolved|onCastResolved|onMiscast|onOwnTestFailed',
-  'self|victim|engaged|grappled',
+  'soi|victime|engages|empoigne',
   // `surchargeDeGabaritSchema` (#2972) : les facteurs de carrure qu'une race surcharge (`raceAppearance › gabaritOverride`).
   'sl|st|legs|arms|head',
   // Payloads d'`OP_DEFS` : `armourBypassCategorieSchema`, `loseTurnWhatSchema`, `zoneShapeSchema`
@@ -235,7 +235,7 @@ const NOMMES = [
   // `navireMod.jusqua` (#3606 M2e) : l'échéance de bord d'un modificateur de navire.
   'carenage|evenementDeBord',
   // `cibleDeFeuilleSchema` (#3606 M2e) : la cible d'une feuille `ops` nommée par une chaîne.
-  'party|hero|navire|membreAuHasard|target|caster',
+  'groupe|heros|navire|membreAuHasard|target|caster',
 ].sort();
 
 /**
@@ -286,7 +286,7 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'dr|dr-ecrete|toute-la-reserve|points-de-la-ligne|points-de-la-ligne-suivante|chiffres-du-de|gain-au-choix|aucun-gain|termine-le-passage',
   'edge|tile|instance',
   'encounter|threatened',
-  'enemies|allies|all',
+  'ennemis|allies|tous',
   'equipage|avirons|greement|coque|equipements|cargaison|gouvernail|superstructure',
   'exact|correct|derive-mineure|derive|derive-majeure',
   'etendu|terreur|simple',
@@ -319,8 +319,8 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'none|half|crawl',
   'normale|pietre',
   'oppose|etendu',
-  'party|enemies',
-  'party|hero',
+  'groupe|ennemis',
+  'groupe|heros',
   'pas|trot|galop',
   'pluie|averse|neige',
   'radius|diameter',
@@ -346,7 +346,7 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'valide|renonce',
   'veillee|parchemin',
   'verbatim|descripteur',
-  'victim|self',
+  'victime|soi',
   'x+|x-|y+|y-',
   'x|y',
 ];

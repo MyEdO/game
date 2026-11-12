@@ -47,7 +47,7 @@ const touche = (woundsLost: number, over: Partial<AttackResult> = {}): AttackRes
 const poser = (combatants: Combatant[]): void => {
   banc.setState({
     battle: { combatants, order: combatants.map((c) => c.id), turn: 0, round: 1, acted: false, log: [] } as never,
-    party: combatants.filter((c) => c.kind === 'hero'), scene: emptyScene('scene-test', 20, 20), travelPlan: null, facing: {}, vessel: null,
+    party: combatants.filter((c) => c.kind === 'heros'), scene: emptyScene('scene-test', 20, 20), travelPlan: null, facing: {}, vessel: null,
     journal: [], pendingCascade: null, suspendedCascades: [],
   } as never);
 };
@@ -121,7 +121,7 @@ describe('Personnage : Critique par les Blessures et Mort subite selon combat-aa
 
   const figurant = (current: number): Combatant => {
     const f = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Figurant', seed: 2 });
-    f.id = 'fig'; f.kind = 'enemy'; f.important = false; f.pos = { x: 6, y: 5 };
+    f.id = 'fig'; f.kind = 'ennemi'; f.important = false; f.pos = { x: 6, y: 5 };
     f.items = []; f.loadouts = undefined; f.activeLoadoutId = undefined; recomputeLoadout(f); // sans armure : aucune Déviation (LDB 63 l.30)
     f.wounds = { ...f.wounds, current };
     return f;

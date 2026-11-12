@@ -5,5 +5,6 @@ export const sound: SoundDef = {
   id: 'orage',
   label: 'Orage',
   files: ['orage.ogg'],
+  canal: 'ambiance',
   volume: 0.55,
 };

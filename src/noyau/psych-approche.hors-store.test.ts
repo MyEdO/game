@@ -26,8 +26,8 @@ describe('Approche sous Peur (store)', () => {
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const E = b.combatants.find((c) => c.kind === 'enemy')!;
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const E = b.combatants.find((c) => c.kind === 'ennemi')!;
     H.pos = { x: 10, y: 10 };
     E.pos = { x: 15, y: 10 };
     H.psychState = [{ type: 'peur', sourceId: E.id, indice: 2, calmeDR: 0 }];

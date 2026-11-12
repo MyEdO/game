@@ -5,7 +5,7 @@ import type { Combatant, SkillInstance } from '../../engine/types';
 
 const mk = (id: string, dex: number, skills: { id: string; advances: number; spec?: string }[] = [], shipRole?: string): Combatant =>
   ({
-    id, label: id, kind: 'hero',
+    id, label: id, kind: 'heros',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: dex, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     skills: skills.map((s) => ({ ...s, characteristic: 'dexterite' }) as SkillInstance),
     conditions: [], talents: [], wounds: { current: 10, max: 10 }, shipRole,
@@ -84,7 +84,7 @@ describe('ShipInspectBody — inspection en LECTURE d’une coque ennemie (#240)
   // Le Serpent de Sel : raider de classe loup-imperial (ship.traits : bélier/renforcé/solide) portant la
   // Proue-idole de Stromfels (Amélioration d’INSTANCE, #221) sur `upgrades`.
   const serpent = {
-    id: 'serpent', label: 'Le Serpent de Sel', kind: 'npc', bodyShape: 'vehicule',
+    id: 'serpent', label: 'Le Serpent de Sel', kind: 'pnj', bodyShape: 'vehicule',
     creatureId: 'loup-imperial', conditions: [], wounds: { current: 60, max: 80 },
     upgrades: [{ id: 'proue-idole-de-stromfels' }],
     postes: [{ item: { label: 'Baliste', uid: 'p1' }, side: 'tribord', crewIds: [] } as unknown as Poste],

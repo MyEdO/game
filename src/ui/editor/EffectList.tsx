@@ -240,24 +240,24 @@ export function effectSummary(effect: Effect, ctx: Pick<Ctx, 'scenes' | 'cibles'
     case 'openCharacterCreator': return `Créer un personnage (assistant)`;
     case 'inflictNightmares': return `Cauchemars${e.heroId ? ` → ${e.heroId}` : ''}`;
     case 'inflictDisease': return `Maladie : ${e.disease || '?'}`;
-    case 'inflictHunger': return `Faim ×${e.days ?? 1} → ${e.target === 'hero' ? (e.heroId || '1ᵉʳ héros') : 'groupe'}`;
-    case 'inflictThirst': return `Soif ×${e.days ?? 1} → ${e.target === 'hero' ? (e.heroId || '1ᵉʳ héros') : 'groupe'}`;
-    case 'exposureNight': return `Exposition ${e.kind === 'chaleur' ? 'chaleur' : 'froid'} ×${e.count ?? 2} → ${e.target === 'hero' ? (e.heroId || '1ᵉʳ héros') : 'groupe'}`;
+    case 'inflictHunger': return `Faim ×${e.days ?? 1} → ${e.target === 'heros' ? (e.heroId || '1ᵉʳ héros') : 'groupe'}`;
+    case 'inflictThirst': return `Soif ×${e.days ?? 1} → ${e.target === 'heros' ? (e.heroId || '1ᵉʳ héros') : 'groupe'}`;
+    case 'exposureNight': return `Exposition ${e.kind === 'chaleur' ? 'chaleur' : 'froid'} ×${e.count ?? 2} → ${e.target === 'heros' ? (e.heroId || '1ᵉʳ héros') : 'groupe'}`;
     case 'inflictTrauma': return `Critique : ${e.kind ?? 'fracture'} (${e.location ?? '?'})`;
     case 'ambitionLost': return `Ambition anéantie → Trauma${e.heroId ? ` → ${e.heroId}` : ''}`;
-    case 'inflictPsychology': return `${e.kind === 'terreur' ? 'Terreur' : 'Peur'} ${e.indice ?? 1} — ${e.label || '?'} → ${e.target === 'hero' ? (e.heroId || '1ᵉʳ héros') : 'groupe'}`;
+    case 'inflictPsychology': return `${e.kind === 'terreur' ? 'Terreur' : 'Peur'} ${e.indice ?? 1} — ${e.label || '?'} → ${e.target === 'heros' ? (e.heroId || '1ᵉʳ héros') : 'groupe'}`;
     case 'ops': {
       const on: string = genreDeCible(e.on) ?? ctx.cibles[0].on;
       const cible = ctx.cibles.find((c) => c.on === on);
       const who = !cible ? `« on: ${on} » hors du vocabulaire de cette racine`
-        : on === 'hero' ? `${cible.label} (${e.heroId || '1ᵉʳ'})`
+        : on === 'heros' ? `${cible.label} (${e.heroId || '1ᵉʳ'})`
         : typeof e.on === 'object' && 'volontaires' in e.on ? `${cible.label} (${e.on.volontaires})`
         : typeof e.on === 'object' ? `${cible.label} (${crewRoles.find((r) => r.id === e.on.role.id)?.label ?? (e.on.role.id || '?')})`
         : cible.label;
       return `${who} : ${(e.ops ?? []).map(opSummary).join(', ') || '(aucune op)'}${e.pendantJours !== undefined ? ` · pendant ${formulaSummary(e.pendantJours)} jour(s)` : ''}`;
     }
     case 'zoneBlast': return `Souffle ${(e.ops ?? []).length} op(s) rayon ${e.radius ?? 0} @(${e.center?.x ?? 0},${e.center?.y ?? 0})`;
-    case 'fall': return `Chute ${e.metres ?? 0} m → ${e.target === 'hero' ? (e.heroId || '1ᵉʳ héros') : 'groupe'}${e.to ? ` ⤓(${e.to.x},${e.to.y}${e.to.z ? `,z${e.to.z}` : ''})` : ''}`;
+    case 'fall': return `Chute ${e.metres ?? 0} m → ${e.target === 'heros' ? (e.heroId || '1ᵉʳ héros') : 'groupe'}${e.to ? ` ⤓(${e.to.x},${e.to.y}${e.to.z ? `,z${e.to.z}` : ''})` : ''}`;
     case 'setLight': return `Lumière ${Math.round((e.level ?? 1) * 100)} %`;
     case 'setDoor': return `Porte (${e.x ?? 0},${e.y ?? 0},${e.side ?? 'N'})${e.attempted === undefined ? '' : e.attempted ? ' tentée' : ' non tentée'}${e.revealed === undefined ? '' : e.revealed ? ' révélée' : ' masquée'}${e.open === undefined ? '' : e.open ? ' ouverte' : ' fermée'}`;
     case 'moveEntity': return e.remove
@@ -266,7 +266,7 @@ export function effectSummary(effect: Effect, ctx: Pick<Ctx, 'scenes' | 'cibles'
     case 'playSfx': return `Son : ${e.id || '?'}`;
     case 'giveSin': return `${e.amount ?? 1} point(s) de Péché`;
     case 'corruptionExposure': return `Influence corruptrice (${e.level ?? 'mineure'}, ${e.nature ? libelleDeLaNature(e.nature) : 'au choix'})${e.align ? ` — ${libelleDeValeur(chaosAlignSchema, e.align)}` : ''}`;
-    case 'waterExposure': return `Eau souillée (${e.mode === 'immersion' ? 'immersion' : 'ingestion'}${e.source ? ` · ${e.source}` : ''}) → ${e.target === 'party' ? 'groupe' : (e.heroId || '1ᵉʳ héros')}`;
+    case 'waterExposure': return `Eau souillée (${e.mode === 'immersion' ? 'immersion' : 'ingestion'}${e.source ? ` · ${e.source}` : ''}) → ${e.target === 'groupe' ? 'groupe' : (e.heroId || '1ᵉʳ héros')}`;
     case 'learnSpell': return `Apprendre : ${e.spell ? refLabel('spells', { id: e.spell }) : '?'}`;
     case 'castSpell': return `Incanter ${e.spellId ? refLabel('spells', { id: e.spellId }) : '?'} — ${e.casterId || '?'}${e.targetId ? ` → ${e.targetId}` : ''}${e.mode === 'forcerLaReussite' ? ' (garanti)' : ''}`;
     case 'petitePriere': {
@@ -468,11 +468,11 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
         )}
         {effect.type === 'inflictHunger' && (
           <div className="tf-row">
-            <select value={e.target ?? 'party'} onChange={(ev) => upd({ target: ev.target.value })}>
-              <option value="party">Tout le groupe</option>
-              <option value="hero">Un héros</option>
+            <select value={e.target ?? 'groupe'} onChange={(ev) => upd({ target: ev.target.value })}>
+              <option value="groupe">Tout le groupe</option>
+              <option value="heros">Un héros</option>
             </select>
-            {e.target === 'hero' && (
+            {e.target === 'heros' && (
               <input placeholder="id du héros (vide = 1ᵉʳ)" value={e.heroId ?? ''} onChange={(ev) => upd({ heroId: ev.target.value || undefined })} />
             )}
             <label className="dr">Jours affamés <NumberField variant="nu" label="Jours affamés" min={1} value={e.days ?? 1} onChange={(days) => upd({ days })} /></label>
@@ -480,11 +480,11 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
         )}
         {effect.type === 'inflictThirst' && (
           <div className="tf-row">
-            <select value={e.target ?? 'party'} onChange={(ev) => upd({ target: ev.target.value })}>
-              <option value="party">Tout le groupe</option>
-              <option value="hero">Un héros</option>
+            <select value={e.target ?? 'groupe'} onChange={(ev) => upd({ target: ev.target.value })}>
+              <option value="groupe">Tout le groupe</option>
+              <option value="heros">Un héros</option>
             </select>
-            {e.target === 'hero' && (
+            {e.target === 'heros' && (
               <input placeholder="id du héros (vide = 1ᵉʳ)" value={e.heroId ?? ''} onChange={(ev) => upd({ heroId: ev.target.value || undefined })} />
             )}
             <label className="dr">Jours assoiffés <NumberField variant="nu" label="Jours assoiffés" min={1} value={e.days ?? 1} onChange={(days) => upd({ days })} /></label>
@@ -496,11 +496,11 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
               <option value="froid">Froid (négatives, blizzard)</option>
               <option value="chaleur">Chaleur (désert, fournaise)</option>
             </select>
-            <select value={e.target ?? 'party'} onChange={(ev) => upd({ target: ev.target.value })}>
-              <option value="party">Tout le groupe</option>
-              <option value="hero">Un héros</option>
+            <select value={e.target ?? 'groupe'} onChange={(ev) => upd({ target: ev.target.value })}>
+              <option value="groupe">Tout le groupe</option>
+              <option value="heros">Un héros</option>
             </select>
-            {e.target === 'hero' && (
+            {e.target === 'heros' && (
               <input placeholder="id du héros (vide = 1ᵉʳ)" value={e.heroId ?? ''} onChange={(ev) => upd({ heroId: ev.target.value || undefined })} />
             )}
             <label className="dr">Tests <NumberField variant="nu" label="Tests" min={1} value={e.count ?? 2} onChange={(count) => upd({ count })} /></label>
@@ -580,11 +580,11 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
             </select>
             <label className="dr">Indice <NumberField variant="nu" label="Indice" min={1} value={e.indice ?? 1} onChange={(indice) => upd({ indice })} /></label>
             <input placeholder="Source (apparition, présage…)" value={e.label ?? ''} onChange={(ev) => upd({ label: ev.target.value })} />
-            <select value={e.target ?? 'party'} onChange={(ev) => upd({ target: ev.target.value })}>
-              <option value="party">Tout le groupe</option>
-              <option value="hero">Un héros</option>
+            <select value={e.target ?? 'groupe'} onChange={(ev) => upd({ target: ev.target.value })}>
+              <option value="groupe">Tout le groupe</option>
+              <option value="heros">Un héros</option>
             </select>
-            {e.target === 'hero' && (
+            {e.target === 'heros' && (
               <input placeholder="id du héros (vide = 1ᵉʳ)" value={e.heroId ?? ''} onChange={(ev) => upd({ heroId: ev.target.value || undefined })} />
             )}
           </div>
@@ -630,11 +630,11 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
                 <option key={m.id} value={m.id}>{m.label} ({m.mod > 0 ? '+' : ''}{m.mod})</option>
               ))}
             </select>
-            <select value={e.target ?? 'hero'} onChange={(ev) => upd({ target: ev.target.value })}>
-              <option value="hero">Un héros</option>
-              <option value="party">Tout le groupe</option>
+            <select value={e.target ?? 'heros'} onChange={(ev) => upd({ target: ev.target.value })}>
+              <option value="heros">Un héros</option>
+              <option value="groupe">Tout le groupe</option>
             </select>
-            {(e.target ?? 'hero') === 'hero' && (
+            {(e.target ?? 'heros') === 'heros' && (
               <input placeholder="id du héros (vide = le premier)" value={e.heroId ?? ''} onChange={(ev) => upd({ heroId: ev.target.value })} />
             )}
           </>
@@ -783,7 +783,7 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
                     {ctx.cibles.map((c) => <option key={c.on} value={c.on}>{c.label}</option>)}
                   </select>
                 </label>
-                {e.on === 'hero' && (
+                {e.on === 'heros' && (
                   <input placeholder="id du héros (vide = 1ᵉʳ)" value={e.heroId ?? ''} onChange={(ev) => upd({ heroId: ev.target.value || undefined })} />
                 )}
                 {typeof e.on === 'object' && 'volontaires' in e.on && (
@@ -821,11 +821,11 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
         )}
         {effect.type === 'fall' && (
           <div className="tf-row">
-            <select value={e.target ?? 'party'} onChange={(ev) => upd({ target: ev.target.value })}>
-              <option value="party">Tout le groupe</option>
-              <option value="hero">Un héros</option>
+            <select value={e.target ?? 'groupe'} onChange={(ev) => upd({ target: ev.target.value })}>
+              <option value="groupe">Tout le groupe</option>
+              <option value="heros">Un héros</option>
             </select>
-            {e.target === 'hero' && (
+            {e.target === 'heros' && (
               <input placeholder="id du héros (vide = 1ᵉʳ)" value={e.heroId ?? ''} onChange={(ev) => upd({ heroId: ev.target.value || undefined })} />
             )}
             <label className="dr">Hauteur (m) <NumberField variant="nu" label="Hauteur (m)" min={0} value={e.metres ?? 0} onChange={(metres) => upd({ metres })} /></label>

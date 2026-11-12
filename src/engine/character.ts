@@ -521,7 +521,7 @@ export function assemblerLeHeros(r: HerosResolu): Combatant {
   const sansBlessures: Omit<Combatant, 'wounds'> = {
     id: r.id,
     label: r.label,
-    kind: 'hero',
+    kind: 'heros',
     species: sp.id,
     career: r.career,
     groups: groupsFor({ speciesId: sp.id }), // Groupes déclarés par l'espèce ; carrière, classe, culte et Traits lus en direct (`groupesDe`). LDB 21

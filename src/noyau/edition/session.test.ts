@@ -13,6 +13,7 @@
  * de `refusDeLEntite`.
  */
 import { describe, expect, it } from 'vitest';
+import type { SourceDeLEdition } from './adresseDeProse';
 import { emptyNarratif } from '../monde/campaignNarratif';
 import { emptyScene, heightAt, isWalkable, type Scene } from '../monde/scene';
 import { buildScene, type MapSpec } from '../mapSpec';
@@ -51,8 +52,11 @@ import areneProjet from '../../scenes/arene/arene-projet.json';
 /** Un narratif vide : aucun preset de PNJ, aucune entrée à référencer. */
 const NARRATIF_VIDE = emptyNarratif();
 
+/** Aucun `Source/` servi : aucun chapitre. */
+const SANS_SOURCE: SourceDeLEdition = { manifeste: null, chapitres: {} };
+
 /** Le cadre d'un porteur d'une scène vide, au narratif `narratif`. */
-const cadre = (narratif = NARRATIF_VIDE): CadreDuPorteur => ({ scene: emptyScene('c', 4, 4), projet: { scenes: [], narratif } });
+const cadre = (narratif = NARRATIF_VIDE): CadreDuPorteur => ({ scene: emptyScene('c', 4, 4), projet: { scenes: [], narratif }, source: SANS_SOURCE });
 
 const ouverteSur = (scene: Scene, duDepot = false, narratif = NARRATIF_VIDE): SessionDEdition => ouvrirLEdition({ scenes: [scene], narratif } as unknown as Parameters<typeof ouvrirLEdition>[0], duDepot);
 const ouverte = (duDepot = false): SessionDEdition => ouverteSur(emptyScene('session', 4, 4), duDepot);
@@ -190,13 +194,13 @@ describe('session d’édition', () => {
     expect(ent(ouverte)?.usable).toEqual({ ...ent(table)?.usable, assise: true });
     expect(ent(jouer(ouverte, { geste: 'entite', patch: { assise: false } }))?.usable, 'les actions restent').toEqual(ent(table)?.usable);
     const [p1, p2] = seatSlotsOf(sceneEditee(table), tableId).map((p) => p.slotId);
-    const assis = jouer(table, { geste: 'place', place: p1, occupant: { kind: 'entity', entityId: pnjId } });
-    expect(sceneEditee(assis).seatAssignments?.[tableId]).toEqual({ [p1]: { kind: 'entity', entityId: pnjId } });
+    const assis = jouer(table, { geste: 'place', place: p1, occupant: { kind: 'entite', entityId: pnjId } });
+    expect(sceneEditee(assis).seatAssignments?.[tableId]).toEqual({ [p1]: { kind: 'entite', entityId: pnjId } });
     expect(ent(assis, pnjId)?.pos, 'le corps se tient sur l’abord de sa place').not.toEqual({ x: 6, y: 6 });
-    const deplace = jouer(assis, { geste: 'place', place: p2, occupant: { kind: 'entity', entityId: pnjId } });
-    expect(sceneEditee(deplace).seatAssignments?.[tableId], 'un corps, une place').toEqual({ [p2]: { kind: 'entity', entityId: pnjId } });
-    const heros = jouer(deplace, { geste: 'place', place: p2, occupant: { kind: 'party', rang: 1 } });
-    expect(sceneEditee(heros).seatAssignments?.[tableId], 'le tenant cède sa place').toEqual({ [p2]: { kind: 'party', rang: 1 } });
+    const deplace = jouer(assis, { geste: 'place', place: p2, occupant: { kind: 'entite', entityId: pnjId } });
+    expect(sceneEditee(deplace).seatAssignments?.[tableId], 'un corps, une place').toEqual({ [p2]: { kind: 'entite', entityId: pnjId } });
+    const heros = jouer(deplace, { geste: 'place', place: p2, occupant: { kind: 'groupe', rang: 1 } });
+    expect(sceneEditee(heros).seatAssignments?.[tableId], 'le tenant cède sa place').toEqual({ [p2]: { kind: 'groupe', rang: 1 } });
     expect(sceneEditee(jouer(heros, { geste: 'place', place: p2, occupant: null })).seatAssignments?.[tableId] ?? {}).toEqual({});
     expect(jouer(table, { geste: 'place', place: p1, occupant: null }), 'une place vide qu’on vide : aucun cran').toBe(table);
   });
@@ -500,7 +504,7 @@ describe('le porteur `entite` du geste `valeur` (#3606 M1a à M1d)', () => {
     const hub = areneProjet.scenes.find((sc) => sc.id === 'arene-hub')! as unknown as Scene;
     const offerts = (effect: Effect, champ: string) => {
       const declencheur = { id: 't', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: { kind: 'sequence' as const, etapes: [{ kind: 'effet' as const, effet: effect }] } };
-      return choixDuChamp('declencheur', declencheur, ['flow', 'etapes', 0, 'effet', champ, 'id'], { scene: hub, projet: { scenes: areneProjet.scenes as unknown as Scene[], narratif: NARRATIF_VIDE } })!.map((c) => c.valeur);
+      return choixDuChamp('declencheur', declencheur, ['flow', 'etapes', 0, 'effet', champ, 'id'], { scene: hub, projet: { scenes: areneProjet.scenes as unknown as Scene[], narratif: NARRATIF_VIDE }, source: SANS_SOURCE })!.map((c) => c.valeur);
     };
     expect(offerts({ type: 'transition', scene: { id: 'arene-hub' } }, 'scene')).toEqual(areneProjet.scenes.map((sc) => sc.id));
     const personnages = hub.entities.filter((e) => e.kind === 'personnage');
@@ -683,7 +687,7 @@ describe('le navire de la scène éditée (#3772)', () => {
       encounters: [{ id: 'abordage', members: [{ entityId: 'marin' }] }] } as Scene]).filter((w) => w.refId === 'marin' && w.message.includes('non marchable'));
     expect([abordage({ x, y }).length, abordage({ x: bx, y: by }).length], 'l’empreinte d’un membre se juge sur le pont').toEqual([0, 1]);
     const chute = (to: { x: number; y: number }) => validateScene([{ ...bassin(), entities: [caraque],
-      triggers: [{ id: 'saut', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: flowFromEffects([{ type: 'fall', target: 'party', metres: 2, to: { ...to, z: 2 } }] as Effect[]) }] } as Scene])
+      triggers: [{ id: 'saut', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: flowFromEffects([{ type: 'fall', target: 'groupe', metres: 2, to: { ...to, z: 2 } }] as Effect[]) }] } as Scene])
       .filter((w) => w.refId === 'saut' && w.message.startsWith('Chute')).length;
     expect([chute({ x, y }), chute({ x: bx, y: by })], 'l’atterrissage d’une chute se juge sur le pont').toEqual([0, 1]);
     const lettre = garanti(vue.entities.filter((e) => e.kind === 'prop' && e.id.startsWith('navire-0-'))

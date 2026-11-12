@@ -36,7 +36,7 @@ const ARM = () => ({ tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0
 const BOW = (uid: string): Weapon =>
   ({ uid, name: 'Arc', label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 8 }, range: 30, qualities: [] } as unknown as Weapon);
 
-const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, over: Partial<Combatant> = {}): Combatant =>
+const mk = (id: string, kind: 'heros' | 'ennemi', pos: { x: number; y: number }, over: Partial<Combatant> = {}): Combatant =>
   (blessuresSurLeProfil({ id, name: id, label: id, kind, characteristics: { ...CHARS }, conditions: [], engagedWith: [], skills: [], talents: [],
      weapons: [BOW(`w-${id}`)], loaded: true, advantage: 0, size: 'moyenne', pos, wounds: blessuresDeBase(14),
      resolve: 2, fortune: 2, resilience: 1, armour: ARM(), movement: 4, ...over }) as unknown as Combatant);
@@ -51,9 +51,9 @@ const SCENE = () =>
  */
 function setup(net: Record<string, unknown> = {}, turn = 0) {
   seedBattleRng(7);
-  const h2 = mk('h2', 'hero', { x: 0, y: 0 }, { talents: [{ talentId: 'tir-rapide', times: 1 }, { talentId: 'resistance', spec: 'magie', times: 1 }] as never });
-  const h3 = mk('h3', 'hero', { x: 0, y: 4 });
-  const e1 = mk('e1', 'enemy', { x: 3, y: 0 });
+  const h2 = mk('h2', 'heros', { x: 0, y: 0 }, { talents: [{ talentId: 'tir-rapide', times: 1 }, { talentId: 'resistance', spec: 'magie', times: 1 }] as never });
+  const h3 = mk('h3', 'heros', { x: 0, y: 4 });
+  const e1 = mk('e1', 'ennemi', { x: 3, y: 0 });
   const battle: BattleState = {
     combatants: [h2, h3, e1], order: ['h2', 'h3', 'e1'], baseOrder: ['h2', 'h3', 'e1'],
     turn, round: 2, action: null, selectedSpellId: null, selectedAttack: null, reachable: new Map(),

@@ -183,7 +183,7 @@ describe('Cogue pirate — se soumettre : pillage + tribut (#327 A5.3)', () => {
     expect(get().vessel!.crewLost ?? 0).toBe(crewBefore); // refuser ne sacrifie aucun marin
     const battle = get().battle!;
     expect(battle).toBeTruthy();
-    expect(battle.combatants.some((c) => c.kind === 'enemy' && c.wounds.current > 0)).toBe(true);
+    expect(battle.combatants.some((c) => c.kind === 'ennemi' && c.wounds.current > 0)).toBe(true);
     // Deux coques bord à bord : la cogue ennemie + la coque de campagne (ralliée au camp allié).
     expect(battle.combatants.filter((c) => c.creatureId === 'cogue').length).toBe(1);
     expect(battle.combatants.filter((c) => c.creatureId === 'barge-fluviale').length).toBe(1);

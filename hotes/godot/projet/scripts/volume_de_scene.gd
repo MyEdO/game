@@ -279,7 +279,8 @@ func _cacher_sous(parent: Node3D, cles: Array) -> void:
 
 ## Le maillage d'une géométrie du monde (`positions`, `normales`, `couleurs`, `surfaces`) : une surface par matière,
 ## texturée ou colorée par sommet (`_matiere`), masquée si `masquee` (chaque sommet porte en `UV2` le texel de sa case au
-## masque, `MiseEnPage.texel_du_masque`, sur la `rangee` du morceau), chaque tableau retourné en entier (`_retournes`) ;
+## masque, `MiseEnPage.texel_du_masque`, sur la `rangee` du morceau, la case de chaque triangle lue en `x, y, z` à plat
+## dans `cases`), chaque tableau retourné en entier (`_retournes`) ;
 ## sans les surfaces d'un navire (`navire`), que le rayon du pointeur touche et que le modèle du navire montre ; la mer
 ## d'un navire (`flottaison`) hors du contour de sa coque (`border_la_mer`, `_hors_du_contour`), entière tant qu'il
 ## n'est pas connu. Godot tient pour face avant le sens horaire, le volume le sens trigonométrique : chaque tableau
@@ -290,8 +291,8 @@ func _maillage_de(geometrie: Dictionary, masquee: bool) -> ArrayMesh:
 	var couleurs := PackedFloat32Array(geometrie.couleurs).to_byte_array().to_color_array()
 	var texels := PackedVector2Array()
 	if masquee:
-		for c: Array in geometrie.cases:
-			var texel := Vector2(MiseEnPage.texel_du_masque(Vector2i(int(c[0]), int(c[1])), int(geometrie.rangee)))
+		for c: Vector3 in PackedFloat32Array(geometrie.cases).to_byte_array().to_vector3_array():
+			var texel := Vector2(MiseEnPage.texel_du_masque(Vector2i(int(c.x), int(c.y)), int(geometrie.rangee)))
 			texels.append_array([texel, texel, texel])
 	var rangs := [Mesh.ARRAY_VERTEX, Mesh.ARRAY_NORMAL, Mesh.ARRAY_COLOR, Mesh.ARRAY_TEX_UV2] if masquee else [Mesh.ARRAY_VERTEX, Mesh.ARRAY_NORMAL, Mesh.ARRAY_COLOR]
 	var maillage := ArrayMesh.new()

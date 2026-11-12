@@ -109,7 +109,7 @@ function entreeDuTour(b: Bataille, e: Bataille['combatants'][number]) {
   return buildAiInput(e, banc.getState);
 }
 /** L'ennemi que la carte arme d'une arme à DISTANCE — nommé par son ARMEMENT, pas par son id. */
-const tireurDe = (b: Bataille) => b.combatants.filter((c) => c.kind === 'enemy' && c.weapons.some((w) => w.type === 'distance'));
+const tireurDe = (b: Bataille) => b.combatants.filter((c) => c.kind === 'ennemi' && c.weapons.some((w) => w.type === 'distance'));
 
 describe('carte-fixture — deux stalles, une arête qui laisse voir, une qui ferme', () => {
   const sc = carte();
@@ -120,7 +120,7 @@ describe('carte-fixture — deux stalles, une arête qui laisse voir, une qui fe
     expect(structureAt(sc, GOBELIN_DERRIERE_MUR.x - 1, GOBELIN_DERRIERE_MUR.y, 'E', 0)?.structure).toBe(OSSATURE);
     // Les cases `H` du plan sont celles où `lancerLeCombat` POSE réellement le groupe — relevées sur le
     // combat ouvert, jamais recopiées de la formule de pose.
-    const poses = ouvrirCombat().combatants.filter((c) => c.kind === 'hero').map((c) => ({ x: c.pos!.x, y: c.pos!.y }));
+    const poses = ouvrirCombat().combatants.filter((c) => c.kind === 'heros').map((c) => ({ x: c.pos!.x, y: c.pos!.y }));
     expect(poses).toEqual(HEROS);
   });
 
@@ -158,7 +158,7 @@ describe('IA hors siège — aucune décision ne porte sur une structure', () =>
   /** Ouvre le combat de la fixture et rend le tour d'IA de chaque ennemi, dans l'ordre du roster. */
   const decisionsDesEnnemis = () => {
     const b = ouvrirCombat();
-    return b.combatants.filter((c) => c.kind === 'enemy').map((e) => {
+    return b.combatants.filter((c) => c.kind === 'ennemi').map((e) => {
       const input = entreeDuTour(b, e);
       const action = chooseEnemyAction(input) as { kind: string; targetId?: string; thenTargetId?: string };
       const cible = b.combatants.find((c) => c.id === (action.targetId ?? action.thenTargetId));
@@ -186,7 +186,7 @@ describe('IA hors siège — aucune décision ne porte sur une structure', () =>
     const tireurs = decisionsDesEnnemis().filter((l) => l.ennemi.weapons.some((w) => w.type === 'distance'));
     expect(tireurs.length, 'la fixture arme bien un tireur').toBe(1);
     expect(tireurs[0].action.kind).toBe('tir');
-    expect(tireurs[0].cible!.kind).toBe('hero');
+    expect(tireurs[0].cible!.kind).toBe('heros');
   });
 });
 
@@ -213,7 +213,7 @@ describe('IA — le mémo de Ligne de Vue du tour est PORTEUR (clé from→to)',
 
   it('(a) `buildAiInput` pose le mémo du tour, et chaque décision servie par lui est celle du calcul direct', () => {
     const b = ouvrirCombat();
-    const ennemis = b.combatants.filter((c) => c.kind === 'enemy');
+    const ennemis = b.combatants.filter((c) => c.kind === 'ennemi');
     expect(ennemis.length).toBeGreaterThan(0);
     for (const e of ennemis) {
       const input = entreeDuTour(b, e);

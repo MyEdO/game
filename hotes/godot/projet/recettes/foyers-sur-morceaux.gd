@@ -105,7 +105,7 @@ func _morceau(cle: String, x0: int, y0: int, largeur: int, hauteur: int) -> Dict
 				positions.append_array([x + coin[0], 0.0, y + coin[1]])
 				normales.append_array([0.0, 1.0, 0.0])
 				couleurs.append_array([0.8, 0.8, 0.8, 1.0])
-			cases.append_array([[x, y, 0], [x, y, 0]])
+			cases.append_array([x, y, 0, x, y, 0])
 	return {cle = cle, empreinte = cle, rangee = 0, positions = positions, normales = normales, couleurs = couleurs, cases = cases,
 		surfaces = [{debut = 0, fin = positions.size() / 3, matiere = "terrain--sol-d-essai"}], centre = Vector2(x0 + largeur / 2.0 - 0.5, y0 + hauteur / 2.0 - 0.5)}
 

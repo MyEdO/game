@@ -26,7 +26,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * produit — trous remplis par les valeurs du producteur.
  */
 const hero = (): Combatant => (blessuresSurLeProfil({
-  id: 'h1', name: 'Grimpeur', kind: 'hero',
+  id: 'h1', name: 'Grimpeur', kind: 'heros',
   characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 40, agilite: 35, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
   wounds: blessuresDeBase(10), advantage: 0, conditions: [], movement: 4,
   skills: [{ id: 'escalade', characteristic: 'force', advances: 0 }], talents: [],

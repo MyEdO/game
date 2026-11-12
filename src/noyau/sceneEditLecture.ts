@@ -41,6 +41,7 @@ import { CAP_IDENTITE_PROP, capDecorAdmis } from '../data/props.types';
 import { DIR8_ORDER, estCardinal, type Dir8 } from '../geometry/dir8';
 import { decorsEnCaseEtage, entitesEnCaseEtage } from './monde/decorIndex';
 import { actionNeuve } from './monde/usable';
+import { choixSousUneAdresse, estCheminDerive, type SourceDeLEdition } from './edition/adresseDeProse';
 import { ancreDuDecor } from './monde/footprint';
 import { portePar } from './monde/poseDuDecor';
 import { aretesA } from './monde/wallIndex';
@@ -432,8 +433,9 @@ export type SorteDePorteur = keyof DonneeDuPorteur;
 /** Les chemins de clés, depuis la donnée d'un porteur, des champs qu'il offre : chacun avec tout ce qu'il porte. */
 type CheminsOfferts = readonly (readonly string[])[];
 
-/** Le cadre où vit un porteur de formulaire tiré du schéma : sa scène, et les scènes et le narratif de son projet. */
-export interface CadreDuPorteur { scene: Scene; projet: Pick<ProjectDoc, 'scenes' | 'narratif'> }
+/** Le cadre où vit un porteur de formulaire tiré du schéma : sa scène, les scènes et le narratif de son projet, et le
+ *  `Source/` que ses adresses de prose désignent (`SourceDeLEdition`). */
+export interface CadreDuPorteur { scene: Scene; projet: Pick<ProjectDoc, 'scenes' | 'narratif'>; source: SourceDeLEdition }
 
 /** Ce qu'un porteur de formulaire tiré du schéma déclare : le nœud de sa donnée, les champs qu'il offre, et les choix que
  *  son contexte pose à un chemin de sa donnée (`choixDuChamp`), dans son cadre. */
@@ -560,7 +562,7 @@ function choixDesApparencesDObjets(ent: SceneEntity, reste: readonly Segment[], 
 function munitionsDeLaPiece(trappingId: string): ChoixDuContexte[] {
   const piece = { trappingId, subType: findTrappingById(trappingId)?.subType?.id };
   return trappingsInstanciables()
-    .filter((m) => gabaritDObjet(m.id)?.kind === 'ammo' && chargeLArme({ trappingId: m.id, subType: m.subType?.id }, piece))
+    .filter((m) => chargeLArme({ trappingId: m.id, subType: m.subType?.id }, piece) && gabaritDObjet(m.id)?.kind === 'ammo')
     .map((m) => ({ valeur: m.id, libelle: m.label, refus: null }));
 }
 
@@ -688,27 +690,32 @@ function choixDeLaReferenceLocale(noeuds: readonly unknown[], cadre: CadreDuPort
 }
 
 /** Les choix que le contexte du porteur de sorte `sorte`, de donnée `donnee`, pose au chemin `chemin` de sa donnée, dans
- *  leur ordre, dans le cadre `cadre` : d'une référence narrative, chaque entrée du registre que son narratif désigne
- *  (`entreesNarratives`) ; d'une référence locale, chaque élément que sa portée admet (`choixDeLaReferenceLocale`) ;
- *  sinon ceux de son porteur (`FORMULAIRES`) ; `undefined` : ceux du nœud. */
+ *  leur ordre, dans le cadre `cadre` : sous une adresse de prose, ceux de son `Source/` (`choixSousUneAdresse`) ; d'une
+ *  référence narrative, chaque entrée du registre que son narratif désigne (`entreesNarratives`) ; d'une référence
+ *  locale, chaque élément que sa portée admet (`choixDeLaReferenceLocale`) ; sinon ceux de son porteur (`FORMULAIRES`) ;
+ *  `undefined` : ceux du nœud. */
 export function choixDuChamp<S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], chemin: readonly Segment[], cadre: CadreDuPorteur): readonly ChoixDuContexte[] | undefined {
   const cle = chemin[chemin.length - 1];
-  if (estReferenceNarrative(cle)) return entreesNarratives(cadre.projet.narratif, cle).map((e) => ({ valeur: e.id, libelle: e.label, refus: null }));
   const formulaire: FormulaireDuPorteur<DonneeDuPorteur[S]> = FORMULAIRES[sorte];
+  const deLAdresse = choixSousUneAdresse(formulaire.schema, donnee, chemin, cadre.source);
+  if (deLAdresse) return deLAdresse;
+  if (estReferenceNarrative(cle)) return entreesNarratives(cadre.projet.narratif, cle).map((e) => ({ valeur: e.id, libelle: e.label, refus: null }));
   return choixDeLaReferenceLocale(noeudsAuChemin(formulaire.schema, donnee, chemin), cadre) ?? formulaire.choix?.(donnee, chemin, cadre);
 }
 
 /** Le formulaire du porteur de sorte `sorte`, de donnée `donnee`, dans le cadre `cadre` : le champ de tête de
  *  chacun de ses champs offerts (`formeDuPorteur`), décrit par `inferFields` sur le nœud de sa donnée, dans son
- *  contexte : ce qu'il offre sous lui (`cheminOffert`), où il s'écrit entier (`ecritureOfferte`) et ses choix
- *  (`choixDuChamp`). */
+ *  contexte : ce qu'il offre sous lui (`cheminOffert`, jamais ce qu'une adresse de prose dérive,
+ *  `estCheminDerive`), où il s'écrit entier (`ecritureOfferte`), ses choix (`choixDuChamp`) et le `Source/` de
+ *  ses adresses. */
 export function formulaireDe<S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], cadre: CadreDuPorteur): FieldDesc[] {
   const { noeud, champs } = formeDuPorteur(sorte, donnee, cadre);
   const decrits = inferFields([donnee as unknown as Record<string, unknown>], { noeud, niveau: 'profondeur' });
   const contexte: ContexteDuChamp = {
-    offert: (chemin) => cheminOffert(champs, chemin),
+    offert: (chemin) => cheminOffert(champs, chemin) && !estCheminDerive(noeud, donnee, chemin),
     ecrivable: (chemin, actuelle) => ecritureOfferte(champs, chemin, actuelle),
     choix: (chemin) => choixDuChamp(sorte, donnee, chemin, cadre),
+    source: cadre.source,
   };
   return [...new Set(champs.map(([tete]) => tete))].flatMap((cle) => decrits.filter((f) => f.key === cle)).map((f) => ({ ...f, contexte }));
 }

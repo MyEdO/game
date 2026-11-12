@@ -27,9 +27,9 @@ export function heroDuDuel(): Combatant {
  *  comme le moteur), et rend le patch qui donne le tour au héros. */
 export function auContact(etat: EtatDeJeu): { H: Combatant; E: Combatant; patch: Pick<EtatDeJeu, 'battle' | 'pendingFrenzy'> } {
   const b = etat.battle!;
-  const H = b.combatants.find((c) => c.kind === 'hero')!;
-  const E = b.combatants.find((c) => c.kind === 'enemy')!;
-  b.combatants.filter((c) => c.kind === 'enemy' && c.id !== E.id).forEach((e) => (e.dead = true));
+  const H = b.combatants.find((c) => c.kind === 'heros')!;
+  const E = b.combatants.find((c) => c.kind === 'ennemi')!;
+  b.combatants.filter((c) => c.kind === 'ennemi' && c.id !== E.id).forEach((e) => (e.dead = true));
   H.pos = { x: 10, y: 10 }; E.pos = { x: 11, y: 10 };
   H.engagedWith = []; E.engagedWith = [];
   return { H, E, patch: { battle: { ...b, turn: b.order.indexOf(H.id), acted: false, movementUsed: 0 }, pendingFrenzy: null } };

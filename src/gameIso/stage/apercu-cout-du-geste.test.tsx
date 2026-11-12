@@ -27,7 +27,7 @@ const apercu = (mods: ModLine[]): AttackPreview => ({
 const dit = (p: AttackPreview): string | null => difficultyShownText(difficultyOf(p));
 
 const héros = {
-  id: 'h1', label: 'Héros', kind: 'hero', pos: { x: 1, y: 0 }, size: 'moyenne',
+  id: 'h1', label: 'Héros', kind: 'heros', pos: { x: 1, y: 0 }, size: 'moyenne',
   movement: 4, conditions: [], items: [], talents: [], traits: [], weapons: [], characteristics: {}, liveTraits: [],
 } as unknown as Combatant;
 const battle = (over: Partial<BattleState> = {}): BattleState =>
@@ -80,7 +80,7 @@ describe('le curseur porte ce que le geste fait du Mouvement', () => {
 });
 
 describe('l’aperçu tap-1 porte la Difficulté de l’attaque qu’il commettra', () => {
-  const cible = { ...héros, id: 'e1', kind: 'enemy', pos: { x: 3, y: 0 } } as unknown as Combatant;
+  const cible = { ...héros, id: 'e1', kind: 'ennemi', pos: { x: 3, y: 0 } } as unknown as Combatant;
 
   it('le badge d’ATTAQUE dit la Difficulté que la modale dira', () => {
     const html = renderToStaticMarkup(

@@ -17,12 +17,12 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 // ── Fabriques minimales ────────────────────────────────────────────────────────────────────────────────
 const foe = (id: string, x: number, y: number, wounds = 20, E = 30): Combatant =>
-  (blessuresSurLeProfil({ id, name: id, kind: 'enemy', pos: { x, y }, wounds: blessuresDeBase(wounds), advantage: 0,
+  (blessuresSurLeProfil({ id, name: id, kind: 'ennemi', pos: { x, y }, wounds: blessuresDeBase(wounds), advantage: 0,
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: E, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, conditions: [], traits: [], talents: [], skills: [], weapons: [] })) as unknown as Combatant;
 
 const shooter = (id = 'tireur', x = 0, y = 0): Combatant =>
-  ({ ...foe(id, x, y), kind: 'hero' }) as Combatant;
+  ({ ...foe(id, x, y), kind: 'heros' }) as Combatant;
 
 /** Arme à distance porteuse de qualités/effets — `qualities` lus par `resolveQualities`, `onHitEffects` par `fireTriggers`. */
 const rangedWeapon = (qualities: { id: string; value?: number }[], range = 60, flat = 12, onHitEffects?: TriggeredEffect[]): Weapon =>
@@ -116,7 +116,7 @@ describe('resolveWeaponArea — Explosion (rayon Indice m, États propagés)', (
     const near = foe('near', 5, 0, 50, 0);
     const { get, set } = mountBattle([atk, tgt, near], 2);
     // Atout Explosion + effet onHit générique posant l'État « en-flammes » (chemin GÉNÉRIQUE, pas bespoke).
-    const onHit: TriggeredEffect[] = [{ trigger: 'onHit', on: 'victim', flow: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'en-flammes' }, value: 1 }] } } } as never];
+    const onHit: TriggeredEffect[] = [{ trigger: 'onHit', on: 'victime', flow: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'en-flammes' }, value: 1 }] } } } as never];
     const w = rangedWeapon([{ id: 'a-explosion', value: 4 }], 60, 14, onHit);
     resolveWeaponArea(get, set, mkHit(atk, tgt, w, 14, 4), areaTargets([atk, tgt, near], 2), battleRng());
     expect((near.conditions ?? []).some((c) => c.id === 'en-flammes')).toBe(true); // État propagé au secondaire
@@ -155,7 +155,7 @@ describe('resolveWeaponArea — Explosion, z-blindness (#798)', () => {
 // ── Branche NAVALE : cible = navire → équipage exposé (composition MDG 13 × ch.12) ──────────────────────
 describe('resolveWeaponArea — cible NAVIRE → équipage exposé (Éclats-like)', () => {
   const ship = (id: string): Combatant =>
-    (blessuresSurLeProfil({ id, name: id, kind: 'enemy', bodyShape: 'vehicule', pos: { x: 9, y: 5 }, crewIds: ['m1', 'm2', 'm3'],
+    (blessuresSurLeProfil({ id, name: id, kind: 'ennemi', bodyShape: 'vehicule', pos: { x: 9, y: 5 }, crewIds: ['m1', 'm2', 'm3'],
       wounds: blessuresDeBase(50), advantage: 0, characteristics: { 'capacite-de-combat': 0, 'capacite-de-tir': 0, force: 0, endurance: 0, initiative: 0, agilite: 0, dexterite: 0, intelligence: 0, 'force-mentale': 0, sociabilite: 0 },
       armour: { corps: 0 }, conditions: [], traits: [], talents: [], skills: [], weapons: [] })) as unknown as Combatant;
 

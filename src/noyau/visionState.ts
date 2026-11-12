@@ -83,9 +83,9 @@ function visibleFrom(scene: Scene, s: VisionInput, light: StateLight, smoke: Pt[
       // Brouillard PARTY-ONLY : seuls les héros du GROUPE (manuels, ou héros coop d'autres joueurs)
       // révèlent la carte. Un PNJ allié piloté par l'IA (`aiControlled` : défenseur de siège, équipage
       // d'une pièce) ne contribue PAS à la vue du groupe — sinon il dévoilerait tout le champ adverse.
-      // Une pièce INERTE (affût de baliste/canon, côté allié `kind:'hero'` mais SANS IA) n'a pas d'yeux :
+      // Une pièce INERTE (affût de baliste/canon, côté allié `kind:'heros'` mais SANS IA) n'a pas d'yeux :
       // postée sur le rempart (z=1), elle dévoilerait sinon tout le champ d'en contrebas par-dessus le parapet.
-      if (c.kind !== 'hero' || c.aiControlled || c.inert || isOutOfAction(c) || !c.pos) continue;
+      if (c.kind !== 'heros' || c.aiControlled || c.inert || isOutOfAction(c) || !c.pos) continue;
       // `z` du viewer = ÉTAGE du combattant (vision cross-niveau : un défenseur sur le rempart z=1
       // voit en contrebas z=0). Sans ce z, il serait calculé au sol — aveugle depuis la muraille.
       viewers.push({ pos: c.pos, z: c.pos.z, radiusTiles: baseR, darkTiles: darkSightTiles(c) });

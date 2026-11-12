@@ -32,7 +32,7 @@ const g = () => banc.getState();
 const CH = { 'capacite-de-combat': 45, 'capacite-de-tir': 40, force: 35, endurance: 35, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 const arme = (uid: string, label: string, qualities: { id: string; value?: number }[] = []): Weapon =>
   ({ uid, name: label, label, type: 'melee', damage: { plusBF: true, flat: 4 }, qualities }) as unknown as Weapon;
-const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, weapons: Weapon[]): Combatant =>
+const mk = (id: string, kind: 'heros' | 'ennemi', pos: { x: number; y: number }, weapons: Weapon[]): Combatant =>
   (blessuresSurLeProfil({ id, name: id, label: id, kind, characteristics: { ...CH }, conditions: [], engagedWith: [], skills: [], talents: [], traits: [],
      weapons, items: [], advantage: 0, size: 'moyenne', pos, wounds: blessuresDeBase(200), criticalWounds: 0, traumas: [],
      armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, fate: 0 }) as unknown as Combatant);
@@ -54,15 +54,15 @@ function monte(charge: Charge, susp: Suspension | null, temoin = false): void {
   const bacle = (uid: string, label: string) => arme(uid, label, temoin ? [{ id: 'bacle' }] : [{ id: 'bacle' }, { id: 'solide', value: 1 }]);
   const ennemiDefend = charge === 'maladresseEnnemiMJ';
   const griffe = susp === 'casseAttaquant' ? bacle('gr', 'Griffe') : arme('gr', 'Griffe');
-  const e = mk('e', 'enemy', { x: 1, y: 0 }, [griffe, susp === 'casseDefenseur' ? bacle('dg', 'Dague') : arme('dg', 'Dague')]);
-  const h = mk('h', 'hero', { x: 0, y: 0 }, [arme('sw', 'Épée')]);
+  const e = mk('e', 'ennemi', { x: 1, y: 0 }, [griffe, susp === 'casseDefenseur' ? bacle('dg', 'Dague') : arme('dg', 'Dague')]);
+  const h = mk('h', 'heros', { x: 0, y: 0 }, [arme('sw', 'Épée')]);
   const combattants = [e, h];
   if (charge === 'balayage') {
     // Taille « grande » contre deux « moyenne » : la touche d'un plus grand balaie (LDB 85 l.362), et le
     // Piétinement s'y mêle (LDB 85 l.387) — le cas réel, jamais une Taille égale au `cleave` forcé.
     e.size = 'grande';
     e.characteristics['capacite-de-combat'] = 95;
-    combattants.push(mk('h2', 'hero', { x: 1, y: 1 }, [arme('sw2', 'Épée')]));
+    combattants.push(mk('h2', 'heros', { x: 1, y: 1 }, [arme('sw2', 'Épée')]));
   }
   const bouclier = { ...weaponFromItem(itemFromTrappingById('bouclier', idsDeTest)!), ...arme('sh', 'Bouclier', [{ id: 'protectrice', value: 2 }]) };
   if (charge === 'reaction') {
@@ -76,10 +76,10 @@ function monte(charge: Charge, susp: Suspension | null, temoin = false): void {
     combatants: combattants, order: combattants.map((c) => c.id), baseOrder: combattants.map((c) => c.id),
     turn: combattants.indexOf(attaquant), round: 1, action: null, selectedSpellId: null, reachable: new Map(),
     movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
-    ...(charge === 'reaction' ? { advantagePools: { allies: 3, foes: 0 } } : {}),
+    ...(charge === 'reaction' ? { advantagePools: { allies: 3, adversaires: 0 } } : {}),
   } as unknown as BattleState;
   banc.setState({
-    battle, mode: 'battle', scene: testScene(), party: combattants.filter((c) => c.kind === 'hero'),
+    battle, mode: 'battle', scene: testScene(), party: combattants.filter((c) => c.kind === 'heros'),
     pendingDefense: null, pendingAttack: null, pendingCascade: null, suspendedCascades: [], pendingLogQueue: [], journal: [],
     net: { ...g().net, mode: 'local', mySeat: 0, gmSeat: ennemiDefend ? 0 : undefined, ownership: {} },
   } as never);
@@ -208,8 +208,8 @@ describe('après-coup — le cas suspendu rejoint le témoin (#1508 T3b-4)', () 
 /** Deux combattants au contact, `h` (héros manuel) à son tour ; `e` (ennemi de la machine). */
 function duel(): { h: Combatant; e: Combatant } {
   seedBattleRng(5);
-  const h = mk('h', 'hero', { x: 0, y: 0 }, [arme('sw', 'Épée')]);
-  const e = mk('e', 'enemy', { x: 1, y: 0 }, [arme('gr', 'Griffe')]);
+  const h = mk('h', 'heros', { x: 0, y: 0 }, [arme('sw', 'Épée')]);
+  const e = mk('e', 'ennemi', { x: 1, y: 0 }, [arme('gr', 'Griffe')]);
   const battle = {
     combatants: [h, e], order: ['h', 'e'], baseOrder: ['h', 'e'], turn: 0, round: 1, action: null, selectedSpellId: null,
     reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
@@ -262,10 +262,10 @@ describe('Piétinement d’un plus grand : le balayage suit, l’Action rendue �
   for (const suspendu of [false, true]) {
     it(`héros humain, plus grand, qui piétine (${suspendu ? 'sauvegarde à la porte' : 'direct'})`, () => {
       seedBattleRng(3);
-      const h = mk('h', 'hero', { x: 1, y: 0 }, [arme('sw', 'Épée')]);
+      const h = mk('h', 'heros', { x: 1, y: 0 }, [arme('sw', 'Épée')]);
       h.size = 'enorme'; h.advantage = 2;
-      const e1 = mk('e1', 'enemy', { x: 0, y: 0 }, [arme('gr', 'Griffe')]);
-      const e2 = mk('e2', 'enemy', { x: 1, y: 1 }, [arme('gr2', 'Griffe')]);
+      const e1 = mk('e1', 'ennemi', { x: 0, y: 0 }, [arme('gr', 'Griffe')]);
+      const e2 = mk('e2', 'ennemi', { x: 1, y: 1 }, [arme('gr2', 'Griffe')]);
       if (suspendu) e1.traits = [{ id: 'demoniaque', value: 9 }] as never;
       const pietinement = resolveMelee(h, e1, freeAttackWeapon(attaqueNaturelle([], 'pietinement')!), makeRNG(SEED_PIETINEMENT), { defense: 'parade' });
       expect(pietinement.hit && pietinement.cleave, 'le Test opposé RÉEL du Piétinement touche et balaie').toBe(true);
@@ -307,11 +307,11 @@ describe('Piétinement suspendu par une sauvegarde : la suite joue à la reprise
   for (const gmSeat of [0, undefined]) {
     it(`héros énorme qui piétine un démon (siège MJ : ${gmSeat ?? 'aucun'})`, () => {
       seedBattleRng(3);
-      const h = mk('h', 'hero', { x: 1, y: 0 }, [arme('sw', 'Épée')]);
+      const h = mk('h', 'heros', { x: 1, y: 0 }, [arme('sw', 'Épée')]);
       h.size = 'enorme'; h.advantage = 2;
-      const e1 = mk('e1', 'enemy', { x: 0, y: 0 }, [arme('gr', 'Griffe')]);
+      const e1 = mk('e1', 'ennemi', { x: 0, y: 0 }, [arme('gr', 'Griffe')]);
       e1.traits = [{ id: 'demoniaque', value: 9 }] as never;
-      const e2 = mk('e2', 'enemy', { x: 1, y: 1 }, [arme('gr2', 'Griffe')]);
+      const e2 = mk('e2', 'ennemi', { x: 1, y: 1 }, [arme('gr2', 'Griffe')]);
       const pietinement = resolveMelee(h, e1, freeAttackWeapon(attaqueNaturelle([], 'pietinement')!), makeRNG(SEED_PIETINEMENT), { defense: 'parade' });
       expect(pietinement.hit && pietinement.cleave, 'le Test opposé RÉEL du Piétinement touche et balaie').toBe(true);
       const battle = {
@@ -347,10 +347,10 @@ describe('Piétinement suspendu par une sauvegarde : la suite joue à la reprise
 
   it('créature IA énorme qui piétine un héros démoniaque Surpris : l’attaque gratuite suspendue reprend au dé, une fois', () => {
     seedBattleRng(2);
-    const h = mk('h', 'hero', { x: 0, y: 0 }, [arme('sw', 'Épée')]);
+    const h = mk('h', 'heros', { x: 0, y: 0 }, [arme('sw', 'Épée')]);
     h.traits = [{ id: 'demoniaque', value: 9 }] as never;
     h.conditions = [{ id: 'surpris', value: 1 }] as never;
-    const e = mk('e', 'enemy', { x: 1, y: 0 }, [arme('gr', 'Griffe')]);
+    const e = mk('e', 'ennemi', { x: 1, y: 0 }, [arme('gr', 'Griffe')]);
     e.size = 'enorme'; e.advantage = 2; e.characteristics['capacite-de-combat'] = 85;
     // `acted: false` : le coup marque l'Action (`true`), la restitution `prevActed` la rend — la transition s'observe.
     const battle = {
@@ -392,8 +392,8 @@ describe('Piétinement suspendu par une sauvegarde : la suite joue à la reprise
 describe('deux Maladresses du même porteur dans une séquence', () => {
   it('défenseur ennemi tenu par un siège MJ : deux étapes distinctes, chacune résolue sur SA fenêtre', () => {
     seedBattleRng(11);
-    const e = mk('e', 'enemy', { x: 1, y: 0 }, [arme('dg', 'Dague')]);
-    const h = mk('h', 'hero', { x: 0, y: 0 }, [arme('sw', 'Épée')]);
+    const e = mk('e', 'ennemi', { x: 1, y: 0 }, [arme('dg', 'Dague')]);
+    const h = mk('h', 'heros', { x: 0, y: 0 }, [arme('sw', 'Épée')]);
     const battle = {
       combatants: [h, e], order: ['h', 'e'], baseOrder: ['h', 'e'], turn: 0, round: 1, action: null, selectedSpellId: null,
       reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,

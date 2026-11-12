@@ -29,8 +29,8 @@ describe('Chaîne d’incantation — le Contre-sort se règle avant l’opposit
     banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('debutDuRound');
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
     enemies.slice(1).forEach((e) => (e.dead = true));
     const E = enemies[0];
     E.groups = ['demon'];

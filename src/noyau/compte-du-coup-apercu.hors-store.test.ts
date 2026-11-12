@@ -37,8 +37,8 @@ function auJet({ seed, roll, paTouche = 0, pieces, tenue, current = 20 }: Jet, l
   banc.getState().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = banc.getState().battle!;
-  const H = b.combatants.find((c) => c.kind === 'hero')!;
-  const cible = b.combatants.find((c) => c.kind === 'enemy')!;
+  const H = b.combatants.find((c) => c.kind === 'heros')!;
+  const cible = b.combatants.find((c) => c.kind === 'ennemi')!;
   cible.items = [...(cible.items ?? []).filter((i) => i.kind !== 'armor'), ...(lieu && pieces ? pieces(lieu) : [])];
   cible.armour = { tete: 0, corps: paTouche, brasG: 0, brasD: 0, jambeG: 0, jambeD: 0 };
   recomputeLoadout(cible);
@@ -117,7 +117,7 @@ describe('aperçu au jet = application, par `compteDuCoup`', () => {
     ['empoignade', (r: AttackResult, c: Combatant) => coupAApplique(r, true, c)],
     ['sauvegarde', (r: AttackResult) => toucheSauvee(r)],
     ['bouclier-anti-fleches', (r: AttackResult, c: Combatant) => {
-      const H = banc.getState().battle!.combatants.find((x) => x.kind === 'hero')!;
+      const H = banc.getState().battle!.combatants.find((x) => x.kind === 'heros')!;
       H.pos = { x: 0, y: 0 };
       c.pos = { x: 12, y: 12 };
       c.activeEffects = [{ label: 'Bouclier', bonus: 0, arrowWard: { radiusMeters: 4 } }] as unknown as Combatant['activeEffects'];
@@ -164,8 +164,8 @@ describe('le verdict de relance naît sur la cible au compte', () => {
       banc.getState().fenetreValider('debutDuRound');
       banc.abandonner();
       const b = banc.getState().battle!;
-      const H = b.combatants.find((c) => c.kind === 'hero')!;
-      const cible = b.combatants.find((c) => c.kind === 'enemy')!;
+      const H = b.combatants.find((c) => c.kind === 'heros')!;
+      const cible = b.combatants.find((c) => c.kind === 'ennemi')!;
       H.spells = ['flechette'];
       H.skills.push({ id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 30 });
       cible.wounds = blessuresDeBase(20, current, cible);
@@ -213,8 +213,8 @@ function devieePuisApplication(cas: 'tas' | 'melee') {
   banc.getState().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = banc.getState().battle!;
-  const [H, A] = b.combatants.filter((c) => c.kind === 'hero');
-  const [e1, e2] = b.combatants.filter((c) => c.kind === 'enemy');
+  const [H, A] = b.combatants.filter((c) => c.kind === 'heros');
+  const [e1, e2] = b.combatants.filter((c) => c.kind === 'ennemi');
   for (const c of [A, e1, e2]) c.wounds = blessuresDeBase(20, 20, c);
   e1.important = cas === 'tas';
   e2.important = false;

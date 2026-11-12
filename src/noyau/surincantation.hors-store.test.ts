@@ -160,7 +160,7 @@ describe('Surincantation — budget sur le NI effectif du jet', () => {
     lancer(FIXTURES.critique, (p) => {
       const pc = p.etat().pendingCast!;
       const L = p.etat().party.find((c) => c.id === pc.casterId)!;
-      const ennemi = { ...L, id: 'E', label: 'E', kind: 'enemy' as const, pos: { x: 1, y: 0 } };
+      const ennemi = { ...L, id: 'E', label: 'E', kind: 'ennemi' as const, pos: { x: 1, y: 0 } };
       const lanceurPose = { ...L, pos: { x: 0, y: 0 } };
       const plan = (r: typeof pc.result & object) => aiOvercastPlan(lanceurPose, 'X', FIXTURES.critique, r, [lanceurPose, ennemi], undefined, false);
       expect(plan(pc.result!), 'témoin : le jet lancé a un plan').toHaveProperty('extraTargetIds', ['E']);

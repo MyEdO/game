@@ -40,7 +40,7 @@ const classes = (sel: string) => (sel.match(/\.[a-zA-Z_-][\w-]*/g) ?? []).map((c
 
 function hero(id: string, label: string): Combatant {
   return blessuresSurLeProfil({
-    id, label, kind: 'hero', species: 'humains-reiklander',
+    id, label, kind: 'heros', species: 'humains-reiklander',
     characteristics: profilDeTest(),
     items: [], talents: [], skills: [], conditions: [], advantage: 0, wounds: blessuresDeBase(10),
   }) as unknown as Combatant;

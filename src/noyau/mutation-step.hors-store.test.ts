@@ -276,7 +276,7 @@ describe('Mutation — les trois tirages en étapes à table (#942 L5)', () => {
   it('victime NON contrôlée par le siège local (ennemi sans siège MJ) : l’étape est POUSSÉE et le socle la résout D’OFFICE', () => {
     const hero = heroSolo();
     setDesFixes(true);
-    const npc = { ...structuredClone(hero), id: 'npc-1', kind: 'enemy' } as Combatant;
+    const npc = { ...structuredClone(hero), id: 'npc-1', kind: 'ennemi' } as Combatant;
     npc.mutations = [];
     // Le PNJ est ATTEIGNABLE par `actorIn` (sinon la fenêtre se fermerait pour une simple cible
     // introuvable, pas pour la bonne raison) : sans siège MJ pris, il n'est contrôlé par personne.

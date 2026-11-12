@@ -351,7 +351,7 @@ export function resolveCorruptionPending(get: Get, set: Set, pc: PendingCorrupti
 }
 
 /** Cible d'un effet de Corruption : héros désigné, sinon le premier vivant. #152 (suite #143) : le pool
- *  en combat est celui des PERSONNAGES (`followsCharacterRules`, PAS un proxy `kind==='hero'`) — un PNJ
+ *  en combat est celui des PERSONNAGES (`followsCharacterRules`, PAS un proxy `kind==='heros'`) — un PNJ
  *  humain hostile MODÉLISÉ (statbloc d'éditeur ou bestiaire rétro-flagué) y est éligible comme un héros. */
 export function corruptionTarget(s: Jeu, heroId?: string): Combatant | undefined {
   const pool = s.battle?.combatants.filter((c) => followsCharacterRules(c)) ?? s.party;

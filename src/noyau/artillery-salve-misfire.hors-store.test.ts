@@ -32,7 +32,7 @@ const etapeCourante = (): CascadeStep | undefined => {
 const poserLesDes = (valeur: number): string[] => draineCascade(banc.getState, 8, poseSurDeNonTombe(valeur));
 const chars = { 'capacite-de-combat': 30, 'capacite-de-tir': 40, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 const mkHero = (id: string, over: Partial<Combatant> = {}): Combatant =>
-  (blessuresSurLeProfil({ id, name: id, kind: 'hero', characteristics: { ...chars },
+  (blessuresSurLeProfil({ id, name: id, kind: 'heros', characteristics: { ...chars },
     wounds: blessuresDeBase(20), advantage: 0, conditions: [], items: [],
     skills: [], talents: [], weapons: [],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, pos: { x: 5, y: 5 }, ...over })) as unknown as Combatant;

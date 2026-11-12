@@ -30,7 +30,7 @@ export function CampaignOpeningScreen() {
   const invite = useGame((s) => s.net.mode === 'invite');
   const campaignDoc = useGame((s) => s.campaignDoc);
   if (!ouv) return null;
-  const heroes = party.filter((h) => h.kind === 'hero');
+  const heroes = party.filter((h) => h.kind === 'heros');
 
   return (
     <ScreenShell

@@ -3652,7 +3652,7 @@
                 "onHitEffects": [
                   {
                     "trigger": "onHit",
-                    "on": "victim",
+                    "on": "victime",
                     "flow": {
                       "kind": "effet",
                       "effet": {
@@ -3715,7 +3715,7 @@
                     "onHitEffects": [
                       {
                         "trigger": "onHit",
-                        "on": "victim",
+                        "on": "victime",
                         "flow": {
                           "kind": "effet",
                           "effet": {
@@ -4057,7 +4057,7 @@
           {
             "kind": "relation",
             "who": "target",
-            "is": "ally"
+            "is": "allie"
           },
           {
             "kind": "not",
@@ -4499,7 +4499,7 @@
       "affects": {
         "kind": "relation",
         "who": "target",
-        "is": "ally"
+        "is": "allie"
       }
     },
     "duration": {
@@ -4876,7 +4876,7 @@
                 "onHitEffects": [
                   {
                     "trigger": "onHit",
-                    "on": "victim",
+                    "on": "victime",
                     "flow": {
                       "kind": "effet",
                       "effet": {
@@ -11983,7 +11983,7 @@
       "affects": {
         "kind": "relation",
         "who": "target",
-        "is": "ally"
+        "is": "allie"
       }
     },
     "duration": {
@@ -12082,7 +12082,7 @@
       "affects": {
         "kind": "relation",
         "who": "target",
-        "is": "ally"
+        "is": "allie"
       }
     },
     "duration": {
@@ -12229,7 +12229,7 @@
       "affects": {
         "kind": "relation",
         "who": "target",
-        "is": "ally"
+        "is": "allie"
       }
     },
     "duration": {
@@ -13426,7 +13426,7 @@
                 "onHitEffects": [
                   {
                     "trigger": "onHit",
-                    "on": "victim",
+                    "on": "victime",
                     "flow": {
                       "kind": "effet",
                       "effet": {
@@ -14186,7 +14186,7 @@
                 "onHitEffects": [
                   {
                     "trigger": "onHit",
-                    "on": "victim",
+                    "on": "victime",
                     "flow": {
                       "kind": "test",
                       "test": {
@@ -14386,7 +14386,7 @@
                 "onHitEffects": [
                   {
                     "trigger": "onHit",
-                    "on": "victim",
+                    "on": "victime",
                     "flow": {
                       "kind": "test",
                       "test": {
@@ -16267,7 +16267,7 @@
       "affects": {
         "kind": "relation",
         "who": "target",
-        "is": "ally"
+        "is": "allie"
       }
     },
     "duration": {
@@ -20219,7 +20219,7 @@
           "condition": {
             "kind": "relation",
             "who": "target",
-            "is": "ally"
+            "is": "allie"
           },
           "alors": {
             "kind": "effet",
@@ -20250,7 +20250,7 @@
           "condition": {
             "kind": "relation",
             "who": "target",
-            "is": "opponent"
+            "is": "adversaire"
           },
           "alors": {
             "kind": "effet",
@@ -20329,7 +20329,7 @@
           "condition": {
             "kind": "relation",
             "who": "target",
-            "is": "opponent"
+            "is": "adversaire"
           },
           "alors": {
             "kind": "test",
@@ -24129,12 +24129,12 @@
           {
             "kind": "relation",
             "who": "target",
-            "is": "self"
+            "is": "soi"
           },
           {
             "kind": "relation",
             "who": "target",
-            "is": "ally"
+            "is": "allie"
           }
         ]
       }
@@ -24276,7 +24276,7 @@
       "affects": {
         "kind": "relation",
         "who": "target",
-        "is": "ally"
+        "is": "allie"
       }
     },
     "duration": {
@@ -24409,7 +24409,7 @@
       "affects": {
         "kind": "relation",
         "who": "target",
-        "is": "ally"
+        "is": "allie"
       }
     },
     "duration": {
@@ -27101,7 +27101,7 @@
       "affects": {
         "kind": "relation",
         "who": "target",
-        "is": "opponent"
+        "is": "adversaire"
       }
     },
     "duration": {
@@ -27241,7 +27241,7 @@
                 "onHitEffects": [
                   {
                     "trigger": "onHit",
-                    "on": "victim",
+                    "on": "victime",
                     "flow": {
                       "kind": "effet",
                       "effet": {
@@ -27493,7 +27493,7 @@
       "affects": {
         "kind": "relation",
         "who": "target",
-        "is": "opponent"
+        "is": "adversaire"
       },
       "excludesCaster": true
     },
@@ -27603,7 +27603,7 @@
       "affects": {
         "kind": "relation",
         "who": "target",
-        "is": "ally"
+        "is": "allie"
       }
     },
     "duration": {
@@ -28090,7 +28090,7 @@
       "affects": {
         "kind": "relation",
         "who": "target",
-        "is": "ally"
+        "is": "allie"
       }
     },
     "duration": {

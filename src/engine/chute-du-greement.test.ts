@@ -41,7 +41,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testki
 /** Marin minimal — `applyOps` (BE 3, PA 0) et `exposedCrew` (vivant, PB > 0) ont ce qu'il leur faut. */
 const marin = (id: string, over: Partial<Combatant> = {}): Combatant =>
   (blessuresSurLeProfil({
-    id, name: id, label: id, kind: 'npc',
+    id, name: id, label: id, kind: 'pnj',
     characteristics: { 'capacite-de-combat': 31, 'capacite-de-tir': 31, force: 31, endurance: 31, initiative: 42, agilite: 36, dexterite: 36, intelligence: 31, 'force-mentale': 31, sociabilite: 36 },
     skills: [], talents: [], traits: [], conditions: [], activeEffects: [], liveTraits: [], weapons: [],
     armour: { corps: 0 }, wounds: blessuresDeBase(200), advantage: 0, ...over,
@@ -101,7 +101,7 @@ describe('les CINQ rangées du gréement jouent leur Test (MDG 13, règle 7 : pl
 describe('« Mât brisé » (l.718) : les deux présences tombent, chacune de SA hauteur (l.684-688)', () => {
   it('gréement ET nid-de-pie sont visés par la MÊME épreuve', () => {
     const gabier = marin('gabier', { shipStation: 'greement' } as Partial<Combatant>);
-    const vigie = marin('vigie', { kind: 'hero', shipStation: 'nid-de-pie' } as Partial<Combatant>);
+    const vigie = marin('vigie', { kind: 'heros', shipStation: 'nid-de-pie' } as Partial<Combatant>);
     const pontier = marin('pontier', { shipStation: 'pont' } as Partial<Combatant>);
 
     const out = applyCrewHit(MOYENNE, [gabier, vigie, pontier], rangee(10).crewHit!, makeRNG(1), idsDeTest);

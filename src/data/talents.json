@@ -260,7 +260,7 @@
     "effects": [
       {
         "trigger": "onHit",
-        "on": "self",
+        "on": "soi",
         "flow": {
           "kind": "effet",
           "effet": {
@@ -271,7 +271,7 @@
                 "op": "grantFreeAttack",
                 "weapon": "held",
                 "when": "immediate",
-                "advantageOrMovement": true
+                "avantageOuMouvement": true
               }
             ]
           }
@@ -1020,7 +1020,7 @@
     "effects": [
       {
         "trigger": "onRoundEnd",
-        "on": "self",
+        "on": "soi",
         "optional": true,
         "flow": {
           "kind": "test",
@@ -2059,7 +2059,7 @@
     "effects": [
       {
         "trigger": "onCharged",
-        "on": "self",
+        "on": "soi",
         "flow": {
           "kind": "choix",
           "invite": "Frappe réactive",
@@ -2702,7 +2702,7 @@
       {
         "trigger": "onGainCondition",
         "condition": "sonne",
-        "on": "self",
+        "on": "soi",
         "flow": {
           "kind": "test",
           "test": {

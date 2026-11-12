@@ -37,8 +37,8 @@ describe('Peur de combat entamée — barre de la rangée', () => {
     useGame.getState().lancerLeCombat('enc-mutants');
     useGame.getState().fenetreValider('debutDuRound');
     const b = useGame.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
     const E = enemies[0];
     enemies.slice(1).forEach((e) => (e.dead = true));
     E.size = 'grande';

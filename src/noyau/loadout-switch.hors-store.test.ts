@@ -11,7 +11,7 @@ const w = (uid: string, label: string): ItemInstance =>
 
 const hero = (): Combatant =>
   combattantDeTest({
-    id: 'h', label: 'H', kind: 'hero', characteristics: { force: 30, endurance: 30 },
+    id: 'h', label: 'H', kind: 'heros', characteristics: { force: 30, endurance: 30 },
     conditions: [], wounds: blessuresDeBase(12), advantage: 0,
     items: [w('e', 'Épée'), w('ha', 'Hache')],
     loadouts: [{ id: 'lo-epee', main: 'e' }, { id: 'lo-hache', main: 'ha' }],

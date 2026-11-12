@@ -22,7 +22,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const chars = { 'capacite-de-combat': 60, 'capacite-de-tir': 50, force: 40, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 const arme = (uid: string, hand: Main): Weapon => ({ uid, name: uid, label: uid, type: 'melee', damage: { plusBF: true, flat: 2, bare: true }, qualities: [], hand, hands: 1 } as unknown as Weapon);
-const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, w: Weapon[]): Combatant =>
+const mk = (id: string, kind: 'heros' | 'ennemi', pos: { x: number; y: number }, w: Weapon[]): Combatant =>
   (blessuresSurLeProfil({ id, name: id, label: id, kind, characteristics: { ...chars }, conditions: [], engagedWith: [], skills: [], talents: [], traumas: [], items: [],
      weapons: w, advantage: 0, size: 'moyenne', pos, wounds: blessuresDeBase(12), resilience: 0, fortune: 0, fate: 1,
      species: 'humains-reiklander', bodyShape: 'humanoide',
@@ -37,11 +37,11 @@ const adj = (a: Combatant, b: Combatant): boolean => chebyshev(a.pos!, b.pos!) <
 const vivant = (x: Combatant): boolean => x.wounds.current > 0 && !(x as { dead?: boolean }).dead;
 
 function monte(gmSeat: number | undefined): void {
-  const h1 = mk('h1', 'hero', { x: 1, y: 1 }, [arme('m1', 'main'), arme('o1', 'secondaire')]);
-  const h2 = mk('h2', 'hero', { x: 1, y: 2 }, [arme('m2', 'main')]); h2.size = 'grande';
+  const h1 = mk('h1', 'heros', { x: 1, y: 1 }, [arme('m1', 'main'), arme('o1', 'secondaire')]);
+  const h2 = mk('h2', 'heros', { x: 1, y: 2 }, [arme('m2', 'main')]); h2.size = 'grande';
   (h2 as unknown as { psychState: unknown[] }).psychState = [{ type: 'frenesie' }];
-  const e1 = mk('e1', 'enemy', { x: 2, y: 1 }, [arme('g1', 'main')]); const e2 = mk('e2', 'enemy', { x: 2, y: 2 }, [arme('g2', 'main')]);
-  const e3 = mk('e3', 'enemy', { x: 0, y: 2 }, [arme('g3', 'main'), arme('g3o', 'secondaire')]);
+  const e1 = mk('e1', 'ennemi', { x: 2, y: 1 }, [arme('g1', 'main')]); const e2 = mk('e2', 'ennemi', { x: 2, y: 2 }, [arme('g2', 'main')]);
+  const e3 = mk('e3', 'ennemi', { x: 0, y: 2 }, [arme('g3', 'main'), arme('g3o', 'secondaire')]);
   const order = ['h1', 'e1', 'h2', 'e2', 'e3'];
   const battle = { combatants: [h1, h2, e1, e2, e3], order, baseOrder: order, turn: 0, round: 1, action: null, selectedSpellId: null,
     reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null } as unknown as BattleState;
@@ -81,7 +81,7 @@ function deroule(): { issue: string; ouverts?: string[]; doubleMain: string[] } 
     if (cur?.jet === 'attaque' && s.pendingAttack) { if (!s.pendingAttack.result) g().jetLancer('attaque'); else g().jetValider('attaque'); continue; }
     if (cur?.jet === 'maladresse') { avanceEtapeCascade(g); continue; }
     if (c && !cur?.jet) { avanceEtapeCascade(g); banc.avancer(50); continue; }
-    if (actif && (actif.kind === 'hero' || s.net.gmSeat != null) && !ouverts().length && s.battle.turn >= 0) {
+    if (actif && (actif.kind === 'heros' || s.net.gmSeat != null) && !ouverts().length && s.battle.turn >= 0) {
       const t = !s.battle.acted && s.battle.combatants.find((x) => x.kind !== actif.kind && vivant(x) && adj(actif, x));
       if (t) {
         openAttackCascade(g, banc.setState, { attackerId: actif.id, targetId: t.id, location: null, result: null }, 'Attaque', 'action/attaquer');

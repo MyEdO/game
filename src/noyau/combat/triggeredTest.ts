@@ -621,7 +621,7 @@ export function resolveFlowChoice(ctx: ExecCtx, node: Extract<Flow, { kind: 'cho
     // Coût hors de portée : l'option reste PRÉSENTE et porte SA cause (rendue au survol/focus/tap par
     // `OptionChooser`, jamais inline) — l'applier refuse déjà la dépense, l'écran cesse de le taire.
     const abordable = choiceAffordable(ctx.get, decider, node.coutEnAvantage);
-    // CIBLE de la branche : quand la branche vise une AUTRE unité que le décideur (`on:'victim'` —
+    // CIBLE de la branche : quand la branche vise une AUTRE unité que le décideur (`on:'victime'` —
     // Déstabilisante : le porteur décide, le Test opposé vise la VICTIME ; un sort : sa cible), on sérialise
     // son id pour le restaurer en `ctx.target` côté applier (sinon la branche viserait le décideur).
     const branchTargetId = ctx.target && ctx.target.id !== decider.id ? ctx.target.id : undefined;
@@ -697,7 +697,7 @@ export function routeTriggeredTest(get: Get, set: SetFn, target: Combatant, acto
   // `pendingTest`, Chance/Résilience), jamais inline (doctrine « un jet = une modale » — elle vaut
   // hors combat comme en combat). Gate `slThreshold` évaluée d'abord (openSkillTest ne la connaît pas) ;
   // `noOwnTestFailed` tamponne la ré-entrance (jetValider('test') ne ré-émet pas).
-  if (!get().battle && flow.kind === 'test' && target.kind === 'hero') {
+  if (!get().battle && flow.kind === 'test' && target.kind === 'heros') {
     const cc = combatConditionCtx(target, opsCtx ?? {});
     // Un Test SUBI (effet déclenché : Venin, Hurlement, Crampes, zone franchie…) n'est pas soutenu —
     // LDB 12 l.197. Défaut de la VOIE, tri-état : la donnée peut le rouvrir (`noSupport:false`).
