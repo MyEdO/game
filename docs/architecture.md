@@ -626,8 +626,8 @@ src/hote/                   COMMUN AUX HÔTES du noyau (#2928) : ce qu'un hôte 
                             par entrée, causes d'un stockage indisponible) ; la poignée porte le cache, les tombes en
                             attente et les refus au geste), `coop/` (la coop sur le `Transport` que l'hôte fournit :
                             `protocol.ts`, les messages et leur validation, `session.ts`, `HostSession`/`GuestSession`
-                            hôte-autoritaires, dont le paquet de campagne : envoyé au join, rattrapé à la diffusion
-                            qui suit son chargement, ses scènes enregistrées chez l'invité ; `transport.ts`, le port
+                            hôte-autoritaires, l'instantané pour seul état diffusé, scènes de la campagne comprises
+                            (`campaignDoc`, `appliquerLInstantane`) ; `transport.ts`, le port
                             `Transport`, et sa paire en mémoire de test `transport.testkit.ts`),
                             `stockageWeb.ts` (accès protégé au `localStorage` et au `sessionStorage`, `stockageWeb`,
                             pour l'hôte web comme pour la page de l'hôte Godot ; un dictionnaire persisté s'y relit par
@@ -881,7 +881,7 @@ src/hote/coop/              Coop en ligne, plateforme injectée : protocol.ts, s
                             de `src/noyau/sieges.ts`
                             — codes de room 6 chars, reconnexion auto par token (grace 2 min)
                             Reprise du lien invité ou retour de l'hôte (host-up) : GuestSession.rejoin
-                            relance le handshake, puis reçoit campagne et snapshot autoritaire frais.
+                            relance le handshake, puis reçoit un snapshot autoritaire frais.
 server/                     Worker Cloudflare du relay coop (Durable Object « Room », hibernation WS,
                             TTL 30 min) — npm run relay:dev / relay:deploy
 art-ref/                    Illustrations extraites des PDFs + mapping.json (GITIGNORÉ — droits Cubicle 7)

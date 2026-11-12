@@ -133,7 +133,6 @@ export function creerLeSalon(ports: PortsDuSalon): Salon {
       build: buildDeLaCoop(),
       applyIntent: (action, args, seat) => appliquerLIntentionDUnSiege(get, seat, action, args),
       getSnapshot: () => instantaneDeLaCoop(get()),
-      campagne: () => get().pendingCampaign,
       onSeatClosed: (seat) => siegeFerme(get, seat),
     });
     rh.onFatal = () => {
