@@ -11,32 +11,15 @@ import type { SorteDePorteur } from './noyau/sceneEditLecture';
 import { boutonDeLEdition, gesteDuFormulaire, zonesDeLEditeur, type ZonesDeLEditeur } from './hote/editeur';
 import type { Bouton, Choix, Formulaire, Jeu, Ligne } from './hote/elements';
 import { estObjet } from './lib/objet.mjs';
-// @ts-expect-error - lecteur ESM JS (pas de types) — même convention que `vite.config.ts`
-import { cheminChapitre, lireChapitre, oublierChapitre } from '../scripts/source/lecteur-fs.mjs';
 // @ts-expect-error - plugin ESM JS (pas de types) — même convention que `vite.config.ts`
-import { manifesteDe } from '../scripts/source/prose-source-plugin.mjs';
-import { cheminDuDepot } from '../scripts/source/adresses.mjs';
-// @ts-expect-error - bibliothèque ESM JS (pas de types) — même convention que `vite.config.ts`
-import { readText, sigleDe } from '../scripts/raw/_lib.mjs';
-
-/** Le chapitre du `Source/` versionné que sert l'aller-retour : le chapitre 13 du Livre de base, dont la première section
- *  à table porte une table titrée (« Localisation ») : une cellule s'y désigne avec sa table. */
-const CHAPITRE_SERVI = { book: 'livre-de-base', ch: '13' } as const;
-
-/** Le manifeste de ce seul chapitre, de la forme que sert le poste (`manifesteDe`, `scripts/source/prose-source-plugin.mjs`). */
-const manifesteServi = () => manifesteDe({
-  dossiers: () => [], livres: () => [CHAPITRE_SERVI.book], chapitres: () => [CHAPITRE_SERVI.ch],
-  chemin: cheminChapitre, lire: lireChapitre, oublier: oublierChapitre, abbr: sigleDe,
-});
+import { CORPUS_DISQUE, manifesteDe, texteDuChapitre } from '../scripts/source/prose-source-plugin.mjs';
 
 /** La session `s` où le geste `geste` est joué, puis le chapitre qu'elle attend chargé du `Source/` versionné, comme
- *  l'hôte le charge (`GET source/<livre>/<ch>.md`, `servirLaSource`). */
+ *  l'hôte le sert (`GET source/<livre>/<ch>.md`, `texteDuChapitre`). */
 function jouer(s: SessionDEdition, geste: GesteDEdition): SessionDEdition {
   const joue = editer(s, geste);
   const attendu = joue.chapitreEnAttente;
-  if (!attendu) return joue;
-  const chemin = cheminChapitre(attendu.book, attendu.ch);
-  return editer(joue, { geste: 'chapitre', book: attendu.book, ch: attendu.ch, texte: chemin ? readText(cheminDuDepot(chemin)) : null });
+  return attendu ? editer(joue, { geste: 'chapitre', book: attendu.book, ch: attendu.ch, texte: texteDuChapitre(attendu.book, attendu.ch) }) : joue;
 }
 
 /** Une écriture jouée : le document avant et après, le chemin écrit depuis la scène, la valeur jouée et la saisie qui
@@ -171,7 +154,8 @@ function gesteDuChoix(s: SessionDEdition, id: string, voulue: (valeur: unknown) 
   return geste;
 }
 
-/** Chaque valeur du choix d'id `id` de l'inspecteur de la session `s`, choisie depuis `s` et notée (`ecrire`), les
+/** Chaque valeur du choix d'id `id` de l'inspecteur de la session `s`, choisie depuis `s` et notée sous son
+ *  discriminant (`ecrire`, comme `jouerLInspecteur`), les
  *  offres de sa seule branche jouées (`jouerLInspecteur`, l'id du choix sans son dernier pas) : chaque branche d'une union
  *  (le `Flow`, #3606 M2b ; l'Effet de sa branche `effet`), dont l'inspecteur ne joue que la première valeur non choisie,
  *  et qui en change en se jouant. */
@@ -181,7 +165,7 @@ function jouerLesVariantes(s: SessionDEdition, id: string, out: EcritureJouee[])
   for (const v of choixDeLInspecteur(zones, id).valeurs) {
     const geste = gesteDuJeu(zones, v.jeu);
     if (geste?.geste !== 'valeur') throw new Error(`la variante ${v.id} ne joue pas le geste valeur`);
-    jouerLInspecteur(ecrire(s, geste, 'saisieChoix', out), out, branche);
+    jouerLInspecteur(ecrire(s, geste, 'saisieChoix', out, id.slice(`valeur/${geste.chemin.join('/')}/`.length)), out, branche);
   }
 }
 
@@ -213,8 +197,12 @@ const FLUX_DU_DECOR = 'valeur/usable/actions/0/flow/kind';
 /** Le choix du type de l'Effet de la branche `effet` de ce flux, joué type par type (`jouerLesVariantes`). */
 const EFFET_DU_DECOR = 'valeur/usable/actions/0/flow/effet/type';
 
-/** L'Effet de ce flux qui porte une adresse de prose, composée sur le `CHAPITRE_SERVI` (`jouerLInspecteur`) ; puis une
- *  cellule neuve de son adresse, qui désigne sa table, chacune scellée par l'écriture. */
+/** Un chapitre du `Source/` versionné dont la première section à table porte une table titrée : le chapitre 13 du
+ *  Livre de base (« Localisation »), où une cellule se désigne avec sa table. */
+const CHAPITRE_A_TABLE = { book: 'livre-de-base', ch: '13' } as const;
+
+/** L'Effet de ce flux qui porte une adresse de prose, composée (`jouerLInspecteur`) ; puis, l'adresse portée sur le
+ *  `CHAPITRE_A_TABLE`, une cellule neuve qui désigne sa table, chacune scellée par l'écriture. */
 const PROSE_DU_DECOR = { effet: 'journal', adresse: 'valeur/usable/actions/0/flow/effet/descRef/' } as const;
 const estCellule = (v: unknown): boolean => {
   const dernier: unknown = Array.isArray(v) ? v[v.length - 1] : undefined;
@@ -251,7 +239,7 @@ export function ecrituresJouees(): EcritureJouee[] {
   s = jouerLInspecteur(presser(cliquer(presser(presser(s, 'outil/personnage'), `personnage/${ENROLE}`), 5 + FICHES.length, 5), 'rencontre/neuve'), out);
   const aPresets = allBuiltinCampaigns.find((c) => c.id === PROJET_A_PRESETS);
   if (!aPresets) throw new Error(`aucune campagne ${PROJET_A_PRESETS}`);
-  const neuve = presser(ouvrirLEdition(paquetDuJeu(aPresets), false, undefined, manifesteServi()), 'scenes/ajouter');
+  const neuve = presser(ouvrirLEdition(paquetDuJeu(aPresets), false, undefined, manifesteDe(CORPUS_DISQUE)), 'scenes/ajouter');
   const pnj = jouerLInspecteur(cliquer(presser(presser(neuve, 'outil/personnage'), `personnage/${FICHES[0]}`), 5, 5), out);
   const decor = jouerLInspecteur(cliquer(presser(presser(pnj, 'outil/prop'), `prop/${DECOR}`), 3, 3), out);
   const action = presser(decor, choixDeLInspecteur(zonesDeLEditeur(decor), ACTION_DU_DECOR).valeurs[0].id);
@@ -259,7 +247,9 @@ export function ecrituresJouees(): EcritureJouee[] {
   jouerLesVariantes(action, FLUX_DU_DECOR, out);
   const effet = jouer(action, gesteDuChoix(action, FLUX_DU_DECOR, (v) => estObjet(v) && v.kind === 'effet'));
   jouerLesVariantes(effet, EFFET_DU_DECOR, out);
-  const adresse = jouerLInspecteur(jouer(effet, gesteDuChoix(effet, EFFET_DU_DECOR, (v) => estObjet(v) && v.type === PROSE_DU_DECOR.effet)), out, PROSE_DU_DECOR.adresse);
+  const composee = jouerLInspecteur(jouer(effet, gesteDuChoix(effet, EFFET_DU_DECOR, (v) => estObjet(v) && v.type === PROSE_DU_DECOR.effet)), out, PROSE_DU_DECOR.adresse);
+  const livre = jouer(composee, gesteDuChoix(composee, `${PROSE_DU_DECOR.adresse}book`, (v) => v === CHAPITRE_A_TABLE.book));
+  const adresse = jouer(livre, gesteDuChoix(livre, `${PROSE_DU_DECOR.adresse}ch`, (v) => v === CHAPITRE_A_TABLE.ch));
   const ajout = gesteDuChoix(adresse, `${PROSE_DU_DECOR.adresse}parts/ajouter`, estCellule);
   const rang = (ajout.valeur as unknown[]).length - 1;
   const cellule = ecrire(adresse, ajout, 'saisieChoix', out);
