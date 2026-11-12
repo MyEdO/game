@@ -22,6 +22,7 @@ import { traumaById, traumaFicheById, stampCriticalEscalation, fireCritTriggers,
 import { rule } from './policy';
 import { EMPTY_FLOW, poserEnjeu, type Flow, type FlowTestNode } from './flowCore';
 import { categorieDeLaNiche, combatStakeRef, type StakeRef } from '../data';
+import type * as criticalsDef from '../data/schemas/defs/criticals';
 import { suiteDesEntrees } from '../data/schemas/grammaire/cle-d-espace';
 import { type GameOp } from './ops';
 import { isStructure, isEngin } from './structures';
@@ -177,7 +178,7 @@ export function critImmediateSummary(ops: GameOp[]): { woundsLost: number; condi
  *  document (`critiqueDoc`, `categorieDeLaNiche`) ; `undefined` pour un document que le Codex n'expose pas
  *  (aucune fiche : l'enjeu replie sur le foyer du `kind`, jamais un nom inventé). */
 export function critEntryCodexCategory(table: CritTableKey, jeu: JeuDeCritique): string | undefined {
-  return categorieDeLaNiche('criticals.json', suiteDesEntrees(critiqueDoc(jeu, table).id));
+  return categorieDeLaNiche('criticals.json' satisfies typeof criticalsDef.file, suiteDesEntrees(critiqueDoc(jeu, table).id));
 }
 
 /** Retrouve l'entrée de Coup Critique portant cet id STABLE — un id de `critEntriesSuffered`

@@ -42,7 +42,7 @@ describe('le pont avant sa partie', () => {
   it('`modeles` rend les modèles de l’atelier sans partie ; une entrée sans `manifestes` ou sans `osDesRigides` se refuse', () => {
     const manifestes = { humanoide: baseDeTest(), epee: elementSchema3() };
     expect(appel('modeles', { manifestes, osDesRigides: { humanoide: [], epee: ['root'] } })).toMatchObject({
-      ok: true, bases: [{ id: 'humanoide', points: [{ id: 'main', elements: ['epee'] }, { id: 'secondaire', elements: ['epee'] }] }], glb: { humanoide: 'humanoide.glb', epee: 'epee.glb' }, refus: [],
+      ok: true, bases: [{ id: 'humanoide', points: [{ id: 'main', elements: ['epee'] }, { id: 'secondaire', elements: ['epee'] }] }], fichiers: { humanoide: { glb: 'humanoide.glb', scene: 'humanoide.scn' }, epee: { glb: 'epee.glb', scene: 'epee.scn' } }, refus: [],
     });
     const sansManifestes = { categorie: 'validation', message: 'modeles : manifestes, un objet id de modèle → manifeste' };
     expect(erreurDe(appel('modeles', {}))).toEqual(sansManifestes);

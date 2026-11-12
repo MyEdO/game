@@ -45,7 +45,7 @@ import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 
 /** Les capacités d'arête qui DÉPLACENT le mobile — les trois gestes de ce prédicat, que joue `franchirLArete`, de
  *  l'ancrage à la case d'en face (`caseOpposee`). */
-const GESTES_DEPLACANTS = ['escalade', 'chute', 'fenetre'] as const satisfies readonly CapaciteArete[];
+export const GESTES_DEPLACANTS = ['escalade', 'chute', 'fenetre'] as const satisfies readonly CapaciteArete[];
 export type GesteDeplacant = (typeof GESTES_DEPLACANTS)[number];
 
 /** Le geste d'un dénivelé : `franchirLArete`, de la case du mobile (l'ancrage) à la case d'en face. */

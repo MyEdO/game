@@ -85,7 +85,6 @@ const doc = document(
     conditions: { label: 'Conditions météo', hint: 'Effets par météo : visibilité, pénalités, Test de Résistance de traversée' },
   },
   {
-    codex: { keys: ['weather', 'weatherConditions'] },
     edit: { niche: { categories: { weather: 'seasons', weatherConditions: 'conditions' } } },
   },
   {
