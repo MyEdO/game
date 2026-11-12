@@ -11,14 +11,14 @@ description: À charger dès qu'on travaille sur le MONDE Foundry VTT distant «
 - Lance `5e — Inventaire`, lis les pages générées « Bascule 5e — inventaire » et « Pièges du moteur ». Chaque macro se déclare par `// COUVRE` … `// FIN COUVRE`, `// OUTILLAGE` ou `// DETTE`. Deux documents : l'inventaire et « Règles maison — bascule 5e » (joueurs), jamais un troisième.
 - Toute règle `// COUVRE` cite le CRB, toute `@UUID` se résout : `5e — Verifier` le contrôle.
 - Avant « n'existe pas » ou « reste à faire », balaie six lieux, nom VO ET VF : `game.wfrp4e.config.<famille>` (sans les Traits), `config.systemEffects`, les `Item` des acteurs (VO), `await pack.getIndex()` (VF), les textes `@UUID`/`@Compendium` de `config`, le dossier « Bascule 5e ».
-- Vérifie la catégorie d'une règle avant de la dire sans support : un Test de Psychologie se passe avec Cool. CRB `041 - Psychology.md` l.9
+- Vérifie la catégorie d'une règle avant de la dire sans support : un Test de Psychologie se passe avec Cool. CRB 041 l.9
 
 ## Bascule : méthode
 
 - Cherche le concept dans `wfrp4e.js`. Présent et faux : corrige. Sous un autre nom ou un réglage : bascule le réglage, persistant. Absent : écarte-le en consignant ce qu'il faudrait construire et pourquoi c'est disproportionné, là où `5e — Inventaire` lit l'écarté (lis son code d'abord), jamais à la main dans la page générée.
 - Une règle portée en 5e pose le 5e ET neutralise le 4e : recense TOUTES ses coutures 4e dans `wfrp4e.js` ; `5e — Verifier` porte un contrôle par couture retirée.
 - Un champ a plusieurs surfaces, un contrôle chacune dans `5e — Verifier`, prouvé par un geste réel ensuite rétabli : `chatData` (surcharge `CONFIG.Item.dataModels.<type>.prototype.chatData`) ; `.hbs` (seule couture `BaseWFRP4eActorSheet.prototype._onRender`, nœuds de texte seulement, les `<a>` restent) ; `talent.Max` (affichage) contre `talent.system.Max` (achat) ; ActionsV2 : repointe `actor._sheet.options.actions.<nom>.handler` ET `foundry.applications.instances`.
-- Une règle 5e se cite au CRB `Game/Source/Warhammer Fantasy Roleplay 5e Core Rulebook/` (`045 - Spending XP.md l.58`), jamais `Foundry/Source/Warhammer Fantasy Roleplay/` (4e, mêmes chapitres). Les réfs `08 - Rules.md` des macros visent une extraction absente du disque.
+- Une règle 5e se cite au CRB `Game/Source/Warhammer Fantasy Roleplay 5e Core Rulebook/` (`CRB 045 l.58`), jamais `Foundry/Source/Warhammer Fantasy Roleplay/` (4e, mêmes chapitres). Les réfs `08 - Rules.md` des macros visent une extraction absente du disque.
 
 ## Pièges du moteur (wfrp4e 9.3.2)
 
@@ -39,6 +39,6 @@ description: À charger dès qu'on travaille sur le MONDE Foundry VTT distant «
 
 - Toute modification applique le comportement 5e et retire celui de la 4e qu’elle remplace (#2683).
 - Un élément absent du système est omis (#2683).
-- En cas de conflit, la description de l’État prime (#2683) — CRB `036 - Attacking.md` l.159-169 contre `042 - Conditions.md` : Surpris → +2 DR en mêlée (l.123), À terre → Avantage (l.109).
+- En cas de conflit, la description de l’État prime (#2683) — CRB 036 l.159-169 contre `042 - Conditions.md` : Surpris → +2 DR en mêlée (CRB 042 l.123), À terre → Avantage (CRB 042 l.109).
 - La préséance de la description de l’État s’applique à Foundry seulement (#2722) — le jeu web n'est pas concerné.
 - Utiliser les Avantages de groupe sans Momentum (#2683) — `useGroupAdvantage` `true`, `autoFillAdvantage` `false` (CRB `037 - Momentum.md`) ; « gagner du Momentum » = générer de l'Avantage pour son camp ; Talents/Traits qui en dépensent : arbitrage MJ. L'inversion 5e est déjà basculée (`5e — Canal unique (DR et inversion)`, solde `data.__solde5e` → `preData.reversal`) : ne la repropose pas.

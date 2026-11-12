@@ -45,6 +45,9 @@
 //   en tactique et au plateau : son regard pris à la touche V, la caméra posée par `wfrpCadrer` (`pont/CONTRAT.md`,
 //   section « Écran publié ») regarde depuis la case et la couche demandées, à l'azimut demandé, le plan de sa couche
 //   (`plan` du pont, l'œil marqué) s'écrit au journal, et la vue se capture sous son nom.
+// - `bord` (`--scenario a-bord-de-la-caraque --route <route.json>`) : les fenêtres closes, le monde posé, chaque case
+//   de la route atteinte au clic et chaque échelle franchie par son geste (« Escalader », « Descendre en escalade »),
+//   une capture par couche atteinte.
 // - `brume` (`--scenario brouillard`, #3625) : la clairière sous le brouillard ; en tactique, les nappes de la donnée ;
 //   en immersion, aucune nappe et la brume de profondeur part de l'œil, plus serrée.
 // - `dialogue` (`--scenario dialogue-multi`) : l'entrée de la scène poursuivie à l'Entrée, un clic sur une case à côté de
@@ -62,6 +65,11 @@
 // - `voyage` (`--scenario voyage`) : l'entrée de la scène poursuivie, « Carte du monde » ouvre la carte, chaque trajet
 //   et ses modes, le plan de ses lieux ; « À pied » vers Steinbruck part, les journées et la halte passent jusqu'au
 //   récit de l'arrivée, puis l'écran du lieu, ses services et ses trajets.
+// - `marche` (`--scenario commerce-fluvial`, #3534) : les fenêtres passées à l'Entrée, « Le lieu » ouvre l'écran du
+//   lieu, son service de marché la halle (`marcheDeTerre`) et ses offres ; « Acheter » compose l'achat, « Conclure
+//   l'achat » montre le lot.
+// - `repos` (`--scenario voyage`, #3328) : « Carte du monde », « À pied » part, les fenêtres passent à l'Entrée jusqu'à
+//   la nuit de repos ; le couchage de Bjorn, en chambre privée sur sa carte, passe à « Dehors », puis la nuit se clôt.
 // - `repit` (`--scenario bataille-de-masse`) : les dés d'Événement tombent, l'entre-deux-aventures montre un onglet par
 //   héros, ses Activités restantes et la liste de l'Activité à composer, chacune fermée par sa raison ; « Revenus »
 //   choisi dans la liste au clavier, « Entreprendre » ouvre son jet, lancé à l'Entrée puis appliqué : l'onglet du héros
@@ -221,6 +229,7 @@ import { parseArgs } from 'node:util'
 import { crc32, deflateSync } from 'node:zlib'
 import { FIL_DE_LA_PAGE_MS, WEBGL_LOGICIEL, servir } from './servir.mjs'
 import { LISTAGE } from './listage.mjs'
+import { JEUX_DU_PARCOURS } from './lot-de-recettes.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { gestesDessines } from './pont/dessines.ts'
 import { dossierDesProjetsLivres, listerProjetsLivres, PROJETS_MANUSCRITS } from '../../scripts/guards/lib/projetsLivres.mjs'
@@ -234,9 +243,10 @@ const { values: o } = parseArgs({
   options: { parcours: { type: 'string', default: 'combat' }, web: chaine, captures: chaine, scenario: { type: 'string', default: 'dome' }, graine: { type: 'string', default: '7' }, modeles: chaine, base: chaine, element: chaine, reexport: chaine, piece: chaine, vues: chaine, route: chaine, preset: chaine, clip: { type: 'string', default: 'Sword_Attack' }, statique: { type: 'boolean' } },
 })
 if (o.statique && o.modeles) throw new Error('--statique sert les modèles déposés dans l’export : --modeles hors de propos')
-if (!o.web || !o.captures) throw new Error('usage : node hotes/godot/recette.mjs --web <dossier de l’export> --captures <dossier> [--parcours combat|critique|fin|dialogue|exploration|relief|etage|regards|meteo|vehicule|cadrages|bord --route <route.json>|brume|fiche|inventaire|creation|campagne|editeur|atelier|composition|preset]')
+if (!o.web || !o.captures) throw new Error('usage : node hotes/godot/recette.mjs --web <dossier de l’export> --captures <dossier> [--parcours <nom>] ; les parcours : l’en-tête du fichier')
 if (o.parcours === 'atelier' && o.modeles && !(o.base && o.element && o.reexport)) throw new Error('--parcours atelier avec --modeles <dossier neuf> attend --base, --element et --reexport <dossier de production>')
 if (o.parcours === 'cadrages' && !o.vues) throw new Error('--parcours cadrages attend --vues <fichier JSON des vues nommées>')
+if (o.parcours === 'bord' && !o.route) throw new Error('--parcours bord attend --route <route.json> (`hotes/godot/recettes/route-a-bord.hors-store.test.ts`)')
 if (o.parcours === 'composition' && !(o.modeles && o.base && o.piece)) throw new Error('--parcours composition attend --modeles <dossier neuf>, --base et --piece <production skinnée>')
 if (o.parcours === 'preset' && !o.preset) throw new Error('--parcours preset attend --preset <id d’un preset de personnage>')
 if (o.parcours === 'combat' && !o.modeles !== !o.element) throw new Error('--parcours combat attend --modeles <dossier neuf> et --element <production> ensemble, ou aucun des deux')
@@ -271,19 +281,26 @@ const actif = (v) => v.projection.combat?.actif
 const zone = (v, z) => v.zones[z]
 /** Le bouton de la carte d'un héros du groupe (`groupe.heros`) qui ouvre sa fiche. */
 const ficheDuHeros = (carte) => carte.elements.find((e) => e.type === 'bouton' && e.id.startsWith('fiche/'))
-/** Le bouton `quoi` d'une carte du groupe amené à l'écran : la rangée des cartes, qui défile de côté, tournée d'un cran de
- *  molette sur la première fiche qu'elle montre, l'écran republié, jusqu'à ce qu'il paraisse. */
-async function amenerAuGroupe(quoi) {
+/** Le bouton `quoi` amené à l'écran dans une liste qui défile : la molette tournée d'un cran sur le premier bouton
+ *  publié que retient `voisin`, un bouton de la même liste, l'écran republié, jusqu'à ce que `quoi` paraisse. */
+async function amenerDansLaListe(quoi, voisin, liste) {
   for (let n = 0; n < CRANS; n++) {
     const { boutons } = await ecran()
     if (trouver(boutons, quoi)) return
-    const carte = boutons.find((b) => b.element?.startsWith('bouton/fiche/'))
-    assert.ok(carte, `une carte du groupe se montre ; boutons : ${boutons.map((x) => x.element ?? x.texte).join(' | ')}`)
+    const ancre = boutons.find(voisin)
+    assert.ok(ancre, `${liste} se montre ; boutons : ${boutons.map((x) => x.element ?? x.texte).join(' | ')}`)
     await marquer()
-    await molette(session, { surface: 'canvas', x: carte.x, y: carte.y }, CRAN_DE_MOLETTE)
+    await molette(session, { surface: 'canvas', x: ancre.x, y: ancre.y }, CRAN_DE_MOLETTE)
     await nouvelEcran()
   }
-  throw new Error(`${JSON.stringify(quoi)} hors de la rangée du groupe après ${CRANS} crans`)
+  throw new Error(`${JSON.stringify(quoi)} hors de ${liste} après ${CRANS} crans`)
+}
+/** Le bouton `quoi` d'une carte du groupe amené à l'écran : la rangée des cartes défile de côté. */
+const amenerAuGroupe = (quoi) => amenerDansLaListe(quoi, (b) => b.element?.startsWith('bouton/fiche/'), 'la rangée du groupe')
+/** Le bouton `quoi` d'un service de l'écran du lieu `v` amené à l'écran : la liste des services défile. */
+const amenerAuService = (v, quoi) => {
+  const services = new Set(zone(v, 'fenetre.corps').filter((e) => e.id?.startsWith('service/')).flatMap((e) => e.elements).filter((b) => b.type === 'bouton').map((b) => `bouton/${b.id}`))
+  return amenerDansLaListe(quoi, (b) => services.has(b.element), 'la liste des services du lieu')
 }
 /** L'élément d'id `id` de la zone `z`. */
 const element = (v, z, id) => zone(v, z).find((e) => e.id === id)
@@ -316,7 +333,7 @@ const bouton = (b) => ({ element: `bouton/${b.id}` })
 async function cliquerBouton(quoi) {
   const { boutons } = await ecran()
   const b = trouver(boutons, quoi)
-  if (!b) throw new Error(`bouton ${JSON.stringify(quoi)} absent ; boutons : ${boutons.map((x) => x.element ?? x.cle ?? x.texte).join(' | ')}`)
+  if (!b) throw new Error(`bouton ${JSON.stringify(quoi)} absent ; boutons : ${boutons.map((x) => `${x.element ?? x.cle ?? ''} « ${x.texte} »`).join(' | ')}`)
   await cliquerPoint(b.x, b.y)
 }
 /** L'onglet titré du libellé du choix `choix` montré quand `quoi` n'est pas à l'écran : un choix de la barre du combat
@@ -1220,6 +1237,7 @@ async function parcoursVoyage() {
   noter(`voyage : ${corps(v)}`)
   await capturer('3534-voyage-1-jets')
   for (let k = 0; k < 4; k++) {
+    await amenerAuGroupe('Lancer')
     await cliquerBouton('Lancer')
     await attendreLaVue(`v.zones['groupe.heros'].flatMap((h) => h.elements).filter((e) => e.type === 'jet' && e.resultat).length > ${k}`)
   }
@@ -1235,7 +1253,9 @@ async function parcoursVoyage() {
   v = await vue()
   noter(`lieu : ${zone(v, 'fenetre.titre')[0].texte} ; ${zone(v, 'fenetre.corps').map((e) => e.nom ?? e.texte).join(' | ')}`)
   await capturer('3534-l2-lieu')
-  await cliquerBouton(bouton(zone(v, 'fenetre.corps').find((e) => e.id === 'service/forgeron').elements.find((e) => e.type === 'bouton')))
+  const forge = bouton(zone(v, 'fenetre.corps').find((e) => e.id === 'service/forgeron').elements.find((e) => e.type === 'bouton'))
+  await amenerAuService(v, forge)
+  await cliquerBouton(forge)
   await attendreLaVue("v.projection.fenetre?.cle === 'marchand'")
   v = await vue()
   noter(`échoppe : ${zone(v, 'fenetre.corps').map((e) => `${e.id} (${(e.elements ?? []).map((b) => b.libelle).join(', ')})`).join(' | ')}`)
@@ -1269,6 +1289,8 @@ async function parcoursMarche() {
   noter(`halle : ${zone(v, 'fenetre.corps').map((e) => `${e.id} (${(e.elements ?? []).map((x) => x.libelle ?? x.id).join(', ')})`).join(' | ')}`)
   await capturer('3534-halle-1-offres')
   await cliquerBouton('Acheter')
+  await attendreLaVue("v.zones['fenetre.reglages'].some((e) => e.id === 'fenetreChoisir@marcheDeTerre#acheter')")
+  await cliquerBouton('Conclure l’achat')
   await attendreLaVue("v.zones['fenetre.corps'].some((e) => e.id.startsWith('lot/'))")
   v = await vue()
   noter(`lot : ${zone(v, 'fenetre.corps').filter((e) => e.id.startsWith('lot/')).map((e) => `${e.nom} (${e.elements.map((x) => x.valeur ?? x.libelle).join(', ')})`).join(' | ')}`)
@@ -2041,7 +2063,7 @@ async function parcoursEditeur() {
   await glisserDe(`${zx + 1},${zy}`, `${zx + 2},${zy + 1}`, 'l’exclusion de toiture tirée')
   await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id === 'toiture/exclusion/0')`)
   e = await editeur()
-  assert.equal(boutonDeLEditeur(e, 'architecture/select')?.presse, true, 'l’exclusion tirée, le clic revient à la sélection')
+  assert.equal(boutonDeLEditeur(e, 'architecture/selection')?.presse, true, 'l’exclusion tirée, le clic revient à la sélection')
   noter(`« Tirer une exclusion de toiture », de (${zx + 1}, ${zy}) à (${zx + 2}, ${zy + 1}) : ${inspecte(e, 'toiture/exclusion/0').texte}`)
   await cliquerPoint(...cases[`${zx},${zy}`])
   await cliquerAuPanneau({ element: 'bouton/batir/masse' })
@@ -2607,7 +2629,7 @@ const attendreLeVehicule = (condition) => attendreLAtelier(`(() => { const v = a
 async function parcoursAtelierDuVehicule() {
   await enHauteDefinition()
   await cliquerBouton('Atelier')
-  await attendreLAtelier('Array.isArray(a.erreurs)', 120000)
+  await attendreLAtelier("Array.isArray(a.erreurs) && b.some((x) => x.cle === 'modele/vehicule')", 120000)
   await choisirDansLaListe('modele/vehicule', { id: VEHICULE_DE_L_ATELIER })
   await attendreLeVehicule(`v.element !== null && v.definition === ${JSON.stringify(VEHICULE_DE_L_ATELIER)}`)
   const nue = await prouverLeVehicule()
@@ -3164,6 +3186,7 @@ async function parcoursPreset() {
 
 const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, dialogue: parcoursDialogue, document: parcoursDocument, incantation: parcoursIncantation, soin: parcoursSoin, voyage: parcoursVoyage, marche: parcoursMarche, repos: parcoursRepos, repit: parcoursRepit, ouvrage: parcoursOuvrage, bataille: parcoursBataille, exploration: parcoursExploration, relief: parcoursRelief, etage: parcoursEtage, regards: parcoursRegards, meteo: parcoursMeteo, vehicule: parcoursVehicule, cadrages: parcoursCadrages, bord: parcoursBord, brume: parcoursBrume, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, campagne: parcoursCampagne, editeur: parcoursEditeur, atelier: parcoursAtelier, composition: parcoursComposition, preset: parcoursPreset, vision: parcoursVision }
 if (!(o.parcours in PARCOURS)) throw new Error(`--parcours ${o.parcours} : ${Object.keys(PARCOURS).join(' ou ')} attendu`)
+assert.deepEqual(Object.keys(PARCOURS).filter((parcours) => !(parcours in JEUX_DU_PARCOURS)), [], 'chaque parcours déclare ses jeux au lot (`JEUX_DU_PARCOURS`)')
 
 let echec = null
 try {

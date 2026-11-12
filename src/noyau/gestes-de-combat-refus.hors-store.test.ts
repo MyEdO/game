@@ -178,7 +178,7 @@ describe('admis, chaque geste joue encore', () => {
   it('ouvrirLAuContact ouvre le Test opposé', () => {
     enBataille();
     g().ouvrirLAuContact('e');
-    expect([refus() ?? null, g().pendingAuContact?.phase]).toEqual([null, 'roll']);
+    expect([refus() ?? null, g().pendingAuContact?.phase]).toEqual([null, 'jet']);
   });
 
   it('ouvrirLEmpoignade ouvre le Test opposé', () => {

@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import type { VerrouDesMots } from '../noyau/fabriquesDuNoyau';
 
 /* Ornements SVG maison (socle grimdark, 0.2) — 100 % dessinés main, trait légèrement
    irrégulier cohérent avec la direction du rendu iso (src/gameIso/sprites.ts). Les SVG
@@ -41,8 +42,8 @@ export function CornerFlourish({ corner = 'tl' }: { corner?: 'tl' | 'tr' | 'bl' 
 }
 
 /** Cadre ornementé : bord fer + filet or en retrait + quatre coins travaillés.
- *  `tone='gold'` dore coins et filet (écrans de cérémonie) ; `iron` (défaut) reste sobre. */
-export function OrnateFrame({ children, tone = 'iron', className = '' }: { children: ReactNode; tone?: 'gold' | 'iron'; className?: string }) {
+ *  `tone='or'` dore coins et filet (écrans de cérémonie) ; `fer` (défaut) reste sobre. */
+export function OrnateFrame({ children, tone = 'fer', className = '' }: { children: ReactNode; tone?: 'or' | 'fer'; className?: string }) {
   return (
     <div className={`ornate-frame ornate-${tone} ${className}`.trim()}>
       <CornerFlourish corner="tl" />
@@ -53,3 +54,7 @@ export function OrnateFrame({ children, tone = 'iron', className = '' }: { child
     </div>
   );
 }
+
+/** VERROU : le ton du cadre ne prend que des mots du lexique (#3977). */
+const verrouDuTon: VerrouDesMots<NonNullable<Parameters<typeof OrnateFrame>[0]['tone']>> = true;
+void verrouDuTon;

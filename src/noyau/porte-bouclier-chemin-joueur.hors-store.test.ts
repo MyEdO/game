@@ -103,7 +103,7 @@ describe('Porte-bouclier — chemin joueur, arme de parade déclarée sur tout c
     G().jetLancer('defense');
     expect(G().pendingDefense!.result!.advantageTo).toBe('attaquant');
     G().jetForcerLaReussite('defense');
-    expect(G().pendingDefense!.forced).toBe(true);
+    expect(G().pendingDefense!.forcee).toBe(true);
     attendFrappe();
   });
 });

@@ -9,7 +9,8 @@
 ## scène posée sans fondu depuis celle de la scène d'avant, et ses arêtes (`aretes`), à nouveau
 ## chaque fois que leur empreinte change (`plateau.cleDesAretes`), et applique chaque suite. La vue va au plateau, sa lumière (`vue.lumiere`) à la `Lumiere` du monde, sa musique (`vue.musique`) à la `Musique` ; la fenêtre prend la disposition que la vue nomme (`vue.disposition`,
 ## `Disposition`) ; chaque zone de l'écran (`Zone.racines`, scène `Ecran` sans script) reçoit les éléments de sa source
-## qui lui reviennent (`Zone.montrer_toutes` : `vue.zones`, et ce que la suite ajoute, `zones` : les lignes du journal) ;
+## qui lui reviennent (`Zone.montrer_toutes` : `vue.zones`, et ce que les suites ont ajouté depuis le début de la
+## partie, `zones` : les lignes du journal, qu'une zone posée plus tard reçoit donc toutes) ;
 ## le journal va au plateau ; chaque jeton programmé est armé en minuteur et repris à son échéance. Chaque geste du joueur part en intention : celle de l'élément pressé
 ## (`Zone.geste` ; la fiche d'un combattant, montrée ou fermée, par la méthode `fiche` ; la création d'un héros par la
 ## méthode `creation`), un clic du champ (`vue.champ` : le verbe du clic, sur la case et le combattant qui s'y tient ;
@@ -78,6 +79,9 @@ var _cle_de_la_vision := ""
 ## La scène et l'empreinte des arêtes posées au plateau (`plateau.cleDesAretes`), vide avant les premières.
 var _cle_des_aretes := ""
 var _zones: Array[Zone] = []
+## Ce que les suites ont ajouté à l'écran depuis le début de la partie (`zones`), par source : une zone posée en
+## cours de partie (`Disposition`) le reçoit en entier.
+var _ajouts := {}
 ## Une publication de l'écran attend l'image qui vient (`_publier_l_ecran`).
 var _publication_prevue := false
 
@@ -170,7 +174,9 @@ func _suivre(reponse: Dictionary) -> void:
 	if _disposition.disposer(_vue.disposition):
 		_relier()
 	Portrait.corps = _vue.corps.combattants
-	Zone.montrer_toutes(_zones, _vue.zones.merged(reponse.zones))
+	for source in reponse.zones:
+		_ajouts.get_or_add(source, []).append_array(reponse.zones[source])
+	Zone.montrer_toutes(_zones, _vue.zones.merged(_ajouts))
 	for programme in reponse.programmes:
 		get_tree().create_timer(MiseEnPage.secondes(programme.delai)).timeout.connect(_reprendre.bind(int(programme.id)))
 	_publier_l_ecran.call_deferred()

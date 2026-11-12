@@ -1434,7 +1434,7 @@ function OrnamentsDemo() {
     <Stack gap="lg">
       <RuleDivider label="Filet titré" />
       <Row gap="md" align="center"><Fleuron /><span className="hint">Fleuron seul (filet sans libellé)</span></Row>
-      <OrnateFrame tone="gold"><span className="hint">Cadre ornementé, ton or</span></OrnateFrame>
+      <OrnateFrame tone="or"><span className="hint">Cadre ornementé, ton or</span></OrnateFrame>
       <OrnateFrame><span className="hint">Cadre ornementé, ton fer (défaut)</span></OrnateFrame>
     </Stack>
   );

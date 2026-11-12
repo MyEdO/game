@@ -91,9 +91,17 @@ const doc = document(
           const effective = ecartsDuDeDeLaTable(base, tableDeCarrieres(base.entries, p.entries), nomDeRangee);
           if (effective.length) refus(i, 'entries', `la table de « ${base.id} » avec la portion ne couvre pas le ${base.die} d'un seul tenant — ${effective.join(' ; ')}`);
         }
+        /** AA 02 l.115-128 */
+        const variantes = new Map<string, string>();
         for (const [i, d] of documents.entries()) {
           if (d.kind !== 'variante' || d.carriere === undefined) continue;
           const carriere = d.carriere;
+          const premiere = variantes.get(carriere);
+          if (premiere !== undefined) {
+            refus(i, 'carriere', `la carrière détaillée « ${carriere} » porte déjà la variante « ${premiere} » : une seule variante par carrière détaillée`);
+            continue;
+          }
+          variantes.set(carriere, d.id);
           if (!d.entries.some((r) => r.id === carriere)) refus(i, 'entries', `aucune rangée ne désigne la carrière détaillée « ${carriere} »`);
           for (const col of d.colonnes ?? []) {
             const base = colonneDeBase(col);

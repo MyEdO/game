@@ -50,7 +50,7 @@ function monterInspecteur(): HTMLElement {
         openLogic={() => undefined}
         resizeScene={() => undefined}
         narratif={emptyNarratif()}
-        tool={{ mode: 'select' }}
+        tool={{ mode: 'selection' }}
         armZoneTiles={() => undefined}
         zoneFocusKey={null}
       />,

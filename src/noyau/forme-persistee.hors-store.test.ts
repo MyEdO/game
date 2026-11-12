@@ -87,11 +87,11 @@ describe('forme persistée — ce que le chargement lit', () => {
     expect(() => applyOps(h, [{ op: 'grantTalent', talentId: 'chanceux' } as never], { idNeuf: idsDeTest, rng: makeRNG(1) })).toThrow();
   });
   it('une chute se dérive de ses `participants` ; une chute à tombant unique lève (#700)', () => {
-    const tombantUnique = { combatantId: 'h', to: { x: 1, y: 1 }, metres: 4, attempt: null, phase: 'choice', result: null };
+    const tombantUnique = { combatantId: 'h', to: { x: 1, y: 1 }, metres: 4, attempt: null, phase: 'choix', result: null };
     // LE DÉFAUT, sur le chemin réel : `FallModal` dérive sa phase par `phaseDeChute` à l'ouverture.
     expect(() => phaseDeChute(tombantUnique as never)).toThrow(TypeError);
     const courante: PendingFall = { test: testDeRegle('chute', 'tenter'), to: { x: 1, y: 1 }, metres: 4, initiateurId: 'h', participants: [{ id: 'h', attempt: null, result: null }] };
-    expect(phaseDeChute(courante)).toBe('choice');
+    expect(phaseDeChute(courante)).toBe('choix');
   });
   it('l’empreinte d’un décor à recette TOURNE avec son cap (#1509)', () => {
     const scene = emptyScene('scene-test', 12, 12);

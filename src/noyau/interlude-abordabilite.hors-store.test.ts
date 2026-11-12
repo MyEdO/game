@@ -114,7 +114,7 @@ describe('Apprentissage particulier — PX et tuteur', () => {
 describe('Entraînement — PX et tuteur', () => {
   it('bourse sous le tuteur le moins cher : refusé et dit AVANT le tirage, le dé ne roule pas', () => {
     const { banc, heroId } = apresLeTirage(2000, fromBrass(0));
-    const opt = entrainementOptions(banc.getState().party[0]).find((o) => o.kind === 'characteristic')!;
+    const opt = entrainementOptions(banc.getState().party[0]).find((o) => o.kind === 'caracteristique')!;
     const avant = empreinte(banc);
     const r = jouer(banc, () => pratiquer(banc.getState, heroId, 'entrainement', { entrainement: cleDEntrainement(opt) }));
     expect(r.journal).toEqual(['Vétéran : la bourse ne couvre même pas le tuteur le moins cher (1 sc).']);
@@ -124,7 +124,7 @@ describe('Entraînement — PX et tuteur', () => {
 
   it('PX insuffisants : refusé et dit par le verdict des PX, avant le tirage', () => {
     const { banc, heroId } = apresLeTirage(0, { gold: 20, silver: 0, brass: 0 });
-    const opt = entrainementOptions(banc.getState().party[0]).find((o) => o.kind === 'characteristic')!;
+    const opt = entrainementOptions(banc.getState().party[0]).find((o) => o.kind === 'caracteristique')!;
     const avant = empreinte(banc);
     const r = jouer(banc, () => pratiquer(banc.getState, heroId, 'entrainement', { entrainement: cleDEntrainement(opt) }));
     expect(r.journal).toEqual([`Vétéran : PX insuffisants (${opt.xpCost}).`]);

@@ -71,10 +71,10 @@ les `LICENSE-<pack>.txt` qu'elle écrit, un pack sans `--licence-<pack>`, et un 
 absent, hors des dossiers ancêtres de sa source, vide, ou dont la licence déclarée (ligne
 `License:`, sinon titre) manque à `hotes/godot/asset/licences.json`. Après l'export, elle passe sa part du manifeste à `manifeste.mjs`, qui y ajoute la
 déclaration du corps (`scripts/personnage-3d/base/humanoide.json` : `base`, porteur de référence,
-`clips`, la table rôle d'animation → clip dont le rôle `walk` est la marche plantée, et `surfaces`, les matériaux du corps
+`clips`, la table rôle d'animation → clip dont le rôle `marche` est la marche plantée, et `surfaces`, les matériaux du corps
 et leur emplacement de palette, sans `blason`, chacun avec, en option, `parSexe` : par sexe, le matériau d'un corps
 donneur que la construction recouche sur les UV de la surface et exporte en variante `KHR_materials_variants` du nom du
-sexe, #3188), la vitesse au sol du clip du rôle `walk` mesurée par l'évaluateur, et
+sexe, #3188), la vitesse au sol du clip du rôle `marche` mesurée par l'évaluateur, et
 l'empreinte du GLB. Le manifeste refusé par `validerModele` (`hotes/godot/asset/modeles.ts`) fait échouer la construction.
 Le dossier de la sortie devient le dossier de production de la base (`production.ts`) :
 `manifest.json` (le manifeste complet sous `manifeste`, `model`, `model_sha256`,
@@ -108,12 +108,13 @@ Lire la table exécutable des catégories avant d'écrire le manifeste :
 | trait | trait | non résolu à l'import | squelette |
 | decor | prop | non résolu à l'import ; design : `src/data/props.json` | rigide |
 | vehicule | definition | coque de `src/data/vehicles.json` ou engin `armes-de-siege` de `src/data/trappings.json` | rigide |
+| amelioration | amelioration | Amélioration de `src/data/naval-traits.json` | rigide |
 
 Chaque surface, quelle que soit la catégorie, nomme le matériau du GLB et l'emplacement de palette
 dont il prend la couleur (`{ "nom", "palette" }`, `SLOTS` de `src/lib/palette.ts`, `hotes/godot/asset/surfaces.ts`) ;
 la palette d'une composition donne à chaque emplacement une couleur du nuancier.
 
-Un élément sans base (`decor`, `vehicule`) se construit dans un repère fixe : en glTF, son avant
+Un élément sans base (`decor`, `vehicule`, `amelioration`) se construit dans un repère fixe : en glTF, son avant
 vers +Z, sa gauche vers +X (bâbord d'un navire), son origine au sol ou, pour un navire, à la ligne
 de flottaison, son emprise recentrée en x et z ; l'hôte le pose sur son empreinte et le tourne vers
 son cap sans lire d'autre repère. Il se construit en mètres réels : l'hôte le réduit à son empreinte.
@@ -138,8 +139,8 @@ monstrueuse : `{ "tete": "skaven" }`. Un seul élément par
 et pour un corps il inclut partie et forme. Le manifeste ne porte pas d'id arbitraire.
 
 Les catégories corps, tête, pilosité, vêtement, armure, accessoire et trait portent une couche :
-peau < dessous < tenue < armure < manteau. L'armure impose armure. Les trois autres catégories
-n'ont ni couche ni couverture. `couvre` est requis pour les éléments skinnés, optionnel pour un
+peau < dessous < tenue < armure < manteau. L'armure impose armure. Les quatre autres catégories
+(rigide, decor, vehicule, amelioration) n'ont ni couche ni couverture. `couvre` est requis pour les éléments skinnés, optionnel pour un
 accessoire ; ses ids viennent des zones de la base. Une couverture déclarée reste à mesurer. L'hôte cache la zone
 couverte du corps et des couches dessous : une pièce ne couvre une zone que si elle la cache sous tout angle du jeu.
 Sous un ourlet ouvert, évasé ou effiloché, pieds écartés, le mollet se voit ; la robe du Sorcier ne couvre donc pas
@@ -345,7 +346,7 @@ Lire au besoin la référence diagnostics du skill.
    L'armature nécessaire au skin peut être exportée, sans dupliquer les meshes du corps ni les
    clips de base ; les animations viennent de la base. Un rigide tenu pend à un os de la
    base : l'import refuse un élément rigide sans mesh, un mesh sur un os absent de la base, ou à la
-   racine hors `decor`/`vehicule` (`hotes/godot/asset/element.ts` `REGLES_DES_CATEGORIES`).
+   racine hors `decor`/`vehicule`/`amelioration` (`hotes/godot/asset/element.ts` `REGLES_DES_CATEGORIES`).
    Réimporter le GLB réellement livré.
 4. Écrire le manifeste schéma 3, valider sa forme contre la base, vérifier son empreinte et
    évaluer le GLB monté sur cette base (commandes ci-dessous).
@@ -550,8 +551,8 @@ projet) et se cite dans la docstring des données ; sans référence, la docstri
 
 Un engin est une unité : il s'anime comme une créature (`clips.py`). Chaque pièce mobile est son propre nœud, à son
 pivot (roue à son essieu, bras à son axe, fût à ses tourillons, chaîne à son attache), et `clips.animer` clé ses clips :
-`idle` (repos), `walk` (déplacement en boucle : `rouler` tourne les roues à la vitesse d'une case par pas du plateau,
-`cahoter` secoue un engin sans roues que ses servants portent ou traînent) et son attaque, `ranged` (`tirer` : recul,
+`repos`, `marche` (déplacement en boucle : `rouler` tourne les roues à la vitesse d'une case par pas du plateau,
+`cahoter` secoue un engin sans roues que ses servants portent ou traînent) et son attaque, `tir` (`tirer` : recul,
 ressaut, barillet qui tourne ; ou la course d'un bras, d'une verge) ou `melee` (le bélier). Les durées et amplitudes
 sont des données nommées de `donnees.py`.
 
@@ -633,8 +634,8 @@ Ces dépendances se vérifient dans le checkout utilisé, sans déduire leur liv
 ## Importer une base et ses éléments
 
 Chaque dossier de production contient `manifest.json`, le GLB qu'il nomme, au plus un `.blend`
-et ses `LICENSE*.txt` (licence déclarée par la ligne `License:`, sinon par le titre). Pour une base ou un élément au schéma 3,
-`manifest.json` est une enveloppe de production séparée du manifeste fermé :
+et ses `LICENSE*.txt` (licence déclarée par la ligne `License:`, sinon par le titre). Pour une base (schéma 6, `VERSION_DU_SCHEMA_DE_BASE`) ou un élément (schéma 3),
+`manifest.json` est une enveloppe de production séparée du manifeste fermé, ici celle d'un élément :
 
 ```json
 {

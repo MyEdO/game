@@ -28,7 +28,8 @@ describe('le repos par le pont', () => {
       suite = jouer(focus(suite).jeu);
     }
     let c = corps(suite);
-    expect(c['repos/nuit'], 'la nuit et son lieu').toMatchObject({ texte: 'Nuit à l’auberge — Weiler → Steinbruck' });
+    expect(c['scene/moment'], 'la nuit et son lieu, en tête de la scène').toMatchObject({ texte: 'Nuit à l’auberge — Weiler → Steinbruck' });
+    expect(c['scene/paysage'], 'le paysage de la halte : la nuit, et le logis éclairé').toMatchObject({ paysage: ['ciel-nuit', 'relief-terre', 'voile-nuit', 'halte-toit'] });
     const couchage = (s: Suite) => bjorn(s).couchage as Choix;
     expect(couchage(suite).type, 'un choix de la carte, en liste').toBe('liste');
     expect(couchage(suite).valeurs.map((b) => [b.libelle, b.presse]), 'les couchages du relais, le sien pressé').toEqual([['Privée', true], ['Commune', false], ['Dehors', false]]);
