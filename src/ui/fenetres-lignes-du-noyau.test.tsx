@@ -38,7 +38,7 @@ const cibles = () => [...host.querySelectorAll('.rm-roll-calc b')].map((e) => e.
 const boutons = () => [...host.querySelectorAll('button')].map((b) => (b.textContent ?? '').trim());
 const competence = (id: string, spec: string, characteristic: string, advances: number) => ({ id, spec, characteristic, advances } as SkillInstance);
 const heros = (over: Partial<Combatant> = {}): Combatant => combattantDeTest({
-  id: 'h', label: 'Gerhardt', kind: 'hero', wounds: blessuresDeBase(12), fortune: 0, resilience: 0,
+  id: 'h', label: 'Gerhardt', kind: 'heros', wounds: blessuresDeBase(12), fortune: 0, resilience: 0,
   characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, sociabilite: 30 } as Combatant['characteristics'],
   weapons: [unarmedWeapon()], ...over,
 });

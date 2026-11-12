@@ -17,7 +17,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 const seq = (...vals: number[]): RNG => desEnSuite(vals, { boucle: true, borne: true });
 const CHARS = { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 const mk = (over: Partial<Combatant>): Combatant =>
-  (blessuresSurLeProfil({ id: 't', label: 'Cible', kind: 'enemy', characteristics: CHARS, wounds: blessuresDeBase(10), conditions: [], skills: [], talents: [], traits: [], activeEffects: [], bodyShape: 'humanoide', size: 'moyenne', weapons: [], items: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, ...over }) as unknown as Combatant);
+  (blessuresSurLeProfil({ id: 't', label: 'Cible', kind: 'ennemi', characteristics: CHARS, wounds: blessuresDeBase(10), conditions: [], skills: [], talents: [], traits: [], activeEffects: [], bodyShape: 'humanoide', size: 'moyenne', weapons: [], items: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, ...over }) as unknown as Combatant);
 
 // LDB 18 l.107 « Choc au bras » : `criticals.json` « Lâchez ce que vous teniez. »
 describe('op disarm d’un Critique : ses lignes vont au journal (applyCriticalToTarget)', () => {
@@ -34,7 +34,7 @@ describe('op disarm d’un Critique : ses lignes vont au journal (applyCriticalT
 
   it('héros : la modale reprend la ligne de disarm, pas celle des Blessures que son bandeau résume', () => {
     seedBattleRng(1);
-    const heros = mk({ id: 'h', label: 'Héros', kind: 'hero', items: [{ ...itemFromTrappingById('arme-simple', idsDeTest)!, uid: 'w1', equipped: true }], loadouts: [{ id: 'l1', main: 'w1' }] as never, activeLoadoutId: 'l1', pos: { x: 0, y: 0 } });
+    const heros = mk({ id: 'h', label: 'Héros', kind: 'heros', items: [{ ...itemFromTrappingById('arme-simple', idsDeTest)!, uid: 'w1', equipped: true }], loadouts: [{ id: 'l1', main: 'w1' }] as never, activeLoadoutId: 'l1', pos: { x: 0, y: 0 } });
     banc.setState({ scene: emptyScene('scene-test') });
     recomputeLoadout(heros);
     const crit = resolveCritique('ldb', heros, 'brasD', seq(5), { overkill: 0 });
@@ -50,7 +50,7 @@ describe('op disarm d’un Critique : ses lignes vont au journal (applyCriticalT
   // LDB 18 l.74
   it('État à valeur TIRÉE (Commotion cérébrale, Sonné 1d10) : la modale donne la valeur réelle, le bandeau ne l’affiche pas', () => {
     seedBattleRng(3);
-    const heros = mk({ id: 'h', label: 'Héros', kind: 'hero', wounds: blessuresDeBase(12) });
+    const heros = mk({ id: 'h', label: 'Héros', kind: 'heros', wounds: blessuresDeBase(12) });
     const crit = resolveCritique('ldb', heros, 'tete', seq(78), { overkill: 0 });
     expect(crit.entryId).toBe('commotion-cerebrale');
     applyCriticalToTarget(heros, 'tete', 0, [], banc.setState, { prerolled: crit, get: banc.getState });

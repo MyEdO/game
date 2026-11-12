@@ -126,7 +126,7 @@ describe('Colérique en combat', () => {
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const [e0, e1, e2] = b.combatants.filter((c) => c.kind === 'enemy');
+    const [e0, e1, e2] = b.combatants.filter((c) => c.kind === 'ennemi');
     const de = (id: string) => b.combatants.find((c) => c.id === id)!;
     de(a.id).pos = { x: 5, y: 15 };
     de(s.id).pos = { x: 5, y: 11 };
@@ -165,7 +165,7 @@ describe('Colérique en combat', () => {
     banc.abandonner();
     const b = banc.getState().battle!;
     const S = b.combatants.find((c) => c.id === s.id)!;
-    const e0 = b.combatants.find((c) => c.kind === 'enemy')!;
+    const e0 = b.combatants.find((c) => c.kind === 'ennemi')!;
     S.pos = { x: 5, y: 11 };
     e0.pos = { x: 6, y: 11 };
     e0.skills.push({ id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 30 } as never);

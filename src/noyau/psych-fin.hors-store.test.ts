@@ -32,8 +32,8 @@ function setup() {
   banc.getState().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = banc.getState().battle!;
-  const H = b.combatants.find((c) => c.kind === 'hero')!;
-  const [E, F, ...autres] = b.combatants.filter((c) => c.kind === 'enemy');
+  const H = b.combatants.find((c) => c.kind === 'heros')!;
+  const [E, F, ...autres] = b.combatants.filter((c) => c.kind === 'ennemi');
   autres.forEach((e) => (e.dead = true));
   H.pos = { x: 10, y: 10 };
   E.pos = { x: 11, y: 10 };
@@ -136,7 +136,7 @@ describe('Fin d’une affliction en gagnant un État (`onGainCondition`, LDB 21 
 describe('cibleEnVue — verdict pur d’une instance parmi les combattants en vue (#3045)', () => {
   it('un neutre ni Engagé ni attaquant est présent mais calmé ; Engagé avec le porteur, il est hostile', () => {
     const { H, E } = setup();
-    E.kind = 'npc';
+    E.kind = 'pnj';
     const animosite = visant('animosite', E.id);
     expect(cibleEnVue(H, animosite, [sourceCombattant(E)])).toEqual({ present: true, hostile: false });
     E.engagedWith = [H.id];
@@ -196,7 +196,7 @@ const coupMortel = (blessures: number): AttackResult => ({
 describe('Famille défense, telle qu’avant #1463 : fin à la chute (LDB 21 l.75, l.81 ; #3045)', () => {
   it('l’orphelin A menacé la déclenche ; A tombe, B et C restent : la Camaraderie est levée', () => {
     const { H, E: A, F: B } = setup();
-    const C = banc.getState().battle!.combatants.filter((c) => c.kind === 'enemy')[2];
+    const C = banc.getState().battle!.combatants.filter((c) => c.kind === 'ennemi')[2];
     C.dead = false;
     C.pos = { x: 12, y: 9 };
     for (const o of [A, B, C]) o.groups = ['criminel'];

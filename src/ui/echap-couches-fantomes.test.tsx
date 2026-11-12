@@ -42,7 +42,7 @@ beforeEach(() => {
   resetDismissLayers();
   useGame.setState({
     screen: 'campaign', mode: 'battle', gameMenuOpen: false, dialogue: null,
-    battle: { over: false, action: null, order: ['chef'], turn: 0, combatants: [combattantDeTest({ id: 'chef', kind: 'hero', pos: { x: 1, y: 1 } })], movementUsed: 0, preview: null },
+    battle: { over: false, action: null, order: ['chef'], turn: 0, combatants: [combattantDeTest({ id: 'chef', kind: 'heros', pos: { x: 1, y: 1 } })], movementUsed: 0, preview: null },
     net: { mode: 'local', mySeat: 0 }, combatCursor: null, preemptAiming: null,
     localIntent: { actionId: 'charge' }, pendingVictory: null,
   } as never);

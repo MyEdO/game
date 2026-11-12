@@ -60,8 +60,8 @@ function setupCoop(opts: { heros?: number; invites?: number[]; vivants?: number 
   g().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = g().battle!;
-  const H = b.combatants.filter((c) => c.kind === 'hero');
-  const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+  const H = b.combatants.filter((c) => c.kind === 'heros');
+  const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
   enemies.slice(opts.vivants ?? 1).forEach((e) => (e.dead = true));
   const E = enemies.slice(0, opts.vivants ?? 1);
   H.forEach((h, i) => (h.pos = { x: 10, y: 10 + i }));
@@ -84,7 +84,7 @@ describe('#1262 lot 5c — la BANDE se compose sur la SURFACE, pas sur l’écra
     expect(humanControlled(g(), H[1]), 'chez l’hôte, il ne pilote pas le héros de l’invité…').toBe(false);
     expect(surfaceOf(g, H[1].id), '…mais un siège humain le tient').toBe(true);
 
-    applySurprise(g, banc.setState, 'party'); // les ennemis embusquent : les héros sont les guetteurs
+    applySurprise(g, banc.setState, 'groupe'); // les ennemis embusquent : les héros sont les guetteurs
 
     const step = parKind('testDeclencheEnBande');
     expect(step, 'la bande des guetteurs existe').toBeTruthy();

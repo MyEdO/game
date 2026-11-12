@@ -8,7 +8,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const hero = (): Combatant =>
   (blessuresSurLeProfil({
-    id: 'h', name: 'H', kind: 'hero',
+    id: 'h', name: 'H', kind: 'heros',
     characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 35, endurance: 35, initiative: 30, agilite: 35, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(10), advantage: 0, conditions: [], weapons: [], armour: {}, skills: [], talents: [], movement: 4, items: [],
   })) as unknown as Combatant;

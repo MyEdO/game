@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { narrateEvent, combatFeed, narrateIntent } from './combatNarration';
 import { ev } from '../noyau/combatLog';
 
-const ally = { id: 'h1', label: 'Bidule', kind: 'hero' };
-const ally2 = { id: 'h2', label: 'Grunni', kind: 'hero' };
+const ally = { id: 'h1', label: 'Bidule', kind: 'heros' };
+const ally2 = { id: 'h2', label: 'Grunni', kind: 'heros' };
 const foe = { id: 'e1', label: 'Machin', kind: 'monster' };
 const foe2 = { id: 'e2', label: 'Rat géant', kind: 'monster' };
 const cs = [ally, ally2, foe, foe2] as any;

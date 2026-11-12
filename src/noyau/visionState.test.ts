@@ -26,11 +26,11 @@ function scene(w: number, h: number, walls?: WallSeg[]): Scene {
 }
 
 const hero = (x: number, y: number): Combatant =>
-  ({ id: `h${x}${y}`, kind: 'hero', pos: { x, y }, wounds: { current: 10, max: 10 }, conditions: [], traits: [], talents: [] }) as unknown as Combatant;
+  ({ id: `h${x}${y}`, kind: 'heros', pos: { x, y }, wounds: { current: 10, max: 10 }, conditions: [], traits: [], talents: [] }) as unknown as Combatant;
 
 /** Héros porteur d'une lanterne — `equipped` décide du PORT (le gate de `combatantLights`). */
 const porteur = (id: string, x: number, y: number, equipped: boolean): Combatant =>
-  ({ id, kind: 'hero', pos: { x, y }, wounds: { current: 10, max: 10 }, conditions: [], traits: [], talents: [],
+  ({ id, kind: 'heros', pos: { x, y }, wounds: { current: 10, max: 10 }, conditions: [], traits: [], talents: [],
     items: [{ ...itemFromTrappingById('lanterne', idsDeTest)!, uid: `${id}-lampe`, equipped }] }) as unknown as Combatant;
 
 describe('sceneLightSources — la liste UNIQUE que le champ mécanique et le rendu partagent', () => {

@@ -56,7 +56,7 @@ describe('Détermination contre une cause qui court (LDB 16 l.117) — chemin st
     banc.abandonner();
     seedBattleRng(7);
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
     H.resolve = 1;
     const pose = applyOps(H, opsDuPalier(), { idNeuf: idsDeTest, rng: troisRounds, label: 'Purifier la chair' });
     banc.setState({ battle: { ...b, turn: b.order.indexOf(H.id) }, pendingCascade: null, pendingLogQueue: [] });

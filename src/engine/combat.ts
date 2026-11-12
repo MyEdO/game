@@ -1877,8 +1877,8 @@ export function initiativeOrder(combatants: Combatant[], rng: RNG): Combatant[] 
  *  'ambush' = un héros est surpris (on nous tombe dessus) ; 'assault' = un ennemi est surpris (on les
  *  prend par surprise) ; 'combat' = personne. L'embuscade prime (alarme dominante). */
 export function combatOpening(combatants: Combatant[]): 'ambush' | 'assault' | 'combat' {
-  if (combatants.some((c) => c.kind === 'hero' && hasCondition(c, COND.surpris))) return 'ambush';
-  if (combatants.some((c) => c.kind === 'enemy' && hasCondition(c, COND.surpris))) return 'assault';
+  if (combatants.some((c) => c.kind === 'heros' && hasCondition(c, COND.surpris))) return 'ambush';
+  if (combatants.some((c) => c.kind === 'ennemi' && hasCondition(c, COND.surpris))) return 'assault';
   return 'combat';
 }
 

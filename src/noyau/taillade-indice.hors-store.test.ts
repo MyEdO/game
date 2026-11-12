@@ -67,8 +67,8 @@ describe('Taillade (XA) — l’Indice de l’arme est le COÛT en Avantages du 
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const E = b.combatants.find((c) => c.kind === 'enemy')!;
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const E = b.combatants.find((c) => c.kind === 'ennemi')!;
     H.pos = { x: 10, y: 10 };
     E.pos = { x: 11, y: 10 };
     E.important = true; // LDB 18 l.44 : hors Mort subite
@@ -265,8 +265,8 @@ describe('Déstabilisante — le choix à coût LITTÉRAL reste offert et libell
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const E = b.combatants.find((c) => c.kind === 'enemy')!;
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const E = b.combatants.find((c) => c.kind === 'ennemi')!;
     H.advantage = 3;
     const arme = weaponFromItem(itemFromTrappingById('serpe-de-guerre', idsDeTest)!); // Défensive, Taille, Déstabilisante
     emitCombatEvent('onHit', {

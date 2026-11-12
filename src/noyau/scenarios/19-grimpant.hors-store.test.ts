@@ -20,7 +20,7 @@ function startGrimpant(): { spider: import('../../engine/types').Combatant } {
   banc.getState().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = banc.getState().battle!;
-  const spider = b.combatants.find((c) => c.kind === 'enemy')!;
+  const spider = b.combatants.find((c) => c.kind === 'ennemi')!;
   return { spider };
 }
 

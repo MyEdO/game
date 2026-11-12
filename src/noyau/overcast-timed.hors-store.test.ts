@@ -91,7 +91,7 @@ describe('États récurrents (« un par Round »)', () => {
 });
 
 /** Combattant minimal posé en (x,0) pour les listes de cibles. */
-function stub(id: string, kind: 'hero' | 'enemy', x: number, wounds = 12): Combatant {
+function stub(id: string, kind: 'heros' | 'ennemi', x: number, wounds = 12): Combatant {
   return blessuresSurLeProfil({
     id, label: id, kind,
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
@@ -103,27 +103,27 @@ function stub(id: string, kind: 'hero' | 'enemy', x: number, wounds = 12): Comba
 
 describe('overcastTargetCandidates — cibles supplémentaires proposables (modale, LDB 47 l.28-31)', () => {
   it('Projectile : exclut la cible principale, le figurant tombé à 0 PB (hors de combat) et le mort', () => {
-    const caster = stub('w', 'hero', 0);
-    const downed = { ...stub('e3', 'enemy', 3, 0), conditions: [{ id: 'inconscient', value: 1 }] }; // Mort Subite au dépassement : LDB 18 l.46
-    const dead = { ...stub('e4', 'enemy', 4), dead: true };
-    const pool = [caster, stub('e1', 'enemy', 1), stub('e2', 'enemy', 2), downed, dead];
+    const caster = stub('w', 'heros', 0);
+    const downed = { ...stub('e3', 'ennemi', 3, 0), conditions: [{ id: 'inconscient', value: 1 }] }; // Mort Subite au dépassement : LDB 18 l.46
+    const dead = { ...stub('e4', 'ennemi', 4), dead: true };
+    const pool = [caster, stub('e1', 'ennemi', 1), stub('e2', 'ennemi', 2), downed, dead];
     const ids = overcastTargetCandidates(pool, caster, 'e1', findSpellById('carreau')!, true, 'arcane', 0).map((c) => c.id);
     expect(ids).toEqual(['e2']);
   });
 
   it('Projectile : les cibles supplémentaires doivent être À PORTÉE du Sort', () => {
-    const caster = stub('w', 'hero', 0); // Carreau : Portée FM mètres → FM 30 = 15 cases
-    const far = stub('e3', 'enemy', 90);
-    const ids = overcastTargetCandidates([caster, stub('e1', 'enemy', 1), stub('e2', 'enemy', 2), far], caster, 'e1', findSpellById('carreau')!, true, 'arcane', 0).map((c) => c.id);
+    const caster = stub('w', 'heros', 0); // Carreau : Portée FM mètres → FM 30 = 15 cases
+    const far = stub('e3', 'ennemi', 90);
+    const ids = overcastTargetCandidates([caster, stub('e1', 'ennemi', 1), stub('e2', 'ennemi', 2), far], caster, 'e1', findSpellById('carreau')!, true, 'arcane', 0).map((c) => c.id);
     expect(ids).toEqual(['e2']);
   });
 
   it('bénéfique : le lanceur et un allié Inconscient restent proposables (un soin le réveille), un mort non', () => {
-    const caster = stub('w', 'hero', 0);
-    const ko = stub('h2', 'hero', 1, 0);
+    const caster = stub('w', 'heros', 0);
+    const ko = stub('h2', 'heros', 1, 0);
     addCondition(ko, 'inconscient', 1);
-    const dead = { ...stub('h3', 'hero', 2), dead: true };
-    const ids = overcastTargetCandidates([caster, stub('h1', 'hero', 3), ko, dead], caster, 'h1', { range: null }, false, 'arcane', 0).map((c) => c.id);
+    const dead = { ...stub('h3', 'heros', 2), dead: true };
+    const ids = overcastTargetCandidates([caster, stub('h1', 'heros', 3), ko, dead], caster, 'h1', { range: null }, false, 'arcane', 0).map((c) => c.id);
     expect(ids).toEqual(['w', 'h2']);
   });
 });

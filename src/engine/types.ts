@@ -1378,7 +1378,7 @@ export interface Combatant {
    *  créateur, #2907) : son entrée de roster le retrouve, son `id` reste celui que l'état cite. */
   idDeRoster?: IdDeHerosDuRoster;
   label: string;
-  kind: 'hero' | 'enemy' | 'npc';
+  kind: 'heros' | 'ennemi' | 'pnj';
   /** Ce combattant suit-il les règles de PERSONNAGE (#143) — axe DISTINCT du camp (`kind`, ci-dessus)
    *  ET du contrôle (`pilotedByHuman`/`controlsCombatant`, netOwnership.ts) : gouverne des mécaniques
    *  écrites au Personnage dans la source (jamais étendues aux créatures génériques) — Corruption
@@ -1386,7 +1386,7 @@ export interface Combatant {
    *  d'incantation (LDB 46 l.107-111, une possession/dépense de personnage), Tests de fin de combat
    *  Maladie/Corruption (LDB 18 l.5 « la plupart des Personnages » ; LDB 20 l.14/206 « Personnage »), Terreurs
    *  subies de la Phobie du noir (ADE II 09 l.9).
-   *  Un HÉROS (`kind:'hero'`) l'est TOUJOURS implicitement (ne pas le redéclarer) ; une créature
+   *  Un HÉROS (`kind:'heros'`) l'est TOUJOURS implicitement (ne pas le redéclarer) ; une créature
    *  générique du bestiaire ne l'est PAS par défaut ; un PNJ humain hostile MODÉLISÉ (statbloc d'auteur)
    *  peut l'être explicitement — data-driven, éditable (`CustomStatblock.followsCharacterRules`,
    *  propagé au spawn par `statblockToCombatant`). Prédicat unique : `followsCharacterRules` (engine/relations.ts). */
@@ -1474,7 +1474,7 @@ export interface Combatant {
    *  combat (Parade/Esquive/Localisation/Engagement, via `isInanimate`) NI tour propre (hors `order`). Son seul
    *  rôle actif est d'être SERVIE (`postes`) par un équipage. */
   inert?: boolean;
-  /** PNJ allié piloté par l'IA (≠ héros du groupe, manuel). Un combattant du camp des héros (`kind:'hero'`)
+  /** PNJ allié piloté par l'IA (≠ héros du groupe, manuel). Un combattant du camp des héros (`kind:'heros'`)
    *  qui AGIT SEUL via la machinerie d'IA (`aiDriven`), sans affordance joueur — pour les défenseurs PNJ
    *  (archers, équipage d'une pièce de rempart) que le joueur ne doit pas micro-gérer. */
   aiControlled?: boolean;

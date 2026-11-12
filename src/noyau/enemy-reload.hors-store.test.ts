@@ -29,7 +29,7 @@ const CHARS = { 'capacite-de-combat': 40, 'capacite-de-tir': 60, force: 35, endu
 
 function enemyWith(over: Partial<Combatant>): Combatant {
   return blessuresSurLeProfil({
-    id: 'e1', name: 'Arbalétrier', kind: 'enemy', characteristics: CHARS, wounds: blessuresDeBase(10),
+    id: 'e1', name: 'Arbalétrier', kind: 'ennemi', characteristics: CHARS, wounds: blessuresDeBase(10),
     advantage: 0, conditions: [], movement: 4, skills: [], talents: [], traits: [], engagedWith: [],
     size: 'moyenne', weapons: [CROSSBOW], items: [],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -38,7 +38,7 @@ function enemyWith(over: Partial<Combatant>): Combatant {
 }
 function heroAt(x: number, y: number): Combatant {
   return blessuresSurLeProfil({
-    id: 'h1', name: 'Héros', kind: 'hero', characteristics: CHARS, wounds: blessuresDeBase(12),
+    id: 'h1', name: 'Héros', kind: 'heros', characteristics: CHARS, wounds: blessuresDeBase(12),
     advantage: 0, conditions: [], movement: 4, skills: [], talents: [], traits: [], engagedWith: [],
     pos: { x, y }, size: 'moyenne',
     weapons: [{ name: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [] }],

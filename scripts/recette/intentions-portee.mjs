@@ -40,7 +40,7 @@ export function parseArgs(argv) {
 }
 
 /** Arrêt du pilote : la main à un HÉROS piloté, Action et Mouvement intacts. */
-const herosIntact = (l) => !!l.auto.active && l.auto.active.kind === 'hero' && !l.auto.active.aiDriven && !l.battle.acted && l.battle.movementUsed === 0;
+const herosIntact = (l) => !!l.auto.active && l.auto.active.kind === 'heros' && !l.auto.active.aiDriven && !l.battle.acted && l.battle.movementUsed === 0;
 
 /** Pilote le combat (`piloterCombat`, au geste du joueur) jusqu'au tour d'un héros intact, puis lit l'état. */
 async function jusquAuHeros(session) {
@@ -82,7 +82,7 @@ const etat = (session) => evaluate(session, `(() => {
     actif: a ? { id: a.id, kind: a.kind, pos: a.pos, mvt: a.movement } : null,
     mouvementUse: b ? b.movementUsed : null, acted: b ? b.acted : null,
     pendingRun: !!s.pendingRun, pendingAttack: s.pendingAttack ? { cible: s.pendingAttack.targetId, charge: !!s.pendingAttack.fromCharge } : null,
-    ennemis: b ? b.combatants.filter((c) => c.kind === 'enemy' && c.pos).map((c) => ({ id: c.id, pos: c.pos })) : [],
+    ennemis: b ? b.combatants.filter((c) => c.kind === 'ennemi' && c.pos).map((c) => ({ id: c.id, pos: c.pos })) : [],
   };
 })()`);
 

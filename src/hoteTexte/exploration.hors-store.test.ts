@@ -97,7 +97,7 @@ describe('le groupe en exploration', () => {
 
   it('la carte d’exploration nomme les héros du groupe avec leur id', () => {
     const t = table(fixture('croisee-ecuries.jsonl'));
-    expect(t.lire('carte').texte).toMatch(/^groupe \(\d+,\d+\) · \d+ héros · \d+ entité\(s\)\n {2}soldat-de-test · hero · Soldat$/m);
+    expect(t.lire('carte').texte).toMatch(/^groupe \(\d+,\d+\) · \d+ héros · \d+ entité\(s\)\n {2}soldat-de-test · heros · Soldat$/m);
   });
 
   it('la fenêtre qui tient la main se lit hors combat, avec ses verbes', () => {

@@ -194,7 +194,7 @@ function rendu() {
     "await evaluate(session, `window.__wfrp.fight('enc-entrainement')`);       // l'affrontement du scénario",
     "// ouvrir le Round et avoir la main d'un héros, puis :",
     "// { x, y } = une case au contact du héros visé (positions : __wfrp.battle())",
-    "await evaluate(session, `window.__wfrp.spawn('ours', { x: 8, y: 5 }, { side: 'enemy', id: 'ours' })`);",
+    "await evaluate(session, `window.__wfrp.spawn('ours', { x: 8, y: 5 }, { side: 'ennemi', id: 'ours' })`);",
     "await evaluate(session, `window.__wfrp.quality('ours', null, 1)`);       // 1 Avantage = coût de la Morsure",
     "await evaluate(session, `window.__wfrp.attaqueGratuite('ours', 'hero-1')`); // modale de Défense ouverte",
     '```',

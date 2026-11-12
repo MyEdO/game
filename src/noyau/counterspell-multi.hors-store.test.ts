@@ -35,8 +35,8 @@ describe('Contre-sort à plusieurs candidats — N tenteurs (flux multi)', () =>
     banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('debutDuRound');
     const b = banc.getState().battle!;
-    const heroes = b.combatants.filter((c) => c.kind === 'hero');
-    const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+    const heroes = b.combatants.filter((c) => c.kind === 'heros');
+    const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
     enemies.slice(2).forEach((e) => (e.dead = true));
     const [E, E2] = enemies;
     for (const e of [E, E2]) {

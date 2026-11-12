@@ -232,7 +232,7 @@ async function jusquAuTourDuJoueur(session) {
 const AU_TOUR_DU_JOUEUR = `(() => {
   const s = window.__wfrp.store.getState();
   const b = s.battle;
-  const i = b.order.findIndex((id) => (b.combatants.find((c) => c.id === id) || {}).kind === 'hero');
+  const i = b.order.findIndex((id) => (b.combatants.find((c) => c.id === id) || {}).kind === 'heros');
   if (i < 0) throw new Error('aucun héros dans l’ordre d’initiative');
   window.__wfrp.store.setState({ battle: { ...b, turn: i, acted: false }, pendingRoundStart: null });
   return i;
@@ -242,7 +242,7 @@ const AU_TOUR_DU_JOUEUR = `(() => {
 const AU_TOUR_ADVERSE = `(() => {
   const s = window.__wfrp.store.getState();
   const b = s.battle;
-  const i = b.order.findIndex((id) => (b.combatants.find((c) => c.id === id) || {}).kind === 'enemy');
+  const i = b.order.findIndex((id) => (b.combatants.find((c) => c.id === id) || {}).kind === 'ennemi');
   if (i < 0) throw new Error('aucun ennemi dans l’ordre d’initiative');
   window.__wfrp.store.setState({ battle: { ...b, turn: i }, pendingRoundStart: null });
   return i;

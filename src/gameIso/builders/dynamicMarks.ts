@@ -249,7 +249,7 @@ export function teamRingDecor(c: Combatant, heroIndex?: number): { color: string
   const camp = campOf(c);
   const isEnemy = camp === 'hostile';
   return {
-    color: isEnemy ? ENEMY_RING : camp === 'party' && heroIndex != null ? HERO_RING[heroIndex] ?? OUT_OF_PARTY_RING : OUT_OF_PARTY_RING,
+    color: isEnemy ? ENEMY_RING : camp === 'groupe' && heroIndex != null ? HERO_RING[heroIndex] ?? OUT_OF_PARTY_RING : OUT_OF_PARTY_RING,
     dash: teamShape(isEnemy),
   };
 }

@@ -18,12 +18,12 @@ const CHARS = { 'capacite-de-combat': 30, 'capacite-de-tir': 60, force: 30, endu
 
 /** Un emplacement au sol dont la baliste, aux deux carreaux du catalogue, est hydratée à sa place, comme au spawn (`spawn.ts`). */
 const emplacement = (id: string, pos: { x: number; y: number }): Combatant =>
-  combattantDeTest({ id, label: id, kind: 'enemy', pos, conditions: [], weapons: [], items: [], inert: true,
+  combattantDeTest({ id, label: id, kind: 'ennemi', pos, conditions: [], weapons: [], items: [], inert: true,
     wounds: blessuresDeBase(0), advantage: 0,
     postes: [hydratePoste({ trappingId: 'baliste', ammo: { 'carreau-de-baliste': 4, 'carreau-nain-norse': 4 } }, `${id}-poste-0`)] });
 
 const heros = (pos: { x: number; y: number }): Combatant =>
-  combattantDeTest({ id: 'hero', label: 'hero', kind: 'hero', characteristics: CHARS, pos, movement: 4,
+  combattantDeTest({ id: 'hero', label: 'hero', kind: 'heros', characteristics: CHARS, pos, movement: 4,
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], skills: [], talents: [], weapons: [], items: [],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 } });
 

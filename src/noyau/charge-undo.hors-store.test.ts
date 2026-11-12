@@ -18,13 +18,13 @@ const armour = { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 };
 
 function setup(): void {
   const hero = blessuresSurLeProfil({
-    id: 'h', name: 'H', kind: 'hero', characteristics: chars, wounds: blessuresDeBase(20),
+    id: 'h', name: 'H', kind: 'heros', characteristics: chars, wounds: blessuresDeBase(20),
     advantage: 1, conditions: [], movement: 4, skills: [], talents: [], traits: [], armour,
     weapons: [{ name: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0 }, qualities: [] }],
     pos: { x: 6, y: 5 }, chargedThisTurn: true, chargeAvecAvantage: true, gainedAdvThisRound: true, // état APRÈS la charge
   }) as unknown as Combatant;
   const enemy = blessuresSurLeProfil({
-    id: 'e', name: 'E', kind: 'enemy', characteristics: chars, wounds: blessuresDeBase(20),
+    id: 'e', name: 'E', kind: 'ennemi', characteristics: chars, wounds: blessuresDeBase(20),
     advantage: 0, conditions: [], movement: 4, skills: [], talents: [], traits: [], weapons: [], armour, pos: { x: 7, y: 5 },
   }) as unknown as Combatant;
   const battle = {

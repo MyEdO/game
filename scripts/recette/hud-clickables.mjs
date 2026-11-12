@@ -515,7 +515,7 @@ async function monterLeDock(session) {
     const verdict = await evaluate(session, `(() => {
       const b = window.__wfrp.store.getState().battle;
       if (!b) return 'aucun combat';
-      const id = b.order.find((x) => ((b.combatants.find((c) => c.id === x) || {}).kind) === 'hero');
+      const id = b.order.find((x) => ((b.combatants.find((c) => c.id === x) || {}).kind) === 'heros');
       return id ? window.__wfrp.turn(id) : 'aucun héros dans l ordre d initiative';
     })()`);
     console.log(`  (mise en place : premier tour tenu par un héros — ${verdict})`);

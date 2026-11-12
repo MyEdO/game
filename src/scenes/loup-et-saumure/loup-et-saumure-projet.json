@@ -1798,7 +1798,7 @@
        "side": "ennemi"
       }
      ],
-     "surprise": "party",
+     "surprise": "groupe",
      "onVictory": {
       "kind": "sequence",
       "etapes": [
@@ -3108,7 +3108,7 @@
        "side": "ennemi"
       }
      ],
-     "surprise": "party",
+     "surprise": "groupe",
      "onVictory": {
       "kind": "sequence",
       "etapes": [
@@ -3145,7 +3145,7 @@
       ]
      },
      "threat": {
-      "camp": "enemies",
+      "camp": "ennemis",
       "tier": "dangereuse"
      },
      "victoryCondition": {

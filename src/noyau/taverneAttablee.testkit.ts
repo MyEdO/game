@@ -7,7 +7,7 @@ import { emptyScene, type Scene } from './monde/scene';
 import { assignSeat } from './monde/seating';
 import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 
-const hero = (id: string) => combattantDeTest({ id, label: id.toUpperCase(), kind: 'hero' });
+const hero = (id: string) => combattantDeTest({ id, label: id.toUpperCase(), kind: 'heros' });
 
 export const ALDO = hero('aldo');
 export const BRUNA = hero('bruna');

@@ -31,12 +31,12 @@ describe('Hurlement fantomatique — Test de Résistance influençable (héros m
     banc.abandonner();
     banc.getState().ensemencerLeTirage(2);
     const b = banc.getState().battle!;
-    const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+    const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
     enemies.slice(1).forEach((e) => (e.dead = true));
     const E = enemies[0];
     E.traits = [{ id: 'hurlement-fantomatique' }]; E.advantage = 4; E.characteristics.initiative = 40; // portée 20 m
     E.pos = { x: 5, y: 5 };
-    for (const h of b.combatants.filter((c) => c.kind === 'hero')) {
+    for (const h of b.combatants.filter((c) => c.kind === 'heros')) {
       h.wounds = blessuresDeBase(40, 40, h);
       h.characteristics.endurance = 1; // Résistance minime → échec quasi certain → Brisé attendu sur validation
       h.skills = h.skills.filter((s) => s.id !== 'resistance');
@@ -63,7 +63,7 @@ describe('Hurlement fantomatique — Test de Résistance influençable (héros m
     for (const s of tt) { expect(s.result).toBeFalsy(); expect(s.target).toBeGreaterThan(0); }
     // Brisé DIFFÉRÉ : aucun héros n'est encore Brisé (les 1d10 auto sont appliqués, pas le Brisé).
     const live = () => banc.getState().battle!.combatants;
-    for (const h of live().filter((c) => c.kind === 'hero')) {
+    for (const h of live().filter((c) => c.kind === 'heros')) {
       expect(h.conditions.some((c) => c.id === 'brise'), `${h.label} ne doit PAS être Brisé avant validation`).toBe(false);
     }
 
@@ -72,7 +72,7 @@ describe('Hurlement fantomatique — Test de Résistance influençable (héros m
     // (3) reprise propre : cascade fermée (pas d'orphelin).
     expect(banc.getState().pendingCascade, 'la cascade doit se fermer proprement').toBeNull();
     // Brisé appliqué sur échec de Résistance + Assourdi (continuation `after`).
-    const brise = live().filter((c) => c.kind === 'hero' && c.conditions.some((x) => x.id === 'brise'));
+    const brise = live().filter((c) => c.kind === 'heros' && c.conditions.some((x) => x.id === 'brise'));
     expect(brise.length, 'Résistance ratée → Brisé appliqué à la validation').toBeGreaterThanOrEqual(1);
   });
 

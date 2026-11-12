@@ -43,14 +43,14 @@ export interface InanimateSpec {
   inert?: boolean;
 }
 
-/** Construit le `Combatant` transitoire d'un objet inanimé : `kind:'npc'`, caractéristiques nulles sauf
+/** Construit le `Combatant` transitoire d'un objet inanimé : `kind:'pnj'`, caractéristiques nulles sauf
  *  l'Endurance de coque, Blessures = pool de coque (0 si inerte), inerte (`psychImmune`, `movement:0`, pas
  *  d'arme). C'est la SOURCE UNIQUE du squelette — `structureCombatant`/`vehicleCombatant` le paramètrent. */
 export function inanimateCombatant(s: InanimateSpec): Combatant {
   const sansBlessures: Omit<Combatant, 'wounds'> = {
     id: s.id,
     label: s.label,
-    kind: 'npc',
+    kind: 'pnj',
     creatureId: s.refId,
     characteristics: { ...ZERO_CHARS, endurance: s.hull?.e ?? 0 },
     advantage: 0,

@@ -40,7 +40,7 @@ const BRANCHES = { onSuccess: EMPTY_FLOW, onFail: EMPTY_FLOW };
 
 function combatant(p: Partial<Combatant> & { id: string }): Combatant {
   return blessuresSurLeProfil({
-    label: p.id, kind: 'hero',
+    label: p.id, kind: 'heros',
     characteristics: {
       'capacite-de-combat': 35, 'capacite-de-tir': 40, force: 50, endurance: 40, initiative: 30,
       agilite: 30, dexterite: 32, intelligence: 40, 'force-mentale': 35, sociabilite: 30,
@@ -55,7 +55,7 @@ function combatant(p: Partial<Combatant> & { id: string }): Combatant {
 function setBattle(combatants: Combatant[], activeId: string) {
   const order = combatants.map((c) => c.id);
   banc.setState({
-    mode: 'battle', party: combatants.filter((c) => c.kind === 'hero'),
+    mode: 'battle', party: combatants.filter((c) => c.kind === 'heros'),
     battle: {
       combatants, order, baseOrder: order, turn: order.indexOf(activeId), round: 1,
       action: null, selectedSpellId: null, reachable: new Map(), movementUsed: 0, acted: false,
@@ -77,7 +77,7 @@ describe('TÉMOIN — la sonde `REPLIS_DEUX_CIBLES` est vivante dans ce runtime'
  *  s'inversent face à un attaquant sain, et un départage sur les cibles donnerait l'autre vainqueur. */
 function bandeInversee() {
   const def = combatant({ id: 'def', conditions: [{ id: 'extenue', value: 2 }] as never });
-  const att = combatant({ id: 'att', kind: 'enemy', characteristics: { ...combatant({ id: 'x' }).characteristics, force: 45 } as never });
+  const att = combatant({ id: 'att', kind: 'ennemi', characteristics: { ...combatant({ id: 'x' }).characteristics, force: 45 } as never });
   setBattle([def, att], 'att');
   return { def, att };
 }
@@ -134,8 +134,8 @@ describe('G4 — VOIE MONO : cascade opposée influençable et jet INLINE', () =
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
     const wielder = enemies[0];
     const prey = enemies[1];
     enemies.slice(2).forEach((e) => (e.dead = true));

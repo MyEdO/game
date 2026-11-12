@@ -16,10 +16,10 @@ import { unarmedWeapon } from '../engine/items';
  *  d'opposition annonce la ligne que la cible roule. LDB 46 l.156 ; LDB 12 l.166 ; LDB 17 l.24/l.68. */
 beforeAll(() => { (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true; });
 const chars = { 'capacite-de-combat': 45, 'capacite-de-tir': 50, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 40, 'force-mentale': 40, sociabilite: 30 };
-const mk = (id: string, label: string, kind: 'hero' | 'enemy', extra: Partial<Combatant> = {}): Combatant =>
+const mk = (id: string, label: string, kind: 'heros' | 'ennemi', extra: Partial<Combatant> = {}): Combatant =>
   blessuresSurLeProfil({ id, name: id, label, kind, characteristics: { ...chars }, conditions: [], traumas: [], engagedWith: [],
     skills: [{ id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 20 }], talents: [], items: [],
-    weapons: [unarmedWeapon()], advantage: 0, size: 'moyenne', pos: { x: kind === 'hero' ? 0 : 1, y: 0 }, wounds: blessuresDeBase(18),
+    weapons: [unarmedWeapon()], advantage: 0, size: 'moyenne', pos: { x: kind === 'heros' ? 0 : 1, y: 0 }, wounds: blessuresDeBase(18),
     resilience: 2, fortune: 2, species: 'humains-reiklander', bodyShape: 'humanoide', movement: 4,
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, ...extra } as unknown as Combatant);
 const SOLO = { mode: 'local', mySeat: 0, roomCode: null, seatNames: {}, presence: {}, ownership: {} };
@@ -32,13 +32,13 @@ function poser(combatants: Combatant[], pendingCast: PendingCast, extra: Record<
   useGame.setState({
     battle: { combatants, order: combatants.map((c) => c.id), baseOrder: combatants.map((c) => c.id), turn: 0, round: 1, action: null, selectedSpellId: null,
       reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null } as never,
-    mode: 'battle', scene: testScene(), net: SOLO as never, party: combatants.filter((c) => c.kind === 'hero'),
+    mode: 'battle', scene: testScene(), net: SOLO as never, party: combatants.filter((c) => c.kind === 'heros'),
     pendingDefense: null, pendingAttack: null, pendingCascade: null, pendingCastOpposition: null, pendingCounterspell: null,
     pendingCast, ...extra,
   });
 }
 function monterContreSort(parts: unknown[]) {
-  poser([mk('E', 'Ennemi', 'enemy'), mk('A', 'Anna', 'hero'), mk('B', 'Bert', 'hero')],
+  poser([mk('E', 'Ennemi', 'ennemi'), mk('A', 'Anna', 'heros'), mk('B', 'Bert', 'heros')],
     { casterId: 'E', targetId: 'A', spellId: 'drain', missile: false, focused: false, counterspellRouted: true, result: ENEMY_CAST } as never,
     { pendingCounterspell: { participants: parts } });
   act(() => { root.render(<CastModal />); });
@@ -69,9 +69,9 @@ describe('Contre-sort — la rangée refusée ne propose aucun geste et dit le r
 
 describe('Opposition de la cible — la ligne annoncée est celle que la cible roule', () => {
   it('Fauche-démon, cible Exténuée : « Force Mentale », base 40, puce Exténué −10, cible 30', () => {
-    const A = mk('A', 'Anna', 'hero', { conditions: [{ id: 'extenue', value: 1 }] as never });
+    const A = mk('A', 'Anna', 'heros', { conditions: [{ id: 'extenue', value: 1 }] as never });
     const pc = { casterId: 'E', targetId: 'A', spellId: 'fauche-demon', missile: false, focused: false, result: ENEMY_CAST } as never as PendingCast;
-    poser([mk('E', 'Ennemi', 'enemy'), A], pc);
+    poser([mk('E', 'Ennemi', 'ennemi'), A], pc);
     act(() => { openCastOpposition(useGame.getState, useGame.setState, pc, [A]); });
     act(() => { root.render(<CastModal />); });
     const zones = host.querySelectorAll('.cs-rows');

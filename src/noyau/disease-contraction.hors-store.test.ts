@@ -14,7 +14,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const hero = (p: Partial<Combatant>): Combatant =>
   (blessuresSurLeProfil({
-    id: 'a', label: 'A', kind: 'hero',
+    id: 'a', label: 'A', kind: 'heros',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], skills: [], talents: [],
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -124,7 +124,7 @@ describe('Fin de combat — règle « Utilisation des Maladies » (maladie-mode,
 });
 
 // #143 : le vrai prédicat RAW de la boucle de fin de combat est « suit les règles de Personnage »
-// (LDB 18 l.5 « la plupart des Personnages » ; LDB 20 l.14/206 « Personnage »), pas `kind === 'hero'` —
+// (LDB 18 l.5 « la plupart des Personnages » ; LDB 20 l.14/206 « Personnage »), pas `kind === 'heros'` —
 // un ennemi MODÉLISÉ comme personnage (PNJ humain hostile, `followsCharacterRules`) fait ses Tests de
 // fin de combat (maladie/Corruption) comme un héros ; une créature générique en reste exemptée.
 describe('Fin de combat — prédicat personnage-vs-créature (#143, followsCharacterRules)', () => {
@@ -133,7 +133,7 @@ describe('Fin de combat — prédicat personnage-vs-créature (#143, followsChar
   const e30 = { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
   const enemy = (p: Partial<Combatant>): Combatant =>
     (blessuresSurLeProfil({
-      id: 'e', label: 'E', kind: 'enemy',
+      id: 'e', label: 'E', kind: 'ennemi',
       characteristics: e30,
       wounds: blessuresDeBase(12), advantage: 0, conditions: [], skills: [], talents: [],
       weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
