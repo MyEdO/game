@@ -42,13 +42,15 @@ function frapper(banc: Banc, attaquant: Combatant, cible: Combatant, des: number
 }
 
 describe('coup encaissé hors bataille, assaillant par valeur (#3892)', () => {
-  it('touche simple : Blessures retirées, la ligne du coup au journal', () => {
+  it('touche simple : Blessures retirées, la ligne du coup au journal, le groupe renouvelé (`touchActors`)', () => {
     const { banc, H, E } = horsBataille();
     const avant = H.wounds.current;
+    const groupe = banc.getState().party;
     const res = frapper(banc, E, H, [23, 95]);
     expect(res.hit && !!res.woundsLost).toBe(true);
     expect(H.wounds.current).toBe(avant - res.woundsLost!);
     expect(banc.getState().journal).toContain(ligneDuCoup(res));
+    expect(banc.getState().party).not.toBe(groupe);
   });
 
   it('Critique sur un double réussi malgré l’échange perdu : LDB 13 l.183 ; LDB 14 l.3', () => {
