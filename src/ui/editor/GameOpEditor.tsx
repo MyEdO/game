@@ -93,13 +93,13 @@ const OP_ICON: Record<GameOp['op'], IconId> = {
   armourPierce: 'objet/arme', critOnRoll: 'journal/critique', spendAdvantage: 'drapeau/focalisation', rollThreshold: 'navigation/des',
   rollTable: 'navigation/des', rollMutation: 'navigation/mutation', charDamage: 'mecanique/modificateur',
   intoxicate: 'objet/consommable', narrative: 'journal/detail',
-  shipMorale: 'voyage/ancre', manann: 'voyage/ancre', shipCritical: 'voyage/ancre', navireMod: 'voyage/ancre', meteoImposee: 'nautique/vent', cargaison: 'objet/divers', provisions: 'objet/consommable', equipage: 'voyage/ancre', perilDeMer: 'nautique/vent', navireHostile: 'voyage/ancre', infestation: 'medical/infection', combatEnMer: 'action/attaquer', marcheDuPort: 'marchand/panier', commission: 'marchand/panier', constructeurDEscale: 'voyage/ancre', rationsDEscale: 'objet/consommable',
+  shipMorale: 'voyage/ancre', manann: 'voyage/ancre', shipCritical: 'voyage/ancre', navireMod: 'voyage/ancre', meteoImposee: 'nautique/vent', cargaison: 'objet/divers', provisions: 'objet/consommable', equipage: 'voyage/ancre', perilDeMer: 'nautique/vent', navireHostile: 'voyage/ancre', infestation: 'medical/infection', combatEnMer: 'action/attaquer', attaquesSubies: 'action/attaquer', marcheDuPort: 'marchand/panier', commission: 'marchand/panier', constructeurDEscale: 'voyage/ancre', rationsDEscale: 'objet/consommable',
 };
 
 /** TOUTES les op du vocabulaire, groupées par intention d'auteur. Libellé de groupe = texte SEUL
  *  (titre de rubrique du menu). */
 const OP_GROUPS: [string, GameOp['op'][]][] = [
-  ['Dégâts & soin', ['wounds', 'heal', 'healCaster', 'fall', 'lifeSteal', 'reduceToZero', 'banish', 'kill']],
+  ['Dégâts & soin', ['wounds', 'heal', 'healCaster', 'fall', 'lifeSteal', 'reduceToZero', 'banish', 'kill', 'attaquesSubies']],
   ['États', ['condition', 'removeCondition']],
   ['Buffs & caractéristiques', ['charMod', 'ap', 'testMod', 'skillDRBonus', 'charDRBonus', 'crewTestMod', 'ignoreStatePenalties', 'freeReroll', 'critTwice']],
   ['Ressources', ['gainResource', 'corruption', 'sinMod', 'corruptionExposure']],

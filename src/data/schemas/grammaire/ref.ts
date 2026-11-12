@@ -1006,8 +1006,18 @@ export function refOuSpec<T extends TypeEntite, E extends Record<string, z.ZodTy
   return noeudASpecialisation(type, extra, regime);
 }
 
-/** Une issue de FORME : la valeur n'a pas la silhouette de la branche (type ou clé). */
-const estDeForme = (issue: { readonly code: string }): boolean => issue.code === 'invalid_type' || issue.code === 'unrecognized_keys';
+/** Une issue zod, et, d'une union, celles de chacune de ses branches. */
+interface IssueDeParse { readonly code: string; readonly message: string; readonly errors?: readonly (readonly IssueDeParse[])[] }
+
+/** Une issue de FORME : la valeur n'a pas la silhouette de la branche (type, clé, ou valeur d'un littéral ou d'une
+ *  énumération) ; d'une union, aucune de ses branches n'a la sienne. */
+const estDeForme = (issue: IssueDeParse): boolean =>
+  ['invalid_type', 'unrecognized_keys', 'invalid_value'].includes(issue.code) || (issue.code === 'invalid_union' && (issue.errors ?? []).every((b) => b.some(estDeForme)));
+
+/** La valeur `valeur` a-t-elle la forme du nœud `noeud` : son parse n'y lève aucune issue de forme (`estDeForme`),
+ *  seulement, au plus, celles de son contenu. */
+export const aLaFormeDe = (noeud: unknown, valeur: unknown): boolean =>
+  !((noeud as z.ZodType).safeParse(valeur).error?.issues as readonly IssueDeParse[] | undefined)?.some(estDeForme);
 
 /**
  * UNION DE FORMES — union dont les branches se distinguent par leur silhouette (`{ id }`, `{ id, spec }`,
@@ -1018,7 +1028,7 @@ const estDeForme = (issue: { readonly code: string }): boolean => issue.code ===
 export function unionDeFormes(branches: readonly [z.ZodType, ...z.ZodType[]]): z.ZodType<unknown> {
   return z.union(branches, {
     error: (iss) => {
-      const parBranche = (iss as { errors?: readonly (readonly { code: string; message: string }[])[] }).errors ?? [];
+      const parBranche = (iss as IssueDeParse).errors ?? [];
       return parBranche.find((b) => b.length > 0 && !b.some(estDeForme))?.[0]?.message;
     },
   });

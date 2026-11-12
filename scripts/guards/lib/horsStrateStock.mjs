@@ -461,7 +461,6 @@ export const STRUCTURES_LOCALES = [
   { fichier: 'src/scenes#projet', ref: '.scenes[].entities[]|kind=heroStart.light', occurrence: 1 },
   { fichier: 'src/scenes#projet', ref: '.scenes[].entities[]|kind=heroStart.merchant', occurrence: 1 },
   { fichier: 'src/scenes#projet', ref: '.scenes[].entities[]|kind=heroStart.postes[]', occurrence: 1 },
-  { fichier: 'src/scenes#projet', ref: '.scenes[].entities[]|kind=heroStart.statblock', occurrence: 1 },
   { fichier: 'src/scenes#projet', ref: '.scenes[].entities[]|kind=heroStart.tavernGame', occurrence: 1 },
   { fichier: 'src/scenes#projet', ref: '.scenes[].entities[]|kind=heroStart.usable', occurrence: 1 },
   { fichier: 'src/scenes#projet', ref: '.scenes[].entities[]|kind=heroStart.usable.actions[]', occurrence: 1 },

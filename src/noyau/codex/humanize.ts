@@ -648,6 +648,7 @@ export function humanizeOp(o: GameOp): string {
       + `${o.adversaire.optionals ? t('codex.op.combatEnMer.facultatifs', { traits: o.adversaire.optionals.map((p) => traitLisible(p)).join(', ') }) : ''}`
       + `${o.repousseAPct !== undefined ? t('codex.op.combatEnMer.repousse', { pct: o.repousseAPct }) : ''}`
       + `${o.victoire ? t('codex.op.combatEnMer.victoire', { victoire: humanizeFlow(o.victoire, []) }) : ''}`;
+    case 'attaquesSubies': return t('codex.op.attaquesSubies', { nombre: o.nombre, assaillant: o.assaillant.statblock.label });
     case 'commission': return t('codex.op.commission', { valeur: montantEnSous(o.montant.brass) });
     case 'constructeurDEscale': return t('codex.op.constructeurDEscale', { competence: o.competence, duree: humanizeFormula(o.duree) });
     case 'rationsDEscale': return t('codex.op.rationsDEscale', { valeur: montantEnSous(o.montant.brass) });

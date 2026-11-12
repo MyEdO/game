@@ -310,8 +310,8 @@ export interface ZonesDeLEditeur {
    * valeur neuve (ses seuls champs requis) ;
    *
    * une union dont chaque variante est nommée (`unionDuNoeud`, `src/noyau/codex/editFields.ts` : une Condition, une op,
-   * toute union discriminée, ou qui se lit à la présence de son discriminant, ou à la clé propre de ses branches, comme
-   * une formule, son nombre et chacune de ses formes), le choix de sa variante, d'id `valeur/<chemin>/<discriminant>`
+   * toute union discriminée, ou qui se lit à la présence de son discriminant, ou sans discriminant, à la forme de ses
+   * branches, comme une formule, son nombre et chacune de ses formes), le choix de sa variante, d'id `valeur/<chemin>/<discriminant>`
    * (`valeur/<chemin>/forme` sans discriminant), chaque variante posant sa valeur neuve (`variantesAChoisir`,
    * `src/noyau/valeursNeuves.ts` : `recast` pour une Condition, qui enveloppe la courante sous ET, OU, NON ; `newOp`
    * pour une op), la courante pressée, précédées de « Aucune » si son absence est admise, puis les champs de la
@@ -1241,7 +1241,7 @@ function elementsDuRecord(porteur: PorteurDeValeur, f: FieldDesc, valeur: unknow
 }
 
 /** Les éléments du champ union `f` (`unionDuNoeud`), de valeur `valeur`, au chemin `ici`, les discriminants `tenus` déjà
- *  choisis : le choix de sa variante, d'id `valeur/<chemin>/<discriminant>` (`…/forme` d'une union à clé propre),
+ *  choisis : le choix de sa variante, d'id `valeur/<chemin>/<discriminant>` (`…/forme` d'une union sans discriminant),
  *  chacune posant sa valeur (celles que son
  *  contexte y pose, `FieldDesc.contexte`, sinon `variantesAChoisir`), suivi de « Aucune » si son absence est
  *  admise ; puis, de la variante courante, une union

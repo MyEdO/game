@@ -4633,6 +4633,7 @@ export const fr = {
   'codex.op.cargaison.perdueEnPourcentage': 'fait perdre {pct} % de l’Encombrement de la cale',
   'codex.op.cargaison.perdueEnEncombrement': 'fait perdre {enc} Encombrement de la cale',
   'codex.op.combatEnMer': 'un combat sur le pont contre {nombre} × {adversaire}',
+  'codex.op.attaquesSubies': 'subit {nombre} attaque(s) de {assaillant}',
   'codex.op.constructeurDEscale': 'jusqu’à l’appareillage, la réparation au port se teste à Métier (Constructeur de navires) {competence} et prend {duree} jour(s)',
   'codex.op.rationsDEscale': 'jusqu’à l’appareillage, la ration-jour de cale s’achète au port à {valeur}',
   'codex.op.commission': 'un colis à livrer dans un port tiré au hasard, hors l’escale ; à l’accostage dans ce port, la bourse du groupe gagne {valeur}',
