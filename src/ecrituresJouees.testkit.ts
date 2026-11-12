@@ -95,29 +95,58 @@ function presser(s: SessionDEdition, id: string): SessionDEdition {
 /** Les collections de la scène où vit le porteur de chaque sorte du geste `valeur`. */
 const COLLECTION_DU_PORTEUR = { zone: 'effectZones', declencheur: 'triggers', entite: 'entities' } as const satisfies Record<SorteDePorteur, keyof Scene>;
 
+/** La FORME d'une valeur : ses clés, pour un objet ; sinon son type. */
+const forme = (v: unknown): string => (Array.isArray(v) ? '[]' : estObjet(v) ? Object.keys(v).sort().join(',') : typeof v);
+
+/** L'EMPREINTE de l'écriture `geste` portée par la saisie `saisie` sur la session `s` : la sorte de son porteur, son
+ *  chemin aux rangs effacés, la forme du porteur et de chaque objet que le chemin traverse, celle de la valeur jouée.
+ *  Deux écritures de même empreinte écrivent les mêmes champs du même type : la seconde ne s'ajoute à rien. */
+function empreinte(s: SessionDEdition, geste: Extract<GesteDEdition, { geste: 'valeur' }>, saisie: string): string {
+  const porteurs: readonly unknown[] = sceneEditee(s)[COLLECTION_DU_PORTEUR[geste.porteur.sorte]] ?? [];
+  let v: unknown = porteurs.find((p) => estObjet(p) && p.id === geste.porteur.id);
+  const formes = [forme(v)];
+  for (const pas of geste.chemin.slice(0, -1)) {
+    v = estObjet(v) || Array.isArray(v) ? (v as Record<string | number, unknown>)[pas] : undefined;
+    formes.push(forme(v));
+  }
+  return JSON.stringify([geste.porteur.sorte, geste.chemin.map((p) => (typeof p === 'number' ? '#' : p)), saisie, formes, forme(geste.valeur)]);
+}
+
+/** Les empreintes déjà jouées de chaque partie (`ecrituresJouees`), par son `out`. */
+const empreintesJouees = new WeakMap<EcritureJouee[], Set<string>>();
+
 /** La session `s` où chaque offre du geste `valeur` de son inspecteur est jouée une fois, celles qui emportent des champs
  *  après les autres, la plus profonde d'abord, jusqu'à ce qu'aucune ne reste ; le choix d'une autre variante rouvre les
- *  offres de ses champs ; seules jouent les offres dont l'id commence par `branche` (toutes, par défaut) ; chaque
- *  écriture, avec son chemin depuis la scène, s'ajoute à
- *  `out` : le choix d'une variante écrit son discriminant (l'id de son choix, `valeur/<chemin>/<discriminant>`). */
-function jouerLInspecteur(depart: SessionDEdition, out: EcritureJouee[], branche = ''): SessionDEdition {
+ *  offres de ses champs ; seules jouent les offres dont l'id commence par l'une des `branches` (toutes, par défaut), et
+ *  dont l'empreinte (`empreinte`) n'a pas déjà été jouée dans la partie ; chaque écriture, avec son chemin depuis la
+ *  scène, s'ajoute à `out` : le choix d'une variante écrit son discriminant (l'id de son choix,
+ *  `valeur/<chemin>/<discriminant>`). */
+function jouerLInspecteur(depart: SessionDEdition, out: EcritureJouee[], branches: readonly string[] = ['']): SessionDEdition {
   let s = depart;
   const jouees = new Set<string>();
+  const deja = empreintesJouees.get(out) ?? empreintesJouees.set(out, new Set()).get(out)!;
   for (let n = 0; n < GESTES_AU_PLUS; n++) {
     const zones = zonesDeLEditeur(s);
-    const restantes = offres(zones['editeur.inspecteur']).filter((o) => o.id.startsWith(branche) && !jouees.has(o.id));
-    const offre = restantes.find((o) => !o.emporte) ?? restantes.reduce((a, o) => (o.chemin.length > a.chemin.length ? o : a), restantes[0]);
-    if (!offre) return s;
-    jouees.add(offre.id);
-    // Une autre variante choisie rouvre les champs qu'elle porte, homonymes de ceux de la variante quittée.
-    if (offre.emporte && offre.saisie === 'saisieChoix') {
-      const sous = `valeur/${offre.chemin.join('/')}/`;
-      for (const id of jouees) if (id !== offre.id && id.startsWith(sous)) jouees.delete(id);
+    const restantes = offres(zones['editeur.inspecteur']).filter((o) => branches.some((b) => o.id.startsWith(b)));
+    for (;;) {
+      const libres = restantes.filter((o) => !jouees.has(o.id));
+      const offre = libres.find((o) => !o.emporte) ?? libres.reduce((a, o) => (o.chemin.length > a.chemin.length ? o : a), libres[0]);
+      if (!offre) return s;
+      jouees.add(offre.id);
+      const geste = gesteDuJeu(zones, offre.jeu);
+      if (geste?.geste !== 'valeur') throw new Error(`l’offre ${offre.id} ne joue pas le geste valeur`);
+      const cle = empreinte(s, geste, offre.saisie);
+      if (deja.has(cle)) continue;
+      deja.add(cle);
+      // Une autre variante choisie rouvre les champs qu'elle porte, homonymes de ceux de la variante quittée.
+      if (offre.emporte && offre.saisie === 'saisieChoix') {
+        const sous = `valeur/${offre.chemin.join('/')}/`;
+        for (const id of jouees) if (id !== offre.id && id.startsWith(sous)) jouees.delete(id);
+      }
+      const discriminant = offre.emporte && offre.saisie === 'saisieChoix' ? offre.id.slice(`valeur/${geste.chemin.join('/')}/`.length) : undefined;
+      s = ecrire(s, geste, offre.saisie, out, discriminant);
+      break;
     }
-    const geste = gesteDuJeu(zones, offre.jeu);
-    if (geste?.geste !== 'valeur') throw new Error(`l’offre ${offre.id} ne joue pas le geste valeur`);
-    const discriminant = offre.emporte && offre.saisie === 'saisieChoix' ? offre.id.slice(`valeur/${geste.chemin.join('/')}/`.length) : undefined;
-    s = ecrire(s, geste, offre.saisie, out, discriminant);
   }
   throw new Error(`plus de ${GESTES_AU_PLUS} offres du geste valeur`);
 }
@@ -165,25 +194,27 @@ function jouerLesVariantes(s: SessionDEdition, id: string, out: EcritureJouee[])
   for (const v of choixDeLInspecteur(zones, id).valeurs) {
     const geste = gesteDuJeu(zones, v.jeu);
     if (geste?.geste !== 'valeur') throw new Error(`la variante ${v.id} ne joue pas le geste valeur`);
-    jouerLInspecteur(ecrire(s, geste, 'saisieChoix', out, id.slice(`valeur/${geste.chemin.join('/')}/`.length)), out, branche);
+    jouerLInspecteur(ecrire(s, geste, 'saisieChoix', out, id.slice(`valeur/${geste.chemin.join('/')}/`.length)), out, [branche]);
   }
 }
 
 /** Les fiches du Bestiaire des personnages posés : la Vouivre (ZI), dont les options portent des Traits facultatifs et
- *  une note « swap » qui octroie des Caractéristiques et une Compétence ; l'Ombre du fleuve, dont les Miracles de Taal
- *  ouvrent des sorts à choisir (`listesDeSorts`). */
-const FICHES = ['vouivre-zoo-imperial', 'l-ombre-du-fleuve'] as const;
+ *  une note « swap » qui octroie des Caractéristiques et une Compétence, jouée à tout son inspecteur ; l'Ombre du fleuve,
+ *  dont les Miracles de Taal ouvrent des sorts à choisir (`listesDeSorts`), jouée à ces seules branches. Un personnage
+ *  rejoué ailleurs ne joue que les branches qu'il est seul à écrire : chaque geste de l'inspecteur rebâtit ses zones. */
+const FICHES = [['vouivre-zoo-imperial', ['']], ['l-ombre-du-fleuve', ['valeur/combat/ajouter', 'valeur/combat/spells']]] as const;
 
 /** La fiche d'un personnage enrôlé dans une rencontre neuve : son arme simple admet d'autres apparences que sa forme
  *  (`EntityAppearance.apparencesObjets`, #2948). */
-const ENROLE = 'sergent-du-guet';
+const ENROLE = { fiche: 'sergent-du-guet', branches: ['valeur/appearance/ajouter', 'valeur/appearance/apparencesObjets'] } as const;
 
 /** La scène d'un projet du jeu qui déclare un dialogue, et la case libre où s'y pose un personnage de la première des
  *  `FICHES`, qui le choisit (`dialogueId`). */
-const A_DIALOGUE = { campagne: 'loup-et-saumure', scene: 'ls-epilogue-salzenmund', case: { x: 4, y: 3 } } as const;
+const A_DIALOGUE = { campagne: 'loup-et-saumure', scene: 'ls-epilogue-salzenmund', case: { x: 4, y: 3 }, branches: ['valeur/dialogueId'] } as const;
 
 /** Le projet dont le narratif déclare des presets de PNJ (`presetsPnj`), qu'un personnage choisit (`presetId`). */
 const PROJET_A_PRESETS = 'la-diligence';
+const BRANCHES_DU_PRESET = ['valeur/presetId'];
 
 /** Le type du décor posé dans une scène neuve du `PROJET_A_PRESETS`, dont les actions authorées s'écrivent
  *  (`usable.actions`). */
@@ -210,8 +241,8 @@ const estCellule = (v: unknown): boolean => {
 };
 
 /** La coque pirate de la scène d'embuscade de la barge du sel, à Améliorations d'instance et à postes dotés de leur
- *  coffre (MDG 12), et sa case. */
-const COQUE = { campagne: 'barge-du-sel', scene: 'barge-du-sel-embuscade', case: { x: 18, y: 7 } } as const;
+ *  coffre (MDG 12), sa case, et les branches de navire qu'elle seule écrit. */
+const COQUE = { campagne: 'barge-du-sel', scene: 'barge-du-sel-embuscade', case: { x: 18, y: 7 }, branches: ['valeur/vehicule', 'valeur/upgrades', 'valeur/postes'] } as const;
 
 const point = (x: number, y: number) => ({ case: { x, y }, f: { x, y } });
 
@@ -235,19 +266,19 @@ export function ecrituresJouees(): EcritureJouee[] {
     s = presser(presser(s, 'outil/zone'), `zone/${sorte}`);
     s = jouerLInspecteur(jouer(jouer(s, { geste: 'appui', point: point(de, de) }), { geste: 'relache', point: point(a, a) }), out);
   }
-  FICHES.forEach((fiche, rang) => { s = jouerLInspecteur(cliquer(presser(presser(s, 'outil/personnage'), `personnage/${fiche}`), 5 + rang, 5), out); });
-  s = jouerLInspecteur(presser(cliquer(presser(presser(s, 'outil/personnage'), `personnage/${ENROLE}`), 5 + FICHES.length, 5), 'rencontre/neuve'), out);
+  FICHES.forEach(([fiche, branches], rang) => { s = jouerLInspecteur(cliquer(presser(presser(s, 'outil/personnage'), `personnage/${fiche}`), 5 + rang, 5), out, branches); });
+  s = jouerLInspecteur(presser(cliquer(presser(presser(s, 'outil/personnage'), `personnage/${ENROLE.fiche}`), 5 + FICHES.length, 5), 'rencontre/neuve'), out, ENROLE.branches);
   const aPresets = allBuiltinCampaigns.find((c) => c.id === PROJET_A_PRESETS);
   if (!aPresets) throw new Error(`aucune campagne ${PROJET_A_PRESETS}`);
   const neuve = presser(ouvrirLEdition(paquetDuJeu(aPresets), false, undefined, manifesteDe(CORPUS_DISQUE)), 'scenes/ajouter');
-  const pnj = jouerLInspecteur(cliquer(presser(presser(neuve, 'outil/personnage'), `personnage/${FICHES[0]}`), 5, 5), out);
+  const pnj = jouerLInspecteur(cliquer(presser(presser(neuve, 'outil/personnage'), `personnage/${FICHES[0][0]}`), 5, 5), out, BRANCHES_DU_PRESET);
   const decor = jouerLInspecteur(cliquer(presser(presser(pnj, 'outil/prop'), `prop/${DECOR}`), 3, 3), out);
   const action = presser(decor, choixDeLInspecteur(zonesDeLEditeur(decor), ACTION_DU_DECOR).valeurs[0].id);
   jouerLInspecteur(action, out);
   jouerLesVariantes(action, FLUX_DU_DECOR, out);
   const effet = jouer(action, gesteDuChoix(action, FLUX_DU_DECOR, (v) => estObjet(v) && v.kind === 'effet'));
   jouerLesVariantes(effet, EFFET_DU_DECOR, out);
-  const composee = jouerLInspecteur(jouer(effet, gesteDuChoix(effet, EFFET_DU_DECOR, (v) => estObjet(v) && v.type === PROSE_DU_DECOR.effet)), out, PROSE_DU_DECOR.adresse);
+  const composee = jouerLInspecteur(jouer(effet, gesteDuChoix(effet, EFFET_DU_DECOR, (v) => estObjet(v) && v.type === PROSE_DU_DECOR.effet)), out, [PROSE_DU_DECOR.adresse]);
   const livre = jouer(composee, gesteDuChoix(composee, `${PROSE_DU_DECOR.adresse}book`, (v) => v === CHAPITRE_A_TABLE.book));
   const adresse = jouer(livre, gesteDuChoix(livre, `${PROSE_DU_DECOR.adresse}ch`, (v) => v === CHAPITRE_A_TABLE.ch));
   const ajout = gesteDuChoix(adresse, `${PROSE_DU_DECOR.adresse}parts/ajouter`, estCellule);
@@ -257,10 +288,10 @@ export function ecrituresJouees(): EcritureJouee[] {
   const aDialogue = allBuiltinCampaigns.find((c) => c.id === A_DIALOGUE.campagne);
   if (!aDialogue) throw new Error(`aucune campagne ${A_DIALOGUE.campagne}`);
   const dialogues = presser(presser(ouvrirLEdition(paquetDuJeu(aDialogue), false), `scenes/${A_DIALOGUE.scene}`), 'outil/personnage');
-  jouerLInspecteur(cliquer(presser(dialogues, `personnage/${FICHES[0]}`), A_DIALOGUE.case.x, A_DIALOGUE.case.y), out);
+  jouerLInspecteur(cliquer(presser(dialogues, `personnage/${FICHES[0][0]}`), A_DIALOGUE.case.x, A_DIALOGUE.case.y), out, A_DIALOGUE.branches);
   const campagne = allBuiltinCampaigns.find((c) => c.id === COQUE.campagne);
   if (!campagne) throw new Error(`aucune campagne ${COQUE.campagne}`);
   const barge = presser(presser(ouvrirLEdition(paquetDuJeu(campagne), false), `scenes/${COQUE.scene}`), 'outil/select');
-  jouerLInspecteur(cliquer(barge, COQUE.case.x, COQUE.case.y), out);
+  jouerLInspecteur(cliquer(barge, COQUE.case.x, COQUE.case.y), out, COQUE.branches);
   return out;
 }
