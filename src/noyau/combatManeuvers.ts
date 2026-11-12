@@ -69,7 +69,7 @@ import { tablesPosees, type FragmentDeTables, type PartDeTable } from './tablesP
 
 /** Émet l'animation d'attaque d'une attaque SPÉCIALE de créature (`EVT.ANIM_ATTACK`, `creatureAttack`). */
 export function emitCreatureAttackAnim(attacker: Combatant, kind: AttackKind): void {
-  bus.emit(EVT.ANIM_ATTACK, { from: attacker.id, to: attacker.id, kind: 'creature', defense: 'none', result: { hit: true }, creatureAttack: kind });
+  bus.emit(EVT.ANIM_ATTACK, { from: attacker.id, to: attacker.id, kind: 'creature', defense: 'aucune', result: { hit: true }, creatureAttack: kind });
 }
 
 /** Chiffre flottant de Dégâts sur le pion touché — MÊME canal FX que les attaques/sorts (`useCombatFx`
@@ -129,7 +129,7 @@ export function cibleDEcartDeTaille(battle: BattleState, c: Combatant, ecart: nu
 /** PRIX d'une attaque gratuite `def` pour `c` — SOURCE UNIQUE lue par `availableAttacks` (option du héros,
  *  débitée au commit) et par l'IA (`aiCreatureFreeAttacks`). LDB 85 l.387 ; LDB 85 l.314 */
 export function freeAttackCost(battle: BattleState, c: Combatant, def: ManeuverDef): { advantage: number; movement: boolean } {
-  return maneuverPaidByMovement(c.traits, def.id) && battle.movementUsed === 0 ? { advantage: 0, movement: true } : { advantage: def.advantageCost, movement: false };
+  return maneuverPaidByMovement(c.traits, def.id) && battle.movementUsed === 0 ? { advantage: 0, movement: true } : { advantage: def.coutEnAvantage, movement: false };
 }
 
 /** PLAFOND par tour d'une attaque gratuite de créature, DÉRIVÉ de la donnée : `count` pour une attaque
@@ -334,14 +334,14 @@ export function selectedAttackOption(active: Combatant, battle: BattleState): At
  *  Intermédiaire par défaut. Hurlement n'a PAS de jet d'attaquant (chaque cible teste sa Résistance)
  *  → `stat` absent : `rollManeuverAttacker` n'est jamais appelé pour lui. */
 export function rollManeuverAttacker(attacker: Combatant, stat: 'capacite-de-combat' | 'capacite-de-tir', rng: RNG, difficulty: Difficulty = DIFFICULTE_PAR_DEFAUT): TestResult {
-  const kind = stat === 'capacite-de-combat' ? 'melee' : 'ranged';
+  const kind = stat === 'capacite-de-combat' ? 'melee' : 'distance';
   return { ...rollTest(combatValue(attacker, kind), difficulty, rng), base: combatBaseValue(attacker, kind) }; // LDB 12 l.160
 }
 
 /** Ligne du jet d'attaquant d'une manœuvre (`rollLine`, canal de combat, même valeur que
  *  `rollManeuverAttacker`) — lue par les fenêtres de Manœuvre et de Battement. LDB 85 l.445. */
 export function ligneDAttaquantDeManoeuvre(attacker: Combatant, stat: 'capacite-de-combat' | 'capacite-de-tir', difficulty: Difficulty = DIFFICULTE_PAR_DEFAUT): RollLineParts {
-  return rollLine({ actor: attacker, combat: { kind: stat === 'capacite-de-combat' ? 'melee' : 'ranged' }, difficulty });
+  return rollLine({ actor: attacker, combat: { kind: stat === 'capacite-de-combat' ? 'melee' : 'distance' }, difficulty });
 }
 
 /** Difficulté du jet d'ATTAQUANT propre à une manœuvre (seul le Vomissement dévie du +0 : Facile +40
@@ -615,7 +615,7 @@ export function bestDefenseMode(defender: Combatant): 'parade' | 'esquive' {
  *  `foe` ? Conditions mesurées ici : camp opposé et actif, `foe` armé, `sizeGap`, Engagement. */
 export function battementEligible(attacker: Combatant, foe: Combatant): boolean {
   if (foe.kind === attacker.kind || isOutOfAction(foe)) return false;
-  const foeArmed = (foe.weapons ?? []).some((w) => w.type === 'melee' || w.type === 'ranged');
+  const foeArmed = (foe.weapons ?? []).some((w) => w.type === 'melee' || w.type === 'distance');
   return foeArmed && sizeGap(foe.size, attacker.size) < 1 && isEngagedWith(attacker, foe.id);
 }
 

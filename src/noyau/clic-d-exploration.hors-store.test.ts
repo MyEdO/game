@@ -16,7 +16,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 const hero = (): Combatant =>
   combattantDeTest({ id: 'h', label: 'H', kind: 'hero', xp: 0, wounds: blessuresDeBase(12), conditions: [], movement: 4 });
 
-const FOUILLE = { id: 'fouiller', flow: { kind: 'seq' as const, steps: [] }, unique: true };
+const FOUILLE = { id: 'fouiller', flow: { kind: 'sequence' as const, etapes: [] }, unique: true };
 const PRISES = {
   'place-1': { kind: 'entity' as const, entityId: 'a' }, 'place-2': { kind: 'entity' as const, entityId: 'b' },
   'place-3': { kind: 'entity' as const, entityId: 'c' }, 'place-4': { kind: 'entity' as const, entityId: 'd' },

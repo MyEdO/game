@@ -104,7 +104,7 @@ export function ramVsNonDoor(weapon: Pick<Weapon, 'qualities'> | undefined, targ
 export function structureImmune(weapon: Weapon | undefined, target: Combatant): boolean {
   const siege = weaponHasCap(weapon, 'siege');
   if (!siege && hasCapability(target, 'structImpenetrable')) return true;
-  if (!siege && weapon?.type === 'ranged' && hasCapability(target, 'structResistant')) return true;
+  if (!siege && weapon?.type === 'distance' && hasCapability(target, 'structResistant')) return true;
   return false;
 }
 

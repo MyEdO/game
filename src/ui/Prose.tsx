@@ -16,6 +16,7 @@
  * d'entrée d'où sort ce texte, VERBATIM. Sans `porteur`, le markdown est rendu tel quel : aucune
  * mention n'est liée. Deux états, aucun intermédiaire.
  */
+import type { Equipe } from '../engine/relations';
 import { useMemo, type ReactNode, type ComponentPropsWithoutRef } from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
 import { cellulesDe, estSeparateur } from '../data/source/decoupe';
@@ -26,7 +27,6 @@ import { tokenizeLinks } from '../noyau/codex/relations';
 import type { Porteur } from '../noyau/codex/porteur';
 import { useIdentites } from './useIdentites';
 import { nommer } from '../noyau/monde/identites';
-import type { RecapTeam } from '../noyau/recapLine';
 import { decodeString } from 'micromark-util-decode-string';
 
 /** Nœud HAST minimal (sous-ensemble manipulé par le plugin d'auto-liage). */
@@ -39,7 +39,7 @@ interface HastNode {
   position?: { start: { offset?: number }; end: { offset?: number } };
 }
 
-export interface AnnotationProse { text: string; team?: RecapTeam; }
+export interface AnnotationProse { text: string; team?: Equipe; }
 
 function annoter(tree: HastNode, md: string, segments: readonly AnnotationProse[]): void {
   let offset = 0;

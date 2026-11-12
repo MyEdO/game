@@ -16,7 +16,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTes
  * `cf.libelleDuCouvert`). Le barème est le canon `coverModifier` (`engine/cover.ts`) — aucun modificateur
  * parallèle. Mêlée non affectée.
  */
-const bow = { name: 'Arc', type: 'ranged' } as unknown as Weapon;
+const bow = { name: 'Arc', type: 'distance' } as unknown as Weapon;
 const sword = { name: 'Épée', type: 'melee' } as unknown as Weapon;
 const mk = (id: string, kind: 'hero' | 'enemy', x: number): Combatant =>
   (blessuresSurLeProfil({ id, name: id, kind, size: 'moyenne', pos: { x, y: 5 }, conditions: [], talents: [], liveTraits: [], skills: [], weapons: [], movement: 4, loaded: true, advantage: 0,

@@ -19,7 +19,7 @@ import { rollLine, type RollLineParts } from './ligneDeJet';
 import { toRecapLines } from './recapLine';
 import { attaqueDeCle, type AttackKind, selfManeuversOf, selfManeuverApplicable } from '../engine/creatureAttacks';
 import { battleRng } from './battleRng';
-import { activeCombatant, jetDeRecharge, appliquerLaRecharge, advanceCombatJet, STANCE_BLOCK, firedWeapon, openAttackCascade, poserLeTestDeMain, poserLEtapeDAttaque, startDisengage, completeFlee, startAuContact, startGrapple, resolveGrappleWin, applyAttackResult, jouerLesTirsDeBordee, openSurfacedDefense, castSpell, applyCast, effectiveSpellOf, finishPlayerAction, applyMiscast, useSpellComponent, checkBattleOver, resumeEnemyTurn, advanceTurn, resolveRoundBoundary, enterRoundStartPause, lancerLeRound, inFiringBand, maybeRunEnemyTurn, resumeSuspendedAI, resumeManeuverDefense, attackerFumbled, applyOups, jouerLApresCoup, ciblesDuBalayage, ciblesDeLaDoubleFrappe, resolveDualSecond, overcastTargetCandidates, overcastReset, drainerLesGratuites, attackWeaponOf, victimeDuCoup, applyWail, spellSightOf, castZoneSpell, castCommitZone, zoneRadiusTilesAt, routeCounterspell, applyCounterspellOutcome, applyCounterspellFallback, counterspellJoinable, counterspellDeclarePhase, counterspellRolls, resumeAfterCounterspell, openCastOppositionStep, castExtraTargets, resolveCastChain, applySurprise, resolveMovement, retenuParLaPeur, markActed, noteApproachMove, clearApproachMoves, frenzyTarget, finishCombatEnd, battleAreaTargets, siegeBlastRadiusTiles, startleOnStormAtCombatStart, stampEnvWeatherAtCombatStart, windsOfMagicAtCombatStart, releaseSeatsOfCombatants } from './combatFlow';
+import { activeCombatant, jetDeRecharge, appliquerLaRecharge, advanceCombatJet, STANCE_BLOCK, firedWeapon, openAttackCascade, poserLeTestDeMain, poserLEtapeDAttaque, startDisengage, completeFlee, startAuContact, startGrapple, resolveGrappleWin, applyAttackResult, jouerLesTirsDeBordee, openSurfacedDefense, castSpell, applyCast, effectiveSpellOf, finishPlayerAction, applyMiscast, useSpellComponent, checkBattleOver, resumeEnemyTurn, poursuivreLaSerie, advanceTurn, resolveRoundBoundary, enterRoundStartPause, lancerLeRound, inFiringBand, maybeRunEnemyTurn, resumeSuspendedAI, resumeManeuverDefense, attackerFumbled, applyOups, jouerLApresCoup, ciblesDuBalayage, ciblesDeLaDoubleFrappe, resolveDualSecond, overcastTargetCandidates, overcastReset, drainerLesGratuites, attackWeaponOf, victimeDuCoup, applyWail, spellSightOf, castZoneSpell, castCommitZone, zoneRadiusTilesAt, routeCounterspell, applyCounterspellOutcome, applyCounterspellFallback, counterspellJoinable, counterspellDeclarePhase, counterspellRolls, resumeAfterCounterspell, openCastOppositionStep, castExtraTargets, resolveCastChain, applySurprise, resolveMovement, retenuParLaPeur, markActed, noteApproachMove, clearApproachMoves, frenzyTarget, finishCombatEnd, battleAreaTargets, siegeBlastRadiusTiles, startleOnStormAtCombatStart, stampEnvWeatherAtCombatStart, windsOfMagicAtCombatStart, releaseSeatsOfCombatants } from './combatFlow';
 import { auContactEligible, grappleActionEligible, hasFreeWeaponAttack, resolveManeuver, availableAttacks, attaqueImmediate, startBattement, startDistraire, resolveBattement, resolveDistraire, battementFoes, distraireFoes, adversairesDuBattement, adversairesADistraire } from './combatManeuvers';
 import { resolveWeaponArea } from './combatArea';
 import { removeEntity, applyZoneCrossings, displaceSmaller } from './combatPlacement';
@@ -183,6 +183,13 @@ function acquireAnimositeOnFate(get: Get, set: Set, hero: Combatant, foeId: stri
   const calme = calmeDeLAnimositeAcquise(hero, battleRng());
   if (!calme || calme.success) return null;
   return acquerirLeTrait(get, set, hero, 'animosite', ciblesDAnimositeAcquise(hero, tueur));
+}
+
+/** Hors bataille, le Destin résolu rend la main à la série d'attaques subies ouverte (`poursuivreLaSerie`), qui l'attendait.
+ *  LDB 17 l.29-32 ; MDG 15 l.163-164 */
+function reprendreHorsBatailleApresLeDestin(get: Get, set: Set): void {
+  set(touchActors(get()));
+  if (get().serieSubie) jouerFlowEntier(poursuivreLaSerie(get, set));
 }
 
 /** La bataille reprend après le Destin : la limite de Round pour une mort lente, le tour adverse sinon. */
@@ -1095,8 +1102,8 @@ export function createCombatSlice(get: Get, set: Set) {
       const chiefs = teamCommandTargets(active, battle.combatants);
       if (!chiefs.length) return;
       const onSuccess: Flow = {
-        kind: 'seq',
-        steps: chiefs.map((c) => ({ kind: 'do', effect: { type: 'ops', on: 'hero', heroId: c.id, ops: [{ op: 'teamCommander', commanderId: active.id }] } })),
+        kind: 'sequence',
+        etapes: chiefs.map((c) => ({ kind: 'effet', effet: { type: 'ops', on: 'hero', heroId: c.id, ops: [{ op: 'teamCommander', commanderId: active.id }] } })),
       };
       set({ battle: { ...markActed(get, set), action: null } }); // le Test EST l'Action (réussite ou non)
       openSkillTest(get, set,
@@ -1144,7 +1151,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const scene = get().scene;
       const blocked = !!(hero.pos && target.pos && scene) && !losClear(scene, hero.pos, target.pos, smokeOf(battle));
       // Chaque cause dit LA SIENNE : une cible hors de portée n'annonce pas un mur qui n'existe pas.
-      if (weapon.type !== 'ranged') return void refuserGeste(get, set, t('cs.refusTirArmeDeMelee', { weapon: weapon.label }));
+      if (weapon.type !== 'distance') return void refuserGeste(get, set, t('cs.refusTirArmeDeMelee', { weapon: weapon.label }));
       if (!inFiringBand(hero, target, weapon, sceneMetresPerTile(scene))) return void refuserGeste(get, set, t('cf.horsDePortee'));
       if (blocked) return void refuserGeste(get, set, t('cf.ligneDeVueMasquee'));
       // Le tir se résout par la modale de jet NORMALE (jetLancer('attaque')/jetValider('attaque')) ; le tireur n'est PAS actif.
@@ -1224,7 +1231,7 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!battle || battle.over || battle.acted) return;
       const active = activeCombatant(battle);
       if (!active || !canTakeAction(active)) return;
-      if (!active.weapons.some((w) => w.type === 'ranged')) return; // viser = pour le tir
+      if (!active.weapons.some((w) => w.type === 'distance')) return; // viser = pour le tir
       active.aiming = true;
       set({ battle: { ...markActed(get, set), action: null, log: [...get().battle!.log, ev('visee', t('cs.aim', { name: active.label }), active.id)] } });
       bus.emit(EVT.SCENE_DIRTY);
@@ -1297,7 +1304,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const active = activeCombatant(battle);
       if (!active) return;
       const rw = weaponUid
-        ? active.weapons.find((w) => w.uid === weaponUid && w.type === 'ranged')
+        ? active.weapons.find((w) => w.uid === weaponUid && w.type === 'distance')
         : armeADistanceParDefaut(active);
       if (!rw) return; // aucune arme à distance : rien à choisir
       // Chef qui SERT cette pièce : le cycle de charge vit sur la PIÈCE — la bascule doit la décharger ELLE.
@@ -1439,7 +1446,7 @@ export function createCombatSlice(get: Get, set: Set) {
         // (AskUserQuestion 2026-08-16), donc celui posé au
         // combat précédent (ou à l'équipement) tient ; `loadWeapon` capture le choix courant, et
         // `selectedAmmo` retombe sur la 1re compatible quand il n'y en a aucun.
-        for (const rw of c.weapons.filter((w) => w.type === 'ranged')) loadWeapon(c, rw);
+        for (const rw of c.weapons.filter((w) => w.type === 'distance')) loadWeapon(c, rw);
         return c;
       });
       // Chaque membre RÉFÉRENCE une entité de la scène. L'entité PORTE le profil/apparence/arme/traits
@@ -1465,7 +1472,7 @@ export function createCombatSlice(get: Get, set: Set) {
       // les couples pré-montés (ridesEntityId → la monture). Le cavalier monte SUR sa monture.
       const idxByEntity = new Map(roster.map((r, i) => [r.ent.id, i]));
       roster.forEach(({ m }, i) => {
-        if (m.side === 'ally') enemies[i].kind = 'hero';
+        if (m.side === 'allie') enemies[i].kind = 'hero';
         if (m.ai) enemies[i].aiControlled = true; // PNJ allié IA (défenseur de siège) : agit seul (aiDriven)
         if (m.mount) enemies[i].mountable = true;
       });
@@ -1903,7 +1910,7 @@ export function choixDuCombat(get: Get, set: Set): Pick<CorpsDesChoix, 'destin' 
       journaliser(get, set, [t('cs.fateDodge', { name: hero.label })], 'information', { actorId: hero.id });
       if (anim) journaliser(get, set, [anim], 'peur', { actorId: hero.id });
       if (get().battle) resumeEnemyTurn(get, set);
-      else set(touchActors(get()));
+      else reprendreHorsBatailleApresLeDestin(get, set);
     },
     survivre: () => {
       const p = get().pendingFateSave;
@@ -1921,7 +1928,7 @@ export function choixDuCombat(get: Get, set: Set): Pick<CorpsDesChoix, 'destin' 
       journaliser(get, set, [t('cs.fateFlee', { name: hero.label })], 'information', { actorId: hero.id });
       if (anim) journaliser(get, set, [anim], 'peur', { actorId: hero.id });
       if (get().battle) reprendreApresLeDestin(get, set, p.source);
-      else set(touchActors(get()));
+      else reprendreHorsBatailleApresLeDestin(get, set);
     },
     accepter: () => {
       const p = get().pendingFateSave;
@@ -1933,7 +1940,7 @@ export function choixDuCombat(get: Get, set: Set): Pick<CorpsDesChoix, 'destin' 
         journaliser(get, set, [t('cs.succumb', { name: hero.label })], 'mort', { actorId: hero.id });
       }
       if (get().battle) reprendreApresLeDestin(get, set, p.source);
-      else set(touchActors(get()));
+      else reprendreHorsBatailleApresLeDestin(get, set);
     },
   } satisfies Record<ChoixDesFenetres['destin']['issue'], () => void>;
   return {
@@ -2414,11 +2421,10 @@ export function cloturesDuCombat(get: Get, set: Set) {
     cascade: () => validerLEtape(get, set),
     // Maladresse (LDB 14) : les Oups ! tirés sur l'étape COURANTE (`step.maladresse`) s'appliquent.
     maladresse: () => {
-      const battle = get().battle;
       const step = maladresseCourante(get().pendingCascade);
-      if (!battle || !step) return;
+      if (!step) return;
       const oups = garanti(step.maladresse.result, step.actorId, 'tirage des Oups !');
-      const c = inBattleId(battle, step.actorId);
+      const c = step.actorId ? porteurParId(get(), step.actorId) : undefined;
       // La queue du coup dont cette Maladresse est un temps d'après-coup (#1508 T3b-4) : elle reprend
       // une fois la Maladresse appliquée — ou voyage avec le dé de casse qui la diffère.
       const coup = step.maladresse.coup;
@@ -2925,7 +2931,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
         // Tir IMMOBILE (LDB 14 l.70) : le héros a renoncé à bouger pour annuler le −10 → on consomme son
         // Mouvement du Tour. Seule CETTE posture tombe : elle a un PRIX (le Mouvement). « Dans le tas » ne
         // coûte rien (`LDB 14 l.106`). HÉROS SEUL — parité stricte avec `attackEnv` et `heldGroundStanceBlock`.
-        if (pa.tirImmobile && weapon.type === 'ranged' && attacker.kind === 'hero') {
+        if (pa.tirImmobile && weapon.type === 'distance' && attacker.kind === 'hero') {
           const b2 = get().battle;
           if (b2) {
             const { tirImmobile: _depensee, ...restantes } = b2.stances?.[attacker.id] ?? {};

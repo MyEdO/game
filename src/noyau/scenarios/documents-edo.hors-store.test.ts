@@ -58,7 +58,7 @@ function ouvrirLaLiasse(): Dialogue {
 /** Les `documentId` qu'un Flow joue par l'Effect `document`. */
 function documentsJoues(flow: Flow | undefined): string[] {
   const ids: string[] = [];
-  if (flow) walkFlow(flow, (n) => { if (n.kind === 'do' && n.effect.type === 'document') ids.push(n.effect.documentId); });
+  if (flow) walkFlow(flow, (n) => { if (n.kind === 'effet' && n.effet.type === 'document') ids.push(n.effet.documentId); });
   return ids;
 }
 
@@ -133,7 +133,7 @@ describe('documents-edo — la liasse sert le registre du paquet EDO', () => {
     for (const stade of indice.stades) {
       const reponse = ch8.choices.find((c) => {
         let revele = false;
-        if (c.flow) walkFlow(c.flow, (n) => { if (n.kind === 'do' && n.effect.type === 'revealClue' && n.effect.stade === stade.id) revele = true; });
+        if (c.flow) walkFlow(c.flow, (n) => { if (n.kind === 'effet' && n.effet.type === 'revealClue' && n.effet.stade === stade.id) revele = true; });
         return revele;
       });
       expect(reponse, `réponse qui révèle ${stade.id}`).toBeDefined();

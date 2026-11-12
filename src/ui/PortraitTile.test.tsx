@@ -58,10 +58,10 @@ describe('PortraitTile', () => {
     expect(identity).not.toContain('ptile-states');
   });
 
-  it('fond d’équipe : classe team-ally / team-enemy selon `team`', () => {
+  it('fond d’équipe : classe team-allie / team-ennemi selon `team`', () => {
     const c = base();
-    expect(renderToStaticMarkup(<PortraitTile c={c} team="ally" />)).toContain('team-ally');
-    expect(renderToStaticMarkup(<PortraitTile c={c} team="enemy" />)).toContain('team-enemy');
+    expect(renderToStaticMarkup(<PortraitTile c={c} team="allie" />)).toContain('team-allie');
+    expect(renderToStaticMarkup(<PortraitTile c={c} team="ennemi" />)).toContain('team-ennemi');
   });
 
   it('≤ 4 états visibles puis chevron ▾ (variante full)', () => {

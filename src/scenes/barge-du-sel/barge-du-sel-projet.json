@@ -192,11 +192,11 @@
        {
         "id": "fouiller",
         "flow": {
-         "kind": "seq",
-         "steps": [
+         "kind": "sequence",
+         "etapes": [
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "openWorldMap"
            }
           }
@@ -220,11 +220,11 @@
      },
      "once": true,
      "flow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "setVessel",
          "vehicleId": "loup-imperial",
          "label": "La Louve grise",
@@ -240,16 +240,16 @@
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "setObjective",
          "id": "barge-du-sel-mission",
          "desc": "Convoyer le sel jusqu'à l'îlot, malgré les pirates qui infestent la route."
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "journal",
          "desc": "La Louve grise appareille, la cale pleine de sel, deux matelots à son bord — son canon servi, poudre et boulets en soute."
         }
@@ -267,18 +267,18 @@
      },
      "once": true,
      "flow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "setFlag",
          "flag": "sel-cap-donne"
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "journal",
          "desc": "Sur les planches du quai, le maître de quai donne le cap : l'îlot du sel, plein nord."
         }
@@ -989,54 +989,54 @@
      "members": [
       {
        "entityId": "louve-grise",
-       "side": "ally"
+       "side": "allie"
       },
       {
        "entityId": "cogue-pirate",
-       "side": "enemy"
+       "side": "ennemi"
       },
       {
        "entityId": "pirate-1",
-       "side": "enemy"
+       "side": "ennemi"
       },
       {
        "entityId": "pirate-2",
-       "side": "enemy"
+       "side": "ennemi"
       },
       {
        "entityId": "chef-pirate-1",
-       "side": "enemy"
+       "side": "ennemi"
       },
       {
        "entityId": "cogue-helm",
-       "side": "enemy"
+       "side": "ennemi"
       },
       {
        "entityId": "cogue-gun",
-       "side": "enemy"
+       "side": "ennemi"
       }
      ],
      "surprise": "party",
      "onVictory": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "setFlag",
          "flag": "sel-embuscade-vaincue"
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "giveXp",
          "amount": 100
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "giveMoney",
          "montant": {
           "gold": 10
@@ -1044,16 +1044,16 @@
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "setObjective",
          "id": "barge-du-sel-mission",
          "desc": "Rallier l'îlot avec le sel — la cogue pirate écartée."
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "journal",
          "desc": "La cogue pirate amène son pavillon à mi-coque et rompt le combat."
         }
@@ -1210,24 +1210,24 @@
      },
      "once": true,
      "flow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "clearObjective"
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "journal",
          "desc": "La Louve grise accoste à l'îlot, la cale toujours pleine de sel."
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "setFlag",
          "flag": "sel-ilot-accoste"
         }

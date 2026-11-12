@@ -19,7 +19,7 @@ export interface MarqueDEtat {
   texte: string;
   /** sa teinte `#rrggbb`. */
   couleur: string;
-  /** le visuel de lumière qui entoure le porteur (`Foyer.FLAMMES`) ; `null` : son nom seul. */
+  /** le visuel de lumière qui entoure le porteur (`res://effets/flammes/<visuel>.tscn`) ; `null` : son nom seul. */
   visuel: VisuelDeLumiere | null;
   /** le son joué en boucle sur le porteur ; `null` : aucun. */
   son: SonDEffet | null;

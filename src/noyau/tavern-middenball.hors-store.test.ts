@@ -16,7 +16,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { seedBattleRng } from './battleRng';
-import { findTavernGameById } from '../engine/tavernGame';
+import { findTavernGameById, type CampDeTaverne } from '../engine/tavernGame';
 import { tavernGameValue } from './tavernFlow';
 import { pnjAuProfil } from './monde/sceneNpc';
 import type { BatchParticipant, CascadeStep } from './pendings';
@@ -151,8 +151,8 @@ describe('Middenball — les camps, le tour, la somme (NADJ 16 l.117-119)', () =
     // 11 rangées à 3 DR = 33 (≥ 25) contre 11 rangées à 1 DR = 11.
     poseTour(3, 3, 1);
 
-    const p = get().sequence!.payload as { last: { playerSL: number; opponentSL: number } };
-    expect(p.last).toEqual({ playerSL: 33, opponentSL: 11 });
+    const p = get().sequence!.payload as { last: { dr: Record<CampDeTaverne, number> } };
+    expect(p.last).toEqual({ dr: { joueur: 33, adversaire: 11 } });
     expect(get().sequence!.cum, 'total ≥ 25 pour le camp le plus haut : un but').toEqual({ joueur: 1, adversaire: 0 });
     for (const h of party) expect(get().party.find((x) => x.id === h.id)!.advantage, '+1 Avantage pour le tour suivant').toBe(1);
     expect(get().journal.some((l) => l.includes('BUT'))).toBe(true);
@@ -267,8 +267,8 @@ describe('Middenball — les camps, le tour, la somme (NADJ 16 l.117-119)', () =
     choisir(0);
     poseTour(4, 4, 3); // 11×4 = 44 contre 11×3 = 33 : les deux ≥ 25
 
-    const p = get().sequence!.payload as { last: { playerSL: number; opponentSL: number } };
-    expect(p.last).toEqual({ playerSL: 44, opponentSL: 33 });
+    const p = get().sequence!.payload as { last: { dr: Record<CampDeTaverne, number> } };
+    expect(p.last).toEqual({ dr: { joueur: 44, adversaire: 33 } });
     expect(get().sequence!.cum, 'un seul but, pour le camp le plus haut').toEqual({ joueur: 1, adversaire: 0 });
   });
 
@@ -295,8 +295,8 @@ describe('Middenball — les camps, le tour, la somme (NADJ 16 l.117-119)', () =
     expect(get().sequence, 'les deux mi-temps consommées, la séquence est retirée').toBeNull();
     const res = get().tavernGames!.result!;
     expect(res.winner).toBe('joueur');
-    expect(res.playerSL, 'le score final EST le compte de buts').toBe(6);
-    expect(res.opponentSL).toBe(0);
+    expect(res.dr.joueur, 'le score final EST le compte de buts').toBe(6);
+    expect(res.dr.adversaire).toBe(0);
     expect(res.rounds).toBe(6);
     expect(res.detail, 'des buts et des tours, accordés').toBe('6 buts contre 0 en 6 tours.');
   });
@@ -332,6 +332,6 @@ describe('Middenball — les camps, le tour, la somme (NADJ 16 l.117-119)', () =
     const res = get().tavernGames!.result!;
     expect(res.rounds).toBe(6);
     expect(['joueur', 'adversaire', 'egalite']).toContain(res.winner);
-    expect(res.playerSL + res.opponentSL, 'des buts ont pu tomber, jamais des DR bruts').toBeLessThanOrEqual(6);
+    expect(res.dr.joueur + res.dr.adversaire, 'des buts ont pu tomber, jamais des DR bruts').toBeLessThanOrEqual(6);
   });
 });

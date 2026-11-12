@@ -92,7 +92,7 @@ export function combatHighlightsView(get: () => GameState, battle: BattleState, 
       const c = battle.combatants.find((x) => x.id === hovered) ?? armedAttack;
       if (!c?.pos) return null;
       const weapon = attackWeapon(c.weapons, false);
-      if (!weapon || weapon.type !== 'ranged') return null; // structure/décor sans arme (porte…) — pas de bande (#203 régression)
+      if (!weapon || weapon.type !== 'distance') return null; // structure/décor sans arme (porte…) — pas de bande (#203 régression)
       const rangeM = porteeDeTir(c, weapon);
       return rangeM != null ? { pos: c.pos, rangeM } : null;
     })(),
@@ -113,5 +113,5 @@ export function tireurSurvole(battle: BattleState, hovered: string | null): stri
   const c = inBattleId(battle, hovered ?? undefined); // primitive canonique du find-par-id EN COMBAT (cliquet #279)
   if (!c?.pos) return null;
   const weapon = attackWeapon(c.weapons, false);
-  return weapon?.type === 'ranged' ? c.id : null;
+  return weapon?.type === 'distance' ? c.id : null;
 }

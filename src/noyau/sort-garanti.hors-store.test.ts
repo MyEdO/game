@@ -15,7 +15,7 @@ import type { Flow } from '../engine/flowCore';
 import type { Combatant } from '../engine/types';
 
 const garanti = (casterId: string, spellId: string, targetId: string) =>
-  ({ kind: 'do', effect: { type: 'castSpell', casterId, spellId, targetId, mode: 'forcerLaReussite' } }) as unknown as Flow;
+  ({ kind: 'effet', effet: { type: 'castSpell', casterId, spellId, targetId, mode: 'forcerLaReussite' } }) as unknown as Flow;
 const bfm = (lanceur: Combatant) => resolveFormula({ bonusOf: 'force-mentale' }, lanceur, desDuTest);
 
 describe('castSpell forcerLaReussite : le Flow du Sort, à DR = NI', () => {

@@ -65,7 +65,7 @@ describe('registre — couverture', () => {
 
 describe('spellSupport — seul ce qui PRODUIT un effet compte mécanique', () => {
   const sansOp = (p: Partial<SpellData>): SpellData => ({
-    ...findSpellById('explosion')!, missile: false, effects: { kind: 'seq', steps: [] },
+    ...findSpellById('explosion')!, missile: false, effects: { kind: 'sequence', etapes: [] },
     target: { kind: 'area', span: 'diameter', meters: 8 }, ...p,
   });
 

@@ -97,7 +97,7 @@ if (porteLaTranche(souffle, { grantsManeuvers: Object.keys(ANCIENNES).map((id) =
   gestes++;
 }
 const SOUFFLE = {
-  id: 'souffle', type: 'maneuvers', label: 'Souffle', kind: 'souffle', activation: 'free', advantageCost: 2,
+  id: 'souffle', type: 'maneuvers', label: 'Souffle', kind: 'souffle', activation: 'free', coutEnAvantage: 2,
   stat: 'capacite-de-tir', defense: 'esquive', targeting: 'zone', range: { bonusOf: 'endurance', plus: 20 },
   blast: { bonusOf: 'force' }, magic: true, source: SOURCE_LDB,
   effects: [aLaTouche([{ op: 'wounds', amount: { indiceOf: true }, ignoreTB: false, ignoreAP: false }])],

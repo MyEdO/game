@@ -27,6 +27,7 @@ export { PENTE_TOIT_DEG } from '../data/schemas/defs-scenes/scene';
 export { PARTS_RELIEF } from '../data/materials.types';
 export type { Cadence } from '../engine/cadence';
 export type { FabriqueDId, FabriqueDuRoster } from '../engine/fabriqueDId';
+export type { Equipe } from '../engine/relations';
 export { refusDesSurcharges, ruleOverrides, type RegleOptionnelleId, type RuleValue } from '../engine/policy';
 export { actionGate, offreArmee, offresDeLActif, offresParPorteur, etatDeLaBarre, type EtatDeLaBarre, type ActionCtx, type Offre } from './actionRegistry';
 export { ACTIONS } from '../data/index';
@@ -133,7 +134,8 @@ export { MANIEMENTS, ROLES_D_ANIMATION, maniementDeLaForme, type RoleDAnimation 
 export type { VerrouDesMots } from './fabriquesDuNoyau';
 export type { Maniement } from '../data/schemas/grammaire/valeurs';
 export { lireLeRoster, ecrireLeRoster, idDeRosterDuHeros, rosterAvecLeHeros, type HerosDuRoster, type RosterEntry } from './persistance/roster';
-export { engagement, intentionDEngagement, refusDEngagement, refusDUnNouveauHeros } from './creation/engagement';
+export { engagement, intentionDEngagement, intentionDeRenvoi, pretiresOfferts, refusDEngagement, refusDUnNouveauHeros } from './creation/engagement';
+export { partieEnCours, refusDeLancer, refusDeRenvoyer } from './partyFlow';
 export type { CreatorDraft } from './creation/brouillon';
 export { apresLeGeste, brouillonDeLaPartie, pagesDeCreation, refusDeLaPage, rubriquesDeLaPage, type GesteDuBrouillon, type PageDeCreation, type RubriqueDeCreation } from './creation/vueDeLaCreation';
 export { lireLesRetraits, cumulerLesRetraits, type RetraitsDElagage } from './persistance/elagage';

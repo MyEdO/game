@@ -20,7 +20,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * fenêtre du défenseur surfacé ; la boucle des tireurs s'arrête sur elle et reprend à sa fermeture, et
  * le Round ne s'ouvre qu'au bout de la boucle.
  */
-const ARC = (): Weapon => ({ uid: 'arc', label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 1 }, range: 30, qualities: [], loaded: true } as unknown as Weapon);
+const ARC = (): Weapon => ({ uid: 'arc', label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 1 }, range: 30, qualities: [], loaded: true } as unknown as Weapon);
 const g = () => banc.getState();
 const de = (id: string): Combatant => g().battle!.combatants.find((c) => c.id === id)!;
 /** Les Tirs rapides déclenchés par `id`, comptés à leur marqueur de journal. */

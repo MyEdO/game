@@ -1,0 +1,69 @@
+[gd_scene format=3]
+
+[ext_resource type="QuadMesh" path="res://effets/particule_mate.tres" id="1_hd8ro"]
+
+[sub_resource type="Gradient" id="Gradient_1av72"]
+colors = PackedColorArray(1, 1, 1, 0.45, 1, 1, 1, 0)
+
+[sub_resource type="Animation" id="Animation_qq5wm"]
+length = 2.6
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Gerbe1:emitting")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [true]
+}
+tracks/1/type = "method"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath(".")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(2.6),
+"transitions": PackedFloat32Array(1),
+"values": [{
+"args": [],
+"method": &"queue_free"
+}]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_body4"]
+_data = {
+&"eclat": SubResource("Animation_qq5wm")
+}
+
+[node name="nuage" type="Node3D" unique_id=1072084649]
+
+[node name="Gerbe1" type="CPUParticles3D" parent="." unique_id=1101451278 groups=["teinte"]]
+cast_shadow = 0
+amount = 12
+lifetime = 2.2
+one_shot = true
+explosiveness = 1.0
+local_coords = true
+mesh = ExtResource("1_hd8ro")
+emission_shape = 6
+emission_ring_axis = Vector3(0, 1, 0)
+emission_ring_height = 0.0
+emission_ring_radius = 0.6
+emission_ring_inner_radius = 0.0
+emission_ring_cone_angle = 90.0
+direction = Vector3(0, 1, 0)
+spread = 80.0
+gravity = Vector3(0, 0.15, 0)
+initial_velocity_min = 0.2
+initial_velocity_max = 0.5
+scale_amount_min = 1.4
+scale_amount_max = 2.4
+color_ramp = SubResource("Gradient_1av72")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1903026647]
+libraries/ = SubResource("AnimationLibrary_body4")
+autoplay = &"eclat"

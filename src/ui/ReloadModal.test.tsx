@@ -20,7 +20,7 @@ const pr = (o: Partial<PendingReload> & { weaponName?: string }): PendingReload 
 const actorWith = (weaponName: string, uid = 'w-arb'): Combatant =>
   ({
     id: 'h1', label: 'Archère', kind: 'hero', fortune: 0, items: [], armour: emptyArmour(0),
-    weapons: [{ uid, label: weaponName, type: 'ranged', damage: { plusBF: false, flat: 0 }, qualities: [] }],
+    weapons: [{ uid, label: weaponName, type: 'distance', damage: { plusBF: false, flat: 0 }, qualities: [] }],
   } as unknown as Combatant);
 
 /** La vue de `p`, que la coquille juge sur le Rechargement en attente (`fermeturesDuFlux`). */

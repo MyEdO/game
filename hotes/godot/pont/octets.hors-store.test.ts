@@ -94,6 +94,6 @@ describe('appelerEnOctets', () => {
     const refus = pont.appelerEnOctets('morceaux', JSON.stringify({ source: 'ailleurs', volume: [], toits: [], couronnes: [] }));
     expect([JSON.parse(refus).ok, refus]).toEqual([false, pont.appeler('morceaux', JSON.stringify({ source: 'ailleurs', volume: [], toits: [], couronnes: [] }))]);
     expect(pont.octets(), 'après un refus de morceaux').toBeNull();
-    pont.fermer();
+    pont.appeler('quitter');
   });
 });

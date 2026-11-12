@@ -1298,9 +1298,9 @@ interface GroupeDObjet {
 }
 export interface GroupeDArme extends GroupeDObjet {
   kind: 'weapon';
-  /** `melee` = Spé de Corps à corps, `ranged` = Spé de Projectiles : SOURCE des pools
+  /** `melee` = Spé de Corps à corps, `distance` = Spé de Projectiles : SOURCE des pools
    *  `weaponGroupsMelee`/`weaponGroupsRanged` (SPEC_SOURCES) ; absent sur les Groupes de siège. */
-  combat?: 'melee' | 'ranged';
+  combat?: 'melee' | 'distance';
   maniement: Maniement;
   /** Rendu visuel et sonore d'une arme du Groupe (`rendus.json`), à défaut du sien (#3771). */
   rendu?: { id: string };
@@ -1579,11 +1579,11 @@ export interface PsychologyData extends StatusData {
   /** Moment du re-test d'une affliction ciblée active ; absent = début du Round. LDB 21 l.9, l.19, l.39, l.48 */
   retestAt?: 'roundStart' | 'roundEnd';
   /** Mode de RÉSOLUTION du Test de Psychologie (LDB 21), lu par l'applier GÉNÉRIQUE `psychologieDeCombat` (jamais
-   *  un dispatch `kind === 'terreur'` codé) : `'extended'` = Test ÉTENDU de Calme cumulant le DR vers l'Indice
-   *  (Peur, l.27) ; `'terreur'` = Test BINAIRE dont l'échec inflige `failCondition` (Indice + |DR négatifs|)
-   *  puis pose l'état `becomes` (Terreur → Peur, l.55-57) ; `'binary'` = Test BINAIRE activant l'affliction
+   *  un dispatch `kind === 'terreur'` codé) : `'etendu'` = Test ÉTENDU de Calme cumulant le DR vers l'Indice
+   *  (Peur, l.27) ; `'terreur'` = Test SIMPLE dont l'échec inflige `failCondition` (Indice + |DR négatifs|)
+   *  puis pose l'état `becomes` (Terreur → Peur, l.55-57) ; `'simple'` = Test SIMPLE (LDB 12 l.3-7) activant l'affliction
    *  CIBLÉE (traits ciblés). Absent (Frénésie/trauma) = pas de Test de résolution surmontable. */
-  resolution?: 'extended' | 'terreur' | 'binary';
+  resolution?: 'etendu' | 'terreur' | 'simple';
   /** (résolution `'terreur'`) État infligé à l'ÉCHEC (`EtatData.id`) ; la QUANTITÉ est déclarée par
    *  `failAmount` (défaut = Indice + |DR négatifs|, LDB 21 l.54). */
   failCondition?: { id: string };
@@ -1684,8 +1684,8 @@ export interface ManeuverDef {
   kind: import('../engine/creatureAttacks').AttackKind;
   /** Déclenchement RAW : Action normale, gratuite (coût d'Avantage), ou gratuite à la Charge. */
   activation: 'action' | 'free' | 'charge';
-  advantageCost: number;
-  /** Gestion de l'Avantage dépensé : `fixed` = `advantageCost` (défaut) ; `variable` = le joueur
+  coutEnAvantage: number;
+  /** Gestion de l'Avantage dépensé : `fixed` = `coutEnAvantage` (défaut) ; `variable` = le joueur
    *  CHOISIT (Regard : +1 DR par Avantage, LDB 85 l.290) ; `all` = dépense tout (Hurlement, l.170). */
   advantageMode?: 'fixed' | 'variable' | 'all';
   /** Caractéristique du jet de l'attaquant (capacite-de-combat mêlée / capacite-de-tir distance·zone) ;
@@ -3480,7 +3480,7 @@ export function weaponGroupLabel(id: string | null | undefined): PlayerText {
 }
 /** VOCABULAIRE FERMÉ des catégories de possession (`TrappingData.categorie`), miroir de l'enum du
  *  schéma `src/data/schemas/defs/trappings.ts` — une union, pas un registre de données. */
-export type TrappingTypeId = 'melee' | 'ranged' | 'ammunition' | 'armor' | 'trapping';
+export type TrappingTypeId = 'melee' | 'distance' | 'ammunition' | 'armor' | 'trapping';
 const groupeParId = indexParId('groups', groups);
 /** Résout un Groupe d'APPARTENANCE par son `id` STABLE (cible de Trait psy, filtre onlyGroups/exceptGroups). */
 export function findGroupById(id: string | null | undefined): GroupData | undefined {
@@ -3560,10 +3560,10 @@ export function findStarById(id: string | null | undefined): StarData | undefine
 export function trappingDesObjetsPuisDuCatalogue(objets: ReadonlyMap<string, TrappingData>, id: string): TrappingData | undefined {
   return objets.get(id) ?? findTrappingById(id);
 }
-/** ARMES choisissables `{ id, label }` : toute Possession `melee`/`ranged` hors « Mains nues »
+/** ARMES choisissables `{ id, label }` : toute Possession `melee`/`distance` hors « Mains nues »
  *  (`TrappingData.unarmed`), triée au libellé. `id` = `trappingId` STABLE. */
 export const armesChoisissables = memoParVersion('trappings', () => trappingsInstanciables()
-  .filter((t) => (t.categorie === 'melee' || t.categorie === 'ranged') && !t.unarmed)
+  .filter((t) => (t.categorie === 'melee' || t.categorie === 'distance') && !t.unarmed)
   .map((t) => ({ id: t.id, label: t.label }))
   .sort((a, b) => parLibelle(a.label, b.label)));
 /** Résout une Qualité par son `id` STABLE. */
@@ -3808,7 +3808,7 @@ export function specLabel(category: string, refId: string, specId: string): Play
 }
 /**
  * MINTEUR (b) de `PlayerText` (#1318 V8a₁) — le PASSAGE des textes AUTHORÉS (le `label` d'une entité
- * de catalogue, le `title` d'une entrée de table, le `prompt` d'un nœud de Flow, l'intitulé d'un péril
+ * de catalogue, le `title` d'une entrée de table, l'`invite` d'un nœud de Flow, l'intitulé d'un péril
  * de scène) vers l'affichage. Ces textes ne sont PAS traduisibles par clé : ils vivent dans la donnée,
  * et une 2ᵉ langue les surcharge par fichier `id → label` (plan évacué → #320, Phase E).
  *

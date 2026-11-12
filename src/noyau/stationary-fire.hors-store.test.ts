@@ -31,7 +31,7 @@ describe('Tir immobile (tirImmobile)', () => {
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
     const E = b.combatants.find((c) => c.kind === 'enemy')!;
-    H.weapons = [{ label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [] }] as never;
+    H.weapons = [{ label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [] }] as never;
     H.pos = { x: 6, y: 10 };
     E.pos = { x: 12, y: 10 }; // à distance → arme à distance employée
     return { H, E };

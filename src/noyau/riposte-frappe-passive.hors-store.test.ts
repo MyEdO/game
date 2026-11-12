@@ -226,7 +226,7 @@ describe('frappe passive — Champion (LDB 85 l.71), arbitre c.6237601266', () =
   });
 
   it('C7 — défense gagnée contre un tir : aucune frappe du Champion (LDB 85 l.71)', () => {
-    const ARC = { ...EPEE, uid: 'arc', type: 'ranged', range: 60 } as Weapon;
+    const ARC = { ...EPEE, uid: 'arc', type: 'distance', range: 60 } as Weapon;
     monte({ pbAttaquant: 30, champion: true, armes: [EPEE] });
     applyAttackResult(g, banc.setState, cur('a'), cur('d'), ARC, esquiveGagnee(), { suite: { enchainement: { mode: 'aucun' } } }); draine();
     expect(cur('a').wounds.current).toBe(30);

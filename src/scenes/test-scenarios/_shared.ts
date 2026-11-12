@@ -75,7 +75,7 @@ export interface TestScenario {
 /** LE lancement d'un scénario (#2898), constructeur UNIQUE que partagent tous les
  *  hôtes du noyau : le contenu construit à neuf aux ids de la partie (`idNeuf`), et les réglages de la fiche. */
 export function lancementDuScenario(sc: TestScenario, idNeuf: FabriqueDId): LancementDeScenario {
-  return { ...sc.construire(idNeuf), regles: sc.rules, bourse: sc.money, combatDirect: sc.autoCombat, semainesDInterlude: sc.interludeWeeks };
+  return { ...sc.construire(idNeuf), projet: null, regles: sc.rules, bourse: sc.money, combatDirect: sc.autoCombat, semainesDInterlude: sc.interludeWeeks };
 }
 
 /** Arène dégagée + point de départ des héros (base des scénarios de combat direct). Preset MINCE

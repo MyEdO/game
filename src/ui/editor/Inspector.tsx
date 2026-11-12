@@ -817,17 +817,17 @@ export function Inspector({
                     </label>
                     {m && (
                       <select
-                        value={m.side ?? 'enemy'}
+                        value={m.side ?? 'ennemi'}
                         onChange={(e) => {
-                          const ally = e.target.value === 'ally';
-                          setScene(patchMember(scene, enc.id, ent.id, { side: ally ? 'ally' : undefined, ai: ally ? m.ai : undefined }));
+                          const ally = e.target.value === 'allie';
+                          setScene(patchMember(scene, enc.id, ent.id, { side: ally ? 'allie' : undefined, ai: ally ? m.ai : undefined }));
                         }}
                       >
-                        <option value="enemy">Ennemi</option>
-                        <option value="ally">Allié</option>
+                        <option value="ennemi">Ennemi</option>
+                        <option value="allie">Allié</option>
                       </select>
                     )}
-                    {m?.side === 'ally' && (
+                    {m?.side === 'allie' && (
                       <label className="ed-check" title="L'allié AGIT SEUL à son tour (défenseur de siège, servant de pièce) au lieu d'être joué par le joueur.">
                         <input
                           type="checkbox"

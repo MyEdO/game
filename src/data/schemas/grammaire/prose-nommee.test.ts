@@ -37,7 +37,7 @@ const SITES: Record<keyof typeof PROSES_NOMMEES, { schema: z.ZodType; nu: Record
   'dialogues[].nodes[].desc': { schema: dialogueNodeSchema, nu: { id: 'n', choices: [], desc: 'Texte.' } },
   'stake.authored': { schema: authoredStakeSchema, nu: { authored: 'Texte.' } },
   'narrative.text': { schema: OP_DEFS.narrative, nu: { op: 'narrative', text: 'Texte.' } },
-  'flow.choice.prompt': { schema: (() => { let choix: z.ZodType | undefined; descendre([sceneFlowSchema], ({ noeud }) => { if (declarationProseNommee(noeud) === PROSES_NOMMEES['flow.choice.prompt']) choix = noeud as z.ZodType; }); return choix!; })(), nu: { kind: 'choice', prompt: 'Texte.', oui: { kind: 'seq', steps: [] } } },
+  'flow.choice.invite': { schema: (() => { let choix: z.ZodType | undefined; descendre([sceneFlowSchema], ({ noeud }) => { if (declarationProseNommee(noeud) === PROSES_NOMMEES['flow.choice.invite']) choix = noeud as z.ZodType; }); return choix!; })(), nu: { kind: 'choix', invite: 'Texte.', oui: { kind: 'sequence', etapes: [] } } },
 };
 
 describe('prose nommée — déclaration et provenance locales', () => {
@@ -131,9 +131,9 @@ describe('prose nommée — déclaration et provenance locales', () => {
     expect(trouves).toBe(1);
   });
   it('un choix sourcé ne source ni le journal ni la narration maison de ses branches', () => {
-    const flow = { kind: 'choice', prompt: 'Entrer ?', source: SOURCE,
-      oui: { kind: 'do', effect: { type: 'journal', desc: 'Journal maison.' } },
-      non: { kind: 'do', effect: { type: 'ops', ops: [{ op: 'narrative', text: 'Narration maison.' }] } },
+    const flow = { kind: 'choix', invite: 'Entrer ?', source: SOURCE,
+      oui: { kind: 'effet', effet: { type: 'journal', desc: 'Journal maison.' } },
+      non: { kind: 'effet', effet: { type: 'ops', ops: [{ op: 'narrative', text: 'Narration maison.' }] } },
     };
     expect(sceneFlowSchema.safeParse(flow).error?.issues).toBeUndefined();
     const trouves: string[] = [];

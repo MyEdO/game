@@ -26,7 +26,7 @@ const ENTREES: EntreesDeLaPartie = { graine: 7, reglesMaison: {}, cadence: 'manu
 /** Le duel ouvert, au tour du héros. */
 function leDuel() {
   const ouverture = creerPartie(etatInitialDuJeu(), ENTREES);
-  ouverture.lancer({ party: [heroDuDuel()], scene: testScene(), combatDirect: 'enc-mutants' });
+  ouverture.lancer({ party: [heroDuDuel()], scene: testScene(), projet: null, combatDirect: 'enc-mutants' });
   ouverture.envoyer({ type: 'fenetreValider', args: ['debutDuRound'] });
   const garde = ouverture.etat();
   ouverture.fermer();
@@ -100,7 +100,7 @@ const FENETRES_A_JET: Partial<Record<ModalKey, Fixture>> = {
         heroId: H.id, kind: 'catalog', label: 'Tenez', skillLabel: 'Commandement', skillValue: 40, difficulty: 'intermediaire', ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, roll: 30, target: 40, sl: 1, success: true,
         enemyValue: 45, enemyRoll: 60, enemySL: -2,
       },
-      massBattle: { enemy: { label: 'Orques' } } as NonNullable<Jeu['massBattle']>,
+      massBattle: { ennemi: { label: 'Orques' } } as NonNullable<Jeu['massBattle']>,
     },
     flux: ['activite'],
     oppose: true,

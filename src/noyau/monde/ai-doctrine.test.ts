@@ -17,7 +17,7 @@ import { chebyshev } from '../../engine/grid';
 import { blessuresDeBase, blessuresSurLeProfil } from '../../engine/combattantDeTest.testkit';
 
 const MELEE: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
-const RANGED: Weapon = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [] };
+const RANGED: Weapon = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [] };
 
 /** Sort RÉSOLU minimal (`CastableSpell`) pour piloter l'énumération op-driven. */
 function spellData(over: Partial<SpellData> = {}): SpellData {
@@ -156,7 +156,7 @@ describe('Doctrines — comportements distincts vs standard', () => {
     // de POSITIONNEMENT (dangerAvoid/preferredRange/coverGain), pas dans la valeur des sorts.
     const h1 = mk('h1', 'hero', { x: 10, y: 16 }, { weapons: [MELEE] });
     const h2 = mk('h2', 'hero', { x: 11, y: 16 }, { weapons: [MELEE] }); // collés (un centre couvre les 2)
-    const areaSp = castable({ id: 'vortex-d-ames', shape: { area: { radius: 1 } }, range: 30, data: spellData({ id: 'vortex-d-ames', effects: { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'wounds', amount: 8 }] } } }) });
+    const areaSp = castable({ id: 'vortex-d-ames', shape: { area: { radius: 1 } }, range: 30, data: spellData({ id: 'vortex-d-ames', effects: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'wounds', amount: 8 }] } } }) });
     const missileSp = castable({ id: 'carreau', range: 30 });
     const common: Partial<EnemyTurnInput> = { spells: [areaSp, missileSp] };
     // STANDARD (Int 20) ET ARTILLERIE (Int 40) : même décision ZdE (valeur op-driven, pas de poids de doctrine).
@@ -188,7 +188,7 @@ describe('Doctrines — comportements distincts vs standard', () => {
     // équidistantes. La case EST est plus exposée à un archer ; STANDARD préfère l'OUEST (danger-map),
     // mais la HORDE (dangerAvoid=0) est indifférente → elle prend la case par défaut (la plus directe).
     const prey = mk('prey', 'hero', { x: 10, y: 15 }, { weapons: [] });
-    const archer = mk('archer', 'hero', { x: 13, y: 16 }, { weapons: [{ label: 'Fronde', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 6, qualities: [] }] });
+    const archer = mk('archer', 'hero', { x: 13, y: 16 }, { weapons: [{ label: 'Fronde', type: 'distance', damage: { plusBF: false, flat: 9 }, range: 6, qualities: [] }] });
     // STANDARD (fixture générique) : contourne par l'ouest (case éloignée de l'archer).
     const plain = mk('plain', 'enemy', { x: 10, y: 10 }, { weapons: [MELEE], movement: 5 });
     expect(pickDoctrine(plain, [])).toBe('standard');

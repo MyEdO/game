@@ -92,8 +92,8 @@ it('l’arche respecte le camp résolu par campOf sans surcharge de son hôte', 
     act(() => root.render(<ConsoleArch active={foe('camp-resolu', 2, 2)} move={{ value: 4, max: 4 }} action={{ value: 1, max: 1 }} />));
     const tuile = host.querySelector('.cc-arch .ptile')!;
     expect(tuile).toBeTruthy();
-    expect(tuile.classList.contains('team-enemy')).toBe(false);
-    expect(tuile.classList.contains('team-ally')).toBe(false);
+    expect(tuile.classList.contains('team-ennemi')).toBe(false);
+    expect(tuile.classList.contains('team-allie')).toBe(false);
   } finally {
     camp.mockRestore();
   }
@@ -710,14 +710,14 @@ describe('CombatConsole — micro-rendu (sondes pixel du juge vision, 2026-08-17
     h.conditions = [];
     monter(h, { foes: [foe('e1', 9, 9)] });
     const arch = host.querySelector('.cc-arch')!;
-    expect(arch.querySelectorAll('.team-ally, .team-enemy').length).toBe(1);
-    expect(arch.querySelector('.ptile')!.classList.contains('team-ally')).toBe(true);
+    expect(arch.querySelectorAll('.team-allie, .team-ennemi').length).toBe(1);
+    expect(arch.querySelector('.ptile')!.classList.contains('team-allie')).toBe(true);
     // … et au tour de l'adversaire (forme SPECTATRICE, arbitrage 2026-08-24), l'arche seule porte le
     // camp au même endroit : une seule fois, sur la tuile.
     monter(h, { foes: [foe('e1', 9, 9)], turn: 1 });
     const seule = host.querySelector('.cc-arch')!;
-    expect(seule.querySelectorAll('.team-ally, .team-enemy').length).toBe(1);
-    expect(seule.querySelector('.ptile')!.classList.contains('team-enemy')).toBe(true);
+    expect(seule.querySelectorAll('.team-allie, .team-ennemi').length).toBe(1);
+    expect(seule.querySelector('.ptile')!.classList.contains('team-ennemi')).toBe(true);
   });
 
   // C-4 (R-M2) : « Mouve… », « Déter… » + « 3 » orphelin à 360 — la boîte à deux lignes ne pose son
@@ -1162,7 +1162,7 @@ describe('CombatConsole — trois formes, une seule bande', () => {
 describe('CombatConsole — case Recharger : le porteur de l’état est l’ARME', () => {
   /** Arme à distance NUE (sans `uid`) : son registre de charge est l'instance d'arme elle-même. */
   function pistolet(load: Partial<Weapon>): Weapon {
-    return { label: 'Pistolet', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 20, reload: 3, qualities: [], ...load } as Weapon;
+    return { label: 'Pistolet', type: 'distance', damage: { plusBF: false, flat: 8 }, range: 20, reload: 3, qualities: [], ...load } as Weapon;
   }
 
   it('affiche la progression du Test étendu portée par l’ARME et allume la case tant qu’elle est déchargée', () => {
@@ -1242,7 +1242,7 @@ describe('CombatConsole — travée gauche : sets, gestes déduits, accès rapid
     const h = deuxSets({ loaded: false });
     // L'état vient bien du registre de l'arme (l'objet possédé), pas d'un champ du porteur.
     const arb = h.items!.find((i) => i.uid === 'i-arb')!;
-    expect(weaponLoaded(h, { ...arb, type: 'ranged', reload: 2 } as unknown as Weapon)).toBe(false);
+    expect(weaponLoaded(h, { ...arb, type: 'distance', reload: 2 } as unknown as Weapon)).toBe(false);
     monter(h);
     const tir = host.querySelector('[data-set="lo-tir"]')!;
     // Un MOT ENTIER, jamais une abréviation tronquée (« déch. » : grief vision 2026-08-17).
@@ -2187,7 +2187,7 @@ describe('CombatConsole — budget de hauteur du pont (arbitrage user 2026-08-17
     h.activeLoadoutId = 'lo-tir';
     recomputeLoadout(h);
     // On CHARGE l'arme par le moteur (jamais un champ forgé) : c'est `loadedAmmo` qui doit parler.
-    const w = h.weapons.find((x) => x.type === 'ranged')!;
+    const w = h.weapons.find((x) => x.type === 'distance')!;
     loadWeapon(h, w); // capture la munition choisie pour CETTE arme (`selectedAmmo`) dans son registre
     expect(loadedAmmo(h, w)?.uid, 'la couture de chargement doit désigner le carreau').toBe('i-c');
     monter(h);
@@ -2394,7 +2394,7 @@ describe('CombatConsole — tour du NAVIRE contrôlé : ses Tests d’équipage 
   const poste = (): ShipPoste =>
     ({
       side: 'tribord', loaded: false, reloadProgress: 0, crewIds: ['gunner'],
-      item: { uid: 'canon', label: 'Canon moyen', type: 'ranged', damage: { flat: 14, plusBF: false }, range: 75, qualities: [{ id: 'recharge', value: 6 }] },
+      item: { uid: 'canon', label: 'Canon moyen', type: 'distance', damage: { flat: 14, plusBF: false }, range: 75, qualities: [{ id: 'recharge', value: 6 }] },
     }) as unknown as ShipPoste;
 
   /** La COQUE du groupe : un vrai `vehicleCombatant` (facette `hull` de `vehicles.json`), du camp
@@ -2574,7 +2574,7 @@ describe('CombatConsole — COOP : la console suit la POSSESSION, jamais le mode
     // L'arche seule montre l'ALLIÉ que l'autre siège joue (jamais en teinte hostile), et la puce coop
     // reste : c'est elle qui dit QUI joue.
     const arche = host.querySelector('.cc-arch')!;
-    expect(arche.querySelector('.ptile')!.classList.contains('team-enemy')).toBe(false);
+    expect(arche.querySelector('.ptile')!.classList.contains('team-ennemi')).toBe(false);
     expect(arche.querySelector('.ptile-name')!.textContent).toBe('Rolf');
     expect(host.querySelector('.spectator-chip'), 'la puce coop doit rester').not.toBeNull();
   });
@@ -2711,7 +2711,7 @@ describe('CombatConsole — munition : le chip de l’en-tête est le DÉCLENCHE
     h.activeLoadoutId = 'lo-tir';
     recomputeLoadout(h);
     // Le chargement passe par le MOTEUR (jamais un registre forgé) : c'est lui qui capture la munition.
-    if (opts.charge !== false) loadWeapon(h, h.weapons.find((w) => w.type === 'ranged')!);
+    if (opts.charge !== false) loadWeapon(h, h.weapons.find((w) => w.type === 'distance')!);
     return h;
   }
 
@@ -2750,7 +2750,7 @@ describe('CombatConsole — munition : le chip de l’en-tête est le DÉCLENCHE
 
   it('le clic COMMET `munition` avec les bons ids : l’arme change de munition ET se décharge', () => {
     const h = tireur();
-    const w = h.weapons.find((x) => x.type === 'ranged')!;
+    const w = h.weapons.find((x) => x.type === 'distance')!;
     expect(weaponLoaded(h, w), 'témoin : l’arme part chargée').toBe(true);
     monter(h);
     ouvrir();
@@ -2770,7 +2770,7 @@ describe('CombatConsole — munition : le chip de l’en-tête est le DÉCLENCHE
 
   it('ÉCHAP referme sans rien engager (annulation gratuite : la munition ne bouge pas)', () => {
     const h = tireur();
-    const w = h.weapons.find((x) => x.type === 'ranged')!;
+    const w = h.weapons.find((x) => x.type === 'distance')!;
     monter(h);
     ouvrir();
     expect(panneau()).toBeTruthy();
@@ -2789,7 +2789,7 @@ describe('CombatConsole — munition : le chip de l’en-tête est le DÉCLENCHE
   it('FRÉNÉSIE : le choix de munition reste OUVERT (`munition` ne coûte aucune Action — LDB 21 l.33)', () => {
     const h = tireur();
     h.psychState = [{ type: 'frenesie' }] as never;
-    const w = h.weapons.find((x) => x.type === 'ranged')!;
+    const w = h.weapons.find((x) => x.type === 'distance')!;
     monter(h);
     expect(chip()!.hasAttribute('aria-disabled'), 'aucun refus sur le chip').toBe(false);
     expect(host.querySelector('.cc-bay-head [data-gate]'), 'aucune raison de refus portée').toBeNull();
@@ -2817,7 +2817,7 @@ describe('CombatConsole — munition : le chip de l’en-tête est le DÉCLENCHE
     expect(panneau(), 'témoin : le panneau doit être ouvert avant la commutation').toBeTruthy();
     act(() => { useGame.getState().prendreLaPanoplie(h.id, 'lo-arc'); });
     act(() => { root.render(<CombatConsole />); });
-    expect(acteur().weapons.some((w) => w.type === 'ranged'), 'témoin : l’autre set porte AUSSI une arme de tir').toBe(true);
+    expect(acteur().weapons.some((w) => w.type === 'distance'), 'témoin : l’autre set porte AUSSI une arme de tir').toBe(true);
     expect(panneau(), 'panneau FANTÔME : il a survécu à l’arme qui l’avait ouvert').toBeNull();
   });
 });
@@ -3039,7 +3039,7 @@ describe('CombatConsole — deux armes à distance : une case, un paramètre à 
     h.loadouts = [{ id: 'lo-2p', main: 'i-p1', ...(opts.deux === false ? {} : { secondaire: 'i-p2' }) }];
     h.activeLoadoutId = 'lo-2p';
     recomputeLoadout(h);
-    if (opts.charges) h.weapons.filter((w) => w.type === 'ranged').forEach((w) => loadWeapon(h, w));
+    if (opts.charges) h.weapons.filter((w) => w.type === 'distance').forEach((w) => loadWeapon(h, w));
     return h;
   }
 
@@ -3052,7 +3052,7 @@ describe('CombatConsole — deux armes à distance : une case, un paramètre à 
 
   it('DEUX pistolets : UNE seule case Recharger (géométrie inchangée), et le clic OUVRE le choix de l’arme', () => {
     const h = bretteur();
-    expect(h.weapons.filter((w) => w.type === 'ranged').length, 'témoin : les DEUX pistolets sont au set').toBe(2);
+    expect(h.weapons.filter((w) => w.type === 'distance').length, 'témoin : les DEUX pistolets sont au set').toBe(2);
     monter(h);
     expect(host.querySelectorAll('[data-cell="g4-recharger"]').length, 'une arme de plus n’ajoute pas une case').toBe(1);
     expect(panneau(), 'aucun panneau avant le clic').toBeNull();
@@ -3717,7 +3717,7 @@ describe('CombatConsole — le pont d’OUVERTURE est celui du JOUEUR, et n’of
     // portrait, son nom — jamais l'adversaire qui ouvre l'initiative.
     expect(host.querySelector('.cc-phase'), 'la pause de Round garde son bandeau').toBeTruthy();
     expect(host.querySelector('.ptile-name')?.textContent).toBe('Gunnar');
-    expect(host.querySelector('.cc-arch .ptile')?.classList.contains('team-enemy'),
+    expect(host.querySelector('.cc-arch .ptile')?.classList.contains('team-ennemi'),
       'le cadre du joueur portait un ennemi').toBe(false);
   });
 

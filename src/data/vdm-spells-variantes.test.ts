@@ -145,9 +145,9 @@ describe('Flow — Lumière de guérison : Résistance Difficile (−20) → Tr�
   /** Difficulté du nœud `test` du Flow RÉELLEMENT exécuté par `combatFlow` (`spellFlowFor`, l.4112). */
   const difficulte = (): string | undefined => {
     const f = spellFlowFor(findSpellById('lumiere-de-guerison')!.effects, 'target');
-    const walk = (n: { kind: string; steps?: unknown[]; test?: { difficulty?: string } }): string | undefined => {
+    const walk = (n: { kind: string; etapes?: unknown[]; test?: { difficulty?: string } }): string | undefined => {
       if (n.kind === 'test') return n.test?.difficulty;
-      for (const s of (n.steps ?? []) as typeof n[]) {
+      for (const s of (n.etapes ?? []) as typeof n[]) {
         const hit = walk(s);
         if (hit) return hit;
       }

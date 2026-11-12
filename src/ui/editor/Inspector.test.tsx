@@ -932,9 +932,9 @@ describe('Inspector — un Effet `document` s’insère au clic dans la fouille 
     const ici = brut.scenes.findIndex((s) => s.entities.some((e) => e.id === 'cadavre-kastor-lieberung'));
     const cadavre = () => brut.scenes[ici].entities.find((e) => e.id === 'cadavre-kastor-lieberung')!;
     const fouiller = () => cadavre().usable!.actions!.find((a) => a.id === 'fouiller')!;
-    const etapes = () => (fouiller().flow as { steps: { kind: string; effect?: { type: string; documentId?: string } }[] }).steps;
-    const avecQuatre = etapes().filter((s) => s.effect?.documentId === 'edo-document-4-affidavit').length;
-    fouiller().flow = { kind: 'seq', steps: etapes().filter((s) => s.effect?.documentId !== 'edo-document-4-affidavit') } as Flow;
+    const etapes = () => (fouiller().flow as { etapes: { kind: string; effet?: { type: string; documentId?: string } }[] }).etapes;
+    const avecQuatre = etapes().filter((s) => s.effet?.documentId === 'edo-document-4-affidavit').length;
+    fouiller().flow = { kind: 'sequence', etapes: etapes().filter((s) => s.effet?.documentId !== 'edo-document-4-affidavit') } as Flow;
     let latest = brut.scenes[ici];
     const montage = monterRacine(null);
     const rendre = (s: Scene) => montage.rendre(

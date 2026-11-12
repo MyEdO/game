@@ -26,7 +26,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 // ── firedAttackBlock : REFUS de portée minimale ─────────────────────────────────────────────────────────
 const rangedMachine = (minRangeBand: 'courte' | 'moyenne'): Weapon =>
   // Arme à distance NUE (pas de Recharge ni famille de munition ni arc) → isole le seul gate de portée.
-  ({ name: 'Pièce', type: 'ranged', range: 120, damage: { plusBF: false, flat: 10 }, qualities: [], minRangeBand, uid: 'piece' }) as unknown as Weapon;
+  ({ name: 'Pièce', type: 'distance', range: 120, damage: { plusBF: false, flat: 10 }, qualities: [], minRangeBand, uid: 'piece' }) as unknown as Weapon;
 
 const gunner = (w: Weapon): Combatant =>
   ({ id: 'gunner', name: 'Servant', kind: 'hero', pos: { x: 0, y: 0 }, conditions: [], weapons: [w], loaded: true,

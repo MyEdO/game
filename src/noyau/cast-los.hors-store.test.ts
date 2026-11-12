@@ -143,7 +143,7 @@ describe('castOutOfSightTargetIds — grisage du mode incantation', () => {
 });
 
 describe('ciblesHorsDeVue — le grisage que lit le survol', () => {
-  const ARC = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [] } as never;
+  const ARC = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [] } as never;
   /** Le combat de `setup`, en mode combat, avec `battle` et les armes de la lanceuse surchargées. */
   function poser(battle: Record<string, unknown>, armes?: 'arc') {
     const { w } = setup();

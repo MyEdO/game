@@ -27,7 +27,7 @@ import { poserLesNavires, poserUnNavire } from '../planDeNavire';
 import { jsonCanonique } from '../../lib/jsonCanonique.mjs';
 import { nextEntityId } from '../../lib/entityId';
 import { groupeVitrine } from '../../data/pregens';
-import type { LancementDeScenario } from '../lancementDeScenario';
+import { lancementDuProjet, type LancementDeScenario } from '../lancementDeScenario';
 import { facadeFeatureKindSchema, messageIntroductionSchema, roofProfileSchema, sceneSchema, sceneWeatherSchema } from '../../data/schemas/defs-scenes/scene';
 import { champsOfferts, choixDuNoeud, elementDuNoeud, type FieldDesc, type ValeurDuChoix } from '../codex/editFields';
 import { optionsDuNoeud } from '../../data/schemas/grammaire/meta';
@@ -267,7 +267,7 @@ export interface PatchDePoste {
 export interface PatchDeMembre {
   rencontre: string | null;
   enrole?: boolean;
-  camp?: 'enemy' | 'ally';
+  camp?: 'ennemi' | 'allie';
   ia?: boolean;
 }
 
@@ -442,10 +442,7 @@ export function essaiDeLaScene(s: SessionDEdition) {
   const doc = documentDeProjet(identite, scenesDeLaSession(s), { worldMap, activeAxes, narratif });
   return aLaPorte('test', (): ((idNeuf: FabriqueDId) => LancementDeScenario) => {
     const projet = parseProject(doc);
-    return (idNeuf) => ({
-      party: groupeVitrine(idNeuf), scene: projet.scenes.find((sc) => sc.id === s.sceneId)!, extraScenes: projet.scenes.filter((sc) => sc.id !== s.sceneId),
-      ...(projet.worldMap ? { worldMap: projet.worldMap } : {}), narratif: projet.narratif,
-    });
+    return (idNeuf) => lancementDuProjet(projet, groupeVitrine(idNeuf), s.sceneId, null);
   });
 }
 
@@ -624,9 +621,9 @@ function membrePatche(scene: Scene, id: string, patch: PatchDeMembre): Scene {
   if (enrole.encId === null) return scene;
   const m = enrole.scene.encounters.find((e) => e.id === enrole.encId)?.members?.find((mm) => mm.entityId === id);
   if (!m) return scene;
-  const allie = patch.camp === undefined ? m.side === 'ally' : patch.camp === 'ally';
+  const allie = patch.camp === undefined ? m.side === 'allie' : patch.camp === 'allie';
   const ia = allie && (patch.ia ?? m.ai);
-  return patch.camp === undefined && patch.ia === undefined ? enrole.scene : patchMember(enrole.scene, enrole.encId, id, { side: allie ? 'ally' : undefined, ai: ia || undefined });
+  return patch.camp === undefined && patch.ia === undefined ? enrole.scene : patchMember(enrole.scene, enrole.encId, id, { side: allie ? 'allie' : undefined, ai: ia || undefined });
 }
 
 /** Le patch `patch` de l'inspecteur en patch de segment : chaque `null` retire son champ. */

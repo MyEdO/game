@@ -89,7 +89,7 @@ describe('apparence des objets de campagne', () => {
     if (surface === 'apparencesObjets') return { ...lieu, appearance: { apparencesObjets: { [objet.id]: { id: apparence } } } };
     const don = { trappingId: objet.id, apparence: { id: apparence } };
     const effect = surface === 'action' ? { type: 'giveTrapping', ...don } : { type: 'ops', ops: [{ op: 'giveTrapping', ...don }] };
-    return { ...lieu, usable: { actions: [{ id: 'fouiller', flow: { kind: 'do', effect } }] } };
+    return { ...lieu, usable: { actions: [{ id: 'fouiller', flow: { kind: 'effet', effet: effect } }] } };
   };
   const document = (apparence: string, { surface = 'action', registre = {} }: { surface?: Surface; registre?: Partial<ObjetDuRegistre> } = {}) => projet({
     narratif: { ...emptyNarratif(), objets: [{ ...objet, ...registre }] },
@@ -133,7 +133,7 @@ describe('projetSchema — la FORME que voit le seam (avant normalizeScene/resol
    * qu'ignoré en silence.
    */
   it('`usable` : l’enveloppe à deux faits passe, `interact` est REFUSÉ, un `id` d’action DOUBLÉ aussi', () => {
-    const FLOW = { kind: 'seq', steps: [] };
+    const FLOW = { kind: 'sequence', etapes: [] };
     const entite = (over: Jouet) => [sceneMinimale({ entities: [{ id: 'coffre', kind: 'prop', pos: { x: 1, y: 1 }, decor: { id: 'coffre' }, ...over }] })];
 
     expect(projetSchema.safeParse(projet({ scenes: entite({ usable: { assise: true, actions: [{ id: 'fouiller', flow: FLOW, unique: true }] } }) })).success).toBe(true);
@@ -521,7 +521,7 @@ describe('narratifSchema — un id VIDE est refusé dans les QUATRE registres, c
  * `ID_D_ENTREE` (`src/data/source/dossier.ts`), sans doublon, refusée au chemin du porteur.
  */
 describe('`couvre` (#2290) — sur chaque porteur du projet', () => {
-  const FLOW = { kind: 'seq', steps: [] };
+  const FLOW = { kind: 'sequence', etapes: [] };
   const lieu = (id: string, over: Jouet = {}): Jouet => ({ id, label: id, pos: { x: 1, y: 2 }, scene: { id: 'scene-1' }, ...over });
   const carte = (over: { place?: Jouet; route?: Jouet }): Jouet => ({
     worldMap: {

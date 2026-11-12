@@ -18,6 +18,10 @@ layout_mode = 2
 text = "WFRP"
 horizontal_alignment = 1
 
+[node name="Jouer" type="Button" parent="Menu"]
+layout_mode = 2
+text = "Jouer"
+
 [node name="Combat" type="Button" parent="Menu"]
 layout_mode = 2
 text = "Combat"
