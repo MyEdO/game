@@ -447,12 +447,23 @@ describe('Ressources de bord en grammaire (#1652 lot 3 — MDG 15)', () => {
     expect(gameOpSchema.safeParse({ op: 'provisions', jours: 2, vivre: { id: 'tonneau-d-eau-douce' } }).success).toBe(false);
     expect(gameOpSchema.safeParse({ op: 'provisions', rations: 2, vivre: { id: 'ration' } }).success).toBe(false);
     expect(gameOpSchema.safeParse({ op: 'provisions', rations: 2 }).success).toBe(false);
-    expect(setVesselSchema.safeParse({ type: 'setVessel', vehicleId: 'cogue', provisions: { [BISCUITS]: 10 } }).success).toBe(true);
-    expect(setVesselSchema.safeParse({ type: 'setVessel', vehicleId: 'cogue', provisions: { 'tonneau-d-eau-douce': 10 } }).success).toBe(false);
-    expect(setVesselSchema.safeParse({ type: 'setVessel', vehicleId: 'cogue', provisions: { 'biscuits-de-mre': 10 } }).success).toBe(false);
-    expect(adjustVesselSchema.safeParse({ type: 'adjustVessel', provisions: { [FRAIS]: 3, 'tonneau-d-eau-douce': 10 } }).success).toBe(false);
-    expect(setVesselSchema.safeParse({ type: 'setVessel', vehicleId: 'cogue', provisions: { ration: 10 } }).success).toBe(false);
+    expect(setVesselSchema.safeParse({ type: 'setVessel', vehicleId: 'cogue', vivre: { id: BISCUITS }, provisions: 10 }).success).toBe(true);
+    expect(setVesselSchema.safeParse({ type: 'setVessel', vehicleId: 'cogue', vivre: { id: 'tonneau-d-eau-douce' }, provisions: 10 }).success).toBe(false);
+    expect(setVesselSchema.safeParse({ type: 'setVessel', vehicleId: 'cogue', vivre: { id: 'biscuits-de-mre' }, provisions: 10 }).success).toBe(false);
+    expect(adjustVesselSchema.safeParse({ type: 'adjustVessel', vivre: { id: 'tonneau-d-eau-douce' }, provisions: 10 }).success).toBe(false);
+    expect(setVesselSchema.safeParse({ type: 'setVessel', vehicleId: 'cogue', vivre: { id: 'ration' }, provisions: 10 }).success).toBe(false);
     expect(gameOpSchema.safeParse({ op: 'provisions', jours: 3, vivre: { id: 'nourriture-course-journee' } }).success).toBe(false);
+  });
+
+  it('un effet de navire pose un vivre ET ses rations : l’un sans l’autre est refusé et nomme le champ manquant (MDG 14 l.245-252)', () => {
+    const sansVivre = setVesselSchema.safeParse({ type: 'setVessel', vehicleId: 'cogue', provisions: 40 });
+    expect(sansVivre.success).toBe(false);
+    expect(sansVivre.error!.issues.map((i) => i.message).join(' ')).toContain('« vivre »');
+    const sansRations = adjustVesselSchema.safeParse({ type: 'adjustVessel', vivre: { id: FRAIS } });
+    expect(sansRations.success).toBe(false);
+    expect(sansRations.error!.issues.map((i) => i.message).join(' ')).toContain('« provisions »');
+    expect(adjustVesselSchema.safeParse({ type: 'adjustVessel', provisions: 3 }).success).toBe(false);
+    expect(setVesselSchema.safeParse({ type: 'setVessel', vehicleId: 'cogue', vivre: { id: BISCUITS } }).success).toBe(false);
   });
 
   it('une op `provisions` hors de sa forme est refusée au parse, et `jours` sans `vivre` nomme le champ manquant', () => {
@@ -460,22 +471,32 @@ describe('Ressources de bord en grammaire (#1652 lot 3 — MDG 15)', () => {
     expect(sansVivre.success).toBe(false);
     expect(sansVivre.error!.issues.map((i) => i.message).join(' ')).toContain('« vivre »');
     expect(gameOpSchema.safeParse({ op: 'provisions', gateesPct: 50, vivre: { id: BISCUITS } }).success).toBe(false);
-    expect(adjustVesselSchema.safeParse({ type: 'adjustVessel', provisions: { [BISCUITS]: 'dix' } }).success).toBe(false);
-    expect(adjustVesselSchema.safeParse({ type: 'adjustVessel', provisions: 30 }).success).toBe(false);
+    expect(adjustVesselSchema.safeParse({ type: 'adjustVessel', vivre: { id: BISCUITS }, provisions: 'dix' }).success).toBe(false);
+    expect(adjustVesselSchema.safeParse({ type: 'adjustVessel', vivre: { id: BISCUITS }, provisions: { [BISCUITS]: 30 } }).success).toBe(false);
   });
 
   it('les vivres posés par setVessel/adjustVessel sont des rations entières, jamais négatives (MDG 14 l.245-252)', () => {
-    expect(setVesselSchema.safeParse({ type: 'setVessel', vehicleId: 'cogue', provisions: { [BISCUITS]: 0 } }).success).toBe(true);
-    expect(setVesselSchema.safeParse({ type: 'setVessel', vehicleId: 'cogue', provisions: { [BISCUITS]: -5 } }).success).toBe(false);
-    expect(setVesselSchema.safeParse({ type: 'setVessel', vehicleId: 'cogue', provisions: { [BISCUITS]: 2.5 } }).success).toBe(false);
-    expect(adjustVesselSchema.safeParse({ type: 'adjustVessel', provisions: { [FRAIS]: -1 } }).success).toBe(false);
+    expect(setVesselSchema.safeParse({ type: 'setVessel', vehicleId: 'cogue', vivre: { id: BISCUITS }, provisions: 0 }).success).toBe(true);
+    expect(setVesselSchema.safeParse({ type: 'setVessel', vehicleId: 'cogue', vivre: { id: BISCUITS }, provisions: -5 }).success).toBe(false);
+    expect(setVesselSchema.safeParse({ type: 'setVessel', vehicleId: 'cogue', vivre: { id: BISCUITS }, provisions: 2.5 }).success).toBe(false);
+    expect(adjustVesselSchema.safeParse({ type: 'adjustVessel', vivre: { id: FRAIS }, provisions: -1 }).success).toBe(false);
   });
 
-  it('setVessel remplace les vivres de la cale, adjustVessel pose la valeur de chaque vivre listé', () => {
-    applyEffects(get, set, [{ type: 'setVessel', vehicleId: 'cogue', provisions: { [BISCUITS]: 40, [FRAIS]: 12 } } as never]);
+  it('setVessel pose un vivre, l’op `rations` en ajoute un autre, adjustVessel pose la valeur du seul vivre nommé', () => {
+    applyEffects(get, set, [
+      { type: 'setVessel', vehicleId: 'cogue', vivre: { id: BISCUITS }, provisions: 40 } as never,
+      { type: 'ops', on: 'navire', ops: [{ op: 'provisions', rations: 12, vivre: { id: FRAIS } }] } as never,
+    ]);
     expect(get().vessel!.provisions).toEqual({ [BISCUITS]: 40, [FRAIS]: 12 });
-    applyEffects(get, set, [{ type: 'adjustVessel', provisions: { [FRAIS]: 3, [PRESERVEE]: 8 } } as never]);
-    expect(get().vessel!.provisions).toEqual({ [BISCUITS]: 40, [FRAIS]: 3, [PRESERVEE]: 8 });
+    applyEffects(get, set, [{ type: 'adjustVessel', vivre: { id: FRAIS }, provisions: 3 } as never]);
+    expect(get().vessel!.provisions).toEqual({ [BISCUITS]: 40, [FRAIS]: 3 });
+    expect(get().journal).toContain(t('eff.navireModifie', { parts: t('eff.navireProvisions', { n: 43 }) }));
+  });
+
+  it('adjustVessel sur une cale non suivie active le suivi du vivre nommé', () => {
+    expect(get().vessel!.provisions).toBeUndefined();
+    applyEffects(get, set, [{ type: 'adjustVessel', vivre: { id: PRESERVEE }, provisions: 8 } as never]);
+    expect(get().vessel!.provisions).toEqual({ [PRESERVEE]: 8 });
   });
 
   it('manne de Manann sans vivres d’équipage suivis : le journal le dit, le Moral monte quand même', () => {

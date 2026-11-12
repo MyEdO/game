@@ -2840,7 +2840,7 @@ export const fr = {
   'eff.navireMoral': 'moral {n}',
   'eff.navireSabotage': 'sabotage {n} DR',
   'eff.navireEau': 'eau {n} L',
-  'eff.navireProvisions': 'vivres {n} j',
+  'eff.navireProvisions': '{n} rations',
   'eff.navireEquipage': 'équipage {n}',
   'eff.navireCoque': 'coque {cur}/{max}',
   // Référence `heroId` d'un Effet authoré qui ne désigne aucun héros du groupe (générique, tout Effet).

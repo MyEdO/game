@@ -93,7 +93,7 @@ import { rule } from '../engine/policy';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { groupsFor } from '../engine/groups';
 import { traverseeCommandee, voyageDayEntry, DEFAULT_VOYAGE_ORDERS, type VoyageOrders, type VoyageCadence } from './voyageCadence';
-import { ajouterAuRoster, crewRoleValue, crewTestModParts, moraleBand, weeklyCrewWageBrass, crewTalentDR, UNDERCREW_DR, capToSuccesMinime, crewTestSuccess, rudeEpreuveMoraleDelta, SUCCES_MINIME_CAP } from '../engine/crewMorale';
+import { ajouterAuRoster, crewRoleValue, crewTestModParts, facteurDuVivreSeul, facteursDeVivreSeul, moraleBand, weeklyCrewWageBrass, crewTalentDR, UNDERCREW_DR, capToSuccesMinime, crewTestSuccess, rudeEpreuveMoraleDelta, SUCCES_MINIME_CAP } from '../engine/crewMorale';
 import type { NightEntry } from './restFlow';
 import { provisioningManifest, rationsDeCale } from '../engine/provisions';
 import { toMoney, canAfford, formatMoney, fromBrass, type Money } from '../engine/money';
@@ -315,15 +315,12 @@ export function vesselManann(vessel: CampaignVessel | null): ManannMood {
 
 /** Facteur de Moral de disette (MDG 14 l.171). */
 const FOOD_SHORTAGE_FACTOR = 'nourriture-insuffisante';
-/** Facteur de Moral et vivre des biscuits de mer (MDG 14 l.166, l.250). */
-const BISCUITS_FACTOR = 'nourriture-biscuits-de-mer';
-const BISCUITS_DE_MER = 'ration-biscuits-de-mer';
 
 /**
  * VIVRES de l'équipage PNJ sur `days` jour(s) : l'effectif nominal (`shipboardSouls().crew`) mange une ration par
  * marin et par jour sur `vessel.provisions`, vivre après vivre dans l'ordre de `VIVRES_DE_CALE.vivres`. Le dernier
- * jour fait la nourriture du prochain recalcul hebdomadaire : à court, `nourriture-insuffisante` ; couvert par les
- * seuls biscuits de mer, `nourriture-biscuits-de-mer` ; les deux s'excluent. `provisions` absent : vivres non
+ * jour fait la nourriture du prochain recalcul hebdomadaire : à court, `nourriture-insuffisante` ; couvert par un
+ * seul vivre, le facteur qui le déclare (`vivreSeul`, crew-morale.json) ; les deux s'excluent. `provisions` absent : vivres non
  * suivis, aucune consommation. MDG 14 l.143, l.166, l.171, l.238, l.263 ; #245 ; #1652
  */
 function consumeCrewProvisions(get: Get, set: Set, days: number): string[] {
@@ -334,20 +331,22 @@ function consumeCrewProvisions(get: Get, set: Set, days: number): string[] {
   if (vessel.provisions == null || need <= 0) return [];
   const provisions = { ...vessel.provisions };
   let reste = need;
-  let biscuitsEnFin = 0;
+  let dernier: { vivre: string; mange: number } | undefined;
   for (const id of VIVRES_DE_CALE.vivres) {
     const stock = provisions[id];
     if (stock === undefined) continue;
     const mange = Math.min(reste, stock);
     provisions[id] = stock - mange;
     reste -= mange;
-    if (mange > 0) biscuitsEnFin = id === BISCUITS_DE_MER ? mange : 0;
+    if (mange > 0) dernier = { vivre: id, mange };
   }
   const left = rationsDeCale(provisions);
   const short = reste > 0;
-  const actif = short ? FOOD_SHORTAGE_FACTOR : biscuitsEnFin >= crew ? BISCUITS_FACTOR : null;
+  const seul = dernier && dernier.mange >= crew ? facteurDuVivreSeul(dernier.vivre)?.id : undefined;
+  const actif = short ? FOOD_SHORTAGE_FACTOR : seul ?? null;
+  const deVivreSeul = facteursDeVivreSeul();
   const factors = [
-    ...vessel.morale.factors.filter((f) => f !== FOOD_SHORTAGE_FACTOR && f !== BISCUITS_FACTOR),
+    ...vessel.morale.factors.filter((f) => f !== FOOD_SHORTAGE_FACTOR && !deVivreSeul.includes(f)),
     ...(actif ? [actif] : []),
   ];
   set({ vessel: { ...vessel, provisions, morale: { ...vessel.morale, factors } } });

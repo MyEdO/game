@@ -17,7 +17,7 @@ import { NARRATIVE_MARKERS } from '../../../engine/conditions';
 import { ARG_TEMPLATE, CHAMPS_DE_DECISION, INDICE_TEMPLATE, flowHasFreeAttack, walkFlow, type Condition, type EffectOp, type EffectTrigger, type Flow, type FlowTestNode, type TriggeredEffect } from '../../../engine/flowCore';
 import { acteDeDeverrouillageSchema, attackKindSchema, chaosAlignSchema, charKeySchema, cibleEtendueSchema, contexteDeTestSchema, deDeTirageSchema, diceSpecSchema, difficultySchema, effetSigneSchema, idDIconeSchema, enumNomme, shipLocationSchema, exposureLevelSchema, formulaSchema, formuleSansTirageSchema, genreDArmeSchema, hitLocationSchema, mainSchema, messageDeTermeDeJet, meteoImposeeSchema, statutSchema, ouReserve, plageSchema, reachSchema, natureDInfluenceSchema, sizeCategorySchema, symptomSeveritySchema, tirageSchema } from './valeurs';
 import { traitInstanceSchema } from './reference';
-import { idDe, marquerOpAtteinte, recordDIds, ref, refs, refOuSpec, specAuCatalogue, specDe, specFermeeDe, tirageSurTable, type RegimeDePorteur, type TypeEntite } from './ref';
+import { idDe, marquerOpAtteinte, ref, refs, refOuSpec, specAuCatalogue, specDe, specFermeeDe, tirageSurTable, type RegimeDePorteur, type TypeEntite } from './ref';
 import { CIBLE_D_APPARTENANCE, DECLARABLE_PAR_UN_PORTEUR, INSTANCIABLE_PAR_ID, RACINE_D_APPARENCE } from './sousListes';
 import { GROUPES_TIRABLES } from '../../obsessions';
 import { customStatblockSchema } from '../defs-scenes/communs';
@@ -215,10 +215,12 @@ function refuserLeVivreHorsCale(id: string, path: PropertyKey[], ctx: z.Refineme
   }
 }
 
-/** Les vivres de la cale (`VivresDeCale`, `engine/provisions.ts`), en rations (jours-homme) par vivre, posés par
- *  `setVessel`/`adjustVessel`. MDG 14 l.245-252 */
-export const vivresDeCaleSchema = recordDIds('trapping', nommerNoeud(z.number().int().min(0), { nom: 'rations (jours-homme)' }))
-  .superRefine((v, ctx) => { for (const id of Object.keys(v)) refuserLeVivreHorsCale(id, [id], ctx); });
+/** Un vivre posé par `setVessel`/`adjustVessel` : le vivre et ses rations (jours-homme) vont ensemble. MDG 14 l.245-252 */
+export function refuserLeVivreDuNavire(o: { vivre?: { id: string }; provisions?: number }, ctx: z.RefinementCtx): void {
+  if (o.vivre && o.provisions == null) ctx.addIssue({ code: 'custom', path: ['provisions'], message: `« provisions » manque : le vivre « ${o.vivre.id} » reçoit un nombre de rations (jours-homme).` });
+  if (!o.vivre && o.provisions != null) ctx.addIssue({ code: 'custom', path: ['vivre'], message: `« vivre » manque : les ${o.provisions} rations visent un vivre de la cale.` });
+  if (o.vivre) refuserLeVivreHorsCale(o.vivre.id, ['vivre'], ctx);
+}
 
 /** Le SUJET d'un jet : ce qu'il teste, Compétence ou Caractéristique (LDB 12 l.7, l.131). */
 export const sujetDuJetSchema = nommerChamps(z.strictObject({
