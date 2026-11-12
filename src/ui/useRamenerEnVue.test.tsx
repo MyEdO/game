@@ -34,7 +34,7 @@ const HAND = { label: 'Pause', ariaLabel: 'Pause au prochain Round', raised: fal
 function fixtures() {
   const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 3 });
   h.id = 'h1';
-  const foe = { ...createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brigand', seed: 5 }), id: 'e1', kind: 'enemy' as Combatant['kind'] };
+  const foe = { ...createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brigand', seed: 5 }), id: 'e1', kind: 'ennemi' as Combatant['kind'] };
   return { h, foe };
 }
 

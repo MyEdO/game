@@ -27,7 +27,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  */
 
 const bare = (over: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
-  id: 'c', name: 'C', kind: 'enemy',
+  id: 'c', name: 'C', kind: 'ennemi',
   characteristics: profilDeTest({ force: 35, endurance: 35 }),
   wounds: blessuresDeBase(15), advantage: 0, conditions: [], skills: [], talents: [], traits: [],
   weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, items: [],
@@ -100,8 +100,8 @@ describe('7bis — applyCoupCritiqueSec émet onCrit (Taillade sur Critique oppo
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const E = b.combatants.find((c) => c.kind === 'enemy')!;
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const E = b.combatants.find((c) => c.kind === 'ennemi')!;
     H.armour = { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }; // pas de PA déviable → application directe
     E.weapons = [taillade()];
     banc.setState({ battle: { ...b } });

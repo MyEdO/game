@@ -39,7 +39,7 @@ describe('l’exploration par le pont', () => {
     const morceaux = morceauxDe(appel, 'partie', monde);
     expect(morceaux.map((m) => [m.cle, m.empreinte]), 'chaque morceau du manifeste').toEqual(monde.morceaux.map((m) => [m.cle, m.empreinte]));
     expect(morceaux.reduce((n, m) => n + m.positions.length, 0), 'le sol de la scène, en triangles').toBeGreaterThanOrEqual(plateau.w * plateau.h * 2 * 9);
-    expect(morceaux.every((m) => m.cases.length === m.positions.length / 9), 'la case de chaque triangle').toBe(true);
+    expect(morceaux.every((m) => m.cases.length === m.positions.length / 3), 'la case de chaque triangle').toBe(true);
     expect(monde.hauteurs.map((c) => c.rangees.flat().length), 'la hauteur de chaque case de chaque couche').toEqual(monde.hauteurs.map(() => plateau.w * plateau.h));
 
     const boutons = suite.vue.zones['exploration.gestes'];

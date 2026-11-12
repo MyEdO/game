@@ -134,7 +134,7 @@ const RELATIFS: Record<Relatif, (s: SourcePsy, porteur: Combatant, lecture: Lect
   // Q15 A, #3045
   etrangersAuPorteur: (s, porteur, lecture) =>
     !lieAuPorteur(s, porteur, lecture) &&
-    (s.genre !== 'combattant' || relationBetween({ id: s.c.id, camp: campOf(s.c) }, { id: porteur.id, camp: campOf(porteur) }) === 'opponent'),
+    (s.genre !== 'combattant' || relationBetween({ id: s.c.id, camp: campOf(s.c) }, { id: porteur.id, camp: campOf(porteur) }) === 'adversaire'),
   // LDB 19 l.152 ; EDOC 12 l.219 ; #3045
   autresRacesQueLePorteur: (s, porteur, lecture) => {
     const siennes = racesDe(groupesDe(porteur));
@@ -187,7 +187,7 @@ export function agressifEnvers(
 ): boolean {
   if (source.id === cible.id) return false;
   const [cs, cc] = [campOf(source), campOf(cible)];
-  if (cs !== 'neutral' && cc !== 'neutral' && relationBetween({ id: source.id, camp: cs }, { id: cible.id, camp: cc }) === 'opponent') return true;
+  if (cs !== 'neutre' && cc !== 'neutre' && relationBetween({ id: source.id, camp: cs }, { id: cible.id, camp: cc }) === 'adversaire') return true;
   return !!source.engagedWith?.includes(cible.id)
     || !!cible.engagedWith?.includes(source.id)
     || !!source.attackedThisRound?.includes(cible.id);

@@ -31,8 +31,8 @@ describe('Venin — la touche qui blesse pose Empoisonné à la Difficulté du V
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
     const serpent = enemies[0];
     const proie = enemies[1];
     enemies.slice(2).forEach((e) => (e.dead = true));

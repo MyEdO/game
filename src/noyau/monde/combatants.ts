@@ -195,7 +195,7 @@ export function capDuGroupe(monde: Pick<Jeu, 'facing'>): Dir8 | null {
 /** Les cases où se tient le groupe, couche comprise : chaque héros posé en combat, sinon la case du groupe. PUR. */
 export function casesDuGroupe(monde: Pick<Jeu, 'battle' | 'partyPos'>): Pt[] {
   if (!monde.battle) return [{ ...monde.partyPos }];
-  return monde.battle.combatants.flatMap((c) => (c.kind === 'hero' && c.pos ? [{ x: c.pos.x, y: c.pos.y, z: c.pos.z ?? 0 }] : []));
+  return monde.battle.combatants.flatMap((c) => (c.kind === 'heros' && c.pos ? [{ x: c.pos.x, y: c.pos.y, z: c.pos.z ?? 0 }] : []));
 }
 
 /**

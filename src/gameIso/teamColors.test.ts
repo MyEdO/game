@@ -27,7 +27,7 @@ describe('couleurs d’équipe — un allié ne doit pas ressembler à un ennemi
     for (const teinte of [ACTIVE_RING, ENEMY_RING, ...HERO_RING]) {
       expect(distanceTeinte(OUT_OF_PARTY_RING, teinte)).toBeGreaterThanOrEqual(SEUIL_IDENTITE_HEROS);
     }
-    expect(relationColor('npc')).toBe(NEUTRAL_TINT);
+    expect(relationColor('pnj')).toBe(NEUTRAL_TINT);
   });
   it('aucun anneau héros n’est le rouge ennemi ni le jaune actif', () => {
     for (const c of HERO_RING) {

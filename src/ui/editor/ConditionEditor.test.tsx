@@ -127,7 +127,7 @@ describe('#1694 B2 — les sélecteurs de Condition sont NOMMÉS par leur nœud 
   const CAS: [string, Condition, unknown][] = [
     ['compare (who + field)', { kind: 'compare', subject: { who: 'target', field: 'woundsCurrent' }, op: '>=', value: 1 }, actorFieldSchema],
     ['compare (acteur)', { kind: 'compare', subject: { who: 'target', field: 'woundsCurrent' }, op: '>=', value: 1 }, actorRefSchema],
-    ['relation', { kind: 'relation', who: 'target', is: 'ally' }, relationOrCampSchema],
+    ['relation', { kind: 'relation', who: 'target', is: 'allie' }, relationOrCampSchema],
     ['has', { kind: 'has', who: 'target', what: 'trait', value: 'mort-vivant' }, hasWhatSchema],
     ['startleCause', { kind: 'startleCause', is: 'noise' }, startleCauseSchema],
     ['partyDead', { kind: 'partyDead', who: 'any' }, partyWhoSchema],
@@ -146,8 +146,8 @@ describe('#1694 B2 — les sélecteurs de Condition sont NOMMÉS par leur nœud 
   }
 
   it('le résumé humain d’une Condition lit les mêmes libellés que les sélecteurs', () => {
-    expect(condSummary({ kind: 'relation', who: 'caster', is: 'opponent' }))
-      .toBe(`${libelleDeValeur(actorRefSchema, 'caster')} : ${libelleDeValeur(relationOrCampSchema, 'opponent')}`);
+    expect(condSummary({ kind: 'relation', who: 'caster', is: 'adversaire' }))
+      .toBe(`${libelleDeValeur(actorRefSchema, 'caster')} : ${libelleDeValeur(relationOrCampSchema, 'adversaire')}`);
     expect(condSummary({ kind: 'startleCause', is: 'magic' }))
       .toBe(`effarouché par ${libelleDeValeur(startleCauseSchema, 'magic')}`);
   });

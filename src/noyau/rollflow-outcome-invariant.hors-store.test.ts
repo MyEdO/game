@@ -35,7 +35,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const C = (over: Partial<Combatant>): Combatant =>
   (blessuresSurLeProfil({
-    id: 'X', name: 'X', kind: 'hero',
+    id: 'X', name: 'X', kind: 'heros',
     characteristics: { 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 35, endurance: 35, initiative: 35, agilite: 35, dexterite: 35, intelligence: 35, 'force-mentale': 35, sociabilite: 35 },
     wounds: blessuresDeBase(14), advantage: 0, conditions: [], traumas: [],
     weapons: [{ name: 'Épée', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [] }],
@@ -45,8 +45,8 @@ const C = (over: Partial<Combatant>): Combatant =>
   })) as unknown as Combatant;
 
 /** Héros « A » avec 1 Point de Chance (l'observable) ; l'ennemi « B » adjacent. */
-const hero = (over: Partial<Combatant> = {}): Combatant => C({ id: 'A', label: 'A', kind: 'hero', fortune: 1, resilience: 1, ...over });
-const foe = (over: Partial<Combatant> = {}): Combatant => C({ id: 'B', label: 'B', kind: 'enemy', fortune: 0, resilience: 0, pos: { x: 1, y: 0 }, ...over });
+const hero = (over: Partial<Combatant> = {}): Combatant => C({ id: 'A', label: 'A', kind: 'heros', fortune: 1, resilience: 1, ...over });
+const foe = (over: Partial<Combatant> = {}): Combatant => C({ id: 'B', label: 'B', kind: 'ennemi', fortune: 0, resilience: 0, pos: { x: 1, y: 0 }, ...over });
 const arena = (extra: Combatant[] = []) => ({ combatants: [hero(), foe(), ...extra], log: [] });
 
 /** Jets propres PERDANT / GAGNANT réutilisés partout (verdict `evaluateTest`, LDB 12 l.25-28). */

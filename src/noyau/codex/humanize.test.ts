@@ -84,7 +84,7 @@ describe('humanize — registre JOUEUR', () => {
   it('humanizeCondition : négation NATURELLE poussée dans la feuille (pas de « NON( … ) »)', () => {
     const c: Condition = { kind: 'not', of: { kind: 'has', who: 'target', what: 'talent', value: 'magie-des-arcanes', spec: 'feu' } };
     expect(humanizeCondition(c, AUCUN_ETAT)).toBe('la cible ne possède pas le Talent Magie des Arcanes (Feu)');
-    const rel: Condition = { kind: 'relation', who: 'target', is: 'opponent' };
+    const rel: Condition = { kind: 'relation', who: 'target', is: 'adversaire' };
     expect(humanizeCondition(rel, AUCUN_ETAT)).toBe('la cible est un adversaire');
     // De Morgan sur any sous négation.
     const morgan: Condition = { kind: 'not', of: { kind: 'any', of: [
@@ -97,13 +97,13 @@ describe('humanize — registre JOUEUR', () => {
 
   it('humanizeCondition : dédoublonne le sujet répété dans all/any (jamais deux sujets différents)', () => {
     const same: Condition = { kind: 'all', of: [
-      { kind: 'relation', who: 'target', is: 'opponent' },
+      { kind: 'relation', who: 'target', is: 'adversaire' },
       { kind: 'not', of: { kind: 'has', who: 'target', what: 'talent', value: 'magie-des-arcanes', spec: 'feu' } },
     ] };
     expect(humanizeCondition(same, AUCUN_ETAT)).toBe('la cible est un adversaire et ne possède pas le Talent Magie des Arcanes (Feu)');
     // Sujets DIFFÉRENTS (cible / lanceur) : aucun dédoublonnage (sûreté grammaticale).
     const mixed: Condition = { kind: 'all', of: [
-      { kind: 'relation', who: 'target', is: 'opponent' },
+      { kind: 'relation', who: 'target', is: 'adversaire' },
       { kind: 'not', of: { kind: 'has', who: 'caster', what: 'trait', value: 'mort-vivant' } },
     ] };
     expect(humanizeCondition(mixed, AUCUN_ETAT)).toBe('la cible est un adversaire et le lanceur ne possède pas le Trait Mort-vivant');

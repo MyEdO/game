@@ -24,7 +24,7 @@ const seq = (...values: number[]): RNG => desEnSuite(values, { borne: true });
 
 const cible = (): Combatant =>
   (blessuresSurLeProfil({
-    id: 't', name: 'Cible', label: 'Cible', kind: 'enemy',
+    id: 't', name: 'Cible', label: 'Cible', kind: 'ennemi',
     characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 40, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(10), conditions: [], skills: [], traumas: [], critEntriesSuffered: [], bodyShape: 'humanoide',
   })) as unknown as Combatant;

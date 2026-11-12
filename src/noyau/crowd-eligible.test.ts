@@ -9,9 +9,9 @@ const battle = (combatants: any[]) => ({ combatants } as any);
 
 describe('crowdEligible', () => {
   it('cible + allié + ennemi au contact (diagonale incluse) ; exclut le tireur et les distants', () => {
-    const shooter = C('s', 0, 0, 'hero');
+    const shooter = C('s', 0, 0, 'heros');
     const target = C('t', 5, 5, 'monster');
-    const ally = C('a', 5, 6, 'hero'); // allié du tireur au contact de la cible → fratricide possible
+    const ally = C('a', 5, 6, 'heros'); // allié du tireur au contact de la cible → fratricide possible
     const foe = C('f', 6, 6, 'monster'); // ennemi en diagonale, au contact
     const far = C('x', 9, 9, 'monster'); // distant → exclu
     const elig = crowdEligible(battle([shooter, target, ally, foe, far]), shooter, target);

@@ -60,8 +60,8 @@ function auCombat(): { H: Combatant; E: Combatant } {
   g().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = g().battle!;
-  const H = b.combatants.find((c) => c.kind === 'hero')!;
-  const E = b.combatants.find((c) => c.kind === 'enemy')!;
+  const H = b.combatants.find((c) => c.kind === 'heros')!;
+  const E = b.combatants.find((c) => c.kind === 'ennemi')!;
   H.pos = { x: 10, y: 10 };
   E.pos = { x: 15, y: 10 };
   H.engagedWith = [];
@@ -253,7 +253,7 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
 
   it('Course de l’IA : `aiApproachPlan` jette le Test de `course`', () => {
     const scene = emptyScene('s', 30, 21);
-    const C = (kind: 'hero' | 'enemy', id: string, x: number): Combatant => (blessuresSurLeProfil({ id, name: id, label: id, kind, pos: { x, y: 10 }, movement: 4,
+    const C = (kind: 'heros' | 'ennemi', id: string, x: number): Combatant => (blessuresSurLeProfil({ id, name: id, label: id, kind, pos: { x, y: 10 }, movement: 4,
       characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
       weapons: [{ name: 'Épée', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [] }],
       conditions: [], skills: [{ id: 'esquive', characteristic: 'agilite', advances: 25 }], wounds: blessuresDeBase(10), advantage: 0, engagedWith: [], psychState: [] })) as unknown as Combatant;
@@ -261,8 +261,8 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     const [skill, d] = FICHE_DE_TEST.course.courir;
     const ecarts = { competence: 0, difficulte: 0 };
     for (let graine = 1; graine <= 30; graine++) {
-      const enemy = C('enemy', 'e', 2);
-      const input: EnemyTurnInput = { enemy, heroes: [C('hero', 'h', 25)], scene, blocked: new Set(['25,10']), movement: 4, spells: [] };
+      const enemy = C('ennemi', 'e', 2);
+      const input: EnemyTurnInput = { enemy, heroes: [C('heros', 'h', 25)], scene, blocked: new Set(['25,10']), movement: 4, spells: [] };
       const budget = (s: string, x: Difficulty) => 4 + resolveRun(testValue(enemy, { skill: { id: s } }), x, 4, makeRNG(graine)).bonusCases;
       expect(aiApproachPlan(input, enemy, chooseEnemyAction(input), makeRNG(graine)).ran?.budget, `graine ${graine}`).toBe(budget(skill, d));
       if (budget(jeuSkill, d) !== budget(skill, d)) ecarts.competence++;
@@ -270,8 +270,8 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     }
     expect(ecarts.competence * ecarts.difficulte, 'les graines départagent compétence et Difficulté').toBeGreaterThan(0);
     const plan = (mountId?: string) => {
-      const enemy = { ...C('enemy', 'e', 2), ...(mountId ? { mountId } : {}) };
-      const input: EnemyTurnInput = { enemy, heroes: [C('hero', 'h', 25)], scene, blocked: new Set(['25,10']), movement: 4, spells: [] };
+      const enemy = { ...C('ennemi', 'e', 2), ...(mountId ? { mountId } : {}) };
+      const input: EnemyTurnInput = { enemy, heroes: [C('heros', 'h', 25)], scene, blocked: new Set(['25,10']), movement: 4, spells: [] };
       return aiApproachPlan(input, enemy, chooseEnemyAction(input), makeRNG(1)).ran?.test.skill;
     };
     expect(plan(), 'la compétence que le journal nomme').toEqual(testDeFiche('course', 'courir').skill);

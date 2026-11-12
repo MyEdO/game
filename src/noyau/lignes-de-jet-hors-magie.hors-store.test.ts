@@ -37,7 +37,7 @@ const CHARS = { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 35, endu
 
 /** Héros d'épreuve : chaque Test du lot sur une valeur distincte ; l'Évaluation dépasse la borne haute (Int 60 + 50). */
 const heros = (id = 'h', over: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
-  id, label: id, kind: 'hero', pos: { x: 1, y: 1 }, size: 'moyenne', characteristics: { ...CHARS },
+  id, label: id, kind: 'heros', pos: { x: 1, y: 1 }, size: 'moyenne', characteristics: { ...CHARS },
   skills: [
     { id: 'athletisme', advances: 12 }, { id: 'calme', advances: 7 }, { id: 'resistance', advances: 4 },
     { id: 'guerison', advances: 21 }, { id: 'evaluation', advances: 50 },
@@ -128,7 +128,7 @@ describe('flux sur l’acteur vivant : la cible annoncée par le lecteur est cel
     // Le frappeur (non joué) porte son coup dans le dos à l'ouverture et blesse : le Test du fuyard est dû (LDB 15 l.66).
     const epee = { uid: 'e', label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4, bare: true }, qualities: [], hand: 'main', hands: 1 };
     const brute = heros('x', {
-      kind: 'enemy', pos: { x: 2, y: 1 }, engagedWith: ['h'], weapons: [epee], items: [{ uid: 'e', label: 'Épée', kind: 'melee', qualities: [] }],
+      kind: 'ennemi', pos: { x: 2, y: 1 }, engagedWith: ['h'], weapons: [epee], items: [{ uid: 'e', label: 'Épée', kind: 'melee', qualities: [] }],
       loadouts: [{ id: 'lo', main: 'e' }], activeLoadoutId: 'lo',
       characteristics: { ...CHARS, 'capacite-de-combat': 90, force: 80 },
     } as unknown as Partial<Combatant>);

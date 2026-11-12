@@ -31,7 +31,7 @@ const PROP = 'table-1';
 /** Les places de la table, dans l'ordre du catalogue : une par rang, pour lire le résultat d'un œil. */
 const SLOT_DU_RANG = ['place-1', 'place-2', 'place-3', 'place-4'];
 
-const hero = (id: string): Combatant => combattantDeTest({ id, label: id.toUpperCase(), kind: 'hero', xp: 0 });
+const hero = (id: string): Combatant => combattantDeTest({ id, label: id.toUpperCase(), kind: 'heros', xp: 0 });
 
 const poseDe = (rang: number) => seatPoseOf(banc.getState().scene!, { kind: 'party', rang });
 const placesDeGroupe = () =>

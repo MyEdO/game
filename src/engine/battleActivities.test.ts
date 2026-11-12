@@ -24,7 +24,7 @@ function deltas(def: ActivityDef, res: BattleResolution): { side: string; amount
   for (const b of matchBattleOutcomes(def, res)) {
     for (const o of b.battle ?? []) {
       const amount = battleOutcomeAmount(o, res);
-      if (amount !== 0) out.push({ side: (o.side ?? (o.target === 'might' ? 'enemy' : 'ally')), amount });
+      if (amount !== 0) out.push({ side: (o.side ?? (o.target === 'might' ? 'ennemi' : 'allie')), amount });
     }
   }
   return out;

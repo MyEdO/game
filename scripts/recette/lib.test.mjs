@@ -1112,7 +1112,7 @@ test('piloterCombat / avancerDeRounds : le choix explicite laisse le geste carte
   const bataille = { round: 1, over: false, actif: 'h1', acted: false, movementUsed: 0, endTurnArmed: false }
   const jeu = {}
   const { dom, doc, session } = pagePilotee('<div class="modal-overlay"><div role="dialog" aria-label="Défense"><div class="seg"><button>Parade</button><button>Esquive</button></div><button id="lancer" disabled>Lancer</button></div></div>', { jeu, cascade: true })
-  dom.window.__wfrp = { battle: () => bataille, auto: () => ({ roundPause: false, activeModal: 'pendingCascade', cascade: cascadeAffichage(dom), active: { id: 'h1', kind: 'hero' } }) }
+  dom.window.__wfrp = { battle: () => bataille, auto: () => ({ roundPause: false, activeModal: 'pendingCascade', cascade: cascadeAffichage(dom), active: { id: 'h1', kind: 'heros' } }) }
   doc.querySelector('.seg button').onclick = () => { doc.querySelector('.modal-overlay').remove(); jeu.gesteCarte = { kind: 'cibles', label: 'Flèche', casterId: 'h1', cibles: [] } }
   await clickButtonByText(session, 'Parade', { dans: '.modal-overlay' })
   await assert.rejects(() => avancerDeRounds(session, 1, { pauseMs: 1 }), (e) => {
@@ -1316,7 +1316,7 @@ test('resoudreModales : une cascade Surprise se vide — « Tout lancer », roul
 
 const lecture = (champs = {}) => ({
   battle: { round: 1, over: null, actif: 'h1', acted: false, movementUsed: 0, endTurnArmed: false, ...champs.battle },
-  auto: { roundPause: false, activeModal: null, active: { id: 'h1', kind: 'hero', aiDriven: false, acted: false }, ...champs.auto },
+  auto: { roundPause: false, activeModal: null, active: { id: 'h1', kind: 'heros', aiDriven: false, acted: false }, ...champs.auto },
   modale: champs.modale ?? false,
 })
 
@@ -1329,7 +1329,7 @@ for (const [cas, l, attendu, opts] of [
   ['pause de début de Round', lecture({ auto: { roundPause: true, active: null } }), 'ouvrirRound'],
   ['tour d’un héros piloté', lecture(), 'finirTour'],
   ['plaque ARMÉE (second temps de fin de tour)', lecture({ battle: { endTurnArmed: true }, auto: { active: null } }), 'finirTour'],
-  ['tour d’IA', lecture({ auto: { active: { id: 'g1', kind: 'enemy', aiDriven: true, acted: false } } }), 'attendre'],
+  ['tour d’IA', lecture({ auto: { active: { id: 'g1', kind: 'ennemi', aiDriven: true, acted: false } } }), 'attendre'],
   ['aucun acteur', lecture({ auto: { active: null } }), 'attendre'],
 ]) {
   test(`prochainGeste : ${cas} → ${attendu}`, () => {
@@ -1362,7 +1362,7 @@ test('finDuTour : plaque non armée → un seul clic', async () => {
 test('piloterCombat : rend la lecture après sélection explicite de Parade', async () => {
   const bataille = { round: 1, over: false, actif: 'h1', acted: false, movementUsed: 0, endTurnArmed: false }
   const { dom, doc, session } = pagePilotee('<div class="modal-overlay"><div role="dialog" aria-label="Défense"><div class="seg"><button>Parade</button><button>Esquive</button></div><button id="lancer" disabled>Lancer</button></div></div>', { cascade: true })
-  dom.window.__wfrp = { battle: () => bataille, auto: () => ({ roundPause: false, activeModal: 'pendingCascade', cascade: cascadeAffichage(dom), active: { id: 'h1', kind: 'hero' } }) }
+  dom.window.__wfrp = { battle: () => bataille, auto: () => ({ roundPause: false, activeModal: 'pendingCascade', cascade: cascadeAffichage(dom), active: { id: 'h1', kind: 'heros' } }) }
   doc.querySelector('.seg button').onclick = (e) => { e.target.setAttribute('aria-pressed', 'true'); doc.querySelector('#lancer').disabled = false }
   doc.querySelector('#lancer').onclick = () => { doc.querySelector('.modal-overlay').remove(); bataille.over = true }
   await clickButtonByText(session, 'Parade', { dans: '.modal-overlay' })
@@ -1373,7 +1373,7 @@ test('piloterCombat : rend la lecture après sélection explicite de Parade', as
 
 
 test('piloterCombat : budget épuisé → levée qui NOMME la dernière lecture', async () => {
-  const session = { rpc: async () => ({ result: { value: lecture({ auto: { active: { id: 'g1', kind: 'enemy', aiDriven: true } } }) } }) }
+  const session = { rpc: async () => ({ result: { value: lecture({ auto: { active: { id: 'g1', kind: 'ennemi', aiDriven: true } } }) } }) }
   await assert.rejects(() => piloterCombat(session, { budget: 2, pauseMs: 1 }), /dernière lecture : .*"aiDriven":true/)
 })
 
@@ -2236,7 +2236,7 @@ function combatFactice() {
   const b = { round: 1, over: false, actif: 'h1', acted: false, movementUsed: 0, endTurnArmed: false }
   const a = { roundPause: false, activeModal: null }
   const { dom, doc, etat, session } = pagePilotee('<div class="combat-console"><button data-action="fin-de-tour">Fin du tour</button></div><div class="cc-phase"><button data-action="debut-de-round">Commencer le round</button></div>')
-  dom.window.__wfrp = { battle: () => ({ ...b }), auto: () => ({ ...a, active: a.roundPause ? null : { id: 'h1', kind: 'hero', aiDriven: false } }) }
+  dom.window.__wfrp = { battle: () => ({ ...b }), auto: () => ({ ...a, active: a.roundPause ? null : { id: 'h1', kind: 'heros', aiDriven: false } }) }
   doc.querySelector('[data-action="fin-de-tour"]').onclick = () => {
     if (!b.endTurnArmed) { b.endTurnArmed = true; return }
     b.endTurnArmed = false

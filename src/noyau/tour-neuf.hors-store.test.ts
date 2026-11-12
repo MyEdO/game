@@ -22,7 +22,7 @@ function deuxHeros(ordre: 'AB' | 'BA' = 'AB', turn = 0): { A: Combatant; B: Comb
   const B = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'B', seed: 2 });
   A.pos = { x: 2, y: 2 };
   B.pos = { x: 2, y: 8 };
-  const E = { ...createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'E', seed: 3 }), kind: 'enemy', pos: { x: 18, y: 18 } } as Combatant;
+  const E = { ...createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'E', seed: 3 }), kind: 'ennemi', pos: { x: 18, y: 18 } } as Combatant;
   const battle: BattleState = {
     combatants: [A, B, E], order: ordre === 'AB' ? [A.id, B.id, E.id] : [B.id, A.id], turn, round: 1, action: null, selectedSpellId: null,
     reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,

@@ -45,8 +45,8 @@ describe('combat multi-couche — rampe : portée/aperçu/clic z-aware', () => {
     banc.abandonner();
     const sc = rampScene();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    b.combatants.filter((c) => c.kind === 'enemy').forEach((e) => (e.dead = true)); // libère la grille 6×6
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    b.combatants.filter((c) => c.kind === 'ennemi').forEach((e) => (e.dead = true)); // libère la grille 6×6
     H.engagedWith = []; // libre de se déplacer
     placeCombatant(H, sc, heroPos); // stampe pos.h depuis le relief
     banc.setState({

@@ -42,7 +42,7 @@ function spawnRoster(): Combatant[] {
  * La Scène est compilée par `buildScene(MapSpec)` (headless-editor) — plus aucun `arena()`+`setEncounters()`
  * impératif. Ce bloc verrouille l'ÉQUIVALENCE en jeu : mêmes dimensions, terrain 'planches', échelle 2 m/case
  * (metresPerTile non forcé → défaut), et un roster d'ennemis dont l'ORDRE d'index est load-bearing (la cogue
- * référence `enemy-enc-naval-1..3` ; la barge amie est l'index 4, côté 'ally', avec ses 2 postes de pierrier).
+ * référence `enemy-enc-naval-1..3` ; la barge amie est l'index 4, côté 'allie', avec ses 2 postes de pierrier).
  */
 describe('Scène compilée par buildScene — équivalence de map', () => {
   const scene = scenConstruit.scene;
@@ -95,7 +95,7 @@ describe('Scénario Bataille navale — chaîne navale jouable', () => {
   it('la cogue spawn comme COQUE (vehicule, enemy, B50) liée à son ÉQUIPAGE (crewIds → vrais marins)', () => {
     const ship = spawnRoster().find((c) => c.id === 'enemy-enc-naval-0')!;
     expect(ship.bodyShape).toBe('vehicule');
-    expect(ship.kind).toBe('enemy');
+    expect(ship.kind).toBe('ennemi');
     expect(ship.creatureId).toBe('cogue');
     expect(ship.wounds.max).toBe(50);
     expect(ship.crewIds).toEqual(['enemy-enc-naval-1', 'enemy-enc-naval-2', 'enemy-enc-naval-3']);

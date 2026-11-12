@@ -1398,7 +1398,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       const idx = b.order.indexOf(att.id);
       if (idx < 0) return `✗ ${att.label} est absent de l'ordre d'initiative`;
       if (!aiDriven(g(), att)) return `✗ ${att.label} est piloté par un joueur : ses gratuites passent par la barre d'actions`;
-      if (att.kind !== 'enemy') return `✗ ${att.label} n'est pas un ennemi : la file des gratuites de créature ne joue que les ennemis`;
+      if (att.kind !== 'ennemi') return `✗ ${att.label} n'est pas un ennemi : la file des gratuites de créature ne joue que les ennemis`;
       if (defenseEnCours(g())) return '✗ une Défense est déjà ouverte — la résoudre d\'abord';
       const disponibles = [...new Set(fileDesGratuites(att).melee)].filter((k) => freeAttackTargetOk(b, att, k, def));
       if (!disponibles.length) return `✗ ${att.label} n'a aucune attaque gratuite disponible contre ${def.label} (Morsure, Attaque caudale, Tentacules, Cornes après une Charge, Piétinement d'un plus petit au contact) — __wfrp.trait() d'abord`;
@@ -1541,10 +1541,10 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     killEnemies: (opts?: { withQualityLoot?: boolean }) => {
       const s = g();
       if (!s.battle || s.battle.over) return '✗ pas de combat en cours';
-      const slain = s.battle.combatants.filter((c) => c.kind === 'enemy' && !isOutOfAction(c));
+      const slain = s.battle.combatants.filter((c) => c.kind === 'ennemi' && !isOutOfAction(c));
       if (!slain.length) return 'aucun ennemi encore debout';
       const combatants = s.battle.combatants.map((c) =>
-        c.kind === 'enemy' && !isOutOfAction(c)
+        c.kind === 'ennemi' && !isOutOfAction(c)
           ? { ...c, dead: true, wounds: { ...c.wounds, current: 0 } }
           : c,
       );
@@ -1590,7 +1590,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       const target = inBattleId(s.battle, id);
       if (!target) return `✗ « ${id} » introuvable dans le combat — voir __wfrp.battle()`;
       if (typeof n !== 'number' || !Number.isFinite(n)) return `✗ Dégâts « ${String(n)} » : un nombre fini est attendu`;
-      const caster = s.battle.combatants.find((c) => c.kind === 'hero' && !isOutOfAction(c)) ?? target;
+      const caster = s.battle.combatants.find((c) => c.kind === 'heros' && !isOutOfAction(c)) ?? target;
       const lines = applyOps(target, [{ op: 'wounds', amount: n }], { idNeuf: useGame.getState().forgerUnId, rng: battleRng(), caster });
       useGame.setState({
         battle: { ...s.battle, log: [...s.battle.log, ev('information', `Recette : ${n} Dégâts infligés à ${target.label}.`), ...lines.map((l) => ev('information', l))] },
@@ -1617,20 +1617,20 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       const level = opts?.corruption === undefined ? 'moderee' : opts.corruption;
       if (level !== false && !(EXPOSURE_LADDER as readonly unknown[]).includes(level)) return `✗ corruption « ${String(level)} » : l'id du Degré du trait \`corruption\` (${EXPOSURE_LADDER.map((n) => `« ${n} »`).join(', ')}) ou false`;
       const hero = (opts?.heroId
-        ? s.battle.combatants.find((c) => c.id === opts.heroId && c.kind === 'hero')
-        : s.battle.combatants.find((c) => c.kind === 'hero' && !isOutOfAction(c)));
+        ? s.battle.combatants.find((c) => c.id === opts.heroId && c.kind === 'heros')
+        : s.battle.combatants.find((c) => c.kind === 'heros' && !isOutOfAction(c)));
       if (!hero) return '✗ aucun héros survivant ciblable';
       if (opts?.critical !== false) hero.tookCriticalThisFight = true; // Infection post-critique (LDB 20 l.90)
       hero.woundDressed = false; // pas de pansement → l'Infection s'applique
       hero.fortune = Math.max(1, hero.fortune ?? 0); // Chance visible (relance)
       hero.resilience = Math.max(1, hero.resilience ?? 0); // Résilience visible (« Je ne faillirai pas ! »)
-      const enemy = s.battle.combatants.find((c) => c.kind === 'enemy');
+      const enemy = s.battle.combatants.find((c) => c.kind === 'ennemi');
       if (level && enemy) {
         const traits = (enemy.traits ?? []).filter((t) => t.id !== 'corruption');
         enemy.traits = [...traits, resoudreTrait({ id: 'corruption', arg: level })]; // exposition à la Corruption (LDB 85 → 19)
       }
       const combatants = s.battle.combatants.map((c) =>
-        c.kind === 'enemy' && !isOutOfAction(c) ? { ...c, dead: true, wounds: { ...c.wounds, current: 0 } } : c,
+        c.kind === 'ennemi' && !isOutOfAction(c) ? { ...c, dead: true, wounds: { ...c.wounds, current: 0 } } : c,
       );
       useGame.setState({
         battle: { ...s.battle, combatants, log: [...s.battle.log, ev('information', 'Recette : conséquences de fin de combat armées.')] },
@@ -1658,7 +1658,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       });
       useGame.setState((s) => ecrireActeur(s, [
         ...s.party.map((h) => h.id),
-        ...(s.battle?.combatants ?? []).filter((c) => c.kind === 'hero').map((c) => c.id),
+        ...(s.battle?.combatants ?? []).filter((c) => c.kind === 'heros').map((c) => c.id),
       ], fix));
       return `✓ groupe soigné (${g().party.length} héros)`;
     },
@@ -1722,7 +1722,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       // ce que le jeu appelle « notre navire » : la coque du plan de voyage, puis celle qui porte un
       // héros dans son équipage, puis (à défaut) la seule en jeu. `hullId` tranche explicitement.
       const desHeros = (c: Combatant): boolean =>
-        (c.crewIds ?? []).some((id) => (s.party.some((h) => h.id === id)) || inBattleId(s.battle, id)?.kind === 'hero');
+        (c.crewIds ?? []).some((id) => (s.party.some((h) => h.id === id)) || inBattleId(s.battle, id)?.kind === 'heros');
       const coque = hullId
         ? (enJeu.find((c) => c.id === hullId) ?? (s.travelPlan?.vehicle?.id === hullId ? s.travelPlan.vehicle : undefined))
         : ((s.travelPlan?.vehicle && estNavire(s.travelPlan.vehicle) ? s.travelPlan.vehicle : undefined) ?? enJeu.find(desHeros) ?? (enJeu.length === 1 ? enJeu[0] : undefined));
@@ -1895,7 +1895,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       if (!b || b.over) return '✗ pas de combat en cours';
       const enemy = inBattleId(b, enemyId);
       if (!enemy) return `✗ ennemi « ${enemyId} » introuvable`;
-      const heroes = b.combatants.filter((c) => c.kind === 'hero' && !isOutOfAction(c));
+      const heroes = b.combatants.filter((c) => c.kind === 'heros' && !isOutOfAction(c));
       const target = heroId
         ? heroes.find((c) => c.id === heroId)
         : (enemy.pos
@@ -1966,11 +1966,11 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     /** RECETTE : instancie une créature du REGISTRE (`creatures.json`) directement EN COMBAT — VRAI
      *  pipeline (`spawnEnemy`, `src/noyau/monde/spawn.ts` — la porte du
      *  peuplement de scène : profil, armes/armure depuis les Traits, Psychologie, Groupes…), sans
-     *  passer par une rencontre de scène. `spawn('gobelin')`, `spawn('gobelin', {x,y}, {side:'hero'})`.
+     *  passer par une rencontre de scène. `spawn('gobelin')`, `spawn('gobelin', {x,y}, {side:'heros'})`.
      *  `pos` défaut : à côté du combattant ACTIF (ou, à défaut, le premier combattant positionné) —
-     *  `opts.side` (`'enemy'` défaut / `'hero'` / `'npc'`) pose `kind` après coup (`'hero'` marque aussi
+     *  `opts.side` (`'ennemi'` défaut / `'heros'` / `'pnj'`) pose `kind` après coup (`'heros'` marque aussi
      *  `aiControlled` — un allié PNJ du camp héros piloté par l'IA, jamais un 5ᵉ héros manuel). */
-    spawn: (creatureId: string, pos?: { x: number; y: number; z?: number }, opts?: { side?: 'hero' | 'enemy' | 'npc'; id?: string }) => {
+    spawn: (creatureId: string, pos?: { x: number; y: number; z?: number }, opts?: { side?: 'heros' | 'ennemi' | 'pnj'; id?: string }) => {
       const b = g().battle;
       if (!b) return '✗ pas de combat en cours';
       const creature = findCreatureById(creatureId);
@@ -1982,9 +1982,9 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       let n = 0;
       while (b.combatants.some((c) => c.id === id)) { n += 1; id = `${opts?.id ?? `spawn-${creatureId}`}-${n}`; }
       const c = spawnEnemy({ ref: creatureId }, id, basePos);
-      const side = opts?.side ?? 'enemy';
-      if (side === 'hero') { c.kind = 'hero'; c.aiControlled = true; }
-      else if (side === 'npc') c.kind = 'npc';
+      const side = opts?.side ?? 'ennemi';
+      if (side === 'heros') { c.kind = 'heros'; c.aiControlled = true; }
+      else if (side === 'pnj') c.kind = 'pnj';
       inscrireEnBataille(b, c);
       useGame.setState({ battle: { ...b } });
       bus.emit(EVT.SCENE_DIRTY);

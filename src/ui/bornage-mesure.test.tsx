@@ -61,7 +61,7 @@ function heroCoureur(): Combatant {
   hero.characteristics = { ...hero.characteristics, agilite: 95 };
   useGame.setState({ party: [hero] });
   g().lancerLaScene(testScene()); g().lancerLeCombat('enc-mutants'); g().fenetreValider('debutDuRound'); vi.clearAllTimers();
-  const b = g().battle!; const H = b.combatants.find((c) => c.kind === 'hero')!;
+  const b = g().battle!; const H = b.combatants.find((c) => c.kind === 'heros')!;
   H.pos = { x: 10, y: 10 }; H.engagedWith = [];
   useGame.setState({ screen: 'campaign', battle: { ...b, turn: b.order.indexOf(H.id), acted: false, movementUsed: 0 }, pendingRun: null });
   g().ensemencerLeTirage(2);
@@ -93,7 +93,7 @@ describe('bornage mesuré au constructeur — les routes des modales', () => {
     const H = combattantDeModale('H'); (H.characteristics as Record<string, number>).sociabilite = 5;
     const test = testDeRegle('calme-d-approche', 'se-rapprocher');
     useGame.setState({
-      battle: { combatants: [H, combattantDeModale('Ogre', 'enemy')], log: [] },
+      battle: { combatants: [H, combattantDeModale('Ogre', 'ennemi')], log: [] },
       pendingApproach: { combatantId: 'H', test, sourceId: 'Ogre', sourceName: 'Ogre', intent: { kind: 'tile', pt: { x: 1, y: 0 } }, result: null },
     } as never);
     act(() => root.render(createElement(ApproachModal)));
@@ -138,7 +138,7 @@ describe('Résilience AVANT le jet, voie binaire : le jet forcé affronte la cib
 
   it('Bénédiction de Protection (Accessible, donnée réelle)', () => {
     const A = combattantDeModale('A'); A.resilience = 2;
-    useGame.setState({ battle: { combatants: [A, combattantDeModale('Cible', 'enemy')], log: [] }, pendingWard: { attackerId: 'A', targetId: 'Cible', targetName: 'Cible', result: null } } as never);
+    useGame.setState({ battle: { combatants: [A, combattantDeModale('Cible', 'ennemi')], log: [] }, pendingWard: { attackerId: 'A', targetId: 'Cible', targetName: 'Cible', result: null } } as never);
     act(() => root.render(createElement(WardModal)));
     forceAvantLeJet(() => g().jetForcerLaReussite('protection'));
     porteLaMesure(g().pendingWard!.result, cibleDuTest(testValue(A, { characteristic: 'force-mentale' }), 'accessible'));
@@ -148,7 +148,7 @@ describe('Résilience AVANT le jet, voie binaire : le jet forcé affronte la cib
     if (fiche === 'posee') poserFicheDeTest();
     const H = combattantDeModale('H'); H.resilience = 2;
     const test = testDeRegle('calme-d-approche', 'se-rapprocher');
-    useGame.setState({ battle: { combatants: [H, combattantDeModale('Ogre', 'enemy')], log: [] },
+    useGame.setState({ battle: { combatants: [H, combattantDeModale('Ogre', 'ennemi')], log: [] },
       pendingApproach: { combatantId: 'H', test, sourceId: 'Ogre', sourceName: 'Ogre', intent: { kind: 'tile', pt: { x: 1, y: 0 } }, result: null } } as never);
     act(() => root.render(createElement(ApproachModal)));
     forceAvantLeJet(() => g().jetForcerLaReussite('approche'));
@@ -159,7 +159,7 @@ describe('Résilience AVANT le jet, voie binaire : le jet forcé affronte la cib
 describe('rangée de bande à cible au-delà du plafond : l’écrêtage mesuré se nomme sans autre poste', () => {
   it('Exposition à la Corruption de fin de combat, Résistance 100 : « −1 plafond 99 » avant, après le jet et au bilan', () => {
     const H = { ...combattantDeModale('H'), characteristics: { ...combattantDeModale('H').characteristics, endurance: 95 }, skills: [{ id: 'resistance', advances: 5, characteristic: 'endurance' }] } as Combatant;
-    const bete = { ...combattantDeModale('Bete', 'enemy'), dead: true, traits: [{ id: 'corruption', arg: 'mineure' }] } as Combatant;
+    const bete = { ...combattantDeModale('Bete', 'ennemi'), dead: true, traits: [{ id: 'corruption', arg: 'mineure' }] } as Combatant;
     useGame.setState({
       mode: 'battle', party: [H], pendingCascade: null, suspendedCascades: [],
       net: { mode: 'local', mySeat: 0, roomCode: null, seatNames: {}, presence: {}, ownership: {} } as never,
@@ -193,7 +193,7 @@ describe('pré-ligne d’un Test opposé : la cible annoncée est celle que le d
 
 describe('bornage mesuré au constructeur — routes sans modale montée', () => {
   it('Marchandage forcé AVANT le jet : la cible du joueur est bornée et mesurée', () => {
-    const hero = combattantDeTest({ id: 'H', label: 'H', kind: 'hero', resilience: 5, fortune: 0, items: [] });
+    const hero = combattantDeTest({ id: 'H', label: 'H', kind: 'heros', resilience: 5, fortune: 0, items: [] });
     useGame.setState({ party: [hero], pendingBargain: { playerId: 'H', merchantId: 'm', playerSkill: 125, merchantRoll: { roll: 20, target: 50, sl: 3, success: true, isDouble: false }, roll: null } } as never);
     g().jetForcerLaReussite('marchandage');
     porteLaMesure(g().pendingBargain!.roll, cibleDuTest(125));

@@ -53,7 +53,7 @@ describe('transitionDuJeu — occupation des sièges', () => {
 describe('transitionDuJeu — le maximum des Blessures suit ses porteurs', () => {
   const plus3 = (): OpPassive[] => [{ op: 'attrMod', attr: 'wounds', mod: 3 }];
   /** Profil à 30 partout : B = 12 ; blessé de 2. */
-  const blesse = (id = 'c'): Combatant => blesseDeTest(10, { id, kind: 'hero' });
+  const blesse = (id = 'c'): Combatant => blesseDeTest(10, { id, kind: 'heros' });
 
   afterEach(() => resetData());
 

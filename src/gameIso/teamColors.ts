@@ -49,8 +49,8 @@ export const NEUTRAL_TINT = teintesJeu['equipe-neutre'];
 
 /** Couleur de la RELATION d'une cible au survol/visée (réticule + halo) : adversaire rouge, allié
  *  vert, neutre or. Source unique consommée par le rendu de ciblage (`SurcoucheIso`). */
-export function relationColor(kind: 'hero' | 'enemy' | 'npc'): string {
-  return kind === 'enemy' ? ENEMY_TINT : kind === 'hero' ? ALLY_TINT : NEUTRAL_TINT;
+export function relationColor(kind: 'heros' | 'ennemi' | 'pnj'): string {
+  return kind === 'ennemi' ? ENEMY_TINT : kind === 'heros' ? ALLY_TINT : NEUTRAL_TINT;
 }
 
 /** Couleur de teinte d'une CASE selon l'appartenance (l'actif prime). */

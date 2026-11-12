@@ -556,7 +556,7 @@ describe('Le pool ÉCRIT — une passe par changement de lumière ; par frame, l
 
 /** Combattant porteur d'une lanterne, RANGÉE ou en main — le gate de port est celui du champ mécanique. */
 const porteurDeLanterne = (equipped: boolean) => ({
-  id: 'h1', kind: 'hero', pos: { x: 4, y: 4 },
+  id: 'h1', kind: 'heros', pos: { x: 4, y: 4 },
   items: [{ ...itemFromTrappingById('lanterne', idsDeTest)!, uid: 'i1', equipped }],
 });
 
@@ -639,7 +639,7 @@ describe('billboardExposure — le personnage raconte la MÊME flaque que sa cas
 
 /** Héros de roster : ce que le meneur se choisit dessus (vivant, Blessures) et ce que le gate de port lit. */
 const héros = (id: string, items: ItemInstance[] = []) => ({
-  id, kind: 'hero', dead: false, wounds: { current: 3, max: 3 }, conditions: [], traits: [], talents: [], items,
+  id, kind: 'heros', dead: false, wounds: { current: 3, max: 3 }, conditions: [], traits: [], talents: [], items,
 });
 
 describe('La lampe du GROUPE en exploration — portée par le MENEUR (#1245)', () => {

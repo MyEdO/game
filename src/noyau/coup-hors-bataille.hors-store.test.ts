@@ -50,7 +50,7 @@ describe('coup encaissé hors bataille, assaillant par valeur (#3892)', () => {
   it('Mort subite d’un figurant frappé par le héros : LDB 18 l.46', () => {
     const { banc, H } = horsBataille(testScene());
     setRule('combat-mort-subite', 'figurants');
-    const figurant = blesseDeTest(3, { id: 'figurant', kind: 'enemy', label: 'Figurant' });
+    const figurant = blesseDeTest(3, { id: 'figurant', kind: 'ennemi', label: 'Figurant' });
     const res = frapper(banc, H, figurant, [23, 95]);
     expect(res.woundsLost!).toBeGreaterThan(3);
     expect(isOutOfAction(figurant)).toBe(true);
