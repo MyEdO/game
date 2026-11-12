@@ -67,8 +67,9 @@ import { FACTEURS_NEUTRES } from './facteursDuGabarit.ts';
  * - Une couche par domaine : défaut d'une silhouette, au repos ou en clip aux facteurs neutres → clés (finition des
  *   clés, sous les poids de la phase neutre) ; défaut en clip du neutre, ou que la finition laisse aux clés →
  *   correction des poids de la phase silhouettes, qui mesure les mêmes états sous les clips posés au sol.
- *   `raboter_sous_correction` (`silhouettes.py`) conserve les masques par clé : chaque passe de `formes.raboter`
- *   multiplie par `RABOT`, sur les nœuds de leurs arêtes en défaut (`region_locale`, qui gagne un anneau quand la clé
+ *   `raboter_sous_correction` (`silhouettes.py`) compte les fautes par site, un état ou une clause de domaine d'un
+ *   groupe : une faute de site présente quand les clés rabotées sont nulles est au socle, hors du rabot (#4002).
+ *   Chaque passe de `formes.raboter` multiplie par `RABOT`, sur les nœuds de leurs arêtes en défaut (`region_locale`, qui gagne un anneau quand la clé
  *   y stagne sous `STAGNATION_M`), les clés participantes aux états actuellement en défaut, au repos du domaine comme
  *   sous les clips aux facteurs neutres ; chaque clé garde sa forme partout ailleurs (#3104). Les défauts se mesurent
  *   sur le champ que `correction` rend de cette passe, qui répartit la part imposée par les anneaux au prorata du

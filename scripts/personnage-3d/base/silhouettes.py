@@ -15,7 +15,8 @@
   surface d'un pied, `sol.poser_les_clips_au_sol`), linéaire entre les deux (`fondu`). Champ fini F + T′,
   F = (1 − libre)·C, T′ = libre·T (F et C nuls hors silhouette à os).
 - Une silhouette à os garde F + T′ (#4002 issuecomment-6826035694). Les autres : T′ des champs rabotés ensemble aux
-  seules arêtes fautives (`formes.raboter`, #3104) hors de leur socle, mesuré sur tous les champs finis : jusqu'à
+  seules arêtes fautives (`formes.raboter`, #3104) hors du socle, fautes par site mesurées sur tous les champs finis
+  (#4002) : jusqu'à
   `ETIREMENT_DES_CLES` au repos sur tout le domaine de `etatsDuGabarit`, aux facteurs non neutres par les clés
   `gabarit_*` cuites sur le résidu F + T′ − C (`cuisson_gabarit.cuisson_des_champs`, #3104), et jusqu'à
   `ETIREMENT_EN_CLIP` sous les clips aux facteurs neutres.
@@ -311,12 +312,13 @@ def raboter_sous_correction(bruts, groupe, aretes, libre, corriger, vers_le_mond
     repère du mesh), rendus au repère du mesh dans l'ordre de `bruts`. Un nom de `portes` (nom -> C au repère du mesh)
     rend C + libre·(T − C), sans rabot ni correction. Les autres, libre·T, sont rabotés ensemble (`formes.raboter`,
     nœuds `groupe`, arêtes `aretes`, fondu `libre`) jusqu'à ce que leur correction (`corriger`, repère monde
-    `vers_le_monde`, matrice 3×3 à droite) ne laisse plus aucune arête que marque `hors` (nom -> champ fini au repère
-    du mesh, tous les noms de `bruts`) hors de leur socle : les arêtes que `hors` marque pour un nom raboté quand les
-    noms portés ont leur champ fini et les rabotés un champ nul. La correction de chaque passe porte le rabot cumulé de
-    chaque clé en `repartitions` : elle ne rend pas aux nœuds rabotés ce que le rabot leur ôte. Le rabot repart du rabot
-    cumulé `rabot` (nom -> facteur par sommet) d'un tour précédent de la construction ; rend aussi le rabot cumulé de ce
-    tour, des seuls noms rabotés."""
+    `vers_le_monde`, matrice 3×3 à droite) ne laisse plus aucune arête marquée. `hors` (nom -> champ fini au repère du
+    mesh, tous les noms de `bruts`) rend `(fautes, pese)`, la forme de la mesure de `mesurer_domaine` ; le socle, les
+    fautes que `hors` rend quand les noms portés ont leur champ fini et les rabotés un champ nul (#4002). Une arête
+    est marquée pour un nom raboté quand un site y est en faute hors du socle et y pèse pour ce nom. La correction de
+    chaque passe porte le rabot cumulé de chaque clé en `repartitions` : elle ne rend pas aux nœuds rabotés ce que le
+    rabot leur ôte. Le rabot repart du rabot cumulé `rabot` (nom -> facteur par sommet) d'un tour précédent de la
+    construction ; rend aussi le rabot cumulé de ce tour, des seuls noms rabotés."""
     portes = portes or {}
     portes_finis = {nom: c + libre[:, None] * (bruts[nom] - c) for nom, c in portes.items()}
     noms = [nom for nom in bruts if nom not in portes]
@@ -327,10 +329,8 @@ def raboter_sous_correction(bruts, groupe, aretes, libre, corriger, vers_le_mond
     def tous(courants):
         return {nom: portes_finis[nom] if nom in portes else courants[nom] for nom in bruts}
 
-    sans_les_rabotes = hors(tous({nom: numpy.zeros_like(bruts[nom]) for nom in noms}))
-    socle = {nom: sans_les_rabotes[nom] for nom in noms}
-    print('SILHOUETTES socle : arêtes en défaut sans les clés rabotées',
-          {nom: int(socle[nom].sum()) for nom in noms}, flush=True)
+    socle, _ = hors(tous({nom: numpy.zeros_like(bruts[nom]) for nom in noms}))
+    print('SILHOUETTES socle : arêtes en défaut sans les clés rabotées', int(socle.any(axis=0).sum()), flush=True)
     sondes = []
 
     def mesurer(pile, cumul):
@@ -338,8 +338,9 @@ def raboter_sous_correction(bruts, groupe, aretes, libre, corriger, vers_le_mond
                                  [cumul[:, k] for k in range(len(noms))])
         sondes.append(sonde)
         courants = {nom: d @ inverse for nom, d in zip(noms, champs)}
-        mesures = hors(tous(courants))
-        marques = numpy.stack([mesures[nom] & ~socle[nom] for nom in noms], axis=1)
+        fautes, pese = hors(tous(courants))
+        hors_socle = fautes & ~socle
+        marques = numpy.stack([(hors_socle & pese[nom]).any(axis=0) for nom in noms], axis=1)
         print('SILHOUETTES rabot : arêtes en défaut, décalage corrigé le plus grand à leurs nœuds (m)',
               {nom: (int(marques[:, k].sum()),
                      round(float(numpy.linalg.norm(courants[nom][aretes[marques[:, k]].ravel()], axis=1).max(initial=0)), 5))
@@ -355,35 +356,47 @@ def raboter_sous_correction(bruts, groupe, aretes, libre, corriger, vers_le_mond
 
 def mesurer_domaine(w, x, aretes, groupes, vers_le_monde, derivees=None):
     """hotes/godot/pont/CONTRAT.md, « Gabarit d'une base » : `groupes`, `[(domaine, matrices, clips)]` ; `derivees`, des champs
-    aux décalages monde des clés qui en dérivent (`cuisson_gabarit.cuisson_des_champs`)."""
+    aux décalages monde des clés qui en dérivent (`cuisson_gabarit.cuisson_des_champs`). La mesure rend `(fautes, pese)`
+    par site (#4002) : un site est un état des domaines, ses clauses repos et clip réunies, dans leur ordre, puis par
+    groupe sa clause de domaine au repos et sa clause de domaine en clip. `fautes`, booléen (sites, arêtes), le site
+    en faute à l'arête ; `pese`, nom de `champs` -> booléen (sites, arêtes), le poids du nom non nul au site (à
+    l'arête, pour une clause de domaine). Seules les arêtes que déplace un champ changé depuis la mesure précédente se
+    remesurent ; les tableaux rendus sont des copies."""
     etats = [e for domaine, _, _ in groupes for e in domaine['etats']]
-    vus, hors, domaines = None, None, None
+    vus, fautes, pese = None, None, None
 
     def mesurer(champs):
-        nonlocal vus, hors, domaines
+        nonlocal vus, fautes, pese
         monde = {nom: d @ vers_le_monde for nom, d in champs.items()}
         if derivees is not None:
             monde.update(derivees(champs))
         if vus is None:
             touchees = numpy.ones(len(aretes), dtype=bool)
-            hors = numpy.zeros((len(etats), len(aretes)), dtype=bool)
-            domaines = {n: numpy.zeros(len(aretes), dtype=bool) for n in champs}
+            fautes = numpy.zeros((len(etats) + 2 * len(groupes), len(aretes)), dtype=bool)
+            pese = {n: numpy.zeros_like(fautes) for n in champs}
+            for n, p in pese.items():
+                p[:len(etats)] = numpy.array([e['poidsSilhouettes'].get(n, 0) != 0 for e in etats])[:, None]
         else:
             sommets = numpy.logical_or.reduce([(monde[n] != vus[n]).any(axis=1) for n in monde])
             touchees = sommets[aretes].any(axis=1)
         if touchees.any():
             traces = []
             extremes(w, aretes[touchees], etats_ponderes(x, monde, groupes), traces)
-            hors[:, touchees] = numpy.concatenate([(t.cotes_repos >= 0) | (t.cotes_clip >= 0) for t in traces])
-            for nom in champs:
-                domaines[nom][touchees] = numpy.logical_or.reduce([
-                    (d.cotes >= 0) & (d.poids.get(nom, numpy.zeros(len(d.bas))) != 0)
-                    for t in traces for d in (t.domaine_repos, t.domaine_clip)])
+            domaines = [d for t in traces for d in (t.domaine_repos, t.domaine_clip)]
+            fautes[:, touchees] = numpy.concatenate([(t.cotes_repos >= 0) | (t.cotes_clip >= 0) for t in traces]
+                                                    + [numpy.stack([d.cotes >= 0 for d in domaines])])
+            for nom, p in pese.items():
+                p[len(etats):, touchees] = numpy.stack([d.poids.get(nom, numpy.zeros(len(d.bas))) != 0
+                                                        for d in domaines])
         vus = {nom: d.copy() for nom, d in monde.items()}
-        return {nom: hors[[e['poidsSilhouettes'].get(nom, 0) != 0 for e in etats]].any(axis=0) | domaines[nom]
-                for nom in champs}
+        return fautes.copy(), {nom: p.copy() for nom, p in pese.items()}
 
     return mesurer
+
+
+def par_nom(fautes, pese):
+    """Nom de `pese` -> booléen par arête : un site de `fautes` y est en faute et y pèse pour ce nom (#4002)."""
+    return {nom: (fautes & p).any(axis=0) for nom, p in pese.items()}
 
 
 def refuser_les_inertes(finis):
