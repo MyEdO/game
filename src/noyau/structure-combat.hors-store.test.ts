@@ -41,8 +41,8 @@ const mkWeapon = (over: Partial<Weapon> = {}): Weapon => ({
   label: 'arme', type: 'melee', damage: { plusBF: false, flat: 0 }, qualities: [], ...over,
 });
 const hache = mkWeapon({ label: 'Hache', type: 'melee' });
-const fleche = mkWeapon({ label: 'Flèche', type: 'ranged' });
-const canon = mkWeapon({ label: 'Canon', type: 'ranged', qualities: [{ id: 'siege' }] });
+const fleche = mkWeapon({ label: 'Flèche', type: 'distance' });
+const canon = mkWeapon({ label: 'Canon', type: 'distance', qualities: [{ id: 'siege' }] });
 const belier = mkWeapon({ label: 'Bélier', type: 'melee', qualities: [{ id: 'siege' }, { id: 'belier' }] });
 
 /** Arête E de (2,2) — sépare (2,2) de (3,2). On y pose la structure `structId` (intacte sauf `down`). */
@@ -469,20 +469,20 @@ describe('weaponContextOf — exceptions hors-spécialisation dégradées (LDB 6
     return hero;
   };
 
-  it("Arbalète via une AUTRE Spé de Tir (Arc) → mode 'degraded' : Atouts retirés, Défauts conservés", () => {
+  it("Arbalète via une AUTRE Spé de Tir (Arc) → mode 'degrade' : Atouts retirés, Défauts conservés", () => {
     const h = attacker('arc');
-    const arbalete = mkWeapon({ label: 'Arbalète', type: 'ranged', subType: 'arbalete', damage: { plusBF: false, flat: 10 }, qualities: [{ id: 'siege' }, { id: 'imprecise' }] });
+    const arbalete = mkWeapon({ label: 'Arbalète', type: 'distance', subType: 'arbalete', damage: { plusBF: false, flat: 10 }, qualities: [{ id: 'siege' }, { id: 'imprecise' }] });
     const ctx = weaponContextOf(h, arbalete);
-    expect(ctx.groupSkillMode).toBe('degraded');
+    expect(ctx.groupSkillMode).toBe('degrade');
     const eff = effectiveWeapon(arbalete, ctx);
     expect(eff.qualities.map((q) => q.id)).toEqual(['imprecise']); // Atout Siège perdu, Défaut Imprécise gardé
   });
 
-  it("Poudre noire via Ingénierie (Spé exacte réciproque) → mode 'full' : aucun retrait (LDB 62 l.192)", () => {
+  it("Poudre noire via Ingénierie (Spé exacte réciproque) → mode 'complet' : aucun retrait (LDB 62 l.192)", () => {
     const h = attacker('ingenierie');
-    const pistolet = mkWeapon({ label: 'Pistolet', type: 'ranged', subType: 'poudre-noire', damage: { plusBF: false, flat: 10 }, qualities: [{ id: 'siege' }, { id: 'imprecise' }] });
+    const pistolet = mkWeapon({ label: 'Pistolet', type: 'distance', subType: 'poudre-noire', damage: { plusBF: false, flat: 10 }, qualities: [{ id: 'siege' }, { id: 'imprecise' }] });
     const ctx = weaponContextOf(h, pistolet);
-    expect(ctx.groupSkillMode).toBe('full');
+    expect(ctx.groupSkillMode).toBe('complet');
     const eff = effectiveWeapon(pistolet, ctx);
     expect(eff.qualities.map((q) => q.id)).toEqual(['siege', 'imprecise']); // rien de retiré
   });

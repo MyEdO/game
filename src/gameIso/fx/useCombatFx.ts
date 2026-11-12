@@ -124,7 +124,7 @@ export function useCombatFx() {
   }, []);
   useEffect(() => {
     const off = bus.on(EVT.ANIM_ATTACK, (d: any) => {
-      if (d.kind !== 'ranged' && d.kind !== 'spell') return;
+      if (d.kind !== 'distance' && d.kind !== 'spell') return;
       const b = useGame.getState().battle;
       const from = b?.combatants.find((c) => c.id === d.from)?.pos;
       const to = b?.combatants.find((c) => c.id === d.to)?.pos;

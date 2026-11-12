@@ -7,7 +7,7 @@ import { ACTION_CANDIDATES } from './actionRegistry';
 import type { Combatant, Weapon } from '../engine/types';
 
 const arme = (uid: string, type: Weapon['type'], reload?: number) => ({ uid, type, reload }) as unknown as Weapon;
-const ARBALETRIER = { id: 'x', weapons: [arme('arbalete', 'ranged', 1), arme('arc', 'ranged', 0), arme('fronde', 'ranged'), arme('epee', 'melee', 2)] } as unknown as Combatant;
+const ARBALETRIER = { id: 'x', weapons: [arme('arbalete', 'distance', 1), arme('arc', 'distance', 0), arme('fronde', 'distance'), arme('epee', 'melee', 2)] } as unknown as Combatant;
 
 describe('armes-a-recharge — armes à distance à Recharge', () => {
   it('exactement les armes à distance dont la Recharge est positive', () => {

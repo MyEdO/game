@@ -85,16 +85,16 @@ describe('seuilDePerteBancaire — le seuil affiché est celui du jet (LDB 23 l.
 
 describe('statusIncome — « Gagner de l’argent grâce au Statut » (LDB 08 l.105-120)', () => {
   it('Bronze N : N × 2d10 sous de cuivre', () => {
-    const m = statusIncome('bronze', 2, seq([3, 4, 5, 6]), 'success'); // (3+4)+(5+6) = 18 sc
+    const m = statusIncome('bronze', 2, seq([3, 4, 5, 6]), 'reussite'); // (3+4)+(5+6) = 18 sc
     expect(toBrass(m)).toBe(18);
   });
   it('Argent N : N × 1d10 pistoles ; Or N : N couronnes', () => {
-    expect(toBrass(statusIncome('argent', 2, seq([1, 2]), 'success'))).toBe(3 * 12);
-    expect(toBrass(statusIncome('or', 3, seq([]), 'success'))).toBe(3 * 240);
+    expect(toBrass(statusIncome('argent', 2, seq([1, 2]), 'reussite'))).toBe(3 * 12);
+    expect(toBrass(statusIncome('or', 3, seq([]), 'reussite'))).toBe(3 * 240);
   });
   it('échec : la moitié ; Échec Stupéfiant : rien', () => {
-    expect(toBrass(statusIncome('argent', 1, seq([10]), 'fail'))).toBe(Math.floor((10 * 12) / 2));
-    expect(toBrass(statusIncome('or', 5, seq([]), 'astoundingFail'))).toBe(0);
+    expect(toBrass(statusIncome('argent', 1, seq([10]), 'echec'))).toBe(Math.floor((10 * 12) / 2));
+    expect(toBrass(statusIncome('or', 5, seq([]), 'echecStupefiant'))).toBe(0);
   });
 });
 

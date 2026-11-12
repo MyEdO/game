@@ -52,7 +52,7 @@ describe('choix des payloads d’op : un enum se ferme À SA POSITION (op, champ
   // `mode` : vocabulaire PROPRE (`all` n'est l'id d'aucun document) dont `melee` est homonyme d'un id
   // d'`axes.json` ; `characteristic` : enum dont TOUS les littéraux sont des ids de `caracs.json`.
   const OPS = {
-    sonde: z.strictObject({ op: z.literal('sonde'), mode: z.enum(['melee', 'ranged', 'all']), characteristic: z.enum(['force', 'endurance']) }),
+    sonde: z.strictObject({ op: z.literal('sonde'), mode: z.enum(['melee', 'distance', 'all']), characteristic: z.enum(['force', 'endurance']) }),
   };
   const ESPACES = { 'axes.json': ['melee', 'tir'], 'caracs.json': ['force', 'endurance', 'agilite'] };
   const dossier = mkdtempSync(join(tmpdir(), 'choix-payloads-op-'));

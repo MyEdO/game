@@ -110,7 +110,7 @@ describe('L11 — zones persistantes posées par les sorts', () => {
   });
 
   it('organicProjectile : flag maison Weapon.organicProjectile — flèches/carreaux/javelots oui, poudre/fronde/couteaux non', () => {
-    const w = (organic: boolean | undefined): Weapon => ({ label: 'x', type: 'ranged', damage: { plusBF: false, flat: 7 }, qualities: [], organicProjectile: organic } as unknown as Weapon);
+    const w = (organic: boolean | undefined): Weapon => ({ label: 'x', type: 'distance', damage: { plusBF: false, flat: 7 }, qualities: [], organicProjectile: organic } as unknown as Weapon);
     expect(organicProjectile(w(true))).toBe(true); // arc/arbalète/javelot (data trappings.json)
     expect(organicProjectile(w(false))).toBe(false);
     expect(organicProjectile(w(undefined))).toBe(false); // poudre noire/fronde/couteau de lancer : absent = non organique

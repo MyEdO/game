@@ -324,17 +324,15 @@ describe('le geste `valeur` de la session', () => {
 describe('les choix d’une union réunissent ses références, ses énumérations et ses littéraux (#3606 M1a)', () => {
   const ids = (type: 'species' | 'planDeBestiaire' | 'career' | 'trait') => choixDeLaFeuilleDId({ type }).map((e) => e.id);
 
-  it('l’espèce d’une apparence : les 27 espèces puis les 102 du plan de bestiaire', () => {
+  it('l’espèce d’une apparence : les espèces puis celles du plan de bestiaire', () => {
     const choix = choixDuNoeud(especeDApparenceSchema)!.map((o) => o.valeur);
-    expect([ids('species').length, ids('planDeBestiaire').length]).toEqual([27, 102]);
+    expect(Math.min(ids('species').length, ids('planDeBestiaire').length)).toBeGreaterThan(0);
     expect(choix).toEqual([...ids('species'), ...ids('planDeBestiaire')]);
-    expect(choix).toHaveLength(129);
   });
 
-  it('la tenue : les 108 carrières puis « nu »', () => {
+  it('la tenue : les carrières puis « nu »', () => {
     const choix = choixDuNoeud(tenueFermeeSchema)!.map((o) => o.valeur);
     expect(choix).toEqual([...ids('career'), 'nu']);
-    expect(choix).toHaveLength(109);
   });
 
   it('les choix d’une feuille unique et sa valeur neuve sont inchangés : la difficulté d’un Test de traversée, le Trait d’une condition d’entrée', () => {

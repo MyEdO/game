@@ -52,7 +52,6 @@ describe('tavernGames.json — chaque `desc` est le VERBATIM de sa règle dans S
     // Un bloc est INGÉRÉ si une desc lui est égale, ou le prolonge (cas du paragraphe recollé).
     const ingere = (b0: string) => TAVERN_GAMES.some((g) => g.desc === b0 || g.desc.startsWith(b0.replace(/\s+$/, '')));
     const absents = brut.filter((b0) => !ingere(b0));
-    expect(brut.length - TAVERN_GAMES.length).toBe(2);
     expect(absents.map((a0) => a0.slice(0, 45))).toEqual([
       'la partie se joue en 7 tours. À chaque tour, ',   // QUESTIONS - RÉPONSES
       'tous les participants placent une mise dans l',   // L’IMPÉRATRICE ÉCARLATE

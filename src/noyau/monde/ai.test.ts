@@ -7,7 +7,7 @@ import type { SpellData } from '../../data';
 import { blessuresDeBase, blessuresSurLeProfil } from '../../engine/combattantDeTest.testkit';
 
 const MELEE: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
-const RANGED: Weapon = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [] };
+const RANGED: Weapon = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [] };
 
 /** Sort RÉSOLU minimal (`CastableSpell`) — porte un `data: SpellData` réduit aux champs lus par
  *  l'évaluateur (effects/missile/damage/opposed). Défaut = Projectile magique mono-cible jouable. */

@@ -228,7 +228,7 @@ describe('Combat naval e2e — VICTOIRE par NAUFRAGE', () => {
 
     let shots = 0;
     while (cogue.wounds.current > 0 && shots < 20) {
-      const res = rederivePassiveAttack(gunner, cogue, piece, goodHit, 'ranged', { rng: makeRNG(1595) });
+      const res = rederivePassiveAttack(gunner, cogue, piece, goodHit, 'distance', { rng: makeRNG(1595) });
       if (res.hit && res.woundsLost) loseWounds(cogue, res.woundsLost);
       shots++;
     }

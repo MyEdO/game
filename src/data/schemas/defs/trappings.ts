@@ -8,7 +8,7 @@ import { metaDesChamps, nommerChamps } from '../grammaire/meta';
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { availabilitySchema, enumNomme, formulaSchema, moneySchema, reachSchema, sizeCategorySchema, weaponDamageSpecSchema } from '../grammaire/valeurs';
+import { availabilitySchema, enumNomme, formulaSchema, genreDArmeSchema, moneySchema, reachSchema, sizeCategorySchema, weaponDamageSpecSchema } from '../grammaire/valeurs';
 import { flowSchema, passifsDe, triggeredEffectSchema } from '../grammaire/mecanique';
 import { manieAussiSchema, qualityRefSchema } from '../grammaire/reference';
 import { RANGEES_DE_REGLE } from '../../../engine/ruleRefs';
@@ -38,7 +38,7 @@ const refusDuTypeDArmure = (subType: { id: string } | null): string | null =>
 /** CATÉGORIE de catalogue d'une possession — id de logique qui ne s'affiche jamais nu. */
 export const trappingCategorieSchema = enumNomme({
   melee: 'Armes de mêlée',
-  ranged: 'Armes à distance',
+  distance: 'Armes à distance',
   ammunition: 'Munitions',
   armor: 'Armures',
   trapping: 'Équipement',
@@ -84,7 +84,7 @@ const itemCapabilitiesSchema = nommerChamps(z.strictObject({
 /** LDB 73 */
 const weaponSchema = nommerChamps(z.strictObject({
   label: z.string(),
-  type: z.enum(['melee', 'ranged']),
+  type: genreDArmeSchema,
   damage: weaponDamageSpecSchema,
   reach: z.union([reachSchema, z.null()]).optional(),
   range: z.union([weaponRangeSpecSchema, z.null()]).optional(),
@@ -129,7 +129,7 @@ const doc = document(
     packSize: z.number().optional(),
     /** CATÉGORIE de catalogue — vocabulaire FERMÉ, mesuré sur 440/440 : melee 65, ranged 79,
      *  ammunition 22, armor 17, trapping 257. ≠ `Weapon.type` du moteur (`src/engine/types.ts`,
-     *  `'melee' | 'ranged'`, persisté) et ≠ `ItemInstance.kind` : le pont est `kindOf()`
+     *  `'melee' | 'distance'`, persisté) et ≠ `ItemInstance.kind` : le pont est `kindOf()`
      *  (`src/engine/items.ts`), une TRADUCTION. `vehicle` n'a aucun porteur et n'est plus admis. */
     categorie: trappingCategorieSchema,
     subType: ref('weaponGroup').nullable(),

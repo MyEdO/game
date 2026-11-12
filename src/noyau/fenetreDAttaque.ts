@@ -118,7 +118,7 @@ export interface FenetreDAttaque {
 
 /** Fiche Codex du NOM du jet d'attaque, même source que son libellé (`attackTestOf`) : la Caractéristique qui
  *  résout une Résolution alternative, sinon la Compétence lancée. */
-function refDuNomDuJet(attaquant: Combatant, arme: Weapon | undefined, kind: 'melee' | 'ranged'): RollLabelRef {
+function refDuNomDuJet(attaquant: Combatant, arme: Weapon | undefined, kind: 'melee' | 'distance'): RollLabelRef {
   const test = attackTestOf(attaquant, arme, kind);
   const label = testSkillLabel(test);
   return test.skill
@@ -140,7 +140,7 @@ export function fenetreDAttaque(s: Jeu): FenetreDAttaque | null {
   const intitule = armeTenue ? libelleDuJet('attaque') : arme.label;
   const res = pa.result;
   const jete = !!res;
-  const tir = arme.type === 'ranged';
+  const tir = arme.type === 'distance';
   const auxArmes = armeTenue ? attaquant.weapons.filter((w) => !isUnarmed(w) && !!w.uid) : [];
   // LDB 14 l.78
   const penaliteSecondaire = penaliteDeMainSecondaire(attaquant);
@@ -190,7 +190,7 @@ export function fenetreDAttaque(s: Jeu): FenetreDAttaque | null {
     attaquantId: attaquant.id,
     cibleId: cible.id,
     intitule,
-    sousTitre: composeRollLabel(attaquant, intitule, attackTestOf(attaquant, arme, tir ? 'ranged' : 'melee')),
+    sousTitre: composeRollLabel(attaquant, intitule, attackTestOf(attaquant, arme, tir ? 'distance' : 'melee')),
     arme: arme.label,
     degats: apercu ? apercu.dmg : null,
     jete,

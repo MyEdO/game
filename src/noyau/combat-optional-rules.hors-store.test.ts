@@ -152,7 +152,7 @@ describe('combat-deviation-critique — offre de Déviation Critique (LDB 63 l.3
 
 // ── Règle 3 : « Tir dans un corps à corps » (combat-tir-dans-la-melee, LDB 14 l.112-116) ──
 describe('combat-tir-dans-la-melee — −20 + tir égaré (LDB 14 l.112-116)', () => {
-  const bow: Weapon = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 7 }, range: 30, qualities: [] } as Weapon;
+  const bow: Weapon = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 7 }, range: 30, qualities: [] } as Weapon;
 
   // « Tir dans la mêlée » = la cible est Engagée avec un ALLIÉ du tireur. Tireur HÉROS (arc), cible
   // ENNEMIE engagée avec un autre HÉROS (le combattant de mêlée du groupe).
@@ -189,7 +189,7 @@ describe('combat-cible-inconsciente — cible Inconsciente (LDB 16 l.113)', () =
   it('défaut (critique) : resolveMelee NE marque PAS autoKill (comportement RAW = Critique)', () => {
     const atk = enemy({});
     const def = hero({ conditions: [{ id: 'inconscient', value: 1 }] });
-    const res = resolveMelee(atk, def, sword, makeRNG(1), { defense: 'none' });
+    const res = resolveMelee(atk, def, sword, makeRNG(1), { defense: 'aucune' });
     expect(res.autoKill).toBeFalsy();
     expect(res.hit).toBe(true);
     expect(res.critical).toBe(true); // helpless → réussite critique (RAW)
@@ -199,7 +199,7 @@ describe('combat-cible-inconsciente — cible Inconsciente (LDB 16 l.113)', () =
     setRule('combat-cible-inconsciente', 'mort-auto');
     const atk = enemy({});
     const def = hero({ conditions: [{ id: 'inconscient', value: 1 }] });
-    const res = resolveMelee(atk, def, sword, makeRNG(1), { defense: 'none' });
+    const res = resolveMelee(atk, def, sword, makeRNG(1), { defense: 'aucune' });
     expect(res.autoKill).toBe(true);
     expect(res.hit).toBe(true);
   });

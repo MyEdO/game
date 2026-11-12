@@ -17,7 +17,7 @@ import { chebyshev } from '../../engine/grid';
 import { blessuresDeBase, blessuresSurLeProfil } from '../../engine/combattantDeTest.testkit';
 
 const MELEE: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
-const RANGED: Weapon = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [] };
+const RANGED: Weapon = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [] };
 
 /** Sort RÉSOLU minimal (`CastableSpell`) pour piloter l'énumération op-driven. */
 function spellData(over: Partial<SpellData> = {}): SpellData {
@@ -188,7 +188,7 @@ describe('Doctrines — comportements distincts vs standard', () => {
     // équidistantes. La case EST est plus exposée à un archer ; STANDARD préfère l'OUEST (danger-map),
     // mais la HORDE (dangerAvoid=0) est indifférente → elle prend la case par défaut (la plus directe).
     const prey = mk('prey', 'hero', { x: 10, y: 15 }, { weapons: [] });
-    const archer = mk('archer', 'hero', { x: 13, y: 16 }, { weapons: [{ label: 'Fronde', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 6, qualities: [] }] });
+    const archer = mk('archer', 'hero', { x: 13, y: 16 }, { weapons: [{ label: 'Fronde', type: 'distance', damage: { plusBF: false, flat: 9 }, range: 6, qualities: [] }] });
     // STANDARD (fixture générique) : contourne par l'ouest (case éloignée de l'archer).
     const plain = mk('plain', 'enemy', { x: 10, y: 10 }, { weapons: [MELEE], movement: 5 });
     expect(pickDoctrine(plain, [])).toBe('standard');

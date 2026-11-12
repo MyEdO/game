@@ -41,14 +41,14 @@ export interface FauxData {
 test('un champ au bon NOM mais au mauvais TYPE ne compte pour aucun canal', () => {
   const f = forger('homonymes.ts', `
 export interface FauxSpell { effects?: import('../engine/flowCore').Flow<Effect> }
-export interface FauxGroup { combat?: 'melee' | 'ranged' }
+export interface FauxGroup { combat?: 'melee' | 'distance' }
 export interface FauxLibre { passive?: string }
 `)
   const { entites, typesDrapeaux } = mesurerCanaux([f])
   assert.deepEqual(entites, [])
   assert.deepEqual(typesDrapeaux, [])
   assert.equal(canalDuMembre('effects', "import('../engine/flowCore').Flow<Effect>"), null)
-  assert.equal(canalDuMembre('combat', "'melee' | 'ranged'"), null)
+  assert.equal(canalDuMembre('combat', "'melee' | 'distance'"), null)
   assert.equal(canalDuMembre('combat', "import('../engine/combatFeatures/types').CombatFeature"), 'drapeaux')
 })
 
