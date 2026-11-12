@@ -291,7 +291,7 @@ export interface ZoneQuiDure {
  *  sort ; `null` sans l'un ni l'autre, une zone qui ne se voit pas. */
 function renduDeLaZoneQuiDure(z: BattleZone): { rendu: RenduDef; couleur: string } | null {
   if (z.rendu) return renduDeLaZone({ rendu: z.rendu.id });
-  return z.source?.kind === 'spell' ? renduDuSort(z.source.id) : null;
+  return z.source?.kind === 'sort' ? renduDuSort(z.source.id) : null;
 }
 
 /** La case des cases `cases` la plus proche de leur barycentre. */

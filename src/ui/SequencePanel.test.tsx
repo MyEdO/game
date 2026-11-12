@@ -113,9 +113,9 @@ describe('SequencePanel — une partie de Bras de fer n’est plus aveugle', () 
     expect(compteur(), 'la manche a avancé').toContain('Manche 2');
     // Le cumul MONTRÉ est celui de l'état de séquence (DR de la manche + Bonus de Force, l.34).
     const cum = get().sequence!.cum as Record<string, number>;
-    expect(cum.player).toBeGreaterThan(0);
-    expect(texte()).toContain(`${cum.player}/10 DR`);
-    expect(texte()).toContain(`${cum.opponent}/10 DR`);
+    expect(cum.joueur).toBeGreaterThan(0);
+    expect(texte()).toContain(`${cum.joueur}/10 DR`);
+    expect(texte()).toContain(`${cum.adversaire}/10 DR`);
   });
 
   /**
@@ -143,10 +143,10 @@ describe('SequencePanel — une partie de Bras de fer n’est plus aveugle', () 
 
     const cum = get().sequence!.cum as Record<string, number>;
     expect(get().journal.some((l) => l.includes('Avantage')), 'l’op de manche du VAINQUEUR a tiré : la manche est gagnée').toBe(true);
-    expect(cum.player, 'le DR de la manche s’AJOUTE au cumul du challenger').toBeGreaterThan(0);
+    expect(cum.joueur, 'le DR de la manche s’AJOUTE au cumul du challenger').toBeGreaterThan(0);
     expect(compteur(), 'la manche a avancé').toContain('Manche 2');
-    expect(texte(), 'la fenêtre de la manche 2 montre le cumul, pas un zéro figé').toContain(`${cum.player}/10 DR`);
-    expect(texte(), 'et le camp battu reste planché à 0 (l.174) — le 0/10 lisible à l’écran est le SIEN').toContain(`${cum.opponent}/10 DR`);
+    expect(texte(), 'la fenêtre de la manche 2 montre le cumul, pas un zéro figé').toContain(`${cum.joueur}/10 DR`);
+    expect(texte(), 'et le camp battu reste planché à 0 (l.174) — le 0/10 lisible à l’écran est le SIEN').toContain(`${cum.adversaire}/10 DR`);
   });
 
   /**
@@ -162,10 +162,10 @@ describe('SequencePanel — une partie de Bras de fer n’est plus aveugle', () 
     poseMancheMono(-4, 2); // Test raté : −4 DR ; l'adversaire prend sa manche
     render();
     const cum = get().sequence!.cum as Record<string, number>;
-    expect(cum.player, 'le total ne descend jamais sous 0 (l.174)').toBe(0);
-    expect(cum.opponent, 'le camp d’en face cumule le sien').toBeGreaterThan(0);
+    expect(cum.joueur, 'le total ne descend jamais sous 0 (l.174)').toBe(0);
+    expect(cum.adversaire, 'le camp d’en face cumule le sien').toBeGreaterThan(0);
     expect(texte()).toContain('0/10 DR');
-    expect(texte(), 'l’écran DIT que la partie avance : le camp adverse monte').toContain(`${cum.opponent}/10 DR`);
+    expect(texte(), 'l’écran DIT que la partie avance : le camp adverse monte').toContain(`${cum.adversaire}/10 DR`);
   });
 
   /**
@@ -211,10 +211,10 @@ describe('SequencePanel — une partie de Bras de fer n’est plus aveugle', () 
 
     const cum = get().sequence!.cum as Record<string, number>;
     const journal = get().journal.join('\n');
-    expect(cum.player, 'le vainqueur cumule (DR de manche + Bonus de Force, l.34)').toBeGreaterThan(0);
-    expect(cum.opponent, 'le battu reste planché à 0 (l.174)').toBe(0);
+    expect(cum.joueur, 'le vainqueur cumule (DR de manche + Bonus de Force, l.34)').toBeGreaterThan(0);
+    expect(cum.adversaire, 'le battu reste planché à 0 (l.174)').toBe(0);
     expect(texte(), 'la jauge du challenger porte SON cumul').toContain(`${a.label}`);
-    expect(texte()).toContain(`${cum.player}/10 DR`);
+    expect(texte()).toContain(`${cum.joueur}/10 DR`);
     expect(texte(), 'et celle de l’adversaire, le sien').toContain('Négociant (test)');
     expect(journal, 'le journal nomme l’adversaire comme l’écran — jamais son Test à sa place').toContain('Négociant (test) : -4 DR.');
     expect(journal).toContain(`${a.label} : +6 DR.`);
@@ -455,7 +455,7 @@ describe('ABANDON — entre deux Tests, jamais au milieu d’une manche', () => 
     }
     expect(get().sequence).toBeNull();
     const res = get().tavernGames!.result!;
-    expect(res.winner, 'abandonner, c’est perdre').toBe('opponent');
+    expect(res.winner, 'abandonner, c’est perdre').toBe('adversaire');
     expect(res.detail.startsWith(`${a.label} abandonne.`), res.detail).toBe(true);
     expect(get().journal.some((l) => l.includes('descendre une pinte')), 'la pinte a été bue').toBe(true);
   });

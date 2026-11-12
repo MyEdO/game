@@ -324,7 +324,7 @@ export function creerActionsDInteraction(get: Get, set: Set) {
       if ('refus' in fouille) return void refuserGeste(get, set, t(fouille.refus, fouille.vars));
       // La MÊME ligne qu'il y ait des portes ou non, qu'un Test échoue ou non : seule une réussite parle.
       get().ecrireAuJournal(t('fouille.journal'));
-      cloturer(get, set, runFlow(get, set, fouilleDeLaPiece(fouille.scene, fouille.piece), t('eff.flowTitleDiscovery')), [
+      cloturer(get, set, runFlow(get, set, fouilleDeLaPiece(fouille.scene, fouille.piece), t('eff.titreDeDecouverte')), [
         { verbe: 'avancerHorloge', minutes: rule('fouille-piece-minutes') as number },
       ]);
     },

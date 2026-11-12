@@ -10,6 +10,7 @@
  * par jour + Effects), cible d'embuscade du « Attaqués ! », heures de voyage/jour et plafond de
  * marche forcée au niveau carte.
  */
+import type { IconId } from '../data/icons';
 import type { Scene } from './monde/scene';
 import type { IdsParEspace } from '../data/schemas/_ids.generated';
 import type { Effect } from '../data/schemas/defs-scenes/effets';
@@ -39,7 +40,7 @@ export interface MapPlace {
   /** Point d'arrivée nommé dans la scène (sinon heroStart). */
   entry?: string;
   /** Icône du médaillon (id du registre src/data/icons), défaut `navigation/point-d-entree`. */
-  icon?: string;
+  icon?: IconId;
   /** Profil COMMERCIAL de port (Index des ports, MDG 15 l.439-506) — présent = ce lieu est un port
    *  maritime (commerce, événements d'escale, chantier). `lighthouse` : un phare veille sur l'approche
    *  (Test de Perception d'équipage à l'atterrage, MDG 13 l.333-351). `ref` (#217) : id de
@@ -88,7 +89,7 @@ export interface PlacePoi {
   label: string;
   pos: { x: number; y: number };
   /** Icône du médaillon (id du registre `src/data/icons`), défaut `navigation/point-d-entree`. */
-  icon?: string;
+  icon?: IconId;
   sceneId?: { id: string };
   serviceKind?: { id: string };
 }
@@ -315,7 +316,7 @@ export interface ResolvedPlaceService {
   id: string;
   category: PlaceServiceCategory;
   label: string;
-  icon?: string;
+  icon?: IconId;
   desc?: string;
   port?: NonNullable<MapPlace['port']>;
   market?: LandMarketProfile;
@@ -338,7 +339,7 @@ export interface ResolvedPlaceService {
 /** Icône (id du registre `src/data/icons`) d'un service résolu : le catalogue (`lieux-services.json`) fournit
  *  la sienne via `placeServices`, sinon un défaut générique. PUR (id → id), source unique partagée par le
  *  hub, le plan et l'aperçu d'éditeur. */
-export function serviceIcon(s: ResolvedPlaceService): string {
+export function serviceIcon(s: ResolvedPlaceService): IconId {
   return s.icon ?? 'navigation/point-d-entree';
 }
 
@@ -346,7 +347,7 @@ export function serviceIcon(s: ResolvedPlaceService): string {
  *  d'auteur) ; sinon l'icône se DÉRIVE de la cible — `serviceKind` → icône du service résolu (`serviceIcon`),
  *  `sceneId` → porte. Défaut ultime `navigation/point-d-entree`. Aucun backfill de donnée : la résolution couvre tout
  *  lieu présent et futur. PUR, source unique des marqueurs du hub, du panneau de détail et de l'éditeur. */
-export function poiIcon(poi: PlacePoi, services: ResolvedPlaceService[]): string {
+export function poiIcon(poi: PlacePoi, services: ResolvedPlaceService[]): IconId {
   if (poi.icon) return poi.icon;
   const service = poi.serviceKind;
   if (service) {
@@ -596,7 +597,7 @@ export interface ProjectIdentite {
   type: 'projet';
   id: string;
   label: string;
-  icon?: string;
+  icon?: IconId;
   /** Numéro de CONTENU de l'auteur, jamais un numéro de forme. */
   versionContenu: number;
   desc?: string;

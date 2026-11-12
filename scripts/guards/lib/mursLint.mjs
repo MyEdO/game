@@ -13,9 +13,9 @@ export default {
       .map((nom) => [nom, builtinRules.get('no-restricted-syntax')]),
     ...['ordre-total-imports', 'canal-issue', 'atelier', 'minuteries-import', 'echap-import']
       .map((nom) => [nom, builtinRules.get('no-restricted-imports')]),
-    ...['stockage-web', 'minuteries-hote', 'alea-serveur', 'entropie', 'sans-hote']
+    ...['stockage-web', 'minuteries-hote', 'alea-serveur', 'entropie', 'sans-hote', 'base64-hote']
       .map((nom) => [nom, builtinRules.get('no-restricted-properties')]),
-    ...['stockage-web-global', 'minuteries', 'sans-hote-globale']
+    ...['stockage-web-global', 'minuteries', 'sans-hote-globale', 'base64']
       .map((nom) => [nom, builtinRules.get('no-restricted-globals')]),
     ['interne', interne],
     ['purete-imports', couches.purete],

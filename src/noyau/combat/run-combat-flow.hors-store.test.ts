@@ -26,7 +26,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  */
 /** ENTITÉ PORTEUSE du Flow joué, comme en production : c'est d'elle que le Test muet DÉRIVE son enjeu
  *  (#1262 V2 L6d) — un Flow de combat n'est jamais orphelin, il est l'œuvre de quelque chose. */
-const PORTEUR = { kind: 'spell', id: 'chute' } as const;
+const PORTEUR = { kind: 'sort', id: 'chute' } as const;
 
 const wounds = (amount: number): Flow => ({ kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'wounds', amount }] } });
 

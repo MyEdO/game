@@ -12,6 +12,7 @@
  * quels par `PossessionsScreen.tsx` (#620 Lot 2, écran de gestion) : source unique du vocabulaire
  * visuel d'une Possession, jamais une 2e copie.
  */
+import type { IconId } from '../data/icons';
 import type { ReactNode } from 'react';
 import type { Combatant } from '../engine/types';
 import type { Possession } from '../engine/possession';
@@ -41,7 +42,7 @@ export const NATURE_TITLE: Record<Possession['nature'], string> = {
   immeuble: 'Immeubles',
 };
 
-export const NATURE_ICON: Record<Possession['nature'], string> = {
+export const NATURE_ICON: Record<Possession['nature'], IconId> = {
   bete: 'voyage/en-selle',
   vehicule: 'voyage/charrette',
   navire: 'voyage/navire-a-voile',

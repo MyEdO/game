@@ -951,7 +951,7 @@ export function recomputeLoadout(c: Combatant): void {
   // Dague » en mêlée) — DÉCLARATIF sur le trapping (`derivedWeapon`).
   for (const i of items) {
     const dw = i.equipped && !i.destroyed ? i.derivedWeapon : undefined;
-    if (dw) weapons.push({ hand: 'main', ...dw, uid: uidDArme(`${i.uid}-arme`, weapons), derivedFromItem: i.uid, ...(i.trappingId ? { source: { kind: 'trapping' as const, id: i.trappingId } } : {}) }); // #2907
+    if (dw) weapons.push({ hand: 'main', ...dw, uid: uidDArme(`${i.uid}-arme`, weapons), derivedFromItem: i.uid, ...(i.trappingId ? { source: { kind: 'objet' as const, id: i.trappingId } } : {}) }); // #2907
   }
   // Armes des Traits du porteur (`weaponFromTrait`), hors de ceux qui la portent en `grantNaturalWeapon` (ci-dessous).
   // Une arme sans objet garde son état (charge, usure) sur son instance (`loadRegister`) : l'instance déjà

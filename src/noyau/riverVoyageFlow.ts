@@ -21,6 +21,7 @@
  * Test d'Exposition par la couture de l'Effet de scène (`combatEffects.openWaterExposure`), sous le `kind`
  * propre à la descente (`fleuveExposition`) ; tables hydriques : `engine/waterExposure.ts`.
  */
+import type { IconId } from '../data/icons';
 import type { PlayerText } from '../i18n/playerText';
 import { battleRng } from './battleRng';
 import { minutesUntilNext, duskMinute } from '../engine/clock';
@@ -136,7 +137,7 @@ export interface RiverDayContext {
    *  forcent aussi (perte de contrôle, chavirage, gréement en péril). */
   forceDrift: boolean;
   /** Le vent impose un louvoyage (Modéré/Fort de côté) : le `windPct` n'est acquis qu'avec `fleuveVirementDeBord` réussi. */
-  tack?: boolean;
+  louvoyage?: boolean;
   /** Longueur du journal au DÉBUT du jour (repère) : le RÉCAP de la halte (`TravelRecapDay.lines`,
    *  affiché en tête de la modale de nuit) = la tranche de journal écrite depuis ce repère. */
   journalMark: number;
@@ -260,7 +261,7 @@ function resolveRiverDay(get: Get, set: Set, route: MapRoute): void {
 function riverNavTest(river: RiverVoyageState, eff: ReturnType<typeof riverWindEffect>): { difficulty: Difficulty; mods: ModLine[] } {
   return {
     difficulty: navBaseDifficulty(),
-    mods: navPenaltyMods({ drift: !!eff.derive || !!river.broken, outOfControl: !!river.outOfControl }),
+    mods: navPenaltyMods({ derive: !!eff.derive || !!river.broken, outOfControl: !!river.outOfControl }),
   };
 }
 
@@ -269,7 +270,7 @@ function riverNavTest(river: RiverVoyageState, eff: ReturnType<typeof riverWindE
  *  (base nue + toutes ses composantes nommées + cible + écrêtage) et la POSSESSION sont posées par le
  *  mint : ce monteur fluvial ne calcule rien, il DÉCLARE (`BandLigne`) et habille. */
 function riverStep(
-  id: string, kind: GenreDEtape, actor: Combatant, label: PlayerText, icon: string, rollLabel: string,
+  id: string, kind: GenreDEtape, actor: Combatant, label: PlayerText, icon: IconId, rollLabel: string,
   ligne: BandLigne, difficulty: Difficulty, meta: CascadeStepMeta | undefined,
   // `stake` REQUIS (#1117) : une étape fluviale qui LANCE dit ce qu'elle met en jeu — le compilateur
   // tient le contrat pour les étapes construites ici (le cliquet textuel ne voit que les littéraux).
@@ -326,8 +327,8 @@ export function buildRiverDayCascade(get: Get, set: Set, route: MapRoute): { ste
   // CONTEXTE DE VITESSE du jour (relu à la clôture) : dérive déjà certaine (Calme/hors-contrôle/brisé),
   // % de vent, louvoyage requis. Les appliers le complètent (perte de contrôle, chavirage → dérive).
   const dayCtx: RiverDayContext = {
-    baseKm, windPct: eff.pct ?? 0, forceDrift: !!eff.derive || !!river.outOfControl || !!river.broken,
-    tack: !!eff.tack, journalMark: get().journal.length,
+    baseKm, windPct: eff.pourcentage ?? 0, forceDrift: !!eff.derive || !!river.outOfControl || !!river.broken,
+    louvoyage: !!eff.louvoyage, journalMark: get().journal.length,
   };
   set({ travelPlan: { ...get().travelPlan!, river: { ...river, day: dayCtx } } });
 
@@ -363,12 +364,12 @@ export function buildRiverDayCascade(get: Get, set: Set, route: MapRoute): { ste
   }
 
   // 3. LOUVOYAGE (note 3, l.39) : le +% de vent de côté Modéré/Fort n'est acquis qu'avec un Test réussi.
-  if (eff.tack && pilot) pousseSi(steps, riverStep('fleuve-louvoyage', 'fleuveVirementDeBord', pilot.actor, t('step.fleuveVirementDeBord'), 'nautique/louvoyage',
+  if (eff.louvoyage && pilot) pousseSi(steps, riverStep('fleuve-louvoyage', 'fleuveVirementDeBord', pilot.actor, t('step.fleuveVirementDeBord'), 'nautique/louvoyage',
     refLabel('skills', competence), pilotLigne!, tackDifficulty(), { savoir: savoirVoiesFluvialesBonus(pilot.actor) },
-    { stake: voyageStakeRef('fleuve-louvoyage', { windPct: eff.pct ?? 0 }) }));
+    { stake: voyageStakeRef('fleuve-louvoyage', { windPct: eff.pourcentage ?? 0 }) }));
 
   // 4. Sauvegardes de VENT (l.40-41).
-  if (eff.capsizeRisk) {
+  if (eff.risqueDeChavirage) {
     // `pilotValue` = la valeur FONDUE du barreur, portée en DONNÉE : le redressement qui suit un
     // chavirage (`fleuveChavirage` → `rightingStep`) en dérive sa cible, et la `base` de l'étape est nue.
     if (pilot) pousseSi(steps, riverStep('fleuve-chavirage', 'fleuveChavirage', pilot.actor, t('step.fleuveChavirage'), 'nautique/vent',
@@ -377,7 +378,7 @@ export function buildRiverDayCascade(get: Get, set: Set, route: MapRoute): { ste
       { stake: voyageStakeRef('fleuve-chavirage', { rounds: Math.max(1, capsizeSinkTurns(effectiveChar(coque, 'endurance'))) }) }));
     else { sinkBoat(get, set, (l) => logs.push(...l), t('rv.capsizeNoPilot')); }
   }
-  if (eff.riggingRisk) {
+  if (eff.risqueDeGreement) {
     if (pilot) pousseSi(steps, riverStep('fleuve-preserver-greement', 'fleuveGreement', pilot.actor, t('step.fleuveGreement'), 'nautique/vent',
       refLabel('skills', competence), pilotLigne!, CAPSIZE.removeSailDifficulty, { savoir: savoirVoiesFluvialesBonus(pilot.actor) },
       { stake: voyageStakeRef('fleuve-preserver-greement', { outOfControlPenalty: OUT_OF_CONTROL.navPenalty }) }));
@@ -399,7 +400,7 @@ export function buildRiverDayCascade(get: Get, set: Set, route: MapRoute): { ste
     const peril = findRiverPeril(spawn.perilId);
     if (!peril) continue;
     const commun = {
-      id: `river-peril-${i}`, kind: 'fleuveTestDePeril' as const, icon: 'interface/attention', label: dataLabel(peril.label),
+      id: `river-peril-${i}`, kind: 'fleuveTestDePeril' as const, icon: 'interface/attention' as const, label: dataLabel(peril.label),
       meta: { perilId: spawn.perilId, chancePct: spawn.chancePct, savoir: pilot ? savoirVoiesFluvialesBonus(pilot.actor) : 0,
         hasPilot: !!pilot,
         navDrift: !!eff.derive || !!river.broken, navOutOfControl: !!river.outOfControl,
@@ -974,7 +975,7 @@ export const TABLES = {
           rollLabel: String(step.meta?.navLabel ?? riverPilotSkillLabel(get)), difficulty: navBaseDifficulty(),
           ligne: {
             test: { skill: competence }, valeur: pilot.value, soutien: pilot.support,
-            surLaCible: navPenaltyMods({ drift: !!step.meta?.navDrift, outOfControl: !!step.meta?.navOutOfControl }),
+            surLaCible: navPenaltyMods({ derive: !!step.meta?.navDrift, outOfControl: !!step.meta?.navOutOfControl }),
           },
           stake: voyageStakeRef('fleuve-peril-evitement', { hits: onFail.hullHits, damagePerHit: onFail.damagePerHit }),
           contexte: 'perilDesEaux', // Test d'évitement d'un péril de rivière : LDB 10 l.966

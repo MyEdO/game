@@ -46,6 +46,6 @@ export function useFumbleJetProps(): ComponentProps<typeof RollShell> | null {
         rollFrisson: true,
       }),
     ],
-    actions: [{ key: 'confirm', label: t('verbe.valider'), onClick: confirm, verbe: 'valider' }],
+    actions: [{ key: 'confirmer', label: t('verbe.valider'), onClick: confirm, verbe: 'valider' }],
   };
 }

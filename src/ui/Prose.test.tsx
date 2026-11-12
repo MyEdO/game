@@ -29,36 +29,36 @@ describe('Prose — annotations du Markdown complet', () => {
     return element;
   };
   it('trois segments traversent un seul strong et conservent les deux tons', () => {
-    const element = rendre([{ text: '**Gunnar', team: 'ally' }, { text: ' et ' }, { text: 'Rolf**', team: 'enemy' }]);
+    const element = rendre([{ text: '**Gunnar', team: 'allie' }, { text: ' et ' }, { text: 'Rolf**', team: 'ennemi' }]);
     expect(element.querySelectorAll('strong')).toHaveLength(1);
     expect(element.querySelector('strong .nm-ally')?.textContent).toBe('Gunnar');
     expect(element.querySelector('strong .nm-foe')?.textContent).toBe('Rolf');
   });
   it('le lien garde son href et le nom toné', () => {
-    const element = rendre([{ text: '[Gunnar](https://example.com)', team: 'ally' }]);
+    const element = rendre([{ text: '[Gunnar](https://example.com)', team: 'allie' }]);
     expect(element.querySelector('a')?.getAttribute('href')).toBe('https://example.com');
     expect(element.querySelector('a .nm-ally')?.textContent).toBe('Gunnar');
   });
   it('une entité avant le nom ne déplace pas son annotation', () => {
-    const element = rendre([{ text: '&amp; ' }, { text: 'Gunnar', team: 'ally' }]);
+    const element = rendre([{ text: '&amp; ' }, { text: 'Gunnar', team: 'allie' }]);
     expect(element.textContent).toBe('& Gunnar');
     expect(element.querySelector('.nm-ally')?.textContent).toBe('Gunnar');
   });
   it('une frontière au milieu d’une entité ou d’un échappement ne colore pas le token invisible', () => {
-    expect(rendre([{ text: '&' }, { text: 'amp', team: 'enemy' }, { text: ';' }]).querySelector('b')).toBeNull();
-    expect(rendre([{ text: '\\' }, { text: '*', team: 'enemy' }]).querySelector('b')).toBeNull();
+    expect(rendre([{ text: '&' }, { text: 'amp', team: 'ennemi' }, { text: ';' }]).querySelector('b')).toBeNull();
+    expect(rendre([{ text: '\\' }, { text: '*', team: 'ennemi' }]).querySelector('b')).toBeNull();
   });
   it('le code et les retours CRLF gardent leur texte sans annotation de code', () => {
-    const element = rendre([{ text: '`Gunnar`\r\n\r\n```\r\nRolf\r\n```', team: 'ally' }]);
+    const element = rendre([{ text: '`Gunnar`\r\n\r\n```\r\nRolf\r\n```', team: 'allie' }]);
     expect(element.querySelectorAll('code')).toHaveLength(2);
     expect(element.querySelector('code b, pre b')).toBeNull();
   });
   it('la cellule de table GFM conserve le nom allié', () => {
-    const element = rendre([{ text: '| Nom |\n| --- |\n| ' }, { text: 'Gunnar', team: 'ally' }, { text: ' |\n' }]);
+    const element = rendre([{ text: '| Nom |\n| --- |\n| ' }, { text: 'Gunnar', team: 'allie' }, { text: ' |\n' }]);
     expect(element.querySelector('td .nm-ally')?.textContent).toBe('Gunnar');
   });
   it('les annotations précèdent l’auto-liage explicite sans le supprimer', () => {
-    const markup = renderToStaticMarkup(<Prose md="Esquive" annotations={[{ text: 'Esquive', team: 'ally' }]} porteur={PORTEUR} />);
+    const markup = renderToStaticMarkup(<Prose md="Esquive" annotations={[{ text: 'Esquive', team: 'allie' }]} porteur={PORTEUR} />);
     const element = document.createElement('div'); element.innerHTML = markup;
     expect(element.querySelector('.nm-ally .codex-ref')).not.toBeNull();
     expect(element.textContent).toBe('Esquive');
@@ -68,7 +68,7 @@ describe('Prose — annotations du Markdown complet', () => {
 describe('Prose — rendu Markdown', () => {
   it('les liens Markdown gardent href, annotation et la matière partagée de Prose', () => {
     const md = '[Gunnar](https://example.com)';
-    const html = renderToStaticMarkup(<Prose md={md} annotations={[{ text: md, team: 'ally' }]} />);
+    const html = renderToStaticMarkup(<Prose md={md} annotations={[{ text: md, team: 'allie' }]} />);
     const root = document.createElement('div');
     root.innerHTML = html;
     expect(root.querySelector('a')?.className).toBe('prose-link');
@@ -77,7 +77,7 @@ describe('Prose — rendu Markdown', () => {
   });
   it('compact garde les blocs, liens, listes, annotations et le même rendu Markdown', () => {
     const md = '**Gunnar** accompagne [Rolf](https://example.com).\n\nUne autre phrase.\n\n- Premier repère\n- Second repère\n\n| Nom |\n| --- |\n| Gunnar |';
-    const annotations: TeamSegment[] = [{ text: '**Gunnar**', team: 'ally' }, { text: ' accompagne ' }, { text: '[Rolf](https://example.com)', team: 'enemy' }, { text: md.slice('**Gunnar** accompagne [Rolf](https://example.com)'.length) }];
+    const annotations: TeamSegment[] = [{ text: '**Gunnar**', team: 'allie' }, { text: ' accompagne ' }, { text: '[Rolf](https://example.com)', team: 'ennemi' }, { text: md.slice('**Gunnar** accompagne [Rolf](https://example.com)'.length) }];
     const simple = document.createElement('div');
     simple.innerHTML = renderToStaticMarkup(<Prose md={md} annotations={annotations} />);
     const compact = document.createElement('div');
@@ -98,7 +98,7 @@ describe('Prose — rendu Markdown', () => {
   });
 
   it('TeamSegments active compact sur la prose entière', () => {
-    const html = renderToStaticMarkup(<TeamSegments segments={[{ text: '**Gunnar', team: 'ally' }, { text: ' rejoint Rolf**.', team: 'enemy' }]} />);
+    const html = renderToStaticMarkup(<TeamSegments segments={[{ text: '**Gunnar', team: 'allie' }, { text: ' rejoint Rolf**.', team: 'ennemi' }]} />);
     expect(html).toContain('class="prose-compact"');
     expect(html.match(/<strong>/g)).toHaveLength(1);
     expect(html).toContain('<b class="nm-ally">Gunnar</b>');

@@ -21,6 +21,7 @@
  *  - Dehors : Exposition (LDB 18 l.327-334 — engine/exposure) selon `activeExposureSeverity` (combatFlow) ;
  *  - Faim (LDB 18 l.337-343) : un héros sans pitance ne récupère pas (engine/provisions).
  */
+import type { IconId } from '../data/icons';
 import type { Combatant } from '../engine/types';
 import type { RNG } from '../engine/dice';
 import type { RollBreakdown } from '../engine/combat';
@@ -102,7 +103,7 @@ export function routeLieu(worldMap: WorldMap, plan: { fromPlaceId: string; toPla
 export interface NightEntry {
   id?: string;
   actorId?: string;
-  icon?: string;
+  icon?: IconId;
   label: string;
   /** Jet affiché en RollLine (base + mods = cible · d100 · DR). */
   d?: RollBreakdown;
@@ -362,7 +363,7 @@ const appliquerLExposition = bandeDeNuit((_get, _set, band, row, hero) => {
 });
 
 /** Icône d'étape de cascade par `kind` de Test d'entretien différé. */
-const UPKEEP_STEP_ICON: Record<string, string> = {
+const UPKEEP_STEP_ICON: Record<string, IconId> = {
   faim: 'repos/repas-fait-maison', 'maladie-test-quotidien': 'medical/infection', 'maladie-gangrene': 'medical/infection', 'maladie-persistance': 'medical/infection',
   'convalescence-fracture': 'medical/bequille', contagion: 'medical/infection',
 };
@@ -874,7 +875,7 @@ export const TABLES = {
       // nombre de DR négatifs », MSRC 16 l.90) et les échelles `perSL` de ces ops.
       // La MALADIE est l'entité SOURCE de ce qu'elle inflige : tout effet actif posé par ces ops (Trait
       // octroyé, État durable) porte son ancrage de règle, donc sa fiche à l'écran.
-      const source = { kind: 'disease' as const, id: String(row.meta?.diseaseName ?? '') };
+      const source = { kind: 'maladie' as const, id: String(row.meta?.diseaseName ?? '') };
       return { consequences: freeCons(applyOps(hero, opsEchec, { idNeuf: get().forgerUnId, rng: battleRng(), sl: row.result!.sl, source })) };
     }),
     'maladie-gangrene': bandeDeNuit((_get, _set, _band, row, hero) => {

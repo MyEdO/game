@@ -25,7 +25,8 @@ func _recetter() -> void:
 	root.add_child(monde)
 	monde.volume.poser_les_aretes([NORD, SUD, DESSUS].map(func(a: Dictionary) -> Dictionary:
 		return {cle = a.cle, milieu = a.milieu, sens = {x = 1.0, y = 0.0}, pied = 0.0, hauteurM = 2.0, piece = "mur", famille = null}))
-	monde.volume.poser_les_nappes([], [{cle = "dessus", positions = [], normales = [], couleurs = [], surfaces = []}])
+	var couronne := {cle = "dessus", empreinte = "dessus", positions = [], normales = [], couleurs = [], cases = [], surfaces = []}
+	monde.volume.poser({monde = {metresParCase = 1.0, hauteurs = [], morceaux = []}, toits = [], couronnes = [couronne]}, {volume = [], toits = [], couronnes = [couronne]})
 	monde.cacher_le_bati([], [], [NORD, SUD, DESSUS].map(func(a: Dictionary) -> Dictionary: return {cle = a.cle, abattueSous = a.abattueSous}))
 	_verifier(monde, "de face")
 	var pivot: Node3D = monde.get_node("Pivot")

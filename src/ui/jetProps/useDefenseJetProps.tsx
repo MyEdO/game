@@ -127,7 +127,7 @@ export function useDefenseJetProps(): ComponentProps<typeof RollShell> | null {
   });
 
   const actions: RollAction[] = [
-    { key: 'confirm', label: t('verbe.valider'), onClick: confirm, verbe: 'valider' },
+    { key: 'confirmer', label: t('verbe.valider'), onClick: confirm, verbe: 'valider' },
   ];
 
   return {

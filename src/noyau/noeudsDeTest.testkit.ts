@@ -45,15 +45,15 @@ export type NoeudTest = Extract<Flow, { kind: 'test' }>;
  *  le foyer est la RANGÉE et non le document (Critiques) n'y sont pas : leur producteur les nomme
  *  (cf. `ENJEU_AU_PRODUCTEUR`, `flowtest-derived-stake.hors-store.test.ts`). */
 export const KIND_PAR_FICHIER: Record<string, EffectSourceKind> = {
-  'spells.json': 'spell',
-  'trappings.json': 'trapping',
-  'etats.json': 'condition',
+  'spells.json': 'sort',
+  'trappings.json': 'objet',
+  'etats.json': 'etat',
   'talents.json': 'talent',
   'traits.json': 'trait',
-  'maneuvers.json': 'maneuver',
-  'qualities.json': 'quality',
-  'symptoms.json': 'symptom',
-  'maladies.json': 'disease',
+  'maneuvers.json': 'manoeuvre',
+  'qualities.json': 'qualite',
+  'symptoms.json': 'symptome',
+  'maladies.json': 'maladie',
 };
 
 export interface Noeud {

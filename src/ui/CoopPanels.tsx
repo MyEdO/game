@@ -5,7 +5,7 @@ import type { NetState } from '../noyau/etat';
 import { CharFrame } from './CharFrame';
 import { MenuToggle } from './MenuCard';
 import { Icon } from './Icon';
-import type { IconIdInput } from '../data/icons';
+import type { IconId } from '../data/icons';
 import { Stack, Row, Grid } from './Layout';
 import { t } from '../i18n';
 
@@ -172,12 +172,12 @@ export function GmSoloToggle() {
 
 /** Bandeau de LIAISON, non bloquant : un chip qui SIGNALE (`.chip.tone-danger`), posé en haut du
  *  champ au-dessus de l'écran courant, quel qu'il soit. */
-export function CoopBanner({ icone, children }: { icone: IconIdInput; children: ReactNode }) {
+export function CoopBanner({ icone, children }: { icone: IconId; children: ReactNode }) {
   return <div className="chip tone-danger coop-banner" role="status"><Icon id={icone} size="sm" /> {children}</div>;
 }
 
 /** Ce que la vue réseau donne à SIGNALER — `null` : la liaison est saine, aucun bandeau. */
-export function liaisonASignaler(net: NetState): { icone: IconIdInput; texte: string } | null {
+export function liaisonASignaler(net: NetState): { icone: IconId; texte: string } | null {
   if (net.mode === 'invite' && net.connection === 'reconnexion')
     return { icone: 'interface/attention', texte: 'Reconnexion en cours…' };
   if (net.mode === 'invite' && net.hoteAbsent)

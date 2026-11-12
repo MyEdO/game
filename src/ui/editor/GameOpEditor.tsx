@@ -44,7 +44,7 @@ import { JsonField } from './JsonField';
 import { Icon } from '../Icon';
 import { NumberField } from '../NumberField';
 import { useClesDeRangees } from '../useClesDeRangees';
-import type { IconIdInput } from '../../data/icons';
+import type { IconId } from '../../data/icons';
 import { NATURES_D_INFLUENCE, TERMES_DE_JET, admetLePeche, estSansTirage, formuleSansTirageSchema, type NatureDInfluence } from '../../data/schemas/grammaire/valeurs';
 import { libelleDeLaNature } from './interne/libelleDeLaNature';
 import { FORME_DE_CLE, contientLePeche, formulaForShape, newOp, paramsDeRegle, shapeOf, type FormulaShape } from '../../noyau/valeursNeuves';
@@ -60,7 +60,7 @@ const CHARS = Object.keys(CHAR_LABELS) as CharKey[];
 /** Icône de CHAQUE op (rendue à côté du libellé partout SAUF dans le `<select>`/`<optgroup>` natif,
  *  qui ne peut afficher que du texte) — vocabulaire LARGE : plusieurs ops apparentées partagent
  *  la même icône (cf. defs/mecanique.ts, « pas une métaphore par op individuelle »). */
-const OP_ICON: Record<GameOp['op'], IconIdInput> = {
+const OP_ICON: Record<GameOp['op'], IconId> = {
   wounds: 'journal/degats', heal: 'journal/soin', healCaster: 'journal/soin', fall: 'journal/chute',
   condition: 'magie/zone', removeCondition: 'magie/souffle',
   charMod: 'mecanique/modificateur', ap: 'mecanique/protection', testMod: 'mecanique/modificateur',
@@ -93,13 +93,13 @@ const OP_ICON: Record<GameOp['op'], IconIdInput> = {
   armourPierce: 'objet/arme', critOnRoll: 'journal/critique', spendAdvantage: 'drapeau/focalisation', rollThreshold: 'navigation/des',
   rollTable: 'navigation/des', rollMutation: 'navigation/mutation', charDamage: 'mecanique/modificateur',
   intoxicate: 'objet/consommable', narrative: 'journal/detail',
-  shipMorale: 'voyage/ancre', manann: 'voyage/ancre', shipCritical: 'voyage/ancre', navireMod: 'voyage/ancre', meteoImposee: 'nautique/vent', cargaison: 'objet/divers', provisions: 'objet/consommable', equipage: 'voyage/ancre', perilDeMer: 'nautique/vent', navireHostile: 'voyage/ancre', infestation: 'medical/infection', combatEnMer: 'action/attaquer', marcheDuPort: 'marchand/panier', commission: 'marchand/panier', constructeurDEscale: 'voyage/ancre', rationsDEscale: 'objet/consommable',
+  shipMorale: 'voyage/ancre', manann: 'voyage/ancre', shipCritical: 'voyage/ancre', navireMod: 'voyage/ancre', meteoImposee: 'nautique/vent', cargaison: 'objet/divers', provisions: 'objet/consommable', equipage: 'voyage/ancre', perilDeMer: 'nautique/vent', navireHostile: 'voyage/ancre', infestation: 'medical/infection', combatEnMer: 'action/attaquer', attaquesSubies: 'action/attaquer', marcheDuPort: 'marchand/panier', commission: 'marchand/panier', constructeurDEscale: 'voyage/ancre', rationsDEscale: 'objet/consommable',
 };
 
 /** TOUTES les op du vocabulaire, groupées par intention d'auteur. Libellé de groupe = texte SEUL
  *  (titre de rubrique du menu). */
 const OP_GROUPS: [string, GameOp['op'][]][] = [
-  ['Dégâts & soin', ['wounds', 'heal', 'healCaster', 'fall', 'lifeSteal', 'reduceToZero', 'banish', 'kill']],
+  ['Dégâts & soin', ['wounds', 'heal', 'healCaster', 'fall', 'lifeSteal', 'reduceToZero', 'banish', 'kill', 'attaquesSubies']],
   ['États', ['condition', 'removeCondition']],
   ['Buffs & caractéristiques', ['charMod', 'ap', 'testMod', 'skillDRBonus', 'charDRBonus', 'crewTestMod', 'ignoreStatePenalties', 'freeReroll', 'critTwice']],
   ['Ressources', ['gainResource', 'corruption', 'sinMod', 'corruptionExposure']],

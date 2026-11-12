@@ -259,17 +259,17 @@ const V8C1: Site[] = [
   {
     site: 'merchantFlow.ts:553 — panier payé (pluriel porté par la variable)',
     avant: `Payé : ${ARGENT} (${1} article${''}).`,
-    apres: t('mf.paid', { total: ARGENT, count: 1, s: '' }),
+    apres: t('mf.paye', { total: ARGENT, count: 1, s: '' }),
   },
   {
     site: 'merchantFlow.ts:710 — troc conclu (ratio recomposé au call-site)',
     avant: `Troc : ${2} × ${'Corde'} contre ${1} × ${'Torche'} (${'commun'} ${2}:${1} ${'rare'}).`,
-    apres: t('mf.barterDone', { giveCount: 2, giveLabel: 'Corde', getCount: 1, getLabel: 'Torche', giveAv: 'commun', ratio: `${2}:${1}`, getAv: 'rare' }),
+    apres: t('mf.trocConclu', { giveCount: 2, giveLabel: 'Corde', getCount: 1, getLabel: 'Torche', giveAv: 'commun', ratio: `${2}:${1}`, getAv: 'rare' }),
   },
   {
     site: 'merchantFlow.ts:986 — fourchette d’estimation (le séparateur est de la typographie, pas du code)',
     avant: `${'2 CO'} – ${'3 CO'}`,
-    apres: t('mf.estimateRange', { min: '2 CO', max: '3 CO' }),
+    apres: t('mf.fourchetteDEstimation', { min: '2 CO', max: '3 CO' }),
   },
   {
     site: 'interludeFlow.ts:1230 — MALADRESSE d’Activité (jumeau de `cf.oups`, V8c₀)',
@@ -289,7 +289,7 @@ const V8C1: Site[] = [
   {
     site: 'merchantFlow.ts:369 — recherche active (sujet + détail par `stepDetail`)',
     avant: `${HEROS3} — recherche active : une journée aux marchés porte ses fruits (Disponibilité +10 %).`,
-    apres: stepDetail(dataLabel(HEROS3), t('mf.searchOk')),
+    apres: stepDetail(dataLabel(HEROS3), t('mf.rechercheReussie')),
   },
 ];
 
@@ -330,27 +330,27 @@ const V8C2: Site[] = [
   {
     site: 'combatEffects.ts:945 — Petite Prière exaucée (≤ typographique + apostrophe)',
     avant: `${HEROS3} prie sur le site sacré (${1} ≤ ${3}) — et les dieux l'entendent !`,
-    apres: t('eff.petitePriereOk', { name: HEROS3, roll: 1, threshold: 3 }),
+    apres: t('eff.petitePriereExaucee', { name: HEROS3, roll: 1, threshold: 3 }),
   },
   {
     site: 'combatEffects.ts:1399 — Humeur de Manann (le SIGNE est porté par l’appelant)',
     avant: `Humeur de Manann : ${''}${-3} (${'Tempête essuyée'}).`,
-    apres: t('eff.manannFactor', { delta: `${''}${-3}`, factor: 'Tempête essuyée' }),
+    apres: t('eff.facteurDeManann', { delta: `${''}${-3}`, factor: 'Tempête essuyée' }),
   },
   {
     site: 'combatEffects.ts:1433 — ajustement du navire (fragments joints par l’appelant)',
     avant: `Ajustement du navire : ${['nom « La Sirène »', 'moral 5'].join(', ')}.`,
-    apres: t('eff.vesselDone', { parts: [t('eff.vesselName', { label: NAVIRE }), t('eff.vesselMorale', { n: 5 })].join(', ') }),
+    apres: t('eff.navireModifie', { parts: [t('eff.navireNom', { label: NAVIRE }), t('eff.navireMoral', { n: 5 })].join(', ') }),
   },
   {
     site: 'combatEffects.ts:1102 — protection magique contre l’exposition (fragment de 2ᵉ clé)',
     avant: `${HEROS3} ignore ${'le froid et les intempéries'} (protection magique).`,
-    apres: t('eff.weatherWarded', { name: HEROS3, what: t('eff.wardFroid') }),
+    apres: t('eff.meteoConjuree', { name: HEROS3, what: t('eff.protectionDuFroid') }),
   },
   {
     site: 'combatEffects.ts:234 — titre du Flow de récolte (fabrique `stepDetail`)',
     avant: `Récolter — ${BETE}`,
-    apres: stepDetail(t('eff.harvest'), dataLabel(BETE)),
+    apres: stepDetail(t('eff.recolte'), dataLabel(BETE)),
   },
   {
     site: 'shipManeuver.ts — avance de coque (pluriel porté par la variable)',
@@ -375,23 +375,23 @@ const V8C2: Site[] = [
   {
     site: 'travelFlow.ts:385 — départ (fragment d’allure optionnel, minuscules du LABEL de donnée)',
     avant: `— En route vers ${'Altdorf'} (${42} km, ${'à pied'}${`, ${'galop'}`}) —`,
-    apres: t('tf.depart', { to: 'Altdorf', km: 42, mode: 'à pied', allure: t('tf.fragAllure', { allure: 'galop' }) }),
+    apres: t('tf.depart', { to: 'Altdorf', km: 42, mode: 'à pied', allure: t('tf.fragmentDAllure', { allure: 'galop' }) }),
   },
   {
     site: 'travelFlow.ts:982 — attelage forcé en échec (fragment « STUPÉFIANT » soudé au mot ÉCHEC)',
     avant: `${HEROS3} — Conduite d'attelage (allure forcée) : ÉCHEC${' STUPÉFIANT'}, l'attelage repasse au pas.`,
-    apres: t('tf.forcedFail', { name: HEROS3, stupefiant: t('tf.fragStupefiant') }),
+    apres: t('tf.marcheForceeRatee', { name: HEROS3, stupefiant: t('tf.fragmentStupefiant') }),
   },
   {
     // L'apostrophe de « à l'étape » est DROITE au site (U+0027) : le catalogue la reprend telle quelle.
     site: 'travelFlow.ts:1216 — soin de monture à l’étape (propriétaire optionnel + issue en 2ᵉ clé)',
     avant: `${BETE}${` (${HEROS3})`} est ${'soignée'} à l'étape.`,
-    apres: t('tf.mountCared', { mount: BETE, owner: t('tf.fragMountOwner', { name: HEROS3 }), soin: t('tf.mountHealed') }),
+    apres: t('tf.montureSoignee', { mount: BETE, owner: t('tf.fragmentDeCavalier', { name: HEROS3 }), soin: t('tf.montureGuerie') }),
   },
   {
     site: 'travelFlow.ts — péripétie de la table d10 (deux champs de donnée)',
     avant: `Péripétie de voyage — ${'Averse'} : ${'La pluie détrempe la route.'}`,
-    apres: t('tf.perilTable', { label: 'Averse', text: 'La pluie détrempe la route.' }),
+    apres: t('tf.tableDePeril', { label: 'Averse', text: 'La pluie détrempe la route.' }),
   },
   {
     site: 'riverVoyageFlow.ts:424 — progression du jour (branche DÉRIVE, tiret cadratin + %)',

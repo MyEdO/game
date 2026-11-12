@@ -310,8 +310,8 @@ export interface ZonesDeLEditeur {
    * valeur neuve (ses seuls champs requis) ;
    *
    * une union dont chaque variante est nommée (`unionDuNoeud`, `src/noyau/codex/editFields.ts` : une Condition, une op,
-   * toute union discriminée, ou qui se lit à la présence de son discriminant, ou à la clé propre de ses branches, comme
-   * une formule, son nombre et chacune de ses formes), le choix de sa variante, d'id `valeur/<chemin>/<discriminant>`
+   * toute union discriminée, ou qui se lit à la présence de son discriminant, ou sans discriminant, à la forme de ses
+   * branches, comme une formule, son nombre et chacune de ses formes), le choix de sa variante, d'id `valeur/<chemin>/<discriminant>`
    * (`valeur/<chemin>/forme` sans discriminant), chaque variante posant sa valeur neuve (`variantesAChoisir`,
    * `src/noyau/valeursNeuves.ts` : `recast` pour une Condition, qui enveloppe la courante sous ET, OU, NON ; `newOp`
    * pour une op), la courante pressée, précédées de « Aucune » si son absence est admise, puis les champs de la
@@ -1241,7 +1241,7 @@ function elementsDuRecord(porteur: PorteurDeValeur, f: FieldDesc, valeur: unknow
 }
 
 /** Les éléments du champ union `f` (`unionDuNoeud`), de valeur `valeur`, au chemin `ici`, les discriminants `tenus` déjà
- *  choisis : le choix de sa variante, d'id `valeur/<chemin>/<discriminant>` (`…/forme` d'une union à clé propre),
+ *  choisis : le choix de sa variante, d'id `valeur/<chemin>/<discriminant>` (`…/forme` d'une union sans discriminant),
  *  chacune posant sa valeur (celles que son
  *  contexte y pose, `FieldDesc.contexte`, sinon `variantesAChoisir`), suivi de « Aucune » si son absence est
  *  admise ; puis, de la variante courante, une union
@@ -1708,11 +1708,12 @@ function refusDEnregistrer(s: SessionDEdition): string | null {
  * montre la plaque de la sélection et joint leurs noms) (`prop`, `personnage`, `heroStart` ou `entree`, son nom comme à
  * `editeur.pointee`, et si elle est sélectionnée). `aretes` porte les arêtes de la couche éditée hors des ponts des
  * navires (`aretesDeLaCouche`, chacune comme la méthode `aretes` la sert), rendues avec `monde`, comme `navires`, les navires de la
- * scène sous la forme de `corps.navires` (section « Corps d'un combattant »). `monde` porte le volume du monde de la
- * vue de la scène éditée, les ponts de ses navires posés (`vueDeLaScene`), jusqu'à la couche éditée, sans les
- * surplombs des couches au-dessus, qu'il porte en `ombre` avec ces couches (`volumeDuMonde(scene, activeZ)`, section
- * « Monde ») ; il n'est rendu qu'à l'ouverture, et sans geste en cours quand
- * la scène ou la couche a changé depuis le dernier rendu : jamais pendant un glissé, dont la surcouche tient lieu. Le
+ * scène sous la forme de `corps.navires` (section « Corps d'un combattant »). `monde` porte le manifeste du volume du monde de
+ * la vue de la scène éditée, les ponts de ses navires posés (`vueDeLaScene`), comme `monde.monde` (section « Monde ») ;
+ * `morceaux`, source `edition`, en sert la géométrie. `retrait` porte le masque des couches au-dessus de la couche
+ * éditée (`retraitDuMonde(scene, z)`, section « Monde »). Tous deux ne sont rendus qu'à l'ouverture, et sans geste en
+ * cours quand la scène ou la couche a changé depuis le dernier rendu : jamais pendant un glissé, dont la surcouche
+ * tient lieu. Le
  * geste « Enregistrer » rend `depot: { id, texte }`, le texte du projet, ses scènes à jour (`scenesDeLaSession`), passé
  * par la porte, en forme dépôt (`texteAEnregistrer`) ; l'enregistrement est en cours jusqu'à son issue, et les scènes
  * écrites ne sont tenues pour enregistrées qu'à l'issue réussie.

@@ -109,10 +109,10 @@ export function GrappleModal() {
   }
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: 'Renoncer', onClick: cancel, verbe: 'annuler' },
+    { key: 'abandonner', label: 'Renoncer', onClick: cancel, verbe: 'annuler' },
     // Avantage supérieur : briser l'Empoignade gratuitement (par son Mouvement) — pré-jet uniquement.
     ...(pd.canBreak
-      ? [{ key: 'break', label: "Briser l'Empoignade", onClick: () => regler('empoignade', 'briser', true), title: 'Avantage supérieur : briser l’Empoignade gratuitement (par ton Mouvement).', verbe: 'lancer' } as RollAction]
+      ? [{ key: 'rompre', label: "Briser l'Empoignade", onClick: () => regler('empoignade', 'briser', true), title: 'Avantage supérieur : briser l’Empoignade gratuitement (par ton Mouvement).', verbe: 'lancer' } as RollAction]
       : []),
     { key: 'valider', label: t('verbe.valider'), onClick: confirm, verbe: 'valider' },
   ];

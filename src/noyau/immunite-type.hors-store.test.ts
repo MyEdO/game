@@ -152,7 +152,7 @@ function zoneDuSort(spellId: string, tiles: Pt[]): BattleZone {
   const s = findSpellById(spellId)!;
   const op = structuredClone(spellOps(s.effects, 'caster').find((o) => o.op === 'zone')); // #2097
   if (op?.op !== 'zone') throw new Error(`${spellId} : pas d'op zone`);
-  return { label: s.label, tiles, rounds: 3, onCross: op.onCross, perRound: op.perRound, source: { kind: 'spell', id: s.id } };
+  return { label: s.label, tiles, rounds: 3, onCross: op.onCross, perRound: op.perRound, source: { kind: 'sort', id: s.id } };
 }
 
 /** La créature `id` apparue sur `pos`. */

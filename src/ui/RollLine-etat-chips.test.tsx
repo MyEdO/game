@@ -47,7 +47,7 @@ const activeDisease = (symptomId: string): Disease => ({
 
 const CURSE = {
   label: 'Malédiction de malchance', bonus: 0, duration: { scale: 'rounds', left: 3 },
-  testMod: -10, source: { kind: 'spell', id: 'malediction-de-malchance' },
+  testMod: -10, source: { kind: 'sort', id: 'malediction-de-malchance' },
 } as unknown as NonNullable<Combatant['activeEffects']>[number];
 
 const mount = (node: React.ReactElement) => {

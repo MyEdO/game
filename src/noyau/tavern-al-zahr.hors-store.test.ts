@@ -241,7 +241,7 @@ describe('Al-zahr — la partie au store', () => {
     expect(toBrass(bourseOf(get().party[0])) - avant, 'aucune mise prise').toBe(0);
     expect(get().journal.some((l) => l.startsWith('Manche 1 : chacun mise')), 'la manche n’est pas ouverte').toBe(false);
     const res = get().tavernGames!.result!;
-    expect(res.winner, 'abandonner, c’est perdre').toBe('opponent');
+    expect(res.winner, 'abandonner, c’est perdre').toBe('adversaire');
     expect(res.rounds, 'aucune manche jouée').toBe(0);
   });
 

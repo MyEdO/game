@@ -59,12 +59,12 @@ describe('fastTavernGame — le régime RAPIDE (NADJ 16 l.11) ne joue aucun Spé
 describe('resolveTavernRound — la clause d’égalité DÉCLARÉE remplace le départage général', () => {
   const jet = (base: number, sl: number): TestResult => ({ roll: 30, target: base + 20, base, sl, success: true, isDouble: false });
   it('Dominos (`tieBreak` déclaré) : à DR égal, la valeur ne départage pas', () => {
-    expect(resolveTavernRound(findTavernGameById('dominos')!, jet(30, 2), jet(60, 2)).winner).toBe('tie');
+    expect(resolveTavernRound(findTavernGameById('dominos')!, jet(30, 2), jet(60, 2)).winner).toBe('egalite');
   });
   it('sans clause (régime rapide), la valeur la plus haute l’emporte (LDB 12 l.160)', () => {
-    expect(resolveTavernRound(fastTavernGame(findTavernGameById('dominos')!), jet(30, 2), jet(60, 2)).winner).toBe('opponent');
+    expect(resolveTavernRound(fastTavernGame(findTavernGameById('dominos')!), jet(30, 2), jet(60, 2)).winner).toBe('adversaire');
   });
   it('avec clause, le DR décide toujours d’abord', () => {
-    expect(resolveTavernRound(findTavernGameById('dominos')!, jet(30, 3), jet(60, 2)).winner).toBe('player');
+    expect(resolveTavernRound(findTavernGameById('dominos')!, jet(30, 3), jet(60, 2)).winner).toBe('joueur');
   });
 });

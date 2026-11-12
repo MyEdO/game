@@ -50,7 +50,7 @@ describe('renderRanks — la table', () => {
 
 describe('renderRanks — les familles MONTÉES portent leur rang', () => {
   it('marques de case : rang `monde` (posées au sol, sous les pions)', () => {
-    expect(buildHighlightMesh('walk', 4).renderOrder).toBe(RENDER_ORDER.monde);
+    expect(buildHighlightMesh('deplacement', 4).renderOrder).toBe(RENDER_ORDER.monde);
   });
 
   it('marques dynamiques et halos : rang `chrome` (les affordances ne se voilent jamais)', () => {

@@ -13,7 +13,7 @@ import { VsHeader } from '../VsHeader';
 import { recapLineOfEvent } from '../../gameIso/combatNarration';
 import { ev } from '../../noyau/combatLog';
 import { Icon } from '../Icon';
-import type { IconIdInput } from '../../data/icons';
+import type { IconId } from '../../data/icons';
 import { Row } from '../Layout';
 import { useGesteDeJet } from '../useGesteDeJet';
 import type { ReglagesDuJet } from '../../noyau/reglagesDuJet';
@@ -21,7 +21,7 @@ import type { ReglagesDuJet } from '../../noyau/reglagesDuJet';
 /** Sortie « confirmer » d'une modale de COUP (attaque, manœuvre de créature) : elle applique le coup, ou
  *  passe la main quand une Défense surfacée va s'interposer (#1004). Source unique de son libellé. */
 export function confirmerLeCoup(awaitingDefense: boolean, confirm: () => void): RollAction {
-  return { key: 'confirm', label: t(awaitingDefense ? 'defense.passerLaMain' : 'verbe.valider'), onClick: confirm, verbe: 'valider' };
+  return { key: 'confirmer', label: t(awaitingDefense ? 'defense.passerLaMain' : 'verbe.valider'), onClick: confirm, verbe: 'valider' };
 }
 
 /**
@@ -87,7 +87,7 @@ export function useAttackJetProps(): ComponentProps<typeof RollShell> | null {
       ? witnessRow({ row: { combatant: target, d: defense.d } })
       : buildRollRow({ row: { combatant: target, pending: { ...defense.pending, mask: 'value' as const } } }, { interactive: false });
   const rows = [attackerRow, ...(defenderRow ? [defenderRow] : [])];
-  const bascule = (b: { libelle: string; active: boolean }, icone: IconIdInput, onToggle: (v: boolean) => void) => (
+  const bascule = (b: { libelle: string; active: boolean }, icone: IconId, onToggle: (v: boolean) => void) => (
     <button className="btn small" aria-pressed={b.active} onClick={() => onToggle(!b.active)}>
       <Icon id={icone} size="sm" /> {b.libelle}
     </button>

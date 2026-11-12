@@ -67,7 +67,7 @@ const DIFFS: Difficulty[] = ['intermediaire', 'difficile'];
 /** PORTEUR de la sonde : un `FlowTest` de donnée n'est jamais orphelin — il est exigé par une entité,
  *  et c'est d'elle que son enjeu se DÉRIVE (#1262 V2 L6d). Les deux descripteurs ci-dessous passent
  *  donc par la MÊME porte que la production (`withDerivedStake`). */
-const PORTEUR = { kind: 'condition', id: 'empoisonne' } as const;
+const PORTEUR = { kind: 'etat', id: 'empoisonne' } as const;
 const FT: FlowTest = withDerivedStake({ skill: { id: 'resistance' }, label: 'Résister' }, PORTEUR);
 const FT_OPP: FlowTest = withDerivedStake({ skill: { id: 'resistance' }, label: 'Résister', opposed: { attacker: 'force' } }, PORTEUR);
 const BRANCHES = { onSuccess: EMPTY_FLOW, onFail: EMPTY_FLOW };

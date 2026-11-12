@@ -143,7 +143,7 @@ export function CastModal() {
         ? [{ key: 'annuler', label: t('verbe.annuler'), onClick: cancel, verbe: 'annuler' } as RollAction]
         : []),
     {
-      key: 'confirm',
+      key: 'confirmer',
       // Le libellé « (dissipé) » EST le verdict de la comparaison au jet masqué : même calendrier que l'issue (#990).
       label: csp ? (castRevealed && csp.participants.some((p) => p.result?.dispelled) ? 'Appliquer (dissipé)' : 'Appliquer') : placeable ? <><Icon id="outil-de-carte/epingle" size="sm" /> Poser la zone</> : 'Appliquer',
       title: placeable && !csp ? "La modale s'efface — clique une case du champ de bataille pour déposer la zone" : undefined,

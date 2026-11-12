@@ -10,7 +10,7 @@
  */
 import { conditionMeta } from './effectIcons';
 import type { IconId } from '../data/icons';
-import type { RecapLine } from '../noyau/recapLine';
+import type { RecapLine, RecapTeam } from '../noyau/recapLine';
 import type { RefusIHM } from '../noyau/refusVisible';
 import {
   type CombatEvent, type CombatEventKind, type ActorAim, type ActorAimKind,
@@ -20,7 +20,7 @@ import { conditionIdInText } from '../engine/conditions';
 
 export interface NarratedSegment {
   text: string;
-  team?: 'ally' | 'enemy';
+  team?: RecapTeam;
 }
 
 export interface NarratedLine {
@@ -71,10 +71,10 @@ function colorize(text: string, combatants: ComLite[]): NarratedSegment[] {
   const named = combatants.filter((c) => c.label && c.label.trim());
   if (!named.length) return [{ text }];
 
-  const teamOf = new Map<string, 'ally' | 'enemy'>();
+  const teamOf = new Map<string, RecapTeam>();
   // Index de TEXTE (le nom est ce qui apparaît dans la prose narrée) : construction seule, sans
   // interrogation par libellé (#602) — parcours inversé pour que le PREMIER combattant l'emporte.
-  for (let i = named.length - 1; i >= 0; i--) teamOf.set(named[i].label, named[i].kind === 'hero' ? 'ally' : 'enemy');
+  for (let i = named.length - 1; i >= 0; i--) teamOf.set(named[i].label, named[i].kind === 'hero' ? 'allie' : 'ennemi');
 
   // Noms uniques, du plus long au plus court (évite « Rat » de mordre dans « Rat géant »).
   const names = [...new Set(named.map((c) => c.label))].sort((a, b) => b.length - a.length);

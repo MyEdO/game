@@ -268,8 +268,8 @@ export function describeBattement(pb: PendingBattement, attackerName: string, fo
     : t('manv.battementFail', { name: attackerName, foe: foeName });
 }
 
-/** Distraire (LDB 10 l.364) : verdict du Test opposé Athlétisme vs Calme. Victoire (`success`) → le foe
- *  est distrait ; 'tie'/'failure' → rien. Popin = MÊME phrase que la ligne de journal (`manv.distraire*`). */
+/** Distraire (LDB 10 l.364) : verdict du Test opposé Athlétisme vs Calme. Victoire (`reussite`) → le foe
+ *  est distrait ; `egalite`/`echec` → rien. Popin = MÊME phrase que la ligne de journal (`manv.distraire*`). */
 export function describeDistraire(pd: PendingDistraire, moverName: string, foeName: string): string {
   if (pd.result == null) return '';
   return pd.result === 'reussite'

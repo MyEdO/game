@@ -45,8 +45,8 @@ import { withRenderRank } from './renderRanks';
 
 /** Un lot de MONTAGE : kind du builder divisé par son opacité de matériau. */
 export type HighlightSlot =
-  | 'walk'
-  | 'run'
+  | 'deplacement'
+  | 'course'
   | 'intent'
   | 'rangeBand'
   | 'team'
@@ -58,8 +58,8 @@ export type HighlightSlot =
 
 /** Tous les slots, dans l'ordre de RANG croissant (cf. `SLOT_RANK`). */
 export const HIGHLIGHT_SLOTS: readonly HighlightSlot[] = [
-  'walk',
-  'run',
+  'deplacement',
+  'course',
   'team',
   'teamActive',
   'zoneFire',
@@ -73,10 +73,10 @@ export const HIGHLIGHT_SLOTS: readonly HighlightSlot[] = [
 /** Slot d'un élément du builder. */
 export function highlightSlot(el: HighlightEl): HighlightSlot {
   switch (el.kind) {
-    case 'walk':
-      return 'walk';
-    case 'run':
-      return 'run';
+    case 'deplacement':
+      return 'deplacement';
+    case 'course':
+      return 'course';
     case 'intent':
       return 'intent';
     case 'rangeBand':
@@ -93,8 +93,8 @@ export function highlightSlot(el: HighlightEl): HighlightSlot {
 /** Opacité de chaque nature de marque de case — la table, tenue au banc de population
  *  (`stage/marques-parite.test.tsx`). */
 export const SLOT_OPACITY: Record<HighlightSlot, number> = {
-  walk: 0.32,
-  run: 0.24,
+  deplacement: 0.32,
+  course: 0.24,
   intent: 0.42, // la portée DEMANDÉE prime visuellement sur les portées permanentes qu'elle recouvre
   rangeBand: 0.26,
   team: 0.2,
@@ -111,8 +111,8 @@ export const SLOT_OPACITY: Record<HighlightSlot, number> = {
  *  Chaque slot a son rang PROPRE : deux marques d'un même kind peuvent couvrir la même case (une
  *  zone de fumée et une zone de feu qui se chevauchent), et un rang partagé les z-fighterait. */
 export const SLOT_RANK: Record<HighlightSlot, number> = {
-  walk: 0,
-  run: 1,
+  deplacement: 0,
+  course: 1,
   team: 2,
   teamActive: 3,
   zoneFire: 4,
@@ -131,9 +131,9 @@ export function slotLiftM(slot: HighlightSlot): number {
 /** Teinte d'un élément — le catalogue partagé `gameIso/highlightTints`, `team` par l'identité d'équipe. */
 export function highlightTint(el: HighlightEl): string {
   switch (el.kind) {
-    case 'walk':
+    case 'deplacement':
       return WALK_TINT;
-    case 'run':
+    case 'course':
       return RUN_TINT;
     case 'intent':
       return INTENT_TINT;

@@ -87,8 +87,8 @@ export const TABLES = {
       // ÉVITÉ : le dé garde sa ligne (rangée surfacée, ou trace de journal quand aucune fenêtre ne s'ouvre)
       // et la conséquence DIT l'issue. Un péril qui ne survient pas se LIT — le verrou est au test
       // (`de-monde-surface.hors-store.test.ts`, delta de journal nominatif), pas dans ce commentaire.
-      if (!step.result.success) return { consequences: freeCons([{ text: t('tf.perilAvoided', { label: peril.label }), tone: 'neutre' }]) };
-      const lignes: string[] = [t('tf.perilAuthor', { label: peril.label })];
+      if (!step.result.success) return { consequences: freeCons([{ text: t('tf.perilEvite', { label: peril.label }), tone: 'neutre' }]) };
+      const lignes: string[] = [t('tf.perilDAuteur', { label: peril.label })];
       if (perilInterrupts(peril.effects)) {
         set({ travelPlan: { ...get().travelPlan!, interrupted: true } });
         const suite = tablesPosees().interruptionsDePeril[String(step.meta?.interruptId ?? '')]?.(get, set, peril.effects, String(step.meta?.destLabel ?? '')) ?? [];

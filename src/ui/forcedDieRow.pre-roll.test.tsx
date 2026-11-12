@@ -694,7 +694,7 @@ describe('« Tout lancer » d’une fenêtre MULTI — chaque rangée consomme S
           title="Test d’équipage"
           rolled={false}
           rows={[mkRow('a', 'Voile'), mkRow('b', 'Ramer'), mkRow('c', 'Perception')]}
-          actions={[{ key: 'rollAll', label: 'Tout lancer', onClick: () => { for (const id of ['a', 'b', 'c']) rolls.push(`${id}:naturel`); } }]}
+          actions={[{ key: 'lancerLesRangees', label: 'Tout lancer', onClick: () => { for (const id of ['a', 'b', 'c']) rolls.push(`${id}:naturel`); } }]}
           onCancel={() => {}}
         />,
       );
@@ -790,7 +790,7 @@ describe('ORDRE RÉEL blur → clic : les 3 hôtes consomment quand même le dé
       root.render(
         <RollShell flowKey="manoeuvreDuNavire" title="Test d’équipage" rolled={false}
           rows={[mkRow('a', 'Voile'), mkRow('b', 'Ramer')]}
-          actions={[{ key: 'rollAll', label: 'Tout lancer', onClick: () => { rolls.push('a:naturel'); rolls.push('b:naturel'); } }]}
+          actions={[{ key: 'lancerLesRangees', label: 'Tout lancer', onClick: () => { rolls.push('a:naturel'); rolls.push('b:naturel'); } }]}
           onCancel={() => {}} />,
       );
     });

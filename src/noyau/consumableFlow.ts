@@ -113,7 +113,7 @@ function opsDeReussiteDuFlow(f: Flow): GameOp[] | null {
 export function refusDeConsommer(hero: Combatant, item: ItemInstance): string | null {
   const flow = consommableDe(item);
   const ops = flow ? opsDeReussiteDuFlow(flow) : null;
-  const source: EffectSource | undefined = item.trappingId ? { kind: 'trapping', id: item.trappingId } : undefined;
+  const source: EffectSource | undefined = item.trappingId ? { kind: 'objet', id: item.trappingId } : undefined;
   const raison = ops ? reussiteSansObjet(hero, ops, { avantLeJet: true, ...(source ? { source } : {}) }) : null;
   return raison ? t('cs.consommableSansObjet', { raison, item: item.label }) : null;
 }
@@ -128,7 +128,7 @@ export function runConsumable(get: Get, set: SetFn, hero: Combatant, item: ItemI
   const inBattle = !!get().battle && get().battle!.combatants.some((c) => c.id === hero.id);
   // ENTITÉ PORTEUSE du Flow : la POSSESSION bue (id de catalogue). Un objet CUSTOM (hors catalogue)
   // n'en a pas — il n'a pas de fiche où renvoyer, la dérivation d'enjeu se tait alors (#1262 V2 L6d).
-  const source: EffectSource | undefined = item.trappingId ? { kind: 'trapping', id: item.trappingId } : undefined;
+  const source: EffectSource | undefined = item.trappingId ? { kind: 'objet', id: item.trappingId } : undefined;
   if (inBattle) {
     runCombatFlow({
       get, set, target: hero, caster: hero, label: item.label,

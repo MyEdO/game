@@ -26,6 +26,7 @@ import { libelleDeValeur } from './meta';
 import { descendre } from './descente';
 import { marquerProduit } from './interne/produits';
 import { saisonParId } from '../../saisons';
+import { LIBELLES_DES_ICONES } from '../../icons';
 import { MAX_FRAGMENTS, estGraphieDeChapitre } from '../../source/decoupe';
 
 export const blocageDeLivraison = nommerChamps(z.strictObject({ ticket: z.string(), raison: z.string() }), {
@@ -72,6 +73,9 @@ export function enumNomme<const V extends Readonly<Record<string, string>>>(
 }
 
 /** Taille d'agglomération d'un marché : la colonne de la table de Disponibilité (LDB 59 l.25-34). */
+/** Id d'icône du registre `src/data/icons/` (`npm run gen`) : un id hors registre se refuse au parse. */
+export const idDIconeSchema = enumNomme(LIBELLES_DES_ICONES);
+
 export const settlementSchema = enumNomme({ village: 'village', ville: 'ville', cite: 'cité' });
 export type Settlement = z.output<typeof settlementSchema>;
 
@@ -342,7 +346,7 @@ export const fragmentBlocsSchema = nommerChamps(z.strictObject({
   finSecOcc: z.number().int().min(1).optional(),
   b1: z.number().int().min(0),
   sum: z.string().regex(/^[0-9a-f]{16}$/),
-}), { kind: { label: "type" }, sec: { label: "section" }, secOcc: { label: "occurrence de section" }, b0: { label: "premier bloc" }, finSec: { label: "section de fin" }, finSecOcc: { label: "occurrence de fin" }, b1: { label: "dernier bloc" }, sum: { label: "empreinte" } });
+}), { kind: { label: "type" }, sec: { label: "section" }, secOcc: { label: "occurrence de section" }, b0: { label: "premier bloc" }, finSec: { label: "section de fin" }, finSecOcc: { label: "occurrence de fin" }, b1: { label: "dernier bloc" }, sum: { label: "empreinte" } }, { label: 'Blocs de section' });
 
 /**
  * FRAGMENT DE CELLULE : une case de table, adressée par clé de LIGNE × en-tête de COLONNE — jamais
@@ -357,7 +361,7 @@ export const fragmentCelluleSchema = nommerChamps(z.strictObject({
   col: z.string().min(1),
   table: z.string().regex(/#\d+$/).optional(),
   sum: z.string().regex(/^[0-9a-f]{16}$/),
-}), { kind: { label: "type" }, sec: { label: "section" }, secOcc: { label: "occurrence de section" }, row: { label: "ligne" }, col: { label: "colonne" }, table: { label: "table" }, sum: { label: "empreinte" } });
+}), { kind: { label: "type" }, sec: { label: "section" }, secOcc: { label: "occurrence de section" }, row: { label: "ligne" }, col: { label: "colonne" }, table: { label: "table" }, sum: { label: "empreinte" } }, { label: 'Cellule de table' });
 
 /**
  * Nombre de fragments qu'une adresse doit porter pour ADRESSER quelque chose. En dessous, il n'y a

@@ -157,7 +157,7 @@ describe('marchand.reparer : chaque refus est dit', () => {
   });
   it('un objet qui ne se répare pas', () => {
     avec(objet({ uid: 'm', label: 'Corde', kind: 'misc', damageTaken: 1 }));
-    expect(dernier()).toBe(t('mf.repairIrreparable', { label: 'Corde' }));
+    expect(dernier()).toBe(t('mf.irreparable', { label: 'Corde' }));
   });
 });
 
@@ -224,7 +224,7 @@ describe('evaluerLObjet : chaque refus est dit', () => {
   it('la Détection déjà tentée par chaque détecteur (LDB 10 l.336)', () => {
     banc.setState({ party: [heros('a', { talents: [detecteur], items: [objet({ uid: 'inconnu', label: 'Anneau', identified: false, detectTriedBy: ['a'] })] })] });
     g().evaluerLObjet('inconnu', 'detection');
-    expect([dernier(), g().pendingAppraise]).toEqual([t('mf.detectDejaTentee', { label: 'Anneau' }), null]);
+    expect([dernier(), g().pendingAppraise]).toEqual([t('mf.detectionDejaTentee', { label: 'Anneau' }), null]);
   });
 
   it('un second détecteur tente encore l’artefact qu’un premier a sondé (LDB 10 l.336)', () => {

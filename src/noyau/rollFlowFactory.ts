@@ -169,7 +169,7 @@ export interface PendingBase {
 export interface ForcedResolve {
   roll?: number;
   /** DR imposé de l'auto-succès du talent Résistance (Menace) — seulement via le verbe `resister`
-   *  (`caps.resist`) ; les flux qui ne le déclarent pas ne le reçoivent jamais. */
+   *  (`caps.resister`) ; les flux qui ne le déclarent pas ne le reçoivent jamais. */
   sl?: number;
   /** Le dé `roll` est FIXÉ par le joueur (option « Dés fixés »), pas choisi au titre de la Résilience :
    *  le résolveur l'évalue AU NATUREL (`evaluateTest`) — réussite, DR et double se dérivent du dé, aucune
@@ -367,7 +367,7 @@ export interface RollFlowSpec<P extends PendingBase, Slot extends PendingBase = 
     picker?: (slot: Slot, actor: Combatant | undefined) => ForcedPick | null;
     /** Ce flux accepte l'auto-succès du talent Résistance (Menace) (LDB 10) : son `resolve` porte la
      *  branche `forced.sl` (DR = Bonus d'Endurance). Offert seulement sur un slot tagué `menace`. */
-    resist?: boolean;
+    resister?: boolean;
   };
   /**
    * Undo MÉTIER optionnel de l'annulation (ex. défaire-charge de l'attaque…).
@@ -419,7 +419,7 @@ export interface RollFlowHandlers {
   imposerLeResultat: (get: Get, set: Set, roll: number, pid?: string) => void;
   /** Résistance (Menace), LDB 10 l.1016-1020 : auto-succès du premier Test qui résiste à la menace
    *  taguée sur le slot (`menace`), DR = Bonus d'Endurance, 1× par spec et par séance. No-op sans
-   *  `caps.resist`, sans tag, sans talent disponible, ou si le Test est déjà réussi. */
+   *  `caps.resister`, sans tag, sans talent disponible, ou si le Test est déjà réussi. */
   resister: (get: Get, set: Set, pid?: string) => void;
   /** Ce flux sait-il RÉÉVALUER un dé saisi (option « Dés fixés ») ? Vrai ssi son ACCESSEUR DE DÉ est
    *  complet (lire où vit le dé ET réécrire l'issue re-dérivée). Faux ⇒ aucune affordance côté UI et
@@ -829,7 +829,7 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
         forcerLaReussite: fermetureDuForcage(s, get, p, slot, actor),
         // Le dé FIXÉ se juge au siège qui le pose (`canFixDie`) ; l'op ne le rejuge pas (`VerbesDeJet.jetImposerLeResultat`).
         imposerLeResultat: fermetureDuDeChoisi(slot, actor, p) ?? (!slot.forced && !canFixDie(s, actor?.id) ? 'desFixesInactifs' : null),
-        resister: !spec.caps?.resist ? 'nonOffert' : temoin ? 'rangeeTemoin' : parActeur((a) => fermetureDeLaResistance(a, menace, rolled, spec.outcome(slot))),
+        resister: !spec.caps?.resister ? 'nonOffert' : temoin ? 'rangeeTemoin' : parActeur((a) => fermetureDeLaResistance(a, menace, rolled, spec.outcome(slot))),
         annuler: fermetureDeLAnnulation(s, p),
         inverser: typeof voie === 'string' ? voie : null,
         valider: fenetre || !spec.multi ? valider : spec.clotures?.valider === 'toujours' || rolled ? null : 'jetNonLance',
@@ -958,7 +958,7 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
       if (applied != null) journaliser(get, set, [actor ? t('roll.dieFixedBy', { name: actor.label, n: applied }) : t('roll.dieFixed', { n: applied })], 'information', { actorId: actor?.id });
     },
     resister(get, set, pid) {
-      if (!spec.caps?.resist) return;
+      if (!spec.caps?.resister) return;
       const s = get(); const p = pendingOf(s); if (!p) return;
       const loc = locate(set, get, p, pid); if (!loc || passive(loc.slot, s, get, p)) return;
       // Le tag `menace` vit sur le SLOT (étape de cascade, RANGÉE d'une bande) ou sur le PENDING entier
