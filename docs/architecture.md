@@ -670,7 +670,8 @@ hotes/godot/                HÔTE GODOT du noyau (#2928, zone `hotes`) : le pont
                             nommées d'une scène (`--parcours cadrages`, `cadrages/`). `--bureau --sortie <dossier>`
                             (`npm run godot:bureau`, #3951) produit l'exécutable de bureau de la plateforme, son noyau
                             embarqué (`noyau/` : Node, le bundle, le point d'entrée) et ses modèles en scène, puis lui
-                            fait jouer une partie. Deux rendus dessinent les mêmes scènes : Forward+ hors d'une page,
+                            fait jouer une partie ; le workflow `bureau.yml`, lancé à la main, le fait sous Linux et
+                            sous Windows et en garde le dossier en artefact. Deux rendus dessinent les mêmes scènes : Forward+ hors d'une page,
                             le rendu de compatibilité dans la page ou en repli ; `--rendus` (`npm run godot:rendus`,
                             étape de la CI) joue en rendu réel, sous chacun des deux, les recettes déclarant
                             `const RECETTE_RENDUE := true`.
