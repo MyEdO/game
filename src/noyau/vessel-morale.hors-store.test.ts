@@ -4,7 +4,8 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { seedBattleRng } from './battleRng';
 import { resolveShoreLeaveDesertion, semainesDuConseil, choixDePaieOuverts } from './shipCrew';
 import { creditBourse, partyMoneyTotal } from './bourseFlow';
-import { MINUTES_PER_DAY } from '../engine/clock';
+import { MINUTES_PER_DAY, campaignStart, dayIndex } from '../engine/clock';
+import { applyEffects } from './combatEffects';
 import { makeRNG } from '../engine/dice';
 import { toBrass, fromBrass, formatMoney, type Money } from '../engine/money';
 import { t } from '../i18n';
@@ -218,6 +219,35 @@ describe('Saut d’horloge long (MDG 14 l.143, l.293-302, #1652) — chaque sema
     banc.getState().fenetreChoisir('conseil', 'paie', 'paie-reguliere');
     expect(banc.getState().vessel!.morale.lastMoraleWeek).toBe(3);
     expect(recalcs()).toBe(3);
+    expect(banc.getState().pendingCouncil?.semaines).toBe(3);
+    expect(toBrass({ gold: 5000, silver: 0, brass: 0 }) - toBrass(partyMoneyTotal(banc.getState))).toBe(3 * 288);
+    expect(banc.getState().journal.filter((l) => l === t('crew.paid', { money: formatMoney(soldeMousse) }))).toHaveLength(3);
+  });
+
+  it('cadence auto : la solvabilité se juge semaine par semaine (trois soldes payées, la quatrième due)', () => {
+    setCadence('rapide');
+    banc.setState({ vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, crew: [{ roleId: 'mousse', count: 1 }] } });
+    creditBourse(banc.getState, banc.setState, banc.getState().party[0].id, fromBrass(3 * 288));
+    banc.getState().avancerLeTemps(32 * MINUTES_PER_DAY);
+    const s = banc.getState();
+    const paye = t('crew.paid', { money: formatMoney(soldeMousse) });
+    const impaye = t('crew.cannotPay', { money: formatMoney(soldeMousse) });
+    const suite = s.journal.flatMap((l) => (l === paye ? ['paid'] : l === impaye ? ['cannotPay'] : l.startsWith("Moral de l'équipage recalculé") ? ['recalc'] : []));
+    expect(toBrass(partyMoneyTotal(banc.getState))).toBe(0);
+    expect(s.vessel!.wagesOwed).toBe(288);
+    expect(suite).toEqual(['paid', 'recalc', 'paid', 'recalc', 'paid', 'recalc', 'cannotPay', 'recalc']);
+  });
+
+  it('un navire posé par `setVessel` ne doit rien des semaines d’avant sa pose (MDG 14 l.143)', () => {
+    setCadence('rapide');
+    banc.setState({ gameTime: campaignStart(), lastUpkeepDay: dayIndex(campaignStart()) });
+    applyEffects(banc.getState, banc.setState, [{ type: 'setVessel', vehicleId: 'cogue', crew: [{ roleId: 'mousse', count: 2 }] }]);
+    creditBourse(banc.getState, banc.setState, banc.getState().party[0].id, { gold: 5000, silver: 0, brass: 0 });
+    const avant = toBrass(partyMoneyTotal(banc.getState));
+    banc.getState().avancerLeTemps(1 * MINUTES_PER_DAY);
+    expect({ paye: avant - toBrass(partyMoneyTotal(banc.getState)), recalcs: recalcs() }).toEqual({ paye: 0, recalcs: 0 });
+    banc.getState().avancerLeTemps(7 * MINUTES_PER_DAY);
+    expect({ paye: avant - toBrass(partyMoneyTotal(banc.getState)), recalcs: recalcs() }).toEqual({ paye: 2 * 288, recalcs: 1 });
   });
 
   it('cadence manuelle : un choix dont la bourse ne couvre pas la solde du bloc est refusé', () => {

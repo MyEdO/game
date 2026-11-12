@@ -3208,6 +3208,8 @@ export const fr = {
   'crew.paid': "Solde hebdomadaire de l'équipage versée : {money}.",
   'crew.cannotPay': "Bourse insuffisante pour la solde de l'équipage ({money}) — l'équipage n'est pas payé.",
   'crew.moraleRecalc': "Moral de l'équipage recalculé : {score} ({band}).",
+  'crew.paieDesSemaines': 'Paie de {n} semaine{s}',
+  'crew.soldeDue': 'Solde due (paie régulière, {n} semaine{s})',
   'crew.factorMorale': '{delta} Moral',
   'crew.crewDelta': 'Équipage : {delta} membre(s) (reste {left}/{nominal}).',
   'crew.desertion': 'Relâche à terre : {n} marin(s) ne sont pas revenus à bord.',

@@ -391,6 +391,8 @@ export interface PendingCouncil extends PendingBase {
   phase: 'choix' | 'bilan';
   /** bilan : id du facteur de paie retenu. */
   decision?: string;
+  /** bilan : semaines réglées par la décision (`semainesDuConseil` à l'arrêt de la paie). */
+  semaines?: number;
   /** bilan : procès-verbal des jets de Moral (un par facteur). */
   results?: NightEntry[];
   /** bilan : variation totale, avant/après (nouvelle bande dérivée d'`after`). */
@@ -509,7 +511,7 @@ export function tickCampaignVesselWeek(get: Get, set: SetFn, today: number, rng:
 }
 
 /** Semaine calendaire d'un jour de campagne (`lastMoraleWeek`, `PendingCouncil.today`). */
-function semaineDuJour(jour: number): number {
+export function semaineDuJour(jour: number): number {
   return Math.floor(jour / 7);
 }
 
@@ -561,8 +563,9 @@ function factorLedger(rolls: MoraleRoll[]): NightEntry[] {
 function arreterLaPaie(get: Get, set: SetFn, decision: string): void {
   const p = garanti(get().pendingCouncil, decision, 'Conseil de bord');
   if (!get().vessel) return;
+  const semaines = semainesDuConseil(get());
   const bloc = reglerLesSemaines(get, set, decision, semaineDuJour(p.today), battleRng());
-  set({ pendingCouncil: { ...p, phase: 'bilan', decision, results: factorLedger(bloc.factorRolls), delta: bloc.delta, before: bloc.before, after: bloc.after } });
+  set({ pendingCouncil: { ...p, phase: 'bilan', decision, semaines, results: factorLedger(bloc.factorRolls), delta: bloc.delta, before: bloc.before, after: bloc.after } });
   get().ecrireAuJournal(bloc.lines);
 }
 
