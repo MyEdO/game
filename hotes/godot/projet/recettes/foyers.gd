@@ -88,7 +88,7 @@ func _verifier(foyer: Node, visuel: String, gerbes: int, son: String) -> void:
 		_fautes.append("%s : %d gerbes continues nées d'avance, attendu %d" % [visuel, emises.size(), gerbes])
 	for rang in emises.size():
 		var largeur := _largeur_peinte(emises[rang])
-		var taille: float = Foyer.FLAMMES[visuel][rang].taille[1] * MiseEnPage.echelle_au_plateau(METRES_PAR_CASE).x
+		var taille: float = (emises[rang] as CPUParticles3D).scale_amount_max * MiseEnPage.echelle_au_plateau(METRES_PAR_CASE).x
 		if largeur > taille + 0.0001:
 			_fautes.append("%s : une particule se peint large de %.2f, sa taille au plateau est %.2f" % [visuel, largeur, taille])
 	var lecteurs := foyer.get_children().filter(func(n: Node) -> bool: return n is AudioStreamPlayer3D)

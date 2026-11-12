@@ -91,7 +91,7 @@ function withArg(effects: TriggeredEffect[], arg?: string, value?: number): Trig
       // Le COÛT d'Avantage d'un `choix` accepte le MÊME template `$indice` que les ops (Taillade : X = son
       // Indice, `AA 08 l.87`). Sans Indice sur l'instance, il reste tel quel : `resolveFlowChoice` n'offre
       // alors PAS le nœud (jamais un coût 0).
-      return f.advantageCost === INDICE_TEMPLATE && value !== undefined ? { ...f, advantageCost: value } : f;
+      return f.coutEnAvantage === INDICE_TEMPLATE && value !== undefined ? { ...f, coutEnAvantage: value } : f;
     }
     return f;
   };
@@ -438,7 +438,7 @@ export function ciblesDeLEffet(
  *  (Oui/Renoncer) — le « Vous pouvez » RAW devient une étape de choix. */
 export function flowOffert(eff: TriggeredEffect): Flow {
   return eff.optional
-    ? { kind: 'choix', prompt: eff.flow.kind === 'test' ? (eff.flow.test.label ?? 'Réaction') : 'Réaction', oui: eff.flow, non: EMPTY_FLOW }
+    ? { kind: 'choix', invite: eff.flow.kind === 'test' ? (eff.flow.test.label ?? 'Réaction') : 'Réaction', oui: eff.flow, non: EMPTY_FLOW }
     : eff.flow;
 }
 

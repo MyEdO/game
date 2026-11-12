@@ -1621,11 +1621,11 @@ export function arbreDeFlow<E>(feuille: z.ZodType<E>, condition: z.ZodType<Condi
       variante('Test', noeudTest(flow)),
       variante('Choix', proseNommee(nommerChamps(z.strictObject({
         kind: z.literal('choix'),
-        advantageCost: coutDAvantage.optional(),
+        coutEnAvantage: coutDAvantage.optional(),
         icon: idDIconeSchema.optional(),
         oui: flow,
         non: flow.optional(),
-      }), { kind: { label: "type"  }, advantageCost: { label: "coût en Avantage"  }, icon: { label: "icône" , texte: { regime: "technique"} }, oui: { label: "oui" }, non: { label: "non" } }), 'flow.choice.prompt')),
+      }), { kind: { label: "type"  }, coutEnAvantage: { label: "coût en Avantage"  }, icon: { label: "icône" , texte: { regime: "technique"} }, oui: { label: "oui" }, non: { label: "non" } }), 'flow.choice.invite')),
     ]),
   );
   return flow;

@@ -71,7 +71,7 @@ describe('runFlow — nœud `choice` (#1652 G1)', () => {
 
   const flux: Flow = {
     kind: 'sequence',
-    etapes: [{ kind: 'choix', prompt: 'Payer', oui: drapeau('oui'), non: drapeau('non') }, drapeau('suite')],
+    etapes: [{ kind: 'choix', invite: 'Payer', oui: drapeau('oui'), non: drapeau('non') }, drapeau('suite')],
   };
 
   it('ouvre une décision au meneur ; la suite attend la décision', () => {
@@ -92,7 +92,7 @@ describe('runFlow — nœud `choice` (#1652 G1)', () => {
   });
 
   it('un coût d’Avantage n’est pas offert hors combat (LDB 14 l.219) : la branche « non » se joue', () => {
-    jouerFlowEntier(runFlow(get, set, { kind: 'choix', prompt: 'Payer', advantageCost: 1, oui: drapeau('oui'), non: drapeau('non') }, 'Décision'));
+    jouerFlowEntier(runFlow(get, set, { kind: 'choix', invite: 'Payer', coutEnAvantage: 1, oui: drapeau('oui'), non: drapeau('non') }, 'Décision'));
     expect(get().pendingCascade).toBeNull();
     expect(get().flags).toEqual({ non: true });
   });
@@ -185,7 +185,7 @@ describe('Escale : une `consequence` qui suspend reprend AVANT l’arrivée au l
   afterEach(() => resetData());
 
   it('le choix de l’événement se tranche, PUIS le groupe arrive au port', () => {
-    const choix: Flow = { kind: 'choix', prompt: 'Payer', oui: drapeau('paye') };
+    const choix: Flow = { kind: 'choix', invite: 'Payer', oui: drapeau('paye') };
     setDataset('seaPortEvents', PORT_EVENTS.map(({ min, max, id, label, desc }) => ({ min, max, id, label, desc, consequence: choix })) as never);
     finalizePortArrivalTo(get, set, carte.places[1], true);
     expect(get().pendingCascade?.participants[0].kind).toBe('choixDeFlux');
@@ -375,8 +375,8 @@ describe('Ressources de bord en grammaire (#1652 lot 3 — MDG 15)', () => {
 
   it('la donnée porte la RAW : débris 1d100, épave 2d100 sur décision ; pénurie la moitié ; manne 1d10 jours et +2d10 Moral', () => {
     const navire = (ops: unknown[]) => ({ kind: 'effet', effet: { type: 'ops', on: 'navire', ops } });
-    expect(consequence('debris-marins')).toEqual({ kind: 'choix', prompt: 'Repêcher les caisses', oui: navire([{ op: 'cargaison', enc: { dice: { n: 1, sides: 100 } } }]) });
-    expect(consequence('vaisseau-fantome-figurativement')).toEqual({ kind: 'choix', prompt: 'Monter à bord', oui: navire([{ op: 'cargaison', enc: { dice: { n: 2, sides: 100 } } }]) });
+    expect(consequence('debris-marins')).toEqual({ kind: 'choix', invite: 'Repêcher les caisses', oui: navire([{ op: 'cargaison', enc: { dice: { n: 1, sides: 100 } } }]) });
+    expect(consequence('vaisseau-fantome-figurativement')).toEqual({ kind: 'choix', invite: 'Monter à bord', oui: navire([{ op: 'cargaison', enc: { dice: { n: 2, sides: 100 } } }]) });
     expect(consequence('penurie-de-nourriture')).toEqual(navire([{ op: 'provisions', gateesPct: 50 }]));
     expect(consequence('manne-de-manann')).toEqual(navire([
       { op: 'provisions', jours: { dice: { n: 1, sides: 10 } } },
@@ -490,7 +490,7 @@ describe('Équipage recueilli et pertes au port (#1652 lot 3 — MDG 15, valeurs
 
   it('Canot de sauvetage : la donnée porte les rescapés du livre et leur rôle maison (l.213-218)', () => {
     const c = consequence('canot-de-sauvetage') as Extract<Flow, { kind: 'choix' }>;
-    expect(c.prompt).toBe('Recueillir les rescapés');
+    expect(c.invite).toBe('Recueillir les rescapés');
     const table = (c.oui as Extract<Flow, { kind: 'effet' }>).effet.ops[0] as Extract<GameOp, { op: 'rollTable'; entries: unknown }>;
     expect(table.die).toBe('1d10');
     expect(table.entries.map((r) => [r.min, r.max, r.ops])).toEqual([
@@ -1481,7 +1481,7 @@ describe('Événements laissés au MJ et marché du port (#1652 lot 9 — MDG 15
 
   it('Île inconnue : accoster remplit les tonneaux et la cale, et les bancs de sable menacent sur 1-2 (l.221-223)', () => {
     expect(deBord('ile-inconnue').consequence).toEqual({
-      kind: 'choix', prompt: 'Accoster sur l’île',
+      kind: 'choix', invite: 'Accoster sur l’île',
       oui: { kind: 'effet', effet: { type: 'ops', on: 'navire', ops: [
         { op: 'provisions', eauTonneaux: { dice: { n: 2, sides: 10 } } },
         { op: 'provisions', jours: { dice: { n: 1, sides: 10 } } },

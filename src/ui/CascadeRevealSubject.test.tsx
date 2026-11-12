@@ -65,7 +65,7 @@ describe('étape de révélation — le sujet', () => {
     expect(host.textContent).not.toContain('**Le groupe**');
     expect(host.querySelector('p .prose, p p, p ul')).toBeNull();
   });
-  it('le choix rend son prompt Markdown dans le corps et ses aperçus en texte', () => {
+  it('le choix rend son invite Markdown dans le corps et ses aperçus en texte', () => {
     openReveal(() => ({ kind: 'entreeEnScene', title: 'Entrée', lines: [] }));
     useGame.setState({ pendingCascade: cascadeDeTest([{ id: 'choix', kind: cleDeFixture('choix'), label: fixtureText('**Entrer** par [la porte](https://example.com) ?'),
       options: [{ key: 'oui', label: fixtureText('**Oui**'), detail: '*Entrer*' }, { key: 'non', label: fixtureText('Non') }] }], { title: 'Choix', purpose: 'affichage' }) });

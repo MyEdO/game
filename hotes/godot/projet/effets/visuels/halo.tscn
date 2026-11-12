@@ -1,0 +1,84 @@
+[gd_scene format=3]
+
+[ext_resource type="QuadMesh" path="res://effets/particule_lumineuse.tres" id="1_i0s36"]
+
+[sub_resource type="Gradient" id="Gradient_osiro"]
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0)
+
+[sub_resource type="Animation" id="Animation_85xgy"]
+length = 1.2
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Gerbe1:emitting")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [true]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Eclair:light_energy")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.4),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [1.5, 0.0]
+}
+tracks/2/type = "method"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath(".")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(1.2),
+"transitions": PackedFloat32Array(1),
+"values": [{
+"args": [],
+"method": &"queue_free"
+}]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_46dq4"]
+_data = {
+&"eclat": SubResource("Animation_85xgy")
+}
+
+[node name="halo" type="Node3D" unique_id=125643766]
+
+[node name="Gerbe1" type="CPUParticles3D" parent="." unique_id=157321038 groups=["teinte"]]
+cast_shadow = 0
+amount = 30
+one_shot = true
+explosiveness = 1.0
+local_coords = true
+mesh = ExtResource("1_i0s36")
+emission_shape = 6
+emission_ring_axis = Vector3(0, 1, 0)
+emission_ring_height = 0.0
+emission_ring_radius = 0.6
+emission_ring_inner_radius = 0.5
+emission_ring_cone_angle = 90.0
+direction = Vector3(0, 1, 0)
+spread = 5.0
+gravity = Vector3(0, 0.8, 0)
+initial_velocity_min = 0.3
+initial_velocity_max = 0.6
+scale_amount_min = 0.3
+scale_amount_max = 0.5
+color_ramp = SubResource("Gradient_osiro")
+
+[node name="Eclair" type="OmniLight3D" parent="." unique_id=1949623190 groups=["teinte"]]
+light_energy = 1.5
+omni_range = 4.0
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1514412892]
+libraries/ = SubResource("AnimationLibrary_46dq4")
+autoplay = &"eclat"
