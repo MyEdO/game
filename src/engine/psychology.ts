@@ -227,7 +227,7 @@ export function fearSourceFor(self: Combatant, s: SourcePsy, selfSizeForSize?: S
 
 /** Mode de RÉSOLUTION d'un état psy + ses conséquences d'échec, lus en DONNÉES (`psychology.json`) — SOURCE
  *  UNIQUE de l'applier `psychologieDeCombat` et du picker de Round : plus de `kind === 'terreur'` codé par-nom. */
-export function psychResolution(kind: PsychType): { mode?: 'extended' | 'terreur' | 'binary'; failCondition?: string; failAmount?: { base?: 'indice' | number; perDegreeOfFailure?: number }; becomes?: PsychType } {
+export function psychResolution(kind: PsychType): { mode?: 'etendu' | 'terreur' | 'simple'; failCondition?: string; failAmount?: { base?: 'indice' | number; perDegreeOfFailure?: number }; becomes?: PsychType } {
   const d = findPsychologyById(kind);
   return { mode: d?.resolution, failCondition: d?.failCondition?.id, failAmount: d?.failAmount, becomes: d?.becomes?.id as PsychType | undefined };
 }

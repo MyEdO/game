@@ -41,7 +41,7 @@ describe('warMachineCrewRequired — lit l\'Indice de la Qualité `equipe`', () 
   });
 
   it('arme avec Qualité equipe(N) → N', () => {
-    const w: Weapon = { label: 'Trébuchet', type: 'ranged', damage: { plusBF: false, flat: 14 }, qualities: [{ id: 'equipe', value: 8 }] };
+    const w: Weapon = { label: 'Trébuchet', type: 'distance', damage: { plusBF: false, flat: 14 }, qualities: [{ id: 'equipe', value: 8 }] };
     expect(warMachineCrewRequired(w)).toBe(8);
   });
 });

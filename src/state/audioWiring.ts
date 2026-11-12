@@ -26,7 +26,7 @@ export function musicSelectionOf(s: MusicStateSlice): MusicSelection {
   return s.screen === 'campaign' ? selectionDeLaMusique(s) : null;
 }
 
-let lastAttackKind: 'melee' | 'ranged' | 'spell' = 'melee';
+let lastAttackKind: 'melee' | 'distance' | 'spell' = 'melee';
 /** Le heurt de la série en cours a-t-il déjà sonné ? (réarmé par le premier pas qui passe) */
 let heurtSonne = false;
 
@@ -48,7 +48,7 @@ export function brancherLesSons(): () => void {
     bus.on(EVT.ANIM_IMPACT, (p) => {
       const r = p.result;
       if ('critiques' in r && r.critiques) return playSfx('critique');
-      if ('hit' in r && r.hit) return playSfx(lastAttackKind === 'spell' ? 'sort' : lastAttackKind === 'ranged' ? 'tranche' : 'impact');
+      if ('hit' in r && r.hit) return playSfx(lastAttackKind === 'spell' ? 'sort' : lastAttackKind === 'distance' ? 'tranche' : 'impact');
       playSfx('parade'); // déjoué : parade/esquive — le métal claque
     }),
     bus.on(EVT.ANIM_MOVE, (p) => {

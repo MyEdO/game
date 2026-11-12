@@ -415,7 +415,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
   // un ARC en main ne tire donc pas dans le dos : il frappe (arme de mêlée, mains nues à défaut).
   it('frappeur avec un ARC en main : le coup dans le dos reste un Test de CORPS À CORPS', () => {
     const { frappeur, fuyard } = duelHeros(10);
-    frappeur.weapons = [{ name: 'Arc', label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 4 }, qualities: [], range: 60 }] as never;
+    frappeur.weapons = [{ name: 'Arc', label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 4 }, qualities: [], range: 60 }] as never;
     fuyard.wounds = blessuresDeBase(40, 40, fuyard);
     banc.setState({ battle: { ...banc.getState().battle! } });
 

@@ -394,7 +394,7 @@ export type Main = 'main' | 'secondaire';
 
 export interface Weapon extends ProprietesIntrinsequesDArme {
   label: string;
-  type: 'melee' | 'ranged';
+  type: 'melee' | 'distance';
   /** Dégâts d'arme STRUCTURÉS (cf. `WeaponDamageSpec`) — ex. `{plusBF:true,flat:4}` (« +BF+4 »). */
   damage: WeaponDamageSpec;
   /** Allonge de MÊLÉE — vocabulaire FERMÉ `ReachValue`. Le RANG se lit par `reachRankOf`/`meleeReachRank`. */
@@ -1119,7 +1119,7 @@ export interface Trauma {
   passiveKind?: import('./ops').PassiveKind;
 }
 
-export type ItemKind = 'melee' | 'ranged' | 'armor' | 'ammo' | 'misc';
+export type ItemKind = 'melee' | 'distance' | 'armor' | 'ammo' | 'misc';
 
 /** Instance d'objet portée par un personnage (dérivée d'un trapping à stats). */
 export interface ItemInstance extends ProprietesIntrinsequesDObjet {

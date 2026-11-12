@@ -55,7 +55,7 @@ describe('inanimateCombatant — engin de siège INERTE (AA 10 l.136-195)', () =
 
   it('NON-DESTRUCTIBLE : `woundsFromHit` retourne 0 même pour un coup énorme (immune via `target.inert`)', () => {
     const c = inanimateCombatant({ id: 'e', label: 'Baliste', refId: 'baliste', bodyShape: 'engin', inert: true });
-    const canon = mkWeapon({ label: 'Canon', type: 'ranged', qualities: [{ id: 'siege' }] });
+    const canon = mkWeapon({ label: 'Canon', type: 'distance', qualities: [{ id: 'siege' }] });
     expect(woundsFromHit(canon, c, 'corps', 999, 0, 1, undefined)).toBe(0);
   });
 });

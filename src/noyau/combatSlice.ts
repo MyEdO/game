@@ -1144,7 +1144,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const scene = get().scene;
       const blocked = !!(hero.pos && target.pos && scene) && !losClear(scene, hero.pos, target.pos, smokeOf(battle));
       // Chaque cause dit LA SIENNE : une cible hors de portée n'annonce pas un mur qui n'existe pas.
-      if (weapon.type !== 'ranged') return void refuserGeste(get, set, t('cs.refusTirArmeDeMelee', { weapon: weapon.label }));
+      if (weapon.type !== 'distance') return void refuserGeste(get, set, t('cs.refusTirArmeDeMelee', { weapon: weapon.label }));
       if (!inFiringBand(hero, target, weapon, sceneMetresPerTile(scene))) return void refuserGeste(get, set, t('cf.horsDePortee'));
       if (blocked) return void refuserGeste(get, set, t('cf.ligneDeVueMasquee'));
       // Le tir se résout par la modale de jet NORMALE (jetLancer('attaque')/jetValider('attaque')) ; le tireur n'est PAS actif.
@@ -1224,7 +1224,7 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!battle || battle.over || battle.acted) return;
       const active = activeCombatant(battle);
       if (!active || !canTakeAction(active)) return;
-      if (!active.weapons.some((w) => w.type === 'ranged')) return; // viser = pour le tir
+      if (!active.weapons.some((w) => w.type === 'distance')) return; // viser = pour le tir
       active.aiming = true;
       set({ battle: { ...markActed(get, set), action: null, log: [...get().battle!.log, ev('visee', t('cs.aim', { name: active.label }), active.id)] } });
       bus.emit(EVT.SCENE_DIRTY);
@@ -1297,7 +1297,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const active = activeCombatant(battle);
       if (!active) return;
       const rw = weaponUid
-        ? active.weapons.find((w) => w.uid === weaponUid && w.type === 'ranged')
+        ? active.weapons.find((w) => w.uid === weaponUid && w.type === 'distance')
         : armeADistanceParDefaut(active);
       if (!rw) return; // aucune arme à distance : rien à choisir
       // Chef qui SERT cette pièce : le cycle de charge vit sur la PIÈCE — la bascule doit la décharger ELLE.
@@ -1439,7 +1439,7 @@ export function createCombatSlice(get: Get, set: Set) {
         // (AskUserQuestion 2026-08-16), donc celui posé au
         // combat précédent (ou à l'équipement) tient ; `loadWeapon` capture le choix courant, et
         // `selectedAmmo` retombe sur la 1re compatible quand il n'y en a aucun.
-        for (const rw of c.weapons.filter((w) => w.type === 'ranged')) loadWeapon(c, rw);
+        for (const rw of c.weapons.filter((w) => w.type === 'distance')) loadWeapon(c, rw);
         return c;
       });
       // Chaque membre RÉFÉRENCE une entité de la scène. L'entité PORTE le profil/apparence/arme/traits
@@ -2925,7 +2925,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
         // Tir IMMOBILE (LDB 14 l.70) : le héros a renoncé à bouger pour annuler le −10 → on consomme son
         // Mouvement du Tour. Seule CETTE posture tombe : elle a un PRIX (le Mouvement). « Dans le tas » ne
         // coûte rien (`LDB 14 l.106`). HÉROS SEUL — parité stricte avec `attackEnv` et `heldGroundStanceBlock`.
-        if (pa.tirImmobile && weapon.type === 'ranged' && attacker.kind === 'hero') {
+        if (pa.tirImmobile && weapon.type === 'distance' && attacker.kind === 'hero') {
           const b2 = get().battle;
           if (b2) {
             const { tirImmobile: _depensee, ...restantes } = b2.stances?.[attacker.id] ?? {};

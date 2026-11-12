@@ -211,7 +211,7 @@ describe('Bâclé — le joueur applique sa Maladresse par le STORE (étape hôt
   // UNE sauvegarde Solide par Maladresse : #1508 (commentaire du 2026-09-26), #1764 (commentaire du 2026-09-27) ; `LDB 60 l.30`, `l.50`, `LDB 14 l.34`.
   describe('Bâclé + Poudre noire + Solide(1), Incident de tir : UN dé pour l’événement', () => {
     const pistolet = (): Weapon =>
-      ({ label: 'Pistolet bâclé', type: 'ranged', subType: 'poudre noire', damage: { plusBF: false, flat: 8 }, qualities: [{ id: 'bacle' }, { id: 'solide', value: 1 }] }) as unknown as Weapon;
+      ({ label: 'Pistolet bâclé', type: 'distance', subType: 'poudre noire', damage: { plusBF: false, flat: 8 }, qualities: [{ id: 'bacle' }, { id: 'solide', value: 1 }] }) as unknown as Weapon;
     /** Toute étape de Sauvegarde Solide ENTRÉE dans la séquence, fût-elle ensuite refermée. */
     const vues = new Map<string, boolean>();
     let stop = (): void => {};
@@ -293,7 +293,7 @@ describe('Bâclé — le joueur applique sa Maladresse par le STORE (étape hôt
 
 describe('Incident de tir + Salve — la table est une ÉTAPE, servie après LA sauvegarde', () => {
   const piece = (): Weapon =>
-    ({ label: 'Batterie', type: 'ranged', damage: { plusBF: false, flat: 12 }, chambered: 3, qualities: [{ id: 'salve', value: 9 }, { id: 'solide', value: 1 }] }) as unknown as Weapon;
+    ({ label: 'Batterie', type: 'distance', damage: { plusBF: false, flat: 12 }, chambered: 3, qualities: [{ id: 'salve', value: 9 }, { id: 'solide', value: 1 }] }) as unknown as Weapon;
 
   // UNE sauvegarde Solide par Incident de tir : #1508 (commentaire du 2026-09-26) ; `AA 10 l.264`, `l.274-276`, `LDB 14 l.34`, `LDB 60 l.30`.
   it('deux dés dans l’ordre : Sauvegarde Solide de l’Incident, puis TABLE de Salve — la sauvegarde réussie COUVRE la destruction du tableau', () => {
@@ -633,7 +633,7 @@ describe('l’arme BRISÉE quitte les mains — un ennemi à arme de statbloc, s
   });
 
   it('Incident de tir : l’arme à feu détruite quitte les mains, les Mains nues la remplacent', () => {
-    const pistolet = ({ label: 'Pistolet', type: 'ranged', subType: 'poudre-noire', damage: { plusBF: false, flat: 8 }, range: 20, qualities: [] }) as unknown as Weapon;
+    const pistolet = ({ label: 'Pistolet', type: 'distance', subType: 'poudre-noire', damage: { plusBF: false, flat: 8 }, range: 20, qualities: [] }) as unknown as Weapon;
     const { brute, cible } = monte(pistolet);
     applyOups(banc.getState, banc.setState, brute, pistolet, INCIDENT);
     expect(brises(), lignesLues().join(' | ')).toHaveLength(1);

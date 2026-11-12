@@ -91,12 +91,12 @@ export function qualityIndice(w: QualityCarrier | undefined, id: QualityId): num
 }
 
 /** Somme d'un modificateur numérique sur les qualités présentes (0 si aucune) — lu dans les ops PASSIVES
- *  de la donnée. `attackMod` = `weaponRollMod{phase:'attack'}.flatMod` (Précise +10) ; `armourReduction` =
+ *  de la donnée. `attackMod` = `weaponRollMod{phase:'attaque'}.flatMod` (Précise +10) ; `armourReduction` =
  *  `armourPierce.amount` (Perforante 1). */
 export function qualitySum(w: QualityCarrier | undefined, field: 'attackMod' | 'armourReduction'): number {
   let n = 0;
   for (const op of weaponPassiveOps(w)) {
-    if (field === 'attackMod' && op.op === 'weaponRollMod' && op.phase === 'attack') n += op.flatMod ?? 0;
+    if (field === 'attackMod' && op.op === 'weaponRollMod' && op.phase === 'attaque') n += op.flatMod ?? 0;
     else if (field === 'armourReduction' && op.op === 'armourPierce') n += op.amount;
   }
   return n;
@@ -117,7 +117,7 @@ export function qualityArmourBypasses(w: QualityCarrier | undefined): ArmourBypa
  *  registre : elle n'a pas d'id et n'apparaît donc pas ici. */
 export function attackModQualityIds(w: QualityCarrier | undefined): string[] {
   return resolveQualities(w)
-    .filter((r) => (r.data?.passive ?? []).some((op) => op.op === 'weaponRollMod' && op.phase === 'attack' && (op.flatMod ?? 0) !== 0))
+    .filter((r) => (r.data?.passive ?? []).some((op) => op.op === 'weaponRollMod' && op.phase === 'attaque' && (op.flatMod ?? 0) !== 0))
     .map((r) => r.id);
 }
 
@@ -137,25 +137,25 @@ function rollModSum(w: QualityCarrier | undefined, phase: RollPhase, kind: 'drMo
 
 /** Ajustement de DR de la PARADE (Test opposé) : Défensive (arme du défenseur) +1, À Enroulement (arme de l'attaquant) -1. */
 export function parryDRAdjust(defenderWeapon: QualityCarrier | undefined, attackerWeapon: QualityCarrier | undefined): number {
-  return rollModSum(defenderWeapon, 'parryByDefender') + rollModSum(attackerWeapon, 'parryAgainstAttacker');
+  return rollModSum(defenderWeapon, 'paradeDuDefenseur') + rollModSum(attackerWeapon, 'paradeAdverse');
 }
 
 /** ±DR au Test d'ATTAQUE avec l'arme. La phase `attack` s'applique que le Test soit réussi ou raté
- *  (Imprécise -1, LDB 62 l.323) ; la phase `attackSuccess` n'entre QUE sur un Test réussi (Pointue +1,
+ *  (Imprécise -1, LDB 62 l.323) ; la phase `attaqueReussie` n'entre QUE sur un Test réussi (Pointue +1,
  *  LDB 62 l.288) — d'où `success`. Inclut le sous-effectif d'une Arme d'équipe d'Indice ≥ 3 (Imprécise,
  *  Aux Armes p.124). */
 export function attackDRAdjust(w: QualityCarrier | undefined, success: boolean): number {
-  return rollModSum(w, 'attack') + (success ? rollModSum(w, 'attackSuccess') : 0) + (crewedTeamIndice(w) >= 3 ? -1 : 0);
+  return rollModSum(w, 'attaque') + (success ? rollModSum(w, 'attaqueReussie') : 0) + (crewedTeamIndice(w) >= 3 ? -1 : 0);
 }
 
 /** +DR à TOUT Test de défense (Parade ET Esquive) contre l'arme de l'attaquant (Lente +1, LDB 62 l.331). */
 export function vsDefenseDRAdjust(attackerWeapon: QualityCarrier | undefined): number {
-  return rollModSum(attackerWeapon, 'vsDefense');
+  return rollModSum(attackerWeapon, 'defenseAdverse');
 }
 
 /** L'arme peut-elle tirer au Combat rapproché (Atout Pistolet) ? */
 export function canFireWhileEngaged(w: Weapon | undefined): boolean {
-  return !!w && w.type === 'ranged' && resolveQualities(w).some((r) => r.caps?.canFireWhileEngaged);
+  return !!w && w.type === 'distance' && resolveQualities(w).some((r) => r.caps?.canFireWhileEngaged);
 }
 
 /** L'objet est-il insensible aux dégâts/destruction (Incassable) ? (remplace les regex /incassable/i). */
@@ -172,7 +172,7 @@ export function isFirearmQuality(w: QualityCarrier | undefined): boolean {
  *  Renvoie 0 si le test est RÉUSSI (la règle ne vise que les échecs). */
 export function craftTestDRAdjust(w: QualityCarrier | undefined, success: boolean): number {
   if (success) return 0;
-  return rollModSum(w, 'testFail');
+  return rollModSum(w, 'testRate');
 }
 
 /** Somme des modificateurs de Sociabilité (Laid -10, LDB 60 l.54) des qualités du porteur — lus dans la DONNÉE

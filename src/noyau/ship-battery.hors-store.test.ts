@@ -81,7 +81,7 @@ const gunnerPJ = (): Combatant =>
     skills: [{ id: 'projectiles', spec: 'poudre-noire', characteristic: 'capacite-de-tir', advances: 30 }], talents: [], weapons: [],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, pos: { x: 5, y: 5 } });
 const battPoste = (): ShipPoste =>
-  ({ side: 'tribord', item: { uid: 'canon', label: 'Canon moyen', kind: 'ranged', subType: 'armes-de-siege', damage: { flat: 14, plusBF: false }, range: 75, qualities: [{ id: 'recharge', value: 6 }] }, crewIds: ['gunner'] }) as unknown as ShipPoste;
+  ({ side: 'tribord', item: { uid: 'canon', label: 'Canon moyen', kind: 'distance', subType: 'armes-de-siege', damage: { flat: 14, plusBF: false }, range: 75, qualities: [{ id: 'recharge', value: 6 }] }, crewIds: ['gunner'] }) as unknown as ShipPoste;
 const firingShip = (): Combatant =>
   combattantDeTest({ id: 'ship', label: 'Frégate', kind: 'npc', bodyShape: 'vehicule', creatureId: 'bateau-de-patrouille', crewIds: ['gunner'], postes: [battPoste()], pos: { x: 5, y: 5 }, wounds: blessuresDeBase(60), conditions: [], weapons: [] });
 const enemyHull = (pos = { x: 9, y: 5 }): Combatant =>
@@ -182,7 +182,7 @@ const sailor = (id: string): Combatant =>
 const crewedHull = (crewIds: string[]): Combatant => ({ ...enemyHull(), crewIds } as Combatant);
 /** Pièce avec qualités/enchant custom (Atout d'aire + effet onHit générique). */
 const aireePoste = (qualities: { id: string; value?: number }[], onHit?: unknown): ShipPoste =>
-  ({ side: 'tribord', crewIds: ['gunner'], item: { uid: 'canon', label: 'Canon', kind: 'ranged', subType: 'armes-de-siege', damage: { flat: 14, plusBF: false }, range: 75,
+  ({ side: 'tribord', crewIds: ['gunner'], item: { uid: 'canon', label: 'Canon', kind: 'distance', subType: 'armes-de-siege', damage: { flat: 14, plusBF: false }, range: 75,
     qualities: [{ id: 'recharge', value: 6 }, ...qualities], ...(onHit ? { enchants: [{ onHitEffects: onHit }] } : {}) } } as unknown as ShipPoste);
 const shipWith = (poste: ShipPoste): Combatant => (blessuresSurLeProfil({ ...firingShip(), postes: [poste], wounds: blessuresDeBase(60) }) as Combatant);
 

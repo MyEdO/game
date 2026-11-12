@@ -821,7 +821,7 @@ describe('Projectile magique : une seule ligne de touche, celle du coup APPLIQU�
 
 describe('Tirs déviés (LDB 14 l.106, l.116) : la ligne chiffrée de la victime porte la phrase de la déviation', () => {
 
-  const arc = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [] } as unknown as Weapon;
+  const arc = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [] } as unknown as Weapon;
 
   it('une touche au hasard : la phrase du tas et la ligne de la victime, une fois chacune', () => {
     const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 7 });

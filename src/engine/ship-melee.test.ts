@@ -55,8 +55,8 @@ const bruiser = (size?: SizeCategory): Combatant =>
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], weapons: [], skills: [], talents: [],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, pos: { x: 5, y: 5 } })) as unknown as Combatant;
 const hache: Weapon = { name: 'Hache', type: 'melee', damage: { flat: 7, plusBF: true }, qualities: [] } as unknown as Weapon;
-const arc: Weapon = { name: 'Arc', type: 'ranged', subType: 'arc', damage: { flat: 7, plusBF: false }, range: 50, qualities: [] } as unknown as Weapon;
-const canon: Weapon = { name: 'Canon (moyen)', type: 'ranged', subType: 'armes-de-siege', weaponGroup: 'poudre-noire', damage: { flat: 14, plusBF: false }, range: 75, qualities: [] } as unknown as Weapon;
+const arc: Weapon = { name: 'Arc', type: 'distance', subType: 'arc', damage: { flat: 7, plusBF: false }, range: 50, qualities: [] } as unknown as Weapon;
+const canon: Weapon = { name: 'Canon (moyen)', type: 'distance', subType: 'armes-de-siege', weaponGroup: 'poudre-noire', damage: { flat: 14, plusBF: false }, range: 75, qualities: [] } as unknown as Weapon;
 
 describe('hullHitAdjust — consommé par applyHit (petites armes / table des Tailles)', () => {
   it('cible non-coque → null (chemin normal intact)', () => {
@@ -84,7 +84,7 @@ describe('hullHitAdjust — consommé par applyHit (petites armes / table des Ta
 describe('applyHit contre une coque (résolution complète)', () => {
   it('tir de petite arme RÉUSSI sur la coque, double : Critique obtenu (l.656), sans prise (l.605), 0 Blessure', () => {
     const h = hull('cogue');
-    const res = rederivePassiveAttack(bruiser(), h, arc, { roll: 11, target: 60, success: true, sl: 4, isDouble: true }, 'ranged', { rng: makeRNG(1595) });
+    const res = rederivePassiveAttack(bruiser(), h, arc, { roll: 11, target: 60, success: true, sl: 4, isDouble: true }, 'distance', { rng: makeRNG(1595) });
     expect(res.hit).toBe(true);
     expect(res.woundsLost).toBe(0);
     expect(res.critical).toBe(true);

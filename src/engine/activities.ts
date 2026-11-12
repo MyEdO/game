@@ -1065,11 +1065,11 @@ export function statusIncome(
   tier: StatusTier,
   standing: number,
   rng: RNG,
-  outcome: 'success' | 'fail' | 'astoundingFail' = 'success',
+  outcome: 'reussite' | 'echec' | 'echecStupefiant' = 'reussite',
 ): Money {
-  if (outcome === 'astoundingFail') return fromBrass(0);
+  if (outcome === 'echecStupefiant') return fromBrass(0);
   const { de, unite } = gainDeStatut(tier, standing);
   let brass = toBrass(enPieces(unite, rollDice(de, rng)));
-  if (outcome === 'fail') brass = Math.floor(brass / 2); // « la moitié de la somme »
+  if (outcome === 'echec') brass = Math.floor(brass / 2); // « la moitié de la somme »
   return fromBrass(brass);
 }
