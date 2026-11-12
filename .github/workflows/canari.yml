@@ -137,6 +137,26 @@ jobs:
         continue-on-error: true
         if: ${{ !cancelled() && steps.server-install.outcome == 'success' }}
         run: npm run server:typecheck
+      # L'export Web de l'hôte Godot et le lot de ses recettes (#4007) : aucune gate de `ci.yml` ne joue
+      # `hotes/godot/recette.mjs`, qu'une refonte périmait sans qu'aucun run le voie. Chrome est celui du runner.
+      - if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        uses: ./.github/actions/caches-3d
+      - id: godot-export
+        continue-on-error: true
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: node hotes/godot/construire.mjs --export --sortie "$RUNNER_TEMP/godot-web"
+      - id: godot-recettes
+        continue-on-error: true
+        if: ${{ !cancelled() && steps.godot-export.outcome == 'success' }}
+        timeout-minutes: 300
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
+        run: node hotes/godot/lot-de-recettes.mjs --web "$RUNNER_TEMP/godot-web" --captures "$RUNNER_TEMP/godot-recettes"
+      - if: ${{ !cancelled() && steps.godot-recettes.outcome == 'failure' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: godot-recettes
+          path: ${{ runner.temp }}/godot-recettes
       # Filet des écrivains par nature (`docs:build`, `genererCode` de `build` et de la suite), comme `ci.yml`.
       - name: Arbre inchangé
         id: arbre-inchange
@@ -192,6 +212,8 @@ jobs:
             raw-check-code-refs=${{ steps.raw-check-code-refs.outcome }}
             server-install=${{ steps.server-install.outcome }}
             server-typecheck=${{ steps.server-typecheck.outcome }}
+            godot-export=${{ steps.godot-export.outcome }}
+            godot-recettes=${{ steps.godot-recettes.outcome }}
             arbre-inchange=${{ steps.arbre-inchange.outcome }}
             audit-stock=${{ steps.audit-stock.outcome }}
             fermetures=${{ steps.fermetures.outcome }}

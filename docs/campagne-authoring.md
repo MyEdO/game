@@ -18,7 +18,8 @@ est de l'affichage multilangue — AGENTS.md, encadré « id STABLE ») ; **pers
   (`src/ui/editor/Editor.tsx`, `exportDepot` ; garde `src/ui/editor/export-forme-depot.test.tsx`).
   « Fichier → Exporter JSON » télécharge l'export portable `<id du projet>-projet.json`, libellé de la
   copie de travail. Les deux passent la porte du document (`parseProject`). Tout paquet neuf se
-  déclare dans `MANUSCRITS` de `src/scenes/generateurs-byte-stables.test.ts` (volet couverture). Modèle :
+  déclare dans `PROJETS_MANUSCRITS` de `scripts/guards/lib/projetsLivres.mjs` (volet couverture de
+  `src/scenes/generateurs-byte-stables.test.ts`). Modèle :
   `src/scenes/diligence/`.
 - **Chargement et validation** : `parseProject()` (`src/noyau/worldMap.ts`) est la porte UNIQUE — relit
   le JSON, résout les réfs sparse (ports, cf. §5), refuse un document mal formé. `validateScene()`
@@ -403,7 +404,7 @@ narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; obj
   `documentDeProjet` (`src/noyau/worldMap.ts`) : l'éditeur y passe, et les générateurs y délèguent par
   `projectDoc` (`scripts/campagne/lib.mjs`). Les paquets committés (corpus `listerProjetsLivres`,
   `scripts/guards/lib/projetsLivres.mjs`) sont produits par un générateur, sauf ceux nommés dans
-  `MANUSCRITS` de `src/scenes/generateurs-byte-stables.test.ts` — « La Diligence »
+  `PROJETS_MANUSCRITS` du même module — « La Diligence »
   (`src/scenes/diligence/diligence-projet.json`, doctrine `user-doctrine-campagne-jamais-generee-par-script`) ;
   tous passent `parseProject` et `validateScene` en CI (`src/scenes/bundled-projects.test.ts`).
   Un Effect `document` désigne son entrée du registre `narratif.documents` par `{ documentId }` (#679).
