@@ -101,7 +101,9 @@
 //   « Supprimer » l'en retire, page rechargée comprise.
 // - `reglages` (#3009) : « Options » du menu ouvre le panneau des réglages ; « Oui » des dés fixés pressé, le pont dit la
 //   préférence réglée ; la page rechargée, elle revient du stockage ; « Jouer », puis « Options » de la partie : le
-//   même panneau, « Non » la remet, « Fermer » rend la partie.
+//   même panneau, « Non » la remet, « Fermer » rend la partie. Le volume de la musique (#3949) réglé par le pont avant
+//   le rechargement : au lancement, un gain du graphe audio de la page le porte ; remis à 1 par le pont, le geste du
+//   panneau y remet ce gain.
 // - `editeur` (#3508), servi avec une copie des projets manuscrits du dépôt (`servir.mjs`, `depot`) : « Éditeur » ouvre la
 //   Diligence telle que le dépôt la sert, sur sa couche 0, rien à enregistrer ; l'outil Hauteur, « Haute (4 m) » et le
 //   pinceau 3×3 choisis à leurs boutons, un glissé de deux cases sur la carte : bouton tenu, la surcouche couvre
@@ -1524,9 +1526,14 @@ const preferences = async () => JSON.parse(await lire(`wfrpPont.appeler('prefere
 /** Attend que le pont dise la préférence `id` à `valeur`. */
 const attendreLaPreference = (id, valeur) =>
   waitFor(session, `JSON.parse(wfrpPont.appeler('preferences')).preferences[${JSON.stringify(id)}] === ${JSON.stringify(valeur)}`, { timeoutMs: 30000, evaluerMs: FIL_DE_LA_PAGE_MS })
+/** Règle par le pont la préférence de confort `id` à `valeur`. */
+const reglerLaPreference = (id, valeur) => lire(`wfrpPont.appeler('reglages', ${JSON.stringify(JSON.stringify({ type: 'preference', args: [id, valeur] }))})`)
+/** Les rangs de création des gains du graphe audio de la page (`wfrpGains`) qui valent `valeur`. */
+const gainsA = async (valeur) => JSON.parse(await lire(`JSON.stringify((globalThis.wfrpGains ?? []).flatMap((g, i) => Math.abs(g.gain.value - ${valeur}) < 1e-4 ? [i] : []))`))
 async function parcoursReglages() {
   const oui = { element: 'bouton/preference/des-fixes/true' }
   const non = { element: 'bouton/preference/des-fixes/false' }
+  const BAS = 0.35
   await cliquerBouton('Options')
   await attendreLeBouton(oui.element)
   assert.equal((await preferences())['des-fixes'], false, 'les dés fixés à leur défaut')
@@ -1534,15 +1541,25 @@ async function parcoursReglages() {
   await cliquerBouton(oui)
   await attendreLaPreference('des-fixes', true)
   noter('« Options » au menu : les dés fixés réglés au panneau')
+  await reglerLaPreference('volume-musique', BAS)
+  await session.rpc('Page.addScriptToEvaluateOnNewDocument', {
+    source: 'globalThis.wfrpGains = []; { const creer = BaseAudioContext.prototype.createGain; BaseAudioContext.prototype.createGain = function () { const gain = creer.call(this); wfrpGains.push(gain); return gain } }',
+  })
   await session.rpc('Page.reload')
   await attendreLeMenu()
   assert.equal((await preferences())['des-fixes'], true, 'la préférence réglée revient du stockage après le rechargement de la page')
+  assert.equal((await preferences())['volume-musique'], BAS, 'le volume de la musique aussi')
+  const [bus, ...autres] = await gainsA(BAS)
+  assert.ok(bus !== undefined && autres.length === 0, `au lancement, un seul gain du graphe audio de la page est au volume réglé (${[bus, ...autres]})`)
   await ouvrirAuGroupe()
   await cliquerBouton({ element: 'bouton/reglages' })
   await attendreLeBouton(non.element)
   await capturer('3009-reglages-2-en-partie')
+  await reglerLaPreference('volume-musique', 1)
   await cliquerBouton(non)
   await attendreLaPreference('des-fixes', false)
+  await waitFor(session, `Math.abs(wfrpGains[${bus}].gain.value - 1) < 1e-4`, { timeoutMs: 30000, evaluerMs: FIL_DE_LA_PAGE_MS })
+  noter(`le bus de la musique (gain ${bus} de la page) : ${BAS} au lancement, 1 après le geste du panneau`)
   await cliquerBouton({ element: 'bouton/fermer' })
   await waitFor(session, `!wfrpEcran.boutons.some((b) => b.element === ${JSON.stringify(non.element)})`, { timeoutMs: 30000, evaluerMs: FIL_DE_LA_PAGE_MS })
   noter('page rechargée : la préférence revenue du stockage ; « Options » de la partie la remet, « Fermer » rend la partie')
