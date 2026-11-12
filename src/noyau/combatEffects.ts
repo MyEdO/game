@@ -82,7 +82,7 @@ import { startGroundPursuit } from './pursuitFlow';
 import { sourceExposureMod, autoExposureMods, drawWaterDisease, isWounded } from '../engine/waterExposure';
 import { loseWounds, hasCondition } from '../engine/conditions';
 import { touchActors } from './combatOrParty';
-import { actorIn, coqueParId, ecrireActeur, inBattleId, meneurDeboutDuMonde, meneurDuMonde } from './monde/combatants';
+import { actorIn, coqueParId, ecrireActeur, inBattleId, meneurDeboutDuMonde, meneurDuMonde, rencontreEngagee } from './monde/combatants';
 import { appliquerAuNavire, ouvrirLeTestDEquipage, referentDuNavire } from './navireOps';
 import type { Referent } from '../engine/formule';
 import { marinsDuRole } from '../engine/shipCritical';
@@ -1691,7 +1691,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       const horsCible = messageOpHorsDeSaCible(feuilleAuthoree);
       if (horsCible) throw new Error(horsCible);
       // Refusée AVANT tout `set` (aucune op de la feuille, aucun dé posé) : la série s'ouvre hors bataille, une à la fois.
-      if (feuilleAuthoree.ops.some(estOpDAttaquesSubies) && (env.get().battle || env.get().serieSubie)) throw new Error(t('eff.attaquesSubiesSerieEngagee'));
+      if (feuilleAuthoree.ops.some(estOpDAttaquesSubies) && rencontreEngagee(env.get())) throw new Error(t('eff.attaquesSubiesSerieEngagee'));
       const base = { rng: battleRng(), sl: env.sl };
       const e = resoudreLesOpsDuMonde(env, feuilleAuthoree, base.rng);
       if (!e) return;

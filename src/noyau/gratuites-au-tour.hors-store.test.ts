@@ -1,10 +1,11 @@
-/** LDB 13 l.14 ; LDB 85 l.43 ; LDB 85 l.387 — #1765. */
+/** LDB 13 l.14 ; LDB 85 l.43 ; LDB 85 l.387 — #1765 ; #4011. */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, beforeEach, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
-import { maybeOpenDefense } from './combatFlow';
+import { advanceTurn, drainerLesGratuites, maybeOpenDefense, resumeSuspendedAI } from './combatFlow';
+import { imposerLesD100 } from './battleRng.testkit';
 import type { SuiteDeCoup } from './pendings';
 import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
@@ -59,5 +60,40 @@ describe('Gratuites de créature : à son tour seulement (LDB 13 l.14, LDB 85 l.
     expect(pd?.defenderId).toBe(herosId);
     expect(pd?.suite.mode === 'machine' ? pd.suite.coup.manoeuvre?.kind : undefined, 'la gratuite est le Piétinement').toBe('pietinement');
     expect(creature.pendingFreeAttacks, 'la file est initialisée et consommée').toEqual([]);
+  });
+});
+
+describe('Gratuites de créature : une file épuisée ne repart pas dans le même tour (#4011)', () => {
+  it('Souffle joué, file épuisée : la reprise de `resumeSuspendedAI` ne le redéclare pas, le tour suivant si', () => {
+    const A = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
+    banc.setState({ party: [A] });
+    g().ensemencerLeTirage(5);
+    g().lancerLaScene(testScene());
+    g().lancerLeCombat('enc-mutants');
+    g().fenetreValider('debutDuRound');
+    banc.abandonner();
+    const b = g().battle!;
+    const heros = b.combatants.find((c) => c.kind === 'heros')!;
+    const [E] = b.combatants.filter((c) => c.kind === 'ennemi');
+    b.combatants.filter((c) => c.kind === 'ennemi' && c.id !== E.id).forEach((e) => (e.dead = true));
+    E.traits = [...(E.traits ?? []), { id: 'souffle', value: 3, arg: 'feu' }] as never;
+    E.advantage = 7; E.pendingFreeAttacks = undefined;
+    E.pos = { x: 6, y: 10 }; heros.pos = { x: 7, y: 10 }; heros.aiControlled = true;
+    heros.wounds = blessuresDeBase(500, 500, heros);
+    E.engagedWith = [heros.id]; heros.engagedWith = [E.id];
+    banc.setState({ battle: { ...b, turn: b.order.indexOf(E.id), acted: true } });
+    imposerLesD100(...Array(30).fill(0).flatMap(() => [5, 90]));
+    const souffles = () => (g().battle?.log ?? []).filter((l) => /Souffle/.test(l.text)).length;
+    const creature = () => g().battle!.combatants.find((c) => c.id === E.id)!;
+    expect(drainerLesGratuites(g, banc.setState, creature()), 'le Souffle ne suspend pas : défenseur non tenu').toBe(false);
+    const apresLaFile = { souffles: souffles(), avantage: creature().advantage };
+    expect(apresLaFile.souffles, 'le Souffle du tour est déclaré').toBeGreaterThan(0);
+    resumeSuspendedAI(g, banc.setState);
+    expect({ souffles: souffles(), avantage: creature().advantage }, 'la reprise ne redéclare rien de la file').toEqual(apresLaFile);
+    // Au tour suivant de la créature, sa file se repose : le Souffle repart.
+    advanceTurn(g, banc.setState);
+    banc.setState({ battle: { ...g().battle!, turn: g().battle!.order.indexOf(E.id), acted: true } });
+    expect(drainerLesGratuites(g, banc.setState, creature()), 'le Souffle du tour suivant ne suspend pas').toBe(false);
+    expect(souffles(), 'le Souffle du tour suivant est déclaré').toBeGreaterThan(apresLaFile.souffles);
   });
 });
