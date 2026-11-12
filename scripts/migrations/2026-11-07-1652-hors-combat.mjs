@@ -109,11 +109,11 @@ function reecrire(e, consequence) {
   }
 }
 
-/** Le nœud `test` de Prière d'un Présage : sous le `if` Béni (Manann). */
+/** Le nœud `test` de Prière d'un Présage : sous le `si` Béni (Manann). */
 function testDuPresage(e, ou) {
   const c = e.consequence;
-  const test = c?.kind === 'if' && c.then?.kind === 'test' ? c.then.test : undefined;
-  if (!test || test.skill?.id !== 'priere') arrets.push(`${ou} : consequence hors de la forme if → test de Prière`);
+  const test = c?.kind === 'si' && c.alors?.kind === 'test' ? c.alors.test : undefined;
+  if (!test || test.skill?.id !== 'priere') arrets.push(`${ou} : consequence hors de la forme si → test de Prière`);
   return test;
 }
 

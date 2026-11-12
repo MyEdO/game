@@ -374,7 +374,7 @@ describe('garde-fou « une desc republiée n’abandonne pas ses ops » (#880)',
     const data = [{
       id: 'fixture',
       desc: 'La cible doit réussir un Test de Perception Complexe.',
-      effects: { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'narrative', text: 'Test de Perception' }] } },
+      effects: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'narrative', text: 'Test de Perception' }] } },
       variants: [{ when: { rule: 'magie-vdm-incantation' }, desc: "La cible doit réussir un Test d'Intuition Complexe." }],
     }];
     expect(staleFlowVariants(data)).toEqual([{ id: 'fixture', tokens: ['competence:Intuition', 'competence:Perception'] }]);
@@ -384,11 +384,11 @@ describe('garde-fou « une desc republiée n’abandonne pas ses ops » (#880)',
     const data = [{
       id: 'fixture',
       desc: 'La cible doit réussir un Test de Perception Complexe.',
-      effects: { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'narrative', text: 'Test de Perception' }] } },
+      effects: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'narrative', text: 'Test de Perception' }] } },
       variants: [{
         when: { rule: 'magie-vdm-incantation' },
         desc: "La cible doit réussir un Test d'Intuition Complexe.",
-        effects: { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'narrative', text: "Test d'Intuition" }] } },
+        effects: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'narrative', text: "Test d'Intuition" }] } },
       }],
     }];
     expect(staleFlowVariants(data)).toEqual([]);
@@ -398,7 +398,7 @@ describe('garde-fou « une desc republiée n’abandonne pas ses ops » (#880)',
     const data = [{
       id: 'fixture',
       desc: 'La cible doit réussir un Test de Perception Complexe.',
-      effects: { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'narrative', text: 'Test de Perception' }] } },
+      effects: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'narrative', text: 'Test de Perception' }] } },
       variants: [{ when: { rule: 'magie-vdm-incantation' }, desc: 'Un Test de Perception Complexe est exigé de la cible.' }],
     }];
     expect(staleFlowVariants(data)).toEqual([]);

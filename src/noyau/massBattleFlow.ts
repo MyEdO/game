@@ -111,7 +111,7 @@ function cloneArmyCombatant(c: Combatant): Combatant {
 }
 
 /** Delta de Puissance d'une Scène résolue (affichage). */
-export interface SceneDelta { side: 'ally' | 'enemy'; amount: number; label: string }
+export interface SceneDelta { side: 'allie' | 'ennemi'; amount: number; label: string }
 
 /** Scène de COMBAT en cours (Charge/Pluie de flèches/Duel/Intrus…) : touches et PJ frappeurs suivis
  *  EN DIRECT par `massBattleTrackHit` durant la mêlée (l.139/145 ; intervention en Duel l.225). */
@@ -125,8 +125,8 @@ export interface MassBattleCombatScene {
 
 /** État runtime d'une bataille de masse. */
 export interface MassBattleState {
-  ally: MassBattleArmy;
-  enemy: MassBattleArmy;
+  allie: MassBattleArmy;
+  ennemi: MassBattleArmy;
   /** Rounds de bataille prévus (escarmouche = 1, siège ≥ 5, l.124). */
   plannedRounds: number;
   /** Round de bataille courant (1-based). */
@@ -265,8 +265,8 @@ function prepFlags(mb: MassBattleState): ReadonlySet<string> {
 const DEFAULT_SITUATION_SIZE = 3;
 
 /** Le nom d'une armée : celui authoré, sinon le défaut maison (`mbf.allyDefault`/`mbf.enemyDefault`). */
-export function nomDArmee(spec: MassBattleSpec, camp: 'ally' | 'enemy'): string {
-  return camp === 'ally' ? spec.allyName || t('mbf.allyDefault') : spec.enemyName || t('mbf.enemyDefault');
+export function nomDArmee(spec: MassBattleSpec, camp: 'allie' | 'ennemi'): string {
+  return camp === 'allie' ? spec.allyName || t('mbf.allyDefault') : spec.enemyName || t('mbf.enemyDefault');
 }
 
 /** Ouvre une bataille de masse et bascule sur sa vue. */
@@ -280,8 +280,8 @@ export function amorcerLaBataille(get: Get, set: Set, spec: MassBattleSpec): voi
   const defaultPool = ROUND_SCENES().filter((d) => d.sceneKind !== 'rally').map((d) => d.id);
   const pool = (spec.scenes && spec.scenes.length ? spec.scenes : defaultPool).filter((id) => !!battleSceneById(id));
   const mb: MassBattleState = {
-    ally: makeArmy(nomDArmee(spec, 'ally'), allyMight),
-    enemy: makeArmy(nomDArmee(spec, 'enemy'), enemyMight),
+    allie: makeArmy(nomDArmee(spec, 'allie'), allyMight),
+    ennemi: makeArmy(nomDArmee(spec, 'ennemi'), enemyMight),
     plannedRounds: Math.max(1, Math.floor(spec.plannedRounds ?? 1)),
     round: 1,
     phase: 'prep',
@@ -400,7 +400,7 @@ function budgetedParty(s: EtatDInterlude): Combatant[] {
 /** ÉCART (allié − ennemi) d'une mesure d'armée NOMMÉE par une entrée (`difficultyFrom.gap`). PUR. */
 function battleMeasureGap(mb: MassBattleState, measure: BattleMeasure): number {
   switch (measure) {
-    case 'armyMight': return armyMight(mb.ally) - armyMight(mb.enemy);
+    case 'armyMight': return armyMight(mb.allie) - armyMight(mb.ennemi);
   }
 }
 
@@ -648,9 +648,9 @@ function openHoldScene(get: Get, set: Set, scene: ActivityDef): void {
   const skillBase = 'skill' in picked.test ? skillBaseValue(picked.actor, { skill: picked.test.skill }) : effectiveChar(picked.actor, picked.test.characteristic);
   const opposition: ActivityOppositionOn = {
     // Seuil de l'opposition (aucune Difficulté : Puissance + tenue) — écrêté par la primitive PARTAGÉE.
-    enemyValue: clampTarget(armyMight(mb.enemy) + enemyBonus).target,
+    enemyValue: clampTarget(armyMight(mb.ennemi) + enemyBonus).target,
     enemyRoll: d100(battleRng()),
-    enemyBase: armyMight(mb.enemy),
+    enemyBase: armyMight(mb.ennemi),
     skillBase,
   };
   openBattlePending(set, {
@@ -691,7 +691,7 @@ function openMassBattleRally(get: Get, set: Set): void {
 // ── Application des issues (appelée par `jetValider('activite')` pour une `PendingActivity` de bataille) ───
 
 /** Applique un delta de Puissance COURANTE à un camp par `GameOp` (`heal`/`wounds`). */
-function applyDelta(mb: MassBattleState, side: 'ally' | 'enemy', delta: number, idNeuf: FabriqueDId): MassBattleState {
+function applyDelta(mb: MassBattleState, side: 'allie' | 'ennemi', delta: number, idNeuf: FabriqueDId): MassBattleState {
   return { ...mb, [side]: armyWithMightDelta(mb[side], delta, idNeuf) };
 }
 
@@ -700,11 +700,11 @@ function applyDelta(mb: MassBattleState, side: 'ally' | 'enemy', delta: number, 
 function applyBattleOutcome(mb: MassBattleState, o: BattleOutcomeDelta, amount: number, label: string, idNeuf: FabriqueDId): { mb: MassBattleState; shown?: SceneDelta } {
   switch (o.target) {
     case 'might': {
-      const side = o.side ?? 'enemy';
+      const side = o.side ?? 'ennemi';
       return { mb: applyDelta(mb, side, amount, idNeuf), shown: { side, amount, label } };
     }
     case 'startMight': {
-      const side = o.side ?? 'ally';
+      const side = o.side ?? 'allie';
       return { mb: { ...mb, [side]: armyWithStartMightDelta(mb[side], amount) }, shown: { side, amount, label } };
     }
     case 'allyTestMod': return { mb: { ...mb, allyMod: mb.allyMod + amount } };
@@ -776,8 +776,8 @@ function applyBattleBands(
 function outcomeLabel(o: BattleOutcomeDelta, amount: number): string {
   const sign = amount >= 0 ? '+' : '';
   switch (o.target) {
-    case 'might': return t('mbf.outMight', { side: t((o.side ?? 'enemy') === 'ally' ? 'mbf.sideAlly' : 'mbf.sideEnemy'), amount: `${sign}${amount}` });
-    case 'startMight': return t('mbf.outStartMight', { side: t((o.side ?? 'ally') === 'ally' ? 'mbf.sideAlly' : 'mbf.sideEnemy'), amount: `${sign}${amount}` });
+    case 'might': return t('mbf.outMight', { side: t((o.side ?? 'ennemi') === 'allie' ? 'mbf.sideAlly' : 'mbf.sideEnemy'), amount: `${sign}${amount}` });
+    case 'startMight': return t('mbf.outStartMight', { side: t((o.side ?? 'allie') === 'allie' ? 'mbf.sideAlly' : 'mbf.sideEnemy'), amount: `${sign}${amount}` });
     case 'allyTestMod': return t('mbf.outAllyTestMod', { amount: `${sign}${amount}` });
     case 'firstRoundBonus': return t('mbf.outFirstRound', { amount: `${sign}${amount}` });
     case 'planningBonus': return t('mbf.outPlanning', { amount: `${sign}${amount}` });
@@ -978,14 +978,14 @@ export function choixDeLaBataille(get: Get, set: Set) {
 function jouerLeTestSpectaculaire(get: Get, set: Set): void {
   const mb = get().massBattle!;
   const allyMod = mb.allyMod + (mb.round === 1 ? mb.firstRoundBonus : 0);
-  const clash = resolveClash(armyMight(mb.ally), armyMight(mb.enemy), { allyMod, enemyMod: 0, rng: battleRng() });
-  const ally = armyWithMightDelta(mb.ally, -clash.allyLoss, get().forgerUnId);
-  const enemy = armyWithMightDelta(mb.enemy, -clash.enemyLoss, get().forgerUnId);
+  const clash = resolveClash(armyMight(mb.allie), armyMight(mb.ennemi), { allyMod, enemyMod: 0, rng: battleRng() });
+  const ally = armyWithMightDelta(mb.allie, -clash.allyLoss, get().forgerUnId);
+  const enemy = armyWithMightDelta(mb.ennemi, -clash.enemyLoss, get().forgerUnId);
   const lines: string[] = [
     t('mbf.clash', { n: mb.round, total: mb.plannedRounds, enemyLoss: clash.enemyLoss, allyLoss: clash.allyLoss }),
     t('mbf.mightLine', { ally: ally.label, allyMight: armyMight(ally), enemy: enemy.label, enemyMight: armyMight(enemy) }),
   ];
-  let next: MassBattleState = { ...mb, ally, enemy, lastClash: clash };
+  let next: MassBattleState = { ...mb, allie: ally, ennemi: enemy, lastClash: clash };
   const destroyed = isDestroyed(armyMight(ally)) || isDestroyed(armyMight(enemy));
   if (destroyed || mb.round >= mb.plannedRounds) {
     const outcome = battleOutcome(armyMight(ally), armyMight(enemy));
@@ -1029,9 +1029,9 @@ export function validationsDeBatailleDeMasse(get: Get, set: Set) {
 }
 
 function outcomeLine(mb: MassBattleState, outcome: BattleOutcome, destroyed: boolean): string {
-  if (outcome === 'draw') return t('mbf.outcomeDraw');
-  const winner = outcome === 'ally' ? mb.ally.label : mb.enemy.label;
-  const loser = outcome === 'ally' ? mb.enemy.label : mb.ally.label;
+  if (outcome === 'egalite') return t('mbf.outcomeDraw');
+  const winner = outcome === 'allie' ? mb.allie.label : mb.ennemi.label;
+  const loser = outcome === 'allie' ? mb.ennemi.label : mb.allie.label;
   return t(destroyed ? 'mbf.outcomeDestroyed' : 'mbf.outcomeSuperior', { winner, loser });
 }
 
@@ -1048,8 +1048,8 @@ function cloreLaBataille(get: Get, set: Set): void {
 /** Libellé COURT d'une issue de bataille chiffrée (aperçu de la vue). */
 function shortOutcomeLabel(o: BattleOutcomeDelta): string {
   const target: Record<BattleOutcomeDelta['target'], string> = {
-    might: t((o.side ?? 'enemy') === 'ally' ? 'mbf.shortAlly' : 'mbf.shortEnemy'),
-    startMight: t((o.side ?? 'ally') === 'ally' ? 'mbf.shortAlly' : 'mbf.shortEnemy'),
+    might: t((o.side ?? 'ennemi') === 'allie' ? 'mbf.shortAlly' : 'mbf.shortEnemy'),
+    startMight: t((o.side ?? 'allie') === 'allie' ? 'mbf.shortAlly' : 'mbf.shortEnemy'),
     allyTestMod: t('mbf.shortAllyTestMod'), firstRoundBonus: t('mbf.shortFirstRound'), planningBonus: t('mbf.shortPlanning'),
   };
   const per = o.scale === 'perDR' ? t('mbf.perDR') : o.scale === 'perHit' ? t('mbf.perHit') : o.scale === 'perKill' ? t('mbf.perKill') : '';

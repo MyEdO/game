@@ -271,7 +271,7 @@ export interface RollFlowSpec<P extends PendingBase, Slot extends PendingBase = 
    * (précondition manquante : cible disparue, sort introuvable…) — AVANT toute dépense de point.
    * `actor` peut être `undefined` au premier jet (certains flux n'en ont pas besoin pour lancer).
    * `get` : accès au store pour les résolveurs qui lisent l'environnement (resolveAttack). `forced`
-   * (seulement si `caps.forced`) : Résilience — cf. `ForcedResolve`. Absent → jet normal. `p` (dernier
+   * (seulement si `caps.forcer`) : Résilience — cf. `ForcedResolve`. Absent → jet normal. `p` (dernier
    * arg) : le pending parent, pour un flux multi qui lit un contexte partagé (MONO : `slot === p`).
    */
   resolve: (s: Jeu, slot: Slot, actor: Combatant | undefined, get: Get, forced?: ForcedResolve, p?: P) => Partial<Slot> | null;
@@ -348,13 +348,13 @@ export interface RollFlowSpec<P extends PendingBase, Slot extends PendingBase = 
     resilience?: (s: Jeu, slot: Slot, actor: Combatant | undefined, get: Get, tr: TestResult, p: P) => Partial<Slot> | null;
   };
   /**
-   * Traits déclaratifs du flux. `forced` : ce flux offre la Résilience (LDB 17 l.68, GLOBALE),
+   * Traits déclaratifs du flux. `forcer` : ce flux offre la Résilience (LDB 17 l.68, GLOBALE),
    * résolue DANS `resolve(…, forced)` — un seul résolveur porte les trois cas (jet normal,
-   * `forcerLaReussite` = dé par défaut, `imposerLeResultat` = dé choisi). Un flux qui NE pose PAS `forced`
+   * `forcerLaReussite` = dé par défaut, `imposerLeResultat` = dé choisi). Un flux qui NE pose PAS `forcer`
    * n'offre simplement pas la Résilience (`forcerLaReussite`/`imposerLeResultat` y sont des no-op : reload,
    * marchandage, évaluation…). Plus aucune dérive `force`/`forceRoll` séparée — cf. `ForcedResolve`.
    *
-   * `picker` : OÙ vit le dé de ce flux — PARAMÈTRE de FORME, jamais une autorisation. Mesuré après
+   * `selecteur` : OÙ vit le dé de ce flux — PARAMÈTRE de FORME, jamais une autorisation. Mesuré après
    * l'absorption du sélecteur dans `RollShell` : les flux à LENTILLE n'en déclarent PLUS (la fabrique le
    * dérive de `actorTR`/`dieTarget`) ; il ne subsiste que pour les résultats de forme PROPRE, non
    * exprimables par une lentille — attaque/défense/piétinement/coup dans le dos (`result.attackerDetail`),
@@ -363,8 +363,8 @@ export interface RollFlowSpec<P extends PendingBase, Slot extends PendingBase = 
    * plus ici : l'hôte l'arbitre une seule fois, à la pose du dé.
    */
   caps?: {
-    forced?: boolean;
-    picker?: (slot: Slot, actor: Combatant | undefined) => ForcedPick | null;
+    forcer?: boolean;
+    selecteur?: (slot: Slot, actor: Combatant | undefined) => ForcedPick | null;
     /** Ce flux accepte l'auto-succès du talent Résistance (Menace) (LDB 10) : son `resolve` porte la
      *  branche `forced.sl` (DR = Bonus d'Endurance). Offert seulement sur un slot tagué `menace`. */
     resister?: boolean;
@@ -708,7 +708,7 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
   // et s'éteint) ; `caps.picker` reste accepté comme `read` seul (flux historique sans écrivain).
   const dieRead: ((slot: Slot, actor: Combatant | undefined, p?: P) => ForcedPick | null) | undefined =
     spec.die?.read
-    ?? spec.caps?.picker
+    ?? spec.caps?.selecteur
     ?? (L
       ? (slot: Slot, actor: Combatant | undefined) => {
           const tr = L.actorTR(slot);
@@ -762,7 +762,7 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
   /** Le dé CHOISI (Résilience, slot `forced`) ou FIXÉ (option « Dés fixés ») : un accesseur qui lit le dé du slot et
    *  sait réécrire son issue. Fenêtre de `opSetForcedRoll` ; l'option, elle, se juge au siège (`canFixDie`). */
   const fermetureDuDeChoisi = (slot: Slot, actor: Combatant | undefined, p: P): FermetureDuJet | null => {
-    if (!spec.caps?.forced) return 'nonOffert';
+    if (!spec.caps?.forcer) return 'nonOffert';
     if (slot.forced && !actor) return 'sansActeur';
     if (!fixable) return 'deNonFixable';
     return dieRead?.(slot, actor, p) ? null : 'jetNonLance';
@@ -770,7 +770,7 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
   /** Résilience (LDB 17 l.68) : fenêtre UNIQUE de `forcerLaReussite`, lue par l'op et par `fermetures`. Avant le jet, le
    *  geste force sans dé quand le flux le sait, sinon il lance puis force. */
   const fermetureDuForcage = (s: Jeu, get: Get<Jeu>, p: P, slot: Slot, actor: Combatant | undefined): FermetureDuJet | null => {
-    if (!spec.caps?.forced) return 'nonOffert';
+    if (!spec.caps?.forcer) return 'nonOffert';
     if (passive(slot, s, get, p)) return 'rangeeTemoin';
     if (!actor) return 'sansActeur';
     return fermetureDeLaResilience(actorInfluenceView(actor), { rolled: spec.rolled(slot), failed: isFailed(slot), rerolled: slot.rerolled, lost: !!spec.perdu?.(slot) });
@@ -920,7 +920,7 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
       else forcer(get, set, pid);
     },
     imposerLeResultat(get, set, roll, pid) {
-      if (!spec.caps?.forced) return;
+      if (!spec.caps?.forcer) return;
       const s = get(); const p = pendingOf(s); if (!p) return;
       const loc = locate(set, get, p, pid); if (!loc) return;
       const actor = spec.actor(s, loc.slot, p);

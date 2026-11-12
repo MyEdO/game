@@ -31,10 +31,10 @@ function opsDuPalier(): GameOp[] {
     const r = rollMiscast('colere', makeRNG(seed), 0);
     if (r.rowId !== 'colere-purifier-la-chair') continue;
     const node: Flow = r.testFlow!;
-    if (node.kind !== 'test' || node.fail.kind !== 'seq') throw new Error('structure de la rangée inattendue');
-    const hard = node.fail.steps[1];
-    if (hard.kind !== 'if' || hard.then.kind !== 'do' || hard.then.effect.type !== 'ops') throw new Error('palier onFailHard introuvable');
-    return hard.then.effect.ops;
+    if (node.kind !== 'test' || node.echec.kind !== 'sequence') throw new Error('structure de la rangée inattendue');
+    const hard = node.echec.etapes[1];
+    if (hard.kind !== 'si' || hard.alors.kind !== 'effet' || hard.alors.effet.type !== 'ops') throw new Error('palier onFailHard introuvable');
+    return hard.alors.effet.ops;
   }
   throw new Error('rangée « Purifier la chair » introuvable');
 }

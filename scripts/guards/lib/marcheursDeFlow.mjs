@@ -2,25 +2,25 @@ import { analyserCorpus } from './dialecte.mjs';
 // Mécanique de scan de la garde des marcheurs de Flow (#1874 DoD 4 : un seul marcheur). Le verdict, le
 // périmètre et le FOYER vivent dans le test (`src/marcheurs-de-flow-guard.test.ts`).
 //
-// EMPREINTE d'un MARCHEUR : un `switch (<x>.kind)` dont la clause `case 'seq'` DESCEND la séquence
+// EMPREINTE d'un MARCHEUR : un `switch (<x>.kind)` dont la clause `case 'sequence'` DESCEND la séquence
 // (pile ou récursion) au lieu de RENDRE un verdict. Un marcheur exécute ses nœuds ; un prédicat
-// (`flowHasChoiceSeulement`, `noyau/triggeredEffects.ts`) les lit et rend — sa clause `seq` commence par
+// (`flowHasChoiceSeulement`, `noyau/triggeredEffects.ts`) les lit et rend — sa clause `sequence` commence par
 // `return`. Le site rendu est la déclaration de NIVEAU MODULE qui porte le `switch` : un marcheur à
 // fermeture interne (`const walk = …`) est rendu sous la fonction qui la déclare.
 //
 // ANGLES MORTS assumés (faux négatifs préférés au bruit — doctrine des gardes du dépôt) :
-//  - un marcheur qui descend la séquence par `if (f.kind === 'seq')`, sans `switch` ;
-//  - une clause `case 'seq'` dont le PREMIER énoncé est un `return` qui marche quand même
-//    (`return f.steps.forEach(…)`) ;
+//  - un marcheur qui descend la séquence par `if (f.kind === 'sequence')`, sans `switch` ;
+//  - une clause `case 'sequence'` dont le PREMIER énoncé est un `return` qui marche quand même
+//    (`return f.etapes.forEach(…)`) ;
 //  - un `switch` porté par une méthode de classe ou un littéral d'objet hors déclaration de module.
 import * as tsModule from 'typescript/unstable/ast';
 import { parUnitesDeCode } from './lister.mjs';
 
 const ts = tsModule;
 
-/** La clause `case 'seq'` DESCEND-elle la séquence (premier énoncé ≠ `return`) ? @returns {boolean} */
+/** La clause `case 'sequence'` DESCEND-elle la séquence (premier énoncé ≠ `return`) ? @returns {boolean} */
 function clauseSeqDescend(clause) {
-  if (!ts.isCaseClause(clause) || !ts.isStringLiteral(clause.expression) || clause.expression.text !== 'seq') return false;
+  if (!ts.isCaseClause(clause) || !ts.isStringLiteral(clause.expression) || clause.expression.text !== 'sequence') return false;
   let premier = clause.statements[0];
   while (premier && ts.isBlock(premier)) premier = premier.statements[0];
   return !!premier && !ts.isReturnStatement(premier);
@@ -40,7 +40,7 @@ function declarationDeModule(node, sf) {
 
 /**
  * Les MARCHEURS de Flow d'un corpus : un site par déclaration de module qui porte au moins un
- * `switch (<x>.kind)` à clause `seq` descendante. Rendu TRIÉ (fichier, nom).
+ * `switch (<x>.kind)` à clause `sequence` descendante. Rendu TRIÉ (fichier, nom).
  * @param {{ rel: string, text: string }[]} files corpus de production (hors tests)
  * @returns {{ file: string, line: number, fn: string }[]}
  */

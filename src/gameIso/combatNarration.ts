@@ -8,9 +8,10 @@
  *  - les NOMS colorés par camp (allié vert / ennemi rouge) sous forme de segments,
  *  - l'IMPORTANCE (les événements importants remontent dans le bandeau haut ; le reste reste au journal).
  */
+import type { Equipe } from '../engine/relations';
 import { conditionMeta } from './effectIcons';
 import type { IconId } from '../data/icons';
-import type { RecapLine, RecapTeam } from '../noyau/recapLine';
+import type { RecapLine } from '../noyau/recapLine';
 import type { RefusIHM } from '../noyau/refusVisible';
 import {
   type CombatEvent, type CombatEventKind, type ActorAim, type ActorAimKind,
@@ -20,7 +21,7 @@ import { conditionIdInText } from '../engine/conditions';
 
 export interface NarratedSegment {
   text: string;
-  team?: RecapTeam;
+  team?: Equipe;
 }
 
 export interface NarratedLine {
@@ -71,7 +72,7 @@ function colorize(text: string, combatants: ComLite[]): NarratedSegment[] {
   const named = combatants.filter((c) => c.label && c.label.trim());
   if (!named.length) return [{ text }];
 
-  const teamOf = new Map<string, RecapTeam>();
+  const teamOf = new Map<string, Equipe>();
   // Index de TEXTE (le nom est ce qui apparaît dans la prose narrée) : construction seule, sans
   // interrogation par libellé (#602) — parcours inversé pour que le PREMIER combattant l'emporte.
   for (let i = named.length - 1; i >= 0; i--) teamOf.set(named[i].label, named[i].kind === 'hero' ? 'allie' : 'ennemi');

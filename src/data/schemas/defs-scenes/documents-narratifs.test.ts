@@ -62,7 +62,7 @@ const projet = (over: Jouet = {}): Jouet => ({
 const declencheurPortant = (effet: Jouet): Jouet => ({
   id: 'courrier',
   rect: { x: 0, y: 0, w: 1, h: 1 },
-  flow: { kind: 'seq', steps: [{ kind: 'do', effect: { type: 'delayedEffect', afterMinutes: 5, flow: { kind: 'do', effect: effet } } }] },
+  flow: { kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'delayedEffect', afterMinutes: 5, flow: { kind: 'effet', effet: effet } } }] },
 });
 
 describe('registre `documents` — un registre narratif comme les autres (table unique)', () => {
@@ -112,7 +112,7 @@ describe('références narratives des Effects — résolues au parse du projet',
   });
 
   it('`revealClue.indiceId` inconnu et `stade` inconnu : refusés, nommés', () => {
-    const choix = (id: string, effect: Jouet) => ({ id, label: 'Lire', flow: { kind: 'if', cond: { kind: 'flag', expr: 'x' }, then: { kind: 'do', effect } } });
+    const choix = (id: string, effect: Jouet) => ({ id, label: 'Lire', flow: { kind: 'si', condition: { kind: 'flag', expr: 'x' }, alors: { kind: 'effet', effet: effect } } });
     const dialogue = { id: 'dlg', start: { id: 'n1' }, nodes: [{ id: 'n1', desc: 'Un meunier.', choices: [
       choix('lire-fantome', { type: 'revealClue', indiceId: 'ind-fantome' }),
       choix('lire-moulin', { type: 'revealClue', indiceId: 'ind-moulin', stade: 's9' }),
@@ -138,7 +138,7 @@ describe('références narratives des Effects — résolues au parse du projet',
 
   it('`documentId` pendant sous une ACTION d’entité (`usable.actions[].flow`) : refusé à son chemin complet', () => {
     const coffre = { id: 'coffre', kind: 'prop', pos: { x: 1, y: 1 }, decor: { id: 'coffre' }, usable: { actions: [
-      { id: 'fouiller', flow: { kind: 'do', effect: { type: 'document', documentId: 'doc-fantome' } } },
+      { id: 'fouiller', flow: { kind: 'effet', effet: { type: 'document', documentId: 'doc-fantome' } } },
     ] } };
     expect(fautes(projet({ scenes: [scene({ entities: [coffre] })] }))).toEqual([
       'scène « scene-1 » › entité « coffre » › utilisable › actions « fouiller » › effet Document › document :: document inconnu « doc-fantome » (narratif.documents).',
@@ -146,7 +146,7 @@ describe('références narratives des Effects — résolues au parse du projet',
   });
 
   it('`indiceId` pendant sous l’`onVictory` d’une RENCONTRE : refusé à son chemin complet', () => {
-    const embuscade = { id: 'embuscade', onVictory: { kind: 'do', effect: { type: 'revealClue', indiceId: 'ind-fantome' } } };
+    const embuscade = { id: 'embuscade', onVictory: { kind: 'effet', effet: { type: 'revealClue', indiceId: 'ind-fantome' } } };
     expect(fautes(projet({ scenes: [scene({ encounters: [embuscade] })] }))).toEqual([
       'scène « scene-1 » › rencontres « embuscade » › à la victoire › effet Révéler un indice › indice :: indice inconnu « ind-fantome » (narratif.indices).',
     ]);
@@ -168,7 +168,7 @@ describe('états de campagne (#2539) — lus et posés résolus au parse du proj
     projet({ narratif: narratif({ documents: [LETTRE], indices: [INDICE], etats: [SOSIE, ISSUE] }), scenes });
   const declencheur = (when: unknown, effect?: Jouet): Jouet => ({
     id: 'tr', rect: { x: 0, y: 0, w: 1, h: 1 }, ...(when ? { when } : {}),
-    flow: { kind: 'seq', steps: effect ? [{ kind: 'do', effect }] : [] },
+    flow: { kind: 'sequence', etapes: effect ? [{ kind: 'effet', effet: effect }] : [] },
   });
   const messages = (p: Jouet): string[] => fautes(p).map((m) => m.split(' :: ')[1]);
 

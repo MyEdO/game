@@ -60,12 +60,12 @@
         "trigger": "onHit",
         "on": "victim",
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "location",
             "is": "tete"
           },
-          "then": {
+          "alors": {
             "kind": "test",
             "test": {
               "skill": {
@@ -75,13 +75,13 @@
                 "attacker": "force"
               }
             },
-            "success": {
-              "kind": "seq",
-              "steps": []
+            "reussite": {
+              "kind": "sequence",
+              "etapes": []
             },
-            "fail": {
-              "kind": "do",
-              "effect": {
+            "echec": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "on": "target",
                 "ops": [
@@ -198,8 +198,8 @@
         "attackType": "ranged",
         "coupCritique": true,
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "target",
             "ops": [
@@ -247,11 +247,11 @@
         "trigger": "onHit",
         "on": "victim",
         "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
             {
-              "kind": "do",
-              "effect": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "on": "target",
                 "ops": [
@@ -299,11 +299,11 @@
         "trigger": "onHit",
         "on": "victim",
         "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
             {
-              "kind": "do",
-              "effect": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "on": "target",
                 "ops": [
@@ -342,11 +342,11 @@
         "trigger": "onHit",
         "on": "victim",
         "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
             {
-              "kind": "do",
-              "effect": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "on": "target",
                 "ops": [
@@ -386,11 +386,11 @@
         "trigger": "onHit",
         "on": "victim",
         "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
             {
-              "kind": "do",
-              "effect": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "on": "target",
                 "ops": [
@@ -432,11 +432,11 @@
         "trigger": "onHit",
         "on": "victim",
         "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
             {
-              "kind": "do",
-              "effect": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "on": "target",
                 "ops": [
@@ -637,10 +637,10 @@
         "trigger": "onHit",
         "on": "victim",
         "flow": {
-          "kind": "choice",
-          "prompt": "Renverser",
+          "kind": "choix",
+          "invite": "Renverser",
           "icon": "etat/a-terre",
-          "advantageCost": 2,
+          "coutEnAvantage": 2,
           "oui": {
             "kind": "test",
             "test": {
@@ -654,13 +654,13 @@
                 "attackerLabel": "Force/Athlétisme"
               }
             },
-            "success": {
-              "kind": "seq",
-              "steps": []
+            "reussite": {
+              "kind": "sequence",
+              "etapes": []
             },
-            "fail": {
-              "kind": "do",
-              "effect": {
+            "echec": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "on": "target",
                 "ops": [
@@ -703,11 +703,11 @@
         "trigger": "onCrit",
         "on": "victim",
         "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
             {
-              "kind": "do",
-              "effect": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "on": "target",
                 "ops": [
@@ -721,13 +721,13 @@
               }
             },
             {
-              "kind": "choice",
-              "prompt": "Ouvrir la plaie",
+              "kind": "choix",
+              "invite": "Ouvrir la plaie",
               "icon": "etat/hemorragique",
-              "advantageCost": "$indice",
+              "coutEnAvantage": "$indice",
               "oui": {
-                "kind": "do",
-                "effect": {
+                "kind": "effet",
+                "effet": {
                   "type": "ops",
                   "on": "target",
                   "ops": [
@@ -1204,15 +1204,15 @@
         "trigger": "onHit",
         "on": "victim",
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "woundsDealt",
             "op": ">",
             "value": 0
           },
-          "then": {
-            "kind": "do",
-            "effect": {
+          "alors": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "target",
               "ops": [

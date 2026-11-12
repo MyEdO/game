@@ -49,7 +49,7 @@ const stateSpell = (): never =>
     id: 'ombre-test', label: 'Ombre', type: 'Magie des Arcanes', subType: null, family: 'arcane',
     cn: 0, range: { kind: 'distance', value: 20, unit: 'm' }, target: { kind: 'count', n: 1 },
     duration: { kind: 'rounds', value: 3 }, desc: '',
-    effects: { kind: 'seq', steps: [{ kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'aveugle' }, value: 1, valuePerSL: { every: 2, amount: 1 } }] } }] },
+    effects: { kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'aveugle' }, value: 1, valuePerSL: { every: 2, amount: 1 } }] } }] },
   }) as never;
 
 function setBattle(combatants: Combatant[]): void {

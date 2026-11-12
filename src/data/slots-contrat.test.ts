@@ -146,7 +146,7 @@ describe('registre des SLOTS — déclaré × observé (#1466 L1a, volet A)', ()
   });
 
   it('RÉCURSION : un `test.skill` sous un flux de dialogue est un slot (`loup-et-saumure-projet.json › skill`, joint)', () => {
-    expect(couplesTouches(slotsAuPath('loup-et-saumure-projet.json', 'scenes[].dialogues[].nodes[].choices[].flow.steps[].effect.skill.id'))).toEqual([
+    expect(couplesTouches(slotsAuPath('loup-et-saumure-projet.json', 'scenes[].dialogues[].nodes[].choices[].flow.etapes[].effet.skill.id'))).toEqual([
       'loup-et-saumure-projet.json | skill',
     ]);
     const c = couple('loup-et-saumure-projet.json', 'skill')!;

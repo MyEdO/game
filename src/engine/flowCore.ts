@@ -6,7 +6,7 @@
  * conditions de trigger — source UNIQUE de la logique de contenu (triggers, dialogues, interactions,
  * pièges, sorts custom).
  *
- * POURQUOI EN `engine/` (règle 3 — le moteur reste PUR) : la feuille `do` est GÉNÉRIQUE (`Flow<E>`).
+ * POURQUOI EN `engine/` (règle 3 — le moteur reste PUR) : la feuille `effet` est GÉNÉRIQUE (`Flow<E>`).
  * Le défaut `EffectOp` (appliquer des `GameOp`) ne dépend QUE du moteur ; la couche `state` instancie
  * `Flow<Effect>` (la feuille devient l'union `Effect` complète : transition/dialogue/combat…, qui EST
  * state). Le moteur (ops/miscast/domainAttributes/types/magic/weaponDamage) ne référence que ce noyau.
@@ -16,10 +16,10 @@
  *    croissance de l'ensemble. Ajouter un nœud « juste pour un sort » = échec.
  *  - PAS de boucle (arbre, jamais cyclique) : ni `while`, ni saut arrière → contenu raisonnable,
  *    pas de risque de boucle infinie.
- *  - Les Conditions sont PURES (lisent l'état, ne le mutent pas) ; les effets sont les feuilles `do`.
+ *  - Les Conditions sont PURES (lisent l'état, ne le mutent pas) ; les effets sont les feuilles `effet`.
  *
  * Ce module porte le MODÈLE, l'évaluation PURE des Conditions (remplace `condMet` +
- * `temporalConditionMet`) et la MARCHE d'exécution (`executerFlow` : `seq` et `if`). Ce que la marche
+ * `temporalConditionMet`) et la MARCHE d'exécution (`executerFlow` : `sequence` et `si`). Ce que la marche
  * délègue (appliquer une feuille, ouvrir une modale de Test, suspendre, reprendre) vit chez ses hôtes
  * du noyau (`runFlow`, `runCombatFlow`…).
  */
@@ -328,7 +328,7 @@ export interface ConditionCtx {
 }
 
 /** Évalue une Condition — SOURCE UNIQUE de l'évaluation des conditions (triggers, choix de dialogue,
- *  nœuds `if`). PURE. `flag` : ET de drapeaux avec négation (« v1,!v2 », tolère les espaces) ; `time` :
+ *  nœuds `si`). PURE. `flag` : ET de drapeaux avec négation (« v1,!v2 », tolère les espaces) ; `time` :
  *  fenêtre horaire (heure-du-jour, `before` EXCLUSIF). */
 type MembreDuGroupe = NonNullable<ConditionCtx['party']>[number];
 
@@ -460,7 +460,7 @@ export function evalCondition(cond: Condition, ctx: ConditionCtx): boolean {
 }
 
 /** Construit le contexte d'évaluation depuis l'état de jeu (drapeaux/horloge/groupe/bourse) — source
- *  UNIQUE pour que tous les sites (triggers, `if`, choix de dialogue) lisent le MÊME état. */
+ *  UNIQUE pour que tous les sites (triggers, `si`, choix de dialogue) lisent le MÊME état. */
 export function conditionCtx(s: { flags: Record<string, boolean>; gameTime: number; party?: ConditionCtx['party']; money?: Purse; etats?: Record<string, string> }): ConditionCtx {
   return { flags: s.flags, gameTime: s.gameTime, party: s.party, money: s.money, etats: s.etats };
 }
@@ -561,8 +561,8 @@ export interface FlowTest {
      *  l'identique. Absent = 0. */
     attackerBonusSL?: number;
     /** Le DÉFENSEUR (le jeteur) est-il le camp que le RAW nomme « vous », celui qui doit REMPORTER pour
-     *  que la conséquence tombe ? `true` : la conséquence est en branche `success` (Piège-lame, LDB 62
-     *  l.280). Absent : le jeteur RÉSISTE, la conséquence est en branche `fail` (Assommante, l.235).
+     *  que la conséquence tombe ? `true` : la conséquence est en branche `reussite` (Piège-lame, LDB 62
+     *  l.280). Absent : le jeteur RÉSISTE, la conséquence est en branche `echec` (Assommante, l.235).
      *  Lu au SEUL cas d'égalité parfaite — cf. `opposedBranchSuccess` (LDB 12 l.160). */
     defenderMustWin?: boolean };
 }
@@ -579,24 +579,24 @@ export type JetFixe<K extends 'skill' | 'difficulty' = never> = Omit<FlowTest, C
 /**
  * Un nœud de Flow, GÉNÉRIQUE sur le type de sa FEUILLE `E` (défaut `EffectOp` — engine pur ; la couche
  * `state` instancie `Flow<Effect>`). Cinq formes, RÉCURSIVES, jamais cycliques :
- *  - `seq`    : exécute `steps` dans l'ordre (forme Flow d'une liste d'effets) ;
- *  - `do`     : une feuille — applique un effet `E` (action) ;
- *  - `if`     : évalue `cond` (PUR) → `then` / `else` ;
- *  - `test`   : jet ALÉATOIRE interactif → `success` / `fail` (forme Flow d'`Effect.test`) ;
- *  - `choice` : DÉCISION du joueur opt-in (≠ `test` aléatoire, ≠ `if` état) → `oui` / `non`. Coût
- *    d'Avantage optionnel dépensé sur `yes`. Primitive FONDAMENTALE des réactions de combat
+ *  - `sequence` : exécute `etapes` dans l'ordre (forme Flow d'une liste d'effets) ;
+ *  - `effet`    : une feuille — applique un effet `E` (action) ;
+ *  - `si`       : évalue `condition` (PUR) → `alors` / `sinon` ;
+ *  - `test`     : jet ALÉATOIRE interactif → `reussite` / `echec` (forme Flow d'`Effect.test`) ;
+ *  - `choix`    : DÉCISION du joueur opt-in (≠ `test` aléatoire, ≠ `si` état) → `oui` / `non`. Coût
+ *    d'Avantage optionnel dépensé sur `oui`. Primitive FONDAMENTALE des réactions de combat
  *    (Frappe Réactive « vous POUVEZ tenter », Déstabilisante « vous POUVEZ dépenser 2 Av ») et, à
  *    terme, des choix de dialogue/pièges. Son exécuteur (`resolveFlowChoice`) pousse une étape-choix
- *    GÉNÉRIQUE `choixDeclenche` (`pushCombatStep` yes/no + applier unique) — il n'invente pas de mécanisme.
+ *    GÉNÉRIQUE `choixDeclenche` (`pushCombatStep` oui/non + applier unique) — il n'invente pas de mécanisme.
  */
 export type Flow<E = EffectOp> =
-  | { kind: 'seq'; steps: Flow<E>[] }
-  | { kind: 'do'; effect: E }
-  | { kind: 'if'; cond: Condition; then: Flow<E>; else?: Flow<E> }
-  | { kind: 'test'; test: FlowTest; success: Flow<E>; fail: Flow<E> }
-  | { kind: 'choice'; prompt: string; source?: SourceRef; adapteDe?: SourceRef; advantageCost?: number | IndiceTemplate; icon?: IconId; oui: Flow<E>; non?: Flow<E> };
+  | { kind: 'sequence'; etapes: Flow<E>[] }
+  | { kind: 'effet'; effet: E }
+  | { kind: 'si'; condition: Condition; alors: Flow<E>; sinon?: Flow<E> }
+  | { kind: 'test'; test: FlowTest; reussite: Flow<E>; echec: Flow<E> }
+  | { kind: 'choix'; invite: string; source?: SourceRef; adapteDe?: SourceRef; coutEnAvantage?: number | IndiceTemplate; icon?: IconId; oui: Flow<E>; non?: Flow<E> };
 
-/** TEMPLATE d'instance du coût d'Avantage d'un `choice` : l'Indice de l'entité PORTEUSE (Taillade 1A/2A,
+/** TEMPLATE d'instance du coût d'Avantage d'un `choix` : l'Indice de l'entité PORTEUSE (Taillade 1A/2A,
  *  `AA 08 l.87`), substitué par `withArg` (`noyau/triggeredEffects`) avant exécution. Resté tel quel, le
  *  nœud n'est PAS offert (`resolveFlowChoice`) — jamais un coût 0. */
 export const INDICE_TEMPLATE = '$indice';
@@ -618,7 +618,7 @@ export type NoeudDecideAuPorteur<E = EffectOp> = Omit<FlowTestNode<E>, 'test'> &
 
 /** Flow vide (séquence sans étape) — neutre, sûr comme valeur par défaut d'un consommateur. Partagé
  *  par la donnée comme par l'état : gelé à sa définition (#2097). */
-export const EMPTY_FLOW: Flow = gelerLaConstante({ kind: 'seq', steps: [] });
+export const EMPTY_FLOW: Flow = gelerLaConstante({ kind: 'sequence', etapes: [] });
 
 /** DÉCLENCHEUR d'un effet « sur événement » — le pendant du « au lancement » des sorts. Partagé par
  *  TOUT porteur d'effets déclenchés (Trait de créature, Atout d'arme, Talent…). `onHit` : après une
@@ -694,35 +694,35 @@ export interface TriggeredEffect<E = EffectOp> {
   source?: EffectSource;
 }
 
-/** Enveloppe une liste d'effets-feuilles (`Effect[]`) en un Flow `seq` de `do` — pont de
+/** Enveloppe une liste d'effets-feuilles (`Effect[]`) en un Flow `sequence` de `effet` — pont de
  *  migration des consommateurs (`Trigger.effects`, `DialogueChoice.effects`) vers le Flow, sans réécrire
  *  la donnée. GÉNÉRIQUE sur la feuille (défaut `EffectOp`). */
 export function flowFromEffects<E = EffectOp>(effects: E[] | undefined): Flow<E> {
-  return { kind: 'seq', steps: (effects ?? []).map((effect) => ({ kind: 'do', effect })) };
+  return { kind: 'sequence', etapes: (effects ?? []).map((effet) => ({ kind: 'effet', effet })) };
 }
 
 /**
- * Aplatit un Flow SANS Test ni If non résolu en une liste d'effets-feuilles (les `if` sont évalués
- * contre `ctx`). Couvre `seq`/`do`/`if`. Un nœud `test`/`choice` lève — son exécution est interactive
- * (store). Utile pour les consommateurs purement séquentiels et pour tester la résolution des branches `if`. */
+ * Aplatit un Flow SANS Test ni `si` non résolu en une liste d'effets-feuilles (les `si` sont évalués
+ * contre `ctx`). Couvre `sequence`/`effet`/`si`. Un nœud `test`/`choix` lève — son exécution est interactive
+ * (store). Utile pour les consommateurs purement séquentiels et pour tester la résolution des branches `si`. */
 export function flattenFlow<E = EffectOp>(flow: Flow<E>, ctx: ConditionCtx): E[] {
   switch (flow.kind) {
-    case 'do': return [flow.effect];
-    case 'seq': return flow.steps.flatMap((s) => flattenFlow(s, ctx));
-    case 'if': {
-      const branch = evalCondition(flow.cond, ctx) ? flow.then : flow.else;
+    case 'effet': return [flow.effet];
+    case 'sequence': return flow.etapes.flatMap((s) => flattenFlow(s, ctx));
+    case 'si': {
+      const branch = evalCondition(flow.condition, ctx) ? flow.alors : flow.sinon;
       return branch ? flattenFlow(branch, ctx) : [];
     }
     case 'test':
       throw new Error('flattenFlow: un nœud `test` est interactif — utiliser runFlow (store).');
-    case 'choice':
+    case 'choix':
       throw new Error('flattenFlow: un nœud `choice` est interactif — utiliser runFlow (store).');
   }
 }
 
-/** Effets `do` de PREMIER niveau d'un Flow (seq plat) — édition en liste + assertions (≡ ancien `effects`). */
+/** Effets `effet` de PREMIER niveau d'un Flow (`sequence` plate) — édition en liste + assertions (≡ ancien `effects`). */
 export function flowEffects<E = EffectOp>(flow: Flow<E>): E[] {
-  return flow.kind === 'do' ? [flow.effect] : flow.kind === 'seq' ? flow.steps.flatMap((s) => (s.kind === 'do' ? [s.effect] : [])) : [];
+  return flow.kind === 'effet' ? [flow.effet] : flow.kind === 'sequence' ? flow.etapes.flatMap((s) => (s.kind === 'effet' ? [s.effet] : [])) : [];
 }
 
 /** La feuille est-elle un `EffectOp` (`{type:'ops'}`) ? Garde STRUCTURELLE — un `Flow<E>` générique peut
@@ -735,13 +735,13 @@ export function isEffectOp(e: unknown): e is EffectOp {
 /** GameOps des feuilles EffectOp d'un Flow de sort, filtrées par cible (`target`/`caster`). SOURCE
  *  UNIQUE de l'extraction des effets d'un sort depuis `SpellData.effects` : le cast flow applique un
  *  sous-Flow (target vs caster) via `runCombatFlow`, mais les badges UI (`spellSupport`) ont besoin de
- *  la liste d'ops. Visite récursive (les feuilles peuvent vivre sous if/test). `on` absent ⇒ `target`. */
+ *  la liste d'ops. Visite récursive (les feuilles peuvent vivre sous si/test). `on` absent ⇒ `target`. */
 export function spellOps<E = EffectOp>(flow: Flow<E> | undefined, on: 'target' | 'caster'): GameOp[] {
   if (!flow) return [];
   const out: GameOp[] = [];
   walkFlow(flow, (n) => {
-    if (n.kind !== 'do') return;
-    const e = n.effect;
+    if (n.kind !== 'effet') return;
+    const e = n.effet;
     if (isEffectOp(e) && (e.on ?? 'target') === on) out.push(...e.ops);
   });
   return out;
@@ -760,8 +760,8 @@ export function spellEffectOps<E = EffectOp>(flow: Flow<E> | undefined): GameOp[
  * au lieu d'être écrit à la main : une phrase stockée ment dès qu'une règle optionnelle change les
  * ops appliquées, une dérivation ne le peut pas.
  *
- * FAIL-CLOSED : rend `undefined` dès qu'un nœud rend l'issue INCERTAINE — un `if` non résolu (la
- * branche dépend d'une Condition), un `test` imbriqué (un second jet), un `choice` (une décision à
+ * FAIL-CLOSED : rend `undefined` dès qu'un nœud rend l'issue INCERTAINE — un `si` non résolu (la
+ * branche dépend d'une Condition), un `test` imbriqué (un second jet), un `choix` (une décision à
  * venir), ou une feuille qui n'est pas une liste d'ops (transition, dialogue). Aplatir
  * ces cas produirait un encadré qui PROMET ce qui ne se produira peut-être pas. Une branche vide rend
  * `[]` (« rien ne se produit »), qui est une réponse, pas une absence. PURE.
@@ -769,65 +769,65 @@ export function spellEffectOps<E = EffectOp>(flow: Flow<E> | undefined): GameOp[
  * `evalCond` (optionnel) — ORACLE PARTIEL de Condition : il rend `true`/`false` UNIQUEMENT pour ce
  * qu'il sait trancher hors exécution, et `undefined` pour tout le reste. Ce troisième cas est le
  * cœur du contrat : un évaluateur TOTAL (qui répondrait `false` faute de contexte) ferait promettre
- * la branche `else` d'une Condition qu'il n'a pas su lire — l'encadré enseignerait une règle
- * AMPUTÉE. Ici, `undefined` ⇒ l'`if` reste incertain ⇒ la branche entière se tait. Sans `evalCond`,
- * tout `if` est incertain (comportement d'origine). Un `if` sans `else` dont la Condition est
+ * la branche `sinon` d'une Condition qu'il n'a pas su lire — l'encadré enseignerait une règle
+ * AMPUTÉE. Ici, `undefined` ⇒ le `si` reste incertain ⇒ la branche entière se tait. Sans `evalCond`,
+ * tout `si` est incertain (comportement d'origine). Un `si` sans `sinon` dont la Condition est
  * FAUSSE de façon tranchée rend `[]` : rien ne s'applique, c'est une réponse.
  *
- * PORTÉE de la certitude : elle est STRUCTURELLE — elle porte sur la FORME du Flow (`do`+ops sans
- * `test`/`choice`/`if` non résolu en amont), jamais sur le contenu d'une op. Une op dont l'effet est
+ * PORTÉE de la certitude : elle est STRUCTURELLE — elle porte sur la FORME du Flow (`effet`+ops sans
+ * `test`/`choix`/`si` non résolu en amont), jamais sur le contenu d'une op. Une op dont l'effet est
  * conditionné EN INTERNE (garde dans son propre payload) est rendue comme certaine : sa certitude relève
  * de son exécuteur, `applyOps`. Une op qui doit annoncer une issue conditionnelle expose sa condition
- * dans la STRUCTURE du Flow (`if`), où cette fonction la lit.
+ * dans la STRUCTURE du Flow (`si`), où cette fonction la lit.
  */
 export function certainFlowOps<E = EffectOp>(
   flow: Flow<E> | undefined,
   evalCond?: (cond: Condition) => boolean | undefined,
 ): GameOp[] | undefined {
   if (!flow) return undefined;
-  if (flow.kind === 'seq') {
+  if (flow.kind === 'sequence') {
     const out: GameOp[] = [];
-    for (const s of flow.steps) {
+    for (const s of flow.etapes) {
       const ops = certainFlowOps(s, evalCond);
       if (!ops) return undefined;
       out.push(...ops);
     }
     return out;
   }
-  if (flow.kind === 'do') return isEffectOp(flow.effect) ? [...flow.effect.ops] : undefined;
-  if (flow.kind === 'if' && evalCond) {
-    const verdict = evalCond(flow.cond);
+  if (flow.kind === 'effet') return isEffectOp(flow.effet) ? [...flow.effet.ops] : undefined;
+  if (flow.kind === 'si' && evalCond) {
+    const verdict = evalCond(flow.condition);
     if (verdict === undefined) return undefined; // l'oracle ne sait pas : on se tait, on ne suppose pas
-    const branch = verdict ? flow.then : flow.else;
+    const branch = verdict ? flow.alors : flow.sinon;
     return branch ? certainFlowOps(branch, evalCond) : [];
   }
   return undefined;
 }
 
 /** Sous-Flow d'un Flow de sort ne gardant que les nœuds adressant `on` (target/caster) — pour appliquer
- *  SÉPARÉMENT les effets de cible (par cible, missile/soutien) et ceux du lanceur (une fois). Un `do` ops
- *  d'un AUTRE `on` devient un `seq` vide (neutre) ; un `do` non-ops est rattaché à la cible. Un nœud
- *  INTERACTIF (`test`, `choice`) se joue dans UNE seule passe, ENTIER (ses feuilles des deux `on`, que
+ *  SÉPARÉMENT les effets de cible (par cible, missile/soutien) et ceux du lanceur (une fois). Un `effet` ops
+ *  d'un AUTRE `on` devient un `sequence` vide (neutre) ; un `effet` non-ops est rattaché à la cible. Un nœud
+ *  INTERACTIF (`test`, `choix`) se joue dans UNE seule passe, ENTIER (ses feuilles des deux `on`, que
  *  `runCombatFlow` adresse chacune à son porteur) : celle de la cible dès qu'il porte une feuille de
  *  cible ou n'en porte aucune, celle du lanceur sinon. Une décision ou un jet n'est ainsi jamais joué deux
  *  fois pour une même cible : la passe de cible se rejoue, elle, à chaque cible du lancement. */
 export function spellFlowFor<E = EffectOp>(flow: Flow<E> | undefined, on: 'target' | 'caster'): Flow<E> {
-  if (!flow) return { kind: 'seq', steps: [] };
-  const feuilleDe = (f: Extract<Flow<E>, { kind: 'do' }>): 'target' | 'caster' =>
-    (isEffectOp(f.effect) ? (f.effect.on ?? 'target') : 'target') === 'caster' ? 'caster' : 'target';
+  if (!flow) return { kind: 'sequence', etapes: [] };
+  const feuilleDe = (f: Extract<Flow<E>, { kind: 'effet' }>): 'target' | 'caster' =>
+    (isEffectOp(f.effet) ? (f.effet.on ?? 'target') : 'target') === 'caster' ? 'caster' : 'target';
   const porte = (f: Flow<E>, cote: 'target' | 'caster'): boolean => {
     let oui = false;
-    walkFlow(f, (n) => { if (n.kind === 'do' && feuilleDe(n) === cote) oui = true; });
+    walkFlow(f, (n) => { if (n.kind === 'effet' && feuilleDe(n) === cote) oui = true; });
     return oui;
   };
-  const vide: Flow<E> = { kind: 'seq', steps: [] };
+  const vide: Flow<E> = { kind: 'sequence', etapes: [] };
   const keep = (f: Flow<E>): Flow<E> => {
     switch (f.kind) {
-      case 'do': return feuilleDe(f) === on ? f : vide;
-      case 'seq': return { kind: 'seq', steps: f.steps.map(keep) };
-      case 'if': return { kind: 'if', cond: f.cond, then: keep(f.then), ...(f.else ? { else: keep(f.else) } : {}) };
+      case 'effet': return feuilleDe(f) === on ? f : vide;
+      case 'sequence': return { kind: 'sequence', etapes: f.etapes.map(keep) };
+      case 'si': return { kind: 'si', condition: f.condition, alors: keep(f.alors), ...(f.sinon ? { sinon: keep(f.sinon) } : {}) };
       case 'test':
-      case 'choice': {
+      case 'choix': {
         const passe = porte(f, 'target') || !porte(f, 'caster') ? 'target' : 'caster';
         return passe === on ? f : vide;
       }
@@ -845,15 +845,15 @@ export function walkConditionTimes(cond: Condition, cb: (w: TemporalCondition) =
   }
 }
 
-/** Le Flow contient-il un nœud INTERACTIF — `test` (jet) ou `choice` (décision joueur) ? Si oui, son
+/** Le Flow contient-il un nœud INTERACTIF — `test` (jet) ou `choix` (décision joueur) ? Si oui, son
  *  exécution doit passer par l'exécuteur interactif (`runFlow`/`runCombatFlow`), pas un aplatissage. */
 export function flowHasTest<E = EffectOp>(flow: Flow<E>): boolean {
   switch (flow.kind) {
-    case 'do': return false;
-    case 'seq': return flow.steps.some((s) => flowHasTest(s));
-    case 'if': return flowHasTest(flow.then) || (flow.else ? flowHasTest(flow.else) : false);
+    case 'effet': return false;
+    case 'sequence': return flow.etapes.some((s) => flowHasTest(s));
+    case 'si': return flowHasTest(flow.alors) || (flow.sinon ? flowHasTest(flow.sinon) : false);
     case 'test': return true;
-    case 'choice': return true;
+    case 'choix': return true;
   }
 }
 
@@ -872,15 +872,15 @@ const estOpImpure = (o: GameOp): boolean => HOOK_BACKED_OPS.has(o.op) || estOpDu
  *  `runPureFlowLines`, qui l'avalerait. */
 export function flowHasImpureOp<E = EffectOp>(flow: Flow<E>): boolean {
   switch (flow.kind) {
-    case 'do': { const e = flow.effect; return isEffectOp(e) && e.ops.some(estOpImpure); }
-    case 'seq': return flow.steps.some((s) => flowHasImpureOp(s));
-    case 'if': return flowHasImpureOp(flow.then) || (flow.else ? flowHasImpureOp(flow.else) : false);
-    case 'test': return flowHasImpureOp(flow.success) || flowHasImpureOp(flow.fail);
-    case 'choice': return flowHasImpureOp(flow.oui) || (flow.non ? flowHasImpureOp(flow.non) : false);
+    case 'effet': { const e = flow.effet; return isEffectOp(e) && e.ops.some(estOpImpure); }
+    case 'sequence': return flow.etapes.some((s) => flowHasImpureOp(s));
+    case 'si': return flowHasImpureOp(flow.alors) || (flow.sinon ? flowHasImpureOp(flow.sinon) : false);
+    case 'test': return flowHasImpureOp(flow.reussite) || flowHasImpureOp(flow.echec);
+    case 'choix': return flowHasImpureOp(flow.oui) || (flow.non ? flowHasImpureOp(flow.non) : false);
   }
 }
 
-/** Ops IMPURES (`estOpImpure`) interdites HORS branche `success`/`fail` d'un nœud `test` dans un Flow d'effet
+/** Ops IMPURES (`estOpImpure`) interdites HORS branche `reussite`/`echec` d'un nœud `test` dans un Flow d'effet
  *  DÉCLENCHÉ (`effects: TriggeredEffect[]`, traits/talents/atouts/États/psychologie…) — EXCLUT
  *  `grantFreeAttack`, légitime top-level (résolu par `resolveFreeAttacks`, cf. `flowHasFreeAttack`, ex.
  *  Frappe réactive). `interruptFocus`/`breakBlade`/`delayed` n'ont de hook que dans le do-loop de
@@ -889,7 +889,7 @@ export function flowHasImpureOp<E = EffectOp>(flow: Flow<E>): boolean {
  *  inertes). */
 const estOpImpureErrante = (o: GameOp): boolean => o.op !== 'grantFreeAttack' && estOpImpure(o);
 
-/** Le Flow porte-t-il une op IMPURE errante (`estOpImpureErrante`) EN DEHORS d'une branche `success`/`fail` de `test` ?
+/** Le Flow porte-t-il une op IMPURE errante (`estOpImpureErrante`) EN DEHORS d'une branche `reussite`/`echec` de `test` ?
  *  `inTestBranch` (interne, propagé par la récursion) reste vrai tant qu'on n'est pas ressorti d'un nœud
  *  `test` — vérité utilisée par la garde de bien-formation des données (`effects` déclenchés). */
 /**
@@ -902,25 +902,25 @@ const estOpImpureErrante = (o: GameOp): boolean => o.op !== 'grantFreeAttack' &&
  */
 export function flowHasOpADe<E = EffectOp>(flow: Flow<E>): boolean {
   switch (flow.kind) {
-    case 'do': { const e = flow.effect; return isEffectOp(e) && e.ops.some((o) => opDemandeUnDe(o)); }
-    case 'seq': return flow.steps.some((s) => flowHasOpADe(s));
-    case 'if': return flowHasOpADe(flow.then) || (flow.else ? flowHasOpADe(flow.else) : false);
-    case 'test': return flowHasOpADe(flow.success) || flowHasOpADe(flow.fail);
-    case 'choice': return flowHasOpADe(flow.oui) || (flow.non ? flowHasOpADe(flow.non) : false);
+    case 'effet': { const e = flow.effet; return isEffectOp(e) && e.ops.some((o) => opDemandeUnDe(o)); }
+    case 'sequence': return flow.etapes.some((s) => flowHasOpADe(s));
+    case 'si': return flowHasOpADe(flow.alors) || (flow.sinon ? flowHasOpADe(flow.sinon) : false);
+    case 'test': return flowHasOpADe(flow.reussite) || flowHasOpADe(flow.echec);
+    case 'choix': return flowHasOpADe(flow.oui) || (flow.non ? flowHasOpADe(flow.non) : false);
   }
 }
 
 export function flowHasImpureOpOutsideTest<E = EffectOp>(flow: Flow<E>, inTestBranch = false): boolean {
   switch (flow.kind) {
-    case 'do': {
+    case 'effet': {
       if (inTestBranch) return false;
-      const e = flow.effect;
+      const e = flow.effet;
       return isEffectOp(e) && e.ops.some(estOpImpureErrante);
     }
-    case 'seq': return flow.steps.some((s) => flowHasImpureOpOutsideTest(s, inTestBranch));
-    case 'if': return flowHasImpureOpOutsideTest(flow.then, inTestBranch) || (flow.else ? flowHasImpureOpOutsideTest(flow.else, inTestBranch) : false);
-    case 'test': return flowHasImpureOpOutsideTest(flow.success, true) || flowHasImpureOpOutsideTest(flow.fail, true);
-    case 'choice': return flowHasImpureOpOutsideTest(flow.oui, inTestBranch) || (flow.non ? flowHasImpureOpOutsideTest(flow.non, inTestBranch) : false);
+    case 'sequence': return flow.etapes.some((s) => flowHasImpureOpOutsideTest(s, inTestBranch));
+    case 'si': return flowHasImpureOpOutsideTest(flow.alors, inTestBranch) || (flow.sinon ? flowHasImpureOpOutsideTest(flow.sinon, inTestBranch) : false);
+    case 'test': return flowHasImpureOpOutsideTest(flow.reussite, true) || flowHasImpureOpOutsideTest(flow.echec, true);
+    case 'choix': return flowHasImpureOpOutsideTest(flow.oui, inTestBranch) || (flow.non ? flowHasImpureOpOutsideTest(flow.non, inTestBranch) : false);
   }
 }
 
@@ -929,18 +929,18 @@ export function flowHasImpureOpOutsideTest<E = EffectOp>(flow: Flow<E>, inTestBr
  *  résolveur d'attaques gratuites (`resolveFreeAttacks`), seul à l'émettre ; le dispatcher générique le saute. */
 export function flowHasFreeAttack<E = EffectOp>(flow: Flow<E>): boolean {
   switch (flow.kind) {
-    case 'do': { const e = flow.effect; return isEffectOp(e) && e.ops.some((o) => o.op === 'grantFreeAttack'); }
-    case 'seq': return flow.steps.some((s) => flowHasFreeAttack(s));
-    case 'if': return flowHasFreeAttack(flow.then) || (flow.else ? flowHasFreeAttack(flow.else) : false);
-    case 'test': return flowHasFreeAttack(flow.success) || flowHasFreeAttack(flow.fail);
-    case 'choice': return flowHasFreeAttack(flow.oui) || (flow.non ? flowHasFreeAttack(flow.non) : false);
+    case 'effet': { const e = flow.effet; return isEffectOp(e) && e.ops.some((o) => o.op === 'grantFreeAttack'); }
+    case 'sequence': return flow.etapes.some((s) => flowHasFreeAttack(s));
+    case 'si': return flowHasFreeAttack(flow.alors) || (flow.sinon ? flowHasFreeAttack(flow.sinon) : false);
+    case 'test': return flowHasFreeAttack(flow.reussite) || flowHasFreeAttack(flow.echec);
+    case 'choix': return flowHasFreeAttack(flow.oui) || (flow.non ? flowHasFreeAttack(flow.non) : false);
   }
 }
 
 /** Constructeur d'un nœud `test` (jet → réussite/échec). Sucre pour les PRODUCTEURS de Flow (récolte,
  *  saut…) : un jet se POSE en nœud de Flow, jamais poussé dans une liste d'effets. */
 export function testFlow<E = EffectOp>(test: FlowTest, success: Flow<E>, fail: Flow<E>): Flow<E> {
-  return { kind: 'test', test, success, fail };
+  return { kind: 'test', test, reussite: success, echec: fail };
 }
 
 /**
@@ -968,14 +968,14 @@ export function poserEnjeu(test: FlowTest, stake: StakeRef | undefined): FlowTes
 /** Champ COMPAGNON obligatoire de chaque forme de nœud (`Flow`) — le second critère de reconnaissance :
  *  un `kind` seul ne suffit pas (l'algèbre des `Condition` en porte un aussi, et rien n'interdit à une
  *  donnée future de nommer un champ `kind`). Un objet qui a LES DEUX est un nœud de Flow. */
-const FLOW_SHAPE: Record<string, string> = { seq: 'steps', do: 'effect', if: 'then', test: 'success', choice: 'oui' };
+const FLOW_SHAPE: { readonly [K in Flow['kind']]: Exclude<keyof Extract<Flow, { kind: K }>, 'kind'> } = { sequence: 'etapes', effet: 'effet', si: 'alors', test: 'reussite', choix: 'oui' };
 
 /** Cette valeur EST-elle un nœud de Flow ? Reconnaissance par la FORME (kind + champ compagnon), jamais
  *  par l'endroit où on l'a trouvée. PURE. */
 export function isFlowNode(v: unknown): v is Flow<unknown> {
   if (typeof v !== 'object' || v === null) return false;
   const kind = (v as { kind?: unknown }).kind;
-  return typeof kind === 'string' && kind in FLOW_SHAPE && FLOW_SHAPE[kind] in (v as object);
+  return typeof kind === 'string' && kind in FLOW_SHAPE && FLOW_SHAPE[kind as Flow['kind']] in (v as object);
 }
 
 /**
@@ -1001,7 +1001,7 @@ export function carriedFlows<E>(effect: E): { flow: Flow<E>; chemin: CheminDeFlo
   walk(effect, []);
   return out;
 }
-/** Chemin d'un nœud depuis la racine qu'on parcourt (clés et rangs), ex. `['steps', 1, 'then']`. */
+/** Chemin d'un nœud depuis la racine qu'on parcourt (clés et rangs), ex. `['etapes', 1, 'alors']`. */
 export type CheminDeFlow = readonly (string | number)[];
 
 /** Genre du porteur d'une racine de Flow de scène — les portées de `Warning` de `validateScene`. */
@@ -1051,19 +1051,19 @@ export function racinesDeFlow(scene: unknown): RacineDeFlow[] {
  *  Immuable (copie). */
 export function reecrireFlow<E = EffectOp>(flow: Flow<E>, f: (node: Flow<E>) => Flow<E>): Flow<E> {
   switch (flow.kind) {
-    case 'seq': return f({ ...flow, steps: flow.steps.map((s) => reecrireFlow(s, f)) });
-    case 'if': return f({ ...flow, then: reecrireFlow(flow.then, f), ...(flow.else ? { else: reecrireFlow(flow.else, f) } : {}) });
-    case 'test': return f({ ...flow, success: reecrireFlow(flow.success, f), fail: reecrireFlow(flow.fail, f) });
-    case 'choice': return f({ ...flow, oui: reecrireFlow(flow.oui, f), ...(flow.non ? { non: reecrireFlow(flow.non, f) } : {}) });
-    case 'do': return f(flow);
+    case 'sequence': return f({ ...flow, etapes: flow.etapes.map((s) => reecrireFlow(s, f)) });
+    case 'si': return f({ ...flow, alors: reecrireFlow(flow.alors, f), ...(flow.sinon ? { sinon: reecrireFlow(flow.sinon, f) } : {}) });
+    case 'test': return f({ ...flow, reussite: reecrireFlow(flow.reussite, f), echec: reecrireFlow(flow.echec, f) });
+    case 'choix': return f({ ...flow, oui: reecrireFlow(flow.oui, f), ...(flow.non ? { non: reecrireFlow(flow.non, f) } : {}) });
+    case 'effet': return f(flow);
   }
 }
 
 /** Les ops des feuilles EffectOp d'un Flow, réécrites par `f` ; une op rendue `null` tombe, une liste prend
  *  sa place. Immuable. */
 export function reecrireLesOps<E = EffectOp>(flow: Flow<E>, f: (op: GameOp) => GameOp | GameOp[] | null): Flow<E> {
-  return reecrireFlow(flow, (n) => (n.kind === 'do' && isEffectOp(n.effect)
-    ? { ...n, effect: { ...n.effect, ops: n.effect.ops.flatMap((o) => f(o) ?? []) } }
+  return reecrireFlow(flow, (n) => (n.kind === 'effet' && isEffectOp(n.effet)
+    ? { ...n, effet: { ...n.effet, ops: n.effet.ops.flatMap((o) => f(o) ?? []) } }
     : n));
 }
 
@@ -1106,17 +1106,17 @@ export function lierLesTirages<E>(flow: Flow<E>, valeurDe: (de: Formula) => numb
   return lier(flow) as Flow<E>;
 }
 
-/** Visite RÉCURSIVE de tous les nœuds d'un Flow (branches `if`/`test` comprises) — pour la validation
+/** Visite RÉCURSIVE de tous les nœuds d'un Flow (branches `si`/`test` comprises) — pour la validation
  *  (effets référencés, bornes des conditions horaires) sur l'arbre ENTIER, pas seulement le 1er niveau.
  *  `visit` reçoit aussi le CHEMIN du nœud depuis `flow`, pour qui doit nommer un nœud fautif. */
 export function walkFlow<E = EffectOp>(flow: Flow<E>, visit: (node: Flow<E>, chemin: CheminDeFlow) => void, chemin: CheminDeFlow = []): void {
   visit(flow, chemin);
   switch (flow.kind) {
-    case 'seq': flow.steps.forEach((s, i) => walkFlow(s, visit, [...chemin, 'steps', i])); break;
-    case 'if': walkFlow(flow.then, visit, [...chemin, 'then']); if (flow.else) walkFlow(flow.else, visit, [...chemin, 'else']); break;
-    case 'test': walkFlow(flow.success, visit, [...chemin, 'success']); walkFlow(flow.fail, visit, [...chemin, 'fail']); break;
-    case 'choice': walkFlow(flow.oui, visit, [...chemin, 'oui']); if (flow.non) walkFlow(flow.non, visit, [...chemin, 'non']); break;
-    case 'do': break;
+    case 'sequence': flow.etapes.forEach((s, i) => walkFlow(s, visit, [...chemin, 'etapes', i])); break;
+    case 'si': walkFlow(flow.alors, visit, [...chemin, 'alors']); if (flow.sinon) walkFlow(flow.sinon, visit, [...chemin, 'sinon']); break;
+    case 'test': walkFlow(flow.reussite, visit, [...chemin, 'reussite']); walkFlow(flow.echec, visit, [...chemin, 'echec']); break;
+    case 'choix': walkFlow(flow.oui, visit, [...chemin, 'oui']); if (flow.non) walkFlow(flow.non, visit, [...chemin, 'non']); break;
+    case 'effet': break;
   }
 }
 
@@ -1127,33 +1127,33 @@ export interface ArretDeFlow<R> { readonly arret: R }
 export type PasDeFlow<E, R> = Flow<E> | ArretDeFlow<R> | undefined;
 
 /** Le reste de la pile, retiré d'elle : la CONTINUATION qu'un hôte qui suspend confie à sa reprise. */
-export type ResteDuFlow<E> = () => Extract<Flow<E>, { kind: 'seq' }>;
+export type ResteDuFlow<E> = () => Extract<Flow<E>, { kind: 'sequence' }>;
 
-/** Ce qu'`executerFlow` délègue à son HÔTE ; la marche décide seule `seq` et `if`. */
+/** Ce qu'`executerFlow` délègue à son HÔTE ; la marche décide seule `sequence` et `si`. */
 export interface HoteDeFlow<E, R> {
-  /** Contexte des Conditions d'un `if`, lu au nœud : l'état vivant peut avoir bougé depuis le départ. */
+  /** Contexte des Conditions d'un `si`, lu au nœud : l'état vivant peut avoir bougé depuis le départ. */
   conditions(): ConditionCtx;
-  feuille(noeud: Extract<Flow<E>, { kind: 'do' }>, reste: ResteDuFlow<E>): PasDeFlow<E, R>;
+  feuille(noeud: Extract<Flow<E>, { kind: 'effet' }>, reste: ResteDuFlow<E>): PasDeFlow<E, R>;
   test(noeud: FlowTestNode<E>, reste: ResteDuFlow<E>): PasDeFlow<E, R>;
-  choix(noeud: Extract<Flow<E>, { kind: 'choice' }>, reste: ResteDuFlow<E>): PasDeFlow<E, R>;
-  /** Avant chaque DÉCISION (`if`, `test`, `choice`) ; le nœud, non consommé, n'est pas dans `reste()`. */
+  choix(noeud: Extract<Flow<E>, { kind: 'choix' }>, reste: ResteDuFlow<E>): PasDeFlow<E, R>;
+  /** Avant chaque DÉCISION (`si`, `test`, `choix`) ; le nœud, non consommé, n'est pas dans `reste()`. */
   avantDecision?(noeud: Flow<E>, reste: ResteDuFlow<E>): ArretDeFlow<R> | undefined;
   /** Valeur rendue quand la pile est épuisée. */
   fin(): R;
 }
 
-/** EXÉCUTION d'un Flow, à PILE : `seq` empile ses étapes, `if` sa branche ; le reste va à l'hôte. */
+/** EXÉCUTION d'un Flow, à PILE : `sequence` empile ses étapes, `si` sa branche ; le reste va à l'hôte. */
 export function executerFlow<E, R>(flow: Flow<E>, hote: HoteDeFlow<E, R>): R {
   const pile: Flow<E>[] = [flow];
-  const reste: ResteDuFlow<E> = () => ({ kind: 'seq', steps: pile.splice(0) });
+  const reste: ResteDuFlow<E> = () => ({ kind: 'sequence', etapes: pile.splice(0) });
   for (let noeud = pile.shift(); noeud; noeud = pile.shift()) {
     let pas: PasDeFlow<E, R>;
     switch (noeud.kind) {
-      case 'seq': pile.unshift(...noeud.steps); continue;
-      case 'do': pas = hote.feuille(noeud, reste); break;
-      case 'if': pas = hote.avantDecision?.(noeud, reste) ?? (evalCondition(noeud.cond, hote.conditions()) ? noeud.then : noeud.else); break;
+      case 'sequence': pile.unshift(...noeud.etapes); continue;
+      case 'effet': pas = hote.feuille(noeud, reste); break;
+      case 'si': pas = hote.avantDecision?.(noeud, reste) ?? (evalCondition(noeud.condition, hote.conditions()) ? noeud.alors : noeud.sinon); break;
       case 'test': pas = hote.avantDecision?.(noeud, reste) ?? hote.test(noeud, reste); break;
-      case 'choice': pas = hote.avantDecision?.(noeud, reste) ?? hote.choix(noeud, reste); break;
+      case 'choix': pas = hote.avantDecision?.(noeud, reste) ?? hote.choix(noeud, reste); break;
     }
     if (pas && 'arret' in pas) return pas.arret;
     if (pas) pile.unshift(pas);

@@ -125,7 +125,7 @@ describe('LDB 12 l.197 — un Test SUBI ne se soutient pas (défaut de la VOIE, 
   /** Effet DÉCLENCHÉ hors combat (Venin/Crampes/zone franchie) : `routeTriggeredTest` ouvre la modale
    *  du sujet — les camarades ne peuvent pas résister à sa place. */
   const subi = (test: Parameters<typeof routeTriggeredTest>[4] extends never ? never : { skill?: { id: string }; characteristic?: string; noSupport?: boolean }) =>
-    ({ kind: 'test' as const, test: test as never, success: EMPTY_FLOW, fail: EMPTY_FLOW });
+    ({ kind: 'test' as const, test: test as never, reussite: EMPTY_FLOW, echec: EMPTY_FLOW });
 
   it('Test de Résistance déclenché : AUCUN Soutien, même avec 2 camarades capables et adjacents', () => {
     const victime = skilled('h1', undefined, 'resistance', 5);

@@ -105,7 +105,7 @@ describe('Lot 3 — valeur de CONTRÔLE : un sort qui inflige un État (op:condi
     data: {
       id: 'choc-mental', label: 'Choc mental', ecole: 'sort', subType: null, family: 'arcane', cn: 0,
       range: null, target: null, duration: null, desc: '', missile: true, damage: 2,
-      effects: { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'sonne' } }] } },
+      effects: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'sonne' } }] } },
       source: { book: 'LDB', page: 0 },
     } as unknown as SpellData,
   };

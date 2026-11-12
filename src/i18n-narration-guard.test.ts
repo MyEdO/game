@@ -14,7 +14,7 @@ import { cleDeSite, ecartsDeStock, type EntreeDeSite } from '../scripts/guards/l
  * d'un fichier non listé. Le scan balaie TOUT `SCAN_DIRS` (walk récursif), sans liste : tout fichier
  * naît couvert, et aucun ne porte de littéral FR (ABSOLUE depuis #1318 V8c₅, 2026-08-17).
  *
- * Couvre les FORMES d'émission de journal (PAS les libellés de MODALE/UI `{label:…}`/`prompt:` —
+ * Couvre les FORMES d'émission de journal (PAS les libellés de MODALE/UI `{label:…}`/`invite:` —
  * surface UI distincte, Phase D différée) :
  *   - `ev('<kind>', `…``               (événement de journal)
  *   - `.log(`…`` / `.log('…'`          (journal direct)
@@ -27,7 +27,7 @@ import { cleDeSite, ecartsDeStock, type EntreeDeSite } from '../scripts/guards/l
  *                                        accentué affecté, 10ᵉ forme #3041) : sites gelés en stock nominatif
  *                                        DÉCROISSANT (`STOCK_FORMES_TARDIVES`), le zéro des huit autres reste absolu
  *
- * NON couvert volontairement : les tableaux `outcome: […]` / `options: […]` / `label:`/`prompt:`
+ * NON couvert volontairement : les tableaux `outcome: […]` / `options: […]` / `label:`/`invite:`
  * d'étape de MODALE (surface UI distincte, Phase D) — leurs chaînes ne sont PAS du journal.
  */
 

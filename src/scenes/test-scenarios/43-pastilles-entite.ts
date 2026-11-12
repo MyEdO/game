@@ -73,15 +73,15 @@ function construireScene(): Scene {
       enemies: [
         // L'EMPLACEMENT du bélier — affût inerte 2×2, servi par l'Équipe `RAM_CREW` (le Soldat en tête).
         {
-          engin: { id: 'belier-ade2' }, pos: RAM_POS, facing: RAM_HEADING, side: 'ally',
+          engin: { id: 'belier-ade2' }, pos: RAM_POS, facing: RAM_HEADING, side: 'allie',
           postes: [{ trappingId: 'belier-ade2', crewIds: [...RAM_CREW] }],
         },
-        { creature: { id: 'cheval' }, pos: { x: 5, y: 5 }, mount: true, side: 'ally', label: 'Cheval de manœuvre' },
-        { creature: { id: 'brute' }, pos: SERVANT_SLOTS[0], facing: 'N', side: 'ally', ai: true, label: 'Servant du bélier' },
-        { creature: { id: 'brute' }, pos: SERVANT_SLOTS[1], facing: 'N', side: 'ally', ai: true, label: 'Servant du bélier' },
-        { creature: { id: 'brute' }, pos: SERVANT_SLOTS[2], facing: 'N', side: 'ally', ai: true, label: 'Servant du bélier' },
-        { creature: { id: 'brute' }, pos: SERVANT_SLOTS[3], facing: 'N', side: 'ally', ai: true, label: 'Servant du bélier' },
-        { creature: { id: 'brute' }, pos: SERVANT_SLOTS[4], facing: 'N', side: 'ally', ai: true, label: 'Servant du bélier' },
+        { creature: { id: 'cheval' }, pos: { x: 5, y: 5 }, mount: true, side: 'allie', label: 'Cheval de manœuvre' },
+        { creature: { id: 'brute' }, pos: SERVANT_SLOTS[0], facing: 'N', side: 'allie', ai: true, label: 'Servant du bélier' },
+        { creature: { id: 'brute' }, pos: SERVANT_SLOTS[1], facing: 'N', side: 'allie', ai: true, label: 'Servant du bélier' },
+        { creature: { id: 'brute' }, pos: SERVANT_SLOTS[2], facing: 'N', side: 'allie', ai: true, label: 'Servant du bélier' },
+        { creature: { id: 'brute' }, pos: SERVANT_SLOTS[3], facing: 'N', side: 'allie', ai: true, label: 'Servant du bélier' },
+        { creature: { id: 'brute' }, pos: SERVANT_SLOTS[4], facing: 'N', side: 'allie', ai: true, label: 'Servant du bélier' },
       ],
     },
   ]);

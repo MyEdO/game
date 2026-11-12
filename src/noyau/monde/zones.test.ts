@@ -68,8 +68,8 @@ describe('crossZones — « Quiconque traverse le mur de feu » (LDB 47)', () =>
   });
   // LDB 48 l.286 ; #1595 c.6240485441 Q2.
   it('BE + PA ≥ BFM : la traversée ne coûte aucune Blessure, En flammes reste', () => {
-    const ops = findSpellById('mur-de-feu')!.effects as unknown as { steps: { effect: { ops: { onCross: BattleZone['onCross'] }[] } }[] };
-    const murDuSort: BattleZone = { ...wall, onCross: ops.steps[0].effect.ops[0].onCross };
+    const ops = findSpellById('mur-de-feu')!.effects as unknown as { etapes: { effet: { ops: { onCross: BattleZone['onCross'] }[] } }[] };
+    const murDuSort: BattleZone = { ...wall, onCross: ops.etapes[0].effet.ops[0].onCross };
     const m = mk({ id: 'm3', label: 'Blindé', armour: { tete: 1, brasG: 1, brasD: 1, corps: 1, jambeG: 1, jambeD: 1 } as Combatant['armour'] }); // BE 3 + PA 1 = BFM 4
     crossZones([murDuSort], m, [{ x: 3, y: 5 }, { x: 4, y: 5 }, { x: 5, y: 5 }], () => caster, rng, idsDeTest);
     expect(m.wounds.current).toBe(12);

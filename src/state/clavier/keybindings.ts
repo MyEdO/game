@@ -36,7 +36,7 @@ import { SEUIL_MAINTIEN_MS, arreterLacet, demarrerLacet, pasYaw } from '../stage
 import { arreterMarche, demarrerMarche, type PasTenu } from '../stageWalk';
 import { clearTrackedTimer, scheduleFlowTimer } from '../../web/minuteries';
 import { t, type MsgKey } from '../../i18n';
-import type { VerrouDesMots } from '../../noyau/fabriquesDuNoyau';
+import type { Segments, VerrouDesMots } from '../../noyau/fabriquesDuNoyau';
 import { fouilleOuverte } from '../../noyau/interactionsDExploration';
 import { jouerLOffreDeLEcran } from '../registreOffres';
 
@@ -142,8 +142,6 @@ void verrouDesRaccourcis;
 /** VERROU : une vue de marche ne prend que des mots du lexique (#3928). */
 const verrouDesVues: VerrouDesMots<PasTenu['vue']> = true;
 void verrouDesVues;
-/** Une clé de libellé, ses segments joints par des tirets. */
-type Segments<S extends string> = S extends `${infer A}.${infer B}` ? `${A}-${Segments<B>}` : S;
 /** VERROU : une section et une clé de libellé de raccourci (`raccourci.*`) ne prennent que des mots du lexique (#3928). */
 const verrouDesLibellesDeRaccourci: [VerrouDesMots<KeyBindingSection>, VerrouDesMots<Segments<Extract<MsgKey, `raccourci.${string}`>>>] = [true, true];
 void verrouDesLibellesDeRaccourci;

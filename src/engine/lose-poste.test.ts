@@ -61,14 +61,14 @@ describe('op removeShipPoste — Canon perdu (MDG 13 l.765)', () => {
 });
 
 /** « Canon détaché » authoré en DONNÉE : le nœud `test` du Flow porte le jet ET, dans sa branche
- *  d'ÉCHEC, la conséquence en `GameOp` (branche `success` vide — seul l'échec est servi). */
+ *  d'ÉCHEC, la conséquence en `GameOp` (branche `reussite` vide — seul l'échec est servi). */
 const detachTest: ShipCrewHit = {
   crewTarget: { poste: true },
   test: {
     kind: 'test',
     test: { skill: { id: 'athletisme' }, difficulty: 'intermediaire' },
-    success: { kind: 'seq', steps: [] },
-    fail: { kind: 'do', effect: { type: 'ops', ops: [{ op: 'wounds', amount: 12, ignoreTB: false, ignoreAP: false }], on: 'target' } },
+    reussite: { kind: 'sequence', etapes: [] },
+    echec: { kind: 'effet', effet: { type: 'ops', ops: [{ op: 'wounds', amount: 12, ignoreTB: false, ignoreAP: false }], on: 'target' } },
   },
 };
 

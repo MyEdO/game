@@ -315,7 +315,7 @@ describe('parseProject — porte de schéma', () => {
   });
 
   it('un nœud `null` dans un Flow est REFUSÉ par les deux portes, jamais purgé', () => {
-    const flow = { kind: 'seq', steps: [{ kind: 'do', effect: { type: 'setFlag', flag: 'x' } }, null] };
+    const flow = { kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'setFlag', flag: 'x' } }, null] };
     const avecNull = { ...scene('s1'), triggers: [{ id: 't1', rect: { x: 0, y: 0, w: 1, h: 1 }, flow }] };
     expect(() => parseProject(projet([avecNull]))).toThrow(/déclencheur « t1 » › étape 2: .*null reçu/);
     expect(() => parseSceneDeProjet(avecNull)).toThrow(/déclencheur « t1 » › étape 2: .*null reçu/);

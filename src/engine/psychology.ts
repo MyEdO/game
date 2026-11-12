@@ -730,7 +730,7 @@ export function psychBranchOps(
  *  résolution connaît (DR cumulé du Test étendu, n° de Round) en est absent : l'annonce ne porte
  *  que ce qui est certain. */
 export function psychBranchFlow(stake: PsychStake, success: boolean): Flow {
-  return { kind: 'do', effect: { type: 'ops', on: 'target', ops: psychBranchOps(stake, { success }) } };
+  return { kind: 'effet', effet: { type: 'ops', on: 'target', ops: psychBranchOps(stake, { success }) } };
 }
 
 // ---------------------------------------------------------------------------
