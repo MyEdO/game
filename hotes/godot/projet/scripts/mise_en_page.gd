@@ -7,10 +7,10 @@
 ## d'un point, la largeur d'un texte de bulle replié, le point où se dit le nom de ce qui occupe une case, la pose
 ## d'une arête (mur ou porte) sur le côté de sa case et l'échelle d'une pièce du kit qui s'y pose, l'échelle métrique d'un modèle et d'une hauteur sur le plateau et
 ## la hauteur d'un point du corps à son gabarit, le point d'un lieu sur le plan et le coin de ce qui se pose sous lui, la
-## coupe d'un navire, le compte des triangles d'une géométrie, le texel d'une case au masque du retrait et le point
-## au-delà d'un point que touche un rayon. Seul script où l'arithmétique et la mesure sont permises
-## (`scripts/guards/lib/gdscriptSansRegle.mjs`) : des constantes et des fonctions statiques, chacune typée et sur au
-## plus un vecteur, sans état.
+## coupe d'un navire, le compte des triangles d'une géométrie, le texel d'une case au masque du retrait, et l'abscisse
+## sur un rayon d'un point, d'un point au-delà de celui qu'il touche et du bout de chaque tronçon dont il reprend. Seul
+## script où l'arithmétique et la mesure sont permises (`scripts/guards/lib/gdscriptSansRegle.mjs`) : des constantes et
+## des fonctions statiques, chacune typée et sur au plus un vecteur, sans état.
 class_name MiseEnPage
 extends RefCounted
 
@@ -32,8 +32,13 @@ const JEU_ENTRE_RANGES := 0.02
 const JEU_DE_RANGEMENT := 0.005
 ## Le côté, en mètres, des cases où un objet rangé se confronte à ce qui est porté dessous (`case_de_contact`).
 const CASE_DE_CONTACT := 0.02
-## Le pas (unités du plateau) dont un rayon reprend au-delà d'un point touché (`point_au_dela`).
-const PAS_AU_DELA := 0.001
+## Le pas, en mètres, dont un rayon reprend au-delà d'un point touché (`point_au_dela`), et dont un tronçon recouvre la
+## fin du précédent (`point_en_deca`).
+const PAS_AU_DELA_M := 0.0005
+## La longueur, en mètres, d'un tronçon dont un rayon reprend (`bout_du_troncon`) : le moteur physique du projet
+## (GodotPhysics3D, `physics/3d/physics_engine` au défaut) manque toute face plus proche de l'origine du tronçon que
+## `CMP_EPSILON` fois sa longueur (`core/math/geometry_3d.h:115`, `core/math/math_defs.h:50`, Godot 4.7).
+const PORTEE_D_UN_TRONCON_M := 20.0
 ## La hauteur, en mètres, sous l'attache d'un objet rangé jusqu'où il s'appuie sur ce qui est porté ; plus bas, il pivote
 ## (`recul_sur_la_case`, `pivot_sur_la_case`).
 const APPUI_DE_RANGEMENT := 0.05
@@ -255,10 +260,34 @@ static func texel_du_masque(case: Vector2i, rangee: int) -> Vector2i:
 	return Vector2i(case.x, case.y + rangee)
 
 
-## Le point d'où un rayon reprend au-delà du point `touche` qu'il touche, de `PAS_AU_DELA` dans son sens, l'axe -Z du
-## repère `rayon`.
-static func point_au_dela(touche: Vector3, rayon: Basis) -> Vector3:
-	return touche - rayon.z * PAS_AU_DELA
+## L'abscisse du point `point` sur le rayon de sens `-rayon.z` (unitaire), comptée depuis l'abscisse `depuis`.
+static func abscisse(point: Vector3, rayon: Basis, depuis: float) -> float:
+	return -rayon.z.dot(point) - depuis
+
+
+## Le point d'où un rayon de sens `-rayon.z` reprend au-delà du point `touche` qu'il touche, de `PAS_AU_DELA_M` sur un
+## plateau de `metres_par_case` mètres par case.
+static func point_au_dela(touche: Vector3, rayon: Basis, metres_par_case: float) -> Vector3:
+	return touche - rayon.z * PAS_AU_DELA_M * echelle_metrique(metres_par_case)
+
+
+## Le point d'où reprend le tronçon qui suit celui qui finit en `bout`, sur un rayon de sens `-rayon.z` : en deçà de
+## `PAS_AU_DELA_M`, sur un plateau de `metres_par_case` mètres par case.
+static func point_en_deca(bout: Vector3, rayon: Basis, metres_par_case: float) -> Vector3:
+	return bout + rayon.z * PAS_AU_DELA_M * echelle_metrique(metres_par_case)
+
+
+## L'abscisse, comptée depuis `depuis`, du bout du tronçon qui part de `debut` sur un rayon de sens `-rayon.z`
+## d'abscisse finale `fin` : `PORTEE_D_UN_TRONCON_M` plus loin sur un plateau de `metres_par_case` mètres par case,
+## `fin` au plus.
+static func bout_du_troncon(debut: Vector3, rayon: Basis, depuis: float, fin: float, metres_par_case: float) -> float:
+	return minf(abscisse(debut, rayon, depuis) + PORTEE_D_UN_TRONCON_M * echelle_metrique(metres_par_case), fin)
+
+
+## Le point d'abscisse `abscisse_du_point`, comptée depuis `depuis`, sur le rayon de sens `-rayon.z` qui passe par
+## `debut`.
+static func point_a_l_abscisse(debut: Vector3, rayon: Basis, depuis: float, abscisse_du_point: float) -> Vector3:
+	return debut - rayon.z * (abscisse_du_point - abscisse(debut, rayon, depuis))
 
 
 ## La hauteur du calque de référence posé sur le plan `plan` (mètres), décalé de `decalage` : juste au-dessus du sol

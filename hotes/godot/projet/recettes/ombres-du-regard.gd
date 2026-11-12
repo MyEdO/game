@@ -6,7 +6,9 @@ extends SceneTree
 ## arêtes, une boîte et une pièce du kit, chacune sous sa couronne, et la couronne d'un mur abattu. Le toit levé, les
 ## arêtes dégagées sous tout cran : la caméra ne voit ni le toit, ni les arêtes, ni leurs couronnes, qui projettent
 ## toutes leur ombre ; chaque sommet vu de l'étage tombe sur une case que le masque lié à sa matière retire, ceux du rez
-## sur une case qu'il garde, et l'instance en ombre seule de l'étage, entière et jamais masquée, projette ; de chaque
+## sur une case qu'il garde, et l'instance en ombre seule de l'étage, entière et jamais masquée, projette ; tout ce qui
+## projette (l'ombre de l'étage, le toit, les arêtes, leurs couronnes) est dans une matière standard, dont Godot dessine
+## l'ombre comme pour toute matière qui ne déplace pas ses sommets ; de chaque
 ## case du sol, le rayon vers le soleil touche le toit et l'étage ; la couronne du mur abattu ne projette rien. Le toit et
 ## les arêtes rendus, chacun se montre et projette.
 
@@ -50,8 +52,8 @@ func _recetter() -> void:
 	_masque(morceaux.get_node("sol_1_0_0"), true, "l'étage retiré")
 	_masque(morceaux.get_node("sol_0_0_0"), false, "le rez")
 	var ombre_de_l_etage: MeshInstance3D = morceaux.get_node("sol_1_0_0/Ombre")
-	if not ombre_de_l_etage.is_visible_in_tree() or ombre_de_l_etage.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY or ombre_de_l_etage.mesh != (morceaux.get_node("sol_1_0_0/Vu") as MeshInstance3D).mesh or ombre_de_l_etage.material_override.get_shader_parameter("retrait") != null:
-		_fautes.append("l'étage retiré : son instance en ombre seule n'est pas entière, non masquée, du même maillage")
+	if not ombre_de_l_etage.is_visible_in_tree() or ombre_de_l_etage.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY or ombre_de_l_etage.mesh != (morceaux.get_node("sol_1_0_0/Vu") as MeshInstance3D).mesh or ombre_de_l_etage.material_override != monde.volume.couleur_des_sommets:
+		_fautes.append("l'étage retiré : son instance en ombre seule n'est pas entière, dans la matière d'ombre standard, du même maillage")
 	var retires := {toit = toit}
 	for arete: Node3D in monde.get_node("VolumeDeScene/Aretes").get_children():
 		retires["arête " + arete.get_meta("cle")] = arete
@@ -60,8 +62,11 @@ func _recetter() -> void:
 		couronnes[couronne.get_meta("cle")] = couronne
 	retires["couronne boite"] = couronnes.boite
 	retires["couronne kit"] = couronnes.kit
+	retires["ombre de l'étage"] = ombre_de_l_etage
 	for nom: String in retires:
-		for maillage in _maillages(retires[nom]):
+		for maillage: GeometryInstance3D in _maillages(retires[nom]):
+			if not _matieres(maillage).all(func(matiere: Material) -> bool: return matiere is BaseMaterial3D):
+				_fautes.append("%s (%s) projette par une matière qui n'est pas standard : %s" % [nom, maillage.name, _matieres(maillage)])
 			if not maillage.is_visible_in_tree() or maillage.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY:
 				_fautes.append("retiré : %s (%s) n'est pas en ombre seule (visible %s, ombre %d)" % [nom, maillage.name, maillage.is_visible_in_tree(), maillage.cast_shadow])
 	if not _maillages(couronnes.abattue).all(func(m: GeometryInstance3D) -> bool: return not m.is_visible_in_tree()):
@@ -77,6 +82,7 @@ func _recetter() -> void:
 				else:
 					_fautes.append("le sol de la case %d,%d est au soleil sous %s retiré" % [x, y, "le toit" if nom == "toit" else "l'étage"])
 	print("[ombres-du-regard] %d rayons sur 18 du sol vers le soleil arrêtés par le toit et l'étage retirés" % sous_le_toit)
+	retires.erase("ombre de l'étage")
 	monde.cacher_le_bati([], ["abattue"], [])
 	for nom: String in retires:
 		for maillage in _maillages(retires[nom]):
@@ -109,6 +115,14 @@ func _masque(morceau: Node, retire: bool, nom: String) -> void:
 ## Une géométrie du monde de clé `cle`, le carré à la hauteur `hauteur` (`_carre`), d'une matière.
 func _nappe(cle: String, hauteur: float) -> Dictionary:
 	return {cle = cle, empreinte = cle, positions = _carre(hauteur), normales = NORMALES, couleurs = COULEURS, cases = [[0, 0, 1], [0, 0, 1]], surfaces = [{debut = 0, fin = 6, matiere = "terrain--terre"}]}
+
+
+## Les matières de rendu de `maillage` : la sienne, sinon celle de chaque surface.
+func _matieres(maillage: GeometryInstance3D) -> Array:
+	if maillage.material_override != null:
+		return [maillage.material_override]
+	var instance := maillage as MeshInstance3D
+	return range(instance.mesh.get_surface_count()).map(func(rang: int) -> Material: return instance.get_active_material(rang))
 
 
 ## Les maillages de `noeud` et de ses descendants.

@@ -24,7 +24,8 @@ const DUREE_QUART_S := 0.25
 const TANGAGE_TACTIQUE := -0.9
 ## Une hauteur sous tout monde, où finit le rayon qui cherche le sol sous un lieu.
 const SOUS_LE_MONDE := -1000.0
-## Le nombre de fois au plus qu'un rayon reprend au-delà d'une case que le masque du volume retire (`_toucher`).
+## Le nombre de lancers au plus d'un rayon (`_toucher`) : le premier, chaque reprise au-delà d'une case que le masque du
+## volume retire et chaque tronçon qui suit un tronçon qui ne touche rien.
 const TRAVERSEES_DU_RAYON := 64
 ## La vitesse (m/s) de la caméra qui glisse au clavier.
 const VITESSE_DE_GLISSE_M_S := 16.0
@@ -392,24 +393,34 @@ func sol_sous(lieu: Vector3) -> Variant:
 	return _toucher(lieu, Vector3(lieu.x, SOUS_LE_MONDE, lieu.z), Vector3.DOWN)
 
 
-## Ce que le rayon de `origine` à `fin`, de sens `sens`, touche le premier hors des cases que le masque du volume retire
-## (`VolumeDeScene.retiree`) : touchant une case retirée, il reprend au-delà (`MiseEnPage.point_au_dela`), au plus
-## `TRAVERSEES_DU_RAYON` fois. Rend `{ case, f, lieu }`, la case du triangle touché et sa couche (`Vector3i(x, y, z)`,
+## Ce que le rayon de `origine` à `fin`, de sens unitaire `sens`, touche le premier hors des cases que le masque du
+## volume retire (`VolumeDeScene.retiree`) : lancé entier, puis, touchant une case retirée, repris au-delà
+## (`MiseEnPage.point_au_dela`) par tronçons bornés (`MiseEnPage.bout_du_troncon`), dont chacun qui ne touche rien
+## avant `fin` est suivi du prochain, qui recouvre sa fin (`MiseEnPage.point_en_deca`) ; au plus
+## `TRAVERSEES_DU_RAYON` lancers. Rend `{ case, f, lieu }`, la case du triangle touché et sa couche (`Vector3i(x, y, z)`,
 ## lue à la forme de son morceau, `_forme_de`), le point de la carte touché (`MiseEnPage.point_de_carte_du_lieu`) et le
 ## lieu touché ; `null` hors du monde.
 func _toucher(origine: Vector3, fin: Vector3, sens: Vector3) -> Variant:
 	var requete := PhysicsRayQueryParameters3D.create(origine, fin)
 	var rayon := Basis(Quaternion(Vector3.FORWARD, sens))
-	for _traversee in TRAVERSEES_DU_RAYON:
+	var depart := MiseEnPage.abscisse(origine, rayon, 0.0)
+	var longueur := MiseEnPage.abscisse(fin, rayon, depart)
+	var bout := longueur
+	for _lancer in TRAVERSEES_DU_RAYON:
 		var touche := get_world_3d().direct_space_state.intersect_ray(requete)
 		if touche.is_empty():
-			return null
-		var forme := _corps.shape_owner_get_owner(_corps.shape_find_owner(touche.shape)) as CollisionShape3D
-		var c: Array = forme.get_meta("cases")[touche.face_index]
-		var case := Vector3i(int(c[0]), int(c[1]), int(c[2]))
-		if not volume.retiree(Vector2i(case.x, case.y), forme.get_meta("rangee")):
-			return {case = case, f = MiseEnPage.point_de_carte_du_lieu(to_local(touche.position)), lieu = touche.position}
-		requete.from = MiseEnPage.point_au_dela(touche.position, rayon)
+			if bout == longueur:
+				return null
+			requete.from = MiseEnPage.point_en_deca(requete.to, rayon, volume.metres_par_case)
+		else:
+			var forme := _corps.shape_owner_get_owner(_corps.shape_find_owner(touche.shape)) as CollisionShape3D
+			var c: Array = forme.get_meta("cases")[touche.face_index]
+			var case := Vector3i(int(c[0]), int(c[1]), int(c[2]))
+			if not volume.retiree(Vector2i(case.x, case.y), forme.get_meta("rangee")):
+				return {case = case, f = MiseEnPage.point_de_carte_du_lieu(to_local(touche.position)), lieu = touche.position}
+			requete.from = MiseEnPage.point_au_dela(touche.position, rayon, volume.metres_par_case)
+		bout = MiseEnPage.bout_du_troncon(requete.from, rayon, depart, longueur, volume.metres_par_case)
+		requete.to = MiseEnPage.point_a_l_abscisse(requete.from, rayon, depart, bout)
 	return null
 
 
@@ -649,17 +660,18 @@ func _zoomer(sens: float) -> void:
 ## (`VolumeDeScene.retirer`), que le shader de monde (`projet/art/monde.gdshader`) lit dans `vertex()` pour replier
 ## chaque sommet d'une case retirée ; l'instance en ombre seule n'est jamais masquée : le retiré ne se voit pas et porte
 ## son ombre (recette `projet/recettes/ombres-du-regard.gd`). Le rayon du pointeur, et celui qui cherche le sol sous un
-## lieu, traverse une case retirée (`Monde._toucher`, recette `projet/recettes/morceaux-du-monde.gd`).
+## lieu, traverse une case retirée, puis reprend par tronçons bornés, sans sauter une face sous le biais coplanaire du
+## noyau (`Monde._toucher`, recette `projet/recettes/morceaux-du-monde.gd`).
 ##
-## Le shader de monde rend chaque surface de sa texture, `projet/textures/<matiere>.jpg`, et de son relief,
-## `<matiere>.normale.jpg`, projetés sur les trois axes du volume, un motif tous les deux mètres ; une matière sans
-## texture garde la couleur de ses sommets. La provenance et la licence de chaque texture sont dans
-## `projet/textures/provenance.json` ; celles du kit des arêtes, dans `projet/kit/provenance.json` (dossiers épinglés,
-## `asset/epingles.ts`).
+## Le shader de monde rend chaque surface vue d'un morceau, une matière standard chaque surface d'une nappe, de sa
+## texture, `projet/textures/<matiere>.jpg`, et de son relief, `<matiere>.normale.jpg`, projetés sur les trois axes du
+## volume, un motif tous les deux mètres ; une matière sans texture garde la couleur de ses sommets. La provenance et la
+## licence de chaque texture sont dans `projet/textures/provenance.json` ; celles du kit des arêtes, dans
+## `projet/kit/provenance.json` (dossiers épinglés, `asset/epingles.ts`).
 ##
-## Le monde pose chaque nappe de toit et chaque couronne crénelée en maillage sous le volume, dans une matière du shader
-## de monde que le masque ne lie jamais, et que le rayon du pointeur traverse. Aucune géométrie ni couleur ne se
-## réécrit en GDScript.
+## Le monde pose chaque nappe de toit et chaque couronne crénelée en maillage sous le volume, dans une matière standard
+## que le masque ne lie jamais, et que le rayon du pointeur traverse. Aucune géométrie ni couleur ne se réécrit en
+## GDScript.
 ##
 ## `Monde.poser_la_meteo` pose la météo (`meteo`) dans le volume : une averse de particules par boîte, étirées dans le
 ## sens de leur chute, et chaque nappe translucide, sans éclairage ni brume de profondeur. Il joue aussi son son

@@ -1,13 +1,13 @@
 ## Le volume d'une scène tel que le jeu le dessine, que le monde du plateau et de l'éditeur (`Monde`) et l'atelier
 ## instancient tous deux : le volume du monde (`CONTRAT.md`, section « Monde ») en morceaux, mis à l'échelle d'une unité
 ## par case, chacun un nœud nommé par sa clé, gardé tant que son empreinte ne bouge pas (`poser`, `manquants`), une
-## instance vue sans ombre portée et une instance en ombre seule du même maillage, une surface par matière, texturée ou
-## colorée par sommet (le shader de monde, `art/monde.gdshader`), rendue des deux côtés hors des surfaces d'un navire, la
-## mer de chaque navire bordée par sa coque (`border_la_mer`) ; ce que le regard en retire, masqué case par case dans
-## le shader sans toucher ni aux maillages ni à leur ombre (`retirer`) ; les nappes de toit et les couronnes crénelées
-## des murs, réconciliées de même par clé et empreinte ; les arêtes de la scène, en unités de plateau, chacune la pièce
-## du kit des arêtes (`KIT`) que l'arête nomme, sinon sa boîte ; et ce que qui l'instancie en cache à la caméra
-## (`cacher`) ou en retire (`retirer_les_couronnes`).
+## instance vue sans ombre portée, habillée du shader de monde (`art/monde.gdshader`), et une instance en ombre seule du
+## même maillage, dans une matière standard, une surface par matière, texturée ou colorée par sommet, rendue des deux
+## côtés hors des surfaces d'un navire, la mer de chaque navire bordée par sa coque (`border_la_mer`) ; ce que le regard
+## en retire, masqué case par case dans le shader sans toucher ni aux maillages ni à leur ombre (`retirer`) ; les nappes
+## de toit et les couronnes crénelées des murs, dans des matières standard, réconciliées de même par clé et empreinte ;
+## les arêtes de la scène, en unités de plateau, chacune la pièce du kit des arêtes (`KIT`) que l'arête nomme, sinon sa
+## boîte ; et ce que qui l'instancie en cache à la caméra (`cacher`) ou en retire (`retirer_les_couronnes`).
 class_name VolumeDeScene
 extends Node3D
 
@@ -21,12 +21,17 @@ const KIT := "res://kit/kit.glb"
 @export var mesh_mur: BoxMesh
 @export var mesh_porte: BoxMesh
 @export var mesh_seuil: BoxMesh
-## La matière d'une surface sans texture, du shader de monde : la couleur de ses sommets. Jamais masquée, elle rend aussi
-## l'instance en ombre seule de chaque morceau.
-@export var couleur_des_sommets: ShaderMaterial
-## Le modèle de la matière d'une surface texturée, du shader de monde, projetée sur ses trois axes (triplanaire) dans le
-## repère du volume.
-@export var matiere_texturee: ShaderMaterial
+## La matière standard d'une surface sans texture d'une nappe, et de l'instance en ombre seule de chaque morceau, jamais
+## masquée : la couleur de ses sommets. Une matière qui ne déplace pas ses sommets porte l'ombre que Godot dessine pour
+## toutes (`drivers/gles3/rasterizer_scene_gles3.cpp:283` à 4.7).
+@export var couleur_des_sommets: StandardMaterial3D
+## Le modèle de la matière standard d'une surface texturée d'une nappe, projetée sur ses trois axes (triplanaire) dans
+## le repère du volume (`texturer`).
+@export var matiere_texturee: StandardMaterial3D
+## Les modèles de la matière d'une surface de l'instance vue d'un morceau, du shader de monde, sans texture puis
+## texturée (`texturer`), que le masque lie (`retirer`).
+@export var couleur_des_sommets_masquee: ShaderMaterial
+@export var matiere_texturee_masquee: ShaderMaterial
 
 @onready var _volume: Node3D = $Volume
 @onready var _morceaux: Node3D = $Volume/Morceaux
@@ -171,8 +176,8 @@ static func _manquants_sous(parent: Node, voulus: Array) -> Array:
 
 
 ## Le nœud du morceau `morceau` (`MorceauDuMonde`) : `Vu`, que la caméra voit sans qu'il porte d'ombre, et `Ombre`, en
-## ombre seule (`SHADOWS_ONLY`, #3758) dans une matière jamais masquée, du même maillage (`_mailler`) ; les navires dont
-## il porte la mer (`flottaison`), et sa géométrie s'il en porte, que `border_la_mer` remaille.
+## ombre seule (`SHADOWS_ONLY`, #3758) dans la matière standard `couleur_des_sommets`, du même maillage (`_mailler`) ; les
+## navires dont il porte la mer (`flottaison`), et sa géométrie s'il en porte, que `border_la_mer` remaille.
 func _morceau(morceau: Dictionary) -> Node3D:
 	var noeud := Node3D.new()
 	var vu := MeshInstance3D.new()
@@ -199,8 +204,8 @@ func _mailler(noeud: Node3D, morceau: Dictionary) -> void:
 	(noeud.get_node("Ombre") as MeshInstance3D).mesh = maillage
 
 
-## Le maillage d'une nappe de toit ou d'une couronne (`NappeDuMonde`, `_maillage_de`, jamais masqué), vu et portant son
-## ombre tant que `cacher` ne la nomme pas.
+## Le maillage d'une nappe de toit ou d'une couronne (`NappeDuMonde`, `_maillage_de`, jamais masqué, dans des matières
+## standard), vu et portant son ombre tant que `cacher` ne la nomme pas.
 func _nappe(nappe: Dictionary) -> MeshInstance3D:
 	var instance := MeshInstance3D.new()
 	instance.mesh = _maillage_de(nappe, false)
@@ -346,22 +351,16 @@ func _retournes(tableau: Variant) -> Variant:
 	return tableau
 
 
-## La matière de rendu des surfaces de la matière `nom` (`<domaine>--<id>`, `CONTRAT.md`, section « Monde »), du shader
-## de monde : texturée si sa texture est au projet (`texture_de`), son relief s'il y est (`relief_de`), projetés sur les
-## trois axes du repère du volume, un motif tous les `MiseEnPage.METRES_PAR_MOTIF` ; sinon la couleur de ses sommets.
-## Celle d'un morceau (`masquee`) est la sienne, liée au masque posé (`retirer`) ; celle d'une nappe, jamais masquée.
-func _matiere(nom: String, masquee: bool) -> ShaderMaterial:
+## La matière de rendu des surfaces de la matière `nom` (`<domaine>--<id>`, `CONTRAT.md`, section « Monde ») :
+## texturée (`texturer`) si sa texture est au projet, sinon la couleur de ses sommets. Celle d'un morceau (`masquee`),
+## du shader de monde, est la sienne, liée au masque posé (`retirer`) ; celle d'une nappe, standard, jamais masquée.
+func _matiere(nom: String, masquee: bool) -> Material:
 	var matieres := _matieres_masquees if masquee else _matieres_entieres
 	if not matieres.has(nom):
 		var texturee := ResourceLoader.exists(texture_de(nom))
-		var matiere: ShaderMaterial = ((matiere_texturee if texturee else couleur_des_sommets).duplicate() as ShaderMaterial) if texturee or masquee else couleur_des_sommets
-		if texturee:
-			matiere.set_shader_parameter("texture_albedo", load(texture_de(nom)))
-			matiere.set_shader_parameter("uv1_blend_sharpness", NETTETE_DU_MOTIF)
-			matiere.set_shader_parameter("uv1_scale", MiseEnPage.echelle_de_motif())
-			if ResourceLoader.exists(relief_de(nom)):
-				matiere.set_shader_parameter("relief", true)
-				matiere.set_shader_parameter("texture_normal", load(relief_de(nom)))
+		var modele: Material = (matiere_texturee_masquee if texturee else couleur_des_sommets_masquee) if masquee else (matiere_texturee if texturee else couleur_des_sommets)
+		var matiere: Material = modele.duplicate() if texturee or masquee else modele
+		texturer(matiere, nom)
 		if masquee:
 			matiere.set_shader_parameter("retrait", _retrait)
 		matieres[nom] = matiere
@@ -378,19 +377,20 @@ static func relief_de(nom: String) -> String:
 	return "res://textures/%s.normale.jpg" % nom
 
 
-## `materiau`, une matière standard, habillé de la matière `nom` comme le shader de monde l'habille (`_matiere`) si sa
-## texture est au projet : la texture et son relief s'il y est, projetés sur les trois axes du repère du mesh, un motif
-## tous les `MiseEnPage.METRES_PAR_MOTIF` ; rend si la texture y est.
-static func texturer(materiau: BaseMaterial3D, nom: String) -> bool:
+## `materiau`, une matière standard ou du shader de monde (qui nomme ses paramètres comme les propriétés de la matière
+## standard), habillé de la matière `nom` si sa texture est au projet : la texture et son relief s'il y est, projetés
+## sur les trois axes du repère du mesh, un motif tous les `MiseEnPage.METRES_PAR_MOTIF` ; rend si la texture y est.
+static func texturer(materiau: Material, nom: String) -> bool:
 	if not ResourceLoader.exists(texture_de(nom)):
 		return false
-	materiau.albedo_texture = load(texture_de(nom))
-	materiau.uv1_triplanar = true
-	materiau.uv1_triplanar_sharpness = NETTETE_DU_MOTIF
-	materiau.uv1_scale = MiseEnPage.echelle_de_motif()
+	var propriete := "shader_parameter/" if materiau is ShaderMaterial else ""
+	materiau.set(propriete + "albedo_texture", load(texture_de(nom)))
+	materiau.set(propriete + "uv1_triplanar", true)
+	materiau.set(propriete + "uv1_triplanar_sharpness", NETTETE_DU_MOTIF)
+	materiau.set(propriete + "uv1_scale", MiseEnPage.echelle_de_motif())
 	if ResourceLoader.exists(relief_de(nom)):
-		materiau.normal_enabled = true
-		materiau.normal_texture = load(relief_de(nom))
+		materiau.set(propriete + "normal_enabled", true)
+		materiau.set(propriete + "normal_texture", load(relief_de(nom)))
 	return true
 
 

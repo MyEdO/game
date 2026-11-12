@@ -8,7 +8,8 @@ extends SceneTree
 ## un neuf, le morceau parti quitte l'arbre avec sa forme. Changer le masque du retrait (`VolumeDeScene.retirer`) ne crée
 ## ni ne libère aucun nœud ni maillage. La case de l'étage retirée, le rayon du pointeur et celui qui tombe à la
 ## verticale d'un lieu la traversent et touchent le rez dessous (`Monde._toucher`) ; la case voisine de l'étage, gardée,
-## les arrête.
+## les arrête. Une case retirée recouvre une face gardée, un biais coplanaire du noyau plus bas : le rayon qui tombe
+## jusque sous le monde et celui du pointeur, oblique et long jusqu'au plan lointain de la caméra, touchent la face gardée.
 
 const RECETTE_AUTONOME := true
 const METRES_PAR_CASE := 2.0
@@ -22,6 +23,10 @@ const HAUTEURS := [{z = 0, rangees = [[0.0, 0.0]]}, {z = 1, rangees = [[4.0, 4.0
 const LARGEUR := 2
 const RANGEES := 4
 const SOL_DE_L_ETAGE := 2
+## La hauteur (m) de la face retirée qui recouvre la face gardée, et l'écart (m) de la face gardée sous elle : le biais
+## coplanaire du noyau (`COPLANAR_BIAS_M`, `src/noyau/monde/volume/worldTris.ts`).
+const HAUT_M := 2.0
+const BIAIS_COPLANAIRE_M := 0.0015
 var _fautes: Array[String] = []
 
 
@@ -73,6 +78,15 @@ func _recetter() -> void:
 		var touche: Variant = monde.touche_sous(root.get_visible_rect().size / 2.0)
 		_attendu(_case(touche), cas[1], "le rayon du pointeur, l'œil au-dessus de %s" % cas[0])
 		print("[morceaux-du-monde] rayon du pointeur sous %s : %s" % [cas[0], touche])
+	var haut := _morceau("haut", "haut", HAUT_M, 1, SOL_DE_L_ETAGE)
+	var bas := _morceau("bas", "bas", HAUT_M - BIAIS_COPLANAIRE_M, 0, 0)
+	monde.poser(_manifeste([haut, bas], []), {volume = [haut, bas], toits = [], couronnes = []})
+	await physics_frame
+	_attendu(_case(monde.sol_sous(Vector3(0.5, 5.0, 0.5))), Vector3i(0, 0, 0), "la face gardée un biais coplanaire sous la case retirée : le sol sous elle")
+	monde.poser_l_oeil(Vector3(0.5, 4.0, 3.5), 0.0, -PI / 4.0)
+	var oblique: Variant = monde.touche_sous(root.get_visible_rect().size / 2.0)
+	_attendu(_case(oblique), Vector3i(0, 0, 0), "la face gardée un biais coplanaire sous la case retirée : le rayon oblique du pointeur")
+	print("[morceaux-du-monde] sous la case retirée, un biais coplanaire plus bas : %s" % oblique)
 	for faute in _fautes:
 		push_error("[morceaux-du-monde] " + faute)
 	print("[morceaux-du-monde] erreurs=", _fautes.size())
