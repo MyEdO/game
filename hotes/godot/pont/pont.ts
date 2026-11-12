@@ -37,7 +37,7 @@ import { zonesDesScenarios } from '../../../src/hote/scenarios';
 import { AUTO_SLOT, MESSAGE_DU_REFUS, SAVE_SLOTS, ecrireLaSauvegarde, lireLaSauvegarde, nomDEmplacement, zonesDesSauvegardes, type AnySlot, type SaveSlot } from '../../../src/hote/sauvegardes';
 import { graineDEntropie, idDEntropie } from '../../../src/hote/entropie';
 import { boutonDuRoster } from '../../../src/hote/groupe';
-import { SANS_ROSTER, engagerLeHeros, mettreAJourLeRoster, retirerDuRoster, rosterAMontrer, type RosterMontre } from '../../../src/hote/roster';
+import { SANS_ROSTER, engagerLeHeros, fichierDuHeros, importerAuRoster, mettreAJourLeRoster, retirerDuRoster, rosterAMontrer, type RosterMontre } from '../../../src/hote/roster';
 import { garanti } from '../../../src/lib/garanti';
 import type { Stockage } from '../../../src/lib/stockage';
 import { t } from '../../../src/i18n';
@@ -1084,19 +1084,35 @@ export function creerPont(stockage: Stockage | null) {
     },
     /**
      * `{ roster }` : un geste sur le roster de l'hôte (`GesteDuRoster`, `src/hote/elements.ts`), celui que porte un
-     * bouton de la zone `groupe.roster`
+     * bouton des zones `groupe.roster` et `groupe.import`, ou `{ importe }`, le texte du fichier que le joueur a choisi
+     * (`null` s'il renonce), tant que l'écran offre l'import
      *
      * @returns une `Suite` : `{ recruter }`, celle de l'intention qui recrute au groupe le héros de l'entrée, que le
-     * noyau rebâtit de son brouillon sous l'id que le roster garde ; `{ retirer }`, sans jeton ni journal, l'entrée
-     * retirée du roster, la partie n'étant pas touchée. Un bouton refusé se refuse avec sa raison.
+     * noyau rebâtit de son brouillon sous l'id que le roster garde ; les autres, sans jeton ni journal, la partie
+     * n'étant pas touchée. `{ retirer }` : l'entrée retirée du roster. `{ exporter }` : la suite porte
+     * `fichier: { nom, texte }`, le fichier d'export du héros, que l'hôte remet au joueur. `{ importer }` : la suite
+     * porte `choix: true`, l'hôte fait choisir un fichier au joueur et en rend le texte par `{ importe }`.
+     * `{ importe }` : le héros du fichier entre au roster, en place de l'entrée du même héros ; un fichier refusé, ou
+     * ce que le jeu ne connaît plus et retire du héros, se dit en `groupe.avis`. Un bouton refusé se refuse avec sa
+     * raison.
      */
     roster(json) {
       const o = demarree();
       const e = entreeDe('roster', json, ['roster']);
-      const b = boutonDuRoster(vueDe(o).zones, e.roster);
-      valider(b, 'roster : roster, un geste du roster que l’écran offre (`{ roster }` d’un bouton de la zone groupe.roster)');
-      if (b!.refus) throw new ErreurDeGeste('regle', `roster : ${b!.refus}`);
+      const zones = vueDe(o).zones;
       const g = e.roster as GesteDuRoster;
+      if (estObjet(g) && 'importe' in g) {
+        valider((g.importe === null || typeof g.importe === 'string') && Object.keys(g).length === 1 && boutonDuRoster(zones, { importer: true }), 'roster : importe, le texte du fichier choisi ou null, tant que l’écran offre l’import');
+        if (g.importe === null) return sansJeton(o);
+        const importe = importerAuRoster(stockage, g.importe);
+        o.roster = rosterAMontrer(stockage, 'refus' in importe ? importe.refus : importe.avis);
+        return sansJeton(o);
+      }
+      const b = boutonDuRoster(zones, g);
+      valider(b, 'roster : roster, un geste du roster que l’écran offre (`{ roster }` d’un bouton des zones groupe.roster et groupe.import)');
+      if (b!.refus) throw new ErreurDeGeste('regle', `roster : ${b!.refus}`);
+      if ('importer' in g) return { ...sansJeton(o), choix: true };
+      if ('exporter' in g) return { ...sansJeton(o), fichier: garanti(fichierDuHeros(stockage, g.exporter), g.exporter, 'héros du roster') };
       if ('retirer' in g) {
         retirerDuRoster(stockage, g.retirer);
         return sansJeton(relireLeRoster(o));
@@ -1382,11 +1398,11 @@ export function creerPont(stockage: Stockage | null) {
   /**
    * @contrat Transport
    * - `wfrpPont.appeler(methode, entree?)` est la porte des outils (tests, vues figées, `recette.mjs`) ; Godot
-   *   appelle `appelerEnOctets`, hors du choix d'une image sur le disque de l'auteur
-   *   (`wfrpPont.choisirUneImage(rendre)`, section « Éditeur »), qui lit le document de la page et `FileReader` à son
-   *   appel seulement, hors de l'exécution de la construction. `methode` est le nom d'une méthode ; `entree` est une
-   *   chaîne JSON qui encode un objet, ou rien (absente ou `null`) pour une méthode sans entrée. Elle rend toujours
-   *   une chaîne JSON.
+   *   appelle `appelerEnOctets`, hors du choix d'un fichier sur le disque du joueur
+   *   (`wfrpPont.choisirUnFichier(accepte, rendre)` : la planche d'un calque, section « Éditeur », le fichier d'export
+   *   d'un héros, méthode `roster`), qui lit le document de la page et `FileReader` à son appel seulement, hors de
+   *   l'exécution de la construction. `methode` est le nom d'une méthode ; `entree` est une chaîne JSON qui encode un
+   *   objet, ou rien (absente ou `null`) pour une méthode sans entrée. Elle rend toujours une chaîne JSON.
    * - La réponse vaut `{ "ok": true, … }` ou `{ "ok": false, "erreur": { "categorie", "message" } }`. `appeler` ne lève
    *   jamais.
    * - Une clé de l'entrée que la méthode ne lit pas se refuse.

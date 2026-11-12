@@ -1,14 +1,15 @@
 /**
  * LE ROSTER PAR LE PONT (#3009) : les héros du roster de l'hôte montrés tant que le groupe se compose (`groupe.roster`),
- * recrutés au groupe ou retirés du roster par la méthode `roster`, ce que leur chargement retire dit en `groupe.avis`,
- * et le héros du roster que le noyau persiste en partie mis à jour dans le stockage.
+ * recrutés au groupe, retirés du roster, exportés en fichier ou importés d'un fichier par la méthode `roster`, ce que
+ * leur chargement ou leur import retire dit en `groupe.avis`, et le héros du roster que le noyau persiste en partie
+ * mis à jour dans le stockage.
  */
 import { afterEach, describe, it, expect } from 'vitest';
 import { erreurDe, suiteDe, table } from './pont.testkit';
 import { t } from '../../../src/i18n';
 import { rosterDeTest } from '../../../src/engine/idsDeTest.testkit';
 import { brouillonComplet } from '../../../src/noyau/creation/engagement.testkit';
-import { engagement, type RosterEntry } from '../../../src/noyau/index';
+import { engagement, rosterExport, type RosterEntry } from '../../../src/noyau/index';
 import { ajouterAuRoster, chargerLeRoster } from '../../../src/hote/roster';
 import type { Bouton, Entite, Ligne } from '../../../src/hote/elements';
 import type { Pont, Suite } from './pont';
@@ -25,7 +26,7 @@ function tableAuRoster(...noms: string[]) {
   return { ...ouverte, entrees };
 }
 const carte = (s: Suite, id: string): Entite => s.vue.zones['groupe.roster'].find((e) => e.id === `roster/${id}`)!;
-const boutonDe = (s: Suite, id: string, geste: 'recruter' | 'retirer'): Bouton => carte(s, id).elements.find((x): x is Bouton => x.type === 'bouton' && x.id === `${geste}/${id}`)!;
+const boutonDe = (s: Suite, id: string, geste: 'recruter' | 'retirer' | 'exporter'): Bouton => carte(s, id).elements.find((x): x is Bouton => x.type === 'bouton' && x.id === `${geste}/${id}`)!;
 const groupe = (s: Suite): string[] => s.vue.zones['groupe.heros'].map((e) => e.id);
 
 describe('le roster par le pont', () => {
@@ -37,7 +38,9 @@ describe('le roster par le pont', () => {
     expect(carte(s, entrees[0].hero.id).elements.filter((x): x is Bouton => x.type === 'bouton').map((b) => [b.libelle, b.jeu, b.refus])).toEqual([
       [t('ecran.groupe.recruter'), { roster: { recruter: entrees[0].hero.id } }, null],
       [t('picker.hero.delete'), { roster: { retirer: entrees[0].hero.id } }, null],
+      [t('picker.hero.export'), { roster: { exporter: entrees[0].hero.id } }, null],
     ]);
+    expect(s.vue.zones['groupe.import'].map((b) => [b.libelle, b.jeu, b.refus])).toEqual([[t('picker.import.btn'), { roster: { importer: true } }, null]]);
     expect(s.vue.zones['groupe.avis']).toEqual([]);
   });
 
@@ -65,6 +68,36 @@ describe('le roster par le pont', () => {
     expect(chargerLeRoster(stockage).map((e) => e.hero.id)).toEqual([bruno]);
     expect(erreurDe(appel('roster', { roster: { retirer: alda } })).categorie, 'un geste que l’écran n’offre plus').toBe('validation');
     expect(erreurDe(appel('roster', { roster: { oublier: bruno } })).categorie, 'ni un geste inconnu').toBe('validation');
+  });
+
+  it('exporté, le héros est remis en fichier ; importé de ce fichier, il revient au roster qui l’avait perdu', () => {
+    const { appel, entrees, stockage } = tableAuRoster('Alda', 'Bruno');
+    const [alda, bruno] = entrees.map((e) => e.hero.id);
+    const s = suiteDe(appel('ouvrir', { graine: 7 }));
+    const exporte = suiteDe(appel('roster', boutonDe(s, alda, 'exporter').jeu)) as Suite & { fichier?: { nom: string; texte: string } };
+    expect(exporte.fichier).toEqual({ nom: 'wfrp4-perso-alda.json', texte: rosterExport(entrees[0]) });
+    expect([exporte.vue.projection.pas, exporte.programmes, exporte.journal], 'aucun geste de la partie').toEqual([s.vue.projection.pas, [], []]);
+    appel('roster', boutonDe(s, alda, 'retirer').jeu);
+    const demande = suiteDe(appel('roster', s.vue.zones['groupe.import'][0].jeu)) as Suite & { choix?: boolean };
+    expect(demande.choix, 'l’hôte fait choisir un fichier').toBe(true);
+    expect(suiteDe(appel('roster', { roster: { importe: null } })).vue.zones['groupe.roster'].map((e) => e.id), 'le joueur renonce').toEqual([`roster/${bruno}`]);
+    const importe = suiteDe(appel('roster', { roster: { importe: exporte.fichier!.texte } }));
+    expect(importe.vue.zones['groupe.roster'].map((e) => e.id)).toEqual([`roster/${bruno}`, `roster/${alda}`]);
+    expect(importe.vue.zones['groupe.avis']).toEqual([]);
+    expect(chargerLeRoster(stockage).map((e) => e.hero), 'le héros importé est celui exporté').toEqual([entrees[1].hero, entrees[0].hero]);
+  });
+
+  it('un fichier qui n’est pas un export de héros se refuse en avis, le roster intact ; un import réussi l’efface', () => {
+    const { appel, entrees, stockage } = tableAuRoster('Alda');
+    const s = suiteDe(appel('ouvrir', { graine: 7 }));
+    const refuse = suiteDe(appel('roster', { roster: { importe: '{"kind":"autre"}' } }));
+    expect(refuse.vue.zones['groupe.avis'].map((l) => [l.texte, l.ton])).toEqual([[t('picker.import.error'), 'alerte']]);
+    expect(chargerLeRoster(stockage).map((e) => e.hero.id)).toEqual([entrees[0].hero.id]);
+    expect(suiteDe(appel('roster', { roster: { importe: rosterExport(entrees[0]) } })).vue.zones['groupe.avis']).toEqual([]);
+    expect(erreurDe(appel('roster', { roster: { importe: 3 } })).categorie, 'un texte, ou null').toBe('validation');
+    appel('roster', boutonDe(s, entrees[0].hero.id, 'recruter').jeu);
+    appel('lancer', { lancer: 'la-diligence' });
+    expect(erreurDe(appel('roster', { roster: { importe: rosterExport(entrees[0]) } })).categorie, 'la partie lancée n’offre plus l’import').toBe('validation');
   });
 
   it('un roster d’un autre format est retiré, et dit tant que le groupe de cette partie se compose', () => {

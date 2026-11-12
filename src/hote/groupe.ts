@@ -27,10 +27,13 @@ export interface ZonesDeLaPartie {
   /**
    * chaque héros du roster de l'hôte en entité (`herosDuRosterOfferts`, surface du noyau) : son nom, son espèce et sa
    * carrière, « Recruter », dont le `jeu` `{ roster: { recruter } }` porte l'id de son héros, refusé avec la raison du
-   * noyau (groupe plein, héros déjà au groupe), et « Supprimer », dont le `jeu` `{ roster: { retirer } }` le retire du
-   * roster (méthode `roster`).
+   * noyau (groupe plein, héros déjà au groupe), « Supprimer », dont le `jeu` `{ roster: { retirer } }` le retire du
+   * roster, et « Exporter », dont le `jeu` `{ roster: { exporter } }` en demande le fichier (méthode `roster`).
    */
   'groupe.roster': Entite[];
+  /** « Importer un personnage… », dont le `jeu` `{ roster: { importer: true } }` demande le choix d'un fichier d'export
+   *  (méthode `roster`). */
+  'groupe.import': Bouton[];
   /**
    * ce que le chargement du roster a retiré (`avisDuRoster` : un roster d'un autre format, des héros élagués de ce
    * que le jeu ne connaît plus), dit tant que la partie se compose.
@@ -64,7 +67,7 @@ export function zonesDeLaPartie(etat: Pick<Partie, 'battle' | 'party' | 'net' | 
     { type: 'bouton', id: 'sauvegardes', libelle: t('ecran.partie.sauvegardes'), jeu: { sauvegardes: true }, presse: false, focus: false, refus: null },
     { type: 'bouton', id: 'quitter', libelle: t('ecran.partie.quitter'), jeu: { quitter: true }, presse: false, focus: false, refus: null },
   ];
-  if (partieEnCours(etat)) return { 'groupe.pretires': [], 'groupe.roster': [], 'groupe.avis': [], 'groupe.campagnes': [], 'partie.gestes': gestes };
+  if (partieEnCours(etat)) return { 'groupe.pretires': [], 'groupe.roster': [], 'groupe.import': [], 'groupe.avis': [], 'groupe.campagnes': [], 'partie.gestes': gestes };
   const refus = refusDeLancer(etat);
   return {
     'partie.gestes': gestes,
@@ -72,7 +75,9 @@ export function zonesDeLaPartie(etat: Pick<Partie, 'battle' | 'party' | 'net' | 
     'groupe.roster': herosDuRosterOfferts(etat, roster.heros).map((h) => carte(`roster/${h.id}`, h, [
       bouton(`recruter/${h.id}`, t('ecran.groupe.recruter'), { roster: { recruter: h.id } }, h.refus),
       bouton(`retirer/${h.id}`, t('picker.hero.delete'), { roster: { retirer: h.id } }, null),
+      bouton(`exporter/${h.id}`, t('picker.hero.export'), { roster: { exporter: h.id } }, null),
     ])),
+    'groupe.import': [bouton('importer', t('picker.import.btn'), { roster: { importer: true } }, null)],
     'groupe.avis': roster.avis === null ? [] : [ligne('roster', roster.avis, 'alerte')],
     'groupe.campagnes': allBuiltinCampaigns.map((c): Entite => ({
       type: 'entite', id: `campagne/${c.id}`, ton: 'neutre', nom: c.label, elements: [...(c.desc ? [ligne('desc', c.desc)] : []), bouton(`lancer/${c.id}`, t('ecran.groupe.lancer'), { lancer: c.id }, refus)],
@@ -80,9 +85,9 @@ export function zonesDeLaPartie(etat: Pick<Partie, 'battle' | 'party' | 'net' | 
   };
 }
 
-/** Le bouton de la zone `groupe.roster` de `z` qui joue le geste du roster `roster`, égal en profondeur
- *  (`jsonCanonique`) ; `undefined` quand l'écran n'en offre aucun. */
-export function boutonDuRoster(z: Pick<ZonesDeLaPartie, 'groupe.roster'>, roster: unknown): Bouton | undefined {
+/** Le bouton des zones `groupe.roster` et `groupe.import` de `z` qui joue le geste du roster `roster`, égal en
+ *  profondeur (`jsonCanonique`) ; `undefined` quand l'écran n'en offre aucun. */
+export function boutonDuRoster(z: Pick<ZonesDeLaPartie, 'groupe.roster' | 'groupe.import'>, roster: unknown): Bouton | undefined {
   const cle = jsonCanonique({ roster });
-  return z['groupe.roster'].flatMap((e) => e.elements.filter((x): x is Bouton => x.type === 'bouton')).find((b) => jsonCanonique(b.jeu) === cle);
+  return [...z['groupe.import'], ...z['groupe.roster'].flatMap((e) => e.elements.filter((x): x is Bouton => x.type === 'bouton'))].find((b) => jsonCanonique(b.jeu) === cle);
 }

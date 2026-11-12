@@ -1,16 +1,17 @@
 /**
  * LA PROCÉDURE DU ROSTER d'un hôte (#3041), sur le `Stockage` qu'il fournit : charger, montrer, ajouter, retirer,
- * mettre à jour, engager un héros. La forme et ses transformations sont celles du noyau
+ * mettre à jour, engager un héros, l'exporter en fichier, en importer un. La forme et ses transformations sont celles du noyau
  * (`noyau/persistance/roster.ts`). Tout chargement qui retire ou élague le roster stocké écrit son TÉMOIN dans le
  * même `Stockage` (#1463 LD.1), quel que soit le geste qui charge ; `prendreLesTemoinsDuRoster` le consomme. Un
  * stockage absent (`null`) ou qui lève : le roster est vide, l'écriture ne se fait pas.
  */
 import {
   cumulerLesRetraits, ecrireLeRoster, engagement, idDeRosterDuHeros, intentionDEngagement, lireLesRetraits, lireLeRoster,
-  nommerLesRetraits, refusDEngagement, rosterAvecLeHeros, type Combatant, type CreatorDraft, type FabriqueDuRoster,
-  type IntentionDEngagement, type Jeu, type RetraitsDElagage, type RosterEntry,
+  nommerLesRetraits, refusDEngagement, rosterAvecLeHeros, rosterExport, rosterImport, type Combatant, type CreatorDraft,
+  type FabriqueDuRoster, type IntentionDEngagement, type Jeu, type RetraitsDElagage, type RosterEntry,
 } from '../noyau/index';
 import { t } from '../i18n';
+import { fileSlug } from '../lib/normalize';
 import { lireLeTexte, retirerLaCle, type Stockage } from '../lib/stockage';
 import { prendreLeTemoin, temoigner, type FormeDeTemoin } from './temoin';
 
@@ -103,6 +104,29 @@ export function engagerLeHeros(stockage: Stockage | null, etat: Pick<Jeu, 'battl
 /** Retire du roster de `stockage` l'entrée du héros `heroId`. */
 export function retirerDuRoster(stockage: Stockage | null, heroId: string): void {
   ecrire(stockage, chargerLeRoster(stockage).filter((e) => e.hero.id !== heroId));
+}
+
+/** Un fichier qu'un hôte remet au joueur : son nom, son texte. */
+export interface FichierARemettre {
+  nom: string;
+  texte: string;
+}
+
+/** Le fichier d'export du héros `heroId` du roster de `stockage` (`rosterExport`), nommé de son nom ; `null` si le
+ *  roster ne le porte pas. */
+export function fichierDuHeros(stockage: Stockage | null, heroId: string): FichierARemettre | null {
+  const entree = chargerLeRoster(stockage).find((e) => e.hero.id === heroId);
+  return entree ? { nom: `wfrp4-perso-${fileSlug(entree.hero.label)}.json`, texte: rosterExport(entree) } : null;
+}
+
+/** Importe au roster de `stockage` le héros du fichier d'export `texte` (`rosterImport`), en remplaçant l'entrée du
+ *  même héros : `{ refus }`, l'erreur d'un fichier refusé, rien n'étant écrit ; sinon `{ avis }`, ce que l'élagage a
+ *  retiré du héros importé, `null` s'il entre entier. */
+export function importerAuRoster(stockage: Stockage | null, texte: string): { refus: string } | { avis: string | null } {
+  const lu = rosterImport(texte);
+  if (!lu.entry) return { refus: lu.error };
+  ajouterAuRoster(stockage, lu.entry);
+  return { avis: lu.retraits ? t('picker.import.elague', { liste: nommerLesRetraits(lu.retraits) }) : null };
 }
 
 /** Met à jour l'entrée du héros `hero` DÉJÀ au roster de `stockage` (`rosterAvecLeHeros`) ; un héros absent n'y

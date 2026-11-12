@@ -96,8 +96,9 @@
 //   quittée, « Jouer » de nouveau, un pré-tiré recruté, l'Arène lancée sans recharger la page.
 // - `roster` (#3009) : un héros créé et engagé par le pont, sans l'écran, la partie quittée ; la page rechargée,
 //   « Jouer » le montre au roster ; « Recruter » de sa carte le fait entrer au groupe sous l'id que le roster garde, son
-//   recrutement refusé ensuite ; la Diligence lancée avec lui, puis quittée, il reste au roster ; « Supprimer » l'en
-//   retire, page rechargée comprise.
+//   recrutement refusé ensuite ; la Diligence lancée avec lui, puis quittée, il reste au roster ; « Exporter » en
+//   télécharge le fichier ; « Supprimer », puis « Importer un personnage… » sur ce fichier le rend au roster ;
+//   « Supprimer » l'en retire, page rechargée comprise.
 // - `editeur` (#3508), servi avec une copie des projets manuscrits du dépôt (`servir.mjs`, `depot`) : « Éditeur » ouvre la
 //   Diligence telle que le dépôt la sert, sur sa couche 0, rien à enregistrer ; l'outil Hauteur, « Haute (4 m) » et le
 //   pinceau 3×3 choisis à leurs boutons, un glissé de deux cases sur la carte : bouton tenu, la surcouche couvre
@@ -223,12 +224,12 @@
  * neuve des projets manuscrits du dépôt, clique « Éditeur », puis ses boutons et les cases de la carte, lit son état
  * dans `wfrpEcran.editeur`, et le fichier que « Enregistrer » écrit à la copie ; il amène chaque bouton et chaque champ
  * du panneau par la molette, aux crans que dit son point au défilement publié (`wfrpEcran.panneau`) ; il intercepte le choix de fichier de
- * la page (`Page.setInterceptFileChooserDialog`) et remplit l'`input[data-planche]` d'une planche qu'il écrit.
+ * la page (`Page.setInterceptFileChooserDialog`) et remplit l'`input[data-fichier]` d'une planche qu'il écrit.
  * @contrat Écran publié
  */
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -1631,14 +1632,40 @@ async function parcoursRoster() {
   await attendreLeMenu()
   v = await ouvrirAuGroupe()
   assert.ok(element(v, 'groupe.roster', carte.id), 'la partie quittée, il reste au roster')
+  const absent = `!v.zones['groupe.roster'].some((e) => e.id === ${JSON.stringify(carte.id)})`
+  const dossier = mkdtempSync(join(tmpdir(), 'recette-roster-'))
+  try {
+    await session.rpc('Page.setDownloadBehavior', { behavior: 'allow', downloadPath: dossier })
+    await cliquerBouton(bouton(boutonDeLEntite(v, 'groupe.roster', carte.id, 'exporter')))
+    const telecharges = () => readdirSync(dossier).filter((f) => f.endsWith('.json'))
+    for (let n = 0; n < 100 && telecharges().length === 0; n++) await sleep(100)
+    assert.equal(telecharges().length, 1, `« Exporter » télécharge un fichier : ${readdirSync(dossier).join(', ')}`)
+    const fichier = join(dossier, telecharges()[0])
+    const exporte = JSON.parse(readFileSync(fichier, 'utf8'))
+    assert.deepEqual([exporte.kind, exporte.hero.label, `roster/${exporte.hero.id}`], ['wfrp4-hero', nom, carte.id], 'le fichier est l’export de ce héros')
+    noter(`« Exporter » : ${basename(fichier)} téléchargé`)
+    await cliquerBouton(bouton(boutonDeLEntite(v, 'groupe.roster', carte.id, 'retirer')))
+    await attendreLaVue(absent)
+    await session.rpc('Page.setInterceptFileChooserDialog', { enabled: true })
+    await cliquerBouton(bouton(element(await vue(), 'groupe.import', 'importer')))
+    await waitFor(session, '!!document.querySelector("input[data-fichier]")')
+    await poserFichier(session, 'input[data-fichier]', fichier)
+    await attendreLaVue(`!(${absent})`)
+    v = await vue()
+    assert.deepEqual(zone(v, 'groupe.avis'), [], 'importé entier, rien à en dire')
+    noter(`« Supprimer », puis « Importer un personnage… » sur ce fichier : ${nom} revient au roster`)
+    await capturer('3009-roster-4-importe')
+  } finally {
+    rmSync(dossier, { recursive: true, force: true })
+  }
   await cliquerBouton(bouton(boutonDeLEntite(v, 'groupe.roster', carte.id, 'retirer')))
-  await attendreLaVue(`!v.zones['groupe.roster'].some((e) => e.id === ${JSON.stringify(carte.id)})`)
+  await attendreLaVue(absent)
   await session.rpc('Page.reload')
   await attendreLeMenu()
   v = await ouvrirAuGroupe()
   assert.equal(element(v, 'groupe.roster', carte.id), undefined, 'supprimé, il a quitté le roster, page rechargée comprise')
   noter(`« Supprimer » : ${nom} a quitté le roster`)
-  await capturer('3009-roster-4-supprime')
+  await capturer('3009-roster-5-supprime')
 }
 
 /** Le bouton de la vue d'id `id` dans la zone `z` pressé à l'écran, puis la vue que le pont rend. */
@@ -2345,8 +2372,8 @@ async function parcoursEditeur() {
   ecrirePlanche(planche)
   await session.rpc('Page.setInterceptFileChooserDialog', { enabled: true })
   await cliquerAuPanneau({ element: 'bouton/calque/charger' })
-  await waitFor(session, '!!document.querySelector("input[data-planche]")')
-  await poserFichier(session, 'input[data-planche]', planche)
+  await waitFor(session, '!!document.querySelector("input[data-fichier]")')
+  await poserFichier(session, 'input[data-fichier]', planche)
   await waitFor(session, 'globalThis.wfrpEcran?.editeur?.calque_pose === true', { timeoutMs: 30000 })
   e = await editeur()
   const ligneDuCalque = (e, id) => e.zones['editeur.calque'].find((l) => l.id === id)?.texte

@@ -136,7 +136,7 @@ export { avecSigne } from '../engine/types';
 export { MANIEMENTS, ROLES_D_ANIMATION, maniementDeLaForme, type RoleDAnimation } from './animation';
 export type { VerrouDesMots } from './fabriquesDuNoyau';
 export type { Maniement } from '../data/schemas/grammaire/valeurs';
-export { lireLeRoster, ecrireLeRoster, idDeRosterDuHeros, rosterAvecLeHeros, type HerosDuRoster, type RosterEntry } from './persistance/roster';
+export { lireLeRoster, ecrireLeRoster, idDeRosterDuHeros, rosterAvecLeHeros, rosterExport, rosterImport, type HerosDuRoster, type RosterEntry } from './persistance/roster';
 export { engagement, herosDuRosterOfferts, intentionDEngagement, intentionDeRenvoi, pretiresOfferts, refusDEngagement, refusDUnNouveauHeros, type IntentionDEngagement } from './creation/engagement';
 export { partieEnCours, refusDeLancer, refusDeRenvoyer } from './partyFlow';
 export type { CreatorDraft } from './creation/brouillon';

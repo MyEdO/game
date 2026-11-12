@@ -62,9 +62,10 @@ export type PanneauDeLHote = { fiche: FicheOuverte } | { creation: CreationOuver
  *  engager le héros dans le groupe. */
 export type GesteDeLaCreation = { geste: 'ouvrir'; args: [] } | { geste: 'engager'; args: [] } | { geste: 'page'; args: [PageDeCreation] } | GesteDuBrouillon;
 
-/** Un geste sur le roster de l'hôte : recruter au groupe le héros d'une entrée, ou retirer l'entrée du roster, chacune
- *  par l'id de son héros. */
-export type GesteDuRoster = { recruter: string } | { retirer: string };
+/** Un geste sur le roster de l'hôte : recruter au groupe le héros d'une entrée, retirer l'entrée du roster, ou
+ *  l'exporter en fichier, chacune par l'id de son héros ; demander le choix d'un fichier d'export à importer
+ *  (`importer`), puis en importer le texte (`importe`, `null` si le joueur renonce). */
+export type GesteDuRoster = { recruter: string } | { retirer: string } | { exporter: string } | { importer: true } | { importe: string | null };
 
 /** L'intention qu'un geste joue : un verbe de la partie et ses arguments, celui d'une offre de l'actif compris
  *  (`Offre.geste`), une suite de verbes

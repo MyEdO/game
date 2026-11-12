@@ -249,6 +249,14 @@ source = "groupe.avis"
 masque = NodePath("../../../../..")
 repli = true
 
+[node name="Import" type="HBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Groupe/Colonnes/Recrues/Pile"]
+
+[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene/Groupe/Colonnes/Recrues/Pile/Import" node_paths=PackedStringArray("masque")]
+script = ExtResource("1_zone")
+source = "groupe.import"
+masque = NodePath("../../../../..")
+repli = true
+
 [node name="Roster" type="VBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Groupe/Colonnes/Recrues/Pile"]
 theme_type_variation = &"PileSerree"
 

@@ -154,6 +154,8 @@ func _composer_du_roster(nom: String) -> bool:
 	if not await _attendre(func() -> bool: return _carte_du_roster(nom) != null and _publie("bouton/recruter/" + _id_au_roster(nom)) != null, "%s au roster, « Recruter » offert" % nom):
 		return false
 	var id := _id_au_roster(nom)
+	if _publie("bouton/exporter/" + id) == null or _publie("bouton/importer") == null:
+		_fautes.append("le roster n'offre pas « Exporter » de %s et « Importer un personnage… »" % nom)
 	print("[campagne] roster : %s" % ", ".join(PackedStringArray(_roster().map(func(e: Dictionary) -> String: return e.nom))))
 	_cliquer(_publie("bouton/recruter/" + id))
 	if not await _attendre(func() -> bool: return _renvois() == 1 and _publie("bouton/recruter/" + id) == null, "%s recruté du roster, son recrutement refusé ensuite" % nom):

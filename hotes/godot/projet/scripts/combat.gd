@@ -150,7 +150,7 @@ func _indexer_les_modeles() -> void:
 
 
 ## L'intention d'un geste : la fiche que l'écran montre va à `fiche`, un geste de la création d'un héros à `creation`,
-## un geste sur le roster de l'hôte à `roster`, la campagne à lancer à `lancer`, la partie à quitter à `quitter` (`_quitter`), le panneau des sauvegardes à ouvrir à
+## un geste sur le roster de l'hôte à `roster` (`_jouer_le_roster`), la campagne à lancer à `lancer`, la partie à quitter à `quitter` (`_quitter`), le panneau des sauvegardes à ouvrir à
 ## `sauvegardes` ou à fermer (`_fermer_les_sauvegardes`), l'emplacement où écrire à `sauvegarder`, celui à charger à
 ## `_charger`, toute autre à `jouer`.
 func _jouer(jeu: Dictionary) -> void:
@@ -169,7 +169,23 @@ func _jouer(jeu: Dictionary) -> void:
 	if jeu.has("charger"):
 		_charger(jeu.charger)
 		return
-	_suivre(_pont.appeler("fiche" if jeu.has("fiche") else "creation" if jeu.has("creation") else "roster" if jeu.has("roster") else "lancer" if jeu.has("lancer") else "jouer", jeu))
+	if jeu.has("roster"):
+		_jouer_le_roster(jeu)
+		return
+	_suivre(_pont.appeler("fiche" if jeu.has("fiche") else "creation" if jeu.has("creation") else "lancer" if jeu.has("lancer") else "jouer", jeu))
+
+
+## Un geste sur le roster de l'hôte (`roster`), sa suite suivie : le fichier qu'elle porte (`fichier`) est remis au
+## joueur ; le choix qu'elle demande (`choix`) est fait par le joueur, et le texte du fichier choisi revient au pont
+## (`{ importe }`, `null` s'il renonce).
+func _jouer_le_roster(jeu: Dictionary) -> void:
+	var reponse := _pont.appeler("roster", jeu)
+	_suivre(reponse)
+	if reponse.has("fichier"):
+		_pont.enregistrer_un_fichier(PontDuNoyau.HEROS, reponse.fichier.nom, reponse.fichier.texte)
+	if reponse.has("choix"):
+		var choisi := await _pont.choisir_un_fichier(PontDuNoyau.HEROS)
+		_suivre(_pont.appeler("roster", {roster = {importe = choisi.octets.get_string_from_utf8() if choisi.has("octets") else null}}))
 
 
 ## La partie quittée (`quitter`) : l'accueil revient, d'où une autre s'ouvre ; un refus laisse l'écran tel quel.
