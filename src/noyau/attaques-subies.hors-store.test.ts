@@ -342,7 +342,7 @@ describe('série d’attaques subies hors bataille (#3892)', () => {
   /** La série d'un assaillant à la dague (« Arme (dague) », `bladed` au catalogue) contre le héros armé d'un Brise-épée
    *  (Piège-lame) : sa Parade au Brise-épée, réussie sur un double (11), ouvre l'étape de choix « piège-lame », tranchée
    *  `choix`. LDB 62 l.278-280 */
-  function piegeALameDansLaSerie(choix: 'piege' | 'critique') {
+  function piegeALameOuvert() {
     const { banc, H } = horsBataille(testScene());
     const briseEpee = { label: 'Brise-épée', type: 'melee' as const, damage: { plusBF: true, flat: 3 }, qualities: [{ id: 'piege-lame' }], bladed: true, uid: 'brise-epee' };
     banc.setState({ party: [{ ...H, weapons: [briseEpee, ...H.weapons] }] });
@@ -358,10 +358,24 @@ describe('série d’attaques subies hors bataille (#3892)', () => {
     expect(defendre(banc, 11)).toMatchObject({ hit: false, parryWeapon: { uid: briseEpee.uid } });
     const etape = g().pendingCascade!.participants.find((x) => x.kind === 'piegeALame')!;
     expect(etape.piegeLame).toMatchObject({ defenderId: H.id, attackerId: g().serieSubie!.assaillant.id });
-    g().jetRegler('cascade', 'choix', choix, etape.id);
-    g().jetValider('cascade');
+    return { banc, H, etape };
+  }
+
+  function piegeALameDansLaSerie(choix: 'piege' | 'critique') {
+    const { banc, H, etape } = piegeALameOuvert();
+    banc.getState().jetRegler('cascade', 'choix', choix, etape.id);
+    banc.getState().jetValider('cascade');
     return { banc, H };
   }
+
+  it('Piège-lame en Parade : la série attend le choix Piéger ou Critique, aucune Défense suivante avant lui : LDB 62 l.278-280 ; #4011', () => {
+    const { banc } = piegeALameOuvert();
+    const s = banc.getState();
+    expect(s.pendingDefense).toBeNull();
+    expect(s.serieSubie).toMatchObject({ restantes: 2 });
+    const pc = s.pendingCascade!;
+    expect(pc.participants[pc.cursor].kind).toBe('piegeALame');
+  });
 
   it('Piège-lame en Parade, « Coup Critique » : le Critique placé sur l’assaillant se dit, la série se poursuit : LDB 62 l.278, LDB 14 l.3', () => {
     const { banc, H } = piegeALameDansLaSerie('critique');
@@ -384,6 +398,39 @@ describe('série d’attaques subies hors bataille (#3892)', () => {
     expect(assaillant.weapons.some((w) => w.label === 'Dague')).toBe(false);
     expect(s.serieSubie).toMatchObject({ cibleId: H.id, restantes: 1 });
     expect(s.pendingDefense).toMatchObject({ attackerId: assaillant.id, defenderId: H.id });
+  });
+
+  /** La série de 2 attaques d'un assaillant au Marteau à bec-de-corbin (Assommante, LDB 62 l.235), dont la 1ʳᵉ touche la
+   *  Tête du héros (d100 20 → 02) : la Défense perdue, l'étape `testDeclenche` de l'Atout ouverte. */
+  function assommanteALaTete() {
+    const { banc, H } = horsBataille(testScene());
+    const brute = { type: 'statblock', label: 'Brute', char: { 'capacite-de-combat': 35, force: 60 }, traits: [{ id: 'arme', value: 5, arg: 'marteau-a-bec-de-corbin' }] };
+    const opBrute = gameOpSchema.parse({ op: 'attaquesSubies', assaillant: { statblock: brute }, nombre: '1d10' });
+    applyEffects(banc.getState, banc.setState, [{ type: 'ops', on: 'hero', heroId: H.id, ops: [opBrute] }]);
+    imposerLesD100(20, 23, 20, 23, 20);
+    banc.getState().jetImposerLeResultat('cascadeTirage', 2, banc.getState().pendingCascade!.participants[0].id);
+    banc.getState().jetValider('cascade');
+    const coup = defendre(banc, 97);
+    expect(coup).toMatchObject({ hit: true, location: 'tete' });
+    return { banc, H };
+  }
+
+  it('Assommante à la Tête : le Test de l’Atout s’ouvre SEUL, sa clôture ouvre la Défense suivante, la série se ferme au compte juste : LDB 62 l.235 ; #4011', () => {
+    const { banc } = assommanteALaTete();
+    let s = banc.getState();
+    const ouvertes = s.pendingCascade!.participants.filter((x) => !x.committed);
+    expect(ouvertes.map((x) => x.kind)).toEqual(['testDeclenche']);
+    expect(s.pendingDefense).toBeNull();
+    expect(s.serieSubie).toMatchObject({ restantes: 2 });
+    banc.getState().jetLancer('cascade', ouvertes[0].id);
+    banc.getState().jetValider('cascade');
+    s = banc.getState();
+    expect(s.serieSubie).toMatchObject({ restantes: 1 });
+    expect(s.pendingDefense).toMatchObject({ attackerId: s.serieSubie!.assaillant.id });
+    expect(defendre(banc, 5).hit).toBe(false);
+    s = banc.getState();
+    expect(s.serieSubie).toBeNull();
+    expect(s.pendingDefense).toBeNull();
   });
 
   it('héros Inconscient, régime « critique » : le Critique du coup se tranche et s’applique, puis la série se ferme : LDB 16 l.113', () => {

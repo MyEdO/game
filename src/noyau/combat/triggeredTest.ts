@@ -188,7 +188,7 @@ export function simpleTriggeredTestStep(
     // ENJEU du Flow (#1117/#1262 V2 L6d) : déjà résolu par `withDerivedStake` chez l'appelant (déclaré,
     // sinon dérivé du porteur) — cette fabrique le TRANSMET, elle ne devine rien.
     stake: ft.stake,
-    meta: { onSuccess: branches.onSuccess, onFail: branches.onFail, after, ...extraMeta },
+    meta: { onSuccess: branches.onSuccess, onFail: branches.onFail, after, ...extraMeta, differeLaSuite: true },
     // Tag de DONNÉE (`FlowTest.menace` — Venin/lames empoisonnées : 'Poison') → l'étape offre
     // l'auto-succès du talent Résistance (Menace) (LDB 10, verbe `jetResister('cascade')`).
     ...(ft.menace ? { menace: ft.menace } : {}),
@@ -353,7 +353,7 @@ export function collectRoundEndTestSteps(get: Get, c: Combatant): BuiltCascadeSt
           options: [{ key: 'oui', label: dataLabel(prompt) }, { key: 'non', label: t('opt.renoncer') }],
           defaultChoice: 'non',
           // ENTITÉ PORTEUSE (ids) : le OUI ouvre LE Test — il en dérive son enjeu (#1262 V2 L6d).
-          meta: { choiceYes: eff.flow, choiceNo: EMPTY_FLOW, after: EMPTY_FLOW, opsDeCtx: porterOpsCtx({ idNeuf: get().forgerUnId, rng: battleRng(), caster: c, ...(eff.source ? { source: eff.source } : {}) }) },
+          meta: { differeLaSuite: true, choiceYes: eff.flow, choiceNo: EMPTY_FLOW, after: EMPTY_FLOW, opsDeCtx: porterOpsCtx({ idNeuf: get().forgerUnId, rng: battleRng(), caster: c, ...(eff.source ? { source: eff.source } : {}) }) },
         });
         pousseSi(optional, choix);
         continue;
@@ -528,7 +528,7 @@ export function resolveFlowTest(ctx: ExecCtx, node: Extract<Flow, { kind: 'test'
         id: triggeredTestStepId(c, ft.label, skillLabel), kind: 'testDeclenche', icon: 'navigation/des', rollLabel: skillLabel,
         actor: c, ligne: { test: decision.sujet }, label, difficulty,
         stake: ft.stake,
-        meta: { onSuccess: node.reussite, onFail: node.echec, after, opposed: { aT, attackerId: attacker.id, attackerName: attacker.label, ...opposedAttackerFreeze(opp!), difficulty: decision.declaree, ...(opp!.bonusSL ? { bonusSL: opp!.bonusSL } : {}), ...(opp!.defenderMustWin ? { defenderMustWin: true } : {}) }, ...extraMeta },
+        meta: { onSuccess: node.reussite, onFail: node.echec, after, opposed: { aT, attackerId: attacker.id, attackerName: attacker.label, ...opposedAttackerFreeze(opp!), difficulty: decision.declaree, ...(opp!.bonusSL ? { bonusSL: opp!.bonusSL } : {}), ...(opp!.defenderMustWin ? { defenderMustWin: true } : {}) }, ...extraMeta, differeLaSuite: true },
         ...(ft.menace ? { menace: ft.menace } : {}),
       })
       : simpleTriggeredTestStep(c, ft, cc, { onSuccess: node.reussite, onFail: node.echec }, after, extraMeta);
@@ -631,7 +631,7 @@ export function resolveFlowChoice(ctx: ExecCtx, node: Extract<Flow, { kind: 'cho
       options: [{ key: 'oui', label: dataLabel(yesLabel), ...(abordable ? {} : { refus: t('opt.avantageInsuffisant', { n: node.advantageCost ?? 0, dispo: spendableAdvantage(ctx.get().battle, decider) }) }) }, { key: 'non', label: t('opt.renoncer') }],
       defaultChoice: 'non',
       meta: {
-        choiceYes: node.oui, choiceNo: node.non ?? EMPTY_FLOW, after,
+        choiceYes: node.oui, choiceNo: node.non ?? EMPTY_FLOW, after, differeLaSuite: true,
         ...(node.advantageCost != null ? { choiceCost: node.advantageCost } : {}),
         ...(branchTargetId ? { choiceTargetId: branchTargetId } : {}),
         // CONTEXTE d'ops PORTÉ (sl, horloge, libellé, sort et ENTITÉ PORTEUSE) : la branche le retrouve
@@ -668,7 +668,7 @@ function designerLaPersonne(ctx: ExecCtx, cible: Combatant, effet: EffectOp, oc:
       label: t('step.personneChoisie', { src: nomDeSource(oc), name: cible.label }),
       options: candidates.map((p) => ({ key: p.id, label: dataLabel(p.label) })),
       defaultChoice: (auto ?? candidates[0]).id,
-      meta: { feuilleEnvers: { kind: 'effet', effet: effet }, after, choiceTargetId: cible.id, opsDeCtx: porterOpsCtx(oc) },
+      meta: { feuilleEnvers: { kind: 'effet', effet: effet }, after, choiceTargetId: cible.id, opsDeCtx: porterOpsCtx(oc), differeLaSuite: true },
     }));
     return FIN_DU_FLOW;
   }

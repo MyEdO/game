@@ -1693,7 +1693,10 @@ export type Cloture =
   | { verbe: 'reprendreFlow'; flow: Flow; label?: string; sl?: number }
   /** Reste d'une pile de Flow d'effet déclenché, rejoué par le walker de COMBAT (`runCombatFlow`) sur
    *  sa cible et avec le contexte porté de sa pile. */
-  | { verbe: 'reprendreFlowDeCombat'; flow: Flow; cibleId: string; ctx: OpsCtxPorte; label: string };
+  | { verbe: 'reprendreFlowDeCombat'; flow: Flow; cibleId: string; ctx: OpsCtxPorte; label: string }
+  /** Après-coup d'un coup appliqué (`combatFlow.jouerLApresCoup`), confié à l'étape que son application a poussée
+   *  et qui attend (`combatFlow.applyAttackResult`). */
+  | { verbe: 'apresCoup'; queue: QueueDuCoup };
 
 /**
  * CONTEXTE d'une feuille d'ops PORTÉ jusqu'à sa reprise (#1508, #2689) — la partition TOTALE d'`OpsCtx`
@@ -1723,10 +1726,12 @@ export function referentDeLEtape(step: Pick<CascadeStep, 'meta'>): string | unde
 
 export interface CascadeStepMeta {
   [key: string]: number | string | boolean | string[] | Flow | GameOp[] | OpsCtxPorte | Cloture[] | OpposedFreeze | FreeAttackFreeze | BladeTrapFreeze | ManeuverDefenseFreeze | undefined;
-  /** DÉCLARE que cette étape fait ATTENDRE sa conséquence à un dé (#1508) : le lot/la pile qui l'a
-   *  produite lui confie SA SUITE (`apresSuite`) au lieu de continuer par-dessus le dé en vol. Posé par
-   *  les mints du canal (`operationsDe`, `chuteDe`) ; lu par les DEUX walkers de Flow, qui n'ont ainsi aucune
-   *  liste de `kind` à tenir — un troisième kind à dé déclare le même champ et il est servi. */
+  /** DÉCLARE que cette étape fait ATTENDRE sa conséquence à un jet ou à un choix (#1508, #4011) : le lot, la pile,
+   *  le coup ou l'étape dont l'application l'a poussée lui confie SA SUITE (`apresSuite`) au lieu de continuer
+   *  par-dessus. Posé par les mints (`operationsDe`, `chuteDe`, `nombreDAttaquesSubies`, `testDeclenche`,
+   *  `choixDeclenche`, `personneChoisie`, `piegeALame`) ; lu par les walkers de Flow, `combatFlow.applyAttackResult`
+   *  et `cascade.commitStep` (`combatEffects.comptePasDifferes`), qui n'ont ainsi aucune liste de `kind` à tenir —
+   *  un kind de plus déclare le même champ et il est servi. */
   differeLaSuite?: boolean;
   /** L'op `attaquesSubies` dont l'étape `nombreDAttaquesSubies` tire le dé `nombre` (`combatFlow.ouvrirLeNombreDAttaquesSubies`),
    *  relue par son applier pour ouvrir la série. */

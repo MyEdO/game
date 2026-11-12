@@ -232,7 +232,7 @@ export function activeCombatant(battle: BattleState): Combatant | undefined {
 }
 
 import { objetDuNarratif } from './monde/resolveursDuNarratif';
-import { pushReveal, pushCombatStep, applyEffects, gearFromEffects, drainPendingLog, ouvrirChute, cloturer, ctxRepris, revealPurpose, nePeutPasDifferer, jouerFlowEntier, jouerLesClotures, OPS_DIFFEREES, type Applique } from './combatEffects';
+import { pushReveal, pushCombatStep, applyEffects, gearFromEffects, drainPendingLog, ouvrirChute, cloturer, comptePasDifferes, confierLaSuite, ctxRepris, revealPurpose, nePeutPasDifferer, jouerFlowEntier, jouerLesClotures, OPS_DIFFEREES, type Applique } from './combatEffects';
 import { teamCommandMod } from './monde/commandTeam';
 import { collectHeroRoundEndUpkeep } from './combat/roundHooks';
 import { aiDriven, controlsCombatant, defenseSurfaced } from './netOwnership';
@@ -2563,10 +2563,17 @@ export function applyAttackResult(
   res: AttackResult,
   coup: ApplicationDuCoup = {},
 ): Applique {
+  const avant = comptePasDifferes(get());
   const finale = appliquerLaTouche(get, set, attacker, target, weapon, res, coup);
   if (!finale) return OPS_DIFFEREES;
   const { suite } = coup;
-  return jouerLApresCoup(get, set, { attackerId: attacker.id, targetId: target.id, weapon, res: finale, ...(suite ? { suite } : {}), depuis: APRES_COUP[0] }) ? OPS_DIFFEREES : undefined;
+  const queue: QueueDuCoup = { attackerId: attacker.id, targetId: target.id, weapon, res: finale, ...(suite ? { suite } : {}), depuis: APRES_COUP[0] };
+  // L'application a poussé une étape qui attend (Test, choix) : l'après-coup est SA suite (#4011).
+  if (comptePasDifferes(get()) > avant) {
+    confierLaSuite(set, [{ verbe: 'apresCoup', queue }]);
+    return OPS_DIFFEREES;
+  }
+  return jouerLApresCoup(get, set, queue) ? OPS_DIFFEREES : undefined;
 }
 
 /** L'APPLICATION du coup, sans son après-coup. Rend la touche FINALE, celle que les modificateurs de
@@ -3428,7 +3435,7 @@ export function choixPiegeLame(pbt: PendingBladeTrap, defenseur: Combatant, atta
     id: `cons-piege-a-lame-${pbt.defenderId}`, kind: 'piegeALame', actorId: pbt.defenderId, icon: 'objet/arme',
     label: tr('step.paradePiegerLame'),
     options: [{ key: 'piege', label: tr('opt.piegerLame') }, { key: 'critique', label: tr('opt.coupCritique') }],
-    defaultChoice: 'critique', piegeLame: pbt,
+    defaultChoice: 'critique', piegeLame: pbt, meta: { differeLaSuite: true },
     outcome: toRecapLines([
       tr('cf.piegeLamePortee', { name: defenseur.label, parade: parade.label, foe: attaquant.label, weapon: pbt.weapon.label }),
       tr('cf.piegeLameIssue', { dr: pbt.defSL, foe: attaquant.label }),
@@ -3841,7 +3848,9 @@ export function poursuivreLaSerie(get: Get, set: SetFn): Applique {
 /** Ferme la série d'attaques subies, sa sortie unique : la fin de rencontre décidée sur ses combattants, le héros et
  *  l'assaillant (`ouvrirLaFinDeRencontre`), puis le héros rendu au groupe par la couture de retour
  *  (`sortieDeRencontre`) et la série vidée, la défaite du groupe constatée (`checkPartyWiped`, qui purge la suite et les
- *  Tests ouverts), PUIS sa suite jouée (`jouerLesClotures`), qui n'attend pas ces Tests. Dans cet ordre : la décision
+ *  Tests ouverts), PUIS sa suite jouée (`jouerLesClotures`), qui n'attend pas les Tests de fin de rencontre. Un Test ou
+ *  un choix poussé par le dernier coup est déjà résolu : il portait l'après-coup qui ferme la série
+ *  (`applyAttackResult`, #4011). Dans cet ordre : la décision
  *  lit les marqueurs de rencontre que la sortie efface, la suite s'applique au héros rendu, que la sortie n'écrase
  *  plus, et hors de toute série, qu'elle peut rouvrir. LDB 18 l.171 ; LDB 20 l.25, l.90 */
 export function fermerLaSerieSubie(get: Get, set: SetFn): void {
@@ -9187,6 +9196,7 @@ export const TABLES = {
     )),
   ],
   clotures: {
+    apresCoup: (get, set, c) => { jouerFlowEntier(jouerLApresCoup(get, set, c.queue) ? OPS_DIFFEREES : undefined); },
     // Clôture `reprendreFlowDeCombat` (#2689) : `combatEffects` ne peut pas importer `combat/triggeredTest`
     // (cycle) ; elle s'enregistre donc ICI, où `combatEffects` est entièrement initialisé.
     reprendreFlowDeCombat: (get, set, c) => {

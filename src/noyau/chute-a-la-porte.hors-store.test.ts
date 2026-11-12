@@ -420,6 +420,26 @@ describe('(v) ORDRE AUTHORÉ : ce qui suit une feuille à dé attend le dé, il 
     banc.getState().jetValider('cascade');
     expect(heros().wounds.current).toBe(190 - (3 * 25 + 4 - BE) + 50);
   });
+
+  it('grappe à DEUX dés (gréement) : la suite attend le 2ᵉ dé, que l’applier du 1ᵉʳ a poussé (#4011 G1)', () => {
+    const cible = heros();
+    banc.setState({ party: [{ ...cible, shipStation: 'greement', wounds: blessuresDeBase(200, 100) } as Combatant, coque()] });
+    const flow = { kind: 'sequence', etapes: [
+      { kind: 'effet', effet: { type: 'ops', on: 'target', ops: opsDeChute() } },
+      { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'heal', amount: 1000 }] } },
+    ] } as unknown as Flow;
+    runCombatFlow({ get: banc.getState, set: banc.setState, target: heros(), caster: heros(), label: 'Mât brisé', opsCtx: { hull: coque() } }, flow);
+    const hauteur = banc.getState().pendingCascade!.participants[0];
+    banc.getState().jetImposerLeResultat('cascadeTirage', 11, hauteur.id);
+    banc.getState().jetValider('cascade');
+    expect(heros().wounds.current, 'le soin attend le dé des Dégâts').toBe(100);
+    const pc = banc.getState().pendingCascade!;
+    const degats = pc.participants[pc.cursor];
+    banc.getState().jetImposerLeResultat('cascadeTirage', 4, degats.id);
+    banc.getState().jetValider('cascade');
+    // 100 − (3×11 + 4 − 3) = 66, puis +1000 → plafond 200. Soin avant le 2ᵉ dé : 200 − 34 = 166.
+    expect(heros().wounds.current).toBe(200);
+  });
 });
 
 describe('(vi) CONTEXTE de la feuille : la reprise applique le MÊME contexte que le chemin direct', () => {
