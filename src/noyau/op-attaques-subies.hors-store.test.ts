@@ -11,17 +11,17 @@ import { t } from '../i18n';
 import { humanizeOp } from './codex/humanize';
 
 const rats = { type: 'statblock', label: 'Rats géants', char: { 'capacite-de-combat': 35 }, traits: [{ id: 'arme', value: 5 }] } as const;
-const attaques = { op: 'attaquesSubies', assaillant: { statblock: rats }, nombre: '1d10' } as const;
+const attaques = { op: 'attaquesSubies', assaillant: { statblock: rats }, nombre: { dice: { n: 1, sides: 10 } } } as const;
 
 describe('op `attaquesSubies`', () => {
-  it('la grammaire admet un statbloc assaillant et un dé de tirage', () => {
+  it('la grammaire admet un statbloc assaillant et un Tirage `{ dice }`', () => {
     expect(gameOpSchema.safeParse(attaques).success).toBe(true);
   });
 
-  it('la grammaire refuse une op sans `nombre`, ou un `nombre` qui n’est pas un dé', () => {
+  it('la grammaire refuse une op sans `nombre`, ou un `nombre` en chaîne (« 1d10 ») au lieu d’un Tirage', () => {
     const { nombre: _n, ...sansNombre } = attaques;
     expect(gameOpSchema.safeParse(sansNombre).success).toBe(false);
-    expect(gameOpSchema.safeParse({ ...attaques, nombre: 'dix' }).success).toBe(false);
+    expect(gameOpSchema.safeParse({ ...attaques, nombre: '1d10' }).success).toBe(false);
   });
 
   it('est inerte dans `applyOps` et rangée parmi les ops impures', () => {
