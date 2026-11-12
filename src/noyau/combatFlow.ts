@@ -4134,9 +4134,9 @@ function applyTalentFreeAttack(get: Get, set: SetFn, actor: Combatant, op: Extra
   const ck = `${fa.key}:${target.id}`;
   if (op.perChargerOncePerRound && (uses[ck] ?? 0) >= 1) return undefined; // 1 riposte par chargeur (Frappe réactive)
   const solde = spendableAdvantage(get().battle, actor); // ce que `campSpend` débite (AA 11 l.30-38)
-  if (op.advantageCost != null && solde < op.advantageCost) return undefined; // Avantage insuffisant
+  if (op.coutEnAvantage != null && solde < op.coutEnAvantage) return undefined; // Avantage insuffisant
   if (op.advantageOrMovement && solde <= 0) return undefined; // LDB 10 l.78 : seule la dépense d'Avantage est jouée
-  if (op.advantageCost != null) campSpend(get, actor, op.advantageCost); // réserve du camp en mode groupe (AA 11 l.30-38) / le combattant (LDB)
+  if (op.coutEnAvantage != null) campSpend(get, actor, op.coutEnAvantage); // réserve du camp en mode groupe (AA 11 l.30-38) / le combattant (LDB)
   else if (op.advantageOrMovement) campSpend(get, actor, 1);
   actor.freeAttacksThisTurn = { ...uses, [fa.key]: (uses[fa.key] ?? 0) + 1, ...(op.perChargerOncePerRound ? { [ck]: 1 } : {}) };
   const prevActed = get().battle?.acted ?? false; // gratuite : Action préservée
