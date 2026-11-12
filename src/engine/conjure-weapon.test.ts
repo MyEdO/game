@@ -16,7 +16,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testki
 
 /** `TriggeredEffect` onHit→victim portant `ops` (forme unifiée des onHit d'arme invoquée/enchantée). */
 const onHitFlow = (ops: unknown[]): TriggeredEffect =>
-  ({ trigger: 'onHit', on: 'victim', flow: { kind: 'effet', effet: { type: 'ops', on: 'victim', ops } as never } });
+  ({ trigger: 'onHit', on: 'victime', flow: { kind: 'effet', effet: { type: 'ops', on: 'victim', ops } as never } });
 
 /**
  * Armes INVOQUÉES temporaires (op `grantWeapon`, LDB 47/48) : un OBJET ordinaire `conjured` posé en
