@@ -202,7 +202,7 @@ const incantationRatee = (): Flottant => flottant('rate', tr('fx.incantationRate
 
 /** Les rendus de repli : une arme de mêlée, de tir, naturelle, sans rendu propre ni de Groupe ; un sort hors Domaine ;
  *  une Prière. */
-const REPLI = { melee: 'arme-blanche', ranged: 'jet', naturelle: 'attaque-naturelle', sort: 'sort-arcane', priere: 'priere' } as const;
+const REPLI = { melee: 'arme-blanche', distance: 'jet', naturelle: 'attaque-naturelle', sort: 'sort-arcane', priere: 'priere' } as const;
 
 const catalogue = (id: string): RenduDef => findRenduById(id)!;
 
@@ -343,7 +343,7 @@ function effetDeLAttaque(a: Exclude<ChargeDAttaque, { kind: 'creature' }>, dista
   const rendu = renduDeLArme(a.weapon);
   const pare = !a.result.hit && a.parryWeapon !== undefined;
   const issue: IssueDuCoup = a.result.hit ? (a.result.critical ? 'critique' : 'touche') : pare ? 'pare' : 'manque';
-  const flottants = flottantsDeLaTouche(a.result, issue === 'critique', a.defense !== 'none');
+  const flottants = flottantsDeLaTouche(a.result, issue === 'critique', a.defense !== 'aucune');
   return coup(rendu, rendu.couleur, issue, a.from, a.to, distanceM, pare ? renduDeLArme(a.parryWeapon!) : null, flottants);
 }
 
@@ -605,7 +605,7 @@ export function vitrineDesEffets(): VitrineDesEffets {
     source: sourceDuTon(t, { cle: t.id, x: caseDeLaCible.x, y: caseDeLaCible.y, z: 0, hM: FLAME_LIFT_M }, RAYON_DE_LUMIERE_DE_LA_VITRINE),
   }));
   const attaques = Object.fromEntries(siegeEngines().map((t) => {
-    const rendu = catalogue(t.rendu?.id ?? REPLI.ranged);
+    const rendu = catalogue(t.rendu?.id ?? REPLI.distance);
     return [t.id, coup(rendu, rendu.couleur, 'touche', de, vers, distanceM, null, flottantsDeLaVitrine('touche'))];
   }));
   const echantillons: [string, Flottant][] = [

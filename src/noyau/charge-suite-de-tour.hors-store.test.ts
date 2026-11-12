@@ -37,7 +37,7 @@ const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, w
      weapons, advantage: 0, size: 'moyenne', pos, wounds: blessuresDeBase(pv),
      armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4 }) as unknown as Combatant);
 const sword: Weapon = { name: 'Épée', label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, uid: 'sw', qualities: [] } as unknown as Weapon;
-const CROSSBOW: Weapon = { label: 'Arbalète', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 60, reload: 1, qualities: [], uid: 'xb', loaded: false } as unknown as Weapon;
+const CROSSBOW: Weapon = { label: 'Arbalète', type: 'distance', damage: { plusBF: false, flat: 9 }, range: 60, reload: 1, qualities: [], uid: 'xb', loaded: false } as unknown as Weapon;
 
 /** Pose un combat de Round 1 (ordre = ordre des combattants), en solo. */
 function poser(banc: Banc, seed: number, combattants: Combatant[]): void {

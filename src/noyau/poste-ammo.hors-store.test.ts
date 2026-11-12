@@ -25,7 +25,7 @@ const ammoItem = (uid: string, trappingId: string, name: string, qty: number, ov
   ({ uid, trappingId, label: name, kind: 'ammo', subType: 'munition-de-siege', qty, qualities: [], enc: 0, equipped: false, ...over }) as ItemInstance;
 const mkPoste = (ammo: ItemInstance[], ammoUid?: string): ShipPoste =>
   ({ side: 'tribord',
-    item: { uid: 'canon', trappingId: 'canon-moyen', label: 'Canon (moyen)', kind: 'ranged', subType: 'armes-de-siege', weaponGroup: 'poudre-noire',
+    item: { uid: 'canon', trappingId: 'canon-moyen', label: 'Canon (moyen)', kind: 'distance', subType: 'armes-de-siege', weaponGroup: 'poudre-noire',
       damage: { flat: 14, plusBF: false }, range: 75, qualities: [{ id: 'arme-d-equipe', value: 2 }, { id: 'recharge', value: 6 }] },
     crewIds: ['chef', 'aide'], ammo, ammoUid }) as unknown as ShipPoste;
 const mkCrew = (id: string, items: ItemInstance[] = []): Combatant =>

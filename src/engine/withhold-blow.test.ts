@@ -40,7 +40,7 @@ const empaleuseSword: Weapon = { label: 'Épée', type: 'melee', damage: { plusB
 const percutanteSword: Weapon = { label: 'Masse', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [{ id: 'percutante' }] };
 const perforanteSword: Weapon = { label: 'Estoc', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [{ id: 'perforante' }] };
 const plainSword: Weapon = { label: 'Glaive', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
-const bow: Weapon = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [] };
+const bow: Weapon = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [] };
 
 /** onHitEffect posant l'État En flammes (patron Épée ardente de Rhuin) → arme « infligeant *En flammes* ». */
 const flameOnHit: TriggeredEffect = {
@@ -145,7 +145,7 @@ describe('Retenir ses coups — gardes RAW (mêlée seule, jamais En flammes / p
   });
 
   it('projectile : Retenir n’a aucun effet (l.61) → Critique du double conservé', () => {
-    const ranged = rederivePassiveAttack(att(), mk(), bow, dbl, 'ranged', { rng: makeRNG(1595) }, undefined, true);
+    const ranged = rederivePassiveAttack(att(), mk(), bow, dbl, 'distance', { rng: makeRNG(1595) }, undefined, true);
     expect(ranged.critical).toBe(true); // AA 07 l.61
   });
 });
@@ -161,7 +161,7 @@ describe("Retenir ses coups en 'ldb' — tout Coup Critique ignoré, rien d'autr
   });
 
   it('au tir comme avec une arme En flammes, le Coup Critique est ignoré', () => {
-    expect(rederivePassiveAttack(att(), mk(), bow, dbl, 'ranged', { rng: makeRNG(1595) }, undefined, true).critical).toBe(false);
+    expect(rederivePassiveAttack(att(), mk(), bow, dbl, 'distance', { rng: makeRNG(1595) }, undefined, true).critical).toBe(false);
     expect(resolveMeleePassive(att(), mk(), flameSword, dbl, { rng: makeRNG(1595) }, undefined, [], undefined, true).critical).toBe(false);
   });
 });

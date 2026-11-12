@@ -330,12 +330,12 @@ export const GATES_DE_PERTINENCE: ReadonlySet<string> = new Set([
 
 /** L'arme à distance que prend `approvisionnerLArme` sans arme désignée : la première du porteur. */
 export function armeADistanceParDefaut(active: Combatant) {
-  return active.weapons.find((w) => w.type === 'ranged');
+  return active.weapons.find((w) => w.type === 'distance');
 }
 
 /** Les armes à distance du porteur — population du sélecteur `armes-a-distance` et du gate `tireur`. */
 function armesADistance(active: Combatant) {
-  return active.weapons.filter((w) => w.type === 'ranged');
+  return active.weapons.filter((w) => w.type === 'distance');
 }
 
 /** Le set au poing ouvre-t-il un corps à corps ? Arme de mêlée DU set, ou set MAINS NUES (`LDB 15 l.35-37`,

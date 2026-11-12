@@ -168,7 +168,7 @@ describe('Préalables et pertinence : l’offre refuse ce que le verbe refuse', 
   });
 
   it('Viser n’est plus offert au tireur déjà en joue (pertinence, LDB 14 l.61)', () => {
-    const tireur = (c: Combatant) => c.kind === 'hero' && c.weapons.some((w) => w.type === 'ranged');
+    const tireur = (c: Combatant) => c.kind === 'hero' && c.weapons.some((w) => w.type === 'distance');
     const partie = auTour('ecuries-clayonnage', tireur);
     try {
       const id = activeCombatant(partie.etat().battle!)!.id;

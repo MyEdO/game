@@ -156,7 +156,7 @@
     "type": "weaponGroups",
     "label": "Arbalète",
     "kind": "weapon",
-    "combat": "ranged",
+    "combat": "distance",
     "maniement": "arbalete",
     "rendu": {
       "id": "arbalete"
@@ -172,7 +172,7 @@
     "type": "weaponGroups",
     "label": "Arc",
     "kind": "weapon",
-    "combat": "ranged",
+    "combat": "distance",
     "maniement": "arc",
     "rendu": {
       "id": "arc"
@@ -188,7 +188,7 @@
     "type": "weaponGroups",
     "label": "Entraves",
     "kind": "weapon",
-    "combat": "ranged",
+    "combat": "distance",
     "maniement": "entraves",
     "rendu": {
       "id": "entraves"
@@ -204,7 +204,7 @@
     "type": "weaponGroups",
     "label": "Explosifs",
     "kind": "weapon",
-    "combat": "ranged",
+    "combat": "distance",
     "maniement": "explosif",
     "rendu": {
       "id": "explosifs"
@@ -220,7 +220,7 @@
     "type": "weaponGroups",
     "label": "Fronde",
     "kind": "weapon",
-    "combat": "ranged",
+    "combat": "distance",
     "maniement": "fronde",
     "rendu": {
       "id": "fronde"
@@ -236,7 +236,7 @@
     "type": "weaponGroups",
     "label": "Lancer",
     "kind": "weapon",
-    "combat": "ranged",
+    "combat": "distance",
     "maniement": "jet",
     "rendu": {
       "id": "jet"
@@ -252,7 +252,7 @@
     "type": "weaponGroups",
     "label": "Ingénierie",
     "kind": "weapon",
-    "combat": "ranged",
+    "combat": "distance",
     "maniement": "arme_feu",
     "rendu": {
       "id": "poudre-noire"
@@ -269,7 +269,7 @@
     "type": "weaponGroups",
     "label": "Poudre noire",
     "kind": "weapon",
-    "combat": "ranged",
+    "combat": "distance",
     "maniement": "arme_feu",
     "rendu": {
       "id": "poudre-noire"
@@ -286,7 +286,7 @@
     "type": "weaponGroups",
     "label": "Catapulte",
     "kind": "weapon",
-    "combat": "ranged",
+    "combat": "distance",
     "maniement": "poings",
     "source": {
       "book": "livre-de-base",
@@ -533,7 +533,7 @@
     "type": "weaponGroups",
     "label": "Machine de guerre",
     "kind": "weapon",
-    "combat": "ranged",
+    "combat": "distance",
     "maniement": "poings",
     "source": {
       "book": "archives-de-l-empire-2",

@@ -51,9 +51,9 @@ export interface TavernGame {
    *  Caractéristique n'est PAS une Compétence, donc le Bras de fer tombe sur Pari par défaut. Poser
    *  ici `{ characteristic: 'force', maison: '…' }` est la lecture d'esprit, éditable au Codex et taguée. */
   fastSkill?: { skill?: RefDesignee; characteristic?: CharKey; maison: string };
-  /** Mode : `opposed` (un Test opposé, +DR l'emporte — variante rapide) ou `extended` (Test opposé étendu
+  /** Mode : `oppose` (un Test opposé, +DR l'emporte — variante rapide) ou `etendu` (Test opposé étendu
    *  jusqu'à `target` DR cumulés — Bras de fer, l.34). */
-  mode?: 'opposed' | 'extended';
+  mode?: 'oppose' | 'etendu';
   /** Difficulté du Test du jeu (NADJ 16 l.90, l.105, l.125, l.145) ; absente : Intermédiaire (LDB 12 l.166). */
   difficulty?: Difficulty;
   /** Test étendu : DR cumulés à atteindre (Bras de fer = 10). */
@@ -176,7 +176,7 @@ export function fastTavernGame(g: TavernGame): TavernGame {
     desc: g.desc,
     ...(test.skill ? { skill: test.skill } : {}),
     ...(test.characteristic ? { characteristic: test.characteristic } : {}),
-    mode: 'opposed',
+    mode: 'oppose',
     source: g.source,
   };
 }

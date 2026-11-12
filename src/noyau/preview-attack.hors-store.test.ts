@@ -114,7 +114,7 @@ describe('previewAttack — parité aperçu ↔ résolution (R4)', () => {
   });
 
   it('tir sans Ligne de Vue → blocked', () => {
-    const a = combatant({ id: 'A', pos: { x: 0, y: 0 }, weapons: [{ label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [] }] as never });
+    const a = combatant({ id: 'A', pos: { x: 0, y: 0 }, weapons: [{ label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [] }] as never });
     const b = combatant({ id: 'B', kind: 'enemy', pos: { x: 6, y: 0 } });
     const s = scene();
     (s.layers[0].tiles as string[])[3] = 'mur'; // mur intercalé sur la ligne (x=3,y=0)
@@ -125,7 +125,7 @@ describe('previewAttack — parité aperçu ↔ résolution (R4)', () => {
   it('outOfSightTargetIds (grisage hors-LdV) : ennemi derrière un mur grisé au tir, pas en mêlée, pas les morts', () => {
     const s = scene();
     (s.layers[0].tiles as string[])[3] = 'mur'; // mur sur la ligne y=0 entre x=0 et x=6
-    const archer = combatant({ id: 'A', pos: { x: 0, y: 0 }, weapons: [{ label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [] }] as never });
+    const archer = combatant({ id: 'A', pos: { x: 0, y: 0 }, weapons: [{ label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [] }] as never });
     const hidden = combatant({ id: 'E1', kind: 'enemy', pos: { x: 6, y: 0 } }); // derrière le mur
     const seen = combatant({ id: 'E2', kind: 'enemy', pos: { x: 0, y: 5 } }); // ligne dégagée
     const deadHidden = combatant({ id: 'E3', kind: 'enemy', pos: { x: 6, y: 1 }, dead: true });
@@ -169,7 +169,7 @@ describe('previewAttack — parité aperçu ↔ résolution (R4)', () => {
  * RENDUE — leur écart est l'amputation du plafond des Difficultés, portée par sa propre ligne, plus
  * la borne `targetMax` de `clampTarget`.
  */
-const cibleNonEcretee = (a: Combatant, kind: 'melee' | 'ranged', w: Combatant['weapons'][number], mods: ModLine[]): number =>
+const cibleNonEcretee = (a: Combatant, kind: 'melee' | 'distance', w: Combatant['weapons'][number], mods: ModLine[]): number =>
   combatValue(a, kind, w) + combineMods(mods);
 
 describe('previewAttack — plafond des Difficultés NOMMÉ et cible écrêtée (#1153 L3a)', () => {
@@ -323,7 +323,7 @@ describe('resolveDualSecond — la 2ᵉ frappe vise la cible que le moteur jette
 describe('attackPlan — gate PRÉ-clic du tir (parité avec le refus de sort)', () => {
   // Arc de Portée 4 m : bande Extrême ≤ ×3 = 12 m = 6 cases (1 case = 2 m).
   const archer = (over: Partial<Combatant> = {}) =>
-    combatant({ id: 'A', pos: { x: 0, y: 0 }, weapons: [{ label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 4, qualities: [] }] as never, ...over });
+    combatant({ id: 'A', pos: { x: 0, y: 0 }, weapons: [{ label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 8 }, range: 4, qualities: [] }] as never, ...over });
 
   it('cible sans Ligne de Vue → blocked (la modale ne s’ouvre jamais)', () => {
     const a = archer();
@@ -359,7 +359,7 @@ describe('attackPlan — gate PRÉ-clic du tir (parité avec le refus de sort)',
 describe('Difficulté — parité PRÉ-jet ↔ ligne RÉSOLUE (#1153 L4)', () => {
   const archer = () => combatant({
     id: 'A', pos: { x: 0, y: 0 },
-    weapons: [{ label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [] }] as never,
+    weapons: [{ label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [] }] as never,
   });
   /** Le tireur a DÉJÀ bougé ce Round (`LDB 14 l.70` : −10) — lu à l'identique par l'aperçu et par la résolution. */
   const getMobile = (combatants: Combatant[]): (() => JeuDuNoyau) =>
@@ -438,7 +438,7 @@ describe('Difficulté — parité PRÉ-jet ↔ ligne RÉSOLUE (#1153 L4)', () =>
   it('TIR DÉFENDU : la rangée défense et le jet résolu disent la même Difficulté (neige)', () => {
     const archer = combatant({
       id: 'A', pos: { x: 0, y: 0 },
-      weapons: [{ label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [] }] as never,
+      weapons: [{ label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [] }] as never,
     });
     // Défenseur AGILE (Esquive = meilleure défense) et au CONTACT : à bout portant, le tir s'oppose (LDB 14 l.40).
     const b = combatant({
@@ -501,7 +501,7 @@ describe('Difficulté — parité PRÉ-jet ↔ ligne RÉSOLUE (#1153 L4)', () =>
    * et composition sont FIGÉS par la résolution d'origine.
    */
   it('CHANCE sur un TIR à bout portant : rien ne bouge que le DR (l’arme ne se re-choisit pas)', () => {
-    const arc = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [], uid: 'bow' };
+    const arc = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [], uid: 'bow' };
     const epee = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, reach: 'Moyenne', qualities: [], uid: 'sw' };
     const a = combatant({ id: 'A', kind: 'hero', fortune: 2, pos: { x: 0, y: 0 }, weapons: [arc, epee] } as never);
     const b = combatant({ id: 'B', kind: 'enemy', pos: { x: 1, y: 0 } }); // AU CONTACT : la mêlée est à portée
@@ -537,7 +537,7 @@ describe('Difficulté — parité PRÉ-jet ↔ ligne RÉSOLUE (#1153 L4)', () =>
  * restant transportée → chip « autres » à chaque clic.
  */
 describe('BOUTON « +1 DR » sur la ligne résolue — le chemin du store fige l’arme (#1153)', () => {
-  const arbalete = { label: 'Arbalète', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [], uid: 'it-99' };
+  const arbalete = { label: 'Arbalète', type: 'distance', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [], uid: 'it-99' };
 
   /** Fixture du recetteur : Tireur ADJACENT au Gobelin (les mains nues sont à portée). */
   const ouvrir = (weaponUid?: string) => {
@@ -607,7 +607,7 @@ describe('BOUTON « +1 DR » sur la ligne résolue — le chemin du store fige l
    * d'influence. L'arme FIGÉE au jet rend la re-dérivation indépendante de la résolution d'uid.
    */
   it('uid HORS loadout actif : le jet fige l’arme tirée, les influences ne re-choisissent pas', () => {
-    const arc = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [], uid: 'w-arc' };
+    const arc = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [], uid: 'w-arc' };
     const a = combatant({ id: 'A', kind: 'hero', fortune: 4, pos: { x: 0, y: 0 }, weapons: [arc] } as never);
     const b = combatant({ id: 'B', kind: 'enemy', pos: { x: 1, y: 0 }, weapons: [] as never });
     banc.setState({
@@ -644,7 +644,7 @@ describe('BOUTON « +1 DR » sur la ligne résolue — le chemin du store fige l
  * chip « autres ». Le patron correct est celui de `finishDefenseResult` : brancher par `weapon.type`.
  */
 describe('TIR DÉFENDU : les influences ne transforment pas le tir en frappe (#1153)', () => {
-  const arbalete = { label: 'Arbalète', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [], uid: 'it-99' };
+  const arbalete = { label: 'Arbalète', type: 'distance', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [], uid: 'it-99' };
 
   const ouvrir = () => {
     const a = combatant({ id: 'A', kind: 'hero', fortune: 4, resilience: 2, pos: { x: 0, y: 0 }, weapons: [arbalete] } as never);
@@ -701,7 +701,7 @@ describe('TIR DÉFENDU : les influences ne transforment pas le tir en frappe (#1
  */
 describe('ATTAQUE NATURELLE : le gel du jet ne la transforme pas en arme tenue (#1026)', () => {
   it('freeKind morsure + fléchettes tenues : l’arme reste la morsure (mêlée)', () => {
-    const flechettes = { label: 'Fléchettes', type: 'ranged', damage: { plusBF: false, flat: 4 }, range: 20, qualities: [], uid: 'it-fl' };
+    const flechettes = { label: 'Fléchettes', type: 'distance', damage: { plusBF: false, flat: 4 }, range: 20, qualities: [], uid: 'it-fl' };
     const a = combatant({
       id: 'A', kind: 'hero', pos: { x: 0, y: 0 }, weapons: [flechettes],
       traits: [{ id: 'morsure', label: 'Morsure', indice: 4 }],

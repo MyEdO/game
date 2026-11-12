@@ -102,8 +102,8 @@ describe('etatsDeSituation — les États que porte le combat, pas le Combatant'
 });
 
 describe('setNonCharge — un set porte-t-il une arme à distance à recharger ?', () => {
-  const arbalete = { uid: 'w-arb', label: 'Arbalète', kind: 'ranged', subType: 'Arbalète', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [{ id: 'recharge', value: 1 }], enc: 1, equipped: true } as ItemInstance;
-  const arc = { uid: 'w-arc', label: 'Arc', kind: 'ranged', subType: 'Arc', damage: { plusBF: false, flat: 4 }, range: 50, qualities: [], enc: 1, equipped: true } as ItemInstance;
+  const arbalete = { uid: 'w-arb', label: 'Arbalète', kind: 'distance', subType: 'Arbalète', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [{ id: 'recharge', value: 1 }], enc: 1, equipped: true } as ItemInstance;
+  const arc = { uid: 'w-arc', label: 'Arc', kind: 'distance', subType: 'Arc', damage: { plusBF: false, flat: 4 }, range: 50, qualities: [], enc: 1, equipped: true } as ItemInstance;
   const porteur = () => heros('H', { items: [{ ...arbalete }, { ...arc }], loadouts: [{ id: 'arb', main: 'w-arb' }, { id: 'arc', main: 'w-arc' }] as never, activeLoadoutId: 'arc' });
 
   it('arme à recharge non chargée, dans un set NON ACTIF : non chargé', () => {

@@ -179,7 +179,7 @@ export function EquipmentPanel({ hero }: { hero: Combatant }) {
   const items = hero.items ?? [];
   const cape = emplacementDeCape(items);
   const wornCape = cape.porte;
-  const weapons = items.filter((i) => (i.kind === 'melee' || i.kind === 'ranged') && !i.destroyed);
+  const weapons = items.filter((i) => (i.kind === 'melee' || i.kind === 'distance') && !i.destroyed);
   const force = forceDuPorteur(hero);
 
   const activeWeapons = hero.weapons.filter((w) => !isUnarmed(w));
@@ -350,7 +350,7 @@ export function EquipmentPanel({ hero }: { hero: Combatant }) {
             <span className="muted">Mains nues</span>
           ) : (
             activeWeapons.map((w, i) => {
-              const ammo = w.type === 'ranged' ? compatibleAmmo(hero, w).reduce((s, a) => s + (a.qty ?? 0), 0) : null;
+              const ammo = w.type === 'distance' ? compatibleAmmo(hero, w).reduce((s, a) => s + (a.qty ?? 0), 0) : null;
               return (
                 <div className="weap" key={i}>
                   <ItemIcon item={w} size="sm" />

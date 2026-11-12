@@ -109,7 +109,7 @@ function entreeDuTour(b: Bataille, e: Bataille['combatants'][number]) {
   return buildAiInput(e, banc.getState);
 }
 /** L'ennemi que la carte arme d'une arme à DISTANCE — nommé par son ARMEMENT, pas par son id. */
-const tireurDe = (b: Bataille) => b.combatants.filter((c) => c.kind === 'enemy' && c.weapons.some((w) => w.type === 'ranged'));
+const tireurDe = (b: Bataille) => b.combatants.filter((c) => c.kind === 'enemy' && c.weapons.some((w) => w.type === 'distance'));
 
 describe('carte-fixture — deux stalles, une arête qui laisse voir, une qui ferme', () => {
   const sc = carte();
@@ -183,7 +183,7 @@ describe('IA hors siège — aucune décision ne porte sur une structure', () =>
   });
 
   it('l’ennemi armé d’une arme à DISTANCE TIRE sur un personnage — décision nommée, pas « une structure quelconque »', () => {
-    const tireurs = decisionsDesEnnemis().filter((l) => l.ennemi.weapons.some((w) => w.type === 'ranged'));
+    const tireurs = decisionsDesEnnemis().filter((l) => l.ennemi.weapons.some((w) => w.type === 'distance'));
     expect(tireurs.length, 'la fixture arme bien un tireur').toBe(1);
     expect(tireurs[0].action.kind).toBe('tir');
     expect(tireurs[0].cible!.kind).toBe('hero');
@@ -260,7 +260,7 @@ describe('IA — le mémo de Ligne de Vue du tour est PORTEUR (clé from→to)',
 describe('scénario de recette « écuries » — armement du tireur et non-contamination', () => {
   it('arme le tireur du groupe d’une arme à DISTANCE (l’arc en main, pas la fronde rangée)', () => {
     const tireur = scenario.construire(idsDeTest).party[0];
-    expect(tireur.weapons.some((w) => w.type === 'ranged')).toBe(true);
+    expect(tireur.weapons.some((w) => w.type === 'distance')).toBe(true);
   });
 
   it('pose son groupe et ses ennemis SANS toucher la scène de campagne partagée', () => {

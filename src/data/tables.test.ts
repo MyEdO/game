@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
 import { effectTables, findEffectTableById } from './index';
+import { deDeLaTableTiree, facesDuDe } from '../engine/tables';
 
 /**
  * Intégrité de `tables.json` (tables d'effets référençables) + BIEN-FORMATION des ops `rollTable` dans TOUS
@@ -39,10 +40,10 @@ describe('tables.json — tables d’effets référençables', () => {
     }
   });
 
-  it('les 4 colonnes du Tableau des aspects démoniaques (EDOC 13) existent, 10 rangées chacune', () => {
+  it('les 4 colonnes du Tableau des aspects démoniaques (EDOC 13) existent, une rangée par face de leur dé', () => {
     for (const dom of ['nurgle', 'slaanesh', 'tzeentch', 'indivisible']) {
       const t = findEffectTableById(`allure-demoniaque-${dom}`);
-      expect(t.entries).toHaveLength(10);
+      expect(t.entries).toHaveLength(facesDuDe(deDeLaTableTiree(t)));
       expect(t.die).toBe('d10');
     }
   });

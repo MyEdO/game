@@ -13,9 +13,9 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTes
  * `firedAttackBlock` honore le `weaponUid` → arc relatif au cap du navire support (parité réticule/clic).
  */
 const POSTE_UID = 'p-pierrier';
-const cannon = { label: 'Pierrier', type: 'ranged' as const, damage: { plusBF: false, flat: 9 }, range: 50, qualities: [], uid: POSTE_UID, mountSide: 'tribord' as const };
+const cannon = { label: 'Pierrier', type: 'distance' as const, damage: { plusBF: false, flat: 9 }, range: 50, qualities: [], uid: POSTE_UID, mountSide: 'tribord' as const };
 const personalSword = { label: 'Épée', type: 'melee' as const, damage: { plusBF: true, flat: 0 }, reach: 1, qualities: [], uid: 'sword' };
-const poste: ShipPoste = { item: { uid: POSTE_UID, trappingId: 'pierrier', label: 'Pierrier', kind: 'ranged' } as never, side: 'tribord', crewIds: ['gunner'] };
+const poste: ShipPoste = { item: { uid: POSTE_UID, trappingId: 'pierrier', label: 'Pierrier', kind: 'distance' } as never, side: 'tribord', crewIds: ['gunner'] };
 
 const gunner = (): Combatant =>
   (blessuresSurLeProfil({

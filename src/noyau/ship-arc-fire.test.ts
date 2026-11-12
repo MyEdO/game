@@ -11,7 +11,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTes
  * `firedAttackBlock` ne s'arme que pour le héros (chemin joueur), mais la LOGIQUE (shipOfCrew/mountedWeaponBears)
  * ne regarde pas le kind — l'IA câblera le même prédicat.
  */
-const cannon = { name: 'Canon', type: 'ranged' as const, damage: { plusBF: false, flat: 14 }, range: 75, qualities: [], mountSide: 'tribord' as const };
+const cannon = { name: 'Canon', type: 'distance' as const, damage: { plusBF: false, flat: 14 }, range: 75, qualities: [], mountSide: 'tribord' as const };
 
 const gunner = (): Combatant =>
   (blessuresSurLeProfil({
