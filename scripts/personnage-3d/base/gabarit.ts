@@ -15,7 +15,7 @@ export function matricesDePeauDuGabarit(squelette: Skeleton, table: TableDeGabar
   const bones = squelette.bones, taille = bones.length * 16;
   if (poses.length % taille) throw new Error('gabarit : poses binaires tronquées');
   if (plantes.length !== poses.length / taille) throw new Error(`gabarit : ${plantes.length} drapeau(x) de plantation pour ${poses.length / taille} échantillon(s)`);
-  const pose = poseDuGabarit({ gabarit: table }, facteurs);
+  const pose = poseDuGabarit({ gabarit: table }, facteurs, {});
   const binds = bindsAuGabarit(squelette, pose);
   const trouver = (nom: string) => {
     const b = bones.find((os) => os.name === nom);
@@ -66,7 +66,7 @@ export interface CorpsDuGabarit {
 
 /** #3104 issuecomment-6543352958, issuecomment-6543516831. */
 export function matricesDuGabarit(squelette: Skeleton, table: TableDeGabarit, facteurs: GabaritResolu): Matrix4[] {
-  const pose = poseDuGabarit({ gabarit: table }, facteurs);
+  const pose = poseDuGabarit({ gabarit: table }, facteurs, {});
   for (const b of squelette.bones) b.updateWorldMatrix(true, false);
   const repos = squelette.bones.map((b) => b.matrixWorld.clone());
   const binds = bindsAuGabarit(squelette, pose);

@@ -180,6 +180,7 @@ export interface PoseDuGabarit {
   readonly jambes: readonly string[];
   readonly clipsPlantes: readonly string[];
   readonly echelleDeVitesse: number;
+  readonly deplacementsDesOs: Readonly<Record<string, readonly [number, number, number]>>;
 }
 
 /** Ce que `poseDuGabarit` lit d'un manifeste de base ; la construction n'en a que la table. */
@@ -201,8 +202,9 @@ export const clipsPlantes = ({ clips, clipsDeuxMains }: Partial<Pick<ManifesteDe
  * sans cumul d'une image à l'autre. L'os `racine.os` voit son échelle de pose multipliée par `echelle`, chaque os
  * enfant la composante Y de sa position de pose, et, sur un clip planté, les jambes se plient (`poserLeGabarit`) :
  *
- * - `poseDuGabarit(manifeste, facteurs)` → `{ racine: { os, echelle }, enfantsDe: Record<os, facteur>, echellesDesOs:
- *   Record<os, [x, y, z]>, pieds: os[], echelleDeVitesse: number, jambes: os[], clipsPlantes: string[] }`. L'os
+ * - `poseDuGabarit(manifeste, facteurs, silhouettes)` → `{ racine: { os, echelle }, enfantsDe: Record<os, facteur>,
+ *   echellesDesOs: Record<os, [x, y, z]>, pieds: os[], echelleDeVitesse: number, jambes: os[], clipsPlantes:
+ *   string[], deplacementsDesOs: Record<os, [x, y, z]> }`. `silhouettes` : la sortie de `poidsDeSilhouettes`. L'os
  *   `racine.os` reçoit l'échelle uniforme `sl`. Chaque enfant os direct d'un os de `enfantsDe` reçoit sa position
  *   locale animée avec Y multiplié par le facteur de son parent ; X, Z, rotations et échelles des enfants sont
  *   conservés. La construction peut fournir uniquement la table `gabarit`. `pieds` relaie `appuis.pieds` pour les
@@ -211,6 +213,9 @@ export const clipsPlantes = ({ clips, clipsDeuxMains }: Partial<Pick<ManifesteDe
  *   pour la marche de l'atelier (`MarcheDeLAtelier`). `jambes` relaie `gabarit.legs` ; `clipsPlantes`
  *   (`clipsPlantes(manifeste)`) liste, chacun une fois, le clip du rôle `marche` de `clips` et de chaque maniement de
  *   `clipsDeuxMains` : les marches que la construction plante (#3314).
+ * - `deplacementsDesOs` (`deplacementsDesOs`) : par os, Σ_s `silhouettes[s]` × `gabarit.osDesSilhouettes[s][os]`.
+ * - Seuls les os à somme non nulle y figurent.
+ * - Chaque translation s'ajoute à la position locale animée de l'os, après le Y multiplié.
  *
  * Le manifeste de base, schéma `VERSION_DU_SCHEMA_DE_BASE`, porte `appuis.plusBas`, une liste non vide de copies de
  * géométrie : chaque candidat contient `position`, triplet en espace de bind, `os`, une à quatre influences `{ nom,
@@ -237,7 +242,19 @@ export const clipsPlantes = ({ clips, clipsDeuxMains }: Partial<Pick<ManifesteDe
  * S_b = `(1, f, 1)` sous `legs` et `arms`, `(f, f, f)` sous `head`. Les hôtes disposent ainsi des multiplicateurs du
  * décalage local d'un emplacement ou d'une prise sur cet os ; ce champ ne modifie pas l'échelle du squelette.
  */
-export function poseDuGabarit({ gabarit, appuis, ...clips }: ManifesteDuGabarit, facteurs: GabaritResolu): PoseDuGabarit {
+/** `hotes/godot/pont/CONTRAT.md`, « Gabarit d'une base ». */
+export function deplacementsDesOs({ osDesSilhouettes }: Pick<TableDeGabarit, 'osDesSilhouettes'>, silhouettes: Readonly<Record<string, number>>): Record<string, readonly [number, number, number]> {
+  const somme: Record<string, [number, number, number]> = {};
+  for (const [silhouette, poids] of Object.entries(silhouettes)) {
+    for (const [os, t] of Object.entries(osDesSilhouettes[silhouette] ?? {})) {
+      const s = (somme[os] ??= [0, 0, 0]);
+      for (let k = 0; k < 3; k++) s[k] += poids * t[k];
+    }
+  }
+  return Object.fromEntries(Object.entries(somme).filter(([, t]) => t.some((v) => v !== 0)));
+}
+
+export function poseDuGabarit({ gabarit, appuis, ...clips }: ManifesteDuGabarit, facteurs: GabaritResolu, silhouettes: Readonly<Record<string, number>>): PoseDuGabarit {
   const enfantsDe: Record<string, number> = {};
   const echellesDesOs: Record<string, readonly [number, number, number]> = {};
   for (const cle of CLES_DU_GABARIT) {
@@ -247,7 +264,7 @@ export function poseDuGabarit({ gabarit, appuis, ...clips }: ManifesteDuGabarit,
       echellesDesOs[nom] = cle === 'head' ? [facteur, facteur, facteur] : [1, facteur, 1];
     }
   }
-  return { racine: { os: gabarit.racine, echelle: facteurs.sl }, enfantsDe, echellesDesOs, pieds: appuis?.pieds ?? [], jambes: gabarit.legs, clipsPlantes: clipsPlantes(clips), echelleDeVitesse: facteurs.sl };
+  return { racine: { os: gabarit.racine, echelle: facteurs.sl }, enfantsDe, echellesDesOs, pieds: appuis?.pieds ?? [], jambes: gabarit.legs, clipsPlantes: clipsPlantes(clips), echelleDeVitesse: facteurs.sl, deplacementsDesOs: deplacementsDesOs(gabarit, silhouettes) };
 }
 
 /** `hotes/godot/pont/CONTRAT.md`, « Gabarit d'une base ». */

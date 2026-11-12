@@ -8,6 +8,8 @@ import type { GabaritResolu } from '../../../../src/noyau/index.ts';
 import { poseDuGabarit, type ManifesteDuGabarit, type PoseDuGabarit } from '../gabarit.ts';
 import { hauteurDesCandidats, peauxDesCandidats } from './candidatsDAppui.ts';
 
+type Triplet = readonly [number, number, number];
+
 const os = (scene: Object3D, nom: string): Bone => {
   const b = scene.getObjectByName(nom);
   if (!(b as Bone | undefined)?.isBone) throw new Error(`gabarit : ${nom} n’est pas un os de la scène`);
@@ -31,34 +33,64 @@ export interface GabaritPose {
   readonly scene: Object3D;
   readonly racine: Bone;
   readonly echelle: number;
-  /** Chaque os enfant d'un os de `enfantsDe` (`poseDuGabarit`), avec son facteur. */
-  readonly enfants: readonly (readonly [Bone, number])[];
+  /** Chaque os que la pose déplace (`enfantsDuGabarit`), avec son facteur et sa translation. */
+  readonly enfants: readonly (readonly [Bone, number, Triplet])[];
   /** Les jambes pliées sur un clip de `clipsPlantes` (`poseDuGabarit`). */
   readonly jambes: readonly JambeDuGabarit[];
   readonly clipsPlantes: readonly string[];
   readonly candidats: ReturnType<typeof peauxDesCandidats>;
-  /** La pose sans gabarit des os qu'il touche : l'échelle et la position de la racine, la position de chaque enfant. */
+  /** La pose sans gabarit des os qu'il touche : l'échelle et la position de la racine, la position de chaque os de `enfants`. */
   readonly nonModifiee: { readonly echelle: Vector3; readonly position: Vector3; readonly enfants: readonly Vector3[] };
 }
 
 /**
  * @contrat Gabarit d'une base
  * - `poserEnfantsDuGabarit(enfants)` (`asset/evaluateur/gabarit.ts`) porte l'étape commune qui multiplie le Y local
- *   des enfants. `reposerGabarit` l'appelle. `enfantsDuGabarit` y sélectionne les enfants os ; `bindsAuGabarit` et
- *   l'évaluateur lisent cette même sélection. Ces fonctions sont typées par three dans l'outillage de l'évaluateur ;
+ *   de chaque os de `enfants` par son facteur puis y ajoute sa translation. `reposerGabarit` l'appelle.
+ * - `enfantsDuGabarit` y sélectionne la liste unique des os que la pose déplace : chaque enfant os d'un os de
+ *   `enfantsDe`, au facteur de son parent, et chaque os de `deplacementsDesOs`, à sa translation ; facteur 1 sans
+ *   parent dans `enfantsDe`, translation nulle sans déplacement. `bindsAuGabarit`, `reposerGabarit` et l'évaluateur
+ *   lisent cette même sélection.
+ * - Ces fonctions sont typées par three dans l'outillage de l'évaluateur ;
  *   la construction (`scripts/personnage-3d/base/gabarit.ts`), hors des zones du moteur, les importe directement. Le
  *   solveur unique `scripts/personnage-3d/base/laplacien.ts` est appelé par H5 et par
  *   `scripts/personnage-3d/base/laplacien.mjs` pour la correction des silhouettes ;
  *   `scripts/personnage-3d/base/gabarit.test.ts` le vérifie dans la suite principale.
  */
 export function poserEnfantsDuGabarit(enfants: GabaritPose['enfants']): void {
-  for (const [enfant, facteur] of enfants) enfant.position.y *= facteur;
+  for (const [enfant, facteur, [x, y, z]] of enfants) {
+    enfant.position.y *= facteur;
+    enfant.position.x += x;
+    enfant.position.y += y;
+    enfant.position.z += z;
+  }
 }
 
+const NUL: Triplet = [0, 0, 0];
+
 /** `hotes/godot/pont/CONTRAT.md`, « Gabarit d'une base ». */
-export function enfantsDuGabarit(pose: Pick<PoseDuGabarit, 'enfantsDe'>, trouver: (nom: string) => Bone): GabaritPose['enfants'] {
-  return Object.entries(pose.enfantsDe).flatMap(([nom, facteur]) =>
-    trouver(nom).children.filter((enfant): enfant is Bone => (enfant as Bone).isBone === true).map((enfant) => [enfant, facteur] as const));
+export function enfantsDuGabarit(pose: Pick<PoseDuGabarit, 'enfantsDe' | 'deplacementsDesOs'>, trouver: (nom: string) => Bone): GabaritPose['enfants'] {
+  const facteurs = new Map<Bone, number>();
+  for (const [nom, facteur] of Object.entries(pose.enfantsDe)) {
+    for (const enfant of trouver(nom).children) if ((enfant as Bone).isBone) facteurs.set(enfant as Bone, facteur);
+  }
+  const translations = new Map(Object.entries(pose.deplacementsDesOs).map(([nom, t]) => [trouver(nom), t] as const));
+  return [...new Set([...facteurs.keys(), ...translations.keys()])].map((b) => [b, facteurs.get(b) ?? 1, translations.get(b) ?? NUL] as const);
+}
+
+/** Le déplacement monde de chaque objet de `mesures` sous les seules translations de `deplaces`, matrices monde à jour
+ *  en entrée ; positions et matrices rendues à leur état d'entrée. */
+export function deplacementsMondeDesOs(deplaces: readonly (readonly [Bone, Triplet])[], mesures: readonly Object3D[]): Vector3[] {
+  const avant = mesures.map(position);
+  const positions = deplaces.map(([b]) => b.position.clone());
+  try {
+    for (const [b, [x, y, z]] of deplaces) b.position.add(new Vector3(x, y, z));
+    for (const [b] of deplaces) b.updateWorldMatrix(false, true);
+    return mesures.map((m, i) => position(m).sub(avant[i]));
+  } finally {
+    deplaces.forEach(([b], i) => b.position.copy(positions[i]));
+    for (const [b] of deplaces) b.updateWorldMatrix(false, true);
+  }
 }
 
 /** `hotes/godot/pont/CONTRAT.md`, « Gabarit d'une base ». */
@@ -151,8 +183,11 @@ export function plierLesJambes(racine: Bone, jambes: readonly JambeDuGabarit[], 
  * - `poserLeGabarit(racine, echelle, enfants, jambes, haut)` (`asset/evaluateur/gabarit.ts`) est l'étape (2) commune à
  *   l'évaluateur et à la construction, sur la pose jouée sans gabarit : l'échelle `sl` de la racine, puis, sur un clip
  *   de `clipsPlantes`, la visée de chaque jambe (`viseesDesJambes`), la matrice monde de son pied et son extension,
- *   distance de la hanche au pied rapportée à la longueur de la jambe ; puis le Y des enfants (`poserEnfantsDuGabarit`)
- *   ; puis les jambes pliées (`plierLesJambes`). Une jambe (`jambesDuGabarit`) est un os de `jambes` dont le parent, sa
+ *   distance de la hanche au pied rapportée à la longueur de la jambe ; puis le Y et la translation des os de
+ *   `enfants` (`poserEnfantsDuGabarit`) ; puis les jambes pliées (`plierLesJambes`). La matrice monde de chaque visée
+ *   est translatée du déplacement monde que les seules translations de `enfants` donnent à son pied
+ *   (`deplacementsMondeDesOs`), mesuré à l'échelle `sl` déjà posée, avant le Y multiplié et le pli : la foulée suit
+ *   les os déplacés. Une jambe (`jambesDuGabarit`) est un os de `jambes` dont le parent, sa
  *   cuisse, est aussi dans `jambes` : le mollet ; son unique os enfant est le pied, et un mollet à zéro ou plusieurs os
  *   enfants est refusé. `plierLesJambes` monte la racine le long de `haut`, la verticale monde, du plus petit
  *   déplacement qui rend à une jambe son extension de la visée, puis plie chaque jambe par l'IK analytique à deux os :
@@ -171,7 +206,8 @@ export function plierLesJambes(racine: Bone, jambes: readonly JambeDuGabarit[], 
 export function poserLeGabarit(racine: Bone, echelle: number, enfants: GabaritPose['enfants'], jambes: readonly JambeDuGabarit[], haut: Vector3): void {
   racine.scale.multiplyScalar(echelle);
   racine.updateWorldMatrix(true, true);
-  const visees = viseesDesJambes(jambes);
+  const translations = deplacementsMondeDesOs(enfants.map(([b, , t]) => [b, t] as const), jambes.map(({ pied }) => pied));
+  const visees = viseesDesJambes(jambes).map((v, i) => ({ ...v, pied: new Matrix4().makeTranslation(translations[i]).multiply(v.pied) }));
   poserEnfantsDuGabarit(enfants);
   racine.updateWorldMatrix(false, true);
   plierLesJambes(racine, jambes, visees, haut);
@@ -179,8 +215,8 @@ export function poserLeGabarit(racine: Bone, echelle: number, enfants: GabaritPo
 
 /**
  * @contrat Gabarit d'une base
- * - `bindsAuGabarit(squelette, pose)` (`asset/evaluateur/gabarit.ts`) emploie `poserEnfantsDuGabarit` au repos sans
- *   gabarit et rend tous les binds `Bind′_b = inv(G′_b)·G_b·Bind_b` : G est la matrice monde de repos sans gabarit,
+ * - `bindsAuGabarit(squelette, pose)` (`asset/evaluateur/gabarit.ts`) emploie `poserEnfantsDuGabarit`, facteurs et
+ *   translations de `deplacementsDesOs` compris, au repos sans gabarit et rend tous les binds `Bind′_b = inv(G′_b)·G_b·Bind_b` : G est la matrice monde de repos sans gabarit,
  *   G′ la même après cette seule étape, hors `sl` et hors translation de la racine. L'appel attend le squelette au
  *   repos sans gabarit ; il rend les positions et matrices à leur état d'entrée et ne modifie pas ses binds.
  *   L'évaluateur les pose une fois sur chaque squelette de la scène montée dans `appliquerGabarit`, avant la pose des
@@ -213,7 +249,7 @@ export function poserLeGabarit(racine: Bone, echelle: number, enfants: GabaritPo
  * facteur S_b de K_b, et s'écarte de H5 de 0,12 à 0,31 m sur la fixture
  * (`asset/evaluateur/evaluateur.hors-store.test.ts`, « repos posé A·P »).
  */
-export function bindsAuGabarit(squelette: Skeleton, pose: Pick<PoseDuGabarit, 'enfantsDe'>): Matrix4[] {
+export function bindsAuGabarit(squelette: Skeleton, pose: Pick<PoseDuGabarit, 'enfantsDe' | 'deplacementsDesOs'>): Matrix4[] {
   const racines = new Set(squelette.bones.map((b): Object3D => {
     let racine: Object3D = b;
     while (racine.parent) racine = racine.parent;
@@ -248,7 +284,8 @@ export function bindsAuGabarit(squelette: Skeleton, pose: Pick<PoseDuGabarit, 'e
  * À chaque pose, repos compris, l'évaluateur suit le chemin unique `reposerGabarit`, appelé par `appliquerGabarit` et
  * par `echantillonner` : (1) restaure les composantes sans gabarit, joue le clip à l'instant demandé et mesure le plus
  * bas des candidats avec les binds d'origine, les silhouettes courantes et les clés `gabarit_*` nulles ; (2) compose
- * l'échelle animée de la racine avec `sl` et le Y animé des enfants avec leur facteur, jambes pliées sur un clip de
+ * l'échelle animée de la racine avec `sl` et la position animée de chaque os de `enfants` avec son facteur et sa
+ * translation, jambes pliées sur un clip de
  * `clipsPlantes` (`poserLeGabarit`), puis mesure les mêmes candidats avec les binds compensés et toutes les formes
  * courantes ; (3) translate verticalement la racine pour ramener ce minimum à `sl` multiplié par celui de (1), dans le
  * repère du parent de la racine. La translation est recalculée depuis la pose sans gabarit, sans cumul. Sans candidat,
@@ -273,8 +310,8 @@ export function reposerGabarit(gabarit: GabaritPose, jouer: () => void, plante =
 }
 
 /** `hotes/godot/pont/CONTRAT.md`, « Gabarit d'une base ». */
-export function appliquerGabarit(scene: Object3D, facteurs: GabaritResolu, manifeste: ManifesteDuGabarit, squeletteDeBase?: Skeleton): GabaritPose {
-  const pose = poseDuGabarit(manifeste, facteurs);
+export function appliquerGabarit(scene: Object3D, facteurs: GabaritResolu, manifeste: ManifesteDuGabarit, silhouettes: Readonly<Record<string, number>>, squeletteDeBase?: Skeleton): GabaritPose {
+  const pose = poseDuGabarit(manifeste, facteurs, silhouettes);
   const racine = os(scene, pose.racine.os);
   const enfants = enfantsDuGabarit(pose, (nom) => os(scene, nom));
   if (!manifeste.appuis?.plusBas?.length) throw new Error('appliquerGabarit : appuis.plusBas non vide attendu');

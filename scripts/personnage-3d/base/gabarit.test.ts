@@ -38,7 +38,7 @@ describe('H5 de construction, ancres fixes (#3104)', () => {
     bones[0].updateMatrixWorld(true);
     const facteurs = { ...FACTEURS_NEUTRES, legs: BORNES.legs.min, arms: BORNES.arms.max };
     const obtenu = matricesDePeauDuGabarit(c.squelette, c.table, facteurs, new Float32Array(poses), [false, false]);
-    const pose = poseDuGabarit({ gabarit: c.table }, facteurs);
+    const pose = poseDuGabarit({ gabarit: c.table }, facteurs, {});
     const enfants = enfantsDuGabarit(pose, (nom) => bones.find((b) => b.name === nom)!);
     const binds = bindsAuGabarit(c.squelette, pose);
     for (const [rang, angle] of [0, 0.7].entries()) {
@@ -67,7 +67,7 @@ describe('H5 de construction, ancres fixes (#3104)', () => {
     bones[0].updateMatrixWorld(true);
     const facteurs = { ...FACTEURS_NEUTRES, legs: BORNES.legs.max };
     const obtenu = matricesDePeauDuGabarit(c.squelette, c.table, facteurs, new Float32Array(poses), [false, true]);
-    const binds = bindsAuGabarit(c.squelette, poseDuGabarit({ gabarit: c.table }, facteurs));
+    const binds = bindsAuGabarit(c.squelette, poseDuGabarit({ gabarit: c.table }, facteurs, {}));
     const monde = (rang: number, os: number) => new Matrix4().fromArray(Array.from(obtenu.subarray((rang * bones.length + os) * 16, (rang * bones.length + os + 1) * 16))).transpose().multiply(binds[os].clone().invert());
     const pied = bones.findIndex((b) => b.name === 'foot');
     const ecart = (a: Matrix4, b: Matrix4) => Math.max(...a.elements.map((v, i) => Math.abs(v - b.elements[i])));
@@ -91,7 +91,7 @@ describe('H5 de construction, ancres fixes (#3104)', () => {
     const bones = [root, leg];
     const inv = bones.map((b) => new Matrix4().makeTranslation(0, decale, 0).multiply(b.matrixWorld).invert());
     const positions = [new Vector3(0, 0, 0), new Vector3(1, 0, 0), new Vector3(0, 1, 0), new Vector3(1, 1, 0)];
-    const table: TableDeGabarit = { racine: 'root', legs: ['leg'], arms: [], head: [], st: { min: 0.72, max: 1.7 }, bornes: BORNES };
+    const table: TableDeGabarit = { racine: 'root', legs: ['leg'], arms: [], head: [], st: { min: 0.72, max: 1.7 }, bornes: BORNES, osDesSilhouettes: {} };
     const h5 = preparerGabarit({ positions, aretes: [[0, 1], [1, 2], [2, 0], [1, 3], [3, 2]],
       poids: [[[0, 1]], [[0, 0.5], [1, 0.5]], [[1, 1]], [[1, 1]]], squelette: new Skeleton(bones, inv), table });
     const ecart = Math.max(...h5.resoudre(FACTEURS_NEUTRES).map((p, i) => p.distanceTo(positions[i])));
@@ -101,7 +101,7 @@ describe('H5 de construction, ancres fixes (#3104)', () => {
     const root = new Bone(), leg = new Bone(), child = new Bone();
     root.name = 'root'; leg.name = 'leg'; child.name = 'child';
     root.add(leg); leg.add(child); child.position.y = 1; root.updateMatrixWorld(true);
-    const table: TableDeGabarit = { racine: 'root', legs: ['leg'], arms: [], head: [], st: { min: 0.8, max: 1.2 }, bornes: BORNES };
+    const table: TableDeGabarit = { racine: 'root', legs: ['leg'], arms: [], head: [], st: { min: 0.8, max: 1.2 }, bornes: BORNES, osDesSilhouettes: {} };
     const h5 = preparerGabarit({ squelette: new Skeleton([root, leg, child]), table,
       positions: [new Vector3(0, 0, 0), new Vector3(0, 1, 0), new Vector3(0, 2, 0)],
       aretes: [[0, 1], [1, 2]], poids: [[[1, 1]], [[1, 0.5], [2, 0.5]], [[2, 1]]],
@@ -133,7 +133,7 @@ describe('H5 de construction, ancres fixes (#3104)', () => {
     const inverses = bones.map((b, i) => b.matrixWorld.clone().invert().multiply(new Matrix4().makeScale(1, echelles[i], 1)));
     const squelette = new Skeleton(bones, inverses);
     const positions = [new Vector3(0, 0, 0), new Vector3(0, 0.01, 0), new Vector3(0, 1, 0)];
-    const table: TableDeGabarit = { racine: 'root', legs: ['leg'], arms: [], head: [], st: { min: 0.8, max: 1.2 }, bornes: { ...BORNES, legs: { min: 0.5, max: 2 } } };
+    const table: TableDeGabarit = { racine: 'root', legs: ['leg'], arms: [], head: [], st: { min: 0.8, max: 1.2 }, bornes: { ...BORNES, legs: { min: 0.5, max: 2 } }, osDesSilhouettes: {} };
     const h5 = preparerGabarit({ squelette, table, positions, aretes: [[0, 1], [1, 2]],
       poids: [[[1, 1]], [[1, 0.5], [2, 0.5]], [[2, 1]]] });
     const peauDuMilieu = (echelles[1] + echelles[2]) / 2;
@@ -187,7 +187,7 @@ describe('H5 de construction, ancres fixes (#3104)', () => {
     expect(Math.max(...neutre.flatMap((m) => m.elements.map((x, j) => Math.abs(x - (j % 5 === 0 ? 1 : 0)))))).toBeGreaterThan(0.1);
     const facteurs = { ...FACTEURS_NEUTRES, legs: 0.62, arms: BORNES.arms.max, head: BORNES.head.max };
     const obtenu = matricesDuGabarit(c.squelette, c.table, facteurs);
-    const pose = poseDuGabarit({ gabarit: c.table }, facteurs);
+    const pose = poseDuGabarit({ gabarit: c.table }, facteurs, {});
     const enfants = enfantsDuGabarit(pose, (nom) => c.squelette.bones.find((b) => b.name === nom)!);
     poserEnfantsDuGabarit(enfants);
     c.squelette.bones[0].updateMatrixWorld(true);

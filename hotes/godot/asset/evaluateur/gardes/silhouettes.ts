@@ -4,27 +4,29 @@
  * Avec `st` et les deux formes de carrure, chaque silhouette hors carrure est prise à 1, seule ; la carrure par
  * `poidsDeCarrure` aux `st` de `pointsDeCarrure`. Sinon, chaque silhouette est prise seule à 1, même nommée carrure,
  * et la mesure de carrure vaut `null`. Sous chaque
- * silhouette et la carrure à une borne de `st`, le centre de chaque anneau articulaire (`anneauxArticulaires`) reste à
- * moins de `FRACTION_DU_RAYON` × son rayon de repos, et au moins un sommet du corps bouge de plus de
+ * silhouette et la carrure à une borne de `st`, le centre de chaque anneau articulaire (`anneauxArticulaires`) suit le
+ * déplacement monde de son os sous les mêmes poids (`osDesSilhouettes`) à moins de `FRACTION_DU_RAYON` × son rayon de
+ * repos, et au moins un sommet du corps bouge de plus de
  * `DEPLACEMENT_INERTE_M`. L'épaisseur (rayon de l'anneau le plus épais au repos) suit `st` à `TOLERANCE_EPAISSEUR`
  * près, en écart relatif ; l'écart des 5 rapports au segment entre les extrêmes (linéarité) se rapporte. L'état des
  * shape keys trouvé à l'entrée est restauré à la sortie.
  */
-import { Vector3, type Matrix4, type Mesh, type Object3D, type SkinnedMesh } from 'three';
+import { Vector3, type Bone, type Matrix4, type Mesh, type Object3D, type SkinnedMesh } from 'three';
 import { tableTotale } from '../../../../../src/lib/tableTotale.ts';
 import type { Ecart } from '../ecart.ts';
 import { poseDeRepos, type Pose } from '../echantillonnage.ts';
-import { poidsDeCarrure } from '../../gabarit.ts';
+import { deplacementsDesOs, poidsDeCarrure } from '../../gabarit.ts';
 import { CARRURE_MOINS, CARRURE_PLUS } from '../../silhouettes.ts';
 import type { TableDeGabarit } from '../../manifesteDeBase.ts';
 import { SOL_TOLERANCE_M } from './piedsAuSol.ts';
 import { POIDS_NEGLIGEABLE } from './poids.ts';
-import { poserFormes } from '../gabarit.ts';
+import { deplacementsMondeDesOs, poserFormes } from '../gabarit.ts';
 
-/** Le déplacement admis du centre d'un anneau, en fraction de son rayon de repos. Un dixième : l'os, que les shape
- *  keys ne déplacent pas, reste dans le dixième central de la section de la peau qui plie autour de lui ; un centre qui
- *  s'en écarte davantage fait plier la peau autour d'un pivot excentré, d'autant plus que le membre est fin. Ordre de
- *  grandeur posé par principe, jamais réglé sur une mesure de la base. */
+/** L'écart admis entre le déplacement du centre d'un anneau et celui de son os sous les mêmes poids de silhouettes, en
+ *  fraction du rayon de repos de l'anneau. Un dixième : l'os, déplacé de `osDesSilhouettes`, reste dans le dixième
+ *  central de la section de la peau qui plie autour de lui ; un centre qui s'en écarte davantage fait plier la peau
+ *  autour d'un pivot excentré, d'autant plus que le membre est fin. Ordre de grandeur posé par principe, jamais réglé
+ *  sur une mesure de la base. */
 export const FRACTION_DU_RAYON = 0.1;
 /** Le déplacement de sommet, en mètres, sous lequel une silhouette est inerte : `SOL_TOLERANCE_M`, distance que la
  *  chaîne tient pour nulle entre deux positions d'un sommet du corps. */
@@ -202,11 +204,21 @@ export interface SujetDeSilhouettes {
   /** `hotes/godot/pont/CONTRAT.md`, « Gabarit d'une base ». */
   readonly silhouettes: readonly string[];
   readonly st?: TableDeGabarit['st'];
+  /** Absent sans table de gabarit : aucun os ne se déplace. */
+  readonly osDesSilhouettes?: TableDeGabarit['osDesSilhouettes'];
   readonly poidsDesFormes: PoidsDesFormes;
 }
 
-export function mesurerSilhouettes({ scene, corps, silhouettes, st, poidsDesFormes }: SujetDeSilhouettes): { mesures: MesuresDesSilhouettes; ecarts: Ecart[] } {
+export function mesurerSilhouettes({ scene, corps, silhouettes, st, osDesSilhouettes = {}, poidsDesFormes }: SujetDeSilhouettes): { mesures: MesuresDesSilhouettes; ecarts: Ecart[] } {
   const anneaux = anneauxArticulaires(corps);
+  const osDe = (nom: string): Bone => {
+    const b = scene.getObjectByName(nom);
+    if (!(b as Bone | undefined)?.isBone) throw new Error(`silhouettes : os absent ${nom}`);
+    return b as Bone;
+  };
+  const osDesAnneaux = anneaux.map((a) => osDe(a.os));
+  const deplacementsDesAnneaux = (poids: Readonly<Record<string, number>>) =>
+    deplacementsMondeDesOs(Object.entries(deplacementsDesOs({ osDesSilhouettes }, poids)).map(([nom, t]) => [osDe(nom), t] as const), osDesAnneaux);
   const ecarts: Ecart[] = [];
   return sousLesFormes(scene, silhouettes, (poserSur) => {
     const poser = (poids: Readonly<Record<string, number>>) => poserSur(poids, corps);
@@ -226,15 +238,17 @@ export function mesurerSilhouettes({ scene, corps, silhouettes, st, poidsDesForm
     if (etats.length && !anneaux.length) ecarts.push({ garde: GARDE, code: 'anneau-indetectable', valeur: 0, seuil: SOMMETS_MIN_DE_L_ANNEAU, detail: 'aucun anneau articulaire dans le corps : ni centre ni épaisseur mesurables' });
     const mesures = etats.map(({ nom, poids }): MesureDeSilhouette => {
       const { positions, sections } = mesurer(poids);
+      const suivis = deplacementsDesAnneaux(poids);
       const deplacement = deplacementMax(reference.positions, positions);
       if (deplacement <= DEPLACEMENT_INERTE_M) ecarts.push({ garde: GARDE, code: 'silhouette-inerte', valeur: deplacement, seuil: DEPLACEMENT_INERTE_M, detail: `${nom} : plus grand déplacement d’un sommet du corps, en m` });
       const rapports = sections.map((s, i) => {
         const r = reference.sections[i];
-        return r.rayon > 0 ? Math.hypot(s.centre[0] - r.centre[0], s.centre[1] - r.centre[1], s.centre[2] - r.centre[2]) / r.rayon : 0;
+        const d = suivis[i];
+        return r.rayon > 0 ? Math.hypot(s.centre[0] - r.centre[0] - d.x, s.centre[1] - r.centre[1] - d.y, s.centre[2] - r.centre[2] - d.z) / r.rayon : 0;
       });
       const pire = rapports.reduce((p, r, i) => (r > rapports[p] ? i : p), 0);
       const hors = rapports.filter((r) => r > FRACTION_DU_RAYON).length;
-      if (hors) ecarts.push({ garde: GARDE, code: 'centre-deplace', valeur: rapports[pire], seuil: FRACTION_DU_RAYON, detail: `${nom} : centre de l’anneau de ${anneaux[pire].os} déplacé, en fraction de son rayon de repos ; ${hors}/${anneaux.length} anneau(x) au-delà` });
+      if (hors) ecarts.push({ garde: GARDE, code: 'centre-deplace', valeur: rapports[pire], seuil: FRACTION_DU_RAYON, detail: `${nom} : centre de l’anneau de ${anneaux[pire].os} écarté du déplacement de son os, en fraction de son rayon de repos ; ${hors}/${anneaux.length} anneau(x) au-delà` });
       return { nom, poids, deplacementMax: deplacement, centrePire: anneaux.length ? { os: anneaux[pire].os, rapport: rapports[pire] } : null };
     });
     let carrure: MesuresDeCarrure | null = null;

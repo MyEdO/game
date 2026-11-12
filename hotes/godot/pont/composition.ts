@@ -162,12 +162,13 @@ export function composerSurLaBase(base: BaseDeLAtelier, manifestes: Readonly<Rec
     if (element === undefined) manquants.push({ ligne, champ: p.cle.champ, id: p.cle.id, label: p.label, ...(p.par ? { par: p.par } : {}) });
   }
   const { gabarit, appuis, clips, clipsDeuxMains, surfaces = [] } = manifestes[base.id] as ManifesteDeBase;
+  const morphes = gabarit ? poidsDeSilhouettes({ sex: portee.sex, build: portee.build ?? BUILD_NEUTRE, st: portee.facteurs.st }, gabarit) : {};
   return {
     montes,
     manquants,
     rapport: portee.rapport,
-    ...(gabarit ? { gabarit: poseDuGabarit({ gabarit, appuis, clips, clipsDeuxMains }, portee.facteurs) } : {}),
-    morphes: gabarit ? poidsDeSilhouettes({ sex: portee.sex, build: portee.build ?? BUILD_NEUTRE, st: portee.facteurs.st }, gabarit) : {},
+    ...(gabarit ? { gabarit: poseDuGabarit({ gabarit, appuis, clips, clipsDeuxMains }, portee.facteurs, morphes) } : {}),
+    morphes,
     materiaux: Object.fromEntries(surfaces.flatMap(({ nom, parSexe }) => (parSexe?.[portee.sex] ? [[nom, parSexe[portee.sex]!]] : []))),
     palette: paletteDesCouleurs(portee.couleurs),
   };

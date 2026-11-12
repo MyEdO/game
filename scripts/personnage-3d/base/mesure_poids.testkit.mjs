@@ -57,7 +57,7 @@ const peau = matricesDePeauDuGabarit(skeleton, table, etat.facteurs, new Float32
 const matrices = Array.from({ length: 3 }, (_, t) => bones.map((_, o) => Array.from({ length: 4 }, (_, r) =>
   Array.from({ length: 4 }, (_, c) => peau[(t * bones.length + o) * 16 + r * 4 + c]))));
 const appuis = { pieds: ['root'], plusBas: [{ position: [0, 0, 0], os: [{ nom: 'root', poids: 1 }], deltas: {} }], vitesseAuSol: 1 };
-const gabarit = appliquerGabarit(scene, etat.facteurs, { gabarit: table, appuis }, skeleton);
+const gabarit = appliquerGabarit(scene, etat.facteurs, { gabarit: table, appuis }, {}, skeleton);
 const nuls = tableTotale(Object.keys(deltas), () => 0);
 poserFormes(scene, { ...nuls, ...etat.poidsReference });
 reposerGabarit(gabarit, () => restaurer(0));
