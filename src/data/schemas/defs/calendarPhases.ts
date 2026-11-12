@@ -21,7 +21,19 @@ const doc = document(
     codex: { keys: ['calendarPhases'] },
     edit: { dataset: 'calendarPhases' },
   },
-  { exiges: ['icon'] },
+  // Ordre total des paliers de `dayPhase` (`findTierEntry`, `src/engine/clock.ts`).
+  {
+    exiges: ['icon'],
+    affinerDataset: (dataset) =>
+      dataset.superRefine((v, ctx) => {
+        const vus = new Map<number, string>();
+        (v as { id: string; seuil: number }[]).forEach((p, i) => {
+          const premier = vus.get(p.seuil);
+          if (premier === undefined) vus.set(p.seuil, p.id);
+          else ctx.addIssue({ code: 'custom', path: [i, 'seuil'], message: `calendarPhases.json : « ${premier} » et « ${p.id} » portent le même seuil ${p.seuil} — les seuils des phases sont distincts.` });
+        });
+      }),
+  },
 );
 
 export const schema = doc.schema;
