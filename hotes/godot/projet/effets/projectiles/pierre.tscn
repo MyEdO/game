@@ -1,0 +1,17 @@
+[gd_scene format=3]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_i4ang"]
+albedo_color = Color(0.47843137, 0.43137255, 0.3764706, 1)
+
+[sub_resource type="SphereMesh" id="SphereMesh_0whqe"]
+material = SubResource("StandardMaterial3D_i4ang")
+radius = 0.25
+height = 0.5
+
+[node name="pierre" type="Node3D" unique_id=1032493761]
+
+[node name="Corps" type="Node3D" parent="." unique_id=1209599001]
+
+[node name="Maille" type="MeshInstance3D" parent="Corps" unique_id=128207851]
+cast_shadow = 0
+mesh = SubResource("SphereMesh_0whqe")
