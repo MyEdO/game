@@ -1,0 +1,67 @@
+name: Mesure du banc des étalons
+
+# Mesure jetable (#3935, lot 0) : le banc sur un runner, après le correctif du studio des portraits, contre les étalons
+# posés dans le conteneur ; trois tirages de machine, chacun dit s'il a AVX-512. Cette branche ne fusionne pas.
+on:
+  push:
+    branches: ['claude/project-thread-k424a0']
+
+permissions:
+  contents: read
+
+jobs:
+  mesure:
+    strategy:
+      fail-fast: false
+      matrix:
+        tirage: [1, 2, 3]
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Machine
+        id: machine
+        run: |
+          nproc && free -m && lscpu | grep 'Model name'
+          if lscpu | grep -q avx512f; then AVX=oui; else AVX=non; fi
+          echo "AVX-512 : $AVX"
+          echo "jouer=oui" >> "$GITHUB_OUTPUT"
+      - if: steps.machine.outputs.jouer == 'oui'
+        uses: actions/checkout@v4
+      - if: steps.machine.outputs.jouer == 'oui'
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+          check-latest: true
+          cache: npm
+      - if: steps.machine.outputs.jouer == 'oui'
+        run: npm ci
+      - if: steps.machine.outputs.jouer == 'oui'
+        uses: ./.github/actions/caches-3d
+      - name: Chromium épinglé (Playwright 1.63.0, build 1243), sans les paquets du système, et son bac à sable
+        if: steps.machine.outputs.jouer == 'oui'
+        run: |
+          date +%s > /tmp/t0
+          npx -y playwright@1.63.0 install chromium
+          echo "PLAYWRIGHT_BROWSERS_PATH=$HOME/.cache/ms-playwright" >> "$GITHUB_ENV"
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          echo "installation du navigateur : $(( $(date +%s) - $(cat /tmp/t0) )) s"
+      - name: Export Web
+        if: steps.machine.outputs.jouer == 'oui'
+        run: |
+          date +%s > /tmp/t0
+          node hotes/godot/construire.mjs --export --sortie dist/godot
+          echo "export : $(( $(date +%s) - $(cat /tmp/t0) )) s"
+      - name: Banc, deux processus, sans rapport
+        if: steps.machine.outputs.jouer == 'oui'
+        run: |
+          date +%s > /tmp/t0
+          mapfile -t NOMS < <(ls hotes/godot/etalons/planches/*.json | xargs -n1 basename | sed 's/\.json$//')
+          A=(); B=()
+          for i in "${!NOMS[@]}"; do if (( i % 2 )); then B+=(--planche "${NOMS[$i]}"); else A+=(--planche "${NOMS[$i]}"); fi; done
+          node hotes/godot/etalons.mjs --web dist/godot "${A[@]}" > /tmp/banc-a.log 2>&1 &
+          PA=$!
+          CB=0; node hotes/godot/etalons.mjs --web dist/godot "${B[@]}" > /tmp/banc-b.log 2>&1 || CB=$?
+          CA=0; wait $PA || CA=$?
+          cat /tmp/banc-a.log /tmp/banc-b.log
+          echo "banc : $(( $(date +%s) - $(cat /tmp/t0) )) s, codes $CA et $CB"
+          test "$CA" = 0 && test "$CB" = 0
