@@ -1,0 +1,19 @@
+name: Sonde du courrier
+
+on:
+  push:
+    branches: ['chantier/4068']
+
+permissions:
+  pull-requests: write
+  issues: write
+
+jobs:
+  sonde:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Commenter la PR sous l'identité du workflow
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh api "repos/${GITHUB_REPOSITORY}/issues/4069/comments" -f body="Sonde de #4068 : commentaire posé par le workflow, pour mesurer s'il réveille le fil abonné à cette PR."
