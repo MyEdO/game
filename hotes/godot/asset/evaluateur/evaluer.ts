@@ -36,7 +36,7 @@ import { gardePercementAuRepos, gardeTraversee, indicesDe, lierLesCouches, mesur
 import { gardeMembreDansUnVetement, mesurerMembresDansUnVetement, pairesHorsDeZone, zonesVoisines, type MembreDUnEchantillon } from './gardes/membreDansUnVetement.ts';
 import { gardeMembres, mesurerMembres, ZONES_DES_MEMBRES, ZONES_DU_TRONC, type MembreDansLeTronc } from './gardes/membres.ts';
 import { COUCHES, RANG_DU_CORPS, type CategorieDElement, type Couche } from '../element.ts';
-import { meshesDuCorps, zoneDe } from './corps.ts';
+import { meshesDuCorps, peauDeLaTenue, zoneDe } from './corps.ts';
 import { poserLaPile } from './pile.ts';
 import { endroitDe, ordreDesCouches, type BilanDePile } from '../pile.ts';
 
@@ -202,6 +202,7 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
     return c ? [{ rang: COUCHES.indexOf(c.couche), meshes: e.skinnes, couvre: c.couvre, accessoire: c.categorie === 'accessoire' }] : [];
   });
   const montre = sansLesZonesMasquees(declarees, zone);
+  const peau = peauDeLaTenue(corps, declarees, zone);
   const corpsMontre = montre(corps, RANG_DU_CORPS);
   const pieceDe = (rang: number, montres: readonly SkinnedMesh[], accessoire: boolean) => ({
     rang, accessoire, meshes: montres,
@@ -214,8 +215,8 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
   const chaines = manifeste?.chaines ?? {};
   const silhouettes = mesurerSilhouettes({ scene: base.scene, corps: corpsSkinne, silhouettes: nomsDesSilhouettes, st: table?.st, poidsDesFormes });
   const sansCles = sousLesFormes(base.scene, nomsDesSilhouettes, (poserSeules) => poserSeules({}, meshes), poidsDesFormes);
-  const couvre = ordreDesCouches<(typeof declareesMontrees)[number]>(corps.map((c) => neutre.get(c) as Float32Array));
-  const pile = poserLaPile([pieceDe(RANG_DU_CORPS, montre(corpsSkinne, RANG_DU_CORPS), false), ...declareesMontrees], couvre, fondue, new Set(Object.values(chaines).flat()), corps);
+  const couvre = ordreDesCouches<(typeof declareesMontrees)[number]>(peau.map((c) => neutre.get(c) as Float32Array));
+  const pile = poserLaPile([pieceDe(RANG_DU_CORPS, montre(corpsSkinne, RANG_DU_CORPS), false), ...declareesMontrees], couvre, fondue, new Set(Object.values(chaines).flat()), peau);
   base.scene.updateMatrixWorld(true);
   const pistesDeChaine = gardePistesDeChaine(base.scene, clips, chaines);
   ecarts.push(
@@ -243,7 +244,7 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
   const etirements: MesureDEtirement[] = [];
   const surfaces = manifeste ? surfacesDesPieds(corpsSkinne, manifeste.appuis.pieds) : [];
   const posesDesPieds: PoseDuPied[] = [];
-  const peaux = corps.map((c) => positionsDe(repos, c));
+  const peaux = peau.map((c) => positionsDe(repos, c));
   const endroits = new Map<Mesh, Uint32Array>(declareesMontrees.flatMap((d) => d.meshes).map((m) => {
     const positions = positionsDe(repos, m);
     return [m, endroitDe({ positions, indices: indicesDe(m, positions.length / 3) }, peaux)];

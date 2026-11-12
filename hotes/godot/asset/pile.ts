@@ -206,8 +206,8 @@ export function normalesDesSommets({ positions: p, indices }: SurfaceDePile): Fl
 }
 
 /** L'endroit de `surface` : ses triangles, par trois indices, tournés à l'opposé du point de `peaux` (des positions à
- *  plat) le plus proche de leur centre ; tous, sans peau. La doublure d'une double nappe, tournée vers le corps, n'en
- *  est pas. */
+ *  plat) le plus proche de leur centre, ou dont ce point est dans leur plan à `SOUDURE_M` près (#3842) ; tous, sans
+ *  peau. La doublure d'une double nappe, tournée vers le corps, n'en est pas. */
 export function endroitDe({ positions: p, indices }: SurfaceDePile, peaux: readonly Float32Array[]): Uint32Array {
   const endroit: number[] = [];
   for (let t = 0; t + 2 < indices.length; t += 3) {
@@ -219,7 +219,8 @@ export function endroitDe({ positions: p, indices }: SurfaceDePile, peaux: reado
       if (d < proche) [proche, dx, dy, dz] = [d, cx - q[s], cy - q[s + 1], cz - q[s + 2]];
     }
     const [ux, uy, uz, vx, vy, vz] = [p[b] - p[a], p[b + 1] - p[a + 1], p[b + 2] - p[a + 2], p[c] - p[a], p[c + 1] - p[a + 1], p[c + 2] - p[a + 2]];
-    if ((uy * vz - uz * vy) * dx + (uz * vx - ux * vz) * dy + (ux * vy - uy * vx) * dz >= 0) endroit.push(indices[t], indices[t + 1], indices[t + 2]);
+    const [nx, ny, nz] = [uy * vz - uz * vy, uz * vx - ux * vz, ux * vy - uy * vx];
+    if (nx * dx + ny * dy + nz * dz >= -SOUDURE_M * Math.hypot(nx, ny, nz)) endroit.push(indices[t], indices[t + 1], indices[t + 2]);
   }
   return Uint32Array.from(endroit);
 }
@@ -262,7 +263,8 @@ function voter(sujet: SurfaceDePile, n: Float32Array, couverture: Couverture): {
 /** Dit, pour deux pièces d'une tenue, si `e` couvre `f` : couche plus extérieure ; à couche égale, un accessoire couvre
  *  ce qui n'en est pas un ; sinon celle dont les sommets sont devant l'endroit de l'autre au repos neutre, à la majorité
  *  des voix (`voter`), chaque paire votée une fois. Sans sommet de l'une couvert par l'autre, ou à égalité, aucune ne
- *  couvre l'autre. `peaux` : les positions au repos du corps entier, d'où se lit l'endroit (`endroitDe`). */
+ *  couvre l'autre. `peaux` : les positions au repos de la peau de la tenue (`peauDeLaTenue`, `evaluateur/corps.ts`), d'où
+ *  se lit l'endroit (`endroitDe`). */
 export function ordreDesCouches<E extends CoucheDePile>(peaux: readonly Float32Array[]): (e: E, f: E) => boolean {
   const votantes = new Map<SurfaceDePile, { dehors: Float32Array; couverture: Couverture }>();
   const votante = (s: SurfaceDePile) => {
@@ -605,8 +607,8 @@ function appliquer(q: Point, repris: ReadonlyMap<string, number>, reste: number,
 }
 
 /** Résout la pile `pieces` en place : `couvre(e, f)` dit si la pièce `e` couvre la pièce `f`. `peaux` : les positions
- *  au repos du corps entier, d'où se lit l'endroit de chaque pièce (`endroitDe`) ; une pièce qui n'en couvre aucune est
- *  tout entière à l'endroit. */
+ *  au repos de la peau de la tenue (`peauDeLaTenue`, `evaluateur/corps.ts`), d'où se lit l'endroit de chaque pièce
+ *  (`endroitDe`) ; une pièce qui n'en couvre aucune est tout entière à l'endroit. */
 export function resoudreLaPile<P extends PieceDePile>(pieces: readonly P[], couvre: (e: P, f: P) => boolean, squelette: SqueletteDePile, peaux: readonly Float32Array[]): BilanDePile {
   for (const { poids } of pieces.flatMap((p) => p.maillages)) for (let s = 0; s < poids.length; s += INFLUENCES) {
     const somme = poids[s] + poids[s + 1] + poids[s + 2] + poids[s + 3];

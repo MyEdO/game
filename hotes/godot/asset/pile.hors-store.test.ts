@@ -1,6 +1,6 @@
 // La pile des couches résolue au montage (#3842) : la couche du dessous cède à celle qui la couvre.
 import { describe, expect, it } from 'vitest';
-import { ENTRAINEMENT, HALO_M, JEU_M, PERCEE_M, PORTEE_DE_COUVERTURE_M, SAUT_D_ARETE, SERRAGE_M, ordreDesCouches, resoudreLaPile, type CoucheDePile, type MaillageDePile, type PieceDePile } from './pile.ts';
+import { endroitDe, ENTRAINEMENT, HALO_M, JEU_M, PERCEE_M, PORTEE_DE_COUVERTURE_M, SAUT_D_ARETE, SERRAGE_M, ordreDesCouches, resoudreLaPile, type CoucheDePile, type MaillageDePile, type PieceDePile } from './pile.ts';
 
 /** Une nappe carrée de `cote` mètres centrée en (`cx`, 0) à la hauteur `z`, en grille de `n` × `n` mailles, tournée vers
  *  +Z. Elle est tout entière sur l'os `os`, ou, avec `vers`, passe de `os` à `vers` par des poids tous différents d'un
@@ -35,7 +35,7 @@ const sommetEn = (m: MaillageDePile, x: number, y = 0): number => {
 const PARENTS = new Map([['manche', 'bras'], ['avant_bras', 'bras'], ['bras', 'epaule'], ['epaule', 'torse'], ['jupe_1', 'bassin'], ['jupe_2', 'jupe_1'], ['jambe', 'bassin']]);
 /** La nappe `m` retournée, tournée vers −Z. */
 const retournee = (m: MaillageDePile): MaillageDePile => ({ ...m, indices: m.indices.map((_, i, t) => t[i - (i % 3) + [0, 2, 1][i % 3]]) });
-/** La pile de `pieces`, de la plus intérieure à la plus extérieure, sur le corps de positions `peaux`. */
+/** La pile de `pieces`, de la plus intérieure à la plus extérieure, sur la peau de positions `peaux`. */
 const empiler = (pieces: readonly PieceDePile[], osDeChaine: readonly string[] = [], peaux: readonly Float32Array[] = []) =>
   resoudreLaPile(pieces, (e, f) => pieces.indexOf(e) > pieces.indexOf(f), { parents: PARENTS, osDeChaine: new Set(osDeChaine) }, peaux);
 
@@ -200,6 +200,22 @@ describe('resoudreLaPile', () => {
       expect(Math.abs(recul(triangles[t + a]) - recul(triangles[t + b]))).toBeLessThanOrEqual(ENTRAINEMENT * hauteur + 1e-5);
     }
     expect(recul(sommetEn(dessous, 0.19))).toBe(0);
+  });
+});
+
+describe('endroitDe', () => {
+  const surface = nappe(0, 'bras');
+  const triangles = surface.indices.length;
+  /** Une peau faite des points de `surface`, décalés de `z` le long de sa normale. */
+  const peauDecalee = (z: number) => nappe(z, 'bras').positions;
+
+  it('une peau dans le plan de la nappe à la soudure près laisse tous ses triangles à l’endroit, de part et d’autre (#3842)', () => {
+    expect(endroitDe(surface, [peauDecalee(1e-6)])).toHaveLength(triangles);
+    expect(endroitDe(surface, [peauDecalee(-1e-6)])).toHaveLength(triangles);
+  });
+
+  it('une peau devant la nappe, du côté de sa normale, n’en laisse aucun à l’endroit', () => {
+    expect(endroitDe(surface, [peauDecalee(1e-3)])).toHaveLength(0);
   });
 });
 

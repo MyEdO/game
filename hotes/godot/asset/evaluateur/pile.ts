@@ -22,7 +22,8 @@ function maillageDe(m: SkinnedMesh, repos: Float32Array): MaillageDePile {
 
 /** Résout la pile des `pieces` (les meshes de chacune) sur `fondue`, leurs positions monde au repos, formes posées, sans
  *  gabarit : ce que le montage fond. Rend à chaque mesh ses sommets reculés, ses poids, les os qu'il y gagne et ses
- *  triangles encore dessinés. `osDeChaine` nomme les os des chaînes de la base, `peaux` les meshes du corps entier. */
+ *  triangles encore dessinés. `osDeChaine` nomme les os des chaînes de la base, `peaux` les meshes de la peau de la tenue
+ *  (`peauDeLaTenue`, `corps.ts`). */
 export function poserLaPile<P extends { readonly meshes: readonly SkinnedMesh[] }>(
   pieces: readonly P[], couvre: (e: P, f: P) => boolean, fondue: ReadonlyMap<Mesh, Float32Array>, osDeChaine: ReadonlySet<string>, peaux: readonly Mesh[],
 ): BilanDePile {
