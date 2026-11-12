@@ -92,7 +92,7 @@ const DIALOGUES: Dialogue[] = [
     nodes: [
       {
         id: 'h1',
-        speakerId: 'homme-de-main',
+        speakerId: { id: 'homme-de-main' },
         desc: '« Personne ne monte ici. Redescendez par où vous êtes venus — ou par la fenêtre, si vous préférez. »',
         choices: [
           {

@@ -213,10 +213,10 @@ export type Dialogue = z.infer<typeof dialogueSchema>;
  *  (jamais un nom en clair stocké, #669 ; son nom se lit par `nomDEntite`). `undefined` sans speaker. */
 export function speakerEntity(
   entities: readonly SceneEntity[],
-  node: { speakerId?: string },
+  node: Pick<DialogueNode, 'speakerId'>,
   dialogue: { speakerId?: string }
 ): SceneEntity | undefined {
-  const id = node.speakerId ?? dialogue.speakerId;
+  const id = node.speakerId?.id ?? dialogue.speakerId;
   return id ? entities.find((e) => e.id === id) : undefined;
 }
 

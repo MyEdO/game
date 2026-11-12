@@ -25,7 +25,7 @@ import { amateurSchema, cell2Schema, deckCoverSchema, difficultySchema, dir8Sche
 import { joursDeReassortSchema, majorationDAchatSchema, tauxDeRachatSchema } from '../defs/merchants';
 import { conditionSchema, executeesDe, flowTestSchema } from '../grammaire/mecanique';
 import { navalTraitRefSchema, optionalSwapSchema, traitInstanceSchema } from '../grammaire/reference';
-import { competenceChiffreeSchema, couvreSchema, customStatblockSchema, DIALOGUES_DE_LA_SCENE, PORTEES_DE_LA_SCENE, ptSchema, wallSideSchema } from './communs';
+import { competenceChiffreeSchema, couvreSchema, customStatblockSchema, DIALOGUES_DE_LA_SCENE, PERSONNAGES_DE_LA_SCENE, PORTEES_DE_LA_SCENE, ptSchema, wallSideSchema } from './communs';
 import { sceneFlowSchema } from './effets';
 import { idDe, porteLeMarqueur, recordDIds, ref, refOuSpec, refs, type PorteeLocale } from '../grammaire/ref';
 import { champsDeChoix } from '../grammaire/choixDeCreation';
@@ -574,14 +574,14 @@ export const dialogueChoiceSchema = nommerChamps(z.strictObject({
   flow: sceneFlowSchema.optional(),
   next: ref(NOEUDS).optional(),
 }), { id: { label: "identifiant" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, icon: { label: "icône" , texte: { regime: "technique"} }, when: { label: "condition" }, cost: { label: "coût" }, flow: { label: "enchaînement", transparent: true }, next: { label: "nœud suivant" , texte: { regime: "technique"} } });
-/** `DialogueNode` — `speakerId` = entité de la scène dont le portrait/nom porte CE nœud. Réplique :
+/** `DialogueNode` — `speakerId` = personnage de la scène dont le portrait/nom porte CE nœud. Réplique :
  *  `descRef` (verbatim) ⊕ `adapteDe` (`grammaire/prose.ts`). */
 export const dialogueNodeSchema = proseNommee(nommerChamps(z.strictObject({
   id: z.string(),
-  /** Id d'une `SceneEntity` de la scène courante → son PORTRAIT et son NOM (label) pour CE nœud.
+  /** Un personnage de la scène courante → son PORTRAIT et son NOM (label) pour CE nœud.
    *  Permet d'alterner les interlocuteurs dans une même conversation. À défaut, l'interlocuteur de
    *  SESSION (`state.dialogue.speakerId`, posé par `interagirAvecLEntite` ou `startDialogue.speakerId`). */
-  speakerId: z.string().optional(),
+  speakerId: ref(PERSONNAGES_DE_LA_SCENE).optional(),
   choices: listeCle(dialogueChoiceSchema, 'id'),
 }), { id: { label: "identifiant" , texte: { regime: "technique"} }, speakerId: { label: "locuteur" , texte: { regime: "technique"} }, choices: { label: "réponses" } }), 'dialogues[].nodes[].desc');
 /** `Dialogue` — arbre de nœuds, `start` le nœud d'entrée. */

@@ -67,7 +67,7 @@ function construireScene(): Scene {
       nodes: [
         {
           id: 'p1',
-          speakerId: 'npc-phillipe',
+          speakerId: { id: 'npc-phillipe' },
           desc:
             "« Vous cherchez la route de Kemperbad ? Prenez garde : Knud Cratinx et sa bande de mutants " +
             "écument ces bois. J'ai croisé leur chef ce matin — écailleux, une arbalète en travers du dos. " +

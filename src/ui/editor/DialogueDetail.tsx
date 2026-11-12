@@ -105,8 +105,8 @@ export function DialogueDetail({ dialogue, onChange, onRename, ctx }: {
               }} />
               <select
                 className="node-speaker"
-                value={node.speakerId ?? ''}
-                onChange={(e) => updNode({ speakerId: e.target.value || undefined })}
+                value={node.speakerId?.id ?? ''}
+                onChange={(e) => updNode({ speakerId: e.target.value ? { id: e.target.value } : undefined })}
                 title="Locuteur de ce nœud — id d'entité de la scène (portrait + nom) ; vide = locuteur de session"
               >
                 <option value="">(locuteur de session)</option>
