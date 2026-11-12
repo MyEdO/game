@@ -15,9 +15,11 @@ que le blocage n'existe pas », étage `verif-mecanique`) et MES PROPRES COMMITS
 - **Chaque clôture de phase : juge « ARCHITECTURE À REBOURS »** — partant de zéro, cette couture
   existerait-elle ?
 - **C'est le TRAVAIL qui se ferme.** Une clause de DoD portée par un ticket ouvert n'est pas soldée
-  (« FERMABLE SOUS DÉCISION » = « NON FERMABLE » ; #925) ; l'objectif suivant ne raccourcit jamais le DoD. Hors
-  DoD, plus d'un ticket de reste → le lot GROSSIT ou le ticket RESTE OUVERT ; tout reste naît rattaché à
-  une VAGUE NOMMÉE ; « LIVRÉ » exige des restes soldés ou GELÉS par arbitrage utilisateur daté. Une vague
+  (« FERMABLE SOUS DÉCISION » = « NON FERMABLE » ; #925) ; l'objectif suivant ne raccourcit jamais le DoD. Un
+  reste que le chantier peut solder lui-même (« limite », « à vérifier », « suite » de son objectif) se solde
+  avant l'annonce : le lot GROSSIT ou le ticket RESTE OUVERT, aucun ticket de reste ne naît (fiche
+  `user-doctrine-fini-sans-reste`). Ne naît en ticket que ce qui attend l'utilisateur ou un autre fil nommé,
+  rattaché à une VAGUE NOMMÉE ; « LIVRÉ » exige des restes soldés ou GELÉS par arbitrage utilisateur daté. Une vague
   ferme au moins autant qu'elle ouvre.
 - Un ticket que J'ÉCRIS sur un socle porte son `## Invariant` ; une question qu'il pose se confronte
   D'ABORD aux invariants (tickets-programmes, doctrines) : si une doctrine répond, le ticket ÉNONCE.
