@@ -12,8 +12,8 @@ import { canalDuSon, findSonById } from '../data/sons/registre';
 import type { CanalDeSon, SoundDef } from '../data/sons/types';
 import { musicDefsFor, type MusicSelection } from '../data/sons/musique';
 import { lireDictionnaire } from '../lib/stockage';
-import { stockageWeb } from '../web/stockageWeb';
-import { entierDEntropie } from '../web/entropie';
+import { stockageWeb } from '../hote/stockageWeb';
+import { entierDEntropie } from '../hote/entropie';
 
 const LS_KEY = 'wfrp4.audio';
 

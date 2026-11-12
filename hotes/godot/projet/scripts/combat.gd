@@ -1,5 +1,6 @@
 ## Le combat, hôte du noyau (`hotes/godot/pont/CONTRAT.md`), et le seul lecteur de la vue : il ouvre une partie au
-## groupe (`ouvrir`, `PontDuNoyau.au_groupe`), que le joueur compose puis lance sur une campagne du jeu (`lancer`), ou démarre la partie des
+## groupe (`ouvrir`, `PontDuNoyau.au_groupe`), que le joueur compose puis lance sur une campagne du jeu (`lancer`),
+## charge une sauvegarde (`charger`, `PontDuNoyau.a_charger`) ou montre celles à charger (`PontDuNoyau.reprise`), ou démarre la partie des
 ## paramètres `scenario` et `graine` (`PontDuNoyau.parametre`), la scène que l'éditeur a mise à l'essai (`PontDuNoyau.essai`), ou,
 ## sans paramètre `scenario`, le scénario que le joueur choisit au panneau des scénarios (`scenarios`), pose au plateau le monde de sa scène (son manifeste,
 ## `monde`, et les seuls morceaux dont l'empreinte a bougé, `morceaux`), à nouveau chaque fois que la partie change de
@@ -35,8 +36,9 @@ extends Node
 ## composant : chaque `Liaison` y écrit un champ de l'élément dans une propriété du contrôle qui la porte (le ton en
 ## variation du thème, `art/theme.tres`), chaque `Geste` joue l'intention que l'élément porte par le signal `geste` de
 ## la zone (un bouton à bascule garde l'état que la vue lui donne ; le routeur envoie `{ fiche }` à `fiche`, `{ creation
-## }` à `creation`, `{ lancer }` à `lancer`, `{ quitter }` à `quitter`, d'où il revient à l'accueil, toute autre
-## intention à `jouer`), chaque `Saisie` lit la valeur d'un formulaire, et une zone
+## }` à `creation`, `{ roster }` à `roster`, `{ lancer }` à `lancer`, `{ quitter }` à `quitter`, d'où il revient à l'accueil, `{ sauvegardes }`
+## au panneau des sauvegardes (`sauvegardes`), `{ sauvegarder }` à `sauvegarder`, `{ charger }` à `charger`, la partie
+## ouverte quittée d'abord et le combat rechargé, toute autre intention à `jouer`), chaque `Saisie` lit la valeur d'un formulaire, et une zone
 ## imbriquée y montre le champ que sa `source` nomme. L'icône (`icone`) et le fond (`fond`) ne portent que l'id de
 ## leur dessin : `Dessin` (`projet/scripts/dessin.gd`) le lit au catalogue que la construction dépose une fois dans le
 ## projet (`art/dessins.json`, `hotes/godot/asset/dessins.ts`) et le trace aux couleurs du thème. Le plan (`plan`) est le seul composant qui se dessine : son
@@ -66,6 +68,7 @@ extends Node
 @onready var _panne: Label = $Ecran/Interface/Avis/Panne
 @onready var _apercu: Control = $Ecran/Interface/Apercu
 @onready var _scenarios: Control = $Scenarios/Cadre
+@onready var _sauvegardes: Control = $Sauvegardes/Cadre
 @onready var _pont: PontDuNoyau = get_node("/root/Pont")
 
 var _vue: Dictionary = {}
@@ -98,10 +101,22 @@ func _ready() -> void:
 		return
 	_pont.exposer("wfrpCadrer", _cadrer)
 	await _indexer_les_modeles()
+	for zone in Zone.racines(_sauvegardes):
+		zone.geste.connect(_jouer)
 	var entree := {}
 	var graine := _pont.parametre("graine")
 	if graine.is_valid_int():
 		entree.graine = graine.to_int()
+	if _pont.a_charger != null:
+		var reponse := _pont.appeler("charger", entree.merged({charger = _pont.a_charger}))
+		_pont.a_charger = null
+		_suivre(reponse)
+		if reponse.get("ok") != true:
+			_montrer_les_sauvegardes(_pont.appeler("sauvegardes"))
+		return
+	if _pont.reprise:
+		_montrer_les_sauvegardes(_pont.appeler("sauvegardes"))
+		return
 	if _pont.au_groupe:
 		_suivre(_pont.appeler("ouvrir", entree))
 		return
@@ -135,21 +150,88 @@ func _indexer_les_modeles() -> void:
 
 
 ## L'intention d'un geste : la fiche que l'écran montre va à `fiche`, un geste de la création d'un héros à `creation`,
-## la campagne à lancer à `lancer`, la partie à quitter à `quitter` (`_quitter`), toute autre à `jouer`.
+## un geste sur le roster de l'hôte à `roster` (`_jouer_le_roster`), la campagne à lancer à `lancer`, la partie à quitter à `quitter` (`_quitter`), le panneau des sauvegardes à ouvrir à
+## `sauvegardes` ou à fermer (`_fermer_les_sauvegardes`), l'emplacement où écrire à `sauvegarder`, celui à charger à
+## `_charger`, toute autre à `jouer`.
 func _jouer(jeu: Dictionary) -> void:
 	if jeu.has("quitter"):
 		_quitter()
 		return
+	if jeu.has("sauvegardes"):
+		if jeu.sauvegardes:
+			_montrer_les_sauvegardes(_pont.appeler("sauvegardes"))
+		else:
+			_fermer_les_sauvegardes()
+		return
+	if jeu.has("sauvegarder"):
+		_montrer_les_sauvegardes(_pont.appeler("sauvegarder", jeu))
+		return
+	if jeu.has("charger"):
+		_charger(jeu.charger)
+		return
+	if jeu.has("roster"):
+		_jouer_le_roster(jeu)
+		return
 	_suivre(_pont.appeler("fiche" if jeu.has("fiche") else "creation" if jeu.has("creation") else "lancer" if jeu.has("lancer") else "jouer", jeu))
+
+
+## Un geste sur le roster de l'hôte (`roster`), sa suite suivie : le fichier qu'elle porte (`fichier`) est remis au
+## joueur ; le choix qu'elle demande (`choix`) est fait par le joueur, et le texte du fichier choisi revient au pont
+## (`{ importe }`, `null` s'il renonce).
+func _jouer_le_roster(jeu: Dictionary) -> void:
+	var reponse := _pont.appeler("roster", jeu)
+	_suivre(reponse)
+	if reponse.has("fichier"):
+		_pont.enregistrer_un_fichier(PontDuNoyau.HEROS, reponse.fichier.nom, reponse.fichier.texte)
+	if reponse.has("choix"):
+		var choisi := await _pont.choisir_un_fichier(PontDuNoyau.HEROS)
+		_suivre(_pont.appeler("roster", {roster = {importe = choisi.octets.get_string_from_utf8() if choisi.has("octets") else null}}))
 
 
 ## La partie quittée (`quitter`) : l'accueil revient, d'où une autre s'ouvre ; un refus laisse l'écran tel quel.
 func _quitter() -> void:
 	if _pont.appeler("quitter").get("ok") != true:
 		return
+	_revenir_a_l_accueil()
+
+
+## L'accueil revient, plus rien ne disant au combat comment s'ouvrir.
+func _revenir_a_l_accueil() -> void:
 	_pont.au_groupe = false
 	_pont.essai = false
+	_pont.reprise = false
 	get_tree().change_scene_to_file("res://scenes/Accueil.tscn")
+
+
+## Le panneau des sauvegardes montre les zones de `reponse` (`sauvegardes`, `sauvegarder`) ; une réponse refusée le
+## laisse tel quel, le refus dit à l'avis.
+func _montrer_les_sauvegardes(reponse: Dictionary) -> void:
+	if reponse.get("ok") != true:
+		return
+	Zone.montrer_toutes(Zone.racines(_sauvegardes), reponse.zones)
+	_sauvegardes.visible = true
+	_publier_l_ecran.call_deferred()
+
+
+## Le panneau des sauvegardes fermé : sur la partie ouverte, ou, sans partie, sur l'accueil.
+func _fermer_les_sauvegardes() -> void:
+	if _vue.is_empty():
+		_revenir_a_l_accueil()
+		return
+	_sauvegardes.visible = false
+	_publier_l_ecran.call_deferred()
+
+
+## La sauvegarde de l'emplacement `emplacement` à charger : la partie ouverte quittée (`quitter`, son point de reprise
+## gardé), le combat se recharge et l'ouvre (`PontDuNoyau.a_charger`), son monde reposé de zéro.
+func _charger(emplacement: Variant) -> void:
+	if not _vue.is_empty() and _pont.appeler("quitter").get("ok") != true:
+		return
+	_pont.au_groupe = false
+	_pont.essai = false
+	_pont.reprise = false
+	_pont.a_charger = emplacement
+	get_tree().reload_current_scene()
 
 
 func _reprendre(jeton: int) -> void:
@@ -272,14 +354,15 @@ func _republier(_valeur: Variant) -> void:
 
 
 ## L'écran publié à la recette (`PontDuNoyau.publier_l_ecran`, `_ecran_publie`), une fois la vue mise en page, une
-## fois par image.
+## fois par image ; rien si le combat a quitté l'arbre avant cette image (la partie quittée, une sauvegarde chargée).
 func _publier_l_ecran() -> void:
 	if _publication_prevue:
 		return
 	_publication_prevue = true
 	await get_tree().process_frame
 	_publication_prevue = false
-	_pont.publier_l_ecran(_ecran_publie)
+	if is_inside_tree():
+		_pont.publier_l_ecran(_ecran_publie)
 
 
 ## Ce que l'écran porte : ses boutons (`PontDuNoyau.boutons_a_l_ecran`), le point de chaque case du plateau, la part de
@@ -288,7 +371,7 @@ func _publier_l_ecran() -> void:
 func _ecran_publie() -> Dictionary:
 	var cadre := _monde.cadre
 	return {
-		boutons = PontDuNoyau.boutons_a_l_ecran([_ecran, _scenarios]), cases = _plateau.points(),
+		boutons = PontDuNoyau.boutons_a_l_ecran([_ecran, _scenarios, _sauvegardes]), cases = _plateau.points(),
 		cadre = [cadre.position.x, cadre.position.y, cadre.size.x, cadre.size.y], corps = _plateau.corps(), navires = _plateau.navires(),
 	}
 

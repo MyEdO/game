@@ -353,7 +353,7 @@ describe('formes re-tapées et portes étendues — stock nominatif daté, DÉCR
       'src/data/schemas/grammaire/mecanique.ts:DECLARATIONS_D_OPS.summon|ref',
       'src/data/schemas/grammaire/mecanique.ts:conditionSchema|trappingId',
       'src/data/schemas/grammaire/mecanique.ts:sujetDuJetSchema|skill',
-      'src/data/schemas/grammaire/reference.ts:trappingRefSchema|wildcard',
+      'src/data/schemas/grammaire/reference.ts:jokerDeDotationSchema|wildcard',
     ]);
     const auStock = dansLaGrammaire.filter((cle) => cle in GRAMMAIRE_STOCK);
     expect(auStock, `Graphie(s) de la grammaire inscrite(s) au stock, qui ne l'y verra jamais : ${auStock.join(', ')}`).toEqual([]);

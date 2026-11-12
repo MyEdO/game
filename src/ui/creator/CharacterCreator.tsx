@@ -73,7 +73,7 @@ import { rangeSpecLabel, ammoRangeModLabel } from '../../engine/weaponStats';
 import { formatSpellRange, formatSpellDuration } from '../../engine/spellRangeFormat';
 import { effectiveEntry } from '../../engine/variants';
 import { Coins } from '../Coins';
-import { graineDEntropie, idDEntropie } from '../../web/entropie';
+import { graineDEntropie, idDEntropie } from '../../hote/entropie';
 import { Icon } from '../Icon';
 import { OptionChooser } from '../OptionChooser';
 import { MediaSelect, type MediaOption } from '../MediaSelect';
@@ -304,7 +304,12 @@ export function CharacterCreator() {
   };
 
   const create = () => {
-    if (engagerLeHeros(stockageDuRoster(), useGame.getState(), d, idDEntropie, editing?.heroId) === null) closeCreator();
+    const jeu = useGame.getState();
+    const engage = engagerLeHeros(stockageDuRoster(), jeu, d, idDEntropie, editing?.heroId);
+    if ('refus' in engage) return;
+    if (engage.intention.type === 'recruterLeHeros') jeu.recruterLeHeros(...engage.intention.args);
+    else jeu.remplacerLeHeros(...engage.intention.args);
+    closeCreator();
   };
 
   const stepProps: StepProps = { d, setD, skillsSub, setSkillsSub };

@@ -5,12 +5,11 @@ import { useGame, type GameState } from '../state/store';
 import type { NetState } from '../noyau/etat';
 import { pretire } from '../data/pregens';
 import { stockageDuRoster } from '../state/roster';
-import { ajouterAuRoster, chargerLeRoster, prendreLesTemoinsDuRoster, retirerDuRoster } from '../hote/roster';
-import { idDeRosterDuMembre, rosterExport, rosterImport, type RosterEntry } from '../noyau/persistance/roster';
+import { avisDuRoster, chargerLeRoster, fichierDuHeros, importerAuRoster, prendreLesTemoinsDuRoster, retirerDuRoster } from '../hote/roster';
+import { idDeRosterDuMembre } from '../noyau/persistance/roster';
 import type { HerosEngage } from '../noyau/creation/engagement';
-import { nommerLesRetraits } from '../noyau/persistance/elagage';
 import { PARTY_MAX } from '../noyau/monde/combatants';
-import { downloadText, fileSlug } from '../web/fileIo';
+import { downloadText } from '../web/fileIo';
 import { builtinCampaigns, campagneDuJeu, lancerCampagne } from '../scenes/campaign';
 import { publishedProjects, campagneDeLEntree } from '../state/projectLibrary';
 import { playerEntryError } from '../noyau/worldMap';
@@ -640,9 +639,8 @@ export function CandidatePool({
   // `prendreLesTemoinsDuRoster` (`hote/roster.ts`) consomme : la prise vit dans un EFFET de montage, jamais dans un
   // initialiseur de rendu que `<React.StrictMode>` jouerait deux fois.
   useEffect(() => {
-    const temoins = prendreLesTemoinsDuRoster(stockageDuRoster());
-    if (temoins?.retire) setImportErr(t('picker.roster.retire'));
-    if (temoins?.elagage) setImportErr(t('picker.roster.elague', { liste: nommerLesRetraits(temoins.elagage) }));
+    const avis = avisDuRoster(prendreLesTemoinsDuRoster(stockageDuRoster()));
+    if (avis) setImportErr(avis);
   }, []);
   // Candidat ÉLU (déplié dans l'ACTE DE PRÉSENTATION, `DetailFrame`) — plus de modale (#417,
   // planche ratifiée d'équipe §B « la présentation intégrée au sélecteur »).
@@ -662,8 +660,10 @@ export function CandidatePool({
     retirerDuRoster(stockageDuRoster(), id);
     setRoster(chargerLeRoster(stockageDuRoster()));
   };
-  const exportHero = (entry: RosterEntry) =>
-    downloadText(`wfrp4-perso-${fileSlug(entry.hero.label)}.json`, rosterExport(entry));
+  const exportHero = (id: string) => {
+    const fichier = fichierDuHeros(stockageDuRoster(), id);
+    if (fichier) downloadText(fichier.nom, fichier.texte);
+  };
   const startCreate = () => {
     if (onCreate) return onCreate();
     setEditingHero(null);
@@ -671,14 +671,13 @@ export function CandidatePool({
   };
   const onImportFile = async (file: File | undefined) => {
     if (!file) return;
-    const result = rosterImport(await file.text());
-    if (!result.entry) {
-      setImportErr(result.error);
+    const importe = importerAuRoster(stockageDuRoster(), await file.text());
+    if ('refus' in importe) {
+      setImportErr(importe.refus);
       return;
     }
-    ajouterAuRoster(stockageDuRoster(), result.entry);
     setRoster(chargerLeRoster(stockageDuRoster()));
-    setImportErr(result.retraits ? t('picker.import.elague', { liste: nommerLesRetraits(result.retraits) }) : null);
+    setImportErr(importe.avis);
     setTab('roster');
   };
 
@@ -718,7 +717,7 @@ export function CandidatePool({
                       selected={selected?.hero.id === hero.id}
                       onRecruit={() => onPick({ brouillon: draft, id: hero.id })}
                       onPresent={() => setSelectedId(hero.id)}
-                      onExport={() => exportHero({ hero, wealth, draft })}
+                      onExport={() => exportHero(hero.id)}
                       onDelete={() => removeSaved(hero.id)}
                     />
                   ))

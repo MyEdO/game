@@ -90,8 +90,15 @@
 // - `campagne` (#3009) : « Jouer » ouvre une partie au groupe, sans scène : les pré-tirés à recruter, les campagnes du
 //   jeu, dont « Lancer » ne se joue pas groupe vide ; deux pré-tirés recrutés à leur bouton, chacun en carte au pied de
 //   l'écran, son recrutement refusé ensuite ; « Lancer » de la Diligence pose sa scène d'entrée, le groupe composé au
-//   monde, sa fenêtre d'ouverture en main ; « Quitter la partie » rend le menu, le pont sans partie ; « Jouer » de
-//   nouveau, un pré-tiré recruté, l'Arène lancée sans recharger la page.
+//   monde, sa fenêtre d'ouverture en main ; « Sauvegardes » ouvre le panneau des emplacements, l'emplacement 1 écrit à
+//   son bouton ; « Quitter la partie » rend le menu, le pont sans partie ; la page rechargée, « Reprendre » montre
+//   l'emplacement 1 et l'automatique gardé en quittant, l'emplacement 1 chargé rend la partie, son groupe et sa scène ;
+//   quittée, « Jouer » de nouveau, un pré-tiré recruté, l'Arène lancée sans recharger la page.
+// - `roster` (#3009) : un héros créé et engagé par le pont, sans l'écran, la partie quittée ; la page rechargée,
+//   « Jouer » le montre au roster ; « Recruter » de sa carte le fait entrer au groupe sous l'id que le roster garde, son
+//   recrutement refusé ensuite ; la Diligence lancée avec lui, puis quittée, il reste au roster ; « Exporter » en
+//   télécharge le fichier ; « Supprimer », puis « Importer un personnage… » sur ce fichier le rend au roster ;
+//   « Supprimer » l'en retire, page rechargée comprise.
 // - `editeur` (#3508), servi avec une copie des projets manuscrits du dépôt (`servir.mjs`, `depot`) : « Éditeur » ouvre la
 //   Diligence telle que le dépôt la sert, sur sa couche 0, rien à enregistrer ; l'outil Hauteur, « Haute (4 m) » et le
 //   pinceau 3×3 choisis à leurs boutons, un glissé de deux cases sur la carte : bouton tenu, la surcouche couvre
@@ -193,6 +200,7 @@
 //   node hotes/godot/recette.mjs --parcours regards --scenario fenetre-ecuries --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours creation --scenario marche-equipement --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours campagne --web <export> --captures <dossier>
+//   node hotes/godot/recette.mjs --parcours roster --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours vehicule --scenario caraque --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours cadrages --scenario a-bord-de-la-caraque --vues hotes/godot/cadrages/a-bord-de-la-caraque.json
 //     --web <export> --captures <dossier>
@@ -224,12 +232,12 @@
  * neuve des projets manuscrits du dépôt, clique « Éditeur », puis ses boutons et les cases de la carte, lit son état
  * dans `wfrpEcran.editeur`, et le fichier que « Enregistrer » écrit à la copie ; il amène chaque bouton et chaque champ
  * du panneau par la molette, aux crans que dit son point au défilement publié (`wfrpEcran.panneau`) ; il intercepte le choix de fichier de
- * la page (`Page.setInterceptFileChooserDialog`) et remplit l'`input[data-planche]` d'une planche qu'il écrit.
+ * la page (`Page.setInterceptFileChooserDialog`) et remplit l'`input[data-fichier]` d'une planche qu'il écrit.
  * @contrat Écran publié
  */
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -1669,6 +1677,10 @@ async function lancerLaCampagne(id) {
   await attendreLeMonde()
   return vue()
 }
+/** Attend que l'écran publie le bouton qui dessine l'élément `element`. */
+const attendreLeBouton = (element) => waitFor(session, `!!globalThis.wfrpEcran && wfrpEcran.boutons.some((b) => b.element === ${JSON.stringify(element)})`, { timeoutMs: 30000, evaluerMs: FIL_DE_LA_PAGE_MS })
+/** Attend le menu d'entrée : « Jouer » publié, aucun plateau. */
+const attendreLeMenu = () => waitFor(session, '!!globalThis.wfrpEcran && !wfrpEcran.cases && wfrpEcran.boutons.some((b) => b.texte === "Jouer")', { timeoutMs: 120000, evaluerMs: FIL_DE_LA_PAGE_MS })
 async function parcoursCampagne() {
   let v = await ouvrirAuGroupe()
   assert.equal(v.projection.scene, null, 'la partie ouverte au groupe n’a pas de scène')
@@ -1689,16 +1701,137 @@ async function parcoursCampagne() {
   assert.deepEqual([zone(v, 'groupe.pretires'), zone(v, 'groupe.campagnes')], [[], []], 'la composition se ferme, la partie en cours')
   noter(`campagne lancée : scène ${v.projection.scene.nom}, fenêtre « ${zone(v, 'fenetre.titre')[0].texte} »`)
   await capturer('3009-campagne-3-lancee')
+  await cliquerBouton({ element: 'bouton/sauvegardes' })
+  await attendreLeBouton('bouton/sauvegarder/1')
+  await cliquerBouton({ element: 'bouton/sauvegarder/1' })
+  await attendreLeBouton('bouton/charger/1')
+  await capturer('3009-campagne-4-sauvegardee')
+  await cliquerBouton({ element: 'bouton/fermer' })
+  await waitFor(session, '!!globalThis.wfrpEcran && !wfrpEcran.boutons.some((b) => b.element === "bouton/fermer")', { timeoutMs: 30000, evaluerMs: FIL_DE_LA_PAGE_MS })
   await cliquerBouton({ element: 'bouton/quitter' })
-  await waitFor(session, '!!globalThis.wfrpEcran && !wfrpEcran.cases && wfrpEcran.boutons.some((b) => b.texte === "Jouer")', { timeoutMs: 30000, evaluerMs: FIL_DE_LA_PAGE_MS })
+  await attendreLeMenu()
   assert.equal(JSON.parse(await lire(`wfrpPont.appeler('vue')`)).ok, false, 'la partie quittée, le pont n’en tient plus')
-  noter('« Quitter la partie » rend le menu')
+  noter('partie écrite à l’emplacement 1 ; « Quitter la partie » rend le menu')
+  await session.rpc('Page.reload')
+  await attendreLeMenu()
+  await cliquerBouton('Reprendre')
+  await attendreLeBouton('bouton/charger/1')
+  assert.ok(trouver((await ecran()).boutons, { element: 'bouton/charger/auto' }), 'la partie quittée s’est gardée à l’emplacement automatique')
+  await capturer('3009-campagne-5-reprendre')
+  await cliquerBouton({ element: 'bouton/charger/1' })
+  await attendreLaVue('v.projection.scene && v.plateau', 120000)
+  await attendreLeMonde()
+  const reprise = await vue()
+  assert.deepEqual([reprise.projection.scene.id, zone(reprise, 'groupe.heros').map((e) => e.nom)], [v.projection.scene.id, groupe], 'la partie reprise après le rechargement de la page : sa scène, son groupe')
+  noter(`page rechargée, emplacement 1 chargé : scène ${reprise.projection.scene.nom}, groupe ${groupe.join(', ')}`)
+  await capturer('3009-campagne-6-reprise')
+  await cliquerBouton({ element: 'bouton/quitter' })
+  await attendreLeMenu()
   v = await ouvrirAuGroupe()
   assert.deepEqual(zone(v, 'groupe.heros'), [], 'la partie suivante s’ouvre sur un groupe vide')
   await recruterLePretire(2)
   v = await lancerLaCampagne('arene')
   noter(`seconde partie sans recharger : scène ${v.projection.scene.nom}`)
-  await capturer('3009-campagne-4-seconde-partie')
+  await capturer('3009-campagne-7-seconde-partie')
+}
+
+/** La suite que rend la méthode `methode` du pont, appelée dans la page sans passer par l'écran ; son refus lève. */
+async function appelerLePont(methode, entree) {
+  const r = JSON.parse(await lire(`wfrpPont.appeler(${JSON.stringify(methode)}${entree === undefined ? '' : `, ${JSON.stringify(JSON.stringify(entree))}`})`))
+  assert.ok(r.ok, `${methode} : ${r.erreur?.message}`)
+  return r
+}
+
+/** Un héros créé et engagé par le pont, sans l'écran, dans une partie ouverte au groupe puis quittée : chaque page
+ *  jouée par ses boutons (ses tirages, puis chaque choix ouvert tranché par sa première valeur libre). Rend son nom. */
+async function creerUnHerosParLePont() {
+  let v = (await appelerLePont('ouvrir', { graine: Number(o.graine) })).vue
+  const jouer = async (b) => { v = (await appelerLePont('creation', b.jeu)).vue }
+  const corps = (id) => element(v, 'creation.corps', id)
+  const suivante = () => element(v, 'creation.gestes', 'suivante')
+  const ouverts = () => zone(v, 'creation.corps').filter((e) => (e.type === 'choix' || e.type === 'liste') && !e.valeurs.some((b) => b.presse))
+  await jouer(element(v, 'groupe.gestes', 'creation'))
+  for (let page = 0; suivante(); page++) {
+    assert.ok(page < 12, `la création n’atteint pas sa dernière page : ${pageOuverte(v)}`)
+    for (const id of ['tirage', 'defaut', 'bourse', 'nom', 'physique']) if (corps(id)?.type === 'bouton' && !corps(id).refus) await jouer(corps(id))
+    const augmentation = zone(v, 'creation.corps').find((e) => e.id.startsWith('augmentation/'))
+    if (augmentation) await jouer(augmentation.valeurs.find((b) => b.libelle === '5'))
+    if (corps('destin')) await jouer(corps('destin').valeurs.at(-1))
+    for (let n = 0; suivante().refus; n++) {
+      assert.ok(n < 40, `${pageOuverte(v)} ne se solde pas : ${suivante().refus}`)
+      await jouer(ouverts()[0]?.valeurs.find((b) => !b.refus) ?? zone(v, 'creation.corps').find((e) => e.type === 'bouton' && !e.presse && !e.refus))
+    }
+    await jouer(suivante())
+  }
+  const nom = zone(v, 'creation.corps')[0].libelle
+  await jouer(element(v, 'creation.gestes', 'engager'))
+  assert.equal(zone(v, 'groupe.heros').at(-1).nom, nom, `${nom} engagé entre au groupe`)
+  await appelerLePont('quitter')
+  return nom
+}
+
+async function parcoursRoster() {
+  await attendreLeMenu()
+  const nom = await creerUnHerosParLePont()
+  noter(`${nom} créé et engagé par le pont, la partie quittée`)
+  await session.rpc('Page.reload')
+  await attendreLeMenu()
+  let v = await ouvrirAuGroupe()
+  const carte = zone(v, 'groupe.roster').find((e) => e.nom === nom)
+  assert.ok(carte, `page rechargée, ${nom} est au roster : ${zone(v, 'groupe.roster').map((e) => e.nom).join(', ')}`)
+  assert.deepEqual(zone(v, 'groupe.heros'), [], 'le groupe de la partie neuve est vide')
+  noter(`page rechargée, « Jouer » : le roster montre ${zone(v, 'groupe.roster').map((e) => `${e.nom} (${e.elements[0].texte})`).join(', ')}`)
+  await capturer('3009-roster-1-mes-personnages')
+  await cliquerBouton(bouton(boutonDeLEntite(v, 'groupe.roster', carte.id, 'recruter')))
+  v = await vue()
+  assert.deepEqual(zone(v, 'groupe.heros').map((e) => [e.id, e.nom]), [[carte.id.replace('roster/', 'heros/'), nom]], 'recruté, il entre au groupe sous l’id que le roster garde')
+  const refus = boutonDeLEntite(v, 'groupe.roster', carte.id, 'recruter').refus
+  assert.ok(refus, 'au groupe, il ne se recrute plus')
+  assert.equal(trouver((await ecran()).boutons, bouton(boutonDeLEntite(v, 'groupe.roster', carte.id, 'recruter'))), undefined, 'son bouton refusé ne se joue pas')
+  noter(`${nom} recruté du roster ; « Recruter » refusé : ${refus}`)
+  await capturer('3009-roster-2-recrute')
+  v = await lancerLaCampagne('la-diligence')
+  assert.deepEqual([zone(v, 'groupe.heros').map((e) => e.nom), zone(v, 'groupe.roster')], [[nom], []], 'il entre en scène, la composition retirée')
+  noter(`campagne lancée avec ${nom} : scène ${v.projection.scene.nom}`)
+  await capturer('3009-roster-3-en-scene')
+  await cliquerBouton({ element: 'bouton/quitter' })
+  await attendreLeMenu()
+  v = await ouvrirAuGroupe()
+  assert.ok(element(v, 'groupe.roster', carte.id), 'la partie quittée, il reste au roster')
+  const absent = `!v.zones['groupe.roster'].some((e) => e.id === ${JSON.stringify(carte.id)})`
+  const dossier = mkdtempSync(join(tmpdir(), 'recette-roster-'))
+  try {
+    await session.rpc('Page.setDownloadBehavior', { behavior: 'allow', downloadPath: dossier })
+    await cliquerBouton(bouton(boutonDeLEntite(v, 'groupe.roster', carte.id, 'exporter')))
+    const telecharges = () => readdirSync(dossier).filter((f) => f.endsWith('.json'))
+    for (let n = 0; n < 100 && telecharges().length === 0; n++) await sleep(100)
+    assert.equal(telecharges().length, 1, `« Exporter » télécharge un fichier : ${readdirSync(dossier).join(', ')}`)
+    const fichier = join(dossier, telecharges()[0])
+    const exporte = JSON.parse(readFileSync(fichier, 'utf8'))
+    assert.deepEqual([exporte.kind, exporte.hero.label, `roster/${exporte.hero.id}`], ['wfrp4-hero', nom, carte.id], 'le fichier est l’export de ce héros')
+    noter(`« Exporter » : ${basename(fichier)} téléchargé`)
+    await cliquerBouton(bouton(boutonDeLEntite(v, 'groupe.roster', carte.id, 'retirer')))
+    await attendreLaVue(absent)
+    await session.rpc('Page.setInterceptFileChooserDialog', { enabled: true })
+    await cliquerBouton(bouton(element(await vue(), 'groupe.import', 'importer')))
+    await waitFor(session, '!!document.querySelector("input[data-fichier]")')
+    await poserFichier(session, 'input[data-fichier]', fichier)
+    await attendreLaVue(`!(${absent})`)
+    v = await vue()
+    assert.deepEqual(zone(v, 'groupe.avis'), [], 'importé entier, rien à en dire')
+    noter(`« Supprimer », puis « Importer un personnage… » sur ce fichier : ${nom} revient au roster`)
+    await capturer('3009-roster-4-importe')
+  } finally {
+    rmSync(dossier, { recursive: true, force: true })
+  }
+  await cliquerBouton(bouton(boutonDeLEntite(v, 'groupe.roster', carte.id, 'retirer')))
+  await attendreLaVue(absent)
+  await session.rpc('Page.reload')
+  await attendreLeMenu()
+  v = await ouvrirAuGroupe()
+  assert.equal(element(v, 'groupe.roster', carte.id), undefined, 'supprimé, il a quitté le roster, page rechargée comprise')
+  noter(`« Supprimer » : ${nom} a quitté le roster`)
+  await capturer('3009-roster-5-supprime')
 }
 
 /** Le bouton de la vue d'id `id` dans la zone `z` pressé à l'écran, puis la vue que le pont rend. */
@@ -2405,8 +2538,8 @@ async function parcoursEditeur() {
   ecrirePlanche(planche)
   await session.rpc('Page.setInterceptFileChooserDialog', { enabled: true })
   await cliquerAuPanneau({ element: 'bouton/calque/charger' })
-  await waitFor(session, '!!document.querySelector("input[data-planche]")')
-  await poserFichier(session, 'input[data-planche]', planche)
+  await waitFor(session, '!!document.querySelector("input[data-fichier]")')
+  await poserFichier(session, 'input[data-fichier]', planche)
   await waitFor(session, 'globalThis.wfrpEcran?.editeur?.calque_pose === true', { timeoutMs: 30000 })
   e = await editeur()
   const ligneDuCalque = (e, id) => e.zones['editeur.calque'].find((l) => l.id === id)?.texte
@@ -3350,7 +3483,7 @@ async function parcoursPreset() {
   }
 }
 
-const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, dialogue: parcoursDialogue, document: parcoursDocument, incantation: parcoursIncantation, soin: parcoursSoin, voyage: parcoursVoyage, marche: parcoursMarche, repos: parcoursRepos, repit: parcoursRepit, ouvrage: parcoursOuvrage, bataille: parcoursBataille, exploration: parcoursExploration, relief: parcoursRelief, etage: parcoursEtage, regards: parcoursRegards, meteo: parcoursMeteo, vehicule: parcoursVehicule, cadrages: parcoursCadrages, bord: parcoursBord, brume: parcoursBrume, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, campagne: parcoursCampagne, editeur: parcoursEditeur, atelier: parcoursAtelier, composition: parcoursComposition, preset: parcoursPreset, vision: parcoursVision, murs: parcoursMurs }
+const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, dialogue: parcoursDialogue, document: parcoursDocument, incantation: parcoursIncantation, soin: parcoursSoin, voyage: parcoursVoyage, marche: parcoursMarche, repos: parcoursRepos, repit: parcoursRepit, ouvrage: parcoursOuvrage, bataille: parcoursBataille, exploration: parcoursExploration, relief: parcoursRelief, etage: parcoursEtage, regards: parcoursRegards, meteo: parcoursMeteo, vehicule: parcoursVehicule, cadrages: parcoursCadrages, bord: parcoursBord, brume: parcoursBrume, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, campagne: parcoursCampagne, roster: parcoursRoster, editeur: parcoursEditeur, atelier: parcoursAtelier, composition: parcoursComposition, preset: parcoursPreset, vision: parcoursVision, murs: parcoursMurs }
 if (!(o.parcours in PARCOURS)) throw new Error(`--parcours ${o.parcours} : ${Object.keys(PARCOURS).join(' ou ')} attendu`)
 assert.deepEqual(Object.keys(PARCOURS).filter((parcours) => !(parcours in JEUX_DU_PARCOURS)), [], 'chaque parcours déclare ses jeux au lot (`JEUX_DU_PARCOURS`)')
 

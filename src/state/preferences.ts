@@ -6,7 +6,7 @@
 import { useGame } from './store';
 import { reglerUnePreference } from '../hote/preferences';
 import { preferenceDef, type IdDePreference, type PrefValue } from '../noyau/preferences';
-import { stockageWeb } from '../web/stockageWeb';
+import { stockageWeb } from '../hote/stockageWeb';
 import { reappliquerLeVolumeDeLaMusique } from '../audio/engine';
 
 /** L'effet d'un changement JOUEUR sur le store, par préférence (jamais au chargement). */

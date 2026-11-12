@@ -152,7 +152,7 @@ function figerLEcran(listage: Listage | null): { vues: VueFigee[]; planches: Pla
    *  repartent de zéro à chaque partie : seul le combat du dôme verse au journal des vues. `planche` rend la planche
    *  de la suite `s` de sa partie. */
   const unPont = (journal: Ligne[]) => {
-    const pont = creerPont();
+    const pont = creerPont(null);
     let scenario = '';
     const appeler = (methode: string, entree: unknown): Suite => {
       const r = JSON.parse(pont.appeler(methode, JSON.stringify(entree))) as { ok: boolean } & Suite;
@@ -370,7 +370,7 @@ function figerLEcran(listage: Listage | null): { vues: VueFigee[]; planches: Pla
     'fenetre.titre': [], 'fenetre.etape': [], 'fenetre.corps': [], 'fenetre.reglages': [], 'fenetre.gestes': [],
     'combat.tour': [], 'combat.ordre': [], 'combat.actif': [], 'combat.avis': [], 'combat.apercu': [], 'combat.offres': [], 'exploration.gestes': [], 'dialogue.orateur': [], 'dialogue.replique': [], 'dialogue.reponses': [], 'journal.titre': [],
     'groupe.heros': [], 'fiche.porteur': [], 'fiche.gestes': [], 'fiche.profil': [], 'fiche.sections': [], 'fiche.source': [], 'fiche.objet': [],
-    'groupe.gestes': [], 'creation.titre': [], 'creation.corps': [], 'creation.gestes': [], 'groupe.pretires': [], 'groupe.campagnes': [], 'partie.gestes': [],
+    'groupe.gestes': [], 'creation.titre': [], 'creation.corps': [], 'creation.gestes': [], 'groupe.pretires': [], 'groupe.roster': [], 'groupe.import': [], 'groupe.avis': [], 'groupe.campagnes': [], 'partie.gestes': [],
   };
   const atelier = unPont([]);
   s = viderLesFenetres(atelier.jouer, atelier.jouer('demarrer', { scenario: 'marche-equipement', graine: 7 }));

@@ -97,10 +97,10 @@ qui le rend inutile.
 | `data` | base app-owned et son chargement | `engine`, feuilles | oui |
 | `noyau` | orchestration pure : (état, intention) → (état, journal, événements) ; modèle du monde (`noyau/monde/`) ; outils d'auteur purs que lisent le contenu et l'éditeur ; modèles-vues que tout hôte dessine | `engine`, `data`, feuilles | oui |
 | `scenes` | contenu de campagne | `noyau`, `data`, `engine`, feuilles | oui |
-| `hote` | module commun aux hôtes du noyau | la porte du noyau, `scenes`, feuilles | oui |
+| `hote` | module commun aux hôtes du noyau, et leurs services d'hôte : entropie, stockage web | la porte du noyau, `scenes`, feuilles | oui |
 | `hoteTexte`, `hotes` (`hotes/`) | hôte texte (MCP), hôte Godot | les droits de `hote`, et `hote` | oui |
-| `web` | services d'exécution du navigateur : minuteries, IndexedDB, stockage local, fichiers | feuilles | non |
-| `net`, `audio` | services de l'hôte web | feuilles (`net` : et `hote` en type ; `audio` : et `web`, `data`) | non |
+| `web` | services d'exécution du navigateur : minuteries, IndexedDB, fichiers | feuilles | non |
+| `net`, `audio` | services de l'hôte web | feuilles (`net` : et `hote` en type ; `audio` : et `hote`, `data`) | non |
 | `state` | adaptateur du store web : pose le résultat du noyau, sélectionne pour l'affichage, persiste | tout ce qui précède hors `hoteTexte` et `hotes` (`hote` compris) ; `ui` en type seul | non |
 | `ui`, `gameIso` | présentation de l'hôte web, deux zones qui s'importent l'une l'autre | tout ce qui précède hors `hoteTexte` et `hotes` (`hote` : `ui` seule) | non |
 | racine de `src/` | entrée de l'hôte web (`main.tsx`) et tests transverses | tout | non |
@@ -306,7 +306,7 @@ scripts/hooks/               Répartiteur des hooks d'appel d'outil (`repartiteu
                             `regles-projection-oubli.mjs` en efface l'état au SessionStart d'une compaction
 src/lib/                     Couche NEUTRE, feuille de `COUCHES`, en amont de toutes les zones : ce que
                             plusieurs couches emploient sans qu’aucune ne le possède. `normalize.ts` :
-                            normalisation d'un nom (`norm`).
+                            normalisation d'un nom (`norm`), nom de fichier sûr (`fileSlug`).
                             `entityId.ts` : id PUR et unique dans une collection, plus petit suffixe
                             libre parmi les ids pris (`nextEntityId`) — scène, entité, faveur, set d'armes.
                             `regex.ts` : échapper une chaîne pour une regex (`echapperRegex`), alternation
@@ -322,9 +322,9 @@ src/lib/                     Couche NEUTRE, feuille de `COUCHES`, en amont de to
                             posé en `localStorage`).
                             `base64.ts` : le base64 des octets dans les deux sens (`enBase64`, `depuisBase64`),
                             seul site de `btoa` et `atob` (`murs/base64`, #3948).
-src/web/                     Services d'exécution du NAVIGATEUR (`window`, `document`, `localStorage`,
-                            `indexedDB`, `setTimeout`, `navigator`), feuille de `COUCHES` : `state`,
-                            `audio` et la présentation l'importent, ni `noyau` ni `data`.
+src/web/                     Services d'exécution du NAVIGATEUR (`window`, `document`,
+                            `indexedDB`, `setTimeout`, `navigator`), feuille de `COUCHES` : `state`
+                            et la présentation l'importent, ni `noyau` ni `data`.
                             `indexedDb.ts` : bases IndexedDB DÉCLARÉES `{ nom, magasins: { [nom]:
                             { keyPath } } }`, ouvertes SANS version (#2404) : une base neuve reçoit ses
                             magasins de la déclaration, une base existante qui s'en écarte (magasin
@@ -337,20 +337,7 @@ src/web/                     Services d'exécution du NAVIGATEUR (`window`, `doc
                             `scheduleFlowTimer`, `clearTrackedTimer`, état d'un timer `timerEnVol`), vidé au teardown de test
                             (`clearTrackedTimers`, #405) ; seul lieu de `src/state`, `src/noyau`, `src/lib` et `src/web` où
                             `setTimeout`/`setInterval` s'écrivent (mur `murs/minuteries`, #415).
-                            `stockageWeb.ts` : accès protégé au `localStorage` et au `sessionStorage`
-                            (`stockageWeb`) ; un dictionnaire persisté s'y relit par `lireDictionnaire` (`lib/stockage.ts`),
-                            chaque VALEUR validée par son lecteur contre son registre (#2404). Les clés
-                            de stockage ne portent aucun numéro de version (`wfrp4.prefs`, pas
-                            `wfrp4.prefs.v1`).
-                            `entropie.ts` : le seul site de `Math.random` de `src/` (mur
-                            `murs/entropie`, #2817) — entier de présentation (`entierDEntropie`),
-                            graine (`graineDEntropie` : RNG de bataille posé par `seedBattleRng` au
-                            branchement du store, brouillon de création, générateur de nom), id
-                            d'entité unique d'un projet à l'autre (`idDEntropie` : scène, carte,
-                            projet, lieu, trajet, héros de roster — `emptyScene(id)`/`emptyWorldMap(id)` le reçoivent
-                            de l'hôte) ; `src/engine` et `src/noyau` n'en tirent jamais.
-                            `fileIo.ts` : téléchargement d'un texte (`downloadText`), nom de fichier
-                            sûr (`fileSlug`).
+                            `fileIo.ts` : téléchargement d'un texte (`downloadText`).
                             `fsPersist.ts` : persistance des datasets édités au Codex (File System
                             Access API et IndexedDB), importée par `ui/editor/codex/CodexEdit.tsx`.
 src/geometry/                Géométrie/simulation PURE, feuille de `COUCHES` (#161 : `state` en a
@@ -616,7 +603,11 @@ src/hote/                   COMMUN AUX HÔTES du noyau (#2928) : ce qu'un hôte 
                             `roster.ts` (la procédure du roster
                             sur le `Stockage` que l'hôte fournit : charger, ajouter, retirer, mettre à jour — le
                             service `persisterLeHeros` d'un hôte qui a un stockage ; le chargement REND ses témoins de
-                            retrait et d'élagage), `reglesMaison.ts` et `preferences.ts` (leur persistance sur le même
+                            retrait et d'élagage, que `avisDuRoster` dit ; `rosterAMontrer` rend les héros et l'avis
+                            qu'un hôte montre tant que le groupe se compose, zones `groupe.roster` et `groupe.avis` ;
+                            `engagerLeHeros` écrit l'entrée du héros créé et rend l'intention que le noyau en bâtit ;
+                            `fichierDuHeros` rend le fichier d'export d'un héros, `importerAuRoster` en importe un),
+                            `reglesMaison.ts` et `preferences.ts` (leur persistance sur le même
                             `Stockage` ; un chargement de règles maison qui élague cumule son témoin sous sa propre
                             clé, que `prendreLeTemoinDesReglesMaison` consomme au montage du panneau des règles),
                             `sauvegardes.ts` (les emplacements de sauvegarde sur le même `Stockage` : écrire, lire, retirer,
@@ -631,7 +622,18 @@ src/hote/                   COMMUN AUX HÔTES du noyau (#2928) : ce qu'un hôte 
                             `protocol.ts`, les messages et leur validation, `session.ts`, `HostSession`/`GuestSession`
                             hôte-autoritaires, dont le paquet de campagne : envoyé au join, rattrapé à la diffusion
                             qui suit son chargement, ses scènes enregistrées chez l'invité ; `transport.ts`, le port
-                            `Transport`, et sa paire en mémoire de test `transport.testkit.ts`). `ouvrirLaPartie` reçoit le `persisterLeHeros` de l'hôte. Entrée d'un hôte
+                            `Transport`, et sa paire en mémoire de test `transport.testkit.ts`),
+                            `stockageWeb.ts` (accès protégé au `localStorage` et au `sessionStorage`, `stockageWeb`,
+                            pour l'hôte web comme pour la page de l'hôte Godot ; un dictionnaire persisté s'y relit par
+                            `lireDictionnaire` de `lib/stockage.ts`, chaque VALEUR validée par son lecteur contre son
+                            registre, #2404 ; les clés de stockage ne portent aucun numéro de version : `wfrp4.prefs`,
+                            pas `wfrp4.prefs.v1`), `entropie.ts` (le seul site de `Math.random` des zones, mur
+                            `murs/entropie`, #2817 : entier de présentation `entierDEntropie`, graine
+                            `graineDEntropie` — RNG de bataille posé par `seedBattleRng` au branchement du store,
+                            dés d'une partie que le pont Godot ouvre ou charge, brouillon de création, générateur de
+                            nom —, id d'entité unique d'un projet à l'autre `idDEntropie` : scène, carte, projet, lieu,
+                            trajet, héros de roster, que `emptyScene(id)`/`emptyWorldMap(id)` reçoivent de l'hôte ;
+                            `src/engine` et `src/noyau` n'en tirent jamais). `ouvrirLaPartie` reçoit le `persisterLeHeros` de l'hôte. Entrée d'un hôte
                             servi ou bâti par
                             Vite : `scripts/entree-d-hote.mjs`.
 src/hoteTexte/              HÔTE TEXTE du noyau (#2898) : une partie pilotable par un serveur MCP, sans store
