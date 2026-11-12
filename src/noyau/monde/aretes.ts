@@ -7,6 +7,7 @@ import { structureAppearances } from '../../data';
 import type { FamilleDuKit, StructureAppearanceDef } from '../../data/structureAppearance.types';
 import { apparenceDArete, edgeKey, facadeEdges } from './facades';
 import { walkNeighbors, type Pt } from './path';
+import { inMapBounds } from './zones';
 import { EYE_H, hauteurDeLOeil } from './iso';
 import { METRES_PER_LEVEL } from './relief';
 import { casesDeFace, heightAt, isWalkable, piedDeLArete, porteEnJeu, sceneMetresPerTile, structureIsDown, tuilesEffondreesSignature, wallEnds, wallIsOpen, type Scene, type WallSeg } from './scene';
@@ -25,11 +26,12 @@ import { aretesHorsDesNavires, provenanceDesNavires } from '../planDeNavire';
  *  la brèche d'une structure abattue. */
 export type PieceDArete = 'mur' | 'porte-fermee' | 'porte-ouverte' | 'fenetre' | 'fenetre-close' | 'breche';
 
-/** Une arête telle qu'un hôte la dessine : sa clé (`edgeKey`), la case du segment, son milieu et son sens en coins de
- *  grille (`wallEnds`), la hauteur (m) d'où elle se dresse (`piedDeLArete`), sa pièce, la famille du kit de son apparence
- *  (`null` pour une apparence hors du catalogue), sa hauteur en mètres (`wallHeightM`, sinon un étage), et le bloc de la
- *  case du segment à sa couche (`blocDeLaCase`). */
-export interface AreteDessinee { cle: string; case: Pt; milieu: Pt; sens: Pt; pied: number; piece: PieceDArete; famille: FamilleDuKit | null; hauteurM: number; bloc: string }
+/** Une arête telle qu'un hôte la dessine : sa clé (`edgeKey`), les cases de la carte qu'elle sépare à sa couche
+ *  (`casesDeFace`, `inMapBounds` : une ou deux), son milieu et son sens en coins de grille (`wallEnds`), la hauteur
+ *  (m) d'où elle se dresse (`piedDeLArete`), sa pièce, la famille du kit de son apparence (`null` pour une apparence
+ *  hors du catalogue), sa hauteur en mètres (`wallHeightM`, sinon un étage), et le bloc de la case du segment à sa
+ *  couche (`blocDeLaCase`). */
+export interface AreteDessinee { cle: string; cases: Required<Pt>[]; milieu: Pt; sens: Pt; pied: number; piece: PieceDArete; famille: FamilleDuKit | null; hauteurM: number; bloc: string }
 
 /** Une arête que le groupe dégage : sa clé (`edgeKey`) et les crans de caméra (`Rot`, `Dims.rot`) sous lesquels elle
  *  tombe : tous si l'une des cases qu'elle sépare est au-dessus de la tête d'un allié (`cutawayOverhead`), sinon ceux
@@ -55,16 +57,17 @@ function pieceDArete(scene: Scene, seg: WallSeg): PieceDArete {
 export function areteDessinee(scene: Scene, seg: WallSeg): AreteDessinee {
   const [a, b] = wallEnds(seg);
   const apparence = APPARENCES.get(apparenceDArete(scene, seg));
+  const z = seg.z ?? 0;
   return {
     cle: edgeKey(seg),
-    case: { x: seg.x, y: seg.y },
+    cases: casesDeFace(seg, 'les-deux').filter((c) => inMapBounds(scene.dimensions, c)).map((c) => ({ ...c, z })),
     milieu: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 },
     sens: { x: b.x - a.x, y: b.y - a.y },
     pied: piedDeLArete(scene, seg),
     piece: pieceDArete(scene, seg),
     famille: apparence?.kit ?? null,
     hauteurM: apparence?.wallHeightM ?? METRES_PER_LEVEL,
-    bloc: blocDeLaCase({ x: seg.x, y: seg.y, z: seg.z ?? 0 }),
+    bloc: blocDeLaCase({ x: seg.x, y: seg.y, z }),
   };
 }
 

@@ -6,7 +6,7 @@
  * minuteurs (Godot) rend lui-même chaque jeton ; le geste joué sur la partie vit dans `geste.ts`.
  */
 import {
-  creerPartie, etatInitialDuJeu, preferenceDef, refusDesSurcharges, valeurDEntree,
+  creerPartie, etatInitialDuJeu, preferenceDef, refusDesSurcharges, ruleOverrides, valeurDEntree,
   type Cadence, type EntreesDeLaPartie, type EtatDeJeu, type FabriqueDId, type LancementDeScenario, type IdDePreference, type PrefValue, type Jeton, type Partie, type Programme, type ResultatDeLAppel,
 } from '../noyau/index';
 import { lancementDuScenario, type TestScenario } from '../scenes/test-scenarios/_shared';
@@ -59,6 +59,12 @@ export function nouvellesEntrees(options: { graine?: number; cadence?: unknown; 
     cadence: preference('combat-cadence', options.cadence) as Cadence,
     desFixes: preference('des-fixes', options.desFixes) as boolean,
   };
+}
+
+/** Les entrées d'une partie du jeu à la graine `graine` : les règles maison `regles`, à défaut celles en vigueur, et
+ *  la cadence et les dés fixés en vigueur aux préférences de l'hôte, que l'ouverture de la partie repose. */
+export function entreesDuJeu(graine: number, regles: Record<string, unknown> = ruleOverrides()): EntreesDeLEntete {
+  return nouvellesEntrees({ graine, regles, cadence: preferenceDef('combat-cadence')!.get(), desFixes: preferenceDef('des-fixes')!.get() });
 }
 
 /** L'en-tête d'une partie neuve, ou l'erreur de validation qui le refuse (`nouvellesEntrees`). */
