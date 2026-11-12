@@ -646,8 +646,10 @@ hotes/godot/                HÔTE GODOT du noyau (#2928, zone `hotes`) : le pont
                             sous l'éditeur, #3945, que `npm run godot:ouvrir` ouvre sur le projet ; `embarque.mjs`,
                             empaqueté à côté de l'exécutable de bureau, #3951).
                             `pont/pont.ts` (une méthode = une chaîne JSON en entrée, une en sortie, jamais une levée ;
-                            gestes par le module commun, vue faite des lecteurs du noyau, jetons tenus par numéro),
-                            `pont/entree.ts` (`globalThis.wfrpPont`), contrat `pont/CONTRAT.md` ; `construire.mjs
+                            gestes par le module commun, vue faite des lecteurs du noyau, jetons tenus par numéro ; la
+                            porte `appelerEnOctets` des transports de Godot passe les tableaux de `morceaux` en un
+                            tampon de `Float32`, `pont/octets.ts`, #3948), `pont/entree.ts` (`globalThis.wfrpPont`),
+                            contrat `pont/CONTRAT.md` ; `construire.mjs
                             --pont-seul` bâtit le bundle iife par Vite (`npm run pont:godot`, étape de la CI).
   asset/                    le contrat d'asset d'un personnage 3D (lecteur GLB, manifeste, import par `importer.mjs`) ;
                             le manifeste d'élément du schéma 3 et sa validation contre la base et la donnée du jeu (`asset/element.ts`) ;

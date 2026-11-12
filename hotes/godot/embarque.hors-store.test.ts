@@ -23,7 +23,7 @@ beforeAll(async () => {
   mkdirSync(join(racine, 'modeles'), { recursive: true });
   writeFileSync(join(racine, 'modeles', LISTAGE), '{}');
   mkdirSync(noyau);
-  writeFileSync(join(noyau, PONT), "globalThis.wfrpPont = { appeler: (methode) => JSON.stringify({ ok: true, methode }) }");
+  writeFileSync(join(noyau, PONT), "globalThis.wfrpPont = { appelerEnOctets: (methode) => JSON.stringify({ ok: true, methode }), octets: () => null }");
   tuyau = ouvrirLeProcessus(await empaqueterLeProcessus(noyau));
   url = (JSON.parse(await tuyau.prochaine()) as { url: string }).url;
 }, 60_000);

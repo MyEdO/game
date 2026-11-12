@@ -147,7 +147,7 @@ func _plaque(positions: Array, normales: Array, couleurs: Array, cases: Array, c
 		positions.append_array([centre.x + coin[0] * demi, centre.y, centre.z + coin[1] * demi])
 		normales.append_array([0.0, 1.0, 0.0])
 		couleurs.append_array([0.8, 0.8, 0.8, 1.0])
-	cases.append_array([[case.x, case.y, 0], [case.x, case.y, 0]])
+	cases.append_array([case.x, case.y, 0, case.x, case.y, 0])
 
 
 ## Le sol lu près de l'aplomb de la lampe `lampe`.
