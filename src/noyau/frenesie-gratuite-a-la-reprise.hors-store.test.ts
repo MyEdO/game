@@ -39,13 +39,7 @@ function jouer(fenetre: Fenetre) {
     expect(g().pendingDefense?.attackerId, 'la gratuite d’Assaut féroce ouvre SA défense').toBe(E.id);
     defenseEchoue();
   }
-  for (let i = 0; i < 6 && !g().pendingDefense; i++) {
-    const pc = g().pendingCascade;
-    const st = pc?.participants[pc.cursor];
-    if (!st || st.committed) break;
-    if (st.kind === 'sauvegarde') { g().jetImposerLeResultat('cascadeTirage', 1, st.id); g().jetValider('cascade'); }
-    else avanceEtapeCascade(g);
-  }
+  for (let i = 0; i < 6 && g().pendingCascade && !g().pendingDefense; i++) avanceEtapeCascade(g, (etape) => (etape.kind === 'sauvegarde' ? 1 : undefined));
   banc.jusquA((s) => s.battle!.turn !== tour || !!s.pendingDefense, 10);
   return { E: g().battle!.combatants.find((c) => c.id === E.id)!, tour };
 }
