@@ -9,7 +9,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { refLabel, resolveStake, weather } from '../data';
 import { itemFromTrappingById } from '../engine/items';
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { seedBattleRng } from './battleRng';
 import { makeRNG } from '../engine/dice';
@@ -21,6 +21,9 @@ import { buildEncounter } from './monde/encounterAuthoring';
 import type { MapRouteTrace, WorldMap } from './worldMap';
 import { campaignStart } from '../engine/clock';
 import { setRule } from '../engine/policy';
+import { setCadence } from '../engine/cadence';
+import { t } from '../i18n';
+import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { buildWeatherResistanceSteps, buildStageSteps } from './travelPostes';
 import { seasonOfMonth, weatherFromRoll, type Season } from '../engine/travelStages';
 import { toDate } from '../engine/clock';
@@ -658,5 +661,58 @@ describe('#1153 — allure forcée : km suivant et reprise de contrôle, une seu
     expect(soutienDe(control!), 'le Soutien s’applique aussi à la reprise (LDB 12 l.189)').toBe(picked.support.bonus);
     expect(control!.target, 'la cible NE dépend PAS de la surface : même valeur soutenue').toBe(picked.value + DIFFICULTY_MODIFIERS.intermediaire);
     expect(inexplique(control!)).toBe(0);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+// #4006 — sous `jouerLaJournee` (`travelFlow.ts:720`), ce que l'applier d'un péril d'auteur ouvre arrête le jour.
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+describe('péril d’auteur dont l’effet ouvre un nœud de scène sous la journée pilotée (#4006)', () => {
+  /** Cadence déférée : aucun siège ne tient les dés du jour, le pilote joue l'applier du péril lui-même. */
+  beforeEach(() => { setCadence('rapide'); setRule('priere-petites', true); });
+  afterEach(() => setCadence('manuel'));
+  const drapeau = (flag: string): Flow => ({ kind: 'effet', effet: { type: 'setFlag', flag } });
+  const NOEUDS: { noeud: string; etape: string; reward: Flow }[] = [
+    { noeud: 'test', etape: 'jetDeTestDeScene', reward: { kind: 'test', test: { characteristic: 'force' }, reussite: drapeau('branche'), echec: drapeau('branche') } },
+    { noeud: 'choix', etape: 'choixDeFlux', reward: { kind: 'choix', invite: 'Prier encore', oui: drapeau('branche'), non: drapeau('branche') } },
+  ];
+  /** Le jour : le péril « Sanctuaire » (sa Petite Prière exaucée d'office, Prière à 200 avances, joue le nœud),
+   *  puis le péril « Rien », qui ne survient jamais. 30 km : la journée finit sur la halte de nuit. */
+  const partir = (reward: Flow) => {
+    seedBattleRng(1);
+    const h = hero({ items: [ration('r1')], skills: [{ id: 'priere', characteristic: 'sociabilite', advances: 200 } as any] });
+    setup(map({ km: 30, perils: [
+      { label: 'Sanctuaire', chancePct: 100, effects: [{ type: 'petitePriere', heroId: h.id, reward }] },
+      { label: 'Rien', chancePct: 0, effects: [{ type: 'setFlag', flag: 'rien' }] },
+    ] }), [h]);
+    get().partirEnVoyage('r1', 'pied');
+  };
+  const lignes = (texte: string) => get().journal.filter((l) => l.startsWith(texte)).length;
+  const exaucee = () => lignes(t('eff.petitePriereExaucee', { name: 'Hilda', roll: '§', threshold: '§' }).split('§')[0]);
+  const jours = () => get().travelPlan?.log?.length ?? 0;
+
+  for (const { noeud, etape, reward } of NOEUDS) it(`nœud \`${noeud}\` : il passe avant la suite du jour, repris une fois à sa clôture, une journée comptée, la halte après`, () => {
+    partir(reward);
+    expect(exaucee(), `prémisse (${noeud}) : l’applier du péril a joué l’effet`).toBe(1);
+    expect(get().pendingCascade?.participants[get().pendingCascade!.cursor]?.kind, `prémisse (${noeud}) : le nœud ouvert tient le slot`).toBe(etape);
+    expect(get().suspendedCascades.map((c) => [c.purpose, c.cursor]), `le jour en vol est parqué derrière son péril, sous le nœud (${noeud})`).toEqual([['travelDay', 1]]);
+
+    expect(get().suspendedCascades[0]!.participants[1]!.committed, `la suite du jour attend le nœud (${noeud})`).toBeFalsy();
+    expect(lignes(t('tf.perilEvite', { label: 'Rien' })), `le péril suivant n’est pas joué par-dessus (${noeud})`).toBe(0);
+    expect(jours(), `aucune journée comptée sous le nœud (${noeud})`).toBe(0);
+    expect(get().pendingRest, `aucune halte sous le nœud (${noeud})`).toBeNull();
+    for (let i = 0; i < 20 && (get().pendingTest || get().pendingCascade); i++) {
+      if (get().pendingTest) { get().jetLancer('test'); get().jetValider('test'); } else avanceEtapeCascade(get);
+      if (get().flags.branche) break;
+    }
+    expect(get().flags.branche, `la branche du nœud est jouée (${noeud})`).toBe(true);
+
+    expect(get().pendingCascade, `le jour repris va au bout (${noeud})`).toBeNull();
+    expect(get().suspendedCascades, `la pile est vide (${noeud})`).toEqual([]);
+    expect(lignes(t('tf.perilEvite', { label: 'Rien' })), `la suite du jour jouée une fois, après le nœud (${noeud})`).toBe(1);
+    expect(lignes(t('tf.perilDAuteur', { label: 'Sanctuaire' })), `le péril ouvrant n’est pas rejoué (${noeud})`).toBe(1);
+    expect(exaucee(), `son effet n’est pas rejoué (${noeud})`).toBe(1);
+    expect(jours(), `une journée comptée (${noeud})`).toBe(1);
+    expect(get().pendingRest, `la halte de nuit s’ouvre après la clôture (${noeud})`).toBeTruthy();
   });
 });

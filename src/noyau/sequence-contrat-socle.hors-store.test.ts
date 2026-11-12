@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { initialNet } from './etat';
 import { openSequence, displayStep, monoStep } from './rollSeam';
-import { startCascade, advanceCascade, resumeSuspendedCascade, sortirDeLHote, suspendActiveCascade, setClotureDeCascade } from './cascade';
+import { startCascade, advanceCascade, resumeSuspendedCascade, sortirDeLHote, suspendActiveCascade, dropSceneEntrySteps, setClotureDeCascade } from './cascade';
 import { runFlow, pushReveal } from './combatEffects';
 import { dispatchCascadeDone } from './combatSlice';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
@@ -53,6 +53,9 @@ const KIND_REVELE = cleDeFixture('sonde-4006-revele');
 const KIND_REVELE_A_PART = cleDeFixture('sonde-4006-revele-a-part');
 const KIND_OUVRE_FLOW_PUIS_REVELE = cleDeFixture('sonde-4006-ouvre-flow-puis-revele');
 const KIND_OUVRE_FLOW_PUIS_COMBAT = cleDeFixture('sonde-4006-ouvre-flow-puis-combat');
+const KIND_OUVRE_FLOW_PUIS_QUITTE = cleDeFixture('sonde-4006-ouvre-flow-puis-quitte');
+const KIND_QUITTE = cleDeFixture('sonde-4006-quitte');
+const KIND_PILOTE_IMBRIQUE = cleDeFixture('sonde-4006-pilote-imbrique');
 
 /** Le Flow que joue l'applier `KIND_OUVRE_FLOW`, posé par chaque test. */
 let flowOuvert: Flow = { kind: 'sequence', etapes: [] };
@@ -63,6 +66,8 @@ let ratesVus: { actorId: string; parquees: number }[] = [];
 const COMBAT = { combatants: [], order: [], turn: 0, round: 1, log: [], over: null } as never;
 /** Une révélation par l'émetteur unique (`pushReveal`) : elle rejoint la séquence en vol, ou ouvre la sienne (`own`). */
 const reveler = (s: SetFn, own: boolean): void => pushReveal(s, { kind: 'effet', title: fixtureText('Révélation'), lines: [] }, { own });
+/** Les gestes de pile de `quitterLaScene` (`entreeEnScene.ts:99`) : le slot parqué, puis les cartes d'entrée purgées de la pile. */
+const quitterLaPile = (g: Parameters<typeof suspendActiveCascade>[0], s: SetFn): void => { suspendActiveCascade(g, s); dropSceneEntrySteps(g, s); };
 
 let apples = 0;
 beforeEach(() => { avecLesTables({ appliers: { ...tablesDuJeu().appliers, [KIND_INERTE]: () => { apples++; return {}; }, [KIND_OUVRE_COMBAT]: (_get, setter) => {
@@ -84,6 +89,17 @@ beforeEach(() => { avecLesTables({ appliers: { ...tablesDuJeu().appliers, [KIND_
   // `lancerLeCombat` du point de vue du slot et de la garde : la séquence en vol est parquée, le combat est ouvert.
   suspendActiveCascade(g, s);
   s({ battle: COMBAT });
+  return {};
+}, [KIND_OUVRE_FLOW_PUIS_QUITTE]: (g, s) => { apples++; runFlow(g, s, flowOuvert); quitterLaPile(g, s); return {}; },
+[KIND_QUITTE]: (g, s) => { apples++; quitterLaPile(g, s); return {}; },
+[KIND_PILOTE_IMBRIQUE]: (g, s) => {
+  apples++;
+  const automate = g().party[1];
+  // Un `purpose` autre que `test` : de même `purpose`, le Test ouvert rejoint la séquence en vol au lieu de s'ouvrir.
+  openSequence(g, s, { title: 'Imbriquée', purpose: 'seaExposure', steps: [
+    displayStep({ id: 'i1', kind: KIND_OUVRE_FLOW, actorId: automate.id, label: fixtureText('Imbriquée 1') })!,
+    displayStep({ id: 'i2', kind: KIND_INERTE, actorId: automate.id, label: fixtureText('Imbriquée 2') })!,
+  ] });
   return {};
 } }, clotures: { ...tablesDuJeu().clotures, testRateDeLActeur: (g, s, c) => {
   ratesVus.push({ actorId: c.actorId, parquees: g().suspendedCascades.length });
@@ -383,5 +399,78 @@ describe('#4006 — le pilote immédiat à contexte parque au rang ce que son ap
     expect(apples, 'la journée est jouée en entier').toBe(2);
     expect(get().suspendedCascades, 'rien n’est parqué').toEqual([]);
     expect(get().pendingCascade?.purpose, 'la révélation tient le slot').toBe('affichage');
+  });
+
+  /** Une carte d'entrée en scène (`entreeEnScene.ts:65`), suivie d'une révélation si `mixte`, parquée avant la journée. */
+  function entreeParquee(mixte: boolean): string {
+    pushReveal(set, { kind: 'entreeEnScene', title: fixtureText('Entrée'), lines: [], sceneId: 'sonde-4006' }, { own: true });
+    if (mixte) reveler(set, false);
+    const titre = get().pendingCascade!.title;
+    suspendActiveCascade(get, set);
+    return titre;
+  }
+  const cartesDEntree = () => get().suspendedCascades.flatMap((c) => c.participants).filter((s) => s.reveal?.kind === 'entreeEnScene');
+
+  it('cas B — l’entrée antérieure sort de la pile pendant l’applier (ouverture puis `quitterLaScene`) : l’ouverte passe avant la journée, reprise une fois', () => {
+    flowOuvert = testDeForce;
+    const entree = entreeParquee(false);
+    expect(pile(), 'prémisse : une entrée antérieure est en pile').toEqual([entree]);
+    expect(piloter(KIND_OUVRE_FLOW_PUIS_QUITTE), 'rien n’est rendu').toBeUndefined();
+    expect(cartesDEntree(), 'prémisse : l’entrée antérieure a quitté la pile pendant l’applier').toEqual([]);
+    expect(pile(), 'la journée seule en pile').toEqual(['Journée']);
+    expect(get().pendingCascade?.purpose, 'le Test ouvert tient le slot, avant la journée').toBe('test');
+    expect(apples, 'la suite n’est pas jouée par-dessus le Test').toBe(1);
+    expect(denouements).toEqual([]);
+    jouerLeTestDeForce();
+    journeeDenouee();
+  });
+
+  it('garde (cas C11) — une séquence mixte antérieure réécrite par une transition sans ouverture : le fait n’est pas levé, la journée va au bout', () => {
+    const entree = entreeParquee(true);
+    expect(cartesDEntree(), 'prémisse : la séquence antérieure porte une carte d’entrée').toHaveLength(1);
+    const resolues = piloter(KIND_QUITTE);
+    expect(cartesDEntree(), 'prémisse : la transition a réécrit la séquence antérieure').toEqual([]);
+    const anterieure = [...get().suspendedCascades, get().pendingCascade].find((c) => c?.title === entree);
+    expect(anterieure?.participants.map((s) => s.label), 'prémisse : la séquence antérieure survit, réduite à sa révélation').toEqual(['Révélation']);
+    expect(resolues?.map((s) => s.id), 'la journée est rendue résolue').toEqual(['j1', 'j2']);
+    expect(apples, 'la journée est jouée en entier').toBe(2);
+    expect(pile(), 'rien n’est parqué par-dessus l’antérieure').toEqual([entree]);
+    expect(get().pendingCascade, 'le slot reste libre').toBeNull();
+    expect(denouements, 'le dénouement revient à l’appelant').toEqual([]);
+  });
+
+  it('pilote imbriqué — `openSequence` en surface I dans un applier, dont l’applier ouvre le Test : pile [externe, imbriquée], ordre Test, imbriquée, externe, une fois chacun', () => {
+    flowOuvert = testDeForce;
+    setClotureDeCascade((done) => { denouements.push(`${done.title}@${apples}`); dispatchCascadeDone(get, set, done); });
+    expect(piloter(KIND_PILOTE_IMBRIQUE), 'rien n’est rendu').toBeUndefined();
+    expect(get().pendingTest?.actorId, 'prémisse : l’applier imbriqué a ouvert le Test du Meneur').toBe(get().party[0].id);
+    expect(apples, 'ni l’imbriquée ni l’externe ne jouent leur suite par-dessus le Test').toBe(2);
+    expect(pile(), 'pile [externe, imbriquée]').toEqual(['Journée', 'Imbriquée']);
+    expect(get().pendingCascade?.purpose, 'le Test ouvert tient le slot').toBe('test');
+    expect(denouements, 'aucun dénouement avant la clôture du Test').toEqual([]);
+    jouerLeTestDeForce();
+    expect(denouements, 'l’imbriquée finit (3 étapes jouées), puis l’externe (4), une fois chacune').toEqual(['Imbriquée@3', 'Journée@4']);
+    expect(get().suspendedCascades, 'la pile est vide').toEqual([]);
+  });
+
+  it('pilote non-jour qui lit son retour (`seaScorbut`) : son dénouement est routé une fois, après la clôture de ce que l’applier a ouvert', () => {
+    const automate = get().party[1];
+    let continuations = 0;
+    const resolues = openSequence(get, set, { title: 'Scorbut', purpose: 'seaScorbut', steps: [
+      displayStep({ id: 'm1', kind: KIND_REVELE_A_PART, actorId: automate.id, label: fixtureText('Maladie 1') })!,
+      displayStep({ id: 'm2', kind: KIND_INERTE, actorId: automate.id, label: fixtureText('Maladie 2') })!,
+    ] });
+    if (resolues) continuations++; // le patron d'appel réel (`seaVoyageFlow.ts:1526`)
+    expect(get().pendingCascade?.purpose, 'prémisse : la révélation ouverte par l’applier tient le slot').toBe('affichage');
+    expect(resolues, 'rien n’est rendu').toBeUndefined();
+    expect(pile(), 'la séquence est parquée sous la révélation').toEqual(['Scorbut']);
+    expect(apples, 'la suite n’est pas jouée par-dessus la révélation').toBe(1);
+    expect(denouements, 'aucun dénouement avant la clôture de la révélation').toEqual([]);
+    get().jetValider('cascade');
+    expect(get().pendingCascade, 'prémisse : la révélation est close').toBeNull();
+    expect(denouements, 'le dénouement est routé une fois').toEqual(['Scorbut']);
+    expect(continuations, 'l’appelant n’a pas enchaîné sa continuation').toBe(0);
+    expect(apples, 'la 2ᵉ étape est jouée une fois').toBe(2);
+    expect(get().suspendedCascades, 'la pile est vide').toEqual([]);
   });
 });
