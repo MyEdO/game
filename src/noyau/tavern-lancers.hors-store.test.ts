@@ -101,7 +101,7 @@ function saisir(kind: string, n: number): void {
 
 /** L'état de volée en cours. */
 function volley(): NonNullable<TavernPayload['volley']> {
-  return (get().sequence!.payload as TavernPayload).volley!;
+  return (get().sequence!.chargeUtile as TavernPayload).volley!;
 }
 
 beforeEach(() => {
@@ -253,13 +253,13 @@ describe('Les fléchettes — le total EXACT, et le dépassement qui TERMINE LE 
     get().jouerALaTaverne(a.id, { gameId: 'flechettes', opponent: { kind: 'profil', id: 'humain' } });
     const seq = get().sequence as EtatDeFamille<typeof TAVERN_SEQUENCE>;
     // Le lanceur du tour est le challenger : l'ordre est tiré au sort (l.97), on le fixe pour mesurer.
-    const throwers = [...(seq.payload.throwers ?? [])].sort((x) => (x.camp === 'joueur' ? -1 : 1));
+    const throwers = [...(seq.chargeUtile.throwers ?? [])].sort((x) => (x.camp === 'joueur' ? -1 : 1));
     banc.setState({
       sequence: {
         ...seq,
-        cum: { joueur: points, adversaire: 0 },
-        payload: {
-          ...seq.payload, throwers,
+        cumuls: { joueur: points, adversaire: 0 },
+        chargeUtile: {
+          ...seq.chargeUtile, throwers,
           volley: { seat: 0, jet: 1, manche: 1, gains: {} },
         },
       },
@@ -277,7 +277,7 @@ describe('Les fléchettes — le total EXACT, et le dépassement qui TERMINE LE 
       seedBattleRng(graine);
       const a = seul();
       get().jouerALaTaverne(a.id, { gameId: 'flechettes', opponent: { kind: 'profil', id: 'humain' } });
-      const payload = get().sequence!.payload as TavernPayload;
+      const payload = get().sequence!.chargeUtile as TavernPayload;
       vus.add(payload.throwers![0].camp);
     }
     expect([...vus].sort(), 'le challenger ouvre parfois, son vis-à-vis parfois').toEqual(['adversaire', 'joueur']);
@@ -390,11 +390,11 @@ describe('Les boules — la MEILLEURE boule décide, plafonnée à 6 DR (l.57)',
 
 describe('L’Alvatafl — les camps asymétriques et la victoire au Critique (l.25-28)', () => {
   /** Partie en cours, le challenger menant le camp `side`, avec les prises déjà faites. */
-  function partie(side: string, cum: Record<string, number>, challengerId: string): EtatDeFamille<typeof TAVERN_SEQUENCE> {
+  function partie(side: string, cumuls: Record<string, number>, challengerId: string): EtatDeFamille<typeof TAVERN_SEQUENCE> {
     return {
-      def: TAVERN_SEQUENCE, round: 2, cum,
-      params: { drBonus: 'intelligence', sides: structuredClone(ALVATAFL.sides!) },
-      payload: { gameId: 'alvatafl', challengerId, opponentValue: 40, opponentName: NOM_HABITUE, stakeBrass: 0, side },
+      definition: TAVERN_SEQUENCE, manche: 2, cumuls,
+      parametres: { drBonus: 'intelligence', sides: structuredClone(ALVATAFL.sides!) },
+      chargeUtile: { gameId: 'alvatafl', challengerId, opponentValue: 40, opponentName: NOM_HABITUE, stakeBrass: 0, side },
     };
   }
 
@@ -470,7 +470,7 @@ describe('L’Alvatafl — les camps asymétriques et la victoire au Critique (l
     banc.setState({ tavernGames: null, sequence: partie('elfe', {}, a.id) });
     closeSequenceRound(get, banc.setState, manche(a.id, { roll: 33, sl: 11 - bonusInt }, { roll: 41, sl: 0 }));
     expect(get().tavernGames, '12 > 11 : rien n’est emporté — un ×1 aurait laissé passer').toBeNull();
-    expect((get().sequence!.cum as Record<string, number>).joueur).toBe(11);
+    expect((get().sequence!.cumuls as Record<string, number>).joueur).toBe(11);
   });
 
   it('sans Critique, c’est PLUS DE LA MOITIÉ des pièces d’en face qui emporte la partie', () => {
@@ -522,7 +522,7 @@ describe('Plafond de DR et départage — les deux juges', () => {
     const [a, b] = tousLesHerosDeScenario(idsDeTest).slice(0, 2) as Combatant[];
     banc.setState({ battle: null, party: [a, b], journal: [], tavernGames: null, pendingCascade: null, sequence: null });
     get().jouerALaTaverne(a.id, { gameId: 'boules', opponent: { kind: 'heros', id: b.id } });
-    banc.setState({ sequence: { ...get().sequence!, params: { ...get().sequence!.params, tieBreak: cleDeFixture('test-le-defiant-gagne') } } });
+    banc.setState({ sequence: { ...get().sequence!, parametres: { ...get().sequence!.parametres, tieBreak: cleDeFixture('test-le-defiant-gagne') } } });
     for (let i = 0; i < 6; i++) poseLancer(12, 4); // six boules à 4 DR : les deux camps à égalité
     const res = get().tavernGames!.result!;
     expect([res.dr.joueur, res.dr.adversaire], 'même score des deux côtés').toEqual([4, 4]);

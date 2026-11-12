@@ -1,4 +1,5 @@
 import type { Settlement } from './schemas/grammaire/valeurs';
+import type { TrappingTypeId } from './index';
 
 /** Catégorie d'unité ACHETABLE chez un marchand (#619) : le navire n'en est pas (#748). */
 export type UniteAchetable = 'bete' | 'vehicule-terrestre';
@@ -10,9 +11,9 @@ export interface MerchantArchetypeDef {
   type: 'merchants';
   /** Libellé FR (UI). */
   label: string;
-  /** Familles vendues : filtre le catalogue par `type` et/ou `subType` de trapping
+  /** Familles vendues : filtre le catalogue par `categorie` et/ou `subType` de trapping
    *  (« un herboriste ne vend pas d'arquebuses »). */
-  category: { categories?: string[]; subTypes?: string[] };
+  category: { categories?: TrappingTypeId[]; subTypes?: string[] };
   /** Taille d'agglo par défaut (overridable par l'entité de scène). */
   settlement: Settlement;
   /** Taux de rachat : ½ du prix listé sur un Marchandage de vente GAGNÉ (LDB 59 l.54) ; sinon ¼ (resaleRate/2). */
