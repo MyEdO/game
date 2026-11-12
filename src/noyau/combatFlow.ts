@@ -4588,7 +4588,7 @@ export function aiCreatureFreeAttacks(get: Get, set: SetFn, enemy: Combatant): b
     if (prix.movement) set({ battle: { ...get().battle!, movementUsed: mountMovement(get().battle!, enemy) } }); // LDB 85 l.314
     if (applyFreeAttack(get, set, enemy, target, kind, prix.advantage)) return true; // modale ouverte → reprise via jetValider('defense')
   }
-  enemy.pendingFreeAttacks = undefined; // file épuisée
+  enemy.pendingFreeAttacks = []; // file épuisée : posée pour ce tour, elle ne se repose qu'au suivant (`advanceTurn`)
   return false;
 }
 
@@ -7531,6 +7531,7 @@ export function advanceTurn(get: Get, set: SetFn) {
   if (prevActive?.chargedThisTurn) prevActive.chargedThisTurn = false;
   if (prevActive?.chargeAvecAvantage) prevActive.chargeAvecAvantage = false;
   if (prevActive?.freeAttacksThisTurn) prevActive.freeAttacksThisTurn = undefined; // Attaques gratuites de manœuvre : 1/tour (compteur remis à zéro)
+  if (prevActive?.pendingFreeAttacks) prevActive.pendingFreeAttacks = undefined; // la file des gratuites de créature se pose une fois par tour
   fireTurnEndTriggers(get, set, prevActive); // effets de bord « fin de tour » authorés (inerte sans donnée)
 
   let turn = battle.turn;

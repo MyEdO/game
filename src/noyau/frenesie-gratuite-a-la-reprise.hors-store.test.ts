@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { testScene } from '../scenes/test-fixture';
 import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
@@ -6,12 +6,13 @@ import { heroFaceAUnEnnemi } from './combatDeTest.testkit';
 import { imposerLesD100 } from './battleRng.testkit';
 import { doAttack } from './combatFlow';
 import { armeDeTest } from '../engine/objetsDeTest.testkit';
-import { setRule } from '../engine/policy';
+import { setRule, resetRule } from '../engine/policy';
 import { avanceEtapeCascade } from './cascade.testkit';
 
 // LDB 21 l.33 ; LDB 85 l.41-43 — #4011 (G4).
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
+afterEach(() => resetRule('combat-deviation-critique'));
 const g = () => banc.getState();
 
 /** Ce qui tient la main après la défense de l'Action d'un Frénétique, à son tour, contre un héros surfacé. */
