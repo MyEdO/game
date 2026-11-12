@@ -433,11 +433,11 @@ export const ECRIT_LU = {
       '`vite build` du pont de Godot (hotes/godot/construire.mjs, #2928) sans `--sortie` : `write: false`, le bundle reste ' +
       'en mémoire, exécuté dans un `node:vm`, et rien ne s’écrit ; `configFile: false`, donc aucune config recompilée ; LIT les zones, scripts/ ' +
       '(l’entrée d’hôte `scripts/entree-d-hote.mjs` et le greffon `proseSource()`), Source/ (la prose adressée que le ' +
-      'greffon matérialise) et tsconfig.json (`transformWithOxc` de Vite) ; `chargerAssets` ' +
-      '(hotes/godot/asset/charger.mjs) charge le contrat par une entrée Vite dont la fermeture statique ne suit pas les ' +
-      'chemins portés par des chaînes. Ce chargement n’appelle aucun écrivain : `recupererModeles` ne joue que sous ' +
-      '`--sonde` et `--export` (#2948), `deposerLesModeles` (hotes/godot/listage.mjs) que sous `--export`, dans son ' +
-      '`--sortie` (#3778), comme `deposerLesPlanches` (hotes/godot/planches.mjs, #3935)',
+      'greffon matérialise) et tsconfig.json (`transformWithOxc` de Vite). `--pont-seul` ne charge aucun asset : ' +
+      '`chargerAssets` (hotes/godot/asset/charger.mjs) n’est appelé que par `editeur`, `modeleWeb` et `deposerLesAssets` ' +
+      '(hotes/godot/construire.mjs), sous `--sonde`, `--export` et `--ouvrir` ; aucun écrivain ne joue : ' +
+      '`recupererModeles` (#2948) ne joue que sous ces trois modes, `deposerLesModeles` (hotes/godot/listage.mjs) que ' +
+      'sous `--export`, dans son `--sortie` (#3778), comme `deposerLesPlanches` (hotes/godot/planches.mjs, #3935)',
   },
   'godot:sonde': {
     ecrit: [],
@@ -450,6 +450,13 @@ export const ECRIT_LU = {
         'et sa seule autre gate lectrice du dossier, `personnage-3d:tests` (#3145, ses manifestes), suit `godot:sonde` dans le job ' +
         '`types` de ci.yml, donc dans la même lane, une SÉRIE dans l’ordre du fichier (`lanesDeCi`) : elle ne lit ' +
         'qu’après l’écriture ; le lint lit des modules, la suite du noyau n’en lit que les provenances',
+      'src/scenes/':
+        'le pont vivant (hotes/godot/vivant.mjs, #3945), que chaque recette reçoit en `--pont=` et que le pont natif lance ' +
+        'à son premier `rejoindre`, sert le dépôt réel (`servir({ depot })`) : `servirLeDepot` (hotes/godot/servir.mjs) n’y ' +
+        'écrit un projet manuscrit qu’à un `PUT depot/<id>`, que seul l’enregistrement de l’éditeur envoie (`_deposer`, ' +
+        'hotes/godot/projet/scripts/editeur.gd), que seule la recette `editeur-navire.gd` ouvre, sur le pont figé ' +
+        '(`pont_fige.gd`), dont `requeter` n’envoie aucune requête ; la seule recette qui ouvre le pont vivant, ' +
+        '`partie-vivante.gd`, joue un combat (`Combat.tscn`) et n’ouvre pas l’éditeur',
     },
     lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'Source/', 'tsconfig.json', 'package.json'],
     raison:
@@ -460,7 +467,8 @@ export const ECRIT_LU = {
       'constructeur), scripts/ (`listerDossier`, l’entrée d’hôte et le greffon de prose), les zones du noyau chargées ' +
       'par `chargerAssets`, leurs catalogues et Source/ (prose adressée), tsconfig.json et package.json ; ' +
       'le contrat d’asset et ses écrivains sont chargés par l’entrée Vite, hors de la fermeture statique des imports. ' +
-      'Écrit sous hotes/godot/projet/modeles/ les seuls GLB ' +
+      'Chaque recette reçoit `--pont=<hotes/godot/vivant.mjs>`, qui bâtit le bundle en mémoire (`write: false`). ' +
+      'Écrit sous hotes/godot/projet/modeles/ les seuls GLB, et peut écrire sous src/scenes/ par le pont vivant ' +
       '(`ecritFerme`) ; `deposerLesModeles` (hotes/godot/listage.mjs, #3778) et `deposerLesPlanches` ' +
       '(hotes/godot/planches.mjs, #3935) n’écrivent que sous `--export`',
   },

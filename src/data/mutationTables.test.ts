@@ -7,7 +7,8 @@ import { describe, it, expect } from 'vitest';
 import mutationTables from './mutationTables.json';
 import mutations from './mutations.json';
 import { rollMutation, type MutationTable } from './mutations';
-import { parseDiceRequired, totalDuDe, type RNG } from '../engine/dice';
+import { totalDuDe, type RNG } from '../engine/dice';
+import { deDeLaTableTiree } from '../engine/tables';
 import { desEnSuite } from '../engine/dice.testkit';
 
 const IDS = new Set((mutations as { id: string }[]).map((m) => m.id));
@@ -18,7 +19,7 @@ const scripted = (vals: number[]): RNG => desEnSuite(vals, { boucle: true });
 describe('mutationTables — tables de Corruption', () => {
   for (const t of mutationTables as MutationTable[]) {
     it(`${t.id} : couvre son ${t.die} sans trou ni chevauchement`, () => {
-      const de = parseDiceRequired(t.die, `${t.id}.die`);
+      const de = deDeLaTableTiree(t);
       const sorted = [...t.entries].sort((a, b) => a.min - b.min);
       let expected = totalDuDe(de, de.n);
       for (const r of sorted) {

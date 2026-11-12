@@ -31,7 +31,7 @@ import {
   specialsApplicables, difficulteDuJoueur, difficulteDeBase,
   TAVERN_GAMES, TAVERN_TEST_DIFFICULTY, type CampDeTaverne, type TavernGame, type TavernGameResult, type TavernSpecial,
 } from '../engine/tavernGame';
-import { findTableEntry } from '../engine/tables';
+import { deDeLaTableTiree, findTableEntry } from '../engine/tables';
 import { resolveOpposed, isDoubleRoll, evaluateTest, evaluateCombinedTest, estJete, type TestResult } from '../engine/tests';
 import { isDrunk } from '../engine/drunkenness';
 import { hasCondition } from '../engine/conditions';
@@ -1190,7 +1190,7 @@ const tablesDePot = memoParVersion('tavernGames', () => {
     if (!regles) continue;
     tables.set(potTableId(jeu.id), {
       label: jeu.label,
-      die: regles.dice.faces,
+      die: deDeLaTableTiree(regles).sides,
       rows: regles.rows.map((r) => ({ min: r.min, max: r.max, id: r.potEffectId, label: r.label })),
       // L'ENCART de résultat (ce que le joueur lit juste après « Lancer ») dit l'ISSUE du lancer, pas
       // la fourchette où il tombe : la cible est celle du TOUR, lue à la RÉSOLUTION via le contexte du
@@ -1211,8 +1211,7 @@ const tablesDePot = memoParVersion('tavernGames', () => {
 
 /** La DÉCLARATION de tirage d'un tour : les dés de la donnée, jamais un dé écrit ici. */
 function potDecl(game: TavernGame): CascadeTableDecl {
-  const dice = game.pot!.dice;
-  return { tableId: potTableId(game.id), spec: { n: dice.count, sides: dice.faces } };
+  return { tableId: potTableId(game.id), spec: deDeLaTableTiree(game.pot!) };
 }
 
 /** Ce qui RESTE à un joueur : sa bourse, corrigée des mouvements déjà engagés dans la partie (les

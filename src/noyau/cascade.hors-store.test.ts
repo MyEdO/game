@@ -267,7 +267,7 @@ describe('Cascade séquentielle influençable', () => {
     expect(p.participants.map((s) => s.id)).toEqual(['s1', 'c', 'd']);
   });
 
-  it('runCascadeImmediate : étape HÔTE dont la fenêtre vit (`pendingExtendedTest`) → S’ARRÊTE PENDANTE, non validée (#1765)', () => {
+  it('runCascadeImmediate : étape HÔTE TENUE dont la fenêtre vit (`pendingExtendedTest`) → S’ARRÊTE PENDANTE, non validée (#1765)', () => {
     const h = hero();
     banc.getState().ouvrirLeTestEtendu({ actorId: h.id, label: 'Enfoncer la porte', skillLabel: 'Force', target: 70, drCible: 15 });
     const hote = banc.getState().pendingCascade!.participants[0];
@@ -278,6 +278,17 @@ describe('Cascade séquentielle influençable', () => {
     expect(p.cursor).toBe(0);
     expect(p.participants[0].committed).toBeFalsy();
     expect(banc.getState().pendingExtendedTest).not.toBeNull();
+  });
+
+  it('runCascadeImmediate : étape HÔTE qu’AUCUN humain ne tient → parquée, ses verbes se jouent d’office sur le slot (#3892)', () => {
+    banc.getState().ensemencerLeTirage(7);
+    const h = hero();
+    banc.getState().ouvrirLeTestEtendu({ actorId: h.id, label: 'Enfoncer la porte', skillLabel: 'Force', target: 70, drCible: 15 });
+    const hote = banc.getState().pendingCascade!.participants[0];
+    banc.setState({ pendingCascade: null, party: banc.getState().party.map((c) => (c.id === h.id ? { ...c, aiControlled: true } : c)) });
+    expect(runCascadeImmediate(banc.getState, banc.setState, [hote]), 'la séquence se dénoue par la clôture du jet, pas par le pilote').toBeUndefined();
+    expect(banc.getState().pendingExtendedTest, 'les Rounds ont été joués jusqu’à la cible').toBeNull();
+    expect(banc.getState().pendingCascade).toBeNull();
   });
 
   it('runCascadeImmediate : parqué sur l’étape HÔTE, la fenêtre rendue → la reprise du pilote finit la séquence sans fenêtre, comme sans parcage (#1765)', () => {

@@ -72,12 +72,6 @@ export interface SequencePhases {
  * générique + ses paramètres, jamais un cas d'usage figé au type. Un jeu à enchère N+1 dont les
  * mécanismes existent déjà est une entrée JSON, zéro ligne de TS. */
 
-/** Les DÉS d'un tour : `count` dés de `faces` faces, totalisés. */
-export interface SequenceDice {
-  count: number;
-  faces: number;
-}
-
 /** UNE PLAGE de résultat du tour et l'EFFET qu'elle déclenche — `potEffectId` est le nom d'un effet
  *  DÉCLARÉ (table `effetsDePot`, `noyau/sequenceCore`), jamais un id de jeu, et `mises`
  *  le PARAMÈTRE que cet effet applique (combien de mises il déplace, défaut 1). `label` est de
@@ -93,7 +87,8 @@ export interface SequencePotRow {
 
 /** RÈGLES DE POT d'une séquence, en donnée. */
 export interface SequencePotRules {
-  dice: SequenceDice;
+  /** Le dé d'un tour, lu par `deDeLaTableTiree` (`src/engine/tables.ts`). */
+  die: string;
   /** Plage dans laquelle se choisit le NOMBRE CIBLE, quand la séquence en joue un. Absente : aucune
    *  cible n'est annoncée, et les effets qui la lisent ne se déclarent pas. */
   targetRange?: { min: number; max: number };
