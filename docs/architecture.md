@@ -673,10 +673,12 @@ hotes/godot/                HÔTE GODOT du noyau (#2928, zone `hotes`) : le pont
                             (`projet/outils/fabrique_de_modeles.gd`, textures compressées avec mipmaps, #3946), que
                             `recette.mjs --web` joue au navigateur : un tour complet, l'atelier, ou les vues
                             nommées d'une scène (`--parcours cadrages`, `cadrages/`). `recette.mjs --natif` (#3945) joue
-                            les mêmes parcours sans export ni navigateur : le jeu lancé sans rendu sur une copie importée
-                            du projet, piloté par `projet/recettes/pilote.gd`, son pont et son serveur dans le processus
-                            de la recette (`pilotage/`) ; `npm run godot:recette`, étape de la CI, en joue le lot
-                            (`lot-de-recettes.mjs --natif`). `--bureau --sortie <dossier>`
+                            les mêmes parcours sans export ni navigateur : le jeu lancé sur une copie importée du projet,
+                            sans rendu ou, pour un parcours qui lit l'image, en rendu réel sur un écran virtuel
+                            (`--rendu`), piloté par `projet/recettes/pilote.gd`, son pont et son serveur dans le
+                            processus de la recette (`pilotage/`) ; `npm run godot:recette`, étape de la CI, en joue
+                            `combat` et `editeur`, le canari le lot natif entier (`lot-de-recettes.mjs --natif`).
+                            `--bureau --sortie <dossier>`
                             (`npm run godot:bureau`, #3951) produit l'exécutable de bureau de la plateforme, son noyau
                             embarqué (`noyau/` : Node, le bundle, le point d'entrée) et ses modèles en scène, puis lui
                             fait jouer une partie ; le workflow `bureau.yml`, lancé à la main, le fait sous Linux et
