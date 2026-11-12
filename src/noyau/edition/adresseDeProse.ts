@@ -11,7 +11,7 @@
  */
 import type { ChapitreManifeste, Manifeste } from '../../data/source/chapitres';
 import {
-  MAX_FRAGMENTS, MIN_FRAGMENT, estErreur, estGraphieDeChapitre, memeTexte, resoudreAdresse, scelle, stripSpans, tablesDeLaLigne, tablesOf,
+  MAX_FRAGMENTS, MIN_FRAGMENT, estErreur, estGraphieDeChapitre, fragmentBlocs, fragmentCellule, memeTexte, resoudreAdresse, scelle, stripSpans, tablesDeLaLigne, tablesOf,
   type ChapitreParse, type CodeErreur, type DescRef, type ErreurResolution, type Fragment, type Section, type TableDeSection,
 } from '../../data/source/decoupe';
 import { estAdresseDeProse } from '../../data/schemas/grammaire/valeurs';
@@ -134,11 +134,8 @@ export function adresseRecalee(schema: unknown, avant: unknown, apres: unknown, 
   return pose(apres, ici, cle === 'book' ? { book: adresse.book, ch: '', parts: [] } : { ...adresse, parts: [] });
 }
 
-/** Le fragment `f` sans son empreinte, pour comparer ce qu'il désigne. */
-const designation = (f: unknown): string => {
-  const { sum: _sum, ...reste } = f as Fragment;
-  return jsonCanonique(reste);
-};
+/** La clé d'un fragment `f` de l'adresse `adresse` : son livre, son chapitre, sa désignation et son empreinte. */
+const cleDuFragment = (adresse: Pick<DescRef, 'book' | 'ch'>, f: Fragment): string => `${cleDuChapitre(adresse.book, adresse.ch)}|${jsonCanonique(f)}`;
 
 /** Le texte que l'adresse `adresse` résout sur le chapitre `chapitre` (`resoudreAdresse`), `undefined` s'il n'en résout
  *  aucun. */
@@ -159,24 +156,21 @@ function avecLAdresse(donnee: unknown, chemin: readonly Segment[], adresse: Desc
 
 /**
  * La donnée `apres`, de schéma `schema`, écrite sur `avant`, chaque fragment d'adresse posé avec son empreinte : celui
- * qui désigne ce qu'il désignait au même rang de la même adresse, dans le même chapitre, garde l'empreinte d'avant ; tout
- * autre fragment est scellé sur son chapitre (`scelle`), ou porte une empreinte vide si le chapitre n'est pas chargé.
- * Une empreinte écrite n'est donc jamais reprise : seul le chapitre la donne. La prose de son porteur (`desc`) est celle
- * qu'elle résout si elle change (`texteResolu`), celle d'avant sinon : une prose écrite n'est jamais reprise non plus.
- * `apres` lui-même si rien ne change.
+ * que `avant` porte déjà, dans le même chapitre et avec la même empreinte, reste tel quel, à son rang ou à un autre ;
+ * tout autre fragment est scellé sur son chapitre (`scelle`). Une empreinte écrite n'est donc jamais reprise : seul le
+ * chapitre la donne, et une écriture qui en apporte une sans son chapitre chargé se refuse (`undefined`). La prose de
+ * son porteur (`desc`) est celle qu'elle résout si l'adresse change (`texteResolu`), celle d'avant sinon : une prose
+ * écrite n'est jamais reprise non plus. `apres` lui-même si rien ne change.
  */
 export function adressesScellees(schema: unknown, avant: unknown, apres: unknown, source: SourceDeLEdition): unknown {
+  const portes = new Set(adressesDe(schema, avant).flatMap(({ adresse }) => adresse.parts.map((f) => cleDuFragment(adresse, f))));
   return adressesDe(schema, apres).reduce<unknown>((donnee, { chemin, adresse }) => {
-    const ancienne = auChemin(avant, chemin) as Partial<DescRef> | undefined;
-    const memeChapitre = estObjet(ancienne) && ancienne.book === adresse.book && ancienne.ch === adresse.ch;
+    if (donnee === undefined) return undefined;
     const chapitre = chapitreDeLAdresse(source, adresse);
-    const parts = adresse.parts.map((f, i) => {
-      const precedent = memeChapitre && Array.isArray(ancienne.parts) ? ancienne.parts[i] : undefined;
-      const sum = precedent && designation(precedent) === designation(f) ? precedent.sum : chapitre ? scelle(chapitre, f).sum : '';
-      return sum === f.sum ? f : { ...f, sum };
-    });
+    const parts = adresse.parts.map((f) => (portes.has(cleDuFragment(adresse, f)) ? f : chapitre ? scelle(chapitre, f) : undefined));
+    if (!parts.every((f) => f !== undefined)) return undefined;
     const scellee = { ...adresse, parts };
-    const inchangee = jsonCanonique(scellee) === jsonCanonique(ancienne);
+    const inchangee = jsonCanonique(scellee) === jsonCanonique(auChemin(avant, chemin));
     return avecLAdresse(donnee, chemin, scellee, inchangee ? auChemin(avant, [...chemin.slice(0, -1), 'desc']) : texteResolu(chapitre, scellee));
   }, apres);
 }
@@ -219,15 +213,15 @@ const choix = (valeur: unknown, libelle: string, refus: string | null = null): C
 /** Les sections adressables d'un chapitre : celles qui portent un bloc, titrées d'abord (`sectionsOrdonnees`). */
 const sectionsAdressables = (chapitre: ChapitreParse): Section[] => sectionsOrdonnees(chapitre.sections.filter((s) => s.blocks.length > 0));
 
-/** Le fragment de blocs neuf de la section `s` : de son premier bloc à son dernier, à sceller. */
-const blocsNeufs = (s: Section): Fragment => ({ kind: 'blocs', sec: s.slug, secOcc: s.occ, b0: 0, b1: s.blocks.length - 1, sum: '' });
+/** Le fragment de blocs neuf de la section `s` du chapitre `chapitre` : de son premier bloc à son dernier, scellé. */
+const blocsNeufs = (chapitre: ChapitreParse, s: Section): Fragment => fragmentBlocs(chapitre, { sec: s.slug, secOcc: s.occ, b0: 0, b1: s.blocks.length - 1 });
 
-/** Le fragment de cellule neuf de la section `s`, ou `undefined` sans table : la première ligne de sa première table, à
- *  sa première colonne de contenu (la première est la colonne-clé), à sceller. */
-function celluleNeuve(s: Section): Fragment | undefined {
+/** Le fragment de cellule neuf de la section `s` du chapitre `chapitre`, ou `undefined` sans table : la première ligne
+ *  de sa première table, à sa première colonne de contenu (la première est la colonne-clé), scellé. */
+function celluleNeuve(chapitre: ChapitreParse, s: Section): Fragment | undefined {
   const table = tablesOf(s)[0]?.table;
   const col = table?.headers[1] ?? table?.headers[0];
-  return table && col !== undefined ? { kind: 'cellule', sec: s.slug, secOcc: s.occ, row: table.rows[0]?.[0] ?? '', col, sum: '' } : undefined;
+  return table && col !== undefined ? fragmentCellule(chapitre, { sec: s.slug, secOcc: s.occ, row: table.rows[0]?.[0] ?? '', col }) : undefined;
 }
 
 /** Les choix d'un fragment au rang d'une adresse, sur le chapitre `chapitre` : présent, `f`, son genre courant le garde,
@@ -237,13 +231,13 @@ function choixDuFragment(chapitre: ChapitreParse, f: Fragment | undefined): Choi
   if (!f) {
     const sections = sectionsAdressables(chapitre);
     if (!sections.length) return [];
-    const cellule = sections.map(celluleNeuve).find((c) => c !== undefined);
-    return [choix(blocsNeufs(sections[0]), 'blocs'), ...(cellule ? [choix(cellule, 'cellule')] : [])];
+    const cellule = sections.map((s) => celluleNeuve(chapitre, s)).find((c) => c !== undefined);
+    return [choix(blocsNeufs(chapitre, sections[0]), 'blocs'), ...(cellule ? [choix(cellule, 'cellule')] : [])];
   }
   const section = chapitre.sections.find((s) => s.slug === f.sec && s.occ === f.secOcc);
-  const cellule = section && celluleNeuve(section);
+  const cellule = section && celluleNeuve(chapitre, section);
   return [
-    choix(f.kind === 'blocs' ? f : section ? blocsNeufs(section) : { ...f, kind: 'blocs', b0: 0, b1: 0 }, 'blocs'),
+    choix(f.kind === 'blocs' ? f : section ? blocsNeufs(chapitre, section) : fragmentBlocs(chapitre, { sec: f.sec, secOcc: f.secOcc, b0: 0, b1: 0 }), 'blocs'),
     choix(f.kind === 'cellule' ? f : cellule ?? f, 'cellule', f.kind === 'cellule' || cellule ? null : PHRASE_REFUS['table-sans-en-tetes']),
   ];
 }

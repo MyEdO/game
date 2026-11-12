@@ -1137,14 +1137,16 @@ export function avecLaValeur(objet: unknown, donnee: Objet, chemin: readonly Seg
  *  (`formeDuPorteur`, dans le cadre `cadre` ; `avecLaValeur`, aux choix que son contexte y pose, `choixDuChamp`), son
  *  adresse de prose recalée (`adresseRecalee`) et chaque fragment d'adresse scellé sur le `Source/` du cadre
  *  (`adressesScellees`) ; ou son refus : une écriture hors de ses champs, ou qui emporte un champ qu'ils n'offrent pas
- *  (`ecritureOfferte`), ou à ce qu'une adresse de prose dérive (`estCheminDerive`), n'est pas offerte. */
+ *  (`ecritureOfferte`), à ce qu'une adresse de prose dérive (`estCheminDerive`), ou qui apporte un fragment que seul un
+ *  chapitre non chargé scellerait, n'est pas offerte. */
 export function avecLaValeurDuPorteur<S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], chemin: readonly Segment[], valeur: unknown, cadre: CadreDuPorteur): EcritureDeValeur<DonneeDuPorteur[S]> {
   const { noeud, champs: offerts } = formeDuPorteur(sorte, donnee, cadre);
   const actuelle = chemin.reduce<unknown>((o, pas) => (estObjet(o) || Array.isArray(o) ? (o as Record<Segment, unknown>)[pas] : undefined), donnee);
   if (!ecritureOfferte(offerts, chemin, actuelle) || estCheminDerive(noeud, donnee, chemin)) return { ok: false, refus: 'nonOffert' };
   const ecrite = avecLaValeur(noeud, donnee as unknown as Objet, chemin, valeur, (ici) => choixDuChamp(sorte, donnee, ici, cadre));
   if (!ecrite.ok) return ecrite;
-  return { ok: true, valeur: adressesScellees(noeud, donnee, adresseRecalee(noeud, donnee, ecrite.valeur, chemin), cadre.source) as DonneeDuPorteur[S] };
+  const scellee = adressesScellees(noeud, donnee, adresseRecalee(noeud, donnee, ecrite.valeur, chemin), cadre.source);
+  return scellee === undefined ? { ok: false, refus: 'nonOffert' } : { ok: true, valeur: scellee as DonneeDuPorteur[S] };
 }
 
 /** La donnée `donnee` du porteur de sorte `sorte` où l'adresse de prose au chemin `chemin` de son formulaire est

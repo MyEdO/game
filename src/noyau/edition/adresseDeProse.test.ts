@@ -48,9 +48,9 @@ describe('les choix d’une adresse de prose', () => {
     expect(valeursAuChemin(cellule, [...ICI, 'parts', 0, 'row'])).toEqual(['Dague', 'Épée']);
     expect(valeursAuChemin(cellule, [...ICI, 'parts', 0, 'col'])).toEqual(['Arme', 'Dégâts', 'Prix']);
     expect(valeursAuChemin(cellule, [...ICI, 'parts', 0, 'sec']), 'les sections titrées d’abord, le préambule en dernier').toEqual(['les-armes', 'les-armures', '']);
-    expect(valeursAuChemin(cellule, [...ICI, 'parts', 1]), 'un fragment neuf : des blocs, ou une cellule, à sceller').toEqual([
-      { kind: 'blocs', sec: 'les-armes', secOcc: 1, b0: 0, b1: 2, sum: '' },
-      { kind: 'cellule', sec: 'les-armes', secOcc: 1, row: 'Dague', col: 'Dégâts', sum: '' },
+    expect(valeursAuChemin(cellule, [...ICI, 'parts', 1]), 'un fragment neuf, scellé : des blocs, ou une cellule').toEqual([
+      scelle({ kind: 'blocs', sec: 'les-armes', secOcc: 1, b0: 0, b1: 2, sum: '' }),
+      scelle(DAGUE),
     ]);
   });
 
@@ -64,15 +64,18 @@ describe('les choix d’une adresse de prose', () => {
 });
 
 describe('l’écriture d’une adresse de prose scelle ses fragments, jamais une empreinte saisie', () => {
-  it('le fragment choisi est scellé sur son chapitre ; sans chapitre chargé, aucun ne s’ajoute, et un fragment collé garde une empreinte vide', () => {
+  it('le fragment choisi est scellé sur son chapitre ; sans chapitre chargé, aucun ne s’ajoute, ni ne se colle avec une empreinte ; celui que la donnée porte déjà se déplace tel quel', () => {
     const vide = avecJournal({ book: LIVRE, ch: '01', parts: [] });
-    const ecrite = ecrire(vide, [...ICI, 'parts'], [DAGUE]);
+    const ecrite = ecrire(vide, [...ICI, 'parts'], valeursAuChemin(vide, [...ICI, 'parts'])!.find((v) => (v as Fragment[])[0]?.kind === 'cellule'));
     expect(ecrite.ok && adresseDe(ecrite.valeur).parts).toEqual([scelle(DAGUE)]);
     expect(ecrite.ok && effetDe(ecrite.valeur).desc, 'sa prose, matérialisée, est le texte qu’elle résout').toBe('BF+2');
     const sansChapitre: SourceDeLEdition = { manifeste: MANIFESTE, chapitres: {} };
     expect(ecrire(vide, [...ICI, 'parts'], [DAGUE], sansChapitre)).toEqual({ ok: false, refus: 'horsSorte' });
-    const colle = ecrire(avecJournal(), ['flow'], avecJournal({ book: LIVRE, ch: '01', parts: [{ ...DAGUE, sum: 'ffffffffffffffff' }] }).flow, sansChapitre);
-    expect(colle.ok && adresseDe(colle.valeur).parts).toEqual([DAGUE]);
+    expect(ecrire(avecJournal(), ['flow'], avecJournal({ book: LIVRE, ch: '01', parts: [{ ...DAGUE, sum: 'ffffffffffffffff' }] }).flow, sansChapitre)).toEqual({ ok: false, refus: 'nonOffert' });
+    const DIVERGENTE = '0000000000000000';
+    const porte = avecJournal({ book: LIVRE, ch: '01', parts: [scelle(DAGUE), { ...ARMURES, sum: DIVERGENTE }] });
+    const deplace = ecrire(porte, [...ICI, 'parts'], [{ ...ARMURES, sum: DIVERGENTE }, scelle(DAGUE)], sansChapitre);
+    expect(deplace.ok && adresseDe(deplace.valeur).parts, 'monté, chaque fragment garde son empreinte, divergente comprise').toEqual([{ ...ARMURES, sum: DIVERGENTE }, scelle(DAGUE)]);
   });
 
   it('l’empreinte ne s’écrit ni à son chemin, ni dans l’effet ou le flux écrits entiers', () => {
