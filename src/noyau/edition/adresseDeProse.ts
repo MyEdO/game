@@ -282,7 +282,8 @@ function choixDeLaCellule(section: Section, f: Extract<Fragment, { kind: 'cellul
  * `source` ; `undefined` : ceux de son nœud. Absente, chaque livre servi, à composer ; son livre, chaque livre servi ;
  * son chapitre, chaque chapitre du livre ; sous ses fragments, rien sans chapitre chargé, sinon le fragment au rang
  * (`choixDuFragment`), sa section, son occurrence, ses bornes de blocs, et la ligne, la colonne et la table d'une
- * cellule (`choixDeLaCellule`). L'empreinte d'un fragment choisi est vide : l'écriture la scelle (`adressesScellees`).
+ * cellule (`choixDeLaCellule`). Un fragment choisi est bâti scellé (`fragmentBlocs`, `fragmentCellule`), l'écriture
+ * le rescelle s'il change (`adressesScellees`).
  */
 export function choixDeLAdresse(source: SourceDeLEdition, adresse: DescRef | undefined, reste: readonly Segment[]): readonly ChoixDuContexte[] | undefined {
   const livres = () => Object.entries(source.manifeste ?? {}).map(([book, { abbr }]) => ({ book, abbr }));
