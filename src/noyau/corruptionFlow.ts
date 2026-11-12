@@ -28,7 +28,6 @@ import { recomputeLoadout } from '../engine/items';
 import {
   corruptionThresholdExceeded,
   corruptionGain,
-  mutationNatureRowsFor,
   mutationLimitExceeded,
   attachMutation,
   type ChaosAlign,
@@ -37,8 +36,10 @@ import {
 import {
   mutationTableIds, mutationAt, mutationOfRow, mutationSubTableFor, mutationTableDie, mutationTablePlayerLabel, mutationTableRows,
 } from '../data/mutations';
-import { species, mutationBodyMaxForSpecies, combatStakeRef, refLabel } from '../data';
-import { facesDuDe, findTableEntry } from '../engine/tables';
+import { mutationNature, natureDeMutationDe, combatStakeRef, refLabel } from '../data';
+import { libelleDeValeur } from '../data/schemas/grammaire/meta';
+import { mutationKindSchema } from '../data/schemas/grammaire/valeurs';
+import { deDeLaTableTiree, facesDuDe, findTableEntry } from '../engine/tables';
 import { pushStep, type TableStepDef } from './cascade';
 import { memoParVersion } from '../data/versionDataset';
 import { touchActors } from './combatOrParty';
@@ -142,30 +143,20 @@ export function gainCorruption(get: Get, set: Set, hero: Combatant, n: number, a
 // nature (corps ou esprit) → Tableau de Corruption → sous-table éventuelle.
 // ---------------------------------------------------------------------------
 
-/** Préfixe des tables d'étape « corps ou esprit » — une par SEUIL d100 d'espèce (la donnée porte les
- *  seuils, `SpeciesData.mutationBodyMax` : Elfe 0, Nain 5, Halfling 10, Ogre 10, Humain 50 par défaut). */
-const NATURE_TABLE_PREFIX = 'mutation-nature-';
-
-/** Table « corps ou esprit » de l'ESPÈCE d'un personnage (LDB 19 l.76-81). */
-export function mutationNatureTableId(species: string | undefined): string {
-  return `${NATURE_TABLE_PREFIX}${mutationBodyMaxForSpecies(species)}`;
-}
-
-// Une table par SEUIL présent en donnée (+ le défaut 50) : les lignes viennent du moteur
-// (`mutationNatureRowsFor`, PAR RÉFÉRENCE — mémoïsées par seuil), et l'id de la ligne tirée EST la
-// nature ('physique'/'mentale'). Le moteur expose le MÊME lookup sur les MÊMES lignes
-// (`mutationKindFor`), qui sert d'oracle d'équivalence au test — jamais un second chemin de décision.
-// FAMILLE (#1692) : le jeu de seuils est celui de `species` À CET INSTANT — une espèce dont le seuil
-// est édité au Codex a sa table, là où un jeu figé à l'import faisait lever `lireEnTable`.
-const tablesDeNature = memoParVersion('species', () => {
+// Une table par document de `mutation-nature.json` (LDB 19 l.76-81), sous l'id du document : ses rangées par
+// RÉFÉRENCE, son dé lu sur le document, et l'id de la ligne tirée EST la nature ('physique'/'mentale'). Le moteur
+// lit les MÊMES rangées (`mutationKindFor`), oracle d'équivalence du test — jamais un second chemin de décision.
+// FAMILLE (#1692) : le jeu de documents est celui de `mutationNature` À CET INSTANT — un document édité au Codex
+// est tirable à son dé, là où un jeu figé à l'import faisait lever `lireEnTable`.
+const tablesDeNature = memoParVersion('mutationNature', () => {
   const tables = new Map<string, TableStepDef>();
-  for (const max of new Set([50, ...species.map((s) => s.mutationBodyMax ?? 50)])) {
-    const rows = mutationNatureRowsFor(max);
-    tables.set(`${NATURE_TABLE_PREFIX}${max}`, {
-      label: t('cor.natureTable'),
-      die: 100,
+  for (const doc of mutationNature) {
+    const rows = doc.entries;
+    tables.set(doc.id, {
+      label: doc.label,
+      die: facesDuDe(deDeLaTableTiree(doc)),
       rows,
-      lines: (die) => [findTableEntry(rows, die).label],
+      lines: (die) => [libelleDeValeur(mutationKindSchema, findTableEntry(rows, die).id)],
       // La ligne tirée EST l'id du Tableau de Corruption qui suivra : sa fiche Codex est le foyer de
       // l'enjeu une fois le dé tombé (`stakeAtTableRow`).
       entryCategory: 'mutationTables',
@@ -211,11 +202,12 @@ export function mutationTableIdFor(kind: 'physique' | 'mentale', align?: ChaosAl
 const mutationPurpose = (get: Get): PendingCascade['purpose'] => (get().battle ? 'combat' : 'test');
 
 function natureStep(hero: Combatant, align: ChaosAlign | undefined, index: number): BuiltCascadeStep | undefined {
+  const table = natureDeMutationDe(hero.species);
   return tableStep({
     id: `mutation-nature-${hero.id}-${index}`,
     kind: 'mutationNature', actorId: hero.id, icon: 'navigation/mutation',
     label: t('step.dissolution'),
-    table: { tableId: mutationNatureTableId(hero.species), spec: { n: 1, sides: 100 } },
+    table: { tableId: table.id, spec: deDeLaTableTiree(table) },
     mutation: { heroId: hero.id, align },
     stake: combatStakeRef('mutation-nature'),
   });

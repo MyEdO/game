@@ -17,7 +17,7 @@ import {
   qualities, trappings, siegeEngines, weaponGroups, etats, maladies, creatures, traits, spells, maneuvers, domains, mutations, mutationTables, gods,
   stars, locations, findLocationById, findCreatureById, books, bookAbr, careerLevels, raceAppearance, levelsForCareer, skillRefLabel, talentRefLabel, refLabel, trappingRefLabel, qualityRefLabel, advancementLabel, weaponGroupLabel, qualitySubtypeLabel, qualityTypeLabel,
   skillInstanceLabel, careersForSpecies, findCareerById, careerLabelFor, entryKey, libelleDeClasse, findSpeciesById, eyes, hairs, tableDesYeux, tableDesCheveux, eyesDie, hairsDie, details, semencesDeScene, defautsDeCompilation, names,
-  pregens, oups, interludeEvents, peripeties, talentsAleatoires, carrieresAleatoires, especesAleatoires, cargaisonsAleatoires, psychologyLabel,
+  pregens, oups, interludeEvents, peripeties, talentsAleatoires, carrieresAleatoires, especesAleatoires, cargaisonsAleatoires, mutationNature, psychologyLabel,
   allAxes,
   calendarMonths, calendarIntercalary, calendarWeekdays, calendarPhases, weather, weatherConditions, symptoms, symptomLabel,
   isNamed, specCatalogOf, specLabel, seasonLabel,
@@ -1111,7 +1111,7 @@ export function optionBody(o: { label: string; desc: string }): string {
 }
 
 /** La fiche d'une table tirée dont chaque rangée désigne une entrée de `category` à sa fourchette. */
-function ficheDeTableDeRefs(t: (typeof talentsAleatoires | typeof carrieresAleatoires | typeof especesAleatoires | typeof cargaisonsAleatoires)[number], category: string, libelle: (id: string) => string) {
+function ficheDeTableDeRefs(t: (typeof talentsAleatoires | typeof carrieresAleatoires | typeof especesAleatoires | typeof cargaisonsAleatoires | typeof mutationNature)[number], category: string, libelle: (id: string) => string) {
   return depuisEnveloppe(t, {
     sub: tr('codex.fiche.plages', { length: t.entries.length, die: t.die }),
     sections: sections({
@@ -2637,6 +2637,10 @@ const CODEX_SPECS = {
   cargaisonsAleatoires: {
     label: 'codex.fiche.cargaisonsAleatoires', group: 'tables',
     build: () => cargaisonsAleatoires.map((t) => ficheDeTableDeRefs(t, 'cargoes', (id) => refLabel('cargoes', { id }))),
+  },
+  mutationNature: {
+    label: 'codex.fiche.mutationNature', group: 'tables',
+    build: () => mutationNature.map((t) => ficheDeTableDeRefs(t, 'mutationTables', (id) => refLabel('mutationTables', { id }))),
   },
   reglesOptionnelles: {
     // V9 #1318 : le catalogue des règles optionnelles est une DONNÉE (`reglesOptionnelles.json`) —

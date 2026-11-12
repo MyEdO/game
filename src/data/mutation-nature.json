@@ -1,0 +1,160 @@
+[
+  {
+    "id": "mutation-nature-humain",
+    "type": "mutation-nature",
+    "label": "Corps ou esprit — Humain",
+    "race": "humain",
+    "die": "d100",
+    "source": {
+      "book": "livre-de-base",
+      "page": 183,
+      "note": "Tableau corps ou esprit, LDB 19 l.76-81"
+    },
+    "entries": [
+      {
+        "id": "physique",
+        "min": 1,
+        "max": 50
+      },
+      {
+        "id": "mentale",
+        "min": 51,
+        "max": 100
+      }
+    ]
+  },
+  {
+    "id": "mutation-nature-halfling",
+    "type": "mutation-nature",
+    "label": "Corps ou esprit — Halfling",
+    "race": "halfling",
+    "die": "d100",
+    "source": {
+      "book": "livre-de-base",
+      "page": 183,
+      "note": "Tableau corps ou esprit, LDB 19 l.76-81"
+    },
+    "entries": [
+      {
+        "id": "physique",
+        "min": 1,
+        "max": 10
+      },
+      {
+        "id": "mentale",
+        "min": 11,
+        "max": 100
+      }
+    ]
+  },
+  {
+    "id": "mutation-nature-nain",
+    "type": "mutation-nature",
+    "label": "Corps ou esprit — Nain",
+    "race": "nain",
+    "die": "d100",
+    "source": {
+      "book": "livre-de-base",
+      "page": 183,
+      "note": "Tableau corps ou esprit, LDB 19 l.76-81"
+    },
+    "entries": [
+      {
+        "id": "physique",
+        "min": 1,
+        "max": 5
+      },
+      {
+        "id": "mentale",
+        "min": 6,
+        "max": 100
+      }
+    ]
+  },
+  {
+    "id": "mutation-nature-haut-elfe",
+    "type": "mutation-nature",
+    "label": "Corps ou esprit — Haut-elfe",
+    "race": "haut-elfe",
+    "die": "d100",
+    "source": {
+      "book": "livre-de-base",
+      "page": 183,
+      "note": "Tableau corps ou esprit, LDB 19 l.76-81"
+    },
+    "entries": [
+      {
+        "id": "mentale",
+        "min": 1,
+        "max": 100
+      }
+    ]
+  },
+  {
+    "id": "mutation-nature-elfe-sylvain",
+    "type": "mutation-nature",
+    "label": "Corps ou esprit — Elfe sylvain",
+    "race": "elfe-sylvain",
+    "die": "d100",
+    "source": {
+      "book": "livre-de-base",
+      "page": 183,
+      "note": "Tableau corps ou esprit, LDB 19 l.76-81"
+    },
+    "entries": [
+      {
+        "id": "mentale",
+        "min": 1,
+        "max": 100
+      }
+    ]
+  },
+  {
+    "id": "mutation-nature-ogre",
+    "type": "mutation-nature",
+    "label": "Corps ou esprit — Ogre",
+    "race": "ogre",
+    "die": "d100",
+    "source": {
+      "book": "archives-de-l-empire-2",
+      "page": 18,
+      "note": "Ogres et Mutations, ADE II 02 l.172-177"
+    },
+    "entries": [
+      {
+        "id": "physique",
+        "min": 1,
+        "max": 10
+      },
+      {
+        "id": "mentale",
+        "min": 11,
+        "max": 100
+      }
+    ]
+  },
+  {
+    "id": "mutation-nature-gnome",
+    "type": "mutation-nature",
+    "label": "Corps ou esprit — Gnome",
+    "race": "gnome",
+    "die": "d100",
+    "source": {
+      "book": "nuits-agitees-et-dures-journees",
+      "page": 91,
+      "note": "Gnomes et Corruption, NADJ 15 l.173"
+    },
+    "entries": [
+      {
+        "id": "physique",
+        "min": 1,
+        "max": 50
+      },
+      {
+        "id": "mentale",
+        "min": 51,
+        "max": 100
+      }
+    ]
+  }
+]

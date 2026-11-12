@@ -60,9 +60,10 @@
         {
           "files": [
             "species.json",
-            "especes-aleatoires.json"
+            "especes-aleatoires.json",
+            "mutation-nature.json"
           ],
-          "desc": "Espèces jouables + variantes régionales · Tableau des Races aléatoires (d100)"
+          "desc": "Espèces jouables + variantes régionales · Tableau des Races aléatoires (d100) · Tableau corps ou esprit de la mutation, par race (d100)"
         },
         {
           "files": [
