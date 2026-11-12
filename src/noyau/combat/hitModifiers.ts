@@ -21,7 +21,7 @@
  *   reçu) → 10 sauvegarde « 1d10 ≥ Indice » (traits propres + Trait octroyé par un Dôme) → 40 Martyr
  *   → 50 Perturbante.
  */
-import type { BattleState } from '../etat';
+import type { Jeu } from '../etat';
 import type { Get, Set as SetFn } from '../flowTypes';
 import type { Combatant, Weapon } from '../../engine/types';
 import type { TraitList } from '../../engine/statEntry';
@@ -44,7 +44,7 @@ import type { FragmentDeTables } from '../tablesPosees';
 // ── Helpers propres aux sauvegardes ──
 
 /** Martyr (LDB 43 l.99) : le prêtre (vivant, présent) qui encaisse à la place de `target`, ou null. */
-export function martyrGuardOf(battle: BattleState, target: Combatant): Combatant | null {
+export function martyrGuardOf(battle: Jeu['battle'], target: Combatant): Combatant | null {
   const id = (target.activeEffects ?? []).find((e) => e.martyrGuard)?.martyrGuard;
   if (!id || id === target.id) return null;
   const priest = inBattleId(battle, id);
@@ -309,7 +309,7 @@ export const TABLES = {
       apply: ({ get, attacker, target, weapon, res, encaisse }) => {
         const raw = res.damage ?? res.woundsLost;
         if (res.hit && !res.degatsTransferes && raw) {
-          const priest = martyrGuardOf(get().battle!, target);
+          const priest = martyrGuardOf(get().battle, target);
           if (priest) {
             const loc = res.location ?? 'corps';
             // LDB 13 l.159, LDB 43 l.107.
