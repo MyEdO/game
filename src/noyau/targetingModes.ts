@@ -435,7 +435,7 @@ function attackAffordance(get: Get, active: Combatant, target: Combatant): Hover
   return {
     kind: 'ok',
     // Gratuite (Morsure/Caudale/Tentacule) = toujours mêlée (trait solide) ; Arme = tir pointillé si à distance.
-    line: option.freeKind ? 'solid' : p.kind === 'ranged' ? 'dashed' : 'solid',
+    line: option.freeKind ? 'solid' : p.kind === 'distance' ? 'dashed' : 'solid',
     title: p.weapon.label,
     targetName: target.label,
     skill: attackTestLabel(active, p.weapon, p.kind),

@@ -26,7 +26,7 @@ const shooter = (id = 'tireur', x = 0, y = 0): Combatant =>
 
 /** Arme à distance porteuse de qualités/effets — `qualities` lus par `resolveQualities`, `onHitEffects` par `fireTriggers`. */
 const rangedWeapon = (qualities: { id: string; value?: number }[], range = 60, flat = 12, onHitEffects?: TriggeredEffect[]): Weapon =>
-  ({ name: 'Arme', type: 'ranged', range, damage: { flat, plusBF: false }, qualities, ...(onHitEffects ? { onHitEffects } : {}) }) as unknown as Weapon;
+  ({ name: 'Arme', type: 'distance', range, damage: { flat, plusBF: false }, qualities, ...(onHitEffects ? { onHitEffects } : {}) }) as unknown as Weapon;
 
 /** Scène minimale VALIDE (grille 40×40 d'herbe) — `losClear`/LoS lus par `fireTriggers` exigent `dimensions`+`layers`. */
 const miniScene = (metresPerTile: number) =>

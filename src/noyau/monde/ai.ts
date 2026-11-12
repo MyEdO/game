@@ -330,7 +330,7 @@ export function pickDoctrine(enemy: Combatant, _squad: Combatant[] = [], heroes:
   const int = finite(effectiveChar(enemy, 'intelligence'), NaN);
   const hasInt = Number.isFinite(int);
   const hasSpells = (enemy.spells?.length ?? 0) > 0;
-  const hasRangedWeapon = enemy.weapons.some((w) => w.type === 'ranged');
+  const hasRangedWeapon = enemy.weapons.some((w) => w.type === 'distance');
   const ag = finite(effectiveChar(enemy, 'agilite'), NaN);
   // SIGNAL « groupe » data-driven (≠ folder.includes fragile, ≠ nom en dur) : on matche les `groups`
   // (ids auto-dérivés en donnée : racial, carrière, catégorie bestiaire) contre des CATÉGORIES d'id, via
@@ -405,9 +405,9 @@ function targetThreat(enemy: Combatant, hero: Combatant, mpt = 2): number {
   const fragility = 1 + Math.max(0, maxW - hero.wounds.current) / maxW; // 1 (intact) → 2 (presque mort)
   // Danger brut du héros = meilleure espérance de SON coup contre l'ennemi (réciprocité).
   const meleeW = hero.weapons?.find((w) => w.type === 'melee');
-  const rangedW = hero.weapons?.find((w) => w.type === 'ranged');
+  const rangedW = hero.weapons?.find((w) => w.type === 'distance');
   const dmgMelee = meleeW ? finite(expectedDamage(hero, enemy, meleeW, 'melee'), NaN) : NaN;
-  const dmgRanged = rangedW ? finite(expectedDamage(hero, enemy, rangedW, 'ranged', dist, undefined, mpt), NaN) : NaN;
+  const dmgRanged = rangedW ? finite(expectedDamage(hero, enemy, rangedW, 'distance', dist, undefined, mpt), NaN) : NaN;
   const cand = [dmgMelee, dmgRanged].filter((d) => Number.isFinite(d)) as number[];
   const danger = cand.length ? Math.max(...cand) : 1; // pas de Caractéristiques chiffrables → danger neutre (1)
   return Math.max(1, danger) * reachability * fragility;
@@ -576,11 +576,11 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   // oui, il LANCE plutôt que de tirer (parité avec l'ancien `offensiveSpell == null` du gate de tir).
   const hasAnyOffensiveSpell = spells.some((sp) => !sp.active && spellIsOffensive(sp.data));
   // #537 : `banRanged` (duel judiciaire, NADJ 06 l.181) ne vise QUE les armes, jamais les sorts offensifs.
-  const hasRanged = !hasAnyOffensiveSpell && !input.banRanged && enemy.weapons.some((w) => w.type === 'ranged');
+  const hasRanged = !hasAnyOffensiveSpell && !input.banRanged && enemy.weapons.some((w) => w.type === 'distance');
   const hasMeleeWeapon = enemy.weapons.some((w) => w.type === 'melee');
   // Rechargement (LDB 62 l.333) : une arme à Recharge DÉCHARGÉE ne peut pas tirer → il faut recharger d'abord
   // (Test étendu de Projectiles). Cycle `loaded` unifié héros/ennemi (spawn chargé, tir → déchargé).
-  const rangedW = enemy.weapons.find((w) => w.type === 'ranged');
+  const rangedW = enemy.weapons.find((w) => w.type === 'distance');
   const reloadNeeded = hasRanged && !!rangedW && (rangedW.reload ?? 0) > 0 && !weaponLoaded(enemy, rangedW);
 
   // Un ennemi sans AUCUN moyen d'agir (aucun sort jouable NI arme) passe la main : un sort (offensif OU
@@ -602,7 +602,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   // Extrême (Portée ×3 — rangeBandModifier null), un lanceur pas au-delà de la portée du sort.
   // Sans portée chiffrée (arme sans `range`, sort spécial) : pas de gate (stubs/exotiques).
   const fpDist = (h: Combatant) => footprintChebyshev(pos, footprintN(enemy), h.pos!, footprintN(h));
-  const maxWeaponRange = enemy.weapons.reduce((m, w) => { const r = w.type === 'ranged' ? porteeDeTir(enemy, w) : null; return r != null ? Math.max(m, r) : m; }, 0);
+  const maxWeaponRange = enemy.weapons.reduce((m, w) => { const r = w.type === 'distance' ? porteeDeTir(enemy, w) : null; return r != null ? Math.max(m, r) : m; }, 0);
   const shootPool = maxWeaponRange > 0 ? shootableHeroes.filter((h) => rangeBandModifier(fpDist(h), maxWeaponRange, mpt) != null) : shootableHeroes;
   // Frénésie (LDB 21 l.33) : la seule Action est un Test de Capacité de Combat / Athlétisme — ni tir ni sort.
   const frenzied = isFrenzied(enemy);
@@ -775,12 +775,12 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
    *  En MÊLÉE, le bonus de toucher de SURNOMBRE (feu concentré, Lot 4) est injecté dans l'espérance. */
   const attackUtility = (
     target: Combatant,
-    src: { kind: 'melee'; weapon: Weapon } | { kind: 'ranged'; weapon: Weapon; dist: number } | { kind: 'spell'; value: number },
+    src: { kind: 'melee'; weapon: Weapon } | { kind: 'distance'; weapon: Weapon; dist: number } | { kind: 'spell'; value: number },
   ): number => {
     const dmg = src.kind === 'spell'
       ? src.value
-      : src.kind === 'ranged'
-        ? finite(expectedDamage(enemy, target, src.weapon, 'ranged', src.dist, undefined, mpt), 0)
+      : src.kind === 'distance'
+        ? finite(expectedDamage(enemy, target, src.weapon, 'distance', src.dist, undefined, mpt), 0)
         : finite(expectedDamage(enemy, target, src.weapon, 'melee', undefined, outnumberEnvMelee(target)), 0);
     const threat = finite(targetThreat(enemy, target, mpt), 0);
     const securesKill = dmg >= target.wounds.current && target.wounds.current > 0 ? Weff.killSecure : 0;
@@ -794,7 +794,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
    *  plus, puisque la pénalité s'ajoute à un score offensif moindre). Coût borné aux cases candidates ;
    *  les armes des héros sont mémoïsées hors boucle. Squad/heroes vides → 0 (neutre). */
   const heroThreatWeapons = heroes.map((h) => ({
-    h, melee: h.weapons?.find((w) => w.type === 'melee'), ranged: h.weapons?.find((w) => w.type === 'ranged'),
+    h, melee: h.weapons?.find((w) => w.type === 'melee'), ranged: h.weapons?.find((w) => w.type === 'distance'),
   }));
   // Clé de CASE des mémos de position (`dangerAt`, `coverRank`) : ces deux grandeurs ne dépendent QUE
   // de la case d'arrivée — les héros, l'escouade et la scène ne bougent pas pendant la décision. Elles
@@ -818,7 +818,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
       if (!h.pos) continue;
       const dist = chebyshev(to, h.pos);
       const dm = melee ? finite(expectedDamage(h, here, melee, 'melee'), 0) : 0;
-      const dr = ranged ? finite(expectedDamage(h, here, ranged, 'ranged', dist, undefined, mpt), 0) : 0;
+      const dr = ranged ? finite(expectedDamage(h, here, ranged, 'distance', dist, undefined, mpt), 0) : 0;
       total += Math.max(dm, dr); // le héros joue SON meilleur coup contre nous depuis cette case
     }
     return total;
@@ -1038,7 +1038,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   if (canShoot && rangedW) {
     const pool = restrict(fpick ? [fpick].filter((h) => shootPool.includes(h)) : shootPool);
     for (const t of pool) {
-      candidates.push({ action: { kind: 'tir', targetId: t.id }, kind: 'tir', utility: attackUtility(t, { kind: 'ranged', weapon: rangedW, dist: fpDist(t) }), targetId: t.id, coord: t.pos ?? null });
+      candidates.push({ action: { kind: 'tir', targetId: t.id }, kind: 'tir', utility: attackUtility(t, { kind: 'distance', weapon: rangedW, dist: fpDist(t) }), targetId: t.id, coord: t.pos ?? null });
     }
   }
   // === MÊLÉE / APPROCHE / REPOSITION =================================================================
@@ -1098,7 +1098,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
     // TIR (pièce de siège qui brèche la porte) — face visible, en portée, et que l'arme peut ABÎMER.
     if (canFireStruct && stSeen && !structureImmune(rangedW!, st)
         && (maxWeaponRange <= 0 || rangeBandModifier(fpDist(st), maxWeaponRange, mpt) != null)) {
-      candidates.push({ action: { kind: 'tir', targetId: st.id }, kind: 'tir', utility: attackUtility(st, { kind: 'ranged', weapon: rangedW!, dist: fpDist(st) }), targetId: st.id, coord: st.pos! });
+      candidates.push({ action: { kind: 'tir', targetId: st.id }, kind: 'tir', utility: attackUtility(st, { kind: 'distance', weapon: rangedW!, dist: fpDist(st) }), targetId: st.id, coord: st.pos! });
     }
     // MÊLÉE / APPROCHE (bélier ou arme abîmant une porte non-Impénétrable) — auto-touche, pas de défense.
     if (hasMeleeWeapon && meleeWeapon && !structureImmune(meleeWeapon, st)) {

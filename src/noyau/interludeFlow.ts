@@ -595,7 +595,7 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
       // Échec Stupéfiant (-6), […] vous n'avez rien gagné. » Le crédit est DIFFÉRÉ (l.191 : « remis une
       // fois que vous avez disposé de l'argent de votre dernière aventure ») → `revenueBrass`, jamais
       // `money`. Revenus maintient aussi le Statut des Niveaux 3-4 (l.193 → `didRevenus`).
-      const outcome = pa.success ? 'success' : isAstoundingFailure(pa.success, pa.sl) ? 'astoundingFail' : 'fail';
+      const outcome = pa.success ? 'reussite' : isAstoundingFailure(pa.success, pa.sl) ? 'echecStupefiant' : 'echec';
       const { tier, standing } = actorStatus(h);
       let brass = toBrass(statusIncome(tier, standing, battleRng(), outcome));
       const lines: string[] = [];

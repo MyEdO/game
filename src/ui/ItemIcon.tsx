@@ -12,7 +12,7 @@ import type { IconId } from '../data/icons';
 function glyphe(item: GabaritDObjet | Weapon): IconId {
   if ('kind' in item) {
     if (item.kind === 'armor') return 'objet/armure';
-    if (item.kind === 'melee' || item.kind === 'ranged') return isShieldItem(item) ? 'objet/armure' : 'objet/arme';
+    if (item.kind === 'melee' || item.kind === 'distance') return isShieldItem(item) ? 'objet/armure' : 'objet/arme';
     if (item.kind === 'ammo') return 'objet/munition';
     if (isCapeItem(item)) return 'objet/cape';
     if (isConsumable(item)) return 'objet/consommable';

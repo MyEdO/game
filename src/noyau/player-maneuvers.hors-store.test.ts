@@ -203,7 +203,7 @@ describe('manœuvres en combat (store)', () => {
     const { H, E } = setup();
     H.traits = [{ id: 'morsure', value: 10 }];
     H.advantage = 2;
-    H.weapons = [{ label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 0 }, range: 30, qualities: [], uid: 'bow' }] as Combatant['weapons']; // arme tenue = arc
+    H.weapons = [{ label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 0 }, range: 30, qualities: [], uid: 'bow' }] as Combatant['weapons']; // arme tenue = arc
     E.pos = { x: 14, y: 10 };
     banc.getState().armerLAttaque('morsure');
     cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });

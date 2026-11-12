@@ -147,7 +147,7 @@ describe('la 2ᵉ frappe après un Coup Critique prend un d100 du tableau, jamai
     it('cible Inconsciente achevée : aucune table, le d100 est tiré à l’ouverture', () => {
       const res = premiereFrappe({
         roll: 0, cible: { conditions: [{ id: 'inconscient', value: 1 }] } as never,
-        resoudre: (h, c, a) => resolveMelee(h, c, a, makeRNG(3), { defense: 'none' }),
+        resoudre: (h, c, a) => resolveMelee(h, c, a, makeRNG(3), { defense: 'aucune' }),
       });
       expect(res.autoKill).toBe(true);
       expect(res.critical).toBe(true);

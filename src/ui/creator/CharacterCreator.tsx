@@ -1891,7 +1891,7 @@ function trappingMeta(id: string): string {
   if (t.pa) bits.push(`${t.pa} PA (${t.loc ?? ''})`);
   if (t.reach && t.categorie === 'melee') bits.push(`Allonge ${t.reach}`);
   // Portée : « N m » (fixe) / « BF×k m » (jet) ; sinon le modificateur de la munition (« ×½ »).
-  if (t.categorie === 'ranged' || t.categorie === 'ammunition') { const p = rangeSpecLabel(t.range) ?? ammoRangeModLabel(t.ammoRangeMod); if (p) bits.push(`Portée ${p}`); }
+  if (t.categorie === 'distance' || t.categorie === 'ammunition') { const p = rangeSpecLabel(t.range) ?? ammoRangeModLabel(t.ammoRangeMod); if (p) bits.push(`Portée ${p}`); }
   if (t.enc) bits.push(`Enc. ${t.enc}`);
   if (t.qualities?.length) bits.push(t.qualities.map(qualityRefLabel).join(', '));
   return bits.join(' · ');

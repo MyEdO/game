@@ -31,7 +31,7 @@ function desScriptes(...d100: number[]): RNG & { tires: () => number } {
 }
 
 const frappe = (rng: RNG, cible: Partial<Combatant> = {}) =>
-  resolveMelee(combattant('a'), combattant('d', cible), epee, rng, { defense: 'none' });
+  resolveMelee(combattant('a'), combattant('d', cible), epee, rng, { defense: 'aucune' });
 
 describe('T2 — la Localisation relancée est posée dès la sortie de `resolveMelee`', () => {
   beforeEach(() => setRule('combat-aa-blessures', 'aa'));
