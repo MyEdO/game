@@ -1,0 +1,27 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/liaison.gd" id="1_liaison"]
+[ext_resource type="Script" path="res://scripts/zone.gd" id="2_zone"]
+
+[node name="Trajet" type="PanelContainer"]
+size_flags_horizontal = 3
+theme_type_variation = &"RangeeDeTrajet"
+
+[node name="Rangee" type="HBoxContainer" parent="."]
+theme_type_variation = &"RangeeDeCarte"
+
+[node name="Nom" type="Label" parent="Rangee"]
+theme_type_variation = &"Destination"
+
+[node name="nom" type="Node" parent="Rangee/Nom"]
+script = ExtResource("1_liaison")
+champ = "nom"
+
+[node name="Depart" type="HBoxContainer" parent="Rangee"]
+size_flags_horizontal = 3
+
+[node name="Zone" type="Node" parent="Rangee/Depart"]
+script = ExtResource("2_zone")
+source = "elements"
+formes = PackedStringArray("choix:depart")
+

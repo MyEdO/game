@@ -17,7 +17,6 @@ const doc = document(
   {},
   {},
   {
-    codex: { keys: ['problemesVehicule'] },
     edit: { niche: { categories: { problemesVehicule: 'entries' } } },
   },
   { rangee, deDeTirage: true },

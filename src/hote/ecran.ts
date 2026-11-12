@@ -11,14 +11,14 @@
  */
 import {
   ACTIONS, avecSigne, batailleEnVue, fenetreDuJeu, carteEnVue, cleDuGeste, dayIndex, formatImperial, formatJourImperial, marchandEnVue, marcheEnVue, voyageEnVue, VERBE_DE_CHOIX, type AxeDuChoix, type FenetreAChoix, conditionLabel, conversationEnVue, difficultyText, documentEnVue, lieuEnVue, formatMoney, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDuSoin, ficheDuPorteur, gestesDeLObjet, interludeEnVue, jetsEnVue, porteurParId, recitEnVue, reposEnVue, toneOf,
-  type CombatEvent, type EntreeDeLaFiche, type FicheDuPorteur, type GesteAChoix, type GesteDuNoyau, type GesteFermable, type FenetreDAttaque, type FenetreDIncantation, type Jeu, type JetEnVue, type LigneDeJet, type LigneDuJournal, type ModLine, type RollBreakdown, type TrajetEnVue,
+  type CombatEvent, type EntreeDeLaFiche, type LieuDuPlan, type PlanDeLaCarte, type FicheDuPorteur, type GesteAChoix, type GesteDuNoyau, type GesteFermable, type FenetreDAttaque, type FenetreDIncantation, type Jeu, type JetEnVue, type LigneDeJet, type LigneDuJournal, type ModLine, type RollBreakdown, type TrajetEnVue,
 } from '../noyau/index';
 import { pluriel, t } from '../i18n';
 import { garanti } from '../lib/garanti';
 import type { Projection } from './projection';
 import { CHOIX_EN_BOUTONS, type FenetreADessiner } from './gestes';
 import { zonesDeLaCreation, type ZonesDeLaCreation } from './creation';
-import { elementsDesGestes, ligne, resume, type Bouton, type Choix, type Element, type Entite, type FicheOuverte, type Formulaire, type Jet, type Ligne, type PanneauDeLHote, type Puce, type Saisie, type Ton } from './elements';
+import { elementsDesGestes, ligne, resume, type Bouton, type Choix, type Element, type Entite, type FicheOuverte, type Formulaire, type Jet, type Ligne, type PanneauDeLHote, type Plan, type Puce, type Saisie, type Ton } from './elements';
 
 /**
  * @contrat Vue
@@ -355,36 +355,51 @@ const departDuTrajet = (tr: TrajetEnVue): Choix => ({
   valeurs: tr.modes.map((m) => boutonDeGeste(m.mode, m.jours === null ? m.libelle : t('ecran.carte.mode', { mode: m.libelle, jours: m.jours }), m.geste, m.refus)),
 });
 
-/** La carte du monde ouverte (`carteEnVue`) : son plan, chaque lieu à sa place, celui du groupe en `alerte`, avec
- *  le départ de chaque trajet qui y mène (`departDuTrajet`), chaque route qui part d'ici en `reussite` ; puis la reprise
- *  d'un voyage interrompu. */
+/** Le plan de la carte en élément : chaque lieu à sa place, celui du groupe en `alerte`, chaque route qui part d'ici
+ *  en `reussite` ; sous chaque lieu, `sous`. */
+const planDeLaCarte = (id: string, plan: PlanDeLaCarte, sous: (l: LieuDuPlan) => Element[]): Plan => ({
+  type: 'plan', id,
+  points: plan.lieux.map((l) => ({ type: 'point', id: l.id, nom: l.nom, x: l.x, y: l.y, ton: l.ici ? 'alerte' : 'neutre', elements: sous(l) })),
+  traits: plan.routes.map((r) => ({ id: r.route, de: r.de, vers: r.vers, ton: r.depuisIci ? 'reussite' : 'neutre' })),
+});
+
+/** La carte du monde ouverte (`carteEnVue`) : son plan (`planDeLaCarte`), sous chaque lieu le départ de chaque trajet
+ *  qui y mène (`departDuTrajet`) ; puis la reprise d'un voyage interrompu. */
 function trajetsDeLaCarte(etat: Jeu): Element[] {
   const c = carteEnVue(etat);
   if (!c) return [];
   return [
-    {
-      type: 'plan', id: 'carte/plan',
-      points: c.plan.lieux.map((l) => ({ type: 'point', id: l.id, nom: l.nom, x: l.x, y: l.y, ton: l.ici ? 'alerte' : 'neutre', elements: l.trajets.map(departDuTrajet) })),
-      traits: c.plan.routes.map((r) => ({ id: r.route, de: r.de, vers: r.vers, ton: r.depuisIci ? 'reussite' : 'neutre' })),
-    },
+    planDeLaCarte('carte/plan', c.plan, (l) => l.trajets.map(departDuTrajet)),
     ...(c.reprendre ? [boutonDeGeste('carte/reprendre', t('ecran.carte.reprendre'), c.reprendre, null)] : []),
   ];
 }
 
-/** L'écran du lieu (`lieuEnVue`), dont le nom est le titre de la fenêtre : chacun de ses services en entité, ce qu'on y
- *  fait en boutons fermés avec leur raison, chacun des points d'intérêt de son plan et son entrée, puis chaque trajet qui
- *  en part, sa destination et son départ (`departDuTrajet`). */
+/** L'écran du lieu (`lieuEnVue`), dont le nom est le titre de la fenêtre : le plan de la carte vu d'ici (`lieu/plan`,
+ *  `planDeLaCarte`, rien sous ses lieux) et le bouton qui ouvre la carte (`lieu/carte`) ; sous leur titre
+ *  (`lieu/services`), chacun de ses services en entité, son fond (`fond`), son icône (`icone`), le boniment de son hôte
+ *  (`accueil`) et ce qu'on y fait en boutons fermés avec leur raison, chacun des points d'intérêt de son plan et son
+ *  entrée ; puis, sous leur titre (`lieu/trajets`), chaque trajet qui en part, sa destination et son départ
+ *  (`departDuTrajet`). */
 function ecranDuLieu(etat: Jeu): Element[] {
   const l = lieuEnVue(etat);
   if (!l) return [];
   return [
+    planDeLaCarte('lieu/plan', l.plan, () => []),
+    boutonDeGeste('lieu/carte', l.carte.libelle, l.carte.geste, l.carte.refus),
+    ...(l.services.length || l.pointsDInteret.length ? [ligne('lieu/services', t('ecran.lieu.services'))] : []),
     ...l.services.map((svc): Entite => ({
       type: 'entite', id: `service/${svc.id}`, ton: 'neutre', nom: svc.nom,
-      elements: svc.gestes.map((g) => boutonDeGeste(g.id, g.libelle, g.geste, g.refus)),
+      elements: [
+        ...(svc.fond ? [{ type: 'fond', id: 'fond', fond: svc.fond } as const] : []),
+        { type: 'icone', id: 'icone', icone: svc.icone },
+        ...(svc.accueil ? [ligne('accueil', svc.accueil)] : []),
+        ...svc.gestes.map((g) => boutonDeGeste(g.id, g.libelle, g.geste, g.refus)),
+      ],
     })),
     ...l.pointsDInteret.map(({ id, nom, geste: g }): Entite => ({
       type: 'entite', id: `poi/${id}`, ton: 'neutre', nom, elements: [boutonDeGeste(g.id, g.libelle, g.geste, g.refus)],
     })),
+    ...(l.trajets.length ? [ligne('lieu/trajets', t('ecran.lieu.trajets'))] : []),
     ...l.trajets.map((tr): Entite => ({ type: 'entite', id: `trajet/${tr.route}`, ton: 'neutre', nom: tr.vers, elements: [departDuTrajet(tr)] })),
   ];
 }

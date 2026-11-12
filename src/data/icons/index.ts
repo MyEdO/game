@@ -3,6 +3,9 @@ import type { IconDef, IconId } from './types';
 
 export type { IconDef, IconId } from './types';
 
+/** Le cadre du dessin d'une icône (`IconDef.svg`). */
+export const CADRE_DES_ICONES = { largeur: 24, hauteur: 24 };
+
 /** Registre à plat : id → def (unicité des ids garantie par icons.test.ts). Keyé `string` pour
  *  qu'une saisie s'y juge (`estIdDIcone`). */
 export const ICON_DEFS: Record<string, IconDef> = Object.fromEntries(

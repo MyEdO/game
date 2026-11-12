@@ -79,4 +79,15 @@ describe('lumiereDeLaScene', () => {
     expect(source.couleur).toBe(MISSING_TONE);
     expect(source.scintillement).toBeNull();
   });
+
+  it('chaque source posée porte la clé de son décor, la même quand le groupe a marché (#3947)', () => {
+    const s = emptyScene('scene-test', 6, 4);
+    s.entities = [
+      { id: 'lampe', kind: 'prop', pos: { x: 1, y: 1 }, light: { radiusM: 4 } },
+      { id: 'brasero', kind: 'prop', pos: { x: 4, y: 2 }, light: { radiusM: 4 } },
+    ];
+    const cles = (partyPos: { x: number; y: number }) => lumiereDeLaScene({ ...etat(s, MIDI), partyPos }, 'tactique').sources.map((source) => source.cle);
+    expect(cles({ x: 0, y: 0 })).toEqual(['posee/lampe', 'posee/brasero']);
+    expect(cles({ x: 3, y: 3 })).toEqual(['posee/lampe', 'posee/brasero']);
+  });
 });

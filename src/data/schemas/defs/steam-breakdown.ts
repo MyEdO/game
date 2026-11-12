@@ -64,7 +64,6 @@ const doc = document(
   {},
   {},
   {
-    codex: { keys: ['steamBreakdowns'] },
     edit: { niche: { categories: { steamBreakdowns: 'entries' } } },
   },
   // MDG 12 l.323 ; l'espace des rangées est le foyer de règle `steamBreakdown` (`grammaire/ref.ts`).

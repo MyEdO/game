@@ -1,6 +1,6 @@
 /**
  * #2968 L17, concept « fond » (#2968 P-art) — la bande d'ambiance se désigne par `ref('fond')` (`{ id }` refiné au
- * parse contre l'espace `vocabulaire:fonds`, projection du registre `src/ui/backdrops/defs`). Fixtures : référence
+ * parse contre l'espace `vocabulaire:fonds`, projection du registre `src/data/fonds/defs`). Fixtures : référence
  * connue, inconnue, d'une autre portée, et écrite en id nu, sur chaque porteur.
  */
 import { describe, expect, it } from 'vitest';
@@ -37,7 +37,7 @@ describe('#2968 L17 — la bande d’ambiance désignée par `ref(\'fond\')`', (
 
   it.each(PORTEURS)('$porteur : une référence inconnue est refusée, son catalogue et son registre nommés', ({ schema, avec }) => {
     expect(messages(schema, avec({ id: 'fond-inexistant' }))).toContain(
-      '« fond-inexistant » est absent du catalogue des bandes d’ambiance (vocabulaire:fonds, registre src/ui/backdrops/defs)',
+      '« fond-inexistant » est absent du catalogue des bandes d’ambiance (vocabulaire:fonds, registre src/data/fonds/defs)',
     );
   });
 

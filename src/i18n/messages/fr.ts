@@ -966,6 +966,8 @@ export const fr = {
   'ecran.bataille.alea': 'Aléa : {alea}',
   'ecran.bataille.choisirAlea': 'Choisir un facteur',
   'ecran.carte.reprendre': 'Reprendre le voyage',
+  'ecran.lieu.services': 'Ce qu’on peut faire ici',
+  'ecran.lieu.trajets': 'Partir',
   'ecran.carte.mode': '{mode} · {jours} j',
   'ecran.bourse': 'Bourse',
   'ecran.marche.enc': '{enc} Enc',
@@ -3802,6 +3804,7 @@ export const fr = {
   // (le signe et l'issue sont portés par l'appelant) ; « Ragot » vient de `skills.json`.
   'lieu.repos': 'Repos',
   'lieu.entrer': 'Entrer',
+  'lieu.carte': 'Ouvrir la carte',
   'lieu.horsDeLEcran': 'Aucun écran de lieu ouvert.',
   'lieu.pointSansScene': '{poi} ne mène à aucune scène de la partie.',
   'lieu.dormir': 'Dormir',

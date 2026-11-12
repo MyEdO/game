@@ -18,7 +18,6 @@ const doc = document(
   {},
   {},
   {
-    codex: { keys: ['eyes'] },
     edit: { niche: { categories: { eyes: 'entries' } } },
   },
   { rangee, deDeTirage: true },

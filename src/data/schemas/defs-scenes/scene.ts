@@ -25,7 +25,7 @@ import { amateurSchema, cell2Schema, deckCoverSchema, difficultySchema, dir8Sche
 import { joursDeReassortSchema, majorationDAchatSchema, tauxDeRachatSchema } from '../defs/merchants';
 import { conditionSchema, executeesDe, flowTestSchema } from '../grammaire/mecanique';
 import { navalTraitRefSchema, optionalSwapSchema, traitInstanceSchema } from '../grammaire/reference';
-import { competenceChiffreeSchema, couvreSchema, customStatblockSchema, ptSchema, wallSideSchema } from './communs';
+import { competenceChiffreeSchema, couvreSchema, customStatblockSchema, DIALOGUES_DE_LA_SCENE, PORTEES_DE_LA_SCENE, ptSchema, wallSideSchema } from './communs';
 import { sceneFlowSchema } from './effets';
 import { idDe, porteLeMarqueur, recordDIds, ref, refOuSpec, refs, type PorteeLocale } from '../grammaire/ref';
 import { champsDeChoix } from '../grammaire/choixDeCreation';
@@ -44,8 +44,6 @@ import { posteSideSchema } from '../defs/vehicles';
  *  VISIBLE au checker (type contextuel d'un littéral) sans rien refuser à `string` (#1789). */
 export type Terrain = string & {};
 
-/** Les dialogues de la scène, que désigne `entities[].dialogueId`. */
-const DIALOGUES = { collection: 'dialogues', catalogue: 'dialogues de la scène' } as const satisfies PorteeLocale;
 /** Les nœuds du dialogue, que désignent `start` et `choices[].next`. */
 const NOEUDS = { collection: 'nodes', catalogue: 'nœuds du dialogue' } as const satisfies PorteeLocale;
 
@@ -205,7 +203,7 @@ const baseDEntiteSchema = nommerChamps(z.strictObject({
   crewIds: z.array(z.string()).optional(),
   postes: z.array(authoredShipPosteSchema).optional(),
   upgrades: z.array(navalTraitRefSchema).optional(),
-  dialogueId: ref(DIALOGUES).optional(),
+  dialogueId: ref(DIALOGUES_DE_LA_SCENE).optional(),
   /** Contrepartie d'un Test de Sociabilité qui lit les jetons de Mécénat — arbitrage MAISON (ACE 12 l.60-62). */
   amateur: amateurSchema.optional(),
   appearance: entityAppearanceSchema.optional(),
@@ -981,7 +979,7 @@ export const sceneSchema = nommerChamps(ouvrirPortees(z.strictObject({
       });
     }
   });
-}), [DIALOGUES]), { type: { label: "type"  }, id: { label: "identifiant" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, desc: { label: "texte" , texte: { regime: "atelier",usage: "description de scène réservée à l’atelier"} }, dimensions: { label: "dimensions" }, metresPerTile: { label: "mètres par case" }, ambiance: { label: "ambiance"  }, environment: { label: "environnement"  }, weather: { label: "météo"  }, ambientLight: { label: "éclairage ambiant" , texte: { regime: "technique"} }, northDeg: { label: "orientation du nord" }, rest: { label: "repos" }, restZones: { label: "zones de repos" }, effectZones: { label: "zones d’effet" }, music: { label: "musique" }, reliefDefaults: { label: "relief par défaut" }, roofDefaults: { label: "toit par défaut" }, layers: { label: "couches" }, walls: { label: "murs" }, entities: { label: "entités" }, seatAssignments: { label: "places assignées" , texte: { regime: "technique"} }, architecture: { label: "bâtiments" }, dialogues: { label: "dialogues" }, triggers: { label: "déclencheur" }, encounters: { label: "rencontres" }, stations: { label: "présences" }, flags: { label: "drapeaux" , texte: { regime: "technique"} }, entryPoints: { label: "points d’entrée" , texte: { regime: "technique"} }, startMessage: { label: "message de départ" }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} }, groups: { label: "groupes du lieu" , texte: { regime: "technique"} } });
+}), PORTEES_DE_LA_SCENE), { type: { label: "type"  }, id: { label: "identifiant" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, desc: { label: "texte" , texte: { regime: "atelier",usage: "description de scène réservée à l’atelier"} }, dimensions: { label: "dimensions" }, metresPerTile: { label: "mètres par case" }, ambiance: { label: "ambiance"  }, environment: { label: "environnement"  }, weather: { label: "météo"  }, ambientLight: { label: "éclairage ambiant" , texte: { regime: "technique"} }, northDeg: { label: "orientation du nord" }, rest: { label: "repos" }, restZones: { label: "zones de repos" }, effectZones: { label: "zones d’effet" }, music: { label: "musique" }, reliefDefaults: { label: "relief par défaut" }, roofDefaults: { label: "toit par défaut" }, layers: { label: "couches" }, walls: { label: "murs" }, entities: { label: "entités" }, seatAssignments: { label: "places assignées" , texte: { regime: "technique"} }, architecture: { label: "bâtiments" }, dialogues: { label: "dialogues" }, triggers: { label: "déclencheur" }, encounters: { label: "rencontres" }, stations: { label: "présences" }, flags: { label: "drapeaux" , texte: { regime: "technique"} }, entryPoints: { label: "points d’entrée" , texte: { regime: "technique"} }, startMessage: { label: "message de départ" }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} }, groups: { label: "groupes du lieu" , texte: { regime: "technique"} } });
 
 nommerNoeud(sceneSchema, { element: 'scène' });
 nommerNoeud(triggerSchema, { element: 'déclencheur' });

@@ -109,8 +109,14 @@ export interface Plan { type: 'plan'; id: string; points: PointDuPlan[]; traits:
 /** Le portrait d'un combattant : son corps, celui que l'hôte monte au plateau (`combattant`, son id), vu en buste. */
 export interface Portrait { type: 'portrait'; id: string; combattant: string }
 
+/** Une icône : son id au registre des icônes (`src/data/icons`), dont l'hôte tient le dessin. */
+export interface Icone { type: 'icone'; id: string; icone: string }
+
+/** Un fond d'ambiance : son id au registre des fonds (`src/data/fonds`), dont l'hôte tient le dessin. */
+export interface Fond { type: 'fond'; id: string; fond: string }
+
 /** Un élément de la vue. */
-export type Element = Ligne | Puce | Jauge | Jet | Entite | Plan | Portrait | Bouton | Choix | Formulaire | Saisie;
+export type Element = Ligne | Puce | Jauge | Jet | Entite | Plan | Portrait | Icone | Fond | Bouton | Choix | Formulaire | Saisie;
 
 /** Les bornes d'une saisie de nombre sans réglage : tout entier sur 32 bits, qu'un contrôle au pas de 1 tient
  *  exactement (le pas se cale sur l'écart à la borne, en réels). */

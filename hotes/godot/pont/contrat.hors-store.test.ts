@@ -36,13 +36,13 @@ describe('le pont avant sa partie', () => {
   it('une méthode inconnue se refuse en `validation` et nomme les méthodes du contrat', () => {
     const e = erreurDe(appel('simulerAttaque', {}));
     expect(e.categorie).toBe('validation');
-    expect(e.message).toBe('méthode inconnue : simulerAttaque (méthodes : demarrer, scenarios, vue, monde, jouer, plan, regarder, fiche, creation, reprendre, modeles, composer, vehicule, catalogues, vitrine, echantillons, echantillon, presetDeComposition, editer, erreursGlobales)');
+    expect(e.message).toBe('méthode inconnue : simulerAttaque (méthodes : demarrer, scenarios, vue, monde, aretes, jouer, plan, regarder, fiche, creation, reprendre, modeles, composer, vehicule, catalogues, vitrine, echantillons, echantillon, presetDeComposition, editer, erreursGlobales)');
   });
 
   it('`modeles` rend les modèles de l’atelier sans partie ; une entrée sans `manifestes` ou sans `osDesRigides` se refuse', () => {
     const manifestes = { humanoide: baseDeTest(), epee: elementSchema3() };
     expect(appel('modeles', { manifestes, osDesRigides: { humanoide: [], epee: ['root'] } })).toMatchObject({
-      ok: true, bases: [{ id: 'humanoide', points: [{ id: 'main', elements: ['epee'] }, { id: 'secondaire', elements: ['epee'] }] }], glb: { humanoide: 'humanoide.glb', epee: 'epee.glb' }, refus: [],
+      ok: true, bases: [{ id: 'humanoide', points: [{ id: 'main', elements: ['epee'] }, { id: 'secondaire', elements: ['epee'] }] }], fichiers: { humanoide: { glb: 'humanoide.glb', scene: 'humanoide.scn' }, epee: { glb: 'epee.glb', scene: 'epee.scn' } }, refus: [],
     });
     const sansManifestes = { categorie: 'validation', message: 'modeles : manifestes, un objet id de modèle → manifeste' };
     expect(erreurDe(appel('modeles', {}))).toEqual(sansManifestes);
@@ -67,8 +67,8 @@ describe('le pont avant sa partie', () => {
     expect(erreurDe(appel('scenarios', { section: 'combat' }))).toEqual({ categorie: 'validation', message: 'scenarios : section hors de l’entrée (aucune clé)' });
   });
 
-  it('`vue`, `monde`, `jouer`, `fiche` et `reprendre` se refusent sans partie', () => {
-    for (const [methode, entree] of [['vue', undefined], ['monde', undefined], ['jouer', { type: 'fenetreValider', args: ['debutDuRound'] }], ['fiche', { fiche: null }], ['regarder', { regard: 'plateau' }], ['reprendre', { jeton: 0 }]] as const) {
+  it('`vue`, `monde`, `aretes`, `jouer`, `fiche` et `reprendre` se refusent sans partie', () => {
+    for (const [methode, entree] of [['vue', undefined], ['monde', undefined], ['aretes', undefined], ['jouer', { type: 'fenetreValider', args: ['debutDuRound'] }], ['fiche', { fiche: null }], ['regarder', { regard: 'plateau' }], ['reprendre', { jeton: 0 }]] as const) {
       expect(erreurDe(appel(methode, entree)), methode).toEqual({ categorie: 'validation', message: 'aucune partie : demarrer d’abord' });
     }
   });

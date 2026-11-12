@@ -284,7 +284,7 @@ export function makeZone10() {
         id: 'voix-cage',
         rect: { x: 7, y: 9, w: 11, h: 3 },
         once: true,
-        flow: flowOf([{ type: 'startDialogue', dialogue: 'dlg-prisonnier', speakerId: 'prisonnier' }]),
+        flow: flowOf([{ type: 'startDialogue', dialogue: { id: 'dlg-prisonnier' }, speakerId: { id: 'prisonnier' } }]),
       },
       fightTrigger('enc-zone10', { x: 12, y: 9, w: 21, h: 13 }),
     ],

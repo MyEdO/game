@@ -5,7 +5,8 @@ extends SceneTree
 ## de biais en perspective. Sous l'œil, le sol touché à la verticale d'un lieu est celui de la couche sous lui : sur un
 ## volume d'un sol au rez et d'un plancher d'étage à 4 m, au-dessus de la même case, le rez sous l'œil d'en bas,
 ## l'étage sous l'œil d'en haut. La plaque de surbrillance du rez, sous le plancher, se montre au plateau et en
-## tactique, aucune en immersion (#3774), peinte avant l'œil ou sous lui.
+## tactique, aucune en immersion (#3774), peinte avant l'œil ou sous lui. Repeinte, la plaque d'une case garde son nœud,
+## à l'item qu'on lui donne ; celle d'une case qui n'est plus peinte le quitte (#3947).
 
 const RECETTE_AUTONOME := true
 const TRIANGLE := [0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0, 2.0]
@@ -50,6 +51,18 @@ func _recetter() -> void:
 	if root.get_viewport().get_camera_3d() != camera or camera.projection != Camera3D.PROJECTION_PERSPECTIVE:
 		_fautes.append("tactique : la caméra du regard n'est pas celle de biais, en perspective")
 	_plaques(monde, "tactique", 1)
+	var surbrillance := monde.get_node("Surbrillance")
+	var du_rez := surbrillance.get_child(0).get_instance_id()
+	monde.peindre({Vector3i(0, 0, 0): Monde.ITEM_CIBLE, Vector3i(0, 0, 1): Monde.ITEM_SURVOL})
+	var repeintes := surbrillance.get_children()
+	if repeintes.size() != 2 or repeintes[0].get_instance_id() != du_rez or repeintes[0].mesh != monde.surbrillances.get_item_mesh(Monde.ITEM_CIBLE):
+		_fautes.append("repeinte en cible, la plaque du rez ne garde pas son nœud à l'item de la cible")
+	var de_l_etage := repeintes[1].get_instance_id()
+	monde.peindre({Vector3i(0, 0, 1): Monde.ITEM_SURVOL})
+	var restees := surbrillance.get_children()
+	var sur_l_etage := monde.surbrillances.get_item_mesh_transform(Monde.ITEM_SURVOL).translated(monde.lieu(Vector2i(0, 0), 1)).origin
+	if restees.size() != 1 or restees[0].get_instance_id() != de_l_etage or not restees[0].position.is_equal_approx(sur_l_etage):
+		_fautes.append("la case du rez n'est plus peinte : sa plaque reste, ou celle de l'étage ne garde pas son nœud sur son sol")
 	for faute in _fautes:
 		push_error("[regards] " + faute)
 	print("[regards] erreurs=", _fautes.size())

@@ -1,4 +1,4 @@
-[gd_resource type="Theme" load_steps=20 format=3]
+[gd_resource type="Theme" load_steps=31 format=3]
 
 [ext_resource type="StyleBox" path="res://art/fond_panneau.tres" id="1_fond"]
 
@@ -82,68 +82,68 @@ corner_radius_bottom_right = 3
 corner_radius_bottom_left = 3
 
 [sub_resource type="StyleBoxFlat" id="Bouton_repos"]
-bg_color = Color(0.22, 0.19, 0.16, 1)
+content_margin_left = 12.0
+content_margin_top = 5.0
+content_margin_right = 12.0
+content_margin_bottom = 5.0
+bg_color = Color(0.165, 0.137, 0.094, 1)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
-border_color = Color(0.36, 0.31, 0.24, 1)
-content_margin_left = 10.0
-content_margin_top = 4.0
-content_margin_right = 10.0
-content_margin_bottom = 4.0
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
+border_color = Color(0.29, 0.247, 0.173, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
 
 [sub_resource type="StyleBoxFlat" id="Bouton_survol"]
-bg_color = Color(0.3, 0.26, 0.2, 1)
+content_margin_left = 12.0
+content_margin_top = 5.0
+content_margin_right = 12.0
+content_margin_bottom = 5.0
+bg_color = Color(0.208, 0.173, 0.118, 1)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
-border_color = Color(0.55, 0.47, 0.33, 1)
-content_margin_left = 10.0
-content_margin_top = 4.0
-content_margin_right = 10.0
-content_margin_bottom = 4.0
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
+border_color = Color(0.42, 0.353, 0.227, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
 
 [sub_resource type="StyleBoxFlat" id="Bouton_presse"]
-bg_color = Color(0.36, 0.29, 0.18, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.85, 0.68, 0.38, 1)
-content_margin_left = 10.0
-content_margin_top = 4.0
-content_margin_right = 10.0
-content_margin_bottom = 4.0
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
-
-[sub_resource type="StyleBoxFlat" id="Bouton_refuse"]
-bg_color = Color(0.15, 0.14, 0.13, 1)
+content_margin_left = 12.0
+content_margin_top = 5.0
+content_margin_right = 12.0
+content_margin_bottom = 5.0
+bg_color = Color(0.227, 0.184, 0.11, 1)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
-border_color = Color(0.22, 0.2, 0.18, 1)
-content_margin_left = 10.0
-content_margin_top = 4.0
-content_margin_right = 10.0
-content_margin_bottom = 4.0
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
+border_color = Color(0.851, 0.706, 0.416, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="Bouton_refuse"]
+content_margin_left = 12.0
+content_margin_top = 5.0
+content_margin_right = 12.0
+content_margin_bottom = 5.0
+bg_color = Color(0.106, 0.094, 0.075, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.173, 0.149, 0.114, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
 
 [sub_resource type="StyleBoxFlat" id="Anneau_neutre"]
 bg_color = Color(0, 0, 0, 0)
@@ -225,6 +225,144 @@ corner_radius_top_right = 6
 corner_radius_bottom_right = 6
 corner_radius_bottom_left = 6
 
+[sub_resource type="StyleBoxFlat" id="Carte_de_service"]
+content_margin_left = 1.0
+content_margin_top = 1.0
+content_margin_right = 1.0
+content_margin_bottom = 1.0
+bg_color = Color(0.137, 0.118, 0.09, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.29, 0.247, 0.173, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="Masque_de_vignette"]
+content_margin_left = 0.0
+content_margin_top = 0.0
+content_margin_right = 0.0
+content_margin_bottom = 0.0
+bg_color = Color(0.153, 0.129, 0.098, 1)
+corner_radius_top_left = 9
+corner_radius_top_right = 9
+
+[sub_resource type="StyleBoxFlat" id="Rangee_de_trajet"]
+content_margin_left = 14.0
+content_margin_top = 8.0
+content_margin_right = 10.0
+content_margin_bottom = 8.0
+bg_color = Color(0.122, 0.102, 0.078, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.227, 0.196, 0.149, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="Carte_de_heros"]
+content_margin_left = 10.0
+content_margin_top = 10.0
+content_margin_right = 12.0
+content_margin_bottom = 10.0
+bg_color = Color(0.122, 0.102, 0.078, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.227, 0.196, 0.149, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="Fond_du_journal"]
+content_margin_left = 18.0
+content_margin_top = 14.0
+content_margin_right = 14.0
+content_margin_bottom = 14.0
+bg_color = Color(0.102, 0.086, 0.067, 1)
+border_width_left = 1
+border_color = Color(0.227, 0.196, 0.149, 1)
+
+[sub_resource type="StyleBoxFlat" id="Fond_du_pied"]
+content_margin_left = 24.0
+content_margin_top = 12.0
+content_margin_right = 24.0
+content_margin_bottom = 12.0
+bg_color = Color(0.114, 0.098, 0.075, 1)
+border_width_top = 1
+border_color = Color(0.227, 0.196, 0.149, 1)
+
+[sub_resource type="StyleBoxFlat" id="Parchemin"]
+content_margin_left = 1.0
+content_margin_top = 1.0
+content_margin_right = 1.0
+content_margin_bottom = 1.0
+bg_color = Color(0.831, 0.761, 0.6, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.36, 0.3, 0.2, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="Medaillon"]
+content_margin_left = 6.0
+content_margin_top = 6.0
+content_margin_right = 6.0
+content_margin_bottom = 6.0
+bg_color = Color(0.165, 0.137, 0.094, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.42, 0.353, 0.227, 1)
+corner_radius_top_left = 999
+corner_radius_top_right = 999
+corner_radius_bottom_right = 999
+corner_radius_bottom_left = 999
+
+[sub_resource type="StyleBoxFlat" id="Fond_de_vie"]
+bg_color = Color(0.227, 0.196, 0.149, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+
+[sub_resource type="StyleBoxFlat" id="Plein_de_vie"]
+bg_color = Color(0.651, 0.212, 0.149, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+
+[sub_resource type="StyleBoxFlat" id="Bouton_focus"]
+bg_color = Color(0, 0, 0, 0)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.851, 0.706, 0.416, 1)
+corner_radius_top_left = 7
+corner_radius_top_right = 7
+corner_radius_bottom_right = 7
+corner_radius_bottom_left = 7
+draw_center = false
+expand_margin_left = 2.0
+expand_margin_top = 2.0
+expand_margin_right = 2.0
+expand_margin_bottom = 2.0
+
 [sub_resource type="StyleBoxEmpty" id="Sans_fond"]
 
 [resource]
@@ -257,9 +395,6 @@ FluxSerre/constants/v_separation = 6
 Frise/base_type = &"HFlowContainer"
 Frise/constants/h_separation = 24
 Frise/constants/v_separation = 8
-GrilleAeree/base_type = &"GridContainer"
-GrilleAeree/constants/h_separation = 14
-GrilleAeree/constants/v_separation = 14
 MargesDuMonde/base_type = &"MarginContainer"
 MargesDuMonde/constants/margin_left = 24
 MargesDuMonde/constants/margin_top = 24
@@ -316,3 +451,57 @@ Button/styles/hover = SubResource("Bouton_survol")
 Button/styles/pressed = SubResource("Bouton_presse")
 Button/styles/hover_pressed = SubResource("Bouton_presse")
 Button/styles/disabled = SubResource("Bouton_refuse")
+Button/styles/focus = SubResource("Bouton_focus")
+Button/colors/font_focus_color = Color(0.953, 0.902, 0.784, 1)
+CarteDeService/base_type = &"PanelContainer"
+CarteDeService/styles/panel = SubResource("Carte_de_service")
+Vignette/base_type = &"PanelContainer"
+Vignette/styles/panel = SubResource("Masque_de_vignette")
+MargesDeCarte/base_type = &"MarginContainer"
+MargesDeCarte/constants/margin_left = 14
+MargesDeCarte/constants/margin_top = 12
+MargesDeCarte/constants/margin_right = 14
+MargesDeCarte/constants/margin_bottom = 14
+RangeeDeTrajet/base_type = &"PanelContainer"
+RangeeDeTrajet/styles/panel = SubResource("Rangee_de_trajet")
+CarteDeHeros/base_type = &"PanelContainer"
+CarteDeHeros/styles/panel = SubResource("Carte_de_heros")
+Journal/base_type = &"PanelContainer"
+Journal/styles/panel = SubResource("Fond_du_journal")
+Pied/base_type = &"PanelContainer"
+Pied/styles/panel = SubResource("Fond_du_pied")
+Parchemin/base_type = &"PanelContainer"
+Parchemin/styles/panel = SubResource("Parchemin")
+Medaillon/base_type = &"PanelContainer"
+Medaillon/styles/panel = SubResource("Medaillon")
+Vie/base_type = &"ProgressBar"
+Vie/styles/background = SubResource("Fond_de_vie")
+Vie/styles/fill = SubResource("Plein_de_vie")
+Dessin/colors/encre = Color(0.851, 0.706, 0.416, 1)
+Dessin/colors/bg = Color(0.063, 0.055, 0.043, 1)
+Dessin/colors/bg2 = Color(0.09, 0.078, 0.063, 1)
+Dessin/colors/panel2 = Color(0.153, 0.129, 0.098, 1)
+Dessin/colors/border = Color(0.267, 0.212, 0.149, 1)
+Dessin/colors/ink = Color(0.133, 0.102, 0.067, 1)
+Dessin/colors/shadow_ink = Color(0, 0, 0, 1)
+Dessin/colors/parchment = Color(0.871, 0.796, 0.616, 1)
+Dessin/colors/gold = Color(0.722, 0.569, 0.184, 1)
+Dessin/colors/gold2 = Color(0.847, 0.725, 0.329, 1)
+Dessin/colors/accent = Color(0.486, 0.114, 0.071, 1)
+PileTassee/base_type = &"VBoxContainer"
+PileTassee/constants/separation = 5
+RangeeDeCarte/base_type = &"HBoxContainer"
+RangeeDeCarte/constants/separation = 12
+Colonnes/base_type = &"HBoxContainer"
+Colonnes/constants/separation = 28
+Bourse/base_type = &"Label"
+Bourse/colors/font_color = Color(0.851, 0.706, 0.416, 1)
+Bourse/font_sizes/font_size = 14
+Mesure/base_type = &"Label"
+Mesure/colors/font_color = Color(0.725, 0.671, 0.573, 1)
+Mesure/font_sizes/font_size = 13
+FluxDeCartes/base_type = &"HFlowContainer"
+FluxDeCartes/constants/h_separation = 14
+FluxDeCartes/constants/v_separation = 14
+Plan/constants/epaisseur = 3
+Plan/constants/rayon = 7

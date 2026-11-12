@@ -284,19 +284,27 @@ func points(z := 0) -> Dictionary:
 	return points
 
 
-## Les plaques `plaques` (par case `Vector3i(x, y, z)`, l'item de `surbrillances`), chacune sur le sol de sa case, à la
-## place des précédentes, montrées hors du regard `immersion` (`regarder`).
+## Les plaques `plaques` (par case `Vector3i(x, y, z)`, l'item de `surbrillances`), chacune sur le sol de sa case,
+## réconciliées par case : la plaque d'une case déjà peinte reste, à son item, celle d'une case qui ne l'est plus la
+## quitte ; montrées hors du regard `immersion` (`regarder`).
 func peindre(plaques: Dictionary) -> void:
+	var posees := {}
 	for plaque in _surbrillance.get_children():
-		_surbrillance.remove_child(plaque)
-		plaque.free()
+		posees[plaque.get_meta("case")] = plaque
 	for c: Vector3i in plaques:
+		var plaque: MeshInstance3D = posees.get(c)
+		posees.erase(c)
+		if plaque == null:
+			plaque = MeshInstance3D.new()
+			plaque.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			plaque.set_meta("case", c)
+			_surbrillance.add_child(plaque)
 		var item: int = plaques[c]
-		var plaque := MeshInstance3D.new()
 		plaque.mesh = surbrillances.get_item_mesh(item)
-		plaque.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		plaque.transform = surbrillances.get_item_mesh_transform(item).translated(lieu(Vector2i(c.x, c.y), c.z))
-		_surbrillance.add_child(plaque)
+	for partie: MeshInstance3D in posees.values():
+		_surbrillance.remove_child(partie)
+		partie.free()
 
 
 ## Les noms `noms` (par case `Vector3i(x, y, z)`, le texte), chacun au-dessus du sol de sa case, devant la scène hors de
@@ -584,7 +592,7 @@ func _zoomer(sens: float) -> void:
 
 
 ## @contrat Vue
-## Le volume de la scène (`VolumeDeScene.poser_les_aretes`) dessine les arêtes du plateau (`plateau.aretes`), chacune
+## Le volume de la scène (`VolumeDeScene.poser_les_aretes`) dessine les arêtes du plateau (méthode `aretes`), chacune
 ## debout à son pied : la pièce
 ## `<famille>--<piece>` du kit des arêtes (`projet/kit/kit.glb`, assemblé par `hotes/godot/kit.mjs` depuis un pack
 ## modulaire CC0, `asset/kit.ts`), étirée à la longueur de l'arête et à la hauteur de son mur ; sans kit au projet ou

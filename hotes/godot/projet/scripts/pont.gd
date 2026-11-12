@@ -22,15 +22,18 @@ const SILENCE_S := 10.0
 ## mesurés : un GLB de base de 42 Mo s'y reçoit en une vingtaine d'images (#3470), pas en plus de 600 par 64 Kio.
 const BLOC_DE_TELECHARGEMENT := 16777216
 
-## La valeur de `?rendu=` qui ne dessine une image que si l'écran a changé (`OS.low_processor_usage_mode`), et sans
-## anticrénelage multiéchantillon (`Viewport.msaa_3d`) : la recette la pose (`hotes/godot/recette.mjs`), car chaque image
-## tient le fil de la page où elle lit l'écran publié et où arrive chacun de ses gestes.
-const RENDU_ECONOME := "econome"
+## Le paramètre de l'adresse de la page que la recette pose à `1` (`hotes/godot/recette.mjs`, `en_recette`).
+const PARAMETRE_DE_RECETTE := "recette"
 
 var est_web := OS.has_feature("web")
 ## Si la partie à démarrer est la scène que l'éditeur a mise à l'essai (`demarrer { essai }`), plutôt que le scénario de
 ## l'adresse de la page.
 var essai := false
+## Si une recette pilote la page (`PARAMETRE_DE_RECETTE`) : l'écran s'y publie (`publier_l_ecran`), une image ne s'y
+## dessine que si l'écran a changé (`OS.low_processor_usage_mode`), sans anticrénelage multiéchantillon
+## (`Viewport.msaa_3d`), car chaque image tient le fil de la page où la recette lit l'écran publié et où arrive chacun
+## de ses gestes.
+var en_recette := false
 var _pont: JavaScriptObject = null
 ## Les rappels que Godot expose à la page (`exposer`), par nom, retenus tant que la page peut les appeler.
 var _exposes := {}
@@ -40,7 +43,8 @@ func _ready() -> void:
 	set_process(est_web)
 	if est_web:
 		get_tree().create_timer(ATTENTE_S).timeout.connect(_expirer)
-		if parametre("rendu") == RENDU_ECONOME:
+		en_recette = parametre(PARAMETRE_DE_RECETTE) == "1"
+		if en_recette:
 			OS.low_processor_usage_mode = true
 			get_viewport().msaa_3d = Viewport.MSAA_DISABLED
 
@@ -90,8 +94,10 @@ func appeler(methode: String, entree: Variant = null) -> Dictionary:
 
 
 ## @contrat Écran publié
-## Chaque vue mise en page, Godot pose `globalThis.wfrpEcran`. Chaque publication remplace l'objet. À l’atelier, la
-## lecture d’un clip renouvelle aussi cette publication à chaque image, après mise en page, sans remesurer `peaux`.
+## Sous une recette seulement (la page ouverte avec `?recette=1`, `PontDuNoyau.en_recette`), chaque vue mise en page,
+## Godot pose `globalThis.wfrpEcran` ; hors recette, il ne publie rien et ne calcule rien de ce qu'il publierait
+## (#3947). Chaque publication remplace l'objet. À l’atelier, la lecture d’un clip renouvelle aussi cette publication à
+## chaque image, après mise en page, sans remesurer `peaux`.
 ##
 ## - Au menu : `{ boutons: { texte, x, y }[] }`, le texte et le centre de chaque bouton actif.
 ## - Au combat : `{ boutons: { texte, x, y, element?, choix?, ids?, retenu? }[], cases: Record<"x,y,z", [x, y]>,
@@ -193,9 +199,15 @@ func appeler(methode: String, entree: Variant = null) -> Dictionary:
 ##   (`MiseEnPage.image_voisine`, `projet/scripts/mise_en_page.gd`), la suivante de la dernière image étant la première.
 
 
-## Publie à la page ce que l'écran porte (`globalThis.wfrpEcran`), pour qui le pilote sans voir dans le canevas.
-func publier_l_ecran(ecran: Dictionary) -> void:
-	JavaScriptBridge.eval("globalThis.wfrpEcran = %s" % JSON.stringify(ecran), true)
+## Publie à la page ce que l'écran porte (`globalThis.wfrpEcran`), ce que rend `ecran`, pour la recette qui le pilote
+## sans voir dans le canevas ; rien si `ecran` rend `null` (un écran qui n'est pas prêt). Hors recette (`en_recette`),
+## `ecran` n'est pas appelé.
+func publier_l_ecran(ecran: Callable) -> void:
+	if not en_recette:
+		return
+	var publie: Variant = ecran.call()
+	if publie != null:
+		JavaScriptBridge.eval("globalThis.wfrpEcran = %s" % JSON.stringify(publie), true)
 
 
 ## @contrat Écran publié

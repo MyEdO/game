@@ -52,12 +52,12 @@ export const REGISTRIES = [
     idUnion: { typeName: 'IconIdGenerated', field: 'id', out: 'src/data/icones.generated.ts' },
   },
   {
-    // Bandes d'ambiance (`SceneBackdrop`) : 1 illustration stylisée = 1 fichier defs/.
-    dir: 'src/ui/backdrops/defs',
-    out: 'src/ui/backdrops/_registry.generated.ts',
-    exportName: 'backdrop',
-    arrayName: 'BACKDROP_DEFS',
-    type: 'BackdropDef',
+    // Fonds d'ambiance (dessin SVG que chaque hôte trace à ses couleurs) : 1 illustration stylisée = 1 fichier defs/.
+    dir: 'src/data/fonds/defs',
+    out: 'src/data/fonds/_registry.generated.ts',
+    exportName: 'fond',
+    arrayName: 'FOND_DEFS',
+    type: 'FondDef',
     typeFrom: './types',
     vocabulaire: { nom: 'fonds', id: 'id', libelle: 'label' },
   },

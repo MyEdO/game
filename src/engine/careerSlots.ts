@@ -19,6 +19,7 @@
  */
 import { Combatant, CharKey, CHAR_LABELS, type TalentInstance } from './types';
 import { bonus } from './characteristics';
+import { baseWithTalents } from './talentEffects';
 import { byId, specPoolOf, levelsForCareer, findTalentById, findDomainById, chaosSpellsOf, findSpeciesById, advancementLabel, refLabel, CareerLevelData, type AdvancementRef } from '../data';
 import { entreeOuverte, refusDeSpec, type RefDesignee, memeSpecialisation } from '../data/schemas/grammaire/ref';
 import { domainSpellsKnown } from './grimoire';
@@ -292,12 +293,12 @@ export function designateSlot(
  * ou illimité (absent). Lu sur l'entrée EFFECTIVE (`effectiveEntry`, `src/engine/variants.ts` ;
  * AA 13 l.54-59, l.70-74).
  */
-export function talentMaxById(hero: Pick<Combatant, 'characteristics'>, talentId: string, spec?: string): number | null {
+export function talentMaxById(hero: PorteurDeTalents, talentId: string, spec?: string): number | null {
   const max = effectiveEntry(findTalentById(talentId))?.max;
   if (max == null) return null;
   if (typeof max === 'number') return max;
   if (max === 'sortsDuDomaine') return spec ? chaosSpellsOf(spec).length : null;
-  return bonus(hero.characteristics[max.bonusOf]); // LDB 07 l.47 : `characteristics` porte les Augmentations (`buyCharAdvance`)
+  return bonus(baseWithTalents(hero, max.bonusOf)); // LDB 10 l.17 ; Caractéristique stockée (Augmentations, LDB 07 l.47) + `charMod` permanents des Talents, sans effets temporaires
 }
 
 /** Affichage FR du Maxi d'un talent (Compendium), DÉRIVÉ de la donnée structurée, jamais stocké en chaîne. */
