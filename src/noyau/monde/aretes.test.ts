@@ -81,6 +81,17 @@ describe('aretesDeLaScene — les arêtes de toutes les couches (#3476)', () => 
   });
 });
 
+describe('areteDessinee — le bloc (#3948)', () => {
+  it('le bloc de la case du segment à sa couche, celui du morceau du monde de la même case', () => {
+    const s: Scene = { ...emptyScene('blocs', 12, 12), walls: [{ x: 1, y: 2, side: 'N' }, { x: 9, y: 3, side: 'E' }, { x: 2, y: 10, side: 'N', z: 1 }] };
+    s.layers.push({ z: 1, tiles: new Array(144).fill('plancher'), height: new Array(144).fill(METRES_PER_LEVEL) });
+    const aretes = aretesDeLaScene(s);
+    expect(aretes.map((a) => a.bloc)).toEqual(['0/0/0', '0/1/0', '1/0/1']);
+    const cles = new Set(volumeDuMonde(s).morceaux.map((m) => m.cle));
+    for (const a of aretes) expect(cles, a.cle).toContain(`sol/${a.bloc}`);
+  });
+});
+
 describe('plateauDeLaScene — les couronnes abattues (#3476)', () => {
   const abattues = (s: Scene) => plateauDeLaScene(s, [], 'tactique').couronnesAbattues;
   it('la couronne d’un rempart tombe avec lui', () => {
