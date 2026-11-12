@@ -267,13 +267,86 @@ describe('série d’attaques subies hors bataille (#3892)', () => {
     expect(banc.getState().party[0].diseases?.map((d) => d.id)).toContain('infection-mineure');
   });
 
-  it('« Coupure à l’orteil » encaissée pendant la série : le Test d’amputation s’ouvre à la fermeture, sur le héros rendu au groupe : LDB 18 l.171', () => {
-    setRule('maladie-mode', 'off');
+  /** La seule étape encore ouverte de la séquence, un `testDeclenche`. */
+  function seuleEtapeOuverte(banc: Banc) {
+    const ouvertes = banc.getState().pendingCascade!.participants.filter((x) => !x.committed);
+    expect(ouvertes.map((x) => x.kind)).toEqual(['testDeclenche']);
+    return ouvertes[0];
+  }
+
+  /** Lance l'étape `id` de la séquence au d100 `de` POSÉ, puis la valide. */
+  function lancerLEtape(banc: Banc, id: string, de: number) {
+    imposerLesD100(de);
+    banc.getState().jetLancer('cascade', id);
+    banc.getState().jetValider('cascade');
+  }
+
+  it('« Coupure à l’orteil » encaissée pendant la série : le Test s’ouvre à la fermeture en étape de la séquence, son échec ampute le héros rendu au groupe : LDB 18 l.171', () => {
     const { banc, H, etape } = serieFermeeApresUnCritique(46, 85);
     expect(etape.table?.result?.id).toBe('coupure-a-l-orteil');
-    const s = banc.getState();
-    expect(s.pendingTest).toMatchObject({ actorId: H.id, difficulty: 'intermediaire' });
+    let s = banc.getState();
+    const pc = s.pendingCascade!;
+    const test = pc.participants[pc.cursor];
+    expect(test).toMatchObject({ kind: 'testDeclenche', actorId: H.id, difficulty: 'intermediaire', rollLabel: 'Résistance' });
+    expect(s.pendingTest).toBeNull();
     expect(s.party[0].traumas?.some((t) => t.pendingAmputation)).toBe(false);
+    lancerLEtape(banc, test.id, 99);
+    const amputation = banc.getState().pendingCascade!.participants.find((x) => x.kind === 'testDeclenche' && !x.committed)!;
+    expect(amputation).toMatchObject({ actorId: H.id, difficulty: 'accessible', label: 'Amputation' });
+    lancerLEtape(banc, amputation.id, 5);
+    s = banc.getState();
+    expect(s.serieSubie).toBeNull();
+    expect(s.party[0].traumas?.find((t) => t.traumaId === 'orteil-ampute')).toMatchObject({ location: 'jambeG', count: 1 });
+  });
+
+  it('« Orteil contusionné » encaissé pendant la série : son Test est la seule fenêtre, sa clôture ouvre la Défense suivante, la série se ferme au compte juste : criticals.json `orteil-contusionne`, LDB 18 l.161 ; #4011', () => {
+    const { banc, H } = serieOuverte([22, 23, 85, 20], 2);
+    defendre(banc, 97);
+    const etape = trancherLeCritique(banc, 1, 'subir');
+    expect(etape.table?.result?.id).toBe('orteil-contusionne');
+    const pc = banc.getState().pendingCascade!;
+    if (pc.participants[pc.cursor].kind === 'critique') banc.getState().jetValider('cascade');
+    let s = banc.getState();
+    const test = seuleEtapeOuverte(banc);
+    expect(test).toMatchObject({ actorId: H.id, difficulty: 'accessible', rollLabel: 'Résistance' });
+    expect(s.pendingTest).toBeNull();
+    expect(s.pendingDefense).toBeNull();
+    expect(s.serieSubie).toMatchObject({ restantes: 2 });
+    lancerLEtape(banc, test.id, 99);
+    s = banc.getState();
+    expect(s.serieSubie).toMatchObject({ restantes: 1 });
+    expect(s.pendingDefense).toMatchObject({ attackerId: s.serieSubie!.assaillant.id, defenderId: H.id });
+    expect(defendre(banc, 5).hit).toBe(false);
+    s = banc.getState();
+    expect(s.serieSubie).toBeNull();
+    expect(s.pendingDefense).toBeNull();
+  });
+
+  it('Crampes abdominales, Défense ratée à DR −5 : Sonné, le Test de Force Mentale est la seule fenêtre, sa clôture ouvre la Défense suivante, la série se ferme : MSRC 16 l.152-158 ; #4011', () => {
+    const { banc, H } = horsBataille(testScene());
+    banc.setState({ party: [{ ...H, diseases: [{ id: 'colique', phase: 'active', symptoms: [{ symptomId: 'crampes-abdominales' }], minutesLeft: 1e5, durationMinutes: 1e5 }] }] });
+    applyEffects(banc.getState, banc.setState, [attaques('hero', H.id)]);
+    imposerLesD100(20, 23, 99, 96);
+    banc.getState().jetImposerLeResultat('cascadeTirage', 2, banc.getState().pendingCascade!.participants[0].id);
+    banc.getState().jetValider('cascade');
+    expect(defendre(banc, 75).defenderDetail).toMatchObject({ success: false, sl: -5 });
+    let s = banc.getState();
+    const test = seuleEtapeOuverte(banc);
+    expect(test).toMatchObject({ actorId: H.id, label: 'Force Mentale (crampes)' });
+    expect(s.party[0].conditions).toContainEqual({ id: 'sonne', value: 1 });
+    expect(s.pendingTest).toBeNull();
+    expect(s.pendingDefense).toBeNull();
+    expect(s.serieSubie).toMatchObject({ restantes: 2 });
+    banc.getState().jetLancer('cascade', test.id);
+    banc.getState().jetValider('cascade');
+    s = banc.getState();
+    expect(s.party[0].conditions).toContainEqual({ id: 'a-terre', value: 1 });
+    expect(s.serieSubie).toMatchObject({ restantes: 1 });
+    expect(s.pendingDefense).toMatchObject({ attackerId: s.serieSubie!.assaillant.id, defenderId: H.id });
+    expect(defendre(banc, 5).hit).toBe(false);
+    s = banc.getState();
+    expect(s.serieSubie).toBeNull();
+    expect(s.pendingDefense).toBeNull();
   });
 
   it('série sans Critique : aucune étape de fin de rencontre', () => {

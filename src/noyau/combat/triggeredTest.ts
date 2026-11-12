@@ -43,7 +43,7 @@ import { rollLine } from '../ligneDeJet';
 import { type BuiltCascadeStep } from '../stepBrand';
 import { recoveryGeometry, effectSourcesOf, fireOwnTestFailed } from '../triggeredEffects';
 import { emitCombatEvent } from '../combatEvents';
-import { inBattleId, actorIn, coqueParId } from '../monde/combatants';
+import { inBattleId, actorIn, coqueParId, rencontreEngagee } from '../monde/combatants';
 import { fluxDEnvers, personneDuDecideurAuto, personnesCandidates, sontAmis, visePersonneChoisie, type Personne } from '../personneChoisie';
 import { poserLeTraitAcquis } from '../cibleAcquise';
 import { ciblePsyLue } from '../../engine/psych/ciblage';
@@ -691,13 +691,16 @@ function ligneDeDesignation(cible: Combatant, personne: Personne | undefined, oc
  * `after`. Le `caster`/référent = `actor` (le porteur de l'effet : Force de la source pour les formules) ;
  * `target` = la cible de l'effet (qui jette le Test). `opsCtx` porte le contexte de la touche
  * (`woundsDealt`/`sl`/`location`/`attackKind`) lu par les Conditions `si` du Flow (Venin sur PB perdus).
+ * Dans une rencontre engagée (`rencontreEngagee` : bataille ou série d'attaques subies, #3892), le Test est
+ * l'étape `testDeclenche` de la séquence (`differeLaSuite`), qui tient la main avant la suite du coup (#4011) ;
+ * hors rencontre, la modale de jet du héros (`openSkillTest`).
  */
 export function routeTriggeredTest(get: Get, set: SetFn, target: Combatant, actor: Combatant, flow: Flow, opsCtx?: OpsCtx): void {
-  // HORS COMBAT, un Test SUBI par un HÉROS passe par la MODALE de jet CANONIQUE (`openSkillTest` →
+  // HORS RENCONTRE, un Test SUBI par un HÉROS passe par la MODALE de jet CANONIQUE (`openSkillTest` →
   // `pendingTest`, Chance/Résilience), jamais inline (doctrine « un jet = une modale » — elle vaut
-  // hors combat comme en combat). Gate `slThreshold` évaluée d'abord (openSkillTest ne la connaît pas) ;
+  // hors rencontre comme en rencontre). Gate `slThreshold` évaluée d'abord (openSkillTest ne la connaît pas) ;
   // `noOwnTestFailed` tamponne la ré-entrance (jetValider('test') ne ré-émet pas).
-  if (!get().battle && flow.kind === 'test' && target.kind === 'hero') {
+  if (!rencontreEngagee(get()) && flow.kind === 'test' && target.kind === 'hero') {
     const cc = combatConditionCtx(target, opsCtx ?? {});
     // Un Test SUBI (effet déclenché : Venin, Hurlement, Crampes, zone franchie…) n'est pas soutenu —
     // LDB 12 l.197. Défaut de la VOIE, tri-état : la donnée peut le rouvrir (`noSupport:false`).

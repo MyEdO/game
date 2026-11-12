@@ -3846,7 +3846,8 @@ export function poursuivreLaSerie(get: Get, set: SetFn): Applique {
 }
 
 /** Ferme la série d'attaques subies, sa sortie unique : la fin de rencontre décidée sur ses combattants, le héros et
- *  l'assaillant (`ouvrirLaFinDeRencontre`), puis le héros rendu au groupe par la couture de retour
+ *  l'assaillant (`ouvrirLaFinDeRencontre`) — ses Tests, amputation différée comprise, en étapes de la séquence, que le
+ *  héros jette relu par son id —, puis le héros rendu au groupe par la couture de retour
  *  (`sortieDeRencontre`) et la série vidée, la défaite du groupe constatée (`checkPartyWiped`, qui purge la suite et les
  *  Tests ouverts), PUIS sa suite jouée (`jouerLesClotures`), qui n'attend pas les Tests de fin de rencontre. Un Test ou
  *  un choix poussé par le dernier coup est déjà résolu : il portait l'après-coup qui ferme la série
@@ -6900,8 +6901,8 @@ function ouvrirLaFinDeRencontre(get: Get, set: SetFn, combattants: readonly Comb
   // Amputations DIFFÉRÉES à la fin de la rencontre (LDB 18 l.171 : « Une fois la rencontre terminée… ») :
   // le nœud ARMÉ au critique (`Trauma.pendingAmputation`, enjeu posé) part par la PORTE canonique — porteur
   // SURFACÉ : étape influençable APPENDÉE à la cascade 'combat' de fin de combat (`startCascade` OU-e la
-  // borne quand `openSequence` suit) — hors bataille, la modale de jet du héros (`openSkillTest`) ; sinon voie
-  // inline de la porte, dont le journal est drainé ici.
+  // borne quand `openSequence` suit), en bataille comme à la fermeture d'une série (`fermerLaSerieSubie`, la série
+  // encore posée) ; sinon voie inline de la porte, dont le journal est drainé ici.
   for (const c of combattants) {
     if (c.dead) continue;
     for (const a of prendreAmputationsDifferees(c)) routeTriggeredTest(get, set, c, c, a.flow, { idNeuf: get().forgerUnId, rng: battleRng(), label: a.label });
