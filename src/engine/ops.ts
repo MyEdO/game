@@ -28,6 +28,7 @@ import { applyFall } from './movement';
 import { hullShipSize } from './shipBuild';
 import { findFallTable, type ShipCritKey } from '../data/shipCriticals';
 import type { SeaWeather } from './seaWeather';
+import type { CustomStatblock } from './statblock';
 import { ALL_MAGIC, type CastPenalty, type Difficulty, type Main } from './types';
 import { refCouvre, type Id, type RefASpecialisation, type RefDesignee } from '../data/schemas/grammaire/ref';
 import { contexteDeTestSchema, type NatureDInfluence, type SourceRef } from '../data/schemas/grammaire/valeurs';
@@ -1291,6 +1292,10 @@ export type GameOp =
    *  navire ; chacune est repoussée à `repousseAPct` % de ses Blessures de départ ou moins, et `victoire` se joue
    *  quand le combat est gagné. Op de NAVIRE. MDG 15 l.136-139, l.142-143, l.165-168 */
   | { op: 'combatEnMer'; adversaire: { id: string; nombre: number; optionals?: TraitPose[] }; repousseAPct?: number; victoire?: Flow }
+  /** ATTAQUES SUBIES : la cible UNIQUE subit `nombre` (dé de tirage) attaques de l'`assaillant`, un statbloc (porteur
+   *  `statblock` de `PorteurDeFiche`). Résolue par l'effet de scène `ops` (`estOpDAttaquesSubies`). MDG 15 l.163-164,
+   *  l.177-178 */
+  | { op: 'attaquesSubies'; assaillant: { statblock: CustomStatblock }; nombre: string }
   /** COMMISSION de transport : un port de destination est tiré au hasard parmi les ports de la carte hors l'escale ;
    *  à l'accostage dans ce port, la bourse du groupe reçoit `montant`. Op de NAVIRE. MDG 15 l.261 */
   | { op: 'commission'; montant: { brass: Formula } }
@@ -1325,6 +1330,9 @@ export const estOpDeLaBourseDuGroupe = (o: GameOp): o is Extract<GameOp, { op: '
 /** Op du MARCHÉ D'UN PORT : résolue une fois par la feuille de scène qui la porte (Effet `ops`,
  *  `noyau/combatEffects.ts`), inerte dans `applyOps`. */
 export const estOpDuMarche = (o: GameOp): o is Extract<GameOp, { op: 'marcheDuPort' }> => o.op === 'marcheDuPort';
+/** L'op des ATTAQUES SUBIES : résolue une fois, sur la cible unique de la feuille `ops` qui la porte ; `applyOps` la
+ *  laisse inerte. */
+export const estOpDAttaquesSubies = (o: GameOp): o is Extract<GameOp, { op: 'attaquesSubies' }> => o.op === 'attaquesSubies';
 
 /** Op d'une liste lue par le collecteur `passiveMods` : sans `auTotal` (#3060). */
 export type OpPassive = Exclude<GameOp, { op: 'attrMod'; attr: 'wounds' }> | { op: 'attrMod'; attr: 'wounds'; mod: FormuleSansTirage; auTotal?: never };
@@ -3061,13 +3069,15 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
       case 'constructeurDEscale':
       case 'rationsDEscale':
       case 'marcheDuPort':
+      case 'attaquesSubies':
         // Effets IMPURS (grille + initiative / reconstitution programmée / zones de bataille / ouverture
         // d'une frappe / interruption de Focalisation / désarmement-bris de Piège-lame / poussée /
         // téléportation / rebond de Projectile / ops différées à échéance d'horloge) — résolus par la
         // couche state (combatFlow : applySummon / scheduleRespawn → file horloge / placeSpellZone ; les
         // hooks `freeAttack`/`focusInterrupt`/`piegeALame` appelés par `runCombatFlow` ; `applyCast` scanne
         // push/teleport/chain ; `delayed` → `scheduleDelayedOps` aux points d'application d'un EffectOp ;
-        // les ops de navire → `noyau/navireOps.ts` ; l'op du marché d'un port → `noyau/portFlow.ts`),
+        // les ops de navire → `noyau/navireOps.ts` ; l'op du marché d'un port → `noyau/portFlow.ts` ; les
+        // attaques subies → l'effet de scène `ops`),
         // qui détient get/set et le combattant. `applyOps` (moteur pur) les laisse INERTES.
         break;
       case 'polymorph':
