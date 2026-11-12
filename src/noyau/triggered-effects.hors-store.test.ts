@@ -123,10 +123,10 @@ describe('fireTriggers — Traits et Atouts sur le même système flow+déclench
     const archer = mk({ id: 'ar' });
     const foe = mk({ id: 'fo' });
     const logee = (c: Combatant) => c.conditions.find((x) => x.id === 'munition-logee');
-    const arc: Weapon = { label: 'Arc long', type: 'ranged', damage: { plusBF: false, flat: 4 }, qualities: [{ id: 'empaleuse' }] } as Weapon;
-    fireTriggers(noBattle(), archer, 'onCrit', { rng: desDuTest, victim: foe, weapon: arc, attackType: 'ranged', origine: 'coup-critique' });
+    const arc: Weapon = { label: 'Arc long', type: 'distance', damage: { plusBF: false, flat: 4 }, qualities: [{ id: 'empaleuse' }] } as Weapon;
+    fireTriggers(noBattle(), archer, 'onCrit', { rng: desDuTest, victim: foe, weapon: arc, attackType: 'distance', origine: 'coup-critique' });
     expect(logee(foe)?.value).toBe(1);
-    fireTriggers(noBattle(), archer, 'onCrit', { rng: desDuTest, victim: foe, weapon: arc, attackType: 'ranged', origine: 'coup-critique' }); // 2e flèche → empile
+    fireTriggers(noBattle(), archer, 'onCrit', { rng: desDuTest, victim: foe, weapon: arc, attackType: 'distance', origine: 'coup-critique' }); // 2e flèche → empile
     expect(logee(foe)?.value).toBe(2);
     const lance: Weapon = { label: 'Lance de Taillade empaleuse', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [{ id: 'empaleuse' }] } as Weapon;
     const melee = mk({ id: 'me' });

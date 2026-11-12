@@ -678,9 +678,9 @@ export interface TriggeredEffect<E = EffectOp> {
    *  autres triggers. */
   condition?: string;
   /** Filtre par TYPE d'attaque (`onHit`/`onWoundLoss`) : ne réagit que si la touche/perte provient d'une
-   *  attaque de ce type (`melee`/`ranged`). Absent = tout type (Sang corrosif : « chaque fois qu'elle subit
+   *  attaque de ce type (`melee`/`distance`). Absent = tout type (Sang corrosif : « chaque fois qu'elle subit
    *  des Blessures », LDB 85 l.310 → aucune restriction). Lu via `ctx.attackType`. */
-  attackType?: 'melee' | 'ranged';
+  attackType?: 'melee' | 'distance';
   /** Filtre `onCrit` : le seul Coup Critique (`estUnCoupCritique(ctx.origine)`). LDB 62 l.248-250 ; VDM 12 l.910. */
   coupCritique?: boolean;
   /** Effet OPT-IN (RAW « Vous pouvez… » — Contrôle de la Frénésie, LDB 10 l.251-255) : le porteur CHOISIT

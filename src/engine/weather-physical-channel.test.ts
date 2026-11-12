@@ -23,7 +23,7 @@ const mk = (over: Partial<Combatant> = {}): Combatant =>
   })) as unknown as Combatant;
 
 const sword: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
-const bow: Weapon = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [] };
+const bow: Weapon = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [] };
 const DELUGE = 'pluie-diluvienne';
 const METEO = (mods: ModLine[]) => mods.filter((m) => m.ref?.category === 'weatherConditions');
 
@@ -32,7 +32,7 @@ describe('#341 — canal météo « Tests physiques » : les 4 familles traverse
     const melee = METEO(attackModifiers(mk({ envWeather: DELUGE }), mk(), sword, { kind: 'melee' }));
     expect(melee).toHaveLength(1); // pas de double-compte
     expect(melee[0].value).toBe(-10);
-    const ranged = METEO(attackModifiers(mk({ envWeather: DELUGE }), mk(), bow, { kind: 'ranged', distanceTiles: 5 }));
+    const ranged = METEO(attackModifiers(mk({ envWeather: DELUGE }), mk(), bow, { kind: 'distance', distanceTiles: 5 }));
     expect(ranged.map((m) => m.value)).toEqual([-10]);
   });
 

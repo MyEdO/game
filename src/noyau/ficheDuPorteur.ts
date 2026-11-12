@@ -121,7 +121,7 @@ export function ficheDuCombattant(c: Combatant, nom: NomDIndividu): FicheDuPorte
   for (const it of items) {
     const libelle = itemLabel(it);
     const argent = it.money ? formatMoney(it.money) : null;
-    const equipee = it.kind === 'melee' || it.kind === 'ranged' ? isWeaponActive(c, it.uid) : it.equipped;
+    const equipee = it.kind === 'melee' || it.kind === 'distance' ? isWeaponActive(c, it.uid) : it.equipped;
     const sac = it.inside ? items.find((i) => i.uid === it.inside) : undefined;
     const contenant = sac ? itemLabel(sac) : null;
     const meme = argent === null ? possessions.find((p) => p.libelle === libelle && p.equipee === equipee && items.find((i) => i.uid === p.uid)?.inside === it.inside && p.argent === null) : undefined;

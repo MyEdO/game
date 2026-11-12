@@ -157,8 +157,8 @@ describe('doAttack — l\'IA gatée joue le MÊME Test inline (résolution forc�
 // (« arme à distance CHARGÉE », LDB 10) répond OUI pour une arme SANS cycle de charge — elle est prête par
 // nature (rien à recharger, LDB 62 l.335) : la fixture n'a rien à poser.
 describe('runPreemptShots — le Tir rapide de l\'IA joue le MÊME Test de Main ensanglantée (AA 07 l.117)', () => {
-  const BOW = (uid: string): Weapon => ({ uid, label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 30, qualities: [] } as unknown as Weapon);
-  const BOW_ITEM = (uid: string): ItemInstance => ({ uid, label: 'Arc', kind: 'ranged', qualities: [] } as unknown as ItemInstance);
+  const BOW = (uid: string): Weapon => ({ uid, label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 8 }, range: 30, qualities: [] } as unknown as Weapon);
+  const BOW_ITEM = (uid: string): ItemInstance => ({ uid, label: 'Arc', kind: 'distance', qualities: [] } as unknown as ItemInstance);
   const shooter = (over: Partial<Combatant> = {}): Combatant => mkFoe('f', {
     pos: { x: 2, y: 0 }, talents: [{ talentId: 'tir-rapide', times: 1 }] as never,
     weapons: [BOW('bow')], items: [BOW_ITEM('bow')], loadouts: [{ id: 'lob', main: 'bow' }] as never, activeLoadoutId: 'lob',

@@ -99,7 +99,7 @@ describe('Poste servi à effectif COMPLET — la cible appliquée est celle anno
   it('canon Recharge 6, Arme d’équipe 3, trois servants : cible 6 ; 4 DR + DR 2 → la pièce est chargée', () => {
     const crew = ['g1', 'g2', 'g3'];
     const poste = { side: 'tribord', loaded: false, reloadProgress: 4, crewIds: crew,
-      item: { uid: 'canon', label: 'Canon moyen', kind: 'ranged', subType: 'armes-de-siege', damage: { flat: 14, plusBF: false }, range: 75,
+      item: { uid: 'canon', label: 'Canon moyen', kind: 'distance', subType: 'armes-de-siege', damage: { flat: 14, plusBF: false }, range: 75,
         reload: 6, qualities: [{ id: 'recharge', value: 6 }, { id: 'arme-d-equipe', value: 3 }] } } as unknown as ShipPoste;
     const ship = combattantDeTest({ id: 'ship', label: 'Frégate', kind: 'hero', bodyShape: 'vehicule', creatureId: 'bateau-de-patrouille',
       crewIds: crew, postes: [poste], pos: { x: 5, y: 5 }, conditions: [], weapons: [unarmedWeapon()] });
@@ -121,7 +121,7 @@ describe('Règle optionnelle « DR 0 = ±1 » lue par le pas canonique (LDB 12 l
   afterEach(() => resetRule('test-etendu-dr-minimum'));
   it('Rechargement, réussite à DR 0 sous la règle : la progression gagne 1 DR', () => {
     setRule('test-etendu-dr-minimum', true);
-    const arbalete = { uid: 'arb', label: 'Arbalète', type: 'ranged', group: 'arbalete', damage: { flat: 9, plusBF: false }, range: 60,
+    const arbalete = { uid: 'arb', label: 'Arbalète', type: 'distance', group: 'arbalete', damage: { flat: 9, plusBF: false }, range: 60,
       reload: 2, loaded: false, reloadProgress: 0, qualities: [{ id: 'recharge', value: 2 }] } as unknown as Weapon;
     const tireur = combattantDeTest({ id: 't', label: 'Tireur', kind: 'hero', weapons: [unarmedWeapon(), arbalete], pos: { x: 5, y: 5 } });
     banc.setState({ battle: { combatants: [tireur], order: ['t'], turn: 0, round: 1, acted: false, log: [] } as never, party: [tireur], scene: null as never,
