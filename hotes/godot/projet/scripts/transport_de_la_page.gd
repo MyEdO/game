@@ -1,7 +1,8 @@
 ## Le noyau dans la page de l'export Web : `globalThis.wfrpPont` par JavaScriptBridge, attendu `ATTENTE_S` au plus ; chaque
-## valeur publiée en `globalThis.<nom>`, chaque rappel exposé en `globalThis.<nom>`, l'adresse et les paramètres lus à
-## celle de la page (`?<cle>=<valeur>`), l'image choisie par `wfrpPont.choisirUneImage` (`hotes/godot/pont/fichier.ts`), la
-## pile des couches résolue par `wfrpPont.resoudreLaPile` (`hotes/godot/pont/pileEnFond.ts`).
+## appel par `wfrpPont.appelerEnOctets`, les octets de sa réponse par `wfrpPont.octets` ; chaque valeur publiée en
+## `globalThis.<nom>`, chaque rappel exposé en `globalThis.<nom>`, l'adresse et les paramètres lus à celle de la page
+## (`?<cle>=<valeur>`), l'image choisie par `wfrpPont.choisirUneImage` (`hotes/godot/pont/fichier.ts`), la pile des
+## couches résolue par `wfrpPont.resoudreLaPile` (`hotes/godot/pont/pileEnFond.ts`).
 class_name TransportDeLaPage
 extends PontDuNoyau.Transport
 
@@ -43,7 +44,11 @@ func est_ouvert() -> bool:
 
 
 func appeler(methode: String, json: Variant) -> Variant:
-	return _pont.call("appeler", methode, json)
+	return _pont.call("appelerEnOctets", methode, json)
+
+
+func octets() -> PackedByteArray:
+	return JavaScriptBridge.js_buffer_to_packed_byte_array(_pont.call("octets"))
 
 
 func resoudre_la_pile(demande: String) -> Variant:
