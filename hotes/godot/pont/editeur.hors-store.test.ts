@@ -26,7 +26,7 @@ import { findCreatureById, traits } from '../../../src/data';
 import { parseTraitInstance } from '../../../src/data/refFormatLivre';
 import { dossierDesProjetsLivres, listerProjetsLivres, PROJETS_MANUSCRITS } from '../../../scripts/guards/lib/projetsLivres.mjs';
 import { lireProjetLivre } from '../../../scripts/source/projetLivre.mjs';
-import { empreinteDe, parseChapitre, type Fragment } from '../../../src/data/source/decoupe';
+import type { Fragment } from '../../../src/data/source/decoupe';
 
 interface Edition {
   vue: { zones: ZonesDeLEditeur; couche: number };
@@ -975,18 +975,16 @@ describe('l’éditeur de carte par le pont, l’adresse de prose (#3606 M2g)', 
     '# Les Armures', '', 'Une armure protège son porteur des coups, au prix de sa discrétion.', '',
   ].join('\n');
   const MANIFESTE = JSON.stringify({ 'livre-de-base': { abbr: 'LDB', chapitres: [{ ch: '01', fichier: '01 - Armes.md', titre: 'Les Armes', octets: TEXTE.length }] } });
-  const manuscrit = listerProjetsLivres().find((rel) => rel.split('/').pop()! in PROJETS_MANUSCRITS)!;
-  const servi = lireProjetLivre(manuscrit) as { id: string };
   const D = 'valeur/flow/etapes/0/effet/descRef';
   const jeuDe = (b: Bouton) => (b.jeu as { args: unknown[] }).args[2];
 
-  /** La campagne du dépôt ouverte, avec ou sans le `Source/` servi, un déclencheur tracé dont la première étape écrit
-   *  au journal, sans adresse. */
+  /** La première campagne du jeu ouverte, avec ou sans le `Source/` servi, un déclencheur tracé dont la première étape
+   *  écrit au journal, sans adresse. */
   function auJournal(manifeste?: string) {
     const { appel } = table();
     const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
     const choisir = (e: Edition, id: string, voulu: (v: unknown) => boolean) => presser(valeursDeLInspecteur(e, id).find((b) => voulu(jeuDe(b)))!);
-    let e = editionDe(appel('editer', { ouvrir: servi.id, projet: JSON.stringify(servi), ...(manifeste ? { manifeste } : {}) }));
+    let e = editionDe(appel('editer', { ouvrir: CAMPAGNE, ...(manifeste ? { manifeste } : {}) }));
     presser(boutonDe(presser(boutonDe(e, 'outil/zone')), 'zone/trigger'));
     editionDe(appel('editer', { edition: { geste: 'appui', point: point(2, 2) } }));
     e = presser(boutonDe(editionDe(appel('editer', { edition: { geste: 'relache', point: point(2, 2) } })), 'valeur/flow/etapes/ajouter'));
@@ -995,7 +993,7 @@ describe('l’éditeur de carte par le pont, l’adresse de prose (#3606 M2g)', 
     return { appel, choisir, e };
   }
 
-  it('une cellule de table se désigne par des choix seuls : le livre, le chapitre que l’hôte charge à la demande, la cellule, sa table, sa ligne, sa colonne ; l’empreinte, jamais offerte, s’enregistre scellée', () => {
+  it('une cellule de table se désigne par des choix seuls : le livre, le chapitre que l’hôte charge à la demande, la cellule, sa table, sa ligne, sa colonne ; l’empreinte n’est jamais offerte', () => {
     const { appel, choisir, e: journal } = auJournal(MANIFESTE);
     const livre = choisir(journal, `${D}/ajouter`, (v) => (v as { book: string }).book === 'livre-de-base');
     expect(livre.chapitre, 'sans chapitre choisi, rien ne se charge').toBeUndefined();
@@ -1012,11 +1010,6 @@ describe('l’éditeur de carte par le pont, l’adresse de prose (#3606 M2g)', 
     const ids = e.vue.zones['editeur.inspecteur'].map((el) => el.id);
     expect(ids.filter((id) => id.startsWith(`${D}/parts/0/`) && !id.includes('/', `${D}/parts/0/`.length)), 'l’empreinte n’est jamais offerte').toEqual([`${D}/parts/0/kind`, `${D}/parts/0/sec`, `${D}/parts/0/secOcc`, `${D}/parts/0/row`, `${D}/parts/0/col`, `${D}/parts/0/table`, `${D}/parts/0/retirer`]);
     expect(e.vue.zones['editeur.inspecteur'].find((el) => el.id === `${D}/etat`)).toMatchObject({ texte: 'Passage : 10 co' });
-    const ecrit = JSON.parse(editionDe(appel('editer', boutonDe(e, 'enregistrer').jeu)).depot!.texte) as { scenes: { triggers: { flow: { etapes: { effet: { descRef: { parts: Fragment[] } } }[] } }[] }[] };
-    const { triggers } = ecrit.scenes[0];
-    const [part] = triggers[triggers.length - 1].flow.etapes[0].effet.descRef.parts;
-    const cellule: Fragment = { kind: 'cellule', sec: 'les-armes', secOcc: 1, row: 'Épée', col: 'Prix', table: 'table des armes#1', sum: '' };
-    expect(part).toEqual({ ...cellule, sum: empreinteDe(parseChapitre(TEXTE), cellule) });
   });
 
   it('sans Source servi, l’adresse le dit et ne se compose pas ; aucun chapitre ne s’attend, un chapitre rendu se refuse', () => {

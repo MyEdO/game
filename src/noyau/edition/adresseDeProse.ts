@@ -154,25 +154,54 @@ function avecLAdresse(donnee: unknown, chemin: readonly Segment[], adresse: Desc
   return jsonCanonique(ecrit) === jsonCanonique(ici) ? donnee : pose(donnee, porteur, ecrit);
 }
 
+/** Le porteur `porteur` d'une adresse de clé `cle`, sans elle ni sa prose : ce qui l'identifie hors de son adresse. */
+const sansLAdresse = (porteur: unknown, cle: Segment): string => {
+  const { [cle]: _adresse, desc: _desc, ...reste } = porteur as Record<Segment, unknown>;
+  return jsonCanonique(reste);
+};
+
+/** `o` où chaque objet sans adresse que `retires` reconnaît (`sansLAdresse`) perd sa prose (`desc`) ; `o` lui-même si
+ *  aucun ne la porte. */
+function sansLaProseDesAdressesRetirees(o: unknown, retires: ReadonlyMap<string, Segment>): unknown {
+  if (Array.isArray(o)) {
+    const suite = o.map((e) => sansLaProseDesAdressesRetirees(e, retires));
+    return suite.every((e, i) => e === o[i]) ? o : suite;
+  }
+  if (!estObjet(o)) return o;
+  const objet = o as Record<Segment, unknown>;
+  const enfants = Object.entries(objet).map(([k, v]) => [k, sansLaProseDesAdressesRetirees(v, retires)] as const);
+  const neuf = enfants.some(([k, v]) => v !== objet[k]) ? Object.fromEntries(enfants) : objet;
+  const { desc: _desc, ...sans } = neuf;
+  const cle = 'desc' in neuf ? [...retires].find(([identite, c]) => !(c in neuf) && sansLAdresse(neuf, c) === identite) : undefined;
+  return cle ? sans : neuf;
+}
+
 /**
  * La donnée `apres`, de schéma `schema`, écrite sur `avant`, chaque fragment d'adresse posé avec son empreinte : celui
  * que `avant` porte déjà, dans le même chapitre et avec la même empreinte, reste tel quel, à son rang ou à un autre ;
  * tout autre fragment est scellé sur son chapitre (`scelle`). Une empreinte écrite n'est donc jamais reprise : seul le
  * chapitre la donne, et une écriture qui en apporte une sans son chapitre chargé se refuse (`undefined`). La prose de
- * son porteur (`desc`) est celle qu'elle résout si l'adresse change (`texteResolu`), celle d'avant sinon : une prose
- * écrite n'est jamais reprise non plus. `apres` lui-même si rien ne change.
+ * son porteur (`desc`) est celle du porteur d'`avant` qui porte la même adresse, à tout chemin, sinon celle qu'elle
+ * résout (`texteResolu`) ; une adresse neuve qu'aucun chapitre chargé ne résout se refuse. Le porteur dont l'écriture
+ * retire l'adresse (le même nœud d'`avant`, hors adresse et prose, qui n'en porte plus) perd la prose qu'elle donnait.
+ * Une prose écrite n'est jamais reprise. `apres` lui-même si rien ne change.
  */
 export function adressesScellees(schema: unknown, avant: unknown, apres: unknown, source: SourceDeLEdition): unknown {
-  const portes = new Set(adressesDe(schema, avant).flatMap(({ adresse }) => adresse.parts.map((f) => cleDuFragment(adresse, f))));
-  return adressesDe(schema, apres).reduce<unknown>((donnee, { chemin, adresse }) => {
+  const anciennes = adressesDe(schema, avant);
+  const portes = new Set(anciennes.flatMap(({ adresse }) => adresse.parts.map((f) => cleDuFragment(adresse, f))));
+  const proses = new Map(anciennes.map(({ chemin, adresse }) => [jsonCanonique(adresse), auChemin(avant, [...chemin.slice(0, -1), 'desc'])]));
+  const retires = new Map(anciennes.map(({ chemin }) => [sansLAdresse(auChemin(avant, chemin.slice(0, -1)), chemin[chemin.length - 1]), chemin[chemin.length - 1]]));
+  const scellee = adressesDe(schema, apres).reduce<unknown>((donnee, { chemin, adresse }) => {
     if (donnee === undefined) return undefined;
     const chapitre = chapitreDeLAdresse(source, adresse);
     const parts = adresse.parts.map((f) => (portes.has(cleDuFragment(adresse, f)) ? f : chapitre ? scelle(chapitre, f) : undefined));
     if (!parts.every((f) => f !== undefined)) return undefined;
-    const scellee = { ...adresse, parts };
-    const inchangee = jsonCanonique(scellee) === jsonCanonique(auChemin(avant, chemin));
-    return avecLAdresse(donnee, chemin, scellee, inchangee ? auChemin(avant, [...chemin.slice(0, -1), 'desc']) : texteResolu(chapitre, scellee));
+    const ecrite = { ...adresse, parts };
+    const cle = jsonCanonique(ecrite);
+    if (!proses.has(cle) && parts.length > 0 && !chapitre) return undefined;
+    return avecLAdresse(donnee, chemin, ecrite, proses.has(cle) ? proses.get(cle) : texteResolu(chapitre, ecrite));
   }, apres);
+  return scellee === undefined ? undefined : sansLaProseDesAdressesRetirees(scellee, retires);
 }
 
 /** La donnée `donnee`, de schéma `schema`, l'adresse de prose au chemin `chemin` rescellée après relecture : chaque

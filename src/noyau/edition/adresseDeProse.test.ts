@@ -5,12 +5,13 @@
  */
 import { describe, expect, it } from 'vitest';
 import { emptyNarratif } from '../monde/campaignNarratif';
-import { emptyScene, type Trigger } from '../monde/scene';
+import { emptyScene, type Scene, type Trigger } from '../monde/scene';
 import { addTrigger, avecLAdresseRescellee, avecLaValeurDuPorteur, type Segment } from '../sceneEdit';
 import { choixDuChamp, formulaireDe, type CadreDuPorteur } from '../sceneEditLecture';
 import { empreinteDe, parseChapitre, type DescRef, type Fragment } from '../../data/source/decoupe';
 import { cleDuChapitre, etatDeLAdresse, type SourceDeLEdition } from './adresseDeProse';
-import { editer, ouvrirLEdition, sceneEditee, type SessionDEdition } from './session';
+import { editer, ouvrirLEdition, sceneEditee, texteAEnregistrer, type SessionDEdition } from './session';
+import { gestesDeLaListe } from '../valeursNeuves';
 
 /** Un chapitre de fixture : un préambule, une section titrée à un paragraphe et une table légendée, une autre section. */
 const TEXTE = [
@@ -64,18 +65,14 @@ describe('les choix d’une adresse de prose', () => {
 });
 
 describe('l’écriture d’une adresse de prose scelle ses fragments, jamais une empreinte saisie', () => {
-  it('le fragment choisi est scellé sur son chapitre ; sans chapitre chargé, aucun ne s’ajoute, ni ne se colle avec une empreinte ; celui que la donnée porte déjà se déplace tel quel', () => {
+  it('le fragment choisi est scellé sur son chapitre ; sans chapitre chargé, aucun ne s’ajoute, ni ne se colle avec une empreinte', () => {
     const vide = avecJournal({ book: LIVRE, ch: '01', parts: [] });
     const ecrite = ecrire(vide, [...ICI, 'parts'], valeursAuChemin(vide, [...ICI, 'parts'])!.find((v) => (v as Fragment[])[0]?.kind === 'cellule'));
     expect(ecrite.ok && adresseDe(ecrite.valeur).parts).toEqual([scelle(DAGUE)]);
     expect(ecrite.ok && effetDe(ecrite.valeur).desc, 'sa prose, matérialisée, est le texte qu’elle résout').toBe('BF+2');
     const sansChapitre: SourceDeLEdition = { manifeste: MANIFESTE, chapitres: {} };
-    expect(ecrire(vide, [...ICI, 'parts'], [DAGUE], sansChapitre)).toEqual({ ok: false, refus: 'horsSorte' });
+    expect(ecrire(vide, [...ICI, 'parts'], [scelle(DAGUE)], sansChapitre), 'même scellé, aucun fragment ne s’ajoute sans son chapitre').toEqual({ ok: false, refus: 'horsSorte' });
     expect(ecrire(avecJournal(), ['flow'], avecJournal({ book: LIVRE, ch: '01', parts: [{ ...DAGUE, sum: 'ffffffffffffffff' }] }).flow, sansChapitre)).toEqual({ ok: false, refus: 'nonOffert' });
-    const DIVERGENTE = '0000000000000000';
-    const porte = avecJournal({ book: LIVRE, ch: '01', parts: [scelle(DAGUE), { ...ARMURES, sum: DIVERGENTE }] });
-    const deplace = ecrire(porte, [...ICI, 'parts'], [{ ...ARMURES, sum: DIVERGENTE }, scelle(DAGUE)], sansChapitre);
-    expect(deplace.ok && adresseDe(deplace.valeur).parts, 'monté, chaque fragment garde son empreinte, divergente comprise').toEqual([{ ...ARMURES, sum: DIVERGENTE }, scelle(DAGUE)]);
   });
 
   it('l’empreinte ne s’écrit ni à son chemin, ni dans l’effet ou le flux écrits entiers', () => {
@@ -85,7 +82,7 @@ describe('l’écriture d’une adresse de prose scelle ses fragments, jamais un
     expect(ecrire(scellee, ['flow', 'etapes', 0, 'effet', 'desc'], 'Prose forgée.'), 'la prose qu’elle résout non plus').toEqual({ ok: false, refus: 'nonOffert' });
     const forgee = { book: LIVRE, ch: '01', parts: [{ ...DAGUE, sum: FORGEE }] };
     const effet = ecrire(scellee, ['flow', 'etapes', 0, 'effet'], { type: 'journal', descRef: forgee });
-    expect(effet.ok && effetDe(effet.valeur), 'le fragment inchangé garde son empreinte').toEqual({ type: 'journal', descRef: { ...forgee, parts: [scelle(DAGUE)] } });
+    expect(effet.ok && effetDe(effet.valeur), 'le fragment forgé est rescellé sur son chapitre').toEqual({ type: 'journal', descRef: { ...forgee, parts: [scelle(DAGUE)] } });
     const flux = ecrire(avecJournal(), ['flow'], avecJournal(forgee).flow);
     expect(flux.ok && adresseDe(flux.valeur).parts, 'le fragment neuf est scellé sur son chapitre').toEqual([scelle(DAGUE)]);
   });
@@ -110,6 +107,48 @@ describe('l’écriture d’une adresse de prose scelle ses fragments, jamais un
     expect(chapitre.ok && adresseDe(chapitre.valeur)).toEqual({ book: LIVRE, ch: '02', parts: [] });
     const meme = ecrire(cellule, [...ICI, 'ch'], '01');
     expect(meme.ok && adresseDe(meme.valeur).parts, 'le même chapitre garde ses fragments').toEqual([scelle(DAGUE)]);
+  });
+});
+
+describe('la prose d’une adresse suit son adresse, à tout chemin', () => {
+  const BF2 = 'BF+2';
+  const journal = (descRef: DescRef) => ({ kind: 'effet', effet: { type: 'journal', descRef, desc: BF2 } });
+  /** Le déclencheur dont le flux pose un indicateur, puis écrit au journal la cellule de la dague, sa prose matérialisée. */
+  const DEUX = { ...TRIG, flow: { kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'setFlag', flag: 'x' } }, journal({ book: LIVRE, ch: '01', parts: [scelle(DAGUE)] })] } } as Trigger;
+  const etapes = (t: unknown) => (t as { flow: { etapes: { effet: { desc?: string; descRef?: DescRef } }[] } }).flow.etapes;
+  const gestes = gestesDeLaListe(etapes(DEUX), undefined).elements;
+  const SANS: SourceDeLEdition = { manifeste: MANIFESTE, chapitres: {} };
+  const ECHEC: SourceDeLEdition = { manifeste: MANIFESTE, chapitres: { [cleDuChapitre(LIVRE, '01')]: null } };
+
+  it('« Monter » le journal, son chapitre pas encore reçu ou introuvable, et « Retirer » l’étape qui le précède gardent sa prose', () => {
+    for (const source of [SANS, ECHEC]) {
+      const monte = ecrire(DEUX, ['flow', 'etapes'], gestes[1].monter, source);
+      expect(monte.ok && etapes(monte.valeur).map((e) => e.effet.desc)).toEqual([BF2, undefined]);
+    }
+    const retire = ecrire(DEUX, ['flow', 'etapes'], gestes[0].retirer, SANS);
+    expect(retire.ok && etapes(retire.valeur).map((e) => e.effet.desc)).toEqual([BF2]);
+  });
+
+  it('« Retirer » l’adresse retire la prose qu’elle donnait : l’enregistrement n’emporte aucun texte du Source', () => {
+    const retiree = ecrire(DEUX, ['flow', 'etapes', 1, 'effet', 'descRef'], undefined);
+    expect(retiree.ok && etapes(retiree.valeur)[1].effet).toEqual({ type: 'journal' });
+    const avecTrig = addTrigger(emptyScene('s', 4, 4), { x: 0, y: 0, w: 1, h: 1 });
+    const projet = { id: 'p', type: 'projet', label: 'P', versionContenu: 1, maison: 'adresse', scenes: [{ ...avecTrig.scene, triggers: [DEUX] }], narratif: emptyNarratif() };
+    const s = editer(ouvrirLEdition(projet as unknown as Parameters<typeof ouvrirLEdition>[0], true, undefined, null), { geste: 'valeur', porteur: { sorte: 'declencheur', id: TRIG.id }, chemin: ['flow', 'etapes', 1, 'effet', 'descRef'] });
+    const texte = texteAEnregistrer(s);
+    expect(texte.ok && texte.valeur.includes(BF2)).toBe(false);
+  });
+
+  it('choisie à la session, la cellule s’enregistre scellée, sans la prose qu’elle résout', () => {
+    const avecTrig = addTrigger(emptyScene('s', 4, 4), { x: 0, y: 0, w: 1, h: 1 });
+    const projet = { id: 'p', type: 'projet', label: 'P', versionContenu: 1, maison: 'adresse', scenes: [{ ...avecTrig.scene, triggers: [avecJournal({ book: LIVRE, ch: '01', parts: [] })] }], narratif: emptyNarratif() };
+    const ouverte = ouvrirLEdition(projet as unknown as Parameters<typeof ouvrirLEdition>[0], true, undefined, MANIFESTE);
+    const demande = editer(ouverte, { geste: 'appui', point: { case: { x: 0, y: 0 }, f: { x: 0, y: 0 } } });
+    const chargee = editer(demande, { geste: 'chapitre', book: LIVRE, ch: '01', texte: TEXTE });
+    const cellule = choixDuChamp('declencheur', sceneEditee(chargee).triggers[0], [...ICI, 'parts'], cadre(CHARGEE))!.find((c) => c.libelle === 'cellule')!.valeur;
+    const ecrite = editer(chargee, { geste: 'valeur', porteur: { sorte: 'declencheur', id: TRIG.id }, chemin: [...ICI, 'parts'], valeur: cellule });
+    const texte = texteAEnregistrer(ecrite);
+    expect(texte.ok && effetDe((JSON.parse(texte.valeur) as { scenes: Scene[] }).scenes[0].triggers[0])).toEqual({ type: 'journal', descRef: { book: LIVRE, ch: '01', parts: [scelle(DAGUE)] } });
   });
 });
 
