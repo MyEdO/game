@@ -11,7 +11,7 @@ import { proseNommee } from './prose';
 import { declarerEnfants } from './descente';
 import { marquerProduit } from './interne/produits';
 import { CATEGORY_BY_SOURCE_KIND, type EffectSourceKind } from '../../../engine/types';
-import type { StakeRef } from '../../index';
+import { trousDeLEnjeu, type StakeRef } from '../../index';
 import { messageRecurrenceHorloge, SELF_REF, type Formula, type GameOp, type OpPassive } from '../../../engine/ops';
 import { NARRATIVE_MARKERS } from '../../../engine/conditions';
 import { ARG_TEMPLATE, CHAMPS_DE_DECISION, INDICE_TEMPLATE, type Condition, type EffectOp, type EffectTrigger, type Flow, type FlowTestNode, type TriggeredEffect } from '../../../engine/flowCore';
@@ -1088,9 +1088,11 @@ export const conditionSchema: z.ZodType<Condition> = conditionDe([]);
 
 
 /** `FlowTest` (`engine/flowCore.ts:335`) — jet différé (→ modale), tout le métier hors branches. */
-/** `CatalogStake` (`src/data/index.ts`) — RÉFÉRENCE d'enjeu vers un DATASET : la clé de la donnée +
- *  les valeurs calculées pour ses trous. Un Flow authoré peut DIRE ce qu'il met en jeu sans qu'aucun
- *  texte n'entre au document (le résolveur reste la seule porte du texte). */
+/** `CatalogStake` (`src/data/index.ts`) — RÉFÉRENCE d'enjeu vers un DATASET, à sa forme AUTHORÉE : la
+ *  clé de la donnée seule. Un Flow authoré peut DIRE ce qu'il met en jeu sans qu'aucun texte n'entre au
+ *  document (le résolveur reste la seule porte du texte). Les `values` des trous sont CALCULÉES par le
+ *  flux (porte `stakeRef`), jamais saisies : elles restent au type runtime, hors du document, qui ne vise
+ *  donc qu'une entrée existante et sans trou (`trousDeLEnjeu`). */
 export const catalogStakeSchema = nommerChamps(z.strictObject({
   key: nommerChamps(z.strictObject({
     dataset: z.enum(['nuit', 'voyage', 'meteo', 'flux', 'activite', 'combat']),
@@ -1098,8 +1100,12 @@ export const catalogStakeSchema = nommerChamps(z.strictObject({
     entryId: z.string().optional(),
     entryCategory: z.string().optional(),
   }), { dataset: { label: "registre"  }, kind: { label: "type" , texte: { regime: "technique"} }, entryId: { label: "entrée" , texte: { regime: "technique"} }, entryCategory: { label: "catégorie d’entrée" , texte: { regime: "technique"} } }),
-  values: z.record(z.string(), z.union([z.string(), z.number()])).optional(),
-}), { key: { label: "clé" }, values: { label: "valeurs" , texte: { regime: "technique"} } });
+}).superRefine(({ key }, ctx) => {
+  const trous = trousDeLEnjeu(key);
+  const cle = `${key.dataset}/${key.kind}${key.entryId ? `/${key.entryId}` : ''}`;
+  if (!trous) ctx.addIssue({ code: 'custom', path: ['key'], message: `aucune entrée d’enjeu « ${cle} »` });
+  else if (trous.length) ctx.addIssue({ code: 'custom', path: ['key'], message: `l’entrée d’enjeu « ${cle} » a des trous que seul le moteur remplit (${trous.join(', ')}) : un document ne peut pas la viser` });
+}), { key: { label: "clé" } });
 
 /** `AuthoredStake` (`src/data/index.ts`) — la phrase qu'un DOCUMENT de campagne écrit lui-même
  *  (arbitrage user 2026-08-12, #1262) : elle voyage avec le document et ne pointe aucun dataset. */

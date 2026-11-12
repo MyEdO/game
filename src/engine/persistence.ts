@@ -122,6 +122,12 @@ export function carryOverState(c: Combatant): Partial<Combatant> {
   return out as Partial<Combatant>;
 }
 
+/** Le héros du groupe `h` au sortir de la rencontre où il a vécu en `c` (`carryOverState`) : la sortie d'une bataille
+ *  (`finalizeBattle`) et celle d'une série d'attaques subies. */
+export function sortieDeRencontre(h: Combatant, c: Combatant): Combatant {
+  return { ...h, ...carryOverState(c) };
+}
+
 /** Couture d'ENTRÉE (`lancerLeCombat`) : le combattant né du héros du groupe, selon `REPORT_DE_COMBATTANT`.
  *  Copie défensive ; la position reste à poser par l'appelant. */
 export function entreeEnRencontre(h: Combatant): Combatant {

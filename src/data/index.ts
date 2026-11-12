@@ -593,6 +593,16 @@ function stakeEntry(key: StakeKey): { text?: string; rule?: { category: string; 
   return { ...(text ? { text } : {}), ...(rule ? { rule } : {}) };
 }
 
+/** Un TROU du gabarit d'enjeu : `{nom}`, rempli par la valeur que le flux calcule (`CatalogStake.values`). */
+const TROU_D_ENJEU = /\{(\w+)\}/g;
+
+/** Les TROUS du texte que `resolveStake` rendrait pour cette clé — `undefined` si la clé ne nomme aucune
+ *  entrée d'enjeu. Lu par le parse de la forme AUTHORÉE (`catalogStakeSchema`), qui n'a pas de `values`. */
+export function trousDeLEnjeu(key: StakeKey): string[] | undefined {
+  const entry = stakeEntry(key);
+  return entry && [...(entry.text ?? '').matchAll(TROU_D_ENJEU)].map((m) => m[1]);
+}
+
 /** RÉFÉRENCE d'enjeu — l'UNIQUE constructeur : la clé se valide À LA CONSTRUCTION (fail-closed au plus
  *  tôt : une étape qui LANCE et dont l'enjeu n'existe pas ne se construit pas). `entryId` = l'ENTRÉE
  *  JOUÉE quand l'étape en nomme une (le symptôme, la maladie contractée, la manœuvre subie, la chanson
@@ -727,7 +737,7 @@ export function resolveStake(ref: StakeRef): ResolvedStake {
   if (!entry) {
     throw new Error(`resolveStake('${ref.key.dataset}/${ref.key.kind}') : aucune entrée d'enjeu — une surface qui LANCE dit ce qu'elle met en jeu`);
   }
-  const text = entry.text?.replace(/\{(\w+)\}/g, (_m, name: string) => {
+  const text = entry.text?.replace(TROU_D_ENJEU, (_m, name: string) => {
     const v = ref.values?.[name];
     if (v == null) throw new Error(`resolveStake('${ref.key.dataset}/${ref.key.kind}') : valeur manquante pour « ${name} »`);
     return String(v);

@@ -83,6 +83,11 @@ const emettreOwnTestFailed = (get: Get, actor: Combatant, sl: number): string[] 
  * La classe : un applier qui déclenche LUI-MÊME une continuation écrivante (une reprise) doit dire ce
  * que son dé a DÉCIDÉ avant ce que la continuation en FAIT ; le goulot, qui journalise après l'applier,
  * arriverait derrière. Sépare « affiché sur l'étape » de « journalisé », sans second canal de texte.
+ *
+ * `suiteGardee` : l'applier a REMIS la suite de l'étape (`meta.apresSuite`) à un porteur qui la jouera lui-même, et le
+ * goulot ne la joue pas (il la retire du méta comme toujours). Un seul cas réel : `nombreDAttaquesSubies`, qui la remet
+ * à la série qu'il ouvre (`SerieSubie.apresSuite`, jouée par `fermerLaSerieSubie`) : jouée ici, elle passerait devant
+ * les attaques de la série, dont aucun dé ne porte de suite.
  */
 export type CascadeApplier = (
   get: Get,
@@ -90,7 +95,7 @@ export type CascadeApplier = (
   step: CascadeStep,
   hero: Combatant | undefined,
   ctx: { steps: CascadeStep[]; index: number },
-) => { consequences?: Consequence[]; dejaDites?: true; insert?: readonly BuiltCascadeStep[]; stopSequence?: true } | void;
+) => { consequences?: Consequence[]; dejaDites?: true; insert?: readonly BuiltCascadeStep[]; stopSequence?: true; suiteGardee?: true } | void;
 
 /** Ce qu'une étape d'AFFICHAGE dira en se validant, quand son monteur ne pouvait pas le poser d'avance : lu
  *  à l'arrivée du curseur sur l'état que les étapes d'avant ont laissé, posé en `outcome`. Son applier
@@ -1323,8 +1328,9 @@ function commitStep(get: Get, set: Set, steps: CascadeStep[], i: number, pilote:
     // dans le journal, et ce qui laisse la conséquence se mesurer sur l'état qu'elle a elle-même produit.
     // Rejouée ICI, au goulot, et pas dans l'applier : un applier qui rejouerait lui-même sa suite le
     // ferait avant ce journal, et toute grandeur lue par différence après coup (les Blessures d'une
-    // chute) serait faussée par ce que la suite a déjà changé.
-    jouerLesClotures(get, set, step.meta?.apresSuite ?? []);
+    // chute) serait faussée par ce que la suite a déjà changé. Une suite que l'applier a remise à un autre
+    // porteur (`suiteGardee`) n'est plus la sienne.
+    if (!out?.suiteGardee) jouerLesClotures(get, set, step.meta?.apresSuite ?? []);
   } finally {
     insereesParLApplier = fenetreInsertion?.inseres ?? [];
     bornes = fenetreInsertion?.bornes ?? null;

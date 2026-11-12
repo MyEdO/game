@@ -42,7 +42,7 @@ export const PORTEURS_D_ETAPE: readonly PorteurDEtape[] = Object.values(PENDING_
  * (`useXJetProps`) : c'est parce qu'elle est TOTALE que `CascadeModal` rend ses étapes-jets
  * INCONDITIONNELLEMENT (`{...props!}` sur un hook rendu `null` donne `{}` à `RollShell`, donc un crash).
  *
- * Trois causes, toutes portées ici — le slot VIDE, l'ACTEUR sorti du `battle`, et la donnée portée par
+ * Trois causes, toutes portées ici — le slot VIDE, l'ACTEUR absent de son ensemble, et la donnée portée par
  * l'ÉTAPE (Maladresse : `PENDING_BY_JET.fumble` est `null`, son corps vit dans `step.maladresse`).
  * Une étape déjà VALIDÉE (`committed`) est hors sujet : elle a rendu sa donnée et se ferme.
  * Prédicat PUR (aucun runtime importé) et TOTAL sur les `HostJet`.
@@ -62,17 +62,14 @@ export function sansCorps(s: Partial<Jeu>, step: CascadeStep | undefined): boole
   if (!step?.jet) return false;
   const slot = PENDING_BY_JET[step.jet];
   if (slot && s[slot] == null) return true;
-  const present = (id: string | undefined): boolean => !!id && !!s.battle?.combatants.some((c) => c.id === id);
+  // Les acteurs : la file de combat, hors combat le groupe et l'assaillant de la série d'attaques subies (`serieSubie`).
+  const pool = s.battle?.combatants ?? [...(s.party ?? []), ...(s.serieSubie ? [s.serieSubie.assaillant] : [])];
+  const present = (id: string | undefined): boolean => !!id && pool.some((c) => c.id === id);
   switch (step.jet) {
     case 'attaque': return !present(s.pendingAttack?.attackerId) || !present(s.pendingAttack?.targetId);
     case 'defense': return !present(s.pendingDefense?.attackerId) || !present(s.pendingDefense?.defenderId);
     case 'maladresse': return !step.maladresse || !present(step.actorId);
-    // Épreuve étendue : hors combat, l'acteur se lit au GROUPE (même pool que `useExtendedTestJetProps`).
-    case 'testEtendu': {
-      const id = s.pendingExtendedTest?.actorId;
-      const pool = s.battle?.combatants ?? s.party ?? [];
-      return !id || !pool.some((c) => c.id === id);
-    }
+    case 'testEtendu': return !present(s.pendingExtendedTest?.actorId);
     default: return false; // cast / test / disengage / forceDoor : leur corps ne tient qu'au slot
   }
 }
