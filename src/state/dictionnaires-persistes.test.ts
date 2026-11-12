@@ -39,13 +39,13 @@ describe('touches (`wfrp4.keys`)', () => {
 });
 
 describe('audio (`wfrp4.audio`)', () => {
-  it('des réglages conformes sont chargés', () => {
-    poser('wfrp4.audio', { volume: 0.3, musicVolume: 0, muted: true });
-    expect(loadAudioPrefs()).toEqual({ volume: 0.3, musicVolume: 0, muted: true });
+  it('une sourdine booléenne est chargée', () => {
+    poser('wfrp4.audio', { muted: true });
+    expect(loadAudioPrefs()).toEqual({ muted: true });
   });
 
-  it('un volume hors de 0..1 ou une sourdine non booléenne est ignoré : le défaut s’applique', () => {
-    poser('wfrp4.audio', { volume: 2, musicVolume: '0.5', muted: 1 });
-    expect(loadAudioPrefs()).toEqual({ volume: 0.8, musicVolume: 0.6, muted: false });
+  it('une sourdine non booléenne est ignorée : le défaut s’applique', () => {
+    poser('wfrp4.audio', { muted: 1 });
+    expect(loadAudioPrefs()).toEqual({ muted: false });
   });
 });

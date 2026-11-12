@@ -8,6 +8,7 @@ import { chargerLesPreferences, reglerUnePreference } from './preferences';
 import { cadence, setCadence, CADENCE_DEFAULT } from '../engine/cadence';
 import { desFixes, setDesFixes, DES_FIXES_DEFAULT } from '../engine/fixedDie';
 import { stockageEnMemoire, stockageQuiLeve } from '../lib/stockage.testkit';
+import { VOLUME_DEFAUT, reglerLeVolume, volumeDuCanal } from '../noyau/volumes';
 
 const CLE = 'wfrp4.prefs';
 const CADENCE_HORS_DEFAUT = 'auto';
@@ -21,6 +22,7 @@ const avec = (valeur: unknown) => {
 beforeEach(() => {
   setCadence(CADENCE_DEFAULT);
   setDesFixes(DES_FIXES_DEFAULT);
+  reglerLeVolume('musique', VOLUME_DEFAUT);
 });
 
 describe('le chargement des préférences d’un stockage', () => {
@@ -32,6 +34,16 @@ describe('le chargement des préférences d’un stockage', () => {
   it('une valeur non conforme (mode hors options, flag non booléen) est ignorée : le défaut s’applique', () => {
     chargerLesPreferences(avec({ 'combat-cadence': 'turbo', 'des-fixes': 'oui' }));
     expect([cadence(), desFixes()]).toEqual([CADENCE_DEFAULT, DES_FIXES_DEFAULT]);
+  });
+
+  it('un nombre (`param`) est chargé dans ses bornes ; hors bornes ou non numérique, il est ignoré', () => {
+    chargerLesPreferences(avec({ 'volume-musique': 0.25 }));
+    expect(volumeDuCanal('musique')).toBe(0.25);
+    reglerLeVolume('musique', VOLUME_DEFAUT);
+    for (const v of [1.5, -0.1, '0.5']) {
+      chargerLesPreferences(avec({ 'volume-musique': v }));
+      expect(volumeDuCanal('musique'), JSON.stringify(v)).toBe(VOLUME_DEFAUT);
+    }
   });
 
   it('un magasin qui n’est pas un dictionnaire, ou un stockage absent ou qui lève, est ignoré', () => {
