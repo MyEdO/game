@@ -111,7 +111,7 @@ describe('#1869 — le libellé d’une réponse ne dit pas le Test de son propr
   });
 
   it('un jet ENFOUI dans le `yes` d’un nœud `choice` annonce autant qu’un jet de tête', () => {
-    const enfoui = { kind: 'choix', prompt: 'Insister ?', oui: fluxDeTest(), non: { kind: 'sequence', etapes: [] } };
+    const enfoui = { kind: 'choix', invite: 'Insister ?', oui: fluxDeTest(), non: { kind: 'sequence', etapes: [] } };
     expect(trouvaille('Insister (Test de Crochetage)', enfoui)).toBe('Crochetage');
   });
 

@@ -16049,7 +16049,7 @@
         },
         {
           "kind": "choix",
-          "prompt": "Chaque +1 DR : ajouter un État Empêtré à la cible (sinon, la faire léviter de 2 mètres de plus, jusqu'à 10 mètres)",
+          "invite": "Chaque +1 DR : ajouter un État Empêtré à la cible (sinon, la faire léviter de 2 mètres de plus, jusqu'à 10 mètres)",
           "oui": {
             "kind": "effet",
             "effet": {
@@ -16729,7 +16729,7 @@
           },
           "echec": {
             "kind": "choix",
-            "prompt": "Déclarer, au lancement, l'intention d'étouffer les cibles : les mains les entraînent sous terre (Suffocation)",
+            "invite": "Déclarer, au lancement, l'intention d'étouffer les cibles : les mains les entraînent sous terre (Suffocation)",
             "oui": {
               "kind": "effet",
               "effet": {
@@ -17395,7 +17395,7 @@
         },
         {
           "kind": "choix",
-          "prompt": "Le Sort est-il lancé sur un objet magique que vous touchez ?",
+          "invite": "Le Sort est-il lancé sur un objet magique que vous touchez ?",
           "oui": {
             "kind": "effet",
             "effet": {
@@ -17683,7 +17683,7 @@
         },
         {
           "kind": "choix",
-          "prompt": "+2 DR obtenus : accorder aussi une relance au Test de la Compétence choisie ?",
+          "invite": "+2 DR obtenus : accorder aussi une relance au Test de la Compétence choisie ?",
           "oui": {
             "kind": "effet",
             "effet": {
@@ -19886,7 +19886,7 @@
       "etapes": [
         {
           "kind": "choix",
-          "prompt": "La cible est réticente : elle peut éviter les effets (Test d'Esquive Facile (+40))",
+          "invite": "La cible est réticente : elle peut éviter les effets (Test d'Esquive Facile (+40))",
           "oui": {
             "kind": "test",
             "test": {
@@ -20051,10 +20051,10 @@
       "etapes": [
         {
           "kind": "choix",
-          "prompt": "Augmenter ou réduire le charme de la cible (Sociabilité de + ou − 10)",
+          "invite": "Augmenter ou réduire le charme de la cible (Sociabilité de + ou − 10)",
           "oui": {
             "kind": "choix",
-            "prompt": "Augmenter le charme (+10 de Sociabilité) ; sinon le réduire (−10)",
+            "invite": "Augmenter le charme (+10 de Sociabilité) ; sinon le réduire (−10)",
             "oui": {
               "kind": "effet",
               "effet": {
@@ -20092,7 +20092,7 @@
           },
           "non": {
             "kind": "choix",
-            "prompt": "La cible semble être morte ; sinon elle devient méconnaissable",
+            "invite": "La cible semble être morte ; sinon elle devient méconnaissable",
             "oui": {
               "kind": "effet",
               "effet": {
@@ -21507,7 +21507,7 @@
       "etapes": [
         {
           "kind": "choix",
-          "prompt": "Contraindre les esprits : soumettre les esprits présents à vos ordres (sinon : arracher des fantômes au voile de la mort)",
+          "invite": "Contraindre les esprits : soumettre les esprits présents à vos ordres (sinon : arracher des fantômes au voile de la mort)",
           "oui": {
             "kind": "si",
             "condition": {
@@ -22786,7 +22786,7 @@
           },
           "alors": {
             "kind": "choix",
-            "prompt": "Soumettre la cible à la Haine pendant (Bonus de Force Mentale) semaines ?",
+            "invite": "Soumettre la cible à la Haine pendant (Bonus de Force Mentale) semaines ?",
             "oui": {
               "kind": "effet",
               "effet": {
@@ -22819,7 +22819,7 @@
             },
             "non": {
               "kind": "choix",
-              "prompt": "Amener la cible à l'Animosité pendant (Bonus de Force Mentale) jours, plutôt qu'au Préjugé ?",
+              "invite": "Amener la cible à l'Animosité pendant (Bonus de Force Mentale) jours, plutôt qu'au Préjugé ?",
               "oui": {
                 "kind": "effet",
                 "effet": {
@@ -22886,7 +22886,7 @@
             },
             "alors": {
               "kind": "choix",
-              "prompt": "Amener la cible à l'Animosité pendant (Bonus de Force Mentale) jours, plutôt qu'au Préjugé ?",
+              "invite": "Amener la cible à l'Animosité pendant (Bonus de Force Mentale) jours, plutôt qu'au Préjugé ?",
               "oui": {
                 "kind": "effet",
                 "effet": {
@@ -24712,7 +24712,7 @@
       "etapes": [
         {
           "kind": "choix",
-          "prompt": "Vaporisation de musc : asperger une cible, ou marquer un territoire ?",
+          "invite": "Vaporisation de musc : asperger une cible, ou marquer un territoire ?",
           "oui": {
             "kind": "effet",
             "effet": {

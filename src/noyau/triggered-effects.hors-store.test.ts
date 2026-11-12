@@ -84,7 +84,7 @@ describe('fireTriggers — Traits et Atouts sur le même système flow+déclench
     const porteur = mk({ id: 'po' });
     const victime = mk({ id: 'vi' });
     const flow: Flow = {
-      kind: 'choix', prompt: 'Renverser', advantageCost: 2,
+      kind: 'choix', invite: 'Renverser', coutEnAvantage: 2,
       oui: {
         kind: 'test',
         test: { characteristic: 'force', skill: { id: 'athletisme' } },
@@ -108,7 +108,7 @@ describe('fireTriggers — Traits et Atouts sur le même système flow+déclench
       etapes: [
         { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'hemorragique' } }] } },
         {
-          kind: 'choix', prompt: 'Ouvrir la plaie', advantageCost: 1,
+          kind: 'choix', invite: 'Ouvrir la plaie', coutEnAvantage: 1,
           oui: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'hemorragique' } }] } },
         },
       ],

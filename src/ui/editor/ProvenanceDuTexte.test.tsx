@@ -381,7 +381,7 @@ describe('provenance des nouveaux effets adressables', () => {
 describe('provenance des branches de Flow et de la narration stricte', () => {
   const ctx = { encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE };
   it.each([
-    [{ kind: 'choix', prompt: 'Entrer ?', oui: { kind: 'sequence', etapes: [] }, non: { kind: 'sequence', etapes: [] } }, 'du choix'],
+    [{ kind: 'choix', invite: 'Entrer ?', oui: { kind: 'sequence', etapes: [] }, non: { kind: 'sequence', etapes: [] } }, 'du choix'],
     [{ kind: 'test', test: { skill: { id: 'escalade' }, difficulty: 'intermediaire', stake: { authored: 'Enjeu maison.' } }, reussite: { kind: 'sequence', etapes: [] }, echec: { kind: 'sequence', etapes: [] } }, "de l'enjeu"],
   ] as const)('%s : la référence est écrite sur le texte, les branches sont conservées', (initiale, sujet) => {
     let dernier: Flow;

@@ -120,7 +120,7 @@ const VOMISSEMENT_AVANT = {
   "label": "Vomissement",
   "kind": "vomi",
   "activation": "free",
-  "advantageCost": 3,
+  "coutEnAvantage": 3,
   "stat": "capacite-de-tir",
   "defense": "esquive",
   "targeting": "zone",
