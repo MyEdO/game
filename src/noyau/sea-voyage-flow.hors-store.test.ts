@@ -58,6 +58,7 @@ import { jete } from '../engine/tests.testkit';
 import { hullNavalTraits } from '../engine/navalTraits';
 import { avecLesTables, cleDeFixture } from './noyau.testkit';
 import { tablesDuJeu } from './tablesDuJeu';
+import { chargerLaSave, lireSave, snapshotSave } from './persistance/save';
 import type { GenreDeCascade } from './tablesPosees';
 import { desEnSuite } from '../engine/dice.testkit';
 import { ligneDe } from '../engine/modLine.testkit';
@@ -585,6 +586,19 @@ describe('Infestation — les rats attaquent sur une étape d’Extermination à
     expect(etapesDAttaques(s)).toEqual([]);
     expect(s.serieSubie).toBeNull();
     expect(s.journal.slice(avant).filter((l) => l === t('eff.membreAuHasardMarin'))).toHaveLength(1);
+  });
+
+  it('le marqueur `assaillie` et `surDRNegatif` traversent une sauvegarde puis un chargement (MDG 15 l.161, l.176)', () => {
+    const ev = seaBoardEventById('infestation-de-rats-geants')!;
+    jouerFlowEntier(runFlow(get, set, ev.consequence!, ev.label));
+    const { vessel } = get();
+    const infestation = vessel!.infestation!;
+    set({ vessel: { ...vessel!, infestation: { ...infestation, assaillie: true } } });
+    const lu = lireSave(JSON.stringify(snapshotSave(get(), '2026-11-12T00:00:00Z')));
+    if (typeof lu === 'string') throw new Error(lu);
+    const { etat } = chargerLaSave(lu);
+    expect(etat.vessel!.infestation!.assaillie).toBe(true);
+    expect(etat.vessel!.infestation!.surDRNegatif).toEqual(infestation.surDRNegatif);
   });
 });
 
