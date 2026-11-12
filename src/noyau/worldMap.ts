@@ -67,7 +67,7 @@ export interface MapPlace {
    *  éventuel porté par le service (`lieux-services.json`, ex. auberge). Éditable dans `WorldMapEditor`. */
   backdrop?: { id: string };
   /** Ce que le groupe voit et sait du lieu en y arrivant, lu à l'écran du lieu. */
-  description?: string;
+  prose?: string;
   source?: SourceRef;
   adapteDe?: SourceRef;
   /** Le lieu EXISTE-t-il sur la carte (algèbre `Condition`, cf. `evalCondition`) — axe NŒUD du gating

@@ -63,8 +63,8 @@ export function WorldMapPlacePanel({ place, scenes, narratif, updPlace }: {
           </label>
           <IconField label="Icône" value={place.icon} onChange={(icon) => updPlace(place.id, { icon })} />
           <BackdropField label="Fond d'ambiance" value={place.backdrop?.id} onChange={(id) => updPlace(place.id, { backdrop: id === undefined ? undefined : { id } })} />
-          <ProseField label="Description" value={place.description ?? ''} onChange={(description) => updPlace(place.id, description.trim() ? { description } : { description: undefined, source: undefined, adapteDe: undefined })} />
-          {place.description && <ProvenanceDuTexte copie identite={`${place.id}/description`} sujet="de la description du lieu" value={place} onChange={(patch) => updPlace(place.id, patch)} />}
+          <ProseField label="Description" value={place.prose ?? ''} onChange={(prose) => updPlace(place.id, prose.trim() ? { prose } : { prose: undefined, source: undefined, adapteDe: undefined })} />
+          {place.prose && <ProvenanceDuTexte copie identite={`${place.id}/description`} sujet="de la description du lieu" value={place} onChange={(patch) => updPlace(place.id, patch)} />}
           <RefSelect
             label="Scène liée"
             options={scenes}

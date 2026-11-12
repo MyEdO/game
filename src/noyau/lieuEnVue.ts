@@ -62,6 +62,6 @@ export function lieuEnVue(s: Jeu): LieuEnVue | null {
   }));
   const carte: GesteDuService = { id: 'carte', libelle: t('lieu.carte'), geste: { verbe: 'ouvrirLaCarte', args: [] }, refus: null };
   const trajets = trajetsDepuis(s, s.worldMap, ici);
-  const description = ici.description ? nommer(ici.description, identitesResolues(s)) : null;
+  const description = ici.prose ? nommer(ici.prose, identitesResolues(s)) : null;
   return { nom: ici.label, description, plan: planDepuis(s, s.worldMap, ici, trajets), carte, services, pointsDInteret, trajets };
 }

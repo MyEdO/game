@@ -41313,7 +41313,7 @@
      "id": "la-diligence"
     },
     "icon": "scenario/hamlet",
-    "description": "Une auberge-relais ceinte d’un mur, sur la route de Delbren, dont le portail reste ouvert pendant la journée. La cour fourmille d’activité et sent le crottin frais ; devant les écuries, deux palefreniers bouchonnent un attelage de quatre chevaux. De l’auberge s’échappent des effluves de cuisine et des éclats de rire.",
+    "prose": "Une auberge-relais ceinte d’un mur, sur la route de Delbren, dont le portail reste ouvert pendant la journée. La cour fourmille d’activité et sent le crottin frais ; devant les écuries, deux palefreniers bouchonnent un attelage de quatre chevaux. De l’auberge s’échappent des effluves de cuisine et des éclats de rire.",
     "adapteDe": {
      "book": "ennemi-dans-l-ombre",
      "page": 13,
@@ -41331,7 +41331,7 @@
      "id": "route-principale-virage"
     },
     "icon": "scenario/travel",
-    "description": "La route de Middenheim à Altdorf, deux heures après le croisement où une borne annonçait : « Altdorf, 180 km ». Ici, la chaussée tourne entre les arbres.",
+    "prose": "La route de Middenheim à Altdorf, deux heures après le croisement où une borne annonçait : « Altdorf, 180 km ». Ici, la chaussée tourne entre les arbres.",
     "adapteDe": {
      "book": "ennemi-dans-l-ombre",
      "page": 20,
@@ -41349,7 +41349,7 @@
      "id": "auberge-des-sept-rayons"
     },
     "icon": "scenario/hamlet",
-    "description": "Une auberge-relais liée aux Lignes du Rochet, disposée comme La Diligence. Trois diligences s’y sont arrêtées pour la nuit et les lieux sont bondés ; on y colporte toutes les rumeurs de la route.",
+    "prose": "Une auberge-relais liée aux Lignes du Rochet, disposée comme La Diligence. Trois diligences s’y sont arrêtées pour la nuit et les lieux sont bondés ; on y colporte toutes les rumeurs de la route.",
     "adapteDe": {
      "book": "ennemi-dans-l-ombre",
      "page": 28,
@@ -41371,7 +41371,7 @@
      "id": "altdorf-porte-sud"
     },
     "icon": "scenario/village",
-    "description": "Les murs blancs d’Altdorf, capitale de l’Empire, la plus grande et la plus riche de ses cités. Le Palais Impérial se dresse près du Reik et domine toute la ville. Dans les rues, on repeint une façade tandis que sa voisine tombe en ruine, et des agitateurs réclament par dizaines la venue d’un ordre nouveau. Tout le monde a quelque part où aller, et personne n’y arrive assez vite.",
+    "prose": "Les murs blancs d’Altdorf, capitale de l’Empire, la plus grande et la plus riche de ses cités. Le Palais Impérial se dresse près du Reik et domine toute la ville. Dans les rues, on repeint une façade tandis que sa voisine tombe en ruine, et des agitateurs réclament par dizaines la venue d’un ordre nouveau. Tout le monde a quelque part où aller, et personne n’y arrive assez vite.",
     "adapteDe": {
      "book": "ennemi-dans-l-ombre",
      "page": 32,
