@@ -18,6 +18,7 @@ import { applyOps } from '../engine/ops';
 import { touchActors } from './combatOrParty';
 import { fenetreDeDefense } from './fenetreDeDefense';
 import { porteurParId } from './monde/combatants';
+import { markFixedDie } from './fixedDieMark';
 import { testScene } from '../scenes/test-fixture';
 import { entreeEnRencontre } from '../engine/persistence';
 import type { Effect } from '../data/schemas/defs-scenes/effets';
@@ -190,13 +191,64 @@ describe('série d’attaques subies hors bataille (#3892)', () => {
     expect(s.party[0].wounds.current).toBe(H.wounds.current - 3);
   });
 
-  it('l’Effet suivant attend pendant la Déviation d’un Critique : la série ouverte, ses 3 Blessures retenues', () => {
-    const { banc, H } = serieOuverte([22, 23, 50], 1, (id) => [troisBlessures(id)]);
-    defendre(banc, 97);
-    const s = banc.getState();
+  /** L'étape de Blessure critique de la séquence : sa sévérité POSÉE à `severite`, puis la voie `choix` tranchée et
+   *  validée. Rend l'étape avant validation (le pli y a posé le Critique). */
+  function trancherLeCritique(banc: Banc, severite: number, choix: 'subir' | 'devier') {
+    const g = banc.getState;
+    const id = g().pendingCascade!.participants.find((x) => x.kind === 'deviation')!.id;
+    g().jetImposerLeResultat('cascadeTirage', severite, id);
+    const etape = g().pendingCascade!.participants.find((x) => x.id === id)!;
+    g().jetRegler('cascade', 'choix', choix, id);
+    g().jetValider('cascade');
+    return etape;
+  }
+
+  it('l’Effet suivant attend pendant la Déviation d’un Critique, puis « Subir » : Critique encaissé, série poursuivie et fermée, ses 3 Blessures tombent', () => {
+    const { banc, H } = serieOuverte([22, 23, 50, 20], 2, (id) => [troisBlessures(id)]);
+    const coup = defendre(banc, 97);
+    let s = banc.getState();
     expect(s.pendingCascade!.participants.find((x) => x.kind === 'deviation')?.options).toBeTruthy();
-    expect(s.serieSubie).toMatchObject({ cibleId: H.id, restantes: 1 });
+    expect(s.serieSubie).toMatchObject({ cibleId: H.id, restantes: 2 });
     expect(s.party[0].wounds.current).toBe(H.wounds.current);
+    const etape = trancherLeCritique(banc, 1, 'subir');
+    s = banc.getState();
+    expect(etape.deviation, 'le pli pose le Critique hors bataille').toBeTruthy();
+    expect(s.party[0].criticalWounds).toBe(1);
+    expect(s.party[0].wounds.current).toBe(H.wounds.current - coup.woundsLost! - 1);
+    expect(s.journal.some((l) => l.includes(etape.table!.result!.lines[0]))).toBe(true);
+    expect(s.serieSubie).toMatchObject({ restantes: 1 });
+    expect(s.pendingDefense).toMatchObject({ attackerId: s.serieSubie!.assaillant.id, defenderId: H.id });
+    expect(defendre(banc, 5).hit).toBe(false);
+    s = banc.getState();
+    expect(s.serieSubie).toBeNull();
+    expect(s.party[0].wounds.current).toBe(H.wounds.current - coup.woundsLost! - 1 - 3);
+  });
+
+  it('Déviation d’un Critique « Dévier » : 1 PA sacrifiée, Critique ignoré, série fermée, ses 3 Blessures tombent : LDB 63 l.30', () => {
+    const { banc, H } = serieOuverte([22, 23, 50], 1, (id) => [troisBlessures(id)]);
+    const coup = defendre(banc, 97);
+    trancherLeCritique(banc, 1, 'devier');
+    const s = banc.getState();
+    expect(s.journal).toContain(markFixedDie(t('cf.critiqueDevieSurLArmure', { name: H.label })));
+    expect(s.party[0].criticalWounds ?? 0).toBe(0);
+    expect(s.serieSubie).toBeNull();
+    expect(s.party[0].wounds.current).toBe(H.wounds.current - coup.woundsLost! - 3);
+  });
+
+  it('héros Inconscient, régime « critique » : le Critique du coup se tranche et s’applique, puis la série se ferme : LDB 16 l.113', () => {
+    const { banc, H } = horsBataille(testScene());
+    setRule('combat-cible-inconsciente', 'critique');
+    const inconscient = gameOpSchema.parse({ op: 'condition', id: { id: 'inconscient' }, value: 1 });
+    applyEffects(banc.getState, banc.setState, [{ type: 'ops', on: 'hero', heroId: H.id, ops: [inconscient] }, attaques('hero', H.id)]);
+    imposerLesD100(20);
+    banc.getState().jetImposerLeResultat('cascadeTirage', 2, banc.getState().pendingCascade!.participants[0].id);
+    banc.getState().jetValider('cascade');
+    expect(banc.getState().serieSubie).toMatchObject({ cibleId: H.id, restantes: 2 });
+    trancherLeCritique(banc, 1, 'subir');
+    const s = banc.getState();
+    expect(s.party[0].criticalWounds).toBe(1);
+    expect(s.serieSubie).toBeNull();
+    expect(s.partyWiped).toBe(true);
   });
 
   it('série de 3 attaques jusqu’à son terme : une Défense par attaque, puis le héros rendu au groupe, Blessures reportées', () => {

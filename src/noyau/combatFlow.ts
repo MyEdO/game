@@ -124,6 +124,7 @@ import { isInanimate, isStructure, structureAimCell, ramVsNonDoor } from '../eng
 import { rollStructureCritical, structureCollapseLog, tableDesCritiquesDeStructure, type StructureCriticalResolved } from '../engine/structureCritical';
 import { structureCriticalsDie } from '../data/structureCriticals';
 import { actorIn, auContactDeLaSerie, ecrireActeur, inBattleId, porteurParId } from './monde/combatants';
+import { checkPartyWiped } from './partyWipe';
 import type { IdDeCombattant } from './designations';
 import { nomDIndividu } from './monde/sceneNpc';
 import { garanti } from '../lib/garanti';
@@ -3837,11 +3838,13 @@ export function poursuivreLaSerie(get: Get, set: SetFn): boolean {
 }
 
 /** Ferme la série d'attaques subies, sa sortie unique : le héros rendu au groupe par la couture de retour
- *  (`sortieDeRencontre`) et la série vidée, PUIS sa suite jouée (`jouerLesClotures`). Dans cet ordre : la suite
- *  s'applique au héros rendu, que la sortie n'écrase plus, et hors de toute série, qu'elle peut rouvrir. */
+ *  (`sortieDeRencontre`) et la série vidée, la défaite du groupe constatée (`checkPartyWiped`, qui purge la suite),
+ *  PUIS sa suite jouée (`jouerLesClotures`). Dans cet ordre : la suite s'applique au héros rendu, que la sortie
+ *  n'écrase plus, et hors de toute série, qu'elle peut rouvrir. */
 export function fermerLaSerieSubie(get: Get, set: SetFn): void {
   const serie = garanti(get().serieSubie, 'serieSubie', 'série d’attaques subies');
   set((s: Jeu) => ({ party: s.party.map((h) => (h.id === serie.cibleId ? sortieDeRencontre(serie.avant, h) : h)), serieSubie: null }));
+  if (checkPartyWiped(get, set)) return;
   jouerLesClotures(get, set, serie.apresSuite ?? []);
 }
 
@@ -4404,11 +4407,12 @@ function resumeMeleeAfterSuspension(
   // sans son drapeau infligerait des Dégâts, LDB 14 l.159), et la chaîne de balayage parquée.
   coup: ApplicationDuCoup,
 ): void {
-  const battle = get().battle;
-  if (!battle) return;
-  const attacker = inBattleId(battle, attackerId);
-  const target = inBattleId(battle, targetId);
-  if (!attacker || !target) return;
+  const attacker = porteurParId(get(), attackerId);
+  const target = porteurParId(get(), targetId);
+  if (!attacker || !target) {
+    journaliser(get, set, [tr('cascade.cibleDisparue', { label: weapon.label })], 'information');
+    return;
+  }
   // RE-SUSPENDU par la fenêtre SUIVANTE (sauvegarde ratée → Critique à dévier) : la suite lui est
   // REPASSÉE, elle voyage dans SA charge, et c'est la DERNIÈRE reprise qui la joue — une fois.
   jouerFlowEntier(applyAttackResult(get, set, attacker, target, weapon, res, coup));
@@ -4420,19 +4424,21 @@ function resumeMeleeAfterSuspension(
  *  - `melee` → RÉ-ENTRE `applyAttackResult` avec la décision (son tail décision-indépendant tourne UNE fois) ;
  *  - `self` → le Critique pré-tiré d'`applyCoupCritiqueSec`. */
 export function resolveDeviation(get: Get, set: SetFn, dev: PendingDeviation, deviate: boolean): void {
-  const battle = get().battle;
-  if (!battle) return;
   if (dev.mode !== 'self') {
     reprendreLeCoup(get, set, dev, { crit: dev.crit, deviation: deviate ? 'devier' : 'subir' });
     return;
   }
-  const target = inBattleId(battle, dev.targetId);
-  if (!target) return;
+  const target = porteurParId(get(), dev.targetId);
+  if (!target) {
+    journaliser(get, set, [tr('cascade.cibleDisparue', { label: tr('step.critDevier') })], 'information');
+    return;
+  }
   const log: string[] = [];
   if (deviate) deflectCrit(target, dev.location, log); // −1 PA, Critique ignoré
   else {
-    const lethal = applyCritAndFinalize(get, set, target, dev.location, dev.overkill, dev.origine, log, dev.ctx, inBattleId(get().battle, dev.ctx.attackerId), dev.woundsBefore, dev.crit, true); // Subir : Critique pré-tiré
-    apresLeCritiqueDe({ get, set, auteur: inBattleId(battle, dev.ctx.attackerId), cible: target, lieu: dev.location, log, arme: dev.ctx.weaponObj })(lethal, dev.origine); // #316
+    const auteur = dev.ctx.attackerId ? porteurParId(get(), dev.ctx.attackerId) : undefined;
+    const lethal = applyCritAndFinalize(get, set, target, dev.location, dev.overkill, dev.origine, log, dev.ctx, auteur, dev.woundsBefore, dev.crit, true); // Subir : Critique pré-tiré
+    apresLeCritiqueDe({ get, set, auteur, cible: target, lieu: dev.location, log, arme: dev.ctx.weaponObj })(lethal, dev.origine); // #316
   }
   if (estUnCoupCritique(dev.origine)) breakBacleArmour(target, dev.location, log); // LDB 60 l.50
   // 0 PB → À Terre (LDB 18 l.15).
@@ -4448,10 +4454,7 @@ function cloreLaReprise(get: Get, set: SetFn, target: Combatant, log: string[], 
     clearPsychOf(get().battle?.combatants ?? [], target.id);
     refreshAllDefendedPsych(get().battle?.combatants ?? []); // l’Amour ne se clôt pas à la chute d’UN aimé (l.75) : verdict re-mesuré
   }
-  if (log.length) {
-    const b = get().battle;
-    if (b) set({ battle: { ...b, log: [...b.log, ...evLines(log, 'critique', attackerId, target.id)] } }); // acteur = attaquant, sujet = cible (parité mode melee)
-  }
+  journaliser(get, set, log, 'critique', { actorId: attackerId, targetId: target.id }); // acteur = attaquant, sujet = cible (parité mode melee)
   checkBattleOver(get, set);
 }
 
@@ -4466,13 +4469,16 @@ function reprendreLeCoup(get: Get, set: SetFn, dev: PendingDeviation & CoupSuspe
   }
   if (dev.mode === 'marin') {
     const lignes = encaisserLeCoupDuMarin(get, set, dev.coupDuMarin, critiques);
-    const marin = actorIn(get(), dev.targetId);
+    const marin = porteurParId(get(), dev.targetId);
     if (lignes && marin) cloreLaReprise(get, set, marin, lignes, dev.attackerId);
     return;
   }
   const appliquee = appliquerToucheDeProjectile(get, set, { ...dev.touche, critiques });
-  const target = actorIn(get(), dev.targetId);
-  if (!target) return;
+  const target = porteurParId(get(), dev.targetId);
+  if (!target) {
+    journaliser(get, set, [tr('cascade.cibleDisparue', { label: dev.touche.spell.label })], 'information');
+    return;
+  }
   const log = appliquee.issue === 'appliquee' ? [...appliquee.lignes, ...jouerLeRebond(get, set, dev.touche)] : appliquee.lignes;
   cloreLaReprise(get, set, target, log, dev.attackerId);
 }
@@ -8961,7 +8967,8 @@ export const TABLES = {
     },
     deviation: (get, set, step) => {
       const dev = step.deviation;
-      if (!dev) return;
+      // Le pli n'a pas posé le Critique : sa cible est introuvable, la conséquence se DIT (patron `sauvegarde`).
+      if (!dev) return step.critSeverity ? { consequences: freeCons([tr('cascade.cibleDisparue', { label: step.label ?? '' })]) } : undefined;
       if (!step.options && dev.mode !== 'self') {
         reprendreLeCoup(get, set, dev, { crit: dev.crit });
         return;
@@ -9106,7 +9113,7 @@ export const TABLES = {
       const p = step.critSeverity;
       const rolled = step.table?.result;
       if (!p || !rolled) return step;
-      const target = inBattleId(get().battle, p.targetId);
+      const target = porteurParId(get(), p.targetId);
       if (!target) return step;
       const crit = resolveCritique(jeuDeCritique(p.twice), target, p.location, battleRng(), { overkill: p.overkill, twice: p.twice, forcedRoll: rolled.roll });
       const reveal = previewCritEntry(target, crit, p.origine, { attackerId: p.attackerId, weapon: libelleDuCoup(p) });

@@ -21,6 +21,7 @@ import { t as tr } from '../i18n';
 import { locationLabel, type Combatant, type ItemInstance, type Weapon } from '../engine/types';
 import { LOCALISATIONS_DE_COUP } from '../engine/types';
 import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { markFixedDie } from './fixedDieMark';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -702,7 +703,7 @@ describe('`critiques` compte les Blessures critiques INFLIGÉES, jamais les dév
     } finally { lache(); }
     const apres = banc.getState().battle!.combatants.find((c) => c.id === cible.id)!;
     expect(kinds).toContain('deviation');
-    expect(journal()).toContain(tr('cf.critiqueDevieSurLArmure', { name: apres.label }));
+    expect(journal()).toContain(markFixedDie(tr('cf.critiqueDevieSurLArmure', { name: apres.label })));
     expect(apres.criticalWounds ?? 0).toBe(0);
     expect(emis).toEqual([0]);
   });
@@ -789,7 +790,7 @@ describe('Projectile magique : une seule ligne de touche, celle du coup APPLIQU�
 
   it('Critique dévié : une ligne, à la Localisation et aux Blessures appliquées, sans marque Critique', () => {
     const r = carreau('critique', { choix: 'devier' });
-    expect(journal()).toContain(tr('cf.critiqueDevieSurLArmure', { name: r.apres.label }));
+    expect(journal()).toContain(markFixedDie(tr('cf.critiqueDevieSurLArmure', { name: r.apres.label })));
     expect(r.finale.critiques).toBe(0);
     expect(r.lignes).toHaveLength(1);
     expect(r.lignes[0]).toContain(`(${tr('touche.nouvelleLocalisation', { lieu: locationLabel(r.finale.location!, r.apres.bodyShape) })})`);
