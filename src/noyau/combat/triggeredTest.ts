@@ -410,8 +410,7 @@ export function runCombatFlow(ctx: ExecCtx, flow: Flow): void {
       // Ops IMPURES `grantFreeAttack` : résolues par `accorderLAttaqueGratuite` (combatFlow) — la frappe
       // vise le TIERS de `ctx.freeAttack` (chargeur/victime), pas `unit` (le porteur). `applyOps` les
       // laisse inertes → on les passe quand même (no-op) pour garder le journal des autres ops.
-      // Une frappe qui SUSPEND (fenêtre de défense ouverte) arrête le dispatch : la suivante se
-      // déclarera à la fermeture, jamais par-dessus la fenêtre (#1852).
+      // Gratuite terminale : `refuserLaGratuiteNonTerminale` (data/schemas/grammaire/mecanique.ts, #4011).
       if (ctx.freeAttack) for (const op of node.effet.ops) if (op.op === 'grantFreeAttack' && accorderLAttaqueGratuite(ctx.get, ctx.set, unit, op, ctx.freeAttack)) break;
       // Op IMPURE `interruptFocus` (LDB 46 l.144) : `applyFocusInterruption` (combatFlow) résout l'interruption
       // sur `unit` (le focaliseur) — perte des DR + Imparfaite Mineure (qui peut appender sa propre étape).
