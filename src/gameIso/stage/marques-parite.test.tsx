@@ -35,7 +35,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDe
 const TAILLE = { w: 800, h: 600 };
 
 /** Arc de Portée 4 m : bandes de Bout Portant à Extrême sur 6 cases (1 case = 2 m). */
-const ARC = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 4, qualities: [] };
+const ARC = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 8 }, range: 4, qualities: [] };
 
 function hero(id: string, pos: { x: number; y: number }, weapons: unknown[] = []): Combatant {
   return blessuresSurLeProfil({

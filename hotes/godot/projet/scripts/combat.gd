@@ -1,4 +1,5 @@
-## Le combat, hôte du noyau (`hotes/godot/pont/CONTRAT.md`), et le seul lecteur de la vue : il démarre la partie des
+## Le combat, hôte du noyau (`hotes/godot/pont/CONTRAT.md`), et le seul lecteur de la vue : il ouvre une partie au
+## groupe (`ouvrir`, `PontDuNoyau.au_groupe`), que le joueur compose puis lance sur une campagne du jeu (`lancer`), ou démarre la partie des
 ## paramètres `scenario` et `graine` (`PontDuNoyau.parametre`), la scène que l'éditeur a mise à l'essai (`PontDuNoyau.essai`), ou,
 ## sans paramètre `scenario`, le scénario que le joueur choisit au panneau des scénarios (`scenarios`), pose au plateau le monde de sa scène (son manifeste,
 ## `monde`, et les seuls morceaux dont l'empreinte a bougé, `morceaux`), à nouveau chaque fois que la partie change de
@@ -31,7 +32,8 @@ extends Node
 ## composant : chaque `Liaison` y écrit un champ de l'élément dans une propriété du contrôle qui la porte (le ton en
 ## variation du thème, `art/theme.tres`), chaque `Geste` joue l'intention que l'élément porte par le signal `geste` de
 ## la zone (un bouton à bascule garde l'état que la vue lui donne ; le routeur envoie `{ fiche }` à `fiche`, `{ creation
-## }` à `creation`, toute autre intention à `jouer`), chaque `Saisie` lit la valeur d'un formulaire, et une zone
+## }` à `creation`, `{ lancer }` à `lancer`, `{ quitter }` à `quitter`, d'où il revient à l'accueil, toute autre
+## intention à `jouer`), chaque `Saisie` lit la valeur d'un formulaire, et une zone
 ## imbriquée y montre le champ que sa `source` nomme. L'icône (`icone`) et le fond (`fond`) ne portent que l'id de
 ## leur dessin : `Dessin` (`projet/scripts/dessin.gd`) le lit au catalogue que la construction dépose une fois dans le
 ## projet (`art/dessins.json`, `hotes/godot/asset/dessins.ts`) et le trace aux couleurs du thème. Le plan (`plan`) est le seul composant qui se dessine : son
@@ -40,7 +42,8 @@ extends Node
 ## éléments). Le `detail` d'une puce ou d'une ligne se pose sur sa `Bulle` (`projet/scripts/bulle.gd`), qui couvre le
 ## composant et montre au survol la bulle du thème repliée au mot. Les héros du groupe se rangent en cartes au pied de
 ## l'écran (`projet/composants/heros.tscn` : le portrait, le nom, les Blessures en trait, la bourse, puis ce que la
-## carte porte d'autre), « Nouveau héros » au pied du journal ; la barre du combat (`combat.offres`) les surmonte, chacun de ses choix
+## carte porte d'autre), « Quitter la partie » et « Nouveau héros » au pied du journal ; avant le lancement, les
+## pré-tirés à recruter et les campagnes à lancer se rangent en deux colonnes sur la scène ; la barre du combat (`combat.offres`) les surmonte, chacun de ses choix
 ## en onglet, sauf la part du tour (`economie/aucun`), au panneau de l'actif ; la création ouverte se pose au centre,
 ## sa page titrée en tête, ses rubriques défilant dessous, ses gestes en rangée au pied ; la conversation se pose en bas
 ## au centre, son interlocuteur en titre, sa réplique, puis ses réponses l'une sous l'autre ; la fiche ouverte se pose
@@ -87,14 +90,17 @@ func _ready() -> void:
 		return
 	_pont.exposer("wfrpCadrer", _cadrer)
 	await _indexer_les_modeles()
-	var scenario := _pont.parametre("scenario")
-	if not _pont.essai and scenario == "":
-		scenario = await _choisir_un_scenario()
-	var entree := {essai = true} if _pont.essai else {scenario = scenario}
+	var entree := {}
 	var graine := _pont.parametre("graine")
 	if graine.is_valid_int():
 		entree.graine = graine.to_int()
-	_suivre(_pont.appeler("demarrer", entree))
+	if _pont.au_groupe:
+		_suivre(_pont.appeler("ouvrir", entree))
+		return
+	var scenario := _pont.parametre("scenario")
+	if not _pont.essai and scenario == "":
+		scenario = await _choisir_un_scenario()
+	_suivre(_pont.appeler("demarrer", entree.merged({essai = true} if _pont.essai else {scenario = scenario})))
 
 
 ## Le scénario que le joueur choisit au panneau des scénarios (`scenarios`, #3786) : l'id que porte le bouton pressé
@@ -121,9 +127,21 @@ func _indexer_les_modeles() -> void:
 
 
 ## L'intention d'un geste : la fiche que l'écran montre va à `fiche`, un geste de la création d'un héros à `creation`,
-## toute autre à `jouer`.
+## la campagne à lancer à `lancer`, la partie à quitter à `quitter` (`_quitter`), toute autre à `jouer`.
 func _jouer(jeu: Dictionary) -> void:
-	_suivre(_pont.appeler("fiche" if jeu.has("fiche") else "creation" if jeu.has("creation") else "jouer", jeu))
+	if jeu.has("quitter"):
+		_quitter()
+		return
+	_suivre(_pont.appeler("fiche" if jeu.has("fiche") else "creation" if jeu.has("creation") else "lancer" if jeu.has("lancer") else "jouer", jeu))
+
+
+## La partie quittée (`quitter`) : l'accueil revient, d'où une autre s'ouvre ; un refus laisse l'écran tel quel.
+func _quitter() -> void:
+	if _pont.appeler("quitter").get("ok") != true:
+		return
+	_pont.au_groupe = false
+	_pont.essai = false
+	get_tree().change_scene_to_file("res://scenes/Accueil.tscn")
 
 
 func _reprendre(jeton: int) -> void:

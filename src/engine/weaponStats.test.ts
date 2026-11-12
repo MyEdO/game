@@ -13,7 +13,7 @@ describe('weaponStatParts (composeur partagé des stats d’arme)', () => {
   });
 
   it('distance : Portée en mètres, pas d’Allonge (range prime)', () => {
-    const parts = weaponStatParts(item({ kind: 'ranged', damage: { plusBF: true, flat: 3 }, range: 50 }), { bf: 4, passif: 0 });
+    const parts = weaponStatParts(item({ kind: 'distance', damage: { plusBF: true, flat: 3 }, range: 50 }), { bf: 4, passif: 0 });
     expect(parts).toEqual(['Dégâts +BF+3 (7)', 'Portée 50 m']);
   });
 
@@ -36,11 +36,11 @@ describe('weaponStatParts (composeur partagé des stats d’arme)', () => {
   });
 
   it('arme de JET : Portée RÉSOLUE en mètres avec le BF (spec {bf} → BF×N)', () => {
-    const parts = weaponStatParts(item({ kind: 'ranged', damage: { plusBF: true, flat: 0, bare: true }, range: { bf: 3 } }), { bf: 4, passif: 0 });
+    const parts = weaponStatParts(item({ kind: 'distance', damage: { plusBF: true, flat: 0, bare: true }, range: { bf: 3 } }), { bf: 4, passif: 0 });
     expect(parts).toContain('Portée 12 m'); // BF4 × 3
     expect(parts.join(' · ')).not.toContain('[object Object]');
     // Dynamique : un BF différent change la Portée.
-    expect(weaponStatParts(item({ kind: 'ranged', damage: { literal: 'Spécial' }, range: { bf: 3 } }), { bf: 2, passif: 0 })).toContain('Portée 6 m');
+    expect(weaponStatParts(item({ kind: 'distance', damage: { literal: 'Spécial' }, range: { bf: 3 } }), { bf: 2, passif: 0 })).toContain('Portée 6 m');
   });
 });
 

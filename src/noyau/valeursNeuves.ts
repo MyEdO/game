@@ -218,7 +218,7 @@ export function newOp(op: GameOp['op'] | string): GameOp {
     case 'senseLoss': return { op: 'senseLoss', sense: 'vue' };
     case 'loseTurn': return { op: 'loseTurn' };
     case 'removeShipPoste': return { op: 'removeShipPoste' };
-    case 'weaponRollMod': return { op: 'weaponRollMod', phase: 'attack', drMod: -1 };
+    case 'weaponRollMod': return { op: 'weaponRollMod', phase: 'attaque', drMod: -1 };
     case 'weaponDamageMod': return { op: 'weaponDamageMod', mode: 'maxUnits' };
     case 'armourPierce': return { op: 'armourPierce', amount: 1 };
     case 'critOnRoll': return { op: 'critOnRoll', mod: 10, equals: 0 };

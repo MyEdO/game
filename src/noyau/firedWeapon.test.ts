@@ -23,7 +23,7 @@ describe('firedWeapon : honore weaponUid', () => {
 
 describe('firedWeapon : sous-effectif d’une pièce SERVIE (poste, MDG 12) — bake selon les servants présents', () => {
   const cannon = (): Weapon =>
-    ({ uid: 'cannon', label: 'Canon', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 100,
+    ({ uid: 'cannon', label: 'Canon', type: 'distance', damage: { plusBF: false, flat: 9 }, range: 100,
       qualities: [{ id: 'arme-d-equipe', value: 3 }], reload: 3, hand: 'main', hands: 2 }) as Weapon;
   const chef = (crewIds: string[]): Combatant =>
     ({ id: 'chef', name: 'Chef', kind: 'hero', pos: { x: 0, y: 0 }, size: 3, weapons: [cannon()],

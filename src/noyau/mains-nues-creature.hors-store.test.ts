@@ -18,7 +18,7 @@ describe('créature sans Trait d’arme — Mains nues', () => {
     const cible = statblockToCombatant(profil('Cible'), 'cible', { x: 1, y: 0 });
     const [poings] = brute.weapons;
     expect(poings.builtinId).toBe('mains-nues');
-    const res = resolveMelee(brute, cible, poings, makeRNG(1), { defense: 'none' });
+    const res = resolveMelee(brute, cible, poings, makeRNG(1), { defense: 'aucune' });
     expect(res).toMatchObject({ hit: true, attackerRoll: 63, netSL: 3, damage: 6 });
   });
 });

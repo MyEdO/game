@@ -30,8 +30,8 @@ const mkWeapon = (over: Partial<Weapon> = {}): Weapon => ({
 
 const epee = mkWeapon({ label: 'Épée', type: 'melee' });
 const hache = mkWeapon({ label: 'Hache', type: 'melee' });
-const fleche = mkWeapon({ label: 'Flèche', type: 'ranged' });
-const canon = mkWeapon({ label: 'Canon', type: 'ranged', qualities: [{ id: 'siege' }] }); // Atout Siège (ADE II 08 l.292)
+const fleche = mkWeapon({ label: 'Flèche', type: 'distance' });
+const canon = mkWeapon({ label: 'Canon', type: 'distance', qualities: [{ id: 'siege' }] }); // Atout Siège (ADE II 08 l.292)
 const belier = mkWeapon({ label: 'Bélier', type: 'melee', qualities: [{ id: 'siege' }, { id: 'belier' }] }); // Siège + portes uniquement (l.249)
 
 const struct = (id: string): Combatant => structureCombatant(findStructureById(id)!);

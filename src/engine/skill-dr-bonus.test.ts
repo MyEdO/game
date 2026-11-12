@@ -56,12 +56,12 @@ describe('incomingAttackLines — le modificateur imposé à l’attaquant, à l
       .toEqual([{ label: refLabel('traits', { id: 'parasite' }), value: -10, famille: 'circonstance', ref: { category: 'traits', id: 'parasite' } }]);
   });
   it('Nuée : +40 au tir (l.253), rien en mêlée', () => {
-    expect(incomingAttackLines(mk({ traits: [{ id: 'nuee' }] }), 'ranged'))
+    expect(incomingAttackLines(mk({ traits: [{ id: 'nuee' }] }), 'distance'))
       .toEqual([{ label: refLabel('traits', { id: 'nuee' }), value: 40, famille: 'circonstance', ref: { category: 'traits', id: 'nuee' } }]);
     expect(incomingAttackLines(mk({ traits: [{ id: 'nuee' }] }), 'melee')).toEqual([]);
   });
   it('aucun effet à distance pour Parasité, ni sans trait', () => {
-    expect(incomingAttackLines(mk({ traits: [{ id: 'parasite' }] }), 'ranged')).toEqual([]);
+    expect(incomingAttackLines(mk({ traits: [{ id: 'parasite' }] }), 'distance')).toEqual([]);
     expect(incomingAttackLines(mk(), 'melee')).toEqual([]);
   });
 });

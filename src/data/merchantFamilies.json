@@ -16,7 +16,7 @@
     "type": "merchantFamilies",
     "label": "Armes à distance",
     "match": {
-      "categorie": "ranged"
+      "categorie": "distance"
     },
     "columns": [
       "damage",

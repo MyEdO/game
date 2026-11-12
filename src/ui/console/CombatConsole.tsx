@@ -495,7 +495,7 @@ export function CombatConsole() {
   const armeDuPanneau = useGame((s) => {
     const b = s.battle;
     const a = b ? activeCombatant(b) : undefined;
-    return a ? `${activeLoadout(a)?.id ?? ''}|${a.weapons.filter((w) => w.type === 'ranged').map((w) => w.uid).join(',')}` : '';
+    return a ? `${activeLoadout(a)?.id ?? ''}|${a.weapons.filter((w) => w.type === 'distance').map((w) => w.uid).join(',')}` : '';
   });
   useEffect(() => { setAmmoOuvert(null); setRechargeOuverte(false); setGeste2eOuvert(null); }, [armeDuPanneau]);
 
