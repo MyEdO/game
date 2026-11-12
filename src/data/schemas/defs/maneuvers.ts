@@ -22,7 +22,7 @@ const doc = document(
   {
     kind: attackKindSchema,
     activation: enumNomme({ action: 'Action', free: 'Gratuite (coût d’Avantage)', charge: 'À la Charge' }),
-    advantageCost: z.number(),
+    coutEnAvantage: z.number(),
     advantageMode: enumNomme({ fixed: 'Coût fixe', variable: 'Au choix (+1 DR/Av)', all: 'Tout l’Avantage' }).optional(),
     stat: enumNomme({ 'capacite-de-combat': 'CC (mêlée)', 'capacite-de-tir': 'CT (distance)' }).optional(),
     defense: enumNomme({ esquive: 'Esquive', parade: 'Parade', init: 'Initiative', resist: 'Résistance (cible)', auto: 'Meilleure (auto)' }).optional(),
@@ -46,7 +46,7 @@ const doc = document(
   {
     kind: { label: 'Type d’attaque (rendu)', hint: 'Anime et illustre la manœuvre — n’entre pas dans la résolution' },
     activation: { label: 'Activation', hint: 'Action / gratuite / charge' },
-    advantageCost: { label: 'Coût en Avantage' },
+    coutEnAvantage: { label: 'Coût en Avantage' },
     advantageMode: { label: 'Mode de coût', hint: 'Fixe / variable / tout l’Avantage' },
     stat: { label: 'Caractéristique de test' },
     defense: { label: 'Défense opposée' },

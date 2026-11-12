@@ -7,7 +7,7 @@ import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import type { Combatant } from './types';
 import { applyOps, resolveFormula } from './ops';
-import { spells, findSpellById, type SpellData } from '../data';
+import { spells, gods, findSpellById, type SpellData } from '../data';
 import { spellOps } from './flowCore';
 import { spellSupportOf } from './spellspec';
 import { desDuTest } from './dice.testkit';
@@ -58,14 +58,16 @@ describe('specs curées — résolution', () => {
 });
 
 describe('registre — couverture', () => {
-  it('les 19 Bénédictions sont au registre', () => {
-    expect(spells.filter((s) => s.ecole === 'Béni')).toHaveLength(19);
+  it('les Bénédictions du registre sont exactement celles des cultes (LDB 41 l.5)', () => {
+    const beni = spells.filter((s) => s.ecole === 'Béni').map((s) => s.id);
+    expect(beni.length).toBeGreaterThan(0);
+    expect(new Set(beni)).toEqual(new Set(gods.flatMap((g) => g.blessings)));
   });
 });
 
 describe('spellSupport — seul ce qui PRODUIT un effet compte mécanique', () => {
   const sansOp = (p: Partial<SpellData>): SpellData => ({
-    ...findSpellById('explosion')!, missile: false, effects: { kind: 'seq', steps: [] },
+    ...findSpellById('explosion')!, missile: false, effects: { kind: 'sequence', etapes: [] },
     target: { kind: 'area', span: 'diameter', meters: 8 }, ...p,
   });
 

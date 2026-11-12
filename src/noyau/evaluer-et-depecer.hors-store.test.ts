@@ -216,10 +216,10 @@ describe('la fenêtre du butin : chaque ligne porte le refus du geste qu’elle 
 });
 
 describe('approvisionnerLArme : une munition que le porteur de l’arme ne porte pas est refusée, et dite, sans écriture', () => {
-  const ranged = (c: Combatant): Weapon => c.weapons.find((w) => w.type === 'ranged')!;
+  const ranged = (c: Combatant): Weapon => c.weapons.find((w) => w.type === 'distance')!;
   function archer() {
     const H = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
-    H.weapons = [{ uid: 'w-arb', label: 'Arbalète', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [{ id: 'recharge', value: 1 }], subType: 'Arbalète', reload: 1 }];
+    H.weapons = [{ uid: 'w-arb', label: 'Arbalète', type: 'distance', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [{ id: 'recharge', value: 1 }], subType: 'Arbalète', reload: 1 }];
     H.items = [{ uid: 'am1', label: 'Carreau', kind: 'ammo', qualities: [], enc: 0, equipped: false, subType: 'Arbalète', qty: 2 } as ItemInstance];
     ranged(H).ammoUid = 'am1';
     H.pos = { x: 0, y: 0 };

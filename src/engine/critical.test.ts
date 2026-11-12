@@ -44,14 +44,14 @@ const cible = (E = 30): Combatant =>
 const LOCS: readonly HitLocation[] = LOCALISATIONS_DE_COUP;
 const JEUX: JeuDeCritique[] = ['ldb', 'aa'];
 
-/** Étapes d'un Flow rendu en `seq` (le nœud puis sa suite) — lecture NOMINATIVE, aucune forme supposée. */
-const flowEtapes = (f: Flow | undefined): Flow[] => (f && f.kind === 'seq' ? f.steps : f ? [f] : []);
+/** Étapes d'un Flow rendu en `sequence` (le nœud puis sa suite) — lecture NOMINATIVE, aucune forme supposée. */
+const flowEtapes = (f: Flow | undefined): Flow[] => (f && f.kind === 'sequence' ? f.etapes : f ? [f] : []);
 /** Le nœud `test` d'un Flow qui EN EST un — rouge nommé sinon (jamais un `undefined` silencieux). */
 function noeudDeTest(f: Flow | undefined): FlowTestNode {
   if (!f || f.kind !== 'test') throw new Error(`noeud test attendu, recu : ${f ? f.kind : 'rien'}`);
   return f;
 }
-/** Ops d'une feuille `do` — la conséquence telle qu'elle partira à `applyOps`. */
+/** Ops d'une feuille `effet` — la conséquence telle qu'elle partira à `applyOps`. */
 const opsDe = (f: Flow | undefined): GameOp[] => spellOps(f, 'target');
 /** Le Flow d'amputation d'une rangée NOMMÉE — dé de sévérité FORCÉ sur son propre `min`. */
 function critFlowAmputation(jeu: JeuDeCritique, loc: HitLocation, entryId: string): Flow | undefined {
@@ -101,7 +101,7 @@ describe.each(JEUX)('resolveCritique (%s) — invariants partagés par les deux 
         count++;
         expect(e.test.kind, `${e.id}`).toBe('test');
         expect(e.test.test.difficulty, `${e.id} : difficulté absente`).toBeTruthy();
-        expect(spellOps(e.test.fail, 'target').length, `${e.id} : branche fail vide`).toBeGreaterThan(0);
+        expect(spellOps(e.test.echec, 'target').length, `${e.id} : branche fail vide`).toBeGreaterThan(0);
       }
     }
     expect(count).toBeGreaterThan(0);
@@ -262,14 +262,14 @@ describe('Livre de base (LDB 18 « Traumatisme ») — lignes nommées', () => {
     const n = r.testFlow as Extract<typeof r.testFlow, { kind: 'test' }>;
     expect(n.kind).toBe('test');
     expect(n.test.skill).toEqual({ id: 'resistance' }); // LDB 18 l.164 : « Test de Résistance » (la COMPÉTENCE)
-    expect(spellOps(n.fail, 'target')).toContainEqual({ op: 'charMod', characteristic: 'agilite', mod: -10, durationRounds: 2 });
-    expect(spellOps(n.success, 'target')).toEqual([]); // Test réussi : aucune pénalité
+    expect(spellOps(n.echec, 'target')).toContainEqual({ op: 'charMod', characteristic: 'agilite', mod: -10, durationRounds: 2 });
+    expect(spellOps(n.reussite, 'target')).toEqual([]); // Test réussi : aucune pénalité
     expect(r.ops.some((o) => o.op === 'charMod')).toBe(false); // l'issue vient de la porte, pas du moteur
   });
   it('l’entrée porte une note maison traçant la valeur `durationRounds` (règle stricte 7)', () => {
     const e = critiqueTable('ldb', 'jambeD').find((x) => x.id === 'orteil-contusionne')!;
     expect(e.maison).toBeTruthy();
-    expect(spellOps(e.test!.fail, 'target')[0]).toMatchObject({ op: 'charMod', characteristic: 'agilite', mod: -10, durationRounds: 2 });
+    expect(spellOps(e.test!.echec, 'target')[0]).toMatchObject({ op: 'charMod', characteristic: 'agilite', mod: -10, durationRounds: 2 });
   });
 
   // « Tendon rompu » (71-75) : « Votre jambe devient inutilisable (voir Membres Amputés) » = disable DIRECT,
@@ -298,10 +298,10 @@ describe('Livre de base (LDB 18 « Traumatisme ») — lignes nommées', () => {
   it('Pied écrasé : sur un ÉCHEC à −2 DR, l’op retire 3 orteils SANS doubler la plaie à échéance', () => {
     const r = resolveCritique('ldb', cible(30), 'jambeD', seq(92, 5));
     const n = noeudDeTest(r.testFlow);
-    const fail = n.fail as Extract<Flow, { kind: 'seq' }>;
+    const fail = n.echec as Extract<Flow, { kind: 'sequence' }>;
     const c = cible(30);
     c.traumas = avecSequelles(c.traumas, r.traumas);
-    applyOps(c, opsDe(fail.steps[fail.steps.length - 1]), { idNeuf: idsDeTest, rng: desDuTest, sl: -2 });
+    applyOps(c, opsDe(fail.etapes[fail.etapes.length - 1]), { idNeuf: idsDeTest, rng: desDuTest, sl: -2 });
     const orteil = c.traumas!.find((t) => t.traumaId === 'orteil-ampute')!;
     expect(orteil.count).toBe(3); // 1 + 2 DR
     expect(orteil.ops).toContainEqual({ op: 'charMod', characteristic: 'agilite', mod: -3 });
@@ -312,7 +312,7 @@ describe('Livre de base (LDB 18 « Traumatisme ») — lignes nommées', () => {
   });
   it('Pied écrasé : Test RÉUSSI → aucun orteil perdu, mais le pied reste une plaie chirurgicale', () => {
     const r = resolveCritique('ldb', cible(30), 'jambeD', seq(92, 7));
-    expect(spellOps(noeudDeTest(r.testFlow).success, 'target')).toEqual([]); // réussite : rien
+    expect(spellOps(noeudDeTest(r.testFlow).reussite, 'target')).toEqual([]); // réussite : rien
     const plaie = r.traumas.find((t) => t.needsSurgery && t.label === 'Amputation')!;
     expect(plaie.amputateAfterDays).toBe(7);
     expect(plaie.amputateSequel).toBe('membre-inferieur-ampute');
@@ -338,7 +338,7 @@ describe('Aux Armes (AA 07, approche alternative) — lignes nommées', () => {
     expect(r.ops).toEqual([{ op: 'wounds', amount: 1, ignoreTB: true, ignoreAP: true }, { op: 'condition', id: { id: 'sonne' }, value: 1 }]);
     const n = r.testFlow as Extract<typeof r.testFlow, { kind: 'test' }>;
     expect(n.test.difficulty).toBe('facile');
-    expect(spellOps(n.fail, 'target')).toEqual([{ op: 'condition', id: { id: 'a-terre' }, value: 1 }]);
+    expect(spellOps(n.echec, 'target')).toEqual([{ op: 'condition', id: { id: 'a-terre' }, value: 1 }]);
   });
 
   it('lignes triviales « T » (l.79) DÉRIVÉES — non létales et sans perte de Blessure', () => {
@@ -406,7 +406,7 @@ describe('Aux Armes (AA 07, approche alternative) — lignes nommées', () => {
     expect(r.label).toBe('Orteil contusionné');
     expect(r.ops).toEqual([]); // aucun effet immédiat : tout tient au Test
     const n = r.testFlow as Extract<typeof r.testFlow, { kind: 'test' }>;
-    expect(spellOps(n.fail, 'target')).toEqual([{ op: 'charMod', characteristic: 'agilite', mod: -10, durationRounds: 1 }]);
+    expect(spellOps(n.echec, 'target')).toEqual([{ op: 'charMod', characteristic: 'agilite', mod: -10, durationRounds: 1 }]);
   });
 
   it('« Perte d’équilibre » (jambe 11-20, l.165) : le nœud teste l’ATHLÉTISME, pas la Résistance', () => {
@@ -414,7 +414,7 @@ describe('Aux Armes (AA 07, approche alternative) — lignes nommées', () => {
     expect(r.label).toBe("Perte d'équilibre");
     const n = r.testFlow as Extract<typeof r.testFlow, { kind: 'test' }>;
     expect(n.test.skill).toEqual({ id: 'athletisme' }); // AA 07 l.165
-    expect(spellOps(n.fail, 'target')).toEqual([{ op: 'condition', id: { id: 'a-terre' }, value: 1 }]);
+    expect(spellOps(n.echec, 'target')).toEqual([{ op: 'condition', id: { id: 'a-terre' }, value: 1 }]);
     expect(critiqueTable('aa', 'jambeG').find((e) => e.id === 'aa-jambe-11')!.test!.test.skill).toEqual({ id: 'athletisme' });
   });
 
@@ -430,20 +430,20 @@ describe('Aux Armes (AA 07, approche alternative) — lignes nommées', () => {
     const [noeud, perte] = flowEtapes(r.testFlow);
     expect(noeudDeTest(noeud).test.skill).toEqual({ id: 'resistance' });   // LDB 18 l.237
     expect(noeudDeTest(noeud).test.difficulty).toBe('accessible');
-    expect(spellOps(noeudDeTest(noeud).success, 'target')).toEqual([]);
+    expect(spellOps(noeudDeTest(noeud).reussite, 'target')).toEqual([]);
     expect(opsDe(perte)).toEqual([{ op: 'amputer', sequels: ['oreille-perdue'], loc: 'tete' }]);
   });
 
   it('« Oreille mutilée » : les États du Test sont ÉCHELONNÉS par DR dans la branche `fail` (l.237)', () => {
     const n = noeudDeTest(flowEtapes(resolveCritique('aa', cible(), 'tete', seq(63)).testFlow)[0]);
-    const fail = n.fail as Extract<Flow, { kind: 'seq' }>;
-    expect(opsDe(fail.steps[0])).toEqual([{ op: 'condition', id: { id: 'a-terre' }, value: 1 }]);
-    const paliers = fail.steps.slice(1).map((etape) => etape as Extract<Flow, { kind: 'if' }>);
-    expect(paliers.map((pal) => pal.cond)).toEqual([
+    const fail = n.echec as Extract<Flow, { kind: 'sequence' }>;
+    expect(opsDe(fail.etapes[0])).toEqual([{ op: 'condition', id: { id: 'a-terre' }, value: 1 }]);
+    const paliers = fail.etapes.slice(1).map((etape) => etape as Extract<Flow, { kind: 'si' }>);
+    expect(paliers.map((pal) => pal.condition)).toEqual([
       { kind: 'slThreshold', op: '<=', value: -2 },
       { kind: 'slThreshold', op: '<=', value: -4 },
     ]);
-    expect(paliers.map((pal) => opsDe(pal.then))).toEqual([
+    expect(paliers.map((pal) => opsDe(pal.alors))).toEqual([
       [{ op: 'condition', id: { id: 'sonne' }, value: 1 }],
       [{ op: 'condition', id: { id: 'inconscient' }, value: 1 }],
     ]);
@@ -465,18 +465,18 @@ describe('Aux Armes (AA 07, approche alternative) — lignes nommées', () => {
     expect(r.label).toBe('Pied écrasé');
     const n = noeudDeTest(r.testFlow);                         // un seul nœud : la perte est dans SA branche
     expect(n.test.difficulty).toBe('accessible');
-    expect(spellOps(n.success, 'target')).toEqual([]);          // réussi → aucun orteil, aucun État
-    const fail = n.fail as Extract<Flow, { kind: 'seq' }>;
-    expect(opsDe(fail.steps[fail.steps.length - 1])).toEqual([
+    expect(spellOps(n.reussite, 'target')).toEqual([]);          // réussi → aucun orteil, aucun État
+    const fail = n.echec as Extract<Flow, { kind: 'sequence' }>;
+    expect(opsDe(fail.etapes[fail.etapes.length - 1])).toEqual([
       { op: 'amputer', sequels: ['orteil-ampute'], loc: 'jambeD', unitesPerSL: { every: 1, amount: 1, onFailure: true } },
     ]);
   });
 
   it('« Pied écrasé » : sur un DR INJECTÉ de −3, l’op retire 1 + 3 = 4 orteils (l.180)', () => {
     const n = noeudDeTest(resolveCritique('aa', cible(), 'jambeD', seq(50, 5), { overkill: 6 }).testFlow);
-    const fail = n.fail as Extract<Flow, { kind: 'seq' }>;
+    const fail = n.echec as Extract<Flow, { kind: 'sequence' }>;
     const c = cible();
-    applyOps(c, opsDe(fail.steps[fail.steps.length - 1]), { idNeuf: idsDeTest, rng: desDuTest, sl: -3 });
+    applyOps(c, opsDe(fail.etapes[fail.etapes.length - 1]), { idNeuf: idsDeTest, rng: desDuTest, sl: -3 });
     expect(c.traumas!.find((t) => t.traumaId === 'orteil-ampute')!.count).toBe(4);
     expect(c.traumas!.some((t) => t.needsSurgery)).toBe(true);  // la plaie chirurgicale suit la séquelle
   });
@@ -553,15 +553,15 @@ describe.each([
     const gate = noeudDeTest(marqueur().traumas.find((t) => t.pendingAmputation)!.pendingAmputation);
     expect(gate.test.skill).toEqual({ id: 'resistance' });
     expect(gate.test.difficulty).toBe('intermediaire');
-    expect(spellOps(gate.success, 'target')).toEqual([]);   // gate réussi → PAS d'amputation du tout
-    const [interne, perte] = flowEtapes(gate.fail);
+    expect(spellOps(gate.reussite, 'target')).toEqual([]);   // gate réussi → PAS d'amputation du tout
+    const [interne, perte] = flowEtapes(gate.echec);
     expect(noeudDeTest(interne).test.difficulty).toBe('accessible');
     expect(opsDe(perte)).toEqual([{ op: 'amputer', sequels: ['orteil-ampute'], loc: 'jambeD' }]);
   });
 
   it('les DEUX Tests portent des LIBELLÉS distincts — deux « Résistance » homonymes seraient injoignables', () => {
     const gate = noeudDeTest(marqueur().traumas.find((t) => t.pendingAmputation)!.pendingAmputation);
-    const interne = noeudDeTest(flowEtapes(gate.fail)[0]);
+    const interne = noeudDeTest(flowEtapes(gate.echec)[0]);
     expect(gate.test.label).toBe("Coupure à l'orteil");
     expect(interne.test.label).toBe('Amputation');
   });

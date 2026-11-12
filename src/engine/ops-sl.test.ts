@@ -93,17 +93,17 @@ describe('PerSL — échelle « par +N DR » (OpsCtx.sl)', () => {
     const trait = findTraitById('hallucinogene');
     const flow = trait?.effects?.[0]?.flow as Extract<Flow, { kind: 'test' }> | undefined;
     expect(flow?.kind).toBe('test');
-    const fail = flow!.fail as Extract<Flow, { kind: 'do' }>;
-    expect(fail.effect.type).toBe('ops');
+    const fail = flow!.echec as Extract<Flow, { kind: 'effet' }>;
+    expect(fail.effet.type).toBe('ops');
     const c2 = dummy();
-    applyOps(c2, (fail.effect as { ops: Parameters<typeof applyOps>[1] }).ops, { idNeuf: idsDeTest, rng: desDuTest, sl: -2 });
+    applyOps(c2, (fail.effet as { ops: Parameters<typeof applyOps>[1] }).ops, { idNeuf: idsDeTest, rng: desDuTest, sl: -2 });
     expect(stacks(c2, 'sonne')).toBe(2);
     const c1 = dummy();
-    applyOps(c1, (fail.effect as { ops: Parameters<typeof applyOps>[1] }).ops, { idNeuf: idsDeTest, rng: desDuTest, sl: -1 });
+    applyOps(c1, (fail.effet as { ops: Parameters<typeof applyOps>[1] }).ops, { idNeuf: idsDeTest, rng: desDuTest, sl: -1 });
     expect(stacks(c1, 'sonne')).toBe(1);
-    // réussite = branche `success` vide (aucun op) → aucune mutation.
-    const success = flow!.success as Extract<Flow, { kind: 'seq' }>;
-    expect(success.steps).toHaveLength(0);
+    // réussite = branche `reussite` vide (aucun op) → aucune mutation.
+    const success = flow!.reussite as Extract<Flow, { kind: 'sequence' }>;
+    expect(success.etapes).toHaveLength(0);
   });
 });
 

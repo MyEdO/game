@@ -36,7 +36,8 @@ import { reliefDefaultsSchema } from '../../data/schemas/defs-scenes/scene';
 import type { EnveloppeDocument } from '../../data/schemas/grammaire/document';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
 import { shipSizeSchema } from '../../data/schemas/grammaire/valeurs';
-import { outcomeOnSchema, battleCondSchema, battleOutcomeTargetSchema, battleOutcomeScaleSchema, battleSideSchema } from '../../data/schemas/defs/activities';
+import { outcomeOnSchema, battleCondSchema, battleOutcomeTargetSchema, battleOutcomeScaleSchema } from '../../data/schemas/defs/activities';
+import { equipeSchema } from '../../data/schemas/grammaire/valeurs';
 import { phenomenonKindSchema, phenomenonTestSchema, saturationTierSchema } from '../../data/schemas/defs/arcane-phenomena';
 import { drivingMishapOutcomeSchema } from '../../data/schemas/defs/driving-mishap';
 import { drunkennessOutcomeSchema } from '../../data/schemas/defs/drunkenness';
@@ -478,7 +479,7 @@ function outcomeBandsSection(bands?: OutcomeBand[]): CodexSection | null {
     // `rollTable` expansé en ses rangées), jamais un compte. Même projection que « Tables d'effets ».
     if (b.ops?.length) rows.push(...opRows(b.ops));
     for (const o of b.battle ?? [])
-      rows.push({ t: 'kv', k: tr('codex.fiche.bataille'), v: `${libelleDeValeur(battleOutcomeTargetSchema, o.target)} ${libelleDeValeur(battleOutcomeScaleSchema, o.scale)} ${o.amount >= 0 ? '+' : ''}${o.amount}${o.side ? ` (${libelleDeValeur(battleSideSchema, o.side)})` : ''}` });
+      rows.push({ t: 'kv', k: tr('codex.fiche.bataille'), v: `${libelleDeValeur(battleOutcomeTargetSchema, o.target)} ${libelleDeValeur(battleOutcomeScaleSchema, o.scale)} ${o.amount >= 0 ? '+' : ''}${o.amount}${o.side ? ` (${libelleDeValeur(equipeSchema, o.side)})` : ''}` });
     if (b.chains?.length) rows.push({ t: 'kv', k: tr('codex.fiche.enchaine'), v: b.chains.join(', ') });
   }
   return { title: tr('codex.fiche.issuesParDegresDeReussite'), layout: 'list', rows };
@@ -684,10 +685,10 @@ function makeCategory(key: CleCodex, spec: CodexCategorySpec): CodexCategory {
 function noeudsDeTest(f: Flow | undefined): FlowTestNode[] {
   if (!f) return [];
   switch (f.kind) {
-    case 'test': return [f, ...noeudsDeTest(f.success), ...noeudsDeTest(f.fail)];
-    case 'seq': return f.steps.flatMap(noeudsDeTest);
-    case 'if': return [...noeudsDeTest(f.then), ...noeudsDeTest(f.else)];
-    case 'choice': return [...noeudsDeTest(f.oui), ...noeudsDeTest(f.non)];
+    case 'test': return [f, ...noeudsDeTest(f.reussite), ...noeudsDeTest(f.echec)];
+    case 'sequence': return f.etapes.flatMap(noeudsDeTest);
+    case 'si': return [...noeudsDeTest(f.alors), ...noeudsDeTest(f.sinon)];
+    case 'choix': return [...noeudsDeTest(f.oui), ...noeudsDeTest(f.non)];
     default: return [];
   }
 }
@@ -696,7 +697,7 @@ function noeudsDeTest(f: Flow | undefined): FlowTestNode[] {
  * Ops d'un Flow SANS FRANCHIR un jet — la conséquence de CE niveau, les sous-jets exclus. C'est ce qui
  * distingue « ce que ce jet applique » de « ce que le jet suivant appliquera » : `spellOps` descend dans
  * les branches d'un `test` imbriqué et ferait promettre à un jet les États du suivant (« Coupure à
- * l'orteil » : le gate l.171 annoncerait les États du Test l.237). Les `if` sont TRAVERSÉS (leurs deux
+ * l'orteil » : le gate l.171 annoncerait les États du Test l.237). Les `si` sont TRAVERSÉS (leurs deux
  * branches font partie de la conséquence de ce niveau — l'échelle de DR de l.237), les `test` NON.
  * Sur le Flow entier, la même marche rend l'amputation que la ligne PRONONCE hors de tout jet
  * (« Vous perdez votre main – Amputation (Difficile) », LDB 18 l.124). Question DISTINCTE de
@@ -704,9 +705,9 @@ function noeudsDeTest(f: Flow | undefined): FlowTestNode[] {
  */
 function opsHorsJet(f: Flow | undefined): GameOp[] {
   if (!f) return [];
-  if (f.kind === 'seq') return f.steps.flatMap(opsHorsJet);
-  if (f.kind === 'if') return [...opsHorsJet(f.then), ...opsHorsJet(f.else)];
-  if (f.kind === 'do' && f.effect.type === 'ops') return f.effect.ops;
+  if (f.kind === 'sequence') return f.etapes.flatMap(opsHorsJet);
+  if (f.kind === 'si') return [...opsHorsJet(f.alors), ...opsHorsJet(f.sinon)];
+  if (f.kind === 'effet' && f.effet.type === 'ops') return f.effet.ops;
   return [];
 }
 
@@ -740,9 +741,9 @@ function critEntryItem(e: CritTableEntry, jeu: JeuDeCritique, table: CritTableKe
     ),
     sections: sections(
       passiveSection(e.ops, tr('codex.fiche.effetImmediat')),
-      jet ? passiveSection(opsHorsJet(jet.fail), tr('codex.fiche.siLeJetEchoue')) : null,
-      jet ? passiveSection(opsHorsJet(jet.success), tr('codex.fiche.siLeJetReussit')) : null,
-      ...jetsAmp.map((n) => passiveSection(opsHorsJet(n.fail), tr('codex.fiche.siLeJetEchoue2', { v: libelleDeJet(n) }))),
+      jet ? passiveSection(opsHorsJet(jet.echec), tr('codex.fiche.siLeJetEchoue')) : null,
+      jet ? passiveSection(opsHorsJet(jet.reussite), tr('codex.fiche.siLeJetReussit')) : null,
+      ...jetsAmp.map((n) => passiveSection(opsHorsJet(n.echec), tr('codex.fiche.siLeJetEchoue2', { v: libelleDeJet(n) }))),
       // L'amputation que la ligne PRONONCE (22 rangées sur 26 : « Vous perdez votre main ») vit HORS des
       // branches — sans cette section, le Codex ne montrerait que le jet et tairait la perte elle-même.
       passiveSection(opsHorsJet(amputation), tr('codex.fiche.amputationQuoiQueDonneLeJet')),
@@ -803,7 +804,7 @@ function shipCritEntryItem(e: ShipCritEntry, jeu: ShipCritSet): CodexItem {
             ],
           }
         : null,
-      ch ? passiveSection(ch.test ? spellOps(ch.test.fail, 'target') : ch.ops, ch.test ? tr('codex.fiche.consequenceEchecDuTest') : tr('codex.fiche.consequenceCertaine')) : null,
+      ch ? passiveSection(ch.test ? spellOps(ch.test.echec, 'target') : ch.ops, ch.test ? tr('codex.fiche.consequenceEchecDuTest') : tr('codex.fiche.consequenceCertaine')) : null,
     ),
   });
 }
@@ -1296,7 +1297,7 @@ const CODEX_SPECS = {
           {
             title: tr('codex.fiche.autresDangers'), layout: 'list',
             rows: [
-              { t: 'kv', k: tr('codex.fiche.horsDeControle'), v: tr('codex.fiche.navigation', { navPenalty: n.outOfControl.navPenalty }) } as CodexRow,
+              { t: 'kv', k: tr('codex.fiche.horsDeControle'), v: tr('codex.fiche.navigation', { navPenalty: n.horsDeControle.navPenalty }) } as CodexRow,
               { t: 'kv', k: tr('codex.fiche.sEchouer'), v: tr('codex.fiche.degatsDeCoque', { hullDamage: n.echouage.hullDamage }) } as CodexRow,
               { t: 'kv', k: tr('codex.fiche.reparationTemporaire'), v: tr('codex.fiche.charpentierBlessures', { v: DIFFICULTY_LABELS[n.temporaryRepair.difficulty], charpentierPenalty: n.temporaryRepair.charpentierPenalty, v2: formatDice(n.temporaryRepair.woundsPerRepair.dice) }) } as CodexRow,
             ],
@@ -1483,7 +1484,7 @@ const CODEX_SPECS = {
       ].filter(Boolean) as string[];
       // Allonge = mêlée, Portée = distance (LDB 62). Tir/munition : « Portée 50 m » (fixe) / « BF×3 m » (jet)
       // sinon le modificateur de munition (« Portée ×½ », `ammoRangeModLabel`) ; jamais « Allonge 50 ».
-      const reachFact = (t.categorie === 'ranged' || t.categorie === 'ammunition')
+      const reachFact = (t.categorie === 'distance' || t.categorie === 'ammunition')
         ? fact(tr('codex.fiche.portee'), rangeSpecLabel(t.range) ?? ammoRangeModLabel(t.ammoRangeMod))
         : fact(tr('codex.fiche.allonge'), t.reach);
       return depuisEnveloppe(t, {
@@ -1561,9 +1562,9 @@ const CODEX_SPECS = {
               rows: [
                 { t: 'kv', k: tr('codex.fiche.difficulte'), v: s.onTick.test?.test.difficulty ? DIFFICULTY_LABELS[s.onTick.test.test.difficulty] : tr('codex.fiche.inconditionnel') } as CodexRow,
                 s.onTick.afterDays ? ({ t: 'kv', k: tr('codex.fiche.declenchement'), v: tr('codex.fiche.jourDePhaseActive', { v: s.onTick.once ? tr('codex.fiche.uneFoisAu') : tr('codex.fiche.aPartirDu'), afterDays: s.onTick.afterDays }) } as CodexRow) : null,
-                // Conséquence : branche `fail` du nœud `test`, ou ops CERTAINES d'un cycle sans jet (ops
+                // Conséquence : branche `echec` du nœud `test`, ou ops CERTAINES d'un cycle sans jet (ops
                 // directes ou `rollTable` : table EXPANSÉE en rangées lisibles).
-                ...opRows(s.onTick.test ? spellOps(s.onTick.test.fail, 'target') : (s.onTick.ops ?? [])),
+                ...opRows(s.onTick.test ? spellOps(s.onTick.test.echec, 'target') : (s.onTick.ops ?? [])),
               ].filter((r): r is CodexRow => r != null),
             }
           : null,
@@ -1614,7 +1615,7 @@ const CODEX_SPECS = {
       sub: libelleDeValeur(attackKindSchema, m.kind), desc: traitProjectingManeuver(m.id)?.desc,
       meta: facts(
         fact(tr('codex.fiche.activation'), valeurFR('maneuvers.json', 'activation', m.activation)),
-        fact(tr('codex.fiche.coutAv'), m.advantageCost),
+        fact(tr('codex.fiche.coutAv'), m.coutEnAvantage),
         fact(tr('codex.fiche.portee'), m.range ? formatManeuverMeasure(m.range) : null),
         fact(tr('codex.fiche.cible'), valeurFR('maneuvers.json', 'targeting', m.targeting)),
       ),
@@ -1885,7 +1886,7 @@ const CODEX_SPECS = {
   massBattlePowerEstimate: {
     label: 'codex.fiche.batailleDeMasseEstimationDePuissance', group: 'tables', cluster: 'codex.fiche.batailleDeMasse',
     build: () => POWER_ESTIMATE.map((p) => depuisEnveloppe(p, {
-      meta: facts(fact(tr('codex.fiche.puissanceAlliee'), p.ally), fact(tr('codex.fiche.puissanceEnnemie'), p.enemy)),
+      meta: facts(fact(tr('codex.fiche.puissanceAlliee'), p.allie), fact(tr('codex.fiche.puissanceEnnemie'), p.ennemi)),
       desc: p.example,
     })),
   },
@@ -2607,7 +2608,7 @@ const CODEX_SPECS = {
           sp.effet === 'cran' ? tr('codex.fiche.cranPlusFacile', { steps: sp.steps, v: sp.steps > 1 ? 's' : '' }) : DIFFICULTY_LABELS[sp.difficulty]}`).join(' ; ') : null),
         fact(tr('codex.fiche.mode'), g.pot ? tr('codex.fiche.miseEtPotD', { die: formatDice(deDeLaTableTiree(g.pot)) })
           : g.volley ? tr('codex.fiche.voleeDeLancers', { throws: g.volley.throws })
-            : g.mode === 'extended' ? tr('codex.fiche.etenduDr', { v: g.target ?? '?' }) : tr('codex.fiche.opposeSimple')),
+            : g.mode === 'etendu' ? tr('codex.fiche.etenduDr', { v: g.target ?? '?' }) : tr('codex.fiche.opposeSimple')),
         fact(tr('codex.fiche.plafondDeDr'), g.drCap ?? null),
         fact(tr('codex.fiche.nombreCible'), g.pot?.targetRange ? fourchette(g.pot.targetRange.min, g.pot.targetRange.max) : null),
         fact(tr('codex.fiche.totalExact'), g.volley?.exact ?? null),

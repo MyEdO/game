@@ -124,7 +124,7 @@ function opDe(entree: unknown, op: string): Record<string, unknown> | undefined 
 
 describe('valeurs chiffrées des entités — la donnée porte le nombre du livre', () => {
   it('Nuée : +40 au tir contre elle (LDB 85 l.253) ; Parasité : −10 en mêlée (LDB 85 l.257)', () => {
-    expect(findTraitById('nuee')?.passive).toContainEqual({ op: 'incomingAttackMod', mode: 'ranged', amount: 40 });
+    expect(findTraitById('nuee')?.passive).toContainEqual({ op: 'incomingAttackMod', mode: 'distance', amount: 40 });
     expect(findTraitById('parasite')?.passive).toContainEqual({ op: 'incomingAttackMod', mode: 'melee', amount: -10 });
   });
   it('Salve : −10 par tir suivant (AA 10 l.262) ; Arme d’équipe : −10 par Défaut redoublé (MDG 12 l.460)', () => {

@@ -39,7 +39,7 @@ describe('l’exploration par le pont', () => {
     const morceaux = morceauxDe(appel, 'partie', monde);
     expect(morceaux.map((m) => [m.cle, m.empreinte]), 'chaque morceau du manifeste').toEqual(monde.morceaux.map((m) => [m.cle, m.empreinte]));
     expect(morceaux.reduce((n, m) => n + m.positions.length, 0), 'le sol de la scène, en triangles').toBeGreaterThanOrEqual(plateau.w * plateau.h * 2 * 9);
-    expect(morceaux.every((m) => m.cases.length === m.positions.length / 9), 'la case de chaque triangle').toBe(true);
+    expect(morceaux.every((m) => m.cases.length === m.positions.length / 3), 'la case de chaque triangle').toBe(true);
     expect(monde.hauteurs.map((c) => c.rangees.flat().length), 'la hauteur de chaque case de chaque couche').toEqual(monde.hauteurs.map(() => plateau.w * plateau.h));
 
     const boutons = suite.vue.zones['exploration.gestes'];
@@ -50,7 +50,7 @@ describe('l’exploration par le pont', () => {
     const auMilieu = (servies: AreteDessinee[]) => servies.find((a) => a.milieu.x === 2.5 && a.milieu.y === 1);
     const fermees = aretes();
     expect(auMilieu(fermees), 'le plateau dessine la porte, fermée, sur l’arête est de (2, 1)')
-      .toEqual({ cle: '2,1,E,0', case: { x: 2, y: 1 }, milieu: { x: 2.5, y: 1 }, sens: { x: 0, y: 1 }, pied: 0, piece: 'porte-fermee', famille: 'colombage', hauteurM: 4 });
+      .toEqual({ cle: '2,1,E,0', case: { x: 2, y: 1 }, milieu: { x: 2.5, y: 1 }, sens: { x: 0, y: 1 }, pied: 0, piece: 'porte-fermee', famille: 'colombage', hauteurM: 4, bloc: '0/0/0' });
     expect(fermees.filter((a) => a !== auMilieu(fermees)).map((a) => [a.milieu, a.piece]), 'ses deux murs pleins').toEqual([[{ x: 2.5, y: 0 }, 'mur'], [{ x: 2.5, y: 2 }, 'mur']]);
     const empreinte = suite.vue.plateau!.cleDesAretes;
     expect(vueDe(appel('vue')).plateau!.cleDesAretes, 'rien n’a changé : la même empreinte, le jeu ne rappelle pas `aretes`').toBe(empreinte);

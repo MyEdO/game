@@ -75,7 +75,7 @@ describe('Scène compilée par buildScene — équivalence de map', () => {
 
   it('la barge amie (index 4) est côté ally, cap Nord, avec ses 2 postes de pierrier servis par les canonniers', () => {
     const members = scene.encounters.find((e) => e.id === 'enc-naval')!.members ?? [];
-    expect(members[4]).toEqual({ entityId: 'enemy-enc-naval-4', side: 'ally' });
+    expect(members[4]).toEqual({ entityId: 'enemy-enc-naval-4', side: 'allie' });
     const barge = scene.entities.find((e) => e.id === 'enemy-enc-naval-4')!;
     expect(barge.facing).toBe('N');
     expect(barge.postes).toHaveLength(2);
@@ -140,7 +140,7 @@ describe('Artillerie jouable — 2 héros SERVENT un poste de pierrier (pas d’
     const battle = { combatants: all, acted: false } as unknown as BattleState;
     for (const g of gunners) {
       const w = g.weapons.find((x) => x.uid === g.mannedPoste!.item.uid);
-      expect(w?.type).toBe('ranged'); // le pierrier servi est une arme à distance
+      expect(w?.type).toBe('distance'); // le pierrier servi est une arme à distance
       expect(w?.subType).toBe('armes-de-siege');
       const serve = availableAttacks(g, battle).find((o) => o.id === 'poste');
       expect(serve).toBeDefined(); // bouton « Servir le pierrier »

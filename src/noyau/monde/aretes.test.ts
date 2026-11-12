@@ -81,6 +81,17 @@ describe('aretesDeLaScene — les arêtes de toutes les couches (#3476)', () => 
   });
 });
 
+describe('areteDessinee — le bloc (#3948)', () => {
+  it('le bloc de la case du segment à sa couche, celui du morceau du monde de la même case', () => {
+    const s: Scene = { ...emptyScene('blocs', 12, 12), walls: [{ x: 1, y: 2, side: 'N' }, { x: 9, y: 3, side: 'E' }, { x: 2, y: 10, side: 'N', z: 1 }] };
+    s.layers.push({ z: 1, tiles: new Array(144).fill('plancher'), height: new Array(144).fill(METRES_PER_LEVEL) });
+    const aretes = aretesDeLaScene(s);
+    expect(aretes.map((a) => a.bloc)).toEqual(['0/0/0', '0/1/0', '1/0/1']);
+    const cles = new Set(volumeDuMonde(s).morceaux.map((m) => m.cle));
+    for (const a of aretes) expect(cles, a.cle).toContain(`sol/${a.bloc}`);
+  });
+});
+
 describe('plateauDeLaScene — les couronnes abattues (#3476)', () => {
   const abattues = (s: Scene) => plateauDeLaScene(s, [], 'tactique').couronnesAbattues;
   it('la couronne d’un rempart tombe avec lui', () => {
@@ -119,6 +130,18 @@ describe('plateauDeLaScene — les arêtes que le groupe dégage (#3476)', () =>
   it('aucune hors de la pièce, ni sans groupe', () => {
     expect(plateauDeLaScene(salle(), [{ x: 3, y: 0 }], 'tactique').aretesDegagees).toEqual([]);
     expect(plateauDeLaScene(salle(), [], 'tactique').aretesDegagees).toEqual([]);
+  });
+  it('sur une même scène, le plateau suit la case du groupe', () => {
+    const s = salle();
+    const dedans = plateauDeLaScene(s, [{ x: 1, y: 1 }], 'tactique').aretesDegagees;
+    expect(dedans).toHaveLength(4);
+    expect(plateauDeLaScene(s, [{ x: 3, y: 0 }], 'tactique').aretesDegagees).toEqual([]);
+    expect(plateauDeLaScene(s, [{ x: 1, y: 1 }], 'tactique').aretesDegagees).toEqual(dedans);
+    expect(plateauDeLaScene(s, [{ x: 3, y: 0 }, { x: 1, y: 1 }], 'tactique').aretesDegagees, 'un second allié dans la pièce').toEqual(dedans);
+  });
+  it('relu sans que la scène ni les cases du groupe aient changé, le plateau est celui déjà rendu', () => {
+    const s = salle();
+    expect(plateauDeLaScene(s, [{ x: 1, y: 1 }], 'tactique')).toBe(plateauDeLaScene(s, [{ x: 1, y: 1 }], 'tactique'));
   });
 });
 
@@ -170,6 +193,11 @@ describe('plateauDeLaScene — ce que chaque regard retire (#3476)', () => {
     const s = maison();
     expect([...casesMontrees(volumeDuMonde(s), masqueDuRegard(s, [{ x: 3, y: 3 }], 'plateau'))].every((c) => c.endsWith(',0'))).toBe(true);
     expect(plateauDeLaScene(maison(), [{ x: 3, y: 3, z: 1 }], 'plateau').aretesDegagees).toEqual([]);
+  });
+  it('sur une même scène, le plateau suit la couche du groupe', () => {
+    const s = maison();
+    expect(plateauDeLaScene(s, [{ x: 3, y: 3 }], 'plateau').aretesDegagees).toEqual([{ cle: '2,1,E,1', abattueSous: [0, 1, 2, 3] }]);
+    expect(plateauDeLaScene(s, [{ x: 3, y: 3, z: 1 }], 'plateau').aretesDegagees).toEqual([]);
   });
   it('en immersion, rien ne tombe ni n’est retiré, même sous un étage', () => {
     const plateau = plateauDeLaScene(maison(), [{ x: 1, y: 1 }], 'immersion');

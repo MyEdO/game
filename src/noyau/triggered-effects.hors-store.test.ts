@@ -65,16 +65,16 @@ describe('fireTriggers — Traits et Atouts sur le même système flow+déclench
 
   /**
    * SANS routeur cadence-aware (`ctx.set` absent — entretien hors combat), un Flow n'a pas de voie
-   * d'interaction : ses parties PURES jouent, un `choice` n'est pas offert. Un `test` ENFOUI sous un
-   * `choice`, lui, ne doit JAMAIS passer en silence : `runPureFlowLines` n'a aucun `case 'choice'` — il
+   * d'interaction : ses parties PURES jouent, un `choix` n'est pas offert. Un `test` ENFOUI sous un
+   * `choix`, lui, ne doit JAMAIS passer en silence : `runPureFlowLines` n'a aucun `case 'choix'` — il
    * traverserait le nœud sans rien faire, et la branche de jet serait perdue sans un mot.
    */
   it('#1874 — SANS routeur, la branche `on:caster` d’un Test subi par la CIBLE tombe sur le PORTEUR (parité avec la voie routée)', () => {
     const porteur = mk({ id: 'po' });
     const victime = mk({ id: 'vi' });
     // Les DEUX branches portent la même feuille : l'issue du jet (tiré par la voie inline) n'entre pas dans la mesure.
-    const surLePorteur = { kind: 'do', effect: { type: 'ops', on: 'caster', ops: [{ op: 'condition', id: { id: 'a-terre' } }] } };
-    const flow = { kind: 'test', test: { characteristic: 'force' }, success: surLePorteur, fail: surLePorteur } as unknown as Flow;
+    const surLePorteur = { kind: 'effet', effet: { type: 'ops', on: 'caster', ops: [{ op: 'condition', id: { id: 'a-terre' } }] } };
+    const flow = { kind: 'test', test: { characteristic: 'force' }, reussite: surLePorteur, echec: surLePorteur } as unknown as Flow;
     applyTriggeredEffects(noBattle(), porteur, [{ trigger: 'onHit', on: 'victim', flow }], 'onHit', { victim: victime, rng: makeRNG(1) });
     expect(porteur.conditions.map((c) => c.id), 'la feuille `on:caster` doit atteindre le PORTEUR').toEqual(['a-terre']);
     expect(victime.conditions, 'la cible a reçu la conséquence du porteur').toEqual([]);
@@ -84,14 +84,14 @@ describe('fireTriggers — Traits et Atouts sur le même système flow+déclench
     const porteur = mk({ id: 'po' });
     const victime = mk({ id: 'vi' });
     const flow: Flow = {
-      kind: 'choice', prompt: 'Renverser', advantageCost: 2,
+      kind: 'choix', invite: 'Renverser', coutEnAvantage: 2,
       oui: {
         kind: 'test',
         test: { characteristic: 'force', skill: { id: 'athletisme' } },
-        success: { kind: 'seq', steps: [] },
-        fail: { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'a-terre' } }] } },
+        reussite: { kind: 'sequence', etapes: [] },
+        echec: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'a-terre' } }] } },
       },
-      non: { kind: 'seq', steps: [] },
+      non: { kind: 'sequence', etapes: [] },
     } as Flow;
     expect(
       () => applyTriggeredEffects(noBattle(), porteur, [{ trigger: 'onHit', on: 'victim', flow }], 'onHit', { rng: desDuTest, victim: victime }),
@@ -104,12 +104,12 @@ describe('fireTriggers — Traits et Atouts sur le même système flow+déclench
     const porteur = mk({ id: 'po' });
     const victime = mk({ id: 'vi' });
     const flow: Flow = {
-      kind: 'seq',
-      steps: [
-        { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'hemorragique' } }] } },
+      kind: 'sequence',
+      etapes: [
+        { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'hemorragique' } }] } },
         {
-          kind: 'choice', prompt: 'Ouvrir la plaie', advantageCost: 1,
-          oui: { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'hemorragique' } }] } },
+          kind: 'choix', invite: 'Ouvrir la plaie', coutEnAvantage: 1,
+          oui: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'hemorragique' } }] } },
         },
       ],
     } as Flow;
@@ -123,10 +123,10 @@ describe('fireTriggers — Traits et Atouts sur le même système flow+déclench
     const archer = mk({ id: 'ar' });
     const foe = mk({ id: 'fo' });
     const logee = (c: Combatant) => c.conditions.find((x) => x.id === 'munition-logee');
-    const arc: Weapon = { label: 'Arc long', type: 'ranged', damage: { plusBF: false, flat: 4 }, qualities: [{ id: 'empaleuse' }] } as Weapon;
-    fireTriggers(noBattle(), archer, 'onCrit', { rng: desDuTest, victim: foe, weapon: arc, attackType: 'ranged', origine: 'coup-critique' });
+    const arc: Weapon = { label: 'Arc long', type: 'distance', damage: { plusBF: false, flat: 4 }, qualities: [{ id: 'empaleuse' }] } as Weapon;
+    fireTriggers(noBattle(), archer, 'onCrit', { rng: desDuTest, victim: foe, weapon: arc, attackType: 'distance', origine: 'coup-critique' });
     expect(logee(foe)?.value).toBe(1);
-    fireTriggers(noBattle(), archer, 'onCrit', { rng: desDuTest, victim: foe, weapon: arc, attackType: 'ranged', origine: 'coup-critique' }); // 2e flèche → empile
+    fireTriggers(noBattle(), archer, 'onCrit', { rng: desDuTest, victim: foe, weapon: arc, attackType: 'distance', origine: 'coup-critique' }); // 2e flèche → empile
     expect(logee(foe)?.value).toBe(2);
     const lance: Weapon = { label: 'Lance de Taillade empaleuse', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [{ id: 'empaleuse' }] } as Weapon;
     const melee = mk({ id: 'me' });
@@ -177,7 +177,7 @@ describe('fireTriggers — Traits et Atouts sur le même système flow+déclench
 
   it('op loseTurn : pose les drapeaux lus au début du Round', () => {
     const c = mk();
-    runPureFlowLines(c, c, { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'loseTurn' }] } }, { idNeuf: idsDeTest, rng: makeRNG(1), caster: c });
+    runPureFlowLines(c, c, { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'loseTurn' }] } }, { idNeuf: idsDeTest, rng: makeRNG(1), caster: c });
     expect(c.loseNextAction).toBe(true);
     expect(c.loseNextMovement).toBe(true);
   });
@@ -224,10 +224,10 @@ describe('fireTriggers — Traits et Atouts sur le même système flow+déclench
   it('Atout authorable « à la touche : 1d10 Dégâts + Empêtré » — le Flow applique les DEUX ops', () => {
     // L'exemple exact demandé : un Flow de feuille EffectOp porté par un Atout (édité au Codex).
     const flow: Flow = {
-      kind: 'seq',
-      steps: [{
-        kind: 'do',
-        effect: { type: 'ops', on: 'target', ops: [
+      kind: 'sequence',
+      etapes: [{
+        kind: 'effet',
+        effet: { type: 'ops', on: 'target', ops: [
           { op: 'wounds', amount: { dice: { n: 1, sides: 10 } } },
           { op: 'condition', id: { id: 'empetre' }, value: 1 },
         ] },
@@ -253,7 +253,7 @@ describe('Aire source-agnostique — un TRAIT pose `on:{near}` → GameOps à TO
   const burstEffect = {
     trigger: 'onHit' as const,
     on: { near: 'victim' as const, radiusMeters: 4 }, // 4 m → 2 cases (Chebyshev d'empreinte)
-    flow: { kind: 'do' as const, effect: { type: 'ops' as const, on: 'target' as const, ops: [{ op: 'wounds' as const, amount: 12 }] } },
+    flow: { kind: 'effet' as const, effet: { type: 'ops' as const, on: 'target' as const, ops: [{ op: 'wounds' as const, amount: 12 }] } },
   };
 
   it('applique les GameOps à TOUS les combattants du rayon (exclut le centre/porteur), pas au combattant hors rayon', () => {
@@ -502,8 +502,8 @@ describe('Test déclenché INLINE : la pénalité d’État lit la Compétence t
     const porteur = mk({ id: 'po' });
     const victime = mk({ id: 'vi' });
     if (victimeATerre) victime.conditions = [{ id: 'a-terre', value: 1 }] as never;
-    const sur = (id: string) => ({ kind: 'do', effect: { type: 'ops', on: 'caster', ops: [{ op: 'condition', id: { id } }] } });
-    const flow = { kind: 'test', test: { characteristic: 'agilite', skill: { id: 'athletisme' } }, success: sur('sonne'), fail: sur('aveugle') } as unknown as Flow;
+    const sur = (id: string) => ({ kind: 'effet', effet: { type: 'ops', on: 'caster', ops: [{ op: 'condition', id: { id } }] } });
+    const flow = { kind: 'test', test: { characteristic: 'agilite', skill: { id: 'athletisme' } }, reussite: sur('sonne'), echec: sur('aveugle') } as unknown as Flow;
     applyTriggeredEffects(noBattle(), porteur, [{ trigger: 'onHit', on: 'victim', flow }], 'onHit', { victim: victime, rng: de20 });
     return porteur.conditions.map((c) => c.id);
   };

@@ -7,7 +7,7 @@
  */
 import type { Jeu } from './etat';
 import type { Combatant, Weapon } from '../engine/types';
-import { inBattleId } from './monde/combatants';
+import { porteurParId } from './monde/combatants';
 import { spendableAdvantage } from './combat/advantagePool';
 import { defenseSubOf, parryWeaponOf } from './rollFlowSpecs';
 import { ligneDeDefense } from './combatFlow';
@@ -64,10 +64,9 @@ const libelleDeParade = (w: Weapon): string => (w.hand === 'secondaire' ? t('def
 /** La fenêtre de la Défense en attente (`pendingDefense`), `null` sans Défense. PUR. */
 export function fenetreDeDefense(s: Jeu): FenetreDeDefense | null {
   const pd = s.pendingDefense;
-  const battle = s.battle;
-  if (!pd || !battle) return null;
-  const attaquant: Combatant | undefined = inBattleId(battle, pd.attackerId);
-  const defenseur: Combatant | undefined = inBattleId(battle, pd.defenderId);
+  if (!pd) return null;
+  const attaquant: Combatant | undefined = porteurParId(s, pd.attackerId);
+  const defenseur: Combatant | undefined = porteurParId(s, pd.defenderId);
   if (!attaquant || !defenseur) return null;
   const jete = !!pd.result;
   // LDB 09 l.207, l.287
@@ -96,7 +95,7 @@ export function fenetreDeDefense(s: Jeu): FenetreDeDefense | null {
     if (res) return genre === 'degats' && !gagnee ? t('defense.refus.degatsSansDefenseGagnee') : jetLance;
     if (pd.shieldReaction === genre) return null;
     if (defenseur.usedShieldReactionRound) return t('defense.refus.bouclierUtilise');
-    const avantage = spendableAdvantage(battle, defenseur);
+    const avantage = spendableAdvantage(s.battle, defenseur);
     return avantage < coutDuBouclier ? t('defense.refus.avantages', { cout: coutDuBouclier, nom: defenseur.label, avantage }) : null;
   };
   // LDB 10 l.1037

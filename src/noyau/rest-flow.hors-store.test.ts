@@ -178,7 +178,7 @@ describe('ouvrirLeRepos / choix par héros', () => {
     const h = banc.getState().party[0];
     h.diseases = [contractDisease('pneumonie', battleRngFor())!];
     banc.setState((s) => ({ party: [...s.party] }));
-    const onFail = spellOps(diseaseDefs()['pneumonie'].dailyTest!.test.fail, 'target');
+    const onFail = spellOps(diseaseDefs()['pneumonie'].dailyTest!.test.echec, 'target');
     const bande = (id: string) => cascadeDeTest([
       { id, kind: 'maladie-test-quotidien', label: fixtureText('Fièvre (Pneumonie)'), aggregate: 'none',
         participants: [{ id: h.id, interactive: true, label: 'Résistance', base: 30, target: 30,

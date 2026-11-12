@@ -16,7 +16,7 @@ function station(over: Partial<Station> = {}): Station {
     pos: { x: 1, y: 1 },
     label: 'Baliste',
     icon: 'action/servir-l-engin',
-    faction: 'ally',
+    faction: 'allie',
     assignedIds: ['c1'],
     manned: true,
     ref: { kind: 'poste', hullId: 'h1', posteUid: 'p1' },

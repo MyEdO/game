@@ -7,6 +7,7 @@ import type { Combatant } from '../engine/types';
 import {
   aretesUtilisables,
   caseOpposee,
+  casesADenivele,
   libellePortail,
   LARGEUR_PRISE_ARETE,
   PRIORITE_ARETES,
@@ -291,6 +292,14 @@ describe('aretesUtilisables — le dériveur d’arêtes rend ce que les overlay
     expect(deniveles(2, 2, 0), 'au pied de la corniche, rien ne descend').toEqual([]);
     expect(deniveles(2, 0, 1), 'la couche du dessus est plane').toEqual([]);
     expect(deniveles(2, 0, 0), 'la première case redemandée').toEqual(['Sauter en bas (4 m) 2,1,N,0 depuis 2,0,0']);
+  });
+
+  it('DÉNIVELÉS : les cases d’où part un dénivelé se relèvent couche par couche, rangée par rangée', () => {
+    const scene = scèneDeFalaise();
+    scene.layers = [scene.layers[0], { z: 1, tiles: [...scene.layers[0].tiles] }];
+
+    expect(casesADenivele(scene, 1), 'la couche du dessus est plane').toEqual([]);
+    expect(casesADenivele(scene, 0), 'le bord de la corniche').toEqual([{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0 }, { x: 3, y: 0 }]);
   });
 
   it('BROUILLARD : une arête dont aucune extrémité n’est éclaircie n’existe pas', () => {

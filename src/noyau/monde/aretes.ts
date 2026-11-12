@@ -10,14 +10,14 @@ import { walkNeighbors, type Pt } from './path';
 import { EYE_H, hauteurDeLOeil } from './iso';
 import { METRES_PER_LEVEL } from './relief';
 import { casesDeFace, heightAt, isWalkable, piedDeLArete, porteEnJeu, sceneMetresPerTile, structureIsDown, tuilesEffondreesSignature, wallEnds, wallIsOpen, type Scene, type WallSeg } from './scene';
-import { memoByRef } from './sceneMemo';
+import { memoByRef, memoByRefDeps } from './sceneMemo';
 import { hash32, hash32AuMillieme } from '../../data/hash';
 import { jsonCanonique } from '../../lib/jsonCanonique.mjs';
 import { spaceCellKey } from './volume/architectureVisibility';
 import type { Rot } from '../../geometry/iso';
 import { cutawayOverhead, frontFacadeCutaway, type ClearedSpace } from './volume/architectureVisibility';
 import { clearedSpace } from './volume/toits';
-import { empreinteDesDecors, octetsDuRetrait, retraitDuMonde, toitsLeves, toutesLesNappes, type RetraitDuMonde } from './volume/volume';
+import { blocDeLaCase, empreinteDesDecors, octetsDuRetrait, retraitDuMonde, toitsLeves, toutesLesNappes, type RetraitDuMonde } from './volume/volume';
 import { meteoDuRegard } from './meteo';
 import { aretesHorsDesNavires, provenanceDesNavires } from '../planDeNavire';
 
@@ -27,8 +27,9 @@ export type PieceDArete = 'mur' | 'porte-fermee' | 'porte-ouverte' | 'fenetre' |
 
 /** Une arête telle qu'un hôte la dessine : sa clé (`edgeKey`), la case du segment, son milieu et son sens en coins de
  *  grille (`wallEnds`), la hauteur (m) d'où elle se dresse (`piedDeLArete`), sa pièce, la famille du kit de son apparence
- *  (`null` pour une apparence hors du catalogue), et sa hauteur en mètres (`wallHeightM`, sinon un étage). */
-export interface AreteDessinee { cle: string; case: Pt; milieu: Pt; sens: Pt; pied: number; piece: PieceDArete; famille: FamilleDuKit | null; hauteurM: number }
+ *  (`null` pour une apparence hors du catalogue), sa hauteur en mètres (`wallHeightM`, sinon un étage), et le bloc de la
+ *  case du segment à sa couche (`blocDeLaCase`). */
+export interface AreteDessinee { cle: string; case: Pt; milieu: Pt; sens: Pt; pied: number; piece: PieceDArete; famille: FamilleDuKit | null; hauteurM: number; bloc: string }
 
 /** Une arête que le groupe dégage : sa clé (`edgeKey`) et les crans de caméra (`Rot`, `Dims.rot`) sous lesquels elle
  *  tombe : tous si l'une des cases qu'elle sépare est au-dessus de la tête d'un allié (`cutawayOverhead`), sinon ceux
@@ -63,6 +64,7 @@ export function areteDessinee(scene: Scene, seg: WallSeg): AreteDessinee {
     piece: pieceDArete(scene, seg),
     famille: apparence?.kit ?? null,
     hauteurM: apparence?.wallHeightM ?? METRES_PER_LEVEL,
+    bloc: blocDeLaCase({ x: seg.x, y: seg.y, z: seg.z ?? 0 }),
   };
 }
 
@@ -273,6 +275,8 @@ const aretesEtEmpreinte = memoByRef((scene: Scene): { aretes: AreteDessinee[]; c
 /** Les arêtes dessinées de toutes les couches de `scene` hors des ponts de ses navires (`aretesEtEmpreinte`). */
 export const aretesDeLaScene = (scene: Scene): AreteDessinee[] => aretesEtEmpreinte(scene).aretes;
 
+const plateauRetenu = memoByRefDeps<Scene, PlateauDeLaScene>();
+
 /**
  * Le plateau d'une scène tel qu'un hôte le dessine sous le regard `regard` : ses dimensions, l'empreinte de ses arêtes
  * (`cleDesAretes`, `aretesDeLaScene`), son échelle métrique
@@ -283,9 +287,14 @@ export const aretesDeLaScene = (scene: Scene): AreteDessinee[] => aretesEtEmprei
  * : en tactique, celles qu'il dégage ; au plateau, toutes), les arêtes (`aretesDegagees` : en tactique, celles qu'il
  * dégage ; au plateau, celles des couches au-dessus de la sienne, sous tout cran) et le haut des navires
  * (`coupesDesNavires`, la hauteur de la coupe de chacun, `retraitDuRegard`) ; et les couronnes crénelées tombées
- * (`couronnesAbattues`).
+ * (`couronnesAbattues`). Retenu par scène, cases du groupe et regard (`memoByRefDeps`) : une vue relue sans que le
+ * groupe ni la scène aient changé rend le même plateau.
  */
 export function plateauDeLaScene(scene: Scene, allies: readonly Pt[], regard: Regard): PlateauDeLaScene {
+  return plateauRetenu(scene, [regard, ...allies.flatMap((a) => [a.x, a.y, a.z])], () => plateauDuRegard(scene, allies, regard));
+}
+
+function plateauDuRegard(scene: Scene, allies: readonly Pt[], regard: Regard): PlateauDeLaScene {
   const { w, h } = scene.dimensions;
   const { activeZ, couvercle, coupes } = retraitDuRegard(scene, allies, regard);
   const dessinees = aretesHorsDesNavires(scene);

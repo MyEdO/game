@@ -115,13 +115,13 @@ export function statblockDeLaCreature(c: CreatureData): CustomStatblock {
 }
 
 /** Nœud `test` NEUF : la compétence est la seule saisie laissée à l'auteur (sentinelle vide). */
-export const noeudTestNeuf = (): FlowTestNode<Effect> => ({ kind: 'test', test: { skill: { id: '' }, difficulty: 'intermediaire' }, success: EMPTY_FLOW, fail: EMPTY_FLOW });
+export const noeudTestNeuf = (): FlowTestNode<Effect> => ({ kind: 'test', test: { skill: { id: '' }, difficulty: 'intermediaire' }, reussite: EMPTY_FLOW, echec: EMPTY_FLOW });
 
 /** Bloc NEUF du menu « + Bloc » d'un Flow : condition, test de compétence ou choix du joueur. */
-export function blocNeuf(kind: 'if' | 'test' | 'choice'): Flow {
+export function blocNeuf(kind: Exclude<Flow['kind'], 'sequence' | 'effet'>): Flow {
   switch (kind) {
-    case 'if': return { kind: 'if', cond: { kind: 'flag', expr: '' }, then: EMPTY_FLOW };
+    case 'si': return { kind: 'si', condition: { kind: 'flag', expr: '' }, alors: EMPTY_FLOW };
     case 'test': return noeudTestNeuf();
-    case 'choice': return { kind: 'choice', prompt: '', oui: EMPTY_FLOW };
+    case 'choix': return { kind: 'choix', invite: '', oui: EMPTY_FLOW };
   }
 }

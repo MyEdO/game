@@ -207,14 +207,14 @@ export function cloturesDesTestsDeScene(get: Get, set: Set) {
         if (c && effSuccess && (c.advantage ?? 0) < ca.cap) campGain(get, c, 1);
         set({ battle: { ...markActed(get, set), action: null } });
       }
-      // Branche choisie PUIS continuation (suite du `seq` parent d'un nœud `test`), jouées par le
+      // Branche choisie PUIS continuation (suite du `sequence` parent d'un nœud `test`), jouées par le
       // marcheur qui parle LEUR vocabulaire — même aiguillage que `reprendreFlow`/`reprendreFlowDeCombat` :
       // un Test SUBI (`pt.subi`) parle `target`/`caster` et repart chez le marcheur d'ACTEUR ; un Test de
       // scène parle `party`/`hero` et reste chez `runFlow` (butin de Test → fenêtre d'attribution).
       const branch = effSuccess ? pt.onSuccess : pt.onFailure;
       const issue = pt.subi
         ? reprendreTestSubi(get, set, pt, effSuccess)
-        : runFlow(get, set, { kind: 'seq', steps: [branch ?? EMPTY_FLOW, pt.after ?? EMPTY_FLOW] }, pt.label, pt.sl);
+        : runFlow(get, set, { kind: 'sequence', etapes: [branch ?? EMPTY_FLOW, pt.after ?? EMPTY_FLOW] }, pt.label, pt.sl);
       // CLÔTURES du Test (#1508) — elles suivent la branche, et attendent son dé s'il y en a un :
       //  · SEAM `onOwnTestFailed` (chemin modal JOUEUR — convergence des Tests de scène/compétence/combat,
       //    réf memory « JAMAIS rollTest inline chemin joueur ») : un Test RATÉ émet le trigger (Crampes

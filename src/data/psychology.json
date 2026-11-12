@@ -38,8 +38,8 @@
         "trigger": "onTurnStart",
         "on": "self",
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "any",
             "of": [
               {
@@ -68,9 +68,9 @@
               }
             ]
           },
-          "then": {
-            "kind": "do",
-            "effect": {
+          "alors": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "target",
               "ops": [
@@ -96,8 +96,8 @@
         "condition": "sonne",
         "on": "self",
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "target",
             "ops": [
@@ -122,8 +122,8 @@
         "condition": "inconscient",
         "on": "self",
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "target",
             "ops": [
@@ -173,7 +173,7 @@
       "amount": -1,
       "vs": "source"
     },
-    "resolution": "extended",
+    "resolution": "etendu",
     "test": {
       "skill": {
         "id": "calme"
@@ -260,7 +260,7 @@
       "vs": "group"
     },
     "retestAt": "roundEnd",
-    "resolution": "binary",
+    "resolution": "simple",
     "test": {
       "skill": {
         "id": "calme"
@@ -274,17 +274,17 @@
         "trigger": "onRoundEnd",
         "on": "self",
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "not",
             "of": {
               "kind": "cibleEnVue",
               "hostiles": true
             }
           },
-          "then": {
-            "kind": "do",
-            "effect": {
+          "alors": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "target",
               "ops": [
@@ -302,8 +302,8 @@
         "condition": "sonne",
         "on": "self",
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "target",
             "ops": [
@@ -322,8 +322,8 @@
         "condition": "inconscient",
         "on": "self",
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "target",
             "ops": [
@@ -374,7 +374,7 @@
       "vs": "group"
     },
     "retestAt": "roundEnd",
-    "resolution": "binary",
+    "resolution": "simple",
     "test": {
       "skill": {
         "id": "calme"
@@ -388,16 +388,16 @@
         "trigger": "onRoundEnd",
         "on": "self",
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "not",
             "of": {
               "kind": "cibleEnVue"
             }
           },
-          "then": {
-            "kind": "do",
-            "effect": {
+          "alors": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "target",
               "ops": [
@@ -415,8 +415,8 @@
         "condition": "inconscient",
         "on": "self",
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "target",
             "ops": [
@@ -461,7 +461,7 @@
     },
     "endedByOtherPsych": true,
     "containedSocialMod": -10,
-    "resolution": "binary",
+    "resolution": "simple",
     "test": {
       "skill": {
         "id": "calme"
@@ -475,16 +475,16 @@
         "trigger": "onRoundEnd",
         "on": "self",
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "not",
             "of": {
               "kind": "cibleEnVue"
             }
           },
-          "then": {
-            "kind": "do",
-            "effect": {
+          "alors": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "target",
               "ops": [
@@ -502,8 +502,8 @@
         "condition": "sonne",
         "on": "self",
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "target",
             "ops": [
@@ -522,8 +522,8 @@
         "condition": "inconscient",
         "on": "self",
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "target",
             "ops": [
@@ -573,7 +573,7 @@
       "peur"
     ],
     "triggerOn": "threatened",
-    "resolution": "binary",
+    "resolution": "simple",
     "test": {
       "skill": {
         "id": "calme"
@@ -615,7 +615,7 @@
       "vs": "any"
     },
     "triggerOn": "threatened",
-    "resolution": "binary",
+    "resolution": "simple",
     "test": {
       "skill": {
         "id": "calme"

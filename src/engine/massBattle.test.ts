@@ -10,6 +10,8 @@ import {
   rallyHealAmount, initHoldState, resolveHoldRound, holdEnemyBonus, INSPIRE_BONUS,
 } from './massBattle';
 import { desEnSuite } from './dice.testkit';
+import { facesDuDe } from './tables';
+import { massBattleHazardsDie } from '../data';
 
 /** RNG déterministe : renvoie tour à tour les d100 fournis (bornés à [min,max]). */
 function seqRNG(...vals: number[]): RNG {
@@ -18,9 +20,9 @@ function seqRNG(...vals: number[]): RNG {
 
 describe('Puissance de Bataille — estimation (ADE II 08 l.24-47)', () => {
   it('table de force relative (l.28-32) : couple {allié, ennemi}', () => {
-    expect(mightFromRelation('egale')).toEqual({ ally: 50, enemy: 50 });
-    expect(mightFromRelation('insignifiante')).toEqual({ ally: 30, enemy: 70 });
-    expect(mightFromRelation('ecrasante')).toEqual({ ally: 70, enemy: 30 });
+    expect(mightFromRelation('egale')).toEqual({ allie: 50, ennemi: 50 });
+    expect(mightFromRelation('insignifiante')).toEqual({ allie: 30, ennemi: 70 });
+    expect(mightFromRelation('ecrasante')).toEqual({ allie: 70, ennemi: 30 });
     expect(POWER_ESTIMATE).toHaveLength(5);
   });
 
@@ -43,12 +45,12 @@ describe('Puissance de Bataille — estimation (ADE II 08 l.24-47)', () => {
   });
 
   it('normalisation (l.34) : retirer 10 aux deux jusqu\'à ≤ 100 ; décidé si écart brut > 100', () => {
-    expect(normalizeMights(50, 50)).toEqual({ ally: 50, enemy: 50, decided: false });
-    expect(normalizeMights(120, 40)).toEqual({ ally: 100, enemy: 20, decided: false }); // −20 des deux
+    expect(normalizeMights(50, 50)).toEqual({ allie: 50, ennemi: 50, decided: false });
+    expect(normalizeMights(120, 40)).toEqual({ allie: 100, ennemi: 20, decided: false }); // −20 des deux
     const r = normalizeMights(150, 30);
     expect(r.decided).toBe(true); // écart brut 120 > 100
-    expect(r.ally).toBe(100);
-    expect(r.enemy).toBe(0);
+    expect(r.allie).toBe(100);
+    expect(r.ennemi).toBe(0);
   });
 });
 
@@ -152,15 +154,15 @@ describe('Rassemblement (l.122)', () => {
 
 describe('Issue de la bataille (l.124) & aléa (l.309)', () => {
   it('l\'armée à la plus haute Puissance gagne', () => {
-    expect(battleOutcome(30, 20)).toBe('ally');
-    expect(battleOutcome(10, 40)).toBe('enemy');
-    expect(battleOutcome(25, 25)).toBe('draw');
+    expect(battleOutcome(30, 20)).toBe('allie');
+    expect(battleOutcome(10, 40)).toBe('ennemi');
+    expect(battleOutcome(25, 25)).toBe('egalite');
     expect(isDestroyed(0)).toBe(true);
     expect(isDestroyed(5)).toBe(false);
   });
 
   it('facteur environnemental 1d10 (l.311-322) + tables verbatim', () => {
-    expect(BATTLE_HAZARDS).toHaveLength(10);
+    expect(BATTLE_HAZARDS).toHaveLength(facesDuDe(massBattleHazardsDie()));
     expect(battleHazard(1).label).toBe('Tempête');
     expect(battleHazard(10).label).toBe('Peur');
     expect(STRUCTURES.find((s) => s.id === 'mur-en-pierre')).toMatchObject({ be: 12, wounds: 40 });

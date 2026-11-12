@@ -10,7 +10,7 @@ import type { Bouton, Element, Entite, Formulaire, Saisie } from '../../../src/h
 import type { Pont, Suite } from './pont';
 
 let ouvert: Pont | null = null;
-afterEach(() => { ouvert?.fermer(); ouvert = null; });
+afterEach(() => { ouvert?.appeler('quitter'); ouvert = null; });
 
 /** Une partie du scénario `scenario` entrée par son service `verbe` dans le marché `cle`. */
 function marche(scenario: string, verbe: string, cle: string) {

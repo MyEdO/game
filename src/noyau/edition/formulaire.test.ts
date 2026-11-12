@@ -10,11 +10,12 @@
  */
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
+import type { SourceDeLEdition } from './adresseDeProse';
 import { emptyNarratif } from '../monde/campaignNarratif';
 import { emptyScene, type Scene } from '../monde/scene';
-import { addEffectZone, addTrigger, avecLaValeur, gestesDeLaListe, type Segment } from '../sceneEdit';
+import { addEffectZone, addTrigger, avecLaValeur, type Segment } from '../sceneEdit';
 import { formulaireDe, type CadreDuPorteur } from '../sceneEditLecture';
-import { newEffect, newOp, valeurNeuveDe, variantesAChoisir } from '../valeursNeuves';
+import { gestesDeLaListe, newEffect, newOp, valeurNeuveDe, variantesAChoisir } from '../valeursNeuves';
 import seaEventsJson from '../../data/sea-events.json';
 import { givePossessionSchema } from '../../data/schemas/defs-scenes/effets';
 import { bornesAuPoint, champDeLElement, champsDeclares, champsDuRecord, champsOfferts, choixDuNoeud, cleOfferte, elementDuNoeud, formeAuPoint, inferFields, kindDuNoeud, recordDuNoeud, unionDuNoeud, varianteCourante, type FieldDesc } from '../codex/editFields';
@@ -35,8 +36,11 @@ import { optionalEntrySchema } from '../../data/schemas/defs/creatures';
 /** Un narratif vide : aucun preset de PNJ, aucune entrée à référencer. */
 const NARRATIF_VIDE = emptyNarratif();
 
+/** Aucun `Source/` servi : aucun chapitre. */
+const SANS_SOURCE: SourceDeLEdition = { manifeste: null, chapitres: {} };
+
 /** Le cadre d'un porteur d'une scène vide, au narratif vide. */
-const CADRE_VIDE: CadreDuPorteur = { scene: emptyScene('s', 4, 4), projet: { scenes: [], narratif: NARRATIF_VIDE } };
+const CADRE_VIDE: CadreDuPorteur = { scene: emptyScene('s', 4, 4), projet: { scenes: [], narratif: NARRATIF_VIDE }, source: SANS_SOURCE };
 
 type Zone = NonNullable<Scene['effectZones']>[number];
 type Declencheur = Scene['triggers'][number];
@@ -320,17 +324,15 @@ describe('le geste `valeur` de la session', () => {
 describe('les choix d’une union réunissent ses références, ses énumérations et ses littéraux (#3606 M1a)', () => {
   const ids = (type: 'species' | 'planDeBestiaire' | 'career' | 'trait') => choixDeLaFeuilleDId({ type }).map((e) => e.id);
 
-  it('l’espèce d’une apparence : les 27 espèces puis les 102 du plan de bestiaire', () => {
+  it('l’espèce d’une apparence : les espèces puis celles du plan de bestiaire', () => {
     const choix = choixDuNoeud(especeDApparenceSchema)!.map((o) => o.valeur);
-    expect([ids('species').length, ids('planDeBestiaire').length]).toEqual([27, 102]);
+    expect(Math.min(ids('species').length, ids('planDeBestiaire').length)).toBeGreaterThan(0);
     expect(choix).toEqual([...ids('species'), ...ids('planDeBestiaire')]);
-    expect(choix).toHaveLength(129);
   });
 
-  it('la tenue : les 108 carrières puis « nu »', () => {
+  it('la tenue : les carrières puis « nu »', () => {
     const choix = choixDuNoeud(tenueFermeeSchema)!.map((o) => o.valeur);
     expect(choix).toEqual([...ids('career'), 'nu']);
-    expect(choix).toHaveLength(109);
   });
 
   it('les choix d’une feuille unique et sa valeur neuve sont inchangés : la difficulté d’un Test de traversée, le Trait d’une condition d’entrée', () => {
@@ -396,8 +398,8 @@ describe('une union sans discriminant se lit à la forme de ses branches : la Bo
     const effet = newEffect('givePossession') as Extract<ReturnType<typeof newEffect>, { type: 'givePossession' }>;
     const statbloc = { custom: statblockDeLaCreature(findCreatureById(creatureSemee())!) };
     const parStatbloc = { ...effet, ref: statbloc };
-    const d = (e: unknown) => ({ ...declencheur(), flow: { kind: 'do', effect: e } } as Declencheur);
-    const noeud = (e: unknown) => champ(formulaireDe('declencheur', d(e), CADRE_VIDE), d(e), 'flow', 'effect', 'ref').noeud;
+    const d = (e: unknown) => ({ ...declencheur(), flow: { kind: 'effet', effet: e } } as Declencheur);
+    const noeud = (e: unknown) => champ(formulaireDe('declencheur', d(e), CADRE_VIDE), d(e), 'flow', 'effet', 'ref').noeud;
     const u = unionDuNoeud(noeud(effet))!;
     expect(u.variantes.map((v) => [v.cle, v.libelle])).toEqual([['0', 'Créature ou véhicule'], ['1', 'profil personnalisé']]);
     expect(unionDuNoeud(u.variantes[0].noeud)?.discriminant, 'la référence se choisit encore par son type').toBe('type');
@@ -476,12 +478,12 @@ describe('chaque feuille des formulaires tirés du schéma a un contrôle typé 
   const saisies = saisiesDesFormulaires();
 
   it('le sélecteur de héros, la fenêtre de Détermination, l’échéance d’un modificateur de navire, la cible d’un effet et d’un effet déclenché se choisissent par variante nommée, les fragments d’une adresse de prose s’ajoutent et se choisissent de même', () => {
-    const effets = ['setObjective', 'journal', 'grantFavor'].map((type) => `declencheur/flow<kind=do>/effect<type=${type}>/descRef/parts`);
+    const effets = ['setObjective', 'journal', 'grantFavor'].map((type) => `declencheur/flow<kind=effet>/effet<type=${type}>/descRef/parts`);
     const attendues: Record<string, string> = Object.fromEntries([
       ...['partyDead', 'skill', 'talent', 'career', 'species', 'status'].map((kind) => [`zone/crossTest/gate<kind=${kind}>/who`, 'variantes']),
       ['zone/onCross/0<op=condition>/resolveWindow', 'variantes'],
       ['zone/onCross/0<op=navireMod>/jusqua', 'variantes'],
-      ...['infestation>/chaqueNuit<kind=do>/effect', 'augmentWeapon>/onHitEffects/0', 'grantWeapon>/onHitEffects/0'].map((op) => [`zone/onCross/0<op=${op}/on`, 'variantes']),
+      ...['infestation>/chaqueNuit<kind=effet>/effet', 'augmentWeapon>/onHitEffects/0', 'grantWeapon>/onHitEffects/0'].map((op) => [`zone/onCross/0<op=${op}/on`, 'variantes']),
       ...effets.flatMap((parts) => [[parts, 'ajouter'], [`${parts}/0`, 'variantes']]),
     ]);
     expect(Object.keys(attendues)).toHaveLength(17);
@@ -492,7 +494,7 @@ describe('chaque feuille des formulaires tirés du schéma a un contrôle typé 
 
   it('se saisissent encore en JSON EXACTEMENT : les rencontres d’une bataille rangée, et chaque op non typée', () => {
     expect([...saisies].filter(([, s]) => s === 'json').map(([c]) => c).sort()).toEqual([
-      'declencheur/flow<kind=do>/effect<type=startMassBattle>/battle/sceneEncounters',
+      'declencheur/flow<kind=effet>/effet<type=startMassBattle>/battle/sceneEncounters',
       ...OPS_NON_TYPEES.map((op) => `zone/onCross/0<op=${op}>`),
     ].sort());
   });

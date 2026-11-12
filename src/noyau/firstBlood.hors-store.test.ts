@@ -104,7 +104,7 @@ describe('Duel judiciaire — premier sang (#471, NADJ 06 l.175-177)', () => {
 });
 
 describe('Duel judiciaire — restriction d\'armes à distance (#471, NADJ 06 l.181)', () => {
-  const RANGED: Weapon = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [] };
+  const RANGED: Weapon = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [] };
 
   it('banRanged actif : resolveAttack REFUSE une arme à distance — chemin JOUEUR', () => {
     const { H, E } = setup();

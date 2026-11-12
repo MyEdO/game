@@ -30,7 +30,7 @@ describe('Golden master — combat (iso-comportement du registre de qualités)',
   it('mêlée : Parade/Esquive/Subir × qualités × seeds — snapshot stable', () => {
     const out: string[] = [];
     for (const q of QSETS) {
-      for (const defense of ['parade', 'esquive', 'none'] as const) {
+      for (const defense of ['parade', 'esquive', 'aucune'] as const) {
         for (let seed = 1; seed <= 25; seed++) {
           const atk = mk('A', { 'capacite-de-combat': 55, force: 40 }, { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: q.map((s) => parseQualityInstance(s)!) });
           const def = mk('D', { 'capacite-de-combat': 45, endurance: 35 }, { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [{ id: 'defensive' }] }, 2);
@@ -45,7 +45,7 @@ describe('Golden master — combat (iso-comportement du registre de qualités)',
     const out: string[] = [];
     for (const q of [[], ['Perforante'], ['Pointue'], ['Empaleuse']]) {
       for (let seed = 1; seed <= 25; seed++) {
-        const atk = mk('A', { 'capacite-de-tir': 55 }, { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 50, qualities: q.map((s) => parseQualityInstance(s)!) });
+        const atk = mk('A', { 'capacite-de-tir': 55 }, { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 9 }, range: 50, qualities: q.map((s) => parseQualityInstance(s)!) });
         const def = mk('D', { endurance: 35 }, { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [] }, 2);
         out.push(`${q.join(',')}|${seed}=${ser(resolveRanged(atk, def, atk.weapons[0], makeRNG(seed), 10))}`);
       }

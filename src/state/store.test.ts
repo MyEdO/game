@@ -17,7 +17,7 @@ import { seedBattleRng } from '../noyau/battleRng';
 import { campaignStart } from '../engine/clock';
 // L'état de charge vit sur l'ARME (chaque arme à distance gère son
 // rechargement et sa munition) — raccourci de FIXTURE vers l'arme à distance du combattant.
-const rangedOf = (c: Combatant): Weapon => c.weapons.find((w) => w.type === 'ranged')!;
+const rangedOf = (c: Combatant): Weapon => c.weapons.find((w) => w.type === 'distance')!;
 import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 
 function reset() {
@@ -81,7 +81,7 @@ describe('Chance — 3e usage : pré-emption d’initiative en début de Round (
   it('Tir rapide au CLAVIER : armer (roundStart.viser) → curseur (snapCursorToTarget) → Entrée (commitCursor) → tir', () => {
     const { H, E } = endOfRoundBattle(0);
     H.talents = [{ talentId: 'tir-rapide', times: 1 }];
-    H.weapons = [{ label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 30, qualities: [] }] as never;
+    H.weapons = [{ label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 8 }, range: 30, qualities: [] }] as never;
     rangedOf(H).loaded = true; H.pos = { x: 0, y: 0 };
     E.pos = { x: 2, y: 0 }; // à portée + LdV (scène vide)
     advanceTurn(useGame.getState, useGame.setState); // → Round 2, pendingRoundStart

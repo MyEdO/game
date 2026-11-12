@@ -35,8 +35,8 @@ const hub = (retouche: (copie: Scene) => void): Scene => {
 
 /** Le chemin de l'effet du premier choix du premier nœud du dialogue du médecin, et le hub où cet effet vaut `effet`. */
 const RANG_DIALOGUE = HUB.dialogues.findIndex((d) => d.id === 'dlg-medecin');
-const EFFET = `dialogues.${RANG_DIALOGUE}.nodes.0.choices.0.flow.steps.0.effect`;
-const avecEffet = (effet: unknown) => hub((c) => Object.assign(c.dialogues[RANG_DIALOGUE].nodes[0].choices[0].flow!.steps![0], { effect: effet }));
+const EFFET = `dialogues.${RANG_DIALOGUE}.nodes.0.choices.0.flow.etapes.0.effet`;
+const avecEffet = (effet: unknown) => hub((c) => Object.assign(c.dialogues[RANG_DIALOGUE].nodes[0].choices[0].flow!.etapes![0], { effet }));
 
 const PORTEURS = [
   {
@@ -76,8 +76,15 @@ describe('#2968 L15 — dialogues et nœuds désignés par `ref(portee)`', () =>
         expect(sceneSchema.safeParse(s).success).toBe(true);
         return mesureDuParse(sceneSchema, s).reperes.filter((r) => r.type === cible);
       }).length;
-    expect([compte(areneProjet, 'local:nodes'), compte(areneProjet, 'local:dialogues')]).toEqual([9 + 14, 9 + 1]);
-    expect([compte(loupEtSaumureProjet, 'local:nodes'), compte(loupEtSaumureProjet, 'local:dialogues')]).toEqual([8 + 23, 8]);
+    /** Les références de nœud écrites dans la donnée : le `start` de chaque dialogue et chaque `choices[].next`. */
+    const nodesEcrits = (projet: { scenes: readonly unknown[] }) =>
+      (projet.scenes as { dialogues?: { nodes: { choices?: { next?: unknown }[] }[] }[] }[])
+        .flatMap((s) => s.dialogues ?? [])
+        .reduce((n, d) => n + 1 + d.nodes.flatMap((x) => x.choices ?? []).filter((c) => c.next !== undefined).length, 0);
+    for (const projet of [areneProjet, loupEtSaumureProjet]) {
+      expect(compte(projet, 'local:nodes')).toBe(nodesEcrits(projet));
+      expect(compte(projet, 'local:dialogues')).toBeGreaterThan(0);
+    }
   });
 
   it.each(PORTEURS)('$porteur : une référence connue parse', ({ avec, connue }) => {

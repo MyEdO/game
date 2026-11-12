@@ -213,7 +213,7 @@ export function TavernGameModal() {
                   {game.pot.targetRange ? ` · nombre cible ${fourchette(game.pot.targetRange.min, game.pot.targetRange.max)}` : ''}.
                 </p>
               ) : (
-                <p className="tavern-detail">Test opposé : <b>{skillLine}</b>{game.mode === 'extended' ? ` · premier à ${game.target ?? 10} DR cumulés` : ''}.</p>
+                <p className="tavern-detail">Test opposé : <b>{skillLine}</b>{game.mode === 'etendu' ? ` · premier à ${game.target ?? 10} DR cumulés` : ''}.</p>
               )}
             </>
           )}

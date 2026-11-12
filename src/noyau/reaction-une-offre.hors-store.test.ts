@@ -185,12 +185,12 @@ function effetsAGratuiteDeLaDonnee(): { ou: string; eff: TriggeredEffect }[] {
 }
 
 const MIXTE: TriggeredEffect = {
-  trigger: 'onHit', on: 'victim', attackType: 'ranged',
-  flow: { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'empetre' }, value: 1 }, { op: 'grantFreeAttack', weapon: 'held', when: 'immediate' } as never] } },
+  trigger: 'onHit', on: 'victim', attackType: 'distance',
+  flow: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'empetre' }, value: 1 }, { op: 'grantFreeAttack', weapon: 'held', when: 'immediate' } as never] } },
 };
 const ATOUT: TriggeredEffect = {
   trigger: 'onHit', on: 'self',
-  flow: { kind: 'do', effect: { type: 'ops', on: 'caster', ops: [{ op: 'grantFreeAttack', weapon: 'held', when: 'immediate' } as never] } },
+  flow: { kind: 'effet', effet: { type: 'ops', on: 'caster', ops: [{ op: 'grantFreeAttack', weapon: 'held', when: 'immediate' } as never] } },
 };
 type Porteur = 'manuel' | 'auto' | 'ennemi';
 const PORTEURS: Porteur[] = ['manuel', 'auto', 'ennemi'];
@@ -259,7 +259,7 @@ describe('#3159 — enveloppe et arme', () => {
     resolveFreeAttacks(banc.getState, banc.setState, porteur, 'onHit', tiers, { weapon, attackType: 'melee' });
     expect(empetre(tiers.id) + empetre(porteur.id)).toBe(0);
     expect(vif(porteur.id).freeAttacksThisTurn).toBeUndefined();
-    resolveFreeAttacks(banc.getState, banc.setState, porteur, 'onHit', tiers, { weapon, attackType: 'ranged' });
+    resolveFreeAttacks(banc.getState, banc.setState, porteur, 'onHit', tiers, { weapon, attackType: 'distance' });
     expect(empetre(tiers.id)).toBe(1);
     expect(empetre(porteur.id)).toBe(0);
   });

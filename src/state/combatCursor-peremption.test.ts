@@ -20,7 +20,7 @@ import type { Combatant, Weapon } from '../engine/types';
 import { cliquerSurLeCombattant } from '../noyau/combatOrParty';
 
 const get = () => useGame.getState();
-const rangedOf = (c: Combatant): Weapon => c.weapons.find((w) => w.type === 'ranged')!;
+const rangedOf = (c: Combatant): Weapon => c.weapons.find((w) => w.type === 'distance')!;
 
 /** Duel sur scène vide : le héros H joue au tour `turn` de l'ordre [H, E]. */
 function duel(turn: 0 | 1) {
@@ -43,7 +43,7 @@ function duel(turn: 0 | 1) {
 function pauseTirRapide() {
   const { H, E } = duel(1);
   H.talents = [{ talentId: 'tir-rapide', times: 1 }];
-  H.weapons = [{ label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 30, qualities: [] }] as never;
+  H.weapons = [{ label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 8 }, range: 30, qualities: [] }] as never;
   rangedOf(H).loaded = true;
   advanceTurn(get, useGame.setState);
   expect(get().pendingRoundStart, 'témoin : la pause de Round est ouverte').not.toBeNull();

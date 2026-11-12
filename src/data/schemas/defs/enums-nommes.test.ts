@@ -9,12 +9,12 @@
  */
 import { describe, it, expect } from 'vitest';
 import { valeursDe, libelleDeValeur } from '../grammaire/meta';
+import { equipeSchema } from '../grammaire/valeurs';
 import {
   outcomeOnSchema,
   battleCondSchema,
   battleOutcomeTargetSchema,
   battleOutcomeScaleSchema,
-  battleSideSchema,
   sceneKindSchema,
 } from './activities';
 import { phenomenonKindSchema, phenomenonTestSchema, saturationTierSchema } from './arcane-phenomena';
@@ -46,7 +46,7 @@ const MIGRES: readonly [string, unknown, Record<string, string>][] = [
   ['activities.outcomes[].battle[].scale', battleOutcomeScaleSchema, {
     fixed: 'Plat', perDR: '× DR', perHit: '× touches', perKill: '× ennemis tués',
   }],
-  ['activities.outcomes[].battle[].side', battleSideSchema, { ally: 'Armée alliée', enemy: 'Armée ennemie' }],
+  ['activities.outcomes[].battle[].side', equipeSchema, { allie: 'Allié', ennemi: 'Ennemi' }],
   ['activities.sceneKind', sceneKindSchema, {
     test: 'Test', combat: 'Combat', threat: 'Menace', hold: 'Tenue', rally: 'Rassemblement',
   }],
@@ -89,7 +89,7 @@ const MIGRES: readonly [string, unknown, Record<string, string>][] = [
     regard: 'Regard pétrifiant', langue: 'Langue préhensile', hurlement: 'Hurlement', pietinement: 'Piétinement',
   }],
   ['trappings.categorie', trappingCategorieSchema, {
-    melee: 'Armes de mêlée', ranged: 'Armes à distance', ammunition: 'Munitions',
+    melee: 'Armes de mêlée', distance: 'Armes à distance', ammunition: 'Munitions',
     armor: 'Armures', trapping: 'Équipement',
   }],
   ['criticals.localisation', critTableSchema, {

@@ -1050,7 +1050,7 @@ describe('l’enveloppe : ce qu’un document doit porter (contrats positifs)', 
 
   it('un document EMBARQUÉ n’est sommé de rien : seules ses clés DIVERGENTES comptent', () => {
     const embarque = mesurerEnveloppe([
-      { document: 'flow.json', chemin: 'steps[].effect', portee: 'embarqué', famille: 'entité', nbEntrees: 5, cles: [cle('text', 'string', 5), cle('nom', 'string', 5), cle('title', 'string', 5), cle('type', 'string', 5)] },
+      { document: 'flow.json', chemin: 'etapes[].effet', portee: 'embarqué', famille: 'entité', nbEntrees: 5, cles: [cle('text', 'string', 5), cle('nom', 'string', 5), cle('title', 'string', 5), cle('type', 'string', 5)] },
     ]);
     // `title` est la forme CIBLE de son rôle (sous-titre) : il ne compte pas — seules `text` et `nom`,
     // graphies divergentes de la prose et du libellé, sont relevées.
@@ -1146,7 +1146,7 @@ describe('contrôle POSITIF côté DONNÉE : le détecteur MORD (#1465 F21)', ()
       writeFileSync(cheminArene, JSON.stringify(arene), 'utf8');
       scene.triggers.push({
         id: 'declencheur-croissance-2337', rect: { x: 0, y: 0, w: 1, h: 1 }, once: true,
-        flow: { kind: 'seq', steps: [{ kind: 'do', effect: { type: 'setFlag', flag: 'croissance-2337' } }] },
+        flow: { kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'setFlag', flag: 'croissance-2337' } }] },
       });
       writeFileSync(chemin, JSON.stringify(paquet), 'utf8');
       const apres = scannerDonnees(copie, DEFS, CHOIX, CHOIX_OPS);

@@ -5,7 +5,7 @@ import { oupsTable, oupsMisfire } from '../data/oups';
 import type { Combatant, Weapon } from './types';
 
 const sword: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
-const pistol: Weapon = { label: 'Pistolet', type: 'ranged', damage: { plusBF: false, flat: 9 }, qualities: [{ id: 'pistolet' }], subType: 'Poudre noire', range: 20 };
+const pistol: Weapon = { label: 'Pistolet', type: 'distance', damage: { plusBF: false, flat: 9 }, qualities: [{ id: 'pistolet' }], subType: 'Poudre noire', range: 20 };
 
 describe('isFumble (LDB 14 l.19)', () => {
   it('échec + double = Maladresse', () => {
@@ -87,7 +87,7 @@ const bacle = (over: Partial<Weapon> = {}): Weapon =>
 const solide = (n: number, ...autres: { id: string; value?: number }[]): Weapon =>
   ({ ...sword, qualities: [{ id: 'solide', value: n }, ...autres] }) as Weapon;
 const canon = (...q: { id: string; value?: number }[]): Weapon =>
-  ({ label: 'Pièce', type: 'ranged', damage: { plusBF: false, flat: 12 }, qualities: q }) as Weapon;
+  ({ label: 'Pièce', type: 'distance', damage: { plusBF: false, flat: 12 }, qualities: q }) as Weapon;
 const porteur = (over: Partial<Combatant> = {}): Combatant =>
   ({ id: 'p', label: 'p', kind: 'hero', items: [], weapons: [], ...over }) as unknown as Combatant;
 

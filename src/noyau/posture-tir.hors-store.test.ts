@@ -33,7 +33,7 @@ describe('G5 — posture de tir pré-armée (`battle.stances`)', () => {
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
     const E = b.combatants.find((c) => c.kind === 'enemy')!;
-    H.weapons = [{ label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [] }] as never;
+    H.weapons = [{ label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [] }] as never;
     H.pos = { x: 6, y: 10 };
     E.pos = { x: 12, y: 10 }; // hors de portée de contact → l'arme à distance est celle qui parle
     banc.setState({ battle: { ...banc.getState().battle!, turn: b.order.indexOf(H.id), acted: false, movementUsed: 0, movedPreAction: false } });
@@ -154,7 +154,7 @@ describe('G5 — postures et KIND du tireur (parité stricte avec `attackEnv`)',
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
     const E = b.combatants.find((c) => c.kind === 'enemy')!;
-    const arc = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [] } as never;
+    const arc = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [] } as never;
     H.weapons = [arc];
     E.weapons = [arc];
     H.pos = { x: 6, y: 10 };
@@ -203,7 +203,7 @@ describe('G5 — posture « Dans le tas » (`dansLeTas`)', () => {
     const H = b.combatants.find((c) => c.kind === 'hero')!;
     const foes = b.combatants.filter((c) => c.kind === 'enemy');
     const E = foes[0];
-    H.weapons = [{ label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [] }] as never;
+    H.weapons = [{ label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [] }] as never;
     H.pos = { x: 6, y: 10 };
     E.pos = { x: 12, y: 10 };
     // Les AUTRES adversaires : collés à la cible (groupe serré) ou dispersés au loin.

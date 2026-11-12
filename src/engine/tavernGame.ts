@@ -51,9 +51,9 @@ export interface TavernGame {
    *  Caractéristique n'est PAS une Compétence, donc le Bras de fer tombe sur Pari par défaut. Poser
    *  ici `{ characteristic: 'force', maison: '…' }` est la lecture d'esprit, éditable au Codex et taguée. */
   fastSkill?: { skill?: RefDesignee; characteristic?: CharKey; maison: string };
-  /** Mode : `opposed` (un Test opposé, +DR l'emporte — variante rapide) ou `extended` (Test opposé étendu
+  /** Mode : `oppose` (un Test opposé, +DR l'emporte — variante rapide) ou `etendu` (Test opposé étendu
    *  jusqu'à `target` DR cumulés — Bras de fer, l.34). */
-  mode?: 'opposed' | 'extended';
+  mode?: 'oppose' | 'etendu';
   /** Difficulté du Test du jeu (NADJ 16 l.90, l.105, l.125, l.145) ; absente : Intermédiaire (LDB 12 l.166). */
   difficulty?: Difficulty;
   /** Test étendu : DR cumulés à atteindre (Bras de fer = 10). */
@@ -176,7 +176,7 @@ export function fastTavernGame(g: TavernGame): TavernGame {
     desc: g.desc,
     ...(test.skill ? { skill: test.skill } : {}),
     ...(test.characteristic ? { characteristic: test.characteristic } : {}),
-    mode: 'opposed',
+    mode: 'oppose',
     source: g.source,
   };
 }
@@ -199,9 +199,8 @@ export type VainqueurDeTaverne = CampDeTaverne | 'egalite';
 
 export interface TavernGameResult {
   winner: VainqueurDeTaverne;
-  /** Score du joueur (DR de la manche, ou DR cumulés en mode étendu). */
-  playerSL: number;
-  opponentSL: number;
+  /** Score de chaque camp (DR de la manche, ou DR cumulés en mode étendu). */
+  dr: Record<CampDeTaverne, number>;
   /** Nombre de manches jouées (1 en mode opposé). */
   rounds: number;
 }
@@ -232,8 +231,7 @@ export function rollTavernTest(value: number, rng: RNG, difficulty: Difficulty =
  *  surfaçage) : compare via `resolveOpposed`, plafonne par `game.drCap` (Boules). */
 export interface TavernRoundOutcome {
   winner: VainqueurDeTaverne;
-  playerSL: number;
-  opponentSL: number;
+  dr: Record<CampDeTaverne, number>;
 }
 
 /**
@@ -248,19 +246,19 @@ export interface TavernRoundOutcome {
  * Décide UNE manche depuis deux `TestResult` DÉJÀ roulés par l'appelant (#370) : elle ne roule RIEN —
  * rouler ET décider ici contournerait le seam de jet côté joueur. Elle ne fait QUE décider, comme
  * `resolveOpposed`. Sert au mode `opposed` (manche unique) et, manche par
- * manche, au mode `extended` (Bras de fer, l'appelant cumule `playerSL`/`opponentSL` jusqu'à `target`).
+ * manche, au mode `extended` (Bras de fer, l'appelant cumule `dr` de chaque camp jusqu'à `target`).
  */
 export function resolveTavernRound(
   game: TavernGame, playerTR: TestResult, opponentTR: TestResult,
-  drBonus: { player?: number; opponent?: number } = {},
+  drBonus: Partial<Record<CampDeTaverne, number>> = {},
 ): TavernRoundOutcome {
-  const ps = roundSL(playerTR, game.drCap) + (drBonus.player ?? 0);
-  const os = roundSL(opponentTR, game.drCap) + (drBonus.opponent ?? 0);
+  const ps = roundSL(playerTR, game.drCap) + (drBonus.joueur ?? 0);
+  const os = roundSL(opponentTR, game.drCap) + (drBonus.adversaire ?? 0);
   const opp = resolveOpposed({ ...playerTR, sl: ps }, { ...opponentTR, sl: os });
   // NADJ 16 l.105 ; #1921 c.6233078802.
   const departageGeneral = game.tieBreak === undefined || opp.decidedBy === 'dr';
   const winner = !departageGeneral || opp.winner === 'egalite' ? 'egalite' : opp.winner === 'attaquant' ? 'joueur' : 'adversaire';
-  return { winner, playerSL: ps, opponentSL: os };
+  return { winner, dr: { joueur: ps, adversaire: os } };
 }
 
 /**

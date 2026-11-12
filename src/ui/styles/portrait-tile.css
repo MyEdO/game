@@ -46,11 +46,11 @@ span.ptile {
   cursor: default;
 }
 /* R5 : FOND d'équipe derrière le portrait (vert allié / rouge ennemi). */
-.ptile.team-ally {
+.ptile.team-allie {
   background: rgba(55, 192, 122, 0.16);
   border-color: rgba(55, 192, 122, 0.45);
 }
-.ptile.team-enemy {
+.ptile.team-ennemi {
   background: rgba(192, 57, 43, 0.18);
   border-color: rgba(192, 57, 43, 0.5);
 }

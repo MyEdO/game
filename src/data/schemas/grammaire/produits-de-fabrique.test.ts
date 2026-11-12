@@ -223,7 +223,7 @@ describe('lecture — `classeDeProduit` nomme la fabrique, le rôle et les clés
       'arbreDeFlow flow.do {}',
       'arbreDeFlow flow.if {}',
       'noeudTest test {}',
-      `proseNommee flow.choice.prompt ${JSON.stringify({ advantageCost: 'optional<:union<|0:number,|1:literal["$indice"]>>', icon: ICONE, kind: 'literal["choice"]', non: 'optional<:lazy>', oui: 'lazy' })}`,
+      `proseNommee flow.choice.invite ${JSON.stringify({ coutEnAvantage: 'optional<:union<|0:number,|1:literal["$indice"]>>', icon: ICONE, kind: 'literal["choix"]', non: 'optional<:lazy>', oui: 'lazy' })}`,
     ]);
   });
 
@@ -233,7 +233,7 @@ describe('lecture — `classeDeProduit` nomme la fabrique, le rôle et les clés
       'arbreDeFlow flow.do {}',
       'arbreDeFlow flow.if {}',
       'noeudTest test {}',
-      `proseNommee flow.choice.prompt ${JSON.stringify({ advantageCost: 'optional<:number>', icon: ICONE, kind: 'literal["choice"]', non: 'optional<:lazy>', oui: 'lazy' })}`,
+      `proseNommee flow.choice.invite ${JSON.stringify({ coutEnAvantage: 'optional<:number>', icon: ICONE, kind: 'literal["choix"]', non: 'optional<:lazy>', oui: 'lazy' })}`,
     ]);
   });
 

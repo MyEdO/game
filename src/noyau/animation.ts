@@ -52,5 +52,5 @@ export function maniementDe(w?: FormeDArme): Maniement {
   if (deLaForme) return deLaForme;
   const groupe = findWeaponGroupById(w.subType);
   if (groupe?.kind === 'weapon') return groupe.maniement;
-  return w.type === 'ranged' ? 'arc' : 'lame1m';
+  return w.type === 'distance' ? 'arc' : 'lame1m';
 }

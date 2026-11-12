@@ -305,7 +305,7 @@ export function canMove(battle: BattleState, c: Combatant): boolean {
 /** Modificateurs d'attaque liés au Combat monté, injectés dans `env` (combat.ts reste pur, ignorant des
  *  montures) : un CAVALIER frappant une cible plus petite que SA monture (LDB 14 l.180, « toute attaque ») ;
  *  en MÊLÉE, cibler un CAVALIER alors qu'on est plus petit que sa monture (l.181). */
-export function mountedAttackMods(battle: BattleState, attacker: Combatant, target: Combatant | null, kind: 'melee' | 'ranged'): ModLine[] {
+export function mountedAttackMods(battle: BattleState, attacker: Combatant, target: Combatant | null, kind: 'melee' | 'distance'): ModLine[] {
   const out: ModLine[] = [];
   if (!target) return out;
   const attMount = mountOf(battle, attacker);

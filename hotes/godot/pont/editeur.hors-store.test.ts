@@ -8,7 +8,8 @@
  * Les écrivains dédiés de la scène y passent aussi : sa musique, son message d'introduction saisi sur plusieurs lignes,
  * ses ancres de bataille, ses groupes, et l'apparence d'une ouverture de façade (#3606). Le formulaire tiré du schéma
  * d'un personnage écrit son rôle au combat, ses options au contexte de sa fiche, et ses onglets se partagent ses
- * éléments (#3606 M1a).
+ * éléments (#3606 M1a). Une adresse de prose s'y désigne par des choix seuls, son chapitre demandé à l'hôte puis rendu,
+ * chacun de ses fragments scellé par le noyau (#3606 M2g).
  */
 import { describe, expect, it } from 'vitest';
 import { erreurDe, modelesCommites, morceauxDe, servirLesModeles, table, type Reponse } from './pont.testkit';
@@ -25,6 +26,7 @@ import { findCreatureById, traits } from '../../../src/data';
 import { parseTraitInstance } from '../../../src/data/refFormatLivre';
 import { dossierDesProjetsLivres, listerProjetsLivres, PROJETS_MANUSCRITS } from '../../../scripts/guards/lib/projetsLivres.mjs';
 import { lireProjetLivre } from '../../../scripts/source/projetLivre.mjs';
+import type { Fragment } from '../../../src/data/source/decoupe';
 
 interface Edition {
   vue: { zones: ZonesDeLEditeur; couche: number };
@@ -36,6 +38,7 @@ interface Edition {
   depot?: { id: string; texte: string };
   calque: CalqueAffiche | null;
   planche?: { image: string };
+  chapitre?: { book: string; ch: string };
   memoire?: { calques: { version: string; calques: Record<string, Record<string, Record<string, unknown>>> }; oublier: string[]; deplacer: { de: string; vers: string }[] };
 }
 
@@ -184,7 +187,7 @@ describe('l’éditeur de carte par le pont, les murs', () => {
     const materiau = valeursDe(portes, 'structures')[1];
     presser(materiau);
     const posee = jouer({ geste: 'appui', point: { case: { x: 1, y: 1 }, f: { x: 1, y: 0.6 } } });
-    expect(auNord(posee.aretes!), 'la porte posée, au monde rendu').toEqual([{ cle: '1,1,N,0', case: { x: 1, y: 1 }, milieu: { x: 1, y: 0.5 }, sens: { x: 1, y: 0 }, pied: 0, piece: 'porte-ouverte', famille: 'colombage', hauteurM: 4 }]);
+    expect(auNord(posee.aretes!), 'la porte posée, au monde rendu').toEqual([{ cle: '1,1,N,0', case: { x: 1, y: 1 }, milieu: { x: 1, y: 0.5 }, sens: { x: 1, y: 0 }, pied: 0, piece: 'porte-ouverte', famille: 'colombage', hauteurM: 4, bloc: '0/0/0' }]);
     jouer({ geste: 'relache', point: { case: { x: 1, y: 1 }, f: { x: 1, y: 0.6 } } });
 
     presser(boutonDe(posee, 'outil/select'));
@@ -586,7 +589,7 @@ describe('l’éditeur de carte par le pont, l’essai', () => {
     const partie = appel('demarrer', { essai: true }) as Reponse & { vue?: { projection: { scene: { id: string } | null } } };
     expect(partie.ok).toBe(true);
     expect(partie.vue!.projection.scene, 'la partie s’ouvre sur la scène éditée, à jour').toEqual({ id: seconde.id.slice('scenes/'.length), nom: 'Relais de poste' });
-    expect(erreurDe(appel('demarrer', { essai: true })).message).toMatch(/^demarrer : une partie par page/);
+    expect(erreurDe(appel('demarrer', { essai: true })).message).toBe('demarrer : une partie est ouverte ; quitter d’abord');
   });
 });
 
@@ -853,7 +856,7 @@ describe('l’éditeur de carte par le pont, le combat et l’ameublement', () =
     const deux = presser(valeursDeLInspecteur(une, 'valeur/usable/actions/ajouter')[0]);
     const formulaire = (e: Edition, id: string) => e.vue.zones['editeur.inspecteur'].find((el) => el.id === id) as Formulaire | undefined;
     expect(formulaire(deux, 'identifier/action/fouiller-2')?.champs.map((c) => c.type)).toEqual(['fixe', 'saisieTexte']);
-    expect(boutonDe(deux, 'valeur/usable/actions/1/flow/steps/ajouter').libelle, 'les pas de l’enchaînement s’ajoutent au formulaire (#3606 M2b)').toMatch(/^Ajouter/);
+    expect(boutonDe(deux, 'valeur/usable/actions/1/flow/etapes/ajouter').libelle, 'les pas de l’enchaînement s’ajoutent au formulaire (#3606 M2b)').toMatch(/^Ajouter/);
     const renommee = editionDe(appel('editer', { type: 'identifier', args: ['fouiller-2', 'coffre'] }));
     expect(formulaire(renommee, 'identifier/action/coffre')?.champs[1]).toMatchObject({ valeur: 'coffre' });
     expect(erreurDe(appel('editer', { type: 'identifier', args: ['coffre'] })).categorie, 'sans action désignée').toBe('validation');
@@ -961,6 +964,58 @@ describe('l’éditeur de carte par le pont, la volée', () => {
     expect(ligneDes('plan'), 'la raison du plan, en clair').toMatchObject({ texte: poser.refus });
     expect(erreurDe(appel('editer', poser.jeu))).toEqual({ categorie: 'regle', message: `editer : ${poser.refus}` });
     expect(presser(boutonDe(tracee, 'volee/effacer')).surcouche.cases).toEqual([]);
+  });
+});
+
+describe('l’éditeur de carte par le pont, l’adresse de prose (#3606 M2g)', () => {
+  /** Un chapitre de fixture : une section à un paragraphe et une table légendée, une autre section. */
+  const TEXTE = [
+    '# Les Armes', '', 'Les armes du Vieux Monde sont nombreuses et variées, de la dague à l’arquebuse.', '',
+    '**TABLE DES ARMES**', '', '| Arme | Dégâts | Prix |', '|---|---|---|', '| Dague | BF+2 | 1 pa |', '| Épée | BF+4 | 10 co |', '',
+    '# Les Armures', '', 'Une armure protège son porteur des coups, au prix de sa discrétion.', '',
+  ].join('\n');
+  const MANIFESTE = JSON.stringify({ 'livre-de-base': { abbr: 'LDB', chapitres: [{ ch: '01', fichier: '01 - Armes.md', titre: 'Les Armes', octets: TEXTE.length }] } });
+  const D = 'valeur/flow/etapes/0/effet/descRef';
+  const jeuDe = (b: Bouton) => (b.jeu as { args: unknown[] }).args[2];
+
+  /** La première campagne du jeu ouverte, avec ou sans le `Source/` servi, un déclencheur tracé dont la première étape
+   *  écrit au journal, sans adresse. */
+  function auJournal(manifeste?: string) {
+    const { appel } = table();
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const choisir = (e: Edition, id: string, voulu: (v: unknown) => boolean) => presser(valeursDeLInspecteur(e, id).find((b) => voulu(jeuDe(b)))!);
+    let e = editionDe(appel('editer', { ouvrir: CAMPAGNE, ...(manifeste ? { manifeste } : {}) }));
+    presser(boutonDe(presser(boutonDe(e, 'outil/zone')), 'zone/trigger'));
+    editionDe(appel('editer', { edition: { geste: 'appui', point: point(2, 2) } }));
+    e = presser(boutonDe(editionDe(appel('editer', { edition: { geste: 'relache', point: point(2, 2) } })), 'valeur/flow/etapes/ajouter'));
+    e = choisir(e, 'valeur/flow/etapes/0/kind', (v) => (v as { kind: string }).kind === 'effet');
+    e = choisir(e, 'valeur/flow/etapes/0/effet/type', (v) => (v as { type: string }).type === 'journal');
+    return { appel, choisir, e };
+  }
+
+  it('une cellule de table se désigne par des choix seuls : le livre, le chapitre que l’hôte charge à la demande, la cellule, sa table, sa ligne, sa colonne ; l’empreinte n’est jamais offerte', () => {
+    const { appel, choisir, e: journal } = auJournal(MANIFESTE);
+    const livre = choisir(journal, `${D}/ajouter`, (v) => (v as { book: string }).book === 'livre-de-base');
+    expect(livre.chapitre, 'sans chapitre choisi, rien ne se charge').toBeUndefined();
+    const demande = choisir(livre, `${D}/ch`, (v) => v === '01');
+    expect(demande.chapitre).toEqual({ book: 'livre-de-base', ch: '01' });
+    expect(demande.vue.zones['editeur.inspecteur'].find((el) => el.id === `${D}/etat`)).toMatchObject({ texte: 'Chargement du chapitre…' });
+    expect(erreurDe(appel('editer', { edition: { geste: 'chapitre', book: 'livre-de-base', ch: '02', texte: TEXTE } })).message, 'un autre chapitre que l’attendu se refuse').toBe('editer : chapitre, livre-de-base ch.02 n’est pas le chapitre attendu');
+    const charge = editionDe(appel('editer', { edition: { geste: 'chapitre', book: 'livre-de-base', ch: '01', texte: TEXTE } }));
+    expect(charge.chapitre, 'reçu, il ne se redemande pas').toBeUndefined();
+    let e = choisir(charge, `${D}/parts/ajouter`, (v) => (v as Fragment[])[0].kind === 'cellule');
+    e = choisir(e, `${D}/parts/0/row`, (v) => v === 'Épée');
+    e = choisir(e, `${D}/parts/0/table`, (v) => v === 'table des armes#1');
+    e = choisir(e, `${D}/parts/0/col`, (v) => v === 'Prix');
+    const ids = e.vue.zones['editeur.inspecteur'].map((el) => el.id);
+    expect(ids.filter((id) => id.startsWith(`${D}/parts/0/`) && !id.includes('/', `${D}/parts/0/`.length)), 'l’empreinte n’est jamais offerte').toEqual([`${D}/parts/0/kind`, `${D}/parts/0/sec`, `${D}/parts/0/secOcc`, `${D}/parts/0/row`, `${D}/parts/0/col`, `${D}/parts/0/table`, `${D}/parts/0/retirer`]);
+    expect(e.vue.zones['editeur.inspecteur'].find((el) => el.id === `${D}/etat`)).toMatchObject({ texte: 'Passage : 10 co' });
+  });
+
+  it('sans Source servi, l’adresse le dit et ne se compose pas ; aucun chapitre ne s’attend, un chapitre rendu se refuse', () => {
+    const { appel, e } = auJournal();
+    expect(e.vue.zones['editeur.inspecteur'].find((el) => el.id.startsWith(D))).toMatchObject({ id: `${D}/etat`, texte: 'Le Source n’est pas servi : l’adresse s’édite sur le poste de développement.' });
+    expect(erreurDe(appel('editer', { edition: { geste: 'chapitre', book: 'livre-de-base', ch: '01', texte: TEXTE } })).categorie).toBe('validation');
   });
 });
 
@@ -1196,7 +1251,7 @@ describe('l’éditeur de carte par le pont, une scène bâtie de bout en bout',
     expect(corps.facades!.flatMap((f) => f.features ?? []).map((f) => f.kind), 'une façade et son ouverture').toEqual(['gable']);
     expect(neuve.effectZones!.map((z) => [z.presentation, z.area]), 'la pièce').toEqual([['interior', { kind: 'rect', ...ici(0, 0), w: 3, h: 3 }]]);
     expect(neuve.entities.map((en) => [en.kind, en.pos, en.facing])).toEqual([['prop', ici(5, 4), 'E'], ['heroStart', ici(3, 5), undefined]]);
-    expect(neuve.triggers.map((tr) => [tr.rect, tr.flow]), 'le déclencheur tiré, au flux vide').toEqual([[{ ...ici(6, 4), w: 3, h: 3 }, { kind: 'seq', steps: [] }]]);
+    expect(neuve.triggers.map((tr) => [tr.rect, tr.flow]), 'le déclencheur tiré, au flux vide').toEqual([[{ ...ici(6, 4), w: 3, h: 3 }, { kind: 'sequence', etapes: [] }]]);
 
     const { appel: rouvrir } = table();
     const depot = mkdtempSync(join(tmpdir(), 'editeur-3508-'));
@@ -1296,9 +1351,9 @@ describe('l’éditeur de carte par le pont, le formulaire tiré du schéma (#36
     expect(valeursDeLInspecteur(e, 'valeur/flow/kind').map((b) => [b.libelle, b.presse]), 'le flux requis : ses cinq branches, la séquence neuve pressée, aucun retrait').toEqual([
       ['Séquence', true], ['Effet', false], ['Si', false], ['Test', false], ['Choix', false],
     ]);
-    presser('valeur/flow/steps/ajouter');
-    choisir('valeur/flow/steps/0/kind', 'Effet');
-    saisir('valeur/flow/steps/0/effect/flag', 'porte');
+    presser('valeur/flow/etapes/ajouter');
+    choisir('valeur/flow/etapes/0/kind', 'Effet');
+    saisir('valeur/flow/etapes/0/effet/flag', 'porte');
     expect(erreurDe(appel('editer', { type: 'valeur', args: [declencheur, ['once'], false] })).categorie, 'un champ qu’un geste dédié écrit, hors du formulaire').toBe('validation');
     choisir('valeur/when/kind', 'TOUS (ET)');
     expect(option('valeur/when/kind', 'TOUS (ET)').presse).toBe(true);
@@ -1367,7 +1422,7 @@ describe('l’éditeur de carte par le pont, le formulaire tiré du schéma (#36
     const neuve = (JSON.parse(enregistree.depot!.texte) as { scenes: Scene[] }).scenes.find((sc) => sc.effectZones?.some((z) => z.id === zone.id))!;
     expect(neuve.triggers.find((t) => t.id === declencheur.id)).toMatchObject({
       when: { kind: 'all', of: [{ kind: 'flag', expr: 'porte' }, { kind: 'not', of: { kind: 'foeInLoS' } }] },
-      flow: { kind: 'seq', steps: [{ kind: 'do', effect: { type: 'setFlag', flag: 'porte' } }] },
+      flow: { kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'setFlag', flag: 'porte' } }] },
     });
     expect(neuve.effectZones!.find((z) => z.id === zone.id)).toMatchObject({
       crossTest: { characteristic: 'force' },
@@ -1379,7 +1434,7 @@ describe('l’éditeur de carte par le pont, le formulaire tiré du schéma (#36
     expect(option('valeur/when/kind', 'TOUS (ET)').presse, 'rouverte, la condition du déclencheur').toBe(true);
     expect(option('valeur/when/of/1/of/kind', 'Ennemi en Ligne de Vue').presse).toBe(true);
     expect(formulaire('valeur/when/of/0/expr').champs[2]).toMatchObject({ valeur: 'porte' });
-    expect(formulaire('valeur/flow/steps/0/effect/flag').champs[2], 'rouvert, le flux du déclencheur').toMatchObject({ valeur: 'porte' });
+    expect(formulaire('valeur/flow/etapes/0/effet/flag').champs[2], 'rouvert, le flux du déclencheur').toMatchObject({ valeur: 'porte' });
     rouvrir('editer', { edition: { geste: 'appui', point: point(3, 3) } });
     e = editionDe(rouvrir('editer', { edition: { geste: 'relache', point: point(3, 3) } }));
     expect(option('valeur/onCross/0/characteristic', 'Agilité').presse, 'rouverte, les ops de la zone').toBe(true);
@@ -1403,17 +1458,17 @@ describe('l’éditeur de carte par le pont, le formulaire tiré du schéma (#36
      *  « Drapeaux » `drapeau` ; un troisième pas ajouté se retire. */
     const ecrireLeFlux = (flux: string, effet: (pas: string) => void, drapeau: string) => {
       expect(option(`${flux}/kind`, 'Séquence').presse, 'le flux neuf est une séquence').toBe(true);
-      presser(`${flux}/steps/ajouter`);
-      choisir(`${flux}/steps/0/kind`, 'Séquence');
-      presser(`${flux}/steps/0/steps/ajouter`);
-      choisir(`${flux}/steps/0/steps/0/kind`, 'Effet');
-      effet(`${flux}/steps/0/steps/0/effect`);
-      presser(`${flux}/steps/ajouter`);
-      choisir(`${flux}/steps/1/kind`, 'Si');
-      choisir(`${flux}/steps/1/cond/kind`, 'Drapeaux');
-      saisir(`${flux}/steps/1/cond/expr`, drapeau);
-      presser(`${flux}/steps/ajouter`);
-      presser(`${flux}/steps/2/retirer`);
+      presser(`${flux}/etapes/ajouter`);
+      choisir(`${flux}/etapes/0/kind`, 'Séquence');
+      presser(`${flux}/etapes/0/etapes/ajouter`);
+      choisir(`${flux}/etapes/0/etapes/0/kind`, 'Effet');
+      effet(`${flux}/etapes/0/etapes/0/effet`);
+      presser(`${flux}/etapes/ajouter`);
+      choisir(`${flux}/etapes/1/kind`, 'Si');
+      choisir(`${flux}/etapes/1/condition/kind`, 'Drapeaux');
+      saisir(`${flux}/etapes/1/condition/expr`, drapeau);
+      presser(`${flux}/etapes/ajouter`);
+      presser(`${flux}/etapes/2/retirer`);
     };
     const validation = () => (e.vue.zones['editeur.validation'][0] as Ligne).texte;
 
@@ -1444,13 +1499,13 @@ describe('l’éditeur de carte par le pont, le formulaire tiré du schéma (#36
 
     const enregistree = editionDe(appel('editer', boutonDe(e, 'enregistrer').jeu));
     const scene = (JSON.parse(enregistree.depot!.texte) as { scenes: Scene[] }).scenes.find((sc) => sc.effectZones?.some((z) => z.onCross?.some((o) => o.op === 'infestation')))!;
-    const si = (drapeau: string) => ({ kind: 'if', cond: { kind: 'flag', expr: drapeau }, then: { kind: 'seq', steps: [] } });
-    expect(scene.entities?.find((en) => en.usable)?.usable?.actions?.[0].flow).toEqual({ kind: 'seq', steps: [
-      { kind: 'seq', steps: [{ kind: 'do', effect: { type: 'setFlag', flag: 'braise' } }] },
+    const si = (drapeau: string) => ({ kind: 'si', condition: { kind: 'flag', expr: drapeau }, alors: { kind: 'sequence', etapes: [] } });
+    expect(scene.entities?.find((en) => en.usable)?.usable?.actions?.[0].flow).toEqual({ kind: 'sequence', etapes: [
+      { kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'setFlag', flag: 'braise' } }] },
       si('braise'),
     ] });
-    expect(scene.effectZones!.flatMap((z) => z.onCross ?? []).find((o) => o.op === 'infestation')).toMatchObject({ chaqueNuit: { kind: 'seq', steps: [
-      { kind: 'seq', steps: [{ kind: 'do', effect: { type: 'ops', ops: [{ op: 'corruption', amount: 1 }] } }] },
+    expect(scene.effectZones!.flatMap((z) => z.onCross ?? []).find((o) => o.op === 'infestation')).toMatchObject({ chaqueNuit: { kind: 'sequence', etapes: [
+      { kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'ops', ops: [{ op: 'corruption', amount: 1 }] } }] },
       si('rats'),
     ] } });
   });
@@ -1471,20 +1526,20 @@ describe('l’éditeur de carte par le pont, le formulaire tiré du schéma (#36
     presser('outil/zone'); presser('zone/trigger');
     jouer({ geste: 'appui', point: point(0, 0) });
     jouer({ geste: 'relache', point: point(1, 1) });
-    presser('valeur/flow/steps/ajouter');
-    choisir('valeur/flow/steps/0/kind', 'Effet');
-    choisir('valeur/flow/steps/0/effect/type', 'Ouvrir une boutique');
-    expect(valeursDeLInspecteur(e, 'valeur/flow/steps/0/effect/entityId/id'), 'le brasero posé n’est pas un marchand de la scène').toEqual([]);
-    choisir('valeur/flow/steps/0/effect/type', 'Transition de scène');
-    const offertes = valeursDeLInspecteur(e, 'valeur/flow/steps/0/effect/scene/id');
+    presser('valeur/flow/etapes/ajouter');
+    choisir('valeur/flow/etapes/0/kind', 'Effet');
+    choisir('valeur/flow/etapes/0/effet/type', 'Ouvrir une boutique');
+    expect(valeursDeLInspecteur(e, 'valeur/flow/etapes/0/effet/entityId/id'), 'le brasero posé n’est pas un marchand de la scène').toEqual([]);
+    choisir('valeur/flow/etapes/0/effet/type', 'Transition de scène');
+    const offertes = valeursDeLInspecteur(e, 'valeur/flow/etapes/0/effet/scene/id');
     e = editionDe(appel('editer', offertes[0].jeu));
-    expect(valeursDeLInspecteur(e, 'valeur/flow/steps/0/effect/scene/id')[0].presse, 'la scène choisie est écrite').toBe(true);
+    expect(valeursDeLInspecteur(e, 'valeur/flow/etapes/0/effet/scene/id')[0].presse, 'la scène choisie est écrite').toBe(true);
 
     const enregistree = editionDe(appel('editer', boutonDe(e, 'enregistrer').jeu));
     const projet = JSON.parse(enregistree.depot!.texte) as { scenes: Scene[] };
     expect(offertes.map(valeurDe), 'les scènes du projet, exactement').toEqual(projet.scenes.map((sc) => sc.id));
     const scene = projet.scenes.find((sc) => sc.triggers.some((t) => JSON.stringify(t.flow).includes('"transition"')))!;
-    expect(scene.triggers[0].flow).toEqual({ kind: 'seq', steps: [{ kind: 'do', effect: { type: 'transition', scene: { id: valeurDe(offertes[0]) } } }] });
+    expect(scene.triggers[0].flow).toEqual({ kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'transition', scene: { id: valeurDe(offertes[0]) } } }] });
   });
 
   it('la musique, le message d’introduction sur plusieurs lignes, les ancres de bataille, les groupes du lieu et l’apparence d’une ouverture s’écrivent par leurs écrivains dédiés ; enregistrés, rouverts du dépôt, ils sont relus et la validation ne dit aucune erreur', { timeout: 120_000 }, () => {

@@ -31,7 +31,7 @@ describe('CharFrame — identité du repère de sol', () => {
     vi.spyOn(relations, 'campOf').mockReturnValue('party');
     useGame.setState({ mode: 'exploration', party: [c], viewMode: 'iso' });
     const { container } = monterRacine(<CharFrame c={c} />);
-    expect(container.querySelector('.ptile')!.classList.contains('team-ally')).toBe(true);
+    expect(container.querySelector('.ptile')!.classList.contains('team-allie')).toBe(true);
     expect(container.querySelector<HTMLElement>('.ptile-wrap')!.style.getPropertyValue('--ptile-ring')).toBe(HERO_RING[0]);
     expect(container.querySelector('.ptile-ring circle')!.getAttribute('stroke-dasharray')).toBeNull();
   });

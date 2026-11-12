@@ -19,6 +19,7 @@ import { Coins } from './Coins';
 import { Icon, IconG } from './Icon';
 import { SpeakerBanner } from './SpeakerBanner';
 import { ActivityPane } from './ActivityPane';
+import { Prose } from './Prose';
 import { GatedAction, raisonSi } from './GatedAction';
 import { refusDEntrerAuPort } from '../noyau/portFlow';
 
@@ -302,6 +303,7 @@ export function CityHubScreen({
       body="centered"
     >
       <div className="city-hub-body">
+        {place.prose && <div className="panel"><Prose md={place.prose} paquet /></div>}
         {screenTab === 'plan' && poi.length > 0 ? (
           <MasterDetail
             className="city-hub-master city-hub-plan"

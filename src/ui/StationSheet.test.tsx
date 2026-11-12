@@ -16,7 +16,7 @@ function station(id: string, label: string, assignedIds: string[]): Station {
     pos: { x: 0, y: 0 },
     label,
     icon: 'action/servir-l-engin',
-    faction: 'ally',
+    faction: 'allie',
     assignedIds,
     manned: assignedIds.length > 0,
     ref: { kind: 'poste', hullId: 'coque', posteUid: id },

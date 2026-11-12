@@ -61,6 +61,11 @@ type Genre = 'sol' | 'pose';
 /** Le côté, en cases, du bloc carré de cases d'une couche que couvre un morceau du volume. */
 export const CASES_PAR_MORCEAU = 8;
 
+/** Le bloc `<z>/<bx>/<by>` de la case `c` d'une couche, au grain `CASES_PAR_MORCEAU` (`MorceauDuMonde.cle`, `AreteDessinee.bloc`). */
+export function blocDeLaCase(c: { x: number; y: number; z: number }): string {
+  return `${c.z}/${Math.floor(c.x / CASES_PAR_MORCEAU)}/${Math.floor(c.y / CASES_PAR_MORCEAU)}`;
+}
+
 /** L'octet du masque d'une case retirée ; 0 pour une case montrée. */
 const RETIREE = 255;
 
@@ -84,11 +89,12 @@ interface GeometrieDuMonde {
   /** Couleur sRGB opaque de chaque sommet, canaux dans [0, 1], 4 nombres par sommet (rouge, vert, bleu, alpha). */
   couleurs: number[];
   /**
-   * La case `[x, y, z]` de chaque triangle, sa couche comprise, dans l'ordre des triangles : toujours sur la carte, la
-   * case de la carte la plus proche pour une face posée hors d'elle (un décor hors de la carte, le pont ou la mer d'un
-   * navire posé au bord). Dans un morceau (`MorceauDuMonde`), sa couche est une couche de la scène (`caseSurLaCarte`).
+   * La case de chaque triangle, sa couche comprise, 3 nombres par triangle (`x`, `y`, `z`), dans l'ordre des
+   * triangles : toujours sur la carte, la case de la carte la plus proche pour une face posée hors d'elle (un décor
+   * hors de la carte, le pont ou la mer d'un navire posé au bord). Dans un morceau (`MorceauDuMonde`), sa couche est
+   * une couche de la scène (`caseSurLaCarte`).
    */
-  cases: [number, number, number][];
+  cases: number[];
   /**
    * une par matière (et provenance), ses sommets de `debut` à `fin` exclu, dans l'ordre des triangles. Les triangles
    * d'une même matière se suivent (`surfaces`) ; le sol et les crêtes d'une case que posent les ponts d'un navire de
@@ -118,8 +124,8 @@ interface GeometrieDuMonde {
  */
 export interface MorceauDuMonde extends GeometrieDuMonde {
   /**
-   * `<genre>/<z>/<bx>/<by>` : le genre (`sol` : sol, relief, raccords, piliers ; `pose` : mer, décors et crêtes), la
-   * couche, et le bloc, `bx = floor(x / CASES_PAR_MORCEAU)`, `by = floor(y / CASES_PAR_MORCEAU)`.
+   * `<genre>/<z>/<bx>/<by>` : le genre (`sol` : sol, relief, raccords, piliers ; `pose` : mer, décors et crêtes), puis
+   * le bloc de sa case sur la carte (`blocDeLaCase`).
    */
   cle: string;
   /**
@@ -197,7 +203,7 @@ const nomDeMatiere = ({ domain, id }: MaterialRef): string => `${domain}--${id}`
 export const matieresDeDecor = (): string[] => matieresDe('prop').map(({ id }) => nomDeMatiere({ domain: 'prop', id }));
 
 /** Trois décimales : le millimètre, et le millième d'un canal de couleur. */
-const arrondi = (v: number): number => Math.round(v * 1000) / 1000;
+const arrondi = (v: number): number => Math.round(v * 1000) / 1000 + 0;
 
 /** Les faces des décors volumiques de la scène (`facesDuDecor`), chacune avec sa case, de toutes ses couches : le
  *  décor que son terrain pose sur chaque case (`terrainOverlayProp`, le bois et ses arbres), au centre de la case, et
@@ -249,7 +255,7 @@ function emballer(scene: Scene, faces: readonly FaceRangee[]): GeometrieDuMonde 
   const positions: number[] = [];
   const normales: number[] = [];
   const couleurs: number[] = [];
-  const cases: [number, number, number][] = [];
+  const cases: number[] = [];
   const surfaces: SurfaceDuVolume[] = [];
   for (const { faces: indices, ...surface } of parMatiere.values()) {
     const debut = positions.length / 3;
@@ -261,7 +267,7 @@ function emballer(scene: Scene, faces: readonly FaceRangee[]): GeometrieDuMonde 
       const { x, y, z } = faces[i].surLaCarte;
       for (const { sommets, normale } of trianglesOrientes(faces[i].geom, centre)) {
         const n = normale ?? { x: 0, y: 1, z: 0 };
-        cases.push([x, y, z]);
+        cases.push(x, y, z);
         for (const p of sommets) {
           positions.push(arrondi(p.x), arrondi(p.y), arrondi(p.z));
           normales.push(arrondi(n.x), arrondi(n.y), arrondi(n.z));
@@ -277,7 +283,7 @@ function emballer(scene: Scene, faces: readonly FaceRangee[]): GeometrieDuMonde 
 /** L'empreinte d'une géométrie du monde et de sa rangée au masque, s'il en a une : `hash32` de ses surfaces et de sa
  *  rangée, poursuivi par `hash32AuMillieme` sur ses positions, ses normales, ses couleurs et ses cases, en base 36. */
 function empreinteDe({ positions, normales, couleurs, cases, surfaces, rangee }: GeometrieDuMonde & { rangee?: number }): string {
-  const h = [positions, normales, couleurs, cases.flat()].reduce((acc, t) => hash32AuMillieme(t, acc), hash32(jsonCanonique(surfaces), rangee ?? ''));
+  const h = [positions, normales, couleurs, cases].reduce((acc, t) => hash32AuMillieme(t, acc), hash32(jsonCanonique(surfaces), rangee ?? ''));
   return h.toString(36);
 }
 
@@ -328,9 +334,8 @@ export const volumeDuMonde = memoByRef((scene: Scene): VolumeDuMonde => {
   for (const f of triangulees(scene, [...sol, ...mer, ...cretes, ...decors])) {
     const surLaCarte = caseSurLaCarte(scene, f.cell);
     if (!surLaCarte) continue;
-    const { x, y, z } = surLaCarte;
-    const cle = `${f.genre}/${z}/${Math.floor(x / CASES_PAR_MORCEAU)}/${Math.floor(y / CASES_PAR_MORCEAU)}`;
-    (parMorceau.get(cle) ?? parMorceau.set(cle, { genre: f.genre, z, faces: [] }).get(cle)!).faces.push({ ...f, surLaCarte });
+    const cle = `${f.genre}/${blocDeLaCase(surLaCarte)}`;
+    (parMorceau.get(cle) ?? parMorceau.set(cle, { genre: f.genre, z: surLaCarte.z, faces: [] }).get(cle)!).faces.push({ ...f, surLaCarte });
   }
   const morceaux = [...parMorceau].map(([cle, { genre, z, faces }]) => {
     const contenu = { ...emballer(scene, faces), rangee: rangeeDuPlan(indiceDe.get(z)!, genre, h) };

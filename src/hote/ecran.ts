@@ -10,14 +10,15 @@
  * aucun id.
  */
 import {
-  ACTIONS, avecSigne, batailleEnVue, fenetreDuJeu, carteEnVue, cleDuGeste, dayIndex, formatImperial, formatJourImperial, marchandEnVue, marcheEnVue, voyageEnVue, VERBE_DE_CHOIX, type AxeDuChoix, type FenetreAChoix, conditionLabel, conversationEnVue, difficultyText, documentEnVue, lieuEnVue, formatMoney, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDuSoin, ficheDuPorteur, gestesDeLObjet, interludeEnVue, jetsEnVue, porteurParId, recitEnVue, reposEnVue, toneOf,
-  type CombatEvent, type EntreeDeLaFiche, type LieuDuPlan, type PlanDeLaCarte, type FicheDuPorteur, type GesteAChoix, type GesteDuNoyau, type GesteFermable, type FenetreDAttaque, type FenetreDIncantation, type Jeu, type JetEnVue, type LigneDeJet, type LigneDuJournal, type ModLine, type RollBreakdown, type TrajetEnVue,
+  ACTIONS, avecSigne, batailleEnVue, intentionDeRenvoi, partieEnCours, refusDeRenvoyer, fenetreDuJeu, carteEnVue, cleDuGeste, dayIndex, formatImperial, formatJourImperial, marchandEnVue, marcheEnVue, voyageEnVue, VERBE_DE_CHOIX, type AxeDuChoix, type FenetreAChoix, conditionLabel, conversationEnVue, difficultyText, documentEnVue, lieuEnVue, formatMoney, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDuSoin, ficheDuPorteur, gestesDeLObjet, interludeEnVue, jetsEnVue, porteurParId, recitEnVue, reposEnVue, toneOf,
+  type CombatEvent, type Equipe, type EntreeDeLaFiche, type LieuDuPlan, type PlanDeLaCarte, type FicheDuPorteur, type GesteAChoix, type GesteDuNoyau, type GesteFermable, type FenetreDAttaque, type FenetreDIncantation, type Jeu, type JetEnVue, type LigneDeJet, type LigneDuJournal, type ModLine, type RollBreakdown, type TrajetEnVue,
 } from '../noyau/index';
 import { pluriel, t } from '../i18n';
 import { garanti } from '../lib/garanti';
 import type { Projection } from './projection';
 import { CHOIX_EN_BOUTONS, type FenetreADessiner } from './gestes';
 import { zonesDeLaCreation, type ZonesDeLaCreation } from './creation';
+import { zonesDeLaPartie, type ZonesDeLaPartie } from './groupe';
 import { elementsDesGestes, ligne, resume, type Bouton, type Choix, type Element, type Entite, type FicheOuverte, type Formulaire, type Jet, type Ligne, type PanneauDeLHote, type Plan, type Puce, type Saisie, type Ton } from './elements';
 
 /**
@@ -47,7 +48,7 @@ import { elementsDesGestes, ligne, resume, type Bouton, type Choix, type Element
  * laissée vide part `null`. Seuls les gestes `ouvert` de la fenêtre (`fenetreADessiner`, `src/hote/gestes.ts`) se
  * dessinent.
  */
-export interface ZonesDeLEcran extends ZonesDeLaCreation {
+export interface ZonesDeLEcran extends ZonesDeLaCreation, ZonesDeLaPartie {
   /** le titre de la fenêtre qui tient la main. */
   'fenetre.titre': Ligne[];
   /** l'étape de séquence et le nom de qui tient la main. */
@@ -115,7 +116,8 @@ export interface ZonesDeLEcran extends ZonesDeLaCreation {
   'journal.titre': Ligne[];
   /** chaque héros du groupe en carte (`herosDuGroupe`) : ses Blessures, sa bourse, le bouton qui ouvre sa fiche,
    *  pressé quand elle est ouverte, qui la ferme alors, ses États, puis ce que la fenêtre dit de lui : le jet qu'il jette
-   *  en route et les gestes qui le désignent, sa nuit à la halte. */
+   *  en route et les gestes qui le désignent, sa nuit à la halte ; avant le lancement, « Renvoyer », dont le `jeu` est
+   *  l'intention du noyau qui le renvoie (`intentionDeRenvoi`), refusé avec sa raison (`refusDeRenvoyer`). */
   'groupe.heros': Entite[];
   /**
    * la fiche ouverte (`ficheDuPorteur`, surface du noyau), en statbloc : le combattant en entité : son espèce et sa
@@ -374,16 +376,17 @@ function trajetsDeLaCarte(etat: Jeu): Element[] {
   ];
 }
 
-/** L'écran du lieu (`lieuEnVue`), dont le nom est le titre de la fenêtre : le plan de la carte vu d'ici (`lieu/plan`,
- *  `planDeLaCarte`, rien sous ses lieux) et le bouton qui ouvre la carte (`lieu/carte`) ; sous leur titre
- *  (`lieu/services`), chacun de ses services en entité, son fond (`fond`), son icône (`icone`), le boniment de son hôte
- *  (`accueil`) et ce qu'on y fait en boutons fermés avec leur raison, chacun des points d'intérêt de son plan et son
+/** L'écran du lieu (`lieuEnVue`), dont le nom est le titre de la fenêtre : sa description (`lieu/description`),
+ *  quand il en a une ; le plan de la carte vu d'ici (`lieu/plan`, `planDeLaCarte`, rien sous ses lieux) et le bouton
+ *  qui ouvre la carte (`lieu/carte`) ; sous leur titre (`lieu/services`), chacun de ses services en entité, son fond
+ *  (`fond`), son icône (`icone`), le boniment de son hôte (`accueil`) et ce qu'on y fait en boutons fermés avec leur raison, chacun des points d'intérêt de son plan et son
  *  entrée ; puis, sous leur titre (`lieu/trajets`), chaque trajet qui en part, sa destination et son départ
  *  (`departDuTrajet`). */
 function ecranDuLieu(etat: Jeu): Element[] {
   const l = lieuEnVue(etat);
   if (!l) return [];
   return [
+    ...(l.prose ? [ligne('lieu/description', l.prose)] : []),
     planDeLaCarte('lieu/plan', l.plan, () => []),
     boutonDeGeste('lieu/carte', l.carte.libelle, l.carte.geste, l.carte.refus),
     ...(l.services.length || l.pointsDInteret.length ? [ligne('lieu/services', t('ecran.lieu.services'))] : []),
@@ -454,7 +457,7 @@ function herosDeLInterlude(etat: Jeu): Element[] {
 }
 
 /** Le ton de l'issue d'une bataille, par le camp qui l'emporte. */
-const TON_DE_L_ISSUE = { ally: 'reussite', enemy: 'echec' } as const satisfies Record<'ally' | 'enemy', Ton>;
+const TON_DE_L_ISSUE = { allie: 'reussite', ennemi: 'echec' } as const satisfies Record<Equipe, Ton>;
 
 /** La bataille de masse ouverte (`batailleEnVue`) : son Round, chaque armée en entité, sa Puissance en jauge et le bonus
  *  de ses Tests ce Round, son terrain et sa Menace, puis chaque Scène en entité, son effet (sa description au détail),
@@ -797,7 +800,8 @@ function gestesDesCartes(etat: Jeu, gestes: (Bouton | Choix | Formulaire)[]): { 
 
 /** Chaque héros du groupe en carte (`heros/`) : son portrait, son nom, ses Blessures en jauge, sa bourse, le bouton qui ouvre sa
  *  fiche, pressé quand elle est ouverte, qui la ferme alors, ses États en puces, puis ce que la fenêtre dit de lui
- *  (`surLesCartes`) et les gestes qui le désignent (`gestesDesCartes`), `gestes`. */
+ *  (`surLesCartes`) et les gestes qui le désignent (`gestesDesCartes`), `gestes` ; tant qu'aucune partie n'est en
+ *  cours (`partieEnCours`), le bouton qui le renvoie, refusé par `refusDeRenvoyer`. */
 function herosDuGroupe(etat: Jeu, ouverte: FicheOuverte | null, gestes: Map<string, Bouton[]>): Entite[] {
   const { parHeros } = surLesCartes(etat);
   return etat.party.map((h): Entite => {
@@ -813,6 +817,7 @@ function herosDuGroupe(etat: Jeu, ouverte: FicheOuverte | null, gestes: Map<stri
         ...etatsEnPuces(f.etats),
         ...(parHeros.get(h.id) ?? []),
         ...(gestes.get(h.id) ?? []),
+        ...(partieEnCours(etat) ? [] : [{ type: 'bouton', id: `renvoyer/${h.id}`, libelle: t('ecran.groupe.renvoyer'), jeu: intentionDeRenvoi(h.id), presse: false, focus: false, refus: refusDeRenvoyer(etat, h.id) } satisfies Bouton]),
       ],
     };
   });
@@ -996,6 +1001,7 @@ export function zonesDeLEcran(etat: Jeu, p: Projection, fenetre: FenetreADessine
     'groupe.heros': herosDuGroupe(etat, fiche, gestesSurLesCartes),
     ...zonesDeLaFiche(etat, fiche),
     ...zonesDeLaCreation(etat, panneau && 'creation' in panneau ? panneau.creation : null),
+    ...zonesDeLaPartie(etat),
   };
 }
 

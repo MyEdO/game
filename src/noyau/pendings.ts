@@ -251,7 +251,7 @@ export interface PendingReload {
   weaponUid: string; // arme de rechargement (loadout) — résolue en NOM à l'affichage
   reload: number; // Indice DR cible
   progressBefore: number; // DR déjà cumulés (Test étendu)
-  skillValue: number; // combatValue(active, 'ranged')
+  skillValue: number; // combatValue(active, 'distance')
   difficulty: Difficulty; // 'intermediaire' (le canon ne spécifie pas → défaut)
   /** Ligne du jet montée à l'ouverture (`rollLine`, arme bakée et Soutien compris) — lue par la fenêtre. */
   ligne: RollLineParts;
@@ -1018,6 +1018,8 @@ export interface ToucheDeProjectile {
  *  - `bordee` : les coups RESTANTS d'une bordée (MDG 14 l.128), posés par `jouerLesTirsDeBordee` ;
  *  - `apresCoup` : la frappe passive d'un défenseur (`jouerLaFrappePassive`) rend la main à l'après-coup
  *    du coup qui l'a provoquée, au temps porté par `queue`. LDB 10 l.1037 ; LDB 85 l.71.
+ *  - `subie` : les attaques RESTANTES de la série d'attaques subies hors bataille (`EtatDeJeu.serieSubie`),
+ *    posé sur chacun de ses coups par `ouvrirLaSerieSubie` puis `poursuivreLaSerie`. MDG 15 l.163-164, l.177-178.
  */
 export type EnchainementDuCoup =
   | { mode: 'hero'; wasChain: boolean }
@@ -1026,7 +1028,8 @@ export type EnchainementDuCoup =
   | { mode: 'auto' }
   | { mode: 'tirRapide'; faits: string[] }
   | { mode: 'aucun' }
-  | { mode: 'apresCoup'; queue: QueueDuCoup };
+  | { mode: 'apresCoup'; queue: QueueDuCoup }
+  | { mode: 'subie' };
 
 /** Tirs d'une bordée dont le coup reste à faire naître, dans l'ordre des pièces (MDG 14 l.128). `actedAvant` : l'`acted` du
  *  navire avant la bordée, rendu après chaque coup — la bordée est une tâche d'équipage (MDG 14 l.37). */
@@ -1725,6 +1728,9 @@ export interface CascadeStepMeta {
    *  les mints du canal (`operationsDe`, `chuteDe`) ; lu par les DEUX walkers de Flow, qui n'ont ainsi aucune
    *  liste de `kind` à tenir — un troisième kind à dé déclare le même champ et il est servi. */
   differeLaSuite?: boolean;
+  /** L'op `attaquesSubies` dont l'étape `nombreDAttaquesSubies` tire le dé `nombre` (`combatFlow.ouvrirLeNombreDAttaquesSubies`),
+   *  relue par son applier pour ouvrir la série. */
+  attaquesSubies?: [Extract<GameOp, { op: 'attaquesSubies' }>];
   /** SUITE confiée à cette étape (#2689, `combatEffects.confierLaSuite`), rejouée APRÈS sa conséquence
    *  à la DERNIÈRE étape de la grappe : si un maillon rouvre un dé, les maillons restants repartent avec
    *  lui. */
@@ -1764,7 +1770,7 @@ export interface CascadeStepMeta {
   flowLabel?: string;
   flowSl?: number;
   /** Coût d'Avantage d'une étape `choixDeclenche` (dépensé sur OUI si payable) — absent = gratuit. */
-  choiceCost?: number;
+  coutEnAvantage?: number;
   /** Trait psy qu'acquiert le porteur d'une étape `cibleAcquise` (ADE II 09 l.9, l.15), envers la Cible choisie
    *  (`noyau/cibleAcquise.ts`). */
   psychAcquis?: TypeAcquis;

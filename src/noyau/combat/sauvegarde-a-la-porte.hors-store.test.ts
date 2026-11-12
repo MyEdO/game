@@ -60,7 +60,7 @@ function setBattle(combatants: Combatant[]): void {
   banc.setState({ battle, mode: 'battle', scene: emptyScene('scene-test'), gameTime: 720, party: [], journal: [], pendingCascade: null, pendingFateSave: null, pendingLogQueue: [] });
 }
 
-const arc = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 7 }, range: 30, qualities: [] } as unknown as Weapon;
+const arc = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 7 }, range: 30, qualities: [] } as unknown as Weapon;
 const touche = (): AttackResult => ({
   hit: true, attackerRoll: 30, netSL: 3, location: 'corps', damage: 6, woundsLost: 4,
   critical: false, advantageTo: null, defenderDefeated: false, log: 'touche.',
@@ -773,7 +773,7 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `jetValider(
   });
 
   it('(viii) TIR RAPIDE d’INTERRUPTION sur un porteur de sauvegarde : la cascade-hôte n’est pas détruite, et le tour n’avance pas', () => {
-    const arcTireur = { uid: 'a', label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 7 }, range: 30, qualities: [], loaded: true } as unknown as Weapon;
+    const arcTireur = { uid: 'a', label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 7 }, range: 30, qualities: [], loaded: true } as unknown as Weapon;
     const tireur = mk('hero', 'tireur', { pos: { x: 0, y: 0 }, weapons: [arcTireur], talents: [{ talentId: 'tir-rapide', times: 1 }] } as never);
     // Indice 10 : la sauvegarde ne passe qu'à 10 — le dé, POSÉ D'OFFICE (aucun siège ne tient le démon
     // pendant la pause de début de Round), rate, et la reprise applique le coup.

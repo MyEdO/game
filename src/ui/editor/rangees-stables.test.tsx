@@ -70,9 +70,9 @@ describe('listes d’édition — l’état d’une rangée la suit au retrait d
   });
 
   it('FlowEditor', () => {
-    const flow: Flow = { kind: 'seq', steps: [
-      { kind: 'do', effect: { type: 'journal', desc: 'PREMIER' } as Effect },
-      { kind: 'do', effect: { type: 'journal', desc: 'SECOND' } as Effect },
+    const flow: Flow = { kind: 'sequence', etapes: [
+      { kind: 'effet', effet: { type: 'journal', desc: 'PREMIER' } as Effect },
+      { kind: 'effet', effet: { type: 'journal', desc: 'SECOND' } as Effect },
     ] } as Flow;
     monter(<Controle initial={flow} rendu={(v, poser) => <FlowEditor flow={v} onChange={poser} ctx={ctx} />} />);
     ouvrirLaSecondeRetirerLaPremiere('Supprimer le bloc', 'SECOND');

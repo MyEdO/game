@@ -8,7 +8,7 @@ import { analyserCorpus } from '../../guards/lib/dialecte.mjs';
  *    génériques (`…Capabilities`, `CombatFeature`).
  *
  * Un champ ne compte pour un canal que si son TYPE le porte : `SpellData.effects: Flow` n'est pas
- * un canal d'effet déclenché, `WeaponGroupData.combat: 'melee' | 'ranged'` n'est pas un drapeau de
+ * un canal d'effet déclenché, `WeaponGroupData.combat: 'melee' | 'distance'` n'est pas un drapeau de
  * capacité. C'est le type déclaré qui tranche, pas le nom.
  */
 import * as ts from 'typescript/unstable/ast'

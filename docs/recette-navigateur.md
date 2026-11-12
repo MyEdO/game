@@ -590,7 +590,7 @@ minimal pose un trigger dont le flux joue l'effet `journal`. Formes validées pa
 ```js
 const descRef = { book: 'ennemi-dans-l-ombre', ch: '01', parts: [{ kind: 'blocs', sec: 'le-barman', secOcc: 2, b0: 0, b1: 0, sum: '32d9b703acdfaede' }] }
 const trigger = { id: 'recette-journal', rect: { x: 2, y: 2, w: 1, h: 1 }, once: true,
-  flow: { kind: 'seq', steps: [{ kind: 'do', effect: { type: 'journal', descRef } }] } }
+  flow: { kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'journal', descRef } }] } }
 const pnj = { id: 'pnj-recette', base: { id: 'humain' } }   // narratif.presetsPnj[]
 ```
 
@@ -2013,7 +2013,7 @@ sélectionne le trigger et ouvre son détail) → **+ Bloc** (`src/ui/editor/Flo
   (`AddMenu.tsx`, un `mini-title` par groupe, jamais cliquable) : « Narration » n'est qu'un titre, on
   clique « Journal » directement.
 - La ligne d'effet posée est un `<details class="eff-row flow-node">` REPLIÉ (`open` n'est posé que pour
-  un nœud `if`/`test`, `FlowEditor.tsx:268`) : ouvrir son `<summary>` avant de viser la zone de texte —
+  un nœud `si`/`test`, `FlowEditor.tsx:268`) : ouvrir son `<summary>` avant de viser la zone de texte —
   `deplierVers(session, '<sélecteur du champ>')` le fait au geste (clic réel du `summary`, puis molette).
 - Depuis la CARTE, un trigger sélectionné ouvre le même détail par le bouton **Effets (n)…** de
   l'inspecteur (`src/ui/editor/Inspector.tsx:910`).

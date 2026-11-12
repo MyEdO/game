@@ -45,7 +45,7 @@ const doc = document(
     stake: z.string().optional(),
     /** FORME DÉCLARÉE du `stake` (même contrat que `stakes.form`/`activities`). */
     stakeForm: stakeFormSchema.optional(),
-    resolution: z.enum(['extended', 'terreur', 'binary']).optional(),
+    resolution: z.enum(['etendu', 'terreur', 'simple']).optional(),
     failCondition: ref('etat').optional(),
     failAmount: nommerChamps(z
       .strictObject({
@@ -81,7 +81,7 @@ const doc = document(
     retestAt: { label: 'Re-test', hint: 'Moment du re-test d’une affliction active : début (défaut) ou fin de Round' },
     stake: { label: 'Enjeu' },
     stakeForm: { label: 'Forme de l’enjeu' },
-    resolution: { label: 'Mode de résolution', hint: 'Étendu / Terreur / binaire' },
+    resolution: { label: 'Mode de résolution', hint: 'Étendu / Terreur / Simple' },
     failCondition: { label: 'État infligé à l’échec', hint: 'État posé quand le Test échoue' },
     failAmount: {
       label: 'Quantité infligée à l’échec',
