@@ -49,7 +49,7 @@ export function partyTokenOf(
   partyIds: readonly string[],
 ): PartyToken | null {
   if (!leader) return null;
-  const seat = seatPoseOf(scene, { kind: 'party', rang: RANG_MENEUR });
+  const seat = seatPoseOf(scene, { kind: 'groupe', rang: RANG_MENEUR });
   const heroIndex = heroRingIndex(leader, partyIds);
   if (!seat) return { leader, heroIndex, pos: partyPos, capKey: CAP_GROUPE };
   return { leader, heroIndex, pos: { x: seat.anchor.x, y: seat.anchor.y, ...(partyPos.z ? { z: partyPos.z } : {}) }, seat, capKey: CAP_GROUPE };
@@ -117,7 +117,7 @@ export function buildTokens(scene: Scene, visible: ReadonlySet<string> | undefin
     if (!ez && covered(ent.pos.x, ent.pos.y)) continue; // l'occlusion par combattant ne vaut qu'au sol
     // ASSISE : un PNJ authored attablé (`Scene.seatAssignments`) porte son ancre et son cap depuis la
     // SOURCE UNIQUE `noyau/monde/seating` — le builder ne recalcule aucune géométrie de meuble.
-    const assis = seatPoseOf(scene, { kind: 'entity', entityId: ent.id });
+    const assis = seatPoseOf(scene, { kind: 'entite', entityId: ent.id });
     out.push({
       kind: 'token',
       key: `fig:${ent.id}`,

@@ -128,7 +128,7 @@ const SORTS = [
     ...arcane('Peste (skaven)'), cn: 6, range: { kind: 'touch' }, target: un, duration: { kind: 'special', text: '8 Minutes +' },
     desc: 'Le démon frotte 1 arme sur une blessure purulente. Une cible touchée per cette arme ou ces munitions souffre de 1 État « Empoisonné » en plus des dégâts. Les Tests de Résistance se font à (+0).',
     effects: seq(doOps('target',
-      { op: 'augmentWeapon', onHitEffects: [{ trigger: 'onHit', on: 'victim', flow: doOps('target', { op: 'condition', id: 'empoisonne' }) }] },
+      { op: 'augmentWeapon', onHitEffects: [{ trigger: 'onHit', on: 'victime', flow: doOps('target', { op: 'condition', id: 'empoisonne' }) }] },
       narr('Les Tests de Résistance se font à (+0).'))),
   }],
   ['nuee-de-mouches', 'Nuée de Mouches', 306, 'Veil of Flies', RAT_CORNU, {

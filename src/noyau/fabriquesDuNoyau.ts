@@ -17,7 +17,7 @@ import type { CorpsDesReglages, VerbeDeReglage } from './reglagesDuJet';
 import type { ActionDeJet, FlowKey, NomDeVerbeDeJet, RollVerb } from './flowVerbs';
 import type { Majuscule } from './intentionsDeSiege';
 import type { IdsParEspace } from '../data/schemas/_ids.generated';
-import type { Effect } from '../data/schemas/defs-scenes/effets';
+import type { Effect, effectTargetSchema } from '../data/schemas/defs-scenes/effets';
 import { choixDuCombat, cloturesDuCombat, createCombatSlice, reglagesDuCombat, sortiesDuCombat, validationsDuCombat } from './combatSlice';
 import { creerSortieDeFenetre, type SortiesDeFenetre } from './sortieDeFenetre';
 import { creerValidationDeFenetre, type ValidationsDeFenetre } from './validationDeFenetre';
@@ -63,7 +63,7 @@ import { creerActionsDeLAuberge } from './innFlow';
 import { choixDeLaSemaineEnMer, validationsDeLaSemaineEnMer } from './seaActivities';
 import type { BattleState, NetState, ShootingStanceKey } from './etat';
 import type { AttackPlan, MovementResolution } from './combatFlow';
-import type { CounterDeclaration, IssueDEmpoignade, IssueOpposee, PendingAppraise, ReactionDeBouclier, RevealEntry } from './pendings';
+import type { CounterDeclaration, EnchainementDuCoup, IssueDEmpoignade, IssueOpposee, PendingAppraise, PendingAuContact, PendingDisengage, PendingGrapple, ReactionDeBouclier, RevealEntry } from './pendings';
 import type { ZoneEnPose } from './targetingHolder';
 import type { VerdictApprentissage } from '../engine/grimoire';
 import type { OrientationOutcome } from '../engine/seaNavigation';
@@ -74,7 +74,7 @@ import type { SellRelation } from '../engine/seaVoyage';
 import type { VoyageCadence } from './voyageCadence';
 import type { CharMode } from './creation/brouillon';
 import type { HealMode } from '../engine/healing';
-import type { bankWithdrawOutcome, GenreDeDepot, statusIncome } from '../engine/activities';
+import type { bankWithdrawOutcome, EntrainementOption, GenreDeDepot, statusIncome } from '../engine/activities';
 import type { CargoRaidOutcome } from '../engine/cargo';
 import type { RiverPerilKind } from '../engine/riverNavigation';
 import type { GenreDeFlottant } from './effetsDeLAppel';
@@ -84,7 +84,7 @@ import type { GameOp } from '../engine/ops';
 import type { TavernGame } from '../engine/tavernGame';
 import type { psychResolution } from '../engine/psychology';
 import type { weaponGroupSkillMode } from '../engine/combat';
-import type { GroupeDArme, TrappingTypeId } from '../data/index';
+import type { GroupeDArme, ManeuverDef, SkillData, TraitData, TrappingTypeId } from '../data/index';
 import type { PorteeDAssaut } from '../data/schemas/grammaire/mecanique';
 import type { ChargeDAttaque } from './bus';
 import type { TypeDAttaque } from './combat/hitModifiers';
@@ -100,6 +100,19 @@ import type { GenreDeCascade } from './tablesPosees';
 import type { PursuitPayload } from './pursuitFlow';
 import type { EncounterDef } from './monde/scene';
 import type { weaponUsesHand } from '../engine/trauma';
+import type { CibleDEffetDeScene } from './combatEffects';
+import type { Carrier } from './monde/carrier';
+import type { SeatOccupant } from './monde/seating';
+import type { AdvantageCamp } from '../engine/advantagePool';
+import type { EffectTargeting } from '../engine/flowCore';
+import type { phaseDeChute } from './fallMove';
+import type { Tool } from './sceneEditLecture';
+import type { ActionDArchitecture, OutilDeLEditeur } from './edition/session';
+import type { ContexteDuPointeur } from './edition/pointeur';
+import type { RouteObjet } from '../data/schemas/exposition-derivee';
+import type { advanceCost } from '../engine/advancement';
+import type { SequenceAbandon, SequenceBoard, SequenceCloseCtx, SequenceDef, SequenceRoundActors, SequenceState, SequenceVerdict } from './sequenceContract';
+import type { sequenceCumulsDeLaManche } from './sequenceCore';
 
 /** Les actions du lexique des verbes (#3371 §3.1) : un verbe manuscrit se nomme `<action>` ou `<action><Complément>`, ou
  *  à la forme pronominale (`seRelever`). */
@@ -151,36 +164,36 @@ export type VerrouDesMots<S extends string> = Verrou<Exclude<Mots<S>, `${number}
 type MotDuLexique = ActionDuLexique | ActionDeLaMachinerie | ActionDeFenetre | ActionDeJet
   | 'a' | 'abandon' | 'abandonner' | 'abregee' | 'abri' | 'absent' | 'accepter' | 'achat' | 'acheteur' | 'acquise'
   | 'acteur' | 'action' | 'active' | 'activite' | 'activites' | 'adapte' | 'adversaire' | 'adversaires' | 'adverse' | 'affaler' | 'aggrave' | 'agir'
-  | 'aide' | 'alea' | 'aleatoire' | 'allie' | 'alors' | 'ambition' | 'amis' | 'amputer' | 'aneantissement' | 'animosite'
-  | 'anneau' | 'annulation' | 'apercu' | 'approche' | 'argent' | 'arme' | 'armee' | 'armes' | 'armure' | 'arriere'
-  | 'aspersion' | 'asphyxie' | 'attaquant' | 'attaque' | 'attaques' | 'attenuation' | 'attenue' | 'attribut' | 'au' | 'auberge' | 'aucun' | 'aucune' | 'aucun' | 'aucune'
-  | 'augmentee' | 'avant' | 'avantage' | 'b' | 'baisser' | 'balayage' | 'bandages' | 'bande' | 'bannissement' | 'bas'
+  | 'aide' | 'alea' | 'aleatoire' | 'allie' | 'allies' | 'alors' | 'ambition' | 'amis' | 'amputer' | 'aneantissement' | 'animosite'
+  | 'anneau' | 'annulation' | 'apercu' | 'approche' | 'apres' | 'architecture' | 'arete' | 'argent' | 'arme' | 'armee' | 'armes' | 'armure' | 'arriere'
+  | 'aspersion' | 'asphyxie' | 'attaquant' | 'attaque' | 'attaques' | 'atteints' | 'attenuation' | 'attenue' | 'attribut' | 'au' | 'auberge' | 'aucun' | 'aucune' | 'aucun' | 'aucune'
+  | 'augmentee' | 'auto' | 'autour' | 'avant' | 'avantage' | 'b' | 'baisser' | 'balayage' | 'bandages' | 'bande' | 'bannissement' | 'bas'
   | 'bataille' | 'battement' | 'batterie' | 'benediction' | 'bilan' | 'blessures' | 'bloque' | 'bois' | 'boisson'
   | 'bonus' | 'bord' | 'bordee' | 'bouclier' | 'bourse' | 'bras' | 'breche' | 'brisee' | 'briser' | 'butin' | 'cacher'
-  | 'cadre' | 'camera' | 'camp' | 'campagne' | 'canons' | 'capacite' | 'car' | 'caracteristique' | 'cargaison'
-  | 'carriere' | 'carte' | 'cascade' | 'casse' | 'categorie' | 'cauchemar' | 'caudale' | 'chaine' | 'chanson'
+  | 'cadre' | 'camera' | 'camp' | 'campagne' | 'camps' | 'canons' | 'capacite' | 'car' | 'caracteristique' | 'cargaison'
+  | 'carriere' | 'carte' | 'cascade' | 'cases' | 'casse' | 'categorie' | 'cauchemar' | 'caudale' | 'chaine' | 'chanson'
   | 'chapitre' | 'charge' | 'chavirage' | 'chef' | 'chemin' | 'chercher' | 'chirurgie' | 'choisie' | 'choix' | 'chute'
-  | 'cible' | 'cibles' | 'cle' | 'codex' | 'colere' | 'coller' | 'collision' | 'combat' | 'commandant' | 'commande'
+  | 'cible' | 'cibles' | 'cle' | 'clore' | 'close' | 'codex' | 'colere' | 'coller' | 'collision' | 'combat' | 'commandant' | 'commande'
   | 'commandes' | 'commission' | 'commune' | 'competence' | 'complet' | 'concernes' | 'condition' | 'confirmer' | 'conjuree'
   | 'connecte' | 'connexion' | 'connu' | 'conseil' | 'constructeur' | 'contact' | 'contagion' | 'contamine' | 'contour'
   | 'contractee' | 'contre' | 'controle' | 'convalescence' | 'copier' | 'corde' | 'cornes' | 'corps' | 'correct'
-  | 'corruption' | 'couchage' | 'coucher' | 'coup' | 'coups' | 'course' | 'courte' | 'cout' | 'creature' | 'critique'
-  | 'critiques' | 'curseur' | 'd' | 'dans' | 'de' | 'debout' | 'debris' | 'debut' | 'decaler' | 'declaration'
-  | 'declenche' | 'decor' | 'defaite' | 'defense' | 'defenseur' | 'defensive' | 'degagement' | 'degats' | 'degrade' | 'dehors'
+  | 'corruption' | 'couchage' | 'coucher' | 'coup' | 'coups' | 'course' | 'courte' | 'cout' | 'creature' | 'crenelage' | 'critique'
+  | 'critiques' | 'cumuls' | 'curseur' | 'd' | 'dans' | 'de' | 'debout' | 'debris' | 'debut' | 'decaler' | 'declaration'
+  | 'declenche' | 'decor' | 'defaite' | 'defense' | 'defenseur' | 'defensive' | 'definition' | 'degagement' | 'degats' | 'degrade' | 'dehors'
   | 'deja' | 'delestage' | 'demande' | 'depart' | 'depecer' | 'depense' | 'deplacement' | 'depot' | 'derive' | 'des'
   | 'desarmement' | 'desengagement' | 'desertion' | 'designation' | 'dessoulage' | 'destin' | 'detail' | 'detection'
   | 'determination' | 'deux' | 'deviation' | 'dexterite' | 'dialogue' | 'dieux' | 'differe' | 'direction' | 'discret'
   | 'dissipation' | 'distance' | 'distraire' | 'divin' | 'divinite' | 'document' | 'dome' | 'double' | 'droite' | 'du' | 'dupliquer'
   | 'duree' | 'eau' | 'echap' | 'echec' | 'echelle' | 'echouage' | 'ecran' | 'editeur' | 'effacement' | 'effet'
-  | 'egalite' | 'eligible' | 'eloigne' | 'embuscade' | 'empetrer' | 'empoignade' | 'empoigner' | 'en' | 'encaisse'
-  | 'encombrement' | 'endommage' | 'endommagee' | 'engage' | 'ennemi' | 'ennemis' | 'ensanglantee' | 'entrainement' | 'entree'
-  | 'entretien' | 'epargne' | 'epuise' | 'epuisement' | 'equipage' | 'equipe' | 'equipement' | 'escale' | 'espace'
+  | 'egalite' | 'eligible' | 'eloigne' | 'embuscade' | 'empetrer' | 'emplacement' | 'empoignade' | 'empoigne' | 'empoigner' | 'en' | 'encaisse'
+  | 'encombrement' | 'endommage' | 'endommagee' | 'engage' | 'engages' | 'ennemi' | 'ennemis' | 'ensanglantee' | 'entite' | 'entrainement' | 'entree'
+  | 'entretien' | 'epargne' | 'epuise' | 'epuisement' | 'equipage' | 'equipe' | 'equipement' | 'escale' | 'escalier' | 'espace'
   | 'esquive' | 'et' | 'etal' | 'etape' | 'etapes' | 'etat' | 'etendu' | 'etreinte' | 'evaluation' | 'evenement'
-  | 'eviter' | 'exact' | 'exploration' | 'expose' | 'exposition' | 'extermination' | 'f' | 'facteur' | 'facultatifs'
-  | 'faim' | 'fatigue' | 'feu' | 'file' | 'fin' | 'fini' | 'fleches' | 'fleuve' | 'flux' | 'focalisation' | 'force'
+  | 'eviter' | 'exact' | 'exclusion' | 'exploration' | 'expose' | 'exposition' | 'extermination' | 'f' | 'facade' | 'facteur' | 'facultatifs'
+  | 'faim' | 'fatigue' | 'fer' | 'feu' | 'file' | 'fin' | 'fini' | 'fixe' | 'fleches' | 'fleuve' | 'flux' | 'focalisation' | 'force'
   | 'forcee' | 'forcer' | 'forme' | 'fortune' | 'fouille' | 'foule' | 'fracture' | 'frappe' | 'frenesie' | 'fuir'
-  | 'fuite' | 'fumee' | 'g' | 'gagne' | 'gain' | 'galop' | 'gangrene' | 'gatees' | 'gauche' | 'generique' | 'gratuite'
-  | 'greement' | 'groupe' | 'guerison' | 'gueule' | 'haut' | 'hemorragie' | 'heros' | 'hors' | 'hostile' | 'hote'
+  | 'fuite' | 'fumee' | 'g' | 'gagne' | 'gain' | 'galop' | 'gangrene' | 'gatees' | 'gauche' | 'generique' | 'gomme' | 'gratuite'
+  | 'greement' | 'groupe' | 'guerison' | 'gueule' | 'hasard' | 'haut' | 'hauteur' | 'hemorragie' | 'heros' | 'hors' | 'hostile' | 'hote'
   | 'hurlement' | 'hydrique' | 'ignorer' | 'illimite' | 'immobile' | 'immuniser' | 'imparfaite' | 'imposee'
   | 'incantation' | 'inconscient' | 'ineluctable' | 'infection' | 'infestation' | 'infirmerie' | 'information'
   | 'inspecter' | 'instance' | 'intention' | 'interaction' | 'interdit' | 'interlude' | 'interrompue' | 'inverse'
@@ -188,39 +201,39 @@ type MotDuLexique = ActionDuLexique | ActionDeLaMachinerie | ActionDeFenetre | A
   | 'jeton' | 'jets' | 'jeu' | 'jeux' | 'joueur' | 'jour' | 'journal' | 'jours' | 'l' | 'la' | 'lame' | 'lanceur'
   | 'langue' | 'le' | 'les' | 'liberation' | 'liberer' | 'lieu' | 'ligne' | 'local' | 'localisation' | 'longue' | 'lot'
   | 'lumiere' | 'm' | 'magie' | 'magique' | 'main' | 'mains' | 'maison' | 'maj' | 'majeure' | 'mal' | 'maladie'
-  | 'maladresse' | 'malus' | 'manann' | 'manoeuvre' | 'marchand' | 'marchandage' | 'marche' | 'marin' | 'martyr'
-  | 'masse' | 'max' | 'mecenat' | 'medicale' | 'melee' | 'menu' | 'mer' | 'mes' | 'metal' | 'meteo' | 'mineure' | 'mise'
+  | 'maladresse' | 'malus' | 'manann' | 'manche' | 'manches' | 'manoeuvre' | 'marchand' | 'marchandage' | 'marche' | 'marin' | 'martyr'
+  | 'masse' | 'max' | 'mecenat' | 'medicale' | 'melee' | 'membre' | 'menu' | 'mer' | 'mes' | 'metal' | 'meteo' | 'mineure' | 'mise'
   | 'mode' | 'modificateur' | 'moitie' | 'monde' | 'monture' | 'moral' | 'morsure' | 'mort' | 'mortelle' | 'mot'
-  | 'motivation' | 'mouvement' | 'munition' | 'mutation' | 'narratif' | 'natation' | 'nature' | 'naturelle' | 'naufrage'
+  | 'motivation' | 'mouvement' | 'munition' | 'mur' | 'mutation' | 'narratif' | 'natation' | 'nature' | 'naturelle' | 'naufrage'
   | 'navigation' | 'navire' | 'negatifs' | 'neutre' | 'nocturne' | 'nombre' | 'non' | 'normal' | 'objet' | 'obstacle'
-  | 'octroi' | 'offre' | 'op' | 'operations' | 'oppose' | 'opposition' | 'option' | 'orientation' | 'oter' | 'oui' | 'ouverture'
-  | 'ouvrage' | 'p' | 'pa' | 'paie' | 'panier' | 'panoplie' | 'panoramique' | 'par' | 'parade' | 'pas' | 'passer'
-  | 'patient' | 'pause' | 'pave' | 'payer' | 'peche' | 'pendant' | 'penurie' | 'perce' | 'perception' | 'perd' | 'perdu'
+  | 'octroi' | 'offre' | 'op' | 'operations' | 'oppose' | 'opposition' | 'option' | 'options' | 'or' | 'orientation' | 'oter' | 'oui' | 'ouverture'
+  | 'ouvrage' | 'p' | 'pa' | 'paie' | 'panier' | 'panoplie' | 'panoramique' | 'par' | 'parade' | 'parametres' | 'pas' | 'passer'
+  | 'patient' | 'pause' | 'pave' | 'payer' | 'peche' | 'pendant' | 'penurie' | 'perce' | 'perception' | 'perd' | 'perdants' | 'perdu'
   | 'perdue' | 'perdus' | 'peril' | 'permanente' | 'persistance' | 'persistante' | 'personne' | 'personnelle' | 'perte'
-  | 'peur' | 'phare' | 'physique' | 'piece' | 'pied' | 'piege' | 'pietinement' | 'pirates' | 'pires' | 'pitance'
+  | 'peur' | 'phare' | 'phase' | 'physique' | 'piece' | 'pied' | 'piege' | 'pietinement' | 'pirates' | 'pires' | 'pitance'
   | 'pivot' | 'place' | 'plaie' | 'plancher' | 'planque' | 'plateau' | 'plein' | 'pnj' | 'polymorphie' | 'port'
-  | 'porte' | 'portee' | 'porteur' | 'pose' | 'possible' | 'poste' | 'posture' | 'pot' | 'pourcentage' | 'poursuite'
+  | 'porte' | 'portee' | 'porteur' | 'porteurs' | 'pose' | 'possession' | 'possible' | 'poste' | 'posture' | 'pot' | 'pourcentage' | 'poursuite'
   | 'poursuivre' | 'poussee' | 'pratiquer' | 'precedente' | 'present' | 'prevention' | 'priere' | 'privee' | 'prix'
   | 'production' | 'profil' | 'progression' | 'prolonge' | 'promouvoir' | 'protecteur' | 'protection' | 'provisions'
   | 'psychologie' | 'psychologique' | 'puissance' | 'qualite' | 'quantite' | 'quotidien' | 'r' | 'raccourci' | 'ragot'
   | 'rallier' | 'ramassage' | 'rangees' | 'rapide' | 'rate' | 'ration' | 'rations' | 'reaction' | 'reapparition'
   | 'reassigne' | 'recentrer' | 'recevoir' | 'rechargement' | 'recit' | 'reconnexion' | 'recu' | 'recuperation'
-  | 'redressement' | 'reduction' | 'reduit' | 'reeducation' | 'refuser' | 'refute' | 'regard' | 'regle' | 'relache'
+  | 'redressement' | 'reduction' | 'reduit' | 'reeducation' | 'refus' | 'refuser' | 'refute' | 'regard' | 'regle' | 'relache'
   | 'relance' | 'relevement' | 'remise' | 'rencontre' | 'renier' | 'renoncement' | 'reparation' | 'repartition'
   | 'repas' | 'repli' | 'reponse' | 'repos' | 'repousse' | 'repousser' | 'requise' | 'resistance' | 'resoudre'
   | 'ressource' | 'resultat' | 'retablir' | 'retenir' | 'retour' | 'retrait' | 'reussie' | 'reussite' | 'revele' | 'reveler'
   | 'rien' | 'riposte' | 'role' | 'roulade' | 'round' | 'rumeur' | 'rythme' | 'sacrifier' | 'salissures' | 'sans'
-  | 'saturation' | 'sauvegarde' | 'scene' | 'scorbut' | 'seance' | 'secondaire' | 'seconde' | 'section' | 'selecteur'
+  | 'saturation' | 'sauvegarde' | 'scene' | 'scorbut' | 'seance' | 'secondaire' | 'seconde' | 'section' | 'selecteur' | 'selection'
   | 'selle' | 'sequence' | 'service' | 'ses' | 'seuil' | 'si' | 'siege' | 'simple' | 'sinon' | 'social' | 'soi' | 'soif' | 'soin'
-  | 'soins' | 'solde' | 'solo' | 'sommation' | 'sort' | 'sortie' | 'sorts' | 'souffle' | 'source' | 'sous' | 'soutenu'
-  | 'spirituelle' | 'statut' | 'stock' | 'stupefiant' | 'subi' | 'subie' | 'subies' | 'subit' | 'subjectif' | 'suivante' | 'supplement'
+  | 'soins' | 'sol' | 'solde' | 'solo' | 'sommation' | 'sort' | 'sortie' | 'sorts' | 'souffle' | 'source' | 'sous' | 'soutenu'
+  | 'spirituelle' | 'statut' | 'stock' | 'stupefiant' | 'subi' | 'subie' | 'subies' | 'subit' | 'subjectif' | 'suite' | 'suivante' | 'supplement'
   | 'supplementaires' | 'suppression' | 'sur' | 'surincantation' | 'surplus' | 'survie' | 'survitesse' | 'survivre'
-  | 'suspendre' | 'symptome' | 'systeme' | 'table' | 'talent' | 'talents' | 'tapi' | 'tas' | 'taverne' | 'teleportation'
-  | 'temporaire' | 'tentacules' | 'terrain' | 'terre' | 'terreur' | 'test' | 'testeur' | 'tete' | 'tir' | 'tirage' | 'tire'
-  | 'tonneau' | 'touche' | 'tour' | 'tourbillon' | 'tout' | 'toutes' | 'trait' | 'transformation' | 'traumatisme'
-  | 'tribut' | 'troc' | 'troquer' | 'trot' | 'un' | 'une' | 'usage' | 'validation' | 'vapeur' | 'vdm' | 'vendre'
-  | 'vent' | 'vente' | 'victoire' | 'vider' | 'vie' | 'vin' | 'virage' | 'virement' | 'visee' | 'viser' | 'vol'
-  | 'volontaire' | 'vomi' | 'voyage' | 'vue' | 'zero' | 'zone';
+  | 'suspendre' | 'symptome' | 'systeme' | 'table' | 'tableau' | 'talent' | 'talents' | 'tapi' | 'tas' | 'taverne' | 'teleportation'
+  | 'temporaire' | 'tentacules' | 'terrain' | 'terre' | 'terreur' | 'test' | 'testeur' | 'tete' | 'tir' | 'tirage' | 'tire' | 'toit'
+  | 'tonneau' | 'touche' | 'tour' | 'tourbillon' | 'tous' | 'tout' | 'toutes' | 'trait' | 'transformation' | 'traumatisme'
+  | 'tribut' | 'troc' | 'troquer' | 'trot' | 'un' | 'une' | 'unique' | 'usage' | 'utile' | 'vainqueurs' | 'validation' | 'vapeur' | 'variable' | 'vdm' | 'vendre'
+  | 'vent' | 'vente' | 'victime' | 'victoire' | 'vider' | 'vie' | 'vin' | 'virage' | 'virement' | 'visee' | 'viser' | 'vol'
+  | 'volontaire' | 'volontaires' | 'vomi' | 'voyage' | 'vue' | 'zero' | 'zone';
 /** Une clé de libellé, ses segments joints par des tirets. */
 export type Segments<S extends string> = S extends `${infer A}.${infer B}` ? `${A}-${Segments<B>}` : S;
 /** Les clés de chaque membre de l'union `U`. */
@@ -305,7 +318,18 @@ const verrousDuLexique: [
   Verrou<Mots<Combatant['kind'] | Camp | Relation | SpellAffinity>, MotDuLexique>,
   Verrou<Mots<NonNullable<PursuitPayload['pris']>['laggard']['side'] | NonNullable<EncounterDef['surprise']>>, MotDuLexique>,
   Verrou<Mots<Parameters<typeof weaponUsesHand>[1]>, MotDuLexique>,
-] = [true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true];
+  Verrou<Mots<CibleDEffetDeScene | (typeof effectTargetSchema)['options'][number] | Carrier['kind'] | EnchainementDuCoup['mode'] | SeatOccupant['kind']>, MotDuLexique>, // #3977
+  Verrou<Mots<AdvantageCamp | NonNullable<NonNullable<TraitData['aura']>['affects']> | Extract<EffectTargeting, string> | Extract<EffectTargeting, { near: string }>['near']
+    | Extract<EffectTargeting, { pick: string }>['pick'] | NonNullable<Extract<EffectTargeting, { pick: string }>['sizeAtMost']>>, MotDuLexique>, // #3977
+  Verrou<Mots<NonNullable<ManeuverDef['modeDAvantage']> | ManeuverDef['ciblage']>, MotDuLexique>, // #3977
+  Verrou<Mots<NonNullable<SkillData['combatSubstitute']>['role'] | NonNullable<SkillData['combatSubstitute']>['gate']>, MotDuLexique>, // #3977
+  Verrou<Mots<PendingDisengage['phase'] | PendingAuContact['phase'] | PendingGrapple['phase'] | ReturnType<typeof phaseDeChute>>, MotDuLexique>, // #3977
+  Verrou<Mots<Tool['mode'] | OutilDeLEditeur['mode'] | ActionDArchitecture | NonNullable<ContexteDuPointeur['architecture']>['action']>, MotDuLexique>, // #3977
+  Verrou<Mots<RouteObjet['mode'] | EntrainementOption['kind'] | Parameters<typeof advanceCost>[1]>, MotDuLexique>, // #3977
+  Verrou<Mots<keyof SequenceState | Exclude<ClesDeLUnion<SequenceVerdict<unknown>>, 'log'> | SequenceVerdict<unknown>['suite'] | keyof SequenceRoundActors
+    | Exclude<keyof SequenceCloseCtx<unknown>, 'get' | 'seq' | 'rng'> | keyof SequenceDef | Exclude<keyof SequenceBoard, 'title' | 'unit'> | Exclude<keyof SequenceAbandon, 'label' | 'title'>
+    | keyof ReturnType<typeof sequenceCumulsDeLaManche>>, MotDuLexique>, // #3977
+] = [true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true];
 void verrousDuLexique;
 
 /** Le corps de la clôture de chaque flux, que seul `jetValider(flux)` appelle : un flux sans clôture ne compile pas. */

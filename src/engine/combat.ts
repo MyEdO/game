@@ -1259,7 +1259,7 @@ function combineOpposed(
  * meilleur : une réussite **critique** (double choisi). À distance, les Dégâts sont ceux
  * d'un tir **à bout portant** (+6 DR ≈ le +60 au toucher de la bande de portée). Le jet
  * brut n'est qu'un TOUCHÉ provisoire : la Localisation du Critique (garanti) est choisissable
- * par l'attaquant qui pilote (LDB 17 l.68, `pa.forced` → CritLocationPicker, cf. targetingModes.ts).
+ * par l'attaquant qui pilote (LDB 17 l.68, `pa.forcee` → CritLocationPicker, cf. targetingModes.ts).
  */
 function helplessTest(atk: TestResult, kind: 'melee' | 'distance'): TestResult {
   const dr = Math.max(atk.sl, 0) + (kind === 'distance' ? 6 : 0);

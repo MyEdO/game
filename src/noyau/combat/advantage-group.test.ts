@@ -48,7 +48,7 @@ describe('campGain — mode « Avantage de groupe » : réserve du camp (AA 11 l
     const { get, battle } = makeGet([a, b, e]);
     campGain(get, a, 1);
     campGain(get, b, 2); // même camp → même réserve cumulée
-    expect(battle.advantagePools).toEqual({ allies: 3, foes: 0 });
+    expect(battle.advantagePools).toEqual({ allies: 3, adversaires: 0 });
     expect(a.advantage).toBe(3); // projection
     expect(b.advantage).toBe(3);
     expect(e.advantage).toBe(0); // camp adverse intact
@@ -68,11 +68,11 @@ describe('campGain — mode « Avantage de groupe » : réserve du camp (AA 11 l
     setRule('combat-aa-avantage-groupe', true);
     const a = mk('h1', 'heros');
     const e = mk('e1', 'ennemi');
-    const { get, battle } = makeGet([a, e], { allies: 0, foes: 0 });
+    const { get, battle } = makeGet([a, e], { allies: 0, adversaires: 0 });
     // l’op `topUpAdvantage` (Redoutable) a complété l’Avantage de l’ennemi jusqu’à l’Indice sur la projection…
     e.advantage = 3;
     reconcileAdvantageToPool(get, e); // …on relève la réserve adverse en conséquence
-    expect(battle.advantagePools).toEqual({ allies: 0, foes: 3 });
+    expect(battle.advantagePools).toEqual({ allies: 0, adversaires: 3 });
     expect(e.advantage).toBe(3);
   });
 });
@@ -91,14 +91,14 @@ describe('campSpend — dépense d’Avantage (symétrique de campGain)', () => 
     const a = mk('h1', 'heros');
     const b = mk('h2', 'heros');
     const e = mk('e1', 'ennemi');
-    const { get, battle } = makeGet([a, b, e], { allies: 3, foes: 1 });
+    const { get, battle } = makeGet([a, b, e], { allies: 3, adversaires: 1 });
     campSpend(get, a, 2); // dépense côté alliés → mirror projette la réserve sur tout le monde
-    expect(battle.advantagePools).toEqual({ allies: 1, foes: 1 });
+    expect(battle.advantagePools).toEqual({ allies: 1, adversaires: 1 });
     expect(a.advantage).toBe(1); // projection alliés
     expect(b.advantage).toBe(1);
     expect(e.advantage).toBe(1); // camp adverse intact
     campSpend(get, a, 5); // sur-dépense → planché à 0
-    expect(battle.advantagePools).toEqual({ allies: 0, foes: 1 });
+    expect(battle.advantagePools).toEqual({ allies: 0, adversaires: 1 });
   });
 
   it('spendableAdvantage : réserve du camp (groupe) vs Avantage individuel (LDB)', () => {
@@ -107,7 +107,7 @@ describe('campSpend — dépense d’Avantage (symétrique de campGain)', () => 
     const noPools = makeGet([a, e]);
     expect(spendableAdvantage(noPools.battle, a)).toBe(4); // LDB : individuel
     setRule('combat-aa-avantage-groupe', true);
-    const { battle } = makeGet([a, e], { allies: 2, foes: 5 });
+    const { battle } = makeGet([a, e], { allies: 2, adversaires: 5 });
     expect(spendableAdvantage(battle, a)).toBe(2); // réserve alliés
     expect(spendableAdvantage(battle, e)).toBe(5); // réserve adverses
   });
@@ -125,11 +125,11 @@ describe('Distraire (LDB 10 l.364) — le distrait ne génère plus d’Avantage
     setRule('combat-aa-avantage-groupe', true);
     const a = mk('h1', 'heros', { distractedRounds: 1 });
     const b = mk('h2', 'heros');
-    const { get, battle } = makeGet([a, b], { allies: 0, foes: 0 });
+    const { get, battle } = makeGet([a, b], { allies: 0, adversaires: 0 });
     campGain(get, a, 2); // a est distrait → rien
-    expect(battle.advantagePools).toEqual({ allies: 0, foes: 0 });
+    expect(battle.advantagePools).toEqual({ allies: 0, adversaires: 0 });
     campGain(get, b, 2); // b n’est pas distrait → crédite
-    expect(battle.advantagePools).toEqual({ allies: 2, foes: 0 });
+    expect(battle.advantagePools).toEqual({ allies: 2, adversaires: 0 });
   });
 });
 
@@ -138,13 +138,13 @@ describe('reconcileAdvantageToPool — bidirectionnel (octroi/dépense par op)',
     setRule('combat-aa-avantage-groupe', true);
     const a = mk('h1', 'heros');
     const b = mk('h2', 'heros');
-    const { get, battle } = makeGet([a, b], { allies: 0, foes: 0 });
+    const { get, battle } = makeGet([a, b], { allies: 0, adversaires: 0 });
     campGain(get, a, 4); // réserve alliés = 4, projetée sur a ET b
     expect(a.advantage).toBe(4);
     expect(b.advantage).toBe(4);
     a.advantage = 1; // 3 dépensés DIRECTEMENT sur la projection d’un allié
     reconcileAdvantageToPool(get, a);
-    expect(battle.advantagePools).toEqual({ allies: 1, foes: 0 }); // réserve abaissée
+    expect(battle.advantagePools).toEqual({ allies: 1, adversaires: 0 }); // réserve abaissée
     expect(b.advantage).toBe(1); // re-projeté sur tout le camp
   });
 });
@@ -154,10 +154,10 @@ describe('Renversement (variante AA 13 l.92-98) — vole 1 dans la réserve adve
     setRule('combat-aa-avantage-groupe', true);
     const thief = mk('h1', 'heros');
     const victim = mk('e1', 'ennemi');
-    const { get, battle } = makeGet([thief, victim], { allies: 1, foes: 2 });
+    const { get, battle } = makeGet([thief, victim], { allies: 1, adversaires: 2 });
     const stole = reversalStealOne(get, thief, victim);
     expect(stole).toBe(true);
-    expect(battle.advantagePools).toEqual({ allies: 2, foes: 1 });
+    expect(battle.advantagePools).toEqual({ allies: 2, adversaires: 1 });
     expect(thief.advantage).toBe(2);
     expect(victim.advantage).toBe(1);
   });
@@ -166,10 +166,10 @@ describe('Renversement (variante AA 13 l.92-98) — vole 1 dans la réserve adve
     setRule('combat-aa-avantage-groupe', true);
     const thief = mk('h1', 'heros');
     const victim = mk('e1', 'ennemi');
-    const { get, battle } = makeGet([thief, victim], { allies: 0, foes: 0 });
+    const { get, battle } = makeGet([thief, victim], { allies: 0, adversaires: 0 });
     const stole = reversalStealOne(get, thief, victim);
     expect(stole).toBe(false);
-    expect(battle.advantagePools).toEqual({ allies: 1, foes: 0 });
+    expect(battle.advantagePools).toEqual({ allies: 1, adversaires: 0 });
   });
 });
 
@@ -177,10 +177,10 @@ describe('roundEndAdvantageTransfer — domination de fin de Round (AA 11 l.44)'
   it('le camp majoritaire prend 1 Avantage à l’autre + reprojette', () => {
     setRule('combat-aa-avantage-groupe', true);
     const combatants = [mk('h1', 'heros'), mk('h2', 'heros'), mk('e1', 'ennemi')];
-    const { get, battle } = makeGet(combatants, { allies: 1, foes: 2 });
+    const { get, battle } = makeGet(combatants, { allies: 1, adversaires: 2 });
     void get;
     roundEndAdvantageTransfer(battle);
-    expect(battle.advantagePools).toEqual({ allies: 2, foes: 1 }); // alliés majoritaires (2 c.1)
+    expect(battle.advantagePools).toEqual({ allies: 2, adversaires: 1 }); // alliés majoritaires (2 c.1)
     expect(combatants[0].advantage).toBe(2); // projection alliés
     expect(combatants[2].advantage).toBe(1); // projection adverses
   });
@@ -191,9 +191,9 @@ describe('creditOpposingAdvantage — fournisseur ctx.onOpposingAdvantage (Redou
     setRule('combat-aa-avantage-groupe', true);
     const a = mk('h1', 'heros');
     const e = mk('e1', 'ennemi', { advantage: 3 }); // l'op appelante venait d'écrire cette projection AVANT de créditer l'adverse
-    const { get, battle } = makeGet([a, e], { allies: 0, foes: 3 });
+    const { get, battle } = makeGet([a, e], { allies: 0, adversaires: 3 });
     creditOpposingAdvantage(get, e, 3);
-    expect(battle.advantagePools).toEqual({ allies: 3, foes: 3 }); // + Indice (3) côté alliés (camp OPPOSÉ de la créature)
+    expect(battle.advantagePools).toEqual({ allies: 3, adversaires: 3 }); // + Indice (3) côté alliés (camp OPPOSÉ de la créature)
     expect(a.advantage).toBe(3);
   });
 
@@ -209,9 +209,9 @@ describe('creditOpposingAdvantage — fournisseur ctx.onOpposingAdvantage (Redou
   it('n ≤ 0 : no-op', () => {
     setRule('combat-aa-avantage-groupe', true);
     const e = mk('e1', 'ennemi');
-    const { get, battle } = makeGet([e], { allies: 0, foes: 0 });
+    const { get, battle } = makeGet([e], { allies: 0, adversaires: 0 });
     creditOpposingAdvantage(get, e, 0);
-    expect(battle.advantagePools).toEqual({ allies: 0, foes: 0 });
+    expect(battle.advantagePools).toEqual({ allies: 0, adversaires: 0 });
   });
 });
 
@@ -220,10 +220,10 @@ describe('Redoutable — clause AA bout-en-bout (op topUpAdvantage{feedOpposingP
     setRule('combat-aa-avantage-groupe', true);
     const a = mk('h1', 'heros');
     const e = mk('e1', 'ennemi', { traits: [{ id: 'redoutable', value: 3 }], advantage: 0 });
-    const { get, set, battle } = makeGet([a, e], { allies: 0, foes: 0 });
+    const { get, set, battle } = makeGet([a, e], { allies: 0, adversaires: 0 });
     fireTurnStartTriggers(get, set, e);
     expect(e.advantage).toBe(3); // regain propre (op topUpAdvantage) jusqu'à l'Indice
-    expect(battle.advantagePools).toEqual({ allies: 3, foes: 3 }); // + Indice plein côté alliés (camp OPPOSÉ)
+    expect(battle.advantagePools).toEqual({ allies: 3, adversaires: 3 }); // + Indice plein côté alliés (camp OPPOSÉ)
     expect(a.advantage).toBe(3); // projection
   });
 
@@ -232,10 +232,10 @@ describe('Redoutable — clause AA bout-en-bout (op topUpAdvantage{feedOpposingP
     const a = mk('h1', 'heros');
     // Avantage déjà À l'Indice (le proxy `c.advantage >= indice` aurait crédité la réserve adverse ici).
     const e = mk('e1', 'ennemi', { traits: [{ id: 'redoutable', value: 3 }], advantage: 3, conditions: [{ id: 'surpris', value: 1 }] });
-    const { get, set, battle } = makeGet([a, e], { allies: 0, foes: 3 });
+    const { get, set, battle } = makeGet([a, e], { allies: 0, adversaires: 3 });
     fireTurnStartTriggers(get, set, e);
     expect(e.advantage).toBe(3); // inchangé (Surpris bloque le regain, déjà à l'Indice de toute façon)
-    expect(battle.advantagePools).toEqual({ allies: 0, foes: 3 }); // RIEN n'est parti côté alliés — la garde gate NATURELLEMENT la clause
+    expect(battle.advantagePools).toEqual({ allies: 0, adversaires: 3 }); // RIEN n'est parti côté alliés — la garde gate NATURELLEMENT la clause
   });
 
   it('hors mode groupe : aucune réserve créée (non-régression)', () => {
@@ -251,9 +251,9 @@ describe('Redoutable — clause AA bout-en-bout (op topUpAdvantage{feedOpposingP
     setRule('combat-aa-avantage-groupe', true);
     const a = mk('h1', 'heros');
     const e = mk('e1', 'ennemi', { advantage: 3 });
-    const { get, set, battle } = makeGet([a, e], { allies: 0, foes: 3 });
+    const { get, set, battle } = makeGet([a, e], { allies: 0, adversaires: 3 });
     fireTurnStartTriggers(get, set, e);
-    expect(battle.advantagePools).toEqual({ allies: 0, foes: 3 });
+    expect(battle.advantagePools).toEqual({ allies: 0, adversaires: 3 });
   });
 });
 
@@ -283,10 +283,10 @@ describe('Redoutable — la clause AA suit le MODULE de règles, pas le livre du
       const indice = traitsDuPorteur(carrier.traits ?? [], porteurDuProfil(carrier.id, carrier.char)).find((t) => t.id === 'redoutable')!.value ?? 1;
       const a = mk('h1', 'heros');
       const e = mk(carrier.id, 'ennemi', { traits: [{ id: 'redoutable', value: indice }], advantage: 0 });
-      const { get, set, battle } = makeGet([a, e], { allies: 0, foes: 0 });
+      const { get, set, battle } = makeGet([a, e], { allies: 0, adversaires: 0 });
       fireTurnStartTriggers(get, set, e);
       expect(e.advantage).toBe(indice); // regain propre jusqu'à l'Indice
-      expect(battle.advantagePools).toEqual({ allies: indice, foes: indice }); // Indice PLEIN au camp opposé
+      expect(battle.advantagePools).toEqual({ allies: indice, adversaires: indice }); // Indice PLEIN au camp opposé
     },
   );
 
@@ -309,43 +309,43 @@ describe('Redoutable — la clause AA suit le MODULE de règles, pas le livre du
 describe('startAdvantagePools — positionnement initial auto-dérivé', () => {
   it('Surnombre calculé sur les combattants actifs (AA 11 l.60-62)', () => {
     const all = [mk('h1', 'heros'), mk('h2', 'heros'), mk('h3', 'heros'), mk('e1', 'ennemi')];
-    expect(startAdvantagePools(all, false)).toEqual({ allies: 3, foes: 0 }); // ×3 → +3 aux alliés
+    expect(startAdvantagePools(all, false)).toEqual({ allies: 3, adversaires: 0 }); // ×3 → +3 aux alliés
   });
 
   it('Surprise (embuscade) → +2 aux adversaires', () => {
     const all = [mk('h1', 'heros'), mk('e1', 'ennemi')];
-    expect(startAdvantagePools(all, true)).toEqual({ allies: 0, foes: 2 });
+    expect(startAdvantagePools(all, true)).toEqual({ allies: 0, adversaires: 2 });
   });
 });
 
 describe('startAdvantagePools — marqueurs de rencontre (Menace/Manœuvrabilité/Terrain, AA 11 l.53-65)', () => {
   it('Manœuvrabilité (+2, l.4158) crédite le camp marqué', () => {
     const all = [mk('h1', 'heros'), mk('e1', 'ennemi')];
-    expect(startAdvantagePools(all, false, { maneuverability: 'groupe' })).toEqual({ allies: 2, foes: 0 });
+    expect(startAdvantagePools(all, false, { maneuverability: 'groupe' })).toEqual({ allies: 2, adversaires: 0 });
   });
 
   it('Menace « très dangereuse » (+3, l.4160) crédite le camp qui EST la menace', () => {
     const all = [mk('h1', 'heros'), mk('e1', 'ennemi')];
-    expect(startAdvantagePools(all, false, { threat: { camp: 'ennemis', tier: 'tresDangereuse' } })).toEqual({ allies: 0, foes: 3 });
+    expect(startAdvantagePools(all, false, { threat: { camp: 'ennemis', tier: 'tresDangereuse' } })).toEqual({ allies: 0, adversaires: 3 });
   });
 
   it('Menace « extrême » (+5, l.4161) côté alliés (ex. Trait de créature allié)', () => {
     const all = [mk('h1', 'heros'), mk('e1', 'ennemi')];
-    expect(startAdvantagePools(all, false, { threat: { camp: 'groupe', tier: 'extreme' } })).toEqual({ allies: 5, foes: 0 });
+    expect(startAdvantagePools(all, false, { threat: { camp: 'groupe', tier: 'extreme' } })).toEqual({ allies: 5, adversaires: 0 });
   });
 
   it('Terrain léger (+1, l.4166, heavy absent)', () => {
     const all = [mk('h1', 'heros'), mk('e1', 'ennemi')];
-    expect(startAdvantagePools(all, false, { terrain: { camp: 'ennemis' } })).toEqual({ allies: 0, foes: 1 });
+    expect(startAdvantagePools(all, false, { terrain: { camp: 'ennemis' } })).toEqual({ allies: 0, adversaires: 1 });
   });
 
   it('Terrain lourd (+2, l.4167)', () => {
     const all = [mk('h1', 'heros'), mk('e1', 'ennemi')];
-    expect(startAdvantagePools(all, false, { terrain: { camp: 'groupe', heavy: true } })).toEqual({ allies: 2, foes: 0 });
+    expect(startAdvantagePools(all, false, { terrain: { camp: 'groupe', heavy: true } })).toEqual({ allies: 2, adversaires: 0 });
   });
 
   it('se cumule avec le Surnombre auto-dérivé (circonstances distinctes, AA 11 l.51)', () => {
     const all = [mk('h1', 'heros'), mk('h2', 'heros'), mk('h3', 'heros'), mk('e1', 'ennemi')]; // Surnombre ×3 → +3 alliés
-    expect(startAdvantagePools(all, false, { threat: { camp: 'ennemis', tier: 'dangereuse' } })).toEqual({ allies: 3, foes: 1 });
+    expect(startAdvantagePools(all, false, { threat: { camp: 'ennemis', tier: 'dangereuse' } })).toEqual({ allies: 3, adversaires: 1 });
   });
 });

@@ -101,7 +101,7 @@ describe('monnaie — forme UNIQUE dans la donnée authorée (#1463)', () => {
 
     // `cost` est RENDU à son type (L-monnaie-4) : il nomme seulement de la monnaie. L'économie du
     // Tour dit `coutAction`, le barème d'installation navale `installation`, les paliers de prothèse
-    // `px`, les deux coûts d'Avantage du Flow `coutEnAvantage` / `advantageOrMovement`, la réaction de
+    // `px`, les deux coûts d'Avantage du Flow `coutEnAvantage` / `avantageOuMouvement`, la réaction de
     // défense `avantage`. UNE seule classe subsiste, et chaque objet est un montant.
     expect(hors(classes.cost, ['object']), 'classes de `cost`').toEqual([]);
     expect(Object.keys(signatures.cost).filter((sig) => sig.split(',').some((k) => !['gold', 'silver', 'brass'].includes(k))), 'signatures d’objet sous `cost`').toEqual([]);

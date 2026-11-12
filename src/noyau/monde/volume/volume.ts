@@ -29,16 +29,19 @@ import { buildRoofs, nappeKey } from './toits';
 import { spaceCellKey } from './architectureVisibility';
 import { aretesHorsDesNavires, provenanceDesNavires } from '../../planDeNavire';
 import { memoByRef } from '../sceneMemo';
+import { mapLights } from '../vision';
 import type { Face } from './types';
 import type { MaterialRef } from '../../../data/materials.types';
 
 /** D'où viennent des faces du volume : `navire`, l'id de l'entité du navire dont les ponts les posent
  *  (`provenanceDesNavires`), que l'hôte touche sans les peindre, le navire se montrant par son modèle 3D ; `flottaison`,
  *  l'id du navire dont elles sont la mer, sur l'emprise de ses ponts à sa flottaison, que l'hôte peint hors de la coque
- *  de son modèle et que le rayon du pointeur traverse. */
+ *  de son modèle et que le rayon du pointeur traverse ; `luminaire`, celles d'un décor qui éclaire (`mapLights`), dont
+ *  l'hôte ne porte pas l'ombre sous la lampe d'un foyer (#3811). */
 interface Provenance {
   navire?: string;
   flottaison?: string;
+  luminaire?: true;
 }
 
 /** Les triangles d'une matière du volume, nommée `<domaine>--<id>` (`nomDeMatiere`) : ses sommets de `debut` inclus à
@@ -107,7 +110,10 @@ interface GeometrieDuMonde {
    * hors de ses ponts : des surfaces à part, qui portent `flottaison`, l'id de l'entité du navire, que le rayon du
    * pointeur traverse et que le monde peint hors de la coque du modèle posé, sous la hauteur 0
    * (`VolumeDeScene.border_la_mer`,
-   * `MontageDeVehicule.contour_sous`, recette `projet/recettes/coupe-du-navire.gd`) ; une matière se nomme
+   * `MontageDeVehicule.contour_sous`, recette `projet/recettes/coupe-du-navire.gd`) ; les faces d'un décor qui éclaire
+   * (`mapLights`, `src/noyau/monde/vision.ts`) forment des surfaces à part, qui portent `luminaire: true` : le monde
+   * les peint, et n'en porte pas l'ombre sous la lampe d'un foyer, que son luminaire masquerait
+   * (`VolumeDeScene._morceau`, section « Lumière ») ; une matière se nomme
    * `<domaine>--<id>` (`terrain--herbe`, `relief--pierre`).
    */
   surfaces: SurfaceDuVolume[];
@@ -208,9 +214,10 @@ const arrondi = (v: number): number => Math.round(v * 1000) / 1000 + 0;
 /** Les faces des décors volumiques de la scène (`facesDuDecor`), chacune avec sa case, de toutes ses couches : le
  *  décor que son terrain pose sur chaque case (`terrainOverlayProp`, le bois et ses arbres), au centre de la case, et
  *  les entités `prop`, à leur ancre (`ancreDuDecor`) et à leur cap, sur leur pied (`piedDuDecor` : le sol de leur case ou
- *  le dessus de leur support). */
+ *  le dessus de leur support), celles d'un décor qui éclaire (`mapLights`) portant `luminaire`. */
 function decorsVolumiques(scene: Scene, mpt: number): FaceListee[] {
   const { w, h } = scene.dimensions;
+  const luminaires = new Set(mapLights(scene).map((source) => source.srcId));
   const duTerrain = scene.layers.flatMap(({ z }) =>
     Array.from({ length: w * h }, (_, i) => ({ x: i % w, y: Math.floor(i / w), z })).flatMap((cell) => {
       const faces = facesDuDecor(terrainOverlayProp(tileAt(scene, cell.x, cell.y, z)), { ancre: cell, baseHeightM: heightAt(scene, cell.x, cell.y, z) }, mpt);
@@ -220,7 +227,7 @@ function decorsVolumiques(scene: Scene, mpt: number): FaceListee[] {
     const z = ent.z ?? 0;
     if (ent.kind !== 'prop') return [];
     const faces = facesDuDecor(ent.decor?.id, { ancre: ancreDuDecor(ent, mpt), ...(ent.facing ? { facing: ent.facing } : {}), baseHeightM: piedDuDecor(scene, ent), entId: ent.id }, mpt);
-    return (faces ?? []).map((face) => ({ face, cell: { ...ent.pos, z } }));
+    return (faces ?? []).map((face) => ({ face, cell: { ...ent.pos, z }, ...(luminaires.has(ent.id) ? { luminaire: true as const } : {}) }));
   }));
 }
 
@@ -246,10 +253,10 @@ type FaceRangee = FaceListee & { geom: FaceGeom; surLaCarte: { x: number; y: num
 function emballer(scene: Scene, faces: readonly FaceRangee[]): GeometrieDuMonde {
   const centre = centreDeLaCarte(scene.dimensions, sceneMetresPerTile(scene));
   const parMatiere = new Map<string, Provenance & { matiere: string; faces: number[] }>();
-  faces.forEach(({ face, navire, flottaison }, i) => {
+  faces.forEach(({ face, navire, flottaison, luminaire }, i) => {
     const matiere = nomDeMatiere(face.material);
-    const cle = `${navire ?? ''}|${flottaison ?? ''}|${matiere}`;
-    const groupe = parMatiere.get(cle) ?? parMatiere.set(cle, { matiere, ...(navire ? { navire } : {}), ...(flottaison ? { flottaison } : {}), faces: [] }).get(cle)!;
+    const cle = `${navire ?? ''}|${flottaison ?? ''}|${luminaire ?? ''}|${matiere}`;
+    const groupe = parMatiere.get(cle) ?? parMatiere.set(cle, { matiere, ...(navire ? { navire } : {}), ...(flottaison ? { flottaison } : {}), ...(luminaire ? { luminaire } : {}), faces: [] }).get(cle)!;
     groupe.faces.push(i);
   });
   const positions: number[] = [];

@@ -16,6 +16,11 @@ export const COMMANDE_ARBRE_INCHANGE = 'git status --porcelain && test -z "$(git
 export const COMMANDE_VERSION_PYTHON_3D =
   `node --input-type=module -e "import { PYTHON } from './scripts/personnage-3d/environnement.mjs'; console.log('version=' + PYTHON)" >> "$GITHUB_OUTPUT"`
 
+/** Commande EXACTE du step de `ci.yml` qui installe le rendu logiciel de `godot:rendus` (#3951) : l'écran virtuel, le
+ *  rendu logiciel d'OpenGL (llvmpipe) et de Vulkan (lavapipe), et les bibliothèques X11 que Godot ouvre. */
+export const COMMANDE_RENDU_LOGICIEL =
+  'sudo apt-get update && sudo apt-get install -y --no-install-recommends xvfb libgl1-mesa-dri mesa-vulkan-drivers libxcursor1 libxinerama1 libxrandr2 libxi6'
+
 /**
  * Steps de `ci.yml` qui ne sont PAS une gate locale, chacun avec sa raison. La liste est exhaustive
  * et EXACTE (ligne pour ligne) : c'est elle qui rend le classement fail-CLOSED — un step d'une autre
@@ -28,6 +33,9 @@ export const CI_SEULEMENT = {
   [COMMANDE_VERSION_PYTHON_3D]:
     'prépare `actions/setup-python` sur le runner — localement, `environnement.mjs` cherche lui-même cette version parmi ' +
     'ses `CANDIDATS`',
+  [COMMANDE_RENDU_LOGICIEL]:
+    'installe sur le runner l’écran virtuel et le rendu logiciel que `godot:rendus` demande — localement, un poste à ' +
+    'écran rend sur sa carte graphique, et un conteneur les installe une fois',
 }
 
 /** Le job de `ci.yml` qui joue la course de BRANCHE (#3412, en tête de `ci.yml`) ; tous les autres jouent la

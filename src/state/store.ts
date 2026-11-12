@@ -12,8 +12,8 @@ import { resetStageGestes } from './stageGestes';
 import * as netFlow from './netFlow';
 import { netAssign, netAssignSlot, setGmSeat } from '../hote/coop/salon';
 import { stockageDesSauvegardes } from './saves';
-import { ecrireLaSauvegarde, lireLaSauvegarde, AUTO_SLOT, type SaveSlot, type AnySlot } from '../hote/sauvegardes';
-import { chargerLaSave, lireSave, refusDeSauvegarde, snapshotSave, type ObsoleteCause, type RefusDeSauvegarde, type SaveGame } from '../noyau/persistance/save';
+import { ecrireLaSauvegarde, lireLaSauvegarde, AUTO_SLOT, MESSAGE_DU_REFUS, type SaveSlot, type AnySlot } from '../hote/sauvegardes';
+import { chargerLaSave, lireSave, refusDeSauvegarde, snapshotSave, type ObsoleteCause, type SaveGame } from '../noyau/persistance/save';
 import type { RetraitsDElagage } from '../noyau/persistance/elagage';
 import { loadKeyOverrides, saveKeyOverrides } from './keybindingsPrefs';
 import type { IdDeRaccourci } from './clavier/keybindings';
@@ -28,7 +28,7 @@ import { pasAligneDuGroupe } from '../noyau/marcheDuGroupe';
 import { bus, EVT } from '../noyau/bus';
 import { brancherLeJeu } from '../noyau/branchement';
 import { creerActionsDuNoyau } from '../noyau/fabriquesDuNoyau';
-import { graineDEntropie } from '../web/entropie';
+import { graineDEntropie } from '../hote/entropie';
 import { tablesDuJeu } from '../noyau/tablesDuJeu';
 import { etatInitialDuJeu, type EtatDeJeu, type Ecran } from '../noyau/etat';
 import type { JeuDuNoyau } from '../noyau/machinerieDuNoyau';
@@ -45,9 +45,6 @@ function applyLoadedSave(set: RemplacerLEtat, lue: SaveGame): void {
   loadRuleOverrides(regles);
   bus.emit(EVT.SCENE_DIRTY);
 }
-
-/** Le message au journal d'une sauvegarde refusée, par raison. */
-export const MESSAGE_DU_REFUS = { combat: 'store.saveInBattle', invite: 'store.saveInvite' } as const satisfies Record<RefusDeSauvegarde, string>;
 
 export interface EtatDeLAdaptateur {
   /** Codex : entrée ciblée à l'ouverture (depuis un `CodexRef`, keyée par `id`), null = page d'accueil. */

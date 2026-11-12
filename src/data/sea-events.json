@@ -1473,7 +1473,7 @@
                 "kind": "effet",
                 "effet": {
                   "type": "ops",
-                  "on": "party",
+                  "on": "groupe",
                   "ops": [
                     {
                       "op": "money",
@@ -1860,7 +1860,7 @@
           "kind": "effet",
           "effet": {
             "type": "ops",
-            "on": "party",
+            "on": "groupe",
             "pendantJours": {
               "dice": {
                 "n": 1,
@@ -2500,7 +2500,7 @@
                           "kind": "effet",
                           "effet": {
                             "type": "ops",
-                            "on": "party",
+                            "on": "groupe",
                             "ops": [
                               {
                                 "op": "money",
@@ -2724,7 +2724,7 @@
               "kind": "effet",
               "effet": {
                 "type": "ops",
-                "on": "party",
+                "on": "groupe",
                 "ops": [
                   {
                     "op": "money",
@@ -2851,7 +2851,7 @@
                 "kind": "effet",
                 "effet": {
                   "type": "ops",
-                  "on": "party",
+                  "on": "groupe",
                   "ops": [
                     {
                       "op": "money",
@@ -2898,7 +2898,7 @@
                     "kind": "effet",
                     "effet": {
                       "type": "ops",
-                      "on": "party",
+                      "on": "groupe",
                       "ops": [
                         {
                           "op": "money",
@@ -2969,7 +2969,7 @@
                   "kind": "effet",
                   "effet": {
                     "type": "ops",
-                    "on": "party",
+                    "on": "groupe",
                     "ops": [
                       {
                         "op": "money",
@@ -3034,7 +3034,7 @@
                 "kind": "effet",
                 "effet": {
                   "type": "ops",
-                  "on": "party",
+                  "on": "groupe",
                   "ops": [
                     {
                       "op": "money",

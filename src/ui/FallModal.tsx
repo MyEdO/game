@@ -18,7 +18,7 @@ import { libelleDuTestNomme } from '../noyau/jetsEnVue';
 import { useGesteDeJet } from './useGesteDeJet';
 
 /** Enjeu servi par chaque phase de la chute. */
-const FALL_STAKE: Record<'choice' | 'roll', FlowStakeId> = { choice: 'chute-choix', roll: 'chute-test' };
+const FALL_STAKE: Record<'choix' | 'jet', FlowStakeId> = { choix: 'chute-choix', jet: 'chute-test' };
 
 /** Ce qu'une option de la rangée DÉCLARE (`jetRegler('chute', …)`) : le choix lit cette donnée, jamais sa clé. */
 type DeclarationDeChute = { attempt: boolean; suspendre?: boolean };
@@ -130,7 +130,7 @@ export function FallModal() {
   };
   const rows = p.participants.flatMap(rangee);
   const aLancer = p.participants.filter((x) => x.attempt === true);
-  const rolled = phase === 'roll' && aLancer.every((x) => !!x.result);
+  const rolled = phase === 'jet' && aLancer.every((x) => !!x.result);
   const unJet = aLancer.some((x) => !!x.result);
 
   const actions: RollAction[] = [

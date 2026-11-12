@@ -3652,7 +3652,7 @@
                 "onHitEffects": [
                   {
                     "trigger": "onHit",
-                    "on": "victim",
+                    "on": "victime",
                     "flow": {
                       "kind": "effet",
                       "effet": {
@@ -3715,7 +3715,7 @@
                     "onHitEffects": [
                       {
                         "trigger": "onHit",
-                        "on": "victim",
+                        "on": "victime",
                         "flow": {
                           "kind": "effet",
                           "effet": {
@@ -4876,7 +4876,7 @@
                 "onHitEffects": [
                   {
                     "trigger": "onHit",
-                    "on": "victim",
+                    "on": "victime",
                     "flow": {
                       "kind": "effet",
                       "effet": {
@@ -13426,7 +13426,7 @@
                 "onHitEffects": [
                   {
                     "trigger": "onHit",
-                    "on": "victim",
+                    "on": "victime",
                     "flow": {
                       "kind": "effet",
                       "effet": {
@@ -14186,7 +14186,7 @@
                 "onHitEffects": [
                   {
                     "trigger": "onHit",
-                    "on": "victim",
+                    "on": "victime",
                     "flow": {
                       "kind": "test",
                       "test": {
@@ -14386,7 +14386,7 @@
                 "onHitEffects": [
                   {
                     "trigger": "onHit",
-                    "on": "victim",
+                    "on": "victime",
                     "flow": {
                       "kind": "test",
                       "test": {
@@ -27241,7 +27241,7 @@
                 "onHitEffects": [
                   {
                     "trigger": "onHit",
-                    "on": "victim",
+                    "on": "victime",
                     "flow": {
                       "kind": "effet",
                       "effet": {

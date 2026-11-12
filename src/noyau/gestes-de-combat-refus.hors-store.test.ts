@@ -79,11 +79,11 @@ describe('le verdict de la barre : chaque geste refusé le dit, et ne change rie
     expect([refus(), empreinte()]).toEqual([t('barre.personneNAgit'), avant]);
   });
 
-  it.each(GESTES)('%s : l’actif n’est pas piloté', (_v, geste) => {
+  it.each(GESTES)('%s : l’actif n’est pas piloté, et hors de vue il n’est pas nommé', (_v, geste) => {
     enBataille({ order: ['e', 'a', 'b'] });
     const avant = empreinte();
     geste();
-    expect([refus(), empreinte()]).toEqual([t('barre.nonPilote', { name: 'E' }), avant]);
+    expect([refus(), empreinte()]).toEqual([t('barre.nonPilote', { name: t('vision.horsDeVue') }), avant]);
   });
 
   it.each(GESTES)('%s : une modale tient la main', (_v, geste) => {
@@ -178,7 +178,7 @@ describe('admis, chaque geste joue encore', () => {
   it('ouvrirLAuContact ouvre le Test opposé', () => {
     enBataille();
     g().ouvrirLAuContact('e');
-    expect([refus() ?? null, g().pendingAuContact?.phase]).toEqual([null, 'roll']);
+    expect([refus() ?? null, g().pendingAuContact?.phase]).toEqual([null, 'jet']);
   });
 
   it('ouvrirLEmpoignade ouvre le Test opposé', () => {

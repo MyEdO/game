@@ -72,7 +72,7 @@ const CLES: Record<string, string> = {
   "especesAleatoires": '0efad77909a216b4',
   "cargaisonsAleatoires": '15b1ab79bf407e8a',
   "axes": 'c5ccf60afbeb7d87',
-  "trappings": '603115f165e3cb6c',
+  "trappings": 'd9e8aa7d2011471d',
   "siegeEngines": '8f583e09b7e35f6e',
   "weaponGroups": '15b1ab79bf407e8a',
   "qualities": '3f2728177225d7f2',

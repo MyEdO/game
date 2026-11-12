@@ -5,5 +5,6 @@ export const sound: SoundDef = {
   id: 'crepitement',
   label: 'Crépitement',
   files: ['crepitement.ogg'],
+  canal: 'ambiance',
   volume: 0.6,
 };

@@ -19,7 +19,7 @@ export function taverneAttablee(): Scene {
   sc.id = 'taverne';
   sc.entities.push({ id: 'table-1', kind: 'prop', pos: { x: 5, y: 5 }, decor: { id: 'table-ronde-4-tabourets' }, facing: 'N', usable: { assise: true } });
   for (const rang of [1, 2]) {
-    const r = assignSeat(sc, 'table-1', `place-${rang}`, { kind: 'party', rang }, 2);
+    const r = assignSeat(sc, 'table-1', `place-${rang}`, { kind: 'groupe', rang }, 2);
     if (!r.ok) throw new Error(`assignSeat refusé (rang ${rang}) : ${r.reason}`);
     sc = r.scene;
   }
@@ -28,7 +28,7 @@ export function taverneAttablee(): Scene {
 
 /** Les rangs du groupe assis dans `sc`, triés. */
 export const rangsAssis = (sc: Scene | null): number[] =>
-  Object.values(sc?.seatAssignments ?? {}).flatMap((m) => Object.values(m)).flatMap((o) => (o.kind === 'party' ? [o.rang] : [])).sort();
+  Object.values(sc?.seatAssignments ?? {}).flatMap((m) => Object.values(m)).flatMap((o) => (o.kind === 'groupe' ? [o.rang] : [])).sort();
 
 /** Aldo et Bruna attablés dans la taverne. */
 export function etatAttable(): EtatDeJeu {

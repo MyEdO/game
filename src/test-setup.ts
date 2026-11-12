@@ -35,7 +35,7 @@
  *      sommet reproduit le rouge à l'identique, et le TEMPS n'y change rien (la fermeture est synchrone).
  *      Les bancs de la couture gardent en plus leur propre `resetDismissLayers` en `beforeEach` — ils
  *      posent leur décor de pile, ils ne dépendent pas de ce filet.
- *    - les STOCKAGES WEB (`web/stockageWeb`) et la BIBLIOTHÈQUE DE PROJETS (`state/projectLibrary`,
+ *    - les STOCKAGES WEB (`hote/stockageWeb`) et la BIBLIOTHÈQUE DE PROJETS (`state/projectLibrary`,
  *      `__resetLibraryForTest`) : jsdom garde `localStorage`/`sessionStorage` d'un fichier à l'autre du
  *      worker, et la bibliothèque tient un cache de module. Un fichier qui laisse un projet, un roster ou
  *      un miroir de bibliothèque le lègue à `initLibrary`/`chargerLeRoster` du fichier suivant : un banc
@@ -85,7 +85,7 @@ import { clearTrackedTimers } from './web/minuteries';
 import { remettreLesSingletons } from './singletons.testkit';
 import { reinitWebglRefusé } from './gameIso/stage/webglSupport';
 import { resetDismissLayers } from './ui/useDismissLayer';
-import { stockageWeb } from './web/stockageWeb';
+import { stockageWeb } from './hote/stockageWeb';
 import { __resetLibraryForTest } from './state/projectLibrary';
 import { __resetTraceLayerForTest } from './state/traceLayer';
 

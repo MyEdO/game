@@ -42,7 +42,7 @@ describe('tavernBoard — NADJ 16', () => {
     const b = partie('cerevis');
     expect(b.camps.map((c) => c.target)).toEqual([undefined, undefined]);
     expect(b.camps[0].note).toBe(t('tavern.cerevisNote'));
-    expect(b).toMatchObject({ round: 1, rounds: 6, unit: 'chouettes' });
+    expect(b).toMatchObject({ manche: 1, manches: 6, unit: 'chouettes' });
   });
 
   it('Alvatafl (l.20, l.28) : le camp nain vise 7 pièces elfes prises, le camp elfe 25 pièces naines', () => {

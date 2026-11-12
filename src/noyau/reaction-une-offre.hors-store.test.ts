@@ -185,11 +185,11 @@ function effetsAGratuiteDeLaDonnee(): { ou: string; eff: TriggeredEffect }[] {
 }
 
 const MIXTE: TriggeredEffect = {
-  trigger: 'onHit', on: 'victim', attackType: 'distance',
+  trigger: 'onHit', on: 'victime', attackType: 'distance',
   flow: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'empetre' }, value: 1 }, { op: 'grantFreeAttack', weapon: 'held', when: 'immediate' } as never] } },
 };
 const ATOUT: TriggeredEffect = {
-  trigger: 'onHit', on: 'self',
+  trigger: 'onHit', on: 'soi',
   flow: { kind: 'effet', effet: { type: 'ops', on: 'caster', ops: [{ op: 'grantFreeAttack', weapon: 'held', when: 'immediate' } as never] } },
 };
 type Porteur = 'manuel' | 'auto' | 'ennemi';

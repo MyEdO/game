@@ -7,7 +7,7 @@ import type { CSSProperties, ReactNode } from 'react';
  * Ton dérivable d'un ton fixe OU d'une fonction `(value,max)→ton` (bande de Moral, palier de soute).
  */
 
-export type GaugeTone = 'ok' | 'warn' | 'danger' | 'neutral' | 'corruption' | 'resource';
+export type GaugeTone = 'ok' | 'warn' | 'danger' | 'neutre' | 'corruption' | 'resource';
 
 export interface NotchGaugeProps {
   value: number;
@@ -16,7 +16,7 @@ export interface NotchGaugeProps {
   min?: number;
   label?: string;
   icon?: ReactNode;
-  /** Ton fixe, OU fonction `(value,max)→ton` (bande de Moral, palier de surcharge). Défaut `neutral`. */
+  /** Ton fixe, OU fonction `(value,max)→ton` (bande de Moral, palier de surcharge). Défaut `neutre`. */
   tone?: GaugeTone | ((value: number, max: number) => GaugeTone);
   /** Nombre de crans gravés. Défaut 10. */
   notches?: number;
@@ -53,7 +53,7 @@ export function NotchGauge({
   const frac = clamp01((value - min) / span);
   const n = Math.max(1, Math.round(notches));
   const filled = Math.round(frac * n);
-  const t: GaugeTone = typeof tone === 'function' ? tone(value, max) : tone ?? 'neutral';
+  const t: GaugeTone = typeof tone === 'function' ? tone(value, max) : tone ?? 'neutre';
   const display = format ? format(value, max) : `${value} / ${max}`;
 
   return (

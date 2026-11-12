@@ -5,7 +5,7 @@
 import type { RegleOptionnelleId, RuleValue } from '../engine/policy';
 import type { Stockage } from '../lib/stockage';
 import type { RetraitsDElagage } from '../noyau/persistance/elagage';
-import { stockageWeb } from '../web/stockageWeb';
+import { stockageWeb } from '../hote/stockageWeb';
 import { chargerLesReglesMaison, prendreLeTemoinDesReglesMaison, reglerUneRegleMaison, remettreUneRegleMaison } from '../hote/reglesMaison';
 import { useGame } from './store';
 

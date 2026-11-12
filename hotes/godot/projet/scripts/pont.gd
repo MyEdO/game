@@ -29,6 +29,10 @@ var essai := false
 ## Si la partie à ouvrir est une partie au groupe (`ouvrir`), que le joueur compose puis lance sur une campagne du jeu
 ## (`lancer`), plutôt qu'un scénario de test : « Jouer » de l'accueil le pose.
 var au_groupe := false
+## Si le combat s'ouvre sur les sauvegardes à charger (`sauvegardes`), sans partie : « Reprendre » de l'accueil le pose.
+var reprise := false
+## L'emplacement de la sauvegarde que le combat charge à son ouverture (`charger`), `null` sans chargement demandé.
+var a_charger: Variant = null
 ## Si une recette pilote le jeu (`PARAMETRE_DE_RECETTE`) : l'écran se publie (`publier_l_ecran`), une image ne se dessine
 ## que si l'écran a changé (`OS.low_processor_usage_mode`), sans anticrénelage multiéchantillon (`Viewport.msaa_3d`), car
 ## dans l'export Web chaque image tient le fil de la page où la recette lit l'écran publié et où arrive chacun de ses
@@ -89,14 +93,36 @@ func est_pret() -> bool:
 
 
 ## Le pont rejoint par un écran : chaque refus rendu à `au_refus` (son message), chaque panne à `a_la_panne`, chacun abonné
-## une fois et désabonné à la libération de son objet ; `true` une fois le lieu du noyau ouvert, `false` (la panne
-## signalée) s'il ne s'ouvre pas.
+## une fois et désabonné à la libération de son objet ; `true` une fois le lieu du noyau ouvert et les volumes posés
+## (`regler_les_volumes`), `false` (la panne signalée) s'il ne s'ouvre pas.
 func rejoindre(au_refus: Callable, a_la_panne: Callable) -> bool:
 	if not refus.is_connected(au_refus):
 		refus.connect(au_refus)
 	if not panne.is_connected(a_la_panne):
 		panne.connect(a_la_panne)
-	return await _transport.ouvrir()
+	if not await _transport.ouvrir():
+		return false
+	regler_les_volumes()
+	return true
+
+
+## @contrat Effets
+## Les volumes du joueur se posent sur les bus d'`AudioServer` (`projet/default_bus_layout.tres`) :
+## `PontDuNoyau.regler_les_volumes` lit la méthode `preferences` et pose sur chaque bus dont la préférence
+## `volume-<nom du bus>` existe sa valeur (de 0 à 1, `AudioServer.set_bus_volume_linear`) ; les bus `Master` et
+## `musique-jouee` n'en ont aucune. `rejoindre` l'appelle une fois le lieu du noyau ouvert. La recette
+## `projet/recettes/mixage.gd` le vérifie.
+
+## Le volume de chaque bus d'`AudioServer` dont la préférence `volume-<nom du bus>` existe (méthode `preferences`), posé
+## à sa valeur ; rien si l'appel ne rend pas `ok`.
+func regler_les_volumes() -> void:
+	var reponse := appeler("preferences")
+	if reponse.get("ok") != true:
+		return
+	for bus in AudioServer.bus_count:
+		var cle := "volume-%s" % AudioServer.get_bus_name(bus)
+		if reponse.preferences.has(cle):
+			AudioServer.set_bus_volume_linear(bus, reponse.preferences[cle])
 
 
 ## La réponse de `methode` sur `entree` (un objet, ou `null` sans entrée) : décodée, `ok` vrai ou faux, chaque tableau

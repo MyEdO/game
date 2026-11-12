@@ -10,12 +10,31 @@ extends Node3D
 ## chaque vue : chaque source y est un `Foyer` (`projet/scripts/foyer.gd`), sa lampe qui vacille, ses gerbes continues
 ## nées d'avance et son son en boucle à son point, le même d'une vue à l'autre tant que la vue nomme sa clé (`cle`) ;
 ## la recette `projet/recettes/foyers.gd` le vérifie.
+##
+## @contrat Lumière
+## Deux rendus dessinent les mêmes scènes (#3951) : Forward+ hors d'une page, où la carte graphique le permet, et le
+## rendu de compatibilité dans la page ou en repli (`rendering/renderer/rendering_method` de `projet/project.godot`).
+## Sous les deux, la lampe de chaque foyer porte une ombre (#3811) ; sous Forward+ seul (`Lumiere.rendu_complet`), la
+## `Lumiere` allume l'occlusion ambiante et le brouillard volumétrique de son environnement
+## (`projet/scenes/Lumiere.tscn`, qui porte leurs valeurs). Aucune lampe ne reçoit l'ombre d'un luminaire (les
+## surfaces `luminaire` du volume, section « Monde »), et une lampe portée (sa clé, `portee/<id>`), celle d'aucun
+## corps : ce qui la porte la masquerait. La recette `projet/recettes/lumiere-des-deux-rendus.gd` le vérifie sous chaque
+## rendu.
 
 @onready var _environnement: Environment = ($Environnement as WorldEnvironment).environment
 @onready var _soleil: DirectionalLight3D = $Soleil
 @onready var _sources: Node3D = $Sources
 
 var _brume: Dictionary = {}
+
+
+## Si le rendu en cours est Forward+, qui porte l'occlusion ambiante et le brouillard volumétrique.
+static func rendu_complet() -> bool:
+	return RenderingServer.get_current_rendering_method() == "forward_plus"
+
+
+func _ready() -> void:
+	_environnement.ssao_enabled = rendu_complet()
 
 
 ## Pose `lumiere` sur un plateau de `metres_par_case` mètres par case.
@@ -41,6 +60,7 @@ func eclairer(lumiere: Dictionary, metres_par_case: float) -> void:
 		_environnement.background_color = Color(lumiere.brume.couleur)
 	_environnement.fog_enabled = true
 	_environnement.fog_light_color = Color(lumiere.brume.couleur)
+	_environnement.volumetric_fog_enabled = rendu_complet()
 	_brume = lumiere.brume
 	_poser_les_sources(lumiere.sources, metres_par_case)
 

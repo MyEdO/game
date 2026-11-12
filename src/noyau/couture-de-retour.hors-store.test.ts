@@ -122,7 +122,7 @@ describe('coutures du héros en combat (#2312)', () => {
     const cas: [unknown, (c: Combatant) => unknown][] = [
       [{ type: 'inflictHunger', days: 2, target: 'party' }, (c) => c.hunger],
       [{ type: 'inflictThirst', days: 2, target: 'party' }, (c) => c.thirst],
-      [{ type: 'ops', on: 'hero', ops: [{ op: 'gainResource', resource: 'fortune', amount: 1 }] }, (c) => c.fortune],
+      [{ type: 'ops', on: 'heros', ops: [{ op: 'gainResource', resource: 'fortune', amount: 1 }] }, (c) => c.fortune],
     ];
     for (const [e, lire] of cas) {
       const id = combat();
