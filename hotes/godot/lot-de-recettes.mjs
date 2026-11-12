@@ -39,6 +39,7 @@ export const JEUX_DU_PARCOURS = {
   cadrages: { cadrages: ['--scenario', 'a-bord-de-la-caraque', '--vues', 'hotes/godot/cadrages/a-bord-de-la-caraque.json'] },
   bord: { bord: ['--scenario', 'a-bord-de-la-caraque', '--route', `${DOSSIER}/a-bord-de-la-caraque.json`] },
   brume: { brume: ['--scenario', 'brouillard'] },
+  vision: { vision: ['--scenario', 'grimpant'] },
   fiche: { fiche: [] },
   inventaire: { inventaire: ['--scenario', 'porte-close'] },
   creation: { creation: ['--scenario', 'marche-equipement'] },
