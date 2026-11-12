@@ -768,7 +768,7 @@ export function reprendreTestSubi(get: Get, set: SetFn, pt: PendingTest, success
  * `resolveFlowTest`), qui journalise. Le mono EST le cas N=1 — aucune seconde forme.
  *
  * Rend l'étape à INSÉRER (`undefined` si personne n'est surfacé) : la couture décide où elle atterrit
- * (combat → `pushCombatStep` ; voyage → `insert` de l'applier ou `pushStep(…, 'travelDay')`), et
+ * (combat → `pushCombatStep` ; voyage → `insert` de l'applier ou `pushStep(…, revealPurpose('travelDay', false))`), et
  * DRAINE elle-même les lignes inline (`drainPendingLog`) dans SON journal.
  */
 export function bandeTriggeredTest(

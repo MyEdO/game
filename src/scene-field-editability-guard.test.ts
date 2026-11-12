@@ -1,4 +1,4 @@
-import { API, SymbolFlags } from 'typescript/unstable/sync';
+import { API, SymbolFlags, TypeFlags, type Type, type TypeReference } from 'typescript/unstable/sync';
 import { ast } from '../scripts/guards/lib/dialecte.mjs';
 import { describe, it, expect, vi } from 'vitest';
 import path from 'node:path';
@@ -8,13 +8,14 @@ import * as ts from 'typescript/unstable/ast';
 import {
   ALLER_RETOUR,
   auditSceneFieldEditability,
+  documentDeclarations,
   orphanFields,
   sceneScope,
   programmeDuPerimetre,
 } from '../scripts/guards/lib/sceneFieldEditability.mjs';
 import { repoProgram, virtualProgram, VIRTUAL_ROOT } from '../scripts/guards/lib/tsProgram.mjs';
 import { detenteur } from './lib/detenteur.testkit';
-import { ecrituresJouees } from './ecrituresJouees.testkit';
+import { ecrituresDesPorteursSeuls, ecrituresJouees } from './ecrituresJouees.testkit';
 
 /**
  * GARDE #841 — « toute donnée de la scène s'édite au clic, sans dépendre d'une IA » (directive
@@ -34,7 +35,7 @@ import { ecrituresJouees } from './ecrituresJouees.testkit';
  *    un `{ flags }` passé en lecture à un contexte d'évaluation ne crédite aucun champ de `Scene`.
  *
  * ANGLE MORT DÉCLARÉ — les répliques virtuelles (`forme({ … })`) éprouvent le NOMMAGE du porteur
- * anonyme, l'inclusion par IDENTITÉ et la coupe aux nœuds-frontière, pas la POSITION réelle du
+ * anonyme, l'inclusion par IDENTITÉ et la descente des fabriques, pas la POSITION réelle du
  * symbole rendu par `z.infer` (`zod/v4/core/util.d.cts`) : ce chemin-là n'est couvert que par la
  * mesure sur le programme RÉEL (cliquet de compte + la mesure du SEAM, qui bâtit le programme du
  * DOCUMENT avec un module modifié EN MÉMOIRE).
@@ -84,7 +85,8 @@ describe('#841 — chaque champ du document de scène a un chemin d’écriture 
   // scripts/guards/lib/tsProgram.mjs ; src/analyse-retention-guard.test.ts
   const perimetre = detenteur(() => programmeDuPerimetre(ROOT), (session) => session.dispose());
   /** L'audit du dépôt, les écritures que l'aller-retour de l'éditeur Godot joue comprises (`ecrituresJouees`). */
-  const auditReel = detenteur(() => auditSceneFieldEditability(ROOT, perimetre(), { ecrituresJouees: ecrituresJouees() }));
+  const ecritures = detenteur(() => ecrituresJouees());
+  const auditReel = detenteur(() => auditSceneFieldEditability(ROOT, perimetre(), { ecrituresJouees: ecritures() }));
 
   it('aucun champ n’est joignable seulement par le pipeline d’authoring, hors cliquet nommé', { timeout: 120_000 }, () => {
     const orphelins = orphanFields(auditReel());
@@ -93,6 +95,14 @@ describe('#841 — chaque champ du document de scène a un chemin d’écriture 
       .map((r) => `${r.id} (${r.at}) — écrivains : ${r.pipeline.join(', ') || 'AUCUN'}`)
       .join('\n');
     expect(ids(orphelins).sort(), detail).toEqual([...TROUS_CONNUS].sort());
+  });
+
+  it('l’aller-retour partagé crédite tout ce que crédite chaque porteur joué SEUL à ses branches', { timeout: 120_000 }, () => {
+    // Un porteur rejoué ne s'ajoute pas à `out` aux empreintes déjà jouées (`ecrituresJouees.testkit.ts`) : une offre ainsi
+    // sautée ne doit cacher aucune des offres qu'elle ouvre (`SceneEntity.combat.spells` sous `combat/ajouter`).
+    const ligne = (r: { id: string; authors: string[] }) => `${r.id} ← ${r.authors.join(', ')}`;
+    const avecLesSeuls = auditSceneFieldEditability(ROOT, perimetre(), { ecrituresJouees: [...ecritures(), ...ecrituresDesPorteursSeuls()] });
+    expect(avecLesSeuls.map(ligne)).toEqual(auditReel().map(ligne));
   });
 
   it('crédite une écriture qui traverse `Array.map` — sonde réelle : `SceneEffectZone.tiles` ← `mapSpec.ts`', { timeout: 120_000 }, () => {
@@ -142,6 +152,46 @@ export interface Scene { id: string; effectZones: SceneEffectZone[] }\n`,
         ['SceneEffectZone.crossTest', [ALLER_RETOUR]],
         ['Test.difficulty', [ALLER_RETOUR]],
       ]);
+    } finally { program.dispose(); }
+  });
+
+  it('une propriété PRODUITE PAR UNE FABRIQUE est le champ de son TYPE produit : deux produits d’un même type sont un champ, deux de types distincts en sont deux', () => {
+    // `objetDeRef` (`grammaire/ref.ts`) : UNE déclaration `id` pour chaque référence qu'il construit ; `ref(0)` et `ref(1)`
+    // produisent le même type, `ref('')` un autre.
+    const program = virtualProgram({
+      'src/data/schemas/grammaire/ref.ts': `declare function forme<T>(shape: T): { readonly sortie: T };
+export function ref<F>(feuille: F) { return forme({ id: feuille }); }\n`,
+      'src/data/schemas/defs-scenes/scene.ts': `import { ref } from '../grammaire/ref';
+declare function forme<T>(shape: T): { readonly sortie: T };
+export const sceneSchema = forme({ id: '', arme: ref(0).sortie, bouclier: ref(1).sortie, embleme: ref('').sortie });\n`,
+      'src/noyau/monde/scene.ts': `import type { sceneSchema } from '../../data/schemas/defs-scenes/scene';
+export type Scene = (typeof sceneSchema)['sortie'];\n`,
+    });
+    const doc = (arme: number) => ({ id: 's', arme: { id: arme }, bouclier: { id: 0 }, embleme: { id: 'e' } });
+    try {
+      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program, { ecrituresJouees: [
+        { avant: doc(0), apres: doc(1), chemin: ['arme', 'id'], valeur: 1, saisie: 'saisieNombre' },
+      ] });
+      expect(rows.filter((r) => r.id.endsWith('.id') && r.id !== 'Scene.id').map((r) => [r.id, r.authors])).toEqual([
+        ['Scene.arme.id', [ALLER_RETOUR]],
+        ['Scene.embleme.id', []],
+      ]);
+    } finally { program.dispose(); }
+  });
+
+  it('une propriété HÉRITÉE est le champ de sa déclaration : l’écriture par le type dérivé crédite le champ du type de base', () => {
+    // `RefASpecialisation extends RefDesignee` (`grammaire/ref.ts`) : `id` est déclaré une fois, par `RefDesignee`.
+    const program = virtualProgram({
+      'src/noyau/monde/scene.ts': `export interface Base { id: string }
+export interface Derivee extends Base { n?: number }
+export interface Scene { id: string; a: Base; b: Derivee }\n`,
+    });
+    const doc = (id: string) => ({ id: 's', a: { id: 'a' }, b: { id } });
+    try {
+      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program, { ecrituresJouees: [
+        { avant: doc('b'), apres: doc('c'), chemin: ['b', 'id'], valeur: 'c', saisie: 'saisieTexte' },
+      ] });
+      expect(rows.filter((r) => r.id.endsWith('.id') && r.id !== 'Scene.id').map((r) => [r.id, r.authors])).toEqual([['Base.id', [ALLER_RETOUR]]]);
     } finally { program.dispose(); }
   });
 
@@ -226,17 +276,19 @@ export const tracerCalque = () => {
     // tout corps passé en `z.infer`). Aucune refonte de frontière ne ferme ce mode seule.
     // 239 = mesure du 2026-08-25 (243 de l'étalon, moins les 4 `victoryCondition.edge.*` remappés sur
     // `ArchitectureEdgeRef.*` par la réutilisation du type — la liste positive ci-dessus les couvre).
-    expect(scope.length, 'périmètre effondré').toBeGreaterThanOrEqual(239);
+    // 416 = mesure du 2026-11-12 (#3606 M2f1 : `FRONTIERE` retirée, corps des fabriques et annotations de type descendus).
+    expect(scope.length, 'périmètre effondré').toBeGreaterThanOrEqual(416);
   });
 
-  it('le périmètre inclut par IDENTITÉ — une feuille d’un AUTRE module composée par le document y entre, un nœud-frontière n’y entre pas', () => {
+  it('le périmètre inclut par IDENTITÉ — une feuille d’un AUTRE module composée par le document y entre, et la marche descend dans le corps d’une fabrique', () => {
     // Réplique STRUCTURELLE du seam réel (`sceneSchema` compose `moneyPartialSchema`, feuille de
-    // `grammaire/valeurs.ts`, et `conditionSchema`, vocabulaire partagé de `grammaire/`) : le schéma
-    // composant vit dans un AUTRE module. La marche part de `sceneSchema` et suit les IDENTITÉS ;
-    // elle s'arrête au nœud-frontière.
+    // `grammaire/valeurs.ts`, et `conditionSchema`, produit de la fabrique `conditionDe` de `grammaire/`) : le schéma
+    // composant vit dans un AUTRE module. La marche part de `sceneSchema` et suit les IDENTITÉS, jusque dans le corps
+    // de la fabrique.
     const program = virtualProgram({
       'src/data/schemas/grammaire/mecanique.ts': `declare function forme<T>(shape: T): { readonly sortie: T };
-export const conditionSchema = forme({ flag: '' });\n`,
+function conditionDe() { return forme({ flag: '' }); }
+export const conditionSchema = conditionDe();\n`,
       'src/data/schemas/defs-scenes/communs.ts': `declare function forme<T>(shape: T): { readonly sortie: T };
 export const moneySchema = forme({ gold: 0 });\n`,
       'src/data/schemas/defs-scenes/scene.ts': `import { moneySchema } from './communs';
@@ -254,7 +306,7 @@ export type Scene = (typeof sceneSchema)['sortie'];\n`,
       expect(all, 'la feuille d’un AUTRE module, composée par le document, entre par IDENTITÉ').toContain(
         'Money.gold'
       );
-      expect(all, 'le nœud-frontière reste du vocabulaire partagé').not.toContain('Condition.flag');
+      expect(all, 'le shape que la fabrique construit entre au périmètre').toContain('Scene.when.flag');
 
     } finally { program.dispose(); }
   });
@@ -282,6 +334,40 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
     } finally { program.dispose(); }
   });
 
+  it('aucune annotation de type ne masque un shape : toute propriété de la donnée atteinte depuis `Scene` est au périmètre', () => {
+    // Détecteur INDÉPENDANT de la marche : le type `Scene` parcouru au TypeChecker, propriété par propriété ; une
+    // propriété déclarée sous `src/data/` (cast `as ChampsNommes`, `z.ZodType<{ id: string }>`, `RefDesignee`,
+    // `TraitPose`, `Calage`) hors de l'ensemble d'identités est un champ que la marche n'a pas vu. Les types du moteur
+    // (`src/engine/`) et du noyau restent hors de cette classe.
+    const program = perimetre();
+    const checker = program.checker;
+    const docNodes = documentDeclarations(program, ROOT);
+    const sf = program.program.getSourceFileNames().map((f) => program.program.getSourceFile(f)).find((x) => x?.fileName.endsWith('src/noyau/monde/scene.ts'));
+    const sym = sf && checker.getExportsOfModule(checker.getSymbolAtLocation(sf)!).find((x) => x.name === 'Scene');
+    if (!sym) throw new Error('type `Scene` introuvable');
+    const vus = new Set<unknown>();
+    const manques = new Set<string>();
+    const visiter = (t: Type | undefined, chemin: string): void => {
+      if (!t || vus.has(t)) return;
+      vus.add(t);
+      if (t.isUnionType() || t.isIntersectionType()) return t.getTypes().forEach((m) => visiter(m, chemin));
+      if (checker.isArrayType(t) || checker.isTupleType(t)) return checker.getTypeArguments(t as TypeReference).forEach((a) => visiter(a, chemin));
+      if (!(t.flags & TypeFlags.Object)) return;
+      const index = checker.getIndexInfosOfType(t).find((i) => i.keyType.flags & TypeFlags.String);
+      if (index) visiter(index.valueType, `${chemin}[k]`);
+      for (const prop of checker.getPropertiesOfType(t)) {
+        const decl = prop.declarations?.[0]?.resolve();
+        const ici = `${chemin}.${prop.name}`;
+        if (!decl) { visiter(checker.getTypeOfSymbol(prop), ici); continue; }
+        const fichier = path.relative(ROOT, decl.getSourceFile().fileName).split(path.sep).join('/');
+        if (docNodes.has(decl) || fichier === 'src/noyau/monde/scene.ts') visiter(checker.getTypeOfSymbolAtLocation(prop, decl), ici);
+        else if (fichier.startsWith('src/data/')) manques.add(`${ici} @ ${fichier}`);
+      }
+    };
+    visiter(checker.getDeclaredTypeOfSymbol(sym), 'Scene');
+    expect([...manques].sort(), 'propriétés de la donnée que la marche ne voit pas').toEqual([]);
+  });
+
   it('l’inclusion par IDENTITÉ est LOAD-BEARING sur le programme RÉEL — la frontière par MODULE perd des champs NOMMÉS', () => {
     // Rabattre `declaredInScene` sur les deux FICHIERS du document perd les champs nommés ici (mutation
     // mesurée) : ce sont les seuls du périmètre déclarés hors du document.
@@ -299,6 +385,10 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
     // pose de Trait nomme les champs de la pose, à son premier porteur, et son Talent est `TalentRef`.
     // #3606 M1c : l'apparence d'une entité est l'entrée d'`entityAppearanceSchema` (`grammaire/valeurs.ts`) ; ses
     // couleurs, clés d'emplacement de palette d'un type mappé.
+    // #3606 M2f1 : la marche descend dans le corps des fabriques — l'`id` d'une référence (`objetDeRef`, `grammaire/ref.ts`),
+    // la prose adressée d'une réplique (`proseNommee`, `grammaire/prose.ts`) et son adresse (`grammaire/valeurs.ts`) ; et
+    // à travers l'annotation de type d'un schéma (`RefASpecialisation`, `TraitPose`, le `{ id: string }` d'un
+    // `z.ZodType<…>`, `ChampsNommes`) ou d'un type manuscrit du document (`Calage`).
     const DOC = ['src/noyau/monde/scene.ts', 'src/data/schemas/defs-scenes/scene.ts'];
     const fichier = (r: { decl: ts.Declaration }) =>
       path.relative(ROOT, r.decl.getSourceFile().fileName).split(path.sep).join('/');
@@ -308,6 +398,9 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
       horsDocument.map((r) => `${r.id} @ ${fichier(r)}`).sort(),
       'ce que la frontière par MODULE perdrait'
     ).toEqual([
+      'AuthoredShipPoste.selectedAmmo.id @ src/data/schemas/grammaire/ref.ts',
+      'Calage.x @ src/data/props.types.ts',
+      'Calage.y @ src/data/props.types.ts',
       'CaracteristiqueChiffree.characteristic @ src/data/schemas/grammaire/valeurs.ts',
       'CaracteristiqueChiffree.value @ src/data/schemas/grammaire/valeurs.ts',
       'CharStats.B @ src/data/schemas/defs-scenes/communs.ts',
@@ -323,6 +416,7 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
       'CharStats.intelligence @ src/data/schemas/defs-scenes/communs.ts',
       'CharStats.sociabilite @ src/data/schemas/defs-scenes/communs.ts',
       'Couleurs.accent @ src/data/schemas/grammaire/valeurs.ts',
+      'Couleurs.accent.id @ src/data/schemas/grammaire/ref.ts',
       'Couleurs.bois @ src/data/schemas/grammaire/valeurs.ts',
       'Couleurs.cheveux @ src/data/schemas/grammaire/valeurs.ts',
       'Couleurs.corne @ src/data/schemas/grammaire/valeurs.ts',
@@ -343,11 +437,13 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
       'CustomStatblock.randomChars @ src/data/schemas/defs-scenes/communs.ts',
       'CustomStatblock.size @ src/data/schemas/defs-scenes/communs.ts',
       'CustomStatblock.skills @ src/data/schemas/defs-scenes/communs.ts',
+      'CustomStatblock.skills.value @ src/data/index.ts',
       'CustomStatblock.spells @ src/data/schemas/defs-scenes/communs.ts',
       'CustomStatblock.talents @ src/data/schemas/defs-scenes/communs.ts',
       'CustomStatblock.traits @ src/data/schemas/defs-scenes/communs.ts',
       'CustomStatblock.traits.alsoIn @ src/data/schemas/grammaire/reference.ts',
       'CustomStatblock.traits.arg @ src/data/schemas/grammaire/reference.ts',
+      'CustomStatblock.traits.confere @ src/data/schemas/grammaire/reference.ts',
       'CustomStatblock.traits.count @ src/data/schemas/grammaire/reference.ts',
       'CustomStatblock.traits.difficulte @ src/data/schemas/grammaire/reference.ts',
       'CustomStatblock.traits.hidden @ src/data/schemas/grammaire/reference.ts',
@@ -361,16 +457,42 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
       'CustomStatblock.traits.source @ src/data/schemas/grammaire/reference.ts',
       'CustomStatblock.traits.value @ src/data/schemas/grammaire/reference.ts',
       'CustomStatblock.type @ src/data/schemas/defs-scenes/communs.ts',
+      'Dialogue.start.id @ src/data/schemas/grammaire/ref.ts',
+      'DialogueNode.adapteDe @ src/data/schemas/grammaire/prose.ts',
+      'DialogueNode.desc @ src/data/schemas/grammaire/prose.ts',
+      'DialogueNode.descRef @ src/data/schemas/grammaire/prose.ts',
+      'DialogueNode.descRef.book @ src/data/schemas/grammaire/valeurs.ts',
+      'DialogueNode.descRef.ch @ src/data/schemas/grammaire/valeurs.ts',
+      'DialogueNode.descRef.parts @ src/data/schemas/grammaire/valeurs.ts',
       'EntityAppearance.apparencesObjets @ src/data/schemas/grammaire/valeurs.ts',
+      'EntityAppearance.apparencesObjets.id @ src/data/schemas/grammaire/valeurs.ts',
       'EntityAppearance.armurePortee @ src/data/schemas/grammaire/valeurs.ts',
       'EntityAppearance.couleurs @ src/data/schemas/grammaire/valeurs.ts',
       'EntityAppearance.embleme @ src/data/schemas/grammaire/valeurs.ts',
+      'EntityAppearance.embleme.id @ src/data/schemas/grammaire/ref.ts',
       'EntityAppearance.sex @ src/data/schemas/grammaire/valeurs.ts',
       'EntityAppearance.species @ src/data/schemas/grammaire/valeurs.ts',
       'EntityAppearance.tenue @ src/data/schemas/grammaire/valeurs.ts',
+      'FragmentBlocs.b0 @ src/data/schemas/grammaire/valeurs.ts',
+      'FragmentBlocs.b1 @ src/data/schemas/grammaire/valeurs.ts',
+      'FragmentBlocs.finSec @ src/data/schemas/grammaire/valeurs.ts',
+      'FragmentBlocs.finSecOcc @ src/data/schemas/grammaire/valeurs.ts',
+      'FragmentBlocs.kind @ src/data/schemas/grammaire/valeurs.ts',
+      'FragmentBlocs.sec @ src/data/schemas/grammaire/valeurs.ts',
+      'FragmentBlocs.secOcc @ src/data/schemas/grammaire/valeurs.ts',
+      'FragmentBlocs.sum @ src/data/schemas/grammaire/valeurs.ts',
+      'FragmentCellule.col @ src/data/schemas/grammaire/valeurs.ts',
+      'FragmentCellule.kind @ src/data/schemas/grammaire/valeurs.ts',
+      'FragmentCellule.row @ src/data/schemas/grammaire/valeurs.ts',
+      'FragmentCellule.sec @ src/data/schemas/grammaire/valeurs.ts',
+      'FragmentCellule.secOcc @ src/data/schemas/grammaire/valeurs.ts',
+      'FragmentCellule.sum @ src/data/schemas/grammaire/valeurs.ts',
+      'FragmentCellule.table @ src/data/schemas/grammaire/valeurs.ts',
+      'MarchandDeScene.archetype.id @ src/data/schemas/grammaire/ref.ts',
       'MoneyPartial.brass @ src/data/schemas/grammaire/valeurs.ts',
       'MoneyPartial.gold @ src/data/schemas/grammaire/valeurs.ts',
       'MoneyPartial.silver @ src/data/schemas/grammaire/valeurs.ts',
+      'OffreDeTaverne.id @ src/data/schemas/grammaire/ref.ts',
       'OptionalSwap.grant @ src/data/schemas/grammaire/reference.ts',
       'OptionalSwap.grant.value @ src/data/schemas/grammaire/reference.ts',
       'OptionalSwap.label @ src/data/schemas/grammaire/reference.ts',
@@ -389,6 +511,12 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
       'Pt.x @ src/data/schemas/defs-scenes/communs.ts',
       'Pt.y @ src/data/schemas/defs-scenes/communs.ts',
       'Pt.z @ src/data/schemas/defs-scenes/communs.ts',
+      'RefASpecialisation.choix @ src/data/schemas/grammaire/ref.ts',
+      'RefASpecialisation.id @ src/data/schemas/grammaire/ref.ts',
+      'RefASpecialisation.spec @ src/data/schemas/grammaire/ref.ts',
+      'Scene.startMessage.adapteDe @ src/data/schemas/grammaire/prose.ts',
+      'Scene.startMessage.source @ src/data/schemas/grammaire/prose.ts',
+      'SceneEntity.upgrades.id @ src/data/schemas/grammaire/ref.ts',
       'SceneEntity.upgrades.value @ src/data/schemas/grammaire/reference.ts',
       'SourceRef.book @ src/data/schemas/grammaire/valeurs.ts',
       'SourceRef.note @ src/data/schemas/grammaire/valeurs.ts',

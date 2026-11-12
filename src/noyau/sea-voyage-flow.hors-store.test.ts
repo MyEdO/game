@@ -3002,3 +3002,74 @@ describe('Salissures — Test de Résistance hebdomadaire du vaisseau par la por
     expect(traces[0]).toContain(libelle);
   });
 });
+
+describe('Une journée de mer en vol ne se relance pas, la bande d’équipage reste dans sa séquence hôte (#4006)', () => {
+  beforeEach(freshState);
+
+  /** Les séquences `travelDay` vivantes, slot et pile confondus (`pendingCascade`/`suspendedCascades`). */
+  const journeesVivantes = () => [get().pendingCascade, ...get().suspendedCascades].filter((c) => c?.purpose === 'travelDay');
+  /** Une étape de la cascade, puis les reprises différées du banc (patron des sondes du jour). */
+  const unPas = (poser?: PoseDe) => { avanceEtapeCascade(get, poser); banc.reprendreTout(); };
+
+  it('le péril d’auteur dont l’effet ouvre un Test parque le jour : sa clôture le reprend UNE fois, `daysAtSea` +1', () => {
+    const perilMap: WorldMap = {
+      ...seaMap,
+      routes: [{ ...seaMap.routes[0], perils: [{ label: 'Froid mordant', chancePct: 100, effects: [{ type: 'exposureNight', kind: 'froid', count: 1, target: 'groupe' }] }] }],
+    };
+    set({ worldMap: perilMap } as never);
+    const plan = buildSeaPlan(get, 'r1', 'A', 'B', perilMap.routes[0], { cadence: 'jourParJour' })!;
+    set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysToEvent: 5 } } } as never);
+    runSeaDay(get, set);
+    const jour = get().pendingCascade!;
+    expect(jour.purpose, 'prémisse : le jour tient le slot').toBe('travelDay');
+    for (let i = 0; i < 10 && get().pendingCascade?.purpose !== 'test'; i++) unPas();
+    expect(get().pendingCascade?.purpose, 'prémisse : l’effet du péril ouvre sa séquence `test`').toBe('test');
+    expect(get().suspendedCascades.map((c) => c.purpose), 'prémisse : le jour attend en pile').toEqual(['travelDay']);
+    const curseurParque = get().suspendedCascades[0]!.cursor;
+    expect(curseurParque, 'prémisse : le jour est parqué après son étape de péril').toBeGreaterThan(0);
+    for (let i = 0; i < 10 && get().pendingCascade?.purpose === 'test'; i++) unPas();
+    expect(journeesVivantes(), 'une seule journée vivante à la clôture du Test').toHaveLength(1);
+    expect(get().pendingCascade?.cursor, 'le jour parqué est repris à son curseur, pas rebâti').toBe(curseurParque);
+    expect(get().suspendedCascades).toEqual([]);
+    for (let i = 0; i < 40 && get().pendingCascade && !get().pendingRest; i++) {
+      unPas();
+      expect(journeesVivantes().length).toBeLessThanOrEqual(1);
+    }
+    expect(get().pendingRest, 'le jour se dénoue sur la halte').toBeTruthy();
+    expect(get().travelPlan!.sea!.daysAtSea).toBe(1);
+    expect(get().journal.filter((l) => l.includes(t('tf.perilDAuteur', { label: 'Froid mordant' }))), 'le jour n’est bâti qu’une fois').toHaveLength(1);
+  });
+
+  it('Ouragan : la bande du coup à l’équipage (MDG 13 l.763) se joue dans le Test de l’événement, puis le vrai jour joue sa Progression', () => {
+    seedBattleRng(1);
+    set({ party: get().party.map((h) => ({ ...h, shipStation: 'greement', skills: (h.skills ?? []).filter((s) => s.id !== 'voile') })) } as never);
+    const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { cadence: 'jourParJour' })!;
+    set({ travelPlan: { ...plan, sea: { ...plan.sea!, forcedEventId: 'ouragan' } } } as never);
+    runSeaDay(get, set);
+    expect(get().pendingCascade?.purpose, 'prémisse : le Test d’équipage de l’Ouragan tient le slot').toBe('test');
+    const estBande = (x: CascadeStep) => x.id.startsWith('mer-equipage-touche');
+    const bandeVivante = () => [get().pendingCascade, ...get().suspendedCascades].some((c) => c?.participants.some(estBande));
+    const affalerRate: PoseDe = (etape) => (etape.kind === 'testDEquipage' ? 99 : undefined);
+    let bandeVue = false;
+    let bandeDansLeTest = false;
+    for (let i = 0; i < 20 && get().pendingCascade?.purpose === 'test'; i++) {
+      expect(journeesVivantes(), 'aucune journée avant la clôture du Test de l’événement').toEqual([]);
+      if (bandeVivante()) bandeVue = true;
+      if (get().pendingCascade!.participants.some(estBande)) bandeDansLeTest = true;
+      unPas(affalerRate);
+    }
+    if (bandeVivante()) bandeVue = true;
+    expect(bandeVue, 'prémisse : Affaler raté, le tirage des Critiques porte un coup à l’équipage, une bande `mer-equipage-touche` existe').toBe(true);
+    expect(bandeDansLeTest, 'la bande `mer-equipage-touche` rejoint la séquence du Test').toBe(true);
+    const jour = get().pendingCascade;
+    expect(jour?.purpose, 'la clôture du Test bâtit le vrai jour').toBe('travelDay');
+    expect(jour!.participants.some(estBande), 'la bande ne passe pas dans le jour').toBe(false);
+    expect(jour!.participants.some((x) => x.kind === 'merProgressionChoix' || x.kind === 'equipage-progression'), 'le jour porte sa Progression, quelle que soit sa forme').toBe(true);
+    for (let i = 0; i < 40 && get().pendingCascade && !get().pendingRest; i++) {
+      unPas();
+      expect(get().travelPlan!.sea!.daysAtSea).toBe(get().pendingRest ? 1 : 0);
+    }
+    expect(get().pendingRest).toBeTruthy();
+    expect(get().travelPlan!.sea!.daysAtSea).toBe(1);
+  });
+});

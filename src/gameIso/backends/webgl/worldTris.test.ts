@@ -8,6 +8,7 @@ import {
   crossQuadPolys,
   facePoly,
   faceQuads,
+  faceGeometry,
   faceQuadsOriented,
   facesGeometry,
   faceUv1,
@@ -320,6 +321,22 @@ describe('BIAIS COPLANAIRE — l’ordre de peinture affine devient une séparat
     const rendus = geoms[iMontant].tris;
     expect(rendus).toHaveLength(nus.length);
     expect(rendus).not.toEqual(nus);
+  });
+
+  it('facesGeometry est la composition de faceQuadsOriented, coplanarRanks et faceGeometry, face par face', () => {
+    const mpt = sceneMetresPerTile(areneHub());
+    const faces = facesOf(areneHub());
+    const parts = faces.map((f) => faceQuadsOriented(f, mpt, faceDepthM(f)));
+    const ranks = coplanarRanks(parts.flatMap((p) => p.quads));
+    expect(ranks.some((r) => r > 0)).toBe(true);
+    let debut = 0;
+    const composees = faces.map((f, i) => {
+      const fin = debut + parts[i].quads.length;
+      const g = faceGeometry(f, mpt, parts[i], ranks.slice(debut, fin));
+      debut = fin;
+      return g;
+    });
+    expect(composees).toEqual(facesGeometry(faces, mpt, faceDepthM));
   });
 });
 

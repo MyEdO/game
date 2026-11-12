@@ -5,23 +5,30 @@
  * triangle couvrant le plus proche (`visiterLaCouverture`, `pile.ts`) : derrière si son écart signé e dépasse
  * `ECART_DE_SUIVI_M`, devant s'il est sous −`ECART_DE_SUIVI_M`. À un échantillon, la zone passe à travers le mesh si
  * elle a des sommets de chaque côté. Les meshes masqués au montage n'y entrent pas (`sansLesZonesMasquees`).
+ * Tissu pincé : un sommet derrière le mesh n'est d'aucun côté si la peau d'une zone ni la sienne ni voisine le couvre
+ * aussi, à `PORTEE_DE_COUVERTURE_M` au plus du mesh : le vêtement y repose sur le corps, le membre l'y presse.
+ * Endroit : d'un vêtement, seuls comptent les triangles de son endroit (`endroitDe`, `pile.ts`).
  * `membre-dans-un-vetement` : un écart par (zone, mesh, clip), à son pire instant, de valeur le plus grand e derrière.
+ * Plafond : une tenue admet par clip un nombre mesuré de ces écarts ; à ce compte le clip n'en rend aucun, au-delà il
+ * les rend tous, en deçà il rend `plafond-a-baisser`.
  */
 import type { Mesh } from 'three';
 import type { Ecart, LibelleDeMesh } from '../ecart.ts';
 import type { Echantillon, Pose } from '../echantillonnage.ts';
 import { ECART_DE_SUIVI_M } from './suiviDuCorps.ts';
 import { TOLERANCE_JUMEAUX_POSITION_M } from './poids.ts';
-import { indicesDe, normalesDe, positionsDe } from './traversee.ts';
-import { couvertureDe, PORTEE_DE_COUVERTURE_M, visiterLaCouverture } from '../../pile.ts';
+import { normalesDe, positionsDe } from './traversee.ts';
+import { couvertureDe, PORTEE_DE_COUVERTURE_M, visiterLaCouverture, type Couverture } from '../../pile.ts';
 
 const GARDE = 'membreDansUnVetement';
 
-/** Un mesh du corps et un mesh d'élément de zones ni égales ni voisines. */
+/** Un mesh du corps et un mesh, d'élément ou du corps, de zones ni égales ni voisines ; `triangles` : les indices des
+ *  triangles du second contre lesquels le premier se mesure. */
 export interface PaireHorsDeZone {
   readonly membre: Mesh;
   readonly zone: string;
   readonly vetement: Mesh;
+  readonly triangles: ArrayLike<number>;
 }
 
 export interface MembreDUnEchantillon {
@@ -61,15 +68,20 @@ export function zonesVoisines(corps: readonly Mesh[], zoneDe: (m: Mesh) => strin
   return voisines;
 }
 
-/** Les paires de `membres` et de `vetements` de zones ni égales ni voisines (`voisines`) ; un mesh sans zone n'en est pas. */
-export function pairesHorsDeZone(membres: readonly Mesh[], vetements: readonly Mesh[], zoneDe: (m: Mesh) => string | undefined, voisines: ReadonlySet<string>): PaireHorsDeZone[] {
+/** Les paires de `membres` et de `vetements` (des meshes d'élément, ou du corps pour ses peaux) de zones ni égales ni
+ *  voisines (`voisines`) ; un mesh sans zone n'en est pas. `triangles` : par vêtement, ceux d'une paire. */
+export function pairesHorsDeZone(
+  membres: readonly Mesh[], vetements: readonly Mesh[], zoneDe: (m: Mesh) => string | undefined, voisines: ReadonlySet<string>,
+  triangles: (vetement: Mesh) => ArrayLike<number>,
+): PaireHorsDeZone[] {
+  const zones = vetements.flatMap((vetement) => {
+    const autre = zoneDe(vetement);
+    return autre === undefined ? [] : [{ vetement, autre, triangles: triangles(vetement) }];
+  });
   return membres.flatMap((membre) => {
     const zone = zoneDe(membre);
     if (zone === undefined) return [];
-    return vetements.flatMap((vetement) => {
-      const autre = zoneDe(vetement);
-      return autre === undefined || autre === zone || voisines.has(`${zone}|${autre}`) ? [] : [{ membre, zone, vetement }];
-    });
+    return zones.flatMap(({ vetement, autre, triangles: t }) => (autre === zone || voisines.has(`${zone}|${autre}`) ? [] : [{ membre, zone, vetement, triangles: t }]));
   });
 }
 
@@ -85,8 +97,9 @@ const dans = (b: readonly number[], x: number, y: number, z: number, marge: numb
 const croise = (a: readonly number[], b: readonly number[], marge: number): boolean =>
   [0, 1, 2].every((k) => a[k] <= b[3 + k] + marge && b[k] <= a[3 + k] + marge);
 
-/** Chaque (zone, vêtement) des paires dont la zone passe à travers le vêtement dans l'échantillon `e`. */
-export function mesurerMembresDansUnVetement(paires: readonly PaireHorsDeZone[], e: Echantillon): MembreDUnEchantillon[] {
+/** Chaque (zone, vêtement) de `paires` dont la zone passe à travers le vêtement dans l'échantillon `e` ; `peaux` : les
+ *  paires de chaque membre et des meshes du corps contre lesquels il pince le tissu. */
+export function mesurerMembresDansUnVetement(paires: readonly PaireHorsDeZone[], peaux: readonly PaireHorsDeZone[], e: Echantillon): MembreDUnEchantillon[] {
   const boites = new Map<Mesh, number[]>();
   const boite = (m: Mesh): number[] => {
     const connue = boites.get(m);
@@ -95,46 +108,73 @@ export function mesurerMembresDansUnVetement(paires: readonly PaireHorsDeZone[],
     boites.set(m, nouvelle);
     return nouvelle;
   };
-  const normales = new Map<Mesh, Float32Array>();
-  const parZone = new Map<string, { zone: string; vetement: Mesh; derriere: number; devant: number; pire: number }>();
-  for (const { membre, zone, vetement } of paires) {
-    const bm = boite(membre), bv = boite(vetement);
-    if (!croise(bm, bv, PORTEE_DE_COUVERTURE_M)) continue;
-    const pv = positionsDe(e, vetement), pm = positionsDe(e, membre);
-    const tous = indicesDe(vetement, pv.length / 3), proches: number[] = [];
+  /** La couverture des triangles `tous` de `surface` à portée du membre de boîte `bm`, `null` sans eux. */
+  const couvertureProche = (bm: readonly number[], surface: Mesh, tous: ArrayLike<number>): Couverture | null => {
+    if (!croise(bm, boite(surface), PORTEE_DE_COUVERTURE_M)) return null;
+    const ps = positionsDe(e, surface), proches: number[] = [];
     for (let t = 0; t + 2 < tous.length; t += 3) {
       const triangle = [tous[t], tous[t + 1], tous[t + 2]];
-      if (croise(bm, boiteDe(pv, triangle), PORTEE_DE_COUVERTURE_M)) proches.push(...triangle);
+      if (croise(bm, boiteDe(ps, triangle), PORTEE_DE_COUVERTURE_M)) proches.push(...triangle);
     }
-    if (!proches.length) continue;
-    const surface = couvertureDe(pv, proches);
+    return proches.length ? couvertureDe(ps, proches) : null;
+  };
+  /** L'écart signé du point à son triangle couvrant le plus proche de `couverture`, `Infinity` sans lui. */
+  const ecartA = (couverture: Couverture, pm: Float32Array, nm: Float32Array, s: number): number => {
+    let proche = Infinity;
+    visiterLaCouverture(pm[s * 3], pm[s * 3 + 1], pm[s * 3 + 2], nm[s * 3], nm[s * 3 + 1], nm[s * 3 + 2], couverture, (ecart) => { if (Math.abs(ecart) < Math.abs(proche)) proche = ecart; });
+    return proche;
+  };
+  const normales = new Map<Mesh, Float32Array>();
+  const peauxDe = new Map<Mesh, Couverture[]>();
+  const parZone = new Map<string, { zone: string; vetement: Mesh; derriere: number; devant: number; pire: number }>();
+  for (const { membre, zone, vetement, triangles } of paires) {
+    const bm = boite(membre);
+    const surface = couvertureProche(bm, vetement, triangles);
+    if (!surface) continue;
+    const pm = positionsDe(e, membre);
     const nm = normales.get(membre) ?? normalesDe(membre, pm);
     normales.set(membre, nm);
     const k = `${zone}\u0000${vetement.uuid}`;
     const cote = parZone.get(k) ?? { zone, vetement, derriere: 0, devant: 0, pire: 0 };
     parZone.set(k, cote);
+    const bv = boite(vetement);
     for (let s = 0; s < pm.length / 3; s++) {
       if (!dans(bv, pm[s * 3], pm[s * 3 + 1], pm[s * 3 + 2], PORTEE_DE_COUVERTURE_M)) continue;
-      let proche = Infinity;
-      visiterLaCouverture(pm[s * 3], pm[s * 3 + 1], pm[s * 3 + 2], nm[s * 3], nm[s * 3 + 1], nm[s * 3 + 2], surface, (ecart) => { if (Math.abs(ecart) < Math.abs(proche)) proche = ecart; });
+      const proche = ecartA(surface, pm, nm, s);
       if (proche === Infinity) continue;
-      if (proche > ECART_DE_SUIVI_M) { cote.derriere++; cote.pire = Math.max(cote.pire, proche); }
       if (proche < -ECART_DE_SUIVI_M) cote.devant++;
+      if (proche <= ECART_DE_SUIVI_M) continue;
+      let sousLui = peauxDe.get(membre);
+      if (!sousLui) {
+        sousLui = peaux.flatMap((p) => (p.membre === membre ? [couvertureProche(bm, p.vetement, p.triangles)] : [])).filter((c) => c !== null);
+        peauxDe.set(membre, sousLui);
+      }
+      if (sousLui.some((peau) => { const aLaPeau = ecartA(peau, pm, nm, s); return aLaPeau !== Infinity && proche - aLaPeau <= PORTEE_DE_COUVERTURE_M; })) continue;
+      cote.derriere++;
+      cote.pire = Math.max(cote.pire, proche);
     }
   }
   return [...parZone.values()].flatMap(({ zone, vetement, derriere, devant, pire }) => (derriere && devant ? [{ zone, vetement, clip: e.clip, t: e.t, sommets: derriere, pire }] : []));
 }
 
-/** Un écart par (zone, vêtement, clip), à l'instant de son plus grand écart signé. */
-export function gardeMembreDansUnVetement(mesures: readonly MembreDUnEchantillon[], libelle: LibelleDeMesh): Ecart[] {
+/** Un écart par (zone, vêtement, clip), à l'instant de son plus grand écart signé. `plafonds` : par clip échantillonné,
+ *  le nombre de ces écarts que la tenue admet, 0 sans entrée. */
+export function gardeMembreDansUnVetement(mesures: readonly MembreDUnEchantillon[], libelle: LibelleDeMesh, plafonds: Readonly<Record<string, number>> = {}): Ecart[] {
   const pires = new Map<string, MembreDUnEchantillon>();
   for (const m of mesures) {
     const k = `${m.zone}|${libelle(m.vetement)}|${m.clip}`;
     const avant = pires.get(k);
     if (!avant || m.pire > avant.pire) pires.set(k, m);
   }
-  return [...pires.values()].map((m): Ecart => ({
-    garde: GARDE, code: 'membre-dans-un-vetement', mesh: libelle(m.vetement), clip: m.clip, t: m.t, valeur: m.pire, seuil: ECART_DE_SUIVI_M,
-    detail: `${m.sommets} sommet(s) du corps de zone ${m.zone} derrière le vêtement qu'elle traverse : plus grand écart signé, en m`,
-  }));
+  const parClip = new Map<string, MembreDUnEchantillon[]>();
+  for (const m of pires.values()) parClip.set(m.clip, [...(parClip.get(m.clip) ?? []), m]);
+  return [...new Set([...parClip.keys(), ...Object.keys(plafonds)])].flatMap((clip): Ecart[] => {
+    const [traverses, plafond] = [parClip.get(clip) ?? [], plafonds[clip] ?? 0];
+    if (traverses.length === plafond) return [];
+    if (traverses.length < plafond) return [{ garde: GARDE, code: 'plafond-a-baisser', clip, valeur: traverses.length, seuil: plafond, detail: 'vêtement(s) traversé(s) par une zone du corps, sous le plafond admis du clip : le baisser à cette mesure' }];
+    return traverses.map((m) => ({
+      garde: GARDE, code: 'membre-dans-un-vetement', mesh: libelle(m.vetement), clip: m.clip, t: m.t, valeur: m.pire, seuil: ECART_DE_SUIVI_M,
+      detail: `${m.sommets} sommet(s) du corps de zone ${m.zone} derrière le vêtement qu'elle traverse : plus grand écart signé, en m`,
+    }));
+  });
 }

@@ -1,14 +1,14 @@
 """Géométrie de `humanoide--vetement--cape` (`element/tissu.py`) : une nappe pendue au col, dans le dos.
 
-Sous `HAUT`, colonnes en azimut autour d'un axe vertical, rangs horizontaux jusqu'à l'ourlet : chaque colonne suit, dans
-son demi-plan vertical, l'enveloppe concave du profil de la robe et du corps (le rayon de l'enveloppe convexe de chaque
-coupe horizontale, au jeu au-delà) : d'un appui à l'autre en ligne droite, sans épouser les creux du dos ; l'ourlet tombe en
-lambeaux. Au-dessus, l'empiècement monte sur les épaules jusqu'au col, sous l'écharpe de la capuche : le col, qui tourne
+Sous `HAUT`, colonnes en azimut autour de l'axe du filet `cape` de la base, rangs horizontaux jusqu'à l'ourlet : chaque
+colonne suit, dans son demi-plan vertical, le filet au repos, jamais en deçà de l'enveloppe concave du profil de la robe
+et du corps (le rayon de l'enveloppe convexe de chaque coupe horizontale, d'un appui à l'autre en ligne droite, sans
+épouser les creux du dos), au jeu au-delà ; l'ourlet tombe en lambeaux. Au-dessus, l'empiècement monte sur les épaules jusqu'au col, sous l'écharpe de la capuche : le col, qui tourne
 devant les épaules, suit la couture du cou et du torse, au jeu de la plus extérieure des surfaces (robe, bandoulière, torse,
 cou) ; entre lui et `HAUT`, chaque point, sur la droite du col au point de `HAUT` de sa colonne, est visé du dehors vers un
-axe transversal sous les épaules et s'arrête au jeu. Double nappe, poids et clés empruntés au plus proche des éléments
-publiés sous elle (robe, bandoulière), les poids hors des manches, les clés de l'empiècement aussi au cou. Toute cote
-vient de `donnees.py`.
+axe transversal sous les épaules et s'arrête au jeu. Double nappe ; poids du filet (`tissu.Filet`) sous sa charnière,
+empruntés au-dessus au plus proche des éléments publiés sous elle (robe, bandoulière), hors des manches ; clés empruntées
+aux mêmes, celles de l'empiècement aussi au cou. Toute cote vient de `donnees.py`.
 """
 import math
 
@@ -16,7 +16,7 @@ import numpy as np
 from mathutils import Vector
 from mathutils.bvhtree import BVHTree
 
-from tissu import Maillage, emprunter, enveloppe_convexe, lambeaux, lisser, porteur_de, rayon_a_l_enveloppe, voisinage
+from tissu import Maillage, direction, emprunter, enveloppe_convexe, lambeaux, lisser, porteur_de, rayon_a_l_enveloppe, voisinage
 
 
 def joindre_les_surfaces(morceaux):
@@ -50,22 +50,19 @@ def majorant(z, r):
     return np.array(h)
 
 
-def direction(phi):
-    a = math.radians(phi)
-    return np.array([math.sin(a), math.cos(a)])
-
-
 def azimuts(D, z):
-    """Les azimuts des colonnes à la hauteur `z`, la demi-ouverture menée de `HAUT` à l'ourlet."""
+    """Les azimuts (`tissu.direction`) des colonnes à la hauteur `z`, la demi-ouverture de part et d'autre du dos menée
+    de `HAUT` à l'ourlet."""
     s = min(1.0, max(0.0, (D['HAUT'] - z) / (D['HAUT'] - D['OURLET'])))
     haut, bas = D['DEMI_OUVERTURE']
-    return np.linspace(-1.0, 1.0, D['COLONNES'] + 1) * (haut + s * (bas - haut))
+    return 180.0 - np.linspace(-1.0, 1.0, D['COLONNES'] + 1) * (haut + s * (bas - haut))
 
 
-def profils(D, P, A, O):
-    """Par colonne, le rayon de la nappe extérieure à chaque rang : l'enveloppe concave, de haut en bas, du rayon de
-    l'enveloppe convexe de chaque coupe au jeu et à l'épaisseur au-delà, l'ourlet évasé ; lissé entre colonnes voisines
+def profils(D, P, A, filet):
+    """Par colonne, le rayon de la nappe extérieure à chaque rang, au jeu et à l'épaisseur au-delà du filet `filet` et de
+    l'enveloppe concave, de haut en bas, du rayon de l'enveloppe convexe de chaque coupe, lissée entre colonnes voisines
     sans passer sous elle ; les plis s'y ajoutent."""
+    O = filet.axe
     zs = np.arange(D['HAUT'], D['OURLET'] - 1e-9, -D['PAS_DU_PROFIL'])
     if zs[-1] > D['OURLET'] + 1e-9:
         zs = np.append(zs, D['OURLET'])
@@ -78,8 +75,6 @@ def profils(D, P, A, O):
             raise ValueError(f'cape : coupe vide à z = {z:.3f}')
         H = enveloppe_convexe(Q)
         r[k] = [rayon_a_l_enveloppe(H, O, direction(phi)) for phi in azimuts(D, z)]
-    r += D['JEU'] + D['EPAISSEUR']
-    r[-1] += D['EVASEMENT']
     rangs = np.linspace(D['HAUT'], D['OURLET'], D['RANGS'] + 1)
     plancher = np.array([[np.interp(z, *majorant(zs, r[:, j]).T) for j in range(r.shape[1])] for z in rangs])
     lisse = plancher.copy()
@@ -88,7 +83,8 @@ def profils(D, P, A, O):
     u = np.linspace(0.0, 1.0, D['COLONNES'] + 1)
     s = (D['HAUT'] - rangs) / (D['HAUT'] - D['OURLET'])
     plis = D['PLIS']['ampleur'] * np.outer(s, 0.5 * (1.0 - np.cos(2 * math.pi * D['PLIS']['nombre'] * u)))
-    return rangs, lisse + plis
+    sur_le_filet = np.array([[filet.point(z, theta)[0] for theta in azimuts(D, z)] for z in rangs])
+    return rangs, np.maximum(lisse, sur_le_filet) + D['JEU'] + D['EPAISSEUR'] + plis
 
 
 def sans_les_bras(D, P, T):
@@ -159,8 +155,9 @@ def construire(D, materiaux, b):
     b.exiger(sorted(set(zones) | set(D['ZONES_DU_COL'])))
     publies = [b.matieres_publiees(id_, D['MATIERES'][nom]) for nom, id_ in D['CONTOURNE'].items()]
     P, T, W = joindre_les_surfaces(publies + [b.corps(z) for z in D['ZONES_DU_CORPS']])
-    O = np.array(b.tete(D['AXE']['os']))[:2]
-    rangs, r = profils(D, P, aretes(T), O)
+    filet = b.filet('cape')
+    O = filet.axe
+    rangs, r = profils(D, P, aretes(T), filet)
     descente = lambeaux(D['LAMBEAUX'], D['COLONNES'] + 1)
     points = [[np.array([*(O + r[i, j] * direction(phi)), z - (descente[j] if i == len(rangs) - 1 else 0.0)])
                for j, phi in enumerate(azimuts(D, z))] for i, z in enumerate(rangs)]
@@ -180,6 +177,9 @@ def construire(D, materiaux, b):
         Wx[:, b.indice_os[o]] += Wx[:, b.indice_os[a]]
         Wx[:, b.indice_os[a]] = 0.0
     Wx = lisser(Wx, voisinage(orientes, len(X)), D['LISSAGE_POIDS'])
+    for i, p in enumerate(X):
+        part = filet.part(p[2])
+        Wx[i] = (1 - part) * Wx[i] + part * filet.poids(p[2], filet.azimut(p))
     piece = b.nappe('cape', X, normales, Wx, orientes, materiaux['cape'], D['EPAISSEUR'])
     publies = {D['CONTOURNE'][nom]: zs for nom, zs in D['ZONES_PUBLIEES'].items()}
     b.transferer(piece, zones, masques=[([True] * len(piece.data.vertices), [], publies),

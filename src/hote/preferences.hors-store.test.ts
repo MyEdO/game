@@ -70,6 +70,15 @@ describe('le réglage d’une préférence', () => {
     expect(s.contenu.size).toBe(0);
   });
 
+  it('une valeur que la forme de l’entrée refuse (hors bornes, hors options, d’un autre type) : rien n’est écrit', () => {
+    const s = stockageEnMemoire();
+    for (const [id, valeur] of [['volume-musique', 2], ['volume-musique', '0.5'], ['combat-cadence', 'eclair'], ['des-fixes', 1], ['des-fixes', undefined]] as const) {
+      expect(reglerUnePreference(s, id, valeur), `${id} = ${String(valeur)}`).toBeUndefined();
+    }
+    expect([volumeDuCanal('musique'), cadence(), desFixes()]).toEqual([VOLUME_DEFAUT, CADENCE_DEFAULT, DES_FIXES_DEFAULT]);
+    expect(s.contenu.size).toBe(0);
+  });
+
   it('un stockage qui lève : la valeur reste effective pour la session', () => {
     reglerUnePreference(stockageQuiLeve, 'des-fixes', true);
     expect(desFixes()).toBe(true);

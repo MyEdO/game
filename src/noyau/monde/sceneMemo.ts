@@ -22,25 +22,35 @@ export function memoByRef<K extends object, V>(build: (key: K) => V): (key: K) =
 }
 
 /**
- * Mémoïsation par identité de référence ET par identité d'un jeu de DÉPENDANCES — bâtie sur
- * `memoByRef` (le slot par élément, ci-dessus), pour les caches qui ne dépendent pas que de la
+ * Mémoïsation d'UNE variante par identité d'un jeu de DÉPENDANCES, comparées par identité (`===`),
+ * position par position, longueur comprise — AUCUNE invalidation manuelle, même raison que
+ * `memoByRef`. Un jeu différent rebâtit la valeur ; le constructeur reçoit la variante précédente
+ * (`null` la première fois), d'où il peut reprendre. Les dépendances ne sont pas gelées : elles
+ * peuvent porter des instances (objets three, `GameStage3D.tsx`).
+ */
+export function memoByDeps<V>(): (
+  deps: readonly unknown[],
+  build: (previous: { deps: readonly unknown[]; value: V } | null) => V,
+) => V {
+  let retenue: { deps: readonly unknown[]; value: V } | null = null;
+  return (deps, build) => {
+    if (retenue !== null && retenue.deps.length === deps.length && retenue.deps.every((d, i) => d === deps[i])) {
+      return retenue.value;
+    }
+    retenue = { deps, value: build(retenue) };
+    return retenue.value;
+  };
+}
+
+/**
+ * Mémoïsation par identité de référence ET par identité d'un jeu de DÉPENDANCES — un `memoByDeps` par
+ * élément, tenu par `memoByRef`, pour les caches qui ne dépendent pas que de la
  * clef mais aussi d'un contexte extérieur (dimensions d'écran, options de détail, cran de LOD…).
  * UNE SEULE variante est retenue par élément (la dernière) : un changement de dépendance (rotation,
  * zoom…) touche généralement TOUS les éléments mémoïsés à la fois, donc en garder plusieurs par
- * élément n'éviterait aucun recalcul et ferait seulement enfler la mémoire. Les dépendances sont
- * comparées par identité (`===`), position par position — AUCUNE invalidation manuelle, même
- * raison que `memoByRef`.
+ * élément n'éviterait aucun recalcul et ferait seulement enfler la mémoire.
  */
 export function memoByRefDeps<K extends object, V>(): (key: K, deps: readonly unknown[], build: () => V) => V {
-  const slotOf = memoByRef((_key: K) => ({ deps: null as readonly unknown[] | null, value: undefined as V | undefined }));
-  return (key, deps, build) => {
-    const slot = slotOf(key);
-    if (slot.deps !== null && slot.deps.length === deps.length && slot.deps.every((d, i) => d === deps[i])) {
-      return slot.value as V;
-    }
-    const value = build();
-    slot.value = value;
-    slot.deps = deps;
-    return value;
-  };
+  const memoDe = memoByRef((_key: K) => memoByDeps<V>());
+  return (key, deps, build) => memoDe(key)(deps, build);
 }

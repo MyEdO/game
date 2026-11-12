@@ -3,7 +3,7 @@ import { tableTotale } from '../lib/tableTotale';
 import { t } from '../i18n';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { applyLeafOps, applyEffectsLoot, ouvrirChute, runFlow, checkTriggers, confierLaSuite, jouerFlowEntier, pushCombatStep, OPS_DIFFEREES, porterOpsCtx, ctxRepris } from './combatEffects';
+import { applyLeafOps, applyEffectsLoot, ouvrirChute, runFlow, checkTriggers, confierLaSuite, jouerFlowEntier, pushCombatStep, revealPurpose, OPS_DIFFEREES, porterOpsCtx, ctxRepris } from './combatEffects';
 import { runPureFlowLines } from './combat/flowEval';
 import { openSequence } from './rollSeam';
 import { buildAuthorPerilSteps } from './authorPerils';
@@ -987,14 +987,14 @@ describe('(xii) ROUTE RÉELLE : la chute d’un Test RATÉ passe par la porte, d
 
   /** Monte la bande d'Athlétisme du `crewHit` — le geste EXACT des deux routes du jeu :
    *  combat `combatFlow.applyHullCriticalToTarget` (`pushCombatStep`) et voyage
-   *  `seaVoyageFlow.applyVesselCritical:2334` (`pushStep(…, 'travelDay')`). */
+   *  `seaVoyageFlow.applyVesselCritical` (`pushStep(…, revealPurpose('travelDay', false))`). */
   const ouvrirLaBande = (victimes: Combatant[], purpose: 'combat' | 'travelDay'): void => {
     const { test, label } = noeudCrewHit();
     const bande = (index: number) => bandeTriggeredTest(
       banc.getState, banc.setState, victimes, test, `crew-hit-${index}`, { idNeuf: idsDeTest, rng: desDuTest, label, hull: coqueMoyenne() },
     );
     if (purpose === 'combat') pushCombatStep(banc.setState, bande);
-    else pushStep(banc.setState, bande, 'travelDay');
+    else pushStep(banc.setState, bande, revealPurpose('travelDay', false));
   };
 
   /**
