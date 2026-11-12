@@ -170,7 +170,7 @@ describe('InspectPanel — le geste d’inspection ouvre la fiche (geste réel, 
     const vide = emptyScene('scene-test', 8, 8);
     vide.id = 'sc-pose';
     vide.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 1, y: 1 } });
-    const posee = placeEntity(vide, { mode: 'entity', kind: 'personnage', ref: 'humain' }, { x: 5, y: 4 });
+    const posee = placeEntity(vide, { mode: 'entite', kind: 'personnage', ref: 'humain' }, { x: 5, y: 4 });
     const pose = addEnemyMember(posee.scene, '', 'humain', { x: 5, y: 4 });
     expect(pose.entityId, 'l’outil de combat enrôle le personnage posé').toBe(posee.id);
     let scene = pose.scene;
@@ -181,7 +181,7 @@ describe('InspectPanel — le geste d’inspection ouvre la fiche (geste réel, 
           setScene={(next) => { scene = next; act(() => rendre(next)); }}
           sel={{ type: 'entity', id: pose.entityId }} setSel={() => undefined}
           enemyCreatures={[{ id: 'humain', label: 'Humain' }]} openLogic={() => undefined} resizeScene={() => undefined}
-          narratif={narratif} tool={{ mode: 'select' }} armZoneTiles={() => undefined} zoneFocusKey={null}
+          narratif={narratif} tool={{ mode: 'selection' }} armZoneTiles={() => undefined} zoneFocusKey={null}
         />,
       );
       const racine = monter(<></>);

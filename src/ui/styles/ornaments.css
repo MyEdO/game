@@ -64,10 +64,10 @@
   pointer-events: none;
   color: var(--border);
 }
-.ornate-frame.ornate-gold {
+.ornate-frame.ornate-or {
   outline-color: color-mix(in srgb, var(--gold) 55%, transparent);
 }
-.ornate-frame.ornate-gold > .orn-corner {
+.ornate-frame.ornate-or > .orn-corner {
   color: var(--gold);
 }
 .orn-corner-tl { top: 2px; left: 2px; }

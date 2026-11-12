@@ -64,9 +64,9 @@ qu'affichage ne s'arrête pas et va au journal. Plus de « Bilan de l'étape » 
 | #3942 | le banc des étalons : planches, `?planche=<nom>`, `etalons.mjs`, rapport, règle `ecrans-godot.md` | fusionnée le 2026-11-11 |
 | #3976 | l'écran du lieu au fini, le pied des héros, le journal ; `Zone.formes`, `Dessin`, registre des fonds en donnée | fusionnée le 2026-11-12 |
 | #3987 | la description d'un lieu (`prose`), les quatre lieux de la Diligence décrits | fusionnée le 2026-11-12 |
-| #4001 | le voyage et la halte en scène peinte : paysage en couches, tête de scène, carte du trajet, frise, journal dans la scène, jets sur les cartes des héros | ouverte, branche `chantier/3935-voyage`. Sortie deux fois de la file de fusion le 2026-11-12 pour un conflit avec `main` dans `src/hote/ecran.ts` ; `main` y est refusionné deux fois, la recette du voyage corrigée, ses trois planches réenregistrées et leurs étalons reposés. Ressortie une troisième fois, rouge à l'étape « Godot, scripts et recettes autonomes » : le bouton « Quitter la partie » venu de #4010 vivait dans le panneau du journal, que la scène du voyage cache ; la scène le range maintenant, étalons reposés. Ressortie encore deux fois : mise en file avant la fin de la CI de branche (`INVALID_MERGE_COMMIT`), puis en conflit avec #4021 (#4007), placée devant elle dans la file et qui corrige le même parcours `voyage` de `hotes/godot/recette.mjs`. Le fichier est rendu à la version de `main` : le correctif de la recette est porté par #4021, et jusqu'à sa fusion le parcours `voyage` s'arrête à l'écran du lieu, comme sur `main` depuis #3987. `main` est refusionné une quatrième et une cinquième fois (son de l'hôte Godot, lexique), les trois planches réenregistrées (seuls le `canal` des pistes et la clé du monde changent). Vérifier qu'elle a fusionné : `main` avance vite sur ces fichiers. |
+| #4001 | le voyage et la halte en scène peinte : paysage en couches, tête de scène, carte du trajet, frise, journal dans la scène, jets sur les cartes des héros | fusionnée dans `main` le 2026-11-12 (branche `chantier/3935-voyage`), après cinq sorties de file. Sortie deux fois de la file de fusion le 2026-11-12 pour un conflit avec `main` dans `src/hote/ecran.ts` ; `main` y est refusionné deux fois, la recette du voyage corrigée, ses trois planches réenregistrées et leurs étalons reposés. Ressortie une troisième fois, rouge à l'étape « Godot, scripts et recettes autonomes » : le bouton « Quitter la partie » venu de #4010 vivait dans le panneau du journal, que la scène du voyage cache ; la scène le range maintenant, étalons reposés. Ressortie encore deux fois : mise en file avant la fin de la CI de branche (`INVALID_MERGE_COMMIT`), puis en conflit avec #4021 (#4007), placée devant elle dans la file et qui corrige le même parcours `voyage` de `hotes/godot/recette.mjs`. Le fichier est rendu à la version de `main` : le correctif de la recette est porté par #4021, et jusqu'à sa fusion le parcours `voyage` s'arrête à l'écran du lieu, comme sur `main` depuis #3987. `main` est refusionné une quatrième et une cinquième fois (son de l'hôte Godot, lexique), les trois planches réenregistrées (seuls le `canal` des pistes et la clé du monde changent). |
 
-Cette branche (`chantier/3935-reprise`) part de la tête de #4001 et n'ajoute que ce dossier.
+Cette branche (`chantier/3935-reprise`) n'ajoute que ce dossier à `main`, où #4001 a fusionné.
 
 Avancement des lots du plan :
 
@@ -143,9 +143,8 @@ de champ d'événements (la mer recopie les siens au bilan du jour seulement).
 
 ## 5. Suite proposée, dans l'ordre
 
-1. Vérifier que #4001 a fusionné. Si elle est ressortie de la file : refusionner `main` (jamais de rebase), rejouer le
-   typecheck, les tests du pont de la route, du repos et du voyage, le banc sur les planches touchées et les parcours
-   `voyage` et `repos`, repousser, réactiver la fusion automatique.
+1. #4001 a fusionné : rien à reprendre. Quand #4021 aura fusionné, rejouer les parcours `voyage` et `repos` de
+   `hotes/godot/recette.mjs` sur un export de `main` : ils n'ont pas tourné jusqu'au bout depuis #3987.
 2. #4006 : re-mesure sur l'arbre courant, un juge sur le design, un codeur, les tests listés au design, PR sur
    `chantier/4006`.
 3. #4005 lot R1, puis le lot Godot : l'événement dans la scène du voyage avec ses choix, sa planche, son étalon.

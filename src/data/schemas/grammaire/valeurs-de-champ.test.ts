@@ -279,7 +279,7 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'dechirure|fracture|amputation',
   'declare|tirage',
   'deduite-du-set|geste-d-etat|grille|gouttiere-arche|selecteur-de-sets|coin-de-tour|bandeau-de-phase|interlude|pastille-etat|pastille-entite|frise|geste-secondaire',
-  'defense|attack|both',
+  'defense|attaque|lesDeux',
   'degage|brume|brouillard|puree-de-pois',
   'dominant|nord|sud|ouest|est',
   'douleur|mobilite|structurel|sensoriel|maladie|faim|magique|etat|ivresse|intrinseque',

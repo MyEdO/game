@@ -11,7 +11,7 @@ import type { Layers } from '../sceneEditLecture';
 
 const TOUT: Layers = { triggers: true, spawns: true, roofs: true, entries: true, rest: true, zones: true };
 const ctx = (architecture: ContexteDuPointeur['architecture']): ContexteDuPointeur => ({
-  tool: { mode: 'select' }, z: 0, brush: 1, encId: '', encRef: 'mutant', layers: TOUT, sel: null, terrainRect: false, architecture,
+  tool: { mode: 'selection' }, z: 0, brush: 1, encId: '', encRef: 'mutant', layers: TOUT, sel: null, terrainRect: false, architecture,
 });
 const au = (x: number, y: number, f: { x: number; y: number }): PointDeCarte => ({ case: { x, y }, f });
 
@@ -21,7 +21,7 @@ describe('pointeur — sélection en mode architecture', () => {
   it('un pan de façade sous le point se désigne, sans écrire la scène', () => {
     const c = corps();
     const f = addFacadeSection(c.scene, c.id, { x: 2, y: 2, side: 'N' })!;
-    const e = appuyer(f.scene, ctx({ z: 0, action: 'select', bodyId: c.id }), au(2, 2, { x: 2, y: 1.6 }));
+    const e = appuyer(f.scene, ctx({ z: 0, action: 'selection', bodyId: c.id }), au(2, 2, { x: 2, y: 1.6 }));
     expect(e).toEqual({ geste: null, sel: { type: 'facadeSection', bodyId: c.id, id: f.id }, architectureFinie: true });
   });
 

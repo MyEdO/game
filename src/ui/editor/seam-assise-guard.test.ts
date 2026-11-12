@@ -227,7 +227,7 @@ describe('INVARIANT #2 — un seul seam d’assise pour toute mutation d’entit
       'deleteSel — retire le corps': (s) => deleteSel(s, { type: 'entity', id: 'pnj-1' }),
       'removeEntity — retire le meuble': (s) => removeEntity(s, 'table-1'),
       'eraseAt — gomme le meuble': (s) => eraseAt(s, { x: 2, y: 2 }),
-      'placeEntity — pose un décor neuf sur l’abord de la place': (s) => placeEntity(s, { mode: 'entity', kind: 'prop', ref: 'tonneau' }, { x: 2, y: 1 }).scene,
+      'placeEntity — pose un décor neuf sur l’abord de la place': (s) => placeEntity(s, { mode: 'entite', kind: 'prop', ref: 'tonneau' }, { x: 2, y: 1 }).scene,
       'changePropRef — le nouveau type n’offre plus de place': (s) => changePropRef(s, 'table-1', 'tonneau'),
       // Cap CARDINAL : le seul qu'un décor VOLUMIQUE accepte (#1680 ligne 3). Le cas diagonal est
       // sous contrat juste après cette table — il n'a rien à faire ici, où la règle est « 0 erreur ».

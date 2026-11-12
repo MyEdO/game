@@ -27,7 +27,7 @@ const doc = document(
     masse: { label: 'Masse d’un mur plein', hint: 'Terrain de la MASSE d’un mur plein `cells` — le bloc dont le moteur dérive toutes les faces' },
     pont: { label: 'Pont de navire', hint: 'Tuile de base d’une scène de bord compilée sans terrain authoré (abordage)' },
   },
-  { codex: { keys: ['defautsDeCompilation'] }, edit: { object: 'single' } },
+  { codex: { keys: ['defautsDeCompilation'] }, edit: { object: 'unique' } },
   { exiges: ['maison'] },
 );
 

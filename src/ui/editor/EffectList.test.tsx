@@ -29,7 +29,7 @@ describe('terrain de bataille — prose et provenance', () => {
     const container = document.createElement('div');
     document.body.appendChild(container);
     const root = createRoot(container);
-    let dernier: Effect = { type: 'startMassBattle', battle: { allyMight: 50, enemyMight: 60, terrain: 'Texte copié.', source } };
+    let dernier: Effect = { type: 'startMassBattle', battle: { puissanceAlliee: 50, puissanceEnnemie: 60, terrain: 'Texte copié.', source } };
     function Controle() {
       const [effect, setEffect] = useState(dernier);
       return <EffectFields effect={effect} ctx={ctx} onChange={(next) => { dernier = next; setEffect(next); }} />;
@@ -45,7 +45,7 @@ describe('terrain de bataille — prose et provenance', () => {
       const zone = container.querySelector<HTMLTextAreaElement>('textarea[aria-label="Description du terrain"]');
       expect(zone?.classList.contains('prose-field')).toBe(true);
       await basculer('Adapté');
-      expect(bataille()).toMatchObject({ adapteDe: source, terrain: 'Texte copié.', allyMight: 50, enemyMight: 60 });
+      expect(bataille()).toMatchObject({ adapteDe: source, terrain: 'Texte copié.', puissanceAlliee: 50, puissanceEnnemie: 60 });
       expect(bataille().source).toBeUndefined();
       await act(async () => {
         Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(zone, 'Premier paragraphe.\n\nDeuxième paragraphe.');
@@ -69,7 +69,7 @@ describe('terrain de bataille — prose et provenance', () => {
     const container = document.createElement('div');
     document.body.appendChild(container);
     const root = createRoot(container);
-    const effect: Effect = { type: 'startMassBattle', battle: { allyMight: 50, enemyMight: 50, terrain: 'Maison.' } };
+    const effect: Effect = { type: 'startMassBattle', battle: { puissanceAlliee: 50, puissanceEnnemie: 50, terrain: 'Maison.' } };
     try {
       await act(async () => { root.render(<EffectFields key="a" effect={effect} ctx={ctx} onChange={() => {}} />); });
       const copie = container.querySelector<HTMLButtonElement>('button[aria-label="Copie — provenance du terrain"]');

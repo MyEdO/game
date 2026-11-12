@@ -2054,7 +2054,7 @@ export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'at
         const battle = get().battle;
         const cible = pa ? inBattleId(battle, pa.targetId) : undefined;
         const attaquant = pa ? inBattleId(battle, pa.attackerId) : undefined;
-        if (!battle || !pa || !pa.forced || !pa.result || !cible || !attaquant) return;
+        if (!battle || !pa || !pa.forcee || !pa.result || !cible || !attaquant) return;
         const victime = victimeDuCoup(battle, cible, pa);
         if (!issueAuJet(victime, coupAApplique(pa.result, pa.grapple, victime), attackWeaponOf(battle, attaquant, cible, pa), attaquant).compte.relance) return;
         set({ pendingAttack: { ...pa, result: { ...pa.result, critLocation: loc } } });
@@ -2538,7 +2538,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       else set({ pendingCascade: null }); // rien d'empilé : la cascade-hôte du Désengagement se ferme
     },
     // Cycle Chance/+1 DR/Pacte/Résilience (spec `auContact`) : foe (atk) figé, seul le jet du mover se (re)joue.
-    // « Appliquer » : le Test opposé EST l'Action. Le mover (héros) gagne → IL choisit (phase 'choice') ;
+    // « Appliquer » : le Test opposé EST l'Action. Le mover (héros) gagne → IL choisit (phase 'choix') ;
     // le foe gagne → l'IA tranche par heuristique (arme la plus courte = au contact) ; égalité → statu quo.
     auContact: () => {
       const { battle, pendingAuContact: pd } = get();
@@ -2546,7 +2546,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       const mover = inBattleId(battle, pd.moverId);
       const foe = inBattleId(battle, pd.foeId);
       if (!mover || !foe) return set({ pendingAuContact: null });
-      if (pd.result === 'reussite') return set({ pendingAuContact: { ...pd, phase: 'choice' } }); // le héros tranche
+      if (pd.result === 'reussite') return set({ pendingAuContact: { ...pd, phase: 'choix' } }); // le héros tranche
       if (pd.result === 'egalite') return applyAuContact(get, set, mover, foe, null); // statu quo, Action consommée
       // Le foe (IA) l'emporte → au contact si SON arme est plus COURTE (il neutralise l'allonge adverse).
       // Sans arme de mêlée, il frappe à Mains nues (« Personnelle », LDB 62 l.28/l.158) ; deux longueurs

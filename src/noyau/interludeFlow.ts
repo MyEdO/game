@@ -384,7 +384,7 @@ export interface PendingActivityFields extends PendingBase {
   // ── Test OPPOSÉ de « Tenez votre position » (l.161) : l'opposition ennemie vit dans `ActivityOpposition` ──
   /** DR net de l'ennemi au Test opposé de tenue (positif = l'ennemi l'emporte). */
   enemySL?: number;
-  forced?: boolean;
+  forcee?: boolean;
   /** Coût en sous de cuivre engagé par CETTE Activité (Réputation, LDB 23 l.228-234 : « le maximum de
    *  vos revenus standards », dépensé MÊME sur échec — calculé à l'ouverture, débité à la résolution). */
   costBrass?: number;
@@ -923,7 +923,7 @@ function entrainementStart(get: Get, set: Set, heroId: string, cle: string): voi
     const entraine = structuredClone(lu);
     const fortuneBefore = fortuneMax(entraine);
     const resolveBefore = resolveMax(entraine);
-    if (kind === 'characteristic') r = engineBuyCharAdvance(entraine, id as CharKey, false);
+    if (kind === 'caracteristique') r = engineBuyCharAdvance(entraine, id as CharKey, false);
     else {
       if (!entraine.skills.some((k) => k.id === id && memeSpecialisation(k.spec, spec))) {
         entraine.skills.push({ id: id, spec, characteristic: skillCharacteristicById(id), advances: 0 });

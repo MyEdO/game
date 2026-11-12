@@ -88,7 +88,7 @@ function mountPalette(scene: Scene, stairRun: Pt[], onStairApply = () => {}) {
         root.render(
           <Palette
             scene={scene}
-            tool={{ mode: 'stair', toZ: 1 }}
+            tool={{ mode: 'escalier', toZ: 1 }}
             setTool={() => {}}
             brush={1}
             setBrush={() => {}}
@@ -106,7 +106,7 @@ function mountPalette(scene: Scene, stairRun: Pt[], onStairApply = () => {}) {
             architectureMode={false}
             architectureBodyId={null}
             architectureStoreyId={null}
-            architectureAction="select"
+            architectureAction="selection"
             onArchitectureMode={() => {}}
             onArchitectureBody={() => {}}
             onArchitectureStorey={() => {}}
