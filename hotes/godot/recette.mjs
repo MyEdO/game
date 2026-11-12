@@ -61,7 +61,8 @@
 //   l'Entrée.
 // - `voyage` (`--scenario voyage`) : l'entrée de la scène poursuivie, « Carte du monde » ouvre la carte, chaque trajet
 //   et ses modes, le plan de ses lieux ; « À pied » vers Steinbruck part, les journées et la halte passent jusqu'au
-//   récit de l'arrivée, puis l'écran du lieu, ses services et ses trajets.
+//   récit de l'arrivée, puis l'écran du lieu, ses services et ses trajets ; la carte du forgeron amenée à la molette dans
+//   la liste des services, son échoppe ouverte, un article mis au panier.
 // - `repit` (`--scenario bataille-de-masse`) : les dés d'Événement tombent, l'entre-deux-aventures montre un onglet par
 //   héros, ses Activités restantes et la liste de l'Activité à composer, chacune fermée par sa raison ; « Revenus »
 //   choisi dans la liste au clavier, « Entreprendre » ouvre son jet, lancé à l'Entrée puis appliqué : l'onglet du héros
@@ -254,20 +255,22 @@ const actif = (v) => v.projection.combat?.actif
 const zone = (v, z) => v.zones[z]
 /** Le bouton de la carte d'un héros du groupe (`groupe.heros`) qui ouvre sa fiche. */
 const ficheDuHeros = (carte) => carte.elements.find((e) => e.type === 'bouton' && e.id.startsWith('fiche/'))
-/** Le bouton `quoi` d'une carte du groupe amené à l'écran : la rangée des cartes, qui défile de côté, tournée d'un cran de
- *  molette sur la première fiche qu'elle montre, l'écran republié, jusqu'à ce qu'il paraisse. */
-async function amenerAuGroupe(quoi) {
+/** Le bouton `quoi` d'une liste qui défile amené à l'écran : la liste tournée d'un cran de molette sur le premier de
+ *  ses boutons `ancres` qu'elle montre, l'écran republié, jusqu'à ce que `quoi` paraisse. */
+async function amenerALEcran(quoi, ancres) {
   for (let n = 0; n < CRANS; n++) {
     const { boutons } = await ecran()
     if (trouver(boutons, quoi)) return
-    const carte = boutons.find((b) => b.element?.startsWith('bouton/fiche/'))
-    assert.ok(carte, `une carte du groupe se montre ; boutons : ${boutons.map((x) => x.element ?? x.texte).join(' | ')}`)
+    const ancre = ancres.map((a) => trouver(boutons, a)).find(Boolean)
+    assert.ok(ancre, `un bouton de la liste de ${JSON.stringify(quoi)} se montre ; boutons : ${boutons.map((x) => x.element ?? x.texte).join(' | ')}`)
     await marquer()
-    await molette(session, { surface: 'canvas', x: carte.x, y: carte.y }, CRAN_DE_MOLETTE)
+    await molette(session, { surface: 'canvas', x: ancre.x, y: ancre.y }, CRAN_DE_MOLETTE)
     await nouvelEcran()
   }
-  throw new Error(`${JSON.stringify(quoi)} hors de la rangée du groupe après ${CRANS} crans`)
+  throw new Error(`${JSON.stringify(quoi)} hors de sa liste après ${CRANS} crans`)
 }
+/** Le bouton de chaque carte de service du corps de la fenêtre. */
+const boutonsDesServices = (v) => zone(v, 'fenetre.corps').filter((e) => e.id.startsWith('service/')).map((s) => bouton(s.elements.find((e) => e.type === 'bouton')))
 /** L'élément d'id `id` de la zone `z`. */
 const element = (v, z, id) => zone(v, z).find((e) => e.id === id)
 /** L'offre d'id `id` de la barre, rangée sous la part de l'économie du tour qu'elle prend. */
@@ -1086,7 +1089,9 @@ async function parcoursVoyage() {
   v = await vue()
   noter(`lieu : ${zone(v, 'fenetre.titre')[0].texte} ; ${zone(v, 'fenetre.corps').map((e) => e.nom ?? e.texte).join(' | ')}`)
   await capturer('3534-l2-lieu')
-  await cliquerBouton(bouton(zone(v, 'fenetre.corps').find((e) => e.id === 'service/forgeron').elements.find((e) => e.type === 'bouton')))
+  const forge = bouton(element(v, 'fenetre.corps', 'service/forgeron').elements.find((e) => e.type === 'bouton'))
+  await amenerALEcran(forge, boutonsDesServices(v))
+  await cliquerBouton(forge)
   await attendreLaVue("v.projection.fenetre?.cle === 'marchand'")
   v = await vue()
   noter(`échoppe : ${zone(v, 'fenetre.corps').map((e) => `${e.id} (${(e.elements ?? []).map((b) => b.libelle).join(', ')})`).join(' | ')}`)
@@ -1285,7 +1290,7 @@ async function parcoursInventaire() {
   let v = await fermerLesFenetres()
   const heros = zone(v, 'groupe.heros').find((c) => c.nom === 'Apothicaire')
   assert.ok(heros, 'Apothicaire a sa carte')
-  await amenerAuGroupe(bouton(ficheDuHeros(heros)))
+  await amenerALEcran(bouton(ficheDuHeros(heros)), zone(v, 'groupe.heros').map((c) => bouton(ficheDuHeros(c))))
   await cliquerBouton(bouton(ficheDuHeros(heros)))
   v = await vue()
   const possession = (libelle) => element(v, 'fiche.sections', 'section/possessions').elements.find((b) => b.libelle === libelle)
