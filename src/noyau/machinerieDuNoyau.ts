@@ -1,8 +1,7 @@
 /**
- * LA MACHINERIE DU NOYAU (#3370) : les écritures que le noyau, l'éditeur, le salon de la coop (`hote/coop/salon.ts`) ou
- * un test appellent, et qu'aucun siège n'envoie. Elles ne sont pas des verbes (`ActionsDuNoyau`) : ni `Intention`, ni `VERBES`, ni
- * `GesteDuNoyau` ne les nomment. Seul un `Get<JeuDuNoyau>` les atteint, celui des fabriques (`creerActionsDuNoyau`) et des
- * flux qui les appellent.
+ * LA MACHINERIE DU NOYAU (#3370) : les écritures de l'état qu'aucun siège n'envoie. Elles ne sont pas des verbes
+ * (`ActionsDuNoyau`) : ni `Intention`, ni `VERBES`, ni `GesteDuNoyau` ne les nomment. Seul un `Get<JeuDuNoyau>` les
+ * atteint, celui des fabriques (`creerActionsDuNoyau`) et des flux qui les appellent.
  */
 import type { Combatant, CharKey } from '../engine/types';
 import type { FabriqueDId } from '../engine/fabriqueDId';

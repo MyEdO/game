@@ -11,8 +11,9 @@
  *
  * La plateforme s'injecte (`PortsDuSalon`) : la socket, la minuterie, la compression, l'URL et le `fetch` du relay, le
  * stockage du jeton et l'abonnement aux écritures de l'état. Le salon lit l'état par `get` et l'écrit par la machinerie
- * du noyau (`poserLeReseau`, `ecrireAuJournal`, `transmettreLesIntentions`, `restaurerLesIntentions`) et, chez l'invité,
- * par le rappel `appliquerSnapshot` que reçoit `rejoindre`.
+ * du noyau (`poserLeReseau`, `ecrireAuJournal`, `transmettreLesIntentions`, `restaurerLesIntentions`), chez l'hôte par
+ * l'intention d'un siège (`appliquerLIntentionDUnSiege`) et, chez l'invité, par le rappel `appliquerSnapshot` que reçoit
+ * `rejoindre`.
  */
 import { appliquerLIntentionDUnSiege, buildDeLaCoop, fermerLeSiege, initialNet, instantaneDeLaCoop, type Get } from '../../noyau/index';
 import { t } from '../../i18n';
