@@ -30,15 +30,15 @@ function atelierSur(pont: Pont, listage: Listage, garde: Garde) {
 export const figerLAtelier = (listage: Listage, garde: Garde) => atelierSur(creerPont(), listage, garde);
 
 /** Ce que `jouer` fige d'une partie qu'il démarre sur l'atelier figé de `listage` (`figerLAtelier`, ses `fige` et
- *  `appel`) ; la partie ouverte rendue au noyau, qui n'en tient qu'une par processus (`fermer`, `pont.ts`), quoi qu'il
- *  arrive, un `demarrer` refusé n'en ayant ouvert aucune. */
+ *  `appel`) ; la partie ouverte rendue au noyau, qui n'en tient qu'une par processus (`quitter`, `pont.ts`), quoi qu'il
+ *  arrive ; un `demarrer` refusé n'en a ouvert aucune, et `quitter` se refuse alors sans effet. */
 export function figerUnePartie<T>(listage: Listage, garde: Garde, jouer: (atelier: ReturnType<typeof atelierSur>) => T): T {
   const pont = creerPont();
   const atelier = atelierSur(pont, listage, garde);
   try {
     return jouer(atelier);
   } finally {
-    if (atelier.appel('vue').ok) pont.fermer();
+    atelier.appel('quitter');
   }
 }
 

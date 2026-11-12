@@ -11,7 +11,7 @@ import type { Pont, Suite } from './pont';
 
 /** Le pont de la partie en cours, fermé après chaque cas : une partie par processus. */
 let ouvert: Pont | null = null;
-afterEach(() => { ouvert?.fermer(); ouvert = null; });
+afterEach(() => { ouvert?.appeler('quitter'); ouvert = null; });
 
 /** Une partie neuve du scénario `voyage`, son entrée passée. */
 function partie() {

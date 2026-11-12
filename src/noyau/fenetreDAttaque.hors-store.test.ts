@@ -13,7 +13,7 @@ const ENTREES: EntreesDeLaPartie = { graine: 7, reglesMaison: {}, cadence: 'manu
 /** Le duel ouvert, le tour au héros, gardé puis repris par une seconde partie. */
 function duel() {
   const ouverture = creerPartie(etatInitialDuJeu(), ENTREES);
-  ouverture.lancer({ party: [heroDuDuel()], scene: testScene(), combatDirect: 'enc-mutants' });
+  ouverture.lancer({ party: [heroDuDuel()], scene: testScene(), projet: null, combatDirect: 'enc-mutants' });
   ouverture.envoyer({ type: 'fenetreValider', args: ['debutDuRound'] });
   const garde = ouverture.etat();
   ouverture.fermer();
