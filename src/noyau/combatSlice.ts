@@ -127,7 +127,7 @@ import { combatDistance } from './monde/footprint';
 import { combatOrder, rollInitiative } from './combatSetup';
 import { isMerScene, sceneMetresPerTile } from './monde/scene';
 import { bus, EVT } from './bus';
-import { advanceCascade, maladresseCourante, finalizeCascade, setCascadeChoice, setCascadeAmount, suspendActiveCascade, resumeSuspendedCascade, poserCurseurCascade } from './cascade';
+import { advanceCascade, maladresseCourante, finalizeCascade, setCascadeChoice, setCascadeAmount, suspendActiveCascade, reprendreLaPile, poserCurseurCascade } from './cascade';
 import { abandonSequence, closeSequenceRound, pasVersLAbandon } from './sequenceCore';
 import { checkPartyWiped } from './partyWipe';
 import { FLOWS, jetImmunise, rangeesAReglerIci, type CloturesDuJet } from './rollFlowSpecs';
@@ -537,12 +537,9 @@ export function dispatchCascadeDone(get: Get, set: Set, done: ReturnType<typeof 
   if (!handled && get().battle) {
     if (!checkBattleOver(get, set)) resumeSuspendedAI(get, set); // combat non terminé → reprendre l'IA
   }
-  // REPRISE d'une séquence PARQUÉE (couture de CLÔTURE, #942 L1) : `suspendedCascades` ne se vidait qu'au
-  // teardown de combat — une séquence parquée par une AUTRE séquence (`startCascade`/`pushStep` d'un
-  // `purpose` différent) n'était reprise NULLE PART. Gaté sur slot LIBRE (le dénouement ci-dessus a pu
-  // ouvrir la suite : elle passe d'abord) ET hors combat (une séquence parquée par `lancerLeCombat` reste
-  // propriété du teardown, cf. les sorties de la victoire et de la défaite, `issueDeCombat.ts`).
-  if (!get().battle && !get().pendingCascade) resumeSuspendedCascade(get, set);
+  // REPRISE d'une séquence PARQUÉE (couture de CLÔTURE, #942 L1) par la reprise partagée (`reprendreLaPile`),
+  // APRÈS le dénouement ci-dessus : s'il a ouvert la suite, le slot est tenu et elle passe d'abord.
+  reprendreLaPile(get, set);
 }
 
 /** « Terminer » : ferme la cascade et enchaîne la suite (reprise de voyage…). Le joueur ne la joue qu'au bilan

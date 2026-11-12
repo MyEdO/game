@@ -3,7 +3,9 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { initialNet } from './etat';
 import { openSequence, displayStep, monoStep } from './rollSeam';
-import { startCascade, advanceCascade, resumeSuspendedCascade } from './cascade';
+import { startCascade, advanceCascade, resumeSuspendedCascade, sortirDeLHote } from './cascade';
+import { runFlow } from './combatEffects';
+import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { seedBattleRng } from './battleRng';
 import { setCadence } from '../engine/cadence';
 import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
@@ -44,6 +46,12 @@ const NET0 = initialNet();
 const KIND_INERTE = cleDeFixture('sonde-1479-inerte');
 const KIND_OUVRE_COMBAT = cleDeFixture('sonde-1479-ouvre-combat');
 const KIND_JET = cleDeFixture('sonde-1479-jet');
+const KIND_OUVRE_FLOW = cleDeFixture('sonde-4006-ouvre-flow');
+
+/** Le Flow que joue l'applier `KIND_OUVRE_FLOW`, posé par chaque test. */
+let flowOuvert: Flow = { kind: 'sequence', etapes: [] };
+/** Les clôtures `testRateDeLActeur` jouées, avec la profondeur de pile qu'elles voient. */
+let ratesVus: { actorId: string; parquees: number }[] = [];
 
 let apples = 0;
 beforeEach(() => { avecLesTables({ appliers: { ...tablesDuJeu().appliers, [KIND_INERTE]: () => { apples++; return {}; }, [KIND_OUVRE_COMBAT]: (_get, setter) => {
@@ -52,7 +60,14 @@ beforeEach(() => { avecLesTables({ appliers: { ...tablesDuJeu().appliers, [KIND_
   // contexte. La garde lit `get().battle` — inutile de monter un combat complet pour la mesurer.
   setter({ battle: { combatants: [], order: [], turn: 0, round: 1, log: [], over: null } as never });
   return {};
-}, [KIND_JET]: () => ({}) } }); });
+}, [KIND_JET]: () => ({}), [KIND_OUVRE_FLOW]: (g, s) => {
+  apples++;
+  runFlow(g, s, flowOuvert);
+  return {};
+} }, clotures: { ...tablesDuJeu().clotures, testRateDeLActeur: (g, s, c) => {
+  ratesVus.push({ actorId: c.actorId, parquees: g().suspendedCascades.length });
+  tablesDuJeu().clotures.testRateDeLActeur(g, s, c);
+} } }); });
 
 /** Les étapes d'AFFICHAGE de la sonde — porteur conduit par l'IA, donc AUCUN siège ne les tient. */
 function sequenceDe(premierKind: GenreDeCascade): BuiltCascadeStep[] {
@@ -65,6 +80,7 @@ function sequenceDe(premierKind: GenreDeCascade): BuiltCascadeStep[] {
 
 beforeEach(() => {
   apples = 0;
+  ratesVus = [];
   seedBattleRng(7);
   const party = tousLesHerosDeScenario(idsDeTest).slice(0, 1).map((h) => ({ ...h, aiControlled: true }));
   set({ party, battle: null, pendingCascade: null, suspendedCascades: [], journal: [] } as never);
@@ -134,5 +150,107 @@ describe('#1479 — PARITÉ DE TRACE : le dé posé d’office par le curseur a 
     // qu'une ligne de journal quelconque ne la simule pas.
     const trace = get().journal.filter((l) => l.includes(`${de}/${pose.result!.target}`));
     expect(trace.length, `aucune ligne de journal pour le dé ${de} — un jet roulé par le socle serait muet`).toBe(1);
+  });
+});
+
+describe('#4006 — la sortie d’hôte d’un Test de scène reprend la séquence qu’il a parquée', () => {
+  const posee = (flag: string): Flow => ({ kind: 'effet', effet: { type: 'setFlag', flag } });
+  /** Le groupe : `Meneur` tenu par le siège local, `Automate` conduit par l'IA. */
+  function groupe(): void {
+    const [a, b] = tousLesHerosDeScenario(idsDeTest).slice(0, 2);
+    const meneur = { ...a, aiControlled: false, characteristics: { ...a.characteristics, force: 8, agilite: 5 } };
+    const automate = { ...b, aiControlled: true, characteristics: { ...b.characteristics, force: 4, agilite: 60 } };
+    set({ party: [meneur, automate], flags: {}, pendingTest: null, pendingExtendedTest: null, pendingForceDoor: null } as never);
+  }
+  /** Une séquence TENUE AU SLOT dont la 1ʳᵉ étape ouvre `flow` : validée, son applier la parque derrière l'hôte. */
+  function parquerSous(flow: Flow): void {
+    flowOuvert = flow;
+    const meneur = get().party[0];
+    startCascade(get, set, { title: 'Parquée', purpose: 'affichage', steps: [
+      displayStep({ id: 'p1', kind: KIND_OUVRE_FLOW, actorId: meneur.id, label: fixtureText('Ouvre') })!,
+      displayStep({ id: 'p2', kind: KIND_INERTE, actorId: meneur.id, label: fixtureText('Reste') })!,
+    ] });
+    get().jetValider('cascade');
+    expect(get().suspendedCascades.map((c) => c.title), 'la séquence est parquée derrière l’hôte').toEqual(['Parquée']);
+  }
+  /** La séquence parquée est revenue au slot, à son curseur, une fois. */
+  function reprise(): void {
+    expect(get().suspendedCascades, 'la pile est vide').toEqual([]);
+    expect(get().pendingCascade?.title, 'la séquence parquée tient le slot').toBe('Parquée');
+    expect(get().pendingCascade?.cursor, 'à son curseur, derrière l’étape jouée').toBe(1);
+    expect(apples, 'l’étape jouée n’est pas rejouée').toBe(1);
+  }
+  beforeEach(groupe);
+
+  it('Test de scène validé : sa branche se joue, puis la séquence parquée est reprise', () => {
+    parquerSous({ kind: 'test', test: { characteristic: 'force' }, reussite: posee('branche'), echec: posee('branche') });
+    get().jetLancer('test');
+    get().jetValider('test');
+    expect(get().flags.branche, 'la suite du Test est jouée').toBe(true);
+    reprise();
+  });
+
+  const etendu: Flow = { kind: 'effet', effet: { type: 'extendedTest', characteristic: 'force', difficulty: 'tresFacile', label: 'Étendu', drCible: 1, flag: 'cede' } };
+  const porte: Flow = { kind: 'effet', effet: { type: 'forceDoor', label: 'Porte', doorBE: 0, doorB: 1, flag: 'porte-ouverte' } };
+
+  it('Test étendu mené à son terme : la séquence parquée est reprise', () => {
+    parquerSous(etendu);
+    let garde = 0;
+    while (get().pendingExtendedTest && garde++ < 60) {
+      const p = get().pendingExtendedTest!;
+      get().jetLancer('testEtendu', p.rounds[p.rounds.length - 1].id);
+      get().jetValider('testEtendu');
+    }
+    expect(get().pendingExtendedTest).toBeNull();
+    reprise();
+  });
+
+  it('Test étendu renoncé : la séquence parquée est reprise', () => {
+    parquerSous(etendu);
+    get().jetAnnuler('testEtendu');
+    expect(get().pendingExtendedTest).toBeNull();
+    reprise();
+  });
+
+  it('porte enfoncée : la séquence parquée est reprise', () => {
+    parquerSous(porte);
+    let garde = 0;
+    while (get().pendingForceDoor && garde++ < 60) {
+      for (const part of get().pendingForceDoor!.participants) get().jetLancer('enfoncerLaPorte', part.id);
+      get().jetValider('enfoncerLaPorte');
+    }
+    expect(get().flags['porte-ouverte']).toBe(true);
+    reprise();
+  });
+
+  it('porte renoncée : la séquence parquée est reprise', () => {
+    parquerSous(porte);
+    get().jetAnnuler('enfoncerLaPorte');
+    expect(get().pendingForceDoor).toBeNull();
+    reprise();
+  });
+
+  it('S4 — la branche ouvre un Test joué d’office : la reprise vient après les clôtures du Test externe, une fois', () => {
+    const interne: Flow = { kind: 'test', test: { characteristic: 'agilite' }, reussite: posee('interne'), echec: posee('interne') };
+    parquerSous({ kind: 'test', test: { characteristic: 'force' }, reussite: interne, echec: interne });
+    const meneur = get().party[0];
+    seedBattleRng(3);
+    get().jetLancer('test');
+    expect(get().pendingTest?.actorId, 'le Test externe est celui du Meneur').toBe(meneur.id);
+    expect(get().pendingTest?.success, 'précondition : le Test externe est raté (sa clôture `testRateDeLActeur` se joue)').toBe(false);
+    get().jetValider('test');
+    expect(get().flags.interne, 'le Test interne s’est joué d’office').toBe(true);
+    expect(ratesVus.filter((r) => r.actorId === meneur.id), 'la clôture du Test externe voit encore la séquence parquée').toEqual([{ actorId: meneur.id, parquees: 1 }]);
+    reprise();
+  });
+
+  it('garde — une sortie d’hôte EN COMBAT ne reprend rien', () => {
+    parquerSous({ kind: 'test', test: { characteristic: 'force' }, reussite: posee('branche'), echec: posee('branche') });
+    set({ battle: { combatants: [], order: [], turn: 0, round: 1, log: [], over: null } as never });
+    let suite = 0;
+    sortirDeLHote(get, set, { pendingTest: null }, () => { suite++; });
+    expect(suite, 'la suite est jouée').toBe(1);
+    expect(get().pendingCascade, 'le slot est libéré').toBeNull();
+    expect(get().suspendedCascades.map((c) => c.title), 'la séquence parquée reste au teardown du combat').toEqual(['Parquée']);
   });
 });

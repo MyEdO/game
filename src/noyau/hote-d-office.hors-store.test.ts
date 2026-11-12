@@ -92,7 +92,7 @@ describe('Étape hôte hors bataille : tenue, elle parque ; non tenue, ses verbe
     expect(banc.getState().journal.some((l) => l.startsWith('Enfoncer la porte : échoué'))).toBe(true);
   });
 
-  it('slot VIVANT d’un autre contexte : la cascade qui le tenait est suspendue, pas écrasée', () => {
+  it('slot VIVANT d’un autre contexte : la cascade qui le tenait est suspendue, pas écrasée, puis reprise à la sortie de l’hôte (#4006)', () => {
     const autre = heros(false);
     const c = heros(true);
     banc.setState({ party: [autre, c] });
@@ -101,8 +101,9 @@ describe('Étape hôte hors bataille : tenue, elle parque ; non tenue, ses verbe
       steps: [{ id: 'autre-1', kind: cleDeFixture('note'), actorId: autre.id, options: [{ key: 'a', label: fixtureText('A') }, { key: 'b', label: fixtureText('B') }] }],
     });
     MEMBRES[0].ouvrir(c);
-    expect(banc.getState().suspendedCascades.map((x) => x.title)).toEqual(['Autre']);
-    expect(banc.getState().pendingTest).toBeNull();
+    expect(banc.getState().pendingTest, 'le Test s’est joué d’office').toBeNull();
+    expect(banc.getState().suspendedCascades, 'la pile est vide').toEqual([]);
+    expect(banc.getState().pendingCascade?.participants.map((x) => x.id), 'la cascade qui tenait le slot y revient, intacte').toEqual(['autre-1']);
   });
 });
 

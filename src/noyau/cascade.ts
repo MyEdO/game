@@ -16,7 +16,7 @@
  *    on lance chaque étape (RNG, sans influence) et on applique sa conséquence, sans modale.
  */
 import type { IconId } from '../data/icons';
-import type { Get, Set } from './flowTypes';
+import type { Get, PatchDeFlux, Set } from './flowTypes';
 import type { Jeu } from './etat';
 import type { Combatant, Difficulty } from '../engine/types';
 import { roll, d100, totalDuDe, type RNG, type DiceSpec } from '../engine/dice';
@@ -1437,7 +1437,8 @@ export function suspendActiveCascade(get: Get, set: Set): void {
 
 /** RÉSUME la tête de pile (`suspendedCascades`, LIFO) dans le slot `pendingCascade` — SEULEMENT si le
  *  slot est LIBRE (jamais un écrasement). Déclenchée par la couture universelle de teardown de combat
- *  (les sorties de la victoire et de la défaite, `sortiesDIssueDeCombat`). Une séquence du pilote immédiat (`piloteImmediat`)
+ *  (les sorties de la victoire et de la défaite, `sortiesDIssueDeCombat`) et, hors combat, par la reprise
+ *  partagée (`reprendreLaPile`). Une séquence du pilote immédiat (`piloteImmediat`)
  *  ne revient pas au slot : son pilote la reprend (`piloterDepuisLeCurseur`). Renvoie `true` si une
  *  cascade a été résumée. */
 export function resumeSuspendedCascade(get: Get, set: Set): boolean {
@@ -1457,6 +1458,36 @@ export function resumeSuspendedCascade(get: Get, set: Set): boolean {
   // applier a ouvert un combat en plein vol) — elle passe par le même seam que l'ouverture.
   set({ pendingCascade: poserLeCurseur(get, top), suspendedCascades: stack.slice(0, -1) });
   return true;
+}
+
+/** LA REPRISE PARTAGÉE de la pile (#942 L1, #4006) : hors combat et slot libre, la tête de `suspendedCascades`
+ *  revient (`resumeSuspendedCascade`). Une séquence parquée par `lancerLeCombat` reste au teardown du combat
+ *  (`sortiesDIssueDeCombat`). Lue par la clôture de cascade (`dispatchCascadeDone`) et par la sortie d'hôte
+ *  (`sortirDeLHote`). */
+export function reprendreLaPile(get: Get, set: Set): void {
+  if (!get().battle && !get().pendingCascade) resumeSuspendedCascade(get, set);
+}
+
+/** Les stores (`Get`) dont une sortie d'hôte joue sa suite. `WeakSet` : mécanique de réentrance, jamais sérialisée. */
+const enSortieDHote = new WeakSet<Get>();
+
+/**
+ * SORTIE D'HÔTE (#4006) : l'hôte d'un Flow qui se clôt hors de `dispatchCascadeDone` libère son pending et le
+ * slot en une écriture (`libere`, plus `pendingCascade: null`), joue la `suite` qu'on lui passe, puis reprend la
+ * pile (`reprendreLaPile`). Une sortie ouverte PENDANT la suite d'une autre sur le même store (un hôte joué
+ * d'office dans la branche, `jouerLHoteDOffice`) libère et joue sa suite, mais ne reprend pas : seule la sortie
+ * la plus externe reprend, après sa suite entière.
+ */
+export function sortirDeLHote(get: Get, set: Set, libere: PatchDeFlux, suite: () => void): void {
+  set({ ...libere, pendingCascade: null });
+  if (enSortieDHote.has(get)) { suite(); return; }
+  enSortieDHote.add(get);
+  try {
+    suite();
+  } finally {
+    enSortieDHote.delete(get);
+  }
+  reprendreLaPile(get, set);
 }
 
 /**
