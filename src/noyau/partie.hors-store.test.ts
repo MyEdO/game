@@ -17,7 +17,7 @@ const emis = ({ evenements }: ResultatDeLAppel) => evenements.flatMap((e) => (e.
  *  la partie qui le reprend. La première partie fermée, la seconde s'ouvre dans le même contexte. */
 function duel(garder: (etat: EtatDeJeu, duel: ReturnType<typeof auContact>) => EtatDeJeu = (e) => e) {
   const ouverture = creerPartie(etatInitialDuJeu(), ENTREES);
-  expect(emis(ouverture.lancer({ party: [heroDuDuel()], scene: testScene(), combatDirect: 'enc-mutants' }))).toContain('arrivee_en_scene');
+  expect(emis(ouverture.lancer({ party: [heroDuDuel()], scene: testScene(), projet: null, combatDirect: 'enc-mutants' }))).toContain('arrivee_en_scene');
   ouverture.envoyer({ type: 'fenetreValider', args: ['debutDuRound'] });
   const garde = ouverture.etat();
   ouverture.fermer();
@@ -98,8 +98,8 @@ describe('creerPartie — le journal de l’appel, capté à ses écrivains', ()
     const scene = { ...testScene(), startMessage: { texte: 'Vous entrez dans la salle.' } };
     const partie = creerPartie(etatInitialDuJeu(), ENTREES);
     try {
-      expect(lignesDuJournal(partie.lancer({ party: [heroDuDuel()], scene }))).toEqual(['Vous entrez dans la salle.']);
-      expect(lignesDuJournal(partie.lancer({ party: [heroDuDuel()], scene })), 'la seconde entrée n’a rendu aucune ligne').toEqual(['Vous entrez dans la salle.']);
+      expect(lignesDuJournal(partie.lancer({ party: [heroDuDuel()], scene, projet: null }))).toEqual(['Vous entrez dans la salle.']);
+      expect(lignesDuJournal(partie.lancer({ party: [heroDuDuel()], scene, projet: null })), 'la seconde entrée n’a rendu aucune ligne').toEqual(['Vous entrez dans la salle.']);
     } finally {
       partie.fermer();
     }
@@ -136,7 +136,7 @@ describe('creerPartie — le tick auto et `reprendre`', () => {
     try {
       const file: Jeton[] = [];
       const suivre = (r: ResultatDeLAppel) => file.push(...r.evenements.flatMap((e) => (e.type === 'programme' ? [e.jeton] : [])));
-      suivre(partie.lancer({ party: [heroDuDuel()], scene: testScene(), combatDirect: 'enc-mutants' }));
+      suivre(partie.lancer({ party: [heroDuDuel()], scene: testScene(), projet: null, combatDirect: 'enc-mutants' }));
       suivre(partie.envoyer({ type: 'fenetreValider', args: ['debutDuRound'] }));
       expect(file.length, 'le début du combat n’a programmé aucun tick').toBeGreaterThan(0);
       const premier = file[0];

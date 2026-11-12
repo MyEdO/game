@@ -76,7 +76,7 @@ describe('une fenêtre de combat ne désigne que les combattants que son verbe a
   /** Le duel au contact : le héros `H` face à l'ennemi `E`, les autres ennemis hors de combat. */
   function leDuel() {
     const ouverture = creerPartie(etatInitialDuJeu(), ENTREES);
-    ouverture.lancer({ party: [heroDuDuel()], scene: testScene(), combatDirect: 'enc-mutants' });
+    ouverture.lancer({ party: [heroDuDuel()], scene: testScene(), projet: null, combatDirect: 'enc-mutants' });
     ouverture.envoyer({ type: 'fenetreValider', args: ['debutDuRound'] });
     const garde = ouverture.etat();
     ouverture.fermer();
@@ -232,7 +232,7 @@ describe('un verbe de jet que son flux ferme ne se dessine pas, et dit pourquoi 
 
   it('attaque du duel : avant le jet, ni clôture ni dé fixé ; après, ni jet ni Localisation', { timeout: 120_000 }, () => {
     const ouverture = creerPartie(etatInitialDuJeu(), ENTREES);
-    ouverture.lancer({ party: [heroDuDuel()], scene: testScene(), combatDirect: 'enc-mutants' });
+    ouverture.lancer({ party: [heroDuDuel()], scene: testScene(), projet: null, combatDirect: 'enc-mutants' });
     ouverture.envoyer({ type: 'fenetreValider', args: ['debutDuRound'] });
     const garde = ouverture.etat();
     ouverture.fermer();
