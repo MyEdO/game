@@ -18,8 +18,8 @@ const hero = (): Combatant =>
 
 const FOUILLE = { id: 'fouiller', flow: { kind: 'sequence' as const, etapes: [] }, unique: true };
 const PRISES = {
-  'place-1': { kind: 'entity' as const, entityId: 'a' }, 'place-2': { kind: 'entity' as const, entityId: 'b' },
-  'place-3': { kind: 'entity' as const, entityId: 'c' }, 'place-4': { kind: 'entity' as const, entityId: 'd' },
+  'place-1': { kind: 'entite' as const, entityId: 'a' }, 'place-2': { kind: 'entite' as const, entityId: 'b' },
+  'place-3': { kind: 'entite' as const, entityId: 'c' }, 'place-4': { kind: 'entite' as const, entityId: 'd' },
 };
 /** Table en (5,5) au cap N : abords nord (5,4), est (6,5), sud (5,6), ouest (4,5). */
 const table = (usable: SceneEntity['usable']): SceneEntity => ({ id: 'table-1', kind: 'prop', pos: { x: 5, y: 5 }, decor: { id: 'table-ronde-4-tabourets' }, facing: 'N', usable });

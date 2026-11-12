@@ -65,7 +65,7 @@ describe('manœuvres = donnée éditable (GameOp)', () => {
   it('ÉDITER les effects d’une ManeuverDef CHANGE la résolution (recréable depuis le Codex)', () => {
     const avant = [...maneuvers];
     const edited: TriggeredEffect[] = [
-      { trigger: 'onHit', on: 'victim', flow: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'empoisonne' } }] } } },
+      { trigger: 'onHit', on: 'victime', flow: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'empoisonne' } }] } } },
     ];
     try {
       setDataset('maneuvers', maneuvers.map((m) => (m.id === 'souffle' ? { ...m, effects: edited } : m))); // « édition » : Empoisonné, sans Dégâts

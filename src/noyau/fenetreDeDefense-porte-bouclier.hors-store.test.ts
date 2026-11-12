@@ -43,7 +43,7 @@ function ouvrirLaDefense(avantage: number, dejaUtilise = false, projete = avanta
     combatants: [ennemi, heros], order: [ennemi.id, heros.id], baseOrder: [ennemi.id, heros.id],
     turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(),
     movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
-    advantagePools: { allies: avantage, foes: 0 },
+    advantagePools: { allies: avantage, adversaires: 0 },
   } as unknown as BattleState;
   banc.setState({ battle, mode: 'battle', scene: testScene(), pendingDefense: null, pendingAttack: null, pendingCascade: null, net: { ...initialNet(), mode: 'local', mySeat: 0, gmSeat: 0, ownership: {} } });
   openAttackCascade(g, banc.setState, { attackerId: ennemi.id, targetId: heros.id, location: null, result: null, weaponUid: 'ep' }, 'Attaque', 'action/attaquer');

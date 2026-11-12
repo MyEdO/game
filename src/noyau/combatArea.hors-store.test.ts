@@ -116,7 +116,7 @@ describe('resolveWeaponArea — Explosion (rayon Indice m, États propagés)', (
     const near = foe('near', 5, 0, 50, 0);
     const { get, set } = mountBattle([atk, tgt, near], 2);
     // Atout Explosion + effet onHit générique posant l'État « en-flammes » (chemin GÉNÉRIQUE, pas bespoke).
-    const onHit: TriggeredEffect[] = [{ trigger: 'onHit', on: 'victim', flow: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'en-flammes' }, value: 1 }] } } } as never];
+    const onHit: TriggeredEffect[] = [{ trigger: 'onHit', on: 'victime', flow: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'en-flammes' }, value: 1 }] } } } as never];
     const w = rangedWeapon([{ id: 'a-explosion', value: 4 }], 60, 14, onHit);
     resolveWeaponArea(get, set, mkHit(atk, tgt, w, 14, 4), areaTargets([atk, tgt, near], 2), battleRng());
     expect((near.conditions ?? []).some((c) => c.id === 'en-flammes')).toBe(true); // État propagé au secondaire

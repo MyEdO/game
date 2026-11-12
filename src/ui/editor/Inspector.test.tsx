@@ -738,7 +738,7 @@ describe('Inspector — places assises d’un décor', () => {
       select.value = 'entity:pnj-aubergiste';
       select.dispatchEvent(new Event('change', { bubbles: true }));
     });
-    expect(sceneOf().seatAssignments).toEqual({ 'table-1': { 'place-1': { kind: 'entity', entityId: 'pnj-aubergiste' } } });
+    expect(sceneOf().seatAssignments).toEqual({ 'table-1': { 'place-1': { kind: 'entite', entityId: 'pnj-aubergiste' } } });
     expect(sceneOf().entities.find((e) => e.id === 'pnj-aubergiste')?.pos).toEqual({ x: 2, y: 1 });
   });
 

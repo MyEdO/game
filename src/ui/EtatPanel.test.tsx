@@ -104,8 +104,8 @@ describe('EtatPanel', () => {
     expect(html).toContain('notch-gauge__label">Corruption<');
     expect(html).toContain('aria-valuemax="3" aria-valuenow="0"'); // actives = 0
     expect(html).toContain('aria-valuemax="3" aria-valuenow="1"'); // phys : 1 mutation physique
-    // 3 seuils d'affliction loin du seuil = neutral ; la Corruption a SON ton (`corruption`), non neutral.
-    expect((html.match(/data-tone="neutral"/g) || []).length).toBe(3);
+    // 3 seuils d'affliction loin du seuil = neutre ; la Corruption a SON ton (`corruption`), non neutre.
+    expect((html.match(/data-tone="neutre"/g) || []).length).toBe(3);
     expect(html).toContain('data-tone="corruption"');
   });
 
@@ -137,7 +137,7 @@ describe('EtatPanel', () => {
     expect(html).toContain('aria-valuemax="3" aria-valuenow="4"'); // phys = 4 > BE 3
     // Ordre de rendu : sans réserve (ni Destin ni Résilience), le 1er seuil est Critiques actives (warn)
     // avant Mutations physiques (danger).
-    const tones = [...html.matchAll(/data-tone="(neutral|warn|danger)"/g)].map((m) => m[1]);
+    const tones = [...html.matchAll(/data-tone="(neutre|warn|danger)"/g)].map((m) => m[1]);
     expect(tones[0]).toBe('warn'); // Critiques actives 2/3
     expect(tones).toContain('danger'); // Mutations physiques 4/3
   });

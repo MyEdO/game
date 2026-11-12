@@ -64,7 +64,7 @@ qu'affichage ne s'arrête pas et va au journal. Plus de « Bilan de l'étape » 
 | #3942 | le banc des étalons : planches, `?planche=<nom>`, `etalons.mjs`, rapport, règle `ecrans-godot.md` | fusionnée le 2026-11-11 |
 | #3976 | l'écran du lieu au fini, le pied des héros, le journal ; `Zone.formes`, `Dessin`, registre des fonds en donnée | fusionnée le 2026-11-12 |
 | #3987 | la description d'un lieu (`prose`), les quatre lieux de la Diligence décrits | fusionnée le 2026-11-12 |
-| #4001 | le voyage et la halte en scène peinte : paysage en couches, tête de scène, carte du trajet, frise, journal dans la scène, jets sur les cartes des héros | ouverte, branche `chantier/3935-voyage`. Sortie deux fois de la file de fusion le 2026-11-12 pour un conflit avec `main` dans `src/hote/ecran.ts` ; `main` y est refusionné deux fois, la recette du voyage corrigée, ses trois planches réenregistrées et leurs étalons reposés. Ressortie une troisième fois, rouge à l'étape « Godot, scripts et recettes autonomes » : le bouton « Quitter la partie » venu de #4010 vivait dans le panneau du journal, que la scène du voyage cache ; la scène le range maintenant, étalons reposés, remise en file. Vérifier qu'elle a fusionné : `main` avance vite sur ces fichiers. |
+| #4001 | le voyage et la halte en scène peinte : paysage en couches, tête de scène, carte du trajet, frise, journal dans la scène, jets sur les cartes des héros | ouverte, branche `chantier/3935-voyage`. Sortie deux fois de la file de fusion le 2026-11-12 pour un conflit avec `main` dans `src/hote/ecran.ts` ; `main` y est refusionné deux fois, la recette du voyage corrigée, ses trois planches réenregistrées et leurs étalons reposés. Ressortie une troisième fois, rouge à l'étape « Godot, scripts et recettes autonomes » : le bouton « Quitter la partie » venu de #4010 vivait dans le panneau du journal, que la scène du voyage cache ; la scène le range maintenant, étalons reposés. Ressortie encore deux fois : mise en file avant la fin de la CI de branche (`INVALID_MERGE_COMMIT`), puis en conflit avec #4021 (#4007), placée devant elle dans la file et qui corrige le même parcours `voyage` de `hotes/godot/recette.mjs`. Le fichier est rendu à la version de `main` : le correctif de la recette est porté par #4021, et jusqu'à sa fusion le parcours `voyage` s'arrête à l'écran du lieu, comme sur `main` depuis #3987. `main` est refusionné une quatrième et une cinquième fois (son de l'hôte Godot, lexique), les trois planches réenregistrées (seuls le `canal` des pistes et la clé du monde changent). Vérifier qu'elle a fusionné : `main` avance vite sur ces fichiers. |
 
 Cette branche (`chantier/3935-reprise`) part de la tête de #4001 et n'ajoute que ce dossier.
 
@@ -222,6 +222,11 @@ copier hors du dépôt, lui rendre son nom (`*.sonde.test.ts`, `vitest.config.ts
 - `npm run godot:sonde` (la recette native de l'écran, entre autres) ne tourne qu'en file de fusion. La rejouer
   après chaque fusion de `main` : une zone ajoutée par un autre lot dans un panneau que ta disposition cache y fait
   « n'a aucune zone », et rien d'autre ne le dit avant la file.
+- Une PR en file se fusionne avec les PR placées devant elle, pas seulement avec `main` : un `git merge-tree` propre
+  contre `origin/main` ne prouve pas l'absence de conflit. Deux PR qui portent le même correctif se sortent l'une
+  l'autre de la file ; avant de corriger un outil partagé, chercher la PR ouverte qui le corrige déjà et lui laisser.
+- La fusion automatique ne se réactive qu'une fois la CI de branche verte sur la nouvelle tête : mise en file plus
+  tôt, la PR en ressort en `INVALID_MERGE_COMMIT`.
 - Activer la fusion automatique juste après un push, avant que GitHub ait calculé la fusionnabilité, sort la PR de la
   file (`INVALID_MERGE_COMMIT`). Attendre la CI de branche verte, ou la réactiver. Une PR sortie de file ne s'y remet
   pas seule.

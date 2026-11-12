@@ -36,7 +36,7 @@ import type { PlayerText } from '../../../i18n/playerText';
 /** `DayPhaseId` (`engine/clock.ts`) — phases d'AFFICHAGE de la journée. */
 export const dayPhaseIdSchema = z.enum(['aube', 'matin', 'midi', 'apresmidi', 'crepuscule', 'soir', 'nuit']);
 /** Cible d'un effet de scène : tout le groupe, ou UN héros (`heroId`, défaut le premier). */
-export const effectTargetSchema = z.enum(['party', 'hero']);
+export const effectTargetSchema = z.enum(['groupe', 'heros']);
 /** Statbloc custom d'éditeur d'un vivant : le snapshot EST son identité. */
 const statblocDeVivantSchema = nommerChamps(z.strictObject({ custom: customStatblockSchema }), { custom: { label: "profil personnalisé" } });
 /** Source de `LivingRef` (`engine/possession.ts`) : le bestiaire (édition Codex vivante) OU un statbloc custom. */

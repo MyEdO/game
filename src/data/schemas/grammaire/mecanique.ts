@@ -918,7 +918,7 @@ export const actorRefSchema = enumNomme(LIBELLES_D_ACTEUR);
 
 /** Cible d'une feuille `ops` nommée par une chaîne (`EffectOp.on`, `engine/flowCore.ts`) : celles d'une scène
  *  (`CIBLES_D_EFFET_DE_SCENE`, `noyau/combatEffects.ts`), puis l'acteur du déclenché. */
-export const cibleDeFeuilleSchema = enumNomme({ party: 'Tout le groupe', hero: 'Un héros', navire: 'Le navire', membreAuHasard: 'Un membre du bord au hasard', ...LIBELLES_D_ACTEUR });
+export const cibleDeFeuilleSchema = enumNomme({ groupe: 'Tout le groupe', heros: 'Un héros', navire: 'Le navire', membreAuHasard: 'Un membre du bord au hasard', ...LIBELLES_D_ACTEUR });
 
 /** `Relation | Camp` (`src/engine/relations.ts`) — union complète lue par la Condition `relation`.
  *  Resserré depuis `z.string()` (variantes `domains`/`talents`/`etats`/`spells`) : les 9 JSON ne
@@ -1353,17 +1353,17 @@ export function noeudTest<B extends z.ZodType>(branche: B, options: OptionsNoeud
 /** CIBLE simple d'un effet déclenché — la branche chaîne de `EffectTargeting` (les deux autres sont
  *  des géométries, pas un univers de valeurs). */
 export const effectOnSchema = enumNomme({
-  self: 'soi-même',
-  victim: 'la victime',
-  engaged: 'les adversaires engagés',
-  grappled: 'la victime empoignée (absorbée)',
+  soi: 'soi-même',
+  victime: 'la victime',
+  engages: 'les adversaires engagés',
+  empoigne: 'la victime empoignée (absorbée)',
 });
 
 /** `EffectTargeting` (`engine/flowCore.ts:632`). */
 export const effectTargetingSchema = z.union([
   variante('Cible désignée', effectOnSchema),
-  nommerChamps(z.strictObject({ near: z.enum(['victim', 'self']), radiusMeters: z.number() }), { near: { label: "près de"  }, radiusMeters: { label: "rayon en mètres" } }),
-  nommerChamps(z.strictObject({ pick: z.literal('engaged'), sizeAtMost: z.literal('self').optional(), max: z.number() }), { pick: { label: "sélection"  }, sizeAtMost: { label: "Taille maximale"  }, max: { label: "maximum" } }),
+  nommerChamps(z.strictObject({ near: z.enum(['victime', 'soi']), radiusMeters: z.number() }), { near: { label: "près de"  }, radiusMeters: { label: "rayon en mètres" } }),
+  nommerChamps(z.strictObject({ pick: z.literal('engages'), sizeAtMost: z.literal('soi').optional(), max: z.number() }), { pick: { label: "sélection"  }, sizeAtMost: { label: "Taille maximale"  }, max: { label: "maximum" } }),
 ]);
 
 /** DÉCLENCHEUR d'un `TriggeredEffect` (`EffectTrigger`, `engine/flowCore.ts`). Le `satisfies` garde
@@ -1664,7 +1664,7 @@ function construire(regimes: Regimes) {
    *  DÉFAUT du `Flow<E>` générique (`engine/flowCore.ts:559`), et l'un des membres de l'union `Effect` de
    *  scène (`defs-scenes/effets.ts`). `on` = les 5 valeurs de
    *  l'interface TS : `'party'`/`'hero'`/`'navire'` (scène) ou `'caster'`/`'target'` (contexte d'incantation). Le
-   *  ciblage `'self'`/`'victim'` est le vocabulaire du NIVEAU TRIGGER (`effectTargetingSchema`), pas de la
+   *  ciblage `'soi'`/`'victime'` est le vocabulaire du NIVEAU TRIGGER (`effectTargetingSchema`), pas de la
    *  feuille : sur la feuille, `'caster'` = porteur, `'target'` = cible résolue par le trigger. */
   declarerEnfants(gameOp, Object.entries(opDefs).map(([op, noeud]) => ({ noeud, segment: '^' + op })), valeur => {
     const op = (valeur as { op?: string } | null)?.op;
