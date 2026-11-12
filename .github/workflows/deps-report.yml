@@ -11,11 +11,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        cas: [avant, apres, apres-sans-vulkan, apres-sans-pilotes]
+        include:
+          - { cas: main, ref: main, lot: 1 }
+          - { cas: main, ref: main, lot: 2 }
+          - { cas: sans-fils, ref: '', lot: 1 }
+          - { cas: sans-fils, ref: '', lot: 2 }
+          - { cas: sans-fils, ref: '', lot: 3 }
+          - { cas: temoin, ref: '', lot: 1 }
+    name: imports (${{ matrix.cas }} ${{ matrix.lot }})
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.ref }}
       - uses: actions/setup-node@v4
         with:
           node-version-file: package.json
@@ -25,31 +34,23 @@ jobs:
       - uses: ./.github/actions/caches-3d
       - run: npm run pont:godot
       - run: npm run godot:sonde
-      - if: ${{ matrix.cas != 'avant' }}
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends xvfb libgl1-mesa-dri mesa-vulkan-drivers libxcursor1 libxinerama1 libxrandr2 libxi6
-      - name: Machine
-        run: nproc; free -m; df -h /tmp | tail -1; ls -la /dev/dri 2>&1 | head; ls /usr/share/vulkan/icd.d 2>&1 | head -20
       - name: Imports répétés
         run: |
           G=$(ls ~/.cache/wfrp-godot/4.7-stable/Godot_v4.7-stable_linux.x86_64)
-          case "${{ matrix.cas }}" in
-            apres-sans-vulkan) export VK_DRIVER_FILES=/nonexistent.json VK_ICD_FILENAMES=/nonexistent.json ;;
-            apres-sans-pilotes) sudo mv /usr/share/vulkan/icd.d /usr/share/vulkan/icd.d.retire || true; sudo mv /usr/lib/x86_64-linux-gnu/dri /usr/lib/x86_64-linux-gnu/dri.retire || true ;;
-          esac
+          git log --oneline -1
           plantes=0
-          for i in $(seq 1 14); do
+          for i in $(seq 1 20); do
             rm -rf /tmp/copie; cp -r hotes/godot/projet /tmp/copie; rm -rf /tmp/copie/.godot
+            if [ "${{ matrix.cas }}" = sans-fils ]; then
+              sed -i 's/^\[gui\]$/[editor]\n\nimport\/use_multiple_threads=false\n\n[gui]/' /tmp/copie/project.godot
+              grep -c 'use_multiple_threads=false' /tmp/copie/project.godot > /dev/null
+            fi
             code=0; "$G" --headless --path /tmp/copie --import > /tmp/import-$i.log 2>&1 || code=$?
             echo "import $i : code $code"
-            if [ "$code" != 0 ]; then plantes=$((plantes+1)); grep -n -B6 -A30 'handle_crash' /tmp/import-$i.log | cut -c1-240 || tail -30 /tmp/import-$i.log; fi
+            if [ "$code" != 0 ]; then
+              plantes=$((plantes+1))
+              grep -E 'reimport|ERROR' /tmp/import-$i.log | tail -4 | cut -c1-200
+              tail -12 /tmp/import-$i.log | cut -c1-200
+            fi
           done
-          echo "plantés : $plantes sur 14"
-      - name: Bibliothèques chargées
-        if: ${{ !cancelled() }}
-        run: |
-          G=$(ls ~/.cache/wfrp-godot/4.7-stable/Godot_v4.7-stable_linux.x86_64)
-          rm -rf /tmp/copie; cp -r hotes/godot/projet /tmp/copie; rm -rf /tmp/copie/.godot
-          LD_DEBUG=libs "$G" --headless --path /tmp/copie --import > /tmp/ld.log 2>&1 || echo "code $?"
-          grep -oE 'calling init: [^ ]+' /tmp/ld.log | sort | uniq -c | sort -rn | head -80
-      - if: ${{ !cancelled() }}
-        run: sudo dmesg | tail -20
+          echo "plantés : $plantes sur 20"
