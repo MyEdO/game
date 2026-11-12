@@ -6,7 +6,7 @@ import type { Weapon, Combatant } from './types';
 import { blessuresDeBase, blessuresSurLeProfil } from './combattantDeTest.testkit';
 
 const sword = (over: Partial<Weapon> = {}): Weapon => ({ label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [], ...over });
-const bow = (over: Partial<Weapon> = {}): Weapon => ({ label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 9 }, qualities: [], range: 30, ...over });
+const bow = (over: Partial<Weapon> = {}): Weapon => ({ label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 9 }, qualities: [], range: 30, ...over });
 
 /** LDB 62 l.58 ; AA 08 l.212 */
 describe('profil hors Charge des armes nées au catalogue', () => {
@@ -73,7 +73,7 @@ describe('applyAmmoMod + effectiveWeaponRange (LDB 62) — la munition modifie l
 
 describe('recomputeLoadout — Portée = SPEC COPIÉE (résolue à l’usage, pas au loadout)', () => {
   it('une arme de jet conserve sa spec {bf} sur le Weapon actif (non pré-résolue)', () => {
-    const c = hero([{ uid: 'jav', label: 'Javelot', kind: 'ranged', damage: { plusBF: true, flat: 0, bare: true }, qualities: [], enc: 1, equipped: true, range: { bf: 3 } }]);
+    const c = hero([{ uid: 'jav', label: 'Javelot', kind: 'distance', damage: { plusBF: true, flat: 0, bare: true }, qualities: [], enc: 1, equipped: true, range: { bf: 3 } }]);
     recomputeLoadout(c);
     const jav = c.weapons.find((w) => w.label === 'Javelot');
     expect(jav?.range).toEqual({ bf: 3 }); // copiée telle quelle ; effectiveRange la résout au tir/affichage
@@ -143,7 +143,7 @@ describe("recomputeLoadout — propagation des Dégâts d'arme", () => {
 
 describe('effectiveWeapon — Lance-harpon, corde séparée (ADE II 02 l.677, mode de tir choisi #476)', () => {
   const harpoon = (): Weapon => ({
-    label: 'Lance-harpon', type: 'ranged', damage: { plusBF: false, flat: 10 }, range: 20,
+    label: 'Lance-harpon', type: 'distance', damage: { plusBF: false, flat: 10 }, range: 20,
     qualities: [{ id: 'immobilisante' }, { id: 'recharge', value: 2 }],
   });
   it('sans ctx.harpoonRopeCut : profil de base inchangé (Portée 20, Immobilisante conservée)', () => {

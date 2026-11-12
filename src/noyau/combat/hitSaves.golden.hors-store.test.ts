@@ -105,7 +105,7 @@ describe('GOLDEN — sauvegardes post-touche (applyAttackResult)', () => {
     const warden = hero({ id: 'w', label: 'Mage', pos: { x: 5, y: 5 }, activeEffects: [{ domeWard: { radiusMeters: 4, ward: { id: 'protection', value: 6 } } }] as unknown as Combatant['activeEffects'] });
     const target = hero({ id: 'h1', label: 'Couvert', pos: { x: 6, y: 5 }, wounds: blessuresDeBase(15) });
     const shooter = enemy({ id: 'e1', label: 'Tireur', pos: { x: 20, y: 5 } });
-    const bow: Weapon = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 7 }, range: 30, qualities: [] } as Weapon;
+    const bow: Weapon = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 7 }, range: 30, qualities: [] } as Weapon;
     setBattle([warden, target, shooter]);
     const before = banc.getState().battle!.combatants.find((c) => c.id === 'h1')!.wounds.current;
     const suspended = applyAttackResult(banc.getState, banc.setState, shooter, target, bow, meleeHit());
@@ -144,7 +144,7 @@ describe('GOLDEN — sauvegardes post-touche (applyAttackResult)', () => {
         ...(avecTrait ? { traits: [{ id: 'protection', value: 1 }] } : {}),
       }) as Partial<Combatant>);
       const shooter = enemy({ id: 'e1', label: 'Tireur', pos: { x: 20, y: 5 } });
-      const arc: Weapon = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 7 }, range: 30, qualities: [], organicProjectile: true } as unknown as Weapon;
+      const arc: Weapon = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 7 }, range: 30, qualities: [], organicProjectile: true } as unknown as Weapon;
       setBattle([warden, target, shooter]);
       applyAttackResult(banc.getState, banc.setState, shooter, target, arc, meleeHit());
       return { pb: banc.getState().battle!.combatants.find((c) => c.id === 'h1')!.wounds.current, rng: battleRng().int(1, 1_000_000) };

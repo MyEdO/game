@@ -268,9 +268,9 @@ export interface TriggerCtx { victim?: Combatant; weapon?: Weapon; rng: RNG; mar
   /** ID de l'État qui vient d'être GAGNÉ (déclencheur `onGainCondition`) — filtre les effets dont
    *  `condition` ne le matche pas (Mâchoires d'acier : `condition:'sonne'`). */
   conditionName?: string;
-  /** TYPE de l'attaque courante (`weapon.type` : 'melee'/'ranged') — filtre les effets `onHit`/`onWoundLoss`
+  /** TYPE de l'attaque courante (`weapon.type` : 'melee'/'distance') — filtre les effets `onHit`/`onWoundLoss`
    *  dont `attackType` ne le matche pas. Posé par les émetteurs onHit/onWoundLoss. */
-  attackType?: 'melee' | 'ranged';
+  attackType?: 'melee' | 'distance';
   /** D'où naît la Blessure critique (`onCrit`) — filtre les effets `coupCritique` par `estUnCoupCritique`. */
   origine?: OrigineCritique;
   /** `set` du store — fourni quand un Test de trigger peut être routé en cascade influençable (héros

@@ -15,7 +15,7 @@ const gunner = (id: string, over: Partial<Combatant> = {}): Combatant =>
 
 /** Pièce d'artillerie `trappingId` : Dégâts plats `flat`, qualités optionnelles, servie par `crewIds`. */
 const poste = (crewIds: string[], flat = 14, qualities: { id: string; value?: number }[] = [], trappingId = 'canon-moyen'): ShipPoste =>
-  ({ side: 'tribord', item: { uid: 'gun-' + crewIds.join('') + flat, trappingId, label: 'Canon', kind: 'ranged', subType: 'armes-de-siege', damage: { flat, plusBF: false }, range: 75, qualities }, crewIds }) as unknown as ShipPoste;
+  ({ side: 'tribord', item: { uid: 'gun-' + crewIds.join('') + flat, trappingId, label: 'Canon', kind: 'distance', subType: 'armes-de-siege', damage: { flat, plusBF: false }, range: 75, qualities }, crewIds }) as unknown as ShipPoste;
 
 const ship = (): Combatant => ({ id: 'ship', label: 'Navire', kind: 'npc', bodyShape: 'vehicule', conditions: [], weapons: [] }) as unknown as Combatant;
 

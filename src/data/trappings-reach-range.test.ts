@@ -37,7 +37,7 @@ describe('trappings — invariant Allonge (reach) ⊥ Portée (range)', () => {
     const withRange = rows.filter((t) => t.range != null);
     expect(withRange.length).toBeGreaterThan(0);
     expect(withRange.every((t) => typeof t.range === 'number' || isBfSpec(t.range))).toBe(true);
-    expect(withRange.filter((t) => t.categorie !== 'ranged').map((t) => t.id)).toEqual([]);
+    expect(withRange.filter((t) => t.categorie !== 'distance').map((t) => t.id)).toEqual([]);
   });
 
   it('toute arme de JET (`range:{bf}`) a un bf > 0 et un `reach` nul', () => {

@@ -5,7 +5,7 @@
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { enumNomme, maniementSchema, matiereDArmureSchema, palierSchema } from '../grammaire/valeurs';
+import { enumNomme, genreDArmeSchema, maniementSchema, matiereDArmureSchema, palierSchema } from '../grammaire/valeurs';
 import { manieAussiSchema, qualityRefSchema } from '../grammaire/reference';
 import { tableTotale } from '../../../lib/tableTotale';
 import { ref } from '../grammaire/ref';
@@ -35,7 +35,7 @@ const doc = document(
   {
     kind: enumNomme(KINDS),
     material: matiereDArmureSchema.optional(),
-    combat: z.enum(['melee', 'ranged']).optional(),
+    combat: genreDArmeSchema.optional(),
     /** Qualités COMMUNES à toute la famille, mergées par `resolveQualities` (LDB 62 l.137). */
     qualities: z.array(qualityRefSchema).optional(),
     /** Rang de couche d'un Groupe d'armure : la pièce de rang le plus haut s'affiche par-dessus. */
