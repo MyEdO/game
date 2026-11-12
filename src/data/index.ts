@@ -15,9 +15,9 @@ import { VOCABULAIRES } from './schemas/grammaire/vocabulaires';
 import { CATEGORIE_CODEX_DU_FICHIER, DATASET_DE_LA_CATEGORIE, DATASET_DE_L_ESPACE, type CleCodex, type CleDeDataset, type DatasetDeCategorie } from './schemas/_cles-de-dataset.generated';
 import { RACINES_VIVANTES } from './schemas/_racines-vivantes.generated';
 import { INSTANCIABLE_PAR_ID } from './schemas/grammaire/sousListes';
-import type { DotationDePossession } from './schemas/grammaire/reference';
+import type { DotationDeMention, DotationDePossession, Somme } from './schemas/grammaire/reference';
 import type { IdsParEspace } from './schemas/_ids.generated';
-import { symptomSeveritySchema, type harvestRaritySchema, type harvestDangerSchema } from './schemas/grammaire/valeurs';
+import { natureDeMentionSchema, symptomSeveritySchema, type NatureDeMention, type harvestRaritySchema, type harvestDangerSchema } from './schemas/grammaire/valeurs';
 import { LIBELLE_AU_LABEL, resoutEnEntree, SOURCES_DE_SPECS, type SourceDeSpecs } from './schemas/grammaire/sourcesDeSpecs';
 import { libelleDeValeur } from './schemas/grammaire/meta';
 import type { MerchantArchetypeDef } from './merchants.types';
@@ -168,7 +168,7 @@ import type { MutationData, MutationTable } from './mutations'; // type-only (é
 import type { DiseaseDef } from './schemas/defs/maladies';
 import type { PowerEstimateRow, MightModifierRow, WarMachineRow, StructureRow as MassBattleStructureRow, HazardRow } from '../engine/massBattle'; // type-only (le runtime de massBattle.ts importe ces tableaux d'ici)
 import { type DiceSpec, formatDice } from '../engine/dice';
-import type { Money } from '../engine/money'; // type-only (`Money` = SOURCE UNIQUE de la bourse, engine/money.ts)
+import { formuleDeMonnaie, type Money } from '../engine/money';
 import { sizeFromProfile, sizeFromTalents } from '../engine/size'; // runtime : registre feuille (data/sizes.json + engine/qualities/ids), sans cycle vers data/index
 import type { PregenDef } from './pregens'; // type-only (pregens.ts importe la donnée d'ici)
 import type { OupsRow } from './oups';
@@ -845,7 +845,7 @@ export interface CareerLevelData {
    *  `advancementLabel` (slotsOfLevel) ou structure. */
   skills: AdvancementRef[];
   talents: AdvancementRef[];
-  /** Possessions de niveau (`TrappingRef` : id catalogue + quantité « (3) », ou `{text}` flavor). */
+  /** Possessions de niveau (`TrappingRef`). */
   trappings: TrappingRef[];
   /** Caractéristiques de carrière (clés `CharKey` — « CT », « F »… ; pas de libellé, multilangue). */
   characteristics: CharKey[];
@@ -1404,7 +1404,7 @@ export interface CreatureData {
   /** Talents STRUCTURÉS (`TalentRef` par id stable + niveau/spécialisation). `talentRefLabel` les rend
    *  à l'affichage ; au spawn, `talentsFromBook` en fait des `TalentInstance` (`talentId` + `spec`). */
   talents: TalentRef[];
-  /** Possessions (`TrappingRef` : id catalogue + quantité, ou `{text}` narratif — « collection d'alcool »). */
+  /** Possessions (`TrappingRef`). */
   trappings: TrappingRef[];
   /** Sorts connus — ids de `spells.json`. */
   spells: string[];
@@ -3654,7 +3654,8 @@ export type CountSpec = { fixed: number } | { roll: DiceSpec };
 /** Référence à une Possession : par `id` du catalogue (+ quantité éventuelle), texte NARRATIF hors
  *  catalogue (statblocs de créature : « collection d'alcool sans pareille »), dotation de POSSESSION
  *  (`DotationDePossession`, véhicule ou bête — SOCLE POSSESSIONS #615/#617 §9, jamais un objet de sac),
- *  résolue DIRECTEMENT par son `type`, jamais par le foyer trappings — OU choix « A ou B »
+ *  résolue DIRECTEMENT par son `type`, jamais par le foyer trappings — OU somme d'argent (`Somme`) —
+ *  OU mention par nature (`DotationDeMention`) — OU choix « A ou B »
  *  (`choice`, RÉCURSIF, EN MIROIR d'`AdvancementRef`) — OU joker « n'importe quel <catégorie> »
  *  (`wildcard`, ex. `{wildcard:'arme'}`). `choice`/`wildcard` sont des EMPLACEMENTS, résolus par
  *  `resolveTrappingChoices` (`src/engine/trappingChoices.ts`) avant matérialisation ; non tranchés, ils
@@ -3663,15 +3664,29 @@ export type CountSpec = { fixed: number } | { roll: DiceSpec };
  *  ch.60 « Solide »/« Raffiné »/« Léger »/« Pratique ») ou un EMPLACEMENT « Atout au choix »
  *  (`qualityChoice: true`, « X de qualité ») — résolu par `resolveTrappingChoices` en `qualities`
  *  (#657 Lot 1, moteur fondation — matérialisé par `buildInventory`, `src/engine/items.ts`). */
-export type { DotationDePossession };
+export type { DotationDePossession, DotationDeMention, Somme };
 export type TrappingRef =
-  | (RefDesignee & { count?: CountSpec; qualities?: QualityRef[]; qualityChoice?: true })
+  | (RefDesignee & { count?: CountSpec; qualities?: QualityRef[]; qualityChoice?: true; valeur?: Somme })
   | { text: string; count?: CountSpec }
   | DotationDePossession
+  | Somme
+  | DotationDeMention
   | { choice: TrappingRef[] }
   | { wildcard: string };
-/** La dotation désigne-t-elle un OBJET du catalogue — ni possession, ni texte, ni emplacement ? */
+/** La dotation désigne-t-elle un OBJET du catalogue — ni possession, ni somme, ni mention, ni texte, ni emplacement ? */
 export const estDotationDObjet = (ref: TrappingRef): ref is Extract<TrappingRef, { id: string; type?: never }> => 'id' in ref && !('type' in ref);
+/** La dotation est-elle une somme d'argent ? */
+export const estDotationDArgent = (ref: TrappingRef): ref is Somme => 'monnaie' in ref;
+/** La dotation est-elle une mention ? */
+export const estMention = (ref: TrappingRef): ref is DotationDeMention => 'nature' in ref;
+/** Les mentions `xs` groupées par nature, dans l'ordre de `natureDeMentionSchema`, chaque groupe sous son libellé
+ *  (« Personnes ») ; une nature sans mention n'a pas de groupe. */
+export function mentionsParNature<M extends { nature: NatureDeMention }>(xs: readonly M[]): { nature: NatureDeMention; titre: string; mentions: M[] }[] {
+  return natureDeMentionSchema.options.flatMap((nature) => {
+    const mentions = xs.filter((m) => m.nature === nature);
+    return mentions.length ? [{ nature, titre: libelleDeValeur(natureDeMentionSchema, nature), mentions }] : [];
+  });
+}
 /** EMPLACEMENT d'avancement (espèce/carrière) : un espace de CHOIX, pas une instance résolue — la
  *  composition de la grammaire (`schemas/grammaire/avancement.ts`). Référence à spécialisation
  *  FACULTATIVE (`{id}`, `{id, spec}`, `{id, choix: true}` « Au choix », `{id, choix: [ids]}` choix
@@ -3910,20 +3925,27 @@ export function advancementBaseId(a: AdvancementRef): string | undefined {
 }
 /** Libellé d'affichage d'une `TrappingRef` : « Marteau », « Pamphlétaire (3) », « Chiffon (1d10) »,
  *  « Outils professionnels (Maréchal-ferrant) » (`spec`, rendue par `refLabel` comme toute autre
- *  `RefDesignee` — `LDB 08 l.1130`), texte narratif hors catalogue, choix « A ou B » (récursif), ou joker
+ *  `RefDesignee` — `LDB 08 l.1130`), « Bijoux valant 3d10 couronnes d'or » (`valeur`), somme d'argent
+ *  « 20 couronnes d'or », mention « Pamphlétaires (3) », texte narratif hors catalogue, choix « A ou B » (récursif), ou joker
  *  « Arme (au choix) ». SOURCE UNIQUE (Codex, créateur, marchand, inventaire). */
 export function trappingRefLabel(ref: TrappingRef): PlayerText {
   if ('choice' in ref) return ouListe(ref.choice.map(trappingRefLabel));
   if ('wildcard' in ref) return ref.wildcard === 'arme' ? t('ref.armeAuChoix') : t('ref.jokerAuChoix', { base: ref.wildcard });
+  if (estDotationDArgent(ref)) return dataLabel(libelleDeLaSomme(ref));
   const base = 'text' in ref
     ? ref.text
-    : !('type' in ref)
-      ? refLabel('trappings', ref)
-      : ref.type === 'vehicle'
-        ? dataLabel(findVehicleById(ref.id)?.label, ref.id)
-        : dataLabel(findCreatureById(ref.id)?.label, ref.id);
+    : estMention(ref)
+      ? ref.label
+      : !('type' in ref)
+        ? refLabel('trappings', ref)
+        : ref.type === 'vehicle'
+          ? dataLabel(findVehicleById(ref.id)?.label, ref.id)
+          : dataLabel(findCreatureById(ref.id)?.label, ref.id);
   const count = ref.count ? ('fixed' in ref.count ? ` (${ref.count.fixed})` : ` (${formatDice(ref.count.roll)})`) : '';
   if ('qualityChoice' in ref && ref.qualityChoice) return t('ref.qualiteAuChoix', { base: base + count });
   const quality = 'qualities' in ref && ref.qualities?.length ? ` (${ref.qualities.map(qualityRefLabel).join(', ')})` : '';
-  return dataLabel(base + count + quality);
+  const libelle = base + count + quality;
+  return 'valeur' in ref && ref.valeur ? t('ref.valant', { base: libelle, somme: libelleDeLaSomme(ref.valeur) }) : dataLabel(libelle);
 }
+/** La formule joueur d'une somme (« 3d10 pistoles d'argent », « 20 couronnes d'or »). */
+export const libelleDeLaSomme = (s: Somme): string => formuleDeMonnaie('fixed' in s.count ? { n: 0, sides: 0, plus: s.count.fixed } : s.count.roll, s.monnaie);

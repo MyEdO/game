@@ -11,7 +11,7 @@ import type { FormuleSansTirage } from '../../../engine/ops';
 import type { RegleOptionnelleId } from '../../../engine/policy';
 import type { Equipe } from '../../../engine/relations';
 import { z } from 'zod';
-import { parseStatus } from '../../../engine/money';
+import { parseStatus, type Money } from '../../../engine/money';
 import { parseDice, totalDuDe } from '../../../engine/dice';
 import { deDeLaTableTiree, facesDuDe, type PorteurDeDe } from '../../../engine/tables';
 import { messageDApparenceDObjet, findTrappingById } from '../../apparencesObjets';
@@ -763,6 +763,13 @@ export const weaponDamageSpecSchema = z.union([
 /** `Money` (`src/engine/money.ts:10`) — bourse à 3 dénominations, toutes CHIFFRÉES : la forme des
  *  CATALOGUES (`trappings`/`creatures`/`vehicles`/`crew-roles`/`mass-battle`), qui impriment un montant complet. */
 export const moneySchema = nommerChamps(z.strictObject({ gold: z.number(), silver: z.number(), brass: z.number() }), { gold: { label: "couronnes d’or" }, silver: { label: "pistoles d’argent" }, brass: { label: "sous de cuivre" } });
+
+/** La pièce d'une somme (`keyof Money`), ses libellés au pluriel. LDB 57 */
+export const monnaieSchema = enumNomme({ gold: 'couronnes d’or', silver: 'pistoles d’argent', brass: 'sous de cuivre' } satisfies Record<keyof Money, string>);
+
+/** La nature d'une mention (`DotationDeMention`), son libellé de rubrique. #4053 */
+export const natureDeMentionSchema = enumNomme({ personne: 'Personnes', immeuble: 'Lieux', titre: 'Titres et droits', intangible: 'Réputation et tempérament' });
+export type NatureDeMention = z.infer<typeof natureDeMentionSchema>;
 
 /** Montant PARTIEL authoré (coût d'un choix, mise minimale, octroi) — mêmes 3 dénominations, chacune
  *  facultative ; `toMoney` (`src/engine/money.ts`) normalise en `Money` plein les dénominations absentes. */

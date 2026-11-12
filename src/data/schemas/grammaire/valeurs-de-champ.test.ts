@@ -236,6 +236,8 @@ const NOMMES = [
   'carenage|evenementDeBord',
   // `cibleDeFeuilleSchema` (#3606 M2e) : la cible d'une feuille `ops` nommée par une chaîne.
   'groupe|heros|navire|membreAuHasard|target|caster',
+  // `natureDeMentionSchema` (`grammaire/valeurs.ts`, #4053) : la nature d'une mention de dotation.
+  'personne|immeuble|titre|intangible',
 ].sort();
 
 /**

@@ -151,10 +151,14 @@
     "age": 29,
     "sex": "M",
     "richesse": {
-      "n": 4,
-      "sides": 10
-    },
-    "monnaie": "brass"
+      "monnaie": "brass",
+      "count": {
+        "roll": {
+          "n": 4,
+          "sides": 10
+        }
+      }
+    }
   },
   {
     "id": "werner-murrmann",
@@ -311,10 +315,14 @@
     "age": 20,
     "sex": "M",
     "richesse": {
-      "n": 4,
-      "sides": 10
-    },
-    "monnaie": "brass"
+      "monnaie": "brass",
+      "count": {
+        "roll": {
+          "n": 4,
+          "sides": 10
+        }
+      }
+    }
   },
   {
     "id": "wanda-weltschmertz",
@@ -455,10 +463,14 @@
     "age": 24,
     "sex": "F",
     "richesse": {
-      "n": 6,
-      "sides": 10
-    },
-    "monnaie": "brass"
+      "monnaie": "brass",
+      "count": {
+        "roll": {
+          "n": 6,
+          "sides": 10
+        }
+      }
+    }
   },
   {
     "id": "johann-dassbut",
@@ -592,10 +604,14 @@
     "age": 35,
     "sex": "M",
     "richesse": {
-      "n": 1,
-      "sides": 10
-    },
-    "monnaie": "silver"
+      "monnaie": "silver",
+      "count": {
+        "roll": {
+          "n": 1,
+          "sides": 10
+        }
+      }
+    }
   },
   {
     "id": "malmir-giluviel",
@@ -750,10 +766,14 @@
     "age": 20,
     "sex": "M",
     "richesse": {
-      "n": 6,
-      "sides": 10
-    },
-    "monnaie": "brass"
+      "monnaie": "brass",
+      "count": {
+        "roll": {
+          "n": 6,
+          "sides": 10
+        }
+      }
+    }
   },
   {
     "id": "kirsten-krank",
@@ -904,10 +924,14 @@
     "age": 18,
     "sex": "F",
     "richesse": {
-      "n": 2,
-      "sides": 10
-    },
-    "monnaie": "brass"
+      "monnaie": "brass",
+      "count": {
+        "roll": {
+          "n": 2,
+          "sides": 10
+        }
+      }
+    }
   },
   {
     "id": "sigrid-sommerfeld",
@@ -1064,10 +1088,14 @@
     "age": 26,
     "sex": "F",
     "richesse": {
-      "n": 4,
-      "sides": 10
-    },
-    "monnaie": "brass"
+      "monnaie": "brass",
+      "count": {
+        "roll": {
+          "n": 4,
+          "sides": 10
+        }
+      }
+    }
   },
   {
     "id": "erina-eberhauer",
@@ -1233,10 +1261,14 @@
     "age": 24,
     "sex": "F",
     "richesse": {
-      "n": 5,
-      "sides": 10
-    },
-    "monnaie": "silver"
+      "monnaie": "silver",
+      "count": {
+        "roll": {
+          "n": 5,
+          "sides": 10
+        }
+      }
+    }
   },
   {
     "id": "golthog",
@@ -1367,10 +1399,14 @@
     "age": 39,
     "sex": "M",
     "richesse": {
-      "n": 4,
-      "sides": 10
-    },
-    "monnaie": "brass"
+      "monnaie": "brass",
+      "count": {
+        "roll": {
+          "n": 4,
+          "sides": 10
+        }
+      }
+    }
   },
   {
     "id": "erich-massenbach",
@@ -1521,10 +1557,14 @@
     "age": 21,
     "sex": "M",
     "richesse": {
-      "n": 3,
-      "sides": 10
-    },
-    "monnaie": "silver"
+      "monnaie": "silver",
+      "count": {
+        "roll": {
+          "n": 3,
+          "sides": 10
+        }
+      }
+    }
   },
   {
     "id": "jorunn-gromsdottir",
@@ -1688,10 +1728,14 @@
     "age": 97,
     "sex": "F",
     "richesse": {
-      "n": 1,
-      "sides": 10
-    },
-    "monnaie": "silver"
+      "monnaie": "silver",
+      "count": {
+        "roll": {
+          "n": 1,
+          "sides": 10
+        }
+      }
+    }
   },
   {
     "id": "lynathryn-chantenuit",
@@ -1848,10 +1892,14 @@
     "age": 295,
     "sex": "M",
     "richesse": {
-      "n": 8,
-      "sides": 10
-    },
-    "monnaie": "brass"
+      "monnaie": "brass",
+      "count": {
+        "roll": {
+          "n": 8,
+          "sides": 10
+        }
+      }
+    }
   },
   {
     "id": "theodosius-schreiber",
@@ -2007,10 +2055,14 @@
     "age": 29,
     "sex": "M",
     "richesse": {
-      "n": 2,
-      "sides": 10
-    },
-    "monnaie": "silver"
+      "monnaie": "silver",
+      "count": {
+        "roll": {
+          "n": 2,
+          "sides": 10
+        }
+      }
+    }
   },
   {
     "id": "vasya-ghorshkov",
@@ -2148,10 +2200,14 @@
     "age": 25,
     "sex": "M",
     "richesse": {
-      "n": 2,
-      "sides": 10
-    },
-    "monnaie": "silver"
+      "monnaie": "silver",
+      "count": {
+        "roll": {
+          "n": 2,
+          "sides": 10
+        }
+      }
+    }
   },
   {
     "id": "kistiane-brockdorf",
@@ -2304,9 +2360,13 @@
     "age": 29,
     "sex": "F",
     "richesse": {
-      "n": 3,
-      "sides": 10
-    },
-    "monnaie": "silver"
+      "monnaie": "silver",
+      "count": {
+        "roll": {
+          "n": 3,
+          "sides": 10
+        }
+      }
+    }
   }
 ]
