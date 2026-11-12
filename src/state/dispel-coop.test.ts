@@ -23,7 +23,7 @@ afterEach(() => {
 
 describe('Dissipation en coop — l’élection du porteur ne voyage JAMAIS', () => {
   it('CÂBLAGE : le substitut RÉELLEMENT posé par `transmettreLesIntentions` fait le même partage', () => {
-    // Pas de session (pas de relay) : `guest` est nul, donc la branche « envoyer » ne fait RIEN.
+    // L'envoi passé à `transmettreLesIntentions` est inerte, donc la branche « envoyer » ne fait RIEN.
     // C'est ce qui rend le partage visible sur l'arbre réel — l'élection agit, le geste de jeu non.
     table('invite', { e1: 2, e2: 1 });
     useGame.getState().transmettreLesIntentions(() => {});

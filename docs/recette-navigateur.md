@@ -1683,7 +1683,7 @@ suivant. Ce qui ressemble à « ça a marché puis c'est revenu en arrière » n
 ### Pièges coop
 
 - **Attendre la PROPAGATION avant d'asserter chez le pair** : la diffusion est throttlée (trailing
-  **~120 ms** + coalescing, `scheduleBroadcast`, `src/state/netFlow.ts`) et le trajet Worker s'y
+  **~120 ms** + coalescing, `diffuser`, `DIFFUSION_MS`, `src/hote/coop/salon.ts`) et le trajet Worker s'y
   ajoute. Après un geste côté A, poller la CONDITION attendue côté B (`waitFor`), jamais un délai fixe.
 - **Les deux `__wfrp` sont ÉTRANGERS** : un helper appelé sur la page hôte ne se voit sur la page
   invitée qu'après un snapshot. Toujours nommer la session dans le script (`hote` / `invite`).

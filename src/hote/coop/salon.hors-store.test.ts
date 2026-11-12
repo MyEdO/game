@@ -6,10 +6,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { BUFFER_MAX, GRACE_MS, cleDuJeton, creerLeSalon, type PortsDuSalon, type ReponseDuRelais, type Salon } from './salon';
 import { FakeSocket, portsDuTest } from './relay.testkit';
-import { PROTOCOL_VERSION, serializeMessage } from './protocol';
+import { PROTOCOL_VERSION, parseMessage, serializeMessage } from './protocol';
 import { ouvrirLeBanc, type Banc } from '../../noyau/banc.testkit';
-import { buildDeLaCoop } from '../../noyau/coop';
-import { initialNet } from '../../noyau/etat';
+import { appliquerLInstantane, buildDeLaCoop, instantaneDeLaCoop } from '../../noyau/coop';
+import { etatInitialDuJeu, initialNet } from '../../noyau/etat';
 import { t } from '../../i18n';
 
 const BASE = 'http://localhost:8787';
@@ -35,6 +35,14 @@ const instantanesAuSiege1 = (ws: FakeSocket) => ws.sent.flatMap((raw) => {
   const env = JSON.parse(raw) as { to?: number; data?: string; z?: string };
   const texte = env.data ?? env.z?.slice(2);
   return env.to === 1 && texte && (JSON.parse(texte) as { kind: string }).kind === 'snapshot' ? [texte] : [];
+});
+
+/** Les intentions que la socket de l'invité a envoyées. */
+const intentionsEmises = (ws: FakeSocket) => ws.sent.flatMap((raw) => {
+  const env = JSON.parse(raw) as { data?: string; z?: string };
+  const texte = env.data ?? env.z?.slice(2);
+  const m = texte ? parseMessage(texte) : null;
+  return m?.kind === 'intent' ? [m.action] : [];
 });
 
 let banc: Banc;
@@ -82,7 +90,7 @@ describe('salon — l’hôte', () => {
     expect([url.origin, url.pathname, url.searchParams.get('token')]).toEqual(['ws://localhost:8787', '/room/ABC234', 'HT']);
   });
 
-  it('coupure d’un invité : présence `away`, siège réservé GRACE_MS ; reprise avant la fin, rien ne ferme', async () => {
+  it('coupure d’un invité : présence `absent`, siège réservé GRACE_MS ; reprise avant la fin, rien ne ferme', async () => {
     const ws = await hoteAvecUnInvite();
     expect(banc.getState().net.presence[1]).toBe('present');
     ws.receive(JSON.stringify({ evt: 'gone', seat: 1 }));
@@ -117,6 +125,23 @@ describe('salon — l’hôte', () => {
   });
 });
 
+/** Un invité assis au siège 2 de la room `ABC234`, l'instantané reçu appliqué à son banc. */
+async function inviteAssis() {
+  salon = creerLeSalon(ports(banc, roomOuverte).p);
+  const joining = salon.rejoindre(banc.getState, (data) => banc.setState(appliquerLInstantane(data, banc.getState()).etat), 'ABC234', 'Anna');
+  const ws = FakeSocket.last!;
+  ws.open();
+  ws.receive(JSON.stringify({ evt: 'seated', seat: 2, token: 'TOK' }));
+  expect(await joining).toBeNull();
+  return ws;
+}
+
+/** La session de l'invité est finie : `net` initial, actions d'origine. */
+function finie() {
+  expect(banc.getState().net).toEqual(initialNet());
+  expect(banc.getState().marquerLesIndices, 'les actions d’origine ne sont pas restaurées').toBe(banc.actions.marquerLesIndices);
+}
+
 describe('salon — l’invité', () => {
   it('un code hors format est refusé sans connexion', async () => {
     salon = creerLeSalon(ports(banc, roomOuverte).p);
@@ -135,11 +160,40 @@ describe('salon — l’invité', () => {
     expect(FakeSocket.instances).toHaveLength(2);
     await vi.advanceTimersByTimeAsync(14_000);
     expect(await joining).toBe(t('coop.joinFailed'));
-    expect(banc.getState().net.mode).toBe('local');
+    finie();
     expect(FakeSocket.instances[1].closedWith).not.toBeNull();
     expect(vi.getTimerCount()).toBe(0);
     await vi.advanceTimersByTimeAsync(120_000);
     expect(FakeSocket.instances).toHaveLength(2);
+  });
+
+  it('premier instantané de l’hôte : appliqué, `net` invité au siège donné, l’action de l’allowlist part en intention', async () => {
+    const ws = await inviteAssis();
+    const hote = { ...etatInitialDuJeu(), gameTime: 4242, net: { ...initialNet(), mode: 'hote' as const, roomCode: 'ABC234' } };
+    ws.receive(JSON.stringify({ data: serializeMessage({ kind: 'hello', protocol: PROTOCOL_VERSION, build: buildDeLaCoop(), label: 'Hôte' }) }));
+    ws.receive(JSON.stringify({ data: serializeMessage({ kind: 'snapshot', data: JSON.parse(JSON.stringify(instantaneDeLaCoop(hote))) }) }));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(banc.getState().gameTime, 'l’instantané n’est pas appliqué').toBe(4242);
+    expect(banc.getState().net).toMatchObject({ mode: 'invite', mySeat: 2 });
+    banc.getState().marquerLesIndices([]);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(intentionsEmises(ws)).toEqual(['marquerLesIndices']);
+  });
+
+  it('fatal du relay une fois assis : la raison au journal, la session finie', async () => {
+    const ws = await inviteAssis();
+    ws.dropFromServer(4404, 'room inconnue');
+    expect(banc.getState().journal).toContain(t('coop.reason', { reason: 'room inconnue' }));
+    finie();
+  });
+
+  it('socket fermée une fois assis, sans reprise dans le délai de reconnexion : la session finie', async () => {
+    await inviteAssis();
+    for (let i = 0; i < 30 && banc.getState().net.mode === 'invite'; i++) {
+      FakeSocket.last!.dropFromServer();
+      await vi.advanceTimersByTimeAsync(10_000);
+    }
+    finie();
   });
 
   it('reprise : le jeton stocké de la room rejoint par token ; assis, le jeton reçu se stocke et l’enrobage se pose', async () => {

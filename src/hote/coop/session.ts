@@ -1,7 +1,7 @@
 /**
  * Session coop — modèle HÔTE-AUTORITAIRE sur Transport injecté (transports du relay en prod,
- * `transport.testkit.ts` en test). L'hôte est le SEUL à exécuter le store : les invités envoient des
- * intents, l'hôte les rejoue puis diffuse un snapshot d'état complet
+ * `transport.testkit.ts` en test). L'hôte seul applique les intents des sièges et diffuse l'état : les
+ * invités envoient des intents, l'hôte les rejoue puis diffuse un snapshot d'état complet
  * (mêmes données JSON-sûres que la sauvegarde — cf. spec coop §3). Les sièges sont attribués
  * par la room (Durable Object) et injectés via `addGuest`.
  *

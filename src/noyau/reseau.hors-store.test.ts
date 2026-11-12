@@ -14,6 +14,7 @@ import { tableDeDissipation } from './tableDeDissipation.testkit';
 import { applyEffects } from './combatEffects';
 import { affichés, narratif, hero as heroDesIndices, fixtureScene } from './monde/clues.fixture';
 import { initialNet, type NetState } from './etat';
+import { appliquerLInstantane, instantaneDeLaCoop } from './coop';
 import { t } from '../i18n';
 import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { spawnEnemy } from './monde/spawn';
@@ -26,6 +27,22 @@ function invite(porteurs: Record<string, number>, banc = ouvrirLeBanc()) {
   const espion = vi.fn();
   banc.getState().transmettreLesIntentions(espion);
   return { banc, espion };
+}
+
+/** Le nombre d'écritures de l'état depuis l'appel. */
+function compterLesEcritures(banc: Banc): () => number {
+  let n = 0;
+  banc.subscribe(() => { n++; });
+  return () => n;
+}
+const actionsDe = (banc: Banc) => new Map([...GUEST_INTENTS].map((nom) => [nom, (banc.getState() as unknown as Record<string, unknown>)[nom]]));
+/** Les actions de l'allowlist qui ne sont plus celles d'`origine`. */
+const enrobesRestants = (banc: Banc, origine: Map<string, unknown>) =>
+  [...origine].filter(([nom, fn]) => (banc.getState() as unknown as Record<string, unknown>)[nom] !== fn).map(([nom]) => nom);
+function enInvite(): Banc {
+  const banc = ouvrirLeBanc();
+  banc.setState({ net: { ...banc.getState().net, mode: 'invite', mySeat: 1 } });
+  return banc;
 }
 
 describe('transmettreLesIntentions — l’invité demande, l’hôte joue', () => {
@@ -65,18 +82,70 @@ describe('transmettreLesIntentions — l’invité demande, l’hôte joue', () 
     const actions = () => [...GUEST_INTENTS].map((nom) => [nom, (banc.getState() as unknown as Record<string, unknown>)[nom]] as const);
     const memes = (attendu: ReturnType<typeof actions>) => actions().forEach(([nom, fn], i) => expect(fn, nom).toBe(attendu[i][1]));
     const origine = actions();
+    const ecritures = compterLesEcritures(banc);
     banc.getState().restaurerLesIntentions();
+    expect(ecritures(), 'restaurer sans enrobage a écrit l’état').toBe(0);
     memes(origine);
     banc.setState({ net: { ...banc.getState().net, mode: 'invite', mySeat: 1 } });
     banc.getState().transmettreLesIntentions(vi.fn());
     expect(banc.getState().marquerLesIndices, 'l’enrobage n’est pas posé').not.toBe(banc.actions.marquerLesIndices);
     banc.getState().restaurerLesIntentions();
     memes(origine);
+    const apres = ecritures();
     banc.getState().restaurerLesIntentions();
+    expect(ecritures(), 'un second restaurer a écrit l’état').toBe(apres);
     memes(origine);
   });
 
-  it('e. en Auto-combat, le Destin que le tick résout pour le héros de l’invité part en intention', () => {
+  it('e. une seconde transmission est ignorée : même enrobage, aucune écriture, l’envoi part au premier `envoyer`', () => {
+    const banc = enInvite();
+    const origine = actionsDe(banc);
+    const premier = vi.fn();
+    const second = vi.fn();
+    banc.getState().transmettreLesIntentions(premier);
+    const enrobe = banc.getState().terminerLeTour;
+    const ecritures = compterLesEcritures(banc);
+    banc.getState().transmettreLesIntentions(second);
+    expect(ecritures(), 'la seconde transmission a écrit l’état').toBe(0);
+    expect(banc.getState().terminerLeTour, 'la seconde transmission a ré-enrobé').toBe(enrobe);
+    banc.getState().terminerLeTour();
+    expect(premier.mock.calls).toEqual([['terminerLeTour', []]]);
+    expect(second).not.toHaveBeenCalled();
+    banc.getState().restaurerLesIntentions();
+    expect(enrobesRestants(banc, origine)).toEqual([]);
+  });
+
+  it('f. une transmission après restauration ré-enrobe : l’envoi part au second `envoyer`', () => {
+    const banc = enInvite();
+    const origine = actionsDe(banc);
+    const premier = vi.fn();
+    const second = vi.fn();
+    banc.getState().transmettreLesIntentions(premier);
+    banc.getState().restaurerLesIntentions();
+    banc.getState().transmettreLesIntentions(second);
+    banc.getState().terminerLeTour();
+    expect(second.mock.calls).toEqual([['terminerLeTour', []]]);
+    expect(premier).not.toHaveBeenCalled();
+    banc.getState().restaurerLesIntentions();
+    expect(enrobesRestants(banc, origine)).toEqual([]);
+  });
+
+  it('g. un instantané appliqué entre transmission et restauration garde l’enrobage ; la restauration rend tout', () => {
+    const banc = ouvrirLeBanc();
+    banc.setState({ net: { ...banc.getState().net, mode: 'hote' } });
+    const instantane = JSON.parse(JSON.stringify(instantaneDeLaCoop(banc.getState()))) as Record<string, unknown>;
+    banc.setState({ net: { ...banc.getState().net, mode: 'invite', mySeat: 1 } });
+    const origine = actionsDe(banc);
+    const envoyer = vi.fn();
+    banc.getState().transmettreLesIntentions(envoyer);
+    banc.setState(appliquerLInstantane(instantane, banc.getState()).etat as never);
+    banc.getState().terminerLeTour();
+    expect(envoyer.mock.calls).toEqual([['terminerLeTour', []]]);
+    banc.getState().restaurerLesIntentions();
+    expect(enrobesRestants(banc, origine)).toEqual([]);
+  });
+
+  it('h. en Auto-combat, le Destin que le tick résout pour le héros de l’invité part en intention', () => {
     const { banc, espion } = invite({}, ouvrirLeBanc({ cadence: 'auto' }));
     banc.setState({ pendingFateSave: { heroId: 'h1', source: 'slow' } as never });
     banc.jusquA(() => espion.mock.calls.length > 0);

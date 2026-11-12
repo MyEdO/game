@@ -4,9 +4,9 @@
  * intention vers l'hôte (`emettreIntentInvite`). Les actions d'origine vivent dans la fermeture de la fabrique, jamais
  * dans l'état.
  */
-import type { Get, SetDesClesReservees } from './flowTypes';
+import type { Get, PatchDeFlux, Set } from './flowTypes';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
-import type { Jeu, NetState } from './etat';
+import type { NetState } from './etat';
 import { GUEST_INTENTS } from './intentionsDeSiege';
 import { refuserGesteDuSiege } from './refusVisible';
 import {
@@ -57,8 +57,8 @@ export function sanitizeIntentArgs(args: unknown[]): unknown[] {
   return out;
 }
 
-export function creerActionsDuReseau(get: Get, set: SetDesClesReservees) {
-  let originaux: Partial<Jeu> | null = null;
+export function creerActionsDuReseau(get: Get, set: Set) {
+  let originaux: PatchDeFlux | null = null;
   const poserLeReseau = (net: NetState) => {
     if (net !== get().net) set({ net });
   };
@@ -95,8 +95,8 @@ export function creerActionsDuReseau(get: Get, set: SetDesClesReservees) {
         enrobes[name] = (...args: unknown[]) =>
           emettreIntentInvite(get, name, local, (action, a) => envoyer(action, sanitizeIntentArgs(a)), args);
       }
-      originaux = sauves as Partial<Jeu>;
-      set(enrobes as Partial<Jeu>);
+      originaux = sauves as PatchDeFlux;
+      set(enrobes as PatchDeFlux);
     },
     restaurerLesIntentions: () => {
       if (!originaux) return;

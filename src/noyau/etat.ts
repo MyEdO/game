@@ -636,7 +636,7 @@ export interface EtatDeJeu {
   /** Combat de masse / Puissance de Bataille (ADE II 08) : état de la bataille abstraite en cours
    *  (Puissance des deux armées, Round, Scènes) — null hors bataille. */
   massBattle: MassBattleState | null;
-  /** Coop en ligne : état réseau sérialisable, écrit par `reseau.ts` ; les objets réseau vivants (sessions, sockets du
+  /** Coop en ligne : état réseau sérialisable ; les objets réseau vivants (sessions, sockets du
    *  relay) restent dans la fermeture du salon (`hote/coop/salon.ts`). */
   net: NetState;
   /** La fin de séance ouverte (`ouvrirLaFinDeSeance` : l'Effet `sessionEnd` #83, le menu de jeu, le récap de chapitre)

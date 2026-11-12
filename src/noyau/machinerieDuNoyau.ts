@@ -1,6 +1,6 @@
 /**
- * LA MACHINERIE DU NOYAU (#3370) : les écritures que le noyau, l'éditeur ou un test appellent, et qu'aucun siège n'envoie
- * ni aucun hôte ne joue. Elles ne sont pas des verbes (`ActionsDuNoyau`) : ni `Intention`, ni `VERBES`, ni
+ * LA MACHINERIE DU NOYAU (#3370) : les écritures que le noyau, l'éditeur, le salon de la coop (`hote/coop/salon.ts`) ou
+ * un test appellent, et qu'aucun siège n'envoie. Elles ne sont pas des verbes (`ActionsDuNoyau`) : ni `Intention`, ni `VERBES`, ni
  * `GesteDuNoyau` ne les nomment. Seul un `Get<JeuDuNoyau>` les atteint, celui des fabriques (`creerActionsDuNoyau`) et des
  * flux qui les appellent.
  */
