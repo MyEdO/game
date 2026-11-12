@@ -465,7 +465,9 @@ const DECLARATIONS_D_OPS = {
     difficulty: difficultySchema,
     ...cibleEtendueSchema.shape,
     chaqueNuit: z.lazy(() => flowSchema),
-  }), { op: { label: "opération"  }, crewTestType: { label: "Test d’équipage" , texte: { regime: "technique"} }, difficulty: { label: "difficulté" }, ...metaDesChamps(cibleEtendueSchema, { exigees: true }), chaqueNuit: { label: "chaque nuit" } }),
+    /** MDG 15 l.161, l.176 */
+    surDRNegatif: z.lazy(() => flowSchema).optional(),
+  }), { op: { label: "opération"  }, crewTestType: { label: "Test d’équipage" , texte: { regime: "technique"} }, difficulty: { label: "difficulté" }, ...metaDesChamps(cibleEtendueSchema, { exigees: true }), chaqueNuit: { label: "chaque nuit" }, surDRNegatif: { label: "sur une étape à DR négatif" } }),
   /** `combatEnMer` — MDG 15 l.136-139, l.142-143, l.165-168 */
   combatEnMer: nommerChamps(z.strictObject({
     op: z.literal('combatEnMer'),
@@ -480,7 +482,7 @@ const DECLARATIONS_D_OPS = {
   attaquesSubies: nommerChamps(z.strictObject({
     op: z.literal('attaquesSubies'),
     assaillant: nommerChamps(z.strictObject({ statblock: customStatblockSchema }), { statblock: { label: "profil personnalisé" } }),
-    nombre: deDeTirageSchema,
+    nombre: tirageSchema,
   }), { op: { label: "opération"  }, assaillant: { label: "assaillant" }, nombre: { label: "nombre d’attaques" , texte: { regime: "technique"} } }),
   /** `commission` — MDG 15 l.261 */
   commission: nommerChamps(z.strictObject({

@@ -4653,6 +4653,7 @@ export const fr = {
   'codex.op.combatEnMer.repousse': ', repoussé(s) à {pct} % de leurs Blessures de départ',
   'codex.op.combatEnMer.victoire': ' ; sur la victoire : {victoire}',
   'codex.op.infestation': 'infeste le navire jusqu’à {dr} DR cumulés au Test d’équipage étendu {test} ({difficulte}), un Test par jour en mer ; chaque nuit : {nuit}',
+  'codex.op.infestation.attaques': ' ; le soir d’une étape à DR négatif : {assaut}',
   'codex.op.equipage': 'change l’effectif de l’équipage de {delta}',
   'codex.op.perilDeMer.collision': 'le navire heurte : {peril}',
   'codex.op.perilDeMer.tourbillon': 'le navire est aspiré par : {tourbillon}',

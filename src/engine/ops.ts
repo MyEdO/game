@@ -15,7 +15,7 @@
  */
 import type { RegleOptionnelleId } from './policy';
 import type { FabriqueDId } from './fabriqueDId';
-import { RNG, roll, type DiceSpec, type EffetSigne, rollDice, totalDuDe } from './dice';
+import { RNG, roll, type DiceSpec, type EffetSigne, type Tirage, rollDice, totalDuDe } from './dice';
 import { bonus, effectiveChar, effectiveArmourAt, blessuresReconciliees } from './characteristics';
 import { LOCALISATIONS_DE_COUP } from './localisations';
 import { addCondition, addTimedCondition, addClockCondition, removeCondition, loseWounds, hasCondition, releaseConditionLocks, aUnVerrouLevePar, syncDerivedConditions, removeActiveEffects, pionsRetirables } from './conditions';
@@ -1285,17 +1285,17 @@ export type GameOp =
    *  il attaque. Op de NAVIRE. MDG 15 l.150-151, l.171-173 */
   | { op: 'navireHostile'; navire: { id: string }; equipage: { id: string; nombre: number }; chef?: { id: string }; grandsCanons?: number; exigence?: 'fouille' }
   /** INFESTATION du navire : jusqu'à ce que l'équipage cumule `drCible` DR au Test d'équipage étendu
-   *  `crewTestType` (`difficulty`, un Test par jour en mer), `chaqueNuit` se joue chaque nuit. Op de NAVIRE.
-   *  MDG 15 l.159-164, l.174-178 ; MDG 14 l.98-104 */
-  | { op: 'infestation'; crewTestType: { id: string }; difficulty: Difficulty; drCible: number; chaqueNuit: Flow }
+   *  `crewTestType` (`difficulty`, un Test par jour en mer), `chaqueNuit` se joue chaque nuit, et `surDRNegatif`
+   *  le soir d'une étape à DR négatif. Op de NAVIRE. MDG 15 l.159-164, l.174-178 ; MDG 14 l.98-104 */
+  | { op: 'infestation'; crewTestType: { id: string }; difficulty: Difficulty; drCible: number; chaqueNuit: Flow; surDRNegatif?: Flow }
   /** COMBAT EN MER contre `adversaire.nombre` créatures (Traits facultatifs `optionals` posés) sur le pont du
    *  navire ; chacune est repoussée à `repousseAPct` % de ses Blessures de départ ou moins, et `victoire` se joue
    *  quand le combat est gagné. Op de NAVIRE. MDG 15 l.136-139, l.142-143, l.165-168 */
   | { op: 'combatEnMer'; adversaire: { id: string; nombre: number; optionals?: TraitPose[] }; repousseAPct?: number; victoire?: Flow }
-  /** ATTAQUES SUBIES : la cible UNIQUE subit `nombre` (dé de tirage) attaques de l'`assaillant`, un statbloc (porteur
+  /** ATTAQUES SUBIES : la cible UNIQUE subit `nombre` (un Tirage) attaques de l'`assaillant`, un statbloc (porteur
    *  `statblock` de `PorteurDeFiche`). Résolue par l'effet de scène `ops` (`estOpDAttaquesSubies`). MDG 15 l.163-164,
    *  l.177-178 */
-  | { op: 'attaquesSubies'; assaillant: { statblock: CustomStatblock }; nombre: string }
+  | { op: 'attaquesSubies'; assaillant: { statblock: CustomStatblock }; nombre: Tirage }
   /** COMMISSION de transport : un port de destination est tiré au hasard parmi les ports de la carte hors l'escale ;
    *  à l'accostage dans ce port, la bourse du groupe reçoit `montant`. Op de NAVIRE. MDG 15 l.261 */
   | { op: 'commission'; montant: { brass: Formula } }

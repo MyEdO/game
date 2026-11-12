@@ -1485,7 +1485,13 @@ export function continueSeaDayAfterCascade(get: Get, set: Set, auPv: CascadeStep
   const sea = plan.sea;
 
   // MDG 15 l.160-161, l.175-176
-  const infestation = get().vessel?.infestation;
+  const vesselDuSoir = get().vessel;
+  const infestation = vesselDuSoir?.infestation;
+  if (vesselDuSoir && infestation?.assaillie) {
+    const { assaillie: _jouee, ...sansMarqueur } = infestation;
+    set({ vessel: { ...vesselDuSoir, infestation: sansMarqueur } });
+    if (infestation.surDRNegatif) jouerFlowEntier(runFlow(get, set, infestation.surDRNegatif, infestation.label));
+  }
   if (infestation) jouerFlowEntier(runFlow(get, set, infestation.chaqueNuit, infestation.label));
 
   // Eau douce (ch.13 l.209-213 + ch.14 l.242) : consommation par bande de Température × POPULATION EMBARQUÉE
@@ -2733,18 +2739,17 @@ export const TABLES = {
       if (!step.result) return;
       return { consequences: freeCons(resolveSeaCrisisRound(get, set, step.result.sl)) };
     },
-    /** Extermination des nuisibles (MDG 14 l.98-104) : Test étendu, 1d10 h par Test — cumul mutualisé
-     *  (`extendedTestStep`, #273 Étape 1 : consolidation arithmétique, cadence INCHANGÉE — un jet par jour). */
+    /** Extermination des nuisibles : MDG 14 l.98-104 ; MDG 15 l.161, l.176 */
     'equipage-extermination': (get, set, step) => {
       if (!step.result) return;
       const vessel = get().vessel;
       const inf = vessel?.infestation;
       if (!vessel || !inf) return;
       const rng = battleRng();
-      const { total: progres, done } = extendedTestStep(inf.progres, step.result, inf.drCible);
+      const { total: progres, done, sl } = extendedTestStep(inf.progres, step.result, inf.drCible);
       get().avancerLHorloge(rollDice(1, 10, rng) * 60); // « Chaque Test nécessite … 1d10 heures » (MDG 14 l.100)
       const { infestation: _exterminee, ...sansInfestation } = vessel;
-      set({ vessel: done ? sansInfestation : { ...vessel, infestation: { ...inf, progres } } });
+      set({ vessel: done ? sansInfestation : { ...vessel, infestation: { ...inf, progres, ...(sl < 0 ? { assaillie: true as const } : {}) } } });
       const j = [t(done ? 'sv.verminCleared' : 'sv.verminProgress', { label: inf.label, progress: progres, need: inf.drCible })];
       noteSeaLine(get, set, j);
       return { consequences: freeCons(j) };

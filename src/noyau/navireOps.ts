@@ -183,7 +183,7 @@ function appliquerOpDuNavire(get: Get, set: Set, coque: Combatant, o: OpDuNavire
     case 'infestation': {
       const vessel = garanti(get().vessel, o.op, 'navire de campagne de la coque visée');
       const label = nomDeSource(ctx);
-      set({ vessel: { ...vessel, infestation: { label, crewTestType: o.crewTestType.id, difficulty: o.difficulty, drCible: o.drCible, progres: 0, chaqueNuit: o.chaqueNuit } } });
+      set({ vessel: { ...vessel, infestation: { label, crewTestType: o.crewTestType.id, difficulty: o.difficulty, drCible: o.drCible, progres: 0, chaqueNuit: o.chaqueNuit, ...(o.surDRNegatif ? { surDRNegatif: o.surDRNegatif } : {}) } } });
       return [t('eff.infestation', { label, dr: o.drCible })];
     }
   }
