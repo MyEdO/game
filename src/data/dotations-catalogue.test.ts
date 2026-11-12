@@ -53,7 +53,6 @@ const EXCLUSIONS: readonly { texte: string; raison: string }[] = [
   { texte: 'Bijoux (50 CO)', raison: 'PRIX, pas une spécialisation (LDB 08 l.971 « bijoux valant 50 CO »)' },
   { texte: 'Bijoux (200 CO)', raison: 'PRIX' },
   { texte: 'Bijoux (500 CO)', raison: 'PRIX' },
-  { texte: 'Outils professionnels (Au choix)', raison: 'SENTINELLE d’emplacement non désigné (#1457)' },
 ];
 
 /** Toutes les dotations des deux datasets, branches `choice` comprises, avec leur porteur. */

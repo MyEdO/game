@@ -6,8 +6,8 @@ Annexe du skill `orchestrer-des-agents` (`.agents/skills/orchestrer-des-agents/S
 **7. Publication au fil de l’eau (#2626).** Le lot est l’unité de composition et de jugement ; chaque
 tête committée à CI verte se publie aussitôt par `npm run ops:publier -- --detache`, lot fini ou non.
 Commits intermédiaires `refs #N`, seul le solde clôt.
-- **Un travail suspendu hors PR** se pousse sur `wip/<N>-<sujet>`, avec un commentaire au ticket qui dit
-  où il est, ce qui est prouvé et ce qui reste, dans l'ordre.
+- **Un travail suspendu hors PR** se pousse sur `wip/<N>-<sujet>`, et son lot se rend au ticket (skill
+  `se-coordonner-entre-comptes`).
 - **Un lot = un chantier** (`npm run ops:chantier -- <N>`), même urgent pendant un train : jamais deux
   lots dans un worktree (fiche `user-doctrine-chantier-outille-sans-reinventer`). Une sonde non suivie sort de l'arbre avant `ops:publier`.
 - **Fusionner main seulement en CONFLIT, ou pour amener un fichier qu'une porte exige** (le train fusionne
