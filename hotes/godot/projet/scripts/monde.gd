@@ -240,7 +240,7 @@ func cacher_le_bati(toits_leves: Array, couronnes_abattues: Array, aretes_degage
 	volume.retirer_les_couronnes(couronnes_abattues)
 	_aretes_degagees.clear()
 	for a in aretes_degagees:
-		_aretes_degagees[a.cle] = a.abattueSous
+		_aretes_degagees[a.cle] = a.abattueSous.map(func(cran: Variant) -> int: return int(cran))
 	_abattre_les_aretes()
 
 
@@ -628,16 +628,18 @@ func _zoomer(sens: float) -> void:
 ## debout à son pied : la pièce
 ## `<famille>--<piece>` du kit des arêtes (`projet/kit/kit.glb`, assemblé par `hotes/godot/kit.mjs` depuis un pack
 ## modulaire CC0, `asset/kit.ts`), étirée à la longueur de l'arête et à la hauteur de son mur ; sans kit au projet ou
-## sans cette pièce au kit, une boîte : un mur, une porte fermée, le seuil d'une porte ouverte ou d'une brèche.
+## sans cette pièce au kit, une boîte : un mur, une porte fermée, le seuil d'une porte ouverte ou d'une brèche. Les
+## arêtes de même bloc (`bloc`), même pièce, même sens et même hauteur sont dessinées en un groupe d'instances.
 
 ## @contrat Vue
 ## Les nappes retirées (`plateau.toitsLeves`), les arêtes retirées (`plateau.aretesDegagees`) et les couronnes crénelées
 ## tombées avec leur mur abattu (`plateau.couronnesAbattues`), `Monde.cacher_le_bati` les cache à la caméra : les
 ## nappes, et chaque arête retirée sous le cran de la caméra (`MiseEnPage.rotation_iso`) avec sa couronne, revue à
-## chaque quart de tour, chacune en ombre seule (`SHADOWS_ONLY`, `VolumeDeScene._cacher_sous`), le regard ne changeant que ce
-## que voit la caméra, jamais l'éclairage : sous un toit levé, l'intérieur reste à l'ombre (recette
-## `projet/recettes/ombres-du-regard.gd`) ; une couronne abattue, tombée avec son mur, disparaît
-## (`VolumeDeScene.retirer_les_couronnes`), son ombre avec elle.
+## chaque quart de tour ; chaque nappe et chaque couronne en ombre seule (`SHADOWS_ONLY`, `VolumeDeScene._cacher_sous`),
+## chaque arête hors du compte visible des instances vues de son groupe, les instances en ombre seule du groupe
+## entières (`VolumeDeScene._ecrire_les_instances`). Le regard ne change que ce que voit la caméra, jamais l'éclairage :
+## sous un toit levé, l'intérieur reste à l'ombre (recette `projet/recettes/ombres-du-regard.gd`) ; une couronne
+## abattue, tombée avec son mur, disparaît (`VolumeDeScene.retirer_les_couronnes`), son ombre avec elle.
 
 ## @contrat Monde
 ## Le volume de la scène (`projet/scenes/VolumeDeScene.tscn`, `VolumeDeScene`, #3802), que le monde
