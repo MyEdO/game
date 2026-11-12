@@ -29,7 +29,7 @@ import type { RollBreakdown, ModLine } from '../engine/combat';
 import { battleRng } from './battleRng';
 import { rollOups } from '../engine/oups';
 import { touchActors, seaMagicContext, windsMagicModOf } from './combatOrParty';
-import { actorIn, inBattleId } from './monde/combatants';
+import { actorIn, inBattleId, porteurParId } from './monde/combatants';
 import { garanti } from '../lib/garanti';
 import {
   lancerLAttaque, lancerLIncantation, renoncerALIncantation, laisserPasserLeContreSort,
@@ -843,7 +843,7 @@ export const FLOWS = paresseux({
   defense: () => makeRollFlow<PendingDefense>({
     key: 'pendingDefense',
     rolled: (p) => !!p.result,
-    actor: (s, p) => actorIn(s, p.defenderId),
+    actor: (s, p) => porteurParId(s, p.defenderId),
     // Résolveur UNIQUE (`caps.forced`) : seul le jet du défenseur se (re)joue (`p.atk` figé).
     caps: {
       forced: true,
@@ -851,7 +851,7 @@ export const FLOWS = paresseux({
     die: {
       read: (p) => (p.def ? deDuJet(p.def) : null),
       write: (s, p, actor, _g, tr) => {
-        const att = actorIn(s, p.attackerId);
+        const att = porteurParId(s, p.attackerId);
         return att && actor ? { def: tr, result: finishDefenseResult(att, actor, p, tr, defenseDodgeMods(s, actor), sceneMetresPerTile(s.scene)) } : null;
       },
       // Test opposé : le défenseur forcé l'emporte avec au moins DR +1 (LDB 17 l.68) — sauf annulation
@@ -859,7 +859,7 @@ export const FLOWS = paresseux({
       floorSL: (p) => opposedForcedFloor(p.atk.sl, opposedForcingCancelled(p)),
     },
     resolve: (s, p, actor, _get, forced) => {
-      const attacker = actorIn(s, p.attackerId);
+      const attacker = porteurParId(s, p.attackerId);
       if (!attacker || !actor) return null;
       const mpt = sceneMetresPerTile(s.scene);
       if (forced) {
@@ -887,7 +887,7 @@ export const FLOWS = paresseux({
     bonus: {
       guard: (p) => !!p.result?.defenderDetail,
       derive: (s, p, actor) => {
-        const attacker = actorIn(s, p.attackerId);
+        const attacker = porteurParId(s, p.attackerId);
         if (!attacker) return null;
         const dd = p.result!.defenderDetail!;
         const def2 = bumpSL(hydrateTR(dd));
@@ -903,7 +903,7 @@ export const FLOWS = paresseux({
       skillOf: (_s, p) => ({ skill: p.mode === 'parade' ? { id: 'corps-a-corps' } : p.mode === 'esquive' ? { id: 'esquive' } : undefined }),
       current: (p) => (p.def ? { roll: p.def.roll, target: p.def.target } : null),
       evaluate: (s, p, actor, _get, tr) => {
-        const attacker = actorIn(s, p.attackerId); if (!attacker) return null;
+        const attacker = porteurParId(s, p.attackerId); if (!attacker) return null;
         // `tr.success` = issue RÉELLE du dé renversé (voir attack.reverse.evaluate — jamais forcé).
         const def2 = hydrateTR({ roll: tr.roll, ...cibleMesuree(p.def!), base: p.def!.base, success: tr.success, sl: tr.sl });
         return { patch: { def: def2, result: finishDefenseResult(attacker, actor, p, def2, defenseDodgeMods(s, actor), sceneMetresPerTile(s.scene)) }, issue: tr };

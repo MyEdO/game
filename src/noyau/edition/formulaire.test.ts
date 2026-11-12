@@ -490,9 +490,8 @@ describe('chaque feuille des formulaires tirés du schéma a un contrôle typé 
     expect(horsObjet.map((c) => saisies.get(`${c}<forme=0>`)), 'la variante hors objet se choisit parmi ses valeurs').toEqual(horsObjet.map(() => 'choix'));
   });
 
-  it('se saisissent encore en JSON EXACTEMENT : les valeurs d’un enjeu au catalogue, les rencontres d’une bataille rangée, et chaque op non typée', () => {
+  it('se saisissent encore en JSON EXACTEMENT : les rencontres d’une bataille rangée, et chaque op non typée', () => {
     expect([...saisies].filter(([, s]) => s === 'json').map(([c]) => c).sort()).toEqual([
-      'zone/crossTest/stake<forme=0>/values',
       'declencheur/flow<kind=do>/effect<type=startMassBattle>/battle/sceneEncounters',
       ...OPS_NON_TYPEES.map((op) => `zone/onCross/0<op=${op}>`),
     ].sort());

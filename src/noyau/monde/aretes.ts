@@ -10,7 +10,7 @@ import { walkNeighbors, type Pt } from './path';
 import { EYE_H, hauteurDeLOeil } from './iso';
 import { METRES_PER_LEVEL } from './relief';
 import { casesDeFace, heightAt, isWalkable, piedDeLArete, porteEnJeu, sceneMetresPerTile, structureIsDown, tuilesEffondreesSignature, wallEnds, wallIsOpen, type Scene, type WallSeg } from './scene';
-import { memoByRef } from './sceneMemo';
+import { memoByRef, memoByRefDeps } from './sceneMemo';
 import { hash32, hash32AuMillieme } from '../../data/hash';
 import { jsonCanonique } from '../../lib/jsonCanonique.mjs';
 import { spaceCellKey } from './volume/architectureVisibility';
@@ -275,6 +275,8 @@ const aretesEtEmpreinte = memoByRef((scene: Scene): { aretes: AreteDessinee[]; c
 /** Les arêtes dessinées de toutes les couches de `scene` hors des ponts de ses navires (`aretesEtEmpreinte`). */
 export const aretesDeLaScene = (scene: Scene): AreteDessinee[] => aretesEtEmpreinte(scene).aretes;
 
+const plateauRetenu = memoByRefDeps<Scene, PlateauDeLaScene>();
+
 /**
  * Le plateau d'une scène tel qu'un hôte le dessine sous le regard `regard` : ses dimensions, l'empreinte de ses arêtes
  * (`cleDesAretes`, `aretesDeLaScene`), son échelle métrique
@@ -285,9 +287,14 @@ export const aretesDeLaScene = (scene: Scene): AreteDessinee[] => aretesEtEmprei
  * : en tactique, celles qu'il dégage ; au plateau, toutes), les arêtes (`aretesDegagees` : en tactique, celles qu'il
  * dégage ; au plateau, celles des couches au-dessus de la sienne, sous tout cran) et le haut des navires
  * (`coupesDesNavires`, la hauteur de la coupe de chacun, `retraitDuRegard`) ; et les couronnes crénelées tombées
- * (`couronnesAbattues`).
+ * (`couronnesAbattues`). Retenu par scène, cases du groupe et regard (`memoByRefDeps`) : une vue relue sans que le
+ * groupe ni la scène aient changé rend le même plateau.
  */
 export function plateauDeLaScene(scene: Scene, allies: readonly Pt[], regard: Regard): PlateauDeLaScene {
+  return plateauRetenu(scene, [regard, ...allies.flatMap((a) => [a.x, a.y, a.z])], () => plateauDuRegard(scene, allies, regard));
+}
+
+function plateauDuRegard(scene: Scene, allies: readonly Pt[], regard: Regard): PlateauDeLaScene {
   const { w, h } = scene.dimensions;
   const { activeZ, couvercle, coupes } = retraitDuRegard(scene, allies, regard);
   const dessinees = aretesHorsDesNavires(scene);

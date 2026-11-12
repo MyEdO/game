@@ -635,6 +635,13 @@ describe('buildRoofs — masses de bâtiment (#823)', () => {
   });
 });
 
+describe('clearedSpace — l’espace dégagé d’un pas', () => {
+  it('redemandé sans que la scène ni les cases des alliés aient changé, l’espace est celui déjà résolu', () => {
+    const s = emptyScene('s', 4, 4);
+    expect(clearedSpace(s, [{ x: 1, y: 1 }])).toBe(clearedSpace(s, [{ x: 1, y: 1 }]));
+  });
+});
+
 describe('resolveMass / massRoomZoneIds — dérivation partagée (#823)', () => {
   it('résout le ridge par défaut au LONG axe, et le pitch en m/case (metresPerTile × tan(pitchDeg))', () => {
     const scene = emptyScene('scene-test', 10, 10);

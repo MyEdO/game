@@ -189,12 +189,13 @@ export function chargerLaSave(lue: SaveGame): SaveChargee {
   return { etat, regles: save.rules, retraits: rienDElague(retraits) ? null : retraits };
 }
 
-/** Pourquoi une save ne s'écrit pas : en combat (l'état tactique suspendu n'est pas un point de reprise sûr), ou
- *  demandée par un autre siège que celui de l'hôte (0, `NetState`), chez qui la save vit. */
+/** Pourquoi une save ne s'écrit pas : en combat ou pendant une série d'attaques subies (`serieSubie`) — l'état
+ *  tactique suspendu n'est pas un point de reprise sûr —, ou demandée par un autre siège que celui de l'hôte (0,
+ *  `NetState`), chez qui la save vit. */
 export type RefusDeSauvegarde = 'combat' | 'invite';
 
 /** La raison de ne pas écrire la save de `etat` à la demande du siège `siege`, `null` si elle s'écrit. */
-export function refusDeSauvegarde(etat: Pick<EtatDeJeu, 'battle'>, siege: number): RefusDeSauvegarde | null {
-  if (etat.battle) return 'combat';
+export function refusDeSauvegarde(etat: Pick<EtatDeJeu, 'battle' | 'serieSubie'>, siege: number): RefusDeSauvegarde | null {
+  if (etat.battle || etat.serieSubie) return 'combat';
   return siege === 0 ? null : 'invite';
 }
