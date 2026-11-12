@@ -8,7 +8,7 @@ import type { Flow } from '../data/schemas/defs-scenes/effets';
 
 const feuille = (on: 'target' | 'caster', text: string): Flow => ({ kind: 'effet', effet: { type: 'ops', on, ops: [{ op: 'narrative', text }] } });
 const VIDE: Flow = { kind: 'sequence', etapes: [] };
-const choix = (yes: Flow, no: Flow): Flow => ({ kind: 'choix', prompt: 'Choisir', oui: yes, non: no });
+const choix = (yes: Flow, no: Flow): Flow => ({ kind: 'choix', invite: 'Choisir', oui: yes, non: no });
 const test = (success: Flow, fail: Flow): Flow => ({ kind: 'test', test: { skill: { id: 'esquive' }, difficulty: 'intermediaire' }, reussite: success, echec: fail });
 
 describe('spellFlowFor', () => {

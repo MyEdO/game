@@ -85,7 +85,7 @@ export function journaliser(
   set: SetFn,
   lines: string[],
   kind: CombatEventKind = 'information',
-  opts?: { actorId?: string; extra?: CombatEvent[] },
+  opts?: { actorId?: string; targetId?: string; extra?: CombatEvent[] },
 ): void {
   const extra = opts?.extra ?? [];
   if (!lines.length && !extra.length) return;
@@ -95,7 +95,7 @@ export function journaliser(
     return;
   }
   const dites = fixedJetOpen(get()) ? lines.map(markFixedDie) : lines;
-  set({ battle: { ...b, log: [...b.log, ...evLines(dites, kind, opts?.actorId), ...extra] } });
+  set({ battle: { ...b, log: [...b.log, ...evLines(dites, kind, opts?.actorId, opts?.targetId), ...extra] } });
 }
 
 /**

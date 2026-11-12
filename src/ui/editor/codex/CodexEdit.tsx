@@ -167,7 +167,7 @@ function LignesFormatLivreField<T>(
 }
 
 /** Axes du PROFIL de manœuvre rendus par `ManeuverDefField` (selects/checkbox). */
-const MANEUVER_PROFILE_KEYS = ['kind', 'activation', 'advantageCost', 'advantageMode', 'stat', 'defense', 'targeting', 'range', 'blast', 'magic'];
+const MANEUVER_PROFILE_KEYS = ['kind', 'activation', 'coutEnAvantage', 'advantageMode', 'stat', 'defense', 'targeting', 'range', 'blast', 'magic'];
 
 /** Le document de la catégorie porte-t-il `alsoIn` (clé d'enveloppe, `CLES_ENVELOPPE` de `grammaire/document.ts`) ? */
 const porteAlsoIn = (categoryKey: string): boolean => {
@@ -917,7 +917,7 @@ function ManeuverDefField({ entry, edit }: { entry: Entry; edit: (key: string, v
             {optionsDe('maneuvers.json', 'activation').map(([v, l]) => <option key={v} value={v}>{l}</option>)}
           </select>
         </label>
-        <label className="dr">Coût d’Avantage<NumberField variant="nu" label="Coût d’Avantage" min={0} value={m.advantageCost ?? 0} onChange={(n) => edit('advantageCost', n)} /></label>
+        <label className="dr">Coût d’Avantage<NumberField variant="nu" label="Coût d’Avantage" min={0} value={m.coutEnAvantage ?? 0} onChange={(n) => edit('coutEnAvantage', n)} /></label>
         <label className="dr">Avantage
           <select value={m.advantageMode ?? 'fixed'} onChange={(e) => edit('advantageMode', e.target.value === 'fixed' ? undefined : (e.target.value as ManeuverDef['advantageMode']))}>
             {optionsDe('maneuvers.json', 'advantageMode').map(([v, l]) => <option key={v} value={v}>{l}</option>)}
