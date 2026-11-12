@@ -4,7 +4,8 @@
 ## instance vue sans ombre portée, habillée du shader de monde (`art/monde.gdshader`), et une instance en ombre seule du
 ## même maillage, dans une matière standard, une surface par matière, texturée ou colorée par sommet, rendue des deux
 ## côtés hors des surfaces d'un navire, la mer de chaque navire bordée par sa coque (`border_la_mer`) ; ce que le regard
-## en retire, masqué case par case dans le shader sans toucher ni aux maillages ni à leur ombre (`retirer`) ; les nappes
+## en retire, masqué case par case dans le shader sans toucher ni aux maillages ni à leur ombre (`retirer`) ; ce que le
+## groupe en voit, voilé de même case par case et fondu d'une vision à la suivante (`voir`) ; les nappes
 ## de toit et les couronnes crénelées des murs, dans des matières standard, réconciliées de même par clé et empreinte ;
 ## les arêtes de la scène, en unités de plateau, chacune la pièce du kit des arêtes (`KIT`) que l'arête nomme, sinon sa
 ## boîte, en groupes d'instances (`poser_les_aretes`) ; et ce que qui l'instancie en cache à la caméra (`cacher`) ou en
@@ -16,6 +17,8 @@ extends Node3D
 const NETTETE_DU_MOTIF := 4.0
 ## Le kit des arêtes (`CONTRAT.md`, méthode `aretes`) : une pièce par nœud racine, `<famille>--<pièce>`.
 const KIT := "res://kit/kit.glb"
+## La durée, en secondes, du fondu d'une vision posée à la suivante (`voir`).
+const DUREE_DU_FONDU_S := 0.3
 
 ## Ce qui se pose sur une arête dont le kit n'a pas la pièce, ou sans kit au projet : un mur, une porte fermée, le seuil
 ## d'une porte ouverte ou d'une brèche.
@@ -51,6 +54,17 @@ var _matieres_entieres := {}
 ## Le masque posé (`retirer`), en image et en texture, `null` sans retrait.
 var _masque: Image = null
 var _retrait: ImageTexture = null
+## La vision posée (`voir`) en image, `null` sans vision ; ses textures, celle d'où le fondu part et celle où il va, et
+## ce qui se lie avec elles au shader de monde : la part du fondu et les teintes (inconnue, explorée, vue) ; la
+## dernière vision reçue pendant un fondu, qui attend sa fin, `null` sinon.
+var _vision: Image = null
+var _vision_avant: ImageTexture = null
+var _vision_neuve: ImageTexture = null
+var _part_du_fondu := 1.0
+var _teintes := Vector3.ONE
+## Les rangées d'un plan de la vision posée (`rangeesParPlan`), un plan par couche : la hauteur `h`, en cases.
+var _rangees_par_plan := 1
+var _vision_en_attente: Variant = null
 ## Le kit des arêtes, hors de l'arbre, `null` sans kit au projet.
 var _kit: Node3D
 ## Les clés des arêtes cachées à la caméra (`cacher`), indexées (`aretes`, chaque clé à `true`), et celles des nappes
@@ -84,7 +98,8 @@ func manquants(monde: Dictionary) -> Dictionary:
 ## la case (0, 0) du plateau, ses morceaux, ses nappes de toit et ses couronnes réconciliés par clé (`reconcilier`) : un
 ## posé dont l'empreinte n'a pas bougé reste, un reçu (`recus`, la réponse de `morceaux` : `{ volume, toits, couronnes }`)
 ## se pose à la place, une clé partie du manifeste quitte l'arbre. Chaque morceau (`_morceau`) et chaque nappe
-## (`_nappe`) cachés si `cacher` les nomme, chaque couronne retirée si `retirer_les_couronnes` la nomme.
+## (`_nappe`) cachés si `cacher` les nomme, chaque couronne retirée si `retirer_les_couronnes` la nomme ; la vision posée
+## (`voir`) liée à l'échelle du volume.
 func poser(monde: Dictionary, recus: Dictionary) -> void:
 	metres_par_case = monde.monde.metresParCase
 	var echelle := MiseEnPage.echelle_metrique(monde.monde.metresParCase)
@@ -93,6 +108,7 @@ func poser(monde: Dictionary, recus: Dictionary) -> void:
 	reconcilier(_morceaux, monde.monde.morceaux, par_cle(recus.volume), _morceau)
 	reconcilier(_toits, monde.toits, par_cle(recus.toits), _nappe)
 	reconcilier(_couronnes, monde.couronnes, par_cle(recus.couronnes), _nappe)
+	_lier_la_vision()
 	_montrer_le_pose()
 
 
@@ -109,6 +125,87 @@ func retirer(retrait: Variant) -> void:
 ## Si le masque posé (`retirer`) retire la case `case` du plan de première rangée `rangee` (`MorceauDuMonde.rangee`).
 func retiree(case: Vector2i, rangee: int) -> bool:
 	return _masque != null and _masque.get_pixelv(MiseEnPage.texel_du_masque(case, rangee)).r8 != 0
+
+
+## La vision du groupe (`vision`, `CONTRAT.md`, section « Monde », `VisionDuMonde` : `{ masque, largeur, rangees,
+## rangeesParPlan, teintes }`) en texture d'un octet par case, liée à chaque matière des morceaux avec ses teintes et
+## les rangées d'un plan : le shader de monde en voile chaque fragment ; `null`, rien n'est voilé. La première vision,
+## ou une vision d'une autre taille, se pose sans fondu ; une autre se fond depuis celle d'avant en `DUREE_DU_FONDU_S`
+## (`avancer_le_fondu`), et une vision reçue pendant un fondu attend sa fin, à la place de celle qui attendait. Ni nœud
+## ni maillage ne change.
+func voir(vision: Variant) -> void:
+	if vision == null:
+		_vision = null
+		_vision_avant = null
+		_vision_neuve = null
+		_part_du_fondu = 1.0
+		_teintes = Vector3.ONE
+		_vision_en_attente = null
+		_lier_la_vision()
+		return
+	if _part_du_fondu != 1.0:
+		_vision_en_attente = vision
+		return
+	var image := Image.create_from_data(int(vision.largeur), int(vision.rangees), false, Image.FORMAT_R8, Marshalls.base64_to_raw(vision.masque))
+	var neuve := ImageTexture.create_from_image(image)
+	var fondue := _vision != null and _vision.get_size() == image.get_size()
+	_vision_avant = _vision_neuve if fondue else neuve
+	_part_du_fondu = 0.0 if fondue else 1.0
+	_vision = image
+	_vision_neuve = neuve
+	_teintes = Vector3(vision.teintes.unknown, vision.teintes.explored, vision.teintes.visible)
+	_rangees_par_plan = int(vision.rangeesParPlan)
+	_lier_la_vision()
+
+
+## L'octet (0 inconnue, 128 explorée, 255 vue) de la case `case` de la couche d'indice `couche` dans la vision posée
+## (`voir`).
+func etat_de_la_case(case: Vector2i, couche: int) -> int:
+	return _vision.get_pixelv(MiseEnPage.texel_de_vision(case, couche, _rangees_par_plan)).r8
+
+
+## La part, de 0 à 1, du fondu de la vision d'avant à la vision posée (`voir`) : 1, aucun fondu en cours.
+func part_du_fondu() -> float:
+	return _part_du_fondu
+
+
+## La vision reçue pendant un fondu, qui attend sa fin (`voir`), `null` sinon.
+func vision_en_attente() -> Variant:
+	return _vision_en_attente
+
+
+func _process(secondes: float) -> void:
+	avancer_le_fondu(secondes)
+
+
+## Le fondu de la vision (`voir`) avancé de `secondes` secondes, que `_process` avance à chaque image ; parvenu à sa fin,
+## la vision qui attend se pose.
+func avancer_le_fondu(secondes: float) -> void:
+	if _part_du_fondu == 1.0:
+		return
+	_part_du_fondu = MiseEnPage.part_du_fondu(_part_du_fondu, secondes, DUREE_DU_FONDU_S)
+	for matiere: ShaderMaterial in _matieres_masquees.values():
+		matiere.set_shader_parameter("vision_fondu", _part_du_fondu)
+	if _part_du_fondu == 1.0 and _vision_en_attente != null:
+		var attendue: Variant = _vision_en_attente
+		_vision_en_attente = null
+		voir(attendue)
+
+
+## La vision posée (`voir`) liée à chaque matière des morceaux (`_lier_la_vision_a`).
+func _lier_la_vision() -> void:
+	for matiere: ShaderMaterial in _matieres_masquees.values():
+		_lier_la_vision_a(matiere)
+
+
+## La vision posée (`voir`) liée à la matière `matiere` du shader de monde, à l'échelle du volume posé (`poser`).
+func _lier_la_vision_a(matiere: ShaderMaterial) -> void:
+	matiere.set_shader_parameter("vision_avant", _vision_avant)
+	matiere.set_shader_parameter("vision", _vision_neuve)
+	matiere.set_shader_parameter("vision_fondu", _part_du_fondu)
+	matiere.set_shader_parameter("vision_teintes", _teintes)
+	matiere.set_shader_parameter("vision_rangees_par_plan", _rangees_par_plan)
+	matiere.set_shader_parameter("vision_cases_par_metre", MiseEnPage.echelle_metrique(metres_par_case))
 
 
 ## Rien de posé : ni morceau, ni nappe, ni arête.
@@ -363,7 +460,8 @@ func _retournes(tableau: Variant) -> Variant:
 
 ## La matière de rendu des surfaces de la matière `nom` (`<domaine>--<id>`, `CONTRAT.md`, section « Monde ») :
 ## texturée (`texturer`) si sa texture est au projet, sinon la couleur de ses sommets. Celle d'un morceau (`masquee`),
-## du shader de monde, est la sienne, liée au masque posé (`retirer`) ; celle d'une nappe, standard, jamais masquée.
+## du shader de monde, est la sienne, liée au masque posé (`retirer`) et à la vision posée (`voir`) ; celle d'une nappe,
+## standard, jamais masquée.
 func _matiere(nom: String, masquee: bool) -> Material:
 	var matieres := _matieres_masquees if masquee else _matieres_entieres
 	if not matieres.has(nom):
@@ -373,6 +471,7 @@ func _matiere(nom: String, masquee: bool) -> Material:
 		texturer(matiere, nom)
 		if masquee:
 			matiere.set_shader_parameter("retrait", _retrait)
+			_lier_la_vision_a(matiere as ShaderMaterial)
 		matieres[nom] = matiere
 	return matieres[nom]
 

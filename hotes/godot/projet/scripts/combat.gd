@@ -3,7 +3,9 @@
 ## sans paramètre `scenario`, le scénario que le joueur choisit au panneau des scénarios (`scenarios`), pose au plateau le monde de sa scène (son manifeste,
 ## `monde`, et les seuls morceaux dont l'empreinte a bougé, `morceaux`), à nouveau chaque fois que la partie change de
 ## scène (`vue.projection.scene`) ou que sa clé change (`plateau.cleDuMonde`), ce que le regard en retire (`retrait`), à
-## nouveau chaque fois que l'empreinte du masque change (`plateau.cleDuRetrait`), et ses arêtes (`aretes`), à nouveau
+## nouveau chaque fois que l'empreinte du masque change (`plateau.cleDuRetrait`), ce que le groupe en connaît
+## (`vision`, `VolumeDeScene.voir`), à nouveau chaque fois que sa clé change (`vue.vision`), la première vision d'une
+## scène posée sans fondu depuis celle de la scène d'avant, et ses arêtes (`aretes`), à nouveau
 ## chaque fois que leur empreinte change (`plateau.cleDesAretes`), et applique chaque suite. La vue va au plateau, sa lumière (`vue.lumiere`) à la `Lumiere` du monde, sa musique (`vue.musique`) à la `Musique` ; la fenêtre prend la disposition que la vue nomme (`vue.disposition`,
 ## `Disposition`) ; chaque zone de l'écran (`Zone.racines`, scène `Ecran` sans script) reçoit les éléments de sa source
 ## qui lui reviennent (`Zone.montrer_toutes` : `vue.zones`, et ce que la suite ajoute, `zones` : les lignes du journal) ;
@@ -68,6 +70,8 @@ var _musique := Musique.new()
 var _cle_du_monde := ""
 ## La scène et l'empreinte du masque du retrait posé au volume (`plateau.cleDuRetrait`), vide avant le premier.
 var _cle_du_retrait := ""
+## La scène et la clé de la vision posée au volume (`vue.vision`), vide avant la première.
+var _cle_de_la_vision := ""
 ## La scène et l'empreinte des arêtes posées au plateau (`plateau.cleDesAretes`), vide avant les premières.
 var _cle_des_aretes := ""
 var _zones: Array[Zone] = []
@@ -138,6 +142,7 @@ func _suivre(reponse: Dictionary) -> void:
 	_refus.text = ""
 	_poser_le_monde_de(_vue.projection.scene, _vue.plateau)
 	_poser_le_retrait_de(_vue.projection.scene, _vue.plateau)
+	_poser_la_vision_de(_vue.projection.scene, _vue.vision)
 	_poser_les_aretes_de(_vue.projection.scene, _vue.plateau)
 	_plateau.montrer(_vue)
 	_plateau.jouer_les_effets(reponse.effets)
@@ -176,27 +181,36 @@ func _poser_le_monde_de(scene: Variant, plateau: Variant) -> void:
 ## Ce que le regard de la partie retire du volume du monde (`retrait`) masqué au volume (`VolumeDeScene.retirer`), si le
 ## masque de son empreinte (`plateau.cleDuRetrait`) n'y est pas déjà.
 func _poser_le_retrait_de(scene: Variant, plateau: Variant) -> void:
-	var cle := "" if scene == null or plateau == null else "%s|%s" % [scene.id, plateau.cleDuRetrait]
-	if cle == _cle_du_retrait:
-		return
-	_cle_du_retrait = cle
-	if scene == null or plateau == null:
-		return
-	var reponse := _pont.appeler("retrait")
-	if reponse.get("ok") == true:
-		_monde.volume.retirer(reponse)
+	_cle_du_retrait = _reposer(_cle_du_retrait, scene, null if plateau == null else plateau.cleDuRetrait, "retrait", _monde.volume.retirer)
+
+
+## Ce que le groupe connaît de la scène `scene` (`vision`) voilé au volume (`VolumeDeScene.voir`), si la vision de sa clé
+## (`vue.vision`) n'y est pas déjà ; la première d'une scène posée sans fondu, la vision de la scène d'avant levée.
+func _poser_la_vision_de(scene: Variant, vision: Variant) -> void:
+	var avant := _cle_de_la_vision
+	_cle_de_la_vision = _reposer(avant, scene, vision, "vision", func(reponse: Dictionary) -> void:
+		if not avant.begins_with("%s|" % scene.id):
+			_monde.volume.voir(null)
+		_monde.volume.voir(reponse))
+
+
+## La réponse de la méthode `methode` du pont posée par `poser`, si l'empreinte `empreinte` de la scène `scene` n'est pas
+## celle de la clé `cle` déjà posée : rend la clé `scène|empreinte` de ce qui est posé, `""` sans scène ni empreinte,
+## sans rien demander.
+func _reposer(cle: String, scene: Variant, empreinte: Variant, methode: String, poser: Callable) -> String:
+	var neuve := "" if scene == null or empreinte == null else "%s|%s" % [scene.id, empreinte]
+	if neuve != cle and neuve != "":
+		var reponse := _pont.appeler(methode)
+		if reponse.get("ok") == true:
+			poser.call(reponse)
+	return neuve
 
 
 ## Les arêtes de la scène `scene` (`aretes`) sur le volume du monde (`VolumeDeScene.poser_les_aretes`), si celles de
 ## leur empreinte (`plateau.cleDesAretes`) n'y sont pas déjà.
 func _poser_les_aretes_de(scene: Variant, plateau: Variant) -> void:
-	var cle := "" if scene == null or plateau == null else "%s|%s" % [scene.id, plateau.cleDesAretes]
-	if cle == _cle_des_aretes:
-		return
-	_cle_des_aretes = cle
-	var reponse := _pont.appeler("aretes")
-	if reponse.get("ok") == true:
-		_monde.volume.poser_les_aretes(reponse.aretes)
+	_cle_des_aretes = _reposer(_cle_des_aretes, scene, null if plateau == null else plateau.cleDesAretes, "aretes", func(reponse: Dictionary) -> void:
+		_monde.volume.poser_les_aretes(reponse.aretes))
 
 
 ## La bulle de l'aperçu suit sa case à l'écran, la caméra tournée ou zoomée.

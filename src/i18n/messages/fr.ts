@@ -1959,6 +1959,10 @@ export const fr = {
   'fx.rate': 'Raté',
   'fx.incantationRatee': 'Incantation ratée',
   'fx.etatCumule': '{etat} {n}',
+  // Le nom d'un porteur hors de la vue du groupe (`noyau/visionDuGroupe.ts`).
+  'vision.horsDeVue': 'Inconnu',
+  // La fiche refusée d'un combattant hors de la vue du groupe (`hotes/godot/pont/pont.ts`, `fiche`).
+  'vision.ficheHorsDeVue': 'le groupe ne voit pas ce combattant',
   'cf.composanteDegradee': "{name} : le composant dégrade l'Incantation Imparfaite (Majeure → Mineure).",
   // #1318 V8c₂ — les DEUX lignes de `combatFlow.ts` que la 7ᵉ forme du garde (`return [ … ]`) a
   // révélées : le fichier était déclaré MIGRÉ, son invariant ZÉRO ne les voyait pas.

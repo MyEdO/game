@@ -2,7 +2,8 @@
 ## résout : chaque coup part de l'attaquant (sa phase de départ), son projectile vole jusqu'à la cible le temps et sur la
 ## cloche de son `trajet`, puis sa phase d'arrivée joue sur la cible ; chaque incantation joue son départ au lanceur,
 ## puis, réussie, son arrivée sur sa cible ; chaque zone (#3783) joue son départ à son auteur, son jet jusqu'au centre,
-## puis sa nappe sur chacune de ses cases et son son au centre ; chaque son joue partout, autant de fois que l'effet le
+## puis sa nappe sur chacune de ses cases et son son au centre ; sans auteur (`de` nul), seules l'arrivée ou la nappe
+## jouent ; chaque son joue partout, autant de fois que l'effet le
 ## dit (les pas d'un déplacement, #3825). Les flottants d'un coup ou d'une incantation montent de sa cible à son arrivée,
 ## l'un après l'autre ; un flottant seul monte de son combattant ou de sa case. Une phase dessine son visuel, la scène
 ## de son id sous `res://effets/visuels/` (`eclater`), et joue son son, une de ses variantes à son tour
@@ -18,8 +19,10 @@ extends Node3D
 ## (`res://effets/visuels/<visuel>.tscn`), teinte de la couleur de l'effet, au point de sa phase ; chaque projectile,
 ## celle de son id sous `res://effets/projectiles/` ; chaque son joue en 3D à son point. Au départ d'un coup ou d'une
 ## incantation, l'auteur se tourne vers sa cible et joue son clip d'attaque ; à l'arrivée d'un coup qui touche, la cible
-## accuse le coup. La recette `projet/recettes/effets.gd` les vérifie, et `projet/recettes/chemin-du-groupe.gd` le
-## parcours d'un déplacement.
+## accuse le coup. Un coup, une incantation ou une zone sans auteur (`de` nul) n'a ni départ ni trajet : son arrivée ou
+## sa nappe joue seule, et personne ne s'anime à son départ. La recette `projet/recettes/effets.gd` les vérifie,
+## `projet/recettes/chemin-du-groupe.gd` le parcours d'un déplacement, et `projet/recettes/vision-du-combat.gd` l'effet
+## sans auteur.
 
 ## Un coup, une incantation ou une zone part de son auteur `de` (son id), vers le point au sol `vers`.
 signal depart(de: String, vers: Vector3)
@@ -107,53 +110,54 @@ func _point(sol: Vector3) -> Vector3:
 	return MiseEnPage.point_du_coup(sol, _metres_par_case)
 
 
+## Le coup `effet` : son départ (`_partir`), puis son arrivée et ses flottants sur sa cible.
 func _coup(effet: Dictionary, lieux: Dictionary) -> void:
-	depart.emit(effet.de, lieux[effet.vers])
-	var de := _point(lieux[effet.de])
-	var vers := _point(lieux[effet.vers])
+	var sol: Vector3 = lieux[effet.vers]
 	var teinte := Color(effet.couleur)
-	_phase(effet.depart, de, teinte)
-	if effet.trajet != null:
-		await _voler(effet.trajet, de, vers, teinte)
-	else:
-		await get_tree().create_timer(ELAN_S).timeout
-	_phase(effet.arrivee, vers, teinte)
-	_flotter(effet.flottants, lieux[effet.vers])
+	await _partir(effet, lieux, sol, teinte)
+	_phase(effet.arrivee, _point(sol), teinte)
+	_flotter(effet.flottants, sol)
 	arrivee.emit(effet.vers, effet.issue == "touche" or effet.issue == "critique")
 
 
+## L'incantation `effet` : son départ au lanceur (`_partir`), puis son arrivée et ses flottants sur sa cible.
 func _incantation(effet: Dictionary, lieux: Dictionary) -> void:
-	depart.emit(effet.de, lieux[effet.vers])
-	var de := _point(lieux[effet.de])
-	var vers := _point(lieux[effet.vers])
+	var sol: Vector3 = lieux[effet.vers]
 	var teinte := Color(effet.couleur)
-	_phase(effet.depart, de, teinte)
-	await get_tree().create_timer(ELAN_S).timeout
-	_phase(effet.arrivee, vers, teinte)
-	_flotter(effet.flottants, lieux[effet.vers])
+	await _partir(effet, lieux, sol, teinte)
+	_phase(effet.arrivee, _point(sol), teinte)
+	_flotter(effet.flottants, sol)
 	arrivee.emit(effet.vers, false)
 
 
-## La zone `effet` : son départ à son auteur, qui se tourne vers son centre, son jet jusqu'au centre (aucun : un élan),
-## puis sa nappe, son visuel sur chaque case et son son au centre.
+## La zone `effet` : son départ vers son centre (`_partir`), puis sa nappe, son visuel sur chaque case et son son au
+## centre.
 func _zone(effet: Dictionary, lieux: Dictionary) -> void:
 	var teinte := Color(effet.couleur)
 	var sol_du_centre: Vector3 = lieux[cle_de_case(effet.centre)]
-	depart.emit(effet.de, sol_du_centre)
-	var de := _point(lieux[effet.de])
-	var centre := _point(sol_du_centre)
-	_phase(effet.depart, de, teinte)
-	if effet.trajet != null:
-		await _voler(effet.trajet, de, centre, teinte)
-	else:
-		await get_tree().create_timer(ELAN_S).timeout
+	await _partir(effet, lieux, sol_du_centre, teinte)
 	if effet.nappe == null:
 		return
 	if effet.nappe.visuel != null:
 		for case: Dictionary in effet.cases:
 			eclater(effet.nappe.visuel, lieux[cle_de_case(case)], teinte)
 	if effet.nappe.son != null:
-		_jouer_le_son(effet.nappe.son, centre)
+		_jouer_le_son(effet.nappe.son, _point(sol_du_centre))
+
+
+## Le départ de `effet` (un coup, une incantation, une zone) vers le sol `sol` : son auteur s'y tourne, sa phase de départ
+## joue à l'auteur, puis le projectile de son `trajet` vole jusqu'au point de `sol` (aucun : un élan). Sans auteur
+## (`de` nul, `CONTRAT.md`, section « Effets »), rien : son arrivée ou sa nappe joue seule.
+func _partir(effet: Dictionary, lieux: Dictionary, sol: Vector3, teinte: Color) -> void:
+	if effet.de == null:
+		return
+	depart.emit(effet.de, sol)
+	var de := _point(lieux[effet.de])
+	_phase(effet.depart, de, teinte)
+	if effet.get("trajet") != null:
+		await _voler(effet.trajet, de, _point(sol), teinte)
+	else:
+		await get_tree().create_timer(ELAN_S).timeout
 
 
 ## Le flottant `effet` au-dessus de son combattant (`sur`) ou de sa case, sauf hors des lieux dessinés.

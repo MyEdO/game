@@ -10,12 +10,12 @@
  * aucun id.
  */
 import {
-  ACTIONS, avecSigne, batailleEnVue, fenetreDuJeu, carteEnVue, cleDuGeste, dayIndex, formatImperial, formatJourImperial, marchandEnVue, marcheEnVue, voyageEnVue, VERBE_DE_CHOIX, type AxeDuChoix, type FenetreAChoix, conditionLabel, conversationEnVue, difficultyText, documentEnVue, lieuEnVue, formatMoney, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDuSoin, ficheDuPorteur, gestesDeLObjet, interludeEnVue, jetsEnVue, porteurParId, recitEnVue, reposEnVue, toneOf,
+  ACTIONS, avecSigne, batailleEnVue, fenetreDuJeu, carteEnVue, cleDuGeste, dayIndex, formatImperial, formatJourImperial, marchandEnVue, marcheEnVue, voyageEnVue, VERBE_DE_CHOIX, type AxeDuChoix, type FenetreAChoix, conditionLabel, conversationEnVue, difficultyText, documentEnVue, lieuEnVue, formatMoney, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDuSoin, ficheDuPorteur, gestesDeLObjet, interludeEnVue, jetsEnVue, porteurParId, recitEnVue, reposEnVue, toneOf, nomEnVue, porteurEnVue,
   type CombatEvent, type Equipe, type EntreeDeLaFiche, type LieuDuPlan, type PlanDeLaCarte, type FicheDuPorteur, type GesteAChoix, type GesteDuNoyau, type GesteFermable, type FenetreDAttaque, type FenetreDIncantation, type Jeu, type JetEnVue, type LigneDeJet, type LigneDuJournal, type ModLine, type RollBreakdown, type TrajetEnVue,
 } from '../noyau/index';
 import { pluriel, t } from '../i18n';
 import { garanti } from '../lib/garanti';
-import type { Projection } from './projection';
+import { ordreEnVue, type Projection } from './projection';
 import { CHOIX_EN_BOUTONS, type FenetreADessiner } from './gestes';
 import { zonesDeLaCreation, type ZonesDeLaCreation } from './creation';
 import { elementsDesGestes, ligne, resume, type Bouton, type Choix, type Element, type Entite, type FicheOuverte, type Formulaire, type Jet, type Ligne, type PanneauDeLHote, type Plan, type Puce, type Saisie, type Ton } from './elements';
@@ -214,9 +214,8 @@ const posture = (id: string, p: FenetreDAttaque['tirDansLeTas']): Puce | null =>
  *  celle de la défense (à jeter ou tombées ; l'issue que l'inversion du dé donnerait au détail de l'attaquant), le DR
  *  net, l'issue ou l'attente d'une Défense. */
 function corpsDeLAttaque(etat: Jeu, a: FenetreDAttaque): Element[] {
-  const nom = (id: string) => porteurParId(etat, id)?.label ?? null;
-  const attaquant = nom(a.attaquantId);
-  const cible = nom(a.cibleId);
+  const attaquant = nomEnVue(etat, a.attaquantId);
+  const cible = nomEnVue(etat, a.cibleId);
   const inversion = a.influences.inversion?.apercu ?? null;
   const elements: (Element | null)[] = [
     ligne('cible', t('ecran.attaque.cible', { cible: cible ?? '' })),
@@ -245,8 +244,8 @@ function corpsDeLAttaque(etat: Jeu, a: FenetreDAttaque): Element[] {
  *  ligne du lanceur (à jeter ou tombée), les pas de Surincantation qui restent, les cibles supplémentaires à désigner
  *  sur la carte, l'issue. */
 function corpsDeLIncantation(etat: Jeu, f: FenetreDIncantation): Element[] {
-  const lanceur = garanti(porteurParId(etat, f.lanceurId), f.lanceurId, 'lanceur de l’incantation').label;
-  const cible = f.surSoi ? t('ecran.incantation.surSoi') : garanti(porteurParId(etat, f.cibleId), f.cibleId, 'cible de l’incantation').label;
+  const lanceur = garanti(nomEnVue(etat, f.lanceurId), f.lanceurId, 'lanceur de l’incantation');
+  const cible = f.surSoi ? t('ecran.incantation.surSoi') : garanti(nomEnVue(etat, f.cibleId), f.cibleId, 'cible de l’incantation');
   const l = f.ligne;
   const s = f.surincantation;
   const elements: (Element | null)[] = [
@@ -266,7 +265,7 @@ function corpsDeLIncantation(etat: Jeu, f: FenetreDIncantation): Element[] {
 /** Une ligne de jet d'une fenêtre (`jetsEnVue`) : qui jette, le Test, la table ou le dé, et ce qui est tombé : le dé
  *  et son verdict, ou ce que la table ou le dé lit. */
 function jetDeLaLigne(etat: Jeu, id: string, l: LigneDeJet): Jet {
-  const qui = l.qui === null ? null : porteurParId(etat, l.qui)?.label ?? null;
+  const qui = l.qui === null ? null : nomEnVue(etat, l.qui);
   switch (l.genre) {
     case 'test': return jet(id, {
       qui, libelle: l.test, cible: l.cible === null ? null : t('ecran.jet.cible', { cible: l.cible }),
@@ -321,7 +320,7 @@ function corpsDeLaFenetre(etat: Jeu): Element[] {
   const incantation = jetDeLEtape === 'incantation' ? fenetreDIncantation(etat) : null;
   if (incantation) return corpsDeLIncantation(etat, incantation);
   const defense = jetDeLEtape === 'defense' ? fenetreDeDefense(etat) : null;
-  const nom = (id: string) => garanti(porteurParId(etat, id), id, 'combattant de la Défense').label;
+  const nom = (id: string) => garanti(nomEnVue(etat, id), id, 'combattant de la Défense');
   return [
     ...(defense ? [ligne('defense/qui', t('ecran.defense.qui', { attaquant: nom(defense.attaquantId), defenseur: nom(defense.defenseurId), arme: defense.arme }))] : []),
     ...(defense?.jet ? [jet('defense/jet', {
@@ -636,7 +635,7 @@ function choixPortes(elements: readonly Element[]): Set<string> {
 /** Le patient du soin en attente (`fenetreDuSoin`) ; le soigneur est celui qui tient la fenêtre et jette. */
 function patientDuSoin(etat: Jeu): Element[] {
   const f = fenetreDuSoin(etat);
-  return f ? [ligne('soin', t('ecran.soin.patient', { patient: garanti(porteurParId(etat, f.patientId), f.patientId, 'patient du soin').label }))] : [];
+  return f ? [ligne('soin', t('ecran.soin.patient', { patient: garanti(nomEnVue(etat, f.patientId), f.patientId, 'patient du soin') }))] : [];
 }
 
 /** Le texte du document remis (`documentEnVue`) ; son titre est celui de la fenêtre. */
@@ -714,12 +713,12 @@ const actifDuCombat = (actif: NonNullable<Combat['actif']>): Entite => ({
   ],
 });
 
-/** Ce que l'aperçu du premier clic dit : le Mouvement qu'il coûte, ou la cible qu'il vise. */
-function apercuDe(c: Combat): string | null {
+/** Ce que l'aperçu du premier clic dit : le Mouvement qu'il coûte, ou la cible qu'il vise (`nomEnVue`). */
+function apercuDe(etat: Jeu, c: Combat): string | null {
   const a = c.apercu;
   if (!a) return null;
   if (a.cout !== null) return t('ecran.apercu', { cout: a.cout });
-  const cible = [c.actif, ...c.voisins.liste].find((v) => v?.id === a.cible)?.nom;
+  const cible = a.cible === null ? null : nomEnVue(etat, a.cible);
   return cible ? t('ecran.apercu.cible', { cible }) : null;
 }
 
@@ -753,10 +752,10 @@ function offresDuCombat(c: Combat): Choix[] {
   });
 }
 
-/** L'ordre du tour (`battle.order`) : chaque combattant en puce, ses Blessures pour valeur ; celui qui joue en alerte,
- *  un ennemi en échec. */
+/** L'ordre du tour en vue (`ordreEnVue`) : chaque combattant en puce, ses Blessures pour valeur ; celui qui joue en
+ *  alerte, un ennemi en échec. */
 const ordreDuTour = (etat: Jeu, c: Combat): Puce[] =>
-  (etat.battle?.order ?? []).flatMap((id) => {
+  ordreEnVue(etat).flatMap((id) => {
     const x = porteurParId(etat, id);
     if (!x) return [];
     return [puce(`ordre/${id}`, x.label, t('ecran.jauge', { courant: x.wounds.current, max: x.wounds.max }), null, id === c.actif?.id ? 'alerte' : x.kind === 'enemy' ? 'echec' : 'neutre')];
@@ -950,10 +949,10 @@ function objetDeLaFiche(etat: Jeu, f: FicheDuPorteur, ouverte: FicheOuverte): En
 }
 
 /** Les zones de la fiche `ouverte`, le statbloc de son porteur : sa tête, sa fermeture, son profil, chaque section
- *  non vide en entité (son bandeau pour nom), la source de son profil, la possession choisie ; vides sans fiche ou sans
- *  son porteur. */
+ *  non vide en entité (son bandeau pour nom), la source de son profil, la possession choisie ; vides sans fiche, sans
+ *  son porteur, ou son porteur hors de vue (`porteurEnVue`). */
 function zonesDeLaFiche(etat: Jeu, ouverte: FicheOuverte | null): Pick<ZonesDeLEcran, 'fiche.porteur' | 'fiche.gestes' | 'fiche.profil' | 'fiche.sections' | 'fiche.source' | 'fiche.objet'> {
-  const f = ouverte && ficheDuPorteur(etat, ouverte.porteur);
+  const f = ouverte && porteurEnVue(etat, ouverte.porteur) && ficheDuPorteur(etat, ouverte.porteur);
   if (!ouverte || !f) return { 'fiche.porteur': [], 'fiche.gestes': [], 'fiche.profil': [], 'fiche.sections': [], 'fiche.source': [], 'fiche.objet': [] };
   const sections = sectionsDeLaFiche(f, ouverte);
   return {
@@ -987,7 +986,7 @@ export function zonesDeLEcran(etat: Jeu, p: Projection, fenetre: FenetreADessine
     'combat.ordre': c ? ordreDuTour(etat, c) : [],
     'combat.actif': c?.actif ? [actifDuCombat(c.actif)] : [],
     'combat.avis': c ? avisDuCombat(c, fenetre !== null) : [],
-    'combat.apercu': c ? [apercuDe(c)].flatMap((a) => (a === null ? [] : [ligne('apercu', a)])) : [],
+    'combat.apercu': c ? [apercuDe(etat, c)].flatMap((a) => (a === null ? [] : [ligne('apercu', a)])) : [],
     'combat.offres': c ? offresDuCombat(c) : [],
     'exploration.gestes': (fenetre ? [] : p.exploration?.gestes.liste ?? []).map((g, i): Bouton => ({
       type: 'bouton', id: `exploration/${i}`, libelle: g.libelle, jeu: { suite: g.gestes.map((x) => ({ type: x.verbe, args: x.args })) }, presse: false, focus: false, refus: g.refus ?? null,
