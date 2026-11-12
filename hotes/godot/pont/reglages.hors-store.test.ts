@@ -52,9 +52,10 @@ describe('les réglages par le pont', () => {
     const volume = preference(zones(appel), 'volume-musique') as Formulaire;
     const z = zones(appel, { type: volume.verbe, args: [volume.champs[0].type === 'fixe' && volume.champs[0].valeur, 0.35] });
     expect(saisie(preference(z, 'volume-musique')).valeur).toBe(0.35);
-    expect(appel('preferences')).toMatchObject({ preferences: { 'volume-musique': 0.35, 'des-fixes': true } });
+    expect(pressee(preference(zones(appel, { type: 'preference', args: ['son-coupe', true] }), 'son-coupe'))).toBe(true);
+    expect(appel('preferences')).toMatchObject({ preferences: { 'volume-musique': 0.35, 'des-fixes': true, 'son-coupe': true } });
     for (const p of PREFERENCES) p.set(p.default);
-    expect(table(stockage).appel('preferences'), 'posées à la création du pont').toMatchObject({ preferences: { 'volume-musique': 0.35, 'des-fixes': true } });
+    expect(table(stockage).appel('preferences'), 'posées à la création du pont').toMatchObject({ preferences: { 'volume-musique': 0.35, 'des-fixes': true, 'son-coupe': true } });
   });
 
   it('une valeur hors de la forme de son entrée, un id inconnu, un autre geste : refusés, rien n’est écrit', () => {
