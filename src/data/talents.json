@@ -2062,7 +2062,7 @@
         "on": "self",
         "flow": {
           "kind": "choix",
-          "prompt": "Frappe réactive",
+          "invite": "Frappe réactive",
           "icon": "action/attaque-gratuite",
           "oui": {
             "kind": "test",

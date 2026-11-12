@@ -1,13 +1,14 @@
 ## Un combattant du plateau : son corps, la base composée que la vue lui donne (`vue.corps.combattants[id]`,
 ## `hotes/godot/pont/CONTRAT.md`), posée par son montage (`MontageDeComposition`, le nœud `Modele`) à l'échelle métrique
-## du plateau (`vue.plateau.metresParCase`) et animée par les clips de sa base selon leur rôle (`clips` de la réponse de
-## `modeles`, ou `clipsDeuxMains` sous son maniement tant qu'il tient un objet des deux mains, `MontageDeComposition.clip`) ;
+## du plateau (`vue.plateau.metresParCase`) et animée par son arbre d'états (`Etats`, `animation/corps.tres`, #3949), dont
+## chaque état joue le clip de sa base qui tient son rôle (`clips` de la réponse de `modeles`, ou `clipsDeuxMains` sous son
+## maniement tant qu'il tient un objet des deux mains, `MontageDeComposition.clip`) ;
 ## son nom et ses Points de Blessures (`pb`) en étiquette au-dessus de sa tête, l'anneau de l'actif. Il glisse vers sa nouvelle case,
 ## ou parcourt le chemin qui l'y mène (`parcourir`, #3822), frappe vers une cible, accuse le coup qui le vise et tombe hors de combat. Sans corps, il garde son anneau et son
 ## étiquette, à la hauteur du nom d'une entité (`MiseEnPage.HAUTEUR_DU_NOM`). Véhicule ou engin (`vue.corps.vehicules[id]`,
 ## #2987), son corps se monte sous `Vehicule` (`MontageDeVehicule`), posé sur ses N×N cases, à sa taille réelle ou les
 ## remplissant (`poser_sur_l_empreinte`), tourné vers son cap (`tourner_au_cap`) et animé par les clips de son élément
-## (`clips` de son corps), comme un corps par ceux de sa base.
+## (`clips` de son corps) sous le même arbre, comme un corps par ceux de sa base.
 class_name Combattant
 extends Node3D
 
@@ -24,11 +25,15 @@ const ATTAQUE := "melee"
 const TIR := "tir"
 const COUP := "coup"
 const MORT := "mort"
+const ROLES := [REPOS, MARCHE, ATTAQUE, TIR, COUP, MORT]
+## La bibliothèque du lecteur branché qui porte, sous le nom de chaque rôle, le clip que l'état de ce rôle joue.
+const BIBLIOTHEQUE := "role"
 
 @onready var _montage: MontageDeComposition = $Modele
 @onready var _selection: MeshInstance3D = $Selection
 @onready var _etiquette: Label3D = $Etiquette
 @onready var _vehicule: MontageDeVehicule = $Vehicule
+@onready var _etats: AnimationTree = $Etats
 
 ## L'id du combattant (`c.id`).
 var _id := ""
@@ -45,11 +50,21 @@ var _base_demandee: Variant = null
 var _chargement: RefCounted = null
 ## La hauteur, dans son repère, du plus haut point d'accroche de sa base au repos, sans gabarit.
 var _hauteur_de_tete := 0.0
+## Par rôle, le clip dont la bibliothèque `BIBLIOTHEQUE` du lecteur branché porte l'alias (`""` : aucun).
+var _alias := {}
+## L'état de l'arbre que la pose suit (`_suivre_l_etat`).
+var _etat_suivi := &""
 
 
 func _ready() -> void:
 	_etiquette.position.y = MiseEnPage.HAUTEUR_DU_NOM
 	_destination = position
+
+
+## Chaque image où l'état courant de son arbre a changé, retour automatique au repos compris, la pose le suit.
+func _process(_delta: float) -> void:
+	if _etats.active and _etats.get("parameters/playback").get_current_node() != _etat_suivi:
+		_suivre_l_etat()
 
 
 ## `c` : un combattant projeté (`voisins`) ; `lieu` : le centre de sa case ; `corps` : son corps (`null` : aucun) ;
@@ -70,8 +85,7 @@ func montrer(c: Dictionary, lieu: Vector3, actif: bool, corps: Variant, vehicule
 		_aller(lieu)
 	vetir(corps)
 	if await _vehicule.monter(vehicule, _montage, _poser_le_vehicule.bind(vehicule, metres_par_case)):
-		_boucler()
-		_jouer(REPOS)
+		_brancher()
 		_signaler()
 
 
@@ -117,7 +131,7 @@ static func tourner_vers(modele: Node3D, cible: Vector3) -> void:
 
 
 ## Le chemin d'un déplacement (`deplacement` de `suite.effets`, #3822) : `lieux`, où il se tient sur chacune de ses cases
-## (`Monde.lieu`), parcouru de sa place (`parcourir_les_lieux`) au clip de marche, chaque pas de `metres` (au même rang) à
+## (`Monde.lieu`), parcouru de sa place (`parcourir_les_lieux`) à l'état de marche, chaque pas de `metres` (au même rang) à
 ## la vitesse au sol de sa base (`MontageDeComposition.duree_du_pas`), en `DUREE_DEPLACEMENT_S` sans base posée ; puis le
 ## repos. Un parcours neuf remplace celui en cours, comme son glissement.
 func parcourir(lieux: Array, metres: Array) -> void:
@@ -129,21 +143,27 @@ func parcourir(lieux: Array, metres: Array) -> void:
 	_deplacement.tween_callback(_reposer)
 
 
-## Tourné vers `cible` (une position du plateau), il frappe : le clip de son rôle d'attaque, `tir` si sa table en
-## porte un (une pièce de tir), `melee` sinon.
+## Tourné vers `cible` (une position du plateau), il frappe : l'état de son rôle d'attaque, `tir` si sa table en
+## porte un clip (une pièce de tir), `melee` sinon ; l'arbre revient au repos en fin de clip.
 func agir_vers(cible: Vector3) -> void:
 	tourner_vers(_montage, cible)
-	_jouer_puis_repos(TIR if _clip(TIR) != "" else ATTAQUE)
+	_jouer(TIR if _clip(TIR) != "" else ATTAQUE)
 
 
-## Visé par un coup, il l'accuse, s'il tient encore debout.
+## Visé par un coup, il l'accuse, s'il tient encore debout ; l'arbre revient au repos en fin de clip.
 func subir() -> void:
 	if not _hors_combat:
-		_jouer_puis_repos(COUP)
+		_jouer(COUP)
+
+
+## Son arbre d'états arrêté, la pose de son lecteur laissée à qui la fige (`StudioDePortraits`) jusqu'au prochain
+## vêtement (`_suivre_l_etat`).
+func figer() -> void:
+	_etats.active = false
 
 
 ## Le corps `corps`, s'il a changé : aucun, le montage est vidé et l'étiquette à la hauteur du nom d'une entité ; sur
-## une autre base que celle demandée, elle est tirée de `modeles/` et posée, ses clips de repos et de marche en boucle,
+## une autre base que celle demandée, elle est tirée de `modeles/` et posée, son arbre branché sur elle (`_brancher`),
 ## puis la composition du dernier corps reçu montée (`_composer`) ; sur la même, posée, la composition l'est aussitôt.
 func vetir(corps: Variant) -> void:
 	var empreinte := JSON.stringify(corps)
@@ -156,6 +176,7 @@ func vetir(corps: Variant) -> void:
 		_chargement = null
 		_montage.vider()
 		_montage.poser_le_modele({}, null)
+		_brancher()
 		_etiquette.position.y = MiseEnPage.HAUTEUR_DU_NOM
 		_signaler()
 		return
@@ -173,9 +194,7 @@ func vetir(corps: Variant) -> void:
 		return
 	_montage.vider()
 	_montage.poser_le_modele(_base(corps.base), scene)
-	if _montage.lecteur != null:
-		_boucler()
-		_jouer(MORT if _hors_combat else REPOS)
+	_brancher()
 	if _montage.gabarit != null:
 		_montage.gabarit.mesure.connect(_hausser_l_etiquette)
 		_poser_l_etiquette()
@@ -199,7 +218,9 @@ func _base(id: String) -> Dictionary:
 
 ## La composition du dernier corps reçu montée sur la base posée : chaque emplacement de ses `montes` qui monte un
 ## élément le monte sous son emblème, ou rhabille celui qui y est déjà monté ; tout autre élément monté est démonté ;
-## puis la base se rhabille, et le gabarit et les morphes du corps se posent.
+## puis la base se rhabille, le gabarit du corps se pose, la pose suit l'état joué sous la tenue (`_suivre_l_etat`) et
+## l'arbre reprend aussitôt la pose que la remise du gabarit au clip engagé a recouverte (`advance(0.0)`), puis les
+## morphes se posent.
 func _composer() -> void:
 	_montage.composee = _corps
 	var cibles := _montage.cibles()
@@ -215,8 +236,10 @@ func _composer() -> void:
 	_montage.habiller_la_base()
 	for os in _montage.poser_le_gabarit():
 		_montage.erreurs.append("os-absent : %s" % os)
+	_suivre_l_etat()
+	if _etats.active:
+		_etats.advance(0.0)
 	_montage.poser_les_morphes()
-	_rejouer()
 	_signaler()
 
 
@@ -224,16 +247,8 @@ func _composer() -> void:
 func _monter(id: String, element: String, embleme: String) -> void:
 	if await _montage.monter(id, element, _montage.erreurs):
 		_montage.choisir_l_embleme(id, embleme)
-	_rejouer()
+	_suivre_l_etat()
 	_signaler()
-
-
-## Le clip en cours rejoué au clip que son rôle a maintenant, si la tenue à deux mains l'a changé
-## (`MontageDeComposition.role_a_rejouer`).
-func _rejouer() -> void:
-	var role := _montage.role_a_rejouer()
-	if role != "":
-		_jouer(role)
 
 
 ## Chaque erreur du montage à la console, puis `habille`.
@@ -280,37 +295,63 @@ func _clip(role: String) -> String:
 	return _montage.clip(role)
 
 
-## Ses clips de repos et de marche en boucle (`MontageDeComposition.boucler`), ceux de chaque table de sa base
-## (`MontageDeComposition.tables_de_clips`).
-func _boucler() -> void:
+## Son arbre d'états branché sur le lecteur de ses clips (`_lecteur`), les pistes résolues depuis la racine de ce
+## lecteur, sa bibliothèque `BIBLIOTHEQUE` propre à ce lecteur (les corps d'un même modèle partagent leurs clips,
+## `MontageDeComposition.scene_du_modele`) reposée en entier (`_suivre_l_etat`), puis l'état de sa pose, la mort hors
+## de combat, le repos sinon ; sans lecteur, l'arbre est inactif et débranché.
+func _brancher() -> void:
+	var lecteur := _lecteur()
+	_etats.active = false
+	_alias.clear()
+	if lecteur == null:
+		_etats.anim_player = NodePath()
+		return
+	if not lecteur.has_animation_library(BIBLIOTHEQUE):
+		lecteur.add_animation_library(BIBLIOTHEQUE, AnimationLibrary.new())
+	_etats.root_node = _etats.get_path_to(lecteur.get_node(lecteur.root_node))
+	_etats.anim_player = _etats.get_path_to(lecteur)
+	_suivre_l_etat()
+	_jouer(MORT if _hors_combat else REPOS)
+
+
+## La pose suit l'état joué : l'arbre actif sur le lecteur branché, chaque alias de `BIBLIOTHEQUE` reposé depuis le clip
+## de son rôle (`_clip`), en copie bouclée pour le repos et la marche, aucun pour un rôle sans clip ; le clip de l'état
+## courant marqué au lecteur (`assigned_animation`, sans lecture), et la tenue posée sur lui
+## (`MontageDeComposition.poser_le_clip`) : la seconde prise, les objets rangés et les jambes plantées (`clipsPlantes`,
+## `GabaritDuSquelette`) suivent l'état joué. Remplacer l'alias de l'état courant le rejoue sous la nouvelle tenue.
+func _suivre_l_etat() -> void:
 	var lecteur := _lecteur()
 	if lecteur == null:
 		return
-	var tables: Array = [_vehicule.clips] if _vehicule.scene != null else _montage.tables_de_clips()
-	var noms := []
-	for table: Dictionary in tables:
-		for role in [REPOS, MARCHE]:
-			noms.append(table.get(role, ""))
-	MontageDeComposition.boucler(lecteur, noms)
+	_etats.active = true
+	var roles := lecteur.get_animation_library(BIBLIOTHEQUE)
+	for role: String in ROLES:
+		var nom := _clip(role)
+		if _alias.has(role) and _alias[role] == nom:
+			continue
+		_alias[role] = nom
+		if roles.has_animation(role):
+			roles.remove_animation(role)
+		if not lecteur.has_animation(nom):
+			continue
+		var clip := lecteur.get_animation(nom)
+		if role in [REPOS, MARCHE] and clip.loop_mode != Animation.LOOP_LINEAR:
+			clip = clip.duplicate() as Animation
+			clip.loop_mode = Animation.LOOP_LINEAR
+		roles.add_animation(role, clip)
+	_etat_suivi = _etats.get("parameters/playback").get_current_node()
+	if lecteur.has_animation(_clip(_etat_suivi)):
+		lecteur.assigned_animation = _clip(_etat_suivi)
+	_montage.poser_le_clip()
 
 
-## Le clip du rôle `role` joué, la file vidée ; rend s'il l'est.
-func _jouer(role: String) -> bool:
-	var lecteur := _lecteur()
-	if lecteur == null or not lecteur.has_animation(_clip(role)):
-		return false
-	lecteur.clear_queue()
-	lecteur.play(_clip(role))
-	return true
+## L'état du rôle `role` gagné par l'arbre (`travel`), si le lecteur branché porte son alias.
+func _jouer(role: String) -> void:
+	if _etats.active and _lecteur().has_animation(BIBLIOTHEQUE + "/" + role):
+		_etats.get("parameters/playback").travel(role)
 
 
-## Le clip du rôle `role` joué, puis celui du repos.
-func _jouer_puis_repos(role: String) -> void:
-	if _jouer(role) and _lecteur().has_animation(_clip(REPOS)):
-		_lecteur().queue(_clip(REPOS))
-
-
-## Le glissement d'un déplacement sans chemin, en ligne droite jusqu'à `lieu`, en `DUREE_DEPLACEMENT_S`.
+## Le glissement d'un déplacement sans chemin, en ligne droite jusqu'à `lieu`, en `DUREE_DEPLACEMENT_S`, à l'état de marche.
 func _aller(lieu: Vector3) -> void:
 	tourner_vers(_montage, lieu)
 	if _deplacement != null:

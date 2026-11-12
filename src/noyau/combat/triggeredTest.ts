@@ -608,7 +608,7 @@ function choiceAffordable(get: Get, decider: Combatant | undefined, advantageCos
 export function resolveFlowChoice(ctx: ExecCtx, node: Extract<Flow, { kind: 'choix' }>, after: Flow): void {
   const decider = ctx.caster ?? ctx.target;
   const horsCombat = !decider || !inBattleId(ctx.get().battle, decider.id);
-  if (typeof node.advantageCost === 'string' || (node.advantageCost != null && horsCombat)) {
+  if (typeof node.coutEnAvantage === 'string' || (node.coutEnAvantage != null && horsCombat)) {
     runCombatFlow({ ...ctx }, node.non ?? EMPTY_FLOW);
     if (after !== EMPTY_FLOW) runCombatFlow({ ...ctx }, after);
     return;
@@ -617,22 +617,22 @@ export function resolveFlowChoice(ctx: ExecCtx, node: Extract<Flow, { kind: 'cho
     // Décideur surfacé : étape de CHOIX influençable (rendue par le chemin CHOIX générique de CascadeModal),
     // routée au siège qui tient le décideur — l'hôte ne tranche ni ne dépense l'Avantage d'autrui.
     // Le coût (en libellé) est joint au « Oui » ; l'option est tranchée par `jetRegler('cascade', 'choix')`.
-    const yesLabel = node.advantageCost != null ? `${node.prompt} (${node.advantageCost} Av)` : node.prompt;
+    const yesLabel = node.coutEnAvantage != null ? `${node.invite} (${node.coutEnAvantage} Av)` : node.invite;
     // Coût hors de portée : l'option reste PRÉSENTE et porte SA cause (rendue au survol/focus/tap par
     // `OptionChooser`, jamais inline) — l'applier refuse déjà la dépense, l'écran cesse de le taire.
-    const abordable = choiceAffordable(ctx.get, decider, node.advantageCost);
+    const abordable = choiceAffordable(ctx.get, decider, node.coutEnAvantage);
     // CIBLE de la branche : quand la branche vise une AUTRE unité que le décideur (`on:'victim'` —
     // Déstabilisante : le porteur décide, le Test opposé vise la VICTIME ; un sort : sa cible), on sérialise
     // son id pour le restaurer en `ctx.target` côté applier (sinon la branche viserait le décideur).
     const branchTargetId = ctx.target && ctx.target.id !== decider.id ? ctx.target.id : undefined;
     pushChoice(ctx.set, {
-      id: `choixDeclenche-${decider.id}-${node.prompt}`,
-      kind: 'choixDeclenche', actorId: decider.id, icon: node.icon ?? 'interface/reflexion', label: dataLabel(node.prompt),
-      options: [{ key: 'oui', label: dataLabel(yesLabel), ...(abordable ? {} : { refus: t('opt.avantageInsuffisant', { n: node.advantageCost ?? 0, dispo: spendableAdvantage(ctx.get().battle, decider) }) }) }, { key: 'non', label: t('opt.renoncer') }],
+      id: `choixDeclenche-${decider.id}-${node.invite}`,
+      kind: 'choixDeclenche', actorId: decider.id, icon: node.icon ?? 'interface/reflexion', label: dataLabel(node.invite),
+      options: [{ key: 'oui', label: dataLabel(yesLabel), ...(abordable ? {} : { refus: t('opt.avantageInsuffisant', { n: node.coutEnAvantage ?? 0, dispo: spendableAdvantage(ctx.get().battle, decider) }) }) }, { key: 'non', label: t('opt.renoncer') }],
       defaultChoice: 'non',
       meta: {
         choiceYes: node.oui, choiceNo: node.non ?? EMPTY_FLOW, after, differeLaSuite: true,
-        ...(node.advantageCost != null ? { choiceCost: node.advantageCost } : {}),
+        ...(node.coutEnAvantage != null ? { choiceCost: node.coutEnAvantage } : {}),
         ...(branchTargetId ? { choiceTargetId: branchTargetId } : {}),
         // CONTEXTE d'ops PORTÉ (sl, horloge, libellé, sort et ENTITÉ PORTEUSE) : la branche le retrouve
         // à la reprise — sans lui, un Test ouvert par le OUI perdrait son enjeu (#1262 V2 L6d) et un effet
@@ -644,8 +644,8 @@ export function resolveFlowChoice(ctx: ExecCtx, node: Extract<Flow, { kind: 'cho
     return;
   }
   // Ennemi / héros rapide-auto : décision INLINE (oui si payable). Dépense le coût puis joue la branche.
-  const yes = choiceAffordable(ctx.get, decider, node.advantageCost);
-  if (yes && node.advantageCost != null && decider) campSpend(ctx.get, decider, node.advantageCost); // débite la réserve du camp (mode groupe) / le combattant (LDB)
+  const yes = choiceAffordable(ctx.get, decider, node.coutEnAvantage);
+  if (yes && node.coutEnAvantage != null && decider) campSpend(ctx.get, decider, node.coutEnAvantage); // débite la réserve du camp (mode groupe) / le combattant (LDB)
   runCombatFlow({ ...ctx }, yes ? node.oui : (node.non ?? EMPTY_FLOW));
   if (after !== EMPTY_FLOW) runCombatFlow({ ...ctx }, after);
 }

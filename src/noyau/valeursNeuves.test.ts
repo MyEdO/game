@@ -47,7 +47,7 @@ describe('valeurs neuves de l’atelier au noyau (#3059) : toute valeur neuve pa
         ['effet', 'Effet', { kind: 'effet', effet: effet }],
         ['si', 'Si', { kind: 'si', condition: { kind: 'always' }, alors: vide }],
         ['test', 'Test', { kind: 'test', test: {}, reussite: vide, echec: vide }],
-        ['choix', 'Choix', { kind: 'choix', oui: vide, prompt: '' }],
+        ['choix', 'Choix', { kind: 'choix', oui: vide, invite: '' }],
       ]);
       for (const v of variantes) expect(refusHorsSentinelle(schema, v.valeur), v.cle).toEqual([]);
     }
