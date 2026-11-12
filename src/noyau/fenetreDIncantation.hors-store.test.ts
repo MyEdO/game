@@ -181,8 +181,8 @@ function enCombat(banc: Banc) {
   banc.getState().lancerLeCombat('enc-mutants');
   banc.getState().fenetreValider('debutDuRound');
   const b = banc.getState().battle!;
-  const H = b.combatants.find((c) => c.kind === 'hero')!;
-  const [E, ...autres] = b.combatants.filter((c) => c.kind === 'enemy');
+  const H = b.combatants.find((c) => c.kind === 'heros')!;
+  const [E, ...autres] = b.combatants.filter((c) => c.kind === 'ennemi');
   autres.forEach((e) => (e.dead = true));
   H.skills = [...H.skills.filter((s) => s.id !== 'langue'), { id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 60 }] as typeof H.skills;
   H.characteristics['force-mentale'] = 40;

@@ -29,7 +29,7 @@ const fixed = deFixe;
 
 function mk(opts: { current?: number; conditions?: { id: string; value: number }[]; fate?: number; advantage?: number }): Combatant {
   return combattantDeTest({
-    label: 'X', kind: 'hero',
+    label: 'X', kind: 'heros',
     wounds: blessuresDeBase(10, opts.current ?? 10),
     advantage: opts.advantage ?? 0,
     conditions: opts.conditions ?? [],

@@ -32,7 +32,7 @@ function hero(opts: { conditions?: { id: string; value: number }[]; skills?: Com
   const enc = opts.enc ?? 0;
   const items: ItemInstance[] = enc > 0 ? [{ uid: 'x', label: 'charge', kind: 'misc', qualities: [], enc, equipped: false }] : [];
   return blessuresSurLeProfil({
-    id: 'h', label: 'Sujet', kind: 'hero',
+    id: 'h', label: 'Sujet', kind: 'heros',
     characteristics: chars(opts.chars),
     wounds: blessuresDeBase(12),
     advantage: 0,

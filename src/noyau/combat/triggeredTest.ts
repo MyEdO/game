@@ -697,7 +697,7 @@ export function routeTriggeredTest(get: Get, set: SetFn, target: Combatant, acto
   // `pendingTest`, Chance/Résilience), jamais inline (doctrine « un jet = une modale » — elle vaut
   // hors combat comme en combat). Gate `slThreshold` évaluée d'abord (openSkillTest ne la connaît pas) ;
   // `noOwnTestFailed` tamponne la ré-entrance (jetValider('test') ne ré-émet pas).
-  if (!get().battle && flow.kind === 'test' && target.kind === 'hero') {
+  if (!get().battle && flow.kind === 'test' && target.kind === 'heros') {
     const cc = combatConditionCtx(target, opsCtx ?? {});
     // Un Test SUBI (effet déclenché : Venin, Hurlement, Crampes, zone franchie…) n'est pas soutenu —
     // LDB 12 l.197. Défaut de la VOIE, tri-état : la donnée peut le rouvrir (`noSupport:false`).

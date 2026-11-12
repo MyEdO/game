@@ -237,7 +237,7 @@ export function grappleActionEligible(mover: Combatant, foe: Combatant): boolean
  *  Source : `active.weapons` (Arme) + `attaquesNaturelles` (gratuites) + les prédicats existants. */
 export function availableAttacks(active: Combatant, battle: BattleState): AttackOption[] {
   // KIND-AGNOSTIQUE (un ennemi conduit par le MJ a le MÊME jeu d'attaques qu'un héros — bac-à-sable). Seul un
-  // NAVIRE (`kind:'hero'`/`enemy`, MDG 13) est exclu : il n'a PAS d'attaque-arme PERSONNELLE (`active.weapons`
+  // NAVIRE (`kind:'heros'`/`ennemi`, MDG 13) est exclu : il n'a PAS d'attaque-arme PERSONNELLE (`active.weapons`
   // vide → l'option 'arme' planterait `attackPlan`) — ses « attaques » sont la Manœuvre + la Bordée via ses postes.
   // (Un combattant sans arme reste armé de ses poings/Bagarre : `attackPlan` gère l'arme vide, cf. player-maneuvers.)
   if (refusCoque(active)) return [];

@@ -40,7 +40,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const chars = { 'capacite-de-combat': 45, 'capacite-de-tir': 50, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 
-const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, weapons: Weapon[]): Combatant =>
+const mk = (id: string, kind: 'heros' | 'ennemi', pos: { x: number; y: number }, weapons: Weapon[]): Combatant =>
   (blessuresSurLeProfil({ id, name: id, label: id, kind, characteristics: { ...chars }, conditions: [], engagedWith: [], skills: [], talents: [],
      weapons, advantage: 0, size: 'moyenne', pos, wounds: blessuresDeBase(18),
      armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4 }) as unknown as Combatant);
@@ -54,8 +54,8 @@ const COOP = { mode: 'hote' as const, mySeat: 0, gmSeat: undefined, ownership: {
 
 function setup(enemyPos: { x: number; y: number }, enemyWeapons: Weapon[], net: Partial<ReturnType<typeof banc.getState>['net']> = COOP) {
   seedBattleRng(7);
-  const enemy = mk('e', 'enemy', enemyPos, enemyWeapons);
-  const hero = mk('h', 'hero', { x: 0, y: 0 }, [sword]);
+  const enemy = mk('e', 'ennemi', enemyPos, enemyWeapons);
+  const hero = mk('h', 'heros', { x: 0, y: 0 }, [sword]);
   const battle: BattleState = {
     combatants: [enemy, hero], order: [enemy.id, hero.id], baseOrder: [enemy.id, hero.id],
     turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(),
@@ -173,8 +173,8 @@ describe('#1262 lot 5a — INCANTATION : `groupOwner` ne se pose QUE par le mint
   /** Deux HÉROS de sièges distincts : la cible du Sort est JOUÉE, donc sa rangée d'opposition est
    *  interactive — la seule configuration où `shareCastStep` bascule sur le chemin RÉEL. */
   function deuxHeros() {
-    const wiz = mk('h', 'hero', { x: 0, y: 0 }, [sword]);
-    const cible = mk('h2', 'hero', { x: 1, y: 0 }, [sword]);
+    const wiz = mk('h', 'heros', { x: 0, y: 0 }, [sword]);
+    const cible = mk('h2', 'heros', { x: 1, y: 0 }, [sword]);
     const battle = {
       combatants: [wiz, cible], order: [wiz.id, cible.id], baseOrder: [wiz.id, cible.id],
       turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(),
@@ -297,9 +297,9 @@ describe('#1262 lot 5a — AFFICHAGES adossés aux situations de combat', () => 
   it('Critique de Structure : table RÉSOLUE + charge riche, enjeu DESCENDU à la ligne tirée', () => {
     const { hero } = setup({ x: 1, y: 0 }, [sword]);
     seedBattleRng(11);
-    const structure = mk('s', 'enemy', { x: 2, y: 0 }, []);
+    const structure = mk('s', 'ennemi', { x: 2, y: 0 }, []);
     const log: string[] = [];
-    applyStructureCriticalToTarget(idsDeTest, banc.setState, structure, { attackerId: hero.id, attackerKind: 'hero', weapon: 'Épée' }, log, { forcedRoll: 42 });
+    applyStructureCriticalToTarget(idsDeTest, banc.setState, structure, { attackerId: hero.id, attackerKind: 'heros', weapon: 'Épée' }, log, { forcedRoll: 42 });
     const st = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'critique')!;
     expect(st.actorId).toBe(structure.id);
     expect(st.table!.result!.roll, 'le dé est POSÉ : la fenêtre ne le re-jette pas').toBe(42);

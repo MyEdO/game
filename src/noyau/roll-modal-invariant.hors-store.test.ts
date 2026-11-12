@@ -165,9 +165,9 @@ function freshCombat() {
   get().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = get().battle!;
-  const H = b.combatants.find((c) => c.kind === 'hero')!;
+  const H = b.combatants.find((c) => c.kind === 'heros')!;
   H.aiControlled = silence; // volet (d) : ré-silençage réel (contrôleur ≠ humain → pas de remontée)
-  const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+  const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
   const E = enemies[0];
   enemies.slice(1).forEach((e) => (e.dead = true)); // une seule source ennemie
   H.pos = { x: 10, y: 10 };

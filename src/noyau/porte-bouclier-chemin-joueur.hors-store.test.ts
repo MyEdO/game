@@ -32,12 +32,12 @@ const cur = (id: string): Combatant => G().battle!.combatants.find((c) => c.id =
 function ouvreParadeAuBouclier(seed: number): void {
   seedBattleRng(seed);
   const hero = blessuresSurLeProfil({
-    id: 'd1', name: 'Héros', label: 'Héros', kind: 'hero', important: true, characteristics: chars, wounds: blessuresDeBase(30),
+    id: 'd1', name: 'Héros', label: 'Héros', kind: 'heros', important: true, characteristics: chars, wounds: blessuresDeBase(30),
     advantage: 0, conditions: [], movement: 4, skills: [], talents: [{ talentId: 'porte-bouclier', times: 1 }], traits: [], engagedWith: ['a1'], pos: { x: 5, y: 5 },
     size: 'moyenne', weapons: [SWORD, SHIELD], armour: ARM0, items: [], fate: 0, resilience: 2, criticalWounds: 0, traumas: [],
   }) as unknown as Combatant;
   const orque = blessuresSurLeProfil({
-    id: 'a1', name: 'Orque', label: 'Orque', kind: 'enemy', important: true, characteristics: chars, wounds: blessuresDeBase(PB_ORQUE),
+    id: 'a1', name: 'Orque', label: 'Orque', kind: 'ennemi', important: true, characteristics: chars, wounds: blessuresDeBase(PB_ORQUE),
     advantage: 0, conditions: [], movement: 4, skills: [], talents: [], traits: [], engagedWith: ['d1'], pos: { x: 4, y: 5 },
     size: 'moyenne', weapons: [SWORD], items: [], criticalWounds: 0, traumas: [], armour: ARM0,
   }) as unknown as Combatant;

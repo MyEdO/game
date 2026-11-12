@@ -89,7 +89,7 @@ const solide = (n: number, ...autres: { id: string; value?: number }[]): Weapon 
 const canon = (...q: { id: string; value?: number }[]): Weapon =>
   ({ label: 'Pièce', type: 'distance', damage: { plusBF: false, flat: 12 }, qualities: q }) as Weapon;
 const porteur = (over: Partial<Combatant> = {}): Combatant =>
-  ({ id: 'p', label: 'p', kind: 'hero', items: [], weapons: [], ...over }) as unknown as Combatant;
+  ({ id: 'p', label: 'p', kind: 'heros', items: [], weapons: [], ...over }) as unknown as Combatant;
 
 const MISFIRE: OupsResolved = { roll: 44, kind: 'misfire', label: 'Incident de Tir !' };
 const SONNE: OupsResolved = { roll: 33, kind: 'selfWound', label: 'Vous vous blessez' };

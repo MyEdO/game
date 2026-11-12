@@ -95,7 +95,7 @@ function settle(): void {
  */
 describe('resolveShipUnits — le navire est une UNITÉ (naufrage OU abordage)', () => {
   const mk = (id: string, patch: Partial<Combatant> = {}): Combatant =>
-    (blessuresSurLeProfil({ id, name: id, kind: 'enemy', wounds: blessuresDeBase(10), conditions: [], weapons: [], ...patch })) as unknown as Combatant;
+    (blessuresSurLeProfil({ id, name: id, kind: 'ennemi', wounds: blessuresDeBase(10), conditions: [], weapons: [], ...patch })) as unknown as Combatant;
 
   it('coque à 0 PB sans État naufrage → reste en jeu, l\'équipage aussi (MDG 13 l.656)', () => {
     const hull = mk('h', { bodyShape: 'vehicule', creatureId: 'bateau-de-patrouille', wounds: blessuresDeBase(50, 0), crewIds: ['a', 'b'] });
@@ -174,7 +174,7 @@ describe('Affordance de tir de pièce servie — ok / range / arc (chemin joueur
     launch(7);
     const get = () => banc.getState();
     const battle = get().battle!;
-    const gunner = battle.combatants.find((c) => c.kind === 'hero' && c.mannedPoste)!;
+    const gunner = battle.combatants.find((c) => c.kind === 'heros' && c.mannedPoste)!;
     const cogue = byId(battle, COGUE);
     const barge = byId(battle, 'enemy-enc-naval-4');
     expect(get().facing[barge.id]).toBe('N'); // cap authoré appliqué (arc tribord = plein Est)
@@ -221,7 +221,7 @@ describe('Combat naval e2e — VICTOIRE par NAUFRAGE', () => {
     const battle = launch(23);
     const cogue = byId(battle, COGUE);
     // canonnier + son pierrier SERVI (arme d'artillerie dérivée par applyShipPostes au démarrage)
-    const gunner = battle.combatants.find((c) => c.kind === 'hero' && c.mannedPoste)!;
+    const gunner = battle.combatants.find((c) => c.kind === 'heros' && c.mannedPoste)!;
     expect(gunner).toBeTruthy();
     const piece = gunner.weapons.find((w) => w.subType === 'armes-de-siege')! as Weapon;
     expect(piece).toBeTruthy();

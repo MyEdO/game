@@ -5,9 +5,9 @@ import type { Combatant, Weapon } from '../engine/types';
 const W = (uid: string, name: string): Weapon =>
   ({ uid, label: name, type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [], hand: uid === 'm' ? 'main' : 'secondaire', hands: 1 });
 const atk = (): Combatant =>
-  ({ id: 'a', name: 'A', kind: 'hero', pos: { x: 0, y: 0 }, weapons: [W('m', 'Épée'), W('o', 'Dague')], size: 3 } as unknown as Combatant);
+  ({ id: 'a', name: 'A', kind: 'heros', pos: { x: 0, y: 0 }, weapons: [W('m', 'Épée'), W('o', 'Dague')], size: 3 } as unknown as Combatant);
 const tgt = (): Combatant =>
-  ({ id: 't', name: 'T', kind: 'enemy', pos: { x: 1, y: 0 }, size: 3 } as unknown as Combatant);
+  ({ id: 't', name: 'T', kind: 'ennemi', pos: { x: 1, y: 0 }, size: 3 } as unknown as Combatant);
 
 describe('firedWeapon : honore weaponUid', () => {
   it('sans weaponUid : auto-choix (1ʳᵉ mêlée au contact)', () => {
@@ -26,11 +26,11 @@ describe('firedWeapon : sous-effectif d’une pièce SERVIE (poste, MDG 12) — 
     ({ uid: 'cannon', label: 'Canon', type: 'distance', damage: { plusBF: false, flat: 9 }, range: 100,
       qualities: [{ id: 'arme-d-equipe', value: 3 }], reload: 3, hand: 'main', hands: 2 }) as Weapon;
   const chef = (crewIds: string[]): Combatant =>
-    ({ id: 'chef', name: 'Chef', kind: 'hero', pos: { x: 0, y: 0 }, size: 3, weapons: [cannon()],
+    ({ id: 'chef', name: 'Chef', kind: 'heros', pos: { x: 0, y: 0 }, size: 3, weapons: [cannon()],
       wounds: { current: 5, max: 5 }, mannedPoste: { item: {}, side: 'tribord', crewIds } }) as unknown as Combatant;
   const sailor = (id: string, alive = true): Combatant =>
-    ({ id, name: id, kind: 'npc', dead: !alive, wounds: { current: alive ? 5 : 0, max: 5 } }) as unknown as Combatant;
-  const far = (): Combatant => ({ id: 't', name: 'T', kind: 'enemy', pos: { x: 5, y: 0 }, size: 3 } as unknown as Combatant);
+    ({ id, name: id, kind: 'pnj', dead: !alive, wounds: { current: alive ? 5 : 0, max: 5 } }) as unknown as Combatant;
+  const far = (): Combatant => ({ id: 't', name: 'T', kind: 'ennemi', pos: { x: 5, y: 0 }, size: 3 } as unknown as Combatant);
   const hasQ = (w: Weapon, id: string) => w.qualities.some((q) => q.id === id);
 
   it('effectif COMPLET (3/3) → arme nette : Arme d’équipe retirée, aucun Défaut, recharge normale', () => {

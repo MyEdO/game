@@ -29,7 +29,7 @@ const beat = () => host.querySelector('.combat-splash');
 const mot = () => host.querySelector('.combat-splash .display-title');
 
 /** Ouvre le combat de la fixture ; `surprise` rend la rencontre EMBUSQUÉE (le groupe est surpris). */
-function ouvrir(surprise?: 'party') {
+function ouvrir(surprise?: 'groupe') {
   const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   // Guetteur aveugle : l'opposition de Surprise est perdue quel que soit le dé.
   const guetteur = { ...hero, skills: [], characteristics: { ...hero.characteristics, initiative: 1 } };
@@ -64,7 +64,7 @@ describe('CombatStartSplash — le beat attend la cascade d’ouverture', () => 
   });
 
   it('embuscade : absent TANT QUE la cascade de Surprise est ouverte, puis monté au ton de l’embuscade', () => {
-    ouvrir('party');
+    ouvrir('groupe');
     render();
     const cascade = useGame.getState().pendingCascade;
     expect(cascade, 'la Surprise ouvre sa cascade avant tout tour').not.toBeNull();
@@ -76,7 +76,7 @@ describe('CombatStartSplash — le beat attend la cascade d’ouverture', () => 
 
     const s = useGame.getState();
     expect(s.pendingCascade, 'la cascade est close').toBeNull();
-    expect(s.battle!.combatants.some((c) => c.kind === 'hero' && hasCondition(c, COND.surpris)), 'le guetteur aveugle est Surpris').toBe(true);
+    expect(s.battle!.combatants.some((c) => c.kind === 'heros' && hasCondition(c, COND.surpris)), 'le guetteur aveugle est Surpris').toBe(true);
     expect(beat(), 'le beat se monte à la clôture : son animation part du bon mot').not.toBeNull();
     expect(mot()!.getAttribute('data-ton'), 'le MOT porte le ton de menace').toBe('menace');
     expect(mot()!.textContent).toContain('EMBUSCADE');

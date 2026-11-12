@@ -29,7 +29,7 @@ const objet = (over: Partial<ItemInstance>): ItemInstance => ({ uid: 'x', label:
 
 function heros(id: string, p: Partial<Combatant> = {}): Combatant {
   return blessuresSurLeProfil({
-    id, label: id.toUpperCase(), kind: 'hero',
+    id, label: id.toUpperCase(), kind: 'heros',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 35, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], movement: 4,
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -237,7 +237,7 @@ describe('evaluerLObjet : chaque refus est dit', () => {
 describe('utiliserLObjet : chaque refus est dit', () => {
   const potion = (uid: string) => objet({ uid, label: 'Potion de guérison', trappingId: 'potion-de-guerison' });
   const enBataille = (combattants: Combatant[], over: Record<string, unknown> = {}) => banc.setState({
-    party: combattants.filter((c) => c.kind === 'hero'), refus: null,
+    party: combattants.filter((c) => c.kind === 'heros'), refus: null,
     battle: { combatants: combattants, order: combattants.map((c) => c.id), turn: 0, round: 1, acted: false, log: [], over: null, ...over } as never,
   });
   const refus = () => g().refus?.texte;
@@ -255,7 +255,7 @@ describe('utiliserLObjet : chaque refus est dit', () => {
   });
 
   it('en combat, l’actif n’est pas piloté', () => {
-    enBataille([heros('e1', { kind: 'enemy' }), heros('a', { items: [potion('pa')] })]);
+    enBataille([heros('e1', { kind: 'ennemi' }), heros('a', { items: [potion('pa')] })]);
     g().utiliserLObjet('pa');
     expect(refus()).toBe(t('barre.nonPilote', { name: 'E1' }));
   });
@@ -299,7 +299,7 @@ describe('quitterLaScene : une scène absente du registre est refusée et dite',
 describe('un héros hors de la rencontre, pendant un combat : son porteur se lit au groupe', () => {
   const enCombatSans = (absent: Combatant) => {
     const a = heros('a');
-    banc.setState({ party: [a, absent], refus: null, battle: { combatants: [structuredClone(a), heros('e1', { kind: 'enemy' })], order: ['a', 'e1'], turn: 0, round: 1, acted: false, log: [], over: null } as never });
+    banc.setState({ party: [a, absent], refus: null, battle: { combatants: [structuredClone(a), heros('e1', { kind: 'ennemi' })], order: ['a', 'e1'], turn: 0, round: 1, acted: false, log: [], over: null } as never });
   };
 
   it('poserLApparence pose l’apparence de son objet', () => {

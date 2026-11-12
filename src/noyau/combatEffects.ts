@@ -755,10 +755,10 @@ export function cloturer(get: Get, set: SetFn, applique: Applique, suite: Suite)
 export function effectTargets(get: Get, target: 'party' | 'hero', heroId?: string): Combatant[] {
   const pool = get().battle?.combatants ?? get().party;
   if (target === 'hero') {
-    const id = heroId || pool.find((c) => c.kind === 'hero' && !c.dead)?.id;
+    const id = heroId || pool.find((c) => c.kind === 'heros' && !c.dead)?.id;
     return pool.filter((c) => c.id === id);
   }
-  return pool.filter((c) => c.kind === 'hero' && !c.dead);
+  return pool.filter((c) => c.kind === 'heros' && !c.dead);
 }
 
 /**
@@ -991,7 +991,7 @@ export function openSkillTest(
   // `opts.actorId`). Un Test qu'on ne peut pas soutenir se déclare `noSupport` (l.197), il ne se
   // dérive pas de la restriction du lanceur.
   const allies = (a: Combatant): Combatant[] => pool.filter((c) => c.kind === a.kind && !c.dead);
-  const runners = imposed ? [best.actor] : pool.filter((c) => c.kind === 'hero' && admis(c) && peutTenter(c, { skill: spec.skill }));
+  const runners = imposed ? [best.actor] : pool.filter((c) => c.kind === 'heros' && admis(c) && peutTenter(c, { skill: spec.skill }));
   const candidates = runners.map((actor) => {
     const living = allies(actor);
     // Soutien (LDB 12 l.187-200) : si CET acteur mène, les AUTRES membres capables l'assistent (+10, plafond
@@ -1741,7 +1741,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // Hors combat : on positionne virtuellement les héros à partyPos pour la géométrie d'aire partagée.
       const pool: Combatant[] = inBattle
         ? env.get().battle!.combatants
-        : env.get().party.filter((c) => c.kind === 'hero').map((c) => ({ ...c, pos: pp }));
+        : env.get().party.filter((c) => c.kind === 'heros').map((c) => ({ ...c, pos: pp }));
       // `Effect.zoneBlast.center` n'authore que `{x,y}` (pas d'étage éditable) — hors combat, le pool
       // entier est virtuellement à `pp` (ligne ci-dessus) : le centre du souffle DOIT porter le même
       // étage que `pp`, sinon le défaut z-aware de `combatantsWithinRadius` (`center.z ?? 0`) exclut
@@ -2269,7 +2269,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // membres capables (+10 chacun, plafond Bonus de Carac — `partyAssisted`). Adjacence (l.196) : même
       // pool `battle.combatants` (héros positionnés) que `openSkillTest` quand un combat est en cours.
       const battle = env.get().battle;
-      const pool = battle?.combatants.filter((c) => c.kind === 'hero') ?? env.get().party;
+      const pool = battle?.combatants.filter((c) => c.kind === 'heros') ?? env.get().party;
       const leader = partyBest(pool, e)?.actor;
       const eligible = battle && leader?.pos ? (c: Combatant) => !!c.pos && combatDistance(leader, c) <= 1 : undefined;
       const best = leader ? partyAssisted(pool, e, undefined, eligible) : null;

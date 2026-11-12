@@ -45,7 +45,7 @@ describe('16-voyage — Scenes produites par buildScene', () => {
   it('embuscade : 2 gobelins cachés (hiddenUntilCombat) + rencontre surprise « party »', () => {
     const e = byId('test-voyage-embuscade');
     const enc = e.encounters.find((x) => x.id === 'enc-vembuscade')!;
-    expect(enc.surprise).toBe('party');
+    expect(enc.surprise).toBe('groupe');
     expect(enc.members).toEqual([{ entityId: 'enemy-enc-vembuscade-0' }, { entityId: 'enemy-enc-vembuscade-1' }]);
     const gobs = e.entities.filter((x) => x.creature?.id === 'gobelin');
     expect(gobs).toHaveLength(2);

@@ -6,7 +6,9 @@
 // chaque planche du dépôt (`planches.mjs`, #3935). Avec `--statique`, l'export seul, tel que le site le publie : ses
 // modèles déposés en scènes fabriquées et ses planches (`construire.mjs --export`, #3946). Avec `--depot`, l'éditeur de carte y
 // lit et y écrit les projets manuscrits du dépôt (`pont/CONTRAT.md`, section « Éditeur ») : `GET /depot/<id>` et
-// `PUT /depot/<id>`. Une requête défaillante reçoit son statut d'erreur, le serveur continue.
+// `PUT /depot/<id>`, et y lit le `Source/` du dépôt : `GET /source/manifest.json` et `GET /source/<livre>/<NNN>.md`
+// (`servirLaSource`, `scripts/source/prose-source-plugin.mjs`). Une requête défaillante reçoit son statut d'erreur, le
+// serveur continue.
 //
 //   node hotes/godot/servir.mjs --web <dossier de l'export> [--modeles <dossier> | --statique] [--depot]
 import { readFileSync } from 'node:fs'
@@ -16,6 +18,7 @@ import { parseArgs } from 'node:util'
 import { dossierDesProjetsLivres, listerProjetsLivres, PROJETS_MANUSCRITS } from '../../scripts/guards/lib/projetsLivres.mjs'
 import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs'
 import { materialiser } from '../../scripts/source/resoudre.mjs'
+import { servirLaSource } from '../../scripts/source/prose-source-plugin.mjs'
 import { ecrireTexteAtomique } from '../../scripts/guards/lib/ecritureJsonAtomique.mjs'
 import { DOSSIER_DES_MODELES, LISTAGE, listage } from './listage.mjs'
 import { DOSSIER_DES_PLANCHES } from './planches.mjs'
@@ -101,14 +104,16 @@ function servirLeDepot(req, res, depot, id) {
 }
 
 /** Sert le dossier `modeles` sous `/modeles/` et les planches du dépôt sous `/planches/`, sur un port libre de
- *  127.0.0.1 ; avec `web`, l'export en statique, sans lui 404 hors de `/modeles/`, `/planches/` et `/depot/` ; avec
- *  `statique`, `web` seul, ses `modeles/` et ses `planches/` déposés compris ; avec `depot`, la racine d'un dépôt, ses
- *  projets manuscrits sous `/depot/` (`servirLeDepot`). */
+ *  127.0.0.1 ; avec `web`, l'export en statique, sans lui 404 hors de `/modeles/`, `/planches/`, `/depot/` et
+ *  `/source/` ; avec `statique`, `web` seul, ses `modeles/` et ses `planches/` déposés compris ; avec `depot`, la racine
+ *  d'un dépôt, ses projets manuscrits sous `/depot/` (`servirLeDepot`), et le `Source/` de ce dépôt-ci sous `/source/`,
+ *  son index des chapitres et chacun de ses chapitres (`servirLaSource`), jamais sans lui. */
 export function servir({ web, modeles = DOSSIER_DES_MODELES, depot, statique = false }) {
   const racine = web && resolve(web)
   const dossier = resolve(modeles)
   return ecouter((req, res, rel) => {
     if (depot && rel.startsWith('depot/')) return servirLeDepot(req, res, resolve(depot), rel.slice('depot/'.length))
+    if (depot && rel.startsWith('source/')) return void (servirLaSource(`/${rel}`, res) || res.writeHead(404).end())
     if (!statique && rel === `modeles/${LISTAGE}`) return void res.writeHead(200, { 'Content-Type': TYPES['.json'], 'Cache-Control': 'no-store' }).end(JSON.stringify(listage(dossier)))
     const sansCache = { 'Cache-Control': 'no-store' }
     const [base, chemin, entetes] = statique ? [racine, rel || 'index.html', {}]

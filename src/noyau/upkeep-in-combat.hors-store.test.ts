@@ -49,13 +49,13 @@ describe('#253.1 — dessoûlage : le 2ᵉ Test (gueule de bois) est une étape 
 
 describe('#253.2 — combat franchissant minuit : les Tests d\'entretien se mettent EN FILE, jamais silencieux', () => {
   const deadEnemy = (): Combatant =>
-    combattantDeTest({ id: 'e', kind: 'enemy', label: 'Bandit', characteristics: { endurance: 30 } as never,
+    combattantDeTest({ id: 'e', kind: 'ennemi', label: 'Bandit', characteristics: { endurance: 30 } as never,
       wounds: blessuresDeBase(10, 0), dead: true, conditions: [], skills: [], items: [], weapons: [], movement: 4, advantage: 0 });
 
   it('un franchissement de jour PENDANT un combat FILE un Test de dessoûlage (deferredUpkeepQueue), sans le rouler', () => {
     const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 2 });
     hero.drunk = { failedTests: 2, drunk: true, result: 'joyeux' };
-    const heroClone = { ...hero, kind: 'hero' as const };
+    const heroClone = { ...hero, kind: 'heros' as const };
     banc.setState({
       party: [hero], lastUpkeepDay: 0, lastNightDay: 0, gameTime: 23 * 60 + 59,
       battle: { combatants: [heroClone, deadEnemy()], order: [hero.id, 'e'], turn: 0, round: 1, log: [], over: null } as never,
@@ -71,7 +71,7 @@ describe('#253.2 — combat franchissant minuit : les Tests d\'entretien se mett
 
   it('openCombatEndCascade CONSOMME la file : un héros piloté-humain → l\'étape rejoint la cascade de FIN', () => {
     const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 3 });
-    const heroClone = { ...hero, kind: 'hero' as const };
+    const heroClone = { ...hero, kind: 'heros' as const };
     // La file accepte seulement une étape MINTÉE (#1262 V2) ; sa ligne est posée telle quelle.
     const queued = monoStep({ id: 'faim-H-0', kind: 'faim', actor: hero, label: fixtureText('Faim'), rollLabel: 'Résistance',
       difficulty: 'intermediaire', montee: { base: 40, target: 40 }, stake: nightStakeRef('faim') })!;

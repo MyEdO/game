@@ -304,7 +304,7 @@ import { passiveGlobalTestMod, passiveMods } from './trauma';
 import { applyOps } from './ops';
 
 const fullSick = (over: Partial<Combatant> = {}): Combatant => combattantDeTest({
-  id: 'p', label: 'Cobaye', kind: 'hero',
+  id: 'p', label: 'Cobaye', kind: 'heros',
   characteristics: { endurance: 40, agilite: 40, sociabilite: 35 },
   wounds: blessuresDeBase(12), items: [], diseases: [],
   ...over,

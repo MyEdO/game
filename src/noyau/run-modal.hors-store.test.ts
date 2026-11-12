@@ -20,7 +20,7 @@ describe('Course (Courir) — modale du Test `course` (LDB 15 l.41)', () => {
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
     H.pos = { x: 10, y: 10 };
     H.engagedWith = []; // pas Engagé → Course autorisée
     const turn = b.order.indexOf(H.id);

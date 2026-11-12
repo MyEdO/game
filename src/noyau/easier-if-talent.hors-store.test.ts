@@ -17,7 +17,7 @@ const CHARS = {
 };
 
 const hero = (talents: Combatant['talents']): Combatant => (blessuresSurLeProfil({
-  id: 'h1', name: 'h1', label: 'h1', kind: 'hero',
+  id: 'h1', name: 'h1', label: 'h1', kind: 'heros',
   characteristics: { ...CHARS },
   wounds: blessuresDeBase(10), advantage: 0, conditions: [], movement: 4,
   skills: [{ id: 'charme', characteristic: 'sociabilite', advances: 5 }], talents, items: [], psychState: [], engagedWith: [],

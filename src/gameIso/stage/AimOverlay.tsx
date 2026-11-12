@@ -32,7 +32,7 @@ export function AimOverlay({ battle, hoverAim, anchor, dims, pendingAttack, pend
     const t = cible && byId(victimeDuCoup(battle, cible, pendingAttack).id);
     if (!a || !cible || !t) return null;
     const ranged = attackWeaponOf(battle, a, cible, pendingAttack).type === 'distance'; // l'arme du coup (#1026)
-    return <TargetReticle from={anchor(a)} to={anchor(t)} line={ranged ? 'dashed' : 'solid'} lineColor={a.kind === 'hero' ? GOLD_TINT : ENEMY_CUE_TINT} />;
+    return <TargetReticle from={anchor(a)} to={anchor(t)} line={ranged ? 'dashed' : 'solid'} lineColor={a.kind === 'heros' ? GOLD_TINT : ENEMY_CUE_TINT} />;
   }
   if (pendingDefense) {
     const a = byId(pendingDefense.attackerId), t = byId(pendingDefense.defenderId);
@@ -47,7 +47,7 @@ export function AimOverlay({ battle, hoverAim, anchor, dims, pendingAttack, pend
       : t ? anchor(t) : null;
     if (!a || !to) return null;
     const self = !pendingCast.zone && pendingCast.casterId === pendingCast.targetId; // sort sur SOI : réticule seul
-    return <TargetReticle from={self ? null : anchor(a)} to={to} line={self ? null : 'dashed'} lineColor={a.kind === 'hero' ? GOLD_TINT : ENEMY_CUE_TINT} />;
+    return <TargetReticle from={self ? null : anchor(a)} to={to} line={self ? null : 'dashed'} lineColor={a.kind === 'heros' ? GOLD_TINT : ENEMY_CUE_TINT} />;
   }
   if (pendingHeal) {
     const t = byId(pendingHeal.targetId);

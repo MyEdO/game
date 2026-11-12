@@ -21,7 +21,7 @@ const rangees = () => CRITIQUE_DOCS.flatMap((d) => d.entries);
 
 function mk(): Combatant {
   return blessuresSurLeProfil({
-    id: 'x', name: 'X', kind: 'hero', characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
+    id: 'x', name: 'X', kind: 'heros', characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     conditions: [], activeEffects: [], skills: [], talents: [], traits: [], weapons: [], armour: [],
     wounds: blessuresDeBase(10), advantage: 0,
   }) as unknown as Combatant;

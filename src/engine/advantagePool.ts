@@ -26,10 +26,10 @@ export function groupAdvantage(): boolean {
   return rule('combat-aa-avantage-groupe') === true;
 }
 
-/** Réserve d'un combattant : héros et PNJ alliés (`kind:'hero'`) → réserve des alliés ; PNJ hostile ou
- *  neutre (`enemy`/`npc`) → réserve des adversaires (AA 11 l.11-13). */
+/** Réserve d'un combattant : héros et PNJ alliés (`kind:'heros'`) → réserve des alliés ; PNJ hostile ou
+ *  neutre (`ennemi`/`pnj`) → réserve des adversaires (AA 11 l.11-13). */
 export function advantageCampOf(c: Pick<Combatant, 'kind'>): AdvantageCamp {
-  return c.kind === 'hero' ? 'allies' : 'foes';
+  return c.kind === 'heros' ? 'allies' : 'foes';
 }
 
 export function emptyPools(): AdvantagePools {

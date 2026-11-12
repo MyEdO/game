@@ -20,7 +20,7 @@ const ABORD_NORD = { x: 5, y: 4 };
 const MENEUR: SeatOccupant = { kind: 'party', rang: 1 };
 
 const hero = (id = 'h'): Combatant =>
-  combattantDeTest({ id, label: id.toUpperCase(), kind: 'hero', xp: 0, wounds: blessuresDeBase(12), conditions: [], movement: 4 });
+  combattantDeTest({ id, label: id.toUpperCase(), kind: 'heros', xp: 0, wounds: blessuresDeBase(12), conditions: [], movement: 4 });
 
 function scèneDeTaverne(): Scene {
   const s = emptyScene('scene-test', 12, 12);

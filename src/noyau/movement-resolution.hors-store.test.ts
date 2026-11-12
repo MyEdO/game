@@ -17,11 +17,11 @@ function setup() {
   banc.getState().lancerLeCombat('enc-mutants');
   banc.getState().fenetreValider('debutDuRound');
   const battle = banc.getState().battle!;
-  const active = battle.combatants.find((combatant) => combatant.kind === 'hero')!;
+  const active = battle.combatants.find((combatant) => combatant.kind === 'heros')!;
   active.pos = { x: 6, y: 10 };
   active.engagedWith = [];
   let enemyX = 20;
-  for (const enemy of battle.combatants.filter((combatant) => combatant.kind === 'enemy')) {
+  for (const enemy of battle.combatants.filter((combatant) => combatant.kind === 'ennemi')) {
     enemy.pos = { x: enemyX++, y: 20 };
   }
   banc.setState({
@@ -103,7 +103,7 @@ describe('résolution canonique du déplacement', () => {
 
   it('la priorité Désengagement ouvre son flux sans intention de déplacement', () => {
     const active = setup();
-    const enemy = banc.getState().battle!.combatants.find((combatant) => combatant.kind === 'enemy')!;
+    const enemy = banc.getState().battle!.combatants.find((combatant) => combatant.kind === 'ennemi')!;
     enemy.pos = { x: active.pos!.x + 1, y: active.pos!.y };
     active.engagedWith = [enemy.id];
     enemy.engagedWith = [active.id];

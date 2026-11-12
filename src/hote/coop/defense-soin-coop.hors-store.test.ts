@@ -25,7 +25,7 @@ const NET = (mode: 'hote' | 'invite', mySeat: number): NetState => ({
 });
 
 const chars = { 'capacite-de-combat': 45, 'capacite-de-tir': 50, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 40, 'force-mentale': 30, sociabilite: 30 };
-const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, over: Partial<Combatant> = {}): Combatant =>
+const mk = (id: string, kind: 'heros' | 'ennemi', pos: { x: number; y: number }, over: Partial<Combatant> = {}): Combatant =>
   (blessuresSurLeProfil({ id, name: id, label: id, kind, characteristics: { ...chars }, conditions: [], engagedWith: [], skills: [], talents: [], items: [],
      weapons: [rapiere], advantage: 0, size: 'moyenne', pos, wounds: blessuresDeBase(18),
      armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, ...over }) as unknown as Combatant);
@@ -62,14 +62,14 @@ function combat(banc: Banc, combatants: Combatant[], turn: number): void {
     combatants, order, baseOrder: order, turn, round: 1, action: null, selectedSpellId: null, reachable: new Map(),
     movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
   } as unknown as BattleState;
-  banc.setState({ battle, mode: 'battle', scene: testScene(), party: combatants.filter((c) => c.kind === 'hero'), pendingDefense: null, pendingAttack: null, pendingCascade: null, pendingHeal: null });
+  banc.setState({ battle, mode: 'battle', scene: testScene(), party: combatants.filter((c) => c.kind === 'heros'), pendingDefense: null, pendingAttack: null, pendingCascade: null, pendingHeal: null });
 }
 
 describe('Défense et soin en coop : la même fenêtre des deux côtés', () => {
   it('la Défense du héros de l’invité : même réaction, mêmes cibles ; l’Esquive de l’invité se règle chez l’hôte', () => {
     const banc = ouvrirLeBanc({ etat: { net: NET('hote', 0) } });
     seedBattleRng(7);
-    combat(banc, [mk('e', 'enemy', { x: 1, y: 0 }), mk('h', 'hero', { x: 0, y: 0 })], 0);
+    combat(banc, [mk('e', 'ennemi', { x: 1, y: 0 }), mk('h', 'heros', { x: 0, y: 0 })], 0);
     const { guest, chezLInvite } = table(banc);
     openAttackCascade(banc.getState, banc.setState, { attackerId: 'e', targetId: 'h', location: null, result: null, weaponUid: 'ra' }, 'Attaque', 'action/attaquer');
     banc.getState().jetLancer('attaque');
@@ -84,8 +84,8 @@ describe('Défense et soin en coop : la même fenêtre des deux côtés', () => 
 
   it('le soin du héros de l’invité : même acte, mêmes raisons ; l’Hémorragie de l’invité se règle chez l’hôte', () => {
     const banc = ouvrirLeBanc({ etat: { net: NET('hote', 0) } });
-    const doc = mk('h', 'hero', { x: 0, y: 0 }, { skills: [{ id: 'guerison', advances: 30, characteristic: 'intelligence' }] } as Partial<Combatant>);
-    const al = mk('al', 'hero', { x: 1, y: 0 }, { wounds: blessuresDeBase(18, 5), conditions: [{ id: 'hemorragique', value: 2 }] } as Partial<Combatant>);
+    const doc = mk('h', 'heros', { x: 0, y: 0 }, { skills: [{ id: 'guerison', advances: 30, characteristic: 'intelligence' }] } as Partial<Combatant>);
+    const al = mk('al', 'heros', { x: 1, y: 0 }, { wounds: blessuresDeBase(18, 5), conditions: [{ id: 'hemorragique', value: 2 }] } as Partial<Combatant>);
     combat(banc, [doc, al], 0);
     const { guest, chezLInvite } = table(banc);
     banc.setState({ battle: { ...banc.getState().battle!, action: 'soins' } });

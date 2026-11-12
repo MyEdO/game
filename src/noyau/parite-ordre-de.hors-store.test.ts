@@ -64,8 +64,8 @@ function startFight(seed: number, opts: { pa?: ArmourPoints; gmSeat?: number } =
   banc.abandonner();
   banc.setState({ net: { ...banc.getState().net, mode: 'local', mySeat: 0, gmSeat: opts.gmSeat } });
   const b = banc.getState().battle!;
-  const H = b.combatants.find((c) => c.kind === 'hero')!;
-  const E = b.combatants.find((c) => c.kind === 'enemy')!;
+  const H = b.combatants.find((c) => c.kind === 'heros')!;
+  const E = b.combatants.find((c) => c.kind === 'ennemi')!;
   E.important = true; // LDB 18 l.44 : hors Mort subite
   const pa = opts.pa ?? SANS_PA;
   H.items = []; // aucune pièce portée à départager : le PA du héros se dérive de sa mutation, celui de l'ennemi est son profil

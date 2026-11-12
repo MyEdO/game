@@ -27,7 +27,7 @@ describe('Contrecoup — la pastille de l’effet porte SA rangée (LDB 40 l.75)
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
     H.wounds = blessuresDeBase(200, 200, H);
     banc.setState({ battle: { ...b }, pendingCascade: null, pendingLogQueue: [] });
     return { H };

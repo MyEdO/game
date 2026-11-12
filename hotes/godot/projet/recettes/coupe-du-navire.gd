@@ -184,10 +184,10 @@ func _mer(montage: MontageDeVehicule) -> void:
 			for triangle in [[a, a + Vector3(0.0, 0.0, METRES_PAR_CASE), a + Vector3(METRES_PAR_CASE, 0.0, METRES_PAR_CASE)], [a, a + Vector3(METRES_PAR_CASE, 0.0, METRES_PAR_CASE), a + Vector3(METRES_PAR_CASE, 0.0, 0.0)]]:
 				for p: Vector3 in triangle:
 					positions.append_array([p.x, p.y, p.z])
-				cases.append([colonne, rangee, 0])
+				cases.append_array([colonne, rangee, 0])
 	var mer := positions.size() / 3
 	positions.append_array([20.0, 0.0, 8.0, 21.0, 0.0, 8.0, 20.0, 0.0, 9.0])
-	cases.append([0, 0, 1])
+	cases.append_array([0, 0, 1])
 	var normales: Array[float] = []
 	var couleurs: Array[float] = []
 	for i in positions.size() / 3:

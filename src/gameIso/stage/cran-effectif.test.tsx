@@ -40,7 +40,7 @@ const cranDims = (rot: Rot): Dims => ({ w: 8, h: 8, rot });
 
 function hero(id: string, pos: { x: number; y: number }): Combatant {
   return blessuresSurLeProfil({
-    id, label: id, kind: 'hero', pos, size: 'moyenne',
+    id, label: id, kind: 'heros', pos, size: 'moyenne',
     wounds: blessuresDeBase(12), weapons: [],
     characteristics: profilDeTest(), advantage: 0, conditions: [], armour: {},
     skills: [], talents: [], movement: 4,

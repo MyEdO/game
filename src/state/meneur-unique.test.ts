@@ -25,7 +25,7 @@ const hero = (id: string, wounds: number, talents: { talentId: string; times: nu
   combattantDeTest({
     id,
     label: id.toUpperCase(),
-    kind: 'hero',
+    kind: 'heros',
     species: 'humains-reiklander',
     xp: 0,
     wounds: blessuresDeBase(12, wounds),

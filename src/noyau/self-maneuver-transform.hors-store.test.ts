@@ -30,7 +30,7 @@ describe('manoeuvrerSurSoi — Métamorphose (activation joueur)', () => {
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
     H.traits = [{ id: 'metamorphose' }]; // Enfant d'Ulric (lycanthrope jouable)
     const turn = b.order.indexOf(H.id);
     banc.setState({ battle: { ...b, turn, movementUsed: 0, acted: false } });

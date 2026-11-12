@@ -16,7 +16,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  */
 const C = (over: Partial<Combatant>): Combatant =>
   (blessuresSurLeProfil({
-    id: 'X', name: 'X', kind: 'hero',
+    id: 'X', name: 'X', kind: 'heros',
     characteristics: { 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], traumas: [],
     weapons: [{ name: 'Épée', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [] }],
@@ -28,7 +28,7 @@ const C = (over: Partial<Combatant>): Combatant =>
 function setupForcedAttack() {
   seedBattleRng(7);
   const attacker = C({ id: 'A', label: 'Att', resilience: 2 });
-  const target = C({ id: 'B', label: 'Cible', kind: 'enemy', pos: { x: 1, y: 0 } });
+  const target = C({ id: 'B', label: 'Cible', kind: 'ennemi', pos: { x: 1, y: 0 } });
   banc.setState({
     battle: { combatants: [attacker, target], log: [] } as never,
     pendingAttack: {
@@ -87,7 +87,7 @@ describe('jetImposerLeResultat@attaque — choisir la valeur du dé d’un succ�
   it('attaque non forcée → le dé s’applique au NATUREL, sans rien forcer', () => {
     seedBattleRng(7);
     banc.setState({
-      battle: { combatants: [C({ id: 'A', resilience: 2 }), C({ id: 'B', kind: 'enemy' })], log: [] } as never,
+      battle: { combatants: [C({ id: 'A', resilience: 2 }), C({ id: 'B', kind: 'ennemi' })], log: [] } as never,
       pendingAttack: {
         attackerId: 'A', targetId: 'B', location: null,
         result: { hit: true, attackerRoll: 22, netSL: 2, critical: true, advantageTo: 'attaquant', defenderDefeated: false, log: '', attackerDetail: { label: 'Corps à corps', base: 45, modifier: 0, target: 45, roll: 22, success: true, sl: 2 } } as never,
@@ -107,7 +107,7 @@ describe('jetImposerLeResultat@incantation — même choix sur une INCANTATION f
   function setupForcedCast() {
     seedBattleRng(7);
     const caster = C({ id: 'A', label: 'Mage', resilience: 2 });
-    const target = C({ id: 'B', label: 'Cible', kind: 'enemy', pos: { x: 1, y: 0 } });
+    const target = C({ id: 'B', label: 'Cible', kind: 'ennemi', pos: { x: 1, y: 0 } });
     banc.setState({
       battle: { combatants: [caster, target], log: [] } as never,
       pendingCast: {
@@ -143,7 +143,7 @@ describe('jetImposerLeResultat@incantation — même choix sur une INCANTATION f
 describe('jetImposerLeResultat@defense — même choix sur une DÉFENSE forcée', () => {
   function setupForcedDefense() {
     seedBattleRng(7);
-    const attacker = C({ id: 'E', label: 'Orque', kind: 'enemy' });
+    const attacker = C({ id: 'E', label: 'Orque', kind: 'ennemi' });
     const defender = C({ id: 'H', label: 'Héros', resilience: 2, pos: { x: 1, y: 0 } });
     const atk = { roll: 30, target: 40, success: true, sl: 1, isDouble: false };
     banc.setState({

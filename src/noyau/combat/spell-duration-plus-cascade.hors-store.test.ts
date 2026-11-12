@@ -26,8 +26,8 @@ describe('Durée « + » — offre de prolongation en cascade héros (#543)', ()
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    b.combatants.filter((c) => c.kind === 'enemy').forEach((e) => (e.dead = true)); // aucun ennemi actif
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    b.combatants.filter((c) => c.kind === 'ennemi').forEach((e) => (e.dead = true)); // aucun ennemi actif
     // Effet actif d'un sort marqué « + » (arme-aethyrique, LDB 47 l.319), sur le point d'expirer.
     H.activeEffects = [{ label: 'Arme aethyrique', bonus: 0, duration: { scale: 'rounds', left: 1 }, sourceSpellId: 'arme-aethyrique' }];
     endOfRound(H, desDuTest, idsDeTest); // simule le décompte de fin de Round → effet GELÉ (awaitingExtension)
@@ -53,7 +53,7 @@ describe('Durée « + » — offre de prolongation en cascade héros (#543)', ()
     const step = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'sortProlongeChoix')!;
     banc.getState().jetRegler('cascade', 'choix', 'non', step.id);
     banc.getState().jetValider('cascade');
-    const h = banc.getState().battle!.combatants.find((x) => x.kind === 'hero')!;
+    const h = banc.getState().battle!.combatants.find((x) => x.kind === 'heros')!;
     expect(h.activeEffects ?? []).toHaveLength(0);
     expect(banc.getState().pendingCascade?.participants.some((s) => s.kind === 'sortProlongeTest')).toBeFalsy();
   });
