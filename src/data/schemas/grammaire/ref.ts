@@ -1026,12 +1026,13 @@ export const aLaFormeDe = (noeud: unknown, valeur: unknown): boolean =>
  * l'« Entrée invalide » générique d'une union.
  */
 export function unionDeFormes(branches: readonly [z.ZodType, ...z.ZodType[]]): z.ZodType<unknown> {
-  return z.union(branches, {
-    error: (iss) => {
-      const parBranche = (iss as IssueDeParse).errors ?? [];
-      return parBranche.find((b) => b.length > 0 && !b.some(estDeForme))?.[0]?.message;
-    },
-  });
+  return z.union(branches, { error: messageDeFormes });
+}
+
+/** Le message d'une union de formes (`unionDeFormes`), pour l'union qui garde le type de ses branches. */
+export function messageDeFormes(iss: z.core.$ZodRawIssue): string | undefined {
+  const parBranche = (iss as IssueDeParse).errors ?? [];
+  return parBranche.find((b) => b.length > 0 && !b.some(estDeForme))?.[0]?.message;
 }
 
 /**

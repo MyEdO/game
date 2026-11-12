@@ -8,7 +8,7 @@ import { libelleDeValeur, nommerChamps, nommerNoeud } from './meta';
 import { z } from 'zod';
 import { caracteristiqueChiffreeSchema, countSpecSchema, difficultySchema, enumNomme, formuleSansTirageSchema, maisonSchema, matiereDArmureSchema, parLocalisationSchema, plageSchema, secondarySourceRefSchema, sizeCategorySchema, sourceRefSchema, varianteDeCibleSchema } from './valeurs';
 import { marquerProduit } from './interne/produits';
-import { idDe, marqueurDeLaForme, messageDeRefusDeSpec, porteLeMarqueur, recordDIds, ref, refOuSpec, refs, refTypee, refusDeSpec } from './ref';
+import { idDe, marqueurDeLaForme, messageDeFormes, messageDeRefusDeSpec, porteLeMarqueur, recordDIds, ref, refOuSpec, refs, refTypee, refusDeSpec } from './ref';
 import { findTraitById, psychologyLabel } from '../../index';
 import { cibleDeLArg, individusNommes, varianteAdmise, varianteDe } from '../../../engine/psych/ciblage';
 
@@ -291,7 +291,7 @@ function formesDeDotation<T, A = never>(soi: () => z.ZodType<T>, ...autres: z.Zo
     dotationDePossessionSchema,
     marquerProduit(nommerChamps(z.strictObject({ choice: z.array(z.lazy(soi)) }), { choice: { label: "choix" } }), 'formesDeDotation', 'choix'),
     jokerDeDotationSchema,
-  ]);
+  ], { error: messageDeFormes });
 }
 
 /** Dotation sans texte : `classes.json`. LDB 05 l.552 ; #4053 */

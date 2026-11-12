@@ -21,35 +21,7 @@ export const editableObjectDataset = (categoryKey: string): { ds: ObjectDatasetK
 export const editableDataset = (categoryKey: string): DatasetKey | undefined => CATEGORY_DATASET[categoryKey];
 export const isEditableCategory = (categoryKey: string): boolean => !!CATEGORY_DATASET[categoryKey] || !!OBJECT_CATEGORY[categoryKey];
 
-/** Champ-réf → son dataset. Double usage : suggestions (`SaisieSuggeree`) des champs-listes ET
- *  validation des refs (`validateEntry` : chaque `{id}` du champ doit résoudre dans ce dataset). */
-export const REF_LIST_DATASET: Record<string, DatasetKey> = {
-  traits: 'traits', optionals: 'traits', skills: 'skills', talents: 'talents',
-  spells: 'spells', trappings: 'trappings', blessings: 'spells', miracles: 'spells', chaosSpells: 'spells',
-  traumas: 'traumas',
-};
-
-/** ids d'un champ-liste de refs — descend dans les branches `of` d'un `{pick}` (`AdvancementRef`) et
- *  dans le `choice` d'une `TrappingRef` ; ignore les `{text}` narratifs et jokers. Une CHAÎNE BRUTE (ex.
- *  `criticalsTete.traumas: string[]`) est traitée comme un id DIRECT (#173 : ces listes référencent
- *  leur dataset par id, jamais par libellé). */
-function refIdsIn(v: unknown): string[] {
-  if (!Array.isArray(v)) return [];
-  const out: string[] = [];
-  for (const x of v) {
-    if (typeof x === 'string') { out.push(x); continue; }
-    if (!x || typeof x !== 'object') continue;
-    const o = x as { choice?: unknown; of?: unknown; ref?: { id?: unknown }; id?: unknown; type?: unknown };
-    if (o.of) out.push(...refIdsIn(o.of));
-    else if (o.choice) out.push(...refIdsIn(o.choice));
-    else if (o.ref && typeof o.ref.id === 'string') out.push(o.ref.id);
-    else if (typeof o.id === 'string' && o.type === undefined) out.push(o.id); // `{id, type}` : le catalogue de son `type`
-  }
-  return out;
-}
-
-/** Champs-réf NICHÉS (une valeur ou une liste, sous un sous-objet/sous-tableau — hors de portée de
- *  `REF_LIST_DATASET`, qui ne regarde QUE les champs top-level de `entry`) : même garantie de
+/** Champs-réf NICHÉS (une valeur ou une liste, sous un sous-objet/sous-tableau) : garantie de
  *  résolvabilité, décrite par un accesseur PUR `entry → (id|undefined)[]`. #173 : `mutationTables.
  *  entries[].mutation` et `domains.castBonus.perCondition` en sont les 2 sites CONFIRMÉS (un éditeur par
  *  datalist-de-labels y écrivait un libellé, cassant `mutations.ts::rollMutation`/`noyau/combatFlow.ts::
@@ -63,8 +35,8 @@ const NESTED_REF_FIELDS: { key: string; ds: DatasetKey; get: (entry: Entry) => (
 ];
 
 /** Valide une entrée AVANT persist (bouton Enregistrer bloqué tant que non vide) : identité
- *  (id non vide + unique, libellé non vide) + refs (`{id}` ou chaîne directe) résolvables dans leur
- *  dataset. PUR. `selfIndex` = position de l'entrée éditée dans `entries` (−1 pour une création). */
+ *  (id non vide + unique, libellé non vide) + refs NICHÉES résolvables (`NESTED_REF_FIELDS`) ; une référence
+ *  d'un champ typé par la grammaire (`idDe`, `refs`) se juge au parse de la racine (`racineValidee`). PUR. `selfIndex` = position de l'entrée éditée dans `entries` (−1 pour une création). */
 export function validateEntry(categoryKey: string, entry: Entry, entries: Entry[], selfIndex: number): string[] {
   const errors: string[] = [];
   // id : requis + unique là où le dataset est id-based (toutes les entités migrées par-id).
@@ -76,25 +48,6 @@ export function validateEntry(categoryKey: string, entry: Entry, entries: Entry[
   // Libellé : la clé d'identité générique (label/name/key/id) ne peut pas être vide — c'est elle
   // que le navigateur du Codex et l'éditeur utilisent pour retrouver l'entrée.
   if (!entryKey(entry).trim()) errors.push('libellé vide');
-  // Refs résolvables : chaque `{id}` (ou chaîne directe) d'un champ-réf doit exister dans son dataset —
-  // détecté par nom de champ (table unique).
-  for (const [field, ds] of Object.entries(REF_LIST_DATASET)) {
-    if (!(field in entry)) continue;
-    const known = new Set((datasetArray(ds) as { id?: string }[]).map((e) => e.id).filter(Boolean));
-    for (const id of refIdsIn(entry[field])) {
-      if (id === '') errors.push(`${field} : réf à choisir (${ds})`);
-      else if (!known.has(id)) errors.push(`${field} : réf « ${id} » introuvable (${ds})`);
-    }
-    // `trappings` (classes/careerLevels) porte aussi la dotation de POSSESSION `{id, type}` (foyer de
-    // son `type`, jamais le foyer trappings) : même garantie de résolvabilité.
-    if (field === 'trappings') {
-      for (const tr of (entry[field] as { id?: unknown; type?: unknown }[] | undefined) ?? []) {
-        const dsDuType = tr?.type === 'vehicle' ? 'vehicles' : tr?.type === 'creature' ? 'creatures' : undefined;
-        if (!dsDuType || typeof tr.id !== 'string') continue;
-        if (!datasetArray(dsDuType).some((e) => e.id === tr.id)) errors.push(`${field} : réf « ${tr.id} » introuvable (${dsDuType})`);
-      }
-    }
-  }
   // Refs NICHÉES (#173) : même garantie, pour les champs-réf sous un sous-objet/sous-tableau.
   for (const { key, ds, get } of NESTED_REF_FIELDS) {
     const known = new Set((datasetArray(ds) as { id?: string }[]).map((e) => e.id).filter(Boolean));
