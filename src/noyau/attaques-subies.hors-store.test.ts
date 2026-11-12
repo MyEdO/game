@@ -34,7 +34,7 @@ afterEach(() => {
 });
 
 const rats = { type: 'statblock', label: 'Rats géants', char: { 'capacite-de-combat': 35 }, traits: [{ id: 'arme', value: 5 }] };
-const op = gameOpSchema.parse({ op: 'attaquesSubies', assaillant: { statblock: rats }, nombre: '1d10' });
+const op = gameOpSchema.parse({ op: 'attaquesSubies', assaillant: { statblock: rats }, nombre: { dice: { n: 1, sides: 10 } } });
 const attaques = (on: 'heros' | 'groupe', heroId?: string): Effect => ({ type: 'ops', on, ...(heroId ? { heroId } : {}), ops: [op] });
 
 /** Trois Blessures au héros `heroId` : l'Effet authoré qui SUIT l'op dans la liste. */
@@ -424,7 +424,7 @@ describe('série d’attaques subies hors bataille (#3892)', () => {
     const briseEpee = { label: 'Brise-épée', type: 'melee' as const, damage: { plusBF: true, flat: 3 }, qualities: [{ id: 'piege-lame' }], bladed: true, uid: 'brise-epee' };
     banc.setState({ party: [{ ...H, weapons: [briseEpee, ...H.weapons] }] });
     const coupeJarret = { type: 'statblock', label: 'Coupe-jarret', char: { 'capacite-de-combat': 35 }, traits: [{ id: 'arme', value: 5, arg: 'dague' }] };
-    const opDague = gameOpSchema.parse({ op: 'attaquesSubies', assaillant: { statblock: coupeJarret }, nombre: '1d10' });
+    const opDague = gameOpSchema.parse({ op: 'attaquesSubies', assaillant: { statblock: coupeJarret }, nombre: { dice: { n: 1, sides: 10 } } });
     applyEffects(banc.getState, banc.setState, [{ type: 'ops', on: 'heros', heroId: H.id, ops: [opDague] }]);
     imposerLesD100(65, 23);
     banc.getState().jetImposerLeResultat('cascadeTirage', 2, banc.getState().pendingCascade!.participants[0].id);
@@ -482,7 +482,7 @@ describe('série d’attaques subies hors bataille (#3892)', () => {
   function assommanteALaTete() {
     const { banc, H } = horsBataille(testScene());
     const brute = { type: 'statblock', label: 'Brute', char: { 'capacite-de-combat': 35, force: 60 }, traits: [{ id: 'arme', value: 5, arg: 'marteau-a-bec-de-corbin' }] };
-    const opBrute = gameOpSchema.parse({ op: 'attaquesSubies', assaillant: { statblock: brute }, nombre: '1d10' });
+    const opBrute = gameOpSchema.parse({ op: 'attaquesSubies', assaillant: { statblock: brute }, nombre: { dice: { n: 1, sides: 10 } } });
     applyEffects(banc.getState, banc.setState, [{ type: 'ops', on: 'heros', heroId: H.id, ops: [opBrute] }]);
     imposerLesD100(20, 23, 20, 23, 20);
     banc.getState().jetImposerLeResultat('cascadeTirage', 2, banc.getState().pendingCascade!.participants[0].id);

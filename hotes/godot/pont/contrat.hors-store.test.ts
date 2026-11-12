@@ -36,7 +36,7 @@ describe('le pont avant sa partie', () => {
   it('une méthode inconnue se refuse en `validation` et nomme les méthodes du contrat', () => {
     const e = erreurDe(appel('simulerAttaque', {}));
     expect(e.categorie).toBe('validation');
-    expect(e.message).toBe('méthode inconnue : simulerAttaque (méthodes : demarrer, ouvrir, lancer, quitter, sauvegardes, sauvegarder, charger, scenarios, vue, monde, morceaux, retrait, aretes, jouer, plan, regarder, fiche, creation, reprendre, modeles, composer, vehicule, catalogues, vitrine, preferences, echantillons, echantillon, presetDeComposition, editer, erreursGlobales)');
+    expect(e.message).toBe('méthode inconnue : simulerAttaque (méthodes : demarrer, ouvrir, lancer, quitter, sauvegardes, sauvegarder, charger, scenarios, vue, monde, morceaux, retrait, vision, aretes, jouer, plan, regarder, fiche, creation, reprendre, modeles, composer, vehicule, catalogues, vitrine, preferences, echantillons, echantillon, presetDeComposition, editer, erreursGlobales)');
   });
 
   it('`preferences` rend sans partie la valeur effective de chaque préférence de la table, par id', () => {
@@ -79,8 +79,8 @@ describe('le pont avant sa partie', () => {
     expect(erreurDe(appel('scenarios', { section: 'combat' }))).toEqual({ categorie: 'validation', message: 'scenarios : section hors de l’entrée (aucune clé)' });
   });
 
-  it('`vue`, `monde`, `morceaux` de la partie, `retrait`, `aretes`, `jouer`, `fiche` et `reprendre` se refusent sans partie', () => {
-    for (const [methode, entree] of [['vue', undefined], ['monde', undefined], ['morceaux', { source: 'partie', volume: [], toits: [], couronnes: [] }], ['retrait', undefined], ['aretes', undefined], ['jouer', { type: 'fenetreValider', args: ['debutDuRound'] }], ['fiche', { fiche: null }], ['regarder', { regard: 'plateau' }], ['reprendre', { jeton: 0 }]] as const) {
+  it('`vue`, `monde`, `morceaux` de la partie, `retrait`, `vision`, `aretes`, `jouer`, `fiche` et `reprendre` se refusent sans partie', () => {
+    for (const [methode, entree] of [['vue', undefined], ['monde', undefined], ['morceaux', { source: 'partie', volume: [], toits: [], couronnes: [] }], ['retrait', undefined], ['vision', undefined], ['aretes', undefined], ['jouer', { type: 'fenetreValider', args: ['debutDuRound'] }], ['fiche', { fiche: null }], ['regarder', { regard: 'plateau' }], ['reprendre', { jeton: 0 }]] as const) {
       expect(erreurDe(appel(methode, entree)), methode).toEqual({ categorie: 'validation', message: 'aucune partie : demarrer ou ouvrir d’abord' });
     }
   });

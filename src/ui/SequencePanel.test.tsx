@@ -112,7 +112,7 @@ describe('SequencePanel — une partie de Bras de fer n’est plus aveugle', () 
     render();
     expect(compteur(), 'la manche a avancé').toContain('Manche 2');
     // Le cumul MONTRÉ est celui de l'état de séquence (DR de la manche + Bonus de Force, l.34).
-    const cum = get().sequence!.cum as Record<string, number>;
+    const cum = get().sequence!.cumuls as Record<string, number>;
     expect(cum.joueur).toBeGreaterThan(0);
     expect(texte()).toContain(`${cum.joueur}/10 DR`);
     expect(texte()).toContain(`${cum.adversaire}/10 DR`);
@@ -125,7 +125,7 @@ describe('SequencePanel — une partie de Bras de fer n’est plus aveugle', () 
    * jeu (`jetLancer('cascade', id)`), pas posé : l'issue d'une manche mono passe par l'opposition figée
    * (`opposedCascadeRoll`), et un résultat posé à la main court-circuiterait justement ce chemin.
    * Ce qu'un cumul vers cible doit montrer, c'est le TOTAL de chaque camp APRÈS la manche close
-   * (`LDB 12 l.170-179`) — le socle écrit `seq.cum`, le système le rend, la fenêtre suivante le lit.
+   * (`LDB 12 l.170-179`) — le socle écrit `seq.cumuls`, le système le rend, la fenêtre suivante le lit.
    */
   it('MANCHE GAGNÉE (dé LANCÉ) : le cumul du vainqueur MONTE, et la fenêtre de la manche 2 le montre', () => {
     seedBattleRng(1);
@@ -141,7 +141,7 @@ describe('SequencePanel — une partie de Bras de fer n’est plus aveugle', () 
     act(() => { get().jetValider('cascade'); });
     render();
 
-    const cum = get().sequence!.cum as Record<string, number>;
+    const cum = get().sequence!.cumuls as Record<string, number>;
     expect(get().journal.some((l) => l.includes('Avantage')), 'l’op de manche du VAINQUEUR a tiré : la manche est gagnée').toBe(true);
     expect(cum.joueur, 'le DR de la manche s’AJOUTE au cumul du challenger').toBeGreaterThan(0);
     expect(compteur(), 'la manche a avancé').toContain('Manche 2');
@@ -161,7 +161,7 @@ describe('SequencePanel — une partie de Bras de fer n’est plus aveugle', () 
     get().jouerALaTaverne(a.id, { gameId: 'bras-de-fer', opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
     poseMancheMono(-4, 2); // Test raté : −4 DR ; l'adversaire prend sa manche
     render();
-    const cum = get().sequence!.cum as Record<string, number>;
+    const cum = get().sequence!.cumuls as Record<string, number>;
     expect(cum.joueur, 'le total ne descend jamais sous 0 (l.174)').toBe(0);
     expect(cum.adversaire, 'le camp d’en face cumule le sien').toBeGreaterThan(0);
     expect(texte()).toContain('0/10 DR');
@@ -209,7 +209,7 @@ describe('SequencePanel — une partie de Bras de fer n’est plus aveugle', () 
     });
     render();
 
-    const cum = get().sequence!.cum as Record<string, number>;
+    const cum = get().sequence!.cumuls as Record<string, number>;
     const journal = get().journal.join('\n');
     expect(cum.joueur, 'le vainqueur cumule (DR de manche + Bonus de Force, l.34)').toBeGreaterThan(0);
     expect(cum.adversaire, 'le battu reste planché à 0 (l.174)').toBe(0);
@@ -433,7 +433,7 @@ describe('ABANDON — entre deux Tests, jamais au milieu d’une manche', () => 
     act(() => { useGame.setState({ pendingCascade: { ...pc, participants: [{ ...band, participants: rows }] } }); });
     render();
     expect(boutons(), 'manche résolue : offert').toContain('Abandonner');
-    const manche = get().sequence!.round;
+    const manche = get().sequence!.manche;
     act(() => { get().jetRegler('cascade', 'abandon', true); });
     expect(cur().kind, 'la validation du lancer appende la pinte, qui reste due').toBe('taverneBoisson');
     expect(get().sequence?.abandon, 'la demande est portée par l’état de la séquence').toBe('abandon');
@@ -450,7 +450,7 @@ describe('ABANDON — entre deux Tests, jamais au milieu d’une manche', () => 
     act(() => { get().jetLancer('cascade', cur().id); });
     expect(sequenceAbandonOf(get), 'pinte posée, manche de nouveau résolue : toujours aucune seconde demande').toBeNull();
     for (let i = 0; i < 10 && get().sequence; i++) {
-      expect(get().sequence!.round, 'aucune manche suivante ne s’ouvre').toBe(manche);
+      expect(get().sequence!.manche, 'aucune manche suivante ne s’ouvre').toBe(manche);
       joueEtape();
     }
     expect(get().sequence).toBeNull();

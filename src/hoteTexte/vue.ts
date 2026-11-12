@@ -5,7 +5,7 @@
  * généré : `npm run docs:hote-texte`.
  */
 import {
-  effectiveArmourAt, effectiveTalents, actionGate, etatDeLaBarre, endTurnArmed, porteurParId, CLIC_DU_CHAMP,
+  effectiveArmourAt, effectiveTalents, actionGate, etatDeLaBarre, endTurnArmed, entiteConnue, porteurParId, CLIC_DU_CHAMP,
   LOCALISATIONS_DE_COUP, ACTIONS, cleDuGeste,
   type GesteDExploration, type GesteDuJeu, type Jeu, type JetEnVue, type LigneDeJet, type Offre,
 } from '../noyau/index';
@@ -343,17 +343,18 @@ export function rendreLaFiche(etat: Jeu, id: string): string[] | null {
   ], 'fiche');
 }
 
-/** Une page de la carte : les combattants, l'actif d'abord, puis ses engagés, puis par distance (`depuis`). */
+/** Une page de la carte : les combattants en vue, l'actif d'abord, puis ses engagés, puis par distance (`depuis`). */
 export function pageDeLaCarte(etat: Jeu, depuis?: number): { combattants: CombattantProjete[]; suite: string[] } {
   const { elements, suite } = page(combattantsTries(etat), depuis, 'debut', (k) => appelEcrit('lire', { quoi: 'carte', depuis: k }));
   return { combattants: elements, suite };
 }
 
-/** La carte (`BORNES.lignes.carte`) : en combat, les combattants ; en exploration, le groupe et ses héros (leur id),
- *  puis les entités de la scène (`scene.entities`) ; par page (`depuis`). */
+/** La carte (`BORNES.lignes.carte`) : en combat, les combattants en vue (`combattantsTries`) ; en exploration, le
+ *  groupe et ses héros (leur id), puis les entités de la scène que le groupe connaît (`entiteConnue`) ; par page
+ *  (`depuis`). */
 export function rendreLaCarte(etat: Jeu, p: Projection, depuis?: number): string[] {
   if (!p.combat) {
-    const entites = etat.scene?.entities ?? [];
+    const entites = (etat.scene?.entities ?? []).filter((e) => entiteConnue(etat, e));
     const { elements, suite } = page(entites, depuis, 'debut', (k) => appelEcrit('lire', { quoi: 'carte', depuis: k }));
     const tete = p.exploration
       ? [`groupe ${pos(p.exploration.groupe)} · ${etat.party.length} héros · ${entites.length} entité(s)`, ...etat.party.map((h) => `  ${h.id} · ${h.kind} · ${h.label}`)]

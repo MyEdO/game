@@ -7,7 +7,8 @@
 ## d'un point, la largeur d'un texte de bulle replié, le point où se dit le nom de ce qui occupe une case, la pose
 ## d'une arête (mur ou porte) sur le côté de sa case et l'échelle d'une pièce du kit qui s'y pose, l'échelle métrique d'un modèle et d'une hauteur sur le plateau et
 ## la hauteur d'un point du corps à son gabarit, le point d'un lieu sur le plan et le coin de ce qui se pose sous lui, la
-## coupe d'un navire, le compte des triangles d'une géométrie, le texel d'une case au masque du retrait, et l'abscisse
+## coupe d'un navire, le compte des triangles d'une géométrie, le texel d'une case au masque du retrait et à celui de la
+## vision, la part d'un fondu de la vision après un pas de temps, et l'abscisse
 ## sur un rayon d'un point, d'un point au-delà de celui qu'il touche et du bout de chaque tronçon dont il reprend. Seul
 ## script où l'arithmétique et la mesure sont permises (`scripts/guards/lib/gdscriptSansRegle.mjs`) : des constantes et
 ## des fonctions statiques, chacune typée et sur au plus un vecteur, sans état.
@@ -258,6 +259,17 @@ static func triangles_de_plus(triangles: int, sommets: int) -> float:
 ## Le texel, dans le masque du retrait (`RetraitDuMonde`), de la case `case` du plan de première rangée `rangee`.
 static func texel_du_masque(case: Vector2i, rangee: int) -> Vector2i:
 	return Vector2i(case.x, case.y + rangee)
+
+
+## Le texel, dans le masque de la vision (`VisionDuMonde`, un plan de `rangees_par_plan` rangées par couche), de la case
+## `case` de la couche d'indice `couche`.
+static func texel_de_vision(case: Vector2i, couche: int, rangees_par_plan: int) -> Vector2i:
+	return Vector2i(case.x, case.y + couche * rangees_par_plan)
+
+
+## La part, de 0 à 1, d'un fondu de `duree` secondes parvenu à la part `part`, `secondes` secondes plus tard.
+static func part_du_fondu(part: float, secondes: float, duree: float) -> float:
+	return minf(1.0, part + secondes / duree)
 
 
 ## L'abscisse du point `point` sur le rayon de sens `-rayon.z` (unitaire), comptée depuis l'abscisse `depuis`.
