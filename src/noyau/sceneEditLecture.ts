@@ -5,9 +5,9 @@
  * Les ÉCRIVAINS vivent dans `./sceneEdit` ; les deux modules sont au `BRIDGE_PATH` de
  * `scripts/guards/lib/sceneFieldEditability.mjs`.
  */
-import { dialoguesDeLaScene, sceneMetresPerTile, type EntityKind, type FaceDArete, type Scene, type SceneEffectZone, type SceneEntity, type Trigger, type WallSeg, type WallSide, type ZoneArea, type CellSide, porteAuteur } from './monde/scene';
+import { dialoguesDeLaScene, sceneMetresPerTile, type Dialogue, type DialogueChoice, type DialogueNode, type EntityKind, type FaceDArete, type Scene, type SceneEffectZone, type SceneEntity, type Trigger, type WallSeg, type WallSide, type ZoneArea, type CellSide, porteAuteur } from './monde/scene';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
-import { faceDAreteSchema, optionalDeSceneSchema, sceneEffectZoneSchema, sceneEntitySchema, sceneSchema, triggerSchema, type Terrain } from '../data/schemas/defs-scenes/scene';
+import { dialogueSchema, faceDAreteSchema, optionalDeSceneSchema, sceneEffectZoneSchema, sceneEntitySchema, sceneSchema, triggerSchema, type Terrain } from '../data/schemas/defs-scenes/scene';
 import { projetSchema } from '../data/schemas/defs-scenes/projet';
 import { idsDeLaPortee } from '../data/schemas/grammaire/collection-cle';
 import { noeudsAuChemin, ouverts, pasDeDonnee } from '../data/schemas/grammaire/descente';
@@ -41,6 +41,7 @@ import { CAP_IDENTITE_PROP, capDecorAdmis } from '../data/props.types';
 import { DIR8_ORDER, estCardinal, type Dir8 } from '../geometry/dir8';
 import { decorsEnCaseEtage, entitesEnCaseEtage } from './monde/decorIndex';
 import { actionNeuve } from './monde/usable';
+import { nextEntityId } from '../lib/entityId';
 import { choixSousUneAdresse, estCheminDerive, type SourceDeLEdition } from './edition/adresseDeProse';
 import { ancreDuDecor } from './monde/footprint';
 import { portePar } from './monde/poseDuDecor';
@@ -120,10 +121,13 @@ export function structuresDeLArete(paint: WallPaint): StructureData[] {
  *  est leur ENCRE (`zoneInk`, EditorCanvas) : la pièce n'a qu'un liseré, le piège porte l'aplat. */
 export type Layers = { triggers: boolean; spawns: boolean; roofs: boolean; entries: boolean; rest: boolean; zones: boolean };
 
+/** Les types de sélection qui désignent un élément de la scène par son seul identifiant. */
+type TypeDeSelParId = 'entity' | 'trigger' | 'entry' | 'effectZone' | 'dialogue';
+
 /** Sélection unifiée — une seule chose sélectionnée à la fois, sur la carte comme dans les panneaux. */
 export type Sel =
   | null
-  | { type: 'entity' | 'trigger' | 'entry' | 'effectZone'; id: string }
+  | { type: TypeDeSelParId; id: string }
   | { type: 'restZone'; idx: number }
   | { type: 'architectureBody'; id: string }
   | { type: 'architectureStorey'; bodyId: string; id: string }
@@ -425,7 +429,7 @@ export function pickArchitectureEdge(scene: Scene, fx: number, fy: number, z: nu
 export type EntityTool = Extract<Tool, { mode: 'entity' }>;
 
 /** La donnée du porteur de chaque sorte de formulaire tiré du schéma. */
-export interface DonneeDuPorteur { zone: SceneEffectZone; declencheur: Trigger; entite: SceneEntity }
+export interface DonneeDuPorteur { zone: SceneEffectZone; declencheur: Trigger; entite: SceneEntity; dialogue: Dialogue }
 
 /** La sorte d'un porteur de formulaire tiré du schéma. */
 export type SorteDePorteur = keyof DonneeDuPorteur;
@@ -440,10 +444,12 @@ export interface CadreDuPorteur { scene: Scene; projet: Pick<ProjectDoc, 'scenes
 /** La clé de `Scene` dont la collection, présente ou non, a pour élément exactement `D`. */
 type CollectionDe<D> = { [K in keyof Scene]-?: NonNullable<Scene[K]> extends readonly (infer E)[] ? ([E] extends [D] ? ([D] extends [E] ? K : never) : never) : never }[keyof Scene];
 
-/** Ce qu'un porteur de formulaire tiré du schéma déclare : la collection de la scène où il vit, le nœud de sa donnée,
- *  les champs qu'il offre, et les choix que son contexte pose à un chemin de sa donnée (`choixDuChamp`), dans son cadre. */
+/** Ce qu'un porteur de formulaire tiré du schéma déclare : la collection de la scène où il vit, le type de la sélection
+ *  qui le désigne (`Sel`), le nœud de sa donnée, les champs qu'il offre, et les choix que son contexte pose à un chemin
+ *  de sa donnée (`choixDuChamp`), dans son cadre. */
 interface FormulaireDuPorteur<D> {
   collection: CollectionDe<D>;
+  sel: TypeDeSelParId;
   schema: unknown;
   champs: (donnee: D, cadre: CadreDuPorteur) => CheminsOfferts;
   choix?: (donnee: D, chemin: readonly Segment[], cadre: CadreDuPorteur) => readonly ChoixDuContexte[] | undefined;
@@ -624,10 +630,33 @@ function choixDuDecor(ent: SceneEntity, chemin: readonly Segment[]): readonly Ch
   return ajout && ACTIONS_DU_DECOR.every((cle, i) => chemin[i] === cle) ? pose(neuve) : undefined;
 }
 
+/** Le nœud neuf du dialogue `dialogue` : sans réplique ni choix, d'id `n<k>` qu'aucun de ses nœuds ne porte (`k` part
+ *  du nombre de ses nœuds + 1). */
+export function noeudNeuf(dialogue: Pick<Dialogue, 'nodes'>): DialogueNode {
+  let n = dialogue.nodes.length + 1;
+  while (dialogue.nodes.some((x) => x.id === `n${n}`)) n++;
+  return { id: `n${n}`, choices: [] };
+}
+
+/** Le choix neuf du nœud `noeud` : sans libellé, d'id frais parmi ses choix (`nextEntityId`). */
+export const choixNeuf = (noeud: Pick<DialogueNode, 'choices'>): DialogueChoice => ({ id: nextEntityId('choix', noeud.choices.map((c) => c.id)), label: '' });
+
+/** Les choix que le contexte du dialogue `dlg` pose au chemin `chemin` de sa donnée : au rang qui suit son dernier nœud,
+ *  le nœud neuf (`noeudNeuf`) ; au rang qui suit le dernier choix d'un de ses nœuds, le choix neuf (`choixNeuf`) ;
+ *  chacun par son identifiant. #3606 B3 */
+function choixDuDialogue(dlg: Dialogue, chemin: readonly Segment[]): readonly ChoixDuContexte[] | undefined {
+  const [nodes, rang, choices, rangDuChoix, ...reste] = chemin;
+  if (nodes !== 'nodes' || typeof rang !== 'number' || reste.length) return undefined;
+  const pose = (valeur: { id: string }) => [{ valeur, libelle: valeur.id, refus: null }];
+  if (choices === undefined) return rang === dlg.nodes.length ? pose(noeudNeuf(dlg)) : undefined;
+  const noeud = dlg.nodes[rang];
+  return noeud && choices === 'choices' && rangDuChoix === noeud.choices.length ? pose(choixNeuf(noeud)) : undefined;
+}
+
 /** Le formulaire d'une entité, par son type : d'un personnage, ses champs (`champsDuPersonnage`), aux choix de son
  *  contexte (`choixDuPersonnage`) ; d'un décor, ses actions authorées (`ACTIONS_DU_DECOR`), aux choix de son contexte
  *  (`choixDuDecor`), son assise s'écrivant à ses places ; d'un départ de héros, aucun champ. */
-const FORMULAIRE_DU_TYPE: { readonly [K in EntityKind]: Omit<FormulaireDuPorteur<SceneEntity>, 'collection' | 'schema'> } = {
+const FORMULAIRE_DU_TYPE: { readonly [K in EntityKind]: Omit<FormulaireDuPorteur<SceneEntity>, 'collection' | 'sel' | 'schema'> } = {
   personnage: { champs: champsDuPersonnage, choix: choixDuPersonnage },
   prop: { champs: () => [ACTIONS_DU_DECOR], choix: choixDuDecor },
   heroStart: { champs: () => [] },
@@ -635,17 +664,28 @@ const FORMULAIRE_DU_TYPE: { readonly [K in EntityKind]: Omit<FormulaireDuPorteur
 
 /** Les formulaires tirés du schéma, par sorte de porteur (`FormulaireDuPorteur`). D'une zone d'effet, son Test de
  *  traversée, ses effets à la traversée et à chaque Round, son rendu tant qu'elle dure (#3834) ; d'un déclencheur, sa
- *  condition d'entrée et son flux ; d'une entité, celui de son type (`FORMULAIRE_DU_TYPE`). */
+ *  condition d'entrée et son flux ; d'une entité, celui de son type (`FORMULAIRE_DU_TYPE`) ; d'un dialogue, son nœud de
+ *  départ, ses nœuds et les entrées qu'il couvre, aux choix de son contexte (`choixDuDialogue`). */
 export const FORMULAIRES: { readonly [S in SorteDePorteur]: FormulaireDuPorteur<DonneeDuPorteur[S]> } = {
-  zone: { collection: 'effectZones', schema: sceneEffectZoneSchema, champs: () => [['crossTest'], ['onCross'], ['perRound'], ['rendu']] },
-  declencheur: { collection: 'triggers', schema: triggerSchema, champs: () => [['when'], ['flow']] },
+  zone: { collection: 'effectZones', sel: 'effectZone', schema: sceneEffectZoneSchema, champs: () => [['crossTest'], ['onCross'], ['perRound'], ['rendu']] },
+  declencheur: { collection: 'triggers', sel: 'trigger', schema: triggerSchema, champs: () => [['when'], ['flow']] },
   entite: {
     collection: 'entities',
+    sel: 'entity',
     schema: sceneEntitySchema,
     champs: (ent, cadre) => FORMULAIRE_DU_TYPE[ent.kind].champs(ent, cadre),
     choix: (ent, chemin, cadre) => FORMULAIRE_DU_TYPE[ent.kind].choix?.(ent, chemin, cadre),
   },
+  dialogue: { collection: 'dialogues', sel: 'dialogue', schema: dialogueSchema, champs: () => [['start'], ['nodes'], ['couvre']], choix: choixDuDialogue },
 };
+
+/** Le porteur de formulaire que la sélection `sel` désigne (`FORMULAIRES`, `sel`) : sa sorte et son identifiant ;
+ *  `undefined` sans lui. */
+export function porteurDeLaSel(sel: Sel): { sorte: SorteDePorteur; id: string } | undefined {
+  if (!sel) return undefined;
+  const sorte = (Object.keys(FORMULAIRES) as SorteDePorteur[]).find((k) => FORMULAIRES[k].sel === sel.type);
+  return sorte && { sorte, id: (sel as Extract<Sel, { type: TypeDeSelParId }>).id };
+}
 
 /** Les porteurs de sorte `sorte` de la scène `scene`, dans sa collection (`FORMULAIRES`), absente lue vide. */
 export const porteursDeLaScene = <S extends SorteDePorteur>(scene: Scene, sorte: S): readonly DonneeDuPorteur[S][] =>

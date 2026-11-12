@@ -12,9 +12,9 @@ import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import type { SourceDeLEdition } from './adresseDeProse';
 import { emptyNarratif } from '../monde/campaignNarratif';
-import { emptyScene, type Scene } from '../monde/scene';
+import { emptyScene, type Dialogue, type Scene } from '../monde/scene';
 import { addEffectZone, addTrigger, avecLaValeur, type Segment } from '../sceneEdit';
-import { formulaireDe, type CadreDuPorteur } from '../sceneEditLecture';
+import { choixDuChamp, formulaireDe, porteurDeLaSel, type CadreDuPorteur, type Sel } from '../sceneEditLecture';
 import { gestesDeLaListe, newEffect, newOp, valeurNeuveDe, variantesAChoisir } from '../valeursNeuves';
 import seaEventsJson from '../../data/sea-events.json';
 import { givePossessionSchema } from '../../data/schemas/defs-scenes/effets';
@@ -431,6 +431,92 @@ describe('une union sans discriminant se lit à la forme de ses branches : la Bo
   });
 });
 
+/** Un dialogue à deux nœuds : le départ `a` porte une réponse gardée, payante, à effet, qui mène à `b`. */
+const DIALOGUE: Dialogue = {
+  id: 'd',
+  start: { id: 'a' },
+  nodes: [
+    { id: 'a', choices: [{ id: 'suivre', label: 'Suivre', when: { kind: 'flag', expr: 'x' }, cost: { gold: 1 }, flow: { kind: 'effet', effet: { type: 'fall', target: 'party', metres: 4 } }, next: { id: 'b' } }] },
+    { id: 'b', choices: [] },
+  ],
+};
+
+/** Une scène qui déclare `DIALOGUE`, un personnage `pnj` et un décor `table`. */
+const SCENE_DU_DIALOGUE: Scene = {
+  ...emptyScene('s', 4, 4),
+  dialogues: [DIALOGUE],
+  entities: [{ kind: 'personnage', id: 'pnj', pos: { x: 0, y: 0 } }, { kind: 'prop', id: 'table', ref: 'x', pos: { x: 1, y: 1 } }] as Scene['entities'],
+};
+
+/** Le cadre de `DIALOGUE`, dans sa scène. */
+const CADRE_DU_DIALOGUE: CadreDuPorteur = { ...CADRE_VIDE, scene: SCENE_DU_DIALOGUE };
+
+describe('le formulaire d’un dialogue (#3606 M3b1a)', () => {
+  it('offre son nœud de départ, ses nœuds et les entrées qu’il couvre', () => {
+    expect(formulaireDe('dialogue', DIALOGUE, CADRE_DU_DIALOGUE).map((c) => c.key)).toEqual(['start', 'nodes', 'couvre']);
+  });
+
+  it('le nœud de départ et le nœud suivant d’une réponse se choisissent parmi ses nœuds, posés `{ id }` ; le locuteur parmi les personnages de la scène (B1)', () => {
+    const noeuds = [{ valeur: { id: 'a' }, libelle: 'a', refus: null }, { valeur: { id: 'b' }, libelle: 'b', refus: null }];
+    expect(choixDuChamp('dialogue', DIALOGUE, ['start'], CADRE_DU_DIALOGUE)).toEqual(noeuds);
+    expect(choixDuChamp('dialogue', DIALOGUE, ['nodes', 0, 'choices', 0, 'next'], CADRE_DU_DIALOGUE)).toEqual(noeuds);
+    expect(choixDuChamp('dialogue', DIALOGUE, ['nodes', 1, 'speakerId'], CADRE_DU_DIALOGUE)?.map((c) => c.valeur)).toEqual([{ id: 'pnj' }]);
+  });
+
+  it('au rang qui suit le dernier, le nœud neuf et le choix neuf ont un id frais, posés par leur id ; ailleurs, aucun (B3)', () => {
+    const pris = { ...DIALOGUE, nodes: [...DIALOGUE.nodes, { id: 'n3', choices: [] }] };
+    expect(choixDuChamp('dialogue', pris, ['nodes', 3], CADRE_DU_DIALOGUE)).toEqual([{ valeur: { id: 'n4', choices: [] }, libelle: 'n4', refus: null }]);
+    expect(choixDuChamp('dialogue', DIALOGUE, ['nodes', 0, 'choices', 1], CADRE_DU_DIALOGUE)).toEqual([{ valeur: { id: 'choix-0', label: '' }, libelle: 'choix-0', refus: null }]);
+    expect(choixDuChamp('dialogue', DIALOGUE, ['nodes', 1, 'choices', 0], CADRE_DU_DIALOGUE)?.[0].valeur).toEqual({ id: 'choix-0', label: '' });
+    for (const chemin of [['nodes', 1], ['nodes', 0, 'choices', 0], ['nodes', 5, 'choices', 0]] as Segment[][]) expect(choixDuChamp('dialogue', DIALOGUE, chemin, CADRE_DU_DIALOGUE), chemin.join('/')).toBeUndefined();
+  });
+
+  it('la sélection d’un dialogue désigne son porteur, comme celle d’un déclencheur, d’une zone, d’une entité ; une entrée, aucun', () => {
+    expect(([{ type: 'dialogue', id: 'd' }, { type: 'trigger', id: 't' }, { type: 'effectZone', id: 'z' }, { type: 'entity', id: 'e' }, { type: 'entry', id: 'p' }, null] as Sel[]).map(porteurDeLaSel)).toEqual([
+      { sorte: 'dialogue', id: 'd' }, { sorte: 'declencheur', id: 't' }, { sorte: 'zone', id: 'z' }, { sorte: 'entite', id: 'e' }, undefined, undefined,
+    ]);
+  });
+
+  describe('le geste `valeur` sur un dialogue', () => {
+    const depart = ouvrirLEdition({ scenes: [SCENE_DU_DIALOGUE], narratif: NARRATIF_VIDE } as unknown as Parameters<typeof ouvrirLEdition>[0], false);
+    const jouer = (s: SessionDEdition, chemin: Segment[], ...valeur: unknown[]): SessionDEdition =>
+      editer(s, { geste: 'valeur', porteur: { sorte: 'dialogue', id: 'd' }, chemin, ...(valeur.length ? { valeur: valeur[0] } : {}) });
+    const leDialogue = (s: SessionDEdition) => sceneEditee(s).dialogues[0];
+    const laReponse = (s: SessionDEdition) => leDialogue(s).nodes[0].choices[0];
+
+    it('écrit le départ, ajoute un nœud et une réponse, écrit son libellé, son suivant, le locuteur, le coût et la condition d’une réponse, les entrées couvertes', () => {
+      const [neuf] = choixDuChamp('dialogue', DIALOGUE, ['nodes', 2], CADRE_DU_DIALOGUE)!;
+      const ajoute = jouer(depart, ['nodes'], [...DIALOGUE.nodes, neuf.valeur]);
+      const [reponse] = choixDuChamp('dialogue', leDialogue(ajoute), ['nodes', 2, 'choices', 0], CADRE_DU_DIALOGUE)!;
+      const ecrit = ([
+        [['start'], { id: 'n3' }],
+        [['nodes', 2, 'choices'], [reponse.valeur]],
+        [['nodes', 2, 'choices', 0, 'label'], 'Partir'],
+        [['nodes', 2, 'choices', 0, 'next'], { id: 'a' }],
+        [['nodes', 2, 'speakerId'], { id: 'pnj' }],
+        [['nodes', 0, 'choices', 0, 'cost', 'silver'], 3],
+        [['nodes', 0, 'choices', 0, 'when', 'expr'], 'y'],
+        [['couvre'], ['EDO-01#beat1']],
+      ] as [Segment[], unknown][]).reduce((s, [chemin, valeur]) => jouer(s, chemin, valeur), ajoute);
+      expect(leDialogue(ecrit)).toEqual({
+        ...DIALOGUE,
+        start: { id: 'n3' },
+        couvre: ['EDO-01#beat1'],
+        nodes: [
+          { id: 'a', choices: [{ ...DIALOGUE.nodes[0].choices[0], when: { kind: 'flag', expr: 'y' }, cost: { gold: 1, silver: 3 } }] },
+          DIALOGUE.nodes[1],
+          { id: 'n3', speakerId: { id: 'pnj' }, choices: [{ id: 'choix-0', label: 'Partir', next: { id: 'a' } }] },
+        ],
+      });
+    });
+
+    it('un coût dont la dernière clé est retirée et un enchaînement retiré quittent la réponse', () => {
+      const sansCout = jouer(jouer(depart, ['nodes', 0, 'choices', 0, 'cost', 'gold']), ['nodes', 0, 'choices', 0, 'flow']);
+      expect(Object.keys(laReponse(sansCout))).toEqual(['id', 'label', 'when', 'next']);
+    });
+  });
+});
+
 /** La saisie que l'hôte rend à chaque chemin des formulaires tirés du schéma (`FORMULAIRES`), toutes branches ouvertes,
  *  sans valeur, comme le descend `elementsDuChamp` (`src/hote/editeur.ts`) : `variantes` d'une union nommée, `ajouter`
  *  ou `json` d'une liste, `json` d'une op sans forme déclarée, sinon celle de la feuille (`choix`, `nombre`, `texte`,
@@ -486,6 +572,7 @@ function saisiesDesFormulaires(): Map<string, string> {
     ['declencheur', declencheur()],
     ['entite', { kind: 'personnage', id: 'p', pos: { x: 0, y: 0 }, vehicule: { id: 'x' } }],
     ['entite', { kind: 'prop', id: 'd', ref: 'x', pos: { x: 0, y: 0 }, usable: { actions: [{ id: 'a' }] } }],
+    ['dialogue', DIALOGUE],
   ] as const;
   for (const [sorte, donnee] of porteurs) for (const f of formulaireDe(sorte, donnee as never, { ...CADRE_VIDE, scene: vide })) champ(f, `${sorte}/${f.key}`);
   return saisies;

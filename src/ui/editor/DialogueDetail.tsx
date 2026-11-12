@@ -23,9 +23,9 @@ import { useClesDeRangees } from '../useClesDeRangees';
 import { Row, Stack } from '../Layout';
 import { coupeAuMot } from '../../lib/coupeAuMot.mjs';
 import { CouvreField } from './CouvreField';
-import { nextEntityId } from '../../lib/entityId';
 import { EntryRename } from './EntryRename';
 import { addDialogueNode, removeDialogueNode, renameDialogueNode } from '../../noyau/sceneEdit';
+import { choixNeuf } from '../../noyau/sceneEditLecture';
 
 /** Ids posables au clic pour `DialogueChoice.icon` — DÉRIVÉS du registre d'icônes (`ICON_DEFS`,
  *  généré depuis `icons/defs/`), jamais une liste tenue à la main. */
@@ -202,7 +202,7 @@ export function DialogueDetail({ dialogue, onChange, onRename, ctx }: {
                   </div>
                 </details>
               ))}
-              <button className="btn small" onClick={() => updNode({ choices: [...node.choices, { id: nextEntityId('choix', node.choices.map((x) => x.id)), label: '' }] })}>
+              <button className="btn small" onClick={() => updNode({ choices: [...node.choices, choixNeuf(node)] })}>
                 + Choix
               </button>
             </Stack>

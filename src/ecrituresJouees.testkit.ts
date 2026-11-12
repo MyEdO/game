@@ -7,7 +7,7 @@
  */
 import { allBuiltinCampaigns, paquetDuJeu } from './scenes/campaign';
 import { editer, ouvrirLEdition, sceneEditee, type GesteDEdition, type Scene, type Segment, type SessionDEdition } from './noyau/index';
-import type { SorteDePorteur } from './noyau/sceneEditLecture';
+import { FORMULAIRES } from './noyau/sceneEditLecture';
 import { boutonDeLEdition, gesteDuFormulaire, zonesDeLEditeur, type ZonesDeLEditeur } from './hote/editeur';
 import type { Bouton, Choix, Formulaire, Jeu, Ligne } from './hote/elements';
 import type { Manifeste } from './data/source/chapitres';
@@ -112,9 +112,6 @@ function presser(s: SessionDEdition, id: string): SessionDEdition {
   return jouer(s, geste);
 }
 
-/** Les collections de la scène où vit le porteur de chaque sorte du geste `valeur`. */
-const COLLECTION_DU_PORTEUR = { zone: 'effectZones', declencheur: 'triggers', entite: 'entities' } as const satisfies Record<SorteDePorteur, keyof Scene>;
-
 /** La session `s` où chaque offre du geste `valeur` de son inspecteur est jouée une fois, celles qui emportent des champs
  *  après les autres, la plus profonde d'abord, jusqu'à ce qu'aucune ne reste ; le choix d'une autre variante rouvre les
  *  offres de ses champs ; seules jouent les offres dont l'id commence par `branche` (toutes, par défaut) ; chaque
@@ -138,7 +135,7 @@ function jouerLInspecteur(depart: SessionDEdition, out: EcritureJouee[], branche
     if (geste?.geste !== 'valeur') throw new Error(`l’offre ${offre.id} ne joue pas le geste valeur`);
     const avant = sceneEditee(s);
     s = jouer(s, geste);
-    const collection = COLLECTION_DU_PORTEUR[geste.porteur.sorte];
+    const { collection } = FORMULAIRES[geste.porteur.sorte];
     const porteurs: readonly { id: string }[] = avant[collection] ?? [];
     const rang = porteurs.findIndex((p) => p.id === geste.porteur.id);
     const discriminant = offre.emporte && offre.saisie === 'saisieChoix' ? offre.id.slice(`valeur/${geste.chemin.join('/')}/`.length) : undefined;

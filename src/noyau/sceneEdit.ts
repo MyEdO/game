@@ -47,7 +47,7 @@ import { appuiSous, emporterLesObjets, normaliserLesAppuis, poseDeLAncre } from 
 import { entitesEnCaseEtage } from './monde/decorIndex';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { sitesDeLaScene } from '../data/schemas/defs-scenes/sites-de-paquet';
-import { cheminOffert, choixDuChamp, ecritureOfferte, FORMULAIRES, formeDuPorteur, porteursDeLaScene, type CadreDuPorteur, type DonneeDuPorteur, type SorteDePorteur, type EntityTool, type Sel, type Tool, EFFECT_ZONE_SEEDS, canonEdge, dansLaCarte, edgeWallState, effectZoneArea, effectZoneRect, empriseDuPinceau, entityAt, selPos, selRect } from './sceneEditLecture';
+import { cheminOffert, choixDuChamp, ecritureOfferte, FORMULAIRES, noeudNeuf, formeDuPorteur, porteursDeLaScene, type CadreDuPorteur, type DonneeDuPorteur, type SorteDePorteur, type EntityTool, type Sel, type Tool, EFFECT_ZONE_SEEDS, canonEdge, dansLaCarte, edgeWallState, effectZoneArea, effectZoneRect, empriseDuPinceau, entityAt, selPos, selRect } from './sceneEditLecture';
 import { estObjet } from '../lib/objet.mjs';
 import { adresseRecalee, adresseRescellee, adressesScellees, estCheminDerive } from './edition/adresseDeProse';
 
@@ -926,12 +926,10 @@ export function renameDialogue(scene: Scene, from: string, to: string): Scene {
   return renomme.entities.filter((e) => e.dialogueId?.id === from).reduce((s, e) => editEntity(s, e.id, { dialogueId: { id: next } }), renomme);
 }
 
-/** Ajoute au dialogue un nœud sans réplique ni choix, d'id frais `n<k>` (`k` part du nombre de nœuds + 1). */
+/** Ajoute au dialogue son nœud neuf (`noeudNeuf`). */
 export function addDialogueNode(dialogue: Dialogue): { dialogue: Dialogue; id: string } {
-  let n = dialogue.nodes.length + 1;
-  while (dialogue.nodes.some((x) => x.id === `n${n}`)) n++;
-  const id = `n${n}`;
-  return { dialogue: { ...dialogue, nodes: [...dialogue.nodes, { id, choices: [] }] }, id };
+  const noeud = noeudNeuf(dialogue);
+  return { dialogue: { ...dialogue, nodes: [...dialogue.nodes, noeud] }, id: noeud.id };
 }
 
 /** Renomme le nœud `from` et le PROPAGE au départ et à chaque `next`, la boucle du nœud sur lui-même
@@ -1131,7 +1129,8 @@ function fauteNeuve(objet: unknown, avant: unknown, apres: unknown): string | un
  *  elle vaut `undefined` (l'entrée d'un record partiel ou à clé ouverte, `recordDuNoeud`, se retire toujours), une liste
  *  vidée retirée si son nœud admet l'absence ; ou son refus : un pas que le formulaire n'offre pas (`noeudDuPas`), une
  *  valeur qui n'est pas l'un des choix admis que le contexte de son porteur y pose (`choix`, qui, d'un record, pose ses
- *  clés), ou, sans eux, pas de la sorte du champ (`admise`) ; un retrait (le champ retiré, la liste raccourcie) dont
+ *  clés), ou, sans eux, pas de la sorte du champ (`admise`) ni, d'une liste, elle où s'ajoute en fin l'un des choix
+ *  admis que ce contexte pose au rang qui suit son dernier élément ; un retrait (le champ retiré, la liste raccourcie) dont
  *  l'objet écrit porte une faute de son parse que la donnée ne portait pas (`fauteNeuve`), dite. Hors retrait, le schéma
  *  entier ne se vérifie qu'à l'enregistrement et à l'essai (#3606, décision 3). */
 export function avecLaValeur(objet: unknown, donnee: Objet, chemin: readonly Segment[], valeur: unknown, choix: ContexteDuChamp['choix'] = () => undefined): EcritureDeValeur<Objet> {
@@ -1148,7 +1147,9 @@ export function avecLaValeur(objet: unknown, donnee: Objet, chemin: readonly Seg
   const ecrite = Array.isArray(valeur) && !valeur.length && elementDuNoeud(dernier) !== undefined && retirable(dernier) ? undefined : valeur;
   const poses = ecrite === undefined || recordDuNoeud(dernier) ? undefined : choix(chemin);
   const entreeRetiree = ecrite === undefined && recordDuNoeud(noeuds.length > 1 ? noeuds[noeuds.length - 2] : objet) !== undefined;
-  const ecrivable = poses ? poses.some((c) => c.refus === null && jsonCanonique(c.valeur) === jsonCanonique(ecrite)) : entreeRetiree || admise(dernier, point, ecrite);
+  const liste = Array.isArray(point) ? point : [];
+  const ajoutee = () => elementDuNoeud(dernier) !== undefined && !!choix([...chemin, liste.length])?.some((c) => c.refus === null && jsonCanonique([...liste, c.valeur]) === jsonCanonique(ecrite));
+  const ecrivable = poses ? poses.some((c) => c.refus === null && jsonCanonique(c.valeur) === jsonCanonique(ecrite)) : entreeRetiree || admise(dernier, point, ecrite) || ajoutee();
   if (!ecrivable) return { ok: false, refus: valeur === null ? 'illisible' : 'horsSorte' };
   const apres = ecrit(donnee, chemin, ecrite, (rang) => retirable(noeuds[rang])) as Objet;
   const retrait = ecrite === undefined || (Array.isArray(point) && Array.isArray(ecrite) && ecrite.length < point.length);
@@ -1213,12 +1214,13 @@ interface EcritureDuPorteur<D> {
   ecrire: (scene: Scene, avant: D, apres: D) => EcritureDeValeur<Scene>;
 }
 
-/** La table d'écriture des porteurs de formulaire, par sorte : d'une zone d'effet ou d'un déclencheur, le remplacement
- *  dans sa collection (`porteurRemplace`) ; d'une entité, sa porte (`sceneAvecLEntite`). */
+/** La table d'écriture des porteurs de formulaire, par sorte : d'une zone d'effet, d'un déclencheur ou d'un dialogue, le
+ *  remplacement dans sa collection (`porteurRemplace`) ; d'une entité, sa porte (`sceneAvecLEntite`). */
 export const ECRITURES_DES_PORTEURS: { readonly [S in SorteDePorteur]: EcritureDuPorteur<DonneeDuPorteur[S]> } = {
   zone: { ecrire: (scene, avant, apres) => ({ ok: true, valeur: porteurRemplace(scene, 'zone', avant.id, apres) }) },
   declencheur: { ecrire: (scene, avant, apres) => ({ ok: true, valeur: porteurRemplace(scene, 'declencheur', avant.id, apres) }) },
   entite: { ecrire: sceneAvecLEntite },
+  dialogue: { ecrire: (scene, avant, apres) => ({ ok: true, valeur: porteurRemplace(scene, 'dialogue', avant.id, apres) }) },
 };
 
 /** La liste ou le record `v` d'un patch, `undefined` (son absence, `champ`) quand il est vide ou `null`. */

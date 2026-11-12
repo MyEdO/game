@@ -21,7 +21,7 @@ import type { SeatOccupant } from '../monde/seating';
 import { documentDeProjet, parseProject, ProjetRefuse, texteDuDepot, type ProjectDoc } from '../worldMap';
 import { refusDeLaPorteDuProjet, type GesteDePorte } from '../persistance/refusDeLaPorte';
 import { addArchitectureBody, addArchitecturePart, addBuildingMass, addFacadeFeature, addRoofExclusion, patchBuildingMass, poseToitureDuCorps, rectFrom, removeRoofExclusion, addLayer, patchSceneRoofDefaults, removeSceneFlag, resizeGrid, setNorthDeg, setReliefDefault, setSceneFlags, setSceneLabel, setSceneRest, setSceneScalaires, type ScalairesDeScene, addProjectScene, deleteProjectScene, duplicateProjectScene, renameScene, switchProjectScene, type ProjectScenes, addMember, addStoreyAbove, patchArchitectureBody, patchArchitectureStorey, patchFacadeFeature, patchFacadeSection, removeFacadeFeature, setFacadeSectionZ, assoirALaPlace, deleteSel, dupliquerLEntite, poserUneTroupe, coucheEcrite, editEntity, editEntry, ECRITURES_DES_PORTEURS, pasteEntity, sansVide, patchMember, patchWall, patchZone, propRefPatch, removeLayer, removeMember, renameActionAuthoree, renameEffectZone, avecLaValeurDuPorteur, avecLAdresseRescellee, type EcritureDeValeur, type RefusDeValeur, type Segment, renameEntry, renameTrigger, setPosteCrew, setPosteEngine, setPosteSide, addStation, patchStation, removeStation, setSceneMusic, setStartMessageTexte, type PatchDeZone, type Pt } from '../sceneEdit';
-import { FORMULAIRES, entiteDeLaSelection, porteursDeLaScene, etageSuivant, poigneeDeLaSelection, segmentDeLaSelection, type CadreDuPorteur, type DonneeDuPorteur, type Layers, type Sel, type SorteDePorteur, type Tool } from '../sceneEditLecture';
+import { FORMULAIRES, entiteDeLaSelection, porteurDeLaSel, porteursDeLaScene, etageSuivant, poigneeDeLaSelection, segmentDeLaSelection, type CadreDuPorteur, type DonneeDuPorteur, type Layers, type Sel, type SorteDePorteur, type Tool } from '../sceneEditLecture';
 import { applyStairFlight, planStairFlight, type StairFlightPlan } from '../stairFlight';
 import { poserLesNavires, poserUnNavire } from '../planDeNavire';
 import { jsonCanonique } from '../../lib/jsonCanonique.mjs';
@@ -890,15 +890,11 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
   }
 }
 
-/** Le porteur de formulaire de la sélection de la session `s` (`FORMULAIRES`) : le schéma et la donnée du déclencheur,
- *  de la zone d'effet ou de l'entité sélectionnée ; `undefined` sans lui. */
+/** Le porteur de formulaire de la sélection de la session `s` (`porteurDeLaSel`) : le schéma de sa sorte
+ *  (`FORMULAIRES`) et sa donnée dans sa collection (`porteursDeLaScene`) ; `undefined` sans lui. */
 function porteurDeLaSelection(s: SessionDEdition): { schema: unknown; donnee: unknown } | undefined {
-  const sel = s.sel;
-  const scene = sceneEditee(s);
-  if (sel?.type === 'trigger') return { schema: FORMULAIRES.declencheur.schema, donnee: scene.triggers.find((t) => t.id === sel.id) };
-  if (sel?.type === 'effectZone') return { schema: FORMULAIRES.zone.schema, donnee: scene.effectZones?.find((z) => z.id === sel.id) };
-  if (sel?.type === 'entity') return { schema: FORMULAIRES.entite.schema, donnee: scene.entities.find((e) => e.id === sel.id) };
-  return undefined;
+  const porteur = porteurDeLaSel(s.sel);
+  return porteur && { schema: FORMULAIRES[porteur.sorte].schema, donnee: porteursDeLaScene(sceneEditee(s), porteur.sorte).find((d) => d.id === porteur.id) };
 }
 
 /** La session `s`, le chapitre qu'elle attend posé si elle n'en attend aucun et que l'hôte sert le `Source/` : celui de
