@@ -24,7 +24,7 @@ const CK: CharKey = 'sociabilite';
 
 function hero(over: Partial<Combatant> = {}): Combatant {
   return {
-    id: 'h', label: 'Cobaye', kind: 'hero', speciesId: 'humains-reiklander',
+    id: 'h', label: 'Cobaye', kind: 'heros', speciesId: 'humains-reiklander',
     characteristics: { sociabilite: 40, agilite: 40, dexterite: 40, intelligence: 40 } as Combatant['characteristics'],
     skills: [{ id: 'marchandage', advances: 15 }] as SkillInstance[],
     talents: [], items: [], conditions: [], advantage: 0,

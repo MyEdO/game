@@ -22,7 +22,7 @@ const SWORD = (uid: string): Weapon => ({ uid, label: 'Épée', type: 'melee', d
 const SWORD_ITEM = (uid: string): ItemInstance => ({ uid, label: 'Épée', kind: 'melee', qualities: [] } as unknown as ItemInstance);
 
 const mkHero = (over: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
-  id: 'h', label: 'H', kind: 'hero', pos: { x: 0, y: 0 }, size: 'moyenne',
+  id: 'h', label: 'H', kind: 'heros', pos: { x: 0, y: 0 }, size: 'moyenne',
   characteristics: CHARS(40), skills: [], talents: [], advantage: 0, conditions: [],
   wounds: blessuresDeBase(12),
   weapons: [SWORD('m')], items: [SWORD_ITEM('m')],
@@ -31,7 +31,7 @@ const mkHero = (over: Partial<Combatant> = {}): Combatant => (blessuresSurLeProf
 }) as unknown as Combatant);
 
 const mkFoe = (id: string, over: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
-  id, label: id, kind: 'enemy', pos: { x: 1, y: 0 }, size: 'moyenne',
+  id, label: id, kind: 'ennemi', pos: { x: 1, y: 0 }, size: 'moyenne',
   characteristics: CHARS(40), skills: [], talents: [], advantage: 0, conditions: [],
   wounds: blessuresDeBase(10),
   weapons: [SWORD('e')], items: [SWORD_ITEM('e')],

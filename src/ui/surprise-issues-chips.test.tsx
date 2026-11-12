@@ -43,10 +43,10 @@ const chars = (perception: number, agilite: number) =>
   ({ 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 35, endurance: 35, initiative: perception,
      agilite, dexterite: 30, intelligence: 30, 'force-mentale': 40, sociabilite: 30, perception }) as never;
 
-const mk = (id: string, kind: 'hero' | 'enemy', perception: number, agilite: number): Combatant =>
+const mk = (id: string, kind: 'heros' | 'ennemi', perception: number, agilite: number): Combatant =>
   (blessuresSurLeProfil({ id, name: id, label: id, kind, characteristics: chars(perception, agilite), conditions: [], traumas: [],
      engagedWith: [], skills: [], talents: [], items: [], weapons: [], advantage: 0, size: 'moyenne',
-     pos: { x: kind === 'hero' ? 0 : 1, y: 0 }, wounds: blessuresDeBase(18), resilience: 2, fortune: 2,
+     pos: { x: kind === 'heros' ? 0 : 1, y: 0 }, wounds: blessuresDeBase(18), resilience: 2, fortune: 2,
      species: 'humains-reiklander', bodyShape: 'humanoide', movement: 4,
      armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 } }) as unknown as Combatant);
 
@@ -58,8 +58,8 @@ let root: Root;
  *  = celle de TOUS les guetteurs (65 : un Test SIMPLE réussirait — seule l'OPPOSITION les fait perdre). */
 function ambush(talents: TalentInstance[] = [], guetteurs = 1, perception = 5) {
   const heroes = Array.from({ length: guetteurs }, (_, i) =>
-    ({ ...mk(i === 0 ? 'h' : `h${i + 1}`, 'hero', perception, 30), ...(i === 0 ? { talents } : {}) }) as Combatant);
-  const foe = mk('e', 'enemy', 30, 80);
+    ({ ...mk(i === 0 ? 'h' : `h${i + 1}`, 'heros', perception, 30), ...(i === 0 ? { talents } : {}) }) as Combatant);
+  const foe = mk('e', 'ennemi', 30, 80);
   const ids = [...heroes.map((h) => h.id), 'e'];
   useGame.setState({
     party: heroes,
@@ -67,7 +67,7 @@ function ambush(talents: TalentInstance[] = [], guetteurs = 1, perception = 5) {
       reachable: new Map(), movementUsed: 0, acted: false, log: [], over: null } as unknown as BattleState,
     mode: 'battle', scene: testScene(), net: SOLO as never, pendingCascade: null, pendingLogQueue: [],
   });
-  applySurprise(useGame.getState, useGame.setState, 'party');
+  applySurprise(useGame.getState, useGame.setState, 'groupe');
 }
 
 /** La BANDE : l'unique étape de Surprise que la cascade porte. */

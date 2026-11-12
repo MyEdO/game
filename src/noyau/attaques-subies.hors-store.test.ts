@@ -74,7 +74,7 @@ describe('série d’attaques subies hors bataille (#3892)', () => {
     const s = banc.getState();
     expect(s.battle).toBeNull();
     expect(s.serieSubie).toMatchObject({ cibleId: H.id, restantes: 7, avant: H });
-    expect(s.serieSubie!.assaillant).toMatchObject({ label: 'Rats géants', kind: 'enemy' });
+    expect(s.serieSubie!.assaillant).toMatchObject({ label: 'Rats géants', kind: 'ennemi' });
     expect(s.serieSubie!.assaillant.pos).toBeUndefined();
     expect(s.party[0]).not.toBe(H);
     expect(s.party[0]).toEqual(entreeEnRencontre(H));

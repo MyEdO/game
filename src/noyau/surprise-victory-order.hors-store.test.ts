@@ -28,7 +28,7 @@ const set: Banc['setState'] = (e) => banc.setState(e);
 /** Ennemi GÉNÉRIQUE (ne suit PAS les règles de Personnage) : sa mort n'ouvre AUCUNE cascade de fin de
  *  combat — on isole ainsi la SEULE cascade de Surprise. Vivant (embusqueur) au moment d'`applySurprise`. */
 const ambusher = (over: Partial<Combatant> = {}): Combatant =>
-  combattantDeTest({ id: 'e', kind: 'enemy', label: 'Bandit',
+  combattantDeTest({ id: 'e', kind: 'ennemi', label: 'Bandit',
     characteristics: { agilite: 40, perception: 30, endurance: 30, initiative: 30 } as never,
     wounds: blessuresDeBase(10), dead: false, conditions: [], skills: [], items: [], weapons: [],
     movement: 4, advantage: 0, traits: [], ...over });
@@ -36,13 +36,13 @@ const ambusher = (over: Partial<Combatant> = {}): Combatant =>
 /** Marque tous les ennemis debout comme MORTS (état d'ENTITÉ, dégâts encaissés — PAS l'état interne d'une
  *  cascade) : simule le dernier coup létal APRÈS l'établissement de la Surprise. */
 const slayEnemies = () =>
-  set({ battle: { ...get().battle!, combatants: get().battle!.combatants.map((c) => (c.kind === 'enemy' && !c.dead ? blessuresSurLeProfil({ ...c, dead: true, wounds: { ...c.wounds, current: 0 } }) : c)) } });
+  set({ battle: { ...get().battle!, combatants: get().battle!.combatants.map((c) => (c.kind === 'ennemi' && !c.dead ? blessuresSurLeProfil({ ...c, dead: true, wounds: { ...c.wounds, current: 0 } }) : c)) } });
 
 describe('F3 — Surprise (cascade de setup) vs Victoire : ordonnancement de checkBattleOver', () => {
   it('mort du dernier ennemi avec une Surprise PENDANTE → Victoire DIFFÉRÉE (cascade seule à l\'écran)', () => {
     seedBattleRng(7);
     const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
-    const heroClone = { ...hero, kind: 'hero' as const };
+    const heroClone = { ...hero, kind: 'heros' as const };
     banc.setState({
       party: [hero],
       battle: { combatants: [heroClone, ambusher()], order: [hero.id, 'e'], turn: -1, round: 1, log: [], over: null } as never,
@@ -50,7 +50,7 @@ describe('F3 — Surprise (cascade de setup) vs Victoire : ordonnancement de che
     });
 
     // Surprise de setup RÉELLE : le camp héros est pris en embuscade (Test de Perception influençable, cascade).
-    applySurprise(get, set, 'party');
+    applySurprise(get, set, 'groupe');
     expect(get().pendingCascade?.purpose).toBe('combat');
     expect(get().pendingCascade!.participants[0].kind).toBe('testDeclencheEnBande'); // VRAI kind (la BANDE de guetteurs, pas un 'surpriseTest' inventé)
 
@@ -74,7 +74,7 @@ describe('F3 — Surprise (cascade de setup) vs Victoire : ordonnancement de che
   it('FIX #345 — Surprise résolue PAR LES ACTIONS → la cascade de FIN de combat s\'ouvre D\'ELLE-MÊME, la victoire suit (dispatchCascadeDone, aucun set manuel)', () => {
     seedBattleRng(11);
     const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 2 });
-    const heroClone = { ...hero, kind: 'hero' as const };
+    const heroClone = { ...hero, kind: 'heros' as const };
     // Ennemi CORROMPU (Trait `corruption`) → `worstCorruptionExposure` != null → le héros (manuel, piloté-humain)
     // DOIT un Test d'Exposition de fin de combat. Vivant = embusqueur légitime au moment d'`applySurprise`.
     const enemy = ambusher({ traits: [{ id: 'corruption', arg: 'mineure' }] as never });
@@ -85,7 +85,7 @@ describe('F3 — Surprise (cascade de setup) vs Victoire : ordonnancement de che
     });
 
     // 1) Surprise de setup RÉELLE (applySurprise → testDeclencheEnBande influençable), PUIS mort du dernier ennemi.
-    applySurprise(get, set, 'party');
+    applySurprise(get, set, 'groupe');
     expect(get().pendingCascade!.participants[0].kind).toBe('testDeclencheEnBande');
     slayEnemies();
 

@@ -21,7 +21,7 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const mk = (over: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
-  id: 'c', label: 'C', kind: 'enemy',
+  id: 'c', label: 'C', kind: 'ennemi',
   characteristics: { 'capacite-de-combat': 35, 'capacite-de-tir': 25, force: 35, endurance: 35, initiative: 30, agilite: 30, dexterite: 30, intelligence: 25, 'force-mentale': 25, sociabilite: 25 },
   wounds: blessuresDeBase(15), advantage: 0, conditions: [], skills: [], talents: [],
   weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, items: [],
@@ -110,9 +110,9 @@ describe('Hurlement fantomatique — Test de trigger enfoui routé (cadence-awar
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
     H.characteristics.endurance = 90; H.wounds = blessuresDeBase(100, 100, H); // Résistance réussie (pas de Brisé)
-    const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+    const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
     const banshee = enemies[0];
     enemies.slice(1).forEach((e) => (e.dead = true));
     banshee.traits = [...(banshee.traits ?? []), { id: 'hurlement-fantomatique', value: 0 }];
@@ -154,21 +154,21 @@ describe('Hurlement fantomatique — Test de trigger enfoui routé (cadence-awar
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
     H.dead = true; H.pos = undefined; // hors-cible : on isole le cas sur les 2 synthétiques ci-dessous
-    const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+    const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
     const banshee = enemies[0];
     banshee.traits = [...(banshee.traits ?? []), { id: 'hurlement-fantomatique', value: 0 }];
     banshee.pos = { x: 10, y: 10 };
     banshee.advantage = 3;
     // Goule-de-crypte-like : folder « Les morts sans repos » → Groupe dérivé, mais AUCUN Trait Mort-vivant.
     const goule = enemies[1];
-    goule.kind = 'hero'; goule.aiControlled = true; goule.dead = false;
+    goule.kind = 'heros'; goule.aiControlled = true; goule.dead = false;
     goule.traits = []; goule.groups = ['mort-vivant']; goule.pos = { x: 9, y: 10 };
     goule.wounds = blessuresDeBase(15, 15, goule);
     // Vrai Mort-vivant : PORTE le Trait (capability `undead`) → doit rester EXCLU.
     const trueUndead = enemies[2];
-    trueUndead.kind = 'hero'; trueUndead.aiControlled = true; trueUndead.dead = false;
+    trueUndead.kind = 'heros'; trueUndead.aiControlled = true; trueUndead.dead = false;
     trueUndead.traits = [{ id: 'mort-vivant' }]; trueUndead.groups = ['mort-vivant']; trueUndead.pos = { x: 11, y: 10 };
     trueUndead.wounds = blessuresDeBase(15);
     banc.setState({ battle: { ...b }, pendingCascade: null, pendingLogQueue: [] });
@@ -194,9 +194,9 @@ describe('Hurlement fantomatique — Test de trigger enfoui routé (cadence-awar
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
     H.dead = true; H.pos = undefined; // hors-cible : on isole le cas sur la paire d'ennemis ci-dessous
-    const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+    const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
     const banshee = enemies[0];
     banshee.traits = [...(banshee.traits ?? []), { id: 'hurlement-fantomatique', value: 0 }];
     banshee.pos = { x: 10, y: 10 };

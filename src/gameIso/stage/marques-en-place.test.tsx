@@ -28,7 +28,7 @@ const TAILLE = { w: 800, h: 600 };
 
 function hero(id: string, pos: { x: number; y: number }): Combatant {
   return blessuresSurLeProfil({
-    id, label: id, kind: 'hero', pos, size: 'moyenne',
+    id, label: id, kind: 'heros', pos, size: 'moyenne',
     wounds: blessuresDeBase(12), weapons: [],
     characteristics: profilDeTest(), advantage: 0, conditions: [], armour: {},
     skills: [], talents: [], movement: 4,
@@ -39,7 +39,7 @@ function hero(id: string, pos: { x: number; y: number }): Combatant {
  *  portée), ce qui en fait la mise à jour « sans rapport » du troisième fait. */
 function combatTémoin(reach: [string, number][]): BattleState {
   return {
-    combatants: [hero('h1', { x: 3, y: 3 }), { ...hero('e1', { x: 6, y: 6 }), kind: 'enemy' }],
+    combatants: [hero('h1', { x: 3, y: 3 }), { ...hero('e1', { x: 6, y: 6 }), kind: 'ennemi' }],
     order: ['h1', 'e1'],
     turn: 0,
     round: 1,

@@ -318,7 +318,7 @@ export function firedWeapon(attacker: Combatant, target: Combatant, weaponUid?: 
   // monture choisit la mêlée (LDB 14), un chef de bélier via l'empreinte de LA PIÈCE, mais une arme
   // personnelle (épée du chef) ne bénéficie JAMAIS de l'allonge de la coque servie.
   const base = pickAttackWeaponList(combatants, attacker, target, weaponUid);
-  const ammo = base.type === 'distance' && attacker.kind === 'hero' ? loadedAmmo(attacker, base) : undefined;
+  const ammo = base.type === 'distance' && attacker.kind === 'heros' ? loadedAmmo(attacker, base) : undefined;
   let w = ammo ? weaponWithAmmo(base, ammo) : base;
   // Pièce SERVIE en sous-effectif (poste) : bake les Défauts d'Arme d'équipe selon les servants APTES présents
   // (MDG 12 l.448-460) — recharge ×2 / Imprécise / Dangereuse, effectif COMPLET → tir net. `combatants` n'est
@@ -393,7 +393,7 @@ export function siegeActif(battle: BattleState | null | undefined): boolean {
  *  proposer une attaque qui se solderait par un log silencieux. Mêlée / pas d'arme à distance → `null`
  *  (la Recharge ne concerne que l'arme effectivement tirée, `firedWeapon`). */
 export function firedAttackBlock(get: Get, active: Combatant, target: Combatant, weaponUid?: string): { reason: 'unloaded' | 'noammo' | 'arc' | 'sous-effectif' | 'portee-min' | 'armeBannie' | 'engaged'; detail: string; need?: string } | null {
-  if (active.kind !== 'hero') return null;
+  if (active.kind !== 'heros') return null;
   const b = get().battle;
   // Arme effectivement testée + distance PAR CETTE ARME (#BUG-A, poule-et-œuf) : choix EXPLICITE (poste
   // servi → `weaponUid`) sinon chaque candidate de mêlée évaluée avec SA PROPRE géométrie (`pickAttackWeapon`,
@@ -495,12 +495,12 @@ export function attackWardGate(attacker: Combatant, target: Combatant, rng: RNG)
  *  Test n'est appendu à la cascade que pour le porteur concerné. Appelée APRÈS la pose du `battle` (sujet
  *  HORS-TOUR : Round 1 pas encore commencé) ; à la fermeture de la cascade, `resumeSuspendedAI` est un no-op
  *  (turn -1 = aucun acteur). Les lignes inline partent dans la file différée → drainées ici. */
-export function applySurprise(get: Get, set: SetFn, surprisedSide: 'party' | 'enemies'): void {
+export function applySurprise(get: Get, set: SetFn, surprisedSide: 'groupe' | 'ennemis'): void {
   const battle = get().battle;
   if (!battle) return;
-  const surprisedKind = surprisedSide === 'party' ? 'hero' : 'enemy';
-  const surprised = battle.combatants.filter((c) => (surprisedKind === 'hero' ? c.kind === 'hero' : c.kind !== 'hero') && !isOutOfAction(c));
-  const ambushers = battle.combatants.filter((c) => (surprisedKind === 'hero' ? c.kind !== 'hero' : c.kind === 'hero') && !isOutOfAction(c));
+  const surprisedKind = surprisedSide === 'groupe' ? 'heros' : 'ennemi';
+  const surprised = battle.combatants.filter((c) => (surprisedKind === 'heros' ? c.kind === 'heros' : c.kind !== 'heros') && !isOutOfAction(c));
+  const ambushers = battle.combatants.filter((c) => (surprisedKind === 'heros' ? c.kind !== 'heros' : c.kind === 'heros') && !isOutOfAction(c));
   if (!surprised.length || !ambushers.length) return;
   // L'embusqueur de référence = la Discrétion la plus FAIBLE du groupe (l.77). Furtif (LDB 85
   // p.339) : « Ajoutez son bonus d'Agilité au DR de tous ses Tests de Discrétion » → attackerBonusSL.
@@ -622,7 +622,7 @@ export function rerollWindsOfMagic(get: Get, set: SetFn): void {
   let revealed = false;
   const lines: { line: string; id: string }[] = [];
   for (const c of battle.combatants) {
-    if (c.kind !== 'hero' || isOutOfAction(c) || !hasSecondeVue(c)) continue;
+    if (c.kind !== 'heros' || isOutOfAction(c) || !hasSecondeVue(c)) continue;
     const res = rollTest(testValue(c, { skill: { id: 'perception' } }), 'facile', battleRng());
     if (res.success) {
       revealed = true;
@@ -723,7 +723,7 @@ export function attackEnv(
     // il ne l'évite qu'en décidant de tirer IMMOBILE (tirImmobile → consomme son Mouvement, cf. jetValider('attaque'))
     // — ou s'il NE PEUT PAS bouger (Mouvement effectif 0 : Empêtré/Surpris…), il est immobile d'office.
     // L'IA/ennemi (pas d'option) : seulement s'il a effectivement bougé ce Tour.
-    const mobileShot = attacker.kind === 'hero'
+    const mobileShot = attacker.kind === 'heros'
       ? (battle.movementUsed > 0 || (mountMovement(battle, attacker) > 0 && !opts?.tirImmobile))
       : battle.movementUsed > 0;
     if (mobileShot) env.push(ligneDeRegle('tir-en-mouvement', 'tir-en-mouvement'));
@@ -1821,7 +1821,7 @@ export function applyCriticalToTarget(
   // déviation l'a déjà affichée — la déviation fusionne choix ET révélation sur une seule modale.)
   // SEULEMENT si un héros est concerné — il le SUBIT ou l'INFLIGE (arbitrage 2026-06-11, spec coop
   // §4bis) ; un critique purement ennemi↔ennemi reste au journal/bandeau (les lignes sont déjà dans `log`).
-  const heroConcerned = target.kind === 'hero' || ctx?.attackerKind === 'hero';
+  const heroConcerned = target.kind === 'heros' || ctx?.attackerKind === 'heros';
   if (!suppressReveal && heroConcerned) {
     const sum = critImmediateSummary(crit.ops);
     pushReveal(set, {
@@ -1869,8 +1869,8 @@ export function applyHullCriticalToTarget(
   });
   if (!outcome.marinId) target.criticalWounds = (target.criticalWounds ?? 0) + 1; // MDG 13 l.584
   for (const l of outcome.lines) log.push(l);
-  const heroConcerned = target.kind === 'hero' || ctx?.attackerKind === 'hero'
-    || crew.some((c) => c.kind === 'hero');
+  const heroConcerned = target.kind === 'heros' || ctx?.attackerKind === 'heros'
+    || crew.some((c) => c.kind === 'heros');
   if (!suppressReveal && heroConcerned) {
     pushReveal(set, {
       kind: 'critique', title: tr('step.critiqueNavire'), dice: 0, lines: outcome.lines,
@@ -1942,7 +1942,7 @@ export function applyStructureCriticalToTarget(
   applyOps(target, outcome.ops, { idNeuf, rng: battleRng() }); // Blessures supplémentaires (GameOp `wounds`, ignore BE+PA)
   for (const l of outcome.log) log.push(l);
   if (outcome.note) log.push(`  ↳ ${outcome.note}`); // effets verbatim sur les personnes (débris/Tests), non simulés
-  if (target.kind === 'hero' || ctx.attackerKind === 'hero') {
+  if (target.kind === 'heros' || ctx.attackerKind === 'heros') {
     // Étape à TABLE de la séquence : `table` DÉCLARE le tirage (id de ligne stable, dé naturel/effectif),
     // `reveal` porte le rendu détaillé partagé (`CriticalBody` : qui inflige → arme → victime).
     const entry: RevealEntry = {
@@ -2169,7 +2169,7 @@ export function applyCoupCritiqueSec(
     return;
   }
   // B. de Sauvagerie (LDB 41) : l'attaquant à l'origine du double tire deux lancers de Critique.
-  const heroConcerned = victim.kind === 'hero' || auteur?.kind === 'hero';
+  const heroConcerned = victim.kind === 'heros' || auteur?.kind === 'heros';
   const c2: DeviationCtx = { ...ctx, attackerKind: auteur?.kind, critTwice: auteur ? critRollTwiceFor(auteur) : undefined };
   const deviable = !!rule('combat-deviation-critique') && deviatableArmourAt(victim, loc);
   if (deviable && !tenuParUnHumain(get(), victim.id)) {
@@ -2230,7 +2230,7 @@ export function battleAreaTargets(get: Get): (indice: number) => AreaTargets {
 /** Rayon (cases) de l'aire d'une pièce indirecte servie par `gunner` (munition CHARGÉE prise en compte —
  *  l'Explosion vient de la bombe), à l'échelle de la scène. Sert à dimensionner le placeur de case. */
 export function siegeBlastRadiusTiles(gunner: Combatant, weapon: Weapon, scene: Scene | null): number {
-  const ammo = gunner.kind === 'hero' ? loadedAmmo(gunner, weapon) : undefined;
+  const ammo = gunner.kind === 'heros' ? loadedAmmo(gunner, weapon) : undefined;
   const eff = ammo ? weaponWithAmmo(weapon, ammo) : weapon;
   return blastRadiusTiles(eff, sceneMetresPerTile(scene));
 }
@@ -2395,7 +2395,7 @@ interface ApplicationDesCritiques {
 function appliquerLesCritiques(a: ApplicationDesCritiques): { lancerDuTableau?: number; infligees: number } {
   const { target, log, ctx } = a;
   const { compte, lieu, coupCritique } = a.compte;
-  const heroConcerne = target.kind === 'hero' || ctx.attackerKind === 'hero';
+  const heroConcerne = target.kind === 'heros' || ctx.attackerKind === 'heros';
   if (compte.mortSubite) appliquerMortSubite(target, log);
   // LDB 60 l.50 ; #1595 c.6225326419 : la casse suit le Coup Critique, dévié, subi ou ignoré.
   let bacle = coupCritique;
@@ -2722,7 +2722,7 @@ function appliquerLaTouche(
     }
     // (b) Défenseur : LDB 13 l.183 ; LDB 62 l.278. `res.parryWeapon` n'est posé qu'en Parade (finishMelee).
     if (dd.success && isDoubleRoll(dd.roll) && !isOutOfAction(attacker) && res.parryWeapon) {
-      if (target.kind === 'hero' && res.parryWeapon && hasBladeTrap(res.parryWeapon) && weaponHasBlade(weapon)) {
+      if (target.kind === 'heros' && res.parryWeapon && hasBladeTrap(res.parryWeapon) && weaponHasBlade(weapon)) {
         // Folding P3b : le choix Piéger/Critique devient une ÉTAPE de la séquence (texte + options),
         // au lieu d'une modale `pendingBladeTrap` séparée. L'applier 'piegeALame' appelle resolveBladeTrap.
         const pbt: PendingBladeTrap = { defenderId: target.id, attackerId: attacker.id, weapon, parryWeaponUid: res.parryWeapon.uid!, defSL: dd.sl, roll: dd.roll };
@@ -2764,7 +2764,7 @@ function appliquerLaTouche(
   // LDB 62 l.307.
   if (toucheAvecPrise(res) && hasQuality(weapon, 'taille')) damageArmour(target, res.location ?? 'corps');
   // Munition du coup : CELLE QUI ÉTAIT DANS L'ARME (`loadedAmmo`), lue AVANT que le tir ne décharge.
-  const firedAmmo = weapon.type === 'distance' && attacker.kind === 'hero' ? loadedAmmo(attacker, weapon) : undefined;
+  const firedAmmo = weapon.type === 'distance' && attacker.kind === 'heros' ? loadedAmmo(attacker, weapon) : undefined;
   // Tir avec une arme à Recharge → DÉCHARGÉE après le coup (LDB 62 l.335) : un Test étendu de Projectiles est
   // requis avant de retirer. Vaut pour TOUT tireur (héros ET ennemi) — parité du cycle de Rechargement (#126) ;
   // aucun état ni chemin parallèle pour l'IA.
@@ -2778,7 +2778,7 @@ function appliquerLaTouche(
   }
   // Munition + Salve : suivi HÉROS-only (les ennemis ne comptabilisent pas de munitions, #126). `consumeAmmo` =
   // source unique du décrément (stock du poste servi OU inventaire).
-  if (weapon.type === 'distance' && attacker.kind === 'hero') {
+  if (weapon.type === 'distance' && attacker.kind === 'heros') {
     attacker.shotsThisTurn = (attacker.shotsThisTurn ?? 0) + 1; // Salve : compteur de tirs du tour (−10 cumulatif)
     if (firedAmmo) consumeAmmo(attacker, firedAmmo);
   }
@@ -2861,7 +2861,7 @@ function appliquerLaTouche(
   if (isOutOfAction(target) && !isStructure(target)) log.push(ev('mort', tr('cf.horsDeCombat', { name: target.label }), target.id)); // structure → ligne d'Effondrement (collapseStructure), pas « hors de combat »
   // Salve (Aux Armes p.126) : un héros qui tire une arme à Salve gardant des tirs (chambered > 0) ne
   // consomme PAS son Action — il peut tirer encore ce tour (chaque tir suivant à −10 cumulatif).
-  const salvoContinues = attacker.kind === 'hero' && weapon.type === 'distance' && hasQuality(weapon, 'salve') && (loadRegister(attacker, weapon).chambered ?? 0) > 0;
+  const salvoContinues = attacker.kind === 'heros' && weapon.type === 'distance' && hasQuality(weapon, 'salve') && (loadRegister(attacker, weapon).chambered ?? 0) > 0;
   // Lignes de journal différées par un hook profond (ex. `onGainCondition` ennemi/auto déclenché plus
   // haut dans cette résolution) → foldées dans le MÊME `log` réécrit, avant que ce `set` ne le clobbere.
   // Effet déclenché « après résolution de l'attaque » (touche OU raté) — dispatcher générique via le bus.
@@ -3630,7 +3630,7 @@ export function openSurfacedDefense(get: Get, set: SetFn, attacker: Combatant, t
  * `weapon` = l'arme d'UN tir précis (fenêtre de jet) ; absente, la question est celle de l'ARSENAL
  * (la console arme la posture avant toute cible). */
 export function heldGroundStanceBlock(battle: BattleState, c: Combatant, weapon?: Weapon): string | null {
-  if (c.kind !== 'hero') return tr('agate.stanceHeroOnlyHold');
+  if (c.kind !== 'heros') return tr('agate.stanceHeroOnlyHold');
   const tir = weapon ? weapon.type === 'distance' : c.weapons.some((w) => w.type === 'distance');
   if (!tir) return tr(weapon ? 'agate.stanceNotAShot' : 'agate.stanceNoRangedWeapon');
   if (battle.movementUsed > 0) return tr('agate.movementStarted');
@@ -3645,7 +3645,7 @@ export function heldGroundStanceBlock(battle: BattleState, c: Combatant, weapon?
  * SERRÉ (le seuil est celui de `crowdMod`, jamais un compte recopié).
  * `target` absente = question de CONTEXTE (la console arme avant toute cible) : un groupe suffit. */
 export function intoCrowdStanceBlock(battle: BattleState, c: Combatant, weapon?: Weapon, target?: Combatant): string | null {
-  if (c.kind !== 'hero') return tr('agate.stanceHeroOnlyCrowd');
+  if (c.kind !== 'heros') return tr('agate.stanceHeroOnlyCrowd');
   const tir = weapon ? weapon.type === 'distance' : c.weapons.some((w) => w.type === 'distance');
   if (!tir) return tr(weapon ? 'agate.stanceNotAShot' : 'agate.stanceNoRangedWeapon');
   const serre = (t: Combatant) => !!crowdMod(crowdEligible(battle, c, t).length);
@@ -4348,7 +4348,7 @@ export function applyChillGrasp(get: Get, set: SetFn, attacker: Combatant): bool
 /** Attaque-ACTION spéciale de l'IA (Regard pétrifiant / Étreinte glaciale) à la place de l'attaque
  *  normale, si la créature en a le trait et l'Avantage requis. Renvoie true si elle a agi. */
 export function aiMaybeSpecialAction(get: Get, set: SetFn, enemy: Combatant): boolean {
-  if (enemy.kind !== 'enemy' || isOutOfAction(enemy)) return false;
+  if (enemy.kind !== 'ennemi' || isOutOfAction(enemy)) return false;
   const atks = creatureAttacks(enemy.traits ?? []);
   if (atks.some((a) => a.kind === 'regard') && enemy.advantage >= 1) return applyGaze(get, set, enemy);
   if (atks.some((a) => a.kind === 'etreinte') && enemy.advantage >= 2) return applyChillGrasp(get, set, enemy);
@@ -4509,7 +4509,7 @@ export function fileDesGratuites(enemy: Combatant): { zone: AttackKind[]; melee:
  *  Taille — les Indices d'abord), puis poursuivie après chaque modale de défense résolue. Retourne
  *  true si une modale s'est ouverte (tour SUSPENDU). */
 export function aiCreatureFreeAttacks(get: Get, set: SetFn, enemy: Combatant): boolean {
-  if (enemy.kind !== 'enemy' || isOutOfAction(enemy)) { enemy.pendingFreeAttacks = undefined; return false; }
+  if (enemy.kind !== 'ennemi' || isOutOfAction(enemy)) { enemy.pendingFreeAttacks = undefined; return false; }
   const battle = get().battle;
   if (!battle || battle.over) { enemy.pendingFreeAttacks = undefined; return false; }
   if (activeCombatant(battle)?.id !== enemy.id) return false; // LDB 13 l.14 ; LDB 85 l.43
@@ -4783,7 +4783,7 @@ function finishMiscast(get: Get, set: SetFn, caster: Combatant, ctx: PendingMisc
   // « Un jet = une modale » : le héros voit la conséquence (Colère/Imparfaite) INLINE dans la séquence
   // partagée (étape d'affichage). `suppressReveal` est un paramètre d'appel qu'AUCUN appelant ne pose
   // aujourd'hui (Focalisation interrompue comprise) — cf. #942, ticket de suite.
-  const affichee = caster.kind === 'hero' && !ctx.suppressReveal;
+  const affichee = caster.kind === 'heros' && !ctx.suppressReveal;
   if (affichee) {
     const colere = severity === 'colere';
     const title = colere ? 'Colère des dieux' : 'Incantation Imparfaite';
@@ -5421,7 +5421,7 @@ export function castZoneSpell(get: Get, set: SetFn, caster: Combatant, label: st
 export function openCastCascade(get: Get, set: SetFn, caster: Combatant): boolean {
   const step = hostStep(get, {
     id: idDansLaSequence(get, `incantation-${caster.id}`, 'combat'), kind: 'incantation', jet: 'incantation', actorId: caster.id,
-    ...(caster.kind === 'enemy' ? { groupOwner: true } : {}),
+    ...(caster.kind === 'ennemi' ? { groupOwner: true } : {}),
   });
   if (!step) return false;
   openSequence(get, set, { title: tr('step.incantation'), icon: 'action/incanter', purpose: 'combat', steps: [step] });
@@ -5473,7 +5473,7 @@ export function zoneSousLeCurseur(get: Get, hover: Pt): { radius: number; valide
   const pz = placingZoneOf(s);
   if (pz) return inBattleId(battle, pz.casterId)?.pos ? { radius: pz.radius, valide: placedZoneValidAt(get, pz, hover) } : null;
   const active = s.mode === 'battle' ? activeCombatant(battle) : undefined;
-  if (battle.action !== 'incantation' || !battle.selectedSpellId || active?.kind !== 'hero' || s.pendingCast || !active.pos) return null;
+  if (battle.action !== 'incantation' || !battle.selectedSpellId || active?.kind !== 'heros' || s.pendingCast || !active.pos) return null;
   const spell = findSpellById(battle.selectedSpellId);
   const radius = spell ? zdeRadiusTiles(spell.target, active) : null;
   if (!spell || radius == null) return null;
@@ -5593,7 +5593,7 @@ function isSpellActive(spell: SpellData, caster: Combatant, battle: BattleState 
 export function buildAiInput(enemy: Combatant, get: Get): EnemyTurnInput {
   const battle = get().battle!;
   const scene = get().scene!;
-  const foeKind = enemy.kind === 'enemy' ? 'hero' : 'enemy';
+  const foeKind = enemy.kind === 'ennemi' ? 'heros' : 'ennemi';
   const heroes = battle.combatants.filter((c) => c.kind === foeKind && !isOutOfAction(c));
   const squad = battle.combatants.filter((c) => c.kind === enemy.kind && !isOutOfAction(c) && c.pos && c.id !== enemy.id);
   const pulsion = ciblesDePulsion(enemy, battle.combatants); // #3045
@@ -5642,7 +5642,7 @@ export function buildAiInput(enemy: Combatant, get: Get): EnemyTurnInput {
   // allié-IA n'attaque pas sa propre porte, et `structureImmune` n'y suffirait pas (une pièce de siège alliée la
   // pourrait). Hors siège ou côté allié → `undefined`, aucun candidat. L'arme qui n'abîme pas la structure est
   // écartée plus bas (`ai.ts`, `structureImmune`).
-  const structures = enemy.kind === 'enemy' && siegeActif(battle)
+  const structures = enemy.kind === 'ennemi' && siegeActif(battle)
     ? battle.combatants.filter((c) => isStructure(c) && !isOutOfAction(c) && c.pos)
     : undefined;
   const smoke = smokeOf(battle);
@@ -6822,7 +6822,7 @@ export function ouvrirLesContagions(get: Get, set: SetFn, ids: readonly string[]
  *  corrompue. Le niveau s'applique à TOUS les héros survivants (avoir affronté). */
 function worstCorruptionExposure(combattants: readonly Combatant[]): { level: ExposureLevel; label: string } | null {
   const rangs = combattants
-    .filter((c) => c.kind !== 'hero')
+    .filter((c) => c.kind !== 'heros')
     .flatMap((c) => (c.traits ?? []).filter((t) => t.id === 'corruption').map((t) => EXPOSURE_LADDER.indexOf(t.arg as ExposureLevel)));
   const pire = Math.max(-1, ...rangs);
   if (pire < 0) return null;
@@ -7083,7 +7083,7 @@ export function finalizeBattle(get: Get, set: SetFn): void {
   // Couture de RETOUR complète (`REPORT_DE_COMBATTANT`, #2312) : ce qui est propre à la rencontre
   // (`outOfRencontre`, LDB 17 l.31) n'en sort pas.
   const newParty = party.map((h) => {
-    const c = battle.combatants.find((x) => x.id === h.id && x.kind === 'hero');
+    const c = battle.combatants.find((x) => x.id === h.id && x.kind === 'heros');
     return c ? sortieDeRencontre(h, c) : h;
   });
   set({ party: newParty });
@@ -7141,7 +7141,7 @@ function victoryConditionMet(vc: VictoryCondition | undefined, battle: BattleSta
     case 'surviveRounds':
       return battle.round > vc.rounds;
     case 'reachZone': {
-      const kind = (vc.camp ?? 'party') === 'party' ? 'hero' : 'enemy';
+      const kind = (vc.camp ?? 'groupe') === 'groupe' ? 'heros' : 'ennemi';
       return battle.combatants.some((c) => c.kind === kind && !c.inert && !isOutOfAction(c) && c.pos && inRect(c.pos, vc.rect));
     }
     case 'woundsThreshold': {
@@ -7170,7 +7170,7 @@ const auSeuilDeBlessures = (c: Combatant, pct: number): boolean => !!c.wounds &&
 function resolveSurrenderThreshold(battle: BattleState, vc: VictoryCondition | undefined): string[] {
   if (vc?.type !== 'woundsThreshold') return [];
   const cibles = vc.targetId === undefined
-    ? battle.combatants.filter((c) => c.kind === 'enemy' && !c.inert)
+    ? battle.combatants.filter((c) => c.kind === 'ennemi' && !c.inert)
     : [inBattleId(battle, vc.targetId)].filter((c): c is Combatant => !!c);
   return cibles.filter((c) => !isOutOfAction(c) && auSeuilDeBlessures(c, vc.atOrBelowPercent)).map((c) => {
     c.outOfRencontre = true;
@@ -7245,7 +7245,7 @@ export function checkBattleOver(get: Get, set: SetFn): boolean {
   if (campaignHull && isOutOfAction(campaignHull)) {
     const aboardIds = (campaignHull.crewIds ?? [])
       .map((id) => inBattleId(battle, id))
-      .filter((c): c is Combatant => !!c && c.kind === 'hero' && !c.dead)
+      .filter((c): c is Combatant => !!c && c.kind === 'heros' && !c.dead)
       .map((c) => c.id);
     const anyOverboardAlive = aboardIds.some((id) => inBattleId(battle, id)?.exitReason === 'naufrage');
     if (aboardIds.length && anyOverboardAlive) {
@@ -7257,11 +7257,11 @@ export function checkBattleOver(get: Get, set: SetFn): boolean {
     }
   }
   // Un engin INERTE (affût servi, immune) ne compte JAMAIS comme un combattant vivant — ni côté allié
-  // (`kind:'hero'`) ni côté ennemi : la victoire/défaite se joue sur les créatures (l'équipage), pas l'objet.
-  // Une MONTURE-possession (`mountable:true`, kind:'hero' allié — #621) n'est jamais un héros pour la
+  // (`kind:'heros'`) ni côté ennemi : la victoire/défaite se joue sur les créatures (l'équipage), pas l'objet.
+  // Une MONTURE-possession (`mountable:true`, kind:'heros' allié — #621) n'est jamais un héros pour la
   // défaite : un cavalier hors d'action dont la monture survit encore n'empêche PAS la défaite (LDB 14).
-  const heroesAlive = battle.combatants.some((c) => c.kind === 'hero' && !c.mountable && !c.inert && !isOutOfAction(c));
-  const enemiesAlive = battle.combatants.some((c) => c.kind === 'enemy' && !c.inert && !isOutOfAction(c));
+  const heroesAlive = battle.combatants.some((c) => c.kind === 'heros' && !c.mountable && !c.inert && !isOutOfAction(c));
+  const enemiesAlive = battle.combatants.some((c) => c.kind === 'ennemi' && !c.inert && !isOutOfAction(c));
   // Objectif de victoire authorable (#197) : par défaut `allEnemiesDead` (équivalent à `!enemiesAlive`,
   // comportement historique inchangé) — un autre type NE termine PAS le combat à la mort du dernier
   // ennemi tant que sa propre condition n'est pas remplie (ex. porte intacte, bélier-porte).
@@ -7328,7 +7328,7 @@ export function finishVictory(get: Get, set: SetFn): void {
   const messages = immediate.flatMap((e) => (e.type === 'journal' && e.desc ? [e.desc] : []));
   const issue = immediate.length ? applyEffects(get, set, immediate) : undefined;
   const counts = new Map<string, { label: string; count: number; creatureId?: string }>();
-  for (const c of battle.combatants) if (c.kind === 'enemy') {
+  for (const c of battle.combatants) if (c.kind === 'ennemi') {
     const key = c.creatureId ?? c.label; // regroupe par identité bestiaire (id), repli nom (statbloc custom)
     const e = counts.get(key);
     if (e) e.count++; else counts.set(key, { label: c.label, count: 1, creatureId: c.creatureId });
@@ -7355,7 +7355,7 @@ export function finishVictory(get: Get, set: SetFn): void {
 export function finishCombatEnd(get: Get, set: SetFn): void {
   const battle = get().battle;
   if (!battle || battle.over) return;
-  const heroesAlive = battle.combatants.some((c) => c.kind === 'hero' && !isOutOfAction(c));
+  const heroesAlive = battle.combatants.some((c) => c.kind === 'heros' && !isOutOfAction(c));
   if (heroesAlive) { finishVictory(get, set); return; }
   // Cas-limite : la mutation/damnation a achevé le dernier héros pendant la cascade → défaite.
   finalizeBattle(get, set);
@@ -7554,7 +7554,7 @@ export function advanceTurn(get: Get, set: SetFn) {
       const heroRoundLines: string[] = [];
       const tickLine = (line: string, c?: Combatant) => {
         battle.log.push(ev('etat', line, c?.id));
-        if (c?.kind === 'hero') heroRoundLines.push(line);
+        if (c?.kind === 'heros') heroRoundLines.push(line);
       };
       // TOUTE la séquence de franchissement de Round est déléguée aux hooks `roundBoundary`
       // (noyau/combat/roundHooks), ordonnés par `order` : end-of-round 10 → poison-resist 15 →
@@ -7616,7 +7616,7 @@ export function resolveRoundBoundary(get: Get, set: SetFn): void {
   const battle = get().battle;
   if (!battle || battle.over) return;
   // (1) Un héros mourant à Destin non résolu → suspend (LDB 17 l.29).
-  const dying = battle.combatants.find((c) => c.kind === 'hero' && (c.fate ?? 0) > 0 && inDeathCondition(c));
+  const dying = battle.combatants.find((c) => c.kind === 'heros' && (c.fate ?? 0) > 0 && inDeathCondition(c));
   if (dying) {
     set({ pendingFateSave: { heroId: dying.id, source: 'slow' } });
     return;
@@ -7631,7 +7631,7 @@ export function resolveRoundBoundary(get: Get, set: SetFn): void {
   const doomedBleed = (battle.bleedDoomed ?? [])
     .map((d) => ({ c: inBattleId(battle, d.id), line: d.deathLine }))
     .filter((d): d is { c: Combatant; line: string } => !!d.c && !d.c.dead && !d.c.outOfRencontre);
-  const bleedFateHero = doomedBleed.find((d) => d.c.kind === 'hero' && (d.c.fate ?? 0) > 0);
+  const bleedFateHero = doomedBleed.find((d) => d.c.kind === 'heros' && (d.c.fate ?? 0) > 0);
   if (bleedFateHero) { set({ pendingFateSave: { heroId: bleedFateHero.c.id, source: 'slow' } }); return; }
   for (const d of doomedBleed) { d.c.dead = true; battle.log.push(ev('mort', d.line, d.c.id)); for (const line of notifySlain(get, set, d.c)) battle.log.push(ev('mort', line, d.c.id)); }
   battle.bleedDoomed = undefined;
@@ -8531,7 +8531,7 @@ function endShipTurn(get: Get, set: SetFn, ship: Combatant, delay?: number): voi
 function runShipAI(get: Get, set: SetFn, ship: Combatant): void {
   const battle = get().battle!;
   const scene = get().scene!;
-  const foeKind = ship.kind === 'enemy' ? 'hero' : 'enemy';
+  const foeKind = ship.kind === 'ennemi' ? 'heros' : 'ennemi';
   const targets = battle.combatants.filter((c) => c.kind === foeKind && isVehicle(c) && !isOutOfAction(c) && c.pos);
   if (!ship.pos || !targets.length) return endShipTurn(get, set, ship);
   const shipPos = ship.pos;
@@ -8604,7 +8604,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
   // Cible = camp OPPOSÉ à l'acteur : un ennemi vise les héros (inchangé) ; un héros auto-piloté (Auto-combat)
   // vise les ennemis. Les helpers Frénésie/psy ci-dessus s'appliquent à tout combattant piloté par l'IA
   // (`aiDriven`) — dont un héros auto ; Rage/Stupide restent gardés par leurs traits.
-  const foeKind = enemy.kind === 'enemy' ? 'hero' : 'enemy';
+  const foeKind = enemy.kind === 'ennemi' ? 'heros' : 'ennemi';
   const heroes = battle.combatants.filter((c) => c.kind === foeKind && !isOutOfAction(c));
   if (heroes.length === 0) {
     // Aucun adversaire vivant mais le combat continue (`victoryCondition` non authorable atteinte,

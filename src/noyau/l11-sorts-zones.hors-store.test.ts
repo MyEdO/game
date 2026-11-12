@@ -33,7 +33,7 @@ describe('L11 — zones persistantes posées par les sorts', () => {
     caster.skills.push({ id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 10 });
     caster.characteristics['force-mentale'] = 40; // BFM 4
     caster.pos = { x: 5, y: 10 };
-    const T = b.combatants.filter((c) => c.kind === 'enemy')[0];
+    const T = b.combatants.filter((c) => c.kind === 'ennemi')[0];
     T.pos = { x: 10, y: 10 };
     return { caster, T };
   }

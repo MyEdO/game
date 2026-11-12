@@ -25,7 +25,7 @@ const PROP = 'table-1';
 const ABORD_NORD = { x: 5, y: 4 };
 
 const hero = (id: string): Combatant =>
-  combattantDeTest({ id, label: id.toUpperCase(), kind: 'hero', xp: 0, wounds: blessuresDeBase(12), conditions: [], movement: 4 });
+  combattantDeTest({ id, label: id.toUpperCase(), kind: 'heros', xp: 0, wounds: blessuresDeBase(12), conditions: [], movement: 4 });
 
 const place = (rang: number): SeatOccupant => ({ kind: 'party', rang });
 const poseDe = (rang: number) => seatPoseOf(banc.getState().scene!, place(rang));
@@ -145,7 +145,7 @@ describe('mort / indisponibilité d’un occupant', () => {
     expect(seatPoseOf(banc.getState().scene!, occupant)).not.toBeNull();
 
     // Le badaud est enrôlé au combat en cours et tombe : `notifySlain` acte la mise hors de combat.
-    const mort = combattantDeTest({ id: 'badaud', label: 'Badaud', kind: 'enemy', wounds: blessuresDeBase(8, 0), conditions: [], dead: true });
+    const mort = combattantDeTest({ id: 'badaud', label: 'Badaud', kind: 'ennemi', wounds: blessuresDeBase(8, 0), conditions: [], dead: true });
     banc.setState({ battle: { combatants: [mort], log: [], order: ['badaud'], turn: 0, round: 1 } as never });
     notifySlain(banc.getState, banc.setState, mort);
     expect(seatPoseOf(banc.getState().scene!, occupant)).toBeNull();

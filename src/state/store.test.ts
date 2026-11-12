@@ -67,7 +67,7 @@ describe('Chance — 3e usage : pré-emption d’initiative en début de Round (
     const E: Combatant = JSON.parse(JSON.stringify(H));
     E.id = 'enemy-0';
     E.label = 'Gobelin';
-    E.kind = 'enemy';
+    E.kind = 'ennemi';
     E.fortune = 0;
     E.pos = { x: 5, y: 5 };
     const battle: BattleState = {

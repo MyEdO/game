@@ -25,7 +25,7 @@ const auTourDe = (id: string): void => {
   b.turn = b.order.indexOf(id);
 };
 
-const at = (kind: 'hero' | 'enemy', id: string, x: number, y: number, over: Partial<Combatant> = {}): Combatant =>
+const at = (kind: 'heros' | 'ennemi', id: string, x: number, y: number, over: Partial<Combatant> = {}): Combatant =>
   (blessuresSurLeProfil({
     id, name: id, kind,
     characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
@@ -37,10 +37,10 @@ const at = (kind: 'hero' | 'enemy', id: string, x: number, y: number, over: Part
 
 describe('cibleDEcartDeTaille — cible au contact plus petite d’au moins N catégories (pur)', () => {
   it('renvoie un adversaire adjacent PLUS PETIT et vivant ; pas un égal/lointain/mort', () => {
-    const big = at('enemy', 'TROLL', 5, 5, { size: 'grande' });
-    const small = at('hero', 'H1', 5, 6, { size: 'moyenne' }); // adjacent, plus petit
-    const equal = at('hero', 'H2', 4, 5, { size: 'grande' }); // adjacent mais même Taille
-    const far = at('hero', 'H3', 5, 9, { size: 'petite' }); // plus petit mais loin
+    const big = at('ennemi', 'TROLL', 5, 5, { size: 'grande' });
+    const small = at('heros', 'H1', 5, 6, { size: 'moyenne' }); // adjacent, plus petit
+    const equal = at('heros', 'H2', 4, 5, { size: 'grande' }); // adjacent mais même Taille
+    const far = at('heros', 'H3', 5, 9, { size: 'petite' }); // plus petit mais loin
     const battle = { combatants: [big, small, equal, far] } as unknown as BattleState;
     expect(cibleDEcartDeTaille(battle, big, 1)?.id).toBe('H1');
     expect(cibleDEcartDeTaille(battle, big, 1, 'H2')).toBeUndefined(); // ciblage explicite d'un égal → rien
@@ -65,8 +65,8 @@ describe('Piétinement en combat (store)', () => {
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
     enemies.slice(1).forEach((e) => (e.dead = true));
     const E = enemies[0];
     H.pos = { x: 10, y: 10 };
@@ -166,7 +166,7 @@ describe('Piétinement en combat (store)', () => {
   it('cible de même Taille au contact : le clic ne piétine pas (`freeAttackTargetOk`)', () => {
     const { H, E } = setup();
     const b = banc.getState().battle!;
-    const E2 = b.combatants.find((c) => c.kind === 'enemy' && c.id !== E.id)!;
+    const E2 = b.combatants.find((c) => c.kind === 'ennemi' && c.id !== E.id)!;
     E2.dead = false;
     E2.pos = { x: 10, y: 11 };
     H.size = 'grande';

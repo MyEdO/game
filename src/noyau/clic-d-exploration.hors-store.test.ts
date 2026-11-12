@@ -14,7 +14,7 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const hero = (): Combatant =>
-  combattantDeTest({ id: 'h', label: 'H', kind: 'hero', xp: 0, wounds: blessuresDeBase(12), conditions: [], movement: 4 });
+  combattantDeTest({ id: 'h', label: 'H', kind: 'heros', xp: 0, wounds: blessuresDeBase(12), conditions: [], movement: 4 });
 
 const FOUILLE = { id: 'fouiller', flow: { kind: 'sequence' as const, etapes: [] }, unique: true };
 const PRISES = {

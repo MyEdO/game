@@ -139,7 +139,7 @@ describe('FORMAT — une save d’un autre format est jetée, jamais migrée', (
     const lue = {
       ...save(FORMAT_SAVE),
       rules: { [r.id]: !r.default, 'regle-hors-registre': true, [autre.id]: 'texte' },
-      data: { party: [combattantDeTest({ id: 'h', label: 'H', kind: 'hero', conditions: [{ id: connu, value: 1 }, { id: 'etat-hors-registre', value: 1 }] })] },
+      data: { party: [combattantDeTest({ id: 'h', label: 'H', kind: 'heros', conditions: [{ id: connu, value: 1 }, { id: 'etat-hors-registre', value: 1 }] })] },
     };
     ls().setItem(cleDEmplacement(1), JSON.stringify(lue));
     expect(useGame.getState().loadGame(1), 'la dérive du registre ne jette pas la save').toBe(true);

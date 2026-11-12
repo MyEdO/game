@@ -102,7 +102,7 @@ describe('Scénario « La fenêtre sur les écuries » — formation de début d
     banc.getState().lancerLaScene(scene);
     banc.setState({ partyPos });
     banc.getState().lancerLeCombat('enc-homme-de-main');
-    return banc.getState().battle!.combatants.filter((c) => c.kind === 'hero' && !c.mountable).map((c) => c.pos!);
+    return banc.getState().battle!.combatants.filter((c) => c.kind === 'heros' && !c.mountable).map((c) => c.pos!);
   }
 
   for (const depart of [{ x: 7, y: 6, z: 1 }, { x: 6, y: 2, z: 1 }]) {
@@ -139,7 +139,7 @@ describe('Scénario « La fenêtre sur les écuries » — l’homme de main se 
       while (g().pendingCascade) avanceEtapeCascade(g);
       const b = g().battle!;
       const actif = b.combatants.find((c) => c.id === b.order[b.turn]);
-      if (actif?.kind === 'hero') g().terminerLeTour();
+      if (actif?.kind === 'heros') g().terminerLeTour();
       banc.avancer(1000);
       expect(homme().pos!.z, `tour ${i} : l’homme de main a quitté l’étage`).toBe(1);
     }

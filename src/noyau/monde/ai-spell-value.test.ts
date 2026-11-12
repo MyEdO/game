@@ -15,7 +15,7 @@ const MELEE: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, 
 
 function combatant(over: Partial<Combatant> = {}): Combatant {
   return blessuresSurLeProfil({
-    id: 'c', label: 'c', kind: 'enemy',
+    id: 'c', label: 'c', kind: 'ennemi',
     characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 40, endurance: 40, initiative: 40, agilite: 40, dexterite: 40, intelligence: 40, 'force-mentale': 40, sociabilite: 40 },
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], weapons: [],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -51,7 +51,7 @@ describe('opValue — SOIN plafonné aux PB manquants', () => {
 
 describe('opValue — BUFF de combat = bénéfice marginal (armé > 0, désarmé = 0)', () => {
   const buff = op({ op: 'charMod', characteristic: 'capacite-de-combat', mod: 10 });
-  const ref = combatant({ id: 'h', kind: 'hero', pos: { x: 2, y: 0 } });
+  const ref = combatant({ id: 'h', kind: 'heros', pos: { x: 2, y: 0 } });
   it('subject ARMÉ → +10 CC améliore l’EV d’attaque → > 0', () => {
     expect(opValue(buff, combatant(), combatant({ id: 's', weapons: [MELEE] }), ctxOf(ref))).toBeGreaterThan(0);
   });
@@ -122,7 +122,7 @@ describe('oppositionDiscount — Sorts de Contact / résistés (LDB 46 l.103-105
  * de cible (`LDB 16 l.11`), jamais absorbés par le plafond des Difficultés (`LDB 14 l.48/95`).
  */
 describe('hitProbability — chaque pion d’État coûte sa marche à l’IA (CC 40, monotone)', () => {
-  const cible = () => combatant({ id: 'B', kind: 'hero', pos: { x: 1, y: 0 } });
+  const cible = () => combatant({ id: 'B', kind: 'heros', pos: { x: 1, y: 0 } });
   const use = (pions: number) => combatant({ id: 'A', pos: { x: 0, y: 0 }, weapons: [MELEE], ...(pions ? { conditions: [{ id: 'extenue', value: pions }] } : {}) } as Partial<Combatant>);
 
   it('0 à 5 pions Exténué : 0,40 → 0,05 par marches de 0,10 (plancher 5 %)', () => {

@@ -22,7 +22,7 @@ const MJ = 0;
 const INVITE = 1;
 
 const hero = (id: string): Combatant =>
-  combattantDeTest({ id, label: id.toUpperCase(), kind: 'hero', xp: 0, wounds: blessuresDeBase(12), conditions: [], movement: 4 });
+  combattantDeTest({ id, label: id.toUpperCase(), kind: 'heros', xp: 0, wounds: blessuresDeBase(12), conditions: [], movement: 4 });
 
 const pris = (id: string): SeatOccupant => ({ kind: 'entity', entityId: id });
 const occupants = (sc: Scene) => Object.values(sc.seatAssignments ?? {}).flatMap((m) => Object.values(m));

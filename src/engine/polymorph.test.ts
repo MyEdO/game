@@ -17,7 +17,7 @@ import { desDuTest } from './dice.testkit';
 /** Mage F30 E30 FM40 (formule Moyenne 3 + 6 + 4 = 13), né à B 14 imprimé : écart 1 (`blessuresPosees`). */
 const dummy = (p: SurchargeDeCombattant = {}): Combatant => {
   const mage = combattantDeTest({
-    id: 'x', label: 'Mage', kind: 'hero',
+    id: 'x', label: 'Mage', kind: 'heros',
     characteristics: { 'capacite-de-combat': 40, initiative: 35, agilite: 40, dexterite: 45, intelligence: 40, 'force-mentale': 40 },
     ...p,
   });

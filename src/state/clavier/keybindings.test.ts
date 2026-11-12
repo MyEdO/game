@@ -192,7 +192,7 @@ describe('raccourcis — Retour arrière annule le déplacement', () => {
     fake({
       battle: {
         over: null, turn: 0, order: ['h1'], action: null, acted: false, movementUsed: 0, moveSnapshot: null,
-        combatants: [{ id: 'h1', kind: 'hero', label: 'Gunnar', advantage: 0, conditions: [] }],
+        combatants: [{ id: 'h1', kind: 'heros', label: 'Gunnar', advantage: 0, conditions: [] }],
         ...over,
       } as never,
     });
@@ -229,7 +229,7 @@ describe('raccourcis — X commute le set d’armes', () => {
     fake({
       battle: {
         over: null, turn: 0, order: ['h1'],
-        combatants: [{ id: 'h1', kind: 'hero', label: 'Gunnar', loadouts: sets.map((id) => ({ id })), activeLoadoutId: actif }],
+        combatants: [{ id: 'h1', kind: 'heros', label: 'Gunnar', loadouts: sets.map((id) => ({ id })), activeLoadoutId: actif }],
       } as never,
       ...over,
     });
@@ -322,7 +322,7 @@ describe('raccourcis — Échap pendant un INTERLUDE de ciblage par la carte', (
  */
 describe('raccourcis — Échap pendant l’interlude d’un AUTRE siège (coop)', () => {
   const escapes = (s: GameState) => KEYBINDINGS.filter((k) => k.codes.includes('Escape') && k.when(s)).map((k) => k.id);
-  const H = (id: string) => ({ id, kind: 'hero', label: id, pos: { x: 5, y: 5 }, conditions: [], activeEffects: [], wounds: { current: 10, max: 10 }, chars: {}, skills: [], talents: [], weapons: [], items: [], advantage: 0 });
+  const H = (id: string) => ({ id, kind: 'heros', label: id, pos: { x: 5, y: 5 }, conditions: [], activeEffects: [], wounds: { current: 10, max: 10 }, chars: {}, skills: [], talents: [], weapons: [], items: [], advantage: 0 });
   /** Bordée en cours (interlude `annulation-bordee`, `exitSafe`), tour du héros `turn`, siège local `mySeat`. */
   const table = (turn: number, mySeat: number) =>
     fake({

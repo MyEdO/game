@@ -30,7 +30,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 /** Un prétiré de fixture dont une possession du catalogue est imprimée à 1d10. */
 const AUX_DES: PregenDef = { ...PRETIRE_DE_TEST, trappings: [{ id: 'chiffons', count: { roll: { n: 1, sides: 10 } } }] };
 
-const hero = (id: string): Combatant => combattantDeTest({ id, label: `Héros ${id}`, kind: 'hero' });
+const hero = (id: string): Combatant => combattantDeTest({ id, label: `Héros ${id}`, kind: 'heros' });
 
 describe('composition d’équipe (partyFlow + net.slots)', () => {
   it('recruterLeHeros : le noyau bâtit le héros du brouillon, pose la possession du siège, crédite sa Richesse de départ', () => {

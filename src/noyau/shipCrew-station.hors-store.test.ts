@@ -12,7 +12,7 @@ import type { BattleState } from './etat';
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
-const marin = () => combattantDeTest({ id: 'm', label: 'M', kind: 'hero' });
+const marin = () => combattantDeTest({ id: 'm', label: 'M', kind: 'heros' });
 const stationDe = (ou: 'party' | 'battle') => (ou === 'party' ? banc.getState().party : banc.getState().battle!.combatants).find((c) => c.id === 'm')!.shipStation;
 
 describe('affecterALaStation — MDG 13 l.680', () => {

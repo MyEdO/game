@@ -51,7 +51,7 @@ describe('IA — sélection de loadout tir/mêlée (Chasseur fronde)', () => {
     // colle un ennemi adjacent au Chasseur
     const b = banc.getState().battle!;
     const ael = b.combatants.find((c) => c.id === id)!;
-    const foe = b.combatants.find((c) => c.kind === 'enemy' && !c.dead)!;
+    const foe = b.combatants.find((c) => c.kind === 'ennemi' && !c.dead)!;
     foe.pos = { x: ael.pos!.x + 1, y: ael.pos!.y };
     banc.setState({ battle: { ...b } });
     runEnemyAI(banc.getState, banc.setState, id);

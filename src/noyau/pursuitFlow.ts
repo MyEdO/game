@@ -106,7 +106,7 @@ export const PURSUIT_POLICY_DEFAUT: Required<Pick<PursuitPolicy, 'sacrifice' | '
 /** Le camp d'un rattrapage, gelé le temps des décisions (l.94) : les DR TOTAUX de la manche par camp et
  *  la Distance d'AVANT la manche — le recalcul (d) rejoue l'étape 3 sur cette même Distance. */
 interface PursuitPris {
-  laggard: PursuitRunner & { side: 'party' | 'foes' };
+  laggard: PursuitRunner & { side: 'groupe' | 'adversaires' };
   fleeing: PursuitRunner[];
   pursuers: PursuitRunner[];
   distanceAvant: number;
@@ -403,7 +403,7 @@ function pursuitClose(ctx: { get: Get; seq: PursuitSequence; done: MancheClose; 
   // RATTRAPÉS (l.94) — le camp des poursuivis décide d'abord.
   const laggard = pursuitLaggard(camps.fleeing);
   const apres: PursuitPayload = { ...p, distance, pris: laggard ? {
-    laggard: { ...laggard, side: fuyardsSontLeGroupe(p) ? 'party' : 'foes' },
+    laggard: { ...laggard, side: fuyardsSontLeGroupe(p) ? 'groupe' : 'adversaires' },
     fleeing: camps.fleeing, pursuers: camps.pursuers, distanceAvant: p.distance,
   } : undefined };
   if (!laggard) return { go: 'end', outcome: 'caught', payload: apres, log };

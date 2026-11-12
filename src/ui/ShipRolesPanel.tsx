@@ -25,7 +25,7 @@ export function ShipRolesPanel({ crew, onSet }: {
 } = {}) {
   const party = useGame((s) => s.party);
   const affecterAuRoleABord = useGame((s) => s.affecterAuRoleABord);
-  const heroes = crew ?? party.filter((h) => !h.dead && !h.outOfRencontre && h.kind === 'hero');
+  const heroes = crew ?? party.filter((h) => !h.dead && !h.outOfRencontre && h.kind === 'heros');
   return (
     <PostesRoster
       title="Postes d’équipage"

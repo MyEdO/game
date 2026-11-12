@@ -17,7 +17,7 @@ import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.te
  */
 
 const mk = (over: Partial<Combatant> = {}): Combatant => combattantDeTest({
-  id: 'd', label: 'Démon', kind: 'enemy', characteristics: { endurance: 40 },
+  id: 'd', label: 'Démon', kind: 'ennemi', characteristics: { endurance: 40 },
   wounds: blessuresDeBase(12, 0),
   ...over,
 });

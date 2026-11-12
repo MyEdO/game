@@ -61,8 +61,8 @@ const distance = (value) => ({ kind: 'distance', value, unit: 'm' });
 const un = { kind: 'count', n: 1 };
 const soi = { kind: 'self' };
 const zone = (meters, affects) => ({ kind: 'area', span: 'diameter', meters, ...(affects ? { affects } : {}) });
-const ADVERSAIRES = { kind: 'relation', who: 'target', is: 'opponent' };
-const ALLIES = { kind: 'relation', who: 'target', is: 'ally' };
+const ADVERSAIRES = { kind: 'relation', who: 'target', is: 'adversaire' };
+const ALLIES = { kind: 'relation', who: 'target', is: 'allie' };
 const tours = (value, plus) => ({ kind: 'rounds', value, ...(plus ? { plus: true } : {}) });
 const arcane = (subType, domainId) => ({ family: 'arcane', ecole: 'Magie des Arcanes', subType, ...(domainId ? { domainId } : {}) });
 

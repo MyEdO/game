@@ -169,7 +169,7 @@ export function conduitParLeSiegeDuMonde(s: Pick<Jeu, 'battle' | 'net'>, combata
   if (combatantId === WORLD_STEP_OWNER) return true;
   if (!combatantId) return false;
   const c = inBattleId(s.battle, combatantId);
-  return !!c && c.kind === 'enemy' && s.net.gmSeat != null;
+  return !!c && c.kind === 'ennemi' && s.net.gmSeat != null;
 }
 
 /** Le siège qui possède ce combattant (héros non attribué → hôte, siège 0). */
@@ -195,8 +195,8 @@ export function seatOwns(s: Pick<Jeu, 'battle' | 'net'>, seat: number, combatant
  * SOURCE UNIQUE du surfaçage RÉACTIF : Défense (#989) et Contre-sort (#1028).
  */
 export function jetSurfaced(s: Jeu, c: Combatant): boolean {
-  if (c.kind === 'hero') return !c.aiControlled;
-  if (c.kind === 'enemy') return s.net.gmSeat != null;
+  if (c.kind === 'heros') return !c.aiControlled;
+  if (c.kind === 'ennemi') return s.net.gmSeat != null;
   return false;
 }
 

@@ -7,7 +7,7 @@ import { blessuresDeBase, blessuresSurLeProfil } from './combattantDeTest.testki
 const mk = (over: Partial<Combatant> = {}): Combatant =>
   (blessuresSurLeProfil({
     name: 'C',
-    kind: 'hero',
+    kind: 'heros',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 }, // BE=3
     wounds: blessuresDeBase(12, 10),
     conditions: [],
@@ -48,10 +48,10 @@ describe('endState — état de fin lisible (#237)', () => {
     afterEach(() => resetRule('combat-aa-blessures'));
     it("'aa' : Mort Subite à 0 Blessure (AA 07 l.65) = « hors-combat »", () => {
       setRule('combat-aa-blessures', 'aa');
-      expect(endState(mk({ kind: 'enemy', wounds: blessuresDeBase(12, 0) }))).toBe('hors-combat');
+      expect(endState(mk({ kind: 'ennemi', wounds: blessuresDeBase(12, 0) }))).toBe('hors-combat');
     });
     it("'ldb' : à 0 exact, pas de dépassement (LDB 18 l.46) = null", () => {
-      expect(endState(mk({ kind: 'enemy', wounds: blessuresDeBase(12, 0) }))).toBe(null);
+      expect(endState(mk({ kind: 'ennemi', wounds: blessuresDeBase(12, 0) }))).toBe(null);
     });
   });
   it('coque coulée (État naufrage, MDG 13 l.674) = « hors-combat » ; coque à 0 PB = null (MDG 13 l.656)', () => {

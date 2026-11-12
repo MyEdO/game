@@ -206,7 +206,7 @@ describe('effets d’ambiance — Précipitations / Température / Visibilité (
 
 describe('`baseTestModLines` — les Précipitations lisent la Compétence que l’appelant déclare (MDG 13 l.185, #1936)', () => {
   const surLePont = (): Combatant => (blessuresSurLeProfil({
-    id: 'x', label: 'X', kind: 'hero', characteristics: {}, skills: [], talents: [], traits: [],
+    id: 'x', label: 'X', kind: 'heros', characteristics: {}, skills: [], talents: [], traits: [],
     conditions: [], activeEffects: [], liveTraits: [], weapons: [], armour: [],
     wounds: blessuresDeBase(10), advantage: 0, envPrecipitation: 'tres-abondantes',
   })) as unknown as Combatant;

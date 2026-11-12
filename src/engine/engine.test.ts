@@ -27,7 +27,7 @@ describe("Atouts d'arme (LDB Les armes)", () => {
     (blessuresSurLeProfil({
       id: 'a',
       name: 'a',
-      kind: 'enemy',
+      kind: 'ennemi',
       characteristics: { 'capacite-de-combat': cc, 'capacite-de-tir': cc, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
       wounds: blessuresDeBase(20),
       advantage: 0,
@@ -140,7 +140,7 @@ describe('Découpe de la résolution de mêlée (split attaquant/défenseur)', (
     (blessuresSurLeProfil({
       id: 'x',
       name: 'x',
-      kind: 'enemy',
+      kind: 'ennemi',
       characteristics: { 'capacite-de-combat': cc, 'capacite-de-tir': cc, force: 30, endurance: 30, initiative: 30, agilite: 35, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
       wounds: blessuresDeBase(20),
       advantage: 0,
@@ -208,7 +208,7 @@ describe('Sur la défensive (+20 en défense, LDB Combat l.118)', () => {
     (blessuresSurLeProfil({
       id: 'c',
       name: 'c',
-      kind: 'enemy',
+      kind: 'ennemi',
       characteristics: { 'capacite-de-combat': cc, 'capacite-de-tir': cc, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
       wounds: blessuresDeBase(20),
       advantage: 0,
@@ -291,7 +291,7 @@ describe('Avantage en combat (LDB Déplacement l.37 : +10 par point)', () => {
   const mk = (cc: number, advantage = 0): Combatant => (blessuresSurLeProfil({
     id: 'c',
     label: 'c',
-    kind: 'enemy',
+    kind: 'ennemi',
     characteristics: { 'capacite-de-combat': cc, 'capacite-de-tir': cc, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(10),
     advantage,
@@ -441,7 +441,7 @@ function dummy(name: string, chars: Partial<Characteristics>, wounds: number, we
   return blessuresSurLeProfil({
     id: name,
     label: name,
-    kind: 'enemy',
+    kind: 'ennemi',
     characteristics: { ...base, ...chars },
     wounds: blessuresDeBase(wounds),
     advantage: 0,
@@ -557,7 +557,7 @@ function caster(chars: Partial<Characteristics>, skills: SkillInstance[] = [], w
   return blessuresSurLeProfil({
     id: 'c',
     label: 'Mage',
-    kind: 'hero',
+    kind: 'heros',
     characteristics: { ...base, ...chars },
     wounds: blessuresDeBase(wounds),
     advantage: 0,
@@ -883,7 +883,7 @@ describe('Création de héros', () => {
       label: 'Test',
       seed: 7,
     });
-    expect(hero.kind).toBe('hero');
+    expect(hero.kind).toBe('heros');
     expect(hero.skills.length).toBeGreaterThan(0);
     expect(hero.wounds.max).toBeGreaterThan(0);
     expect(hero.movement).toBe(4);
