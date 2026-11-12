@@ -17,6 +17,7 @@ import { formulaireDe, type CadreDuPorteur } from '../sceneEditLecture';
 import { newOp, valeurNeuveDe, variantesAChoisir } from '../valeursNeuves';
 import { bornesAuPoint, champDeLElement, champsDeclares, champsDuRecord, champsOfferts, choixDuNoeud, cleOfferte, elementDuNoeud, formeAuPoint, inferFields, kindDuNoeud, recordDuNoeud, unionDuNoeud, varianteCourante, type FieldDesc } from '../codex/editFields';
 import { ouverts } from '../../data/schemas/grammaire/descente';
+import { tableTotale } from '../../lib/tableTotale';
 import { editer, ouvrirLEdition, refusDeLaValeur, sceneEditee, type GesteDEdition, type SessionDEdition } from './session';
 import { conditionSchema, flowTestSchema, OP_DEFS, OP_LABEL, OPS_NON_TYPEES } from '../../data/schemas/grammaire/mecanique';
 import { idDe, idsDe, idsDeLaSousListe, refOuSpec } from '../../data/schemas/grammaire/ref';
@@ -433,7 +434,7 @@ describe('chaque feuille des formulaires tirés du schéma a un contrôle typé 
       ...effets.flatMap((parts) => [[parts, 'ajouter'], [`${parts}/0`, 'variantes']]),
     ]);
     expect(Object.keys(attendues)).toHaveLength(17);
-    expect(Object.fromEntries(Object.keys(attendues).map((c) => [c, saisies.get(c)]))).toEqual(attendues);
+    expect(tableTotale(Object.keys(attendues), (c) => saisies.get(c))).toEqual(attendues);
     const horsObjet = ['zone/crossTest/gate<kind=partyDead>/who', 'zone/onCross/0<op=condition>/resolveWindow', 'zone/onCross/0<op=navireMod>/jusqua', 'zone/onCross/0<op=augmentWeapon>/onHitEffects/0/on'];
     expect(horsObjet.map((c) => saisies.get(`${c}<forme=>`)), 'la variante hors objet se choisit parmi ses valeurs').toEqual(horsObjet.map(() => 'choix'));
   });

@@ -228,6 +228,10 @@ const NOMMES = [
   'engagesAvecPorteur|etrangersAuPorteur|autresRacesQueLePorteur',
   // `marcheDuPort` (`grammaire/mecanique.ts`, #1652 lot 9) : les colonnes de l'Index qu'une escale bascule.
   'penurie|saturation',
+  // `navireMod.jusqua` (#3606 M2e) : l'échéance de bord d'un modificateur de navire.
+  'carenage|evenementDeBord',
+  // `cibleDeFeuilleSchema` (#3606 M2e) : la cible d'une feuille `ops` nommée par une chaîne.
+  'party|hero|navire|membreAuHasard|target|caster',
 ].sort();
 
 /**
@@ -314,7 +318,6 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'opposed|extended',
   'party|enemies',
   'party|hero',
-  'party|hero|navire|membreAuHasard|caster|target',
   'pas|trot|galop',
   'pluie|averse|neige',
   'radius|diameter',
