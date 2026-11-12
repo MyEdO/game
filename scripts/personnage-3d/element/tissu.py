@@ -18,6 +18,7 @@ from mathutils import Matrix, Vector
 from mathutils.bvhtree import BVHTree
 
 from anatomie import attache
+from filets import filets_au_repos
 from formes import aretes_des_triangles, aux_noeuds, decalages, poser_la_cle, rapports, region_locale, retournees_par, transferer_les_cles
 
 BORNES_DES_CLES = (0.4, 2.5)
@@ -27,6 +28,73 @@ jambe tassé sous `gabarit_legs_moins` et passe les siennes : le lissage, qui ne
 s'étendrait sinon à toute la pièce et la décollerait du corps (`suiviDuCorps/cle-non-suivie`)."""
 
 
+CHARNIERE_M = 0.10
+"""Hauteur, en mètres, sous les racines d'un filet, sur laquelle une nappe passe du corps au filet (`Filet.part`)."""
+FONDU_D_OS_M = 0.12
+"""Hauteur, en mètres, autour de l'articulation de deux os d'un brin, sur laquelle une nappe passe de l'un à l'autre
+(`Filet.poids`)."""
+
+
+def direction(theta):
+    """Direction horizontale (x, y) de l'azimut `theta` (degrés, depuis l'avant -Y vers la gauche +X)."""
+    t = math.radians(theta)
+    return np.array([math.sin(t), -math.cos(t)])
+
+
+def fondu(x):
+    x = min(1.0, max(0.0, x))
+    return x * x * (3 - 2 * x)
+
+
+class Filet:
+    """Un filet de la base au repos (`filets_au_repos`, `base/filets.py`) sous la nappe qui le suit : son rayon autour de
+    son axe et ses poids, par os de la base, en un point donné par sa hauteur `z` et son azimut `theta` (`direction`)."""
+
+    def __init__(self, repos, indice_os):
+        self.brins, self.os, self.axe, self.ferme, self.indice_os = repos['brins'], repos['os'], repos['axe'], repos['ferme'], indice_os
+        hors = self.brins[:, -1, :2] - self.axe
+        self.hors = hors / np.linalg.norm(hors, axis=1, keepdims=True)
+        self.azimuts = np.round(np.degrees(np.arctan2(hors[:, 0], -hors[:, 1])), 6) % 360.0
+        self.rayons = np.linalg.norm(self.brins[:, :, :2] - self.axe, axis=2)
+
+    def azimut(self, p):
+        """L'azimut du point `p` autour de l'axe du filet."""
+        return math.degrees(math.atan2(p[0] - self.axe[0], self.axe[1] - p[1]))
+
+    def part(self, z):
+        """Part du filet à la hauteur `z` : nulle à ses racines, entière `CHARNIERE_M` au-dessous."""
+        return fondu((float(self.brins[:, 0, 2].max()) - z) / CHARNIERE_M)
+
+    def rayon_du_brin(self, s, z):
+        """Rayon du brin `s` à la hauteur `z`, le long de ses os, le dernier prolongé sous l'ourlet."""
+        zs, rs = self.brins[s, :, 2], self.rayons[s]
+        k = int(np.clip(np.searchsorted(-zs, -z) - 1, 0, len(zs) - 2))
+        return rs[k] + (rs[k + 1] - rs[k]) * max(0.0, (zs[k] - z) / (zs[k] - zs[k + 1]))
+
+    def point(self, z, theta):
+        """Le rayon du filet en (`z`, `theta`), sur la corde entre ses deux brins voisins, ces deux brins et la part du
+        second ; au-delà du bord d'un filet ouvert, son brin de bord."""
+        i = int(np.searchsorted(self.azimuts, theta % 360.0, side='right')) - 1
+        i, j = (i % len(self.brins), (i + 1) % len(self.brins)) if self.ferme else (max(i, 0), min(i + 1, len(self.brins) - 1))
+        if i == j:
+            return float(self.rayon_du_brin(i, z)), i, j, 0.0
+        coins = [self.rayon_du_brin(s, z) * self.hors[s] for s in (i, j)]
+        rho, part = np.linalg.solve(np.column_stack([direction(theta), coins[0] - coins[1]]), coins[0])
+        return float(rho), i, j, float(min(1.0, max(0.0, part)))
+
+    def poids(self, z, theta):
+        """Les poids du point (`z`, `theta`) : entre ses deux brins voisins selon l'azimut, le long de chacun d'un os au
+        suivant sur `FONDU_D_OS_M` autour de leur articulation."""
+        _, i, j, part = self.point(z, theta)
+        w = np.zeros(len(self.indice_os))
+        for s, reste in ((i, 1 - part), (j, part)):
+            for k, os_ in enumerate(self.os[s]):
+                sous = fondu((self.brins[s, k + 1, 2] + FONDU_D_OS_M / 2 - z) / FONDU_D_OS_M) if k + 1 < len(self.os[s]) else 0.0
+                w[self.indice_os[os_]] += reste * (1 - sous)
+                reste *= sous
+        return w
+
+
 class Base:
     """La base `glb` au repos, son manifeste `manifeste`, ses zones de peau (un mesh par zone, de la surface de palette
     `peau` : les sourcils et les yeux portent aussi une zone) ; `publies(id)` rend le GLB d'un élément publié."""
@@ -34,6 +102,7 @@ class Base:
     def __init__(self, glb, manifeste, publies):
         bpy.ops.wm.read_factory_settings(use_empty=True)
         bpy.ops.import_scene.gltf(filepath=str(glb))
+        self.glb = glb
         rigs = [o for o in bpy.data.objects if o.type == 'ARMATURE']
         if len(rigs) != 1:
             raise ValueError(f'{len(rigs)} armatures dans la base, une attendue')
@@ -61,6 +130,10 @@ class Base:
         absentes = [z for z in noms if z not in self.zones]
         if absentes:
             raise ValueError(f'zones absentes de la base : {absentes}')
+
+    def filet(self, nom):
+        """Le filet `nom` de la base au repos."""
+        return Filet(filets_au_repos(self.glb)[nom], self.indice_os)
 
     def tete(self, nom):
         """La tête de l'os `nom`, monde, au repos."""

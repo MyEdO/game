@@ -20,7 +20,7 @@ const COMBAT := "res://scenes/Combat.tscn"
 ## L'attente la plus longue d'un état : le lancement du processus et le démarrage de la partie compris.
 const ATTENTE_S := 120.0
 ## La plus petite pile valide (`PileDemandee`, `hotes/godot/pont/pile.ts`) : aucune pièce.
-const PILE := {pieces = [], parents = {}, osDeChaine = []}
+const PILE := {pieces = [], peau = [], parents = {}, osDeChaine = []}
 ## Les familles de géométries d'une réponse de `morceaux`, et leur liste au manifeste de `monde`.
 const FAMILLES := {volume = ["monde", "morceaux"], toits = ["toits"], couronnes = ["couronnes"]}
 var _fautes: Array[String] = []

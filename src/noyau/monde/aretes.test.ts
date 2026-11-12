@@ -67,7 +67,7 @@ describe('areteDessinee — la famille du kit et la hauteur', () => {
 describe('aretesDeLaCouche', () => {
   it('les arêtes de la couche, chacune posée au milieu de son côté et dans son sens', () => {
     const s = scene([{ x: 1, y: 2, side: 'N' }, { x: 1, y: 2, side: 'E', z: 1 }]);
-    expect(aretesDeLaCouche(s, 0).map(({ case: c, milieu, sens }) => ({ c, milieu, sens }))).toEqual([{ c: { x: 1, y: 2 }, milieu: { x: 1, y: 1.5 }, sens: { x: 1, y: 0 } }]);
+    expect(aretesDeLaCouche(s, 0).map(({ milieu, sens }) => ({ milieu, sens }))).toEqual([{ milieu: { x: 1, y: 1.5 }, sens: { x: 1, y: 0 } }]);
     expect(aretesDeLaCouche(s, 1).map(({ milieu, sens }) => ({ milieu, sens }))).toEqual([{ milieu: { x: 1.5, y: 2 }, sens: { x: 0, y: 1 } }]);
   });
 });
@@ -77,7 +77,19 @@ describe('aretesDeLaScene — les arêtes de toutes les couches (#3476)', () => 
     const s = scene([{ x: 0, y: 0, side: 'N' }, { x: 1, y: 1, side: 'E', z: 1 }]);
     s.layers.push({ z: 1, tiles: new Array(16).fill('plancher'), height: new Array(16).fill(METRES_PER_LEVEL) });
     const aretes = aretesDeLaScene(s);
-    expect(aretes.map((a) => [a.case, a.pied])).toEqual([[{ x: 0, y: 0 }, 0], [{ x: 1, y: 1 }, METRES_PER_LEVEL]]);
+    expect(aretes.map((a) => [a.cle, a.pied])).toEqual([['0,0,N,0', 0], ['1,1,E,1', METRES_PER_LEVEL]]);
+  });
+});
+
+describe('areteDessinee — les cases qu’elle sépare (#3950)', () => {
+  const cases = (s: Scene, seg: WallSeg) => areteDessinee(s, seg).cases;
+  it('la case du segment puis sa voisine à travers son côté, à la couche du segment', () => {
+    expect(cases(scene([]), { x: 1, y: 2, side: 'N' })).toEqual([{ x: 1, y: 2, z: 0 }, { x: 1, y: 1, z: 0 }]);
+    expect(cases(scene([]), { x: 1, y: 2, side: 'E', z: 1 })).toEqual([{ x: 1, y: 2, z: 1 }, { x: 2, y: 2, z: 1 }]);
+  });
+  it('au bord de la carte, la seule case dans la carte', () => {
+    expect(cases(scene([]), { x: 2, y: 0, side: 'N' })).toEqual([{ x: 2, y: 0, z: 0 }]);
+    expect(cases(scene([]), { x: 3, y: 1, side: 'E' })).toEqual([{ x: 3, y: 1, z: 0 }]);
   });
 });
 
