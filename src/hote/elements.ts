@@ -65,9 +65,9 @@ export type GesteDeLaCreation = { geste: 'ouvrir'; args: [] } | { geste: 'engage
  *  (`Offre.geste`), une suite de verbes
  *  joués l'un après l'autre (un geste d'exploration : marcher jusqu'à une case, puis y agir), la fiche que l'hôte
  *  montre (`null` : aucune), qui ne touche pas la partie, un geste de la création d'un héros (`null` : la ferme), un
- *  geste de l'éditeur de carte (`editeur.ts`), ou, avant toute partie, l'id du scénario de test à démarrer
- *  (`scenarios.ts`). */
-export type Jeu = Appel | { suite: Appel[] } | { fiche: FicheOuverte | null } | { creation: GesteDeLaCreation | null } | { edition: GesteDEdition } | { scenario: string };
+ *  geste de l'éditeur de carte (`editeur.ts`), avant toute partie, l'id du scénario de test à démarrer
+ *  (`scenarios.ts`), le groupe composé, l'id de la campagne du jeu à lancer, ou la partie à quitter (`groupe.ts`). */
+export type Jeu = Appel | { suite: Appel[] } | { fiche: FicheOuverte | null } | { creation: GesteDeLaCreation | null } | { edition: GesteDEdition } | { scenario: string } | { lancer: string } | { quitter: true };
 
 /** Un geste d'un clic. `presse` : la valeur courante d'un choix, ou l'offre que l'actif vise ; `focus` : le geste que
  *  la fenêtre joue à l'Entrée ; `refus` : pourquoi il ne se joue pas, dit sous lui. */
