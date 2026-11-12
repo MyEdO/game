@@ -127,7 +127,7 @@ describe('sauter par la croisée d’étage — exploration', () => {
   it('ouvre la modale de chute existante : 4 m, arrivée à la couche basse', () => {
     banc.getState().franchirLArete(dehors);
     expect(banc.getState().pendingFall).toMatchObject({ metres: 4, to: { x: 2, y: 1, z: 0 } });
-    expect(phaseDeChute(banc.getState().pendingFall!)).toBe('choice');
+    expect(phaseDeChute(banc.getState().pendingFall!)).toBe('choix');
   });
 
   it('« Sauter » : l’atterrissage passe par `deplacerLeGroupe` — le déclencheur de la rue joue', () => {
@@ -201,8 +201,8 @@ describe('enjamber la croisée — combat', () => {
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const foes = b.combatants.filter((c) => c.kind === 'enemy');
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const foes = b.combatants.filter((c) => c.kind === 'ennemi');
     foes.forEach((e) => (e.dead = true));
     H.engagedWith = [];
     placeCombatant(H, sc, dedans);

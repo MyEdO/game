@@ -107,11 +107,11 @@ function Section({
   );
 }
 
-/** Ton d'un compteur de SEUIL (pt.4, #492) : `neutral` loin du seuil, `warn` à seuil−1,
+/** Ton d'un compteur de SEUIL (pt.4, #492) : `neutre` loin du seuil, `warn` à seuil−1,
  *  `danger` au seuil ATTEINT ou FRANCHI — vocabulaire `GaugeTone` de `NotchGauge` (pas de couleur
  *  littérale, pas de 4e famille de ton parallèle). */
 function seuilTone(value: number, limit: number): GaugeTone {
-  return value >= limit ? 'danger' : value === limit - 1 ? 'warn' : 'neutral';
+  return value >= limit ? 'danger' : value === limit - 1 ? 'warn' : 'neutre';
 }
 
 /** Bande « Réserves & seuils » (titre AFFICHÉ, arbitrage user 2026-07-18 — « Constitution c'est

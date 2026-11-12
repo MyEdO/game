@@ -26,7 +26,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTes
  * Patron mk()/setup() de `ranged-defense-modal.hors-store.test.ts`.
  */
 const chars = { 'capacite-de-combat': 45, 'capacite-de-tir': 50, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
-const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, weapons: Weapon[]): Combatant =>
+const mk = (id: string, kind: 'heros' | 'ennemi', pos: { x: number; y: number }, weapons: Weapon[]): Combatant =>
   (blessuresSurLeProfil({ id, name: id, label: id, kind, characteristics: { ...chars }, conditions: [], engagedWith: [], skills: [], talents: [],
      weapons, advantage: 0, size: 'moyenne', pos, wounds: blessuresDeBase(18),
      armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4 }) as unknown as Combatant);
@@ -38,8 +38,8 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 function setup(enemyPos: { x: number; y: number }, enemyWeapons: Weapon[], net?: Partial<NetState>) {
   seedBattleRng(7);
-  const enemy = mk('e', 'enemy', enemyPos, enemyWeapons);
-  const hero = mk('h', 'hero', { x: 0, y: 0 }, [sword]);
+  const enemy = mk('e', 'ennemi', enemyPos, enemyWeapons);
+  const hero = mk('h', 'heros', { x: 0, y: 0 }, [sword]);
   const battle: BattleState = {
     combatants: [enemy, hero], order: [enemy.id, hero.id], baseOrder: [enemy.id, hero.id],
     turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(),
@@ -433,7 +433,7 @@ describe('#1000 — les deux camps forcent le MÊME Test opposé : les garanties
     for (const seed of [1, 2, 3, 5, 8]) {
       const { pd, atkResilience, defResilience } = playForcings(seed, { atk: true, def: true });
       expect([atkResilience, defResilience], `graine ${seed} : les deux Points sont brûlés`).toEqual([0, 0]);
-      expect(pd.forced, 'le forçage du défenseur est acquis').toBe(true);
+      expect(pd.forcee, 'le forçage du défenseur est acquis').toBe(true);
       expect(pd.result!.attackerDetail!.sl, `graine ${seed} : le DR de l’attaquant reste celui de SON dé`).toBe(pd.atk.sl);
       expect(pd.result!.defenderDetail!.sl, `graine ${seed} : le DR du défenseur reste celui de SON dé`).toBe(pd.def!.sl);
       expect(pd.def!.sl, `graine ${seed} : DR naturel du dé posé`).toBe(evaluateTest(pd.def!.roll, pd.def!.target).sl);

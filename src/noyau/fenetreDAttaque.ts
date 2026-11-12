@@ -146,7 +146,7 @@ export function fenetreDAttaque(s: Jeu): FenetreDAttaque | null {
   const penaliteSecondaire = penaliteDeMainSecondaire(attaquant);
   const victime = victimeDuCoup(battle, cible, pa);
   const coup = res ? issueAuJet(victime, coupAApplique(res, pa.grapple, victime), arme, attaquant) : null;
-  const heros = attaquant.kind === 'hero';
+  const heros = attaquant.kind === 'heros';
   // LDB 10 l.767-773
   const deuxArmesPossibles = !res && armeTenue && heros && attackModesFor(attaquant).includes('dual-wield')
     && attaquant.weapons.some((w) => w.hand === 'main' && w.type === 'melee' && (w.hands ?? 1) === 1)
@@ -268,7 +268,7 @@ export function fenetreDAttaque(s: Jeu): FenetreDAttaque | null {
     defenseAttendue,
     attente: res && defenseAttendue ? t('defense.awaiting', { cible: cible.label }) : null,
     // LDB 17 l.68 ; #1595 c.6226467544, c.6228496170 R1.
-    critiqueALocaliser: res && pa.forced && coup?.compte.relance
+    critiqueALocaliser: res && pa.forcee && coup?.compte.relance
       ? choix('localisationDuCritique', res.critLocation ?? null, LOCALISATIONS_A_L_ECRAN.map((l) => ({ valeur: l, libelle: locationLabel(l, cible.bodyShape) })))
       : null,
     annulation: refusDAnnulerLAttaque(pa),

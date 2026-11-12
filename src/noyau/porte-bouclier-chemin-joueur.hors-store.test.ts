@@ -32,18 +32,18 @@ const cur = (id: string): Combatant => G().battle!.combatants.find((c) => c.id =
 function ouvreParadeAuBouclier(seed: number): void {
   seedBattleRng(seed);
   const hero = blessuresSurLeProfil({
-    id: 'd1', name: 'Héros', label: 'Héros', kind: 'hero', important: true, characteristics: chars, wounds: blessuresDeBase(30),
+    id: 'd1', name: 'Héros', label: 'Héros', kind: 'heros', important: true, characteristics: chars, wounds: blessuresDeBase(30),
     advantage: 0, conditions: [], movement: 4, skills: [], talents: [{ talentId: 'porte-bouclier', times: 1 }], traits: [], engagedWith: ['a1'], pos: { x: 5, y: 5 },
     size: 'moyenne', weapons: [SWORD, SHIELD], armour: ARM0, items: [], fate: 0, resilience: 2, criticalWounds: 0, traumas: [],
   }) as unknown as Combatant;
   const orque = blessuresSurLeProfil({
-    id: 'a1', name: 'Orque', label: 'Orque', kind: 'enemy', important: true, characteristics: chars, wounds: blessuresDeBase(PB_ORQUE),
+    id: 'a1', name: 'Orque', label: 'Orque', kind: 'ennemi', important: true, characteristics: chars, wounds: blessuresDeBase(PB_ORQUE),
     advantage: 0, conditions: [], movement: 4, skills: [], talents: [], traits: [], engagedWith: ['d1'], pos: { x: 4, y: 5 },
     size: 'moyenne', weapons: [SWORD], items: [], criticalWounds: 0, traumas: [], armour: ARM0,
   }) as unknown as Combatant;
   const battle = {
     combatants: [hero, orque], order: ['a1', 'd1'], baseOrder: ['a1', 'd1'], turn: 0, round: 1, action: null, selectedSpellId: null,
-    reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null, advantagePools: { allies: RESERVE, foes: 0 },
+    reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null, advantagePools: { allies: RESERVE, adversaires: 0 },
   } as unknown as BattleState;
   S({
     battle, mode: 'battle', scene: testScene(), party: [hero], pendingDefense: null, pendingAttack: null, pendingCascade: null,
@@ -103,7 +103,7 @@ describe('Porte-bouclier — chemin joueur, arme de parade déclarée sur tout c
     G().jetLancer('defense');
     expect(G().pendingDefense!.result!.advantageTo).toBe('attaquant');
     G().jetForcerLaReussite('defense');
-    expect(G().pendingDefense!.forced).toBe(true);
+    expect(G().pendingDefense!.forcee).toBe(true);
     attendFrappe();
   });
 });

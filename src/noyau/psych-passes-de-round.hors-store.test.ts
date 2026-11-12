@@ -49,8 +49,8 @@ function setup(heros = 1, ennemis = 1, groups?: string[]) {
   g().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = g().battle!;
-  const H = b.combatants.filter((c) => c.kind === 'hero');
-  const E = b.combatants.filter((c) => c.kind === 'enemy');
+  const H = b.combatants.filter((c) => c.kind === 'heros');
+  const E = b.combatants.filter((c) => c.kind === 'ennemi');
   E.slice(ennemis).forEach((e) => (e.dead = true));
   const vivants = [...H, ...E.slice(0, ennemis)];
   vivants.forEach((c, i) => { c.pos = { x: 10 + (i % 2), y: 10 + Math.floor(i / 2) }; c.size = 'moyenne'; c.causesPeur = undefined; c.causesTerreur = undefined; c.psychState = []; c.psychTraits = []; });

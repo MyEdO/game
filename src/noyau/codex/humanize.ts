@@ -56,8 +56,8 @@ const whoLabel = (w: ActorRef): string => t(w === 'caster' ? 'codex.qui.lanceur'
 /** Libellés JOUEUR d'un camp / d'une relation (enum FERMÉ, pas un id de registre) — pendant naturel des
  *  libellés d'atelier (« adversaire (camp ≠) »). */
 const REL_PLAYER: Record<Relation | Camp, string> = {
-  self: 'lui-même', ally: 'un allié', opponent: 'un adversaire',
-  party: 'un membre du groupe', neutral: 'un neutre', hostile: 'un ennemi',
+  soi: 'lui-même', allie: 'un allié', adversaire: 'un adversaire',
+  groupe: 'un membre du groupe', neutre: 'un neutre', hostile: 'un ennemi',
 };
 
 // ---------------------------------------------------------------------------

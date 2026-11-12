@@ -25,7 +25,7 @@
     "effects": [
       {
         "trigger": "onRoundEnd",
-        "on": "self",
+        "on": "soi",
         "flow": {
           "kind": "effet",
           "effet": {
@@ -114,7 +114,7 @@
     "effects": [
       {
         "trigger": "onRoundEnd",
-        "on": "self",
+        "on": "soi",
         "flow": {
           "kind": "effet",
           "effet": {
@@ -166,7 +166,7 @@
     "effects": [
       {
         "trigger": "onRoundEnd",
-        "on": "self",
+        "on": "soi",
         "flow": {
           "kind": "si",
           "condition": {
@@ -224,7 +224,7 @@
       },
       {
         "trigger": "onRoundEnd",
-        "on": "self",
+        "on": "soi",
         "flow": {
           "kind": "test",
           "test": {
@@ -393,7 +393,7 @@
     "effects": [
       {
         "trigger": "onRoundEnd",
-        "on": "self",
+        "on": "soi",
         "flow": {
           "kind": "effet",
           "effet": {
@@ -414,7 +414,7 @@
       },
       {
         "trigger": "onRoundEnd",
-        "on": "self",
+        "on": "soi",
         "flow": {
           "kind": "test",
           "test": {
@@ -509,7 +509,7 @@
     "effects": [
       {
         "trigger": "onRoundEnd",
-        "on": "self",
+        "on": "soi",
         "flow": {
           "kind": "effet",
           "effet": {
@@ -604,7 +604,7 @@
     "effects": [
       {
         "trigger": "onRoundEnd",
-        "on": "self",
+        "on": "soi",
         "flow": {
           "kind": "effet",
           "effet": {
@@ -676,7 +676,7 @@
     "effects": [
       {
         "trigger": "onRoundEnd",
-        "on": "self",
+        "on": "soi",
         "flow": {
           "kind": "test",
           "test": {
@@ -789,7 +789,7 @@
     "effects": [
       {
         "trigger": "onRoundEnd",
-        "on": "self",
+        "on": "soi",
         "flow": {
           "kind": "effet",
           "effet": {
@@ -829,7 +829,7 @@
     "effects": [
       {
         "trigger": "onRoundEnd",
-        "on": "self",
+        "on": "soi",
         "flow": {
           "kind": "effet",
           "effet": {
@@ -867,7 +867,7 @@
     "effects": [
       {
         "trigger": "onRoundEnd",
-        "on": "self",
+        "on": "soi",
         "flow": {
           "kind": "effet",
           "effet": {
@@ -902,7 +902,7 @@
     "effects": [
       {
         "trigger": "onRoundEnd",
-        "on": "self",
+        "on": "soi",
         "flow": {
           "kind": "sequence",
           "etapes": [

@@ -29,7 +29,7 @@ const CHARS = {
 /** Un porteur nu : ni arme, ni objet, ni Compétence, ni talent — seule sa situation compte. */
 const porteur = (id: string, over: Partial<Combatant> = {}): Combatant =>
   (blessuresSurLeProfil({
-    id, label: id, name: id, kind: 'hero', pos: { x: 5, y: 5 }, size: 'moyenne', characteristics: CHARS,
+    id, label: id, name: id, kind: 'heros', pos: { x: 5, y: 5 }, size: 'moyenne', characteristics: CHARS,
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], weapons: [], items: [],
     skills: [], talents: [], armour: {}, movement: 4, loaded: true, ...over,
   })) as unknown as Combatant;
@@ -44,7 +44,7 @@ const poste = (): ShipPoste =>
 /** La coque du groupe (`vehicles.json`, facette `hull`), active, servie par son artilleur. */
 function coque(): Combatant {
   const hull = vehicleCombatant(findVehicleById('bateau-de-patrouille')!)!;
-  return Object.assign(hull, { id: 'ship', kind: 'hero', pos: { x: 5, y: 5 }, crewIds: ['gunner'], postes: [poste()] });
+  return Object.assign(hull, { id: 'ship', kind: 'heros', pos: { x: 5, y: 5 }, crewIds: ['gunner'], postes: [poste()] });
 }
 
 /** Le combat de l'actif `actif` (en tête d'ordre), avec `autres`. */
@@ -55,7 +55,7 @@ const combat = (actif: Combatant, autres: Combatant[]): BattleState =>
     acted: false, runBudget: 4, log: [], over: null, crewActed: {},
   }) as unknown as BattleState;
 
-const adversaire = () => porteur('e1', { kind: 'enemy', pos: { x: 9, y: 9 } });
+const adversaire = () => porteur('e1', { kind: 'ennemi', pos: { x: 9, y: 9 } });
 
 /** Les quatre porteurs nommés : l'actif et son combat. */
 const FIXTURES: Record<string, () => BattleState> = {
@@ -120,7 +120,7 @@ describe('la barre de la console lit l’énumérateur', () => {
   it.each(Object.keys(FIXTURES))('%s : une case n’existe que pour une offre, et chaque offre de situation a sa case', (nom) => {
     const battle = FIXTURES[nom]();
     act(() => {
-      useGame.setState({ party: battle.combatants.filter((c) => c.kind === 'hero'), scene: emptyScene('scene-test', 20, 20), battle });
+      useGame.setState({ party: battle.combatants.filter((c) => c.kind === 'heros'), scene: emptyScene('scene-test', 20, 20), battle });
     });
     act(() => { root.render(<CombatConsole />); });
     expect(host.querySelector('.combat-console')!.getAttribute('data-forme'), 'témoin : la barre est ouverte').toBe('complete');

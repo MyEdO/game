@@ -38,8 +38,8 @@ describe('Peur de combat — la barre de la rangée = le cumul appliqué (LDB 21
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
     const E = enemies[0];
     enemies.slice(1).forEach((e) => (e.dead = true));
     H.pos = { x: 10, y: 10 };
@@ -89,7 +89,7 @@ describe('Peur de combat — la barre de la rangée = le cumul appliqué (LDB 21
 });
 
 const servant = (id: string): Combatant =>
-  combattantDeTest({ id, label: id, kind: 'hero',
+  combattantDeTest({ id, label: id, kind: 'heros',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 50, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(10), advantage: 0, conditions: [], fortune: 0, resilience: 0,
     skills: [{ id: 'projectiles', spec: 'poudre-noire', characteristic: 'capacite-de-tir', advances: 10 }], talents: [], weapons: [unarmedWeapon()],
@@ -101,7 +101,7 @@ describe('Poste servi à effectif COMPLET — la cible appliquée est celle anno
     const poste = { side: 'tribord', loaded: false, reloadProgress: 4, crewIds: crew,
       item: { uid: 'canon', label: 'Canon moyen', kind: 'distance', subType: 'armes-de-siege', damage: { flat: 14, plusBF: false }, range: 75,
         reload: 6, qualities: [{ id: 'recharge', value: 6 }, { id: 'arme-d-equipe', value: 3 }] } } as unknown as ShipPoste;
-    const ship = combattantDeTest({ id: 'ship', label: 'Frégate', kind: 'hero', bodyShape: 'vehicule', creatureId: 'bateau-de-patrouille',
+    const ship = combattantDeTest({ id: 'ship', label: 'Frégate', kind: 'heros', bodyShape: 'vehicule', creatureId: 'bateau-de-patrouille',
       crewIds: crew, postes: [poste], pos: { x: 5, y: 5 }, conditions: [], weapons: [unarmedWeapon()] });
     const servants = crew.map(servant);
     serveChef(servants[0], poste); // le chef sert la pièce : il en porte l'arme dérivée (`shipPostes.ts`)
@@ -123,7 +123,7 @@ describe('Règle optionnelle « DR 0 = ±1 » lue par le pas canonique (LDB 12 l
     setRule('test-etendu-dr-minimum', true);
     const arbalete = { uid: 'arb', label: 'Arbalète', type: 'distance', group: 'arbalete', damage: { flat: 9, plusBF: false }, range: 60,
       reload: 2, loaded: false, reloadProgress: 0, qualities: [{ id: 'recharge', value: 2 }] } as unknown as Weapon;
-    const tireur = combattantDeTest({ id: 't', label: 'Tireur', kind: 'hero', weapons: [unarmedWeapon(), arbalete], pos: { x: 5, y: 5 } });
+    const tireur = combattantDeTest({ id: 't', label: 'Tireur', kind: 'heros', weapons: [unarmedWeapon(), arbalete], pos: { x: 5, y: 5 } });
     banc.setState({ battle: { combatants: [tireur], order: ['t'], turn: 0, round: 1, acted: false, log: [] } as never, party: [tireur], scene: null as never,
       pendingReload: { actorId: 't', actorName: 'Tireur', weaponUid: 'arb', reload: 2, progressBefore: 0, skillValue: 50, difficulty: 'intermediaire', ligne: { base: 50, mods: [], target: 50, difficulty: 'intermediaire' }, roll: 45, target: 50, sl: 0, success: true } });
     banc.getState().jetValider('rechargement');
@@ -145,7 +145,7 @@ describe('Focalisation — Test étendu, un échec cumule son DR négatif (LDB 4
 
 describe('Cartographie à deux (EDOC 8 l.161) : la barre de chaque rangée suit l’ordre du résolveur', () => {
   it('progression 1, échec DR −1 puis réussite DR 1 : la 2ᵉ barre annonce 1, la progression appliquée est 1', () => {
-    const carto = (id: string): Combatant => combattantDeTest({ id, label: id, kind: 'hero', weapons: [unarmedWeapon()],
+    const carto = (id: string): Combatant => combattantDeTest({ id, label: id, kind: 'heros', weapons: [unarmedWeapon()],
       skills: [{ id: 'metier', spec: 'cartographe', characteristic: 'dexterite', advances: 20 }] });
     banc.setState({ party: [carto('a'), carto('b')],
       travelPlan: { routeId: 'r', km: 24, postes: { a: { activityId: 'etablir-cartes' }, b: { activityId: 'etablir-cartes' } }, extendedProgress: 1 } as never });

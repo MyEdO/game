@@ -47,7 +47,7 @@ describe('#1882 — un PNJ, une fiche, UN nom', () => {
     expect(combat.label).toBe('Gerta la Rusée');
     expect(taverne.label).toBe(combat.label);
     jouerALaTaverne(get, set, get().party[0].id, { gameId: 'dominos', opponent: { kind: 'pnj', id: 'gerta' } });
-    expect(activeSequence<{ opponentName: string }>(get)!.payload.opponentName).toBe(combat.label);
+    expect(activeSequence<{ opponentName: string }>(get)!.chargeUtile.opponentName).toBe(combat.label);
   });
 
   it('sans nom d’entité, l’individu anonyme porte le même nom tiré sur les deux chemins (#3712)', () => {

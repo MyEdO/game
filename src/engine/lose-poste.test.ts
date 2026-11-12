@@ -10,7 +10,7 @@ import { combattantDeTest, blessuresSurLeProfil, blessuresDeBase } from './comba
 
 /** Marin minimal — assez pour `testValue(c, { skill: { id: 'athletisme' } })` (Ag=36) + `applyOps` wounds (BE=3, PA=0). */
 const sailor = (id: string, over: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
-  id, name: id, kind: 'npc', characteristics: { 'capacite-de-combat': 31, 'capacite-de-tir': 31, force: 31, endurance: 31, initiative: 31, agilite: 36, dexterite: 36, intelligence: 31, 'force-mentale': 31, sociabilite: 36 },
+  id, name: id, kind: 'pnj', characteristics: { 'capacite-de-combat': 31, 'capacite-de-tir': 31, force: 31, endurance: 31, initiative: 31, agilite: 36, dexterite: 36, intelligence: 31, 'force-mentale': 31, sociabilite: 36 },
   skills: [], talents: [], traits: [], conditions: [], activeEffects: [], liveTraits: [], weapons: [],
   armour: { corps: 0 }, wounds: blessuresDeBase(13), advantage: 0, ...over,
 })) as unknown as Combatant;

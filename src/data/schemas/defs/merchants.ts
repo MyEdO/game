@@ -9,6 +9,7 @@ import { refs } from '../grammaire/ref';
 import { settlementSchema } from '../grammaire/valeurs';
 import { INSTANCIABLE_PAR_ID } from '../grammaire/sousListes';
 import { document } from '../grammaire/document';
+import { trappingCategorieSchema } from './trappings';
 
 export const file = 'merchants.json';
 export const famille = 'entite';
@@ -27,7 +28,7 @@ const doc = document(
     category: nommerChamps(z.strictObject({
       /** CATÉGORIES de catalogue vendues (`TrappingData.categorie`) — mesuré : 1 porteur, valeurs ⊆ le
        *  vocabulaire de `trappings.json`. Absent = pas de filtre par catégorie. */
-      categories: z.array(z.string()).optional(),
+      categories: z.array(trappingCategorieSchema).optional(),
       /** Groupes d'objet vendus (`TrappingData.subType`) — axe DISTINCT des catégories. */
       subTypes: refs('weaponGroup').optional(),
     }), { categories: { label: 'catégories' }, subTypes: { label: 'groupes d’objets' } }),

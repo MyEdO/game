@@ -14,7 +14,7 @@ import { BOURSE_TRAPPING_ID } from '../../engine/bourse';
 import { fromBrass, toBrass } from '../../engine/money';
 import { ecrireActeur } from './combatants';
 
-export type Carrier = { kind: 'hero'; hero: Combatant } | { kind: 'possession'; possession: Possession };
+export type Carrier = { kind: 'heros'; hero: Combatant } | { kind: 'possession'; possession: Possession };
 
 /** Porteur d'objets par id — héros de `party` (par `id`) sinon possession de `possessions` (par `uid`). */
 export function resolveCarrier(
@@ -22,7 +22,7 @@ export function resolveCarrier(
   carrierId: string,
 ): Carrier | undefined {
   const hero = state.party.find((h) => h.id === carrierId);
-  if (hero) return { kind: 'hero', hero };
+  if (hero) return { kind: 'heros', hero };
   const possession = state.possessions.find((p) => p.uid === carrierId);
   return possession ? { kind: 'possession', possession } : undefined;
 }
@@ -51,7 +51,7 @@ export function refusDuHerosPorteur(s: EtatDesPorteurs, uid: string): string | n
 /** Ce qui SITUE un porteur (`carriersColocated`, `engine/cargo.ts`) : un héros suit toujours le groupe ;
  *  une possession porte sa localisation. */
 export function porteurLocalise(c: Carrier): PorteurLocalise {
-  return c.kind === 'hero'
+  return c.kind === 'heros'
     ? { id: c.hero.id, location: { kind: 'avec-le-groupe' } }
     : { id: c.possession.uid, location: c.possession.location };
 }

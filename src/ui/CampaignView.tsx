@@ -198,7 +198,7 @@ export function CampaignView() {
   // fiche (état + équipage), comme une fiche héros. Le navire n'apparaît qu'en combat naval (sinon le filtre est vide).
   const dockHeroes = [
     ...party.map((h) => battle?.combatants.find((x) => x.id === h.id) ?? h),
-    ...(battle?.combatants.filter((c) => (isVehicle(c) || isEngin(c)) && c.kind === 'hero') ?? []),
+    ...(battle?.combatants.filter((c) => (isVehicle(c) || isEngin(c)) && c.kind === 'heros') ?? []),
   ];
   // LDB 17 l.25.
   const canFirstIds = pendingRoundStart ? actFirstIds(useGame.getState()) : [];

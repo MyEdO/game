@@ -39,7 +39,7 @@ function startDome(): { sorciere: Combatant; protegee: Combatant; archer: Combat
   const b = banc.getState().battle!;
   const sorciere = b.combatants.find((c) => c.id === 'sorciere')!;
   const protegee = b.combatants.find((c) => c.id === 'protegee')!;
-  const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+  const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
   // Le Dôme est lancé par le VRAI chemin (`applyCast`) : c'est lui qui résout la ZdE de la ligne
   // « Cible » et la confie aux ops. Rien n'est recopié ici, ni zone ni Indice.
   const dome = findSpellById('dome')!;

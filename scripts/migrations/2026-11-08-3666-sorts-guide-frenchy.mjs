@@ -61,8 +61,8 @@ const distance = (value) => ({ kind: 'distance', value, unit: 'm' });
 const un = { kind: 'count', n: 1 };
 const soi = { kind: 'self' };
 const zone = (meters, affects) => ({ kind: 'area', span: 'diameter', meters, ...(affects ? { affects } : {}) });
-const ADVERSAIRES = { kind: 'relation', who: 'target', is: 'opponent' };
-const ALLIES = { kind: 'relation', who: 'target', is: 'ally' };
+const ADVERSAIRES = { kind: 'relation', who: 'target', is: 'adversaire' };
+const ALLIES = { kind: 'relation', who: 'target', is: 'allie' };
 const tours = (value, plus) => ({ kind: 'rounds', value, ...(plus ? { plus: true } : {}) });
 const arcane = (subType, domainId) => ({ family: 'arcane', ecole: 'Magie des Arcanes', subType, ...(domainId ? { domainId } : {}) });
 
@@ -128,7 +128,7 @@ const SORTS = [
     ...arcane('Peste (skaven)'), cn: 6, range: { kind: 'touch' }, target: un, duration: { kind: 'special', text: '8 Minutes +' },
     desc: 'Le démon frotte 1 arme sur une blessure purulente. Une cible touchée per cette arme ou ces munitions souffre de 1 État « Empoisonné » en plus des dégâts. Les Tests de Résistance se font à (+0).',
     effects: seq(doOps('target',
-      { op: 'augmentWeapon', onHitEffects: [{ trigger: 'onHit', on: 'victim', flow: doOps('target', { op: 'condition', id: 'empoisonne' }) }] },
+      { op: 'augmentWeapon', onHitEffects: [{ trigger: 'onHit', on: 'victime', flow: doOps('target', { op: 'condition', id: 'empoisonne' }) }] },
       narr('Les Tests de Résistance se font à (+0).'))),
   }],
   ['nuee-de-mouches', 'Nuée de Mouches', 306, 'Veil of Flies', RAT_CORNU, {

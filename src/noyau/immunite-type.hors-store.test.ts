@@ -40,8 +40,8 @@ function setup() {
   banc.getState().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = banc.getState().battle!;
-  const H = b.combatants.find((c) => c.kind === 'hero')!;
-  const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+  const H = b.combatants.find((c) => c.kind === 'heros')!;
+  const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
   enemies.slice(1).forEach((e) => (e.dead = true));
   const E = enemies[0];
   H.pos = { x: 10, y: 10 };

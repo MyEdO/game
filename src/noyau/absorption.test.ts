@@ -2,7 +2,7 @@
  * Trait de créature ABSORPTION (EDO 11 l.222) — mécanique 100 % DONNÉES (traits.json `absorption.effects`),
  * dispatchée par le système générique d'effets déclenchés (`fireTriggers`). Aucune branche par-nom dans le
  * moteur : tout passe par les extensions GÉNÉRALES de vocabulaire (Condition `engagedAdvantageLead`,
- * Formula `{woundsDealt}`, EffectTargeting `grappled` / `{pick}`).
+ * Formula `{woundsDealt}`, EffectTargeting `empoigne` / `{pick}`).
  *
  * RAW (verbatim) : « À la fin du Round, si la créature a un Avantage plus élevé que tous les adversaires
  * engagés, elle absorbe un adversaire de taille égale ou inférieure. Une victime absorbée gagne un nombre
@@ -24,7 +24,7 @@ import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTes
 
 /** Combattant minimal — F 45 → Bonus de Force 4 (la « monnaie » de l'Absorption). */
 const mk = (over: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
-  id: 'c', label: 'C', kind: 'enemy',
+  id: 'c', label: 'C', kind: 'ennemi',
   characteristics: { 'capacite-de-combat': 35, 'capacite-de-tir': 25, force: 45, endurance: 35, initiative: 30, agilite: 30, dexterite: 30, intelligence: 25, 'force-mentale': 25, sociabilite: 25 },
   wounds: blessuresDeBase(30, 20), advantage: 0, conditions: [], skills: [], talents: [],
   weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, items: [],
@@ -33,11 +33,11 @@ const mk = (over: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
 
 /** Créature Absorption — Grande (4), BF 4, Avantage `adv`. */
 const beast = (adv: number, over: Partial<Combatant> = {}): Combatant =>
-  mk({ id: 'beast', label: 'Engloutisseur', kind: 'enemy', traits: [{ id: 'absorption' }], size: 'grande' as SizeCategory, advantage: adv, pos: { x: 5, y: 5 }, wounds: blessuresDeBase(30, 10), ...over });
+  mk({ id: 'beast', label: 'Engloutisseur', kind: 'ennemi', traits: [{ id: 'absorption' }], size: 'grande' as SizeCategory, advantage: adv, pos: { x: 5, y: 5 }, wounds: blessuresDeBase(30, 10), ...over });
 
 /** Proie engagée avec la bête (héros) — Taille `size`, Avantage `adv`. */
 const prey = (id: string, size: SizeCategory, adv = 0, over: Partial<Combatant> = {}): Combatant =>
-  mk({ id, label: id, kind: 'hero', size, advantage: adv, engagedWith: ['beast'], pos: { x: 5, y: 6 }, ...over });
+  mk({ id, label: id, kind: 'heros', size, advantage: adv, engagedWith: ['beast'], pos: { x: 5, y: 6 }, ...over });
 
 const get = (...cs: Combatant[]) => (() => ({ battle: { combatants: cs } })) as never;
 const empetre = (c: Combatant) => stacks(c, 'empetre');

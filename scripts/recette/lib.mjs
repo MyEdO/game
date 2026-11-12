@@ -286,8 +286,8 @@ export function killChromeTree(chrome, { plateforme = process.platform, executer
 
 /**
  * Filet de sécurité process-wide : tout Chrome spawné par ce module qui survivrait à un chemin
- * d'échec non couvert (SIGINT, script tiers oubliant son try/finally) est tué + son profil purgé
- * à la sortie du process — jamais de fuite silencieuse. `process.on('exit')` est SYNCHRONE : l'arrêt
+ * d'échec non couvert (script tiers oubliant son try/finally, SIGTERM d'un lanceur à délai, rendu en sortie) est tué
+ * + son profil purgé à la sortie du process — jamais de fuite silencieuse. `process.on('exit')` est SYNCHRONE : l'arrêt
  * (`killChromeTree`) et la purge (`purgerProfil`, retentée jusqu'à `ATTENTE_EXTINCTION_MS`) y attendent
  * en synchrone (`attendreSync`).
  */
@@ -310,6 +310,7 @@ export function nettoyerALaSortie(enfants, { tuer = killChromeTree, supprimer = 
   return echecs;
 }
 process.on('exit', () => { nettoyerALaSortie(activeChildren); });
+process.on('SIGTERM', () => process.exit(143));
 
 /** `resoudreChrome` sur le disque et l'environnement réels. */
 const chromeDeLaMachine = (explicite) =>

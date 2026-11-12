@@ -24,7 +24,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTes
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
-const mk = (id: string, kind: Combatant['kind'] = 'hero', over: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
+const mk = (id: string, kind: Combatant['kind'] = 'heros', over: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
   id, name: id, label: id, kind,
   characteristics: { force: 40, dexterite: 40, agilite: 40, endurance: 40, 'force-mentale': 30, 'capacite-de-combat': 45, 'capacite-de-tir': 45, initiative: 40, intelligence: 30, sociabilite: 40 },
   wounds: blessuresDeBase(10), advantage: 0, conditions: [], traumas: [],
@@ -47,7 +47,7 @@ const P = <T,>(k: string): T => (banc.getState() as unknown as Record<string, T>
 
 beforeEach(() => {
   // Le héros A a Int 30 + 15 Augmentations = Niveau de Compétence 45 en Langue (Magick).
-  const A = mk('A'), E = mk('E', 'enemy');
+  const A = mk('A'), E = mk('E', 'ennemi');
   banc.setState({
     party: [A],
     battle: { combatants: [A, E], log: [], order: ['A', 'E'], turn: 0, round: 1 } as never,
@@ -72,7 +72,7 @@ describe('LDB 12 l.160 — dé POSÉ sur un Test opposé d’incantation (#1150)
   });
 
   it('Contre-sort : le chanteur le plus compétent dissipe, à DR égal', () => {
-    banc.setState({ party: [mk('A', 'hero', { skills: [{ id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 45 }] })] } as never);
+    banc.setState({ party: [mk('A', 'heros', { skills: [{ id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 45 }] })] } as never);
     const b = banc.getState().battle!;
     banc.setState({ battle: { ...b, combatants: [banc.getState().party[0], b.combatants[1]] } } as never);
     banc.setState({ pendingCounterspell: { participants: [

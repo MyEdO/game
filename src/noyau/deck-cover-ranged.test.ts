@@ -18,7 +18,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTes
  */
 const bow = { name: 'Arc', type: 'distance' } as unknown as Weapon;
 const sword = { name: 'Épée', type: 'melee' } as unknown as Weapon;
-const mk = (id: string, kind: 'hero' | 'enemy', x: number): Combatant =>
+const mk = (id: string, kind: 'heros' | 'ennemi', x: number): Combatant =>
   (blessuresSurLeProfil({ id, name: id, kind, size: 'moyenne', pos: { x, y: 5 }, conditions: [], talents: [], liveTraits: [], skills: [], weapons: [], movement: 4, loaded: true, advantage: 0,
      characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
      wounds: blessuresDeBase(12), armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 } })) as unknown as Combatant;
@@ -29,13 +29,13 @@ const clearScene = (): Scene =>
 /** Coque-témoin portant un poste dont `tgt` fait partie de l'équipage (source `crewPosteOf`). Hors LdV
  *  (sans `pos`) → jamais compté comme occupant/bloqueur. `cover` absent = servant à découvert. */
 const hullServing = (cover?: 'moyenne' | 'totale', upgrades?: { id: string }[]): Combatant =>
-  ({ id: 'hull', name: 'coque', kind: 'enemy', conditions: [], wounds: { current: 30, max: 30 },
+  ({ id: 'hull', name: 'coque', kind: 'ennemi', conditions: [], wounds: { current: 30, max: 30 },
      ...(upgrades ? { creatureId: 'cogue', upgrades } : {}),
      postes: [{ crewIds: ['tgt'], cover } as unknown as ShipPoste] }) as unknown as Combatant;
 
 function envFor(weapon: Weapon, hull?: Combatant) {
-  const attacker = mk('att', 'enemy', 5); // enemy : pas de « Tir en bougeant » par défaut (bruit héros)
-  const target = mk('tgt', 'enemy', 8);
+  const attacker = mk('att', 'ennemi', 5); // enemy : pas de « Tir en bougeant » par défaut (bruit héros)
+  const target = mk('tgt', 'ennemi', 8);
   const combatants = hull ? [attacker, target, hull] : [attacker, target];
   const get = (() => ({ scene: clearScene(), battle: { combatants, movementUsed: 0 }, facing: {}, gameTime: 12 * 60 })) as unknown as Get;
   return attackEnv(get, attacker, target, weapon).env;
@@ -72,8 +72,8 @@ describe('#1680 — le couvert d’une Structure d’arête arrive au calcul de 
   /** Tireur en (5,5), cible en (8,8) : approche DIAGONALE dont un seul contournement est muré — le tir
    *  passe par l'extrémité, et l'arête N de la cible l'abrite. */
   const envAvecArete = (structure?: string, window?: boolean) => {
-    const attacker = mk('att', 'enemy', 5);
-    const target = { ...mk('tgt', 'enemy', 8), pos: { x: 8, y: 8 } } as Combatant;
+    const attacker = mk('att', 'ennemi', 5);
+    const target = { ...mk('tgt', 'ennemi', 8), pos: { x: 8, y: 8 } } as Combatant;
     const scene = { ...clearScene(), walls: structure ? [{ x: 8, y: 8, side: 'N', structure, ...(window ? { window } : {}) }] : [] } as unknown as Scene;
     const get = (() => ({ scene, battle: { combatants: [attacker, target], movementUsed: 0 }, facing: {}, gameTime: 12 * 60 })) as unknown as Get;
     return attackEnv(get, attacker, target, bow).env;

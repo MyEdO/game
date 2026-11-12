@@ -58,7 +58,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 /** Marin minimal — BE 3, PA 0, assez de PB pour encaisser 3×20 m. */
 const marin = (id: string, over: Partial<Combatant> = {}): Combatant =>
   combattantDeTest({
-    id, label: id, kind: 'npc',
+    id, label: id, kind: 'pnj',
     characteristics: { 'capacite-de-combat': 31, 'capacite-de-tir': 31, force: 31, endurance: 31, initiative: 42, agilite: 36, dexterite: 36, intelligence: 31, 'force-mentale': 31, sociabilite: 36 },
     skills: [], talents: [], traits: [], conditions: [], activeEffects: [], liveTraits: [], weapons: [],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, wounds: blessuresDeBase(200), advantage: 0, ...over,
@@ -137,7 +137,7 @@ describe('(iii) l’applier OUVRE : deux étapes à dé nu, possédées par la v
   beforeEach(() => {
     banc.setState({
       battle: null, pendingCascade: null, suspendedCascades: [], journal: [],
-      party: [marin('gabier', { kind: 'hero', shipStation: 'greement' } as Partial<Combatant>), coque()],
+      party: [marin('gabier', { kind: 'heros', shipStation: 'greement' } as Partial<Combatant>), coque()],
     });
   });
 
@@ -186,7 +186,7 @@ describe('(iii) l’applier OUVRE : deux étapes à dé nu, possédées par la v
   });
 
   it('depuis le NID-DE-PIE (hauteur entière), UNE seule étape suffit', () => {
-    banc.setState({ party: [marin('vigie', { kind: 'hero', shipStation: 'nid-de-pie' } as Partial<Combatant>), coque()] });
+    banc.setState({ party: [marin('vigie', { kind: 'heros', shipStation: 'nid-de-pie' } as Partial<Combatant>), coque()] });
     const vigie = banc.getState().party[0];
     applyLeafOps(banc.getState, banc.setState, vigie, feuille(opsDeChute()), { idNeuf: idsDeTest, rng: desDuTest, hull: coque() });
     const st = banc.getState().pendingCascade!.participants[0];
@@ -231,8 +231,8 @@ describe('(iii) l’applier OUVRE : deux étapes à dé nu, possédées par la v
     // ferait se relire l'un l'autre — A encaisserait la hauteur de B, et le dé montré serait jeté.
     banc.setState({
       battle: null, pendingCascade: null, suspendedCascades: [], journal: [],
-      party: [marin('A', { kind: 'hero', shipStation: 'greement' } as Partial<Combatant>),
-        marin('B', { kind: 'hero', shipStation: 'greement' } as Partial<Combatant>), coque()],
+      party: [marin('A', { kind: 'heros', shipStation: 'greement' } as Partial<Combatant>),
+        marin('B', { kind: 'heros', shipStation: 'greement' } as Partial<Combatant>), coque()],
     });
     const par = (id: string) => banc.getState().party.find((c) => c.id === id)!;
     const CTX = { idNeuf: idsDeTest, rng: desDuTest, hull: coque(), now: 1000 }; // MÊME instant de jeu pour les deux feuilles
@@ -258,7 +258,7 @@ describe('(iv) une chute de hauteur CONNUE ouvre AUSSI son dé (`chuteDe`)', () 
   beforeEach(() => {
     banc.setState({
       battle: null, pendingCascade: null, suspendedCascades: [], journal: [],
-      party: [marin('h1', { kind: 'hero' } as Partial<Combatant>), marin('h2', { kind: 'hero' } as Partial<Combatant>)],
+      party: [marin('h1', { kind: 'heros' } as Partial<Combatant>), marin('h2', { kind: 'heros' } as Partial<Combatant>)],
     });
   });
   const par = (id: string) => banc.getState().party.find((c) => c.id === id)!;
@@ -308,11 +308,11 @@ describe('(iv) une chute de hauteur CONNUE ouvre AUSSI son dé (`chuteDe`)', () 
     seedBattleRng(3);
     banc.setState({
       battle: null, pendingCascade: null, suspendedCascades: [], journal: [],
-      party: [marin('blessé', { kind: 'hero', wounds: { current: 190, max: 200 } } as Partial<Combatant>)],
+      party: [marin('blessé', { kind: 'heros', wounds: { current: 190, max: 200 } } as Partial<Combatant>)],
     });
     runFlow(banc.getState, banc.setState, { kind: 'sequence', etapes: [
       { kind: 'effet', effet: { type: 'fall', target: 'party', metres: 4 } },
-      { kind: 'effet', effet: { type: 'ops', on: 'party', ops: [{ op: 'heal', amount: 50 }] } },
+      { kind: 'effet', effet: { type: 'ops', on: 'groupe', ops: [{ op: 'heal', amount: 50 }] } },
     ] } as unknown as Flow);
     const st = banc.getState().pendingCascade!.participants[0];
     banc.getState().jetImposerLeResultat('cascadeTirage', 8, st.id); // 3×4 + 8 − BE 3 = 17
@@ -336,14 +336,14 @@ describe('(v) ORDRE AUTHORÉ : ce qui suit une feuille à dé attend le dé, il 
     seedBattleRng(3);
     banc.setState({
       battle: null, pendingCascade: null, suspendedCascades: [], journal: [],
-      party: [marin('h1', { kind: 'hero', wounds: { current: 190, max: 200 } } as Partial<Combatant>)],
+      party: [marin('h1', { kind: 'heros', wounds: { current: 190, max: 200 } } as Partial<Combatant>)],
     });
   });
 
   it('walker de SCÈNE (`runFlow`) : chute (−17) PUIS soin (+50, plafonné) → 200, jamais 183', () => {
     const flow = { kind: 'sequence', etapes: [
       { kind: 'effet', effet: { type: 'fall', target: 'party', metres: 4 } },
-      { kind: 'effet', effet: { type: 'ops', on: 'party', ops: [{ op: 'heal', amount: 50 }] } },
+      { kind: 'effet', effet: { type: 'ops', on: 'groupe', ops: [{ op: 'heal', amount: 50 }] } },
     ] } as unknown as Flow;
     runFlow(banc.getState, banc.setState, flow);
     expect(heros().wounds.current, 'rien du lot ne s’applique avant le dé').toBe(190);
@@ -379,7 +379,7 @@ describe('(v) ORDRE AUTHORÉ : ce qui suit une feuille à dé attend le dé, il 
   it('walker de SCÈNE, nœud `if` : la branche attend le dé — 200, jamais 183', () => {
     const flow = { kind: 'sequence', etapes: [
       { kind: 'effet', effet: { type: 'fall', target: 'party', metres: 4 } },
-      { kind: 'si', condition: { kind: 'always' }, alors: { kind: 'effet', effet: { type: 'ops', on: 'party', ops: [{ op: 'heal', amount: 50 }] } } },
+      { kind: 'si', condition: { kind: 'always' }, alors: { kind: 'effet', effet: { type: 'ops', on: 'groupe', ops: [{ op: 'heal', amount: 50 }] } } },
     ] } as unknown as Flow;
     runFlow(banc.getState, banc.setState, flow);
     expect(heros().wounds.current, 'la branche ne s’évalue même pas avant le dé').toBe(190);
@@ -420,6 +420,26 @@ describe('(v) ORDRE AUTHORÉ : ce qui suit une feuille à dé attend le dé, il 
     banc.getState().jetValider('cascade');
     expect(heros().wounds.current).toBe(190 - (3 * 25 + 4 - BE) + 50);
   });
+
+  it('grappe à DEUX dés (gréement) : la suite attend le 2ᵉ dé, que l’applier du 1ᵉʳ a poussé (#4011 G1)', () => {
+    const cible = heros();
+    banc.setState({ party: [{ ...cible, shipStation: 'greement', wounds: blessuresDeBase(200, 100) } as Combatant, coque()] });
+    const flow = { kind: 'sequence', etapes: [
+      { kind: 'effet', effet: { type: 'ops', on: 'target', ops: opsDeChute() } },
+      { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'heal', amount: 1000 }] } },
+    ] } as unknown as Flow;
+    runCombatFlow({ get: banc.getState, set: banc.setState, target: heros(), caster: heros(), label: 'Mât brisé', opsCtx: { hull: coque() } }, flow);
+    const hauteur = banc.getState().pendingCascade!.participants[0];
+    banc.getState().jetImposerLeResultat('cascadeTirage', 11, hauteur.id);
+    banc.getState().jetValider('cascade');
+    expect(heros().wounds.current, 'le soin attend le dé des Dégâts').toBe(100);
+    const pc = banc.getState().pendingCascade!;
+    const degats = pc.participants[pc.cursor];
+    banc.getState().jetImposerLeResultat('cascadeTirage', 4, degats.id);
+    banc.getState().jetValider('cascade');
+    // 100 − (3×11 + 4 − 3) = 66, puis +1000 → plafond 200. Soin avant le 2ᵉ dé : 200 − 34 = 166.
+    expect(heros().wounds.current).toBe(200);
+  });
 });
 
 describe('(vi) CONTEXTE de la feuille : la reprise applique le MÊME contexte que le chemin direct', () => {
@@ -433,7 +453,7 @@ describe('(vi) CONTEXTE de la feuille : la reprise applique le MÊME contexte qu
     applyOps(direct, ops(), { idNeuf: idsDeTest, rng: makeRNG(4), ...CTX(), des: new Map([[cleDeDe(0, 'degats'), 5]]) });
 
     banc.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [],
-      party: [marin('porte', { kind: 'hero', shipStation: 'nid-de-pie' } as Partial<Combatant>), coque()] });
+      party: [marin('porte', { kind: 'heros', shipStation: 'nid-de-pie' } as Partial<Combatant>), coque()] });
     const parLaPorte = banc.getState().party[0];
     applyLeafOps(banc.getState, banc.setState, parLaPorte, feuille(ops()), { idNeuf: idsDeTest, rng: makeRNG(4), ...CTX() });
     const st = banc.getState().pendingCascade!.participants[0];
@@ -463,7 +483,7 @@ describe('(vii) DETTE DITE : les dés d’une op IMBRIQUÉE ne passent pas encor
 
   it('`demandesDeDes` n’annonce RIEN pour la forme imbriquée, et aucune fenêtre ne s’ouvre', () => {
     banc.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [],
-      party: [marin('gabier', { kind: 'hero', shipStation: 'greement' } as Partial<Combatant>), coque()] });
+      party: [marin('gabier', { kind: 'heros', shipStation: 'greement' } as Partial<Combatant>), coque()] });
     const gabier = banc.getState().party[0];
     expect(demandesDeDes(imbriquee(), gabier, { idNeuf: idsDeTest, rng: desDuTest, hull: coque() }), 'niveau 1 : rien à annoncer').toEqual([]);
     applyLeafOps(banc.getState, banc.setState, gabier, feuille(imbriquee()), { idNeuf: idsDeTest, rng: desDuTest, hull: coque() });
@@ -475,7 +495,7 @@ describe('(vii) DETTE DITE : les dés d’une op IMBRIQUÉE ne passent pas encor
 describe('(viii) un contexte que la reprise ne saurait pas rebâtir REFUSE de se différer', () => {
   it('un hook `OPS_CTX_HORS_CANAL` sur une feuille à dé lève, nommément', () => {
     banc.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [],
-      party: [marin('gabier', { kind: 'hero', shipStation: 'greement' } as Partial<Combatant>), coque()] });
+      party: [marin('gabier', { kind: 'heros', shipStation: 'greement' } as Partial<Combatant>), coque()] });
     const gabier = banc.getState().party[0];
     expect(() => applyLeafOps(banc.getState, banc.setState, gabier, feuille(opsDeChute()), { idNeuf: idsDeTest, rng: desDuTest,
       hull: coque(), onCondition: () => {},
@@ -484,7 +504,7 @@ describe('(viii) un contexte que la reprise ne saurait pas rebâtir REFUSE de se
 
   it('`onOpposingAdvantage` (`onTurnStart`) se porte et se rebâtit sur son porteur ; sans porteur, il lève', () => {
     banc.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [],
-      party: [marin('gabier', { kind: 'hero' } as Partial<Combatant>)] });
+      party: [marin('gabier', { kind: 'heros' } as Partial<Combatant>)] });
     const gabier = banc.getState().party[0];
     expect(ctxRepris(banc.getState, banc.setState, porterOpsCtx({ idNeuf: idsDeTest, rng: desDuTest, caster: gabier }), gabier)?.onOpposingAdvantage).toBeUndefined();
     expect(() => porterOpsCtx({ idNeuf: idsDeTest, rng: desDuTest, onOpposingAdvantage: () => [] })).toThrow(/onOpposingAdvantage/);
@@ -493,13 +513,13 @@ describe('(viii) un contexte que la reprise ne saurait pas rebâtir REFUSE de se
   it('rebâti après un aller-retour JSON, il crédite la réserve ADVERSE du porteur ennemi (MDG 16 l.13)', () => {
     setRule('combat-aa-avantage-groupe', true);
     try {
-      const heros = marin('h1', { kind: 'hero' } as Partial<Combatant>);
-      const porteur = marin('e1', { kind: 'enemy' } as Partial<Combatant>);
-      banc.setState({ battle: { combatants: [heros, porteur], advantagePools: { allies: 0, foes: 0 } } as unknown as BattleState,
+      const heros = marin('h1', { kind: 'heros' } as Partial<Combatant>);
+      const porteur = marin('e1', { kind: 'ennemi' } as Partial<Combatant>);
+      banc.setState({ battle: { combatants: [heros, porteur], advantagePools: { allies: 0, adversaires: 0 } } as unknown as BattleState,
         pendingCascade: null, suspendedCascades: [], journal: [], party: [heros] });
       const porte = JSON.parse(JSON.stringify(porterOpsCtx({ idNeuf: idsDeTest, rng: desDuTest, caster: porteur, onOpposingAdvantage: () => [] })));
       const lignes = ctxRepris(banc.getState, banc.setState, porte, heros)!.onOpposingAdvantage!(2);
-      expect(banc.getState().battle!.advantagePools, 'les alliés, camp adverse du porteur, gagnent +2').toEqual({ allies: 2, foes: 0 });
+      expect(banc.getState().battle!.advantagePools, 'les alliés, camp adverse du porteur, gagnent +2').toEqual({ allies: 2, adversaires: 0 });
       expect([heros.advantage, porteur.advantage]).toEqual([2, 0]);
       expect(lignes).toHaveLength(1);
     } finally {
@@ -514,7 +534,7 @@ describe('(ix) FIN DE COMBAT : un dé en vol n’est pas piétiné par le teardo
   beforeEach(() => {
     banc.setState({
       battle: null, pendingVictory: null, pendingCascade: null, suspendedCascades: [], journal: [], partyWiped: false,
-      party: [marin('h1', { kind: 'hero' } as Partial<Combatant>), marin('h2', { kind: 'hero' } as Partial<Combatant>)],
+      party: [marin('h1', { kind: 'heros' } as Partial<Combatant>), marin('h2', { kind: 'heros' } as Partial<Combatant>)],
     });
   });
 
@@ -553,7 +573,7 @@ describe('(x) CLÔTURE DU VERBE : ce que le site allait faire APRÈS son Flow at
   // était pas un et passait devant. Une `Cloture` est un VERBE SÉRIALISABLE que l'étape porte comme
   // son Flow — le socle en avait déjà un, `PendingTest.dialogueNext`, ici généralisé.
   const marinBlesse = (id: string): Combatant =>
-    marin(id, { kind: 'hero', wounds: { current: 190, max: 200 } } as Partial<Combatant>);
+    marin(id, { kind: 'heros', wounds: { current: 190, max: 200 } } as Partial<Combatant>);
   const CHUTE: Flow = { kind: 'effet', effet: { type: 'fall', target: 'party', metres: 4 } } as unknown as Flow;
   const DIT = (desc: string): Flow => ({ kind: 'effet', effet: { type: 'journal', desc } } as unknown as Flow);
   const dialogueDUnSaut = (): Dialogue => ({
@@ -702,7 +722,7 @@ describe('(x) CLÔTURE DU VERBE : ce que le site allait faire APRÈS son Flow at
     seedBattleRng(3);
     banc.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [], pendingLoot: null, party: [marinBlesse('h1')] });
     const issue = applyEffectsLoot(banc.getState, banc.setState, [
-      { type: 'fall', target: 'party', metres: 4 } as unknown as Effect,
+      { type: 'fall', target: 'groupe', metres: 4 } as unknown as Effect,
       { type: 'giveTrapping', custom: 'Talisman-sonde' } as Effect,
     ], 'Fouille');
     expect(issue, 'le lot a rendu la main').toBe(OPS_DIFFEREES);
@@ -718,7 +738,7 @@ describe('(x) CLÔTURE DU VERBE : ce que le site allait faire APRÈS son Flow at
     seedBattleRng(3);
     banc.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [], pendingLoot: null, party: [marinBlesse('h1')] });
     jouerFlowEntier(applyEffectsLoot(banc.getState, banc.setState, [
-      { type: 'fall', target: 'party', metres: 4 } as unknown as Effect,
+      { type: 'fall', target: 'groupe', metres: 4 } as unknown as Effect,
       { type: 'giveMoney', montant: { gold: 1 } } as unknown as Effect,
       { type: 'giveTrapping', custom: 'Talisman-sonde' } as Effect,
     ], 'Fouille'));
@@ -764,7 +784,7 @@ describe('(xi) SÉQUENCE de cascade : un dé ouvert par un applier s’INSÈRE, 
   // scène se racontait à l'envers. L'étape poussée pendant une application est la suite IMMÉDIATE de
   // celle qui l'a produite : elle s'insère derrière elle, et la séquence reprend après.
   const marinBlesse = (id: string): Combatant =>
-    marin(id, { kind: 'hero', wounds: { current: 190, max: 200 } } as Partial<Combatant>);
+    marin(id, { kind: 'heros', wounds: { current: 190, max: 200 } } as Partial<Combatant>);
   const route = (perils: unknown[]): MapRoute => ({ id: 'r1', perils } as unknown as MapRoute);
 
   const monte = (perils: unknown[], interruptId: InterruptionDePeril): void => {
@@ -950,12 +970,12 @@ describe('(xii) ROUTE RÉELLE : la chute d’un Test RATÉ passe par la porte, d
   // mesuraient pas la route du `crewHit`. Ceux-ci partent du nœud `test` AUTHORÉ.
   const BE = 3; // Endurance 31 → Bonus d'Endurance 3
 
-  const marinPoste = (id: string, station: string, kind: Combatant['kind'] = 'hero'): Combatant =>
+  const marinPoste = (id: string, station: string, kind: Combatant['kind'] = 'heros'): Combatant =>
     marin(id, { kind, shipStation: station } as Partial<Combatant>);
   /** La coque, en COMBATTANT complet : une cogue (25 m → Taille MOYENNE) qui porte le nid-de-pie.
    *  Forme entière et non littéral mince — elle traverse le bus de triggers comme n'importe quel corps. */
   const coqueMoyenne = (): Combatant => ({
-    ...marin('hull'), id: 'hull', label: 'La cogue', kind: 'npc',
+    ...marin('hull'), id: 'hull', label: 'La cogue', kind: 'pnj',
     bodyShape: 'vehicule', creatureId: 'cogue', upgrades: [{ id: 'nid-de-pie' }],
   } as unknown as Combatant);
 
@@ -1061,7 +1081,7 @@ describe('(xii) ROUTE RÉELLE : la chute d’un Test RATÉ passe par la porte, d
   });
 
   it('(c) MARIN SANS SIÈGE : le socle tire d’office — et la chute l’ATTEINT', () => {
-    const pnj = marinPoste('matelot', 'greement', 'npc');
+    const pnj = marinPoste('matelot', 'greement', 'pnj');
     monteLeCombat([pnj], []); // enregistré au combat, tenu par PERSONNE
     banc.getState().ensemencerLeTirage(21);
     ouvrirLaBande([pnj], 'combat');
@@ -1178,7 +1198,7 @@ describe('(xv) WALKER PUR : une op à DÉ y LÈVE — aucune magnitude tirée en
 describe('(xvi) #2689 — la suite d’une pile de COMBAT repart avec SA cible et SON contexte', () => {
   // Nid-de-pie : hauteur entière (25 m), un seul dé, celui des Dégâts (MDG 13 l.684-688, LDB 15 l.80).
   const vigie = (id: string, pv: number): Combatant =>
-    ({ ...marin(id, { kind: 'hero', wounds: { current: pv, max: 200 } } as Partial<Combatant>), shipStation: 'nid-de-pie' }) as Combatant;
+    ({ ...marin(id, { kind: 'heros', wounds: { current: pv, max: 200 } } as Partial<Combatant>), shipStation: 'nid-de-pie' }) as Combatant;
   const chuteSur = (on: 'caster' | 'target'): Flow => ({ kind: 'effet', effet: { type: 'ops', on, ops: opsDeChute() } } as unknown as Flow);
   const opsSurCible = (ops: unknown[]): Flow => ({ kind: 'effet', effet: { type: 'ops', on: 'target', ops } } as unknown as Flow);
   const poseLeDe = (v: number): void => { avanceEtapeCascade(banc.getState, () => v); };

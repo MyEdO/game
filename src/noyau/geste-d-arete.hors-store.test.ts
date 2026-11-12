@@ -82,8 +82,8 @@ function combat(scene: Scene, pos: Pt, tour: { movementUsed?: number; acted?: bo
   g().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = g().battle!;
-  const H = b.combatants.find((c) => c.kind === 'hero')!;
-  const foes = b.combatants.filter((c) => c.kind === 'enemy');
+  const H = b.combatants.find((c) => c.kind === 'heros')!;
+  const foes = b.combatants.filter((c) => c.kind === 'ennemi');
   foes.forEach((e) => (e.dead = true));
   H.engagedWith = [];
   placeCombatant(H, scene, pos);
@@ -234,9 +234,9 @@ describe('coûts et refus NOMMÉS (A4)', () => {
   it('chute : « Tenter » avec l’Action déjà prise → refus NOMMÉ, la modale reste au choix', () => {
     const { H } = combat(falaise(), top, { acted: true });
     g().franchirLArete(foot);
-    expect(phaseDeChute(g().pendingFall!)).toBe('choice');
+    expect(phaseDeChute(g().pendingFall!)).toBe('choix');
     g().jetRegler('chute', 'tenter', true, H.id);
-    expect(phaseDeChute(g().pendingFall!)).toBe('choice');
+    expect(phaseDeChute(g().pendingFall!)).toBe('choix');
     dit('fall.actionDejaPrise', { name: H.label });
     g().jetRegler('chute', 'tenter', false, H.id); // sauter sans Test reste permis
     expect(g().battle!.combatants.find((x) => x.id === H.id)!.pos).toMatchObject(foot);
@@ -353,7 +353,7 @@ describe('Test d’Escalade (LDB 15 l.57) : celui du GRIMPEUR', () => {
     const b = g().battle!;
     const cH = b.combatants.find((x) => x.id === H.id)!;
     const cS = b.combatants.find((x) => x.id === S.id)!;
-    const foes = b.combatants.filter((x) => x.kind === 'enemy');
+    const foes = b.combatants.filter((x) => x.kind === 'ennemi');
     foes.forEach((e) => { e.dead = true; e.engagedWith = []; });
     cH.engagedWith = []; cS.engagedWith = [];
     const scene = falaise({ kind: 'surface' });

@@ -11,8 +11,8 @@ import type { ActiveEffect } from '../engine/types';
 
 /** L'écriture d'état qui pose la table, côté `mode`, chaque ennemi portant `porteurs[id]` Sorts. */
 export function tableDeDissipation(mode: 'hote' | 'invite', porteurs: Record<string, number>): Partial<EtatDeJeu> {
-  const hero = combattantDeTest({ id: 'h1', label: 'Héros', kind: 'hero', pos: { x: 6, y: 6 }, skills: [{ id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 0 }] });
-  const ally = combattantDeTest({ id: 'h2', label: 'Allié', kind: 'hero', pos: { x: 5, y: 6 } });
+  const hero = combattantDeTest({ id: 'h1', label: 'Héros', kind: 'heros', pos: { x: 6, y: 6 }, skills: [{ id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 0 }] });
+  const ally = combattantDeTest({ id: 'h2', label: 'Allié', kind: 'heros', pos: { x: 5, y: 6 } });
   const e1 = spawnEnemy({ ref: 'moritz-valgeir' }, 'e1', { x: 7, y: 6 });
   const e2 = spawnEnemy({ ref: 'moritz-valgeir' }, 'e2', { x: 8, y: 6 });
   // Porteurs de Sorts à la forme RÉELLE d'un effet actif (`bonus`/`duration` REQUIS,

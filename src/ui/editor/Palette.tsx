@@ -30,24 +30,24 @@ import { libelleDAuteur, siegeEngines } from '../../data';
 import { LayerField, layerLabel } from './LayerField';
 import { Stack } from '../Layout';
 
-type Family = 'select' | 'architecture' | 'tile' | 'wall' | 'height' | 'stair' | 'crenellated' | 'personnage' | 'prop' | 'heroStart' | 'zone' | 'entry' | 'encounter' | 'emplacement' | 'erase';
+type Family = Exclude<Tool['mode'], 'entite'> | Extract<Tool, { mode: 'entite' }>['kind'] | 'architecture';
 
 const RAIL: { key: Family; icon: ReactNode; label: string }[] = [
-  { key: 'select', icon: '↖', label: 'Sélection / déplacer — clic = sélectionner, glisser = déplacer' },
+  { key: 'selection', icon: '↖', label: 'Sélection / déplacer — clic = sélectionner, glisser = déplacer' },
   { key: 'architecture', icon: <Icon id="repos/chez-soi" />, label: 'Architecture' },
-  { key: 'tile', icon: <Icon id="outil-de-carte/peindre" />, label: 'Peindre le terrain' },
-  { key: 'wall', icon: <Icon id="outil-de-carte/mur" />, label: 'Murs — cloison ou porte sur une arête, diagonale au centre de la case' },
-  { key: 'height', icon: <Icon id="outil-de-carte/hauteur" />, label: 'Hauteur — surface surélevée / fosse (peindre une hauteur en mètres ; la traversée verticale s’auto-dérive)' },
-  { key: 'stair', icon: '↗', label: 'Volée — tracer une file de cases entre deux surfaces cotées : les cotes s’interpolent par crans franchissables (aucun décor posé)' },
-  { key: 'crenellated', icon: <Icon id="outil-de-carte/crenelage" />, label: 'Crénelage — marque un parapet crénelé sur les cases peintes (décoration de rendu)' },
+  { key: 'terrain', icon: <Icon id="outil-de-carte/peindre" />, label: 'Peindre le terrain' },
+  { key: 'arete', icon: <Icon id="outil-de-carte/mur" />, label: 'Murs — cloison ou porte sur une arête, diagonale au centre de la case' },
+  { key: 'hauteur', icon: <Icon id="outil-de-carte/hauteur" />, label: 'Hauteur — surface surélevée / fosse (peindre une hauteur en mètres ; la traversée verticale s’auto-dérive)' },
+  { key: 'escalier', icon: '↗', label: 'Volée — tracer une file de cases entre deux surfaces cotées : les cotes s’interpolent par crans franchissables (aucun décor posé)' },
+  { key: 'crenelage', icon: <Icon id="outil-de-carte/crenelage" />, label: 'Crénelage — marque un parapet crénelé sur les cases peintes (décoration de rendu)' },
   { key: 'personnage', icon: <Icon id="outil-de-carte/personnage" />, label: 'Poser un personnage' },
   { key: 'prop', icon: <Icon id="outil-de-carte/decor" />, label: 'Poser un décor' },
   { key: 'heroStart', icon: <Icon id="outil-de-carte/depart" />, label: 'Départ des héros (case d’arrivée du groupe)' },
   { key: 'zone', icon: <Icon id="outil-de-carte/zone" />, label: 'Dessiner une zone — pièce, trigger, zone de repos ou piège' },
-  { key: 'entry', icon: <Icon id="navigation/point-d-entree" />, label: 'Poser un point d’entrée (cible des transitions)' },
-  { key: 'encounter', icon: <Icon id="action/attaquer" size="sm" />, label: 'Placer des ennemis (rencontre de combat)' },
+  { key: 'entree', icon: <Icon id="navigation/point-d-entree" />, label: 'Poser un point d’entrée (cible des transitions)' },
+  { key: 'rencontre', icon: <Icon id="action/attaquer" size="sm" />, label: 'Placer des ennemis (rencontre de combat)' },
   { key: 'emplacement', icon: <Icon id="scenario/siege" size="sm" />, label: 'Emplacement de siège — poser une pièce d’artillerie (baliste, catapulte, canon…) servie par un équipage' },
-  { key: 'erase', icon: <Icon id="outil-de-carte/gomme" />, label: 'Gomme — efface les entités cliquées' },
+  { key: 'gomme', icon: <Icon id="outil-de-carte/gomme" />, label: 'Gomme — efface les entités cliquées' },
 ];
 
 /** Sous-modes de l'outil murs (rail contextuel). */
@@ -68,8 +68,8 @@ const ZONE_HINT: Record<ZoneVariant, string> = {
 
 /** Famille du rail correspondant à l'outil actif. */
 function familyOf(tool: Tool): Family {
-  if (tool.mode === 'entity') return tool.kind === 'prop' ? 'prop' : tool.kind === 'personnage' ? 'personnage' : 'heroStart';
-  return tool.mode as Family;
+  if (tool.mode === 'entite') return tool.kind === 'prop' ? 'prop' : tool.kind === 'personnage' ? 'personnage' : 'heroStart';
+  return tool.mode;
 }
 
 export function Palette({
@@ -125,7 +125,7 @@ export function Palette({
   architectureMode: boolean;
   architectureBodyId: string | null;
   architectureStoreyId: string | null;
-  architectureAction: 'select' | 'facade';
+  architectureAction: 'selection' | 'facade';
   onArchitectureMode: () => void;
   onArchitectureBody: (id: string) => void;
   onArchitectureStorey: (id: string) => void;
@@ -158,26 +158,26 @@ export function Palette({
   // naturelle (monter d'un niveau) ; l'auteur peut viser une autre couche, le plan tranche.
   const layerZs = scene.layers.map((l) => l.z).sort((a, b) => a - b);
   const stairDefaultToZ = layerZs.find((z) => z > currentLayer) ?? currentLayer;
-  const stairPlan = tool.mode === 'stair' ? planStairFlight(scene, stairRun, currentLayer, tool.toZ) : null;
+  const stairPlan = tool.mode === 'escalier' ? planStairFlight(scene, stairRun, currentLayer, tool.toZ) : null;
 
   const pick = (f: Family) => {
     setSearch('');
     switch (f) {
-      case 'select': return setTool({ mode: 'select' });
+      case 'selection': return setTool({ mode: 'selection' });
       case 'architecture': return onArchitectureMode();
-      case 'tile': return setTool({ mode: 'tile', terrain: lastTerrain });
-      case 'wall': return setTool({ mode: 'wall', paint: 'wall', structure: lastWallStructure });
-      case 'height': return setTool({ mode: 'height', metres: 2 });
-      case 'stair': return setTool({ mode: 'stair', toZ: stairDefaultToZ });
-      case 'crenellated': return setTool({ mode: 'crenellated', structure: lastCrenelStructure ?? null });
-      case 'personnage': return setTool({ mode: 'entity', kind: 'personnage', ref: lastFiche ?? premierOffert(fiches, 'Fiche de personnage') });
-      case 'prop': return setTool({ mode: 'entity', kind: 'prop', ref: lastProp });
-      case 'heroStart': return setTool({ mode: 'entity', kind: 'heroStart' });
+      case 'terrain': return setTool({ mode: 'terrain', terrain: lastTerrain });
+      case 'arete': return setTool({ mode: 'arete', paint: 'wall', structure: lastWallStructure });
+      case 'hauteur': return setTool({ mode: 'hauteur', metres: 2 });
+      case 'escalier': return setTool({ mode: 'escalier', toZ: stairDefaultToZ });
+      case 'crenelage': return setTool({ mode: 'crenelage', structure: lastCrenelStructure ?? null });
+      case 'personnage': return setTool({ mode: 'entite', kind: 'personnage', ref: lastFiche ?? premierOffert(fiches, 'Fiche de personnage') });
+      case 'prop': return setTool({ mode: 'entite', kind: 'prop', ref: lastProp });
+      case 'heroStart': return setTool({ mode: 'entite', kind: 'heroStart' });
       case 'zone': return setTool({ mode: 'zone', zone: 'room' });
-      case 'entry': return setTool({ mode: 'entry' });
-      case 'encounter': return setTool({ mode: 'encounter' });
+      case 'entree': return setTool({ mode: 'entree' });
+      case 'rencontre': return setTool({ mode: 'rencontre' });
       case 'emplacement': return setTool({ mode: 'emplacement', trappingId: lastEngine });
-      case 'erase': return setTool({ mode: 'erase' });
+      case 'gomme': return setTool({ mode: 'gomme' });
     }
   };
 
@@ -203,7 +203,7 @@ export function Palette({
       </div>
 
       <div className="pal-content">
-        {family === 'select' && (
+        {family === 'selection' && (
           <p className="hint">Cliquez un élément de la carte pour l'éditer dans l'inspecteur ; glissez pour le déplacer. Suppr = supprimer, flèches = décaler, Ctrl+C/V/D = copier/coller/dupliquer.</p>
         )}
 
@@ -273,7 +273,7 @@ export function Palette({
           </>
         )}
 
-        {family === 'tile' && tool.mode === 'tile' && (
+        {family === 'terrain' && tool.mode === 'terrain' && (
           <>
             <div className="mini-title">Pinceau</div>
             <OptionChooser
@@ -297,7 +297,7 @@ export function Palette({
                   style={{ background: terrainDef(t).swatch }}
                   onClick={() => {
                     setLastTerrain(t as Terrain);
-                    setTool({ mode: 'tile', terrain: t as Terrain });
+                    setTool({ mode: 'terrain', terrain: t as Terrain });
                   }}
                   title={terrainLabel(t)}
                 >
@@ -308,7 +308,7 @@ export function Palette({
           </>
         )}
 
-        {family === 'wall' && tool.mode === 'wall' && (
+        {family === 'arete' && tool.mode === 'arete' && (
           <>
             <div className="mini-title">Type de cloison</div>
             <OptionChooser
@@ -319,7 +319,7 @@ export function Palette({
                 title: wp.label,
                 selected: tool.paint === wp.paint,
                 onSelect: () => setTool({
-                  mode: 'wall',
+                  mode: 'arete',
                   paint: wp.paint,
                   structure: wp.paint === 'door' ? lastDoorStructure : wp.paint === 'wall' ? lastWallStructure : undefined,
                 }),
@@ -341,7 +341,7 @@ export function Palette({
                       className={`pal-item${tool.structure === s.id ? ' active' : ''}`}
                       onClick={() => {
                         if (tool.paint === 'door') setLastDoorStructure(s.id); else setLastWallStructure(s.id);
-                        setTool({ mode: 'wall', paint: tool.paint, structure: s.id });
+                        setTool({ mode: 'arete', paint: tool.paint, structure: s.id });
                       }}
                     >
                       {s.label}
@@ -354,7 +354,7 @@ export function Palette({
           </>
         )}
 
-        {family === 'height' && tool.mode === 'height' && (
+        {family === 'hauteur' && tool.mode === 'hauteur' && (
           <>
             <div className="mini-title">Pinceau</div>
             <OptionChooser
@@ -368,20 +368,20 @@ export function Palette({
                 key: p.cle,
                 label: <>{t(`ecran.editeur.hauteur.${p.cle}`)} <span className="chip">{p.metres > 0 ? '+' : ''}{p.metres} m</span></>,
                 selected: tool.metres === p.metres,
-                onSelect: () => setTool({ mode: 'height', metres: p.metres }),
+                onSelect: () => setTool({ mode: 'hauteur', metres: p.metres }),
               }))}
             />
             <label className="mini-title" style={{ display: 'block' }}>
               Sur mesure
-              <input type="number" step={0.5} value={tool.metres} onChange={(e) => setTool({ mode: 'height', metres: Number(e.target.value) })} style={{ width: '5rem', marginLeft: '0.5rem' }} />
+              <input type="number" step={0.5} value={tool.metres} onChange={(e) => setTool({ mode: 'hauteur', metres: Number(e.target.value) })} style={{ width: '5rem', marginLeft: '0.5rem' }} />
             </label>
             <p className="hint">Peignez la hauteur RÉELLE des cases en mètres (surface surélevée, fosse d’orchestre). « Plat » remet à 0 ; la traversée à pied / en chute s’en déduit (cf. relief).</p>
           </>
         )}
 
-        {family === 'stair' && tool.mode === 'stair' && (
+        {family === 'escalier' && tool.mode === 'escalier' && (
           <>
-            <LayerField label="Étage rejoint" z={tool.toZ} layers={layerZs} onChange={(toZ) => setTool({ mode: 'stair', toZ })} />
+            <LayerField label="Étage rejoint" z={tool.toZ} layers={layerZs} onChange={(toZ) => setTool({ mode: 'escalier', toZ })} />
             <p className="hint">Glissez sur la carte pour tracer la file de cases de la volée ({layerLabel(currentLayer)}) ; re-passer sur une case la retire du tracé. Les cotes s’interpolent entre la surface d’appui du bas et le plancher rejoint — aucun décor n’est posé.</p>
             <div className="mini-title">Tracé : {stairRun.length} case{stairRun.length > 1 ? 's' : ''}</div>
             {stairPlan?.ok && (
@@ -404,7 +404,7 @@ export function Palette({
           </>
         )}
 
-        {family === 'crenellated' && tool.mode === 'crenellated' && (
+        {family === 'crenelage' && tool.mode === 'crenelage' && (
           <>
             <div className="mini-title">Pinceau</div>
             <OptionChooser
@@ -421,17 +421,17 @@ export function Palette({
                   selected: tool.structure === s.id,
                   onSelect: () => {
                     setLastCrenelStructure(s.id);
-                    setTool({ mode: 'crenellated', structure: s.id });
+                    setTool({ mode: 'crenelage', structure: s.id });
                   },
                 })),
-                { key: '__erase', label: 'Gomme (effacer la marque)', selected: tool.structure === null, onSelect: () => setTool({ mode: 'crenellated', structure: null }) },
+                { key: '__erase', label: 'Gomme (effacer la marque)', selected: tool.structure === null, onSelect: () => setTool({ mode: 'crenelage', structure: null }) },
               ]}
             />
             <p className="hint">Peint la case comme portant un PARAPET crénelé — décoration de rendu (merlons de périmètre) : n'affecte ni passabilité ni ligne de vue. Combinez-le à l'outil <Icon id="outil-de-carte/hauteur" size="sm" /> Hauteur pour un rempart complet.</p>
           </>
         )}
 
-        {tool.mode === 'entity' && tool.kind === 'personnage' && (
+        {tool.mode === 'entite' && tool.kind === 'personnage' && (
           <>
             <div className="mini-title">Fiche du personnage à poser</div>
             {searchBox('fiche…')}
@@ -442,7 +442,7 @@ export function Palette({
                   className={`pal-item${tool.ref === c.id ? ' active' : ''}`}
                   onClick={() => {
                     setLastFiche(c.id);
-                    setTool({ mode: 'entity', kind: 'personnage', ref: c.id });
+                    setTool({ mode: 'entite', kind: 'personnage', ref: c.id });
                   }}
                 >
                   {c.label}
@@ -454,7 +454,7 @@ export function Palette({
           </>
         )}
 
-        {tool.mode === 'entity' && tool.kind === 'prop' && (
+        {tool.mode === 'entite' && tool.kind === 'prop' && (
           <>
             <div className="mini-title">Décor à poser</div>
             {searchBox('décor…')}
@@ -472,7 +472,7 @@ export function Palette({
                   className={`pal-item${tool.ref === p.id ? ' active' : ''}`}
                   onClick={() => {
                     setLastProp(p.id);
-                    setTool({ mode: 'entity', kind: 'prop', ref: p.id });
+                    setTool({ mode: 'entite', kind: 'prop', ref: p.id });
                   }}
                 >
                   {p.label}
@@ -504,11 +504,11 @@ export function Palette({
           </>
         )}
 
-        {family === 'entry' && (
+        {family === 'entree' && (
           <p className="hint">Cliquez la carte pour poser un point d'entrée nommé (cible des transitions d'une autre scène et des arrivées de voyage). Renommez-le dans l'inspecteur.</p>
         )}
 
-        {family === 'encounter' && (
+        {family === 'rencontre' && (
           <>
             <div className="mini-title">Rencontre cible</div>
             <select value={encTarget} onChange={(e) => setEncTarget(e.target.value)}>
@@ -554,7 +554,7 @@ export function Palette({
           </>
         )}
 
-        {family === 'erase' && <p className="hint">Cliquez (ou glissez sur) les entités à effacer. Zones, bâtiments et spawns se suppriment via leur sélection (Suppr).</p>}
+        {family === 'gomme' && <p className="hint">Cliquez (ou glissez sur) les entités à effacer. Zones, bâtiments et spawns se suppriment via leur sélection (Suppr).</p>}
       </div>
     </aside>
   );

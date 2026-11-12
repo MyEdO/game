@@ -21,7 +21,21 @@ const doc = document(
     codex: { keys: ['calendarPhases'] },
     edit: { dataset: 'calendarPhases' },
   },
-  { exiges: ['icon'] },
+  // Ordre total des paliers de `dayPhase` (`findTierEntry`, `minuteOfDay`, `src/engine/clock.ts`).
+  {
+    exiges: ['icon'],
+    affinerDataset: (dataset) =>
+      dataset.superRefine((v, ctx) => {
+        const vus = new Map<number, string>();
+        (v as { id: string; seuil: number }[]).forEach((p, i) => {
+          if (p.seuil < 0 || p.seuil > 1439)
+            ctx.addIssue({ code: 'custom', path: [i, 'seuil'], message: `calendarPhases.json : « ${p.id} » commence à la minute ${p.seuil}, hors de la minute du jour (0-1439).` });
+          const premier = vus.get(p.seuil);
+          if (premier === undefined) vus.set(p.seuil, p.id);
+          else ctx.addIssue({ code: 'custom', path: [i, 'seuil'], message: `calendarPhases.json : « ${premier} » et « ${p.id} » portent le même seuil ${p.seuil} — les seuils des phases sont distincts.` });
+        });
+      }),
+  },
 );
 
 export const schema = doc.schema;

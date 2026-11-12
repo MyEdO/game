@@ -34,7 +34,7 @@ function startBelier(): { soldat: Combatant; crew: Combatant[]; ram: Combatant; 
   banc.abandonner();
   const b = banc.getState().battle!;
   const ram = b.combatants.find((c) => c.postes?.length)!;
-  const soldat = b.combatants.find((c) => c.kind === 'hero' && !!c.mannedPoste)!;
+  const soldat = b.combatants.find((c) => c.kind === 'heros' && !!c.mannedPoste)!;
   const crew = (ram.postes![0].crewIds ?? []).map((id) => b.combatants.find((c) => c.id === id)!);
   const porte = b.combatants.find((c) => c.creatureId === 'porte-de-ville')!;
   return { soldat, crew, ram, porte };
@@ -131,7 +131,7 @@ describe('Bélier — porte (belier-porte) : engin de siège CREWÉ, jamais une 
     // CHEF d'un engin mobile → bouton VISIBLE et actif (Équipe complète 6/6).
     expect(pushSlot(soldat, combatants)).toEqual({ show: true, undercrew: false });
     // Un autre héros du groupe (ne sert AUCUN poste) → aucun bouton.
-    const other = combatants.find((c) => c.kind === 'hero' && !c.mannedPoste)!;
+    const other = combatants.find((c) => c.kind === 'heros' && !c.mannedPoste)!;
     expect(other).toBeTruthy();
     expect(pushSlot(other, combatants)).toEqual({ show: false, undercrew: false });
     // Sous la moitié de l'Équipe (2/6) → bouton VISIBLE mais DÉSACTIVÉ (parité tir sous-effectif).

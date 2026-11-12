@@ -27,7 +27,7 @@ function setup() {
   banc.getState().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = banc.getState().battle!;
-  const H = b.combatants.find((c) => c.kind === 'hero')!;
+  const H = b.combatants.find((c) => c.kind === 'heros')!;
   H.engagedWith = [];
   banc.setState({ battle: { ...b, turn: b.order.indexOf(H.id), movementUsed: 0, acted: false }, pendingStateRecovery: null });
   return { H };
@@ -35,7 +35,7 @@ function setup() {
 
 const ctxDe = (def?: ActionDef): ActionCtx => {
   const battle = banc.getState().battle!;
-  return { active: battle.combatants.find((c) => c.kind === 'hero')!, battle, def, gameTime: banc.getState().gameTime };
+  return { active: battle.combatants.find((c) => c.kind === 'heros')!, battle, def, gameTime: banc.getState().gameTime };
 };
 
 describe('remède d’État — un État VERROUILLÉ refuse le Test, et le dit', () => {

@@ -1617,7 +1617,7 @@ const CODEX_SPECS = {
         fact(tr('codex.fiche.activation'), valeurFR('maneuvers.json', 'activation', m.activation)),
         fact(tr('codex.fiche.coutAv'), m.coutEnAvantage),
         fact(tr('codex.fiche.portee'), m.range ? formatManeuverMeasure(m.range) : null),
-        fact(tr('codex.fiche.cible'), valeurFR('maneuvers.json', 'targeting', m.targeting)),
+        fact(tr('codex.fiche.cible'), valeurFR('maneuvers.json', 'ciblage', m.ciblage)),
       ),
       sections: sections(...reverseSections('maneuvers', m.id)),
     })),
@@ -2856,7 +2856,7 @@ export function combatantSections(c: Combatant, nomDIndividu?: NomDIndividu): Co
   const ch = c.characteristics;
   const charRows: CodexRow[] = [
     { t: 'kv', k: 'M', v: String(c.movement), kref: { category: 'characteristics', id: 'mouvement', label: tr('codex.fiche.mouvement') } },
-    ...CHAR_KEYS.map((k) => ({ t: 'kv', k: charAbr(k), v: ch[k] > 0 || c.kind === 'hero' ? String(effectiveChar(c, k)) : '–', kref: { category: 'characteristics', id: k, label: CHAR_LABELS[k] } } as CodexRow)),
+    ...CHAR_KEYS.map((k) => ({ t: 'kv', k: charAbr(k), v: ch[k] > 0 || c.kind === 'heros' ? String(effectiveChar(c, k)) : '–', kref: { category: 'characteristics', id: k, label: CHAR_LABELS[k] } } as CodexRow)),
     { t: 'kv', k: tr('codex.fiche.taille'), v: SIZE_LABEL[effectiveSize(c.size)] }, // Taille : pas une caractéristique → pas de lien Codex
   ];
   const skillRows: CodexRow[] = (c.skills ?? []).map((s) =>

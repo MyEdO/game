@@ -268,7 +268,7 @@ describe('#1262 V2 L4 — un jet NÉ ROULÉ sans pilote ne se force pas ; un jet
     const etape = casc.participants.find((s) => s.actorId === humain)!;
     /** Échec POSÉ, identique dans les deux régimes : seule la cadence change entre les deux mesures. */
     const rate = () => set({ pendingCascade: { ...get().pendingCascade!, participants: get().pendingCascade!.participants
-      .map((s) => (s.id === etape.id ? { ...s, result: { roll: 97, target: 40, sl: -6, success: false }, forced: false } : s)) } });
+      .map((s) => (s.id === etape.id ? { ...s, result: { roll: 97, target: 40, sl: -6, success: false }, forcee: false } : s)) } });
     const resultOf = () => get().pendingCascade!.participants.find((s) => s.id === etape.id)!.result!;
 
     rate();
@@ -365,7 +365,7 @@ describe('détection en combat — coque de campagne coulée → naufrage (pas d
 
   const coqueDeCampagne = (heroes: Combatant[], coulee: boolean): Combatant => {
     const hull = vehicleCombatant(findVehicleById('cogue')!)!;
-    hull.id = 'hull-campagne'; hull.kind = 'enemy';
+    hull.id = 'hull-campagne'; hull.kind = 'ennemi';
     hull.crewIds = heroes.map((h) => h.id);
     hull.wounds = { ...hull.wounds, current: 0 };
     if (coulee) addCondition(hull, 'naufrage'); // MDG 13 l.674

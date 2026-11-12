@@ -1259,7 +1259,7 @@ function combineOpposed(
  * meilleur : une réussite **critique** (double choisi). À distance, les Dégâts sont ceux
  * d'un tir **à bout portant** (+6 DR ≈ le +60 au toucher de la bande de portée). Le jet
  * brut n'est qu'un TOUCHÉ provisoire : la Localisation du Critique (garanti) est choisissable
- * par l'attaquant qui pilote (LDB 17 l.68, `pa.forced` → CritLocationPicker, cf. targetingModes.ts).
+ * par l'attaquant qui pilote (LDB 17 l.68, `pa.forcee` → CritLocationPicker, cf. targetingModes.ts).
  */
 function helplessTest(atk: TestResult, kind: 'melee' | 'distance'): TestResult {
   const dr = Math.max(atk.sl, 0) + (kind === 'distance' ? 6 : 0);
@@ -1877,8 +1877,8 @@ export function initiativeOrder(combatants: Combatant[], rng: RNG): Combatant[] 
  *  'ambush' = un héros est surpris (on nous tombe dessus) ; 'assault' = un ennemi est surpris (on les
  *  prend par surprise) ; 'combat' = personne. L'embuscade prime (alarme dominante). */
 export function combatOpening(combatants: Combatant[]): 'ambush' | 'assault' | 'combat' {
-  if (combatants.some((c) => c.kind === 'hero' && hasCondition(c, COND.surpris))) return 'ambush';
-  if (combatants.some((c) => c.kind === 'enemy' && hasCondition(c, COND.surpris))) return 'assault';
+  if (combatants.some((c) => c.kind === 'heros' && hasCondition(c, COND.surpris))) return 'ambush';
+  if (combatants.some((c) => c.kind === 'ennemi' && hasCondition(c, COND.surpris))) return 'assault';
   return 'combat';
 }
 

@@ -19,7 +19,7 @@ import type { Combatant, TalentInstance } from '../../engine/types';
 import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
 const C = (over: Partial<Combatant> = {}): Combatant =>
-  (blessuresSurLeProfil({ id: 'h', kind: 'hero', name: 'H', label: 'H', conditions: [], skills: [], talents: [], traits: [],
+  (blessuresSurLeProfil({ id: 'h', kind: 'heros', name: 'H', label: 'H', conditions: [], skills: [], talents: [], traits: [],
      characteristics: { force: 30, endurance: 30, agilite: 30, perception: 30 } as never,
      wounds: blessuresDeBase(10), items: [], weapons: [], movement: 4, advantage: 0,
      ...over }) as unknown as Combatant);

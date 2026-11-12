@@ -33,7 +33,7 @@ beforeEach(() => {
 
 const C = (over: Partial<Combatant>): Combatant =>
   (blessuresSurLeProfil({
-    id: 'X', name: 'X', label: 'X', kind: 'hero',
+    id: 'X', name: 'X', label: 'X', kind: 'heros',
     characteristics: { 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], traumas: [],
     weapons: [{ name: 'Épée', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [] }],
@@ -46,7 +46,7 @@ const C = (over: Partial<Combatant>): Combatant =>
 function setupAttack(attackerOver: Partial<Combatant> = {}, targetOver: Partial<Combatant> = {}) {
   seedBattleRng(7);
   const attacker = C({ id: 'A', label: 'Att', resilience: 2, ...attackerOver });
-  const target = C({ id: 'B', label: 'Cible', kind: 'enemy', pos: { x: 1, y: 0 }, ...targetOver });
+  const target = C({ id: 'B', label: 'Cible', kind: 'ennemi', pos: { x: 1, y: 0 }, ...targetOver });
   banc.setState({
     battle: { combatants: [attacker, target], log: [], order: [attacker.id, target.id], turn: 0, round: 1 } as never,
     pendingAttack: {
@@ -125,7 +125,7 @@ describe('contrôle — `canFixDie` décrit l’AFFORDANCE LOCALE (jamais le ges
   beforeEach(() => setDesFixes(true));
 
   it('siège MJ d’un AUTRE joueur → l’ennemi ne s’affiche pas comme fixable ici', () => {
-    setupAttack({ id: 'A', kind: 'enemy' }, { id: 'B', kind: 'hero' });
+    setupAttack({ id: 'A', kind: 'ennemi' }, { id: 'B', kind: 'heros' });
     banc.setState({ net: { ...banc.getState().net, mode: 'invite', mySeat: 1, gmSeat: 0 } as never });
     expect(canFixDie(banc.getState(), 'A')).toBe(false);
   });
@@ -145,7 +145,7 @@ describe('contrôle — `canFixDie` décrit l’AFFORDANCE LOCALE (jamais le ges
   });
 
   it('ennemi SANS siège MJ → aucune affordance (il est à l’IA)', () => {
-    setupAttack({ id: 'A', kind: 'enemy' }, { id: 'B', kind: 'hero' });
+    setupAttack({ id: 'A', kind: 'ennemi' }, { id: 'B', kind: 'heros' });
     expect(canFixDie(banc.getState(), 'A')).toBe(false);
   });
 });
@@ -201,7 +201,7 @@ describe('provenance & re-dérivation — le dé courant fait foi (sonde `lens` 
     expect(banc.getState().pendingHandGate!.success, 'évalué au naturel : 95 > 60').toBe(false);
     banc.getState().jetForcerLaReussite('mainEnsanglantee');
     const p = banc.getState().pendingHandGate!;
-    expect([p.forced, p.success, !!p.fixed]).toEqual([true, true, false]);
+    expect([p.forcee, p.success, !!p.fixed]).toEqual([true, true, false]);
   });
 
   it('pending FERMÉ (post-Appliquer) : le verbe est inerte, aucun crash', () => {
@@ -216,7 +216,7 @@ describe('provenance & re-dérivation — le dé courant fait foi (sonde `lens` 
     openHandGate();
     setDesFixes(true);
     banc.getState().jetImposerLeResultat('mainEnsanglantee', 41);
-    expect(banc.getState().pendingHandGate!.forced).toBeFalsy();
+    expect(banc.getState().pendingHandGate!.forcee).toBeFalsy();
     expect(banc.getState().battle!.combatants[0].resilience).toBe(3);
   });
 
@@ -233,7 +233,7 @@ describe('Test OPPOSÉ — plancher de Résilience vs évaluation naturelle du d
   function setupOpposed() {
     seedBattleRng(7);
     banc.setState({
-      battle: { combatants: [C({ id: 'A', label: 'Att', resilience: 2 }), C({ id: 'B', label: 'Def', kind: 'enemy', pos: { x: 1, y: 0 } })], log: [] } as never,
+      battle: { combatants: [C({ id: 'A', label: 'Att', resilience: 2 }), C({ id: 'B', label: 'Def', kind: 'ennemi', pos: { x: 1, y: 0 } })], log: [] } as never,
       pendingAttack: {
         attackerId: 'A', targetId: 'B', location: null,
         result: {
@@ -270,7 +270,7 @@ describe('Test OPPOSÉ — plancher de Résilience vs évaluation naturelle du d
     const r = banc.getState().pendingAttack!.result!;
     expect(r.attackerRoll).toBe(11);
     expect(r.attackerDetail!.sl).toBe(evaluateTest(11, 45).sl);
-    expect(banc.getState().pendingAttack!.forced).toBeFalsy();
+    expect(banc.getState().pendingAttack!.forcee).toBeFalsy();
   });
 });
 

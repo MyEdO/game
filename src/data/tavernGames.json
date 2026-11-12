@@ -249,8 +249,8 @@
       "second": {
         "characteristic": "initiative"
       },
-      "failEvery": 3,
-      "eraseEvery": 2,
+      "echecsParEcheance": 3,
+      "effacementsParEcheance": 2,
       "markLoser": true,
       "stopCondition": "inconscient",
       "tours": 6,

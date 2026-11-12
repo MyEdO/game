@@ -77,6 +77,11 @@ export function porteurParId(s: Jeu, id: string): Combatant | undefined {
   return inBattleId(s.battle, id) ?? assaillantDeLaSerie(s, id) ?? s.party.find((c) => c.id === id);
 }
 
+/** Une rencontre est-elle engagée : une bataille, ou une série d'attaques subies (`serieSubie`, #3892) ? */
+export function rencontreEngagee(s: Pick<Jeu, 'battle' | 'serieSubie'>): boolean {
+  return !!(s.battle || s.serieSubie);
+}
+
 /** L'assaillant de la série d'attaques subies (`serieSubie`) s'il porte l'id `id`. */
 function assaillantDeLaSerie(s: Pick<Jeu, 'serieSubie'>, id: string): Combatant | undefined {
   const a = s.serieSubie?.assaillant;
@@ -195,7 +200,7 @@ export function capDuGroupe(monde: Pick<Jeu, 'facing'>): Dir8 | null {
 /** Les cases où se tient le groupe, couche comprise : chaque héros posé en combat, sinon la case du groupe. PUR. */
 export function casesDuGroupe(monde: Pick<Jeu, 'battle' | 'partyPos'>): Pt[] {
   if (!monde.battle) return [{ ...monde.partyPos }];
-  return monde.battle.combatants.flatMap((c) => (c.kind === 'hero' && c.pos ? [{ x: c.pos.x, y: c.pos.y, z: c.pos.z ?? 0 }] : []));
+  return monde.battle.combatants.flatMap((c) => (c.kind === 'heros' && c.pos ? [{ x: c.pos.x, y: c.pos.y, z: c.pos.z ?? 0 }] : []));
 }
 
 /**

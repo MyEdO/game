@@ -77,7 +77,7 @@ describe('jouerALaTaverne', () => {
     expect(step.groupOwner, 'deux porteurs : la fenêtre est partagée').toBe(true);
     expect(get().pendingCascade!.purpose).toBe('sequence');
     // L'état de séquence PORTE la partie (persisté avec la sauvegarde), la mise comprise.
-    expect(get().sequence?.def).toBe('tavern');
+    expect(get().sequence?.definition).toBe('tavern');
   });
 
   it('partie entre compagnons : issue stockée après la cascade, gagnant cohérent, bourse inchangée', async () => {
@@ -134,7 +134,7 @@ describe('jouerALaTaverne', () => {
     const valeurAuProfil = (profil: string) => {
       banc.setState({ party: [a], sequence: null, pendingCascade: null });
       get().jouerALaTaverne(a.id, { gameId: 'dominos', opponent: { kind: 'profil', id: profil } });
-      return activeSequence<{ opponentValue: number }>(get)!.payload.opponentValue;
+      return activeSequence<{ opponentValue: number }>(get)!.chargeUtile.opponentValue;
     };
     expect(valeurAuProfil('nain')).toBe(30);
     expect(valeurAuProfil('elfe-haut-et-sylvain')).toBe(40);
@@ -147,7 +147,7 @@ describe('jouerALaTaverne', () => {
     expect(get().sequence, 'aucune partie sans profil de coéquipier').toBeNull();
     expect(get().journal.slice(-1)[0]).toContain('choisissez le profil de vos coéquipiers');
     get().jouerALaTaverne(a.id, { gameId: 'torchon', opponent: { kind: 'profil', id: 'humain' }, allyProfil: 'elfe-haut-et-sylvain' });
-    const p = activeSequence<{ opponentValue: number; allyValue: number }>(get)!.payload;
+    const p = activeSequence<{ opponentValue: number; allyValue: number }>(get)!.chargeUtile;
     expect([p.opponentValue, p.allyValue], 'Projectiles non acquis = CT : Humain 30 en face, Elfe 40 à vos côtés (LDB 77 l.13, l.45)').toEqual([30, 40]);
   });
 
@@ -257,7 +257,7 @@ describe('Bras de fer (NADJ 16 l.34)', () => {
     get().jetValider('cascade');
   }
 
-  const cum = () => (get().sequence?.cum ?? {}) as Record<string, number>;
+  const cum = () => (get().sequence?.cumuls ?? {}) as Record<string, number>;
 
   it('le DR d’une manche PERDUE se RETIRE du cumul (LDB 12 l.174) — le plancher PAR MANCHE est mort', () => {
     const [a, b] = twoHeroes();
@@ -467,7 +467,7 @@ describe('Bras de fer (NADJ 16 l.34)', () => {
     get().jouerALaTaverne(a.id, { gameId: 'bras-de-fer', opponent: { kind: 'heros', id: b.id } });
     poseManche({ [a.id]: 1, [b.id]: 0 });
     poseManche({ [a.id]: -10, [b.id]: -9 });
-    const cum = get().sequence!.cum as Record<string, number>;
+    const cum = get().sequence!.cumuls as Record<string, number>;
     expect(cum.joueur, 'le total ne descend jamais sous 0').toBeGreaterThanOrEqual(0);
     get().jetRegler('cascade', 'abandon', true);
     const res = get().tavernGames!.result!;
@@ -500,16 +500,16 @@ describe('Bras de fer (NADJ 16 l.34)', () => {
     const [a] = endurants();
     banc.setState({ party: [a] });
     get().jouerALaTaverne(a.id, { gameId: 'bras-de-fer', opponent: { kind: 'profil', id: 'humain' } });
-    const valeur = (get().sequence!.payload as { opponentValue: number }).opponentValue;
+    const valeur = (get().sequence!.chargeUtile as { opponentValue: number }).opponentValue;
     const fige = () => get().pendingCascade!.participants[0].meta!.opposed!.aT!;
     expect(fige().target, 'aucun Avantage au premier tour').toBe(valeur);
     poseMono(-30); // l'habitué emporte le tour
-    expect((get().sequence!.payload as { advantage?: { adversaire: number } }).advantage?.adversaire).toBe(1);
+    expect((get().sequence!.chargeUtile as { advantage?: { adversaire: number } }).advantage?.adversaire).toBe(1);
     expect(fige().target, '+10 pour son pion').toBe(valeur + 10);
     const cibleA = get().pendingCascade!.participants[0].target!;
     // Le héros emporte le tour d'un point de score : l'habitué perd tout, le héros gagne +1.
     poseMono(fige().sl + bonus(valeur) - bonus(a.characteristics.force) + 1);
-    expect((get().sequence!.payload as { advantage?: { adversaire: number } }).advantage?.adversaire).toBe(0);
+    expect((get().sequence!.chargeUtile as { advantage?: { adversaire: number } }).advantage?.adversaire).toBe(0);
     expect(adv(a.id)).toBe(1);
     expect(fige().target).toBe(valeur);
     expect(get().pendingCascade!.participants[0].target, 'le pion du héros entre dans SA cible').toBe(cibleA + 10);
@@ -520,12 +520,12 @@ describe('Bras de fer (NADJ 16 l.34)', () => {
     banc.setState({ party: [a] });
     get().jouerALaTaverne(a.id, { gameId: 'bras-de-fer', opponent: { kind: 'profil', id: 'humain' } });
     const seq = get().sequence!;
-    const declare = { ...seq.params.rounds, winner: [{ op: 'gainAdvantage' as const, amount: 2 }] };
-    banc.setState({ sequence: { ...seq, params: { ...seq.params, rounds: declare } } });
-    const valeur = (get().sequence!.payload as { opponentValue: number }).opponentValue;
+    const declare = { ...seq.parametres.rounds, winner: [{ op: 'gainAdvantage' as const, amount: 2 }] };
+    banc.setState({ sequence: { ...seq, parametres: { ...seq.parametres, rounds: declare } } });
+    const valeur = (get().sequence!.chargeUtile as { opponentValue: number }).opponentValue;
     const fige = () => get().pendingCascade!.participants[0].meta!.opposed!.aT!;
     poseMono(-30);
-    expect((get().sequence!.payload as { advantage?: { adversaire: number } }).advantage?.adversaire).toBe(2);
+    expect((get().sequence!.chargeUtile as { advantage?: { adversaire: number } }).advantage?.adversaire).toBe(2);
     poseMono(fige().sl + bonus(valeur) - bonus(a.characteristics.force) + 1);
     expect(adv(a.id), 'le héros suit la même donnée').toBe(2);
   });
@@ -536,9 +536,9 @@ describe('Bras de fer (NADJ 16 l.34)', () => {
       const [a] = endurants();
       banc.setState({ party: [a] });
       get().jouerALaTaverne(a.id, { gameId: 'bras-de-fer', opponent: { kind: 'profil', id: 'humain' } });
-      const valeur = (get().sequence!.payload as { opponentValue: number }).opponentValue;
+      const valeur = (get().sequence!.chargeUtile as { opponentValue: number }).opponentValue;
       const fige = () => get().pendingCascade!.participants[0].meta!.opposed!.aT!;
-      const camp = () => (get().sequence!.payload as { advantage?: { adversaire: number } }).advantage?.adversaire;
+      const camp = () => (get().sequence!.chargeUtile as { advantage?: { adversaire: number } }).advantage?.adversaire;
       poseMono(-30);
       expect(camp(), 'l’habitué gagne la manche : sa réserve gagne').toBe(1);
       poseMono(fige().sl + bonus(valeur) - bonus(a.characteristics.force) + 1);
@@ -573,11 +573,11 @@ describe('#1279 S4 — une partie de taverne ne peut pas en écraser une autre',
     const g = banc.getState;
     const [a, b] = g().party;
     g().jouerALaTaverne(a.id, { gameId: 'flechettes', opponent: { kind: 'heros', id: b.id } });
-    expect(activeSequence<{ gameId: string }>(g)?.payload.gameId, 'la première partie doit être ouverte').toBe('flechettes');
+    expect(activeSequence<{ gameId: string }>(g)?.chargeUtile.gameId, 'la première partie doit être ouverte').toBe('flechettes');
 
     g().jouerALaTaverne(a.id, { gameId: 'bras-de-fer', opponent: { kind: 'heros', id: b.id } });
 
-    expect(activeSequence<{ gameId: string }>(g)?.payload.gameId, 'la partie en cours ne doit PAS être écrasée').toBe('flechettes');
+    expect(activeSequence<{ gameId: string }>(g)?.chargeUtile.gameId, 'la partie en cours ne doit PAS être écrasée').toBe('flechettes');
   });
 
   it('une partie DÉNOUÉE rouvre la porte — le refus tient à la partie en cours, pas à un verrou', () => {
@@ -587,7 +587,7 @@ describe('#1279 S4 — une partie de taverne ne peut pas en écraser une autre',
     banc.setState({ sequence: null, pendingCascade: null }); // dénouement : le socle vide le slot
 
     g().jouerALaTaverne(a.id, { gameId: 'dominos', opponent: { kind: 'heros', id: b.id } });
-    expect(activeSequence<{ gameId: string }>(g)?.payload.gameId).toBe('dominos');
+    expect(activeSequence<{ gameId: string }>(g)?.chargeUtile.gameId).toBe('dominos');
   });
 });
 

@@ -46,9 +46,9 @@ const advanceCostLookup = memoParVersion('advancementCosts', () => tableOuverte(
  *  Hors carrière, le coût est DOUBLÉ (LDB 07 l.91). `discount` : « 5 PX de moins par
  *  Augmentation » des talents Maître artisan / Oreille absolue / etc. (LDB 10) quand la
  *  Compétence ajoutée est déjà incluse dans la Carrière — appliqué in-carrière seulement. */
-export function advanceCost(advancesAlready: number, kind: 'characteristic' | 'skill', inCareer = true, discount = 0): number {
+export function advanceCost(advancesAlready: number, kind: 'caracteristique' | 'competence', inCareer = true, discount = 0): number {
   const band = findTableEntry(advanceCostLookup(), advancesAlready);
-  const base = kind === 'characteristic' ? band.coutCarac : band.coutCompetence;
+  const base = kind === 'caracteristique' ? band.coutCarac : band.coutCompetence;
   return inCareer ? Math.max(1, base - discount) : base * 2;
 }
 
@@ -67,7 +67,7 @@ export interface AdvanceResult {
  *  les PX suffisent. Mute le héros. `inCareer` false → coût doublé (hors carrière). */
 export function buyCharAdvance(hero: Combatant, char: CharKey, inCareer = true): AdvanceResult {
   const already = hero.charAdvances?.[char] ?? 0;
-  const cost = advanceCost(already, 'characteristic', inCareer);
+  const cost = advanceCost(already, 'caracteristique', inCareer);
   if ((hero.xp ?? 0) < cost) return { ok: false, cost, reason: t('adv.notEnoughXp') };
   hero.xp = (hero.xp ?? 0) - cost;
   hero.charAdvances = { ...(hero.charAdvances ?? {}), [char]: already + 1 };
@@ -80,7 +80,7 @@ export function buyCharAdvance(hero: Combatant, char: CharKey, inCareer = true):
 export function buySkillAdvance(hero: Combatant, ref: RefDesignee, inCareer = true, discount = 0): AdvanceResult {
   const skill = hero.skills.find((s) => s.id === ref.id && memeSpecialisation(s.spec, ref.spec));
   if (!skill) return { ok: false, cost: 0, reason: t('adv.unknownSkill') };
-  const cost = advanceCost(skill.advances, 'skill', inCareer, discount);
+  const cost = advanceCost(skill.advances, 'competence', inCareer, discount);
   if ((hero.xp ?? 0) < cost) return { ok: false, cost, reason: t('adv.notEnoughXp') };
   hero.xp = (hero.xp ?? 0) - cost;
   skill.advances += 1; // chaque Augmentation ajoute +1 au niveau de Compétence (LDB 07 l.80)

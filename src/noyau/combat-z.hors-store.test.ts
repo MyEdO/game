@@ -101,7 +101,7 @@ describe('lancerLeCombat — partyPos.z (étage du groupe) se propage aux Combat
     banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('debutDuRound');
     const b = banc.getState().battle!;
-    const heroes = b.combatants.filter((c) => c.kind === 'hero' && !c.mountable);
+    const heroes = b.combatants.filter((c) => c.kind === 'heros' && !c.mountable);
     expect(heroes.length).toBeGreaterThan(0);
     for (const h of heroes) expect(h.pos?.z).toBe(1);
   });
@@ -115,7 +115,7 @@ describe('lancerLeCombat — partyPos.z (étage du groupe) se propage aux Combat
     banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('debutDuRound');
     const b = banc.getState().battle!;
-    const heroes = b.combatants.filter((c) => c.kind === 'hero' && !c.mountable);
+    const heroes = b.combatants.filter((c) => c.kind === 'heros' && !c.mountable);
     expect(heroes.length).toBeGreaterThan(0);
     for (const h of heroes) expect(h.pos?.z).toBeUndefined();
   });

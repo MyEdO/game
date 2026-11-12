@@ -422,7 +422,7 @@ const BATTERIE: readonly Geste[] = [
     monter: monterCombat,
     témoin: () => String(useGame.getState().hoverCombatantId ?? '—'),
     agir: async () => {
-      const ennemi = useGame.getState().battle!.combatants.find((c) => c.kind === 'enemy')!;
+      const ennemi = useGame.getState().battle!.combatants.find((c) => c.kind === 'ennemi')!;
       await act(async () => { useGame.getState().setHoverCombatant(ennemi.id); });
     },
   },

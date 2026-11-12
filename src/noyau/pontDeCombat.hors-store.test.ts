@@ -11,8 +11,8 @@ import { loadWeapon, setNonCharge, weaponFromItem } from '../engine/items';
 import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 import type { Combatant, ItemInstance } from '../engine/types';
 
-const heros = (id: string, over: Partial<Combatant> = {}): Combatant => combattantDeTest({ id, label: id, kind: 'hero', pos: { x: 5, y: 5 }, ...over });
-const ennemi = (id: string, over: Partial<Combatant> = {}): Combatant => combattantDeTest({ id, label: id, kind: 'enemy', pos: { x: 6, y: 5 }, ...over });
+const heros = (id: string, over: Partial<Combatant> = {}): Combatant => combattantDeTest({ id, label: id, kind: 'heros', pos: { x: 5, y: 5 }, ...over });
+const ennemi = (id: string, over: Partial<Combatant> = {}): Combatant => combattantDeTest({ id, label: id, kind: 'ennemi', pos: { x: 6, y: 5 }, ...over });
 const SANS = { assailli: null, cloue: false, renfort: false };
 const ko = { wounds: { current: 0, max: 10 }, dead: true } as Partial<Combatant>;
 
@@ -24,7 +24,7 @@ function combat(combattants: Combatant[], net: Record<string, unknown> = {}, ent
     turn: -1, round: 1, action: null, selectedSpellId: null, reachable: new Map(),
     movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
   } as unknown as BattleState;
-  banc.setState({ battle, mode: 'battle', party: combattants.filter((c) => c.kind === 'hero'), net: { ...initialNet(), ...net } } as never);
+  banc.setState({ battle, mode: 'battle', party: combattants.filter((c) => c.kind === 'heros'), net: { ...initialNet(), ...net } } as never);
   return banc;
 }
 
@@ -80,7 +80,7 @@ describe('etatsDeSituation — les États que porte le combat, pas le Combatant'
 
   it('Assailli suit le Surnombre de la résolution (LDB 14 l.110) : un camp au contact, jamais deux camps additionnés', () => {
     const H = heros('H');
-    const neutre = combattantDeTest({ id: 'N', label: 'N', kind: 'npc', pos: { x: 5, y: 6 } });
+    const neutre = combattantDeTest({ id: 'N', label: 'N', kind: 'pnj', pos: { x: 5, y: 6 } });
     // Un ennemi et un PNJ au contact : aucun camp n'est à deux contre un — la résolution n'accorde aucun Surnombre.
     expect(outnumberMod(1)).toBeNull();
     expect(etatsDeSituation(H, battleDe([H, ennemi('E1'), neutre]))).toEqual(SANS);

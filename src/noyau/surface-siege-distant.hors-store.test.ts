@@ -40,8 +40,8 @@ function coop(vivants = 1): { H: Combatant[]; E: Combatant[] } {
   g().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = g().battle!;
-  const H = b.combatants.filter((c) => c.kind === 'hero');
-  const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+  const H = b.combatants.filter((c) => c.kind === 'heros');
+  const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
   enemies.slice(vivants).forEach((e) => (e.dead = true));
   const E = enemies.slice(0, vivants);
   H[0].pos = { x: 10, y: 10 };
@@ -117,7 +117,7 @@ describe('Le héros d’un siège DISTANT garde ses fenêtres chez l’hôte (#1
     E[0].engagedWith = [H[0].id];
     set({
       battle: { ...g().battle! },
-      pendingDisengage: { moverId: H[0].id, foeId: E[0].id, canSacrifice: false, phase: 'choice', atk: null, def: null, result: null },
+      pendingDisengage: { moverId: H[0].id, foeId: E[0].id, canSacrifice: false, phase: 'choix', atk: null, def: null, result: null },
     } as never);
 
     g().jetRegler('desengagement', 'fuir', true);

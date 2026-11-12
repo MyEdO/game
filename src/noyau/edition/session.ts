@@ -60,12 +60,12 @@ const TOUS_LES_CALQUES: Layers = { triggers: true, spawns: true, roofs: true, en
 
 /** Ce que fait le clic de l'outil d'architecture : sélectionner dans le corps actif (`corpsActif`), poser une façade
  *  sur l'arête appuyée, ou tirer une exclusion de toiture du corps actif sur la couche éditée. */
-export const ACTIONS_D_ARCHITECTURE = ['select', 'facade', 'exclusion'] as const;
+export const ACTIONS_D_ARCHITECTURE = ['selection', 'facade', 'exclusion'] as const;
 export type ActionDArchitecture = (typeof ACTIONS_D_ARCHITECTURE)[number];
 
 /** Les outils que l'éditeur offre, dont celui qui pose un navire du type `ref` au cap `cap` (`poserUnNavire`). */
 export type OutilDeLEditeur =
-  | Extract<Tool, { mode: 'select' | 'tile' | 'height' | 'wall' | 'stair' | 'crenellated' | 'entity' | 'emplacement' | 'entry' | 'zone' | 'zoneTiles' | 'erase' }>
+  | Extract<Tool, { mode: 'selection' | 'terrain' | 'hauteur' | 'arete' | 'escalier' | 'crenelage' | 'entite' | 'emplacement' | 'entree' | 'zone' | 'casesDeZone' | 'gomme' }>
   | { mode: 'architecture'; action: ActionDArchitecture }
   | { mode: 'navire'; ref: string; cap: Dir4 };
 
@@ -132,7 +132,7 @@ function versLAvertissement(s: SessionDEdition, scene: Scene, w: Warning): Sessi
   if (w.plan) {
     const at = w.plan.at;
     const zone = at.kind === 'zone' ? scene.effectZones?.find((z) => z.id === at.zoneId) : undefined;
-    return vers(at.z, zone ? { type: 'effectZone', id: zone.id } : null, { mode: 'select' }, planDefectKey(w.plan));
+    return vers(at.z, zone ? { type: 'effectZone', id: zone.id } : null, { mode: 'selection' }, planDefectKey(w.plan));
   }
   const archi = architectureSelectionForWarning(w);
   if (archi) {
@@ -142,10 +142,10 @@ function versLAvertissement(s: SessionDEdition, scene: Scene, w: Warning): Sessi
         : archi.type === 'facadeSection' ? corps?.facades.find((f) => f.id === archi.id)?.z
           : archi.type === 'roofSection' ? corps?.masses.find((m) => m.id === archi.id)?.z
             : corps?.storeys[0]?.z;
-    return vers(z, archi, { mode: 'architecture', action: 'select' });
+    return vers(z, archi, { mode: 'architecture', action: 'selection' });
   }
-  if (w.scope === 'entity') return vers(scene.entities.find((e) => e.id === w.refId)?.z, { type: 'entity', id: w.refId! }, { mode: 'select' });
-  return vers(scene.triggers.find((t) => t.id === w.refId)?.rect.z, { type: 'trigger', id: w.refId! }, { mode: 'select' });
+  if (w.scope === 'entity') return vers(scene.entities.find((e) => e.id === w.refId)?.z, { type: 'entity', id: w.refId! }, { mode: 'selection' });
+  return vers(scene.triggers.find((t) => t.id === w.refId)?.rect.z, { type: 'trigger', id: w.refId! }, { mode: 'selection' });
 }
 
 /** Les scènes du projet de la session `s` autour de la scène éditée. */
@@ -162,7 +162,7 @@ function versLaScene(s: SessionDEdition, p: ProjectScenes | null): SessionDEditi
   const scenes = [...p.avant, p.scene, ...p.apres];
   const calques = Object.fromEntries(Object.entries(s.calques).filter(([id]) => scenes.some((sc) => sc.id === id)));
   return {
-    ...s, projet: { ...s.projet, scenes }, sceneId: p.scene.id, historique: historiqueDe(p.scene), outil: { mode: 'select' }, z: 0,
+    ...s, projet: { ...s.projet, scenes }, sceneId: p.scene.id, historique: historiqueDe(p.scene), outil: { mode: 'selection' }, z: 0,
     sel: null, geste: null, volee: [], brouillon: null, pointee: null, defaut: null, calage: HORS_DU_CALAGE,
     ...(Object.keys(calques).length === Object.keys(s.calques).length ? {} : { calques }),
   };
@@ -413,7 +413,7 @@ export function ouvrirLEdition(projet: Omit<ProjectDoc, 'schema'>, duDepot: bool
   const scene = projet.scenes[0];
   const calques = gardes === undefined ? {} : calquesLus(gardes);
   return {
-    projet, sceneId: scene.id, historique: historiqueDe(scene), outil: { mode: 'select' }, z: 0, pinceau: 1, rectangle: false, sel: null, geste: null, volee: [], brouillon: null, pointee: null, presse: null,
+    projet, sceneId: scene.id, historique: historiqueDe(scene), outil: { mode: 'selection' }, z: 0, pinceau: 1, rectangle: false, sel: null, geste: null, volee: [], brouillon: null, pointee: null, presse: null,
     depot: duDepot ? { enregistrees: projet.scenes, enCours: null } : null,
     calques: calques ?? {}, calage: { step: 'idle' }, chargement: null, ecartes: calques === null, defaut: null,
     manifeste, chapitres: {}, chapitreEnAttente: null,
@@ -470,7 +470,7 @@ export function essaiDeLaScene(s: SessionDEdition) {
  *  `vueDeLaScene`) : jusqu'au pont d'un navire aussi ; refusé sur une couche que seuls les ponts d'un navire posent, où
  *  la volée ne s'écrirait pas ; `null` hors de l'outil Volée. */
 export function planDeLaVolee(s: SessionDEdition): StairFlightPlan | null {
-  if (s.outil.mode !== 'stair') return null;
+  if (s.outil.mode !== 'escalier') return null;
   if (!sceneEditee(s).layers.some((l) => l.z === s.z)) return { ok: false, reason: `couche z${s.z} des seuls ponts d'un navire : la volée ne s'y écrit pas` };
   return planStairFlight(vueDeLaScene(s), s.volee, s.z, s.outil.toZ);
 }
@@ -495,8 +495,8 @@ export const etageActif = (s: SessionDEdition): ArchitectureStorey | null => cor
  *  navire, que l'appui joue sans lui, la sélection. */
 function contexte(s: SessionDEdition): ContexteDuPointeur {
   const outil = s.outil;
-  const architecture = outil.mode === 'architecture' ? { z: s.z, action: outil.action === 'facade' ? 'facade' as const : 'select' as const, bodyId: corpsActif(s)?.id ?? null } : null;
-  return { tool: outil.mode === 'architecture' || outil.mode === 'navire' ? { mode: 'select' } : outil, z: s.z, brush: s.pinceau, encId: '', encRef: '', layers: TOUS_LES_CALQUES, sel: s.sel, terrainRect: s.rectangle, architecture };
+  const architecture = outil.mode === 'architecture' ? { z: s.z, action: outil.action === 'facade' ? 'facade' as const : 'selection' as const, bodyId: corpsActif(s)?.id ?? null } : null;
+  return { tool: outil.mode === 'architecture' || outil.mode === 'navire' ? { mode: 'selection' } : outil, z: s.z, brush: s.pinceau, encId: '', encRef: '', layers: TOUS_LES_CALQUES, sel: s.sel, terrainRect: s.rectangle, architecture };
 }
 
 /** Si le clic de la session `s` tire une exclusion de toiture du corps actif. */
@@ -579,7 +579,7 @@ const basculer = (volee: readonly Pt[], p: Pt): readonly Pt[] =>
 function porter(s: SessionDEdition, effet: EffetDuPointeur): SessionDEdition {
   return {
     ...s,
-    ...(effet.architectureFinie && s.outil.mode === 'architecture' ? { outil: { mode: 'architecture', action: 'select' } } : {}),
+    ...(effet.architectureFinie && s.outil.mode === 'architecture' ? { outil: { mode: 'architecture', action: 'selection' } } : {}),
     ...(effet.sel !== undefined ? { brouillon: null } : {}),
     geste: effet.geste,
     ...(effet.volee ? { volee: basculer(s.volee, effet.volee) } : {}),
@@ -757,7 +757,7 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
         return pose ? { ...ecrire(s, pose.scene, { type: 'entity', id: pose.id }), pointee } : { ...s, pointee };
       }
       if (enExclusion(s)) return { ...s, geste: { sorte: 'rectangle', depart: g.point.case, rect: rectFrom(g.point.case, g.point.case) }, pointee };
-      const poignee = s.outil.mode === 'select' || (s.outil.mode === 'architecture' && s.outil.action === 'select') ? poigneeDeLaSelection(scene, s.sel, s.z) : null;
+      const poignee = s.outil.mode === 'selection' || (s.outil.mode === 'architecture' && s.outil.action === 'selection') ? poigneeDeLaSelection(scene, s.sel, s.z) : null;
       const saisie = poignee?.x === g.point.case.x && poignee.y === g.point.case.y;
       return { ...(saisie ? { ...s, geste: saisirLaPoignee(contexte(s)) } : porter(s, appuyer(scene, contexte(s), g.point))), pointee };
     }
@@ -768,7 +768,7 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
       const corps = corpsActif(s);
       if (enExclusion(s) && s.geste?.sorte === 'rectangle' && corps) {
         const exclue = addRoofExclusion(scene, corps.id, s.z, rectFrom(s.geste.depart, g.point.case));
-        return { ...ecrire(s, exclue, { type: 'architectureBody', id: corps.id }), geste: null, outil: { mode: 'architecture', action: 'select' } };
+        return { ...ecrire(s, exclue, { type: 'architectureBody', id: corps.id }), geste: null, outil: { mode: 'architecture', action: 'selection' } };
       }
       return porter(s, relacher(scene, contexte(s), s.geste, g.point));
     }

@@ -45,7 +45,7 @@ const SPELL_ID = 'flechette';
 /** RNG qui ne rend que le dé COMMUN — les voies naturelles se mesurent sur le même d100 que les deux autres. */
 const RNG_DE = deFixe(DE);
 
-const mk = (id: string, kind: Combatant['kind'] = 'hero'): Combatant => (blessuresSurLeProfil({
+const mk = (id: string, kind: Combatant['kind'] = 'heros'): Combatant => (blessuresSurLeProfil({
   id, name: id, label: id, kind,
   characteristics: { force: 40, dexterite: 40, agilite: 40, endurance: 40, 'force-mentale': 40, 'capacite-de-combat': 45, 'capacite-de-tir': 45, initiative: 40, intelligence: 40, sociabilite: 40 },
   wounds: blessuresDeBase(10), advantage: 0, conditions: [], traumas: [],
@@ -84,7 +84,7 @@ const openCast = (roll: number, target: number) => banc.setState({
 } as never);
 
 beforeEach(() => {
-  const A = mk('A'), E = mk('E', 'enemy');
+  const A = mk('A'), E = mk('E', 'ennemi');
   banc.setState({
     party: [A],
     battle: { combatants: [A, E], log: [], order: ['A', 'E'], turn: 0, round: 1 } as never,
@@ -262,7 +262,7 @@ const lanceur = (pa: number) => ({
 
 const poser = (hero: Combatant, extra: Record<string, unknown> = {}) => banc.setState({
   party: [hero],
-  battle: { combatants: [hero, mk('E', 'enemy')], log: [], order: ['A', 'E'], turn: 0, round: 1 } as never,
+  battle: { combatants: [hero, mk('E', 'ennemi')], log: [], order: ['A', 'E'], turn: 0, round: 1 } as never,
   net: { mode: 'local', mySeat: 0, roomCode: null, seatNames: {}, presence: {}, ownership: {} } as never,
   pendingCast: null, pendingCounterspell: null, pendingCastOpposition: null, pendingFocus: null,
   ...extra,

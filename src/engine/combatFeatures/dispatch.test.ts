@@ -6,7 +6,7 @@ import { modDeRegle } from '../reglesChiffrees';
 import { penaliteDeMainSecondaire } from '../combat';
 
 const mk = (talents: { name: string; times: number }[]): Combatant =>
-  ({ id: 'c', name: 'X', kind: 'hero', talents: talents.map((t) => ({ talentId: slugId(t.name), times: t.times })), skills: [] } as unknown as Combatant);
+  ({ id: 'c', name: 'X', kind: 'heros', talents: talents.map((t) => ({ talentId: slugId(t.name), times: t.times })), skills: [] } as unknown as Combatant);
 
 describe('offHandPenalty (registre de capacités)', () => {
   it('sans Ambidextre : -20 (LDB 14 l.78)', () => {

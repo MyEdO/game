@@ -389,7 +389,7 @@ export function ConsoleArch({ active, move, action, etats, retraitDEtat }: {
       <LifeBar
         value={active.wounds.current}
         max={active.wounds.max}
-        color={active.kind === 'enemy' ? ENEMY_TINT : hpColor(active.wounds.max > 0 ? Math.max(0, Math.min(1, active.wounds.current / active.wounds.max)) : 0)}
+        color={active.kind === 'ennemi' ? ENEMY_TINT : hpColor(active.wounds.max > 0 ? Math.max(0, Math.min(1, active.wounds.current / active.wounds.max)) : 0)}
         overlay
         format={(v, m) => (
           <>
@@ -407,9 +407,9 @@ export function ConsoleArch({ active, move, action, etats, retraitDEtat }: {
 function actorStateChips(active: Combatant, battle: BattleState): EffectChip[] {
   const { assailli, cloue, renfort } = etatsDeSituation(active, battle);
   const out: EffectChip[] = [];
-  if (assailli) out.push({ key: 'a-assailli', icon: 'action/attaquer', label: `Assailli par ${assailli.nombre} ennemis au contact`, kind: 'state', severity: 58, indice: assailli.nombre });
-  if (cloue) out.push({ key: 'a-cloue', flagId: 'calmeApproche', icon: 'drapeau/peur', label: 'Cloué', kind: 'state', severity: 64 });
-  if (renfort) out.push({ key: 'a-renfort', icon: 'action/servir-l-engin', label: 'Renfort de pièce (le chef fait feu)', kind: 'state', severity: 40 });
+  if (assailli) out.push({ key: 'a-assailli', icon: 'action/attaquer', label: `Assailli par ${assailli.nombre} ennemis au contact`, kind: 'etat', severity: 58, indice: assailli.nombre });
+  if (cloue) out.push({ key: 'a-cloue', flagId: 'calmeApproche', icon: 'drapeau/peur', label: 'Cloué', kind: 'etat', severity: 64 });
+  if (renfort) out.push({ key: 'a-renfort', icon: 'action/servir-l-engin', label: 'Renfort de pièce (le chef fait feu)', kind: 'etat', severity: 40 });
   return out;
 }
 
@@ -577,7 +577,7 @@ export function CombatConsole() {
   // barre v7 (e4bf4d73). UNE puce à l'écran : quand l'arbitre de modales en pose une (il dit ce que
   // le siège FAIT, information plus précise), la bande lui laisse la parole (`spectatorSeatOfModal`).
   const siegeDistant =
-    net.mode !== 'local' && active.kind === 'hero' && siegeModale === null
+    net.mode !== 'local' && active.kind === 'heros' && siegeModale === null
       ? net.ownership[active.id] ?? 0
       : null;
 
@@ -1089,7 +1089,7 @@ export function CombatConsole() {
             <SpectatorChip label={nomDuSiege(net, siegeDistant)} action={`joue ${active.label}…`} />
           ) : (
             <span className="cc-phase-label">
-              <Icon id="interface/attendre" size="sm" /> {active.kind === 'enemy' ? 'Tour de l’ennemi' : `Tour de ${active.label}`}
+              <Icon id="interface/attendre" size="sm" /> {active.kind === 'ennemi' ? 'Tour de l’ennemi' : `Tour de ${active.label}`}
             </span>
           )}
         </div>

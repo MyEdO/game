@@ -22,7 +22,7 @@ describe('prétirés officiels — fiches imprimées figées (#3884)', () => {
     for (const d of pregens) {
       const h = pretire(idsDeTest, d.id);
       expect(h.id, d.id).toBe(idDuPretire(d.id));
-      expect([h.kind, h.label, h.species], d.id).toEqual(['hero', d.label, d.species.id]);
+      expect([h.kind, h.label, h.species], d.id).toEqual(['heros', d.label, d.species.id]);
       expect(h.careerHistory, d.id).toEqual(Object.keys(d.carrieres));
     }
     expect(pretires(idsDeTest).map((h) => h.id)).toEqual(pregens.map((d) => idDuPretire(d.id)));

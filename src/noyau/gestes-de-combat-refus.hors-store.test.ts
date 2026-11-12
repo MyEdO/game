@@ -23,7 +23,7 @@ const arme = (uid: string, label: string): ItemInstance =>
 
 function combattant(id: string, p: Partial<Combatant> = {}): Combatant {
   return blessuresSurLeProfil({
-    id, label: id.toUpperCase(), kind: 'hero',
+    id, label: id.toUpperCase(), kind: 'heros',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 40, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], movement: 4,
     weapons: [lance], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -37,7 +37,7 @@ function enBataille(over: Record<string, unknown> = {}, actif: Partial<Combatant
   const a = combattant('a', { engagedWith: ['e'], grapplingWith: ['e'], ...actif });
   const b = combattant('b', { pos: { x: 3, y: 3 } });
   const e = combattant('e', {
-    kind: 'enemy', pos: { x: 2, y: 1 }, engagedWith: ['a'], grapplingWith: ['a'],
+    kind: 'ennemi', pos: { x: 2, y: 1 }, engagedWith: ['a'], grapplingWith: ['a'],
     activeEffects: [{ label: 'Malédiction', characteristic: 'agilite', bonus: -10, duration: { scale: 'rounds', left: 9 },
       spell: { spellId: 'malefice', ni: 2, casterId: 'sorcier', label: 'Maléfice' } }],
   } as Partial<Combatant>);
@@ -178,7 +178,7 @@ describe('admis, chaque geste joue encore', () => {
   it('ouvrirLAuContact ouvre le Test opposé', () => {
     enBataille();
     g().ouvrirLAuContact('e');
-    expect([refus() ?? null, g().pendingAuContact?.phase]).toEqual([null, 'roll']);
+    expect([refus() ?? null, g().pendingAuContact?.phase]).toEqual([null, 'jet']);
   });
 
   it('ouvrirLEmpoignade ouvre le Test opposé', () => {

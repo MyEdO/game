@@ -16,7 +16,7 @@ async function ouvrirLeBelierAuTourDuSoldat() {
   useGame.getState().lancerLeCombat('siege-belier');
   useGame.getState().fenetreValider('debutDuRound');
   const b0 = useGame.getState().battle!;
-  const soldat = b0.combatants.find((c) => c.kind === 'hero' && !!c.mannedPoste)!;
+  const soldat = b0.combatants.find((c) => c.kind === 'heros' && !!c.mannedPoste)!;
   useGame.setState({ battle: { ...b0, turn: b0.order.indexOf(soldat.id), acted: false, action: null, movementUsed: 0 } });
   return soldat;
 }
@@ -25,7 +25,7 @@ describe('#199 — Entrée commet la poussée MÊME avec le focus résiduel du b
   it('cursor-commit est sélectionné (pas d’exclusion notWhenControlFocused) quand un combatCursor est posé', () => {
     const s = {
       ...useGame.getState(), mode: 'battle',
-      battle: { over: null, action: 'poussee', order: ['chef'], turn: 0, combatants: [{ id: 'chef', kind: 'hero' }] },
+      battle: { over: null, action: 'poussee', order: ['chef'], turn: 0, combatants: [{ id: 'chef', kind: 'heros' }] },
       combatCursor: { tile: { x: 1, y: 1 } }, net: { mode: 'local', mySeat: 0 }, dialogue: null,
     } as never;
     const b = dispatch('Enter', s, /* controlFocused: bouton Pousser encore focalisé */ true);

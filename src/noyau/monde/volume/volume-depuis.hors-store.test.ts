@@ -95,6 +95,20 @@ describe('volumeDepuis : la reprise rend le calcul entier (#3993)', () => {
     reprendEgal(releve, avant.etat, 'support relevé');
   });
 
+  it('un décor qui s’allume puis s’éteint : ses surfaces portent `luminaire` exactement quand il éclaire', () => {
+    const eclaire = (light: SceneEntity['light']): Scene => ({ ...s, entities: s.entities.map((e) => (e.id === 'tonneau-1' ? { ...e, light } : e)) });
+    const luminairesDuTonneau = (e: EtatDuVolume) =>
+      e.morceaux.get('pose/0/0/1')!.morceau.surfaces.filter((f) => f.matiere.startsWith('prop--')).map((f) => f.luminaire);
+    let etat = avant.etat;
+    for (const [k, light] of [undefined, { radiusM: 5 }, undefined].entries()) {
+      const repris = reprendEgal(eclaire(light), etat, `pas ${k}`);
+      const attendus = luminairesDuTonneau(repris.etat);
+      expect(attendus.length, `pas ${k} : le tonneau a des surfaces`).toBeGreaterThan(0);
+      expect(attendus, `pas ${k}`).toEqual(attendus.map(() => (light ? true : undefined)));
+      etat = repris.etat;
+    }
+  });
+
   it('une case du tablier effondrée, sous une case de planches dont le montant descend alors jusqu’au rez', () => {
     const apres = setTileCollapsed(s, 4, 7, 1);
     const montants = (e: EtatDuVolume) => jsonCanonique([...e.montants.get(2)!]);

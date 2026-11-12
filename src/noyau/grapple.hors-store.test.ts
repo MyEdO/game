@@ -36,8 +36,8 @@ describe('Empoignade — store + funnel (LDB 14 l.159/161/169)', () => {
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
     return { H, enemies };
   }
 
@@ -174,7 +174,7 @@ describe('Empoignade — store + funnel (LDB 14 l.159/161/169)', () => {
     setGrapple(h, e);
     banc.getState().ouvrirLEmpoignade(E.id);
     const pd = banc.getState().pendingGrapple!;
-    banc.setState({ pendingGrapple: { ...pd, def: pd.atk, result: 'reussite', phase: 'roll' } });
+    banc.setState({ pendingGrapple: { ...pd, def: pd.atk, result: 'reussite', phase: 'jet' } });
     banc.getState().jetValider('empoignade');
     banc.getState().jetRegler('empoignade', 'issue', 'empetrer');
     expect(hasCondition(live(E.id), COND.empetre)).toBe(true);
@@ -194,7 +194,7 @@ describe('Empoignade — store + funnel (LDB 14 l.159/161/169)', () => {
     banc.setState({ pendingGrapple: { ...pd,
       def: { roll: 30, target: 40, success: true, sl: 1, isDouble: false },
       atk: { roll: 50, target: 40, success: true, sl: 0, isDouble: false },
-      result: 'reussite', phase: 'roll' } });
+      result: 'reussite', phase: 'jet' } });
     banc.getState().jetValider('empoignade');
     banc.getState().jetRegler('empoignade', 'issue', 'liberer');
     expect(stacks(live(H.id), COND.empetre)).toBe(1); // 3 − (1 + DR 1) = 1
