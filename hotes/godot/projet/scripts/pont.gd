@@ -156,11 +156,12 @@ func appeler(methode: String, entree: Variant = null) -> Dictionary:
 ##
 ## - Au menu : `{ boutons: { texte, x, y }[] }`, le texte et le centre de chaque bouton actif.
 ## - Au combat : `{ boutons: { texte, x, y, element?, choix?, ids?, retenu? }[], cases: Record<"x,y,z", [x, y]>,
-##   glisse: boolean, cadre: [x, y, largeur, hauteur], corps: Record<string, { base: string, elements: string[],
+##   glisse: boolean, fondu: boolean, cadre: [x, y, largeur, hauteur], corps: Record<string, { base: string, elements: string[],
 ##   emblemes: Record<string, string>, couleurs: Record<string, Record<string, string>> }>, navires: string[] }`,
 ##   plus le point de l'écran du sol de chaque case de chaque couche du plateau, à l'écran ou non, si la caméra
 ##   glisse vers un lieu ou pivote (`Monde.glisse` : publié au départ du glissé, où les points de `cases` sont encore
-##   ceux d'avant, puis à sa fin, où ils tiennent), la part de l'écran où le
+##   ceux d'avant, puis à sa fin, où ils tiennent), si la vision posée se fond encore depuis celle d'avant
+##   (`VolumeDeScene.part_du_fondu` : publié à la vue qui la pose, puis à la fin du fondu), la part de l'écran où le
 ##   monde se voit, que l'interface ne couvre pas (`Monde.cadre`, vide avant la première mise en page), les ids des
 ##   navires de la scène dont le modèle est posé (`Plateau.navires`), republiés à chaque modèle posé, et, par id de
 ##   combattant dessiné avec un corps, sa base, les ids des éléments montés, par ligne de `montes`, l'id de

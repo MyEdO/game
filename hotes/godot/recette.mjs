@@ -445,8 +445,22 @@ async function presserLOffre(b) {
   await ouvrirLOngletDe(zone(await vue(), 'combat.offres').find((c) => c.valeurs.some((x) => x.id === b.id)), bouton(b))
   await cliquerBouton(bouton(b))
 }
+/** Les points des cases de l'écran `e` une fois la caméra posée (`glisse`), où chacun est celui qu'un clic désigne. */
+const casesPosees = (e) => !e.glisse && e.cases
+/** L'écran publié une fois la caméra posée, ses cases à l'écran. */
+async function ecranPose() {
+  const [e, cases] = await attendreALEcran(casesPosees)
+  assert.ok(cases, e?.glisse ? 'la caméra ne glisse plus avant la lecture des points des cases' : 'le plateau publie ses cases')
+  return e
+}
+/** L'écran publié une fois la caméra posée et le fondu de la vision fini (`fondu`) : l'image est celle que le jeu garde. */
+async function ecranFige() {
+  const [e, fige] = await attendreALEcran((e) => casesPosees(e) && !e.fondu)
+  assert.ok(fige, e?.fondu ? 'la vision ne se fond plus avant la capture' : 'la caméra se pose, le plateau à l’écran, avant la capture')
+  return e
+}
 async function cliquerCase({ x, y, z = 0 }) {
-  const [e, point] = await attendreALEcran((e) => !e.glisse && e.cases?.[`${x},${y},${z}`])
+  const [e, point] = await attendreALEcran((e) => casesPosees(e)?.[`${x},${y},${z}`])
   assert.ok(point, e?.glisse ? `la caméra ne glisse plus avant le clic sur la case ${x},${y},${z}` : `la case ${x},${y},${z} est à l'écran ; cases : ${Object.keys(e?.cases ?? {}).join(' ')}`)
   await cliquerPoint(...point)
 }
@@ -785,7 +799,7 @@ async function parcoursRegards() {
   await capturer('3476-v1-tactique')
   const x0 = v.projection.exploration
   const cle = `${x0.groupe[0]},${x0.groupe[1]},${x0.etage ?? 0}`
-  const [px] = (await ecran()).cases[cle]
+  const [px] = (await ecranPose()).cases[cle]
   const D = { key: 'd', code: 'KeyD', windowsVirtualKeyCode: 68 }
   await realKeyDown(session, D)
   await sleep(800)
@@ -867,9 +881,9 @@ async function luminancesALEcran(nom) {
   const v = await vue()
   const peintes = new Set(v.cases.map(({ case: c }) => `${c.x},${c.y},${c.z ?? 0}`))
   for (;;) {
-    const avant = await ecran()
+    const avant = await ecranFige()
     const { w, data } = decodePng(readFileSync(await shot(session, nom, o.captures)))
-    const apres = await ecran()
+    const apres = await ecranFige()
     if (JSON.stringify(apres.cases) !== JSON.stringify(avant.cases)) continue
     const lum = {}
     for (const [cle, point] of Object.entries(avant.cases)) {
@@ -1014,7 +1028,7 @@ async function parcoursBord() {
   }
   async function aller(c) {
     if (cleDe(await ou()) === cleDe(c)) return true
-    const pt = (await ecran()).cases?.[cleDe(c)]
+    const pt = (await ecranPose()).cases[cleDe(c)]
     if (!pt) return false
     await cliquerPoint(pt[0], pt[1])
     const ok = await arriver(c)
@@ -1200,7 +1214,7 @@ async function engagerLeCombat() {
     const v = await fermerLesFenetres()
     if (v.projection.combat) return
     assert.ok(pas < 8, `le groupe gagne la ligne d'engagement : groupe en ${v.projection.exploration?.groupe}`)
-    const publie = await ecran()
+    const publie = await ecranPose()
     const [gx, gy] = v.projection.exploration.groupe
     const z = v.projection.exploration.etage ?? 0
     const vers = Array.from({ length: LIGNE_D_ENGAGEMENT - gx }, (_, i) => LIGNE_D_ENGAGEMENT - i).find((x) => publie.cases[`${x},${gy},${z}`] && dansLeCadre(publie, publie.cases[`${x},${gy},${z}`]))
@@ -1532,7 +1546,7 @@ async function parcoursFiche() {
   assert.equal(zone(v, 'fiche.porteur')[0]?.nom, heros.nom, 'le bouton de sa carte ouvre le statbloc du héros')
   noter(`carte « ${heros.nom} » : ${zone(v, 'fiche.profil').map((p) => `${p.libelle} ${p.valeur}`).join(' · ')} ; ${zone(v, 'fiche.sections').map((s) => s.nom).join(', ')}`)
   await capturer('3678-statbloc-1-heros')
-  const publie = await ecran()
+  const publie = await ecranPose()
   const [cle, ennemi] = Object.entries(v.occupants).find(([k, id]) => element(v, 'combat.ordre', `ordre/${id}`)?.ton === 'echec' && dansLeCadre(publie, publie.cases[k]))
   const [px, py] = publie.cases[cle]
   await marquer()
