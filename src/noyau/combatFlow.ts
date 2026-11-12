@@ -2465,10 +2465,13 @@ function delierLeHorsDeCombat(get: Get, cible: Combatant): void {
 }
 
 /** Le journal d'un coup appliqué : sous bataille, son `battle.log`, Action scellée selon `acted` ;
- *  hors bataille, `journaliser`. */
+ *  hors bataille, `journaliser` puis `touchActors` (le groupe muté en place). */
 function journaliserLeCoup(get: Get, set: SetFn, battle: BattleState | null, lignes: CombatEvent[], acted: boolean): void {
   if (battle) set({ battle: { ...battle, acted, action: null, log: [...battle.log, ...lignes] } });
-  else journaliser(get, set, lignes.map((l) => l.text));
+  else {
+    journaliser(get, set, lignes.map((l) => l.text));
+    set(touchActors(get()));
+  }
 }
 
 /** La touche du marin d'un Critique de coque à l'Équipage, calculée contre LUI depuis le coup qui porte le

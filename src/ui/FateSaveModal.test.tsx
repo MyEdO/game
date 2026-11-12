@@ -25,6 +25,7 @@ const HERO = blessuresSurLeProfil({
 
 let host: HTMLDivElement;
 let root: Root;
+const GROUPE = useGame.getState().party;
 
 beforeEach(() => {
   host = document.createElement('div');
@@ -34,7 +35,7 @@ beforeEach(() => {
 afterEach(() => {
   act(() => root.unmount());
   host.remove();
-  useGame.setState({ pendingFateSave: null, battle: null });
+  useGame.setState({ pendingFateSave: null, battle: null, party: GROUPE });
 });
 
 const texte = (e: Element) => (e.textContent ?? '').trim();
@@ -85,5 +86,18 @@ describe('FateSave — LDB 17 l.29 : deux options au corps, le refus au pied', (
     const coup = regle('hit');
     expect(coup).toMatch(/Règle/);
     expect(regle('slow')).toBe(coup);
+  });
+});
+
+describe('FateSave hors bataille (#3892) : le héros lu au groupe', () => {
+  it('la modale s’affiche pour un héros du groupe, et l’issue choisie lève la suspension', () => {
+    const heros = structuredClone(HERO);
+    useGame.setState({ battle: null, party: [heros], pendingFateSave: { heroId: 'H', source: 'hit' } });
+    act(() => root.render(<FateSaveModal />));
+    const option = [...host.querySelectorAll('.modal-body button')].find((b) => texte(b) === 'Comment ça a pu rater ?') as HTMLButtonElement;
+    expect(option).toBeDefined();
+    act(() => option.click());
+    expect(useGame.getState().pendingFateSave).toBeNull();
+    expect(heros.fate).toBe(1);
   });
 });
