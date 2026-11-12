@@ -124,6 +124,7 @@ import { isInanimate, isStructure, structureAimCell, ramVsNonDoor } from '../eng
 import { rollStructureCritical, structureCollapseLog, tableDesCritiquesDeStructure, type StructureCriticalResolved } from '../engine/structureCritical';
 import { structureCriticalsDie } from '../data/structureCriticals';
 import { actorIn, auContactDeLaSerie, ecrireActeur, inBattleId, porteurParId } from './monde/combatants';
+import { checkPartyWiped } from './partyWipe';
 import type { IdDeCombattant } from './designations';
 import { nomDIndividu } from './monde/sceneNpc';
 import { garanti } from '../lib/garanti';
@@ -1645,8 +1646,7 @@ export function notifySlain(get: Get, set: SetFn, c: Combatant): string[] {
   c.slainNotified = true;
   releaseSeatsOfDowned(get, set); // un corps mis hors d'action ne tient plus sa chaise
   const lines: string[] = [];
-  const battle = get().battle;
-  if (battle) emitCombatEvent('onSlain', { get, set, battle, self: c, sink: (line) => lines.push(line), triggerCtx: { rng: battleRng() } });
+  emitCombatEvent('onSlain', { get, set, battle: get().battle, self: c, sink: (line) => lines.push(line), triggerCtx: { rng: battleRng() } });
   // Ops IMPURES « à la mort » (Gardien éternel : reconstitution ; toute zone laissée en mourant) — inertes dans
   // applyOps, résolues ici (grille/initiative) comme au lancement d'un sort d'invocation/zone.
   lines.push(...resolveTriggerImpureOps(get, set, c, 'onSlain'));
@@ -2748,13 +2748,13 @@ function appliquerLaTouche(
   // d'attaque (`weapon.type`) voyage dans le contexte ; un effet peut s'y restreindre (`attackType`).
   // Dispatcher générique (noyau/triggeredEffects) : l'effet est authoré en donnée sur l'entité.
   if (res.hit && res.woundsLost) {
-    if (battle) emitCombatEvent('onWoundLoss', { get, set, battle, self: target, sink: (line) => critLog.push(line), triggerCtx: { rng: battleRng(), attackType: weapon.type, woundsDealt: res.woundsLost } });
+    emitCombatEvent('onWoundLoss', { get, set, battle, self: target, sink: (line) => critLog.push(line), triggerCtx: { rng: battleRng(), attackType: weapon.type, woundsDealt: res.woundsLost } });
     // Chanson de marin (MDG 09 l.38) : « Si le Personnage subit des Dégâts …, sa Chanson de marin prend fin. »
     if (target.singingShanty) critLog.push(...endShanty(get, target));
   }
   // Effet déclenché « à la mise hors de combat d'un adversaire » authoré (Affamé : Test de FM ou
   // festoie — perd Action + Mouvement) — dispatcher générique (noyau/triggeredEffects).
-  if (battle && res.hit && isOutOfAction(target) && !isOutOfAction(attacker)) {
+  if (res.hit && isOutOfAction(target) && !isOutOfAction(attacker)) {
     emitCombatEvent('onKill', { get, set, battle, self: attacker, sink: (line) => critLog.push(line), triggerCtx: { rng: battleRng() } });
   }
   // Effet « à la mort » du SLAIN lui-même (Démoniaque banni…) — pour TOUT chemin de mort de cette
@@ -2842,7 +2842,7 @@ function appliquerLaTouche(
   // Atouts de l'arme (Assommante, Immobilisante…) et Enchantements actifs — agrégés et appliqués par UN
   // dispatcher générique (noyau/triggeredEffects). `location` (Assommante Tête) et `woundsDealt` (Venin
   // sur PB) alimentent les Conditions Flow de gating. LDB 85 l.98, l.278 ; LDB 14 l.159
-  if (battle && toucheNonIgnoree(res)) emitCombatEvent('onHit', { get, set, battle, self: attacker, sink: (line) => log.push(ev('etat', line, target.id)), triggerCtx: { victim: target, weapon, woundsDealt: res.woundsLost, margin: res.netSL, location: res.location, attackKind: creatureAttackKind(weapon), attackType: weapon.type, rng: battleRng() } });
+  if (toucheNonIgnoree(res)) emitCombatEvent('onHit', { get, set, battle, self: attacker, sink: (line) => log.push(ev('etat', line, target.id)), triggerCtx: { victim: target, weapon, woundsDealt: res.woundsLost, margin: res.netSL, location: res.location, attackKind: creatureAttackKind(weapon), attackType: weapon.type, rng: battleRng() } });
   // Combat de masse (ADE II 08 l.139/145) : une Scène de COMBAT compte les touches des PJ sur l'ennemi
   // (−1/touche) ; no-op hors bataille de masse. Réduction PUIS résolue à la victoire (massBattleResumeCombat).
   if (res.hit) massBattleTrackHit(get, set, attacker, target);
@@ -2866,7 +2866,7 @@ function appliquerLaTouche(
   // haut dans cette résolution) → foldées dans le MÊME `log` réécrit, avant que ce `set` ne le clobbere.
   // Effet déclenché « après résolution de l'attaque » (touche OU raté) — dispatcher générique via le bus.
   // Point d'émission = fin de résolution d'attaque (LDB 14, Test de combat résolu). Inerte sans donnée.
-  if (battle) emitCombatEvent('onAttackResolved', { get, set, battle, self: attacker, sink: (line) => log.push(ev('etat', line, target.id)), triggerCtx: { victim: target, weapon, woundsDealt: res.woundsLost, margin: res.netSL, location: res.location, attackKind: creatureAttackKind(weapon), attackType: weapon.type, rng: battleRng() } });
+  emitCombatEvent('onAttackResolved', { get, set, battle, self: attacker, sink: (line) => log.push(ev('etat', line, target.id)), triggerCtx: { victim: target, weapon, woundsDealt: res.woundsLost, margin: res.netSL, location: res.location, attackKind: creatureAttackKind(weapon), attackType: weapon.type, rng: battleRng() } });
   // SEAM `onOwnTestFailed` (MSRC 16 — Crampes) : le PORTEUR qui ÉCHOUE son PROPRE Test réagit. Une passe
   // d'armes porte DEUX Tests du porteur : (a) l'ATTAQUANT rate son jet d'attaque CC/CT (`attackerDetail`) ;
   // (b) le DÉFENSEUR rate sa Parade/Esquive (`defenderDetail`, Test opposé). PAS la défense adverse d'un
@@ -2887,19 +2887,18 @@ function appliquerLaTouche(
  * lui confie la queue au temps SUIVANT (le curseur) et rend `true`. Le temps `suite` est le dernier : ce
  * qu'il ouvre (fenêtre de défense du maillon suivant) porte sa PROPRE reprise (`PendingDefense.suite`),
  * et sa suspension remonte de même.
- * Hors bataille (série d'attaques subies, `serieSubie`), les combattants se lisent dans tout l'univers de jeu
- * (`porteurParId`) et l'après-coup part de son temps `suite` : #3892.
+ * Les combattants se lisent dans tout l'univers de jeu (`porteurParId`) : hors bataille (série d'attaques subies,
+ * `serieSubie`), les Maladresses se jouent (LDB 14 l.13, l.19) et la réaction n'a pas lieu (#3892, P3).
  */
 export function jouerLApresCoup(get: Get, set: SetFn, q: QueueDuCoup): boolean {
   const s = get();
-  const combattant = (id: string): Combatant | undefined => (s.battle ? inBattleId(s.battle, id) : porteurParId(s, id));
-  const attacker = combattant(q.attackerId);
-  const target = combattant(q.targetId);
+  const attacker = porteurParId(s, q.attackerId);
+  const target = porteurParId(s, q.targetId);
   if (!attacker || !target) {
     journaliser(get, set, [tr('cascade.cibleDisparue', { label: q.weapon.label })], 'information');
     return false;
   }
-  for (let i = APRES_COUP.indexOf(s.battle ? q.depuis : 'suite'); i < APRES_COUP.length; i++) {
+  for (let i = APRES_COUP.indexOf(q.depuis); i < APRES_COUP.length; i++) {
     const suivant: QueueDuCoup = { ...q, depuis: APRES_COUP[i + 1] ?? APRES_COUP[i] };
     switch (APRES_COUP[i]) {
       case 'oupsAttaquant':
@@ -2909,6 +2908,7 @@ export function jouerLApresCoup(get: Get, set: SetFn, q: QueueDuCoup): boolean {
         if (maladresseDuDefenseur(get, set, target, q.res, suivant)) return true;
         break;
       case 'reaction':
+        if (!s.battle) break;
         if (riposteDeclaree(attacker, target, q)) return jouerLaFrappePassive(get, set, attacker, target, q, suivant, tr('cf.riposte', { name: target.label }));
         if (reactionDeBouclierEnDegats(get, set, attacker, target, q))
           return jouerLaFrappePassive(get, set, attacker, target, q, suivant, tr('cf.reactionDeBouclierDegats', { name: target.label, foe: attacker.label }));
@@ -3063,9 +3063,9 @@ export function inFiringBand(shooter: Combatant, target: Combatant, weapon: Weap
 }
 
 /** Alliés (même camp) encore actifs, hors `c`, et À PORTÉE de `weapon` (LDB 14 l.30 : « à distance »).
- *  Sans position connue (tests), on ne filtre pas. */
-function alliesAtRange(battle: BattleState, c: Combatant, weapon: Weapon, metresPerTile = 2): Combatant[] {
-  return battle.combatants.filter((x) => x.id !== c.id && x.kind === c.kind && !isOutOfAction(x) && inFiringBand(c, x, weapon, metresPerTile));
+ *  Sans position connue (tests), on ne filtre pas. Hors bataille, aucun : #3892 (P2). */
+function alliesAtRange(battle: BattleState | null, c: Combatant, weapon: Weapon, metresPerTile = 2): Combatant[] {
+  return (battle?.combatants ?? []).filter((x) => x.id !== c.id && x.kind === c.kind && !isOutOfAction(x) && inFiringBand(c, x, weapon, metresPerTile));
 }
 
 /**
@@ -3244,7 +3244,7 @@ export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r:
     ouvrirDeDeCasse(set, c, reste[0], { des: [...des], reprise: { mode: 'oups', actorId: c.id, weapon, r, ...(coup ? { coup } : {}) } });
     return OPS_DIFFEREES;
   }
-  const battle = get().battle!;
+  const battle = get().battle;
   const log: string[] = [tr('cf.oups', { name: c.label, effet: r.label })];
   // UNE Sauvegarde Solide par Maladresse (`engine/oups.desDOups`, #1764) : l'issue se DÉCIDE une fois,
   // et chaque cause de cassure la LIT — Bâclé (LDB 60 l.50), Incident de tir (LDB 14 l.34), Salve.
@@ -3306,7 +3306,7 @@ export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r:
       if (hasQuality(weapon, 'arme-d-equipe') && c.mannedPoste) {
         const servants = exposedCrew((c.mannedPoste.crewIds ?? [])
           .filter((id) => id !== c.id)
-          .map((id) => inBattleId(battle, id))
+          .map((id) => porteurParId(get(), id))
           .filter((x): x is Combatant => !!x));
         for (const s of servants) {
           const sLost = woundsFromHit(weapon, s, 'brasD', effectiveWeaponDamage(weapon, force) + units, 0, 1, c.size);
@@ -3329,7 +3329,7 @@ export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r:
         const salveCrew = [c, ...(hasQuality(weapon, 'arme-d-equipe') && c.mannedPoste
           ? exposedCrew((c.mannedPoste.crewIds ?? [])
               .filter((id) => id !== c.id)
-              .map((id) => inBattleId(battle, id))
+              .map((id) => porteurParId(get(), id))
               .filter((x): x is Combatant => !!x))
           : [])];
         for (let i = 0; i < salve.hits; i++) {
@@ -3346,7 +3346,8 @@ export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r:
       break;
     }
   }
-  set({ battle: { ...get().battle!, log: [...get().battle!.log, ...evLines(log, 'information', c.id)] } });
+  journaliser(get, set, log, 'information', { actorId: c.id });
+  set(touchActors(get()));
   bus.emit(EVT.SCENE_DIRTY);
   checkBattleOver(get, set);
   return undefined;
@@ -3357,7 +3358,7 @@ export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r:
 function armeDeLaCasse(get: Get, casse: PendingCasseDArme): Weapon | undefined {
   const reprise = casse.reprise;
   if (reprise.mode === 'oups') return reprise.weapon;
-  const porteur = inBattleId(get().battle, reprise.bt.attackerId);
+  const porteur = porteurParId(get(), reprise.bt.attackerId);
   return porteur?.weapons.find((w) => w.uid === reprise.bt.weaponUid);
 }
 
@@ -3366,11 +3367,11 @@ function armeDeLaCasse(get: Get, casse: PendingCasseDArme): Weapon | undefined {
 function demandesDeLaCasse(get: Get, casse: PendingCasseDArme): DemandeDeCasse[] {
   const reprise = casse.reprise;
   if (reprise.mode === 'piegeALame') {
-    const porteur = inBattleId(get().battle, reprise.bt.attackerId);
+    const porteur = porteurParId(get(), reprise.bt.attackerId);
     const lame = porteur?.weapons.find((w) => w.uid === reprise.bt.weaponUid);
     return porteur && lame ? desDeBrisDeLame(porteur, lame) : [];
   }
-  const c = inBattleId(get().battle, reprise.actorId);
+  const c = porteurParId(get(), reprise.actorId);
   return c ? desDOups(c, reprise.weapon, reprise.r) : [];
 }
 
@@ -3814,16 +3815,17 @@ export function ouvrirLaSerieSubie(get: Get, set: SetFn, cible: Combatant, op: E
  *  ouvert (`pendingFateSave`), le coup n'est pas achevé : la série attend. La dernière attaque achevée ou la cible hors
  *  d'action, la série se ferme (`fermerLaSerieSubie`) ; sinon l'assaillant qui perd son Action (`loseNextAction`) la
  *  voit décomptée sans être jouée (LDB 14 l.28), et l'attaque suivante part par `doAttack`. Une attaque à laquelle
- *  l'assaillant renonce (`doAttack` sans après-coup) est achevée de même. Rend `true` quand une fenêtre tient la main.
+ *  l'assaillant renonce (`doAttack` sans après-coup) est achevée de même. Rend un `Applique` : `OPS_DIFFEREES` quand une
+ *  fenêtre ou le Destin tient la main, `undefined` quand la série s'est fermée.
  *  MDG 15 l.163-164, l.177-178 */
-export function poursuivreLaSerie(get: Get, set: SetFn): boolean {
-  if (get().pendingFateSave) return true;
+export function poursuivreLaSerie(get: Get, set: SetFn): Applique {
+  if (get().pendingFateSave) return OPS_DIFFEREES;
   const serie = garanti(get().serieSubie, 'serieSubie', 'série d’attaques subies');
   const restantes = serie.restantes - 1;
   const cible = garanti(get().party.find((h) => h.id === serie.cibleId), serie.cibleId, 'cible de la série d’attaques subies');
   if (restantes <= 0 || isOutOfAction(cible)) {
     fermerLaSerieSubie(get, set);
-    return false;
+    return undefined;
   }
   const { assaillant } = serie;
   if (assaillant.loseNextAction) {
@@ -3832,16 +3834,22 @@ export function poursuivreLaSerie(get: Get, set: SetFn): boolean {
     return poursuivreLaSerie(get, set);
   }
   set({ serieSubie: { ...serie, restantes } });
-  if (doAttack(get, set, assaillant, cible, { mode: 'subie' }) === OPS_DIFFEREES) return true;
-  return get().serieSubie ? poursuivreLaSerie(get, set) : false;
+  if (doAttack(get, set, assaillant, cible, { mode: 'subie' }) === OPS_DIFFEREES) return OPS_DIFFEREES;
+  return get().serieSubie ? poursuivreLaSerie(get, set) : undefined;
 }
 
-/** Ferme la série d'attaques subies, sa sortie unique : le héros rendu au groupe par la couture de retour
- *  (`sortieDeRencontre`) et la série vidée, PUIS sa suite jouée (`jouerLesClotures`). Dans cet ordre : la suite
- *  s'applique au héros rendu, que la sortie n'écrase plus, et hors de toute série, qu'elle peut rouvrir. */
+/** Ferme la série d'attaques subies, sa sortie unique : la fin de rencontre décidée sur ses combattants, le héros et
+ *  l'assaillant (`ouvrirLaFinDeRencontre`), puis le héros rendu au groupe par la couture de retour
+ *  (`sortieDeRencontre`) et la série vidée, la défaite du groupe constatée (`checkPartyWiped`, qui purge la suite et les
+ *  Tests ouverts), PUIS sa suite jouée (`jouerLesClotures`), qui n'attend pas ces Tests. Dans cet ordre : la décision
+ *  lit les marqueurs de rencontre que la sortie efface, la suite s'applique au héros rendu, que la sortie n'écrase
+ *  plus, et hors de toute série, qu'elle peut rouvrir. LDB 18 l.171 ; LDB 20 l.25, l.90 */
 export function fermerLaSerieSubie(get: Get, set: SetFn): void {
   const serie = garanti(get().serieSubie, 'serieSubie', 'série d’attaques subies');
+  const heros = garanti(get().party.find((h) => h.id === serie.cibleId), serie.cibleId, 'cible de la série d’attaques subies');
+  ouvrirLaFinDeRencontre(get, set, [heros, serie.assaillant], {});
   set((s: Jeu) => ({ party: s.party.map((h) => (h.id === serie.cibleId ? sortieDeRencontre(serie.avant, h) : h)), serieSubie: null }));
+  if (checkPartyWiped(get, set)) return;
   jouerLesClotures(get, set, serie.apresSuite ?? []);
 }
 
@@ -4052,7 +4060,7 @@ function jouerLaSuiteDuCoup(get: Get, set: SetFn, attacker: Combatant, target: C
     case 'tirRapide': suspendu = runPreemptShots(get, set, enchainement.faits); break; // la boucle des tireurs reprend (#997)
     case 'aucun': break; // le site d'origine a tranché : aucun balayage ne suit ce coup
     case 'apresCoup': suspendu = jouerLApresCoup(get, set, enchainement.queue); break; // LDB 10 l.1037 ; LDB 85 l.71
-    case 'subie': suspendu = poursuivreLaSerie(get, set); break; // MDG 15 l.163-164, l.177-178
+    case 'subie': suspendu = poursuivreLaSerie(get, set) === OPS_DIFFEREES; break; // MDG 15 l.163-164, l.177-178
   }
   if (suspendu) return true;
   if (restitution && !portee) set({ battle: { ...get().battle!, acted: restitution.prevActed } });
@@ -4404,11 +4412,12 @@ function resumeMeleeAfterSuspension(
   // sans son drapeau infligerait des Dégâts, LDB 14 l.159), et la chaîne de balayage parquée.
   coup: ApplicationDuCoup,
 ): void {
-  const battle = get().battle;
-  if (!battle) return;
-  const attacker = inBattleId(battle, attackerId);
-  const target = inBattleId(battle, targetId);
-  if (!attacker || !target) return;
+  const attacker = porteurParId(get(), attackerId);
+  const target = porteurParId(get(), targetId);
+  if (!attacker || !target) {
+    journaliser(get, set, [tr('cascade.cibleDisparue', { label: weapon.label })], 'information');
+    return;
+  }
   // RE-SUSPENDU par la fenêtre SUIVANTE (sauvegarde ratée → Critique à dévier) : la suite lui est
   // REPASSÉE, elle voyage dans SA charge, et c'est la DERNIÈRE reprise qui la joue — une fois.
   jouerFlowEntier(applyAttackResult(get, set, attacker, target, weapon, res, coup));
@@ -4420,19 +4429,21 @@ function resumeMeleeAfterSuspension(
  *  - `melee` → RÉ-ENTRE `applyAttackResult` avec la décision (son tail décision-indépendant tourne UNE fois) ;
  *  - `self` → le Critique pré-tiré d'`applyCoupCritiqueSec`. */
 export function resolveDeviation(get: Get, set: SetFn, dev: PendingDeviation, deviate: boolean): void {
-  const battle = get().battle;
-  if (!battle) return;
   if (dev.mode !== 'self') {
     reprendreLeCoup(get, set, dev, { crit: dev.crit, deviation: deviate ? 'devier' : 'subir' });
     return;
   }
-  const target = inBattleId(battle, dev.targetId);
-  if (!target) return;
+  const target = porteurParId(get(), dev.targetId);
+  if (!target) {
+    journaliser(get, set, [tr('cascade.cibleDisparue', { label: tr('step.critDevier') })], 'information');
+    return;
+  }
   const log: string[] = [];
   if (deviate) deflectCrit(target, dev.location, log); // −1 PA, Critique ignoré
   else {
-    const lethal = applyCritAndFinalize(get, set, target, dev.location, dev.overkill, dev.origine, log, dev.ctx, inBattleId(get().battle, dev.ctx.attackerId), dev.woundsBefore, dev.crit, true); // Subir : Critique pré-tiré
-    apresLeCritiqueDe({ get, set, auteur: inBattleId(battle, dev.ctx.attackerId), cible: target, lieu: dev.location, log, arme: dev.ctx.weaponObj })(lethal, dev.origine); // #316
+    const auteur = dev.ctx.attackerId ? porteurParId(get(), dev.ctx.attackerId) : undefined;
+    const lethal = applyCritAndFinalize(get, set, target, dev.location, dev.overkill, dev.origine, log, dev.ctx, auteur, dev.woundsBefore, dev.crit, true); // Subir : Critique pré-tiré
+    apresLeCritiqueDe({ get, set, auteur, cible: target, lieu: dev.location, log, arme: dev.ctx.weaponObj })(lethal, dev.origine); // #316
   }
   if (estUnCoupCritique(dev.origine)) breakBacleArmour(target, dev.location, log); // LDB 60 l.50
   // 0 PB → À Terre (LDB 18 l.15).
@@ -4448,10 +4459,7 @@ function cloreLaReprise(get: Get, set: SetFn, target: Combatant, log: string[], 
     clearPsychOf(get().battle?.combatants ?? [], target.id);
     refreshAllDefendedPsych(get().battle?.combatants ?? []); // l’Amour ne se clôt pas à la chute d’UN aimé (l.75) : verdict re-mesuré
   }
-  if (log.length) {
-    const b = get().battle;
-    if (b) set({ battle: { ...b, log: [...b.log, ...evLines(log, 'critique', attackerId, target.id)] } }); // acteur = attaquant, sujet = cible (parité mode melee)
-  }
+  journaliser(get, set, log, 'critique', { actorId: attackerId, targetId: target.id }); // acteur = attaquant, sujet = cible (parité mode melee)
   checkBattleOver(get, set);
 }
 
@@ -4466,13 +4474,16 @@ function reprendreLeCoup(get: Get, set: SetFn, dev: PendingDeviation & CoupSuspe
   }
   if (dev.mode === 'marin') {
     const lignes = encaisserLeCoupDuMarin(get, set, dev.coupDuMarin, critiques);
-    const marin = actorIn(get(), dev.targetId);
+    const marin = porteurParId(get(), dev.targetId);
     if (lignes && marin) cloreLaReprise(get, set, marin, lignes, dev.attackerId);
     return;
   }
   const appliquee = appliquerToucheDeProjectile(get, set, { ...dev.touche, critiques });
-  const target = actorIn(get(), dev.targetId);
-  if (!target) return;
+  const target = porteurParId(get(), dev.targetId);
+  if (!target) {
+    journaliser(get, set, [tr('cascade.cibleDisparue', { label: dev.touche.spell.label })], 'information');
+    return;
+  }
   const log = appliquee.issue === 'appliquee' ? [...appliquee.lignes, ...jouerLeRebond(get, set, dev.touche)] : appliquee.lignes;
   cloreLaReprise(get, set, target, log, dev.attackerId);
 }
@@ -6662,7 +6673,7 @@ export function domainCastBonus(s: Jeu, caster: Combatant, spell: { domainId?: {
 export function castNearCorruption(get: Get): boolean {
   if (get().flags['corruption']) return true;
   const battle = get().battle;
-  if (battle && worstCorruptionExposure(battle)) return true;
+  if (battle && worstCorruptionExposure(battle.combatants)) return true;
   const combatants = battle ? battle.combatants : get().party;
   return combatants.some((c) => !!malepierreItemOf(c));
 }
@@ -6806,11 +6817,11 @@ export function ouvrirLesContagions(get: Get, set: SetFn, ids: readonly string[]
   }
 }
 
-/** Pire Degré d'EXPOSITION à la Corruption des créatures affrontées (LDB 85 l.87 → LDB 19), désigné par
- *  l'id de son Trait, avec le libellé de son registre — `null` si aucune créature corrompue. Le niveau
- *  s'applique à TOUS les héros survivants (avoir affronté). */
-function worstCorruptionExposure(battle: BattleState): { level: ExposureLevel; label: string } | null {
-  const rangs = battle.combatants
+/** Pire Degré d'EXPOSITION à la Corruption des créatures affrontées parmi les `combattants` de la rencontre (LDB 85
+ *  l.87 → LDB 19), désigné par l'id de son Trait, avec le libellé de son registre — `null` si aucune créature
+ *  corrompue. Le niveau s'applique à TOUS les héros survivants (avoir affronté). */
+function worstCorruptionExposure(combattants: readonly Combatant[]): { level: ExposureLevel; label: string } | null {
+  const rangs = combattants
     .filter((c) => c.kind !== 'hero')
     .flatMap((c) => (c.traits ?? []).filter((t) => t.id === 'corruption').map((t) => EXPOSURE_LADDER.indexOf(t.arg as ExposureLevel)));
   const pire = Math.max(-1, ...rangs);
@@ -6842,8 +6853,25 @@ function routeBandByPilot(
 }
 
 /**
- * CASCADE de fin de combat (LDB 18/19/20) — extrait les JETS de PERSONNAGE de fin de combat de
- * `finalizeBattle` pour les rendre cadence-aware AVANT l'écran de victoire.
+ * CASCADE de fin de combat (LDB 18/19/20) : les télégraphes de la bataille s'effacent, la fin de rencontre se décide
+ * sur ses combattants (`ouvrirLaFinDeRencontre`), puis la séquence RÉELLEMENT ouverte porte `combatEndBoundary` : à
+ * sa fermeture, le store enchaîne sur `finishCombatEnd` (writeback + écran de victoire).
+ */
+export function openCombatEndCascade(get: Get, set: SetFn): void {
+  const battle = get().battle;
+  if (!battle) return;
+  // La fin du combat est conclue : un geste différé encore en attente ne partira plus, ses télégraphes s'effacent (#3058).
+  for (const c of battle.combatants) effacerLesTelegraphes(get, set, c.id);
+  ouvrirLaFinDeRencontre(get, set, battle.combatants, { combatEndBoundary: true });
+  // Un Test d'amputation surfacé peut l'avoir ouverte à lui seul (`startCascade` renonce sur `steps` vide).
+  // Sans la borne, sa fermeture rappellerait `openCombatEndCascade` et rejouerait l'Exposition à la
+  // Corruption, dont le Degré n'est pas un marqueur.
+  bornerLaSequenceOuverte(get, set, 'combatEndBoundary');
+}
+
+/**
+ * DÉCISION de fin de RENCONTRE (LDB 18/19/20) sur ses `combattants` — la bataille, ou la série d'attaques subies
+ * (`fermerLaSerieSubie`) : elle PRÉCÈDE le report (`sortieDeRencontre`), qui perd les marqueurs de rencontre.
  *
  * « Une situation = une fenêtre » (#1117 L4) : les Tests dus sont bâtis pour TOUS les PERSONNAGES
  * vivants (héros, ou combattant flagué #143 `followsCharacterRules` — PAS un proxy `kind`), puis
@@ -6853,28 +6881,24 @@ function routeBandByPilot(
  * pilotées à la main dans la cascade influençable (Chance/Résilience offertes, conséquence à la
  * validation), les autres résolues d'office.
  *
- * Les marqueurs sont CONSOMMÉS ici (source unique). La cascade ouverte porte `combatEndBoundary:true` :
- * à sa fermeture, le store enchaîne sur `finishCombatEnd` (writeback + écran de victoire).
+ * Les marqueurs sont CONSOMMÉS ici (source unique). `bornes` : celles que la séquence ouverte porte.
  */
-export function openCombatEndCascade(get: Get, set: SetFn): void {
-  const battle = get().battle;
-  if (!battle) return;
-  // La fin du combat est conclue : un geste différé encore en attente ne partira plus, ses télégraphes s'effacent (#3058).
-  for (const c of battle.combatants) effacerLesTelegraphes(get, set, c.id);
-  const corr = worstCorruptionExposure(battle);
+function ouvrirLaFinDeRencontre(get: Get, set: SetFn, combattants: readonly Combatant[], bornes: { combatEndBoundary?: boolean }): void {
+  const corr = worstCorruptionExposure(combattants);
   const steps: BuiltCascadeStep[] = [];
   const monos: BuiltCascadeStep[] = [];
   const inlineLines: string[] = [];
   // Amputations DIFFÉRÉES à la fin de la rencontre (LDB 18 l.171 : « Une fois la rencontre terminée… ») :
   // le nœud ARMÉ au critique (`Trauma.pendingAmputation`, enjeu posé) part par la PORTE canonique — porteur
   // SURFACÉ : étape influençable APPENDÉE à la cascade 'combat' de fin de combat (`startCascade` OU-e la
-  // borne quand `openSequence` suit) ; sinon voie inline de la porte, dont le journal est drainé ici.
-  for (const c of battle.combatants) {
+  // borne quand `openSequence` suit) — hors bataille, la modale de jet du héros (`openSkillTest`) ; sinon voie
+  // inline de la porte, dont le journal est drainé ici.
+  for (const c of combattants) {
     if (c.dead) continue;
     for (const a of prendreAmputationsDifferees(c)) routeTriggeredTest(get, set, c, c, a.flow, { idNeuf: get().forgerUnId, rng: battleRng(), label: a.label });
   }
   inlineLines.push(...drainPendingLog(get, set).map((e) => e.text));
-  for (const c of battle.combatants) {
+  for (const c of combattants) {
     if (!followsCharacterRules(c) || c.dead) continue; // #143 : RAW « Personnage » (LDB 18 l.5, LDB 20 l.14/206) — les créatures génériques et les défaits n'ont pas de jet de maladie/Corruption de fin de combat
     const decided = decideCombatEndHeroTests(c, corr?.level ?? null);
     const resVal = combatEndResistVal(c);
@@ -6927,11 +6951,7 @@ export function openCombatEndCascade(get: Get, set: SetFn): void {
   // TOUTE la séquence est MINTÉE : les jets bâtis ici (`monoStep`, `combatEndBands`/`splitBandRows` →
   // `bandStep`) comme ceux venus de la file, qui est elle-même typée à la marque (#1262 V2) — la dernière
   // ouverture de combat par littéral passe donc par la porte.
-  if (steps.length) openSequence(get, set, { title: tr('step.consequencesDuCombat'), icon: 'etat/hemorragique', purpose: 'combat', steps, combatEndBoundary: true });
-  // Un Test d'amputation surfacé peut l'avoir ouverte à lui seul (`startCascade` renonce sur `steps` vide).
-  // Sans la borne, sa fermeture rappellerait `openCombatEndCascade` et rejouerait l'Exposition à la
-  // Corruption, dont le Degré n'est pas un marqueur.
-  bornerLaSequenceOuverte(get, set, 'combatEndBoundary');
+  if (steps.length) openSequence(get, set, { title: tr('step.consequencesDuCombat'), icon: 'etat/hemorragique', purpose: 'combat', steps, ...bornes });
 }
 
 /** La BORNE de dénouement porte sur la séquence RÉELLEMENT ouverte, quels que soient son `purpose` et le site
@@ -7347,9 +7367,10 @@ export function finishCombatEnd(get: Get, set: SetFn): void {
  *  de « 1 Round minimum » — il subit alors −20 pendant 1 Round, journalisé par l'appelant) ; false s'il doit
  *  la LÂCHER (aucun gantelet, ou SECOND évènement de lâcher pendant la période). Pose/réarme le marqueur
  *  transitoire `drop.gauntletSavedRound`. */
-function lockedGauntletHolds(wielder: Combatant, drop: Weapon, round: number): boolean {
+function lockedGauntletHolds(wielder: Combatant, drop: Weapon, roundCourant: number | undefined): boolean {
   const hasGauntlet = hasCapability(wielder, 'preventForcedDrop'); // capacité agrégée (gantelet PORTÉ/TENU)
   if (!hasGauntlet) return false;
+  const round = garanti(roundCourant, wielder.id, 'Round du gantelet verrouillé hors bataille (LDB 13 l.13)');
   const saved = drop.gauntletSavedRound;
   if (saved != null && round <= saved + 1) { drop.gauntletSavedRound = undefined; return false; } // 2e évènement dans la période → lâche
   drop.gauntletSavedRound = round; // 1re sauvegarde (ou période écoulée → réarmement) : garde l'arme, −20/1 Round
@@ -7367,9 +7388,7 @@ function lockedGauntletHolds(wielder: Combatant, drop: Weapon, round: number): b
  * l'autre », acquittée par « Continuer/Terminer ») plutôt qu'une ligne noyée. `defenderSL` = le DR PROPRE du
  * jet résolu (la marge nette se recompose avec `bt`). */
 export function applyBladeTrap(get: Get, set: SetFn, defender: Combatant, bt: BladeTrapFreeze, defenderSL: number, des: Map<string, number> = new Map()): Applique {
-  const battle = get().battle;
-  if (!battle) return undefined;
-  const attacker = inBattleId(battle, bt.attackerId);
+  const attacker = porteurParId(get(), bt.attackerId);
   if (!attacker || isOutOfAction(attacker)) return undefined;
   const drop = attacker.weapons.find((w) => w.uid === bt.weaponUid);
   if (!drop) return undefined;
@@ -7401,8 +7420,9 @@ export function applyBladeTrap(get: Get, set: SetFn, defender: Combatant, bt: Bl
   // Gantelet verrouillé (AA folio 94) : anti-lâcher — la lame DÉTRUITE échappe à cette grâce (un gantelet
   // ne sauve pas une arme brisée). Sinon, la 1re fois dans la période le porteur GARDE l'arme (−20/1 Round) ;
   // le 2e évènement de lâcher la fait tomber. Capacité lue en DONNÉE (`preventForcedDrop`), jamais par nom.
-  if (!brisee && lockedGauntletHolds(attacker, drop, battle.round)) {
+  if (!brisee && lockedGauntletHolds(attacker, drop, get().battle?.round)) {
     pushDisplay(set, { id: idDansLaSequence(get, `cons-issue-du-piege-a-lame-${defender.id}`, 'combat'), kind: 'issueDuPiegeALame', actorId: defender.id, icon: 'action/se-defendre', label: tr('cf.libelleDuPiegeALame'), outcome: toRecapLines([...usure, tr('cf.ganteletVerrouilleRetient', { name: attacker.label, weapon: drop.label })]) });
+    set(touchActors(get()));
     bus.emit(EVT.SCENE_DIRTY);
     checkBattleOver(get, set);
     return undefined;
@@ -7412,6 +7432,7 @@ export function applyBladeTrap(get: Get, set: SetFn, defender: Combatant, bt: Bl
   // Étape d'AFFICHAGE empilée (comme un Coup Critique) : visible « l'un sous l'autre », acquittée par le
   // joueur. `actorId` = le défenseur piégeur (propriétaire de la modale en coop). Applier muet (préserve `outcome`).
   pushDisplay(set, { id: idDansLaSequence(get, `cons-issue-du-piege-a-lame-${defender.id}`, 'combat'), kind: 'issueDuPiegeALame', actorId: defender.id, icon: 'objet/arme', label: tr('cf.libelleDuPiegeALame'), outcome: toRecapLines([...usure, line]) });
+  set(touchActors(get()));
   bus.emit(EVT.SCENE_DIRTY);
   checkBattleOver(get, set);
   return undefined;
@@ -8926,14 +8947,14 @@ export const TABLES = {
       if (!demande) return dit(); // la grappe a changé sous le dé : rien n'est appliqué au hasard
       des.set(demande.cle, tirage);
       if (casse.reprise.mode === 'piegeALame') {
-        const defenseur = inBattleId(get().battle, casse.reprise.defenderId);
+        const defenseur = porteurParId(get(), casse.reprise.defenderId);
         if (!defenseur) return dit([tr('cascade.cibleDisparue', { label: step.label ?? '' })]);
         // Le seul dé du Piège-lame vient de tomber : l'application n'a plus rien à ouvrir — et si elle le
         // faisait, le fail-fast le dirait plutôt que de laisser la conséquence jouer devant un dé.
         nePeutPasDifferer(applyBladeTrap(get, set, defenseur, casse.reprise.bt, casse.reprise.defenderSL, des), 'reprise du dé de Sauvegarde Solide (Piège-lame)');
         return dit();
       }
-      const c = inBattleId(get().battle, casse.reprise.actorId);
+      const c = porteurParId(get(), casse.reprise.actorId);
       if (!c) return dit([tr('cascade.cibleDisparue', { label: step.label ?? '' })]);
       const issue = applyOups(get, set, c, casse.reprise.weapon, casse.reprise.r, des, casse.reprise.coup);
       // La Maladresse appliquée, l'APRÈS-COUP du coup reprend au temps que le dé avait suspendu.
@@ -8961,7 +8982,8 @@ export const TABLES = {
     },
     deviation: (get, set, step) => {
       const dev = step.deviation;
-      if (!dev) return;
+      // Le pli n'a pas posé le Critique : sa cible est introuvable, la conséquence se DIT (patron `sauvegarde`).
+      if (!dev) return step.critSeverity ? { consequences: freeCons([tr('cascade.cibleDisparue', { label: step.label ?? '' })]) } : undefined;
       if (!step.options && dev.mode !== 'self') {
         reprendreLeCoup(get, set, dev, { crit: dev.crit });
         return;
@@ -9042,18 +9064,17 @@ export const TABLES = {
     piegeALame: (get, set, step) => {
       const pbt = step.piegeLame;
       if (!pbt) return;
-      const battle = get().battle;
-      const defender = inBattleId(battle, pbt.defenderId);
-      const attacker = inBattleId(battle, pbt.attackerId);
-      if (!defender || !attacker) return;
+      const defender = porteurParId(get(), pbt.defenderId);
+      const attacker = porteurParId(get(), pbt.attackerId);
+      if (!defender || !attacker) return { consequences: freeCons([tr('cascade.cibleDisparue', { label: step.label ?? '' })]) };
       if (step.chosen !== 'piege') {
         // Coup Critique normal sur la défense (le défenseur place le Critique sur l'attaquant).
         const parryWeaponObj = defender.weapons.find((w) => w.uid === pbt.parryWeaponUid);
         const parryWeaponName = parryWeaponObj?.label ?? 'arme';
         const lines = [tr('cf.critiqueEnDefense', { name: defender.label })];
         applyCoupCritiqueSec(get, set, attacker, pbt.roll, 'double', { attackerId: defender.id, weapon: parryWeaponName, weaponObj: parryWeaponObj }, lines, defender);
-        const b = get().battle!;
-        set({ battle: { ...b, log: [...b.log, ...evLines(lines, 'information', defender.id, attacker.id)] } });
+        journaliser(get, set, lines, 'information', { actorId: defender.id, targetId: attacker.id });
+        set(touchActors(get()));
         bus.emit(EVT.SCENE_DIRTY);
         checkBattleOver(get, set);
         return;
@@ -9106,7 +9127,7 @@ export const TABLES = {
       const p = step.critSeverity;
       const rolled = step.table?.result;
       if (!p || !rolled) return step;
-      const target = inBattleId(get().battle, p.targetId);
+      const target = porteurParId(get(), p.targetId);
       if (!target) return step;
       const crit = resolveCritique(jeuDeCritique(p.twice), target, p.location, battleRng(), { overkill: p.overkill, twice: p.twice, forcedRoll: rolled.roll });
       const reveal = previewCritEntry(target, crit, p.origine, { attackerId: p.attackerId, weapon: libelleDuCoup(p) });

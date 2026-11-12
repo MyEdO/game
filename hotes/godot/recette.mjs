@@ -479,7 +479,7 @@ async function parcoursCombat() {
   noter(`fin du tour de ${heros.nom} ; actif ${second.nom}`)
   await cliquerCase(vers)
   v = await vue()
-  assert.deepEqual([v.projection.combat.apercu?.genre, v.projection.combat.apercu?.case], ['move', [vers.x, vers.y, vers.z ?? 0]], 'le premier clic montre l’aperçu')
+  assert.deepEqual([v.projection.combat.apercu?.genre, v.projection.combat.apercu?.case], ['deplacement', [vers.x, vers.y, vers.z ?? 0]], 'le premier clic montre l’aperçu')
   const apercu = element(v, 'combat.apercu', 'apercu')
   assert.ok(apercu, 'l’aperçu dit ce qu’il coûte, près de sa case')
   noter(`premier clic sur (${vers.x}, ${vers.y}) : ${apercu.texte}`)
@@ -615,7 +615,7 @@ async function parcoursRelief() {
   const vers = plateau[0].case
   await cliquerCase(vers)
   v = await vue()
-  assert.deepEqual([v.projection.combat.apercu?.genre, v.projection.combat.apercu?.case], ['move', [vers.x, vers.y, vers.z ?? 0]], 'la case cliquée est celle du plateau sous le pointeur')
+  assert.deepEqual([v.projection.combat.apercu?.genre, v.projection.combat.apercu?.case], ['deplacement', [vers.x, vers.y, vers.z ?? 0]], 'la case cliquée est celle du plateau sous le pointeur')
   noter(`clic sur (${vers.x}, ${vers.y}), au bord du plateau de 4 m : son aperçu`)
   await capturer('3476-r2-plateau')
 }
