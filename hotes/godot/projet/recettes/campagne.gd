@@ -1,7 +1,8 @@
 extends SceneTree
 
 ## Une campagne jouée depuis l'accueil (#3009, `hotes/godot/pont/CONTRAT.md`, section « Méthodes ») : sur le pont de
-## l'arbre, l'accueil (`scenes/Accueil.tscn`) publie « Jouer » ; un clic ouvre le combat sur une partie au groupe, sans
+## l'arbre, l'accueil (`scenes/Accueil.tscn`) publie ses entrées ; « Options » ouvre le panneau des réglages, où une
+## préférence se règle et repose le volume des bus ; « Jouer » ouvre le combat sur une partie au groupe, sans
 ## scène, ses pré-tirés et ses campagnes montrés ; deux pré-tirés recrutés à leur bouton entrent au groupe, chacun en
 ## carte avec son renvoi ; « Lancer » de la Diligence pose sa scène ; « Sauvegardes » ouvre le panneau des
 ## emplacements, l'emplacement 1 écrit à son bouton se charge ensuite ; « Quitter la partie » rend l'accueil ;
@@ -33,7 +34,7 @@ func _recetter() -> void:
 	change_scene_to_file(ACCUEIL)
 	var ouvert := await _pont.rejoindre(func(message: String) -> void: _signales.append("refus : " + message), func(message: String) -> void: _signales.append("panne : " + message))
 	var cree := _creer_un_heros() if ouvert else ""
-	if cree != "" and await _jouer_une_campagne(2, "la-diligence") and await _sauvegarder_puis_reprendre():
+	if cree != "" and await _regler_a_l_accueil() and await _jouer_une_campagne(2, "la-diligence") and await _sauvegarder_puis_reprendre():
 		_cliquer(_publie("bouton/quitter"))
 		if await _attendre(func() -> bool: return _au_menu(), "l'accueil après « Quitter la partie »"):
 			print("[campagne] partie quittée : l'accueil")
@@ -47,6 +48,34 @@ func _recetter() -> void:
 		push_error("[campagne] " + faute)
 	print("[campagne] erreurs=", _fautes.size())
 	quit(0 if _fautes.is_empty() else 1)
+
+
+## « Options » pressé à l'accueil, le panneau des réglages montre les préférences : « Oui » des dés fixés pressé, le
+## pont dit la préférence réglée et le bus de la musique prend le volume que le pont lui donne ; « Non » la remet, et
+## « Fermer » rend l'accueil.
+func _regler_a_l_accueil() -> bool:
+	if not await _attendre(func() -> bool: return _au_menu(), "l'accueil avant les réglages"):
+		return false
+	_cliquer(_texte("Options"))
+	if not await _attendre(func() -> bool: return _publie("bouton/preference/des-fixes/true") != null, "le panneau des réglages"):
+		return false
+	var musique := AudioServer.get_bus_index("musique")
+	var avant := AudioServer.get_bus_volume_linear(musique)
+	_pont.appeler("reglages", {type = "preference", args = ["volume-musique", 0.25]})
+	_cliquer(_publie("bouton/preference/des-fixes/true"))
+	if not await _attendre(func() -> bool: return _pont.appeler("preferences").preferences["des-fixes"] == true, "les dés fixés réglés au panneau"):
+		return false
+	if not is_equal_approx(AudioServer.get_bus_volume_linear(musique), 0.25):
+		_fautes.append("le bus de la musique à %s après un réglage du panneau, 0.25 attendu" % AudioServer.get_bus_volume_linear(musique))
+	_pont.appeler("reglages", {type = "preference", args = ["volume-musique", avant]})
+	_cliquer(_publie("bouton/preference/des-fixes/false"))
+	if not await _attendre(func() -> bool: return _pont.appeler("preferences").preferences["des-fixes"] == false, "les dés fixés remis au panneau"):
+		return false
+	_cliquer(_publie("bouton/fermer"))
+	if not await _attendre(func() -> bool: return _publie("bouton/fermer") == null and _au_menu(), "l'accueil après « Fermer »"):
+		return false
+	print("[campagne] réglages : les dés fixés réglés puis remis au panneau, le bus de la musique reposé")
+	return true
 
 
 ## « Jouer » pressé à l'accueil, `nombre` pré-tirés recrutés à leur bouton, puis la campagne `campagne` lancée : si sa

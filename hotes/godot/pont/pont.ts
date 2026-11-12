@@ -19,7 +19,7 @@
  * (`src/hote/`). Ticket : #2928. Les tests `*.hors-store.test.ts` de ce dossier vérifient ce contrat.
  */
 import { CLIC_DU_CHAMP, chargerLaSave, estUnPointDeReprise, nommerLesRetraits, pointDeRepriseAGarder, refusDeSauvegarde, ruleOverrides, snapshotSave, partieEnCours, refusDeLancer, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, editer, herosDuRosterOfferts, ouvrirLEdition, projetDuDepot, essaiDeLaScene, texteAEnregistrer, pagesDeCreation, vueDeLaScene, FIRE_ARCS, ficheDEntite, libelleDuBord, lireApparenceDAuteur, lireComposition, lireSurchargesDEmblemes, siegeEngines, vehiculeDuCombattant, type FireArc, lumiereDeLaScene, porteeDuCombattant, type Jeu, effetsDeLAppel, vitrineDesEffets, type Effet, type VitrineDesEffets, PREFERENCES, type PrefValue, meteoDuRegard, aretesDeLaCouche, aretesDeLaScene, type AreteDessinee, type Combatant, naviresDeLaScene, stationsDuNavire, type EmprisesDesCases, type NavireDeLaScene, type StationDeNavire, casesDuGroupe, masqueDuRegard, plateauDeLaScene, regardDuJeu, REGARDS, type Regard, porteeDeComposition, presetDeComposition, couronnesDuMonde, retraitDuMonde, toitsDuMonde, volumeDuMonde, echantillonDessine, famillesDEchantillons, type EchantillonDessine, type FamilleDEchantillons, type Composition, type GesteDEdition, type Scene, type SessionDEdition, type LectureAuSchema, type LigneDuJournal, type LumiereDeLaScene, type ProjectDoc, type Programme, type ResultatDeLAppel, type VehiculeDuCombattant, type EmblemeResolu, planDeLaCouche, type OeilDuPlan, musiqueDeLaPartie, type MusiqueDeLaPartie, zonesQuiDurent, type ZoneQuiDure, marquesDesEtats, type MarqueDEtat, type MeteoDuRegard, type MorceauDuMonde, type NappeDuMonde, type PlateauDeLaScene, type RetraitDuMonde, type VolumeDuMonde, cleDeLaVision, porteurEnVue, visionDuMonde, type VisionDuMonde } from '../../../src/noyau/index';
-import { ErreurDeGeste, nouvelEntete, nouvellesEntrees, ouvrirAuGroupe, ouvrirLaPartie, ouvrirLeLancement, valider, type CategorieDErreur, type PartieAuGroupe } from '../../../src/hote/partie';
+import { ErreurDeGeste, entreesDuJeu, nouvelEntete, nouvellesEntrees, ouvrirAuGroupe, ouvrirLaPartie, ouvrirLeLancement, valider, type CategorieDErreur, type PartieAuGroupe } from '../../../src/hote/partie';
 import { envoyerLIntention, gesteDuVerbe, intentionDuGeste, SANS_PISTE } from '../../../src/hote/geste';
 import { casesAtteignables, horsCombat, projeter, type BornesDeLaProjection, type CaseAtteignable, type Projection } from '../../../src/hote/projection';
 import { estObjet } from '../../../src/lib/objet.mjs';
@@ -37,6 +37,10 @@ import { zonesDesScenarios } from '../../../src/hote/scenarios';
 import { AUTO_SLOT, MESSAGE_DU_REFUS, SAVE_SLOTS, ecrireLaSauvegarde, lireLaSauvegarde, nomDEmplacement, zonesDesSauvegardes, type AnySlot, type SaveSlot } from '../../../src/hote/sauvegardes';
 import { graineDEntropie, idDEntropie } from '../../../src/hote/entropie';
 import { boutonDuRoster } from '../../../src/hote/groupe';
+import { zonesDeLAccueil } from '../../../src/hote/accueil';
+import { chargerLesPreferences } from '../../../src/hote/preferences';
+import { jouerUnReglage, zonesDesReglages } from '../../../src/hote/reglages';
+import { reposerLesReglesMaison } from '../../../src/hote/reglesMaison';
 import { SANS_ROSTER, engagerLeHeros, fichierDuHeros, importerAuRoster, mettreAJourLeRoster, retirerDuRoster, rosterAMontrer, type RosterMontre } from '../../../src/hote/roster';
 import { garanti } from '../../../src/lib/garanti';
 import type { Stockage } from '../../../src/lib/stockage';
@@ -559,6 +563,13 @@ function manifesteServi(texte: unknown): NonNullable<SessionDEdition['manifeste'
 /** Le pont sur le stockage `stockage` de son hôte (`null` : aucun, rien ne se sauvegarde) : ses méthodes, chacune
  *  appelée par `appeler`. */
 export function creerPont(stockage: Stockage | null) {
+  /** Les réglages du joueur reposés : ses préférences et ses règles maison persistées, que le scénario de test d'un
+   *  `demarrer` ou la sauvegarde d'un `charger` remplacent en mémoire. */
+  const reposerLesReglages = (): void => {
+    chargerLesPreferences(stockage);
+    reposerLesReglesMaison(stockage);
+  };
+  reposerLesReglages();
   let ouverte: (PartieAuGroupe & { graine: number; pas: number; lignes: number; jour: number | null; panneau: PanneauDeLHote; roster: RosterMontre; brouillons: number; regard: Regard }) | null = null;
   /** Le service `persisterLeHeros` du pont : le héros déjà au roster de son stockage y est mis à jour (#3041). */
   const persisterLeHeros = (hero: Combatant): void => mettreAJourLeRoster(stockage, hero);
@@ -734,6 +745,16 @@ export function creerPont(stockage: Stockage | null) {
 
   const methodes: Record<string, (json?: string | null) => object> = {
     /**
+     * aucune
+     *
+     * @returns `{ zones }` : la zone de l'accueil (`ZonesDeLAccueil`, `src/hote/accueil.ts`), les entrées de l'hôte
+     * avant toute partie.
+     */
+    accueil(json) {
+      entreeDe('accueil', json, []);
+      return { zones: zonesDeLAccueil(stockage) };
+    },
+    /**
      * `{ scenario, graine? }` : l'id d'un scénario de test du catalogue (`testScenarios`), la graine des dés (entier, 1
      * par défaut) ; ou `{ essai: true, graine? }` : la dernière scène que l'éditeur a mise à l'essai (section
      * « Éditeur »), refusé sans elle
@@ -759,13 +780,14 @@ export function creerPont(stockage: Stockage | null) {
      *
      * @returns une `Suite` sans jeton ni journal : la partie ouverte au groupe, sans scène ni lancement. Son groupe se
      * compose par les verbes du noyau que portent les zones `groupe.pretires` et `groupe.heros` (`jouer`), par le
-     * roster de l'hôte (`roster`) et par la création d'un héros (`creation`) ; `lancer` la lance. Refusé quand une
-     * partie est ouverte.
+     * roster de l'hôte (`roster`) et par la création d'un héros (`creation`) ; `lancer` la lance. Elle s'ouvre aux
+     * règles maison, à la cadence et aux dés fixés en vigueur (`reglages`). Refusé quand une partie est ouverte.
      */
     ouvrir(json) {
       const e = entreeDe('ouvrir', json, ['graine']);
       valider(!ouverte, 'ouvrir : une partie est ouverte ; quitter d’abord');
-      const entrees = nouvellesEntrees({ graine: graineDUnePartieDuJeu(e) });
+      reposerLesReglages();
+      const entrees = entreesDuJeu(graineDUnePartieDuJeu(e));
       return sansJeton(tenir(ouvrirAuGroupe(entrees, persisterLeHeros, premierJeton), entrees.graine));
     },
     /**
@@ -856,7 +878,8 @@ export function creerPont(stockage: Stockage | null) {
       const save = lireLaSauvegarde(stockage, slot!);
       valider(save, `charger : ${nomDEmplacement(slot!)}, ${t('saveload.error.load')}`);
       const { etat, regles, retraits } = chargerLaSave(save!);
-      const entrees = nouvellesEntrees({ graine: graineDUnePartieDuJeu(e), regles });
+      reposerLesReglages();
+      const entrees = entreesDuJeu(graineDUnePartieDuJeu(e), regles);
       const o = tenir(ouvrirAuGroupe(entrees, persisterLeHeros, premierJeton, etat), entrees.graine);
       const lignes: ResultatDeLAppel['journal'] = retraits ? [{ de: 'journal', texte: t('saveload.elague', { liste: nommerLesRetraits(retraits) }), heure: etat.gameTime }] : [];
       return suite(o, { issue: 'appliquee', evenements: [], journal: lignes });
@@ -1247,6 +1270,24 @@ export function creerPont(stockage: Stockage | null) {
     preferences(json): { preferences: Record<string, PrefValue> } {
       entreeDe('preferences', json, []);
       return { preferences: Object.fromEntries(PREFERENCES.map((p) => [p.id, p.get()])) };
+    },
+    /**
+     * aucune, ou `{ type, args }` : un geste des réglages, le `jeu` d'une valeur ou le formulaire d'une zone des
+     * réglages : `{ type: 'preference', args: [id, valeur] }` règle une préférence de confort,
+     * `{ type: 'regle', args: [id, valeur] }` surcharge une règle maison, `{ type: 'retablir', args: [id] }` la remet à
+     * son défaut
+     *
+     * @returns `{ zones }` : les zones des réglages (`ZonesDesReglages`, `src/hote/reglages.ts`), avec ou sans partie
+     * ouverte, le geste joué et persisté au stockage de l'hôte d'abord. Les préférences et les règles maison du
+     * stockage sont posées à la création du pont, et reposées par `ouvrir` et `charger`. Refusé (`validation`) sur un geste, un id ou une valeur que la
+     * table des préférences ou le registre des règles refuse ; refusé (`regle`) avec la raison du noyau quand un
+     * combat verrouille les règles maison (`reglesMaisonMutables`).
+     */
+    reglages(json) {
+      const e = entreeDe('reglages', json, (e) => ('type' in e ? ['type', 'args'] : []));
+      const etat = ouverte?.partie.etat() ?? null;
+      if ('type' in e) jouerUnReglage(stockage, etat, { type: e.type, args: e.args });
+      return { zones: zonesDesReglages(stockage, etat) };
     },
     /**
      * aucune
