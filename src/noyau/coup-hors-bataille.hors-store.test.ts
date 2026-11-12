@@ -98,7 +98,7 @@ describe('coup encaissé hors bataille, assaillant par valeur (#3892)', () => {
     expect(H.wounds.current).toBe(hAvant);
     const encaisse = pAvant - pretre.wounds.current;
     expect(encaisse).toBeGreaterThan(0);
-    expect(banc.getState().journal.join(' ')).toContain(tr('cf.martyrTakes', { priest: pretre.label, name: H.label, taken: encaisse }));
+    expect(banc.getState().journal.join(' ')).toContain(tr('cf.martyrEncaisse', { priest: pretre.label, name: H.label, taken: encaisse }));
   });
 });
 

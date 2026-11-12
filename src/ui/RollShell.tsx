@@ -279,7 +279,7 @@ export function useRollShell(p: JetDeCoquille | null): JetRendu | null {
     if (import.meta.env.DEV) throw new Error(`RollShell : le verbe « ${verbe} » n'a aucun flux qui le juge (flowKey ou RollAction.flux).`);
     return null;
   };
-  const annulable = !rolled && (flowKey ? fermeture('cancel', flowKey) === null : true);
+  const annulable = !rolled && (flowKey ? fermeture('annuler', flowKey) === null : true);
   const escGeste = disableEscClose ? undefined : (hoist.rolling || hoist.landed) ? hoist.skip : (annulable ? onCancel : undefined);
   const escClose: OnDismiss | undefined = escGeste && (() => { escGeste(); return false; });
   // « TOUT LANCER » par rangées (`rollRows`/`rollAll` — fenêtre MULTI) : chaque rangée commet d'abord

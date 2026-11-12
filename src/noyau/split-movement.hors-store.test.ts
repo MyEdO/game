@@ -136,7 +136,7 @@ describe('Mouvement décomposable', () => {
     e.pos = { x: h.pos!.x + 3, y: h.pos!.y };
     // Après un Mouvement partiel, le plan n'est PAS une Charge (rejoindre-et-attaquer, sans bonus).
     banc.setState({ battle: { ...banc.getState().battle!, movementUsed: 1, action: null } });
-    expect(attackPlan(banc.getState, h, e).kind).toBe('moveAttack');
+    expect(attackPlan(banc.getState, h, e).kind).toBe('deplacementEtAttaque');
     // Au plein Mouvement, le plan est une Charge (manœuvre pleine, portée de Course).
     banc.setState({ battle: { ...banc.getState().battle!, movementUsed: 0, action: null } });
     expect(attackPlan(banc.getState, h, e).kind).toBe('charge');

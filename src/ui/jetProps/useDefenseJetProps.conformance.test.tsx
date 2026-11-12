@@ -63,7 +63,7 @@ function openDefense(defenderWeapon?: Weapon, prepare?: (hero: Combatant, battle
   });
   const g = useGame.getState;
   seedBattleRng(3);
-  openAttackCascade(g, useGame.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
+  openAttackCascade(g, useGame.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attaquer');
   g().jetLancer('attaque');
   if (atkDie != null) g().jetImposerLeResultat('attaque', atkDie);
   g().jetValider('attaque');
@@ -243,7 +243,7 @@ describe('Défense : volets Riposte et Porte-bouclier', () => {
   it('Riposte déclarée : le choix reste visible après le jet, figé, Oui pressé', () => {
     openDefense(RAPIERE, riposteur(0), 90);
     act(() => { useGame.getState().jetLancer('defense'); useGame.getState().jetImposerLeResultat('defense', 5); });
-    expect(useGame.getState().pendingDefense!.result!.advantageTo).toBe('defender');
+    expect(useGame.getState().pendingDefense!.result!.advantageTo).toBe('defenseur');
     const oui = segment('Riposte', 'Oui')!;
     expect(oui.getAttribute('aria-pressed')).toBe('true');
     expect(oui.getAttribute('aria-disabled')).toBe('true');
@@ -283,7 +283,7 @@ describe('Défense : volets Riposte et Porte-bouclier', () => {
       openDefense(undefined, porteBouclier, 90);
       act(() => { useGame.getState().jetRegler('defense', 'porteBouclier', 'degats'); });
       act(() => { useGame.getState().jetLancer('defense'); useGame.getState().jetImposerLeResultat('defense', 5); });
-      expect(useGame.getState().pendingDefense!.result!.advantageTo).toBe('defender');
+      expect(useGame.getState().pendingDefense!.result!.advantageTo).toBe('defenseur');
       const degats = segment('Porte-bouclier', 'Dégâts')!;
       expect(degats.getAttribute('aria-pressed')).toBe('true');
       const cause = document.getElementById(degats.getAttribute('aria-describedby') ?? '')?.textContent;

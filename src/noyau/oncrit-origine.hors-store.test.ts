@@ -64,7 +64,7 @@ describe('onCrit : chaque Blessure critique non létale, le filtre coupCritique 
 
   const touche = (over: Partial<AttackResult>): AttackResult => ({
     hit: true, attackerRoll: 44, netSL: 4, location: 'corps',
-    damage: 6, woundsLost: 2, critical: false, advantageTo: 'attacker', defenderDefeated: false, log: 'touche', ...over,
+    damage: 6, woundsLost: 2, critical: false, advantageTo: 'attaquant', defenderDefeated: false, log: 'touche', ...over,
   });
 
   it('Blessure critique de DÉPASSEMENT : Taillade joue, la munition ne se loge pas (LDB 62 l.250 ; AA 08 l.87)', () => {

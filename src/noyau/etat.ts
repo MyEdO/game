@@ -174,11 +174,11 @@ export interface BattleState {
   /** Aperçu « tap 1 » du modèle de clic implicite (tap aperçu → tap confirme). Purgé au commit,
    *  à chaque changement de Tour/Round, et remplacé par tout nouveau tap. */
   preview?:
-    | { kind: 'move'; tile: Pt; path: Pt[]; cost: number }
-    | { kind: 'run'; tile: Pt; path: Pt[]; cost: number }
-    | { kind: 'attack'; targetId: string }
+    | { kind: 'deplacement'; tile: Pt; path: Pt[]; cost: number }
+    | { kind: 'course'; tile: Pt; path: Pt[]; cost: number }
+    | { kind: 'attaque'; targetId: string }
     | { kind: 'charge'; targetId: string; dest: Pt; path: Pt[]; adv: 0 | 1 }
-    | { kind: 'moveAttack'; targetId: string; dest: Pt; path: Pt[]; cost: number }
+    | { kind: 'deplacementEtAttaque'; targetId: string; dest: Pt; path: Pt[]; cost: number }
     | null;
 }
 
@@ -299,7 +299,7 @@ export interface CampaignVessel {
     label: string;
     crewTestType: string;
     difficulty: import('../engine/types').Difficulty;
-    targetDR: number;
+    drCible: number;
     progres: number;
     chaqueNuit: import('../engine/flowCore').Flow;
   };

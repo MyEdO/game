@@ -324,7 +324,7 @@ function poserLaFrappeSuivante(get: Get, set: Set, pa: PendingAttack): void {
   const seq = get().pendingCascade;
   const cur = seq?.purpose === 'combat' ? seq.participants[seq.cursor] : undefined;
   if (cur?.jet === 'attaque' && !cur.committed) { set({ pendingAttack: pa }); return; }
-  if (!poserLEtapeDAttaque(get, set, pa, seq?.title ?? 'Attaque', seq?.icon ?? 'action/attack')) return;
+  if (!poserLEtapeDAttaque(get, set, pa, seq?.title ?? 'Attaque', seq?.icon ?? 'action/attaquer')) return;
   const apres = get().pendingCascade!;
   if (apres.cursor !== apres.participants.length - 1) validerLEtape(get, set);
 }
@@ -568,7 +568,7 @@ function frapperDeLaSeconde(get: Get, set: Set, targetId: string, testPasse: boo
   // gatée (la main directrice a déjà consommé le Test le cas échéant), la 2ᵉ frappe joue le Test ICI. Échec →
   // l'objet de la 2nde main glisse (`disarm`), la 2ᵉ frappe est renoncée. `testPasse` : Test déjà PASSÉ (reprise).
   if (!testPasse && attackHandGate(attacker, off.uid) && !attackHandGate(attacker)) {
-    poserLeTestDeMain(set, attacker, 'secondaire', { attackerId: attacker.id, targetId, location: null, result: null, weaponUid: off.uid, dualSecond: true }, 'Des deux armes', 'action/attack');
+    poserLeTestDeMain(set, attacker, 'secondaire', { attackerId: attacker.id, targetId, location: null, result: null, weaponUid: off.uid, dualSecond: true }, 'Des deux armes', 'action/attaquer');
     return;
   }
   // 2ᵉ frappe : jet IMPOSÉ + pénalité main 2nde + nouveau jet de défense (LDB 10 l.767-773).
@@ -700,7 +700,7 @@ export function createCombatSlice(get: Get, set: Set) {
       }
       const dest = pt;
       const movement = resolveMovement(get, dest, { courseArmee: courseDemandee });
-      if (movement.status === 'blocked') {
+      if (movement.status === 'bloque') {
         // Le clic-sol REFUSÉ le DIT (modèle de gestes 2026-08-19 ; le survol, lui, ne peint plus rien sur
         // une case injouable — arbitrage 2026-08-24). Seules les raisons qui répondent à un GESTE du
         // joueur parlent : les verrous structurels (pas de combat, ciblage armé, tour d'autrui) ne sont
@@ -716,10 +716,10 @@ export function createCombatSlice(get: Get, set: Set) {
         retenuParLaPeur(get, set, active, dest, { kind: 'tile', pt: { ...pt }, intentionId: intentionId ?? undefined });
       const geom = mountOf(battle, active) ?? active;
       const prev = battle.preview;
-      if (movement.kind === 'run') {
+      if (movement.kind === 'course') {
         // Zone de Course : tap 1 = aperçu « Courir » ; tap 2 = Test de `course` (pendingRun + destination).
-        if (!clickOpts?.confirm && !(prev?.kind === 'run' && prev.path === movement.path)) {
-          set({ battle: { ...battle, preview: { kind: 'run', tile: { ...dest }, path: movement.path, cost: movement.cost } } });
+        if (!clickOpts?.confirm && !(prev?.kind === 'course' && prev.path === movement.path)) {
+          set({ battle: { ...battle, preview: { kind: 'course', tile: { ...dest }, path: movement.path, cost: movement.cost } } });
           bus.emit(EVT.SCENE_DIRTY);
           return;
         }
@@ -728,8 +728,8 @@ export function createCombatSlice(get: Get, set: Set) {
         return;
       }
       // Tap 1 : APERÇU (chemin + coût) — sauf confirmation directe ou re-tap de la même case.
-      if (!clickOpts?.confirm && !(prev?.kind === 'move' && prev.path === movement.path)) {
-        set({ battle: { ...battle, preview: { kind: 'move', tile: { ...dest }, path: movement.path, cost: movement.cost } } });
+      if (!clickOpts?.confirm && !(prev?.kind === 'deplacement' && prev.path === movement.path)) {
+        set({ battle: { ...battle, preview: { kind: 'deplacement', tile: { ...dest }, path: movement.path, cost: movement.cost } } });
         bus.emit(EVT.SCENE_DIRTY);
         return;
       }
@@ -901,8 +901,8 @@ export function createCombatSlice(get: Get, set: Set) {
       const refus = refusDeCourse(battle, active);
       if (refus) return void refuserGesteDuSiege(get, set, refus);
       const resolved = dest && !movement ? resolveMovement(get, dest) : null;
-      if (resolved?.status === 'blocked') return;
-      const plan = movement ?? (resolved?.status === 'ok' ? { path: resolved.path, cost: resolved.cost } : undefined);
+      if (resolved?.status === 'bloque') return;
+      const plan = movement ?? (resolved?.status === 'possible' ? { path: resolved.path, cost: resolved.cost } : undefined);
       set({ pendingRun: { combatantId: active.id, test: testDuCavalier(active, testDeRegle('course', 'courir')), dest, ...plan, result: null }, battle: { ...battle, action: null, preview: null } });
     },
 
@@ -1145,15 +1145,15 @@ export function createCombatSlice(get: Get, set: Set) {
       const blocked = !!(hero.pos && target.pos && scene) && !losClear(scene, hero.pos, target.pos, smokeOf(battle));
       // Chaque cause dit LA SIENNE : une cible hors de portée n'annonce pas un mur qui n'existe pas.
       if (weapon.type !== 'ranged') return void refuserGeste(get, set, t('cs.refusTirArmeDeMelee', { weapon: weapon.label }));
-      if (!inFiringBand(hero, target, weapon, sceneMetresPerTile(scene))) return void refuserGeste(get, set, t('cf.outOfRange'));
-      if (blocked) return void refuserGeste(get, set, t('cf.noLoSMasked'));
+      if (!inFiringBand(hero, target, weapon, sceneMetresPerTile(scene))) return void refuserGeste(get, set, t('cf.horsDePortee'));
+      if (blocked) return void refuserGeste(get, set, t('cf.ligneDeVueMasquee'));
       // Le tir se résout par la modale de jet NORMALE (jetLancer('attaque')/jetValider('attaque')) ; le tireur n'est PAS actif.
       // `pendingAttack.interrupt` → jetValider('attaque') applique le tir sans avancer le tour + épuise son tour normal.
       // La modale d'attaque est rendue par la CASCADE (CascadeModal → useAttackJetProps), comme TOUTE attaque :
       // on ouvre donc une cascade à une étape `jet:'attaque'` pour le tireur (refermée par jetValider('attaque')).
       // `tirImmobile: true` : l'interruption est un tir IMMOBILE d'office (elle coûte le Mouvement du tour) → pas
       // de pénalité « Tir en bougeant » (LDB 14), qui n'aurait aucun sens hors du tour du tireur.
-      openAttackCascade(get, set, { attackerId: hero.id, targetId: target.id, location: null, result: null, interrupt: true, tirImmobile: true }, 'Tir rapide', 'action/shoot');
+      openAttackCascade(get, set, { attackerId: hero.id, targetId: target.id, location: null, result: null, interrupt: true, tirImmobile: true }, 'Tir rapide', 'action/tirer');
     },
     /** DEMANDE DE PAUSE au prochain Round, POSÉE (`levee`) ou RETIRÉE PAR SON SIÈGE : le siège vient de `decidingSeat`
      *  (le siège agissant quand l'hôte applique l'intent d'un invité, sinon le siège local), jamais d'un argument — la
@@ -1395,10 +1395,10 @@ export function createCombatSlice(get: Get, set: Set) {
       const aim = battle.combatants
         .filter((c) => c.kind !== gunner.kind && !isOutOfAction(c) && c.pos && chebyshev(pt, c.pos) <= sa.radius)
         .sort((a, b) => chebyshev(pt, a.pos!) - chebyshev(pt, b.pos!))[0];
-      if (!aim) { get().ecrireAuJournal(t('cf.siegeNoTarget', { name: gunner.label })); return; }
+      if (!aim) { get().ecrireAuJournal(t('cf.siegeSansCible', { name: gunner.label })); return; }
       // Pilonnage : la pièce est SERVIE (hors loadout main/secondaire) → `openAttackCascade` ne gate jamais un
       // canon monté (`attackHandGate` = null), mais passe par le MÊME point partagé que les autres attaques.
-      openAttackCascade(get, set, { attackerId: gunner.id, targetId: aim.id, location: null, result: null, weaponUid: sa.weaponUid, center: { ...pt }, siege: true }, 'Pilonnage', 'fire/blast');
+      openAttackCascade(get, set, { attackerId: gunner.id, targetId: aim.id, location: null, result: null, weaponUid: sa.weaponUid, center: { ...pt }, siege: true }, 'Pilonnage', 'feu/explosif');
     },
     frapperEnBalayage: (targetId: string) => {
       const pc = get().pendingCleave;
@@ -2512,7 +2512,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
         // Déviation Critique du fuyard : `applyAttackResult` a EMPILÉ son étape de choix — le coup gratuit
         // n'est PAS résolu. La fuite (Brisé + Course) attend SA résolution, dans la même fenêtre, via
         // l'étape de reprise `mouvementDeFuite` (LDB 15 l.68 : « une fois que ce coup gratuit est résolu… »).
-        pushDisplay(set, { id: `flee-move-${mover.id}`, kind: 'mouvementDeFuite', actorId: mover.id, icon: 'melee/flee', label: t('step.fuite'),
+        pushDisplay(set, { id: `flee-move-${mover.id}`, kind: 'mouvementDeFuite', actorId: mover.id, icon: 'melee/fuir', label: t('step.fuite'),
           outcome: toRecapLines([
             t('cs.fuiteReprise', { name: mover.label, foe: foe.label }),
             ...(broken > 0 ? [t('cs.panic', { name: mover.label, broken })] : []),
@@ -2640,7 +2640,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       // dernier point que le budget permet (« au max qu'il puisse faire »).
       const reach = reachable(scene, c.pos!, range, env);
       const fallback = pr.path ? null : resolveMovement(get, pr.dest);
-      const path = pr.path ?? (fallback?.status === 'ok' ? fallback.path : []);
+      const path = pr.path ?? (fallback?.status === 'possible' ? fallback.path : []);
       let stopIdx = -1;
       for (let i = path.length - 1; i >= 0; i--) {
         if (reach.has(`${path[i].x},${path[i].y}`)) { stopIdx = i; break; }
@@ -2823,7 +2823,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       resolveSteamSave(get, set, p); // échec → ébouillanté (scaldOps), puis la boucle maritime reprend
     },
     // Cycle Chance/Pacte UNIFIÉ (spec `attack`) — Résilience (forceSuccess/setForcedRoll) plus bas.
-    // `cancel` = « Annuler » unifié (défaire-charge dans `FLOWS.attaque.onCancel`) — regénère `jetAnnuler('attaque')`.
+    // `annuler` = « Annuler » unifié (défaire-charge dans `FLOWS.attaque.onCancel`) — regénère `jetAnnuler('attaque')`.
     attaque: () => {
       const { battle, pendingAttack: pa } = get();
       if (!battle || !pa) return;
@@ -2879,10 +2879,10 @@ export function cloturesDuCombat(get: Get, set: Set) {
         // plus proche de l'impact) n'a servi qu'à la BANDE DE PORTÉE/au DR. Réutilise le résolveur d'aire UNIQUE.
         if (pa.siege && pa.center) {
           const lines = lance.hit && lance.damage != null
-            ? [t('cf.siegeImpact', { name: attacker.label }), ...resolveWeaponArea(get, set,
+            ? [t('cf.impactDeSiege', { name: attacker.label }), ...resolveWeaponArea(get, set,
                 { attacker, weapon, damage: lance.damage, location: lance.location ?? 'corps', distanceTiles: combatDistance(attacker, target), center: pa.center },
                 battleAreaTargets(get), battleRng()).lines]
-            : [t('cf.siegeMiss', { name: attacker.label })];
+            : [t('cf.siegeRate', { name: attacker.label })];
           set({ battle: { ...markActed(get, set), action: null, preview: null, log: [...get().battle!.log, ...evLines(lines, 'tir', attacker.id)] } });
           bus.emit(EVT.SCENE_DIRTY);
           checkBattleOver(get, set);
@@ -2962,7 +2962,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       advanceCombatJet(get);
     },
     // Cycle unifié (spec `defense`) : jet initial = résolution pure (`atk` figé) ; Chance/Pacte ici,
-    // Résilience (forceSuccess/setForcedRoll) plus bas. PAS de `cancel` : le RAW n'offre aucun « Subir »
+    // Résilience (forcerLaReussite/imposerLeResultat) plus bas. PAS de `annuler` : le RAW n'offre aucun « Subir »
     // volontaire (mêlée = Test opposé, LDB 13 l.123) → une fois offerte, la défense est obligatoire.
     defense: () => {
       // « Appliquer » : applique le résultat puis REPREND le tour de l'IA suspendu.

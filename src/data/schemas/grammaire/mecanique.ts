@@ -1615,9 +1615,9 @@ export function arbreDeFlow<E>(feuille: z.ZodType<E>, condition: z.ZodType<Condi
         kind: z.literal('choice'),
         advantageCost: coutDAvantage.optional(),
         icon: z.string().optional(),
-        yes: flow,
-        no: flow.optional(),
-      }), { kind: { label: "type"  }, advantageCost: { label: "coût en Avantage"  }, icon: { label: "icône" , texte: { regime: "technique"} }, yes: { label: "oui" }, no: { label: "non" } }), 'flow.choice.prompt')),
+        oui: flow,
+        non: flow.optional(),
+      }), { kind: { label: "type"  }, advantageCost: { label: "coût en Avantage"  }, icon: { label: "icône" , texte: { regime: "technique"} }, oui: { label: "oui" }, non: { label: "non" } }), 'flow.choice.prompt')),
     ]),
   );
   return flow;

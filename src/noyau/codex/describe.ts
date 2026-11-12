@@ -65,8 +65,8 @@ function flowSummary(f: Flow, etats: readonly EtatDeclare[]): string {
       return t('codex.tech.choix', {
         cout: cout ? t('codex.tech.choix.cout', { cout }) : '',
         prompt: f.prompt,
-        oui: flowSummary(f.yes, etats),
-        non: flowMuet(f.no) ? '' : t('codex.tech.choix.non', { non: flowSummary(f.no!, etats) }),
+        oui: flowSummary(f.oui, etats),
+        non: flowMuet(f.non) ? '' : t('codex.tech.choix.non', { non: flowSummary(f.non!, etats) }),
       });
     }
   }
@@ -131,10 +131,10 @@ function flowOpRows(f: Flow, etats: readonly EtatDeclare[]): CodexRow[] {
     }
     case 'choice': {
       const rows: CodexRow[] = [];
-      const yes = flowOpRows(f.yes, etats);
+      const yes = flowOpRows(f.oui, etats);
       if (yes.length) rows.push({ t: 'sub', label: t('codex.describe.oui') }, ...yes);
-      if (f.no) {
-        const no = flowOpRows(f.no, etats);
+      if (f.non) {
+        const no = flowOpRows(f.non, etats);
         if (no.length) rows.push({ t: 'sub', label: t('codex.describe.non') }, ...no);
       }
       return rows;

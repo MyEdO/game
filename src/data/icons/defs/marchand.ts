@@ -8,7 +8,7 @@ const F = 'fill="currentColor" stroke="none"';
 
 export const icons: IconFamily = [
   {
-    id: 'merchant/cart',
+    id: 'marchand/panier',
     label: 'Panier',
     // Panier d'osier, poignée, deux roues.
     svg:
@@ -18,7 +18,7 @@ export const icons: IconFamily = [
       `<path ${KF} d="M9.7 9.1 V15.6 M13 9.1 L13.6 15.6 M16.3 9.1 L15.6 15.6"/>`,
   },
   {
-    id: 'merchant/haggle',
+    id: 'marchand/marchander',
     label: 'Marchander',
     // Bulle de dialogue avec une pièce.
     svg:
@@ -27,7 +27,7 @@ export const icons: IconFamily = [
       `<path ${KF} d="M15.7 17.4 H18.1 M16.9 16.2 V18.6"/>`,
   },
   {
-    id: 'merchant/deal',
+    id: 'marchand/marche-conclu',
     label: 'Marché conclu',
     // Poignée de main, deux avant-bras qui se rejoignent.
     svg:

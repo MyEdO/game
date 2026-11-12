@@ -9,7 +9,7 @@ const F = 'fill="currentColor" stroke="none"';
 
 export const icons: IconFamily = [
   {
-    id: 'rest/bed',
+    id: 'repos/lit',
     label: 'Auberge (lit)',
     // Lit une place, tête de lit et oreiller.
     svg:
@@ -19,7 +19,7 @@ export const icons: IconFamily = [
       `<path ${K} d="M3.6 10.3 V6.9 M20.4 10.3 V6.9"/>`,
   },
   {
-    id: 'rest/couch',
+    id: 'repos/canape',
     label: 'Commune (canapé)',
     // Canapé bas à deux accoudoirs.
     svg:
@@ -29,7 +29,7 @@ export const icons: IconFamily = [
       `<path ${K} d="M3.1 16.3 H20.9 V17.7 C20.9 18.7 20.1 19.6 19 19.6 H5 C3.9 19.6 3.1 18.7 3.1 17.7 Z"/>`,
   },
   {
-    id: 'rest/home',
+    id: 'repos/chez-soi',
     label: 'Chez soi',
     // Petite maison, toit à deux pans.
     svg:
@@ -37,7 +37,7 @@ export const icons: IconFamily = [
       `<path ${KF} d="M9.7 19.4 V14.1 H14.3 V19.4"/>`,
   },
   {
-    id: 'rest/camp',
+    id: 'repos/campement',
     label: 'Campement (tente)',
     // Tente triangulaire, entrée ouverte.
     svg:
@@ -45,7 +45,7 @@ export const icons: IconFamily = [
       `<path ${KF} d="M12 12.6 L10 19.6 M12 12.6 L14 19.6"/>`,
   },
   {
-    id: 'rest/stew',
+    id: 'repos/ragout',
     label: 'Repas (ragoût)',
     // Marmite sur trépied, vapeur montante.
     svg:
@@ -55,7 +55,7 @@ export const icons: IconFamily = [
       `<path ${KF} d="M9.8 9.1 C9.6 7.9 10.1 7 11 6.1 C10.4 7.9 10.8 8.9 12 9.7"/>`,
   },
   {
-    id: 'rest/feast',
+    id: 'repos/repas-fait-maison',
     label: 'Repas fait maison',
     // Assiette garnie vue de dessus, couverts croisés.
     svg:
@@ -64,7 +64,7 @@ export const icons: IconFamily = [
       `<path ${K} d="M6.2 6.6 L9.4 9.8 M9.4 6.6 L6.2 9.8"/>`,
   },
   {
-    id: 'rest/cold',
+    id: 'repos/froid',
     label: 'Froid extrême',
     // Flocon à six branches.
     svg:
@@ -72,7 +72,7 @@ export const icons: IconFamily = [
       `<path ${KF} d="M12 5.9 L9.8 4.4 M12 5.9 L14.2 4.4 M12 18.1 L9.8 19.6 M12 18.1 L14.2 19.6"/>`,
   },
   {
-    id: 'rest/storm',
+    id: 'repos/tempete',
     label: 'Temps de chien',
     // Nuage lourd, éclair frappant.
     svg:
@@ -80,7 +80,7 @@ export const icons: IconFamily = [
       `<path ${K} d="M12.4 12.6 L9.6 17.3 H12.6 L10.4 21.6"/>`,
   },
   {
-    id: 'rest/rain',
+    id: 'repos/pluie',
     label: 'Mauvais temps',
     // Nuage, traits de pluie.
     svg:

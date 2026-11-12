@@ -12,7 +12,7 @@ const FE = 'fill="currentColor" fill-rule="evenodd" stroke="none"';
 
 export const icons: IconFamily = [
   {
-    id: 'map-tool/paint',
+    id: 'outil-de-carte/peindre',
     label: 'Peindre le terrain',
     // Pinceau incliné, touche de peinture à la pointe.
     svg:
@@ -21,7 +21,7 @@ export const icons: IconFamily = [
       `<path ${KF} d="M14.3 9.7 L17.4 12.8"/>`,
   },
   {
-    id: 'map-tool/wall',
+    id: 'outil-de-carte/mur',
     label: 'Mur — cloison / porte',
     // Appareillage de briques en quinconce.
     svg:
@@ -29,7 +29,7 @@ export const icons: IconFamily = [
       `<path ${KF} d="M3.6 9.9 H20.4 M3.6 14.2 H20.4 M8.6 5.6 V9.9 M15.4 5.6 V9.9 M4.6 9.9 V14.2 M12 9.9 V14.2 M19.4 9.9 V14.2 M8.6 14.2 V18.4 M15.4 14.2 V18.4"/>`,
   },
   {
-    id: 'map-tool/height',
+    id: 'outil-de-carte/hauteur',
     label: 'Hauteur',
     // Deux crêtes de relief, courbe de niveau.
     svg:
@@ -37,7 +37,7 @@ export const icons: IconFamily = [
       `<path ${KF} d="M6.6 18.6 L9.3 13.9 L11.4 17.1"/>`,
   },
   {
-    id: 'map-tool/npc',
+    id: 'outil-de-carte/personnage',
     label: 'Personnage',
     // Tête/buste stylisé, un visage neutre posé sur la carte.
     svg:
@@ -45,7 +45,7 @@ export const icons: IconFamily = [
       `<path ${F} d="M12 13.4 C16 13.4 18.8 15.8 19.3 19.8 C14.5 20.6 9.5 20.6 4.7 19.8 C5.2 15.8 8 13.4 12 13.4 Z"/>`,
   },
   {
-    id: 'map-tool/prop',
+    id: 'outil-de-carte/decor',
     label: 'Décor (arbre)',
     // Conifère simplifié, tronc court.
     svg:
@@ -53,7 +53,7 @@ export const icons: IconFamily = [
       `<path ${K} d="M12 20.6 V22.9"/>`,
   },
   {
-    id: 'map-tool/start-flag',
+    id: 'outil-de-carte/depart',
     label: 'Départ des héros',
     // Fanion à damier planté au sol.
     svg:
@@ -62,14 +62,14 @@ export const icons: IconFamily = [
       `<path ${KF} d="M6.4 5.5 H8.9 V6.9 H6.4 Z M9.9 5.5 H12.4 V6.9 H9.9 Z M6.4 8.3 H8.9 V9.7 H6.4 Z M9.9 8.3 H12.4 V9.7 H9.9 Z M12.9 5.5 H15.4 V6.9 H12.9 Z M11.4 8.3 H13.9 V9.7 H11.4 Z"/>`,
   },
   {
-    id: 'map-tool/crenel',
+    id: 'outil-de-carte/crenelage',
     label: 'Crénelage',
     // Couronne de merlons (parapet crénelé).
     svg:
       `<path ${F} d="M3.6 20.6 V15.4 H6.4 V12.6 H9.4 V15.4 H12.2 V12.6 H15.2 V15.4 H18 V12.6 H20.4 V20.6 Z"/>`,
   },
   {
-    id: 'map-tool/zone',
+    id: 'outil-de-carte/zone',
     label: 'Zone (trigger / repos)',
     // Rectangle en pointillés (empreinte au sol).
     svg:
@@ -77,7 +77,7 @@ export const icons: IconFamily = [
       `<rect ${F} x="9.7" y="9.7" width="4.6" height="4.6" rx="0.8"/>`,
   },
   {
-    id: 'map-tool/erase',
+    id: 'outil-de-carte/gomme',
     label: 'Gomme',
     // Gomme biseautée, trait effacé.
     svg:
@@ -86,7 +86,7 @@ export const icons: IconFamily = [
       `<path ${KF} d="M11.9 8.1 L16 12.2"/>`,
   },
   {
-    id: 'map-tool/door',
+    id: 'outil-de-carte/porte',
     label: 'Porte',
     // Battant entrouvert, poignée.
     svg:
@@ -95,7 +95,7 @@ export const icons: IconFamily = [
       `<circle ${F} cx="15" cy="12.6" r="1"/>`,
   },
   {
-    id: 'map-tool/pin',
+    id: 'outil-de-carte/epingle',
     label: 'Point sur la carte',
     // Épingle de localisation classique, cœur évidé (evenodd — jamais de couleur en dur).
     svg:

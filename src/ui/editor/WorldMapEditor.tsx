@@ -97,7 +97,7 @@ export function WorldMapEditor({ map, setMap, scenes, narratif, onClose, activeA
 
   return (
     <ScreenShell
-      title={<><Icon id="nav/campaign" size="sm" /> {named ? <>Carte du monde — {m.label}</> : m.label}</>}
+      title={<><Icon id="navigation/campagne" size="sm" /> {named ? <>Carte du monde — {m.label}</> : m.label}</>}
       onClose={() => { setMap(m); onClose(); }}
       actions={
         <>
@@ -109,9 +109,9 @@ export function WorldMapEditor({ map, setMap, scenes, narratif, onClose, activeA
             disabled={m.places.length < 2}
             title="Cliquez un 1ᵉʳ lieu (sélection), activez, puis cliquez le 2ᵉ lieu"
           >
-            {linkFrom ? `Lier depuis « ${placeById(m, linkFrom)?.label} »… (cliquer le 2ᵉ lieu)` : <><Icon id="coop/invite" size="sm" /> Lier deux lieux</>}
+            {linkFrom ? `Lier depuis « ${placeById(m, linkFrom)?.label} »… (cliquer le 2ᵉ lieu)` : <><Icon id="coop/invitation" size="sm" /> Lier deux lieux</>}
           </button>
-          <button className="btn small" onClick={deleteSelected} disabled={!sel}><Icon id="ui/delete" size="sm" /> Supprimer la sélection</button>
+          <button className="btn small" onClick={deleteSelected} disabled={!sel}><Icon id="interface/supprimer" size="sm" /> Supprimer la sélection</button>
           <button className="btn small" onClick={() => { setMap(null); onClose(); }} title="Le projet n'offrira plus de voyage">
             Retirer la carte du projet
           </button>
@@ -182,7 +182,7 @@ export function WorldMapEditor({ map, setMap, scenes, narratif, onClose, activeA
                 ) : p.icon ? (
                   <text y="0.75" textAnchor="middle" fontSize="2.2" fill="var(--wm-marker-icon)">{p.icon}</text>
                 ) : (
-                  <g style={{ color: 'var(--wm-marker-icon)' }}><IconG id="map-tool/pin" x={-1.05} y={-1.05} size={2.1} /></g>
+                  <g style={{ color: 'var(--wm-marker-icon)' }}><IconG id="outil-de-carte/epingle" x={-1.05} y={-1.05} size={2.1} /></g>
                 )}
                 <text y="3.6" textAnchor="middle" fontSize="2.6" fill="var(--wm-ink)">{p.label}</text>
               </g>

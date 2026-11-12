@@ -164,7 +164,7 @@ const construireCarte = (): WorldMap => ({
   label: 'Marches de Weiler (test)',
   places: [
     { id: 'p-village', label: 'Weiler', pos: { x: 24, y: 62 }, scene: { id: 'test-voyage-village' }, icon: 'scenario/village' },
-    { id: 'p-hameau', label: 'Federholz', pos: { x: 72, y: 30 }, scene: { id: 'test-voyage-hameau' }, icon: 'scenario/hamlet' },
+    { id: 'p-hameau', label: 'Federholz', pos: { x: 72, y: 30 }, scene: { id: 'test-voyage-hameau' }, icon: 'scenario/hameau' },
     { id: 'p-bourg', label: 'Steinbruck', pos: { x: 70, y: 78 }, scene: { id: 'test-voyage-bourg' }, icon: 'scenario/port', services: [{ kind: { id: 'auberge' }, rest: { auberge: true } }, { kind: { id: 'forgeron' } }] },
     // id 'altdorf' (pas juste 'p-cite') : les Activités d'Altdorf (ACE Annexe I) gatées `where:['altdorf']`
     // (activities.json — Pénitence, Entraînement, Tester des objets…) lisent le `lieu` du groupe par son id.
@@ -212,7 +212,7 @@ export const scenario: TestScenario = {
   id: 'voyage',
   order: 6,
   category: 'survie',
-  icon: 'scenario/travel',
+  icon: 'scenario/voyage',
   title: 'Voyage & temps long',
   tests:
     'Carte du monde, voyage à pied/diligence, postes d’Étapes PERSISTANTS par héros (Plein air/Aguets/Cartes/' +

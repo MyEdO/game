@@ -82,8 +82,8 @@ describe('pools des tables tirées — porte (b) de `entryCategoryOf`', () => {
   it('une rangée ajoutée au Codex entre au pool de sa catégorie', () => {
     const rangees = rangeesDe<typeof miscastDef>(miscastRawJson, 'miscast-colere');
     const ajoutee = { ...rangees[0], id: 'colere-ajoutee-au-codex' };
-    expect(descend('miscastWrath', ajoutee.id)).toBe(false);
-    setDataset('miscastWrath', [...rangees, ajoutee]);
-    expect(descend('miscastWrath', ajoutee.id)).toBe(true);
+    expect(descend('colereDesDieux', ajoutee.id)).toBe(false);
+    setDataset('colereDesDieux', [...rangees, ajoutee]);
+    expect(descend('colereDesDieux', ajoutee.id)).toBe(true);
   });
 });

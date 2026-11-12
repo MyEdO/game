@@ -118,8 +118,8 @@ export function ActivityModal() {
   const issue = rolled ? describeActivity(pa) : '';
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' },
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
+    { key: 'cancel', label: t('verbe.annuler'), onClick: cancel, verbe: 'annuler' },
+    { key: 'confirm', label: t('verbe.valider'), onClick: confirm, verbe: 'valider' },
   ];
 
   return (

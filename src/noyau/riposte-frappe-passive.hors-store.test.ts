@@ -58,7 +58,7 @@ function monte(o: { pbAttaquant: number; important?: boolean; armes?: Weapon[]; 
 
 /** Test opposé GAGNÉ par la défense, au jet `roll` (réussi sauf `success: false`), parade à `parade`. */
 const defenseGagnee = (parade: Weapon, roll = 12, success = true): AttackResult => ({
-  hit: false, attackerRoll: 64, defenderRoll: roll, netSL: 4, critical: false, advantageTo: 'defender', defenderDefeated: false, log: 'Attaquant manque Défenseur.',
+  hit: false, attackerRoll: 64, defenderRoll: roll, netSL: 4, critical: false, advantageTo: 'defenseur', defenderDefeated: false, log: 'Attaquant manque Défenseur.',
   parryWeapon: parade,
   defenderDetail: { label: 'Corps à corps', base: 60, target: 60, roll, success, sl: success ? 5 : -1, mods: [], mode: 'parade' },
   attackerDetail: { label: 'Corps à corps', base: 60, target: 60, roll: 64, success: false, sl: -1, mods: [] },
@@ -169,7 +169,7 @@ describe('frappe passive — Riposte par l’applicateur de la touche', () => {
 
 /** Test opposé GAGNÉ par une ESQUIVE au jet `roll`, DR opposé `dr`. */
 const esquiveGagnee = (roll = 12, dr = 4): AttackResult => ({
-  hit: false, attackerRoll: 64, defenderRoll: roll, netSL: dr, critical: false, advantageTo: 'defender', defenderDefeated: false, log: 'Attaquant manque Défenseur.',
+  hit: false, attackerRoll: 64, defenderRoll: roll, netSL: dr, critical: false, advantageTo: 'defenseur', defenderDefeated: false, log: 'Attaquant manque Défenseur.',
   defenderDetail: { label: 'Esquive', base: 60, target: 60, roll, success: true, sl: 5, mods: [], mode: 'esquive' },
   attackerDetail: { label: 'Corps à corps', base: 60, target: 60, roll: 64, success: false, sl: -1, mods: [] },
 } as unknown as AttackResult);

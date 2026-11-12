@@ -90,7 +90,7 @@ describe('Malepierre — câblage PROD (Incantation, `incanterLeSort`/`jetLancer
     banc.getState().jetLancer('incantation');
     const consumedBefore = banc.getState().pendingCast!.result!.malepierreConsumed;
     expect(consumedBefore).toBeGreaterThan(0);
-    FLOWS.incantation.bonusSL(banc.getState, banc.setState); // Chance « +1 DR » (LDB 17 l.24)
+    FLOWS.incantation.ajouterUnDR(banc.getState, banc.setState); // Chance « +1 DR » (LDB 17 l.24)
     const consumedAfterBonus = banc.getState().pendingCast!.result!.malepierreConsumed;
     expect(consumedAfterBonus).toBe(consumedBefore); // REPORTÉ (`rederiveCastSL`), jamais perdu ni redoublé
     banc.getState().jetValider('incantation');

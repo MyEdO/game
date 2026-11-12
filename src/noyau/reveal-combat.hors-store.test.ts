@@ -32,7 +32,7 @@ describe('Conséquences d’attaque en révélation (store)', () => {
     enemy.important = true; // LDB 18 l.44 : hors Mort subite
     banc.setState({ pendingCascade: null });
     const res: AttackResult = {
-      hit: true, attackerRoll: 33, netSL: 2, critical: true, advantageTo: 'attacker',
+      hit: true, attackerRoll: 33, netSL: 2, critical: true, advantageTo: 'attaquant',
       defenderDefeated: false, woundsLost: 3, location: 'corps', critLocation: 'corps', log: 'touche !',
     } as AttackResult;
     applyAttackResult(banc.getState, banc.setState, hero, enemy, hero.weapons[0], res);
@@ -55,7 +55,7 @@ describe('Conséquences d’attaque en révélation (store)', () => {
     banc.setState({
       battle: { ...b, turn, acted: true },
       pendingCascade: cascadeDeTest(
-        [{ id: 'cons-critical-0', kind: 'critique', reveal: { kind: 'critique', title: 'Coup Critique', dice: 50, lines: ['x'] } }],
+        [{ id: 'cons-critique-0', kind: 'critique', reveal: { kind: 'critique', title: 'Coup Critique', dice: 50, lines: ['x'] } }],
         { title: 'Coup Critique', purpose: 'combat' },
       ),
     });
@@ -103,7 +103,7 @@ describe('Conséquences d’attaque en révélation (store)', () => {
     const heroNow = () => banc.getState().battle!.combatants.find((c) => c.kind === 'hero')!;
     hero.armour.corps = 3; // PA au corps → la déviation est possible
     const res = {
-      hit: true, attackerRoll: 33, netSL: 2, critical: true, advantageTo: 'attacker',
+      hit: true, attackerRoll: 33, netSL: 2, critical: true, advantageTo: 'attaquant',
       defenderDefeated: false, woundsLost: 3, location: 'corps', critLocation: 'corps', log: 'touche !',
     } as AttackResult;
 

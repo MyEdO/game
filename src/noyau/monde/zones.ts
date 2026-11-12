@@ -209,7 +209,7 @@ export function crossZones(
   for (const z of zones ?? []) {
     if (!z.onCross?.length || z.crossTest) continue;
     if (!path.some((p) => zoneCovers(z, p))) continue;
-    if (zoneSansEffetSur(z, mover)) { lines.push(t('cf.spellDomainImmune', { name: mover.label, spell: z.label })); continue; }
+    if (zoneSansEffetSur(z, mover)) { lines.push(t('cf.immuniteAuDomaine', { name: mover.label, spell: z.label })); continue; }
     lines.push(`${mover.label} traverse ${z.label} !`);
     lines.push(...applyOps(mover, z.onCross, { idNeuf, caster: resolveCaster(z.casterId), rng, label: z.label }));
   }

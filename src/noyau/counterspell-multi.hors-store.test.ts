@@ -147,7 +147,7 @@ describe('Contre-sort à plusieurs candidats — N tenteurs (flux multi)', () =>
     expect(parts.find((p) => p.id === h2.id)!.result, 'aucun jet pour une rangée non déclarée').toBeNull();
     expect(cur(h2.id).resilience, 'le Point n’est PAS dépensé sur un geste refusé').toBe(1);
     expect(cur(h2.id).dispelledThisRound, 'son essai du Round reste INTACT').toBeFalsy();
-    expect(fermeturesDuFlux(banc.getState(), 'contreSort').confirm, 'la fenêtre attend sa déclaration (LDB 46 l.156)').toBe('declarationsDues');
+    expect(fermeturesDuFlux(banc.getState(), 'contreSort').valider, 'la fenêtre attend sa déclaration (LDB 46 l.156)').toBe('declarationsDues');
   });
 
   it('une rangée qui a DISSIPÉ ferme la lice : le suivant est refusé SANS brûler son essai du Round', () => {

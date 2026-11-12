@@ -222,7 +222,7 @@ function duel(): { h: Combatant; e: Combatant } {
 describe('Maladresse de l’ATTAQUANT : une écriture, au temps `oupsAttaquant` (LDB 14 l.19)', () => {
   it('héros qui rate sur un double : UNE Maladresse, AVANT la suite (Action de la manœuvre rendue ensuite)', () => {
     const { h, e } = duel();
-    openAttackCascade(g, banc.setState, { attackerId: h.id, targetId: e.id, location: null, result: null, weaponUid: 'sw', freeKind: 'morsure' }, 'Attaque', 'action/attack');
+    openAttackCascade(g, banc.setState, { attackerId: h.id, targetId: e.id, location: null, result: null, weaponUid: 'sw', freeKind: 'morsure' }, 'Attaque', 'action/attaquer');
     g().jetLancer('attaque');
     banc.setState({ pendingAttack: { ...g().pendingAttack!, result: {
       hit: true, attackerRoll: 33, netSL: 1, location: 'corps', damage: 5, woundsLost: 3, critical: false, advantageTo: null,

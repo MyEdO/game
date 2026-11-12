@@ -42,7 +42,7 @@ describe('TapPreview — le premier appui montre où l’on va, et ce que ça co
 
   it('un aperçu de MARCHE porte son tracé et le badge de coût', () => {
     const html = renderToStaticMarkup(
-      <svg><TapPreview battle={battleAvec({ kind: 'move', path: [{ x: 0, y: 0 }, { x: 1, y: 0 }], tile: { x: 1, y: 0 }, cost: 2 })} activeC={héros} dims={dims} liftOf={() => 0} myTurn /></svg>,
+      <svg><TapPreview battle={battleAvec({ kind: 'deplacement', path: [{ x: 0, y: 0 }, { x: 1, y: 0 }], tile: { x: 1, y: 0 }, cost: 2 })} activeC={héros} dims={dims} liftOf={() => 0} myTurn /></svg>,
     );
     expect(html, 'le badge doit dire le COÛT, pas seulement montrer un trait').toContain('Aller (2)');
     expect(html).toContain('<polyline');
@@ -51,7 +51,7 @@ describe('TapPreview — le premier appui montre où l’on va, et ce que ça co
   it('un aperçu d’ATTAQUE marque l’EMPREINTE de la cible', () => {
     const cible = { ...héros, id: 'e1', pos: { x: 3, y: 0 } } as unknown as Combatant;
     const html = renderToStaticMarkup(
-      <svg><TapPreview battle={{ combatants: [héros, cible], order: ['h1'], turn: 0, movementUsed: 0, preview: { kind: 'attack', targetId: 'e1', path: [] } } as unknown as BattleState} activeC={héros} dims={dims} liftOf={() => 0} myTurn /></svg>,
+      <svg><TapPreview battle={{ combatants: [héros, cible], order: ['h1'], turn: 0, movementUsed: 0, preview: { kind: 'attaque', targetId: 'e1', path: [] } } as unknown as BattleState} activeC={héros} dims={dims} liftOf={() => 0} myTurn /></svg>,
     );
     expect(html).toContain('Attaquer');
     // L'empreinte de la cible : le losange de SA case, à l'opacité de marquage (aucune autre forme de
@@ -61,7 +61,7 @@ describe('TapPreview — le premier appui montre où l’on va, et ce que ça co
   });
 
   it('AUCUN aperçu hors de son tour, ni sans aperçu armé', () => {
-    const armé = battleAvec({ kind: 'move', path: [{ x: 0, y: 0 }], tile: { x: 0, y: 0 }, cost: 1 });
+    const armé = battleAvec({ kind: 'deplacement', path: [{ x: 0, y: 0 }], tile: { x: 0, y: 0 }, cost: 1 });
     expect(renderToStaticMarkup(<svg><TapPreview battle={armé} activeC={héros} dims={dims} liftOf={() => 0} myTurn={false} /></svg>)).toBe('<svg></svg>');
     expect(renderToStaticMarkup(<svg><TapPreview battle={battleAvec(null)} activeC={héros} dims={dims} liftOf={() => 0} myTurn /></svg>)).toBe('<svg></svg>');
   });

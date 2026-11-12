@@ -66,7 +66,7 @@ const héros = {
 
 const batailleQuiVise = (tile: { x: number; y: number }): BattleState => ({
   combatants: [héros], order: ['h1'], turn: 0, movementUsed: 0,
-  preview: { kind: 'move', path: [{ x: 0, y: 0 }, tile], tile, cost: 2 },
+  preview: { kind: 'deplacement', path: [{ x: 0, y: 0 }, tile], tile, cost: 2 },
 } as unknown as BattleState);
 
 describe('Le relief de la COUCHE 0 porte le lift — socle unique, une seule hauteur à l’écran', () => {

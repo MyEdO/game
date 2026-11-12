@@ -71,7 +71,7 @@ function confirme(): string[] {
 /** Frappe du bouclier : BF 4 + Dégâts 2 + DR opposé − BE 4 (PA 0), AA 13 l.84 ; LDB 13 l.151. */
 function attendFrappe(): void {
   const res = G().pendingDefense!.result!;
-  expect(res.advantageTo).toBe('defender');
+  expect(res.advantageTo).toBe('defenseur');
   expect(res.parryWeapon?.uid).toBe('sh1');
   const netSL = res.netSL;
   const tirages = confirme();
@@ -101,7 +101,7 @@ describe('Porte-bouclier — chemin joueur, arme de parade déclarée sur tout c
   it('forçage (« Je ne faillirai pas ! ») : parade au bouclier conservée, la frappe part', () => {
     ouvreParadeAuBouclier(5);
     G().jetLancer('defense');
-    expect(G().pendingDefense!.result!.advantageTo).toBe('attacker');
+    expect(G().pendingDefense!.result!.advantageTo).toBe('attaquant');
     G().jetForcerLaReussite('defense');
     expect(G().pendingDefense!.forced).toBe(true);
     attendFrappe();

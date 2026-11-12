@@ -86,7 +86,7 @@ function hitRes(weapon: Weapon, target: Combatant, totalDamage: number, over: Pa
   return {
     hit: true, attackerRoll: 41, netSL: 2, location: 'corps', damage: totalDamage,
     woundsLost: woundsFromHit(weapon, target, 'corps', totalDamage, 0, 1, undefined),
-    critical: false, advantageTo: 'attacker', defenderDefeated: false, log: 'touche', ...over,
+    critical: false, advantageTo: 'attaquant', defenderDefeated: false, log: 'touche', ...over,
   };
 }
 

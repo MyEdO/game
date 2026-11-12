@@ -51,14 +51,14 @@ export function HandGateModal() {
   });
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' },
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
+    { key: 'cancel', label: t('verbe.annuler'), onClick: cancel, verbe: 'annuler' },
+    { key: 'confirm', label: t('verbe.valider'), onClick: confirm, verbe: 'valider' },
   ];
 
   return (
     <RollShell
       flowKey="mainEnsanglantee"
-      title={<><Icon id="condition/bleeding" size="sm" /> Main ensanglantée</>}
+      title={<><Icon id="etat/hemorragique" size="sm" /> Main ensanglantée</>}
       subtitle={
         <>
           <strong>{pg.actorName}</strong> raffermit sa prise{' '}

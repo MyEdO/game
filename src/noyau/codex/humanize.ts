@@ -641,7 +641,7 @@ export function humanizeOp(o: GameOp): string {
       + `${o.exigence === 'fouille' ? t('codex.op.navireHostile.fouille') : ''}`;
     case 'infestation': return t('codex.op.infestation', {
       test: testSkillLabel({ crewTestType: o.crewTestType.id }) ?? o.crewTestType.id,
-      difficulte: DIFFICULTY_LABELS[o.difficulty], dr: o.targetDR,
+      difficulte: DIFFICULTY_LABELS[o.difficulty], dr: o.drCible,
       nuit: humanizeFlow(o.chaqueNuit, []),
     });
     case 'combatEnMer': return t('codex.op.combatEnMer', { nombre: o.adversaire.nombre, adversaire: creatureLabel(o.adversaire.id) })
@@ -698,8 +698,8 @@ export function humanizeFlow(f: Flow, etats: readonly EtatDeclare[]): string {
       return t('codex.flow.choix', {
         cout: cout ? t('codex.flow.choix.cout', { cout }) : '',
         prompt: f.prompt,
-        oui: humanizeFlow(f.yes, etats),
-        non: flowMuet(f.no) ? '' : t('codex.flow.sinon', { sinon: humanizeFlow(f.no!, etats) }),
+        oui: humanizeFlow(f.oui, etats),
+        non: flowMuet(f.non) ? '' : t('codex.flow.sinon', { sinon: humanizeFlow(f.non!, etats) }),
       });
     }
   }

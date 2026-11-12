@@ -25,7 +25,7 @@ const ENTRIES = Object.entries(FLOW_VERBS) as [string, Entry][];
 const MULTI = ENTRIES.filter(([, w]) => w.kind === 'multi');
 
 /** Les arguments du geste de jet `v` sur `flux`, la rangée `pid` posée (`VerbesDeJet`). */
-const argsDuGeste = (flux: string, v: RollVerb, pid: string): unknown[] => (v === 'setForcedRoll' ? [flux, 42, pid] : [flux, pid]);
+const argsDuGeste = (flux: string, v: RollVerb, pid: string): unknown[] => (v === 'imposerLeResultat' ? [flux, 42, pid] : [flux, pid]);
 
 const H_OWNER = 'h2'; // héros du siège 1
 const H_HOST = 'h1'; // héros du siège 0 (hôte)

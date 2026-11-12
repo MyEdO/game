@@ -308,7 +308,7 @@ export function effectSummary(effect: Effect, ctx: Pick<Ctx, 'scenes' | 'cibles'
     case 'openPort': return `Port : ${e.placeId || '?'}`;
     case 'openTavernGames': return `Jeux de taverne`;
     case 'medicalAid': return `Soins payants (${(e.acts ?? (e.act ? [0] : [])).length} acte(s))`;
-    case 'extendedTest': return `Test Étendu ${e.skill ? refLabel('skills', e.skill) : (e.characteristic || '?')} → DR cumulé ${e.targetDR ?? 0}${e.flag ? ` (flag ${e.flag})` : ''}`;
+    case 'extendedTest': return `Test Étendu ${e.skill ? refLabel('skills', e.skill) : (e.characteristic || '?')} → DR cumulé ${e.drCible ?? 0}${e.flag ? ` (flag ${e.flag})` : ''}`;
     case 'forceDoor': return `Enfoncer « ${e.label || '?'} » (BE ${e.doorBE ?? 0}, B ${e.doorB ?? 0})${e.flag ? ` → flag ${e.flag}` : ''}`;
     case 'setTime': return `Heure → ${DAY_PHASES.find((p) => p.id === e.phase)?.label ?? e.phase}`;
     case 'delayedEffect': {
@@ -987,9 +987,9 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
         {effect.type === 'medicalAid' && (() => {
           // Schéma : une LISTE d'actes tarifés (le débit a lieu à l'acte, dans l'infirmerie).
           const ACTS: { key: 'wounds' | 'bleed' | 'trauma' | 'surgery'; label: string | JSX.Element }[] = [
-            { key: 'wounds', label: <><Icon id="journal/heal" size="sm" /> Soin de Blessures</> },
-            { key: 'bleed', label: <><Icon id="condition/bleeding" size="sm" /> Arrêt d’hémorragie</> },
-            { key: 'trauma', label: <><Icon id="medical/tear" size="sm" /> Soin de déchirure</> },
+            { key: 'wounds', label: <><Icon id="journal/soin" size="sm" /> Soin de Blessures</> },
+            { key: 'bleed', label: <><Icon id="etat/hemorragique" size="sm" /> Arrêt d’hémorragie</> },
+            { key: 'trauma', label: <><Icon id="medical/dechirure" size="sm" /> Soin de déchirure</> },
             { key: 'surgery', label: <><Icon id="medical/scalpel" size="sm" /> Chirurgie</> },
           ];
           const acts: { act: string; cost?: { gold?: number; silver?: number; brass?: number } }[] =
@@ -1055,7 +1055,7 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
                   {(Object.keys(DIFFICULTY_LABELS) as Difficulty[]).map((d) => <option key={d} value={d}>{DIFFICULTY_LABELS[d]}</option>)}
                 </select>
               </label>
-              <label className="dr">DR cible<NumberField variant="nu" label="Degrés de Réussite cibles" value={e.targetDR ?? 5} onChange={(targetDR) => upd({ targetDR })} /></label>
+              <label className="dr">DR cible<NumberField variant="nu" label="Degrés de Réussite cibles" value={e.drCible ?? 5} onChange={(drCible) => upd({ drCible })} /></label>
             </div>
             <input placeholder="flag posé à la réussite (option)" value={e.flag ?? ''} onChange={(ev) => upd({ flag: ev.target.value || undefined })} />
           </>

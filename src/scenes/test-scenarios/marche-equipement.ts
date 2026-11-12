@@ -128,7 +128,7 @@ export const scenario: TestScenario = {
   id: 'marche-equipement',
   order: 7,
   category: 'marche',
-  icon: 'scenario/market',
+  icon: 'scenario/marche',
   title: 'Marché & équipement',
   tests:
     'Acheter/Vendre + Marchander (Test opposé −10/−20/−30 %) + Évaluer (révèle la qualité cachée) + Réparer (10 %/PA) ; ' +

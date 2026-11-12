@@ -26,7 +26,7 @@ export const scenario: TestScenario = {
   id: 'brouillard',
   order: 29,
   category: 'scenarios',
-  icon: 'nav/campaign',
+  icon: 'navigation/campagne',
   title: 'Le brouillard',
   tests: 'La brume de la météo en nappes au-dessus du sol en tactique, et la brume de profondeur resserrée en immersion.',
   partyNote: 'Pré-tirés',

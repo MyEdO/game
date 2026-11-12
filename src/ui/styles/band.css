@@ -62,7 +62,7 @@
   outline-offset: 1px;
 }
 /* Glyphe discret au repos (indice de découverte SANS attendre le survol), plein contraste au
-   survol/focus — même id que le bouton Compendium du menu (`nav/compendium`, `MainMenu.tsx`). */
+   survol/focus — même id que le bouton Compendium du menu (`navigation/compendium`, `MainMenu.tsx`). */
 .creator-band-title-affordance {
   opacity: 0.45;
   color: var(--atelier-brass-meta);

@@ -243,7 +243,7 @@ function conduite(trace: number[]): Conduite {
   const p = get().pendingCascade;
   const st = p ? p.participants[p.cursor] : undefined;
   const avant = curseur();
-  const pose = !!st && fermeturesDuFlux(get(), 'cascadeTirage', st.id).setForcedRoll === null;
+  const pose = !!st && fermeturesDuFlux(get(), 'cascadeTirage', st.id).imposerLeResultat === null;
   get().jetValider('cascade');
   const obs: Conduite = {
     interaction: st ? stepInteraction(st) : 'aucune',

@@ -48,7 +48,7 @@ function heroAt(x: number, y: number): Combatant {
 
 const hitResult: AttackResult = {
   hit: true, attackerRoll: 40, netSL: 2, location: 'corps', damage: 5, woundsLost: 5,
-  critical: false, advantageTo: 'attacker', defenderDefeated: false, log: '',
+  critical: false, advantageTo: 'attaquant', defenderDefeated: false, log: '',
 };
 
 describe('#126 — Rechargement des ennemis (parité héros, LDB 62 l.333-335)', () => {

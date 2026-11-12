@@ -117,7 +117,7 @@ describe('Main ensanglantée (`poserLeTestDeMain`) — cible montée sur la vale
     const dex = testValue(brute, { characteristic: 'dexterite' });
     expect(dex, 'l’État sépare la Dextérité nue de la valeur jetée').toBeLessThan(effectiveChar(brute, 'dexterite'));
 
-    openAttackCascade(get, set, { attackerId: 'br', targetId: 'br', location: null, result: null } as never, 'Attaquer', 'action/attack');
+    openAttackCascade(get, set, { attackerId: 'br', targetId: 'br', location: null, result: null } as never, 'Attaquer', 'action/attaquer');
     const pg = get().pendingHandGate!;
     expect(pg.ligne.base + pg.ligne.mods.reduce((n, m) => n + m.value, 0)).toBe(dex);
     expect(pg.target).toBe(clampTarget(dex + DIFFICULTY_MODIFIERS.accessible).target);

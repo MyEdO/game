@@ -42,7 +42,7 @@ export const scenario: TestScenario = {
   id: 'grimpant',
   order: 18,
   category: 'creatures',
-  icon: 'scenario/bestiary',
+  icon: 'scenario/bestiaire',
   title: 'Grimpant — l’araignée escalade',
   tests:
     // LDB 85 l.160-162

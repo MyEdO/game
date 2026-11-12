@@ -11,7 +11,7 @@ const F = 'fill="currentColor" stroke="none"';
 
 export const icons: IconFamily = [
   {
-    id: 'resource/fate',
+    id: 'ressource/destin',
     label: 'Destin',
     // Comète à deux queues (le présage de Sigmar).
     svg:
@@ -20,7 +20,7 @@ export const icons: IconFamily = [
       `<path ${K} d="M12.5 16.9 C15.5 14.7 18.2 12.2 20.6 9.5"/>`,
   },
   {
-    id: 'resource/resilience',
+    id: 'ressource/resilience',
     label: 'Résilience',
     // La tour qui tient bon sous les bourrasques.
     svg:
@@ -29,7 +29,7 @@ export const icons: IconFamily = [
       `<path ${KF} d="M3.9 10.6 C5.2 11 6.3 11.7 7.2 12.7 M3.7 14.5 C4.8 14.8 5.8 15.4 6.6 16.2 M20.1 10.6 C18.8 11 17.7 11.7 16.8 12.7 M20.3 14.5 C19.2 14.8 18.2 15.4 17.4 16.2"/>`,
   },
   {
-    id: 'resource/fortune',
+    id: 'ressource/chance',
     label: 'Chance',
     // Trèfle à trois feuilles, tige au vent.
     svg:
@@ -39,7 +39,7 @@ export const icons: IconFamily = [
       `<path ${K} d="M12 11.9 C12 15 12.8 17.5 14.4 19.8"/>`,
   },
   {
-    id: 'resource/resolve',
+    id: 'ressource/determination',
     label: 'Détermination',
     // Poing serré de face, phalanges détachées.
     svg:
@@ -51,7 +51,7 @@ export const icons: IconFamily = [
       `<path ${F} d="M6.3 12 C4.9 12.6 4.2 13.7 4.3 15.1 C4.4 16.2 5.1 17.1 6.2 17.5 C5.9 15.7 5.9 13.8 6.3 12 Z"/>`,
   },
   {
-    id: 'resource/wounds',
+    id: 'ressource/blessures',
     label: 'Blessures',
     // Cœur fendu d'une entaille en éclair.
     svg:
@@ -59,7 +59,7 @@ export const icons: IconFamily = [
       `<path ${F} d="M12.8 7.1 C13.6 6.2 14.7 5.6 15.9 5.6 C18.2 5.6 19.9 7.4 19.9 9.9 C19.9 13.2 17.3 16.4 12.9 19.6 L12.2 15.7 L13.9 13.3 L12.3 10.8 L13.7 8.3 Z"/>`,
   },
   {
-    id: 'resource/movement',
+    id: 'ressource/mouvement',
     label: 'Mouvement',
     // Botte de cavalier, molette d'éperon au talon.
     svg:
@@ -68,7 +68,7 @@ export const icons: IconFamily = [
       `<path ${KF} d="M6.6 16.9 H7.8 M5.2 15.5 L4.6 14.4 M5.2 18.3 L4.6 19.4 M3.8 16.9 H2.9"/>`,
   },
   {
-    id: 'resource/gold-purse',
+    id: 'ressource/bourse',
     label: 'Bourse',
     // Bourse de cuir nouée, la pièce d'or qui y tombe.
     svg:
@@ -78,7 +78,7 @@ export const icons: IconFamily = [
       `<circle fill="var(--gold)" stroke="none" cx="12" cy="3.6" r="1.5"/>`,
   },
   {
-    id: 'resource/lifeline',
+    id: 'ressource/survivre',
     label: 'Survivre',
     // Bouée de sauvetage : anneau à quatre bandes.
     svg:
@@ -90,7 +90,7 @@ export const icons: IconFamily = [
       `<path ${F} d="M19.6 15.5 C18.9 16.7 17.9 17.7 16.7 18.4 L14.4 14.5 C14.9 14.1 15.4 13.6 15.7 13.1 Z"/>`,
   },
   {
-    id: 'resource/xp',
+    id: 'ressource/experience',
     label: 'Points d’Expérience',
     // Double chevron montant, étoile en tête (progression / gain de PX).
     svg:

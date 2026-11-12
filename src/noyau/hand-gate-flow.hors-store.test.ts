@@ -57,7 +57,7 @@ beforeEach(() => { banc.setState({ gameTime: 0 }); seedBattleRng(1); });
 describe('openAttackCascade — point PARTAGÉ des déclarations d\'attaque (joueur)', () => {
   it('main gatée + arme tenue dans cette main → interpose le Test de Dextérité, PAS l\'attaque directe', () => {
     const { h, f } = setup(mkHero(bleeding()), mkFoe('f'));
-    openAttackCascade(banc.getState, banc.setState, { attackerId: h.id, targetId: f.id, location: null, result: null, weaponUid: 'm' }, 'Attaque', 'action/attack');
+    openAttackCascade(banc.getState, banc.setState, { attackerId: h.id, targetId: f.id, location: null, result: null, weaponUid: 'm' }, 'Attaque', 'action/attaquer');
     const s = banc.getState();
     expect(s.pendingHandGate).toBeTruthy();
     expect(s.pendingHandGate!.hand).toBe('main');
@@ -68,7 +68,7 @@ describe('openAttackCascade — point PARTAGÉ des déclarations d\'attaque (jou
 
   it('main NON gatée → ouvre directement la cascade d\'attaque (comportement inchangé)', () => {
     const { h, f } = setup(mkHero(), mkFoe('f'));
-    openAttackCascade(banc.getState, banc.setState, { attackerId: h.id, targetId: f.id, location: null, result: null, weaponUid: 'm' }, 'Attaque', 'action/attack');
+    openAttackCascade(banc.getState, banc.setState, { attackerId: h.id, targetId: f.id, location: null, result: null, weaponUid: 'm' }, 'Attaque', 'action/attaquer');
     const s = banc.getState();
     expect(s.pendingHandGate).toBeNull();
     expect(s.pendingAttack).toBeTruthy();
@@ -77,7 +77,7 @@ describe('openAttackCascade — point PARTAGÉ des déclarations d\'attaque (jou
 
   it('jetLancer@mainEnsanglantee pose un jet (délégué influençable généré) puis RÉUSSITE → l\'attaque s\'ouvre', () => {
     const { h, f } = setup(mkHero(bleeding()), mkFoe('f'));
-    openAttackCascade(banc.getState, banc.setState, { attackerId: h.id, targetId: f.id, location: null, result: null, weaponUid: 'm' }, 'Attaque', 'action/attack');
+    openAttackCascade(banc.getState, banc.setState, { attackerId: h.id, targetId: f.id, location: null, result: null, weaponUid: 'm' }, 'Attaque', 'action/attaquer');
     banc.getState().jetLancer('mainEnsanglantee');
     expect(banc.getState().pendingHandGate!.roll).not.toBeNull();
     // Force une RÉUSSITE pour tester l'ouverture de l'attaque (le jet lui-même est aléatoire).
@@ -93,7 +93,7 @@ describe('openAttackCascade — point PARTAGÉ des déclarations d\'attaque (jou
 
   it('ÉCHEC → l\'objet glisse (disarm : loadout vidé), pas d\'attaque, Action non re-consommée', () => {
     const { h, f } = setup(mkHero(bleeding()), mkFoe('f'));
-    openAttackCascade(banc.getState, banc.setState, { attackerId: h.id, targetId: f.id, location: null, result: null, weaponUid: 'm' }, 'Attaque', 'action/attack');
+    openAttackCascade(banc.getState, banc.setState, { attackerId: h.id, targetId: f.id, location: null, result: null, weaponUid: 'm' }, 'Attaque', 'action/attaquer');
     const pg = banc.getState().pendingHandGate!;
     banc.setState({ pendingHandGate: { ...pg, roll: 99, success: false, sl: -3 } });
     banc.getState().jetValider('mainEnsanglantee');
@@ -107,7 +107,7 @@ describe('openAttackCascade — point PARTAGÉ des déclarations d\'attaque (jou
 
   it('jetAnnuler@mainEnsanglantee referme sans coût (avant le jet)', () => {
     const { h, f } = setup(mkHero(bleeding()), mkFoe('f'));
-    openAttackCascade(banc.getState, banc.setState, { attackerId: h.id, targetId: f.id, location: null, result: null, weaponUid: 'm' }, 'Attaque', 'action/attack');
+    openAttackCascade(banc.getState, banc.setState, { attackerId: h.id, targetId: f.id, location: null, result: null, weaponUid: 'm' }, 'Attaque', 'action/attaquer');
     banc.getState().jetAnnuler('mainEnsanglantee');
     expect(banc.getState().pendingHandGate).toBeNull();
     expect(banc.getState().pendingAttack).toBeNull();

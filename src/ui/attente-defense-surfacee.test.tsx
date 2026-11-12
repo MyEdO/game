@@ -77,7 +77,7 @@ function playAttack(seed: number, opts?: Parameters<typeof duel>[0], pa?: Record
   const { enemy, hero } = duel(opts);
   seedBattleRng(seed);
   const g = useGame.getState;
-  openAttackCascade(g, useGame.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: opts?.atkWeapons ? opts.atkWeapons[0]?.uid : 'sw', ...pa } as never, 'Attaque', 'action/attack');
+  openAttackCascade(g, useGame.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: opts?.atkWeapons ? opts.atkWeapons[0]?.uid : 'sw', ...pa } as never, 'Attaque', 'action/attaquer');
   g().jetLancer('attaque');
   return { enemy, hero, pa: g().pendingAttack! };
 }

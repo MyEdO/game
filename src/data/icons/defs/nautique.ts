@@ -9,7 +9,7 @@ const F = 'fill="currentColor" stroke="none"';
 
 export const icons: IconFamily = [
   {
-    id: 'nautical/wind',
+    id: 'nautique/vent',
     label: 'Vent',
     // Trois bourrasques en volute, décroissantes.
     svg:
@@ -18,7 +18,7 @@ export const icons: IconFamily = [
       `<path ${KF} d="M3 12 H10"/>`,
   },
   {
-    id: 'nautical/tack',
+    id: 'nautique/louvoyage',
     label: 'Louvoyage',
     // Trajectoire courbe qui vire, flèche en tête.
     svg:
@@ -27,14 +27,14 @@ export const icons: IconFamily = [
       `<path ${KF} d="M5 15.5 V19"/>`,
   },
   {
-    id: 'nautical/whirlpool',
+    id: 'nautique/tourbillon',
     label: 'Tourbillon',
     // Spirale convergente.
     svg:
       `<path ${K} d="M12 20 C7.6 20 4 16.4 4 12 C4 8.7 6.7 6 10 6 C12.8 6 15 8.2 15 11 C15 13.2 13.2 15 11 15 C9.3 15 8 13.7 8 12 C8 10.6 9.1 9.5 10.5 9.5"/>`,
   },
   {
-    id: 'nautical/snag',
+    id: 'nautique/bois-flottant',
     label: 'Bois flottant',
     // Rondin flottant (coupe en bout) sur l'eau.
     svg:
@@ -43,7 +43,7 @@ export const icons: IconFamily = [
       `<path ${K} d="M3 17 C5.5 15.3 8 15.3 10.5 17 C13 18.7 15.5 18.7 18 17 C19 16.3 20 16 21 16"/>`,
   },
   {
-    id: 'nautical/rock',
+    id: 'nautique/ecueil',
     label: 'Écueil',
     // Écueil rocheux dentelé émergeant de l'eau.
     svg:
@@ -51,7 +51,7 @@ export const icons: IconFamily = [
       `<path ${K} d="M3 18 C5.5 16.3 8 16.3 10.5 18 C13 19.7 15.5 19.7 18 18 C19 17.3 20 17 21 17"/>`,
   },
   {
-    id: 'nautical/swim',
+    id: 'nautique/natation',
     label: 'Natation',
     // Nageur en crawl (tête + bras tendu) au-dessus d'une ligne de vaguelettes.
     svg:

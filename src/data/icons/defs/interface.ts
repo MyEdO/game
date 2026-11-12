@@ -10,7 +10,7 @@ const FE = 'fill="currentColor" fill-rule="evenodd" stroke="none"';
 
 export const icons: IconFamily = [
   {
-    id: 'ui/wait',
+    id: 'interface/attendre',
     label: 'Attendre',
     svg:
       `<path ${K} d="M7.1 3.5 H16.9 M7.1 20.5 H16.9"/>` +
@@ -20,14 +20,14 @@ export const icons: IconFamily = [
       `<circle ${F} cx="12" cy="14.9" r="0.75"/>`,
   },
   {
-    id: 'ui/turn-end',
+    id: 'interface/fin-du-tour',
     label: 'Fin du tour',
     svg:
       `<path ${K} d="M5.4 6.9 H14.4 C17.4 6.9 19.4 8.9 19.4 11.9 C19.4 14.9 17.4 16.7 14.4 16.7 H6.6"/>` +
       `<path ${K} d="M6.4 16.7 L9.4 14 M6.4 16.7 L9.4 19.4"/>`,
   },
   {
-    id: 'ui/round-start',
+    id: 'interface/nouveau-round',
     label: 'Nouveau round',
     svg:
       `<path ${K} d="M13.9 4.7 C17.1 5.5 19.4 8.5 19.4 12 C19.4 16.1 16.1 19.4 12 19.4 C7.9 19.4 4.6 16.1 4.6 12 C4.6 9.1 6.2 6.6 8.6 5.4"/>` +
@@ -35,7 +35,7 @@ export const icons: IconFamily = [
       `<path ${F} d="M10.3 9.1 L15.5 12 L10.3 14.9 Z"/>`,
   },
   {
-    id: 'ui/warning',
+    id: 'interface/attention',
     label: 'Attention',
     svg:
       `<path ${K} d="M12 3.6 C12.4 3.6 12.7 3.8 12.9 4.2 L20.9 18.3 C21.3 19 20.8 19.9 20 19.9 H4 C3.2 19.9 2.7 19 3.1 18.3 L11.1 4.2 C11.3 3.8 11.6 3.6 12 3.6 Z"/>` +
@@ -43,14 +43,14 @@ export const icons: IconFamily = [
       `<circle ${F} cx="12" cy="16.6" r="1.15"/>`,
   },
   {
-    id: 'ui/done',
+    id: 'interface/fait',
     label: 'Fait',
     svg:
       `<path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M4.9 12.7 C6.7 14.1 8.3 15.8 9.8 17.9 C12.5 13.4 15.7 9.5 19.3 6.1"/>` +
       `<path ${KF} opacity="0.5" d="M6.9 11.6 C7.9 12.4 8.8 13.3 9.7 14.4"/>`,
   },
   {
-    id: 'ui/undo',
+    id: 'interface/revenir',
     label: 'Annuler / revenir',
     svg:
       `<path ${K} d="M17.6 5.3 C18.8 7.9 18.6 10.9 17 13.1 C15.4 15.3 12.7 16.4 9 16.4"/>` +
@@ -58,19 +58,19 @@ export const icons: IconFamily = [
       `<path ${KF} opacity="0.5" d="M16.4 6.4 C17.2 8.4 17.1 10.5 16 12.2"/>`,
   },
   {
-    id: 'ui/preempt',
+    id: 'interface/interruption',
     label: 'Interruption',
     svg: `<path ${F} d="M13.8 2.4 L5.8 13.4 L10.5 13.4 L8.9 21.6 L18.2 10.1 L13.4 10.1 Z"/>`,
   },
   {
-    id: 'ui/settings',
+    id: 'interface/reglages',
     label: 'Réglages',
     // Engrenage à 6 dents, moyeu évidé.
     svg:
       `<path ${FE} d="M12 2.6 L13.4 5 L15.9 4 L16.4 6.7 L19.1 6.7 L18.7 9.4 L21.1 10.7 L19.6 12.9 L21.1 15.1 L18.7 16.4 L19.1 19.1 L16.4 19.1 L15.9 21.8 L13.4 20.8 L12 23.2 L10.6 20.8 L8.1 21.8 L7.6 19.1 L4.9 19.1 L5.3 16.4 L2.9 15.1 L4.4 12.9 L2.9 10.7 L5.3 9.4 L4.9 6.7 L7.6 6.7 L8.1 4 L10.6 5 Z M12 9.3 C10.2 9.3 8.7 10.7 8.7 12.6 C8.7 14.4 10.2 15.9 12 15.9 C13.8 15.9 15.3 14.4 15.3 12.6 C15.3 10.7 13.8 9.3 12 9.3 Z"/>`,
   },
   {
-    id: 'ui/search',
+    id: 'interface/rechercher',
     label: 'Rechercher',
     // Loupe simple — filtre/recherche générique.
     svg:
@@ -78,7 +78,7 @@ export const icons: IconFamily = [
       `<path ${K} d="M14.8 14.8 L19.9 19.9"/>`,
   },
   {
-    id: 'ui/lock',
+    id: 'interface/verrou',
     label: 'Verrouillé',
     // Cadenas fermé, anse, corps et trou de serrure évidé (evenodd).
     svg:
@@ -86,7 +86,7 @@ export const icons: IconFamily = [
       `<path ${FE} d="M5.6 10.4 H18.4 V19.6 C18.4 20.4 17.7 20.9 17 20.9 H7 C6.3 20.9 5.6 20.4 5.6 19.6 Z M11.1 14 C11.1 13.5 11.5 13.1 12 13.1 C12.5 13.1 12.9 13.5 12.9 14 C12.9 14.3 12.7 14.6 12.5 14.8 L12.8 16.6 H11.2 L11.5 14.8 C11.3 14.6 11.1 14.3 11.1 14 Z"/>`,
   },
   {
-    id: 'ui/edit',
+    id: 'interface/editer',
     label: 'Éditer',
     // Crayon incliné, pointe et gomme.
     svg:
@@ -95,7 +95,7 @@ export const icons: IconFamily = [
       `<path ${KF} d="M4.6 19.6 H19.4"/>`,
   },
   {
-    id: 'ui/add',
+    id: 'interface/ajouter',
     label: 'Ajouter',
     // Croix simple dans un cercle.
     svg:
@@ -103,7 +103,7 @@ export const icons: IconFamily = [
       `<path ${K} d="M12 7.4 V16.6 M7.4 12 H16.6"/>`,
   },
   {
-    id: 'ui/delete',
+    id: 'interface/supprimer',
     label: 'Supprimer',
     // Corbeille, couvercle et deux nervures.
     svg:
@@ -113,7 +113,7 @@ export const icons: IconFamily = [
       `<path ${KF} d="M10.3 10.6 V17.9 M13.7 10.6 V17.9"/>`,
   },
   {
-    id: 'ui/eye',
+    id: 'interface/oeil',
     label: 'Vision',
     // Œil ouvert, iris central.
     svg:
@@ -121,7 +121,7 @@ export const icons: IconFamily = [
       `<circle ${F} cx="12" cy="12" r="3.1"/>`,
   },
   {
-    id: 'ui/forbidden',
+    id: 'interface/interdit',
     label: 'Interdit',
     // Cercle barré.
     svg:
@@ -129,7 +129,7 @@ export const icons: IconFamily = [
       `<path ${K} d="M6.3 6.3 L17.7 17.7"/>`,
   },
   {
-    id: 'ui/key',
+    id: 'interface/cle',
     label: 'Clé',
     // Panneton simple, tige et dents.
     svg:
@@ -137,7 +137,7 @@ export const icons: IconFamily = [
       `<path ${K} d="M10 10 L19.4 19.4 M16.3 16.1 L18.4 14 M13.7 13.4 L15.7 11.4"/>`,
   },
   {
-    id: 'ui/balance',
+    id: 'interface/balance',
     label: 'Balance / choix pesé',
     // Balance à deux plateaux, fléau et pied.
     svg:
@@ -147,7 +147,7 @@ export const icons: IconFamily = [
       `<path ${K} d="M19.4 6.6 L17.4 11.6 C18.4 12.6 20.4 12.6 21.4 11.6 Z"/>`,
   },
   {
-    id: 'ui/partial',
+    id: 'interface/partiel',
     label: 'Partiellement mécanisé',
     // Point à demi rempli.
     svg:
@@ -155,7 +155,7 @@ export const icons: IconFamily = [
       `<path ${F} d="M12 5.6 C15.5 5.6 18.4 8.5 18.4 12 C18.4 15.5 15.5 18.4 12 18.4 Z"/>`,
   },
   {
-    id: 'ui/branch',
+    id: 'interface/branchement',
     label: 'Branchement conditionnel',
     // Chemin qui se scinde en deux issues.
     svg:
@@ -166,13 +166,13 @@ export const icons: IconFamily = [
       `<circle ${F} cx="17.1" cy="17.6" r="1.7"/>`,
   },
   {
-    id: 'ui/close',
+    id: 'interface/fermer',
     label: 'Fermer',
     // Croix simple (fermer un panneau/dialogue).
     svg: `<path ${K} d="M6.5 6.5 L17.5 17.5 M17.5 6.5 L6.5 17.5"/>`,
   },
   {
-    id: 'ui/think',
+    id: 'interface/reflexion',
     label: 'Réflexion',
     // Bulle de pensée, petits ronds en traîne.
     svg:
@@ -181,7 +181,7 @@ export const icons: IconFamily = [
       `<circle ${F} cx="5.4" cy="20.2" r="0.8"/>`,
   },
   {
-    id: 'ui/tally',
+    id: 'interface/bilan',
     label: 'Bilan / comptage',
     // Bâtons de comptage : quatre traits verticaux barrés d'un cinquième diagonal.
     svg:
@@ -189,7 +189,7 @@ export const icons: IconFamily = [
       `<path ${K} d="M4 8.6 L18 15.4"/>`,
   },
   {
-    id: 'ui/rotate-left',
+    id: 'interface/tourner-a-gauche',
     label: 'Tourner à gauche',
     // Flèche circulaire antihoraire, pointe nettement orientée vers la gauche.
     svg:
@@ -197,7 +197,7 @@ export const icons: IconFamily = [
       `<path ${K} d="M4.8 7.2 L4.7 12 L9.4 11.3"/>`,
   },
   {
-    id: 'ui/rotate-right',
+    id: 'interface/tourner-a-droite',
     label: 'Tourner à droite',
     // Miroir horaire : pointe nettement orientée vers la droite.
     svg:
@@ -205,7 +205,7 @@ export const icons: IconFamily = [
       `<path ${K} d="M19.2 7.2 L19.3 12 L14.6 11.3"/>`,
   },
   {
-    id: 'ui/projection-iso',
+    id: 'interface/vue-isometrique',
     label: 'Vue isométrique',
     // Plan losange subdivisé selon ses deux axes isométriques.
     svg:
@@ -214,7 +214,7 @@ export const icons: IconFamily = [
       `<path ${KF} d="M5.1 11.2 L12 15 L18.9 11.2 M5.1 14.7 L12 18.5 L18.9 14.7"/>`,
   },
   {
-    id: 'ui/projection-top',
+    id: 'interface/vue-du-dessus',
     label: 'Vue du dessus',
     // Plan carré quadrillé vu à plat.
     svg:
@@ -222,7 +222,7 @@ export const icons: IconFamily = [
       `<path ${K} d="M12 4.2 V19.8 M4.2 12 H19.8"/>`,
   },
   {
-    id: 'ui/zoom-in',
+    id: 'interface/zoom-avant',
     label: 'Zoom avant',
     // Loupe et signe plus géométrique.
     svg:
@@ -230,7 +230,7 @@ export const icons: IconFamily = [
       `<path ${K} d="M14.5 14.5 L20 20 M10.2 7.2 V13.2 M7.2 10.2 H13.2"/>`,
   },
   {
-    id: 'ui/zoom-out',
+    id: 'interface/zoom-arriere',
     label: 'Zoom arrière',
     // Loupe et signe moins géométrique.
     svg:
@@ -238,7 +238,7 @@ export const icons: IconFamily = [
       `<path ${K} d="M14.5 14.5 L20 20 M7.2 10.2 H13.2"/>`,
   },
   {
-    id: 'ui/zoom-reset',
+    id: 'interface/zoom-initial',
     label: 'Réinitialiser le zoom',
     // Loupe entourant une flèche de retour circulaire, sans chiffre ni glyphe.
     svg:

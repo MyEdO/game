@@ -9,7 +9,7 @@ const F = 'fill="currentColor" stroke="none"';
 
 export const icons: IconFamily = [
   {
-    id: 'audio/mute',
+    id: 'son/coupe',
     label: 'Son coupé',
     // Pavillon de haut-parleur, croix de sourdine.
     svg:
@@ -17,7 +17,7 @@ export const icons: IconFamily = [
       `<path ${K} d="M15.4 9.8 L19.8 14.2 M19.8 9.8 L15.4 14.2"/>`,
   },
   {
-    id: 'audio/volume',
+    id: 'son/volume',
     label: 'Volume',
     // Pavillon de haut-parleur, ondes sonores croissantes.
     svg:
@@ -26,7 +26,7 @@ export const icons: IconFamily = [
       `<path ${KF} d="M17.6 6.9 C21 9.6 21 14.4 17.6 17.1"/>`,
   },
   {
-    id: 'audio/music',
+    id: 'son/musique',
     label: 'Musique',
     // Croche double (deux notes reliées par une barre).
     svg:

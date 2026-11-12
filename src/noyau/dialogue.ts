@@ -73,13 +73,13 @@ export function conversationRepond(s: Jeu): s is Jeu & { dialogue: EtatDialogue 
 /** `kind` de la couche que la fenêtre de conversation pose sur la pile de CE siège (`ui/DialogueBox`). */
 export const COUCHE_CONVERSATION = 'dialogue';
 
-/** Le Test qu'un flux de réponse DÉCLENCHE, en ids STABLES — `targetDR` n'est porté que par un Test
+/** Le Test qu'un flux de réponse DÉCLENCHE, en ids STABLES — `drCible` n'est porté que par un Test
  *  ÉTENDU (le DR CUMULÉ à atteindre, donnée du flux). */
 export interface TestAnnonce {
   skill?: RefDesignee;
   characteristic?: CharKey;
   difficulty: Difficulty;
-  targetDR?: number;
+  drCible?: number;
 }
 
 /** Une réponse VISIBLE du nœud courant. */
@@ -160,7 +160,7 @@ export function testAnnonce(flow: Flow | undefined, ctx: ContexteDuTest): TestAn
       const e = flow.effect;
       if (e.type !== 'extendedTest') return undefined;
       const decision = resoudreFlowTest(e, ctx);
-      return decision.joue ? { ...decision.sujet, difficulty: decision.difficulty, targetDR: e.targetDR } : undefined;
+      return decision.joue ? { ...decision.sujet, difficulty: decision.difficulty, drCible: e.drCible } : undefined;
     }
     case 'choice':
       return undefined;
@@ -176,7 +176,7 @@ export function testAnnonce(flow: Flow | undefined, ctx: ContexteDuTest): TestAn
 export function libelleDuTestAnnonce(test: TestAnnonce): string {
   const quoi = testSkillLabel(test) ?? '';
   const diff = DIFFICULTY_LABELS[test.difficulty];
-  return test.targetDR != null ? t('dlg.testTagCumul', { quoi, diff, dr: test.targetDR }) : t('dlg.testTag', { quoi, diff });
+  return test.drCible != null ? t('dlg.testTagCumul', { quoi, diff, dr: test.drCible }) : t('dlg.testTag', { quoi, diff });
 }
 
 /** Une réponse en vue : ce qu'elle annonce (`libelleDuTestAnnonce`) et le geste qui la choisit. */

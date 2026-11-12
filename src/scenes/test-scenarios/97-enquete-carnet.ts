@@ -96,7 +96,7 @@ export const scenario: TestScenario = {
   id: 'enquete-carnet',
   order: 24,
   category: 'scenarios',
-  icon: 'nav/campaign',
+  icon: 'navigation/campagne',
   title: 'Carnet d’enquête',
   tests:
     'Mécanique MAISON du carnet (#670) : `revealClue` première révélation (dialogue, premier stade) ' +

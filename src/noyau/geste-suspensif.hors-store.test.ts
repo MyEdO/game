@@ -81,7 +81,7 @@ describe('designerHeros — la désignation porte la suite du Flow', () => {
 });
 
 describe('extendedTest / forceDoor — même patron, même suite', () => {
-  const crochetage: Effect = { type: 'extendedTest', characteristic: 'force', difficulty: 'facile', label: 'Enfoncer', targetDR: 3, flag: 'cede' };
+  const crochetage: Effect = { type: 'extendedTest', characteristic: 'force', difficulty: 'facile', label: 'Enfoncer', drCible: 3, flag: 'cede' };
   const porte: Effect = { type: 'forceDoor', label: 'Porte', doorBE: 0, doorB: 6, flag: 'porte-ouverte' };
 
   it('Test étendu atteint : la suite se joue après l’issue', () => {

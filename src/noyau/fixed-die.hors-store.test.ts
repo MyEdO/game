@@ -237,7 +237,7 @@ describe('Test OPPOSÉ — plancher de Résilience vs évaluation naturelle du d
       pendingAttack: {
         attackerId: 'A', targetId: 'B', location: null,
         result: {
-          hit: false, attackerRoll: 88, netSL: -9, critical: false, advantageTo: 'defender', defenderDefeated: false, log: 'raté',
+          hit: false, attackerRoll: 88, netSL: -9, critical: false, advantageTo: 'defenseur', defenderDefeated: false, log: 'raté',
           attackerDetail: { label: 'Corps à corps', base: 45, modifier: 0, target: 45, roll: 88, success: false, sl: -4 },
           defenderDetail: { label: 'Esquive', base: 55, modifier: 0, target: 55, roll: 5, success: true, sl: 5 },
         } as never,
@@ -331,7 +331,7 @@ describe('journal — la marque appartient à l’ÉTAPE qui émet, pas au slot 
   const applied: string[] = [];
 
   const etape = (id: string): CascadeStep =>
-    ({ id, kind: cleDeFixture('markSpy'), label: fixtureText('Tirage'), icon: 'nav/dice', table: { tableId: TBL }});
+    ({ id, kind: cleDeFixture('markSpy'), label: fixtureText('Tirage'), icon: 'navigation/des', table: { tableId: TBL }});
 
   beforeEach(() => {
     applied.length = 0;

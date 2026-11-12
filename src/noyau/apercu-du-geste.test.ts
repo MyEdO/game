@@ -130,7 +130,7 @@ describe('G-A — le badge tap-1 ne nomme une Difficulté QUE pour un Test d’a
   const empoignade = () => {
     const a = guerrier({ id: 'A', pos: { x: 5, y: 0 }, grapplingWith: ['B'] } as never);
     const b = guerrier({ id: 'B', label: 'B', kind: 'enemy', pos: { x: 6, y: 0 }, grapplingWith: ['A'] } as never);
-    const battle = { combatants: [a, b], order: ['A'], turn: 0, movementUsed: 0, acted: false, action: null, selectedAttack: 'grapple', preview: { kind: 'attack', targetId: 'B' }, log: [], reachable: new Map() };
+    const battle = { combatants: [a, b], order: ['A'], turn: 0, movementUsed: 0, acted: false, action: null, selectedAttack: 'grapple', preview: { kind: 'attaque', targetId: 'B' }, log: [], reachable: new Map() };
     const get = (() => ({ scene: scene(), battle, facing: {}, gameTime: 0, net: initialNet(), ecrireAuJournal: () => {} })) as unknown as () => JeuDuNoyau;
     return { a, b, battle, get };
   };
@@ -151,7 +151,7 @@ describe('G-A — le badge tap-1 ne nomme une Difficulté QUE pour un Test d’a
   it('la frappe d’ARME, elle, en nomme une — le prédicat ne bâillonne pas tout', () => {
     const a = guerrier({ id: 'A', pos: { x: 5, y: 0 } });
     const b = guerrier({ id: 'B', label: 'B', kind: 'enemy', pos: { x: 6, y: 0 } });
-    const battle = { combatants: [a, b], order: ['A'], turn: 0, movementUsed: 0, acted: false, action: null, preview: { kind: 'attack', targetId: 'B' }, log: [], reachable: new Map() };
+    const battle = { combatants: [a, b], order: ['A'], turn: 0, movementUsed: 0, acted: false, action: null, preview: { kind: 'attaque', targetId: 'B' }, log: [], reachable: new Map() };
     const get = (() => ({ scene: scene(), battle, facing: {}, gameTime: 0, net: initialNet(), ecrireAuJournal: () => {} })) as unknown as () => JeuDuNoyau;
     expect(dit(apercuDuGeste(get, a, b, { id: 'arme', label: 'Épée', cost: { action: 1 } } as never))).toBe('Intermédiaire (+0)');
     expect(previewDifficultyOf(get)).toEqual({ difficulty: 'intermediaire' });

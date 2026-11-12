@@ -260,7 +260,7 @@ export const TABLES = {
       apply: ({ attacker, target, res }) => {
         if (res.hit && isMagicallyAsleep(target) && !traitCapability(attacker.traits, 'wakelessBite')) {
           wakeSleeper(target);
-          res = { ...res, autoKill: false, ajouts: [...(res.ajouts ?? []), t('cf.wakeSleeper', { name: attacker.label, foe: target.label })] };
+          res = { ...res, autoKill: false, ajouts: [...(res.ajouts ?? []), t('cf.reveilDuDormeur', { name: attacker.label, foe: target.label })] };
         }
         return res;
       },
@@ -297,7 +297,7 @@ export const TABLES = {
       apply: ({ get, attacker, target, weapon, attaque, res }) => {
         if (res.hit && attaque === 'ranged' && weapon && organicProjectile(weapon)
           && wardedAgainst(get().battle?.combatants ?? [], attacker, target, 'arrowWard', sceneMetresPerTile(get().scene))) {
-          res = { ...res, woundsLost: 0, damage: 0, sansPrise: 'bouclier-anti-fleches', touche: undefined, log: t('cf.arrowWardDestroys', { name: target.label }) };
+          res = { ...res, woundsLost: 0, damage: 0, sansPrise: 'bouclier-anti-fleches', touche: undefined, log: t('cf.bouclierAntiFlechesDesagrege', { name: target.label }) };
         }
         return res;
       },
@@ -317,7 +317,7 @@ export const TABLES = {
             loseWounds(priest, taken);
             if (priest.wounds.current <= 0) applyZeroWounds(priest);
             encaisse?.(priest, taken);
-            res = { ...res, woundsLost: 0, degatsTransferes: true, ajouts: [...(res.ajouts ?? []), t('cf.martyrTakes', { priest: priest.label, name: target.label, taken })] };
+            res = { ...res, woundsLost: 0, degatsTransferes: true, ajouts: [...(res.ajouts ?? []), t('cf.martyrEncaisse', { priest: priest.label, name: target.label, taken })] };
           }
         }
         return res;
@@ -337,7 +337,7 @@ export const TABLES = {
             const moved = pushBackTiles(get, attacker, target, wanted);
             res = {
               ...res, woundsLost: 0, damage: 0, touche: undefined, // #1595 c.6221792068 Q2 : le Coup Critique demeure
-              log: t('cf.pushback', { name: attacker.label, foe: target.label, meters, bloque: moved < wanted ? t('cf.pushbackBlocked') : '' }),
+              log: t('cf.repoussement', { name: attacker.label, foe: target.label, meters, bloque: moved < wanted ? t('cf.repoussementBloque') : '' }),
             };
           }
         }

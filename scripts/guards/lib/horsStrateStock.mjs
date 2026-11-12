@@ -192,7 +192,7 @@ export const STRUCTURES_LOCALES = [
   { fichier: 'src/data#sea-navigation', ref: '.longsVoyages', occurrence: 1 },
   { fichier: 'src/data#sea-navigation', ref: '.orientation', occurrence: 1 },
   { fichier: 'src/data#sea-navigation', ref: '.orientation.changementDeCap.entries[]', occurrence: 1 },
-  { fichier: 'src/data#sea-navigation', ref: '.orientation.driftSide', occurrence: 1 },
+  { fichier: 'src/data#sea-navigation', ref: '.orientation.coteDeLaDerive', occurrence: 1 },
   { fichier: 'src/data#sea-navigation', ref: '.orientation.reperes[]', occurrence: 1 },
   { fichier: 'src/data#sea-navigation', ref: '.phares', occurrence: 1 },
   { fichier: 'src/data#sea-navigation', ref: '.phares.clocher', occurrence: 1 },

@@ -67,7 +67,7 @@ describe('cliquerLaCase — tir refusé AVANT la modale', () => {
   it('cible VALIDE (LdV + portée) → l’aperçu tap-1 se pose normalement', () => {
     setup();
     cliquerSurLeCombattant(banc.getState, 'e-vu');
-    expect(banc.getState().battle?.preview).toMatchObject({ kind: 'attack', targetId: 'e-vu' });
+    expect(banc.getState().battle?.preview).toMatchObject({ kind: 'attaque', targetId: 'e-vu' });
   });
 
 });

@@ -20,29 +20,29 @@ describe('lieuAUnPlan — porte de l’onglet Plan (#345 phase 5)', () => {
 });
 
 describe('poiIcon — résolution GÉNÉRALE de l’icône d’un marqueur de plan (#371, aucun backfill de donnée)', () => {
-  // Un lieu de type ville : le service `temple` (catalogue) porte l'icône `faith/church`, le port
-  // `travel/anchor` — la résolution les DÉRIVE de la cible sans que le POI ne redéclare son icône.
+  // Un lieu de type ville : le service `temple` (catalogue) porte l'icône `foi/chapelle`, le port
+  // `voyage/ancre` — la résolution les DÉRIVE de la cible sans que le POI ne redéclare son icône.
   const services = placeServices(place({
     port: { taille: 4, richesse: 3, production: ['commerce-mer'] } as MapPlace['port'],
     services: [{ kind: { id: 'temple' } }],
   }));
 
-  it('serviceKind sans icon authoré : DÉRIVE l’icône du service résolu (temple → faith/church)', () => {
-    expect(poiIcon({ id: 'p', label: 'Temple', pos: { x: 0, y: 0 }, serviceKind: { id: 'temple' } }, services)).toBe('faith/church');
+  it('serviceKind sans icon authoré : DÉRIVE l’icône du service résolu (temple → foi/chapelle)', () => {
+    expect(poiIcon({ id: 'p', label: 'Temple', pos: { x: 0, y: 0 }, serviceKind: { id: 'temple' } }, services)).toBe('foi/chapelle');
   });
-  it('serviceKind = port automatique : icône du profil de port (travel/anchor)', () => {
-    expect(poiIcon({ id: 'p', label: 'Port', pos: { x: 0, y: 0 }, serviceKind: { id: 'port' } }, services)).toBe('travel/anchor');
+  it('serviceKind = port automatique : icône du profil de port (voyage/ancre)', () => {
+    expect(poiIcon({ id: 'p', label: 'Port', pos: { x: 0, y: 0 }, serviceKind: { id: 'port' } }, services)).toBe('voyage/ancre');
   });
   it('icon authoré PRIME sur la cible (surcharge d’auteur)', () => {
-    expect(poiIcon({ id: 'p', label: 'X', pos: { x: 0, y: 0 }, icon: 'nav/dice', serviceKind: { id: 'temple' } }, services)).toBe('nav/dice');
+    expect(poiIcon({ id: 'p', label: 'X', pos: { x: 0, y: 0 }, icon: 'navigation/des', serviceKind: { id: 'temple' } }, services)).toBe('navigation/des');
   });
-  it('sceneId sans icon : porte (map-tool/door)', () => {
-    expect(poiIcon({ id: 'p', label: 'Ailleurs', pos: { x: 0, y: 0 }, sceneId: { id: 'sc-x' } }, services)).toBe('map-tool/door');
+  it('sceneId sans icon : porte (outil-de-carte/porte)', () => {
+    expect(poiIcon({ id: 'p', label: 'Ailleurs', pos: { x: 0, y: 0 }, sceneId: { id: 'sc-x' } }, services)).toBe('outil-de-carte/porte');
   });
-  it('serviceKind introuvable dans les services résolus : défaut nav/entry-point', () => {
-    expect(poiIcon({ id: 'p', label: 'Rien', pos: { x: 0, y: 0 }, serviceKind: { id: 'inconnu' } }, services)).toBe('nav/entry-point');
+  it('serviceKind introuvable dans les services résolus : défaut navigation/point-d-entree', () => {
+    expect(poiIcon({ id: 'p', label: 'Rien', pos: { x: 0, y: 0 }, serviceKind: { id: 'inconnu' } }, services)).toBe('navigation/point-d-entree');
   });
-  it('cible absente : défaut nav/entry-point', () => {
-    expect(poiIcon({ id: 'p', label: 'Nu', pos: { x: 0, y: 0 } }, services)).toBe('nav/entry-point');
+  it('cible absente : défaut navigation/point-d-entree', () => {
+    expect(poiIcon({ id: 'p', label: 'Nu', pos: { x: 0, y: 0 } }, services)).toBe('navigation/point-d-entree');
   });
 });

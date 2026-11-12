@@ -173,7 +173,7 @@ export const scenario: TestScenario = {
   id: 'commerce-fluvial',
   order: 2,
   category: 'marche',
-  icon: 'scenario/market',
+  icon: 'scenario/marche',
   title: 'Commerce fluvial (le Reik)',
   tests:
     // MSRC 13

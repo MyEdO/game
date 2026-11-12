@@ -98,7 +98,7 @@ export function resolveActGates(get: Get, set: SetFn, c: Combatant): ActGateOutc
       // TOTALE `CATEGORY_BY_SOURCE_KIND` : aucun `if` par nature de source ici.
       const src = gate?.source;
       pushMono(set, {
-        id: `testDAgir-${c.id}-${char}`, kind: 'testDAgir', icon: 'item/consumable', rollLabel: CHAR_LABELS[char],
+        id: `testDAgir-${c.id}-${char}`, kind: 'testDAgir', icon: 'objet/consommable', rollLabel: CHAR_LABELS[char],
         actor: c,
         ligne: { test: { characteristic: char }, combat: { kind: 'test' } },
         difficulty: 'intermediaire',
@@ -154,7 +154,7 @@ export const TABLES = {
       if (!hero || !step.result) return;
       if (step.result.success) return { consequences: freeCons([t('turn.testDAgirReussi', { name: hero.label })]) };
       const choix = choiceStep({
-        id: `choixDAgir-${hero.id}`, kind: 'choixDAgir', actorId: hero.id, icon: 'item/consumable',
+        id: `choixDAgir-${hero.id}`, kind: 'choixDAgir', actorId: hero.id, icon: 'objet/consommable',
         label: t('turn.choixDAgir'),
         options: [
           { key: 'action', label: t('turn.testDAgirOptionAction') },

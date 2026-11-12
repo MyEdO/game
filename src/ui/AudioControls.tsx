@@ -23,7 +23,7 @@ export function AudioControls() {
             setMute(!muted);
           }}
         >
-          <Icon id={muted ? 'audio/mute' : 'audio/volume'} size="sm" />
+          <Icon id={muted ? 'son/coupe' : 'son/volume'} size="sm" />
         </button>
         <input
           type="range"
@@ -43,7 +43,7 @@ export function AudioControls() {
         />
       </div>
       <div className="audio-controls">
-        <span className="audio-icon" aria-hidden><Icon id="audio/music" size="sm" /></span>
+        <span className="audio-icon" aria-hidden><Icon id="son/musique" size="sm" /></span>
         <input
           type="range"
           min={0}

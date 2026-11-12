@@ -4,10 +4,11 @@
  * cycle : `pendings.ts` et `rollSeam.ts` l'importent tous deux.
  *
  * `RecapTone` reprend EXACTEMENT `NightEntry.tone` (noyau/restFlow.ts, PV de nuit/jour de mer) —
- * pas un second vocabulaire : même trio 'ok'/'bad'/'info', mêmes classes CSS (`.recap-line.ok`
- * partage `--ok-bright`/`--danger-soft` avec `.mrl-row.ok`, styles/hud.css).
+ * pas un second vocabulaire : même trio 'reussite'/'echec'/'neutre', mêmes classes CSS (`.recap-line.reussite`
+ * partage `--ok-bright`/`--danger-soft` avec `.mrl-row.reussite`, styles/hud.css), et les tons d'un hôte (`Ton`,
+ * src/hote/elements.ts).
  */
-export type RecapTone = 'ok' | 'bad' | 'info';
+export type RecapTone = 'reussite' | 'echec' | 'neutre';
 
 /** Camp d'un SEGMENT de texte — même vocabulaire que la narration de combat (`NarratedSegment.team`,
  *  classes `.nm-ally`/`.nm-foe`) : les noms se colorent par camp, allié / ennemi. */

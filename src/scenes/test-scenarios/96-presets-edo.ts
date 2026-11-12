@@ -87,7 +87,7 @@ function construireScene(): Scene {
               // CHEMIN JOUEUR de « il leur propose une partie » (`EDO 01 l.200`) : sans lui, le rôle
               // `tavernGame` de l'entité est une affordance morte — authorée, jamais atteignable au clic.
               label: 'Accepter la partie de cartes qu’il propose.',
-              icon: 'nav/dice',
+              icon: 'navigation/des',
               flow: flowFromEffects([{ type: 'openTavernGames' }]),
             },
             {
@@ -162,7 +162,7 @@ export const scenario: TestScenario = {
   id: 'presets-edo',
   order: 23,
   category: 'scenarios',
-  icon: 'nav/campaign',
+  icon: 'navigation/campagne',
   title: 'Presets PNJ — pilotes EDO',
   tests:
     'Recette #671 (lot C) : trois PNJ authorés en presets (base globale + surcharges embarquées) résolus ' +

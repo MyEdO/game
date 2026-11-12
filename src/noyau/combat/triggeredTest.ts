@@ -182,7 +182,7 @@ export function simpleTriggeredTestStep(
   const skillLabel = testSkillLabel(ft) ?? 'Test';
   return monoStep({
     id: triggeredTestStepId(c, ft.label, skillLabel),
-    kind: 'testDeclenche', icon: 'nav/dice', rollLabel: skillLabel,
+    kind: 'testDeclenche', icon: 'navigation/des', rollLabel: skillLabel,
     actor: c, ligne: { test: decision.sujet, combat: { kind: 'test' } },
     difficulty, label: dataLabel(ft.label, skillLabel),
     // ENJEU du Flow (#1117/#1262 V2 L6d) : déjà résolu par `withDerivedStake` chez l'appelant (déclaré,
@@ -253,7 +253,7 @@ export function frozenOpposedBatchStep(
   const opp = ft.opposed;
   if (!opp) throw new Error('frozenOpposedBatchStep : le FlowTest doit déclarer son opposition (`opposed`).');
   // Test tagué `menace` : la rangée batch porte le tag ELLE-MÊME (comme l'étape mono), donc le verbe
-  // `resist` (Résistance (Menace), LDB 10 l.1016-1020) s'y joue PAR RANGÉE — `FLOWS.cascadeEnBande.caps`.
+  // `resister` (Résistance (Menace), LDB 10 l.1016-1020) s'y joue PAR RANGÉE — `FLOWS.cascadeEnBande.caps`.
   const skillLabel = testSkillLabel(ft) ?? 'Test';
   const participants: BatchParticipant[] = [];
   let declaree: Difficulty | undefined;
@@ -272,7 +272,7 @@ export function frozenOpposedBatchStep(
   }
   return bandStep({
     id: `testDeclencheEnBande-${attacker.id}-${ft.label ?? skillLabel}`,
-    kind: 'testDeclencheEnBande', icon: 'nav/dice', label: dataLabel(ft.label, skillLabel),
+    kind: 'testDeclencheEnBande', icon: 'navigation/des', label: dataLabel(ft.label, skillLabel),
     ...(ft.stake ? { stake: ft.stake } : {}),
     ...(ft.menace ? { menace: ft.menace } : {}),
     meta: {
@@ -315,7 +315,7 @@ export function simpleBatchTestStep(
     });
   }
   return bandStep({
-    id, kind: 'testDeclencheEnBande', icon: 'nav/dice', label: dataLabel(ft.label, skillLabel),
+    id, kind: 'testDeclencheEnBande', icon: 'navigation/des', label: dataLabel(ft.label, skillLabel),
     ...(ft.stake ? { stake: ft.stake } : {}),
     ...(ft.menace ? { menace: ft.menace } : {}),
     meta: { onSuccess: branches.onSuccess, onFail: branches.onFail, after, ...(opsCtx.hull ? { hullId: opsCtx.hull.id } : {}) },
@@ -349,7 +349,7 @@ export function collectRoundEndTestSteps(get: Get, c: Combatant): BuiltCascadeSt
         const prompt = ft.label ?? src.label;
         const choix = choiceStep({
           id: `choixDeclenche-${c.id}-${prompt}`, kind: 'choixDeclenche', actorId: c.id,
-          icon: 'ui/think', label: dataLabel(prompt),
+          icon: 'interface/reflexion', label: dataLabel(prompt),
           options: [{ key: 'oui', label: dataLabel(prompt) }, { key: 'non', label: t('opt.renoncer') }],
           defaultChoice: 'non',
           // ENTITÉ PORTEUSE (ids) : le OUI ouvre LE Test — il en dérive son enjeu (#1262 V2 L6d).
@@ -525,7 +525,7 @@ export function resolveFlowTest(ctx: ExecCtx, node: Extract<Flow, { kind: 'test'
     const extraMeta = { opsDeCtx: porterOpsCtx({ idNeuf: ctx.get().forgerUnId, rng: battleRng(), ...oc }), ...(ctx.freeAttack ? { freeAttack: ctx.freeAttack } : {}), ...(btFreeze ? { piegeALame: btFreeze } : {}), ...(ctx.opsCtx?.noReentryOwnTestFailed ? { noOwnTestFailed: true } : {}) };
     const step = aT && attacker
       ? monoStep({
-        id: triggeredTestStepId(c, ft.label, skillLabel), kind: 'testDeclenche', icon: 'nav/dice', rollLabel: skillLabel,
+        id: triggeredTestStepId(c, ft.label, skillLabel), kind: 'testDeclenche', icon: 'navigation/des', rollLabel: skillLabel,
         actor: c, ligne: { test: decision.sujet }, label, difficulty,
         stake: ft.stake,
         meta: { onSuccess: node.success, onFail: node.fail, after, opposed: { aT, attackerId: attacker.id, attackerName: attacker.label, ...opposedAttackerFreeze(opp!), difficulty: decision.declaree, ...(opp!.bonusSL ? { bonusSL: opp!.bonusSL } : {}), ...(opp!.defenderMustWin ? { defenderMustWin: true } : {}) }, ...extraMeta },
@@ -569,7 +569,7 @@ export function resolveFlowTest(ctx: ExecCtx, node: Extract<Flow, { kind: 'test'
     const lines = applyTriggeredTestBranch(c, { success: branchSuccess, sl: t.sl }, { onSuccess: node.success, onFail: node.fail }, exec);
     // SEAM `onOwnTestFailed` (combat, jet inline ennemi/auto — Test OPPOSÉ PERDU par le porteur). Une
     // égalité parfaite n'est pas un échec (statu quo) : le trigger ne part que si l'attaquant l'emporte.
-    if (o.winner === 'attacker') lines.push(...fireOwnTestFailed(ctx.get, c, { rng: battleRng(), sl: t.sl }));
+    if (o.winner === 'attaquant') lines.push(...fireOwnTestFailed(ctx.get, c, { rng: battleRng(), sl: t.sl }));
     ctx.set(touchActors(ctx.get()));
     queueLines(ctx.get, ctx.set, lines, c.id);
     playAfter(ctx.get, ctx.set, c, after, ctx.label, oc);
@@ -599,7 +599,7 @@ function choiceAffordable(get: Get, decider: Combatant | undefined, advantageCos
  *    nœud n'est pas offert, et jamais rendu gratuit ; la branche `no` puis la continuation se jouent.
  *  - DÉCIDEUR SURFACÉ (`surfaceOf` : un siège humain QUELCONQUE le tient, cadence manuelle) → étape de
  *    CHOIX `choixDeclenche` dans la cascade (`options` oui/non, `defaultChoice:'non'`, la possession posée
- *    par le mint `choiceStep`) ; les Flows `yes`/`no`, le `cost`, l'`after`, le contexte d'ops PORTÉ
+ *    par le mint `choiceStep`) ; les Flows `oui`/`non`, le `cost`, l'`after`, le contexte d'ops PORTÉ
  *    (`porterOpsCtx`) et le contexte `freeAttack` voyagent dans le `meta` (sérialisable).
  *  - sinon (ennemi / cadence auto) → décision AUTO inline : oui si le coût est payable (l'IA saisit la
  *    réaction quand elle le peut ; un sort prend son plus haut palier, #3045), sinon non. La branche choisie
@@ -609,7 +609,7 @@ export function resolveFlowChoice(ctx: ExecCtx, node: Extract<Flow, { kind: 'cho
   const decider = ctx.caster ?? ctx.target;
   const horsCombat = !decider || !inBattleId(ctx.get().battle, decider.id);
   if (typeof node.advantageCost === 'string' || (node.advantageCost != null && horsCombat)) {
-    runCombatFlow({ ...ctx }, node.no ?? EMPTY_FLOW);
+    runCombatFlow({ ...ctx }, node.non ?? EMPTY_FLOW);
     if (after !== EMPTY_FLOW) runCombatFlow({ ...ctx }, after);
     return;
   }
@@ -627,11 +627,11 @@ export function resolveFlowChoice(ctx: ExecCtx, node: Extract<Flow, { kind: 'cho
     const branchTargetId = ctx.target && ctx.target.id !== decider.id ? ctx.target.id : undefined;
     pushChoice(ctx.set, {
       id: `choixDeclenche-${decider.id}-${node.prompt}`,
-      kind: 'choixDeclenche', actorId: decider.id, icon: node.icon ?? 'ui/think', label: dataLabel(node.prompt),
+      kind: 'choixDeclenche', actorId: decider.id, icon: node.icon ?? 'interface/reflexion', label: dataLabel(node.prompt),
       options: [{ key: 'oui', label: dataLabel(yesLabel), ...(abordable ? {} : { refus: t('opt.avantageInsuffisant', { n: node.advantageCost ?? 0, dispo: spendableAdvantage(ctx.get().battle, decider) }) }) }, { key: 'non', label: t('opt.renoncer') }],
       defaultChoice: 'non',
       meta: {
-        choiceYes: node.yes, choiceNo: node.no ?? EMPTY_FLOW, after,
+        choiceYes: node.oui, choiceNo: node.non ?? EMPTY_FLOW, after,
         ...(node.advantageCost != null ? { choiceCost: node.advantageCost } : {}),
         ...(branchTargetId ? { choiceTargetId: branchTargetId } : {}),
         // CONTEXTE d'ops PORTÉ (sl, horloge, libellé, sort et ENTITÉ PORTEUSE) : la branche le retrouve
@@ -646,7 +646,7 @@ export function resolveFlowChoice(ctx: ExecCtx, node: Extract<Flow, { kind: 'cho
   // Ennemi / héros rapide-auto : décision INLINE (oui si payable). Dépense le coût puis joue la branche.
   const yes = choiceAffordable(ctx.get, decider, node.advantageCost);
   if (yes && node.advantageCost != null && decider) campSpend(ctx.get, decider, node.advantageCost); // débite la réserve du camp (mode groupe) / le combattant (LDB)
-  runCombatFlow({ ...ctx }, yes ? node.yes : (node.no ?? EMPTY_FLOW));
+  runCombatFlow({ ...ctx }, yes ? node.oui : (node.non ?? EMPTY_FLOW));
   if (after !== EMPTY_FLOW) runCombatFlow({ ...ctx }, after);
 }
 
@@ -664,7 +664,7 @@ function designerLaPersonne(ctx: ExecCtx, cible: Combatant, effet: EffectOp, oc:
     const after = reste();
     pushChoice(ctx.set, (i) => ({
       id: `personneChoisie-${decideur.id}-${i}`,
-      kind: 'personneChoisie', actorId: decideur.id, icon: 'mechanic/mind',
+      kind: 'personneChoisie', actorId: decideur.id, icon: 'mecanique/psychologie',
       label: t('step.personneChoisie', { src: nomDeSource(oc), name: cible.label }),
       options: candidates.map((p) => ({ key: p.id, label: dataLabel(p.label) })),
       defaultChoice: (auto ?? candidates[0]).id,

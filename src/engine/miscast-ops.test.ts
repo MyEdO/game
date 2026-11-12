@@ -421,7 +421,7 @@ describe('enjeu du Test imbriqué d’une rangée tirée (#1667)', () => {
       const r = rollMiscast('mineure', makeRNG(1), 0, undefined, 53);
       expect(r.rowId).toBe('mineure-vdm-visions-impies');
       const test = r.testFlow as Extract<Flow, { kind: 'test' }>;
-      expect(test.test.stake?.key).toMatchObject({ entryId: 'mineure-vdm-visions-impies', entryCategory: 'miscastMinorVdm' });
+      expect(test.test.stake?.key).toMatchObject({ entryId: 'mineure-vdm-visions-impies', entryCategory: 'imparfaiteMineureVdm' });
     } finally {
       resetRule('magie-vdm-incantation');
     }

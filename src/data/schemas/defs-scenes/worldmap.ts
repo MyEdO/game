@@ -123,7 +123,7 @@ export const mapPlaceSchema = nommerChamps(z.strictObject({
   pos: pointDuPlanSchema,
   scene: ref(SCENES_DU_PROJET),
   entry: z.string().optional(),
-  /** Icône du médaillon (id du registre `src/data/icons`), défaut `nav/entry-point`. */
+  /** Icône du médaillon (id du registre `src/data/icons`), défaut `navigation/point-d-entree`. */
   icon: z.string().optional(),
   port: portProfileSchema.optional(),
   market: landMarketProfileSchema.optional(),

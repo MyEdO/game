@@ -47,7 +47,7 @@ export function useExtendedTestJetProps(): ComponentProps<typeof RollShell> | nu
 
   return {
     flowKey: 'testEtendu',
-    title: <><Icon id="ui/key" size="sm" /> {p.label}</>,
+    title: <><Icon id="interface/cle" size="sm" /> {p.label}</>,
     subtitle: <>Round {p.rounds.length} · Test étendu (le DR de chaque Round se cumule)</>,
     rolled,
     rows: [
@@ -65,7 +65,7 @@ export function useExtendedTestJetProps(): ComponentProps<typeof RollShell> | nu
       }, {
         fortune: actor.fortune ?? 0,
         resilience: actor.resilience ?? 0,
-        extendedDr: { cum, target: p.targetDR },
+        extendedDr: { cum, target: p.drCible },
         // Offre et aperçu de l'inversion : verdicts du flux (`FLOWS.testEtendu`).
         ...(FLOWS.testEtendu.reverseAvailable(useGame.getState, cur.id) ? { reverse: { onReverse: () => reverse(cur.id), preview: FLOWS.testEtendu.reversePreview(useGame.getState, cur.id) } } : {}),
       }),
@@ -77,8 +77,8 @@ export function useExtendedTestJetProps(): ComponentProps<typeof RollShell> | nu
     /* « Round suivant » cumule + ouvre le Round suivant ; à la réussite, ferme la cascade.
        « Renoncer » ouvert aussi APRÈS le jet (`clotures.cancel` du flux `testEtendu`). */
     actions: [
-      { key: 'cancel', label: 'Renoncer', onClick: cancel, verbe: 'cancel' },
-      { key: 'confirm', label: willSucceed ? <><Icon id="ui/done" size="sm" /> Réussir !</> : 'Round suivant →', onClick: () => next(), verbe: 'confirm' },
+      { key: 'cancel', label: 'Renoncer', onClick: cancel, verbe: 'annuler' },
+      { key: 'confirm', label: willSucceed ? <><Icon id="interface/fait" size="sm" /> Réussir !</> : 'Round suivant →', onClick: () => next(), verbe: 'valider' },
     ],
     onCancel: cancel,
   };

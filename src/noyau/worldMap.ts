@@ -38,7 +38,7 @@ export interface MapPlace {
   scene: { id: string };
   /** Point d'arrivée nommé dans la scène (sinon heroStart). */
   entry?: string;
-  /** Icône du médaillon (id du registre src/data/icons), défaut `nav/entry-point`. */
+  /** Icône du médaillon (id du registre src/data/icons), défaut `navigation/point-d-entree`. */
   icon?: string;
   /** Profil COMMERCIAL de port (Index des ports, MDG 15 l.439-506) — présent = ce lieu est un port
    *  maritime (commerce, événements d'escale, chantier). `lighthouse` : un phare veille sur l'approche
@@ -83,7 +83,7 @@ export interface PlacePoi {
   id: string;
   label: string;
   pos: { x: number; y: number };
-  /** Icône du médaillon (id du registre `src/data/icons`), défaut `nav/entry-point`. */
+  /** Icône du médaillon (id du registre `src/data/icons`), défaut `navigation/point-d-entree`. */
   icon?: string;
   sceneId?: { id: string };
   serviceKind?: { id: string };
@@ -335,12 +335,12 @@ export interface ResolvedPlaceService {
  *  la sienne via `placeServices`, sinon un défaut générique. PUR (id → id), source unique partagée par le
  *  hub, le plan et l'aperçu d'éditeur. */
 export function serviceIcon(s: ResolvedPlaceService): string {
-  return s.icon ?? 'nav/entry-point';
+  return s.icon ?? 'navigation/point-d-entree';
 }
 
 /** Résolution GÉNÉRALE de l'icône d'un marqueur de plan (#371) : l'`icon` authoré du POI PRIME (surcharge
  *  d'auteur) ; sinon l'icône se DÉRIVE de la cible — `serviceKind` → icône du service résolu (`serviceIcon`),
- *  `sceneId` → porte. Défaut ultime `nav/entry-point`. Aucun backfill de donnée : la résolution couvre tout
+ *  `sceneId` → porte. Défaut ultime `navigation/point-d-entree`. Aucun backfill de donnée : la résolution couvre tout
  *  lieu présent et futur. PUR, source unique des marqueurs du hub, du panneau de détail et de l'éditeur. */
 export function poiIcon(poi: PlacePoi, services: ResolvedPlaceService[]): string {
   if (poi.icon) return poi.icon;
@@ -349,8 +349,8 @@ export function poiIcon(poi: PlacePoi, services: ResolvedPlaceService[]): string
     const svc = services.find((s) => s.id === service.id);
     if (svc) return serviceIcon(svc);
   }
-  if (poi.sceneId) return 'map-tool/door';
-  return 'nav/entry-point';
+  if (poi.sceneId) return 'outil-de-carte/porte';
+  return 'navigation/point-d-entree';
 }
 
 /** id STABLE du marchand VIRTUEL d'un service de lieu (#369) : le service de catalogue (forgeron…) n'a
@@ -418,7 +418,7 @@ export function placeServices(place: MapPlace, scene?: Scene, reposIci?: RestPla
     }
   }
   // Couchage À LA POSITION du groupe (`reposIci`, camp/maison) sans auberge : service « Repos » de repli.
-  if (reposIci && !out.some((sv) => sv.category === 'auberge')) out.push({ id: 'repos', category: 'auberge', label: t('lieu.repos'), icon: 'nav/rest', rest: reposIci });
+  if (reposIci && !out.some((sv) => sv.category === 'auberge')) out.push({ id: 'repos', category: 'auberge', label: t('lieu.repos'), icon: 'navigation/repos', rest: reposIci });
   return out;
 }
 

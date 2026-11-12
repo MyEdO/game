@@ -64,15 +64,15 @@ export function ShipManeuverModal() {
   });
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' },
-    ...(rollAll ? [{ key: 'rollAll', label: <><Icon id="nav/dice" size="sm" /> Tout lancer</>, onClick: rollAll, verbe: 'roll' as const }] : []),
-    { key: 'confirm', label: 'Manœuvrer', onClick: confirm, verbe: 'confirm' },
+    { key: 'cancel', label: t('verbe.annuler'), onClick: cancel, verbe: 'annuler' },
+    ...(rollAll ? [{ key: 'rollAll', label: <><Icon id="navigation/des" size="sm" /> Tout lancer</>, onClick: rollAll, verbe: 'lancer' as const }] : []),
+    { key: 'valider', label: 'Manœuvrer', onClick: confirm, verbe: 'valider' },
   ];
 
   return (
     <RollShell
       flowKey="manoeuvreDuNavire"
-      title={<><Icon id="action/steer-ship" size="sm" /> Manœuvre — Test d’équipage</>}
+      title={<><Icon id="action/tenir-la-barre" size="sm" /> Manœuvre — Test d’équipage</>}
       subtitle={<><strong>{ship.label}</strong> — {p.participants.length} rôle{plural(p.participants.length)} à la manœuvre (DR sommés)</>}
       extra={<OptionChooser layout="grid" groupLabel="Virage" options={turnOptions} />}
       rows={rows}

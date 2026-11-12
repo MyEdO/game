@@ -232,14 +232,14 @@ describe('Bélier — porte (belier-porte) : engin de siège CREWÉ, jamais une 
       banc.getState().cliquerLaCase({ x: soldat.pos!.x, y: soldat.pos!.y - dy });
     };
     // Départ (3 cases d'écart) : hors d'Allonge, la porte étant inanimée (jamais de Charge/approche implicite).
-    expect(attackPlan(() => banc.getState(), soldat, porte).kind).toBe('blocked');
+    expect(attackPlan(() => banc.getState(), soldat, porte).kind).toBe('bloque');
     pushBy(2); // (3,8) → (3,6) : reliquat de 1 case restant, toujours hors d'Allonge
-    expect(attackPlan(() => banc.getState(), soldat, porte).kind).toBe('blocked');
+    expect(attackPlan(() => banc.getState(), soldat, porte).kind).toBe('bloque');
     pushBy(1); // (3,6) → (3,5) : contact — la 2e poussée suffit
     expect(soldat.pos).toEqual({ x: 3, y: 5 });
     expect(ram.pos).toEqual({ x: 4, y: 5 }); // formation rigide : offset chef↔engin inchangé après 2 poussées cumulées
     // Contact DIRECT (dx=0) : la case (5,5) de l'empreinte 2×2 (colonnes 4-5) est juste au Nord de la porte (5,4).
-    expect(attackPlan(() => banc.getState(), soldat, porte).kind).toBe('attack');
+    expect(attackPlan(() => banc.getState(), soldat, porte).kind).toBe('attaque');
   });
 
   it("après avoir POUSSÉ la formation jusqu'à la porte (2 poussées, cap 2), le bélier l'assène (Force + Blessures)", () => {

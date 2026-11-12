@@ -178,7 +178,7 @@ describe('#1262 lot 5c — la Déviation Critique appartient à la VICTIME (LDB 
   const hache = { label: 'Hache', name: 'Hache', type: 'melee', damage: { plusBF: false, flat: 0 }, qualities: [], uid: 'hache-1' } as unknown as Weapon;
   const critHit = (loc: HitLocation): AttackResult => ({
     hit: true, attackerRoll: 44, netSL: 4, location: loc, critLocation: loc, damage: 6, woundsLost: 2,
-    critical: true, advantageTo: 'attacker', defenderDefeated: false, log: 'touche',
+    critical: true, advantageTo: 'attaquant', defenderDefeated: false, log: 'touche',
   } as unknown as AttackResult);
 
   function blinde(c: Combatant): void {
