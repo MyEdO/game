@@ -1,4 +1,4 @@
-import { dialoguesDeLaScene, groupePosable, heightAt, idDuCorps, isMerScene, isWalkable, startOf, type Scene } from './monde/scene';
+import { groupePosable, heightAt, idDuCorps, isMerScene, isWalkable, startOf, type Scene } from './monde/scene';
 import type { Effect, Flow } from '../data/schemas/defs-scenes/effets';
 import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import { unreachableDescriptiveZones } from './mapQC';
@@ -16,6 +16,8 @@ import { byId, stakeSpeaks, matieresDe } from '../data';
 import { individusNommes } from '../engine/psych/ciblage';
 import { versionDesDatasets } from '../data/versionDataset';
 import { PENTE_TOIT_DEG, sceneSchema } from '../data/schemas/defs-scenes/scene';
+import { PERSONNAGES_DE_LA_SCENE } from '../data/schemas/defs-scenes/communs';
+import { idsDeLaPortee } from '../data/schemas/grammaire/collection-cle';
 import { validerReferencesDObjetsDansCampagne } from '../data/schemas/defs-scenes/narratif';
 import { worldMapSchema } from '../data/schemas/defs-scenes/worldmap';
 import { validerFormeVivante, cheminLisible, type ElementDeLieu, type Faute, type SegmentDeLieu } from '../data/schemas/validate';
@@ -218,8 +220,8 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
     // Contexte de réfs PARTAGÉ pour cette scène : les `refs?` des handlers (noyau/combatEffects) le lisent
     // pour valider leurs réfs cassées (dialogue/rencontre/scène) et valeurs invalides (souffle de zone).
     const refCtx: EffectRefCtx = {
-      sceneIds, dialogues: dialoguesDeLaScene(s), encounterIds: encIds,
-      entityIds: new Set(s.entities.filter((e) => e.kind === 'personnage').map((e) => e.id)),
+      sceneIds, encounterIds: encIds,
+      entityIds: new Set(idsDeLaPortee(sceneSchema, s, PERSONNAGES_DE_LA_SCENE)),
       npcSheet: (id) => sceneNpc(s, id, presetDe),
       within,
       walkable: (x, y, z) => groupePosable(vue, { x, y, z }),

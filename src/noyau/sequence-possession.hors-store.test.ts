@@ -230,7 +230,7 @@ describe('#1262 lot 5c — la Déviation Critique appartient à la VICTIME (LDB 
     blinde(cible);
     seedBattleRng(5);
 
-    applyCoupCritiqueSec(g, banc.setState, cible, 33, 'double', { attackerId: E[0].id, weapon: 'Hache' }, []);
+    applyCoupCritiqueSec(g, banc.setState, cible, 33, 'double', { attackerId: E[0].id, weapon: 'Hache' }, [], E[0]);
 
     const dev = parKind('deviation');
     expect(dev, 'le jumeau n’a jamais porté le filtre d’affordance locale').toBeTruthy();

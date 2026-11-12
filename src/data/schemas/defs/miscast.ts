@@ -127,7 +127,6 @@ const doc = document(
   {},
   {},
   {
-    codex: { keys: Object.keys(CATEGORIES) },
     edit: {
       niche: {
         categories: Object.fromEntries(Object.entries(CATEGORIES).map(([categorie, id]) => [categorie, suiteDesEntrees(id)])),

@@ -7,9 +7,10 @@
 ## d'un point, la largeur d'un texte de bulle replié, le point où se dit le nom de ce qui occupe une case, la pose
 ## d'une arête (mur ou porte) sur le côté de sa case et l'échelle d'une pièce du kit qui s'y pose, l'échelle métrique d'un modèle et d'une hauteur sur le plateau et
 ## la hauteur d'un point du corps à son gabarit, le point d'un lieu sur le plan et le coin de ce qui se pose sous lui, la
-## coupe d'un navire et le compte des triangles d'une géométrie. Seul script où l'arithmétique et la mesure sont permises
-## (`scripts/guards/lib/gdscriptSansRegle.mjs`) : des constantes et des fonctions statiques, chacune typée et sur au
-## plus un vecteur, sans état.
+## coupe d'un navire, le compte des triangles d'une géométrie, le texel d'une case au masque du retrait, et l'abscisse
+## sur un rayon d'un point, d'un point au-delà de celui qu'il touche et du bout de chaque tronçon dont il reprend. Seul
+## script où l'arithmétique et la mesure sont permises (`scripts/guards/lib/gdscriptSansRegle.mjs`) : des constantes et
+## des fonctions statiques, chacune typée et sur au plus un vecteur, sans état.
 class_name MiseEnPage
 extends RefCounted
 
@@ -31,6 +32,13 @@ const JEU_ENTRE_RANGES := 0.02
 const JEU_DE_RANGEMENT := 0.005
 ## Le côté, en mètres, des cases où un objet rangé se confronte à ce qui est porté dessous (`case_de_contact`).
 const CASE_DE_CONTACT := 0.02
+## Le pas, en mètres, dont un rayon reprend au-delà d'un point touché (`point_au_dela`), et dont un tronçon recouvre la
+## fin du précédent (`point_en_deca`).
+const PAS_AU_DELA_M := 0.0005
+## La longueur, en mètres, d'un tronçon dont un rayon reprend (`bout_du_troncon`) : le moteur physique du projet
+## (GodotPhysics3D, `physics/3d/physics_engine` au défaut) manque toute face plus proche de l'origine du tronçon que
+## `CMP_EPSILON` fois sa longueur (`core/math/geometry_3d.h:115`, `core/math/math_defs.h:50`, Godot 4.7).
+const PORTEE_D_UN_TRONCON_M := 20.0
 ## La hauteur, en mètres, sous l'attache d'un objet rangé jusqu'où il s'appuie sur ce qui est porté ; plus bas, il pivote
 ## (`recul_sur_la_case`, `pivot_sur_la_case`).
 const APPUI_DE_RANGEMENT := 0.05
@@ -77,8 +85,8 @@ const ECART_DES_MARQUES := 0.3
 const HAUTEUR_DU_VISUEL_DE_MARQUE := 0.9
 ## La marge, en pixels, entre le bord d'un plan et ses points.
 const MARGE_DU_PLAN := 28.0
-## Le rayon, en pixels, d'un point du plan.
-const RAYON_DU_POINT := 7.0
+## Les pixels de la texture d'un dessin par pixel d'écran : l'écran étire l'interface (`window/stretch`).
+const FINESSE_DE_DESSIN := 2.0
 ## L'écart, en pixels, entre un point du plan et ce qui se pose sous lui.
 const ECART_SOUS_LE_POINT := 2.0
 ## Ce que la coupe d'un navire ôte (m) sous le plus bas des sols qu'un regard lui retire (`hauteur_de_coupe`) : le
@@ -242,6 +250,46 @@ static func triangles(sommets: int) -> float:
 	return sommets / 3.0
 
 
+## Le compte de `triangles` triangles, plus ceux que portent `sommets` sommets (`triangles`).
+static func triangles_de_plus(triangles: int, sommets: int) -> float:
+	return triangles + sommets / 3.0
+
+
+## Le texel, dans le masque du retrait (`RetraitDuMonde`), de la case `case` du plan de première rangée `rangee`.
+static func texel_du_masque(case: Vector2i, rangee: int) -> Vector2i:
+	return Vector2i(case.x, case.y + rangee)
+
+
+## L'abscisse du point `point` sur le rayon de sens `-rayon.z` (unitaire), comptée depuis l'abscisse `depuis`.
+static func abscisse(point: Vector3, rayon: Basis, depuis: float) -> float:
+	return -rayon.z.dot(point) - depuis
+
+
+## Le point d'où un rayon de sens `-rayon.z` reprend au-delà du point `touche` qu'il touche, de `PAS_AU_DELA_M` sur un
+## plateau de `metres_par_case` mètres par case.
+static func point_au_dela(touche: Vector3, rayon: Basis, metres_par_case: float) -> Vector3:
+	return touche - rayon.z * PAS_AU_DELA_M * echelle_metrique(metres_par_case)
+
+
+## Le point d'où reprend le tronçon qui suit celui qui finit en `bout`, sur un rayon de sens `-rayon.z` : en deçà de
+## `PAS_AU_DELA_M`, sur un plateau de `metres_par_case` mètres par case.
+static func point_en_deca(bout: Vector3, rayon: Basis, metres_par_case: float) -> Vector3:
+	return bout + rayon.z * PAS_AU_DELA_M * echelle_metrique(metres_par_case)
+
+
+## L'abscisse, comptée depuis `depuis`, du bout du tronçon qui part de `debut` sur un rayon de sens `-rayon.z`
+## d'abscisse finale `fin` : `PORTEE_D_UN_TRONCON_M` plus loin sur un plateau de `metres_par_case` mètres par case,
+## `fin` au plus.
+static func bout_du_troncon(debut: Vector3, rayon: Basis, depuis: float, fin: float, metres_par_case: float) -> float:
+	return minf(abscisse(debut, rayon, depuis) + PORTEE_D_UN_TRONCON_M * echelle_metrique(metres_par_case), fin)
+
+
+## Le point d'abscisse `abscisse_du_point`, comptée depuis `depuis`, sur le rayon de sens `-rayon.z` qui passe par
+## `debut`.
+static func point_a_l_abscisse(debut: Vector3, rayon: Basis, depuis: float, abscisse_du_point: float) -> Vector3:
+	return debut - rayon.z * (abscisse_du_point - abscisse(debut, rayon, depuis))
+
+
 ## La hauteur du calque de référence posé sur le plan `plan` (mètres), décalé de `decalage` : juste au-dessus du sol
 ## qu'il recouvre, ou juste dessous.
 static func hauteur_du_calque(plan: float, metres_par_case: float, decalage: float) -> float:
@@ -362,6 +410,12 @@ static func secondes(ms: float) -> float:
 ## L'échelle qui porte une image de `largeur` pixels à `largeur_voulue` ; 1 pour une image vide.
 static func echelle_d_image(largeur_voulue: float, largeur: int) -> float:
 	return 1.0 if largeur == 0 else largeur_voulue / largeur
+
+
+## L'échelle d'un dessin au cadre de `largeur_du_cadre` sur `hauteur_du_cadre` unités qui couvre `largeur` sur `hauteur`
+## pixels d'écran, sa texture `FINESSE_DE_DESSIN` fois plus fine que l'écran.
+static func echelle_de_dessin(largeur: float, hauteur: float, largeur_du_cadre: float, hauteur_du_cadre: float) -> float:
+	return FINESSE_DE_DESSIN * maxf(largeur / largeur_du_cadre, hauteur / hauteur_du_cadre)
 
 
 ## Le pas d'image d'un clip de `duree` secondes, sa piste suivante de `cles` clés réparties sur le clip retenue si son pas
@@ -674,12 +728,12 @@ static func point_du_plan(taille: Vector2, x: float, y: float) -> Vector2:
 	return Vector2(MARGE_DU_PLAN, MARGE_DU_PLAN) + Vector2(x, y) * (taille - Vector2(MARGE_DU_PLAN, MARGE_DU_PLAN) * 2.0)
 
 
-## Le coin d'un contrôle de `largeur` sur `hauteur` centré sous le point du plan `centre`, gardé dans le plan de
-## `largeur_du_plan` sur `hauteur_du_plan`.
-static func sous_le_point(centre: Vector2, largeur: float, hauteur: float, largeur_du_plan: float, hauteur_du_plan: float) -> Vector2:
+## Le coin d'un contrôle de `largeur` sur `hauteur` centré sous le point du plan `centre`, de rayon `rayon`, gardé dans
+## le plan de `largeur_du_plan` sur `hauteur_du_plan`.
+static func sous_le_point(centre: Vector2, rayon: float, largeur: float, hauteur: float, largeur_du_plan: float, hauteur_du_plan: float) -> Vector2:
 	return Vector2(
 		clampf(centre.x - largeur / 2.0, 0.0, maxf(0.0, largeur_du_plan - largeur)),
-		clampf(centre.y + RAYON_DU_POINT + ECART_SOUS_LE_POINT, 0.0, maxf(0.0, hauteur_du_plan - hauteur)))
+		clampf(centre.y + rayon + ECART_SOUS_LE_POINT, 0.0, maxf(0.0, hauteur_du_plan - hauteur)))
 
 
 ## Le lieu, au sol, de la cible de la vitrine des effets de l'atelier, à `distance_m` mètres de l'auteur posé à l'origine

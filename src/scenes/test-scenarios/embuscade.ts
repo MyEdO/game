@@ -140,7 +140,7 @@ function construireScene(): Scene {
         id: 'approche',
         rect: { x: 8, y: 6, w: 3, h: 2 },
         once: true,
-        flow: flowFromEffects([{ type: 'startDialogue', dialogue: 'dlg-ambush' }]),
+        flow: flowFromEffects([{ type: 'startDialogue', dialogue: { id: 'dlg-ambush' } }]),
       },
     ],
     // VISIBLE (hidden par défaut = false) : les mutants qu'on voit se repaître SONT les combattants. L'entité

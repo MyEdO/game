@@ -121,7 +121,6 @@ const doc = document(
     constructionTraits: { label: 'Traits de construction', hint: 'Traits de coque à paliers (E/Blindage/capacité par niveau)' },
   },
   {
-    codex: { keys: ['shipHullSizes', 'shipSpeedTraits', 'shipConstructionTraits'] },
     edit: { niche: { categories: { shipHullSizes: 'standard', shipSpeedTraits: 'speedTraits', shipConstructionTraits: 'constructionTraits' } } },
   },
 );

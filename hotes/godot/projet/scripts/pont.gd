@@ -1,19 +1,17 @@
-## Le seul point de contact avec la page : `globalThis.wfrpPont` par JavaScriptBridge (`hotes/godot/pont/CONTRAT.md`), dont
-## l'image que l'auteur choisit sur son disque (`choisir_une_image`) et la pile des couches d'une tenue
-## (`resoudre_la_pile`), et les requêtes au serveur qui la sert (`requeter`) ;
-## ce que l'écran porte, publié à la page (`publier_l_ecran`), et ce que Godot lui expose (`exposer`).
+## Le seul point de contact avec le noyau (`hotes/godot/pont/CONTRAT.md`), par le transport de son lieu (`Transport`) : la
+## page de l'export Web (`TransportDeLaPage`) ou un processus Node (`TransportDuProcessus`) ; dont l'image que l'auteur
+## choisit sur son disque (`choisir_une_image`), la pile des couches d'une tenue (`resoudre_la_pile`), les requêtes au
+## serveur du jeu (`requeter`), ce que l'écran porte (`publier_l_ecran`, retenu dans `ecran`) et ce que Godot expose
+## (`exposer`).
 ## Un appel envoie le nom d'une méthode et une chaîne JSON, et rend la réponse décodée ; une réponse `ok: false` est un
 ## refus, que `refus` porte ; une réponse illisible ou une erreur de la page (`erreursGlobales`) est une panne.
 ## Chargé en autoload `Pont` (`project.godot`).
 class_name PontDuNoyau
 extends Node
 
-signal pret
 signal refus(message: String)
 signal panne(message: String)
 
-const INTERFACE := "wfrpPont"
-const ATTENTE_S := 10.0
 ## Le plus long silence du réseau qu'un téléchargement tolère, compté par un `Timer` en temps de l'arbre : le délai
 ## repart à chaque bloc reçu, car la durée d'un téléchargement suit la fréquence d'image (#3470).
 const SILENCE_S := 10.0
@@ -22,76 +20,95 @@ const SILENCE_S := 10.0
 ## mesurés : un GLB de base de 42 Mo s'y reçoit en une vingtaine d'images (#3470), pas en plus de 600 par 64 Kio.
 const BLOC_DE_TELECHARGEMENT := 16777216
 
-## La valeur de `?rendu=` qui ne dessine une image que si l'écran a changé (`OS.low_processor_usage_mode`), et sans
-## anticrénelage multiéchantillon (`Viewport.msaa_3d`) : la recette la pose (`hotes/godot/recette.mjs`), car chaque image
-## tient le fil de la page où elle lit l'écran publié et où arrive chacun de ses gestes.
-const RENDU_ECONOME := "econome"
+## Le paramètre (`parametre`) que la recette pose à `1` (`hotes/godot/recette.mjs`, `en_recette`).
+const PARAMETRE_DE_RECETTE := "recette"
 
-var est_web := OS.has_feature("web")
-## Si la partie à démarrer est la scène que l'éditeur a mise à l'essai (`demarrer { essai }`), plutôt que le scénario de
-## l'adresse de la page.
+## Si la partie à démarrer est la scène que l'éditeur a mise à l'essai (`demarrer { essai }`), plutôt que le scénario du
+## paramètre `scenario`.
 var essai := false
-var _pont: JavaScriptObject = null
-## Les rappels que Godot expose à la page (`exposer`), par nom, retenus tant que la page peut les appeler.
-var _exposes := {}
+## Si une recette pilote le jeu (`PARAMETRE_DE_RECETTE`) : l'écran se publie (`publier_l_ecran`), une image ne se dessine
+## que si l'écran a changé (`OS.low_processor_usage_mode`), sans anticrénelage multiéchantillon (`Viewport.msaa_3d`), car
+## dans l'export Web chaque image tient le fil de la page où la recette lit l'écran publié et où arrive chacun de ses
+## gestes.
+var en_recette := false
+## Le dernier écran publié (`publier_l_ecran`).
+var ecran: Dictionary = {}
+var _transport: Transport
+
+
+## Ce que fait le lieu du noyau, la page ou un processus : chaque lieu, une classe qui l'étend.
+@abstract class Transport extends Node:
+	## Une panne du lieu, que la façade signale (`PontDuNoyau.panne`).
+	signal panne(message: String)
+
+	## Le lieu ouvert, au premier appel : `true` prêt, `false` sa panne signalée.
+	@abstract func ouvrir() -> bool
+
+	## Si le lieu est ouvert et vivant : un appel y reçoit sa réponse.
+	@abstract func est_ouvert() -> bool
+
+	## La réponse de `methode` sur `json` (la chaîne JSON de l'entrée, ou `null`), une chaîne JSON ; `null`, sa panne
+	## signalée.
+	@abstract func appeler(methode: String, json: Variant) -> Variant
+
+	## La réponse à la pile des couches `demande`, une chaîne JSON, attendue sans tenir l'image ; `null`, sa panne
+	## signalée.
+	@abstract func resoudre_la_pile(demande: String) -> Variant
+
+	## `valeur` publiée sous `nom`, pour qui pilote le lieu.
+	@abstract func publier(nom: String, valeur: Variant) -> void
+
+	@abstract func exposer(nom: String, rappel: Callable) -> void
+
+	@abstract func adresse(relative: String) -> String
+
+	@abstract func choisir_une_image() -> Dictionary
+
+	@abstract func parametre(cle: String) -> String
 
 
 func _ready() -> void:
-	set_process(est_web)
-	if est_web:
-		get_tree().create_timer(ATTENTE_S).timeout.connect(_expirer)
-		if parametre("rendu") == RENDU_ECONOME:
-			OS.low_processor_usage_mode = true
-			get_viewport().msaa_3d = Viewport.MSAA_DISABLED
+	_transport = TransportDeLaPage.new() if OS.has_feature("web") else TransportDuProcessus.new()
+	_transport.panne.connect(_signaler)
+	add_child(_transport)
+	if parametre(PARAMETRE_DE_RECETTE) == "1":
+		en_recette = true
+		OS.low_processor_usage_mode = true
+		get_viewport().msaa_3d = Viewport.MSAA_DISABLED
 
 
-func _process(_delta: float) -> void:
-	_pont = JavaScriptBridge.get_interface(INTERFACE)
-	if _pont != null:
-		set_process(false)
-		pret.emit()
-
-
-func _expirer() -> void:
-	if _pont == null:
-		set_process(false)
-		_signaler("globalThis.%s reste absent après %s s : wfrp-pont.js n'est pas chargé." % [INTERFACE, ATTENTE_S])
-
-
+## Si le lieu du noyau est ouvert (`Transport.est_ouvert`).
 func est_pret() -> bool:
-	return _pont != null
+	return _transport.est_ouvert()
 
 
 ## Le pont rejoint par un écran : chaque refus rendu à `au_refus` (son message), chaque panne à `a_la_panne`, chacun abonné
-## une fois et désabonné à la libération de son objet ; `true` une fois le pont prêt, `false` (la panne signalée) hors
-## d'une page.
+## une fois et désabonné à la libération de son objet ; `true` une fois le lieu du noyau ouvert, `false` (la panne
+## signalée) s'il ne s'ouvre pas.
 func rejoindre(au_refus: Callable, a_la_panne: Callable) -> bool:
 	if not refus.is_connected(au_refus):
 		refus.connect(au_refus)
 	if not panne.is_connected(a_la_panne):
 		panne.connect(a_la_panne)
-	if not est_web:
-		_signaler("Cet hôte joue dans une page : son pont est `wfrp-pont.js` (export Web).")
-		return false
-	if not est_pret():
-		await pret
-	return true
+	return await _transport.ouvrir()
 
 
 ## La réponse de `methode` sur `entree` (un objet, ou `null` sans entrée) : décodée, `ok` vrai ou faux ; `{}` en panne.
 func appeler(methode: String, entree: Variant = null) -> Dictionary:
-	var reponse := _decoder(methode, _pont.call("appeler", methode, null if entree == null else JSON.stringify(entree)))
+	var reponse := _decoder(methode, _transport.appeler(methode, null if entree == null else JSON.stringify(entree)))
 	if reponse.get("ok") == false:
 		refus.emit(str(reponse.erreur.message))
-	var releve := _decoder("erreursGlobales", _pont.call("appeler", "erreursGlobales"))
+	var releve := _decoder("erreursGlobales", _transport.appeler("erreursGlobales", null))
 	for e in releve.get("erreurs", []):
 		_signaler("%s (%s)" % [e.message, e.source])
 	return reponse
 
 
 ## @contrat Écran publié
-## Chaque vue mise en page, Godot pose `globalThis.wfrpEcran`. Chaque publication remplace l'objet. À l’atelier, la
-## lecture d’un clip renouvelle aussi cette publication à chaque image, après mise en page, sans remesurer `peaux`.
+## Sous une recette seulement (la page ouverte avec `?recette=1`, `PontDuNoyau.en_recette`), chaque vue mise en page,
+## Godot pose `globalThis.wfrpEcran` ; hors recette, il ne publie rien et ne calcule rien de ce qu'il publierait
+## (#3947). Chaque publication remplace l'objet. À l’atelier, la lecture d’un clip renouvelle aussi cette publication à
+## chaque image, après mise en page, sans remesurer `peaux`.
 ##
 ## - Au menu : `{ boutons: { texte, x, y }[] }`, le texte et le centre de chaque bouton actif.
 ## - Au combat : `{ boutons: { texte, x, y, element?, choix?, ids?, retenu? }[], cases: Record<"x,y,z", [x, y]>,
@@ -193,9 +210,16 @@ func appeler(methode: String, entree: Variant = null) -> Dictionary:
 ##   (`MiseEnPage.image_voisine`, `projet/scripts/mise_en_page.gd`), la suivante de la dernière image étant la première.
 
 
-## Publie à la page ce que l'écran porte (`globalThis.wfrpEcran`), pour qui le pilote sans voir dans le canevas.
-func publier_l_ecran(ecran: Dictionary) -> void:
-	JavaScriptBridge.eval("globalThis.wfrpEcran = %s" % JSON.stringify(ecran), true)
+## Publie ce que l'écran porte, ce que rend `publie`, pour la recette qui le pilote sans voir dans le canevas : retenu
+## dans `ecran`, puis passé au lieu sous `wfrpEcran` ; rien si `publie` rend `null` (un écran qui n'est pas prêt). Hors
+## recette (`en_recette`), `publie` n'est pas appelé.
+func publier_l_ecran(publie: Callable) -> void:
+	if not en_recette:
+		return
+	var rendu: Variant = publie.call()
+	if rendu != null:
+		ecran = rendu
+		_transport.publier("wfrpEcran", rendu)
 
 
 ## @contrat Écran publié
@@ -220,10 +244,9 @@ func publier_l_ecran(ecran: Dictionary) -> void:
 ## étage non entiers, une case hors du plateau ou d'une couche qu'il n'a pas, un nombre hors de ses bornes. La recette
 ## autonome `projet/recettes/cadrage.gd` en est l'épreuve.
 
-## `rappel` exposé à la page en `globalThis.<nom>` : chaque appel de la page lui passe ses arguments en tableau.
+## `rappel` exposé au lieu sous `nom` : chaque appel lui passe ses arguments en tableau.
 func exposer(nom: String, rappel: Callable) -> void:
-	_exposes[nom] = JavaScriptBridge.create_callback(rappel)
-	JavaScriptBridge.get_interface("window").set(nom, _exposes[nom])
+	_transport.exposer(nom, rappel)
 
 
 ## Le pont `pont` posé à la place de celui de l'arbre (`/root/Pont`), que chaque écran rejoint ensuite.
@@ -309,14 +332,15 @@ static func a_l_ecran(controle: Control, point: Vector2) -> bool:
 	return true
 
 
-## L'adresse absolue de `relative` contre celle de la page.
+## L'adresse absolue de `relative` contre celle du serveur du jeu.
 func adresse(relative: String) -> String:
-	return str(JavaScriptBridge.eval("new URL(%s, location.href).href" % JSON.stringify(relative), true))
+	return _transport.adresse(relative)
 
 
-## Le corps de la réponse à `methode` sur `relative`, adresse relative à la page, `corps` envoyé ; vide, et une erreur à
-## `recueil`, si la requête échoue, si la réponse n'est pas un 200 (son corps dit alors pourquoi), ou si `SILENCE_S` passe
-## sans qu'un octet arrive : le minuteur `silence` repart à chaque image où HTTPRequest a lu un bloc.
+## Le corps de la réponse à `methode` sur `relative`, adresse relative au serveur du jeu (`adresse`), `corps` envoyé ;
+## vide, et une erreur à `recueil`, si la requête échoue, si la réponse n'est pas un 200 (son corps dit alors pourquoi),
+## ou si `SILENCE_S` passe sans qu'un octet arrive : le minuteur `silence` repart à chaque image où HTTPRequest a lu un
+## bloc.
 func requeter(relative: String, recueil: Array[String], methode := HTTPClient.METHOD_GET, corps := "") -> PackedByteArray:
 	var requete := HTTPRequest.new()
 	requete.download_chunk_size = BLOC_DE_TELECHARGEMENT
@@ -355,39 +379,32 @@ func requeter(relative: String, recueil: Array[String], methode := HTTPClient.ME
 	return resultat[3]
 
 
-## L'image que l'auteur choisit sur son disque (`wfrpPont.choisirUneImage`) : `{ octets, type }`, son contenu et son type
-## MIME ; `{}` s'il renonce.
+## L'image PNG, JPEG ou WebP que l'auteur choisit sur son disque : `{ octets, type }`, son contenu et son type MIME ; `{}`
+## s'il renonce.
 func choisir_une_image() -> Dictionary:
-	var rendue := []
-	var rappel := JavaScriptBridge.create_callback(func(args: Array) -> void: rendue.append_array(args))
-	_pont.call("choisirUneImage", rappel)
-	while rendue.is_empty():
-		await get_tree().process_frame
-	return {} if str(rendue[0]) == "" else {octets = Marshalls.base64_to_raw(str(rendue[0])), type = str(rendue[1])}
+	return await _transport.choisir_une_image()
 
 
-## La pile des couches `demande` (`PileDemandee`, en JSON, `CONTRAT.md`, « Pile des couches ») résolue par la page hors
-## du fil de l'image (`wfrpPont.resoudreLaPile`) : `rendre`, s'il vit encore, en reçoit la réponse décodée
+## La pile des couches `demande` (`PileDemandee`, en JSON, `CONTRAT.md`, « Pile des couches ») résolue par le lieu du
+## noyau sans tenir l'image (`wfrpPont.resoudreLaPile`) : `rendre`, s'il vit encore, en reçoit la réponse décodée
 ## (`PileResolue`), `{}` en panne ; un refus est signalé.
 func resoudre_la_pile(demande: String, rendre: Callable) -> void:
-	var rendue := []
-	var rappel := JavaScriptBridge.create_callback(func(args: Array) -> void: rendue.append_array(args))
-	_pont.call("resoudreLaPile", demande, rappel)
-	while rendue.is_empty():
-		await get_tree().process_frame
-	var reponse := _decoder("resoudreLaPile", rendue[0])
+	var reponse := _decoder("resoudreLaPile", await _transport.resoudre_la_pile(demande))
 	if reponse.get("ok") == false:
 		refus.emit(str(reponse.erreur.message))
 	if rendre.is_valid():
 		rendre.call(reponse)
 
 
-## Le paramètre `cle` de l'adresse de la page, `""` s'il est absent.
+## Le paramètre `cle` du lancement, `""` s'il est absent.
 func parametre(cle: String) -> String:
-	return str(JavaScriptBridge.eval("new URLSearchParams(location.search).get(%s) ?? ''" % JSON.stringify(cle), true))
+	return _transport.parametre(cle)
 
 
+## La réponse brute `brut` de `methode` décodée ; `{}` en panne, celle du transport (`null`) déjà signalée.
 func _decoder(methode: String, brut: Variant) -> Dictionary:
+	if brut == null:
+		return {}
 	if typeof(brut) != TYPE_STRING:
 		_signaler("%s : réponse de type %s au lieu d'une chaîne JSON" % [methode, type_string(typeof(brut))])
 		return {}

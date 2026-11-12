@@ -95,7 +95,7 @@ async function comparer() {
     const session = await launchSession({ width: VUE_REFERENCE.largeur, height: VUE_REFERENCE.hauteur, timeoutMs: 30000, args: WEBGL_LOGICIEL })
     const garde = consoleGuard(session)
     try {
-      await session.rpc('Page.navigate', { url: `${srv.url}index.html?planche=${nom}&rendu=econome${bases ? '' : '&monde=sans'}` })
+      await session.rpc('Page.navigate', { url: `${srv.url}index.html?planche=${nom}&recette=1${bases ? '' : '&monde=sans'}` })
       await waitFor(session, `globalThis.wfrpPlancheMontree === ${JSON.stringify(nom)}`, { timeoutMs: 180000, evaluerMs: FIL_DE_LA_PAGE_MS })
       if (bases) await waitFor(session, `Object.entries(wfrpEcran.corps).every(([id, c]) => c.base === (${JSON.stringify(bases)}[id] ?? null))`, { timeoutMs: 300000, evaluerMs: FIL_DE_LA_PAGE_MS })
       await sleep(POSE_MS)

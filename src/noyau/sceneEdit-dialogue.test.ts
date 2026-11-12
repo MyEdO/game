@@ -16,7 +16,7 @@ const dialogue = (): Dialogue => ({
     { id: 'n3', desc: 'trois', choices: [] },
   ],
 });
-const ouvrir = (id: string) => ({ kind: 'effet' as const, effet: { type: 'startDialogue' as const, dialogue: id } });
+const ouvrir = (id: string) => ({ kind: 'effet' as const, effet: { type: 'startDialogue' as const, dialogue: { id } } });
 const scene = (): Scene => ({
   ...emptyScene('scene-test', 8, 8),
   entities: [{ id: 'pnj', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 1, y: 1 }, label: 'Aubergiste', dialogueId: { id: 'd1' } } as SceneEntity],

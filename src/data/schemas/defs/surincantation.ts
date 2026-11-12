@@ -34,7 +34,6 @@ const doc = document(
   {},
   {},
   {
-    codex: { keys: ['surincantation'] },
     edit: { niche: { categories: { surincantation: 'entries' } } },
   },
   { rangee },

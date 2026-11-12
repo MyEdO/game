@@ -303,8 +303,8 @@ export function effectSummary(effect: Effect, ctx: Pick<Ctx, 'scenes' | 'cibles'
       if (e.crew?.length) parts.push(`équipage ${e.crew.reduce((s: number, h: { count: number }) => s + h.count, 0)}`);
       return `Ajuster le navire : ${parts.length ? parts.join(', ') : '(aucun champ)'}`;
     }
-    case 'startDialogue': return `Dialogue : ${e.dialogue || '?'}`;
-    case 'openMerchant': return `Boutique : ${e.entityId || '?'}`;
+    case 'startDialogue': return `Dialogue : ${e.dialogue?.id || '?'}`;
+    case 'openMerchant': return `Boutique : ${e.entityId?.id || '?'}`;
     case 'openPort': return `Port : ${e.placeId || '?'}`;
     case 'openTavernGames': return `Jeux de taverne`;
     case 'medicalAid': return `Soins payants (${(e.acts ?? (e.act ? [0] : [])).length} acte(s))`;
@@ -947,7 +947,7 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
           </>
         ))}
         {effect.type === 'startDialogue' && (
-          <select value={e.dialogue ?? ''} onChange={(ev) => upd({ dialogue: ev.target.value })}>
+          <select value={e.dialogue?.id ?? ''} onChange={(ev) => upd({ dialogue: { id: ev.target.value } })}>
             <option value="">— dialogue —</option>
             {ctx.dialogues.map((d) => (
               <option key={d.id} value={d.id}>
@@ -958,7 +958,7 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
         )}
         {effect.type === 'openMerchant' && (ctx.merchants ? (
           ctx.merchants.length ? (
-            <select value={e.entityId ?? ''} onChange={(ev) => upd({ entityId: ev.target.value })}>
+            <select value={e.entityId?.id ?? ''} onChange={(ev) => upd({ entityId: { id: ev.target.value } })}>
               <option value="">— entité marchande de la scène —</option>
               {ctx.merchants.map((mch) => (
                 <option key={mch.id} value={mch.id}>{mch.label ? `${mch.label} (${mch.id})` : mch.id}</option>
@@ -968,7 +968,7 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
             <span className="branch-label">Aucune entité marchande dans la scène — donnez d'abord un archétype de marchand à un PNJ (Inspecteur).</span>
           )
         ) : (
-          <input placeholder="id de l’entité marchande (doit porter un archétype)" value={e.entityId ?? ''} onChange={(ev) => upd({ entityId: ev.target.value })} />
+          <input placeholder="id de l’entité marchande (doit porter un archétype)" value={e.entityId?.id ?? ''} onChange={(ev) => upd({ entityId: { id: ev.target.value } })} />
         ))}
         {effect.type === 'openPort' && (ctx.places ? (
           ctx.places.length ? (
@@ -1023,7 +1023,7 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
               })}
               {ctx.personas ? (
                 ctx.personas.length ? (
-                  <select value={e.entityId ?? ''} onChange={(ev) => upd({ entityId: ev.target.value })}>
+                  <select value={e.entityId?.id ?? ''} onChange={(ev) => upd({ entityId: { id: ev.target.value } })}>
                     <option value="">— PNJ soigneur de la scène —</option>
                     {ctx.personas.map((p) => (
                       <option key={p.id} value={p.id}>{p.label ? `${p.label} (${p.id})` : p.id}</option>
@@ -1033,7 +1033,7 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
                   <span className="branch-label">Aucun personnage dans la scène — posez d’abord le PNJ soigneur (Inspecteur).</span>
                 )
               ) : (
-                <input placeholder="id du PNJ soigneur (personnage de la scène)" value={e.entityId ?? ''} onChange={(ev) => upd({ entityId: ev.target.value })} />
+                <input placeholder="id du PNJ soigneur (personnage de la scène)" value={e.entityId?.id ?? ''} onChange={(ev) => upd({ entityId: { id: ev.target.value } })} />
               )}
               <span className="branch-label">Le PNJ soigne dans son infirmerie : chaque acte coché est proposé à son tarif, débité au lancement de l’acte. Sa Guérison et son Bonus d’Intelligence se lisent sur SA fiche (réf de bestiaire ou statbloc de l’entité).</span>
             </div>

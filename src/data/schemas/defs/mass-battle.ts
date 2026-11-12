@@ -111,9 +111,6 @@ const doc = document(
     hazards: { label: 'Aléas de bataille', hint: "Table de tirage d'incidents de la bataille de masse" },
   },
   {
-    codex: {
-      keys: ['massBattlePowerEstimate', 'massBattleMightModifiers', 'massBattleWarMachines', 'massBattleStructures', 'massBattleHazards'],
-    },
     edit: { niche: { categories: { massBattlePowerEstimate: 'powerEstimate', massBattleMightModifiers: 'mightModifiers', massBattleWarMachines: 'warMachines', massBattleStructures: 'structures', massBattleHazards: 'hazards.entries' } } },
   },
 );

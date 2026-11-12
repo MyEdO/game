@@ -37,6 +37,7 @@ import { refusActionDepensee, refusDeCourse, refusHorsDEtatDAgir } from './refus
 import { mountMovement, movementRemaining, mountUp, dismount, mountOf, mountablesNear, isControlledMount, insertByInitiative } from './mount';
 import { heroCombatMount } from '../engine/mountTravel';
 import { ev, evLines, journaliser } from './combatLog';
+import type { FateSaveSource } from '../engine/fortune';
 import { traceLineOf, testTraceLabel } from '../engine/traceLine';
 import { libelleDeTest, libelleDuTestNomme } from './jetsEnVue';
 import { courseArmee, intentionDuClic, intentionDuProprietaire } from './localIntent';
@@ -106,7 +107,7 @@ import { navalTestTypeDR, hullNavalTraits } from '../engine/navalTraits';
 import { sceneZonesToBattle } from './monde/zones';
 import { resetFields } from './stateFields';
 import { seaMagicContext, touchActors } from './combatOrParty';
-import { actorIn, inBattleId } from './monde/combatants';
+import { actorIn, inBattleId, porteurParId } from './monde/combatants';
 import { refusDImmunite } from './determinationDuJet';
 import { porteurDeLObjet } from './monde/carrier';
 import { garanti } from '../lib/garanti';
@@ -177,11 +178,17 @@ function refuseParSonEntree(get: Get, set: Set, entree: string, active: Combatan
  *  Trait envers l'une des Cibles qu'offre le tueur `foeId` (`ciblesDAnimositeAcquise`, `acquerirLeTrait`) ; rend
  *  sa ligne de journal, `null` sans Trait posé d'office. */
 function acquireAnimositeOnFate(get: Get, set: Set, hero: Combatant, foeId: string | undefined): string | null {
-  const tueur = foeId === undefined ? undefined : inBattleId(get().battle, foeId);
+  const tueur = foeId === undefined ? undefined : porteurParId(get(), foeId);
   if (!tueur) return null;
   const calme = calmeDeLAnimositeAcquise(hero, battleRng());
   if (!calme || calme.success) return null;
   return acquerirLeTrait(get, set, hero, 'animosite', ciblesDAnimositeAcquise(hero, tueur));
+}
+
+/** La bataille reprend après le Destin : la limite de Round pour une mort lente, le tour adverse sinon. */
+function reprendreApresLeDestin(get: Get, set: Set, source: FateSaveSource): void {
+  if (source === 'slow') resolveRoundBoundary(get, set);
+  else resumeEnemyTurn(get, set);
 }
 
 /** OUVERTURE partagée d'un Test d'équipage MULTI (MDG 14) : contributeurs par rôle (`crewTestContributors` —
@@ -1884,46 +1891,49 @@ export function choixDuCombat(get: Get, set: Set): Pick<CorpsDesChoix, 'destin' 
   /** Le Point de Destin sacrifié (LDB 17 l.29-32) résout la suspension `pendingFateSave`. */
   const issues = {
     eviter: () => {
-      const { battle, pendingFateSave: p } = get();
-      if (!battle || !p) return;
-      const hero = inBattleId(battle, p.heroId);
+      const p = get().pendingFateSave;
+      if (!p) return;
+      const hero = porteurParId(get(), p.heroId);
       set({ pendingFateSave: null });
       if (!hero) return;
       hero.fate = (hero.fate ?? 0) - 1;
       if (p.restoreWounds != null) hero.wounds.current = p.restoreWounds; // annule tout le coup (restaure les PB)
       hero.criticalWounds = Math.max(0, (hero.criticalWounds ?? 0) - 1);
       const anim = acquireAnimositeOnFate(get, set, hero, p.foeId); // ADE II 09 l.15
-      set({ battle: { ...battle, log: [...battle.log, ev('information', t('cs.fateDodge', { name: hero.label }), hero.id), ...(anim ? [ev('peur', anim, hero.id)] : [])] } });
-      resumeEnemyTurn(get, set);
+      journaliser(get, set, [t('cs.fateDodge', { name: hero.label })], 'information', { actorId: hero.id });
+      if (anim) journaliser(get, set, [anim], 'peur', { actorId: hero.id });
+      if (get().battle) resumeEnemyTurn(get, set);
+      else set(touchActors(get()));
     },
     survivre: () => {
-      const { battle, pendingFateSave: p } = get();
-      if (!battle || !p) return;
-      const hero = inBattleId(battle, p.heroId);
-      const source = p.source;
+      const p = get().pendingFateSave;
+      if (!p) return;
+      const hero = porteurParId(get(), p.heroId);
       set({ pendingFateSave: null });
       if (!hero) return;
       hero.fate = (hero.fate ?? 0) - 1;
-      hero.outOfRencontre = true; // survit mais éjecté de la rencontre (vivant)
-      hero.exitReason = 'destin'; // #237 : lu « hors-combat » (endState)
+      if (get().battle) {
+        hero.outOfRencontre = true; // survit mais éjecté de la rencontre (vivant)
+        hero.exitReason = 'destin'; // #237 : lu « hors-combat » (endState)
+      }
       if (!hero.conditions.some((c) => c.id === COND.inconscient)) addCondition(hero, COND.inconscient);
       const anim = acquireAnimositeOnFate(get, set, hero, p.foeId); // ADE II 09 l.15
-      set({ battle: { ...battle, log: [...battle.log, ev('information', t('cs.fateFlee', { name: hero.label }), hero.id), ...(anim ? [ev('peur', anim, hero.id)] : [])] } });
-      if (source === 'slow') resolveRoundBoundary(get, set);
-      else resumeEnemyTurn(get, set);
+      journaliser(get, set, [t('cs.fateFlee', { name: hero.label })], 'information', { actorId: hero.id });
+      if (anim) journaliser(get, set, [anim], 'peur', { actorId: hero.id });
+      if (get().battle) reprendreApresLeDestin(get, set, p.source);
+      else set(touchActors(get()));
     },
     accepter: () => {
-      const { battle, pendingFateSave: p } = get();
-      if (!battle || !p) return;
-      const hero = inBattleId(battle, p.heroId);
-      const source = p.source;
+      const p = get().pendingFateSave;
+      if (!p) return;
+      const hero = porteurParId(get(), p.heroId);
       set({ pendingFateSave: null });
       if (hero) {
         hero.dead = true;
-        set({ battle: { ...battle, log: [...battle.log, ev('mort', t('cs.succumb', { name: hero.label }), hero.id)] } });
+        journaliser(get, set, [t('cs.succumb', { name: hero.label })], 'mort', { actorId: hero.id });
       }
-      if (source === 'slow') resolveRoundBoundary(get, set);
-      else resumeEnemyTurn(get, set);
+      if (get().battle) reprendreApresLeDestin(get, set, p.source);
+      else set(touchActors(get()));
     },
   } satisfies Record<ChoixDesFenetres['destin']['issue'], () => void>;
   return {

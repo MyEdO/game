@@ -38,7 +38,7 @@ func _recetter() -> void:
 		quit(2)
 		return
 	PontFige.poser(self, lu)
-	MontageDeComposition.retenir_les_modeles(lu.modeles)
+	MontageDeComposition.retenir_les_modeles(lu.modeles, lu.listage)
 	await _le_plateau(lu)
 	_l_echelle()
 	await _l_atelier()
@@ -52,7 +52,7 @@ func _recetter() -> void:
 func _le_plateau(lu: Dictionary) -> void:
 	var plateau: Plateau = (load("res://scenes/Plateau.tscn") as PackedScene).instantiate()
 	root.add_child(plateau)
-	plateau.poser_le_monde(lu.monde)
+	plateau.poser_le_monde(lu.monde, lu.morceaux)
 	plateau.montrer(lu.avant.vue)
 	var heros: Dictionary = lu.apres.vue.projection.exploration.heros[0]
 	var meneur: Combattant = plateau.get("_modeles")[heros.id]

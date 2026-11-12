@@ -38,7 +38,6 @@ const doc = document(
   {},
   {},
   {
-    codex: { keys: ['navalProgression'] },
     edit: { niche: { categories: { navalProgression: 'entries' } } },
   },
   {

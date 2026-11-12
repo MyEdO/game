@@ -9,7 +9,7 @@
 //   `recupererModeles`), puis `--element` importé (`importer.mjs --sans-publier`) ; le combat ouvert, chaque combattant
 //   à corps de la vue a la base de l'élément, celle que l'écran publie posée (`wfrpEcran.corps`), et le combattant dont
 //   le corps monte `--element` a monté aussi la tête de sa vue et porte, à la ligne de sa prise `secondaire`, l'emblème de sa
-//   donnée (`portee.embleme`) ; sans ces options, le dossier servi est celui du projet. Puis la fenêtre du round à l'Entrée, une charge sur la plus proche des cibles que la charge offre,
+//   donnée (`portee.embleme`) ; sans ces options, le dossier servi est celui du projet, ou, avec `--statique`, celui que l'export a déposé, en scènes fabriquées (#3946). Puis la fenêtre du round à l'Entrée, une charge sur la plus proche des cibles que la charge offre,
 //   la localisation, le jet et sa confirmation dans la fenêtre d'attaque, la fin du tour ; le héros suivant marche
 //   d'une case (aperçu puis déplacement) et finit son tour ; les jetons de l'adversaire repris par les minuteurs de
 //   Godot jusqu'à la Défense du héros visé, jetée et confirmée, puis le round 2. `wfrpPont.appeler('vue')` observe la
@@ -152,6 +152,7 @@
 // console rendent un code non nul.
 //
 //   node hotes/godot/recette.mjs --web <dossier de l'export> --captures <dossier> [--scenario dome] [--graine 7]
+//   node hotes/godot/recette.mjs --web <export> --captures <dossier> --statique
 //   node hotes/godot/recette.mjs --scenario embleme-au-combat --web <export> --captures <dossier> --modeles <dossier neuf>
 //     --element <production d'un élément à surface blason>
 //   node hotes/godot/recette.mjs --scenario teinte-au-combat --web <export> --captures <dossier>
@@ -173,12 +174,13 @@
 //   node hotes/godot/recette.mjs --parcours bord --scenario a-bord-de-la-caraque --web <export> --captures <dossier>
 //     --route <route.json de hotes/godot/recettes/route-a-bord.hors-store.test.ts>
 /**
- * Les recettes de `hotes/godot/recette.mjs` partent du menu et ne jouent aucun geste par le pont. Le tour complet
+ * Les recettes de `hotes/godot/recette.mjs` partent du menu et ne jouent aucun geste par le pont. Avec `--statique`,
+ * l'export se sert tel que le site le publie, ses modèles en scènes fabriquées (section « Atelier 3D », `forme`). Le tour complet
  * clique « Combat », puis y lit où cliquer ; il observe la partie par `vue`. L'atelier (`--parcours atelier`) clique
  * « Atelier », lit ses boutons et son état dans `wfrpEcran`, et sert un dossier de modèles neuf que la recette remplit
  * par `importer.mjs --sans-publier` ; sans `--modeles`, il sert le dossier des modèles du projet et y pose un véhicule,
- * qu'il compare à la réponse de `vehicule`, appelée de la page pour l'observer. La page s'ouvre sous `?rendu=econome`
- * (`PontDuNoyau.RENDU_ECONOME`) : une image ne se dessine que si l'écran a changé, sans anticrénelage
+ * qu'il compare à la réponse de `vehicule`, appelée de la page pour l'observer. La page s'ouvre sous `?recette=1`
+ * (`PontDuNoyau.en_recette`) : Godot y publie `wfrpEcran`, une image ne se dessine que si l'écran a changé, sans anticrénelage
  * multiéchantillon ; une lecture de la page n'attend plus le dessin d'une image, et un geste en attend un moins long. Un cran de molette de l'atelier attend
  * que `atelier.defilement` change, jamais une publication quelconque.
  * Le parcours des cadrages (`--parcours cadrages --vues <fichier>`) attend que le monde soit posé, le modèle de
@@ -212,8 +214,9 @@ import { chargerAssets, chargerEvaluateur } from './asset/charger.mjs'
 
 const chaine = { type: 'string' }
 const { values: o } = parseArgs({
-  options: { parcours: { type: 'string', default: 'combat' }, web: chaine, captures: chaine, scenario: { type: 'string', default: 'dome' }, graine: { type: 'string', default: '7' }, modeles: chaine, base: chaine, element: chaine, reexport: chaine, piece: chaine, vues: chaine, route: chaine, preset: chaine, clip: { type: 'string', default: 'Sword_Attack' } },
+  options: { parcours: { type: 'string', default: 'combat' }, web: chaine, captures: chaine, scenario: { type: 'string', default: 'dome' }, graine: { type: 'string', default: '7' }, modeles: chaine, base: chaine, element: chaine, reexport: chaine, piece: chaine, vues: chaine, route: chaine, preset: chaine, clip: { type: 'string', default: 'Sword_Attack' }, statique: { type: 'boolean' } },
 })
+if (o.statique && o.modeles) throw new Error('--statique sert les modèles déposés dans l’export : --modeles hors de propos')
 if (!o.web || !o.captures) throw new Error('usage : node hotes/godot/recette.mjs --web <dossier de l’export> --captures <dossier> [--parcours combat|critique|fin|dialogue|exploration|relief|etage|regards|meteo|vehicule|cadrages|bord --route <route.json>|brume|fiche|inventaire|creation|editeur|atelier|composition|preset]')
 if (o.parcours === 'atelier' && o.modeles && !(o.base && o.element && o.reexport)) throw new Error('--parcours atelier avec --modeles <dossier neuf> attend --base, --element et --reexport <dossier de production>')
 if (o.parcours === 'cadrages' && !o.vues) throw new Error('--parcours cadrages attend --vues <fichier JSON des vues nommées>')
@@ -230,7 +233,10 @@ for (const rel of depot ? MANUSCRITS : []) {
   mkdirSync(dirname(join(dossierDesProjetsLivres(depot), rel)), { recursive: true })
   cpSync(join(dossierDesProjetsLivres(), rel), join(dossierDesProjetsLivres(depot), rel))
 }
-const srv = await servir({ web: o.web, ...(o.modeles && { modeles: o.modeles }), ...(depot && { depot }) })
+/** Le dossier des modèles que lisent les preuves : `--modeles`, sinon celui du projet, que le serveur sert ou dont
+ *  l'export servi en `--statique` a fabriqué les scènes. */
+const DOSSIER_SERVI = o.modeles ?? fileURLToPath(new URL('./projet/modeles', import.meta.url))
+const srv = await servir({ web: o.web, ...(o.modeles && { modeles: o.modeles }), ...(o.statique && { statique: true }), ...(depot && { depot }) })
 const session = await launchSession({ width: 1280, height: 720, timeoutMs: 30000, args: WEBGL_LOGICIEL })
 const garde = consoleGuard(session)
 const noter = (t) => console.log('·', t)
@@ -390,11 +396,10 @@ async function prouverLEmbleme(elementId) {
  *  chaque surface de son élément (manifeste du dossier servi) dont cette palette colore l'emplacement porte sa couleur
  *  (`wfrpEcran.corps[id].couleurs`) ; une vue qui en porte se capture. */
 async function prouverLesTeintes() {
-  const dossier = o.modeles ?? fileURLToPath(new URL('./projet/modeles', import.meta.url))
   const v = await vue()
   const attendues = Object.entries(v.corps.combattants).flatMap(([id, c]) =>
     (c?.montes ?? []).filter((m) => m.element !== null && m.palette).flatMap((m) =>
-      (JSON.parse(readFileSync(join(dossier, `${m.element}.manifeste.json`), 'utf8')).surfaces ?? [])
+      (JSON.parse(readFileSync(join(DOSSIER_SERVI, `${m.element}.manifeste.json`), 'utf8')).surfaces ?? [])
         .filter((s) => m.palette[s.palette] !== undefined)
         .map((s) => ({ id, ligne: m.ligne, nom: s.nom, couleur: m.palette[s.palette] }))))
   if (!attendues.length) return noter('aucune surface teinte dans la vue')
@@ -1081,7 +1086,7 @@ async function parcoursVoyage() {
   v = await vue()
   noter(`lieu : ${zone(v, 'fenetre.titre')[0].texte} ; ${zone(v, 'fenetre.corps').map((e) => e.nom ?? e.texte).join(' | ')}`)
   await capturer('3534-l2-lieu')
-  await cliquerBouton(bouton(zone(v, 'fenetre.corps').find((e) => e.id === 'service/forgeron').elements[0]))
+  await cliquerBouton(bouton(zone(v, 'fenetre.corps').find((e) => e.id === 'service/forgeron').elements.find((e) => e.type === 'bouton')))
   await attendreLaVue("v.projection.fenetre?.cle === 'marchand'")
   v = await vue()
   noter(`échoppe : ${zone(v, 'fenetre.corps').map((e) => `${e.id} (${(e.elements ?? []).map((b) => b.libelle).join(', ')})`).join(' | ')}`)
@@ -1108,7 +1113,7 @@ async function parcoursMarche() {
   await entrer()
   await cliquerBouton('Le lieu')
   await attendreLaVue("v.projection.fenetre?.cle === 'ecranDuLieu'")
-  await cliquerBouton(bouton(zone(await vue(), 'fenetre.corps').find((e) => e.id === 'service/marche').elements[0]))
+  await cliquerBouton(bouton(zone(await vue(), 'fenetre.corps').find((e) => e.id === 'service/marche').elements.find((e) => e.type === 'bouton')))
   await entrer('marcheDeTerre')
   await attendreLaVue("v.projection.fenetre?.cle === 'marcheDeTerre'")
   let v = await vue()
@@ -1908,6 +1913,50 @@ async function parcoursEditeur() {
   await cliquerPoint(...cases[`${dx + 1},${dy}`])
   await waitFor(session, montre('valeur/when/kind'))
   assert.deepEqual(etatDuDeclencheur(await editeur()), declencheurAvant, '« Annuler » sept fois, le déclencheur recliqué : rendu à son flux d’avant l’op')
+  await ajouterLePas('valeur/flow', rangDuPas, 'effet', `valeur/flow/etapes/${rangDuPas}/effet/flag`)
+  e = await editeur()
+  await choisirALaListe(`${pasDOps}/type`, inspecte(e, `${pasDOps}/type`).valeurs.find((b) => b.jeu.args[2]?.type === 'transition').id, 'editeur.inspecteur', montre(`${pasDOps}/scene/id`))
+  e = await editeur()
+  const scenesOffertes = inspecte(e, `${pasDOps}/scene/id`).valeurs
+  assert.equal(scenesOffertes.length, e.zones['editeur.scenes'].find((el) => el.id === 'scenes').valeurs.length, 'la scène de la transition se choisit parmi les scènes du projet, exactement')
+  await cliquerAuPanneau({ element: `bouton/${scenesOffertes[0].id}` })
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((el) => el.id === '${pasDOps}/scene/id')?.valeurs.find((b) => b.id === '${scenesOffertes[0].id}')?.presse === true`)
+  e = await editeur()
+  assert.equal(inspecte(e, `${pasDOps}/scene/id`).valeurs.find((b) => b.presse)?.jeu.args[2], scenesOffertes[0].jeu.args[2], 'la scène choisie est écrite')
+  noter(`le flux du même déclencheur, un pas « ${pressee(`valeur/flow/etapes/${rangDuPas}/kind`)} » d’effet « ${pressee(`${pasDOps}/type`)} » : la scène choisie à la liste des ${scenesOffertes.length} scènes du projet, « ${pressee(`${pasDOps}/scene/id`)} »`)
+  await capturer('3606-m2d-1-ref-locale')
+  for (let n = 0; n < 4; n++) await cliquerAuPanneau({ element: 'bouton/annuler' })
+  await waitFor(session, `!(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id.startsWith('valeur/flow/etapes/${rangDuPas}/'))`)
+  await cliquerPoint(...cases[`${dx + 1},${dy}`])
+  await waitFor(session, montre('valeur/when/kind'))
+  assert.deepEqual(etatDuDeclencheur(await editeur()), declencheurAvant, '« Annuler » quatre fois, le déclencheur recliqué : rendu à son flux d’avant l’effet')
+  e = await editeur()
+  await choisirALaListe('valeur/when/kind', inspecte(e, 'valeur/when/kind').valeurs.find((b) => b.jeu.args[2]?.kind === 'partyDead').id, 'editeur.inspecteur', montre('valeur/when/who/forme'))
+  e = await editeur()
+  const parEtat = inspecte(e, 'valeur/when/who/forme').valeurs.find((b) => b.jeu.args[2]?.etat !== undefined)
+  await cliquerAuPanneau({ element: `bouton/${parEtat.id}` })
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((el) => el.id === 'valeur/when/who/forme')?.valeurs.find((b) => b.id === '${parEtat.id}')?.presse === true`)
+  e = await editeur()
+  assert.deepEqual(inspecte(e, 'valeur/when/who/forme').valeurs.find((b) => b.presse)?.jeu.args[2], { etat: '' }, 'le héros désigné par un état, posé par le choix de sa variante')
+  await ajouterLePas('valeur/flow', rangDuPas, 'effet', `valeur/flow/etapes/${rangDuPas}/effet/flag`)
+  e = await editeur()
+  await choisirALaListe(`${pasDOps}/type`, inspecte(e, `${pasDOps}/type`).valeurs.find((b) => b.jeu.args[2]?.type === 'ops').id, 'editeur.inspecteur', montre(`${pasDOps}/ops/ajouter`))
+  await cliquerAuPanneau({ element: `bouton/${pasDOps}/ops/ajouter` })
+  await waitFor(session, montre(`${pasDOps}/ops/0/op`))
+  e = await editeur()
+  await choisirALaListe(`${pasDOps}/ops/0/op`, inspecte(e, `${pasDOps}/ops/0/op`).valeurs.find((b) => b.jeu.args[2]?.op === 'navireMod').id, 'editeur.inspecteur', montre(`${pasDOps}/ops/0/jusqua/forme`))
+  e = await editeur()
+  const parJours = inspecte(e, `${pasDOps}/ops/0/jusqua/forme`).valeurs.find((b) => b.jeu.args[2]?.jours !== undefined)
+  await cliquerAuPanneau({ element: `bouton/${parJours.id}` })
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((el) => el.id === '${pasDOps}/ops/0/jusqua/forme')?.valeurs.find((b) => b.id === '${parJours.id}')?.presse === true`)
+  e = await editeur()
+  noter(`à l’inspecteur du déclencheur, la condition « ${pressee('valeur/when/kind')} » : son acteur, « ${pressee('valeur/when/who/forme')} », choisi par sa variante ; au flux, l’op « ${pressee(`${pasDOps}/ops/0/op`)} », jusqu’à « ${pressee(`${pasDOps}/ops/0/jusqua/forme`)} », choisi par sa variante`)
+  await capturer('3606-m2e-1-variante-nommee')
+  for (let n = 0; n < 8; n++) await cliquerAuPanneau({ element: 'bouton/annuler' })
+  await waitFor(session, `!(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id.startsWith('valeur/flow/etapes/${rangDuPas}/'))`)
+  await cliquerPoint(...cases[`${dx + 1},${dy}`])
+  await waitFor(session, montre('valeur/when/kind'))
+  assert.deepEqual(etatDuDeclencheur(await editeur()), declencheurAvant, '« Annuler » huit fois, le déclencheur recliqué : rendu à sa condition et à son flux d’avant l’étape')
   const planche = join(depot, 'planche.png')
   ecrirePlanche(planche)
   await session.rpc('Page.setInterceptFileChooserDialog', { enabled: true })
@@ -2809,14 +2858,14 @@ async function prouverLaPile() {
   await attendreLAtelier('Object.keys(a.pile).length > 0', 120000)
   const a = await atelier()
   const { fichiersDuModele } = await chargerAssets(["export { fichiersDuModele } from '/hotes/godot/asset/modeles.ts';"])
-  const lu = (id) => { const f = fichiersDuModele(id); return { glb: readFileSync(join(o.web, 'modeles', f.glb)), manifeste: JSON.parse(readFileSync(join(o.web, 'modeles', f.manifeste), 'utf8')) } }
+  const lu = (id) => { const f = fichiersDuModele(id); return { glb: readFileSync(join(DOSSIER_SERVI, f.glb)), manifeste: JSON.parse(readFileSync(join(DOSSIER_SERVI, f.manifeste), 'utf8')) } }
   const base = lu(a.base)
   const elements = [...Object.values(a.montes), ...Object.values(a.lignes)].map(lu)
   const { evaluer } = await chargerEvaluateur()
   const { mesures } = await evaluer({
     base: base.glb, manifeste: base.manifeste, elements: elements.map((e) => e.glb),
     couches: elements.map(({ manifeste: { couche, couvre = [], categorie } }) => (couche ? { couche, couvre, categorie } : null)),
-    silhouettes: a.composition.morphes, clips: [base.manifeste.clips.idle],
+    silhouettes: a.composition.morphes, clips: [base.manifeste.clips.repos],
   })
   noter(`pile : fusion ${JSON.stringify(a.pile)} ; évaluateur ${JSON.stringify(mesures.pile)}`)
   for (const [compte, attendu] of Object.entries(mesures.pile)) {
@@ -2862,7 +2911,7 @@ if (!(o.parcours in PARCOURS)) throw new Error(`--parcours ${o.parcours} : ${Obj
 
 let echec = null
 try {
-  await session.rpc('Page.navigate', { url: `${srv.url}index.html?scenario=${o.scenario}&graine=${o.graine}&rendu=econome` })
+  await session.rpc('Page.navigate', { url: `${srv.url}index.html?scenario=${o.scenario}&graine=${o.graine}&recette=1` })
   await waitFor(session, '!!globalThis.wfrpEcran && wfrpEcran.boutons.length > 0', { timeoutMs: 120000, evaluerMs: FIL_DE_LA_PAGE_MS })
   await PARCOURS[o.parcours]()
   const releve = JSON.parse(await lire(`wfrpPont.appeler('erreursGlobales')`))

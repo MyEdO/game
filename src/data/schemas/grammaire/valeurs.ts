@@ -350,7 +350,7 @@ export const fragmentBlocsSchema = nommerChamps(z.strictObject({
   finSecOcc: z.number().int().min(1).optional(),
   b1: z.number().int().min(0),
   sum: z.string().regex(/^[0-9a-f]{16}$/),
-}), { kind: { label: "type" }, sec: { label: "section" }, secOcc: { label: "occurrence de section" }, b0: { label: "premier bloc" }, finSec: { label: "section de fin" }, finSecOcc: { label: "occurrence de fin" }, b1: { label: "dernier bloc" }, sum: { label: "empreinte" } });
+}), { kind: { label: "type" }, sec: { label: "section" }, secOcc: { label: "occurrence de section" }, b0: { label: "premier bloc" }, finSec: { label: "section de fin" }, finSecOcc: { label: "occurrence de fin" }, b1: { label: "dernier bloc" }, sum: { label: "empreinte" } }, { label: 'Blocs de section' });
 
 /**
  * FRAGMENT DE CELLULE : une case de table, adressée par clé de LIGNE × en-tête de COLONNE — jamais
@@ -365,7 +365,7 @@ export const fragmentCelluleSchema = nommerChamps(z.strictObject({
   col: z.string().min(1),
   table: z.string().regex(/#\d+$/).optional(),
   sum: z.string().regex(/^[0-9a-f]{16}$/),
-}), { kind: { label: "type" }, sec: { label: "section" }, secOcc: { label: "occurrence de section" }, row: { label: "ligne" }, col: { label: "colonne" }, table: { label: "table" }, sum: { label: "empreinte" } });
+}), { kind: { label: "type" }, sec: { label: "section" }, secOcc: { label: "occurrence de section" }, row: { label: "ligne" }, col: { label: "colonne" }, table: { label: "table" }, sum: { label: "empreinte" } }, { label: 'Cellule de table' });
 
 /**
  * Nombre de fragments qu'une adresse doit porter pour ADRESSER quelque chose. En dessous, il n'y a
@@ -1340,7 +1340,7 @@ export function ecartsDuDeDeLaTable<F extends { min?: number | null; max?: numbe
   fourchettes: readonly F[],
   nom: (f: F) => string,
 ): string[] {
-  if ('die' in table && parseDice(table.die) === null) return [];
+  if (parseDice(table.die) === null) return [];
   const de = deDeLaTableTiree(table);
   return ecartsDeCouverture(fourchettes, totalDuDe(de, de.n), fourchettes.some((f) => f.max === null) ? 'ouverte' : facesDuDe(de), nom);
 }

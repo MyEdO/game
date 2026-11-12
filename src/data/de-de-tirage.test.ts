@@ -5,11 +5,12 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { DEFS_DE_DOCUMENT } from './schemas/validate';
+import { DEFS_DE_DOCUMENT, validateDataset } from './schemas/validate';
 import { z } from 'zod';
 import { META_CHARGE, tableTiree } from './schemas/grammaire/document';
 import { deDeTirageDe } from './rangees';
-import { formatDice, parseDiceRequired } from '../engine/dice';
+import { formatDice } from '../engine/dice';
+import { deDeLaTableTiree } from '../engine/tables';
 import { weatherDie, type Season } from '../engine/travelStages';
 import { encounterDie } from '../engine/travelTables';
 import { SHIP_CRIT_SET } from './shipCriticals';
@@ -191,7 +192,7 @@ describe('dé de tirage — en donnée, lu par le lecteur (#1667)', () => {
     const vues = tablesNichees();
     expect(vues.map((t) => t.ou).sort(), 'tables tirées nichées').toEqual(Object.keys(TABLES_NICHEES_LIVRE).sort());
     for (const t of vues) {
-      expect(formatDice(parseDiceRequired(t.die, t.ou)), `${t.ou} (${TABLES_NICHEES_LIVRE[t.ou].ref})`).toBe(TABLES_NICHEES_LIVRE[t.ou].die);
+      expect(formatDice(deDeLaTableTiree({ die: t.die, id: t.ou })), `${t.ou} (${TABLES_NICHEES_LIVRE[t.ou].ref})`).toBe(TABLES_NICHEES_LIVRE[t.ou].die);
     }
   });
 
@@ -201,6 +202,14 @@ describe('dé de tirage — en donnée, lu par le lecteur (#1667)', () => {
     expect(formatDice(starSubDie()), 'stars.json › sub (ADE II 03 l.63)').toBe('1d10');
     expect(formatDice(peripetieSeuilDie()), 'peripeties.json › tirageQuotidien (LDB 51 l.208)').toBe('1d10');
     expect(formatDice(massBattleHazardsDie()), 'mass-battle.json › hazards (ADE II 08 l.311)').toBe('1d10');
+  });
+
+  it('un sous-tirage n’a qu’une forme, `{ die }` : le `Tirage` (`{ dice }`) est refusé à la porte du Codex', () => {
+    for (const [fichier, cle] of [['stars.json', 'sub'], ['peripeties.json', 'tirageQuotidien']] as const) {
+      const doc = JSON.parse(readFileSync(join(process.cwd(), 'src/data', fichier), 'utf8')) as Record<string, unknown>;
+      expect(validateDataset(fichier, { ...doc, [cle]: { die: 'd10' } }), `${fichier} › ${cle} en \`{ die }\``).toBeNull();
+      expect(validateDataset(fichier, { ...doc, [cle]: { dice: { n: 1, sides: 10 } } }), `${fichier} › ${cle} en \`Tirage\``).toContain('"dice"');
+    }
   });
 
   it('le dé se lit VIVANT sur le document, à l’appel', () => {

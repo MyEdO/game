@@ -1707,12 +1707,13 @@ function refusDEnregistrer(s: SessionDEdition): string | null {
  * z, nom, choisi }` (plusieurs peuvent tenir dans une case : deux décors calés, un objet posé sur une table ; l'hôte y
  * montre la plaque de la sélection et joint leurs noms) (`prop`, `personnage`, `heroStart` ou `entree`, son nom comme à
  * `editeur.pointee`, et si elle est sélectionnée). `aretes` porte les arêtes de la couche éditée hors des ponts des
- * navires (`aretesDeLaCouche`, section « Vue », `plateau`), rendues avec `monde`, comme `navires`, les navires de la
- * scène sous la forme de `corps.navires` (section « Corps d'un combattant »). `monde` porte le volume du monde de la
- * vue de la scène éditée, les ponts de ses navires posés (`vueDeLaScene`), jusqu'à la couche éditée, sans les
- * surplombs des couches au-dessus, qu'il porte en `ombre` avec ces couches (`volumeDuMonde(scene, activeZ)`, section
- * « Monde ») ; il n'est rendu qu'à l'ouverture, et sans geste en cours quand
- * la scène ou la couche a changé depuis le dernier rendu : jamais pendant un glissé, dont la surcouche tient lieu. Le
+ * navires (`aretesDeLaCouche`, chacune comme la méthode `aretes` la sert), rendues avec `monde`, comme `navires`, les navires de la
+ * scène sous la forme de `corps.navires` (section « Corps d'un combattant »). `monde` porte le manifeste du volume du monde de
+ * la vue de la scène éditée, les ponts de ses navires posés (`vueDeLaScene`), comme `monde.monde` (section « Monde ») ;
+ * `morceaux`, source `edition`, en sert la géométrie. `retrait` porte le masque des couches au-dessus de la couche
+ * éditée (`retraitDuMonde(scene, z)`, section « Monde »). Tous deux ne sont rendus qu'à l'ouverture, et sans geste en
+ * cours quand la scène ou la couche a changé depuis le dernier rendu : jamais pendant un glissé, dont la surcouche
+ * tient lieu. Le
  * geste « Enregistrer » rend `depot: { id, texte }`, le texte du projet, ses scènes à jour (`scenesDeLaSession`), passé
  * par la porte, en forme dépôt (`texteAEnregistrer`) ; l'enregistrement est en cours jusqu'à son issue, et les scènes
  * écrites ne sont tenues pour enregistrées qu'à l'issue réussie.

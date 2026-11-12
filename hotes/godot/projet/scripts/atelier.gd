@@ -1,5 +1,5 @@
 ## L'atelier 3D (#3086) : les modèles listés à côté de l'export (`GET modeles/listage.json`), indexés par le pont
-## (`modeles`, `hotes/godot/pont/atelier.ts`), et chaque GLB chargé à l'exécution (`GET modeles/<id>.glb`). Le joueur y
+## (`modeles`, `hotes/godot/pont/atelier.ts`), et chaque modèle chargé à l'exécution sous la forme que sert le listage (`GET modeles/<fichier>`). Le joueur y
 ## choisit un corps, compose un personnage depuis un preset ou ses axes (`composer`, `catalogues`, `presetDeComposition`,
 ## `hotes/godot/pont/composition.ts`), le colore au nuancier, monte un élément par point d'accroche ou par ligne de pièce,
 ## joue les clips de la base image par image, fait marcher la base au clavier (`MarcheDeLAtelier`), montre les aides
@@ -18,7 +18,7 @@
 ## parcourt (#3822).
 ## Le modèle se choisit en tête du panneau ; chaque onglet, et ce qu'il porte, se montre si le modèle posé lui offre
 ## quelque chose (#3792, `_adapter_les_onglets`, `.claude/rules/hote-godot.md`).
-## Chaque geste mis en page, il publie à la page ce que l'écran porte (`PontDuNoyau.publier_l_ecran`).
+## Chaque geste mis en page, il publie ce que l'écran porte (`PontDuNoyau.publier_l_ecran`).
 extends Node3D
 
 const VIDE := MontageDeComposition.VIDE
@@ -194,7 +194,7 @@ func _ready() -> void:
 
 func _process(_delta: float) -> void:
 	_instant.text = "%.3f s" % _lecteur().current_animation_position if _a_un_clip() else ""
-	if _peaux_a_mesurer or (_a_un_clip() and _lecteur().is_playing()):
+	if _pont.en_recette and (_peaux_a_mesurer or (_a_un_clip() and _lecteur().is_playing())):
 		_publier_l_ecran.call_deferred()
 
 
@@ -215,7 +215,7 @@ func _charger(montes: Dictionary, emblemes: Dictionary) -> void:
 	if reponse.get("ok") != true:
 		_montrer_l_etat()
 		return
-	MontageDeComposition.retenir_les_modeles(reponse)
+	MontageDeComposition.retenir_les_modeles(reponse, listage)
 	for refus in reponse.refus:
 		_erreurs.append(str(refus))
 	%Rapport.text = "\n".join(PackedStringArray(reponse.rapport))
@@ -272,7 +272,7 @@ func _recharger() -> void:
 func _poser(base: Variant, montes: Dictionary, emblemes: Dictionary, chargement: RefCounted) -> void:
 	var scene: Node3D = null
 	if base != null:
-		scene = await _montage.scene_du_glb(base.id, _erreurs)
+		scene = await _montage.scene_du_modele(base.id, _erreurs)
 	if chargement != _chargement:
 		if scene != null:
 			scene.free()
@@ -421,7 +421,7 @@ func _montrer_le_modele_pose() -> void:
 ## porte fermée, une porte ouverte, une fenêtre, une fenêtre close et une brèche, et, pour une apparence à couronne
 ## (`parapet`), une case haussée d'un étage, crénelée de l'apparence, que sa crête ceint (`cretesDePerimetre`, #3818).
 ## La réponse se pose sous le nœud `Echantillon/Scene` de l'atelier, une `VolumeDeScene` comme celle du monde de la
-## partie (section « Monde ») : le volume, les arêtes, les nappes de toit et les couronnes, celles de
+## partie (section « Monde ») : le volume en morceaux complets, les arêtes, les nappes de toit et les couronnes, celles de
 ## `couronnesAbattues` retirées (`VolumeDeScene.retirer_les_couronnes`), à l'échelle de `metresParCase`, sa boîte au
 ## sol et cadrée comme celle d'un véhicule (`MarcheDeLAtelier.cadrer_la_boite`) ; le sol de l'atelier se cache tant
 ## qu'un échantillon est posé. Seuls « Effets » et « Outils » sont alors offerts ; un effet cadre aussi l'échantillon.
@@ -478,17 +478,17 @@ func _poser_sans_base(racine: Node3D) -> void:
 	_montrer_le_modele_pose()
 
 
-## L'échantillon demandé dessiné par `echantillon` (`CONTRAT.md`, « Atelier 3D ») : son volume, ses arêtes, ses nappes de
-## toit et ses couronnes posés par sa scène (`VolumeDeScene`), les couronnes tombées retirées, en mètres
+## L'échantillon demandé dessiné par `echantillon` (`CONTRAT.md`, « Atelier 3D ») : son volume en morceaux complets, ses
+## nappes de toit, ses couronnes (`VolumeDeScene.poser`, la réponse pour manifeste et pour géométries reçues) et ses
+## arêtes posés par sa scène, les couronnes tombées retirées, en mètres
 ## (`MiseEnPage.echelle_en_metres`), au sol (`_poser_au_sol`) et cadré à sa taille (`MarcheDeLAtelier.cadrer_la_boite`).
 func _poser_l_echantillon() -> void:
 	var reponse := _pont.appeler("echantillon", _echantillon_demande)
 	if reponse.get("ok") != true:
 		return
 	var scene := _scene_de_l_echantillon
-	scene.poser(reponse.monde)
+	scene.poser(reponse, {volume = reponse.monde.morceaux, toits = reponse.toits, couronnes = reponse.couronnes})
 	scene.poser_les_aretes(reponse.aretes)
-	scene.poser_les_nappes(reponse.toits, reponse.couronnes)
 	scene.retirer_les_couronnes(reponse.couronnesAbattues)
 	scene.scale = MiseEnPage.echelle_en_metres(reponse.monde.metresParCase)
 	scene.position = Vector3.ZERO
@@ -1595,7 +1595,13 @@ func _publier() -> void:
 	_publier_l_ecran.call_deferred()
 
 
-## Ce que l'écran porte, une fois mis en page : ses boutons, et l'état de l'atelier, l'élément monté à chaque point
+## L'écran publié à la recette (`PontDuNoyau.publier_l_ecran`, `_ecran_publie`), une fois mis en page.
+func _publier_l_ecran() -> void:
+	await get_tree().process_frame
+	_pont.publier_l_ecran(_ecran_publie)
+
+
+## Ce que l'écran porte : ses boutons, et l'état de l'atelier, l'élément monté à chaque point
 ## (`montes`) et à chaque ligne de pièce (`lignes`) sous sa clé publiée, les erreurs (`_toutes_les_erreurs`), l'onglet
 ## montré, les onglets offerts (`_onglets_offerts`) et le défilement de son panneau (`defilement`), le cadre de la
 ## glissière de chaque axe `plage` à l'écran
@@ -1604,13 +1610,12 @@ func _publier() -> void:
 ## (`cadre`), la position des os de la base (`_positions_des_os`), la boîte des meshes skinnés montés (`_peaux`), que
 ## la publication attend tant que le skin d'un mesh skinné monté n'a pas ses os au serveur de rendu, le bilan de la
 ## pile des couches que porte la fusion (`MontageDeComposition.pile_posee`), le véhicule posé (`_vehicule_publie`) et
-## l'échantillon posé (`_echantillon_publie`).
-func _publier_l_ecran() -> void:
-	await get_tree().process_frame
+## l'échantillon posé (`_echantillon_publie`) ; `null` tant que ces boîtes restent à mesurer.
+func _ecran_publie() -> Variant:
 	if _peaux_a_mesurer:
 		var mesurees: Variant = _peaux()
 		if mesurees == null:
-			return
+			return null
 		_peaux_mesurees = mesurees
 		_peaux_a_mesurer = false
 	var clip: Variant = _lecteur().assigned_animation if _a_un_clip() else null
@@ -1628,7 +1633,7 @@ func _publier_l_ecran() -> void:
 		var cadre := glissiere.get_global_rect()
 		if PontDuNoyau.a_l_ecran(glissiere, cadre.get_center()):
 			plages[champ] = {gauche = cadre.position.x, droite = cadre.end.x, y = cadre.get_center().y, valeur = glissiere.value}
-	_pont.publier_l_ecran({
+	return {
 		boutons = PontDuNoyau.boutons_a_l_ecran([_interface]),
 		atelier = {
 			base = _montage.base.get("id"),
@@ -1667,7 +1672,7 @@ func _publier_l_ecran() -> void:
 			vehicule = _vehicule_publie(),
 			echantillon = _echantillon_publie(),
 		},
-	})
+	}
 
 
 ## Ce que l'écran montre de l'échantillon demandé, `null` sans lui : sa famille, son id, et ce que sa scène a posé

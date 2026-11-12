@@ -9,13 +9,16 @@ import { apparenceDArete, edgeKey, facadeEdges } from './facades';
 import { walkNeighbors, type Pt } from './path';
 import { EYE_H, hauteurDeLOeil } from './iso';
 import { METRES_PER_LEVEL } from './relief';
-import { casesDeFace, heightAt, isWalkable, piedDeLArete, porteEnJeu, sceneMetresPerTile, structureIsDown, wallEnds, wallIsOpen, type Scene, type WallSeg } from './scene';
+import { casesDeFace, heightAt, isWalkable, piedDeLArete, porteEnJeu, sceneMetresPerTile, structureIsDown, tuilesEffondreesSignature, wallEnds, wallIsOpen, type Scene, type WallSeg } from './scene';
 import { memoByRef } from './sceneMemo';
+import { hash32, hash32AuMillieme } from '../../data/hash';
+import { jsonCanonique } from '../../lib/jsonCanonique.mjs';
 import { spaceCellKey } from './volume/architectureVisibility';
 import type { Rot } from '../../geometry/iso';
 import { cutawayOverhead, frontFacadeCutaway, type ClearedSpace } from './volume/architectureVisibility';
 import { clearedSpace } from './volume/toits';
-import { empreinteDesDecors, toitsLeves, toutesLesNappes, volumeDuMonde, type VolumeDuMonde } from './volume/volume';
+import { empreinteDesDecors, octetsDuRetrait, retraitDuMonde, toitsLeves, toutesLesNappes, type RetraitDuMonde } from './volume/volume';
+import { meteoDuRegard } from './meteo';
 import { aretesHorsDesNavires, provenanceDesNavires } from '../planDeNavire';
 
 /** La pièce qu'une arête porte : un mur plein, une porte fermée ou ouverte, une fenêtre aux volets ouverts ou clos, ou
@@ -144,12 +147,29 @@ function retraitDuRegard(scene: Scene, allies: readonly Pt[], regard: Regard): R
   return { ...(activeZ !== undefined ? { activeZ } : {}), couvercle: new Set([...couvercle, ...sousLaCoupe]), coupes };
 }
 
-/** Le volume du monde de `scene` (`volumeDuMonde`) sous le regard `regard`, sans ce qu'il retire pour le groupe posé
+/** Le masque de ce que le regard `regard` retire du volume du monde de `scene` (`retraitDuMonde`) pour le groupe posé
  *  sur `allies` (`retraitDuRegard`). PUR. */
-export function volumeDuRegard(scene: Scene, allies: readonly Pt[], regard: Regard): VolumeDuMonde {
+export function masqueDuRegard(scene: Scene, allies: readonly Pt[], regard: Regard): RetraitDuMonde {
   const { activeZ, couvercle } = retraitDuRegard(scene, allies, regard);
-  return volumeDuMonde(scene, activeZ, couvercle);
+  return retraitDuMonde(scene, activeZ, couvercle);
 }
+
+/** L'empreinte de ce que `provenanceDesNavires` rend de `scene` : les cases, les arêtes et la flottaison de chaque
+ *  navire posé. */
+const empreinteDesNavires = (scene: Scene): string => {
+  const { cases, aretes, flottaison } = provenanceDesNavires(scene);
+  return jsonCanonique([[...cases], [...aretes], [...flottaison]]);
+};
+
+/** La clé du monde de `scene` (`PlateauDeLaScene.cleDuMonde`) sous chaque regard : l'empreinte de ce qui ne tient qu'à
+ *  la scène (ses décors, `empreinteDesDecors`, ses tuiles effondrées, `tuilesEffondreesSignature`, ses navires posés,
+ *  `empreinteDesNavires`), poursuivie par celle de la météo que le regard montre (`meteoDuRegard`). Mémoïsée par scène,
+ *  chaque regard au premier appel. */
+const clesDuMonde = memoByRef((scene: Scene): ((regard: Regard) => string) => {
+  const deLaScene = hash32(empreinteDesDecors(scene), tuilesEffondreesSignature(scene), empreinteDesNavires(scene));
+  const parRegard = new Map<Regard, string>();
+  return (regard) => parRegard.get(regard) ?? parRegard.set(regard, hash32(deLaScene, jsonCanonique(meteoDuRegard(scene, regard))).toString(36)).get(regard)!;
+});
 
 /** La hauteur de l'œil de chaque case marchable de `scene` où elle est plus basse que debout (`hauteurDeLOeil`), par
  *  sa clé `x,y,z` (`spaceCellKey`). Mémoïsée par scène. */
@@ -173,7 +193,9 @@ const oeilsSousPlafond = memoByRef((scene: Scene): Record<string, number> => {
  * dégagement (`clearedSpace`, `src/noyau/monde/volume/toits.ts`), les nappes de toit qui couvrent l'espace où il se
  * tient, le couvercle au-dessus de sa tête (`overheadCells` : les masses qui le surplombent et l'emprise de sa pièce
  * aux couches au-dessus de la sienne) et les arêtes qu'il dégage ; au plateau, toutes les nappes de toit, et les
- * couches au-dessus de la plus haute où il se tient, volume et arêtes ; en immersion, rien.
+ * couches au-dessus de la plus haute où il se tient, arêtes et cases du volume ; en immersion, rien. Les cases du
+ * volume qu'il retire, le masque du retrait les nomme (`retrait`, section « Monde ») ; le volume, lui, ne dépend que
+ * de la scène.
  */
 export interface PlateauDeLaScene {
   /** ses dimensions : sa largeur, en cases. */
@@ -196,23 +218,23 @@ export interface PlateauDeLaScene {
   /** celui qui le suit dans `REGARDS`. */
   regardSuivant: Regard;
   /**
-   * La clé du volume que le regard demande change quand ce qu'il retire du volume change, et quand un décor de la scène
-   * naît, sort ou change en jeu (`empreinteDesDecors`, `src/noyau/monde/volume/volume.ts` : un objet posé au sol, un
-   * coffre vidé) : le jeu rappelle alors `monde`.
+   * La clé du monde, une empreinte (`hash32`) de ce que `monde` rendrait de neuf, change quand la météo que le regard
+   * montre change (`meteoDuRegard`, `src/noyau/monde/meteo.ts` : un regard ou une météo changés sans météo à montrer,
+   * en intérieur, ne la changent pas), quand un décor naît, sort ou change en jeu (`empreinteDesDecors`,
+   * `src/noyau/monde/volume/volume.ts` : un objet posé au sol, un coffre vidé), quand une tuile s'effondre
+   * (`tuilesEffondreesSignature`) et quand un navire bouge (`provenanceDesNavires`) : le jeu rappelle alors `monde`.
    */
   cleDuMonde: string;
   /**
-   * les arêtes de toutes ses couches hors des ponts de ses navires, que la marche garde et que le modèle du navire
-   * montre (`aretesHorsDesNavires`, `src/noyau/planDeNavire.ts`) (chacune `areteDessinee` :
-   * `{ cle, case, milieu, sens, pied, piece, famille, hauteurM }`, sa clé `edgeKey`, la case dont elle borde un côté,
-   * son milieu et le sens où elle court, en coins de grille (`wallEnds`) ; la hauteur en mètres d'où elle se dresse,
-   * celle de la plus basse des deux cases qu'elle sépare (`piedDeLArete`, `src/noyau/monde/scene.ts`) ; sa pièce : une
-   * porte en jeu fermée ou ouverte, la brèche d'une structure abattue, une fenêtre aux volets ouverts ou clos, sinon un
-   * mur ; la famille du kit de son apparence (`kit` de `structureAppearance.json`, l'apparence étant celle du mur de la
-   * façade authorée qui régit l'arête, sinon celle du segment : `apparenceDArete`, `src/noyau/monde/facades/`), `null`
-   * pour une apparence hors du catalogue ; la hauteur de son mur en mètres, `wallHeightM` sinon un étage).
+   * La clé du retrait, l'empreinte (`hash32AuMillieme`, `src/data/hash.ts`, en base 36) des octets du masque que le
+   * regard retire pour le groupe (`masqueDuRegard`) : le jeu rappelle `retrait` quand elle change.
    */
-  aretes: AreteDessinee[];
+  cleDuRetrait: string;
+  /**
+   * L'empreinte des arêtes de la scène (`aretesDeLaScene`) change quand l'une d'elles change (une porte ouverte, une
+   * structure abattue) : le jeu rappelle alors `aretes`.
+   */
+  cleDesAretes: string;
   /**
    * les arêtes retirées (`{ cle, abattueSous }`, les crans de caméra (`Rot`, `src/geometry/iso.ts` : 0 au sud-est, puis
    * sud-ouest, nord-ouest, nord-est) sous lesquels chacune tombe : tous pour celles d'une couche retirée et celles dont
@@ -231,20 +253,33 @@ export interface PlateauDeLaScene {
   /**
    * Un navire de la scène dont le regard retire des ponts (une couche au-dessus du groupe au plateau, une case du
    * couvercle en tactique) se coupe à la hauteur du sol le plus bas de ceux-là (en mètres, par l'id de son entité ;
-   * aucun en immersion), et le volume perd avec eux les cases des ponts au-dessus de la couche du groupe dont le sol
-   * est à cette hauteur ou plus haut (`retraitDuRegard`), pour qu'aucun décor ni sol de pont ne flotte au-dessus de la
-   * coupe.
+   * aucun en immersion), et le masque du retrait retire avec eux les cases des ponts au-dessus de la couche du groupe
+   * dont le sol est à cette hauteur ou plus haut (`retraitDuRegard`), pour qu'aucun décor ni sol de pont ne flotte
+   * au-dessus de la coupe.
    */
   coupesDesNavires: Record<string, number>;
 }
 
 /**
- * Le plateau d'une scène tel qu'un hôte le dessine sous le regard `regard` : ses dimensions, les arêtes de toutes ses
- * couches hors des ponts de ses navires (`aretesHorsDesNavires`, `areteDessinee`), son échelle métrique
+ * Les arêtes de toutes les couches de `scene` hors des ponts de ses navires, que la marche garde et que le modèle du
+ * navire montre (`aretesHorsDesNavires`, `src/noyau/planDeNavire.ts`), chacune dessinée (`areteDessinee`), et leur
+ * empreinte (`cle`, `hash32`). Mémoïsées par scène.
+ */
+const aretesEtEmpreinte = memoByRef((scene: Scene): { aretes: AreteDessinee[]; cle: string } => {
+  const aretes = aretesHorsDesNavires(scene).map((seg) => areteDessinee(scene, seg));
+  return { aretes, cle: hash32(...aretes.map(jsonCanonique)).toString(36) };
+});
+
+/** Les arêtes dessinées de toutes les couches de `scene` hors des ponts de ses navires (`aretesEtEmpreinte`). */
+export const aretesDeLaScene = (scene: Scene): AreteDessinee[] => aretesEtEmpreinte(scene).aretes;
+
+/**
+ * Le plateau d'une scène tel qu'un hôte le dessine sous le regard `regard` : ses dimensions, l'empreinte de ses arêtes
+ * (`cleDesAretes`, `aretesDeLaScene`), son échelle métrique
  * (`sceneMetresPerTile`), la hauteur de l'œil au-dessus du sol debout (`EYE_H`) et sous le plafond de chaque case qui
- * l'abaisse (`oeilsSousPlafond`), le regard et celui qui le suit dans `REGARDS`, la clé du volume que le regard demande
- * (`cleDuMonde`, qui change quand `volumeDuRegard` ou `meteoDuRegard` changent, décors posés ou retirés en jeu compris
- * : `empreinteDesDecors`), ce que le regard retire pour le groupe posé sur `allies` : les nappes de toit (`toitsLeves`
+ * l'abaisse (`oeilsSousPlafond`), le regard et celui qui le suit dans `REGARDS`, la clé du monde (`cleDuMonde`,
+ * `clesDuMonde` : météo que le regard montre, décors, tuiles effondrées, navires posés), celle du masque du retrait (`cleDuRetrait`,
+ * `masqueDuRegard`), ce que le regard retire pour le groupe posé sur `allies` : les nappes de toit (`toitsLeves`
  * : en tactique, celles qu'il dégage ; au plateau, toutes), les arêtes (`aretesDegagees` : en tactique, celles qu'il
  * dégage ; au plateau, celles des couches au-dessus de la sienne, sous tout cran) et le haut des navires
  * (`coupesDesNavires`, la hauteur de la coupe de chacun, `retraitDuRegard`) ; et les couronnes crénelées tombées
@@ -261,8 +296,9 @@ export function plateauDeLaScene(scene: Scene, allies: readonly Pt[], regard: Re
   };
   return {
     w, h, metresParCase: sceneMetresPerTile(scene), oeilM: EYE_H, oeilsSousPlafond: oeilsSousPlafond(scene), regard, regardSuivant: REGARDS[(REGARDS.indexOf(regard) + 1) % REGARDS.length],
-    cleDuMonde: [regard, scene.weather ?? '', activeZ ?? '', empreinteDesDecors(scene), ...couvercle].join('|'),
-    aretes: dessinees.map((seg) => areteDessinee(scene, seg)), aretesDegagees: aretesRetirees(),
+    cleDuMonde: clesDuMonde(scene)(regard),
+    cleDuRetrait: hash32AuMillieme(octetsDuRetrait(scene, activeZ, couvercle)).toString(36),
+    cleDesAretes: aretesEtEmpreinte(scene).cle, aretesDegagees: aretesRetirees(),
     toitsLeves: regard === 'tactique' ? toitsLeves(scene, allies) : regard === 'plateau' ? toutesLesNappes(scene) : [],
     couronnesAbattues: couronnesAbattues(scene, dessinees),
     coupesDesNavires: coupes,

@@ -18,7 +18,7 @@
  * faite des lecteurs du noyau. Le pont (`pont.ts`) ne porte aucune règle ; il passe par le module commun des hôtes
  * (`src/hote/`). Ticket : #2928. Les tests `*.hors-store.test.ts` de ce dossier vérifient ce contrat.
  */
-import { CLIC_DU_CHAMP, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, editer, intentionDEngagement, ouvrirLEdition, projetDuDepot, essaiDeLaScene, texteAEnregistrer, pagesDeCreation, sceneEditee, vueDeLaScene, FIRE_ARCS, ficheDEntite, libelleDuBord, lireApparenceDAuteur, lireComposition, lireSurchargesDEmblemes, siegeEngines, vehiculeDuCombattant, type FireArc, lumiereDeLaScene, porteeDuCombattant, type Jeu, effetsDeLAppel, vitrineDesEffets, type Effet, type VitrineDesEffets, meteoDuRegard, aretesDeLaCouche, naviresDeLaScene, stationsDuNavire, type EmprisesDesCases, type NavireDeLaScene, type StationDeNavire, casesDuGroupe, plateauDeLaScene, regardDuJeu, REGARDS, volumeDuRegard, type Regard, porteeDeComposition, presetDeComposition, couronnesDuMonde, toitsDuMonde, volumeDuMonde, echantillonDessine, famillesDEchantillons, type EchantillonDessine, type FamilleDEchantillons, type Composition, type GesteDEdition, type Scene, type SessionDEdition, type LectureAuSchema, type LigneDuJournal, type LumiereDeLaScene, type ProjectDoc, type Programme, type ResultatDeLAppel, type VehiculeDuCombattant, type EmblemeResolu, planDeLaCouche, type OeilDuPlan, musiqueDeLaPartie, type MusiqueDeLaPartie, zonesQuiDurent, type ZoneQuiDure, marquesDesEtats, type MarqueDEtat, type MeteoDuRegard, type NappeDuMonde, type PlateauDeLaScene, type VolumeDuMonde } from '../../../src/noyau/index';
+import { CLIC_DU_CHAMP, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, editer, intentionDEngagement, ouvrirLEdition, projetDuDepot, essaiDeLaScene, texteAEnregistrer, pagesDeCreation, vueDeLaScene, FIRE_ARCS, ficheDEntite, libelleDuBord, lireApparenceDAuteur, lireComposition, lireSurchargesDEmblemes, siegeEngines, vehiculeDuCombattant, type FireArc, lumiereDeLaScene, porteeDuCombattant, type Jeu, effetsDeLAppel, vitrineDesEffets, type Effet, type VitrineDesEffets, meteoDuRegard, aretesDeLaCouche, aretesDeLaScene, type AreteDessinee, naviresDeLaScene, stationsDuNavire, type EmprisesDesCases, type NavireDeLaScene, type StationDeNavire, casesDuGroupe, masqueDuRegard, plateauDeLaScene, regardDuJeu, REGARDS, type Regard, porteeDeComposition, presetDeComposition, couronnesDuMonde, retraitDuMonde, toitsDuMonde, volumeDuMonde, echantillonDessine, famillesDEchantillons, type EchantillonDessine, type FamilleDEchantillons, type Composition, type GesteDEdition, type Scene, type SessionDEdition, type LectureAuSchema, type LigneDuJournal, type LumiereDeLaScene, type ProjectDoc, type Programme, type ResultatDeLAppel, type VehiculeDuCombattant, type EmblemeResolu, planDeLaCouche, type OeilDuPlan, musiqueDeLaPartie, type MusiqueDeLaPartie, zonesQuiDurent, type ZoneQuiDure, marquesDesEtats, type MarqueDEtat, type MeteoDuRegard, type MorceauDuMonde, type NappeDuMonde, type PlateauDeLaScene, type RetraitDuMonde, type VolumeDuMonde } from '../../../src/noyau/index';
 import { ErreurDeGeste, nouvelEntete, nouvellesEntrees, ouvrirLaPartie, ouvrirLeLancement, valider, type CategorieDErreur, type PartieOuverte } from '../../../src/hote/partie';
 import { envoyerLIntention, gesteDuVerbe, intentionDuGeste, SANS_PISTE } from '../../../src/hote/geste';
 import { casesAtteignables, projeter, type BornesDeLaProjection, type CaseAtteignable, type Projection } from '../../../src/hote/projection';
@@ -351,27 +351,56 @@ export interface Suite {
 
 /**
  * @contrat Monde
- * La réponse de `monde` : le volume du monde de la scène en cours sous le regard de la partie, ses nappes de toit, ses
- * couronnes crénelées et sa météo.
+ * Ce qui nomme un morceau du volume ou une nappe dans un manifeste.
  */
-interface MondeDuPont {
+interface EmpreinteDuMonde {
+  /** Sa clé (`MorceauDuMonde.cle`, `NappeDuMonde.cle`). */
+  cle: string;
+  /** L'empreinte de son contenu : Godot garde le nœud posé tant qu'elle ne bouge pas. */
+  empreinte: string;
+}
+
+/**
+ * @contrat Monde
+ * Le manifeste du volume du monde (`VolumeDuMonde`), sans géométrie : Godot demande à `morceaux` ceux dont
+ * l'empreinte a bougé.
+ */
+interface ManifesteDuVolume {
+  /** L'échelle de la scène, en mètres par case (`VolumeDuMonde.metresParCase`). */
+  metresParCase: number;
+  /** La hauteur (m) de la surface de chaque case, par couche (`VolumeDuMonde.hauteurs`). */
+  hauteurs: VolumeDuMonde['hauteurs'];
+  /** Chaque morceau du volume, sa clé et son empreinte, dans l'ordre du volume. */
+  morceaux: EmpreinteDuMonde[];
+}
+
+/** Le manifeste du volume `v`. */
+const manifesteDe = ({ metresParCase, hauteurs, morceaux }: VolumeDuMonde): ManifesteDuVolume => ({ metresParCase, hauteurs, morceaux: empreintesDe(morceaux) });
+
+/** La clé et l'empreinte de chacun de `contenus`. */
+const empreintesDe = (contenus: readonly EmpreinteDuMonde[]): EmpreinteDuMonde[] => contenus.map(({ cle, empreinte }) => ({ cle, empreinte }));
+
+/** Ceux de `contenus` dont la clé est dans `cles`, dans l'ordre de `contenus`. */
+const parCles = <T extends EmpreinteDuMonde>(contenus: readonly T[], cles: readonly string[]): T[] => {
+  const voulues = new Set(cles);
+  return contenus.filter(({ cle }) => voulues.has(cle));
+};
+
+/**
+ * @contrat Monde
+ * La réponse de `monde` : le manifeste du volume du monde de la scène en cours, de ses nappes de toit, de ses
+ * couronnes crénelées, et sa météo sous le regard de la partie.
+ */
+export interface MondeDuPont {
+  /** le manifeste du volume du monde de la scène en cours (`ManifesteDuVolume`), `null` sans scène. */
+  monde: ManifesteDuVolume | null;
+  /** la clé (`nappeKey`) et l'empreinte de chaque nappe de toit (`toitsDuMonde`), une par masse de bâtiment. */
+  toits: EmpreinteDuMonde[];
   /**
-   * le volume du monde de la scène en cours (`VolumeDuMonde`), sous le regard de la partie (`volumeDuRegard`), `null`
-   * sans scène.
+   * la clé (`edgeKey`) et l'empreinte de chaque couronne crénelée (`couronnesDuMonde`), une par mur fortifié de chaque
+   * couche.
    */
-  monde: VolumeDuMonde | null;
-  /**
-   * Les nappes de toit (`toitsDuMonde`) ont la forme du volume (`positions`, `normales`, `couleurs`, `cases`,
-   * `surfaces`), une par masse de bâtiment, nommée par `cle` (`nappeKey`) : ses pans de couverture (matière
-   * `roof--<id>`) et ses pignons, de la matière du mur qu'ils prolongent (`structure--<id>`, `closureAppearance`).
-   */
-  toits: NappeDuMonde[];
-  /**
-   * Les couronnes crénelées (`couronnesDuMonde`) ont la même forme que les nappes de toit, une par mur fortifié
-   * (apparence à `parapet`) de chaque couche, nommée par la clé de son arête (`edgeKey`), posée au sommet de la face
-   * pleine du mur dressé à son pied (`crownFaces`, `piedDeLArete`).
-   */
-  couronnes: NappeDuMonde[];
+  couronnes: EmpreinteDuMonde[];
   /**
    * La météo (`meteoDuRegard`, `src/noyau/monde/meteo.ts`, `MeteoDuRegard`) est celle que la scène montre
    * (`sceneWeatherFx` : aucune en intérieur ni pour un id hors de `ambiance.json › iso.weather`), sous le regard de la
@@ -387,6 +416,25 @@ interface MondeDuPont {
    * scène entre dans `plateau.cleDuMonde`.
    */
   meteo: MeteoDuRegard | null;
+}
+
+/**
+ * @contrat Monde
+ * La réponse de `morceaux` : la géométrie de chaque clé demandée, une clé absente de la scène omise.
+ */
+export interface MorceauxDuPont {
+  /** les morceaux du volume demandés (`MorceauDuMonde`). */
+  volume: MorceauDuMonde[];
+  /**
+   * les nappes de toit demandées (`NappeDuMonde`) : leurs pans de couverture (matière `roof--<id>`) et leurs pignons,
+   * de la matière du mur qu'ils prolongent (`structure--<id>`, `closureAppearance`).
+   */
+  toits: NappeDuMonde[];
+  /**
+   * les couronnes crénelées demandées (`NappeDuMonde`), posées au sommet de la face pleine du mur dressé à leur pied
+   * (`crownFaces`, `piedDeLArete`).
+   */
+  couronnes: NappeDuMonde[];
 }
 
 /** Le clic du champ sur le combattant `id`, comme Godot le joue (`combat.gd`) : le verbe de `champ`, la case où
@@ -468,7 +516,7 @@ export function creerPont() {
   /** Les manifestes et les modèles du dernier `modeles`, que `composer` et les corps de la vue lisent. */
   let modeles: { manifestes: Record<string, unknown>; modeles: ModelesDeLAtelier } | null = null;
   /** La session de l'éditeur de carte (`editer`), et la scène et la couche du dernier monde qu'elle a rendu. */
-  let edition: { session: SessionDEdition; monde: { scene: Scene; z: number } } | null = null;
+  let edition: { session: SessionDEdition; monde: { vue: Scene; z: number } } | null = null;
   /** Ce qui construit le lancement de la dernière scène mise à l'essai par l'éditeur, que `demarrer { essai }` ouvre. */
   let essai: Parameters<typeof ouvrirLeLancement>[1] | null = null;
 
@@ -648,20 +696,77 @@ export function creerPont() {
     /**
      * aucune
      *
-     * @returns `{ monde, toits, couronnes, meteo }` : le volume du monde de la scène en cours (section « Monde »), sous
-     * le regard de la partie (`regarder`), sans ce qu'il retire pour le groupe, qu'il porte en `ombre`
-     * (`volumeDuRegard`, section « Vue », `plateau.cleDuMonde`), `null` sans scène, ses nappes de toit (`toitsDuMonde`)
-     * et les couronnes crénelées des murs de toutes ses couches (`couronnesDuMonde`), vides sans scène, et la météo que
-     * le regard montre (`meteoDuRegard`, section « Monde »), `null` sans scène ou sans météo à montrer ; à rappeler
-     * quand la scène ou `plateau.cleDuMonde` change
+     * @returns `{ monde, toits, couronnes, meteo }` (`MondeDuPont`) : le manifeste du volume du monde de la scène en
+     * cours (section « Monde »), `null` sans scène, les clés et empreintes de ses nappes de toit et de ses couronnes
+     * crénelées, vides sans scène, et la météo que le regard montre (`meteoDuRegard`), `null` sans scène ou sans météo
+     * à montrer ; à rappeler quand la scène ou `plateau.cleDuMonde` change
      */
     monde(json): MondeDuPont {
       entreeDe('monde', json, []);
       const o = demarree();
       const etat = o.partie.etat();
       const scene = etat.scene;
-      const regard = regardDuJeu(o.regard, !!etat.battle);
-      return { monde: scene ? volumeDuRegard(scene, casesDuGroupe(etat), regard) : null, toits: scene ? toitsDuMonde(scene) : [], couronnes: scene ? couronnesDuMonde(scene) : [], meteo: scene ? meteoDuRegard(scene, regard) : null };
+      if (!scene) return { monde: null, toits: [], couronnes: [], meteo: null };
+      return { monde: manifesteDe(volumeDuMonde(scene)), toits: empreintesDe(toitsDuMonde(scene)), couronnes: empreintesDe(couronnesDuMonde(scene)), meteo: meteoDuRegard(scene, regardDuJeu(o.regard, !!etat.battle)) };
+    },
+    /**
+     * `{ source, volume, toits, couronnes }` : `partie` (la scène de la partie) ou `edition` (celle du dernier
+     * manifeste que `editer` a rendu, ses navires posés), puis les clés demandées des morceaux du volume, des nappes de
+     * toit et des couronnes crénelées
+     *
+     * @returns `{ volume, toits, couronnes }` (`MorceauxDuPont`) : la géométrie de chaque clé demandée, dans l'ordre du
+     * manifeste, une clé absente de la scène omise ; refusé sans scène de la partie (`partie`) ou sans carte ouverte
+     * (`edition`)
+     */
+    morceaux(json): MorceauxDuPont {
+      const e = entreeDe('morceaux', json, ['source', 'volume', 'toits', 'couronnes']);
+      valider(e.source === 'partie' || e.source === 'edition', 'morceaux : source, partie ou edition');
+      for (const champ of ['volume', 'toits', 'couronnes']) valider(estListeDeChaines(e[champ]), `morceaux : ${champ}, une liste de clés`);
+      let scene: Scene | null;
+      if (e.source === 'partie') scene = demarree().partie.etat().scene;
+      else {
+        valider(edition !== null, 'morceaux : aucune carte ouverte, editer { ouvrir } d’abord');
+        scene = edition!.monde.vue;
+      }
+      valider(scene, 'morceaux : aucune scène');
+      return {
+        volume: parCles(volumeDuMonde(scene!).morceaux, e.volume as string[]),
+        toits: parCles(toitsDuMonde(scene!), e.toits as string[]),
+        couronnes: parCles(couronnesDuMonde(scene!), e.couronnes as string[]),
+      };
+    },
+    /**
+     * aucune
+     *
+     * @returns `{ masque, largeur, rangees }` (`RetraitDuMonde`, section « Monde ») : ce que le regard de la partie
+     * retire du volume du monde pour le groupe (`masqueDuRegard`, section « Vue ») ; refusé sans scène ; à rappeler
+     * quand `plateau.cleDuRetrait` change
+     */
+    retrait(json): RetraitDuMonde {
+      entreeDe('retrait', json, []);
+      const o = demarree();
+      const etat = o.partie.etat();
+      valider(etat.scene, 'retrait : aucune scène');
+      return masqueDuRegard(etat.scene!, casesDuGroupe(etat), regardDuJeu(o.regard, !!etat.battle));
+    },
+    /**
+     * aucune
+     *
+     * @returns `{ aretes }` : les arêtes de toutes les couches de la scène en cours hors des ponts de ses navires, que
+     * la marche garde et que le modèle du navire montre (`aretesDeLaScene`, `src/noyau/monde/aretes.ts`), vides sans
+     * scène ; à rappeler quand `plateau.cleDesAretes` change. Chacune (`areteDessinee`) : `{ cle, case, milieu, sens,
+     * pied, piece, famille, hauteurM }`, sa clé `edgeKey`, la case dont elle borde un côté, son milieu et le sens où
+     * elle court, en coins de grille (`wallEnds`) ; la hauteur en mètres d'où elle se dresse, celle de la plus basse des
+     * deux cases qu'elle sépare (`piedDeLArete`, `src/noyau/monde/scene.ts`) ; sa pièce : une porte en jeu fermée ou
+     * ouverte, la brèche d'une structure abattue, une fenêtre aux volets ouverts ou clos, sinon un mur ; la famille du
+     * kit de son apparence (`kit` de `structureAppearance.json`, l'apparence étant celle du mur de la façade authorée
+     * qui régit l'arête, sinon celle du segment : `apparenceDArete`, `src/noyau/monde/facades/`), `null` pour une
+     * apparence hors du catalogue ; la hauteur de son mur en mètres, `wallHeightM` sinon un étage
+     */
+    aretes(json): { aretes: AreteDessinee[] } {
+      entreeDe('aretes', json, []);
+      const scene = demarree().partie.etat().scene;
+      return { aretes: scene ? aretesDeLaScene(scene) : [] };
     },
     /**
      * un geste : `{ type, args?, siege? }` (un verbe de la partie, ses arguments, le siège qui le joue ; une offre se
@@ -785,7 +890,7 @@ export function creerPont() {
      * `{ manifestes, osDesRigides }` : un objet id de modèle → manifeste et un objet id de modèle → liste d'os, ceux du
      * listage (`GET modeles/listage.json`, section « Atelier 3D »)
      *
-     * @returns `{ bases, glb, refus, rapport, surfaces, libelles, secondesPrises, couches, emblemes, vehicules,
+     * @returns `{ bases, fichiers, refus, rapport, surfaces, libelles, secondesPrises, couches, emblemes, vehicules,
      * ameliorations }` : les modèles de l'atelier (`modelesDeLAtelier`, `atelier.ts`), retenus comme état du pont, que
      * lisent `composer` et le corps de chaque combattant de la vue (section « Corps d'un combattant ») ; avant ou après
      * `demarrer`
@@ -941,8 +1046,8 @@ export function creerPont() {
      * tiré du schéma, ses deux saisies posées égales en profondeur à celles d'un formulaire des zones, `valeur` absente
      * pour retirer le champ (section « Éditeur »)
      *
-     * @returns `{ vue: { zones, couche }, surcouche, calque, monde?, aretes?, navires?, depot?, essai?, planche?,
-     * memoire? }` (section « Éditeur ») ; un bouton refusé se refuse en `regle`, avec sa raison, comme un enregistrement que la
+     * @returns `{ vue: { zones, couche }, surcouche, calque, monde?, retrait?, aretes?, navires?, depot?, essai?,
+     * planche?, memoire? }` (section « Éditeur ») ; un bouton refusé se refuse en `regle`, avec sa raison, comme un enregistrement que la
      * porte refuse
      */
     editer(json) {
@@ -983,17 +1088,16 @@ export function creerPont() {
         }
         session = editer(s, geste);
       }
-      const scene = sceneEditee(session);
       const vue = vueDeLaScene(session);
-      const neuf = !edition || 'ouvrir' in e || (session.geste === null && (scene !== edition.monde.scene || session.z !== edition.monde.z));
-      edition = { session, monde: neuf ? { scene, z: session.z } : edition!.monde };
+      const neuf = !edition || 'ouvrir' in e || (session.geste === null && (vue !== edition.monde.vue || session.z !== edition.monde.z));
+      edition = { session, monde: neuf ? { vue, z: session.z } : edition!.monde };
       const memoire = memoireDesCalques(avant, session);
       const charge = session.chargement && !avant?.chargement ? session.chargement : null;
       return {
         vue: { zones: zonesDeLEditeur(session), couche: session.z },
         surcouche: surcoucheDeLEdition(session),
         calque: calqueAffiche(session),
-        ...(neuf ? { monde: volumeDuMonde(vue, session.z), aretes: aretesDeLaCouche(vue, session.z), navires: naviresServis(vue) } : {}),
+        ...(neuf ? { monde: manifesteDe(volumeDuMonde(vue)), retrait: retraitDuMonde(vue, session.z), aretes: aretesDeLaCouche(vue, session.z), navires: naviresServis(vue) } : {}),
         ...(depot ? { depot } : {}),
         ...('edition' in e && (e.edition as GesteDEdition).geste === 'tester' ? { essai: true } : {}),
         ...(charge ? { planche: { image: cheminDeLaPlanche(session.projet.id, charge.sceneId, charge.z) } } : {}),
@@ -1050,7 +1154,9 @@ export function creerPont() {
    *   campagne qui n'est pas du jeu (le message nomme les ids), d'un `projet` servi illisible, d'un autre id ou que la
    *   porte refuse, avant toute carte ouverte, d'un geste qui n'est ni un geste du pointeur bien formé, ni l'issue d'un
    *   enregistrement en cours, ni celui d'un bouton des zones de l'éditeur, ni un formulaire que portent les zones de
-   *   l'éditeur, saisi de ses arguments (`gesteDuFormulaire`)
+   *   l'éditeur, saisi de ses arguments (`gesteDuFormulaire`) ; `morceaux` d'une source hors de `partie` et `edition`,
+   *   dont `volume`, `toits` ou `couronnes` n'est pas une liste de clés, de source `edition` avant toute carte ouverte,
+   *   ou sans scène ; `retrait` sans scène
    * - `permission` : intention d'un siège qui ne tient pas la main
    * - `regle` : geste de la création refusé (sa raison : la page qui ne se quitte pas, l'engagement que la partie
    *   refuse) ; verbe de la barre refusé par le refus de son geste (`refusDuGeste`, sa raison) : barre non ouverte,

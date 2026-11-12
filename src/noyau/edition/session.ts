@@ -656,8 +656,8 @@ function sceneAvecLEntite(scene: Scene, ent: SceneEntity, cle: string, ecrite: S
   return neuve ? { ok: false, refus: { regle: neuve.message } } : { ok: true, valeur: apres };
 }
 
-/** Le cadre où vit un porteur de formulaire de la session `s` : sa scène éditée et le narratif de son projet. */
-export const cadreDeLaSession = (s: SessionDEdition): CadreDuPorteur => ({ scene: sceneEditee(s), narratif: s.projet.narratif });
+/** Le cadre où vit un porteur de formulaire de la session `s` : sa scène éditée et son projet. */
+export const cadreDeLaSession = (s: SessionDEdition): CadreDuPorteur => ({ scene: sceneEditee(s), projet: s.projet });
 
 /** La scène éditée de la session `s` où le geste `g` écrit sa valeur au formulaire de son porteur
  *  (`avecLaValeurDuPorteur`, dans son cadre, `cadreDeLaSession`) : la zone d'effet ou le déclencheur remplacé, le champ

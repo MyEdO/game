@@ -18,7 +18,8 @@ import { GatedAction, raisonSi } from './GatedAction';
 import { t } from '../i18n';
 import { SceneBackdrop } from './SceneBackdrop';
 import { NumberField } from './NumberField';
-import { fourchette } from '../engine/tables';
+import { deDeLaTableTiree, fourchette } from '../engine/tables';
+import { formatDice } from '../engine/dice';
 import { presetPnjById } from '../state/campaignData';
 
 /** Le PROFIL STANDARD d'un figurant de la salle (`LDB 77 l.7`) et la valeur de jeu que sa fiche en dérive. */
@@ -208,7 +209,7 @@ export function TavernGameModal() {
               {rapide && <p className="tavern-detail muted">{t('tavern.regimeRapideNote')}</p>}
               {game.pot ? (
                 <p className="tavern-detail">
-                  Lancer : <b>{game.pot.dice.count}d{game.pot.dice.faces}</b> à chaque tour
+                  Lancer : <b>{formatDice(deDeLaTableTiree(game.pot))}</b> à chaque tour
                   {game.pot.targetRange ? ` · nombre cible ${fourchette(game.pot.targetRange.min, game.pot.targetRange.max)}` : ''}.
                 </p>
               ) : (

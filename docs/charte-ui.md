@@ -15,7 +15,7 @@ ne pas la réinventer par fichier :
    (carte, plan) qui doit remplir tout le cadre, et compose lui-même son rail `.screen-scroll`. La
    boîte (`.worldmap-overlay`) ne se repeint jamais par une co-classe passée en `className` : celle-ci
    ne sert que les DESCENDANTS de l'écran (garde §5.3, `sitesCoClasseVisee`).
-2. **Bande d'ambiance** — slot `backdrop` de `ScreenShell` (id du registre `src/ui/backdrops`),
+2. **Bande d'ambiance** — slot `backdrop` de `ScreenShell` (id du registre `src/data/fonds`),
    rendue sous l'en-tête/barre d'outils, au-dessus du corps ; repli élégant géré par `SceneBackdrop`
    (jamais un trou, même id absent/inconnu).
 3. **`SpeakerBanner`** si l'écran porte un interlocuteur (aubergiste, marchand) — juste sous la bande

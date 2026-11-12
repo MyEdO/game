@@ -60,10 +60,10 @@ export function depot(fichiers, copies = []) {
  *
  * Ce que les migrations lisent de `Source/`, ce sont les extractions `.md` ; les PDF (lourds,
  * gitignorés) sont écartés de la copie par leur EXTENSION — jamais par le nom de leur dossier.
- * Les defs d'un registre TS d'art (`src/ui/backdrops/defs`) sont le catalogue que lit une migration
+ * Les defs d'un registre TS d'art (`src/data/fonds/defs`, sous `src/data`) sont le catalogue que lit une migration
  * vers son type (#2968 P-art).
  */
-const CORPUS = ['src/data', 'src/scenes', 'scripts', 'src/ui/backdrops/defs', 'src/lib/ordre.mjs', 'src/lib/coupeAuMot.mjs', 'src/lib/jsonCanonique.mjs', 'src/lib/objet.mjs', 'src/lib/normalize.ts', 'src/lib/regex.ts', 'src/lib/tableTotale.ts', 'docs/raw', 'Source'];
+const CORPUS = ['src/data', 'src/scenes', 'scripts', 'src/lib/ordre.mjs', 'src/lib/coupeAuMot.mjs', 'src/lib/jsonCanonique.mjs', 'src/lib/objet.mjs', 'src/lib/normalize.ts', 'src/lib/regex.ts', 'src/lib/tableTotale.ts', 'docs/raw', 'Source'];
 
 /** Dépôt jetable sous `os.tmpdir()` portant une COPIE du `CORPUS` de l'arbre. REND sa racine. */
 export function copieDuCorpus() {

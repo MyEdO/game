@@ -26,7 +26,7 @@
  * et chaque disposition dédiée de `projet/ecrans/` est montrée par une vue.
  * @contrat L'écran de Godot
  */
-import { clicDuCombattant, creerPont, type Suite } from '../pont/pont';
+import { clicDuCombattant, creerPont, type MondeDuPont, type Suite } from '../pont/pont';
 import { enFocus, gestesDessines } from '../pont/dessines';
 import { CLIC_DU_CHAMP, horlogeVirtuelle } from '../../../src/noyau/index';
 import type { ZonesDeLaSuite, ZonesDeLEcran } from '../../../src/hote/ecran';
@@ -46,16 +46,34 @@ export interface VueFigee {
  * Une planche (#3935) : un état de partie tel que le pont le rend, que le jeu montre sans le jouer
  * (`projet/scripts/pont_de_planche.gd`). `nom` la nomme dans l'adresse (`?planche=<nom>`) et dans son fichier
  * (`hotes/godot/etalons/planches/<nom>.json`), `titre` dit ce qu'elle montre, `parametres` porte le scénario de sa
- * partie, que l'adresse d'une partie nomme (`?scenario=`), `demarrer` et `monde` les réponses du pont à ces deux méthodes : la suite de l'état, sans
- * effet ni jeton, le journal de la partie entier sous `journal.lignes`, et le monde de sa scène.
+ * partie, que l'adresse d'une partie nomme (`?scenario=`), `demarrer`, `retrait` et `aretes` les réponses du pont à ces
+ * trois méthodes : la suite de l'état, sans effet ni jeton, le journal de la partie entier sous `journal.lignes`, le
+ * masque du regard et les arêtes de sa scène ; `monde`, le monde de sa scène (`MondeDeLaPlanche`).
  */
 export interface Planche {
   nom: string;
   titre: string;
   parametres: { scenario: string };
   demarrer: { ok: true } & Suite;
-  monde: unknown;
+  monde: MondeDeLaPlanche;
+  retrait: unknown;
+  aretes: unknown;
 }
+
+/** Le monde d'une planche, que `pont_de_planche.gd` sert : la réponse de `monde` et celle de `morceaux` à toutes ses
+ *  clés (`toutesLesCles`). */
+export interface MondeDeLaPlanche {
+  monde: unknown;
+  morceaux: unknown;
+}
+
+/** L'entrée de `morceaux` qui demande à la partie chaque clé du manifeste `monde` (la réponse de `monde`). */
+export const toutesLesCles = ({ monde, toits, couronnes }: MondeDuPont) => ({
+  source: 'partie',
+  volume: (monde?.morceaux ?? []).map(({ cle }) => cle),
+  toits: toits.map(({ cle }) => cle),
+  couronnes: couronnes.map(({ cle }) => cle),
+});
 
 /** Un argument saisi du formulaire de recette. */
 const argument = (nom: string, saisie: ArgumentDuGeste['saisie'], partie: Partial<ArgumentDuGeste>): ArgumentDuGeste => ({
@@ -143,11 +161,17 @@ function figerLEcran(listage: Listage | null): { vues: VueFigee[]; planches: Pla
       return r;
     };
     if (listage) appeler('modeles', { manifestes: listage.manifestes, osDesRigides: listage.osDesRigides });
+    const mondeDeLaPlanche = (): MondeDeLaPlanche => {
+      const monde = JSON.parse(pont.appeler('monde', null)) as MondeDuPont;
+      return { monde, morceaux: JSON.parse(pont.appeler('morceaux', JSON.stringify(toutesLesCles(monde)))) };
+    };
     const planche = (nom: string, titre: string, s: Suite): Planche => ({
       nom, titre,
       parametres: { scenario },
       demarrer: { ok: true, vue: s.vue, programmes: [], journal: [], zones: { 'journal.lignes': [...journal] }, effets: [] },
-      monde: JSON.parse(pont.appeler('monde', null)),
+      monde: mondeDeLaPlanche(),
+      retrait: JSON.parse(pont.appeler('retrait', null)),
+      aretes: JSON.parse(pont.appeler('aretes', null)),
     });
     const jouer = (methode: string, entree: unknown): Suite => {
       let s = appeler(methode, entree);
@@ -284,7 +308,7 @@ function figerLEcran(listage: Listage | null): { vues: VueFigee[]; planches: Pla
   s = voyage.jouer('jouer', focus(s));
   figer(voyage, 'lieu', 'écran du lieu, ses services et ses trajets', s);
   const forgeron = s.vue.zones['fenetre.corps'].find((e): e is Entite => e.id === 'service/forgeron')!;
-  s = voyage.jouer('jouer', (forgeron.elements[0] as Bouton).jeu);
+  s = voyage.jouer('jouer', forgeron.elements.find((e): e is Bouton => e.type === 'bouton')!.jeu);
   figer(voyage, 'echoppe', 'échoppe : l’étal et ses prix, le panier vide, les possessions à vendre', s);
   const article = s.vue.zones['fenetre.corps'].filter((e): e is Entite => e.id.startsWith('etal/')).flatMap((f) => f.elements as Bouton[]).find((b) => !b.refus)!;
   s = voyage.jouer('jouer', article.jeu);
@@ -323,7 +347,7 @@ function figerLEcran(listage: Listage | null): { vues: VueFigee[]; planches: Pla
     const p = unPont([]);
     let m = viderLesFenetres(p.jouer, p.jouer('demarrer', { scenario, graine: 7 }));
     m = p.jouer('jouer', m.vue.zones['exploration.gestes'].find((b) => b.libelle === 'Le lieu')!.jeu);
-    m = p.jouer('jouer', (m.vue.zones['fenetre.corps'].find((e): e is Entite => e.id.startsWith('service/'))!.elements[0] as Bouton).jeu);
+    m = p.jouer('jouer', m.vue.zones['fenetre.corps'].find((e): e is Entite => e.id.startsWith('service/'))!.elements.find((e): e is Bouton => e.type === 'bouton')!.jeu);
     for (let pas = 0; !m.vue.zones['fenetre.corps'].some((e) => e.id === 'bourse'); pas++) {
       if (pas > 12) throw new Error(`aucun marché après ${pas} gestes : ${JSON.stringify(m.vue.zones['fenetre.titre'])}`);
       m = p.jouer('jouer', presse(m));

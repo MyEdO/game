@@ -1,4 +1,4 @@
-import { formatDice, parseDiceRequired, totalDuDe, type DiceSpec, type Tirage } from './dice';
+import { formatDice, parseDice, totalDuDe, type DiceSpec } from './dice';
 
 /**
  * Lookup PARTAGÉ d'une entrée de table d100 par fourchette `[min, max]` — SOURCE UNIQUE des tirages
@@ -68,13 +68,14 @@ declare const DE_DE_TABLE: unique symbol;
  *  (`oxlint.config.mjs`) refuse le cast qui NOMME la marque. */
 export type DeDeTable = DiceSpec & { readonly [DE_DE_TABLE]: true };
 
-/** Le nœud qui porte le dé d'une table : la table elle-même (`die`, `deDeTirageSchema`), ou le `Tirage`
- *  (`dice`, `tirageSchema`) qui départage ses rangées (`stars.json › sub`, `peripeties.json › tirageQuotidien`). */
-export type PorteurDeDe = { readonly die: string; readonly id?: string } | Tirage;
+/** Le nœud qui porte le dé d'une table, sous sa clé `die` (`deDeTirageSchema`) : la table elle-même, ou le
+ *  sous-tirage qui départage ses rangées (`stars.json › sub`, `peripeties.json › tirageQuotidien`). */
+export type PorteurDeDe = { readonly die: string; readonly id?: string };
 
 /** LE constructeur du dé d'une table tirée : il le lit sur son nœud — FAIL-FAST sur une expression illisible. PUR. */
 export function deDeLaTableTiree(table: PorteurDeDe): DeDeTable {
-  const de = 'dice' in table ? table.dice : parseDiceRequired(table.die, `${table.id ?? 'table'}.die`);
+  const de = parseDice(table.die);
+  if (!de) throw new Error(`${table.id ?? 'table'}.die invalide : ${table.die}`);
   // eslint-disable-next-line murs/marques -- #1667 : l'unique cast de ce module — forger la marque EST le corps de métier de `deDeLaTableTiree` (cf. JSDoc de `DeDeTable`).
   return de as DeDeTable;
 }

@@ -1,6 +1,6 @@
 # Warhammer Fantasy v4 — RPG tactique au tour par tour (web)
 
-Jeu de rôle vidéoludique **100 % web, en français**, type *Neverwinter Nights*, basé sur les
+Jeu de rôle vidéoludique **web d'abord, en français**, type *Neverwinter Nights*, basé sur les
 règles de **Warhammer Fantasy Roleplay 4ᵉ édition**. On contrôle un groupe de 4 aventuriers
 (créés un par un ou pré-tirés) à travers la campagne impériale **L'Ennemi Intérieur**.
 

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { emptyScene, isWalkable, type Scene, type SceneEntity } from './scene';
 import type { Flow } from '../../data/schemas/defs-scenes/effets';
-import { aPorteeDe, exploreMoveDest, exploreMovePlan, exploreSeatPlan, spawnFacing } from './exploreNav';
+import { aPorteeDe, cheminsDuGroupe, exploreMoveDest, exploreMovePlan, exploreSeatPlan, spawnFacing } from './exploreNav';
 import { chebyshev } from '../../engine/grid';
 import { seatSlotsOf } from './seating';
 import { cheminsDepuis, type Pt } from './path';
@@ -271,6 +271,19 @@ describe('exploreMovePlan — destination et chemin uniques', () => {
       path: [{ x: 0, y: 1 }, { x: 1, y: 1 }],
       portalId: '0:0,1:E:exterior:room-a',
     });
+  });
+});
+
+describe('cheminsDuGroupe — le parcours du groupe, par scène et par case', () => {
+  it('sur une même scène, les chemins partent de la case et de la couche où le groupe se tient', () => {
+    const scene = sceneWith([]);
+    scene.layers = [scene.layers[0], { z: 1, tiles: [...scene.layers[0].tiles] }];
+    const vers = (depart: Pt, but: Pt) => cheminsDuGroupe(scene, depart, []).vers(but);
+
+    expect(vers({ x: 1, y: 1 }, { x: 4, y: 1 })).toEqual([{ x: 1, y: 1 }, { x: 2, y: 1 }, { x: 3, y: 1 }, { x: 4, y: 1 }]);
+    expect(vers({ x: 3, y: 1 }, { x: 4, y: 1 }), 'le groupe déplacé').toEqual([{ x: 3, y: 1 }, { x: 4, y: 1 }]);
+    expect(vers({ x: 3, y: 1, z: 1 }, { x: 4, y: 1, z: 1 }), 'le groupe monté d’une couche').toEqual([{ x: 3, y: 1, z: 1 }, { x: 4, y: 1, z: 1 }]);
+    expect(vers({ x: 1, y: 1 }, { x: 2, y: 1 }), 'revenu à sa première case').toEqual([{ x: 1, y: 1 }, { x: 2, y: 1 }]);
   });
 });
 

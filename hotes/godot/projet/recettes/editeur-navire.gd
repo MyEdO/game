@@ -3,7 +3,7 @@ extends SceneTree
 ## Le navire dans l'éditeur de carte (#3772, `hotes/godot/pont/CONTRAT.md`, section « Éditeur », `navires`) : l'éditeur
 ## (`scripts/editeur.gd`) ouvert sur un pont figé (`PontFige`, sur l'éditeur du navire figé par la sonde,
 ## `hotes/godot/recettes/editeur.ts`), qui sert le listage et les GLB du projet et répond à chaque entrée de `editer`
-## que la sonde a figée. L'outil Navire pressé offre la caraque, choisie en tête de sa liste ; le cap à l'est pressé,
+## et de `morceaux` que la sonde a figée. L'outil Navire pressé offre la caraque, choisie en tête de sa liste ; le cap à l'est pressé,
 ## l'appui sur le monde la pose : son modèle se monte (`MontageDesNavires`), son origine au point de la carte sous son
 ## centre servi, sa proue tournée vers l'est. Glissée à l'outil de sélection, la caraque se repose sous son centre
 ## déplacé, sans se recharger. Le pont du dessus choisi, sa plus haute couche, le monde touche le sol de chaque case de
@@ -39,13 +39,13 @@ func _recetter() -> void:
 	var editeur: Node = (load("res://scenes/Editeur.tscn") as PackedScene).instantiate()
 	root.add_child(editeur)
 	await _derouler(lu, editeur)
-	_verifier(pont.entrees.all(func(cle: String) -> bool: return lu.editer.has(cle)), "entrées de `editer` hors du figé : %s" % [pont.entrees.filter(func(cle: String) -> bool: return not lu.editer.has(cle))])
+	_verifier(pont.entrees.all(func(cle: String) -> bool: return lu.editer.has(cle) or lu.morceaux.has(cle)), "entrées de `editer` ou de `morceaux` hors du figé : %s" % [pont.entrees.filter(func(cle: String) -> bool: return not (lu.editer.has(cle) or lu.morceaux.has(cle)))])
 	for avis in ["Refus", "Panne"]:
 		var texte := (editeur.get_node("Interface/Avis/%s" % avis) as Label).text
 		_verifier(texte == "", "%s dit : %s" % [avis, texte])
 	for faute in _fautes:
 		push_error("[editeur-navire] " + faute)
-	print("[editeur-navire] %d entrées de `editer`, %d cases du pont figées, erreurs=%d" % [pont.entrees.size(), lu.touches.size(), _fautes.size()])
+	print("[editeur-navire] %d entrées de `editer` et de `morceaux`, %d cases du pont figées, erreurs=%d" % [pont.entrees.size(), lu.touches.size(), _fautes.size()])
 	quit(0 if _fautes.is_empty() else 1)
 
 

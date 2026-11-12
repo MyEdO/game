@@ -8,9 +8,11 @@ import { walkReachableFrom } from './monde/path';
 import { VEHICLES_LIST } from '../engine/travel';
 import { estAbsent } from './monde/terrain';
 import { edgeKey } from './monde/facades';
-import { aretesDeLaCouche, plateauDeLaScene, volumeDuRegard } from './monde/aretes';
+import { aretesDeLaCouche, aretesDeLaScene, masqueDuRegard, plateauDeLaScene } from './monde/aretes';
 import { parseSceneDeProjet } from './worldMap';
-import { volumeDuMonde } from './monde/volume/volume';
+import { empreinteDesDecors, volumeDuMonde } from './monde/volume/volume';
+import { removeEntities } from './combatPlacement';
+import { casesMontrees, trianglesDuVolume } from './monde/volume/volume.testkit';
 import { ficheDEntite } from './monde/sceneNpc';
 import { placeCombatant } from './monde/spawn';
 import { casesTenues, combatantAtTile } from './monde/combatGeometry';
@@ -99,9 +101,7 @@ describe('ce qu’un hôte dessine d’une scène qui porte un navire', () => {
   const { cases, aretes, flottaison } = provenanceDesNavires(s);
 
   it('le volume garde le sol des ponts sous le navire, pour le pointage ; les décors restent peints', () => {
-    const volume = volumeDuMonde(s);
-    const triangles = volume.surfaces.flatMap((surface) =>
-      Array.from({ length: (surface.fin - surface.debut) / 3 }, (_, i) => ({ surface, cell: volume.cases[surface.debut / 3 + i] })));
+    const triangles = trianglesDuVolume(volumeDuMonde(s)).map(({ surface, case: cell }) => ({ surface, cell }));
     const duNavire = triangles.filter((t) => t.surface.navire !== undefined);
     expect(duNavire.length).toBeGreaterThan(0);
     for (const { surface, cell } of duNavire) {
@@ -115,15 +115,13 @@ describe('ce qu’un hôte dessine d’une scène qui porte un navire', () => {
   });
 
   it('la mer borde le navire sur l’emprise de ses ponts, à la hauteur 0, à la place du sol de la scène', () => {
-    const volume = volumeDuMonde(s);
     expect(flottaison.size).toBe(PLAN_DE_LA_CARAQUE.size[0] * PLAN_DE_LA_CARAQUE.size[1]);
     expect(new Set(flottaison.values())).toEqual(new Set(['c1']));
-    const mer = volume.surfaces.filter((surface) => surface.flottaison !== undefined);
-    expect(mer.map(({ matiere, flottaison: navire }) => ({ matiere, navire }))).toEqual([{ matiere: 'terrain--eau', navire: 'c1' }]);
-    const [{ debut, fin }] = mer;
-    expect((fin - debut) / 3).toBe(2 * flottaison.size);
-    for (let i = debut; i < fin; i++) expect(volume.positions[3 * i + 1]).toBeCloseTo(0, 2);
-    expect(new Set(volume.cases.slice(debut / 3, fin / 3).map((c) => c.join(',')))).toEqual(new Set(flottaison.keys()));
+    const mer = trianglesDuVolume(volumeDuMonde(s)).filter((t) => t.surface.flottaison !== undefined);
+    expect(new Set(mer.map(({ surface }) => `${surface.matiere} ${surface.flottaison}`))).toEqual(new Set(['terrain--eau c1']));
+    expect(mer.length).toBe(2 * flottaison.size);
+    for (const t of mer) for (const y of t.ys) expect(y).toBeCloseTo(0, 2);
+    expect(new Set(mer.map((t) => t.case.join(',')))).toEqual(new Set(flottaison.keys()));
   });
 
   it('le plateau coupe le modèle du navire sous le pont du groupe, et retire du volume les ponts au-dessus de la coupe', () => {
@@ -132,8 +130,8 @@ describe('ce qu’un hôte dessine d’une scène qui porte un navire', () => {
     expect([coupes(1, 'tactique'), coupes(1, 'plateau'), coupes(1, 'immersion')]).toEqual([{ c1: heightAt(s, 11, 4, 2) }, { c1: heightAt(s, 11, 4, 2) }, {}]);
     expect(coupes(2, 'tactique', 18)).toEqual({ c1: heightAt(s, 18, 4, 3) });
     expect(coupes(3, 'plateau')).toEqual({});
-    const volume = volumeDuRegard(s, [{ x: 11, y: 4, z: 1 }], 'tactique');
-    const couches = new Set(volume.cases.filter((c) => cases.has(c.join(','))).map((c) => c[2]));
+    const montrees = casesMontrees(volumeDuMonde(s), masqueDuRegard(s, [{ x: 11, y: 4, z: 1 }], 'tactique'));
+    const couches = new Set([...montrees].filter((c) => cases.has(c)).map((c) => Number(c.split(',')[2])));
     expect(couches).toEqual(new Set([0, 1]));
   });
 
@@ -147,7 +145,7 @@ describe('ce qu’un hôte dessine d’une scène qui porte un navire', () => {
         .filter(([x, y, z]) => z === dessus && heightAt(s, x, y, z) <= heightAt(s, haut.x, haut.y, haut.z)).map((c) => c.join(','));
       expect(pont.length).toBeGreaterThan(0);
       for (const regard of ['tactique', 'plateau'] as const) {
-        const montrees = new Set(volumeDuRegard(s, [haut], regard).cases.map((c) => c.join(',')));
+        const montrees = casesMontrees(volumeDuMonde(s), masqueDuRegard(s, [haut], regard));
         expect(pont.filter((cle) => !montrees.has(cle)), `${regard} depuis ${JSON.stringify(haut)}`).toEqual([]);
         const coupe = plateauDeLaScene(s, [haut], regard).coupesDesNavires.c1;
         expect(coupe === undefined || coupe > heightAt(s, haut.x, haut.y, haut.z), `${regard} depuis ${JSON.stringify(haut)} : coupe ${coupe}`).toBe(true);
@@ -155,9 +153,23 @@ describe('ce qu’un hôte dessine d’une scène qui porte un navire', () => {
     }
   });
 
+  it('la clé du monde change quand le navire bouge', () => {
+    const deplace = (x: number) => poserLesNavires({ ...authored('O'), entities: authored('O').entities.map((e) => (e.id === 'c1' ? { ...e, pos: { x, y: 2 } } : e)) });
+    expect(plateauDeLaScene(deplace(11), [], 'immersion').cleDuMonde).not.toBe(plateauDeLaScene(deplace(10), [], 'immersion').cleDuMonde);
+  });
+
+  it('la clé du monde change quand le navire vaincu quitte la scène, ses décors restés sur ses ponts', () => {
+    let scene: Scene = s;
+    const get = (() => ({ scene, party: [], objetsAuSol: {} })) as never;
+    const set = ((patch: { scene: Scene }) => { scene = patch.scene; }) as never;
+    removeEntities(get, set, ['c1']);
+    expect(provenanceDesNavires(scene).cases.size).toBe(0);
+    expect(empreinteDesDecors(scene)).toBe(empreinteDesDecors(s));
+    expect(plateauDeLaScene(scene, [], 'immersion').cleDuMonde).not.toBe(plateauDeLaScene(s, [], 'immersion').cleDuMonde);
+  });
+
   it('le plateau ne dessine aucune arête des ponts, que la marche garde', () => {
-    const plateau = plateauDeLaScene(s, [{ x: 12, y: 4, z: 2 }], 'tactique');
-    expect(plateau.aretes.filter((a) => aretes.has(a.cle))).toEqual([]);
+    expect(aretesDeLaScene(s).filter((a) => aretes.has(a.cle))).toEqual([]);
     expect((s.walls ?? []).filter((w) => aretes.has(edgeKey(w)))).toHaveLength(aretes.size);
     expect(wallBetween(s, 9, 2, 9, 1, 2)).toBe(true);
   });

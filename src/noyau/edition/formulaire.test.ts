@@ -15,7 +15,9 @@ import { emptyScene, type Scene } from '../monde/scene';
 import { addEffectZone, addTrigger, avecLaValeur, gestesDeLaListe, type Segment } from '../sceneEdit';
 import { formulaireDe, type CadreDuPorteur } from '../sceneEditLecture';
 import { newOp, valeurNeuveDe, variantesAChoisir } from '../valeursNeuves';
-import { champDeLElement, champsDeclares, champsOfferts, choixDuNoeud, elementDuNoeud, formeAuPoint, unionDuNoeud, varianteCourante, type FieldDesc } from '../codex/editFields';
+import { bornesAuPoint, champDeLElement, champsDeclares, champsDuRecord, champsOfferts, choixDuNoeud, cleOfferte, elementDuNoeud, formeAuPoint, inferFields, kindDuNoeud, recordDuNoeud, unionDuNoeud, varianteCourante, type FieldDesc } from '../codex/editFields';
+import { ouverts } from '../../data/schemas/grammaire/descente';
+import { tableTotale } from '../../lib/tableTotale';
 import { editer, ouvrirLEdition, refusDeLaValeur, sceneEditee, type GesteDEdition, type SessionDEdition } from './session';
 import { conditionSchema, flowTestSchema, OP_DEFS, OP_LABEL, OPS_NON_TYPEES } from '../../data/schemas/grammaire/mecanique';
 import { idDe, idsDe, idsDeLaSousListe, refOuSpec } from '../../data/schemas/grammaire/ref';
@@ -32,7 +34,7 @@ import { optionalEntrySchema } from '../../data/schemas/defs/creatures';
 const NARRATIF_VIDE = emptyNarratif();
 
 /** Le cadre d'un porteur d'une scène vide, au narratif vide. */
-const CADRE_VIDE: CadreDuPorteur = { scene: emptyScene('s', 4, 4), narratif: NARRATIF_VIDE };
+const CADRE_VIDE: CadreDuPorteur = { scene: emptyScene('s', 4, 4), projet: { scenes: [], narratif: NARRATIF_VIDE } };
 
 type Zone = NonNullable<Scene['effectZones']>[number];
 type Declencheur = Scene['triggers'][number];
@@ -356,5 +358,94 @@ describe('une union se lit à la présence de son discriminant : les options d�
     const variantes = variantesAChoisir(optionalEntrySchema, note)!;
     expect(variantes.find((v) => v.cle === '')?.valeur).toEqual({ id: choixDeLaFeuilleDId({ type: 'trait' })[0].id });
     expect(variantes.find((v) => v.cle === 'swap')).toMatchObject({ courante: true, valeur: note });
+  });
+});
+
+/** La saisie que l'hôte rend à chaque chemin des formulaires tirés du schéma (`FORMULAIRES`), toutes branches ouvertes,
+ *  sans valeur, comme le descend `elementsDuChamp` (`src/hote/editeur.ts`) : `variantes` d'une union nommée, `ajouter`
+ *  ou `json` d'une liste, `json` d'une op sans forme déclarée, sinon celle de la feuille (`choix`, `nombre`, `texte`,
+ *  `json`). Un nœud déjà descendu ne se redescend pas. */
+function saisiesDesFormulaires(): Map<string, string> {
+  const saisies = new Map<string, string>();
+  const vus = new Set<unknown>();
+  const sous = (noeud: unknown, tenus: readonly string[] = []): FieldDesc[] => (champsDeclares(noeud) ?? [])
+    .filter(([cle, n]) => !tenus.includes(cle) && cleOfferte(cle, n))
+    .map(([cle, n]) => inferFields([{}], { noeud, niveau: 'profondeur' }).find((c) => c.key === cle) ?? { key: cle, label: cle, kind: kindDuNoeud(cle, n), nullable: true, noeud: n });
+  const objet = (noeud: unknown, f: FieldDesc, chemin: string, tenus: readonly string[] = []) => {
+    if (vus.has(noeud)) return;
+    vus.add(noeud);
+    for (const c of sous(noeud, tenus)) champ({ ...c, contexte: f.contexte }, `${chemin}/${c.key}`);
+  };
+  const feuille = (f: FieldDesc, chemin: string) => {
+    const segments = chemin.replace(/<[^>]*>|\{\d*\}/g, '').split('/').slice(1).map((s) => (/^\d+$/.test(s) ? Number(s) : s));
+    const choix = f.contexte?.choix(segments) ?? choixDuNoeud(f.noeud);
+    const nombre = f.kind === 'number' || bornesAuPoint(f.noeud, undefined) !== undefined;
+    saisies.set(chemin, choix ? 'choix' : nombre ? 'nombre' : f.kind === 'text' || f.kind === 'textarea' ? 'texte' : 'json');
+  };
+  function champ(f: FieldDesc, chemin: string, tenus: readonly string[] = []): void {
+    if (champsDeclares(f.noeud)) return objet(f.noeud, f, chemin, tenus);
+    const u = unionDuNoeud(f.noeud);
+    if (u) {
+      if (!tenus.length) saisies.set(chemin, 'variantes');
+      if (vus.has(u.noeud)) return;
+      vus.add(u.noeud);
+      for (const v of u.variantes) {
+        const ici = `${chemin}<${u.discriminant || 'forme'}=${v.cle}>`;
+        if (v.noeud === undefined) saisies.set(ici, 'json');
+        else if (unionDuNoeud(v.noeud)) champ({ ...f, noeud: v.noeud }, ici, [...tenus, u.discriminant]);
+        else if (champsDeclares(v.noeud)) objet(v.noeud, f, ici, [...tenus, u.discriminant]);
+        else feuille({ ...f, noeud: v.noeud, kind: kindDuNoeud('', v.noeud) }, ici);
+      }
+      return;
+    }
+    const element = elementDuNoeud(f.noeud);
+    if (element !== undefined) {
+      saisies.set(chemin, valeurNeuveDe(element) !== undefined || choixDuNoeud(element) ? 'ajouter' : 'json');
+      if (!vus.has(element)) champ({ ...champDeLElement(f, 0), contexte: f.contexte }, `${chemin}/0`);
+      return;
+    }
+    const record = recordDuNoeud(f.noeud);
+    if (record && champsDuRecord(f, {}, []).length) return champ({ ...f, key: '{}', kind: kindDuNoeud('', record.valeur), noeud: record.valeur }, `${chemin}/{}`);
+    const formes = ouverts([f.noeud]).filter((n) => champsDeclares(n));
+    feuille(f, chemin);
+    formes.forEach((n, i) => objet(n, f, `${chemin}{${i}}`));
+  }
+  const vide = emptyScene('s', 4, 4);
+  const porteurs = [
+    ['zone', zone()],
+    ['declencheur', declencheur()],
+    ['entite', { kind: 'personnage', id: 'p', pos: { x: 0, y: 0 }, vehicule: { id: 'x' } }],
+    ['entite', { kind: 'prop', id: 'd', ref: 'x', pos: { x: 0, y: 0 }, usable: { actions: [{ id: 'a' }] } }],
+  ] as const;
+  for (const [sorte, donnee] of porteurs) for (const f of formulaireDe(sorte, donnee as never, { ...CADRE_VIDE, scene: vide })) champ(f, `${sorte}/${f.key}`);
+  return saisies;
+}
+
+describe('chaque feuille des formulaires tirés du schéma a un contrôle typé (#3606 M2e)', () => {
+  const saisies = saisiesDesFormulaires();
+
+  it('le sélecteur de héros, la fenêtre de Détermination, l’échéance d’un modificateur de navire, la cible d’un effet et d’un effet déclenché se choisissent par variante nommée, les fragments d’une adresse de prose s’ajoutent et se choisissent de même', () => {
+    const effets = ['setObjective', 'journal', 'grantFavor'].map((type) => `declencheur/flow<kind=effet>/effet<type=${type}>/descRef/parts`);
+    const attendues: Record<string, string> = Object.fromEntries([
+      ...['partyDead', 'skill', 'talent', 'career', 'species', 'status'].map((kind) => [`zone/crossTest/gate<kind=${kind}>/who`, 'variantes']),
+      ['zone/onCross/0<op=condition>/resolveWindow', 'variantes'],
+      ['zone/onCross/0<op=navireMod>/jusqua', 'variantes'],
+      ...['infestation>/chaqueNuit<kind=effet>/effet', 'augmentWeapon>/onHitEffects/0', 'grantWeapon>/onHitEffects/0'].map((op) => [`zone/onCross/0<op=${op}/on`, 'variantes']),
+      ...effets.flatMap((parts) => [[parts, 'ajouter'], [`${parts}/0`, 'variantes']]),
+    ]);
+    expect(Object.keys(attendues)).toHaveLength(17);
+    expect(tableTotale(Object.keys(attendues), (c) => saisies.get(c))).toEqual(attendues);
+    const horsObjet = ['zone/crossTest/gate<kind=partyDead>/who', 'zone/onCross/0<op=condition>/resolveWindow', 'zone/onCross/0<op=navireMod>/jusqua', 'zone/onCross/0<op=augmentWeapon>/onHitEffects/0/on'];
+    expect(horsObjet.map((c) => saisies.get(`${c}<forme=>`)), 'la variante hors objet se choisit parmi ses valeurs').toEqual(horsObjet.map(() => 'choix'));
+  });
+
+  it('se saisissent encore en JSON EXACTEMENT : l’enjeu de Bourse, la référence d’une possession, les valeurs d’un enjeu au catalogue, les rencontres d’une bataille rangée, et chaque op non typée', () => {
+    expect([...saisies].filter(([, s]) => s === 'json').map(([c]) => c).sort()).toEqual([
+      'zone/crossTest/gate<kind=money>/atLeast',
+      'declencheur/flow<kind=effet>/effet<type=givePossession>/ref',
+      'zone/crossTest/stake<forme=key>/values',
+      'declencheur/flow<kind=effet>/effet<type=startMassBattle>/battle/sceneEncounters',
+      ...OPS_NON_TYPEES.map((op) => `zone/onCross/0<op=${op}>`),
+    ].sort());
   });
 });

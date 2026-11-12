@@ -1,12 +1,14 @@
 // LE SERVEUR DE L'EXPORT WEB DE L'HÔTE GODOT (#2928, #3086, `pont/CONTRAT.md`, section « Atelier 3D ») : l'export servi
-// en statique sur un port libre de la boucle locale, et, à côté de la page, le dossier des modèles : `GET /modeles/listage.json`
+// en statique sur un port libre de la boucle locale (sans export, rien d'autre que les modèles et le dépôt : le pont
+// vivant, `vivant.mjs`), et, à côté de la page, le dossier des modèles : `GET /modeles/listage.json`
 // rend ses manifestes validés contre leur GLB et les os qui en portent les meshes rigides (`listage`), relus à chaque appel,
 // et `GET /modeles/<fichier>` chacun de ses fichiers, en `Cache-Control: no-store`, comme `GET /planches/<fichier>`
-// chaque planche du dépôt (`planches.mjs`, #3935). Avec `--depot`, l'éditeur de carte y
+// chaque planche du dépôt (`planches.mjs`, #3935). Avec `--statique`, l'export seul, tel que le site le publie : ses
+// modèles déposés en scènes fabriquées et ses planches (`construire.mjs --export`, #3946). Avec `--depot`, l'éditeur de carte y
 // lit et y écrit les projets manuscrits du dépôt (`pont/CONTRAT.md`, section « Éditeur ») : `GET /depot/<id>` et
 // `PUT /depot/<id>`. Une requête défaillante reçoit son statut d'erreur, le serveur continue.
 //
-//   node hotes/godot/servir.mjs --web <dossier de l'export> [--modeles <dossier>] [--depot]
+//   node hotes/godot/servir.mjs --web <dossier de l'export> [--modeles <dossier> | --statique] [--depot]
 import { createServer } from 'node:http'
 import { createReadStream, fstatSync, readFileSync } from 'node:fs'
 import { basename, extname, join, resolve, sep } from 'node:path'
@@ -52,7 +54,7 @@ const CORPS_MAX = 32 * 1024 * 1024
 
 /**
  * Le dépôt est servi par `servir.mjs` lancé avec `--depot` (`npm run godot:editeur` exporte le projet dans `dist/godot`
- * puis l'y sert) : `GET depot/<id>` rend le projet manuscrit d'id `id` (`PROJETS_MANUSCRITS`,
+ * puis l'y sert), ou par le pont vivant (`vivant.mjs`, `npm run godot:ouvrir`) : `GET depot/<id>` rend le projet manuscrit d'id `id` (`PROJETS_MANUSCRITS`,
  * `scripts/guards/lib/projetsLivres.mjs`), prose adressée matérialisée (`lireProjetLivre`), en `no-store` ; `PUT
  * depot/<id>` écrit son corps à la place du fichier, 200, ou le refuse en 422 avec sa raison s'il n'est pas du JSON,
  * pas ce projet, ou pas en forme dépôt (`materialiser` le refuse). Un projet généré (`scripts/<dossier>/generate.mjs`)
@@ -118,10 +120,12 @@ function servirLeDepot(req, res, depot, id) {
   }
 }
 
-/** Sert `web` en statique, le dossier `modeles` sous `/modeles/` et les planches du dépôt sous `/planches/`, sur un port
- *  libre de 127.0.0.1 ; avec `depot`, la racine d'un dépôt, ses projets manuscrits sous `/depot/` (`servirLeDepot`). */
-export function servir({ web, modeles = DOSSIER_DES_MODELES, depot }) {
-  const racine = resolve(web)
+/** Sert le dossier `modeles` sous `/modeles/` et les planches du dépôt sous `/planches/`, sur un port libre de
+ *  127.0.0.1 ; avec `web`, l'export en statique, sans lui 404 hors de `/modeles/`, `/planches/` et `/depot/` ; avec
+ *  `statique`, `web` seul, ses `modeles/` et ses `planches/` déposés compris ; avec `depot`, la racine d'un dépôt, ses
+ *  projets manuscrits sous `/depot/` (`servirLeDepot`). */
+export function servir({ web, modeles = DOSSIER_DES_MODELES, depot, statique = false }) {
+  const racine = web && resolve(web)
   const dossier = resolve(modeles)
   const serveur = createServer((req, res) => {
     let rel
@@ -131,12 +135,13 @@ export function servir({ web, modeles = DOSSIER_DES_MODELES, depot }) {
       return void res.writeHead(400).end()
     }
     if (depot && rel.startsWith('depot/')) return servirLeDepot(req, res, resolve(depot), rel.slice('depot/'.length))
-    if (rel === `modeles/${LISTAGE}`) return void res.writeHead(200, { 'Content-Type': TYPES['.json'], 'Cache-Control': 'no-store' }).end(JSON.stringify(listage(dossier)))
+    if (!statique && rel === `modeles/${LISTAGE}`) return void res.writeHead(200, { 'Content-Type': TYPES['.json'], 'Cache-Control': 'no-store' }).end(JSON.stringify(listage(dossier)))
     const sansCache = { 'Cache-Control': 'no-store' }
-    const [base, chemin, entetes] = rel.startsWith('modeles/') ? [dossier, rel.slice('modeles/'.length), sansCache]
+    const [base, chemin, entetes] = statique ? [racine, rel || 'index.html', {}]
+      : rel.startsWith('modeles/') ? [dossier, rel.slice('modeles/'.length), sansCache]
       : rel.startsWith('planches/') ? [DOSSIER_DES_PLANCHES, rel.slice('planches/'.length), sansCache]
       : [racine, rel || 'index.html', {}]
-    const fichier = sous(base, chemin)
+    const fichier = base && sous(base, chemin)
     if (!fichier) return void res.writeHead(404).end()
     envoyer(res, fichier, entetes)
   })
@@ -144,8 +149,8 @@ export function servir({ web, modeles = DOSSIER_DES_MODELES, depot }) {
 }
 
 if (import.meta.main) {
-  const { values: o } = parseArgs({ options: { web: { type: 'string' }, modeles: { type: 'string' }, depot: { type: 'boolean' } } })
-  if (!o.web) throw new Error('usage : node hotes/godot/servir.mjs --web <dossier de l’export> [--modeles <dossier>] [--depot]')
-  const { url } = await servir({ web: o.web, ...(o.modeles && { modeles: o.modeles }), ...(o.depot && { depot: RACINE_DU_DEPOT }) })
+  const { values: o } = parseArgs({ options: { web: { type: 'string' }, modeles: { type: 'string' }, statique: { type: 'boolean' }, depot: { type: 'boolean' } } })
+  if (!o.web || (o.modeles && o.statique)) throw new Error('usage : node hotes/godot/servir.mjs --web <dossier de l’export> [--modeles <dossier> | --statique] [--depot]')
+  const { url } = await servir({ web: o.web, ...(o.modeles && { modeles: o.modeles }), ...(o.statique && { statique: true }), ...(o.depot && { depot: RACINE_DU_DEPOT }) })
   console.log(url)
 }

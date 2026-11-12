@@ -1,7 +1,10 @@
-## Le combat, hôte du noyau (`hotes/godot/pont/CONTRAT.md`), et le seul lecteur de la vue : il démarre la partie de
-## l'adresse de la page (`?scenario=<id>&graine=<n>`), la scène que l'éditeur a mise à l'essai (`PontDuNoyau.essai`), ou,
-## l'adresse n'en nommant aucun, le scénario que le joueur choisit au panneau des scénarios (`scenarios`), pose au plateau le monde de sa scène (`monde`), à nouveau chaque
-## fois que la partie change de scène (`vue.projection.scene`), et applique chaque suite. La vue va au plateau, sa lumière (`vue.lumiere`) à la `Lumiere` du monde, sa musique (`vue.musique`) à la `Musique` ; la fenêtre prend la disposition que la vue nomme (`vue.disposition`,
+## Le combat, hôte du noyau (`hotes/godot/pont/CONTRAT.md`), et le seul lecteur de la vue : il démarre la partie des
+## paramètres `scenario` et `graine` (`PontDuNoyau.parametre`), la scène que l'éditeur a mise à l'essai (`PontDuNoyau.essai`), ou,
+## sans paramètre `scenario`, le scénario que le joueur choisit au panneau des scénarios (`scenarios`), pose au plateau le monde de sa scène (son manifeste,
+## `monde`, et les seuls morceaux dont l'empreinte a bougé, `morceaux`), à nouveau chaque fois que la partie change de
+## scène (`vue.projection.scene`) ou que sa clé change (`plateau.cleDuMonde`), ce que le regard en retire (`retrait`), à
+## nouveau chaque fois que l'empreinte du masque change (`plateau.cleDuRetrait`), et ses arêtes (`aretes`), à nouveau
+## chaque fois que leur empreinte change (`plateau.cleDesAretes`), et applique chaque suite. La vue va au plateau, sa lumière (`vue.lumiere`) à la `Lumiere` du monde, sa musique (`vue.musique`) à la `Musique` ; la fenêtre prend la disposition que la vue nomme (`vue.disposition`,
 ## `Disposition`) ; chaque zone de l'écran (`Zone.racines`, scène `Ecran` sans script) reçoit les éléments de sa source
 ## qui lui reviennent (`Zone.montrer_toutes` : `vue.zones`, et ce que la suite ajoute, `zones` : les lignes du journal) ;
 ## le journal va au plateau ; chaque jeton programmé est armé en minuteur et repris à son échéance. Chaque geste du joueur part en intention : celle de l'élément pressé
@@ -12,8 +15,8 @@
 ## reste tel quel, saisies comprises. Avant la partie, il tire le listage des modèles et l'index du pont
 ## (`MontageDeComposition.lister`, `indexer`), que chaque corps du plateau monte ; un échec se dit dans l'avis de panne,
 ## et la partie se joue sans corps. Chaque vue montrée, chaque corps changé, chaque défilement, chaque onglet et chaque
-## cadrage du monde, il publie à la page ce que l'écran porte (`PontDuNoyau.publier_l_ecran`), une fois par image, que la
-## recette lit. La bulle de l'aperçu
+## cadrage du monde, il publie ce que l'écran porte (`PontDuNoyau.publier_l_ecran`), une fois par image, que la
+## recette lit ; hors recette, rien. La bulle de l'aperçu
 ## (`combat.apercu`) se tient au-dessus de sa case. Le monde se cadre sur la scène (`Monde.cadre`), la part de l'écran que
 ## l'interface lui laisse.
 extends Node
@@ -23,17 +26,21 @@ extends Node
 ## une scène sans script (`projet/scenes/Ecran.tscn`) : chaque zone y est un nœud `Zone` (`projet/scripts/zone.gd`) posé
 ## dans le conteneur qui la montre, sa `source` une clé de `vue.zones` ou des `zones` de la suite, qu'elle ajoute
 ## (`ajout`) au lieu de les remplacer. Une zone dessine chaque élément par le composant de son type
-## (`projet/composants/<type>.tscn`, une scène sans script), le réconcilie par type et par id, et le pose sur son
+## (`projet/composants/<type>.tscn`, une scène sans script), ou par celui qu'elle donne à ce type à cet usage
+## (`formes`, `<type>:<forme>` : `projet/composants/<forme>.tscn`), le réconcilie par type et par id, et le pose sur son
 ## composant : chaque `Liaison` y écrit un champ de l'élément dans une propriété du contrôle qui la porte (le ton en
 ## variation du thème, `art/theme.tres`), chaque `Geste` joue l'intention que l'élément porte par le signal `geste` de
 ## la zone (un bouton à bascule garde l'état que la vue lui donne ; le routeur envoie `{ fiche }` à `fiche`, `{ creation
 ## }` à `creation`, toute autre intention à `jouer`), chaque `Saisie` lit la valeur d'un formulaire, et une zone
-## imbriquée y montre le champ que sa `source` nomme. Le plan (`plan`) est le seul composant qui se dessine : son
+## imbriquée y montre le champ que sa `source` nomme. L'icône (`icone`) et le fond (`fond`) ne portent que l'id de
+## leur dessin : `Dessin` (`projet/scripts/dessin.gd`) le lit au catalogue que la construction dépose une fois dans le
+## projet (`art/dessins.json`, `hotes/godot/asset/dessins.ts`) et le trace aux couleurs du thème. Le plan (`plan`) est le seul composant qui se dessine : son
 ## contrôle `Plan` (`projet/scripts/plan.gd`) trace chaque trait d'un point à l'autre et chaque point à sa place dans le
 ## contrôle, chacun à la couleur de son ton, et pose sous chaque point son composant (`point` : son nom, puis ses
 ## éléments). Le `detail` d'une puce ou d'une ligne se pose sur sa `Bulle` (`projet/scripts/bulle.gd`), qui couvre le
 ## composant et montre au survol la bulle du thème repliée au mot. Les héros du groupe se rangent en cartes au pied de
-## l'écran, « Nouveau héros » en tête du journal ; la barre du combat (`combat.offres`) les surmonte, chacun de ses choix
+## l'écran (`projet/composants/heros.tscn` : le portrait, le nom, les Blessures en trait, la bourse, puis ce que la
+## carte porte d'autre), « Nouveau héros » au pied du journal ; la barre du combat (`combat.offres`) les surmonte, chacun de ses choix
 ## en onglet, sauf la part du tour (`economie/aucun`), au panneau de l'actif ; la création ouverte se pose au centre,
 ## sa page titrée en tête, ses rubriques défilant dessous, ses gestes en rangée au pied ; la conversation se pose en bas
 ## au centre, son interlocuteur en titre, sa réplique, puis ses réponses l'une sous l'autre ; la fiche ouverte se pose
@@ -59,6 +66,10 @@ var _vue: Dictionary = {}
 var _musique := Musique.new()
 ## La scène et la clé du volume du monde posé au plateau, vide avant le premier.
 var _cle_du_monde := ""
+## La scène et l'empreinte du masque du retrait posé au volume (`plateau.cleDuRetrait`), vide avant le premier.
+var _cle_du_retrait := ""
+## La scène et l'empreinte des arêtes posées au plateau (`plateau.cleDesAretes`), vide avant les premières.
+var _cle_des_aretes := ""
 var _zones: Array[Zone] = []
 ## Une publication de l'écran attend l'image qui vient (`_publier_l_ecran`).
 var _publication_prevue := false
@@ -126,6 +137,8 @@ func _suivre(reponse: Dictionary) -> void:
 	_vue = reponse.vue
 	_refus.text = ""
 	_poser_le_monde_de(_vue.projection.scene, _vue.plateau)
+	_poser_le_retrait_de(_vue.projection.scene, _vue.plateau)
+	_poser_les_aretes_de(_vue.projection.scene, _vue.plateau)
 	_plateau.montrer(_vue)
 	_plateau.jouer_les_effets(reponse.effets)
 	if _vue.lumiere != null:
@@ -141,15 +154,49 @@ func _suivre(reponse: Dictionary) -> void:
 
 
 ## Le monde de la scène `scene` (`vue.projection.scene`), sous le regard du plateau (`plateau.cleDuMonde`), au plateau
-## (`Plateau.poser_le_monde`), s'il n'y est pas déjà.
+## (`Plateau.poser_le_monde`), s'il n'y est pas déjà : son manifeste (`monde`), et la géométrie des seules clés dont
+## l'empreinte posée diffère (`VolumeDeScene.manquants`, `morceaux` de la partie), demandée s'il en manque.
 func _poser_le_monde_de(scene: Variant, plateau: Variant) -> void:
 	var cle := "" if scene == null or plateau == null else "%s|%s" % [scene.id, plateau.cleDuMonde]
 	if cle == _cle_du_monde:
 		return
 	_cle_du_monde = cle
 	var monde := _pont.appeler("monde")
-	if monde.get("ok") == true and monde.monde != null:
-		_plateau.poser_le_monde(monde)
+	if monde.get("ok") != true or monde.monde == null:
+		return
+	var manquants := _monde.volume.manquants(monde)
+	var recus := {volume = [], toits = [], couronnes = []}
+	if not manquants.values().all(func(cles: Array) -> bool: return cles.is_empty()):
+		recus = _pont.appeler("morceaux", manquants.merged({source = "partie"}))
+		if recus.get("ok") != true:
+			return
+	_plateau.poser_le_monde(monde, recus)
+
+
+## Ce que le regard de la partie retire du volume du monde (`retrait`) masqué au volume (`VolumeDeScene.retirer`), si le
+## masque de son empreinte (`plateau.cleDuRetrait`) n'y est pas déjà.
+func _poser_le_retrait_de(scene: Variant, plateau: Variant) -> void:
+	var cle := "" if scene == null or plateau == null else "%s|%s" % [scene.id, plateau.cleDuRetrait]
+	if cle == _cle_du_retrait:
+		return
+	_cle_du_retrait = cle
+	if scene == null or plateau == null:
+		return
+	var reponse := _pont.appeler("retrait")
+	if reponse.get("ok") == true:
+		_monde.volume.retirer(reponse)
+
+
+## Les arêtes de la scène `scene` (`aretes`) sur le volume du monde (`VolumeDeScene.poser_les_aretes`), si celles de
+## leur empreinte (`plateau.cleDesAretes`) n'y sont pas déjà.
+func _poser_les_aretes_de(scene: Variant, plateau: Variant) -> void:
+	var cle := "" if scene == null or plateau == null else "%s|%s" % [scene.id, plateau.cleDesAretes]
+	if cle == _cle_des_aretes:
+		return
+	_cle_des_aretes = cle
+	var reponse := _pont.appeler("aretes")
+	if reponse.get("ok") == true:
+		_monde.volume.poser_les_aretes(reponse.aretes)
 
 
 ## La bulle de l'aperçu suit sa case à l'écran, la caméra tournée ou zoomée.
@@ -186,20 +233,26 @@ func _republier(_valeur: Variant) -> void:
 	_publier_l_ecran()
 
 
-## Ce que l'écran porte, une fois la vue mise en page : ses boutons (`PontDuNoyau.boutons_a_l_ecran`), le point de
-## chaque case du plateau, la part de l'écran où le monde se voit (`Monde.cadre`), ce que porte le corps de chaque combattant dessiné (`Plateau.corps`) et les navires posés
-## (`Plateau.navires`).
+## L'écran publié à la recette (`PontDuNoyau.publier_l_ecran`, `_ecran_publie`), une fois la vue mise en page, une
+## fois par image.
 func _publier_l_ecran() -> void:
 	if _publication_prevue:
 		return
 	_publication_prevue = true
 	await get_tree().process_frame
 	_publication_prevue = false
+	_pont.publier_l_ecran(_ecran_publie)
+
+
+## Ce que l'écran porte : ses boutons (`PontDuNoyau.boutons_a_l_ecran`), le point de chaque case du plateau, la part de
+## l'écran où le monde se voit (`Monde.cadre`), ce que porte le corps de chaque combattant dessiné (`Plateau.corps`) et
+## les navires posés (`Plateau.navires`).
+func _ecran_publie() -> Dictionary:
 	var cadre := _monde.cadre
-	_pont.publier_l_ecran({
+	return {
 		boutons = PontDuNoyau.boutons_a_l_ecran([_ecran, _scenarios]), cases = _plateau.points(),
 		cadre = [cadre.position.x, cadre.position.y, cadre.size.x, cadre.size.y], corps = _plateau.corps(), navires = _plateau.navires(),
-	})
+	}
 
 
 ## Le cadrage d'une recette (`globalThis.wfrpCadrer(entree, rendre)`, `CONTRAT.md`, section « Écran publié ») : `entree`,
