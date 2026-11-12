@@ -2515,9 +2515,10 @@ export function cloturesDuCombat(get: Get, set: Set) {
       const jet = toucheSlot?.jet;
       const broken = jet && !jet.success ? 1 + Math.max(0, -jet.sl) : 0; // échec → 1 + DR négatif (LDB 15 l.66)
       if (suspended) {
-        // Déviation Critique du fuyard : `applyAttackResult` a EMPILÉ son étape de choix — le coup gratuit
-        // n'est PAS résolu. La fuite (Brisé + Course) attend SA résolution, dans la même fenêtre, via
-        // l'étape de reprise `mouvementDeFuite` (LDB 15 l.68 : « une fois que ce coup gratuit est résolu… »).
+        // Le coup gratuit n'est PAS résolu : `applyAttackResult` a EMPILÉ une étape qui tient la main (Déviation
+        // Critique du fuyard, Test ou choix poussé par la touche, qui porte l'après-coup). La fuite (Brisé + Course)
+        // attend SA résolution, dans la même fenêtre, via l'étape de reprise `mouvementDeFuite` (LDB 15 l.68 :
+        // « une fois que ce coup gratuit est résolu… »).
         pushDisplay(set, { id: `flee-move-${mover.id}`, kind: 'mouvementDeFuite', actorId: mover.id, icon: 'melee/fuir', label: t('step.fuite'),
           outcome: toRecapLines([
             t('cs.fuiteReprise', { name: mover.label, foe: foe.label }),
@@ -3025,14 +3026,12 @@ export function cloturesDuCombat(get: Get, set: Set) {
       // Déviation, Maladresse, dé de casse), et c'est sa reprise qui jouera le reste.
       const tient = suite.mode === 'machine' && !!attacker && !!defender
         && applyAttackResult(get, set, attacker, defender, pd.weapon, lance, { suite: { ...suite.coup, ...(reaction ? { reaction } : {}), ...riposte } });
-      // Attaques GRATUITES de l'attaquant après CE coup : d'Arme « disponibles » (Frénésie LDB 21 l.33)
-      // — jamais après une gratuite, que la suite de la fenêtre nomme — puis celles de créature. UNE file,
-      // qui S'ARRÊTE à la première fenêtre ouverte : la fenêtre qui suit est celle de la gratuite
-      // SUIVANTE, sur SA propre étape (LDB 85 l.41-43 — chaque gratuite est un Test d'attaque complet).
-      const gratuite = suite.mode === 'machine' && !!suite.coup.restitution;
+      // Attaques GRATUITES de l'attaquant après CE coup (`drainerLesGratuites`) : UNE file, qui S'ARRÊTE à la
+      // première fenêtre ouverte : la fenêtre qui suit est celle de la gratuite SUIVANTE, sur SA propre étape
+      // (LDB 85 l.41-43). Une fenêtre qui tient la main laisse la file à sa reprise (`resumeSuspendedAI`).
       // LDB 11 l.103 : la suite DÉCLARÉE par `runPreemptShots` tranche.
       const tirRapide = suite.mode === 'machine' && suite.coup.enchainement?.mode === 'tirRapide';
-      if (!tient && !tirRapide && attacker && drainerLesGratuites(get, set, attacker, { disponibles: !gratuite })) { quitterLaDefense(); return; }
+      if (!tient && !tirRapide && attacker && drainerLesGratuites(get, set, attacker)) { quitterLaDefense(); return; }
       // La défense est l'étape de SA cascade combat → enchaîner le curseur (les conséquences empilées —
       // Critique/Maladresse — s'affichent inline ; la clôture reprend l'IA). Rien derrière elle : reprise.
       if (!quitterLaDefense()) resumeEnemyTurn(get, set);
