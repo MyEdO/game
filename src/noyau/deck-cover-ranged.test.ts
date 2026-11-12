@@ -13,7 +13,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTes
  * #248 — COUVERT DE PONT au calcul de touche. Un défenseur SERVANT un poste couvert (MSRC f.66 l.111,
  * Plat-bord = « couverture moyenne » → tir Difficile −20 ; Sabord/Murs blindés = totale −30) reçoit sa
  * classe par le MÊME chemin que le couvert de terrain (`couvertLePlusProtecteur` sur la ligne
- * `cf.coverLabel`). Le barème est le canon `coverModifier` (`engine/cover.ts`) — aucun modificateur
+ * `cf.libelleDuCouvert`). Le barème est le canon `coverModifier` (`engine/cover.ts`) — aucun modificateur
  * parallèle. Mêlée non affectée.
  */
 const bow = { name: 'Arc', type: 'ranged' } as unknown as Weapon;
@@ -62,7 +62,7 @@ describe('#248 — couvert de pont raccordé au calcul de touche', () => {
 });
 
 /**
- * #1680 ligne 15 — le couvert d'une STRUCTURE D'ARÊTE arrive au JET par le même chemin (`cf.coverLabel`,
+ * #1680 ligne 15 — le couvert d'une STRUCTURE D'ARÊTE arrive au JET par le même chemin (`cf.libelleDuCouvert`,
  * barème `coverModifier`). `AA 10 l.23` : la Pénalité de Couvert d'une Structure EST la Difficulté par
  * défaut d'un assaillant qui tire sur qui s'y abrite. Les deux structures ci-dessous sont celles que la
  * Diligence porte réellement : `mur-a-ossature-en-bois` (Complexe −10, 516 arêtes) et
@@ -82,7 +82,7 @@ describe('#1680 — le couvert d’une Structure d’arête arrive au calcul de 
   it('mur à ossature en bois (Complexe) → ligne « Couvert (imparfaite) » à −10 au jet', () => {
     const ligne = cover(envAvecArete('mur-a-ossature-en-bois'))!;
     expect(ligne.value).toBe(-10);
-    expect(ligne.label).toBe(t('cf.coverLabel', { cover: 'imparfaite' }));
+    expect(ligne.label).toBe(t('cf.libelleDuCouvert', { cover: 'imparfaite' }));
   });
 
   it('clôture en clayonnage (Intermédiaire) → AUCUNE ligne : le canon lui donne +0', () => {

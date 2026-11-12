@@ -122,6 +122,6 @@ export function blocNeuf(kind: 'if' | 'test' | 'choice'): Flow {
   switch (kind) {
     case 'if': return { kind: 'if', cond: { kind: 'flag', expr: '' }, then: EMPTY_FLOW };
     case 'test': return noeudTestNeuf();
-    case 'choice': return { kind: 'choice', prompt: '', yes: EMPTY_FLOW };
+    case 'choice': return { kind: 'choice', prompt: '', oui: EMPTY_FLOW };
   }
 }

@@ -51,7 +51,6 @@ export { fenetreDuJeu, CLES_DE_FENETRE, VERBES_D_INTERACTION, VERBES_DU_JET_PSY 
 export { conversationEnVue } from './dialogue';
 export { documentEnVue } from './campagne';
 export { stepInteraction } from './cascade';
-export type { RecapTone } from './recapLine';
 export type { Combatant } from '../engine/types';
 export type { ModLine, RollBreakdown } from '../engine/combat';
 export { validTargets } from './targeting';
@@ -70,10 +69,10 @@ export { labelEmplacement, seatSlotsOf, type SeatOccupant } from './monde/seatin
 export { assoirALaPlace, type PatchDeZone } from './sceneEdit';
 export { toneOf, type CombatEvent } from './combatLog';
 export { tileFromKey, type Pt } from './monde/path';
-export { areteDessinee, aretesDeLaCouche, aretesDeLaScene, plateauDeLaScene, regardDuJeu, REGARDS, volumeDuRegard, type AreteDessinee, type PlateauDeLaScene, type Regard } from './monde/aretes';
+export { areteDessinee, aretesDeLaCouche, aretesDeLaScene, masqueDuRegard, plateauDeLaScene, regardDuJeu, REGARDS, type AreteDessinee, type PlateauDeLaScene, type Regard } from './monde/aretes';
 export type { Scene } from './monde/scene';
 export { planDeLaCouche, type OeilDuPlan } from './monde/sceneToAscii';
-export { couronnesDuMonde, matieresDeDecor, toitsDuMonde, volumeDuMonde, type NappeDuMonde, type VolumeDuMonde } from './monde/volume/volume';
+export { couronnesDuMonde, matieresDeDecor, retraitDuMonde, toitsDuMonde, volumeDuMonde, type MorceauDuMonde, type NappeDuMonde, type RetraitDuMonde, type VolumeDuMonde } from './monde/volume/volume';
 export { echantillonDessine, famillesDEchantillons, type EchantillonDessine, type FamilleDEchantillons } from './monde/echantillons';
 export { PLAN_DEFECT_FAMILIES } from './planDefects';
 export { avertissementsDeLaSession, cadreDeLaSession, calqueDeLaCouche, casesDuDefaut, corpsActif, editer, ouvrirLEdition, planDeLaVolee, projetDuDepot, refusDOuvrage, refusDeLaValeur, sceneEditee, scenesDeLaSession, vueDeLaScene, essaiDeLaScene, texteAEnregistrer, ACTIONS_D_ARCHITECTURE, AMBIANCES, BORNES_DE_LA_TROUPE, ENVIRONNEMENTS, HAUTEURS, METEOS, OUVRAGES, PINCEAUX, PROFILS_DE_TOIT, SORTES_D_OUVERTURE, champDuMessage, groupesDuLieu, versLaFautive, type BrouillonDArete, type GesteDEdition, type PatchDArete, type PatchDEntite, type PatchDeScene, type SessionDEdition } from './edition/session';

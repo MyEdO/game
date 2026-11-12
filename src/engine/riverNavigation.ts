@@ -46,18 +46,18 @@ export type RiverWindForceId = 'calme' | 'leger' | 'modere' | 'fort' | 'tres-for
 export type RiverWindDirId = 'arriere' | 'cote' | 'contraire';
 
 /** Cellule d'EFFET DU VENT (l.29-33) : % ajouté à la vitesse, ou un cas particulier (Dérive/Louvoyer/
- *  Chavirage/Gréement en péril). `pct` absent = pas de gain de vitesse (Dérive / Très fort de côté). */
+ *  Chavirage/Gréement en péril). `pourcentage` absent = pas de gain de vitesse (Dérive / Très fort de côté). */
 export interface RiverWindEffect {
   /** % de vitesse (peut être négatif : vent contraire). */
-  pct?: number;
+  pourcentage?: number;
   /** Calme (l.29) : le bateau dérive en aval à 25 % ; Tests de Navigation −10 (note 2, l.38). */
-  drift?: boolean;
+  derive?: boolean;
   /** Vent de côté Modéré/Fort (note 3, l.39) : le +% n'est acquis qu'en louvoyant (Navigation Accessible +20). */
-  tack?: boolean;
+  louvoyage?: boolean;
   /** Très fort de côté (note 4, l.40) : retirer la voile ou chavirer. */
-  capsizeRisk?: boolean;
+  risqueDeChavirage?: boolean;
   /** Très fort contraire (note 5, l.41) : Navigation Accessible (+20) sinon Critique au gréement + dérive. */
-  riggingRisk?: boolean;
+  risqueDeGreement?: boolean;
 }
 
 interface CritDef { driftUntilRepair?: boolean; hole?: boolean }
@@ -134,9 +134,9 @@ export function riverDriftKm(baseKmPerDay: number): number {
  *  diriger le bateau subissent un malus de -20 »). Ce sont des MALUS, pas des Difficultés : la
  *  Difficulté du Test reste `navBaseDifficulty` (MSRC 7 l.15 demande le Test sans en fixer la
  *  Difficulté — le défaut Intermédiaire +0 est celui de la table, LDB 12 l.148). PUR. */
-export function navPenaltyMods(state: { drift?: boolean; outOfControl?: boolean }): ModLine[] {
+export function navPenaltyMods(state: { derive?: boolean; outOfControl?: boolean }): ModLine[] {
   const mods: ModLine[] = [];
-  if (state.drift) mods.push({ label: t('rv.modDrift'), value: driftNavPenalty(), famille: 'circonstance', ref: RULE_REF['navigation-derive'] });
+  if (state.derive) mods.push({ label: t('rv.modDrift'), value: driftNavPenalty(), famille: 'circonstance', ref: RULE_REF['navigation-derive'] });
   if (state.outOfControl) mods.push({ label: t('rv.modOutOfControl'), value: OUT_OF_CONTROL.navPenalty, famille: 'circonstance', ref: RULE_REF['navigation-greement'] });
   return mods;
 }

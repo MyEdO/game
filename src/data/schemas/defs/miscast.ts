@@ -116,9 +116,9 @@ export const rangee = nommerChamps(z.strictObject({
 
 /** Catégorie Codex de chaque document-table → son id, dans l'ordre de la donnée. */
 const CATEGORIES = {
-  miscastMinor: 'miscast-mineure', miscastMajor: 'miscast-majeure',
-  miscastMinorVdm: 'miscast-mineure-vdm', miscastMajorVdm: 'miscast-majeure-vdm',
-  miscastWrath: 'miscast-colere',
+  imparfaiteMineure: 'miscast-mineure', imparfaiteMajeure: 'miscast-majeure',
+  imparfaiteMineureVdm: 'miscast-mineure-vdm', imparfaiteMajeureVdm: 'miscast-majeure-vdm',
+  colereDesDieux: 'miscast-colere',
 } as const;
 
 const doc = document(

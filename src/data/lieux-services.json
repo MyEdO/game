@@ -3,7 +3,7 @@
     "id": "auberge",
     "type": "lieux-services",
     "label": "Auberge",
-    "icon": "rest/bed",
+    "icon": "repos/lit",
     "hostLine": "Approchez, approchez ! Un lit chaud, un bon repas et pas de questions — c’est tout ce qu’on demande ici.",
     "backdrop": {
       "id": "taverne-commune"
@@ -15,7 +15,7 @@
     "id": "port",
     "type": "lieux-services",
     "label": "Port",
-    "icon": "travel/anchor",
+    "icon": "voyage/ancre",
     "hostLine": "Bienvenue à quai ! Amarrage, fret et passage — ici on négocie tout ce qui flotte, et le reste aussi.",
     "backdrop": {
       "id": "port"
@@ -25,7 +25,7 @@
     "id": "marche",
     "type": "lieux-services",
     "label": "Marché",
-    "icon": "merchant/cart",
+    "icon": "marchand/panier",
     "hostLine": "Bonnes gens, approchez ! Étoffes, grains, fer et bon vin — la halle est ouverte, et mes prix ne mordent pas plus que ma voix !",
     "backdrop": {
       "id": "halle-marchande"
@@ -35,14 +35,14 @@
     "id": "temple",
     "type": "lieux-services",
     "label": "Temple",
-    "icon": "faith/church",
+    "icon": "foi/chapelle",
     "desc": "Le temple ne reçoit personne pour l’instant."
   },
   {
     "id": "forgeron",
     "type": "lieux-services",
     "label": "Forgeron",
-    "icon": "item/weapon",
+    "icon": "objet/arme",
     "merchantArchetype": {
       "id": "armurier"
     },
@@ -54,14 +54,14 @@
     "id": "guilde",
     "type": "lieux-services",
     "label": "Guilde",
-    "icon": "merchant/deal",
+    "icon": "marchand/marche-conclu",
     "desc": "La guilde n’ouvre pas encore ses portes."
   },
   {
     "id": "chantier",
     "type": "lieux-services",
     "label": "Chantier naval",
-    "icon": "item/misc",
+    "icon": "objet/divers",
     "opensScreen": "port",
     "enterLabel": "Entrer au chantier"
   }

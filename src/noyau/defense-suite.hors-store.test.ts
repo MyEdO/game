@@ -88,7 +88,7 @@ describe('Fenêtre de défense — ce que la fermeture joue (#1858)', () => {
 });
 
 /** Touche qui BALAIE (LDB 85 l.362 : « Toutes les frappes réussies… ») — de quoi lancer `autoCleave`. */
-const toucheQuiBalaie = (): AttackResult => ({ hit: true, cleave: true, attackerRoll: 10, netSL: 5, critical: false, advantageTo: 'attacker', defenderDefeated: false, log: '' } as unknown as AttackResult);
+const toucheQuiBalaie = (): AttackResult => ({ hit: true, cleave: true, attackerRoll: 10, netSL: 5, critical: false, advantageTo: 'attaquant', defenderDefeated: false, log: '' } as unknown as AttackResult);
 
 describe('Suite de la fenêtre de défense — UNE valeur, posée à l’ouverture (#1858)', () => {
   // K1 — chaque producteur déclare EXACTEMENT ce que la fenêtre porte.
@@ -125,7 +125,7 @@ describe('Suite de la fenêtre de défense — UNE valeur, posée à l’ouvertu
   it('K1 attaque PILOTÉE : l’attaque figée, marquée défendue', () => {
     const { enemy, hero } = setup(false, 1, 0);
     const g = banc.getState;
-    openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
+    openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attaquer');
     g().jetLancer('attaque');
     g().jetValider('attaque');
     const suite = suiteDeLaFenetre();
@@ -185,7 +185,7 @@ describe('Suite de la fenêtre de défense — UNE valeur, posée à l’ouvertu
     expect(JSON.parse(JSON.stringify(machine))).toEqual(machine);
     const { enemy: e2, hero } = setup(false, 1, 0);
     const g = banc.getState;
-    openAttackCascade(g, banc.setState, { attackerId: e2.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
+    openAttackCascade(g, banc.setState, { attackerId: e2.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attaquer');
     g().jetLancer('attaque');
     g().jetValider('attaque');
     const pilotee = suiteDeLaFenetre();
@@ -225,7 +225,7 @@ describe('Suite de la fenêtre de défense — UNE valeur, posée à l’ouvertu
   it('K6 pilotée : l’attaque est rendue au chemin d’application unique', () => {
     const { enemy, hero } = setup(false, 1, 0);
     const g = banc.getState;
-    openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
+    openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attaquer');
     g().jetLancer('attaque');
     g().jetValider('attaque');
     g().jetLancer('defense');
@@ -239,7 +239,7 @@ describe('Suite de la fenêtre de défense — UNE valeur, posée à l’ouvertu
   it('K6 pilotée dont l’attaquant a quitté le combat : la fenêtre se ferme sans appliquer', () => {
     const { enemy, hero } = setup(false, 1, 0);
     const g = banc.getState;
-    openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
+    openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attaquer');
     g().jetLancer('attaque');
     g().jetValider('attaque');
     g().jetLancer('defense');

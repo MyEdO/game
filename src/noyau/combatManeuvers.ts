@@ -152,9 +152,9 @@ export function freeAttackTargetOk(battle: BattleState, c: Combatant, kind: Atta
 /** Icône par type de manœuvre (id du registre `src/data/icons/` — la hotbar rend `<Icon id>`).
  *  Typé par l'union GÉNÉRÉE `IconId` (`src/data/icones.generated.ts`, hors de `ui`). */
 export const MANEUVER_ICON: Record<AttackKind, IconId> = {
-  arme: 'action/attack', morsure: 'creature/bite', caudale: 'creature/tail', cornes: 'creature/horns',
-  souffle: 'creature/breath', vomi: 'creature/vomit', tentacules: 'creature/tentacles',
-  etreinte: 'creature/squeeze', regard: 'creature/gaze', langue: 'creature/tongue', hurlement: 'creature/scream',
+  arme: 'action/attaquer', morsure: 'creature/morsure', caudale: 'creature/caudale', cornes: 'creature/cornes',
+  souffle: 'creature/souffle', vomi: 'creature/vomi', tentacules: 'creature/tentacules',
+  etreinte: 'creature/etreinte', regard: 'creature/regard', langue: 'creature/langue', hurlement: 'creature/hurlement',
   pietinement: 'journal/charge',
 };
 
@@ -280,7 +280,7 @@ export function availableAttacks(active: Combatant, battle: BattleState): Attack
     !!active.pos &&
     battle.combatants.some((c) => c.kind !== active.kind && !isOutOfAction(c) && c.pos)
   )
-    out.push({ id: 'tentacule', kind: 'tentacules', label: 'Tentacule', icon: 'creature/tentacles', targeting: 'melee', reach: 1, forceMelee: true, weaponUid: tentacule.uid, freeKind: 'tentacules', cost: { action: false, advantage: 0 } });
+    out.push({ id: 'tentacule', kind: 'tentacules', label: 'Tentacule', icon: 'creature/tentacules', targeting: 'melee', reach: 1, forceMelee: true, weaponUid: tentacule.uid, freeKind: 'tentacules', cost: { action: false, advantage: 0 } });
   // (3) Poste d'artillerie SERVI (`mannedPoste`, MDG 12-13) : « servir la pièce » = attaque DÉDIÉE portant
   //     l'arme du poste (`weaponUid` → canon ÉPINGLÉ, même si le servant porte une arme perso de mêlée pour
   //     l'abordage). Arc + portée INTRINSÈQUES (firedAttackBlock garde déjà l'arc de `w.mountSide`). Coûte
@@ -291,19 +291,19 @@ export function availableAttacks(active: Combatant, battle: BattleState): Attack
     const w = active.weapons.find((x) => x.uid === active.mannedPoste!.item.uid);
     // Pièce INDIRECTE (mortier/catapulte, `w.indirect`) : vise une CASE (placeur de zone), pas un combattant
     // (AA 10 l.169/171). DIRECTE (canon/baliste) : ciblage de combattant classique. Flag DONNÉE, zéro liste en dur.
-    if (w) out.push({ id: 'poste', label: `Servir ${w.label}`, icon: 'action/serve-engine', targeting: 'melee', weaponUid: w.uid, cost: { action: true, advantage: 0 }, ...(w.indirect ? { indirect: true } : {}) });
+    if (w) out.push({ id: 'poste', label: `Servir ${w.label}`, icon: 'action/servir-l-engin', targeting: 'melee', weaponUid: w.uid, cost: { action: true, advantage: 0 }, ...(w.indirect ? { indirect: true } : {}) });
   }
   // (4) « Au Contact » (LDB 62 l.176, Option « Longueur d'arme », règle optionnelle `combat-longueur-arme`) :
   //     Test opposé de Corps à corps pour entrer dans la longueur d'arme. Dispo si la règle est ON, l'Action
   //     dispo, et un adversaire Engagé présente une différence d'allonge pertinente. Choix EXPLICITE de
   //     l'« Attaque ▾ », pas une frappe.
   if (rule('combat-longueur-arme') && actionDispo && battle.combatants.some((c) => auContactEligible(active, c)))
-    out.push({ id: 'aucontact', label: 'Au contact', icon: 'action/attack', targeting: 'aucontact', cost: { action: true, advantage: 0 } });
+    out.push({ id: 'aucontact', label: 'Au contact', icon: 'action/attaquer', targeting: 'aucontact', cost: { action: true, advantage: 0 } });
   // (5) Empoignade EN COURS (LDB 14 l.161) : action à son tour entre deux Empoignés — Test opposé de Force
   //     (Dégâts / Empêtré) ou « Briser » (Avantage supérieur). Dispo si l'Action est dispo et un adversaire
   //     est Empoigné. Choix EXPLICITE de l'« Attaque ▾ ».
   if (actionDispo && battle.combatants.some((c) => grappleActionEligible(active, c)))
-    out.push({ id: 'grapple', label: 'Empoignade', icon: 'creature/squeeze', targeting: 'grapple', cost: { action: true, advantage: 0 } });
+    out.push({ id: 'grapple', label: 'Empoignade', icon: 'creature/etreinte', targeting: 'grapple', cost: { action: true, advantage: 0 } });
   return out.filter((m, i) => out.findIndex((n) => n.id === m.id) === i);
 }
 

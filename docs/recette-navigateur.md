@@ -1121,7 +1121,7 @@ Ce qui se lit à l'écran : le Trait qui a **réellement** sauvé est nommé (ja
 « Démoniaque/Protection » à deviner). **Deux graphies RAW cohabitent, et c'est le livre qui les
 sépare** : le STATBLOC écrit `Protection 6+` (`LDB 84 l.28` — puce de Trait du Codex, `grantTrait`,
 `formatTrait`), la PROSE d'un sort écrit `Protection (6+)` (`LDB 47 l.410` — journal de sauvegarde,
-`op.domeWard`, humanize, résumé d'op, `formatWardSave`). Ne pas « uniformiser » l'une sur l'autre.
+`op.dome`, humanize, résumé d'op, `formatWardSave`). Ne pas « uniformiser » l'une sur l'autre.
 
 **Poser le dé de sauvegarde** : l'option « Dés fixés » vit dans ☰ → **Options** → onglet **Confort**
 (case à cocher du registre `PREFERENCES`, persistée ; `__wfrp.prefs('des-fixes', null)` la remet). Elle

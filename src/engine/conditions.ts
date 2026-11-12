@@ -2,6 +2,7 @@
  * États (conditions) — Livre de base, chapitre « États ».
  * Gestion minimale pour le combat tactique : ajout, empilement, retrait.
  */
+import type { IconId } from '../data/icons';
 import type { FabriqueDId } from './fabriqueDId';
 import { Combatant, ActiveEffect, ConditionInstance, effectRef, type ModLine, type ConditionEmit, type ConditionLocks, type Difficulty, type Main } from './types';
 import { evalCondition, walkFlow } from './flowCore';
@@ -64,8 +65,8 @@ export function etatNonCumulable(id: string): boolean {
  *  (LDB 85), sans entrée catalogue — REGISTRE UNIQUE de l'exception (libellé, sévérité, icone) : le
  *  résolveur `etatConnu`, le nom scanné dans le journal (`conditionIdInText`) et la référence d'État d'une
  *  op (`refDEtatSchema`, `data/schemas/grammaire/mecanique.ts`) le COMPOSENT, aucun n'en garde de copie. */
-export const NARRATIVE_MARKERS: readonly { id: string; label: string; severity: number; icon: string }[] = [
-  { id: 'petrifie', label: 'Pétrifié', severity: 95, icon: 'condition/petrified' },
+export const NARRATIVE_MARKERS: readonly { id: string; label: string; severity: number; icon: IconId }[] = [
+  { id: 'petrifie', label: 'Pétrifié', severity: 95, icon: 'etat/petrifie' },
 ];
 
 const marqueurParId = indexParId('etats', NARRATIVE_MARKERS);
@@ -74,12 +75,12 @@ const marqueurParId = indexParId('etats', NARRATIVE_MARKERS);
  *  (`NARRATIVE_MARKERS`), `undefined` hors des deux. SOURCE UNIQUE du jeu d'ids d'État connus : le
  *  prédicat d'une frontière (`!!etatConnu(id)` : console `devtools.condition`), la sévérité (`conditionSeverity`) et l'icone
  *  (`gameIso/effectIcons.conditionMeta`) le composent. */
-export function etatConnu(id: string): { label: string; severity?: number; icon?: string } | undefined {
+export function etatConnu(id: string): { label: string; severity?: number; icon?: IconId } | undefined {
   return findConditionById(id) ?? marqueurParId(id);
 }
 
 /** L'État `id` que `etatConnu` résout ; un id hors des deux LÈVE (#1463 LD.1, #2995). */
-export function etatExige(id: string): { label: string; severity?: number; icon?: string } {
+export function etatExige(id: string): { label: string; severity?: number; icon?: IconId } {
   const etat = etatConnu(id);
   if (!etat) throw new Error(t('etats.inconnu', { id }));
   return etat;
@@ -151,7 +152,7 @@ function empileSurPionExistant(existing: ConditionInstance, value: number): void
 export function appliquerMortSubite(target: Combatant, log: string[]): void {
   target.wounds.current = 0;
   if (!target.conditions.some((c) => c.id === COND.inconscient)) addCondition(target, COND.inconscient);
-  log.push(t('cf.collapse', { name: target.label }));
+  log.push(t('cf.effondrement', { name: target.label }));
 }
 
 /** La Difficulté du Test qui retire l'État `id` quand sa pose n'en dicte aucune : le défaut de son Test

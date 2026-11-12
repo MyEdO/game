@@ -687,7 +687,7 @@ function noeudsDeTest(f: Flow | undefined): FlowTestNode[] {
     case 'test': return [f, ...noeudsDeTest(f.success), ...noeudsDeTest(f.fail)];
     case 'seq': return f.steps.flatMap(noeudsDeTest);
     case 'if': return [...noeudsDeTest(f.then), ...noeudsDeTest(f.else)];
-    case 'choice': return [...noeudsDeTest(f.yes), ...noeudsDeTest(f.no)];
+    case 'choice': return [...noeudsDeTest(f.oui), ...noeudsDeTest(f.non)];
     default: return [];
   }
 }
@@ -1254,14 +1254,14 @@ const CODEX_SPECS = {
       const n = datasetObject('riverNavigation');
       const forceLabel = new Map(n.windForces.entries.map((f) => [f.id, f.label]));
       const dirLabel = new Map(n.windDirections.entries.map((d) => [d.id, d.label]));
-      const effectText = (e: { pct?: number; drift?: boolean; tack?: boolean; capsizeRisk?: boolean; riggingRisk?: boolean } | undefined): string => {
+      const effectText = (e: { pourcentage?: number; derive?: boolean; louvoyage?: boolean; risqueDeChavirage?: boolean; risqueDeGreement?: boolean } | undefined): string => {
         if (!e) return '—';
         const parts: string[] = [];
-        if (e.pct != null) parts.push(tr('codex.riviere.vitesse', { pct: `${e.pct > 0 ? '+' : ''}${e.pct}` }));
-        if (e.drift) parts.push(tr('codex.riviere.derive'));
-        if (e.tack) parts.push(tr('codex.riviere.louvoyer'));
-        if (e.capsizeRisk) parts.push(tr('codex.riviere.chavirage'));
-        if (e.riggingRisk) parts.push(tr('codex.riviere.greement'));
+        if (e.pourcentage != null) parts.push(tr('codex.riviere.vitesse', { pct: `${e.pourcentage > 0 ? '+' : ''}${e.pourcentage}` }));
+        if (e.derive) parts.push(tr('codex.riviere.derive'));
+        if (e.louvoyage) parts.push(tr('codex.riviere.louvoyer'));
+        if (e.risqueDeChavirage) parts.push(tr('codex.riviere.chavirage'));
+        if (e.risqueDeGreement) parts.push(tr('codex.riviere.greement'));
         return parts.join(' · ') || '—';
       };
       return [{
@@ -1323,25 +1323,25 @@ const CODEX_SPECS = {
       }];
     },
   },
-  miscastMinor: {
+  imparfaiteMineure: {
     label: 'codex.fiche.incantationsImparfaitesMineures', group: 'magie', sourceRef: 'LDB 46',
-    build: () => datasetArray('miscastMinor').map((e) => miscastRowItem(e, miscastDie('miscast-mineure'))),
+    build: () => datasetArray('imparfaiteMineure').map((e) => miscastRowItem(e, miscastDie('miscast-mineure'))),
   },
-  miscastMajor: {
+  imparfaiteMajeure: {
     label: 'codex.fiche.incantationsImparfaitesMajeures', group: 'magie', sourceRef: 'LDB 46',
-    build: () => datasetArray('miscastMajor').map((e) => miscastRowItem(e, miscastDie('miscast-majeure'))),
+    build: () => datasetArray('imparfaiteMajeure').map((e) => miscastRowItem(e, miscastDie('miscast-majeure'))),
   },
-  miscastMinorVdm: {
+  imparfaiteMineureVdm: {
     label: 'codex.fiche.incantationsImparfaitesMineuresVdm', group: 'magie', sourceRef: 'VDM 02',
-    build: () => datasetArray('miscastMinorVdm').map((e) => miscastRowItem(e, miscastDie('miscast-mineure-vdm'))),
+    build: () => datasetArray('imparfaiteMineureVdm').map((e) => miscastRowItem(e, miscastDie('miscast-mineure-vdm'))),
   },
-  miscastMajorVdm: {
+  imparfaiteMajeureVdm: {
     label: 'codex.fiche.incantationsImparfaitesMajeuresVdm', group: 'magie', sourceRef: 'VDM 02',
-    build: () => datasetArray('miscastMajorVdm').map((e) => miscastRowItem(e, miscastDie('miscast-majeure-vdm'))),
+    build: () => datasetArray('imparfaiteMajeureVdm').map((e) => miscastRowItem(e, miscastDie('miscast-majeure-vdm'))),
   },
-  miscastWrath: {
+  colereDesDieux: {
     label: 'codex.fiche.colereDesDieux', group: 'magie', sourceRef: 'LDB 40',
-    build: () => datasetArray('miscastWrath').map((e) => miscastRowItem(e, miscastDie('miscast-colere'))),
+    build: () => datasetArray('colereDesDieux').map((e) => miscastRowItem(e, miscastDie('miscast-colere'))),
   },
   stakes: {
     // Enjeux des jets de cascade (#1117, collection #1681), groupés par cascade.
@@ -2370,7 +2370,7 @@ const CODEX_SPECS = {
             rows: n.orientation.reperes.map((r) => ({ t: 'kv', k: `DR ${fourchette(r.min, r.max)}`, v: r.desc } as CodexRow)),
           },
           {
-            title: tr('codex.fiche.changementDeCap', { die: formatDice(deDeLaTableTiree(n.orientation.changementDeCap)), v: derive ? tr('codex.fiche.aDr', { driftMajorBonus: n.orientation.driftMajorBonus, v: fourchette(derive.min, derive.max) }) : '' }), layout: 'list',
+            title: tr('codex.fiche.changementDeCap', { die: formatDice(deDeLaTableTiree(n.orientation.changementDeCap)), v: derive ? tr('codex.fiche.aDr', { bonusDeDeriveMajeure: n.orientation.bonusDeDeriveMajeure, v: fourchette(derive.min, derive.max) }) : '' }), layout: 'list',
             rows: n.orientation.changementDeCap.entries.map((r) => ({ t: 'kv', k: fourchette(r.min, r.max, facesDuDe(deDeLaTableTiree(n.orientation.changementDeCap))), v: r.desc } as CodexRow)),
           },
           {
@@ -2418,7 +2418,7 @@ const CODEX_SPECS = {
           },
           {
             title: tr('codex.fiche.tourbillons'), layout: 'list',
-            rows: p.tourbillons.map((w) => ({ t: 'kv', k: w.label, v: tr('codex.fiche.mRayonMSpiraleMMan', { m: w.m, zoneRadiusM: w.zoneRadiusM, zoneSpiralM: w.zoneSpiralM, manDR: w.manDR, ic: w.ic, v: DIFFICULTY_LABELS[w.evasion.difficulty], targetDR: w.evasion.targetDR }) } as CodexRow)),
+            rows: p.tourbillons.map((w) => ({ t: 'kv', k: w.label, v: tr('codex.fiche.mRayonMSpiraleMMan', { m: w.m, zoneRadiusM: w.zoneRadiusM, zoneSpiralM: w.zoneSpiralM, manDR: w.manDR, ic: w.ic, v: DIFFICULTY_LABELS[w.evasion.difficulty], drCible: w.evasion.drCible }) } as CodexRow)),
           },
           {
             title: tr('codex.fiche.gestionDesPerilsReperageEvitementPar'), layout: 'list',
@@ -2524,7 +2524,7 @@ const CODEX_SPECS = {
             title: tr('codex.fiche.commerceDOpportunite'), layout: 'list',
             rows: [
               { t: 'kv', k: tr('codex.fiche.test'), v: `${refLabel('skills', opportunite.test.skill!)} ${DIFFICULTY_LABELS[opportunite.test.difficulty!]}` },
-              { t: 'kv', k: tr('codex.fiche.drAAtteindre'), v: String(opportunite.targetDR) },
+              { t: 'kv', k: tr('codex.fiche.drAAtteindre'), v: String(opportunite.drCible) },
               { t: 'kv', k: tr('codex.fiche.tentativesMaximales'), v: String(opportunite.tentativesMax) },
               ...(opportunite.encInvestiMax ? [{ t: 'kv', k: tr('codex.fiche.investissementMaximalEnc'), v: tr('codex.fiche.oui') } as CodexRow] : []),
               ...opportunite.outcomes.map((o) => ({

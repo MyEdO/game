@@ -60,7 +60,7 @@ export interface MachinerieDuNoyau {
   /** Passe de la phase pré-bataille (Discours/Planification) aux Rounds de bataille. */
   engagerLaBataille: () => void;
   /** Test Étendu SÉQUENTIEL (LDB 12) : ouvre le flux (ex. crocheter DR 5) ; un Round à la fois. */
-  ouvrirLeTestEtendu: (opts: { actorId: IdDeCombattant; label: string; skillLabel: string; skill?: PendingExtendedTest['skill']; characteristic?: CharKey; target: number; targetDR: number; tentativesMax?: number; flag?: string; support?: SupportDetail; dispel?: { spellId: string; casterId: IdDeCombattant; label: string }; outcome?: PendingExtendedTest['outcome']; stake?: StakeRef; suite?: Flow }) => void;
+  ouvrirLeTestEtendu: (opts: { actorId: IdDeCombattant; label: string; skillLabel: string; skill?: PendingExtendedTest['skill']; characteristic?: CharKey; target: number; drCible: number; tentativesMax?: number; flag?: string; support?: SupportDetail; dispel?: { spellId: string; casterId: IdDeCombattant; label: string }; outcome?: PendingExtendedTest['outcome']; stake?: StakeRef; suite?: Flow }) => void;
   /** Enfoncer une porte à PLUSIEURS (EDO Appendice 2) : ouvre le flux (objet BE/B) ; chacun frappe. */
   enfoncerLaPorte: (opts: { label: string; doorBE: number; doorB: number; heroIds: IdDeHeros[]; flag?: string; suite?: Flow }) => void;
   orienterLesCombattants: () => void;

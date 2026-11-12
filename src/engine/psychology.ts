@@ -4,6 +4,7 @@
  * P1 = Peur (Indice) / Terreur (Indice). Cf. spec :
  * docs/superpowers/specs/2026-06-07-psychologie-design.md
  */
+import type { IconId } from '../data/icons';
 import { Combatant, DIFFICULTE_PAR_DEFAUT, type Difficulty, type EffectSource, type TerreurSubie } from './types';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { t } from '../i18n';
@@ -81,9 +82,9 @@ export interface PsychAffliction {
 /** Libellés (icône + nom) des Traits psy ciblés — DÉRIVÉS de `psychology.json` (SOURCE UNIQUE, comme
  *  `etats.json` pour les États — même champ `icon` du registre `<Icon>`, id `famille/nom`). Partagé
  *  par les modales psy (combat + rencontre) et la narration. */
-export const cibleLabel = (type: string): { icon: string; label: string } | undefined => {
+export const cibleLabel = (type: string): { icon?: IconId; label: string } | undefined => {
   const p = findPsychologyById(type);
-  return p?.cibles ? { icon: p.icon ?? '', label: p.label } : undefined;
+  return p?.cibles ? { ...(p.icon ? { icon: p.icon } : {}), label: p.label } : undefined;
 };
 
 /** Ce qui peut déclencher, ou subir, un Trait psy ciblé : un combattant, l'interlocuteur d'un Test social

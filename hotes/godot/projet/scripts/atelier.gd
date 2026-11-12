@@ -18,7 +18,7 @@
 ## parcourt (#3822).
 ## Le modèle se choisit en tête du panneau ; chaque onglet, et ce qu'il porte, se montre si le modèle posé lui offre
 ## quelque chose (#3792, `_adapter_les_onglets`, `.claude/rules/hote-godot.md`).
-## Chaque geste mis en page, il publie à la page ce que l'écran porte (`PontDuNoyau.publier_l_ecran`).
+## Chaque geste mis en page, il publie ce que l'écran porte (`PontDuNoyau.publier_l_ecran`).
 extends Node3D
 
 const VIDE := MontageDeComposition.VIDE
@@ -421,7 +421,7 @@ func _montrer_le_modele_pose() -> void:
 ## porte fermée, une porte ouverte, une fenêtre, une fenêtre close et une brèche, et, pour une apparence à couronne
 ## (`parapet`), une case haussée d'un étage, crénelée de l'apparence, que sa crête ceint (`cretesDePerimetre`, #3818).
 ## La réponse se pose sous le nœud `Echantillon/Scene` de l'atelier, une `VolumeDeScene` comme celle du monde de la
-## partie (section « Monde ») : le volume, les arêtes, les nappes de toit et les couronnes, celles de
+## partie (section « Monde ») : le volume en morceaux complets, les arêtes, les nappes de toit et les couronnes, celles de
 ## `couronnesAbattues` retirées (`VolumeDeScene.retirer_les_couronnes`), à l'échelle de `metresParCase`, sa boîte au
 ## sol et cadrée comme celle d'un véhicule (`MarcheDeLAtelier.cadrer_la_boite`) ; le sol de l'atelier se cache tant
 ## qu'un échantillon est posé. Seuls « Effets » et « Outils » sont alors offerts ; un effet cadre aussi l'échantillon.
@@ -478,17 +478,17 @@ func _poser_sans_base(racine: Node3D) -> void:
 	_montrer_le_modele_pose()
 
 
-## L'échantillon demandé dessiné par `echantillon` (`CONTRAT.md`, « Atelier 3D ») : son volume, ses arêtes, ses nappes de
-## toit et ses couronnes posés par sa scène (`VolumeDeScene`), les couronnes tombées retirées, en mètres
+## L'échantillon demandé dessiné par `echantillon` (`CONTRAT.md`, « Atelier 3D ») : son volume en morceaux complets, ses
+## nappes de toit, ses couronnes (`VolumeDeScene.poser`, la réponse pour manifeste et pour géométries reçues) et ses
+## arêtes posés par sa scène, les couronnes tombées retirées, en mètres
 ## (`MiseEnPage.echelle_en_metres`), au sol (`_poser_au_sol`) et cadré à sa taille (`MarcheDeLAtelier.cadrer_la_boite`).
 func _poser_l_echantillon() -> void:
 	var reponse := _pont.appeler("echantillon", _echantillon_demande)
 	if reponse.get("ok") != true:
 		return
 	var scene := _scene_de_l_echantillon
-	scene.poser(reponse.monde)
+	scene.poser(reponse, {volume = reponse.monde.morceaux, toits = reponse.toits, couronnes = reponse.couronnes})
 	scene.poser_les_aretes(reponse.aretes)
-	scene.poser_les_nappes(reponse.toits, reponse.couronnes)
 	scene.retirer_les_couronnes(reponse.couronnesAbattues)
 	scene.scale = MiseEnPage.echelle_en_metres(reponse.monde.metresParCase)
 	scene.position = Vector3.ZERO

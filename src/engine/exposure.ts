@@ -195,7 +195,7 @@ export function exposureNight(
 ): { rolls: ExposureRoll[]; log: string[]; failures: number; wounds: number } {
   const kind = opts.kind ?? 'froid';
   if (isWeatherWarded(c)) {
-    return { rolls: [], log: [t('eff.weatherWarded', { name: c.label, what: kind === 'froid' ? t('eff.wardFroid') : t('eff.wardChaleur') })], failures: 0, wounds: 0 };
+    return { rolls: [], log: [t('eff.meteoConjuree', { name: c.label, what: kind === 'froid' ? t('eff.protectionDuFroid') : t('eff.protectionDeLaChaleur') })], failures: 0, wounds: 0 };
   }
   const rolls: ExposureRoll[] = [];
   const log: string[] = [];

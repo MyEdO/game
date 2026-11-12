@@ -23,11 +23,12 @@
  * délègue (appliquer une feuille, ouvrir une modale de Test, suspendre, reprendre) vit chez ses hôtes
  * du noyau (`runFlow`, `runCombatFlow`…).
  */
+import type { IconId } from '../data/icons';
 import { toDate } from './clock';
 import type { CharKey, Difficulty, EffectSource, HitLocation } from './types';
 import { relationBetween, type Camp, type Relation } from './relations';
 import { groupMatch } from './groups';
-import { estOpDeLaBourseDuGroupe, estOpDuMarche, estOpDuNavire, opDemandeUnDe, valeurNonLiee, type Formula, type GameOp, type PairedSense } from './ops';
+import { estOpDAttaquesSubies, estOpDeLaBourseDuGroupe, estOpDuMarche, estOpDuNavire, opDemandeUnDe, valeurNonLiee, type Formula, type GameOp, type PairedSense } from './ops';
 import type { CibleEnVue } from './psychology';
 import { refCouvre, type Id, type RefDesignee } from '../data/schemas/grammaire/ref';
 import type { SourceRef } from '../data/schemas/grammaire/valeurs';
@@ -582,7 +583,7 @@ export type JetFixe<K extends 'skill' | 'difficulty' = never> = Omit<FlowTest, C
  *  - `do`     : une feuille — applique un effet `E` (action) ;
  *  - `if`     : évalue `cond` (PUR) → `then` / `else` ;
  *  - `test`   : jet ALÉATOIRE interactif → `success` / `fail` (forme Flow d'`Effect.test`) ;
- *  - `choice` : DÉCISION du joueur opt-in (≠ `test` aléatoire, ≠ `if` état) → `yes` / `no`. Coût
+ *  - `choice` : DÉCISION du joueur opt-in (≠ `test` aléatoire, ≠ `if` état) → `oui` / `non`. Coût
  *    d'Avantage optionnel dépensé sur `yes`. Primitive FONDAMENTALE des réactions de combat
  *    (Frappe Réactive « vous POUVEZ tenter », Déstabilisante « vous POUVEZ dépenser 2 Av ») et, à
  *    terme, des choix de dialogue/pièges. Son exécuteur (`resolveFlowChoice`) pousse une étape-choix
@@ -593,7 +594,7 @@ export type Flow<E = EffectOp> =
   | { kind: 'do'; effect: E }
   | { kind: 'if'; cond: Condition; then: Flow<E>; else?: Flow<E> }
   | { kind: 'test'; test: FlowTest; success: Flow<E>; fail: Flow<E> }
-  | { kind: 'choice'; prompt: string; source?: SourceRef; adapteDe?: SourceRef; advantageCost?: number | IndiceTemplate; icon?: string; yes: Flow<E>; no?: Flow<E> };
+  | { kind: 'choice'; prompt: string; source?: SourceRef; adapteDe?: SourceRef; advantageCost?: number | IndiceTemplate; icon?: IconId; oui: Flow<E>; non?: Flow<E> };
 
 /** TEMPLATE d'instance du coût d'Avantage d'un `choice` : l'Indice de l'entité PORTEUSE (Taillade 1A/2A,
  *  `AA 08 l.87`), substitué par `withArg` (`noyau/triggeredEffects`) avant exécution. Resté tel quel, le
@@ -863,9 +864,9 @@ export function flowHasTest<E = EffectOp>(flow: Flow<E>): boolean {
 const HOOK_BACKED_OPS = new Set(['grantFreeAttack', 'interruptFocus', 'breakBlade', 'delayed']);
 
 /** Op IMPURE : de `HOOK_BACKED_OPS`, de NAVIRE (`estOpDuNavire`), résolue sur la cible `navire` par
- *  `noyau/navireOps.ts`, de la BOURSE DU GROUPE (`estOpDeLaBourseDuGroupe`) ou du MARCHÉ D'UN PORT
- *  (`estOpDuMarche`) — `applyOps` les laisse toutes inertes. */
-const estOpImpure = (o: GameOp): boolean => HOOK_BACKED_OPS.has(o.op) || estOpDuNavire(o) || estOpDeLaBourseDuGroupe(o) || estOpDuMarche(o);
+ *  `noyau/navireOps.ts`, de la BOURSE DU GROUPE (`estOpDeLaBourseDuGroupe`), du MARCHÉ D'UN PORT
+ *  (`estOpDuMarche`) ou des ATTAQUES SUBIES (`estOpDAttaquesSubies`) — `applyOps` les laisse toutes inertes. */
+const estOpImpure = (o: GameOp): boolean => HOOK_BACKED_OPS.has(o.op) || estOpDuNavire(o) || estOpDeLaBourseDuGroupe(o) || estOpDuMarche(o) || estOpDAttaquesSubies(o);
 
 /** Le Flow porte-t-il une op IMPURE (cf. `estOpImpure`) ? Si oui, son exécution ne passe jamais par
  *  `runPureFlowLines`, qui l'avalerait. */
@@ -875,7 +876,7 @@ export function flowHasImpureOp<E = EffectOp>(flow: Flow<E>): boolean {
     case 'seq': return flow.steps.some((s) => flowHasImpureOp(s));
     case 'if': return flowHasImpureOp(flow.then) || (flow.else ? flowHasImpureOp(flow.else) : false);
     case 'test': return flowHasImpureOp(flow.success) || flowHasImpureOp(flow.fail);
-    case 'choice': return flowHasImpureOp(flow.yes) || (flow.no ? flowHasImpureOp(flow.no) : false);
+    case 'choice': return flowHasImpureOp(flow.oui) || (flow.non ? flowHasImpureOp(flow.non) : false);
   }
 }
 
@@ -905,7 +906,7 @@ export function flowHasOpADe<E = EffectOp>(flow: Flow<E>): boolean {
     case 'seq': return flow.steps.some((s) => flowHasOpADe(s));
     case 'if': return flowHasOpADe(flow.then) || (flow.else ? flowHasOpADe(flow.else) : false);
     case 'test': return flowHasOpADe(flow.success) || flowHasOpADe(flow.fail);
-    case 'choice': return flowHasOpADe(flow.yes) || (flow.no ? flowHasOpADe(flow.no) : false);
+    case 'choice': return flowHasOpADe(flow.oui) || (flow.non ? flowHasOpADe(flow.non) : false);
   }
 }
 
@@ -919,7 +920,7 @@ export function flowHasImpureOpOutsideTest<E = EffectOp>(flow: Flow<E>, inTestBr
     case 'seq': return flow.steps.some((s) => flowHasImpureOpOutsideTest(s, inTestBranch));
     case 'if': return flowHasImpureOpOutsideTest(flow.then, inTestBranch) || (flow.else ? flowHasImpureOpOutsideTest(flow.else, inTestBranch) : false);
     case 'test': return flowHasImpureOpOutsideTest(flow.success, true) || flowHasImpureOpOutsideTest(flow.fail, true);
-    case 'choice': return flowHasImpureOpOutsideTest(flow.yes, inTestBranch) || (flow.no ? flowHasImpureOpOutsideTest(flow.no, inTestBranch) : false);
+    case 'choice': return flowHasImpureOpOutsideTest(flow.oui, inTestBranch) || (flow.non ? flowHasImpureOpOutsideTest(flow.non, inTestBranch) : false);
   }
 }
 
@@ -932,7 +933,7 @@ export function flowHasFreeAttack<E = EffectOp>(flow: Flow<E>): boolean {
     case 'seq': return flow.steps.some((s) => flowHasFreeAttack(s));
     case 'if': return flowHasFreeAttack(flow.then) || (flow.else ? flowHasFreeAttack(flow.else) : false);
     case 'test': return flowHasFreeAttack(flow.success) || flowHasFreeAttack(flow.fail);
-    case 'choice': return flowHasFreeAttack(flow.yes) || (flow.no ? flowHasFreeAttack(flow.no) : false);
+    case 'choice': return flowHasFreeAttack(flow.oui) || (flow.non ? flowHasFreeAttack(flow.non) : false);
   }
 }
 
@@ -967,7 +968,7 @@ export function poserEnjeu(test: FlowTest, stake: StakeRef | undefined): FlowTes
 /** Champ COMPAGNON obligatoire de chaque forme de nœud (`Flow`) — le second critère de reconnaissance :
  *  un `kind` seul ne suffit pas (l'algèbre des `Condition` en porte un aussi, et rien n'interdit à une
  *  donnée future de nommer un champ `kind`). Un objet qui a LES DEUX est un nœud de Flow. */
-const FLOW_SHAPE: Record<string, string> = { seq: 'steps', do: 'effect', if: 'then', test: 'success', choice: 'yes' };
+const FLOW_SHAPE: Record<string, string> = { seq: 'steps', do: 'effect', if: 'then', test: 'success', choice: 'oui' };
 
 /** Cette valeur EST-elle un nœud de Flow ? Reconnaissance par la FORME (kind + champ compagnon), jamais
  *  par l'endroit où on l'a trouvée. PURE. */
@@ -1053,7 +1054,7 @@ export function reecrireFlow<E = EffectOp>(flow: Flow<E>, f: (node: Flow<E>) => 
     case 'seq': return f({ ...flow, steps: flow.steps.map((s) => reecrireFlow(s, f)) });
     case 'if': return f({ ...flow, then: reecrireFlow(flow.then, f), ...(flow.else ? { else: reecrireFlow(flow.else, f) } : {}) });
     case 'test': return f({ ...flow, success: reecrireFlow(flow.success, f), fail: reecrireFlow(flow.fail, f) });
-    case 'choice': return f({ ...flow, yes: reecrireFlow(flow.yes, f), ...(flow.no ? { no: reecrireFlow(flow.no, f) } : {}) });
+    case 'choice': return f({ ...flow, oui: reecrireFlow(flow.oui, f), ...(flow.non ? { non: reecrireFlow(flow.non, f) } : {}) });
     case 'do': return f(flow);
   }
 }
@@ -1114,7 +1115,7 @@ export function walkFlow<E = EffectOp>(flow: Flow<E>, visit: (node: Flow<E>, che
     case 'seq': flow.steps.forEach((s, i) => walkFlow(s, visit, [...chemin, 'steps', i])); break;
     case 'if': walkFlow(flow.then, visit, [...chemin, 'then']); if (flow.else) walkFlow(flow.else, visit, [...chemin, 'else']); break;
     case 'test': walkFlow(flow.success, visit, [...chemin, 'success']); walkFlow(flow.fail, visit, [...chemin, 'fail']); break;
-    case 'choice': walkFlow(flow.yes, visit, [...chemin, 'yes']); if (flow.no) walkFlow(flow.no, visit, [...chemin, 'no']); break;
+    case 'choice': walkFlow(flow.oui, visit, [...chemin, 'oui']); if (flow.non) walkFlow(flow.non, visit, [...chemin, 'non']); break;
     case 'do': break;
   }
 }

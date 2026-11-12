@@ -225,7 +225,7 @@ function rendu() {
     '}',
     '',
     'export const scenario: TestScenario = {',
-    "  id: 'xxx', order: 7, category: 'combat', icon: 'scenario/ambush', title: '…',",
+    "  id: 'xxx', order: 7, category: 'combat', icon: 'scenario/embuscade', title: '…',",
     "  tests: 'ce que ça vérifie', partyNote: 'le groupe',",
     "  construire: () => ({ party: [/* … */], scene: construireScene() }), autoCombat: 'enc-xxx',",
     '};',

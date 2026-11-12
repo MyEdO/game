@@ -31,7 +31,7 @@ import type { CorpsDesReglages } from './reglagesDuJet';
  *  (`jetValider('testEtendu')`) et par la fenêtre. LDB 12 l.170-185 */
 export function issueDuRound(p: PendingExtendedTest): ReturnType<typeof extendedTestStep> | null {
   const cur = p.rounds[p.rounds.length - 1];
-  return cur?.result ? extendedTestStep(p.total, cur.result, p.targetDR) : null;
+  return cur?.result ? extendedTestStep(p.total, cur.result, p.drCible) : null;
 }
 
 export function creerActionsDesTestsDeScene(get: Get, set: Set) {
@@ -42,7 +42,7 @@ export function creerActionsDesTestsDeScene(get: Get, set: Set) {
       // l'être, ligne au-dessus. L'enjeu vit sur l'ÉTAPE, que `CascadeModal` lit (`cur.stake`, #1117).
       const steps: BuiltCascadeStep[] = [];
       pousseSi(steps, hostStep(get, { id: idDansLaSequence(get, 'ext-jet', 'test'), kind: 'jetEtendu', jet: 'testEtendu', actorId: donnee.actorId, ...(stake ? { stake } : {}) }));
-      if (steps.length) openSequence(get, set, { title: donnee.label, icon: 'ui/key', purpose: 'test', steps });
+      if (steps.length) openSequence(get, set, { title: donnee.label, icon: 'interface/cle', purpose: 'test', steps });
     },
     // Enfoncer une porte à plusieurs (EDO Appendice 2) : flux multi PARALLÈLE (objet BE/B).
     enfoncerLaPorte: (opts) => {
@@ -57,7 +57,7 @@ export function creerActionsDesTestsDeScene(get: Get, set: Set) {
       // mint vérifie que `pendingForceDoor` est posé (il vient de l'être).
       const steps: BuiltCascadeStep[] = [];
       pousseSi(steps, hostStep(get, { id: 'forceDoor', kind: 'enfoncerLaPorte', jet: 'enfoncerLaPorte', groupOwner: true }));
-      if (steps.length) openSequence(get, set, { title: t('store.forceDoorTitle'), icon: 'action/force', purpose: 'combat', steps });
+      if (steps.length) openSequence(get, set, { title: t('store.forceDoorTitle'), icon: 'action/enfoncer', purpose: 'combat', steps });
     },
   } satisfies FabriqueDuNoyau;
 }
@@ -134,7 +134,7 @@ export function cloturesDesTestsDeScene(get: Get, set: Set) {
       const exhausted = !done && p.tentativesMax != null && p.rounds.length >= p.tentativesMax;
       if (done || exhausted) {
         set({ pendingExtendedTest: null, pendingCascade: null }); // ferme la cascade-hôte aussi
-        get().ecrireAuJournal(t('store.extendedDone', { label: p.label, issue: t(done ? 'store.extendedOk' : 'store.extendedKo'), total, target: p.targetDR }));
+        get().ecrireAuJournal(t('store.extendedDone', { label: p.label, issue: t(done ? 'store.extendedOk' : 'store.extendedKo'), total, target: p.drCible }));
         if (done && p.dispel) {
           // DISSIPATION réussie (LDB 46 l.160) : retire tous les effets du Sort de tous ses porteurs.
           const b = get().battle;

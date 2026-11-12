@@ -93,7 +93,7 @@ describe('chip d’État sur les modales de Test, avant et après le jet (LDB 16
 
   it('Main ensanglantée', () => {
     const { H, E } = heroFaceAUnEnnemi(); sonne(H); H.handGates = ['main'];
-    openAttackCascade(g, useGame.setState, { attackerId: H.id, targetId: E.id, location: null, result: null }, 'Attaque', 'action/attack');
+    openAttackCascade(g, useGame.setState, { attackerId: H.id, targetId: E.id, location: null, result: null }, 'Attaque', 'action/attaquer');
     const att = cible(H, { characteristic: 'dexterite' }, 'accessible');
     act(() => root.render(createElement(HandGateModal)));
     nommeLEtat('avant', att);

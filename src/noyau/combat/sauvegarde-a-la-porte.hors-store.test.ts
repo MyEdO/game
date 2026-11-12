@@ -442,7 +442,7 @@ describe('une fenêtre DE PLUS sur le même coup ne perd pas la suite (sauvegard
     } as never);
     setBattle([brute, porteur]);
     // Dépassement (LDB 18 l.53) : `woundsLost` (8) > PB courants (3), `critical: false`.
-    const depassement = { ...touche(), damage: 12, woundsLost: 8, location: 'corps', advantageTo: 'attacker' } as AttackResult;
+    const depassement = { ...touche(), damage: 12, woundsLost: 8, location: 'corps', advantageTo: 'attaquant' } as AttackResult;
 
     // 1) La SAUVEGARDE s'ouvre la première, avant toute mutation.
     const suspendu = applyAttackResult(banc.getState, banc.setState, brute, porteur, gourdin, depassement,

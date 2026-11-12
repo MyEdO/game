@@ -61,12 +61,12 @@ function consequenceDe(e, ou) {
   };
   switch (e.kind) {
     case 'infestation': {
-      cles(['testType', 'difficulty', 'targetDR', 'spoilEncPerNight', 'diseaseChancePct', 'ratAttacks', 'ratCC', 'ratWeapon']);
+      cles(['testType', 'difficulty', 'drCible', 'spoilEncPerNight', 'diseaseChancePct', 'ratAttacks', 'ratCC', 'ratWeapon']);
       if (typeof p.testType !== 'string' || typeof p.difficulty !== 'string') arrets.push(`${ou} : params.testType/difficulty absents`);
       const pct = entier('diseaseChancePct');
       if (pct < 1 || pct > 99) arrets.push(`${ou} : params.diseaseChancePct « ${pct} » hors de 1-99`);
       return feuille('navire', [{
-        op: 'infestation', crewTestType: { id: p.testType }, difficulty: p.difficulty, targetDR: entier('targetDR'),
+        op: 'infestation', crewTestType: { id: p.testType }, difficulty: p.difficulty, drCible: entier('drCible'),
         chaqueNuit: {
           kind: 'seq',
           steps: [

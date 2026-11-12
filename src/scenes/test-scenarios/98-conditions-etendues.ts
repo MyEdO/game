@@ -76,7 +76,7 @@ export const scenario: TestScenario = {
   id: 'conditions-etendues',
   order: 25,
   category: 'scenarios',
-  icon: 'nav/campaign',
+  icon: 'navigation/campagne',
   title: 'Conditions étendues (skill/career/species/status)',
   tests:
     'Les 4 nouveaux kinds de `Condition` party-level (#711) : `skill` (avances), `career`, ' +

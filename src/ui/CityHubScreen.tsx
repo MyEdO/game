@@ -293,7 +293,7 @@ export function CityHubScreen({
   return (
     <ScreenShell
       className="city-hub"
-      title={<><Icon id={place.icon ?? 'nav/entry-point'} size="sm" /> {place.label}</>}
+      title={<><Icon id={place.icon ?? 'navigation/point-d-entree'} size="sm" /> {place.label}</>}
       onClose={onClose}
       meta={{ time: gameTime, money }}
       actions={scene?.weather && <span className="city-hub-weather">· {libelleDeValeur(sceneWeatherSchema, scene.weather)}</span>}

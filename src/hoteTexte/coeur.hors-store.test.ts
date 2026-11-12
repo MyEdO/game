@@ -222,7 +222,7 @@ describe('une réponse dit ce qui attendait le geste suivant, et qui tient la ma
     const t = partie('dome', verbe('fenetreValider', 'debutDuRound'));
     const r = t.jouer(verbe('cliquerLaCase', { x: 3, y: 5 }), verbe('terminerLeTour'), verbe('terminerLeTour'));
     expect(r.erreur, r.texte).toBeNull();
-    expect(r.texte.split('\n  ').join(' ')).toMatch(/levé : aperçu move → \(3,5\), fin de tour armée/);
+    expect(r.texte.split('\n  ').join(' ')).toMatch(/levé : aperçu deplacement → \(3,5\), fin de tour armée/);
   });
 
   it('un refus de permission nomme qui tient la main et son siège', () => {

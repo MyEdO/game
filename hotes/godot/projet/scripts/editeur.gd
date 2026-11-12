@@ -1,10 +1,11 @@
 ## L'éditeur de carte (#3508), hôte de la méthode `editer` du pont (`hotes/godot/pont/CONTRAT.md`, section « Éditeur ») :
-## il ouvre la campagne du jeu de l'adresse de la page (`?campagne=<id>`, sinon `CAMPAGNE`), telle que le dépôt la sert
+## il ouvre la campagne du jeu du paramètre `campagne` (`PontDuNoyau.parametre`, sinon `CAMPAGNE`), telle que le dépôt la sert
 ## (`GET depot/<id>`) s'il la sert, sinon telle que le jeu l'embarque, et applique chaque réponse. Le texte qu'une
 ## réponse donne à enregistrer s'écrit au dépôt (`PUT depot/<id>`), et l'issue de l'écriture revient au pont.
 ## Avant d'ouvrir, il indexe les modèles du serveur (`MontageDeComposition.indexer_les_modeles`), que le pont lit pour
-## servir le corps de chaque navire. Le monde rendu va au monde (`Monde.poser`), sur la couche éditée, avec les arêtes de
-## la couche (`VolumeDeScene.poser_les_aretes`) et les navires de la scène, chacun sous le modèle de son corps
+## servir le corps de chaque navire. Le monde rendu va au monde (`Monde.poser`) : son manifeste, et la géométrie de ses
+## seuls morceaux dont l'empreinte a bougé (`morceaux`, source `edition`), masqué au-dessus de la couche éditée
+## (`retrait`, `VolumeDeScene.retirer`), avec les arêtes de la couche (`VolumeDeScene.poser_les_aretes`) et les navires de la scène, chacun sous le modèle de son corps
 ## (`MontageDesNavires`) ; la surcouche : chaque zone de la couche nommée au-dessus de sa première case, les cases de
 ## la zone sélectionnée en plaques, la poignée de la sélection en survol, puis chaque repère d'une entité ou d'une entrée
 ## de la couche, en plaque sur le sol de sa case, celle du repère sélectionné en survol, et nommé au-dessus d'elle
@@ -17,15 +18,16 @@
 ## celui de l'élément pressé (`Zone.geste`, `{ edition }`), ou le pointeur sur
 ## le monde, appuyé, glissé d'une case à l'autre et relâché, chacun au point de la carte que le monde touche
 ## (`Monde.touche_sous`). Un refus se dit. Chaque réponse montrée, et chaque défilement du panneau ou onglet choisi, qui
-## change ses boutons à l'écran, il publie à la page ce que l'écran porte (`PontDuNoyau.publier_l_ecran`), que la
+## change ses boutons à l'écran, il publie ce que l'écran porte (`PontDuNoyau.publier_l_ecran`), que la
 ## recette lit.
 extends Node
 
 ## @contrat Éditeur
 ## Le routeur `projet/scripts/editeur.gd` (scène `projet/scenes/Editeur.tscn`, ouverte par le bouton « Éditeur » du
-## menu) ouvre la campagne de l'adresse de la page (`?campagne=<id>`, la Diligence sans elle), avec le `projet` que sert
+## menu) ouvre la campagne du paramètre `campagne` (la Diligence sans lui), avec le `projet` que sert
 ## `GET depot/<id>` s'il répond (`PontDuNoyau.requeter`), une fois les modèles du serveur indexés
-## (`MontageDeComposition.indexer_les_modeles`), pose le monde rendu (`Monde.poser`), ses arêtes
+## (`MontageDeComposition.indexer_les_modeles`), pose le monde rendu (`Monde.poser`, son manifeste et les morceaux dont
+## l'empreinte a bougé, `morceaux` de source `edition`), masqué au-dessus de la couche éditée (`retrait`), ses arêtes
 ## (`VolumeDeScene.poser_les_aretes`) et ses navires, chacun sous le modèle de son corps comme au plateau
 ## (`MontageDesNavires`), la surcouche en plaques sur le sol de ses cases (`Monde.peindre`) : chaque zone nommée
 ## au-dessus de sa première case, les cases de la zone sélectionnée, la poignée de la sélection en survol, chaque
@@ -35,9 +37,10 @@ extends Node
 ## profondeur s'il passe dessus, sinon juste dessous), et les zones dans son panneau d'outils, à gauche. Il garde les
 ## calques de la campagne dans `user://calques/<id>.json`, qu'il passe à `{ ouvrir }` et réécrit à chaque `memoire`,
 ## dont il efface les planches à oublier et déplace les planches à déplacer ; chaque planche dans `user://<image>.png`.
-## Une réponse qui porte `planche` ouvre le choix d'un fichier par la page (`PontDuNoyau.choisir_une_image`, par
-## `wfrpPont.choisirUneImage`, `hotes/godot/pont/fichier.ts` : un `<input type=file>` marqué `data-planche`, posé au
-## document le temps du choix) ; l'image lue, PNG, JPEG ou WebP, s'écrit au chemin de la planche, et sa taille revient
+## Une réponse qui porte `planche` ouvre le choix d'un fichier (`PontDuNoyau.choisir_une_image`) : dans la page, par
+## `wfrpPont.choisirUneImage` (`hotes/godot/pont/fichier.ts` : un `<input type=file>` marqué `data-planche`, posé au
+## document le temps du choix) ; hors d'une page, par le dialogue de fichier natif (section « Transport ») ; l'image
+## lue, PNG, JPEG ou WebP, s'écrit au chemin de la planche, et sa taille revient
 ## au pont, ou `null` si l'auteur renonce ou si elle ne se lit pas. Il envoie le geste de l'élément pressé, et le
 ## pointeur sur le monde : l'appui au point touché (`Monde.touche_sous`), un glissé à chaque case nouvelle sous le
 ## bouton tenu, le relâché au point touché, le dernier si le pointeur a quitté le monde. Une réponse qui porte `depot`
@@ -109,6 +112,21 @@ func _ready() -> void:
 	_suivre(_pont.appeler("editer", ouvrir))
 
 
+## Le monde d'une réponse de `editer` (`reponse.monde`, le manifeste du volume) posé au monde (`Monde.poser`), sans
+## nappe de toit ni couronne, la géométrie des seuls morceaux dont l'empreinte posée diffère demandée à `morceaux`
+## (`VolumeDeScene.manquants`), puis son masque (`reponse.retrait`, `VolumeDeScene.retirer`).
+func _poser_le_monde(reponse: Dictionary) -> void:
+	var monde := {monde = reponse.monde, toits = [], couronnes = []}
+	var manquants := _monde.volume.manquants(monde)
+	var recus := {volume = [], toits = [], couronnes = []}
+	if not manquants.volume.is_empty():
+		recus = _pont.appeler("morceaux", manquants.merged({source = "edition"}))
+		if recus.get("ok") != true:
+			return
+	_monde.poser(monde, recus)
+	_monde.volume.retirer(reponse.retrait)
+
+
 func _jouer(jeu: Dictionary) -> void:
 	_suivre(_pont.appeler("editer", jeu))
 
@@ -126,7 +144,7 @@ func _suivre(reponse: Dictionary) -> void:
 		return
 	_refus.text = ""
 	if reponse.has("monde"):
-		_monde.poser(reponse.monde)
+		_poser_le_monde(reponse)
 		_monde.volume.poser_les_aretes(reponse.aretes)
 		_navires.poser(reponse.navires, {}, reponse.monde.metresParCase)
 	_vue = reponse.vue

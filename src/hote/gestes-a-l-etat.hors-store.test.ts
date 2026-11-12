@@ -122,7 +122,7 @@ describe('un argument qui désigne une ligne se choisit parmi les lignes que sa 
       const manquee = [{ uid: 'L0', label: 'Épée', magic: false, effect: { type: 'giveTrapping', trappingId: 'epee', identified: false, appraiseTriedDay: jour } }, { uid: 'L1', label: 'Bouclier', magic: false, effect: { type: 'giveTrapping', trappingId: 'bouclier', identified: false } }] as never;
       const butin: Jeu = { ...etat, pendingRoundStart: null, battle: null, pendingLoot: { title: 'Coffre', gear: manquee } };
       expect(butin.party.some((h) => (h.talents ?? []).some((x) => x.talentId === 'detection-d-artefact')), 'témoin : aucun détecteur').toBe(false);
-      expect(argumentDe(butin, 'evaluerLObjet', 'aEvaluer').valeurs!.map((v) => [v.valeur, v.refus])).toEqual([['L0', t('mf.appraiseRetenter', { label: 'Épée', jours: 1 })], ['L1', null]]);
+      expect(argumentDe(butin, 'evaluerLObjet', 'aEvaluer').valeurs!.map((v) => [v.valeur, v.refus])).toEqual([['L0', t('mf.evaluationARetenter', { label: 'Épée', jours: 1 })], ['L1', null]]);
     });
   });
 
@@ -147,7 +147,7 @@ describe('un argument qui désigne une ligne se choisit parmi les lignes que sa 
     auDebutDuRound((etat) => {
       const plaies: Trauma[] = [{ uid: 'bras', label: 'Bras broyé', location: 'brasG', needsSurgery: true }, { uid: 'crane', label: 'Crâne fendu', location: 'tete', needsSurgery: true }, { uid: 'doigt', label: 'Doigt perdu', location: 'brasD' }];
       const patient = { ...etat.party[0], traumas: plaies };
-      const operation = { kind: 'chirurgie', difficulty: 'intermediaire', healerName: 'Berta', skill: 40, intBonus: 3, traumaUid: 'crane', targetDR: 5, cumDR: 0, stake: {} } as never;
+      const operation = { kind: 'chirurgie', difficulty: 'intermediaire', healerName: 'Berta', skill: 40, intBonus: 3, traumaUid: 'crane', drCible: 5, cumDR: 0, stake: {} } as never;
       const infirmerie: Jeu = { ...etat, pendingRoundStart: null, battle: null, party: [patient, ...etat.party.slice(1)], medic: { patientId: patient.id, surgery: operation } };
       const plaie = argumentDe(infirmerie, 'fenetreChoisir@infirmerie#plaie', 'valeur');
       expect(lignes(plaie)).toEqual(['choix', [['bras', t('medic.plaie', { plaie: 'Bras broyé', localisation: locationLabel('brasG') })], ['crane', t('medic.plaie', { plaie: 'Crâne fendu', localisation: locationLabel('tete') })]]]);

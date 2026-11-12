@@ -37,7 +37,7 @@ function ouvrir(result: CascadeRoll | null) {
   useGame.setState({
     battle: null, party: [hero], suspendedCascades: [], journal: [],
     net: { mode: 'local', mySeat: 0, roomCode: null, seatNames: {}, presence: {}, ownership: {} } as never,
-    pendingCascade: cascadeDeTest([jetStep(hero.id, result)], { title: 'Épreuve', icon: 'nav/dice', purpose: 'affichage' }),
+    pendingCascade: cascadeDeTest([jetStep(hero.id, result)], { title: 'Épreuve', icon: 'navigation/des', purpose: 'affichage' }),
   });
   act(() => { root.render(<CascadeBody />); });
 }

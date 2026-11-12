@@ -985,7 +985,7 @@ function CoopAssignRowDemo() {
 
 /** Bandeau de liaison : il se pose en HAUT DU CHAMP (position fixe), au-dessus de l'écran courant. */
 function CoopBannerDemo() {
-  return <CoopBanner icone="ui/warning">Béa : reconnexion en cours…</CoopBanner>;
+  return <CoopBanner icone="interface/attention">Béa : reconnexion en cours…</CoopBanner>;
 }
 
 /** Deux lignes de butin : une lame CATALOGUÉE non identifiée (la révélation est offerte) et un objet
@@ -1013,7 +1013,7 @@ function RewardRecapDemo() {
         sections={[
           {
             id: 'equipement',
-            titre: <><Icon id="resource/gold-purse" size="sm" /> Équipement — qui l’emporte&nbsp;?</>,
+            titre: <><Icon id="ressource/bourse" size="sm" /> Équipement — qui l’emporte&nbsp;?</>,
             enAvant: true,
             children: <Row><span className="chip">Bâton de combat</span><span className="chip">Dague</span></Row>,
           },
@@ -1140,7 +1140,7 @@ function PanneauParametreDemo() {
 function ParchmentCardDemo() {
   return (
     <Stack>
-      <ParchmentCard title="Événement" seal={{ label: 'Tirage', roll: 42 }} tone="ok">
+      <ParchmentCard title="Événement" seal={{ label: 'Tirage', roll: 42 }} tone="reussite">
         Récit ponctuel adossé à un tirage d100 — texture parcheminée + médaillon du tirage.
       </ParchmentCard>
       <ParchmentCard seal={{ kind: 'cire' }}>
@@ -1211,7 +1211,7 @@ function TradeTableDemo() {
 
 function ActivityPaneDemo() {
   return (
-    <ActivityPane id="pane-gallery-demo" icon="nav/activity" title="Exemple d'Activité" desc="*Description verbatim* — rendue via `Prose`." cost="6 sc" actions={<button type="button" className="btn btn-primary">Entreprendre</button>} />
+    <ActivityPane id="pane-gallery-demo" icon="navigation/activite" title="Exemple d'Activité" desc="*Description verbatim* — rendue via `Prose`." cost="6 sc" actions={<button type="button" className="btn btn-primary">Entreprendre</button>} />
   );
 }
 
@@ -1230,8 +1230,8 @@ function MenuCardDemo() {
   return (
     <MenuCard header={<h3 style={{ margin: 0 }}>Exemple de menu</h3>}>
       <MenuSection rule={false}>
-        <MenuButton icon="nav/new-game" tone="primary" onClick={() => {}}>Action primaire</MenuButton>
-        <MenuButton icon="nav/rules" onClick={() => {}}>Action secondaire</MenuButton>
+        <MenuButton icon="navigation/nouvelle-partie" tone="primary" onClick={() => {}}>Action primaire</MenuButton>
+        <MenuButton icon="navigation/regles-maison" onClick={() => {}}>Action secondaire</MenuButton>
       </MenuSection>
       <MenuSection label="Réglages">
         <MenuToggle checked={toggled} onChange={setToggled}>Interrupteur</MenuToggle>
@@ -1517,10 +1517,10 @@ function RecapLineDemo() {
   return (
     <RecapLineList
       lines={[
-        { text: 'Gustav franchit le mur (DR +2).', tone: 'ok', icon: 'action/force' },
-        { text: 'Harbull rate son embuscade.', tone: 'bad', segments: [{ text: 'Harbull', team: 'enemy' }, { text: ' rate son embuscade.' }] },
-        { text: 'La nuit tombe sur le campement.', tone: 'info' },
-        { text: '**Gustav** rejoint les compagnons au bord du chemin. La pluie a laissé de longues traces sur les pierres et chacun prend le temps de retrouver ses affaires avant de repartir.\n\nLe groupe observe les maisons, les fenêtres encore éclairées et les silhouettes qui traversent la place. Ce témoin synthétique conserve plusieurs paragraphes pour vérifier la lecture dans une rangée étroite.\n\n- Vérifier le passage près du vieux mur.\n- Rejoindre les compagnons sous le porche.\n- Consulter le [repère de lecture](https://example.com/recette-2001).', tone: 'ok', icon: 'action/force' },
+        { text: 'Gustav franchit le mur (DR +2).', tone: 'reussite', icon: 'action/enfoncer' },
+        { text: 'Harbull rate son embuscade.', tone: 'echec', segments: [{ text: 'Harbull', team: 'ennemi' }, { text: ' rate son embuscade.' }] },
+        { text: 'La nuit tombe sur le campement.', tone: 'neutre' },
+        { text: '**Gustav** rejoint les compagnons au bord du chemin. La pluie a laissé de longues traces sur les pierres et chacun prend le temps de retrouver ses affaires avant de repartir.\n\nLe groupe observe les maisons, les fenêtres encore éclairées et les silhouettes qui traversent la place. Ce témoin synthétique conserve plusieurs paragraphes pour vérifier la lecture dans une rangée étroite.\n\n- Vérifier le passage près du vieux mur.\n- Rejoindre les compagnons sous le porche.\n- Consulter le [repère de lecture](https://example.com/recette-2001).', tone: 'reussite', icon: 'action/enfoncer' },
       ]}
     />
   );
@@ -1532,8 +1532,8 @@ function MultiRollListDemo() {
   return (
     <MultiRollList
       entries={[
-        { actorId: herosExemple().id, label: 'Convalescence', d: testBreakdown('Endurance', 42, { roll: 27, target: 42, sl: 1, success: true }), text: '+4 Points de Blessure', tone: 'ok' },
-        { actorId: herosExempleB().id, label: 'Cauchemars', d: testBreakdown('Calme', 38, { roll: 71, target: 38, sl: -3, success: false }), text: 'Nuit agitée : aucun Point de Chance récupéré', tone: 'bad' },
+        { actorId: herosExemple().id, label: 'Convalescence', d: testBreakdown('Endurance', 42, { roll: 27, target: 42, sl: 1, success: true }), text: '+4 Points de Blessure', tone: 'reussite' },
+        { actorId: herosExempleB().id, label: 'Cauchemars', d: testBreakdown('Calme', 38, { roll: 71, target: 38, sl: -3, success: false }), text: 'Nuit agitée : aucun Point de Chance récupéré', tone: 'echec' },
       ]}
     />
   );
@@ -1563,7 +1563,7 @@ function RevealBodyDemo() {
 function TeamSegmentsDemo() {
   return (
     <div>
-      <TeamSegments segments={[{ text: 'Gustav', team: 'ally' }, { text: ' frappe ' }, { text: 'le mutant', team: 'enemy' }, { text: ' au bras.' }]} />
+      <TeamSegments segments={[{ text: 'Gustav', team: 'allie' }, { text: ' frappe ' }, { text: 'le mutant', team: 'ennemi' }, { text: ' au bras.' }]} />
     </div>
   );
 }
@@ -1574,9 +1574,9 @@ function CombatBannerDemo() {
     <Stack>
       {(['', 'cb-tone-strong', 'cb-tone-grave'] as const).map((ton, i) => (
         <div key={i} className={`cb-ev ${ton}`}>
-          <span className="cb-ic"><Icon id="action/attack" size={15} /></span>
+          <span className="cb-ic"><Icon id="action/attaquer" size={15} /></span>
           <div className="cb-tx">
-            <TeamSegments segments={[{ text: 'Gustav', team: 'ally' }, { text: ' frappe ' }, { text: 'le mutant', team: 'enemy' }]} />
+            <TeamSegments segments={[{ text: 'Gustav', team: 'allie' }, { text: ' frappe ' }, { text: 'le mutant', team: 'ennemi' }]} />
           </div>
         </div>
       ))}
@@ -1614,8 +1614,8 @@ function FxChipDemo() {
     <Stack gap="sm">
       <EffectChips conditions={etatsExemples()} />
       <Row>
-        <FxChip icon="action/attack" label="−1 Activité" />
-        <FxChip icon="resource/gold-purse" label="Revenus +20 %" />
+        <FxChip icon="action/attaquer" label="−1 Activité" />
+        <FxChip icon="ressource/bourse" label="Revenus +20 %" />
       </Row>
     </Stack>
   );
@@ -1687,7 +1687,7 @@ function CombatConsoleMock() {
   return (
     <div className="gallery-scene"><div className="gallery-scene-track">
       <div className="combat-console" data-forme="complete">
-        <PhaseBanner label={<><Icon id="ui/wait" size="sm" /> Interlude</>} actions={[]} />
+        <PhaseBanner label={<><Icon id="interface/attendre" size="sm" /> Interlude</>} actions={[]} />
         <div className="cc-dock skin-pont">
           <div className="cc-bay cc-bay-left">
             <div className="cc-bay-body">
@@ -1697,19 +1697,19 @@ function CombatConsoleMock() {
                   <div className="cc-sets" role="group" aria-label="Sets d’armes">
                     <button type="button" data-set="s1" data-action="panoplie" className="chip cc-set on" aria-label="Épée et bouclier">
                       <i className="cc-set-n">1</i>
-                      <Icon id="item/weapon" size="sm" />
+                      <Icon id="objet/arme" size="sm" />
                       <span className="cc-key">X</span>
                     </button>
                     <button type="button" data-set="s2" data-action="panoplie" className="chip cc-set" aria-label="Arquebuse, VIDE">
                       <i className="cc-set-n">2</i>
-                      <Icon id="item/weapon" size="sm" />
+                      <Icon id="objet/arme" size="sm" />
                       <i className="cc-set-load">VIDE</i>
                     </button>
                   </div>
                   <div className="cc-grid cc-grid-left" aria-label="Arsenal">
-                    <ConsoleCell cell={{ key: 'attaque', id: 'attaque', family: 'arme', label: 'Attaquer', icon: <Icon id="action/attack" />, run: rien }} />
-                    <ConsoleCell cell={{ key: 'tir', id: 'attaque', family: 'arme', label: 'Tirer', icon: <Icon id="action/shoot" />, on: true, run: rien }} />
-                    <ConsoleCell cell={{ key: 'charge', id: 'charge', family: 'attaque', label: 'Charger', icon: <Icon id="action/attack" />, gate: 'Déjà engagé au contact' }} />
+                    <ConsoleCell cell={{ key: 'attaque', id: 'attaque', family: 'arme', label: 'Attaquer', icon: <Icon id="action/attaquer" />, run: rien }} />
+                    <ConsoleCell cell={{ key: 'tir', id: 'attaque', family: 'arme', label: 'Tirer', icon: <Icon id="action/tirer" />, on: true, run: rien }} />
+                    <ConsoleCell cell={{ key: 'charge', id: 'charge', family: 'attaque', label: 'Charger', icon: <Icon id="action/attaquer" />, gate: 'Déjà engagé au contact' }} />
                     <ConsoleCell cell={undefined} />
                   </div>
                 </div>
@@ -1717,7 +1717,7 @@ function CombatConsoleMock() {
               <div className="cc-quick">
                 <span className="cc-bay-head">ACCÈS RAPIDE</span>
                 <div className="cc-grid cc-grid-quick" aria-label="Accès rapide">
-                  <ConsoleCell cell={{ key: 'usage-objet', id: 'usage-objet', family: 'geste', label: 'Potion de soin', icon: <Icon id="action/consume" />, run: rien }} />
+                  <ConsoleCell cell={{ key: 'usage-objet', id: 'usage-objet', family: 'geste', label: 'Potion de soin', icon: <Icon id="action/consommer" />, run: rien }} />
                   <ConsoleCell cell={undefined} />
                 </div>
               </div>
@@ -1725,7 +1725,7 @@ function CombatConsoleMock() {
           </div>
           <ConsoleArch
             active={actif}
-            move={{ value: 3, max: 4, spend: 1, geste: { key: 'annulation-deplacement', id: 'annulation-deplacement', family: 'mouvement', label: 'Annuler le déplacement', icon: <Icon id="ui/undo" />, run: rien } }}
+            move={{ value: 3, max: 4, spend: 1, geste: { key: 'annulation-deplacement', id: 'annulation-deplacement', family: 'mouvement', label: 'Annuler le déplacement', icon: <Icon id="interface/revenir" />, run: rien } }}
             action={{ value: 1, max: 1 }}
           />
           <div className="cc-bay cc-bay-right">
@@ -1737,14 +1737,14 @@ function CombatConsoleMock() {
               <span className="cc-conduit-plate">2/6</span>
             </div>
             <div className="cc-grid cc-grid-right" aria-label="Capacités">
-              <ConsoleCell hotkey={1} cell={{ key: 'defensive', id: 'defensive', family: 'defense', label: 'Esquiver', icon: <Icon id="action/defend" />, run: rien }} advantage={2} />
-              <ConsoleCell hotkey={2} cell={{ key: 'incantation', id: 'incantation', family: 'magie', label: 'Incanter', icon: <Icon id="action/cast" />, adv: 3, run: rien }} advantage={2} />
+              <ConsoleCell hotkey={1} cell={{ key: 'defensive', id: 'defensive', family: 'defense', label: 'Esquiver', icon: <Icon id="action/se-defendre" />, run: rien }} advantage={2} />
+              <ConsoleCell hotkey={2} cell={{ key: 'incantation', id: 'incantation', family: 'magie', label: 'Incanter', icon: <Icon id="action/incanter" />, adv: 3, run: rien }} advantage={2} />
               <ConsoleCell hotkey={3} cell={undefined} />
             </div>
           </div>
           <div className="cc-corner">
             <button type="button" data-cell="fin-de-tour" data-action="fin-de-tour" className="chip cc-cell cc-end">
-              <span className="cc-ico"><Icon id="ui/turn-end" /></span>
+              <span className="cc-ico"><Icon id="interface/fin-du-tour" /></span>
               <span className="cc-lbl">Fin du tour</span>
               <span className="cc-key">F</span>
             </button>
@@ -1753,7 +1753,7 @@ function CombatConsoleMock() {
       </div>
       {/* src/ui/console/CombatConsole.tsx */}
       <div className="combat-console" data-forme="spectatrice">
-        <PhaseBanner label={<><Icon id="ui/wait" size="sm" /> Tour de l’ennemi</>} actions={[]} adresse="spectatrice" />
+        <PhaseBanner label={<><Icon id="interface/attendre" size="sm" /> Tour de l’ennemi</>} actions={[]} adresse="spectatrice" />
         {/* La BANDE reste montée, comme à l'écran : c'est elle qui tient l'arche immobile d'une forme
             à l'autre, et c'est sur elle que la forme spectatrice éteint la matière. Une vignette qui
             pendrait l'arche à la racine ne montrerait PAS ce que la CSS fait. */}

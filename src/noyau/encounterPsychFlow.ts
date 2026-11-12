@@ -12,6 +12,7 @@
  * vit dans l'applier `'psychologieDeRencontre'`, appliquée RANGÉE PAR RANGÉE. La Détermination (immunité,
  * LDB 17 l.59) est offerte dans la fenêtre de la bande (`fenetreDeDetermination`), jouée par `depenserLaDetermination`.
  */
+import type { IconId } from '../data/icons';
 import type { PlayerText } from '../i18n/playerText';
 import type { Get, Set } from './flowTypes';
 import { Combatant } from '../engine/types';
@@ -67,7 +68,7 @@ type PsychBandDecl = NonNullable<CascadeStep['psychologieDeRencontre']>;
 /** Un Test DÛ par un héros, avant regroupement : le héros, la déclaration de règle qui l'appelle, la
  *  présentation qui en découle (icône/libellé — communes à toute la bande), et Sans Peur (Ennemi), qui
  *  diverge par héros (`sansPeurFace`). */
-interface PsychDue { hero: Combatant; decl: PsychBandDecl; icon: string; label: PlayerText; sansPeur?: boolean }
+interface PsychDue { hero: Combatant; decl: PsychBandDecl; icon: IconId; label: PlayerText; sansPeur?: boolean }
 
 /** RANGÉE d'une bande : le Test de CE héros, `psychTest` (mêmes données que le combat), monté par le
  *  monteur canonique (`rollStep`) : base nue, pénalité d'États nommée (LDB 16 l.90, l.125), cible bornée. */
@@ -140,7 +141,7 @@ export function openEncounterPsych(get: Get, set: Set): void {
     dues.push({
       hero, sansPeur: sansPeurFace(hero, trig.kind, src),
       decl: { kind: trig.kind, sourceId: trig.sourceId, sourceName: libelleDeSource(src), indice: trig.indice, cible: trig.cible },
-      icon: cl?.icon ?? (trig.kind === 'terreur' ? 'creature/scream' : 'flag/fear'),
+      icon: cl?.icon ?? (trig.kind === 'terreur' ? 'creature/hurlement' : 'drapeau/peur'),
       label: cl
         ? libelleDePsy(trig.kind, trig.cible, nomDIndividu(s))
         : stepDetail(stepPsych(trig.kind, trig.indice), dataLabel(libelleDeSource(src), '?')),
@@ -148,7 +149,7 @@ export function openEncounterPsych(get: Get, set: Set): void {
   }
   const steps = psychBands(dues);
   if (!steps.length) return;
-  startCascade(get, set, { title: 'Sang-froid', icon: 'flag/fear', purpose: 'test', steps });
+  startCascade(get, set, { title: 'Sang-froid', icon: 'drapeau/peur', purpose: 'test', steps });
 }
 
 /** Ouvre la bande des Tests de Calme pour une source de PEUR/TERREUR SCÉNIQUE (Effet d'auteur
@@ -167,13 +168,13 @@ export function openScriptedPsych(get: Get, set: Set, kind: 'peur' | 'terreur', 
     if (hero.dead || isPsychImmune(hero)) continue;
     dues.push({
       hero, decl,
-      icon: kind === 'terreur' ? 'creature/scream' : 'flag/fear',
+      icon: kind === 'terreur' ? 'creature/hurlement' : 'drapeau/peur',
       label: stepDetail(stepPsych(kind, indice), dataLabel(label)),
     });
   }
   const steps = psychBands(dues);
   if (!steps.length) return;
-  startCascade(get, set, { title: 'Sang-froid', icon: 'flag/fear', purpose: 'test', steps });
+  startCascade(get, set, { title: 'Sang-froid', icon: 'drapeau/peur', purpose: 'test', steps });
 }
 
 /**
@@ -194,14 +195,14 @@ function resolvePsychRow(get: Get, set: Set, hero: Combatant, ep: PsychBandDecl,
   // marqueur d'immunité lui-même : la Peur héritée d'une Terreur se pose à PLEIN Indice, NON surmontée
   // (LDB 21 l.56), sans quoi l'immunité du Round vaudrait une Peur vaincue à jamais.
   if (immune) {
-    applyOps(hero, psychBranchOps(ep, { success: true, calmeDR: ep.indice, surmontee: true }), { idNeuf: get().forgerUnId, rng: battleRng(), source: { kind: 'psychology', id: ep.kind } });
-    return freeCons([t('cf.psychImmune', { name: hero.label })]);
+    applyOps(hero, psychBranchOps(ep, { success: true, calmeDR: ep.indice, surmontee: true }), { idNeuf: get().forgerUnId, rng: battleRng(), source: { kind: 'psychologie', id: ep.kind } });
+    return freeCons([t('cf.immunitePsychologique', { name: hero.label })]);
   }
   const res = psychResolution(ep.kind); // mode + conséquences en DONNÉES (psychology.json)
   const brise = r.success ? 0 : failConditionAmount(res.failAmount, ep.indice, r.sl);
   // Le DR du jet est versé au contexte : la quantité d'État de l'échec (`valuePerSL{onFailure}` de la
   // branche) s'y résout — même arithmétique que `failConditionAmount`, une seule fois.
-  applyOps(hero, psychBranchOps(ep, { success: r.success, calmeDR: r.success ? ep.indice : 0, surmontee: r.success, sansPeur }), { idNeuf: get().forgerUnId, rng: battleRng(), sl: r.sl, source: { kind: 'psychology', id: ep.kind } });
+  applyOps(hero, psychBranchOps(ep, { success: r.success, calmeDR: r.success ? ep.indice : 0, surmontee: r.success, sansPeur }), { idNeuf: get().forgerUnId, rng: battleRng(), sl: r.sl, source: { kind: 'psychologie', id: ep.kind } });
   const pe: PendingEncounterPsych = {
     heroId: hero.id, kind: ep.kind, sourceId: ep.sourceId, sourceName: ep.sourceName, indice: ep.indice, cible: ep.cible,
     result: { success: r.success, brise, sl: r.sl },

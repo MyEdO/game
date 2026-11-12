@@ -60,14 +60,14 @@ export function FocusModal() {
   });
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' },
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
+    { key: 'abandonner', label: t('verbe.annuler'), onClick: cancel, verbe: 'annuler' },
+    { key: 'confirmer', label: t('verbe.valider'), onClick: confirm, verbe: 'valider' },
   ];
 
   return (
     <RollShell
       flowKey="focalisation"
-      title={<><Icon id="flag/focus" size="sm" /> Focalisation</>}
+      title={<><Icon id="drapeau/focalisation" size="sm" /> Focalisation</>}
       /* Z1 : QUI focalise QUOI. La PROGRESSION (DR cumulé vers le NI) n'est PAS ici — elle a sa zone
          unique, la barre de DR de la rangée (`extendedDr`, ci-dessus). */
       subtitle={

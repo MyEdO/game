@@ -248,8 +248,8 @@ describe('placeServices — vocabulaire unique des services de lieu (#343)', () 
     expect(svc[1].market).toBe(p.market);
     expect(svc[2].rest).toBe(rest);
     expect(svc[2].label).toBe('Auberge'); // libellé du catalogue lieux-services.json
-    expect(svc[0].icon).toBe('travel/anchor'); // icône LUE au catalogue, pas codée en dur
-    expect(svc[1].icon).toBe('merchant/cart');
+    expect(svc[0].icon).toBe('voyage/ancre'); // icône LUE au catalogue, pas codée en dur
+    expect(svc[1].icon).toBe('marchand/panier');
   });
 
   it('toute entrée du catalogue lieux-services.json porte une icône (source unique des icônes de service)', () => {
@@ -261,7 +261,7 @@ describe('placeServices — vocabulaire unique des services de lieu (#343)', () 
     expect(svc.map((s) => s.id)).toEqual(['temple', 'forgeron']);
     expect(svc.every((s) => s.category === 'autre')).toBe(true);
     expect(svc[0].label).toBe('Temple');
-    expect(svc[0].icon).toBe('faith/church');
+    expect(svc[0].icon).toBe('foi/chapelle');
   });
 
   it('hameau NU (aucun service, aucune scène offrant l\'auberge) → liste VIDE', () => {

@@ -19,12 +19,12 @@ describe('conditionMeta', () => {
   it('marque Exténué comme non-important (état mineur)', () => {
     expect(conditionMeta('extenue').important).toBe(false);
   });
-  it('un État CONNU sans icône ni sévérité retombe sur le repli (journal/info, sévérité 10)', () => {
+  it('un État CONNU sans icône ni sévérité retombe sur le repli (journal/information, sévérité 10)', () => {
     const livres = structuredClone(etats);
     const { icon: _icon, severity: _severity, ...nu } = livres[0];
     setDataset('etats', [...livres, { ...nu, id: 'etat-de-fixture' }]);
     try {
-      expect(conditionMeta('etat-de-fixture')).toEqual({ icon: 'journal/info', severity: 10, important: false });
+      expect(conditionMeta('etat-de-fixture')).toEqual({ icon: 'journal/information', severity: 10, important: false });
     } finally {
       setDataset('etats', livres);
     }
@@ -37,11 +37,11 @@ describe('conditionMeta', () => {
 
 describe('combatantFlags — Peur (LDB 21 l.27)', () => {
   const C = (psychState: unknown) => ({ conditions: [], psychState }) as unknown as Combatant;
-  it('sous la Peur (non surmontée) → drapeau fear avec l’Indice max, et chip flag/fear visible', () => {
+  it('sous la Peur (non surmontée) → drapeau fear avec l’Indice max, et chip drapeau/peur visible', () => {
     const f = combatantFlags(C([{ type: 'peur', sourceId: 'x', indice: 2, calmeDR: 0 }, { type: 'peur', sourceId: 'y', indice: 3, calmeDR: 1 }]));
     expect(f.fear).toBe(3);
     const r = summarizeEffects([], [], 5, f);
-    expect(r.visible.some((v) => v.icon === 'flag/fear')).toBe(true);
+    expect(r.visible.some((v) => v.icon === 'drapeau/peur')).toBe(true);
   });
   it('Peur surmontée ou absente → pas de drapeau', () => {
     expect(combatantFlags(C([{ type: 'peur', sourceId: 'x', indice: 2, calmeDR: 2, surmontee: true }])).fear).toBeUndefined();

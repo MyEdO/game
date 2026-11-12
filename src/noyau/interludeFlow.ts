@@ -165,7 +165,7 @@ const INTERLUDE_PURPOSE = 'interlude' as const;
 function eventStep(hero: Combatant): CascadeStep {
   return {
     id: `interlude-event-${hero.id}`,
-    kind: 'evenementDInterlude', actorId: hero.id, icon: 'nav/dice',
+    kind: 'evenementDInterlude', actorId: hero.id, icon: 'navigation/des',
     label: t('step.evenement'),
     table: interludeEventDecl(),
     stake: combatStakeRef('interlude-evenement'),
@@ -177,7 +177,7 @@ function eventStep(hero: Combatant): CascadeStep {
 function purseStep(): CascadeStep {
   return {
     id: 'interlude-purse',
-    kind: 'bourseDInterlude', icon: 'resource/gold-purse',
+    kind: 'bourseDInterlude', icon: 'ressource/bourse',
     label: t('step.bourseDInterlude'),
   };
 }
@@ -221,7 +221,7 @@ export function ouvrirLInterlude(get: Get, set: Set, weeks = 1): void {
   // fenêtre pour le siège qui tient le héros, une résolution d'office si nul siège ne le tient — et
   // l'option « Dés fixés » n'y ajoute que la POSE. Le dénouement de GROUPE ferme la séquence.
   const steps: CascadeStep[] = party.map(eventStep);
-  startCascade(get, set, { title: msg('if.drawTitle'), icon: 'nav/dice', purpose: INTERLUDE_PURPOSE, steps: [...steps, purseStep()] });
+  startCascade(get, set, { title: msg('if.drawTitle'), icon: 'navigation/des', purpose: INTERLUDE_PURPOSE, steps: [...steps, purseStep()] });
   set({ party: [...get().party] });
 }
 
@@ -399,7 +399,7 @@ const heroState = (s: Jeu, heroId: string) => s.interlude?.perHero[heroId];
 /** Ancrage de regle des effets d'une Activite d'interlude — l'`ActivityDef` du catalogue
  *  (`activities.json`), par id STABLE. Absent quand la demande n'en porte pas : on n'en fabrique pas. */
 const activitySource = (pa: PendingActivity): EffectSource | undefined =>
-  (pa.activityId ? { kind: 'activity', id: pa.activityId } : undefined);
+  (pa.activityId ? { kind: 'activite', id: pa.activityId } : undefined);
 
 /** Décrémente le budget d'Activités d'un héros (`interlude.perHero[id].left`) — SOURCE UNIQUE du budget
  *  de downtime (LDB 23 l.5 / ADE II 8 l.65). No-op si aucun interlude / budget épuisé. */
@@ -985,7 +985,7 @@ function appliquerLActivite(get: Get, set: Set): void {
   const lines: string[] = [];
   const closeOps: GameOp[] = [];
   let patch: Partial<InterludeHeroState> = {};
-  const source: EffectSource = { kind: 'activity', id: def.id };
+  const source: EffectSource = { kind: 'activite', id: def.id };
   // Maladresse d'Activité (LDB 12 : double raté) — porte les bandes `on:'maladresse'` (Pénitence :
   // Colère des dieux « à la place », ACE 12 l.15).
   const fumble = isFumble(garanti(pa.roll, pa.heroId, 'jet de l’Activité'), pa.success);

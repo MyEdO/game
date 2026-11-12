@@ -323,7 +323,7 @@ describe('renflouage à l\'échouage (l.99) — l\'Enc de la CARGAISON entre dan
       { uid: 'convoi-1', ownerId, nature: 'vehicule', vehicleId: 'diligence', location: { kind: 'avec-le-groupe' }, items: [], cargo: [{ uid: 'lot-2', cargoId: 'vin-eau-de-vie', enc: 30, basePriceGold: 10 }] },
     ];
     const detect = {
-      id: 'river-peril-0', kind: 'fleuveDetectionDePeril' as const, actorId: ownerId, icon: 'nautical/tack', label: fixtureText('Détection'),
+      id: 'river-peril-0', kind: 'fleuveDetectionDePeril' as const, actorId: ownerId, icon: 'nautique/louvoyage' as const, label: fixtureText('Détection'),
       result: { roll: 99, target: 30, sl: -6, success: false }, meta: { perilId: 'eaux-peu-profondes' },
     };
     const echouage = Array.from({ length: 40 }, (_, seed) => {
@@ -589,7 +589,7 @@ describe('péril fluvial — la ligne du Test d’évitement nomme la Compétenc
  */
 describe('chavirage — le redressement s’ouvre Round par Round (#1104a)', () => {
   const capsizeStep = () => ({
-    id: 'fleuve-chavirage', kind: 'fleuveChavirage' as const, actorId: get().party[0].id, icon: 'nautical/wind',
+    id: 'fleuve-chavirage', kind: 'fleuveChavirage' as const, actorId: get().party[0].id, icon: 'nautique/vent' as const,
     label: fixtureText('Retirer la voile (chavirage)'), rollLabel: 'Voile', base: 40, difficulty: 'accessible' as const,
     target: 60, result: { roll: 95, target: 60, sl: -3, success: false }, interactive: true, meta: { savoir: 0 },
   });
@@ -618,7 +618,7 @@ describe('chavirage — le redressement s’ouvre Round par Round (#1104a)', () 
     set({ travelPlan: buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0])! });
     const be = 3;
     const round0 = {
-      id: 'river-capsize-right-0', kind: 'fleuveRedressement' as const, actorId: get().party[0].id, icon: 'nautical/tack',
+      id: 'river-capsize-right-0', kind: 'fleuveRedressement' as const, actorId: get().party[0].id, icon: 'nautique/louvoyage' as const,
       label: fixtureText('Redressement du bateau — Round 1/3'), rollLabel: 'Voile', base: 40, difficulty: 'accessible' as const,
       target: 60, result: { roll: 98, target: 60, sl: -4, success: false }, interactive: true,
       meta: { rightRound: 0, rightRounds: be },
@@ -644,7 +644,7 @@ describe('chavirage — le redressement s’ouvre Round par Round (#1104a)', () 
     launch(false, 45);
     set({ travelPlan: buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0])! });
     const round0 = {
-      id: 'river-capsize-right-0', kind: 'fleuveRedressement' as const, actorId: get().party[0].id, icon: 'nautical/tack',
+      id: 'river-capsize-right-0', kind: 'fleuveRedressement' as const, actorId: get().party[0].id, icon: 'nautique/louvoyage' as const,
       label: fixtureText('Redressement du bateau — Round 1/3'), rollLabel: 'Voile', base: 40, difficulty: 'accessible' as const,
       target: 60, result: { roll: 12, target: 60, sl: 4, success: true }, interactive: true,
       meta: { rightRound: 0, rightRounds: 3 },
@@ -734,7 +734,7 @@ describe('chavirage — le compte de Rounds de redressement a un plancher (#1112
     const plan = buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0])!;
     set({ travelPlan: { ...plan, vehicle: { ...plan.vehicle!, characteristics: { ...plan.vehicle!.characteristics, endurance: 0 } } } });
     const step = {
-      id: 'fleuve-chavirage', kind: 'fleuveChavirage' as const, actorId: get().party[0].id, icon: 'nautical/wind',
+      id: 'fleuve-chavirage', kind: 'fleuveChavirage' as const, actorId: get().party[0].id, icon: 'nautique/vent' as const,
       label: fixtureText('Retirer la voile (chavirage)'), rollLabel: 'Voile', base: 40, difficulty: 'accessible' as const,
       target: 60, result: { roll: 95, target: 60, sl: -3, success: false }, interactive: true, meta: { savoir: 0 },
     };

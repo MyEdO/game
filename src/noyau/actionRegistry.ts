@@ -14,6 +14,7 @@
  * candidats (`Offre.gate`), plus
  * jamais par des closures anonymes publiées positionnellement.
  */
+import type { IconId } from '../data/icons';
 import type { Combatant } from '../engine/types';
 import type { BattleState, Jeu } from './etat';
 import type { Get, Set } from './flowTypes';
@@ -1001,7 +1002,7 @@ export interface Offre {
   porteurId?: string;
   /** Nom du CANDIDAT quand un même porteur en offre plusieurs (une pièce parmi deux, un objet d'un tas). */
   candidat?: string;
-  icon: string;
+  icon: IconId;
   /** Coût dans l'économie du tour, en toutes lettres — `null` quand l'acte n'en prend aucun. */
   cost: string | null;
   args: ContexteDOffre;

@@ -7,10 +7,11 @@ import type { IconId } from '../data/icons';
 import { flowStakeRef, type FlowStakeId } from '../data';
 import { StakeNote, StakeRule, stakeRuleOf } from './StakeNote';
 import { fateSaveOptions, type FateSaveOption } from '../engine/fortune';
+import { porteurParId } from '../noyau/monde/combatants';
 
 const OPTION: Record<FateSaveOption, { icon: IconId; label: string }> = {
-  survivre: { icon: 'resource/lifeline', label: 'Meurs un autre jour' },
-  eviter: { icon: 'resource/fortune', label: 'Comment ça a pu rater ?' },
+  survivre: { icon: 'ressource/survivre', label: 'Meurs un autre jour' },
+  eviter: { icon: 'ressource/chance', label: 'Comment ça a pu rater ?' },
 };
 
 /** Enjeu servi par chaque fenêtre du sauvetage par le Destin. */
@@ -25,11 +26,9 @@ const FATE_SAVE_STAKE: Record<FateSaveOption | 'choice', FlowStakeId> = { choice
  */
 export function FateSaveModal() {
   const p = useGame((s) => s.pendingFateSave);
-  const battle = useGame((s) => s.battle);
+  const hero = useGame((s) => (s.pendingFateSave ? porteurParId(s, s.pendingFateSave.heroId) : undefined));
   const choisirLIssue = useGame((s) => s.fenetreChoisir);
-  if (!p || !battle) return null;
-  const hero = battle.combatants.find((c) => c.id === p.heroId);
-  if (!hero) return null;
+  if (!p || !hero) return null;
   const fate = hero.fate ?? 0;
   const offre = fateSaveOptions(p.source);
   const choisir = (issue: FateSaveOption | 'accepter') => () => choisirLIssue('destin', 'issue', issue);
@@ -37,10 +36,10 @@ export function FateSaveModal() {
 
   return (
     <Modal
-      title={<><Icon id="resource/fate" size="sm" /> Le Destin <StakeRule rule={stakeRuleOf(refus)} /></>}
+      title={<><Icon id="ressource/destin" size="sm" /> Le Destin <StakeRule rule={stakeRuleOf(refus)} /></>}
       subject={hero}
       champ
-      footer={<button type="button" className="btn btn-ghost danger" onClick={choisir('accepter')} title="Le héros meurt"><Icon id="journal/death" size="sm" /> Accepter le sort</button>}
+      footer={<button type="button" className="btn btn-ghost danger" onClick={choisir('accepter')} title="Le héros meurt"><Icon id="journal/mort" size="sm" /> Accepter le sort</button>}
     >
       <Stack gap="md">
         <p className="modal-log">

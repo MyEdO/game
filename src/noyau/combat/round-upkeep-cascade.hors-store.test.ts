@@ -208,7 +208,7 @@ describe('Upkeep de fin de Round — héros en cascade, ennemis en silence', () 
     const { H, E } = setup();
     // Fragment 1 : la séquence de fin de Round, telle que l'ouvre `openRoundEndCascade` (combatFlow).
     startCascade(banc.getState, banc.setState, {
-      title: 'Fin de Round', icon: 'time/clock', purpose: 'combat', roundBoundary: true,
+      title: 'Fin de Round', icon: 'temps/heure', purpose: 'combat', roundBoundary: true,
       steps: [{ id: 'fear', kind: cleDeFixture('note'), actorId: H.id, outcome: [{ text: 'Peur de fin de Round' }]}],
     });
     // Fragment 2 : la défense de manœuvre de zone de la créature, appendue à la séquence en vol.

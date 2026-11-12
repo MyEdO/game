@@ -75,9 +75,9 @@ function appliquerOpDuNavire(get: Get, set: Set, coque: Combatant, o: OpDuNavire
       if (o.factorId !== undefined) {
         const deja = mood.applied.includes(o.factorId);
         const { mood: next, delta, label } = applyManannFactor(mood, o.factorId, ctx.rng);
-        if (deja) return [t('eff.manannAlready', { factor: label ?? o.factorId })];
+        if (deja) return [t('eff.manannDejaApplique', { factor: label ?? o.factorId })];
         set({ vessel: { ...vessel, manann: next } });
-        return [t('eff.manannFactor', { delta: `${delta >= 0 ? '+' : ''}${delta}`, factor: label ?? o.factorId })];
+        return [t('eff.facteurDeManann', { delta: `${delta >= 0 ? '+' : ''}${delta}`, factor: label ?? o.factorId })];
       }
       const delta = tirerSigne(o.delta, ctx.rng);
       set({ vessel: { ...vessel, manann: addManann(mood, delta) } });
@@ -100,12 +100,12 @@ function appliquerOpDuNavire(get: Get, set: Set, coque: Combatant, o: OpDuNavire
       };
       set({ vessel: { ...vessel, modificateurs: [...modificateursActifs(vessel.modificateurs, now), mod] } });
       const axes = [
-        ...(o.m !== undefined ? [t('eff.navireModM', { m: signe(o.m) })] : []),
-        ...(o.manDR !== undefined ? [t('eff.navireModMan', { dr: signe(o.manDR) })] : []),
-        ...(o.evite ? [t('eff.navireModEvite', { perils: o.evite.map(libelleDuPeril).join(', ') })] : []),
+        ...(o.m !== undefined ? [t('eff.modificateurDuNavireM', { m: signe(o.m) })] : []),
+        ...(o.manDR !== undefined ? [t('eff.modificateurDuNavireManoeuvre', { dr: signe(o.manDR) })] : []),
+        ...(o.evite ? [t('eff.modificateurDuNavireEvite', { perils: o.evite.map(libelleDuPeril).join(', ') })] : []),
       ];
       const duree = typeof jusqua === 'number' ? t('eff.pendantNJours', { n: (jusqua - now) / MINUTES_PER_DAY }) : jusqua === 'carenage' ? t('eff.jusquAuCarenage') : t('eff.jusquAuProchainEvenement');
-      return [t('eff.navireMod', { label, axes: axes.join(', '), duree })];
+      return [t('eff.modificateurDuNavire', { label, axes: axes.join(', '), duree })];
     }
     case 'meteoImposee': {
       const vessel = garanti(get().vessel, o.op, 'navire de campagne de la coque visée');
@@ -183,8 +183,8 @@ function appliquerOpDuNavire(get: Get, set: Set, coque: Combatant, o: OpDuNavire
     case 'infestation': {
       const vessel = garanti(get().vessel, o.op, 'navire de campagne de la coque visée');
       const label = nomDeSource(ctx);
-      set({ vessel: { ...vessel, infestation: { label, crewTestType: o.crewTestType.id, difficulty: o.difficulty, targetDR: o.targetDR, progres: 0, chaqueNuit: o.chaqueNuit } } });
-      return [t('eff.infestation', { label, dr: o.targetDR })];
+      set({ vessel: { ...vessel, infestation: { label, crewTestType: o.crewTestType.id, difficulty: o.difficulty, drCible: o.drCible, progres: 0, chaqueNuit: o.chaqueNuit } } });
+      return [t('eff.infestation', { label, dr: o.drCible })];
     }
   }
 }
@@ -267,7 +267,7 @@ export function ouvrirLeTestDEquipage(get: Get, set: Set, node: Extract<Flow, { 
   const st = etapeDEquipage(get, type, 'testDEquipage', garanti(stake, label, 'enjeu du Test d’équipage'), { difficulty });
   if (!st) return false;
   startCascade(get, set, {
-    title: label, icon: 'travel/anchor', purpose: 'test',
+    title: label, icon: 'voyage/ancre', purpose: 'test',
     steps: [{ ...st, meta: { ...st.meta, onSuccess: node.success, onFail: node.fail, after, flowLabel: label, ...(sl !== undefined ? { flowSl: sl } : {}) } }],
   });
   return true;

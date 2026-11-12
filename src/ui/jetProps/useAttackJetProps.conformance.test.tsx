@@ -161,7 +161,7 @@ function renderAttack(opts: { ranged?: boolean; cases?: number; fog?: boolean; l
     // au vrai site de déclaration — un champ porté par l'appelant primerait et court-circuiterait le prédicat.
     { attackerId: attacker.id, targetId: target.id, location: opts.location ?? null, result: null, ...(opts.morsure ? { freeKind: 'morsure' as const } : opts.pietinement ? { freeKind: 'pietinement' as const } : { weaponUid: weapon.uid }), ...(opts.tirArme ? {} : { tirImmobile: !opts.enMouvement }) },
     'Attaque',
-    'action/attack',
+    'action/attaquer',
   );
   host = document.createElement('div');
   document.body.appendChild(host);

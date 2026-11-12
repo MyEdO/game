@@ -60,7 +60,7 @@ export function DisengageModal() {
   const mover = battle.combatants.find((c) => c.id === pd.moverId);
   const foe = battle.combatants.find((c) => c.id === pd.foeId);
   if (!mover || !foe) return null;
-  const header = <VsHeader actor={mover} target={foe} label="quitter le corps à corps" verb="melee/disengage" />;
+  const header = <VsHeader actor={mover} target={foe} label="quitter le corps à corps" verb="melee/se-desengager" />;
 
   // ── Phase 'choice' : MENU d'options (pas un jet) — Modal simple + OptionChooser + Résilience pré-jet. ──
   if (pd.phase === 'choice') {
@@ -69,7 +69,7 @@ export function DisengageModal() {
     const groupMode = groupAdvantage();
     const retreatCost = retreatAdvantageCost(mover);
     const choiceStake = flowStakeRef(DISENGAGE_STAKE[pd.phase]);
-    const sacrificeLabel = <><Icon id="melee/disengage" size="sm" /> {groupMode ? `Retraite stratégique (${retreatCost} Av)` : "Sacrifier l'Avantage"}</>;
+    const sacrificeLabel = <><Icon id="melee/se-desengager" size="sm" /> {groupMode ? `Retraite stratégique (${retreatCost} Av)` : "Sacrifier l'Avantage"}</>;
     // L'intitulé suit la VOIE que le verdict a ouverte (`voieDAvantage`), jamais une supposition.
     const voie = voieDAvantage({ active: mover, battle });
     const sacrificeTitle = voie ? {
@@ -81,9 +81,9 @@ export function DisengageModal() {
       { stake: groupMode ? flowStakeRef('desengagement-retraite', { values: { cout: retreatCost } }) : flowStakeRef('desengagement-sacrifice'),
         option: { key: 'sacrifice', label: sacrificeLabel, hidden: !pd.canSacrifice, onSelect: () => regler('desengagement', 'sacrifier', true), title: sacrificeTitle } },
       { stake: flowStakeRef('desengagement-esquive'),
-        option: { key: 'esquive', label: <><Icon id="melee/tumble" size="sm" /> Esquiver</>, value: ligneDEsquiveDeDesengagement(useGame.getState(), mover).target, hidden: !!pd.refusEsquive, onSelect: esquiver, title: "Test opposé d'Esquive — coûte ton Action" } },
+        option: { key: 'esquive', label: <><Icon id="melee/roule-boule" size="sm" /> Esquiver</>, value: ligneDEsquiveDeDesengagement(useGame.getState(), mover).target, hidden: !!pd.refusEsquive, onSelect: esquiver, title: "Test opposé d'Esquive — coûte ton Action" } },
       { stake: flowStakeRef('desengagement-fuir'),
-        option: { key: 'fuir', label: <><Icon id="melee/flee" size="sm" /> Fuir (coup dans le dos)</>, hidden: pd.canFuir === false, onSelect: () => regler('desengagement', 'fuir', true), title: 'Tu tournes le dos : attaque gratuite contre toi (+20), puis tu cours si tu en es encore capable' } },
+        option: { key: 'fuir', label: <><Icon id="melee/fuir" size="sm" /> Fuir (coup dans le dos)</>, hidden: pd.canFuir === false, onSelect: () => regler('desengagement', 'fuir', true), title: 'Tu tournes le dos : attaque gratuite contre toi (+20), puis tu cours si tu en es encore capable' } },
     ].filter((o) => !o.option.hidden);
     return (
       /* Décision DE COMBAT, champ lisible : les adversaires au contact se lisent sous la fenêtre. */
@@ -158,11 +158,11 @@ export function DisengageModal() {
         : undefined),
     // Les rangées de cette coquille appartiennent au flux `fuite` (≠ `disengage` de la coquille).
     }).map((r) => ({ ...r, flowKey: 'fuite' as const })).map((r) => (isBackstab(String(r.key))
-      ? { ...r, rollLabel: <><Icon id="nav/dice" size="sm" /> Lancer le coup dans le dos</> }
-      : { ...r, rollLabel: <><Icon id="nav/dice" size="sm" /> Lancer le Test</> }));
+      ? { ...r, rollLabel: <><Icon id="navigation/des" size="sm" /> Lancer le coup dans le dos</> }
+      : { ...r, rollLabel: <><Icon id="navigation/des" size="sm" /> Lancer le Test</> }));
 
     const rolled = !!res && (!toucheDu || !!jet);
-    const actions: RollAction[] = [{ key: 'confirm', label: t('verbe.confirm'), onClick: fleeConfirm, verbe: 'confirm', flux: 'fuite' }];
+    const actions: RollAction[] = [{ key: 'confirmer', label: t('verbe.valider'), onClick: fleeConfirm, verbe: 'valider', flux: 'fuite' }];
 
     return (
       <RollShell
@@ -217,7 +217,7 @@ export function DisengageModal() {
   }, { key: 'mover' });
 
   const actions: RollAction[] = [
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
+    { key: 'confirmer', label: t('verbe.valider'), onClick: confirm, verbe: 'valider' },
   ];
 
   return (

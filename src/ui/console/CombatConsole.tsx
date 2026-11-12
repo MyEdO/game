@@ -43,7 +43,7 @@ import { StateChips } from '../StateChips';
 import { LifeBar } from '../LifeBar';
 import { Icon } from '../Icon';
 import { ItemIcon } from '../ItemIcon';
-import type { IconIdInput } from '../../data/icons';
+import type { IconId } from '../../data/icons';
 
 /** Les zones adressables tiennent leur nombre de cases de `TAILLE_ZONE`. */
 const LEFT_CELLS = TAILLE_ZONE.arsenal; // travée gauche : 2×3 — les gestes déduits du set (§1a) puis les cases LIBRES
@@ -239,7 +239,7 @@ export function ConsoleCell({ cell, hotkey, advantage = 0, ciblageArme = false, 
     : button;
 }
 
-function icon(id: IconIdInput) {
+function icon(id: IconId) {
   return <Icon id={id} />;
 }
 
@@ -407,9 +407,9 @@ export function ConsoleArch({ active, move, action, etats, retraitDEtat }: {
 function actorStateChips(active: Combatant, battle: BattleState): EffectChip[] {
   const { assailli, cloue, renfort } = etatsDeSituation(active, battle);
   const out: EffectChip[] = [];
-  if (assailli) out.push({ key: 'a-assailli', icon: 'action/attack', label: `Assailli par ${assailli.nombre} ennemis au contact`, kind: 'state', severity: 58, indice: assailli.nombre });
-  if (cloue) out.push({ key: 'a-cloue', flagId: 'calmeApproche', icon: 'flag/fear', label: 'Cloué', kind: 'state', severity: 64 });
-  if (renfort) out.push({ key: 'a-renfort', icon: 'action/serve-engine', label: 'Renfort de pièce (le chef fait feu)', kind: 'state', severity: 40 });
+  if (assailli) out.push({ key: 'a-assailli', icon: 'action/attaquer', label: `Assailli par ${assailli.nombre} ennemis au contact`, kind: 'state', severity: 58, indice: assailli.nombre });
+  if (cloue) out.push({ key: 'a-cloue', flagId: 'calmeApproche', icon: 'drapeau/peur', label: 'Cloué', kind: 'state', severity: 64 });
+  if (renfort) out.push({ key: 'a-renfort', icon: 'action/servir-l-engin', label: 'Renfort de pièce (le chef fait feu)', kind: 'state', severity: 40 });
   return out;
 }
 
@@ -519,7 +519,7 @@ export function CombatConsole() {
           label: enReseau
             ? (dejaPret ? 'En attente des autres…' : 'Prêt')
             : pendingRoundStart.round <= 1 ? 'Commencer le combat' : `Commencer le round ${pendingRoundStart.round}`,
-          icon: <Icon id={roundStartDef.icon as IconIdInput} size="sm" />,
+          icon: <Icon id={roundStartDef.icon} size="sm" />,
           primary: true,
           disabled: enReseau && dejaPret,
           run: () => jouerLOffreDeLEcran(useGame.getState(), roundStartDef.id),
@@ -532,7 +532,7 @@ export function CombatConsole() {
           actions: [{
             key: interlude.id,
             label: interlude.label,
-            icon: <Icon id={interlude.icon as IconIdInput} size="sm" />,
+            icon: <Icon id={interlude.icon} size="sm" />,
             primary: !bandeauDiscret(interlude),
             run: () => jouerLOffreDeLEcran(useGame.getState(), interlude.id),
           }],
@@ -657,7 +657,7 @@ export function CombatConsole() {
       key: over.key ?? def.keys?.[0] ?? def.id,
       id: actionId,
       family,
-      icon: over.icon ?? icon(def.icon as IconIdInput),
+      icon: over.icon ?? icon(def.icon),
       label: over.label ?? def.label,
       rule: over.rule ?? (def.rule ? cibleCodex(def.rule) : undefined),
       gate: verdict.ok ? undefined : verdict.reason,
@@ -773,7 +773,7 @@ export function CombatConsole() {
     // `fantassin`) — ce que le navire offre, ce sont ses Tests d'équipage (plus bas).
     setWeapon
         ? cellFor('attaque', 'arme', { icon: <ItemIcon item={setWeapon} />, label: setWeapon.label, rule: setWeapon.trappingId ? { category: 'trappings', id: setWeapon.trappingId } : undefined, args: { attackId: 'arme' } })
-        : cellFor('attaque', 'arme', { icon: icon('melee/grapple'), label: 'Mains nues', rule: { category: 'trappings', id: 'mains-nues' }, args: { attackId: 'arme' } }),
+        : cellFor('attaque', 'arme', { icon: icon('melee/empoignade'), label: 'Mains nues', rule: { category: 'trappings', id: 'mains-nues' }, args: { attackId: 'arme' } }),
     // G4 — Recharger : le porteur de l'état est l'ARME (progression du Test étendu), et c'est ELLE
     // que le dispatcher reçoit.
     cellFor('rechargement', 'arme', {
@@ -930,7 +930,7 @@ export function CombatConsole() {
       const dr = active.focus?.spell === sp.id ? active.focus.dr : null;
       const progres = dr != null && sp.cn ? `DR ${dr}/${sp.cn}` : undefined;
       return cellFor('incantation', 'magie', {
-        key: `sort-${sp.id}`, icon: icon('magic/power'), label: sp.label, rule: { category: 'spells', id: sp.id },
+        key: `sort-${sp.id}`, icon: icon('magie/puissance'), label: sp.label, rule: { category: 'spells', id: sp.id },
         args: { spellId: sp.id }, progres,
       });
     }),
@@ -1089,7 +1089,7 @@ export function CombatConsole() {
             <SpectatorChip label={nomDuSiege(net, siegeDistant)} action={`joue ${active.label}…`} />
           ) : (
             <span className="cc-phase-label">
-              <Icon id="ui/wait" size="sm" /> {active.kind === 'enemy' ? 'Tour de l’ennemi' : `Tour de ${active.label}`}
+              <Icon id="interface/attendre" size="sm" /> {active.kind === 'enemy' ? 'Tour de l’ennemi' : `Tour de ${active.label}`}
             </span>
           )}
         </div>
@@ -1183,7 +1183,7 @@ export function CombatConsole() {
                         onClick={() => jouerLOffreDeLEcran(useGame.getState(), 'panoplie', { loadoutId: lo.id })}
                       >
                         <i className="cc-set-n">{i + 1}</i>
-                        {mainItem ? <ItemIcon item={mainItem} /> : <Icon id="item/weapon" size="sm" />}
+                        {mainItem ? <ItemIcon item={mainItem} /> : <Icon id="objet/arme" size="sm" />}
                         {/* L'état de charge se DIT à l'ÉCRAN (jamais la couleur seule — grief vision a11y,
                             jamais un `title` — grief du juge vision), en MOT ENTIER lisible. */}
                         {unloaded ? <i className="cc-set-load">VIDE</i> : null}
@@ -1266,7 +1266,7 @@ export function CombatConsole() {
             onClick={onEndTurn}
           >
             <span className="cc-ico">
-              <Icon id={arme ? 'ui/warning' : 'ui/turn-end'} />
+              <Icon id={arme ? 'interface/attention' : 'interface/fin-du-tour'} />
             </span>
             <span className="cc-lbl">{arme ? 'Finir quand même' : 'Fin du tour'}</span>
             <span className="cc-key" aria-hidden={arme || undefined}>{endNote}</span>

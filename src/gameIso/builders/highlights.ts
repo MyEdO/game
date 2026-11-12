@@ -19,7 +19,7 @@ import { chebyshev } from '../../engine/grid';
 /** Élément sémantique de surbrillance : case + hauteur métrique + nature. Les clés reprennent les clés
  *  React historiques (stables entre frames). */
 export type HighlightEl = { key: string; cell: { x: number; y: number; z: number }; h: number } & (
-  | { kind: 'walk' | 'run' }
+  | { kind: 'deplacement' | 'course' }
   | { kind: 'intent' }
   | { kind: 'team'; hero: boolean; active: boolean }
   | { kind: 'zone'; smoke: boolean }
@@ -76,14 +76,14 @@ export function buildHighlights(scene: Scene, battle: BattleState, view: Highlig
   if (view.myTurn)
     for (const k of view.walkReach.keys()) {
       const [x, y, z] = parse(k);
-      out.push({ key: `h${k}`, cell: { x, y, z }, h: hAt(x, y, z), kind: 'walk' });
+      out.push({ key: `h${k}`, cell: { x, y, z }, h: hAt(x, y, z), kind: 'deplacement' });
     }
   // Zone de COURSE (LDB 15 l.79-82) au-delà de la Marche : y cliquer demandera le Test `course`.
   if (view.myTurn)
     for (const k of view.runReach.keys()) {
       if (view.walkReach.has(k)) continue;
       const [x, y, z] = parse(k);
-      out.push({ key: `r${k}`, cell: { x, y, z }, h: hAt(x, y, z), kind: 'run' });
+      out.push({ key: `r${k}`, cell: { x, y, z }, h: hAt(x, y, z), kind: 'course' });
     }
   // Teinte d'équipe des CASES occupées : allié vert / ennemi rouge / actif jaune, sur toute l'empreinte.
   for (const c of battle.combatants) {

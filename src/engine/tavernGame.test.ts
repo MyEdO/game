@@ -23,7 +23,7 @@ describe('Jeux de taverne — moteur générique (NADJ 16)', () => {
       const playerTR = rollTest(70, TAVERN_TEST_DIFFICULTY, rng);
       const opponentTR = rollTavernTest(25, rng);
       const r = resolveTavernRound(dominos, playerTR, opponentTR);
-      if (r.winner === 'player') pWins++;
+      if (r.winner === 'joueur') pWins++;
     }
     expect(pWins).toBeGreaterThan(40); // 70 % vs 25 % : le joueur fort domine
   });
@@ -67,11 +67,11 @@ describe('Jeux de taverne — moteur générique (NADJ 16)', () => {
     expect(bras.drBonus).toBe('force');
     const fort: TestResult = { roll: 30, target: 45, sl: 1, success: true, isDouble: false, base: 45 };
     const faible: TestResult = { roll: 20, target: 35, sl: 2, success: true, isDouble: false, base: 35 };
-    expect(resolveTavernRound(bras, fort, faible).winner, 'sans Bonus, 1 DR contre 2').toBe('opponent');
+    expect(resolveTavernRound(bras, fort, faible).winner, 'sans Bonus, 1 DR contre 2').toBe('adversaire');
     const avec = resolveTavernRound(bras, fort, faible, { player: 4, opponent: 1 });
     expect(avec.playerSL).toBe(5);
     expect(avec.opponentSL).toBe(3);
-    expect(avec.winner, 'Bonus de Force compris, la manche bascule').toBe('player');
+    expect(avec.winner, 'Bonus de Force compris, la manche bascule').toBe('joueur');
   });
 
   it('plafond de DR par manche (Boules = 6, drCap)', () => {

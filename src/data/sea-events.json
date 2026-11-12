@@ -869,7 +869,7 @@
                   "id": "extermination-nuisibles"
                 },
                 "difficulty": "complexe",
-                "targetDR": 25,
+                "drCible": 25,
                 "chaqueNuit": {
                   "kind": "seq",
                   "steps": [
@@ -1101,7 +1101,7 @@
                   "id": "extermination-nuisibles"
                 },
                 "difficulty": "intermediaire",
-                "targetDR": 10,
+                "drCible": 10,
                 "chaqueNuit": {
                   "kind": "seq",
                   "steps": [
@@ -1259,7 +1259,7 @@
         "consequence": {
           "kind": "choice",
           "prompt": "Changer de cap",
-          "yes": {
+          "oui": {
             "kind": "do",
             "effect": {
               "type": "ops",
@@ -1275,7 +1275,7 @@
               ]
             }
           },
-          "no": {
+          "non": {
             "kind": "do",
             "effect": {
               "type": "ops",
@@ -1343,7 +1343,7 @@
         "consequence": {
           "kind": "choice",
           "prompt": "Aborder la cogue",
-          "yes": {
+          "oui": {
             "kind": "seq",
             "steps": [
               {
@@ -1655,7 +1655,7 @@
         "consequence": {
           "kind": "choice",
           "prompt": "Secourir le naufragé",
-          "yes": {
+          "oui": {
             "kind": "do",
             "effect": {
               "type": "ops",
@@ -1684,7 +1684,7 @@
         "consequence": {
           "kind": "choice",
           "prompt": "Laisser le navire approcher",
-          "yes": {
+          "oui": {
             "kind": "do",
             "effect": {
               "type": "ops",
@@ -1738,7 +1738,7 @@
         "consequence": {
           "kind": "choice",
           "prompt": "Repêcher les caisses",
-          "yes": {
+          "oui": {
             "kind": "do",
             "effect": {
               "type": "ops",
@@ -1821,7 +1821,7 @@
         "consequence": {
           "kind": "choice",
           "prompt": "Recueillir les rescapés",
-          "yes": {
+          "oui": {
             "kind": "do",
             "effect": {
               "type": "ops",
@@ -1985,7 +1985,7 @@
         "consequence": {
           "kind": "choice",
           "prompt": "Accoster sur l’île",
-          "yes": {
+          "oui": {
             "kind": "do",
             "effect": {
               "type": "ops",
@@ -2052,7 +2052,7 @@
         "consequence": {
           "kind": "choice",
           "prompt": "Monter à bord",
-          "yes": {
+          "oui": {
             "kind": "do",
             "effect": {
               "type": "ops",
@@ -2371,7 +2371,7 @@
             {
               "kind": "choice",
               "prompt": "Tenter de récupérer l’équipage enlevé",
-              "yes": {
+              "oui": {
                 "kind": "test",
                 "test": {
                   "skill": {
@@ -2400,7 +2400,7 @@
                   "then": {
                     "kind": "choice",
                     "prompt": "Payer la rançon",
-                    "yes": {
+                    "oui": {
                       "kind": "seq",
                       "steps": [
                         {
@@ -2454,10 +2454,10 @@
                         }
                       ]
                     },
-                    "no": {
+                    "non": {
                       "kind": "choice",
                       "prompt": "Les libérer en douce",
-                      "yes": {
+                      "oui": {
                         "kind": "test",
                         "test": {
                           "skill": {
@@ -2517,7 +2517,7 @@
                   "else": {
                     "kind": "choice",
                     "prompt": "Les libérer en douce",
-                    "yes": {
+                    "oui": {
                       "kind": "test",
                       "test": {
                         "skill": {
@@ -2626,8 +2626,8 @@
           "then": {
             "kind": "choice",
             "prompt": "Payer la bénédiction",
-            "icon": "faith/trident",
-            "yes": {
+            "icon": "foi/trident",
+            "oui": {
               "kind": "do",
               "effect": {
                 "type": "ops",
@@ -2673,7 +2673,7 @@
                 ]
               }
             },
-            "no": {
+            "non": {
               "kind": "do",
               "effect": {
                 "type": "ops",
@@ -2754,7 +2754,7 @@
             "then": {
               "kind": "choice",
               "prompt": "Verser le pot-de-vin",
-              "yes": {
+              "oui": {
                 "kind": "do",
                 "effect": {
                   "type": "ops",
@@ -2788,7 +2788,7 @@
                   ]
                 }
               },
-              "no": {
+              "non": {
                 "kind": "if",
                 "cond": {
                   "kind": "money",
@@ -2801,7 +2801,7 @@
                 "then": {
                   "kind": "choice",
                   "prompt": "Payer les droits de douane",
-                  "yes": {
+                  "oui": {
                     "kind": "do",
                     "effect": {
                       "type": "ops",
@@ -2830,7 +2830,7 @@
                       ]
                     }
                   },
-                  "no": {
+                  "non": {
                     "kind": "do",
                     "effect": {
                       "type": "ops",
@@ -2872,7 +2872,7 @@
               "then": {
                 "kind": "choice",
                 "prompt": "Payer les droits de douane",
-                "yes": {
+                "oui": {
                   "kind": "do",
                   "effect": {
                     "type": "ops",
@@ -2895,7 +2895,7 @@
                     ]
                   }
                 },
-                "no": {
+                "non": {
                   "kind": "do",
                   "effect": {
                     "type": "ops",
@@ -2937,7 +2937,7 @@
             "then": {
               "kind": "choice",
               "prompt": "Payer les droits de douane",
-              "yes": {
+              "oui": {
                 "kind": "do",
                 "effect": {
                   "type": "ops",
@@ -2960,7 +2960,7 @@
                   ]
                 }
               },
-              "no": {
+              "non": {
                 "kind": "do",
                 "effect": {
                   "type": "ops",
@@ -3053,7 +3053,7 @@
         "consequence": {
           "kind": "choice",
           "prompt": "Fouiller le port",
-          "yes": {
+          "oui": {
             "kind": "do",
             "effect": {
               "type": "ops",
@@ -3299,7 +3299,7 @@
           "success": {
             "kind": "choice",
             "prompt": "Garder le passager à bord",
-            "yes": {
+            "oui": {
               "kind": "do",
               "effect": {
                 "type": "ops",
@@ -3584,7 +3584,7 @@
         "consequence": {
           "kind": "choice",
           "prompt": "Accepter le colis",
-          "yes": {
+          "oui": {
             "kind": "do",
             "effect": {
               "type": "ops",

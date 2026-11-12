@@ -88,19 +88,19 @@ function appliquerLaPasse(get: Get, set: Set): void {
   if (!ps || !m || !sg) return;
   const patient = get().party.find((h) => h.id === m.patientId);
   if (!patient) { set({ pendingSurgery: null, medic: { ...m, surgery: undefined } }); return; }
-  const { total: cum } = extendedTestStep(sg.cumDR, { success: ps.success, sl: ps.sl }, sg.targetDR); // Test étendu mutualisé (LDB 12)
+  const { total: cum } = extendedTestStep(sg.cumDR, { success: ps.success, sl: ps.sl }, sg.drCible); // Test étendu mutualisé (LDB 12)
   const recovery = sg.kind === 'reeducation';
   const verb = recovery ? t('medic.verbRecovery') : t('medic.verbSurgery');
   const harm = recovery ? 0 : battleRng().int(1, 10);
   if (!recovery) { loseWounds(patient, harm); addCondition(patient, 'hemorragique'); } // dégâts d'une passe de Chirurgie (LDB 10 l.184)
-  const log: string[] = [t('medic.pass', { healer: sg.healerName, verb, patient: patient.label, dr: `${ps.sl >= 0 ? '+' : ''}${ps.sl}`, cum, target: sg.targetDR, suite: recovery ? t('medic.fragPassEnd') : t('medic.fragPassHarm', { harm }) })];
+  const log: string[] = [t('medic.pass', { healer: sg.healerName, verb, patient: patient.label, dr: `${ps.sl >= 0 ? '+' : ''}${ps.sl}`, cum, target: sg.drCible, suite: recovery ? t('medic.fragPassEnd') : t('medic.fragPassHarm', { harm }) })];
   if (!recovery && patient.wounds.current <= 0) { // « de fortes chances de tuer » (LDB 10) : on interrompt
     log.push(t('medic.patientSinks', { patient: patient.label }));
     set({ pendingSurgery: null, medic: { ...m, surgery: undefined } });
     finishPlayerAction(get, set, log, 'soin');
     return;
   }
-  if (cum >= sg.targetDR) { // cible atteinte
+  if (cum >= sg.drCible) { // cible atteinte
     if (recovery) {
       const { penalty, log: recLog } = recoverDisabledLimb(patient, sg.traumaUid);
       log.push(...recLog);
@@ -145,11 +145,11 @@ function abandonnerLOperation(get: Get, set: Set): void {
 
 /** L'opération que le brouillon `p` arme, son prix `paidCost` débité. */
 function operationArmee(s: Pick<Jeu, 'party'>, p: PendingHeal, kind: ActeOperatoire, paidCost: MedicCost | undefined): NonNullable<MedicState['surgery']> {
-  const targetDR = cibleDeLOperation(s, p, kind);
+  const drCible = cibleDeLOperation(s, p, kind);
   return {
     kind, difficulty: p.difficulty, healerId: p.healerId, healerName: p.healerName, skill: p.skillValue, support: p.support,
-    intBonus: p.intBonus, ...(p.plaie ? { traumaUid: p.plaie } : {}), targetDR, cumDR: 0, paidCost,
-    stake: flowStakeRef(HEAL_STAKE[kind], { values: { targetDR } }),
+    intBonus: p.intBonus, ...(p.plaie ? { traumaUid: p.plaie } : {}), drCible, cumDR: 0, paidCost,
+    stake: flowStakeRef(HEAL_STAKE[kind], { values: { drCible } }),
   };
 }
 

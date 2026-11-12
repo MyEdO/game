@@ -152,7 +152,7 @@ describe('Ragot non tentable : la journée de recherche est perdue (LDB 59 l.50)
     const avant = banc.getState().gameTime;
     const out = appliquer(step, hero);
     expect(banc.getState().gameTime).toBe(avant + MINUTES_PER_DAY);
-    expect(ligneDe(out)).toContain(t('mf.searchSansJet'));
+    expect(ligneDe(out)).toContain(t('mf.rechercheSansJet'));
   });
 
   it('port-vente-ragot : aucun acheteur, aucune recherche d’acheteur enchaînée (MDG 15 l.366-372)', () => {

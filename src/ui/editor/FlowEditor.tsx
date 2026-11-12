@@ -51,9 +51,9 @@ const seqOf = (steps: Flow[]): Flow => ({ kind: 'seq', steps });
 function nodeSummary(node: Flow, ctx: Ctx): string | JSX.Element {
   switch (node.kind) {
     case 'do': return <><Icon id={EFFECT_ICON[node.effect.type]} size="sm" /> {effectSummary(node.effect, ctx)}</>;
-    case 'if': return <><Icon id="ui/branch" size="sm" /> Si {condSummary(node.cond, ctx.narratif)}{node.else != null ? ' · sinon…' : ''}</>;
-    case 'test': return <><Icon id="nav/dice" size="sm" /> Test {node.test.skill ? refLabel('skills', node.test.skill) : (node.test.characteristic || '?')} → ✓ / ✗</>;
-    case 'choice': return <><Icon id="ui/balance" size="sm" /> Choix{node.advantageCost != null ? ` (${node.advantageCost} Av)` : ''} « {node.prompt} » → ✓ / ✗</>;
+    case 'if': return <><Icon id="interface/branchement" size="sm" /> Si {condSummary(node.cond, ctx.narratif)}{node.else != null ? ' · sinon…' : ''}</>;
+    case 'test': return <><Icon id="navigation/des" size="sm" /> Test {node.test.skill ? refLabel('skills', node.test.skill) : (node.test.characteristic || '?')} → ✓ / ✗</>;
+    case 'choice': return <><Icon id="interface/balance" size="sm" /> Choix{node.advantageCost != null ? ` (${node.advantageCost} Av)` : ''} « {node.prompt} » → ✓ / ✗</>;
     case 'seq': return `▸ ${node.steps.length} bloc(s)`;
   }
 }
@@ -240,17 +240,17 @@ function FlowAddMenu({ onAdd, ctx }: { onAdd: (node: Flow) => void; ctx: Ctx }) 
           items: [
             {
               key: 'if',
-              label: <><Icon id="ui/branch" size="sm" /> Condition (si…)</>,
+              label: <><Icon id="interface/branchement" size="sm" /> Condition (si…)</>,
               onPick: () => onAdd(blocNeuf('if')),
             },
             {
               key: 'test',
-              label: <><Icon id="nav/dice" size="sm" /> Test de compétence</>,
+              label: <><Icon id="navigation/des" size="sm" /> Test de compétence</>,
               onPick: () => onAdd(blocNeuf('test')),
             },
             {
               key: 'choice',
-              label: <><Icon id="ui/balance" size="sm" /> Choix du joueur</>,
+              label: <><Icon id="interface/balance" size="sm" /> Choix du joueur</>,
               onPick: () => onAdd(blocNeuf('choice')),
             },
           ],
@@ -329,9 +329,9 @@ export function FlowEditor({ flow, onChange, ctx }: { flow: Flow; onChange: (f: 
               <ProvenanceDuTexte copie identite={`${cles[i]}/choix`} sujet="du choix" value={node} onChange={(patch) => updAt(i, { ...node, ...patch })} />
               <NumberField label="Coût en Avantage" value={typeof node.advantageCost === 'number' ? node.advantageCost : 0} min={0} onChange={(advantageCost) => updAt(i, { ...node, advantageCost })} />
               <span className="branch-label ok">Si OUI :</span>
-              <FlowEditor flow={node.yes} ctx={ctx} onChange={(yes) => updAt(i, { ...node, yes })} />
-              <label className="ed-check"><input type="checkbox" checked={node.no !== undefined} onChange={(e) => updAt(i, { ...node, no: e.target.checked ? EMPTY_FLOW : undefined })} /> Branche NON</label>
-              {node.no && <FlowEditor flow={node.no} ctx={ctx} onChange={(no) => updAt(i, { ...node, no })} />}
+              <FlowEditor flow={node.oui} ctx={ctx} onChange={(yes) => updAt(i, { ...node, oui: yes })} />
+              <label className="ed-check"><input type="checkbox" checked={node.non !== undefined} onChange={(e) => updAt(i, { ...node, non: e.target.checked ? EMPTY_FLOW : undefined })} /> Branche NON</label>
+              {node.non && <FlowEditor flow={node.non} ctx={ctx} onChange={(no) => updAt(i, { ...node, non: no })} />}
             </Stack>
           )}
         </details>

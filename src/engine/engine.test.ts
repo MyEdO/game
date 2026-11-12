@@ -95,9 +95,9 @@ describe("Atouts d'arme (LDB Les armes)", () => {
     const base = duel([], 50, 50, 44); // DR 1 contre DR 1
     expect([base.hit, base.netSL, base.advantageTo]).toEqual([false, 0, null]);
     const pointue = duel(['Pointue'], 50, 50, 44); // DR 2 contre DR 1
-    expect([pointue.hit, pointue.netSL, pointue.advantageTo]).toEqual([true, 1, 'attacker']);
+    expect([pointue.hit, pointue.netSL, pointue.advantageTo]).toEqual([true, 1, 'attaquant']);
     const imprecise = duel(['Imprécise'], 50, 50, 44); // DR 0 contre DR 1 (LDB 62 l.323)
-    expect([imprecise.hit, imprecise.netSL, imprecise.advantageTo]).toEqual([false, 1, 'defender']);
+    expect([imprecise.hit, imprecise.netSL, imprecise.advantageTo]).toEqual([false, 1, 'defenseur']);
   });
   it('Pointue : MUET sur un Test d’attaque RATÉ (CC 40 vs CC 30, jet 45 — l’attaquant l’emporte en échouant)', () => {
     expect(duel([], 40, 30, 45).netSL).toBe(1);
@@ -492,7 +492,7 @@ describe('Test opposé (départage canon, LDB 12 l.160)', () => {
     const def = evaluateTest(70, 70, 30); // DR 0
     const r = resolveOpposed(att, def);
     expect(att.sl).toBe(def.sl);
-    expect(r.winner).toBe('attacker');
+    expect(r.winner).toBe('attaquant');
     expect(r.decidedBy).toBe('valeur');
   });
   it('égalité de DR : à valeurs nues égales, la cible modifiée ne départage PAS → tie', () => {
@@ -500,7 +500,7 @@ describe('Test opposé (départage canon, LDB 12 l.160)', () => {
     const def = evaluateTest(41, 45, 45); // Compétence 45, cible 45 — même DR
     const r = resolveOpposed(att, def);
     expect(att.sl).toBe(def.sl);
-    expect(r.winner).toBe('tie');
+    expect(r.winner).toBe('egalite');
     expect(r.decidedBy).toBe('egalite');
     expect(r.attackerWins).toBe(false);
   });
@@ -508,7 +508,7 @@ describe('Test opposé (départage canon, LDB 12 l.160)', () => {
     const att = evaluateTest(23, 45, 45); // DR 2
     const def = evaluateTest(21, 45, 45); // DR 2
     const r = resolveOpposed(att, def);
-    expect(r.winner).toBe('tie');
+    expect(r.winner).toBe('egalite');
     expect(r.decidedBy).toBe('egalite');
     expect(r.attackerWins).toBe(false);
   });
@@ -517,7 +517,7 @@ describe('Test opposé (départage canon, LDB 12 l.160)', () => {
     const def = evaluateTest(31, 55, 90); // DR 2, Compétence nue 90 (la plus haute)
     const r = resolveOpposed(att, def);
     expect(att.sl).toBeGreaterThan(def.sl);
-    expect(r.winner).toBe('attacker');
+    expect(r.winner).toBe('attaquant');
     expect(r.decidedBy).toBe('dr');
   });
   it('valeur nue ABSENTE des deux côtés (jet réhydraté) : la cible sert de repli', () => {
@@ -525,7 +525,7 @@ describe('Test opposé (départage canon, LDB 12 l.160)', () => {
     const def = evaluateTest(23, 55);
     const r = resolveOpposed(att, def);
     expect(att.sl).toBe(def.sl);
-    expect(r.winner).toBe('defender');
+    expect(r.winner).toBe('defenseur');
     expect(r.decidedBy).toBe('valeur');
   });
   it('valeur nue d’UN SEUL côté : tout-ou-rien — on compare les deux CIBLES, jamais nue vs cible', () => {
@@ -533,7 +533,7 @@ describe('Test opposé (départage canon, LDB 12 l.160)', () => {
     const def = evaluateTest(70, 70);     // réhydraté sans valeur nue, cible 70
     const r = resolveOpposed(att, def);
     expect(att.sl).toBe(def.sl);
-    expect(r.winner).toBe('defender'); // cible 70 > cible 25 — la nue 45 n'affronte pas une cible
+    expect(r.winner).toBe('defenseur'); // cible 70 > cible 25 — la nue 45 n'affronte pas une cible
     expect(r.decidedBy).toBe('valeur');
   });
 });
@@ -673,14 +673,14 @@ describe('Magie — effets actifs (buffs temporisés)', () => {
   it('effectiveChar applique le meilleur bonus, sans cumul entre Sorts (LDB 46 l.119)', () => {
     const c = caster({ 'capacite-de-combat': 35 });
     c.activeEffects = [
-      { label: 'A', source: { kind: 'spell', id: 's-A' }, characteristic: 'capacite-de-combat', bonus: 10, duration: { scale: 'rounds', left: 6 } },
-      { label: 'B', source: { kind: 'spell', id: 's-B' }, characteristic: 'capacite-de-combat', bonus: 20, duration: { scale: 'rounds', left: 6 } },
+      { label: 'A', source: { kind: 'sort', id: 's-A' }, characteristic: 'capacite-de-combat', bonus: 10, duration: { scale: 'rounds', left: 6 } },
+      { label: 'B', source: { kind: 'sort', id: 's-B' }, characteristic: 'capacite-de-combat', bonus: 20, duration: { scale: 'rounds', left: 6 } },
     ];
     expect(effectiveChar(c, 'capacite-de-combat')).toBe(55); // 35 + max(10,20)
   });
   it('endOfRound décrémente et dissipe les effets expirés', () => {
     const c = caster({ 'capacite-de-combat': 35 });
-    const eff: ActiveEffect = { label: 'Bénédiction de Bataille', source: { kind: 'spell', id: 's-Bénédiction de Bataille' }, characteristic: 'capacite-de-combat', bonus: 10, duration: { scale: 'rounds', left: 1 } };
+    const eff: ActiveEffect = { label: 'Bénédiction de Bataille', source: { kind: 'sort', id: 's-Bénédiction de Bataille' }, characteristic: 'capacite-de-combat', bonus: 10, duration: { scale: 'rounds', left: 1 } };
     c.activeEffects = [eff];
     endOfRound(c, desDuTest, idsDeTest);
     expect(c.activeEffects.length).toBe(0);
@@ -690,17 +690,17 @@ describe('Magie — effets actifs (buffs temporisés)', () => {
   it('effectiveChar applique le meilleur bonus ET la pire pénalité des Sorts (LDB 46 l.119)', () => {
     const c = caster({ agilite: 40 });
     c.activeEffects = [
-      { label: 'buff', source: { kind: 'spell', id: 's-buff' }, characteristic: 'agilite', bonus: 10, duration: { scale: 'rounds', left: 6 } },
-      { label: 'autre buff', source: { kind: 'spell', id: 's-autre buff' }, characteristic: 'agilite', bonus: 20, duration: { scale: 'rounds', left: 6 } },
-      { label: 'Écorce', source: { kind: 'spell', id: 's-Écorce' }, characteristic: 'agilite', bonus: -10, duration: { scale: 'rounds', left: 6 } },
+      { label: 'buff', source: { kind: 'sort', id: 's-buff' }, characteristic: 'agilite', bonus: 10, duration: { scale: 'rounds', left: 6 } },
+      { label: 'autre buff', source: { kind: 'sort', id: 's-autre buff' }, characteristic: 'agilite', bonus: 20, duration: { scale: 'rounds', left: 6 } },
+      { label: 'Écorce', source: { kind: 'sort', id: 's-Écorce' }, characteristic: 'agilite', bonus: -10, duration: { scale: 'rounds', left: 6 } },
     ];
     expect(effectiveChar(c, 'agilite')).toBe(50); // 40 + max(10,20) + min(-10) = 40+20-10
   });
   it('effectiveChar garde la pénalité la PIRE entre deux Sorts (LDB 46 l.119)', () => {
     const c = caster({ dexterite: 45 });
     c.activeEffects = [
-      { label: 'a', source: { kind: 'spell', id: 's-a' }, characteristic: 'dexterite', bonus: -10, duration: { scale: 'rounds', left: 6 } },
-      { label: 'b', source: { kind: 'spell', id: 's-b' }, characteristic: 'dexterite', bonus: -20, duration: { scale: 'rounds', left: 6 } },
+      { label: 'a', source: { kind: 'sort', id: 's-a' }, characteristic: 'dexterite', bonus: -10, duration: { scale: 'rounds', left: 6 } },
+      { label: 'b', source: { kind: 'sort', id: 's-b' }, characteristic: 'dexterite', bonus: -20, duration: { scale: 'rounds', left: 6 } },
     ];
     expect(effectiveChar(c, 'dexterite')).toBe(25); // 45 + 0 - 20
   });

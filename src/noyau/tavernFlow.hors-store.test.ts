@@ -91,7 +91,7 @@ describe('jouerALaTaverne', () => {
     const res = get().tavernGames?.result;
     expect(res).toBeTruthy();
     expect(res!.gameLabel).toBe('Les dominos');
-    expect(['player', 'opponent', 'tie']).toContain(res!.winner);
+    expect(['joueur', 'adversaire', 'egalite']).toContain(res!.winner);
     // Mise ignorée entre compagnons (aucune bourse ne bouge).
     expect(res!.stakeBrass).toBe(0);
     expect(res!.netBrass).toBe(0);
@@ -167,7 +167,7 @@ describe('jouerALaTaverne', () => {
     expect(after.roll).toBe(before.result!.roll); // même dé, la Chance n'en tire pas un autre
     // L'issue exposée (`success`) recalcule l'opposition contre le MÊME `aT` figé (calque `disengage`).
     const recomposed = resolveOpposed(aT, { roll: after.roll, target: after.target, sl: after.sl, success: evaluateTest(after.roll, after.target).success, isDouble: false });
-    expect(after.success).toBe(recomposed.winner !== 'attacker');
+    expect(after.success).toBe(recomposed.winner !== 'attaquant');
   });
 
   /**
@@ -210,7 +210,7 @@ describe('jouerALaTaverne', () => {
     const pose = (r: typeof rb) => ({ ...r, result: { roll: 11, target: r.target, sl: 2, success: true } });
     banc.setState({ pendingCascade: { ...pc, participants: [{ ...band, participants: [pose(rb), pose(ra)] }] } });
     get().jetValider('cascade');
-    expect(get().tavernGames!.result!.winner, 'la nue la plus haute l’emporte').toBe('opponent');
+    expect(get().tavernGames!.result!.winner, 'la nue la plus haute l’emporte').toBe('adversaire');
   }
 
   /** Au régime RAPIDE (NADJ 16 l.11) : aucune clause d'égalité déclarée, `resolveOpposed` juge seul. */
@@ -229,7 +229,7 @@ describe('jouerALaTaverne', () => {
     // Recompose le verdict SEUL depuis le jet adverse figé + le DR final connu du joueur (`res.playerSL`) —
     // même comparaison que `resolveOpposed` côté moteur (`engine/tavernGame.resolveTavernRound`).
     const opp = resolveOpposed({ roll: 0, target: 0, sl: res.playerSL, success: res.playerSL > 0, isDouble: false }, aT);
-    const expectedWinner = opp.winner === 'attacker' ? 'player' : opp.winner === 'defender' ? 'opponent' : 'tie';
+    const expectedWinner = opp.winner === 'attaquant' ? 'joueur' : opp.winner === 'defenseur' ? 'adversaire' : 'egalite';
     expect(res.winner).toBe(expectedWinner);
     expect(res.opponentSL).toBe(aT.sl); // aucun plafond déclaré : le DR adverse passe entier
   }
@@ -267,15 +267,15 @@ describe('Bras de fer (NADJ 16 l.34)', () => {
     const bfB = bonus(b.characteristics.force);
 
     poseManche({ [a.id]: 3, [b.id]: 1 });
-    const apres1 = cum().player;
+    const apres1 = cum().joueur;
     expect(apres1, 'DR de la manche + Bonus de Force (l.34)').toBe(3 + bfA);
-    expect(cum().opponent).toBe(1 + bfB);
+    expect(cum().adversaire).toBe(1 + bfB);
 
     // Manche PERDUE, DR NÉGATIF : « les DR obtenus à chaque Round sont additionnés » (LDB 12 l.174) —
     // le total BAISSE. Sous l'ancien plancher par manche (`Math.max(0, DR)`), il n'aurait pas bougé.
     poseManche({ [a.id]: -6, [b.id]: 2 });
-    expect(cum().player, 'le cumul BAISSE').toBe(Math.max(0, apres1 + (-6 + bfA)));
-    expect(cum().player).toBeLessThan(apres1);
+    expect(cum().joueur, 'le cumul BAISSE').toBe(Math.max(0, apres1 + (-6 + bfA)));
+    expect(cum().joueur).toBeLessThan(apres1);
   });
 
   it('le cumul est planché à 0 sur le TOTAL, jamais en dessous (LDB 12 l.174)', () => {
@@ -283,7 +283,7 @@ describe('Bras de fer (NADJ 16 l.34)', () => {
     banc.setState({ party: [a, b] });
     get().jouerALaTaverne(a.id, { gameId: 'bras-de-fer', opponent: { kind: 'heros', id: b.id } });
     poseManche({ [a.id]: -20, [b.id]: 1 });
-    expect(cum().player).toBe(0);
+    expect(cum().joueur).toBe(0);
   });
 
   it('+1 Avantage au GAGNANT de chaque tour (l.34), et à lui seul', () => {
@@ -326,7 +326,7 @@ describe('Bras de fer (NADJ 16 l.34)', () => {
     for (let manche = 1; manche < beA; manche++) poseManche({ [a.id]: 0, [b.id]: 0 });
     poseManche({ [a.id]: 10, [b.id]: 0 });
     expect(get().sequence, 'la partie est finie sur cette manche').toBeNull();
-    expect(get().tavernGames!.result!.winner).toBe('player');
+    expect(get().tavernGames!.result!.winner).toBe('joueur');
     expect(get().tavernGames!.result!.rounds).toBe(beA);
     expect(hasCondition(get().party.find((h) => h.id === a.id)!, COND.extenue), 'le vainqueur ne s’exténue pas du tour qu’il gagne').toBe(false);
     expect(hasCondition(get().party.find((h) => h.id === b.id)!, COND.extenue), 'ni le perdant : ce tour ne « passe » pas').toBe(false);
@@ -341,7 +341,7 @@ describe('Bras de fer (NADJ 16 l.34)', () => {
     poseManche({ [a.id]: 6, [b.id]: 0 });
     expect(get().sequence, 'cible atteinte : la séquence est retirée').toBeNull();
     const res = get().tavernGames!.result!;
-    expect(res.winner).toBe('player');
+    expect(res.winner).toBe('joueur');
     expect(res.playerSL).toBeGreaterThanOrEqual(10);
     expect(res.rounds).toBe(2);
     expect(res.detail).toBe(`${res.playerSL} DR cumulés contre ${res.opponentSL} en 2 manches`);
@@ -440,7 +440,7 @@ describe('Bras de fer (NADJ 16 l.34)', () => {
     expect(adv(a.id)).toBe(1);
     poseManche({ [a.id]: 10, [b.id]: -3 });
     expect(get().sequence, 'partie dénouée').toBeNull();
-    expect(get().tavernGames!.result!.winner).toBe('player');
+    expect(get().tavernGames!.result!.winner).toBe('joueur');
     expect(adv(a.id)).toBe(0);
   });
 
@@ -456,7 +456,7 @@ describe('Bras de fer (NADJ 16 l.34)', () => {
     expect(get().sequence).toBeNull();
     expect(get().pendingCascade).toBeNull();
     const res = get().tavernGames!.result!;
-    expect(res.winner, 'abandonner, c’est perdre').toBe('opponent');
+    expect(res.winner, 'abandonner, c’est perdre').toBe('adversaire');
     expect(res.detail.startsWith(`${a.label} abandonne.`), res.detail).toBe(true);
     expect(adv(a.id)).toBe(0);
   });
@@ -468,11 +468,11 @@ describe('Bras de fer (NADJ 16 l.34)', () => {
     poseManche({ [a.id]: 1, [b.id]: 0 });
     poseManche({ [a.id]: -10, [b.id]: -9 });
     const cum = get().sequence!.cum as Record<string, number>;
-    expect(cum.player, 'le total ne descend jamais sous 0').toBeGreaterThanOrEqual(0);
+    expect(cum.joueur, 'le total ne descend jamais sous 0').toBeGreaterThanOrEqual(0);
     get().jetRegler('cascade', 'abandon', true);
     const res = get().tavernGames!.result!;
-    expect([res.playerSL, res.opponentSL]).toEqual([cum.player, cum.opponent]);
-    expect(res.detail).toBe(`${a.label} abandonne. ${cum.player} DR cumulés contre ${cum.opponent} en 2 manches`);
+    expect([res.playerSL, res.opponentSL]).toEqual([cum.joueur, cum.adversaire]);
+    expect(res.detail).toBe(`${a.label} abandonne. ${cum.joueur} DR cumulés contre ${cum.adversaire} en 2 manches`);
   });
 
   it('ABANDON avant toute manche jouée : le détail se réduit à l’abandon, et le journal dit le MÊME texte et l’issue', () => {
@@ -504,12 +504,12 @@ describe('Bras de fer (NADJ 16 l.34)', () => {
     const fige = () => get().pendingCascade!.participants[0].meta!.opposed!.aT!;
     expect(fige().target, 'aucun Avantage au premier tour').toBe(valeur);
     poseMono(-30); // l'habitué emporte le tour
-    expect((get().sequence!.payload as { advantage?: { opponent: number } }).advantage?.opponent).toBe(1);
+    expect((get().sequence!.payload as { advantage?: { adversaire: number } }).advantage?.adversaire).toBe(1);
     expect(fige().target, '+10 pour son pion').toBe(valeur + 10);
     const cibleA = get().pendingCascade!.participants[0].target!;
     // Le héros emporte le tour d'un point de score : l'habitué perd tout, le héros gagne +1.
     poseMono(fige().sl + bonus(valeur) - bonus(a.characteristics.force) + 1);
-    expect((get().sequence!.payload as { advantage?: { opponent: number } }).advantage?.opponent).toBe(0);
+    expect((get().sequence!.payload as { advantage?: { adversaire: number } }).advantage?.adversaire).toBe(0);
     expect(adv(a.id)).toBe(1);
     expect(fige().target).toBe(valeur);
     expect(get().pendingCascade!.participants[0].target, 'le pion du héros entre dans SA cible').toBe(cibleA + 10);
@@ -525,7 +525,7 @@ describe('Bras de fer (NADJ 16 l.34)', () => {
     const valeur = (get().sequence!.payload as { opponentValue: number }).opponentValue;
     const fige = () => get().pendingCascade!.participants[0].meta!.opposed!.aT!;
     poseMono(-30);
-    expect((get().sequence!.payload as { advantage?: { opponent: number } }).advantage?.opponent).toBe(2);
+    expect((get().sequence!.payload as { advantage?: { adversaire: number } }).advantage?.adversaire).toBe(2);
     poseMono(fige().sl + bonus(valeur) - bonus(a.characteristics.force) + 1);
     expect(adv(a.id), 'le héros suit la même donnée').toBe(2);
   });
@@ -538,7 +538,7 @@ describe('Bras de fer (NADJ 16 l.34)', () => {
       get().jouerALaTaverne(a.id, { gameId: 'bras-de-fer', opponent: { kind: 'profil', id: 'humain' } });
       const valeur = (get().sequence!.payload as { opponentValue: number }).opponentValue;
       const fige = () => get().pendingCascade!.participants[0].meta!.opposed!.aT!;
-      const camp = () => (get().sequence!.payload as { advantage?: { opponent: number } }).advantage?.opponent;
+      const camp = () => (get().sequence!.payload as { advantage?: { adversaire: number } }).advantage?.adversaire;
       poseMono(-30);
       expect(camp(), 'l’habitué gagne la manche : sa réserve gagne').toBe(1);
       poseMono(fige().sl + bonus(valeur) - bonus(a.characteristics.force) + 1);

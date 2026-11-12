@@ -34,26 +34,26 @@ type Family = 'select' | 'architecture' | 'tile' | 'wall' | 'height' | 'stair' |
 
 const RAIL: { key: Family; icon: ReactNode; label: string }[] = [
   { key: 'select', icon: '↖', label: 'Sélection / déplacer — clic = sélectionner, glisser = déplacer' },
-  { key: 'architecture', icon: <Icon id="rest/home" />, label: 'Architecture' },
-  { key: 'tile', icon: <Icon id="map-tool/paint" />, label: 'Peindre le terrain' },
-  { key: 'wall', icon: <Icon id="map-tool/wall" />, label: 'Murs — cloison ou porte sur une arête, diagonale au centre de la case' },
-  { key: 'height', icon: <Icon id="map-tool/height" />, label: 'Hauteur — surface surélevée / fosse (peindre une hauteur en mètres ; la traversée verticale s’auto-dérive)' },
+  { key: 'architecture', icon: <Icon id="repos/chez-soi" />, label: 'Architecture' },
+  { key: 'tile', icon: <Icon id="outil-de-carte/peindre" />, label: 'Peindre le terrain' },
+  { key: 'wall', icon: <Icon id="outil-de-carte/mur" />, label: 'Murs — cloison ou porte sur une arête, diagonale au centre de la case' },
+  { key: 'height', icon: <Icon id="outil-de-carte/hauteur" />, label: 'Hauteur — surface surélevée / fosse (peindre une hauteur en mètres ; la traversée verticale s’auto-dérive)' },
   { key: 'stair', icon: '↗', label: 'Volée — tracer une file de cases entre deux surfaces cotées : les cotes s’interpolent par crans franchissables (aucun décor posé)' },
-  { key: 'crenellated', icon: <Icon id="map-tool/crenel" />, label: 'Crénelage — marque un parapet crénelé sur les cases peintes (décoration de rendu)' },
-  { key: 'personnage', icon: <Icon id="map-tool/npc" />, label: 'Poser un personnage' },
-  { key: 'prop', icon: <Icon id="map-tool/prop" />, label: 'Poser un décor' },
-  { key: 'heroStart', icon: <Icon id="map-tool/start-flag" />, label: 'Départ des héros (case d’arrivée du groupe)' },
-  { key: 'zone', icon: <Icon id="map-tool/zone" />, label: 'Dessiner une zone — pièce, trigger, zone de repos ou piège' },
-  { key: 'entry', icon: <Icon id="nav/entry-point" />, label: 'Poser un point d’entrée (cible des transitions)' },
-  { key: 'encounter', icon: <Icon id="action/attack" size="sm" />, label: 'Placer des ennemis (rencontre de combat)' },
+  { key: 'crenellated', icon: <Icon id="outil-de-carte/crenelage" />, label: 'Crénelage — marque un parapet crénelé sur les cases peintes (décoration de rendu)' },
+  { key: 'personnage', icon: <Icon id="outil-de-carte/personnage" />, label: 'Poser un personnage' },
+  { key: 'prop', icon: <Icon id="outil-de-carte/decor" />, label: 'Poser un décor' },
+  { key: 'heroStart', icon: <Icon id="outil-de-carte/depart" />, label: 'Départ des héros (case d’arrivée du groupe)' },
+  { key: 'zone', icon: <Icon id="outil-de-carte/zone" />, label: 'Dessiner une zone — pièce, trigger, zone de repos ou piège' },
+  { key: 'entry', icon: <Icon id="navigation/point-d-entree" />, label: 'Poser un point d’entrée (cible des transitions)' },
+  { key: 'encounter', icon: <Icon id="action/attaquer" size="sm" />, label: 'Placer des ennemis (rencontre de combat)' },
   { key: 'emplacement', icon: <Icon id="scenario/siege" size="sm" />, label: 'Emplacement de siège — poser une pièce d’artillerie (baliste, catapulte, canon…) servie par un équipage' },
-  { key: 'erase', icon: <Icon id="map-tool/erase" />, label: 'Gomme — efface les entités cliquées' },
+  { key: 'erase', icon: <Icon id="outil-de-carte/gomme" />, label: 'Gomme — efface les entités cliquées' },
 ];
 
 /** Sous-modes de l'outil murs (rail contextuel). */
 const WALL_PAINTS: { paint: WallPaint; icon: ReactNode; label: string }[] = [
   { paint: 'wall', icon: '▮', label: 'Cloison' },
-  { paint: 'door', icon: <Icon id="map-tool/door" />, label: 'Porte' },
+  { paint: 'door', icon: <Icon id="outil-de-carte/porte" />, label: 'Porte' },
   { paint: 'diagBack', icon: '◣', label: 'Diagonale ＼' },
   { paint: 'diagFwd', icon: '◢', label: 'Diagonale ／' },
 ];
@@ -427,7 +427,7 @@ export function Palette({
                 { key: '__erase', label: 'Gomme (effacer la marque)', selected: tool.structure === null, onSelect: () => setTool({ mode: 'crenellated', structure: null }) },
               ]}
             />
-            <p className="hint">Peint la case comme portant un PARAPET crénelé — décoration de rendu (merlons de périmètre) : n'affecte ni passabilité ni ligne de vue. Combinez-le à l'outil <Icon id="map-tool/height" size="sm" /> Hauteur pour un rempart complet.</p>
+            <p className="hint">Peint la case comme portant un PARAPET crénelé — décoration de rendu (merlons de périmètre) : n'affecte ni passabilité ni ligne de vue. Combinez-le à l'outil <Icon id="outil-de-carte/hauteur" size="sm" /> Hauteur pour un rempart complet.</p>
           </>
         )}
 
@@ -494,10 +494,10 @@ export function Palette({
             <OptionChooser
               layout="seg"
               options={[
-                { key: 'room', label: <><Icon id="rest/home" size="sm" /> Pièce — intérieur d'un bâtiment (toitures, enveloppe, accès en dérivent)</>, selected: tool.zone === 'room', onSelect: () => setTool({ mode: 'zone', zone: 'room' }) },
-                { key: 'trigger', label: <><Icon id="map-tool/zone" size="sm" /> Trigger — déclenche des effets quand le groupe y entre</>, selected: tool.zone === 'trigger', onSelect: () => setTool({ mode: 'zone', zone: 'trigger' }) },
-                { key: 'rest', label: <><Icon id="rest/camp" size="sm" /> Zone de repos — offre de repos locale (auberge/maison/camp)</>, selected: tool.zone === 'rest', onSelect: () => setTool({ mode: 'zone', zone: 'rest' }) },
-                { key: 'effect', label: <><Icon id="ui/warning" size="sm" /> Piège / hasard — Dégâts ou États à la traversée / au stationnement</>, selected: tool.zone === 'effect', onSelect: () => setTool({ mode: 'zone', zone: 'effect' }) },
+                { key: 'room', label: <><Icon id="repos/chez-soi" size="sm" /> Pièce — intérieur d'un bâtiment (toitures, enveloppe, accès en dérivent)</>, selected: tool.zone === 'room', onSelect: () => setTool({ mode: 'zone', zone: 'room' }) },
+                { key: 'trigger', label: <><Icon id="outil-de-carte/zone" size="sm" /> Trigger — déclenche des effets quand le groupe y entre</>, selected: tool.zone === 'trigger', onSelect: () => setTool({ mode: 'zone', zone: 'trigger' }) },
+                { key: 'rest', label: <><Icon id="repos/campement" size="sm" /> Zone de repos — offre de repos locale (auberge/maison/camp)</>, selected: tool.zone === 'rest', onSelect: () => setTool({ mode: 'zone', zone: 'rest' }) },
+                { key: 'effect', label: <><Icon id="interface/attention" size="sm" /> Piège / hasard — Dégâts ou États à la traversée / au stationnement</>, selected: tool.zone === 'effect', onSelect: () => setTool({ mode: 'zone', zone: 'effect' }) },
               ]}
             />
             <p className="hint">Glissez sur la carte pour dessiner le rectangle. {ZONE_HINT[tool.zone]}</p>
@@ -550,7 +550,7 @@ export function Palette({
                 </button>
               ))}
             </div>
-            <p className="hint">Cliquez la carte pour poser l'emplacement. Orientation du créneau et équipage s'éditent dans l'inspecteur ; enrôlez-le dans une rencontre (fold <Icon id="action/attack" size="sm" /> Combat) pour qu'il entre en jeu.</p>
+            <p className="hint">Cliquez la carte pour poser l'emplacement. Orientation du créneau et équipage s'éditent dans l'inspecteur ; enrôlez-le dans une rencontre (fold <Icon id="action/attaquer" size="sm" /> Combat) pour qu'il entre en jeu.</p>
           </>
         )}
 

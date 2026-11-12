@@ -146,7 +146,7 @@ describe('Critique d’une Structure (AA 10 l.114)', () => {
     const { S, H } = mur();
     const woundsLost = woundsFromHit(fleche, S, 'corps', 30, 0, 1, undefined);
     expect(woundsLost).toBe(0);
-    const res: AttackResult = { hit: true, attackerRoll: 44, netSL: 2, damage: 30, woundsLost, critical: true, advantageTo: 'attacker', defenderDefeated: false, log: 'touche' };
+    const res: AttackResult = { hit: true, attackerRoll: 44, netSL: 2, damage: 30, woundsLost, critical: true, advantageTo: 'attaquant', defenderDefeated: false, log: 'touche' };
     expect(() => applyAttackResult(banc.getState, banc.setState, H, S, fleche, res)).not.toThrow();
     const apres = banc.getState().battle!.combatants.find((c) => c.id === S.id)!;
     expect(apres.wounds.current).toBe(40);
@@ -156,7 +156,7 @@ describe('Critique d’une Structure (AA 10 l.114)', () => {
     const issue = (blessures: number) => {
       const { S, H } = mur('mur-en-pierres-seches', 2);
       const damage = Array.from({ length: 200 }, (_, d) => d).find((d) => woundsFromHit(fleche, S, 'corps', d, 0, 1, H.size) === blessures)!;
-      const res: AttackResult = { hit: true, attackerRoll: 44, netSL: 2, damage, woundsLost: blessures, critical: true, advantageTo: 'attacker', defenderDefeated: false, log: 'touche' };
+      const res: AttackResult = { hit: true, attackerRoll: 44, netSL: 2, damage, woundsLost: blessures, critical: true, advantageTo: 'attaquant', defenderDefeated: false, log: 'touche' };
       applyAttackResult(banc.getState, banc.setState, H, S, fleche, res);
       draineCascade(banc.getState);
       return banc.getState().battle!.combatants.find((c) => c.id === S.id)!;

@@ -207,7 +207,7 @@ export function CharacterSheet({ heroId, onClose }: { heroId: string; onClose: (
           <Row>
             <GatedAction
               id="sheet-soins"
-              label={<><Icon id="journal/heal" size="sm" /> Soins</>}
+              label={<><Icon id="journal/soin" size="sm" /> Soins</>}
               enabled={!refusSoins}
               {...raisonSi(refusSoins)}
               descOfferte="Soins du groupe (Tests de Guérison) — ouvre l'infirmerie sur ce héros"
@@ -292,7 +292,7 @@ function SpellbookSection({ hero }: { hero: Combatant }) {
       <span className="mini-title">Sorts — incantation hors combat</span>
       {(hero.sinPoints ?? 0) > 0 && (
         <span className="muted">
-          <Icon id="ui/balance" size="sm" /> <CodexRef category="characteristics" id="peche" label="Péché">Péché : {hero.sinPoints}</CodexRef>
+          <Icon id="interface/balance" size="sm" /> <CodexRef category="characteristics" id="peche" label="Péché">Péché : {hero.sinPoints}</CodexRef>
         </span>
       )}
       <div className="spell-target">
@@ -321,7 +321,7 @@ function SpellbookSection({ hero }: { hero: Combatant }) {
               <span className="spell-name">
                 <CodexRef category="spells" id={sp.id} label={sp.label}>{sp.label}</CodexRef>
                 {sp.cn != null ? ` · NI ${sp.cn}` : ''}
-                {support === 'narratif' ? (<> <Icon id="nav/rules" size="sm" /></>) : support === 'partiel' ? (<> <Icon id="ui/partial" size="sm" /></>) : ''}
+                {support === 'narratif' ? (<> <Icon id="navigation/regles-maison" size="sm" /></>) : support === 'partiel' ? (<> <Icon id="interface/partiel" size="sm" /></>) : ''}
               </span>
               {offensive ? (
                 <span className="muted" title="Projectile magique : nécessite une cible ennemie (en combat)">
@@ -333,19 +333,19 @@ function SpellbookSection({ hero }: { hero: Combatant }) {
                     <>
                       <GatedAction
                         id={`sheet-focus-${hero.id}-${sp.id}`}
-                        label={<><Icon id="flag/focus" size="sm" /> Focaliser</>}
+                        label={<><Icon id="drapeau/focalisation" size="sm" /> Focaliser</>}
                         enabled={!(refusLanceur ?? castBlockedBy(hero, 'focalisation'))}
                         {...raisonSi(refusLanceur ?? castBlockedBy(hero, 'focalisation'))}
                         primary={false}
                         btnClassName="small"
                         onClick={() => focaliserLeSort(hero.id, sp.id)}
                       />
-                      <CodexRef category="regles" id="focalisation-etendue" label="Test de Focalisation (étendu)" className="ab-codex-info"><Icon id="journal/info" size="sm" /></CodexRef>
+                      <CodexRef category="regles" id="focalisation-etendue" label="Test de Focalisation (étendu)" className="ab-codex-info"><Icon id="journal/information" size="sm" /></CodexRef>
                     </>
                   )}
                   <GatedAction
                     id={`sheet-cast-${hero.id}-${sp.id}`}
-                    label={<><Icon id="nav/dice" size="sm" /> Lancer</>}
+                    label={<><Icon id="navigation/des" size="sm" /> Lancer</>}
                     enabled={!refusDeLancer}
                     {...raisonSi(refusDeLancer)}
                     primary={false}
@@ -360,7 +360,7 @@ function SpellbookSection({ hero }: { hero: Combatant }) {
         {grimoireSpells.map(({ sp, grimoireCn }) => (
           <div className="spell-row" key={`g-${sp.label}`} title="Lecture au grimoire : sort non mémorisé de votre Domaine — deux mains, au NI de lecture indiqué.">
             <span className="spell-name">
-              <Icon id="nav/compendium" size="sm" /> <CodexRef category="spells" id={sp.id} label={sp.label}>{sp.label}</CodexRef>
+              <Icon id="navigation/compendium" size="sm" /> <CodexRef category="spells" id={sp.id} label={sp.label}>{sp.label}</CodexRef>
               {sp.cn != null && grimoireCn != null ? ` · NI ${sp.cn}→${grimoireCn}` : ''}
             </span>
             {isMagicMissile(sp) ? (
@@ -369,7 +369,7 @@ function SpellbookSection({ hero }: { hero: Combatant }) {
               <Row className="spell-actions">
                 <GatedAction
                   id={`sheet-cast-grimoire-${hero.id}-${sp.id}`}
-                  label={<><Icon id="nav/compendium" size="sm" /> Lancer (grimoire)</>}
+                  label={<><Icon id="navigation/compendium" size="sm" /> Lancer (grimoire)</>}
                   enabled={!(refusLanceur ?? castBlockedBy(hero, castInfoIsPrayer(sp) ? 'priere' : 'langue'))}
                   {...raisonSi(refusLanceur ?? castBlockedBy(hero, castInfoIsPrayer(sp) ? 'priere' : 'langue'))}
                   primary={false}
@@ -392,7 +392,7 @@ function SpellbookSection({ hero }: { hero: Combatant }) {
         return (
           <div className="sc-block">
             <span className="mini-title">
-              <Icon id="action/dispel" size="sm" /> Dissipation — sorts permanents actifs
+              <Icon id="action/dissiper" size="sm" /> Dissipation — sorts permanents actifs
             </span>
             <div className="spell-list">
               {dispellable.map((d) => {
@@ -404,7 +404,7 @@ function SpellbookSection({ hero }: { hero: Combatant }) {
                     </span>
                     <Row className="spell-actions">
                       <button className="btn small" onClick={() => dissiperLeSort(hero.id, d.spellId, d.casterId)}>
-                        <Icon id="action/dispel" size="sm" /> Dissiper
+                        <Icon id="action/dissiper" size="sm" /> Dissiper
                       </button>
                     </Row>
                   </div>
@@ -425,7 +425,7 @@ function SpellbookSection({ hero }: { hero: Combatant }) {
         return (
           <div className="spell-components">
             <span className="mini-title">
-              <Icon id="magic/component" size="sm" /> Composants d'incantation
+              <Icon id="magie/composante" size="sm" /> Composants d'incantation
             </span>
             <div className="spell-list">
               {arcane.map((sp) => {
@@ -807,7 +807,7 @@ export function AdvancementPanel({ hero }: { hero: Combatant }) {
                 return (
                 <div className="adv-row acquire" key={spell.label} title={support !== 'mecanique' ? 'Tout ou partie de l’effet est journalisé (« arbitrage MJ ») — pas encore mécanisé.' : undefined}>
                   <span className="adv-name">
-                    <CodexRef category="spells" id={spell.id} label={spell.label}>{spell.label}</CodexRef>{support === 'narratif' ? (<> <Icon id="nav/rules" size="sm" /></>) : support === 'partiel' ? (<> <Icon id="ui/partial" size="sm" /></>) : ''}
+                    <CodexRef category="spells" id={spell.id} label={spell.label}>{spell.label}</CodexRef>{support === 'narratif' ? (<> <Icon id="navigation/regles-maison" size="sm" /></>) : support === 'partiel' ? (<> <Icon id="interface/partiel" size="sm" /></>) : ''}
                     <span className="muted"> · {spell.ecole}{spell.subType ? ` (${spell.subType})` : ''}{spell.cn != null ? ` · NI ${spell.cn}` : ''}</span>
                   </span>
                   <span className="adv-meta" />

@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Icon } from './Icon';
 import { t } from '../i18n';
-import type { IconIdInput } from '../data/icons';
+import type { IconId } from '../data/icons';
 
 /**
  * PONT D'EXPLORATION — le pendant ALLÉGÉ de `CombatConsole` hors combat (spec
@@ -34,7 +34,7 @@ export type ExplorationDockProps = {
   /** Carte du monde (#T2) — `interrupted` : un voyage attend sa reprise. */
   worldMap?: { onOpen: () => void; interrupted: boolean };
   /** Hub de ville (#343) : le lieu courant porte son libellé et son icône. */
-  hub?: { label: string; icon: IconIdInput; onOpen: () => void };
+  hub?: { label: string; icon: IconId; onOpen: () => void };
   /** Dormir/camper hors lieu — le `title` porte la nuance (auberge / chez soi / belle étoile). */
   rest?: { title: string; onOpen: () => void };
   /** Fouiller la pièce où se tient le groupe (`fouillerLaPiece`) — offert DANS une pièce. */
@@ -49,13 +49,13 @@ export function ExplorationDock({ onPossessions, carnet, onShipDossier, onVoyage
       {onFouiller && (
         <div className="xd-openers" data-bord="gauche" role="group" aria-label={t('pont.gestes')}>
           <button type="button" className="worldmap-btn skin-tole" data-ton="laiton" onClick={onFouiller} title={t('fouille.geste')}>
-            <Icon id="ui/search" size="lg" />
+            <Icon id="interface/rechercher" size="lg" />
           </button>
         </div>
       )}
       <div className="xd-openers" aria-label={t('pont.ecrans')}>
         <button type="button" className="worldmap-btn skin-tole" data-ton="laiton" onClick={onPossessions} title={t('pont.possessions')}>
-          <Icon id="travel/mount" size="lg" />
+          <Icon id="voyage/en-selle" size="lg" />
         </button>
         {carnet && (
           <button
@@ -65,17 +65,17 @@ export function ExplorationDock({ onPossessions, carnet, onShipDossier, onVoyage
             onClick={carnet.onOpen}
             title={t(carnet.nouveau ? 'pont.carnetNouveau' : 'pont.carnet')}
           >
-            <Icon id="nav/carnet" size="lg" />
+            <Icon id="navigation/carnet" size="lg" />
           </button>
         )}
         {onShipDossier && (
           <button type="button" className="worldmap-btn skin-tole" data-ton="laiton" onClick={onShipDossier} title={t('pont.dossierNavire')}>
-            <Icon id="travel/sail-ship" size="lg" />
+            <Icon id="voyage/navire-a-voile" size="lg" />
           </button>
         )}
         {onVoyage && (
           <button type="button" className="worldmap-btn skin-tole" data-ton="laiton" onClick={onVoyage} title={t('pont.voyage')}>
-            <Icon id="travel/sail-ship" size="lg" />
+            <Icon id="voyage/navire-a-voile" size="lg" />
           </button>
         )}
         {worldMap && (
@@ -86,7 +86,7 @@ export function ExplorationDock({ onPossessions, carnet, onShipDossier, onVoyage
             onClick={worldMap.onOpen}
             title={t(worldMap.interrupted ? 'pont.carteInterrompue' : 'pont.carte')}
           >
-            <Icon id="nav/campaign" size="lg" />
+            <Icon id="navigation/campagne" size="lg" />
           </button>
         )}
         {hub && (
@@ -97,7 +97,7 @@ export function ExplorationDock({ onPossessions, carnet, onShipDossier, onVoyage
         {rest && (
           <button type="button" className="worldmap-btn skin-tole" data-ton="laiton" onClick={rest.onOpen} title={rest.title}>
             {/* Une seule icône Repos (auberge/chez soi/camp) — le `title` porte la nuance. */}
-            <Icon id="nav/rest" size="lg" />
+            <Icon id="navigation/repos" size="lg" />
           </button>
         )}
       </div>

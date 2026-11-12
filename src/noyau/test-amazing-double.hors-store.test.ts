@@ -72,7 +72,7 @@ describe('FLOWS.test — isDouble PROPAGÉ du jet jusqu’au pendingTest', () =>
     // (garanti statistiquement) et on vérifie la cohérence à CHAQUE itération.
     for (let i = 0; i < 400; i++) {
       banc.setState({ party: [h], pendingTest: basePending() });
-      FLOWS.test.roll(banc.getState, banc.setState);
+      FLOWS.test.lancer(banc.getState, banc.setState);
       const pt = banc.getState().pendingTest!;
       expect(pt.roll).not.toBeNull();
       // Le flag du pending = le double du dé réellement obtenu (propagation via le commit de la fabrique).

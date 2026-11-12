@@ -3,7 +3,7 @@
  *
  * `tickCombatAuto` regarde la modale ACTIVE (`pickActiveModalKey`) et, si le mode l'autorise et qu'elle
  * est pilotée LOCALEMENT, la résout en enchaînant ses résolveurs de store — SANS jamais toucher aux
- * actions d'influence (`reroll`/`forceSuccess`/`darkPact`/`bonusSL`) → « zéro dépense » par construction.
+ * actions d'influence (`relancer`/`forcerLaReussite`/`pactiser`/`ajouterUnDR`) → « zéro dépense » par construction.
  *
  * Deux couches de politique (cf. critique : la granularité réelle des jets de combat est l'étape de
  * cascade, pas une clé modale) :
@@ -20,6 +20,7 @@ import type { Jeu } from './etat';
 import type { CascadeStep } from './pendings';
 import { pickActiveModalKey, modalOwnerOf, voyageHubActive, autoPolicyOf, modaleActive, pendingOuvert, HORS_MODAL, MODAL_DEFS, SURFACES_HORS_PENDING, AUCUN_VERBE_DE_JOUEUR, cleDuGeste, type AutoPolicy, type CleDeRegistre, type FenetreAValider, type FenetreQuiSeFerme, type GesteDuJeu, type HorsModalDef, type ModalDef, type RangeeDeFenetre, type SurfaceHorsPendingDef, type VerbesDeFenetre } from './modalArbiter';
 import { maladresseCourante, stepInteraction } from './cascade';
+import type { HostJet } from './slotsDeJet';
 import { FLOW_VERBS, NOM_DU_VERBE_DE_JET, type FlowKey, type FlowVerbs } from './flowVerbs';
 import { influencesLocally, ownsLocal } from './netOwnership';
 import { seatOwns } from './sieges';
@@ -30,23 +31,6 @@ import { fateSaveOptions } from '../engine/fortune';
 import { reglageDeLaQuantite, reglageDuChoix, type Reglage } from './reglages';
 import { reglagesDuFlux, VERBE_DE_REGLAGE } from './reglagesDuJet';
 import { axesDeLaFenetre, VERBE_DE_CHOIX, type FenetreAChoix } from './choixDesFenetres';
-
-/**
- * Politique d'auto-résolution par TYPE de jet de cascade de COMBAT. `self` = jet propre piloté par son
- * flux bespoke (`drive` = roll → confirm, qui avance la cascade) ; `choice` = vrai choix laissé au joueur
- * en Rapide (Surincantation, menu de Désengagement) ou multi-participant rare (Test étendu, Enfoncer la
- * porte) — tranché par l'IA en Auto-combat (C4). Record total : ajouter un `jet` force une politique.
- */
-export const JET_AUTO: Record<NonNullable<CascadeStep['jet']>, AutoPolicy> = {
-  attaque: { mode: 'self', drive: [{ verbe: 'jetLancer', flux: 'attaque' }, { verbe: 'jetValider', flux: 'attaque' }] },
-  defense: { mode: 'self', drive: [{ verbe: 'jetLancer', flux: 'defense' }, { verbe: 'jetValider', flux: 'defense' }] },
-  maladresse: { mode: 'self', drive: [{ verbe: 'jetLancer', flux: 'maladresse' }, { verbe: 'jetValider', flux: 'maladresse' }] },
-  test: { mode: 'self', drive: [{ verbe: 'jetLancer', flux: 'test' }, { verbe: 'jetValider', flux: 'test' }] },
-  incantation: { mode: 'choice', autoDrive: [{ verbe: 'jetLancer', flux: 'incantation' }, { verbe: 'jetValider', flux: 'incantation' }] }, // Rapide : le joueur décide (surincantation) ; Auto-combat : l'IA incante (sans surincanter)
-  desengagement: { mode: 'choice' },  // menu d'options (Fuir / Esquiver) — initié par le joueur, n'arrive pas en Auto
-  testEtendu: { mode: 'choice' },   // multi-participant (rare en combat)
-  enfoncerLaPorte: { mode: 'choice' },  // multi groupOwner (rare en combat)
-};
 
 /** Une rangée d'une fenêtre réactive, vue par le pilote : son porteur, son état de jet, sa déclaration. */
 type RangeeReactive = RangeeDeFenetre & { declared?: string };
@@ -86,6 +70,43 @@ export const FENETRE_DU_JET: Record<NonNullable<CascadeStep['jet']>, { flux: Flo
   enfoncerLaPorte: { flux: 'enfoncerLaPorte', rangees: (s) => s.pendingForceDoor?.participants },
 };
 
+/** LA PAIRE DE GESTES d'une étape-jet : lancer puis valider, sur le flux de sa fenêtre (`FENETRE_DU_JET`). Le drive de
+ *  `JET_AUTO` et le jeu d'office du socle (`jouerLaPaireDuJet`, #3892) la partagent. */
+function paireDuJet(jet: HostJet): readonly GesteDuJeu[] {
+  const { flux } = FENETRE_DU_JET[jet];
+  return [{ verbe: 'jetLancer', flux }, { verbe: 'jetValider', flux }];
+}
+
+/** Joue un geste du jeu sur son flux, son réglage et sa valeur — le même appel pour la cadence (`driveSelf`) et le
+ *  socle. */
+function jouerLeGeste(get: Get, g: GesteDuJeu): void {
+  const fn = get()[g.verbe] as undefined | ((flux?: FlowKey, reglage?: string, valeur?: string) => void);
+  if (typeof fn === 'function') fn(g.flux, g.reglage, g.valeur);
+}
+
+/** Joue EN SYNCHRONE la paire de gestes d'une étape-jet (`paireDuJet`) : ce qu'un humain fait sur sa fenêtre, quand
+ *  aucun humain ne la tient (`cascade.jouerLHoteDOffice`, #3892). */
+export function jouerLaPaireDuJet(get: Get, jet: HostJet): void {
+  for (const g of paireDuJet(jet)) jouerLeGeste(get, g);
+}
+
+/**
+ * Politique d'auto-résolution par TYPE de jet de cascade de COMBAT. `self` = jet propre piloté par son
+ * flux bespoke (`drive` = roll → confirm, qui avance la cascade) ; `choice` = vrai choix laissé au joueur
+ * en Rapide (Surincantation, menu de Désengagement) ou multi-participant rare (Test étendu, Enfoncer la
+ * porte) — tranché par l'IA en Auto-combat (C4). Record total : ajouter un `jet` force une politique.
+ */
+export const JET_AUTO: Record<NonNullable<CascadeStep['jet']>, AutoPolicy> = {
+  attaque: { mode: 'self', drive: paireDuJet('attaque') },
+  defense: { mode: 'self', drive: paireDuJet('defense') },
+  maladresse: { mode: 'self', drive: paireDuJet('maladresse') },
+  test: { mode: 'self', drive: paireDuJet('test') },
+  incantation: { mode: 'choice', autoDrive: paireDuJet('incantation') }, // Rapide : le joueur décide (surincantation) ; Auto-combat : l'IA incante (sans surincanter)
+  desengagement: { mode: 'choice' },  // menu d'options (Fuir / Esquiver) — initié par le joueur, n'arrive pas en Auto
+  testEtendu: { mode: 'choice' },   // multi-participant (rare en combat)
+  enfoncerLaPorte: { mode: 'choice' },  // multi groupOwner (rare en combat)
+};
+
 /** L'id de la rangée DUE (la première qui se joue et n'a pas de résultat), sinon de la première : le `pid` que la
  *  fenêtre rend. */
 const idDeLaRangeeDue = (rangees: readonly RangeeDeFenetre[] | undefined): string | undefined =>
@@ -102,10 +123,10 @@ const gestesDuFlux = (cle: FlowKey): GesteDuJeu[] => {
 };
 
 /** « Tout résoudre » : le jet sans rangée de la cascade, qui résout les étapes restantes et s'arrête sur un choix. */
-export const TOUT_RESOUDRE: GesteDuJeu = { verbe: NOM_DU_VERBE_DE_JET.roll, flux: 'cascade', toutes: true };
+export const TOUT_RESOUDRE: GesteDuJeu = { verbe: NOM_DU_VERBE_DE_JET.lancer, flux: 'cascade', toutes: true };
 
 /** La navigation de la cascade : valider l'étape (la clôture de son flux), tout résoudre, terminer le bilan (sa sortie). */
-export const NAVIGATION_DE_CASCADE: readonly GesteDuJeu[] = [{ verbe: NOM_DU_VERBE_DE_JET.confirm, flux: 'cascade' }, TOUT_RESOUDRE, { verbe: 'fenetreFermer', fenetre: 'cascade' }];
+export const NAVIGATION_DE_CASCADE: readonly GesteDuJeu[] = [{ verbe: NOM_DU_VERBE_DE_JET.valider, flux: 'cascade' }, TOUT_RESOUDRE, { verbe: 'fenetreFermer', fenetre: 'cascade' }];
 
 /** Les gestes `gestes`, chacun une fois (`cleDuGeste`), dans leur premier ordre. */
 const uniques = (gestes: readonly GesteDuJeu[]): GesteDuJeu[] => [...new Map(gestes.map((g) => [cleDuGeste(g), g])).values()];
@@ -218,7 +239,7 @@ export function fenetreDuJeu(s: Jeu): FenetreDuJeu | null {
     }
     const parInteraction = etape ? VERBES_D_INTERACTION[stepInteraction(etape)] : null;
     const flux = parInteraction?.flux;
-    return { cle, proprietaire, gestes: uniques([...(parInteraction?.gestes ?? []), ...NAVIGATION_DE_CASCADE]), flux: [...new Set<FlowKey>([...(flux ? [flux] : []), 'cascade'])], ...avecPid(etape && parInteraction?.pid(etape)), ...(flux ? { drive: [{ verbe: NOM_DU_VERBE_DE_JET.roll, flux }, NAVIGATION_DE_CASCADE[0]] } : {}), ...(etape ? { etape } : {}) };
+    return { cle, proprietaire, gestes: uniques([...(parInteraction?.gestes ?? []), ...NAVIGATION_DE_CASCADE]), flux: [...new Set<FlowKey>([...(flux ? [flux] : []), 'cascade'])], ...avecPid(etape && parInteraction?.pid(etape)), ...(flux ? { drive: [{ verbe: NOM_DU_VERBE_DE_JET.lancer, flux }, NAVIGATION_DE_CASCADE[0]] } : {}), ...(etape ? { etape } : {}) };
   }
   const hors = (HORS_MODAL as readonly HorsModalDef<(typeof HORS_MODAL)[number]['key']>[]).find((d) => d.tientLaMain && pendingOuvert(s[d.pendingKey]));
   if (hors) return { cle: hors.key, proprietaire: hors.owner(s), gestes: gestesDeLaFenetre(hors), flux: hors.flux ?? [] };
@@ -290,9 +311,7 @@ function driveSelf(get: Get, set: Set, drive: readonly GesteDuJeu[]): void {
     if (sequenceCourante.get(get) !== jeton) return;                 // supersédé par un tick plus récent
     if (!ownerLocal(get())) return;
     if (i >= drive.length) { tickCombatAuto(get, set); return; } // séquence finie → continuer (étape/modale suivante)
-    const g = drive[i++];
-    const fn = get()[g.verbe] as undefined | ((flux?: FlowKey, reglage?: string, valeur?: string) => void);
-    if (typeof fn === 'function') fn(g.flux, g.reglage, g.valeur);  // roll() idempotent, puis confirm() (ferme/avance)
+    jouerLeGeste(get, drive[i++]); // roll() idempotent, puis confirm() (ferme/avance)
     programmer(step, beatHold(get, 'autoResolve'));
   };
   step();

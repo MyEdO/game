@@ -21,7 +21,7 @@
  *   reçu) → 10 sauvegarde « 1d10 ≥ Indice » (traits propres + Trait octroyé par un Dôme) → 40 Martyr
  *   → 50 Perturbante.
  */
-import type { BattleState } from '../etat';
+import type { Jeu } from '../etat';
 import type { Get, Set as SetFn } from '../flowTypes';
 import type { Combatant, Weapon } from '../../engine/types';
 import type { TraitList } from '../../engine/statEntry';
@@ -37,17 +37,17 @@ import { combatDistance } from '../monde/footprint';
 import { porteeEnCases } from '../monde/combatGeometry';
 import { pushBackTiles } from '../combatPlacement';
 import { sceneMetresPerTile } from '../monde/scene';
-import { inBattleId } from '../monde/combatants';
+import { actorIn } from '../monde/combatants';
 import { t } from '../../i18n';
 import type { FragmentDeTables } from '../tablesPosees';
 
 // ── Helpers propres aux sauvegardes ──
 
 /** Martyr (LDB 43 l.99) : le prêtre (vivant, présent) qui encaisse à la place de `target`, ou null. */
-export function martyrGuardOf(battle: BattleState, target: Combatant): Combatant | null {
+export function martyrGuardOf(etat: Jeu, target: Combatant): Combatant | null {
   const id = (target.activeEffects ?? []).find((e) => e.martyrGuard)?.martyrGuard;
   if (!id || id === target.id) return null;
-  const priest = inBattleId(battle, id);
+  const priest = actorIn(etat, id);
   return priest && !isOutOfAction(priest) && !priest.dead ? priest : null;
 }
 
@@ -260,7 +260,7 @@ export const TABLES = {
       apply: ({ attacker, target, res }) => {
         if (res.hit && isMagicallyAsleep(target) && !traitCapability(attacker.traits, 'wakelessBite')) {
           wakeSleeper(target);
-          res = { ...res, autoKill: false, ajouts: [...(res.ajouts ?? []), t('cf.wakeSleeper', { name: attacker.label, foe: target.label })] };
+          res = { ...res, autoKill: false, ajouts: [...(res.ajouts ?? []), t('cf.reveilDuDormeur', { name: attacker.label, foe: target.label })] };
         }
         return res;
       },
@@ -297,7 +297,7 @@ export const TABLES = {
       apply: ({ get, attacker, target, weapon, attaque, res }) => {
         if (res.hit && attaque === 'ranged' && weapon && organicProjectile(weapon)
           && wardedAgainst(get().battle?.combatants ?? [], attacker, target, 'arrowWard', sceneMetresPerTile(get().scene))) {
-          res = { ...res, woundsLost: 0, damage: 0, sansPrise: 'bouclier-anti-fleches', touche: undefined, log: t('cf.arrowWardDestroys', { name: target.label }) };
+          res = { ...res, woundsLost: 0, damage: 0, sansPrise: 'bouclier-anti-fleches', touche: undefined, log: t('cf.bouclierAntiFlechesDesagrege', { name: target.label }) };
         }
         return res;
       },
@@ -309,7 +309,7 @@ export const TABLES = {
       apply: ({ get, attacker, target, weapon, res, encaisse }) => {
         const raw = res.damage ?? res.woundsLost;
         if (res.hit && !res.degatsTransferes && raw) {
-          const priest = martyrGuardOf(get().battle!, target);
+          const priest = martyrGuardOf(get(), target);
           if (priest) {
             const loc = res.location ?? 'corps';
             // LDB 13 l.159, LDB 43 l.107.
@@ -317,7 +317,7 @@ export const TABLES = {
             loseWounds(priest, taken);
             if (priest.wounds.current <= 0) applyZeroWounds(priest);
             encaisse?.(priest, taken);
-            res = { ...res, woundsLost: 0, degatsTransferes: true, ajouts: [...(res.ajouts ?? []), t('cf.martyrTakes', { priest: priest.label, name: target.label, taken })] };
+            res = { ...res, woundsLost: 0, degatsTransferes: true, ajouts: [...(res.ajouts ?? []), t('cf.martyrEncaisse', { priest: priest.label, name: target.label, taken })] };
           }
         }
         return res;
@@ -337,7 +337,7 @@ export const TABLES = {
             const moved = pushBackTiles(get, attacker, target, wanted);
             res = {
               ...res, woundsLost: 0, damage: 0, touche: undefined, // #1595 c.6221792068 Q2 : le Coup Critique demeure
-              log: t('cf.pushback', { name: attacker.label, foe: target.label, meters, bloque: moved < wanted ? t('cf.pushbackBlocked') : '' }),
+              log: t('cf.repoussement', { name: attacker.label, foe: target.label, meters, bloque: moved < wanted ? t('cf.repoussementBloque') : '' }),
             };
           }
         }

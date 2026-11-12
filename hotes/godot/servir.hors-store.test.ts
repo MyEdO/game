@@ -8,6 +8,7 @@
  * modèle listé ; servi en `statique`, l'export rend ce dépôt.
  * Avec un dépôt (#3508, section « Éditeur ») : `GET depot/<id>` rend un projet manuscrit, prose matérialisée ;
  * `PUT depot/<id>` écrit à sa place un texte en forme dépôt de ce projet, et refuse tout autre texte sans rien écrire.
+ * Sans export (le pont vivant, `vivant.mjs`), seuls `modeles/` et `depot/` répondent.
  */
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -147,6 +148,13 @@ describe('servir, le dépôt', () => {
     expect(await r.json()).toEqual(lireProjetLivre(manuscrit, depot));
     expect((await fetch(`${url}depot/${idDe(genere)}`)).status).toBe(404);
     expect((await fetch(`${url}depot/nulle-part`)).status).toBe(404);
+  });
+
+  it('sans export, seuls modeles/ et depot/ répondent, le reste reçoit 404', async () => {
+    const s = await servir({ modeles, depot });
+    serveurs.push(s);
+    const statuts = await Promise.all([`modeles/${LISTAGE}`, 'modeles/epee.glb', `depot/${id}`, 'index.html', ''].map(async (c) => (await fetch(`${s.url}${c}`)).status));
+    expect(statuts).toEqual([200, 200, 200, 404, 404]);
   });
 
   it('sans dépôt, depot/ n’est pas servi', async () => {

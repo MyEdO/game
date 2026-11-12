@@ -41,7 +41,7 @@ const tireur = (): Combatant => {
 };
 const touche = (woundsLost: number, over: Partial<AttackResult> = {}): AttackResult => ({
   hit: true, attackerRoll: 41, netSL: 2, location: 'corps', damage: woundsLost, woundsLost,
-  critical: false, advantageTo: 'attacker', defenderDefeated: false, log: 'touche', ...over,
+  critical: false, advantageTo: 'attaquant', defenderDefeated: false, log: 'touche', ...over,
 }) as AttackResult;
 
 const poser = (combatants: Combatant[]): void => {

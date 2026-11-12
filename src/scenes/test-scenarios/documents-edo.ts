@@ -128,7 +128,7 @@ export const scenario: TestScenario = {
   id: 'documents-edo',
   order: 27,
   category: 'scenarios',
-  icon: 'nav/campaign',
+  icon: 'navigation/campagne',
   title: "Documents de L'Ennemi dans l'Ombre",
   tests:
     'Registre `narratif.documents` du paquet EDO (#679) : chaque document de la liasse s’ouvre par ' +

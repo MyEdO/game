@@ -155,12 +155,12 @@ export function resolveWeaponArea(
       // d'aire (les N plus proches autour de la case), via la condition `&& target`.
       const extra = woundsFromHit(weapon, target, hit.location, hit.damage + indice, 0, 0, hit.attacker.size) - woundsFromHit(weapon, target, hit.location, hit.damage, 0, 0, hit.attacker.size);
       if (extra > 0 && !isOutOfAction(target)) loseWounds(target, extra);
-      lines.push(tr('cf.blastPointBlank', { name: target.label, indice }));
+      lines.push(tr('cf.souffleABoutPortant', { name: target.label, indice }));
     } else {
       // Courte-Longue : cible + Indice plus proches. Extrême : idem mais −Indice aux Dégâts.
       const dmg = band === 'Extrême' ? hit.damage - indice : hit.damage;
       for (const sec of targetsFor(indice)(hit).slice(0, indice))
-        lines.push(...hitSecondary(get, set, hit, sec, dmg, 'cf.blastSecondary', rng));
+        lines.push(...hitSecondary(get, set, hit, sec, dmg, 'cf.souffleSecondaire', rng));
     }
   }
 
@@ -169,7 +169,7 @@ export function resolveWeaponArea(
   if (expl) {
     const indice = expl.indice ?? 1;
     for (const victim of targetsFor(indice)(hit))
-      lines.push(...hitSecondary(get, set, hit, victim, hit.damage, 'cf.blastExplosion', rng));
+      lines.push(...hitSecondary(get, set, hit, victim, hit.damage, 'cf.souffleExplosion', rng));
   }
 
   return { lines };

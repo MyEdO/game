@@ -16,5 +16,5 @@ export function SpectatorChip({ label, action = 'joue…', pose }: {
   /** `ecran` = surimpression ancrée au champ ; absent = la puce suit le flux de son panneau. */
   pose?: 'ecran';
 }) {
-  return <div className="spectator-chip" data-pose={pose}><Icon id="ui/wait" size="sm" /> {label} {action}</div>;
+  return <div className="spectator-chip" data-pose={pose}><Icon id="interface/attendre" size="sm" /> {label} {action}</div>;
 }

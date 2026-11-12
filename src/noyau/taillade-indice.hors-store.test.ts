@@ -201,7 +201,7 @@ describe('Taillade (XA) — l’Indice de l’arme est le COÛT en Avantages du 
   /** Coup CRITIQUE gagné au Test opposé, tel qu'`applyAttackResult` le reçoit du flux d'attaque. */
   const coupCritique = (): AttackResult => ({
     hit: true, attackerRoll: 44, netSL: 4, location: 'corps', critLocation: 'corps',
-    damage: 6, woundsLost: 2, critical: true, advantageTo: 'attacker', defenderDefeated: false, log: 'touche',
+    damage: 6, woundsLost: 2, critical: true, advantageTo: 'attaquant', defenderDefeated: false, log: 'touche',
   });
 
   /** Draine la cascade du coup jusqu'à l'étape de CHOIX de Taillade et la rend telle qu'elle s'offre. */

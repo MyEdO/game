@@ -206,7 +206,7 @@ function pursuitRoundBand(get: Get, p: PursuitPayload, label: string): BuiltCasc
     // L'id est une ADRESSE (rang dans la séquence) ; la MANCHE, elle, voyage sur `meta.round` (#1852).
     id: idDansLaSequence(get, 'pursuit'),
     kind: PURSUIT_MOVE_KIND,
-    icon: 'travel/foot',
+    icon: 'voyage/a-pied',
     label: stepManche(p.manche, dataLabel(label)),
     stake: combatStakeRef('poursuite-manche', { values: { distance: p.distance, evasion: p.escapeAt } }),
     meta: { round: p.manche },
@@ -263,7 +263,7 @@ function pursuitRoundFactory(get: Get, seq: PursuitSequence): SequenceRound<Purs
     if (!band) return undefined;
     return {
       title: stepPrecision(t('pursuit.titreManche', { n: manche }), distanceDite(p)),
-      icon: 'travel/foot',
+      icon: 'voyage/a-pied',
       steps: [band],
       payload: { ...p, manche },
     };
@@ -272,7 +272,7 @@ function pursuitRoundFactory(get: Get, seq: PursuitSequence): SequenceRound<Purs
   if (!pris) return undefined;
   const step = p.phase === 'choix-fuyards' ? choixFuyards(get, p, pris) : choixPoursuivants(get, p, pris);
   if (!step) return undefined;
-  return { title: stepPrecision(t('pursuit.titreRattrapes'), distanceDite(p)), icon: 'travel/foot', steps: [step] };
+  return { title: stepPrecision(t('pursuit.titreRattrapes'), distanceDite(p)), icon: 'voyage/a-pied', steps: [step] };
 }
 
 /** DÉCISION (a) des poursuivis, l.94 — portée par un coureur du camp AUTRE que le retardataire (on ne
@@ -284,7 +284,7 @@ function choixFuyards(get: Get, p: PursuitPayload, pris: PursuitPris): BuiltCasc
   return choiceStep({
     id: `pursuit-${p.manche}-fuyards`,
     kind: PURSUIT_CHOICE_KIND,
-    icon: 'travel/foot',
+    icon: 'voyage/a-pied',
     label: t('step.pursuitRattrapes'),
     actorId: porteur.id,
     // LDB 15 l.94
@@ -303,7 +303,7 @@ function choixPoursuivants(get: Get, p: PursuitPayload, pris: PursuitPris): Buil
   return choiceStep({
     id: `pursuit-${p.manche}-poursuivants`,
     kind: PURSUIT_CHOICE_KIND,
-    icon: 'travel/foot',
+    icon: 'voyage/a-pied',
     label: stepDetail(t('step.abandonne', { who: pris.laggard.label }), t('step.quiSarrete')),
     actorId: camp[0].id,
     // LDB 15 l.94

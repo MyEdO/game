@@ -17,6 +17,7 @@ import { OP_DEFS } from './mecanique';
 import { descendre } from './descente';
 import { valeursDe } from './meta';
 import { IDS_PAR_ESPACE } from '../_ids.generated';
+import { LIBELLES_DES_ICONES } from '../../icons';
 
 /** Les ids AUTHORÉS des deux racines, tels que `npm run gen` les relève — la référence qui dit d'un
  *  vocabulaire qu'il ÉNUMÈRE des entités plutôt qu'un univers de mots. */
@@ -73,6 +74,8 @@ const NOMMES = [
   // `sexeSchema` (#1897) : le sexe d'une apparence, porté par `entityAppearanceSchema` et `pregens`.
   'M|F',
   'N|NE|E|SE|S|SO|O|NO',
+  // `idDIconeSchema` : les ids du registre d'icônes (`ICON_DEFS`), libellés par leur propre `label`.
+  Object.keys(LIBELLES_DES_ICONES).join('|'),
   // `domainCircumstanceSchema` (#1715) : les circonstances (météo, saison, relief, lieu, bâti) qu'un
   // modificateur de Vent attend, et que l'appelant signale — vocabulaire FERMÉ des rubriques
   // `VDM 04`–`VDM 11`, partagé par `windModifiers[].when` et `…cancelledBy.circumstance`.
@@ -298,7 +301,7 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'interieur|exterieur',
   'interior|exterior',
   'jamais|toujours|si-ecart',
-  'jet|forceSuccess',
+  'jet|forcerLaReussite',
   'ladder|surface',
   'ldb|aa',
   'le-plus-lent|aucun',
@@ -332,7 +335,7 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'ship-criticals|river-criticals',
   'sort|rituel',
   'source|group|any',
-  'spell|prayer|talent|trait|trapping|quality|disease|symptom|mutation|condition|psychology|maneuver|creature|activity|rule|tavernGame|miscastMinor|miscastMajor|miscastMinorVdm|miscastMajorVdm|miscastWrath',
+  'sort|priere|talent|trait|objet|qualite|maladie|symptome|mutation|etat|psychologie|manoeuvre|creature|activite|regle|jeuDeTaverne|imparfaiteMineure|imparfaiteMajeure|imparfaiteMineureVdm|imparfaiteMajeureVdm|colereDesDieux',
   'success|stupefying',
   'suppressExposure|gatherInfo|noSurprise|mapMade|reverseToken|countsAsRest|campCare|extraActivity|skipStage|fullRecovery|worsenWeather',
   'team|thrower|pot|volley',

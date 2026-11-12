@@ -50,7 +50,7 @@ const hache: Weapon = { label: 'Hache', name: 'Hache', type: 'melee', damage: { 
 
 const critHit = (loc: HitLocation, woundsLost = 2): AttackResult => ({
   hit: true, attackerRoll: 44, netSL: 4, location: loc, critLocation: loc, damage: 6, woundsLost,
-  critical: true, advantageTo: 'attacker', defenderDefeated: false, log: 'touche',
+  critical: true, advantageTo: 'attaquant', defenderDefeated: false, log: 'touche',
 } as unknown as AttackResult);
 
 const steps = (): CascadeStep[] => banc.getState().pendingCascade?.participants ?? [];
@@ -89,7 +89,7 @@ describe('#1262 lot 5b — CHOIX : la charge de l’applier voyage par la décla
     hero.armour = PA(3); // PA déviable partout : le choix Dévier/Subir s'offre quelle que soit la loc tirée
     hero.wounds = blessuresDeBase(40, 40, hero);
     seedBattleRng(5);
-    applyCoupCritiqueSec(banc.getState, banc.setState, hero, 33, 'double', { attackerId: E[0].id, weapon: 'Hache' }, []);
+    applyCoupCritiqueSec(banc.getState, banc.setState, hero, 33, 'double', { attackerId: E[0].id, weapon: 'Hache' }, [], E[0]);
 
     const st = parKind('deviation')!;
     expect(st, 'le choix Dévier/Subir est une étape de la séquence').toBeTruthy();
@@ -119,7 +119,7 @@ describe('#1262 lot 5b — CHOIX : la charge de l’applier voyage par la décla
     // Test opposé PERDU par l'attaquant, avec un DOUBLE RÉUSSI du défenseur en PARADE (LDB 13 l.183).
     const res = {
       hit: false, attackerRoll: 61, netSL: -2, location: 'corps', damage: 0, woundsLost: 0, critical: false,
-      advantageTo: 'defender', defenderDefeated: false, log: 'paré',
+      advantageTo: 'defenseur', defenderDefeated: false, log: 'paré',
       attackerDetail: { roll: 61, target: 45, success: false, sl: -2, isDouble: false },
       defenderDetail: { roll: 22, target: 45, success: true, sl: 2, isDouble: true },
       parryWeapon: parade,
@@ -129,8 +129,8 @@ describe('#1262 lot 5b — CHOIX : la charge de l’applier voyage par la décla
     const st = parKind('piegeALame')!;
     expect(st, 'le choix Piéger/Critique est une étape de la séquence').toBeTruthy();
     expect(stepInteraction(st)).toBe('choix');
-    expect(st.options!.map((o) => o.key)).toEqual(['trap', 'crit']);
-    expect(st.defaultChoice, 'la résolution immédiate retient le Coup Critique').toBe('crit');
+    expect(st.options!.map((o) => o.key)).toEqual(['piege', 'critique']);
+    expect(st.defaultChoice, 'la résolution immédiate retient le Coup Critique').toBe('critique');
     expect(st.actorId).toBe(defenseur.id);
     expect(st.piegeLame, 'sans sa charge, l’applier n’a plus de Test opposé à router').toBeTruthy();
     expect(st.piegeLame!.defenderId).toBe(defenseur.id);
@@ -252,7 +252,7 @@ describe('#1262 lot 5b — AFFICHAGES : une conséquence sans dé ne se rend pas
         moverId: fuyard.id, foeId: frappeur.id, canSacrifice: false, phase: 'fuir', atk: null, def: null, result: null,
         fuir: {
           participants: [
-            { id: frappeur.id, kind: 'backstab', interactive: false, result: { hit: true, attackerRoll: 33, netSL: 2, location: 'corps', critLocation: 'corps', damage: 6, woundsLost: 6, critical: true, advantageTo: 'attacker', defenderDefeated: false, log: 'dans le dos' } },
+            { id: frappeur.id, kind: 'backstab', interactive: false, result: { hit: true, attackerRoll: 33, netSL: 2, location: 'corps', critLocation: 'corps', damage: 6, woundsLost: 6, critical: true, advantageTo: 'attaquant', defenderDefeated: false, log: 'dans le dos' } },
             { id: fuyard.id, kind: 'touche', interactive: true, test: testDeRegle('fuite', 'touche-en-fuyant'), jet: { success: false, roll: 70, target: 50, sl: -1 } },
           ],
         },

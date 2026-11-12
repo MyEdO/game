@@ -63,8 +63,8 @@ export function ReloadModalView({
   });
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: t('verbe.cancel'), onClick: onCancel, verbe: 'cancel' },
-    { key: 'confirm', label: t('verbe.confirm'), onClick: onConfirm, verbe: 'confirm' },
+    { key: 'abandonner', label: t('verbe.annuler'), onClick: onCancel, verbe: 'annuler' },
+    { key: 'confirmer', label: t('verbe.valider'), onClick: onConfirm, verbe: 'valider' },
   ];
 
   return (

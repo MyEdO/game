@@ -15,6 +15,7 @@
  *  - IMMÉDIAT (`runCascadeImmediate`) — repos de plusieurs jours, reprise auto, triche de recette :
  *    on lance chaque étape (RNG, sans influence) et on applique sa conséquence, sans modale.
  */
+import type { IconId } from '../data/icons';
 import type { Get, Set } from './flowTypes';
 import type { Jeu } from './etat';
 import type { Combatant, Difficulty } from '../engine/types';
@@ -41,6 +42,9 @@ import { journaliser } from './combatLog';
 import { tablesPosees } from './tablesPosees';
 import { jouerLesClotures } from './combatEffects';
 import { fireOwnTestFailed } from './triggeredEffects';
+import { tenuParUnHumain } from './sieges';
+import { jouerLaPaireDuJet } from './combatAuto';
+import { SEQUENCE_HARD_MAX_ROUNDS } from './sequenceContract';
 
 /** Le trigger `onOwnTestFailed` d'un Test raté (MSRC 16 l.152), sur le RNG SEEDABLE (`battleRng`). */
 const emettreOwnTestFailed = (get: Get, actor: Combatant, sl: number): string[] => fireOwnTestFailed(get, actor, { sl, rng: battleRng() });
@@ -132,7 +136,7 @@ function clotureDeCascade(done: PendingCascade): void {
  * Conséquence d'une ISSUE de TEST ÉTENDU (`PendingExtendedTest.outcome`, #273 Étape 1) — calque exact
  * de `CascadeApplier` ci-dessus (mute get/set, renvoie des `Consequence[]`), appliquée à la CLÔTURE du
  * Test étendu (`jetValider('testEtendu')`, noyau/testsDeScene.ts) qu'il ait atteint sa cible OU buté sur `tentativesMax`.
- * `reached` = `total ≥ targetDR` ; `false` = borne d'essais épuisée sans réussir (Commerce d'opportunité,
+ * `reached` = `total ≥ drCible` ; `false` = borne d'essais épuisée sans réussir (Commerce d'opportunité,
  * MDG 15 : « 10 DR en ≤ 3 tentatives » — l'échec de la borne EST une issue, jamais une boucle infinie).
  * Table séparée des appliers (`TablesDuJeu.issuesDeTestEtendu` : un Test étendu n'est PAS une étape de
  * cascade — `pendingExtendedTest` coexiste comme porteur de données à côté d'une cascade-hôte à 1 étape
@@ -355,11 +359,11 @@ export function lireEnSeuil(seuil: SeuilDeSauvegarde, de: CascadeDeResult, nom: 
   const sauve = de.total >= seuil.indice;
   return {
     sauve,
-    ligne: t(sauve ? 'cf.wardSaved' : 'cf.wardFailed', {
+    ligne: t(sauve ? 'cf.sauvegardeReussie' : 'cf.sauvegardeRatee', {
       name: nom,
       roll: de.total,
       trait: formatWardSave(seuil.source, seuil.indice),
-      src: seuil.dome ? t('cf.wardFromDome') : '',
+      src: seuil.dome ? t('cf.sauvegardeDuDome') : '',
     }),
   };
 }
@@ -517,7 +521,7 @@ export function opposedCascadeRoll(def: TestResult, opp: OpposedRowFreeze, targe
   return {
     roll: def.roll, target, sl: def.sl,
     success: opposedBranchSuccess(o, opp.defenderMustWin),
-    ...(o.winner === 'tie' ? { statuQuo: true as const } : {}),
+    ...(o.winner === 'egalite' ? { statuQuo: true as const } : {}),
   };
 }
 
@@ -1088,7 +1092,7 @@ export function pushStep(set: Set, step: CascadeStep | ((index: number) => Casca
     // APPEND : le curseur ne bouge QUE s'il était en bilan (`cursor === participants.length`) — sinon
     // il reste posé sur l'étape en cours, et ce n'est pas une ARRIVÉE (cf. `franchirLesHotesOrphelins`).
     if (same) return { pendingCascade: poserLeCurseur(g, { ...same, participants: [...same.participants, st], seq: compteur + 1 }, same.cursor >= same.participants.length) };
-    const fresh: PendingCascade = poserLeCurseur(g, { title: st.label ?? 'Conséquences', icon: st.icon ?? 'action/attack', purpose: p, cursor: 0, log: [], participants: [st], seq: 1 });
+    const fresh: PendingCascade = poserLeCurseur(g, { title: st.label ?? 'Conséquences', icon: st.icon ?? 'action/attaquer', purpose: p, cursor: 0, log: [], participants: [st], seq: 1 });
     // Slot occupé par un AUTRE purpose : on le SUSPEND (jamais un écrasement) — même `set` atomique
     // que `suspendActiveCascade`, dont `pushStep` n'a pas le `get`.
     return cur ? { pendingCascade: fresh, suspendedCascades: [...s.suspendedCascades, cur] } : { pendingCascade: fresh };
@@ -1188,7 +1192,7 @@ function assertIdsUniques(steps: readonly CascadeStep[], dejaLa: readonly Cascad
 export function startCascade(
   get: Get,
   set: Set,
-  opts: { title: string; icon?: string; purpose: PendingCascade['purpose']; steps: CascadeStep[]; log?: string[]; travelHalt?: boolean; roundBoundary?: boolean; combatEndBoundary?: boolean; restNights?: PendingCascade['restNights'] },
+  opts: { title: string; icon?: IconId; purpose: PendingCascade['purpose']; steps: CascadeStep[]; log?: string[]; travelHalt?: boolean; roundBoundary?: boolean; combatEndBoundary?: boolean; restNights?: PendingCascade['restNights'] },
 ): void {
   if (!opts.steps.length) return;
   assertBandeDeclarePossession(opts.steps);
@@ -1872,13 +1876,15 @@ function piloteImmediat(get: Get, set: Set, steps: CascadeStep[], ctx: ContexteD
     title, purpose: ctx?.purpose ?? 'test', ...fusionnerLesBornes(bornesInitiales, collectees),
     participants: cur, seq, cursor, piloteImmediat: repriseDe(ctx),
   });
+  // PARQUER, c'est OUVRIR le slot : la cascade qui le tient se suspend, comme à `startCascade` (#3892).
+  const parquer = (casc: PendingCascade): void => { suspendActiveCascade(get, set); set({ pendingCascade: casc }); };
   const slotALEntree = get().pendingCascade; // un slot DÉJÀ vivant n'est pas une interruption de CE pilote
   const combatALEntree = get().battle; // un combat DÉJÀ ouvert n'est pas une interruption de CE pilote
 
   for (let i = depuis; i < cur.length; i++) {
     const st = cur[i];
     if (ctx?.auxVraisChoix && attendUnVraiChoix(get, st)) {
-      set({ pendingCascade: curseurPose(get, parquee(i, ctx.title), i) });
+      parquer(curseurPose(get, parquee(i, ctx.title), i));
       return undefined;
     }
     // Jet POSÉ PAR CE PILOTE : aucune fenêtre ne s'ouvrira dessus — le goulot (`commitStep`) en dérive
@@ -1913,10 +1919,12 @@ function piloteImmediat(get: Get, set: Set, steps: CascadeStep[], ctx: ContexteD
     // Prédicat UNIQUE de `resolveRemainingCascade` : un choix sans défaut AUTEURISÉ, une fenêtre hôte
     // vivante (#1765). On ne tranche PAS en silence — la cascade s'arrête PENDANTE, surfacée
     // (`pendingCascade`) pour que l'appelant/la modale la reprenne (devtools `advanceRiverDay`/
-    // `skipToArrival`, cadence commandée, tout futur appelant immédiat). Affichage / quantité : rien
+    // `skipToArrival`, cadence commandée, tout futur appelant immédiat) ; une étape hôte qu'aucun humain
+    // ne tient s'y joue ensuite d'office (`jouerLHoteDOffice`, #3892). Affichage / quantité : rien
     // à résoudre avant la conséquence (`quantityStep` naît avec son nombre d'ouverture).
     if (!stepReady(cur[i], get())) {
-      set({ pendingCascade: parquee(i, ctx?.title ?? choix.label ?? 'Choix') });
+      parquer(parquee(i, ctx?.title ?? choix.label ?? 'Choix'));
+      jouerLHoteDOffice(get, cur[i]);
       return undefined;
     }
     const r = commitStep(get, set, cur, i, { seq, purpose: ctx?.purpose, unwitnessed, rowSurface: ctx?.rowSurface });
@@ -1936,6 +1944,28 @@ function piloteImmediat(get: Get, set: Set, steps: CascadeStep[], ctx: ContexteD
     if (get().partyWiped) return undefined; // l'applier a constaté l'anéantissement : plus personne à qui appliquer la suite
   }
   return { steps: cur, seq, collectees, clos: !clotureHorsCombat(get, set, slotALEntree) };
+}
+
+/**
+ * L'ÉTAPE HÔTE QU'AUCUN HUMAIN NE TIENT, parquée dans le slot (#3892) : elle se joue par les MÊMES verbes qu'un
+ * humain sur sa fenêtre (`combatAuto.jouerLaPaireDuJet`), sur ce slot — `sieges.tenuParUnHumain` : « leur étape se
+ * résout d'office et se montre au bilan ». Une paire par manche (Test étendu), tant qu'elle fait bouger l'état (le
+ * slot de la cascade ou celui du jet) et que le curseur reste sur cette étape non validée ; rien ne bouge : l'étape
+ * reste parquée. Borne : `SEQUENCE_HARD_MAX_ROUNDS` manches.
+ */
+function jouerLHoteDOffice(get: Get, st: CascadeStep): void {
+  const jet = st.jet;
+  if (!jet || st.committed || porteursDeLEtape(st).some((id) => tenuParUnHumain(get(), id))) return;
+  const slot = PENDING_BY_JET[jet];
+  for (let manche = 0; manche < SEQUENCE_HARD_MAX_ROUNDS; manche++) {
+    const avant = get();
+    jouerLaPaireDuJet(get, jet);
+    const apres = get();
+    if (apres.pendingCascade === avant.pendingCascade && (slot == null || apres[slot] === avant[slot])) return;
+    const p = apres.pendingCascade;
+    const courante = p?.participants[p.cursor];
+    if (courante?.id !== st.id || courante.committed) return;
+  }
 }
 
 /**

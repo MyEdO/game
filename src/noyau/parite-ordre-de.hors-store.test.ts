@@ -50,7 +50,7 @@ const relire = (id: string): Combatant => banc.getState().battle!.combatants.fin
 
 const critHit = (woundsLost = 2): AttackResult => ({
   hit: true, attackerRoll: 44, netSL: 4, location: 'corps', critLocation: 'corps', damage: 6, woundsLost,
-  critical: true, advantageTo: 'attacker', defenderDefeated: false, log: 'touche',
+  critical: true, advantageTo: 'attaquant', defenderDefeated: false, log: 'touche',
 });
 
 function startFight(seed: number, opts: { pa?: ArmourPoints; gmSeat?: number } = {}) {

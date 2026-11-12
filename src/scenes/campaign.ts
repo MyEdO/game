@@ -4,6 +4,7 @@
  *  non parsée à la racine du paquet, et son paquet : la jouer, l'ouvrir dans l'éditeur ou l'exporter
  *  fait passer son paquet par la porte `parseProject` AU GESTE (#1692), comme une entrée de
  *  bibliothèque (`campagneDeLEntree`). */
+import { estIdDIcone, type IconId } from '../data/icons';
 import { Scene } from '../noyau/monde/scene';
 import { WorldMap, parseProject, documentDeProjet, playerEntryError, type ProjectDoc, type ProjectIdentite } from '../noyau/worldMap';
 import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
@@ -26,7 +27,7 @@ interface PaquetDuJeu {
  *  #211. */
 export interface BuiltinCampaign extends ProjectIdentite {
   /** L'icône est REQUISE sur une campagne exposée au picker (l'enveloppe la pose optionnelle). */
-  icon: string;
+  icon: IconId;
   paquet: PaquetDuJeu;
   /** Nom du fichier du paquet sous `src/scenes/` (`diligence-projet.json`), tel que ce registre le déclare. */
   fichier: string;
@@ -129,7 +130,8 @@ function campagneDuPaquet(paquet: PaquetDuJeu & Readonly<Record<string, unknown>
   const type = paquet.type === 'projet' ? paquet.type : refus('type');
   const id = chaine('id');
   const label = chaine('label');
-  const icon = chaine('icon');
+  const iconLue = chaine('icon');
+  const icon = estIdDIcone(iconLue) ? iconLue : refus('icon');
   const versionContenu = typeof paquet.versionContenu === 'number' ? paquet.versionContenu : refus('versionContenu');
   const desc = optionnelle('desc');
   const auteur = optionnelle('auteur');

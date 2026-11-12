@@ -1,4 +1,5 @@
 /** Types partagés du moteur de règles WFRP v4. */
+import type { IconId } from '../data/icons';
 import type { IdDeHerosDuRoster } from '../lib/idDeHerosDuRoster';
 import type { AttackKind } from './creatureAttacks';
 import type { HitLocation } from './localisations';
@@ -192,11 +193,9 @@ export interface VehicleData {
   id: string;
   type: 'vehicles';
   label: string;
-  /** `IconId` du pictogramme d'affichage (registre `src/data/icons/`, famille `travel/*`) — donnée, pas
-   *  de ternaire par id en dur. Typé `string` (et non `IconId`) pour NE PAS coupler l'engine pur à
-   *  l'UI (règle 3, `src/engine` reste sans dépendance ui) ; les valeurs sont des `IconId` valides
-   *  (garde-fou : `src/no-emoji-affordance.test.ts` + `Icon` throw sur id inconnu). */
-  icon?: string;
+  /** Pictogramme d'affichage (registre `src/data/icons/`, famille `voyage/*`) — donnée, pas de ternaire
+   *  par id en dur. */
+  icon?: IconId;
   source?: { book: string; page: number };
   /** Encombrement de l'objet véhicule (LDB 61) — généralement `null` (on ne porte pas une diligence) ;
    *  un coracle se porte (`enc` chiffré). */
@@ -701,26 +700,26 @@ export interface CastPenalty {
 /** Nature de l'ENTITÉ qui a produit un effet — vocabulaire fermé, chaque valeur adossée à une
  *  catégorie du Codex (table `CATEGORY_BY_SOURCE_KIND` ci-dessous). */
 export type EffectSourceKind =
-  | 'spell' | 'prayer' | 'talent' | 'trait' | 'trapping' | 'quality' | 'disease' | 'symptom'
-  | 'mutation' | 'condition' | 'psychology' | 'maneuver' | 'creature' | 'activity' | 'rule'
-  | 'tavernGame'
+  | 'sort' | 'priere' | 'talent' | 'trait' | 'objet' | 'qualite' | 'maladie' | 'symptome'
+  | 'mutation' | 'etat' | 'psychologie' | 'manoeuvre' | 'creature' | 'activite' | 'regle'
+  | 'jeuDeTaverne'
   // Une RANGÉE tirée d'un tableau d'Incantation Imparfaite / de Colère des dieux (`LDB 46`, `LDB 40`) :
   // l'entité source des effets d'un contrecoup est la LIGNE, dont la fiche Codex vit dans la catégorie
   // de SA table (`categorieDeLaNiche`, `src/data`). Le `kind` porte donc le NOM de cette
   // catégorie, et `miscastRowSource` (`engine/miscast.ts`) est le seul à le fabriquer, depuis la donnée.
-  | 'miscastMinor' | 'miscastMajor' | 'miscastMinorVdm' | 'miscastMajorVdm' | 'miscastWrath';
+  | 'imparfaiteMineure' | 'imparfaiteMajeure' | 'imparfaiteMineureVdm' | 'imparfaiteMajeureVdm' | 'colereDesDieux';
 
 /** Catégorie Codex de CHAQUE nature de source — table TOTALE, SOURCE UNIQUE des deux consommateurs :
  *  le routage d'affichage d'une pastille (`chipCodex`) ET la descente de l'ENJEU d'un jet à l'entité qui
  *  l'exige (#1117). Elle vit ICI, à côté du vocabulaire qu'elle indexe : une copie chez l'un des deux
  *  aurait fait DEUX vérités pour une seule question. */
 export const CATEGORY_BY_SOURCE_KIND: Record<EffectSourceKind, string> = {
-  spell: 'spells', prayer: 'spells', talent: 'talents', trait: 'traits', trapping: 'trappings',
-  quality: 'qualities', disease: 'maladies', symptom: 'symptoms', mutation: 'mutations',
-  condition: 'etats', psychology: 'psychologies', maneuver: 'maneuvers', creature: 'creatures',
-  activity: 'activities', rule: 'regles', tavernGame: 'tavernGames',
-  miscastMinor: 'miscastMinor', miscastMajor: 'miscastMajor', miscastMinorVdm: 'miscastMinorVdm', miscastMajorVdm: 'miscastMajorVdm',
-  miscastWrath: 'miscastWrath',
+  sort: 'spells', priere: 'spells', talent: 'talents', trait: 'traits', objet: 'trappings',
+  qualite: 'qualities', maladie: 'maladies', symptome: 'symptoms', mutation: 'mutations',
+  etat: 'etats', psychologie: 'psychologies', manoeuvre: 'maneuvers', creature: 'creatures',
+  activite: 'activities', regle: 'regles', jeuDeTaverne: 'tavernGames',
+  imparfaiteMineure: 'imparfaiteMineure', imparfaiteMajeure: 'imparfaiteMajeure', imparfaiteMineureVdm: 'imparfaiteMineureVdm', imparfaiteMajeureVdm: 'imparfaiteMajeureVdm',
+  colereDesDieux: 'colereDesDieux',
 };
 
 /**
@@ -1084,10 +1083,10 @@ export interface Trauma {
   /** « Épaule luxée » (AA 07 l.125 / LDB 18 l.120) / « Genou démis » (AA 07 l.179 / LDB 18 l.179) : membre DÉSACTIVÉ
    *  (les `ops` passives — bras `maxWeaponHands:1` / jambe `moveScale` — tiennent tant que la séquelle vit).
    *  Après Aide Médicale (`awaitingMedicalAid` levé), un Test ÉTENDU de Guérison Accessible (+20) de
-   *  `targetDR` DR (acte « Guérison » de l'Infirmerie, `medicFlow`) rend l'usage : la séquelle est retirée et
+   *  `drCible` DR (acte « Guérison » de l'Infirmerie, `medicFlow`) rend l'usage : la séquelle est retirée et
    *  `recoveryPenalty` posé à la cible (durée d'horloge partagée = 1d10 jours). */
-  targetDR?: CibleEtendue['targetDR'];
-  /** Ops posées à la cible quand `targetDR` est atteint (charMod −10 / `moveScale` jambe) — appliquées avec
+  drCible?: CibleEtendue['drCible'];
+  /** Ops posées à la cible quand `drCible` est atteint (charMod −10 / `moveScale` jambe) — appliquées avec
    *  une durée d'horloge partagée (1d10 jours) par l'acte « Guérison » (`medicFlow`). */
   recoveryPenalty?: import('./ops').GameOp[];
   /** « Réouverture » (LDB 18 l.101/118/143/145/148/175 ; AA 07 l.119/147/149/152/175) : plaie non recousue.

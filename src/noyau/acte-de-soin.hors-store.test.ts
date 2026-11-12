@@ -82,7 +82,7 @@ describe('l’acte de l’infirmerie : `jetRegler(soins, mode)` sur le brouillon
   });
 
   it('Rééducation sans Aide Médicale : refusée, dit « Aide Médicale requise avant de rééduquer le membre. »', () => {
-    poser([hero({ id: 'doc' }), saignant({ traumas: [{ uid: 't1', label: 'Épaule luxée', location: 'brasD', targetDR: 6, awaitingMedicalAid: true, ops: [] }] })]);
+    poser([hero({ id: 'doc' }), saignant({ traumas: [{ uid: 't1', label: 'Épaule luxée', location: 'brasD', drCible: 6, awaitingMedicalAid: true, ops: [] }] })]);
     banc.getState().jetRegler('soins', 'mode', 'reeducation');
     expect(banc.getState().pendingHeal?.mode).toBe('hemorragie');
     expect(dernierRefus()).toBe('Aide Médicale requise avant de rééduquer le membre.');

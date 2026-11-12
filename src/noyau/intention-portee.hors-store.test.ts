@@ -160,7 +160,7 @@ describe('(c) NON-RÉGRESSION : les gestes par défaut du grid ne changent pas',
     get().cliquerLaCase(dest);
     const h = get().battle!.combatants.find((c) => c.id === H.id)!;
     expect(h.pos).toEqual({ x: 6, y: 10 }); // rien n'a bougé
-    expect(get().battle!.preview).toMatchObject({ kind: 'move', tile: dest });
+    expect(get().battle!.preview).toMatchObject({ kind: 'deplacement', tile: dest });
   });
 
   it('SANS intention, un clic-case CONFIRMÉ déplace, comme avant', () => {

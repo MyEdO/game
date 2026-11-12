@@ -181,7 +181,7 @@ describe('Test opposé — HÉROS blindé : étape de déviation `self` (LDB 14 
   it('héros victime AVEC armure → pousse une étape `self` (Critique « sec », overkill 0)', () => {
     const v = mk('hero', 'V', { armour: uniformArmour(3) });
     setBattle([v]);
-    applyCoupCritiqueSec(banc.getState, banc.setState, v, 11, 'double', {}, []);
+    applyCoupCritiqueSec(banc.getState, banc.setState, v, 11, 'double', {}, [], undefined);
     const dev = devSteps()[0]?.deviation;
     expect(dev?.mode).toBe('self');
     if (dev?.mode === 'self') {
@@ -194,7 +194,7 @@ describe('Test opposé — HÉROS blindé : étape de déviation `self` (LDB 14 
   it('« Dévier » → −1 PA, Critique ignoré (criticalWounds inchangé)', () => {
     const v = mk('hero', 'V', { armour: uniformArmour(3) });
     setBattle([v]);
-    applyCoupCritiqueSec(banc.getState, banc.setState, v, 11, 'double', {}, []);
+    applyCoupCritiqueSec(banc.getState, banc.setState, v, 11, 'double', {}, [], undefined);
     resolveDeviation(banc.getState, banc.setState, devSteps()[0].deviation!, true);
     expect(armourSum(live('V'))).toBe(17); // 18 − 1
     expect(live('V').criticalWounds ?? 0).toBe(0);
@@ -203,7 +203,7 @@ describe('Test opposé — HÉROS blindé : étape de déviation `self` (LDB 14 
   it('« Subir » → Critique appliqué (criticalWounds +1, PA intacte)', () => {
     const v = mk('hero', 'V', { armour: uniformArmour(3) });
     setBattle([v]);
-    applyCoupCritiqueSec(banc.getState, banc.setState, v, 11, 'double', {}, []);
+    applyCoupCritiqueSec(banc.getState, banc.setState, v, 11, 'double', {}, [], undefined);
     resolveDeviation(banc.getState, banc.setState, devSteps()[0].deviation!, false);
     expect(armourSum(live('V'))).toBe(18); // PA intacte
     expect(live('V').criticalWounds ?? 0).toBe(1);
@@ -502,7 +502,7 @@ describe('Après la Blessure critique infligée (LDB 10 ; LDB 18 l.15 ; #1595 c.
     const a = mk('enemy', 'a', { talents: fb ? [{ talentId: 'frappe-blessante', times: fb }] : [] } as never);
     const v = mk('enemy', 'v', { wounds: blessuresDeBase(30, pb) });
     setBattle([a, v]);
-    applyCoupCritiqueSec(banc.getState, banc.setState, v, 44, 'double', { attackerId: 'a' }, []);
+    applyCoupCritiqueSec(banc.getState, banc.setState, v, 44, 'double', { attackerId: a.id }, [], a);
     return live('v');
   };
 
@@ -539,7 +539,7 @@ describe('Après la Blessure critique infligée (LDB 10 ; LDB 18 l.15 ; #1595 c.
     applyAttackResult(banc.getState, banc.setState, e, h, gourdin,
       { hit: true, attackerRoll: 44, netSL: 2, location: 'corps', critLocation: 'corps', damage: 5, woundsLost: 1, critical: true, advantageTo: null, defenderDefeated: false, log: 'double' });
     expect(armourSum(live('h1')), 'l’automate a dévié').toBe(17);
-    const reveles = (banc.getState().pendingCascade?.participants ?? []).filter((s) => s.reveal?.title === tr('cf.critDeflectedTitle'));
+    const reveles = (banc.getState().pendingCascade?.participants ?? []).filter((s) => s.reveal?.title === tr('cf.titreDuCritiqueDevie'));
     expect(reveles).toHaveLength(1);
   });
 });

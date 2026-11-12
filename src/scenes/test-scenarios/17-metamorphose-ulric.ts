@@ -52,7 +52,7 @@ export const scenario: TestScenario = {
   id: 'metamorphose-ulric',
   order: 17,
   category: 'creatures',
-  icon: 'scenario/bestiary',
+  icon: 'scenario/bestiaire',
   title: "Métamorphose — Enfant d'Ulric",
   tests:
     "Verbe de transformation volontaire (op transform) : un Enfant d'Ulric humain adopte sa forme hybride " +

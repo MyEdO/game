@@ -443,7 +443,7 @@ export const learnSpellSchema = nommerChamps(z.strictObject({
  *  un PNJ hors combat n'a pas de Combatant à faire incanter — pas de pseudo-combat inventé pour ce cas
  *  (le lanceur doit alors être en combat). `targetId` absent = le lanceur (soi/zone). `mode:'jet'`
  *  (défaut) route par le flux d'incantation STANDARD (`castSpell`, cadence-aware ; modale influençable
- *  si le lanceur est piloté par un humain — jamais un jet silencieux). `mode:'forceSuccess'` = arbitrage
+ *  si le lanceur est piloté par un humain — jamais un jet silencieux). `mode:'forcerLaReussite'` = arbitrage
  *  D'AUTEUR explicite (rituel garanti, sans jet) : le sort réussit à DR = NI et son Flow se joue par le
  *  walker d'acteur, choix et paliers compris (`combatFlow.lancerLeSortGaranti`) — dérogation VOULUE,
  *  jamais un défaut. */
@@ -452,7 +452,7 @@ export const castSpellSchema = nommerChamps(z.strictObject({
   casterId: z.string(),
   spellId: sortSchema,
   targetId: z.string().optional(),
-  mode: z.enum(['jet', 'forceSuccess']).optional(),
+  mode: z.enum(['jet', 'forcerLaReussite']).optional(),
 }), { type: { label: "type"  }, casterId: { label: "lanceur" , texte: { regime: "technique"} }, spellId: { label: "sort" , texte: { regime: "technique"} }, targetId: { label: "cible" , texte: { regime: "technique"} }, mode: { label: "mode"  } });
 
 /** LDB 05 l.793-841 ; LDB 17 l.81 */

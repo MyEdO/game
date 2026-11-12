@@ -49,10 +49,10 @@ export function ViewControls({ zoom, renderedScale, onZoomIn, onZoomOut, onZoomR
     >
       <div className="vc-group" role="group" aria-label="Orientation">
         <button type="button" className="btn vc-btn skin-tole" data-ton="sombre" title="Tourner anti-horaire (Q)" aria-label="Tourner anti-horaire (Q)" onPointerDown={stop(onRotateLeft)} {...relache}>
-          <Icon id="ui/rotate-left" size="sm" />
+          <Icon id="interface/tourner-a-gauche" size="sm" />
         </button>
         <button type="button" className="btn vc-btn skin-tole" data-ton="sombre" title="Tourner horaire (E)" aria-label="Tourner horaire (E)" onPointerDown={stop(onRotateRight)} {...relache}>
-          <Icon id="ui/rotate-right" size="sm" />
+          <Icon id="interface/tourner-a-droite" size="sm" />
         </button>
       </div>
       <div className="vc-group" role="group" aria-label="Affichage">
@@ -64,7 +64,7 @@ export function ViewControls({ zoom, renderedScale, onZoomIn, onZoomOut, onZoomR
           className="btn vc-btn skin-tole" data-ton="sombre"
           onPointerDown={stop(onToggleView)}
         >
-          <Icon id={view === 'top' ? 'ui/projection-iso' : 'ui/projection-top'} size="sm" />
+          <Icon id={view === 'top' ? 'interface/vue-isometrique' : 'interface/vue-du-dessus'} size="sm" />
         </button>
         {onTogglePov && (
           <button
@@ -75,23 +75,23 @@ export function ViewControls({ zoom, renderedScale, onZoomIn, onZoomOut, onZoomR
             className="btn vc-btn skin-tole" data-ton="sombre"
             onPointerDown={stop(onTogglePov)}
           >
-            {pov ? <Icon id="nav/campaign" size="sm" /> : <Icon id="ui/eye" size="sm" />}
+            {pov ? <Icon id="navigation/campagne" size="sm" /> : <Icon id="interface/oeil" size="sm" />}
           </button>
         )}
       </div>
       <div className="vc-group" role="group" aria-label="Zoom">
         <button type="button" className="btn vc-btn skin-tole" data-ton="sombre" title="Zoom arrière" aria-label="Zoom arrière" onPointerDown={stop(onZoomOut)}>
-          <Icon id="ui/zoom-out" size="sm" />
+          <Icon id="interface/zoom-arriere" size="sm" />
         </button>
         <output className="vc-zoom-value" title={renderedScale !== undefined ? `Zoom ${Math.round(zoom * 100)} %, à l’écran ${Math.round(renderedScale * 100)} %` : undefined}>
           {Math.round((renderedScale ?? zoom) * 100)}%
         </output>
         <button type="button" className="btn vc-btn skin-tole" data-ton="sombre" title="Zoom avant" aria-label="Zoom avant" onPointerDown={stop(onZoomIn)}>
-          <Icon id="ui/zoom-in" size="sm" />
+          <Icon id="interface/zoom-avant" size="sm" />
         </button>
         {zoom !== 1 && (
           <button type="button" className="btn vc-btn skin-tole" data-ton="sombre" title="Réinitialiser le zoom" aria-label="Réinitialiser le zoom" onPointerDown={stop(onZoomReset)}>
-            <Icon id="ui/zoom-reset" size="sm" />
+            <Icon id="interface/zoom-initial" size="sm" />
           </button>
         )}
       </div>

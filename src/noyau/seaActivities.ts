@@ -210,7 +210,7 @@ function validerLaSemaine(get: Get, set: Set): void {
   // La semaine d'Activités est UNE séquence, pas deux lots : la surface se dérive de ses porteurs
   // (`openSequence` → `surfaceDesEtapes`, #1479). Un seul héros tenu par un humain suffit à ouvrir la
   // fenêtre, et les rangées que personne ne tient s'y résolvent d'office, VISIBLES au bilan.
-  if (openSequence(get, set, { title: t('sact.weekTitle'), icon: 'travel/anchor', purpose: 'seaActivities', steps })) {
+  if (openSequence(get, set, { title: t('sact.weekTitle'), icon: 'voyage/ancre', purpose: 'seaActivities', steps })) {
     continueSeaActivitiesAfterCascade(get, set);
   }
 }
@@ -238,7 +238,7 @@ function openNextOpportunityTrade(get: Get, set: Set): void {
   const test: RollRequest['test'] = seaActivityTest(def)!;
   get().ouvrirLeTestEtendu({
     actorId: hero.id, label: dataLabel(def.label), skillLabel: refLabel('skills', OPPORTUNITE.test.skill), skill: OPPORTUNITE.test.skill,
-    target: effectiveTarget(hero, test, OPPORTUNITE.test.difficulty), targetDR: OPPORTUNITE.targetDR,
+    target: effectiveTarget(hero, test, OPPORTUNITE.test.difficulty), drCible: OPPORTUNITE.drCible,
     tentativesMax: OPPORTUNITE.tentativesMax,
     outcome: { kind: 'merActiviteOpportunite', meta: { heroId: hero.id, investBrass: invest * PA_PER_CO } },
     stake: activityStakeRef(def.id),

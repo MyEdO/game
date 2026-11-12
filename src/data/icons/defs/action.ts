@@ -19,7 +19,7 @@ const F = 'fill="currentColor" stroke="none"';
 
 export const icons: IconFamily = [
   {
-    id: 'action/attack',
+    id: 'action/attaquer',
     label: 'Attaquer',
     svg:
       `<path ${F} d="M8.2 15.9 L18.7 4.3 C19.3 3.7 20.1 3.4 20.7 3.4 C20.7 4 20.4 4.9 19.8 5.5 L9.7 17.4 Z"/>` +
@@ -28,7 +28,7 @@ export const icons: IconFamily = [
       `<circle ${F} cx="4.3" cy="20.3" r="1.3"/>`,
   },
   {
-    id: 'action/shoot',
+    id: 'action/tirer',
     label: 'Tirer',
     svg:
       `<path ${K} d="M7 3.6 C12.7 6.3 13 17.5 7.2 20.4"/>` +
@@ -36,7 +36,7 @@ export const icons: IconFamily = [
       `<path ${K} d="M6.9 12 H18.8 M18.8 12 L15.4 10.3 M18.8 12 L15.5 13.8"/>`,
   },
   {
-    id: 'action/aim',
+    id: 'action/viser',
     label: 'Viser',
     svg:
       `<circle ${K} cx="12" cy="12" r="7.4"/>` +
@@ -45,7 +45,7 @@ export const icons: IconFamily = [
       `<circle ${F} cx="12" cy="12" r="1.3"/>`,
   },
   {
-    id: 'action/cast',
+    id: 'action/incanter',
     label: 'Incanter',
     svg:
       `<path ${F} d="M12 3.2 C12.7 7.7 14.3 9.9 18.9 11.9 C14.3 13.9 12.7 16.2 12 20.8 C11.3 16.2 9.6 13.9 5.1 11.9 C9.6 9.9 11.3 7.7 12 3.2 Z"/>` +
@@ -53,14 +53,14 @@ export const icons: IconFamily = [
       `<circle ${F} cx="5.5" cy="18.8" r="0.9"/>`,
   },
   {
-    id: 'action/defend',
+    id: 'action/se-defendre',
     label: 'Se défendre',
     svg:
       `<path ${K} d="M12 2.9 C14.8 4.4 17.3 5.1 19.9 5.3 C19.8 12.4 17.3 17.7 12 21 C6.7 17.7 4.2 12.4 4.1 5.3 C6.7 5.1 9.2 4.4 12 2.9 Z"/>` +
       `<path ${KF} d="M12 6.4 C12.1 10 12 13.6 12 16.9"/>`,
   },
   {
-    id: 'action/dispel',
+    id: 'action/dissiper',
     label: 'Dissiper',
     svg:
       `<path ${K} d="M12.4 12.6 C11.2 13.3 9.9 12.7 9.7 11.5 C9.4 9.9 10.9 8.6 12.8 8.7 C15.3 8.9 16.9 11 16.6 13.6 C16.4 15.6 15 17.2 13 17.8"/>` +
@@ -68,7 +68,7 @@ export const icons: IconFamily = [
       `<path ${KF} d="M11.4 19.5 L10.6 21.2 M8 19.6 L6.6 20.8"/>`,
   },
   {
-    id: 'action/roll-fire',
+    id: 'action/roulade',
     label: 'Roulade',
     svg:
       `<path ${K} d="M19.4 12.3 C19.3 16.4 16 19.6 11.9 19.6 C7.8 19.6 4.5 16.3 4.5 12.2 C4.5 8.1 7.8 4.8 11.9 4.8 L13.6 4.8"/>` +
@@ -76,7 +76,7 @@ export const icons: IconFamily = [
       `<path ${F} d="M12 7.6 C13.9 9.4 14.8 11 14.8 12.7 C14.8 14.6 13.6 15.9 12 15.9 C10.4 15.9 9.2 14.6 9.2 12.7 C9.2 11.7 9.6 10.8 10.4 9.9 C10.5 11 11.1 11.7 11.9 12.1 C11.5 10.6 11.5 9.1 12 7.6 Z"/>`,
   },
   {
-    id: 'action/disengage',
+    id: 'action/se-desengager',
     label: 'Se désengager',
     svg:
       `<path ${F} d="M6.3 2.9 C7.2 4.6 7.6 8.1 7.4 12.1 L5.2 12.1 C5 8.1 5.4 4.6 6.3 2.9 Z"/>` +
@@ -85,7 +85,7 @@ export const icons: IconFamily = [
       `<path ${K} d="M9.4 18.9 C13 19.2 16.5 17.6 19.9 14 M19.9 14 L19.5 16.9 M19.9 14 L17 13.6"/>`,
   },
   {
-    id: 'action/free-attack',
+    id: 'action/attaque-gratuite',
     label: 'Attaque gratuite',
     svg:
       `<path ${F} d="M15.7 15.2 L5.6 4.3 C5 3.7 4.3 3.4 3.7 3.4 C3.7 4 3.9 4.9 4.4 5.6 L14.3 16.6 Z"/>` +
@@ -94,7 +94,7 @@ export const icons: IconFamily = [
       `<path ${F} d="M20.4 2.4 L15.8 8.3 L18.5 8.3 L17.1 12.7 L21.8 6.7 L19.2 6.7 Z"/>`,
   },
   {
-    id: 'action/stand-up',
+    id: 'action/se-relever',
     label: 'Se relever',
     svg:
       `<path ${KF} d="M4.2 20.6 C9 20.2 15 20.2 19.8 20.6"/>` +
@@ -104,14 +104,14 @@ export const icons: IconFamily = [
       `<path ${K} d="M17.9 14.6 V6.4 M17.9 6 L16.1 8.2 M17.9 6 L19.7 8.2"/>`,
   },
   {
-    id: 'action/break-free',
+    id: 'action/se-liberer',
     label: 'Se libérer',
     svg:
       `<path ${K} d="M15.4 6.1 C14.4 5.4 13.3 5 12 5 C8.2 5 5.1 8.1 5.1 11.9 C5.1 15.7 8.2 18.8 12 18.8 C15.8 18.8 18.9 15.7 18.9 11.9 C18.9 10.9 18.7 10 18.3 9.1"/>` +
       `<path ${K} d="M17.4 4.9 L19 3.1 M19.6 7.2 L21.9 6.6 M15.9 2.9 L16.2 1.6"/>`,
   },
   {
-    id: 'action/mount',
+    id: 'action/monter-en-selle',
     label: 'Monter en selle',
     svg:
       `<path ${K} d="M6.3 20.2 C4.8 15.6 4.6 11.5 6.5 8.5 C7.9 6.4 9.8 5.3 12 5.3 C14.2 5.3 16.1 6.4 17.5 8.5 C19.4 11.5 19.2 15.6 17.7 20.2"/>` +
@@ -119,7 +119,7 @@ export const icons: IconFamily = [
       `<path ${K} d="M12 19.8 V11.3 M12 10.9 L10.2 13 M12 10.9 L13.8 13"/>`,
   },
   {
-    id: 'action/dismount',
+    id: 'action/mettre-pied-a-terre',
     label: 'Mettre pied à terre',
     svg:
       `<path ${K} d="M6.3 20.2 C4.8 15.6 4.6 11.5 6.5 8.5 C7.9 6.4 9.8 5.3 12 5.3 C14.2 5.3 16.1 6.4 17.5 8.5 C19.4 11.5 19.2 15.6 17.7 20.2"/>` +
@@ -127,7 +127,7 @@ export const icons: IconFamily = [
       `<path ${K} d="M12 10.6 V19.1 M12 19.5 L10.2 17.4 M12 19.5 L13.8 17.4"/>`,
   },
   {
-    id: 'action/lead',
+    id: 'action/commander',
     label: 'Commander',
     svg:
       `<path ${K} d="M6.4 21 C6.6 15 6.6 9 6.4 3.4"/>` +
@@ -135,7 +135,7 @@ export const icons: IconFamily = [
       `<path ${F} d="M7.1 3.9 C11.6 4.4 15.9 5.4 19.8 7.2 C15.9 8.6 11.6 9.4 7.1 9.6 Z"/>`,
   },
   {
-    id: 'action/serve-engine',
+    id: 'action/servir-l-engin',
     label: 'Servir l’engin',
     svg:
       `<circle ${F} cx="8" cy="16.6" r="3.7"/>` +
@@ -144,7 +144,7 @@ export const icons: IconFamily = [
       `<path ${KF} d="M13.6 16.7 H16 M13.2 19 H15"/>`,
   },
   {
-    id: 'action/leave-post',
+    id: 'action/quitter-le-poste',
     label: 'Quitter le poste',
     svg:
       `<path ${K} d="M6.8 20.6 C6.6 15.4 6.6 10 6.8 4.6"/>` +
@@ -153,7 +153,7 @@ export const icons: IconFamily = [
       `<path ${K} d="M10.8 15.5 C13.5 16 16.2 15.2 19.4 12.9 M19.4 12.9 L18.9 15.4 M19.4 12.9 L16.9 12.4"/>`,
   },
   {
-    id: 'action/steer-ship',
+    id: 'action/tenir-la-barre',
     label: 'Tenir la barre',
     svg:
       `<circle ${K} cx="12" cy="12" r="5.6"/>` +
@@ -162,7 +162,7 @@ export const icons: IconFamily = [
       `<circle ${F} cx="12" cy="12" r="1.7"/>`,
   },
   {
-    id: 'action/consume',
+    id: 'action/consommer',
     label: 'Consommer',
     svg:
       `<path ${K} d="M10.1 3.4 H13.9"/>` +
@@ -172,14 +172,14 @@ export const icons: IconFamily = [
       `<circle ${F} cx="13.5" cy="15.1" r="0.6"/>`,
   },
   {
-    id: 'action/water',
+    id: 'action/asperger',
     label: 'Asperger d’eau',
     svg:
       `<path ${F} d="M12 3.2 C15.3 8 17.8 12 17.8 15 C17.8 18.7 15.2 21 12 21 C8.8 21 6.2 18.7 6.2 15 C6.2 12 8.7 8 12 3.2 Z"/>` +
       `<path ${KF} d="M9.4 14.6 C9.2 16.6 10.2 17.9 11.9 18.2"/>`,
   },
   {
-    id: 'action/pick-up',
+    id: 'action/ramasser',
     label: 'Ramasser',
     svg:
       `<circle ${F} cx="12" cy="16.1" r="3"/>` +
@@ -189,7 +189,7 @@ export const icons: IconFamily = [
       `<path ${K} d="M16.7 6.6 C17.1 9.5 15.9 11.7 14 13"/>`,
   },
   {
-    id: 'action/force',
+    id: 'action/enfoncer',
     label: 'Enfoncer / forcer',
     // Maillet levé, manche en diagonale (enfoncer une porte à plusieurs).
     svg:

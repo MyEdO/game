@@ -32,7 +32,7 @@ const EXEMPTES = new Map<string, string>([
   ["src/engine/ops.ts|ctx?.label ?? t(`op.nature.${nature}`)", PRIMITIVE],
   ["src/engine/traceLine.ts|row.label ?? t('casc.autoRowFallbackLabel')", AUTHORE],
   ["src/engine/traceLine.ts|d.label ?? t('casc.dieTraceLabel')", AUTHORE],
-  ["src/noyau/combatEffects.ts|e.label || t('eff.psychScene')", AUTHORE],
+  ["src/noyau/combatEffects.ts|e.label || t('eff.sceneDePsychologie')", AUTHORE],
   ["src/noyau/pursuitFlow.ts|row.label ?? t('step.pursuitMouvement')", AUTHORE],
   ["src/noyau/monde/usable.ts|a.label ?? t(`usable.${a.id}` as MsgKey)", AUTHORE],
   ['src/gameIso/stage/PastilleEntite.tsx|mark.label ?? \'\'', AUTHORE],

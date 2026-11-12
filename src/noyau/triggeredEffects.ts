@@ -111,19 +111,19 @@ function withArg(effects: TriggeredEffect[], arg?: string, value?: number): Trig
  * États → psy) = déroulé RNG déterministe. */
 export function effectSourcesOf(actor: Combatant, weapon?: Weapon): TriggerSource[] {
   const out: TriggerSource[] = [];
-  if (weapon?.onHitEffects?.length) { const wid = weaponIdentity(weapon); out.push({ effects: withSource(weapon.onHitEffects, { kind: 'trapping', id: wid }), cap: 1, key: `weapon:${wid}`, label: weapon.label }); }
+  if (weapon?.onHitEffects?.length) { const wid = weaponIdentity(weapon); out.push({ effects: withSource(weapon.onHitEffects, { kind: 'objet', id: wid }), cap: 1, key: `weapon:${wid}`, label: weapon.label }); }
   // Traits du porteur, puis ceux que confère l'attaque de la touche (`Weapon.traitsConferes`, ZI 03 l.75, l.77) :
   // un Trait conféré ne tire qu'aux touches de l'attaque qui le confère.
   for (const tr of [...(actor.traits ?? []), ...(weapon?.traitsConferes ?? [])]) { const d = findTraitById(tr.id); if (d?.effects?.length) out.push({ effects: withSource(withArg(d.effects, tr.arg, tr.value), { kind: 'trait', id: tr.id }), cap: 1, key: `trait:${tr.id}`, label: d.label ?? tr.id }); }
   // L'Indice de l'instance (`Taillade (1A)` → 1) PARAMÈTRE les effets de la qualité comme l'arg/l'Indice
   // d'un Trait paramètre les siens — MÊME `withArg`, même convention `$indice`, aucune voie parallèle.
-  if (weapon) for (const { id, indice } of resolveQualities(weapon)) { const d = findQualityById(id); if (d?.effects?.length) out.push({ effects: withSource(withArg(d.effects, undefined, indice), { kind: 'quality', id }), cap: 1, key: `qual:${id}`, label: d.label ?? id }); }
+  if (weapon) for (const { id, indice } of resolveQualities(weapon)) { const d = findQualityById(id); if (d?.effects?.length) out.push({ effects: withSource(withArg(d.effects, undefined, indice), { kind: 'qualite', id }), cap: 1, key: `qual:${id}`, label: d.label ?? id }); }
   for (const t of effectiveTalents(actor)) { const d = findTalentById(t.talentId); if (d?.effects?.length) out.push({ effects: withSource(d.effects, { kind: 'talent', id: t.talentId }), cap: t.times ?? 1, key: t.talentId, label: d.label ?? t.talentId }); }
   // Symptômes ACTIFS des maladies (Crampes abdominales `onOwnTestFailed`, MSRC 16) — insérés APRÈS les
   // Talents et AVANT les États : ils composent comme un Trait/passif du CORPS (source NON-statut, sans
   // `stacks`), donc dispatchés par la voie `effectsOf`/`applyTriggeredEffects` (≠ pool à pions des États).
   // Ordre STABLE (accesseur canonique `activeSymptoms`, ordre des maladies) → déroulé RNG déterministe.
-  for (const inst of activeSymptoms(actor)) { const d = findSymptomById(inst.symptomId); if (d?.effects?.length) out.push({ effects: withSource(d.effects, { kind: 'symptom', id: inst.symptomId }), cap: 1, key: `symptom:${inst.symptomId}`, label: d.label ?? inst.symptomId }); }
+  for (const inst of activeSymptoms(actor)) { const d = findSymptomById(inst.symptomId); if (d?.effects?.length) out.push({ effects: withSource(d.effects, { kind: 'symptome', id: inst.symptomId }), cap: 1, key: `symptom:${inst.symptomId}`, label: d.label ?? inst.symptomId }); }
   // Mutations de Corruption — leurs `effects` sont lus AU REGISTRE (`findMutationById`), jamais sur
   // l'instance portée : `c.mutations` est une copie GELÉE au tirage, une mutation maison (hors
   // `mutations.json`) n'a donc pas d'effets déclenchés. Insérées entre symptômes et États — source
@@ -141,14 +141,14 @@ export function effectSourcesOf(actor: Combatant, weapon?: Weapon): TriggerSourc
     // Un pion NATIF posé par-dessus reste, lui, pleinement joué, sur sa part native seule.
     const derive = cond.derivedFrom?.stacks ?? 0;
     if (derive >= (cond.value ?? 1)) continue;
-    out.push({ effects: withSource(withArg(d.effects, cond.difficulte), { kind: 'condition', id: cond.id }), cap: 1, key: `cond:${cond.id}`, label: d.label ?? cond.id, stacks: Math.max(0, (cond.value ?? 1) - derive - reduce) });
+    out.push({ effects: withSource(withArg(d.effects, cond.difficulte), { kind: 'etat', id: cond.id }), cap: 1, key: `cond:${cond.id}`, label: d.label ?? cond.id, stacks: Math.max(0, (cond.value ?? 1) - derive - reduce) });
   }
   // Une affliction CIBLÉE émet par INSTANCE, et seulement ACTIVE : sa fin la désactive (LDB 21 l.9). L'instance
   // voyage avec la source (`affliction`).
   for (const p of actor.psychState ?? []) {
     const d = findPsychologyById(p.type);
     if (!d?.effects?.length || (estCibleType(p.type) && !isAfflictionActive(p))) continue;
-    out.push({ effects: withSource(d.effects, { kind: 'psychology', id: p.type }), cap: 1, key: `psy:${p.type}`, label: d.label, stacks: 1, affliction: p });
+    out.push({ effects: withSource(d.effects, { kind: 'psychologie', id: p.type }), cap: 1, key: `psy:${p.type}`, label: d.label, stacks: 1, affliction: p });
   }
   return out;
 }
@@ -311,7 +311,7 @@ function flowHasChoiceSeulement(flow: Flow): boolean {
     // Un `choice` n'est PAS une feuille : ses branches portent souvent LE Test (« Vous pouvez… » →
     // jet, Déstabilisante). Sans descendre, un `test` enfoui sous un `choice` serait rendu MUET par
     // `runPureFlowLines`, qui n'a aucun `case 'choice'`.
-    case 'choice': return flowHasChoiceSeulement(flow.yes) && (flow.no ? flowHasChoiceSeulement(flow.no) : true);
+    case 'choice': return flowHasChoiceSeulement(flow.oui) && (flow.non ? flowHasChoiceSeulement(flow.non) : true);
     case 'seq': return flow.steps.every(flowHasChoiceSeulement);
     case 'if': return flowHasChoiceSeulement(flow.then) && (flow.else ? flowHasChoiceSeulement(flow.else) : true);
   }
@@ -438,7 +438,7 @@ export function ciblesDeLEffet(
  *  (Oui/Renoncer) — le « Vous pouvez » RAW devient une étape de choix. */
 export function flowOffert(eff: TriggeredEffect): Flow {
   return eff.optional
-    ? { kind: 'choice', prompt: eff.flow.kind === 'test' ? (eff.flow.test.label ?? 'Réaction') : 'Réaction', yes: eff.flow, no: EMPTY_FLOW }
+    ? { kind: 'choice', prompt: eff.flow.kind === 'test' ? (eff.flow.test.label ?? 'Réaction') : 'Réaction', oui: eff.flow, non: EMPTY_FLOW }
     : eff.flow;
 }
 
@@ -598,7 +598,7 @@ export function firePsychEffects(get: Get, c: Combatant, trigger: EffectTrigger,
  *  (`applyManeuverEffects`, qui tient déjà la `def`). L'identité de l'entité voyage donc dans l'`OpsCtx`
  *  jusqu'aux `ActiveEffect` posés ET jusqu'à l'enjeu d'un Test qu'elle exige (#1262 V2 L6d). */
 export function maneuverEffects(def: { id: string; effects?: TriggeredEffect[] }): TriggeredEffect[] {
-  return withSource(def.effects ?? [], { kind: 'maneuver', id: def.id });
+  return withSource(def.effects ?? [], { kind: 'manoeuvre', id: def.id });
 }
 
 /** Effets onHit AUTHORÉS de la manœuvre `kind` de `actor` (Caudale → À Terre, Tentacules → Empêtré…) —

@@ -35,8 +35,8 @@ const rolledRow = (over: Partial<RollRowData> = {}): BuiltRollRow => ({
 // Les hooks/modales NE fournissent PLUS de « Lancer » : la coquille le hisse dans `.cadre-pied`
 // pour le cas mono. Les actions sont donc seulement Annuler + Appliquer, que le flux de la coquille juge.
 const actions: RollAction[] = [
-  { key: 'cancel', label: 'Annuler', onClick: noop, verbe: 'cancel' },
-  { key: 'apply', label: 'Appliquer', onClick: noop, verbe: 'confirm' },
+  { key: 'abandonner', label: 'Annuler', onClick: noop, verbe: 'annuler' },
+  { key: 'confirmer', label: 'Appliquer', onClick: noop, verbe: 'valider' },
 ];
 
 /** La Course en attente, jetée (`result`) ou non : le seul fait que ses clôtures lisent (`FLOWS.course.rolled`). */
@@ -176,34 +176,35 @@ describe('RollShell — coquille de jet unifiée', () => {
 
   // ── Garde de vocabulaire d'actions (#211) : la barre d'une modale de jet est verrouillée à
   //    (verbes DÉCLARÉS du flux ∪ commandes neutres). Choke-point unique : `RollShell` + `flowKey`. ──
-  const act = (key: string): RollAction => ({ key, label: key, onClick: noop });
+  const act = (key: RollAction['key']): RollAction => ({ key, label: key, onClick: noop });
 
-  it('(h) garde : actions NEUTRES (cancel/rollAll/confirm) passent pour tout flux', () => {
+  it('(h) garde : actions NEUTRES (abandonner/lancerLesRangees/confirmer) passent pour tout flux', () => {
     expect(() =>
-      render(<RollShell flowKey="manoeuvreDuNavire" title="T" rows={[rolledRow()]} rolled actions={[act('cancel'), act('rollAll'), act('confirm')]} />),
+      render(<RollShell flowKey="manoeuvreDuNavire" title="T" rows={[rolledRow()]} rolled actions={[act('abandonner'), act('lancerLesRangees'), act('confirmer')]} />),
     ).not.toThrow();
   });
 
-  it('(i) garde : un verbe DÉCLARÉ du flux passe (resist ∈ cascade)', () => {
+  it('(i) garde : un verbe DÉCLARÉ du flux passe (resister ∈ cascade)', () => {
     expect(() =>
-      render(<RollShell flowKey="cascade" title="T" rows={[rolledRow()]} rolled actions={[act('resist')]} />),
+      render(<RollShell flowKey="cascade" title="T" rows={[rolledRow()]} rolled actions={[act('resister')]} />),
     ).not.toThrow();
   });
 
   it('(j) garde : action FANTÔME (hors verbes déclarés + neutres) LÈVE', () => {
-    // 'resist' n'est PAS déclaré par le flux `test` (ni neutre) → dérive rejetée.
+    // 'resister' n'est PAS déclaré par le flux `test` (ni neutre) → dérive rejetée.
     expect(() =>
-      render(<RollShell flowKey="test" title="T" rows={[rolledRow()]} rolled actions={[act('resist')]} />),
+      render(<RollShell flowKey="test" title="T" rows={[rolledRow()]} rolled actions={[act('resister')]} />),
     ).toThrow(/hors vocabulaire/);
-    // clé inventée sur un flux qui ne la déclare pas.
+    // clé inventée : elle ne compile pas, et le rendu la refuse aussi.
     expect(() =>
+      // @ts-expect-error -- une clé hors vocabulaire ne compile pas.
       render(<RollShell flowKey="manoeuvreDuNavire" title="T" rows={[rolledRow()]} rolled actions={[act('zorglub')]} />),
     ).toThrow(/hors vocabulaire/);
   });
 
   it('(k) garde : sans flowKey, inerte (modale sans flux naturel)', () => {
     expect(() =>
-      render(<RollShell title="T" rows={[rolledRow()]} rolled actions={[act('zorglub')]} />),
+      render(<RollShell title="T" rows={[rolledRow()]} rolled actions={[act('resister')]} />),
     ).not.toThrow();
   });
 
@@ -215,12 +216,11 @@ describe('RollShell — coquille de jet unifiée', () => {
     const post = render(
       <RollShell flowKey="course" title="T" rows={[rolledRow()]} rolled actions={actions} onCancel={noop} />,
     );
-    expect(pre).toContain('Annuler'); // `cancel` ouvert avant le jet
+    expect(pre).toContain('Annuler'); // `annuler` ouvert avant le jet
     expect(pre).not.toContain('Appliquer'); // `apply` fermé : jetNonLance
     expect(post).toContain('Appliquer');
-    expect(post).not.toContain('Annuler'); // `cancel` fermé : jetLance
+    expect(post).not.toContain('Annuler'); // `annuler` fermé : jetLance
     // Le « Lancer » hissé (mono) suit la même phase : présent pré-jet, absent post-jet.
-    // (Le préfixe 🎲 est désormais l'icône <Icon id="nav/dice"> — on vérifie le libellé texte.)
     expect(pre).toContain('Lancer');
     expect(post).not.toContain('Lancer');
   });
@@ -229,8 +229,8 @@ describe('RollShell — coquille de jet unifiée', () => {
     const classes = (html: string, label: string) =>
       (new RegExp(`<button[^>]*class="([^"]*)"[^>]*>${label}<`).exec(actionsBar(html))?.[1] ?? '').split(' ').filter(Boolean).sort();
     const refusees: RollAction[] = [
-      { key: 'cancel', label: 'Annuler', onClick: noop, refus: 'Le jet est engagé.' },
-      { key: 'confirm', label: 'Valider', onClick: noop, refus: 'Choisis une option.' },
+      { key: 'abandonner', label: 'Annuler', onClick: noop, refus: 'Le jet est engagé.' },
+      { key: 'confirmer', label: 'Valider', onClick: noop, refus: 'Choisis une option.' },
     ];
     const nues: RollAction[] = refusees.map(({ refus: _refus, ...a }) => a);
     const refuse = render(<RollShell title="T" rows={[]} rolled={false} actions={refusees} />);
@@ -245,7 +245,7 @@ describe('RollShell — coquille de jet unifiée', () => {
 /**
  * Z3b′ AU SOCLE (recette #1117) : le renvoi vers la règle était une DISCIPLINE AU SITE — `RunModal`
  * posait son enjeu sans jamais enrober son titre, et le joueur n'avait aucune porte. La coquille
- * l'accole désormais elle-même, dérivé de la MÊME entrée d'enjeu que la phrase.
+ * l'accole elle-même, dérivé de la MÊME entrée d'enjeu que la phrase.
  */
 describe('RollShell — Z3b′ : le renvoi de règle est accolé au titre PAR LA COQUILLE', () => {
   const stake = flowStakeRef('course-test'); // un jet dont l'enjeu a un foyer (`regles/course`)

@@ -11,11 +11,11 @@ import actionsJson from '../../actions.json';
 
 /** Alvéole HÔTE minimale (une entrée de grille ordinaire) et son geste secondaire. */
 const HOTE = {
-  id: 'incantation', type: 'actions', label: 'Incanter', icon: 'magic/power', surface: 'grille',
+  id: 'incantation', type: 'actions', label: 'Incanter', icon: 'magie/puissance', surface: 'grille',
   gate: 'action-libre-hors-frenesie', run: 'incanterLeSort', candidates: 'sorts-du-heros', coutAction: 'action',
 } as const;
 const GESTE = {
-  id: 'focalisation', type: 'actions', label: 'Focaliser', icon: 'flag/focus', surface: 'geste-secondaire',
+  id: 'focalisation', type: 'actions', label: 'Focaliser', icon: 'drapeau/focalisation', surface: 'geste-secondaire',
   hote: { id: 'incantation' }, gate: 'sort-focalisable', run: 'focaliserLeSort', candidates: 'sorts-du-heros', coutAction: 'action',
 } as const;
 

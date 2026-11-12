@@ -15,11 +15,12 @@ import { trousDeLEnjeu, type StakeRef } from '../../index';
 import { messageRecurrenceHorloge, SELF_REF, type Formula, type GameOp, type OpPassive } from '../../../engine/ops';
 import { NARRATIVE_MARKERS } from '../../../engine/conditions';
 import { ARG_TEMPLATE, CHAMPS_DE_DECISION, INDICE_TEMPLATE, type Condition, type EffectOp, type EffectTrigger, type Flow, type TriggeredEffect } from '../../../engine/flowCore';
-import { acteDeDeverrouillageSchema, attackKindSchema, chaosAlignSchema, charKeySchema, cibleEtendueSchema, contexteDeTestSchema, deDeTirageSchema, diceSpecSchema, difficultySchema, effetSigneSchema, enumNomme, shipLocationSchema, exposureLevelSchema, formulaSchema, formuleSansTirageSchema, hitLocationSchema, mainSchema, messageDeTermeDeJet, meteoImposeeSchema, statutSchema, ouReserve, plageSchema, reachSchema, natureDInfluenceSchema, sizeCategorySchema, symptomSeveritySchema, tirageSchema } from './valeurs';
+import { acteDeDeverrouillageSchema, attackKindSchema, chaosAlignSchema, charKeySchema, cibleEtendueSchema, contexteDeTestSchema, deDeTirageSchema, diceSpecSchema, difficultySchema, effetSigneSchema, idDIconeSchema, enumNomme, shipLocationSchema, exposureLevelSchema, formulaSchema, formuleSansTirageSchema, hitLocationSchema, mainSchema, messageDeTermeDeJet, meteoImposeeSchema, statutSchema, ouReserve, plageSchema, reachSchema, natureDInfluenceSchema, sizeCategorySchema, symptomSeveritySchema, tirageSchema } from './valeurs';
 import { traitInstanceSchema } from './reference';
 import { idDe, marquerOpAtteinte, ref, refs, refOuSpec, specAuCatalogue, specDe, specFermeeDe, tirageSurTable, type RegimeDePorteur, type TypeEntite } from './ref';
 import { CIBLE_D_APPARTENANCE, DECLARABLE_PAR_UN_PORTEUR, INSTANCIABLE_PAR_ID, RACINE_D_APPARENCE } from './sousListes';
 import { GROUPES_TIRABLES } from '../../obsessions';
+import { customStatblockSchema } from '../defs-scenes/communs';
 import { estCibleType, varianteAdmise } from '../../../engine/psych/ciblage';
 
 /** Régime d'une liste d'ops, posé par sa fabrique (`passifsDe`, `executeesDe`) et lu par IDENTITÉ : une
@@ -475,6 +476,12 @@ const DECLARATIONS_D_OPS = {
     repousseAPct: z.number().int().min(1).max(99).optional(),
     victoire: z.lazy(() => flowSchema).optional(),
   }), { op: { label: "opération"  }, adversaire: { label: "adversaire" }, repousseAPct: { label: "repoussé à (% des Blessures)" }, victoire: { label: "sur la victoire" } }),
+  /** `attaquesSubies` — MDG 15 l.163-164, l.177-178 */
+  attaquesSubies: nommerChamps(z.strictObject({
+    op: z.literal('attaquesSubies'),
+    assaillant: nommerChamps(z.strictObject({ statblock: customStatblockSchema }), { statblock: { label: "profil personnalisé" } }),
+    nombre: deDeTirageSchema,
+  }), { op: { label: "opération"  }, assaillant: { label: "assaillant" }, nombre: { label: "nombre d’attaques" , texte: { regime: "technique"} } }),
   /** `commission` — MDG 15 l.261 */
   commission: nommerChamps(z.strictObject({
     op: z.literal('commission'),
@@ -1571,6 +1578,7 @@ export const OP_LABEL: Record<GameOp['op'], string> = {
   navireHostile: 'Navire hostile',
   infestation: 'Infestation du navire',
   combatEnMer: 'Combat en mer',
+  attaquesSubies: 'Attaques subies',
   commission: 'Commission de transport',
   constructeurDEscale: 'Constructeur de navires d’escale',
   rationsDEscale: 'Rations d’escale',
@@ -1617,10 +1625,10 @@ export function arbreDeFlow<E>(feuille: z.ZodType<E>, condition: z.ZodType<Condi
       variante('Choix', proseNommee(nommerChamps(z.strictObject({
         kind: z.literal('choice'),
         advantageCost: coutDAvantage.optional(),
-        icon: z.string().optional(),
-        yes: flow,
-        no: flow.optional(),
-      }), { kind: { label: "type"  }, advantageCost: { label: "coût en Avantage"  }, icon: { label: "icône" , texte: { regime: "technique"} }, yes: { label: "oui" }, no: { label: "non" } }), 'flow.choice.prompt')),
+        icon: idDIconeSchema.optional(),
+        oui: flow,
+        non: flow.optional(),
+      }), { kind: { label: "type"  }, advantageCost: { label: "coût en Avantage"  }, icon: { label: "icône" , texte: { regime: "technique"} }, oui: { label: "oui" }, non: { label: "non" } }), 'flow.choice.prompt')),
     ]),
   );
   return flow;

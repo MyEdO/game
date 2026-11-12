@@ -166,7 +166,7 @@ describe('flux figés : la ligne posée à l’ouverture est celle que le résol
     const banc = ouvrirLeBanc();
     const h = heros('h', { handGates: ['main'] } as Partial<Combatant>);
     enCombat(banc, h);
-    poserLeTestDeMain(banc.setState, acteur(banc.getState(), 'h'), 'main', { attackerId: 'h', targetId: 'h', location: null, result: null } as never, 'Attaque', 'action/attack');
+    poserLeTestDeMain(banc.setState, acteur(banc.getState(), 'h'), 'main', { attackerId: 'h', targetId: 'h', location: null, result: null } as never, 'Attaque', 'action/attaquer');
     const ligne = banc.getState().pendingHandGate!.ligne;
     expect(ligne.difficulty).toBe('accessible');
     exterue(banc, 'h');
@@ -182,7 +182,7 @@ describe('flux figés : la ligne posée à l’ouverture est celle que le résol
     const patient = heros('p');
     banc.setState({
       battle: null, party: [chirurgien, patient],
-      medic: { patientId: 'p', surgery: { kind: 'reeducation', difficulty: 'accessible', healerId: 'c', healerName: 'c', skill: 81, intBonus: 6, targetDR: 6, cumDR: 0 } } as never,
+      medic: { patientId: 'p', surgery: { kind: 'reeducation', difficulty: 'accessible', healerId: 'c', healerName: 'c', skill: 81, intBonus: 6, drCible: 6, cumDR: 0 } } as never,
     });
     seedBattleRng(7);
     banc.setState({ pendingSurgery: passeDeLOperation(banc.getState()) });

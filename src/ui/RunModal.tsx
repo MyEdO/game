@@ -53,15 +53,15 @@ export function RunModal() {
   });
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' },
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
+    { key: 'abandonner', label: t('verbe.annuler'), onClick: cancel, verbe: 'annuler' },
+    { key: 'confirmer', label: t('verbe.valider'), onClick: confirm, verbe: 'valider' },
   ];
 
   return (
     <RollShell
       flowKey="course"
       stake={flowStakeRef('course-test')}
-      title={<><Icon id="melee/flee" size="sm" /> {pr.test.label}</>}
+      title={<><Icon id="melee/fuir" size="sm" /> {pr.test.label}</>}
       subtitle={
         <>
           <strong>{c.label}</strong> s'élance

@@ -108,7 +108,7 @@ function feuilles(f: Flow | undefined): { on?: string; ops: GameOp[] }[] {
   if (f.kind === 'seq') return f.steps.flatMap(feuilles);
   if (f.kind === 'if') return [...feuilles(f.then), ...feuilles(f.else)];
   if (f.kind === 'test') return [...feuilles(f.success), ...feuilles(f.fail)];
-  return [...feuilles(f.yes), ...feuilles(f.no)];
+  return [...feuilles(f.oui), ...feuilles(f.non)];
 }
 /** Tous les nœuds `test` d'un Flow, racine comprise. */
 function noeudsTest(f: unknown, out: NoeudTest[] = []): NoeudTest[] {
@@ -124,10 +124,10 @@ function noeudsTest(f: unknown, out: NoeudTest[] = []): NoeudTest[] {
  *  Test enfoui dans une branche en dérive son enjeu. */
 function sourceDuSort(node: NoeudTest): EffectSource {
   const sp = (spells as { id: string; effects?: Flow }[]).find((s) => noeudsTest(s.effects).includes(node))!;
-  return { kind: 'spell', id: sp.id };
+  return { kind: 'sort', id: sp.id };
 }
 
-/** LA ligne que la feuille `on:'caster'` du nœud retenu produit (`op.corruptionExposure`) — elle
+/** LA ligne que la feuille `on:'caster'` du nœud retenu produit (`op.expositionALaCorruption`) — elle
  *  NOMME le porteur, donc elle dit LEQUEL des deux acteurs a reçu la conséquence. Distincte de la
  *  ligne de JET, que le sujet produit toujours : sans ce filtre, le banc serait vert à vide. */
 function ligneDeLaConsequence(): string {

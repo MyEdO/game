@@ -14,6 +14,7 @@
  *    la nuit : l'abri insère les jets d'Exposition). RAW : « chaque Personnage bénéficie d'une Activité
  *    par Étape » (l.131) ; un échec octroie un Exténué (l.133).
  */
+import type { IconId } from '../data/icons';
 import { battleRng } from './battleRng';
 import {
   travelActivitySpec, aggregateActivityOutcomes, activityById,
@@ -63,9 +64,9 @@ import { ecrireActeur } from './monde/combatants';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 
-const POSTE_ICON: Record<string, string> = {
-  'plein-air': 'expedition/outdoors', approvisionnement: 'item/consumable', 'recueillir-informations': 'expedition/rumor', 'rester-aux-aguets': 'ui/eye',
-  'etablir-cartes': 'expedition/cartography', 'pratiquer-competence': 'expedition/practice', recuperer: 'rest/bed', 'monter-camp': 'rest/camp',
+const POSTE_ICON: Record<string, IconId> = {
+  'plein-air': 'expedition/grand-air', approvisionnement: 'objet/consommable', 'recueillir-informations': 'expedition/rumeurs', 'rester-aux-aguets': 'interface/oeil',
+  'etablir-cartes': 'expedition/cartographie', 'pratiquer-competence': 'expedition/entrainement', recuperer: 'repos/lit', 'monter-camp': 'repos/campement',
 };
 
 /** Clés de libellé d'une catégorie de Rencontre (EDOC 8) — des CLÉS, jamais des phrases figées à
@@ -158,7 +159,7 @@ export function buildStageSteps(get: Get, set: Set, weather: Weather, season: Se
     // PAS chaque jour, sinon le cumul déborde son plafond « 5/2 », « 6/2 » à chaque re-complétion) : le
     // poste n'a plus d'objet → un pas d'AFFICHAGE « achevée », aucun jet ni accumulation (F1).
     if (spec.drTarget != null && (plan.extendedProgress ?? 0) >= spec.drTarget) {
-      steps.push(displayStep({ id: `poste-${hero.id}`, kind: 'etapePosteFini', actorId: hero.id, icon: POSTE_ICON[def.id] ?? 'travel/compass',
+      steps.push(displayStep({ id: `poste-${hero.id}`, kind: 'etapePosteFini', actorId: hero.id, icon: POSTE_ICON[def.id] ?? 'voyage/boussole',
         label: dataLabel(def.label), outcome: toRecapLines([t('tp.activityDone', { label: def.label, dr: spec.drTarget })]) }));
       continue;
     }
@@ -166,7 +167,7 @@ export function buildStageSteps(get: Get, set: Set, weather: Weather, season: Se
       // Activité SANS Test (Récupérer) : pas de rangée de jet — un pas d'affichage dont l'applier applique l'issue.
       const meta: CascadeStepMeta = { activityId: def.id };
       if (posting.freeSkill?.id) { meta.freeSkillId = posting.freeSkill.id; if (posting.freeSkill.spec) meta.freeSkillSpec = posting.freeSkill.spec; }
-      steps.push(displayStep({ id: `poste-${hero.id}`, kind: 'etapePoste', actorId: hero.id, icon: POSTE_ICON[def.id] ?? 'travel/compass', label: dataLabel(def.label), meta }));
+      steps.push(displayStep({ id: `poste-${hero.id}`, kind: 'etapePoste', actorId: hero.id, icon: POSTE_ICON[def.id] ?? 'voyage/boussole', label: dataLabel(def.label), meta }));
     } else {
       // label = Compétence RÉELLEMENT utilisée, résolue AVEC sa spec (« Métier (Cartographe) ») via
       // `testSkillLabel` ; base/cible déjà influençables. Test ÉTENDU (Établir des cartes, EDOC 8 l.161) : la
@@ -197,11 +198,11 @@ export function buildStageSteps(get: Get, set: Set, weather: Weather, season: Se
   // Une bande par le mint (`bandStep`) : jets INDÉPENDANTS (#351, cf. l'applier) et POSSESSION posée —
   // plusieurs héros postés → fenêtre de GROUPE, un seul → SON `actorId`. Sans elle, l'arbitre rendait la
   // fenêtre à l'HÔTE SEUL et le siège qui tient le posté ne voyait jamais sa rangée (classe #1268).
-  pousseSi(steps, bandStep({ id: 'stage-postes', kind: 'etapePosteEnBande', icon: 'travel/compass', label: t('step.stagePostes')}, batchParts));
+  pousseSi(steps, bandStep({ id: 'stage-postes', kind: 'etapePosteEnBande', icon: 'voyage/boussole', label: t('step.stagePostes')}, batchParts));
   // Pas d'agrégation de fin d'Étape (fourrage cumulé, camp, cartes, Rencontre) + insertion des Expositions.
   // Bilan de l'ÉTAPE : aucun personnage n'en est le concerné (c'est la journée du groupe qui se solde) —
   // étape de MONDE, routée au siège MJ (`worldOwner`), jamais une fenêtre sans propriétaire déclaré.
-  steps.push(displayStep({ id: 'stage-agg', kind: 'etapeBilan', icon: 'ui/tally', label: t('step.stageAgg'), worldOwner: true,
+  steps.push(displayStep({ id: 'stage-agg', kind: 'etapeBilan', icon: 'interface/bilan', label: t('step.stageAgg'), worldOwner: true,
     meta: { weatherLabel: dataLabel(weatherCondition(weather).label), stages } }));
   return steps;
 }
@@ -241,7 +242,7 @@ export function buildWeatherResistanceSteps(get: Get, weather: Weather): BuiltCa
   }
   const stake = rt.enjeu ? weatherStakeRef(weather) : undefined; // ENJEU = la RÉFÉRENCE de la condition (#1117), résolue au rendu
   const out: BuiltCascadeStep[] = [];
-  pousseSi(out, bandStep({ id: 'weather-resistance', kind: 'resistanceALaMeteo', icon: 'rest/cold',
+  pousseSi(out, bandStep({ id: 'weather-resistance', kind: 'resistanceALaMeteo', icon: 'repos/froid',
     label: stepDetail(t('step.traversee'), dataLabel(weatherCondition(weather).label)), ...(stake ? { stake } : {}) }, parts));
   return out;
 }
@@ -259,7 +260,7 @@ function buildExposureSteps(state: { party: Combatant[] }, stage: StageContext):
     const diff = stageExposureDifficulty(stage.weather, hasCoat(h), tent);
     if (!diff) continue; // bien équipé sous pluie/neige normale, ou beau temps → aucun Test
     const st = monoStep({
-      id: `expo-${id}`, kind: 'etapeExposition', actor: h, icon: 'rest/cold', label: t('step.exposition'),
+      id: `expo-${id}`, kind: 'etapeExposition', actor: h, icon: 'repos/froid', label: t('step.exposition'),
       rollLabel: refLabel('skills', { id: 'resistance' }), difficulty: diff as Difficulty,
       // MÊME Test d'Exposition que la nuit de repos : EDOC 08 l.90 renvoie à LDB p181, donc MÊME entrée.
       stake: voyageStakeRef('voyage-exposition', { chars: exposureFirstFailChars('froid') }),
@@ -423,7 +424,7 @@ export const TABLES = {
       const jours = get().travelPlan?.recap?.days ?? [];
       if (bilan.pleinAir && jours.length) jours[jours.length - 1].pleinAir = true;
       const rencontre = bilan.rencontre ? tableStep({
-        id: 'etape-rencontre', kind: 'etapeRencontre', worldOwner: true, icon: 'ui/warning', label: t(ENCOUNTER_KEY[bilan.rencontre]),
+        id: 'etape-rencontre', kind: 'etapeRencontre', worldOwner: true, icon: 'interface/attention', label: t(ENCOUNTER_KEY[bilan.rencontre]),
         table: { tableId: tableDeRencontre(bilan.rencontre), spec: encounterDie() },
         stake: voyageStakeRef('etape-rencontre'),
       }) : undefined;
@@ -455,7 +456,7 @@ export const TABLES = {
     etapeExposition: (_get, _set, step, hero) => {
       if (!hero || !step.result) return;
       const weatherLabel = String(step.meta?.weatherLabel ?? '');
-      if (step.meta?.warded) return { consequences: freeCons([t('eff.weatherWarded', { name: hero.label, what: t('eff.wardFroid') })]) };
+      if (step.meta?.warded) return { consequences: freeCons([t('eff.meteoConjuree', { name: hero.label, what: t('eff.protectionDuFroid') })]) };
       // Le jet est DÉJÀ affiché par la rangée de l'étape (CascadeModal) — pas de re-print (#295 Lot 5) ;
       // succès sans effet (rien à ajouter) → aucune conséquence.
       if (step.result.success) return { consequences: freeCons([]) };

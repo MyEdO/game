@@ -45,7 +45,7 @@ describe('clic-sol implicite — tap 1 aperçu, tap 2 déplace', () => {
     const dest = { x: before.x + 2, y: before.y };
     banc.getState().cliquerLaCase(dest);
     let st = banc.getState();
-    expect(st.battle!.preview).toMatchObject({ kind: 'move', tile: dest });
+    expect(st.battle!.preview).toMatchObject({ kind: 'deplacement', tile: dest });
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.pos).toEqual(before); // pas bougé
     banc.getState().cliquerLaCase(dest);
     st = banc.getState();
@@ -59,7 +59,7 @@ describe('clic-sol implicite — tap 1 aperçu, tap 2 déplace', () => {
     const p = banc.getState().battle!.combatants.find((c) => c.id === H.id)!.pos!;
     banc.getState().cliquerLaCase({ x: p.x + 1, y: p.y });
     banc.getState().cliquerLaCase({ x: p.x + 2, y: p.y });
-    expect(banc.getState().battle!.preview).toMatchObject({ kind: 'move', tile: { x: p.x + 2, y: p.y } });
+    expect(banc.getState().battle!.preview).toMatchObject({ kind: 'deplacement', tile: { x: p.x + 2, y: p.y } });
     banc.getState().cliquerLaCase({ x: p.x + 30, y: p.y }); // hors de portée
     expect(banc.getState().battle!.preview).toBeNull();
   });
@@ -96,7 +96,7 @@ describe('Course implicite — zone au-delà de la Marche, jet au commit (LDB 15
     // Spec HUD § ARBITRAGE 2026-08-19 : au-delà de la Marche, le champ ne court pas tout seul — la
     // Course s'ARME, et son intention voyage avec le geste (`intentionId`), comme `confirm`.
     banc.getState().cliquerLaCase(dest, undefined, { intentionId: 'course' });
-    expect(banc.getState().battle!.preview).toMatchObject({ kind: 'run', tile: dest });
+    expect(banc.getState().battle!.preview).toMatchObject({ kind: 'course', tile: dest });
     expect(banc.getState().pendingRun).toBeNull(); // pas encore de jet
     banc.getState().cliquerLaCase(dest, undefined, { intentionId: 'course' });
     const pr = banc.getState().pendingRun;
@@ -117,7 +117,7 @@ describe('Course implicite — zone au-delà de la Marche, jet au commit (LDB 15
 
   it("zone de Course NOMINALE indisponible sous un mode-CASE (#198, résidus) : `battle.reachable` déjà "
     + "peuplé par Pousser/Téléportation/pose de zone ne doit pas se faire recouvrir par la Marche+Course "
-    + "normales — sinon la grille 'run' (data-tile) ratisse toute la carte au lieu du seul ensemble du mode", () => {
+    + "normales — sinon la grille 'course' (data-tile) ratisse toute la carte au lieu du seul ensemble du mode", () => {
     const { H } = setup();
     expect(computeRunReach(banc.getState).size).toBeGreaterThan(0); // témoin : hors mode-case, la Course normale s'affiche
     const b = banc.getState().battle!;
@@ -180,7 +180,7 @@ describe('clic-ennemi implicite', () => {
     e.pos = { x: h.pos!.x + 1, y: h.pos!.y };
     h.advantage = 0;
     cliquerSurLeCombattant(banc.getState, e.id);
-    expect(banc.getState().battle!.preview).toMatchObject({ kind: 'attack', targetId: e.id });
+    expect(banc.getState().battle!.preview).toMatchObject({ kind: 'attaque', targetId: e.id });
     expect(banc.getState().pendingAttack).toBeNull();
     cliquerSurLeCombattant(banc.getState, e.id);
     const st = banc.getState();

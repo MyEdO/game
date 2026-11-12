@@ -807,7 +807,7 @@ describe('__wfrp — setups qui écrivent un héros, joués EN COMBAT (#2198, #2
     expect(etape.outcome, 'les lignes de portée et d’issue du flux').toEqual(attendu.outcome);
     expect(etape.outcome?.length).toBe(2);
     expect(etape.options).toEqual(attendu.options);
-    expect(etape.defaultChoice).toBe('crit');
+    expect(etape.defaultChoice).toBe('critique');
   });
 
   it('quality : `null` (un `undefined` passé par CDP) vaut absent — qualité par défaut, Avantage inchangé', () => {
@@ -1311,7 +1311,7 @@ describe('__wfrp.resumeLastScenario — reprise du dernier scénario après un r
       id: 'plateau-vide-1734',
       order: 9999,
       category: 'combat',
-      icon: 'scenario/bestiary',
+      icon: 'scenario/bestiaire',
       title: 'Plateau vide (garde du refus nommé)',
       tests: 'le refus de plateau vide',
       partyNote: 'pré-tirés',
@@ -1332,7 +1332,7 @@ describe('__wfrp.resumeLastScenario — reprise du dernier scénario après un r
       id: 'plateau-vide-demarrage',
       order: 9999,
       category: 'combat',
-      icon: 'scenario/bestiary',
+      icon: 'scenario/bestiaire',
       title: 'Plateau vide (refus avant démarrage)',
       tests: 'le refus de plateau vide avant le démarrage',
       partyNote: 'pré-tirés',

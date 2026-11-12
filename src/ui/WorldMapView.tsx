@@ -357,7 +357,7 @@ export function WorldMapView({ initialRouteId, hereId }: { initialRouteId?: stri
               {/* Badge de mode : barque (voie d'eau) / compas (route carrossable). */}
               {r.modes.some((mm) => mm !== 'pied') && (
                 <g style={{ color: 'var(--wm-ink)' }}>
-                  <IconG id={water ? 'scenario/naval' : 'scenario/travel'} x={5.4} y={-1.35} size={2.5} />
+                  <IconG id={water ? 'scenario/naval' : 'scenario/voyage'} x={5.4} y={-1.35} size={2.5} />
                 </g>
               )}
             </g>
@@ -407,7 +407,7 @@ export function WorldMapView({ initialRouteId, hereId }: { initialRouteId?: stri
           <circle r="1.5" fill="url(#wm-medal)" stroke="var(--wm-age-spot)" strokeWidth="0.22" filter="url(#wm-drop)" />
           {/* `p.icon` = id d'icône (registre src/data/icons) ; sans icône, drapeau de lieu. */}
           <g style={{ color: 'var(--wm-marker-icon)' }}>
-            <IconG id={p.icon ?? 'nav/entry-point'} x={-1.05} y={-1.05} size={2.1} />
+            <IconG id={p.icon ?? 'navigation/point-d-entree'} x={-1.05} y={-1.05} size={2.1} />
           </g>
         </>
       ),
@@ -443,7 +443,7 @@ export function WorldMapView({ initialRouteId, hereId }: { initialRouteId?: stri
   );
 
   return (
-    <ScreenShell title={<><Icon id="nav/campaign" size="sm" /> {map.label}</>} onClose={close} meta={{ time: gameTime, money }}>
+    <ScreenShell title={<><Icon id="navigation/campagne" size="sm" /> {map.label}</>} onClose={close} meta={{ time: gameTime, money }}>
       <Split side="end" align="stretch" stackBelow={900} gap="xl" pad="xl" className="screen-scroll worldmap-layout">
       <div className="worldmap-canvas">
         <MapCanvas
@@ -676,7 +676,7 @@ export function WorldMapView({ initialRouteId, hereId }: { initialRouteId?: stri
                 sa raison que sur une action FERMÉE (#1689 T2). */}
             <GatedAction
               id="worldmap-depart"
-              label={<><Icon id="scenario/travel" size="sm" /> {aLAube ? t('wm.attendreAube') : libelleDepart}</>}
+              label={<><Icon id="scenario/voyage" size="sm" /> {aLAube ? t('wm.attendreAube') : libelleDepart}</>}
               ariaLabel={aLAube ? t('wm.attendreAube') : libelleDepart}
               enabled={!refusDuDepart}
               {...raisonSi(refusDuDepart)}
@@ -700,7 +700,7 @@ export function WorldMapView({ initialRouteId, hereId }: { initialRouteId?: stri
             <button type="button" className="btn" onClick={() => setSelId(null)}>{t('wm.annuler')}</button>
             <GatedAction
               id={`wm-route-fermee-${selFerme.id}`}
-              label={<><Icon id="scenario/travel" size="sm" /> {t('wm.partir')}</>}
+              label={<><Icon id="scenario/voyage" size="sm" /> {t('wm.partir')}</>}
               ariaLabel={t('wm.partirVers', { lieu: destFermee.label })}
               enabled={false}
               reason={mdToText(nommer(garanti(selFerme.refus, selFerme.id, 'raison du trajet fermé (`mapRouteSchema`)').texte, identites))}

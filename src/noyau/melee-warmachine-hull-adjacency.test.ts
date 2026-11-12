@@ -49,7 +49,7 @@ describe('#210 — adjacence d\'une pièce de MÊLÉE servie = celle de la COQUE
     const ram = hull({ x: 4, y: 0 }, ramPoste); // adjacente à la porte (distance 1)
     const chef = combatant({ pos: { x: 0, y: 0 }, mannedPoste: ramPoste } as never); // très loin de la porte
     const plan = attackPlan(mkGet([chef, ram, gate]), chef, gate);
-    expect(plan.kind).toBe('attack');
+    expect(plan.kind).toBe('attaque');
   });
 
   it('(b) chef ADJACENT à la porte mais coque À DISTANCE : attaque INDISPONIBLE (le bug corrigé)', () => {
@@ -57,7 +57,7 @@ describe('#210 — adjacence d\'une pièce de MÊLÉE servie = celle de la COQUE
     const chef = combatant({ pos: { x: 4, y: 0 }, mannedPoste: ramPoste } as never); // adjacent à la porte
     const ram = hull({ x: 0, y: 0 }, ramPoste); // très loin de la porte
     const plan = attackPlan(mkGet([chef, ram, gate]), chef, gate);
-    expect(plan.kind).toBe('blocked'); // une structure ne se charge/rejoint jamais implicitement (isInanimate)
+    expect(plan.kind).toBe('bloque'); // une structure ne se charge/rejoint jamais implicitement (isInanimate)
   });
 
   it('(c) empreinte >1 : une coque 2×2 dont UNE case touche la porte reste adjacente', () => {
@@ -65,7 +65,7 @@ describe('#210 — adjacence d\'une pièce de MÊLÉE servie = celle de la COQUE
     const ram = hull({ x: 3, y: 0 }, ramPoste, 2); // occupe (3,0)-(4,1) : la tuile (4,0) touche la porte (5,0)
     const chef = combatant({ pos: { x: 0, y: 0 }, mannedPoste: ramPoste } as never);
     const plan = attackPlan(mkGet([chef, ram, gate]), chef, gate);
-    expect(plan.kind).toBe('attack');
+    expect(plan.kind).toBe('attaque');
   });
 
   it('(d) non-régression PIÈCE À DISTANCE (canon/baliste) : géométrie du CHEF inchangée', () => {

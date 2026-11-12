@@ -920,7 +920,7 @@ export function castTestOf(res: Pick<CastResult, 'roll' | 'target' | 'sl' | 'bas
 export function counterspellOutcomeFrom(counter: Combatant, counterT: TestResult, castT: TestResult): CounterspellOutcome {
   const nue = { ...counterT, base: castingBaseValue(counter, incantationArcane()) };
   const opp = resolveOpposed(castT, nue); // le lanceur tient le rôle « attaquant »
-  const dispelled = opp.winner === 'defender';
+  const dispelled = opp.winner === 'defenseur';
   const net = castT.sl - counterT.sl;
   return {
     dispelled,

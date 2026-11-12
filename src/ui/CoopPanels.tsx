@@ -5,7 +5,7 @@ import type { NetState } from '../noyau/etat';
 import { CharFrame } from './CharFrame';
 import { MenuToggle } from './MenuCard';
 import { Icon } from './Icon';
-import type { IconIdInput } from '../data/icons';
+import type { IconId } from '../data/icons';
 import { Stack, Row, Grid } from './Layout';
 import { t } from '../i18n';
 
@@ -40,8 +40,8 @@ export function CoopInvite({ code, onCopierCode, onCopierLien }: {
     <Stack gap="md">
       <div className="coop-code display-title">{code}</div>
       <div className="bar">
-        <button className="btn small" onClick={onCopierCode}><Icon id="coop/code" size="sm" /> Code</button>
-        <button className="btn small" onClick={onCopierLien}><Icon id="coop/invite" size="sm" /> Lien d'invitation</button>
+        <button className="btn small" onClick={onCopierCode}><Icon id="coop/code-de-partie" size="sm" /> Code</button>
+        <button className="btn small" onClick={onCopierLien}><Icon id="coop/invitation" size="sm" /> Lien d'invitation</button>
       </div>
     </Stack>
   );
@@ -78,7 +78,7 @@ export function SeatList({ sieges }: { sieges: SiegeDeLaTable[] }) {
     <Row as="ul" gap="md">
       {sieges.map(({ seat, nom, moi, absent }) => (
         <li key={seat} className={absent ? 'muted' : undefined}>
-          <Icon id={seat === 0 ? 'coop/host' : absent ? 'coop/away' : 'coop/online'} size="sm" /> {nom}
+          <Icon id={seat === 0 ? 'coop/hote' : absent ? 'coop/reconnexion' : 'coop/connecte'} size="sm" /> {nom}
           {moi ? ' (vous)' : ''}
           {absent ? ' — reconnexion…' : ''}
         </li>
@@ -172,21 +172,21 @@ export function GmSoloToggle() {
 
 /** Bandeau de LIAISON, non bloquant : un chip qui SIGNALE (`.chip.tone-danger`), posé en haut du
  *  champ au-dessus de l'écran courant, quel qu'il soit. */
-export function CoopBanner({ icone, children }: { icone: IconIdInput; children: ReactNode }) {
+export function CoopBanner({ icone, children }: { icone: IconId; children: ReactNode }) {
   return <div className="chip tone-danger coop-banner" role="status"><Icon id={icone} size="sm" /> {children}</div>;
 }
 
 /** Ce que la vue réseau donne à SIGNALER — `null` : la liaison est saine, aucun bandeau. */
-export function liaisonASignaler(net: NetState): { icone: IconIdInput; texte: string } | null {
+export function liaisonASignaler(net: NetState): { icone: IconId; texte: string } | null {
   if (net.mode === 'invite' && net.connection === 'reconnexion')
-    return { icone: 'ui/warning', texte: 'Reconnexion en cours…' };
+    return { icone: 'interface/attention', texte: 'Reconnexion en cours…' };
   if (net.mode === 'invite' && net.hoteAbsent)
-    return { icone: 'ui/wait', texte: 'L’hôte est déconnecté — la partie reprendra à son retour.' };
+    return { icone: 'interface/attendre', texte: 'L’hôte est déconnecté — la partie reprendra à son retour.' };
   if (net.mode === 'hote') {
     const away = Object.entries(net.presence)
       .filter(([, p]) => p === 'absent')
       .map(([s]) => nomDuSiege(net, Number(s)));
-    if (away.length) return { icone: 'ui/warning', texte: `${away.join(', ')} : reconnexion en cours…` };
+    if (away.length) return { icone: 'interface/attention', texte: `${away.join(', ')} : reconnexion en cours…` };
   }
   return null;
 }

@@ -36,7 +36,7 @@ const projets = PROJETS.map((p) => JSON.parse(readFileSync(RACINE + p, 'utf8')))
 const croissance = structuredClone(projets);
 const paquet = croissance.find((p) => p.id === 'la-diligence');
 const scene = paquet.scenes.find((s: { id: string }) => s.id === 'la-diligence');
-paquet.worldMap.places.push({ id: 'lieu-croissance-2337', label: 'Lieu de contrôle', pos: { x: 20, y: 20 }, scene: scene.id, icon: 'scenario/hamlet' });
+paquet.worldMap.places.push({ id: 'lieu-croissance-2337', label: 'Lieu de contrôle', pos: { x: 20, y: 20 }, scene: scene.id, icon: 'scenario/hameau' });
 scene.triggers.push({ id: 'declencheur-croissance-2337', rect: { x: 0, y: 0, w: 1, h: 1 }, once: true, flow: { kind: 'do', effect: { type: 'setFlag', flag: 'croissance-2337' } } });
 
 describe.each([

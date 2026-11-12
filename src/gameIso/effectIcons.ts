@@ -69,27 +69,27 @@ export interface EffectChip {
 interface CondMeta { icon: IconId; severity: number; important: boolean; }
 
 /** Icône + sévérité d'AFFICHAGE d'un État par son id — icône lue en DONNÉE (`etats.json`) ou sur un marqueur
- *  narratif (résolveur UNIQUE `etatExige`, engine, qui lève hors registre ; repli `journal/info` pour un État
+ *  narratif (résolveur UNIQUE `etatExige`, engine, qui lève hors registre ; repli `journal/information` pour un État
  *  connu sans icône) ; sévérité déléguée à `conditionSeverity` (même résolveur). `important` =
  *  sévérité ≥ 50 (incapacitant, créneau unique de l'ordre de bataille). */
 export function conditionMeta(id: string): CondMeta {
-  const icon = (etatExige(id).icon as IconId | undefined) ?? 'journal/info';
+  const icon = etatExige(id).icon ?? 'journal/information';
   const severity = conditionSeverity(id);
   return { icon, severity, important: severity >= 50 };
 }
 
 const BUFF_CHAR_ICON: Partial<Record<CharKey, IconId>> = {
-  'capacite-de-combat': 'char/cc', 'capacite-de-tir': 'char/ct', force: 'char/f', endurance: 'char/e', agilite: 'char/ag', intelligence: 'char/int', 'force-mentale': 'char/fm', sociabilite: 'char/soc',
+  'capacite-de-combat': 'caracteristique/cc', 'capacite-de-tir': 'caracteristique/ct', force: 'caracteristique/f', endurance: 'caracteristique/e', agilite: 'caracteristique/ag', intelligence: 'caracteristique/int', 'force-mentale': 'caracteristique/fm', sociabilite: 'caracteristique/soc',
 };
 
 /** Icône d'une CARACTÉRISTIQUE — source UNIQUE (registre `char/*`), keyée par id. Consommée par les
  *  pastilles d'effet ET par les alvéoles d'Avantage de la console (une Compétence porte le glyphe de
  *  son axe). Les axes sans glyphe au registre (Dextérité, Initiative) retombent sur `repli`. */
-export function charIcon(char: CharKey | undefined, repli: IconId = 'action/aim'): IconId {
+export function charIcon(char: CharKey | undefined, repli: IconId = 'action/viser'): IconId {
   return (char && BUFF_CHAR_ICON[char]) || repli;
 }
 function buffIcon(e: ActiveEffect): IconId {
-  return charIcon(e.characteristic, 'action/cast'); // buff sans carac = effet de sort/bénédiction
+  return charIcon(e.characteristic, 'action/incanter'); // buff sans carac = effet de sort/bénédiction
 }
 
 function malusChips(conditions: ConditionInstance[]): EffectChip[] {
@@ -286,14 +286,14 @@ export function combatantFlags(c: Combatant): EffectFlags {
 
 function flagChips(flags?: EffectFlags): EffectChip[] {
   const out: EffectChip[] = [];
-  if (flags?.frenzied) out.push({ key: 'f-frenzied', flagId: 'frenzied', icon: 'flag/frenzy', label: 'Frénésie', kind: 'state', severity: 68 });
-  if (flags?.defensiveStance) out.push({ key: 'f-def', flagId: 'defensiveStance', icon: 'flag/defensive', label: 'Sur la défensive (+20 en défense)', kind: 'state', severity: 60 });
-  if (flags?.aiming) out.push({ key: 'f-aim', flagId: 'aiming', icon: 'action/aim', label: 'En joue (+20 au prochain tir)', kind: 'state', severity: 55 });
-  if (flags?.focusDr != null) out.push({ key: 'f-focus', flagId: 'focusDr', icon: 'flag/focus', label: `Focalisation (DR ${flags.focusDr})`, kind: 'state', severity: 50, count: flags.focusDr, indice: flags.focusDr });
+  if (flags?.frenzied) out.push({ key: 'f-frenzied', flagId: 'frenzied', icon: 'drapeau/frenesie', label: 'Frénésie', kind: 'state', severity: 68 });
+  if (flags?.defensiveStance) out.push({ key: 'f-def', flagId: 'defensiveStance', icon: 'drapeau/posture-defensive', label: 'Sur la défensive (+20 en défense)', kind: 'state', severity: 60 });
+  if (flags?.aiming) out.push({ key: 'f-aim', flagId: 'aiming', icon: 'action/viser', label: 'En joue (+20 au prochain tir)', kind: 'state', severity: 55 });
+  if (flags?.focusDr != null) out.push({ key: 'f-focus', flagId: 'focusDr', icon: 'drapeau/focalisation', label: `Focalisation (DR ${flags.focusDr})`, kind: 'state', severity: 50, count: flags.focusDr, indice: flags.focusDr });
   if (flags?.hunger) {
     const h = flags.hunger;
     out.push({
-      key: 'f-hunger', flagId: 'hunger', icon: 'flag/hungry', kind: 'state', severity: 62,
+      key: 'f-hunger', flagId: 'hunger', icon: 'drapeau/affame', kind: 'state', severity: 62,
       label: `Affamé (${h.days} j sans manger${h.failures >= 2 ? ' — −10 à toutes les Caractéristiques' : h.failures === 1 ? ' — −10 Force/Endurance' : ''}) : pas de récupération naturelle`,
     });
   }
@@ -301,7 +301,7 @@ function flagChips(flags?: EffectFlags): EffectChip[] {
     const approche = testDeRegle('calme-d-approche', 'se-rapprocher');
     const vaincre = psychTest('peur');
     out.push({
-      key: 'f-fear', flagId: 'fear', icon: 'flag/fear', kind: 'state', severity: 66, indice: flags.fear,
+      key: 'f-fear', flagId: 'fear', icon: 'drapeau/peur', kind: 'state', severity: 66, indice: flags.fear,
       label: `Peur (Indice ${flags.fear}) — −1 DR contre la source ; approcher exige un Test ${deElide(refLabel('skills', approche.skill))} ${DIFFICULTY_LABELS[approche.difficulty]} ; Test étendu ${deElide(refLabel('skills', vaincre.skill))} en fin de Round pour la vaincre`,
     });
   }

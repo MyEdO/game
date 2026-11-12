@@ -3,6 +3,8 @@
  * + base64url. Les snapshots/campagne (~10:1 sur du JSON d'état) voyagent en champ `z` des
  * enveloppes relay — l'enveloppe elle-même reste en clair pour le routage par le DO.
  */
+import { depuisBase64, enBase64 } from '../lib/base64';
+
 async function pipeThrough(bytes: Uint8Array, stream: CompressionStream | DecompressionStream): Promise<Uint8Array> {
   const blob = new Blob([bytes as BlobPart]);
   const out = await new Response(blob.stream().pipeThrough(stream)).arrayBuffer();
@@ -10,18 +12,13 @@ async function pipeThrough(bytes: Uint8Array, stream: CompressionStream | Decomp
 }
 
 function toBase64Url(bytes: Uint8Array): string {
-  let bin = '';
-  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
-  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  return enBase64(bytes).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
 function fromBase64Url(s: string): Uint8Array | null {
   if (!/^[A-Za-z0-9_-]+$/.test(s)) return null;
   try {
-    const bin = atob(s.replace(/-/g, '+').replace(/_/g, '/'));
-    const bytes = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-    return bytes;
+    return depuisBase64(s.replace(/-/g, '+').replace(/_/g, '/'));
   } catch {
     return null;
   }

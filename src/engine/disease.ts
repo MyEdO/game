@@ -336,15 +336,15 @@ function applyOnFailInline(c: Combatant, onFail: GameOp[], contractOnce: (name: 
       if (r.etat === 'deja' && op.otherwise?.length) applyOnFailInline(c, op.otherwise, contractOnce, log, emit);
     } else if (op.op === 'grantSymptom') log.push(...grantDiseaseSymptom(c, op.disease, op.symptomId, op.severity));
     else if (op.op === 'contractDisease') contractOnce(op.disease);
-    else if (op.op === 'kill') log.push(fateSaveOrDie(c) ? t('op.kill.fateSaved', { name: c.label }) : t('op.kill', { name: c.label }));
+    else if (op.op === 'kill') log.push(fateSaveOrDie(c) ? t('op.mort.sauveParLeDestin', { name: c.label }) : t('op.mort', { name: c.label }));
     else if (op.op === 'wounds') {
       const n = typeof op.amount === 'number' ? op.amount : 0; // burst = 1 Blessure directe (littéral) ; formules → voie différée
-      if (n > 0) { c.wounds.current = Math.max(0, c.wounds.current - n); log.push(t('op.wounds', { name: c.label, n, mitig: '' })); }
+      if (n > 0) { c.wounds.current = Math.max(0, c.wounds.current - n); log.push(t('op.blessures', { name: c.label, n, mitig: '' })); }
     } else if (op.op === 'condition') {
       // Pose par la SOURCE UNIQUE (LDB 16 l.115 non-cumul, l.7 perte d'Avantage, déclencheur de gain).
       const valeur = typeof op.value === 'number' ? op.value : 1;
       addCondition(c, op.id.id, valeur);
-      log.push(t('op.cond', { name: c.label, v: c.conditions.find((x) => x.id === op.id.id)?.value ?? valeur, cond: conditionLabel(op.id.id) }));
+      log.push(t('op.etat', { name: c.label, v: c.conditions.find((x) => x.id === op.id.id)?.value ?? valeur, cond: conditionLabel(op.id.id) }));
       emit?.({ stateId: op.id.id, change: 'gain', targetId: c.id });
     }
   }

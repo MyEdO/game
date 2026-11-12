@@ -103,7 +103,7 @@ describe('Réputation (LDB 23 l.228-234) — coût dépensé DANS TOUS LES CAS, 
     banc.setState({ pendingActivity: { ...banc.getState().pendingActivity!, roll: 1, success: true, sl: 2 } });
     banc.getState().jetValider('activite');
     const hero = banc.getState().party[0];
-    expect(banc.getState().interlude?.perHero[heroId].closeOps).toEqual([{ ops: [{ op: 'statusMod', amount: 1 }], ctx: { label: 'Réputation', source: { kind: 'activity', id: 'reputation' }, sl: 2 } }]);
+    expect(banc.getState().interlude?.perHero[heroId].closeOps).toEqual([{ ops: [{ op: 'statusMod', amount: 1 }], ctx: { label: 'Réputation', source: { kind: 'activite', id: 'reputation' }, sl: 2 } }]);
     expect(hero.activeEffects?.some((e) => e.statusMod), 'posé avant la prochaine aventure').toBeFalsy();
     expect(toBrass(partyMoneyTotal(banc.getState))).toBeLessThan(before);
   });

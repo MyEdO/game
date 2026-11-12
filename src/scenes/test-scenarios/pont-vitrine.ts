@@ -113,7 +113,7 @@ export const scenario: TestScenario = {
   id: 'pont-vitrine',
   order: 50,
   category: 'rendu',
-  icon: 'scenario/bridge',
+  icon: 'scenario/pont',
   title: 'Pont — vitrine',
   tests:
     'Relief métrique 100 % données (2 couches + hauteurs parallèles) : on marche SOUS le pont (couche 0, h=0) ' +

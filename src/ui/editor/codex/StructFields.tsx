@@ -39,6 +39,7 @@ import { NumberField } from '../../NumberField';
 import { ProseField } from '../../ProseField';
 import { OptionChooser } from '../../OptionChooser';
 import type { OptionalRule, RuleValue } from '../../../engine/policy';
+import { IconField } from '../worldMapPickers';
 
 const DIFFICULTIES = Object.keys(DIFFICULTY_LABELS) as Difficulty[];
 
@@ -901,7 +902,7 @@ export function RuleActionField({ rule, value, onChange }: {
 }) {
   const vide: NonNullable<OptionalRule['action']> = {
     when: rule.kind === 'flag' ? true : rule.kind === 'param' ? (rule.min ?? 0) : (rule.options?.[0] ?? ''),
-    label: '', icon: '', run: '',
+    label: '', icon: 'outil-de-carte/epingle', run: '',
   };
   if (!value) {
     return (
@@ -919,9 +920,7 @@ export function RuleActionField({ rule, value, onChange }: {
       <label className="ed-subfield">Libellé du bouton
         <input value={value.label} onChange={(e) => set({ label: e.target.value })} />
       </label>
-      <label className="ed-subfield">Icône (id du registre src/data/icons/)
-        <input value={value.icon} onChange={(e) => set({ icon: e.target.value })} />
-      </label>
+      <IconField label="Icône" value={value.icon} onChange={(icon) => { if (icon) set({ icon }); }} />
       <label className="ed-subfield">Action du store à déclencher
         <input value={value.run} onChange={(e) => set({ run: e.target.value })} />
       </label>

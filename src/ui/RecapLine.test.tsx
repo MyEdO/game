@@ -73,18 +73,18 @@ describe('recapLineOfEvent — la COULEUR DE CAMP est préservée', () => {
 
 describe('RecapLineRow — Markdown avec et sans segments', () => {
   it('le récap de voyage sans segments rend le gras', () => {
-    const html = renderToStaticMarkup(<RecapLineRow line={{ text: 'La **pluie** ralentit la colonne', tone: 'bad' }} />);
+    const html = renderToStaticMarkup(<RecapLineRow line={{ text: 'La **pluie** ralentit la colonne', tone: 'echec' }} />);
     expect(html).toContain('<strong>pluie</strong>');
     expect(html).not.toContain('**');
-    expect(html).toContain('recap-line bad');
-    expect(html).toContain('class="row recap-line bad"');
+    expect(html).toContain('recap-line echec');
+    expect(html).toContain('class="row recap-line echec"');
     expect(html).toContain('data-align="start"');
     expect(html).toContain('data-gap="xs"');
     expect(html).toContain('data-wrap="no"');
     expect(html).toContain('class="prose-compact"');
   });
   it('le journal et le récap gardent le même Markdown et les mêmes tons', () => {
-    const segments = [{ text: '**' }, { text: 'Gustav', team: 'ally' as const }, { text: '** rencontre ' }, { text: 'Rat géant', team: 'enemy' as const }];
+    const segments = [{ text: '**' }, { text: 'Gustav', team: 'allie' as const }, { text: '** rencontre ' }, { text: 'Rat géant', team: 'ennemi' as const }];
     const text = segments.map(s => s.text).join('');
     const journal = renderToStaticMarkup(<TeamSegments segments={segments} />);
     const recap = renderToStaticMarkup(<RecapLineRow line={{ text, segments }} />);

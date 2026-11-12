@@ -2063,8 +2063,8 @@
         "flow": {
           "kind": "choice",
           "prompt": "Frappe réactive",
-          "icon": "action/free-attack",
-          "yes": {
+          "icon": "action/attaque-gratuite",
+          "oui": {
             "kind": "test",
             "test": {
               "characteristic": "initiative",
@@ -2091,7 +2091,7 @@
               "steps": []
             }
           },
-          "no": {
+          "non": {
             "kind": "seq",
             "steps": []
           }

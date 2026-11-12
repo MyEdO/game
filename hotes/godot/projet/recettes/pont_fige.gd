@@ -4,13 +4,12 @@ extends PontDuNoyau
 ## Le pont figé des recettes de l'atelier (`hotes/godot/recettes/atelier.ts`) : `catalogues`, `vitrine` et `modeles`
 ## rendent leur réponse figée, toute autre méthode la réponse figée sous `fige[<méthode>]` à la clé de son entrée
 ## (`JSON.stringify`), `modeles/listage.json` le listage figé et tout autre chemin le fichier du projet, rien s'il est
-## absent (le dépôt de l'éditeur), chaque paramètre de l'adresse celui de `fige.parametres` ; il garde les entrées
-## reçues hors de ces trois, les chemins requêtés et le dernier écran publié.
+## absent (le dépôt de l'éditeur), chaque paramètre celui de `fige.parametres` ; il garde les entrées reçues hors de ces
+## trois et les chemins requêtés. Il est en recette (`en_recette`) : chaque écran publié est retenu dans `ecran`.
 
 var fige: Dictionary
 var entrees: Array[String] = []
 var requetes: Array[String] = []
-var ecran: Dictionary = {}
 
 
 func _init(lu: Dictionary) -> void:
@@ -50,9 +49,3 @@ func requeter(relative: String, recueil: Array[String], _methode := HTTPClient.M
 
 func parametre(cle: String) -> String:
 	return str(fige.get("parametres", {}).get(cle, ""))
-
-
-func publier_l_ecran(publie: Callable) -> void:
-	var rendu: Variant = publie.call()
-	if rendu != null:
-		ecran = rendu

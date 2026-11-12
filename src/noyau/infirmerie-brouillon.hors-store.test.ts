@@ -134,7 +134,7 @@ describe('R4-E — aucun argent créé par l’infirmerie d’un PNJ payant', ()
 });
 
 describe('le premier jet du brouillon, quel que soit le geste qui le pose, passe par le lancer de l’acte', () => {
-  const luxee = (id: string) => mk(id, { wounds: blessuresDeBase(40), traumas: [{ uid: 't1', label: 'Épaule luxée (bras perdu)', location: 'brasD', targetDR: 6, ops: [{ op: 'maxWeaponHands', hands: 1 }], recoveryPenalty: [{ op: 'charMod', characteristic: 'capacite-de-combat', mod: -10 }] }] } as Partial<Combatant>);
+  const luxee = (id: string) => mk(id, { wounds: blessuresDeBase(40), traumas: [{ uid: 't1', label: 'Épaule luxée (bras perdu)', location: 'brasD', drCible: 6, ops: [{ op: 'maxWeaponHands', hands: 1 }], recoveryPenalty: [{ op: 'charMod', characteristic: 'capacite-de-combat', mod: -10 }] }] } as Partial<Combatant>);
   const barbierPayant = (): void => {
     poser([blesse('p')], { p: 1 });
     creditBourse(g, banc.setState, 'p', { gold: 0, silver: 10, brass: 0 });

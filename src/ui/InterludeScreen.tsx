@@ -261,7 +261,7 @@ export function InterludeScreen({ seam }: { seam?: InterludeSeam } = {}) {
             </div>
             {bank.length > 0 && (
               <section className="interlude-hero panel">
-                <h3><Icon id="resource/gold-purse" size="sm" /> Dépôts en cours</h3>
+                <h3><Icon id="ressource/bourse" size="sm" /> Dépôts en cours</h3>
                 <BankList etat={etat} canDrive={ownsHero} />
               </section>
             )}
@@ -270,12 +270,12 @@ export function InterludeScreen({ seam }: { seam?: InterludeSeam } = {}) {
             {rule('jeux-de-taverne') && <TavernGamesEntry />}
             <div className="interlude-close">
               <p className="interlude-warning" title={t('interlude.close.warning.title')}>
-                <Icon id="resource/gold-purse" size="sm" /> {t('interlude.close.warning')}
+                <Icon id="ressource/bourse" size="sm" /> {t('interlude.close.warning')}
               </p>
               {massBattle?.phase === 'prep'
                 /* Bataille en attente : la clôture ENGAGE la bataille (`fenetreValider('interlude')` → engagerLaBataille, C2b) —
                    le bouton de clôture porte alors ce libellé, une SEULE porte de sortie (pas de 2e écran). */
-                ? <GatedAction id="interlude-close" label={<><Icon id="action/attack" size="sm" /> {t('interlude.close.bataille')}</>}
+                ? <GatedAction id="interlude-close" label={<><Icon id="action/attaquer" size="sm" /> {t('interlude.close.bataille')}</>}
                     descOfferte={t('interlude.close.bataille.desc')} enabled={!refusClore} {...raisonSi(refusClore)} onClick={() => setPhase('closing')} />
                 : <GatedAction id="interlude-close" label={t('interlude.close.btn')} enabled={!refusClore} {...raisonSi(refusClore)} onClick={() => setPhase('closing')} />}
             </div>
@@ -324,7 +324,7 @@ function SynthBar({ heroes, interlude, money, activeId, ownsHero, ownerName }: {
             <div className="interlude-synth-meta">
               <ActivityPips st={st} />
               {!ownsHero(h.id) && (
-                <span className="interlude-owner"><Icon id="nav/seat-owner" size="sm" /> {ownerName(h.id)}</span>
+                <span className="interlude-owner"><Icon id="navigation/proprietaire-du-siege" size="sm" /> {ownerName(h.id)}</span>
               )}
               {st.revenueBrass > 0 && (
                 <span className="interlude-synth-rev" title="Revenus de la période — crédités à la reprise"><CoinsB brass={st.revenueBrass} /></span>
@@ -334,7 +334,7 @@ function SynthBar({ heroes, interlude, money, activeId, ownsHero, ownerName }: {
         );
       })}
       <div className="interlude-synth-purse" title={t('interlude.close.warning.title')}>
-        <Icon id="resource/gold-purse" />
+        <Icon id="ressource/bourse" />
         <Coins money={money} />
       </div>
     </div>
@@ -347,7 +347,7 @@ function SynthBar({ heroes, interlude, money, activeId, ownsHero, ownerName }: {
 function BattleBanner({ mb }: { mb: MassBattleState }) {
   return (
     <section className="interlude-battle-banner panel">
-      <h3><Icon id="action/attack" size="sm" /> Bataille imminente</h3>
+      <h3><Icon id="action/attaquer" size="sm" /> Bataille imminente</h3>
       <p className="interlude-detail">
         <b>{mb.ally.label}</b> (Puissance {armyMight(mb.ally)}) contre <b>{mb.enemy.label}</b> (Puissance {armyMight(mb.enemy)}).
         Préparez-la depuis vos Activités <em>Entre deux aventures</em> : Discours, Planification, Repérage,
@@ -363,7 +363,7 @@ function TavernGamesEntry() {
   const refus = useGame(refusDOuvrirLaTaverne);
   return (
     <section className="interlude-hero panel">
-      <h3><Icon id="nav/dice" size="sm" /> Jeux de taverne</h3>
+      <h3><Icon id="navigation/des" size="sm" /> Jeux de taverne</h3>
       <p className="interlude-detail">Un moment de détente : dés, boules, bras de fer… (Nuits agitées, ch.16).</p>
       <GatedAction id="interlude-tavern-open" label="Proposer une partie" enabled={!refus} {...raisonSi(refus)} onClick={() => open()} btnClassName="small" />
     </section>
@@ -381,22 +381,22 @@ function fxChips(etat: EtatDInterlude, st: InterludeHeroState, hero: Combatant):
   const bloquant = effetBloquantLesRevenus(etat, hero.id);
   for (const effet of effetsDeLaPeriode(etat, hero.id)) {
     const { fx } = effet;
-    if (fx.moneyPct) chips.push({ icon: 'resource/gold-purse', label: t(fx.partyWide ? 'interlude.fx.bourses' : 'interlude.fx.bourse', { pct: fx.moneyPct }) });
-    if (fx.loseActivity) chips.push({ icon: 'nav/activity', label: t('interlude.fx.moinsUneActivite') });
-    if (fx.fortuneMaxDelta) chips.push({ icon: 'resource/fortune', label: t('interlude.fx.chance', { n: fx.fortuneMaxDelta, s: fx.fortuneMaxDelta > 1 ? 's' : '' }) });
+    if (fx.moneyPct) chips.push({ icon: 'ressource/bourse', label: t(fx.partyWide ? 'interlude.fx.bourses' : 'interlude.fx.bourse', { pct: fx.moneyPct }) });
+    if (fx.loseActivity) chips.push({ icon: 'navigation/activite', label: t('interlude.fx.moinsUneActivite') });
+    if (fx.fortuneMaxDelta) chips.push({ icon: 'ressource/chance', label: t('interlude.fx.chance', { n: fx.fortuneMaxDelta, s: fx.fortuneMaxDelta > 1 ? 's' : '' }) });
     if (fx.revenuePct) {
       const pct = { sign: fx.revenuePct > 0 ? '+' : '', pct: fx.revenuePct };
-      chips.push({ icon: 'resource/gold-purse', label: fx.revenueClasses ? t('interlude.fx.revenusPour', { ...pct, classes: libellesDeClasses(fx.revenueClasses) }) : t('interlude.fx.revenus', pct) });
+      chips.push({ icon: 'ressource/bourse', label: fx.revenueClasses ? t('interlude.fx.revenusPour', { ...pct, classes: libellesDeClasses(fx.revenueClasses) }) : t('interlude.fx.revenus', pct) });
     }
     if (fx.revenueBlockedClasses) {
-      chips.push({ icon: 'resource/gold-purse', label: (bloquant?.id === effet.id ? blocageDeRevenus(etat, hero.id) : null) ?? t('interlude.fx.revenusBloquesPour', { classes: libellesDeClasses(fx.revenueBlockedClasses) }) });
+      chips.push({ icon: 'ressource/bourse', label: (bloquant?.id === effet.id ? blocageDeRevenus(etat, hero.id) : null) ?? t('interlude.fx.revenusBloquesPour', { classes: libellesDeClasses(fx.revenueBlockedClasses) }) });
     }
-    if (fx.bankPct) chips.push({ icon: 'resource/gold-purse', label: t('interlude.fx.banque', { pct: fx.bankPct }) });
-    if (fx.stashRaided) chips.push({ icon: 'ui/warning', label: t('interlude.fx.planqueDevalisee') });
-    if (fx.bankCrashCheck) chips.push({ icon: 'ui/warning', label: t('interlude.fx.faillite') });
+    if (fx.bankPct) chips.push({ icon: 'ressource/bourse', label: t('interlude.fx.banque', { pct: fx.bankPct }) });
+    if (fx.stashRaided) chips.push({ icon: 'interface/attention', label: t('interlude.fx.planqueDevalisee') });
+    if (fx.bankCrashCheck) chips.push({ icon: 'interface/attention', label: t('interlude.fx.faillite') });
   }
   // Devoir elfique : conséquence APPLIQUÉE par le flow (règle optionnelle comprise) — jamais re-dérivée ici.
-  if (st.elfDuty) chips.push({ icon: 'nav/activity', label: t('interlude.fx.devoirElfique') });
+  if (st.elfDuty) chips.push({ icon: 'navigation/activite', label: t('interlude.fx.devoirElfique') });
   return chips;
 }
 
@@ -492,13 +492,13 @@ const hasCoreResolver = (r?: ActivityResolver): boolean => !!r && CORE_RESOLVERS
 /** Icônes des Activités à volet dédié — les Activités du catalogue générique portent la leur
  *  en DONNÉE (`ActivityDef.icon`). */
 const PANE_ICON = {
-  revenus: 'resource/gold-purse',
-  craft: 'item/misc',
-  learn: 'nav/compendium',
-  order: 'scenario/market',
-  bank: 'resource/gold-purse',
-  identify: 'nav/identify',
-  entrainement: 'nav/compendium',
+  revenus: 'ressource/bourse',
+  craft: 'objet/divers',
+  learn: 'navigation/compendium',
+  order: 'scenario/marche',
+  bank: 'ressource/bourse',
+  identify: 'navigation/identifier',
+  entrainement: 'navigation/compendium',
 } as const;
 
 function HeroCard({ etat, hero, st, catalog, mecenat, favors, massBattle, canDrive, ownerName, pane, onPane, choix }: {
@@ -567,13 +567,13 @@ function HeroCard({ etat, hero, st, catalog, mecenat, favors, massBattle, canDri
       <h3>
         <CharFrame c={hero} variant="identity" size="sm" />
         <span className="interlude-left">
-          {!canDrive && <span className="interlude-owner"><Icon id="nav/seat-owner" size="sm" /> {ownerName ?? 'autre joueur'} · </span>}
+          {!canDrive && <span className="interlude-owner"><Icon id="navigation/proprietaire-du-siege" size="sm" /> {ownerName ?? 'autre joueur'} · </span>}
           {t('interlude.statut', { echelon: libelleDEchelon(status.tier), standing: status.standing })}
         </span>
       </h3>
       {ev
-        ? <p className="interlude-event" title={ev.desc}><Icon id="nav/dice" size="sm" /> {st.eventRoll} — {ev.label}</p>
-        : <p className="interlude-event"><Icon id="nav/dice" size="sm" /> Événement de la période : dé à poser.</p>}
+        ? <p className="interlude-event" title={ev.desc}><Icon id="navigation/des" size="sm" /> {st.eventRoll} — {ev.label}</p>
+        : <p className="interlude-event"><Icon id="navigation/des" size="sm" /> Événement de la période : dé à poser.</p>}
       <MasterDetail
         className="interlude-master"
         listLabel={`Activités de ${hero.label}`}
@@ -628,7 +628,7 @@ function ActivityList({ hero, catalog, favors, pane, onPane, canDrive, refusDe, 
     item('identify', <><Icon id={PANE_ICON.identify} size="sm" /> Identifier</>, 'Identifier'),
     item('entrainement', <><Icon id={PANE_ICON.entrainement} size="sm" /> Entraînement</>, 'Entraînement'),
     // « Acquitter une Faveur » (LDB 23 l.147/149, #509) — visible seulement si une Faveur est en cours.
-    ...(favors.length ? [item('favor-settle', <><Icon id="ui/balance" size="sm" /> Acquitter une Faveur</>, 'Acquitter une Faveur')] : []),
+    ...(favors.length ? [item('favor-settle', <><Icon id="interface/balance" size="sm" /> Acquitter une Faveur</>, 'Acquitter une Faveur')] : []),
   ];
   // Activités du catalogue SANS volet dédié : les 4 activités « socle » (Revenus/Artisanat/
   // Apprentissage/Identification, volets riches ci-dessus) et Mécénat (dans la banque) sont
@@ -914,7 +914,7 @@ function FavorSettlePane({ hero, etat, mene, favors }: { hero: Combatant; etat: 
   return (
     <ActivityPane
       id="pane-favor"
-      icon="ui/balance"
+      icon="interface/balance"
       title="Acquitter une Faveur"
       blocked={banniereFaveur}
       note={sel
@@ -1006,7 +1006,7 @@ function BankPane({ hero, etat, mene, money, mecenat }: { hero: Combatant; etat:
       actions={<>
         <GatedAction
           id="interlude-bank-invest"
-          label={<><Icon id="resource/gold-purse" size="sm" /> Investir</>}
+          label={<><Icon id="ressource/bourse" size="sm" /> Investir</>}
           ariaLabel="Investir"
           enabled={!mene && !investir.refus}
           {...raisonDuDepot(investir)}
@@ -1015,7 +1015,7 @@ function BankPane({ hero, etat, mene, money, mecenat }: { hero: Combatant; etat:
         />
         <GatedAction
           id="interlude-bank-stash"
-          label={<><Icon id="item/misc" size="sm" /> Planquer</>}
+          label={<><Icon id="objet/divers" size="sm" /> Planquer</>}
           ariaLabel="Planquer"
           enabled={!mene && !planquer.refus}
           {...raisonDuDepot(planquer)}
@@ -1233,7 +1233,7 @@ function BankList({ etat, canDrive }: {
             key={i}
             id={`interlude-bank-withdraw-${i}`}
             label={<>
-              <Icon id={b.kind === 'investir' ? 'resource/gold-purse' : b.kind === 'mecenat' ? 'scenario/opera' : 'item/misc'} size="sm" />
+              <Icon id={b.kind === 'investir' ? 'ressource/bourse' : b.kind === 'mecenat' ? 'scenario/opera' : 'objet/divers'} size="sm" />
               {' '}{libelleOuAbsence(owner, 'heros', b.heroId)} : <CoinsB brass={b.brass} />
               {b.kind === 'investir' && <> → <CoinsB brass={bankPayout('investir', b.brass, b.rate)} /> (Indice {b.rate})</>} — Retirer
             </>}
@@ -1274,21 +1274,21 @@ function CloseRecap({ etat, onCancel }: { etat: EtatDeCloture; onCancel: () => v
     >
       <ul className="interlude-recap-list">
         <li>
-          <Icon id="resource/gold-purse" size="sm" /> {devis.gaspille > 0
+          <Icon id="ressource/bourse" size="sm" /> {devis.gaspille > 0
             ? <><b><CoinsB brass={devis.gaspille} /></b> {t('interlude.recap.gaspille')}</>
             : t('interlude.recap.bourseVide')}
         </li>
-        <li><Icon id="resource/gold-purse" size="sm" /> {t('interlude.recap.revenus')} <b>{devis.revenu > 0 ? <CoinsB brass={devis.revenu} /> : t('interlude.recap.aucun')}</b>.</li>
-        {devis.conserve > 0 && <li><Icon id="resource/gold-purse" size="sm" /> {t('interlude.recap.conserve')} <b><CoinsB brass={devis.conserve} /></b>.</li>}
+        <li><Icon id="ressource/bourse" size="sm" /> {t('interlude.recap.revenus')} <b>{devis.revenu > 0 ? <CoinsB brass={devis.revenu} /> : t('interlude.recap.aucun')}</b>.</li>
+        {devis.conserve > 0 && <li><Icon id="ressource/bourse" size="sm" /> {t('interlude.recap.conserve')} <b><CoinsB brass={devis.conserve} /></b>.</li>}
         {devis.commandes.length > 0 && (
-          <li><Icon id="scenario/market" size="sm" /> {t('interlude.recap.commandes', { liste: devis.commandes.map(objet).join(', ') })}</li>
+          <li><Icon id="scenario/marche" size="sm" /> {t('interlude.recap.commandes', { liste: devis.commandes.map(objet).join(', ') })}</li>
         )}
         {devis.ouvrages.length > 0 && (
-          <li><Icon id="item/misc" size="sm" /> {t('interlude.recap.ouvrages', { liste: devis.ouvrages.map((o) => `${nom(o.heroId)} (${objet(o.trappingId)})`).join(', ') })}</li>
+          <li><Icon id="objet/divers" size="sm" /> {t('interlude.recap.ouvrages', { liste: devis.ouvrages.map((o) => `${nom(o.heroId)} (${objet(o.trappingId)})`).join(', ') })}</li>
         )}
         {devis.retrogradations.map((r) => (
           <li key={r.heroId} className="interlude-blocked">
-            <Icon id="ui/warning" size="sm" /> {t('interlude.recap.retrograde', { name: nom(r.heroId), level: r.niveau })}
+            <Icon id="interface/attention" size="sm" /> {t('interlude.recap.retrograde', { name: nom(r.heroId), level: r.niveau })}
           </li>
         ))}
         {devis.lots.flatMap(({ heroId, lots }) => lots.map((lot, i) => {
@@ -1308,7 +1308,7 @@ function CloseRecap({ etat, onCancel }: { etat: EtatDeCloture; onCancel: () => v
           );
         }))}
         <li>
-          <Icon id="time/night" size="sm" /> {t('interlude.recap.temps', { n: devis.jours })} <GameDate time={devis.reprise} />.
+          <Icon id="temps/nuit" size="sm" /> {t('interlude.recap.temps', { n: devis.jours })} <GameDate time={devis.reprise} />.
         </li>
       </ul>
     </Modal>

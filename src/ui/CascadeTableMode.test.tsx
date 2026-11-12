@@ -50,7 +50,7 @@ let root: Root;
 
 /** Étape à table (aucun acteur : le tirage est du MONDE — le siège hôte/MJ le contrôle). */
 const tableStep = (tableId: string, mod?: number): CascadeStep =>
-  ({ id: 'tm', kind: cleDeFixture('uiTableSpy'), label: fixtureText('Tirage sur tableau'), icon: 'nav/dice', table: { tableId, ...(mod != null ? { mod } : {}) }});
+  ({ id: 'tm', kind: cleDeFixture('uiTableSpy'), label: fixtureText('Tirage sur tableau'), icon: 'navigation/des', table: { tableId, ...(mod != null ? { mod } : {}) }});
 
 function openTable(mod?: number, tableId = T) {
   useGame.setState({
@@ -424,7 +424,7 @@ describe('Mode table — plancher ≠ 1 : l’écran affiche le dé du RÉSOLVEU
     // tomberait juste même avec un recalcul — la sonde ne prouverait alors rien.
     startCascade(useGame.getState, useGame.setState, {
       title: 'Tirage', purpose: 'test',
-      steps: [{ id: 'tm', kind: cleDeFixture('uiTableSpy'), label: fixtureText('Tirage'), icon: 'nav/dice', table: { tableId: T11, mod: -20, clamp: true, forcedRoll: 15 }}],
+      steps: [{ id: 'tm', kind: cleDeFixture('uiTableSpy'), label: fixtureText('Tirage'), icon: 'navigation/des', table: { tableId: T11, mod: -20, clamp: true, forcedRoll: 15 }}],
     });
     render();
     act(() => { useGame.getState().jetLancer('cascadeTirage', 'tm'); });
@@ -550,7 +550,7 @@ describe('bandes successives — le corps ne rend QUE la bande courante', () => 
   // une séquence (#1262 V2 L4, `cascade.assertBandeDeclarePossession`).
   const bandStep = (id: string, label: string, rows: ReturnType<typeof bandRow>[]): CascadeStep =>
     ({
-      id, kind: KIND_PROSE, label, icon: 'nav/dice', aggregate: 'none', participants: rows,
+      id, kind: KIND_PROSE, label, icon: 'navigation/des', aggregate: 'none', participants: rows,
       ...(new Set(rows.map((r) => r.id)).size > 1 ? { groupOwner: true } : { actorId: rows[0].id }),
     }) as CascadeStep;
 

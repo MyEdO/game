@@ -72,7 +72,7 @@ const zoneTargets = (z: BattleZone, mover: Combatant): boolean => z.gate !== 'pr
  *  (`immuneToSpellDomain`) ? SEUL prédicat de la traversée, du Test de traversée et du Round.
  *  VDM 13 l.24, l.61 ; ZI 08 l.28 */
 export const zoneSansEffetSur = (z: BattleZone, c: Combatant): boolean =>
-  z.source?.kind === 'spell' && immuneToSpellDomain(c.traits, findSpellById(z.source.id)?.domainId?.id);
+  z.source?.kind === 'sort' && immuneToSpellDomain(c.traits, findSpellById(z.source.id)?.domainId?.id);
 
 export const zoneCovers = (z: BattleZone, p: Pt): boolean =>
   z.tiles.some((t) => t.x === p.x && t.y === p.y && (t.z ?? 0) === (p.z ?? 0));
@@ -209,7 +209,7 @@ export function crossZones(
   for (const z of zones ?? []) {
     if (!z.onCross?.length || z.crossTest) continue;
     if (!path.some((p) => zoneCovers(z, p))) continue;
-    if (zoneSansEffetSur(z, mover)) { lines.push(t('cf.spellDomainImmune', { name: mover.label, spell: z.label })); continue; }
+    if (zoneSansEffetSur(z, mover)) { lines.push(t('cf.immuniteAuDomaine', { name: mover.label, spell: z.label })); continue; }
     lines.push(`${mover.label} traverse ${z.label} !`);
     lines.push(...applyOps(mover, z.onCross, { idNeuf, caster: resolveCaster(z.casterId), rng, label: z.label }));
   }

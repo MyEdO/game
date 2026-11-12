@@ -231,7 +231,7 @@ describe('ADE II 09 l.9-11 — Phobie du noir en combat (bande `psychologieDeCom
     const { h, lignes } = terreurRatee(source(['mort-vivant']), [{ brise: 2, groupes: ['mort-vivant'] }]);
     expect(h().psychTraits).toEqual([{ type: 'phobie', cible: ciblePsy.groupe('mort-vivant') }]);
     expect(h().terreursSubies).toEqual([]);
-    expect(lignes).toContain(t('cf.phobieGain', { name: 'Hardi', groupe: groupLabel('mort-vivant') }));
+    expect(lignes).toContain(t('cf.phobieAcquise', { name: 'Hardi', groupe: groupLabel('mort-vivant') }));
     expect(groupLabel('mort-vivant')).not.toBe('mort-vivant');
   });
 
@@ -346,7 +346,7 @@ describe('ADE II 09 l.9-11 — Phobie du noir hors combat (Terreur d’auteur `i
     const h = terreurDAuteur([{ brise: 1, groupes: ['skaven'] }]);
     expect(h.psychTraits).toEqual([{ type: 'phobie', cible: ciblePsy.groupe('skaven') }]);
     expect(h.terreursSubies).toEqual([]);
-    const ligne = t('cf.phobieGain', { name: 'Hardi', groupe: groupLabel('skaven') });
+    const ligne = t('cf.phobieAcquise', { name: 'Hardi', groupe: groupLabel('skaven') });
     expect(banc.getState().journal.some((l) => l.startsWith(ligne)), ligne).toBe(true);
   });
 });

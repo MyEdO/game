@@ -28,7 +28,7 @@ export function DeterminationButton({ combatant, onSpend }: { combatant?: Combat
           aria-expanded={open}
           onClick={() => setOpen(!open)}
         >
-          <Icon id="resource/resolve" size="sm" /> {t('verbe.depenserLaDetermination')} ×{resolve}
+          <Icon id="ressource/determination" size="sm" /> {t('verbe.depenserLaDetermination')} ×{resolve}
         </button>
       </CodexRef>
       {open &&

@@ -3,6 +3,7 @@
  * monnaie — types PURS, sans logique, tenus hors du store.
  * Le store les ré-exporte (les imports existants `from './store'` restent valides).
  */
+import type { IconId } from '../data/icons';
 import type { Availability, CharKey, Difficulty, HitLocation, Weapon, FireArc, Combatant, EffectSource, ContexteDeTest, Main } from '../engine/types';
 import type { DiceSpec } from '../engine/dice';
 import type { PorteurDeFiche } from '../engine/statblock';
@@ -494,7 +495,7 @@ export interface PendingHandGate {
    *  de la cascade des 3 sites de déclaration : flux normal / Tir rapide / Pilonnage). Sérialisable (coop). */
   pa: PendingAttack;
   title: string;
-  icon: string;
+  icon: IconId;
 }
 /** Pilonnage INDIRECT EN COURS (« viser une case », AA 10 l.169/171) : une pièce indirecte SERVIE attend le
  *  POINT D'IMPACT au sol — placeur de zone PARTAGÉ (`placingZoneOf` source 'siege', même gabarit que les
@@ -1550,7 +1551,7 @@ export interface PendingExtendedTest extends PendingBase {
   skill?: RefDesignee;
   characteristic?: CharKey;
   target: number; // cible effective d'UN Round (difficulté déjà appliquée)
-  targetDR: number; // DR CUMULÉ à atteindre (LDB 12 : « une valeur cible »)
+  drCible: number; // DR CUMULÉ à atteindre (LDB 12 : « une valeur cible »)
   total: number; // DR cumulé courant (dépend des Rounds précédents → c'est ce qui rend le flux SÉQUENTIEL)
   rounds: ExtendedTestRound[];
   /** BORNE d'essais (Commerce d'opportunité, MDG 15 l.274-286 : « 10 DR en ≤ 3 tentatives ») — la
@@ -2098,7 +2099,7 @@ interface CascadeStepCore extends Omit<RollParticipant, 'interactive'> {
   kind: GenreDeCascade;
   /** Héros qui lance (résolu via `actorIn`). Absent → étape de groupe (rare). */
   actorId?: string;
-  icon?: string;
+  icon?: IconId;
   /** Étape-JET : le jet d'attaque/défense/magie/Test/désengagement/porte EST l'étape 0 de
    *  la séquence, rendu par `CascadeModal` via le hook ou la modale correspondante (`useAttackJetProps`/
    *  `useDefenseJetProps`/`useTestJetProps`/`useExtendedTestJetProps`/`CastModal`/
@@ -2207,7 +2208,7 @@ interface CascadeStepCore extends Omit<RollParticipant, 'interactive'> {
    *  (LDB 46 l.54-55), et applique le contrecoup sur une ligne terminale. */
   incantationImparfaite?: PendingMiscastStep;
   /** Étape de CHOIX « piège-lame » (folding P3b) : contexte du Test opposé ; l'applier appelle
-   *  `resolveBladeTrap(step.piegeLame, chosen === 'trap')`. */
+   *  `resolveBladeTrap(step.piegeLame, chosen === 'piege')`. */
   piegeLame?: PendingBladeTrap;
   /** Étape de REPRISE « fuite » (LDB 15 l.68) : le coup dans le dos a SUSPENDU son application (choix
    *  de Déviation Critique du fuyard) ; une fois le Critique tranché, l'applier `mouvementDeFuite` complète la
@@ -2318,7 +2319,7 @@ export type ReprisePilote = { sansContexte?: true; rowSurface?: RowSurface; auxV
  * d'étape (conséquence par `kind` au lieu d'un cumul de DR) change. */
 export interface PendingCascade extends MultiPending<CascadeStep> {
   title: string;
-  icon?: string;
+  icon?: IconId;
   /** Index de l'étape courante dans `participants`. */
   cursor: number;
   /**
@@ -2438,7 +2439,7 @@ export interface PendingHeal {
  *  dépense Chance/Pacte/Résilience sur SON jet (PNJ → `actorIn` introuvable → influence no-op, comme
  *  `PendingHeal`). Calque `PendingHeal` (jet du soigneur) + `PendingExtendedTest` (cumul du DR). Le cumul
  *  et la sélection patient/Critique vivent sur `medic.surgery` (état de setup) ; chaque passe inflige
- *  1d10 PB + 1 Hémorragie à la validation (`jetValider('chirurgie')`). `targetDR/cumDR` sont recopiés de
+ *  1d10 PB + 1 Hémorragie à la validation (`jetValider('chirurgie')`). `drCible/cumDR` sont recopiés de
  *  `medic.surgery` à l'ouverture de la passe (affichage DrBar dans la modale). */
 export interface PendingSurgery extends PendingBase {
   healerId: string; // chirurgien (héros → influence ; PNJ → no-op)
@@ -2455,6 +2456,6 @@ export interface PendingSurgery extends PendingBase {
   roll: number | null; // null tant que pas lancé (Chance possible ensuite)
   success: boolean;
   sl: number; // DR de la passe
-  targetDR: number; // DR cumulé cible (LDB 10) — recopié de medic.surgery (DrBar)
+  drCible: number; // DR cumulé cible (LDB 10) — recopié de medic.surgery (DrBar)
   cumDR: number; // DR cumulé courant — recopié de medic.surgery (DrBar)
 }

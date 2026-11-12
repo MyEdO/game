@@ -28,7 +28,7 @@ function ouvrir(pa: Record<string, unknown>): void {
   useGame.setState({ battle, mode: 'battle', scene: testScene(), party: [hero], pendingAttack: null, pendingCascade: null, pendingDefense: null,
     net: { ...useGame.getState().net, mode: 'local', mySeat: 0, ownership: {} } });
   seedBattleRng(1);
-  openAttackCascade(useGame.getState, useGame.setState, { attackerId: 'h', targetId: 'e', location: null, result: null, weaponUid: 'sw', ...pa } as never, 'Attaque', 'action/attack');
+  openAttackCascade(useGame.getState, useGame.setState, { attackerId: 'h', targetId: 'e', location: null, result: null, weaponUid: 'sw', ...pa } as never, 'Attaque', 'action/attaquer');
 }
 
 function AttackModal() {

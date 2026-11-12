@@ -153,16 +153,16 @@ export function useHoverTargeting(
     return occ ? null : resolveMovement(useGame.getState, effHover, { courseArmee: intentionDeCourse });
   }, [combatCursor, hover, mode, battle, myTurn, mapInert, mapTargeting, intentionDeCourse]);
 
-  const hoverMove = useMemo<{ kind: 'move' | 'run' | 'tile'; path: Pt[]; cost?: number; label: string } | null>(() => {
+  const hoverMove = useMemo<{ kind: 'deplacement' | 'course' | 'tile'; path: Pt[]; cost?: number; label: string } | null>(() => {
     if (mode !== 'battle' || !battle || battle.over || !effHover || battle.preview || !myTurn) return null;
     const tp = tilePreviewAt(useGame.getState, effHover);
     if (tp) return { kind: 'tile', path: tp.path ?? [], cost: tp.cost, label: tp.label };
-    if (hoverMovementResolution?.status !== 'ok') return null;
+    if (hoverMovementResolution?.status !== 'possible') return null;
     return {
       kind: hoverMovementResolution.kind,
       path: hoverMovementResolution.path,
       cost: hoverMovementResolution.cost,
-      label: hoverMovementResolution.kind === 'move' ? `Aller (${hoverMovementResolution.cost})` : 'Courir',
+      label: hoverMovementResolution.kind === 'deplacement' ? `Aller (${hoverMovementResolution.cost})` : 'Courir',
     };
   }, [effHover, mode, battle, myTurn, hoverMovementResolution]);
 

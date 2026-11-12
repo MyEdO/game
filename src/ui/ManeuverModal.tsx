@@ -67,7 +67,7 @@ export function ManeuverModal() {
   });
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' },
+    { key: 'abandonner', label: t('verbe.annuler'), onClick: cancel, verbe: 'annuler' },
     confirmerLeCoup(awaitingDefense, confirm),
   ];
 

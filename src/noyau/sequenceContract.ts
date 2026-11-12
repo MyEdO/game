@@ -20,6 +20,7 @@
  * vocabulaire (borne dure, issue réservée, `purpose` de fenêtre) — ce sur quoi les deux côtés
  * s'accordent.
  */
+import type { IconId } from '../data/icons';
 import type { Get, Set } from './flowTypes';
 import type { PendingCascade } from './pendings';
 import type { BuiltCascadeStep } from './stepBrand';
@@ -155,7 +156,7 @@ export type EtatDeFamille<K extends keyof SequenceFamilies> = SequenceState<Sequ
  */
 export interface SequenceRound<P = unknown> {
   title: PlayerText;
-  icon?: string;
+  icon?: IconId;
   steps: readonly BuiltCascadeStep[];
   log?: string[];
   immediate?: boolean;

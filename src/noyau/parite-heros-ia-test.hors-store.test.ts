@@ -84,7 +84,7 @@ describe('même Test, héros et IA Sonnés ×3 : même cible (LDB 16 l.125)', ()
   it('Main ensanglantée (Test de Dextérité Accessible, AA 07 l.117)', () => {
     const { H, E } = jumeauxSonnes();
     H.handGates = ['main']; E.handGates = ['main'];
-    openAttackCascade(g, banc.setState, { attackerId: H.id, targetId: E.id, location: null, result: null }, 'Attaque', 'action/attack');
+    openAttackCascade(g, banc.setState, { attackerId: H.id, targetId: E.id, location: null, result: null }, 'Attaque', 'action/attaquer');
     const cible = g().pendingHandGate!.target;
     memeCible(cible, 50, (de) => {
       deDeCombat(de);

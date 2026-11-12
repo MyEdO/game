@@ -428,7 +428,7 @@ describe('#341 — Résistance de traversée Neige/Blizzard (pas BATCH au démar
     const steps = buildWeatherResistanceSteps(get, 'neige');
     // Jet FORCÉ en échec (déterministe) : la rangée est prête → jetValider('cascade') commit → applier.
     steps[0].participants![0].result = { roll: 99, target: steps[0].participants![0].target, sl: -4, success: false };
-    set({ pendingCascade: cascadeDeTest(steps, { title: 'Traversée', icon: 'rest/cold' }) });
+    set({ pendingCascade: cascadeDeTest(steps, { title: 'Traversée', icon: 'repos/froid' }) });
     get().jetValider('cascade');
     const st = get();
     expect(st.party[0].conditions.some((c) => c.id === 'extenue')).toBe(true);

@@ -82,7 +82,7 @@ export const scenario: TestScenario = {
   id: 'bataille-de-masse',
   order: 40,
   category: 'scenarios',
-  icon: 'action/attack',
+  icon: 'action/attaquer',
   title: 'Bataille de masse',
   tests:
     // ADE II 08

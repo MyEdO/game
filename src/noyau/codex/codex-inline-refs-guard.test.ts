@@ -178,7 +178,7 @@ describe('refs Codex écrites EN LITTÉRAL — chacune pointe une fiche RÉELLE'
     // Cas RÉEL rencontré à la pose de cette garde : `CityHubScreen.tsx` monte un service de ville
     // `{ id: 'repos', category: 'auberge', icon, rest }` — un `category` de SERVICE. Discriminé par la
     // FORME (clés `icon`/`rest` étrangères au vocabulaire d'une ref), jamais par une exemption.
-    const service = "const s = { id: 'repos', category: 'auberge', label: 'Repos', icon: 'nav/rest', rest: r };";
+    const service = "const s = { id: 'repos', category: 'auberge', label: 'Repos', icon: 'navigation/repos', rest: r };";
     expect(codexRefLiterals('x.tsx', service).statiques).toEqual([]);
     // …et la même paire, SEULE ou avec les seules clés d'affichage, reste une ref.
     expect(codexRefLiterals('x.ts', "const s = { id: 'repos', category: 'auberge', label: 'Repos' };").statiques)

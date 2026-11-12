@@ -2,7 +2,7 @@
  "id": "la-diligence",
  "type": "projet",
  "label": "L’Ennemi Intérieur — chapitre 1 : la route d’Altdorf",
- "icon": "scenario/travel",
+ "icon": "scenario/voyage",
  "desc": "Les Personnages se forment à l’auberge-relais La Diligence, à deux jours d’Altdorf, et cherchent une place à bord d’une diligence pour la capitale.",
  "versionContenu": 2,
  "source": {
@@ -41312,7 +41312,7 @@
     "scene": {
      "id": "la-diligence"
     },
-    "icon": "scenario/hamlet"
+    "icon": "scenario/hameau"
    },
    {
     "id": "route-principale",
@@ -41324,7 +41324,7 @@
     "scene": {
      "id": "route-principale-virage"
     },
-    "icon": "scenario/travel"
+    "icon": "scenario/voyage"
    },
    {
     "id": "auberge-des-sept-rayons",
@@ -41336,7 +41336,7 @@
     "scene": {
      "id": "auberge-des-sept-rayons"
     },
-    "icon": "scenario/hamlet",
+    "icon": "scenario/hameau",
     "when": {
      "kind": "flag",
      "expr": "edo-ch1-depart"

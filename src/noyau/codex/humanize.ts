@@ -376,7 +376,7 @@ function humanizeFall(tableId: string): string {
 }
 
 /** UN terme joueur pour la CAUSE PERSISTANTE (prédicat `estCausePersistante`, `engine/ops.ts`) : le
- *  même que le journal (`op.condPerRoundUnless`/`op.condRegain`). SOURCE UNIQUE de la formulation,
+ *  même que le journal (`op.etatParRoundSauf`/`op.etatRegagne`). SOURCE UNIQUE de la formulation,
  *  composée par les trois lecteurs du Codex (`humanizeOp`, `opRows`, dialecte miscast de `registry`). */
 export const causePersistante = (): string => t('codex.causePersistante');
 
@@ -605,9 +605,9 @@ export function humanizeOp(o: GameOp): string {
     }) + (o.equipageEpargne ? t('codex.op.shipCritical.equipageEpargne') : '');
     case 'navireMod': return t('codex.op.navireMod', {
       axes: [
-        ...(o.m !== undefined ? [t('eff.navireModM', { m: `${o.m >= 0 ? '+' : '−'}${Math.abs(o.m)}` })] : []),
-        ...(o.manDR !== undefined ? [t('eff.navireModMan', { dr: `${o.manDR >= 0 ? '+' : '−'}${Math.abs(o.manDR)}` })] : []),
-        ...(o.evite ? [t('eff.navireModEvite', { perils: o.evite.map((id) => findSeaHazard(id)?.label ?? id).join(', ') })] : []),
+        ...(o.m !== undefined ? [t('eff.modificateurDuNavireM', { m: `${o.m >= 0 ? '+' : '−'}${Math.abs(o.m)}` })] : []),
+        ...(o.manDR !== undefined ? [t('eff.modificateurDuNavireManoeuvre', { dr: `${o.manDR >= 0 ? '+' : '−'}${Math.abs(o.manDR)}` })] : []),
+        ...(o.evite ? [t('eff.modificateurDuNavireEvite', { perils: o.evite.map((id) => findSeaHazard(id)?.label ?? id).join(', ') })] : []),
       ].join(', '),
       duree: o.jusqua === 'carenage' ? t('eff.jusquAuCarenage') : o.jusqua === 'evenementDeBord' ? t('eff.jusquAuProchainEvenement') : t('codex.op.pendantJours', { n: humanizeFormula(o.jusqua.jours) }),
     });
@@ -641,13 +641,14 @@ export function humanizeOp(o: GameOp): string {
       + `${o.exigence === 'fouille' ? t('codex.op.navireHostile.fouille') : ''}`;
     case 'infestation': return t('codex.op.infestation', {
       test: testSkillLabel({ crewTestType: o.crewTestType.id }) ?? o.crewTestType.id,
-      difficulte: DIFFICULTY_LABELS[o.difficulty], dr: o.targetDR,
+      difficulte: DIFFICULTY_LABELS[o.difficulty], dr: o.drCible,
       nuit: humanizeFlow(o.chaqueNuit, []),
     });
     case 'combatEnMer': return t('codex.op.combatEnMer', { nombre: o.adversaire.nombre, adversaire: creatureLabel(o.adversaire.id) })
       + `${o.adversaire.optionals ? t('codex.op.combatEnMer.optionals', { traits: o.adversaire.optionals.map((p) => traitLisible(p)).join(', ') }) : ''}`
       + `${o.repousseAPct !== undefined ? t('codex.op.combatEnMer.repousse', { pct: o.repousseAPct }) : ''}`
       + `${o.victoire ? t('codex.op.combatEnMer.victoire', { victoire: humanizeFlow(o.victoire, []) }) : ''}`;
+    case 'attaquesSubies': return t('codex.op.attaquesSubies', { nombre: o.nombre, assaillant: o.assaillant.statblock.label });
     case 'commission': return t('codex.op.commission', { valeur: montantEnSous(o.montant.brass) });
     case 'constructeurDEscale': return t('codex.op.constructeurDEscale', { competence: o.competence, duree: humanizeFormula(o.duree) });
     case 'rationsDEscale': return t('codex.op.rationsDEscale', { valeur: montantEnSous(o.montant.brass) });
@@ -697,8 +698,8 @@ export function humanizeFlow(f: Flow, etats: readonly EtatDeclare[]): string {
       return t('codex.flow.choix', {
         cout: cout ? t('codex.flow.choix.cout', { cout }) : '',
         prompt: f.prompt,
-        oui: humanizeFlow(f.yes, etats),
-        non: flowMuet(f.no) ? '' : t('codex.flow.sinon', { sinon: humanizeFlow(f.no!, etats) }),
+        oui: humanizeFlow(f.oui, etats),
+        non: flowMuet(f.non) ? '' : t('codex.flow.sinon', { sinon: humanizeFlow(f.non!, etats) }),
       });
     }
   }

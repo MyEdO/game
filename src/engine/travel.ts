@@ -19,6 +19,7 @@
  * Tout est PARAMÉTRABLE par la donnée (carte du monde / route, éditeur) ; les défauts ci-dessous
  * sont les valeurs RAW citées, ou des choix documentés quand le canon est muet.
  */
+import type { IconId } from '../data/icons';
 import { Combatant } from './types';
 import type { Possession } from './possession';
 import { RNG } from './dice';
@@ -81,13 +82,13 @@ export function routeDistanceLabel(km: number, sea: boolean | undefined): string
   return `${Math.round(km)} ${distanceUnit(sea)}`;
 }
 
-/** `IconId` du pictogramme d'un mode de voyage (registre `src/data/icons/`, famille `travel/*`) :
- *  donnée `vehicle.icon` ; `'pied'`/`'monture'`/`'mer'` → id fixe, défaut véhicule → `travel/coach`. */
-export function travelModeIcon(mode: TravelMode): string {
-  if (mode === 'pied') return 'travel/foot';
-  if (mode === 'monture') return 'travel/mount';
-  if (mode === 'mer') return 'travel/anchor';
-  return vehicleById(mode)?.icon ?? 'travel/coach';
+/** `IconId` du pictogramme d'un mode de voyage (registre `src/data/icons/`, famille `voyage/*`) :
+ *  donnée `vehicle.icon` ; `'pied'`/`'monture'`/`'mer'` → id fixe, défaut véhicule → `voyage/diligence`. */
+export function travelModeIcon(mode: TravelMode): IconId {
+  if (mode === 'pied') return 'voyage/a-pied';
+  if (mode === 'monture') return 'voyage/en-selle';
+  if (mode === 'mer') return 'voyage/ancre';
+  return vehicleById(mode)?.icon ?? 'voyage/diligence';
 }
 
 /** Défauts paramétrables (surchargés par la carte du monde / la route dans l'éditeur). */
