@@ -34,7 +34,7 @@ import { apparencesDObjetsSchema, couleursSchema, slotSchema } from '../../data/
 import { apparences, apparencesAdmissiblesDObjet, findTrappingById } from '../../data/apparencesObjets';
 import { emptyStatblock, statblockDeLaCreature } from '../../data/valeursNeuves';
 import { valeurNeuveDe } from '../valeursNeuves';
-import { refusDeLaValeur } from './session';
+import { refusDeLaValeur, refusDeRetrait } from './session';
 import { refusDeLEntite, sceneEntitySchema } from '../../data/schemas/defs-scenes/scene';
 import { creatures, findCreatureById, MERCHANT_ARCHETYPES, siegeEngines, spells, talents, traits } from '../../data';
 import { TAVERN_GAMES } from '../../engine/tavernGame';
@@ -732,10 +732,10 @@ describe('les actions d’un décor au formulaire tiré du schéma (#3606 M1e)',
     const enchainee = jouer(ecrite, valeur(ecrite, ['usable', 'actions', 1, 'flow'], pas));
     expect(decor(enchainee).usable?.actions?.[1].flow, 'l’enchaînement s’écrit entier').toEqual(pas);
     expect(refusDeLaValeur(ecrite, valeur(ecrite, ['usable', 'actions', 1, 'flow', 'etapes'], [null])), 'un pas que son schéma ne bâtit pas').toBe('horsSorte');
-    const renommee = jouer(ecrite, { geste: 'identifier', action: 'fouiller-2', id: ' coffre ' });
+    const renommee = jouer(ecrite, { geste: 'identifier', element: 'fouiller-2', id: ' coffre ' });
     expect(decor(renommee).usable?.actions?.map((a) => a.id)).toEqual(['fouiller', 'coffre']);
-    expect(jouer(renommee, { geste: 'identifier', action: 'coffre', id: 'fouiller' }), 'un identifiant déjà porté : aucun cran').toBe(renommee);
-    expect(jouer(renommee, { geste: 'identifier', action: 'coffre', id: ' ' }), 'un identifiant vide : aucun cran').toBe(renommee);
+    expect(jouer(renommee, { geste: 'identifier', element: 'coffre', id: 'fouiller' }), 'un identifiant déjà porté : aucun cran').toBe(renommee);
+    expect(jouer(renommee, { geste: 'identifier', element: 'coffre', id: ' ' }), 'un identifiant vide : aucun cran').toBe(renommee);
     const retiree = jouer(renommee, valeur(renommee, ['usable', 'actions'], [decor(renommee).usable!.actions![1]]), valeur(renommee, ['usable', 'actions'], []));
     expect(decor(retiree).usable).toBeUndefined();
   });
@@ -810,5 +810,80 @@ describe('les postes d’une coque au formulaire tiré du schéma (#3606 M1f)', 
     const pnj = jouer(ouverte(), { geste: 'outil', outil: { mode: 'entity', kind: 'personnage', ref: 'griffon-zoo-imperial' } }, { geste: 'appui', point: point(1, 1) }, { geste: 'relache', point: point(1, 1) });
     const id = entiteDeLaSelection(sceneEditee(pnj), pnj.sel)!.id;
     expect(refusDeLaValeur(pnj, { geste: 'valeur', porteur: { sorte: 'entite', id }, chemin: ['postes'], valeur: [{ trappingId: engins[0] }] })).toBe('nonOffert');
+  });
+});
+
+describe('les dialogues de la scène éditée, par la table d’écriture de leur sorte (#3606 M3b1b)', () => {
+  const jouer = (s: SessionDEdition, ...gestes: GesteDEdition[]) => gestes.reduce(editer, s);
+  const dialogue = (id: string, nodes: Scene['dialogues'][number]['nodes'] = [{ id: 'n1', choices: [] }]) => ({ id, start: { id: nodes[0].id }, nodes });
+  /** Le dialogue `accueil`, ouvert par le PNJ `aubergiste` ; `rumeurs`, par le déclencheur `seuil` ; `libre`, par personne. */
+  const AUBERGE: Scene = {
+    ...emptyScene('auberge', 6, 6),
+    entities: [{ id: 'aubergiste', kind: 'personnage', pos: { x: 2, y: 2 }, creature: { id: 'humain' }, dialogueId: { id: 'accueil' } }],
+    triggers: [{ id: 'seuil', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: flowFromEffects([{ type: 'startDialogue', dialogue: { id: 'rumeurs' } }] as Effect[]) }],
+    dialogues: [dialogue('accueil'), dialogue('rumeurs'), dialogue('libre')],
+  };
+  const choisi = (sorte: 'dialogue' | 'declencheur', id: string) => jouer(ouverteSur(AUBERGE), { geste: 'selectionner', porteur: { sorte, id } });
+
+  it('ajouter crée un dialogue sur un cran et le sélectionne ; une sorte qui ne se crée pas par la table est sans objet', () => {
+    const s = ouverteSur(AUBERGE);
+    const ajoute = jouer(s, { geste: 'ajouter', sorte: 'dialogue' });
+    const neuf = sceneEditee(ajoute).dialogues.at(-1)!;
+    expect([ajoute.sel, sceneEditee(ajoute).dialogues.length, ajoute.historique.passe.length]).toEqual([{ type: 'dialogue', id: neuf.id }, 4, s.historique.passe.length + 1]);
+    expect(jouer(s, { geste: 'ajouter', sorte: 'zone' })).toBe(s);
+  });
+
+  it('sélectionner pose la sélection du porteur ; un porteur absent est sans objet', () => {
+    expect(choisi('dialogue', 'libre').sel).toEqual({ type: 'dialogue', id: 'libre' });
+    const s = ouverteSur(AUBERGE);
+    expect(jouer(s, { geste: 'selectionner', porteur: { sorte: 'dialogue', id: 'absent' } })).toBe(s);
+  });
+
+  it('nommer un dialogue le renomme, propagé au dialogue du PNJ et à « Ouvrir un dialogue », resélectionné ; un nom pris est sans objet', () => {
+    const accueil = jouer(choisi('dialogue', 'accueil'), { geste: 'nommer', nom: ' bienvenue ' });
+    expect([accueil.sel, sceneEditee(accueil).entities[0].dialogueId]).toEqual([{ type: 'dialogue', id: 'bienvenue' }, { id: 'bienvenue' }]);
+    const rumeurs = jouer(choisi('dialogue', 'rumeurs'), { geste: 'nommer', nom: 'ragots' });
+    expect([rumeurs.sel, JSON.stringify(sceneEditee(rumeurs).triggers[0].flow).includes('"ragots"')]).toEqual([{ type: 'dialogue', id: 'ragots' }, true]);
+    const pris = choisi('dialogue', 'rumeurs');
+    expect(jouer(pris, { geste: 'nommer', nom: 'libre' })).toBe(pris);
+  });
+
+  it('supprimer un dialogue référencé est sans objet, et son refus se dit ; un dialogue libre se retire sur un cran, annulable', () => {
+    for (const id of ['accueil', 'rumeurs']) {
+      const s = choisi('dialogue', id);
+      expect(jouer(s, { geste: 'supprimer' }), id).toBe(s);
+      expect(refusDeRetrait(s), id).toContain(`« ${id} »`);
+    }
+    const s = choisi('dialogue', 'libre');
+    expect(refusDeRetrait(s)).toBeNull();
+    const retire = jouer(s, { geste: 'supprimer' });
+    expect([retire.sel, sceneEditee(retire).dialogues.map((d) => d.id), retire.historique.passe.length]).toEqual([null, ['accueil', 'rumeurs'], s.historique.passe.length + 1]);
+    expect(sceneEditee(jouer(retire, { geste: 'annuler' })).dialogues.map((d) => d.id)).toEqual(['accueil', 'rumeurs', 'libre']);
+  });
+
+  it('identifier un nœud du dialogue sélectionné le renomme, propagé au départ et à chaque suite ; un nom pris est sans objet', () => {
+    const scene = { ...AUBERGE, dialogues: [dialogue('libre', [{ id: 'n1', choices: [{ id: 'c1', label: 'Et ?', next: { id: 'n2' } }] }, { id: 'n2', choices: [{ id: 'c2', label: 'Encore', next: { id: 'n2' } }] }])] };
+    const s = jouer(ouverteSur(scene), { geste: 'selectionner', porteur: { sorte: 'dialogue', id: 'libre' } });
+    const suite = sceneEditee(jouer(s, { geste: 'identifier', element: 'n2', id: ' suite ' })).dialogues[0];
+    expect([suite.nodes.map((n) => n.id), suite.nodes.map((n) => n.choices[0].next?.id)]).toEqual([['n1', 'suite'], ['suite', 'suite']]);
+    expect(sceneEditee(jouer(s, { geste: 'identifier', element: 'n1', id: 'tete' })).dialogues[0].start).toEqual({ id: 'tete' });
+    expect(jouer(s, { geste: 'identifier', element: 'n1', id: 'n2' })).toBe(s);
+  });
+
+  it('le déclencheur se renomme et se retire par la table de sa sorte, comme avant elle', () => {
+    const renomme = jouer(choisi('declencheur', 'seuil'), { geste: 'nommer', nom: ' porte ' });
+    expect([renomme.sel, sceneEditee(renomme).triggers.map((t) => t.id)]).toEqual([{ type: 'trigger', id: 'porte' }, ['porte']]);
+    const s = choisi('declencheur', 'seuil');
+    expect(refusDeRetrait(s)).toBeNull();
+    const retire = jouer(s, { geste: 'supprimer' });
+    expect([retire.sel, sceneEditee(retire).triggers]).toEqual([null, []]);
+  });
+
+  it('un avertissement d’un dialogue sélectionne ce dialogue', () => {
+    const casse = { ...AUBERGE, dialogues: [...AUBERGE.dialogues, { id: 'casse', start: { id: 'absent' }, nodes: [{ id: 'n1', choices: [] }] }] };
+    const s = ouverteSur(casse);
+    const rang = avertissementsDeLaSession(s).findIndex((w) => w.scope === 'dialogue' && w.refId === 'casse');
+    expect(rang).toBeGreaterThanOrEqual(0);
+    expect(jouer(s, { geste: 'avertissement', rang }).sel).toEqual({ type: 'dialogue', id: 'casse' });
   });
 });

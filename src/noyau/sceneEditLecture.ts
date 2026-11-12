@@ -687,6 +687,9 @@ export function porteurDeLaSel(sel: Sel): { sorte: SorteDePorteur; id: string } 
   return sorte && { sorte, id: (sel as Extract<Sel, { type: TypeDeSelParId }>).id };
 }
 
+/** La sélection qui désigne le porteur de sorte `sorte` d'identifiant `id` (`FORMULAIRES`, `sel`). */
+export const selDuPorteur = (sorte: SorteDePorteur, id: string): Sel => ({ type: FORMULAIRES[sorte].sel, id });
+
 /** Les porteurs de sorte `sorte` de la scène `scene`, dans sa collection (`FORMULAIRES`), absente lue vide. */
 export const porteursDeLaScene = <S extends SorteDePorteur>(scene: Scene, sorte: S): readonly DonneeDuPorteur[S][] =>
   (scene[FORMULAIRES[sorte].collection] ?? []) as unknown as readonly DonneeDuPorteur[S][];

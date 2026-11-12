@@ -31,7 +31,7 @@ import {
   type SeatOccupant,
 } from './monde/seating';
 import { METRES_PER_LEVEL } from './monde/relief';
-import { entityKindSchema, refusDeLEntite, typeNonNomme, type Terrain, type SceneRoofDefaults, type ReliefDefaults, PENTE_TOIT_DEG } from '../data/schemas/defs-scenes/scene';
+import { entityKindSchema, refusDeLEntite, sceneSchema, typeNonNomme,type Terrain, type SceneRoofDefaults, type ReliefDefaults, PENTE_TOIT_DEG } from '../data/schemas/defs-scenes/scene';
 import { champsDeclares, choixDuNoeud, cleOfferte, elementDuNoeud, formeAuPoint, recordDuNoeud, unionDuNoeud, varianteCourante, videDuNoeud, type ChoixDuContexte, type ContexteDuChamp } from './codex/editFields';
 import { gestesDeLaListe, valeurNeuveDe, variantesAChoisir } from './valeursNeuves';
 import { jsonCanonique } from '../lib/jsonCanonique.mjs';
@@ -1209,19 +1209,66 @@ function sceneAvecLEntite(scene: Scene, avant: SceneEntity, apres: SceneEntity):
   return neuve ? { ok: false, refus: { regle: neuve.message } } : { ok: true, valeur: ecrite };
 }
 
-/** Ce que la table d'écriture d'une sorte de porteur déclare : la scène où sa donnée `avant` devient `apres`, ou son refus. */
+/** Ce que la table d'écriture d'une sorte de porteur déclare : la scène où sa donnée `avant` devient `apres`, ou son
+ *  refus ; et, pour la sorte qui les a, la scène où un porteur neuf est créé, sous son identifiant ; celle où le porteur
+ *  `de` prend l'identifiant `vers`, propagé à ce qui le désigne ; celle où le porteur `id` est retiré ; celle où
+ *  l'élément `de` de la sous-collection à clé du porteur `id` prend l'identifiant `vers`. Un renommage sous un
+ *  identifiant vide ou déjà pris rend la scène telle quelle. */
 interface EcritureDuPorteur<D> {
   ecrire: (scene: Scene, avant: D, apres: D) => EcritureDeValeur<Scene>;
+  creer?: (scene: Scene) => { scene: Scene; id: string };
+  renommer?: (scene: Scene, de: string, vers: string) => Scene;
+  retirer?: (scene: Scene, id: string) => Scene;
+  renommerElement?: (scene: Scene, id: string, de: string, vers: string) => Scene;
+}
+
+/** La scène `scene` où l'action authorée `de` du décor `id` prend l'identifiant `vers` (`renameActionAuthoree`). */
+function actionRenommee(scene: Scene, id: string, de: string, vers: string): Scene {
+  const ent = scene.entities.find((e) => e.id === id);
+  const actions = ent?.usable?.actions;
+  const renommees = actions && renameActionAuthoree(actions, de, vers);
+  return ent && renommees !== actions ? editEntity(scene, id, { usable: { ...ent.usable, actions: renommees } }) : scene;
+}
+
+/** La scène `scene` où le nœud `de` du dialogue `id` prend l'identifiant `vers` (`renameDialogueNode`). */
+function noeudRenomme(scene: Scene, id: string, de: string, vers: string): Scene {
+  const dialogue = porteursDeLaScene(scene, 'dialogue').find((d) => d.id === id);
+  const renomme = dialogue && renameDialogueNode(dialogue, de, vers);
+  return dialogue && renomme !== dialogue ? porteurRemplace(scene, 'dialogue', id, renomme!) : scene;
 }
 
 /** La table d'écriture des porteurs de formulaire, par sorte : d'une zone d'effet, d'un déclencheur ou d'un dialogue, le
- *  remplacement dans sa collection (`porteurRemplace`) ; d'une entité, sa porte (`sceneAvecLEntite`). */
+ *  remplacement dans sa collection (`porteurRemplace`) ; d'une entité, sa porte (`sceneAvecLEntite`), et le renommage
+ *  d'une action d'un décor (`actionRenommee`) ; d'un déclencheur, son renommage (`renameTrigger`) et son retrait
+ *  (`deleteSel`) ; d'un dialogue, sa création (`addDialogue`), son renommage (`renameDialogue`), son retrait
+ *  (`removeDialogue`) et le renommage d'un de ses nœuds (`noeudRenomme`). */
 export const ECRITURES_DES_PORTEURS: { readonly [S in SorteDePorteur]: EcritureDuPorteur<DonneeDuPorteur[S]> } = {
   zone: { ecrire: (scene, avant, apres) => ({ ok: true, valeur: porteurRemplace(scene, 'zone', avant.id, apres) }) },
-  declencheur: { ecrire: (scene, avant, apres) => ({ ok: true, valeur: porteurRemplace(scene, 'declencheur', avant.id, apres) }) },
-  entite: { ecrire: sceneAvecLEntite },
-  dialogue: { ecrire: (scene, avant, apres) => ({ ok: true, valeur: porteurRemplace(scene, 'dialogue', avant.id, apres) }) },
+  declencheur: {
+    ecrire: (scene, avant, apres) => ({ ok: true, valeur: porteurRemplace(scene, 'declencheur', avant.id, apres) }),
+    renommer: renameTrigger,
+    retirer: (scene, id) => deleteSel(scene, { type: 'trigger', id }),
+  },
+  entite: { ecrire: sceneAvecLEntite, renommerElement: actionRenommee },
+  dialogue: {
+    ecrire: (scene, avant, apres) => ({ ok: true, valeur: porteurRemplace(scene, 'dialogue', avant.id, apres) }),
+    creer: addDialogue,
+    renommer: renameDialogue,
+    retirer: removeDialogue,
+    renommerElement: noeudRenomme,
+  },
 };
+
+/** La scène `scene` où le porteur `porteur` est retiré par la table de sa sorte (`ECRITURES_DES_PORTEURS`, `retirer`) ;
+ *  ou son refus : la première faute du parse de la scène (`sceneSchema`) que la scène d'avant ne portait pas
+ *  (`fauteNeuve`), dite. `undefined` : sa sorte ne se retire pas par la table. */
+export function sceneSansLePorteur(scene: Scene, porteur: { sorte: SorteDePorteur; id: string }): { ok: true; valeur: Scene } | { ok: false; regle: string } | undefined {
+  const retirer = ECRITURES_DES_PORTEURS[porteur.sorte].retirer;
+  if (!retirer) return undefined;
+  const apres = retirer(scene, porteur.id);
+  const faute = fauteNeuve(sceneSchema, scene, apres);
+  return faute === undefined ? { ok: true, valeur: apres } : { ok: false, regle: faute };
+}
 
 /** La liste ou le record `v` d'un patch, `undefined` (son absence, `champ`) quand il est vide ou `null`. */
 export const sansVide = <T extends object>(v: T | null): T | undefined => (v && Object.keys(v).length ? v : undefined);

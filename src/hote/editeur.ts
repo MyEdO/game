@@ -70,7 +70,7 @@ import { renduDe, type ArgumentDuGeste, type GesteDeLaFenetre } from './gestes';
  * d'effet sélectionnée, ou de la scène sans sélection, se joue `{ type: 'identifier', args }`, en `{ geste:
  * 'identifier', id }` (`renameEffectZone`, `renameScene`), refusé comme un nom vide ou déjà pris ; celui qui change
  * l'identifiant d'une action authorée du décor sélectionné, `{ type: 'identifier', args: [action, id] }`, en `{ geste:
- * 'identifier', id, action }` (`renameActionAuthoree`), refusé de même ; la scène renommée
+ * 'identifier', id, element: action }` (`renameActionAuthoree`), refusé de même ; la scène renommée
  * l'est hors de l'historique, chaque cran portant son nouvel identifiant, et ses calques la suivent ; celui qui décrit
  * la scène se joue `{ type: 'decrire', args }`, en `{ geste: 'scene', patch: { scalaires: { desc } } }`, la description
  * retirée si elle est laissée vide ; celui qui ajoute un drapeau de départ se joue `{ type: 'drapeau', args }`, en `{
@@ -1904,7 +1904,7 @@ const estNombre = (v: unknown): v is number => typeof v === 'number' && Number.i
 /** Le geste du formulaire de l'inspecteur que portent les zones `z`, joué `{ type, args }` : celui qui nomme la
  *  sélection ou la scène (`formulaireDuNom`), `{ geste: 'nommer', nom }`, le nom saisi, absent s'il est laissé vide ;
  *  celui qui change l'identifiant de la zone d'effet (`formulaireDeLIdentifiant`), `{ geste: 'identifier', id }`, ou
- *  d'une action du décor (`identifiantsDesActions`), `{ geste: 'identifier', id, action }`, quand un formulaire des zones
+ *  d'une action du décor (`identifiantsDesActions`), `{ geste: 'identifier', id, element }`, l'action, quand un formulaire des zones
  *  désigne cette action ; celui
  *  qui décrit la scène, sa description, retirée si elle est laissée vide ; celui qui écrit le message d'introduction de
  *  la scène, son texte tel quel, retiré s'il est laissé vide ; celui qui ajoute un drapeau de départ à la
@@ -1926,10 +1926,10 @@ export function gesteDuFormulaire(z: ZonesDeLEditeur, jeu: unknown): GesteDEditi
   }
   if (jeu.type === 'identifier') {
     const [premier, second, ...reste] = jeu.args as unknown[];
-    const [action, id] = jeu.args.length === 2 ? [premier, second] : [undefined, premier];
-    const offert = formulaires.some(({ champs: [designe] }) => (designe.type === 'fixe' ? designe.valeur === action : action === undefined));
+    const [element, id] = jeu.args.length === 2 ? [premier, second] : [undefined, premier];
+    const offert = formulaires.some(({ champs: [designe] }) => (designe.type === 'fixe' ? designe.valeur === element : element === undefined));
     if (!offert || reste.length || typeof id !== 'string') return undefined;
-    return typeof action === 'string' ? { geste: 'identifier', id, action } : { geste: 'identifier', id };
+    return typeof element === 'string' ? { geste: 'identifier', id, element } : { geste: 'identifier', id };
   }
   if (jeu.type === 'troupe') {
     const [nombre, ...reste] = jeu.args as unknown[];
