@@ -216,9 +216,10 @@ export function poserLeGabarit(racine: Bone, echelle: number, enfants: GabaritPo
 /**
  * @contrat Gabarit d'une base
  * - `bindsAuGabarit(squelette, pose)` (`asset/evaluateur/gabarit.ts`) emploie `poserEnfantsDuGabarit`, facteurs et
- *   translations de `deplacementsDesOs` compris, au repos sans gabarit et rend tous les binds `Bind′_b = inv(G′_b)·G_b·Bind_b` : G est la matrice monde de repos sans gabarit,
- *   G′ la même après cette seule étape, hors `sl` et hors translation de la racine. L'appel attend le squelette au
- *   repos sans gabarit ; il rend les positions et matrices à leur état d'entrée et ne modifie pas ses binds.
+ *   translations de `deplacementsDesOs` compris, au repos sans gabarit et rend tous les binds
+ *   `Bind′_b = inv(G′_b)·G_b·Bind_b` : G est la matrice monde de repos sans gabarit, G′ la même après cette seule
+ *   étape, hors `sl` et hors translation de la racine. L'appel attend le squelette au repos sans gabarit ; il rend
+ *   les positions et matrices à leur état d'entrée et ne modifie pas ses binds.
  *   L'évaluateur les pose une fois sur chaque squelette de la scène montée dans `appliquerGabarit`, avant la pose des
  *   os ; cette fonction reçoit aussi le squelette de base comme quatrième argument optionnel, pour que les candidats
  *   emploient ses binds même en présence d’éléments montés, et ne pose aucune shape key. Les parents de la table se
