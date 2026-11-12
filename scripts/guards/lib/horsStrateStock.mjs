@@ -290,7 +290,6 @@ export const STRUCTURES_LOCALES = [
   { fichier: 'src/data#tavernGames', ref: '[].options[]', occurrence: 1 },
   { fichier: 'src/data#tavernGames', ref: '[].phases', occurrence: 1 },
   { fichier: 'src/data#tavernGames', ref: '[].pot', occurrence: 1 },
-  { fichier: 'src/data#tavernGames', ref: '[].pot.dice', occurrence: 1 },
   { fichier: 'src/data#tavernGames', ref: '[].pot.rows[]', occurrence: 1 },
   { fichier: 'src/data#tavernGames', ref: '[].roundOps', occurrence: 1 },
   { fichier: 'src/data#tavernGames', ref: '[].roundOps.attritionEvery|{charBonus=agilite/capacite-de-combat/capacite-de-tir/dexterite/endurance/force/force-mentale/initiative/intelligence/sociabilite}', occurrence: 1 },
