@@ -45,8 +45,8 @@ function coup({ seed = 7, roll = 44, double = true, current = 2, important = tru
   banc.getState().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = banc.getState().battle!;
-  const H = b.combatants.find((c) => c.kind === 'hero')!;
-  const ennemis = b.combatants.filter((c) => c.kind === 'enemy');
+  const H = b.combatants.find((c) => c.kind === 'heros')!;
+  const ennemis = b.combatants.filter((c) => c.kind === 'ennemi');
   if (vehicule) b.combatants[b.combatants.indexOf(ennemis[0])] = ennemis[0] = spawnEnemy({ vehicule }, ennemis[0].id, ennemis[0].pos!);
   const [cible, pretre] = ennemis;
   pretre.items = (pretre.items ?? []).filter((i) => i.kind !== 'armor');
@@ -473,7 +473,7 @@ function carreauEnCombat(): { mage: Combatant; cible: Combatant } {
   banc.getState().ensemencerLeTirage(7);
   const b = banc.getState().battle!;
   const mage = b.combatants.find((c) => c.label === 'W')!;
-  const cible = b.combatants.find((c) => c.kind === 'enemy')!;
+  const cible = b.combatants.find((c) => c.kind === 'ennemi')!;
   mage.pos = { x: 10, y: 10 };
   cible.pos = { x: 12, y: 10 };
   cible.items = (cible.items ?? []).filter((i) => i.kind !== 'armor');
@@ -578,7 +578,7 @@ describe("Projectile magique : l'animation de la touche porte son compte de Bles
   function lance(prepare: (cible: Combatant, autre: Combatant) => void = () => {}, opts: { surincante?: boolean; sort?: SpellData } = {}) {
     banc.setState({ net: { ...banc.getState().net, mode: 'local', mySeat: 0, gmSeat: undefined } });
     const { mage, cible } = carreauEnCombat();
-    const autre = banc.getState().battle!.combatants.filter((c) => c.kind === 'enemy')[1];
+    const autre = banc.getState().battle!.combatants.filter((c) => c.kind === 'ennemi')[1];
     autre.pos = { x: 12, y: 11 };
     debout(cible); debout(autre);
     prepare(cible, autre);
@@ -822,7 +822,7 @@ describe('Projectile magique : une seule ligne de touche, celle du coup APPLIQU�
 
 describe('Tirs déviés (LDB 14 l.106, l.116) : la ligne chiffrée de la victime porte la phrase de la déviation', () => {
 
-  const arc = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [] } as unknown as Weapon;
+  const arc = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [] } as unknown as Weapon;
 
   it('une touche au hasard : la phrase du tas et la ligne de la victime, une fois chacune', () => {
     const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 7 });
@@ -832,8 +832,8 @@ describe('Tirs déviés (LDB 14 l.106, l.116) : la ligne chiffrée de la victime
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const [cible, voisin, ...autres] = b.combatants.filter((c) => c.kind === 'enemy');
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const [cible, voisin, ...autres] = b.combatants.filter((c) => c.kind === 'ennemi');
     H.pos = { x: 10, y: 10 };
     cible.pos = { x: 13, y: 10 };
     voisin.pos = { x: 13, y: 11 };
@@ -861,8 +861,8 @@ describe('Tirs déviés (LDB 14 l.106, l.116) : la ligne chiffrée de la victime
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const [tireur, voisin, ...autres] = b.combatants.filter((c) => c.kind === 'enemy');
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const [tireur, voisin, ...autres] = b.combatants.filter((c) => c.kind === 'ennemi');
     H.pos = { x: 10, y: 10 };
     voisin.pos = { x: 11, y: 10 };
     tireur.pos = { x: 14, y: 10 };

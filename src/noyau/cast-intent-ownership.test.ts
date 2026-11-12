@@ -97,7 +97,7 @@ const state = (jet: JetOwnerRef, ownerId: string, over: Partial<Jeu> = {}): Jeu 
     net: { mode: 'hote', mySeat: 0, gmSeat: 2, seatNames: { 0: 'Hôte', 1: 'Antoine', 2: 'MJ' }, ownership: { h2: 1 }, slots: [0, 1, 0, 0] },
     party: [{ id: H_HOST }, { id: H_GUEST }],
     battle: { order: [H_HOST, H_GUEST, ENEMY], turn: 0, combatants: [
-      { id: H_HOST, kind: 'hero' }, { id: H_GUEST, kind: 'hero' }, { id: ENEMY, kind: 'enemy' },
+      { id: H_HOST, kind: 'heros' }, { id: H_GUEST, kind: 'heros' }, { id: ENEMY, kind: 'ennemi' },
     ] },
     pendingCascade: cascadeDeTest([{ id: 's0', kind: cleDeFixture(`${jetHote(jet.pending)}Jet`), jet: jetHote(jet.pending), groupOwner: true }]),
     [jet.pending]: { [jet.field]: ownerId, targetId: H_HOST, spellId: 'drain', result: null },

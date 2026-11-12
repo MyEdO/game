@@ -16,6 +16,7 @@ import { choixDeLaFeuilleDId, datasetDeLEspaceDuType } from '../../data';
 import type { GameOp } from '../../engine/ops';
 import { libelleDuLitteral } from '../libelles';
 import { estObjet } from '../../lib/objet.mjs';
+import type { SourceDeLEdition } from '../edition/adresseDeProse';
 
 export type FieldKind = 'text' | 'textarea' | 'number' | 'checkbox' | 'stringList' | 'numberList' | 'source' | 'descRef' | 'recordNumber' | 'recordText' | 'object' | 'json' | 'select' | 'selectList';
 
@@ -54,6 +55,8 @@ export interface ContexteDuChamp {
   offert: (chemin: readonly (string | number)[]) => boolean;
   ecrivable: (chemin: readonly (string | number)[], actuelle: unknown) => boolean;
   choix: (chemin: readonly (string | number)[]) => readonly ChoixDuContexte[] | undefined;
+  /** Le `Source/` que désignent les adresses de prose du porteur. */
+  source: SourceDeLEdition;
 }
 
 /** Ce qu'un nœud NOMBRE admet : un entier ou non, entre sa borne basse et sa borne haute (`null` : sans borne). */

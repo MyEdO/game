@@ -313,7 +313,7 @@ function rendu() {
   out += `  appliqué mais une propriété que la règle consulte — le porter en \`GameOp\` fabriquerait une op que seul\n`
   out += `  son dispatcher lirait.\n\n`
   out += `Un champ ne compte pour un canal que si son TYPE le porte : \`SpellData.effects: Flow\` (flux authored) et\n`
-  out += `\`WeaponGroupData.combat: 'melee' \\| 'ranged'\` (étiquette) n'y figurent pas.\n\n`
+  out += `\`WeaponGroupData.combat: 'melee' \\| 'distance'\` (étiquette) n'y figurent pas.\n\n`
   out += `| Entité | Déclarée | \`passive\` | \`effects\` | Drapeaux |\n|---|---|---|---|---|\n`
   for (const e of CANAUX.entites) {
     // `import('…').X[]` → `X[]` : le chemin d'import est du bruit de rendu, le TYPE reste mesuré.

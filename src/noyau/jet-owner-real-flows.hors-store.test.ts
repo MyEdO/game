@@ -38,7 +38,7 @@ const NET0 = initialNet();
 
 const chars = { 'capacite-de-combat': 45, 'capacite-de-tir': 50, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 const sword: Weapon = { name: 'Épée', label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, uid: 'sw', qualities: [] } as unknown as Weapon;
-const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, over: Partial<Combatant> = {}): Combatant =>
+const mk = (id: string, kind: 'heros' | 'ennemi', pos: { x: number; y: number }, over: Partial<Combatant> = {}): Combatant =>
   (blessuresSurLeProfil({ id, name: id, label: id, kind, characteristics: { ...chars }, conditions: [], engagedWith: [], skills: [], talents: [],
      weapons: [sword], advantage: 0, size: 'moyenne', pos, wounds: blessuresDeBase(18), corruption: 0,
      armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, ...over }) as unknown as Combatant);
@@ -73,9 +73,9 @@ const ACTIVITY_VERBS = verbs('activite', INFLUENCE);
 describe('#1015 — sonde 1 : `corruption` sous une fenêtre PRIORITAIRE d’un autre siège', () => {
   it('le siège du CORROMPU dépense, celui de la fenêtre active non', () => {
     seedBattleRng(7);
-    const a = mk('a', 'hero', { x: 0, y: 0 }, { characteristics: { ...chars, 'force-mentale': 10, endurance: 10 } });
-    const b = mk('b', 'hero', { x: 2, y: 0 });
-    const e = mk('e', 'enemy', { x: 3, y: 0 });
+    const a = mk('a', 'heros', { x: 0, y: 0 }, { characteristics: { ...chars, 'force-mentale': 10, endurance: 10 } });
+    const b = mk('b', 'heros', { x: 2, y: 0 });
+    const e = mk('e', 'ennemi', { x: 3, y: 0 });
     banc.setState({ battle: arena([a, b, e]), mode: 'battle', scene: testScene(), net: NET_COOP, party: [] });
     // Flux RÉEL : le seuil de Corruption est franchi → `gainCorruption` POSE `pendingCorruption`.
     gainCorruption(g, banc.setState, a, 12);
@@ -116,8 +116,8 @@ describe('#1015 — sonde 3 : `run` en cadence NON manuelle', () => {
   it('Rapide puis Auto : le porteur du jet garde ses dépenses (la cadence ne redistribue rien)', () => {
     setCadence('rapide');
     expect(cadenceAuto(), 'précondition : cadence non manuelle').toBe(true);
-    const a = mk('a', 'hero', { x: 0, y: 0 });
-    const e = mk('e', 'enemy', { x: 6, y: 0 });
+    const a = mk('a', 'heros', { x: 0, y: 0 });
+    const e = mk('e', 'ennemi', { x: 6, y: 0 });
     banc.setState({ battle: arena([a, e]), mode: 'battle', scene: testScene(), net: NET_COOP, party: [] });
     g().ouvrirLaCourse({ x: 3, y: 0 });
     expect(g().pendingRun?.combatantId, 'précondition : la Course du héros `a` est ouverte').toBe('a');
@@ -132,8 +132,8 @@ describe('#1015 — sonde 4 : `disengage`, Test OPPOSÉ — le porteur est le MO
     seedBattleRng(3);
     // Le mover est le héros de l'HÔTE (`rompreLEngagement` exige le contrôle LOCAL de l'actif) ; son foe
     // est l'ennemi conduit par le siège MJ — deux sièges DIFFÉRENTS, ce qui rend la sonde discriminante.
-    const a = mk('a', 'hero', { x: 0, y: 0 }, { engagedWith: ['e'] });
-    const e = mk('e', 'enemy', { x: 1, y: 0 }, { engagedWith: ['a'], advantage: 0 });
+    const a = mk('a', 'heros', { x: 0, y: 0 }, { engagedWith: ['e'] });
+    const e = mk('e', 'ennemi', { x: 1, y: 0 }, { engagedWith: ['a'], advantage: 0 });
     banc.setState({ battle: arena([a, e]), mode: 'battle', scene: testScene(), net: NET_COOP, party: [] });
     g().rompreLEngagement();
     const pd = g().pendingDisengage!;
@@ -164,8 +164,8 @@ describe('#1015 — sonde 5 : `activity` (hors combat) — accord avec la route 
 
 describe('#1015 — sonde 6 : SOLO bit-à-bit', () => {
   it('en COMBAT (Course) : le siège unique garde TOUS les verbes', () => {
-    const a = mk('a', 'hero', { x: 0, y: 0 });
-    const e = mk('e', 'enemy', { x: 6, y: 0 });
+    const a = mk('a', 'heros', { x: 0, y: 0 });
+    const e = mk('e', 'ennemi', { x: 6, y: 0 });
     banc.setState({ battle: arena([a, e]), mode: 'battle', scene: testScene(), net: NET_SOLO, party: [] });
     g().ouvrirLaCourse({ x: 3, y: 0 });
     expect(g().pendingRun?.combatantId).toBe('a');

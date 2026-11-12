@@ -24,14 +24,14 @@ const handLost = (loc: 'brasG' | 'brasD'): Trauma => ({ uid: 't2', label: '', tr
 
 describe('weaponUsesHand (LDB 18)', () => {
   it('arme à 2 mains implique les DEUX mains', () => {
-    expect(weaponUsesHand(w2, 'left')).toBe(true);
-    expect(weaponUsesHand(w2, 'right')).toBe(true);
+    expect(weaponUsesHand(w2, 'gauche')).toBe(true);
+    expect(weaponUsesHand(w2, 'droite')).toBe(true);
   });
   it('arme à 1 main : SEULEMENT la main de tenue (off = gauche, sinon droite)', () => {
-    expect(weaponUsesHand(w1main, 'right')).toBe(true);
-    expect(weaponUsesHand(w1main, 'left')).toBe(false);
-    expect(weaponUsesHand(w1off, 'left')).toBe(true);
-    expect(weaponUsesHand(w1off, 'right')).toBe(false);
+    expect(weaponUsesHand(w1main, 'droite')).toBe(true);
+    expect(weaponUsesHand(w1main, 'gauche')).toBe(false);
+    expect(weaponUsesHand(w1off, 'gauche')).toBe(true);
+    expect(weaponUsesHand(w1off, 'droite')).toBe(false);
   });
 });
 

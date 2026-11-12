@@ -24,7 +24,7 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const mk = (over: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
-  id: 'c', label: 'C', kind: 'enemy',
+  id: 'c', label: 'C', kind: 'ennemi',
   characteristics: { 'capacite-de-combat': 35, 'capacite-de-tir': 25, force: 35, endurance: 35, initiative: 30, agilite: 30, dexterite: 30, intelligence: 25, 'force-mentale': 25, sociabilite: 25 },
   wounds: blessuresDeBase(15), advantage: 0, conditions: [], skills: [], talents: [],
   weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, items: [],
@@ -75,7 +75,7 @@ describe('fireTriggers — Traits et Atouts sur le même système flow+déclench
     // Les DEUX branches portent la même feuille : l'issue du jet (tiré par la voie inline) n'entre pas dans la mesure.
     const surLePorteur = { kind: 'effet', effet: { type: 'ops', on: 'caster', ops: [{ op: 'condition', id: { id: 'a-terre' } }] } };
     const flow = { kind: 'test', test: { characteristic: 'force' }, reussite: surLePorteur, echec: surLePorteur } as unknown as Flow;
-    applyTriggeredEffects(noBattle(), porteur, [{ trigger: 'onHit', on: 'victim', flow }], 'onHit', { victim: victime, rng: makeRNG(1) });
+    applyTriggeredEffects(noBattle(), porteur, [{ trigger: 'onHit', on: 'victime', flow }], 'onHit', { victim: victime, rng: makeRNG(1) });
     expect(porteur.conditions.map((c) => c.id), 'la feuille `on:caster` doit atteindre le PORTEUR').toEqual(['a-terre']);
     expect(victime.conditions, 'la cible a reçu la conséquence du porteur').toEqual([]);
   });
@@ -94,7 +94,7 @@ describe('fireTriggers — Traits et Atouts sur le même système flow+déclench
       non: { kind: 'sequence', etapes: [] },
     } as Flow;
     expect(
-      () => applyTriggeredEffects(noBattle(), porteur, [{ trigger: 'onHit', on: 'victim', flow }], 'onHit', { rng: desDuTest, victim: victime }),
+      () => applyTriggeredEffects(noBattle(), porteur, [{ trigger: 'onHit', on: 'victime', flow }], 'onHit', { rng: desDuTest, victim: victime }),
       'un Test enfoui sous un `choice` a été traversé en SILENCE — aucune branche jouée, aucune levée.',
     ).toThrow(/routeur cadence-aware/);
     expect(victime.conditions, 'la cible a subi une conséquence alors qu’aucun jet n’a été joué.').toEqual([]);
@@ -114,7 +114,7 @@ describe('fireTriggers — Traits et Atouts sur le même système flow+déclench
       ],
     } as Flow;
     porteur.advantage = 5;
-    applyTriggeredEffects(noBattle(), porteur, [{ trigger: 'onCrit', on: 'victim', flow }], 'onCrit', { rng: desDuTest, victim: victime });
+    applyTriggeredEffects(noBattle(), porteur, [{ trigger: 'onCrit', on: 'victime', flow }], 'onCrit', { rng: desDuTest, victim: victime });
     expect(victime.conditions.find((c) => c.id === 'hemorragique')?.value, 'l’État automatique du Critique manque, ou le choix a été joué GRATUITEMENT.').toBe(1);
     expect(porteur.advantage, 'un Avantage a été dépensé sans que personne n’ait choisi.').toBe(5);
   });
@@ -123,10 +123,10 @@ describe('fireTriggers — Traits et Atouts sur le même système flow+déclench
     const archer = mk({ id: 'ar' });
     const foe = mk({ id: 'fo' });
     const logee = (c: Combatant) => c.conditions.find((x) => x.id === 'munition-logee');
-    const arc: Weapon = { label: 'Arc long', type: 'ranged', damage: { plusBF: false, flat: 4 }, qualities: [{ id: 'empaleuse' }] } as Weapon;
-    fireTriggers(noBattle(), archer, 'onCrit', { rng: desDuTest, victim: foe, weapon: arc, attackType: 'ranged', origine: 'coup-critique' });
+    const arc: Weapon = { label: 'Arc long', type: 'distance', damage: { plusBF: false, flat: 4 }, qualities: [{ id: 'empaleuse' }] } as Weapon;
+    fireTriggers(noBattle(), archer, 'onCrit', { rng: desDuTest, victim: foe, weapon: arc, attackType: 'distance', origine: 'coup-critique' });
     expect(logee(foe)?.value).toBe(1);
-    fireTriggers(noBattle(), archer, 'onCrit', { rng: desDuTest, victim: foe, weapon: arc, attackType: 'ranged', origine: 'coup-critique' }); // 2e flèche → empile
+    fireTriggers(noBattle(), archer, 'onCrit', { rng: desDuTest, victim: foe, weapon: arc, attackType: 'distance', origine: 'coup-critique' }); // 2e flèche → empile
     expect(logee(foe)?.value).toBe(2);
     const lance: Weapon = { label: 'Lance de Taillade empaleuse', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [{ id: 'empaleuse' }] } as Weapon;
     const melee = mk({ id: 'me' });
@@ -184,7 +184,7 @@ describe('fireTriggers — Traits et Atouts sur le même système flow+déclench
 
   it('Condition `compare` générique : who (cible/lanceur) × donnée/État · opérateur · valeur (const ou acteur)', () => {
     const target = { id: 't', woundsCurrent: 5, woundsMax: 15, size: 2, advantage: 0, camp: 'hostile' as const, groups: ['Morts-vivants'], talents: [], traits: ['mort-vivant'], immunities: ['poison'], conditions: { brise: 3 }, chars: {} as Record<string, number> }; // Petite (2), ennemi mort-vivant (conditions keyées par id)
-    const caster = { id: 'c', woundsCurrent: 12, woundsMax: 12, size: 4, advantage: 1, camp: 'party' as const, groups: [], talents: [{ id: 'magie-des-arcanes', spec: 'Feu' }], traits: [], conditions: {} as Record<string, number>, chars: {} as Record<string, number> }; // Grande (4), mage de Feu
+    const caster = { id: 'c', woundsCurrent: 12, woundsMax: 12, size: 4, advantage: 1, camp: 'groupe' as const, groups: [], talents: [{ id: 'magie-des-arcanes', spec: 'Feu' }], traits: [], conditions: {} as Record<string, number>, chars: {} as Record<string, number> }; // Grande (4), mage de Feu
     const ctx = { flags: {}, gameTime: 0, target, caster };
     expect(evalCondition({ kind: 'compare', subject: { who: 'target', field: 'woundsCurrent' }, op: '>=', value: 1 }, ctx)).toBe(true);
     expect(evalCondition({ kind: 'compare', subject: { who: 'target', condition: 'brise' }, op: '>=', value: 3 }, ctx)).toBe(true); // valeur d'État (stacks)
@@ -195,10 +195,10 @@ describe('fireTriggers — Traits et Atouts sur le même système flow+déclench
     expect(evalCondition({ kind: 'compare', subject: { who: 'target', field: 'woundsCurrent' }, op: '>=', value: 1 }, { flags: {}, gameTime: 0 })).toBe(false); // acteur absent
     // Condition `relation` : camp ABSOLU (kind) + relation RELATIVE au lanceur.
     expect(evalCondition({ kind: 'relation', who: 'target', is: 'hostile' }, ctx)).toBe(true); // la cible EST un ennemi (absolu)
-    expect(evalCondition({ kind: 'relation', who: 'target', is: 'opponent' }, ctx)).toBe(true); // adversaire du lanceur (camp ≠)
-    expect(evalCondition({ kind: 'relation', who: 'target', is: 'ally' }, ctx)).toBe(false);
-    expect(evalCondition({ kind: 'relation', who: 'caster', is: 'party' }, ctx)).toBe(true); // le lanceur est du groupe
-    expect(evalCondition({ kind: 'relation', who: 'target', is: 'self' }, ctx)).toBe(false); // cible ≠ lanceur
+    expect(evalCondition({ kind: 'relation', who: 'target', is: 'adversaire' }, ctx)).toBe(true); // adversaire du lanceur (camp ≠)
+    expect(evalCondition({ kind: 'relation', who: 'target', is: 'allie' }, ctx)).toBe(false);
+    expect(evalCondition({ kind: 'relation', who: 'caster', is: 'groupe' }, ctx)).toBe(true); // le lanceur est du groupe
+    expect(evalCondition({ kind: 'relation', who: 'target', is: 'soi' }, ctx)).toBe(false); // cible ≠ lanceur
     // Condition `has` : appartenance Groupe / Talent (spec) / Trait.
     expect(evalCondition({ kind: 'has', who: 'target', what: 'group', value: 'Morts-vivants' }, ctx)).toBe(true);
     expect(evalCondition({ kind: 'has', who: 'target', what: 'trait', value: 'mort-vivant' }, ctx)).toBe(true);
@@ -252,7 +252,7 @@ describe('Aire source-agnostique — un TRAIT pose `on:{near}` → GameOps à TO
   // de la VICTIME. Aucune arme : c'est la donnée du trait (comme l'« arc d'Azyr » du domaine) qui pose l'aire.
   const burstEffect = {
     trigger: 'onHit' as const,
-    on: { near: 'victim' as const, radiusMeters: 4 }, // 4 m → 2 cases (Chebyshev d'empreinte)
+    on: { near: 'victime' as const, radiusMeters: 4 }, // 4 m → 2 cases (Chebyshev d'empreinte)
     flow: { kind: 'effet' as const, effet: { type: 'ops' as const, on: 'target' as const, ops: [{ op: 'wounds' as const, amount: 12 }] } },
   };
 
@@ -300,7 +300,7 @@ describe('Affamé — Test de trigger onKill routé (cadence-aware)', () => {
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+    const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
     const hungry = enemies[0];
     enemies.slice(1).forEach((e) => (e.dead = true));
     hungry.traits = [...(hungry.traits ?? []), { id: 'affame' }];
@@ -320,7 +320,7 @@ describe('Affamé — Test de trigger onKill routé (cadence-aware)', () => {
 import { fireOwnTestFailed, effectSourcesOf } from './triggeredEffects';
 
 const withCrampes = (over: Partial<Combatant> = {}): Combatant => mk({
-  id: 'cr', kind: 'hero',
+  id: 'cr', kind: 'heros',
   diseases: [{ id: 'colique', phase: 'active', symptoms: [{ symptomId: 'crampes-abdominales' }], minutesLeft: 100000, durationMinutes: 100000 }],
   ...over,
 } as Partial<Combatant>);
@@ -395,8 +395,8 @@ describe('onOwnTestFailed — cadence-aware + seam central de cascade (correctio
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const E = b.combatants.filter((c) => c.kind === 'enemy');
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const E = b.combatants.filter((c) => c.kind === 'ennemi');
     E.slice(1).forEach((e) => (e.dead = true));
     banc.setState({ battle: { ...b }, pendingCascade: null, pendingLogQueue: [] });
     return { H, E: E[0] };
@@ -468,8 +468,8 @@ describe('onOwnTestFailed — jets d’ATTAQUE (attaquant ET défenseur, MSRC 16
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const E = b.combatants.filter((c) => c.kind === 'enemy');
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const E = b.combatants.filter((c) => c.kind === 'ennemi');
     E.slice(1).forEach((e) => (e.dead = true));
     banc.setState({ battle: { ...b }, pendingCascade: null, pendingLogQueue: [] });
     return { H, E: E[0] };
@@ -504,7 +504,7 @@ describe('Test déclenché INLINE : la pénalité d’État lit la Compétence t
     if (victimeATerre) victime.conditions = [{ id: 'a-terre', value: 1 }] as never;
     const sur = (id: string) => ({ kind: 'effet', effet: { type: 'ops', on: 'caster', ops: [{ op: 'condition', id: { id } }] } });
     const flow = { kind: 'test', test: { characteristic: 'agilite', skill: { id: 'athletisme' } }, reussite: sur('sonne'), echec: sur('aveugle') } as unknown as Flow;
-    applyTriggeredEffects(noBattle(), porteur, [{ trigger: 'onHit', on: 'victim', flow }], 'onHit', { victim: victime, rng: de20 });
+    applyTriggeredEffects(noBattle(), porteur, [{ trigger: 'onHit', on: 'victime', flow }], 'onHit', { victim: victime, rng: de20 });
     return porteur.conditions.map((c) => c.id);
   };
   it('Athlétisme (déplacement) À Terre : 20 contre 30 réussit debout, rate à −20', () => {

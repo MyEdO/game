@@ -54,7 +54,7 @@ export function weaponLoaded(c: Combatant, weapon: Weapon): boolean {
 /** CETTE arme a-t-elle un cycle de charge à faire ? Arme à distance à Indice de Recharge que `weaponLoaded`
  *  ne dit pas prête. LDB 62 l.335. */
 export function aRecharger(c: Combatant, weapon: Weapon): boolean {
-  return weapon.type === 'ranged' && (weapon.reload ?? 0) > 0 && !weaponLoaded(c, weapon);
+  return weapon.type === 'distance' && (weapon.reload ?? 0) > 0 && !weaponLoaded(c, weapon);
 }
 
 /** La chambre de CETTE arme est-elle pleine : une arme à Indice de Recharge que `weaponLoaded` dit prête. LDB 62 l.335. */

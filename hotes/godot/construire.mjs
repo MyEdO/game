@@ -4,8 +4,8 @@
 // (`entreeDHote`, `scripts/entree-d-hote.mjs` : le gel du catalogue, puis `hotes/godot/pont/entree.ts`, avec le greffon
 // `proseSource()`) ; le bundle tient seul dans une page et expose `globalThis.wfrpPont` (`hotes/godot/pont/CONTRAT.md`).
 // Il dit sa taille, puis l'EXÉCUTE dans un `node:vm` qui ne porte que les API de navigateur déclarées
-// (`API_DU_NAVIGATEUR`) : `demarrer`, `vue` et `sauvegardes` répondent `ok: true`, un second `demarrer` `ok: false`, sinon le code de
-// sortie est 1 ; `--sortie <dossier>` l'y écrit, sans quoi rien ne s'écrit. La CI le joue (`npm run pont:godot`), pour
+// (`API_DU_NAVIGATEUR`) : `demarrer`, `vue` et `sauvegardes` répondent `ok: true`, un second `demarrer` `ok: false`, `morceaux` par
+// `appelerEnOctets` tient les octets que dit son en-tête, sinon le code de sortie est 1 ; `--sortie <dossier>` l'y écrit, sans quoi rien ne s'écrit. La CI le joue (`npm run pont:godot`), pour
 // qu'un changement du moteur qui casse le bundle de navigateur, à sa construction comme à son évaluation, ne passe pas
 // vert. `--sonde` importe le projet (`hotes/godot/projet/`) par l'éditeur épinglé (`EDITEUR`), puis contrôle chaque
 // script (`--check-only`) et joue les recettes déclarant `const RECETTE_AUTONOME := true` sous `recettes/`, les vues
@@ -153,10 +153,26 @@ function executer(code) {
     ['sauvegardes', undefined, (r) => r.ok === true && Array.isArray(r.zones?.['sauvegardes.emplacements'])],
     ['erreursGlobales', undefined, (r) => r.ok === true && Array.isArray(r.erreurs) && r.erreurs.length === 0],
   ]
-  return attendus.flatMap(([methode, entree, tient]) => {
+  const ecarts = attendus.flatMap(([methode, entree, tient]) => {
     const r = appel(methode, entree)
     return tient(r) ? [] : [`${methode} ${JSON.stringify(entree ?? null)} : ${JSON.stringify(r).slice(0, 400)}`]
   })
+  return [...ecarts, ...ecartsDesOctets(pont, appel('monde'))]
+}
+
+/** Les écarts de la porte en octets du pont (`appelerEnOctets`, `octets`) sur toutes les clés du manifeste `monde` :
+ *  `morceaux` tient un `ArrayBuffer` de la longueur que dit son en-tête, une autre méthode aucun. */
+function ecartsDesOctets(pont, monde) {
+  if (typeof pont.appelerEnOctets !== 'function' || typeof pont.octets !== 'function') return ['`globalThis.wfrpPont.appelerEnOctets` ou `octets` absent']
+  const cles = (liste) => liste.map(({ cle }) => cle)
+  const entree = { source: 'partie', volume: cles(monde.monde.morceaux), toits: cles(monde.toits), couronnes: cles(monde.couronnes) }
+  const entete = JSON.parse(pont.appelerEnOctets('morceaux', JSON.stringify(entree)))
+  const tenus = pont.octets()
+  const ecarts = entete.ok === true && entete.volume?.length > 0 && Object.prototype.toString.call(tenus) === '[object ArrayBuffer]' && tenus.byteLength === entete.octets
+    ? []
+    : [`morceaux en octets : ${JSON.stringify(entete).slice(0, 400)}, octets() ${Object.prototype.toString.call(tenus)} de ${tenus?.byteLength}`]
+  pont.appelerEnOctets('vue')
+  return pont.octets() === null ? ecarts : [...ecarts, 'octets() après vue : des octets au lieu de null']
 }
 
 

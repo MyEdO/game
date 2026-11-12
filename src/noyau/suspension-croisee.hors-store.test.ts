@@ -185,8 +185,8 @@ describe('combat : l’allège et la hauteur descendue en se suspendant se paien
     g().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = g().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    b.combatants.filter((c) => c.kind === 'enemy').forEach((e) => (e.dead = true));
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    b.combatants.filter((c) => c.kind === 'ennemi').forEach((e) => (e.dead = true));
     H.engagedWith = [];
     placeCombatant(H, sc, chambre);
     banc.setState({ scene: sc, battle: { ...b, turn: b.order.indexOf(H.id), action: null, movementUsed, acted: false, movedPreAction: false, reachable: new Map(), preview: null } });

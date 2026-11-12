@@ -19,11 +19,11 @@ beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 });
 
-const com = (id: string, label: string, kind: 'hero' | 'enemy') =>
+const com = (id: string, label: string, kind: 'heros' | 'ennemi') =>
   combattantDeTest({ id, label, kind, traumas: [], engagedWith: [] });
 
-const GUNNAR = com('gunnar', 'Gunnar', 'hero');
-const RAT = com('rat', 'Rat géant', 'enemy');
+const GUNNAR = com('gunnar', 'Gunnar', 'heros');
+const RAT = com('rat', 'Rat géant', 'ennemi');
 
 let host: HTMLDivElement;
 let root: Root;

@@ -7,7 +7,7 @@
  * celui de son Type. L'hôte ne décide rien : il dessine la phase et joue le son qu'il reçoit. Aucune conséquence de règle.
  */
 import { allMusicDefs } from '../data/sons/musique';
-import { breathTypes, conditionLabel, domains, etats, findDomainById, findRenduById, findSpellById, findTrappingById, findWeaponGroupById, lightTones, maneuvers, rendus, siegeEngines, type DomainData, type Projectile, type RenduDef, type VisuelDEffet } from '../data';
+import { breathTypes, conditionLabel, domains, etats, findDomainById, findRenduById, findSpellById, findTrappingById, findWeaponGroupById, lightTones, maneuvers, rendus, siegeEngines, type DomainData, type ManeuverDef, type Projectile, type RenduDef, type VisuelDEffet } from '../data';
 import { sonDEffet, sonsDEffet, type SonDEffet } from '../data/sons/registre';
 import { castInfoIsPrayer } from '../engine/magic';
 import type { Weapon } from '../engine/types';
@@ -191,7 +191,7 @@ const incantationRatee = (): Flottant => flottant('rate', tr('fx.incantationRate
 
 /** Les rendus de repli : une arme de mêlée, de tir, naturelle, sans rendu propre ni de Groupe ; un sort hors Domaine ;
  *  une Prière. */
-const REPLI = { melee: 'arme-blanche', ranged: 'jet', naturelle: 'attaque-naturelle', sort: 'sort-arcane', priere: 'priere' } as const;
+const REPLI = { melee: 'arme-blanche', distance: 'jet', naturelle: 'attaque-naturelle', sort: 'sort-arcane', priere: 'priere' } as const;
 
 const catalogue = (id: string): RenduDef => findRenduById(id)!;
 
@@ -332,7 +332,7 @@ function effetDeLAttaque(a: Exclude<ChargeDAttaque, { kind: 'creature' }>, dista
   const rendu = renduDeLArme(a.weapon);
   const pare = !a.result.hit && a.parryWeapon !== undefined;
   const issue: IssueDuCoup = a.result.hit ? (a.result.critical ? 'critique' : 'touche') : pare ? 'pare' : 'manque';
-  const flottants = flottantsDeLaTouche(a.result, issue === 'critique', a.defense !== 'none');
+  const flottants = flottantsDeLaTouche(a.result, issue === 'critique', a.defense !== 'aucune');
   return coup(rendu, rendu.couleur, issue, a.from, a.to, distanceM, pare ? renduDeLArme(a.parryWeapon!) : null, flottants);
 }
 
@@ -496,7 +496,7 @@ function variantesDuSort({ rendu, couleur }: { rendu: RenduDef; couleur: string 
 }
 
 /** Les manœuvres qui posent une zone : autour du point visé (`zone`), ou autour de leur auteur. */
-const CIBLAGES_DE_ZONE = new Set(['zone', 'allFoes', 'allAround']);
+const CIBLAGES_DE_ZONE = new Set<ManeuverDef['ciblage']>(['zone', 'adversairesAutour', 'toutAutour']);
 
 /** La vitrine des effets (`VitrineDesEffets`). Un rendu que porte un sort (un Domaine, le hors Domaine, la Prière), une
  *  manœuvre ou un Type de Souffle se montre parmi eux, jamais parmi les armes ; une arme montre sa parade quand son rendu
@@ -508,7 +508,7 @@ export function vitrineDesEffets(): VitrineDesEffets {
   const metresParCase = sceneMetresPerTile(null);
   const caseDeLAuteur: CaseDEffet = { x: 0, y: 0 };
   const caseDeLaCible: CaseDEffet = { x: distanceM / metresParCase, y: 0 };
-  const deZone = maneuvers.filter((m) => CIBLAGES_DE_ZONE.has(m.targeting));
+  const deZone = maneuvers.filter((m) => CIBLAGES_DE_ZONE.has(m.ciblage));
   const pasDArme = new Set<string>([
     REPLI.sort, REPLI.priere,
     ...domains.flatMap((d) => (d.rendu ? [d.rendu.id] : [])),
@@ -534,7 +534,7 @@ export function vitrineDesEffets(): VitrineDesEffets {
   const manoeuvres = deZone.map((m): EffetDeVitrine => ({
     id: m.id,
     label: m.label,
-    effet: m.targeting === 'zone'
+    effet: m.ciblage === 'zone'
       ? zoneDeLaVitrine(de, caseDeLaCible, { rendu: m.rendu?.id }, distanceM)
       : zoneDeLaVitrine(de, caseDeLAuteur, { rendu: m.rendu?.id }, 0),
   }));
@@ -546,7 +546,7 @@ export function vitrineDesEffets(): VitrineDesEffets {
     source: sourceDuTon(t, { cle: t.id, x: caseDeLaCible.x, y: caseDeLaCible.y, z: 0, hM: FLAME_LIFT_M }, RAYON_DE_LUMIERE_DE_LA_VITRINE),
   }));
   const attaques = Object.fromEntries(siegeEngines().map((t) => {
-    const rendu = catalogue(t.rendu?.id ?? REPLI.ranged);
+    const rendu = catalogue(t.rendu?.id ?? REPLI.distance);
     return [t.id, coup(rendu, rendu.couleur, 'touche', de, vers, distanceM, null, flottantsDeLaVitrine('touche'))];
   }));
   const echantillons: [string, Flottant][] = [

@@ -976,7 +976,7 @@ export function CharScreen({ d, setD }: StepProps): ReactNode {
               d.charMode === 'repartition' ? (
                 <b className={points.total === points.quota ? 'ok-text' : 'warn-text'}>Points : {points.total}/{points.quota}</b>
               ) : (
-                <NotchGauge value={tiredCount} max={10} notches={10} format={(v, m) => `${v}/${m} tirées`} tone={tiredCount === 10 ? 'ok' : 'neutral'} />
+                <NotchGauge value={tiredCount} max={10} notches={10} format={(v, m) => `${v}/${m} tirées`} tone={tiredCount === 10 ? 'ok' : 'neutre'} />
               )
             }
           >
@@ -1470,14 +1470,14 @@ function speciesSkillsZones(d: CreatorDraft, setD: (d: CreatorDraft) => void, sp
                 max={SPECIES_SKILLS_PLUS5}
                 notches={SPECIES_SKILLS_PLUS5}
                 format={(v, m) => `${v}/${m} à +5`}
-                tone={d.speciesPlus5.length === SPECIES_SKILLS_PLUS5 ? 'ok' : 'neutral'}
+                tone={d.speciesPlus5.length === SPECIES_SKILLS_PLUS5 ? 'ok' : 'neutre'}
               />
               <NotchGauge
                 value={d.speciesPlus3.length}
                 max={SPECIES_SKILLS_PLUS3}
                 notches={SPECIES_SKILLS_PLUS3}
                 format={(v, m) => `${v}/${m} à +3`}
-                tone={d.speciesPlus3.length === SPECIES_SKILLS_PLUS3 ? 'ok' : 'neutral'}
+                tone={d.speciesPlus3.length === SPECIES_SKILLS_PLUS3 ? 'ok' : 'neutre'}
               />
             </>
           }
@@ -1559,7 +1559,7 @@ function careerSkillsZones(d: CreatorDraft, setD: (d: CreatorDraft) => void, att
               value={total}
               max={CAREER_SKILL_ADVANCES}
               format={(v, m) => `${v} / ${m} · reste ${m - v}`}
-              tone={done ? 'ok' : 'neutral'}
+              tone={done ? 'ok' : 'neutre'}
             />
           }
         >
@@ -1891,7 +1891,7 @@ function trappingMeta(id: string): string {
   if (t.pa) bits.push(`${t.pa} PA (${t.loc ?? ''})`);
   if (t.reach && t.categorie === 'melee') bits.push(`Allonge ${t.reach}`);
   // Portée : « N m » (fixe) / « BF×k m » (jet) ; sinon le modificateur de la munition (« ×½ »).
-  if (t.categorie === 'ranged' || t.categorie === 'ammunition') { const p = rangeSpecLabel(t.range) ?? ammoRangeModLabel(t.ammoRangeMod); if (p) bits.push(`Portée ${p}`); }
+  if (t.categorie === 'distance' || t.categorie === 'ammunition') { const p = rangeSpecLabel(t.range) ?? ammoRangeModLabel(t.ammoRangeMod); if (p) bits.push(`Portée ${p}`); }
   if (t.enc) bits.push(`Enc. ${t.enc}`);
   if (t.qualities?.length) bits.push(t.qualities.map(qualityRefLabel).join(', '));
   return bits.join(' · ');

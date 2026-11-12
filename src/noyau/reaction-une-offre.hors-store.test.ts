@@ -36,8 +36,8 @@ function setup() {
   banc.getState().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = banc.getState().battle!;
-  const H = b.combatants.find((c) => c.kind === 'hero')!;
-  const E = b.combatants.find((c) => c.kind === 'enemy')!;
+  const H = b.combatants.find((c) => c.kind === 'heros')!;
+  const E = b.combatants.find((c) => c.kind === 'ennemi')!;
   b.combatants = [H, E];
   H.pos = { x: 10, y: 10 };
   E.pos = { x: 11, y: 10 };
@@ -185,11 +185,11 @@ function effetsAGratuiteDeLaDonnee(): { ou: string; eff: TriggeredEffect }[] {
 }
 
 const MIXTE: TriggeredEffect = {
-  trigger: 'onHit', on: 'victim', attackType: 'ranged',
+  trigger: 'onHit', on: 'victime', attackType: 'distance',
   flow: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'empetre' }, value: 1 }, { op: 'grantFreeAttack', weapon: 'held', when: 'immediate' } as never] } },
 };
 const ATOUT: TriggeredEffect = {
-  trigger: 'onHit', on: 'self',
+  trigger: 'onHit', on: 'soi',
   flow: { kind: 'effet', effet: { type: 'ops', on: 'caster', ops: [{ op: 'grantFreeAttack', weapon: 'held', when: 'immediate' } as never] } },
 };
 type Porteur = 'manuel' | 'auto' | 'ennemi';
@@ -259,7 +259,7 @@ describe('#3159 — enveloppe et arme', () => {
     resolveFreeAttacks(banc.getState, banc.setState, porteur, 'onHit', tiers, { weapon, attackType: 'melee' });
     expect(empetre(tiers.id) + empetre(porteur.id)).toBe(0);
     expect(vif(porteur.id).freeAttacksThisTurn).toBeUndefined();
-    resolveFreeAttacks(banc.getState, banc.setState, porteur, 'onHit', tiers, { weapon, attackType: 'ranged' });
+    resolveFreeAttacks(banc.getState, banc.setState, porteur, 'onHit', tiers, { weapon, attackType: 'distance' });
     expect(empetre(tiers.id)).toBe(1);
     expect(empetre(porteur.id)).toBe(0);
   });

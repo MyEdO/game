@@ -38,22 +38,22 @@ beforeAll(() => {
 });
 
 const chars = { 'capacite-de-combat': 60, 'capacite-de-tir': 50, force: 45, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 40, sociabilite: 30 };
-const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, weapons: Weapon[] = []): Combatant =>
+const mk = (id: string, kind: 'heros' | 'ennemi', pos: { x: number; y: number }, weapons: Weapon[] = []): Combatant =>
   (blessuresSurLeProfil({ id, name: id, label: id, kind, characteristics: { ...chars }, conditions: [], traumas: [], engagedWith: [], skills: [], talents: [], items: [],
      weapons, advantage: 0, size: 'moyenne', pos, wounds: blessuresDeBase(18), resilience: 2, fortune: 2,
      species: 'humains-reiklander', bodyShape: 'humanoide', movement: 4,
      armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 } }) as unknown as Combatant);
 const sword: Weapon = { name: 'Épée', label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, uid: 'sw', qualities: [] } as unknown as Weapon;
-const bow: Weapon = { name: 'Arc', label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 4 }, range: 60, qualities: [], uid: 'bw' } as unknown as Weapon;
+const bow: Weapon = { name: 'Arc', label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 4 }, range: 60, qualities: [], uid: 'bw' } as unknown as Weapon;
 /** Arme de JET à portée FAIBLE : à 1 case (2 m) la cible n'est PLUS à Bout Portant → `rangedDefenseModes`
  *  vide → aucun mode de défense RAW (LDB 13 l.125). Sert la divergence d'ARME de la SONDE2. */
-const dart: Weapon = { name: 'Fléchette', label: 'Fléchette', type: 'ranged', damage: { plusBF: false, flat: 2 }, range: 6, qualities: [], uid: 'dt' } as unknown as Weapon;
+const dart: Weapon = { name: 'Fléchette', label: 'Fléchette', type: 'distance', damage: { plusBF: false, flat: 2 }, range: 6, qualities: [], uid: 'dt' } as unknown as Weapon;
 
 /** Duel MJ : l'ENNEMI est conduit à la main (siège MJ → attaque PILOTÉE, modale d'attaque) et le
  *  héros défenseur est SURFACÉ (`defenseSurfaced`) — quadrant exact du défaut. */
 function duel(opts?: { gmSeat?: number; heroAi?: boolean; surpris?: boolean; atkWeapons?: Weapon[]; atkTraits?: Combatant['traits'] }) {
-  const enemy = mk('Rôdeur', 'enemy', { x: 1, y: 0 }, opts?.atkWeapons ?? [sword]);
-  const hero = mk('Grunni', 'hero', { x: 0, y: 0 }, [sword]);
+  const enemy = mk('Rôdeur', 'ennemi', { x: 1, y: 0 }, opts?.atkWeapons ?? [sword]);
+  const hero = mk('Grunni', 'heros', { x: 0, y: 0 }, [sword]);
   if (opts?.atkTraits) enemy.traits = opts.atkTraits;
   if (opts?.heroAi) hero.aiControlled = true;
   if (opts?.surpris) addCondition(hero, COND.surpris);
@@ -251,7 +251,7 @@ describe('#1004 instance adjacente — sort DISSIPÉ : la ligne de Dégâts ne s
    */
   const multiOpposition = (grunniResists: boolean) => {
     const { hero } = duel();
-    const autre = mk('Autre', 'hero', { x: 0, y: 1 }, [sword]);
+    const autre = mk('Autre', 'heros', { x: 0, y: 1 }, [sword]);
     const battle = useGame.getState().battle!;
     useGame.setState({
       battle: { ...battle, combatants: [...battle.combatants, autre], order: [...battle.order, autre.id] } as never,
@@ -311,7 +311,7 @@ describe('#1026 SONDE2 — une seule vérité d’ARME entre l’écran et l’a
     const battle = useGame.getState().battle!;
     const wShared = attackWeaponOf(battle, enemy, hero, pa);
     const wLegacy = firedWeapon(enemy, hero, pa.weaponUid, battle.combatants);
-    expect([wShared.type, wLegacy.type], 'la fixture DOIT opposer arme naturelle et arme de jet').toEqual(['melee', 'ranged']);
+    expect([wShared.type, wLegacy.type], 'la fixture DOIT opposer arme naturelle et arme de jet').toEqual(['melee', 'distance']);
     expect(surfacedDefensePending(useGame.getState(), enemy, hero, wShared, pa), 'Morsure au contact : une fenêtre s’ouvre').toBe(true);
     expect(surfacedDefensePending(useGame.getState(), enemy, hero, wLegacy, pa), 'Fléchette hors Bout Portant : aucun mode RAW').toBe(false);
   });

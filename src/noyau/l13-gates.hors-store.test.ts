@@ -42,7 +42,7 @@ describe('L13 — gates & redirections', () => {
     const b = banc.getState().battle!;
     const hero = b.combatants.find((c) => c.label === 'H')!;
     const priest = b.combatants.find((c) => c.label === 'P')!;
-    const foes = b.combatants.filter((c) => c.kind === 'enemy');
+    const foes = b.combatants.filter((c) => c.kind === 'ennemi');
     hero.pos = { x: 10, y: 10 };
     priest.pos = { x: 9, y: 10 };
     foes.forEach((f, i) => { f.pos = { x: 11 + i, y: 10 }; });

@@ -20,7 +20,7 @@ import type { Combatant, Weapon } from '../engine/types';
 import { cliquerSurLeCombattant } from '../noyau/combatOrParty';
 
 const get = () => useGame.getState();
-const rangedOf = (c: Combatant): Weapon => c.weapons.find((w) => w.type === 'ranged')!;
+const rangedOf = (c: Combatant): Weapon => c.weapons.find((w) => w.type === 'distance')!;
 
 /** Duel sur scène vide : le héros H joue au tour `turn` de l'ordre [H, E]. */
 function duel(turn: 0 | 1) {
@@ -29,7 +29,7 @@ function duel(turn: 0 | 1) {
   const E: Combatant = JSON.parse(JSON.stringify(H));
   E.id = 'enemy-0';
   E.label = 'Gobelin';
-  E.kind = 'enemy';
+  E.kind = 'ennemi';
   E.pos = { x: 2, y: 0 };
   const battle: BattleState = {
     combatants: [H, E], order: [E.id, H.id], turn, round: 1, action: null, selectedSpellId: null,
@@ -43,7 +43,7 @@ function duel(turn: 0 | 1) {
 function pauseTirRapide() {
   const { H, E } = duel(1);
   H.talents = [{ talentId: 'tir-rapide', times: 1 }];
-  H.weapons = [{ label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 30, qualities: [] }] as never;
+  H.weapons = [{ label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 8 }, range: 30, qualities: [] }] as never;
   rangedOf(H).loaded = true;
   advanceTurn(get, useGame.setState);
   expect(get().pendingRoundStart, 'témoin : la pause de Round est ouverte').not.toBeNull();
@@ -93,7 +93,7 @@ describe('curseurPerime — le curseur suit la fenêtre de geste', () => {
     horse.traits = [{ id: 'nerveux' }, { id: 'taille', arg: 'Grande' }] as never;
     horse.size = 'grande';
     horse.mountable = true;
-    horse.kind = 'hero';
+    horse.kind = 'heros';
     const other = spawnEnemy({ ref: 'humain' }, 'other', { x: 1, y: 1 });
     const battle: BattleState = {
       combatants: [hero, horse, other], order: ['other', 'horse', hero.id], baseOrder: ['other', 'horse', hero.id],

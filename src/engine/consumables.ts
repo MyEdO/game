@@ -54,7 +54,7 @@ export function bakeConsumableFlow(flow: Flow, heroId: string, untilTime: number
   const bake = (f: Flow): Flow => {
     switch (f.kind) {
       case 'effet': {
-        const e: EffectOp = { ...f.effet, on: 'hero', heroId, label, ...(untilTime != null ? { untilTime } : {}) };
+        const e: EffectOp = { ...f.effet, on: 'heros', heroId, label, ...(untilTime != null ? { untilTime } : {}) };
         return { kind: 'effet', effet: e };
       }
       case 'sequence': return { kind: 'sequence', etapes: f.etapes.map(bake) };

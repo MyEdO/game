@@ -27,7 +27,7 @@ afterEach(() => resetData());
 describe('écriture du store : le maximum suit, à chaque chemin de combattant de l’état', () => {
   describe.each(CHEMINS_NOMMES)('%s', (_, chemin) => {
     it.each(PORTEURS)('%s posé sans réconciliation', (_n, _champ, poser) => {
-      const c = blesseDeTest(10, { kind: 'hero' });
+      const c = blesseDeTest(10, { kind: 'heros' });
       poser(c, plus3());
       banc.setState(poserAuChemin(banc.getState(), chemin, c));
       expect(lireAuChemin(banc.getState(), chemin).wounds).toMatchObject({ max: 15, current: 13 });

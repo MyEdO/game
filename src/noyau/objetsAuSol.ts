@@ -28,10 +28,10 @@ import { bus, EVT } from './bus';
 const DECOR_DE_L_OBJET_AU_SOL = 'bourse';
 
 /** Les objets du porteur `c`. */
-const objetsDe = (c: Carrier): ItemInstance[] => (c.kind === 'hero' ? (c.hero.items ?? []) : c.possession.items);
+const objetsDe = (c: Carrier): ItemInstance[] => (c.kind === 'heros' ? (c.hero.items ?? []) : c.possession.items);
 
 /** Le nom d'un porteur. */
-const nomDe = (c: Carrier): string => (c.kind === 'hero' ? c.hero.label : possessionLabel(c.possession));
+const nomDe = (c: Carrier): string => (c.kind === 'heros' ? c.hero.label : possessionLabel(c.possession));
 
 /** Pourquoi l'objet `uid` ne se pose pas au sol hors combat, `null` s'il se pose : en combat, l'inventaire de la fiche
  *  est fermé (`refusDInventaire`) ; personne ne le porte ; aucune scène ; son porteur n'est pas avec le groupe ; une arme
@@ -77,8 +77,8 @@ export function poserLObjet(get: Get, set: Set, uid: string): void {
   if (refus) return void refuserGeste(get, set, refus);
   const barre = etatDeLaBarre(s);
   const actif = barre.forme === 'ouverte' ? barre.active : undefined;
-  const porteur: Carrier = actif ? { kind: 'hero', hero: actif } : resolveCarrier(s, porteurDeLObjet(s, uid)!)!;
-  const porteurId = porteur.kind === 'hero' ? porteur.hero.id : porteur.possession.uid;
+  const porteur: Carrier = actif ? { kind: 'heros', hero: actif } : resolveCarrier(s, porteurDeLObjet(s, uid)!)!;
+  const porteurId = porteur.kind === 'heros' ? porteur.hero.id : porteur.possession.uid;
   const [objet, ...contenu] = lotDeLObjet(objetsDe(porteur), uid);
   const lot: ItemInstance[] = [{ ...objet, equipped: false, inside: undefined }, ...contenu.map((i) => ({ ...i, equipped: false }))];
   set((e) => ecrireLesPorteurs(e, { [porteurId]: (items) => sansLeLot(items, lot) }));

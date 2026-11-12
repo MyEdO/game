@@ -387,7 +387,7 @@ describe('Voile d’entrée en scène — les PROCHES le tiennent, le lointain n
 describe('Vue de plateau — le centre de proximité vient des HÉROS', () => {
   const HÉROS = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
   const héros = (id: string, x: number, y: number): ActorPose => ({ c: { ...HÉROS, id }, x, y, z: 0 });
-  const ennemi = (id: string, x: number, y: number): ActorPose => ({ c: { ...HÉROS, id, kind: 'enemy' }, x, y, z: 0 });
+  const ennemi = (id: string, x: number, y: number): ActorPose => ({ c: { ...HÉROS, id, kind: 'ennemi' }, x, y, z: 0 });
 
   it('BARYCENTRE des héros, l’ennemi IGNORÉ — et rien du tout sans héros', () => {
     const plateau = cadrePlateau();

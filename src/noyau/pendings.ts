@@ -251,7 +251,7 @@ export interface PendingReload {
   weaponUid: string; // arme de rechargement (loadout) — résolue en NOM à l'affichage
   reload: number; // Indice DR cible
   progressBefore: number; // DR déjà cumulés (Test étendu)
-  skillValue: number; // combatValue(active, 'ranged')
+  skillValue: number; // combatValue(active, 'distance')
   difficulty: Difficulty; // 'intermediaire' (le canon ne spécifie pas → défaut)
   /** Ligne du jet montée à l'ouverture (`rollLine`, arme bakée et Soutien compris) — lue par la fenêtre. */
   ligne: RollLineParts;
@@ -1022,7 +1022,7 @@ export interface ToucheDeProjectile {
  *    posé sur chacun de ses coups par `ouvrirLaSerieSubie` puis `poursuivreLaSerie`. MDG 15 l.163-164, l.177-178.
  */
 export type EnchainementDuCoup =
-  | { mode: 'hero'; wasChain: boolean }
+  | { mode: 'heros'; wasChain: boolean }
   | ({ mode: 'chaine' } & ChaineDeBalayage)
   | ({ mode: 'bordee' } & TirsDeBordee)
   | { mode: 'auto' }
@@ -1770,14 +1770,14 @@ export interface CascadeStepMeta {
   flowLabel?: string;
   flowSl?: number;
   /** Coût d'Avantage d'une étape `choixDeclenche` (dépensé sur OUI si payable) — absent = gratuit. */
-  choiceCost?: number;
+  coutEnAvantage?: number;
   /** Trait psy qu'acquiert le porteur d'une étape `cibleAcquise` (ADE II 09 l.9, l.15), envers la Cible choisie
    *  (`noyau/cibleAcquise.ts`). */
   psychAcquis?: TypeAcquis;
   /** Feuille d'ops SUSPENDUE d'une étape `personneChoisie` (VDM 10 l.327) : jouée, Traits psy `envers` la
    *  personne désignée (`noyau/personneChoisie.fluxDEnvers`), quand le décideur a choisi. */
   feuilleEnvers?: Flow;
-  /** CIBLE de la branche d'un `choixDeclenche` quand elle DIFFÈRE du décideur (`on:'victim'` : le décideur
+  /** CIBLE de la branche d'un `choixDeclenche` quand elle DIFFÈRE du décideur (`on:'victime'` : le décideur
    *  est le porteur/attaquant `caster`, mais la branche `yes` vise la VICTIME — Déstabilisante : Test opposé
    *  contre la cible touchée). Id sérialisable, restauré en `ctx.target` par l'applier. Absent ⇒ la cible =
    *  le décideur (Frappe réactive : Test sur soi, le tiers voyage dans `freeAttack`). */

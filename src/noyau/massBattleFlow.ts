@@ -900,7 +900,7 @@ function startBattleCombat(get: Get, set: Set, scene: ActivityDef): void {
 export function massBattleTrackHit(get: Get, set: Set, attacker: Combatant, target: Combatant): void {
   const mb = get().massBattle;
   if (!mb?.combatScene) return;
-  if (attacker.kind !== 'hero' || target.kind !== 'enemy' || isStructure(target)) return;
+  if (attacker.kind !== 'heros' || target.kind !== 'ennemi' || isStructure(target)) return;
   const cs = mb.combatScene;
   const hitters = cs.hitters.includes(attacker.id) ? cs.hitters : [...cs.hitters, attacker.id];
   set({ massBattle: { ...mb, combatScene: { ...cs, hits: cs.hits + 1, hitters } } });

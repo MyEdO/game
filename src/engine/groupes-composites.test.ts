@@ -14,7 +14,7 @@ import { blessuresSurLeProfil, blessuresDeBase, profilDeTest } from './combattan
 afterEach(() => resetData());
 
 const mk = (o: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
-  id: 'c', label: 'c', kind: 'enemy', advantage: 0, conditions: [],
+  id: 'c', label: 'c', kind: 'ennemi', advantage: 0, conditions: [],
   characteristics: profilDeTest({ 'force-mentale': 35 }), psychState: [], psychTraits: [], groups: [],
   weapons: [], armour: {} as never, skills: [], talents: [], movement: 4, wounds: blessuresDeBase(10), ...o,
 }) as Combatant);

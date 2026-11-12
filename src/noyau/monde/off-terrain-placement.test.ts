@@ -13,7 +13,7 @@ const scene = {
 } as unknown as Scene;
 
 const marine = (): Combatant => (blessuresSurLeProfil({
-  id: 'm1', name: 'Wyrm', kind: 'enemy',
+  id: 'm1', name: 'Wyrm', kind: 'ennemi',
   characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 0, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
   movement: 6, wounds: blessuresDeBase(20), weapons: [], skills: [], talents: [],
   traits: [{ id: 'creature-marine' }],

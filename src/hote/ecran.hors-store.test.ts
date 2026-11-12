@@ -15,8 +15,8 @@ describe('le journal de l’écran (`journal.lignes`)', () => {
     const { partie } = ouvrirLaPartie(nouvelEntete('dome', { graine: 7 }), () => {});
     try {
       const etat = partie.etat();
-      const heros = etat.battle!.combatants.find((c) => c.kind === 'hero')!;
-      const ennemi = etat.battle!.combatants.find((c) => c.kind === 'enemy')!;
+      const heros = etat.battle!.combatants.find((c) => c.kind === 'heros')!;
+      const ennemi = etat.battle!.combatants.find((c) => c.kind === 'ennemi')!;
       const jour = dayIndex(etat.gameTime);
       const heure = etat.gameTime;
       const combat = (kind: Extract<LigneDuJournal, { de: 'combat' }>['evenement']['kind'], text: string, actorId?: string, targetId?: string, h = heure): LigneDuJournal =>
@@ -60,7 +60,7 @@ describe('la fenêtre du Destin (`fenetre.corps`, `fenetre.gestes`)', () => {
   it('ce qui emporte le héros et ses Points de Destin ; le coup ne s’évite que s’il porte', () => {
     const { partie } = ouvrirLaPartie(nouvelEntete('dome', { graine: 7 }), () => {});
     try {
-      const heros = partie.etat().battle!.combatants.find((c) => c.kind === 'hero')!;
+      const heros = partie.etat().battle!.combatants.find((c) => c.kind === 'heros')!;
       const ecran = (source: NonNullable<Jeu['pendingFateSave']>['source']) => {
         const etat = { ...partie.etat(), pendingFateSave: { heroId: heros.id, source } };
         const fenetre = fenetreADessiner(etat);
@@ -139,8 +139,8 @@ describe('ce que l’étape de la cascade annonce (`fenetre.corps`)', () => {
     const { partie } = ouvrirLaPartie(nouvelEntete('dome', { graine: 7 }), () => {});
     try {
       const combattants = partie.etat().battle!.combatants;
-      const heros = combattants.find((c) => c.kind === 'hero')!;
-      const ennemi = combattants.find((c) => c.kind === 'enemy')!;
+      const heros = combattants.find((c) => c.kind === 'heros')!;
+      const ennemi = combattants.find((c) => c.kind === 'ennemi')!;
       const lame = ennemi.weapons[0];
       const parade = heros.weapons[0];
       const etape = choiceStep(choixPiegeLame({ defenderId: heros.id, attackerId: ennemi.id, weapon: lame, parryWeaponUid: parade.uid!, defSL: 2, roll: 34 }, heros, ennemi, parade))!;

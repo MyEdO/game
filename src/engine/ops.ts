@@ -378,9 +378,9 @@ export function charDRBonusOf(c: Combatant, char: CharKey | undefined): number {
 }
 
 /** Les modificateurs au Test d'un ATTAQUANT visant `c` (op PASSIVE `incomingAttackMod` de ses traits) pour un
- *  mode d'attaque (`melee`/`ranged`, ops `all` comprises), une ligne par trait, à son nom et liée à sa fiche
+ *  mode d'attaque (`melee`/`distance`, ops `all` comprises), une ligne par trait, à son nom et liée à sa fiche
  *  (Parasité LDB 85 l.257, Nuée l.253). Circonstance : une condition de la CIBLE (`LDB 14 l.48`). */
-export function incomingAttackLines(c: Combatant, mode: 'melee' | 'ranged'): ModLine[] {
+export function incomingAttackLines(c: Combatant, mode: 'melee' | 'distance'): ModLine[] {
   const out: ModLine[] = [];
   for (const t of c.traits ?? []) {
     const trait = findTraitById(t.id);
@@ -720,7 +720,7 @@ export type GameOp =
       /** Passifs d'ARME conférés par l'altération — MÊME vocabulaire que le `passive` d'un Atout/Défaut du
        *  registre (`weaponRollMod`/`weaponDamageMod`/`armourPierce`/`critOnRoll`), lu au MÊME point
        *  (`weaponPassiveOps`, engine/qualities/dispatch). VDM 05 Défaut : « −1 DR à tous les Tests pour
-       *  attaquer avec elle » ⇒ `[{op:'weaponRollMod', phase:'attack', drMod:-1}]`. */
+       *  attaquer avec elle » ⇒ `[{op:'weaponRollMod', phase:'attaque', drMod:-1}]`. */
       passive?: OpPassive[];
       /** Effets DÉCLENCHÉS « à la touche » de l'arme enchantée — forme UNIFIÉE (`TriggeredEffect`,
        *  comme les Atouts d'arme et les Traits) : Marteau ardent → En flammes/À Terre ; Épée de
@@ -889,14 +889,14 @@ export type GameOp =
    *  une frappe) RÉSOLU par la couche state (`accorderLAttaqueGratuite` de `combatFlow`, appelé par `runCombatFlow`
    *  sur ce `do`) ; INERTE dans `applyOps`. `weapon` : arme tenue / main principale / naturelle. `when` :
    *  'available' = surfacée comme OPTION du Tour (Frénésie, lue par `availableAttacks`) ou 'immediate' = résolue
-   *  tout de suite (depuis un effet déclenché). `coutEnAvantage` / `advantageOrMovement` : ce que la frappe
+   *  tout de suite (depuis un effet déclenché). `coutEnAvantage` / `avantageOuMouvement` : ce que la frappe
    *  coûte au porteur. `activeIf` : condition
    *  d'activation d'une grant 'available' (l'état `frenzied`). `perChargerOncePerRound` : 1× par chargeur. Le
    *  plafond /Round est porté par la couche state (= niveau du talent). Un éventuel jet PRÉALABLE (Frappe
    *  réactive : Test d'Initiative) est un nœud Flow `test` EN AMONT du `do`, pas un champ de l'op (cadence-aware
    *  via `resolveFlowTest`). */
   | { op: 'grantFreeAttack'; weapon: 'held' | 'mainHand' | 'natural'; when: 'available' | 'immediate';
-      coutEnAvantage?: number; advantageOrMovement?: boolean;
+      coutEnAvantage?: number; avantageOuMouvement?: boolean;
       activeIf?: 'frenzied'; perChargerOncePerRound?: boolean; label?: string }
   /** Marqueur IMPUR de la branche d'ÉCHEC du Test `interruption-de-focalisation` (LDB 46 l.144) :
    *  la cible perd tous les DR focalisés (couverts par son composant) et subit une Incantation Imparfaite
@@ -1198,11 +1198,11 @@ export type GameOp =
   | { op: 'teamCommander'; commanderId: string }
   /** PASSIF d'ARME (Atout/Défaut, LDB 62-63) : modificateur de DR/plat à une PHASE de jet de combat —
    *  Précise (+10 `flatMod` en attaque), Imprécise (−1 DR en attaque), Pointue (+1 DR au Test d'attaque
-   *  RÉUSSI, `phase:'attackSuccess'`, LDB 62 l.288), Défensive (+1 DR parade du défenseur), À Enroulement
+   *  RÉUSSI, `phase:'attaqueReussie'`, LDB 62 l.288), Défensive (+1 DR parade du défenseur), À Enroulement
    *  (−1 DR parade adverse), Lente (+1 DR à TOUTE défense adverse), Pratique/Peu Fiable (±1 DR à
    *  un Test raté). Lu PAR ID par `engine/qualities/dispatch` (attackDRAdjust/parryDRAdjust/vsDefenseDRAdjust/
    *  qualitySum/craftTestDRAdjust). INERTE dans `applyOps`. */
-  | { op: 'weaponRollMod'; phase: 'attack' | 'attackSuccess' | 'parryByDefender' | 'parryAgainstAttacker' | 'vsDefense' | 'testFail'; drMod?: number; flatMod?: number }
+  | { op: 'weaponRollMod'; phase: 'attaque' | 'attaqueReussie' | 'paradeDuDefenseur' | 'paradeAdverse' | 'defenseAdverse' | 'testRate'; drMod?: number; flatMod?: number }
   /** PASSIF d'ARME : modificateur de DÉGÂTS (LDB 62-63) — Dévastatrice (DR = max(DR,
    *  dé des unités), `mode:'maxUnits'`), Percutante (+ dé des unités, `plusUnits`), Inoffensive (annule les
    *  Atouts de Dégâts, `negateAtouts`), Épuisante (`chargeGated` : Percutante/Dévastatrice de l'arme inertes

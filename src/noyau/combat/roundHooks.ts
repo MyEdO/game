@@ -278,7 +278,7 @@ export const TABLES = {
         const { roll, mod } = rollWindsOfMagic(battleRng());
         let revealed = false;
         for (const c of battle.combatants) {
-          if (c.kind !== 'hero' || isOutOfAction(c) || !hasSecondeVue(c)) continue;
+          if (c.kind !== 'heros' || isOutOfAction(c) || !hasSecondeVue(c)) continue;
           const res = rollTest(testValue(c, { skill: { id: 'perception' } }), 'facile', battleRng());
           if (res.success) { revealed = true; sink(t('cs.windsOfMagicSeen', { name: c.label }), c); }
         }
@@ -327,7 +327,7 @@ export const TABLES = {
               if (c.id === src.id) continue;
               const sameCamp = c.kind === src.kind;
               // `affects` absent ou `all` = aucun filtre de camp (Perturbant, LDB 85 l.262 : « Toute personne »).
-              if (aura.affects === 'enemies' && sameCamp) continue;
+              if (aura.affects === 'ennemis' && sameCamp) continue;
               if (aura.affects === 'allies' && !sameCamp) continue;
               if (combatDistance(src, c, mpt) * mpt <= rangeM) c.auraMods = [...(c.auraMods ?? []), ...projected];
             }

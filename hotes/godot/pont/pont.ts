@@ -18,7 +18,7 @@
  * faite des lecteurs du noyau. Le pont (`pont.ts`) ne porte aucune règle ; il passe par le module commun des hôtes
  * (`src/hote/`). Ticket : #2928. Les tests `*.hors-store.test.ts` de ce dossier vérifient ce contrat.
  */
-import { CLIC_DU_CHAMP, chargerLaSave, estUnPointDeReprise, nommerLesRetraits, partieEnCours, pointDeRepriseAGarder, refusDeLancer, refusDeSauvegarde, ruleOverrides, snapshotSave, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, editer, intentionDEngagement, ouvrirLEdition, projetDuDepot, essaiDeLaScene, texteAEnregistrer, pagesDeCreation, vueDeLaScene, FIRE_ARCS, ficheDEntite, libelleDuBord, lireApparenceDAuteur, lireComposition, lireSurchargesDEmblemes, siegeEngines, vehiculeDuCombattant, type FireArc, lumiereDeLaScene, porteeDuCombattant, type Jeu, effetsDeLAppel, vitrineDesEffets, type Effet, type VitrineDesEffets, meteoDuRegard, aretesDeLaCouche, aretesDeLaScene, type AreteDessinee, naviresDeLaScene, stationsDuNavire, type EmprisesDesCases, type NavireDeLaScene, type StationDeNavire, casesDuGroupe, masqueDuRegard, plateauDeLaScene, regardDuJeu, REGARDS, type Regard, porteeDeComposition, presetDeComposition, couronnesDuMonde, retraitDuMonde, toitsDuMonde, volumeDuMonde, echantillonDessine, famillesDEchantillons, type EchantillonDessine, type FamilleDEchantillons, type Composition, type GesteDEdition, type Scene, type SessionDEdition, type LectureAuSchema, type LigneDuJournal, type LumiereDeLaScene, type ProjectDoc, type Programme, type ResultatDeLAppel, type VehiculeDuCombattant, type EmblemeResolu, planDeLaCouche, type OeilDuPlan, musiqueDeLaPartie, type MusiqueDeLaPartie, zonesQuiDurent, type ZoneQuiDure, marquesDesEtats, type MarqueDEtat, type MeteoDuRegard, type MorceauDuMonde, type NappeDuMonde, type PlateauDeLaScene, type RetraitDuMonde, type VolumeDuMonde } from '../../../src/noyau/index';
+import { CLIC_DU_CHAMP, chargerLaSave, estUnPointDeReprise, nommerLesRetraits, partieEnCours, pointDeRepriseAGarder, refusDeLancer, refusDeSauvegarde, ruleOverrides, snapshotSave, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, editer, intentionDEngagement, ouvrirLEdition, projetDuDepot, essaiDeLaScene, texteAEnregistrer, pagesDeCreation, vueDeLaScene, FIRE_ARCS, ficheDEntite, libelleDuBord, lireApparenceDAuteur, lireComposition, lireSurchargesDEmblemes, siegeEngines, vehiculeDuCombattant, type FireArc, lumiereDeLaScene, porteeDuCombattant, type Jeu, effetsDeLAppel, vitrineDesEffets, type Effet, type VitrineDesEffets, meteoDuRegard, aretesDeLaCouche, aretesDeLaScene, type AreteDessinee, naviresDeLaScene, stationsDuNavire, type EmprisesDesCases, type NavireDeLaScene, type StationDeNavire, casesDuGroupe, masqueDuRegard, plateauDeLaScene, regardDuJeu, REGARDS, type Regard, porteeDeComposition, presetDeComposition, couronnesDuMonde, retraitDuMonde, toitsDuMonde, volumeDuMonde, echantillonDessine, famillesDEchantillons, type EchantillonDessine, type FamilleDEchantillons, type Composition, type GesteDEdition, type Scene, type SessionDEdition, type LectureAuSchema, type LigneDuJournal, type LumiereDeLaScene, type ProjectDoc, type Programme, type ResultatDeLAppel, type VehiculeDuCombattant, type EmblemeResolu, planDeLaCouche, type OeilDuPlan, musiqueDeLaPartie, type MusiqueDeLaPartie, zonesQuiDurent, type ZoneQuiDure, marquesDesEtats, type MarqueDEtat, type MeteoDuRegard, type MorceauDuMonde, type NappeDuMonde, type PlateauDeLaScene, type RetraitDuMonde, type VolumeDuMonde, PREFERENCES, type PrefValue } from '../../../src/noyau/index';
 import { ErreurDeGeste, nouvelEntete, nouvellesEntrees, ouvrirAuGroupe, ouvrirLaPartie, ouvrirLeLancement, valider, type CategorieDErreur, type PartieAuGroupe } from '../../../src/hote/partie';
 import { envoyerLIntention, gesteDuVerbe, intentionDuGeste, SANS_PISTE } from '../../../src/hote/geste';
 import { casesAtteignables, projeter, type BornesDeLaProjection, type CaseAtteignable, type Projection } from '../../../src/hote/projection';
@@ -31,13 +31,14 @@ import { estListeDeChaines } from '../asset/attache';
 import type { TableDeClips } from '../asset/clips';
 import { type CreationOuverte, type GesteDeLaCreation, type PanneauDeLHote } from '../../../src/hote/elements';
 import { apresLaCreation, boutonDeLaCreation } from '../../../src/hote/creation';
-import { boutonDeLEdition, calqueAffiche, cheminDeLaPlanche, estLIssueDUnChargement, gesteDuFormulaire, estLIssueDUnEnregistrement, estUnGesteDuPointeur, memoireDesCalques, refusDeLaValeurDit, surcoucheDeLEdition, zonesDeLEditeur } from '../../../src/hote/editeur';
+import { boutonDeLEdition, calqueAffiche, cheminDeLaPlanche, estLIssueDUnChargement, estLIssueDUnChapitre, gesteDuFormulaire, estLIssueDUnEnregistrement, estUnGesteDuPointeur, memoireDesCalques, refusDeLaValeurDit, surcoucheDeLEdition, zonesDeLEditeur } from '../../../src/hote/editeur';
 import { allBuiltinCampaigns, campagneDuJeu, lancementDeLaCampagne, paquetDuJeu } from '../../../src/scenes/campaign';
 import { zonesDesScenarios } from '../../../src/hote/scenarios';
 import { AUTO_SLOT, MESSAGE_DU_REFUS, SAVE_SLOTS, ecrireLaSauvegarde, lireLaSauvegarde, nomDEmplacement, zonesDesSauvegardes, type AnySlot, type SaveSlot } from '../../../src/hote/sauvegardes';
 import { graineDEntropie } from '../../../src/hote/entropie';
 import type { Stockage } from '../../../src/lib/stockage';
 import { t } from '../../../src/i18n';
+import { enOctets } from './octets';
 
 /** Le service `persisterLeHeros` du pont : il ne persiste aucun héros, l'hôte Godot n'a pas de stockage (#3041). */
 const sansRoster = (): void => {};
@@ -425,6 +426,8 @@ export interface MondeDuPont {
 /**
  * @contrat Monde
  * La réponse de `morceaux` : la géométrie de chaque clé demandée, une clé absente de la scène omise.
+ * Par `appeler`, ses tableaux en nombres.
+ * Par `appelerEnOctets`, l'en-tête d'`enOctets` (`EnteteDesMorceaux`, `pont/octets.ts`) : ses tableaux en bornes.
  */
 export interface MorceauxDuPont {
   /** les morceaux du volume demandés (`MorceauDuMonde`). */
@@ -511,6 +514,22 @@ function calquesGardes(texte: string): unknown {
   } catch {
     return null;
   }
+}
+
+/** L'index des chapitres du `Source/` que porte `texte`, le texte que sert le poste (`servir.mjs`, `source/manifest.json`) :
+ *  du JSON, par livre son sigle et ses chapitres, chacun sa graphie et son titre. */
+function manifesteServi(texte: unknown): NonNullable<SessionDEdition['manifeste']> {
+  valider(typeof texte === 'string', 'editer : manifeste, le texte de l’index des chapitres que sert le poste');
+  let lu: unknown;
+  try {
+    lu = JSON.parse(texte as string);
+  } catch {
+    throw new ErreurDeGeste('validation', 'editer : manifeste, JSON illisible');
+  }
+  const chapitre = (c: unknown) => estObjet(c) && typeof c.ch === 'string' && typeof c.titre === 'string';
+  const livre = (l: unknown) => estObjet(l) && typeof l.abbr === 'string' && Array.isArray(l.chapitres) && l.chapitres.every(chapitre);
+  valider(estObjet(lu) && Object.values(lu).every(livre), 'editer : manifeste, par livre { abbr, chapitres: { ch, titre }[] }');
+  return lu as NonNullable<SessionDEdition['manifeste']>;
 }
 
 /** Le pont sur le stockage `stockage` de son hôte (`null` : aucun, rien ne se sauvegarde) : ses méthodes, chacune
@@ -843,7 +862,8 @@ export function creerPont(stockage: Stockage | null) {
      *
      * @returns `{ volume, toits, couronnes }` (`MorceauxDuPont`) : la géométrie de chaque clé demandée, dans l'ordre du
      * manifeste, une clé absente de la scène omise ; refusé sans scène de la partie (`partie`) ou sans carte ouverte
-     * (`edition`)
+     * (`edition`).
+     * Par `appelerEnOctets`, l'en-tête d'`enOctets` : chaque tableau en `[debut, fin]` dans `octets()`.
      */
     morceaux(json): MorceauxDuPont {
       const e = entreeDe('morceaux', json, ['source', 'volume', 'toits', 'couronnes']);
@@ -1120,6 +1140,16 @@ export function creerPont(stockage: Stockage | null) {
     /**
      * aucune
      *
+     * @returns `{ preferences }` : la valeur effective de chaque préférence de confort, par id (`PREFERENCES`, surface
+     * du noyau), dont `volume-<canal>` pour chaque canal du mixage ; avant ou après `demarrer`
+     */
+    preferences(json): { preferences: Record<string, PrefValue> } {
+      entreeDe('preferences', json, []);
+      return { preferences: Object.fromEntries(PREFERENCES.map((p) => [p.id, p.get()])) };
+    },
+    /**
+     * aucune
+     *
      * @returns `{ familles: { id, libelle, entrees: { id, libelle }[] }[] }` : chaque famille de ce que le jeu dessine
      * en 3D hors des modèles servis, `decor`, `sol`, `relief`, `toit` et `mur`, et chacune de ses entrées, au libellé de
      * sa donnée, dans l'ordre des libellés (`famillesDEchantillons`, surface du noyau, section « Atelier 3D ») ; avant
@@ -1163,11 +1193,13 @@ export function creerPont(stockage: Stockage | null) {
       return rendu;
     },
     /**
-     * `{ ouvrir, projet?, calques? }` : l'id d'une campagne du jeu (`allBuiltinCampaigns`, `src/scenes/campaign.ts`),
-     * le texte de son projet que sert le dépôt, et celui des calques que l'hôte garde ; ou `{ edition }` : un geste
-     * d'édition (`GesteDEdition`, `src/noyau/edition/session.ts`), un geste du pointeur, l'issue d'un enregistrement ou
-     * d'un chargement de planche, ou celui que porte un bouton des zones de l'éditeur, un qui l'offre sans refus
-     * d'abord ; ou `{ type: 'nommer' | 'identifier' | 'decrire' | 'drapeau', args }` : le formulaire de l'inspecteur
+     * `{ ouvrir, projet?, calques?, manifeste? }` : l'id d'une campagne du jeu (`allBuiltinCampaigns`,
+     * `src/scenes/campaign.ts`), le texte de son projet que sert le dépôt, celui des calques que l'hôte garde, et celui de
+     * l'index des chapitres du `Source/` que sert le poste ; ou `{ edition }` : un geste d'édition (`GesteDEdition`,
+     * `src/noyau/edition/session.ts`), un geste du pointeur, l'issue d'un enregistrement, d'un chargement de planche ou
+     * de celui du chapitre attendu (refusée en `validation` hors d'une attente, ou d'un autre chapitre), ou celui que
+     * porte un bouton des zones de l'éditeur, un qui l'offre sans refus d'abord ; ou `{ type: 'nommer' | 'identifier' |
+     * 'decrire' | 'drapeau', args }` : le formulaire de l'inspecteur
      * qui nomme la sélection ou la scène, `args` le nom saisi ou rien, qui change l'identifiant de la zone d'effet
      * sélectionnée, `args` l'identifiant saisi, qui décrit la scène, `args` la description ou rien, ou qui ajoute un
      * drapeau de départ, `args` son nom ; ou `{ type: 'valeur', args: [porteur, chemin, valeur?] }` : un formulaire
@@ -1175,11 +1207,13 @@ export function creerPont(stockage: Stockage | null) {
      * pour retirer le champ (section « Éditeur »)
      *
      * @returns `{ vue: { zones, couche }, surcouche, calque, monde?, retrait?, aretes?, navires?, depot?, essai?,
-     * planche?, memoire? }` (section « Éditeur ») ; un bouton refusé se refuse en `regle`, avec sa raison, comme un enregistrement que la
+     * planche?, chapitre?, memoire? }` (section « Éditeur »), `chapitre` le `{ book, ch }` du chapitre que la session se
+     * met à attendre, que l'hôte charge (`GET source/<book>/<ch>.md`) puis rend en `{ edition: { geste: 'chapitre', book,
+     * ch, texte } }` ; un bouton refusé se refuse en `regle`, avec sa raison, comme un enregistrement que la
      * porte refuse
      */
     editer(json) {
-      const e = entreeDe('editer', json, (e) => ('ouvrir' in e ? ['ouvrir', 'projet', 'calques'] : 'type' in e ? ['type', 'args'] : ['edition']));
+      const e = entreeDe('editer', json, (e) => ('ouvrir' in e ? ['ouvrir', 'projet', 'calques', 'manifeste'] : 'type' in e ? ['type', 'args'] : ['edition']));
       const avant = 'ouvrir' in e ? null : edition?.session ?? null;
       let session: SessionDEdition;
       let depot: { id: string; texte: string } | null = null;
@@ -1188,7 +1222,8 @@ export function creerPont(stockage: Stockage | null) {
         valider(campagne !== undefined, `editer : ouvrir, l’id d’une campagne du jeu (${allBuiltinCampaigns.map((c) => c.id).join(', ')})`);
         valider(e.calques === undefined || typeof e.calques === 'string', 'editer : calques, le texte des calques que l’hôte garde');
         const gardes = e.calques === undefined ? undefined : calquesGardes(e.calques as string);
-        session = e.projet === undefined ? ouvrirLEdition(paquetDuJeu(campagne!), false, gardes) : ouvrirLEdition(projetServi(campagne!.id, e.projet), true, gardes);
+        const manifeste = e.manifeste === undefined ? null : manifesteServi(e.manifeste);
+        session = e.projet === undefined ? ouvrirLEdition(paquetDuJeu(campagne!), false, gardes, manifeste) : ouvrirLEdition(projetServi(campagne!.id, e.projet), true, gardes, manifeste);
       } else {
         valider(edition !== null, 'editer : aucune carte ouverte, editer { ouvrir } d’abord');
         const s = edition!.session;
@@ -1196,9 +1231,13 @@ export function creerPont(stockage: Stockage | null) {
         if ('type' in e) valider(nomme, 'editer : un formulaire des zones editeur.*, { type: nommer | identifier | decrire | drapeau, args: [texte] } ou { type: valeur, args: [porteur, chemin, valeur?] }');
         else if (estLIssueDUnEnregistrement(e.edition)) valider(s.depot?.enCours, 'editer : aucun enregistrement en cours');
         else if (estLIssueDUnChargement(e.edition)) valider(s.chargement, 'editer : aucun chargement de planche en cours');
+        else if (estLIssueDUnChapitre(e.edition)) {
+          const { book, ch } = e.edition;
+          valider(s.chapitreEnAttente?.book === book && s.chapitreEnAttente.ch === ch, `editer : chapitre, ${book} ch.${ch} n’est pas le chapitre attendu`);
+        }
         else if (!estUnGesteDuPointeur(e.edition)) {
           const b = boutonDeLEdition(zonesDeLEditeur(s), e.edition);
-          valider(b, 'editer : edition, un geste du pointeur ({ geste: appui | glisse | relache, point: { case: { x, y }, f: { x, y } } }, la case en entiers), l’issue d’un enregistrement ({ geste: enregistrement, reussi }), celle d’un chargement de planche ({ geste: chargement, image: { largeur, hauteur } | null }) ou le geste `{ edition }` d’un bouton des zones editeur.*');
+          valider(b, 'editer : edition, un geste du pointeur ({ geste: appui | glisse | relache, point: { case: { x, y }, f: { x, y } } }, la case en entiers), l’issue d’un enregistrement ({ geste: enregistrement, reussi }), celle d’un chargement de planche ({ geste: chargement, image: { largeur, hauteur } | null }), celle du chapitre attendu ({ geste: chapitre, book, ch, texte: texte | null }) ou le geste `{ edition }` d’un bouton des zones editeur.*');
           if (b!.refus) throw new ErreurDeGeste('regle', `editer : ${b!.refus}`);
         }
         const geste = nomme ?? (e.edition as GesteDEdition);
@@ -1221,6 +1260,8 @@ export function creerPont(stockage: Stockage | null) {
       edition = { session, monde: neuf ? { vue, z: session.z } : edition!.monde };
       const memoire = memoireDesCalques(avant, session);
       const charge = session.chargement && !avant?.chargement ? session.chargement : null;
+      const attendu = session.chapitreEnAttente;
+      const demande = attendu && (attendu.book !== avant?.chapitreEnAttente?.book || attendu.ch !== avant.chapitreEnAttente.ch) ? attendu : null;
       return {
         vue: { zones: zonesDeLEditeur(session), couche: session.z },
         surcouche: surcoucheDeLEdition(session),
@@ -1229,6 +1270,7 @@ export function creerPont(stockage: Stockage | null) {
         ...(depot ? { depot } : {}),
         ...('edition' in e && (e.edition as GesteDEdition).geste === 'tester' ? { essai: true } : {}),
         ...(charge ? { planche: { image: cheminDeLaPlanche(session.projet.id, charge.sceneId, charge.z) } } : {}),
+        ...(demande ? { chapitre: demande } : {}),
         ...(memoire ? { memoire } : {}),
       };
     },
@@ -1256,14 +1298,20 @@ export function creerPont(stockage: Stockage | null) {
 
   /**
    * @contrat Transport
-   * - `wfrpPont.appeler(methode, entree?)` est la fonction du pont que Godot appelle, hors du choix d'une image sur le
-   *   disque de l'auteur (`wfrpPont.choisirUneImage(rendre)`, section « Éditeur »), qui lit le document de la page et
-   *   `FileReader` à son appel seulement, hors de l'exécution de la construction. `methode` est le nom d'une méthode ;
-   *   `entree` est une chaîne JSON qui encode un objet, ou rien (absente ou `null`) pour une méthode sans entrée. Elle
-   *   rend toujours une chaîne JSON.
+   * - `wfrpPont.appeler(methode, entree?)` est la porte des outils (tests, vues figées, `recette.mjs`) ; Godot
+   *   appelle `appelerEnOctets`, hors du choix d'une image sur le disque de l'auteur
+   *   (`wfrpPont.choisirUneImage(rendre)`, section « Éditeur »), qui lit le document de la page et `FileReader` à son
+   *   appel seulement, hors de l'exécution de la construction. `methode` est le nom d'une méthode ; `entree` est une
+   *   chaîne JSON qui encode un objet, ou rien (absente ou `null`) pour une méthode sans entrée. Elle rend toujours
+   *   une chaîne JSON.
    * - La réponse vaut `{ "ok": true, … }` ou `{ "ok": false, "erreur": { "categorie", "message" } }`. `appeler` ne lève
    *   jamais.
    * - Une clé de l'entrée que la méthode ne lit pas se refuse.
+   * - `wfrpPont.appelerEnOctets(methode, entree?)` est la porte des transports de Godot.
+   * - Elle rend la chaîne d'`appeler`, sauf pour une réponse réussie de `morceaux`.
+   * - Celle-ci est l'en-tête d'`enOctets` (`pont/octets.ts`) : ses tableaux en bornes, `octets` sa longueur.
+   * - `wfrpPont.octets()` rend un `ArrayBuffer`, les octets de la dernière réponse d'`appelerEnOctets`.
+   * - Il vaut `null` quand elle n'en porte pas : autre méthode, ou refus.
    */
   /**
    * @contrat Erreurs
@@ -1299,18 +1347,40 @@ export function creerPont(stockage: Stockage | null) {
    * Les trois premières catégories sont celles du module commun (`CategorieDErreur`, `src/hote/partie.ts`) ; le texte
    * de chaque message vient de lui ou du noyau.
    */
-  /** Appelle la méthode `methode` sur l'entrée `json` : la réponse en JSON, jamais une levée. */
-  function appeler(methode: string, json?: string | null): string {
+  /** La réponse de la méthode `methode` sur l'entrée `json`, jamais une levée. */
+  function repondre(methode: string, json?: string | null): Reponse {
     try {
       const faire = Object.prototype.hasOwnProperty.call(methodes, methode) ? methodes[methode] : null;
       if (!faire) throw new ErreurDeGeste('validation', `méthode inconnue : ${String(methode)} (méthodes : ${Object.keys(methodes).join(', ')})`);
-      return JSON.stringify({ ok: true, ...faire(json) } satisfies Reponse);
+      return { ok: true, ...faire(json) };
     } catch (erreur) {
-      const reponse: Reponse = erreur instanceof ErreurDeGeste
+      return erreur instanceof ErreurDeGeste
         ? { ok: false, erreur: { categorie: erreur.categorie, message: erreur.message } }
         : { ok: false, erreur: { categorie: 'interne', message: erreur instanceof Error ? erreur.message : String(erreur) } };
-      return JSON.stringify(reponse);
     }
+  }
+
+  /** Appelle la méthode `methode` sur l'entrée `json` : la réponse en JSON, jamais une levée. */
+  function appeler(methode: string, json?: string | null): string {
+    return JSON.stringify(repondre(methode, json));
+  }
+
+  /** Les octets de la dernière réponse d'`appelerEnOctets`, `null` sans octets. */
+  let tenus: ArrayBuffer | null = null;
+
+  /** Appelle comme `appeler` ; une réponse réussie de `morceaux` rend l'en-tête d'`enOctets` et tient ses octets. */
+  function appelerEnOctets(methode: string, json?: string | null): string {
+    const reponse = repondre(methode, json);
+    tenus = null;
+    if (methode !== 'morceaux' || !reponse.ok) return JSON.stringify(reponse);
+    const { entete, octets } = enOctets(reponse as unknown as MorceauxDuPont);
+    tenus = octets;
+    return JSON.stringify({ ok: true, ...entete } satisfies Reponse);
+  }
+
+  /** Les octets de la dernière réponse d'`appelerEnOctets`, `null` si elle n'en porte pas. */
+  function octets(): ArrayBuffer | null {
+    return tenus;
   }
 
   /**
@@ -1322,7 +1392,7 @@ export function creerPont(stockage: Stockage | null) {
    * stockage que l'hôte donne au pont (`creerPont`) : celui de la page (`localStorage`), un fichier pour le pont du
    * processus.
    */
-  return { appeler };
+  return { appeler, appelerEnOctets, octets };
 }
 
 /** Le pont que la page expose à Godot. */

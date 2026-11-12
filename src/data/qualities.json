@@ -13,7 +13,7 @@
     "passive": [
       {
         "op": "weaponRollMod",
-        "phase": "parryAgainstAttacker",
+        "phase": "paradeAdverse",
         "drMod": -1
       }
     ]
@@ -58,7 +58,7 @@
     "effects": [
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
           "kind": "si",
           "condition": {
@@ -117,7 +117,7 @@
     "passive": [
       {
         "op": "weaponRollMod",
-        "phase": "parryByDefender",
+        "phase": "paradeDuDefenseur",
         "drMod": 1
       }
     ]
@@ -194,8 +194,8 @@
     "effects": [
       {
         "trigger": "onCrit",
-        "on": "victim",
-        "attackType": "ranged",
+        "on": "victime",
+        "attackType": "distance",
         "coupCritique": true,
         "flow": {
           "kind": "effet",
@@ -245,7 +245,7 @@
     "effects": [
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
           "kind": "sequence",
           "etapes": [
@@ -297,7 +297,7 @@
     "effects": [
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
           "kind": "sequence",
           "etapes": [
@@ -340,7 +340,7 @@
     "effects": [
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
           "kind": "sequence",
           "etapes": [
@@ -384,7 +384,7 @@
     "effects": [
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
           "kind": "sequence",
           "etapes": [
@@ -430,7 +430,7 @@
     "effects": [
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
           "kind": "sequence",
           "etapes": [
@@ -571,7 +571,7 @@
     "passive": [
       {
         "op": "weaponRollMod",
-        "phase": "attackSuccess",
+        "phase": "attaqueReussie",
         "drMod": 1
       }
     ]
@@ -590,7 +590,7 @@
     "passive": [
       {
         "op": "weaponRollMod",
-        "phase": "attack",
+        "phase": "attaque",
         "flatMod": 10
       }
     ]
@@ -635,7 +635,7 @@
     "effects": [
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
           "kind": "choix",
           "invite": "Renverser",
@@ -701,7 +701,7 @@
     "effects": [
       {
         "trigger": "onCrit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
           "kind": "sequence",
           "etapes": [
@@ -811,7 +811,7 @@
     "passive": [
       {
         "op": "weaponRollMod",
-        "phase": "parryByDefender",
+        "phase": "paradeDuDefenseur",
         "drMod": -1
       }
     ]
@@ -878,7 +878,7 @@
     "passive": [
       {
         "op": "weaponRollMod",
-        "phase": "attack",
+        "phase": "attaque",
         "drMod": -1
       }
     ],
@@ -920,7 +920,7 @@
     "passive": [
       {
         "op": "weaponRollMod",
-        "phase": "vsDefense",
+        "phase": "defenseAdverse",
         "drMod": 1
       }
     ],
@@ -1053,7 +1053,7 @@
     "passive": [
       {
         "op": "weaponRollMod",
-        "phase": "testFail",
+        "phase": "testRate",
         "drMod": 1
       }
     ]
@@ -1132,7 +1132,7 @@
     "passive": [
       {
         "op": "weaponRollMod",
-        "phase": "testFail",
+        "phase": "testRate",
         "drMod": -1
       }
     ]
@@ -1202,7 +1202,7 @@
     "effects": [
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
           "kind": "si",
           "condition": {

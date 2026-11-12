@@ -1016,7 +1016,7 @@
        "side": "ennemi"
       }
      ],
-     "surprise": "party",
+     "surprise": "groupe",
      "onVictory": {
       "kind": "sequence",
       "etapes": [

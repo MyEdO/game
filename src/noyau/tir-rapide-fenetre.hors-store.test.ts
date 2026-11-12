@@ -20,7 +20,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * fenêtre du défenseur surfacé ; la boucle des tireurs s'arrête sur elle et reprend à sa fermeture, et
  * le Round ne s'ouvre qu'au bout de la boucle.
  */
-const ARC = (): Weapon => ({ uid: 'arc', label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 1 }, range: 30, qualities: [], loaded: true } as unknown as Weapon);
+const ARC = (): Weapon => ({ uid: 'arc', label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 1 }, range: 30, qualities: [], loaded: true } as unknown as Weapon);
 const g = () => banc.getState();
 const de = (id: string): Combatant => g().battle!.combatants.find((c) => c.id === id)!;
 /** Les Tirs rapides déclenchés par `id`, comptés à leur marqueur de journal. */
@@ -30,16 +30,16 @@ const etape = () => { const c = g().pendingCascade; return c?.participants[c.cur
 /** Deux héros surfacés, deux tireurs de l'IA à Bout Portant (LDB 14 l.62 : la défense est permise).
  *  E1 a pris le talent deux fois : il tire d'abord (LDB 11 l.103). */
 function finDeRound(gmSeat?: number) {
-  const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }): Combatant => {
+  const mk = (id: string, kind: 'heros' | 'ennemi', pos: { x: number; y: number }): Combatant => {
     const c = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: id, seed: 3 });
     c.id = id; c.label = id; c.kind = kind; c.pos = pos; c.fortune = 0;
     c.wounds = blessuresDeBase(200, 200, c);
     return c;
   };
-  const H1 = mk('h1', 'hero', { x: 0, y: 0 });
-  const H2 = mk('h2', 'hero', { x: 0, y: 4 });
-  const E1 = mk('e1', 'enemy', { x: 1, y: 0 });
-  const E2 = mk('e2', 'enemy', { x: 1, y: 4 });
+  const H1 = mk('h1', 'heros', { x: 0, y: 0 });
+  const H2 = mk('h2', 'heros', { x: 0, y: 4 });
+  const E1 = mk('e1', 'ennemi', { x: 1, y: 0 });
+  const E2 = mk('e2', 'ennemi', { x: 1, y: 4 });
   E1.talents = [{ talentId: 'tir-rapide', times: 2 }];
   E2.talents = [{ talentId: 'tir-rapide', times: 1 }];
   E1.weapons = [ARC()]; E2.weapons = [ARC()];

@@ -6,27 +6,37 @@ extends PontDuNoyau.Transport
 ## `<pont>` le paramètre `--pont=<chemin>` du lancement, à défaut `hotes/godot/vivant.mjs`, par un tuyau bloquant.
 ## Il lui passe `--stockage=<fichier>`, le fichier où vivent les sauvegardes : le paramètre `--stockage=<fichier>` du
 ## lancement, à défaut `stockage.json` sous le dossier des données de l'utilisateur (`user://`).
-## La sortie standard du processus est faite de lignes terminées par `\n` : d'abord l'annonce `{"url":"http://127.0.0.1:<port>/"}`,
-## l'adresse du serveur du jeu, attendue `ATTENTE_S` au plus, puis une ligne par requête, la chaîne que rend
-## `wfrpPont.appeler(methode, json)`. Son entrée standard reçoit une ligne par requête, `[methode, json|null]`.
+## Une ligne se termine par `\n`. Son entrée standard reçoit une ligne par requête, `[methode, json|null]`.
+## Sa sortie standard porte d'abord la ligne d'annonce `{"url":"http://127.0.0.1:<port>/"}`,
+## l'adresse du serveur du jeu, attendue `ATTENTE_S` au plus, puis une réponse par requête.
+## Une réponse est la chaîne que rend `wfrpPont.appelerEnOctets(methode, json)`, sur sa ligne.
+## Si `wfrpPont.octets()` en porte, elle vient en trois temps : la ligne `octets <n>`,
+## la ligne JSON, puis les `n` octets bruts, sans fin de ligne.
+## Godot lit ces `n` octets avant de rendre la réponse à sa requête.
 ## La ligne `["resoudreLaPile", demande]` demande la pile des couches (`PileDemandee`, en JSON) ;
 ## sa réponse est la chaîne que `wfrpPont.resoudreLaPile` rend (`PileResolue`, en JSON).
 ## Godot l'attend image après image, sans bloquer.
 ## Les réponses sortent dans l'ordre des requêtes, pile comprise.
-## Sa sortie d'erreur passe à celle de Godot ; sa mort est une panne, qui dit son code de sortie. Le processus meurt quand le
-## pont quitte l'arbre. Les paramètres sont ceux du lancement après `--` (`--<cle>=<valeur>`) ;
+## Godot n'écrit aucune requête tant qu'un appel attend :
+## les octets d'une réponse sont la fin de la sortie jusqu'à la requête suivante.
+## Sa sortie d'erreur passe à celle de Godot.
+## Sa mort, octets attendus compris, est une panne, qui dit son code de sortie.
+## Le processus meurt quand le pont quitte l'arbre.
+## Les paramètres sont ceux du lancement après `--` (`--<cle>=<valeur>`) ;
 ## l'image se choisit par le dialogue de fichier natif.
 
 const ATTENTE_S := 60.0
 ## La pause entre deux lectures d'un tuyau vide, pendant l'attente d'une réponse.
 const PAUSE_US := 200
+## La ligne qui annonce les octets d'une réponse, suivie de leur nombre.
+const ANNONCE_DES_OCTETS := "octets "
 const TYPES := {png = "image/png", jpg = "image/jpeg", jpeg = "image/jpeg", webp = "image/webp"}
 
 signal _ouvert(pret: bool)
 
 
-## Un tuyau du processus, lu par lignes sans jamais bloquer : `get_length()` puis `get_buffer(n)`, jamais `get_line`.
-## Chaque octet reçu n'est cherché qu'une fois.
+## Un tuyau du processus, lu par lignes ou par octets sans jamais bloquer : `get_length()` puis `get_buffer(n)`, jamais
+## `get_line`. Chaque octet reçu n'est cherché qu'une fois.
 class Tuyau:
 	var _fichier: FileAccess
 	## Le début de la ligne en cours, déjà cherché : il ne porte aucun `\n`.
@@ -39,9 +49,7 @@ class Tuyau:
 
 	## La première ligne complète, sans son `\n`, `null` tant qu'elle est incomplète.
 	func ligne() -> Variant:
-		var n := _fichier.get_length()
-		if n != 0:
-			_suite.append_array(_fichier.get_buffer(n))
+		_lire()
 		var fin := _suite.find(10)
 		if fin == -1:
 			_debut.append_array(_suite)
@@ -54,6 +62,21 @@ class Tuyau:
 		_suite.remove_at(0)
 		return lue
 
+	## Les `n` octets qui suivent la dernière ligne, la fin du reçu ; `null` tant qu'ils ne sont pas tous arrivés.
+	func octets(n: int) -> Variant:
+		_lire()
+		if _suite.size() != n:
+			return null
+		var lus := _suite
+		_suite = PackedByteArray()
+		return lus
+
+	## Ce que le tuyau tient, ajouté à `_suite`.
+	func _lire() -> void:
+		var n := _fichier.get_length()
+		if n != 0:
+			_suite.append_array(_fichier.get_buffer(n))
+
 
 var _pid := 0
 ## L'entrée du processus, le même fichier que sa sortie (`stdio`).
@@ -62,8 +85,14 @@ var _sortie: Tuyau = null
 var _erreurs: Tuyau = null
 var _url := ""
 var _mort := false
-## Les réponses attendues, dans l'ordre des requêtes écrites : chacune un tableau vide que sa ligne remplit.
+## Les réponses attendues, dans l'ordre des requêtes écrites : chacune un tableau vide que sa réponse remplit.
 var _attendues: Array[Array] = []
+## Le nombre d'octets qu'annonce la réponse en cours (`ANNONCE_DES_OCTETS`), `-1` hors d'une telle réponse.
+var _taille := -1
+## La ligne JSON de la réponse en cours dont les octets restent à lire.
+var _entete: Variant = null
+## Les octets de la dernière réponse qui en porte.
+var _octets := PackedByteArray()
 
 
 func _exit_tree() -> void:
@@ -94,7 +123,7 @@ func ouvrir() -> bool:
 	var annonce: Variant = null
 	while annonce == null and not _mort:
 		await get_tree().process_frame
-		annonce = _ligne()
+		annonce = _lire(_sortie.ligne)
 	if annonce != null:
 		var lue: Variant = JSON.parse_string(annonce)
 		if lue is Dictionary and lue.get("url") is String:
@@ -114,6 +143,10 @@ func appeler(methode: String, json: Variant) -> Variant:
 	while reponse.is_empty() and _recevoir():
 		OS.delay_usec(PAUSE_US)
 	return null if reponse.is_empty() else reponse[0]
+
+
+func octets() -> PackedByteArray:
+	return _octets
 
 
 func resoudre_la_pile(demande: String) -> Variant:
@@ -175,26 +208,48 @@ func _demander(methode: String, json: Variant) -> Array:
 	return reponse
 
 
-## Chaque ligne reçue rendue à la plus ancienne requête sans réponse ; `false` si le processus est mort.
+## Chaque réponse reçue rendue à la plus ancienne requête sans réponse ; `false` si le processus est mort.
 func _recevoir() -> bool:
-	var lue: Variant = _ligne()
+	var lue: Variant = _reponse()
 	while lue != null:
 		_attendues.pop_front().append(lue)
-		lue = _ligne()
+		lue = _reponse()
 	return not _mort
 
 
-## La prochaine ligne de la sortie, `null` tant qu'elle est incomplète ou si le processus est mort ; la sortie d'erreur
-## transmise ; le processus mort sans ligne à lire, sa panne signalée.
-func _ligne() -> Variant:
+## La prochaine réponse de la sortie : sa ligne, ou, après `ANNONCE_DES_OCTETS`, la ligne JSON une fois ses octets lus
+## dans `_octets` ; `null` tant qu'elle est incomplète ou si le processus est mort.
+func _reponse() -> Variant:
+	if _taille == -1:
+		var lue: Variant = _lire(_sortie.ligne)
+		if lue == null or not lue.begins_with(ANNONCE_DES_OCTETS):
+			return lue
+		_taille = lue.trim_prefix(ANNONCE_DES_OCTETS).to_int()
+	if _entete == null:
+		_entete = _lire(_sortie.ligne)
+		if _entete == null:
+			return null
+	var lus: Variant = _lire(_sortie.octets.bind(_taille))
+	if lus == null:
+		return null
+	_octets = lus
+	var entete: Variant = _entete
+	_taille = -1
+	_entete = null
+	return entete
+
+
+## Ce que `lecture` tire de la sortie, `null` tant que c'est incomplet ou si le processus est mort ; la sortie d'erreur
+## transmise ; le processus mort sans rien à lire, sa panne signalée.
+func _lire(lecture: Callable) -> Variant:
 	if _mort:
 		return null
 	var vivant := OS.is_process_running(_pid)
 	_transmettre_les_erreurs()
-	var lue: Variant = _sortie.ligne()
-	if lue == null and not vivant:
+	var lu: Variant = lecture.call()
+	if lu == null and not vivant:
 		_mourir("le processus du pont s'est arrêté (code %s)" % OS.get_process_exit_code(_pid))
-	return lue
+	return lu
 
 
 ## Chaque ligne complète de la sortie d'erreur, passée à celle de Godot.

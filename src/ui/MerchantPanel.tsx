@@ -173,7 +173,7 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
       .map((r): QualityInstance => ({ id: r.id, ...(r.indice != null ? { value: r.indice } : {}) }))
       .flatMap((q) => { const info = describeQuality(q); return info ? [{ q, info }] : []; })
       .sort((a, b) => (a.info.polarite === 'defaut' ? 1 : 0) - (b.info.polarite === 'defaut' ? 1 : 0));
-    const canCompare = item.kind === 'melee' || item.kind === 'ranged' || item.kind === 'armor';
+    const canCompare = item.kind === 'melee' || item.kind === 'distance' || item.kind === 'armor';
     return (
       <div className="merch-compare preview" role="region" aria-label={`Détails ${item.label}`}>
         <div className="mc-head">
@@ -431,7 +431,7 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
     const heroItems = sellHeroObj?.items ?? [];
     // « équipé » = armure portée (`equipped`) OU arme tenue dans le set actif (loadout), jamais un flag d'arme.
     const isEquippedForSell = (it: ItemInstance) =>
-      it.kind === 'melee' || it.kind === 'ranged' ? !!sellHeroObj && isWeaponActive(sellHeroObj, it.uid) : !!it.equipped;
+      it.kind === 'melee' || it.kind === 'distance' ? !!sellHeroObj && isWeaponActive(sellHeroObj, it.uid) : !!it.equipped;
     return (
       <>
         <div className="cart-bar">

@@ -46,7 +46,7 @@ describe('bleedDeathRoll — mort par Hémorragique (LDB 16 l.105)', () => {
 
 /** Porteur de 2 Hémorragique : BE 3, 3 PB, aucune armure (fixture nommée « Ilyanwe saignée »). */
 function ilyanweSaignee(pb = 3): Combatant {
-  return combattantDeTest({ label: 'Ilyanwe', kind: 'hero', wounds: blessuresDeBase(18, pb), conditions: [{ id: 'hemorragique', value: 2 }] });
+  return combattantDeTest({ label: 'Ilyanwe', kind: 'heros', wounds: blessuresDeBase(18, pb), conditions: [{ id: 'hemorragique', value: 2 }] });
 }
 
 describe('Hémorragique à 0 Blessure (LDB 16 l.105)', () => {

@@ -190,10 +190,10 @@ const HARMFUL_TARGET_OPS = new Set<string>([
  *  que HARMFUL_TARGET_OPS (recensement du catalogue `GameOp`, engine/ops.ts) POUR LES OPS DONT LE SIGNE
  *  EST FIXE (soin, purge d'État/maladie/psy, octroi, protection…) : asymétrie ASSUMÉE avec HARMFUL —
  *  un offensif oublié rend un sort injouable sur l'ennemi (bug réel, HARMFUL doit rester complète) ;
- *  un bénéfique-clair oublié ici ne fait que retomber en 'any' (réticule des deux côtés, jamais caché).
+ *  un bénéfique-clair oublié ici ne fait que retomber en 'tout' (réticule des deux côtés, jamais caché).
  *  Les ops DUAL-SIGNE (`testMod`/`skillMod`/`attrMod`/`charDRBonus`/`sinMod`/`maxWeaponHands`… — la
- *  MÊME op est un buff OU un malus selon `amount`/`mod`/`hands`) sont VOLONTAIREMENT absentes : 'any'
- *  est le comportement voulu, jamais 'ally' pour un malus déguisé (Malédiction de malchance, testMod
+ *  MÊME op est un buff OU un malus selon `amount`/`mod`/`hands`) sont VOLONTAIREMENT absentes : 'tout'
+ *  est le comportement voulu, jamais 'allie' pour un malus déguisé (Malédiction de malchance, testMod
  *  amount:-10, LDB 49 l.62 — verrouillé par le test dual-signe de targetingModes.hors-store.test.ts). */
 const HELPFUL_TARGET_OPS = new Set<string>([
   'ap', 'heal', 'cureCriticalWound', 'cureDisease', 'removeCondition', 'grantTrait', 'grantTalent',
@@ -204,22 +204,22 @@ const HELPFUL_TARGET_OPS = new Set<string>([
   'grantCareerSkill', 'grantCareerTalent',
 ]);
 
-export type SpellAffinity = 'enemy' | 'ally' | 'any';
+export type SpellAffinity = 'ennemi' | 'allie' | 'tout';
 
 /** Côté qu'un sort VISE, DÉRIVÉ de ses effets modélisés (aucun champ manuel sur les 243 sorts) :
- *  Projectile / Test opposé / Souffle / Poussée, ou un op « cible » NOCIF → 'enemy' (ciblable sur
- *  l'ennemi, réticule + interdit hors portée comme le tir) ; un op « cible » BÉNÉFIQUE seul → 'ally' ; sinon
- *  (narratif, mixte, sans op de cible) → 'any' (réticule permissif des deux côtés). La SOURCE est
+ *  Projectile / Test opposé / Souffle / Poussée, ou un op « cible » NOCIF → 'ennemi' (ciblable sur
+ *  l'ennemi, réticule + interdit hors portée comme le tir) ; un op « cible » BÉNÉFIQUE seul → 'allie' ; sinon
+ *  (narratif, mixte, sans op de cible) → 'tout' (réticule permissif des deux côtés). La SOURCE est
  *  l'effet canon du sort (spells.json), pas une heuristique de mots-clés sur la description. */
 export function spellAffinity(spell: NonNullable<ReturnType<typeof findSpellById>>): SpellAffinity {
-  if (isMagicMissile(spell) || spell.opposed || spell.breathAttack) return 'enemy';
+  if (isMagicMissile(spell) || spell.opposed || spell.breathAttack) return 'ennemi';
   // Poussée/Attaques en chaîne portent leur effet positionnel en op `on:'caster'` (push/chain) — invisible
-  // au scan 'target' mais OFFENSIF (repousse/rebondit sur l'ennemi) → ciblage ennemi. teleport reste neutre ('any').
-  if (spellOps(spell.effects, 'caster').some((o) => o.op === 'push' || o.op === 'chain')) return 'enemy';
+  // au scan 'target' mais OFFENSIF (repousse/rebondit sur l'ennemi) → ciblage ennemi. teleport reste neutre ('tout').
+  if (spellOps(spell.effects, 'caster').some((o) => o.op === 'push' || o.op === 'chain')) return 'ennemi';
   const ops = spellOps(spell.effects, 'target').map((o) => o.op);
-  if (ops.some((o) => HARMFUL_TARGET_OPS.has(o))) return 'enemy';
-  if (ops.some((o) => HELPFUL_TARGET_OPS.has(o))) return 'ally';
-  return 'any';
+  if (ops.some((o) => HARMFUL_TARGET_OPS.has(o))) return 'ennemi';
+  if (ops.some((o) => HELPFUL_TARGET_OPS.has(o))) return 'allie';
+  return 'tout';
 }
 
 // ───────────────────────────────────────────────────────────────────────────
@@ -269,7 +269,7 @@ function castAffordance(get: Get, active: Combatant, target: Combatant): HoverTa
   const aff = spellAffinity(spell);
   const enemyOk = target.kind !== active.kind && !isOutOfAction(target);
   const allyOk = target.kind === active.kind && !target.dead && !target.outOfRencontre;
-  if (!(aff === 'enemy' ? enemyOk : aff === 'ally' ? allyOk : enemyOk || allyOk))
+  if (!(aff === 'ennemi' ? enemyOk : aff === 'allie' ? allyOk : enemyOk || allyOk))
     return { kind: 'none' };
   // Portée puis Ligne de Vue : la MÊME mesure que le clic et que `castSpell` (`castTargetBlock`) — une
   // 2ᵉ écriture ferait diverger ce que le survol montre de ce que le geste fait.
@@ -435,7 +435,7 @@ function attackAffordance(get: Get, active: Combatant, target: Combatant): Hover
   return {
     kind: 'ok',
     // Gratuite (Morsure/Caudale/Tentacule) = toujours mêlée (trait solide) ; Arme = tir pointillé si à distance.
-    line: option.freeKind ? 'solid' : p.kind === 'ranged' ? 'dashed' : 'solid',
+    line: option.freeKind ? 'solid' : p.kind === 'distance' ? 'dashed' : 'solid',
     title: p.weapon.label,
     targetName: target.label,
     skill: attackTestLabel(active, p.weapon, p.kind),
@@ -559,7 +559,7 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
   // Empoignade (LDB 14 l.161) : action de Test opposé de Force entre deux Empoignés → flux dédié.
   if (option.targeting === 'grapple') return get().ouvrirLEmpoignade(target.id);
   if (option.targeting === 'zone') {
-    set({ pendingManeuver: { attackerId: active.id, kind: option.kind!, attaque: option.id, targetId: target.id, avantageSpent: option.advantageMode === 'variable' ? 1 : option.cost.advantage, result: null }, battle: { ...battle, action: null, selectedAttack: undefined } });
+    set({ pendingManeuver: { attackerId: active.id, kind: option.kind!, attaque: option.id, targetId: target.id, avantageSpent: option.modeDAvantage === 'variable' ? 1 : option.cost.advantage, result: null }, battle: { ...battle, action: null, selectedAttack: undefined } });
     return;
   }
   // === MÊLÉE : approche-puis-frappe (le SEUL exécuteur charge/moveAttack du jeu) ===
@@ -578,7 +578,7 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
   if (!opts?.skipMountChoice) {
     const rider = target.mountId ? target : inBattleId(battle, target.riderId);
     const mount = target.riderId ? target : inBattleId(battle, target.mountId);
-    if (rider && mount && rider.kind !== 'hero' && mount.kind !== 'hero' && !isOutOfAction(rider) && !isOutOfAction(mount)) {
+    if (rider && mount && rider.kind !== 'heros' && mount.kind !== 'heros' && !isOutOfAction(rider) && !isOutOfAction(mount)) {
       set({ pendingMountTarget: { riderId: rider.id, mountId: mount.id, intentionId: opts?.intentionId } });
       return;
     }

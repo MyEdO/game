@@ -32,7 +32,7 @@ function mageInBattle() {
   banc.getState().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = banc.getState().battle!;
-  return b.combatants.find((c) => c.kind === 'hero')!;
+  return b.combatants.find((c) => c.kind === 'heros')!;
 }
 
 describe('Composants d’incantation (LDB 46 l.107-113)', () => {
@@ -117,7 +117,7 @@ describe('Composants d’incantation (LDB 46 l.107-113)', () => {
   it('un ENNEMI GÉNÉRIQUE (sans `followsCharacterRules`) n’a jamais de composant', () => {
     setRule('magie-composant', true);
     mageInBattle();
-    const enemy = banc.getState().battle!.combatants.find((c) => c.kind === 'enemy')!;
+    const enemy = banc.getState().battle!.combatants.find((c) => c.kind === 'ennemi')!;
     // #152 : la rencontre `enc-mutants` spawne le Mutant du bestiaire, flagué
     // `followsCharacterRules` (PNJ humain) — ce cas isole le défaut « créature générique ».
     delete enemy.followsCharacterRules;
@@ -127,13 +127,13 @@ describe('Composants d’incantation (LDB 46 l.107-113)', () => {
     expect(enemy.componentSpells).toEqual([SPELL]); // intact
   });
 
-  // #143 : le vrai prédicat RAW est « suit les règles de Personnage » (LDB 46 l.107-111), pas `kind === 'hero'`
+  // #143 : le vrai prédicat RAW est « suit les règles de Personnage » (LDB 46 l.107-111), pas `kind === 'heros'`
   // — un ennemi MODÉLISÉ comme personnage (PNJ humain hostile, `followsCharacterRules`) achète/consume un
   // composant comme un héros ; une créature générique (le test ci-dessus) n'en a jamais.
   it('un ENNEMI PERSONNAGE (`followsCharacterRules`) consume un composant comme un héros', () => {
     setRule('magie-composant', true);
     mageInBattle();
-    const enemy = banc.getState().battle!.combatants.find((c) => c.kind === 'enemy')!;
+    const enemy = banc.getState().battle!.combatants.find((c) => c.kind === 'ennemi')!;
     enemy.followsCharacterRules = true;
     enemy.componentSpells = [SPELL];
     const lines: string[] = [];

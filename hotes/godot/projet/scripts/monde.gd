@@ -113,17 +113,19 @@ func poser(monde: Dictionary, recus: Dictionary) -> void:
 
 
 ## La forme du morceau `morceau` (`MorceauDuMonde`) que le rayon du pointeur touche des deux côtés, hors des mers des
-## navires (`flottaison`), avec la case de chacun de ses triangles (`cases`, dans leur ordre) et la première rangée de
-## son plan au masque (`rangee`) ; `null` s'il n'a que de la mer.
+## navires (`flottaison`), avec la case de chacun de ses triangles (`cases`, un `Vector3` par triangle, dans leur ordre,
+## lus en `x, y, z` à plat dans `cases` du morceau) et la première rangée de son plan au masque (`rangee`) ; `null` s'il
+## n'a que de la mer.
 func _forme_de(morceau: Dictionary) -> CollisionShape3D:
 	var tous := PackedFloat32Array(morceau.positions).to_byte_array().to_vector3_array()
+	var toutes := PackedFloat32Array(morceau.cases).to_byte_array().to_vector3_array()
 	var sommets := PackedVector3Array()
-	var cases := []
+	var cases := PackedVector3Array()
 	for surface: Dictionary in morceau.surfaces:
 		if surface.has("flottaison"):
 			continue
 		sommets.append_array(tous.slice(int(surface.debut), int(surface.fin)))
-		cases.append_array(morceau.cases.slice(int(MiseEnPage.triangles(int(surface.debut))), int(MiseEnPage.triangles(int(surface.fin)))))
+		cases.append_array(toutes.slice(int(MiseEnPage.triangles(int(surface.debut))), int(MiseEnPage.triangles(int(surface.fin)))))
 	if sommets.is_empty():
 		return null
 	var forme := ConcavePolygonShape3D.new()
@@ -138,8 +140,8 @@ func _forme_de(morceau: Dictionary) -> CollisionShape3D:
 
 ## La météo du regard (`meteo`, `CONTRAT.md`, section « Monde ») dans le volume, à la place de la précédente : une
 ## averse de particules par boîte de `pluie.averses`, étirées dans le sens de leur chute et effacées près de la caméra,
-## et chaque nappe de brume, plate et translucide, et son son en boucle (#3834), que le même son laisse jouer ; rien
-## sans météo.
+## et chaque nappe de brume, plate et translucide, et son son en boucle (#3834) sur le bus de son canal, que le même
+## son laisse jouer ; rien sans météo.
 func poser_la_meteo(meteo: Variant) -> void:
 	for posee in _meteo.get_children():
 		_meteo.remove_child(posee)
@@ -154,7 +156,8 @@ func poser_la_meteo(meteo: Variant) -> void:
 		_meteo.add_child(_nappe_de_brume(nappe))
 
 
-## Le son `son` de la météo (`null` : aucun) joué partout en boucle, à la place du précédent s'il en diffère.
+## Le son `son` de la météo (`null` : aucun) joué partout en boucle, sur le bus de son canal (`son.canal`), à la place
+## du précédent s'il en diffère.
 func _entendre_la_meteo(son: Variant) -> void:
 	var voulu: String = "" if son == null else son.id
 	var joue: String = "" if _son_de_la_meteo == null else _son_de_la_meteo.get_meta("son")
@@ -170,6 +173,7 @@ func _entendre_la_meteo(son: Variant) -> void:
 	_son_de_la_meteo.set_meta("son", son.id)
 	_son_de_la_meteo.stream = Effets.variante_du_son(son, true)
 	_son_de_la_meteo.volume_db = linear_to_db(son.volume)
+	_son_de_la_meteo.bus = son.canal
 	_son_de_la_meteo.autoplay = true
 	add_child(_son_de_la_meteo, true)
 
@@ -414,8 +418,7 @@ func _toucher(origine: Vector3, fin: Vector3, sens: Vector3) -> Variant:
 			requete.from = MiseEnPage.point_en_deca(requete.to, rayon, volume.metres_par_case)
 		else:
 			var forme := _corps.shape_owner_get_owner(_corps.shape_find_owner(touche.shape)) as CollisionShape3D
-			var c: Array = forme.get_meta("cases")[touche.face_index]
-			var case := Vector3i(int(c[0]), int(c[1]), int(c[2]))
+			var case := Vector3i(forme.get_meta("cases")[touche.face_index])
 			if not volume.retiree(Vector2i(case.x, case.y), forme.get_meta("rangee")):
 				return {case = case, f = MiseEnPage.point_de_carte_du_lieu(to_local(touche.position)), lieu = touche.position}
 			requete.from = MiseEnPage.point_au_dela(touche.position, rayon, volume.metres_par_case)
@@ -654,7 +657,13 @@ func _zoomer(sens: float) -> void:
 ## caméra, et en tire une forme par morceau, hors des mers des navires, que touche le rayon du pointeur ; les pions,
 ## les surbrillances et les noms se posent à la hauteur de leur case (`hauteurs`, en mètres), et la case cliquée est
 ## celle du triangle que le rayon du pointeur touche, sa couche comprise (`cases`) : un plancher d'étage désigne sa case
-## à l'étage. Les tableaux plats se chargent tels quels en tableaux de vecteurs et de couleurs
+## à l'étage.
+##
+## Les quatre tableaux d'une géométrie sont des nombres à plat.
+## `positions` et `normales` : trois par sommet.
+## `couleurs` : quatre par sommet.
+## `cases` : trois par triangle (`x, y, z`), dans l'ordre des triangles.
+## Chacun se charge tel quel en tableau de vecteurs ou de couleurs
 ## (`PackedByteArray.to_vector3_array`, `to_color_array`).
 ##
 ## Ce que le regard retire du volume ne touche à aucune géométrie : le masque (méthode `retrait`, rappelée quand

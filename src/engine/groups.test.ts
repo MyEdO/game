@@ -41,11 +41,11 @@ describe('Groupes — dérivation par id canonique & matching strict (LDB 21, P3
   it('Trait DISSIMULÉ : le Groupe qu’il déclare n’est PAS exposé au ciblage psy tant que la dissimulation tient (#1357)', () => {
     // Haine (mort-vivant) portée par un Répurgateur face à un porteur du Trait Mort-vivant caché.
     const chasseur = {
-      id: 'repurgateur', name: 'Répurgateur', kind: 'hero', groups: [],
+      id: 'repurgateur', name: 'Répurgateur', kind: 'heros', groups: [],
       psychTraits: [{ type: 'haine' as const, cible: ciblePsy.groupe('mort-vivant') }],
     } as unknown as Combatant;
     const cache = [{ id: 'mort-vivant', hidden: true }];
-    const dissimule = { id: 'v-1', name: 'Vampire', kind: 'enemy', groups: [], traits: cache } as unknown as Combatant;
+    const dissimule = { id: 'v-1', name: 'Vampire', kind: 'ennemi', groups: [], traits: cache } as unknown as Combatant;
     expect(groupesDe(dissimule)).toEqual(['mort-vivant']); // le Groupe EXISTE bien sur le porteur
     expect(hiddenGroupsOf(dissimule)).toEqual(['mort-vivant']); // …mais il est masqué
     expect(targetedTrigger(chasseur, [sourceCombattant(dissimule)])).toBeNull();

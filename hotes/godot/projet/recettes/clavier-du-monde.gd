@@ -8,7 +8,7 @@ const RECETTE_AUTONOME := true
 ## Le sol de chaque case, en mètres, dans le repère du volume : la case (0, 0) centrée sur l'origine.
 const REZ := [-1.0, 0.0, -1.0, 1.0, 0.0, -1.0, -1.0, 0.0, 1.0, 1.0, 0.0, -1.0, 1.0, 0.0, 1.0, -1.0, 0.0, 1.0,
 	1.0, 0.0, -1.0, 3.0, 0.0, -1.0, 1.0, 0.0, 1.0, 3.0, 0.0, -1.0, 3.0, 0.0, 1.0, 1.0, 0.0, 1.0]
-const CASES := [[0, 0, 0], [0, 0, 0], [1, 0, 0], [1, 0, 0]]
+const CASES := [0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0]
 const SOMMETS := 12
 ## Les images que chaque touche reste tenue.
 const IMAGES_TENUES := 3

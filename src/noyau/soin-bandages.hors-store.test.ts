@@ -28,7 +28,7 @@ const GUERISON = [{ id: 'guerison', advances: 30, characteristic: 'intelligence'
 
 function hero(p: Partial<Combatant>): Combatant {
   return blessuresSurLeProfil({
-    id: 'h1', label: 'Doc', kind: 'hero',
+    id: 'h1', label: 'Doc', kind: 'heros',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 35, intelligence: 40, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(12, 10), advantage: 0, conditions: [], movement: 4, traumas: [],
     weapons: [unarmedWeapon()], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -38,7 +38,7 @@ function hero(p: Partial<Combatant>): Combatant {
 
 /** Un combat en cours : un adversaire loin tient la rencontre ouverte (sa fin purge `woundDressed`, `combatFlow`). */
 function combat(allies: Combatant[]) {
-  const combatants = [...allies, hero({ id: 'gob', label: 'Gob', kind: 'enemy', pos: { x: 9, y: 9 } })];
+  const combatants = [...allies, hero({ id: 'gob', label: 'Gob', kind: 'ennemi', pos: { x: 9, y: 9 } })];
   const order = combatants.map((c) => c.id);
   banc.setState({
     mode: 'battle', pendingHeal: null,

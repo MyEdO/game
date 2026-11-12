@@ -134,7 +134,7 @@ const RELATIFS: Record<Relatif, (s: SourcePsy, porteur: Combatant, lecture: Lect
   // Q15 A, #3045
   etrangersAuPorteur: (s, porteur, lecture) =>
     !lieAuPorteur(s, porteur, lecture) &&
-    (s.genre !== 'combattant' || relationBetween({ id: s.c.id, camp: campOf(s.c) }, { id: porteur.id, camp: campOf(porteur) }) === 'opponent'),
+    (s.genre !== 'combattant' || relationBetween({ id: s.c.id, camp: campOf(s.c) }, { id: porteur.id, camp: campOf(porteur) }) === 'adversaire'),
   // LDB 19 l.152 ; EDOC 12 l.219 ; #3045
   autresRacesQueLePorteur: (s, porteur, lecture) => {
     const siennes = racesDe(groupesDe(porteur));
@@ -187,7 +187,7 @@ export function agressifEnvers(
 ): boolean {
   if (source.id === cible.id) return false;
   const [cs, cc] = [campOf(source), campOf(cible)];
-  if (cs !== 'neutral' && cc !== 'neutral' && relationBetween({ id: source.id, camp: cs }, { id: cible.id, camp: cc }) === 'opponent') return true;
+  if (cs !== 'neutre' && cc !== 'neutre' && relationBetween({ id: source.id, camp: cs }, { id: cible.id, camp: cc }) === 'adversaire') return true;
   return !!source.engagedWith?.includes(cible.id)
     || !!cible.engagedWith?.includes(source.id)
     || !!source.attackedThisRound?.includes(cible.id);
@@ -227,7 +227,7 @@ export function fearSourceFor(self: Combatant, s: SourcePsy, selfSizeForSize?: S
 
 /** Mode de RÉSOLUTION d'un état psy + ses conséquences d'échec, lus en DONNÉES (`psychology.json`) — SOURCE
  *  UNIQUE de l'applier `psychologieDeCombat` et du picker de Round : plus de `kind === 'terreur'` codé par-nom. */
-export function psychResolution(kind: PsychType): { mode?: 'extended' | 'terreur' | 'binary'; failCondition?: string; failAmount?: { base?: 'indice' | number; perDegreeOfFailure?: number }; becomes?: PsychType } {
+export function psychResolution(kind: PsychType): { mode?: 'etendu' | 'terreur' | 'simple'; failCondition?: string; failAmount?: { base?: 'indice' | number; perDegreeOfFailure?: number }; becomes?: PsychType } {
   const d = findPsychologyById(kind);
   return { mode: d?.resolution, failCondition: d?.failCondition?.id, failAmount: d?.failAmount, becomes: d?.becomes?.id as PsychType | undefined };
 }

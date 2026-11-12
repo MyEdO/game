@@ -17,7 +17,7 @@ const ETAT_INCONNU = 'etat-hors-registre';
 const GROUPE_CONNU = 'skaven';
 const GROUPE_INCONNU = 'groupe-hors-registre';
 
-const hero = (id: string, label = 'Héros'): HerosDuRoster => ({ id, label, kind: 'hero' }) as unknown as HerosDuRoster;
+const hero = (id: string, label = 'Héros'): HerosDuRoster => ({ id, label, kind: 'heros' }) as unknown as HerosDuRoster;
 const BROUILLON = { label: 'Brouillon', motivation: '', ambitionShort: '', ambitionLong: '' } as unknown as RosterEntry['draft'];
 const entry = (id: string): RosterEntry => ({ hero: hero(id), wealth: { gold: 1, silver: 2, brass: 3 }, draft: BROUILLON });
 const porteur = (id: string, ...etats: string[]): RosterEntry => ({ ...entry(id), hero: { ...hero(id), conditions: etats.map((e) => ({ id: e, value: 1 })) } as unknown as HerosDuRoster });

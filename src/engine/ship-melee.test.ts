@@ -45,18 +45,18 @@ describe('meleeVsHullBE — Tableau de comparaison des Tailles (MDG 13 l.618-637
 });
 
 const hull = (creatureId: string, E = 40): Combatant =>
-  (blessuresSurLeProfil({ id: 'hull', name: 'Coque', kind: 'enemy', bodyShape: 'vehicule', creatureId, pos: { x: 6, y: 5 },
+  (blessuresSurLeProfil({ id: 'hull', name: 'Coque', kind: 'ennemi', bodyShape: 'vehicule', creatureId, pos: { x: 6, y: 5 },
     characteristics: { 'capacite-de-combat': 0, 'capacite-de-tir': 0, force: 0, endurance: E, initiative: 0, agilite: 0, dexterite: 0, intelligence: 0, 'force-mentale': 0, sociabilite: 0 },
     wounds: blessuresDeBase(60), advantage: 0, conditions: [], weapons: [], skills: [], talents: [],
     armour: { corps: 0 } })) as unknown as Combatant;
 const bruiser = (size?: SizeCategory): Combatant =>
-  (blessuresSurLeProfil({ id: 'atk', name: 'Cogneur', kind: 'hero', size,
+  (blessuresSurLeProfil({ id: 'atk', name: 'Cogneur', kind: 'heros', size,
     characteristics: { 'capacite-de-combat': 60, 'capacite-de-tir': 60, force: 40, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], weapons: [], skills: [], talents: [],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, pos: { x: 5, y: 5 } })) as unknown as Combatant;
 const hache: Weapon = { name: 'Hache', type: 'melee', damage: { flat: 7, plusBF: true }, qualities: [] } as unknown as Weapon;
-const arc: Weapon = { name: 'Arc', type: 'ranged', subType: 'arc', damage: { flat: 7, plusBF: false }, range: 50, qualities: [] } as unknown as Weapon;
-const canon: Weapon = { name: 'Canon (moyen)', type: 'ranged', subType: 'armes-de-siege', weaponGroup: 'poudre-noire', damage: { flat: 14, plusBF: false }, range: 75, qualities: [] } as unknown as Weapon;
+const arc: Weapon = { name: 'Arc', type: 'distance', subType: 'arc', damage: { flat: 7, plusBF: false }, range: 50, qualities: [] } as unknown as Weapon;
+const canon: Weapon = { name: 'Canon (moyen)', type: 'distance', subType: 'armes-de-siege', weaponGroup: 'poudre-noire', damage: { flat: 14, plusBF: false }, range: 75, qualities: [] } as unknown as Weapon;
 
 describe('hullHitAdjust — consommé par applyHit (petites armes / table des Tailles)', () => {
   it('cible non-coque → null (chemin normal intact)', () => {
@@ -84,7 +84,7 @@ describe('hullHitAdjust — consommé par applyHit (petites armes / table des Ta
 describe('applyHit contre une coque (résolution complète)', () => {
   it('tir de petite arme RÉUSSI sur la coque, double : Critique obtenu (l.656), sans prise (l.605), 0 Blessure', () => {
     const h = hull('cogue');
-    const res = rederivePassiveAttack(bruiser(), h, arc, { roll: 11, target: 60, success: true, sl: 4, isDouble: true }, 'ranged', { rng: makeRNG(1595) });
+    const res = rederivePassiveAttack(bruiser(), h, arc, { roll: 11, target: 60, success: true, sl: 4, isDouble: true }, 'distance', { rng: makeRNG(1595) });
     expect(res.hit).toBe(true);
     expect(res.woundsLost).toBe(0);
     expect(res.critical).toBe(true);

@@ -189,7 +189,7 @@ scenes.push(scene({
       id: 'enc-embuscade-sel',
       // Surprise navale = avantage de POSITION (couche Mer : pas d'État Surpris sur une coque) : Perception
       // ratée → la cogue surgit plus près, bordée alignée ; repérée → ~150 m sans avantage (`applyNavalSurprisePosition`).
-      surprise: 'party',
+      surprise: 'groupe',
       // Reddition à 40 % de Blessures (VictoryCondition.woundsThreshold, doc §8) : la cogue pirate amène
       // son pavillon avant le naufrage complet.
       victoryCondition: { type: 'woundsThreshold', targetId: 'cogue-pirate', atOrBelowPercent: 40 },

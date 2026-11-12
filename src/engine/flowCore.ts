@@ -57,7 +57,7 @@ export interface TemporalCondition {
 export interface EffectOp {
   type: 'ops';
   ops: GameOp[];
-  on?: 'party' | 'hero' | 'navire' | 'membreAuHasard' | 'caster' | 'target' | CibleDeRole | CibleDeVolontaires;
+  on?: 'groupe' | 'heros' | 'navire' | 'membreAuHasard' | 'caster' | 'target' | CibleDeRole | CibleDeVolontaires;
   heroId?: string;
   /** Échéance d'HORLOGE (minute `gameTime`) des effets DURABLES posés par ces ops — BAKÉE sur la feuille
    *  (durée d'un consommable résolue AU BOIRE, `bakeConsumableFlow`) pour SURVIVRE aux suspensions (une
@@ -246,8 +246,8 @@ export type Condition =
    *  `value` (défaut 1) — Cœur vaillant (`braveheart`) octroyable par talent OU effet. Acteur absent = 0. */
   | { kind: 'capability'; who: ActorRef; id: string; op?: CompareOp; value?: number }
   /** Camp / RELATION d'un acteur (`who`) — gate « seulement les ennemis / les alliés / les neutres »
-   *  (riders de domaine offensifs : `who:'target', is:'opponent'`). `ally`/`opponent` sont RELATIFS à
-   *  l'autre acteur (même camp / camp différent) ; `party`/`neutral`/`hostile` sont ABSOLUS (le `kind`).
+   *  (riders de domaine offensifs : `who:'target', is:'adversaire'`). `allie`/`adversaire` sont RELATIFS à
+   *  l'autre acteur (même camp / camp différent) ; `groupe`/`neutre`/`hostile` sont ABSOLUS (le `kind`).
    *  Acteur(s) absent(s) = false. */
   | { kind: 'relation'; who: ActorRef; is: Relation | Camp }
   /** L'acteur (`who`) POSSÈDE un élément : appartenance à un **Groupe** (faction, via `groupMatch`),
@@ -431,7 +431,7 @@ export function evalCondition(cond: Condition, ctx: ConditionCtx): boolean {
     case 'relation': {
       const a = cond.who === 'caster' ? ctx.caster : ctx.target;
       if (!a) return false;
-      if (cond.is === 'party' || cond.is === 'neutral' || cond.is === 'hostile') return a.camp === cond.is; // camp ABSOLU
+      if (cond.is === 'groupe' || cond.is === 'neutre' || cond.is === 'hostile') return a.camp === cond.is; // camp ABSOLU
       const other = cond.who === 'caster' ? ctx.target : ctx.caster; // RELATIF à l'autre acteur
       return !!other && relationBetween(a, other) === cond.is;
     }
@@ -655,20 +655,20 @@ export type EffectTrigger =
 /** Effet DÉCLENCHÉ authoré (donnée éditable) : un Flow d'ops appliqué à `on` quand `trigger` se produit.
  *  GÉNÉRIQUE — porté indifféremment par `TraitData.effects` (Toile, Sang corrosif…) ET `QualityData.effects`
  *  (Atout d'arme : « à la touche, 1d10 + Empêtré »). Même vocabulaire que les sorts (réutilise
- *  `runPureFlowLines`/`applyOps`), jamais un handler en dur. `on` : le porteur lui-même (`self`), la victime
- *  touchée (`victim`), ou les adversaires Engagés du porteur (`engaged`). */
-/** CIBLE(S) d'un effet déclenché : le porteur (`self`), la victime touchée (`victim`), les adversaires
- *  Engagés (`engaged`), les adversaires que le porteur EMPOIGNE actuellement (`grappled`, = ses
+ *  `runPureFlowLines`/`applyOps`), jamais un handler en dur. `on` : le porteur lui-même (`soi`), la victime
+ *  touchée (`victime`), ou les adversaires Engagés du porteur (`engages`). */
+/** CIBLE(S) d'un effet déclenché : le porteur (`soi`), la victime touchée (`victime`), les adversaires
+ *  Engagés (`engages`), les adversaires que le porteur EMPOIGNE actuellement (`empoigne`, = ses
  *  `grapplingWith` — la « victime absorbée » de l'Absorption pour la digestion/redirection), ou —
  *  géométrie — TOUS les combattants à `radiusMeters` d'un centre (l'arc d'Azyr :
- *  `{ near: 'victim', radiusMeters: 2 }`). Le centre lui-même et le porteur sont exclus.
- *  `{ pick: 'engaged', ... }` : SÉLECTIONNE jusqu'à `max` adversaires Engagés non encore empoignés, les
- *  plus PROCHES d'abord, de Taille ≤ la sienne si `sizeAtMost:'self'` — la capacité restante tient compte
+ *  `{ near: 'victime', radiusMeters: 2 }`). Le centre lui-même et le porteur sont exclus.
+ *  `{ pick: 'engages', ... }` : SÉLECTIONNE jusqu'à `max` adversaires Engagés non encore empoignés, les
+ *  plus PROCHES d'abord, de Taille ≤ la sienne si `sizeAtMost:'soi'` — la capacité restante tient compte
  *  des `grapplingWith` déjà tenus (« elle absorbe un adversaire », Absorption EDO 11 l.222). Réutilisable
  *  par tout effet « happe le plus proche petit ennemi engagé ». */
-export type EffectTargeting = 'self' | 'victim' | 'engaged' | 'grappled'
-  | { near: 'victim' | 'self'; radiusMeters: number }
-  | { pick: 'engaged'; sizeAtMost?: 'self'; max: number };
+export type EffectTargeting = 'soi' | 'victime' | 'engages' | 'empoigne'
+  | { near: 'victime' | 'soi'; radiusMeters: number }
+  | { pick: 'engages'; sizeAtMost?: 'soi'; max: number };
 export interface TriggeredEffect<E = EffectOp> {
   trigger: EffectTrigger;
   on: EffectTargeting;
@@ -678,9 +678,9 @@ export interface TriggeredEffect<E = EffectOp> {
    *  autres triggers. */
   condition?: string;
   /** Filtre par TYPE d'attaque (`onHit`/`onWoundLoss`) : ne réagit que si la touche/perte provient d'une
-   *  attaque de ce type (`melee`/`ranged`). Absent = tout type (Sang corrosif : « chaque fois qu'elle subit
+   *  attaque de ce type (`melee`/`distance`). Absent = tout type (Sang corrosif : « chaque fois qu'elle subit
    *  des Blessures », LDB 85 l.310 → aucune restriction). Lu via `ctx.attackType`. */
-  attackType?: 'melee' | 'ranged';
+  attackType?: 'melee' | 'distance';
   /** Filtre `onCrit` : le seul Coup Critique (`estUnCoupCritique(ctx.origine)`). LDB 62 l.248-250 ; VDM 12 l.910. */
   coupCritique?: boolean;
   /** Effet OPT-IN (RAW « Vous pouvez… » — Contrôle de la Frénésie, LDB 10 l.251-255) : le porteur CHOISIT

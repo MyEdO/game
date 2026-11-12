@@ -151,7 +151,7 @@ export function newOp(op: GameOp['op'] | string): GameOp {
     case 'attackWardFM': return { op: 'attackWardFM' };
     case 'grantWeapon': return { op: 'grantWeapon', label: '', damage: { bonusOf: 'force-mentale' } };
     case 'grantNaturalWeapon': return { op: 'grantNaturalWeapon', label: '', damage: 3 };
-    case 'grantFreeAttack': return { op: 'grantFreeAttack', weapon: 'held', when: 'immediate', advantageOrMovement: true };
+    case 'grantFreeAttack': return { op: 'grantFreeAttack', weapon: 'held', when: 'immediate', avantageOuMouvement: true };
     case 'grantTrait': return { op: 'grantTrait', trait: { id: '' } };
     case 'removeTrait': return { op: 'removeTrait', trait: { id: '' } };
     case 'grantPsychTrait': return opPsy.octroi('');
@@ -218,7 +218,7 @@ export function newOp(op: GameOp['op'] | string): GameOp {
     case 'senseLoss': return { op: 'senseLoss', sense: 'vue' };
     case 'loseTurn': return { op: 'loseTurn' };
     case 'removeShipPoste': return { op: 'removeShipPoste' };
-    case 'weaponRollMod': return { op: 'weaponRollMod', phase: 'attack', drMod: -1 };
+    case 'weaponRollMod': return { op: 'weaponRollMod', phase: 'attaque', drMod: -1 };
     case 'weaponDamageMod': return { op: 'weaponDamageMod', mode: 'maxUnits' };
     case 'armourPierce': return { op: 'armourPierce', amount: 1 };
     case 'critOnRoll': return { op: 'critOnRoll', mod: 10, equals: 0 };
@@ -300,4 +300,17 @@ export function variantesAChoisir(noeud: unknown, actuelle: unknown): ValeurDeVa
   if (!u) return undefined;
   const courante = varianteCourante(u, actuelle);
   return u.variantes.map((v) => ({ cle: v.cle, libelle: v.libelle, valeur: v === courante ? actuelle : neuveDeLaVariante(u, v, actuelle), courante: v === courante }));
+}
+
+/** Ce que jouent les gestes de la liste `liste`, d'élément neuf `neuve` : « Ajouter », la liste où il s'ajoute en fin
+ *  (`null` sans élément neuf, `valeurNeuveDe` n'en bâtissant aucun) ; pour chaque élément, « Retirer », la liste sans
+ *  lui, et « Monter », celle où il passe avant le précédent (`null` pour le premier). */
+export function gestesDeLaListe(liste: readonly unknown[], neuve: unknown): { ajouter: unknown[] | null; elements: { retirer: unknown[]; monter: unknown[] | null }[] } {
+  return {
+    ajouter: neuve === undefined ? null : [...liste, neuve],
+    elements: liste.map((e, rang) => ({
+      retirer: liste.filter((_, i) => i !== rang),
+      monter: rang ? [...liste.slice(0, rang - 1), e, liste[rang - 1], ...liste.slice(rang + 1)] : null,
+    })),
+  };
 }

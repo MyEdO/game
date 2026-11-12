@@ -9,7 +9,7 @@ extends SceneTree
 
 const RECETTE_AUTONOME := true
 const METRES_PAR_CASE := 2.0
-const CREPITEMENT := {id = "crepitement", fichiers = ["crepitement.ogg"], volume = 0.6}
+const CREPITEMENT := {id = "crepitement", fichiers = ["crepitement.ogg"], volume = 0.6, canal = "ambiance"}
 const CASES := [{x = 1, y = 0}, {x = 2, y = 0}, {x = 3, y = 0}]
 const FEU := {cle = "mur-de-feu@2,0,0", cases = CASES, centre = {x = 2, y = 0}, couleur = "#ff5a2a", visuel = "nappe-de-flammes", boucle = CREPITEMENT}
 const FUMEE := {cle = "souffle-de-fumee@5,5,0", cases = [{x = 5, y = 5}], centre = {x = 5, y = 5}, couleur = "#8a8a8a", visuel = "nuage", boucle = null}

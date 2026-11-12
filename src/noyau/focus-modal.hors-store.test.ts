@@ -21,7 +21,7 @@ describe('Focalisation en modale (store)', () => {
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     let st = banc.getState();
-    const heroC = st.battle!.combatants.find((c) => c.kind === 'hero')!;
+    const heroC = st.battle!.combatants.find((c) => c.kind === 'heros')!;
     const turn = st.battle!.order.indexOf(heroC.id);
     banc.setState({ battle: { ...st.battle!, turn, action: null, selectedSpellId: 'arme-aethyrique', acted: false } });
 
@@ -48,7 +48,7 @@ describe('Focalisation en modale (store)', () => {
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     let st = banc.getState();
-    const enemy = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
+    const enemy = st.battle!.combatants.find((c) => c.kind === 'ennemi')!;
     // Dote l'ennemi d'un sort arcanique focalisable + la Compétence de Focalisation (DONNÉE, pas un nom).
     enemy.spells = ['carreau'];
     enemy.characteristics['force-mentale'] = 80;
@@ -84,7 +84,7 @@ describe('Focalisation en modale (store)', () => {
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const st = banc.getState();
-    const heroC = st.battle!.combatants.find((c) => c.kind === 'hero')!;
+    const heroC = st.battle!.combatants.find((c) => c.kind === 'heros')!;
     const turn = st.battle!.order.indexOf(heroC.id);
     banc.setState({ battle: { ...st.battle!, turn, action: null, acted: false } });
     banc.getState().focaliserLeSort(heroC.id, 'flechette'); // Magie mineure → non focalisable
