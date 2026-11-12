@@ -510,7 +510,7 @@ describe('Boucle de jeu (store)', () => {
     // Régression : un héros crité en DÉFENSE → applyAttackResult empile l'étape 'deviation' et suspend ;
     // jetValider('defense') doit avancer le curseur HORS de l'étape défense (pendingDefense déjà nulle), sinon le
     // pilote Auto-combat boucle dessus (jetValider('defense') no-op) = soft-lock vécu.
-    setRule('combat-critical-deflect', true);
+    setRule('combat-deviation-critique', true);
     seedBattleRng(424242);
     const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
     banc.setState({ party: [hero] });
@@ -540,7 +540,7 @@ describe('Boucle de jeu (store)', () => {
     const cur = st.pendingCascade?.participants[st.pendingCascade!.cursor];
     expect(cur?.kind).toBe('deviation'); // le curseur a QUITTÉ l'étape défense orpheline
     expect(st.pendingDefense).toBeNull();
-    resetRule('combat-critical-deflect');
+    resetRule('combat-deviation-critique');
   });
 
   it('Maladresse — « agir en dernier » (21-40) ne dure qu’UN Round (ordre canonique restauré)', () => {
@@ -1067,7 +1067,7 @@ describe('Boucle de jeu (store)', () => {
         canSacrifice: false,
         atk: { roll: 30, target: 40, success: true, sl: 1, isDouble: false },
         def: { roll: 80, target: 40, success: false, sl: -4, isDouble: false },
-        result: 'failure',
+        result: 'echec',
       },
     });
     banc.getState().jetValider('desengagement');
@@ -1101,7 +1101,7 @@ describe('Boucle de jeu (store)', () => {
         canSacrifice: false,
         atk: { roll: 70, target: 40, success: false, sl: -3, isDouble: false },
         def: { roll: 10, target: 40, success: true, sl: 3, isDouble: false },
-        result: 'success',
+        result: 'reussite',
       },
     });
     banc.getState().jetValider('desengagement');
@@ -1132,7 +1132,7 @@ describe('Boucle de jeu (store)', () => {
         canSacrifice: false,
         atk: { roll: 35, target: 45, success: true, sl: 1, isDouble: false },
         def: { roll: 90, target: 40, success: false, sl: -5, isDouble: false },
-        result: 'failure',
+        result: 'echec',
       },
     });
     banc.getState().jetRelancer('desengagement');
@@ -1184,7 +1184,7 @@ describe('Boucle de jeu (store)', () => {
         canSacrifice: false,
         atk: { roll: 40, target: 40, success: true, sl: 0, isDouble: false },
         def: { roll: 40, target: 40, success: true, sl: 0, isDouble: false },
-        result: 'tie',
+        result: 'egalite',
       },
     });
     banc.getState().jetValider('desengagement');
@@ -1218,7 +1218,7 @@ describe('Boucle de jeu (store)', () => {
         canSacrifice: false,
         atk: { roll: 70, target: 40, success: false, sl: -3, isDouble: false },
         def: { roll: 10, target: 40, success: true, sl: 3, isDouble: false },
-        result: 'success',
+        result: 'reussite',
       },
     });
     banc.getState().jetValider('desengagement');
@@ -3602,9 +3602,9 @@ describe('transmettreLObjet — donner un objet à un autre héros', () => {
   });
 });
 
-describe('Marché — règles optionnelles (market-mode / market-guild)', () => {
+describe('Marché — règles optionnelles (marche-mode / marche-guildes)', () => {
   beforeEach(() => reset());
-  afterEach(() => { resetRule('market-mode'); resetRule('market-guild'); });
+  afterEach(() => { resetRule('marche-mode'); resetRule('marche-guildes'); });
   const hero = (): Combatant => combattantDeTest({ id: 'h', label: 'H', items: [], characteristics: { sociabilite: 35 }, skills: [], wounds: blessuresDeBase(10), conditions: [], weapons: [] });
   const merchantScene = () => {
     const sc = emptyScene('scene-test', 4, 4); sc.id = 'm';
@@ -3612,32 +3612,32 @@ describe('Marché — règles optionnelles (market-mode / market-guild)', () => 
     return sc;
   };
 
-  it("market-mode 'sans-disponibilite' : le stock est un superset du mode complet (tout le catalogue, pas de Test)", () => {
+  it("marche-mode 'sans-disponibilite' : le stock est un superset du mode complet (tout le catalogue, pas de Test)", () => {
     banc.setState({ party: [hero()], scene: merchantScene() });
     banc.getState().ouvrirLeMarchand('pnj');
     const complet = banc.getState().merchant!.stock.length;
     banc.setState({ merchant: null, merchantStocks: {} });
-    setRule('market-mode', 'sans-disponibilite');
+    setRule('marche-mode', 'sans-disponibilite');
     banc.getState().ouvrirLeMarchand('pnj');
     const sansDispo = banc.getState().merchant!.stock.length;
     expect(sansDispo).toBeGreaterThan(0);
     expect(sansDispo).toBeGreaterThanOrEqual(complet);
   });
 
-  it("market-mode 'sans-marchandage' : marchander ne propose plus de Marchandage", () => {
+  it("marche-mode 'sans-marchandage' : marchander ne propose plus de Marchandage", () => {
     banc.setState({ party: [hero()], scene: merchantScene() });
     banc.getState().ouvrirLeMarchand('pnj');
     banc.getState().fenetreChoisir('marchand', 'marchander', 'achat');
     expect(banc.getState().pendingBargain).not.toBeNull(); // complet : Marchandage proposé
     banc.setState({ pendingBargain: null });
-    setRule('market-mode', 'sans-marchandage');
+    setRule('marche-mode', 'sans-marchandage');
     banc.getState().fenetreChoisir('marchand', 'marchander', 'achat');
     expect(banc.getState().pendingBargain).toBeNull(); // désactivé
   });
 
-  it('market-guild : ouvrirLeMarchand produit un stock valide (Guildes câblées sans casse)', () => {
+  it('marche-guildes : ouvrirLeMarchand produit un stock valide (Guildes câblées sans casse)', () => {
     banc.setState({ party: [hero()], scene: merchantScene() });
-    setRule('market-guild', true);
+    setRule('marche-guildes', true);
     banc.getState().ouvrirLeMarchand('pnj');
     expect(banc.getState().merchant!.stock.length).toBeGreaterThan(0);
   });

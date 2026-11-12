@@ -68,7 +68,7 @@ export function appliquerLInstantane(data: Record<string, unknown>, mien: EtatDe
       mode: 'invite',
       mySeat: mien.net.mySeat,
       connection: mien.net.connection,
-      hostAway: mien.net.hostAway,
+      hoteAbsent: mien.net.hoteAbsent,
     },
   };
   return {

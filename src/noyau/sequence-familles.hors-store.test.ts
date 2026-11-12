@@ -202,7 +202,7 @@ describe('Famille (4)+(6) — le socle DÉCLENCHE les ops de manche, et s’arr�
       def: JOUTE,
       params: {
         phases: { count: 1, rounds: 2 },
-        rounds: { attrition: [{ op: 'condition', id: 'extenue', value: 1 }], attritionEvery: 3 },
+        rounds: { attrition: [{ op: 'condition', id: { id: 'extenue' }, value: 1 }], attritionEvery: 3 },
       },
       payload: { lices: [], passes: [] },
     });
@@ -217,7 +217,7 @@ describe('Famille (4)+(6) — le socle DÉCLENCHE les ops de manche, et s’arr�
       def: JOUTE,
       params: {
         phases: { count: 2, rounds: 2 },
-        rounds: { attrition: [{ op: 'condition', id: 'extenue', value: 1 }], attritionEvery: 3 },
+        rounds: { attrition: [{ op: 'condition', id: { id: 'extenue' }, value: 1 }], attritionEvery: 3 },
       },
       payload: { lices: [], passes: [] },
     });
@@ -236,7 +236,7 @@ describe('Famille (4)+(6) — le socle DÉCLENCHE les ops de manche, et s’arr�
       def: JOUTE,
       params: {
         phases: { count: 1, rounds: 3 }, // la 3ᵉ manche est la DERNIÈRE : elle conclut
-        rounds: { attrition: [{ op: 'condition', id: 'extenue', value: 1 }], attritionEvery: 3 },
+        rounds: { attrition: [{ op: 'condition', id: { id: 'extenue' }, value: 1 }], attritionEvery: 3 },
       },
       payload: { lices: [], passes: [] },
     });
@@ -251,7 +251,7 @@ describe('Famille (4)+(6) — le socle DÉCLENCHE les ops de manche, et s’arr�
       def: 'test-joute-borne-attrition',
       params: {
         phases: { count: 1, rounds: 2 },
-        rounds: { attrition: [{ op: 'condition', id: 'extenue', value: 1 }], attritionEvery: 2 },
+        rounds: { attrition: [{ op: 'condition', id: { id: 'extenue' }, value: 1 }], attritionEvery: 2 },
       },
       payload: { lices: [], passes: [] },
     });

@@ -5,7 +5,8 @@ import { replier } from '../../lib/ordre.mjs';
 import { isEditableCategory } from '../../data/atelierDuCodex';
 import { creatures, etats, trappings, gods, spells, species, findTraitById, findDomainById, WATER_EXPOSURE } from '../../data';
 import { windSaturationEffects } from '../../data/arcanePhenomena';
-import { datasetObject, deDeLaTable, setDataset, setDeDeTable } from '../../data/overrides';
+import { datasetObject, setDataset } from '../../data/overrides';
+import { sousLeDe } from '../../data/deDeLaTable.testkit';
 import { CHAR_KEYS } from '../../engine/types';
 import { deDeLaTableTiree, facesDuDe } from '../../engine/tables';
 import { charAbr } from '../../data';
@@ -686,12 +687,8 @@ describe('Codex — Tableaux de couleur des yeux et des cheveux (#3578)', () => 
     expect(gnome('blond-blanc')).toMatchObject({ v: 'Noir' });
   });
   it('la bande suit le dé posé sur la table par le seam', () => {
-    const imprime = deDeLaTable('eyes')!;
-    setDeDeTable('eyes', '1d10');
-    try {
+    sousLeDe('eyes', '1d10', () => {
       expect(sousTitres('eyes').slice(0, 5)).toEqual(['1d10 1–2', '1d10 3', '1d10 4', '1d10 5–7', '1d10 8–11']);
-    } finally {
-      setDeDeTable('eyes', imprime);
-    }
+    });
   });
 });

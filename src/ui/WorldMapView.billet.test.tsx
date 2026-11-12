@@ -34,7 +34,7 @@ let container: HTMLDivElement;
 let root: Root;
 
 beforeEach(() => {
-  setRule('test-auto-bands', 'off');
+  setRule('test-bandes-auto', 'off');
   // Préférence « réduire les animations » (`prefersReducedMotion`) : « Lancer » résout sans roulis de dés.
   vi.stubGlobal('matchMedia', (q: string) => ({ matches: q.includes('reduce'), media: q, addEventListener() {}, removeEventListener() {} }));
   container = document.createElement('div');
@@ -44,7 +44,7 @@ beforeEach(() => {
 afterEach(async () => {
   await act(async () => root.unmount());
   container.remove();
-  resetRule('test-auto-bands');
+  resetRule('test-bandes-auto');
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
   useGame.setState({ pendingBargain: null, billetEnMain: null, marchandagesDeBillet: {}, travelPlan: null, net: NET_INITIAL });

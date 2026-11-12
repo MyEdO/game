@@ -638,7 +638,7 @@ export function createCombatSlice(get: Get, set: Set) {
     },
     // Cycle Chance/Pacte UNIFIÉ (spec `disengage`) : foe (atk) figé, seule l'Esquive du mover se (re)joue.
 
-    // ── « Au Contact » (LDB 62 l.176, Option « Longueur d'arme », règle `combat-weapon-reach`) :
+    // ── « Au Contact » (LDB 62 l.176, Option « Longueur d'arme », règle `combat-longueur-arme`) :
     //    Test opposé de Corps à corps mover vs foe pour entrer dans la longueur d'arme ; le VAINQUEUR
     //    choisit « combat normal » ou « au contact » (toute arme > Courte y devient improvisée). ──
     ouvrirLAuContact: (targetId: string) => {
@@ -1178,7 +1178,7 @@ export function createCombatSlice(get: Get, set: Set) {
     },
 
     prendreLaDefensive: () => {
-      if (!rule('combat-defensive-stance')) return; // règle optionnelle : Action « Sur la Défensive » désactivée (LDB 13 l.118)
+      if (!rule('combat-sur-la-defensive')) return; // règle optionnelle : Action « Sur la Défensive » désactivée (LDB 13 l.118)
       const battle = get().battle;
       if (!battle || battle.over || battle.acted) return;
       const active = activeCombatant(battle);
@@ -2438,7 +2438,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       if (!mover || !foe) return;
       const b = markActed(get, set); // le Test d'Esquive EST l'Action : scellé AVANT la copie du journal
       const log = [...b.log];
-      if (pd.result === 'success') {
+      if (pd.result === 'reussite') {
         campGain(get, mover); // +1 Avantage (l.89)
         mover.gainedAdvThisRound = true;
         // Esquive réussie = on s'extrait du corps à corps → libéré de TOUS les Engagements
@@ -2451,7 +2451,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
         set({
           battle: { ...b, action: null, reachable: moveReachFor(mover, scene, mover.pos!, effectiveMovement(mover), moveEnv(battle, mover)), log },
         });
-      } else if (pd.result === 'tie') {
+      } else if (pd.result === 'egalite') {
         // Égalité parfaite du Test opposé : statu quo — pas de fuite, mais pas d'avantage à
         // l'adversaire non plus (LDB Tests). L'Action est consommée par la tentative d'Esquive.
         log.push(ev('fuite', t('cs.disengageNeutral', { name: mover.label }), mover.id, foe.id));
@@ -2530,8 +2530,8 @@ export function cloturesDuCombat(get: Get, set: Set) {
       const mover = inBattleId(battle, pd.moverId);
       const foe = inBattleId(battle, pd.foeId);
       if (!mover || !foe) return set({ pendingAuContact: null });
-      if (pd.result === 'success') return set({ pendingAuContact: { ...pd, phase: 'choice' } }); // le héros tranche
-      if (pd.result === 'tie') return applyAuContact(get, set, mover, foe, null); // statu quo, Action consommée
+      if (pd.result === 'reussite') return set({ pendingAuContact: { ...pd, phase: 'choice' } }); // le héros tranche
+      if (pd.result === 'egalite') return applyAuContact(get, set, mover, foe, null); // statu quo, Action consommée
       // Le foe (IA) l'emporte → au contact si SON arme est plus COURTE (il neutralise l'allonge adverse).
       // Sans arme de mêlée, il frappe à Mains nues (« Personnelle », LDB 62 l.28/l.158) ; deux longueurs
       // comparables sont requises pour conclure (l.172), sinon statu quo.
@@ -2548,9 +2548,9 @@ export function cloturesDuCombat(get: Get, set: Set) {
       const actor = inBattleId(battle, pd.actorId);
       const foe = inBattleId(battle, pd.foeId);
       if (!actor || !foe) return set({ pendingGrapple: null });
-      if (pd.result === 'success') return set({ pendingGrapple: { ...pd, phase: 'options' }, battle: { ...markActed(get, set), action: null } }); // l'acteur tranche ; Action dépensée
-      if (pd.result === 'failure') campGain(get, foe, 1); // l'adversaire l'emporte → +1 Avantage
-      const key = pd.result === 'failure' ? 'cs.grappleLose' : 'cs.grappleTie';
+      if (pd.result === 'reussite') return set({ pendingGrapple: { ...pd, phase: 'options' }, battle: { ...markActed(get, set), action: null } }); // l'acteur tranche ; Action dépensée
+      if (pd.result === 'echec') campGain(get, foe, 1); // l'adversaire l'emporte → +1 Avantage
+      const key = pd.result === 'echec' ? 'cs.grappleLose' : 'cs.grappleTie';
       const b = markActed(get, set); // scellé AVANT la copie du journal (le déclencheur y pousse ses lignes)
       const log = [...b.log, ev('attaque', t(key, { name: actor.label, foe: foe.label }), actor.id, foe.id)];
       set({ pendingGrapple: null, battle: { ...b, action: null, log } });

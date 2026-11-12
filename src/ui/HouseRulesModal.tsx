@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { rule, type OptionalRule, type RuleValue } from '../engine/policy';
+import { rule, type OptionalRule, type RegleOptionnelleId, type RuleValue } from '../engine/policy';
 import { prendreLeTemoinDesReglesMaisonWeb, reglerUneRegleMaisonWeb, remettreUneRegleMaisonWeb } from '../state/reglesMaison';
 import { reglesMaisonMutables } from '../noyau/reglesMaison';
 import { t } from '../i18n';
@@ -48,8 +48,8 @@ export function HouseRulesPanel() {
     if (r) setRetirees(r);
   }, []);
 
-  const change = (id: string, v: RuleValue) => { reglerUneRegleMaisonWeb(id, v); rerender(); };
-  const reset = (id: string) => { remettreUneRegleMaisonWeb(id); rerender(); };
+  const change = (id: RegleOptionnelleId, v: RuleValue) => { reglerUneRegleMaisonWeb(id, v); rerender(); };
+  const reset = (id: RegleOptionnelleId) => { remettreUneRegleMaisonWeb(id); rerender(); };
 
   return (
     <div className="house-rules">
@@ -98,8 +98,8 @@ function HouseRuleRow({
   regle: OptionalRule;
   /** Verrou de CLASSE (identique pour toutes les rangées) — sa raison est rendue en tête du panneau. */
   mutable: boolean;
-  onChange: (id: string, v: RuleValue) => void;
-  onReset: (id: string) => void;
+  onChange: (id: RegleOptionnelleId, v: RuleValue) => void;
+  onReset: (id: RegleOptionnelleId) => void;
 }) {
   const val = rule(regle.id);
   const dirty = val !== regle.default;

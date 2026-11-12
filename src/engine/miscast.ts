@@ -113,12 +113,12 @@ export type JsonFormula =
 type JsonOp = {
   op: string;
   // condition
-  id?: string;
+  id?: { id: string };
   value?: JsonFormula;
   durationRounds?: JsonFormula;
   /** `GameOp['condition'].perRound` / gate d'État — LITTÉRAUX (pas des formules) : recopiés tels quels. */
   perRound?: true;
-  unlessCondition?: string;
+  unlessCondition?: { id: string };
   /** `GameOp['condition'].escapeStrength` (Empêtré : force de désengagement, ex. Tenue indisciplinée
    *  LDB 46) — déjà une `Formula` runtime valide, jamais sin-paramétrée : copiée telle quelle. */
   escapeStrength?: Formula;
@@ -360,10 +360,10 @@ const runtimeRows = memoParVersion(MISCAST_DATASETS, (): Record<string, Row[]> =
 );
 
 /** Id de la table d'une sévérité sous le jeu de tables EN VIGUEUR — `VDM 02 l.218-263` sous la règle
- *  optionnelle `magic-vdm-incantation`, sinon LDB 46. La Colère des dieux (Prières, LDB 40) n'est pas
+ *  optionnelle `magie-vdm-incantation`, sinon LDB 46. La Colère des dieux (Prières, LDB 40) n'est pas
  *  révisée par VDM : la même table dans les deux jeux. */
 export function miscastTableId(severity: MiscastSeverity): string {
-  return (rule('magic-vdm-incantation') === true ? TABLE_IDS_VDM : TABLE_IDS_LDB)[severity];
+  return (rule('magie-vdm-incantation') === true ? TABLE_IDS_VDM : TABLE_IDS_LDB)[severity];
 }
 
 /** Le dé de tirage d'une table déclarée — le `die` VIVANT de son document. */
@@ -406,7 +406,7 @@ export function miscastTableRows(tableId: string): (MiscastTableRow & { max: num
 /** Jeu de tables d'Incantations Imparfaites en vigueur (dérivé des mêmes ids que les tables tirables).
  *  POINT DE LECTURE UNIQUE du delta LDB/VDM. */
 function miscastTables(): Record<MiscastSeverity, Row[]> {
-  const ids = rule('magic-vdm-incantation') === true ? TABLE_IDS_VDM : TABLE_IDS_LDB;
+  const ids = rule('magie-vdm-incantation') === true ? TABLE_IDS_VDM : TABLE_IDS_LDB;
   const rows = runtimeRows();
   return { mineure: rows[ids.mineure], majeure: rows[ids.majeure], colere: rows[ids.colere] };
 }

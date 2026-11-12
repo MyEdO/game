@@ -97,8 +97,8 @@ export type EnemyAction =
   | { kind: 'melee'; targetId: string } // attaque de mêlée (cible adjacente)
   | { kind: 'deplacement'; to: Pt; thenTargetId: string } // approche ; attaque après si adjacent
   | { kind: 'liberation'; state: 'empetre' | 'en-flammes' } // se libérer / se rouler au sol (LDB 16 l.66/84)
-  | { kind: 'depenseDeRessource'; resource: 'resolve'; via: 'removeCondition'; id: string } // dépense PROACTIVE de Détermination pour retirer un État verrouillant (Brisé) et se ressaisir (LDB 17 l.57-61)
-  | { kind: 'empoignade'; targetId: string; resolution: 'break' | 'test' } // Empoigné à son tour (LDB 14 l.161) : son Action EST le Test opposé de Force, OU « Briser » (Avantage supérieur) pour regagner sa liberté d'action puis re-décider
+  | { kind: 'depenseDeRessource'; resource: 'determination'; via: 'retirerEtat'; id: string } // dépense PROACTIVE de Détermination pour retirer un État verrouillant (Brisé) et se ressaisir (LDB 17 l.57-61)
+  | { kind: 'empoignade'; targetId: string; resolution: 'briser' | 'test' } // Empoigné à son tour (LDB 14 l.161) : son Action EST le Test opposé de Force, OU « Briser » (Avantage supérieur) pour regagner sa liberté d'action puis re-décider
   | { kind: 'servirLePoste'; hullId: string; posteUid: string } // « Servir cette pièce » (MDG 12) : devenir chef d'un poste de siège NON servi adjacent (l'arme de siège est octroyée) — Action gratuite, LDB 13 l.106
   | { kind: 'manoeuvreSurSoi'; maneuverId: string } // capacité SUR SOI (forme de combat lycanthrope, op transform) — coûte l'Action (2ᵉ via loseTurn)
   | { kind: 'fin' }; // rien à faire, passe la main
@@ -686,7 +686,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
     const reachableFoe = adjacentFoes.length > 0 || shootableHeroes.length > 0
       || [...reach.keys()].some((k) => heroes.some((h) => withinMelee(tileFromKey(k), h.pos!)));
     if (!isEngaged(enemy) && !reachableFoe) return null; // ni Engagé ni cible joignable → se cacher vaut mieux
-    return { kind: 'depenseDeRessource', resource: 'resolve', via: 'removeCondition', id: clearable.id };
+    return { kind: 'depenseDeRessource', resource: 'determination', via: 'retirerEtat', id: clearable.id };
   };
   // Verrouillage d'Action data-driven (`restrictsAction`, ex. Brisé LDB 16 l.52) : Mouvement + Action doivent
   // servir à fuir/se cacher. AVANT de fuir, l'IA tente de se RESSAISIR par la Détermination ; sinon, fuir si
@@ -852,7 +852,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
     const partner = enemy.grapplingWith?.find((id) => heroes.some((h) => h.id === id));
     if (partner && !holdsViaLimb) {
       const foe = heroes.find((h) => h.id === partner)!;
-      const resolution: 'break' | 'test' = enemy.advantage > foe.advantage && isShooterOrCaster ? 'break' : 'test';
+      const resolution: 'briser' | 'test' = enemy.advantage > foe.advantage && isShooterOrCaster ? 'briser' : 'test';
       return forced({ kind: 'empoignade', targetId: partner, resolution });
     }
   }

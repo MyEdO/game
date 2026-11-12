@@ -87,7 +87,7 @@ function etapesDeLaNuit(): string[] {
 }
 
 beforeEach(() => { seedBattleRng(1); resetDesFixes(); resetCadence(); });
-afterEach(() => { resetDesFixes(); resetCadence(); resetRule('travel-etapes'); resetRule('travel-attraper-froid'); });
+afterEach(() => { resetDesFixes(); resetCadence(); resetRule('voyage-etapes'); resetRule('voyage-attraper-froid'); });
 
 describe('#2533 (1) — halte de voyage : le lieu de la ROUTE, la météo du JOUR', () => {
   it('la halte nomme la route du voyage, jamais la scène de départ — relais ou bivouac', () => {
@@ -110,7 +110,7 @@ describe('#2533 (1) — halte de voyage : le lieu de la ROUTE, la météo du JOU
   });
 
   it('Étapes allumées : la nuit joue l’Exposition sous la météo POSÉE du jour, pas sous celle de la scène de départ', () => {
-    setRule('travel-etapes', true);
+    setRule('voyage-etapes', true);
     setDesFixes(true);
     setup(map(), 'clair');
     get().partirEnVoyage('r1', 'pied');
@@ -122,7 +122,7 @@ describe('#2533 (1) — halte de voyage : le lieu de la ROUTE, la météo du JOU
   });
 
   it('test opposé, Étapes allumées : beau temps posé sur la route, tempête sur la scène de départ — aucune Exposition', () => {
-    setRule('travel-etapes', true);
+    setRule('voyage-etapes', true);
     setDesFixes(true);
     setup(map(), 'tempete');
     get().partirEnVoyage('r1', 'pied');
@@ -135,7 +135,7 @@ describe('#2533 (1) — halte de voyage : le lieu de la ROUTE, la météo du JOU
   it('Étapes éteintes (défaut) : la route n’a pas de météo, la nuit lit la scène de départ (#2533 c.6071899887)', () => {
     setup(map(), 'tempete');
     get().partirEnVoyage('r1', 'pied');
-    expect(rule('travel-etapes')).toBe(false);
+    expect(rule('voyage-etapes')).toBe(false);
     expect(get().pendingRest?.travelHalt).toBe(true);
     expect(get().travelPlan?.log?.[0]?.weather).toBeUndefined();
     expect(activeExposureSeverity(get)).toBe('extreme');
@@ -144,7 +144,7 @@ describe('#2533 (1) — halte de voyage : le lieu de la ROUTE, la météo du JOU
 
 describe('#2533 — interruption puis reprise à budget nul : le jour interrompu est FINI, la halte suit', () => {
   it('l’embuscade se joue sous la météo du jour ; la reprise clôt ce jour au log, puis la halte du soir', () => {
-    setRule('travel-etapes', true);
+    setRule('voyage-etapes', true);
     setDesFixes(true);
     setup(map({ km: 60, perils: [{ label: 'Brigands sur la route !', chancePct: 100, effects: [{ type: 'startCombat', encounter: 'enc-brigands' }] }] }), 'clair');
     get().partirEnVoyage('r1', 'pied');
@@ -173,7 +173,7 @@ describe('#2533 — interruption puis reprise à budget nul : le jour interrompu
 describe('#2533 — la reprise clôt le jour interrompu au log, avant toute halte (2026-10-09 01:51)', () => {
   /** Interruption à pied sous l'averse (6 h marchées), victoire simulée : rend le jour interrompu. */
   function jourInterrompu(): unknown {
-    setRule('travel-etapes', true);
+    setRule('voyage-etapes', true);
     setDesFixes(true);
     setup(map({ km: 60, perils: [{ label: 'Brigands !', chancePct: 100, effects: [{ type: 'startCombat', encounter: 'enc-brigands' }] }] }), 'clair');
     get().partirEnVoyage('r1', 'pied');
@@ -199,7 +199,7 @@ describe('#2533 — la reprise clôt le jour interrompu au log, avant toute halt
 });
 
 describe('#2533 — reprise d’un jour interrompu : le jour interrompu est FINI, une journée NEUVE part', () => {
-  afterEach(() => { resetRule('travel-allures'); });
+  afterEach(() => { resetRule('voyage-allures'); });
 
   /** Embuscade du jour, « Faire face », victoire simulée et péril d'auteur neutralisé. */
   function interromptPuisVainc(): void {
@@ -213,7 +213,7 @@ describe('#2533 — reprise d’un jour interrompu : le jour interrompu est FINI
   const brigands = [{ label: 'Brigands sur la route !', chancePct: 100, effects: [{ type: 'startCombat' as const, encounter: 'enc-brigands' }] }];
 
   it('transport (diligence), reprise le même jour : le jour interrompu entre au log, la journée neuve a sa météo', () => {
-    setRule('travel-etapes', true);
+    setRule('voyage-etapes', true);
     setup(map({ km: 200, modes: ['diligence', 'pied'], perils: brigands }));
     creditBourse(get, set, 'h', { gold: 5, silver: 0, brass: 0 });
     get().partirEnVoyage('r1', 'diligence', { classeId: 'exterieur' });
@@ -227,7 +227,7 @@ describe('#2533 — reprise d’un jour interrompu : le jour interrompu est FINI
   });
 
   it('à pied, nuit passée en scène puis reprise : une carte = un jour, la journée neuve a sa météo', () => {
-    setRule('travel-etapes', true);
+    setRule('voyage-etapes', true);
     setup(map({ km: 60, perils: brigands }));
     get().partirEnVoyage('r1', 'pied');
     interromptPuisVainc();
@@ -242,7 +242,7 @@ describe('#2533 — reprise d’un jour interrompu : le jour interrompu est FINI
   });
 
   it('allure forcée, conducteur joueur : la journée neuve ouvre la Conduite d’attelage à la porte, aucun Test roulé hors porte', () => {
-    setRule('travel-allures', true);
+    setRule('voyage-allures', true);
     setup(map({ km: 300, modes: ['diligence', 'pied'], perils: brigands }), undefined,
       [hero({ skills: [{ id: 'conduite-d-attelage', advances: 60 }] } as Partial<Combatant>)]);
     creditBourse(get, set, 'h', { gold: 500, silver: 0, brass: 0 });
@@ -260,8 +260,8 @@ describe('#2533 — reprise d’un jour interrompu : le jour interrompu est FINI
 
 describe('#2533 — Plein air réussi dispense la nuit de son Exposition (EDOC 08 l.141)', () => {
   function journeeSousLAverse(issue: number): string[] {
-    setRule('travel-etapes', true);
-    setRule('travel-attraper-froid', true);
+    setRule('voyage-etapes', true);
+    setRule('voyage-attraper-froid', true);
     setDesFixes(true);
     setup(map(), 'clair', [hero({ travelRole: { activityId: 'plein-air' } })]);
     get().partirEnVoyage('r1', 'pied');

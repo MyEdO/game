@@ -66,8 +66,8 @@ export function opSummary(o: GameOp): string {
     case 'wounds': return `${formulaSummary(o.amount)} Blessure(s)`;
     case 'heal': return `+${formulaSummary(o.amount)} PB`;
     case 'healCaster': return `+${formulaSummary(o.amount)} PB au lanceur`;
-    case 'condition': return [`${conditionLabel(o.id)}${o.value && o.value !== 1 ? ` ×${formulaSummary(o.value)}` : ''}${o.perRound ? '/Round' : ''}`, dureePropre(o)].filter(Boolean).join(', ');
-    case 'removeCondition': return `${o.id ? conditionLabel(o.id) : '(au choix)'}`;
+    case 'condition': return [`${conditionLabel(o.id.id)}${o.value && o.value !== 1 ? ` ×${formulaSummary(o.value)}` : ''}${o.perRound ? '/Round' : ''}`, dureePropre(o)].filter(Boolean).join(', ');
+    case 'removeCondition': return `${o.id ? conditionLabel(o.id.id) : '(au choix)'}`;
     case 'endPsych': return 'instance' in o ? 'cet état' : psychologyLabel(o.type.id);
     case 'beginPsych': return `${libelleDePsy(o.type.id, o.cible && cibleDeRef(o.cible))}${o.indice != null ? ` ${formulaSummary(o.indice)}` : ''}`;
     case 'sbBonus': return `+${o.amount} au Bonus de Force`;
@@ -130,7 +130,7 @@ export function opSummary(o: GameOp): string {
     case 'aggravateSymptom': return `${refLabel('symptoms', { id: o.symptomId })} → ${o.severity} (${refLabel('maladies', { id: o.disease })})`;
     case 'attenuateSymptom': return `${refLabel('symptoms', { id: o.symptomId })} → échelon inférieur (${refLabel('maladies', { id: o.disease })})`;
     case 'grantSymptom': return `+ ${refLabel('symptoms', { id: o.symptomId })} (${refLabel('maladies', { id: o.disease })})`;
-    case 'actGate': return `Test de ${CHAR_LABELS[o.characteristic]} chaque Round pour agir`;
+    case 'testDAgir': return `Test de ${CHAR_LABELS[o.characteristic]} chaque Round pour agir`;
     case 'delayed': return `${o.ops.length} op(s) différée(s)${o.afterDuration ? ' (à la dissipation)' : ''}`;
     case 'preventInfection': return 'pas d’infection';
     case 'aideMedicale': return 'Aide Médicale';

@@ -345,7 +345,7 @@ describe('matchOutcomes — bandes d’issue par DR (ACE Annexe I)', () => {
   });
 
   it('Pénitence : échec → État Exténué ; Maladresse → Colère des dieux « à la place » (bande exclusive)', () => {
-    expect(matchOutcomes(pen, { success: false, sl: -1 }).flatMap((b) => b.ops ?? [])).toEqual([{ op: 'condition', id: 'extenue' }]);
+    expect(matchOutcomes(pen, { success: false, sl: -1 }).flatMap((b) => b.ops ?? [])).toEqual([{ op: 'condition', id: { id: 'extenue' } }]);
     const fumbled = matchOutcomes(pen, { success: false, sl: -1, fumble: true });
     expect(fumbled).toHaveLength(1);
     expect(fumbled[0].resolver).toBe('wrathOfTheGods');

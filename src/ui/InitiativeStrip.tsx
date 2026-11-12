@@ -15,7 +15,7 @@ function initiativeTitle(c: Combatant): string {
   const base = baseWithTraits(c, 'initiative');
   const talent = talentInitiativeBonus(c);
   const talentPart = talent ? ` + Instinctif(${talent})` : '';
-  switch (rule('combat-init-method')) {
+  switch (rule('combat-methode-initiative')) {
     case 'fixed-i':
       return `Init(${base})${talentPart} = ${c.initiative}`;
     case 'roll-bi':

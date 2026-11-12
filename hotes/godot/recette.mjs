@@ -143,10 +143,11 @@
 // - `composition` : Soldat, manquants et copie validée côté Node ; une couleur changée à l'onglet Couleurs, posée dans
 //   la composition et sur les matériaux de la pièce ; pièce skinnée montée et démontée, courtaud, corpulence aux
 //   bornes, marche au clavier au corps neutre et couplage de la racine au temps du clip, puis repos.
-// - `preset` (`--preset <id>`) : sur le dossier des modèles du projet, à deviceScaleFactor 2, la base du preset choisie à
-//   l'onglet Outils, puis le preset à l'onglet Personnage ; le personnage composé sans erreur, chaque chose qu'il porte
-//   montée dans la scène ou nommée manquante, capturé de face, de trois quarts et de dos (glissés au bouton droit de l'orbite) : ce que
-//   le jeu montrera d'un preset.
+// - `preset` (`--preset <id>`) : sur le dossier des modèles du projet, à deviceScaleFactor 2, la base du preset choisie
+//   en tête du panneau, puis le preset à l'onglet Personnage ; le personnage composé sans erreur, chaque chose qu'il porte
+//   montée dans la scène ou nommée manquante ; la fusion porte la pile des couches (#3842), au bilan de l'évaluateur
+//   sur les mêmes éléments et les mêmes formes ; puis capturé de face, de trois quarts et de dos (glissés au bouton
+//   droit de l'orbite) : ce que le jeu montrera d'un preset.
 // Chaque étape est assertée ; une assertion fausse, une erreur relevée par le pont (`erreursGlobales`) ou une erreur de
 // console rendent un code non nul.
 //
@@ -176,8 +177,8 @@
  * clique « Combat », puis y lit où cliquer ; il observe la partie par `vue`. L'atelier (`--parcours atelier`) clique
  * « Atelier », lit ses boutons et son état dans `wfrpEcran`, et sert un dossier de modèles neuf que la recette remplit
  * par `importer.mjs --sans-publier` ; sans `--modeles`, il sert le dossier des modèles du projet et y pose un véhicule,
- * qu'il compare à la réponse de `vehicule`, appelée de la page pour l'observer. La page s'ouvre sous `?rendu=econome`
- * (`PontDuNoyau.RENDU_ECONOME`) : une image ne se dessine que si l'écran a changé, sans anticrénelage
+ * qu'il compare à la réponse de `vehicule`, appelée de la page pour l'observer. La page s'ouvre sous `?recette=1`
+ * (`PontDuNoyau.en_recette`) : Godot y publie `wfrpEcran`, une image ne se dessine que si l'écran a changé, sans anticrénelage
  * multiéchantillon ; une lecture de la page n'attend plus le dessin d'une image, et un geste en attend un moins long. Un cran de molette de l'atelier attend
  * que `atelier.defilement` change, jamais une publication quelconque.
  * Le parcours des cadrages (`--parcours cadrages --vues <fichier>`) attend que le monde soit posé, le modèle de
@@ -200,14 +201,14 @@ import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 import { crc32, deflateSync } from 'node:zlib'
-import { servir } from './servir.mjs'
+import { FIL_DE_LA_PAGE_MS, WEBGL_LOGICIEL, servir } from './servir.mjs'
 import { LISTAGE } from './listage.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { gestesDessines } from './pont/dessines.ts'
 import { dossierDesProjetsLivres, listerProjetsLivres, PROJETS_MANUSCRITS } from '../../scripts/guards/lib/projetsLivres.mjs'
 import { ATTENTE_ECHUE, clic, consoleGuard, evaluate, geste, launchSession, molette, poserFichier, realKey, realKeyDown, realKeyUp, shot, sleep, waitFor } from '../../scripts/recette/lib.mjs'
 
-import { chargerAssets } from './asset/charger.mjs'
+import { chargerAssets, chargerEvaluateur } from './asset/charger.mjs'
 
 const chaine = { type: 'string' }
 const { values: o } = parseArgs({
@@ -221,8 +222,6 @@ if (o.parcours === 'preset' && !o.preset) throw new Error('--parcours preset att
 if (o.parcours === 'combat' && !o.modeles !== !o.element) throw new Error('--parcours combat attend --modeles <dossier neuf> et --element <production> ensemble, ou aucun des deux')
 if (['atelier', 'composition', 'combat'].includes(o.parcours) && o.modeles && existsSync(o.modeles)) throw new Error(`--modeles ${o.modeles} existe : le parcours importe dans un dossier neuf`)
 
-/** Le WebGL 2 de l'export, en logiciel dans un Chrome sans GPU, sans l'avertissement de repli. */
-const WEBGL_LOGICIEL = ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist']
 /** Les projets manuscrits du dépôt, chacun par son chemin relatif au corpus (`listerProjetsLivres`). */
 const MANUSCRITS = listerProjetsLivres().filter((rel) => Object.hasOwn(PROJETS_MANUSCRITS, basename(rel)))
 /** Le dépôt que sert le parcours `editeur` : une copie neuve de ses projets manuscrits, que l'enregistrement écrit. */
@@ -235,9 +234,6 @@ const srv = await servir({ web: o.web, ...(o.modeles && { modeles: o.modeles }),
 const session = await launchSession({ width: 1280, height: 720, timeoutMs: 30000, args: WEBGL_LOGICIEL })
 const garde = consoleGuard(session)
 const noter = (t) => console.log('·', t)
-/** La borne d'une lecture de la page : l'export Web de Godot tient le fil de la page le temps de chaque image, et celle
- *  qui lit un GLB ou dessine en WebGL logiciel une vue à deviceScaleFactor 2 dure plus que le défaut du kit. */
-const FIL_DE_LA_PAGE_MS = 120000
 const lire = (expression) => evaluate(session, expression, { timeoutMs: FIL_DE_LA_PAGE_MS })
 const vue = async () => JSON.parse(await lire(`wfrpPont.appeler('vue')`)).vue
 const ecran = async () => JSON.parse(await lire('JSON.stringify(globalThis.wfrpEcran ?? null)'))
@@ -1892,6 +1888,21 @@ async function parcoursEditeur() {
   const pressee = (id) => inspecte(e, id).valeurs.find((b) => b.presse).libelle
   noter(`le flux du même déclencheur, un pas « ${pressee(`valeur/flow/steps/${rangDuPas}/kind`)} » d’effet « ${pressee(`${pasDOps}/type`)} » : l’op « ${pressee(`${pasDOps}/ops/0/op`)} », champ par champ, libellée « ${inspecte(e, `${pasDOps}/ops/0/label`).champs[2].valeur} », type d’attaque « ${pressee(`${pasDOps}/ops/0/attackKind`)} »`)
   await capturer('3606-m2a-1-op-typee')
+  const opTypee = pressee(`${pasDOps}/ops/0/op`)
+  await cliquerAuPanneau({ element: `bouton/${pasDOps}/ops/ajouter` })
+  await waitFor(session, montre(`${pasDOps}/ops/1/op`))
+  e = await editeur()
+  await choisirALaListe(`${pasDOps}/ops/1/op`, inspecte(e, `${pasDOps}/ops/1/op`).valeurs.find((b) => b.jeu.args[2]?.op === 'condition').id, 'editeur.inspecteur', montre(`${pasDOps}/ops/1/id/id`))
+  e = await editeur()
+  await choisirALaListe(`${pasDOps}/ops/1/id/id`, inspecte(e, `${pasDOps}/ops/1/id/id`).valeurs.find((b) => b.jeu.args[2] === 'sonne').id, 'editeur.inspecteur')
+  e = await editeur()
+  noter(`le même pas d’effet, une seconde op « ${pressee(`${pasDOps}/ops/1/op`)} », champ par champ : l’État « ${pressee(`${pasDOps}/ops/1/id/id`)} » choisi à la liste du catalogue`)
+  await capturer('3606-m2a2-1-etat')
+  for (let n = 0; n < 3; n++) await cliquerAuPanneau({ element: 'bouton/annuler' })
+  await cliquerPoint(...cases[`${dx + 1},${dy}`])
+  await waitFor(session, montre(`${pasDOps}/ops/0/op`))
+  e = await editeur()
+  assert.deepEqual([inspecte(e, `${pasDOps}/ops/1/op`), pressee(`${pasDOps}/ops/0/op`)], [undefined, opTypee], '« Annuler » trois fois, le déclencheur recliqué : la seconde op partie, l’op typée reste')
   for (let n = 0; n < 7; n++) await cliquerAuPanneau({ element: 'bouton/annuler' })
   await waitFor(session, `!(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id.startsWith('valeur/flow/steps/${rangDuPas}/'))`)
   await cliquerPoint(...cases[`${dx + 1},${dy}`])
@@ -2786,8 +2797,37 @@ const TOUT_EST_MONTE = `JSON.stringify(a.composition.montes.filter((m) => m.elem
 /** Les radians de lacet par pixel d'un glissé de l'orbite (`MiseEnPage.RADIANS_PAR_PIXEL`). */
 const RADIANS_PAR_PIXEL = 0.005
 
+/** L'écart relatif admis entre un compte du bilan de la pile que porte la fusion de Godot et celui de l'évaluateur : Godot
+ *  quantifie les poids de peau sur 16 bits et cuit les formes par son propre calcul, ce qui déplace quelques points d'un
+ *  côté à l'autre d'un seuil de la pile. */
+const TOLERANCE_DE_LA_PILE = 0.01
+
+/** La fusion de l'atelier porte la pile des couches de l'évaluateur (#3842) : le bilan que l'atelier publie (`pile`,
+ *  `MontageDeComposition.pile_posee`) est, à `TOLERANCE_DE_LA_PILE` près, celui que l'évaluateur mesure
+ *  (`mesures.pile`) sur les mêmes éléments montés, aux formes de la composition (`composition.morphes`). */
+async function prouverLaPile() {
+  await attendreLAtelier('Object.keys(a.pile).length > 0', 120000)
+  const a = await atelier()
+  const { fichiersDuModele } = await chargerAssets(["export { fichiersDuModele } from '/hotes/godot/asset/modeles.ts';"])
+  const lu = (id) => { const f = fichiersDuModele(id); return { glb: readFileSync(join(o.web, 'modeles', f.glb)), manifeste: JSON.parse(readFileSync(join(o.web, 'modeles', f.manifeste), 'utf8')) } }
+  const base = lu(a.base)
+  const elements = [...Object.values(a.montes), ...Object.values(a.lignes)].map(lu)
+  const { evaluer } = await chargerEvaluateur()
+  const { mesures } = await evaluer({
+    base: base.glb, manifeste: base.manifeste, elements: elements.map((e) => e.glb),
+    couches: elements.map(({ manifeste: { couche, couvre = [], categorie } }) => (couche ? { couche, couvre, categorie } : null)),
+    silhouettes: a.composition.morphes, clips: [base.manifeste.clips.idle],
+  })
+  noter(`pile : fusion ${JSON.stringify(a.pile)} ; évaluateur ${JSON.stringify(mesures.pile)}`)
+  for (const [compte, attendu] of Object.entries(mesures.pile)) {
+    assert.ok(Math.abs(a.pile[compte] - attendu) <= TOLERANCE_DE_LA_PILE * Math.max(attendu, 1 / TOLERANCE_DE_LA_PILE), `pile, ${compte} : ${a.pile[compte]} dans la fusion, ${attendu} à l'évaluateur`)
+  }
+  assert.ok(mesures.pile.couverts > 0 && mesures.pile.masques > 0, 'la tenue du preset empile des couches')
+}
+
 /** Le preset `--preset` composé dans l'atelier, sur les modèles du projet, et capturé de face, de trois quarts et de dos :
- *  sa base choisie à l'onglet Outils, le preset à l'onglet Personnage, aucune erreur publiée. */
+ *  sa base choisie en tête du panneau, le preset à l'onglet Personnage, aucune erreur publiée ; sa fusion porte la pile
+ *  des couches de l'évaluateur (`prouverLaPile`). */
 async function parcoursPreset() {
   const preset = JSON.parse(readFileSync(new URL('../../src/data/presets-de-personnage.json', import.meta.url), 'utf8')).find((x) => x.id === o.preset)
   assert.ok(preset, `--preset ${o.preset} : un preset de src/data/presets-de-personnage.json`)
@@ -2795,9 +2835,8 @@ async function parcoursPreset() {
   await session.rpc('Page.reload')
   await waitFor(session, '!!globalThis.wfrpEcran && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
   await cliquerBouton('Atelier')
-  await attendreLAtelier('Array.isArray(a.erreurs)', 120000)
-  await cliquerBouton('Outils')
-  await cliquerAmene('humanoide', 1)
+  await attendreLAtelier('b.some((x) => x.cle === "modele/corps")', 120000)
+  await choisirDansLaListe('modele/corps', 'humanoide')
   await attendreLAtelier('a.base === "humanoide"', 120000)
   await cliquerBouton('Personnage')
   await cliquerAmene(preset.label, -1)
@@ -2807,6 +2846,7 @@ async function parcoursPreset() {
   const a = await atelier()
   assert.deepEqual(a.erreurs, [], `${preset.label} composé sans erreur`)
   noter(`${preset.label} : montés ${a.composition.montes.filter((m) => m.element).map((m) => m.element).join(', ')} ; manquants ${a.composition.manquants.map((m) => m.label).join(', ') || 'aucun'}`)
+  await prouverLaPile()
   let lacet = 0
   for (const [nom, cible] of VUES_DU_PRESET) {
     const dx = -Math.round((cible - lacet) / RADIANS_PAR_PIXEL)
@@ -2822,7 +2862,7 @@ if (!(o.parcours in PARCOURS)) throw new Error(`--parcours ${o.parcours} : ${Obj
 
 let echec = null
 try {
-  await session.rpc('Page.navigate', { url: `${srv.url}index.html?scenario=${o.scenario}&graine=${o.graine}&rendu=econome` })
+  await session.rpc('Page.navigate', { url: `${srv.url}index.html?scenario=${o.scenario}&graine=${o.graine}&recette=1` })
   await waitFor(session, '!!globalThis.wfrpEcran && wfrpEcran.boutons.length > 0', { timeoutMs: 120000, evaluerMs: FIL_DE_LA_PAGE_MS })
   await PARCOURS[o.parcours]()
   const releve = JSON.parse(await lire(`wfrpPont.appeler('erreursGlobales')`))

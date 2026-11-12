@@ -728,7 +728,7 @@ function teleportCommitTile(get: Get, set: Set, active: Combatant, pt: Pt): void
 
 /** POUSSÉE d'un engin de siège CREWÉ (ADE II 8 l.258, Lot 2 #156) : le CHEF choisit sa case
  *  d'arrivée parmi les cases en surbrillance (`battle.reachable`, posé par `pousserLEngin` — plafonné
- *  à `rule('siege-engine-push-speed')`) — mouvement SIMPLE, aucun jet. Le delta (case cliquée − position
+ *  à `rule('engin-de-siege-vitesse-de-poussee')`) — mouvement SIMPLE, aucun jet. Le delta (case cliquée − position
  *  du chef) est appliqué à l'ENGIN et à TOUS les servants du poste (`ShipPoste.crewIds`, chef inclus) :
  *  formation RIGIDE (`translaterFormation`). Consomme l'Action du chef (comme `servirLePoste`) ; l'engin reste SANS tour (`inert`,
  *  jamais ajouté à `battle.order`) — seul le rendu de la pièce suit (`posteAnchor` lit `hull.pos`).

@@ -298,7 +298,7 @@ describe('Nuit — les 5 étapes de `restFlow` montées par `rollStep` (#1153 vo
     const expo = steps.filter((s) => s.kind === 'exposition-nocturne');
     expect(expo.length, 'une nuit extrême SOUS TENTE garde le rythme difficile').toBeGreaterThan(0);
     const st = jetDe(expo[0]);
-    const pen = Number(rule('exposure-no-coat-penalty'));
+    const pen = Number(rule('exposition-sans-manteau'));
     expect(pen, 'sans pénalité de manteau, ce test ne mesure rien').toBeGreaterThan(0);
     // Exposition = « Test de Résistance » (LDB 18 l.328) : base NUE, États en chips, pénalité de manteau
     // SUR LA CIBLE — les trois séparément, plus aucune valeur maison (#1685).

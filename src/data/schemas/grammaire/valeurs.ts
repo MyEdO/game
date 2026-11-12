@@ -8,13 +8,14 @@ import { nommerChamps, nommerNoeud, metaDesChamps, type MetaDesChamps } from './
 import { tableTotale } from '../../../lib/tableTotale';
 import type { Dir8 } from '../../../geometry/dir8';
 import type { FormuleSansTirage } from '../../../engine/ops';
+import type { RegleOptionnelleId } from '../../../engine/policy';
 import { z } from 'zod';
 import { parseStatus } from '../../../engine/money';
 import { parseDice, totalDuDe } from '../../../engine/dice';
 import { deDeLaTableTiree, facesDuDe, type PorteurDeDe } from '../../../engine/tables';
 import { messageDApparenceDObjet, findTrappingById } from '../../apparencesObjets';
 
-import { type Amateur, type ContexteDeTest, type Availability, type TestedAvailability, CHAR_LABELS, COUVERT_DIFFICULTES, DIFFICULTY_LABELS, HIT_LOCATION_LABELS, LOCALISATIONS_DE_COUP, REACH_LABELS, REACH_VARIABLE, STAKE_FORMS } from '../../../engine/types';
+import { type Amateur, type ConditionUnlock, type ContexteDeTest, type Availability, type TestedAvailability, CHAR_LABELS, COUVERT_DIFFICULTES, DIFFICULTY_LABELS, HIT_LOCATION_LABELS, LOCALISATIONS_DE_COUP, REACH_LABELS, REACH_VARIABLE, STAKE_FORMS } from '../../../engine/types';
 import type { Slot } from '../../../lib/palette';
 import type { Sexe as SexeDApparence } from '../../../lib/sexe';
 import { ref, refOuSpec, idDe, refs, specDe, refTypee, type RefTypee } from './ref';
@@ -589,7 +590,7 @@ export function variantOf<T extends z.ZodRawShape, K extends Extract<keyof T, st
  *  par le champ `variants?: Variant[]` de toute entrée à variante réglée (`activeVariant`/`effectiveEntry`,
  *  `src/engine/variants.ts`). */
 export type Variant = {
-  when: { rule: string; equals?: z.infer<typeof ruleValueSchema> };
+  when: { rule: RegleOptionnelleId; equals?: z.infer<typeof ruleValueSchema> };
   desc?: string;
   source?: SourceRef;
   [field: string]: unknown;
@@ -649,6 +650,9 @@ export const detailRecipeSchema = nommerChamps(z.strictObject({
  * car c'est le type que les consommateurs attendent, une future entrée peut légitimement en ajouter.
  */
 export const difficultySchema = enumNomme(DIFFICULTY_LABELS);
+
+/** Acte de soin qui lève le verrou d'un État (`ConditionUnlock`, `engine/types.ts`). LDB 18 */
+export const acteDeDeverrouillageSchema = enumNomme({ medicalAid: 'Aide Médicale', surgery: 'Chirurgie', magic: 'Soin magique' } satisfies Record<ConditionUnlock, string>);
 
 /**
  * Sous-ensemble de `difficultySchema` que la colonne « Pénalité de Couvert » d'une Structure peut porter
@@ -1328,7 +1332,7 @@ export function ecartsDuDeDeLaTable<F extends { min?: number | null; max?: numbe
   fourchettes: readonly F[],
   nom: (f: F) => string,
 ): string[] {
-  if ('die' in table && parseDice(table.die) === null) return [];
+  if (parseDice(table.die) === null) return [];
   const de = deDeLaTableTiree(table);
   return ecartsDeCouverture(fourchettes, totalDuDe(de, de.n), fourchettes.some((f) => f.max === null) ? 'ouverte' : facesDuDe(de), nom);
 }
@@ -1358,15 +1362,19 @@ export function couvertureDuDeParDocument<T extends TableTiree>(
 }
 
 /**
- * FEUILLE ou VALEUR RÉSERVÉE — un champ qui admet, en plus de sa feuille, UN littéral que le moteur
- * lit à part : gabarit d'instance substitué par `withArg` (`engine/flowCore › INDICE_TEMPLATE`,
- * `ARG_TEMPLATE`) ou mot réservé interprété à l'application (`engine/ops › SELF_REF`). Le littéral est
- * une branche `z.literal` du MÊME nœud : le parse de mesure n'y pose aucun repère.
+ * FEUILLE ou VALEUR RÉSERVÉE — un champ qui admet, en plus de sa feuille, un littéral (ou la liste d'un
+ * registre) que le moteur lit à part : gabarit d'instance substitué par `withArg` (`engine/flowCore ›
+ * INDICE_TEMPLATE`, `ARG_TEMPLATE`), mot réservé interprété à l'application (`engine/ops › SELF_REF`) ou
+ * marqueur narratif (`engine/conditions › NARRATIVE_MARKERS`). La réserve est une branche `z.literal`, ou un
+ * `enumNomme` quand chaque valeur réservée a son libellé, du MÊME nœud : le parse de mesure n'y pose aucun repère.
  * Une valeur ni feuille ni réservée est refusée par le message de la FEUILLE (celui d'`idDe` nomme
  * l'id absent et son dataset), jamais par l'« Entrée invalide » générique d'une union.
  */
-export function ouReserve<F extends z.ZodType, const R extends string>(feuille: F, reserve: R) {
-  return z.union([feuille, z.literal(reserve)], {
+export function ouReserve<F extends z.ZodType, const R extends string>(feuille: F, reserve: R | readonly R[]): z.ZodUnion<readonly [F, z.ZodLiteral<R>]>;
+export function ouReserve<F extends z.ZodType, E extends z.ZodEnum<Readonly<Record<string, string>>>>(feuille: F, reserve: E): z.ZodUnion<readonly [F, E]>;
+export function ouReserve(feuille: z.ZodType, reserve: string | readonly string[] | z.ZodEnum) {
+  const reservee = typeof reserve === 'string' ? z.literal([reserve]) : '_zod' in reserve ? reserve : z.literal(reserve);
+  return z.union([feuille, reservee], {
     error: (iss) => {
       const branches = (iss as { errors?: readonly (readonly { message: string }[])[] }).errors;
       return branches?.[0]?.[0]?.message;

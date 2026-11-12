@@ -95,7 +95,7 @@ SANS ce préfixe sont la VO du dépôt parent — jamais lus, jamais cités ici.
 comprendre : fiche `user-doctrine-lecture-vo-campagne-pour-comprendre`. Une donnée MÉCANIQUE absente de
 la VF se prend à la VO, nombres et ids FR seulement, jamais de prose : fiche
 `user-doctrine-vo-fournit-la-donnee-mecanique-absente-de-la-vf`. Livres : **LDB** ·
-**ADE I/II** · **EDO/EDOC** · **PDTC** · **Middenheim** · **AA** · **ZI** · **MDG** · **ACE** · **MSRC** ·
+**ADE I/II** · **EDO/EDOC** · **PDTP** · **Middenheim** · **AA** · **ZI** · **MDG** · **ACE** · **MSRC** ·
 **NADJ** · **VDM** · **HCVM** (fan : profils/sorts), chacun pour son périmètre (tout livre FR peut fournir une règle, par PASSAGE) —
 chemins et chapitres : `docs/sources-vf.md`. `src/data/*.json` est la source APP-OWNED, éditable au
 Compendium, chaque entrée taguée à sa `source`.

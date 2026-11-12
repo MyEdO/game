@@ -12,7 +12,7 @@ import type { Combatant, Weapon } from '../engine/types';
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
-// Au Contact (Issue #42.5, LDB 62 l.176, Option « Longueur d'arme », règle `combat-weapon-reach`).
+// Au Contact (Issue #42.5, LDB 62 l.176, Option « Longueur d'arme », règle `combat-longueur-arme`).
 
 const longWeapon: Weapon = { label: 'Pertuisane', type: 'melee', reach: 'Longue', damage: { plusBF: true, flat: 5 }, qualities: [{ id: 'empaleuse' }] };
 const dagger: Weapon = { label: 'Dague', type: 'melee', reach: 'Courte', damage: { plusBF: true, flat: 1 }, qualities: [] };
@@ -20,7 +20,7 @@ const simpleWeapon: Weapon = { label: 'Arme simple', type: 'melee', reach: 'Moye
 
 describe('Au Contact — store + funnel (LDB 62 l.176)', () => {
   beforeEach(() => {
-    setRule('combat-weapon-reach', true);
+    setRule('combat-longueur-arme', true);
   });
 
   function setup() {
@@ -58,7 +58,7 @@ describe('Au Contact — store + funnel (LDB 62 l.176)', () => {
   });
 
   it('règle OFF → pas d’option « Au contact »', () => {
-    resetRule('combat-weapon-reach');
+    resetRule('combat-longueur-arme');
     const { H, enemies } = setup();
     engageAndActivate(H, [enemies[0]]);
     const opts = availableAttacks(live(H.id), banc.getState().battle!);
@@ -82,7 +82,7 @@ describe('Au Contact — store + funnel (LDB 62 l.176)', () => {
     expect(pd.result).not.toBeNull();
 
     // Force l'issue « le mover l'emporte » (déterminisme), puis le héros tranche.
-    banc.setState({ pendingAuContact: { ...pd, result: 'success' } });
+    banc.setState({ pendingAuContact: { ...pd, result: 'reussite' } });
     banc.getState().jetValider('auContact');
     expect(banc.getState().pendingAuContact?.phase).toBe('choice');
     banc.getState().jetRegler('auContact', 'issue', 'contact');
@@ -122,7 +122,7 @@ describe('Au Contact — store + funnel (LDB 62 l.176)', () => {
 
     banc.getState().ouvrirLAuContact(E.id);
     const pd = banc.getState().pendingAuContact!;
-    banc.setState({ pendingAuContact: { ...pd, def: pd.atk, result: 'success' } });
+    banc.setState({ pendingAuContact: { ...pd, def: pd.atk, result: 'reussite' } });
     banc.getState().jetValider('auContact');
     banc.getState().jetRegler('auContact', 'issue', 'normal');
 
@@ -139,7 +139,7 @@ describe('Au Contact — store + funnel (LDB 62 l.176)', () => {
 
     banc.getState().ouvrirLAuContact(E.id);
     const pd = banc.getState().pendingAuContact!;
-    banc.setState({ pendingAuContact: { ...pd, def: pd.atk, result: 'failure' } }); // le foe l'emporte
+    banc.setState({ pendingAuContact: { ...pd, def: pd.atk, result: 'echec' } }); // le foe l'emporte
     banc.getState().jetValider('auContact'); // pas de phase de choix montrée — l'IA tranche
 
     expect(banc.getState().pendingAuContact).toBeNull();
@@ -158,7 +158,7 @@ describe('Au Contact — store + funnel (LDB 62 l.176)', () => {
 
     banc.getState().ouvrirLAuContact(E.id);
     const pd = banc.getState().pendingAuContact!;
-    banc.setState({ pendingAuContact: { ...pd, def: pd.atk, result: 'failure' } }); // le foe l'emporte
+    banc.setState({ pendingAuContact: { ...pd, def: pd.atk, result: 'echec' } }); // le foe l'emporte
     banc.getState().jetValider('auContact');
 
     expect(areInContact(live(H.id), live(E.id))).toBe(true);

@@ -450,7 +450,7 @@ describe('Voyage par Étapes (EDOC 8, règle optionnelle)', () => {
   });
 
   it('ON : la Météo du jour est journalisée (libellé seul — le d100 est un tirage de MONDE, pas montré)', () => {
-    setRule('travel-etapes', true);
+    setRule('voyage-etapes', true);
     setup(map({ km: 12, perilDie: 0 }));
     banc.getState().partirEnVoyage('r1', 'pied');
     drainCascade(); // cascade travelDay (postes) → drainer, puis arrivée
@@ -462,7 +462,7 @@ describe('Voyage par Étapes (EDOC 8, règle optionnelle)', () => {
   });
 
   it('ON, sans « Attraper froid » : les POSTES se résolvent, mais aucun Test d’Exposition de fin d’Étape', () => {
-    setRule('travel-etapes', true);
+    setRule('voyage-etapes', true);
     // Héros au poste Récupérer (sans Test, n'ouvre PAS la porte « Plein air ») → l'Exposition resterait
     // possible si le flag était mis, mais il ne l'est pas ici.
     const h = hero({ travelRole: { activityId: 'recuperer' }, items: [ration('r1')] });
@@ -476,7 +476,7 @@ describe('Voyage par Étapes (EDOC 8, règle optionnelle)', () => {
   });
 
   it('ON : un héros au poste Approvisionnement fourrage (Test de Survie en extérieur, EDOC 8 l.145)', () => {
-    setRule('travel-etapes', true);
+    setRule('voyage-etapes', true);
     const h = hero({ travelRole: { activityId: 'approvisionnement' }, items: [], skills: [{ id: 'survie-en-exterieur', advances: 20 } as any] });
     setup(map({ km: 12, perilDie: 0 }), [h]);
     banc.getState().partirEnVoyage('r1', 'pied');
@@ -490,9 +490,9 @@ describe('Voyage par Étapes (EDOC 8, règle optionnelle)', () => {
     expect(gotRation || exhausted).toBe(true);
   });
 
-  it('ON + travel-attraper-froid : un Test d’Exposition de fin d’Étape est tenté (héros sans manteau)', () => {
-    setRule('travel-etapes', true);
-    setRule('travel-attraper-froid', true);
+  it('ON + voyage-attraper-froid : un Test d’Exposition de fin d’Étape est tenté (héros sans manteau)', () => {
+    setRule('voyage-etapes', true);
+    setRule('voyage-attraper-froid', true);
     // Hiver garantit pluie/neige/blizzard fréquents ; on balaie quelques graines pour en obtenir un
     // (la météo est seedée — au moins une graine produit des intempéries imposant un Test).
     let exposed = false;
@@ -510,8 +510,8 @@ describe('Voyage par Étapes (EDOC 8, règle optionnelle)', () => {
   });
 
   it('saison froide + Exposition RATÉE : le Rhume commun contracté en route se DÉCLARE à la Phase d’arrivée (EDOC 8 l.92, EDOC 9 l.21)', () => {
-    setRule('travel-etapes', true);
-    setRule('travel-attraper-froid', true);
+    setRule('voyage-etapes', true);
+    setRule('voyage-attraper-froid', true);
     let sick: { id: string; phase: string; minutesLeft: number; durationMinutes: number } | undefined;
     for (let seed = 1; seed <= 40 && !sick; seed++) {
       seedBattleRng(seed);
@@ -532,8 +532,8 @@ describe('Voyage par Étapes (EDOC 8, règle optionnelle)', () => {
   });
 
   it('ré-exposition d’un héros déjà enrhumé : la durée du Rhume est PROLONGÉE de 1d10 jours (EDOC 8 l.122)', () => {
-    setRule('travel-etapes', true);
-    setRule('travel-attraper-froid', true);
+    setRule('voyage-etapes', true);
+    setRule('voyage-attraper-froid', true);
     const JOUR = 24 * 60;
     let mesure: { avant: number; apres: number } | undefined;
     for (let seed = 1; seed <= 40 && !mesure; seed++) {
@@ -557,8 +557,8 @@ describe('Voyage par Étapes (EDOC 8, règle optionnelle)', () => {
   });
 
   it('porte « Plein air » : un héros réussit Plein air → le groupe SAUTE le Test d’Exposition (EDOC 8 l.141)', () => {
-    setRule('travel-etapes', true);
-    setRule('travel-attraper-froid', true);
+    setRule('voyage-etapes', true);
+    setRule('voyage-attraper-froid', true);
     // Héros expert en Survie au poste Plein air : sa réussite dispense tout le groupe de l'Exposition.
     let suppressed = false;
     for (let seed = 1; seed <= 20 && !suppressed; seed++) {
@@ -579,7 +579,7 @@ describe('Voyage par Étapes (EDOC 8, règle optionnelle)', () => {
   });
 
   it('poste Établir des cartes : Test ÉTENDU de cartographie cumulé via extendedTestStep (EDOC 8 l.161)', () => {
-    setRule('travel-etapes', true);
+    setRule('voyage-etapes', true);
     const h = hero({ travelRole: { activityId: 'etablir-cartes' }, skills: [{ id: 'metier', spec: 'cartographe', advances: 80 } as any] });
     setup(map({ km: 12, perilDie: 0 }), [h]);
     banc.getState().partirEnVoyage('r1', 'pied');
@@ -589,7 +589,7 @@ describe('Voyage par Étapes (EDOC 8, règle optionnelle)', () => {
   });
 
   it('véhicule à coque : `plan.vehicle` est bâti depuis la facette hull (Diligence E45/B50)', () => {
-    setRule('travel-etapes', true);
+    setRule('voyage-etapes', true);
     // Trajet > 36 km/jour (M6 × 6 h) → halte de nuit, `travelPlan` persiste (vehicle inspectable).
     // Extérieur 1 sou/km × 50 km = 50 PA ≤ 60 PA de bourse de départ.
     setup(map({ km: 50, modes: ['diligence'], perilDie: 0 }));
@@ -601,7 +601,7 @@ describe('Voyage par Étapes (EDOC 8, règle optionnelle)', () => {
   });
 
   it('à pied : aucun `plan.vehicle` (pas de coque pour un trajet à pied)', () => {
-    setRule('travel-etapes', true);
+    setRule('voyage-etapes', true);
     setup(map({ km: 12, perilDie: 0 }));
     banc.getState().partirEnVoyage('r1', 'pied');
     drainCascade(); // cascade travelDay éventuelle (poste par défaut) → drainer, puis arrivée
@@ -610,7 +610,7 @@ describe('Voyage par Étapes (EDOC 8, règle optionnelle)', () => {
   });
 
   it('Rencontre : un échec d’Activité déclenche une Rencontre EDOC (texte verbatim au journal)', () => {
-    setRule('travel-etapes', true);
+    setRule('voyage-etapes', true);
     // Héros nul en Survie au poste Approvisionnement → échec quasi certain → Rencontre (dangereuse/fortuite).
     let met = false;
     for (let seed = 1; seed <= 20 && !met; seed++) {
@@ -634,11 +634,11 @@ describe('Voyage par Étapes (EDOC 8, règle optionnelle)', () => {
 });
 
 /**
- * Montures et attelages en voyage (EDOC 7, règle optionnelle `travel-allures`) : voyage en selle
+ * Montures et attelages en voyage (EDOC 7, règle optionnelle `voyage-allures`) : voyage en selle
  * (vitesse par allure l.140, endurance l.142-146, Incidents de monte l.148-174) et allure forcée
  * d'un attelage (l.229 + Problème de véhicule l.253).
  */
-describe('Montures & attelages (EDOC 7, règle optionnelle travel-allures)', () => {
+describe('Montures & attelages (EDOC 7, règle optionnelle voyage-allures)', () => {
   /** Possession `nature: 'bete'` montable (SOCLE POSSESSIONS #617/#618) — `cheval-de-monte` = Palefroi. */
   const mountPossession = (
     uid: string, ownerId: string, creatureId = 'cheval-de-monte',
@@ -654,7 +654,7 @@ describe('Montures & attelages (EDOC 7, règle optionnelle travel-allures)', () 
   });
 
   it('ON sans monture pour chaque héros vivant : refusé', () => {
-    setRule('travel-allures', true);
+    setRule('voyage-allures', true);
     const h = hero();
     setup(map(), [h, hero({ id: 'h2', label: 'Nain' })], [mountPossession('m1', h.id)]);
     banc.getState().partirEnVoyage('r1', 'monture');
@@ -663,7 +663,7 @@ describe('Montures & attelages (EDOC 7, règle optionnelle travel-allures)', () 
   });
 
   it('ON, groupe monté : 12 km au trot (Palefroi M7 → 17,5 km/h, EDOC 07 l.140) = 41 min', () => {
-    setRule('travel-allures', true);
+    setRule('voyage-allures', true);
     const h = hero();
     setup(map(), [h], [mountPossession('m1', h.id)]);
     const t0 = banc.getState().gameTime;
@@ -675,7 +675,7 @@ describe('Montures & attelages (EDOC 7, règle optionnelle travel-allures)', () 
   });
 
   it('budget EN SELLE (LDB 51 l.195) : les heures déjà chevauchées du jour l’épuisent, pas celles marchées', () => {
-    setRule('travel-allures', true);
+    setRule('voyage-allures', true);
     const h = hero();
     setup(map(), [h], [mountPossession('m1', h.id)]);
     const jour = dayIndex(banc.getState().gameTime);
@@ -692,7 +692,7 @@ describe('Montures & attelages (EDOC 7, règle optionnelle travel-allures)', () 
   });
 
   it('sur-endurance au galop (Chien BE 2, 6 h) : la bête s’épuise — Incident de monte ou effondrement', () => {
-    setRule('travel-allures', true);
+    setRule('voyage-allures', true);
     // Chien M4 : galop 12 km/h, endurance ½ BE = 1 h → une longue journée dépasse LARGEMENT.
     const h = hero();
     setup(map({ km: 80 }), [h], [mountPossession('m1', h.id, 'chien-de-trait')]);
@@ -702,7 +702,7 @@ describe('Montures & attelages (EDOC 7, règle optionnelle travel-allures)', () 
   });
 
   it('bête perdue en route (Boiteux/Patte brisée/morte) : la route continue à pied', () => {
-    setRule('travel-allures', true);
+    setRule('voyage-allures', true);
     // La cascade du chien épuisé finit toujours par le rendre inutilisable ou mort sur 80 km au galop.
     let degraded = false;
     for (let seed = 1; seed <= 20 && !degraded; seed++) {
@@ -721,7 +721,7 @@ describe('Montures & attelages (EDOC 7, règle optionnelle travel-allures)', () 
   });
 
   it('fer/sangle/boiteux sont remis en état à l’ARRIVÉE (choix documenté — RAW sans coût ni durée)', () => {
-    setRule('travel-allures', true);
+    setRule('voyage-allures', true);
     const h = hero();
     setup(map(), [h], [mountPossession('m1', h.id, 'cheval-de-monte', 'perte-d-un-fer')]);
     banc.getState().partirEnVoyage('r1', 'monture'); // au pas (le fer force déjà le pas)
@@ -733,7 +733,7 @@ describe('Montures & attelages (EDOC 7, règle optionnelle travel-allures)', () 
   });
 
   it('la séquelle déclarée HORS de portée des soins (Patte brisée) survit à l’arrivée — le boiteux du même voyage, lui, est soigné', () => {
-    setRule('travel-allures', true);
+    setRule('voyage-allures', true);
     const h = hero();
     setup(map(), [h], [
       mountPossession('m1', h.id, 'cheval-de-monte', 'patte-brisee'),
@@ -751,7 +751,7 @@ describe('Montures & attelages (EDOC 7, règle optionnelle travel-allures)', () 
   });
 
   it('chute de selle (Dégâts de Chute, EDOC 07 l.167/l.174) : le héros encaisse ET `party` est FLUSHÉ (nouvelle référence, re-rendu HUD/fiche)', () => {
-    setRule('travel-allures', true);
+    setRule('voyage-allures', true);
     // Chien M4/BE2 au galop sur 80 km : Incidents de monte garantis ; on cherche une graine qui produit
     // une chute de selle (Sangle cassée/Perte d'un fer ratée, l.166/l.171) sans tuer/estropier la bête
     // avant (le héros doit rester en selle assez longtemps pour chuter au moins une fois).
@@ -781,7 +781,7 @@ describe('Montures & attelages (EDOC 7, règle optionnelle travel-allures)', () 
   });
 
   it('attelage forcé (diligence, l.229) : Tests de Conduite d’attelage par km ; Échec Stupéfiant → Problème de véhicule', () => {
-    setRule('travel-allures', true);
+    setRule('voyage-allures', true);
     // Conducteur sans Compétence (Ag 30 → cible basse) : échecs fréquents, Stupéfiants fréquents.
     let problem = false;
     for (let seed = 1; seed <= 30 && !problem; seed++) {
@@ -800,7 +800,7 @@ describe('Montures & attelages (EDOC 7, règle optionnelle travel-allures)', () 
   });
 
   it('attelage « Endommagé » : le reste du trajet se fait à la cadence de base (vehicleLame)', () => {
-    setRule('travel-allures', true);
+    setRule('voyage-allures', true);
     // On cherche une graine où le Problème tiré est « Endommagé » (01-50 Incontrôlable maîtrisé exclu).
     let lame = false;
     for (let seed = 1; seed <= 60 && !lame; seed++) {

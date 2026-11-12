@@ -82,7 +82,7 @@ describe('runFlow — nœud `choice` (#1652 G1)', () => {
     expect(get().flags).toEqual({});
   });
 
-  it.each([['yes', 'oui', 'non'], ['no', 'non', 'oui']])('« %s » joue sa branche, puis la suite du Flow', (cle, joue, ecarte) => {
+  it.each([['oui', 'oui', 'non'], ['non', 'non', 'oui']])('« %s » joue sa branche, puis la suite du Flow', (cle, joue, ecarte) => {
     jouerFlowEntier(runFlow(get, set, flux, 'Décision'));
     avanceEtapeCascade(get, undefined, () => cle);
     expect(get().pendingCascade).toBeNull();
@@ -190,7 +190,7 @@ describe('Escale : une `consequence` qui suspend reprend AVANT l’arrivée au l
     finalizePortArrivalTo(get, set, carte.places[1], true);
     expect(get().pendingCascade?.participants[0].kind).toBe('choixDeFlux');
     expect(get().lieu).toBe('A');
-    avanceEtapeCascade(get, undefined, () => 'yes');
+    avanceEtapeCascade(get, undefined, () => 'oui');
     expect(get().flags.paye).toBe(true);
     expect(get().lieu).toBe('B');
   });
@@ -274,8 +274,8 @@ describe('Navire et climat en grammaire (#1652 lot 2 — MDG 15)', () => {
   });
 
   it.each([
-    ['yes', (v: NonNullable<Jeu['vessel']>, t0: number) => expect(v.modificateurs).toEqual([expect.objectContaining({ m: -2, jusqua: t0 + MINUTES_PER_DAY })])],
-    ['no', (v: NonNullable<Jeu['vessel']>) => { expect(v.modificateurs ?? []).toEqual([]); expect(v.morale.score).toBeLessThan(75); }],
+    ['oui', (v: NonNullable<Jeu['vessel']>, t0: number) => expect(v.modificateurs).toEqual([expect.objectContaining({ m: -2, jusqua: t0 + MINUTES_PER_DAY })])],
+    ['non', (v: NonNullable<Jeu['vessel']>) => { expect(v.modificateurs ?? []).toEqual([]); expect(v.morale.score).toBeLessThan(75); }],
   ])('Vaisseau fantôme (littéralement), « %s » : changer de cap (M −2 un jour) ou perdre 2d10 Moral (l.187-188)', (cle, verifie) => {
     jour('vaisseau-fantome-litteralement');
     expect(etape('choixDeFlux')).toBeDefined();
@@ -390,14 +390,14 @@ describe('Ressources de bord en grammaire (#1652 lot 3 — MDG 15)', () => {
     jour(id);
     expect(get().pendingCascade?.participants.some((s) => s.kind === 'choixDeFlux')).toBe(true);
     expect(get().vessel!.cargo ?? []).toHaveLength(0);
-    avanceEtapeCascade(get, undefined, () => 'yes');
+    avanceEtapeCascade(get, undefined, () => 'oui');
     expect(get().vessel!.cargo).toEqual([expect.objectContaining({ enc: 37, basePriceGold: expect.any(Number) })]);
     expect(get().vessel!.cargo![0].basePriceGold).toBeGreaterThan(0);
   });
 
   it('débris marins : renoncer ne charge rien (« Si vous les repêchez », l.209)', () => {
     jour('debris-marins');
-    avanceEtapeCascade(get, undefined, () => 'no');
+    avanceEtapeCascade(get, undefined, () => 'non');
     expect(get().vessel!.cargo ?? []).toHaveLength(0);
   });
 
@@ -466,14 +466,14 @@ describe('Équipage recueilli et pertes au port (#1652 lot 3 — MDG 15, valeurs
   it('Message dans une bouteille : secourir le naufragé, un marin de plus (l.202-204)', () => {
     perdus(3);
     jour('message-dans-une-bouteille');
-    avanceEtapeCascade(get, undefined, () => 'yes');
+    avanceEtapeCascade(get, undefined, () => 'oui');
     expect(get().vessel!.crewLost).toBe(2);
   });
 
   it('Message dans une bouteille : renoncer ne change rien', () => {
     perdus(3);
     jour('message-dans-une-bouteille');
-    avanceEtapeCascade(get, undefined, () => 'no');
+    avanceEtapeCascade(get, undefined, () => 'non');
     expect(get().vessel!.crewLost).toBe(3);
   });
 
@@ -526,7 +526,7 @@ describe('Équipage recueilli et pertes au port (#1652 lot 3 — MDG 15, valeurs
     finalizePortArrivalTo(get, set, carte.places[1], true);
     joueLeTest(true);
     expect(get().lieu).toBe('A');
-    avanceEtapeCascade(get, undefined, () => 'yes');
+    avanceEtapeCascade(get, undefined, () => 'oui');
     expect(get().vessel!.crewLost).toBe(1);
     expect(get().lieu).toBe('B');
   });
@@ -564,7 +564,7 @@ describe('Équipage recueilli et pertes au port (#1652 lot 3 — MDG 15, valeurs
 
 describe('Périls et navires hostiles en grammaire (#1652 lot 4 — MDG 15, valeurs maison du 2026-11-07)', () => {
   beforeEach(etatFrais);
-  afterEach(() => { resetData(); resetRule('cibleVulnerablePct'); resetRule('boardingWaveSize'); });
+  afterEach(() => { resetData(); resetRule('cible-vulnerable-pct'); resetRule('abordage-taille-de-vague'); });
 
   /** Un jour de traversée neuf où se joue `evenement` ; la conduite du jour précédent est abandonnée. */
   function jour(evenement: string): void {
@@ -636,26 +636,26 @@ describe('Périls et navires hostiles en grammaire (#1652 lot 4 — MDG 15, vale
     expect(hail()?.options?.map((o) => o.key)).toEqual(['fuir', 'combattre']);
   });
 
-  it('navire hostile moins nombreux et moins armé : il passe son chemin (seuil `cibleVulnerablePct`, maison)', () => {
+  it('navire hostile moins nombreux et moins armé : il passe son chemin (seuil `cible-vulnerable-pct`, maison)', () => {
     const ames = shipboardSouls(get()).total;
-    setRule('cibleVulnerablePct', Math.min(300, Math.ceil((45 * 100) / ames / 10) * 10 + 10));
+    setRule('cible-vulnerable-pct', Math.min(300, Math.ceil((45 * 100) / ames / 10) * 10 + 10));
     jour('langskip-skaeling');
     expect(hail()).toBeUndefined();
     expect(journal()).toContain(t('sv.hostilePasse', { label: BOARD_EVENTS.find((e) => e.id === 'langskip-skaeling')!.label }));
   });
 
   it('navire hostile mieux armé en grands canons : il attaque quel que soit l’effectif (Cogue, 6 grands canons)', () => {
-    setRule('cibleVulnerablePct', 300);
+    setRule('cible-vulnerable-pct', 300);
     jour('cogue-pirate');
     expect(hail()).toBeDefined();
   });
 
-  it('abordage : tout l’équipage RAW est en jeu, il monte par vagues de `boardingWaveSize` à mesure que le pont se dégage (l.171)', () => {
+  it('abordage : tout l’équipage RAW est en jeu, il monte par vagues de `abordage-taille-de-vague` à mesure que le pont se dégage (l.171)', () => {
     jour('cogue-pirate');
     get().jetRegler('cascade', 'choix', 'combattre', 'merPiratesSommation');
     get().jetValider('cascade');
     const coque = () => get().battle!.combatants.find((c) => c.id === 'enemy-enc-abordage-0')!;
-    const vague = Number(rule('boardingWaveSize'));
+    const vague = Number(rule('abordage-taille-de-vague'));
     // 25 marins, Jaego Roth compris : 24 marins, dont une première vague à bord.
     expect(coque().reserveDAbordage).toEqual({ ref: 'humain', restant: 24 - vague, vague });
     const aBord = coque().crewIds!.length;
@@ -741,7 +741,7 @@ describe('Bourse du groupe et valeurs liées (#1652 lot 6 — MDG 15 l.245-247, 
   const choixOuvert = () => get().pendingCascade?.participants.find((s) => s.kind === 'choixDeFlux' && s.chosen == null);
   const tranche = (id: string, oui: boolean) => {
     expect(choixOuvert()?.id).toBe(`choixDeFlux-${id}`);
-    avanceEtapeCascade(get, undefined, () => (oui ? 'yes' : 'no'));
+    avanceEtapeCascade(get, undefined, () => (oui ? 'oui' : 'non'));
   };
   const joueLeTest = (reussi: boolean) => {
     get().jetLancer('test');
@@ -1021,7 +1021,7 @@ describe('Nœuds hors combat (#1652 lot 7 — MDG 15 l.159-164, l.174-178, l.194
     set({ vessel: { ...get().vessel!, provisions: 0, waterLitres: 0 } });
     const bourse0 = toBrass(partyMoneyTotal(get));
     jouerFlowEntier(runFlow(get, set, consequence('vaisseau-de-pestiferes'), 'Vaisseau de pestiférés'));
-    avanceEtapeCascade(get, undefined, () => 'yes');
+    avanceEtapeCascade(get, undefined, () => 'oui');
     const v = get().vessel!;
     const caisses = (v.cargo ?? []).reduce((s, l) => s + l.enc, 0);
     expect(caisses).toBeGreaterThanOrEqual(2);
@@ -1040,15 +1040,15 @@ describe('Nœuds hors combat (#1652 lot 7 — MDG 15 l.159-164, l.174-178, l.194
       const etape = get().pendingCascade!.participants[get().pendingCascade!.cursor];
       expect(etape.kind).toBe('volontaireDeFlux');
       expect(etape.actorId).toBe(h.id);
-      expect(etape.defaultChoice).toBe('no');
-      avanceEtapeCascade(get, undefined, () => (h.id === volontaire.id ? 'yes' : 'no'));
+      expect(etape.defaultChoice).toBe('non');
+      avanceEtapeCascade(get, undefined, () => (h.id === volontaire.id ? 'oui' : 'non'));
     }
     expect(get().pendingCascade!.participants.filter((s) => s.kind === 'maladieDeFinDeCombat').flatMap((s) => s.participants!.map((p) => p.id))).toEqual([volontaire.id]);
   });
 
   it('Vaisseau de pestiférés : sans abordage, rien ne change', () => {
     jouerFlowEntier(runFlow(get, set, consequence('vaisseau-de-pestiferes'), 'Vaisseau de pestiférés'));
-    avanceEtapeCascade(get, undefined, () => 'no');
+    avanceEtapeCascade(get, undefined, () => 'non');
     expect(get().vessel!.cargo ?? []).toEqual([]);
     expect(get().pendingCascade).toBeNull();
   });
@@ -1244,7 +1244,7 @@ describe('Événements laissés au MJ et marché du port (#1652 lot 9 — MDG 15
 
   it('Offre de mission : accepter le colis le destine à un autre port, et 200 CO tombent à la bourse du groupe à l’accostage là-bas, pas ailleurs (l.261)', () => {
     escale('offre-de-mission');
-    avanceEtapeCascade(get, undefined, () => 'yes');
+    avanceEtapeCascade(get, undefined, () => 'oui');
     expect(get().vessel!.commissions).toEqual([{ label: expect.any(String), placeId: 'A', brass: 200 * 240 }]);
     const avant = toBrass(partyMoneyTotal(get));
     escale(null);
@@ -1257,7 +1257,7 @@ describe('Événements laissés au MJ et marché du port (#1652 lot 9 — MDG 15
 
   it('Offre de mission : refuser le colis ne pose aucune commission', () => {
     escale('offre-de-mission');
-    avanceEtapeCascade(get, undefined, () => 'no');
+    avanceEtapeCascade(get, undefined, () => 'non');
     expect(get().vessel!.commissions).toBeUndefined();
   });
 
@@ -1449,7 +1449,7 @@ describe('Événements laissés au MJ et marché du port (#1652 lot 9 — MDG 15
 
   it('Autres voyageurs : le laisser approcher apporte une rumeur et signale les périls pendant 1d10 jours (l.205-208)', () => {
     jour('autres-voyageurs');
-    avanceEtapeCascade(get, undefined, () => 'yes');
+    avanceEtapeCascade(get, undefined, () => 'oui');
     expect(get().alterationsDuMarche[0]?.demande?.delta).toBe(2);
     const [mod] = get().vessel!.modificateurs!;
     expect(mod.evite).toEqual(['iceberg', 'debris-marins', 'rocher', 'bas-fonds']);
@@ -1460,7 +1460,7 @@ describe('Événements laissés au MJ et marché du port (#1652 lot 9 — MDG 15
 
   it('Autres voyageurs : les dangers signalés font éviter la Collision soudaine qui suit', () => {
     jour('autres-voyageurs');
-    avanceEtapeCascade(get, undefined, () => 'yes');
+    avanceEtapeCascade(get, undefined, () => 'oui');
     set({ journal: [], pendingCascade: null });
     jour('collision-soudaine');
     draineCascade(get);
@@ -1474,7 +1474,7 @@ describe('Événements laissés au MJ et marché du port (#1652 lot 9 — MDG 15
 
   it('Autres voyageurs : le tenir à distance ne change rien', () => {
     jour('autres-voyageurs');
-    avanceEtapeCascade(get, undefined, () => 'no');
+    avanceEtapeCascade(get, undefined, () => 'non');
     expect(get().alterationsDuMarche).toEqual([]);
     expect(get().vessel!.modificateurs ?? []).toEqual([]);
   });
@@ -1490,7 +1490,7 @@ describe('Événements laissés au MJ et marché du port (#1652 lot 9 — MDG 15
     });
     set({ vessel: { ...get().vessel!, waterLitres: 0, provisions: 0 } });
     jour('ile-inconnue');
-    avanceEtapeCascade(get, undefined, () => 'yes');
+    avanceEtapeCascade(get, undefined, () => 'oui');
     expect(get().vessel!.waterLitres).toBeGreaterThanOrEqual(2 * 145);
     expect(get().vessel!.provisions).toBeGreaterThan(0);
   });

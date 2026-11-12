@@ -7,7 +7,7 @@
  */
 import { describe, it, expect, afterEach } from 'vitest';
 import { resolveFormula, formulaExpectation, type Formula } from './ops';
-import { OPTIONAL_RULES, rule, setRule, resetRule } from './policy';
+import { OPTIONAL_RULES, rule, setRule, resetRule, type RegleOptionnelleId } from './policy';
 import type { Combatant } from './types';
 import { desDuTest } from './dice.testkit';
 import { t } from '../i18n';
@@ -48,7 +48,7 @@ describe('Formula `{rule}` — le SCORING lit la même valeur que la RÉSOLUTION
   });
 
   it('une règle hors du registre LÈVE des deux côtés (#1463 LD.1)', () => {
-    expect(() => resolveFormula({ rule: 'regle-hors-registre' }, ref, desDuTest)).toThrow(t('houseRules.refus.inconnue', { id: 'regle-hors-registre' }));
-    expect(() => formulaExpectation({ rule: 'regle-hors-registre' }, ref)).toThrow(t('houseRules.refus.inconnue', { id: 'regle-hors-registre' }));
+    expect(() => resolveFormula({ rule: 'regle-hors-registre' as RegleOptionnelleId }, ref, desDuTest)).toThrow(t('houseRules.refus.inconnue', { id: 'regle-hors-registre' }));
+    expect(() => formulaExpectation({ rule: 'regle-hors-registre' as RegleOptionnelleId }, ref)).toThrow(t('houseRules.refus.inconnue', { id: 'regle-hors-registre' }));
   });
 });

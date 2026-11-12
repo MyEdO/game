@@ -83,12 +83,12 @@ describe('Fin de combat — infection post-critique (LDB 20 l.90) & persistance 
   });
 });
 
-describe('Fin de combat — règle « Utilisation des Maladies » (disease-mode, LDB 20 l.35)', () => {
+describe('Fin de combat — règle « Utilisation des Maladies » (maladie-mode, LDB 20 l.35)', () => {
   beforeEach(() => { seedBattleRng(4); banc.setState({ mode: 'exploration', journal: [], pendingCascade: null }); });
   const e30 = { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 
   it("'off' : pas d'Infection Mineure post-critique, flag tookCriticalThisFight consommé", () => {
-    setRule('disease-mode', 'off');
+    setRule('maladie-mode', 'off');
     const c = hero({ id: 'a', characteristics: e30, tookCriticalThisFight: true });
     setBattle([c]); banc.setState({ party: [hero({ id: 'a', characteristics: e30 })] });
     resolveCombatEnd();
@@ -97,7 +97,7 @@ describe('Fin de combat — règle « Utilisation des Maladies » (disease-mode,
   });
 
   it("'situational' : pas d'Infection Mineure post-critique (sautée comme en 'off')", () => {
-    setRule('disease-mode', 'situational');
+    setRule('maladie-mode', 'situational');
     const c = hero({ id: 'a', characteristics: e30, tookCriticalThisFight: true });
     setBattle([c]); banc.setState({ party: [hero({ id: 'a', characteristics: e30 })] });
     resolveCombatEnd();
@@ -105,7 +105,7 @@ describe('Fin de combat — règle « Utilisation des Maladies » (disease-mode,
   });
 
   it("'situational' : GARDE la Blessure Purulente d'un Trait Infecté (Skavens/Nurgle)", () => {
-    setRule('disease-mode', 'situational');
+    setRule('maladie-mode', 'situational');
     // Exposition unifiée (op exposeDisease) : Infecté → 'blessure-purulente' dans diseaseExposure.
     const c = hero({ id: 'a', characteristics: e30, diseaseExposure: [{ disease: 'blessure-purulente' }] });
     setBattle([c]); banc.setState({ party: [hero({ id: 'a', characteristics: e30 })] });
@@ -114,7 +114,7 @@ describe('Fin de combat — règle « Utilisation des Maladies » (disease-mode,
   });
 
   it("'off' : pas de Blessure Purulente + exposition purgée", () => {
-    setRule('disease-mode', 'off');
+    setRule('maladie-mode', 'off');
     const c = hero({ id: 'a', characteristics: e30, diseaseExposure: [{ disease: 'blessure-purulente' }] });
     setBattle([c]); banc.setState({ party: [hero({ id: 'a', characteristics: e30 })] });
     resolveCombatEnd();

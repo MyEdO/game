@@ -21,7 +21,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDe
 
 const NET = (mode: 'hote' | 'invite', mySeat: number): NetState => ({
   mode, mySeat, roomCode: 'ABCDEF', seatNames: { 0: 'Hôte', 1: 'Antoine' }, presence: {},
-  connection: 'connecte', hostAway: false, ownership: { h: 1 }, slots: [1, 1, 0, 0], rangs: {},
+  connection: 'connecte', hoteAbsent: false, ownership: { h: 1 }, slots: [1, 1, 0, 0], rangs: {},
 });
 
 const chars = { 'capacite-de-combat': 45, 'capacite-de-tir': 50, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 40, 'force-mentale': 30, sociabilite: 30 };

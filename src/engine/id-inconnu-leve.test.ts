@@ -5,13 +5,14 @@
  * n'est épinglé ici.
  */
 import { describe, it, expect, afterEach } from 'vitest';
-import { OPTIONAL_RULES, rule, setRule, resetRule, loadRuleOverrides, refusDesSurcharges, ruleOverrides } from './policy';
+import { OPTIONAL_RULES, rule, setRule, resetRule, loadRuleOverrides, refusDesSurcharges, ruleOverrides, type RegleOptionnelleId } from './policy';
 import { addCondition, addTimedCondition, addClockCondition, removeCondition, hasCondition, stacks, derivedStacks, etatNonCumulable, soinDeDetermination, etatsPortesInconnus } from './conditions';
 import { conditionIds } from '../data';
 import { t } from '../i18n';
 import type { Combatant } from './types';
 
-const INCONNU = 'id-hors-registre';
+/** Un id venu d'HORS du corpus (save, `localStorage`) : le type le refuse, le registre le refuse au runtime. */
+const INCONNU = 'id-hors-registre' as RegleOptionnelleId;
 const REGLE_INCONNUE = t('houseRules.refus.inconnue', { id: INCONNU });
 const ETAT_INCONNU = t('etats.inconnu', { id: INCONNU });
 const porteur = (conditions: { id: string; value: number }[] = []): Combatant => ({ id: 'c', label: 'C', advantage: 0, conditions } as unknown as Combatant);

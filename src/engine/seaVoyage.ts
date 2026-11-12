@@ -172,7 +172,8 @@ export interface ManannMood {
   applied: string[];
 }
 
-export const MANANN_BASE: ManannMood = { score: EVENTS.manann.base, applied: [] };
+/** Humeur de Manann d'un registre NEUF, sa base lue à l'appel. */
+export const manannBase = (): ManannMood => ({ score: EVENTS.manann.base, applied: [] });
 
 /** Applique un facteur d'Humeur (id du tableau EFFET SUR L'HUMEUR DE MANANN) : roule ses dés signés,
  *  UNE seule fois par navire (l.85) — déjà appliqué → no-op. PUR (nouvel état). */
@@ -316,18 +317,18 @@ export function buySellerDR(partial: boolean, surplus: boolean): number {
 }
 
 /** Relation d'un port à une cargaison à la VENTE (l.360-372). PUR. */
-export type SellRelation = 'no-produce' | 'produces' | 'surplus';
+export type SellRelation = 'sansProduction' | 'production' | 'surplus';
 export function sellRelation(port: PortProfile, cargoId: string): SellRelation {
   if ((port.surplus?.[cargoId] ?? 0) > 0) return 'surplus';
-  if (port.production.includes(cargoId) && !isTradeHubColumn(port.production)) return 'produces';
-  return 'no-produce';
+  if (port.production.includes(cargoId) && !isTradeHubColumn(port.production)) return 'production';
+  return 'sansProduction';
 }
 
 export interface SellChance {
   /** Test de Ragot PRÉALABLE requis (ports qui produisent le bien) — `null` = pas de Test. */
   ragot: { difficulty: Difficulty } | null;
   /** Nombre visé du d100 « trouver un acheteur » (après le Ragot éventuel). */
-  target: number;
+  cible: number;
   /** ±DR du vendeur aux Tests de Marchandage de la vente (l.387-397). */
   drDuVendeur: number;
 }
@@ -337,19 +338,19 @@ export interface SellChance {
  *  sinon traité comme un port en Surplus, l.368). PUR. */
 export function sellChance(port: PortProfile, cargoId: string, milles: number): SellChance {
   let rel = sellRelation(port, cargoId);
-  if (rel === 'produces' && milles < CARGO.vente.ragotSiProduction.millesMin) rel = 'surplus'; // l.368
+  if (rel === 'production' && milles < CARGO.vente.ragotSiProduction.millesMin) rel = 'surplus'; // l.368
   const demand = port.demande?.[cargoId] ?? 0;
-  if (rel === 'no-produce') {
+  if (rel === 'sansProduction') {
     return {
       ragot: null,
-      target: (port.taille + demand) * CARGO.vente.cibleParTailleSansProduction + (isTradeHubColumn(port.production) ? CARGO.vente.bonusDeCommerce : 0),
+      cible: (port.taille + demand) * CARGO.vente.cibleParTailleSansProduction + (isTradeHubColumn(port.production) ? CARGO.vente.bonusDeCommerce : 0),
       drDuVendeur: CARGO.vente.drDuVendeur.sansProduction + (demand > 0 ? CARGO.vente.drDuVendeur.demande : 0),
     };
   }
-  if (rel === 'produces') {
-    return { ragot: { difficulty: CARGO.vente.ragotSiProduction.difficulty }, target: port.taille * CARGO.vente.ragotSiProduction.cibleParTaille, drDuVendeur: CARGO.vente.drDuVendeur.production };
+  if (rel === 'production') {
+    return { ragot: { difficulty: CARGO.vente.ragotSiProduction.difficulty }, cible: port.taille * CARGO.vente.ragotSiProduction.cibleParTaille, drDuVendeur: CARGO.vente.drDuVendeur.production };
   }
-  return { ragot: { difficulty: CARGO.vente.ragotSiSurplus.difficulty }, target: port.taille * CARGO.vente.ragotSiSurplus.cibleParTaille, drDuVendeur: CARGO.vente.drDuVendeur.surplus };
+  return { ragot: { difficulty: CARGO.vente.ragotSiSurplus.difficulty }, cible: port.taille * CARGO.vente.ragotSiSurplus.cibleParTaille, drDuVendeur: CARGO.vente.drDuVendeur.surplus };
 }
 
 /** PRIX D'OFFRE d'un acheteur trouvé (l.374-383) : % du prix de base selon Richesse + Taille + Demande. PUR.

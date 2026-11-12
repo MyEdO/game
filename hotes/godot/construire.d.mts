@@ -2,4 +2,10 @@
 
 export function empaqueter(sortie: string | null): Promise<string>;
 
-export function pontDuBundle(code: string, console: Console): { appeler: (methode: string, json?: string | null) => string };
+export function pontDuBundle(
+  code: string,
+  console: Console,
+): {
+  appeler: (methode: string, json?: string | null) => string;
+  resoudreLaPile(demande: string, rendre: (reponse: string) => void): void;
+};

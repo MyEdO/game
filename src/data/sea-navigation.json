@@ -203,7 +203,7 @@
       {
         "min": 0,
         "max": 3,
-        "outcome": "ok",
+        "outcome": "correct",
         "desc": "Le bateau avance dans la direction supposée par le Navigateur.",
         "source": {
           "book": "mer-des-griffes",
@@ -214,7 +214,7 @@
       {
         "min": -2,
         "max": -1,
-        "outcome": "drift-minor",
+        "outcome": "derive-mineure",
         "desc": "Le vaisseau a légèrement dévié de sa trajectoire. L'écart est mineur, c'est pourquoi ce résultat n'a aucun effet la première fois, mais s'il se reproduit, lancez le dé dans le tableau Changement de cap.",
         "source": {
           "book": "mer-des-griffes",
@@ -225,7 +225,7 @@
       {
         "min": -4,
         "max": -3,
-        "outcome": "drift",
+        "outcome": "derive",
         "desc": "Le bateau a dévié de sa trajectoire. Lancez le dé dans le tableau Changement de cap.",
         "source": {
           "book": "mer-des-griffes",
@@ -236,7 +236,7 @@
       {
         "min": null,
         "max": -5,
-        "outcome": "drift-major",
+        "outcome": "derive-majeure",
         "desc": "Le bateau a énormément dévié de sa trajectoire. Lancez le dé dans le tableau Changement de cap et ajoutez 2 au résultat.",
         "source": {
           "book": "mer-des-griffes",

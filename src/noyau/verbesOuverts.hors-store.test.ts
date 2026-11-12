@@ -212,13 +212,13 @@ describe('fermeturesDeLaFenetre — un geste de jet se juge sur SON flux (#3311)
     expect(['effetCritique', 'formeConjuree', 'discret', 'jetsDeTable'].map((r) => fermes[`jetRegler@incantation#${r}`]), 'un Sort jeté sans Critique, sans arme invoquée ni Durée surincantée')
       .toEqual(['nonOffert', 'nonOffert', 'jetLance', 'nonOffert']);
     expect(verbes(enEtape('incantation', { pendingCast: incantation(true, true) }), true).ouverts, 'LDB 46 l.26-32').toContain('jetRegler@incantation#effetCritique');
-    setRule('prayer-conviction', true);
+    setRule('priere-conviction', true);
     try {
       const priere = verbes(enEtape('incantation', { pendingCast: { ...incantation(false), spellId: 'benediction-de-guerison' } }), true);
       expect(priere.ouverts, 'LDB 40 l.42').toContain('jetRegler@incantation#discret');
       expect(priere.fermes['jetRegler@incantation#effetCritique'], 'une Prière n’a pas de Critique').toBe('jetNonLance');
     } finally {
-      resetRule('prayer-conviction');
+      resetRule('priere-conviction');
     }
   });
 });

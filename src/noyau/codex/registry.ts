@@ -952,7 +952,7 @@ function miscastAmountLabel(a: unknown): string {
 function miscastOpRow(o: Record<string, unknown>): CodexRow {
   switch (o.op) {
     case 'condition': {
-      const id = String(o.id ?? '');
+      const { id } = o.id as { id: string };
       const label = conditionLabel(id);
       const value = o.value != null ? miscastAmountLabel(o.value) : null;
       const dur = o.durationRounds != null ? tr('codex.fiche.roundS', { v: miscastAmountLabel(o.durationRounds) }) : undefined;
@@ -2333,7 +2333,7 @@ const CODEX_SPECS = {
     label: 'codex.fiche.navigationMaritimeProgressionSalissuresOrientationPhares', group: 'tables', cluster: 'codex.fiche.merRiviere', sourceRef: 'MDG 13/15',
     build: () => {
       const n = datasetObject('seaNavigation');
-      const derive = n.orientation.reperes.find((r) => r.outcome === 'drift-major'); // MDG 13 l.320
+      const derive = n.orientation.reperes.find((r) => r.outcome === 'derive-majeure'); // MDG 13 l.320
       return [{
         id: 'seaNavigation', label: tr('codex.fiche.navigationMaritime'), source: src(n.workPeriodHours.source),
         sections: sections(

@@ -18,7 +18,7 @@
  * effectuer un Test. À l'inverse, si vous n'avez pas eu le temps de vous préparer et que vous vous
  * retrouvez brutalement privé d'air, vous suffoquez immédiatement. » Une plongée ANTICIPÉE appelle
  * `prepareBreathHold` (pose `breathHoldSeconds = BE×10`) : tant que ce crédit dure, la suffocation ne
- * fait perdre aucune Blessure. Le crédit est décompté par Round via la règle `combat-round-seconds`
+ * fait perdre aucune Blessure. Le crédit est décompté par Round via la règle `combat-round-secondes`
  * (LDB 13 l.13 — « c'est le MJ qui décide » de la durée d'un Round ; hypothèse de calibrage 10 s,
  * non RAW). Privé d'air brutalement (`breathHoldSeconds` absent) = suffocation immédiate.
  *
@@ -68,9 +68,9 @@ export function waterSprayCandidates(active: Combatant, pool: Combatant[]): Comb
 }
 
 /** Durée d'un Round de combat en secondes — LDB 13 l.13 : « c'est le MJ qui décide » ; hypothèse de
- *  calibrage maison (règle `combat-round-seconds`), PAS une certitude canon. Utilisée pour décompter
+ *  calibrage maison (règle `combat-round-secondes`), PAS une certitude canon. Utilisée pour décompter
  *  la rétention de souffle. */
-const secondsPerRound = (): number => Number(rule('combat-round-seconds'));
+const secondsPerRound = (): number => Number(rule('combat-round-secondes'));
 
 /** Souffle retenable sans Test (LDB 18 l.346) : Bonus d'Endurance × 10 secondes. Pur. */
 export function breathHoldSeconds(c: Combatant): number {

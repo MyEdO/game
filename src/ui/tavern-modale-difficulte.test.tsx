@@ -18,12 +18,12 @@ const g = useGame.getState;
 beforeAll(() => { (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true; });
 beforeEach(() => {
   useGame.setState(useGame.getInitialState(), true);
-  setRule('tavern-games', true);
+  setRule('jeux-de-taverne', true);
   useGame.setState({ party: groupeDeScenario(idsDeTest, 'soldat') });
 });
 afterEach(() => {
   demonterRacines();
-  resetRule('tavern-games');
+  resetRule('jeux-de-taverne');
 });
 
 describe('Modale de taverne — la Difficulté annoncée suit la donnée', () => {

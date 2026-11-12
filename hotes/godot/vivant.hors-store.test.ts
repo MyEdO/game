@@ -13,6 +13,7 @@ import { fileURLToPath } from 'node:url';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { pontDuBundle } from './construire.mjs';
 import { LISTAGE } from './listage.mjs';
+import type { MaillageDeLaPile, PileDemandee } from './pont/pile';
 
 const VIVANT = fileURLToPath(new URL('./vivant.mjs', import.meta.url));
 /** Le lancement bâtit le bundle et charge les assets : ~10 s. */
@@ -65,12 +66,32 @@ describe('vivant', () => {
     expect([r.ok, r.erreur?.categorie]).toEqual([false, 'validation']);
   });
 
+  it('une ligne resoudreLaPile suivie d’une autre requête rend leurs deux réponses dans cet ordre', async () => {
+    const pile = JSON.stringify({ pieces: [], parents: {}, osDeChaine: [] });
+    processus.stdin.write(`${JSON.stringify(['resoudreLaPile', pile])}\n${JSON.stringify(['vue', null])}\n`);
+    const premiere = JSON.parse(await prochaine()) as { ok: boolean; bilan?: unknown };
+    const seconde = JSON.parse(await prochaine()) as { ok: boolean; bilan?: unknown };
+    expect([premiere.ok, premiere.bilan != null, seconde.bilan]).toEqual([true, true, undefined]);
+  });
+
+  it('une pile d’une pièce à un maillage rend ok: true', async () => {
+    const enBase64 = (t: Float32Array | Int32Array): string => Buffer.from(t.buffer).toString('base64');
+    const maillage: MaillageDeLaPile = {
+      positions: enBase64(Float32Array.from([0, 0, 0, 0.1, 0, 0, 0, 0.1, 0])), indices: enBase64(Int32Array.from([0, 2, 1])),
+      os: enBase64(new Int32Array(12)), poids: enBase64(Float32Array.from([1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0])), noms: ['bras'],
+    };
+    const demande: PileDemandee = { pieces: [{ rang: -1, accessoire: false, maillages: [maillage] }], parents: {}, osDeChaine: [] };
+    processus.stdin.write(`${JSON.stringify(['resoudreLaPile', JSON.stringify(demande)])}\n`);
+    const r = JSON.parse(await prochaine()) as { ok: boolean; erreur?: unknown };
+    expect([r.ok, r.erreur]).toEqual([true, undefined]);
+  });
+
   it('la fin de l’entrée le fait sortir en 0, sa sortie n’ayant porté que l’annonce et une ligne par requête', async () => {
     processus.stdin.end();
     const [code] = await once(processus, 'exit');
     for (let r = await lignes.next(); !r.done; r = await lignes.next()) sortie.push(r.value);
     expect(code).toBe(0);
-    expect(sortie).toHaveLength(4);
+    expect(sortie).toHaveLength(7);
   });
 });
 

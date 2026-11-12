@@ -266,8 +266,8 @@ export function InterludeScreen({ seam }: { seam?: InterludeSeam } = {}) {
               </section>
             )}
             {/* Jeux de taverne (NADJ 16) — délassement entre deux aventures ; affordance montrée
-                seulement si l'option `tavern-games` est active. Ne consomme pas d'Activité. */}
-            {rule('tavern-games') && <TavernGamesEntry />}
+                seulement si l'option `jeux-de-taverne` est active. Ne consomme pas d'Activité. */}
+            {rule('jeux-de-taverne') && <TavernGamesEntry />}
             <div className="interlude-close">
               <p className="interlude-warning" title={t('interlude.close.warning.title')}>
                 <Icon id="resource/gold-purse" size="sm" /> {t('interlude.close.warning')}
@@ -1294,7 +1294,7 @@ function CloseRecap({ etat, onCancel }: { etat: EtatDeCloture; onCancel: () => v
         {devis.lots.flatMap(({ heroId, lots }) => lots.map((lot, i) => {
           // Les ÉTATS de clôture passent par la primitive partagée (chips + popover Codex), le Standing par sa
           // ligne, nommée par la source du lot.
-          const conds = lot.ops.filter((o) => o.op === 'condition').map((o) => ({ id: o.id as ConditionId, value: typeof o.value === 'number' ? o.value : 1 }));
+          const conds = lot.ops.filter((o) => o.op === 'condition').map((o) => ({ id: o.id.id as ConditionId, value: typeof o.value === 'number' ? o.value : 1 }));
           const standing = lot.ops.reduce((n, o) => n + (o.op === 'statusMod' && typeof o.amount === 'number' ? o.amount : 0), 0);
           return (
             <Fragment key={`close-${heroId}-${i}`}>

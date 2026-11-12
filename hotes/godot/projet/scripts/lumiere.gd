@@ -8,7 +8,8 @@ extends Node3D
 ## @contrat Lumière
 ## Le combat pose `vue.lumiere` sur la `Lumiere` du monde (`projet/scenes/Monde.tscn`) (`projet/scripts/lumiere.gd`) à
 ## chaque vue : chaque source y est un `Foyer` (`projet/scripts/foyer.gd`), sa lampe qui vacille, ses gerbes continues
-## nées d'avance et son son en boucle à son point ; la recette `projet/recettes/foyers.gd` le vérifie.
+## nées d'avance et son son en boucle à son point, le même d'une vue à l'autre tant que la vue nomme sa clé (`cle`) ;
+## la recette `projet/recettes/foyers.gd` le vérifie.
 
 @onready var _environnement: Environment = ($Environnement as WorldEnvironment).environment
 @onready var _soleil: DirectionalLight3D = $Soleil
@@ -44,14 +45,23 @@ func eclairer(lumiere: Dictionary, metres_par_case: float) -> void:
 	_poser_les_sources(lumiere.sources, metres_par_case)
 
 
+## Un foyer par source de `sources`, réconcilié par sa clé (`cle`) : celui d'une source déjà posée reste, à son point,
+## celui d'une source partie la quitte.
 func _poser_les_sources(sources: Array, metres_par_case: float) -> void:
+	var poses := {}
 	for foyer in _sources.get_children():
-		foyer.free()
+		poses[foyer.get_meta("cle")] = foyer
 	for source: Dictionary in sources:
-		var foyer := Foyer.new()
+		var foyer: Foyer = poses.get(source.cle)
+		poses.erase(source.cle)
+		if foyer == null:
+			foyer = Foyer.new()
+			foyer.set_meta("cle", source.cle)
+			_sources.add_child(foyer)
 		foyer.position = MiseEnPage.point_de_la_carte(source.x, source.y, MiseEnPage.hauteur_au_plateau(source.hM, metres_par_case))
-		_sources.add_child(foyer)
 		foyer.poser(source, metres_par_case)
+	for parti: Foyer in poses.values():
+		parti.free()
 
 
 ## La brume suit la distance de la caméra au point qu'elle vise, que le zoom change, ou part de l'œil

@@ -74,7 +74,7 @@ describe('evaluerLObjet : chaque refus est dit, aucune évaluation ne s’ouvre'
     expect([dernier(), g().pendingAppraise]).toEqual([t('mf.detectDejaTentee', { label: 'Épée' }), null]);
   });
 
-  it('l’Évaluation d’une ligne manquée ce jour, tant que court le délai maison (`market-evaluation-delai-jours`)', () => {
+  it('l’Évaluation d’une ligne manquée ce jour, tant que court le délai maison (`marche-evaluation-delai-jours`)', () => {
     banc.setState({ party: [heros('a')], pendingLoot: { title: 'Coffre', gear: [ligne('L0', { appraiseTriedDay: gameDay(g()) })] } } as never);
     g().evaluerLObjet('L0');
     expect([dernier(), g().pendingAppraise]).toEqual([t('mf.appraiseRetenter', { label: 'Épée', jours: 1 }), null]);
@@ -90,7 +90,7 @@ describe('après un échec d’Évaluation : nouvel essai à DR 0 (LDB 12 l.94),
     g().jetValider('evaluation');
   }
   const retenter = () => { g().evaluerLObjet('L0'); const ouverte = !!g().pendingAppraise; banc.setState({ pendingAppraise: null }); return ouverte; };
-  afterEach(() => resetRule('market-evaluation-delai-jours'));
+  afterEach(() => resetRule('marche-evaluation-delai-jours'));
 
   it('DR négatif : refusé jusqu’au lendemain, puis ouvert', () => {
     manquer(-2);
@@ -105,7 +105,7 @@ describe('après un échec d’Évaluation : nouvel essai à DR 0 (LDB 12 l.94),
   });
 
   it('le délai se règle : 3 jours', () => {
-    setRule('market-evaluation-delai-jours', 3);
+    setRule('marche-evaluation-delai-jours', 3);
     manquer(-1);
     g().avancerLeTemps(24 * 60);
     expect([retenter(), dernier()]).toEqual([false, t('mf.appraiseRetenter', { label: 'Épée', jours: 2 })]);

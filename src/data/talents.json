@@ -937,7 +937,7 @@
     "variants": [
       {
         "when": {
-          "rule": "magic-vdm-incantation"
+          "rule": "magie-vdm-incantation"
         },
         "desc": "Vous êtes doué pour la fabrication de potions, de philtres et de décoctions. Vous pouvez effectuer gratuitement une Activité *Artisanat* ou *Brasser une potion* pour utiliser Métier (Apothicaire) ou Métier (Alchimiste) sans avoir besoin d'atelier ou de laboratoire. Les autres Activités *Artisanat* suivent les règles normales.",
         "source": {
@@ -1051,7 +1051,9 @@
                 },
                 {
                   "op": "condition",
-                  "id": "extenue"
+                  "id": {
+                    "id": "extenue"
+                  }
                 }
               ]
             }
@@ -2717,7 +2719,9 @@
               "ops": [
                 {
                   "op": "removeCondition",
-                  "id": "sonne",
+                  "id": {
+                    "id": "sonne"
+                  },
                   "value": 1,
                   "valuePerSL": {
                     "every": 1,

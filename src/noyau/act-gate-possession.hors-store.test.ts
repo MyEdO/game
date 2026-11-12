@@ -1,5 +1,5 @@
 /**
- * #1262 V1 lot 1 — POSSESSION du gate d'Action par Round (op `actGate`, Racine de mandragore,
+ * #1262 V1 lot 1 — POSSESSION du gate d'Action par Round (op `testDAgir`, Racine de mandragore,
  * `LDB 71 l.35`). Sonde B du juge de design : le prédicat du site est `surfaceOf`, jamais `humanControlled`
  * (affordance LOCALE — « qui a la main devant CET écran »). Chez l'hôte, le gate d'un héros possédé par
  * un INVITÉ ouvre sa fenêtre au siège du porteur : aucun d100 jeté en silence, aucun `out.loseMovement`
@@ -38,7 +38,7 @@ const mk = (id: string, over: Partial<Combatant> = {}): Combatant =>
     conditions: [], engagedWith: [], skills: [], talents: [], weapons: [],
     advantage: 0, size: 'moyenne', pos: { x: 0, y: 0 }, wounds: blessuresDeBase(12),
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4,
-    activeEffects: [{ label: 'Racine de mandragore', actGate: { characteristic: 'force-mentale' } }],
+    activeEffects: [{ label: 'Racine de mandragore', testDAgir: { characteristic: 'force-mentale' } }],
     ...over,
   })) as unknown as Combatant;
 
@@ -125,7 +125,7 @@ describe('#1262 — l’étape de CHOIX insérée par l’applier naît du mint 
     expect(choix.actorId, 'le choix porte SON porteur : l’hôte ne tranche pas la voie de l’invité').toBe('H1');
     expect(choix.groupOwner, '`options` + `groupOwner` = n’importe quel siège tranche pour autrui').toBeUndefined();
     expect(choix.defaultChoice).toBe('action');
-    expect(choix.options!.map((o) => o.key)).toEqual(['action', 'move']);
+    expect(choix.options!.map((o) => o.key)).toEqual(['action', 'mouvement']);
   });
 
   it('succès du gate → aucune insertion (rien à restreindre)', () => {

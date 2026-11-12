@@ -437,7 +437,7 @@ export const ECRIT_LU = {
       '`chargerAssets` (hotes/godot/asset/charger.mjs) n’est appelé que par `editeur`, `modeleWeb` et `deposerLesAssets` ' +
       '(hotes/godot/construire.mjs), sous `--sonde`, `--export` et `--ouvrir` ; aucun écrivain ne joue : ' +
       '`recupererModeles` (#2948) ne joue que sous ces trois modes, `deposerLesModeles` (hotes/godot/listage.mjs) que ' +
-      'sous `--export`, dans son `--sortie` (#3778)',
+      'sous `--export`, dans son `--sortie` (#3778), comme `deposerLesPlanches` (hotes/godot/planches.mjs, #3935)',
   },
   'godot:sonde': {
     ecrit: [],
@@ -469,7 +469,8 @@ export const ECRIT_LU = {
       'le contrat d’asset et ses écrivains sont chargés par l’entrée Vite, hors de la fermeture statique des imports. ' +
       'Chaque recette reçoit `--pont=<hotes/godot/vivant.mjs>`, qui bâtit le bundle en mémoire (`write: false`). ' +
       'Écrit sous hotes/godot/projet/modeles/ les seuls GLB, et peut écrire sous src/scenes/ par le pont vivant ' +
-      '(`ecritFerme`) ; `deposerLesModeles` (hotes/godot/listage.mjs, #3778) n’écrit que sous `--export`',
+      '(`ecritFerme`) ; `deposerLesModeles` (hotes/godot/listage.mjs, #3778) et `deposerLesPlanches` ' +
+      '(hotes/godot/planches.mjs, #3935) n’écrivent que sous `--export`',
   },
   'personnage-3d:tests': {
     ecrit: [],

@@ -142,7 +142,7 @@ describe('la 2ᵉ frappe après un Coup Critique prend un d100 du tableau, jamai
   });
 
   describe('mort-auto (LDB 16 l.113)', () => {
-    beforeEach(() => setRule('combat-helpless-mode', 'mort-auto'));
+    beforeEach(() => setRule('combat-cible-inconsciente', 'mort-auto'));
 
     it('cible Inconsciente achevée : aucune table, le d100 est tiré à l’ouverture', () => {
       const res = premiereFrappe({

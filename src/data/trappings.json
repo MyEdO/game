@@ -5096,7 +5096,9 @@
           "ops": [
             {
               "op": "removeCondition",
-              "id": "empoisonne",
+              "id": {
+                "id": "empoisonne"
+              },
               "all": true
             }
           ]
@@ -6818,7 +6820,9 @@
           "ops": [
             {
               "op": "condition",
-              "id": "empoisonne",
+              "id": {
+                "id": "empoisonne"
+              },
               "value": 4
             }
           ]
@@ -6987,7 +6991,9 @@
               },
               {
                 "op": "condition",
-                "id": "extenue",
+                "id": {
+                  "id": "extenue"
+                },
                 "value": 1
               }
             ]
@@ -7000,7 +7006,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "inconscient",
+                "id": {
+                  "id": "inconscient"
+                },
                 "durationHours": {
                   "dice": {
                     "n": 1,
@@ -7115,7 +7123,9 @@
                         "ops": [
                           {
                             "op": "condition",
-                            "id": "empoisonne",
+                            "id": {
+                              "id": "empoisonne"
+                            },
                             "value": 2
                           }
                         ]
@@ -7148,7 +7158,7 @@
     "price": null,
     "niPerGram": 20,
     "niConsumedPerDR": 1,
-    "maison": "VDM 02 l.163-165 ne fixe aucune formule de consommation de la réserve : 1 NI par point de DR bonus accordé (défaut). Le doublement (LDB 46 l.173) s'applique PLEIN dès qu'un reliquat de réserve existe (le RAW ne prévoit pas de doublement partiel/proratisé). Arbitrage MAISON supplémentaire : sous le Livre de base seul (option `magic-vdm-incantation` OFF), la réserve est INÉPUISABLE tant que l'objet est porté — `LDB 46 l.173` n'indique aucune limite ni épuisement, ce silence n'est pas une inconditionnalité RAW mais un choix d'arbitrage (la réserve réellement finie est le seul apport de `VDM 02 l.165`).",
+    "maison": "VDM 02 l.163-165 ne fixe aucune formule de consommation de la réserve : 1 NI par point de DR bonus accordé (défaut). Le doublement (LDB 46 l.173) s'applique PLEIN dès qu'un reliquat de réserve existe (le RAW ne prévoit pas de doublement partiel/proratisé). Arbitrage MAISON supplémentaire : sous le Livre de base seul (option `magie-vdm-incantation` OFF), la réserve est INÉPUISABLE tant que l'objet est porté — `LDB 46 l.173` n'indique aucune limite ni épuisement, ce silence n'est pas une inconditionnalité RAW mais un choix d'arbitrage (la réserve réellement finie est le seul apport de `VDM 02 l.165`).",
     "source": {
       "book": "livre-de-base",
       "page": 182
@@ -7185,7 +7195,7 @@
     "price": null,
     "niPerGram": 20,
     "niConsumedPerDR": 1,
-    "maison": "VDM 02 l.163-165 ne fixe aucune formule de consommation de la réserve : 1 NI par point de DR bonus accordé (défaut). Le doublement (LDB 46 l.173) s'applique PLEIN dès qu'un reliquat de réserve existe (le RAW ne prévoit pas de doublement partiel/proratisé). Arbitrage MAISON supplémentaire : sous le Livre de base seul (option `magic-vdm-incantation` OFF), la réserve est INÉPUISABLE tant que l'objet est porté — `LDB 46 l.173` n'indique aucune limite ni épuisement, ce silence n'est pas une inconditionnalité RAW mais un choix d'arbitrage (la réserve réellement finie est le seul apport de `VDM 02 l.165`).",
+    "maison": "VDM 02 l.163-165 ne fixe aucune formule de consommation de la réserve : 1 NI par point de DR bonus accordé (défaut). Le doublement (LDB 46 l.173) s'applique PLEIN dès qu'un reliquat de réserve existe (le RAW ne prévoit pas de doublement partiel/proratisé). Arbitrage MAISON supplémentaire : sous le Livre de base seul (option `magie-vdm-incantation` OFF), la réserve est INÉPUISABLE tant que l'objet est porté — `LDB 46 l.173` n'indique aucune limite ni épuisement, ce silence n'est pas une inconditionnalité RAW mais un choix d'arbitrage (la réserve réellement finie est le seul apport de `VDM 02 l.165`).",
     "source": {
       "book": "livre-de-base",
       "page": 183
@@ -7319,7 +7329,7 @@
             "mod": 20
           },
           {
-            "op": "actGate",
+            "op": "testDAgir",
             "characteristic": "force-mentale"
           }
         ]
@@ -7387,7 +7397,9 @@
               "ops": [
                 {
                   "op": "condition",
-                  "id": "inconscient",
+                  "id": {
+                    "id": "inconscient"
+                  },
                   "durationHours": {
                     "dice": {
                       "n": 1,
@@ -7475,7 +7487,9 @@
         "ops": [
           {
             "op": "removeCondition",
-            "id": "hemorragique",
+            "id": {
+              "id": "hemorragique"
+            },
             "all": true
           }
         ]
@@ -7569,7 +7583,9 @@
         "ops": [
           {
             "op": "removeCondition",
-            "id": "extenue",
+            "id": {
+              "id": "extenue"
+            },
             "all": true
           }
         ]
@@ -7659,7 +7675,9 @@
         "ops": [
           {
             "op": "removeCondition",
-            "id": "sonne",
+            "id": {
+              "id": "sonne"
+            },
             "value": 1
           }
         ]
@@ -7862,7 +7880,9 @@
                         "ops": [
                           {
                             "op": "condition",
-                            "id": "empoisonne",
+                            "id": {
+                              "id": "empoisonne"
+                            },
                             "value": 1,
                             "onlyGroups": [
                               "mort-vivant"
@@ -13976,7 +13996,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "en-flammes",
+                "id": {
+                  "id": "en-flammes"
+                },
                 "value": 2,
                 "valuePerSL": {
                   "every": 1,
@@ -14735,12 +14757,16 @@
               },
               {
                 "op": "removeCondition",
-                "id": "hemorragique",
+                "id": {
+                  "id": "hemorragique"
+                },
                 "all": true
               },
               {
                 "op": "removeCondition",
-                "id": "extenue",
+                "id": {
+                  "id": "extenue"
+                },
                 "all": true
               },
               {
@@ -15034,7 +15060,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "extenue",
+                "id": {
+                  "id": "extenue"
+                },
                 "value": 3
               }
             ]
@@ -15362,7 +15390,9 @@
               "ops": [
                 {
                   "op": "condition",
-                  "id": "hemorragique",
+                  "id": {
+                    "id": "hemorragique"
+                  },
                   "value": 1
                 }
               ]
@@ -15637,7 +15667,9 @@
                 "ops": [
                   {
                     "op": "condition",
-                    "id": "assourdi",
+                    "id": {
+                      "id": "assourdi"
+                    },
                     "value": 1
                   }
                 ]
@@ -15676,7 +15708,9 @@
                 "ops": [
                   {
                     "op": "condition",
-                    "id": "assourdi",
+                    "id": {
+                      "id": "assourdi"
+                    },
                     "value": 1
                   }
                 ]

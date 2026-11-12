@@ -10,7 +10,7 @@ import { makeRNG, d100 } from '../engine/dice';
 import { resolveCritique, critTableRows } from '../engine/critical';
 import { bonus, effectiveChar } from '../engine/characteristics';
 import { critiqueTable, critTableKeyFor } from '../data/criticals';
-import { deDeLaTable, setDeDeTable } from '../data/overrides';
+import { sousLeDe } from '../data/deDeLaTable.testkit';
 import { findTableEntry } from '../engine/tables';
 import { createHero } from '../engine/character';
 import { setDesFixes, desFixes } from '../engine/fixedDie';
@@ -109,14 +109,10 @@ describe('Sévérité d’un Critique — la table LDB en étape (#942 L4)', () 
   it('déclaration : le dé de l’étape est le `die` du tableau de la Localisation, lu VIVANT (LDB 18 l.53 ; #1667)', () => {
     const { H } = startFight();
     expect(critSeverityDecl(H, 'corps', 0).spec).toEqual({ n: 1, sides: 100 });
-    const imprime = deDeLaTable('criticalsCorps')!;
-    setDeDeTable('criticalsCorps', '2d10');
-    try {
+    sousLeDe('criticalsCorps', '2d10', () => {
       expect(critSeverityDecl(H, 'corps', 0).spec, 'le dé suit la donnée').toEqual({ n: 2, sides: 10 });
       expect(tableStepDef(CRIT_TABLE_IDS.corps)!.die, 'la table tirable suit le dé écrit').toBe(20);
-    } finally {
-      setDeDeTable('criticalsCorps', imprime);
-    }
+    });
   });
 
   it('SONDE DIFFÉRENTIELLE (option ÉTEINTE) : même ligne ET même flux RNG que le tirage moteur d’avant', () => {
@@ -179,7 +175,7 @@ describe('Sévérité d’un Critique — la table LDB en étape (#942 L4)', () 
     setDesFixes(true);
     // Ligne CHOISIE dans la donnée : une entrée à État (op `condition`), ni létale ni amputante.
     const entry = critiqueTable('ldb', 'corps').find((e) => !e.lethal && !e.amputation && (e.ops ?? []).some((o) => o.op === 'condition'))!;
-    const cond = (entry.ops ?? []).find((o) => o.op === 'condition') as { op: 'condition'; id: string };
+    const cond = (entry.ops ?? []).find((o) => o.op === 'condition') as { op: 'condition'; id: { id: string } };
     applyAttackResult(banc.getState, banc.setState, E, H, hache, critHit('corps'));
     const step = banc.getState().pendingCascade!.participants[0];
     expect(step.kind).toBe('deviation');
@@ -191,7 +187,7 @@ describe('Sévérité d’un Critique — la table LDB en étape (#942 L4)', () 
     const victime = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(lastCrit(victime), 'la ligne posée n’est pas celle appliquée').toBe(entry.id);
     expect(victime.criticalWounds).toBe(1);
-    expect(hasCondition(victime, cond.id), `État « ${cond.id} » de la ligne non appliqué`).toBe(true);
+    expect(hasCondition(victime, cond.id.id), `État « ${cond.id.id} » de la ligne non appliqué`).toBe(true);
     // Le rendu RICHE du résultat reste l'étape de révélation (CriticalBody), appendée après la pose.
     const reveal = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'critique')!;
     expect(reveal.reveal!.dice).toBe(entry.min);

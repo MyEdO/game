@@ -122,7 +122,7 @@ export function newOp(op: GameOp['op'] | string): GameOp {
     case 'wounds': return { op: 'wounds', amount: 5 };
     case 'heal': return { op: 'heal', amount: 3 };
     case 'healCaster': return { op: 'healCaster', amount: 1 };
-    case 'condition': return { op: 'condition', id: '', value: 1 };
+    case 'condition': return { op: 'condition', id: { id: '' }, value: 1 };
     case 'removeCondition': return { op: 'removeCondition' };
     case 'endPsych': return opPsy.fin('');
     case 'beginPsych': return opPsy.pose('');
@@ -171,7 +171,7 @@ export function newOp(op: GameOp['op'] | string): GameOp {
     case 'aggravateSymptom': return { op: 'aggravateSymptom', disease: '', symptomId: '', severity: 'grave' };
     case 'attenuateSymptom': return { op: 'attenuateSymptom', disease: '', symptomId: '' };
     case 'grantSymptom': return { op: 'grantSymptom', disease: '', symptomId: '' };
-    case 'actGate': return { op: 'actGate', characteristic: 'force-mentale' };
+    case 'testDAgir': return { op: 'testDAgir', characteristic: 'force-mentale' };
     case 'delayed': return { op: 'delayed', afterHours: 1, ops: [] };
     case 'preventInfection': return { op: 'preventInfection' };
     case 'aideMedicale': return { op: 'aideMedicale' };

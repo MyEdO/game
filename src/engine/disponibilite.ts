@@ -21,9 +21,9 @@ export const dispoPct = memoParVersion('disponibilite', () => Object.fromEntries
   dispoJson.dispoPct.map((e) => [e.availability, e.pct]),
 ) as Record<TestedAvailability, Record<Settlement, number>>);
 
-/** Quantité en Cité (LDB 59 l.34) — non chiffrée par le RAW : règle éditable `market-cite-stock`. */
+/** Quantité en Cité (LDB 59 l.34) — non chiffrée par le RAW : règle éditable `marche-cite-stock`. */
 function citeQty(): number {
-  const v = rule('market-cite-stock');
+  const v = rule('marche-cite-stock');
   return typeof v === 'number' ? v : 99;
 }
 

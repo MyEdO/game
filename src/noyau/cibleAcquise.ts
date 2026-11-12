@@ -54,11 +54,11 @@ export function acquerirLeTrait(get: Get, set: Set, c: Combatant, type: TypeAcqu
 
 /** SEUL point d'écriture d'une Terreur subie, appelé par chaque site qui applique l'État d'échec d'une Terreur
  *  (`inflige` : l'État et son nombre) : mémorise sur `c`, s'il suit les règles de Personnage (`followsCharacterRules`), les États Brisé
- *  infligés et les Groupes perçus de sa `cause` (aucun sans cause), règle `psych-acquisition-optional` allumée,
+ *  infligés et les Groupes perçus de sa `cause` (aucun sans cause), règle `psycho-acquisition-optionnelle` allumée,
  *  puis acquiert la Phobie du noir qu'offre la mémoire (`ciblesDePhobieDuNoir`) ; rend la ligne d'une Phobie
  *  posée d'office. ADE II 09 l.5, l.9 ; #3045 */
 export function subirLaTerreur(get: Get, set: Set, c: Combatant, inflige: { etat?: string; nombre: number }, cause: PorteurDeGroupes | undefined): string | null {
-  if (inflige.etat !== COND.brise || inflige.nombre <= 0 || !followsCharacterRules(c) || !rule('psych-acquisition-optional')) return null;
+  if (inflige.etat !== COND.brise || inflige.nombre <= 0 || !followsCharacterRules(c) || !rule('psycho-acquisition-optionnelle')) return null;
   c.terreursSubies = [...(c.terreursSubies ?? []), { brise: inflige.nombre, groupes: cause ? groupesPercus(cause) : [] }];
   const cibles = ciblesDePhobieDuNoir(c, c.terreursSubies);
   return cibles ? acquerirLeTrait(get, set, c, 'phobie', cibles) : null;

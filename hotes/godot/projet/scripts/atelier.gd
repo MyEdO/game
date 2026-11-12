@@ -161,6 +161,7 @@ func _ready() -> void:
 	_cible.add_child(_marques)
 	_recueil = _erreurs
 	_montage.erreurs = _erreurs
+	_montage.empilee.connect(_publier)
 	%Recharger.pressed.connect(_recharger)
 	%Lecture.pressed.connect(_lire)
 	%Pause.pressed.connect(_mettre_en_pause)
@@ -193,7 +194,7 @@ func _ready() -> void:
 
 func _process(_delta: float) -> void:
 	_instant.text = "%.3f s" % _lecteur().current_animation_position if _a_un_clip() else ""
-	if _peaux_a_mesurer or (_a_un_clip() and _lecteur().is_playing()):
+	if _pont.en_recette and (_peaux_a_mesurer or (_a_un_clip() and _lecteur().is_playing())):
 		_publier_l_ecran.call_deferred()
 
 
@@ -960,14 +961,14 @@ func _montrer_l_aide(montre: bool, aide: String) -> void:
 	_publier()
 
 
-## Un bouton par clip du modèle posé, base ou véhicule, chacun mis en boucle ; le clip de la reprise rejoué à son
-## instant, en lecture ou en pause, sinon le clip de repos (`_jouer_le_repos`).
+## Un bouton par clip du modèle posé, base ou véhicule, chacun mis en boucle (`MontageDeComposition.boucler`) ; le clip
+## de la reprise rejoué à son instant, en lecture ou en pause, sinon le clip de repos (`_jouer_le_repos`).
 func _poser_les_clips() -> void:
 	_clips.clear()
 	if _lecteur() == null:
 		return
+	MontageDeComposition.boucler(_lecteur(), Array(_lecteur().get_animation_list()))
 	for nom in _lecteur().get_animation_list():
-		_lecteur().get_animation(nom).loop_mode = Animation.LOOP_LINEAR
 		var rang := _clips.item_count
 		_clips.add_item(nom)
 		_clips.set_item_metadata(rang, nom)
@@ -1594,21 +1595,27 @@ func _publier() -> void:
 	_publier_l_ecran.call_deferred()
 
 
-## Ce que l'écran porte, une fois mis en page : ses boutons, et l'état de l'atelier, l'élément monté à chaque point
+## L'écran publié à la recette (`PontDuNoyau.publier_l_ecran`, `_ecran_publie`), une fois mis en page.
+func _publier_l_ecran() -> void:
+	await get_tree().process_frame
+	_pont.publier_l_ecran(_ecran_publie)
+
+
+## Ce que l'écran porte : ses boutons, et l'état de l'atelier, l'élément monté à chaque point
 ## (`montes`) et à chaque ligne de pièce (`lignes`) sous sa clé publiée, les erreurs (`_toutes_les_erreurs`), l'onglet
 ## montré, les onglets offerts (`_onglets_offerts`) et le défilement de son panneau (`defilement`), le cadre de la
 ## glissière de chaque axe `plage` à l'écran
 ## (`plages`, avec sa valeur), la composition courante avec ce que `composer` en a monté, ce qui y manque, le texte de
 ## son refus et celui de « Copier », les mesures du gabarit posé (`GabaritDuSquelette.mesures`), l'échelle de l'orbite
 ## (`cadre`), la position des os de la base (`_positions_des_os`), la boîte des meshes skinnés montés (`_peaux`), que
-## la publication attend tant que le skin d'un mesh skinné monté n'a pas ses os au serveur de rendu, le véhicule posé
-## (`_vehicule_publie`) et l'échantillon posé (`_echantillon_publie`).
-func _publier_l_ecran() -> void:
-	await get_tree().process_frame
+## la publication attend tant que le skin d'un mesh skinné monté n'a pas ses os au serveur de rendu, le bilan de la
+## pile des couches que porte la fusion (`MontageDeComposition.pile_posee`), le véhicule posé (`_vehicule_publie`) et
+## l'échantillon posé (`_echantillon_publie`) ; `null` tant que ces boîtes restent à mesurer.
+func _ecran_publie() -> Variant:
 	if _peaux_a_mesurer:
 		var mesurees: Variant = _peaux()
 		if mesurees == null:
-			return
+			return null
 		_peaux_mesurees = mesurees
 		_peaux_a_mesurer = false
 	var clip: Variant = _lecteur().assigned_animation if _a_un_clip() else null
@@ -1626,7 +1633,7 @@ func _publier_l_ecran() -> void:
 		var cadre := glissiere.get_global_rect()
 		if PontDuNoyau.a_l_ecran(glissiere, cadre.get_center()):
 			plages[champ] = {gauche = cadre.position.x, droite = cadre.end.x, y = cadre.get_center().y, valeur = glissiere.value}
-	_pont.publier_l_ecran({
+	return {
 		boutons = PontDuNoyau.boutons_a_l_ecran([_interface]),
 		atelier = {
 			base = _montage.base.get("id"),
@@ -1661,10 +1668,11 @@ func _publier_l_ecran() -> void:
 			peaux = _peaux_mesurees,
 			morphes = _morphes_des_meshes(),
 			couleurs = _montage.couleurs_posees(),
+			pile = _montage.pile_posee(),
 			vehicule = _vehicule_publie(),
 			echantillon = _echantillon_publie(),
 		},
-	})
+	}
 
 
 ## Ce que l'écran montre de l'échantillon demandé, `null` sans lui : sa famille, son id, et ce que sa scène a posé

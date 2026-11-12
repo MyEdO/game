@@ -25,7 +25,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /**
  * Acquisition de Traits psychologiques — ADE II Annexe I « Troubles psychologiques » (règle facultative
- * `psych-acquisition-optional`). Vérifie le CÂBLAGE d'état (le noyau pur `ciblesDAnimositeAcquise`/`ciblesDePhobieDuNoir`
+ * `psycho-acquisition-optionnelle`). Vérifie le CÂBLAGE d'état (le noyau pur `ciblesDAnimositeAcquise`/`ciblesDePhobieDuNoir`
  * est testé dans engine/animosite-acquise.test et engine/phobie-du-noir.test) : dépense de Destin → Animosité/Haine ; persistance des Traits acquis.
  * Graines d100 (cf. combat/bleed-death.hors-store.test) : seedBattleRng(1) → 1ᵉʳ jet > 30 (Calme FM 30 ÉCHOUE → acquisition) ;
  * seedBattleRng(7) → 1ᵉʳ jet ≤ 10 (Calme RÉUSSIT → aucun Trait).
@@ -55,7 +55,7 @@ function setBattle(combatants: Combatant[], fateSave: ReturnType<typeof banc.get
 const adversaire = (groups: string[]) => hero({ id: 'e1', label: 'Brigand de Reikland', kind: 'enemy', fate: 0, groups } as Partial<Combatant>);
 
 describe('#62 — Animosité & Haine sur dépense de Destin (choix `destin.issue`)', () => {
-  beforeEach(() => { setRule('psych-acquisition-optional', true); });
+  beforeEach(() => { setRule('psycho-acquisition-optionnelle', true); });
 
   const skaven = () => adversaire(['skaven']);
 
@@ -83,7 +83,7 @@ describe('#62 — Animosité & Haine sur dépense de Destin (choix `destin.issue
   });
 
   it('règle OFF → aucune acquisition même sur échec de Calme', () => {
-    resetRule('psych-acquisition-optional'); // défaut = OFF
+    resetRule('psycho-acquisition-optionnelle'); // défaut = OFF
     setBattle([hero(), skaven()], { heroId: 'h1', source: 'hit', foeId: 'e1' });
     seedBattleRng(1);
     banc.getState().fenetreChoisir('destin', 'issue', 'survivre');
@@ -101,7 +101,7 @@ describe('#62 — Animosité & Haine sur dépense de Destin (choix `destin.issue
 });
 
 describe('ADE II 09 l.15 — les Cibles qu’offre le tueur (finalizeHeroDeath → choix `destin.issue`)', () => {
-  beforeEach(() => { setRule('psych-acquisition-optional', true); });
+  beforeEach(() => { setRule('psycho-acquisition-optionnelle', true); });
 
   /** Un héros humain frôle la mort sous les coups de `foe`, dépense son Destin et rate son Calme. */
   const frolerLaMort = (foe: Combatant, p: Partial<Combatant> = {}) => {
@@ -208,7 +208,7 @@ describe('ADE II 09 l.15 — les Cibles qu’offre le tueur (finalizeHeroDeath �
 });
 
 describe('ADE II 09 l.9-11 — Phobie du noir en combat (bande `psychologieDeCombat`, Terreur ratée)', () => {
-  beforeEach(() => { setRule('psych-acquisition-optional', true); });
+  beforeEach(() => { setRule('psycho-acquisition-optionnelle', true); });
 
   /** Les `porteurs` du combat ratent leur Calme de 1 DR face à `foe` (Terreur 1 → 2 Brisé), en une bande ;
    *  `result` en donne un autre. */
@@ -251,7 +251,7 @@ describe('ADE II 09 l.9-11 — Phobie du noir en combat (bande `psychologieDeCom
   });
 
   it('règle éteinte : aucune Terreur mémorisée', () => {
-    resetRule('psych-acquisition-optional');
+    resetRule('psycho-acquisition-optionnelle');
     const { h } = terreurRatee(source(['mort-vivant']), []);
     expect(h().terreursSubies).toEqual([]);
     expect(h().conditions.some((c) => c.id === 'brise')).toBe(true);
@@ -312,7 +312,7 @@ describe('ADE II 09 l.9-11 — Phobie du noir en combat (bande `psychologieDeCom
 });
 
 describe('ADE II 09 l.9-11 — Phobie du noir hors combat (Terreur d’auteur `inflictPsychology`, #3045)', () => {
-  beforeEach(() => { setRule('psych-acquisition-optional', true); });
+  beforeEach(() => { setRule('psycho-acquisition-optionnelle', true); });
 
   /** Le héros (FM 30, Terreurs déjà subies `avant`) rate son Calme (d100 = 100) face à une Terreur d'auteur. */
   const terreurDAuteur = (avant: TerreurSubie[]) => {
@@ -355,7 +355,7 @@ describe('#62 — Trauma sur Ambition anéantie (Effet d’auteur `ambitionLost`
   beforeEach(() => { banc.setState({ battle: null, mode: 'exploration', journal: [] }); });
 
   it('règle ON + Calme Accessible (+20) ÉCHOUE → Trauma posé sur le héros visé', () => {
-    setRule('psych-acquisition-optional', true);
+    setRule('psycho-acquisition-optionnelle', true);
     const h = hero({ id: 'h1', characteristics: { ...CHARS, 'force-mentale': 10 } }); // Calme +20 → cible 30
     banc.setState({ party: [h] });
     seedBattleRng(1); // 1ᵉʳ jet > 30 → Calme échoue

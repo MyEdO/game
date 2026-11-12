@@ -148,7 +148,7 @@ export const actionAuthoreeSchema = nommerChamps(z.strictObject({
  *  entière et jamais négative (invariant d'ingénierie). */
 export const offreDeTaverneSchema = ref('tavernGame', { stakeBrass: nommerNoeud(z.number().int().min(0).optional(), { nom: 'mise en cuivre' }) });
 
-/** Le système d'achat et de vente d'un marchand, qui surcharge la règle `market-mode` (LDB 59 l.15). */
+/** Le système d'achat et de vente d'un marchand, qui surcharge la règle `marche-mode` (LDB 59 l.15). */
 const marketModeSchema = enumNomme({
   complet: 'Complet (Disponibilité + Marchandage)',
   'sans-disponibilite': 'Sans Disponibilité (tout en stock)',

@@ -73,12 +73,12 @@ function poseMeteo(id: string): void {
 }
 
 beforeEach(() => { seedBattleRng(1); resetDesFixes(); resetCadence(); });
-afterEach(() => { resetDesFixes(); resetCadence(); resetRule('travel-etapes'); resetRule('travel-attraper-froid'); });
+afterEach(() => { resetDesFixes(); resetCadence(); resetRule('voyage-etapes'); resetRule('voyage-attraper-froid'); });
 
 describe('#2533 — la reprise clôt le jour interrompu au log, avant toute halte (2026-10-09 01:51)', () => {
   /** Interruption à pied sous l'averse (6 h marchées), victoire simulée : rend le jour interrompu. */
   function jourInterrompu(): unknown {
-    setRule('travel-etapes', true);
+    setRule('voyage-etapes', true);
     setDesFixes(true);
     setup(map({ km: 60, perils: [{ label: 'Brigands !', chancePct: 100, effects: [{ type: 'startCombat', encounter: 'enc-brigands' }] }] }), 'clair');
     get().partirEnVoyage('r1', 'pied');

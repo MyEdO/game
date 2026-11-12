@@ -19,7 +19,7 @@ import { defDe, enfantsDe } from '../../data/schemas/grammaire/descente';
 import { noeudObjet, payloadDeFamille } from '../../data/schemas/validate';
 import { ChaosAlign, ExposureLevel } from '../../engine/corruption';
 import { optionsDuNoeud } from '../../data/schemas/grammaire/meta';
-import { chaosAlignSchema, deDeTirageSchema, exposureLevelSchema } from '../../data/schemas/grammaire/valeurs';
+import { acteDeDeverrouillageSchema, chaosAlignSchema, deDeTirageSchema, exposureLevelSchema } from '../../data/schemas/grammaire/valeurs';
 import { CHAR_LABELS, CharKey, ArmourBypass, type ConditionUnlock } from '../../engine/types';
 import { SUJETS_DE_VERROU, CHAMPS_EXCLUS_DE_CARRIED, OP_LABEL, armourBypassCategorieSchema, banishNarrationSchema, gameOpSchema, tablesDeCiblesSchema } from '../../data/schemas/grammaire/mecanique';
 import { ConditionEditor } from './ConditionEditor';
@@ -39,7 +39,6 @@ import { SaisieEnBrouillon } from '../compendium/refField/SaisieEnBrouillon';
 import { formatTrait } from '../../engine/traits/dispatch';
 import { relireTraits } from '../../data/refFormatLivre';
 import type { TraitPose } from '../../data/schemas/grammaire/reference';
-import { ACTE_DE_DEVERROUILLAGE } from '../../engine/conditions';
 import { AddMenu, TypeMenu, pickable, type TypeMenuGroup } from './AddMenu';
 import { JsonField } from './JsonField';
 import { Icon } from '../Icon';
@@ -53,10 +52,6 @@ import { FORME_DE_CLE, contientLePeche, formulaForShape, newOp, paramsDeRegle, s
 const SIZES = Object.keys(SIZE_LABEL) as SizeCategory[];
 
 const CHARS = Object.keys(CHAR_LABELS) as CharKey[];
-
-/** Actes de soin qui LÈVENT un verrou d'État (`ConditionUnlock`, LDB 18) — libellés du moteur
- *  (`ACTE_DE_DEVERROUILLAGE`), partagés avec le refus d'un remède sur un État verrouillé. */
-const UNLOCK_LABELS = Object.entries(ACTE_DE_DEVERROUILLAGE) as [ConditionUnlock, string][];
 
 // ---------------------------------------------------------------------------
 // Vocabulaire COMPLET — libellé + menu groupé par intention
@@ -87,7 +82,7 @@ const OP_ICON: Record<GameOp['op'], IconIdInput> = {
   augmentWeapon: 'item/weapon', cureDisease: 'medical/infection', reduceDiseaseDays: 'medical/infection',
   preventInfection: 'medical/infection', aideMedicale: 'medical/crutch', cureCriticalWound: 'medical/crutch', amputer: 'medical/crutch', diseaseTestMod: 'medical/infection',
   suppressSymptom: 'medical/infection', aggravateSymptom: 'medical/infection', attenuateSymptom: 'medical/infection', grantSymptom: 'medical/infection',
-  actGate: 'ui/wait', delayed: 'ui/wait', suppressPsych: 'mechanic/mind',
+  testDAgir: 'ui/wait', delayed: 'ui/wait', suppressPsych: 'mechanic/mind',
   suffocate: 'mechanic/ward', noBreath: 'mechanic/ward', noHunger: 'mechanic/ward', ignoreAnimosity: 'mechanic/ward', weatherWard: 'mechanic/ward',
   damageArmour: 'item/armour', damageWornGear: 'item/armour', reduceToZero: 'journal/damage', banish: 'magic/area', martyr: 'action/defend',
   giveTrapping: 'item/misc', perRound: 'ui/wait', summon: 'mechanic/invoke', scheduleRespawn: 'ui/wait',
@@ -113,7 +108,7 @@ const OP_GROUPS: [string, GameOp['op'][]][] = [
   ['Zones', ['zone']],
   ['Projection & téléportation', ['push', 'teleport', 'chain']],
   ['Soin avancé', ['cureDisease', 'reduceDiseaseDays', 'preventInfection', 'aideMedicale', 'cureCriticalWound', 'diseaseTestMod', 'suppressSymptom', 'aggravateSymptom', 'attenuateSymptom', 'grantSymptom']],
-  ['Divers', ['suppressPsych', 'suffocate', 'noBreath', 'noHunger', 'weatherWard', 'damageArmour', 'damageWornGear', 'martyr', 'giveTrapping', 'perRound', 'delayed', 'loseTurn', 'actGate', 'removeShipPoste', 'light']],
+  ['Divers', ['suppressPsych', 'suffocate', 'noBreath', 'noHunger', 'weatherWard', 'damageArmour', 'damageWornGear', 'martyr', 'giveTrapping', 'perRound', 'delayed', 'loseTurn', 'testDAgir', 'removeShipPoste', 'light']],
   ['Séquelles & mobilité', ['amputer', 'skillMod', 'moveScale', 'moveMod', 'offTerrainMod', 'maxWeaponHands', 'disarm', 'handGate', 'senseLoss']],
   ['Atouts/Défauts d’arme (passifs)', ['weaponRollMod', 'weaponDamageMod', 'armourPierce', 'critOnRoll']],
   ['Contrôle', ['rollThreshold', 'rollTable', 'rollMutation', 'spendAdvantage']],
@@ -256,7 +251,7 @@ export function FormulaField(props: FormulaFieldProps) {
         </select>
         {shape === 'regle' && (
           <select aria-label="Règle optionnelle" value={typeof value === 'object' && value != null && 'rule' in value ? value.rule : ''}
-            onChange={(e) => onChange({ rule: e.target.value })}>
+            onChange={(e) => onChange({ rule: paramsDeRegle()[e.target.selectedIndex].id })}>
             {paramsDeRegle().map((r) => <option key={r.id} value={r.id}>{r.label}</option>)}
           </select>
         )}
@@ -709,9 +704,9 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
         )}
         {(op.op === 'condition' || op.op === 'removeCondition') && (
           <>
-            <select value={o.id ?? ''} onChange={(e) => upd({ id: e.target.value || undefined })}>
+            <select value={o.id?.id ?? ''} onChange={(e) => upd({ id: e.target.value ? { id: e.target.value } : undefined })}>
               {op.op === 'removeCondition' && <option value="">— au choix (1er État) —</option>}
-              {op.op === 'condition' && !o.id && <option value="">— (choisir un État) —</option>}
+              {op.op === 'condition' && !o.id?.id && <option value="">— (choisir un État) —</option>}
               {etats.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
             </select>
             <FormulaField label="Intensité" champ="value" value={o.value ?? 1} min={0} onChange={(value) => upd({ value })} />
@@ -734,7 +729,7 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
                 {/* État PORTÉ (#1695, LDB 48 l.495) : cocher « porté » EFFACE les champs que le canal
                     passif ne transporte pas (même patron d'exclusivité que Force d'évasion / Seuil de DR
                     ci-dessus), depuis la MÊME liste close que le refus au parse (`CHAMPS_EXCLUS_DE_CARRIED`)
-                    — la donnée ne peut donc pas naître dans la forme que `refusLoose` refuse. */}
+                    — la donnée ne peut donc pas naître dans la forme que le payload `condition` refuse. */}
                 <label className="dr"><input type="checkbox" checked={!!o.carried} onChange={(e) => upd(e.target.checked
                   ? { carried: true, ...tableTotale(CHAMPS_EXCLUS_DE_CARRIED, () => undefined) }
                   : { carried: undefined })}
@@ -754,7 +749,7 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
                       <label className="dr">Retiré par{/* LDB 18 : « ne peut être retiré que par [acte] » */}
                         <select value={o.unlockBy ?? ''} onChange={(e) => upd({ unlockBy: (e.target.value || undefined) as ConditionUnlock | undefined })}>
                           <option value="">— aucun acte requis —</option>
-                          {UNLOCK_LABELS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+                          {optionsDuNoeud(acteDeDeverrouillageSchema).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
                         </select>
                       </label>
                     </>
@@ -960,7 +955,7 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
           <label className="dr">Table de hauteur
             <select value={o.hauteur.table.id} onChange={(e) => upd({ hauteur: { table: { id: e.target.value } } })}>
               {!o.hauteur.table.id && <option value="">— (choisir une table) —</option>}
-              {fallTables.map((t) => (<option key={t.id} value={t.id}>{t.label}</option>))}
+              {fallTables().map((t) => (<option key={t.id} value={t.id}>{t.label}</option>))}
             </select>
           </label>
         )}

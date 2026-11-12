@@ -49,7 +49,7 @@ const vehicleById = indexParId('vehicles', VEHICLES_LIST);
 export const travelVehicles = memoParVersion('vehicles', (): VehicleData[] => VEHICLES_LIST.filter((v) => v.travel));
 
 /** Mode de voyage : `'pied'` (Mouvement du groupe), `'monture'` (bêtes possédées, EDOC 7 — règle
- *  optionnelle `travel-allures`) OU l'`id` d'un véhicule à passage payant (`vehicles.json`). */
+ *  optionnelle `voyage-allures`) OU l'`id` d'un véhicule à passage payant (`vehicles.json`). */
 export type TravelMode = 'pied' | 'monture' | string;
 
 /** Facette `travel` (passage payant) d'un mode ≠ `'pied'` — source UNIQUE des classes/Déplacement.
@@ -107,7 +107,7 @@ export function partyWalkSpeed(party: Combatant[]): number {
 }
 
 /** Vitesse de voyage (km/h) selon le mode. `movementOverride` = modèle rapide/lent (M ±1, LDB 51 l.178).
- *  `allure` (règle `travel-allures`, EDOC 07 l.140) : en selle, M de la plus lente × 1,5/2,5/3 ; en
+ *  `allure` (règle `voyage-allures`, EDOC 07 l.140) : en selle, M de la plus lente × 1,5/2,5/3 ; en
  *  attelage forcé au galop, M de l'attelage × 3 ; à pied, une bête Boiteuse MENÉE plafonne le groupe
  *  à la moitié de sa vitesse de marche (EDOC 07 l.157). */
 export function travelSpeed(party: Combatant[], possessions: Possession[], mode: TravelMode, movementOverride?: number, allure?: Allure): number {
@@ -116,7 +116,7 @@ export function travelSpeed(party: Combatant[], possessions: Possession[], mode:
   if (mode === 'mer') return 0;
   if (mode === 'pied') {
     const walk = movementOverride ?? partyWalkSpeed(party);
-    const cap = rule('travel-allures') ? lameLedCapKmh(party, possessions) : null;
+    const cap = rule('voyage-allures') ? lameLedCapKmh(party, possessions) : null;
     return cap == null ? walk : Math.min(walk, cap);
   }
   if (mode === 'monture') return movementOverride ?? mountedSpeedKmh(partyMounts(party, possessions), allure ?? 'pas');

@@ -186,7 +186,7 @@ describe('#1262 V2 — la descente FLUVIALE : le barreur garde sa fenêtre, le p
 
 describe('#1262 V2 — l’allure FORCÉE ouvre sa cascade pour le conducteur d’un INVITÉ', () => {
   it('conducteur d’un autre siège : la journée devient influençable au lieu de se rouler en silence', () => {
-    setRule('travel-allures', true);
+    setRule('voyage-allures', true);
     seedBattleRng(1);
     const lead = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'cocher', label: 'Lead', motivation: 'x', seed: 21, id: 't-lead' });
     skill(lead, 'conduite-d-attelage', 40);

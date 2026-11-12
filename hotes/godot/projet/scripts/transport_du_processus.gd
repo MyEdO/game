@@ -6,8 +6,12 @@ extends PontDuNoyau.Transport
 ## `<pont>` le paramètre `--pont=<chemin>` du lancement, à défaut `hotes/godot/vivant.mjs`, par un tuyau bloquant.
 ## La sortie standard du processus est faite de lignes terminées par `\n` : d'abord l'annonce `{"url":"http://127.0.0.1:<port>/"}`,
 ## l'adresse du serveur du jeu, attendue `ATTENTE_S` au plus, puis une ligne par requête, la chaîne que rend
-## `wfrpPont.appeler(methode, json)`. Son entrée standard reçoit une ligne par requête, `[methode, json|null]`. Sa sortie
-## d'erreur passe à celle de Godot ; sa mort est une panne, qui dit son code de sortie. Le processus meurt quand le
+## `wfrpPont.appeler(methode, json)`. Son entrée standard reçoit une ligne par requête, `[methode, json|null]`.
+## La ligne `["resoudreLaPile", demande]` demande la pile des couches (`PileDemandee`, en JSON) ;
+## sa réponse est la chaîne que `wfrpPont.resoudreLaPile` rend (`PileResolue`, en JSON).
+## Godot l'attend image après image, sans bloquer.
+## Les réponses sortent dans l'ordre des requêtes, pile comprise.
+## Sa sortie d'erreur passe à celle de Godot ; sa mort est une panne, qui dit son code de sortie. Le processus meurt quand le
 ## pont quitte l'arbre. Les paramètres sont ceux du lancement après `--` (`--<cle>=<valeur>`) ;
 ## l'image se choisit par le dialogue de fichier natif.
 
@@ -25,13 +29,13 @@ class Tuyau:
 	var _fichier: FileAccess
 	## Le début de la ligne en cours, déjà cherché : il ne porte aucun `\n`.
 	var _debut := PackedByteArray()
-	## Ce que le tuyau a livré après `_debut`, pas encore cherché.
+	## La suite livrée par le tuyau après `_debut`, où la fin de ligne reste à chercher.
 	var _suite := PackedByteArray()
 
 	func _init(fichier: FileAccess) -> void:
 		_fichier = fichier
 
-	## La première ligne complète, sans son `\n`, `null` si elle n'est pas encore là.
+	## La première ligne complète, sans son `\n`, `null` tant qu'elle est incomplète.
 	func ligne() -> Variant:
 		var n := _fichier.get_length()
 		if n != 0:
@@ -56,6 +60,8 @@ var _sortie: Tuyau = null
 var _erreurs: Tuyau = null
 var _url := ""
 var _mort := false
+## Les réponses attendues, dans l'ordre des requêtes écrites : chacune un tableau vide que sa ligne remplit.
+var _attendues: Array[Array] = []
 
 
 func _exit_tree() -> void:
@@ -93,18 +99,25 @@ func ouvrir() -> bool:
 	return _url != ""
 
 
+func est_ouvert() -> bool:
+	return _url != "" and not _mort
+
+
 func appeler(methode: String, json: Variant) -> Variant:
-	if _mort:
-		return null
-	_entree.store_line(JSON.stringify([methode, json]))
-	var reponse: Variant = _ligne()
-	while reponse == null and not _mort:
+	var reponse := _demander(methode, json)
+	while reponse.is_empty() and _recevoir():
 		OS.delay_usec(PAUSE_US)
-		reponse = _ligne()
-	return reponse
+	return null if reponse.is_empty() else reponse[0]
 
 
-func publier_l_ecran(_publie: Dictionary) -> void:
+func resoudre_la_pile(demande: String) -> Variant:
+	var reponse := _demander("resoudreLaPile", demande)
+	while reponse.is_empty() and _recevoir():
+		await get_tree().process_frame
+	return null if reponse.is_empty() else reponse[0]
+
+
+func publier(_nom: String, _valeur: Variant) -> void:
 	pass
 
 
@@ -147,7 +160,25 @@ func _expirer() -> void:
 		_mourir("aucune annonce du processus du pont après %s s" % ATTENTE_S)
 
 
-## La prochaine ligne de la sortie, `null` si elle n'est pas encore là ou si le processus est mort ; la sortie d'erreur
+## La requête `methode` sur `json` écrite, sauf processus mort : le tableau que sa réponse remplira, en file des attendues.
+func _demander(methode: String, json: Variant) -> Array:
+	var reponse := []
+	if not _mort:
+		_entree.store_line(JSON.stringify([methode, json]))
+		_attendues.append(reponse)
+	return reponse
+
+
+## Chaque ligne reçue rendue à la plus ancienne requête sans réponse ; `false` si le processus est mort.
+func _recevoir() -> bool:
+	var lue: Variant = _ligne()
+	while lue != null:
+		_attendues.pop_front().append(lue)
+		lue = _ligne()
+	return not _mort
+
+
+## La prochaine ligne de la sortie, `null` tant qu'elle est incomplète ou si le processus est mort ; la sortie d'erreur
 ## transmise ; le processus mort sans ligne à lire, sa panne signalée.
 func _ligne() -> Variant:
 	if _mort:

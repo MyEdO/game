@@ -19,7 +19,7 @@ import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
 import { contexteDeTestSchema } from '../../data/schemas/grammaire/valeurs';
 import { armourBypassCategorieSchema, loseTurnWhatSchema, ressourceDeDestinSchema, senseSchema, tablesDeCiblesSchema, zoneShapeSchema } from '../../data/schemas/grammaire/mecanique';
 import { INDICE_TEMPLATE, seuilDeBourse, type ActorRef, type CompareOp, type CompareSubject } from '../../engine/flowCore';
-import { estCausePersistante, type GameOp, type Formula, type FormuleSansTirage, type ResolveWindow } from '../../engine/ops';
+import { estCausePersistante, estPoseDEtat, type GameOp, type Formula, type FormuleSansTirage, type ResolveWindow } from '../../engine/ops';
 import type { Camp, Relation } from '../../engine/relations';
 import { CHAR_LABELS, DIFFICULTY_LABELS, HIT_LOCATION_LABELS, type CharKey, type ArmourBypass } from '../../engine/types';
 import { formatWardSave, traitLabelById, traitLisible } from '../../engine/traits/dispatch';
@@ -401,9 +401,9 @@ export function flowMuet(f: Flow | undefined): boolean {
  *  ops ; elle se LIT en UNE chip — la pose littérale est ABSORBÉE par la cause, qui porte le terme et la
  *  durée. Pré-passe PARTAGÉE des deux lecteurs de LISTES d'ops (`opRows`, dialecte miscast de
  *  `registry`), sur la forme MINIMALE commune aux deux dialectes. */
-export function replieCausesPersistantes<T extends { op?: unknown; id?: unknown }>(ops: readonly T[]): T[] {
-  const maintenus = new Set(ops.filter(estCausePersistante).map((o) => o.id));
-  return ops.filter((o) => estCausePersistante(o) || o.op !== 'condition' || !maintenus.has(o.id));
+export function replieCausesPersistantes<T extends { op?: unknown }>(ops: readonly T[]): T[] {
+  const maintenus = new Set(ops.flatMap((o) => (estPoseDEtat(o) && estCausePersistante(o) ? [o.id.id] : [])));
+  return ops.filter((o) => !estPoseDEtat(o) || estCausePersistante(o) || !maintenus.has(o.id.id));
 }
 
 /** L'effet d'une pénalité d'incantation, phrase du Codex : SOURCE UNIQUE de l'op `castPenalty` et de la
@@ -444,13 +444,13 @@ export function humanizeOp(o: GameOp): string {
       const duree = pendant(o);
       const fenetre = humanizeResolveWindow(o.resolveWindow);
       const determination = fenetre ? ` — ${fenetre}` : '';
-      if (estCausePersistante(o)) return t('codex.op.condition.persistante', { etat: stateItal(o.id), perSL, cause: causePersistante(), duree, determination });
+      if (estCausePersistante(o)) return t('codex.op.condition.persistante', { etat: stateItal(o.id.id), perSL, cause: causePersistante(), duree, determination });
       return t('codex.op.condition', {
         fois: o.value != null && o.value !== 1 ? `${humanizeFormula(o.value)} × ` : '',
-        etat: stateItal(o.id), perSL, duree, parRound: o.perRound ? t('codex.op.condition.parRound') : '', determination,
+        etat: stateItal(o.id.id), perSL, duree, parRound: o.perRound ? t('codex.op.condition.parRound') : '', determination,
       });
     }
-    case 'removeCondition': return t('codex.op.perd', { quoi: `${o.id ? t('codex.op.etat', { etat: stateItal(o.id) }) : t('codex.op.etatAuChoix')}${o.valuePerSL ? ` (${humanizePerSL(o.valuePerSL)})` : ''}` });
+    case 'removeCondition': return t('codex.op.perd', { quoi: `${o.id ? t('codex.op.etat', { etat: stateItal(o.id.id) }) : t('codex.op.etatAuChoix')}${o.valuePerSL ? ` (${humanizePerSL(o.valuePerSL)})` : ''}` });
     case 'endPsych': return 'instance' in o ? t('codex.op.endPsych.instance') : t('codex.op.endPsych', { nom: psychologyLabel(o.type.id) });
     case 'beginPsych': return t('codex.op.beginPsych', { psy: libelleDePsy(o.type.id, o.cible && cibleDeRef(o.cible)), indice: o.indice != null ? ` ${humanizeFormula(o.indice)}` : '' });
     case 'charMod': return `${[t(o.mod >= 0 ? 'codex.op.mod.gagneEn' : 'codex.op.mod.subitEn', { mod: signe(o.mod), nom: CHAR_LABELS[o.characteristic] }), plancher(o)].filter(Boolean).join(', ')}${pendant(o)}`;
@@ -578,7 +578,7 @@ export function humanizeOp(o: GameOp): string {
     case 'handGate': return t('codex.op.handGate');
     case 'senseLoss': return t('codex.op.perd', { quoi: libelleDeValeur(senseSchema, o.sense) });
     case 'loseTurn': return t('codex.op.perd', { quoi: o.what ? libelleDeValeur(loseTurnWhatSchema, o.what) : t('codex.op.loseTurn.tout') });
-    case 'actGate': return t('codex.op.actGate', { car: CHAR_LABELS[o.characteristic] });
+    case 'testDAgir': return t('codex.op.testDAgir', { car: CHAR_LABELS[o.characteristic] });
     case 'diseaseTestMod': return t(o.amount >= 0 ? 'codex.op.diseaseTestMod.gagne' : 'codex.op.diseaseTestMod.subit', { mod: signe(o.amount) });
     case 'suppressSymptom': return t('codex.op.suppressSymptom', { nom: symptomLabel(o.symptomId) });
     case 'aggravateSymptom': return t('codex.op.aggravateSymptom', { nom: symptomLabel(o.symptomId) });

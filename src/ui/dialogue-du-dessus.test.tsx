@@ -173,7 +173,7 @@ describe('infirmerie ouverte depuis la fiche — le dialogue du dessus est celui
   it('manette : la croix depuis « Lancer » navigue dans l’infirmerie', async () => {
     await ouvrirInfirmerieDepuisLaFiche();
     bouton(infirmerie(), 'Lancer').focus();
-    act(() => padDir('down'));
+    act(() => padDir('bas'));
     expect(infirmerie().contains(document.activeElement), `croix → « ${actif()} »`).toBe(true);
   });
 });
@@ -249,7 +249,7 @@ describe('manette — bulle épinglée au-dessus d’un dialogue', () => {
     const bulle = document.querySelector<HTMLElement>('.infobulle')!;
     expect(bulle, 'la bulle est épinglée').toBeTruthy();
     expect(bulle.contains(document.activeElement), 'elle a pris le focus').toBe(true);
-    act(() => padDir('down'));
+    act(() => padDir('bas'));
     expect(bulle.contains(document.activeElement), `croix → « ${actif()} »`).toBe(true);
   });
 });
@@ -610,9 +610,9 @@ describe('conversation PNJ — une surface de la pile qui suspend le jeu', () =>
     await vider();
     expect(document.activeElement, 'Maj+Tab depuis le premier boucle sur le dernier').toBe(dernier);
     premier.focus();
-    act(() => { padDir('down'); });
+    act(() => { padDir('bas'); });
     expect(document.activeElement, 'la croix navigue dans les choix').toBe(dernier);
-    act(() => { padDir('down'); });
+    act(() => { padDir('bas'); });
     expect(document.activeElement, 'et boucle dans les choix').toBe(premier);
     touche('Digit2', '2');
     expect(pris(), 'la conversation a la main : la réponse 2 part').toEqual(['dialogue-reponse-2']);

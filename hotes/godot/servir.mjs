@@ -2,7 +2,8 @@
 // en statique sur un port libre de la boucle locale (sans export, rien d'autre que les modèles et le dépôt : le pont
 // vivant, `vivant.mjs`), et, à côté de la page, le dossier des modèles : `GET /modeles/listage.json`
 // rend ses manifestes validés contre leur GLB et les os qui en portent les meshes rigides (`listage`), relus à chaque appel,
-// et `GET /modeles/<fichier>` chacun de ses fichiers, en `Cache-Control: no-store`. Avec `--depot`, l'éditeur de carte y
+// et `GET /modeles/<fichier>` chacun de ses fichiers, en `Cache-Control: no-store`, comme `GET /planches/<fichier>`
+// chaque planche du dépôt (`planches.mjs`, #3935). Avec `--depot`, l'éditeur de carte y
 // lit et y écrit les projets manuscrits du dépôt (`pont/CONTRAT.md`, section « Éditeur ») : `GET /depot/<id>` et
 // `PUT /depot/<id>`. Une requête défaillante reçoit son statut d'erreur, le serveur continue.
 //
@@ -17,6 +18,13 @@ import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs'
 import { materialiser } from '../../scripts/source/resoudre.mjs'
 import { ecrireTexteAtomique } from '../../scripts/guards/lib/ecritureJsonAtomique.mjs'
 import { DOSSIER_DES_MODELES, LISTAGE, listage } from './listage.mjs'
+import { DOSSIER_DES_PLANCHES } from './planches.mjs'
+
+/** Le WebGL 2 de l'export, en logiciel dans un Chrome sans GPU, sans l'avertissement de repli. */
+export const WEBGL_LOGICIEL = ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist']
+/** La borne d'une lecture de la page : l'export Web de Godot tient le fil de la page le temps de chaque image, et celle
+ *  qui lit un GLB ou dessine en WebGL logiciel une vue à deviceScaleFactor 2 dure plus que le défaut du kit. */
+export const FIL_DE_LA_PAGE_MS = 120000
 
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.wasm': 'application/wasm', '.png': 'image/png', '.json': 'application/json; charset=utf-8', '.glb': 'model/gltf-binary' }
 
@@ -111,9 +119,9 @@ function servirLeDepot(req, res, depot, id) {
   }
 }
 
-/** Sert le dossier `modeles` sous `/modeles/`, sur un port libre de 127.0.0.1 ; avec `web`, l'export en statique, sans
- *  lui 404 hors de `/modeles/` et `/depot/` ; avec `depot`, la racine d'un dépôt, ses projets manuscrits sous `/depot/`
- *  (`servirLeDepot`). */
+/** Sert le dossier `modeles` sous `/modeles/` et les planches du dépôt sous `/planches/`, sur un port libre de
+ *  127.0.0.1 ; avec `web`, l'export en statique, sans lui 404 hors de `/modeles/`, `/planches/` et `/depot/` ; avec
+ *  `depot`, la racine d'un dépôt, ses projets manuscrits sous `/depot/` (`servirLeDepot`). */
 export function servir({ web, modeles = DOSSIER_DES_MODELES, depot }) {
   const racine = web && resolve(web)
   const dossier = resolve(modeles)
@@ -126,7 +134,10 @@ export function servir({ web, modeles = DOSSIER_DES_MODELES, depot }) {
     }
     if (depot && rel.startsWith('depot/')) return servirLeDepot(req, res, resolve(depot), rel.slice('depot/'.length))
     if (rel === `modeles/${LISTAGE}`) return void res.writeHead(200, { 'Content-Type': TYPES['.json'], 'Cache-Control': 'no-store' }).end(JSON.stringify(listage(dossier)))
-    const [base, chemin, entetes] = rel.startsWith('modeles/') ? [dossier, rel.slice('modeles/'.length), { 'Cache-Control': 'no-store' }] : [racine, rel || 'index.html', {}]
+    const sansCache = { 'Cache-Control': 'no-store' }
+    const [base, chemin, entetes] = rel.startsWith('modeles/') ? [dossier, rel.slice('modeles/'.length), sansCache]
+      : rel.startsWith('planches/') ? [DOSSIER_DES_PLANCHES, rel.slice('planches/'.length), sansCache]
+      : [racine, rel || 'index.html', {}]
     const fichier = base && sous(base, chemin)
     if (!fichier) return void res.writeHead(404).end()
     envoyer(res, fichier, entetes)

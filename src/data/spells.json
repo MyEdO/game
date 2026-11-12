@@ -1023,7 +1023,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "sonne"
+                "id": {
+                  "id": "sonne"
+                }
               }
             ]
           }
@@ -1248,11 +1250,15 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "aveugle"
+                "id": {
+                  "id": "aveugle"
+                }
               },
               {
                 "op": "condition",
-                "id": "aveugle",
+                "id": {
+                  "id": "aveugle"
+                },
                 "perRound": true
               }
             ]
@@ -1891,16 +1897,24 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "inconscient",
+                "id": {
+                  "id": "inconscient"
+                },
                 "durationRounds": {
                   "bonusOf": "force-mentale"
                 },
-                "onlyIfCondition": "a-terre"
+                "onlyIfCondition": {
+                  "id": "a-terre"
+                }
               },
               {
                 "op": "condition",
-                "id": "a-terre",
-                "unlessCondition": "a-terre"
+                "id": {
+                  "id": "a-terre"
+                },
+                "unlessCondition": {
+                  "id": "a-terre"
+                }
               },
               {
                 "op": "narrative",
@@ -2576,7 +2590,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "empetre",
+                "id": {
+                  "id": "empetre"
+                },
                 "valuePerSL": {
                   "every": 2,
                   "amount": 1
@@ -2813,7 +2829,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "a-terre"
+                "id": {
+                  "id": "a-terre"
+                }
               }
             ]
           }
@@ -3171,7 +3189,7 @@
     "variants": [
       {
         "when": {
-          "rule": "magic-vdm-incantation"
+          "rule": "magie-vdm-incantation"
         },
         "desc": "Vous imprégnez vos os et votre chair de *Ghur*, transformant votre corps en celui d'une créature. Quand vous incantez, choisissez une nouvelle forme parmi les **Bêtes du Reikland**  présentées dans le Bestiaire (**WFJDR**, page 314). Vous gagnez tous les Traits standards de la créature sauf *Bestial*. De plus, remplacez votre Mouvement, Force, Endurance, Agilité et Dextérité par celles de la créature, puis recalculez vos Points de Blessure. Pour chaque +2 DR, vous pouvez intégrer 1 des Traits facultatifs de la créature.\n\nSous *Forme bestiale*, vous ressemblez à la version normale de la créature, avec des reflets brun et ambre. Vous ne pouvez pas parler, ce qui signifie que vous ne pouvez pas lancer de Sorts ou tenter de les dissiper. Lorsque le Sort s'achève et que vous reprenez votre vraie forme, les Points de Blessure éventuellement perdus le demeurent, avec un minimum de 0.",
         "duration": {
@@ -3314,7 +3332,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "hemorragique"
+                "id": {
+                  "id": "hemorragique"
+                }
               },
               {
                 "op": "narrative",
@@ -3460,7 +3480,7 @@
     "variants": [
       {
         "when": {
-          "rule": "magic-vdm-incantation"
+          "rule": "magie-vdm-incantation"
         },
         "desc": "Votre souffle s'embrase et vos yeux prennent une lueur ambre alors que *Ghur* s'instille en vous. Votre regard et vos mots persuadent 1 créature possédant les Traits *Bestial* et *Taille (Petite, Moyenne ou Grande)* que vous êtes le chef de sa meute. Elle combattra jusqu'à la mort pour vous protéger. Tant qu'elle est sous votre contrôle, elle suit vos ordres et comprend instinctivement des instructions simples. Si la créature est libérée du Sort, elle conservera suffisamment de respect et de crainte pour ne pas vous attaquer, à moins d'y être contrainte. Vos alliés pourraient ne pas avoir cette chance.",
         "source": {
@@ -3641,7 +3661,9 @@
                         "ops": [
                           {
                             "op": "condition",
-                            "id": "hemorragique"
+                            "id": {
+                              "id": "hemorragique"
+                            }
                           }
                         ]
                       }
@@ -3669,7 +3691,7 @@
     "variants": [
       {
         "when": {
-          "rule": "magic-vdm-incantation"
+          "rule": "magie-vdm-incantation"
         },
         "desc": "Vos ongles se transforment en serres acérées de cristal ambré. Vos Tests de Corps à corps (Bagarre) sont magiques et possèdent une valeur de Dégâts égale à vos DR plus votre Bonus de Force et de Force Mentale. Elles infligent +1 État *Hémorragique* chaque fois qu'elles entraînent une perte de Blessures.",
         "source": {
@@ -3702,7 +3724,9 @@
                             "ops": [
                               {
                                 "op": "condition",
-                                "id": "hemorragique"
+                                "id": {
+                                  "id": "hemorragique"
+                                }
                               }
                             ]
                           }
@@ -3787,7 +3811,9 @@
                   },
                   {
                     "op": "condition",
-                    "id": "aveugle"
+                    "id": {
+                      "id": "aveugle"
+                    }
                   }
                 ]
               }
@@ -3845,7 +3871,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "aveugle"
+                "id": {
+                  "id": "aveugle"
+                }
               }
             ]
           }
@@ -3923,7 +3951,7 @@
     "variants": [
       {
         "when": {
-          "rule": "magic-vdm-incantation"
+          "rule": "magie-vdm-incantation"
         },
         "desc": "Vous vous enfermez dans une cage crépitante d'étincelles d'électricité et d'*Azyr*. Pendant la Durée du Sort, vous gagnez +DR Points d'Armure à toutes les Localisations contre les Attaques de Corps à corps. Si vous êtes attaqué par une arme en métal, une dague, une épée ou une lance avec un fer en métal, votre attaquant subit un nombre de Dégâts égal à votre Bonus de Force Mentale (ces Dégâts sont réduits par son Bonus d'Endurance, mais pas par ses Points d'Armure).",
         "source": {
@@ -3970,11 +3998,15 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "en-flammes"
+                "id": {
+                  "id": "en-flammes"
+                }
               },
               {
                 "op": "condition",
-                "id": "a-terre"
+                "id": {
+                  "id": "a-terre"
+                }
               },
               {
                 "op": "narrative",
@@ -4358,7 +4390,9 @@
               },
               {
                 "op": "removeCondition",
-                "id": "hemorragique",
+                "id": {
+                  "id": "hemorragique"
+                },
                 "value": 99
               },
               {
@@ -4413,7 +4447,9 @@
                     "ops": [
                       {
                         "op": "condition",
-                        "id": "inconscient"
+                        "id": {
+                          "id": "inconscient"
+                        }
                       }
                     ]
                   }
@@ -4484,12 +4520,16 @@
             "ops": [
               {
                 "op": "removeCondition",
-                "id": "brise",
+                "id": {
+                  "id": "brise"
+                },
                 "value": 99
               },
               {
                 "op": "removeCondition",
-                "id": "extenue",
+                "id": {
+                  "id": "extenue"
+                },
                 "value": 99
               },
               {
@@ -4524,7 +4564,7 @@
     "variants": [
       {
         "when": {
-          "rule": "magic-vdm-incantation"
+          "rule": "magie-vdm-incantation"
         },
         "desc": "Votre voix résonne profondément, faisant écho à la passion fougueuse d'*Aqshy*. Les alliés affectés perdent tous leurs États *Brisé* et *Exténué*, et gagnent les Talents *Coude-à-coude, Sans peur* et *Cœur vaillant*. Si une cible possède déjà l'un d'entre eux, elle gagne temporairement un niveau supplémentaire.",
         "source": {
@@ -4641,12 +4681,16 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "en-flammes",
+                "id": {
+                  "id": "en-flammes"
+                },
                 "value": 2
               },
               {
                 "op": "condition",
-                "id": "a-terre"
+                "id": {
+                  "id": "a-terre"
+                }
               },
               {
                 "op": "narrative",
@@ -4682,7 +4726,9 @@
                   },
                   {
                     "op": "condition",
-                    "id": "en-flammes"
+                    "id": {
+                      "id": "en-flammes"
+                    }
                   }
                 ]
               }
@@ -4705,7 +4751,7 @@
     "variants": [
       {
         "when": {
-          "rule": "magic-vdm-incantation"
+          "rule": "magie-vdm-incantation"
         },
         "desc": "Vous projetez un grand souffle explosif d'*Aqshy*. Les flammes jaillissent en un brasier furieux, d'une chaleur aussi intense que celle d'une forge. Il s'agit d'un Projectile magique avec Dégâts +10 qui ignore les PA, inflige +2 États *En flammes* et l'État *À Terre*.\n\nTous ceux qui se trouvent dans la Zone d'Effet autour de cette cible subissent +5 Dégâts qui ignorent les PA, et doivent réussir un Test d'**Esquive Intermédiaire (+0)** ou recevoir également +1 État *En flammes*. Pendant la Durée restante du Sort, ce dernier n'est plus considéré comme un Projectile magique, mais le feu continue de brûler dans la Zone d'Effet. Quiconque se trouve dans la Zone d'Effet à la fin d'un Round subit 1d10 + 6 Dégâts, qui ignorent les PA, et gagne +1 État *En flammes*.",
         "source": {
@@ -4764,7 +4810,7 @@
     "variants": [
       {
         "when": {
-          "rule": "magic-vdm-incantation"
+          "rule": "magie-vdm-incantation"
         },
         "desc": "Vous vous enroulez dans une cape ardente d'*Aqshy*, qui concentre les flammes sous forme d'Égide. Vous êtes complètement immunisé contre les Dégâts de feu non magiques et ignorez tous les États *En flammes* que vous subissez. Vous recevez le Trait de créature *Protection 9+* (voir **WFJDR**, page 341) contre les attaques de feu magiques, y compris de maleflamme, celles qui se servent du Trait de créature *Souffle (Feu*) et les Sorts du Domaine du Feu.",
         "source": {
@@ -4839,7 +4885,9 @@
                         "ops": [
                           {
                             "op": "condition",
-                            "id": "en-flammes"
+                            "id": {
+                              "id": "en-flammes"
+                            }
                           }
                         ]
                       }
@@ -4867,7 +4915,7 @@
     "variants": [
       {
         "when": {
-          "rule": "magic-vdm-incantation"
+          "rule": "magie-vdm-incantation"
         },
         "desc": "Vous enveloppez une épée (Arme simple) de flammes magiques. L'arme fait des Dégâts +6 et possède l'Atout *Percutante* (voir **WFJDR**, page 298), et ceux frappés par la lame reçoivent +1 État *En flammes*. Si le porteur ne possède pas le Talent *Magie des Arcanes (Feu)*, et obtient une Maladresse lors d'une attaque avec l'*Épée ardente*, il reçoit +1 État *En flammes*.",
         "source": {
@@ -4934,7 +4982,9 @@
                   },
                   {
                     "op": "condition",
-                    "id": "en-flammes"
+                    "id": {
+                      "id": "en-flammes"
+                    }
                   }
                 ]
               }
@@ -4955,7 +5005,7 @@
     "variants": [
       {
         "when": {
-          "rule": "magic-vdm-incantation"
+          "rule": "magie-vdm-incantation"
         },
         "desc": "Vous créez un mur de flammes. Ce *Mur de feu* est large d'un nombre de mètres égal à votre Bonus de Force Mentale, haut d'1 mètre et épais de 1 mètre. Pour chaque +2 DR, vous pouvez allonger sa longueur d'un nombre de mètres égal à votre Bonus de Force Mentale. Quiconque traverse le mur de feu reçoit 1 État *En flammes* et est frappé par un *Projectile magique*, avec un nombre de Dégâts égal à votre Bonus de Force Mentale.",
         "source": {
@@ -5004,7 +5054,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "en-flammes",
+                "id": {
+                  "id": "en-flammes"
+                },
                 "value": 0,
                 "valuePerSL": {
                   "every": 1,
@@ -5641,7 +5693,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "sonne"
+                "id": {
+                  "id": "sonne"
+                }
               },
               {
                 "op": "narrative",
@@ -5700,7 +5754,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "aveugle",
+                "id": {
+                  "id": "aveugle"
+                },
                 "value": 0,
                 "valuePerSL": {
                   "every": 1,
@@ -5830,7 +5886,7 @@
     "variants": [
       {
         "when": {
-          "rule": "magic-vdm-incantation"
+          "rule": "magie-vdm-incantation"
         },
         "desc": "Votre cible brille d'une vive lueur purifiante évoquant celle d'un feu de camp. Elle récupère un nombre de Blessures égales à votre Bonus d'Intelligence + votre Bonus de Force Mentale. Si la cible réussit un Test de **Résistance Très Difficile (−30)**, elle perd également 1 Point de Corruption obtenu au cours de la dernière heure.",
         "effects": {
@@ -6007,8 +6063,12 @@
                 "perRound": [
                   {
                     "op": "condition",
-                    "id": "brise",
-                    "unlessCondition": "brise"
+                    "id": {
+                      "id": "brise"
+                    },
+                    "unlessCondition": {
+                      "id": "brise"
+                    }
                   }
                 ]
               }
@@ -6150,7 +6210,7 @@
     "variants": [
       {
         "when": {
-          "rule": "magic-vdm-incantation"
+          "rule": "magie-vdm-incantation"
         },
         "desc": "Vous focalisez *Chamon* dans un objet métallique non magique, tel qu'une arme ou une pièce d'armure qui couvre une seule partie du corps. L'objet se répand sur le sol sous forme de métal fondu et refroidit presque instantanément. S'il est tenu, l'objet est lâché. S'il est porté, le porteur subit une frappe équivalente à celle d'un *Projectile magique*, avec un nombre de Dégâts égal à votre Bonus de Force Mentale qui ignore le Bonus d'Endurance. Bien que l'objet soit détruit, le métal conserve sa valeur de base, et peut être utilisé ensuite par un forgeron comme matière première.",
         "source": {
@@ -6387,7 +6447,7 @@
     "variants": [
       {
         "when": {
-          "rule": "magic-vdm-incantation"
+          "rule": "magie-vdm-incantation"
         },
         "desc": "Vous touchez un objet non magique composé de métal qui devient instantanément chaud au toucher pendant que vous y faites entrer *Chamon*. Vous pouvez plier et tordre l'objet avec un Test de **Force Accessible (+20)**. Si vous voulez effectuer une modification plus complexe, acceptée par le MJ, vous pouvez à la place effectuer un Test de **Métier** ou d'**Art Accessible (+20)** approprié, selon ce que vous essayez de faire.",
         "source": {
@@ -6498,17 +6558,23 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "aveugle",
+                "id": {
+                  "id": "aveugle"
+                },
                 "carried": true
               },
               {
                 "op": "condition",
-                "id": "assourdi",
+                "id": {
+                  "id": "assourdi"
+                },
                 "carried": true
               },
               {
                 "op": "condition",
-                "id": "sonne",
+                "id": {
+                  "id": "sonne"
+                },
                 "carried": true
               },
               {
@@ -6597,7 +6663,7 @@
     "variants": [
       {
         "when": {
-          "rule": "magic-vdm-incantation"
+          "rule": "magie-vdm-incantation"
         },
         "desc": "Alors que vous tendez les mains, elles semblent desséchées, voire squelettiques, et drainent *Shyish* du corps de votre cible. Ce Sort est considéré comme un *Projectile magique*  avec Dégâts +6 qui ignore le Bonus d'Endurance et les PA. Pour chaque tranche de 2 Points de Blessure infligés, vous pouvez récupérer 1 Point de Blessure jusqu'à atteindre votre maximum.",
         "cn": 4,
@@ -6734,7 +6800,7 @@
     "variants": [
       {
         "when": {
-          "rule": "magic-vdm-incantation"
+          "rule": "magie-vdm-incantation"
         },
         "desc": "Vous invoquez une faux magique, qui peut être portée en combat en utilisant la Compétence Corps à corps (Arme d'hast). Elle se manie comme une hallebarde avec une valeur de Dégâts égale à votre Bonus de Force Mentale +3. Les ennemis possédant le Trait de créature *Mort-vivant*  ne reçoivent pas d'Avantage quand ils sont Engagés en combat avec vous.",
         "source": {
@@ -6955,7 +7021,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "extenue"
+                "id": {
+                  "id": "extenue"
+                }
               }
             ]
           }
@@ -6968,7 +7036,9 @@
             "ops": [
               {
                 "op": "removeCondition",
-                "id": "extenue",
+                "id": {
+                  "id": "extenue"
+                },
                 "value": 99
               }
             ]
@@ -7046,7 +7116,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "brise"
+                "id": {
+                  "id": "brise"
+                }
               },
               {
                 "op": "narrative",
@@ -7152,7 +7224,7 @@
     "variants": [
       {
         "when": {
-          "rule": "magic-vdm-incantation"
+          "rule": "magie-vdm-incantation"
         },
         "desc": "Vous invoquez un destrier fantomatique. La chair surnaturelle de la créature est noire comme la nuit, et semble parfois à la fois solide et immatérielle. Utilisez les règles pour un cheval (**WFJDR**, page 314). Quand le Destrier d'Ombre est hors de la lumière du soleil, il gagne également les Traits de créature suivants : *Éthéré, Foulée, Furtif, Infravision, Insensible à la douleur, Magique, Peur (1)*  et *Protection (9+)*. Il n'a pas le Trait *Nerveux*.\n\nMême s'ils sont immatériels, les Destriers d'Ombre peuvent être chevauchés. Les cavaliers possédant le Talent *Magie des Arcanes (Ombres)* le font avec un bonus de +20 aux Tests de Chevaucher. Ceux qui ne possèdent pas ce Talent subissent une pénalité de −20 à ces mêmes Tests.\n\nLes Destriers d'Ombre sont infatigables, ils n'ont donc pas besoin de repos. Aux premiers rayons de l'aube pointant à l'horizon, les Destriers se fondent dans la brume. S'ils sont toujours chevauchés quand le Sort prend fin, les cavaliers subissent des Dégâts de Chute (voir **WFJDR**, page 166).",
         "source": {
@@ -7220,7 +7292,7 @@
     "variants": [
       {
         "when": {
-          "rule": "magic-vdm-incantation"
+          "rule": "magie-vdm-incantation"
         },
         "desc": "Vous tissez une toile de brins sinueux d'*Ulgu*, masquant la Zone d'Effet d'une image illusoire de votre choix. Vous trompez automatiquement quiconque ne possède pas le Talent *Seconde vue*. Ceux qui possèdent ce Talent doivent réussir un Test d'**Intuition Complexe (−10)** pour remarquer l'illusion. Cela ne leur permet pas de voir à travers le Sort ou de mettre fin à ses effets : ils comprennent simplement qu'il s'agit d'une illusion. Celleci est habituellement immobile. Pour votre Action, vous pouvez effectuer un Test de **Focalisation Difficile (−20)**  pour la déplacer au sein de la Zone d'Effet pour ce Round.",
         "source": {
@@ -7298,7 +7370,7 @@
     "variants": [
       {
         "when": {
-          "rule": "magic-vdm-incantation"
+          "rule": "magie-vdm-incantation"
         },
         "desc": "Vous tissez un masque et une cape d'*Ulgu* autour de votre silhouette, adoptant l'apparence d'une autre créature humanoïde avec laquelle vous êtes familier (comme déterminé par le MJ). Votre apparence trompe quiconque ne possède pas le Talent *Seconde vue*, bien que certains puissent la remarquer si votre comportement n'est pas adapté. Ceux possédant ce Talent doivent réussir un Test d'**Intuition Complexe (−10)** pour remarquer le subterfuge. Cela ne leur permet pas de voir à travers le Sort. Pour ce faire, ils doivent le dissiper.",
         "source": {
@@ -7402,17 +7474,23 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "aveugle",
+                "id": {
+                  "id": "aveugle"
+                },
                 "carried": true
               },
               {
                 "op": "condition",
-                "id": "assourdi",
+                "id": {
+                  "id": "assourdi"
+                },
                 "carried": true
               },
               {
                 "op": "condition",
-                "id": "extenue",
+                "id": {
+                  "id": "extenue"
+                },
                 "carried": true
               },
               {
@@ -7476,7 +7554,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "extenue"
+                "id": {
+                  "id": "extenue"
+                }
               },
               {
                 "op": "suffocate"
@@ -7935,11 +8015,15 @@
                 "onCross": [
                   {
                     "op": "condition",
-                    "id": "hemorragique"
+                    "id": {
+                      "id": "hemorragique"
+                    }
                   },
                   {
                     "op": "condition",
-                    "id": "empetre",
+                    "id": {
+                      "id": "empetre"
+                    },
                     "escapeStrength": {
                       "charOf": "force-mentale"
                     }
@@ -8171,7 +8255,7 @@
     "variants": [
       {
         "when": {
-          "rule": "magic-vdm-incantation"
+          "rule": "magie-vdm-incantation"
         },
         "desc": "Pour lancer ce Sort, vous devez être en contact direct avec la terre, soit en la touchant, soit en vous tenant debout pieds nus. Pendant la Durée du Sort, toutes les créatures vivantes également en contact direct avec la terre à l'intérieur de la Zone d'Effet guérissent d'un nombre de Blessures égal à votre Bonus de Force Mentale au début de chaque Round.",
         "source": {
@@ -8756,7 +8840,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "extenue"
+                "id": {
+                  "id": "extenue"
+                }
               },
               {
                 "op": "narrative",
@@ -9125,7 +9211,9 @@
               "ops": [
                 {
                   "op": "condition",
-                  "id": "brise"
+                  "id": {
+                    "id": "brise"
+                  }
                 }
               ]
             }
@@ -10236,7 +10324,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "en-flammes"
+                "id": {
+                  "id": "en-flammes"
+                }
               },
               {
                 "op": "narrative",
@@ -10287,7 +10377,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "en-flammes"
+                "id": {
+                  "id": "en-flammes"
+                }
               },
               {
                 "op": "narrative",
@@ -10613,7 +10705,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "sonne",
+                "id": {
+                  "id": "sonne"
+                },
                 "value": 1,
                 "valuePerSL": {
                   "every": 1,
@@ -10720,7 +10814,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "a-terre"
+                "id": {
+                  "id": "a-terre"
+                }
               },
               {
                 "op": "narrative",
@@ -10773,7 +10869,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "a-terre"
+                "id": {
+                  "id": "a-terre"
+                }
               },
               {
                 "op": "narrative",
@@ -10848,7 +10946,9 @@
                   "ops": [
                     {
                       "op": "condition",
-                      "id": "a-terre"
+                      "id": {
+                        "id": "a-terre"
+                      }
                     }
                   ]
                 }
@@ -11043,15 +11143,21 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "aveugle"
+                "id": {
+                  "id": "aveugle"
+                }
               },
               {
                 "op": "condition",
-                "id": "assourdi"
+                "id": {
+                  "id": "assourdi"
+                }
               },
               {
                 "op": "condition",
-                "id": "extenue"
+                "id": {
+                  "id": "extenue"
+                }
               },
               {
                 "op": "narrative",
@@ -11152,7 +11258,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "extenue"
+                "id": {
+                  "id": "extenue"
+                }
               },
               {
                 "op": "suffocate"
@@ -11744,7 +11852,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "aveugle",
+                "id": {
+                  "id": "aveugle"
+                },
                 "value": 1,
                 "valuePerSL": {
                   "every": 2,
@@ -12802,7 +12912,9 @@
             "ops": [
               {
                 "op": "removeCondition",
-                "id": "empoisonne",
+                "id": {
+                  "id": "empoisonne"
+                },
                 "value": 99
               },
               {
@@ -13130,7 +13242,9 @@
               },
               {
                 "op": "condition",
-                "id": "en-flammes"
+                "id": {
+                  "id": "en-flammes"
+                }
               },
               {
                 "op": "narrative",
@@ -13191,7 +13305,9 @@
               },
               {
                 "op": "condition",
-                "id": "en-flammes",
+                "id": {
+                  "id": "en-flammes"
+                },
                 "onlyGroups": [
                   "mort-vivant",
                   "demon"
@@ -13244,7 +13360,9 @@
             "ops": [
               {
                 "op": "removeCondition",
-                "id": "brise",
+                "id": {
+                  "id": "brise"
+                },
                 "value": 99
               },
               {
@@ -13317,11 +13435,15 @@
                         "ops": [
                           {
                             "op": "condition",
-                            "id": "en-flammes"
+                            "id": {
+                              "id": "en-flammes"
+                            }
                           },
                           {
                             "op": "condition",
-                            "id": "a-terre"
+                            "id": {
+                              "id": "a-terre"
+                            }
                           }
                         ]
                       }
@@ -13599,7 +13721,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "empetre",
+                "id": {
+                  "id": "empetre"
+                },
                 "value": 1,
                 "valuePerSL": {
                   "every": 2,
@@ -14087,7 +14211,9 @@
                           "ops": [
                             {
                               "op": "condition",
-                              "id": "sonne"
+                              "id": {
+                                "id": "sonne"
+                              }
                             }
                           ]
                         }
@@ -14192,7 +14318,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "empetre"
+                "id": {
+                  "id": "empetre"
+                }
               },
               {
                 "op": "narrative",
@@ -14282,7 +14410,9 @@
                           "ops": [
                             {
                               "op": "condition",
-                              "id": "inconscient"
+                              "id": {
+                                "id": "inconscient"
+                              }
                             }
                           ]
                         }
@@ -14560,7 +14690,9 @@
                 },
                 {
                   "op": "condition",
-                  "id": "empoisonne"
+                  "id": {
+                    "id": "empoisonne"
+                  }
                 }
               ]
             }
@@ -14672,7 +14804,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "empetre",
+                "id": {
+                  "id": "empetre"
+                },
                 "value": 1,
                 "valuePerSL": {
                   "every": 2,
@@ -15902,7 +16036,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "empetre",
+                "id": {
+                  "id": "empetre"
+                },
                 "value": 2,
                 "escapeStrength": {
                   "charOf": "force-mentale"
@@ -15922,7 +16058,9 @@
               "ops": [
                 {
                   "op": "condition",
-                  "id": "empetre",
+                  "id": {
+                    "id": "empetre"
+                  },
                   "value": 0,
                   "valuePerSL": {
                     "every": 1,
@@ -16498,7 +16636,9 @@
               "ops": [
                 {
                   "op": "condition",
-                  "id": "aveugle",
+                  "id": {
+                    "id": "aveugle"
+                  },
                   "value": 1
                 }
               ]
@@ -16513,7 +16653,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "sonne",
+                "id": {
+                  "id": "sonne"
+                },
                 "value": 1,
                 "onlyGroups": [
                   "demon"
@@ -18175,7 +18317,9 @@
               },
               {
                 "op": "condition",
-                "id": "hemorragique"
+                "id": {
+                  "id": "hemorragique"
+                }
               }
             ]
           }
@@ -18195,7 +18339,9 @@
                 "onCross": [
                   {
                     "op": "condition",
-                    "id": "hemorragique"
+                    "id": {
+                      "id": "hemorragique"
+                    }
                   }
                 ],
                 "crossTest": {
@@ -18446,11 +18592,15 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "a-terre"
+                "id": {
+                  "id": "a-terre"
+                }
               },
               {
                 "op": "condition",
-                "id": "sonne",
+                "id": {
+                  "id": "sonne"
+                },
                 "value": 0,
                 "valuePerSL": {
                   "every": 2,
@@ -18636,7 +18786,9 @@
             "ops": [
               {
                 "op": "removeCondition",
-                "id": "en-flammes",
+                "id": {
+                  "id": "en-flammes"
+                },
                 "all": true
               },
               {
@@ -19531,7 +19683,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "a-terre"
+                "id": {
+                  "id": "a-terre"
+                }
               }
             ]
           }
@@ -19600,7 +19754,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "sonne"
+                "id": {
+                  "id": "sonne"
+                }
               }
             ]
           }
@@ -20208,7 +20364,9 @@
                     "ops": [
                       {
                         "op": "condition",
-                        "id": "extenue"
+                        "id": {
+                          "id": "extenue"
+                        }
                       }
                     ]
                   },
@@ -20294,7 +20452,7 @@
                       "max": 2,
                       "ops": [
                         {
-                          "op": "actGate",
+                          "op": "testDAgir",
                           "characteristic": "force-mentale"
                         }
                       ]
@@ -20343,7 +20501,9 @@
                       "ops": [
                         {
                           "op": "condition",
-                          "id": "a-terre"
+                          "id": {
+                            "id": "a-terre"
+                          }
                         },
                         {
                           "op": "narrative",
@@ -21108,7 +21268,9 @@
                   "ops": [
                     {
                       "op": "condition",
-                      "id": "inconscient"
+                      "id": {
+                        "id": "inconscient"
+                      }
                     }
                   ]
                 }
@@ -21136,7 +21298,9 @@
                         "ops": [
                           {
                             "op": "condition",
-                            "id": "extenue"
+                            "id": {
+                              "id": "extenue"
+                            }
                           }
                         ]
                       }
@@ -21497,7 +21661,9 @@
                   "ops": [
                     {
                       "op": "condition",
-                      "id": "sonne"
+                      "id": {
+                        "id": "sonne"
+                      }
                     },
                     {
                       "op": "wounds",
@@ -21877,7 +22043,9 @@
                   "ops": [
                     {
                       "op": "condition",
-                      "id": "sonne"
+                      "id": {
+                        "id": "sonne"
+                      }
                     }
                   ]
                 }
@@ -22367,7 +22535,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "en-flammes"
+                "id": {
+                  "id": "en-flammes"
+                }
               },
               {
                 "op": "wounds",
@@ -22479,7 +22649,9 @@
                   "ops": [
                     {
                       "op": "condition",
-                      "id": "a-terre"
+                      "id": {
+                        "id": "a-terre"
+                      }
                     }
                   ]
                 }
@@ -22890,7 +23062,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "en-flammes",
+                "id": {
+                  "id": "en-flammes"
+                },
                 "value": 2
               },
               {
@@ -23019,7 +23193,9 @@
                   "ops": [
                     {
                       "op": "condition",
-                      "id": "sonne",
+                      "id": {
+                        "id": "sonne"
+                      },
                       "value": 3
                     }
                   ]
@@ -23211,7 +23387,9 @@
                 "perRound": [
                   {
                     "op": "condition",
-                    "id": "extenue"
+                    "id": {
+                      "id": "extenue"
+                    }
                   }
                 ]
               }
@@ -23336,7 +23514,9 @@
                   "ops": [
                     {
                       "op": "condition",
-                      "id": "aveugle",
+                      "id": {
+                        "id": "aveugle"
+                      },
                       "value": 2
                     },
                     {
@@ -23411,12 +23591,16 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "en-flammes",
+                "id": {
+                  "id": "en-flammes"
+                },
                 "value": 3
               },
               {
                 "op": "condition",
-                "id": "a-terre"
+                "id": {
+                  "id": "a-terre"
+                }
               },
               {
                 "op": "narrative",
@@ -23479,7 +23663,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "en-flammes",
+                "id": {
+                  "id": "en-flammes"
+                },
                 "value": 2
               }
             ]
@@ -23559,7 +23745,9 @@
                   "ops": [
                     {
                       "op": "condition",
-                      "id": "en-flammes"
+                      "id": {
+                        "id": "en-flammes"
+                      }
                     }
                   ]
                 }
@@ -23893,11 +24081,15 @@
               "ops": [
                 {
                   "op": "condition",
-                  "id": "hemorragique"
+                  "id": {
+                    "id": "hemorragique"
+                  }
                 },
                 {
                   "op": "condition",
-                  "id": "empetre",
+                  "id": {
+                    "id": "empetre"
+                  },
                   "escapeStrength": 30
                 }
               ]
@@ -24105,7 +24297,9 @@
             "ops": [
               {
                 "op": "removeCondition",
-                "id": "brise",
+                "id": {
+                  "id": "brise"
+                },
                 "value": 1,
                 "valuePerSL": {
                   "every": 1,
@@ -24593,7 +24787,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "empetre",
+                "id": {
+                  "id": "empetre"
+                },
                 "escapeStrength": 50
               },
               {
@@ -25171,7 +25367,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "empetre",
+                "id": {
+                  "id": "empetre"
+                },
                 "valuePerSL": {
                   "every": 2,
                   "amount": 1
@@ -25203,7 +25401,9 @@
               "ops": [
                 {
                   "op": "condition",
-                  "id": "extenue"
+                  "id": {
+                    "id": "extenue"
+                  }
                 }
               ]
             }
@@ -25272,17 +25472,23 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "aveugle",
+                "id": {
+                  "id": "aveugle"
+                },
                 "carried": true
               },
               {
                 "op": "condition",
-                "id": "assourdi",
+                "id": {
+                  "id": "assourdi"
+                },
                 "carried": true
               },
               {
                 "op": "condition",
-                "id": "extenue",
+                "id": {
+                  "id": "extenue"
+                },
                 "carried": true
               }
             ]
@@ -25406,7 +25612,9 @@
               "ops": [
                 {
                   "op": "condition",
-                  "id": "extenue"
+                  "id": {
+                    "id": "extenue"
+                  }
                 }
               ]
             }
@@ -25511,11 +25719,15 @@
               "ops": [
                 {
                   "op": "condition",
-                  "id": "aveugle"
+                  "id": {
+                    "id": "aveugle"
+                  }
                 },
                 {
                   "op": "condition",
-                  "id": "extenue"
+                  "id": {
+                    "id": "extenue"
+                  }
                 }
               ]
             }
@@ -26686,7 +26898,9 @@
               "ops": [
                 {
                   "op": "condition",
-                  "id": "sonne"
+                  "id": {
+                    "id": "sonne"
+                  }
                 }
               ]
             }
@@ -26762,7 +26976,9 @@
               "ops": [
                 {
                   "op": "condition",
-                  "id": "sonne"
+                  "id": {
+                    "id": "sonne"
+                  }
                 }
               ]
             }
@@ -27034,7 +27250,9 @@
                         "ops": [
                           {
                             "op": "condition",
-                            "id": "empoisonne"
+                            "id": {
+                              "id": "empoisonne"
+                            }
                           }
                         ]
                       }
@@ -27404,7 +27622,9 @@
             "ops": [
               {
                 "op": "removeCondition",
-                "id": "brise",
+                "id": {
+                  "id": "brise"
+                },
                 "all": true
               },
               {
@@ -27531,7 +27751,9 @@
                 "ops": [
                   {
                     "op": "condition",
-                    "id": "sonne"
+                    "id": {
+                      "id": "sonne"
+                    }
                   }
                 ]
               }
@@ -27583,7 +27805,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "extenue"
+                "id": {
+                  "id": "extenue"
+                }
               },
               {
                 "op": "narrative",
@@ -27635,11 +27859,15 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "a-terre"
+                "id": {
+                  "id": "a-terre"
+                }
               },
               {
                 "op": "condition",
-                "id": "sonne",
+                "id": {
+                  "id": "sonne"
+                },
                 "value": 1,
                 "valuePerSL": {
                   "every": 1,
@@ -27881,7 +28109,9 @@
             "ops": [
               {
                 "op": "removeCondition",
-                "id": "brise",
+                "id": {
+                  "id": "brise"
+                },
                 "all": true
               },
               {
@@ -27950,7 +28180,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "empetre",
+                "id": {
+                  "id": "empetre"
+                },
                 "value": 0,
                 "valuePerSL": {
                   "every": 1,

@@ -68,7 +68,7 @@ describe('étape de révélation — le sujet', () => {
   it('le choix rend son prompt Markdown dans le corps et ses aperçus en texte', () => {
     openReveal(() => ({ kind: 'entreeEnScene', title: 'Entrée', lines: [] }));
     useGame.setState({ pendingCascade: cascadeDeTest([{ id: 'choix', kind: cleDeFixture('choix'), label: fixtureText('**Entrer** par [la porte](https://example.com) ?'),
-      options: [{ key: 'yes', label: fixtureText('**Oui**'), detail: '*Entrer*' }, { key: 'no', label: fixtureText('Non') }] }], { title: 'Choix', purpose: 'affichage' }) });
+      options: [{ key: 'oui', label: fixtureText('**Oui**'), detail: '*Entrer*' }, { key: 'non', label: fixtureText('Non') }] }], { title: 'Choix', purpose: 'affichage' }) });
     render();
     expect(host.querySelector('strong')?.textContent).toBe('Entrer');
     expect(host.querySelector('a')?.getAttribute('href')).toBe('https://example.com');

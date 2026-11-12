@@ -3,7 +3,7 @@
  * L'op `condition` s'édite ENTIÈREMENT au formulaire (règle 2) : sa durée, ses verrous (LDB 18) et
  * son drapeau « porté » (#1695, LDB 48 l.495) y ont chacun leur champ. Mesuré au DOM RENDU : un
  * Critique VERROUILLÉ se pose et se relit, et « porté » est EXCLUSIF des durées comme des verrous —
- * la donnée ne peut donc pas naître dans la forme que le parse refuse (`refusLoose`, mecanique.ts).
+ * la donnée ne peut donc pas naître dans la forme que le parse refuse (payload `condition`, mecanique.ts).
  */
 import { describe, it, expect, afterEach, beforeAll } from 'vitest';
 import { act } from 'react';
@@ -11,6 +11,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { GameOpEditor } from './GameOpEditor';
 import type { GameOp } from '../../engine/ops';
 import { gameOpSchema, SUJETS_DE_VERROU } from '../../data/schemas/grammaire/mecanique';
+import { newOp } from '../../noyau/valeursNeuves';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -48,8 +49,16 @@ function editeur(op: GameOp): { dernier: () => GameOp } {
 }
 
 describe('GameOpEditor › op `condition` — durée, verrous et « porté » s’éditent au formulaire', () => {
+  it('une op `condition` NEUVE montre « — (choisir un État) — », et le choix d’un État s’écrit en référence `{ id }`', () => {
+    const { dernier } = editeur(newOp('condition'));
+    const select = [...container.querySelectorAll('select')].find((s) => [...s.options].some((o) => o.value === 'sonne'))!;
+    expect([select.value, select.options[select.selectedIndex]?.textContent], 'l’État d’une op neuve n’est pas à choisir').toEqual(['', '— (choisir un État) —']);
+    act(() => { select.value = 'sonne'; select.dispatchEvent(new Event('change', { bubbles: true })); });
+    expect(dernier()).toMatchObject({ op: 'condition', id: { id: 'sonne' } });
+  });
+
   it('un Critique VERROUILLÉ (LDB 18) se pose et se RELIT sans JSON', () => {
-    const op: GameOp = { op: 'condition', id: 'aveugle', unlockBy: 'medicalAid', lockedUntil: { kind: 'compare', subject: { who: 'target', condition: 'hemorragique' }, op: '==', value: 0 } };
+    const op: GameOp = { op: 'condition', id: { id: 'aveugle' }, unlockBy: 'medicalAid', lockedUntil: { kind: 'compare', subject: { who: 'target', condition: 'hemorragique' }, op: '==', value: 0 } };
     editeur(op);
     const acte = container.querySelector<HTMLSelectElement>('select')!;
     expect([...container.querySelectorAll('select')].some((s) => s.value === 'medicalAid'), 'l’acte de soin n’est pas relu').toBe(true);
@@ -62,14 +71,14 @@ describe('GameOpEditor › op `condition` — durée, verrous et « porté » s�
   });
 
   it('cocher « porté » EFFACE la durée et les verrous — la forme rendue passe le parse', () => {
-    const { dernier } = editeur({ op: 'condition', id: 'sonne', durationRounds: 3, unlockBy: 'medicalAid' });
+    const { dernier } = editeur({ op: 'condition', id: { id: 'sonne' }, durationRounds: 3, unlockBy: 'medicalAid' });
     cocher('porté par la source');
-    expect(dernier()).toEqual({ op: 'condition', id: 'sonne', carried: true });
+    expect(dernier()).toEqual({ op: 'condition', id: { id: 'sonne' }, carried: true });
     expect(gameOpSchema.safeParse(dernier()).success, 'l’éditeur a produit une forme que le parse refuse').toBe(true);
   });
 
   it('sur une op « portée », aucun champ de durée ni de verrou n’est proposé (affordance morte évitée)', () => {
-    editeur({ op: 'condition', id: 'sonne', carried: true });
+    editeur({ op: 'condition', id: { id: 'sonne' }, carried: true });
     expect(caseDe('porté par la source').checked).toBe(true);
     for (const mort of ['dure N Rounds', 'dure N minutes', 'dure N heures', 'verrouillé tant que']) {
       expect([...container.querySelectorAll('label')].some((l) => l.textContent?.includes(mort)), `« ${mort} » est encore proposé sur une op portée`).toBe(false);

@@ -386,7 +386,7 @@ function openPortSellBargainStep(get: Get, set: Set, lotId: IdDeCargaison, sellE
 
 const PORT_SELL_BARGAIN_KIND = 'port-vente-marchandage';
 
-/** 2. Trouver un acheteur (dé de MONDE par `openWorldTest`, MDG 15 l.362) : cible = `chance.target`.
+/** 2. Trouver un acheteur (dé de MONDE par `openWorldTest`, MDG 15 l.362) : cible = `chance.cible`.
  *  Échec sur la 1ʳᵉ tentative SANS Ragot préalable → 2ᵉ tentative sur la moitié du lot (`attempt:2`). */
 function openPortSellBuyerStep(get: Get, set: Set, lotId: IdDeCargaison, sellEnc: number, allowHalfRetry: boolean, attempt: 1 | 2): void {
   const cale = lotALaCale(get, lotId);
@@ -396,7 +396,7 @@ function openPortSellBuyerStep(get: Get, set: Set, lotId: IdDeCargaison, sellEnc
   const chance = sellChance(st.port, lot.cargoId, milles);
   openWorldTest(get, set, {
     actionLabel: t('port.buyerSearch'),
-    cible: chance.target,
+    cible: chance.cible,
     verdict: { reussite: t('seuil.acheteurTrouve'), echec: t('seuil.aucunAcheteur') },
   }, PORT_SELL_BUYER_KIND, { lotId, sellEnc, retryHalf: allowHalfRetry, attempt });
 }

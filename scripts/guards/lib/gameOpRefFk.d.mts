@@ -7,8 +7,7 @@ export interface GameOpField {
 
 export type GameOpFieldTarget =
   | { registry: string }
-  | { nonRef: string }
-  | { coveredBy: string };
+  | { nonRef: string };
 
 export interface GameOpRefOffender {
   file: string;

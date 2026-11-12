@@ -292,7 +292,7 @@ function collectLiteralHolders(sf) {
 
 /**
  * Scan STRUCTUREL d'un fichier source. Quatre formes :
- *  - `id-equality`   : `def.id === 'fortune-mid-session'`, `id !== 'combat-cadence'` — sur une
+ *  - `id-equality`   : `def.id === 'chance-en-cours-de-session'`, `id !== 'combat-cadence'` — sur une
  *                      liaison GÉNÉRIQUE (entrée reçue, itérée, ou prop de composant) ;
  *  - `id-switch`     : `switch (entry.id) { case 'a': … }`, même condition de liaison ;
  *  - `id-membership` : `['a','b'].includes(r.id)`, `SET_EN_DUR.has(x.id)` ;

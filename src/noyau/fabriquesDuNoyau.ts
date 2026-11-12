@@ -55,7 +55,11 @@ import { choixDesMarches } from './cargaison';
 import { creerActionsDeLAuberge } from './innFlow';
 import { choixDeLaSemaineEnMer, validationsDeLaSemaineEnMer } from './seaActivities';
 import type { BattleState, NetState, ShootingStanceKey } from './etat';
-import type { CounterDeclaration, IssueDEmpoignade, PendingAppraise, ReactionDeBouclier, RevealEntry } from './pendings';
+import type { CounterDeclaration, IssueDEmpoignade, IssueOpposee, PendingAppraise, ReactionDeBouclier, RevealEntry } from './pendings';
+import type { ZoneEnPose } from './targetingHolder';
+import type { VerdictApprentissage } from '../engine/grimoire';
+import type { OrientationOutcome } from '../engine/seaNavigation';
+import type { SellRelation } from '../engine/seaVoyage';
 import type { VoyageCadence } from './voyageCadence';
 import type { CharMode } from './creation/brouillon';
 import type { HealMode } from '../engine/healing';
@@ -131,17 +135,17 @@ type MotDuLexique = ActionDuLexique | ActionDeLaMachinerie | ActionDeFenetre
   | 'butin' | 'cacher' | 'camera' | 'camp' | 'campagne' | 'capacite' | 'carte' | 'cascade' | 'casse' | 'cauchemar'
   | 'caudale' | 'chanson' | 'chapitre' | 'charge' | 'chavirage' | 'chercher' | 'chirurgie' | 'choisie' | 'choix'
   | 'chute' | 'cible' | 'cibles' | 'coller' | 'combat' | 'commande' | 'commandes' | 'commune' | 'conjuree' | 'connecte'
-  | 'connexion' | 'conseil' | 'contact' | 'contagion' | 'contamine' | 'contre' | 'controle' | 'convalescence'
-  | 'copier' | 'corde' | 'cornes' | 'corps' | 'corruption' | 'couchage' | 'coucher' | 'coup' | 'coups' | 'course'
+  | 'connexion' | 'connu' | 'conseil' | 'contact' | 'contagion' | 'contamine' | 'contre' | 'controle' | 'convalescence'
+  | 'copier' | 'corde' | 'cornes' | 'corps' | 'correct' | 'corruption' | 'couchage' | 'coucher' | 'coup' | 'coups' | 'course'
   | 'courte' | 'critique' | 'critiques' | 'curseur' | 'd' | 'dans' | 'de' | 'debout' | 'debris' | 'debut' | 'decaler'
-  | 'declaration' | 'declenche' | 'decor' | 'defaite' | 'defense' | 'defensive' | 'degagement' | 'degats' | 'dehors'
-  | 'delestage' | 'depart' | 'depecer' | 'depense' | 'deplacement' | 'depot' | 'desengagement' | 'desertion'
+  | 'declaration' | 'declenche' | 'decor' | 'defaite' | 'defense' | 'defensive' | 'degagement' | 'degats' | 'dehors' | 'deja'
+  | 'delestage' | 'depart' | 'depecer' | 'depense' | 'deplacement' | 'depot' | 'derive' | 'desengagement' | 'desertion'
   | 'designation' | 'dessoulage' | 'destin' | 'detail' | 'detection' | 'determination' | 'deux' | 'deviation'
   | 'dexterite' | 'dialogue' | 'direction' | 'discret' | 'dissipation' | 'distraire' | 'document' | 'droite' | 'du'
-  | 'dupliquer' | 'duree' | 'echap' | 'echec' | 'echouage' | 'ecran' | 'editeur' | 'effacement' | 'effet' | 'embuscade'
+  | 'dupliquer' | 'duree' | 'echap' | 'echec' | 'echouage' | 'ecran' | 'editeur' | 'effacement' | 'effet' | 'egalite' | 'eligible' | 'embuscade'
   | 'empetrer' | 'empoignade' | 'empoigner' | 'en' | 'encaisse' | 'encombrement' | 'ensanglantee' | 'entrainement'
   | 'entree' | 'entretien' | 'epuisement' | 'equipage' | 'equipe' | 'espace' | 'esquive' | 'etal' | 'etape' | 'etat'
-  | 'etendu' | 'etreinte' | 'evaluation' | 'evenement' | 'eviter' | 'exploration' | 'expose' | 'exposition'
+  | 'etendu' | 'etreinte' | 'evaluation' | 'evenement' | 'eviter' | 'exact' | 'exploration' | 'expose' | 'exposition'
   | 'extermination' | 'f' | 'faim' | 'fatigue' | 'file' | 'fin' | 'fini' | 'fleuve' | 'flux' | 'focalisation' | 'force'
   | 'forcee' | 'forcer' | 'forme' | 'fortune' | 'fracture' | 'frappe' | 'frenesie' | 'fuir' | 'fuite' | 'g' | 'gain'
   | 'galop' | 'gangrene' | 'gauche' | 'generique' | 'greement' | 'guerison' | 'gueule' | 'haut' | 'hemorragie'
@@ -149,16 +153,16 @@ type MotDuLexique = ActionDuLexique | ActionDeLaMachinerie | ActionDeFenetre
   | 'incantation' | 'inconscient' | 'ineluctable' | 'infirmerie' | 'information' | 'inspecter' | 'intention'
   | 'interaction' | 'interlude' | 'investir' | 'invite' | 'iso' | 'issue' | 'jambe' | 'jet' | 'jeter' | 'jets' | 'jeux'
   | 'jour' | 'journal' | 'la' | 'lame' | 'langue' | 'le' | 'les' | 'liberation' | 'liberer' | 'lieu' | 'ligne'
-  | 'local' | 'localisation' | 'longue' | 'lot' | 'm' | 'main' | 'maison' | 'maj' | 'mal' | 'maladie' | 'maladresse'
+  | 'local' | 'localisation' | 'longue' | 'lot' | 'm' | 'main' | 'maison' | 'maj' | 'majeure' | 'mal' | 'maladie' | 'maladresse'
   | 'manoeuvre' | 'marchand' | 'marchandage' | 'marche' | 'marin' | 'masse' | 'mecenat' | 'melee' | 'menu' | 'mer'
-  | 'meteo' | 'mise' | 'mode' | 'monde' | 'monture' | 'morsure' | 'mort' | 'mortelle' | 'motivation' | 'mouvement'
-  | 'munition' | 'mutation' | 'natation' | 'nature' | 'naufrage' | 'navigation' | 'navire' | 'nocturne' | 'normal'
+  | 'meteo' | 'mineure' | 'mise' | 'mode' | 'monde' | 'monture' | 'morsure' | 'mort' | 'mortelle' | 'motivation' | 'mouvement'
+  | 'munition' | 'mutation' | 'natation' | 'nature' | 'naufrage' | 'navigation' | 'navire' | 'nocturne' | 'non' | 'normal'
   | 'objet' | 'obstacle' | 'offre' | 'operations' | 'opposition' | 'option' | 'orientation' | 'oter' | 'ouverture'
   | 'ouvrage' | 'paie' | 'panier' | 'panoplie' | 'panoramique' | 'par' | 'parade' | 'pas' | 'passer' | 'patient'
   | 'pause' | 'pave' | 'payer' | 'perception' | 'perdu' | 'peril' | 'persistance' | 'personne' | 'personnelle' | 'peur'
   | 'phare' | 'physique' | 'piece' | 'pied' | 'piege' | 'pietinement' | 'pirates' | 'pitance' | 'pivot' | 'place'
   | 'plaie' | 'planque' | 'plein' | 'pnj' | 'port' | 'porte' | 'portee' | 'porteur' | 'pose' | 'poste' | 'posture'
-  | 'pot' | 'poursuite' | 'poussee' | 'pratiquer' | 'precedente' | 'present' | 'priere' | 'privee' | 'prix' | 'profil'
+  | 'pot' | 'poursuite' | 'poussee' | 'pratiquer' | 'precedente' | 'present' | 'priere' | 'privee' | 'prix' | 'production' | 'profil'
   | 'progression' | 'prolonge' | 'promouvoir' | 'protection' | 'psychologie' | 'psychologique' | 'puissance'
   | 'qualite' | 'quantite' | 'quotidien' | 'raccourci' | 'ragot' | 'rallier' | 'ramassage' | 'rapide' | 'rate'
   | 'ration' | 'reaction' | 'reassigne' | 'recentrer' | 'recevoir' | 'rechargement' | 'recit' | 'reconnexion' | 'recu'
@@ -168,7 +172,7 @@ type MotDuLexique = ActionDuLexique | ActionDeLaMachinerie | ActionDeFenetre
   | 'reveler' | 'rien' | 'riposte' | 'roulade' | 'round' | 'rumeur' | 'rythme' | 'sacrifier' | 'salissures' | 'sans'
   | 'sauvegarde' | 'scene' | 'scorbut' | 'seance' | 'secondaire' | 'seconde' | 'section' | 'selle' | 'service' | 'ses'
   | 'siege' | 'social' | 'soi' | 'soif' | 'soin' | 'soins' | 'solo' | 'sommation' | 'sort' | 'sortie' | 'souffle'
-  | 'soutenu' | 'spirituelle' | 'stock' | 'subjectif' | 'suivante' | 'supplementaires' | 'sur' | 'surincantation'
+  | 'soutenu' | 'spirituelle' | 'stock' | 'subjectif' | 'suivante' | 'supplementaires' | 'sur' | 'surincantation' | 'surplus'
   | 'survie' | 'survitesse' | 'survivre' | 'suspendre' | 'systeme' | 'table' | 'talent' | 'tapi' | 'tas' | 'taverne'
   | 'teleportation' | 'tentacules' | 'terre' | 'test' | 'testeur' | 'tete' | 'tir' | 'tirage' | 'tire' | 'tonneau'
   | 'touche' | 'tour' | 'tourbillon' | 'trait' | 'traumatisme' | 'tribut' | 'troc' | 'troquer' | 'trot' | 'un'
@@ -226,7 +230,14 @@ const verrousDuLexique: [
   Verrou<Mots<ActorAimKind>, MotDuLexique>,
   Verrou<Mots<EnemyAction['kind']>, MotDuLexique>,
   Verrou<Mots<NetState['mode'] | NetState['presence'][number]>, MotDuLexique>,
-] = [true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true];
+  Verrou<Mots<Extract<EnemyAction, { kind: 'empoignade' }>['resolution']>, MotDuLexique>,
+  Verrou<Mots<Extract<EnemyAction, { kind: 'depenseDeRessource' }>['resource' | 'via']>, MotDuLexique>,
+  Verrou<Mots<IssueOpposee>, MotDuLexique>,
+  Verrou<Mots<ZoneEnPose['source']>, MotDuLexique>,
+  Verrou<Mots<VerdictApprentissage>, MotDuLexique>,
+  Verrou<Mots<OrientationOutcome>, MotDuLexique>,
+  Verrou<Mots<SellRelation>, MotDuLexique>,
+] = [true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true];
 void verrousDuLexique;
 
 /** Le corps de la clôture de chaque flux, que seul `jetValider(flux)` appelle : un flux sans clôture ne compile pas. */

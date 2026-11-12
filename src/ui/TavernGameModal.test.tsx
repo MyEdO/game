@@ -33,7 +33,7 @@ beforeAll(() => {
 });
 beforeEach(() => {
   useGame.setState(useGame.getInitialState(), true);
-  setRule('tavern-games', true);
+  setRule('jeux-de-taverne', true);
   seedBattleRng(7);
   const dlg = scenarioConstruit.scene.dialogues.find((d) => d.id === 'dlg-bras-de-fer')!;
   useGame.setState({
@@ -44,7 +44,7 @@ beforeEach(() => {
   });
 });
 afterEach(demonterRacines);
-afterAll(() => { resetRule('tavern-games'); });
+afterAll(() => { resetRule('jeux-de-taverne'); });
 
 /** Le joueur choisit « Relever le défi. » dans le dialogue du PNJ — le geste réel. */
 const releverLeDefi = () => act(() => { g().fenetreChoisir('dialogue', 'reponse', 'relever-defi'); });

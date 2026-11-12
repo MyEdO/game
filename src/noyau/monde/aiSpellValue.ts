@@ -272,8 +272,8 @@ export function opValue(op: GameOp, caster: Combatant, subject: Combatant, ctx: 
       return marginalBuff(caster, subject, op, ctx);
     // CONTRÔLE hostile.
     case 'condition':
-      etatExige(op.id);
-      return findConditionById(op.id)?.aiThreat ?? 1;
+      etatExige(op.id.id);
+      return findConditionById(op.id.id)?.aiThreat ?? 1;
     case 'testMod':
       return op.amount < 0 ? Math.abs(op.amount) / 10 : 0;
     case 'castPenalty': case 'suffocate': case 'damageArmour': case 'damageWornGear':

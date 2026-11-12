@@ -1,6 +1,7 @@
-## Le noyau dans la page de l'export Web : `globalThis.wfrpPont` par JavaScriptBridge, attendu `ATTENTE_S` au plus ; l'écran
-## publié en `globalThis.wfrpEcran`, chaque rappel exposé en `globalThis.<nom>`, l'adresse et les paramètres lus à celle de
-## la page (`?<cle>=<valeur>`), l'image choisie par `wfrpPont.choisirUneImage` (`hotes/godot/pont/fichier.ts`).
+## Le noyau dans la page de l'export Web : `globalThis.wfrpPont` par JavaScriptBridge, attendu `ATTENTE_S` au plus ; chaque
+## valeur publiée en `globalThis.<nom>`, chaque rappel exposé en `globalThis.<nom>`, l'adresse et les paramètres lus à
+## celle de la page (`?<cle>=<valeur>`), l'image choisie par `wfrpPont.choisirUneImage` (`hotes/godot/pont/fichier.ts`), la
+## pile des couches résolue par `wfrpPont.resoudreLaPile` (`hotes/godot/pont/pileEnFond.ts`).
 class_name TransportDeLaPage
 extends PontDuNoyau.Transport
 
@@ -37,12 +38,25 @@ func ouvrir() -> bool:
 	return true
 
 
+func est_ouvert() -> bool:
+	return _pont != null
+
+
 func appeler(methode: String, json: Variant) -> Variant:
 	return _pont.call("appeler", methode, json)
 
 
-func publier_l_ecran(publie: Dictionary) -> void:
-	JavaScriptBridge.eval("globalThis.wfrpEcran = %s" % JSON.stringify(publie), true)
+func resoudre_la_pile(demande: String) -> Variant:
+	var rendue := []
+	var rappel := JavaScriptBridge.create_callback(func(args: Array) -> void: rendue.append_array(args))
+	_pont.call("resoudreLaPile", demande, rappel)
+	while rendue.is_empty():
+		await get_tree().process_frame
+	return rendue[0]
+
+
+func publier(nom: String, valeur: Variant) -> void:
+	JavaScriptBridge.eval("globalThis.%s = %s" % [nom, JSON.stringify(valeur)], true)
 
 
 func exposer(nom: String, rappel: Callable) -> void:

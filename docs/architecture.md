@@ -216,8 +216,8 @@ src/data/                   NOTRE base APP-OWNED (JSON commité, éditable dans 
                             (`src/data/schemas/grammaire/vocabulaires.ts`) que `TYPES` déclare (#2968 P-art)
                             SEAM d'ÉCRITURE (`overrides.ts`) : `setDataset`/`setObjectDataset`/`resetData`
                             remplacent le CONTENU d'un dataset sans réassigner son binding (`splice` en
-                            place), `setDeDeTable` écrit le dé de tirage qu'un ANCÊTRE de la collection
-                            porte (document de table, racine qui le partage), et tous VERSIONNENT
+                            place), `setEnTete` écrit l'EN-TÊTE d'une collection nichée (les champs de
+                            ses ANCÊTRES, nommés par préfixe de suite, hors pas de collection), et tous VERSIONNENT
                             l'écriture (`bumperDataset`, module FEUILLE
                             `versionDataset.ts`) — l'identité du tableau ne bougeant jamais, cette version
                             est le SEUL témoin qu'un lecteur indexé peut consulter. Tout index de niveau
@@ -663,6 +663,11 @@ hotes/godot/                HÔTE GODOT du noyau (#2928, zone `hotes`) : le pont
                             étape scripts et recettes autonomes de la CI). `--export --sortie <dossier>` produit
                             l'export Web, que `recette.mjs` joue au navigateur : un tour complet, l'atelier, ou les vues
                             nommées d'une scène (`--parcours cadrages`, `cadrages/`).
+  etalons/                  les planches (`planches/<nom>.json`, un état de partie enregistré depuis le pont par
+                            `etalons.mjs --enregistrer`, que le jeu montre à `?planche=<nom>`), l'étalon de chacune
+                            (`<nom>.png`, sa capture) et `valides.json` (l'empreinte des étalons validés). `npm run
+                            godot:etalons` exporte le jeu et refuse tout pixel d'écart entre une planche et son étalon
+                            (#3935, `.claude/rules/ecrans-godot.md`).
 src/state/                  ADAPTATEUR de l'hôte web : il pose le résultat du noyau (store Zustand), sélectionne
                             pour l'affichage et persiste (saves, roster, bibliothèque, préférences), sans
                             décider d'aucun effet de jeu (§ Couches).

@@ -81,7 +81,7 @@ describe('runtime : un piège authoré frappe via le runtime des zones de Sort',
     {
       id: 'acid', label: 'Flaque acide', area: { kind: 'disc', cx: 5, cy: 5, radius: 1 },
       perRound: [{ op: 'wounds', amount: 8, ignoreTB: false, ignoreAP: true }],
-      onCross: [{ op: 'wounds', amount: 8, ignoreTB: false, ignoreAP: true }, { op: 'condition', id: 'empoisonne' }],
+      onCross: [{ op: 'wounds', amount: 8, ignoreTB: false, ignoreAP: true }, { op: 'condition', id: { id: 'empoisonne' } }],
     },
   ]);
   it('stationner dedans (perRound) : 8 − BE 3 = 5 Blessures', () => {

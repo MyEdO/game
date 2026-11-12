@@ -259,10 +259,10 @@ describe('#3058 — la charge du héros en Auto-combat sur un porteur de Frappe 
     tantQue(() => !g().pendingDefense);
     tantQue(() => !!g().pendingDefense);
     passerEnManuel();
-    setRule('combat-defensive-stance', true);
+    setRule('combat-sur-la-defensive', true);
     try {
       g().prendreLaDefensive(); // une Action hors attaque : aucune frappe pilotée ne devance la suite (LDB 13 l.118)
-    } finally { resetRule('combat-defensive-stance'); }
+    } finally { resetRule('combat-sur-la-defensive'); }
     remettreLAutoCombat();
     ouvrirUneFenetreNeutre('h');
     banc.reprendreTout();
@@ -688,12 +688,12 @@ describe('#3059 — la Charge d’un héros MANUEL fait « être Chargé » ; sa
 
   it('P1 (graine 4) : Sur la Défensive pendant le glissé prend l’Action — la frappe pilotée s’abandonne, le tour reste au joueur', () => {
     chargeManuelle(4, { reactive: false });
-    setRule('combat-defensive-stance', true);
+    setRule('combat-sur-la-defensive', true);
     try {
       cliquerLaCharge();
       g().prendreLaDefensive();
       banc.reprendreTout();
-    } finally { resetRule('combat-defensive-stance'); }
+    } finally { resetRule('combat-sur-la-defensive'); }
     expect([frappeOuverte(), attaques('h'), b().acted, b().turn], 'aucune frappe, l’Action est prise, le tour tient').toEqual([null, 0, true, 0]);
   });
 

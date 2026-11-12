@@ -3,13 +3,17 @@ extends SceneTree
 ## Une partie sur le noyau vivant (#3945, `hotes/godot/pont/CONTRAT.md`, section « Transport ») : sur le pont de l'arbre,
 ## ouvert sur le processus du noyau (`TransportDuProcessus`, `--pont=<chemin>` après `--`), le combat
 ## (`scenes/Combat.tscn`) montre le panneau des scénarios ; un clic sur le bouton de `dome` démarre la partie, dont la
-## première vue se montre ; un clic sur un geste de l'écran publié, la fin du tour s'il est offert, change la vue ; ni
-## panne ni refus ne se signale, et l'avis de panne du combat reste vide. Le code de sortie dit le verdict : 0 tenu, 1 une faute.
+## première vue se montre ; une pile des couches demandée (`PontDuNoyau.resoudre_la_pile`), suivie d'un appel écrit
+## avant qu'elle ne soit rendue, revient `ok: true` à son rappel, et l'appel reçoit sa propre réponse ; un clic sur un
+## geste de l'écran publié, la fin du tour s'il est offert, change la vue ; ni panne ni refus ne se signale, et l'avis
+## de panne du combat reste vide. Le code de sortie dit le verdict : 0 tenu, 1 une faute.
 
 const RECETTE_AUTONOME := true
 const SCENARIO := "dome"
 ## L'attente la plus longue d'un état : le lancement du processus et le démarrage de la partie compris.
 const ATTENTE_S := 120.0
+## La plus petite pile valide (`PileDemandee`, `hotes/godot/pont/pile.ts`) : aucune pièce.
+const PILE := {pieces = [], parents = {}, osDeChaine = []}
 var _fautes: Array[String] = []
 ## Chaque panne et chaque refus signalés par le pont.
 var _signales: Array[String] = []
@@ -24,6 +28,7 @@ func _recetter() -> void:
 	var pont: PontDuNoyau = root.get_node("Pont")
 	pont.panne.connect(func(message: String) -> void: _signales.append("panne : " + message))
 	pont.refus.connect(func(message: String) -> void: _signales.append("refus : " + message))
+	pont.en_recette = true
 	var combat: Node = (load("res://scenes/Combat.tscn") as PackedScene).instantiate()
 	root.add_child(combat)
 	var lancer := "bouton/lancer/" + SCENARIO
@@ -32,6 +37,15 @@ func _recetter() -> void:
 	if await _attendre(func() -> bool: return not combat.get("_vue").is_empty(), "la première vue de %s" % SCENARIO):
 		var premiere: Dictionary = combat.get("_vue")
 		print("[partie-vivante] première vue : scène %s" % premiere.projection.scene.id)
+		var piles := []
+		pont.resoudre_la_pile(JSON.stringify(PILE), func(reponse: Dictionary) -> void: piles.append(reponse))
+		var vue := pont.appeler("vue")
+		if vue.get("ok") != true or vue.has("bilan"):
+			_fautes.append("l'appel écrit pendant la pile reçoit %s" % JSON.stringify(vue).left(200))
+		if await _attendre(func() -> bool: return not piles.is_empty(), "la pile des couches"):
+			print("[partie-vivante] pile : ok=%s" % piles[0].get("ok"))
+			if piles[0].get("ok") != true or not piles[0].has("bilan"):
+				_fautes.append("la pile rend %s" % JSON.stringify(piles[0]).left(200))
 		if await _attendre(func() -> bool: return _geste(pont) != null, "un geste à l'écran publié"):
 			var geste: Dictionary = _geste(pont)
 			print("[partie-vivante] geste : %s (%s)" % [geste.element, geste.texte])

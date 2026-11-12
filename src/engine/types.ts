@@ -803,7 +803,7 @@ export interface ActiveEffect {
   duration: Duration;
   /** POLITIQUE DE DURÉE déclarée à la pose : cet effet `permanent` reçoit une ÉCHÉANCE d'horloge dès que
    *  le porteur passe un répit à l'abri de la cause (pénalités d'Exposition, `expireOnRespite`).
-   *  Le délai est le MÊME pour tous les répits — la règle éditable `exposure-expire-hours` (défaut 24 h),
+   *  Le délai est le MÊME pour tous les répits — la règle éditable `exposition-dissipation-heures` (défaut 24 h),
    *  lue par l'appelant (camp `restFlow`, jour de mer `seaVoyageFlow`). Absent = l'effet ne connaît pas
    *  cette dissipation (le répit ne le touche pas). */
   expiresOnRespite?: true;
@@ -974,10 +974,10 @@ export interface ActiveEffect {
    *  sa sévérité EFFECTIVE redescend tant que l'effet dure (`severiteEffective`), l'instance de
    *  symptôme n'est jamais mutée. Miroir de `suppressedSource`, nommé par instance de MALADIE. */
   attenuatedSymptom?: { disease: string; symptomId: string };
-  /** GATE d'action par Round (op `actGate` — Racine de mandragore, LDB 71 l.35) : au début du tour du
+  /** GATE d'action par Round (op `testDAgir` — Racine de mandragore, LDB 71 l.35) : au début du tour du
    *  porteur en combat, un Test de `characteristic` décide s'il garde Action ET Mouvement (réussite) ou UN seul
    *  au choix (échec). Résolu cadence-aware par `resolveActGates` (noyau/combatFlow). */
-  actGate?: { characteristic: CharKey };
+  testDAgir?: { characteristic: CharKey };
   /** Le porteur doit effectuer des Tests de Prière pour son Action (op `prayerForAction`, lu par
    *  `prayerForActionBy`). LDB 40 l.74 */
   prayerForAction?: true;
@@ -1245,7 +1245,7 @@ export interface ItemInstance extends ProprietesIntrinsequesDObjet {
   /** Les héros qui ont tenté la Détection d'artefact sur cet objet. LDB 10 l.336 */
   detectTriedBy?: string[];
   /** Jour de jeu de la dernière Évaluation ratée à DR négatif, d'où court le délai de la règle maison
-   *  `market-evaluation-delai-jours`. */
+   *  `marche-evaluation-delai-jours`. */
   appraiseTriedDay?: number;
   /** FAUSSES Particularités soupçonnées (ADE II 4 : échec Impressionnant/Stupéfiant de
    *  l'identification — « soupçonne que l'objet possède une Particularité qu'il n'a pas
@@ -1503,7 +1503,7 @@ export interface Combatant {
   aiDoctrine?: string;
   psychTraits?: import('./psychology').PsychTrait[];
   /** Les Terreurs subies depuis la dernière Phobie du noir (ADE II 09 l.9-11, règle facultative
-   *  `psych-acquisition-optional`), lues par `ciblesDePhobieDuNoir` ; vidées quand la Phobie est acquise.
+   *  `psycho-acquisition-optionnelle`), lues par `ciblesDePhobieDuNoir` ; vidées quand la Phobie est acquise.
    *  DONNÉE persistée (survit au writeback de combat). */
   terreursSubies?: TerreurSubie[];
   /** Traits de créature (STRUCTURÉS — `TraitInstance` : id/value/arg/count/range) → attaques
@@ -1593,7 +1593,7 @@ export interface Combatant {
   spells?: string[];
   /** Composants d'incantation possédés (LDB 46 l.107-113) — `id` des Sorts d'Arcane/Domaine pour
    *  lesquels le héros a acheté un composant (coût = NI pistoles d'argent, « acheté pour un Sort
-   *  spécifique »). Sous la règle optionnelle `magic-composant`, le composant absorbe les pires
+   *  spécifique »). Sous la règle optionnelle `magie-composant`, le composant absorbe les pires
    *  effets du contrecoup : Imparfaite Majeure → Mineure, Mineure → annulée ; consommé à l'incantation
    *  (succès OU échec, Imparfaite OU PAS). Persisté entre combats. */
   componentSpells?: string[];

@@ -23,7 +23,7 @@
 - [Maladies et parasites aquatiques — MSRC 14](#maladies-et-parasites-aquatiques--msrc-14)
 - [Remèdes à base de plantes — MSRC 2 (volet maladies)](#remèdes-à-base-de-plantes--msrc-2-volet-maladies)
 - [Guérison et soins (renvoi)](#guérison-et-soins-renvoi)
-- [Règle optionnelle « disease-mode »](#règle-optionnelle--disease-mode-)
+- [Règle optionnelle « maladie-mode »](#règle-optionnelle--maladie-mode-)
 - [Voir aussi](#voir-aussi)
 
 - **La Mer des Griffes (MDG)** <!-- MDG-INTEGRATION -->
@@ -62,7 +62,7 @@ Chaque maladie est définie par les champs suivants :
 
 > « Certains groupes apprécient les maladies, parce qu'elles apportent une touche sombre et sans concession à leurs aventures… À l'inverse, certains joueurs considèrent les maladies comme des nuisances à oublier rapidement. C'est à vous et à votre groupe de décider comment vous allez utiliser les maladies dans vos parties, mais gardez à l'esprit qu'elles peuvent être très dangereuses, et qu'il n'est jamais agréable d'avoir un PJ cloué au lit, pendant que les autres membres du groupe partent à l'aventure. **Utilisez-les avec parcimonie.** »
 
-**Règle optionnelle implémentée** : le code expose un paramètre `disease-mode` (voir § [Règle optionnelle « disease-mode »](#règle-optionnelle--disease-mode-)).
+**Règle optionnelle implémentée** : le code expose un paramètre `maladie-mode` (voir § [Règle optionnelle « maladie-mode »](#règle-optionnelle--maladie-mode-)).
 
 ---
 
@@ -704,9 +704,9 @@ Les œufs éclosent 1d10 jours après la ponte, suintant des narines. Toutes les
 
 ---
 
-## Règle optionnelle « disease-mode »
+## Règle optionnelle « maladie-mode »
 
-Implémentée dans le store (`rule('disease-mode')`) — contrôle l'activation des tests de Contraction en fin de combat :
+Implémentée dans le store (`rule('maladie-mode')`) — contrôle l'activation des tests de Contraction en fin de combat :
 
 | Valeur | Comportement |
 |---|---|

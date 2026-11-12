@@ -41,7 +41,7 @@ function marchanderLaVente(joueur: number, marchand: number): void {
 }
 
 describe('#2547 — vente marchandée par un Négociateur (LDB 59 l.54, LDB 10 l.818)', () => {
-  beforeEach(() => setRule('test-auto-bands', 'off'));
+  beforeEach(() => setRule('test-bandes-auto', 'off'));
   afterEach(() => { vi.restoreAllMocks(); });
 
   it('gagnée sans Stupéfiant : ½ du listé, +10 % — libellé et issue retenue', () => {

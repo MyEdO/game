@@ -3,8 +3,8 @@
 ## ou à son point, rigide, tenu, rangé ou skinné (#3086 D4, #3319), habillé de la palette de la composition et de son
 ## emblème (#3111), le gabarit (`GabaritDuSquelette`) et les morphes posés. L'atelier (`atelier.gd`) et chaque combattant
 ## du plateau (`combattant.gd`) en sont deux porteurs : l'un l'offre au joueur, l'autre le monte d'après la vue.
-## La réponse de `modeles` retenue (`retenir_les_modeles`) est commune à tous les montages : chaque GLB s'y télécharge une
-## fois, et chaque emblème s'y rastérise une fois, d'un chargement des modèles au suivant.
+## La réponse de `modeles` retenue (`retenir_les_modeles`) est commune à tous les montages : chaque GLB s'y télécharge et
+## s'y lit une fois, et chaque emblème s'y rastérise une fois, d'un chargement des modèles au suivant.
 class_name MontageDeComposition
 extends Node3D
 
@@ -23,6 +23,8 @@ const PASSES_DE_TOUR := 2
 const FORMES := &"formes"
 ## La métadonnée d'un mesh dont les shape keys sont cuites : le poids cuit de chacune, par nom de clé.
 const POIDS := &"poids_des_formes"
+## La métadonnée du mesh d'une pièce skinnée : par surface, son maillage de la demande de pile (`_maillage`).
+const MAILLAGES := &"maillages_de_pile"
 ## Le calque d'une pièce dessinée seule ; une pièce fondue (`refondre`) n'est sur aucun.
 const CALQUE := 1
 ## Les poids d'un sommet d'une pièce rigide fondue : tout sur son os.
@@ -31,12 +33,16 @@ const POIDS_RIGIDE := [1.0, 0.0, 0.0, 0.0]
 ## laisse.
 const CANAUX_LIBRES := [Mesh.ARRAY_CUSTOM0, Mesh.ARRAY_CUSTOM1, Mesh.ARRAY_CUSTOM2, Mesh.ARRAY_CUSTOM3]
 
+## La fusion porte la pile des couches reçue (`recevoir_la_pile`).
+signal empilee
 
-## Le GLB d'un fichier de `modeles/`, en vol jusqu'à `lue`, puis reçu (`octets`) ou en échec (`erreurs`).
+
+## Le GLB d'un fichier de `modeles/`, en vol jusqu'à `lue`, puis lu en scène empaquetée (`paquet`) ou en échec
+## (`erreurs`).
 class Lecture extends RefCounted:
 	signal lue
 	var en_vol := true
-	var octets := PackedByteArray()
+	var paquet: PackedScene = null
 	var erreurs: Array[String] = []
 
 
@@ -88,6 +94,13 @@ var _suivis: Dictionary = {}
 var fusion: MeshInstance3D = null
 ## Une refonte est-elle demandée pour la fin de l'image (`_demander_la_refonte`) ?
 var _refonte_demandee := false
+## La pile des couches résolue (`recevoir_la_pile`) : la `signature` de sa demande, son `bilan` et, par maillage de la
+## demande, ses tableaux (`maillages`) ; `{}` sans elle.
+var pile: Dictionary = {}
+## La signature de la demande de pile de ce qui est fondu (`_empiler`), `""` sans pile à résoudre.
+var _pile_fondue := ""
+## La signature de la demande de pile en vol, `""` sans elle.
+var _pile_demandee := ""
 ## Par id de prise montée dont l'élément se range à un emplacement de la base, ses nœuds tenus (`tenus`), ceux de sa
 ## copie rangée (`ranges`) et la ligne `<emplacement>#<prise>` de cette copie dans `_rangements` (`rangement`) : le clip
 ## joué montre l'un ou l'autre (`poser_le_clip`, #3806).
@@ -180,17 +193,13 @@ static func porte_un_blason(element: String) -> bool:
 	return modeles.surfaces[element].any(func(surface: Dictionary) -> bool: return surface.get("blason", false))
 
 
-## Le GLB du modèle `id`, sous le fichier que lui donne `glb` de la réponse retenue, en scène neuve, qui porte en
-## métadonnée `MATERIAUX` chaque matériau du GLB par son nom (`GLTFState.get_materials`, ceux qu'aucune primitive ne porte
-## compris) : téléchargé une fois par chargement des modèles, chaque demande d'un même fichier attendant la première, puis
-## lu à chaque demande, car un
-## `GLTFState` ne génère qu'une scène dont le squelette trouve ses os par leur nom (`generate_scene` rappelé : `find_bone`
-## rend -1), par le `GLTFDocument` qui l'a lu (un autre rend des `ImporterMeshInstance3D`, Godot 4.7-stable) ; `null`
-## (et une erreur à `recueil`) s'il n'y a pas de fichier ou s'il ne se lit pas, et un
-## fichier qui ne s'est pas téléchargé se redemande. Chaque liaison d'un skin y porte le nom de son os (#3086, D4 ;
-## `GLTFDocument.IMPORT_FLAG_USE_NAMED_SKIN_BINDS`,
-## `modules/gltf/gltf_document.cpp` `_create_skins`, `scene/3d/skeleton_3d.cpp` `NOTIFICATION_UPDATE_SKELETON`,
-## Godot 4.7-stable).
+## Le GLB du modèle `id`, sous le fichier que lui donne `glb` de la réponse retenue, en instance neuve de sa scène
+## empaquetée, qui porte en métadonnée `MATERIAUX` chaque matériau du GLB par son nom (`GLTFState.get_materials`, ceux
+## qu'aucune primitive ne porte compris) : téléchargé et lu une fois par chargement des modèles, chaque demande d'un même
+## fichier attendant la première (`_lire`). Les instances d'un même fichier partagent ses meshes, ses skins, ses
+## matériaux et ses clips : un porteur qui en change un en fait le sien (`materiau_local`, `cuire_les_formes`,
+## `boucler`). `null` (et une erreur à `recueil`) s'il n'y a pas de fichier ou s'il ne se lit pas, et un fichier qui ne
+## s'est pas téléchargé se redemande.
 func scene_du_glb(id: String, recueil: Array[String]) -> Node3D:
 	if not modeles.glb.has(id):
 		recueil.append("glb-absent : %s" % id)
@@ -200,16 +209,35 @@ func scene_du_glb(id: String, recueil: Array[String]) -> Node3D:
 	if lecture == null:
 		lecture = Lecture.new()
 		_lectures[fichier] = lecture
-		await _lire(fichier, lecture)
+		await _lire(id, fichier, lecture)
 	elif lecture.en_vol:
 		await lecture.lue
 	recueil.append_array(lecture.erreurs)
-	if lecture.octets.is_empty():
-		return null
+	return null if lecture.paquet == null else lecture.paquet.instantiate() as Node3D
+
+
+## Le fichier `fichier` du modèle `id` téléchargé puis lu en scène empaquetée de `lecture` (`_paquet_lu`), la lecture
+## oubliée s'il ne s'est pas téléchargé.
+func _lire(id: String, fichier: String, lecture: Lecture) -> void:
+	var octets := await (get_node("/root/Pont") as PontDuNoyau).requeter("modeles/%s" % fichier, lecture.erreurs)
+	if octets.is_empty():
+		if _lectures.get(fichier) == lecture:
+			_lectures.erase(fichier)
+	else:
+		lecture.paquet = _paquet_lu(id, octets, lecture.erreurs)
+	lecture.en_vol = false
+	lecture.lue.emit()
+
+
+## Les `octets` du GLB du modèle `id` en scène empaquetée (`PackedScene.pack`), `MATERIAUX` posé à sa racine, `null` (et
+## une erreur à `recueil`) s'ils ne se lisent pas. Chaque liaison d'un skin y porte le nom de son os (#3086, D4 ;
+## `GLTFDocument.IMPORT_FLAG_USE_NAMED_SKIN_BINDS`, `modules/gltf/gltf_document.cpp` `_create_skins`,
+## `scene/3d/skeleton_3d.cpp` `NOTIFICATION_UPDATE_SKELETON`, Godot 4.7-stable).
+static func _paquet_lu(id: String, octets: PackedByteArray, recueil: Array[String]) -> PackedScene:
 	var document := GLTFDocument.new()
 	var etat := GLTFState.new()
 	etat.handle_binary_image_mode = GLTFState.HANDLE_BINARY_IMAGE_MODE_EMBED_AS_UNCOMPRESSED
-	var code := document.append_from_buffer(lecture.octets, "", etat, GLTFDocument.IMPORT_FLAG_USE_NAMED_SKIN_BINDS)
+	var code := document.append_from_buffer(octets, "", etat, GLTFDocument.IMPORT_FLAG_USE_NAMED_SKIN_BINDS)
 	if code != OK:
 		recueil.append("glb-illisible : %s (%s)" % [id, error_string(code)])
 		return null
@@ -220,15 +248,35 @@ func scene_du_glb(id: String, recueil: Array[String]) -> Node3D:
 	for materiau in etat.get_materials():
 		par_nom[materiau.resource_name] = materiau
 	scene.set_meta(MATERIAUX, par_nom)
-	return scene
+	var paquet := PackedScene.new()
+	code = paquet.pack(scene)
+	scene.free()
+	if code != OK:
+		recueil.append("glb-illisible : %s (%s)" % [id, error_string(code)])
+		return null
+	return paquet
 
 
-func _lire(fichier: String, lecture: Lecture) -> void:
-	lecture.octets = await (get_node("/root/Pont") as PontDuNoyau).requeter("modeles/%s" % fichier, lecture.erreurs)
-	if lecture.octets.is_empty() and _lectures.get(fichier) == lecture:
-		_lectures.erase(fichier)
-	lecture.en_vol = false
-	lecture.lue.emit()
+## Chaque clip de `noms` que porte `lecteur` mis en boucle pour ce lecteur seul : les instances d'un même GLB partagent
+## leurs clips (`scene_du_glb`). La bibliothèque qui en porte un est remplacée par une bibliothèque propre au lecteur,
+## qui porte les mêmes clips, sauf chaque clip à boucler, copié puis bouclé ; un clip déjà en boucle reste.
+static func boucler(lecteur: AnimationPlayer, noms: Array) -> void:
+	var a_copier := {}
+	for nom: String in noms:
+		if lecteur.has_animation(nom) and lecteur.get_animation(nom).loop_mode != Animation.LOOP_LINEAR:
+			var clip := lecteur.get_animation(nom)
+			a_copier.get_or_add(lecteur.find_animation_library(clip), []).append(clip)
+	for cle: StringName in a_copier:
+		var partagee := lecteur.get_animation_library(cle)
+		var propre := AnimationLibrary.new()
+		for local in partagee.get_animation_list():
+			var clip := partagee.get_animation(local)
+			if clip in a_copier[cle]:
+				clip = clip.duplicate() as Animation
+				clip.loop_mode = Animation.LOOP_LINEAR
+			propre.add_animation(local, clip)
+		lecteur.remove_animation_library(cle)
+		lecteur.add_animation_library(cle, propre)
 
 
 ## Le montage ramené à aucun modèle : ni squelette ni lecteur, ni élément monté, ni demande de montage en vol.
@@ -331,7 +379,7 @@ func demonter(id: String) -> void:
 ## L'emplacement `id` démonté, puis `element` monté une fois son GLB chargé, si aucune autre demande ne l'a remplacé à
 ## cet emplacement (#3086, D4) : chaque mesh rigide pendu à un os du GLB, à sa transformation locale, sous l'os de même
 ## nom de la base (`hotes/godot/asset/evaluateur/evaluer.ts` `monter`) ; chaque mesh skinné sous le squelette de la
-## base, son skin lié par nom d'os (`scene_du_glb`). Rien de monté s'il n'a aucun mesh à monter, ou si un os que ses
+## base, son skin lié par nom d'os (`_paquet_lu`). Rien de monté s'il n'a aucun mesh à monter, ou si un os que ses
 ## meshes nomment manque à la base : chacun va à `recueil`. Monté, il reçoit les morphes de la composition ; rend s'il
 ## l'est.
 func monter(id: String, element: String, recueil: Array[String]) -> bool:
@@ -424,9 +472,8 @@ func _rangement_du_tenu(id: String, element: String) -> Dictionary:
 ## `MontageDeComposition.masquer_les_zones_couvertes` cache chaque mesh de zone (`extras.zone` de son nœud glTF, que
 ## Godot importe en métadonnée `extras`), de la base ou d'un élément monté, dont la zone est couverte (`couvre` de
 ## `couches`) par un élément monté qui masque son porteur (`masque`), et le montre sinon ; toute couche masque la
-## base. La chemise sous le pourpoint ne montre ainsi que les pièces de ses zones qu'il ne couvre pas, son col. La
-## garde `traversee` de l'évaluateur (`asset/evaluateur/gardes/traversee.ts`) applique le même masque, puis mesure en
-## clip qu'aucune couche visible ne passe devant celle qui la couvre.
+## base. La chemise sous le pourpoint ne montre ainsi que les pièces de ses zones qu'il ne couvre pas, son col.
+## Évaluateur : `sansLesZonesMasquees` (`asset/evaluateur/gardes/traversee.ts`).
 
 ## Chaque mesh de zone (`extras.zone`), de la base ou d'un élément monté, caché si un élément monté couvre sa zone et
 ## masque son porteur (`couvre` et `masque` de `couches` dans `modeles`, #2972), montré sinon ; la base est masquée par
@@ -559,7 +606,7 @@ func role_a_rejouer() -> String:
 
 ## Les os qui portent `piece` : celui de son `BoneAttachment3D` pour un mesh rigide (l'import glTF le pose sous l'attache
 ## de son os) ; pour un mesh skinné, le nom de chaque liaison de son skin (`Skin.get_bind_name`, posé à l'import par
-## `scene_du_glb`) ; aucun pour un mesh à la racine.
+## `_paquet_lu`) ; aucun pour un mesh à la racine.
 func _os_de_la_piece(piece: MeshInstance3D) -> Array[String]:
 	var noms: Array[String] = []
 	if piece.skin != null:
@@ -574,7 +621,7 @@ func _os_de_la_piece(piece: MeshInstance3D) -> Array[String]:
 ## os de même nom que le sien ; tenue (son os est celui d'une prise), reposée du repère de sa prise d'origine dans celui
 ## de la prise `id`, sans miroir, ou rangée à l'emplacement `id` (`_ranger`) (#3319, `CONTRAT.md`) ; un fourreau
 ## (`extras.fourreau`) n'est montré que rangé ; skinnée, sous le squelette, son skin lié par nom dès l'import
-## (`scene_du_glb`). Le nœud qui la porte dans la scène.
+## (`_paquet_lu`). Le nœud qui la porte dans la scène.
 func _poser_la_piece(piece: MeshInstance3D, noms: Array[String], sous: Skeleton3D, id: String) -> Node:
 	piece.owner = null
 	if piece.skin == null:
@@ -1183,6 +1230,20 @@ static func cuire_les_formes(mesh: MeshInstance3D, morphes: Dictionary) -> void:
 ## repère du mesh (`uv1_triplanar` ou `uv2_triplanar` hors du monde), une surface qui n'est pas en triangles ou qui
 ## porte huit poids par sommet. La recette autonome `projet/recettes/fusion-des-pieces.gd` le vérifie.
 
+## @contrat Pile des couches
+## Dans une tenue fondue, la couche du dessous cède à celle qui la couvre (#3842) : à chaque refonte,
+## `MontageDeComposition.refondre` demande au pont la pile de ce qu'il fond
+## (`PontDuNoyau.resoudre_la_pile`, `wfrpPont.resoudreLaPile(demande, rendre)`), que le lieu du noyau résout sans tenir
+## l'image par la fonction de l'évaluateur (`resoudreLaPile`, `asset/pile.ts`). Une pièce de la demande est le corps de
+## la base, ou un élément monté qui déclare une couche (`couches` de `modeles`), par ses surfaces skinnées visibles et
+## fondues, dans l'ordre où Godot les fond ; une tenue d'une seule pièce ne demande rien. La fusion se dessine d'abord
+## telle que ses auteurs l'ont faite ; à la réponse, si ce qui est fondu n'a pas changé (même demande), elle se refond
+## avec, pour chaque maillage, ses sommets reculés, ses triangles encore dessinés, ses os et ses poids, un os gagné lié
+## au repère que lui donne la première pièce fondue qui le porte. La réponse est gardée tant que la demande ne change
+## pas : un habillage ou une couleur ne redemandent rien. Les meshes propres des pièces restent ceux de leurs auteurs.
+## Sans page (recette autonome, hors Web), la fusion se fait sans pile. La recette autonome
+## `projet/recettes/pile-des-couches.gd` vérifie la pose d'une pile reçue.
+
 ## La refonte des pièces demandée pour la fin de l'image (`refondre`), une seule fois quel que soit le nombre de
 ## demandes.
 func _demander_la_refonte() -> void:
@@ -1192,8 +1253,8 @@ func _demander_la_refonte() -> void:
 
 
 ## Les meshes visibles du modèle fondus en `fusion`, une surface par matériau équivalent (`_signature`), chaque pièce
-## fondue retirée de tout calque, chaque autre rendue au sien (`CALQUE`) ; l'ancienne `fusion` libérée, aucune sans
-## squelette ou sans pièce à fondre.
+## fondue retirée de tout calque, chaque autre rendue au sien (`CALQUE`) ; chaque maillage que la pile résout fondu tel
+## qu'elle le rend (`_empiler`) ; l'ancienne `fusion` libérée, aucune sans squelette ou sans pièce à fondre.
 func refondre() -> void:
 	_refonte_demandee = false
 	if is_instance_valid(fusion):
@@ -1203,20 +1264,36 @@ func refondre() -> void:
 		return
 	var skin := Skin.new()
 	var liaisons := {}
-	var outils := {}
+	var fondues := {}
+	var reperes := {}
 	for noeud in modele.find_children("*", "MeshInstance3D", true, false):
 		var piece := noeud as MeshInstance3D
 		var renvois := _renvois(piece, skin, liaisons)
 		piece.layers = CALQUE if renvois.is_empty() else 0
 		if renvois.is_empty():
 			continue
+		fondues[piece] = renvois
+		if piece.skin != null:
+			for liaison in piece.skin.get_bind_count():
+				reperes.get_or_add(piece.skin.get_bind_name(liaison), piece.skin.get_bind_pose(liaison))
+	var resolus := _empiler(fondues)
+	var outils := {}
+	for piece: MeshInstance3D in fondues:
 		for surface in piece.mesh.get_surface_count():
+			var resolu: Dictionary = resolus.get([piece, surface], {})
+			var renvois: PackedInt32Array = fondues[piece]
+			if not resolu.is_empty():
+				if resolu.indices.is_empty():
+					continue
+				renvois = renvois.duplicate()
+				for rang in range(renvois.size(), resolu.noms.size()):
+					renvois.append(_liaison(skin, liaisons, resolu.noms[rang], reperes[StringName(resolu.noms[rang])]))
 			var materiau := piece.get_active_material(surface)
 			var cle := _signature(materiau)
 			if not outils.has(cle):
 				outils[cle] = SurfaceTool.new()
 				(outils[cle] as SurfaceTool).set_material(materiau)
-			(outils[cle] as SurfaceTool).append_from(_surface_liee(piece, surface, renvois), 0, Transform3D.IDENTITY)
+			(outils[cle] as SurfaceTool).append_from(_surface_liee(piece, surface, renvois, resolu), 0, Transform3D.IDENTITY)
 	if outils.is_empty():
 		return
 	var mesh := ArrayMesh.new()
@@ -1228,6 +1305,99 @@ func refondre() -> void:
 	fusion.skin = skin
 	squelette.add_child(fusion)
 	fusion.skeleton = fusion.get_path_to(squelette)
+
+
+## Par maillage que la pile des couches résout (`[pièce, surface]`), ses tableaux résolus, parmi les pièces `fondues` ;
+## aucun tant que la pile de ce qui est fondu n'est pas reçue (`recevoir_la_pile`), demandée au pont si elle ne
+## l'est pas déjà. Les pièces de la demande : les meshes de la base, puis ceux de chaque élément monté qui déclare une
+## couche (`couches` de `modeles`), chacun par ses surfaces skinnées fondues.
+func _empiler(fondues: Dictionary) -> Dictionary:
+	var couches: Dictionary = modeles.get("couches", {})
+	var porteurs: Array = [[_pieces_de_la_base, {rang = -1, accessoire = false}]]
+	for id in pieces:
+		if couches.has(montes[id]):
+			porteurs.append([pieces[id], couches[montes[id]]])
+	var demandees := []
+	var sujets := []
+	for porteur in porteurs:
+		var maillages := []
+		for piece: MeshInstance3D in porteur[0]:
+			if piece.skin != null and fondues.has(piece):
+				for surface in piece.mesh.get_surface_count():
+					maillages.append(_maillage(piece, surface))
+					sujets.append([piece, surface])
+		if not maillages.is_empty():
+			demandees.append({rang = porteur[1].rang, accessoire = porteur[1].accessoire, maillages = maillages})
+	_pile_fondue = ""
+	if demandees.slice(1).is_empty():
+		return {}
+	var parents := {}
+	for os in squelette.get_bone_count():
+		if squelette.get_bone_parent(os) != -1:
+			parents[squelette.get_bone_name(os)] = squelette.get_bone_name(squelette.get_bone_parent(os))
+	var demande := JSON.stringify({pieces = demandees, parents = parents, osDeChaine = base.get("osDeChaine", [])})
+	_pile_fondue = demande.sha256_text()
+	var resolus := {}
+	var pont := get_node_or_null("/root/Pont") as PontDuNoyau
+	if pile.get("signature") == _pile_fondue:
+		for rang in sujets.size():
+			resolus[sujets[rang]] = pile.maillages[rang]
+	elif _pile_demandee != _pile_fondue and pont != null and pont.est_pret():
+		_pile_demandee = _pile_fondue
+		pont.resoudre_la_pile(demande, recevoir_la_pile.bind(_pile_fondue))
+	return resolus
+
+
+## La surface `surface` de `piece` en maillage de la demande de pile (`MaillageDeLaPile`, `CONTRAT.md`, « Pile des
+## couches ») : ses tableaux en base64, ses os nommés par les liaisons de son skin, ses positions sans forme si elle a
+## des shape keys (`FORMES`). Il est gardé sur le mesh de la pièce (`MAILLAGES`), qu'une cuisson des formes remplace.
+func _maillage(piece: MeshInstance3D, surface: int) -> Dictionary:
+	var gardes: Dictionary = piece.mesh.get_meta(MAILLAGES, {})
+	if gardes.has(surface):
+		return gardes[surface]
+	var tableaux := piece.mesh.surface_get_arrays(surface)
+	var sommets: PackedVector3Array = tableaux[Mesh.ARRAY_VERTEX]
+	var indices: PackedInt32Array = tableaux[Mesh.ARRAY_INDEX] if tableaux[Mesh.ARRAY_INDEX] != null else PackedInt32Array(range(sommets.size()))
+	var maillage := {
+		positions = Marshalls.raw_to_base64(sommets.to_byte_array()),
+		indices = Marshalls.raw_to_base64(indices.to_byte_array()),
+		os = Marshalls.raw_to_base64((tableaux[Mesh.ARRAY_BONES] as PackedInt32Array).to_byte_array()),
+		poids = Marshalls.raw_to_base64((tableaux[Mesh.ARRAY_WEIGHTS] as PackedFloat32Array).to_byte_array()),
+		noms = _os_de_la_piece(piece),
+	}
+	if piece.has_meta(FORMES):
+		var neutres: PackedVector3Array = (piece.get_meta(FORMES) as ArrayMesh).surface_get_arrays(surface)[Mesh.ARRAY_VERTEX]
+		maillage.neutres = Marshalls.raw_to_base64(neutres.to_byte_array())
+	gardes[surface] = maillage
+	piece.mesh.set_meta(MAILLAGES, gardes)
+	return maillage
+
+
+## La réponse `reponse` du pont à la demande de pile de signature `signature` (`PileResolue`, `CONTRAT.md`, « Pile des
+## couches ») : gardée, fondue (`refondre`) et dite (`empilee`) si elle répond à ce qui est fondu, oubliée sinon.
+func recevoir_la_pile(reponse: Dictionary, signature: String) -> void:
+	if _pile_demandee == signature:
+		_pile_demandee = ""
+	if reponse.get("ok") != true or signature != _pile_fondue:
+		return
+	var maillages := []
+	for piece in reponse.pieces:
+		for maillage in piece.maillages:
+			maillages.append({
+				positions = Marshalls.base64_to_raw(maillage.positions).to_vector3_array(),
+				indices = Marshalls.base64_to_raw(maillage.indices).to_int32_array(),
+				os = Marshalls.base64_to_raw(maillage.os).to_int32_array(),
+				poids = Marshalls.base64_to_raw(maillage.poids).to_float32_array(),
+				noms = maillage.noms,
+			})
+	pile = {signature = signature, bilan = reponse.bilan, maillages = maillages}
+	refondre()
+	empilee.emit()
+
+
+## Le bilan de la pile des couches que porte la fusion (`BilanDePile`, `asset/pile.ts`), `{}` si elle n'en porte pas.
+func pile_posee() -> Dictionary:
+	return pile.bilan if _pile_fondue != "" and pile.get("signature") == _pile_fondue else {}
 
 
 ## Par liaison de `piece` (une seule pour une pièce rigide), le rang de la liaison de `skin` qui la porte, ajoutée à
@@ -1302,11 +1472,19 @@ static func _signature(materiau: Material) -> String:
 
 ## La surface `surface` de `piece` en mesh d'une surface, chaque sommet lié aux liaisons de la fusion par `renvois` : ses
 ## os renvoyés pour une pièce skinnée ; tout sur la liaison de son os pour une pièce rigide (`POIDS_RIGIDE`) ; sans ses
-## canaux libres (`CANAUX_LIBRES`).
-static func _surface_liee(piece: MeshInstance3D, surface: int, renvois: PackedInt32Array) -> ArrayMesh:
+## canaux libres (`CANAUX_LIBRES`). Avec `resolu`, ses tableaux résolus par la pile des couches (`recevoir_la_pile`),
+## ses sommets, ses triangles, ses os et ses poids sont ceux-là.
+static func _surface_liee(piece: MeshInstance3D, surface: int, renvois: PackedInt32Array, resolu: Dictionary) -> ArrayMesh:
 	var tableaux := piece.mesh.surface_get_arrays(surface)
 	var os := PackedInt32Array()
-	if piece.skin == null:
+	if not resolu.is_empty():
+		tableaux[Mesh.ARRAY_VERTEX] = resolu.positions
+		tableaux[Mesh.ARRAY_INDEX] = resolu.indices
+		tableaux[Mesh.ARRAY_WEIGHTS] = resolu.poids
+		os = (resolu.os as PackedInt32Array).duplicate()
+		for rang in os.size():
+			os[rang] = renvois[os[rang]]
+	elif piece.skin == null:
 		var poids := PackedFloat32Array()
 		var quatre := PackedInt32Array([renvois[0], renvois[0], renvois[0], renvois[0]])
 		for _sommet in (tableaux[Mesh.ARRAY_VERTEX] as PackedVector3Array).size():

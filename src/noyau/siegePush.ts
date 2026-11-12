@@ -4,7 +4,7 @@
  * design (#156, Lot 2) : mouvement SIMPLE (aucun jet), effort collectif de l'Équipe — le CHEF de pièce
  * pousse, l'ENGIN et TOUS les servants du poste (`ShipPoste.crewIds`) translatent du MÊME delta (formation
  * rigide), exactement comme `avancerLeNavire` (`shipManeuver.ts`) déplace une coque + son équipage. Distance
- * plafonnée à une valeur MAISON éditable (`rule('siege-engine-push-speed')`, engine/policy.ts).
+ * plafonnée à une valeur MAISON éditable (`rule('engin-de-siege-vitesse-de-poussee')`, engine/policy.ts).
  *
  * Module FEUILLE (aucune dépendance combatFlow/combatSlice) : mute les combattants, l'appelant (store)
  * re-set `battle` + émet SCENE_DIRTY — MÊME convention que `mount.ts`.
@@ -83,7 +83,7 @@ export function pushCrewOk(poste: ShipPoste, weapon: Weapon, combatants: Combata
  *  DISTINCTE : un engin poussé n'emprunte PAS le Mouvement du chef, seulement la valeur maison éditable
  *  (ADE II 8 l.258 : roues, aucune vitesse chiffrée). N'altère PAS `mountMovement`. PUR. */
 export function pushMovement(): number {
-  return Number(rule('siege-engine-push-speed'));
+  return Number(rule('engin-de-siege-vitesse-de-poussee'));
 }
 
 /** État de la case « Pousser » de la console — SOURCE UNIQUE du gate d'affordance, découplée du reste

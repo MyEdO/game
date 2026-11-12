@@ -87,7 +87,9 @@
                 "ops": [
                   {
                     "op": "condition",
-                    "id": "sonne"
+                    "id": {
+                      "id": "sonne"
+                    }
                   }
                 ]
               }
@@ -203,7 +205,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "munition-logee"
+                "id": {
+                  "id": "munition-logee"
+                }
               }
             ]
           }
@@ -253,9 +257,13 @@
                 "ops": [
                   {
                     "op": "condition",
-                    "id": "empetre",
+                    "id": {
+                      "id": "empetre"
+                    },
                     "value": 1,
-                    "unlessCondition": "empetre",
+                    "unlessCondition": {
+                      "id": "empetre"
+                    },
                     "escapeStrength": {
                       "charOf": "force"
                     }
@@ -301,9 +309,13 @@
                 "ops": [
                   {
                     "op": "condition",
-                    "id": "empetre",
+                    "id": {
+                      "id": "empetre"
+                    },
                     "value": 1,
-                    "unlessCondition": "empetre",
+                    "unlessCondition": {
+                      "id": "empetre"
+                    },
                     "escapeStrength": 55
                   }
                 ]
@@ -340,9 +352,13 @@
                 "ops": [
                   {
                     "op": "condition",
-                    "id": "empetre",
+                    "id": {
+                      "id": "empetre"
+                    },
                     "value": 1,
-                    "unlessCondition": "empetre",
+                    "unlessCondition": {
+                      "id": "empetre"
+                    },
                     "escapeThreshold": 3,
                     "entangleOnFail": true
                   }
@@ -380,9 +396,13 @@
                 "ops": [
                   {
                     "op": "condition",
-                    "id": "empetre",
+                    "id": {
+                      "id": "empetre"
+                    },
                     "value": 1,
-                    "unlessCondition": "empetre",
+                    "unlessCondition": {
+                      "id": "empetre"
+                    },
                     "escapeThreshold": 3,
                     "entangleOnFail": true,
                     "struggleDamage": 1
@@ -422,7 +442,9 @@
                 "ops": [
                   {
                     "op": "condition",
-                    "id": "surpris"
+                    "id": {
+                      "id": "surpris"
+                    }
                   }
                 ]
               }
@@ -517,7 +539,7 @@
       "page": 298
     },
     "capabilities": {
-      "bladeTrap": true
+      "piegeALame": true
     }
   },
   {
@@ -644,7 +666,9 @@
                 "ops": [
                   {
                     "op": "condition",
-                    "id": "a-terre"
+                    "id": {
+                      "id": "a-terre"
+                    }
                   }
                 ]
               }
@@ -689,7 +713,9 @@
                 "ops": [
                   {
                     "op": "condition",
-                    "id": "hemorragique"
+                    "id": {
+                      "id": "hemorragique"
+                    }
                   }
                 ]
               }
@@ -707,7 +733,9 @@
                   "ops": [
                     {
                       "op": "condition",
-                      "id": "hemorragique"
+                      "id": {
+                        "id": "hemorragique"
+                      }
                     }
                   ]
                 }

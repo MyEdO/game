@@ -12,7 +12,7 @@
 import type { Jeu } from './etat';
 import type { FlowKey } from './flowVerbs';
 import type { HostJet } from './slotsDeJet';
-import type { BatchParticipant, CascadeRoll, CascadeStep, PendingCastOpposition, PendingDefense, SeuilDeSauvegarde } from './pendings';
+import type { BatchParticipant, CascadeRoll, IssueOpposee, CascadeStep, PendingCastOpposition, PendingDefense, SeuilDeSauvegarde } from './pendings';
 import { fleeBackstab, fleeTouche } from './pendings';
 import type { AttackResult, RollBreakdown } from '../engine/combat';
 import type { Combatant } from '../engine/types';
@@ -172,11 +172,11 @@ function opposeBinaire(
   flux: FlowKey,
   foe: { qui: string; test: string; r: JetLu },
   acteur: { qui: string; test: string; r: JetLu },
-  issue: 'success' | 'failure' | 'tie' | null,
+  issue: IssueOpposee | null,
   revele: boolean,
 ): JetEnVue {
   const lignes = [ligne(foe.qui, foe.test, revele ? foe.r : null), ligne(acteur.qui, acteur.test, acteur.r)];
-  const oppose = revele && acteur.r && foe.r && issue ? { gagnante: issue === 'tie' ? null : issue === 'success' ? 1 : 0, drNet: drNet(foe.r, acteur.r) } : null;
+  const oppose = revele && acteur.r && foe.r && issue ? { gagnante: issue === 'egalite' ? null : issue === 'reussite' ? 1 : 0, drNet: drNet(foe.r, acteur.r) } : null;
   return vue(flux, lignes, oppose);
 }
 

@@ -101,13 +101,13 @@ describe('Rétention de souffle (LDB 18 l.346) : BE×10 s avant suffocation si p
     suffocationTick(c);
     expect(c.breathHoldSeconds).toBeUndefined();
   });
-  it('règle `combat-round-seconds` surchargée (LDB 13 l.13 — MJ décide) : décompte selon la surcharge', () => {
-    setRule('combat-round-seconds', 5);
+  it('règle `combat-round-secondes` surchargée (LDB 13 l.13 — MJ décide) : décompte selon la surcharge', () => {
+    setRule('combat-round-secondes', 5);
     const c = mk();
     prepareBreathHold(c); // 30 s
     suffocationTick(c); // 25 s (5 s/Round au lieu de 10)
     expect(c.breathHoldSeconds).toBe(25);
-    resetRule('combat-round-seconds');
+    resetRule('combat-round-secondes');
   });
 });
 
@@ -180,7 +180,7 @@ describe('Effets curés — suffocation (lus de SpellData.effects)', () => {
   it('Ombres étrangleuses : Exténué + suffocation + incantation coupée (« ne peuvent pas parler »)', () => {
     const ops = opsOf('ombres-etrangleuses');
     expect(ops.some((o) => o.op === 'suffocate')).toBe(true);
-    expect(ops.some((o) => o.op === 'condition' && o.id === 'extenue')).toBe(true);
+    expect(ops.some((o) => o.op === 'condition' && o.id.id === 'extenue')).toBe(true);
     expect(ops.some((o) => o.op === 'castPenalty' && o.blocked)).toBe(true);
   });
   it('Transmutation de Chamon : États persistants + 1 PA + suffocation', () => {
@@ -188,7 +188,7 @@ describe('Effets curés — suffocation (lus de SpellData.effects)', () => {
     expect(ops.some((o) => o.op === 'suffocate')).toBe(true);
     expect(ops.some((o) => o.op === 'ap')).toBe(true);
     for (const name of ['aveugle', 'assourdi', 'sonne']) {
-      expect(ops.some((o) => o.op === 'condition' && o.id === name)).toBe(true);
+      expect(ops.some((o) => o.op === 'condition' && o.id.id === name)).toBe(true);
     }
   });
   it('op suffocate : pose l’effet porteur à la durée du sort', () => {

@@ -486,7 +486,7 @@ export const startPursuitSchema = nommerChamps(z.strictObject({
   policy: pursuitPolicySchema.optional(),
 }), { type: { label: "type"  }, partyRole: { label: "rôle du groupe"  }, distance: { label: "distance" }, escapeAt: { label: "distance de fuite" }, skill: { label: "Compétence" }, foes: { label: "adversaires" }, encounter: { label: "rencontre" , texte: { regime: "technique"} }, policy: { label: "décisions de poursuite" } });
 
-/** Ouvre les JEUX DE TAVERNE (`NADJ 16`, option `tavern-games`) — à poser sur un choix de dialogue
+/** Ouvre les JEUX DE TAVERNE (`NADJ 16`, option `jeux-de-taverne`) — à poser sur un choix de dialogue
  *  d'aubergiste (« Une partie ? ») ou une entité de taverne. Sans effet si l'option est éteinte. */
 export const openTavernGamesSchema = nommerChamps(z.strictObject({ type: z.literal('openTavernGames') }), { type: { label: "type"  } });
 

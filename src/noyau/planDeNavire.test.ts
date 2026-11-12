@@ -8,7 +8,7 @@ import { walkReachableFrom } from './monde/path';
 import { VEHICLES_LIST } from '../engine/travel';
 import { estAbsent } from './monde/terrain';
 import { edgeKey } from './monde/facades';
-import { aretesDeLaCouche, plateauDeLaScene, volumeDuRegard } from './monde/aretes';
+import { aretesDeLaCouche, aretesDeLaScene, plateauDeLaScene, volumeDuRegard } from './monde/aretes';
 import { parseSceneDeProjet } from './worldMap';
 import { volumeDuMonde } from './monde/volume/volume';
 import { ficheDEntite } from './monde/sceneNpc';
@@ -156,8 +156,7 @@ describe('ce qu’un hôte dessine d’une scène qui porte un navire', () => {
   });
 
   it('le plateau ne dessine aucune arête des ponts, que la marche garde', () => {
-    const plateau = plateauDeLaScene(s, [{ x: 12, y: 4, z: 2 }], 'tactique');
-    expect(plateau.aretes.filter((a) => aretes.has(a.cle))).toEqual([]);
+    expect(aretesDeLaScene(s).filter((a) => aretes.has(a.cle))).toEqual([]);
     expect((s.walls ?? []).filter((w) => aretes.has(edgeKey(w)))).toHaveLength(aretes.size);
     expect(wallBetween(s, 9, 2, 9, 1, 2)).toBe(true);
   });
