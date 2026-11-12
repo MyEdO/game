@@ -13,6 +13,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { LISTAGE } from './listage.mjs';
 import { pontDuBundle } from './processus.mjs';
 import { ouvrirLeProcessus, type ProcessusDuPont } from './processus.testkit';
+import { stockageDuProcessus } from './stockage.mjs';
 import type { MaillageDeLaPile, PileDemandee } from './pont/pile';
 import type { EnteteDesMorceaux } from './pont/octets';
 import type { MondeDuPont } from './pont/pont';
@@ -100,7 +101,7 @@ describe('vivant', () => {
 describe('pontDuBundle', () => {
   it('la console du bundle est celle donnée', () => {
     const flux = new PassThrough();
-    const pont = pontDuBundle("globalThis.wfrpPont = { appeler: () => (console.log('du noyau'), '{}') }", new Console(flux));
+    const pont = pontDuBundle("globalThis.wfrpPont = { appeler: () => (console.log('du noyau'), '{}') }", new Console(flux), stockageDuProcessus(null));
     pont.appeler('vue');
     flux.end();
     expect(String(flux.read())).toBe('du noyau\n');

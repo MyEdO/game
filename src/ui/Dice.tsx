@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { entierDEntropie } from '../web/entropie';
+import { entierDEntropie } from '../hote/entropie';
 
 /** Affichage canonique d'un d100 (100 → « 00 », zéro-paddé). */
 export const fmtD100 = (roll: number) => (roll === 100 ? '00' : String(roll).padStart(2, '0'));

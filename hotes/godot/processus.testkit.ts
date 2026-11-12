@@ -1,5 +1,5 @@
-/** Un processus du pont (`processus.mjs`) lancé par Node sur son script, pour les tests : sa sortie lue en lignes et en
- *  octets bruts, dans l'ordre où il les écrit. */
+/** Un processus du pont (`processus.mjs`) lancé par Node sur son script et ses options, pour les tests : sa sortie lue
+ *  en lignes et en octets bruts, dans l'ordre où il les écrit. */
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 
 export interface ProcessusDuPont {
@@ -16,8 +16,8 @@ export interface ProcessusDuPont {
   reste: () => Promise<Buffer>;
 }
 
-export function ouvrirLeProcessus(script: string): ProcessusDuPont {
-  const processus = spawn(process.execPath, [script], { stdio: ['pipe', 'pipe', 'pipe'] });
+export function ouvrirLeProcessus(script: string, ...options: string[]): ProcessusDuPont {
+  const processus = spawn(process.execPath, [script, ...options], { stdio: ['pipe', 'pipe', 'pipe'] });
   processus.stderr.resume();
   let recu = Buffer.alloc(0);
   let close = false;
