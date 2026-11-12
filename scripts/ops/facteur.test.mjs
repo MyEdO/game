@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { AUTEURS_ADMIS, MOTS, corpsDuRelais, destinataires, distribuer } from './facteur.mjs'
+import { AUTEURS_ADMIS, MOTS, corpsDuRelais, destinataires, distribuer, sortieDuStep } from './facteur.mjs'
 import { corpsRun, mesurerEtat, stepsDu } from '../gates/workflowsDuDepot.mjs'
 
 const CORPS = '**Courrier** à la PR du lot 2 — réponse attendue.\nDétail du courrier, à ne pas recopier.'
@@ -40,17 +40,21 @@ test('un corps sans mot de tête, ou au mot noyé au milieu, ne se relaie pas', 
 })
 
 test('un Courrier sur une PR ouverte se relaie à cette PR, sur une PR fermée à personne', () => {
-  assert.deepEqual(destinataires(evenement({ numero: 4069, pr: true, body: `  ${CORPS}` }), []).numeros, [4069])
+  assert.deepEqual(destinataires(evenement({ numero: 4069, pr: true }), []).numeros, [4069])
   assert.deepEqual(destinataires(evenement({ numero: 4069, pr: true, state: 'closed' }), []).numeros, [])
+})
+
+test('un corps dont le mot de tête suit des blancs ne se relaie pas', () => {
+  for (const body of [`  ${CORPS}`, `\n${CORPS}`]) assert.deepEqual(destinataires(evenement({ body }), PRS).numeros, [], body)
 })
 
 test('un Courrier sur le ticket va aux PR de ses chantiers du dépôt, jamais à un préfixe numérique ni à une fourche', () => {
   assert.deepEqual(destinataires(evenement(), PRS).numeros, [11, 12])
 })
 
-test('une Prise ou un Rendu d’un auteur admis ne se relaie pas', () => {
-  for (const body of ['**Prise** du lot 2, branche : `chantier/4068-l2`.', '**Rendu** du lot 2.'])
-    assert.deepEqual(destinataires(evenement({ body }), PRS).numeros, [], body)
+test('un autre mot en gras d’un auteur admis ne se relaie pas', () => {
+  const body = '**Note** du lot 2.'
+  assert.deepEqual(destinataires(evenement({ body }), PRS).numeros, [])
 })
 
 test('le Courrier qui donne « réponse sur #12 » n’est pas relayé à son adresse de retour', () => {
@@ -104,6 +108,11 @@ test('distribuer ne lit aucune PR pour un commentaire refusé d’emblée', () =
   assert.deepEqual([b.lectures, vu.poses, vu.refus], [[], [], []])
 })
 
+test('sortieDuStep dit `pose=oui` pour une pose, rien sans pose', () => {
+  assert.equal(sortieDuStep({ poses: [11] }), 'pose=oui\n')
+  assert.equal(sortieDuStep({ poses: [] }), '')
+})
+
 test('facteur.yml : se signale, lit main, et n’interpole rien dans un `run:`', () => {
   const yaml = readFileSync(new URL('../../.github/workflows/facteur.yml', import.meta.url), 'utf8')
   assert.equal(mesurerEtat('facteur.yml', yaml).autosignale, true)
@@ -113,4 +122,11 @@ test('facteur.yml : se signale, lit main, et n’interpole rien dans un `run:`',
   assert.match(checkouts[0].bloc, /^\s*persist-credentials: false\s*$/m)
   for (const ligne of corpsRun(yaml)) assert.ok(!ligne.includes('${{'), ligne)
   assert.ok(corpsRun(yaml).includes('node scripts/ops/facteur.mjs < "$GITHUB_EVENT_PATH"'))
+  const steps = stepsDu(yaml)
+  const relais = steps.filter((s) => corpsRun(s.bloc).includes('node scripts/ops/facteur.mjs < "$GITHUB_EVENT_PATH"'))
+  assert.deepEqual(relais.map((s) => s.id), ['relais'])
+  const signal = steps.filter((s) => corpsRun(s.bloc).some((l) => l.includes('signaler-rouge.mjs')))
+  assert.equal(signal.length, 1)
+  assert.ok(signal[0].si.includes('failure()'), signal[0].si)
+  assert.ok(signal[0].si.includes("steps.relais.outputs.pose == 'oui'"), signal[0].si)
 })

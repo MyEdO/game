@@ -24,11 +24,12 @@ jobs:
           node-version-file: package.json
           check-latest: true
       - name: Relayer le courrier aux PR destinataires
+        id: relais
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node scripts/ops/facteur.mjs < "$GITHUB_EVENT_PATH"
       - name: Se nommer en rougissant
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && (failure() || steps.relais.outputs.pose == 'oui') }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
