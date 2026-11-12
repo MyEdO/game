@@ -38,7 +38,7 @@ var _son: AudioStreamPlayer3D = null
 
 
 func _init() -> void:
-	_lampe.shadow_enabled = Lumiere.rendu_complet()
+	_lampe.shadow_enabled = true
 	_lampe.light_volumetric_fog_energy = HALO
 	_lampe.shadow_caster_mask &= ~VolumeDeScene.COUCHE_DES_LUMINAIRES
 	add_child(_lampe)

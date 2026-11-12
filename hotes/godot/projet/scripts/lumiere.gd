@@ -14,11 +14,12 @@ extends Node3D
 ## @contrat Lumière
 ## Deux rendus dessinent les mêmes scènes (#3951) : Forward+ hors d'une page, où la carte graphique le permet, et le
 ## rendu de compatibilité dans la page ou en repli (`rendering/renderer/rendering_method` de `projet/project.godot`).
-## Sous Forward+ seul (`Lumiere.rendu_complet`), la `Lumiere` allume l'occlusion ambiante et le brouillard volumétrique
-## de son environnement (`projet/scenes/Lumiere.tscn`, qui porte leurs valeurs), et la lampe de chaque foyer porte une
-## ombre. Aucune lampe ne reçoit l'ombre d'un luminaire (les surfaces `luminaire` du volume, section « Monde »), et une
-## lampe portée (sa clé, `portee/<id>`), celle d'aucun corps : ce qui la porte la masquerait (#3811). La recette
-## `projet/recettes/lumiere-des-deux-rendus.gd` le vérifie sous chaque rendu.
+## Sous les deux, la lampe de chaque foyer porte une ombre (#3811) ; sous Forward+ seul (`Lumiere.rendu_complet`), la
+## `Lumiere` allume l'occlusion ambiante et le brouillard volumétrique de son environnement
+## (`projet/scenes/Lumiere.tscn`, qui porte leurs valeurs). Aucune lampe ne reçoit l'ombre d'un luminaire (les
+## surfaces `luminaire` du volume, section « Monde »), et une lampe portée (sa clé, `portee/<id>`), celle d'aucun
+## corps : ce qui la porte la masquerait. La recette `projet/recettes/lumiere-des-deux-rendus.gd` le vérifie sous chaque
+## rendu.
 
 @onready var _environnement: Environment = ($Environnement as WorldEnvironment).environment
 @onready var _soleil: DirectionalLight3D = $Soleil
@@ -27,8 +28,7 @@ extends Node3D
 var _brume: Dictionary = {}
 
 
-## Si le rendu en cours est Forward+, qui porte les ombres des foyers, l'occlusion ambiante et le brouillard
-## volumétrique.
+## Si le rendu en cours est Forward+, qui porte l'occlusion ambiante et le brouillard volumétrique.
 static func rendu_complet() -> bool:
 	return RenderingServer.get_current_rendering_method() == "forward_plus"
 
