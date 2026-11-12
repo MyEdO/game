@@ -1505,7 +1505,7 @@ function rebaseSeatedBodies(scene: Scene): Scene {
   for (const [propId, parMeuble] of Object.entries(scene.seatAssignments ?? {})) {
     const places = seatSlotsOf(scene, propId);
     for (const [slotId, occupant] of Object.entries(parMeuble)) {
-      if (occupant.kind !== 'entity') continue;
+      if (occupant.kind !== 'entite') continue;
       const place = places.find((candidate) => candidate.slotId === slotId);
       if (place) cibles.set(occupant.entityId, { x: place.approach.x, y: place.approach.y });
     }
@@ -1611,7 +1611,7 @@ export function removeEntity(scene: Scene, id: string): Scene {
  *  attablés quand c'est le MEUBLE qui bouge, et lève les places devenues inoccupables). */
 export function moveEntityTo(scene: Scene, id: string, to: Pt): Scene {
   const deplacee = emporterLesObjets(scene, { ...scene, entities: scene.entities.map((e) => (e.id === id ? { ...e, pos: { ...e.pos, x: to.x, y: to.y } } : e)) }, id);
-  const occupant: SeatOccupant = { kind: 'entity', entityId: id };
+  const occupant: SeatOccupant = { kind: 'entite', entityId: id };
   const pose = seatPoseOf(scene, occupant);
   const quitte = !!pose && (pose.approach.x !== to.x || pose.approach.y !== to.y);
   return normaliserLaPose(quitte ? releaseSeat(deplacee, occupant) : deplacee);

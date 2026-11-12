@@ -81,7 +81,7 @@ describe('offresDExploration — les offres de toute entité À PORTÉE, sans su
     const sc = poser([{ id: 'table', kind: 'prop', pos: { x: 5, y: 5 }, decor: { id: TABLE }, label: 'Table ronde', usable: { assise: true } } as SceneEntity]);
     expect(offresDExploration(banc.getState())[0].offres.map((o) => [o.id, o.gate.ok])).toEqual([['sasseoir', true]]);
     const seatAssignments = { table: tableTotale(
-      ['place-1', 'place-2', 'place-3', 'place-4'], (s) => ({ kind: 'entity' as const, entityId: `pnj-${s}` }),
+      ['place-1', 'place-2', 'place-3', 'place-4'], (s) => ({ kind: 'entite' as const, entityId: `pnj-${s}` }),
     ) };
     banc.setState({ scene: { ...sc, seatAssignments } });
     const prises = offresDExploration(banc.getState())[0].offres;

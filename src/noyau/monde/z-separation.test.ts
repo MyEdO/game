@@ -170,7 +170,7 @@ describe("z-blindness #807 — interaction (combatantAtTile, curseur/clic)", () 
 describe('z-blindness #807 — aura (`TriggeredEffect.on:{near}`, effet déclenché SOURCE-AGNOSTIQUE)', () => {
   const auraEffect = {
     trigger: 'onHit' as const,
-    on: { near: 'self' as const, radiusMeters: 4 }, // 4 m → 2 cases
+    on: { near: 'soi' as const, radiusMeters: 4 }, // 4 m → 2 cases
     flow: { kind: 'effet' as const, effet: { type: 'ops' as const, on: 'target' as const, ops: [{ op: 'wounds' as const, amount: 6 }] } },
   };
 

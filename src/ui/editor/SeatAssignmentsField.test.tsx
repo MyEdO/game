@@ -59,7 +59,7 @@ describe('SeatAssignmentsField — authoring des places assises (id-only)', () =
     expect([...ui.selectOf('place-1').options].map((o) => o.value))
       .toEqual(['', 'entity:pnj-aubergiste', ...Array.from({ length: PARTY_MAX }, (_, i) => `party:${i + 1}`)]);
     ui.choose('place-1', 'entity:pnj-aubergiste');
-    expect(ui.sceneOf().seatAssignments).toEqual({ 'table-1': { 'place-1': { kind: 'entity', entityId: 'pnj-aubergiste' } } });
+    expect(ui.sceneOf().seatAssignments).toEqual({ 'table-1': { 'place-1': { kind: 'entite', entityId: 'pnj-aubergiste' } } });
   });
 
   it('pose la `pos` du PNJ sur l’abord EFFECTIF de sa place, dans la même écriture', () => {
@@ -90,7 +90,7 @@ describe('SeatAssignmentsField — authoring des places assises (id-only)', () =
     const ui = mount(sceneWithTableAndNpc());
     ui.choose('place-1', 'entity:pnj-aubergiste');
     ui.choose('place-2', 'entity:pnj-aubergiste');
-    expect(ui.sceneOf().seatAssignments).toEqual({ 'table-1': { 'place-2': { kind: 'entity', entityId: 'pnj-aubergiste' } } });
+    expect(ui.sceneOf().seatAssignments).toEqual({ 'table-1': { 'place-2': { kind: 'entite', entityId: 'pnj-aubergiste' } } });
     expect(ui.sceneOf().entities.find((e) => e.id === 'pnj-aubergiste')?.pos).toEqual({ x: 3, y: 2 });
   });
 
@@ -124,9 +124,9 @@ describe('SeatAssignmentsField — authoring des places assises (id-only)', () =
   it('assigne un EMPLACEMENT par rang, et le déplacer d’une place à l’autre est ACCEPTÉ', () => {
     const ui = mount(sceneWithTableAndNpc());
     ui.choose('place-1', 'party:2');
-    expect(ui.sceneOf().seatAssignments).toEqual({ 'table-1': { 'place-1': { kind: 'party', rang: 2 } } });
+    expect(ui.sceneOf().seatAssignments).toEqual({ 'table-1': { 'place-1': { kind: 'groupe', rang: 2 } } });
     ui.choose('place-3', 'party:2');
-    expect(ui.sceneOf().seatAssignments).toEqual({ 'table-1': { 'place-3': { kind: 'party', rang: 2 } } });
+    expect(ui.sceneOf().seatAssignments).toEqual({ 'table-1': { 'place-3': { kind: 'groupe', rang: 2 } } });
     expect(ui.text()).not.toContain('Place refusée');
   });
 
@@ -137,7 +137,7 @@ describe('SeatAssignmentsField — authoring des places assises (id-only)', () =
     expect(ui.sceneOf().seatAssignments).toEqual({});
     expect([...ui.selectOf('place-1').options].map((o) => o.value)).toContain('party:1');
     ui.choose('place-1', 'party:1');
-    expect(ui.sceneOf().seatAssignments).toEqual({ 'table-1': { 'place-1': { kind: 'party', rang: 1 } } });
+    expect(ui.sceneOf().seatAssignments).toEqual({ 'table-1': { 'place-1': { kind: 'groupe', rang: 1 } } });
   });
 
   it('un abord introuvable REFUSE la place, en toutes lettres, sans écrire', () => {

@@ -84,7 +84,7 @@ export interface VerbesDeLaBarre {
   /** Entrée en Frénésie d'un héros (LDB 21 l.31) : ouvrir la modale, lancer le Test de FM, Chance/Résilience, appliquer. */
   entrerEnFrenesie: () => void;
   /** Capacité SUR SOI octroyée par un trait (Métamorphose humain↔hybride de l'Enfant d'Ulric) : résout la
-   *  manœuvre `targeting:'self'` sur l'acteur et consomme l'Action (la 2ᵉ vient du `loseTurn` de ses effets). */
+   *  manœuvre `ciblage:'soi'` sur l'acteur et consomme l'Action (la 2ᵉ vient du `loseTurn` de ses effets). */
   manoeuvrerSurSoi: (maneuverId: IdDeManoeuvre) => void;
   /** Combat monté (cadre : LDB 14 l.175-187) : enfourcher une monture libre adjacente / en descendre.
    *  Coût = MOUVEMENT sans jet ni Action — MAISON [entériné 2026-07-17] (« Met les en Maison pour le

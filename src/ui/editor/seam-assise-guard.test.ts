@@ -213,7 +213,7 @@ describe('INVARIANT #2 — un seul seam d’assise pour toute mutation d’entit
         // L'emplacement passe par le builder de production `siegeEmplacementEntity`.
         affutDeFixture('affut-1', 'canon-petit', { x: 4, y: 4 }),
       ];
-      s.seatAssignments = { 'table-1': { 'place-1': { kind: 'entity', entityId: 'pnj-1' } } };
+      s.seatAssignments = { 'table-1': { 'place-1': { kind: 'entite', entityId: 'pnj-1' } } };
       return s;
     }
     const HORS_PARTIE = 0; // l'éditeur n'a pas de groupe : les emplacements ne tiennent personne
@@ -238,7 +238,7 @@ describe('INVARIANT #2 — un seul seam d’assise pour toute mutation d’entit
       'setPosteCrew — arme l’affût': (s) => setPosteCrew(s, 'affut-1', ['pnj-1']),
       'setPosteSide — pose l’arc de tir': (s) => setPosteSide(s, 'affut-1', 'babord'),
       'setPosteEngine — change l’engin': (s) => setPosteEngine(s, 'affut-1', 'canon-petit'),
-      'seatOccupant — rassoit le corps': (s) => seatOccupant(s, 'table-1', 'place-2', { kind: 'entity', entityId: 'pnj-1' }, HORS_PARTIE).scene,
+      'seatOccupant — rassoit le corps': (s) => seatOccupant(s, 'table-1', 'place-2', { kind: 'entite', entityId: 'pnj-1' }, HORS_PARTIE).scene,
     };
 
     // Sans cela, un « 0 erreur » ne prouverait rien : la scène de départ doit déjà être valide.

@@ -7,7 +7,7 @@
  * celui de son Type. L'hôte ne décide rien : il dessine la phase et joue le son qu'il reçoit. Aucune conséquence de règle.
  */
 import { allMusicDefs } from '../data/sons/musique';
-import { breathTypes, conditionLabel, domains, etats, findDomainById, findRenduById, findSpellById, findTrappingById, findWeaponGroupById, lightTones, maneuvers, rendus, siegeEngines, type DomainData, type Projectile, type RenduDef, type VisuelDEffet } from '../data';
+import { breathTypes, conditionLabel, domains, etats, findDomainById, findRenduById, findSpellById, findTrappingById, findWeaponGroupById, lightTones, maneuvers, rendus, siegeEngines, type DomainData, type ManeuverDef, type Projectile, type RenduDef, type VisuelDEffet } from '../data';
 import { sonDEffet, sonsDEffet, type SonDEffet } from '../data/sons/registre';
 import { castInfoIsPrayer } from '../engine/magic';
 import type { Weapon } from '../engine/types';
@@ -555,7 +555,7 @@ function variantesDuSort({ rendu, couleur }: { rendu: RenduDef; couleur: string 
 }
 
 /** Les manœuvres qui posent une zone : autour du point visé (`zone`), ou autour de leur auteur. */
-const CIBLAGES_DE_ZONE = new Set(['zone', 'allFoes', 'allAround']);
+const CIBLAGES_DE_ZONE = new Set<ManeuverDef['ciblage']>(['zone', 'adversairesAutour', 'toutAutour']);
 
 /** La vitrine des effets (`VitrineDesEffets`). Un rendu que porte un sort (un Domaine, le hors Domaine, la Prière), une
  *  manœuvre ou un Type de Souffle se montre parmi eux, jamais parmi les armes ; une arme montre sa parade quand son rendu
@@ -567,7 +567,7 @@ export function vitrineDesEffets(): VitrineDesEffets {
   const metresParCase = sceneMetresPerTile(null);
   const caseDeLAuteur: CaseDEffet = { x: 0, y: 0 };
   const caseDeLaCible: CaseDEffet = { x: distanceM / metresParCase, y: 0 };
-  const deZone = maneuvers.filter((m) => CIBLAGES_DE_ZONE.has(m.targeting));
+  const deZone = maneuvers.filter((m) => CIBLAGES_DE_ZONE.has(m.ciblage));
   const pasDArme = new Set<string>([
     REPLI.sort, REPLI.priere,
     ...domains.flatMap((d) => (d.rendu ? [d.rendu.id] : [])),
@@ -593,7 +593,7 @@ export function vitrineDesEffets(): VitrineDesEffets {
   const manoeuvres = deZone.map((m): EffetDeVitrine => ({
     id: m.id,
     label: m.label,
-    effet: m.targeting === 'zone'
+    effet: m.ciblage === 'zone'
       ? zoneDeLaVitrine(de, caseDeLaCible, { rendu: m.rendu?.id }, distanceM)
       : zoneDeLaVitrine(de, caseDeLAuteur, { rendu: m.rendu?.id }, 0),
   }));
