@@ -154,14 +154,15 @@ function avecLAdresse(donnee: unknown, chemin: readonly Segment[], adresse: Desc
   return jsonCanonique(ecrit) === jsonCanonique(ici) ? donnee : pose(donnee, porteur, ecrit);
 }
 
-/** Le porteur `porteur` d'une adresse de clé `cle`, sans elle ni sa prose : ce qui l'identifie hors de son adresse. */
+/** Le porteur `porteur` d'une adresse de clé `cle`, sans elle : ce qui l'identifie hors de son adresse, la prose
+ *  qu'elle lui donne comprise. */
 const sansLAdresse = (porteur: unknown, cle: Segment): string => {
-  const { [cle]: _adresse, desc: _desc, ...reste } = porteur as Record<Segment, unknown>;
+  const { [cle]: _adresse, ...reste } = porteur as Record<Segment, unknown>;
   return jsonCanonique(reste);
 };
 
-/** `o` où chaque objet sans adresse que `retires` reconnaît (`sansLAdresse`) perd sa prose (`desc`) ; `o` lui-même si
- *  aucun ne la porte. */
+/** `o` où chaque objet sans adresse que `retires` reconnaît (`sansLAdresse`), qui porte encore exactement la prose que
+ *  son adresse lui donnait, la perd (`desc`) ; `o` lui-même si aucun ne la porte. */
 function sansLaProseDesAdressesRetirees(o: unknown, retires: ReadonlyMap<string, Segment>): unknown {
   if (Array.isArray(o)) {
     const suite = o.map((e) => sansLaProseDesAdressesRetirees(e, retires));
@@ -183,7 +184,7 @@ function sansLaProseDesAdressesRetirees(o: unknown, retires: ReadonlyMap<string,
  * chapitre la donne, et une écriture qui en apporte une sans son chapitre chargé se refuse (`undefined`). La prose de
  * son porteur (`desc`) est celle du porteur d'`avant` qui porte la même adresse, à tout chemin, sinon celle qu'elle
  * résout (`texteResolu`) ; une adresse neuve qu'aucun chapitre chargé ne résout se refuse. Le porteur dont l'écriture
- * retire l'adresse (le même nœud d'`avant`, hors adresse et prose, qui n'en porte plus) perd la prose qu'elle donnait.
+ * retire l'adresse (le même nœud d'`avant`, prose comprise, qui n'en porte plus) perd la prose qu'elle donnait.
  * Une prose écrite n'est jamais reprise. `apres` lui-même si rien ne change.
  */
 export function adressesScellees(schema: unknown, avant: unknown, apres: unknown, source: SourceDeLEdition): unknown {

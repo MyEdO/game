@@ -134,21 +134,37 @@ describe('la prose d’une adresse suit son adresse, à tout chemin', () => {
     expect(retiree.ok && etapes(retiree.valeur)[1].effet).toEqual({ type: 'journal' });
     const avecTrig = addTrigger(emptyScene('s', 4, 4), { x: 0, y: 0, w: 1, h: 1 });
     const projet = { id: 'p', type: 'projet', label: 'P', versionContenu: 1, maison: 'adresse', scenes: [{ ...avecTrig.scene, triggers: [DEUX] }], narratif: emptyNarratif() };
-    const s = editer(ouvrirLEdition(projet as unknown as Parameters<typeof ouvrirLEdition>[0], true, undefined, null), { geste: 'valeur', porteur: { sorte: 'declencheur', id: TRIG.id }, chemin: ['flow', 'etapes', 1, 'effet', 'descRef'] });
-    const texte = texteAEnregistrer(s);
-    expect(texte.ok && texte.valeur.includes(BF2)).toBe(false);
+    const porteur = { sorte: 'declencheur' as const, id: TRIG.id };
+    const sansAdresse = editer(ouvrirLEdition(projet as unknown as Parameters<typeof ouvrirLEdition>[0], true, undefined, null), { geste: 'valeur', porteur, chemin: ['flow', 'etapes', 1, 'effet', 'descRef'] });
+    expect(texteAEnregistrer(sansAdresse).ok, 'le journal sans texte ne s’enregistre pas').toBe(false);
+    const saisie = editer(sansAdresse, { geste: 'valeur', porteur, chemin: ['flow', 'etapes', 1, 'effet', 'desc'], valeur: 'Texte saisi.' });
+    const texte = texteAEnregistrer(saisie);
+    expect(texte.ok && [texte.valeur.includes('Texte saisi.'), texte.valeur.includes(BF2)]).toEqual([true, false]);
   });
 
-  it('choisie à la session, la cellule s’enregistre scellée, sans la prose qu’elle résout', () => {
+  it('une écriture sans rapport garde la prose saisie d’un journal voisin, et cette prose s’écrit', () => {
+    const SAISIE = 'Texte saisi par l’auteur.';
+    const TROIS = { ...DEUX, flow: { kind: 'sequence', etapes: [...etapes(DEUX), { kind: 'effet', effet: { type: 'journal', desc: SAISIE } }] } } as Trigger;
+    const drapeau = ecrire(TROIS, ['flow', 'etapes', 0, 'effet', 'flag'], 'z');
+    expect(drapeau.ok && etapes(drapeau.valeur).map((e) => e.effet.desc)).toEqual([undefined, BF2, SAISIE]);
+    const reecrite = ecrire(TROIS, ['flow', 'etapes', 2, 'effet', 'desc'], 'Autre texte saisi.');
+    expect(reecrite.ok && etapes(reecrite.valeur).map((e) => e.effet.desc)).toEqual([undefined, BF2, 'Autre texte saisi.']);
+  });
+
+  it('choisie à la session, une cellule de table s’enregistre scellée, sa table comprise, sans la prose qu’elle résout', () => {
     const avecTrig = addTrigger(emptyScene('s', 4, 4), { x: 0, y: 0, w: 1, h: 1 });
     const projet = { id: 'p', type: 'projet', label: 'P', versionContenu: 1, maison: 'adresse', scenes: [{ ...avecTrig.scene, triggers: [avecJournal({ book: LIVRE, ch: '01', parts: [] })] }], narratif: emptyNarratif() };
     const ouverte = ouvrirLEdition(projet as unknown as Parameters<typeof ouvrirLEdition>[0], true, undefined, MANIFESTE);
     const demande = editer(ouverte, { geste: 'appui', point: { case: { x: 0, y: 0 }, f: { x: 0, y: 0 } } });
     const chargee = editer(demande, { geste: 'chapitre', book: LIVRE, ch: '01', texte: TEXTE });
     const cellule = choixDuChamp('declencheur', sceneEditee(chargee).triggers[0], [...ICI, 'parts'], cadre(CHARGEE))!.find((c) => c.libelle === 'cellule')!.valeur;
-    const ecrite = editer(chargee, { geste: 'valeur', porteur: { sorte: 'declencheur', id: TRIG.id }, chemin: [...ICI, 'parts'], valeur: cellule });
-    const texte = texteAEnregistrer(ecrite);
-    expect(texte.ok && effetDe((JSON.parse(texte.valeur) as { scenes: Scene[] }).scenes[0].triggers[0])).toEqual({ type: 'journal', descRef: { book: LIVRE, ch: '01', parts: [scelle(DAGUE)] } });
+    const porteur = { sorte: 'declencheur' as const, id: TRIG.id };
+    const ecrite = editer(chargee, { geste: 'valeur', porteur, chemin: [...ICI, 'parts'], valeur: cellule });
+    const deTable = editer(ecrite, { geste: 'valeur', porteur, chemin: [...ICI, 'parts', 0, 'table'], valeur: 'table des armes#1' });
+    const texte = texteAEnregistrer(deTable);
+    const enregistree = scelle({ ...DAGUE, table: 'table des armes#1' });
+    expect(enregistree.sum, 'scellée').not.toBe('');
+    expect(texte.ok && effetDe((JSON.parse(texte.valeur) as { scenes: Scene[] }).scenes[0].triggers[0])).toEqual({ type: 'journal', descRef: { book: LIVRE, ch: '01', parts: [enregistree] } });
   });
 });
 
