@@ -2,30 +2,24 @@
  * Le Destin sacrifié hors bataille (#3892) : les trois issues de `choixDuCombat`, `battle` nul, le héros lu au groupe
  * (`porteurParId`). LDB 17 l.29-32 ; `.claude/rules/moteur-et-flux.md:13`.
  */
-import { describe, expect, it } from 'vitest';
-import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { heroDuDuel } from './combatDeTest.testkit';
-import { finalizeHeroDeath } from './combatFlow';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { Banc } from './banc.testkit';
+import { frapper, horsBataille } from './coupHorsBataille.testkit';
 import { testScene } from '../scenes/test-fixture';
-import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 import { hasCondition, COND } from '../engine/conditions';
 import type { Combatant } from '../engine/types';
 import { t as tr } from '../i18n';
 
-/** Le héros du groupe, scène lancée, aucune bataille, frappé d'un Critique létal par un assaillant hors de toute
- *  file : Blessures à 0, un Critique de plus, puis la mort que `finalizeHeroDeath` suspend au Destin. */
+afterEach(() => vi.restoreAllMocks());
+
+/** Le héros du groupe, aucune bataille, frappé par l'assaillant par valeur d'un Critique létal sur double : la mort
+ *  que le flux suspend au Destin. */
 function coupLetalHorsBataille(): { banc: Banc; H: Combatant; avant: { wounds: number; crits: number; fate: number } } {
-  const banc = ouvrirLeBanc();
-  banc.setState({ party: [heroDuDuel()] });
-  banc.getState().lancerLaScene(testScene());
-  expect(banc.getState().battle).toBeNull();
-  const H = banc.getState().party[0];
+  const { banc, H, E } = horsBataille(testScene());
   const avant = { wounds: H.wounds.current, crits: H.criticalWounds ?? 0, fate: H.fate ?? 0 };
   expect(avant.fate).toBeGreaterThan(0);
-  H.wounds.current = 0;
-  H.criticalWounds = avant.crits + 1;
-  const E = combattantDeTest({ id: 'assaillant', kind: 'enemy', label: 'Assaillant' });
-  finalizeHeroDeath(banc.getState, banc.setState, H, 'hit', avant.wounds, E);
+  frapper(banc, E, H, [22, 12, 1, 100]);
+  expect(H.criticalWounds ?? 0).toBe(avant.crits + 1);
   expect(banc.getState().pendingFateSave).toMatchObject({ heroId: H.id, source: 'hit', foeId: E.id });
   return { banc, H, avant };
 }
