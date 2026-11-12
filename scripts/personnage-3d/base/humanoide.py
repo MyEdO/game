@@ -29,6 +29,7 @@ from pas_des_poids import cellules_du_domaine  # noqa: E402
 from formes import aretes_des_triangles  # noqa: E402
 from noms_silhouettes import SILHOUETTES  # noqa: E402
 from silhouettes import ajouter_feminin_et_carrure, bornes_de_st, corps_et_secondaires, finir_les_silhouettes  # noqa: E402
+from portage import OS_DES_SILHOUETTES, lire_os_des_silhouettes  # noqa: E402
 from sol import (bas_des_sources, deplacements, figer, garder_les_poids_des_pieds, poser_les_clips_au_sol,  # noqa: E402
                  restaurer, retirer_sans_sol, rigidifier_les_pieds, surfaces_des_pieds)
 from point_fixe import atteindre_le_point_fixe, suite_de_phase  # noqa: E402
@@ -250,7 +251,8 @@ def construire(args):
     corps, secondaires = corps_et_secondaires(peaux)
     corps_f, _ = corps_et_secondaires(meshes_for(bpy, squelette_f))
     bornes = bornes_de_st()
-    table = {**gabarit(squelette), 'st': bornes, 'bornes': bornes_du_gabarit()}
+    table = {**gabarit(squelette), 'st': bornes, 'bornes': bornes_du_gabarit(),
+             OS_DES_SILHOUETTES: lire_os_des_silhouettes(squelette)}
     declaration = json.loads(DECLARATION.read_text(encoding='utf-8'))
     marches = [declaration['clips']['marche']]
     plantes = clips_plantes(declaration)
@@ -271,6 +273,7 @@ def construire(args):
         for action in clips:
             restaurer(action, figee[action.name])
         ajouter_feminin_et_carrure(squelette, corps, squelette_f, corps_f, bornes)
+        table[OS_DES_SILHOUETTES] = lire_os_des_silhouettes(squelette)
         ajouter_corpulence(squelette, corps, args.mpfb)
         neutres = etats_aux_facteurs_neutres(table, silhouettes(peaux))
         rabot = finir_les_silhouettes(squelette, corps, secondaires, table, etats_du_gabarit(table, silhouettes(peaux)),
@@ -419,6 +422,7 @@ def construire(args):
         clips = [bpy.data.actions[n] for n in objets_lus['clips']]
         corps, secondaires = corps_et_secondaires(peaux)
         corps_f, _ = corps_et_secondaires(meshes_for(bpy, squelette_f))
+        table[OS_DES_SILHOUETTES] = lire_os_des_silhouettes(squelette)
         phase, renouveler, etats_silhouettes = reprise['phase'], reprise['renouveler'], reprise['etats_silhouettes']
         references, precedentes, captures = reprise['references'], reprise['precedentes'], reprise['captures']
         contraintes, rabot, passes = reprise['contraintes'], reprise['rabot'], reprise['passe']

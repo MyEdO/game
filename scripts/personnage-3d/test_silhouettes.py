@@ -1,7 +1,8 @@
 """silhouettes.correction sur un cylindre synthétique, contre une résolution KKT directe du même problème, et ses
 erreurs nommées ; silhouettes.raboter_sous_correction, rabot mesuré sur les clés corrigées jusqu'aux bornes
 d'étirement, du repère du mesh au repère monde et retour ; formes.raboter, rabot des clés marquées ; silhouettes.mesurer_domaine,
-mesure incrémentale égale à la porte de construction ; silhouettes.fondu, une part par nœud."""
+mesure incrémentale égale à la porte de construction ; silhouettes.fondu, une part par nœud ; portage d'une silhouette à
+os (#4002) : extrémité rigide et centres d'anneaux portés par leurs os."""
 import contextlib
 import io
 import json
@@ -276,8 +277,8 @@ class LissageSousCorrection(unittest.TestCase):
         self.vus = []
         corriger = correction(self.x, self.aretes, self.noeud, self.libre == 0, anneaux(self.x, NIVEAUX_DES_ANNEAUX))
 
-        def corriger_et_noter(champs, repartitions=None):
-            corriges, sonde = corriger(champs, repartitions)
+        def corriger_et_noter(champs, repartitions=None, centres=None):
+            corriges, sonde = corriger(champs, repartitions, centres)
             self.vus.append(([d for d, _ in champs], corriges))
             return corriges, sonde
 
@@ -289,18 +290,49 @@ class LissageSousCorrection(unittest.TestCase):
         brut[:, 1] = 0.1 * numpy.sin(5 * self.x[:, 2])
         return brut
 
-    def finir(self, bruts, bornes=BORNES, vers_le_monde=None, rabot=None):
+    def finir(self, bruts, bornes=BORNES, vers_le_monde=None, rabot=None, portes=None):
         """Les champs finis de `raboter_sous_correction` sur les clés `bruts` au repère du mesh, repos `self.x` porté
-        dans ce repère par l'inverse de `vers_le_monde` (par défaut l'identité), depuis le rabot cumulé `rabot`."""
-        return self.finir_et_raboter(bruts, bornes, vers_le_monde, rabot)[0]
+        dans ce repère par l'inverse de `vers_le_monde` (par défaut l'identité), depuis le rabot cumulé `rabot`, sous
+        les portages `portes`."""
+        return self.finir_et_raboter(bruts, bornes, vers_le_monde, rabot, portes)[0]
 
-    def finir_et_raboter(self, bruts, bornes=BORNES, vers_le_monde=None, rabot=None):
+    def finir_et_raboter(self, bruts, bornes=BORNES, vers_le_monde=None, rabot=None, portes=None):
         vers_le_monde = numpy.eye(3) if vers_le_monde is None else vers_le_monde
         repos = self.x @ numpy.linalg.inv(vers_le_monde)
         with contextlib.redirect_stdout(io.StringIO()):
             return raboter_sous_correction(bruts, self.noeud, self.aretes, self.libre, self.corriger, vers_le_monde,
                                           lambda champs: {nom: hors_de(rapports(repos, d, self.aretes), bornes)
-                                                          for nom, d in champs.items()}, rabot)
+                                                          for nom, d in champs.items()}, rabot, portes)
+
+    def porte(self):
+        """Une silhouette à os sur le cylindre : les sommets tenus (`libre` nul) tout à un os rigide de déplacement
+        `RIGIDE`, le portage C ailleurs une rampe le long de l'axe, l'os de chaque anneau déplacé de C au centre de
+        l'anneau. Rend T = C + H, F = (1 − libre)·C, les cibles des centres d'anneaux et le déplacement de leurs os."""
+        c = numpy.where((self.libre == 0)[:, None], self.RIGIDE, 0.04 * numpy.outer(self.x[:, 2], [1.0, 0.5, 0.0]))
+        f = (1.0 - self.libre)[:, None] * c
+        lus = anneaux(self.x, NIVEAUX_DES_ANNEAUX)
+        sommets = [numpy.array([v['indice'] for v in a['sommets']]) for a in lus['anneaux']]
+        os_ = numpy.array([c[s].mean(axis=0) + [0.0, 0.0, 0.01] for s in sommets])
+        cibles = numpy.array([len(s) * d - f[s].sum(axis=0) for s, d in zip(sommets, os_)])
+        return c + self.translation(), f, cibles, sommets, os_
+
+    RIGIDE = numpy.array([0.03, -0.02, 0.01])
+
+    def test_un_sommet_tout_a_un_os_rigide_garde_le_portage_de_son_os_avant_et_apres_finition(self):
+        t, f, cibles, _, _ = self.porte()
+        tenus = self.libre == 0
+        self.assertTrue(tenus.any())
+        numpy.testing.assert_array_equal((f + self.libre[:, None] * t)[tenus], numpy.tile(self.RIGIDE, (tenus.sum(), 1)))
+        fini = self.finir({'k': (t, None)}, portes={'k': (f, cibles)})['k']
+        numpy.testing.assert_allclose(fini[tenus], numpy.tile(self.RIGIDE, (tenus.sum(), 1)), rtol=0, atol=TOLERANCE)
+        self.assertEqual(self.hors(fini), 0)
+
+    def test_le_centre_de_chaque_anneau_suit_le_deplacement_de_son_os(self):
+        t, f, cibles, sommets, os_ = self.porte()
+        fini = self.finir({'k': (t, None)}, portes={'k': (f, cibles)})['k']
+        for s, d in zip(sommets, os_):
+            self.assertGreater(numpy.abs(t[s].mean(axis=0) - d).max(), 1e-3)
+            numpy.testing.assert_allclose(fini[s].mean(axis=0), d, rtol=0, atol=TOLERANCE)
 
     def hors(self, champ, bornes=BORNES):
         return int(hors_de(rapports(self.x, champ, self.aretes), bornes).sum())
@@ -328,7 +360,7 @@ class LissageSousCorrection(unittest.TestCase):
         """Un correcteur bouchon qui annule la moitié basse : la bosse qu'il efface ne se rabote pas."""
         bas = self.x[:, 2] < HAUTEUR / 2
 
-        def projeter(champs, repartitions=None):
+        def projeter(champs, repartitions=None, centres=None):
             self.vus.append([d.copy() for d, _ in champs])
             return [numpy.where(bas[:, None], 0.0, d) for d, _ in champs], {'bouchon': 'projette'}
 
