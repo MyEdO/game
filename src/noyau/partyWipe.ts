@@ -15,6 +15,7 @@
  */
 import { isOutOfAction } from '../engine/conditions';
 import type { Get, Set } from './flowTypes';
+import { rencontreEngagee } from './monde/combatants';
 import type { PendingCascade } from './pendings';
 
 /** Le groupe est-il anéanti HORS COMBAT ? Si oui, présente la défaite (drapeau `partyWiped`) et purge
@@ -23,7 +24,7 @@ import type { PendingCascade } from './pendings';
  *  d'attaques subies. */
 export function checkPartyWiped(get: Get, set: Set): boolean {
   // En combat, `checkBattleOver` gère la défaite ; pendant une série d'attaques subies, sa fermeture (`fermerLaSerieSubie`).
-  if (get().battle || get().serieSubie) return false;
+  if (rencontreEngagee(get())) return false;
   if (get().partyWiped) return true;
   if (!groupeNonViable(get)) return false; // au moins un héros ENCORE EN ACTION (même prédicat que la fin de bataille)
   set({
