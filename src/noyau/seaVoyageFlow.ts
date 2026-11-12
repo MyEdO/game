@@ -1516,7 +1516,7 @@ export function continueSeaDayAfterCascade(get: Get, set: Set, auPv: CascadeStep
     set({ vessel: { ...vessel0, waterLitres: left } });
     tell(get, set, [left > 0 ? t('sv.freshWater', { need, souls, left }) : t('sv.waterDry')]);
   }
-  // Vivres de l'équipage PNJ (MDG 14 l.238/250) : l'effectif nominal mange sur les rations de mer de la cale.
+  // Vivres de l'équipage PNJ (MDG 14 l.238/250) : l'effectif nominal mange sur les vivres de la cale.
   tell(get, set, consumeCrewProvisions(get, set, 1));
 
   // Maladies embarquées (MDG 14 l.209-230) : Tonneau d'eau contaminé (l.209, `buildBarrelSteps`) + Mal de

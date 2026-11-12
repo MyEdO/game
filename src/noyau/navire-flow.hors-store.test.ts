@@ -451,6 +451,24 @@ describe('Ressources de bord en grammaire (#1652 lot 3 — MDG 15)', () => {
     expect(setVesselSchema.safeParse({ type: 'setVessel', vehicleId: 'cogue', provisions: { 'tonneau-d-eau-douce': 10 } }).success).toBe(false);
     expect(setVesselSchema.safeParse({ type: 'setVessel', vehicleId: 'cogue', provisions: { 'biscuits-de-mre': 10 } }).success).toBe(false);
     expect(adjustVesselSchema.safeParse({ type: 'adjustVessel', provisions: { [FRAIS]: 3, 'tonneau-d-eau-douce': 10 } }).success).toBe(false);
+    expect(setVesselSchema.safeParse({ type: 'setVessel', vehicleId: 'cogue', provisions: { ration: 10 } }).success).toBe(false);
+    expect(gameOpSchema.safeParse({ op: 'provisions', jours: 3, vivre: { id: 'nourriture-course-journee' } }).success).toBe(false);
+  });
+
+  it('une op `provisions` hors de sa forme est refusée au parse, et `jours` sans `vivre` nomme le champ manquant', () => {
+    const sansVivre = gameOpSchema.safeParse({ op: 'provisions', jours: 3 });
+    expect(sansVivre.success).toBe(false);
+    expect(sansVivre.error!.issues.map((i) => i.message).join(' ')).toContain('« vivre »');
+    expect(gameOpSchema.safeParse({ op: 'provisions', gateesPct: 50, vivre: { id: BISCUITS } }).success).toBe(false);
+    expect(adjustVesselSchema.safeParse({ type: 'adjustVessel', provisions: { [BISCUITS]: 'dix' } }).success).toBe(false);
+    expect(adjustVesselSchema.safeParse({ type: 'adjustVessel', provisions: 30 }).success).toBe(false);
+  });
+
+  it('les vivres posés par setVessel/adjustVessel sont des rations entières, jamais négatives (MDG 14 l.245-252)', () => {
+    expect(setVesselSchema.safeParse({ type: 'setVessel', vehicleId: 'cogue', provisions: { [BISCUITS]: 0 } }).success).toBe(true);
+    expect(setVesselSchema.safeParse({ type: 'setVessel', vehicleId: 'cogue', provisions: { [BISCUITS]: -5 } }).success).toBe(false);
+    expect(setVesselSchema.safeParse({ type: 'setVessel', vehicleId: 'cogue', provisions: { [BISCUITS]: 2.5 } }).success).toBe(false);
+    expect(adjustVesselSchema.safeParse({ type: 'adjustVessel', provisions: { [FRAIS]: -1 } }).success).toBe(false);
   });
 
   it('setVessel remplace les vivres de la cale, adjustVessel pose la valeur de chaque vivre listé', () => {

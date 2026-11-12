@@ -217,7 +217,7 @@ function refuserLeVivreHorsCale(id: string, path: PropertyKey[], ctx: z.Refineme
 
 /** Les vivres de la cale (`VivresDeCale`, `engine/provisions.ts`), en rations (jours-homme) par vivre, posés par
  *  `setVessel`/`adjustVessel`. MDG 14 l.245-252 */
-export const vivresDeCaleSchema = recordDIds('trapping', nommerNoeud(z.number(), { nom: 'rations (jours-homme)' }))
+export const vivresDeCaleSchema = recordDIds('trapping', nommerNoeud(z.number().int().min(0), { nom: 'rations (jours-homme)' }))
   .superRefine((v, ctx) => { for (const id of Object.keys(v)) refuserLeVivreHorsCale(id, [id], ctx); });
 
 /** Le SUJET d'un jet : ce qu'il teste, Compétence ou Caractéristique (LDB 12 l.7, l.131). */
@@ -513,7 +513,7 @@ const DECLARATIONS_D_OPS = {
   rationsDEscale: nommerChamps(z.strictObject({
     op: z.literal('rationsDEscale'),
     montant: nommerChamps(z.strictObject({ brass: formulaSchema }), { brass: { label: "sous de cuivre" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
-  }), { op: { label: "opération"  }, montant: { label: "prix d’une ration-jour de cale" } }),
+  }), { op: { label: "opération"  }, montant: { label: "prix d’une ration-jour de vivres frais" } }),
   /** `marcheDuPort` : bascule des colonnes (`colonnes`), lot offert (`offre`) OU Demande accrue ailleurs (`demande`,
    *  `jours`), exclusifs. MDG 15 l.253, l.256, l.259, l.263 */
   marcheDuPort: z.union([
@@ -531,7 +531,7 @@ const DECLARATIONS_D_OPS = {
         : undefined;
     },
   }),
-  /** `provisions` : jours de vivres gagnés (`jours`), part gâtée (`gateesPct`), rations de mer (`rations`) OU tonneaux
+  /** `provisions` : jours de vivres gagnés (`jours`), part gâtée (`gateesPct`), rations (`rations`) OU tonneaux
    *  d'eau (`eauTonneaux`), exclusifs ; `jours` et `rations` nomment leur vivre de la cale (`vivre`).
    *  MDG 15 l.169-170, l.235-236, l.194 ; MDG 14 l.242, l.245-252 */
   provisions: z.union([
@@ -541,9 +541,12 @@ const DECLARATIONS_D_OPS = {
     nommerChamps(z.strictObject({ op: z.literal('provisions'), eauTonneaux: formulaSchema }), { op: { label: "opération"  }, eauTonneaux: { label: "tonneaux d’eau" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
   ], {
     error: (iss) => {
-      const v = (iss.input ?? {}) as { jours?: unknown; gateesPct?: unknown; rations?: unknown; eauTonneaux?: unknown };
-      return [v.jours, v.gateesPct, v.rations, v.eauTonneaux].filter((x) => x !== undefined).length !== 1
-        ? 'Provisions EXCLUSIVES : « jours » (vivres gagnés), « gateesPct » (part gâtée), « rations » (rations de mer) OU « eauTonneaux » (tonneaux d’eau) — exactement un des quatre.'
+      const v = (iss.input ?? {}) as { jours?: unknown; gateesPct?: unknown; rations?: unknown; eauTonneaux?: unknown; vivre?: unknown };
+      if ([v.jours, v.gateesPct, v.rations, v.eauTonneaux].filter((x) => x !== undefined).length !== 1) {
+        return 'Provisions EXCLUSIVES : « jours » (vivres gagnés), « gateesPct » (part gâtée), « rations » (rations d’un vivre) OU « eauTonneaux » (tonneaux d’eau) — exactement un des quatre.';
+      }
+      return (v.jours !== undefined || v.rations !== undefined) && v.vivre === undefined
+        ? 'Provisions : « jours » et « rations » nomment leur « vivre » (un vivre de la cale, sea-navigation.json longsVoyages.vivresDeCale).'
         : undefined;
     },
   }),

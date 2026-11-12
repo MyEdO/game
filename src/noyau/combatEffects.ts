@@ -56,7 +56,7 @@ import { ouvrirLeRepos, placesOfKind, sceneLieu } from './restFlow';
 import { avecSequelles, traumaById, dechirureFractureFicheId, permanentAmputations } from '../engine/trauma';
 import { DAY_PHASES, MINUTES_PER_DAY, dayIndex, minutesUntilNext, scheduleAt } from '../engine/clock';
 import { TIME_COST } from '../engine/timeCost';
-import { feedFromMeal, applyFaimTest, applySoifTest, rationsDeCale, type VivresDeCale } from '../engine/provisions';
+import { feedFromMeal, applyFaimTest, applySoifTest, rationsDeCale } from '../engine/provisions';
 import { isWeatherWarded, exposureTarget, exposureCoatMods, type ExposureKind } from '../engine/exposure';
 import { findSpellById } from '../data/index';
 import { toBrass, fromBrass, toMoney, formatMoney } from '../engine/money';
@@ -870,10 +870,6 @@ export function messageCibleHorsScene(e: { label?: string; on?: EffectOp['on'] }
     + '(cible et lanceur résolus par sa porte, `routeTriggeredTest`), que le marcheur de scène ne connaît pas. '
     + 'Une scène vise `party`, `hero` (+ `heroId`), `navire`, `membreAuHasard`, un rôle d’équipage (`{ role }`) ou des volontaires (`{ volontaires }`).';
 }
-
-/** Les rations posées par vivre d'un `setVessel`/`adjustVessel`, en valeur absolue. MDG 14 l.245-252 */
-const vivresPoses = (poses: VivresDeCale): VivresDeCale =>
-  Object.fromEntries(Object.entries(poses).map(([id, n]) => [id, Math.max(0, n ?? 0)]));
 
 /** Le refus d'une op de NAVIRE posée sur une autre cible que `navire` : elle n'y aurait aucun effet. */
 function messageOpDuNavireHorsNavire(e: { on?: EffectOp['on']; ops: readonly GameOp[] }): string | undefined {
@@ -2114,7 +2110,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
           ...(e.hullMax != null ? { wounds: { current: e.hullCurrent ?? e.hullMax, max: e.hullMax } } : {}),
           ...(e.saboteurDR != null ? { saboteurDR: e.saboteurDR } : {}),
           ...(e.waterLitres != null ? { waterLitres: Math.max(0, e.waterLitres) } : {}),
-          ...(e.provisions != null ? { provisions: vivresPoses(e.provisions) } : {}),
+          ...(e.provisions != null ? { provisions: e.provisions } : {}),
           ...(e.crew && e.crew.length ? { crew: e.crew.filter((h) => h.roleId && h.count > 0) } : {}),
         },
       });
@@ -2139,7 +2135,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       if (e.morale != null) { next.morale = { ...vessel.morale, score: e.morale }; parts.push(t('eff.navireMoral', { n: e.morale })); }
       if (e.saboteurDR != null) { next.saboteurDR = clampSaboteurDR(e.saboteurDR); parts.push(t('eff.navireSabotage', { n: next.saboteurDR })); }
       if (e.waterLitres != null) { next.waterLitres = Math.max(0, e.waterLitres); parts.push(t('eff.navireEau', { n: next.waterLitres })); }
-      if (e.provisions != null) { next.provisions = { ...vessel.provisions, ...vivresPoses(e.provisions) }; parts.push(t('eff.navireProvisions', { n: rationsDeCale(next.provisions) })); }
+      if (e.provisions != null) { next.provisions = { ...vessel.provisions, ...e.provisions }; parts.push(t('eff.navireProvisions', { n: rationsDeCale(next.provisions) })); }
       if (e.crew && e.crew.length) { next.crew = e.crew.filter((h) => h.roleId && h.count > 0); parts.push(t('eff.navireEquipage', { n: next.crew.reduce((s, h) => s + h.count, 0) })); }
       // Blessures de coque : valeur ABSOLUE d'auteur → seam `setVesselHull` (#308, pas d'écriture directe
       // de `vessel.wounds` — resynchronise aussi la copie de travail `travelPlan.vehicle` si active).
