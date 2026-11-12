@@ -19,11 +19,11 @@ MANIFESTE = {
     'liaison': {'mode': 'squelette'},
     'couche': 'manteau',
     'couvre': [],
-    'chaines': ['jupe'],
+    'chaines': ['cape'],
 }
 # `couvre` vide : un manteau masque au montage chaque zone qu'il couvre, sur le corps et sur les éléments de couche
 # inférieure (`masquer_les_zones_couvertes`, `hotes/godot/projet/scripts/montage_de_composition.gd`) ; la cape, ouverte
-# devant, ne cache aucune zone entière. `chaines` : la chaîne dont les os pondèrent la cape, empruntés à la robe.
+# devant, ne cache aucune zone entière. `chaines` : le filet de la base qui porte la cape sous `HAUT`.
 MATERIAUX = {'cape': ('accent', ((0.35, 0.37, 0.36), 0.0, 0.9))}
 """Illustration : drap vert-noir, de la teinte de la capuche en plus sombre ; `SLOTS` (`src/lib/palette.ts`) n'a que deux
 emplacements de vêtement, pris par la robe : `accent`, celui de la capuche (HYPOTHÈSE). Gris de construction."""
@@ -43,7 +43,6 @@ ZONES_DU_CORPS = ['torse', 'hanches']
 BUDGET_TRIANGLES = 2500           # procédure du skill, section 7 : vêtement par pièce
 EPAISSEUR = 0.004                 # HYPOTHÈSE : drap de laine épais, double nappe, comme la capuche
 
-AXE = {'os': 'pelvis'}            # base : la tête du bassin (y = 0,043) est dans toutes les coupes du dos, jusqu'à l'ourlet
 X_BRAS = 0.20
 """Base : au repos (bras en T), au-dessus de `Z_BRAS`, les coupes, les visées et les poids empruntés ne gardent que
 |x| <= `X_BRAS`, en dedans des têtes de `upperarm_*` (x = ±0,212) : les manches et les bras ne portent pas la cape ; le bord
@@ -74,22 +73,19 @@ passant à `centre` (y, z) de la tête de `os`, s'arrêtent au jeu, mené de `je
 `JEU` ; `pas` (m) des visées."""
 OURLET = 0.37
 """Illustration : le bas de la cape, entre les lambeaux, à environ 195 px au-dessus des semelles, mi-mollet."""
-DEMI_OUVERTURE = (44.0, 100.0)
+DEMI_OUVERTURE = (44.0, 65.0)
 """(à `HAUT`, à l'ourlet), degrés d'azimut de chaque bord latéral depuis le dos. Haut, HYPOTHÈSE : le bord passe derrière
 l'épaule (x ≈ 0,15 m), sur l'omoplate, en dedans de l'emmanchure : à 58° (x ≈ 0,19 m), le haut de la manche de la robe
 passe devant la cape quand le bras bouge (jusqu'à 24 mm, Death01) ; à 48°, sous `carrure_plus`, où le flanc de la robe
 s'élargit vers la manche qui ne bouge pas, jusqu'à 96 mm (LayToIdle) ; à 40°, les arêtes du haut s'étirent sous
-`carrure_plus` (garde `etirement`, 13 clips). Ourlet, illustration : vue de
-trois quarts, la cape déborde la hanche gauche et s'évase sur le côté."""
+`carrure_plus` (garde `etirement`, 13 clips). Ourlet : en deçà du brin de bord du filet `cape` de la base (67,5°), au-delà
+duquel aucun brin ne porte la nappe ; au rayon de l'ourlet, la cape déborde la hanche (illustration, vue de trois quarts)."""
 COLONNES = 24                     # intervalles en azimut (HYPOTHÈSE de maillage) : quatre par pli
 RANGS = 15                        # intervalles de `HAUT` à l'ourlet (HYPOTHÈSE de maillage)
 
 JEU = 0.008
 """HYPOTHÈSE : jeu de la nappe intérieure à l'enveloppe convexe de la coupe (robe et corps) ; plus près, la garde `traversee`
 lie la robe sous la cape à moins de 3 cm (`PORTEE_DE_COUVERTURE_M`), et la cape doit la suivre."""
-EVASEMENT = 0.06
-"""HYPOTHÈSE : à l'ourlet, la cape tombe à `EVASEMENT` au-delà du jeu ; entre `HAUT` et l'ourlet, elle va en ligne
-droite d'un appui à l'autre (enveloppe concave du profil), sans épouser les creux du dos."""
 PAS_DU_PROFIL = 0.01              # m : pas vertical des coupes du profil de chaque colonne
 PLIS = {'nombre': 6, 'ampleur': 0.035}
 """Illustration : la cape tombe en grands plis verticaux. Lobes du rayon en azimut, nuls à `HAUT`, d'ampleur croissante

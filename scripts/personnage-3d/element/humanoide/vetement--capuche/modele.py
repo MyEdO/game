@@ -197,10 +197,10 @@ def couture_du_cou(D, b):
     return np.array([q for q in cou if arbre.find_nearest(Vector(q.tolist()))[3] < D['ECHARPE']['couture_tolerance']])
 
 
-def echarpe(D, b, M, contournees, robe):
-    """Le bas de l'écharpe suit la couture du cou, posé sur le torse, par-dessus la robe qu'il touche ; chaque anneau
-    au-dessus, à sa hauteur depuis l'os de hauteur (l'avant abaissé de sa pente), est visé horizontalement depuis l'axe
-    de la couture."""
+def echarpe(D, b, M, contournees, cols):
+    """Le bas de l'écharpe suit la couture du cou, posé sur le torse et sur ce que `cols`, les vêtements à col, en
+    couvrent sous lui, par-dessus le col qu'il touche ; chaque anneau au-dessus, à sa hauteur depuis l'os de hauteur
+    (l'avant abaissé de sa pente), est visé horizontalement depuis l'axe de la couture."""
     c = D['ECHARPE']
     couture = couture_du_cou(D, b)
     centre = couture[:, :2].mean(0)
@@ -210,8 +210,8 @@ def echarpe(D, b, M, contournees, robe):
     thetas = np.array([2 * math.pi * i / s - math.pi for i in range(s)])
     dirs = [np.array([math.sin(t), -math.cos(t), 0.0]) for t in thetas]
     # Le bas : au-delà de la couture (elle va en dents de scie, au gré des triangles des deux zones), au plus grand
-    # rayon de ses sommets voisins en angle, posé sur le torse.
-    torse = Contournees(D, [zone(b, 'torse')])
+    # rayon de ses sommets voisins en angle, posé sur le torse habillé.
+    torse = cols.plus([zone(b, 'torse')])
     dz, ecart = c['bas']
     portee_au_col, ecart_au_col, jeu_au_col = c['col']
     voisinage_angulaire = 1.5 * math.pi / s
@@ -224,8 +224,8 @@ def echarpe(D, b, M, contournees, robe):
         if loc is None:
             raise ValueError(f'écharpe : pas de torse sous {xy.round(3).tolist()}')
         O = np.array([centre[0], centre[1], loc.z + dz])
-        sur_la_robe = robe.exterieur(O, d, portee_au_col, jeu_au_col)
-        sur_le_col = sur_la_robe if sur_la_robe is not None and sur_la_robe <= r + ecart_au_col else 0.0
+        vu = cols.exterieur(O, d, portee_au_col, jeu_au_col)
+        sur_le_col = vu if vu is not None and vu <= r + ecart_au_col else 0.0
         r0.append(r)
         hauteurs.append(O[2])
         rangs[0].append(O)
@@ -357,7 +357,7 @@ def construire(D, materiaux, b):
     faces_capuchon = capuchon(D, b, M, tete_et_cou)
     X = np.array(M.sommets)
     avec_capuchon = tete_et_cou.plus([surface_de(X, faces_capuchon)])
-    part_de_la_tete, bas_de_l_echarpe, posees = echarpe(D, b, M, avec_capuchon, Contournees(D, [dessous[:2]]))
+    part_de_la_tete, bas_de_l_echarpe, posees = echarpe(D, b, M, avec_capuchon, Contournees(D, [robe[:2], cape[:2]]))
     pan(D, b, M, Contournees(D, [zone(b, 'torse')]), Contournees(D, [cape[:2]]))
 
     X, orientes, normales = M.orienter()

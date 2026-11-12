@@ -1153,9 +1153,10 @@ describe('evaluer', () => {
     expect(positionsAnimees(fiche)).toEqual([]);
   });
 
-  it('refuse des facteurs de gabarit sans table de gabarit valide, et un clip absent', async () => {
+  it('refuse des facteurs de gabarit sans table de gabarit valide, et un clip absent, demandé ou plafonné', async () => {
     await expect(evaluer({ base: glbFabrique(), facteurs: { legs: 1.1 } })).rejects.toThrow(/sans table de gabarit/);
     await expect(evaluer({ base: glbFabrique(), clips: ['Absent'] })).rejects.toThrow(/Absent/);
+    await expect(evaluer({ base: glbFabrique(), plafondsDesMembres: { Absent: 1 } })).rejects.toThrow(/Absent/);
   });
 
   it('refuse une silhouette ou une carrure que la base ne porte pas', async () => {

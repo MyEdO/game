@@ -60,19 +60,12 @@ CORSAGE = [('bas', 0.0, 0.008, 0.0), ('bas', 0.12, 0.012, 0.0), ('aisselle', -0.
 RECOUVREMENT_POITRINE = 20.0       # HYPOTHÈSE : la poitrine court sous la robe sur une colonne (20°) de chaque bord du V
 COLONNES_POITRINE = 4              # intervalles de la poitrine par anneau (maillage)
 
-# --- Jupe : rangées horizontales sous le corsage, cône évasé depuis la ligne des hanches ---
+# --- Jupe : rangées horizontales sous le corsage, posées et pondérées sur le filet `jupe` de la base (`tissu.Filet`) ---
 Z_HANCHES = 0.90                   # base : coupe la plus large du bassin et des cuisses (x ±0,18 m)
 AISANCE_HANCHES = 0.04             # HYPOTHÈSE : la robe, froncée sous la ceinture, tombe des hanches sans les mouler ;
                                    # à moins, le petit rayon du devant étire les arêtes au-delà de la porte en clip (Roll) ;
                                    # à 0,055, l'ourlet latéral se lie au corps autrement sous `gabarit_legs_moins` et le
                                    # lissage des clés décolle la pièce (suiviDuCorps/cle-non-suivie)
-EVASEMENT_DEVANT = 1.8             # illustration : de face, l'ourlet de la robe de dessous fait ~1,8 fois la largeur aux
-                                   # hanches ; la robe de dessus, plus courte, suit le même cône
-EVASEMENT_ARRIERE = 2.8            # HYPOTHÈSE (dos non montré) : jupe plus pleine derrière, pour que le talon, relevé
-                                   # en marche par le genou plié, reste sous l'ourlet, et la botte droite au repos
-                                   # (Idle_Loop, Hampe_Repos_Loop : pied reculé de ~30 cm par le genou plié, cuisse à
-                                   # 17°, que seul suit le brin arrière) : elle traversait la robe de dessous de 92 mm
-                                   # à 2,0, de 35 mm à 2,4 (sonde de saillie des bottes, ourlet à `OURLET_DESSOUS`)
 # Longueurs : illustration, hauteurs au sol rapportées à la ceinture (centre de la ceinture à y 567 px, sol entre les
 # semelles à y 1095 px ; centre de la ceinture publiée à z 1,098 m, soit 2,08 mm par pixel).
 OURLET_ROBE = 0.40                 # illustration : la robe de dessus tombe à mi-mollet (y ~905 px)
@@ -94,27 +87,6 @@ COLONNES_OUVERTURE = 4             # intervalles de la robe de dessous dans l'ou
                                    # à 2 intervalles, la corde de l'ourlet (26°) rentre sur le pied, qui la traverse
                                    # sous `carrure_plus`
 ECART_DESSOUS = 0.008              # HYPOTHÈSE : la robe de dessous court 8 mm sous la robe de dessus
-
-# --- Poids de la jupe : chaîne `jupe` de la base (4 brins : avant θ=0, g θ=90, arrière θ=180, d θ=270) ---
-# Le poids d'un brin décroît linéairement de 1 à son angle à 0 à l'angle des brins voisins (90°) : tout secteur où un brin
-# porte seul la jupe raidit le fondu et étire les arêtes au-delà de la porte en clip (×6 en Sword_Attack à 50°, ×3,6 à
-# 15°, mesurés en passe neutre).
-# Part des brins à la hauteur z (le reste au bassin) : deux brins voisins, ou un brin et le bassin, tournés l'un de
-# l'autre de φ écartent un point à L sous la tête des brins de c·L, c = 2·sin(φ/2). Arête horizontale : deux colonnes
-# voisines, d'angles θ et θ+Δθ, diffèrent de part·Δθ/90° en poids de brin, et l'arête, longue de r·Δθ, se replie dès que
-# part·c·L/(π/2) atteint r, quel que soit Δθ. Arête verticale : sous la rangée au bassin, l'écart part·c·L croît plus
-# vite que la hauteur dès que part atteint 1/c. La part vaut donc MARGE_DE_PLI/c·min(1, π·r(z)/(2L)), bornée à 1,
-# r(z) le plus petit rayon de la rangée aux quatre brins (le devant : l'arête la plus courte à Δθ donné) ; sous
-# `Z_HANCHES`, les poids du corps sont ceux de la ligne des hanches.
-ROTATION_RELATIVE_MAX = 120.0      # HYPOTHÈSE : rotation relative de deux brins voisins dans les clips de la base (le brin
-                                   # avant suit la cuisse la plus avancée, flexion jusqu'à ~120° en Roll, Slide_*,
-                                   # Jump_Land, le brin latéral la seule abduction)
-MARGE_DE_PLI = 0.8                 # HYPOTHÈSE : part bornée à 80 % du repli ; à part linéaire de 1 sous la tête à 0,40 à
-                                   # l'ourlet, arêtes repliées (l_c/l_b < 0,01) à mi-jambe en Shield_Dash, Hit_Knockback,
-                                   # Sword_Dash, LayToIdle ; à part 0,8 au fondu sous la tête, arête verticale repliée
-                                   # entre 1,00 et 0,90 m en Roll ; au rayon moyen de la rangée, arêtes repliées à
-                                   # l'ourlet devant du dessous en Sword_Regular_A_Rec (`corpulence`) et à 0,60 m en
-                                   # Jump_Start (`feminin`), mesurées sous silhouettes
 
 # --- Manches : anneaux perpendiculaires à `upperarm` (fraction de l'os, au-delà de 1 passé le coude ; aisance ; pan) ;
 # `pan` : longueur ajoutée en lobe (cos²) vers `ANGLE_DU_PAN` dans le plan de l'anneau, incliné de

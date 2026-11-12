@@ -46,6 +46,9 @@ export interface PieceDeLaPile {
 export interface PileDemandee {
   /** les pièces de la tenue. */
   pieces: PieceDeLaPile[];
+  /** les positions au repos de chaque surface skinnée du corps de la base, montrée ou masquée, dans le repère de son
+   *  squelette, trois flottants de 32 bits par sommet : l'endroit d'une pièce s'y lit (`endroitDe`, `asset/pile.ts`). */
+  peau: string[];
   /** le parent de chaque os du squelette de la base qui en a un, par nom. */
   parents: Record<string, string>;
   /** les os des chaînes de la base (`osDeChaine` de sa base dans `modeles`). */
@@ -111,7 +114,8 @@ export function resoudreLaPileDUneTenue(json: string): string {
       const neutres = demandes.map((m, i) => ({ positions: m.neutres === undefined ? Float32Array.from(maillages[i].positions) : new Float32Array(octetsDe(m.neutres)), indices: maillages[i].indices }));
       return { rang, accessoire, maillages, neutres };
     });
-    const bilan = resoudreLaPile(pieces, ordreDesCouches(), { parents: new Map(Object.entries(demande.parents)), osDeChaine: new Set(demande.osDeChaine) });
+    const peaux = demande.peau.map((positions) => new Float32Array(octetsDe(positions)));
+    const bilan = resoudreLaPile(pieces, ordreDesCouches(peaux), { parents: new Map(Object.entries(demande.parents)), osDeChaine: new Set(demande.osDeChaine) }, peaux);
     reponse = { ok: true, bilan, pieces: pieces.map((p) => ({ maillages: p.maillages.map(ecrire) })) };
   } catch (erreur) {
     reponse = { ok: false, erreur: { categorie: 'validation', message: `pile : demande illisible (${erreur instanceof Error ? erreur.message : String(erreur)})` } };

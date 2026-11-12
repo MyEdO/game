@@ -41,9 +41,8 @@ ZONES_DE_LA_ROBE = {'pan': ['torse', 'bras_haut_g', 'bras_haut_d'], 'echarpe': [
 # image 20).
 MATIERES_DE_LA_CAPE = ['cape']
 ZONES_DE_LA_CAPE = ['torse']
-# La sangle de la bandoulière publiée passe sous l'écharpe, à l'épaule droite et au pied du cou : l'écharpe la contourne,
-# et chacun de ses sommets à moins de `ECHARPE['pose_sur_la_sangle']` d'elle en emprunte, sans part de `Head`, poids et
-# clés. Liée au corps, l'écharpe y portait jusqu'à 0,22 de `Head` au-dessus d'une sangle à 0,87 de `clavicle_r` : la
+# La sangle de la bandoulière publiée passe sous l'écharpe, à l'épaule droite et au pied du cou : chaque sommet de
+# l'écharpe à moins de `ECHARPE['pose_sur_la_sangle']` d'elle en emprunte, sans part de `Head`, poids et clés. Liée au corps, l'écharpe y portait jusqu'à 0,22 de `Head` au-dessus d'une sangle à 0,87 de `clavicle_r` : la
 # sangle passait devant elle quand la tête tourne (36 mm en Sword_Dash sous `carrure_plus`, 33 mm en Death01 sous
 # `corpulence`).
 MATIERES_DE_LA_BANDOULIERE = ['sangle']
@@ -87,11 +86,11 @@ ECHARPE = {
     'segments': 20,
     'couture_tolerance': 1e-4,          # m : un sommet du cou à moins de cette distance du torse est sur la couture
     'bas': (0.012, 0.016),              # adaptation : (au-dessus du torse, au-delà de la couture) en m, par-dessus un col de tenue
-    # Le bas passe par-dessus le col de la robe qu'il touche (portée de la visée, écart au-delà du rayon du bas sous lequel la
-    # robe est le col, jeu de la nappe intérieure à la robe) : le col, arrêté au bas du cou à 26 mm d'aisance
-    # (`vetement--robe/donnees.py`), entre sinon entre le bas et l'anneau suivant, dans le dos ; plus loin, la robe est
-    # l'épaule ou la manche.
-    'col': (0.30, 0.050, 0.010),        # adaptation
+    # Le bas passe par-dessus le col de la robe ou de la cape qu'il touche (portée de la visée, écart au-delà du rayon du
+    # bas sous lequel le vêtement est un col, jeu de la nappe intérieure au col) : le col de la robe, arrêté au bas du cou à
+    # 26 mm d'aisance (`vetement--robe/donnees.py`), entre sinon entre le bas et l'anneau suivant, dans le dos ; plus
+    # loin, le vêtement est l'épaule ou la manche.
+    'col': (0.30, 0.090, 0.010),        # adaptation
     'passes_du_col': 2,                 # adaptation : passes qui étalent le long du bas l'écart pris sur le col (au saut d'un
                                         # sommet écarté à son voisin qui ne l'est pas, l'arête vers l'anneau 1 s'étire)
     'pose_sur_la_sangle': 0.03,         # adaptation : la portée de couverture de la garde `traversee` (`PORTEE_DE_COUVERTURE_M`,

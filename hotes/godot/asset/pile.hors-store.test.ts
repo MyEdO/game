@@ -33,9 +33,11 @@ const sommetEn = (m: MaillageDePile, x: number, y = 0): number => {
 };
 /** Les parents des os des fixtures. */
 const PARENTS = new Map([['manche', 'bras'], ['avant_bras', 'bras'], ['bras', 'epaule'], ['epaule', 'torse'], ['jupe_1', 'bassin'], ['jupe_2', 'jupe_1'], ['jambe', 'bassin']]);
-/** La pile de `pieces`, de la plus intérieure à la plus extérieure. */
-const empiler = (pieces: readonly PieceDePile[], osDeChaine: readonly string[] = []) =>
-  resoudreLaPile(pieces, (e, f) => pieces.indexOf(e) > pieces.indexOf(f), { parents: PARENTS, osDeChaine: new Set(osDeChaine) });
+/** La nappe `m` retournée, tournée vers −Z. */
+const retournee = (m: MaillageDePile): MaillageDePile => ({ ...m, indices: m.indices.map((_, i, t) => t[i - (i % 3) + [0, 2, 1][i % 3]]) });
+/** La pile de `pieces`, de la plus intérieure à la plus extérieure, sur le corps de positions `peaux`. */
+const empiler = (pieces: readonly PieceDePile[], osDeChaine: readonly string[] = [], peaux: readonly Float32Array[] = []) =>
+  resoudreLaPile(pieces, (e, f) => pieces.indexOf(e) > pieces.indexOf(f), { parents: PARENTS, osDeChaine: new Set(osDeChaine) }, peaux);
 
 describe('resoudreLaPile', () => {
   it('un point couvert reprend les poids de sa couverture, et son triangle ne se dessine plus', () => {
@@ -180,6 +182,33 @@ describe('resoudreLaPile', () => {
   });
 });
 
+describe('la double nappe', () => {
+  const peau = nappe(0, 'bras');
+  /** Une double nappe sur l'os `os` : sa doublure à la hauteur `z`, tournée vers le corps, son endroit `epaisseur` au-delà. */
+  const doubleNappe = (z: number, epaisseur: number, os: string, cote?: number) => [retournee(nappe(z, os, cote)), nappe(z + epaisseur, os, cote)] as const;
+
+  it('la doublure de la couverture ne couvre rien : celle du dessous, sous elle, ne recule pas ; l’endroit de la couverture retient les deux nappes du dessous', () => {
+    const [doublure, endroit] = doubleNappe(0.004, 0.002, 'bras', 0.1), [envers, dessus] = doubleNappe(0.008, 0.004, 'manche');
+    const bilan = empiler([piece(peau), piece(doublure, endroit), piece(envers, dessus)], [], [peau.positions]);
+    for (let s = 0; s < doublure.positions.length / 3; s++) {
+      expect(doublure.positions[s * 3 + 2]).toBeCloseTo(0.004, 6);
+      expect(poidsSur(doublure, s, 'manche')).toBeCloseTo(1, 6);
+      expect(poidsSur(endroit, s, 'manche')).toBeCloseTo(1, 6);
+    }
+    expect(bilan.recules).toBe(0);
+    expect([doublure.indices.length, endroit.indices.length]).toEqual([0, 0]);
+  });
+
+  it('à couche égale, deux doubles nappes se votent de leurs endroits : la plus extérieure couvre', () => {
+    const couche = (z: number): CoucheDePile => ({ rang: 1, accessoire: false, neutres: [...doubleNappe(z, 0.002, 'bras')] });
+    const [dessous, dessus] = [couche(0.004), couche(0.01)];
+    const couvre = ordreDesCouches([peau.positions]);
+    expect([couvre(dessus, dessous), couvre(dessous, dessus)]).toEqual([true, false]);
+    const sansPeau = ordreDesCouches([]);
+    expect([sansPeau(dessus, dessous), sansPeau(dessous, dessus)]).toEqual([false, false]);
+  });
+});
+
 describe('ordreDesCouches', () => {
   /** La couche de rang `rang` faite de nappes aux hauteurs `z`, chacune centrée en `cx`. */
   const couche = (rang: number, nappes: readonly (readonly [z: number, cx: number])[], accessoire = false): CoucheDePile =>
@@ -187,24 +216,24 @@ describe('ordreDesCouches', () => {
 
   it('une couche plus extérieure couvre, même placée dessous ; une pièce ne se couvre pas elle-même', () => {
     const [dedans, dehors] = [couche(1, [[0.01, 0]]), couche(2, [[0, 0]])];
-    const couvre = ordreDesCouches();
+    const couvre = ordreDesCouches([]);
     expect([couvre(dehors, dedans), couvre(dedans, dehors), couvre(dehors, dehors)]).toEqual([true, false, false]);
   });
 
   it('à couche égale, un accessoire couvre ce qui n’en est pas un, quel que soit le côté', () => {
     const [accessoire, vetement] = [couche(1, [[0, 0]], true), couche(1, [[0.01, 0]])];
-    const couvre = ordreDesCouches();
+    const couvre = ordreDesCouches([]);
     expect([couvre(accessoire, vetement), couvre(vetement, accessoire)]).toEqual([true, false]);
   });
 
   it('à couche et catégorie égales, celle dont les sommets sont devant l’autre au repos neutre la couvre', () => {
     const [dessus, dessous] = [couche(1, [[0.01, 0]]), couche(1, [[0.005, 0]])];
-    const couvre = ordreDesCouches();
+    const couvre = ordreDesCouches([]);
     expect([couvre(dessus, dessous), couvre(dessous, dessus)]).toEqual([true, false]);
   });
 
   it('sans sommet de l’une à portée de l’autre, ou à égalité des voix, aucune ne couvre l’autre', () => {
-    const couvre = ordreDesCouches();
+    const couvre = ordreDesCouches([]);
     const [ici, loin] = [couche(1, [[0.01, 0]]), couche(1, [[0.01 - PORTEE_DE_COUVERTURE_M * 1.1, 0]])];
     expect([couvre(ici, loin), couvre(loin, ici)]).toEqual([false, false]);
     const [a, b] = [couche(1, [[0.01, 0], [0, 1]]), couche(1, [[0, 0], [0.01, 1]])];

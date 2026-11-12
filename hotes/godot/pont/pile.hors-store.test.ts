@@ -17,7 +17,7 @@ function carre(z: number, os: string, zNeutre?: number): MaillageDeLaPile {
   };
 }
 const resoudre = (pieces: PileDemandee['pieces']) =>
-  JSON.parse(resoudreLaPileDUneTenue(JSON.stringify({ pieces, parents: { manche: 'bras' }, osDeChaine: [] } satisfies PileDemandee))) as PileResolue & { ok: true };
+  JSON.parse(resoudreLaPileDUneTenue(JSON.stringify({ pieces, peau: [], parents: { manche: 'bras' }, osDeChaine: [] } satisfies PileDemandee))) as PileResolue & { ok: true };
 /** Le poids du premier sommet de `m` sur l'os `nom`. */
 const poidsSur = (m: MaillageDeLaPile, nom: string): number => flottants(m.poids).slice(0, 4).reduce((t, p, k) => t + (m.noms[entiers(m.os)[k]] === nom ? p : 0), 0);
 
