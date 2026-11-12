@@ -9,6 +9,7 @@ import { mkdirSync } from 'node:fs'
 import { createServer } from 'node:net'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { format } from 'node:util'
 import { runInThisContext } from 'node:vm'
 import { empaqueter, piloter } from '../construire.mjs'
 import { pontDuBundle, servirLeCanal } from '../processus.mjs'
@@ -20,21 +21,24 @@ export { ATTENTE_ECHUE, clic, sleep } from '../../../scripts/recette/lib.mjs'
 const RELAIS = fileURLToPath(new URL('./relais.mjs', import.meta.url))
 /** Le plus long silence de Godot après l'ordre de quitter ; au-delà, il est tué. */
 const SORTIE_MS = 30000
+/** Le plus long temps du pilote pour rendre une commande ; au-delà, elle échoue. */
+const COMMANDE_MS = 30000
 /** L'index de Godot de chaque bouton de la souris que nomme le CDP (`MouseButton`). */
 const BOUTONS = { left: 1, right: 2, middle: 3 }
 const [MOLETTE_HAUT, MOLETTE_BAS] = [4, 5]
 
-/** Ce qu'une recette native ne joue pas : la primitive absente, ce qu'elle demande, et son ticket. */
-export const REFUS = {
-  statique: '--statique sert l’export tel que le site le publie : sans objet hors d’une page',
-}
-
-/** Le jeu lancé sans export sur son menu d'entrée, sous `--recette=1` : la session, le serveur du jeu et la garde des
- *  erreurs que Godot écrit, relevées à la fermeture de la session (`close`). `rendu` le joue en rendu réel sous cette
- *  méthode ; sans lui, sans écran. */
+/** Le jeu lancé sans export sur son menu d'entrée, sous `--recette=1` : la session, le serveur du jeu et la garde, qui
+ *  relève les erreurs et les avertissements que le pont écrit à sa console et, à la fermeture de la session (`close`),
+ *  ceux que Godot écrit. `rendu` le joue en rendu réel sous cette méthode ; sans lui, sans écran. */
 export async function ouvrir({ modeles, statique, depot, scenario, graine, rendu }) {
-  if (statique) throw new Error(REFUS.statique)
-  const pont = pontDuBundle(await empaqueter(null), console)
+  if (statique) throw new Error('--statique sert l’export tel que le site le publie : sans objet hors d’une page')
+  const entries = []
+  const garde = { entries, errors: () => entries.filter((e) => e.type === 'error'), warnings: () => entries.filter((e) => e.type === 'warning') }
+  const relever = (type, ecrire) => (...args) => {
+    entries.push({ type, text: format(...args) })
+    ecrire(...args)
+  }
+  const pont = pontDuBundle(await empaqueter(null), Object.assign(Object.create(console), { error: relever('error', console.error), warn: relever('warning', console.warn) }))
   globalThis.wfrpPont = pont
   const srv = await servir({ ...(modeles && { modeles }), ...(depot && { depot }) })
   /** Les commandes que le pilote n'a pas relevées, et celles dont il n'a pas rendu le résultat, par id. */
@@ -47,7 +51,7 @@ export async function ouvrir({ modeles, statique, depot, scenario, graine, rendu
     for (const { reject } of attendues.values()) reject(new Error(mort))
     attendues.clear()
   }
-  const relever = (json) => {
+  const commandes = (json) => {
     for (const [id, valeur] of JSON.parse(json).rendus) {
       const { resolve, reject } = attendues.get(id)
       attendues.delete(id)
@@ -61,7 +65,7 @@ export async function ouvrir({ modeles, statique, depot, scenario, graine, rendu
     globalThis[nom] = valeur
     return 'null'
   }
-  const ecoute = createServer((canal) => servirLeCanal(pont, { url: srv.url, fermer: () => mourir('le pont de Godot s’est fermé') }, { entree: canal, sortie: canal }, { publier, commandes: relever }))
+  const ecoute = createServer((canal) => servirLeCanal(pont, { url: srv.url, fermer: () => mourir('le pont de Godot s’est fermé') }, { entree: canal, sortie: canal }, { publier, commandes }))
   await new Promise((pret) => ecoute.listen(0, '127.0.0.1', pret))
   let lance
   const lancement = new Promise((r) => { lance = r })
@@ -69,15 +73,13 @@ export async function ouvrir({ modeles, statique, depot, scenario, graine, rendu
   joue.then(({ erreurs }) => mourir(`Godot a quitté${erreurs.length ? ` :\n${erreurs.join('\n')}` : ''}`))
   const tuer = await Promise.race([lancement, joue.then(() => { throw new Error(mort) })])
   process.once('exit', tuer)
-  const entries = []
-  const garde = { entries, errors: () => entries.filter((e) => e.type === 'error'), warnings: () => entries.filter((e) => e.type === 'warning') }
   const session = {
-    /** La commande `commande` jouée par le pilote : ce qu'elle rend. */
+    /** La commande `commande` jouée par le pilote : ce qu'elle rend, `COMMANDE_MS` au plus. */
     commander(commande) {
       if (mort) return Promise.reject(new Error(mort))
       const id = ++dernier
       file.push({ id, ...commande })
-      return new Promise((resolve, reject) => attendues.set(id, { resolve, reject }))
+      return courseContreMontre(new Promise((resolve, reject) => attendues.set(id, { resolve, reject })), COMMANDE_MS, `commande sans réponse du pilote après ${COMMANDE_MS} ms : ${JSON.stringify(commande)}`)
     },
     mort: () => mort,
     async close() {

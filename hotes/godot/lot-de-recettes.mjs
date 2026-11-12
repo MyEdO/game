@@ -51,6 +51,18 @@ export const JEUX_DU_PARCOURS = {
   preset: { preset: ['--preset', 'sorcier'] },
 }
 
+/** Les jeux qu'une recette native ne joue pas (`--natif`), chacun avec ce qui lui manque : le lot natif les saute en le
+ *  disant, et refuse celui que `--jeux` nomme. */
+const HORS_NATIF = {
+  'combat-statique': '`--statique` sert l’export tel que le site le publie, sans objet hors d’une page',
+}
+
+/** Les jeux qu'une recette native joue en rendu réel (`--rendu`), sous le rendu de la page, les autres sans écran :
+ *  `vision` lit les pixels de ses captures, `wfrpCadrer` (`cadrages`) attend l'image dessinée de la caméra posée, et
+ *  l'atelier (`preset`) mesure ses meshes skinnés aux os que le serveur de rendu leur pourvoit. */
+const RENDUS_EN_NATIF = new Set(['vision', 'cadrages', 'preset'])
+const RENDU_DE_LA_PAGE = 'gl_compatibility'
+
 const RECETTE = fileURLToPath(new URL('./recette.mjs', import.meta.url))
 const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 
@@ -67,20 +79,27 @@ const QUEUE = 15
 if (import.meta.main) {
   const { values: o } = parseArgs({ options: { web: { type: 'string' }, natif: { type: 'boolean' }, captures: { type: 'string' }, jeux: { type: 'string' } } })
   if (!o.web === !o.natif || !o.captures) throw new Error('usage : node hotes/godot/lot-de-recettes.mjs (--web <dossier de l’export> | --natif) --captures <dossier> [--jeux <nom>,<nom>]')
-  const lieu = o.natif ? ['--natif'] : ['--web', resolve(o.web)]
+  const lieu = (nom) => (!o.natif ? ['--web', resolve(o.web)] : RENDUS_EN_NATIF.has(nom) ? ['--natif', '--rendu', RENDU_DE_LA_PAGE] : ['--natif'])
   const jeux = Object.entries(JEUX_DU_PARCOURS).flatMap(([parcours, parNom]) => Object.entries(parNom).map(([nom, args]) => ({ nom, parcours, args })))
   const voulus = o.jeux?.split(',') ?? jeux.map((j) => j.nom)
   const inconnus = voulus.filter((nom) => !jeux.some((j) => j.nom === nom))
   if (inconnus.length) throw new Error(`--jeux ${inconnus.join(',')} : ${jeux.map((j) => j.nom).join(' ou ')} attendu`)
+  const horsNatif = (nom) => o.natif && Object.hasOwn(HORS_NATIF, nom)
+  const refuses = (o.jeux ? voulus : []).filter(horsNatif)
+  if (refuses.length) throw new Error(`--natif ne joue pas ${refuses.map((nom) => `${nom} (${HORS_NATIF[nom]})`).join(', ')}`)
   const rouges = []
   for (const { nom, parcours, args } of jeux.filter((j) => voulus.includes(j.nom))) {
+    if (horsNatif(nom)) {
+      console.log(`${nom} : hors natif, ${HORS_NATIF[nom]}`)
+      continue
+    }
     const dossier = resolve(o.captures, nom)
     mkdirSync(dossier, { recursive: true })
     const journal = resolve(dossier, 'journal.txt')
     const sortie = openSync(journal, 'w')
     const debut = Date.now()
     const pret = !PREPARER[nom] || PREPARER[nom](dossier, sortie) === 0
-    const status = pret ? spawnSync(process.execPath, [RECETTE, ...lieu, '--captures', dossier, '--parcours', parcours, ...args.map((a) => a.replace(DOSSIER, dossier))], { cwd: RACINE, stdio: ['ignore', sortie, sortie], timeout: DELAI_MS }).status : 1
+    const status = pret ? spawnSync(process.execPath, [RECETTE, ...lieu(nom), '--captures', dossier, '--parcours', parcours, ...args.map((a) => a.replace(DOSSIER, dossier))], { cwd: RACINE, stdio: ['ignore', sortie, sortie], timeout: DELAI_MS }).status : 1
     closeSync(sortie)
     console.log(`${nom} : ${status === 0 ? 'vert' : 'ROUGE'} (${Math.round((Date.now() - debut) / 1000)} s)`)
     if (status === 0) continue

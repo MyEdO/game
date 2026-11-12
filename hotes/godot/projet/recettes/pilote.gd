@@ -46,7 +46,7 @@ func _piloter() -> void:
 		if enfant is TransportDuProcessus:
 			_transport = enfant
 	change_scene_to_file(ProjectSettings.get_setting("application/run/main_scene"))
-	if not await _pont.rejoindre(func(_message: String) -> void: pass, func(_message: String) -> void: _finir(1)):
+	if not await _pont.rejoindre(func(_message: String) -> void: pass, func(message: String) -> void: _echouer(message)):
 		_finir(1)
 	while not _fini:
 		var releve := _pont.appeler("commandes", {rendus = _rendus})
@@ -54,6 +54,12 @@ func _piloter() -> void:
 		for commande: Dictionary in releve.get("commandes", []):
 			_jouer(commande)
 		await process_frame
+
+
+## La panne du lieu `message` écrite en erreur, puis la sortie en échec.
+func _echouer(message: String) -> void:
+	push_error(message)
+	_finir(1)
 
 
 func _finir(code: int) -> void:
@@ -116,7 +122,7 @@ func _emettre(evenement: InputEventMouse, ou: Vector2) -> void:
 	evenement.position = ou
 	evenement.global_position = ou
 	evenement.button_mask = _tenus
-	Input.parse_input_event(evenement)
+	_entrer(evenement)
 
 
 ## La touche `touche` (`{ key, code }`) pressée ou relâchée : `true`, ou `{ erreur }` hors de `TOUCHES`.
@@ -131,8 +137,15 @@ func _touche(touche: Dictionary, appuyee: bool) -> Variant:
 	frappe.physical_keycode = codes[1]
 	if appuyee and str(touche.key).length() == 1:
 		frappe.unicode = str(touche.key).unicode_at(0)
-	Input.parse_input_event(frappe)
+	_entrer(frappe)
 	return true
+
+
+## `evenement` entré au jeu et joué sur-le-champ : sans écran, aucun serveur d'affichage ne vide le tampon des entrées
+## (`Input.flush_buffered_events`), et l'événement attendrait le suivant.
+func _entrer(evenement: InputEvent) -> void:
+	Input.parse_input_event(evenement)
+	Input.flush_buffered_events()
 
 
 ## Le code Godot de la touche que la page nomme `nom` : son caractère en capitale, la lettre de `Key<lettre>`, ou celui

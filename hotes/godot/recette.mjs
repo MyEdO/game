@@ -2,7 +2,8 @@
 // qui portent les mêmes noms (`pilotage/`) :
 // - `--natif` (#3945, `pilotage/natif.mjs`) : sans export ni navigateur, le jeu lancé sur une copie importée du projet,
 //   sans rendu, son pont et son serveur dans ce processus ; `--rendu <méthode>` le lance en rendu réel sur un écran
-//   virtuel. Ce qu'il ne sait pas faire se refuse, la raison dite (`REFUS`) ; sans rendu, une capture se saute, notée ;
+//   virtuel, ce qu'attend un parcours qui lit l'image (`RENDUS_EN_NATIF`, `lot-de-recettes.mjs`). `--statique` s'y
+//   refuse ; sans rendu, une capture se saute, notée ;
 // - `--web <export>` (`pilotage/page.mjs`) : l'export Web (`node hotes/godot/construire.mjs --export --sortie <web>`)
 //   servi par `servir.mjs`, Chromium piloté sur le canevas.
 // Godot publie ce que l'écran porte (`globalThis.wfrpEcran`, `pont/CONTRAT.md`, section « Écran publié ») : le texte et
@@ -36,7 +37,8 @@
 //   pointeur, à sa couche, pas celle de la salle basse dessous.
 // - `regards` (`--scenario fenetre-ecuries`, #3476) : l'entrée de la scène poursuivie à l'Entrée, le groupe à l'étage du
 //   relais ; en tactique, D tenue fait glisser la caméra, Origine la ramène au groupe ; la touche V passe du regard
-//   tactique au plateau, puis à l'immersion ; en immersion, une touche de marche
+//   tactique au plateau, où un clic au point publié d'une case du couloir, sans autre geste, y mène le groupe
+//   (#4031), puis à l'immersion ; en immersion, une touche de marche
 //   tenue (Z, Q, S ou D) mène le groupe à une case voisine, que le noyau a jouée ; V rend la tactique.
 // - `meteo` (`--scenario voyage`, #3625) : le village sous la pluie ; en tactique, des averses tombent dans le monde ; au
 //   plateau, rien ne tombe ; en immersion, la pluie tombe autour de l'œil.
@@ -278,8 +280,9 @@ const { session, srv, garde } = await lieu.ouvrir({ web: o.web, modeles: o.model
 const noter = (t) => console.log('·', t)
 const lire = (expression) => evaluate(session, expression, { timeoutMs: FIL_DE_LA_PAGE_MS })
 const vue = async () => JSON.parse(await lire(`wfrpPont.appeler('vue')`)).vue
-/** L'attente la plus longue d'une publication après un appel de Godot au pont. */
-const PERIME_MS = 2000
+/** L'attente la plus longue d'une publication : une vue se publie à l'image qui suit sa mise en page, après que le pont
+ *  l'a rendue. */
+const PUBLICATION_MS = 8000
 /** Le suivi des publications, posé une fois dans le lieu où vivent `wfrpEcran` et `wfrpPont` : `recetteEcran.perime`
  *  dit la dernière méthode que Godot a appelée au pont depuis la dernière publication (`null` sans elle). La recette
  *  lit la vue au pont, où elle change dès l'appel de Godot ; l'écran, lui, se publie à l'image qui suit sa mise en
@@ -292,21 +295,21 @@ const SUIVRE_LES_PUBLICATIONS = `(() => {
   pont.appelerEnOctets = function (methode, ...reste) { if (methode !== 'erreursGlobales') suivi.perime = methode; return appelerEnOctets.call(this, methode, ...reste) }
   return true
 })()`
-/** L'écran publié, attendu à jour (`SUIVRE_LES_PUBLICATIONS`) `PERIME_MS` au plus, et la méthode qui le laisse périmé
- *  au-delà. */
+/** L'écran publié, attendu à jour (`SUIVRE_LES_PUBLICATIONS`) `PUBLICATION_MS` au plus, et la méthode qui le laisse
+ *  périmé au-delà. */
 const LIRE_L_ECRAN = `new Promise((rendre) => {
   const debut = performance.now()
   const lire = () => {
     const perime = globalThis.recetteEcran?.perime ?? null
-    if (perime === null || performance.now() - debut > ${PERIME_MS}) rendre(JSON.stringify({ ecran: globalThis.wfrpEcran ?? null, perime }))
+    if (perime === null || performance.now() - debut > ${PUBLICATION_MS}) rendre(JSON.stringify({ ecran: globalThis.wfrpEcran ?? null, perime }))
     else setTimeout(lire, 10)
   }
   lire()
 })`
-/** L'écran publié, à jour de la vue que Godot a reçue du pont. */
+/** L'écran publié, à jour de la vue que Godot a reçue du pont ; resté périmé, la lecture échoue. */
 const ecran = async () => {
   const { ecran, perime } = JSON.parse(await lire(LIRE_L_ECRAN))
-  if (perime !== null) noter(`écran lu périmé : aucune publication ${PERIME_MS} ms après l'appel « ${perime} » de Godot`)
+  if (perime !== null) throw new Error(`écran périmé : aucune publication ${PUBLICATION_MS} ms après l'appel « ${perime} » de Godot au pont`)
   return ecran
 }
 /** Le menu d'entrée publié, le suivi des publications posé (`SUIVRE_LES_PUBLICATIONS`). */
@@ -326,16 +329,20 @@ const zone = (v, z) => v.zones[z]
 /** Le bouton de la carte d'un héros du groupe (`groupe.heros`) qui ouvre sa fiche. */
 const ficheDuHeros = (carte) => carte.elements.find((e) => e.type === 'bouton' && e.id.startsWith('fiche/'))
 /** Le bouton `quoi` amené à l'écran dans une liste qui défile : la molette tournée d'un cran sur le premier bouton
- *  publié que retient `voisin`, un bouton de la même liste, l'écran republié, jusqu'à ce que `quoi` paraisse. */
+ *  publié que retient `voisin`, un bouton de la même liste, attendu ailleurs à l'écran publié ou hors de lui, jusqu'à
+ *  ce que `quoi` paraisse. */
 async function amenerDansLaListe(quoi, voisin, liste) {
   for (let n = 0; n < CRANS; n++) {
     const { boutons } = await ecran()
     if (trouver(boutons, quoi)) return
     const ancre = boutons.find(voisin)
     assert.ok(ancre, `${liste} se montre ; boutons : ${boutons.map((x) => x.element ?? x.texte).join(' | ')}`)
-    await marquer()
     await molette(session, { surface: 'canvas', x: ancre.x, y: ancre.y }, CRAN_DE_MOLETTE)
-    await nouvelEcran()
+    const [, defile] = await attendreALEcran((e) => {
+      const a = trouver(e.boutons, { element: ancre.element })
+      return !a || a.x !== ancre.x || a.y !== ancre.y
+    })
+    assert.ok(defile, `${JSON.stringify(quoi)} hors de ${liste}, qui ne défile plus sous la molette`)
   }
   throw new Error(`${JSON.stringify(quoi)} hors de ${liste} après ${CRANS} crans`)
 }
@@ -374,9 +381,6 @@ const trouver = (boutons, quoi) =>
   boutons.find((x) => (typeof quoi === 'string' ? x.texte === quoi : 'element' in quoi ? x.element === quoi.element : 'choix' in quoi ? x.choix?.includes(quoi.choix) : 'onglet' in quoi ? x.onglet && x.texte === quoi.onglet : x.cle === quoi.cle))
 /** Le bouton publié qui dessine le bouton `b` de la vue. */
 const bouton = (b) => ({ element: `bouton/${b.id}` })
-/** L'attente la plus longue d'un bouton ou d'une case à l'écran publié : une vue se publie à l'image qui suit sa mise
- *  en page, après que le pont l'a rendue. */
-const PUBLICATION_MS = 8000
 /** L'écran publié une fois que `lu(ecran)` y trouve ce qu'il cherche, et ce qu'il y trouve ; `PUBLICATION_MS` échues,
  *  le dernier écran lu, sans lui. */
 async function attendreALEcran(lu) {
@@ -411,8 +415,9 @@ const FLECHE_BAS = { key: 'ArrowDown', code: 'ArrowDown', windowsVirtualKeyCode:
  *  vers lui tant qu'elle en désigne un autre (`designe`), l'article désigné attendu à l'écran après chacune. */
 async function designerALaListe(quoi, rang) {
   let liste = await attendreLaListe(quoi, (l) => l.ouverte, 'est ouverte')
-  while (liste.designe !== rang) {
+  for (let fleches = 0; liste.designe !== rang; fleches++) {
     const { designe } = liste
+    assert.ok(fleches < liste.choix.length, `l'article ${rang} de la liste ${JSON.stringify(quoi)} se désigne au clavier ; désigné après ${fleches} flèches : ${designe}`)
     await realKey(session, designe > rang ? FLECHE_HAUT : FLECHE_BAS)
     liste = await attendreLaListe(quoi, (l) => l.ouverte && l.designe !== designe, `désigne un autre article que le ${designe} après la flèche`)
   }
@@ -429,7 +434,7 @@ async function presserLOffre(b) {
 }
 async function cliquerCase({ x, y, z = 0 }) {
   const [e, point] = await attendreALEcran((e) => !e.glisse && e.cases?.[`${x},${y},${z}`])
-  assert.ok(point, `la case ${x},${y},${z} est à l'écran ; cases : ${Object.keys(e?.cases ?? {}).join(' ')}`)
+  assert.ok(point, e?.glisse ? `la caméra ne glisse plus avant le clic sur la case ${x},${y},${z}` : `la case ${x},${y},${z} est à l'écran ; cases : ${Object.keys(e?.cases ?? {}).join(' ')}`)
   await cliquerPoint(...point)
 }
 /** La case de la cible `id`, en vue du groupe ou non (`vue.casesDesCibles`). */
@@ -739,13 +744,15 @@ async function parcoursRelief() {
   await capturer('3476-r2-plateau')
 }
 
+/** Une case du couloir de l'étage du relais (`fenetre-ecuries`), que le groupe atteint depuis sa case de départ. */
+const COULOIR_DE_L_ETAGE = { x: 5, y: 4, z: 1 }
 async function parcoursEtage() {
   await cliquerBouton('Combat')
   await waitFor(session, '!!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
   const v = await fermerLesFenetres()
   assert.equal(v.projection.exploration?.etage, 1, 'le groupe se tient à l’étage du relais')
   await capturer('3476-c4-1-etage')
-  const couloir = { x: 5, y: 4, z: 1 }
+  const couloir = COULOIR_DE_L_ETAGE
   await cliquerCase(couloir)
   await attendreLaVue(`v.projection.exploration?.groupe.join() === '${couloir.x},${couloir.y}' && v.projection.exploration.etage === ${couloir.z}`)
   noter(`clic sur la case ${couloir.x},${couloir.y} du couloir de l’étage : le groupe y marche, à l’étage`)
@@ -771,13 +778,19 @@ async function parcoursRegards() {
   await waitFor(session, `Math.abs(wfrpEcran.cases['${cle}'][0] - ${px}) < 2`)
   noter('Origine : la caméra revient au groupe')
   const V = { key: 'v', code: 'KeyV', windowsVirtualKeyCode: 86 }
-  for (const regard of ['plateau', 'immersion']) {
+  const regarder = async (regard) => {
     await realKey(session, V)
     await attendreLaVue(`v.plateau.regard === '${regard}'`)
     await sleep(600)
     noter(`V : le regard ${regard}`)
     await capturer(`3476-v2-${regard}`)
   }
+  await regarder('plateau')
+  const couloir = COULOIR_DE_L_ETAGE
+  await cliquerCase(couloir)
+  await attendreLaVue(`v.projection.exploration?.groupe.join() === '${couloir.x},${couloir.y}' && v.projection.exploration.etage === ${couloir.z}`)
+  noter(`au plateau, sans autre geste après le regard, un clic au point publié de la case ${couloir.x},${couloir.y} du couloir y mène le groupe`)
+  await regarder('immersion')
   const depart = (await vue()).projection.exploration
   const marches = [['z', 'KeyW', 87], ['q', 'KeyA', 65], ['s', 'KeyS', 83], ['d', 'KeyD', 68]]
   let arrivee = null
@@ -1540,6 +1553,7 @@ async function parcoursInventaire() {
   assert.ok(heros, 'Apothicaire a sa carte')
   await amenerAuGroupe(bouton(ficheDuHeros(heros)))
   await cliquerBouton(bouton(ficheDuHeros(heros)))
+  await attendreLaVue(`v.zones['fiche.sections'].some((e) => e.id === 'section/possessions')`)
   v = await vue()
   const possession = (libelle) => element(v, 'fiche.sections', 'section/possessions').elements.find((b) => b.libelle === libelle)
   await cliquerBouton({ onglet: element(v, 'fiche.sections', 'section/possessions').nom })

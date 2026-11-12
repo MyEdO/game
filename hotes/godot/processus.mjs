@@ -31,7 +31,7 @@ export function pontDuBundle(code, console) {
  *   octets de `pont.octets()`, sans fin de ligne.
  * - La requête `["publier", json]`, `json` le tableau `[nom, valeur]`, porte ce que Godot publie pour qui pilote le lieu
  *   (`Transport.publier`) : sa réponse est la ligne `null`. Le processus du jeu n'en retient rien ; celui d'une recette
- *   le pose en global (`hotes/godot/recettes/natif.mjs`).
+ *   le pose en global (`hotes/godot/pilotage/natif.mjs`).
  * - Une ligne illisible sur son entrée le tue ; la fin de son entrée ferme le serveur, et il sort en 0.
  */
 

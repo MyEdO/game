@@ -16,7 +16,7 @@
 class_name Monde
 extends Node3D
 
-## La caméra a pivoté ou zoomé : ce qui est sous le pointeur a pu changer.
+## La caméra pivote, zoome, glisse ou se décale, ou cesse de le faire : ce qui est sous le pointeur a pu changer.
 signal cadrage_change
 
 const DUREE_QUART_S := 0.25
@@ -588,8 +588,11 @@ func _decaler() -> void:
 	var orthogonale := _camera.projection == Camera3D.PROJECTION_ORTHOGONAL
 	var etendue := _camera.size if orthogonale else MiseEnPage.etendue_en_perspective(_camera.position.z, _camera.fov)
 	var decalage := MiseEnPage.decalage_de_l_objectif(centre, fenetre.size.x, fenetre.size.y, etendue)
+	if is_equal_approx(_camera.h_offset, decalage.x) and is_equal_approx(_camera.v_offset, decalage.y):
+		return
 	_camera.h_offset = decalage.x
 	_camera.v_offset = decalage.y
+	cadrage_change.emit()
 
 
 ## Le lacet de la caméra posé sur le pivot : décalé d'un demi-quart de tour au plateau (`MiseEnPage.lacet_du_plateau`).
