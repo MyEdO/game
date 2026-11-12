@@ -54,7 +54,7 @@ export const scenario: TestScenario = {
   id: 'aspersion',
   order: 19,
   category: 'creatures',
-  icon: 'scenario/bestiary',
+  icon: 'scenario/bestiaire',
   title: 'Aspersion — créature marine hors de l’eau (#497)',
   tests:
     // MDG 16 l.19

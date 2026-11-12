@@ -21,7 +21,7 @@ const target = (): Combatant =>
 // Coup Critique : dégâts bruts 12, jet de touche PAIR (pas de Partielle), aucun PA externe (Tir sûr / opposition).
 const crit: AttackResult = {
   hit: true, critical: true, attackerRoll: 12, netSL: 1, location: 'corps', damage: 12, apExternal: 0,
-  woundsLost: 5, advantageTo: 'attacker', defenderDefeated: false, log: '',
+  woundsLost: 5, advantageTo: 'attaquant', defenderDefeated: false, log: '',
 };
 
 const combattant = (over: Partial<Combatant> = {}): Combatant =>

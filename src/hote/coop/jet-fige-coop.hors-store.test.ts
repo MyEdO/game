@@ -83,7 +83,7 @@ describe('Test opposé à jet figé en coop : masqué chez l’invité avant sa 
       mode: 'battle', scene: testScene(), party: combatants.filter((c) => c.kind === 'hero'),
     });
     const { guest, chezLInvite } = table(banc, 'h');
-    openAttackCascade(banc.getState, banc.setState, { attackerId: 'e', targetId: 'h', location: null, result: null, weaponUid: 'ra' }, 'Attaque', 'action/attack');
+    openAttackCascade(banc.getState, banc.setState, { attackerId: 'e', targetId: 'h', location: null, result: null, weaponUid: 'ra' }, 'Attaque', 'action/attaquer');
     banc.getState().jetLancer('attaque');
     banc.getState().jetValider('attaque');
     expect(banc.getState().pendingDefense?.result, 'chemin : la Défense du héros de l’invité s’ouvre, sans réponse').toBeNull();

@@ -144,8 +144,8 @@ describe('#1318 E4/C4-δ3 — parité des champs déclarés de la couche activit
 
   it('MALADRESSES — la catégorie Codex des lignes de chaque table tirée vient de l’exposition (#1667)', () => {
     expect(MISCAST_TABLES.map((t) => `${t.id}:${categorieDeLaNiche('miscast.json', suiteDesEntrees(t.id))}`)).toEqual([
-      'miscast-mineure:miscastMinor', 'miscast-majeure:miscastMajor',
-      'miscast-mineure-vdm:miscastMinorVdm', 'miscast-majeure-vdm:miscastMajorVdm', 'miscast-colere:miscastWrath',
+      'miscast-mineure:imparfaiteMineure', 'miscast-majeure:imparfaiteMajeure',
+      'miscast-mineure-vdm:imparfaiteMineureVdm', 'miscast-majeure-vdm:imparfaiteMajeureVdm', 'miscast-colere:colereDesDieux',
     ]);
   });
 

@@ -91,8 +91,8 @@ describe('Test opposé à jet figé — le flux DÉCLARE, le rendu ÉCRIT', () =
     useGame.setState({ party: [a, b] });
     const eff = findQualityById('destabilisante')!.effects![0];
     const choix = eff.flow;
-    if (choix?.kind !== 'choice' || choix.yes.kind !== 'test') throw new Error('la donnée de la Déstabilisante doit porter un choix → Test');
-    const ft = choix.yes.test;
+    if (choix?.kind !== 'choice' || choix.oui.kind !== 'test') throw new Error('la donnée de la Déstabilisante doit porter un choix → Test');
+    const ft = choix.oui.test;
     const aT = { roll: 42, target: 55, base: 55, sl: 1, success: true, isDouble: false };
     const step = frozenOpposedBatchStep([a], ft, { onSuccess: EMPTY_FLOW, onFail: EMPTY_FLOW }, EMPTY_FLOW, b, aT)!;
     expect(step, 'le producteur réel monte bien la bande opposée').toBeTruthy();

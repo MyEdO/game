@@ -47,7 +47,7 @@ describe('Table des vents (MSRC 7 l.21-33)', () => {
     expect(riverWindEffect('leger', 'contraire')).toEqual({ pct: -5 });
     expect(riverWindEffect('modere', 'cote')).toEqual({ pct: 5, tack: true }); // note 3 : louvoyer
     expect(riverWindEffect('fort', 'arriere')).toEqual({ pct: 20 });
-    expect(riverWindEffect('calme', 'arriere')).toEqual({ drift: true }); // note 2 : Dérive
+    expect(riverWindEffect('calme', 'arriere')).toEqual({ derive: true }); // note 2 : Dérive
     expect(riverWindEffect('tres-fort', 'cote')).toEqual({ capsizeRisk: true }); // note 4 : chavirage
     expect(riverWindEffect('tres-fort', 'contraire')).toEqual({ pct: -25, riggingRisk: true }); // note 5
   });

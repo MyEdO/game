@@ -381,7 +381,7 @@ describe('provenance des nouveaux effets adressables', () => {
 describe('provenance des branches de Flow et de la narration stricte', () => {
   const ctx = { encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE };
   it.each([
-    [{ kind: 'choice', prompt: 'Entrer ?', yes: { kind: 'seq', steps: [] }, no: { kind: 'seq', steps: [] } }, 'du choix'],
+    [{ kind: 'choice', prompt: 'Entrer ?', oui: { kind: 'seq', steps: [] }, non: { kind: 'seq', steps: [] } }, 'du choix'],
     [{ kind: 'test', test: { skill: { id: 'escalade' }, difficulty: 'intermediaire', stake: { authored: 'Enjeu maison.' } }, success: { kind: 'seq', steps: [] }, fail: { kind: 'seq', steps: [] } }, "de l'enjeu"],
   ] as const)('%s : la référence est écrite sur le texte, les branches sont conservées', (initiale, sujet) => {
     let dernier: Flow;
@@ -397,8 +397,8 @@ describe('provenance des branches de Flow et de la narration stricte', () => {
     const node = dernier!.kind === 'seq' ? dernier!.steps[0] : dernier!;
     if (node.kind === 'choice') {
       expect(node.adapteDe).toEqual(REF);
-      expect(node.yes).toEqual(initiale.kind === 'choice' ? initiale.yes : undefined);
-      expect(node.no).toEqual(initiale.kind === 'choice' ? initiale.no : undefined);
+      expect(node.oui).toEqual(initiale.kind === 'choice' ? initiale.oui : undefined);
+      expect(node.non).toEqual(initiale.kind === 'choice' ? initiale.non : undefined);
     } else if (node.kind === 'test') {
       expect(node.test.stake).toEqual({ authored: 'Enjeu maison.', source: undefined, adapteDe: REF });
       expect(node.success).toEqual({ kind: 'seq', steps: [] });

@@ -49,13 +49,13 @@ export function PosteDetail({ poste, combatants, readOnly }: { poste: Poste; com
   const loadedAmmoItem = poste.loaded !== false ? stock.find((a) => a.uid === poste.loadedAmmoUid) : undefined;
   return (
     <div className="panel sunken">
-      <b><Icon id="action/aim" size="sm" /> {poste.side ? libelleDeValeur(posteSideSchema, poste.side) : 'Omni'} · {poste.item.label}</b>
+      <b><Icon id="action/viser" size="sm" /> {poste.side ? libelleDeValeur(posteSideSchema, poste.side) : 'Omni'} · {poste.item.label}</b>
       {stock.length > 0 && (readOnly ? (
         // Inspection (#240) : munition chargée VISIBLE mais non modifiable (pas de sélecteur sur la pièce d'autrui).
-        <span className="ship-poste-ammo"><span aria-hidden><Icon id="fire/blast" size="sm" /></span> {loadedAmmoItem ? loadedAmmoItem.label : 'pièce déchargée'}</span>
+        <span className="ship-poste-ammo"><span aria-hidden><Icon id="feu/explosif" size="sm" /></span> {loadedAmmoItem ? loadedAmmoItem.label : 'pièce déchargée'}</span>
       ) : (
         <label className="ship-poste-ammo">
-          <span aria-hidden><Icon id="fire/blast" size="sm" /></span>
+          <span aria-hidden><Icon id="feu/explosif" size="sm" /></span>
           {/* La légende est LUE À L'ÉCRAN (pas seulement en infobulle) : le sélecteur dit ce qui sera chargé
               au prochain rechargement, jamais ce qui est dans la pièce (`loadedAmmoUid`, ci-dessus). */}
           <span className="muted">Munition à charger</span>

@@ -48,15 +48,15 @@ export function WardModal() {
   });
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' },
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
+    { key: 'cancel', label: t('verbe.annuler'), onClick: cancel, verbe: 'annuler' },
+    { key: 'confirm', label: t('verbe.valider'), onClick: confirm, verbe: 'valider' },
   ];
 
   return (
     <RollShell
       flowKey="protection"
       stake={flowStakeRef('protection-test')}
-      title={<><Icon id="action/defend" size="sm" /> Bénédiction de Protection</>}
+      title={<><Icon id="action/se-defendre" size="sm" /> Bénédiction de Protection</>}
       subtitle={
         <>
           <strong>{attacker.label}</strong> ose frapper {pw.targetName} (Test de FM +20)

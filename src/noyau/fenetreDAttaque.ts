@@ -257,7 +257,7 @@ export function fenetreDAttaque(s: Jeu): FenetreDAttaque | null {
       : (!bloque && defenseAnnoncee ? { pending: defenseAnnoncee } : null),
     influences: {
       relancee: !!pa.rerolled,
-      sombrePacte: FLOWS.attaque.fermetures(get).darkPact !== 'jetImpose',
+      sombrePacte: FLOWS.attaque.fermetures(get).pactiser !== 'jetImpose',
       sansDeForce: isHelplessTarget(cible),
       inversion,
     },

@@ -107,7 +107,7 @@ export function AssignRow({
       {ferme ? (
         <GatedAction
           id={`assign-${intitule.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`}
-          label={<Icon id="ui/add" size="sm" />}
+          label={<Icon id="interface/ajouter" size="sm" />}
           ariaLabel={intitule}
           enabled={false}
           reason={refus!}
@@ -126,7 +126,7 @@ export function AssignRow({
             aria-expanded={ouvert}
             onClick={() => setOuvert((o) => !o)}
           >
-            <Icon id="ui/add" size="sm" />
+            <Icon id="interface/ajouter" size="sm" />
           </button>
           <PanneauParametre anchor={ouvert ? btnAjout : null} intitule={intitule} options={options} onClose={() => setOuvert(false)} />
           {parametre ? <PanneauParametre anchor={btnAjout} intitule={parametre.intitule} options={valeurs} onClose={() => setParametrant(null)} /> : null}

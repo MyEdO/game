@@ -88,7 +88,7 @@ export const scenario: TestScenario = {
   id: 'bestiaire',
   order: 5,
   category: 'creatures',
-  icon: 'scenario/bestiary',
+  icon: 'scenario/bestiaire',
   title: 'Bestiaire, traits & états',
   tests:
     'Ménagerie : traits (Éthéré/Instable, Démoniaque/Champion/Perturbant, Régénération/Stupide, Toile/Bestial/Venin, ' +

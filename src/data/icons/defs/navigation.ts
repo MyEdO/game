@@ -10,9 +10,9 @@ const F = 'fill="currentColor" stroke="none"';
 
 export const icons: IconFamily = [
   {
-    id: 'nav/new-game',
+    id: 'navigation/nouvelle-partie',
     label: 'Nouvelle partie',
-    // Épées croisées cérémonielles (même construction de lame que action/attack).
+    // Épées croisées cérémonielles (même construction de lame que action/attaquer).
     svg:
       `<path ${F} d="M14.7 15.2 L5.2 4.5 C4.6 3.9 3.8 3.6 3.2 3.6 C3.2 4.2 3.5 5.1 4 5.7 L13.4 16.5 Z"/>` +
       `<path ${F} d="M9.3 15.2 L18.8 4.5 C19.4 3.9 20.2 3.6 20.8 3.6 C20.8 4.2 20.5 5.1 20 5.7 L10.6 16.5 Z"/>` +
@@ -22,7 +22,7 @@ export const icons: IconFamily = [
       `<circle ${F} cx="5.1" cy="19.9" r="1.2"/>`,
   },
   {
-    id: 'nav/load',
+    id: 'navigation/charger',
     label: 'Charger',
     // Coffre entrebâillé, lueur du trésor dans la fente.
     svg:
@@ -34,7 +34,7 @@ export const icons: IconFamily = [
       `<circle ${F} cx="15.1" cy="11.8" r="0.6"/>`,
   },
   {
-    id: 'nav/online',
+    id: 'navigation/en-ligne',
     label: 'Jouer en ligne',
     // Deux tours reliées par le vol d'un pigeon voyageur (pas de globe moderne).
     svg:
@@ -44,7 +44,7 @@ export const icons: IconFamily = [
       `<path ${KF} d="M10.5 5.8 C11.1 5.2 11.6 5.2 11.9 5.7 M11.9 5.7 C12.2 5.2 12.7 5.2 13.3 5.8"/>`,
   },
   {
-    id: 'nav/rules',
+    id: 'navigation/regles-maison',
     label: 'Règles maison',
     // Feuillet scellé à la cire, ruban pendant.
     svg:
@@ -54,7 +54,7 @@ export const icons: IconFamily = [
       `<path ${K} d="M12.5 17.7 L10.8 19.5"/>`,
   },
   {
-    id: 'nav/compendium',
+    id: 'navigation/compendium',
     label: 'Compendium',
     // Grimoire ouvert, deux pages annotées.
     svg:
@@ -63,7 +63,7 @@ export const icons: IconFamily = [
       `<path ${KF} d="M6.6 8.1 C7.9 8.1 9.1 8.4 10.2 8.9 M6.6 11 C7.9 11 9.1 11.3 10.2 11.8 M13.8 8.9 C14.9 8.4 16.1 8.1 17.4 8.1 M13.8 11.8 C14.9 11.3 16.1 11 17.4 11"/>`,
   },
   {
-    id: 'nav/carnet',
+    id: 'navigation/carnet',
     label: 'Carnet d’enquête',
     // Carnet relié (dos plein, notes) sous la loupe de l'enquêteur.
     svg:
@@ -74,7 +74,7 @@ export const icons: IconFamily = [
       `<path ${F} d="M17.4 18.4 L18.4 17.4 L20.9 19.9 C21.2 20.2 21.2 20.6 20.9 20.9 C20.6 21.2 20.2 21.2 19.9 20.9 Z"/>`,
   },
   {
-    id: 'nav/editor',
+    id: 'navigation/editeur',
     label: 'Éditeur',
     // Équerre graduée + marteau du bâtisseur.
     svg:
@@ -84,7 +84,7 @@ export const icons: IconFamily = [
       `<path ${F} d="M16.2 2.9 C17.5 1.9 19.3 2 20.4 3.1 C21.5 4.2 21.6 6 20.6 7.3 L19.2 7.7 L15.8 4.3 Z"/>`,
   },
   {
-    id: 'nav/test-scenarios',
+    id: 'navigation/scenarios-de-test',
     label: 'Scénarios de test',
     // Alambic : cornue, bec distillateur, goutte à l'épreuve.
     svg:
@@ -95,7 +95,7 @@ export const icons: IconFamily = [
       `<path ${F} d="M5.5 13.7 C8.1 14.8 11.1 14.8 13.7 13.7 C13.3 16.4 11.8 18 9.6 18 C7.4 18 5.9 16.4 5.5 13.7 Z"/>`,
   },
   {
-    id: 'nav/art-gallery',
+    id: 'navigation/galeries-d-art',
     label: 'Galeries d’art',
     // Palette du peintre, touches de couleur (une seule dorée).
     svg:
@@ -107,7 +107,7 @@ export const icons: IconFamily = [
       `<circle fill="var(--gold)" stroke="none" cx="16.3" cy="9" r="1.25"/>`,
   },
   {
-    id: 'nav/campaign',
+    id: 'navigation/campagne',
     label: 'Campagne',
     // Carte déroulée entre ses deux rouleaux, itinéraire et croix du but.
     svg:
@@ -117,7 +117,7 @@ export const icons: IconFamily = [
       `<path ${KF} d="M14.5 7 L16.2 8.7 M16.2 7 L14.5 8.7"/>`,
   },
   {
-    id: 'nav/seat-owner',
+    id: 'navigation/proprietaire-du-siege',
     label: 'Propriétaire du siège',
     // Buste du joueur sur son socle.
     svg:
@@ -126,7 +126,7 @@ export const icons: IconFamily = [
       `<path ${KF} d="M4.6 21.3 C9.5 21.7 14.5 21.7 19.4 21.3"/>`,
   },
   {
-    id: 'nav/entry-point',
+    id: 'navigation/point-d-entree',
     label: 'Point d’entrée',
     // Fanion à queue d'aronde planté dans son monticule.
     svg:
@@ -135,7 +135,7 @@ export const icons: IconFamily = [
       `<path ${K} d="M4.9 20.8 C7.1 19.4 10.2 19.4 12.4 20.8"/>`,
   },
   {
-    id: 'nav/rest',
+    id: 'navigation/repos',
     label: 'Repos',
     // Feu de camp : flamme sur bûches croisées.
     svg:
@@ -143,7 +143,7 @@ export const icons: IconFamily = [
       `<path ${K} d="M5.6 20.5 L18.4 17.7 M5.6 17.7 L18.4 20.5"/>`,
   },
   {
-    id: 'nav/identify',
+    id: 'navigation/identifier',
     label: 'Identifier',
     // Loupe posée sur une rune.
     svg:
@@ -152,7 +152,7 @@ export const icons: IconFamily = [
       `<path ${KF} d="M8.7 7.2 C8.6 9.2 8.6 11.2 8.7 13.1 M8.7 8.5 L11.6 7.1 M8.7 10.7 L11.2 9.5"/>`,
   },
   {
-    id: 'nav/memorize',
+    id: 'navigation/memoriser',
     label: 'Mémoriser',
     // Livre ouvert dans une tête de profil : le sort à l'esprit.
     svg:
@@ -160,7 +160,7 @@ export const icons: IconFamily = [
       `<path ${KF} d="M12.6 9.3 C11.6 8.7 10.5 8.5 9.5 8.8 V12.4 C10.5 12.1 11.6 12.3 12.6 12.9 C13.6 12.3 14.7 12.1 15.7 12.4 V8.8 C14.7 8.5 13.6 8.7 12.6 9.3 Z"/>`,
   },
   {
-    id: 'nav/activity',
+    id: 'navigation/activite',
     label: 'Activité',
     // Parchemin déroulé verticalement (distinct du feuillet scellé et de la carte).
     svg:
@@ -169,7 +169,7 @@ export const icons: IconFamily = [
       `<path ${KF} d="M9.1 11.1 C10.9 10.9 12.7 10.9 14.5 11.1 M9.1 14 C10.7 13.8 12.3 13.8 13.9 14"/>`,
   },
   {
-    id: 'nav/dice',
+    id: 'navigation/des',
     label: 'Tirage',
     // Dé à dix faces (d100 du jeu) : face en cerf-volant et arêtes rayonnantes.
     svg:
@@ -178,7 +178,7 @@ export const icons: IconFamily = [
       `<path ${KF} d="M12 14.5 V20.9 M8.3 10.6 L5.1 8.5 M8.3 10.6 L6.9 16.7 M15.9 10.6 L18.9 8.5 M15.9 10.6 L17.1 16.7"/>`,
   },
   {
-    id: 'nav/mutation',
+    id: 'navigation/mutation',
     label: 'Mutation',
     // Corne torse du Chaos, anneaux de croissance (pas d'ADN moderne).
     svg:

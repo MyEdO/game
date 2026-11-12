@@ -144,13 +144,13 @@
         }
       }
     ],
-    "icon": "flag/frenzy"
+    "icon": "drapeau/frenesie"
   },
   {
     "id": "peur",
     "type": "psychology",
     "label": "Peur",
-    "icon": "flag/fear",
+    "icon": "drapeau/peur",
     "descRef": {
       "book": "livre-de-base",
       "ch": "21",
@@ -187,7 +187,7 @@
     "id": "terreur",
     "type": "psychology",
     "label": "Terreur",
-    "icon": "creature/scream",
+    "icon": "creature/hurlement",
     "descRef": {
       "book": "livre-de-base",
       "ch": "21",
@@ -230,7 +230,7 @@
     "id": "animosite",
     "type": "psychology",
     "label": "Animosité",
-    "icon": "flag/anger",
+    "icon": "drapeau/hostilite",
     "cibles": [
       "groupe",
       "individu"
@@ -343,7 +343,7 @@
     "id": "haine",
     "type": "psychology",
     "label": "Haine",
-    "icon": "flag/anger",
+    "icon": "drapeau/hostilite",
     "cibles": [
       "groupe",
       "individu"
@@ -436,7 +436,7 @@
     "id": "prejuge",
     "type": "psychology",
     "label": "Préjugé",
-    "icon": "flag/anger",
+    "icon": "drapeau/hostilite",
     "cibles": [
       "groupe",
       "individu"
@@ -543,7 +543,7 @@
     "id": "amour",
     "type": "psychology",
     "label": "Amour",
-    "icon": "flag/bond",
+    "icon": "drapeau/attachement",
     "cibles": [
       "individu"
     ],
@@ -587,7 +587,7 @@
     "id": "camaraderie",
     "type": "psychology",
     "label": "Camaraderie",
-    "icon": "flag/bond",
+    "icon": "drapeau/attachement",
     "cibles": [
       "groupe",
       "individu"
@@ -629,7 +629,7 @@
     "id": "phobie",
     "type": "psychology",
     "label": "Phobie",
-    "icon": "flag/fear",
+    "icon": "drapeau/peur",
     "cibles": [
       "groupe",
       "individu"

@@ -16,9 +16,9 @@ function d(over: Partial<import('../engine/combat').RollBreakdown>): import('../
 }
 
 const entries: NightEntry[] = [
-  { id: 'e1', label: 'Capitaine', group: 'Progression', icon: 'travel/anchor', d: d({}), tone: 'bad' },
-  { id: 'e2', label: 'Timonier', group: 'Progression', icon: 'travel/anchor', d: d({ roll: 12, success: true, sl: 4 }), tone: 'ok' },
-  { id: 'e3', label: 'Navigateur', group: 'Orientation', icon: 'travel/anchor', d: d({ label: 'Navigation', roll: 30, success: true, sl: 2 }), tone: 'ok' },
+  { id: 'e1', label: 'Capitaine', group: 'Progression', icon: 'voyage/ancre', d: d({}), tone: 'echec' },
+  { id: 'e2', label: 'Timonier', group: 'Progression', icon: 'voyage/ancre', d: d({ roll: 12, success: true, sl: 4 }), tone: 'reussite' },
+  { id: 'e3', label: 'Navigateur', group: 'Orientation', icon: 'voyage/ancre', d: d({ label: 'Navigation', roll: 30, success: true, sl: 2 }), tone: 'reussite' },
   { label: 'Note', text: 'jour 3/3' },
 ];
 

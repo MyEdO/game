@@ -83,7 +83,7 @@ describe('défense — même dé par défaut, plancher opposé conservé (LDB 17
         location: null, atk, mode: 'esquive',
         def: { roll: 95, target: 50, success: false, sl: -4, isDouble: false },
         result: {
-          hit: true, attackerRoll: 30, netSL: 5, critical: false, advantageTo: 'attacker', defenderDefeated: false, log: '',
+          hit: true, attackerRoll: 30, netSL: 5, critical: false, advantageTo: 'attaquant', defenderDefeated: false, log: '',
           attackerDetail: { label: 'Corps à corps', base: 40, modifier: 0, target: 40, roll: 30, success: true, sl: 1 },
           defenderDetail: { label: 'Esquive', base: 50, modifier: 0, target: 50, roll: 95, success: false, sl: -4 },
         },

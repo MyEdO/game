@@ -516,10 +516,10 @@ const routeJet = (jet: JetOwnerRef, depense: boolean): Route => ({
 
 /** Le geste de jet `verbe` dépense-t-il une ressource du porteur ? Tous, sauf le lancer et les verbes de fenêtre
  *  (`estVerbeDeFenetre` : l'annulation et la clôture). */
-const depenseDuPorteur = (verbe: RollVerb): boolean => verbe !== 'roll' && !estVerbeDeFenetre(verbe);
+const depenseDuPorteur = (verbe: RollVerb): boolean => verbe !== 'lancer' && !estVerbeDeFenetre(verbe);
 
 /** La rangée (`pid`) d'un geste de jet : son dernier argument (`VerbesDeJet` : après le dé posé de `jetImposerLeResultat`). */
-const rangeeDuGeste = (verbe: RollVerb, args: unknown[]): string | undefined => idArg(args[verbe === 'setForcedRoll' ? 2 : 1]);
+const rangeeDuGeste = (verbe: RollVerb, args: unknown[]): string | undefined => idArg(args[verbe === 'imposerLeResultat' ? 2 : 1]);
 
 /**
  * Possession d'un geste de jet `verbe`, d'après le flux qu'il vise (1ᵉʳ argument) — un flux qui ne l'accepte pas :
@@ -539,7 +539,7 @@ const routeDuVerbeDeJet = (verbe: RollVerb): Route => ({
     if (!fluxAccepte(flux, verbe)) return false;
     const w: FlowVerbs = FLOW_VERBS[flux];
     if (w.kind === 'mono') return routeJet(w.jetOwner, depenseDuPorteur(verbe)).rule(s, seat, args);
-    if (flux === 'cascade' && (verbe === 'resist' || verbe === 'reverse')) return acteurDEtape(s, seat, rangeeDuGeste(verbe, args));
+    if (flux === 'cascade' && (verbe === 'resister' || verbe === 'inverser')) return acteurDEtape(s, seat, rangeeDuGeste(verbe, args));
     if (!w.pidIsActor || estVerbeDeFenetre(verbe)) return null;
     const rangee = rangeeDuGeste(verbe, args);
     if (rangee === undefined && rangeeFacultative(flux, verbe)) return true;

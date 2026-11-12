@@ -65,12 +65,12 @@ const putDispel = (over: Partial<{ ni: number; sl: number }> = {}) => {
   } as never);
 };
 
-const putExtended = (over: Partial<{ total: number; targetDR: number; sl: number; success: boolean }> = {}) => {
-  const { total = 2, targetDR = 5, sl = 2, success = true } = over;
+const putExtended = (over: Partial<{ total: number; drCible: number; sl: number; success: boolean }> = {}) => {
+  const { total = 2, drCible = 5, sl = 2, success = true } = over;
   useGame.setState({
     pendingExtendedTest: {
       actorId: 'mage', label: 'Enfoncer la porte', skillLabel: 'Force', target: 45,
-      targetDR, total, rounds: [{ id: 'round-1', interactive: true, result: { roll: 22, sl, success } }],
+      drCible, total, rounds: [{ id: 'round-1', interactive: true, result: { roll: 22, sl, success } }],
     },
   } as never);
 };
@@ -98,7 +98,7 @@ describe('Dissipation — la progression est sur la BARRE, pas dans l’issue', 
 
 describe('Test étendu — la progression est sur la BARRE, pas dans l’issue', () => {
   it('Round positif : la barre porte « 4 / 5 DR », aucun cadre d’issue', () => {
-    putExtended({ total: 2, targetDR: 5, sl: 2, success: true });
+    putExtended({ total: 2, drCible: 5, sl: 2, success: true });
     act(() => root.render(<ExtendedTestHost />));
     expect(host.querySelector('.dr-bar-val')?.textContent?.replace(/\s+/g, ' ').trim()).toBe('4 / 5 DR');
     expect(outcomeFrame(), 'le cumul est déjà lisible sur la barre').toBeNull();
@@ -106,7 +106,7 @@ describe('Test étendu — la progression est sur la BARRE, pas dans l’issue',
   });
 
   it('total repassé sous zéro : l’issue énonce la REMISE À ZÉRO — sans chiffre ni DR', () => {
-    putExtended({ total: 1, targetDR: 5, sl: -3, success: false });
+    putExtended({ total: 1, drCible: 5, sl: -3, success: false });
     act(() => root.render(<ExtendedTestHost />));
     const frame = outcomeFrame();
     expect(frame, 'ce que la barre à 0 ne distingue pas d’un départ à 0 s’écrit').not.toBeNull();

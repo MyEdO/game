@@ -260,7 +260,7 @@ export function fenetreDIncantation(s: Jeu): FenetreDIncantation | null {
     })))),
     pose: zoneAPoser && res && s.battle ? { refus: refusDeLaPose(s, true) } : null,
     fermetures,
-    annulation: fermetures.cancel ? libelleDeLaFermeture(fermetures.cancel) : null,
+    annulation: fermetures.annuler ? libelleDeLaFermeture(fermetures.annuler) : null,
     issue: issueDeLIncantation(s),
   };
 }

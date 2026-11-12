@@ -190,7 +190,7 @@ describe('Inventaire : toute affliction ciblée a un chemin de fin (LDB 21 l.9)'
 const hache: Weapon = { label: 'Hache', type: 'melee', damage: { plusBF: false, flat: 0 }, qualities: [] } as unknown as Weapon;
 const coupMortel = (blessures: number): AttackResult => ({
   hit: true, attackerRoll: 41, netSL: 2, location: 'corps', damage: blessures, woundsLost: blessures,
-  critical: false, advantageTo: 'attacker', defenderDefeated: false, log: 'touche',
+  critical: false, advantageTo: 'attaquant', defenderDefeated: false, log: 'touche',
 }) as AttackResult;
 
 describe('Famille défense, telle qu’avant #1463 : fin à la chute (LDB 21 l.75, l.81 ; #3045)', () => {

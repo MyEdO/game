@@ -51,7 +51,7 @@ export interface RiverWindEffect {
   /** % de vitesse (peut être négatif : vent contraire). */
   pct?: number;
   /** Calme (l.29) : le bateau dérive en aval à 25 % ; Tests de Navigation −10 (note 2, l.38). */
-  drift?: boolean;
+  derive?: boolean;
   /** Vent de côté Modéré/Fort (note 3, l.39) : le +% n'est acquis qu'en louvoyant (Navigation Accessible +20). */
   tack?: boolean;
   /** Très fort de côté (note 4, l.40) : retirer la voile ou chavirer. */

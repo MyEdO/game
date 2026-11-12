@@ -97,7 +97,7 @@ describe('F — le dénouement d’un dé joué EN COMBAT se montre dans le jour
   /** Étape de sauvegarde telle que la porte la fabrique (`combatFlow.pousserSauvegarde`) : 1d10, seuil
    *  déclaré, porteur nommé — NON résolue, c'est la fenêtre (ici le test) qui jette ou POSE le dé. */
   const sauvegardeStep = () => dieStep({
-    id: 'sauvegarde-ilyanwe', kind: cleDeFixture('seuilSpy'), label: fixtureText('Sauvegarde'), icon: 'journal/critical',
+    id: 'sauvegarde-ilyanwe', kind: cleDeFixture('seuilSpy'), label: fixtureText('Sauvegarde'), icon: 'journal/critique',
     spec: { n: 1, sides: 10 }, actorId: PORTEUR.id, seuil: DOME,
   })!;
 

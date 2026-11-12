@@ -36,7 +36,7 @@ function openReveal(make: (heroId: string) => RevealEntry) {
     net: { mode: 'local', mySeat: 0, roomCode: null, seatNames: {}, presence: {}, ownership: {} } as never,
     pendingCascade: cascadeDeTest(
       [{ id: 'cons-0', kind: entry.kind, actorId: entry.subjectId, label: fixtureText(entry.title), reveal: entry }],
-      { title: entry.title, icon: 'nav/mutation', purpose: 'affichage' },
+      { title: entry.title, icon: 'navigation/mutation', purpose: 'affichage' },
     ),
   });
   return hero;

@@ -221,7 +221,7 @@ describe('lecture — `classeDeProduit` nomme la fabrique, le rôle et les clés
       'arbreDeFlow flow.do {}',
       'arbreDeFlow flow.if {}',
       'noeudTest test {}',
-      'proseNommee flow.choice.prompt {"advantageCost":"optional<:union<|0:number,|1:literal[\\"$indice\\"]>>","icon":"optional<:string>","kind":"literal[\\"choice\\"]","no":"optional<:lazy>","yes":"lazy"}',
+      'proseNommee flow.choice.prompt {"advantageCost":"optional<:union<|0:number,|1:literal[\\"$indice\\"]>>","icon":"optional<:string>","kind":"literal[\\"choice\\"]","non":"optional<:lazy>","oui":"lazy"}',
     ]);
   });
 
@@ -231,7 +231,7 @@ describe('lecture — `classeDeProduit` nomme la fabrique, le rôle et les clés
       'arbreDeFlow flow.do {}',
       'arbreDeFlow flow.if {}',
       'noeudTest test {}',
-      'proseNommee flow.choice.prompt {"advantageCost":"optional<:number>","icon":"optional<:string>","kind":"literal[\\"choice\\"]","no":"optional<:lazy>","yes":"lazy"}',
+      'proseNommee flow.choice.prompt {"advantageCost":"optional<:number>","icon":"optional<:string>","kind":"literal[\\"choice\\"]","non":"optional<:lazy>","oui":"lazy"}',
     ]);
   });
 

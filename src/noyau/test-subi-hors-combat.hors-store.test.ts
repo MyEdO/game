@@ -108,7 +108,7 @@ function feuilles(f: Flow | undefined): { on?: string; ops: GameOp[] }[] {
   if (f.kind === 'seq') return f.steps.flatMap(feuilles);
   if (f.kind === 'if') return [...feuilles(f.then), ...feuilles(f.else)];
   if (f.kind === 'test') return [...feuilles(f.success), ...feuilles(f.fail)];
-  return [...feuilles(f.yes), ...feuilles(f.no)];
+  return [...feuilles(f.oui), ...feuilles(f.non)];
 }
 /** Tous les nœuds `test` d'un Flow, racine comprise. */
 function noeudsTest(f: unknown, out: NoeudTest[] = []): NoeudTest[] {

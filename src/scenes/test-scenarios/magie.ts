@@ -125,7 +125,7 @@ export const scenario: TestScenario = {
   id: 'magie',
   order: 3,
   category: 'magie',
-  icon: 'scenario/magic',
+  icon: 'scenario/magie',
   title: 'Magie en combat',
   tests:
     'Grande bataille magique : toutes les familles curées (invocations, drains, enchantements, zones, soins), ' +

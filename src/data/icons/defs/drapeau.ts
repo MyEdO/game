@@ -1,7 +1,7 @@
 import type { IconFamily } from '../types';
 
 /* États-drapeaux (postures/psychologie hors conditions[]) — charte : voir defs/action.ts.
-   NB : « Visée » (En joue) réutilise `action/aim` (même sens exact) — pas de doublon ici. */
+   NB : « Visée » (En joue) réutilise `action/viser` (même sens exact) — pas de doublon ici. */
 
 /** Trait principal. */
 const K = 'fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"';
@@ -14,7 +14,7 @@ const FE = 'fill="currentColor" fill-rule="evenodd" stroke="none"';
 
 export const icons: IconFamily = [
   {
-    id: 'flag/frenzy',
+    id: 'drapeau/frenesie',
     label: 'Frénésie',
     svg:
       // Visage de face hurlant : yeux bridés de rage + gueule béante (trous evenodd), mèches hérissées.
@@ -22,7 +22,7 @@ export const icons: IconFamily = [
       `<path ${KF} d="M7 3.9 L5.5 2.3 M10.1 2.7 L9.5 1.1 M13.9 2.7 L14.5 1.1 M17 3.9 L18.5 2.3"/>`,
   },
   {
-    id: 'flag/focus',
+    id: 'drapeau/focalisation',
     label: 'Focalisation',
     svg:
       `<circle ${K} cx="12" cy="12" r="5.3"/>` +
@@ -30,7 +30,7 @@ export const icons: IconFamily = [
       `<path ${KF} d="M4.7 4.7 L7.5 7.5 M19.3 4.7 L16.5 7.5 M4.7 19.3 L7.5 16.5 M19.3 19.3 L16.5 16.5"/>`,
   },
   {
-    id: 'flag/hungry',
+    id: 'drapeau/affame',
     label: 'Affamé',
     svg:
       `<path ${K} d="M4.5 11 H19.5 C19.3 15.7 16.3 18.8 12 18.8 C7.7 18.8 4.7 15.7 4.5 11 Z"/>` +
@@ -39,7 +39,7 @@ export const icons: IconFamily = [
       `<path ${K} d="M8.2 6 L12.7 11"/>`,
   },
   {
-    id: 'flag/fear',
+    id: 'drapeau/peur',
     label: 'Peur',
     svg:
       `<path ${KF} d="M4.2 6.2 L7.2 7.9 M3.6 11 L7 11.4 M4.2 15.8 L7.2 14.2"/>` +
@@ -49,7 +49,7 @@ export const icons: IconFamily = [
       `<path ${K} d="M14.9 10.3 C13.2 9.9 11.8 9.1 10.7 7.8"/>`,
   },
   {
-    id: 'flag/defensive',
+    id: 'drapeau/posture-defensive',
     label: 'Posture défensive',
     svg:
       `<path ${F} d="M12 3.2 C14.7 4.6 17.2 5.3 19.7 5.5 C19.6 12.4 17.1 17.5 12 20.7 C6.9 17.5 4.4 12.4 4.3 5.5 C6.8 5.3 9.3 4.6 12 3.2 Z"/>` +
@@ -57,7 +57,7 @@ export const icons: IconFamily = [
       `<path ${KF} d="M2.4 9.9 L4.9 11 M2.9 14.4 L5.2 14"/>`,
   },
   {
-    id: 'flag/hidden',
+    id: 'drapeau/embusque',
     label: 'Embusqué',
     // Capuche d'embuscade : yeux plissés seuls visibles.
     svg:
@@ -65,7 +65,7 @@ export const icons: IconFamily = [
       `<path ${KF} d="M9.1 11.3 C9.7 10.7 10.6 10.7 11.1 11.3 M12.9 11.3 C13.4 10.7 14.3 10.7 14.9 11.3"/>`,
   },
   {
-    id: 'flag/anger',
+    id: 'drapeau/hostilite',
     label: 'Hostilité / colère',
     // Poing serré, jointures marquées, deux traits de vapeur rageuse.
     svg:
@@ -74,7 +74,7 @@ export const icons: IconFamily = [
       `<path ${K} d="M9.4 4.6 L10.3 6.4 M14.6 4.6 L13.7 6.4"/>`,
   },
   {
-    id: 'flag/bond',
+    id: 'drapeau/attachement',
     label: 'Attachement (amour / camaraderie)',
     // Cœur plein, non fendu — attachement positif (distinct des cœurs fendus de Blessures/Ambition).
     svg:

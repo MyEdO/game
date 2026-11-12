@@ -105,13 +105,13 @@
   "windEffect": {
     "calme": {
       "arriere": {
-        "drift": true
+        "derive": true
       },
       "cote": {
-        "drift": true
+        "derive": true
       },
       "contraire": {
-        "drift": true
+        "derive": true
       }
     },
     "leger": {

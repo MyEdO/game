@@ -114,7 +114,7 @@
       },
       "difficulty": "complexe"
     },
-    "targetDR": 10,
+    "drCible": 10,
     "tentativesMax": 3,
     "outcomes": [
       {

@@ -169,7 +169,7 @@ function pushCargoTile(tiles: VoyageTile[], party: Combatant[], possessions: Pos
   const cap = partyLandCapacity(party, possessions);
   if (cap <= 0) return;
   const enc = partyItemsCargoEnc(party, possessions);
-  tiles.push({ key: 'cale', icon: 'item/misc', label: 'Chargement', value: `${enc} / ${cap} Enc`, gauge: { value: enc, max: Math.max(cap, 1), tone: cargoGaugeTone } });
+  tiles.push({ key: 'cale', icon: 'objet/divers', label: 'Chargement', value: `${enc} / ${cap} Enc`, gauge: { value: enc, max: Math.max(cap, 1), tone: cargoGaugeTone } });
 }
 
 /** Glyphe d'état d'une phase de l'agenda (même convention que `ready-chip`, RestBody). */
@@ -220,11 +220,11 @@ export function voyageTiles(
   if (sub === 'mer' && plan.sea) {
     const sea = plan.sea;
     // Vent (direction + force) — la tuile Météo (ci-dessous) porte les 3 AUTRES aspects MDG du jour.
-    tiles.push({ key: 'vent', icon: 'nautical/wind', label: 'Vent', value: `${windForceLabel(sea.weather.vent)} — vent de ${libelleDeValeur(windDirectionSchema, sea.windFrom)}` });
+    tiles.push({ key: 'vent', icon: 'nautique/vent', label: 'Vent', value: `${windForceLabel(sea.weather.vent)} — vent de ${libelleDeValeur(windDirectionSchema, sea.windFrom)}` });
     // Météo du jour (MDG 13 l.164) : Précipitations/Température/Visibilité — 4e aspect (Vent) déjà sa tuile.
     tiles.push({
       key: 'meteo',
-      icon: 'rest/rain',
+      icon: 'repos/pluie',
       label: 'Météo',
       value: `${precipitationDef(sea.weather.precipitations).label} · ${temperatureDef(sea.weather.temperature).label} · ${visibilityDef(sea.weather.visibilite).label}`,
     });
@@ -234,18 +234,18 @@ export function voyageTiles(
       const capacity = vd?.ship?.capacity ?? 0;
       const cargoEnc = cargoTotalEnc(vessel.cargo ?? []);
       tiles.push({ key: 'coque', icon: 'scenario/port', label: 'Coque', value: `${hullGauge.current} / ${hullGauge.max}`, gauge: { value: hullGauge.current, max: hullGauge.max, tone: hullGauge.tone }, onClick: onDossier, title: 'Dossier du navire' });
-      tiles.push({ key: 'moral', icon: 'nav/seat-owner', label: 'Moral', value: `${vessel.morale.score} — ${moraleBand(vessel.morale.score).label}`, gauge: { value: vessel.morale.score, max: 100, tone: moraleGaugeTone }, onClick: onDossier });
-      if (vessel.provisions != null) tiles.push({ key: 'provisions', icon: 'item/misc', label: 'Provisions', value: `${vessel.provisions} j-homme` });
-      tiles.push({ key: 'cale', icon: 'item/misc', label: 'Cale', value: `${cargoEnc} / ${capacity} Enc`, gauge: { value: cargoEnc, max: Math.max(capacity, 1), tone: cargoGaugeTone }, onClick: onDossier });
+      tiles.push({ key: 'moral', icon: 'navigation/proprietaire-du-siege', label: 'Moral', value: `${vessel.morale.score} — ${moraleBand(vessel.morale.score).label}`, gauge: { value: vessel.morale.score, max: 100, tone: moraleGaugeTone }, onClick: onDossier });
+      if (vessel.provisions != null) tiles.push({ key: 'provisions', icon: 'objet/divers', label: 'Provisions', value: `${vessel.provisions} j-homme` });
+      tiles.push({ key: 'cale', icon: 'objet/divers', label: 'Cale', value: `${cargoEnc} / ${capacity} Enc`, gauge: { value: cargoEnc, max: Math.max(capacity, 1), tone: cargoGaugeTone }, onClick: onDossier });
     }
     return tiles;
   }
   if (sub === 'fleuve' && plan.river) {
     const river = plan.river;
-    tiles.push({ key: 'vent', icon: 'nautical/wind', label: 'Vent du jour', value: `${riverForceLabel(river.windForce)} · ${riverDirLabel(river.windDir)}` });
+    tiles.push({ key: 'vent', icon: 'nautique/vent', label: 'Vent du jour', value: `${riverForceLabel(river.windForce)} · ${riverDirLabel(river.windDir)}` });
     const hull = plan.vehicle;
     if (hull) tiles.push({ key: 'coque', icon: 'scenario/port', label: 'Coque de la barge', value: `${hull.wounds.current} / ${hull.wounds.max}`, gauge: { value: hull.wounds.current, max: hull.wounds.max, tone: hullTone }, onClick: onDossier });
-    if (vessel?.provisions != null) tiles.push({ key: 'provisions', icon: 'item/misc', label: 'Provisions', value: `${vessel.provisions} j-homme` });
+    if (vessel?.provisions != null) tiles.push({ key: 'provisions', icon: 'objet/divers', label: 'Provisions', value: `${vessel.provisions} j-homme` });
     pushCargoTile(tiles, party, possessions); // chargement porté par les bêtes/véhicules embarqués (#327)
     return tiles;
   }
@@ -255,7 +255,7 @@ export function voyageTiles(
   const allureBased = plan.mode === 'monture' || !!plan.allure;
   tiles.push({
     key: 'allure',
-    icon: 'travel/foot',
+    icon: 'voyage/a-pied',
     label: allureBased ? 'Allure' : 'Transport',
     value: plan.allure ? allureLabel(plan.allure)
       : plan.mode === 'monture' ? 'En selle'
@@ -264,15 +264,15 @@ export function voyageTiles(
   });
   // Météo du jour EN COURS (règle `voyage-etapes`, EDOC 8) — absente si la règle est éteinte ou
   // qu'aucun jour n'est encore engagé.
-  if (dayWeather) tiles.push({ key: 'meteo', icon: 'rest/rain', label: 'Météo', value: weatherCondition(dayWeather).label });
+  if (dayWeather) tiles.push({ key: 'meteo', icon: 'repos/pluie', label: 'Météo', value: weatherCondition(dayWeather).label });
   const mounts = partyMounts(party, possessions);
   if (mounts.length) {
     const hurt = mounts.filter((m) => m.possession.mountInjury).length;
-    tiles.push({ key: 'betes', icon: 'travel/mount', label: 'Bêtes', value: `${mounts.length}${hurt ? ` · ${hurt} blessée${hurt > 1 ? 's' : ''}` : ''}` });
+    tiles.push({ key: 'betes', icon: 'voyage/en-selle', label: 'Bêtes', value: `${mounts.length}${hurt ? ` · ${hurt} blessée${hurt > 1 ? 's' : ''}` : ''}` });
   }
   pushCargoTile(tiles, party, possessions); // chargement porté par les bêtes/véhicules du convoi (#327)
   const season = seasonOfMonth(toDate(gameTime).month);
-  tiles.push({ key: 'saison', icon: 'rest/cold', label: 'Saison', value: seasonLabel(season) });
+  tiles.push({ key: 'saison', icon: 'repos/froid', label: 'Saison', value: seasonLabel(season) });
   return tiles;
 }
 
@@ -363,7 +363,7 @@ export function VoyageScreen({ onClose, reduireRefus }: { onClose: () => void; r
       <ScreenShell
         className="voyage-screen"
         title={<>
-          <Icon id={sea ? 'travel/sail-ship' : sub === 'fleuve' ? 'travel/sail-ship' : 'travel/mount'} size="sm" />
+          <Icon id={sea ? 'voyage/navire-a-voile' : sub === 'fleuve' ? 'voyage/navire-a-voile' : 'voyage/en-selle'} size="sm" />
           {' '}{t(sub === 'mer' ? 'vs.titreMer' : sub === 'fleuve' ? 'vs.titreFleuve' : 'vs.titreTerre')} — {fromLabel} → <b>{toLabel}</b>
         </>}
         onClose={onClose}

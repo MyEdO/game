@@ -84,14 +84,14 @@ describe('G5 — posture de tir pré-armée (`battle.stances`)', () => {
     const cible = () => banc.getState().battle!.combatants.find((c) => c.id === E.id)!;
     const pa = () => ({ attackerId: H.id, targetId: E.id, location: null, result: null });
 
-    openAttackCascade(banc.getState, banc.setState, pa(), 'Tir', 'action/shoot');
+    openAttackCascade(banc.getState, banc.setState, pa(), 'Tir', 'action/tirer');
     const mobile = banc.getState().pendingAttack!;
     expect(mobile.tirImmobile, 'sans posture armée, rien n’est pré-rempli').toBeUndefined();
     const vMobile = previewAttack(banc.getState, attaquant(), cible(), undefined, { tirImmobile: mobile.tirImmobile });
 
     banc.setState({ pendingAttack: null, pendingCascade: null }); // la fenêtre du premier tir tiendrait la main
     armer();
-    openAttackCascade(banc.getState, banc.setState, pa(), 'Tir', 'action/shoot');
+    openAttackCascade(banc.getState, banc.setState, pa(), 'Tir', 'action/tirer');
     const immobile = banc.getState().pendingAttack!;
     expect(immobile.tirImmobile, 'la posture pré-armée arrive dans la fenêtre de jet').toBe(true);
     const vImmobile = previewAttack(banc.getState, attaquant(), cible(), undefined, { tirImmobile: immobile.tirImmobile });
@@ -107,7 +107,7 @@ describe('G5 — posture de tir pré-armée (`battle.stances`)', () => {
     const { H, E } = setup();
     armer();
     banc.setState({ battle: { ...banc.getState().battle!, movementUsed: 1 } });
-    openAttackCascade(banc.getState, banc.setState, { attackerId: H.id, targetId: E.id, location: null, result: null }, 'Tir', 'action/shoot');
+    openAttackCascade(banc.getState, banc.setState, { attackerId: H.id, targetId: E.id, location: null, result: null }, 'Tir', 'action/tirer');
     expect(banc.getState().pendingAttack!.tirImmobile).toBeUndefined();
   });
 
@@ -131,7 +131,7 @@ describe('G5 — posture de tir pré-armée (`battle.stances`)', () => {
     h.weapons = [...h.weapons, epee];
     const e = banc.getState().battle!.combatants.find((c) => c.id === E.id)!;
     e.pos = { x: 7, y: 10 }; // au contact : c'est l'épée qui parle
-    openAttackCascade(banc.getState, banc.setState, { attackerId: H.id, targetId: E.id, location: null, result: null, weaponUid: 'ep' }, 'Attaque', 'action/attack');
+    openAttackCascade(banc.getState, banc.setState, { attackerId: H.id, targetId: E.id, location: null, result: null, weaponUid: 'ep' }, 'Attaque', 'action/attaquer');
     const pa = banc.getState().pendingAttack!;
     expect(pa.tirImmobile, 'un pending de mêlée ne porte pas `tirImmobile`').toBeUndefined();
     expect(pa.dansLeTas, 'un pending de mêlée ne porte pas `dansLeTas`').toBeUndefined();
@@ -178,7 +178,7 @@ describe('G5 — postures et KIND du tireur (parité stricte avec `attackEnv`)',
       battle: { ...banc.getState().battle!, turn: banc.getState().battle!.order.indexOf(E.id), acted: false, movementUsed: 0 },
       pendingAttack: {
         attackerId: E.id, targetId: H.id, location: null, tirImmobile: true,
-        result: { hit: true, attackerRoll: 40, netSL: 1, location: 'corps', damage: 3, woundsLost: 3, critical: false, advantageTo: 'attacker', defenderDefeated: false, log: '' },
+        result: { hit: true, attackerRoll: 40, netSL: 1, location: 'corps', damage: 3, woundsLost: 3, critical: false, advantageTo: 'attaquant', defenderDefeated: false, log: '' },
       },
     });
     banc.getState().jetValider('attaque');
@@ -231,7 +231,7 @@ describe('G5 — posture « Dans le tas » (`dansLeTas`)', () => {
 
     banc.jouerLaCase('posture-tas');
     expect(banc.getState().battle!.stances?.[H.id]?.dansLeTas).toBe(true);
-    openAttackCascade(banc.getState, banc.setState, { attackerId: H.id, targetId: E.id, location: null, result: null }, 'Tir', 'action/shoot');
+    openAttackCascade(banc.getState, banc.setState, { attackerId: H.id, targetId: E.id, location: null, result: null }, 'Tir', 'action/tirer');
     const pa = banc.getState().pendingAttack!;
     expect(pa.dansLeTas, 'la posture pré-armée arrive dans la fenêtre de jet').toBe(true);
 
@@ -255,11 +255,11 @@ describe('G5 — posture « Dans le tas » (`dansLeTas`)', () => {
     expect(armees().tirImmobile, 'tir immobile armé').toBe(true);
     expect(armees().dansLeTas, '« Dans le tas » armée').toBe(true);
 
-    openAttackCascade(banc.getState, banc.setState, { attackerId: H.id, targetId: E.id, location: null, result: null }, 'Tir', 'action/shoot');
+    openAttackCascade(banc.getState, banc.setState, { attackerId: H.id, targetId: E.id, location: null, result: null }, 'Tir', 'action/tirer');
     const pa = banc.getState().pendingAttack!;
     expect(pa.tirImmobile, 'le coup part immobile').toBe(true);
     banc.setState({
-      pendingAttack: { ...pa, result: { hit: true, attackerRoll: 30, netSL: 1, location: 'corps', damage: 3, woundsLost: 3, critical: false, advantageTo: 'attacker', defenderDefeated: false, log: '' } } as never,
+      pendingAttack: { ...pa, result: { hit: true, attackerRoll: 30, netSL: 1, location: 'corps', damage: 3, woundsLost: 3, critical: false, advantageTo: 'attaquant', defenderDefeated: false, log: '' } } as never,
     });
     banc.getState().jetValider('attaque');
 

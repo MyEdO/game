@@ -101,19 +101,19 @@ describe('#1692 — aucun index figé à l’import sur un dataset mutable', () 
   });
 
   it('une entrée du seam à valeur d’APPEL est surveillée sous sa CLÉ, jamais sous sa fabrique', () => {
-    // `miscastMinor: rangeesDe<…>(miscastRawJson, 'miscast-mineure')` : `rangeesDe` est la PORTE des
+    // `imparfaiteMineure: rangeesDe<…>(miscastRawJson, 'miscast-mineure')` : `rangeesDe` est la PORTE des
     // rangées (`data/rangees.ts`), pas un dataset — la retenir comme binding posait un nom FANTÔME, et
     // laissait le nom réellement exposé du dataset hors du vocabulaire des DEUX gardes.
-    for (const cle of ['miscastMinor', 'miscastMajor', 'miscastWrath']) expect(parBinding.get(cle)).toBe(cle);
+    for (const cle of ['imparfaiteMineure', 'imparfaiteMajeure', 'colereDesDieux']) expect(parBinding.get(cle)).toBe(cle);
     expect(parBinding.has('rangeesDe'), 'la porte n’est pas un binding').toBe(false);
     // Les entrées à valeur de MEMBRE gardent leur objet porteur (lui, est bien importé ailleurs) —
     // et les shorthands leur propre nom.
     expect(parBinding.get('shipConstruction')).toBe('shipHullSizes');
     expect(parBinding.get('criticalsTete')).toBe('criticalsTete');
 
-    // Un index figé sur la CLÉ d'une entrée à valeur d'appel (`miscastMinor`) ou shorthand
+    // Un index figé sur la CLÉ d'une entrée à valeur d'appel (`imparfaiteMineure`) ou shorthand
     // (`criticalsTete`), injecté dans une copie en mémoire, rend 1 ligne chacun.
-    const fige = `import { miscastMinor } from '../data/overrides';\nconst PAR_ID = new Map(miscastMinor.map((r) => [r.id, r]));\n`;
+    const fige = `import { imparfaiteMineure } from '../data/overrides';\nconst PAR_ID = new Map(imparfaiteMineure.map((r) => [r.id, r]));\n`;
     expect(indexFiges('copie.ts', fige, parBinding)).toHaveLength(1);
     const figeCrit = `import { criticalsTete } from '../data/overrides';\nconst PREMIER = criticalsTete[0];\n`;
     expect(indexFiges('copie.ts', figeCrit, parBinding)).toHaveLength(1);
@@ -267,7 +267,7 @@ describe('#1692 — aucun index figé à l’import sur un dataset mutable', () 
     expect(indexFiges('src/engine/copie.ts', injecte, parBinding)).toHaveLength(1);
     const alias = `import vehiclesJson from '../data/vehicles.json';\nconst LISTE = vehiclesJson as VehicleData[];\nconst PAR_ID = new Map(LISTE.map((v) => [v.id, v]));\n`;
     expect(indexFiges('src/engine/copie.ts', alias, parBinding)).toHaveLength(1);
-    // CLÉ ≠ NOM DE FICHIER : `miscast.json` porte `miscastMinor`/`miscastMajor`/`miscastWrath`.
+    // CLÉ ≠ NOM DE FICHIER : `miscast.json` porte `imparfaiteMineure`/`imparfaiteMajeure`/`colereDesDieux`.
     const documentNiche = `import miscastJson from '../data/miscast.json';\nconst TABLES = miscastJson as MiscastTableDef[];\nconst PAR_ID = new Map(TABLES.map((t) => [t.id, t]));\n`;
     expect(indexFiges('src/engine/copie.ts', documentNiche, parBinding)).toHaveLength(1);
     // Un JSON sans clé de dataset (`actions.json`), ou le même nom de fichier ailleurs que sous

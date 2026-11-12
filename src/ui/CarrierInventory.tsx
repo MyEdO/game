@@ -122,7 +122,7 @@ export function CarrierInventory({
     if (it.identified === false) {
       badges.push(
         <span key="unid" className="chip tone-warn" title="Évaluer (ou Détecter l'artefact) pour révéler ses qualités">
-          {it.magicKnown ? (<><Icon id="action/cast" size="sm" /> Magique — non identifié</>) : (<><Icon id="nav/identify" size="sm" /> Non identifié</>)}
+          {it.magicKnown ? (<><Icon id="action/incanter" size="sm" /> Magique — non identifié</>) : (<><Icon id="navigation/identifier" size="sm" /> Non identifié</>)}
         </span>,
       );
     }
@@ -157,14 +157,14 @@ export function CarrierInventory({
               />
             )}
             {gestes.ranger?.refus && (
-              <GatedAction id={`inv-stow-${it.uid}`} label={<><Icon id="item/misc" size="sm" /> Ranger</>} enabled={false} {...raisonSi(gestes.ranger.refus)} onClick={() => {}} primary={false} btnClassName="small" />
+              <GatedAction id={`inv-stow-${it.uid}`} label={<><Icon id="objet/divers" size="sm" /> Ranger</>} enabled={false} {...raisonSi(gestes.ranger.refus)} onClick={() => {}} primary={false} btnClassName="small" />
             )}
             {gestes.ranger && !gestes.ranger.refus && (
               <MediaSelect
                 align="right"
                 triggerClassName="btn small"
                 title="Ranger dans un contenant"
-                trigger={<><Icon id="item/misc" size="sm" /> Ranger</>}
+                trigger={<><Icon id="objet/divers" size="sm" /> Ranger</>}
                 options={gestes.ranger.choix.map(({ cible: bag, libelle }) => ({
                   key: bag.uid,
                   media: <ItemIcon item={bag} size="sm" />,
@@ -175,14 +175,14 @@ export function CarrierInventory({
               />
             )}
             {gestes.donner?.refus && (
-              <GatedAction id={`inv-give-${it.uid}`} label={<><Icon id="action/pick-up" size="sm" /> Donner</>} enabled={false} {...raisonSi(gestes.donner.refus)} onClick={() => {}} primary={false} btnClassName="small" />
+              <GatedAction id={`inv-give-${it.uid}`} label={<><Icon id="action/ramasser" size="sm" /> Donner</>} enabled={false} {...raisonSi(gestes.donner.refus)} onClick={() => {}} primary={false} btnClassName="small" />
             )}
             {gestes.donner && !gestes.donner.refus && (
               <MediaSelect
                 align="right"
                 triggerClassName="btn small"
                 title="Donner cet objet à un autre porteur"
-                trigger={<><Icon id="action/pick-up" size="sm" /> Donner</>}
+                trigger={<><Icon id="action/ramasser" size="sm" /> Donner</>}
                 options={gestes.donner.choix.map(
                   ({ cible: c, libelle }): MediaOption =>
                     c.kind === 'possession'

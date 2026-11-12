@@ -99,7 +99,7 @@ describe('flux `attaque` (LDB 23 l.209 — Corps à corps/Projectiles, jusqu’i
       pendingAttack: {
         attackerId: 'A', targetId: 'B', location: null,
         result: {
-          hit: false, attackerRoll: 82, netSL: -4, critical: false, advantageTo: 'defender',
+          hit: false, attackerRoll: 82, netSL: -4, critical: false, advantageTo: 'defenseur',
           defenderDefeated: false, log: 'raté',
           attackerDetail: { label: 'Corps à corps', base: 45, modifier: 0, target: 45, roll: 82, success: false, sl: -4 },
         } as never,
@@ -137,7 +137,7 @@ describe('flux `attaque` (LDB 23 l.209 — Corps à corps/Projectiles, jusqu’i
       pendingAttack: {
         attackerId: 'A', targetId: 'B', location: null,
         result: {
-          hit: false, attackerRoll: 82, netSL: -4, critical: false, advantageTo: 'defender',
+          hit: false, attackerRoll: 82, netSL: -4, critical: false, advantageTo: 'defenseur',
           defenderDefeated: false, log: 'raté',
           attackerDetail: { label: 'Corps à corps', base: 45, modifier: 0, target: 45, roll: 82, success: false, sl: -4 },
         } as never,
@@ -162,7 +162,7 @@ describe('flux `defense` (LDB 23 l.209 — Parade = Corps à corps)', () => {
         attackerId: 'E', defenderId: 'H', weapon: { name: 'Gourdin', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [] },
         location: null, atk, mode: 'parade', def,
         result: {
-          hit: true, attackerRoll: 30, netSL: 5, critical: false, advantageTo: 'attacker', defenderDefeated: false, log: '',
+          hit: true, attackerRoll: 30, netSL: 5, critical: false, advantageTo: 'attaquant', defenderDefeated: false, log: '',
           attackerDetail: { label: 'Corps à corps', base: 40, modifier: 0, target: 40, roll: 30, success: true, sl: 1 },
           defenderDetail: { label: 'Parade', base: 45, modifier: 0, target: 45, roll: 82, success: false, sl: -4 },
         },

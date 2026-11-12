@@ -83,7 +83,7 @@ describe('LDB 12 l.160 — le chemin MAGIE départage sur le NIVEAU DE COMPÉTEN
     expect(counterT.sl).toBe(cast.sl);
     const opp = resolveOpposed(castTestOf(cast), counterspellOutcomeFrom(counter, counterT, castTestOf(cast)).counter);
     expect(opp.decidedBy).toBe('valeur');
-    expect(opp.winner).toBe('attacker');
+    expect(opp.winner).toBe('attaquant');
     expect(counterspellOutcomeFrom(counter, counterT, castTestOf(cast)).dispelled).toBe(false);
   });
 
@@ -93,7 +93,7 @@ describe('LDB 12 l.160 — le chemin MAGIE départage sur le NIVEAU DE COMPÉTEN
     const counterT = evaluateTest(13, 25, 999);
     const opp = resolveOpposed(castTestOf(cast), counterspellOutcomeFrom(counter, counterT, castTestOf(cast)).counter);
     expect(opp.decidedBy).toBe('egalite');
-    expect(opp.winner).toBe('tie');
+    expect(opp.winner).toBe('egalite');
     expect(counterspellOutcomeFrom(counter, counterT, castTestOf(cast)).dispelled).toBe(false);
   });
 
@@ -102,6 +102,6 @@ describe('LDB 12 l.160 — le chemin MAGIE départage sur le NIVEAU DE COMPÉTEN
     const counterT = evaluateTest(23, 30, 30);
     const opp = resolveOpposed(castTestOf(legacy), counterT);
     expect(opp.decidedBy).toBe('valeur');
-    expect(opp.winner, 'tout-ou-rien : jamais une nue contre une cible modifiée').toBe('defender');
+    expect(opp.winner, 'tout-ou-rien : jamais une nue contre une cible modifiée').toBe('defenseur');
   });
 });

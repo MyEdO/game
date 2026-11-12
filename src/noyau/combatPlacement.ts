@@ -127,8 +127,8 @@ export function applyZoneCrossings(get: Get, set: SetFn, mover: Combatant, path:
   if (mover.dead || isOutOfAction(mover)) return;
   for (const z of battle.zones) {
     if (!z.crossTest || !path.some((p) => zoneCovers(z, p))) continue;
-    if (zoneSansEffetSur(z, mover)) { battle.log.push(ev('information', t('cf.spellDomainImmune', { name: mover.label, spell: z.label }), mover.id)); continue; }
-    battle.log.push(ev('deplacement', t('cf.zoneCross', { name: mover.label, zone: z.label }), mover.id));
+    if (zoneSansEffetSur(z, mover)) { battle.log.push(ev('information', t('cf.immuniteAuDomaine', { name: mover.label, spell: z.label }), mover.id)); continue; }
+    battle.log.push(ev('deplacement', t('cf.traverseeDeZone', { name: mover.label, zone: z.label }), mover.id));
     bus.emit(EVT.SCENE_DIRTY);
     const caster = resolveCaster(z.casterId) ?? mover;
     const flow: CoreFlow<EffectOp> = {

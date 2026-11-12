@@ -24,7 +24,7 @@ export const scenario: TestScenario = {
   id: 'arene',
   order: 8,
   category: 'scenarios',
-  icon: 'scenario/arena',
+  icon: 'scenario/arene',
   title: 'Arène 2.0 — le Bourg',
   tests: 'campagne vitrine complète : Bourg (bâtiments/intérieurs), échelle des 13 zones, contrats, carte du monde, marchands, fouilles',
   partyNote: 'Groupe d’arène pré-tiré (+1 ration chacun)',

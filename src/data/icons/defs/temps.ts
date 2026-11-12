@@ -13,7 +13,7 @@ const HORIZON = `<path ${K} d="M3.2 16.4 C9 15.7 15 15.7 20.8 16.4"/>`;
 
 export const icons: IconFamily = [
   {
-    id: 'time/dawn',
+    id: 'temps/aube',
     label: 'Aube',
     svg:
       HORIZON +
@@ -21,7 +21,7 @@ export const icons: IconFamily = [
       `<path ${K} d="M12 10.7 V8.3 M6.9 12.5 L5.3 10.9 M17.1 12.5 L18.7 10.9"/>`,
   },
   {
-    id: 'time/morning',
+    id: 'temps/matin',
     label: 'Matin',
     svg:
       HORIZON +
@@ -29,7 +29,7 @@ export const icons: IconFamily = [
       `<path ${KF} d="M8.9 6.4 V4.7 M4.5 9.2 L3.1 8.4 M12.9 8 L14.3 6.9"/>`,
   },
   {
-    id: 'time/noon',
+    id: 'temps/midi',
     label: 'Midi',
     svg:
       HORIZON +
@@ -37,7 +37,7 @@ export const icons: IconFamily = [
       `<path ${K} d="M12 3.7 V2.2 M6.8 8.7 H5 M17.2 8.7 H19 M8.3 5 L7.1 3.8 M15.7 5 L16.9 3.8 M8.5 12.5 L7.3 13.6 M15.5 12.5 L16.7 13.6"/>`,
   },
   {
-    id: 'time/afternoon',
+    id: 'temps/apres-midi',
     label: 'Après-midi',
     svg:
       HORIZON +
@@ -46,7 +46,7 @@ export const icons: IconFamily = [
       `<path ${K} d="M4.9 13.6 C4.6 12.4 5.5 11.4 6.7 11.6 C7.1 10.4 8.5 9.9 9.6 10.5 C10.7 10.2 11.7 11 11.6 12.1 C11.5 12.9 11 13.5 10.2 13.7 C8.5 14 6.7 13.9 4.9 13.6 Z"/>`,
   },
   {
-    id: 'time/dusk',
+    id: 'temps/crepuscule',
     label: 'Crépuscule',
     svg:
       HORIZON +
@@ -54,7 +54,7 @@ export const icons: IconFamily = [
       `<path ${K} d="M12 18.2 V20.3 M8 17.9 L6.9 19.6 M16 17.9 L17.1 19.6"/>`,
   },
   {
-    id: 'time/evening',
+    id: 'temps/soir',
     label: 'Soir',
     svg:
       HORIZON +
@@ -62,7 +62,7 @@ export const icons: IconFamily = [
       `<path ${F} d="M7.3 5.9 C7.5 6.9 7.9 7.3 8.9 7.5 C7.9 7.7 7.5 8.1 7.3 9.1 C7.1 8.1 6.7 7.7 5.7 7.5 C6.7 7.3 7.1 6.9 7.3 5.9 Z"/>`,
   },
   {
-    id: 'time/night',
+    id: 'temps/nuit',
     label: 'Nuit',
     svg:
       HORIZON +
@@ -71,7 +71,7 @@ export const icons: IconFamily = [
       `<circle ${F} cx="17.4" cy="11.9" r="0.8"/>`,
   },
   {
-    id: 'time/clock',
+    id: 'temps/heure',
     label: 'Heure',
     // Cadran d'horloge, aiguilles pointant une heure précise (réglage manuel, distinct des phases du jour).
     svg:
@@ -79,7 +79,7 @@ export const icons: IconFamily = [
       `<path ${K} d="M12 7.4 V12.3 L15.6 14.5"/>`,
   },
   {
-    id: 'time/calendar',
+    id: 'temps/calendrier',
     label: 'Calendrier',
     // Page de calendrier à anneaux, jours pointés.
     svg:

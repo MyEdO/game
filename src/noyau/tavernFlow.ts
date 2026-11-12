@@ -580,7 +580,7 @@ function tavernOptionRound(get: Get, seq: SequenceState<TavernPayload>, game: Ta
     id: `${TAVERN_CHOICE_KIND}-${seq.round}-${h.id}`,
     kind: TAVERN_CHOICE_KIND,
     label: t('tavern.optionChoix', { who: h.label }),
-    icon: 'nav/dice',
+    icon: 'navigation/des',
     actorId: h.id,
     options: (game.options ?? []).map((o, i) => ({
       key: String(i),
@@ -590,7 +590,7 @@ function tavernOptionRound(get: Get, seq: SequenceState<TavernPayload>, game: Ta
     defaultChoice: '0',
   })).filter((s): s is BuiltCascadeStep => !!s);
   if (!steps.length) return undefined;
-  return { title: stepDetail(dataLabel(game.label), t('tavern.optionTitre')), icon: 'nav/dice', steps };
+  return { title: stepDetail(dataLabel(game.label), t('tavern.optionTitre')), icon: 'navigation/des', steps };
 }
 
 /** La charge SANS le choix d'option retenu : le tour suivant le REDEMANDE (« à chaque tour, faites
@@ -656,7 +656,7 @@ function equipeBande(get: Get, seq: SequenceState<TavernPayload>): { band: Built
   const band = bandStep({
     id: idDansLaSequence(get, TAVERN_ROUND_KIND), // id = ADRESSE ; la MANCHE voyage sur `meta.round` (#1852)
     kind: TAVERN_ROUND_KIND,
-    icon: 'nav/dice',
+    icon: 'navigation/des',
     label: stepDetail(dataLabel(game.label), t('step.tavernMiTemps', { n: ph.roundInPhase, phase: ph.phase })),
     stake: combatStakeRef('taverne-partie', {
       values: { jeu: game.label, adversaire: p.opponentName, mise: 'aucune' },
@@ -736,7 +736,7 @@ function torchonRound(get: Get, seq: SequenceState<TavernPayload>, rng: RNG): Se
   const band = bandStep({
     id: idDansLaSequence(get, TAVERN_ROUND_KIND), // id = ADRESSE ; la MANCHE voyage sur `meta.round` (#1852)
     kind: TAVERN_ROUND_KIND,
-    icon: 'nav/dice',
+    icon: 'navigation/des',
     label: stepDetail(dataLabel(game.label), t('step.tavernTorchon', { lanceur: lanceur.label })),
     stake: combatStakeRef('taverne-partie', { values: { jeu: game.label, adversaire: p.opponentName, mise: 'aucune' } }),
     meta: { gameId: game.id, opponentName: p.opponentName, stakeBrass: 0, round: seq.round },
@@ -744,7 +744,7 @@ function torchonRound(get: Get, seq: SequenceState<TavernPayload>, rng: RNG): Se
   if (!band) return undefined;
   return {
     title: t('tavern.volleyLancer', { jeu: game.label, n: seq.round, total: throwers!.length }),
-    icon: 'nav/dice',
+    icon: 'navigation/des',
     steps: [band],
     immediate: !jouable,
     payload: p,
@@ -796,7 +796,7 @@ function torchonRate(get: Get, set: Set, rows: readonly BatchParticipant[]): str
     ? monoStep({
       id,
       kind: TAVERN_DRINK_KIND,
-      icon: 'nav/dice',
+      icon: 'navigation/des',
       label: composeRollLabel(heros, regles.label ?? game.label, test),
       actor: heros,
       difficulty,
@@ -860,13 +860,13 @@ function tavernTeamRound(get: Get, seq: SequenceState<TavernPayload>): SequenceR
   if (!aChoisir.length) {
     const monte = equipeBande(get, { ...seq, payload: { ...p, choices: {} } });
     if (!monte) return undefined;
-    return { title: titre, icon: 'nav/dice', steps: [monte.band], immediate: true, payload: { ...p, teams: monte.teams, choices: {} } };
+    return { title: titre, icon: 'navigation/des', steps: [monte.band], immediate: true, payload: { ...p, teams: monte.teams, choices: {} } };
   }
   const steps = aChoisir.map((h) => choiceStep({
     id: `${TAVERN_CHOICE_KIND}-${seq.round}-${h.id}`,
     kind: TAVERN_CHOICE_KIND,
     label: t('step.tavernCommentJouer'),
-    icon: 'nav/dice',
+    icon: 'navigation/des',
     actorId: h.id,
     options: (game.options ?? []).map((o, i) => ({
       key: String(i),
@@ -876,7 +876,7 @@ function tavernTeamRound(get: Get, seq: SequenceState<TavernPayload>): SequenceR
     defaultChoice: '0',
   })).filter((s): s is BuiltCascadeStep => !!s);
   if (!steps.length) return undefined;
-  return { title: titre, icon: 'nav/dice', steps, payload: { ...p, choices: {} } };
+  return { title: titre, icon: 'navigation/des', steps, payload: { ...p, choices: {} } };
 }
 
 /** La partie et son challenger, validés par `jouerALaTaverne` à l'ouverture : leur absence en cours de
@@ -934,14 +934,14 @@ function tavernRound(get: Get, seq: SequenceState<TavernPayload>, rng: RNG): Seq
     const band = bandStep({
       id: idDansLaSequence(get, TAVERN_ROUND_KIND), // id = ADRESSE ; la MANCHE voyage sur `meta.round` (#1852)
       kind: TAVERN_ROUND_KIND,
-      icon: 'nav/dice',
+      icon: 'navigation/des',
       label: stepDetail(dataLabel(game.label), t('step.tavernManche', { n: seq.round })),
       stake,
       meta: { gameId: game.id, opponentName: p.opponentName, stakeBrass: p.stakeBrass, round: seq.round },
     }, rows);
     if (!band) return undefined;
     return {
-      title, icon: 'nav/dice', steps: [band],
+      title, icon: 'navigation/des', steps: [band],
       immediate: rows.every((r) => r.interactive === false),
     };
   }
@@ -961,7 +961,7 @@ function tavernRound(get: Get, seq: SequenceState<TavernPayload>, rng: RNG): Seq
   const step = monoStep({
     id: idDansLaSequence(get, TAVERN_ROUND_KIND), // id = ADRESSE ; la MANCHE voyage sur `meta.round` (#1852)
     kind: TAVERN_ROUND_KIND,
-    icon: 'nav/dice',
+    icon: 'navigation/des',
     label: composeRollLabel(challenger, game.label, test),
     actor: challenger,
     difficulty,
@@ -978,7 +978,7 @@ function tavernRound(get: Get, seq: SequenceState<TavernPayload>, rng: RNG): Seq
   });
   if (!step) return undefined;
   return {
-    title, icon: 'nav/dice', steps: [step],
+    title, icon: 'navigation/des', steps: [step],
     immediate: !surfaceOf(get, challenger.id),
   };
 }
@@ -1283,12 +1283,12 @@ function potManches(game: TavernGame, p: TavernPayload): number {
 function potFin(p: TavernPayload, log: string[]): SequenceRound<TavernPayload> {
   return {
     title: t('tavern.potTable'),
-    icon: 'nav/dice',
+    icon: 'navigation/des',
     steps: [displayStep({
       id: `${TAVERN_POT_KIND}-fin-${p.manche ?? 1}`,
       kind: TAVERN_POT_KIND,
       label: t('tavern.potPlusDeJoueurs'),
-      icon: 'nav/dice',
+      icon: 'navigation/des',
       worldOwner: true,
     })],
     immediate: true,
@@ -1333,21 +1333,21 @@ function potOuvreManche(get: Get, seq: SequenceState<TavernPayload>, game: Taver
       id: `${TAVERN_TARGET_KIND}-${seq.round}`,
       kind: TAVERN_TARGET_KIND,
       label: t('tavern.potCibleChoix', { who: joueur.label }),
-      icon: 'nav/dice',
+      icon: 'navigation/des',
       actorId: hero.id,
       options: cibles.map((n) => ({ key: String(n), label: dataLabel(String(n)) })),
       defaultChoice: String(plage.min),
     });
-    if (etape) return { title, icon: 'nav/dice', steps: [etape], payload: base };
+    if (etape) return { title, icon: 'navigation/des', steps: [etape], payload: base };
   }
   const etape = displayStep({
     id: `${TAVERN_TARGET_KIND}-${seq.round}`,
     kind: TAVERN_TARGET_KIND,
     label: t('tavern.potOuverture', { n: manche, mise: formatMoney(fromBrass(ante)), who: joueur.label }),
-    icon: 'nav/dice',
+    icon: 'navigation/des',
     actorId: p.challengerId,
   });
-  return { title, icon: 'nav/dice', steps: [etape], payload: base };
+  return { title, icon: 'navigation/des', steps: [etape], payload: base };
 }
 
 /**
@@ -1368,24 +1368,24 @@ function potTour(get: Get, seq: SequenceState<TavernPayload>, game: TavernGame, 
       id: `${TAVERN_POT_KIND}-${seq.round}`,
       kind: TAVERN_POT_KIND,
       label: title,
-      icon: 'nav/dice',
+      icon: 'navigation/des',
       actorId: hero.id,
       table: decl,
       stake: potStake(game, p),
       meta: { gameId: game.id, seat: p.seat ?? 0, cible },
     });
-    if (etape) return { title, icon: 'nav/dice', steps: [etape] };
+    if (etape) return { title, icon: 'navigation/des', steps: [etape] };
   }
   const tire = rollTableStep(decl, rng, { get });
   const etape = displayStep({
     id: `${TAVERN_POT_KIND}-${seq.round}`,
     kind: TAVERN_POT_KIND,
     label: title,
-    icon: 'nav/dice',
+    icon: 'navigation/des',
     ...(hero ? { actorId: hero.id } : { worldOwner: true as const }),
     meta: { gameId: game.id, seat: p.seat ?? 0, cible, potRoll: tire.roll },
   });
-  return { title, icon: 'nav/dice', steps: [etape], immediate: true };
+  return { title, icon: 'navigation/des', steps: [etape], immediate: true };
 }
 
 /** FABRIQUE DE MANCHE d'un jeu de MISE : ouverture de manche (mises + nombre cible) tant qu'aucune
@@ -2024,7 +2024,7 @@ function volleyRound(get: Get, seq: SequenceState<TavernPayload>, rng: RNG): Seq
     const id = `${TAVERN_AIM_KIND}-${seq.round}`;
     if (heros && surface) {
       const etape = choiceStep({
-        id, kind: TAVERN_AIM_KIND, icon: 'nav/dice',
+        id, kind: TAVERN_AIM_KIND, icon: 'navigation/des',
         label: t('tavern.volleyViseChoix', { who: lanceur.label }),
         actorId: heros.id,
         // Le `detail` d'une option ne descend qu'en attribut `title` (`OptionChooser`) : muet au
@@ -2039,16 +2039,16 @@ function volleyRound(get: Get, seq: SequenceState<TavernPayload>, rng: RNG): Seq
         })),
         defaultChoice: '0',
       });
-      if (etape) return { title: titre, icon: 'nav/dice', steps: [etape], payload: base };
+      if (etape) return { title: titre, icon: 'navigation/des', steps: [etape], payload: base };
     }
     // POLITIQUE des lanceurs qu'aucun siège ne tient : la PREMIÈRE ligne déclarée (patron `optionOf`).
     const etape = displayStep({
-      id, kind: TAVERN_AIM_KIND, icon: 'nav/dice',
+      id, kind: TAVERN_AIM_KIND, icon: 'navigation/des',
       label: t('tavern.volleyVise', { who: lanceur.label, cible: lignes[0].label }),
       ...(heros ? { actorId: heros.id } : { worldOwner: true as const }),
       meta: { row: 0 },
     });
-    return { title: titre, icon: 'nav/dice', steps: [etape], immediate: true, payload: base };
+    return { title: titre, icon: 'navigation/des', steps: [etape], immediate: true, payload: base };
   }
 
   // 2) LE LANCER — monté par les monteurs CANONIQUES : sur la FICHE d'un héros, en valeur de table
@@ -2069,7 +2069,7 @@ function volleyRound(get: Get, seq: SequenceState<TavernPayload>, rng: RNG): Seq
   const band = bandStep({
     id: `${TAVERN_THROW_KIND}-${seq.round}`,
     kind: TAVERN_THROW_KIND,
-    icon: 'nav/dice',
+    icon: 'navigation/des',
     label: ligne.row
       ? t('tavern.volleyLancerVise', { jeu: game.label, cible: ligne.row.label })
       : t('tavern.volleyLancer', { jeu: game.label, n: st.jet, total: v.throws }),
@@ -2077,7 +2077,7 @@ function volleyRound(get: Get, seq: SequenceState<TavernPayload>, rng: RNG): Seq
     meta: { gameId: game.id, opponentName: p.opponentName, stakeBrass: 0, round: seq.round, camp: lanceur.camp },
   }, rows);
   if (!band) return undefined;
-  return { title: titre, icon: 'nav/dice', steps: [band], immediate: !surface, payload: base };
+  return { title: titre, icon: 'navigation/des', steps: [band], immediate: !surface, payload: base };
 }
 
 /** ISSUE d'une volée : le camp au plus haut score ; à ÉGALITÉ, le départage DÉCLARÉ tranche (famille
@@ -2194,22 +2194,22 @@ function sideRound(get: Get, seq: SequenceState<TavernPayload>, game: TavernGame
   const titre = t('tavern.sideTitre', { jeu: game.label });
   if (!cadenceAuto() && jetSurfaced(get(), challenger)) {
     const etape = choiceStep({
-      id, kind: TAVERN_SIDE_KIND, icon: 'nav/dice',
+      id, kind: TAVERN_SIDE_KIND, icon: 'navigation/des',
       label: t('tavern.sideChoix', { who: challenger.label }),
       actorId: challenger.id,
       options: sides.map((s) => ({ key: s.id, label: dataLabel(s.label), detail: t('tavern.sidePieces', { pieces: s.pieces }) })),
       defaultChoice: sides[0].id,
     });
-    if (etape) return { title: titre, icon: 'nav/dice', steps: [etape] };
+    if (etape) return { title: titre, icon: 'navigation/des', steps: [etape] };
   }
   const tire = sides[rng.int(1, sides.length) - 1];
   const etape = displayStep({
-    id, kind: TAVERN_SIDE_KIND, icon: 'nav/dice',
+    id, kind: TAVERN_SIDE_KIND, icon: 'navigation/des',
     label: t('tavern.side', { who: challenger.label, camp: tire.label }),
     actorId: challenger.id,
     meta: { side: tire.id },
   });
-  return { title: titre, icon: 'nav/dice', steps: [etape], immediate: true };
+  return { title: titre, icon: 'navigation/des', steps: [etape], immediate: true };
 }
 
 /** Le camp MENÉ par le challenger, et celui d'en face. */
@@ -2339,7 +2339,7 @@ function combinedEraseRound(get: Get, seq: SequenceState<TavernPayload>, game: T
   const etape = choiceStep({
     id: `${TAVERN_ERASE_KIND}-${seq.round}`,
     kind: TAVERN_ERASE_KIND,
-    icon: 'nav/dice',
+    icon: 'navigation/des',
     label: t('tavern.cerevisEffaceChoix', { who: heros.label, marques, s: pluriel(marques) }),
     actorId: heros.id,
     options: [
@@ -2348,7 +2348,7 @@ function combinedEraseRound(get: Get, seq: SequenceState<TavernPayload>, game: T
     ],
     defaultChoice: 'garde',
   });
-  return etape ? { title: t('tavern.cerevisTour', { jeu: game.label, n: etat.tour }), icon: 'nav/dice', steps: [etape] } : undefined;
+  return etape ? { title: t('tavern.cerevisTour', { jeu: game.label, n: etat.tour }), icon: 'navigation/des', steps: [etape] } : undefined;
 }
 
 /** La SECONDE cible d'un camp : la valeur DÉCLARÉE (`combined.second`) montée par l'accesseur canon
@@ -2594,7 +2594,7 @@ export const TABLES = {
             id: `${TAVERN_FOLD_KIND}-${seq.round}`,
             kind: TAVERN_FOLD_KIND,
             label: t('tavern.potChoix', { who: joueur.label }),
-            icon: 'nav/dice',
+            icon: 'navigation/des',
             actorId: hero.id,
             options: [
               { key: 'remise', label: t('tavern.potChoixRemise', { montant: formatMoney(fromBrass(du)) }) },
@@ -2632,7 +2632,7 @@ export const TABLES = {
       const libre = lu.outcome.libre;
       if (libre && tranche) {
         const etape = quantityStep({
-          id, kind: TAVERN_GAIN_KIND, icon: 'nav/dice',
+          id, kind: TAVERN_GAIN_KIND, icon: 'navigation/des',
           label: t('tavern.volleyGainChoix', { who: qui }),
           actorId: heros!.id,
           min: libre.min, max: libre.max, unit: t('tavern.volleyUnitePoints'),
@@ -2641,7 +2641,7 @@ export const TABLES = {
         if (etape) pushStep(set, etape, SEQUENCE_PURPOSE);
       } else if (lu.outcome.choix?.length && tranche) {
         const etape = choiceStep({
-          id, kind: TAVERN_GAIN_KIND, icon: 'nav/dice',
+          id, kind: TAVERN_GAIN_KIND, icon: 'navigation/des',
           label: t('tavern.volleyGainChoix', { who: qui }),
           actorId: heros!.id,
           options: lu.outcome.choix.map((n) => ({ key: String(n), label: t('tavern.volleyPoints', { n }) })),

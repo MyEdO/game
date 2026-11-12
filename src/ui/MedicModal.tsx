@@ -27,12 +27,12 @@ import { GatedAction } from './GatedAction';
 import { useSurgeryJetProps } from './jetProps/useSurgeryJetProps';
 
 const ACT_META: Record<HealMode, { icon: ReactNode; label: string }> = {
-  blessures: { icon: <Icon id="journal/heal" size="sm" />, label: 'Soigner les Blessures' },
-  hemorragie: { icon: <Icon id="condition/bleeding" size="sm" />, label: 'Arrêter l’Hémorragie' },
-  traumatisme: { icon: <Icon id="medical/tear" size="sm" />, label: 'Soigner la déchirure' },
+  blessures: { icon: <Icon id="journal/soin" size="sm" />, label: 'Soigner les Blessures' },
+  hemorragie: { icon: <Icon id="etat/hemorragique" size="sm" />, label: 'Arrêter l’Hémorragie' },
+  traumatisme: { icon: <Icon id="medical/dechirure" size="sm" />, label: 'Soigner la déchirure' },
   chirurgie: { icon: <Icon id="medical/scalpel" size="sm" />, label: 'Opérer' },
-  reeducation: { icon: <Icon id="medical/crutch" size="sm" />, label: 'Rééduquer un membre' },
-  munition: { icon: <Icon id="item/ammo" size="sm" />, label: 'Retirer une munition' },
+  reeducation: { icon: <Icon id="medical/bequille" size="sm" />, label: 'Rééduquer un membre' },
+  munition: { icon: <Icon id="objet/munition" size="sm" />, label: 'Retirer une munition' },
 };
 
 /**
@@ -86,7 +86,7 @@ export function MedicModal() {
   const footer = <>{(!jet || brouillon) && sortie}{jet?.gestes}</>;
 
   return (
-    <Modal title={npc ? <><Icon id="journal/heal" size="sm" /> Soins — {npc.label}</> : <><Icon id="journal/heal" size="sm" /> Soins</>} onClose={jet && !brouillon ? jet.escClose : sortieFermee ? undefined : close} footer={footer} etape={`${medic.patientId ?? ''}:${sg?.kind ?? ''}`}>
+    <Modal title={npc ? <><Icon id="journal/soin" size="sm" /> Soins — {npc.label}</> : <><Icon id="journal/soin" size="sm" /> Soins</>} onClose={jet && !brouillon ? jet.escClose : sortieFermee ? undefined : close} footer={footer} etape={`${medic.patientId ?? ''}:${sg?.kind ?? ''}`}>
       {paid && <span className="medic-purse hint">Bourse <Coins money={money} ton="discret" /></span>}
 
       {/* Bandeau PATIENTS : tuile full (jauge + États = le diagnostic), sélection or. */}
@@ -148,7 +148,7 @@ export function MedicModal() {
                   `barre-de-dr-site-unique.test.ts`) : cet état d'OPÉRATION ARMÉE est visible AVANT/ENTRE les passes,
                   hors de toute rangée de jet (`useSurgeryJetProps` n'a pas de rangée tant qu'aucune passe n'est
                   ouverte) — ce n'est pas la barre d'UN jet mais le cumul PERSISTANT de l'opération. */}
-              <DrBar cum={sg.cumDR} target={sg.targetDR} />
+              <DrBar cum={sg.cumDR} target={sg.drCible} />
               {sg.last && <p className="rm-note">Dernière passe : {sg.last.sl >= 0 ? '+' : ''}{sg.last.sl} DR</p>}
               {/* coût RAW d'une passe de Chirurgie : LDB 10 l.184 (la rééducation Guérison n'inflige rien). */}
               <p className="rm-note">{recovery ? 'Test étendu de Guérison — récupération de l’usage du membre.' : 'Chaque passe inflige 1d10 PB + 1 Hémorragie. À 0 PB, l’opération s’interrompt.'}</p>
@@ -168,7 +168,7 @@ export function MedicModal() {
               // L'acte est SA propre porte de règle (#1078) : le bouton s'englobe dans `CodexRef wrap`,
               // dont la cible est le FOYER de l'enjeu de CE jet (`HEAL_STAKE`) et l'`instance` le nom de
               // l'acte. Un acte qui ARME une opération (`chirurgie`/`reeducation`) n'a pas de cible au Codex avant
-              // l'armement, où naît la valeur de son enjeu (`targetDR`, `lancerLActeDeSoin`) : le même `CodexRef`
+              // l'armement, où naît la valeur de son enjeu (`drCible`, `lancerLActeDeSoin`) : le même `CodexRef`
               // reste monté, `category`/`id` absents, et ne s'ouvre que s'il a quelque chose à dire — la
               // raison d'un refus (`refus`), sinon rien.
               const stake = a === 'chirurgie' || a === 'reeducation' ? undefined : flowStakeRef(HEAL_STAKE[a]);

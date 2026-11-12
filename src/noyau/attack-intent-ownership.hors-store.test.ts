@@ -71,7 +71,7 @@ const seats = (cle: string) => [0, 1, 2].map((seat) => permis(seat, cle));
 /** Attaque PILOTÉE par le siège MJ jusqu'à l'interposition de la défense SURFACÉE du héros (#989). */
 function playToDefenseWindow() {
   const { enemy, hero } = setup();
-  openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
+  openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attaquer');
   g().jetLancer('attaque');
   g().jetValider('attaque');
   return { enemy, hero };
@@ -112,7 +112,7 @@ describe('#1013 — fenêtre de DÉFENSE ouverte : les verbes `attack*` n’appa
   it('sonde A ter — défense de l’ENNEMI (attaque du héros du siège 1) : l’attaquant ne récupère rien non plus', () => {
     const { enemy, hero } = setup();
     banc.setState({ battle: { ...g().battle!, turn: 1 } });
-    openAttackCascade(g, banc.setState, { attackerId: hero.id, targetId: enemy.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
+    openAttackCascade(g, banc.setState, { attackerId: hero.id, targetId: enemy.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attaquer');
     g().jetLancer('attaque');
     g().jetValider('attaque');
     expect(g().pendingDefense!.defenderId).toBe(enemy.id);
@@ -123,7 +123,7 @@ describe('#1013 — fenêtre de DÉFENSE ouverte : les verbes `attack*` n’appa
 describe('#1013 — symétrique : fenêtre d’ATTAQUE ouverte, les verbes `defense*` n’appartiennent PLUS à l’attaquant', () => {
   it('aucune défense n’est en jeu : les trois sièges sont refusés', () => {
     const { enemy, hero } = setup();
-    openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
+    openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attaquer');
     g().jetLancer('attaque');
     expect(modalOwnerOf(g()), 'le owner de la fenêtre est l’ATTAQUANT').toBe(enemy.id);
     expect(g().pendingDefense).toBeNull();
@@ -134,7 +134,7 @@ describe('#1013 — symétrique : fenêtre d’ATTAQUE ouverte, les verbes `defe
 describe('#1013 — quadrants du POSSESSEUR LÉGITIME (la correction ne ferme rien de dû)', () => {
   it('fenêtre d’attaque : seul le siège du porteur (MJ, qui conduit l’ennemi) dépense', () => {
     const { enemy, hero } = setup();
-    openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
+    openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attaquer');
     g().jetLancer('attaque');
     for (const i of ATTACK_VERBS) expect(seats(i), i).toEqual([false, false, true]);
   });
@@ -142,7 +142,7 @@ describe('#1013 — quadrants du POSSESSEUR LÉGITIME (la correction ne ferme ri
   it('fenêtre d’attaque d’un HÉROS : son siège dépense, l’hôte et le MJ non', () => {
     const { enemy, hero } = setup();
     banc.setState({ battle: { ...g().battle!, turn: 1 } });
-    openAttackCascade(g, banc.setState, { attackerId: hero.id, targetId: enemy.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
+    openAttackCascade(g, banc.setState, { attackerId: hero.id, targetId: enemy.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attaquer');
     g().jetLancer('attaque');
     for (const i of ATTACK_VERBS) expect(seats(i), i).toEqual([false, true, false]);
   });
@@ -155,7 +155,7 @@ describe('#1013 — quadrants du POSSESSEUR LÉGITIME (la correction ne ferme ri
   it('fenêtre de défense de l’ENNEMI : seul le siège MJ dépense', () => {
     const { enemy, hero } = setup();
     banc.setState({ battle: { ...g().battle!, turn: 1 } });
-    openAttackCascade(g, banc.setState, { attackerId: hero.id, targetId: enemy.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
+    openAttackCascade(g, banc.setState, { attackerId: hero.id, targetId: enemy.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attaquer');
     g().jetLancer('attaque');
     g().jetValider('attaque');
     for (const i of DEFENSE_VERBS) expect(seats(i), i).toEqual([false, false, true]);
@@ -164,7 +164,7 @@ describe('#1013 — quadrants du POSSESSEUR LÉGITIME (la correction ne ferme ri
   it('SOLO : l’attaquant du joueur garde ses dépenses, la défense aussi', () => {
     const { enemy, hero } = setup({ mode: 'local', mySeat: 0, gmSeat: 0, ownership: {}, slots: [0, 0, 0, 0] });
     banc.setState({ battle: { ...g().battle!, turn: 1 } });
-    openAttackCascade(g, banc.setState, { attackerId: hero.id, targetId: enemy.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
+    openAttackCascade(g, banc.setState, { attackerId: hero.id, targetId: enemy.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attaquer');
     g().jetLancer('attaque');
     for (const i of ATTACK_VERBS) expect(permis(0, i), i).toBe(true);
     g().jetValider('attaque');
@@ -176,7 +176,7 @@ describe('#1013 — quadrants du POSSESSEUR LÉGITIME (la correction ne ferme ri
 describe('#1013/#2961/#3324 — le jet d’attaque suit l’attaquant, clôture comprise', () => {
   it('`jetLancer(\'attaque\')` et `jetValider(\'attaque\')` sont routés par l’attaquant', () => {
     const { enemy, hero } = setup();
-    openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
+    openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attaquer');
     expect(seats('jetLancer@attaque'), 'seul le siège MJ, qui conduit l’attaquant, jette').toEqual([false, false, true]);
     expect(seats('jetValider@attaque'), 'la clôture suit le même porteur').toEqual([false, false, true]);
   });

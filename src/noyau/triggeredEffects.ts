@@ -311,7 +311,7 @@ function flowHasChoiceSeulement(flow: Flow): boolean {
     // Un `choice` n'est PAS une feuille : ses branches portent souvent LE Test (« Vous pouvez… » →
     // jet, Déstabilisante). Sans descendre, un `test` enfoui sous un `choice` serait rendu MUET par
     // `runPureFlowLines`, qui n'a aucun `case 'choice'`.
-    case 'choice': return flowHasChoiceSeulement(flow.yes) && (flow.no ? flowHasChoiceSeulement(flow.no) : true);
+    case 'choice': return flowHasChoiceSeulement(flow.oui) && (flow.non ? flowHasChoiceSeulement(flow.non) : true);
     case 'seq': return flow.steps.every(flowHasChoiceSeulement);
     case 'if': return flowHasChoiceSeulement(flow.then) && (flow.else ? flowHasChoiceSeulement(flow.else) : true);
   }
@@ -438,7 +438,7 @@ export function ciblesDeLEffet(
  *  (Oui/Renoncer) — le « Vous pouvez » RAW devient une étape de choix. */
 export function flowOffert(eff: TriggeredEffect): Flow {
   return eff.optional
-    ? { kind: 'choice', prompt: eff.flow.kind === 'test' ? (eff.flow.test.label ?? 'Réaction') : 'Réaction', yes: eff.flow, no: EMPTY_FLOW }
+    ? { kind: 'choice', prompt: eff.flow.kind === 'test' ? (eff.flow.test.label ?? 'Réaction') : 'Réaction', oui: eff.flow, non: EMPTY_FLOW }
     : eff.flow;
 }
 

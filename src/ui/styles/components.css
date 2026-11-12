@@ -219,8 +219,8 @@ label.radio {
   transform: rotate(9deg);
   filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.6));
 }
-.parchment-card.bad { border-color: color-mix(in srgb, var(--danger) 45%, var(--border)); }
-.parchment-card.ok { border-color: color-mix(in srgb, var(--ok) 45%, var(--border)); }
+.parchment-card.echec { border-color: color-mix(in srgb, var(--danger) 45%, var(--border)); }
+.parchment-card.reussite { border-color: color-mix(in srgb, var(--ok) 45%, var(--border)); }
 .parchment-seal {
   flex: 0 0 auto;
   width: 54px;

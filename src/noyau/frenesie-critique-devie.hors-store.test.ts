@@ -58,7 +58,7 @@ function monte() {
   expect(g().battle!.acted).toBe(false);
 
   g().ensemencerLeTirage(seedDuCritique());
-  openAttackCascade(g, banc.setState, { attackerId: H, targetId: gob.id, location: null, result: null }, 'Attaque', 'action/attack');
+  openAttackCascade(g, banc.setState, { attackerId: H, targetId: gob.id, location: null, result: null }, 'Attaque', 'action/attaquer');
   g().jetLancer('attaque');
   expect(g().pendingAttack?.result?.critical, 'le jet 1 doit être un Coup Critique').toBe(true);
   g().jetValider('attaque');

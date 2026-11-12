@@ -332,7 +332,7 @@ describe('attackPlan — gate PRÉ-clic du tir (parité avec le refus de sort)',
     (s.layers[0].tiles as string[])[3] = 'mur';
     const get = (() => ({ scene: s, battle: { combatants: [a, b], movementUsed: 0 }, facing: {}, gameTime: 0, ecrireAuJournal: () => {} })) as unknown as () => JeuDuNoyau;
     const plan = attackPlan(get, a, b);
-    expect(plan.kind).toBe('blocked');
+    expect(plan.kind).toBe('bloque');
     expect((plan as { reason: string }).reason).toMatch(/ligne de vue/i);
   });
 
@@ -342,9 +342,9 @@ describe('attackPlan — gate PRÉ-clic du tir (parité avec le refus de sort)',
     const edge = combatant({ id: 'C', kind: 'enemy', pos: { x: 6, y: 0 } }); // 12 m = Extrême
     const get = mkGet([a, far, edge]);
     const out = attackPlan(get, a, far);
-    expect(out.kind).toBe('blocked');
+    expect(out.kind).toBe('bloque');
     expect((out as { reason: string }).reason).toMatch(/hors de portée/i);
-    expect(attackPlan(get, a, edge).kind).toBe('attack');
+    expect(attackPlan(get, a, edge).kind).toBe('attaque');
   });
 });
 
@@ -483,7 +483,7 @@ describe('Difficulté — parité PRÉ-jet ↔ ligne RÉSOLUE (#1153 L4)', () =>
     expect(avant.difficulty, 'la fixture doit VRAIMENT composer un palier depuis l’env').toBe('tresDifficile');
 
     banc.setState({ pendingAttack: { attackerId: a.id, targetId: b.id, location: 'tete', result: r.res } } as never);
-    FLOWS.attaque.bonusSL(banc.getState, banc.setState);
+    FLOWS.attaque.ajouterUnDR(banc.getState, banc.setState);
     const apres = banc.getState().pendingAttack!.result!.attackerDetail!;
     expect(apres.sl, 'la Chance donne bien +1 DR').toBe(avant.sl + 1);
     expect(apres.difficulty, 'la Difficulté ne bouge pas d’un cran').toBe(avant.difficulty);
@@ -512,11 +512,11 @@ describe('Difficulté — parité PRÉ-jet ↔ ligne RÉSOLUE (#1153 L4)', () =>
       pendingAttack: { attackerId: a.id, targetId: b.id, location: null, result: null, weaponUid: 'bow' },
     } as never);
     seedBattleRng(3);
-    FLOWS.attaque.roll(banc.getState, banc.setState);
+    FLOWS.attaque.lancer(banc.getState, banc.setState);
     const avant = banc.getState().pendingAttack!.result!.attackerDetail!;
     expect(avant.label, 'la fixture doit VRAIMENT résoudre un TIR').toBe('Projectiles');
 
-    FLOWS.attaque.bonusSL(banc.getState, banc.setState);
+    FLOWS.attaque.ajouterUnDR(banc.getState, banc.setState);
     const apres = banc.getState().pendingAttack!.result!.attackerDetail!;
     expect(apres.sl).toBe(avant.sl + 1);
     expect(apres.label, 'le tir ne devient pas une frappe').toBe(avant.label);

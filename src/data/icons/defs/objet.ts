@@ -10,7 +10,7 @@ const FE = 'fill="currentColor" fill-rule="evenodd" stroke="none"';
 
 export const icons: IconFamily = [
   {
-    id: 'item/weapon',
+    id: 'objet/arme',
     label: 'Arme',
     svg:
       `<path ${F} d="M12 2.6 C13 5.4 13.4 9.6 13.1 13.9 L10.9 13.9 C10.6 9.6 11 5.4 12 2.6 Z"/>` +
@@ -19,7 +19,7 @@ export const icons: IconFamily = [
       `<circle ${F} cx="12" cy="19.8" r="1.2"/>`,
   },
   {
-    id: 'item/armour',
+    id: 'objet/armure',
     label: 'Armure',
     svg:
       `<path ${K} d="M6.5 4.6 C8.3 5.8 10.1 6.4 12 6.4 C13.9 6.4 15.7 5.8 17.5 4.6 C16.8 7.1 16.7 9.5 17.3 11.9 C15.6 15.9 13.9 18.3 12 19.5 C10.1 18.3 8.4 15.9 6.7 11.9 C7.3 9.5 7.2 7.1 6.5 4.6 Z"/>` +
@@ -27,7 +27,7 @@ export const icons: IconFamily = [
       `<path ${KF} d="M8.7 9.9 C9.9 11 11 11.5 12 11.5 C13 11.5 14.1 11 15.3 9.9"/>`,
   },
   {
-    id: 'item/ammo',
+    id: 'objet/munition',
     label: 'Munition',
     svg:
       // UNE flèche/carreau en diagonale : tête triangulaire PLEINE + fût + empennage losange plein.
@@ -37,7 +37,7 @@ export const icons: IconFamily = [
       `<path ${KF} d="M5.9 18.1 L4 20"/>`,
   },
   {
-    id: 'item/cloak',
+    id: 'objet/cape',
     label: 'Cape',
     svg:
       `<circle ${F} cx="12" cy="3.6" r="1.1"/>` +
@@ -45,7 +45,7 @@ export const icons: IconFamily = [
       `<path ${KF} d="M10.6 7.6 C10 11.4 9.8 15.2 10.1 18.6 M13.6 7.8 C14.1 11.4 14.3 15 14.1 18.4"/>`,
   },
   {
-    id: 'item/consumable',
+    id: 'objet/consommable',
     label: 'Consommable',
     svg:
       `<path ${F} d="M10.5 2.8 C11.5 2.6 12.5 2.6 13.5 2.8 L13.6 4.7 L10.4 4.7 Z"/>` +
@@ -54,7 +54,7 @@ export const icons: IconFamily = [
       `<path ${KF} d="M7.6 14.3 C10.4 15.5 13.6 15.5 16.4 14.3"/>`,
   },
   {
-    id: 'item/misc',
+    id: 'objet/divers',
     label: 'Objet divers',
     svg:
       // Besace de cuir à rabat (fente + boucle en trous evenodd) — pas de mallette moderne.

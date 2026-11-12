@@ -11,7 +11,7 @@ describe('WoundsBadge — rendu unique de la VALEUR des Blessures', () => {
 
   it("n'EMBARQUE plus d'icône : l'icône est le choix du site d'appel (directive user 2026-07-13)", () => {
     const html = renderToStaticMarkup(<WoundsBadge wounds={{ current: 8, max: 12 }} />);
-    expect(html).not.toContain('<svg'); // plus d'icône resource/wounds dans le badge
+    expect(html).not.toContain('<svg'); // plus d'icône ressource/blessures dans le badge
   });
 
   it('à pleine santé aussi : courant/max (l’unité est le composant)', () => {

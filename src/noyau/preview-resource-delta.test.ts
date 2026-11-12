@@ -18,11 +18,11 @@ describe('previewResourceDelta — coût/gain de l’aperçu, zéro valeur en du
     expect(d(null)).toEqual({ action: 0, move: 0, adv: 0 });
   });
   it('Marche → Mouvement lu sur preview.cost sans Action ; COURSE → + l’Action (LDB 15 l.41)', () => {
-    expect(d({ kind: 'move', cost: 3 })).toEqual({ action: 0, move: 3, adv: 0 });
-    expect(d({ kind: 'run', cost: 5 })).toEqual({ action: 1, move: 5, adv: 0 });
+    expect(d({ kind: 'deplacement', cost: 3 })).toEqual({ action: 0, move: 3, adv: 0 });
+    expect(d({ kind: 'course', cost: 5 })).toEqual({ action: 1, move: 5, adv: 0 });
   });
   it('Attaque → 1 Action (cible visée), rien d’autre prévisualisé', () => {
-    expect(d({ kind: 'attack', targetId: 'e' })).toEqual({ action: 1, move: 0, adv: 0 });
+    expect(d({ kind: 'attaque', targetId: 'e' })).toEqual({ action: 1, move: 0, adv: 0 });
   });
   it('Charge → 1 Action + Avantage lu sur preview.adv + Mouvement PLEIN (manœuvre pleine)', () => {
     const base = { kind: 'charge', targetId: 'e', dest: { x: 1, y: 1 }, path: [] };
@@ -33,6 +33,6 @@ describe('previewResourceDelta — coût/gain de l’aperçu, zéro valeur en du
     expect(previewResourceDelta(battle).move).toBe(4);
   });
   it('Déplacer-puis-attaquer → 1 Action + Mouvement lu sur preview.cost', () => {
-    expect(d({ kind: 'moveAttack', targetId: 'e', dest: { x: 1, y: 1 }, path: [], cost: 4 })).toEqual({ action: 1, move: 4, adv: 0 });
+    expect(d({ kind: 'deplacementEtAttaque', targetId: 'e', dest: { x: 1, y: 1 }, path: [], cost: 4 })).toEqual({ action: 1, move: 4, adv: 0 });
   });
 });

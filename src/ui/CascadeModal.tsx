@@ -288,7 +288,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
   if (p.cursor >= p.participants.length) {
     return (
       <RollShell
-        title={<><Icon id={p.icon || 'nav/dice'} size="sm" /> Bilan</>}
+        title={<><Icon id={p.icon || 'navigation/des'} size="sm" /> Bilan</>}
         subtitle={<>{totalJets} jet{totalJets > 1 ? 's' : ''}</>}
         rolled
         rows={p.participants.flatMap(stepWitnessRows)}
@@ -315,14 +315,14 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
   // sur le titre de séquence pour un pas sans libellé. Le titre porte l'icône du pas COURANT (elle
   // suit le même curseur) et le renvoi de règle, accolé au libellé d'étape (arbitrage user
   // 2026-08-06 : « Je pensais que tu allais mettre un "i" a coté de "Cauchemars" ») — même
-  // déclencheur-icône que la barre d'action (`CodexRef` + glyphe `journal/info`), jamais un lien
+  // déclencheur-icône que la barre d'action (`CodexRef` + glyphe `journal/information`), jamais un lien
   // textuel sous la phrase d'enjeu. La nuance de #1078 tient : les CHIPS restent leurs propres
   // portes (aucun ⓘ voisin) — ceci ne vaut que pour la ligne de TITRE. Le sous-titre, lui, ne garde
   // que la position (« jet N/M »).
   const modalTitle = mdToText(nommer(cur.label ?? p.title, identites));
   const titleNode = (
     <>
-      <Icon id={cur.icon || p.icon || 'nav/dice'} size="sm" /> {modalTitle}
+      <Icon id={cur.icon || p.icon || 'navigation/des'} size="sm" /> {modalTitle}
       {cur.label && stakeRule ? <StakeRule rule={stakeRule} /> : null}
     </>
   );
@@ -344,7 +344,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
       onFail={branchCertainOps(cur.meta?.onFail, stepActor, stepCaster)}
       onSuccessBy={branchBlockingEntity(cur.meta?.onSuccess, stepActor, stepCaster)}
       onFailBy={branchBlockingEntity(cur.meta?.onFail, stepActor, stepCaster)}
-      {...(cur.result ? { realized: cur.result.success ? ('success' as const) : ('fail' as const), sl: cur.result.sl } : {})}
+      {...(cur.result ? { realized: cur.result.success ? ('reussite' as const) : ('echec' as const), sl: cur.result.sl } : {})}
     />
   );
   // Le MÊME encadré, pour UNE RANGÉE d'une bande (étape BATCH) : la promesse et le verdict sont
@@ -355,7 +355,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
       onFail={branchCertainOps(cur.meta?.onFail, pool.find((c) => c.id === partId), stepCaster)}
       onSuccessBy={branchBlockingEntity(cur.meta?.onSuccess, pool.find((c) => c.id === partId), stepCaster)}
       onFailBy={branchBlockingEntity(cur.meta?.onFail, pool.find((c) => c.id === partId), stepCaster)}
-      {...(res ? { realized: res.success ? ('success' as const) : ('fail' as const), sl: res.sl } : {})}
+      {...(res ? { realized: res.success ? ('reussite' as const) : ('echec' as const), sl: res.sl } : {})}
     />
   );
   // Test OPPOSÉ (#579/#990) : le jet ADVERSAIRE FIGÉ (`meta.opposed.aT`) est une rangée TÉMOIN, masquée
@@ -430,7 +430,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
   // Un CHOIX non tranché ne se valide pas (`stepReady`) : l'action est REFUSÉE et dit pourquoi
   // (`RollAction.refus` → `GatedAction`), jamais un primaire actif qui ne fait rien.
   const continueAction: RollAction = {
-    key: 'next', label: isLast ? t('verbe.cascade.fermer') : t('verbe.cascade.confirm'), onClick: () => next(),
+    key: 'next', label: isLast ? t('verbe.cascade.fermer') : t('verbe.cascade.valider'), onClick: () => next(),
     ...(curReady ? {} : { refus: 'Choisis une option pour continuer.' }),
   };
 
@@ -503,8 +503,8 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
   if (interaction === 'table') {
     const aff = affordancesDuDe(cur);
     const tableActions: RollAction[] = [
-      { key: 'roll', label: <><Icon id="nav/dice" size="sm" /> Lancer</>, onClick: () => tirerLeDe(cur.id) },
-      ...(!isLast ? [{ key: 'all', label: <><Icon id="nav/dice" size="sm" /> Tout lancer</>, onClick: () => roll(), title: "Résoudre d'un coup tous les jets restants (sans influence)" } as RollAction] : []),
+      { key: 'lancer', label: <><Icon id="navigation/des" size="sm" /> Lancer</>, onClick: () => tirerLeDe(cur.id) },
+      ...(!isLast ? [{ key: 'all', label: <><Icon id="navigation/des" size="sm" /> Tout lancer</>, onClick: () => roll(), title: "Résoudre d'un coup tous les jets restants (sans influence)" } as RollAction] : []),
     ];
     return (
       <CoqueDEtape
@@ -531,8 +531,8 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
     // PORTEUR en Z1. La fenêtre annonce le seuil et le porteur AVANT le lancer : la donnée est sur
     // l'étape dès sa déclaration (`rollSeam.dieStep`).
     const dieActions: RollAction[] = [
-      { key: 'roll', label: <><Icon id="nav/dice" size="sm" /> Lancer</>, onClick: () => tirerLeDe(cur.id) },
-      ...(!isLast ? [{ key: 'all', label: <><Icon id="nav/dice" size="sm" /> Tout lancer</>, onClick: () => roll(), title: "Résoudre d'un coup tous les jets restants (sans influence)" } as RollAction] : []),
+      { key: 'lancer', label: <><Icon id="navigation/des" size="sm" /> Lancer</>, onClick: () => tirerLeDe(cur.id) },
+      ...(!isLast ? [{ key: 'all', label: <><Icon id="navigation/des" size="sm" /> Tout lancer</>, onClick: () => roll(), title: "Résoudre d'un coup tous les jets restants (sans influence)" } as RollAction] : []),
     ];
     return (
       <CoqueDEtape
@@ -774,10 +774,10 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
       const part = cur.participants!.find((x) => x.id === String(r.key));
       const a = r.actor;
       const ouverts = part ? fermeturesDuFlux(useGame.getState(), 'cascadeEnBande', part.id) : null;
-      const resistOk = !!part?.menace && ouverts?.resist === null;
+      const resistOk = !!part?.menace && ouverts?.resister === null;
       const determineOk = !!a && !refusDImmunite(useGame.getState(), a);
       // Inversion (LDB 12 l.42) : offre et aperçu sont les verdicts du flux (`FLOWS.cascadeEnBande`).
-      const reverseOk = ouverts?.reverse === null;
+      const reverseOk = ouverts?.inverser === null;
       return {
         ...r,
         flowKey: 'cascadeEnBande' as const,
@@ -794,8 +794,8 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
     // influence — le jet sans rangée, comme la branche jet).
     const rollAllRows = rollAllUnrolledRows(cur.participants!, batchRoll, (x) => x.interactive !== false && owns(x.id));
     const batchActions: RollAction[] = [
-      ...(rollAllRows ? [{ key: 'rollRows', label: <><Icon id="nav/dice" size="sm" /> Tout lancer</>, onClick: rollAllRows, title: 'Lancer toutes MES rangées non encore lancées (les rangées d’un autre siège lui restent)' } as RollAction] : []),
-      ...(!isLast ? [{ key: 'all', label: <><Icon id="nav/dice" size="sm" /> {t('verbe.cascade.rollAll')}</>, onClick: () => roll(), title: "Résoudre d'un coup tous les jets restants de la cascade (sans influence)" } as RollAction] : []),
+      ...(rollAllRows ? [{ key: 'rollRows', label: <><Icon id="navigation/des" size="sm" /> Tout lancer</>, onClick: rollAllRows, title: 'Lancer toutes MES rangées non encore lancées (les rangées d’un autre siège lui restent)' } as RollAction] : []),
+      ...(!isLast ? [{ key: 'all', label: <><Icon id="navigation/des" size="sm" /> {t('verbe.cascade.lancerAll')}</>, onClick: () => roll(), title: "Résoudre d'un coup tous les jets restants de la cascade (sans influence)" } as RollAction] : []),
       ...(ready ? [continueAction] : []),
     ];
     return (
@@ -825,8 +825,8 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
   // `outcome` (résumé de conséquence) n'existe que sur une étape COMMITTÉE ; l'étape COURANTE
   // s'appuie sur la rangée ✓/✗ ±DR (breakdown) comme SEUL verdict (#295 Décision 1b) : aucun
   // prologue « X réussit »/« X échoue » ici.
-  // Résistance (Menace), LDB 10 l.1020 : la fenêtre est le verbe `resist` du flux.
-  const resistAvail = cur.menace != null && !fermeturesDuFlux(useGame.getState(), 'cascade', cur.id).resist;
+  // Résistance (Menace), LDB 10 l.1020 : la fenêtre est le verbe `resister` du flux.
+  const resistAvail = cur.menace != null && !fermeturesDuFlux(useGame.getState(), 'cascade', cur.id).resister;
 
   // En-tête A→B du Test opposé : il n'existe QUE pour un défenseur unique (une bande n'a pas de « B »
   // — chaque rangée porte son portrait, la rangée témoin porte l'attaquant).
@@ -867,8 +867,8 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
     // « Tout lancer » : tant qu'il reste >1 jet, résout d'un coup le reste (RNG, sans influence) PUIS
     // montre le bilan — bouton PRÉSENT avant ET après le jet (parité `cancelAfterRoll`). Pas d'Échap :
     // la cascade est SUBIE, on ne ferme pas — le bouton est une action explicite, pas une sortie.
-    ...(!isLast ? [{ key: 'all', label: <><Icon id="nav/dice" size="sm" /> Tout lancer</>, onClick: () => roll(), title: "Résoudre d'un coup tous les jets restants (sans influence)" } as RollAction] : []),
-    { key: 'next', label: isLast ? t('verbe.cascade.fermer') : t('verbe.cascade.confirm'), onClick: () => next(), verbe: 'confirm', flux: 'cascade' },
+    ...(!isLast ? [{ key: 'all', label: <><Icon id="navigation/des" size="sm" /> Tout lancer</>, onClick: () => roll(), title: "Résoudre d'un coup tous les jets restants (sans influence)" } as RollAction] : []),
+    { key: 'next', label: isLast ? t('verbe.cascade.fermer') : t('verbe.cascade.valider'), onClick: () => next(), verbe: 'valider', flux: 'cascade' },
   ];
 
   return (

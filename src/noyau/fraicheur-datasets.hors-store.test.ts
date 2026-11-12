@@ -55,7 +55,7 @@ const SAISONS_LIVREES = [...weather];
 const VEHICULES_LIVRES = [...vehicles];
 const TRAUMAS_LIVRES = [...(datasetArray('traumas') as TraumaFiche[])];
 const TABLES_MUTATION_LIVREES = [...(datasetArray('mutationTables') as MutationTable[])];
-const MISCAST_MINEURE_LIVREE = [...(datasetArray('miscastMinor') as MiscastTableRow[])];
+const MISCAST_MINEURE_LIVREE = [...(datasetArray('imparfaiteMineure') as MiscastTableRow[])];
 /** Les datasets des vues dérivées migrées (#1692) : restaurés par le seam, comme les autres. */
 const LISTES_LIVREES = tableTotale(
   ['cargoes', 'cargaisonsAleatoires', 'advancementCosts', 'shipHullSizes', 'calendarPhases', 'calendarMonths', 'calendarIntercalary', 'stakes', 'seaBoardEvents'] as const,
@@ -71,7 +71,7 @@ afterEach(() => {
   for (const k of Object.keys(LISTES_LIVREES) as (keyof typeof LISTES_LIVREES)[]) setDataset(k, structuredClone(LISTES_LIVREES[k]) as never);
   for (const k of Object.keys(OBJETS_LIVRES) as (keyof typeof OBJETS_LIVRES & ObjectDatasetKey)[]) setObjectDataset(k, structuredClone(OBJETS_LIVRES[k]) as never);
   setDataset('mutationTables', TABLES_MUTATION_LIVREES);
-  setDataset('miscastMinor', MISCAST_MINEURE_LIVREE);
+  setDataset('imparfaiteMineure', MISCAST_MINEURE_LIVREE);
   setDataset('weather', SAISONS_LIVREES);
   setDataset('vehicles', VEHICULES_LIVRES);
   setDataset('traumas', TRAUMAS_LIVRES);
@@ -173,13 +173,13 @@ describe('#1692 — une édition au seam est SERVIE aux lecteurs', () => {
   it('une rangée d’Incantation Imparfaite ÉDITÉE : `rollMiscast` joue la NOUVELLE, comme `miscastRowAt`', () => {
     // `RUNTIME_ROWS` dépliait les rangées (ops closées, Tests) une fois à l'import : `rollMiscast`
     // servait le libellé d'AVANT pendant que `miscastRowAt` servait déjà le nouveau.
-    const rangees = datasetArray('miscastMinor');
+    const rangees = datasetArray('imparfaiteMineure');
     const premiere = rangees[0];
     const de = premiere.min;
     if (de === null) throw new Error('miscast-mineure : la première rangée a une borne basse ouverte');
     expect(rollMiscast('mineure', makeRNG(1), 0, undefined, de).label).toBe(premiere.label);
 
-    setDataset('miscastMinor', rangees.map((r) => (r.id === premiere.id ? { ...r, label: 'Contrecoup révisé QC' } : r)));
+    setDataset('imparfaiteMineure', rangees.map((r) => (r.id === premiere.id ? { ...r, label: 'Contrecoup révisé QC' } : r)));
 
     expect(miscastRowAt('miscast-mineure', de).label).toBe('Contrecoup révisé QC');
     expect(rollMiscast('mineure', makeRNG(1), 0, undefined, de).label).toBe('Contrecoup révisé QC');

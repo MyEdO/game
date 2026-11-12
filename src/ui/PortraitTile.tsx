@@ -114,7 +114,7 @@ export function PortraitTile({ c, variant = 'full', size = 'md', active, selecte
             overlay
             className="ptile-gauge"
             title={showPv ? `Blessures : ${c.wounds.current}/${c.wounds.max}` : 'Blessures'}
-            format={() => (showPv ? (c.dead ? <Icon id="journal/death" size="sm" /> : `${c.wounds.current}/${c.wounds.max}`) : null)}
+            format={() => (showPv ? (c.dead ? <Icon id="journal/mort" size="sm" /> : `${c.wounds.current}/${c.wounds.max}`) : null)}
           />
         )}
         {!decoratif && <span className="ptile-name clamp">{c.label}</span>}

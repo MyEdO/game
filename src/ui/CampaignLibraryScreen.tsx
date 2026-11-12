@@ -211,7 +211,7 @@ export function CampaignLibraryScreen({ onClose }: { onClose: () => void }) {
       <Stack>{builtins.map(row)}</Stack>
       <div className="mini-title">Ma bibliothèque</div>
       <label className="btn small">
-        <Icon id="file/import" size="sm" /> Importer une campagne…
+        <Icon id="fichier/importer" size="sm" /> Importer une campagne…
         <input
           type="file"
           accept="application/json"

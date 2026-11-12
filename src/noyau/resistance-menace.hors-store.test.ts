@@ -12,7 +12,7 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /**
- * Talent « Résistance (Menace) » CÂBLÉ sur les flux de jet (LDB 10 l.1016-1020) — verbe `resist` de la
+ * Talent « Résistance (Menace) » CÂBLÉ sur les flux de jet (LDB 10 l.1016-1020) — verbe `resister` de la
  * fabrique rollFlow (MÊME mécanisme d'auto-succès que la Résilience, autre ressource : 1× par spec et
  * par séance) : le Test tagué `menace` réussit d'office avec DR = Bonus d'Endurance. Le tag `menace` ET
  * la spec du talent sont des ids stables : exposition à la Corruption ('corruption'),

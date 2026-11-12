@@ -54,7 +54,7 @@ const MEMBRES: readonly { jet: string; slot: PendingKey; porteur: (ia: boolean) 
   },
   {
     jet: 'testEtendu', slot: 'pendingExtendedTest', porteur: heros,
-    ouvrir: (c) => banc.getState().ouvrirLeTestEtendu({ actorId: c.id, label: 'Enfoncer la porte', skillLabel: 'Force', target: 70, targetDR: 2 }),
+    ouvrir: (c) => banc.getState().ouvrirLeTestEtendu({ actorId: c.id, label: 'Enfoncer la porte', skillLabel: 'Force', target: 70, drCible: 2 }),
   },
   {
     jet: 'incantation', slot: 'pendingCast', porteur: sorcier,
@@ -86,7 +86,7 @@ describe('Étape hôte hors bataille : tenue, elle parque ; non tenue, ses verbe
   it('Test étendu NON TENU à plusieurs Rounds : une paire par Round jusqu’à la borne d’essais', () => {
     const c = heros(true);
     banc.setState({ party: [c] });
-    banc.getState().ouvrirLeTestEtendu({ actorId: c.id, label: 'Enfoncer la porte', skillLabel: 'Force', target: 70, targetDR: 100, tentativesMax: 3 });
+    banc.getState().ouvrirLeTestEtendu({ actorId: c.id, label: 'Enfoncer la porte', skillLabel: 'Force', target: 70, drCible: 100, tentativesMax: 3 });
     expect(banc.getState().pendingExtendedTest, 'trois Rounds joués : la borne d’essais clôt le Test').toBeNull();
     expect(banc.getState().pendingCascade).toBeNull();
     expect(banc.getState().journal.some((l) => l.startsWith('Enfoncer la porte : échoué'))).toBe(true);

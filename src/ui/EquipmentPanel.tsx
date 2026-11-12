@@ -232,7 +232,7 @@ export function EquipmentPanel({ hero }: { hero: Combatant }) {
         <div className="eq-loc-row eq-loc-cape">
           <span className="eq-loc-head">
             <span className="eq-loc-name">Cape</span>
-            <span className="eq-loc-pa" title="Purement cosmétique — aucun effet de règles"><Icon id="action/cast" size="sm" /></span>
+            <span className="eq-loc-pa" title="Purement cosmétique — aucun effet de règles"><Icon id="action/incanter" size="sm" /></span>
           </span>
           <SlotCell
             id="eq-slot-cape"
@@ -303,7 +303,7 @@ export function EquipmentPanel({ hero }: { hero: Combatant }) {
                       bouton « Activer » (juge vision 2026-07-17). */}
                   {setActive ? (
                     <span className="chip tone-warn" title="Set actif (armes en main)">
-                      <Icon id="ui/done" size="sm" /> Actif
+                      <Icon id="interface/fait" size="sm" /> Actif
                     </span>
                   ) : (
                     <GatedAction
@@ -318,7 +318,7 @@ export function EquipmentPanel({ hero }: { hero: Combatant }) {
                   )}
                   <GatedAction
                     id={`loadout-delete-${lo.id}`}
-                    label={<Icon id="ui/delete" size="sm" />}
+                    label={<Icon id="interface/supprimer" size="sm" />}
                     ariaLabel="Supprimer ce set"
                     enabled={!refusSuppression}
                     {...raisonSi(refusSuppression)}
@@ -363,7 +363,7 @@ export function EquipmentPanel({ hero }: { hero: Combatant }) {
                         <span className="weap-quals"> · <QualityChips qualities={resolved.map((r) => ({ id: r.id, value: r.indice }))} /></span>
                       );
                     })()}
-                    {ammo != null && <span className="eq-ammo" title="Munitions compatibles dans le sac"> · <Icon id="item/ammo" size="sm" /> Munitions {ammo}</span>}
+                    {ammo != null && <span className="eq-ammo" title="Munitions compatibles dans le sac"> · <Icon id="objet/munition" size="sm" /> Munitions {ammo}</span>}
                   </span>
                 </div>
               );

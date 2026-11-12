@@ -172,7 +172,7 @@ export function beginShipwreck(get: Get, set: Set, opts: { aboardIds?: string[] 
     const human = humanControlled(get(), h);
     const result = human ? null : (() => { const t = rollSansPilote(get, h, value, diff, rng); return { roll: t.roll, target: t.target, sl: t.sl, success: t.success }; })();
     return {
-      id: `shipwreck-${h.id}`, kind: 'naufrageNatation', actorId: h.id, icon: 'nautical/swim',
+      id: `shipwreck-${h.id}`, kind: 'naufrageNatation', actorId: h.id, icon: 'nautique/natation',
       label: t('step.natation'), rollLabel: refLabel('skills', { id: 'natation' }), difficulty: diff,
       ...rollStep({ actor: h, test: { skill: { id: 'natation' }, characteristic: 'force' }, difficulty: diff }),
       stake: voyageStakeRef('mer-naufrage-nage'),
@@ -180,7 +180,7 @@ export function beginShipwreck(get: Get, set: Set, opts: { aboardIds?: string[] 
       meta,
     };
   });
-  startCascade(get, set, { title: t('wreck.title'), icon: 'nautical/swim', purpose: 'test', steps });
+  startCascade(get, set, { title: t('wreck.title'), icon: 'nautique/natation', purpose: 'test', steps });
 }
 
 /** Journalise (réellement, `get().ecrireAuJournal`) une liste de lignes accumulées AVANT qu'elles n'existent dans

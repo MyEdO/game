@@ -18,6 +18,7 @@
  */
 import { t, deElide } from '../i18n';
 import { DIFFICULTY_LABELS, type Difficulty } from './types';
+import type { VainqueurOppose } from './tests';
 
 /** Structure LUE par le dériveur — celle qu'une rangée/étape porte déjà (`CascadeRoll`, `TestResult`). */
 export interface TraceRow {
@@ -46,7 +47,7 @@ export interface TraceOpposed {
   defender: TraceSide;
   /** Verdict de `resolveOpposed` — TROIS issues (LDB 12 l.160) : le défenseur RÉSISTE, l'attaquant
    *  L'EMPORTE, ou ÉGALITÉ parfaite (même DR ET même valeur nue) → statu quo, rien ne se passe. */
-  winner: 'attacker' | 'defender' | 'tie';
+  winner: VainqueurOppose;
   /** Verdict en clair du domaine. Défaut : résiste / l'emporte / égalité — statu quo. */
   issue?: string;
 }
@@ -102,9 +103,9 @@ export function traceDieLineOf(d: TraceDie): string {
 /** Issue par DÉFAUT d'une opposition, vue du DÉFENSEUR (le jeteur) — table TOTALE sur les trois
  *  verdicts de `resolveOpposed` : aucun `winner` ne peut sortir sans phrase. */
 const OPPOSED_ISSUE_KEY: Record<TraceOpposed['winner'], 'casc.opposedResists' | 'casc.opposedPrevails' | 'casc.opposedTie'> = {
-  defender: 'casc.opposedResists',
-  attacker: 'casc.opposedPrevails',
-  tie: 'casc.opposedTie',
+  defenseur: 'casc.opposedResists',
+  attaquant: 'casc.opposedPrevails',
+  egalite: 'casc.opposedTie',
 };
 
 function opposedLine(o: TraceOpposed): string {

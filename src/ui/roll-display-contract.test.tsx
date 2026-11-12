@@ -359,7 +359,7 @@ describe('VsHeader — le verbe est un VOCABULAIRE FERMÉ (décision utilisateur
   });
 
   it('avec `verb` : l’icône du registre est rendue (aucun texte n’est composé)', () => {
-    const html = renderToStaticMarkup(<VsHeader actor={mk('a', 'hero')} target={mk('b', 'enemy')} verb="melee/disengage" />);
+    const html = renderToStaticMarkup(<VsHeader actor={mk('a', 'hero')} target={mk('b', 'enemy')} verb="melee/se-desengager" />);
     const arrow = html.slice(html.indexOf('rm-vs-arrow'));
     expect(arrow).toContain('<svg class="icon"');
     expect(arrow).not.toContain('→');

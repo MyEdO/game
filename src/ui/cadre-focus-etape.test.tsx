@@ -57,7 +57,7 @@ const OPTIONS = [{ key: '0', label: 'Corps à corps' }, { key: '1', label: 'Esqu
 const choix = (id: string, qui: Combatant, options = OPTIONS) =>
   ({ id, kind: 'tavern-choice', actorId: qui.id, label: `${qui.label} — comment jouer ce tour ?`, options });
 const ouvrir = (purpose: string, steps: ReturnType<typeof choix>[]) =>
-  startCascade(useGame.getState, useGame.setState, { title: 'Middenball', icon: 'nav/dice', purpose: purpose as never, steps: steps as never });
+  startCascade(useGame.getState, useGame.setState, { title: 'Middenball', icon: 'navigation/des', purpose: purpose as never, steps: steps as never });
 
 const actif = () => (document.activeElement === document.body ? 'BODY' : (document.activeElement?.textContent ?? '').trim());
 const bouton = (texte: string) =>

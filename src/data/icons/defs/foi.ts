@@ -9,7 +9,7 @@ const F = 'fill="currentColor" stroke="none"';
 
 export const icons: IconFamily = [
   {
-    id: 'faith/prayer',
+    id: 'foi/priere',
     label: 'Prière',
     // Mains jointes en prière, vues de face.
     svg:
@@ -19,7 +19,7 @@ export const icons: IconFamily = [
       `<path ${KF} d="M9.3 10.3 C10 10.9 10.9 11.2 12 11.2 C13.1 11.2 14 10.9 14.7 10.3"/>`,
   },
   {
-    id: 'faith/church',
+    id: 'foi/chapelle',
     label: 'Chapelle',
     // Façade de chapelle : porche en arc, clocher et croix.
     svg:
@@ -30,7 +30,7 @@ export const icons: IconFamily = [
       `<path ${KF} d="M3.9 20.9 H18.5"/>`,
   },
   {
-    id: 'faith/trident',
+    id: 'foi/trident',
     label: 'Trident',
     // Trident de Manann : trois dents, hampe et garde.
     svg:

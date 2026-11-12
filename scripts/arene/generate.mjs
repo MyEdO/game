@@ -50,9 +50,9 @@ const worldMap = {
   label: 'Les Terres de l’Arène',
   places: [
     { id: 'bourg', label: 'Le Bourg de l’Arène', pos: { x: 22, y: 55 }, scene: { id: 'arene-hub' }, entry: 'route', icon: 'scenario/village' },
-    { id: 'foret', label: 'La Vieille Futaie', pos: { x: 55, y: 30 }, scene: { id: 'arene-exp-foret' }, icon: 'scenario/hamlet' },
-    { id: 'marais', label: 'La Tourbière Noire', pos: { x: 72, y: 62 }, scene: { id: 'arene-exp-marais' }, icon: 'scenario/trap' },
-    { id: 'village', label: 'Felsbach', pos: { x: 48, y: 80 }, scene: { id: 'arene-exp-village' }, icon: 'journal/death' },
+    { id: 'foret', label: 'La Vieille Futaie', pos: { x: 55, y: 30 }, scene: { id: 'arene-exp-foret' }, icon: 'scenario/hameau' },
+    { id: 'marais', label: 'La Tourbière Noire', pos: { x: 72, y: 62 }, scene: { id: 'arene-exp-marais' }, icon: 'scenario/piege' },
+    { id: 'village', label: 'Felsbach', pos: { x: 48, y: 80 }, scene: { id: 'arene-exp-village' }, icon: 'journal/mort' },
   ],
   routes: [
     {
@@ -124,7 +124,7 @@ for (const s of scenes) {
 }
 
 return projectDoc({
-  identite: { id: 'arene', label: 'L’Arène', icon: 'scenario/arena', versionContenu: 1, maison: "bac à sable de combat authoré pour le jeu — aucun livre ne publie cette arène ; les créatures, armes et règles qu'elle compose portent chacune sa propre source" },
+  identite: { id: 'arene', label: 'L’Arène', icon: 'scenario/arene', versionContenu: 1, maison: "bac à sable de combat authoré pour le jeu — aucun livre ne publie cette arène ; les créatures, armes et règles qu'elle compose portent chacune sa propre source" },
   scenes,
   worldMap,
   // Documents remis au joueur (#679), dans l'ordre des scènes qui les remettent.

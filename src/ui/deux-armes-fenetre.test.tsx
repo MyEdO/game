@@ -72,7 +72,7 @@ describe('#998 — Deux armes : la fenêtre survit entre les deux frappes (recet
   for (const [nom, gmSeat] of [['défenseur surfacé', 0], ['défenseur de l’IA', undefined]] as const) {
     it(`${nom} : frappe principale, « Appliquer », 2ᵉ frappe dans SA fenêtre, puis clôture`, () => {
       const { bretteur, gobelin } = duel(gmSeat);
-      act(() => { openAttackCascade(g, useGame.setState, { attackerId: bretteur.id, targetId: gobelin.id, location: null, result: null }, 'Attaque', 'action/attack'); });
+      act(() => { openAttackCascade(g, useGame.setState, { attackerId: bretteur.id, targetId: gobelin.id, location: null, result: null }, 'Attaque', 'action/attaquer'); });
       act(() => g().jetRegler('attaque', 'deuxArmes', true));
       act(() => g().jetLancer('attaque'));
       act(() => g().jetValider('attaque'));

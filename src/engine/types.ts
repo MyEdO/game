@@ -708,7 +708,7 @@ export type EffectSourceKind =
   // l'entité source des effets d'un contrecoup est la LIGNE, dont la fiche Codex vit dans la catégorie
   // de SA table (`categorieDeLaNiche`, `src/data`). Le `kind` porte donc le NOM de cette
   // catégorie, et `miscastRowSource` (`engine/miscast.ts`) est le seul à le fabriquer, depuis la donnée.
-  | 'miscastMinor' | 'miscastMajor' | 'miscastMinorVdm' | 'miscastMajorVdm' | 'miscastWrath';
+  | 'imparfaiteMineure' | 'imparfaiteMajeure' | 'imparfaiteMineureVdm' | 'imparfaiteMajeureVdm' | 'colereDesDieux';
 
 /** Catégorie Codex de CHAQUE nature de source — table TOTALE, SOURCE UNIQUE des deux consommateurs :
  *  le routage d'affichage d'une pastille (`chipCodex`) ET la descente de l'ENJEU d'un jet à l'entité qui
@@ -719,8 +719,8 @@ export const CATEGORY_BY_SOURCE_KIND: Record<EffectSourceKind, string> = {
   quality: 'qualities', disease: 'maladies', symptom: 'symptoms', mutation: 'mutations',
   condition: 'etats', psychology: 'psychologies', maneuver: 'maneuvers', creature: 'creatures',
   activity: 'activities', rule: 'regles', tavernGame: 'tavernGames',
-  miscastMinor: 'miscastMinor', miscastMajor: 'miscastMajor', miscastMinorVdm: 'miscastMinorVdm', miscastMajorVdm: 'miscastMajorVdm',
-  miscastWrath: 'miscastWrath',
+  imparfaiteMineure: 'imparfaiteMineure', imparfaiteMajeure: 'imparfaiteMajeure', imparfaiteMineureVdm: 'imparfaiteMineureVdm', imparfaiteMajeureVdm: 'imparfaiteMajeureVdm',
+  colereDesDieux: 'colereDesDieux',
 };
 
 /**
@@ -1084,10 +1084,10 @@ export interface Trauma {
   /** « Épaule luxée » (AA 07 l.125 / LDB 18 l.120) / « Genou démis » (AA 07 l.179 / LDB 18 l.179) : membre DÉSACTIVÉ
    *  (les `ops` passives — bras `maxWeaponHands:1` / jambe `moveScale` — tiennent tant que la séquelle vit).
    *  Après Aide Médicale (`awaitingMedicalAid` levé), un Test ÉTENDU de Guérison Accessible (+20) de
-   *  `targetDR` DR (acte « Guérison » de l'Infirmerie, `medicFlow`) rend l'usage : la séquelle est retirée et
+   *  `drCible` DR (acte « Guérison » de l'Infirmerie, `medicFlow`) rend l'usage : la séquelle est retirée et
    *  `recoveryPenalty` posé à la cible (durée d'horloge partagée = 1d10 jours). */
-  targetDR?: CibleEtendue['targetDR'];
-  /** Ops posées à la cible quand `targetDR` est atteint (charMod −10 / `moveScale` jambe) — appliquées avec
+  drCible?: CibleEtendue['drCible'];
+  /** Ops posées à la cible quand `drCible` est atteint (charMod −10 / `moveScale` jambe) — appliquées avec
    *  une durée d'horloge partagée (1d10 jours) par l'acte « Guérison » (`medicFlow`). */
   recoveryPenalty?: import('./ops').GameOp[];
   /** « Réouverture » (LDB 18 l.101/118/143/145/148/175 ; AA 07 l.119/147/149/152/175) : plaie non recousue.

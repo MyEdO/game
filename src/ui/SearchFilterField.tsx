@@ -24,7 +24,7 @@ export function useFilteredList<T>(items: T[], getLabel: (item: T) => string) {
   return { search, setSearch, filtered };
 }
 
-/** Champ de saisie — `icon` affiche la rangée `<Icon ui/search>` + input (Palette/Inspector) ;
+/** Champ de saisie — `icon` affiche la rangée `<Icon interface/rechercher>` + input (Palette/Inspector) ;
  *  sans, un `<input>` nu (Interlude, classe `interlude-search`). */
 export function SearchFilterField({
   value,
@@ -53,7 +53,7 @@ export function SearchFilterField({
   if (!icon) return input;
   return (
     <div className="pal-search-row">
-      <Icon id="ui/search" size="sm" />
+      <Icon id="interface/rechercher" size="sm" />
       {input}
     </div>
   );

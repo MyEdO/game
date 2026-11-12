@@ -90,7 +90,7 @@ describe('deriveChapterRecap — le récap est une DIFFÉRENCE, pas un journal (
       party: [hero('h1', 0)], lieux: ['Altdorf'],
     });
     expect(r.chronique.map((l) => l.text)).toEqual(['Atteindre Altdorf']);
-    expect(r.chronique[0].tone).toBe('ok');
+    expect(r.chronique[0].tone).toBe('reussite');
     expect(r.lieux).toEqual(['Altdorf']);
   });
 });
@@ -157,7 +157,7 @@ describe('la clôture se CONSOMME : « Terminer la séance » ferme le chapitre 
     applyEffects(get, set, [{ type: 'clearObjective', id: 'obj-1' }]);
     applyEffects(get, set, [{ type: 'setFlag', flag: 'chapitre-clos', value: true }]);
     expect(get().pendingChapterRecap?.chronique).toEqual([
-      { text: 'Atteindre Altdorf', icon: 'map-tool/start-flag', tone: 'ok', paquet: true },
+      { text: 'Atteindre Altdorf', icon: 'outil-de-carte/depart', tone: 'reussite', paquet: true },
     ]);
     expect(get().finDeSeance, 'le récap ouvre sa fin de séance, aucune case cochée').toEqual({ heros: {}, groupe: {} });
 

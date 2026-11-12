@@ -48,7 +48,7 @@ export const scenario: TestScenario = {
   id: 'embleme-au-combat',
   order: 62,
   category: 'rendu',
-  icon: 'scenario/ambush',
+  icon: 'scenario/embuscade',
   title: 'Emblème au combat — le bouclier porte l’emblème de la donnée',
   tests:
     'Le corps de chaque combattant se compose sur la base servie (#3253) : le Porte-écu tient l’épée en main '

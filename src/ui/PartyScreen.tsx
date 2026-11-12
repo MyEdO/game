@@ -174,7 +174,7 @@ function CampaignSelect({ currentId, onClose }: { currentId: string; onClose: ()
         {refusEntree && <ChipDeRefus refus={{ message: refusEntree }} />}
         <div className="pregen-list">
           <div className="pregen-row">
-            <span className="campaign-row-name"><Icon id="scenario/arena" size="sm" /> {t('campaign.builtin')}</span>
+            <span className="campaign-row-name"><Icon id="scenario/arene" size="sm" /> {t('campaign.builtin')}</span>
             <button className="btn small btn-primary" disabled={currentId === 'arene'} onClick={() => pick(null)}>
               {currentId === 'arene' ? t('party.campaign.pick.current') : t('party.campaign.pick.choose')}
             </button>
@@ -193,7 +193,7 @@ function CampaignSelect({ currentId, onClose }: { currentId: string; onClose: ()
           ))}
           {published.map((p) => (
             <div key={p.id} className="pregen-row">
-              <span className="campaign-row-name"><Icon id="nav/campaign" size="sm" /> {p.label}</span>
+              <span className="campaign-row-name"><Icon id="navigation/campagne" size="sm" /> {p.label}</span>
               <button
                 className="btn small btn-primary"
                 disabled={currentId === p.id}
@@ -402,11 +402,11 @@ export function PartyScreenView({
         <h2>{title} ({party.length}/{PARTY_MAX})</h2>
         {onPossessions && (
           <button className="btn small" onClick={onPossessions}>
-            <Icon id="travel/mount" size="sm" /> Possessions
+            <Icon id="voyage/en-selle" size="sm" /> Possessions
           </button>
         )}
         {net.mode === 'invite' && (
-          <span className="hint"><Icon id="ui/wait" size="sm" /> {t('party.guest.waiting')}</span>
+          <span className="hint"><Icon id="interface/attendre" size="sm" /> {t('party.guest.waiting')}</span>
         )}
       </header>
       {refus && <p className="hint party-coop-hint" role="status">{refus}</p>}
@@ -462,7 +462,7 @@ export function PartyScreenView({
                     </select>
                   </label>
                 ) : proprietaire !== null ? (
-                  <div className="slot-owner hint"><Icon id="nav/seat-owner" size="sm" /> {seatName(proprietaire)}{proprietaire === net.mySeat ? t('party.slot.you') : ''}</div>
+                  <div className="slot-owner hint"><Icon id="navigation/proprietaire-du-siege" size="sm" /> {seatName(proprietaire)}{proprietaire === net.mySeat ? t('party.slot.you') : ''}</div>
                 ) : null)}
                 {h ? (
                   <SeatCard
@@ -490,7 +490,7 @@ export function PartyScreenView({
                     <span className="seat-contract-badge">{t('party.acts.badge', { n: ACT_ROMAN[i] })}</span>
                     <span className="seat-empty-title">{t('party.acts.empty.title')}</span>
                     <span className="hint seat-invite">
-                      {mine ? t('party.slot.invite') : <><Icon id="ui/wait" size="sm" /> {t('party.slot.waiting', { name: seatName(seat) })}</>}
+                      {mine ? t('party.slot.invite') : <><Icon id="interface/attendre" size="sm" /> {t('party.slot.waiting', { name: seatName(seat) })}</>}
                     </span>
                     {mine && (
                       <Row className="seat-empty-actions">
@@ -737,9 +737,9 @@ export function CandidatePool({
                   ))}
               {/* Cartes-action (même famille visuelle) : UNE carte « Créer un personnage » ; « Importer » à
                   côté, dans l'onglet Mes personnages. */}
-              <ActionCard icon="nav/new-game" label={t('picker.roster.create')} invite={t('party.create.invite')} onClick={startCreate} />
+              <ActionCard icon="navigation/nouvelle-partie" label={t('picker.roster.create')} invite={t('party.create.invite')} onClick={startCreate} />
               {tab === 'roster' && (
-                <ActionCard icon="file/import" label={t('picker.import.btn')} invite={t('party.import.invite')} title={t('picker.import.btn.title')} onClick={() => fileRef.current?.click()} />
+                <ActionCard icon="fichier/importer" label={t('picker.import.btn')} invite={t('party.import.invite')} title={t('picker.import.btn.title')} onClick={() => fileRef.current?.click()} />
               )}
             </div>
           }

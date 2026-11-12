@@ -11,7 +11,7 @@ const F = 'fill="currentColor" stroke="none"';
 
 export const icons: IconFamily = [
   {
-    id: 'travel/coach',
+    id: 'voyage/diligence',
     label: 'Diligence',
     // Caisse d'attelage fermée sur ses deux grandes roues à rayons, timon vers l'avant.
     svg:
@@ -23,7 +23,7 @@ export const icons: IconFamily = [
       `<path ${KF} d="M7.2 13.7 V19.5 M4.3 16.6 H10.1 M14.4 13.7 V19.5 M11.5 16.6 H17.3"/>`,
   },
   {
-    id: 'travel/barge',
+    id: 'voyage/barge',
     label: 'Barge',
     // Chaland fluvial à fond plat, cabine centrale et longue perche du batelier.
     svg:
@@ -33,7 +33,7 @@ export const icons: IconFamily = [
       `<path ${K} d="M17.6 6 L6.4 17"/>`,
   },
   {
-    id: 'travel/rowboat',
+    id: 'voyage/barque',
     label: 'Barque à rames',
     // Coque de barque à clins, une rame croisée dans le tolet.
     svg:
@@ -43,7 +43,7 @@ export const icons: IconFamily = [
       `<path ${KF} d="M17.8 4.3 L20.3 6.7"/>`,
   },
   {
-    id: 'travel/cart',
+    id: 'voyage/charrette',
     label: 'Charrette',
     // Plateau ouvert à ridelles sur une roue, brancard de trait vers l'avant.
     svg:
@@ -54,7 +54,7 @@ export const icons: IconFamily = [
       `<path ${KF} d="M9.6 14.9 V19.7 M7.2 17.3 H12"/>`,
   },
   {
-    id: 'travel/sail-ship',
+    id: 'voyage/navire-a-voile',
     label: 'Navire à voile',
     // Coque de haute mer, mât et grande voile gonflée, fanion en tête de mât.
     svg:
@@ -65,7 +65,7 @@ export const icons: IconFamily = [
       `<path ${KF} d="M12 4 L15.4 4.6 L12 5.4"/>`,
   },
   {
-    id: 'travel/foot',
+    id: 'voyage/a-pied',
     label: 'À pied',
     // Empreinte de pied nu : plante et cinq orteils (marche du groupe).
     svg:
@@ -76,7 +76,7 @@ export const icons: IconFamily = [
       `<circle ${F} cx="16.6" cy="16.7" r="1.15"/>`,
   },
   {
-    id: 'travel/mount',
+    id: 'voyage/en-selle',
     label: 'En selle',
     // Tête et encolure de cheval en « cavalier d'échecs » : oreille dressée, chanfrein concave, museau
     // saillant, encolure arquée et crinière, posée sur un socle. Silhouette monochrome NON ambiguë avec
@@ -85,7 +85,7 @@ export const icons: IconFamily = [
       `<path ${F} d="M10 3 C10.6 4.4 10.7 5.7 10.3 7 C11.7 6.6 12.9 7.1 13.7 8.1 C14.7 9.4 15.1 11.2 15.1 13.4 L15.1 16.5 C15.1 17.4 15.6 18.1 16.5 18.5 L16.5 19.7 L6.4 19.7 L6.4 18.5 C7.3 18.1 7.8 17.4 7.8 16.5 L7.8 13.4 C6.3 14.2 4.8 14.2 3.4 13.4 C4.3 11.5 5.5 9.9 7.2 8.8 L5 8.1 C5.7 7 6.7 6.3 8 6.1 C8 4.9 8.3 3.9 8.9 3 Z"/>`,
   },
   {
-    id: 'travel/anchor',
+    id: 'voyage/ancre',
     label: 'En mer',
     // Ancre de marine : jas, tige et pattes recourbées, anneau en tête (traversée maritime).
     svg:
@@ -96,14 +96,14 @@ export const icons: IconFamily = [
       `<path ${K} d="M5 12.4 L3.3 13.6 M5 12.4 L6.9 13.3 M19 12.4 L20.7 13.6 M19 12.4 L17.1 13.3"/>`,
   },
   {
-    id: 'travel/repair',
+    id: 'voyage/reparer',
     label: 'Réparer',
     // Clé plate posée en diagonale (chantier naval).
     svg:
       `<path ${K} d="M7.3 16.7 C5.4 16.7 3.9 15.1 3.9 13.3 C3.9 12.7 4.1 12.1 4.4 11.6 L8 15.1 L9.4 13.7 L5.9 10.2 C6.4 9.9 7 9.7 7.6 9.7 C9.4 9.7 11 11.2 11 13.1 C11 13.5 10.9 13.9 10.8 14.3 L16.9 20.4 L19.7 17.6 L13.6 11.5 C13.8 11.1 13.9 10.7 13.9 10.3 C13.9 8.4 12.3 6.9 10.4 6.9 C10.1 6.9 9.8 6.9 9.6 7 L12.4 9.7 L11 11.1 L8.2 8.3 C8 8.6 7.9 8.9 7.9 9.3"/>`,
   },
   {
-    id: 'travel/careen',
+    id: 'voyage/carener',
     label: 'Caréner',
     // Coquillage de salissure gratté (racloir).
     svg:
@@ -112,7 +112,7 @@ export const icons: IconFamily = [
       `<path ${K} d="M16 15.3 L19.6 18.9 M19.6 15.3 L16 18.9"/>`,
   },
   {
-    id: 'travel/world',
+    id: 'voyage/cosmopolite',
     label: 'Port cosmopolite',
     // Globe : méridien et parallèle sur un disque.
     svg:
@@ -121,7 +121,7 @@ export const icons: IconFamily = [
       `<path ${KF} d="M12 3.9 C14.7 6.4 16.1 9.1 16.1 12 C16.1 14.9 14.7 17.6 12 20.1 C9.3 17.6 7.9 14.9 7.9 12 C7.9 9.1 9.3 6.4 12 3.9 Z"/>`,
   },
   {
-    id: 'travel/lighthouse',
+    id: 'voyage/phare',
     label: 'Phare',
     // Tour de phare rayée, faisceau de lumière.
     svg:
@@ -131,7 +131,7 @@ export const icons: IconFamily = [
       `<path ${KF} d="M15.3 8.4 L19.3 6.6 M15.6 12 H20.1"/>`,
   },
   {
-    id: 'travel/wave',
+    id: 'voyage/vague',
     label: 'Eau / immersion',
     // Deux lignes de houle superposées.
     svg:
@@ -139,7 +139,7 @@ export const icons: IconFamily = [
       `<path ${K} d="M2.6 15.4 C4.8 13.2 7.2 13.2 9.4 15.4 C11.6 17.6 14 17.6 16.2 15.4 C18.4 13.2 20.8 13.2 21.4 13.8"/>`,
   },
   {
-    id: 'travel/compass',
+    id: 'voyage/boussole',
     label: 'Survie en extérieur',
     // Rose des vents : cercle, aiguille losange, graduations cardinales.
     svg:
@@ -148,7 +148,7 @@ export const icons: IconFamily = [
       `<path ${K} d="M12 3.6 V5.4 M12 18.6 V20.4 M3.6 12 H5.4 M18.6 12 H20.4"/>`,
   },
   {
-    id: 'travel/encounter',
+    id: 'voyage/rencontre',
     label: 'Rencontre fortuite',
     // Deux masques de théâtre superposés.
     svg:

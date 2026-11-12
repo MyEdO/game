@@ -125,7 +125,7 @@ describe('un tour complet par le pont', () => {
     expect(second.id).not.toBe(heros.id);
     const vers = suite.vue.cases.find((c) => c.zone === 'marche' && c.cout === 1)!.case;
     ({ suite } = jouer({ type: CLIC_DU_CHAMP, args: [vers] }));
-    expect(suite.vue.projection.combat!.apercu, 'le premier clic montre l’aperçu').toMatchObject({ genre: 'move', cible: null, case: [vers.x, vers.y, vers.z ?? 0] });
+    expect(suite.vue.projection.combat!.apercu, 'le premier clic montre l’aperçu').toMatchObject({ genre: 'deplacement', cible: null, case: [vers.x, vers.y, vers.z ?? 0] });
     expect(suite.vue.zones['combat.apercu'].map((l) => l.id), 'l’aperçu dit ce qu’il coûte').toEqual(['apercu']);
     const [x, y, z] = second.pos!;
     const deplace = jouer({ type: CLIC_DU_CHAMP, args: [vers] });

@@ -40,7 +40,7 @@ describe('Désengagement : Esquive du cavalier', () => {
     ouvrir(true); banc.getState().jetLancer('desengagement'); const premier = cible();
     const mover = banc.getState().battle!.combatants.find((c) => c.id === banc.getState().pendingDisengage!.moverId)!;
     mover.fortune = 1;
-    FLOWS.desengagement.reroll(banc.getState, banc.setState);
+    FLOWS.desengagement.relancer(banc.getState, banc.setState);
     expect(mover.fortune).toBe(0);
     expect(cible()).toBe(premier);
   });

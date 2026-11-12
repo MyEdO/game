@@ -88,7 +88,7 @@ describe('useHoverTargeting — intention de déplacement', () => {
     root = createRoot(document.createElement('div'));
     act(() => root!.render(<Probe />));
 
-    expect(result?.hoverMove).toMatchObject({ kind: 'move', cost: 2 });
+    expect(result?.hoverMove).toMatchObject({ kind: 'deplacement', cost: 2 });
   });
 
   it('ne trace aucun chemin sur un refus du résolveur', () => {
@@ -143,7 +143,7 @@ describe('useHoverTargeting — modale bloquante (arbitre modal)', () => {
 
     // Référence : hors modale, la carte répond (réticule sur l'ennemi, piste sur la case vide).
     expect(probe({ x: foe.pos!.x, y: foe.pos!.y }).hoverAim?.tip).toBeTruthy();
-    expect(probe(empty).hoverMove).toMatchObject({ kind: 'move' });
+    expect(probe(empty).hoverMove).toMatchObject({ kind: 'deplacement' });
 
     act(() => startCascade(useGame.getState, useGame.setState, {
       title: 'Surprise', purpose: 'test',
@@ -180,7 +180,7 @@ describe('useHoverTargeting — modale bloquante (arbitre modal)', () => {
     const loin = { x: active.pos!.x, y: active.pos!.y + 3 }; // > rangeTiles : le mode-case n'a AUCUN aperçu ici
 
     // Référence : sans placeur armé, cette case porte une piste de déplacement.
-    expect(probe(loin).hoverMove).toMatchObject({ kind: 'move' });
+    expect(probe(loin).hoverMove).toMatchObject({ kind: 'deplacement' });
 
     useGame.setState({ pendingSiegeAim: { gunnerId: active.id, weaponUid: 'w-1', radius: 1, rangeTiles: 2 } as never });
     expect(probe(loin).hoverMove, 'une piste de déplacement se trace pendant qu’on vise une case').toBeNull();
@@ -241,13 +241,13 @@ describe('useHoverTargeting — au-delà de la Marche, la case ne se peint pas e
     const active = setup();
     useGame.setState({ localIntent: { actionId: 'course' } });
     expect(armedIntentPortee(useGame.getState), 'l’action « course » doit armer la portée de Course').toBe(PORTEE_COURSE);
-    expect(probeRun(caseDeCourse(active)).hoverMove).toMatchObject({ kind: 'run' });
+    expect(probeRun(caseDeCourse(active)).hoverMove).toMatchObject({ kind: 'course' });
   });
 
   it('FRÉNÉSIE : la course imposée par la règle n’a rien à armer — aucun refus', () => {
     const active = setup();
     active.psychState = [...(active.psychState ?? []), { type: 'frenesie' } as never];
-    expect(probeRun(caseDeCourse(active)).hoverMove).toMatchObject({ kind: 'run' });
+    expect(probeRun(caseDeCourse(active)).hoverMove).toMatchObject({ kind: 'course' });
   });
 });
 

@@ -208,7 +208,7 @@ export const scenario: TestScenario = {
   id: 'embuscade',
   order: 2,
   category: 'combat',
-  icon: 'scenario/ambush',
+  icon: 'scenario/embuscade',
   title: "L'Embuscade",
   tests:
     'Combat complet exploration → dialogue → combat (5 mutants, ch.2). Y surviennent : Critiques & mort ' +

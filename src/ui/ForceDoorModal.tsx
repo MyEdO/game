@@ -39,7 +39,7 @@ export function ForceDoorModal() {
   const rows: BuiltRollRow[] = buildParticipantRows(p.participants, pool, {
     onRoll: roll, onReroll: reroll, onBonusSL: bonusSL, onDarkPact: darkPact, onForce: force,
     interactiveOf: (part) => owns(part.id),
-    rollLabel: <><Icon id="action/attack" size="sm" /> Frapper</>,
+    rollLabel: <><Icon id="action/attaquer" size="sm" /> Frapper</>,
     row: (part, actor, res) => {
       const arme = armeDEnfoncement(actor, part);
       const ligne = ligneDEnfoncement(actor, arme);
@@ -70,14 +70,14 @@ export function ForceDoorModal() {
   });
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: 'Renoncer', onClick: cancel, verbe: 'cancel' },
-    { key: 'confirm', label: cede ? 'Enfoncer !' : 'Appliquer le Round', onClick: confirm, verbe: 'confirm' },
+    { key: 'cancel', label: 'Renoncer', onClick: cancel, verbe: 'annuler' },
+    { key: 'confirm', label: cede ? 'Enfoncer !' : 'Appliquer le Round', onClick: confirm, verbe: 'valider' },
   ];
 
   return (
     <RollShell
       flowKey="enfoncerLaPorte"
-      title={<><Icon id="map-tool/door" size="sm" /> Enfoncer la porte</>}
+      title={<><Icon id="outil-de-carte/porte" size="sm" /> Enfoncer la porte</>}
       subtitle={<><strong>{p.label}</strong> — Endurance {p.doorBE} · Blessures {p.doorB}/{p.doorBmax}</>}
       instruction="Chacun frappe la porte, à mains nues ou avec une arme"
       setup={choix.length ? <>{choix}</> : undefined}

@@ -4722,7 +4722,7 @@
           }
         ],
         "awaitingMedicalAid": true,
-        "targetDR": 6,
+        "drCible": 6,
         "recoveryPenalty": [
           {
             "op": "testMod",
@@ -4789,7 +4789,7 @@
           }
         ],
         "awaitingMedicalAid": true,
-        "targetDR": 6,
+        "drCible": 6,
         "recoveryPenalty": [
           {
             "op": "testMod",
@@ -5007,7 +5007,7 @@
           }
         ],
         "awaitingMedicalAid": true,
-        "targetDR": 6,
+        "drCible": 6,
         "recoveryPenalty": [
           {
             "op": "testMod",
@@ -5151,7 +5151,7 @@
           }
         ],
         "awaitingMedicalAid": true,
-        "targetDR": 6,
+        "drCible": 6,
         "recoveryPenalty": [
           {
             "op": "testMod",
@@ -6980,7 +6980,7 @@
           }
         ],
         "awaitingMedicalAid": true,
-        "targetDR": 6,
+        "drCible": 6,
         "recoveryPenalty": [
           {
             "op": "testMod",
@@ -7047,7 +7047,7 @@
           }
         ],
         "awaitingMedicalAid": true,
-        "targetDR": 6,
+        "drCible": 6,
         "recoveryPenalty": [
           {
             "op": "testMod",
@@ -19850,7 +19850,7 @@
           }
         ],
         "awaitingMedicalAid": true,
-        "targetDR": 6,
+        "drCible": 6,
         "recoveryPenalty": [
           {
             "op": "testMod",
@@ -19954,7 +19954,7 @@
           }
         ],
         "awaitingMedicalAid": true,
-        "targetDR": 6,
+        "drCible": 6,
         "recoveryPenalty": [
           {
             "op": "testMod",

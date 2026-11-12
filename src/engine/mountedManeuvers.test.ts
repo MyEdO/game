@@ -67,7 +67,7 @@ describe('« ON NE S\'ARRÊTE PAS ! » — embarquement en mouvement (EDOC 07 l.
   it('monture DÉJÀ montée : Test opposé de Chevaucher, le perdant est éjecté', () => {
     // Sauteur 50 (jet 10, +4 DR) contre cavalier 50 (jet 60, −1 DR).
     const gagne = boardMovingMount({ valeurAthletisme: 50, valeurChevaucher: 50, cavalier: { valeurChevaucher: 50 }, rng: script(20, 10, 60) });
-    expect(gagne.disputeSelle?.winner).toBe('attacker');
+    expect(gagne.disputeSelle?.winner).toBe('attaquant');
     expect(gagne.ejecte).toBe('cavalier');
     expect(gagne.aBord).toBe(true);
     expect(gagne.chuteM).toBe(CHUTE_SELLE_M);
@@ -79,7 +79,7 @@ describe('« ON NE S\'ARRÊTE PAS ! » — embarquement en mouvement (EDOC 07 l.
 
   it('égalité au Test opposé : nul n\'est éjecté, et le sauteur — resté sans selle — chute (MAISON)', () => {
     const r = boardMovingMount({ valeurAthletisme: 50, valeurChevaucher: 50, cavalier: { valeurChevaucher: 50 }, rng: script(20, 30, 30) });
-    expect(r.disputeSelle?.winner).toBe('tie');
+    expect(r.disputeSelle?.winner).toBe('egalite');
     expect(r.ejecte).toBeUndefined();
     expect(r.aBord).toBe(false);
     // EDOC 07 l.328 nomme « le gagnant » et « le perdant » ; l'égalité n'y figure pas. Comportement

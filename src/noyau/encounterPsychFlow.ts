@@ -140,7 +140,7 @@ export function openEncounterPsych(get: Get, set: Set): void {
     dues.push({
       hero, sansPeur: sansPeurFace(hero, trig.kind, src),
       decl: { kind: trig.kind, sourceId: trig.sourceId, sourceName: libelleDeSource(src), indice: trig.indice, cible: trig.cible },
-      icon: cl?.icon ?? (trig.kind === 'terreur' ? 'creature/scream' : 'flag/fear'),
+      icon: cl?.icon ?? (trig.kind === 'terreur' ? 'creature/hurlement' : 'drapeau/peur'),
       label: cl
         ? libelleDePsy(trig.kind, trig.cible, nomDIndividu(s))
         : stepDetail(stepPsych(trig.kind, trig.indice), dataLabel(libelleDeSource(src), '?')),
@@ -148,7 +148,7 @@ export function openEncounterPsych(get: Get, set: Set): void {
   }
   const steps = psychBands(dues);
   if (!steps.length) return;
-  startCascade(get, set, { title: 'Sang-froid', icon: 'flag/fear', purpose: 'test', steps });
+  startCascade(get, set, { title: 'Sang-froid', icon: 'drapeau/peur', purpose: 'test', steps });
 }
 
 /** Ouvre la bande des Tests de Calme pour une source de PEUR/TERREUR SCÉNIQUE (Effet d'auteur
@@ -167,13 +167,13 @@ export function openScriptedPsych(get: Get, set: Set, kind: 'peur' | 'terreur', 
     if (hero.dead || isPsychImmune(hero)) continue;
     dues.push({
       hero, decl,
-      icon: kind === 'terreur' ? 'creature/scream' : 'flag/fear',
+      icon: kind === 'terreur' ? 'creature/hurlement' : 'drapeau/peur',
       label: stepDetail(stepPsych(kind, indice), dataLabel(label)),
     });
   }
   const steps = psychBands(dues);
   if (!steps.length) return;
-  startCascade(get, set, { title: 'Sang-froid', icon: 'flag/fear', purpose: 'test', steps });
+  startCascade(get, set, { title: 'Sang-froid', icon: 'drapeau/peur', purpose: 'test', steps });
 }
 
 /**
@@ -195,7 +195,7 @@ function resolvePsychRow(get: Get, set: Set, hero: Combatant, ep: PsychBandDecl,
   // (LDB 21 l.56), sans quoi l'immunité du Round vaudrait une Peur vaincue à jamais.
   if (immune) {
     applyOps(hero, psychBranchOps(ep, { success: true, calmeDR: ep.indice, surmontee: true }), { idNeuf: get().forgerUnId, rng: battleRng(), source: { kind: 'psychology', id: ep.kind } });
-    return freeCons([t('cf.psychImmune', { name: hero.label })]);
+    return freeCons([t('cf.immunitePsychologique', { name: hero.label })]);
   }
   const res = psychResolution(ep.kind); // mode + conséquences en DONNÉES (psychology.json)
   const brise = r.success ? 0 : failConditionAmount(res.failAmount, ep.indice, r.sl);

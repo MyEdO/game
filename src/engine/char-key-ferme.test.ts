@@ -67,7 +67,7 @@ describe('les champs de donnée qui nomment une Caractéristique refusent le tok
     { nom: 'creatures.optionals[].grant[].characteristic', schema: creaturesSchema,
       fixture: (carac) => creature({ optionals: [{ note: 'swap', label: 'Octroi fixture', remove: [], grant: [{ characteristic: carac, value: 15 }] }] }) },
     { nom: 'activities.tests[].characteristic', schema: activitiesSchema,
-      fixture: (carac) => [{ id: 'activite-fixture', type: 'activities', label: 'Activité fixture', icon: 'nav/rest', contexts: ['voyage'], tests: [{ characteristic: carac }], source: SOURCE }] },
+      fixture: (carac) => [{ id: 'activite-fixture', type: 'activities', label: 'Activité fixture', icon: 'navigation/repos', contexts: ['voyage'], tests: [{ characteristic: carac }], source: SOURCE }] },
     { nom: 'miscast.entries[].test.test.characteristic', schema: miscastSchema,
       fixture: (carac) => [{ id: 'miscast-fixture', type: 'miscast', label: 'Table fixture', die: 'd100', source: SOURCE,
         entries: [{ id: 'fixture-ligne', min: 1, max: 100, label: 'Ligne fixture', test: { test: { characteristic: carac, difficulty: 'accessible' }, onFail: [] } }] }] },

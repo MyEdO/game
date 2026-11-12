@@ -34,7 +34,7 @@ function setupForcedAttack() {
     pendingAttack: {
       attackerId: 'A', targetId: 'B', location: null,
       result: {
-        hit: false, attackerRoll: 88, netSL: -4, critical: false, advantageTo: 'defender',
+        hit: false, attackerRoll: 88, netSL: -4, critical: false, advantageTo: 'defenseur',
         defenderDefeated: false, log: 'raté',
         attackerDetail: { label: 'Corps à corps', base: 45, modifier: 0, target: 45, roll: 88, success: false, sl: -4 },
       } as never,
@@ -90,7 +90,7 @@ describe('jetImposerLeResultat@attaque — choisir la valeur du dé d’un succ�
       battle: { combatants: [C({ id: 'A', resilience: 2 }), C({ id: 'B', kind: 'enemy' })], log: [] } as never,
       pendingAttack: {
         attackerId: 'A', targetId: 'B', location: null,
-        result: { hit: true, attackerRoll: 22, netSL: 2, critical: true, advantageTo: 'attacker', defenderDefeated: false, log: '', attackerDetail: { label: 'Corps à corps', base: 45, modifier: 0, target: 45, roll: 22, success: true, sl: 2 } } as never,
+        result: { hit: true, attackerRoll: 22, netSL: 2, critical: true, advantageTo: 'attaquant', defenderDefeated: false, log: '', attackerDetail: { label: 'Corps à corps', base: 45, modifier: 0, target: 45, roll: 22, success: true, sl: 2 } } as never,
       },
     });
     banc.getState().jetImposerLeResultat('attaque', 44);
@@ -153,7 +153,7 @@ describe('jetImposerLeResultat@defense — même choix sur une DÉFENSE forcée'
         location: null, atk, mode: 'esquive',
         def: { roll: 95, target: 50, success: false, sl: -4, isDouble: false },
         result: {
-          hit: true, attackerRoll: 30, netSL: 5, critical: false, advantageTo: 'attacker', defenderDefeated: false, log: '',
+          hit: true, attackerRoll: 30, netSL: 5, critical: false, advantageTo: 'attaquant', defenderDefeated: false, log: '',
           attackerDetail: { label: 'Corps à corps', base: 40, modifier: 0, target: 40, roll: 30, success: true, sl: 1 },
           defenderDetail: { label: 'Esquive', base: 50, modifier: 0, target: 50, roll: 95, success: false, sl: -4 },
         },

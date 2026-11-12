@@ -57,13 +57,13 @@ function termesDuFlux(flow: NoeudBrut, voc: VocabulaireDuTag, out: string[] = []
     if (typeof n.characteristic === 'string' && voc.carac[n.characteristic]) out.push(voc.carac[n.characteristic]);
     const diff = typeof n.difficulty === 'string' ? voc.difficultes[n.difficulty] : undefined;
     if (diff) out.push(diff, diff.replace(/\s*\(.*$/, ''));
-    if (typeof n.targetDR === 'number') out.push(`${n.targetDR} DR`);
+    if (typeof n.drCible === 'number') out.push(`${n.drCible} DR`);
     out.push(MOT_DU_JET);
   };
   const effect = flow.effect as NoeudBrut;
   if (flow.kind === 'test') prendre(flow.test as NoeudBrut);
   if (flow.kind === 'do' && effect?.type === 'extendedTest') prendre(effect);
-  const branches = [flow.then, flow.else, flow.success, flow.fail, flow.yes, flow.no];
+  const branches = [flow.then, flow.else, flow.success, flow.fail, flow.oui, flow.non];
   for (const suite of [flow.steps as NoeudBrut[] | undefined, branches as NoeudBrut[]]) {
     for (const s of suite ?? []) termesDuFlux(s, voc, out);
   }

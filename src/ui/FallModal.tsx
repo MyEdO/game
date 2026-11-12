@@ -134,8 +134,8 @@ export function FallModal() {
   const unJet = aLancer.some((x) => !!x.result);
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' },
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
+    { key: 'cancel', label: t('verbe.annuler'), onClick: cancel, verbe: 'annuler' },
+    { key: 'confirm', label: t('verbe.valider'), onClick: confirm, verbe: 'valider' },
   ];
 
   return (
@@ -143,7 +143,7 @@ export function FallModal() {
       etape={phase}
       flowKey="chute"
       stake={flowStakeRef(FALL_STAKE[phase], { values: { metres: p.metres } })}
-      title={<><Icon id="melee/flee" size="sm" /> {p.test.label}</>}
+      title={<><Icon id="melee/fuir" size="sm" /> {p.test.label}</>}
       /* Z1 : la SITUATION que rien d'autre ne porte (la hauteur) ; Compétence et Difficulté sont à la
          ligne (`.rm-roll-diff`, #1072). */
       subtitle={p.suspendu !== undefined ? t('fall.modale.deniveleSuspendu', { metres: p.metres, suspendu: p.suspendu }) : t('fall.modale.denivele', { metres: p.metres })}

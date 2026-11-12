@@ -111,7 +111,7 @@ export function CoopLobby() {
           <CoopSeatList />
         </CoopSection>
         <Row className="hint" gap="xs" justify="center">
-          <Icon id={net.connection === 'reconnexion' ? 'coop/away' : 'ui/wait'} size="sm" />
+          <Icon id={net.connection === 'reconnexion' ? 'coop/reconnexion' : 'interface/attendre'} size="sm" />
           {net.hoteAbsent ? t("coop.invite.attente.hoteAbsent")
             : net.connection === 'reconnexion' ? t("coop.invite.attente.reconnexion")
             : t("coop.invite.attente.defaut")}
@@ -127,7 +127,7 @@ export function CoopLobby() {
       {/* Charger en session : le salon survit (`applyLoadedSave` préserve `net`), l'invité
           suit au snapshot — c'est LE chemin pour reprendre une partie coop sauvegardée. */}
       <Row gap="md" className="coop-actions">
-        <button className="btn" onClick={() => setLoadOpen(true)}><Icon id="file/open" /> {t("coop.hote.chargerUnePartie")}</button>
+        <button className="btn" onClick={() => setLoadOpen(true)}><Icon id="fichier/ouvrir" /> {t("coop.hote.chargerUnePartie")}</button>
         <button className="btn btn-primary" onClick={() => setScreen('party')}>
           {t("coop.hote.composer")}
         </button>
