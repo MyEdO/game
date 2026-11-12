@@ -1,17 +1,15 @@
 name: Rapport de dépendances
 
 on:
-  schedule:
-    - cron: '0 6 1 * *'
   workflow_dispatch:
 
 permissions:
   contents: read
-  issues: write
 
 jobs:
-  report:
+  rendus:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -20,26 +18,35 @@ jobs:
           check-latest: true
           cache: npm
       - run: npm ci
-      - run: npm --prefix server ci
-      - name: Ouvrir l'issue de rapport mensuel
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npm run deps:report
+      - uses: ./.github/actions/caches-3d
+      - run: npm run pont:godot
+      - run: npm run godot:sonde
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends xvfb libgl1-mesa-dri mesa-vulkan-drivers libxcursor1 libxinerama1 libxrandr2 libxi6
+      - run: npm run godot:rendus
+      - if: ${{ !cancelled() }}
+        run: npm run godot:rendus
+      - if: ${{ !cancelled() }}
+        run: free -m; nproc; df -h /tmp; ls -la ~/.config/godot ~/.local/share/godot ~/.cache/godot 2>&1 | head -40; sudo dmesg | tail -30
 
-      # Ce workflow n'a pas de porte : il se NOMME en rougissant, comme le canari — registre
-      # scripts/gates/workflowsDuDepot.mjs (#1779). Le step joue MÊME si `npm ci` a rougi : le
-      # signaleur est posé par `actions/checkout` ci-dessus et n'importe que `node:*`.
-      - name: Se nommer en rougissant
-        if: ${{ !cancelled() }}
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          STATUT: ${{ job.status }}
-        run: |
-          RAPPORT="$RUNNER_TEMP/deps-report-rapport.md"
-          echo "Run $RUN_URL : job \`$STATUT\`" > "$RAPPORT"
-          node scripts/ops/signaler-rouge.mjs \
-            --titre "Rapport de dépendances rouge" \
-            --label canari \
-            --corps "$RAPPORT" \
-            --verdict "$([ "$STATUT" = success ] && echo vert || echo rouge)"
+  bureau:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+          check-latest: true
+          cache: npm
+      - run: npm ci
+      - uses: ./.github/actions/caches-3d
+      - run: npm run godot:bureau
+      - if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: bureau-${{ matrix.os }}
+          path: dist/bureau
