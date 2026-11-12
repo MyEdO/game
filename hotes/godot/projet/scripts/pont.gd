@@ -47,9 +47,12 @@ var _transport: Transport
 	## Si le lieu est ouvert et vivant : un appel y reçoit sa réponse.
 	@abstract func est_ouvert() -> bool
 
-	## La réponse de `methode` sur `json` (la chaîne JSON de l'entrée, ou `null`), une chaîne JSON ; `null`, sa panne
-	## signalée.
+	## La réponse de `methode` sur `json` (la chaîne JSON de l'entrée, ou `null`), la chaîne JSON que rend
+	## `wfrpPont.appelerEnOctets` ; `null`, sa panne signalée.
 	@abstract func appeler(methode: String, json: Variant) -> Variant
+
+	## Les octets de la dernière réponse d'`appeler`, lus quand elle porte `octets`.
+	@abstract func octets() -> PackedByteArray
 
 	## La réponse à la pile des couches `demande`, une chaîne JSON, attendue sans tenir l'image ; `null`, sa panne
 	## signalée.
@@ -93,9 +96,12 @@ func rejoindre(au_refus: Callable, a_la_panne: Callable) -> bool:
 	return await _transport.ouvrir()
 
 
-## La réponse de `methode` sur `entree` (un objet, ou `null` sans entrée) : décodée, `ok` vrai ou faux ; `{}` en panne.
+## La réponse de `methode` sur `entree` (un objet, ou `null` sans entrée) : décodée, `ok` vrai ou faux, chaque tableau
+## passé en octets recollé (`_recoller`) ; `{}` en panne.
 func appeler(methode: String, entree: Variant = null) -> Dictionary:
 	var reponse := _decoder(methode, _transport.appeler(methode, null if entree == null else JSON.stringify(entree)))
+	if reponse.has("octets"):
+		_recoller(reponse, _transport.octets())
 	if reponse.get("ok") == false:
 		refus.emit(str(reponse.erreur.message))
 	var releve := _decoder("erreursGlobales", _transport.appeler("erreursGlobales", null))
@@ -413,6 +419,16 @@ func _decoder(methode: String, brut: Variant) -> Dictionary:
 		_signaler("%s : réponse illisible : %s" % [methode, brut.left(200)])
 		return {}
 	return decode
+
+
+## Chaque tableau d'une géométrie de `volume`, `toits` et `couronnes` de `reponse`, dont l'en-tête porte les bornes
+## `[debut, fin]` dans `octets`, remplacé par ses `Float32`.
+func _recoller(reponse: Dictionary, octets: PackedByteArray) -> void:
+	for famille in ["volume", "toits", "couronnes"]:
+		for geometrie: Dictionary in reponse[famille]:
+			for tableau in ["positions", "normales", "couleurs", "cases"]:
+				var bornes: Array = geometrie[tableau]
+				geometrie[tableau] = octets.slice(int(bornes[0]), int(bornes[1])).to_float32_array()
 
 
 func _signaler(message: String) -> void:

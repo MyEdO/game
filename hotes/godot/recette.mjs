@@ -128,7 +128,7 @@
 //   ceux-là seuls (`CONTRAT.md`, « Atelier 3D ») ; les aides, l'élément monté puis démonté (« Aucun ») ; si une surface de `--element` porte
 //   `blason: true` (#3111), deux emblèmes posés tour à tour à la prise `main`, chacun sans erreur publiée, puis
 //   « Aucun » et le premier reposé, ces quatre choix sans requête du GLB de l'élément (`performance`, page) ni appel
-//   `composer` de Godot (`wfrpPont.appeler` enveloppé, témoins : le GLB requis au montage, `modeles` appelé au premier
+//   `composer` de Godot (`appelerEnOctets` enveloppé, témoins : le GLB requis au montage, `modeles` appelé au premier
 //   rechargement) ; puis « Aucun » : l'emblème effacé au démontage, l'élément remonté sans emblème (le défaut de la
 //   composition), le premier reposé avant le rechargement (sans surface `blason`, une ligne du journal dit la preuve non
 //   jouée) ; à l'onglet Animation, un clip joué, mis en pause, avancé et reculé d'une image (au clic puis à l'Entrée),
@@ -2273,13 +2273,13 @@ async function choisirDansLaListe(cle, article, sens = 1) {
   await nouvelEcran()
 }
 
-/** Les appels de Godot au pont, comptés par méthode dans `recetteAppels` de la page : `wfrpPont.appeler` enveloppé, que
- *  `PontDuNoyau.appeler` (`projet/scripts/pont.gd`) relit sur `globalThis.wfrpPont` à chaque appel ; le tampon des
- *  mesures de ressources élargi pour que chaque requête y entre. */
+/** Les appels de Godot au pont, comptés par méthode dans `recetteAppels` de la page : `wfrpPont.appelerEnOctets`
+ *  enveloppé, la porte du transport de la page (`projet/scripts/transport_de_la_page.gd`), relue sur
+ *  `globalThis.wfrpPont` à chaque appel ; le tampon des mesures de ressources élargi pour que chaque requête y entre. */
 const SONDER_LA_PAGE = `(() => {
   performance.setResourceTimingBufferSize(1e6)
-  const pont = globalThis.wfrpPont, appeler = pont.appeler, n = (globalThis.recetteAppels = {})
-  pont.appeler = function (methode, ...reste) { n[methode] = (n[methode] ?? 0) + 1; return appeler.call(this, methode, ...reste) }
+  const pont = globalThis.wfrpPont, appelerEnOctets = pont.appelerEnOctets, n = (globalThis.recetteAppels = {})
+  pont.appelerEnOctets = function (methode, ...reste) { n[methode] = (n[methode] ?? 0) + 1; return appelerEnOctets.call(this, methode, ...reste) }
   return true
 })()`
 /** Le nombre d'appels `methode` de Godot au pont depuis `SONDER_LA_PAGE`. */
