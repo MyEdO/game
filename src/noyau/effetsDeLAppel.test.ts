@@ -18,7 +18,7 @@ const emis = (payload: ChargeDAttaque): Evenement => ({ type: 'emis', evt: 'anim
  *  couche 0, et sur la couche 1 un pont à 3 m au-dessus de sa dernière case. Ce que le groupe ne voit pas :
  *  `visionDuGroupe.hors-store.test.ts`. */
 const SCENE = { metresPerTile: 2, dimensions: { w: 3, h: 1 }, layers: [{ z: 0, height: [0, 0, 0] }, { z: 1, height: [0, 0, 3] }] };
-const ETAT = { party: [], scene: SCENE, battle: { combatants: [{ id: 'a', kind: 'hero', pos: { x: 0, y: 0 } }, { id: 'b', kind: 'hero', pos: { x: 3, y: 4 } }, { id: 'loin', kind: 'hero', pos: { x: 300, y: 400 } }, { id: 'hors', kind: 'hero', pos: undefined }] } } as unknown as Jeu;
+const ETAT = { party: [], scene: SCENE, battle: { combatants: [{ id: 'a', kind: 'heros', pos: { x: 0, y: 0 } }, { id: 'b', kind: 'heros', pos: { x: 3, y: 4 } }, { id: 'loin', kind: 'heros', pos: { x: 300, y: 400 } }, { id: 'hors', kind: 'heros', pos: undefined }] } } as unknown as Jeu;
 const unSeul = (e: Evenement): Effet => {
   const effets = effetsDeLAppel(ETAT, [e]);
   expect(effets).toHaveLength(1);

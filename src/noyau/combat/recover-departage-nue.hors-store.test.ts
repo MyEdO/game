@@ -26,7 +26,7 @@ const CHARS = (force: number) => ({
 
 function combatant(p: Partial<Combatant> & { id: string; force: number }): Combatant {
   return blessuresSurLeProfil({
-    label: p.label ?? p.id, kind: p.kind ?? 'hero',
+    label: p.label ?? p.id, kind: p.kind ?? 'heros',
     characteristics: CHARS(p.force) as never,
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], movement: 4,
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -52,7 +52,7 @@ function setBattle(combatants: Combatant[], activeId: string) {
  *  valeurs TESTÉES s'inversent, les NUES non. */
 function empetreCharge() {
   const src = combatant({
-    id: 'liane', label: 'Liane', kind: 'enemy', force: 50,
+    id: 'liane', label: 'Liane', kind: 'ennemi', force: 50,
     conditions: [{ id: 'extenue', value: 1 }] as never,
   });
   const actor = combatant({

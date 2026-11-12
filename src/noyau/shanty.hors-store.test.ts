@@ -29,7 +29,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  */
 const chars = { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 const mk = (id: string, over: Partial<Combatant> = {}): Combatant =>
-  (blessuresSurLeProfil({ id, name: id, kind: 'hero', characteristics: { ...chars },
+  (blessuresSurLeProfil({ id, name: id, kind: 'heros', characteristics: { ...chars },
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], items: [], skills: [], talents: [], weapons: [],
     fortune: 2, resilience: 2,
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, pos: { x: 5, y: 5 }, ...over })) as unknown as Combatant;
@@ -77,7 +77,7 @@ const singer = (): Combatant => mk('barde', {
 });
 const marin = (): Combatant => mk('marin', { skills: [{ id: 'voile', characteristic: 'agilite', advances: 10 } as SkillInstance] });
 const ship = (over: Partial<Combatant> = {}): Combatant =>
-  mk('ship', { kind: 'hero', bodyShape: 'vehicule', creatureId: 'coracle', crewIds: ['barde', 'marin'], ...over });
+  mk('ship', { kind: 'heros', bodyShape: 'vehicule', creatureId: 'coracle', crewIds: ['barde', 'marin'], ...over });
 
 function openShanty() {
   seedBattleRng(3);
@@ -164,7 +164,7 @@ describe('« Suivez le capitaine » : captainOps sur le SEUL titulaire du rôle 
     seedBattleRng(3);
     const capitaine = mk('cap', { skills: [{ id: 'commandement', characteristic: 'sociabilite', advances: 20 } as SkillInstance] });
     const mousse = marin();
-    const hull = mk('ship', { kind: 'npc', bodyShape: 'vehicule', creatureId: 'coracle', crewIds: ['cap', 'marin'] });
+    const hull = mk('ship', { kind: 'pnj', bodyShape: 'vehicule', creatureId: 'coracle', crewIds: ['cap', 'marin'] });
     banc.setState({
       battle: { combatants: [hull, capitaine, mousse], order: ['ship'], turn: 0, round: 1, acted: false, log: [] } as never,
       party: [capitaine, mousse], facing: {}, scene: null as never, gameTime: 0,

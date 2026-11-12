@@ -64,7 +64,7 @@ export function corpsEnVue(etat: EntreesDeLaConnaissance, c: Combatant, ancre?: 
 export function combattantEnVue(etat: EntreesDeLaConnaissance, c: Combatant): boolean {
   const partenaire = c.mountId ?? c.riderId;
   const couple = partenaire ? [c, ...(etat.battle?.combatants ?? []).filter((x) => x.id === partenaire)] : [c];
-  return couple.some((x) => campOf(x) === 'party') || corpsEnVue(etat, c);
+  return couple.some((x) => campOf(x) === 'groupe') || corpsEnVue(etat, c);
 }
 
 /** Le porteur `id` est-il en vue : un combattant du champ (`inBattleId`) l'est par `combattantEnVue`, tout autre

@@ -32,7 +32,7 @@ const SOLO = { mode: 'local', mySeat: 0, roomCode: null, seatNames: {}, presence
 /** Héros à Force Mentale 10 (Calme 10) : son Test de Psychologie échoue sur tout dé > 10 — l'issue
  *  d'ÉCHEC est celle que l'on mesure, et elle est déterministe avec la graine posée. */
 const hero = (): Combatant => (blessuresSurLeProfil({
-  id: 'h', name: 'h', label: 'Anselme', kind: 'hero',
+  id: 'h', name: 'h', label: 'Anselme', kind: 'heros',
   characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 30, force: 35, endurance: 35, initiative: 30,
     agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 10, sociabilite: 30, perception: 30 },
   conditions: [], traumas: [], engagedWith: [], skills: [], talents: [], items: [], weapons: [],

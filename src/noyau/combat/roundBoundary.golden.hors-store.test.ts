@@ -27,7 +27,7 @@ describe('GOLDEN — séquence de franchissement de Round (advanceTurn)', () => 
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const enemy = b.combatants.find((c) => c.kind === 'enemy')!;
+    const enemy = b.combatants.find((c) => c.kind === 'ennemi')!;
     addCondition(enemy, COND.empoisonne); // exerce endOfRound (dégâts périodiques + RNG)
     const beforeLen = banc.getState().battle!.log.length;
     seedBattleRng(424242); // RNG du franchissement fixé, indépendant du setup

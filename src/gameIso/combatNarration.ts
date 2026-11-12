@@ -75,7 +75,7 @@ function colorize(text: string, combatants: ComLite[]): NarratedSegment[] {
   const teamOf = new Map<string, Equipe>();
   // Index de TEXTE (le nom est ce qui apparaît dans la prose narrée) : construction seule, sans
   // interrogation par libellé (#602) — parcours inversé pour que le PREMIER combattant l'emporte.
-  for (let i = named.length - 1; i >= 0; i--) teamOf.set(named[i].label, named[i].kind === 'hero' ? 'allie' : 'ennemi');
+  for (let i = named.length - 1; i >= 0; i--) teamOf.set(named[i].label, named[i].kind === 'heros' ? 'allie' : 'ennemi');
 
   // Noms uniques, du plus long au plus court (évite « Rat » de mordre dans « Rat géant »).
   const names = [...new Set(named.map((c) => c.label))].sort((a, b) => b.length - a.length);

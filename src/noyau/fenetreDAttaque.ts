@@ -146,7 +146,7 @@ export function fenetreDAttaque(s: Jeu): FenetreDAttaque | null {
   const penaliteSecondaire = penaliteDeMainSecondaire(attaquant);
   const victime = victimeDuCoup(battle, cible, pa);
   const coup = res ? issueAuJet(victime, coupAApplique(res, pa.grapple, victime), arme, attaquant) : null;
-  const heros = attaquant.kind === 'hero';
+  const heros = attaquant.kind === 'heros';
   // LDB 10 l.767-773
   const deuxArmesPossibles = !res && armeTenue && heros && attackModesFor(attaquant).includes('dual-wield')
     && attaquant.weapons.some((w) => w.hand === 'main' && w.type === 'melee' && (w.hands ?? 1) === 1)

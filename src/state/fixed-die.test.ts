@@ -21,7 +21,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTes
  */
 const C = (over: Partial<Combatant>): Combatant =>
   (blessuresSurLeProfil({
-    id: 'X', name: 'X', label: 'X', kind: 'hero',
+    id: 'X', name: 'X', label: 'X', kind: 'heros',
     characteristics: { 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], traumas: [],
     weapons: [{ name: 'Épée', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [] }],
@@ -34,7 +34,7 @@ const C = (over: Partial<Combatant>): Combatant =>
 function setupAttack(attackerOver: Partial<Combatant> = {}, targetOver: Partial<Combatant> = {}) {
   seedBattleRng(7);
   const attacker = C({ id: 'A', label: 'Att', resilience: 2, ...attackerOver });
-  const target = C({ id: 'B', label: 'Cible', kind: 'enemy', pos: { x: 1, y: 0 }, ...targetOver });
+  const target = C({ id: 'B', label: 'Cible', kind: 'ennemi', pos: { x: 1, y: 0 }, ...targetOver });
   useGame.setState({
     battle: { combatants: [attacker, target], log: [], order: [attacker.id, target.id], turn: 0, round: 1 } as never,
     pendingAttack: {
@@ -133,14 +133,14 @@ describe('contrôle — `canFixDie` décrit l’AFFORDANCE LOCALE (jamais le ges
   });
 
   it('ennemi SANS siège MJ → aucune affordance (il est à l’IA)', () => {
-    setupAttack({ id: 'A', kind: 'enemy' }, { id: 'B', kind: 'hero' });
+    setupAttack({ id: 'A', kind: 'ennemi' }, { id: 'B', kind: 'heros' });
     expect(canFixDie(useGame.getState(), 'A')).toBe(false);
     const die = rowForcedDie(useGame.getState(), 'attaque', { actor: useGame.getState().battle!.combatants[0], rolled: true } as never, true);
     expect(die.forcedRoll?.fixed).toBeFalsy();
   });
 
   it('ennemi AVEC le siège MJ mien → affordance, et le jet ennemi se fixe', () => {
-    setupAttack({ id: 'A', kind: 'enemy' }, { id: 'B', kind: 'hero' });
+    setupAttack({ id: 'A', kind: 'ennemi' }, { id: 'B', kind: 'heros' });
     useGame.setState({ net: { ...useGame.getState().net, gmSeat: 0 } as never });
     expect(canFixDie(useGame.getState(), 'A')).toBe(true);
     const die = rowForcedDie(useGame.getState(), 'attaque', { actor: useGame.getState().battle!.combatants[0], rolled: true } as never, true);

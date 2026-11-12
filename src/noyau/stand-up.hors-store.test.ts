@@ -22,7 +22,7 @@ describe('À Terre — se relever / pas de Course (LDB 16 l.37, 18 l.15)', () =>
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
     H.engagedWith = [];
     const turn = b.order.indexOf(H.id);
     banc.setState({ battle: { ...b, turn, movementUsed: 0, acted: false } });

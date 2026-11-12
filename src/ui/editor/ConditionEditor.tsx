@@ -267,10 +267,10 @@ export function ConditionEditor({ cond, onChange, kinds, narratif, noeud = condi
           est
           <select className="cond-kind" value={cond.is} onChange={(e) => onChange({ ...cond, is: e.target.value as Relation | Camp })}>
             <optgroup label="relatif au lanceur">
-              {(['self', 'ally', 'opponent'] as const).map((r) => <option key={r} value={r}>{libelleDeValeur(relationOrCampSchema, r)}</option>)}
+              {(['soi', 'allie', 'adversaire'] as const).map((r) => <option key={r} value={r}>{libelleDeValeur(relationOrCampSchema, r)}</option>)}
             </optgroup>
             <optgroup label="camp absolu">
-              {(['party', 'neutral', 'hostile'] as const).map((r) => <option key={r} value={r}>{libelleDeValeur(relationOrCampSchema, r)}</option>)}
+              {(['groupe', 'neutre', 'hostile'] as const).map((r) => <option key={r} value={r}>{libelleDeValeur(relationOrCampSchema, r)}</option>)}
             </optgroup>
           </select>
         </span>

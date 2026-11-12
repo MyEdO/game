@@ -27,8 +27,8 @@ describe('FLOWS.manoeuvre — manœuvre de créature par modale (store)', () => 
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
     enemies.slice(1).forEach((e) => (e.dead = true));
     const E = enemies[0];
     H.pos = { x: 10, y: 10 };
@@ -191,7 +191,7 @@ describe('FLOWS.manoeuvre — manœuvre de créature par modale (store)', () => 
     H.traits = [{ id: 'souffle', value: 15, arg: 'feu' }];
     H.characteristics['capacite-de-tir'] = 90;
     H.advantage = 3;
-    const D = banc.getState().battle!.combatants.find((c) => c.kind === 'enemy' && c.id !== E.id)!;
+    const D = banc.getState().battle!.combatants.find((c) => c.kind === 'ennemi' && c.id !== E.id)!;
     D.dead = false;
     D.wounds = blessuresDeBase(30, 30, D);
     D.pos = { x: 10, y: 11 }; // plein SUD : la cible CLIQUÉE

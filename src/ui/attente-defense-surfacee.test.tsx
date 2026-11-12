@@ -38,7 +38,7 @@ beforeAll(() => {
 });
 
 const chars = { 'capacite-de-combat': 60, 'capacite-de-tir': 50, force: 45, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 40, sociabilite: 30 };
-const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, weapons: Weapon[] = []): Combatant =>
+const mk = (id: string, kind: 'heros' | 'ennemi', pos: { x: number; y: number }, weapons: Weapon[] = []): Combatant =>
   (blessuresSurLeProfil({ id, name: id, label: id, kind, characteristics: { ...chars }, conditions: [], traumas: [], engagedWith: [], skills: [], talents: [], items: [],
      weapons, advantage: 0, size: 'moyenne', pos, wounds: blessuresDeBase(18), resilience: 2, fortune: 2,
      species: 'humains-reiklander', bodyShape: 'humanoide', movement: 4,
@@ -52,8 +52,8 @@ const dart: Weapon = { name: 'Fléchette', label: 'Fléchette', type: 'distance'
 /** Duel MJ : l'ENNEMI est conduit à la main (siège MJ → attaque PILOTÉE, modale d'attaque) et le
  *  héros défenseur est SURFACÉ (`defenseSurfaced`) — quadrant exact du défaut. */
 function duel(opts?: { gmSeat?: number; heroAi?: boolean; surpris?: boolean; atkWeapons?: Weapon[]; atkTraits?: Combatant['traits'] }) {
-  const enemy = mk('Rôdeur', 'enemy', { x: 1, y: 0 }, opts?.atkWeapons ?? [sword]);
-  const hero = mk('Grunni', 'hero', { x: 0, y: 0 }, [sword]);
+  const enemy = mk('Rôdeur', 'ennemi', { x: 1, y: 0 }, opts?.atkWeapons ?? [sword]);
+  const hero = mk('Grunni', 'heros', { x: 0, y: 0 }, [sword]);
   if (opts?.atkTraits) enemy.traits = opts.atkTraits;
   if (opts?.heroAi) hero.aiControlled = true;
   if (opts?.surpris) addCondition(hero, COND.surpris);
@@ -251,7 +251,7 @@ describe('#1004 instance adjacente — sort DISSIPÉ : la ligne de Dégâts ne s
    */
   const multiOpposition = (grunniResists: boolean) => {
     const { hero } = duel();
-    const autre = mk('Autre', 'hero', { x: 0, y: 1 }, [sword]);
+    const autre = mk('Autre', 'heros', { x: 0, y: 1 }, [sword]);
     const battle = useGame.getState().battle!;
     useGame.setState({
       battle: { ...battle, combatants: [...battle.combatants, autre], order: [...battle.order, autre.id] } as never,

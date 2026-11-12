@@ -437,7 +437,7 @@ function aLaVueDuGroupe(etat: Jeu, e: EffetEmis): Effet[] {
   if (e.quoi === 'deplacement') {
     if (!enVue(e.qui)) return [];
     const qui = inBattleId(etat.battle, e.qui);
-    if (!qui || campOf(qui) === 'party') return [e];
+    if (!qui || campOf(qui) === 'groupe') return [e];
     let debut = e.cases.length;
     while (debut > 0 && corpsEnVue(etat, qui, e.cases[debut - 1])) debut--;
     const fin = e.cases.slice(debut);

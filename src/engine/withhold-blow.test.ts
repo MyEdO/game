@@ -23,7 +23,7 @@ const mk = (over: Partial<Combatant> = {}): Combatant =>
   (blessuresSurLeProfil({
     id: 'x',
     name: 'X',
-    kind: 'enemy',
+    kind: 'ennemi',
     characteristics: { 'capacite-de-combat': 50, 'capacite-de-tir': 50, force: 30, endurance: 30, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(12),
     advantage: 0,
@@ -69,7 +69,7 @@ describe('Retenir ses coups — Critique supprimé sauf mise à 0 (AA 07 l.59-61
   });
 
   it('même coup mais la cible tombe à 0 → le Coup Critique du double reste ignoré, celui de la mise à 0 demeure (#1595 c.6226467544)', () => {
-    const lowHP = mk({ wounds: blessuresDeBase(12, 4), kind: 'hero' }); // 4 PB ; le coup (≈7) la met à 0 ; AA 07 l.67 : hors Mort subite
+    const lowHP = mk({ wounds: blessuresDeBase(12, 4), kind: 'heros' }); // 4 PB ; le coup (≈7) la met à 0 ; AA 07 l.67 : hors Mort subite
     const withheld = resolveMeleePassive(att(), lowHP, empaleuseSword, dbl, { rng: makeRNG(1595) }, undefined, [], undefined, true);
     expect(withheld.defenderDefeated).toBe(true);
     expect(withheld.critical).toBe(false);
@@ -80,7 +80,7 @@ describe('Retenir ses coups — Critique supprimé sauf mise à 0 (AA 07 l.59-61
 
 describe('Retenir ses coups sur une cible déjà à 0 : la Localisation relancée garde le profil retenu (AA 07 l.59, l.61 ; #1595 c.6227274650 Q2)', () => {
   enAA();
-  const aZero = (over: Partial<Combatant> = {}) => mk({ wounds: blessuresDeBase(12, 0), kind: 'hero', ...over });
+  const aZero = (over: Partial<Combatant> = {}) => mk({ wounds: blessuresDeBase(12, 0), kind: 'heros', ...over });
   const atk = evaluateTest(35, 60);
 
   it('Estoc Perforante contre PA 2 : la Localisation relancée ne compte pas Perforante', () => {

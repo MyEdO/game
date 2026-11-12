@@ -47,7 +47,7 @@ describe('ZdE ennemie — fenêtre de Contre-sort (parité missile, chemin PARTA
 
   function setupZoneAwaitingCounter() {
     const e = spawnEnemy({ ref: 'humain' }, 'caster', { x: 5, y: 5 });
-    e.kind = 'enemy';
+    e.kind = 'ennemi';
     e.characteristics.intelligence = 60; e.characteristics['force-mentale'] = 60;
     e.skills = [{ id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 40 } as never];
     const spell = findSpellById('explosion')!; // Projectile magique à ZdE

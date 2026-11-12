@@ -3,7 +3,7 @@
  * lisent chaque propriétaire de l'état, le store web (`src/state/store.ts`) comme la partie
  * (`partie.ts`). Une fabrique ajoutée ici sert les deux.
  */
-import type { Equipe } from '../engine/relations';
+import type { Camp, Equipe, Relation } from '../engine/relations';
 import type { MsgKey } from '../i18n';
 import type { Flow } from '../engine/flowCore';
 import type { BattleOutcome } from '../engine/massBattle';
@@ -78,8 +78,8 @@ import type { bankWithdrawOutcome, GenreDeDepot, statusIncome } from '../engine/
 import type { CargoRaidOutcome } from '../engine/cargo';
 import type { RiverPerilKind } from '../engine/riverNavigation';
 import type { GenreDeFlottant } from './effetsDeLAppel';
-import type { TargetingMode } from './targetingModes';
-import type { EffectSourceKind, ItemKind, Main, Weapon } from '../engine/types';
+import type { SpellAffinity, TargetingMode } from './targetingModes';
+import type { Combatant, EffectSourceKind, ItemKind, Main, Weapon } from '../engine/types';
 import type { GameOp } from '../engine/ops';
 import type { TavernGame } from '../engine/tavernGame';
 import type { psychResolution } from '../engine/psychology';
@@ -97,6 +97,9 @@ import type { FenetreDAttaque } from './fenetreDAttaque';
 import type { FenetreDeDefense } from './fenetreDeDefense';
 import type { RoleDAnimation } from './animation';
 import type { GenreDeCascade } from './tablesPosees';
+import type { PursuitPayload } from './pursuitFlow';
+import type { EncounterDef } from './monde/scene';
+import type { weaponUsesHand } from '../engine/trauma';
 
 /** Les actions du lexique des verbes (#3371 §3.1) : un verbe manuscrit se nomme `<action>` ou `<action><Complément>`, ou
  *  à la forme pronominale (`seRelever`). */
@@ -147,7 +150,7 @@ export type VerrouDesMots<S extends string> = Verrou<Exclude<Mots<S>, `${number}
  *  (#3614), et ceux des littéraux du noyau, du moteur, des ids de raccourci et des clés `codex.op.*` (#3924, #3928, #3938). */
 type MotDuLexique = ActionDuLexique | ActionDeLaMachinerie | ActionDeFenetre | ActionDeJet
   | 'a' | 'abandon' | 'abandonner' | 'abregee' | 'abri' | 'absent' | 'accepter' | 'achat' | 'acheteur' | 'acquise'
-  | 'acteur' | 'action' | 'active' | 'activite' | 'activites' | 'adapte' | 'adversaire' | 'adverse' | 'affaler' | 'aggrave' | 'agir'
+  | 'acteur' | 'action' | 'active' | 'activite' | 'activites' | 'adapte' | 'adversaire' | 'adversaires' | 'adverse' | 'affaler' | 'aggrave' | 'agir'
   | 'aide' | 'alea' | 'aleatoire' | 'allie' | 'alors' | 'ambition' | 'amis' | 'amputer' | 'aneantissement' | 'animosite'
   | 'anneau' | 'annulation' | 'apercu' | 'approche' | 'argent' | 'arme' | 'armee' | 'armes' | 'armure' | 'arriere'
   | 'aspersion' | 'asphyxie' | 'attaquant' | 'attaque' | 'attaques' | 'attenuation' | 'attenue' | 'attribut' | 'au' | 'auberge' | 'aucun' | 'aucune' | 'aucun' | 'aucune'
@@ -170,7 +173,7 @@ type MotDuLexique = ActionDuLexique | ActionDeLaMachinerie | ActionDeFenetre | A
   | 'dissipation' | 'distance' | 'distraire' | 'divin' | 'divinite' | 'document' | 'dome' | 'double' | 'droite' | 'du' | 'dupliquer'
   | 'duree' | 'eau' | 'echap' | 'echec' | 'echelle' | 'echouage' | 'ecran' | 'editeur' | 'effacement' | 'effet'
   | 'egalite' | 'eligible' | 'eloigne' | 'embuscade' | 'empetrer' | 'empoignade' | 'empoigner' | 'en' | 'encaisse'
-  | 'encombrement' | 'endommage' | 'endommagee' | 'engage' | 'ennemi' | 'ensanglantee' | 'entrainement' | 'entree'
+  | 'encombrement' | 'endommage' | 'endommagee' | 'engage' | 'ennemi' | 'ennemis' | 'ensanglantee' | 'entrainement' | 'entree'
   | 'entretien' | 'epargne' | 'epuise' | 'epuisement' | 'equipage' | 'equipe' | 'equipement' | 'escale' | 'espace'
   | 'esquive' | 'et' | 'etal' | 'etape' | 'etapes' | 'etat' | 'etendu' | 'etreinte' | 'evaluation' | 'evenement'
   | 'eviter' | 'exact' | 'exploration' | 'expose' | 'exposition' | 'extermination' | 'f' | 'facteur' | 'facultatifs'
@@ -299,7 +302,10 @@ const verrousDuLexique: [
   Verrou<Mots<ReturnType<typeof weaponGroupSkillMode> | ChargeDAttaque['defense']>, MotDuLexique>,
   Verrou<Mots<Weapon['type'] | TypeDAttaque | NonNullable<GroupeDArme['combat']>>, MotDuLexique>,
   Verrou<Mots<Exclude<ItemKind, 'armor' | 'ammo' | 'misc'> | Exclude<TrappingTypeId, 'ammunition' | 'armor' | 'trapping'> | Exclude<PorteeDAssaut, 'all'>>, MotDuLexique>, // #3977
-] = [true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true];
+  Verrou<Mots<Combatant['kind'] | Camp | Relation | SpellAffinity>, MotDuLexique>,
+  Verrou<Mots<NonNullable<PursuitPayload['pris']>['laggard']['side'] | NonNullable<EncounterDef['surprise']>>, MotDuLexique>,
+  Verrou<Mots<Parameters<typeof weaponUsesHand>[1]>, MotDuLexique>,
+] = [true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true];
 void verrousDuLexique;
 
 /** Le corps de la clôture de chaque flux, que seul `jetValider(flux)` appelle : un flux sans clôture ne compile pas. */

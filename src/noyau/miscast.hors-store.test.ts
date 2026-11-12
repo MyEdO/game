@@ -24,8 +24,8 @@ describe('Miscast en séquence (store)', () => {
     banc.abandonner();
     const b = banc.getState().battle!;
     return {
-      hero: b.combatants.find((c) => c.kind === 'hero')!,
-      enemy: b.combatants.find((c) => c.kind === 'enemy')!,
+      hero: b.combatants.find((c) => c.kind === 'heros')!,
+      enemy: b.combatants.find((c) => c.kind === 'ennemi')!,
     };
   }
 

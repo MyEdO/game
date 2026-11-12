@@ -167,7 +167,7 @@ describe('ecuries-clayonnage — une structure de siège en vue par sa face', ()
       const octets = depuisBase64(masque);
       const { hauteurs } = mondeDe(appel).monde!;
       const octetDe = ([x, y, z]: [number, number, number]) => octets[(hauteurs.findIndex((h) => h.z === z) * rangeesParPlan + y) * largeur + x];
-      const ancresNonVues = vue.projection.combat!.voisins.liste.filter((c) => c.camp !== 'hero' && c.pos && octetDe(c.pos) !== 255).map((c) => c.id);
+      const ancresNonVues = vue.projection.combat!.voisins.liste.filter((c) => c.camp !== 'heros' && c.pos && octetDe(c.pos) !== 255).map((c) => c.id);
       expect(ancresNonVues.length, `les voisins hors du groupe à l’ancrage non vu : ${ancresNonVues.join(', ')}`).toBeGreaterThan(0);
     } finally {
       appel('quitter');

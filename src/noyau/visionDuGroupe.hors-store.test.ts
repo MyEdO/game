@@ -29,8 +29,8 @@ beforeEach(() => {
 const etat = (): Jeu => banc.getState() as unknown as Jeu;
 const combattants = (): Combatant[] => etat().battle!.combatants;
 const parId = (id: string): Combatant => combattants().find((c) => c.id === id)!;
-const ennemis = (): Combatant[] => combattants().filter((c) => c.kind === 'enemy');
-const heros = (): Combatant[] => combattants().filter((c) => c.kind === 'hero');
+const ennemis = (): Combatant[] => combattants().filter((c) => c.kind === 'ennemi');
+const heros = (): Combatant[] => combattants().filter((c) => c.kind === 'heros');
 
 const SOLDAT = 'soldat-de-test';
 const SORCIER = 'sorcier-de-test';

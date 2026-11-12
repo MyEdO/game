@@ -40,7 +40,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testki
 const CHARS = { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 40, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 const cible = (): Combatant =>
   (blessuresSurLeProfil({
-    id: 't', name: 'Cible', label: 'Cible', kind: 'enemy', characteristics: CHARS,
+    id: 't', name: 'Cible', label: 'Cible', kind: 'ennemi', characteristics: CHARS,
     wounds: blessuresDeBase(10), conditions: [], skills: [], traumas: [], critEntriesSuffered: [], bodyShape: 'humanoide',
   })) as unknown as Combatant;
 

@@ -23,7 +23,7 @@ beforeAll(() => {
 
 function hero(id: string, label: string): Combatant {
   return blessuresSurLeProfil({
-    id, label, kind: 'hero', career: 'repurgateur',
+    id, label, kind: 'heros', career: 'repurgateur',
     characteristics: profilDeTest(),
     items: [], talents: [], skills: [], conditions: [], advantage: 0, wounds: blessuresDeBase(10),
   }) as unknown as Combatant;

@@ -230,7 +230,7 @@ describe('gainCorruption : seuil → mutation → limites (l.80-95)', () => {
 
   it('PNJ (pas de modale) : seuil auto-résolu — la mutation tombe sans pendingCorruption', () => {
     const { a, party } = party2();
-    const npc = { ...a, id: 'npc-1', kind: 'enemy', characteristics: { ...a.characteristics, endurance: 1, 'force-mentale': 1 }, corruption: 5, resilience: 0, mutations: [] } as unknown as Combatant;
+    const npc = { ...a, id: 'npc-1', kind: 'ennemi', characteristics: { ...a.characteristics, endurance: 1, 'force-mentale': 1 }, corruption: 5, resilience: 0, mutations: [] } as unknown as Combatant;
     banc.setState({ party, battle: { combatants: [npc], log: [] } as never });
     gainCorruption(banc.getState, banc.setState, npc, 1);
     expect(banc.getState().pendingCorruption).toBeNull();
@@ -330,13 +330,13 @@ describe('Effet ops { op: corruption } (gain direct via ops generiques)', () => 
 });
 
 // #152 (suite #143) : `corruptionTarget` (utilisé par `resolveRenounce` / « Je te renie ! ») filtrait
-// encore `kind === 'hero'` — reconditionné sur `followsCharacterRules` (engine/relations.ts), le MÊME
+// encore `kind === 'heros'` — reconditionné sur `followsCharacterRules` (engine/relations.ts), le MÊME
 // prédicat que le reste de la boucle de fin de combat/Corruption (#143).
 describe('corruptionTarget — #152 : reconditionné sur followsCharacterRules (pas kind===\'hero\')', () => {
   const e30 = { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
   const npcPersonnage = (p: Partial<Combatant>): Combatant =>
     (blessuresSurLeProfil({
-      id: 'npc', label: 'PNJ', kind: 'enemy', followsCharacterRules: true,
+      id: 'npc', label: 'PNJ', kind: 'ennemi', followsCharacterRules: true,
       characteristics: e30,
       wounds: blessuresDeBase(12), advantage: 0, conditions: [], skills: [], talents: [],
       weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },

@@ -25,7 +25,7 @@ import { fixtureText } from '../i18n/fixtureText';
 
 const CHARS = { force: 40, dexterite: 40, agilite: 40, endurance: 40, 'force-mentale': 55, 'capacite-de-combat': 45, 'capacite-de-tir': 45, initiative: 40, intelligence: 40, sociabilite: 40 };
 const heros = (id: string, over: Partial<Combatant> = {}): Combatant => blessuresSurLeProfil({
-  id, name: id, label: id, kind: 'hero', characteristics: { ...CHARS }, wounds: blessuresDeBase(10), advantage: 0,
+  id, name: id, label: id, kind: 'heros', characteristics: { ...CHARS }, wounds: blessuresDeBase(10), advantage: 0,
   conditions: [], traumas: [], resilience: 0, fortune: 0, weapons: [unarmedWeapon()], items: [],
   armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, skills: [], talents: [], movement: 4,
   bodyShape: 'humanoide', pos: { x: 0, y: 0 }, ...over,
