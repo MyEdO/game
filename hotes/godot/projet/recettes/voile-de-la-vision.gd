@@ -170,7 +170,7 @@ func _dalles(cle: String, x0: int, x1: int, couche: int, rangee: int, hauteur: f
 				positions.append_array([(x + coin[0]) * METRES_PAR_CASE, hauteur, (y + coin[1]) * METRES_PAR_CASE])
 				normales.append_array([0.0, 1.0, 0.0])
 				couleurs.append_array([0.5, 0.5, 0.5, 1.0])
-			cases.append_array([[x, y, couche], [x, y, couche]])
+			cases.append_array([x, y, couche, x, y, couche])
 	return {cle = cle, empreinte = cle, rangee = rangee, positions = positions, normales = normales, couleurs = couleurs, cases = cases,
 		surfaces = [{debut = 0, fin = positions.size() / 3, matiere = "terrain--sol-d-essai"}]}
 
