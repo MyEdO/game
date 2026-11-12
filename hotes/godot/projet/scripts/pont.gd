@@ -1,6 +1,6 @@
 ## Le seul point de contact avec le noyau (`hotes/godot/pont/CONTRAT.md`), par le transport de son lieu (`Transport`) : la
-## page de l'export Web (`TransportDeLaPage`) ou un processus Node (`TransportDuProcessus`) ; dont l'image que l'auteur
-## choisit sur son disque (`choisir_une_image`), la pile des couches d'une tenue (`resoudre_la_pile`), les requêtes au
+## page de l'export Web (`TransportDeLaPage`) ou un processus Node (`TransportDuProcessus`) ; dont le fichier que le joueur
+## choisit sur son disque (`choisir_un_fichier`), celui qu'il y enregistre (`enregistrer_un_fichier`), la pile des couches d'une tenue (`resoudre_la_pile`), les requêtes au
 ## serveur du jeu (`requeter`), ce que l'écran porte (`publier_l_ecran`, retenu dans `ecran`) et ce que Godot expose
 ## (`exposer`).
 ## Un appel envoie le nom d'une méthode et une chaîne JSON, et rend la réponse décodée ; une réponse `ok: false` est un
@@ -19,6 +19,11 @@ const SILENCE_S := 10.0
 ## (`platform/web/js/libs/library_godot_fetch.js`, `godot_js_fetch_read_chunk`, Godot 4.7-stable), jusqu'à 2 Mio
 ## mesurés : un GLB de base de 42 Mo s'y reçoit en une vingtaine d'images (#3470), pas en plus de 600 par 64 Kio.
 const BLOC_DE_TELECHARGEMENT := 16777216
+
+## Un genre de fichier que le joueur choisit ou enregistre : `accepte`, ce que le champ de fichier de la page admet ;
+## `filtre`, celui du dialogue du système ; `type`, le type MIME du fichier remis par la page.
+const IMAGES := {accepte = "image/png,image/jpeg,image/webp", filtre = "*.png, *.jpg, *.jpeg, *.webp ; Images PNG, JPEG ou WebP"}
+const HEROS := {accepte = ".json,application/json", filtre = "*.json ; Personnage exporté", type = "application/json"}
 
 ## Le paramètre (`parametre`) que la recette pose à `1` (`hotes/godot/recette.mjs`, `en_recette`).
 const PARAMETRE_DE_RECETTE := "recette"
@@ -72,7 +77,9 @@ var _transport: Transport
 
 	@abstract func adresse(relative: String) -> String
 
-	@abstract func choisir_une_image() -> Dictionary
+	@abstract func choisir_un_fichier(genre: Dictionary) -> Dictionary
+
+	@abstract func enregistrer_un_fichier(genre: Dictionary, nom: String, texte: String) -> void
 
 	@abstract func parametre(cle: String) -> String
 
@@ -414,10 +421,16 @@ func requeter(relative: String, recueil: Array[String], methode := HTTPClient.ME
 	return resultat[3]
 
 
-## L'image PNG, JPEG ou WebP que l'auteur choisit sur son disque : `{ octets, type }`, son contenu et son type MIME ; `{}`
-## s'il renonce.
-func choisir_une_image() -> Dictionary:
-	return await _transport.choisir_une_image()
+## Le fichier du genre `genre` (`IMAGES`, `HEROS`) que le joueur choisit sur son disque : `{ octets, type }`, son contenu
+## et son type MIME ; `{}` s'il renonce.
+func choisir_un_fichier(genre: Dictionary) -> Dictionary:
+	return await _transport.choisir_un_fichier(genre)
+
+
+## Le texte `texte` remis au joueur en fichier du genre `genre`, sous le nom `nom` : téléchargé par la page, écrit où le
+## joueur le choisit hors d'elle.
+func enregistrer_un_fichier(genre: Dictionary, nom: String, texte: String) -> void:
+	_transport.enregistrer_un_fichier(genre, nom, texte)
 
 
 ## La pile des couches `demande` (`PileDemandee`, en JSON, `CONTRAT.md`, « Pile des couches ») résolue par le lieu du

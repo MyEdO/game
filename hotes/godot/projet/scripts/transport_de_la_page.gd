@@ -1,8 +1,8 @@
 ## Le noyau dans la page de l'export Web : `globalThis.wfrpPont` par JavaScriptBridge, attendu `ATTENTE_S` au plus ; chaque
 ## appel par `wfrpPont.appelerEnOctets`, les octets de sa réponse par `wfrpPont.octets` ; chaque valeur publiée en
 ## `globalThis.<nom>`, chaque rappel exposé en `globalThis.<nom>`, l'adresse et les paramètres lus à celle de la page
-## (`?<cle>=<valeur>`), l'image choisie par `wfrpPont.choisirUneImage` (`hotes/godot/pont/fichier.ts`), la pile des
-## couches résolue par `wfrpPont.resoudreLaPile` (`hotes/godot/pont/pileEnFond.ts`).
+## (`?<cle>=<valeur>`), le fichier choisi par `wfrpPont.choisirUnFichier` (`hotes/godot/pont/fichier.ts`), celui remis
+## au joueur téléchargé, la pile des couches résolue par `wfrpPont.resoudreLaPile` (`hotes/godot/pont/pileEnFond.ts`).
 class_name TransportDeLaPage
 extends PontDuNoyau.Transport
 
@@ -73,13 +73,17 @@ func adresse(relative: String) -> String:
 	return str(JavaScriptBridge.eval("new URL(%s, location.href).href" % JSON.stringify(relative), true))
 
 
-func choisir_une_image() -> Dictionary:
+func choisir_un_fichier(genre: Dictionary) -> Dictionary:
 	var rendue := []
 	var rappel := JavaScriptBridge.create_callback(func(args: Array) -> void: rendue.append_array(args))
-	_pont.call("choisirUneImage", rappel)
+	_pont.call("choisirUnFichier", genre.accepte, rappel)
 	while rendue.is_empty():
 		await get_tree().process_frame
 	return {} if str(rendue[0]) == "" else {octets = Marshalls.base64_to_raw(str(rendue[0])), type = str(rendue[1])}
+
+
+func enregistrer_un_fichier(genre: Dictionary, nom: String, texte: String) -> void:
+	JavaScriptBridge.download_buffer(texte.to_utf8_buffer(), nom, genre.type)
 
 
 func parametre(cle: String) -> String:

@@ -18,7 +18,7 @@
  * faite des lecteurs du noyau. Le pont (`pont.ts`) ne porte aucune règle ; il passe par le module commun des hôtes
  * (`src/hote/`). Ticket : #2928. Les tests `*.hors-store.test.ts` de ce dossier vérifient ce contrat.
  */
-import { CLIC_DU_CHAMP, chargerLaSave, estUnPointDeReprise, nommerLesRetraits, pointDeRepriseAGarder, refusDeSauvegarde, ruleOverrides, snapshotSave, partieEnCours, refusDeLancer, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, editer, intentionDEngagement, ouvrirLEdition, projetDuDepot, essaiDeLaScene, texteAEnregistrer, pagesDeCreation, vueDeLaScene, FIRE_ARCS, ficheDEntite, libelleDuBord, lireApparenceDAuteur, lireComposition, lireSurchargesDEmblemes, siegeEngines, vehiculeDuCombattant, type FireArc, lumiereDeLaScene, porteeDuCombattant, type Jeu, effetsDeLAppel, vitrineDesEffets, type Effet, type VitrineDesEffets, PREFERENCES, type PrefValue, meteoDuRegard, aretesDeLaCouche, aretesDeLaScene, type AreteDessinee, naviresDeLaScene, stationsDuNavire, type EmprisesDesCases, type NavireDeLaScene, type StationDeNavire, casesDuGroupe, masqueDuRegard, plateauDeLaScene, regardDuJeu, REGARDS, type Regard, porteeDeComposition, presetDeComposition, couronnesDuMonde, retraitDuMonde, toitsDuMonde, volumeDuMonde, echantillonDessine, famillesDEchantillons, type EchantillonDessine, type FamilleDEchantillons, type Composition, type GesteDEdition, type Scene, type SessionDEdition, type LectureAuSchema, type LigneDuJournal, type LumiereDeLaScene, type ProjectDoc, type Programme, type ResultatDeLAppel, type VehiculeDuCombattant, type EmblemeResolu, planDeLaCouche, type OeilDuPlan, musiqueDeLaPartie, type MusiqueDeLaPartie, zonesQuiDurent, type ZoneQuiDure, marquesDesEtats, type MarqueDEtat, type MeteoDuRegard, type MorceauDuMonde, type NappeDuMonde, type PlateauDeLaScene, type RetraitDuMonde, type VolumeDuMonde, cleDeLaVision, porteurEnVue, visionDuMonde, type VisionDuMonde } from '../../../src/noyau/index';
+import { CLIC_DU_CHAMP, chargerLaSave, estUnPointDeReprise, nommerLesRetraits, pointDeRepriseAGarder, refusDeSauvegarde, ruleOverrides, snapshotSave, partieEnCours, refusDeLancer, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, editer, herosDuRosterOfferts, ouvrirLEdition, projetDuDepot, essaiDeLaScene, texteAEnregistrer, pagesDeCreation, vueDeLaScene, FIRE_ARCS, ficheDEntite, libelleDuBord, lireApparenceDAuteur, lireComposition, lireSurchargesDEmblemes, siegeEngines, vehiculeDuCombattant, type FireArc, lumiereDeLaScene, porteeDuCombattant, type Jeu, effetsDeLAppel, vitrineDesEffets, type Effet, type VitrineDesEffets, PREFERENCES, type PrefValue, meteoDuRegard, aretesDeLaCouche, aretesDeLaScene, type AreteDessinee, type Combatant, naviresDeLaScene, stationsDuNavire, type EmprisesDesCases, type NavireDeLaScene, type StationDeNavire, casesDuGroupe, masqueDuRegard, plateauDeLaScene, regardDuJeu, REGARDS, type Regard, porteeDeComposition, presetDeComposition, couronnesDuMonde, retraitDuMonde, toitsDuMonde, volumeDuMonde, echantillonDessine, famillesDEchantillons, type EchantillonDessine, type FamilleDEchantillons, type Composition, type GesteDEdition, type Scene, type SessionDEdition, type LectureAuSchema, type LigneDuJournal, type LumiereDeLaScene, type ProjectDoc, type Programme, type ResultatDeLAppel, type VehiculeDuCombattant, type EmblemeResolu, planDeLaCouche, type OeilDuPlan, musiqueDeLaPartie, type MusiqueDeLaPartie, zonesQuiDurent, type ZoneQuiDure, marquesDesEtats, type MarqueDEtat, type MeteoDuRegard, type MorceauDuMonde, type NappeDuMonde, type PlateauDeLaScene, type RetraitDuMonde, type VolumeDuMonde, cleDeLaVision, porteurEnVue, visionDuMonde, type VisionDuMonde } from '../../../src/noyau/index';
 import { ErreurDeGeste, nouvelEntete, nouvellesEntrees, ouvrirAuGroupe, ouvrirLaPartie, ouvrirLeLancement, valider, type CategorieDErreur, type PartieAuGroupe } from '../../../src/hote/partie';
 import { envoyerLIntention, gesteDuVerbe, intentionDuGeste, SANS_PISTE } from '../../../src/hote/geste';
 import { casesAtteignables, horsCombat, projeter, type BornesDeLaProjection, type CaseAtteignable, type Projection } from '../../../src/hote/projection';
@@ -29,19 +29,19 @@ import { ameliorationsMontables, ameliorationsMontees, emblemeMonte, modelesDeLA
 import { composerSurLaBase, paletteDesCouleurs, type CompositionSurLaBase } from './composition';
 import { estListeDeChaines } from '../asset/attache';
 import type { TableDeClips } from '../asset/clips';
-import { type CreationOuverte, type GesteDeLaCreation, type PanneauDeLHote } from '../../../src/hote/elements';
+import { type CreationOuverte, type GesteDeLaCreation, type GesteDuRoster, type PanneauDeLHote } from '../../../src/hote/elements';
 import { apresLaCreation, boutonDeLaCreation } from '../../../src/hote/creation';
 import { boutonDeLEdition, calqueAffiche, cheminDeLaPlanche, estLIssueDUnChargement, estLIssueDUnChapitre, gesteDuFormulaire, estLIssueDUnEnregistrement, estUnGesteDuPointeur, memoireDesCalques, refusDeLaValeurDit, surcoucheDeLEdition, zonesDeLEditeur } from '../../../src/hote/editeur';
 import { allBuiltinCampaigns, campagneDuJeu, lancementDeLaCampagne, paquetDuJeu } from '../../../src/scenes/campaign';
 import { zonesDesScenarios } from '../../../src/hote/scenarios';
 import { AUTO_SLOT, MESSAGE_DU_REFUS, SAVE_SLOTS, ecrireLaSauvegarde, lireLaSauvegarde, nomDEmplacement, zonesDesSauvegardes, type AnySlot, type SaveSlot } from '../../../src/hote/sauvegardes';
-import { graineDEntropie } from '../../../src/hote/entropie';
+import { graineDEntropie, idDEntropie } from '../../../src/hote/entropie';
+import { boutonDuRoster } from '../../../src/hote/groupe';
+import { SANS_ROSTER, engagerLeHeros, fichierDuHeros, importerAuRoster, mettreAJourLeRoster, retirerDuRoster, rosterAMontrer, type RosterMontre } from '../../../src/hote/roster';
+import { garanti } from '../../../src/lib/garanti';
 import type { Stockage } from '../../../src/lib/stockage';
 import { t } from '../../../src/i18n';
 import { enOctets } from './octets';
-
-/** Le service `persisterLeHeros` du pont : il ne persiste aucun héros, l'hôte Godot n'a pas de stockage (#3041). */
-const sansRoster = (): void => {};
 
 /** La catégorie d'une erreur du pont : celle d'un geste, ou `interne` pour une levée qu'aucun contrôle n'attendait. */
 export type CategorieDuPont = CategorieDErreur | 'interne';
@@ -557,7 +557,9 @@ function manifesteServi(texte: unknown): NonNullable<SessionDEdition['manifeste'
 /** Le pont sur le stockage `stockage` de son hôte (`null` : aucun, rien ne se sauvegarde) : ses méthodes, chacune
  *  appelée par `appeler`. */
 export function creerPont(stockage: Stockage | null) {
-  let ouverte: (PartieAuGroupe & { graine: number; pas: number; lignes: number; jour: number | null; panneau: PanneauDeLHote; brouillons: number; regard: Regard }) | null = null;
+  let ouverte: (PartieAuGroupe & { graine: number; pas: number; lignes: number; jour: number | null; panneau: PanneauDeLHote; roster: RosterMontre; brouillons: number; regard: Regard }) | null = null;
+  /** Le service `persisterLeHeros` du pont : le héros déjà au roster de son stockage y est mis à jour (#3041). */
+  const persisterLeHeros = (hero: Combatant): void => mettreAJourLeRoster(stockage, hero);
   /** Le numéro du premier jeton de la prochaine partie : celui qui suit le dernier de la partie quittée (`quitter`). */
   let premierJeton = 0;
   const erreurs: ErreurGlobale[] = [];
@@ -619,7 +621,7 @@ export function creerPont(stockage: Stockage | null) {
       projection,
       corps: corpsDe(projection, etat),
       disposition: fenetre?.disposition ?? null,
-      zones: zonesDeLEcran(etat, projection, fenetre, o.panneau),
+      zones: zonesDeLEcran(etat, projection, fenetre, o.panneau, o.roster),
       cases: casesAtteignables(etat),
       plateau: etat.scene ? plateauDeLaScene(etat.scene, casesDuGroupe(etat), regardDuJeu(o.regard, !!etat.battle)) : null,
       lumiere: etat.scene ? lumiereDeLaScene({ ...etat, scene: etat.scene }, regardDuJeu(o.regard, !!etat.battle)) : null,
@@ -659,9 +661,10 @@ export function creerPont(stockage: Stockage | null) {
    * et ce bouton refusé se refuse avec sa raison : `{ geste: 'page' }` va à une page (`pagesDeCreation`), la suivante
    * tant que la page ouverte ne se quitte pas (`refusDeLaPage`) ; un geste du brouillon (`GesteDuBrouillon`, surface du
    * noyau) le change, chaque tirage aux dés de la graine du brouillon, son résultat dit seulement après le geste ;
-   * `{ geste: 'engager' }`, à la dernière page, envoie l'intention qui engage le brouillon au groupe
-   * (`intentionDEngagement`), où le noyau bâtit le héros et crédite sa Richesse de départ, puis ferme la création. Seul
-   * l'engagement touche la partie.
+   * `{ geste: 'engager' }`, à la dernière page, écrit l'entrée du héros au roster de l'hôte, sous un id de son
+   * entropie (`engagerLeHeros`, `src/hote/roster.ts`), envoie l'intention qui engage le brouillon au groupe sous cet
+   * id, où le noyau bâtit le héros et crédite sa Richesse de départ, puis ferme la création. Seul l'engagement touche
+   * la partie.
    */
   /** Ouvre la création sur un brouillon neuf, à sa première page, à la place du panneau ouvert. */
   const ouvrirLaCreation = (o: NonNullable<typeof ouverte>): void => {
@@ -708,11 +711,24 @@ export function creerPont(stockage: Stockage | null) {
     return resultat;
   };
 
+  /**
+   * @contrat Méthodes
+   * Le roster de l'hôte, les héros que le joueur a créés, vit dans le stockage du pont et traverse les parties. Tant
+   * que le groupe de la partie se compose, le pont le montre (zones `groupe.roster` et `groupe.avis`), relu du
+   * stockage à l'ouverture de la partie et après chaque geste qui l'écrit ; ce que son chargement retire se dit
+   * jusqu'au lancement. En partie, le héros du roster que le noyau persiste (`persisterLeHeros`) y est mis à jour.
+   */
+  /** Le roster que `o` montre, relu du stockage tant que son groupe se compose ; aucun, la partie en cours. */
+  const relireLeRoster = (o: NonNullable<typeof ouverte>): NonNullable<typeof ouverte> => {
+    o.roster = partieEnCours(o.partie.etat()) ? SANS_ROSTER : rosterAMontrer(stockage, o.roster.avis);
+    return o;
+  };
+
   /** La graine des dés d'une partie du jeu : celle de l'entrée `e`, sinon tirée de l'entropie de l'hôte. */
   const graineDUnePartieDuJeu = (e: Record<string, unknown>): number => (e.graine as number | undefined) ?? graineDEntropie();
   /** La partie `o` devenue celle du pont, à la graine `graine` : son pas, son journal, son panneau et son regard à
    *  leur départ. */
-  const tenir = (o: PartieAuGroupe, graine: number): NonNullable<typeof ouverte> => (ouverte = { ...o, graine, pas: 0, lignes: 0, jour: null, panneau: null, brouillons: 0, regard: 'tactique' });
+  const tenir = (o: PartieAuGroupe, graine: number): NonNullable<typeof ouverte> => relireLeRoster((ouverte = { ...o, graine, pas: 0, lignes: 0, jour: null, panneau: null, roster: SANS_ROSTER, brouillons: 0, regard: 'tactique' }));
 
   const methodes: Record<string, (json?: string | null) => object> = {
     /**
@@ -728,26 +744,27 @@ export function creerPont(stockage: Stockage | null) {
       if ('essai' in e) {
         valider(e.essai === true && essai, 'demarrer : essai, aucune scène mise à l’essai par editer');
         const entrees = nouvellesEntrees({ graine: e.graine as number | undefined });
-        const o = ouvrirLeLancement(entrees, essai!, sansRoster, premierJeton);
+        const o = ouvrirLeLancement(entrees, essai!, persisterLeHeros, premierJeton);
         return suite(tenir(o, entrees.graine), o.lancement);
       }
       valider(typeof e.scenario === 'string', 'demarrer : scenario, l’id d’un scénario de test');
       const entete = nouvelEntete(e.scenario as string, { graine: e.graine as number | undefined });
-      const o = ouvrirLaPartie(entete, sansRoster, premierJeton);
+      const o = ouvrirLaPartie(entete, persisterLeHeros, premierJeton);
       return suite(tenir(o, entete.graine), o.lancement);
     },
     /**
      * `{ graine? }` : la graine des dés (entier ; sans elle, tirée de l'entropie de l'hôte, `graineDEntropie`)
      *
      * @returns une `Suite` sans jeton ni journal : la partie ouverte au groupe, sans scène ni lancement. Son groupe se
-     * compose par les verbes du noyau que portent les zones `groupe.pretires` et `groupe.heros` (`jouer`), et par la
-     * création d'un héros (`creation`) ; `lancer` la lance. Refusé quand une partie est ouverte.
+     * compose par les verbes du noyau que portent les zones `groupe.pretires` et `groupe.heros` (`jouer`), par le
+     * roster de l'hôte (`roster`) et par la création d'un héros (`creation`) ; `lancer` la lance. Refusé quand une
+     * partie est ouverte.
      */
     ouvrir(json) {
       const e = entreeDe('ouvrir', json, ['graine']);
       valider(!ouverte, 'ouvrir : une partie est ouverte ; quitter d’abord');
       const entrees = nouvellesEntrees({ graine: graineDUnePartieDuJeu(e) });
-      return sansJeton(tenir(ouvrirAuGroupe(entrees, sansRoster, premierJeton), entrees.graine));
+      return sansJeton(tenir(ouvrirAuGroupe(entrees, persisterLeHeros, premierJeton), entrees.graine));
     },
     /**
      * `{ lancer }` : l'id d'une campagne du jeu, le `jeu` d'un bouton de la zone `groupe.campagnes`
@@ -838,7 +855,7 @@ export function creerPont(stockage: Stockage | null) {
       valider(save, `charger : ${nomDEmplacement(slot!)}, ${t('saveload.error.load')}`);
       const { etat, regles, retraits } = chargerLaSave(save!);
       const entrees = nouvellesEntrees({ graine: graineDUnePartieDuJeu(e), regles });
-      const o = tenir(ouvrirAuGroupe(entrees, sansRoster, premierJeton, etat), entrees.graine);
+      const o = tenir(ouvrirAuGroupe(entrees, persisterLeHeros, premierJeton, etat), entrees.graine);
       const lignes: ResultatDeLAppel['journal'] = retraits ? [{ de: 'journal', texte: t('saveload.elague', { liste: nommerLesRetraits(retraits) }), heure: etat.gameTime }] : [];
       return suite(o, { issue: 'appliquee', evenements: [], journal: lignes });
     },
@@ -1044,7 +1061,7 @@ export function creerPont(stockage: Stockage | null) {
      * porte un bouton de l'écran, ou `null` pour la fermer
      *
      * @returns une `Suite` sans jeton ni journal, la création posée, la partie n'étant pas touchée ; à l'engagement, la
-     * `Suite` de l'intention qui engage le brouillon au groupe, où le noyau bâtit le héros (`intentionDEngagement`)
+     * `Suite` de l'intention qui engage le brouillon au groupe, où le noyau bâtit le héros, son entrée écrite au roster
      */
     creation(json) {
       const o = demarree();
@@ -1056,12 +1073,54 @@ export function creerPont(stockage: Stockage | null) {
       if (g === null) fermerLePanneau(o, 'creation');
       else if (g.geste === 'ouvrir') ouvrirLaCreation(o);
       else if (g.geste === 'engager') {
-        const resultat = envoyerLIntention(o.partie, intentionDEngagement(creationOuverte(o)!.brouillon));
+        const engage = engagerLeHeros(stockage, o.partie.etat(), creationOuverte(o)!.brouillon, idDEntropie);
+        if ('refus' in engage) throw new ErreurDeGeste('regle', `creation : ${engage.refus}`);
+        const resultat = envoyerLIntention(o.partie, engage.intention);
         fermerLePanneau(o, 'creation');
         o.pas++;
-        return suite(o, resultat);
+        return suite(relireLeRoster(o), resultat);
       } else o.panneau = { creation: apresLaCreation(creationOuverte(o)!, g) };
       return sansJeton(o);
+    },
+    /**
+     * `{ roster }` : un geste sur le roster de l'hôte (`GesteDuRoster`, `src/hote/elements.ts`), celui que porte un
+     * bouton des zones `groupe.roster` et `groupe.import`, ou `{ importe }`, le texte du fichier que le joueur a choisi
+     * (`null` s'il renonce), tant que l'écran offre l'import
+     *
+     * @returns une `Suite` : `{ recruter }`, celle de l'intention qui recrute au groupe le héros de l'entrée, que le
+     * noyau rebâtit de son brouillon sous l'id que le roster garde ; les autres, sans jeton ni journal, la partie
+     * n'étant pas touchée. `{ retirer }` : l'entrée retirée du roster. `{ exporter }` : la suite porte
+     * `fichier: { nom, texte }`, le fichier d'export du héros, que l'hôte remet au joueur. `{ importer }` : la suite
+     * porte `choix: true`, l'hôte fait choisir un fichier au joueur et en rend le texte par `{ importe }`.
+     * `{ importe }` : le héros du fichier entre au roster, en place de l'entrée du même héros ; un fichier refusé, ou
+     * ce que le jeu ne connaît plus et retire du héros, se dit en `groupe.avis`. Un bouton refusé se refuse avec sa
+     * raison.
+     */
+    roster(json) {
+      const o = demarree();
+      const e = entreeDe('roster', json, ['roster']);
+      const zones = vueDe(o).zones;
+      const g = e.roster as GesteDuRoster;
+      if (estObjet(g) && 'importe' in g) {
+        valider((g.importe === null || typeof g.importe === 'string') && Object.keys(g).length === 1 && boutonDuRoster(zones, { importer: true }), 'roster : importe, le texte du fichier choisi ou null, tant que l’écran offre l’import');
+        if (g.importe === null) return sansJeton(o);
+        const importe = importerAuRoster(stockage, g.importe);
+        o.roster = rosterAMontrer(stockage, 'refus' in importe ? importe.refus : importe.avis);
+        return sansJeton(o);
+      }
+      const b = boutonDuRoster(zones, g);
+      valider(b, 'roster : roster, un geste du roster que l’écran offre (`{ roster }` d’un bouton des zones groupe.roster et groupe.import)');
+      if (b!.refus) throw new ErreurDeGeste('regle', `roster : ${b!.refus}`);
+      if ('importer' in g) return { ...sansJeton(o), choix: true };
+      if ('exporter' in g) return { ...sansJeton(o), fichier: garanti(fichierDuHeros(stockage, g.exporter), g.exporter, 'héros du roster') };
+      if ('retirer' in g) {
+        retirerDuRoster(stockage, g.retirer);
+        return sansJeton(relireLeRoster(o));
+      }
+      const offert = garanti(herosDuRosterOfferts(o.partie.etat(), o.roster.heros).find((h) => h.id === g.recruter), g.recruter, 'héros du roster');
+      const resultat = envoyerLIntention(o.partie, offert.recrutement);
+      o.pas++;
+      return suite(o, resultat);
     },
     /**
      * `{ jeton }` : le numéro d'un jeton programmé
@@ -1339,11 +1398,11 @@ export function creerPont(stockage: Stockage | null) {
   /**
    * @contrat Transport
    * - `wfrpPont.appeler(methode, entree?)` est la porte des outils (tests, vues figées, `recette.mjs`) ; Godot
-   *   appelle `appelerEnOctets`, hors du choix d'une image sur le disque de l'auteur
-   *   (`wfrpPont.choisirUneImage(rendre)`, section « Éditeur »), qui lit le document de la page et `FileReader` à son
-   *   appel seulement, hors de l'exécution de la construction. `methode` est le nom d'une méthode ; `entree` est une
-   *   chaîne JSON qui encode un objet, ou rien (absente ou `null`) pour une méthode sans entrée. Elle rend toujours
-   *   une chaîne JSON.
+   *   appelle `appelerEnOctets`, hors du choix d'un fichier sur le disque du joueur
+   *   (`wfrpPont.choisirUnFichier(accepte, rendre)` : la planche d'un calque, section « Éditeur », le fichier d'export
+   *   d'un héros, méthode `roster`), qui lit le document de la page et `FileReader` à son appel seulement, hors de
+   *   l'exécution de la construction. `methode` est le nom d'une méthode ; `entree` est une chaîne JSON qui encode un
+   *   objet, ou rien (absente ou `null`) pour une méthode sans entrée. Elle rend toujours une chaîne JSON.
    * - La réponse vaut `{ "ok": true, … }` ou `{ "ok": false, "erreur": { "categorie", "message" } }`. `appeler` ne lève
    *   jamais.
    * - Une clé de l'entrée que la méthode ne lit pas se refuse.
