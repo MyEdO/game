@@ -5,7 +5,7 @@ import type { Combatant, Weapon } from './types';
 import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 // Portée 20 m → Bout Portant si dist×2 ≤ 20/10 = 2, donc à ≤ 1 tuile (combat.ts rangeBandName).
-const bow = (): Weapon => ({ name: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 0 }, range: 20, qualities: [] } as unknown as Weapon);
+const bow = (): Weapon => ({ name: 'Arc', type: 'distance', damage: { plusBF: false, flat: 0 }, range: 20, qualities: [] } as unknown as Weapon);
 const shield = (indice: number): Weapon =>
   ({ name: 'Bouclier', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [{ id: 'protectrice', value: indice }] } as unknown as Weapon);
 
@@ -76,7 +76,7 @@ describe('resolveRanged — tir DÉFENDU = Test OPPOSÉ (cœur combineOpposed pa
     (blessuresSurLeProfil({ id, name: id, kind, characteristics: chars, conditions: [], engagedWith: [], skills: [], talents: [],
        weapons: [], advantage: 0, size: 'moyenne', wounds: blessuresDeBase(20),
        armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, ...over }) as unknown as Combatant);
-  const bw: Weapon = { name: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 4 }, range: 60, qualities: [] } as unknown as Weapon;
+  const bw: Weapon = { name: 'Arc', type: 'distance', damage: { plusBF: false, flat: 4 }, range: 60, qualities: [] } as unknown as Weapon;
 
   it('sans défense → résolution NON opposée (aucun defenderDetail)', () => {
     const r = resolveRanged(base('a', 'hero'), base('d', 'enemy'), bw, makeRNG(3), 10);

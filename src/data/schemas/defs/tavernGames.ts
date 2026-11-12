@@ -34,7 +34,7 @@ const doc = document(
       maison: { label: 'Arbitrage maison' },
     }).optional(),
     /** Absent quand le jeu ne se résout pas au Test : l'Al-zahr est un jeu de MISE (`pot`). */
-    mode: z.enum(['opposed', 'extended']).optional(),
+    mode: z.enum(['oppose', 'etendu']).optional(),
     target: z.number().optional(),
     drCap: z.number().optional(),
     /** Id du départage d'égalité résolu par le socle de séquence (`units-lowest` Dominos l.105,

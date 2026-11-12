@@ -56,7 +56,7 @@ export interface CarrierInventoryProps {
 
 /** Groupes d'affichage du Sac (E3, langage du registre État) — chaque objet dans son PREMIER groupe. */
 const GROUPS: { label: string; pred: (it: ItemInstance) => boolean }[] = [
-  { label: 'Armes', pred: (it) => it.kind === 'melee' || it.kind === 'ranged' },
+  { label: 'Armes', pred: (it) => it.kind === 'melee' || it.kind === 'distance' },
   { label: 'Armures & protections', pred: (it) => it.kind === 'armor' || isCapeItem(it) },
   { label: 'Consommables', pred: isConsumable },
   { label: 'Divers', pred: () => true },
@@ -89,7 +89,7 @@ export function CarrierInventory({
     const quals: ReactNode = it.identified === false
       ? (it.suspectedQualities?.length ? `soupçonné : ${it.suspectedQualities.join(', ')}` : null)
       : (resolvedQuals.length ? <QualityChips qualities={resolvedQuals} /> : null);
-    if (it.kind === 'melee' || it.kind === 'ranged') {
+    if (it.kind === 'melee' || it.kind === 'distance') {
       const mech = weaponStatParts(it, force).join(' · ');
       return <>{mech}{mech && quals ? ' · ' : ''}{quals}</>;
     }
@@ -104,7 +104,7 @@ export function CarrierInventory({
     const isProsthesis = it.subType === 'protheses'; // prothèse (LDB 73, Groupe id) : se PORTE pour annuler un malus d'amputation
     const isCape = isCapeItem(it); // cape/manteau : emplacement Cape (cosmétique, onglet Combat)
     const gestes = gestesDeLObjet({ battle, party, possessions, gameTime, scene }, carrierId, it.uid);
-    const isWeaponItem = it.kind === 'melee' || it.kind === 'ranged';
+    const isWeaponItem = it.kind === 'melee' || it.kind === 'distance';
     const handLabel = isWeaponItem ? (weaponHandLabel?.(it) ?? null) : null;
     // Surbrillance « équipé » : arme tenue dans le set ACTIF (défaut `it.equipped`) ; sinon armure portée.
     const highlighted = isWeaponItem ? (weaponHighlighted ? weaponHighlighted(it) : it.equipped) : it.equipped;

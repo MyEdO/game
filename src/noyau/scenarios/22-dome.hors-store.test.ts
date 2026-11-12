@@ -26,7 +26,7 @@ const tir = (): AttackResult => ({
   critical: false, advantageTo: null, defenderDefeated: false, log: '',
 });
 
-const arc = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 7 }, range: 30, qualities: [] } as unknown as Weapon;
+const arc = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 7 }, range: 30, qualities: [] } as unknown as Weapon;
 const epee = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0 }, qualities: [] } as unknown as Weapon;
 
 /** Ouvre le combat du scénario et POSE le Dôme par les ops du sort CURÉ (jamais une aura à la main). */
@@ -62,7 +62,7 @@ describe('Dôme — la sauvegarde qu’une zone OCTROIE (LDB 47 l.410)', () => {
 
   it('le TIREUR agit d’abord en TIRANT (sinon la condition « de l’extérieur » ne se produit jamais)', () => {
     const { archer } = startDome();
-    expect(archer.weapons?.some((w) => w.type === 'ranged'), 'l’arc vient de la DONNÉE du scénario').toBe(true);
+    expect(archer.weapons?.some((w) => w.type === 'distance'), 'l’arc vient de la DONNÉE du scénario').toBe(true);
     const b = banc.getState().battle!;
     const avant = b.log.length;
     banc.setState({ battle: { ...b, turn: b.order.indexOf(archer.id), acted: false, action: null, movementUsed: 0 } });

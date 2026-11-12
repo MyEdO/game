@@ -1297,7 +1297,7 @@
     "type": "trappings",
     "label": "Arbalète",
     "hands": 2,
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "arbalete"
     },
@@ -1338,7 +1338,7 @@
     "id": "arbalete-de-poing",
     "type": "trappings",
     "label": "Arbalète de poing",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "arbalete"
     },
@@ -1379,7 +1379,7 @@
     "type": "trappings",
     "label": "Arbalète lourde",
     "hands": 2,
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "arbalete"
     },
@@ -1424,7 +1424,7 @@
     "type": "trappings",
     "label": "Arc",
     "hands": 2,
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "arc"
     },
@@ -1461,7 +1461,7 @@
     "type": "trappings",
     "label": "Arc court",
     "hands": 2,
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "arc"
     },
@@ -1498,7 +1498,7 @@
     "type": "trappings",
     "label": "Arc elfique",
     "hands": 2,
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "arc"
     },
@@ -1542,7 +1542,7 @@
     "type": "trappings",
     "label": "Arc long",
     "hands": 2,
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "arc"
     },
@@ -1582,7 +1582,7 @@
     "id": "fouet",
     "type": "trappings",
     "label": "Fouet",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "entraves"
     },
@@ -1622,7 +1622,7 @@
     "id": "lasso",
     "type": "trappings",
     "label": "Lasso",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "entraves"
     },
@@ -1661,7 +1661,7 @@
     "id": "filet",
     "type": "trappings",
     "label": "Filet",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "entraves"
     },
@@ -1697,7 +1697,7 @@
     "id": "bombe",
     "type": "trappings",
     "label": "Bombe",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "explosifs"
     },
@@ -1745,7 +1745,7 @@
     "id": "bombe-incendiaire",
     "type": "trappings",
     "label": "Bombe incendiaire",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "explosifs"
     },
@@ -1790,7 +1790,7 @@
     "id": "fronde",
     "type": "trappings",
     "label": "Fronde",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "fronde"
     },
@@ -1826,7 +1826,7 @@
     "type": "trappings",
     "label": "Fustibale",
     "hands": 2,
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "fronde"
     },
@@ -1861,7 +1861,7 @@
     "id": "bolas",
     "type": "trappings",
     "label": "Bolas",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "lancer"
     },
@@ -1903,7 +1903,7 @@
     "id": "couteau-de-lancer",
     "type": "trappings",
     "label": "Couteau de lancer",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "lancer"
     },
@@ -1940,7 +1940,7 @@
     "id": "flechette",
     "type": "trappings",
     "label": "Fléchette",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "lancer"
     },
@@ -1981,7 +1981,7 @@
     "id": "hache-de-lancer",
     "type": "trappings",
     "label": "Hache de lancer",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "lancer"
     },
@@ -2022,7 +2022,7 @@
     "id": "javelot",
     "type": "trappings",
     "label": "Javelot",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "lancer"
     },
@@ -2064,7 +2064,7 @@
     "id": "rocher",
     "type": "trappings",
     "label": "Rocher",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "lancer"
     },
@@ -2096,7 +2096,7 @@
     "type": "trappings",
     "label": "Arquebus à répétition",
     "hands": 2,
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "ingenierie"
     },
@@ -2149,7 +2149,7 @@
     "id": "pistolet-a-repetition",
     "type": "trappings",
     "label": "Pistolet à répétition",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "ingenierie"
     },
@@ -2206,7 +2206,7 @@
     "type": "trappings",
     "label": "Arquebuse",
     "hands": 2,
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "poudre-noire"
     },
@@ -2256,7 +2256,7 @@
     "type": "trappings",
     "label": "Long fusil d'Hochland",
     "hands": 2,
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "poudre-noire"
     },
@@ -2308,7 +2308,7 @@
     "id": "pistolet",
     "type": "trappings",
     "label": "Pistolet",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "poudre-noire"
     },
@@ -2358,7 +2358,7 @@
     "type": "trappings",
     "label": "Tromblon",
     "hands": 2,
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "poudre-noire"
     },
@@ -9143,7 +9143,7 @@
     "id": "baliste",
     "type": "trappings",
     "label": "Baliste",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "armes-de-siege"
     },
@@ -9196,7 +9196,7 @@
     "id": "catapulte-petite",
     "type": "trappings",
     "label": "Catapulte (petite)",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "armes-de-siege"
     },
@@ -9251,7 +9251,7 @@
     "id": "catapulte-moyenne",
     "type": "trappings",
     "label": "Catapulte (moyenne)",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "armes-de-siege"
     },
@@ -9306,7 +9306,7 @@
     "id": "catapulte-grande",
     "type": "trappings",
     "label": "Catapulte (grande)",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "armes-de-siege"
     },
@@ -9361,7 +9361,7 @@
     "id": "batterie-tonnerre-de-feu",
     "type": "trappings",
     "label": "Batterie tonnerre de feu",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "armes-de-siege"
     },
@@ -9427,7 +9427,7 @@
     "id": "canon-a-repetition",
     "type": "trappings",
     "label": "Canon à répétition",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "armes-de-siege"
     },
@@ -9475,7 +9475,7 @@
     "id": "canon-a-repetition-feu-d-enfer",
     "type": "trappings",
     "label": "Canon à répétition feu d'enfer",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "armes-de-siege"
     },
@@ -9527,7 +9527,7 @@
     "id": "canon-petit",
     "type": "trappings",
     "label": "Canon (petit)",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "armes-de-siege"
     },
@@ -9583,7 +9583,7 @@
     "id": "canon-moyen",
     "type": "trappings",
     "label": "Canon (moyen)",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "armes-de-siege"
     },
@@ -9639,7 +9639,7 @@
     "id": "canon-grand",
     "type": "trappings",
     "label": "Canon (grand)",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "armes-de-siege"
     },
@@ -9695,7 +9695,7 @@
     "id": "mortier",
     "type": "trappings",
     "label": "Mortier",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "armes-de-siege"
     },
@@ -9745,7 +9745,7 @@
     "id": "pierrier",
     "type": "trappings",
     "label": "Pierrier",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "armes-de-siege"
     },
@@ -10478,7 +10478,7 @@
     "id": "baton-pointu",
     "type": "trappings",
     "label": "Bâton pointu",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "munitions"
     },
@@ -10521,7 +10521,7 @@
     "id": "fleche-barbelee",
     "type": "trappings",
     "label": "Flèche barbelée",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "munitions"
     },
@@ -10556,7 +10556,7 @@
     "id": "fleche-bodkin",
     "type": "trappings",
     "label": "Flèche bodkin",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "munitions"
     },
@@ -10590,7 +10590,7 @@
     "id": "bille-de-plomb",
     "type": "trappings",
     "label": "Bille de plomb",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "munitions"
     },
@@ -10626,7 +10626,7 @@
     "id": "caillou",
     "type": "trappings",
     "label": "Caillou",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "munitions"
     },
@@ -10666,7 +10666,7 @@
     "type": "trappings",
     "label": "Arquebuse à double canon",
     "hands": 2,
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "poudre-noire"
     },
@@ -10715,7 +10715,7 @@
     "type": "trappings",
     "label": "Arquebuse à mèche",
     "hands": 2,
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "poudre-noire"
     },
@@ -10760,7 +10760,7 @@
     "type": "trappings",
     "label": "Hache-arquebuse",
     "hands": 2,
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "poudre-noire"
     },
@@ -10808,7 +10808,7 @@
     "type": "trappings",
     "label": "Hallebarde-arquebuse",
     "hands": 2,
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "poudre-noire"
     },
@@ -10856,7 +10856,7 @@
     "type": "trappings",
     "label": "Haquebute",
     "hands": 2,
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "poudre-noire"
     },
@@ -10903,7 +10903,7 @@
     "id": "pistolet-patte-de-griffon",
     "type": "trappings",
     "label": "Pistolet patte de griffon",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "poudre-noire"
     },
@@ -10952,7 +10952,7 @@
     "type": "trappings",
     "label": "Tromblon à mèche",
     "hands": 2,
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "poudre-noire"
     },
@@ -11000,7 +11000,7 @@
     "id": "canne-pistolet",
     "type": "trappings",
     "label": "Canne-pistolet",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "poudre-noire"
     },
@@ -11048,7 +11048,7 @@
     "type": "trappings",
     "label": "Mortier à main",
     "hands": 2,
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "poudre-noire"
     },
@@ -11095,7 +11095,7 @@
     "id": "poivriere",
     "type": "trappings",
     "label": "Poivrière",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "poudre-noire"
     },
@@ -11146,7 +11146,7 @@
     "id": "balle-de-gros-calibre-et-poudre",
     "type": "trappings",
     "label": "Balle de gros calibre et poudre",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "munitions"
     },
@@ -11185,7 +11185,7 @@
     "id": "bombe-explosive",
     "type": "trappings",
     "label": "Bombe explosive",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "munitions"
     },
@@ -11225,7 +11225,7 @@
     "id": "cartouche-en-papier",
     "type": "trappings",
     "label": "Cartouche en papier",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "munitions"
     },
@@ -11261,7 +11261,7 @@
     "id": "cartouche-et-poudre-de-precision",
     "type": "trappings",
     "label": "Cartouche et poudre de précision",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "munitions"
     },
@@ -11300,7 +11300,7 @@
     "id": "ferraille-et-poudre",
     "type": "trappings",
     "label": "Ferraille et poudre",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "munitions"
     },
@@ -11339,7 +11339,7 @@
     "id": "grappin-munition",
     "type": "trappings",
     "label": "Grappin (munition)",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "munitions"
     },
@@ -11378,7 +11378,7 @@
     "id": "poudre-impregnee-d-aqshy",
     "type": "trappings",
     "label": "Poudre imprégnée d'Aqshy",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "munitions"
     },
@@ -11420,7 +11420,7 @@
     "id": "jezail-a-malepierre",
     "type": "trappings",
     "label": "Jezaïl à malepierre",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "poudre-noire"
     },
@@ -11470,7 +11470,7 @@
     "type": "trappings",
     "label": "Canon ratling",
     "hands": 2,
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "ingenierie"
     },
@@ -11526,7 +11526,7 @@
     "id": "pistolet-a-malepierre",
     "type": "trappings",
     "label": "Pistolet à malepierre",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "poudre-noire"
     },
@@ -12994,7 +12994,7 @@
     "type": "trappings",
     "label": "Lance-harpon",
     "hands": 2,
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "entraves"
     },
@@ -13043,7 +13043,7 @@
     "id": "piege-a-chaines",
     "type": "trappings",
     "label": "Piège à chaînes",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "entraves"
     },
@@ -13086,7 +13086,7 @@
     "id": "grande-lance",
     "type": "trappings",
     "label": "Grande lance",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "lancer"
     },
@@ -13131,7 +13131,7 @@
     "type": "trappings",
     "label": "Canon crache-plomb",
     "hands": 2,
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "poudre-noire"
     },
@@ -13176,7 +13176,7 @@
     "id": "pistolet-ogre",
     "type": "trappings",
     "label": "Pistolet ogre",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "poudre-noire"
     },
@@ -13657,7 +13657,7 @@
     "id": "baliste-ade2",
     "type": "trappings",
     "label": "Baliste",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "armes-de-siege"
     },
@@ -13771,7 +13771,7 @@
     "id": "batterie-tonnerre-de-feu-ade2",
     "type": "trappings",
     "label": "Batterie tonnerre de feu",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "armes-de-siege"
     },
@@ -13832,7 +13832,7 @@
     "id": "canon-a-repetition-feu-d-enfer-ade2",
     "type": "trappings",
     "label": "Canon à répétition feu d'enfer",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "armes-de-siege"
     },
@@ -13897,7 +13897,7 @@
     "id": "canon-ade2",
     "type": "trappings",
     "label": "Canon",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "armes-de-siege"
     },
@@ -13965,7 +13965,7 @@
     "id": "canon-a-flammes-nain-ade2",
     "type": "trappings",
     "label": "Canon à flammes nain",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "armes-de-siege"
     },
@@ -14051,7 +14051,7 @@
     "id": "mangonneau-ade2",
     "type": "trappings",
     "label": "Mangonneau",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "armes-de-siege"
     },
@@ -14110,7 +14110,7 @@
     "id": "onagre-ade2",
     "type": "trappings",
     "label": "Onagre",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "armes-de-siege"
     },
@@ -14169,7 +14169,7 @@
     "id": "trebuchet-ade2",
     "type": "trappings",
     "label": "Trébuchet",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "armes-de-siege"
     },
@@ -14228,7 +14228,7 @@
     "id": "mortier-ade2",
     "type": "trappings",
     "label": "Mortier",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "armes-de-siege"
     },
@@ -15344,7 +15344,7 @@
     "type": "trappings",
     "label": "Arc d'empathie sanglante",
     "hands": 2,
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "arc"
     },
@@ -15866,7 +15866,7 @@
     "id": "pistolet-de-solitude-involontaire",
     "type": "trappings",
     "label": "Pistolet de solitude involontaire",
-    "categorie": "ranged",
+    "categorie": "distance",
     "subType": {
       "id": "poudre-noire"
     },

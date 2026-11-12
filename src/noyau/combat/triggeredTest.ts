@@ -632,7 +632,7 @@ export function resolveFlowChoice(ctx: ExecCtx, node: Extract<Flow, { kind: 'cho
       defaultChoice: 'non',
       meta: {
         choiceYes: node.oui, choiceNo: node.non ?? EMPTY_FLOW, after,
-        ...(node.coutEnAvantage != null ? { choiceCost: node.coutEnAvantage } : {}),
+        ...(node.coutEnAvantage != null ? { coutEnAvantage: node.coutEnAvantage } : {}),
         ...(branchTargetId ? { choiceTargetId: branchTargetId } : {}),
         // CONTEXTE d'ops PORTÉ (sl, horloge, libellé, sort et ENTITÉ PORTEUSE) : la branche le retrouve
         // à la reprise — sans lui, un Test ouvert par le OUI perdrait son enjeu (#1262 V2 L6d) et un effet
@@ -908,7 +908,7 @@ export const TABLES = {
     choixDeclenche: (get, set, step, hero) => {
       if (!hero) return;
       const yes = step.chosen === 'oui';
-      const cost = typeof step.meta?.choiceCost === 'number' ? step.meta.choiceCost : undefined;
+      const cost = typeof step.meta?.coutEnAvantage === 'number' ? step.meta.coutEnAvantage : undefined;
       const yesFlow = step.meta?.choiceYes;
       const noFlow = step.meta?.choiceNo;
       const fa = step.meta?.freeAttack;

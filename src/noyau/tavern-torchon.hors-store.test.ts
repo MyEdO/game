@@ -286,7 +286,7 @@ describe('famille (10) — un 2ᵉ jeu à lanceurs est une ENTRÉE JSON, récit 
     label: 'Sonde à lanceurs',
     desc: 'Entrée de SONDE (jamais livrée au catalogue) : elle mesure qu’un 2ᵉ jeu à lanceurs se déclare.',
     skill: { id: 'projectiles', spec: 'lancer' },
-    mode: 'opposed' as const,
+    mode: 'oppose' as const,
     team: { size: 2 },
     dancers: 3,
     roundShape: 'thrower' as const,

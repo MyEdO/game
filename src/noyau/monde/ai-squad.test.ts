@@ -17,10 +17,10 @@ import { ligneDeRegle } from '../../engine/reglesChiffrees';
 import { blessuresDeBase, blessuresSurLeProfil } from '../../engine/combattantDeTest.testkit';
 
 const MELEE: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
-const RANGED: Weapon = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [] };
+const RANGED: Weapon = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [] };
 // Arme à COURTE portée (6 m) : les bandes de portée varient sur quelques cases → différentiel de
 // danger exploitable entre deux cases d'approche voisines (≠ Arc range 60 où tout est « Bout portant »).
-const SHORTBOW: Weapon = { label: 'Fronde', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 6, qualities: [] };
+const SHORTBOW: Weapon = { label: 'Fronde', type: 'distance', damage: { plusBF: false, flat: 9 }, range: 6, qualities: [] };
 
 const CHARS = { 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 35, endurance: 35, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 40, sociabilite: 30 };
 const ARMOUR = { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 };

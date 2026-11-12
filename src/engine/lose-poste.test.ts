@@ -24,7 +24,7 @@ describe('op removeShipPoste — Canon perdu (MDG 13 l.765)', () => {
   const setup = () => {
     const poste: ShipPoste = { item: { uid: 'p1', name: 'Pierrier' } as never, side: 'tribord', crewIds: ['chef'] };
     const hull = combattantDeTest({ id: 'hull', label: 'Cogue', postes: [poste] });
-    const chef = { id: 'chef', name: 'Canonnier', mannedPoste: poste, weapons: [{ uid: 'p1', name: 'Pierrier', type: 'ranged' }] } as unknown as Combatant;
+    const chef = { id: 'chef', name: 'Canonnier', mannedPoste: poste, weapons: [{ uid: 'p1', name: 'Pierrier', type: 'distance' }] } as unknown as Combatant;
     return { hull, chef, poste };
   };
   const rng0 = deFixe(0); // tire le poste d'index 0

@@ -18,7 +18,7 @@ const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, w
   (blessuresSurLeProfil({ id, name: id, kind, characteristics: chars, conditions: [], engagedWith: [], skills: [], talents: [],
      weapons, advantage: 0, size: 'moyenne', pos, wounds: blessuresDeBase(18),
      armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4 }) as unknown as Combatant);
-const bow: Weapon = { name: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 4 }, range: 60, qualities: [] } as unknown as Weapon;
+const bow: Weapon = { name: 'Arc', type: 'distance', damage: { plusBF: false, flat: 4 }, range: 60, qualities: [] } as unknown as Weapon;
 const sword: Weapon = { name: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, uid: 'sw', qualities: [] } as unknown as Weapon;
 const shield: Weapon = { name: 'Bouclier', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, uid: 'sh', qualities: [{ id: 'protectrice', value: 2 }] } as unknown as Weapon;
 
@@ -40,7 +40,7 @@ describe('maybeOpenDefense — tir sur un héros (T3)', () => {
     const { enemy, hero } = setup([sword, shield], { x: 10, y: 0 }); // 10 tuiles : pas bout portant
     expect(maybeOpenDefense(banc.getState, banc.setState, enemy, hero)).toBe(true);
     const pd = banc.getState().pendingDefense!;
-    expect(pd.weapon.type).toBe('ranged');
+    expect(pd.weapon.type).toBe('distance');
     expect(pd.modes).toEqual(['parade']);
     expect(pd.mode).toBe('parade');
     expect(pd.parryWeaponUid).toBe('sh');

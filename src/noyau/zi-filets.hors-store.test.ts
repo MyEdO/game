@@ -39,7 +39,7 @@ describe('Filet (Zoo Impérial p.29) — Empêtrement à la touche + libération
   it('l’arme JOUABLE du gobelin de la nuit (trait facultatif "a-distance" arg:filet) porte la qualité "filet", +0 (6)', () => {
     const w = weaponFromTrait({ id: 'a-distance', value: 0, arg: 'filet', range: 6 });
     expect(w).not.toBeNull();
-    expect(w!.type).toBe('ranged');
+    expect(w!.type).toBe('distance');
     expect(w!.range).toBe(6);
     expect(w!.damage).toEqual({ plusBF: false, flat: 0 });
     expect(w!.qualities.map((q) => q.id)).toEqual(['filet']);
@@ -94,7 +94,7 @@ describe('Filets BARBELÉS (Zoo Impérial p.29) — Dégâts ignorant l’armure
     const atk = foe('gobelin-barbele');
     const tgt = foe('cible');
     const get = mountBattle([atk, tgt]);
-    const w: Weapon = { label: 'Filet barbelé', type: 'ranged', damage: { plusBF: false, flat: 0 }, qualities: [{ id: 'filet-barbele' }] };
+    const w: Weapon = { label: 'Filet barbelé', type: 'distance', damage: { plusBF: false, flat: 0 }, qualities: [{ id: 'filet-barbele' }] };
     fireTriggers(get, atk, 'onHit', { victim: tgt, weapon: w, woundsDealt: 0, margin: 1, rng: battleRng() } as never);
     expect(empetreOf(tgt)?.struggleDamage).toBe(1);
   });
@@ -138,7 +138,7 @@ describe('Non-régression — Immobilisante GÉNÉRIQUE (LDB 62 l.258, fouet/las
     const get = mountBattle([atk, tgt]);
     const fouet = findTrappingById('fouet')!;
     expect(fouet.qualities.map((q) => q.id)).toEqual(['immobilisante']);
-    const w: Weapon = { label: 'Fouet', type: 'ranged', damage: { plusBF: true, flat: 2 }, qualities: [{ id: 'immobilisante' }] };
+    const w: Weapon = { label: 'Fouet', type: 'distance', damage: { plusBF: true, flat: 2 }, qualities: [{ id: 'immobilisante' }] };
     fireTriggers(get, atk, 'onHit', { victim: tgt, weapon: w, woundsDealt: 0, margin: 1, rng: battleRng() } as never);
     expect(empetreOf(tgt)?.escapeStrength).toBe(47);
     expect(empetreOf(tgt)?.escapeThreshold).toBeUndefined();

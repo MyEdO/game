@@ -124,8 +124,8 @@ export function talentRangedAPIgnore(c: Combatant): number {
 
 /** La pénalité de Localisation visée est-elle annulée ? Frappe assommante (Tête + arme Assommante,
  *  mêlée) / Tir mortel (à distance). LDB 10. */
-export function ignoresCalledShotPenalty(c: Combatant, kind: 'melee' | 'ranged', location: string | null | undefined, weaponHasAssommante: boolean): boolean {
-  if (kind === 'ranged') return featuresOf(c).some(({ def }) => def.ignoreCalledShotRanged);
+export function ignoresCalledShotPenalty(c: Combatant, kind: 'melee' | 'distance', location: string | null | undefined, weaponHasAssommante: boolean): boolean {
+  if (kind === 'distance') return featuresOf(c).some(({ def }) => def.ignoreCalledShotRanged);
   return location === 'tete' && weaponHasAssommante && featuresOf(c).some(({ def }) => def.ignoreCalledShotHead);
 }
 
@@ -149,7 +149,7 @@ export function talentInitiativeBonus(c: Combatant): number {
 /** Tir rapide (LDB 10) : pré-emption d'initiative gratuite avec une arme à distance CHARGÉE. */
 export function canPreemptRanged(c: Combatant): boolean {
   if (!featuresOf(c).some(({ def }) => def.strikeFirstRanged)) return false;
-  return c.weapons.some((w) => w.type === 'ranged' && weaponLoaded(c, w));
+  return c.weapons.some((w) => w.type === 'distance' && weaponLoaded(c, w));
 }
 
 /** Vigilance (LDB 10) : peut tester Perception (+0) pour ignorer la Surprise. */

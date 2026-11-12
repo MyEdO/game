@@ -40,9 +40,9 @@ describe('IA — sélection de loadout tir/mêlée (Chasseur fronde)', () => {
     const id = setup();
     // état initial : loadout mêlée actif (arme simple)
     expect(weaponsOf(id)).toContain('melee');
-    expect(weaponsOf(id)).not.toContain('ranged');
+    expect(weaponsOf(id)).not.toContain('distance');
     runEnemyAI(banc.getState, banc.setState, id); // switch SYNCHRONE en tête
-    const ranged = banc.getState().battle!.combatants.find((c) => c.id === id)!.weapons!.find((w) => w.type === 'ranged');
+    const ranged = banc.getState().battle!.combatants.find((c) => c.id === id)!.weapons!.find((w) => w.type === 'distance');
     expect(ranged?.label).toMatch(/fronde/i); // a dégainé la fronde
   });
 
@@ -57,6 +57,6 @@ describe('IA — sélection de loadout tir/mêlée (Chasseur fronde)', () => {
     runEnemyAI(banc.getState, banc.setState, id);
     const w = banc.getState().battle!.combatants.find((c) => c.id === id)!.weapons!;
     expect(w.some((x) => x.type === 'melee')).toBe(true); // arme de mêlée disponible au contact
-    expect(w.find((x) => x.type === 'ranged')).toBeUndefined(); // pas la fronde au corps à corps
+    expect(w.find((x) => x.type === 'distance')).toBeUndefined(); // pas la fronde au corps à corps
   });
 });

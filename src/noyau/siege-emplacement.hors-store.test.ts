@@ -84,7 +84,7 @@ describe('(A) Service — emplacement au sol : spawn lit les postes, le chef est
     expect(gunner.mannedPoste).toBeTruthy();
     expect(gunner.mannedPoste!.item.uid).toBe(poste.item.uid);
     const w = gunner.weapons.find((x) => x.uid === poste.item.uid);
-    expect(w?.type).toBe('ranged');
+    expect(w?.type).toBe('distance');
     expect(w?.subType).toBe('armes-de-siege');
     expect(w?.mountSide).toBeUndefined(); // pas de `side` → arc omni
   });

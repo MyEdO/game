@@ -109,7 +109,7 @@ describe('(B) Service — `serveAtPoste` rend chef tout combattant (mannedPoste,
     expect(actor.mannedPoste!.item.uid).toBe(poste.item.uid);
     expect(poste.crewIds![0]).toBe('gunner'); // inséré EN TÊTE
     const w = actor.weapons.find((x) => x.uid === poste.item.uid);
-    expect(w?.type).toBe('ranged');
+    expect(w?.type).toBe('distance');
     expect(w?.subType).toBe('armes-de-siege');
   });
 

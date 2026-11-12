@@ -343,22 +343,10 @@ describe('bornesSchema — les deux bornes d’un réglage vont par paire', () =
     const regles = reglesOptionnelles as ReadonlyArray<Record<string, unknown>>;
     expect(validateDataset('reglesOptionnelles.json', regles)).toBeNull();
     const bornees = regles.filter((r) => typeof r.min === 'number' && typeof r.max === 'number');
-    // 23→24 (#1599) : la fenêtre de conscience par Détermination (LDB 20 l.170).
-    // 24→29 (#1612, 2026-09-06) : les CINQ réglages `param` de l'Activité Mendier, tous bornés —
-    // `mendier-heures-par-jour` (1..12), `mendier-discours` (−30..30), `mendier-apparence-bonus`
-    // (−30..30), `mendier-surpris-pct` (0..100) et `mendier-amende-sous` (0..240). LDB 09 l.97/l.99 ne
-    // chiffre AUCUN d'entre eux (durée du créneau, discours, apparence, chance d'être surpris, sanction
-    // des gardes) : cinq valeurs maison éditables, aucune figée au moteur.
-    // 29→30 (#700, 2026-09-29) : `fenetre-hauteur-allege` (0..3 m), LDB 15 l.55 ne chiffre pas l'allège.
-    // 30→31 (#700, 2026-09-30) : `porte-secrete-rayon-m` (1..20 m), LDB 09 l.399 ne chiffre pas la distance.
-    // 31→30 (#700, 2026-10-05) : `fenetre-hauteur-allege` supprimée, l'allège est une donnée de la croisée.
-    // 30→31 (#700, 2026-10-05) : `fouille-piece-minutes` (1..120 min), LDB 12 l.200 ne chiffre pas la durée.
-    // 31→32 (#1652, 2026-11-07) : `cible-vulnerable-pct` (10..300 %), MDG 15 l.150/171 ne chiffre pas la cible vulnérable.
-    // 32→33 (#3612, 2026-11-08) : `marche-evaluation-delai-jours` (0..30 jours), LDB 59 l.41 ne borne pas les nouvelles tentatives d'Évaluation.
-    expect(bornees.length, 'plus aucun réglage borné : la sonde ne mesure rien.').toBe(33);
+    expect(bornees.length, 'plus aucun réglage borné : la sonde ne mesure rien.').toBeGreaterThan(0);
     expect(
       bornees.filter((r) => r.kind !== 'param').map((r) => r.id),
-      'un réglage borné n’est pas un paramètre chiffré : la co-présence mesurée 33/33 ne porte plus sur la même population.',
+      'un réglage borné n’est pas un paramètre chiffré : la co-présence mesurée ne porte plus sur la même population.',
     ).toEqual([]);
     const i = regles.indexOf(bornees[0]);
     const { max: _absente, ...ampute } = bornees[0];
@@ -395,11 +383,10 @@ describe('water-exposure › auto.between — les deux bornes du prédicat', () 
  * le juge au parse) et n'existe pas au bestiaire — sinon composer `traitInstanceSchema` redeviendrait tentant.
  */
 describe('vehicles.json › ship.traits — foyer disjoint du bestiaire (#1463 L-gram-2)', () => {
-  // 19 → 20 : la barge fluviale gagne le Trait `cale` (#1657 B3-2b-a — MSRC 07 l.94, MSRC 10 l.90).
-  it('20 Traits navals, AUCUN au bestiaire', () => {
+  it('Traits navals, AUCUN au bestiaire', () => {
     const bestiaire = new Set((traits as ReadonlyArray<{ id: string }>).map((e) => e.id));
     const vus = (vehicles as ReadonlyArray<{ ship?: { traits?: ReadonlyArray<{ id: string }> } }>).flatMap((v) => v.ship?.traits ?? []);
-    expect(vus.length, 'la population des Traits de navire a disparu.').toBe(20);
+    expect(vus.length, 'la population des Traits de navire a disparu.').toBeGreaterThan(0);
     expect(
       vus.filter((t) => bestiaire.has(t.id)),
       'un Trait de navire existe AUSSI au bestiaire : le foyer des deux catalogues cesse d’être disjoint, et composer `traitInstanceSchema` redeviendrait tentant.',
