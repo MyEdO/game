@@ -839,7 +839,7 @@ export function buildScene(spec: MapSpec): Scene {
     for (const [propId, parMeuble] of Object.entries(spec.seatAssignments)) {
       exigeFixe(propId, 'le décor');
       for (const occupant of Object.values(parMeuble))
-        if (occupant.kind === 'entity') exigeFixe(occupant.entityId, "l'occupant");
+        if (occupant.kind === 'entite') exigeFixe(occupant.entityId, "l'occupant");
     }
     s = { ...s, seatAssignments: spec.seatAssignments };
     const defauts = seatAssignmentDefects(s);

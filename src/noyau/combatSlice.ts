@@ -1103,7 +1103,7 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!chiefs.length) return;
       const onSuccess: Flow = {
         kind: 'sequence',
-        etapes: chiefs.map((c) => ({ kind: 'effet', effet: { type: 'ops', on: 'hero', heroId: c.id, ops: [{ op: 'teamCommander', commanderId: active.id }] } })),
+        etapes: chiefs.map((c) => ({ kind: 'effet', effet: { type: 'ops', on: 'heros', heroId: c.id, ops: [{ op: 'teamCommander', commanderId: active.id }] } })),
       };
       set({ battle: { ...markActed(get, set), action: null } }); // le Test EST l'Action (réussite ou non)
       openSkillTest(get, set,
@@ -2509,7 +2509,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       // Attaque GRATUITE (elle ne consomme pas l'Action du fuyard, dont c'est le tour) : l'Action rendue
       // est la SUITE du coup, jouée par son après-coup — à la reprise quand le coup est suspendu.
       // Enchaînement déclaré par le conducteur du frappeur, partition de `aiDriven` (`applyTalentFreeAttack`).
-      const enchainement: EnchainementDuCoup = aiDriven(get(), foe) ? { mode: 'auto' } : { mode: 'hero', wasChain: false };
+      const enchainement: EnchainementDuCoup = aiDriven(get(), foe) ? { mode: 'auto' } : { mode: 'heros', wasChain: false };
       const suspended = applyAttackResult(get, set, foe, mover, backstabWeapon(foe), res,
         { suite: { restitution: { prevActed: battle.acted }, manoeuvre: { kind: 'dos' }, enchainement } });
       const jet = toucheSlot?.jet;
@@ -2954,7 +2954,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
           // L'ENCHAÎNEMENT se DÉCLARE, toujours : une Maladresse de l'attaquant ou une frappe du Maniement
           // de deux armes n'en ouvrent AUCUN (`aucun`) — sans déclaration, la queue partagée tomberait dans
           // le balayage de la machine (LDB 85 l.362), que ce site écarte. Manœuvre gratuite : LDB 14 l.9.
-          enchainement: !fumbled && !isDualMain && !isDualSecond ? { mode: 'hero', wasChain } : { mode: 'aucun' },
+          enchainement: !fumbled && !isDualMain && !isDualSecond ? { mode: 'heros', wasChain } : { mode: 'aucun' },
           ...(isDualMain && off?.uid && mainRoll != null ? { dualMain: { offWeaponUid: off.uid, mainRoll } } : {}),
           ...(pa.reaction ? { reaction: pa.reaction } : {}),
           ...(pa.riposte != null ? { riposte: pa.riposte } : {}),

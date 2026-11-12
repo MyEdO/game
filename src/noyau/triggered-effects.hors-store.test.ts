@@ -75,7 +75,7 @@ describe('fireTriggers — Traits et Atouts sur le même système flow+déclench
     // Les DEUX branches portent la même feuille : l'issue du jet (tiré par la voie inline) n'entre pas dans la mesure.
     const surLePorteur = { kind: 'effet', effet: { type: 'ops', on: 'caster', ops: [{ op: 'condition', id: { id: 'a-terre' } }] } };
     const flow = { kind: 'test', test: { characteristic: 'force' }, reussite: surLePorteur, echec: surLePorteur } as unknown as Flow;
-    applyTriggeredEffects(noBattle(), porteur, [{ trigger: 'onHit', on: 'victim', flow }], 'onHit', { victim: victime, rng: makeRNG(1) });
+    applyTriggeredEffects(noBattle(), porteur, [{ trigger: 'onHit', on: 'victime', flow }], 'onHit', { victim: victime, rng: makeRNG(1) });
     expect(porteur.conditions.map((c) => c.id), 'la feuille `on:caster` doit atteindre le PORTEUR').toEqual(['a-terre']);
     expect(victime.conditions, 'la cible a reçu la conséquence du porteur').toEqual([]);
   });
@@ -94,7 +94,7 @@ describe('fireTriggers — Traits et Atouts sur le même système flow+déclench
       non: { kind: 'sequence', etapes: [] },
     } as Flow;
     expect(
-      () => applyTriggeredEffects(noBattle(), porteur, [{ trigger: 'onHit', on: 'victim', flow }], 'onHit', { rng: desDuTest, victim: victime }),
+      () => applyTriggeredEffects(noBattle(), porteur, [{ trigger: 'onHit', on: 'victime', flow }], 'onHit', { rng: desDuTest, victim: victime }),
       'un Test enfoui sous un `choice` a été traversé en SILENCE — aucune branche jouée, aucune levée.',
     ).toThrow(/routeur cadence-aware/);
     expect(victime.conditions, 'la cible a subi une conséquence alors qu’aucun jet n’a été joué.').toEqual([]);
@@ -114,7 +114,7 @@ describe('fireTriggers — Traits et Atouts sur le même système flow+déclench
       ],
     } as Flow;
     porteur.advantage = 5;
-    applyTriggeredEffects(noBattle(), porteur, [{ trigger: 'onCrit', on: 'victim', flow }], 'onCrit', { rng: desDuTest, victim: victime });
+    applyTriggeredEffects(noBattle(), porteur, [{ trigger: 'onCrit', on: 'victime', flow }], 'onCrit', { rng: desDuTest, victim: victime });
     expect(victime.conditions.find((c) => c.id === 'hemorragique')?.value, 'l’État automatique du Critique manque, ou le choix a été joué GRATUITEMENT.').toBe(1);
     expect(porteur.advantage, 'un Avantage a été dépensé sans que personne n’ait choisi.').toBe(5);
   });
@@ -252,7 +252,7 @@ describe('Aire source-agnostique — un TRAIT pose `on:{near}` → GameOps à TO
   // de la VICTIME. Aucune arme : c'est la donnée du trait (comme l'« arc d'Azyr » du domaine) qui pose l'aire.
   const burstEffect = {
     trigger: 'onHit' as const,
-    on: { near: 'victim' as const, radiusMeters: 4 }, // 4 m → 2 cases (Chebyshev d'empreinte)
+    on: { near: 'victime' as const, radiusMeters: 4 }, // 4 m → 2 cases (Chebyshev d'empreinte)
     flow: { kind: 'effet' as const, effet: { type: 'ops' as const, on: 'target' as const, ops: [{ op: 'wounds' as const, amount: 12 }] } },
   };
 
@@ -504,7 +504,7 @@ describe('Test déclenché INLINE : la pénalité d’État lit la Compétence t
     if (victimeATerre) victime.conditions = [{ id: 'a-terre', value: 1 }] as never;
     const sur = (id: string) => ({ kind: 'effet', effet: { type: 'ops', on: 'caster', ops: [{ op: 'condition', id: { id } }] } });
     const flow = { kind: 'test', test: { characteristic: 'agilite', skill: { id: 'athletisme' } }, reussite: sur('sonne'), echec: sur('aveugle') } as unknown as Flow;
-    applyTriggeredEffects(noBattle(), porteur, [{ trigger: 'onHit', on: 'victim', flow }], 'onHit', { victim: victime, rng: de20 });
+    applyTriggeredEffects(noBattle(), porteur, [{ trigger: 'onHit', on: 'victime', flow }], 'onHit', { victim: victime, rng: de20 });
     return porteur.conditions.map((c) => c.id);
   };
   it('Athlétisme (déplacement) À Terre : 20 contre 30 réussit debout, rate à −20', () => {

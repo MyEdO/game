@@ -728,7 +728,7 @@ function equipe(s: SessionDEdition, ent: Scene['entities'][number], id: keyof ty
 }
 
 /** Les clés d'un occupant de place, sa nature en tête. */
-const cleDeLOccupant = (o: SeatOccupant): string => (o.kind === 'party' ? `heros-${o.rang}` : o.entityId);
+const cleDeLOccupant = (o: SeatOccupant): string => (o.kind === 'groupe' ? `heros-${o.rang}` : o.entityId);
 
 /** L'assise du décor `ent` de la session `s` : l'ouvrir au jeu ; chacune des places que son type porte, tenue par
  *  personne, par un personnage de la scène ou par un emplacement du groupe, chaque occupant refusé avec sa raison. */
@@ -738,8 +738,8 @@ function places(s: SessionDEdition, ent: Scene['entities'][number]): (Choix | Bo
   if (!slots.length) return [];
   const tenues = scene.seatAssignments?.[ent.id] ?? {};
   const occupants: { occupant: SeatOccupant; nom: string }[] = [
-    ...scene.entities.filter((e) => e.kind === 'personnage').map((e) => ({ occupant: { kind: 'entity' as const, entityId: e.id }, nom: nomALEcran(s, e) })),
-    ...Array.from({ length: PARTY_MAX }, (_, i) => ({ occupant: { kind: 'party' as const, rang: i + 1 }, nom: labelEmplacement(i + 1) })),
+    ...scene.entities.filter((e) => e.kind === 'personnage').map((e) => ({ occupant: { kind: 'entite' as const, entityId: e.id }, nom: nomALEcran(s, e) })),
+    ...Array.from({ length: PARTY_MAX }, (_, i) => ({ occupant: { kind: 'groupe' as const, rang: i + 1 }, nom: labelEmplacement(i + 1) })),
   ];
   return [
     bouton('assise', t('ecran.editeur.assise'), { geste: 'entite', patch: { assise: !ent.usable?.assise } }, !!ent.usable?.assise),
