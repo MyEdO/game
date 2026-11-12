@@ -40,7 +40,7 @@ import { documentDuNarratif, indiceDuNarratif, objetDuNarratif, presetDuNarratif
 import { revealClue, discreditClue } from './monde/clues';
 import { creatureSemee, navireSeme, findCreatureById, findVehicleById, refLabel, WATER_EXPOSURE, diseaseLabel, nightStakeRef, combatStakeRef, flowStakeRef, testSkillLabel } from '../data';
 import { moraleBase } from '../engine/crewMorale';
-import { clampSaboteurDR, shipboardSouls } from './shipCrew';
+import { clampSaboteurDR, semaineDuJour, shipboardSouls } from './shipCrew';
 import { harvestProfileFor, harvestSizeOf, harvestYield, testsDeRecolte } from '../engine/harvest';
 import { applySummon } from './summonFlow';
 import { contractDisease, applyContraction, diseaseDefs } from '../engine/disease';
@@ -54,7 +54,7 @@ import { openScriptedPsych } from './encounterPsychFlow';
 import { refusDOuvrirLaTaverne, tavernNpcOffers } from './tavernFlow';
 import { ouvrirLeRepos, placesOfKind, sceneLieu } from './restFlow';
 import { avecSequelles, traumaById, dechirureFractureFicheId, permanentAmputations } from '../engine/trauma';
-import { DAY_PHASES, MINUTES_PER_DAY, minutesUntilNext, scheduleAt } from '../engine/clock';
+import { DAY_PHASES, MINUTES_PER_DAY, dayIndex, minutesUntilNext, scheduleAt } from '../engine/clock';
 import { TIME_COST } from '../engine/timeCost';
 import { feedFromMeal, applyFaimTest, applySoifTest } from '../engine/provisions';
 import { isWeatherWarded, exposureTarget, exposureCoatMods, type ExposureKind } from '../engine/exposure';
@@ -2106,7 +2106,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
         vessel: {
           vehicleId: e.vehicleId,
           ...(e.label?.trim() ? { label: e.label.trim() } : {}), // #230 — nom d'instance (affichage)
-          morale: { score: e.morale ?? moraleBase(), lastMoraleWeek: 0, factors: [] },
+          morale: { score: e.morale ?? moraleBase(), lastMoraleWeek: semaineDuJour(dayIndex(env.get().gameTime)), factors: [] }, // MDG 14 l.143
           ...(e.hullMax != null ? { wounds: { current: e.hullCurrent ?? e.hullMax, max: e.hullMax } } : {}),
           ...(e.saboteurDR != null ? { saboteurDR: e.saboteurDR } : {}),
           ...(e.waterLitres != null ? { waterLitres: Math.max(0, e.waterLitres) } : {}),

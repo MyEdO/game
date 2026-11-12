@@ -179,7 +179,7 @@ export function opSummary(o: GameOp): string {
     case 'commission': return `colis livré contre ${formulaSummary(o.montant.brass)} sous de cuivre`;
     case 'constructeurDEscale': return `Constructeur de navires ${o.competence} · ${formulaSummary(o.duree)} j`;
     case 'rationsDEscale': return `ration-jour de cale à ${formulaSummary(o.montant.brass)} sous de cuivre`;
-    case 'attaquesSubies': return `${o.nombre} attaque(s) de ${o.assaillant.statblock.label}`;
+    case 'attaquesSubies': return `${formatDice(o.nombre.dice)} attaque(s) de ${o.assaillant.statblock.label}`;
     case 'combatEnMer': return `Combat : ${o.adversaire.nombre} × ${refLabel('creatures', o.adversaire)}${o.repousseAPct !== undefined ? ` · repoussé à ${o.repousseAPct} %` : ''}${o.victoire ? ' · sur la victoire' : ''}`;
     default: return `${(o as GameOp).op}`;
   }

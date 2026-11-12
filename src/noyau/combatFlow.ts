@@ -156,7 +156,7 @@ import { decayZones, discTiles, wallTiles, clampZoneTiles, metersToTiles, resolv
 import { entreeEnRencontre, sortieDeRencontre } from '../engine/persistence';
 import { contractionDue, applyContraction, hasActiveCapability, diseaseDefs } from '../engine/disease';
 import { resolveCritique, jeuDeCritique, critiquesDuCoup, relanceLaLocalisation, estUnCoupCritique, type CauseCoupCritique, porteurDeCritique, regimeDePorteur, type OrigineCritique, REGIMES_DE_CRITIQUE, type OptionsCritique, critiqueTriviale, critWoundLocation, critImmediateSummary, opRestitueeParLeBandeau, prendreAmputationsDifferees, critTableKeyFor, critTableRows, type CriticalResolved, type CritTableKey } from '../engine/critical';
-import { deDeLaTableTiree, facesDuDe, findTableEntry } from '../engine/tables';
+import { facesDuDe, findTableEntry } from '../engine/tables';
 import { isFumble, rollOups, desDOups, desDeBrisDeLame, casseSurMaladresse, CLE_SOLIDE, ligneDeSolide, SOURCE_SOLIDE, type OupsResolved, type DemandeDeCasse } from '../engine/oups';
 import { lireSalveMisfire, TABLE_SALVE_MISFIRE } from '../engine/artilleryMisfire';
 import { artilleryMisfireDie } from '../data/artilleryMisfire';
@@ -3798,7 +3798,7 @@ export function ouvrirLeNombreDAttaquesSubies(set: SetFn, cible: Combatant, op: 
     kind: 'nombreDAttaquesSubies',
     label: tr('step.nombreDAttaquesSubies'),
     icon: 'action/attaquer',
-    spec: deDeLaTableTiree({ die: op.nombre }),
+    spec: op.nombre.dice,
     actorId: cible.id,
     meta: { differeLaSuite: true, attaquesSubies: [op] },
   }, revealPurpose('sequence', false));

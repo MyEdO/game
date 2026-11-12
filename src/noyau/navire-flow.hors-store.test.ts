@@ -1,17 +1,18 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { seedBattleRng } from './battleRng';
 import { emptyScene } from './monde/scene';
 import type { WorldMap } from './worldMap';
 import { applyEffects, jouerFlowEntier, runFlow } from './combatEffects';
-import { applyVesselCritical, buildSeaPlan, continueSeaDayAfterCascade, finalizePortArrivalTo, portCareenVessel, portRepairVessel, runSeaDay, vesselManann } from './seaVoyageFlow';
+import { applyVesselCritical, buildSeaPlan, continueSeaDayAfterCascade, finalizePortArrivalTo, installerLAmelioration, portCareenVessel, portRepairVessel, runSeaDay, vesselManann } from './seaVoyageFlow';
 import { rollPortRepair } from '../engine/shipBuild';
 import { REPARATION } from '../engine/seaNavigation';
 import { findVehicleById } from '../data';
 import { rollShipCritical } from '../engine/shipCritical';
-import { makeRNG } from '../engine/dice';
+import { makeRNG, rollDice, type RNG } from '../engine/dice';
+import { imposerLesD100 } from './battleRng.testkit';
 import { avanceEtapeCascade, draineCascade } from './cascade.testkit';
 import { acheterAuMarche } from './cargaison.testkit';
 import { applierDe } from './cascade';
@@ -1261,9 +1262,8 @@ describe('Événements laissés au MJ et marché du port (#1652 lot 9 — MDG 15
     expect(get().vessel!.commissions).toBeUndefined();
   });
 
-  /** Les passes de `rollPortRepair` à `competence` jusqu'à `manquantes` Blessures, sur la graine `graine`. */
-  const passesDeReparation = (graine: number, competence: number, manquantes: number) => {
-    const rng = makeRNG(graine);
+  /** Les passes de `rollPortRepair` à `competence` jusqu'à `manquantes` Blessures, tirées de `rng`. */
+  const passesDeReparation = (rng: RNG, competence: number, manquantes: number) => {
     const passes = [];
     for (let restaurees = 0; restaurees < manquantes; restaurees += passes[passes.length - 1].wounds) passes.push(rollPortRepair(competence, manquantes - restaurees, rng));
     return passes;
@@ -1284,7 +1284,7 @@ describe('Événements laissés au MJ et marché du port (#1652 lot 9 — MDG 15
 
   it('Réparation au port : le constructeur local teste à `constructeurLocal`, un Test raté ne restaure rien, la coque finit pleine au prix des Blessures restaurées (MDG 13 l.643)', () => {
     escale(null);
-    const passes = passesDeReparation(4, REPARATION.constructeurLocal, 40);
+    const passes = passesDeReparation(makeRNG(4), REPARATION.constructeurLocal, 40);
     expect(passes.some((p) => !p.success && p.wounds === 0), 'la graine produit un Test raté').toBe(true);
     const { lignes, paye, duree } = reparer(4, 40);
     expect(get().vessel!.wounds).toEqual({ current: 50, max: 50 });
@@ -1294,20 +1294,35 @@ describe('Événements laissés au MJ et marché du port (#1652 lot 9 — MDG 15
     expect(lignes).toEqual([ligneDeChantier(passes, REPARATION.constructeurLocal, t('sv.dureeHeures', { n: heures }))]);
   });
 
-  it('Constructeur de navires itinérant : la réparation de l’escale se teste à Constructeur de navires 68 et prend ses 1d10 jours ; il part à l’appareillage (l.255)', () => {
+  it('Constructeur de navires itinérant : la réparation de l’escale se teste à Constructeur de navires 68 et prend 1d10 jours, tirés après ses Tests ; il part à l’appareillage (l.255)', () => {
     escale('constructeur-de-navires-itinerant');
-    const constructeur = get().vessel!.constructeurDEscale!;
-    expect(constructeur.competence).toBe(68);
-    expect(constructeur.jours).toBeGreaterThanOrEqual(1);
-    expect(constructeur.jours).toBeLessThanOrEqual(10);
-    const passes = passesDeReparation(4, 68, 40);
+    expect(get().vessel!.constructeurDEscale).toEqual({ competence: 68, duree: { dice: { n: 1, sides: 10 } } });
+    const rng = makeRNG(4);
+    const passes = passesDeReparation(rng, 68, 40);
+    const jours = rollDice({ n: 1, sides: 10 }, rng);
     const { lignes, duree } = reparer(4, 40);
     expect(get().vessel!.wounds).toEqual({ current: 50, max: 50 });
-    expect(duree).toBe(constructeur.jours * MINUTES_PER_DAY);
-    expect(lignes).toEqual([ligneDeChantier(passes, 68, t('sv.dureeJours', { n: constructeur.jours }))]);
+    expect(duree).toBe(jours * MINUTES_PER_DAY);
+    expect(lignes).toEqual([ligneDeChantier(passes, 68, t('sv.dureeJours', { n: jours }))]);
     set({ lieu: 'B' });
     get().partirEnVoyage('r1', 'mer');
     expect(get().vessel!.constructeurDEscale).toBeUndefined();
+  });
+
+  it('Constructeur de navires itinérant : chaque Amélioration qu’il pose tire ses 1d10 jours, même le Blindage (l.255)', () => {
+    escale('constructeur-de-navires-itinerant');
+    creditBourse(get, set, get().party[0].id, { gold: 100000, silver: 0, brass: 0 });
+    const poser = (traitId: string, d100: number) => {
+      imposerLesD100(d100);
+      const avant = get().gameTime;
+      const lignes = installerLAmelioration(get, set, traitId);
+      vi.restoreAllMocks();
+      return { lignes, jours: (get().gameTime - avant) / MINUTES_PER_DAY };
+    };
+    expect(poser('blindage-fer', 30)).toMatchObject({ jours: 3 });
+    const ancre = poser('ancre', 70);
+    expect(ancre.jours).toBe(7);
+    expect(ancre.lignes[0]).toContain(t('sv.dureeJours', { n: 7 }));
   });
 
   /** À quai à Erengrad avec la seule rangée `id` à l'escale, cale suivie (10 rations-jour, 100 L), 10 CO de plus. */

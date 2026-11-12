@@ -26,7 +26,9 @@ const installBaremeSchema = z.union([
 const navalInstallSchema = nommerChamps(z.strictObject({
   installation: installBaremeSchema,
   weightEnc: installBaremeSchema.optional(),
-}), { installation: { label: 'Installation' }, weightEnc: { label: 'Poids (Enc)' } });
+  /** MDG 12 l.230 ; MDG 12 l.293 */
+  jours: installBaremeSchema.optional(),
+}), { installation: { label: 'Installation' }, weightEnc: { label: 'Poids (Enc)' }, jours: { label: 'Durée de pose (jours)' } });
 
 const doc = document(
   'naval-traits',
@@ -45,7 +47,7 @@ const doc = document(
   },
   {
     kind: { label: 'Nature', hint: 'Trait naval ou Amélioration installable' },
-    install: { label: 'Coût d’installation', hint: 'Coût (or) et poids, par bande de longueur de coque ou au modèle' },
+    install: { label: 'Coût d’installation', hint: 'Coût (or), poids et durée de pose, par bande de longueur de coque ou au modèle' },
     ranked: { label: 'À paliers', hint: 'Amélioration cumulable par palier (plutôt qu’achat unique)' },
     passive: {
       label: 'Effets passifs',

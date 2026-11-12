@@ -2608,7 +2608,7 @@ export type ShipSize = 'minuscule' | 'tres-petite' | 'petite' | 'moyenne' | 'gra
  *  longueurs explicites — barque 5 m et esquif 10 m tombent dans la MÊME `ShipSize` « minuscule » avec des
  *  tarifs DIFFÉRENTS, la Taille ne peut donc pas discriminer). `maxLengthM` = borne haute inclusive du
  *  palier (`null` = bande OUVERTE au-delà — le dernier élément du tableau, triés par longueur croissante) ;
- *  `value` = CO (coût) ou Enc (poids) selon le champ porteur ; `maison` = réf nue du tarif au-delà de la
+ *  `value` = CO (coût), Enc (poids) ou jours (durée de pose) selon le champ porteur ; `maison` = réf nue du tarif au-delà de la
  *  dernière borne chiffrée par le livre porté sur la bande concernée. */
 export interface InstallBand { maxLengthM: number | null; value: number; maison?: string }
 /** Coût / Poids d'INSTALLATION d'une Amélioration navale (MDG 12, lignes « Coût : / Poids : » de chaque
@@ -2617,9 +2617,12 @@ export interface InstallBand { maxLengthM: number | null; value: number; maison?
  *  `'modele'` = ceux du modèle embarqué (Embarcation de bord). `weightEnc` absent = aucun poids (Lissage).
  *  Donnée consommée par le chantier construction/réparation navale (lot systèmes) — aucune valeur codée en
  *  dur. */
+export type InstallBareme = { bands: InstallBand[]; per?: '5m' | '10m' | 'unite' } | 'modele';
 export interface NavalInstall {
-  installation: { bands: InstallBand[]; per?: '5m' | '10m' | 'unite' } | 'modele';
-  weightEnc?: { bands: InstallBand[]; per?: '5m' | '10m' | 'unite' } | 'modele';
+  installation: InstallBareme;
+  weightEnc?: InstallBareme;
+  /** Durée de la pose (jours) par palier de longueur ; absente : `reparation.joursDePose`. MDG 12 l.230 ; MDG 12 l.293 */
+  jours?: InstallBareme;
 }
 export interface NavalTraitData {
   /** id STABLE (slug) — la clé d'appariement avec `ship.traits`/`Combatant.upgrades` (`NavalTraitRef.id`). */
