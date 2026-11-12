@@ -330,7 +330,7 @@ describe('série d’attaques subies hors bataille (#3892)', () => {
   it('Crampes abdominales, Défense ratée à DR −5 : Sonné, le Test de Force Mentale est la seule fenêtre, sa clôture ouvre la Défense suivante, la série se ferme : MSRC 16 l.152-158 ; #4011', () => {
     const { banc, H } = horsBataille(testScene());
     banc.setState({ party: [{ ...H, diseases: [{ id: 'colique', phase: 'active', symptoms: [{ symptomId: 'crampes-abdominales' }], minutesLeft: 1e5, durationMinutes: 1e5 }] }] });
-    applyEffects(banc.getState, banc.setState, [attaques('hero', H.id)]);
+    applyEffects(banc.getState, banc.setState, [attaques('heros', H.id)]);
     imposerLesD100(20, 23, 99, 96);
     banc.getState().jetImposerLeResultat('cascadeTirage', 2, banc.getState().pendingCascade!.participants[0].id);
     banc.getState().jetValider('cascade');
@@ -483,7 +483,7 @@ describe('série d’attaques subies hors bataille (#3892)', () => {
     const { banc, H } = horsBataille(testScene());
     const brute = { type: 'statblock', label: 'Brute', char: { 'capacite-de-combat': 35, force: 60 }, traits: [{ id: 'arme', value: 5, arg: 'marteau-a-bec-de-corbin' }] };
     const opBrute = gameOpSchema.parse({ op: 'attaquesSubies', assaillant: { statblock: brute }, nombre: '1d10' });
-    applyEffects(banc.getState, banc.setState, [{ type: 'ops', on: 'hero', heroId: H.id, ops: [opBrute] }]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'ops', on: 'heros', heroId: H.id, ops: [opBrute] }]);
     imposerLesD100(20, 23, 20, 23, 20);
     banc.getState().jetImposerLeResultat('cascadeTirage', 2, banc.getState().pendingCascade!.participants[0].id);
     banc.getState().jetValider('cascade');
