@@ -2966,13 +2966,14 @@ export function cloturesDuCombat(get: Get, set: Set) {
     // volontaire (mêlée = Test opposé, LDB 13 l.123) → une fois offerte, la défense est obligatoire.
     defense: () => {
       // « Appliquer » : applique le résultat puis REPREND le tour de l'IA suspendu.
-      const { battle, pendingDefense: pd } = get();
-      if (!battle || !pd) return;
+      const pd = get().pendingDefense;
+      if (!pd) return;
       const lance = garanti(pd.result, pd.defenderId, 'jet de la défense');
       // La fenêtre ne se ferme que depuis SON étape : le curseur posé sur la défense de la séquence de combat.
       if (!surLEtapeDeDefense(get())) return;
-      const attacker = inBattleId(battle, pd.attackerId);
-      const defender = inBattleId(battle, pd.defenderId);
+      // Hors bataille, l'assaillant est celui de la série d'attaques subies (`porteurParId`). MDG 15 l.163-164
+      const attacker = porteurParId(get(), pd.attackerId);
+      const defender = porteurParId(get(), pd.defenderId);
       // LE SLOT SE VIDE ET L'ÉTAPE SE FERME DANS LE MÊME ÉTAT (#1852) : `committed` DIT à l'état que
       // cette étape a rendu sa donnée. Sans lui, l'état intermédiaire (slot vide, curseur encore posé
       // dessus) est un hôte ORPHELIN pour tout lecteur — le rendu, l'arbitre, la garde du curseur —,
