@@ -2,7 +2,7 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { seedBattleRng } from './battleRng';
-import { resolveShoreLeaveDesertion, semainesDuConseil, choixDePaieOuverts } from './shipCrew';
+import { resolveShoreLeaveDesertion, semainesDuConseil, choixDePaieOuverts, resolveVesselWeek } from './shipCrew';
 import { creditBourse, partyMoneyTotal } from './bourseFlow';
 import { MINUTES_PER_DAY, campaignStart, dayIndex } from '../engine/clock';
 import { applyEffects } from './combatEffects';
@@ -44,6 +44,13 @@ describe('Moral du navire de campagne — recalcul hebdomadaire dans l’entreti
     expect(v.morale.lastMoraleWeek).toBe(1);
     expect(v.morale.score).toBeLessThan(75); // « Pas de paie » fait toujours chuter le Moral
     expect(banc.getState().journal.join('\n')).toMatch(/Moral de l'équipage/);
+  });
+
+  it('#1652 — le facteur « nourriture-biscuits-de-mer » tire −1d10 au recalcul hebdomadaire (MDG 14 l.143, l.166)', () => {
+    const vessel = { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: ['nourriture-biscuits-de-mer'] } };
+    const r = resolveVesselWeek(vessel, { gold: 0, silver: 0, brass: 0 }, null, 1, { int: () => 4 });
+    expect(r.factorRolls).toEqual([{ id: 'nourriture-biscuits-de-mer', label: 'La nourriture est uniquement composée de biscuits de mer', rolled: -4 }]);
+    expect(r.after).toBe(71);
   });
 
   it('sans navire (vessel null) → aucun effet, aucun plantage', () => {

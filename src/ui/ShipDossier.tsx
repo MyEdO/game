@@ -10,6 +10,7 @@ import { findCargoEntryById } from '../engine/cargo';
 import { dossierDuNavire } from '../noyau/seaVoyageFlow';
 import { moraleBand, findMoraleFactor } from '../engine/crewMorale';
 import { fromBrass } from '../engine/money';
+import { formatEffetSigne } from '../engine/dice';
 import { bulkCarriers, nomDuNavire } from '../noyau/carriers';
 import { Coins } from './Coins';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
@@ -258,7 +259,7 @@ export function ShipDossierView({ vessel, party, onClose, initialTab = 'apercu',
                 <ul className="ship-dossier-list">
                   {vessel.morale.factors.map((id) => {
                     const f = findMoraleFactor(id);
-                    return <li key={id}>{f?.label ?? id}{f ? ` (${f.effect})` : ''}</li>;
+                    return <li key={id}>{f?.label ?? id}{f ? ` (${formatEffetSigne(f.effect)})` : ''}</li>;
                   })}
                 </ul>
               ) : (

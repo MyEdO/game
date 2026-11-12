@@ -315,12 +315,16 @@ export function vesselManann(vessel: CampaignVessel | null): ManannMood {
 
 /** Facteur de Moral de disette (MDG 14 l.171). */
 const FOOD_SHORTAGE_FACTOR = 'nourriture-insuffisante';
+/** Facteur de Moral et vivre des biscuits de mer (MDG 14 l.166, l.250). */
+const BISCUITS_FACTOR = 'nourriture-biscuits-de-mer';
+const BISCUITS_DE_MER = 'ration-biscuits-de-mer';
 
 /**
  * VIVRES de l'équipage PNJ sur `days` jour(s) : l'effectif nominal (`shipboardSouls().crew`) mange une ration par
- * marin et par jour sur `vessel.provisions`, vivre après vivre dans l'ordre de `VIVRES_DE_CALE.vivres`. À court,
- * le facteur de Moral `nourriture-insuffisante` est ACTIVÉ pour le prochain recalcul hebdomadaire ; couvert, il
- * est retiré. `provisions` absent : vivres non suivis, aucune consommation. MDG 14 l.171, l.238, l.263 ; #245
+ * marin et par jour sur `vessel.provisions`, vivre après vivre dans l'ordre de `VIVRES_DE_CALE.vivres`. Le dernier
+ * jour fait la nourriture du prochain recalcul hebdomadaire : à court, `nourriture-insuffisante` ; couvert par les
+ * seuls biscuits de mer, `nourriture-biscuits-de-mer` ; les deux s'excluent. `provisions` absent : vivres non
+ * suivis, aucune consommation. MDG 14 l.143, l.166, l.171, l.238, l.263 ; #245 ; #1652
  */
 function consumeCrewProvisions(get: Get, set: Set, days: number): string[] {
   const vessel = get().vessel;
@@ -330,18 +334,22 @@ function consumeCrewProvisions(get: Get, set: Set, days: number): string[] {
   if (vessel.provisions == null || need <= 0) return [];
   const provisions = { ...vessel.provisions };
   let reste = need;
+  let biscuitsEnFin = 0;
   for (const id of VIVRES_DE_CALE.vivres) {
     const stock = provisions[id];
     if (stock === undefined) continue;
     const mange = Math.min(reste, stock);
     provisions[id] = stock - mange;
     reste -= mange;
+    if (mange > 0) biscuitsEnFin = id === BISCUITS_DE_MER ? mange : 0;
   }
   const left = rationsDeCale(provisions);
   const short = reste > 0;
-  const factors = short
-    ? (vessel.morale.factors.includes(FOOD_SHORTAGE_FACTOR) ? vessel.morale.factors : [...vessel.morale.factors, FOOD_SHORTAGE_FACTOR])
-    : vessel.morale.factors.filter((f) => f !== FOOD_SHORTAGE_FACTOR);
+  const actif = short ? FOOD_SHORTAGE_FACTOR : biscuitsEnFin >= crew ? BISCUITS_FACTOR : null;
+  const factors = [
+    ...vessel.morale.factors.filter((f) => f !== FOOD_SHORTAGE_FACTOR && f !== BISCUITS_FACTOR),
+    ...(actif ? [actif] : []),
+  ];
   set({ vessel: { ...vessel, provisions, morale: { ...vessel.morale, factors } } });
   return [short
     ? t('sv.crewFoodOut')

@@ -107,6 +107,11 @@ describe('ShipDossier — dossier de navire persistant (#227)', () => {
     expect(html).toContain('Dette de paie'); // wagesOwed
   });
 
+  it('Équipage : un facteur de Moral en cours listé par son libellé et son effet en dés (MDG 14 l.166)', () => {
+    const html = renderToStaticMarkup(<ShipDossierView vessel={{ ...vessel(), morale: { score: 62, lastMoraleWeek: 0, factors: ['nourriture-biscuits-de-mer'] } }} party={[]} onClose={() => {}} initialTab="equipage" />);
+    expect(html).toContain('<li>La nourriture est uniquement composée de biscuits de mer (−1d10)</li>');
+  });
+
   it('type sans facette navire : composant nul', () => {
     const notAShip = { ...vessel(), vehicleId: 'diligence' };
     expect(renderToStaticMarkup(<ShipDossierView vessel={notAShip} party={[]} onClose={() => {}} />)).toBe('');

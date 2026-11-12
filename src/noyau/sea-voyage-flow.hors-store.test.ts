@@ -1107,6 +1107,34 @@ describe('Traversée RAPIDE — un seul Test de Rude épreuve (MDG 15 l.21-37, C
     expect(v.morale.factors).not.toContain('nourriture-insuffisante');
   });
 
+  // 15 PNJ × 7 jours = 105 rations ; le dernier jour de la traversée (15 rations) fait la nourriture du recalcul.
+  it('#1652 — dernier jour couvert par les seuls biscuits de mer → facteur « nourriture-biscuits-de-mer » (MDG 14 l.166)', () => {
+    set({ vessel: { ...get().vessel!, ...benign, waterLitres: 1000, provisions: cale({ [PRESERVEE]: 50, [BISCUITS]: 100 }) } });
+    get().partirEnVoyage('r1', 'mer', { fast: true });
+    driveFast();
+    const v = get().vessel!;
+    expect(v.provisions).toEqual({ [PRESERVEE]: 0, [BISCUITS]: 45 });
+    expect(v.morale.factors).toEqual(['nourriture-biscuits-de-mer']);
+  });
+
+  it('#1652 — dernier jour mêlé (nourriture préservée puis biscuits) → aucun facteur de nourriture (MDG 14 l.166)', () => {
+    set({ vessel: { ...get().vessel!, ...benign, waterLitres: 1000, provisions: cale({ [PRESERVEE]: 100, [BISCUITS]: 70 }), morale: { score: 75, lastMoraleWeek: 0, factors: ['nourriture-biscuits-de-mer'] } } });
+    get().partirEnVoyage('r1', 'mer', { fast: true });
+    driveFast();
+    const v = get().vessel!;
+    expect(v.provisions).toEqual({ [PRESERVEE]: 0, [BISCUITS]: 65 });
+    expect(v.morale.factors).toEqual([]);
+  });
+
+  it('#1652 — jour court sur des biscuits → « nourriture-insuffisante » seul, les deux facteurs s’excluent (MDG 14 l.166, l.171)', () => {
+    set({ vessel: { ...get().vessel!, ...benign, waterLitres: 1000, provisions: cale({ [BISCUITS]: 100 }), morale: { score: 75, lastMoraleWeek: 0, factors: ['nourriture-biscuits-de-mer'] } } });
+    get().partirEnVoyage('r1', 'mer', { fast: true });
+    driveFast();
+    const v = get().vessel!;
+    expect(v.provisions).toEqual({ [BISCUITS]: 0 });
+    expect(v.morale.factors).toEqual(['nourriture-insuffisante']);
+  });
+
   it('palier DÉSASTREUX (Humeur de Manann effondrée) : équipage manquant, cargaison perdue, coque meurtrie, 3 Critiques', () => {
     set({ vessel: {
       ...get().vessel!, manann: { score: -1000, applied: [] }, // dizaine −100 → résultat ≤ 0 quel que soit le d10/DR
