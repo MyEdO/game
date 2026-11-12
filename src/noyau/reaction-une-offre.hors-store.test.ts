@@ -186,7 +186,7 @@ function effetsAGratuiteDeLaDonnee(): { ou: string; eff: TriggeredEffect }[] {
 
 const MIXTE: TriggeredEffect = {
   trigger: 'onHit', on: 'victim', attackType: 'ranged',
-  flow: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: 'empetre', value: 1 }, { op: 'grantFreeAttack', weapon: 'held', when: 'immediate' } as never] } },
+  flow: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'empetre' }, value: 1 }, { op: 'grantFreeAttack', weapon: 'held', when: 'immediate' } as never] } },
 };
 const ATOUT: TriggeredEffect = {
   trigger: 'onHit', on: 'self',

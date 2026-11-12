@@ -608,7 +608,7 @@ describe('postes d’artillerie — réf catalogue hydratée, jamais une base co
 // ── RÉFÉRENCES DES `GameOp` DE LA DONNÉE COMMITÉE (#847). Le PÉRIMÈTRE (quels champs d'op portent
 // une chaîne) est DÉRIVÉ de l'union `GameOp` par le TypeChecker ; chaque champ est un CHAMP D'OP À SLOT
 // d'`OP_DEFS` (`champsDOpASlot`), jugé au parse par sa feuille `idDe`, ou il porte sa classification
-// dans `scripts/guards/lib/gameOpRefFk.mjs` (`registry` | `coveredBy` | `nonRef`). Les registres des
+// dans `scripts/guards/lib/gameOpRefFk.mjs` (`registry` | `nonRef`). Les registres des
 // champs que le parse ne juge pas sont câblés ICI, où ils sont typés.
 describe('GameOp — toute référence de la donnée committée est jugée au parse ou résout dans son registre (#847, #1473)', () => {
   const resolvers: Record<string, (id: string) => boolean> = {
@@ -689,7 +689,7 @@ describe('GameOp — toute référence de la donnée committée est jugée au pa
     expect(miscastDef, 'def de miscast.json introuvable').toBeTruthy();
     const [table] = structuredClone(CORPUS.brutParNom.get('miscast.json')) as { entries: { id: string; ops?: object[] }[] }[];
     const rangee = table.entries.find((e) => e.id === 'mineure-langue-maladroite')!;
-    rangee.ops!.push({ op: 'castPenalty', id: 'id-fantome' });
+    rangee.ops!.push({ op: 'castPenalty', mod: -10 });
     table.entries = [rangee];
     const brutParNom = new Map<string, unknown>([['miscast.json', [table]]]);
     const noeuds = scanGameOpRefs({ sources: [{ file: 'miscast.json', data: [table] }], resolvers }).noeudsDOp;
@@ -697,9 +697,9 @@ describe('GameOp — toute référence de la donnée committée est jugée au pa
     expect(noeuds.filter((n) => atteintes.has(n.noeud)), 'la fixture doit rester HORS du parse d’op').toEqual([]);
     const slots = slotsDuParse({ brutParNom }, [miscastDef!]);
     expect(slotsDOpNonJuges(noeuds, atteintes, slots, CHAMPS_A_SLOT)).toEqual([]);
-    const avecSlot = new Set([...CHAMPS_A_SLOT, 'castPenalty.id']);
+    const avecSlot = new Set([...CHAMPS_A_SLOT, 'castPenalty.op']);
     expect(slotsDOpNonJuges(noeuds, atteintes, slots, avecSlot).map(renduNonJuge))
-      .toEqual(['miscast.json[0].entries[0].ops[1].id = "id-fantome"']);
+      .toEqual(['miscast.json[0].entries[0].ops[0].op = "castPenalty"', 'miscast.json[0].entries[0].ops[1].op = "castPenalty"']);
   });
 
   it('une op sous un conteneur d’ops est atteinte par le parse : une valeur OBJET fantôme y est REFUSÉE (contre-épreuve)', () => {
@@ -721,10 +721,10 @@ describe('GameOp — toute référence de la donnée committée est jugée au pa
   });
 
   // Le format d'une cible est un ensemble FERMÉ (`gameOpRefFk.mjs`, doc de `GAMEOP_FIELD_TARGETS`) :
-  // `{ registry }` | `{ nonRef }` | `{ coveredBy }`. Une clé hors de cet ensemble serait lue par
+  // `{ registry }` | `{ nonRef }`. Une clé hors de cet ensemble serait lue par
   // PERSONNE dans `scanGameOpRefs` — donc une tolérance muette, ou un champ tenu pour gardé sans l'être.
-  it('le format d’une cible est fermé : une seule clé, registry, nonRef ou coveredBy, non vide', () => {
-    const CLES = ['registry', 'nonRef', 'coveredBy'];
+  it('le format d’une cible est fermé : une seule clé, registry ou nonRef, non vide', () => {
+    const CLES = ['registry', 'nonRef'];
     const anomalies: string[] = [];
     for (const [cible, decl] of Object.entries(GAMEOP_FIELD_TARGETS as Record<string, Record<string, unknown>>)) {
       const cles = Object.keys(decl);
@@ -746,11 +746,10 @@ describe('GameOp — toute référence de la donnée committée est jugée au pa
     expect(out[0].path).toBe('fixture.json[0].effects[0].flow.effet.ops[0].testType');
   });
 
-  it('un champ NON-RÉFÉRENCE porte sa justification, un champ jugé ailleurs nomme son refus', () => {
+  it('un champ NON-RÉFÉRENCE porte sa justification', () => {
     for (const [key, t] of Object.entries(GAMEOP_FIELD_TARGETS)) {
       if ('registry' in t) { expect(resolvers[t.registry], `${key} → registre inconnu ${t.registry}`).toBeTruthy(); continue; }
-      const why = 'nonRef' in t ? t.nonRef : t.coveredBy;
-      expect(typeof why === 'string' && why.length > 20, `${key} : justification absente ou trop maigre`).toBe(true);
+      expect(t.nonRef.length > 20, `${key} : justification absente ou trop maigre`).toBe(true);
     }
   });
 });

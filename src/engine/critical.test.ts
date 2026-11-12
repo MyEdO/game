@@ -327,7 +327,7 @@ describe('Aux Armes (AA 07, approche alternative) — lignes nommées', () => {
     // Torse, d100 15 → « Rien qu'une égratignure ! » (11-20) : Blessures 1 + 1 État Hémorragique.
     const r = resolveCritique('aa', cible(), 'corps', seq(15));
     expect(r.label).toBe("Rien qu'une égratignure !");
-    expect(r.ops).toEqual([{ op: 'wounds', amount: 1, ignoreTB: true, ignoreAP: true }, { op: 'condition', id: 'hemorragique', value: 1 }]);
+    expect(r.ops).toEqual([{ op: 'wounds', amount: 1, ignoreTB: true, ignoreAP: true }, { op: 'condition', id: { id: 'hemorragique' }, value: 1 }]);
     expect(r.lethal).toBe(false);
   });
 
@@ -335,10 +335,10 @@ describe('Aux Armes (AA 07, approche alternative) — lignes nommées', () => {
     // Torse 21-25 « Coup au ventre » : 1 Sonné + Résistance Facile (+40) sous peine À Terre.
     const r = resolveCritique('aa', cible(), 'corps', seq(22));
     expect(r.label).toBe('Coup au ventre');
-    expect(r.ops).toEqual([{ op: 'wounds', amount: 1, ignoreTB: true, ignoreAP: true }, { op: 'condition', id: 'sonne', value: 1 }]);
+    expect(r.ops).toEqual([{ op: 'wounds', amount: 1, ignoreTB: true, ignoreAP: true }, { op: 'condition', id: { id: 'sonne' }, value: 1 }]);
     const n = r.testFlow as Extract<typeof r.testFlow, { kind: 'test' }>;
     expect(n.test.difficulty).toBe('facile');
-    expect(spellOps(n.echec, 'target')).toEqual([{ op: 'condition', id: 'a-terre', value: 1 }]);
+    expect(spellOps(n.echec, 'target')).toEqual([{ op: 'condition', id: { id: 'a-terre' }, value: 1 }]);
   });
 
   it('lignes triviales « T » (l.79) DÉRIVÉES — non létales et sans perte de Blessure', () => {
@@ -414,7 +414,7 @@ describe('Aux Armes (AA 07, approche alternative) — lignes nommées', () => {
     expect(r.label).toBe("Perte d'équilibre");
     const n = r.testFlow as Extract<typeof r.testFlow, { kind: 'test' }>;
     expect(n.test.skill).toEqual({ id: 'athletisme' }); // AA 07 l.165
-    expect(spellOps(n.echec, 'target')).toEqual([{ op: 'condition', id: 'a-terre', value: 1 }]);
+    expect(spellOps(n.echec, 'target')).toEqual([{ op: 'condition', id: { id: 'a-terre' }, value: 1 }]);
     expect(critiqueTable('aa', 'jambeG').find((e) => e.id === 'aa-jambe-11')!.test!.test.skill).toEqual({ id: 'athletisme' });
   });
 
@@ -425,7 +425,7 @@ describe('Aux Armes (AA 07, approche alternative) — lignes nommées', () => {
     expect(r.label).toBe('Oreille mutilée');
     // Les États du Test (À Terre / Sonné / Inconscient, l.237) ne sont plus pré-décidés au moteur : seuls
     // restent les effets IMMÉDIATS que la ligne inflige (Blessures, Assourdi, Hémorragique).
-    expect(r.ops.filter((o) => o.op === 'condition').map((o) => o.id)).toEqual(['assourdi', 'hemorragique']);
+    expect(r.ops.flatMap((o) => (o.op === 'condition' ? [o.id.id] : []))).toEqual(['assourdi', 'hemorragique']);
     expect(r.traumas).toEqual([]);                              // ni plaie ni séquelle pré-posées
     const [noeud, perte] = flowEtapes(r.testFlow);
     expect(noeudDeTest(noeud).test.skill).toEqual({ id: 'resistance' });   // LDB 18 l.237
@@ -437,15 +437,15 @@ describe('Aux Armes (AA 07, approche alternative) — lignes nommées', () => {
   it('« Oreille mutilée » : les États du Test sont ÉCHELONNÉS par DR dans la branche `fail` (l.237)', () => {
     const n = noeudDeTest(flowEtapes(resolveCritique('aa', cible(), 'tete', seq(63)).testFlow)[0]);
     const fail = n.echec as Extract<Flow, { kind: 'sequence' }>;
-    expect(opsDe(fail.etapes[0])).toEqual([{ op: 'condition', id: 'a-terre', value: 1 }]);
+    expect(opsDe(fail.etapes[0])).toEqual([{ op: 'condition', id: { id: 'a-terre' }, value: 1 }]);
     const paliers = fail.etapes.slice(1).map((etape) => etape as Extract<Flow, { kind: 'si' }>);
     expect(paliers.map((pal) => pal.condition)).toEqual([
       { kind: 'slThreshold', op: '<=', value: -2 },
       { kind: 'slThreshold', op: '<=', value: -4 },
     ]);
     expect(paliers.map((pal) => opsDe(pal.alors))).toEqual([
-      [{ op: 'condition', id: 'sonne', value: 1 }],
-      [{ op: 'condition', id: 'inconscient', value: 1 }],
+      [{ op: 'condition', id: { id: 'sonne' }, value: 1 }],
+      [{ op: 'condition', id: { id: 'inconscient' }, value: 1 }],
     ]);
   });
 
@@ -546,7 +546,7 @@ describe.each([
     expect(r.traumas.find((t) => t.pendingAmputation)!.label).toBe("Coupure à l'orteil");
     expect(r.traumas.some((t) => t.needsSurgery)).toBe(false);
     // Seuls restent les effets IMMÉDIATS de la ligne (Blessures + Hémorragique) : aucun État du Test.
-    expect(r.ops.filter((o) => o.op === 'condition').map((o) => o.id)).toEqual(['hemorragique']);
+    expect(r.ops.flatMap((o) => (o.op === 'condition' ? [o.id.id] : []))).toEqual(['hemorragique']);
   });
 
   it('le nœud ARMÉ est le GATE Intermédiaire (l.171) dont l’échec joue le Test d’Amputation Accessible (l.237)', () => {

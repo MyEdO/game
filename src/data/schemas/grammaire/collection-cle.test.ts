@@ -21,7 +21,7 @@ import { collectionDe, collectionsDesDocuments, collectionsPerdues, collectionsR
 import { descendre, enfantsDe, ouverts, pasDeDonnee } from './descente';
 import { champsDeChoix } from './choixDeCreation';
 import { schema as schemaDesTailles } from '../defs/sizes';
-import { idDe } from './ref';
+import { estRefEmboitee, idDe } from './ref';
 
 const nomDeMarque = (m: MarqueDeCollection | undefined): string | undefined => (m?.forme === 'liste' ? m.nom : m?.sous);
 const nomDe = (n: unknown): string | undefined => nomDeMarque(collectionDe(n));
@@ -93,16 +93,17 @@ const LISTES_DE_REFERENCES: Readonly<Record<string, string>> = {
   '.narratif.presetsPnj[].profil.trappings[].choice[]': 'références de Possessions (`trappings.json`)',
 };
 
-/** Clés d'objet d'un élément de liste, à travers enveloppes ET branches d'union (`ouverts`). */
-function clesDeLElement(noeud: unknown): string[] {
-  return [...new Set(ouverts([noeud]).flatMap((n) => enfantsDe(n).flatMap((e) => (e.cle === undefined ? [] : [e.cle]))))];
+/** L'élément de liste déclare-t-il un `id` d'IDENTITÉ, à travers enveloppes ET branches d'union (`ouverts`) : une
+ *  feuille, jamais la référence emboîtée `{ id }` d'une op (`refDEtatSchema`, `grammaire/mecanique.ts`). */
+function porteUnIdDIdentite(noeud: unknown): boolean {
+  return ouverts([noeud]).some((n) => enfantsDe(n).some((e) => e.cle === 'id' && !ouverts([e.noeud]).some(estRefEmboitee)));
 }
 
-/** Listes d'objets du schéma dont l'élément déclare `id`, avec leur chemin et leur marque de clé. */
+/** Listes d'objets du schéma dont l'élément déclare un `id` d'identité, avec leur chemin et leur marque de clé. */
 function listesAId(schema: unknown): { chemin: string; cle?: string }[] {
   const out: { chemin: string; cle?: string }[] = [];
   descendre([schema], ({ noeud, def, path }) => {
-    if (def.type === 'array' && clesDeLElement(enfantsDe(noeud).find((e) => e.segment === '[]')?.noeud).includes('id')) out.push({ chemin: `${path.replace(/\|\d+/g, '')}[]`, cle: nomDe(noeud) });
+    if (def.type === 'array' && porteUnIdDIdentite(enfantsDe(noeud).find((e) => e.segment === '[]')?.noeud)) out.push({ chemin: `${path.replace(/\|\d+/g, '')}[]`, cle: nomDe(noeud) });
   });
   return out;
 }

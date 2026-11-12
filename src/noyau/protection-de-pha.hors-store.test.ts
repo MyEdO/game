@@ -32,7 +32,7 @@ const mk = (over: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
 
 const ward = (over: Partial<BattleZone> = {}): BattleZone => ({
   label: 'Protection de Phâ', tiles: [{ x: 5, y: 5 }], rounds: 3, barrier: {}, gate: 'profane',
-  perRound: [{ op: 'condition', id: 'brise', unlessCondition: 'brise' }], noCorruption: true, ...over,
+  perRound: [{ op: 'condition', id: { id: 'brise' }, unlessCondition: { id: 'brise' } }], noCorruption: true, ...over,
 });
 
 describe('isProfane (LDB 48 l.393)', () => {
@@ -103,7 +103,7 @@ describe('Protection de Phâ — incantation pose la Zone (intégration applyCas
     expect(z.barrier).toBeTruthy();
     expect(z.gate).toBe('profane');
     expect(z.noCorruption).toBe(true);
-    expect(z.perRound?.some((o) => o.op === 'condition' && o.id === 'brise')).toBe(true);
+    expect(z.perRound?.some((o) => o.op === 'condition' && o.id.id === 'brise')).toBe(true);
     expect(z.rounds).toBe(4); // (BFM 4) Rounds
     expect(z.casterId).toBe(caster.id);
     expect(z.tiles.some((t) => t.x === 7 && t.y === 7)).toBe(true); // centrée sur le lanceur (range self)

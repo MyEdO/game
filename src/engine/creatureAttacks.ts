@@ -69,7 +69,7 @@ const typesAppliques = (t: BreathTypeData): BreathTypeData[] =>
 function opsDeLaRegle(r: BreathTypeData, difficulte: Difficulty | undefined): GameOp[] {
   const value = r.trancheDeBlessures ? { value: { minimum: 1, of: { parTranche: r.trancheDeBlessures, of: { woundsDealt: true as const } } } } : {};
   return [
-    ...(r.etat ? [{ op: 'condition' as const, id: r.etat, ...value, ...(difficulte ? { difficulte } : {}) }] : []),
+    ...(r.etat ? [{ op: 'condition' as const, id: { id: r.etat }, ...value, ...(difficulte ? { difficulte } : {}) }] : []),
     ...(r.endommageLEquipement ? [{ op: 'damageWornGear' as const }] : []),
   ];
 }

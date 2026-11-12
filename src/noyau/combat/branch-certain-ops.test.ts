@@ -53,14 +53,14 @@ describe('#1117 — l’oracle d’affichage tranche ce qu’il SAIT, et se tait
   });
 
   it('Vigilance (`has talent`) RESTE décidable : porteur → sa branche, non-porteur → l’autre', () => {
-    const then: Flow = { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: 'extenue' }] } };
+    const alors: Flow = { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'extenue' } }] } };
     const branch: Flow = {
       kind: 'si', condition: { kind: 'has', who: 'target', what: 'talent', value: 'vigilance' },
-      alors: then, sinon: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: 'surpris', value: 1 }] } },
+      alors, sinon: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'surpris' }, value: 1 }] } },
     };
     const vigilant = C({ talents: [{ talentId: 'vigilance', times: 1 }] as TalentInstance[] });
-    expect(branchCertainOps(branch, vigilant)).toEqual([{ op: 'condition', id: 'extenue' }]);
-    expect(branchCertainOps(branch, C())).toEqual([{ op: 'condition', id: 'surpris', value: 1 }]);
+    expect(branchCertainOps(branch, vigilant)).toEqual([{ op: 'condition', id: { id: 'extenue' } }]);
+    expect(branchCertainOps(branch, C())).toEqual([{ op: 'condition', id: { id: 'surpris' }, value: 1 }]);
   });
 
   it('le verdict d’une Condition COMPOSÉE suit son membre le plus faible (un inconnu ⇒ inconnu)', () => {
@@ -86,9 +86,9 @@ describe('#1117 — l’objet mécanique responsable d’une branche incertaine 
   const vigilance = { kind: 'has', who: 'target', what: 'talent', value: 'vigilance' } as const;
   const secondJet = {
     kind: 'test', test: { skill: 'perception', difficulty: 'intermediaire', label: 'Vigilance' },
-    reussite: { kind: 'sequence', etapes: [] }, echec: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: 'surpris', value: 1 }] } },
+    reussite: { kind: 'sequence', etapes: [] }, echec: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'surpris' }, value: 1 }] } },
   } as unknown as Flow;
-  const surpris: Flow = { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: 'surpris', value: 1 }] } };
+  const surpris: Flow = { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'surpris' }, value: 1 }] } };
   const porteur = () => C({ talents: [{ talentId: 'vigilance', times: 1 }] as TalentInstance[] });
 
   it('un `if has talent` qui rend la main à un second jet DÉSIGNE le talent, pour son porteur seul', () => {
@@ -97,7 +97,7 @@ describe('#1117 — l’objet mécanique responsable d’une branche incertaine 
     expect(branchCertainOps(branch, porteur())).toBeUndefined();
     expect(branchBlockingEntity(branch, porteur())).toEqual({ category: 'talents', id: 'vigilance' });
     // NON-porteur : la branche est décidable (il subit l'État) → rien à désigner, les ops parlent.
-    expect(branchCertainOps(branch, C())).toEqual([{ op: 'condition', id: 'surpris', value: 1 }]);
+    expect(branchCertainOps(branch, C())).toEqual([{ op: 'condition', id: { id: 'surpris' }, value: 1 }]);
     expect(branchBlockingEntity(branch, C())).toBeUndefined();
   });
 
@@ -124,7 +124,7 @@ describe('#1117 — l’objet mécanique responsable d’une branche incertaine 
   it('une branche DÉCIDABLE ne désigne personne (ses ops parlent déjà)', () => {
     const branch: Flow = {
       kind: 'si', condition: vigilance,
-      alors: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: 'extenue' }] } },
+      alors: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'extenue' } }] } },
       sinon: surpris,
     };
     expect(branchBlockingEntity(branch, porteur())).toBeUndefined();

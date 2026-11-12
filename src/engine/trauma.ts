@@ -1041,7 +1041,7 @@ export function passiveMods(c: Combatant): PassiveMod[] {
   // `src` (séquelles) ne sont pas suspendables : rien ne les nomme.
   // (#1695) Une fenêtre de Détermination NOMME l'État qu'elle écarte (LDB 17 l.61, « Retirez un État ») :
   // le mod interrogé porte son id quand c'est une op `condition`, et lui seul tombe.
-  return out.filter((m) => !sourceSuspended(c, m.src, m.op.op === 'condition' ? m.op.id : undefined));
+  return out.filter((m) => !sourceSuspended(c, m.src, m.op.op === 'condition' ? m.op.id.id : undefined));
 }
 
 /** Ops PASSIVES de type `op` collectées (kind aplati), filtrées par mode de combinaison quand il importe :

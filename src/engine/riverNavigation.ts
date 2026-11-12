@@ -174,7 +174,7 @@ export function holeSinkMinutes(hullEndurance: number): number {
 export function riverCritical(location: string): CritDef | undefined {
   const e = RIVER_CRIT_SET.tables[location as ShipCritKey]?.[0];
   if (!e) return undefined;
-  const hasCond = (id: string) => e.ops?.some((o) => o.op === 'condition' && o.id === id) ?? false;
+  const hasCond = (id: string) => e.ops?.some((o) => o.op === 'condition' && o.id.id === id) ?? false;
   return {
     driftUntilRepair: hasCond('derive') || undefined,
     hole: hasCond('voie-d-eau') || undefined,

@@ -395,7 +395,7 @@ export const TABLES = {
         const hero = get().party.find((h) => h.id === part.id);
         const res = part.result;
         if (!hero || !res || res.success) { part.outcome = []; continue; }
-        const op: GameOp = { op: 'condition', id: 'extenue', value: 1 }; // EDOC 8 l.86/127
+        const op: GameOp = { op: 'condition', id: { id: 'extenue' }, value: 1 }; // EDOC 8 l.86/127
         applyOps(hero, [op], { idNeuf: get().forgerUnId, rng: battleRng() });
         const lines = resultLines([{ ops: [op] }]);
         part.outcome = lines;

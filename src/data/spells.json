@@ -1023,7 +1023,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "sonne"
+                "id": {
+                  "id": "sonne"
+                }
               }
             ]
           }
@@ -1248,11 +1250,15 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "aveugle"
+                "id": {
+                  "id": "aveugle"
+                }
               },
               {
                 "op": "condition",
-                "id": "aveugle",
+                "id": {
+                  "id": "aveugle"
+                },
                 "perRound": true
               }
             ]
@@ -1891,16 +1897,24 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "inconscient",
+                "id": {
+                  "id": "inconscient"
+                },
                 "durationRounds": {
                   "bonusOf": "force-mentale"
                 },
-                "onlyIfCondition": "a-terre"
+                "onlyIfCondition": {
+                  "id": "a-terre"
+                }
               },
               {
                 "op": "condition",
-                "id": "a-terre",
-                "unlessCondition": "a-terre"
+                "id": {
+                  "id": "a-terre"
+                },
+                "unlessCondition": {
+                  "id": "a-terre"
+                }
               },
               {
                 "op": "narrative",
@@ -2576,7 +2590,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "empetre",
+                "id": {
+                  "id": "empetre"
+                },
                 "valuePerSL": {
                   "every": 2,
                   "amount": 1
@@ -2813,7 +2829,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "a-terre"
+                "id": {
+                  "id": "a-terre"
+                }
               }
             ]
           }
@@ -3314,7 +3332,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "hemorragique"
+                "id": {
+                  "id": "hemorragique"
+                }
               },
               {
                 "op": "narrative",
@@ -3641,7 +3661,9 @@
                         "ops": [
                           {
                             "op": "condition",
-                            "id": "hemorragique"
+                            "id": {
+                              "id": "hemorragique"
+                            }
                           }
                         ]
                       }
@@ -3702,7 +3724,9 @@
                             "ops": [
                               {
                                 "op": "condition",
-                                "id": "hemorragique"
+                                "id": {
+                                  "id": "hemorragique"
+                                }
                               }
                             ]
                           }
@@ -3787,7 +3811,9 @@
                   },
                   {
                     "op": "condition",
-                    "id": "aveugle"
+                    "id": {
+                      "id": "aveugle"
+                    }
                   }
                 ]
               }
@@ -3845,7 +3871,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "aveugle"
+                "id": {
+                  "id": "aveugle"
+                }
               }
             ]
           }
@@ -3970,11 +3998,15 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "en-flammes"
+                "id": {
+                  "id": "en-flammes"
+                }
               },
               {
                 "op": "condition",
-                "id": "a-terre"
+                "id": {
+                  "id": "a-terre"
+                }
               },
               {
                 "op": "narrative",
@@ -4358,7 +4390,9 @@
               },
               {
                 "op": "removeCondition",
-                "id": "hemorragique",
+                "id": {
+                  "id": "hemorragique"
+                },
                 "value": 99
               },
               {
@@ -4413,7 +4447,9 @@
                     "ops": [
                       {
                         "op": "condition",
-                        "id": "inconscient"
+                        "id": {
+                          "id": "inconscient"
+                        }
                       }
                     ]
                   }
@@ -4484,12 +4520,16 @@
             "ops": [
               {
                 "op": "removeCondition",
-                "id": "brise",
+                "id": {
+                  "id": "brise"
+                },
                 "value": 99
               },
               {
                 "op": "removeCondition",
-                "id": "extenue",
+                "id": {
+                  "id": "extenue"
+                },
                 "value": 99
               },
               {
@@ -4641,12 +4681,16 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "en-flammes",
+                "id": {
+                  "id": "en-flammes"
+                },
                 "value": 2
               },
               {
                 "op": "condition",
-                "id": "a-terre"
+                "id": {
+                  "id": "a-terre"
+                }
               },
               {
                 "op": "narrative",
@@ -4682,7 +4726,9 @@
                   },
                   {
                     "op": "condition",
-                    "id": "en-flammes"
+                    "id": {
+                      "id": "en-flammes"
+                    }
                   }
                 ]
               }
@@ -4839,7 +4885,9 @@
                         "ops": [
                           {
                             "op": "condition",
-                            "id": "en-flammes"
+                            "id": {
+                              "id": "en-flammes"
+                            }
                           }
                         ]
                       }
@@ -4934,7 +4982,9 @@
                   },
                   {
                     "op": "condition",
-                    "id": "en-flammes"
+                    "id": {
+                      "id": "en-flammes"
+                    }
                   }
                 ]
               }
@@ -5004,7 +5054,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "en-flammes",
+                "id": {
+                  "id": "en-flammes"
+                },
                 "value": 0,
                 "valuePerSL": {
                   "every": 1,
@@ -5641,7 +5693,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "sonne"
+                "id": {
+                  "id": "sonne"
+                }
               },
               {
                 "op": "narrative",
@@ -5700,7 +5754,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "aveugle",
+                "id": {
+                  "id": "aveugle"
+                },
                 "value": 0,
                 "valuePerSL": {
                   "every": 1,
@@ -6007,8 +6063,12 @@
                 "perRound": [
                   {
                     "op": "condition",
-                    "id": "brise",
-                    "unlessCondition": "brise"
+                    "id": {
+                      "id": "brise"
+                    },
+                    "unlessCondition": {
+                      "id": "brise"
+                    }
                   }
                 ]
               }
@@ -6498,17 +6558,23 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "aveugle",
+                "id": {
+                  "id": "aveugle"
+                },
                 "carried": true
               },
               {
                 "op": "condition",
-                "id": "assourdi",
+                "id": {
+                  "id": "assourdi"
+                },
                 "carried": true
               },
               {
                 "op": "condition",
-                "id": "sonne",
+                "id": {
+                  "id": "sonne"
+                },
                 "carried": true
               },
               {
@@ -6955,7 +7021,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "extenue"
+                "id": {
+                  "id": "extenue"
+                }
               }
             ]
           }
@@ -6968,7 +7036,9 @@
             "ops": [
               {
                 "op": "removeCondition",
-                "id": "extenue",
+                "id": {
+                  "id": "extenue"
+                },
                 "value": 99
               }
             ]
@@ -7046,7 +7116,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "brise"
+                "id": {
+                  "id": "brise"
+                }
               },
               {
                 "op": "narrative",
@@ -7402,17 +7474,23 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "aveugle",
+                "id": {
+                  "id": "aveugle"
+                },
                 "carried": true
               },
               {
                 "op": "condition",
-                "id": "assourdi",
+                "id": {
+                  "id": "assourdi"
+                },
                 "carried": true
               },
               {
                 "op": "condition",
-                "id": "extenue",
+                "id": {
+                  "id": "extenue"
+                },
                 "carried": true
               },
               {
@@ -7476,7 +7554,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "extenue"
+                "id": {
+                  "id": "extenue"
+                }
               },
               {
                 "op": "suffocate"
@@ -7935,11 +8015,15 @@
                 "onCross": [
                   {
                     "op": "condition",
-                    "id": "hemorragique"
+                    "id": {
+                      "id": "hemorragique"
+                    }
                   },
                   {
                     "op": "condition",
-                    "id": "empetre",
+                    "id": {
+                      "id": "empetre"
+                    },
                     "escapeStrength": {
                       "charOf": "force-mentale"
                     }
@@ -8756,7 +8840,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "extenue"
+                "id": {
+                  "id": "extenue"
+                }
               },
               {
                 "op": "narrative",
@@ -9125,7 +9211,9 @@
               "ops": [
                 {
                   "op": "condition",
-                  "id": "brise"
+                  "id": {
+                    "id": "brise"
+                  }
                 }
               ]
             }
@@ -10236,7 +10324,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "en-flammes"
+                "id": {
+                  "id": "en-flammes"
+                }
               },
               {
                 "op": "narrative",
@@ -10287,7 +10377,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "en-flammes"
+                "id": {
+                  "id": "en-flammes"
+                }
               },
               {
                 "op": "narrative",
@@ -10613,7 +10705,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "sonne",
+                "id": {
+                  "id": "sonne"
+                },
                 "value": 1,
                 "valuePerSL": {
                   "every": 1,
@@ -10720,7 +10814,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "a-terre"
+                "id": {
+                  "id": "a-terre"
+                }
               },
               {
                 "op": "narrative",
@@ -10773,7 +10869,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "a-terre"
+                "id": {
+                  "id": "a-terre"
+                }
               },
               {
                 "op": "narrative",
@@ -10848,7 +10946,9 @@
                   "ops": [
                     {
                       "op": "condition",
-                      "id": "a-terre"
+                      "id": {
+                        "id": "a-terre"
+                      }
                     }
                   ]
                 }
@@ -11043,15 +11143,21 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "aveugle"
+                "id": {
+                  "id": "aveugle"
+                }
               },
               {
                 "op": "condition",
-                "id": "assourdi"
+                "id": {
+                  "id": "assourdi"
+                }
               },
               {
                 "op": "condition",
-                "id": "extenue"
+                "id": {
+                  "id": "extenue"
+                }
               },
               {
                 "op": "narrative",
@@ -11152,7 +11258,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "extenue"
+                "id": {
+                  "id": "extenue"
+                }
               },
               {
                 "op": "suffocate"
@@ -11744,7 +11852,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "aveugle",
+                "id": {
+                  "id": "aveugle"
+                },
                 "value": 1,
                 "valuePerSL": {
                   "every": 2,
@@ -12802,7 +12912,9 @@
             "ops": [
               {
                 "op": "removeCondition",
-                "id": "empoisonne",
+                "id": {
+                  "id": "empoisonne"
+                },
                 "value": 99
               },
               {
@@ -13130,7 +13242,9 @@
               },
               {
                 "op": "condition",
-                "id": "en-flammes"
+                "id": {
+                  "id": "en-flammes"
+                }
               },
               {
                 "op": "narrative",
@@ -13191,7 +13305,9 @@
               },
               {
                 "op": "condition",
-                "id": "en-flammes",
+                "id": {
+                  "id": "en-flammes"
+                },
                 "onlyGroups": [
                   "mort-vivant",
                   "demon"
@@ -13244,7 +13360,9 @@
             "ops": [
               {
                 "op": "removeCondition",
-                "id": "brise",
+                "id": {
+                  "id": "brise"
+                },
                 "value": 99
               },
               {
@@ -13317,11 +13435,15 @@
                         "ops": [
                           {
                             "op": "condition",
-                            "id": "en-flammes"
+                            "id": {
+                              "id": "en-flammes"
+                            }
                           },
                           {
                             "op": "condition",
-                            "id": "a-terre"
+                            "id": {
+                              "id": "a-terre"
+                            }
                           }
                         ]
                       }
@@ -13599,7 +13721,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "empetre",
+                "id": {
+                  "id": "empetre"
+                },
                 "value": 1,
                 "valuePerSL": {
                   "every": 2,
@@ -14087,7 +14211,9 @@
                           "ops": [
                             {
                               "op": "condition",
-                              "id": "sonne"
+                              "id": {
+                                "id": "sonne"
+                              }
                             }
                           ]
                         }
@@ -14192,7 +14318,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "empetre"
+                "id": {
+                  "id": "empetre"
+                }
               },
               {
                 "op": "narrative",
@@ -14282,7 +14410,9 @@
                           "ops": [
                             {
                               "op": "condition",
-                              "id": "inconscient"
+                              "id": {
+                                "id": "inconscient"
+                              }
                             }
                           ]
                         }
@@ -14560,7 +14690,9 @@
                 },
                 {
                   "op": "condition",
-                  "id": "empoisonne"
+                  "id": {
+                    "id": "empoisonne"
+                  }
                 }
               ]
             }
@@ -14672,7 +14804,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "empetre",
+                "id": {
+                  "id": "empetre"
+                },
                 "value": 1,
                 "valuePerSL": {
                   "every": 2,
@@ -15902,7 +16036,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "empetre",
+                "id": {
+                  "id": "empetre"
+                },
                 "value": 2,
                 "escapeStrength": {
                   "charOf": "force-mentale"
@@ -15922,7 +16058,9 @@
               "ops": [
                 {
                   "op": "condition",
-                  "id": "empetre",
+                  "id": {
+                    "id": "empetre"
+                  },
                   "value": 0,
                   "valuePerSL": {
                     "every": 1,
@@ -16498,7 +16636,9 @@
               "ops": [
                 {
                   "op": "condition",
-                  "id": "aveugle",
+                  "id": {
+                    "id": "aveugle"
+                  },
                   "value": 1
                 }
               ]
@@ -16513,7 +16653,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "sonne",
+                "id": {
+                  "id": "sonne"
+                },
                 "value": 1,
                 "onlyGroups": [
                   "demon"
@@ -18175,7 +18317,9 @@
               },
               {
                 "op": "condition",
-                "id": "hemorragique"
+                "id": {
+                  "id": "hemorragique"
+                }
               }
             ]
           }
@@ -18195,7 +18339,9 @@
                 "onCross": [
                   {
                     "op": "condition",
-                    "id": "hemorragique"
+                    "id": {
+                      "id": "hemorragique"
+                    }
                   }
                 ],
                 "crossTest": {
@@ -18446,11 +18592,15 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "a-terre"
+                "id": {
+                  "id": "a-terre"
+                }
               },
               {
                 "op": "condition",
-                "id": "sonne",
+                "id": {
+                  "id": "sonne"
+                },
                 "value": 0,
                 "valuePerSL": {
                   "every": 2,
@@ -18636,7 +18786,9 @@
             "ops": [
               {
                 "op": "removeCondition",
-                "id": "en-flammes",
+                "id": {
+                  "id": "en-flammes"
+                },
                 "all": true
               },
               {
@@ -19531,7 +19683,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "a-terre"
+                "id": {
+                  "id": "a-terre"
+                }
               }
             ]
           }
@@ -19600,7 +19754,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "sonne"
+                "id": {
+                  "id": "sonne"
+                }
               }
             ]
           }
@@ -20208,7 +20364,9 @@
                     "ops": [
                       {
                         "op": "condition",
-                        "id": "extenue"
+                        "id": {
+                          "id": "extenue"
+                        }
                       }
                     ]
                   },
@@ -20343,7 +20501,9 @@
                       "ops": [
                         {
                           "op": "condition",
-                          "id": "a-terre"
+                          "id": {
+                            "id": "a-terre"
+                          }
                         },
                         {
                           "op": "narrative",
@@ -21108,7 +21268,9 @@
                   "ops": [
                     {
                       "op": "condition",
-                      "id": "inconscient"
+                      "id": {
+                        "id": "inconscient"
+                      }
                     }
                   ]
                 }
@@ -21136,7 +21298,9 @@
                         "ops": [
                           {
                             "op": "condition",
-                            "id": "extenue"
+                            "id": {
+                              "id": "extenue"
+                            }
                           }
                         ]
                       }
@@ -21497,7 +21661,9 @@
                   "ops": [
                     {
                       "op": "condition",
-                      "id": "sonne"
+                      "id": {
+                        "id": "sonne"
+                      }
                     },
                     {
                       "op": "wounds",
@@ -21877,7 +22043,9 @@
                   "ops": [
                     {
                       "op": "condition",
-                      "id": "sonne"
+                      "id": {
+                        "id": "sonne"
+                      }
                     }
                   ]
                 }
@@ -22367,7 +22535,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "en-flammes"
+                "id": {
+                  "id": "en-flammes"
+                }
               },
               {
                 "op": "wounds",
@@ -22479,7 +22649,9 @@
                   "ops": [
                     {
                       "op": "condition",
-                      "id": "a-terre"
+                      "id": {
+                        "id": "a-terre"
+                      }
                     }
                   ]
                 }
@@ -22890,7 +23062,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "en-flammes",
+                "id": {
+                  "id": "en-flammes"
+                },
                 "value": 2
               },
               {
@@ -23019,7 +23193,9 @@
                   "ops": [
                     {
                       "op": "condition",
-                      "id": "sonne",
+                      "id": {
+                        "id": "sonne"
+                      },
                       "value": 3
                     }
                   ]
@@ -23211,7 +23387,9 @@
                 "perRound": [
                   {
                     "op": "condition",
-                    "id": "extenue"
+                    "id": {
+                      "id": "extenue"
+                    }
                   }
                 ]
               }
@@ -23336,7 +23514,9 @@
                   "ops": [
                     {
                       "op": "condition",
-                      "id": "aveugle",
+                      "id": {
+                        "id": "aveugle"
+                      },
                       "value": 2
                     },
                     {
@@ -23411,12 +23591,16 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "en-flammes",
+                "id": {
+                  "id": "en-flammes"
+                },
                 "value": 3
               },
               {
                 "op": "condition",
-                "id": "a-terre"
+                "id": {
+                  "id": "a-terre"
+                }
               },
               {
                 "op": "narrative",
@@ -23479,7 +23663,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "en-flammes",
+                "id": {
+                  "id": "en-flammes"
+                },
                 "value": 2
               }
             ]
@@ -23559,7 +23745,9 @@
                   "ops": [
                     {
                       "op": "condition",
-                      "id": "en-flammes"
+                      "id": {
+                        "id": "en-flammes"
+                      }
                     }
                   ]
                 }
@@ -23893,11 +24081,15 @@
               "ops": [
                 {
                   "op": "condition",
-                  "id": "hemorragique"
+                  "id": {
+                    "id": "hemorragique"
+                  }
                 },
                 {
                   "op": "condition",
-                  "id": "empetre",
+                  "id": {
+                    "id": "empetre"
+                  },
                   "escapeStrength": 30
                 }
               ]
@@ -24105,7 +24297,9 @@
             "ops": [
               {
                 "op": "removeCondition",
-                "id": "brise",
+                "id": {
+                  "id": "brise"
+                },
                 "value": 1,
                 "valuePerSL": {
                   "every": 1,
@@ -24593,7 +24787,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "empetre",
+                "id": {
+                  "id": "empetre"
+                },
                 "escapeStrength": 50
               },
               {
@@ -25171,7 +25367,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "empetre",
+                "id": {
+                  "id": "empetre"
+                },
                 "valuePerSL": {
                   "every": 2,
                   "amount": 1
@@ -25203,7 +25401,9 @@
               "ops": [
                 {
                   "op": "condition",
-                  "id": "extenue"
+                  "id": {
+                    "id": "extenue"
+                  }
                 }
               ]
             }
@@ -25272,17 +25472,23 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "aveugle",
+                "id": {
+                  "id": "aveugle"
+                },
                 "carried": true
               },
               {
                 "op": "condition",
-                "id": "assourdi",
+                "id": {
+                  "id": "assourdi"
+                },
                 "carried": true
               },
               {
                 "op": "condition",
-                "id": "extenue",
+                "id": {
+                  "id": "extenue"
+                },
                 "carried": true
               }
             ]
@@ -25406,7 +25612,9 @@
               "ops": [
                 {
                   "op": "condition",
-                  "id": "extenue"
+                  "id": {
+                    "id": "extenue"
+                  }
                 }
               ]
             }
@@ -25511,11 +25719,15 @@
               "ops": [
                 {
                   "op": "condition",
-                  "id": "aveugle"
+                  "id": {
+                    "id": "aveugle"
+                  }
                 },
                 {
                   "op": "condition",
-                  "id": "extenue"
+                  "id": {
+                    "id": "extenue"
+                  }
                 }
               ]
             }
@@ -26686,7 +26898,9 @@
               "ops": [
                 {
                   "op": "condition",
-                  "id": "sonne"
+                  "id": {
+                    "id": "sonne"
+                  }
                 }
               ]
             }
@@ -26762,7 +26976,9 @@
               "ops": [
                 {
                   "op": "condition",
-                  "id": "sonne"
+                  "id": {
+                    "id": "sonne"
+                  }
                 }
               ]
             }
@@ -27034,7 +27250,9 @@
                         "ops": [
                           {
                             "op": "condition",
-                            "id": "empoisonne"
+                            "id": {
+                              "id": "empoisonne"
+                            }
                           }
                         ]
                       }
@@ -27404,7 +27622,9 @@
             "ops": [
               {
                 "op": "removeCondition",
-                "id": "brise",
+                "id": {
+                  "id": "brise"
+                },
                 "all": true
               },
               {
@@ -27531,7 +27751,9 @@
                 "ops": [
                   {
                     "op": "condition",
-                    "id": "sonne"
+                    "id": {
+                      "id": "sonne"
+                    }
                   }
                 ]
               }
@@ -27583,7 +27805,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "extenue"
+                "id": {
+                  "id": "extenue"
+                }
               },
               {
                 "op": "narrative",
@@ -27635,11 +27859,15 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "a-terre"
+                "id": {
+                  "id": "a-terre"
+                }
               },
               {
                 "op": "condition",
-                "id": "sonne",
+                "id": {
+                  "id": "sonne"
+                },
                 "value": 1,
                 "valuePerSL": {
                   "every": 1,
@@ -27881,7 +28109,9 @@
             "ops": [
               {
                 "op": "removeCondition",
-                "id": "brise",
+                "id": {
+                  "id": "brise"
+                },
                 "all": true
               },
               {
@@ -27950,7 +28180,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "empetre",
+                "id": {
+                  "id": "empetre"
+                },
                 "value": 0,
                 "valuePerSL": {
                   "every": 1,

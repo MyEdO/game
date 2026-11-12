@@ -265,7 +265,9 @@
               "ops": [
                 {
                   "op": "condition",
-                  "id": "brise"
+                  "id": {
+                    "id": "brise"
+                  }
                 }
               ]
             }
@@ -356,10 +358,14 @@
                 "ops": [
                   {
                     "op": "condition",
-                    "id": "empetre",
+                    "id": {
+                      "id": "empetre"
+                    },
                     "value": 1,
                     "grapple": true,
-                    "unlessCondition": "empetre",
+                    "unlessCondition": {
+                      "id": "empetre"
+                    },
                     "escapeStrength": {
                       "charOf": "force"
                     }
@@ -1382,9 +1388,13 @@
               "ops": [
                 {
                   "op": "condition",
-                  "id": "brise",
+                  "id": {
+                    "id": "brise"
+                  },
                   "value": 3,
-                  "unlessCondition": "brise"
+                  "unlessCondition": {
+                    "id": "brise"
+                  }
                 }
               ]
             }
@@ -1647,7 +1657,9 @@
                         },
                         {
                           "op": "removeCondition",
-                          "id": "inconscient",
+                          "id": {
+                            "id": "inconscient"
+                          },
                           "value": 99
                         }
                       ]
@@ -1917,9 +1929,13 @@
                 "ops": [
                   {
                     "op": "condition",
-                    "id": "empetre",
+                    "id": {
+                      "id": "empetre"
+                    },
                     "value": 1,
-                    "unlessCondition": "empetre",
+                    "unlessCondition": {
+                      "id": "empetre"
+                    },
                     "escapeStrength": {
                       "charOf": "force"
                     }
@@ -2019,7 +2035,9 @@
               "ops": [
                 {
                   "op": "condition",
-                  "id": "empoisonne",
+                  "id": {
+                    "id": "empoisonne"
+                  },
                   "argDifficulty": true
                 }
               ]
@@ -2273,7 +2291,9 @@
               "ops": [
                 {
                   "op": "condition",
-                  "id": "empetre",
+                  "id": {
+                    "id": "empetre"
+                  },
                   "value": {
                     "bonusOf": "force"
                   },
@@ -2281,7 +2301,9 @@
                 },
                 {
                   "op": "condition",
-                  "id": "digere"
+                  "id": {
+                    "id": "digere"
+                  }
                 }
               ]
             }
@@ -2787,10 +2809,14 @@
               "ops": [
                 {
                   "op": "condition",
-                  "id": "empetre",
+                  "id": {
+                    "id": "empetre"
+                  },
                   "value": 1,
                   "grapple": true,
-                  "unlessCondition": "empetre",
+                  "unlessCondition": {
+                    "id": "empetre"
+                  },
                   "escapeStrength": {
                     "charOf": "force"
                   }
@@ -2852,12 +2878,16 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "empetre",
+                "id": {
+                  "id": "empetre"
+                },
                 "value": {
                   "charOf": "force"
                 },
                 "grapple": true,
-                "unlessCondition": "empetre",
+                "unlessCondition": {
+                  "id": "empetre"
+                },
                 "escapeStrength": {
                   "charOf": "force"
                 }
@@ -2877,7 +2907,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "empetre",
+                "id": {
+                  "id": "empetre"
+                },
                 "value": 1
               },
               {
@@ -2927,7 +2959,9 @@
               "ops": [
                 {
                   "op": "condition",
-                  "id": "sonne",
+                  "id": {
+                    "id": "sonne"
+                  },
                   "value": 0,
                   "valuePerSL": {
                     "every": 1,
@@ -2995,7 +3029,9 @@
               "ops": [
                 {
                   "op": "condition",
-                  "id": "hemorragique",
+                  "id": {
+                    "id": "hemorragique"
+                  },
                   "value": 1
                 }
               ]
@@ -3192,7 +3228,9 @@
             "ops": [
               {
                 "op": "condition",
-                "id": "extenue",
+                "id": {
+                  "id": "extenue"
+                },
                 "value": 1
               }
             ]

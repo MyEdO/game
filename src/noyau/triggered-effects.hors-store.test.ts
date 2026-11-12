@@ -73,7 +73,7 @@ describe('fireTriggers — Traits et Atouts sur le même système flow+déclench
     const porteur = mk({ id: 'po' });
     const victime = mk({ id: 'vi' });
     // Les DEUX branches portent la même feuille : l'issue du jet (tiré par la voie inline) n'entre pas dans la mesure.
-    const surLePorteur = { kind: 'effet', effet: { type: 'ops', on: 'caster', ops: [{ op: 'condition', id: 'a-terre' }] } };
+    const surLePorteur = { kind: 'effet', effet: { type: 'ops', on: 'caster', ops: [{ op: 'condition', id: { id: 'a-terre' } }] } };
     const flow = { kind: 'test', test: { characteristic: 'force' }, reussite: surLePorteur, echec: surLePorteur } as unknown as Flow;
     applyTriggeredEffects(noBattle(), porteur, [{ trigger: 'onHit', on: 'victim', flow }], 'onHit', { victim: victime, rng: makeRNG(1) });
     expect(porteur.conditions.map((c) => c.id), 'la feuille `on:caster` doit atteindre le PORTEUR').toEqual(['a-terre']);
@@ -89,7 +89,7 @@ describe('fireTriggers — Traits et Atouts sur le même système flow+déclench
         kind: 'test',
         test: { characteristic: 'force', skill: { id: 'athletisme' } },
         reussite: { kind: 'sequence', etapes: [] },
-        echec: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: 'a-terre' }] } },
+        echec: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'a-terre' } }] } },
       },
       non: { kind: 'sequence', etapes: [] },
     } as Flow;
@@ -106,10 +106,10 @@ describe('fireTriggers — Traits et Atouts sur le même système flow+déclench
     const flow: Flow = {
       kind: 'sequence',
       etapes: [
-        { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: 'hemorragique' }] } },
+        { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'hemorragique' } }] } },
         {
           kind: 'choix', prompt: 'Ouvrir la plaie', advantageCost: 1,
-          oui: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: 'hemorragique' }] } },
+          oui: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'hemorragique' } }] } },
         },
       ],
     } as Flow;
@@ -229,7 +229,7 @@ describe('fireTriggers — Traits et Atouts sur le même système flow+déclench
         kind: 'effet',
         effet: { type: 'ops', on: 'target', ops: [
           { op: 'wounds', amount: { dice: { n: 1, sides: 10 } } },
-          { op: 'condition', id: 'empetre', value: 1 },
+          { op: 'condition', id: { id: 'empetre' }, value: 1 },
         ] },
       }],
     };
@@ -502,7 +502,7 @@ describe('Test déclenché INLINE : la pénalité d’État lit la Compétence t
     const porteur = mk({ id: 'po' });
     const victime = mk({ id: 'vi' });
     if (victimeATerre) victime.conditions = [{ id: 'a-terre', value: 1 }] as never;
-    const sur = (id: string) => ({ kind: 'effet', effet: { type: 'ops', on: 'caster', ops: [{ op: 'condition', id }] } });
+    const sur = (id: string) => ({ kind: 'effet', effet: { type: 'ops', on: 'caster', ops: [{ op: 'condition', id: { id } }] } });
     const flow = { kind: 'test', test: { characteristic: 'agilite', skill: { id: 'athletisme' } }, reussite: sur('sonne'), echec: sur('aveugle') } as unknown as Flow;
     applyTriggeredEffects(noBattle(), porteur, [{ trigger: 'onHit', on: 'victim', flow }], 'onHit', { victim: victime, rng: de20 });
     return porteur.conditions.map((c) => c.id);
@@ -525,22 +525,22 @@ describe('Traits conférés par une attaque, Difficulté portée par l’État',
   });
   it('l’op `condition` fige sa Difficulté sur l’État posé', () => {
     const cible = mk({ id: 'ci' });
-    applyOps(cible, [{ op: 'condition', id: 'empoisonne', difficulte: 'difficile' }], { idNeuf: idsDeTest, rng: makeRNG(1) });
+    applyOps(cible, [{ op: 'condition', id: { id: 'empoisonne' }, difficulte: 'difficile' }], { idNeuf: idsDeTest, rng: makeRNG(1) });
     expect(cible.conditions.find((x) => x.id === 'empoisonne')?.difficulte).toBe('difficile');
   });
   // (#3060 ; LDB 16 l.70) Difficulté la plus dure des poisons cumulés.
   it('des poisons de Difficultés différentes laissent à l’État la plus dure, dans les deux ordres', () => {
     for (const ordre of [['facile', 'difficile'], ['difficile', 'facile']] as const) {
       const cible = mk({ id: 'ci' });
-      for (const difficulte of ordre) applyOps(cible, [{ op: 'condition', id: 'empoisonne', difficulte }], { idNeuf: idsDeTest, rng: makeRNG(1) });
+      for (const difficulte of ordre) applyOps(cible, [{ op: 'condition', id: { id: 'empoisonne' }, difficulte }], { idNeuf: idsDeTest, rng: makeRNG(1) });
       expect(cible.conditions.find((x) => x.id === 'empoisonne'), ordre.join(' puis ')).toMatchObject({ value: 2, difficulte: 'difficile' });
     }
   });
   it('l’État `argDifficulty` d’un Trait prend la Difficulté de l’arg, et reste posé sans arg (LDB 85 l.423, l.425)', () => {
     const opsDuVenin = (arg?: string) => effectSourcesOf(mk({ traits: [{ id: 'venin', ...(arg ? { arg } : {}) }] }))
       .find((s) => s.key === 'trait:venin')!.effects.flatMap((e) => spellEffectOps(e.flow));
-    expect(opsDuVenin('difficile')).toEqual([{ op: 'condition', id: 'empoisonne', difficulte: 'difficile' }]);
-    expect(opsDuVenin()).toEqual([{ op: 'condition', id: 'empoisonne' }]);
+    expect(opsDuVenin('difficile')).toEqual([{ op: 'condition', id: { id: 'empoisonne' }, difficulte: 'difficile' }]);
+    expect(opsDuVenin()).toEqual([{ op: 'condition', id: { id: 'empoisonne' } }]);
   });
   it('le Test qui élimine Empoisonné prend la Difficulté que l’État porte', () => {
     const difficulteDuTest = (c: Combatant) => effectSourcesOf(c).find((s) => s.key === 'cond:empoisonne')!.effects

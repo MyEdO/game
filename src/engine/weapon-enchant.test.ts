@@ -82,7 +82,7 @@ describe('augmentWeapon — enchantement porté par l’arme, replié dans c.wea
     const fighter = wielder(weaponItem('w', 'Épée', '+BF+4'), { id: 'f' });
     applyOps(fighter, [{
       op: 'augmentWeapon', addQualities: ['magique'], damageBonus: { bonusOf: 'sociabilite' },
-      onHitEffects: [onHitFlow([{ op: 'condition', id: 'en-flammes' }, { op: 'condition', id: 'a-terre' }])],
+      onHitEffects: [onHitFlow([{ op: 'condition', id: { id: 'en-flammes' } }, { op: 'condition', id: { id: 'a-terre' } }])],
     }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Marteau ardent de Sigmar', caster: priest, defaultDurationRounds: 4 });
     expect(effectiveWeaponDamage(fighter.weapons[0], { bf: 3, passif: 0 })).toBe(3 + 4 + 4); // BF 3 + arme 4 + BSoc 4 du prêtre
     expect(isMagicWeapon(fighter.weapons[0])).toBe(true);
@@ -94,7 +94,7 @@ describe('augmentWeapon — enchantement porté par l’arme, replié dans c.wea
 
   it('Épée ardente de Rhuin : +6 et Percutante s’apposent, et l’enchantement EXPIRE (objet nettoyé)', () => {
     const c = wielder(weaponItem('w', 'Épée', '+BF+4'));
-    applyOps(c, [{ op: 'augmentWeapon', addQualities: ['percutante'], damageBonus: 6, onHitEffects: [onHitFlow([{ op: 'condition', id: 'en-flammes' }])] }], { idNeuf: idsDeTest, rng: desDuTest,
+    applyOps(c, [{ op: 'augmentWeapon', addQualities: ['percutante'], damageBonus: 6, onHitEffects: [onHitFlow([{ op: 'condition', id: { id: 'en-flammes' } }])] }], { idNeuf: idsDeTest, rng: desDuTest,
       label: 'Épée ardente de Rhuin', defaultDurationRounds: 1,
     });
     expect(c.weapons[0].qualities.some((q) => q.id === 'percutante')).toBe(true);
@@ -128,7 +128,7 @@ describe('augmentWeapon — enchantement porté par l’arme, replié dans c.wea
       kind: 'test',
       test: { skill: { id: 'resistance' }, difficulty: 'accessible', onlyGroups: ['criminel'] },
       reussite: { kind: 'sequence', etapes: [] },
-      echec: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: 'inconscient' }] } },
+      echec: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'inconscient' } }] } },
     };
     const c = wielder(weaponItem('w', 'Épée', '+BF+4'));
     applyOps(c, [{

@@ -18,7 +18,7 @@ const SANS_DIFFICULTE = {
   kind: 'test',
   test: { skill: { id: 'athletisme' } },
   reussite: { kind: 'sequence', etapes: [] },
-  echec: { kind: 'effet', effet: { type: 'ops', ops: [{ op: 'condition', id: 'a-terre', value: 1 }], on: 'target' } },
+  echec: { kind: 'effet', effet: { type: 'ops', ops: [{ op: 'condition', id: { id: 'a-terre' }, value: 1 }], on: 'target' } },
 };
 
 const AVEC_DIFFICULTE = { ...SANS_DIFFICULTE, test: { ...SANS_DIFFICULTE.test, difficulty: 'intermediaire' } };

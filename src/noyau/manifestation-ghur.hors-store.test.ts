@@ -46,7 +46,7 @@ const spell = (domainId: string) =>
       kind: 'sequence',
       etapes: [{
         kind: 'effet',
-        effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: 'aveugle' }, { op: 'charMod', characteristic: 'capacite-de-combat', mod: -10 }] },
+        effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'aveugle' } }, { op: 'charMod', characteristic: 'capacite-de-combat', mod: -10 }] },
       }],
     },
     family: 'arcane',

@@ -463,11 +463,11 @@ export type GameOp =
    *  avec `durationMinutes`/`durationHours` est REFUSÉ à l'application. Les gates
    *  `onlyIfCondition`/`unlessCondition` voyagent avec l'op récurrente : ils sont évalués à CHAQUE
    *  fin de Round (`LDB 40 l.75`, `LDB 16 l.117`). */
-  | { op: 'condition'; id: string; value?: Formula; durationRounds?: Formula; perRound?: boolean; valuePerSL?: PerSL; onlyGroups?: string[];
+  | { op: 'condition'; id: { id: string }; value?: Formula; durationRounds?: Formula; perRound?: boolean; valuePerSL?: PerSL; onlyGroups?: string[];
       /** Gates d'État (Sommeil, LDB 47 : « Si la cible possède un État À Terre, elle gagne
        *  Inconscient » / sinon « gagnant l'État À Terre ») : appliqué seulement si la cible
        *  porte (`onlyIfCondition`) / ne porte pas (`unlessCondition`) l'État nommé. */
-      onlyIfCondition?: string; unlessCondition?: string;
+      onlyIfCondition?: { id: string }; unlessCondition?: { id: string };
       /** Force d'évasion d'un État à Test opposé (Empêtré : « se libérer » contre cette Force, LDB 16
        *  l.66) — résolue contre le RÉFÉRENT (`ctx.caster ?? target`) À L'APPLICATION et FIGÉE sur l'entrée
        *  de condition. Ex. `{ charOf: 'force-mentale' }` du lanceur (Enchevêtrement de Taal, Toile surprise : « la
@@ -534,7 +534,7 @@ export type GameOp =
   /** Retrait d'États : `id` absent = au choix de la cible (1er État porté). `valuePerSL` : échelle
    *  « +1 par +N DR » ajoutée à `value` (Mâchoires d'acier : « chaque DR supprime un État Sonné
    *  supplémentaire », LDB 10) — inerte si absent (calque op `condition`). */
-  | { op: 'removeCondition'; id?: string; value?: Formula; valuePerSL?: PerSL; all?: boolean }
+  | { op: 'removeCondition'; id?: { id: string }; value?: Formula; valuePerSL?: PerSL; all?: boolean }
   /** Met fin à un état PSYCHOLOGIQUE porté (collection `psychState`, DISTINCTE de `conditions` : pas de perte
    *  d'Avantage, LDB 21 ≠ LDB 16) : ceux du `type`, ou l'instance de l'effet qui porte l'op (`instance`,
    *  `OpsCtx.affliction`). Une affliction CIBLÉE finit DÉSACTIVÉE : son marqueur de rencontre reste (LDB 21
@@ -1600,12 +1600,15 @@ function sansDuree<T extends OpDuree>(o: T): T {
  * CAUSE PERSISTANTE (`LDB 16 l.117`) : une op `condition` RÉCURRENTE gatée sur l'État qu'elle pose —
  * le porteur ne subit pas un État de plus par Round, il le REGAGNE tant que la cause dure. UNIQUE
  * définition du prédicat : l'application (journal) et les lecteurs du Codex (`noyau/codex/opRows.ts`,
- * `humanize.ts`, `registry.ts`) l'importent d'ici. Accepte aussi la forme PLATE du dialecte miscast
- * (`data/miscast.json`, `engine/miscast.ts`), dont les champs portent les mêmes noms.
+ * `humanize.ts`, `registry.ts`) l'importent d'ici. Accepte aussi le dialecte miscast
+ * (`data/miscast.json`, `engine/miscast.ts`), dont les champs portent les mêmes noms et la même forme.
  */
-export function estCausePersistante(o: { op?: unknown; id?: unknown; perRound?: unknown; unlessCondition?: unknown }): boolean {
-  return o.op === 'condition' && o.perRound === true && typeof o.id === 'string' && o.unlessCondition === o.id;
+export function estCausePersistante(o: { op?: unknown; perRound?: unknown }): boolean {
+  return o.perRound === true && estPoseDEtat(o) && o.unlessCondition?.id === o.id.id;
 }
+
+/** L'op pose-t-elle un État ? Une op `condition` du `GameOp` comme du dialecte miscast. */
+export const estPoseDEtat = (o: { op?: unknown }): o is { op: 'condition'; id: { id: string }; unlessCondition?: { id: string } } => o.op === 'condition';
 
 /** Message UNIQUE du refus « récurrence à l'horloge » — rendu au PARSE (`data/schemas/grammaire/mecanique.ts`)
  *  et à l'application (`applyOps`), mot pour mot. */
@@ -1933,7 +1936,7 @@ function comptePositif(base: number, perSL: PerSL | undefined, ctx: ContexteDeRe
 export function opSansObjet(c: Combatant, o: GameOp, ctx: ContexteDeRetrait = {}): string | null {
   switch (o.op) {
     case 'removeCondition': {
-      const id = o.id ?? c.conditions[0]?.id;
+      const id = o.id?.id ?? c.conditions[0]?.id;
       if (!id) return t('op.sansEtatARetirer', { name: c.label });
       return pionsRetirables(c, id) > 0 ? null : t('op.sansPionDEtatARetirer', { name: c.label, cond: conditionLabel(id) });
     }
@@ -2101,15 +2104,16 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         break;
       }
       case 'condition': {
+        const id = o.id.id;
         if (!groupGate(o.onlyGroups)) break;
         if (o.grapple && !peutEtreEmpoigne(target)) break; // #1595 c.6230022636
-        if (o.perRound && aUneHorloge(o)) throw new Error(messageRecurrenceHorloge(o.id));
+        if (o.perRound && aUneHorloge(o)) throw new Error(messageRecurrenceHorloge(id));
         // Gates d'État (Sommeil, LDB 47) : l'op ne s'applique que si la cible porte / ne porte pas
         // l'État — évalués à CHAQUE application. Sous `perRound`, l'application est le REJEU de fin
         // de Round : les gates partent AVEC l'op récurrente (ci-dessous) et sont évalués là.
         if (!o.perRound) {
-          if (o.onlyIfCondition && !hasCondition(target, o.onlyIfCondition)) break;
-          if (o.unlessCondition && hasCondition(target, o.unlessCondition)) break;
+          if (o.onlyIfCondition && !hasCondition(target, o.onlyIfCondition.id)) break;
+          if (o.unlessCondition && hasCondition(target, o.unlessCondition.id)) break;
         }
         const v = Math.max(1, formuleDuCtx(o.value ?? 1, ref, ctx) + slBonus(ctx.sl, o.valuePerSL));
         if (o.carried) {
@@ -2122,11 +2126,11 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
             // « Porté » sans source DATÉE n'a aucun sens : le pion serait PERMANENT, anonyme et hors de
             // portée de la Détermination. REFUS journalisé, aucun effet posé : une donnée fautive se VOIT au
             // journal, elle ne tue pas l'incantation en cours.
-            lines.push(messagePorteSansDuree(o.id));
+            lines.push(messagePorteSansDuree(id));
             break;
           }
           target.activeEffects = [...(target.activeEffects ?? []), {
-            label: ctx.label ?? conditionLabel(o.id), bonus: 0, duration: duree,
+            label: ctx.label ?? conditionLabel(id), bonus: 0, duration: duree,
             passive: [{ op: 'condition', id: o.id, value: v, ...(o.resolveWindow ? { resolveWindow: o.resolveWindow } : {}) }],
           }];
           break;
@@ -2151,29 +2155,29 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
           // CAUSE PERSISTANTE (`LDB 16 l.117`) : l'op se gate sur l'État qu'elle pose — le porteur ne
           // subit pas un État de plus par Round, il le REGAGNE s'il s'en débarrasse. Journal dédié.
           lines.push(estCausePersistante(o) && rounds != null
-            ? t('op.etatParRoundSauf', { name: target.label, cond: conditionLabel(o.id), src: nomDeSource(ctx), n: rounds })
-            : t('op.etatParRound', { name: target.label, v, cond: conditionLabel(o.id), src: nomDeSource(ctx) }));
+            ? t('op.etatParRoundSauf', { name: target.label, cond: conditionLabel(id), src: nomDeSource(ctx), n: rounds })
+            : t('op.etatParRound', { name: target.label, v, cond: conditionLabel(id), src: nomDeSource(ctx) }));
         } else if (clockMin != null) {
           // État à durée d'HORLOGE (Belladone/Fleur de lune : sommeil « 1d10+4/5 heures ») — échéance
           // résolue MAINTENANT depuis ctx.now, purgée par purgeClockEffects (patron castPenalty.minutes).
           const min = clockMin;
-          addClockCondition(target, o.id, v, (ctx.now ?? 0) + min, escape, threshold, o.entangleOnFail, struggleDamage, o.difficulte);
-          lines.push(t('op.etatTemporaire', { name: target.label, v, cond: conditionLabel(o.id), roundsTxt: min >= 60 ? t('op.frag.heures', { n: Math.round(min / 60), s: min >= 120 ? 's' : '' }) : t('op.frag.minutes', { n: min }) }));
+          addClockCondition(target, id, v, (ctx.now ?? 0) + min, escape, threshold, o.entangleOnFail, struggleDamage, o.difficulte);
+          lines.push(t('op.etatTemporaire', { name: target.label, v, cond: conditionLabel(id), roundsTxt: min >= 60 ? t('op.frag.heures', { n: Math.round(min / 60), s: min >= 120 ? 's' : '' }) : t('op.frag.minutes', { n: min }) }));
         } else if (rounds != null) {
-          addTimedCondition(target, o.id, v, rounds, escape, threshold, o.entangleOnFail, struggleDamage, o.difficulte);
-          lines.push(t('op.etatTemporaire', { name: target.label, v, cond: conditionLabel(o.id), roundsTxt: t('op.frag.plafondDeRounds', { n: rounds, s: rounds > 1 ? 's' : '' }) }));
+          addTimedCondition(target, id, v, rounds, escape, threshold, o.entangleOnFail, struggleDamage, o.difficulte);
+          lines.push(t('op.etatTemporaire', { name: target.label, v, cond: conditionLabel(id), roundsTxt: t('op.frag.plafondDeRounds', { n: rounds, s: rounds > 1 ? 's' : '' }) }));
         } else {
-          addCondition(target, o.id, v, escape, threshold, o.entangleOnFail, struggleDamage, { lockedUntil: o.lockedUntil, unlockBy: o.unlockBy }, o.difficulte); // verrous : prédicat d'état / acte de soin (LDB 18)
+          addCondition(target, id, v, escape, threshold, o.entangleOnFail, struggleDamage, { lockedUntil: o.lockedUntil, unlockBy: o.unlockBy }, o.difficulte); // verrous : prédicat d'état / acte de soin (LDB 18)
           // REJEU d'une cause persistante (`LDB 16 l.117`) : c'est le DRAPEAU de rejeu qui le dit
           // (`ctx.rejeuRecurrent`, posé par `endOfRound` seul), jamais la forme de l'op — une première
           // pose gatée reste une pose. La ligne NOMME la cause, portée par le `ctx.label` relayé.
-          lines.push(ctx.rejeuRecurrent && o.unlessCondition === o.id && ctx.label
-            ? t('op.etatRegagne', { name: target.label, v, cond: conditionLabel(o.id), src: ctx.label })
-            : t('op.etat', { name: target.label, v, cond: conditionLabel(o.id) })); // libellé (« Exténué »), cohérent avec removeCond
+          lines.push(ctx.rejeuRecurrent && o.unlessCondition?.id === id && ctx.label
+            ? t('op.etatRegagne', { name: target.label, v, cond: conditionLabel(id), src: ctx.label })
+            : t('op.etat', { name: target.label, v, cond: conditionLabel(id) })); // libellé (« Exténué »), cohérent avec removeCond
         }
         // Les QUATRE branches ci-dessus poussent EXACTEMENT une ligne nommant `o.id` : la notification
         // se pose ici, une fois, appariée à elle (une 5ᵉ branche future est couverte par construction).
-        ctx.onCondition?.({ stateId: o.id, change: 'gain', targetId: target.id });
+        ctx.onCondition?.({ stateId: id, change: 'gain', targetId: target.id });
         if (avantageAvant > 0 && !target.advantage) lines.push(t('op.avantageDepense', { name: target.label })); // LDB 16 l.7
         // Empoignade (LDB 14 l.159) : le flag `grapple` pose la relation symétrique entre l'attaquant
         // (`ctx.caster`) et la cible — UNE seule fois (les ré-applications perRound ne portent pas le flag).
@@ -2181,7 +2185,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         break;
       }
       case 'removeCondition': {
-        const id = (o.id ?? target.conditions[0]?.id)!; // `opSansObjet` : un État retirable est porté
+        const id = (o.id?.id ?? target.conditions[0]?.id)!; // `opSansObjet` : un État retirable est porté
         // `all` : retire TOUT l'État (Potion de vitalité « tout État Exténué ») ; sinon `value` pions (défaut 1).
         const v = o.all
           ? (target.conditions.find((x) => x.id === id)?.value ?? 1)

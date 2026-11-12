@@ -27,8 +27,8 @@ const CROSS_TEST_ZONE: BattleZone = {
   label: "Forêt d'épines", tiles: [{ x: 6, y: 10 }], rounds: 4, casterId: 'CASTER',
   source: { kind: 'sort', id: 'foret-d-epines' },
   onCross: [
-    { op: 'condition', id: 'hemorragique' },
-    { op: 'condition', id: 'empetre', escapeStrength: { charOf: 'force-mentale' } },
+    { op: 'condition', id: { id: 'hemorragique' } },
+    { op: 'condition', id: { id: 'empetre' }, escapeStrength: { charOf: 'force-mentale' } },
   ],
   crossTest: {
     characteristic: 'agilite', difficulty: 'difficile', label: "Forêt d'épines",

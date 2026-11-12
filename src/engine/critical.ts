@@ -82,9 +82,9 @@ export function noeudAmputation(entry: CritEntry, jeu: JeuDeCritique, location: 
     ...(amp.loss?.perDR ? { unitesPerSL: { every: 1, amount: 1, onFailure: true } } : {}),
   }]);
   const etats: Flow[] = [
-    feuille([{ op: 'condition', id: 'a-terre', value: 1 }]),
-    { kind: 'si', condition: { kind: 'slThreshold', op: '<=', value: -2 }, alors: feuille([{ op: 'condition', id: 'sonne', value: 1 }]) },
-    { kind: 'si', condition: { kind: 'slThreshold', op: '<=', value: -4 }, alors: feuille([{ op: 'condition', id: 'inconscient', value: 1 }]) },
+    feuille([{ op: 'condition', id: { id: 'a-terre' }, value: 1 }]),
+    { kind: 'si', condition: { kind: 'slThreshold', op: '<=', value: -2 }, alors: feuille([{ op: 'condition', id: { id: 'sonne' }, value: 1 }]) },
+    { kind: 'si', condition: { kind: 'slThreshold', op: '<=', value: -4 }, alors: feuille([{ op: 'condition', id: { id: 'inconscient' }, value: 1 }]) },
   ];
   const noeud: FlowTestNode = {
     kind: 'test',
@@ -168,7 +168,7 @@ export function critImmediateSummary(ops: GameOp[]): { woundsLost: number; condi
   for (const o of ops) {
     if (!opRestitueeParLeBandeau(o)) continue;
     if (o.op === 'wounds') woundsLost += o.amount as number;
-    else if (o.op === 'condition') conditions.push({ id: o.id, value: (o.value as number | undefined) ?? 1 }); // défaut de l'op (`applyOps`, `condition`)
+    else if (o.op === 'condition') conditions.push({ id: o.id.id, value: (o.value as number | undefined) ?? 1 }); // défaut de l'op (`applyOps`, `condition`)
   }
   return { woundsLost, conditions };
 }

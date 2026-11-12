@@ -117,7 +117,7 @@ describe('garde `flowTestEngineRoll` — le critère sépare la FABRIQUE du ROUL
     const sites = scan([
       'function resolveAmputation(amp: Amputation, resistVal: number, rng: RNG): GameOp[] {',
       '  const res = rollTest(resistVal, amp.difficulty, rng);',
-      "  return res.success ? [] : [{ op: 'condition', id: 'a-terre' }];",
+      "  return res.success ? [] : [{ op: 'condition', id: { id: 'a-terre' } }];",
       '}',
     ].join('\n'));
     expect(sites, 'la garde verrait une forme propriétaire : l’angle mort en tête du module a été fermé, le mettre à jour').toEqual([]);

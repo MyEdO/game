@@ -241,7 +241,7 @@ function opConsequenceLine(op: GameOp): string {
   switch (op.op) {
     case 'wounds': return typeof op.amount === 'number' && op.amount > 0 ? t('out.consWounds', { n: op.amount }) : '';
     case 'heal': return typeof op.amount === 'number' && op.amount > 0 ? t('out.consHeal', { n: op.amount }) : '';
-    case 'condition': return typeof op.id === 'string' ? t('out.consCondition', { cond: conditionLabel(op.id) }) : '';
+    case 'condition': return t('out.consCondition', { cond: conditionLabel(op.id.id) });
     default: return '';
   }
 }

@@ -10,7 +10,7 @@ import { describe, it, expect } from 'vitest';
 import { certainFlowOps, EMPTY_FLOW, testFlow, type Flow } from './flowCore';
 import type { GameOp } from './ops';
 
-const OPS: GameOp[] = [{ op: 'condition', id: 'sonne', value: 1 }];
+const OPS: GameOp[] = [{ op: 'condition', id: { id: 'sonne' }, value: 1 }];
 const AUTRES: GameOp[] = [{ op: 'wounds', amount: 3 }];
 const doOps = (ops: GameOp[]): Flow => ({ kind: 'effet', effet: { type: 'ops', on: 'target', ops } });
 
