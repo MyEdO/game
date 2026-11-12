@@ -604,7 +604,10 @@ src/hote/                   COMMUN AUX HÔTES du noyau (#2928) : ce qu'un hôte 
                             `roster.ts` (la procédure du roster
                             sur le `Stockage` que l'hôte fournit : charger, ajouter, retirer, mettre à jour — le
                             service `persisterLeHeros` d'un hôte qui a un stockage ; le chargement REND ses témoins de
-                            retrait et d'élagage), `reglesMaison.ts` et `preferences.ts` (leur persistance sur le même
+                            retrait et d'élagage, que `avisDuRoster` dit ; `rosterAMontrer` rend les héros et l'avis
+                            qu'un hôte montre tant que le groupe se compose, zones `groupe.roster` et `groupe.avis` ;
+                            `engagerLeHeros` écrit l'entrée du héros créé et rend l'intention que le noyau en bâtit),
+                            `reglesMaison.ts` et `preferences.ts` (leur persistance sur le même
                             `Stockage` ; un chargement de règles maison qui élague cumule son témoin sous sa propre
                             clé, que `prendreLeTemoinDesReglesMaison` consomme au montage du panneau des règles),
                             `sauvegardes.ts` (les emplacements de sauvegarde sur le même `Stockage` : écrire, lire, retirer,

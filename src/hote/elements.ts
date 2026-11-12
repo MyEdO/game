@@ -62,14 +62,19 @@ export type PanneauDeLHote = { fiche: FicheOuverte } | { creation: CreationOuver
  *  engager le héros dans le groupe. */
 export type GesteDeLaCreation = { geste: 'ouvrir'; args: [] } | { geste: 'engager'; args: [] } | { geste: 'page'; args: [PageDeCreation] } | GesteDuBrouillon;
 
+/** Un geste sur le roster de l'hôte : recruter au groupe le héros d'une entrée, ou retirer l'entrée du roster, chacune
+ *  par l'id de son héros. */
+export type GesteDuRoster = { recruter: string } | { retirer: string };
+
 /** L'intention qu'un geste joue : un verbe de la partie et ses arguments, celui d'une offre de l'actif compris
  *  (`Offre.geste`), une suite de verbes
  *  joués l'un après l'autre (un geste d'exploration : marcher jusqu'à une case, puis y agir), la fiche que l'hôte
  *  montre (`null` : aucune), qui ne touche pas la partie, un geste de la création d'un héros (`null` : la ferme), un
  *  geste de l'éditeur de carte (`editeur.ts`), avant toute partie, l'id du scénario de test à démarrer
- *  (`scenarios.ts`), le groupe composé, l'id de la campagne du jeu à lancer, la partie à quitter (`groupe.ts`), le
- *  panneau des sauvegardes à ouvrir ou à fermer, l'emplacement à charger ou celui où sauvegarder (`sauvegardes.ts`). */
-export type Jeu = Appel | { suite: Appel[] } | { fiche: FicheOuverte | null } | { creation: GesteDeLaCreation | null } | { edition: GesteDEdition } | { scenario: string } | { lancer: string } | { quitter: true } | { sauvegardes: boolean } | { charger: AnySlot } | { sauvegarder: SaveSlot };
+ *  (`scenarios.ts`), le groupe composé, l'id de la campagne du jeu à lancer, la partie à quitter, un geste sur le
+ *  roster de l'hôte (`groupe.ts`), le panneau des sauvegardes à ouvrir ou à fermer, l'emplacement à charger ou celui
+ *  où sauvegarder (`sauvegardes.ts`). */
+export type Jeu = Appel | { suite: Appel[] } | { fiche: FicheOuverte | null } | { creation: GesteDeLaCreation | null } | { edition: GesteDEdition } | { scenario: string } | { lancer: string } | { quitter: true } | { roster: GesteDuRoster } | { sauvegardes: boolean } | { charger: AnySlot } | { sauvegarder: SaveSlot };
 
 /** Un geste d'un clic. `presse` : la valeur courante d'un choix, ou l'offre que l'actif vise ; `focus` : le geste que
  *  la fenêtre joue à l'Entrée ; `refus` : pourquoi il ne se joue pas, dit sous lui. */

@@ -5,7 +5,7 @@ import { useGame, type GameState } from '../state/store';
 import type { NetState } from '../noyau/etat';
 import { pretire } from '../data/pregens';
 import { stockageDuRoster } from '../state/roster';
-import { ajouterAuRoster, chargerLeRoster, prendreLesTemoinsDuRoster, retirerDuRoster } from '../hote/roster';
+import { ajouterAuRoster, avisDuRoster, chargerLeRoster, prendreLesTemoinsDuRoster, retirerDuRoster } from '../hote/roster';
 import { idDeRosterDuMembre, rosterExport, rosterImport, type RosterEntry } from '../noyau/persistance/roster';
 import type { HerosEngage } from '../noyau/creation/engagement';
 import { nommerLesRetraits } from '../noyau/persistance/elagage';
@@ -640,9 +640,8 @@ export function CandidatePool({
   // `prendreLesTemoinsDuRoster` (`hote/roster.ts`) consomme : la prise vit dans un EFFET de montage, jamais dans un
   // initialiseur de rendu que `<React.StrictMode>` jouerait deux fois.
   useEffect(() => {
-    const temoins = prendreLesTemoinsDuRoster(stockageDuRoster());
-    if (temoins?.retire) setImportErr(t('picker.roster.retire'));
-    if (temoins?.elagage) setImportErr(t('picker.roster.elague', { liste: nommerLesRetraits(temoins.elagage) }));
+    const avis = avisDuRoster(prendreLesTemoinsDuRoster(stockageDuRoster()));
+    if (avis) setImportErr(avis);
   }, []);
   // Candidat ÉLU (déplié dans l'ACTE DE PRÉSENTATION, `DetailFrame`) — plus de modale (#417,
   // planche ratifiée d'équipe §B « la présentation intégrée au sélecteur »).

@@ -19,6 +19,7 @@ import { ordreEnVue, type Projection } from './projection';
 import { CHOIX_EN_BOUTONS, type FenetreADessiner } from './gestes';
 import { zonesDeLaCreation, type ZonesDeLaCreation } from './creation';
 import { zonesDeLaPartie, type ZonesDeLaPartie } from './groupe';
+import type { RosterMontre } from './roster';
 import { elementsDesGestes, ligne, resume, type Bouton, type Choix, type Element, type Entite, type FicheOuverte, type Formulaire, type Jet, type Ligne, type PanneauDeLHote, type Paysage, type Plan, type Puce, type Saisie, type Ton } from './elements';
 
 /**
@@ -1046,9 +1047,10 @@ function zonesDeLaFiche(etat: Jeu, ouverte: FicheOuverte | null): Pick<ZonesDeLE
   };
 }
 
-/** Les zones de l'écran de la partie `etat`, de sa projection `p`, de la fenêtre qui tient la main `fenetre` et du
- *  panneau que l'hôte tient ouvert `panneau` : la fiche ou la création (`zonesDeLaCreation`). */
-export function zonesDeLEcran(etat: Jeu, p: Projection, fenetre: FenetreADessiner | null, panneau: PanneauDeLHote): ZonesDeLEcran {
+/** Les zones de l'écran de la partie `etat`, de sa projection `p`, de la fenêtre qui tient la main `fenetre`, du
+ *  panneau que l'hôte tient ouvert `panneau` : la fiche ou la création (`zonesDeLaCreation`), et du roster `roster` que
+ *  l'hôte montre au groupe à composer (`zonesDeLaPartie`). */
+export function zonesDeLEcran(etat: Jeu, p: Projection, fenetre: FenetreADessiner | null, panneau: PanneauDeLHote, roster: RosterMontre): ZonesDeLEcran {
   const fiche = panneau && 'fiche' in panneau ? panneau.fiche : null;
   const c = p.combat;
   const { restants: gestes, parHeros: gestesSurLesCartes } = gestesDesCartes(etat, fenetre ? elementsDesGestes(fenetre.gestes) : []);
@@ -1076,7 +1078,7 @@ export function zonesDeLEcran(etat: Jeu, p: Projection, fenetre: FenetreADessine
     'groupe.heros': herosDuGroupe(etat, fiche, gestesSurLesCartes),
     ...zonesDeLaFiche(etat, fiche),
     ...zonesDeLaCreation(etat, panneau && 'creation' in panneau ? panneau.creation : null),
-    ...zonesDeLaPartie(etat),
+    ...zonesDeLaPartie(etat, roster),
   };
 }
 
