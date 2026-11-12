@@ -163,12 +163,16 @@ const construireCarte = (): WorldMap => ({
   id: 'test-voyage-carte',
   label: 'Marches de Weiler (test)',
   places: [
-    { id: 'p-village', label: 'Weiler', pos: { x: 24, y: 62 }, scene: { id: 'test-voyage-village' }, icon: 'scenario/village' },
-    { id: 'p-hameau', label: 'Federholz', pos: { x: 72, y: 30 }, scene: { id: 'test-voyage-hameau' }, icon: 'scenario/hamlet' },
-    { id: 'p-bourg', label: 'Steinbruck', pos: { x: 70, y: 78 }, scene: { id: 'test-voyage-bourg' }, icon: 'scenario/port', services: [{ kind: { id: 'auberge' }, rest: { auberge: true } }, { kind: { id: 'forgeron' } }] },
+    { id: 'p-village', label: 'Weiler', pos: { x: 24, y: 62 }, scene: { id: 'test-voyage-village' }, icon: 'scenario/village',
+      description: 'Une rue de boue, un puits, une auberge dont l’enseigne grince. Weiler vit de ses champs et de ceux qui passent : la piste s’enfonce sous les arbres vers Federholz, la route descend vers le bourg de Steinbruck.' },
+    { id: 'p-hameau', label: 'Federholz', pos: { x: 72, y: 30 }, scene: { id: 'test-voyage-hameau' }, icon: 'scenario/hamlet',
+      description: 'Quelques toits de chaume serrés contre la lisière. Les bûcherons de Federholz regardent passer les étrangers sans hâte ; après la dernière clôture commence la longue route d’Altdorf.' },
+    { id: 'p-bourg', label: 'Steinbruck', pos: { x: 70, y: 78 }, scene: { id: 'test-voyage-bourg' }, icon: 'scenario/port', services: [{ kind: { id: 'auberge' }, rest: { auberge: true } }, { kind: { id: 'forgeron' } }],
+      description: 'Un bourg de pierre grise au carrefour des routes, où les diligences changent de chevaux. L’auberge et la forge se font face sur la place, et l’on entend le marteau jusque dans la cour du relais.' },
     // id 'altdorf' (pas juste 'p-cite') : les Activités d'Altdorf (ACE Annexe I) gatées `where:['altdorf']`
     // (activities.json — Pénitence, Entraînement, Tester des objets…) lisent le `lieu` du groupe par son id.
-    { id: 'altdorf', label: 'Altdorf', pos: { x: 90, y: 20 }, scene: { id: 'test-voyage-cite' }, icon: 'scenario/siege' },
+    { id: 'altdorf', label: 'Altdorf', pos: { x: 90, y: 20 }, scene: { id: 'test-voyage-cite' }, icon: 'scenario/siege',
+      description: 'La capitale s’annonce par l’odeur de son fleuve bien avant ses murs. Passé la porte, la foule, les étals et les crieurs avalent le voyageur : ici tout s’achète, et tout se sait.' },
   ],
   routes: [
     {

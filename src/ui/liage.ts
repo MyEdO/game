@@ -97,6 +97,7 @@ export const SITES_PROSE: SiteProse[] = [
   { cle: 'src/ui/CityHubScreen.tsx#ActivityPane.desc#3', origine: 'S', porteur: 'lieux-services.desc' },
   { cle: 'src/ui/CityHubScreen.tsx#ActivityPane.desc#4', origine: 'S', porteur: 'lieux-services.desc' },
   { cle: 'src/ui/CityHubScreen.tsx#ActivityPane.desc#5', origine: 'UI', paquet: [], note: 'littéral d’écran (« Ce point mène à un autre endroit. ») — aucune source' },
+  { cle: 'src/ui/CityHubScreen.tsx#Prose.md#1', origine: 'S', paquet: ['worldMap.places[].description'], note: 'description du lieu, en tête de son écran' },
 
   // ── Mer & navire ──────────────────────────────────────────────────────────────────────────────
   { cle: 'src/ui/PortView.tsx#Prose.md#1', origine: 'S', porteur: 'navalPorts.desc' },

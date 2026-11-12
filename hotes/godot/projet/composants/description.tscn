@@ -1,0 +1,13 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/liaison.gd" id="1_liaison"]
+
+[node name="Description" type="Label"]
+custom_minimum_size = Vector2(660, 0)
+theme_type_variation = &"Description"
+size_flags_horizontal = 0
+autowrap_mode = 3
+
+[node name="texte" type="Node" parent="."]
+script = ExtResource("1_liaison")
+champ = "texte"

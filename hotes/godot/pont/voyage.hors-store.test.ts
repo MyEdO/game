@@ -74,6 +74,7 @@ describe('le voyage par le pont', () => {
     expect(suite.vue.zones['fenetre.titre'].map((l) => l.texte), 'le lieu en titre').toEqual(['Steinbruck']);
     expect(suite.vue.projection.scene?.id, 'le groupe n’est pas entré dans la scène du lieu').toBe('test-voyage-village');
     const corps = parId(suite.vue.zones['fenetre.corps']);
+    expect((corps['lieu/description'] as Ligne).texte, 'la description du lieu').toMatch(/^Un bourg de pierre grise au carrefour des routes/);
     const plan = corps['lieu/plan'] as Plan;
     expect(plan.points.filter((pt) => pt.ton === 'alerte').map((pt) => pt.nom), 'le plan de la carte vu d’ici, le lieu du groupe en alerte').toEqual(['Steinbruck']);
     expect(plan.points.flatMap((pt) => pt.elements), 'rien sous les lieux de ce plan : on part depuis les trajets').toEqual([]);

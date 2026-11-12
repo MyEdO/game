@@ -1,6 +1,7 @@
 /**
- * LE LIEU EN VUE (#3534) — ce qu'un hôte montre de l'écran du lieu qui tient la main : le nom du lieu, sa place sur le
- * plan de la carte (`planDepuis`) et le geste qui l'ouvre, chacun de ses services (`placeServices`), son icône, son fond,
+ * LE LIEU EN VUE (#3534) — ce qu'un hôte montre de l'écran du lieu qui tient la main : le nom du lieu, sa description
+ * dite aux identités en vigueur (`nommer`), sa place sur le plan de la carte (`planDepuis`) et le geste qui l'ouvre,
+ * chacun de ses services (`placeServices`), son icône, son fond,
  * le boniment de son hôte et ce qu'on y fait, écrit en verbe du noyau avec ce qui le ferme maintenant, les points
  * d'intérêt de son plan qui mènent à une scène et le choix d'y entrer (`entreesDuLieu`, #3611), puis les trajets qui en partent
  * (`trajetsDepuis`). Lecteur PUR, lu par les hôtes du noyau (`hote/ecran.ts`).
@@ -12,6 +13,7 @@ import { planDepuis, trajetsDepuis, type PlanDeLaCarte, type TrajetEnVue } from 
 import { refusDEntrerAuPort } from './portFlow';
 import { entreesDuLieu, refusDEntrerAuPoint } from './lieuFlow';
 import { sceneDuRegistre } from './monde/registreDesScenes';
+import { identitesResolues, nommer } from './monde/identites';
 import { fenetreDuJeu } from './combatAuto';
 import { VERBE_DE_CHOIX } from './choixDesFenetres';
 import { t } from '../i18n';
@@ -26,9 +28,9 @@ export interface ServiceEnVue { id: string; nom: string; icone: string; fond: st
 /** Un point d'intérêt du plan du lieu qui mène à une scène, et le geste d'y entrer. */
 export interface PointDInteretEnVue { id: string; nom: string; geste: GesteDuService }
 
-/** L'écran du lieu : son nom, le plan de la carte vu d'ici et le geste qui ouvre la carte, ses services, ses points
- *  d'intérêt, ses trajets. */
-export interface LieuEnVue { nom: string; plan: PlanDeLaCarte; carte: GesteDuService; services: ServiceEnVue[]; pointsDInteret: PointDInteretEnVue[]; trajets: TrajetEnVue[] }
+/** L'écran du lieu : son nom, sa description, quand il en a une, le plan de la carte vu d'ici et le geste qui ouvre
+ *  la carte, ses services, ses points d'intérêt, ses trajets. */
+export interface LieuEnVue { nom: string; description: string | null; plan: PlanDeLaCarte; carte: GesteDuService; services: ServiceEnVue[]; pointsDInteret: PointDInteretEnVue[]; trajets: TrajetEnVue[] }
 
 /** Ce qu'on fait au service `svc` du lieu : y dormir et y recueillir des informations à l'auberge, y entrer
  *  ailleurs (le port, le marché, l'échoppe de son marchand) ; rien pour un service sans écran. */
@@ -60,5 +62,6 @@ export function lieuEnVue(s: Jeu): LieuEnVue | null {
   }));
   const carte: GesteDuService = { id: 'carte', libelle: t('lieu.carte'), geste: { verbe: 'ouvrirLaCarte', args: [] }, refus: null };
   const trajets = trajetsDepuis(s, s.worldMap, ici);
-  return { nom: ici.label, plan: planDepuis(s, s.worldMap, ici, trajets), carte, services, pointsDInteret, trajets };
+  const description = ici.description ? nommer(ici.description, identitesResolues(s)) : null;
+  return { nom: ici.label, description, plan: planDepuis(s, s.worldMap, ici, trajets), carte, services, pointsDInteret, trajets };
 }
