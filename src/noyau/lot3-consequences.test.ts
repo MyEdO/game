@@ -5,7 +5,7 @@ import type { Combatant } from '../engine/types';
 import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 const hero = (id: string, current: number): Combatant =>
-  combattantDeTest({ id, label: id, kind: 'hero', dead: false, wounds: blessuresDeBase(20, current) });
+  combattantDeTest({ id, label: id, kind: 'heros', dead: false, wounds: blessuresDeBase(20, current) });
 
 function fakeStore(party: Combatant[]) {
   let s: any = { battle: undefined, party, flags: {}, journal: [], ecrireAuJournal: () => {} };

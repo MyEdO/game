@@ -63,7 +63,7 @@ export function PortraitTile({ c, variant = 'full', size = 'md', active, selecte
   const es = endState(c);
   const endMark = es ? END_STATE_VISUAL[es] : null;
   const showGauge = variant !== 'identity' && !c.inert;
-  const showPv = showGauge && c.kind === 'hero' && px >= CHAR_SIZE_PX.md;
+  const showPv = showGauge && c.kind === 'heros' && px >= CHAR_SIZE_PX.md;
   const interactif = !decoratif && !!(onClick || onInspect);
   const Boite = interactif ? 'button' : 'span';
   const inspecter = decoratif ? undefined : onInspect;

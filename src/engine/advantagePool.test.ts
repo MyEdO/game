@@ -13,15 +13,15 @@ import type { Combatant } from './types';
 import { itemFromTrappingById, weaponFromItem } from './items';
 
 const mk = (over: Partial<Combatant> = {}): Combatant =>
-  ({ kind: 'hero', advantage: 0, talents: [], activeEffects: [], ...over }) as unknown as Combatant;
-const withTalent = (id: string, kind: Combatant['kind'] = 'hero') =>
+  ({ kind: 'heros', advantage: 0, talents: [], activeEffects: [], ...over }) as unknown as Combatant;
+const withTalent = (id: string, kind: Combatant['kind'] = 'heros') =>
   mk({ kind, talents: [{ talentId: id, times: 1 }] as never });
 
 describe('advantagePool — camp & réserves (AA 11 l.11-13)', () => {
   it('advantageCampOf : héros/allié → alliés ; enemy/npc → adversaires', () => {
-    expect(advantageCampOf({ kind: 'hero' })).toBe('allies');
-    expect(advantageCampOf({ kind: 'enemy' })).toBe('foes');
-    expect(advantageCampOf({ kind: 'npc' })).toBe('foes');
+    expect(advantageCampOf({ kind: 'heros' })).toBe('allies');
+    expect(advantageCampOf({ kind: 'ennemi' })).toBe('foes');
+    expect(advantageCampOf({ kind: 'pnj' })).toBe('foes');
   });
 
   it('addToPool ajoute et ne descend jamais sous 0', () => {
@@ -33,8 +33,8 @@ describe('advantagePool — camp & réserves (AA 11 l.11-13)', () => {
   });
 
   it('mirrorPools projette la réserve du camp sur chaque combattant', () => {
-    const a = mk({ kind: 'hero', advantage: 0 });
-    const b = mk({ kind: 'enemy', advantage: 0 });
+    const a = mk({ kind: 'heros', advantage: 0 });
+    const b = mk({ kind: 'ennemi', advantage: 0 });
     const p = { allies: 4, foes: 2 };
     mirrorPools(p, [a, b]);
     expect(a.advantage).toBe(4);
@@ -76,28 +76,28 @@ describe('dominationTransfer — perte d’Avantage (AA 11 l.44)', () => {
   it('camp majoritaire prend 1 Avantage au défavorisé', () => {
     const pools = { allies: 2, foes: 3 };
     // 2 alliés vs 1 adversaire → alliés dominent.
-    const r = dominationTransfer(pools, [mk({ kind: 'hero' }), mk({ kind: 'hero' }), mk({ kind: 'enemy' })], always, one);
+    const r = dominationTransfer(pools, [mk({ kind: 'heros' }), mk({ kind: 'heros' }), mk({ kind: 'ennemi' })], always, one);
     expect(r.dominant).toBe('allies');
     expect(pools).toEqual({ allies: 3, foes: 2 });
   });
 
   it('réserve du défavorisé vide → le dominant gagne 1 (sans transfert)', () => {
     const pools = { allies: 0, foes: 0 };
-    dominationTransfer(pools, [mk({ kind: 'enemy' }), mk({ kind: 'enemy' }), mk({ kind: 'hero' })], always, one);
+    dominationTransfer(pools, [mk({ kind: 'ennemi' }), mk({ kind: 'ennemi' }), mk({ kind: 'heros' })], always, one);
     expect(pools).toEqual({ allies: 0, foes: 1 }); // foes dominent (2 vs 1), alliés vides
   });
 
   it('égalité de combattants → pas de transfert (arbitrage MJ non modélisé)', () => {
     const pools = { allies: 2, foes: 2 };
-    const r = dominationTransfer(pools, [mk({ kind: 'hero' }), mk({ kind: 'enemy' })], always, one);
+    const r = dominationTransfer(pools, [mk({ kind: 'heros' }), mk({ kind: 'ennemi' })], always, one);
     expect(r.dominant).toBeNull();
     expect(pools).toEqual({ allies: 2, foes: 2 });
   });
 
   it('Coude-à-coude compte pour deux (l.4387) : 1 allié pondéré 2 égale 2 adversaires → égalité', () => {
     const pools = { allies: 1, foes: 1 };
-    const weightOf = (c: Combatant) => (c.kind === 'hero' ? 2 : 1);
-    const r = dominationTransfer(pools, [mk({ kind: 'hero' }), mk({ kind: 'enemy' }), mk({ kind: 'enemy' })], always, weightOf);
+    const weightOf = (c: Combatant) => (c.kind === 'heros' ? 2 : 1);
+    const r = dominationTransfer(pools, [mk({ kind: 'heros' }), mk({ kind: 'ennemi' }), mk({ kind: 'ennemi' })], always, weightOf);
     expect(r.dominant).toBeNull(); // 2 (allié Coude-à-coude) == 2 (deux adversaires)
     expect(pools).toEqual({ allies: 1, foes: 1 });
   });

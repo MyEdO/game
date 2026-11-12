@@ -130,7 +130,7 @@ export function fermetureDuBonus(a: RollActorView, v: RollInfluenceView): Fermet
 /** Sombre Pacte — `LDB 19 l.17`. Fenêtre de `opDarkPact`. */
 export function fermetureDuPacte(a: RollActorView, v: RollInfluenceView): FermetureDuJet | null {
   if (!v.rolled) return 'jetNonLance';
-  return a.kind === 'hero' ? null : 'reserveAuxHeros';
+  return a.kind === 'heros' ? null : 'reserveAuxHeros';
 }
 
 /** Résilience « Je ne faillirai pas ! » — `LDB 17 l.68` : avant le jet, ou après un échec. Composée par

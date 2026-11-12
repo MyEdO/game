@@ -21,10 +21,10 @@ function setup() {
   get().fenetreValider('debutDuRound');
   vi.clearAllTimers();
   const b = get().battle!;
-  const H = b.combatants.find((c) => c.kind === 'hero')!;
-  const E = b.combatants.find((c) => c.kind === 'enemy')!;
+  const H = b.combatants.find((c) => c.kind === 'heros')!;
+  const E = b.combatants.find((c) => c.kind === 'ennemi')!;
   let i = 0;
-  for (const e of b.combatants.filter((c) => c.kind === 'enemy' && c.id !== E.id)) e.pos = { x: 25 + i++, y: 25 };
+  for (const e of b.combatants.filter((c) => c.kind === 'ennemi' && c.id !== E.id)) e.pos = { x: 25 + i++, y: 25 };
   H.pos = { x: 10, y: 10 };
   E.pos = { x: 13, y: 10 }; // distance 3 : hors d'Allonge, dans la portée de Charge (2×M)
   const turn = b.order.indexOf(H.id);

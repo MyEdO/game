@@ -18,7 +18,7 @@ import { scenario as conditionsEtendues } from '../../scenes/test-scenarios/98-c
 const etatDUnHote = (): EtatDeJeu & Record<string, unknown> => ({ ...etatInitialDuJeu(), camRot: 2, zoom: 1.8, reveler: true, sheetId: 'h', keyOverrides: { a: 'KeyA' } });
 
 /** Un héros minimal, porteur d'États. */
-const heros = (id: string, ...etats: string[]) => ({ id, label: id, kind: 'hero', conditions: etats.map((e) => ({ id: e, value: 1 })) });
+const heros = (id: string, ...etats: string[]) => ({ id, label: id, kind: 'heros', conditions: etats.map((e) => ({ id: e, value: 1 })) });
 
 const ENTREES = { graine: 3, cadence: 'manuel' as const, desFixes: true, persisterLeHeros: () => {} };
 

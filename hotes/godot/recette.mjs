@@ -426,7 +426,7 @@ async function parcoursCombat() {
   const heros = actif(v)
   assert.equal(v.projection.fenetre, null, 'l’Entrée joue le geste au focus et ferme la fenêtre du round')
   assert.deepEqual(zone(v, 'fenetre.titre'), [], 'sans fenêtre, la zone du titre est vide')
-  assert.equal(heros?.camp, 'hero', 'un héros est actif')
+  assert.equal(heros?.camp, 'heros', 'un héros est actif')
   assert.equal(v.projection.combat.barre.forme, 'ouverte')
   assert.equal(zone(v, 'combat.actif')[0]?.nom, heros.nom, 'le panneau nomme l’actif')
   noter(`Entrée : fenêtre fermée ; actif ${heros.nom}, barre ouverte`)
@@ -474,7 +474,7 @@ async function parcoursCombat() {
   v = await vue()
   const second = actif(v)
   assert.notEqual(second.id, heros.id, 'la fin du tour passe la main')
-  assert.equal(second.camp, 'hero')
+  assert.equal(second.camp, 'heros')
   const vers = v.cases.find((c) => c.zone === 'marche' && c.cout === 1).case
   noter(`fin du tour de ${heros.nom} ; actif ${second.nom}`)
   await cliquerCase(vers)
@@ -492,7 +492,7 @@ async function parcoursCombat() {
   await attendreLaVue("v.projection.fenetre?.etape?.genre === 'jetDeDefense'", 60000)
   v = await vue()
   const adversaire = actif(v)
-  assert.equal(adversaire.camp, 'enemy', 'les jetons repris, le noyau joue l’adversaire')
+  assert.equal(adversaire.camp, 'ennemi', 'les jetons repris, le noyau joue l’adversaire')
   assert.ok(element(v, 'fenetre.corps', 'defense/qui')?.texte.includes(adversaire.nom), 'la Défense répond à l’adversaire actif')
   const defenseur = v.projection.fenetre.proprietaire
   assert.equal(defenseur.genre, 'porteur', 'la Défense est à un héros')
@@ -609,7 +609,7 @@ async function parcoursRelief() {
   await capturer('3476-r1-round')
   let v = await fermerLesFenetres()
   const heros = actif(v)
-  assert.equal(heros?.camp, 'hero', 'un héros est actif')
+  assert.equal(heros?.camp, 'heros', 'un héros est actif')
   const plateau = v.cases.filter((c) => c.zone === 'marche' && c.cout === 1 && c.case.y === 2)
   assert.ok(plateau.length > 0, `une case du bord du plateau à une case de ${heros.nom} en ${heros.pos}`)
   const vers = plateau[0].case

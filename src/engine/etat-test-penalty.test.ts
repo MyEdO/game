@@ -8,7 +8,7 @@ import { t } from '../i18n';
 import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 const mk = (): Combatant => (blessuresSurLeProfil({
-  id: 'x', name: 'X', kind: 'hero', characteristics: {}, skills: [], talents: [], traits: [],
+  id: 'x', name: 'X', kind: 'heros', characteristics: {}, skills: [], talents: [], traits: [],
   conditions: [], activeEffects: [], liveTraits: [], weapons: [], armour: [],
   wounds: blessuresDeBase(10), advantage: 0,
 })) as unknown as Combatant;

@@ -28,7 +28,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 function heros(id: string, p: Partial<Combatant> = {}): Combatant {
   return blessuresSurLeProfil({
-    id, label: id.toUpperCase(), kind: 'hero',
+    id, label: id.toUpperCase(), kind: 'heros',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 35, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], movement: 4,
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -224,7 +224,7 @@ describe('approvisionnerLArme : une munition que le porteur de l’arme ne porte
     ranged(H).ammoUid = 'am1';
     H.pos = { x: 0, y: 0 };
     const E: Combatant = JSON.parse(JSON.stringify(H));
-    Object.assign(E, { id: 'enemy-0', label: 'Cible', kind: 'enemy', pos: { x: 4, y: 0 } });
+    Object.assign(E, { id: 'enemy-0', label: 'Cible', kind: 'ennemi', pos: { x: 4, y: 0 } });
     E.items = [{ uid: 'am-e', label: 'Carreau perçant', kind: 'ammo', qualities: [], enc: 0, equipped: false, subType: 'Arbalète', qty: 3 } as ItemInstance];
     const battle: BattleState = {
       combatants: [H, E], order: [H.id, E.id], turn: 0, round: 1, action: null, selectedSpellId: null,

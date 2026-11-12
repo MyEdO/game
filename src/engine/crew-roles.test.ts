@@ -18,7 +18,7 @@ const mk = (chars: Partial<Record<string, number>>, skills: { id: string; advanc
   (blessuresSurLeProfil({
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30, ...chars },
     skills: skills.map((s) => ({ ...s, characteristic: 'dexterite' }) as SkillInstance),
-    kind: 'hero', wounds: blessuresDeBase(10), conditions: [], talents: [],
+    kind: 'heros', wounds: blessuresDeBase(10), conditions: [], talents: [],
   })) as unknown as Combatant;
 
 /** RNG déterministe : renvoie la séquence de d100 fournie. */

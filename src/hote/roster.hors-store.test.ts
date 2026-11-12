@@ -23,7 +23,7 @@ const FORMAT_ROSTER_SANS_ID_DE_ROSTER = '0b4ad0cb46304157';
 const ETAT_CONNU = 'a-terre';
 const ETAT_INCONNU = 'etat-hors-registre';
 
-const hero = (id: string, label = 'Héros'): HerosDuRoster => ({ id, label, kind: 'hero' }) as unknown as HerosDuRoster;
+const hero = (id: string, label = 'Héros'): HerosDuRoster => ({ id, label, kind: 'heros' }) as unknown as HerosDuRoster;
 const entry = (id: string, label?: string): RosterEntry => ({ hero: hero(id, label), wealth: { gold: 1, silver: 2, brass: 3 }, draft: brouillonComplet() });
 
 describe('la procédure du roster sur un stockage', () => {

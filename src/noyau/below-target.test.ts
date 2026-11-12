@@ -16,13 +16,13 @@ import { ligneDe } from '../engine/modLine.testkit';
 
 const melee = { name: 'Épée', type: 'melee' } as unknown as Weapon;
 
-const mk = (id: string, kind: 'hero' | 'enemy', h: number): Combatant =>
+const mk = (id: string, kind: 'heros' | 'ennemi', h: number): Combatant =>
   ({ id, name: id, kind, size: 'moyenne', pos: h ? { x: 5, y: 5, h } : { x: 5, y: 5 }, conditions: [] }) as unknown as Combatant;
 
 /** `get` stub : scène claire de jour + une bataille à deux combattants (aucun grapple/monture). */
 function envFor(attackerH: number, targetH: number) {
-  const attacker = mk('att', 'hero', attackerH);
-  const target = mk('tgt', 'enemy', targetH);
+  const attacker = mk('att', 'heros', attackerH);
+  const target = mk('tgt', 'ennemi', targetH);
   target.pos = { x: 6, y: 5, ...(targetH ? { h: targetH } : {}) }; // adjacent, sur sa propre case
   const get = (() => ({
     scene: { ...emptyScene('scene-test'), weather: 'clair' },

@@ -19,7 +19,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDe
 
 const chars = { 'capacite-de-combat': 45, 'capacite-de-tir': 50, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 const sword: Weapon = { name: 'Épée', label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, uid: 'sw', qualities: [] } as unknown as Weapon;
-const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }): Combatant =>
+const mk = (id: string, kind: 'heros' | 'ennemi', pos: { x: number; y: number }): Combatant =>
   (blessuresSurLeProfil({ id, name: id, label: id, kind, characteristics: { ...chars }, conditions: [], engagedWith: [], skills: [], talents: [],
      weapons: [sword], advantage: 0, size: 'moyenne', pos, wounds: blessuresDeBase(40),
      armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4 }) as unknown as Combatant);
@@ -39,14 +39,14 @@ function table(chargeur: Combatant, charge: Combatant) {
   charge.pos = { x: 0, y: 0 };
   charge.talents = [{ talentId: 'frappe-reactive', times: 1 }] as never;
   charge.characteristics.initiative = 99;
-  const h2 = mk('h2', 'hero', { x: 9, y: 9 });
+  const h2 = mk('h2', 'heros', { x: 9, y: 9 });
   const combatants = [chargeur, charge, h2];
   const ids = combatants.map((c) => c.id);
   const battle = {
     combatants, order: ids, baseOrder: ids, turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(),
     movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
   } as unknown as BattleState;
-  banc.setState({ battle, mode: 'battle', scene: testScene(), party: combatants.filter((c) => c.kind === 'hero'), pendingDefense: null, pendingAttack: null, pendingCascade: null, suspendedCascades: [], net: NET('hote', 0) } as never);
+  banc.setState({ battle, mode: 'battle', scene: testScene(), party: combatants.filter((c) => c.kind === 'heros'), pendingDefense: null, pendingAttack: null, pendingCascade: null, suspendedCascades: [], net: NET('hote', 0) } as never);
   const recus: Record<string, unknown>[] = [];
   const host = new HostSession({ build: 'test', applyIntent: () => {}, getSnapshot: () => instantaneDeLaCoop(banc.getState()) });
   const [a, b] = FakeTransport.pair();
@@ -68,8 +68,8 @@ function table(chargeur: Combatant, charge: Combatant) {
 
 describe('#3058 — coop : le tour d’IA de l’hôte charge un porteur de Frappe réactive', () => {
   for (const [nom, chargeur, charge] of [
-    ['l’IA ennemie de l’hôte charge un héros de l’hôte', () => mk('e', 'enemy', { x: 0, y: 0 }), () => mk('h', 'hero', { x: 0, y: 0 })],
-    ['le héros de l’hôte, en Auto-combat, charge un ennemi', () => mk('h', 'hero', { x: 0, y: 0 }), () => mk('e', 'enemy', { x: 0, y: 0 })],
+    ['l’IA ennemie de l’hôte charge un héros de l’hôte', () => mk('e', 'ennemi', { x: 0, y: 0 }), () => mk('h', 'heros', { x: 0, y: 0 })],
+    ['le héros de l’hôte, en Auto-combat, charge un ennemi', () => mk('h', 'heros', { x: 0, y: 0 }), () => mk('e', 'ennemi', { x: 0, y: 0 })],
   ] as const) {
     it(`${nom} (graine 2) : chez l’hôte, UNE décision, UNE frappe, le tour avance ; l’invité applique le tour d’IA diffusé`, () => {
       const c = chargeur();
@@ -92,8 +92,8 @@ describe('#3059 — coop : seul l’hôte rejoue la frappe pilotée d’un invit
   it('l’invité charge par intent (graine 4) ; chez l’invité, la frappe parquée de l’instantané ne se rejoue pas, même fenêtre close', () => {
     const banc = ouvrirLeBanc({ cadence: 'manuel' });
     seedBattleRng(4);
-    const h = mk('h', 'hero', { x: 4, y: 0 });
-    const e = mk('e', 'enemy', { x: 0, y: 0 });
+    const h = mk('h', 'heros', { x: 4, y: 0 });
+    const e = mk('e', 'ennemi', { x: 0, y: 0 });
     e.talents = [{ talentId: 'frappe-reactive', times: 1 }] as never;
     e.characteristics.initiative = 99;
     const ids = [h.id, e.id];

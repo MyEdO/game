@@ -60,7 +60,7 @@ const contexte = (scene: Scene): ContexteAretes => ({
 });
 
 const héros = {
-  id: 'h1', label: 'h1', kind: 'hero', pos: { x: 0, y: 0 }, size: 'moyenne',
+  id: 'h1', label: 'h1', kind: 'heros', pos: { x: 0, y: 0 }, size: 'moyenne',
   conditions: [], characteristics: {}, liveTraits: [], items: [],
 } as unknown as Combatant;
 

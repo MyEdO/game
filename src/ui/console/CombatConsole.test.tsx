@@ -57,7 +57,7 @@ function hero(id: string, label: string): Combatant {
 
 function foe(id: string, x: number, y: number): Combatant {
   const e = hero(id, `Rat ${id}`);
-  e.kind = 'enemy';
+  e.kind = 'ennemi';
   e.pos = { x, y };
   return e;
 }
@@ -87,7 +87,7 @@ function monter(h: Combatant, opts: { foes?: Combatant[]; runBudget?: number; tu
 }
 
 it('l’arche respecte le camp résolu par campOf sans surcharge de son hôte', () => {
-  const camp = vi.spyOn(relations, 'campOf').mockReturnValue('neutral');
+  const camp = vi.spyOn(relations, 'campOf').mockReturnValue('neutre');
   try {
     act(() => root.render(<ConsoleArch active={foe('camp-resolu', 2, 2)} move={{ value: 4, max: 4 }} action={{ value: 1, max: 1 }} />));
     const tuile = host.querySelector('.cc-arch .ptile')!;
@@ -2398,11 +2398,11 @@ describe('CombatConsole — tour du NAVIRE contrôlé : ses Tests d’équipage 
     }) as unknown as ShipPoste;
 
   /** La COQUE du groupe : un vrai `vehicleCombatant` (facette `hull` de `vehicles.json`), du camp
-   *  joueur (`kind:'hero'` — c'est ainsi que le combat naval la pose, `combatSlice.ts:2778`). */
+   *  joueur (`kind:'heros'` — c'est ainsi que le combat naval la pose, `combatSlice.ts:2778`). */
   function navire(): Combatant {
     const hull = vehicleCombatant(findVehicleById('bateau-de-patrouille')!)!;
     hull.id = 'ship';
-    hull.kind = 'hero';
+    hull.kind = 'heros';
     hull.pos = { x: 5, y: 5 };
     hull.crewIds = ['gunner'];
     // Une pièce CHARGÉE (la Bordée a de quoi faire feu, `postesPretsAFaireFeu`) et une DÉCHARGÉE (la recharge a son objet).
@@ -2455,7 +2455,7 @@ describe('CombatConsole — tour du NAVIRE contrôlé : ses Tests d’équipage 
     const ship = monterNavire();
     const chariot = vehicleCombatant(findVehicleById('diligence')!)!;
     act(() => {
-      useGame.setState({ battle: { ...useGame.getState().battle!, combatants: [{ ...chariot, id: ship.id, kind: 'hero', pos: ship.pos, crewIds: ship.crewIds, postes: ship.postes }, ...useGame.getState().battle!.combatants.slice(1)] } });
+      useGame.setState({ battle: { ...useGame.getState().battle!, combatants: [{ ...chariot, id: ship.id, kind: 'heros', pos: ship.pos, crewIds: ship.crewIds, postes: ship.postes }, ...useGame.getState().battle!.combatants.slice(1)] } });
     });
     for (const id of ['manoeuvre-du-navire', 'bordee', 'chanson-de-marin']) {
       expect(caseAction(id), `case navale « ${id} » offerte au tour d’un chariot`).toBeNull();

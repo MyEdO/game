@@ -5,7 +5,7 @@ import { ciblePsy } from './psych/ciblage';
 import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 function mk(opts: Partial<Combatant>): Combatant {
-  return blessuresSurLeProfil({ id: 'c', label: 'c', kind: 'enemy', advantage: 0, conditions: [], characteristics: { sociabilite: 40 } as never, psychState: [], psychTraits: [], groups: [], weapons: [], armour: {} as never, skills: [], talents: [], movement: 4, wounds: blessuresDeBase(10), ...opts }) as Combatant;
+  return blessuresSurLeProfil({ id: 'c', label: 'c', kind: 'ennemi', advantage: 0, conditions: [], characteristics: { sociabilite: 40 } as never, psychState: [], psychTraits: [], groups: [], weapons: [], armour: {} as never, skills: [], talents: [], movement: 4, wounds: blessuresDeBase(10), ...opts }) as Combatant;
 }
 
 describe('socialPsychMod — pénalités de Sociabilité psy (LDB 21, P3)', () => {

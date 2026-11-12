@@ -40,7 +40,7 @@ describe('PortraitTile', () => {
     // sm (frise) : illisible → jauge seule
     expect(renderToStaticMarkup(<PortraitTile c={c} size="sm" />)).not.toContain('life-bar__value');
     // ennemi : PB exacts réservés à l'Inspection — ni cartouche, ni fuite par le title
-    const foe = { ...base(), kind: 'enemy' } as Combatant;
+    const foe = { ...base(), kind: 'ennemi' } as Combatant;
     foe.wounds = blessuresDeBase(11, 9, foe);
     const foeMd = renderToStaticMarkup(<PortraitTile c={foe} size="md" />);
     expect(foeMd).not.toContain('life-bar__value');
@@ -156,7 +156,7 @@ describe('PortraitTile', () => {
     const html = renderToStaticMarkup(<PortraitTile c={c} ring={ring} />);
     expect(html).toContain(`--ptile-ring:${ring.color}`);
     expect(html).toContain('stroke="var(--ptile-ring)"');
-    const foe = { ...c, kind: 'enemy' } as Combatant;
+    const foe = { ...c, kind: 'ennemi' } as Combatant;
     const enemyRing = teamRingDecor(foe);
     expect(renderToStaticMarkup(<PortraitTile c={foe} ring={enemyRing} />)).toContain(`stroke-dasharray="${enemyRing.dash}"`);
   });

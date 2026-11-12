@@ -36,16 +36,16 @@ const ARM0 = { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 };
 function monte(o: { pbAttaquant: number; important?: boolean; armes?: Weapon[]; niveau?: number; traitsAttaquant?: { id: string; value?: number }[]; champion?: boolean; riposte?: boolean; traitsDefenseur?: { id: string; value?: number }[] }): void {
   seedBattleRng(5);
   const d = blessuresSurLeProfil({
-    id: 'd', name: 'd', label: 'Défenseur', kind: 'enemy', important: true, characteristics: { ...CH }, wounds: blessuresDeBase(30),
+    id: 'd', name: 'd', label: 'Défenseur', kind: 'ennemi', important: true, characteristics: { ...CH }, wounds: blessuresDeBase(30),
     advantage: 0, conditions: [], movement: 4, skills: [], talents: o.champion && !o.riposte ? [] : [{ talentId: 'riposte', times: o.niveau ?? 1 }], traits: [...(o.champion ? [{ id: 'champion' }] : []), ...(o.traitsDefenseur ?? [])],
     engagedWith: ['a'], pos: { x: 1, y: 0 }, size: 'moyenne', weapons: o.armes ?? [RAPIERE], armour: ARM0, items: [], criticalWounds: 0, traumas: [],
   }) as unknown as Combatant;
   const a = blessuresSurLeProfil({
-    id: 'a', name: 'a', label: 'Attaquant', kind: 'enemy', important: o.important ?? true, characteristics: { ...CH },
+    id: 'a', name: 'a', label: 'Attaquant', kind: 'ennemi', important: o.important ?? true, characteristics: { ...CH },
     wounds: blessuresDeBase(30, o.pbAttaquant), advantage: 0, conditions: [], movement: 4, skills: [], talents: [], traits: o.traitsAttaquant ?? [],
     engagedWith: ['d'], pos: { x: 0, y: 0 }, size: 'moyenne', weapons: [EPEE], armour: ARM0, items: [], criticalWounds: 0, traumas: [],
   }) as unknown as Combatant;
-  const h = blessuresSurLeProfil({ ...a, id: 'h', name: 'h', label: 'Témoin', kind: 'hero', important: true, wounds: blessuresDeBase(30), engagedWith: [], pos: { x: 6, y: 6 }, traits: [] }) as unknown as Combatant;
+  const h = blessuresSurLeProfil({ ...a, id: 'h', name: 'h', label: 'Témoin', kind: 'heros', important: true, wounds: blessuresDeBase(30), engagedWith: [], pos: { x: 6, y: 6 }, traits: [] }) as unknown as Combatant;
   const battle = {
     combatants: [a, d, h], order: ['a', 'd', 'h'], baseOrder: ['a', 'd', 'h'], turn: 0, round: 1, action: null, selectedSpellId: null,
     reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,

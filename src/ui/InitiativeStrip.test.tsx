@@ -12,7 +12,7 @@ function fixtures() {
   const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 3 });
   h.id = 'h1';
   h.initiative = 42;
-  const foe = { ...createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brigand', seed: 5 }), id: 'e1', kind: 'enemy' as Combatant['kind'], initiative: 31 };
+  const foe = { ...createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Brigand', seed: 5 }), id: 'e1', kind: 'ennemi' as Combatant['kind'], initiative: 31 };
   return { h, foe };
 }
 const noop = () => {};
@@ -84,7 +84,7 @@ describe('InitiativeStrip', () => {
 
   it('un PNJ garde une carte sans fond de camp ennemi', () => {
     const { h } = fixtures();
-    const npc = { ...h, id: 'pnj', label: 'Cheval', kind: 'npc' as const };
+    const npc = { ...h, id: 'pnj', label: 'Cheval', kind: 'pnj' as const };
     const html = renderToStaticMarkup(
       <InitiativeStrip order={[npc.id]} turn={0} round={1} combatants={[npc]} over={false}
         canFirstIds={[]} onActivate={noop} onPromote={noop} hand={HAND} />,

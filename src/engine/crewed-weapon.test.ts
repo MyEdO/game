@@ -87,8 +87,8 @@ describe('crewedFireWeapon — Défauts de sous-effectif BAKÉS sur l’arme tir
 
 describe('attackModifiers — le −10 du Défaut redoublé apparaît sur le Test de tir (MDG 12 l.460)', () => {
   const shooter = (): Combatant =>
-    ({ id: 's', name: 'S', kind: 'hero', advantage: 0, conditions: [], skills: [], size: 3, weapons: [] }) as unknown as Combatant;
-  const mark = (): Combatant => ({ id: 't', name: 'T', kind: 'enemy', advantage: 0, conditions: [], size: 3 }) as unknown as Combatant;
+    ({ id: 's', name: 'S', kind: 'heros', advantage: 0, conditions: [], skills: [], size: 3, weapons: [] }) as unknown as Combatant;
+  const mark = (): Combatant => ({ id: 't', name: 'T', kind: 'ennemi', advantage: 0, conditions: [], size: 3 }) as unknown as Combatant;
   const sousEffectif = { category: 'qualities', id: 'arme-d-equipe' };
 
   it('un canon Imprécise manié seul → ligne « Sous-effectif » à −10 dans les modificateurs de touche', () => {

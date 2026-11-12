@@ -16,7 +16,7 @@ import { blessuresSurLeProfil } from './combattantDeTest.testkit';
 /** F 38 (BF 3), E 35 (BE 3), FM 31 (BFM 3) : B = 3 + 2×3 + 3 = 12. +10 en F ou en E franchit une dizaine. */
 const heros = (): Combatant => {
   const sansBlessures = {
-    id: 'h', label: 'Héros', kind: 'hero',
+    id: 'h', label: 'Héros', kind: 'heros',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 38, endurance: 35, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 31, sociabilite: 30 },
     movement: 4, advantage: 0, conditions: [],
     skills: [], talents: [], weapons: [], traits: [],
