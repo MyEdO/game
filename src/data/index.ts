@@ -805,7 +805,7 @@ export interface ClassData {
   /** Ids de `groups.json` accordés à tout titulaire d'une carrière de cette Classe (`groupesDe`) —
    *  ex. la classe des Roublards ouvre le Groupe « Criminel ». Absent = aucun Groupe. */
   grantGroups?: string[];
-  /** Possessions de départ (`TrappingRef` : id du catalogue + quantité, ou `{text}` flavor hors catalogue). */
+  /** Possessions de départ (`dotationSansTexteSchema`). LDB 05 l.552 */
   trappings: TrappingRef[];
   desc: string;
   source: SourceRef;
