@@ -1541,32 +1541,42 @@ describe('gardeSilhouettes', () => {
     expect(m?.carrure?.ecartAuSegment).toBeLessThan(1e-6);
   });
 
-  it('ROUGE : une clé qui décale l’anneau', async () => {
-    const decale = await evaluerAnneau({ ...JUSTES, feminin: formeDeLAnneau(() => [0.05, 0, 0]) });
-    expect(ecarts(decale).map((e) => [e.code, e.valeur])).toEqual([['centre-deplace', expect.closeTo(0.5, 5)]]);
+  /** Une clé qui décale le centre de l'anneau d'un demi-rayon. */
+  const DECALE = formeDeLAnneau(() => [0.05, 0, 0]);
+
+  it('ROUGE : une clé non portée qui décale l’anneau', async () => {
+    const decale = await evaluerAnneau({ ...JUSTES, feminin: DECALE });
+    expect(ecarts(decale).map((e) => [e.code, e.valeur, e.detail])).toEqual([
+      ['centre-deplace', expect.closeTo(0.5, 5), 'feminin : centre de l’anneau de pelvis déplacé, en fraction de son rayon de repos ; 1/1 anneau(x) au-delà'],
+    ]);
   });
 
-  /** L'anneau évalué avec l'os `pelvis` déplacé de `[0,05, 0, 0]` sous `feminin` à 1. */
-  const sousPelvisDeplace = async (formes: Record<string, readonly number[]>) => {
+  /** L'anneau évalué sous `osDesSilhouettes`, `pelvis` déplacé de `[0,05, 0, 0]` sous chaque silhouette de `portees`. */
+  const evaluerPorte = async (formes: Record<string, readonly number[]>, portees: readonly string[]) => {
     const base = glbFabrique({ anneau: formes, clips: { Repos: [0, 0] } });
     const m = manifesteDe(base, ['racine', 'pelvis']);
-    return evaluer({ base, manifeste: { ...m, silhouettes: Object.keys(formes), gabarit: { ...m.gabarit, osDesSilhouettes: { [FEMININ]: { pelvis: [0.05, 0, 0] } } } }, pas: 0.5 });
+    const osDesSilhouettes = Object.fromEntries(portees.map((s) => [s, { pelvis: [0.05, 0, 0] as const }]));
+    const f = await evaluer({ base, manifeste: { ...m, silhouettes: Object.keys(formes), gabarit: { ...m.gabarit, osDesSilhouettes } }, pas: 0.5 });
+    expect(f.ecarts.filter((e) => e.garde === 'manifeste')).toEqual([]);
+    return f;
   };
 
-  it('VERT : un anneau dont le centre suit exactement son os déplacé', async () => {
-    const f = await sousPelvisDeplace({ ...JUSTES, feminin: formeDeLAnneau(() => [0.05, 0, 0]) });
-    expect(f.ecarts.filter((e) => e.garde === 'manifeste')).toEqual([]);
+  it('VERT : une clé portée qui décale l’anneau ne contrôle aucun centre', async () => {
+    const f = await evaluerPorte({ ...JUSTES, feminin: DECALE }, [FEMININ]);
     expect(ecarts(f)).toEqual([]);
+    expect(f.mesures.silhouettes.silhouettes.find((s) => s.nom === FEMININ)?.centrePire).toBeNull();
   });
 
-  it('ROUGE : un anneau qui reste sur place sous son os déplacé', async () => {
-    const f = await sousPelvisDeplace({ ...JUSTES, feminin: homothetie(1.1) });
-    expect(ecarts(f).map((e) => [e.code, e.valeur])).toEqual([['centre-deplace', expect.closeTo(0.5, 5)]]);
+  it('une silhouette portée et une non portée dans la même base suivent chacune sa règle', async () => {
+    const carrureDecalee = formeDeLAnneau((x, _y, z) => [(TABLE.st.max - 1) * x + 0.05, 0, (TABLE.st.max - 1) * z]);
+    const f = await evaluerPorte({ ...JUSTES, feminin: DECALE, [CARRURE_PLUS]: carrureDecalee }, [CARRURE_PLUS]);
+    expect(ecarts(f).map((e) => [e.code, e.valeur, e.detail.split(' : ')[0]])).toEqual([['centre-deplace', expect.closeTo(0.5, 5), FEMININ]]);
+    expect(f.mesures.silhouettes.silhouettes.map((s) => [s.nom, s.centrePire?.os ?? null])).toEqual([['feminin', 'pelvis'], ['st=0.8', 'pelvis'], ['st=1.2', null]]);
   });
 
-  it('ROUGE : une clé nulle', async () => {
-    const nulle = await evaluerAnneau({ ...JUSTES, feminin: formeDeLAnneau(() => [0, 0, 0]) });
-    expect(ecarts(nulle).map((e) => e.code)).toEqual(['silhouette-inerte']);
+  it('ROUGE : une clé nulle, portée ou non', async () => {
+    const formes = { ...JUSTES, feminin: formeDeLAnneau(() => [0, 0, 0]) };
+    for (const f of [await evaluerAnneau(formes), await evaluerPorte(formes, [FEMININ])]) expect(ecarts(f).map((e) => e.code)).toEqual(['silhouette-inerte']);
   });
 
   it('ROUGE : une carrure qui n’atteint pas `st`', async () => {
