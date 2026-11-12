@@ -20,6 +20,7 @@ import { traitInstanceSchema } from './reference';
 import { idDe, marquerOpAtteinte, ref, refs, refOuSpec, specAuCatalogue, specDe, specFermeeDe, tirageSurTable, type RegimeDePorteur, type TypeEntite } from './ref';
 import { CIBLE_D_APPARTENANCE, DECLARABLE_PAR_UN_PORTEUR, INSTANCIABLE_PAR_ID, RACINE_D_APPARENCE } from './sousListes';
 import { GROUPES_TIRABLES } from '../../obsessions';
+import { customStatblockSchema } from '../defs-scenes/communs';
 import { estCibleType, varianteAdmise } from '../../../engine/psych/ciblage';
 
 /** Régime d'une liste d'ops, posé par sa fabrique (`passifsDe`, `executeesDe`) et lu par IDENTITÉ : une
@@ -472,6 +473,12 @@ const DECLARATIONS_D_OPS = {
     repousseAPct: z.number().int().min(1).max(99).optional(),
     victoire: z.lazy(() => flowSchema).optional(),
   }), { op: { label: "opération"  }, adversaire: { label: "adversaire" }, repousseAPct: { label: "repoussé à (% des Blessures)" }, victoire: { label: "sur la victoire" } }),
+  /** `attaquesSubies` — MDG 15 l.163-164, l.177-178 */
+  attaquesSubies: nommerChamps(z.strictObject({
+    op: z.literal('attaquesSubies'),
+    assaillant: nommerChamps(z.strictObject({ statblock: customStatblockSchema }), { statblock: { label: "profil personnalisé" } }),
+    nombre: deDeTirageSchema,
+  }), { op: { label: "opération"  }, assaillant: { label: "assaillant" }, nombre: { label: "nombre d’attaques" , texte: { regime: "technique"} } }),
   /** `commission` — MDG 15 l.261 */
   commission: nommerChamps(z.strictObject({
     op: z.literal('commission'),
@@ -1560,6 +1567,7 @@ export const OP_LABEL: Record<GameOp['op'], string> = {
   navireHostile: 'Navire hostile',
   infestation: 'Infestation du navire',
   combatEnMer: 'Combat en mer',
+  attaquesSubies: 'Attaques subies',
   commission: 'Commission de transport',
   constructeurDEscale: 'Constructeur de navires d’escale',
   rationsDEscale: 'Rations d’escale',
