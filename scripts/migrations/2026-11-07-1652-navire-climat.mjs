@@ -114,7 +114,7 @@ function consequenceDe(e, table, ou) {
       return {
         kind: 'do',
         effect: {
-          type: 'ops', on: 'party', pendantJours: jours(p.days, 'days'),
+          type: 'ops', on: 'groupe', pendantJours: jours(p.days, 'days'),
           ops: (p.skills ?? []).map((id) => ({ op: 'skillDRBonus', skill: specs[id] ? { id, spec: specs[id] } : { id }, bonus: p.drBonus })),
         },
       };

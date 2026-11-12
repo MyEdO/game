@@ -88,8 +88,8 @@ describe('Navigation & rame (l.11-17)', () => {
   it('les malus de Navigation sont des MODIFICATEURS NOMMÉS, pas des Difficultés (l.38 dérive −10, l.41 hors de contrôle −20)', () => {
     expect(navPenaltyMods({})).toEqual([]);
     // Chaque malus PORTE sa fiche de règle (#1117 L5b) : la chip s'ouvre sur la note du Tableau des Vents.
-    expect(navPenaltyMods({ derive: true })).toEqual([{ label: t('rv.modDrift'), value: -10, famille: 'circonstance', ref: RULE_REF['navigation-derive'] }]);
-    expect(navPenaltyMods({ horsDeControle: true })).toEqual([{ label: t('rv.modHorsDeControle'), value: -20, famille: 'circonstance', ref: RULE_REF['navigation-greement'] }]);
+    expect(navPenaltyMods({ derive: true })).toEqual([{ label: t('fleuve.modificateurDeDerive'), value: -10, famille: 'circonstance', ref: RULE_REF['navigation-derive'] }]);
+    expect(navPenaltyMods({ horsDeControle: true })).toEqual([{ label: t('fleuve.modificateurHorsDeControle'), value: -20, famille: 'circonstance', ref: RULE_REF['navigation-greement'] }]);
     expect(navPenaltyMods({ derive: true, horsDeControle: true }).reduce((s, m) => s + m.value, 0)).toBe(-30);
   });
 

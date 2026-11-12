@@ -134,7 +134,8 @@ src/gameIso/  builders/ (géométrie PURE) → backends/webgl/ montés par stage
 src/ui/       React (RollShell, OptionChooser, editor/, creator/, compendium/)
 src/data/     base APP-OWNED (JSON commité, rien à régénérer après un clone) + exceptions manuscrites sourcées
 src/scenes/   documents de scène + campagne Arène
-src/net/      compression coop (web) · server/ = Worker Cloudflare · art-ref/ (gitignoré)
+src/net/      compression coop (web)
+server/       Worker Cloudflare du relay
 src/web/      services du navigateur (minuteries, stockage, fichiers)
 ```
 

@@ -44,7 +44,7 @@ function setup(o: { talents?: { talentId: string; times: number }[]; reserve: nu
     combatants: [defender, attacker], order: [attacker.id, defender.id], baseOrder: [attacker.id, defender.id],
     turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(),
     movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
-    advantagePools: o.pnj ? { allies: 0, foes: o.reserve } : { allies: o.reserve, foes: 0 },
+    advantagePools: o.pnj ? { allies: 0, adversaires: o.reserve } : { allies: o.reserve, adversaires: 0 },
   } as unknown as BattleState;
   banc.setState({
     battle, mode: 'battle', scene: testScene(), party: [o.pnj ? attacker : defender], pendingDefense: null, pendingAttack: null, pendingCascade: null,

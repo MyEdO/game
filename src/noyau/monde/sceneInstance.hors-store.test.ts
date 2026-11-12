@@ -156,12 +156,12 @@ describe('sceneInstance — câblage noyau, REVISIT (#707)', () => {
     b.entities.push({ id: 'table-1', kind: 'prop', pos: { x: 2, y: 3 }, decor: { id: 'table-ronde-4-tabourets' }, facing: 'N' });
     b.entities.push({ id: 'attable', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 2, y: 2 } }); // abord NORD
     b.seatAssignments = {
-      'table-1': { 'place-1': { kind: 'entity', entityId: 'attable' }, 'place-3': { kind: 'party', rang: 4 } },
+      'table-1': { 'place-1': { kind: 'entite', entityId: 'attable' }, 'place-3': { kind: 'groupe', rang: 4 } },
     };
     banc.getState().chargerLeProjet({ scenes: [a, b], entryId: 'scene-t1', projet: null });
     banc.getState().quitterLaScene('scene-t2');
     // Le PNJ authoré reste assis ; le héros qui n'est pas du groupe ne réserve rien.
-    expect(banc.getState().scene!.seatAssignments).toEqual({ 'table-1': { 'place-1': { kind: 'entity', entityId: 'attable' } } });
+    expect(banc.getState().scene!.seatAssignments).toEqual({ 'table-1': { 'place-1': { kind: 'entite', entityId: 'attable' } } });
   });
 
   describe('save/load RÉEL (chargerLaSave, #707)', () => {
@@ -191,19 +191,19 @@ describe('sceneInstance — câblage noyau, REVISIT (#707)', () => {
       s.entities.push({ id: 'table-1', kind: 'prop', pos: { x: 2, y: 3 }, decor: { id: 'table-ronde-4-tabourets' }, facing: 'N' });
       s.entities.push({ id: 'attable', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 2, y: 2 } }); // abord NORD de la table
       banc.getState().chargerLeProjet({ scenes: [s], entryId: 'scene-assise', projet: null });
-      banc.setState((st) => ({ scene: { ...st.scene!, seatAssignments: { 'table-1': { 'place-1': { kind: 'entity', entityId: 'attable' } } } } }));
+      banc.setState((st) => ({ scene: { ...st.scene!, seatAssignments: { 'table-1': { 'place-1': { kind: 'entite', entityId: 'attable' } } } } }));
       // La save est trafiquée à la VERSION COURANTE : meuble disparu, héros hors groupe, slot inconnu
       // — exactement ce qu'un paquet de campagne réédité ou un groupe recomposé produit.
       const brut = JSON.parse(sauverLeBanc(banc)) as { data: { scene: Scene } };
       const data = brut.data;
       data.scene.seatAssignments = {
-        'table-1': { 'place-1': { kind: 'entity', entityId: 'attable' }, plafond: { kind: 'entity', entityId: 'attable' } },
-        'meuble-disparu': { 'place-1': { kind: 'entity', entityId: 'attable' } },
-        'table-2': { 'place-1': { kind: 'party', rang: 4 } },
+        'table-1': { 'place-1': { kind: 'entite', entityId: 'attable' }, plafond: { kind: 'entite', entityId: 'attable' } },
+        'meuble-disparu': { 'place-1': { kind: 'entite', entityId: 'attable' } },
+        'table-2': { 'place-1': { kind: 'groupe', rang: 4 } },
       };
 
       chargerSurLeBanc(banc, JSON.stringify(brut));
-      expect(banc.getState().scene!.seatAssignments).toEqual({ 'table-1': { 'place-1': { kind: 'entity', entityId: 'attable' } } });
+      expect(banc.getState().scene!.seatAssignments).toEqual({ 'table-1': { 'place-1': { kind: 'entite', entityId: 'attable' } } });
     });
 
     it('tolérance PAR CONSTRUCTION : clé « sceneInstances » absente du snapshot → valeur initiale ({}) au chargement', () => {

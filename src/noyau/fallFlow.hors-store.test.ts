@@ -66,13 +66,13 @@ describe('franchirLArete, chute — exploration, un tombant', () => {
     const p = g().pendingFall!;
     expect(p).toMatchObject({ metres: 4, initiateurId: H });
     expect(p.participants).toEqual([{ id: H, interactive: true, attempt: null, result: null }]);
-    expect(phaseDeChute(p)).toBe('choice');
+    expect(phaseDeChute(p)).toBe('choix');
   });
 
   it('« Tenter » fait AVANCER la phase dérivée de l’état : choice → roll (#1117)', () => {
     g().franchirLArete(foot);
     g().jetRegler('chute', 'tenter', true, H);
-    expect(phaseDeChute(g().pendingFall!), 'la phase se lit sur l’état, jamais au site UI').toBe('roll');
+    expect(phaseDeChute(g().pendingFall!), 'la phase se lit sur l’état, jamais au site UI').toBe('jet');
   });
 
   it('geste inapplicable (pas une falaise descendante) → refus NOMMÉ (la raison du plan `none`)', () => {
@@ -188,7 +188,7 @@ describe('franchirLArete, chute — exploration, le groupe tombe (EDO 01 l.231)'
     g().franchirLArete(foot);
     expect(g().pendingFall!.participants.map((x) => x.id)).toEqual([A, B]);
     g().jetRegler('chute', 'tenter', true, A);
-    expect(phaseDeChute(g().pendingFall!)).toBe('choice');
+    expect(phaseDeChute(g().pendingFall!)).toBe('choix');
     g().jetLancer('chute', A);
     expect(rangee(A).result, 'B n’a pas déclaré : aucun jet').toBeNull();
   });

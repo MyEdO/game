@@ -40,7 +40,7 @@ import { clotureHorsCombat } from './partyWipe';
 import { traceLineOf, traceDieLineOf } from '../engine/traceLine';
 import { journaliser } from './combatLog';
 import { tablesPosees } from './tablesPosees';
-import { jouerLesClotures } from './combatEffects';
+import { cloturer, comptePasDifferes, OPS_DIFFEREES } from './combatEffects';
 import { fireOwnTestFailed } from './triggeredEffects';
 import { tenuParUnHumain } from './sieges';
 import { jouerLaPaireDuJet } from './combatAuto';
@@ -1316,7 +1316,9 @@ function commitStep(get: Get, set: Set, steps: CascadeStep[], i: number, pilote:
   let insereesParLApplier: CascadeStep[];
   let bornes: BornesDuFragment | null;
   try {
+    const differesAvant = comptePasDifferes(get());
     out = applierDe(step.kind)?.(get, set, step, hero, { steps, index: i });
+    const differe = comptePasDifferes(get()) > differesAvant ? OPS_DIFFEREES : undefined;
     // `consequences` (#295 Lot 0) : rendu en LIGNES STRUCTURÉES (#349, `resultLines`) — seule voie de
     // dénouement. Le journal texte reste alimenté depuis le même texte (`l.text`), par le routage
     // UNIQUE `journaliser` : combat ouvert → `battle.log`, sinon `journal`.
@@ -1328,9 +1330,10 @@ function commitStep(get: Get, set: Set, steps: CascadeStep[], i: number, pilote:
     // dans le journal, et ce qui laisse la conséquence se mesurer sur l'état qu'elle a elle-même produit.
     // Rejouée ICI, au goulot, et pas dans l'applier : un applier qui rejouerait lui-même sa suite le
     // ferait avant ce journal, et toute grandeur lue par différence après coup (les Blessures d'une
-    // chute) serait faussée par ce que la suite a déjà changé. Une suite que l'applier a remise à un autre
-    // porteur (`suiteGardee`) n'est plus la sienne.
-    if (!out?.suiteGardee) jouerLesClotures(get, set, step.meta?.apresSuite ?? []);
+    // chute) serait faussée par ce que la suite a déjà changé. Un applier qui a poussé une étape qui attend
+    // (`differeLaSuite`) la lui CONFIE (`cloturer`) : elle se joue à sa fermeture (#4011). Une suite que
+    // l'applier a remise à un autre porteur (`suiteGardee`) n'est plus la sienne.
+    if (!out?.suiteGardee) cloturer(get, set, differe, step.meta?.apresSuite ?? []);
   } finally {
     insereesParLApplier = fenetreInsertion?.inseres ?? [];
     bornes = fenetreInsertion?.bornes ?? null;

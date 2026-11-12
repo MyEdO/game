@@ -41,7 +41,7 @@ function monte() {
   g().lancerLeCombat('enc-entrainement');
   expect(g().battle).toBeTruthy();
   if (g().pendingRoundStart) g().fenetreValider('debutDuRound');
-  nePeutPasDifferer(applyEffects(g, banc.setState, [{ type: 'ops', on: 'hero', heroId: H, ops: [opPsy.pose('frenesie')] }]), 'frenesie-critique-devie');
+  nePeutPasDifferer(applyEffects(g, banc.setState, [{ type: 'ops', on: 'heros', heroId: H, ops: [opPsy.pose('frenesie')] }]), 'frenesie-critique-devie');
   banc.setState({ battle: { ...g().battle!, ...etatDeTourNeuf(), turn: g().battle!.order.indexOf(H) } });
   const foes = g().battle!.combatants.filter((c) => c.kind !== 'heros');
   const gob = foes.find((f) => f.id === 'enemy-enc-entrainement-3')!;

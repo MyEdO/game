@@ -2,7 +2,7 @@
  * MANŒUVRES de créature (attaques naturelles activées — LDB 85) : ENTITÉS de 1ʳᵉ classe ÉDITABLES
  * (`maneuvers.json`, effets en GameOp). Ce module FEUILLE porte le RÉSOLVEUR GÉNÉRIQUE unique
  * (`resolveManeuver`) — il REMPLACE les 5 appliers par type. La GÉOMÉTRIE/portée/opposition est moteur
- * (règle 3, dérivée de `ManeuverDef.targeting` + `range`/`blast`) ; les Dégâts (`wounds`) et États sont
+ * (règle 3, dérivée de `ManeuverDef.ciblage` + `range`/`blast`) ; les Dégâts (`wounds`) et États sont
  * la DONNÉE (`ManeuverDef.effects`, GameOp) appliquée par `applyTriggeredEffects` aux cibles GAGNÉES.
  *
  * Module FEUILLE : n'importe RIEN de `combatFlow`. Tout passe par les feuilles moteur/état (engine/*, ./path, ./footprint,
@@ -186,7 +186,7 @@ export interface AttackOption {
    *  au sol (placeur de zone) au lieu d'un combattant. Absent/false = tir DIRECT (cible = combattant). */
   indirect?: boolean;
   def?: ManeuverDef;
-  advantageMode?: 'fixed' | 'variable' | 'all';
+  modeDAvantage?: ManeuverDef['modeDAvantage'];
 }
 
 /** Sources DONNÉE d'une attaque d'Arme gratuite « DISPONIBLE » (`grantFreeAttack when:'available'`) sur SON
@@ -258,7 +258,7 @@ export function availableAttacks(active: Combatant, battle: BattleState): Attack
     if (a.def.ecartDeTailleMin != null && !cibleDEcartDeTaille(battle, active, a.def.ecartDeTailleMin)) continue; // LDB 85 l.387
     const cout = freeAttackCost(battle, active, a.def); // LDB 85 l.387 ; LDB 85 l.314
     const prix = cout.advantage;
-    const minAdv = a.advantageMode === 'variable' ? 1 : prix;
+    const minAdv = a.modeDAvantage === 'variable' ? 1 : prix;
     if (active.advantage < minAdv) continue;
     if (a.trigger === 'action' && !actionDispo) continue;
     if (a.trigger === 'free' && gratuitesRestantes(active, a.kind, a) === 0) continue; // LDB 85 l.237 ; LDB 85 l.405
@@ -266,7 +266,7 @@ export function availableAttacks(active: Combatant, battle: BattleState): Attack
     out.push({
       id: a.cle, kind: a.kind, label: a.def.label, icon: MANEUVER_ICON[a.kind],
       targeting: melee ? 'melee' : 'zone',
-      ...(melee ? { reach: 1, forceMelee: true, freeKind: a.kind } : { def: a.def, advantageMode: a.advantageMode }),
+      ...(melee ? { reach: 1, forceMelee: true, freeKind: a.kind } : { def: a.def, modeDAvantage: a.modeDAvantage }),
       cost: { action: a.trigger === 'action', advantage: prix, ...(cout.movement ? { movement: true } : {}) },
     });
   }
@@ -309,9 +309,9 @@ export function availableAttacks(active: Combatant, battle: BattleState): Attack
 
 
 /** L'attaque se résout-elle SUR-LE-CHAMP, sans cible ni placement ? Sa manœuvre vise tous ceux d'alentour ou tous les
- *  ennemis (`ManeuverDef.targeting`, le Hurlement, LDB 85 l.170) ; toute autre se désigne (une cible, un point). */
+ *  ennemis (`ManeuverDef.ciblage`, le Hurlement, LDB 85 l.170) ; toute autre se désigne (une cible, un point). */
 export function attaqueImmediate(a: AttackOption): boolean {
-  return a.def?.targeting === 'allAround' || a.def?.targeting === 'allFoes';
+  return a.def?.ciblage === 'toutAutour' || a.def?.ciblage === 'adversairesAutour';
 }
 
 /** Résout l'`AttackOption` à exécuter/prévisualiser : l'attaque ARMÉE (`selectedAttack`, défaut 'arme',
@@ -391,10 +391,10 @@ function emitAoe(get: Get, de: string, center: Pt, radius: number, rendu: string
 interface CiblesDeManoeuvre { affected: Combatant[]; center: Combatant | null; blast?: number; radius?: number }
 function ciblesDeManoeuvre(battle: BattleState, attacker: Combatant, def: ManeuverDef, chosenTarget?: Combatant): CiblesDeManoeuvre {
   const alive = (c: Combatant) => c.kind !== attacker.kind && !isOutOfAction(c) && !!c.pos;
-  const inPlay = (c: Combatant) => c.id !== attacker.id && !isOutOfAction(c) && !!c.pos; // population SANS camp (`allAround`)
+  const inPlay = (c: Combatant) => c.id !== attacker.id && !isOutOfAction(c) && !!c.pos; // population SANS camp (`toutAutour`)
   const nearest = (cands: Combatant[]) => cands.reduce((p, c) => (chebyshev(attacker.pos!, p.pos!) <= chebyshev(attacker.pos!, c.pos!) ? p : c));
-  if (def.targeting === 'self') return { affected: [], center: null };
-  if (def.targeting === 'zone') {
+  if (def.ciblage === 'soi') return { affected: [], center: null };
+  if (def.ciblage === 'zone') {
     const rangeTiles = tilesOf(measureMeters(def.range, attacker)) ?? Math.max(1, Math.ceil(bonus(effectiveChar(attacker, 'endurance')) / 2));
     const foes = combatantsWithinRadius(attacker.pos!, rangeTiles, battle.combatants, alive);
     const center = chosenTarget && alive(chosenTarget) && chebyshev(attacker.pos!, chosenTarget.pos!) <= rangeTiles
@@ -405,17 +405,17 @@ function ciblesDeManoeuvre(battle: BattleState, attacker: Combatant, def: Maneuv
     const blast = tilesOf(measureMeters(def.blast, center)) ?? 1;
     return { affected: combatantsWithinRadius(center.pos!, blast, battle.combatants, alive), center, blast };
   }
-  if (def.targeting === 'allFoes' || def.targeting === 'allAround') {
+  if (def.ciblage === 'adversairesAutour' || def.ciblage === 'toutAutour') {
     // Hurlement fantomatique (LDB 85 l.170) : « Toutes les créatures vivantes (ne possédant pas le trait
-    // Mort-vivant) se trouvant à un nombre de mètres égal à l'Initiative » → `allAround`, aucun camp. Le
+    // Mort-vivant) se trouvant à un nombre de mètres égal à l'Initiative » → `toutAutour`, aucun camp. Le
     // Mort-vivant se lit au TRAIT (capability `undead`), PAS au Groupe bestiaire (folder « Morts sans
     // repos » sans le Trait, ex. Goule de crypte, reste ciblable — cf. domainAttributes.test.ts).
-    // `allFoes` sert les textes qui DÉSIGNENT le camp (Hurlement de la Bête indomptable, Middenheim 04
+    // `adversairesAutour` sert les textes qui DÉSIGNENT le camp (Hurlement de la Bête indomptable, Middenheim 04
     // l.11 : « effectuer une attaque gratuite de hurlement contre ses ennemis »).
     // « créatures vivantes » exclut aussi l'objet INANIMÉ (structure de siège, véhicule-coque) — dans les
     // DEUX populations : un chariot n'entend pas un hurlement.
     const radius = Math.max(1, Math.ceil(effectiveChar(attacker, 'initiative') / 2));
-    const pop = def.targeting === 'allAround' ? inPlay : alive;
+    const pop = def.ciblage === 'toutAutour' ? inPlay : alive;
     const affected = combatantsWithinRadius(attacker.pos!, radius, battle.combatants, (c) => pop(c) && !isInanimate(c) && !traitCapability(c.traits, 'undead'));
     return { affected, center: null, radius };
   }
@@ -452,7 +452,7 @@ export function maneuverDefensePending(s: Jeu): boolean {
  * RÉSOLVEUR UNIQUE de manœuvre — joue ENTIÈREMENT une `ManeuverDef` (remplace applyMan{Area,Tongue,
  * Wail,Gaze,ChillGrasp}). `atk` = jet d'attaquant FIGÉ (influencé par la modale joueur ; null = pas de
  * jet, Hurlement), `spent` = Avantage dépensé, `chosenTarget` = clic joueur (victime mêlée/distance, ou
- * centre de zone). La GÉOMÉTRIE dérive de `def.targeting`+`range`/`blast` ; les effets AUTHORÉS
+ * centre de zone). La GÉOMÉTRIE dérive de `def.ciblage`+`range`/`blast` ; les effets AUTHORÉS
  * (`def.effects`, GameOp : Dégâts `wounds` + États) sont appliqués aux cibles GAGNÉES avec l'Indice
  * (`{indiceOf}`) et la marge (`ctx.sl` : slThreshold/valuePerSL). NE PPELLE PAS `checkBattleOver`.
  */
@@ -467,7 +467,7 @@ export function resolveManeuver(
   // Orientation du geste : l'attaquant vise le centre RÉELLEMENT résolu plus bas (la cible cliquée peut
   // être écartée — morte, hors portée — et le souffle recentré sur le plus proche). UNE écriture par
   // manœuvre ; cible = SOI (transformation) ou case identique ⇒ delta nul, facing inchangé ; population
-  // centrée sur l'attaquant (`allAround`/`allFoes`) ⇒ rien à viser. Seul l'ATTAQUANT tourne, à la
+  // centrée sur l'attaquant (`toutAutour`/`adversairesAutour`) ⇒ rien à viser. Seul l'ATTAQUANT tourne, à la
   // différence de la passe d'armes d'`applyAttackResult` (combatFlow.ts:2406) qui tourne AUSSI le
   // défenseur : une manœuvre touche N cibles ou une zone, et son défenseur n'y répond par aucun jet orienté.
   const faceTarget = (tgt?: Combatant | null): void => {
@@ -491,13 +491,13 @@ export function resolveManeuver(
       const opp = resolveOpposed(atk ?? drow, drow);
       if (!opp.attackerWins) { lines.push(t('manv.resists', { name: tgt.label })); floatTag(tgt, def.defense === 'init' ? t('fx.resists') : t('fx.dodge')); return; }
       // Marge = DR net du vainqueur (+Avantage dépensé pour les manœuvres à Avantage VARIABLE, LDB 85 l.290).
-      margin = opp.netSL + (def.advantageMode === 'variable' ? spent : 0);
+      margin = opp.netSL + (def.modeDAvantage === 'variable' ? spent : 0);
     }
     lines.push(...applyManeuverEffects(get, set, attacker, def, tgt, indice, margin, rng));
   };
 
   // SUR SOI (transformation, mue, auto-buff) : aucune cible adverse ni opposition — jamais de cascade.
-  if (def.targeting === 'self') {
+  if (def.ciblage === 'soi') {
     lines.push(...applyTriggeredEffects(get, attacker, maneuverEffects(def), 'onHit', { victim: attacker, indice, rng, set }));
     flushLog();
     return false;
@@ -506,7 +506,7 @@ export function resolveManeuver(
   // Cibles AFFECTÉES (`ciblesDeManoeuvre`, la géométrie partagée avec l'affichage) + émissions propres
   // à la géométrie.
   const { affected, center, blast, radius } = ciblesDeManoeuvre(battle, attacker, def, chosenTarget);
-  if (def.targeting === 'zone') {
+  if (def.ciblage === 'zone') {
     if (!center) { flushLog(); return false; }
     faceTarget(center); // le centre de la zone = ce que l'attaquant vise (cliqué, ou recentré sur le plus proche)
     emitAoe(get, attacker.id, center.pos!, blast!, def.rendu?.id);
@@ -522,7 +522,7 @@ export function resolveManeuver(
       lines.push(t('manv.smoke', { dur }));
       set({ battle: { ...get().battle!, zones } });
     }
-  } else if (def.targeting === 'allFoes' || def.targeting === 'allAround') {
+  } else if (def.ciblage === 'adversairesAutour' || def.ciblage === 'toutAutour') {
     emitAoe(get, attacker.id, attacker.pos, radius!, def.rendu?.id);
   } else {
     faceTarget(center);
@@ -549,7 +549,7 @@ export function resolveManeuver(
   // (dispatchCascadeDone → resumeManeuverDefense), sans `defenseDeManoeuvre` bidon pour un Test simple.
   const p = get().pendingCascade;
   if (p && p.purpose === 'combat' && !p.maneuverResume) {
-    set({ pendingCascade: { ...p, maneuverResume: { attackerId: attacker.id, free: def.activation === 'free' } } });
+    set({ pendingCascade: { ...p, maneuverResume: { attackerId: attacker.id } } });
     return true; // tour SUSPENDU : le Test de Résistance influençable tient la main
   }
   return false;
@@ -595,7 +595,7 @@ function openManeuverDefenseCascade(
   });
   startCascade(get, set, { title: attackerLabel, purpose: 'combat', steps });
   const p = get().pendingCascade;
-  if (p) set({ pendingCascade: { ...p, maneuverResume: { attackerId: attacker.id, free: def.activation === 'free' } } });
+  if (p) set({ pendingCascade: { ...p, maneuverResume: { attackerId: attacker.id } } });
 }
 
 /** Le défenseur choisit sa meilleure réaction : Parade (Corps à corps) ou Esquive (Agilité + avances,
@@ -775,7 +775,7 @@ export const TABLES = {
       // L'attaquant l'emporte : on re-oppose le jet influencé du défenseur (reproduit `resolveOpposed` de la
       // cascade) pour la MARGE NETTE (RAW Regard : +1 DR/Avantage variable), puis on applique les effets.
       const drow = hydrateTR({ roll: step.result.roll, target: step.result.target, base: step.base, success: evaluateTest(step.result.roll, step.result.target).success, sl: step.result.sl });
-      const margin = resolveOpposed(opp.aT, drow).netSL + (def.advantageMode === 'variable' ? md.spent : 0);
+      const margin = resolveOpposed(opp.aT, drow).netSL + (def.modeDAvantage === 'variable' ? md.spent : 0);
       const journal = applyManeuverEffects(get, set, attacker, def, hero, md.indice, margin, battleRng());
       syncManeuver();
       return { consequences: freeCons(journal) };

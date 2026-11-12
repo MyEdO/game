@@ -16,7 +16,7 @@ const ctx = (tool: Tool): ContexteDuPointeur => ({
   tool, z: 0, brush: 1, encId: '', encRef: 'mutant', layers: TOUT, sel: null, terrainRect: false, architecture: null,
 });
 const au = (x: number, y: number): PointDeCarte => ({ case: { x: Math.round(x), y: Math.round(y) }, f: { x, y } });
-const outil = (ref: string): Tool => ({ mode: 'entity', kind: 'prop', ref });
+const outil = (ref: string): Tool => ({ mode: 'entite', kind: 'prop', ref });
 const vide = (): Scene => emptyScene('decors-dans-la-case', 6, 4);
 const parRef = (s: Scene, ref: string): SceneEntity => s.entities.find((e) => e.decor?.id === ref)!;
 
@@ -25,7 +25,7 @@ const poser = (s: Scene, ref: string, x: number, y: number): Scene => appuyer(s,
 
 /** Un glissé de sélection de `de` à `vers`, joué comme l'envoie Godot : un pas par case franchie, le point au relâché. */
 function glisse(s: Scene, de: [number, number], vers: [number, number]): Scene {
-  const c = ctx({ mode: 'select' });
+  const c = ctx({ mode: 'selection' });
   const a = appuyer(s, c, au(...de));
   const g = glisser(s, c, a.geste, au(...vers));
   const r = relacher(g.scene ?? s, c, g.geste, au(...vers));
@@ -58,7 +58,7 @@ describe('décors libres dans la case, au pointeur', () => {
     const tonneau = parRef(s, 'tonneau');
     expect(tonneau.pos).toEqual(coffre.pos);
     expect(tonneau.sur).toBeUndefined();
-    const c = ctx({ mode: 'select' });
+    const c = ctx({ mode: 'selection' });
     expect(appuyer(s, c, au(1, 0.68)).sel).toEqual({ type: 'entity', id: coffre.id });
     expect(appuyer(s, c, au(1, 1.3)).sel).toEqual({ type: 'entity', id: tonneau.id });
   });
@@ -75,7 +75,7 @@ describe('décors libres dans la case, au pointeur', () => {
 
   it('la table gommée, la lettre retombe au sol de sa case', () => {
     const s = poser(poser(vide(), 'table', 2, 1), 'lettre', 2.2, 1);
-    const sansTable = appuyer(s, ctx({ mode: 'erase' }), au(1.85, 1)).scene!;
+    const sansTable = appuyer(s, ctx({ mode: 'gomme' }), au(1.85, 1)).scene!;
     expect(sansTable.entities.map((e) => e.decor?.id)).toEqual(['lettre']);
     expect(sansTable.entities[0].sur).toBeUndefined();
   });

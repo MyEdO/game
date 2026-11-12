@@ -1813,7 +1813,7 @@ function ZoneTilesBrush({
   /** Conteneur défilable dans lequel le ramener — seul lui bouge. */
   port: RefObject<HTMLElement | null>;
 }) {
-  const armed = tool.mode === 'zoneTiles' && tool.zoneId === zone.id ? tool.paint : null;
+  const armed = tool.mode === 'casesDeZone' && tool.zoneId === zone.id ? tool.paint : null;
   const blockRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!focusKey || !blockRef.current || !port.current) return;

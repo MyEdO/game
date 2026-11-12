@@ -72,7 +72,7 @@ const doc = document(
     },
     diseases: { label: 'Maladies contractées', hint: "Table de tirage de la maladie contractée en cas d'échec" },
   },
-  { codex: { keys: ['waterExposure'] }, edit: { object: 'single' } },
+  { codex: { keys: ['waterExposure'] }, edit: { object: 'unique' } },
   { affinerEntree: (entree) => entree.superRefine(fixerLeTest('skill', 'difficulty')) },
 );
 

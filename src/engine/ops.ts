@@ -889,14 +889,14 @@ export type GameOp =
    *  une frappe) RÉSOLU par la couche state (`accorderLAttaqueGratuite` de `combatFlow`, appelé par `runCombatFlow`
    *  sur ce `do`) ; INERTE dans `applyOps`. `weapon` : arme tenue / main principale / naturelle. `when` :
    *  'available' = surfacée comme OPTION du Tour (Frénésie, lue par `availableAttacks`) ou 'immediate' = résolue
-   *  tout de suite (depuis un effet déclenché). `coutEnAvantage` / `advantageOrMovement` : ce que la frappe
+   *  tout de suite (depuis un effet déclenché). `coutEnAvantage` / `avantageOuMouvement` : ce que la frappe
    *  coûte au porteur. `activeIf` : condition
    *  d'activation d'une grant 'available' (l'état `frenzied`). `perChargerOncePerRound` : 1× par chargeur. Le
    *  plafond /Round est porté par la couche state (= niveau du talent). Un éventuel jet PRÉALABLE (Frappe
    *  réactive : Test d'Initiative) est un nœud Flow `test` EN AMONT du `do`, pas un champ de l'op (cadence-aware
    *  via `resolveFlowTest`). */
   | { op: 'grantFreeAttack'; weapon: 'held' | 'mainHand' | 'natural'; when: 'available' | 'immediate';
-      coutEnAvantage?: number; advantageOrMovement?: boolean;
+      coutEnAvantage?: number; avantageOuMouvement?: boolean;
       activeIf?: 'frenzied'; perChargerOncePerRound?: boolean; label?: string }
   /** Marqueur IMPUR de la branche d'ÉCHEC du Test `interruption-de-focalisation` (LDB 46 l.144) :
    *  la cible perd tous les DR focalisés (couverts par son composant) et subit une Incantation Imparfaite

@@ -32,7 +32,7 @@ export function planJump(scene: Scene, takeoff: Pt, landing: Pt, movement: numbe
   // Chute = hauteur métrique entre la surface de décollage et celle d'atterrissage (LDB 15 l.80).
   const metres = Math.max(0, hDepart - sol.hauteur);
   const test = testDeRegle('saut', runUpCases >= Math.ceil(movement / 2) ? 'avec-elan' : 'sans-elan');
-  const fall: Effect = { type: 'fall', target: 'party', metres, to: sol.to };
+  const fall: Effect = { type: 'fall', target: 'groupe', metres, to: sol.to };
   // La réussite ne fait rien (on a déjà franchi, optimiste) ; l'échec déclenche `fall` dans le gouffre.
   const stake = combatStakeRef('saut-test', { values: { metres } });
   return { kind: 'test', flow: testFlow({ ...test, stake }, EMPTY_FLOW, flowFromEffects([fall])) };

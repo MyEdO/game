@@ -1103,7 +1103,7 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!chiefs.length) return;
       const onSuccess: Flow = {
         kind: 'sequence',
-        etapes: chiefs.map((c) => ({ kind: 'effet', effet: { type: 'ops', on: 'hero', heroId: c.id, ops: [{ op: 'teamCommander', commanderId: active.id }] } })),
+        etapes: chiefs.map((c) => ({ kind: 'effet', effet: { type: 'ops', on: 'heros', heroId: c.id, ops: [{ op: 'teamCommander', commanderId: active.id }] } })),
       };
       set({ battle: { ...markActed(get, set), action: null } }); // le Test EST l'Action (réussite ou non)
       openSkillTest(get, set,
@@ -2054,7 +2054,7 @@ export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'at
         const battle = get().battle;
         const cible = pa ? inBattleId(battle, pa.targetId) : undefined;
         const attaquant = pa ? inBattleId(battle, pa.attackerId) : undefined;
-        if (!battle || !pa || !pa.forced || !pa.result || !cible || !attaquant) return;
+        if (!battle || !pa || !pa.forcee || !pa.result || !cible || !attaquant) return;
         const victime = victimeDuCoup(battle, cible, pa);
         if (!issueAuJet(victime, coupAApplique(pa.result, pa.grapple, victime), attackWeaponOf(battle, attaquant, cible, pa), attaquant).compte.relance) return;
         set({ pendingAttack: { ...pa, result: { ...pa.result, critLocation: loc } } });
@@ -2509,15 +2509,16 @@ export function cloturesDuCombat(get: Get, set: Set) {
       // Attaque GRATUITE (elle ne consomme pas l'Action du fuyard, dont c'est le tour) : l'Action rendue
       // est la SUITE du coup, jouée par son après-coup — à la reprise quand le coup est suspendu.
       // Enchaînement déclaré par le conducteur du frappeur, partition de `aiDriven` (`applyTalentFreeAttack`).
-      const enchainement: EnchainementDuCoup = aiDriven(get(), foe) ? { mode: 'auto' } : { mode: 'hero', wasChain: false };
+      const enchainement: EnchainementDuCoup = aiDriven(get(), foe) ? { mode: 'auto' } : { mode: 'heros', wasChain: false };
       const suspended = applyAttackResult(get, set, foe, mover, backstabWeapon(foe), res,
         { suite: { restitution: { prevActed: battle.acted }, manoeuvre: { kind: 'dos' }, enchainement } });
       const jet = toucheSlot?.jet;
       const broken = jet && !jet.success ? 1 + Math.max(0, -jet.sl) : 0; // échec → 1 + DR négatif (LDB 15 l.66)
       if (suspended) {
-        // Déviation Critique du fuyard : `applyAttackResult` a EMPILÉ son étape de choix — le coup gratuit
-        // n'est PAS résolu. La fuite (Brisé + Course) attend SA résolution, dans la même fenêtre, via
-        // l'étape de reprise `mouvementDeFuite` (LDB 15 l.68 : « une fois que ce coup gratuit est résolu… »).
+        // Le coup gratuit n'est PAS résolu : `applyAttackResult` a EMPILÉ une étape qui tient la main (Déviation
+        // Critique du fuyard, Test ou choix poussé par la touche, qui porte l'après-coup). La fuite (Brisé + Course)
+        // attend SA résolution, dans la même fenêtre, via l'étape de reprise `mouvementDeFuite` (LDB 15 l.68 :
+        // « une fois que ce coup gratuit est résolu… »).
         pushDisplay(set, { id: `flee-move-${mover.id}`, kind: 'mouvementDeFuite', actorId: mover.id, icon: 'melee/fuir', label: t('step.fuite'),
           outcome: toRecapLines([
             t('cs.fuiteReprise', { name: mover.label, foe: foe.label }),
@@ -2538,7 +2539,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       else set({ pendingCascade: null }); // rien d'empilé : la cascade-hôte du Désengagement se ferme
     },
     // Cycle Chance/+1 DR/Pacte/Résilience (spec `auContact`) : foe (atk) figé, seul le jet du mover se (re)joue.
-    // « Appliquer » : le Test opposé EST l'Action. Le mover (héros) gagne → IL choisit (phase 'choice') ;
+    // « Appliquer » : le Test opposé EST l'Action. Le mover (héros) gagne → IL choisit (phase 'choix') ;
     // le foe gagne → l'IA tranche par heuristique (arme la plus courte = au contact) ; égalité → statu quo.
     auContact: () => {
       const { battle, pendingAuContact: pd } = get();
@@ -2546,7 +2547,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       const mover = inBattleId(battle, pd.moverId);
       const foe = inBattleId(battle, pd.foeId);
       if (!mover || !foe) return set({ pendingAuContact: null });
-      if (pd.result === 'reussite') return set({ pendingAuContact: { ...pd, phase: 'choice' } }); // le héros tranche
+      if (pd.result === 'reussite') return set({ pendingAuContact: { ...pd, phase: 'choix' } }); // le héros tranche
       if (pd.result === 'egalite') return applyAuContact(get, set, mover, foe, null); // statu quo, Action consommée
       // Le foe (IA) l'emporte → au contact si SON arme est plus COURTE (il neutralise l'allonge adverse).
       // Sans arme de mêlée, il frappe à Mains nues (« Personnelle », LDB 62 l.28/l.158) ; deux longueurs
@@ -2954,7 +2955,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
           // L'ENCHAÎNEMENT se DÉCLARE, toujours : une Maladresse de l'attaquant ou une frappe du Maniement
           // de deux armes n'en ouvrent AUCUN (`aucun`) — sans déclaration, la queue partagée tomberait dans
           // le balayage de la machine (LDB 85 l.362), que ce site écarte. Manœuvre gratuite : LDB 14 l.9.
-          enchainement: !fumbled && !isDualMain && !isDualSecond ? { mode: 'hero', wasChain } : { mode: 'aucun' },
+          enchainement: !fumbled && !isDualMain && !isDualSecond ? { mode: 'heros', wasChain } : { mode: 'aucun' },
           ...(isDualMain && off?.uid && mainRoll != null ? { dualMain: { offWeaponUid: off.uid, mainRoll } } : {}),
           ...(pa.reaction ? { reaction: pa.reaction } : {}),
           ...(pa.riposte != null ? { riposte: pa.riposte } : {}),
@@ -3025,14 +3026,12 @@ export function cloturesDuCombat(get: Get, set: Set) {
       // Déviation, Maladresse, dé de casse), et c'est sa reprise qui jouera le reste.
       const tient = suite.mode === 'machine' && !!attacker && !!defender
         && applyAttackResult(get, set, attacker, defender, pd.weapon, lance, { suite: { ...suite.coup, ...(reaction ? { reaction } : {}), ...riposte } });
-      // Attaques GRATUITES de l'attaquant après CE coup : d'Arme « disponibles » (Frénésie LDB 21 l.33)
-      // — jamais après une gratuite, que la suite de la fenêtre nomme — puis celles de créature. UNE file,
-      // qui S'ARRÊTE à la première fenêtre ouverte : la fenêtre qui suit est celle de la gratuite
-      // SUIVANTE, sur SA propre étape (LDB 85 l.41-43 — chaque gratuite est un Test d'attaque complet).
-      const gratuite = suite.mode === 'machine' && !!suite.coup.restitution;
+      // Attaques GRATUITES de l'attaquant après CE coup (`drainerLesGratuites`) : UNE file, qui S'ARRÊTE à la
+      // première fenêtre ouverte : la fenêtre qui suit est celle de la gratuite SUIVANTE, sur SA propre étape
+      // (LDB 85 l.41-43). Une fenêtre qui tient la main laisse la file à sa reprise (`resumeSuspendedAI`).
       // LDB 11 l.103 : la suite DÉCLARÉE par `runPreemptShots` tranche.
       const tirRapide = suite.mode === 'machine' && suite.coup.enchainement?.mode === 'tirRapide';
-      if (!tient && !tirRapide && attacker && drainerLesGratuites(get, set, attacker, { disponibles: !gratuite })) { quitterLaDefense(); return; }
+      if (!tient && !tirRapide && attacker && drainerLesGratuites(get, set, attacker)) { quitterLaDefense(); return; }
       // La défense est l'étape de SA cascade combat → enchaîner le curseur (les conséquences empilées —
       // Critique/Maladresse — s'affichent inline ; la clôture reprend l'IA). Rien derrière elle : reprise.
       if (!quitterLaDefense()) resumeEnemyTurn(get, set);

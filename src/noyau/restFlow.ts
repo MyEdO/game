@@ -714,15 +714,23 @@ function dormir(get: Get, set: Set): void {
   openRestNight(get, set, p, p.days, extraContagion);
 }
 
-/** Titre de la nuit — le couchage RÉELLEMENT choisi (pas l'OFFRE du lieu) : tout le monde dehors →
- *  Campement, même si une auberge était dispo (le joueur a choisi la belle étoile). Identique pour
+/** Le toit d'une nuit : l'auberge, un logis, le bord, ou le campement. */
+export type ToitDeLaNuit = 'auberge' | 'maison' | 'bord' | 'campement';
+
+/** Le toit de la nuit — le couchage RÉELLEMENT choisi (pas l'OFFRE du lieu) : tout le monde dehors →
+ *  campement, même si une auberge était dispo (le joueur a choisi la belle étoile). Identique pour
  *  toutes les nuits d'un repos multi-jours (les choix de couchage ne changent pas en cours de séjour). */
-export function nightTitle(p: PendingRest, party: Combatant[]): string {
+export function toitDeLaNuit(p: PendingRest, party: Combatant[]): ToitDeLaNuit {
   const lodgings = party.filter((h) => !h.dead && p.perHero[h.id]).map((h) => p.perHero[h.id].lodging);
-  return lodgings.some((l) => l === 'privee' || l === 'commune') ? t('rf.nightInn')
-    : lodgings.some((l) => l === 'maison') ? t('rf.nightHome')
-    : lodgings.some((l) => l === 'bord') ? t('rf.nightAboard')
-    : t('rf.nightCamp');
+  return lodgings.some((l) => l === 'privee' || l === 'commune') ? 'auberge'
+    : lodgings.some((l) => l === 'maison') ? 'maison'
+    : lodgings.some((l) => l === 'bord') ? 'bord'
+    : 'campement';
+}
+
+/** Titre de la nuit, d'après son toit (`toitDeLaNuit`). */
+export function nightTitle(p: PendingRest, party: Combatant[]): string {
+  return t(({ auberge: 'rf.nightInn', maison: 'rf.nightHome', bord: 'rf.nightAboard', campement: 'rf.nightCamp' } as const)[toitDeLaNuit(p, party)]);
 }
 
 /** Ouvre (ou enchaîne) UNE nuit de repos (#347) : reconstruit `buildNightCascade` pour CETTE nuit et

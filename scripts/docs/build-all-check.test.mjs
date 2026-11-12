@@ -484,6 +484,47 @@ test('`--perimes` sur un clone NEUF, sans preuve ni docs : chaque générateur j
   }
 })
 
+test('une cible orpheline, ignorée par le bloc des cibles pures et qu’aucun générateur ne déclare, est retirée en écriture seule (#4007)', () => {
+  const { racine } = instanceDeDepot({
+    commit: false,
+    fichiers: {
+      '.gitignore': ['node_modules/', 'src/hors-bloc.txt', '# Cibles PURES de `GENERATORS`', `/${DOC_A}`, `/${DOC_B}`, '/src/**/*.generated.ts', '# fin des cibles pures', ''].join('\n'),
+      'src/a.ts': 'export const a = 1\n', 'src/b.ts': 'export const b = 1\n', 'src/commun.ts': 'export const commun = 1\n',
+      'src/suivie.generated.ts': 'export const suivie = 1\n', 'src/hors-bloc.txt': 'hors du bloc\n',
+      'g/a.mjs': generateurReel('a'), 'g/b.mjs': generateurReel('b', { cliquet: true }),
+    },
+  })
+  try {
+    mkdirSync(path.join(racine, 'docs'), { recursive: true })
+    gitDe(racine)('add', '-f', 'src/suivie.generated.ts')
+    const orpheline = path.join(racine, 'src/ancien/_registry.generated.ts')
+    const poser = () => {
+      mkdirSync(path.dirname(orpheline), { recursive: true })
+      writeFileSync(orpheline, "import './defs/disparu'\n")
+    }
+    poser()
+    executer(racine, ['--check'])
+    assert.equal(existsSync(orpheline), true, '`--check` n’écrit ni ne retire rien')
+    const vu = executer(racine, [])
+    assert.equal(vu.status, 0, vu.sortie)
+    assert.match(vu.sortie, /cible orpheline retirée : src\/ancien\/_registry\.generated\.ts/)
+    assert.equal(existsSync(orpheline), false)
+    assert.equal(existsSync(path.dirname(orpheline)), false, 'le dossier que l’orpheline laisse vide part avec elle')
+    assert.deepEqual(['src/suivie.generated.ts', 'src/hors-bloc.txt', DOC_A, DOC_B].map((f) => existsSync(path.join(racine, f))), [true, true, true, true])
+    poser()
+    const seul = executer(racine, ['--only', 'g/a.mjs'])
+    assert.equal(seul.status, 0, seul.sortie)
+    assert.deepEqual([orpheline, path.join(racine, DOC_B)].map((f) => existsSync(f)), [false, true], '`--only` retire l’orpheline et garde la cible du générateur non choisi')
+    poser()
+    writeFileSync(path.join(racine, 'g/c.mjs'), ["import { readFileSync } from 'node:fs'", `import { ecrireOuVerifier } from ${JSON.stringify(PRIMITIVE)}`, "ecrireOuVerifier({ out: readFileSync('src/a.ts', 'utf8') + readFileSync('src/commun.ts', 'utf8'), path: 'src/c.generated.ts', check: process.argv.includes('--check'), staleMsg: 'c périmé', rerunMsg: 'relancer' })"].join('\n'))
+    const code = executer(racine, ['--code'], {}, [], [...GENERATEURS_REELS, { runner: 'node', script: 'g/c.mjs', targets: ['src/c.generated.ts'] }])
+    assert.equal(code.status, 0, code.sortie)
+    assert.deepEqual([orpheline, 'src/c.generated.ts', DOC_A, DOC_B].map((f) => existsSync(path.resolve(racine, f))), [false, true, true, true], '`--code` retire l’orpheline et garde les docs des générateurs qu’il ne joue pas')
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
 test('`--check` rejoue chaque générateur : un corps divergent posé sur le disque est NOMMÉ, sortie 1, rien d’écrit', () => {
   const { racine } = depotReel()
   try {

@@ -44,7 +44,7 @@ const doc = document(
   },
   {
     codex: { keys: ['sizes'] },
-    edit: { object: 'single' },
+    edit: { object: 'unique' },
   },
 );
 

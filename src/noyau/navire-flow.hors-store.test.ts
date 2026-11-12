@@ -127,7 +127,7 @@ describe('cible `navire` d’un EffectOp (#1652 G2 — MDG 15 l.83-125, l.152-15
   });
 
   it('une op de navire hors de la cible `navire` lève, nommée', () => {
-    expect(() => applyEffects(get, set, [{ type: 'ops', on: 'party', ops: [{ op: 'shipMorale', delta: { sign: 1, dice: { n: 1, sides: 10 } } }] } as never]))
+    expect(() => applyEffects(get, set, [{ type: 'ops', on: 'groupe', ops: [{ op: 'shipMorale', delta: { sign: 1, dice: { n: 1, sides: 10 } } }] } as never]))
       .toThrow(/shipMorale ne vise que le navire/);
   });
 });
@@ -733,7 +733,7 @@ describe('Bourse du groupe et valeurs liées (#1652 lot 6 — MDG 15 l.245-247, 
 
   const enSous = () => toBrass(partyMoneyTotal(get));
   const finance = (co: number) => creditBourse(get, set, get().party[0].id, { gold: co, silver: 0, brass: 0 });
-  const surLeGroupe = (ops: unknown[]): Effect => ({ type: 'ops', on: 'party', ops } as never);
+  const surLeGroupe = (ops: unknown[]): Effect => ({ type: 'ops', on: 'groupe', ops } as never);
   const escale = (id: string) => {
     const c = PORT_EVENTS.find((e) => e.id === id)!.consequence;
     setDataset('seaPortEvents', PORT_EVENTS.map(({ min, max, id: rangee, label, desc }) => ({ min, max, id: rangee, label, desc, consequence: c })) as never);
@@ -958,7 +958,7 @@ describe('Nœuds hors combat (#1652 lot 7 — MDG 15 l.159-164, l.174-178, l.194
   });
 
   it('une exposition HORS combat ouvre tout de suite la bande de Contraction, et consomme le marqueur (LDB 20)', () => {
-    jouerFlowEntier(runFlow(get, set, { kind: 'effet', effet: { type: 'ops', on: 'party', ops: [{ op: 'exposeDisease', disease: 'peste-noire' }] } as never }, 'Puces'));
+    jouerFlowEntier(runFlow(get, set, { kind: 'effet', effet: { type: 'ops', on: 'groupe', ops: [{ op: 'exposeDisease', disease: 'peste-noire' }] } as never }, 'Puces'));
     const bande = bandeDeContraction();
     expect(bande?.meta).toEqual({ entry: 'contagion', disease: 'peste-noire' });
     expect(bande?.participants?.map((p) => [p.id, p.difficulty])).toEqual(get().party.map((h) => [h.id, 'accessible']));
