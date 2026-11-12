@@ -101,7 +101,7 @@ export function batailleEnVue(s: Jeu): BatailleEnVue | null {
   const aleaOuvert = enRound && !mb.hazard && !mb.awaitingNext;
   return {
     round: mb.phase === 'over' ? null : t('mbf.round', { n: mb.round, total: mb.plannedRounds }),
-    armees: [armee('allie', enRound ? mb.allyMod + (mb.round === 1 ? mb.firstRoundBonus : 0) : 0), armee('ennemi', 0)],
+    armees: [armee('allie', enRound ? mb.modificateurAllie + (mb.round === 1 ? mb.firstRoundBonus : 0) : 0), armee('ennemi', 0)],
     terrain: enRound ? mb.terrain ?? null : null,
     menace: enRound ? massBattleThreatPenalty(mb) : 0,
     scenes: enRound ? scenesDuRound(s, mb) : [],

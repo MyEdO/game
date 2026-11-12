@@ -1274,7 +1274,7 @@ export function startDisengage(get: Get, set: SetFn, mover: Combatant): void {
       canSacrifice,
       ...(refusEsquive ? { refusEsquive } : {}), // LDB 15 l.49
       canFuir, // LDB 15 l.61
-      phase: 'choice',
+      phase: 'choix',
       atk,
       def: null,
       result: null,
@@ -1325,7 +1325,7 @@ export function completeFlee(get: Get, set: SetFn, moverId: string, foeId: strin
  *  jouera SON jet influençable, et le VAINQUEUR choisira « combat normal » ou « au contact ». */
 export function startAuContact(_get: Get, set: SetFn, mover: Combatant, foe: Combatant): void {
   const atk = rollDisengageAttack(foe, battleRng()); // Corps à corps du foe, figé (jamais relancé)
-  set({ pendingAuContact: { moverId: mover.id, foeId: foe.id, phase: 'roll', atk, def: null, result: null } });
+  set({ pendingAuContact: { moverId: mover.id, foeId: foe.id, phase: 'jet', atk, def: null, result: null } });
 }
 
 /** Ouvre l'action d'Empoignade d'un combattant à son tour (LDB 14 l.161). Test opposé de FORCE `actor`
@@ -1338,7 +1338,7 @@ const GRAPPLE_SOURCE = { kind: 'regle', id: 'empoignade' } as const;
 export function startGrapple(_get: Get, set: SetFn, actor: Combatant, foe: Combatant): void {
   const atk = rollGrappleForce(foe, battleRng()); // Force du foe, figée (jamais relancée)
   const canBreak = actor.advantage > foe.advantage;
-  set({ pendingGrapple: { actorId: actor.id, foeId: foe.id, phase: 'roll', canBreak, atk, def: null, result: null } });
+  set({ pendingGrapple: { actorId: actor.id, foeId: foe.id, phase: 'jet', canBreak, atk, def: null, result: null } });
 }
 
 /** Cœur PARTAGÉ (flux joueur ET résolveur IA) d'une victoire d'Empoignade (LDB 14 l.161) : applique

@@ -986,7 +986,7 @@ function tavernRound(get: Get, seq: SequenceState<TavernPayload>, rng: RNG): Seq
 /** Les DEUX jets d'une manche close, quel que soit son montage — SOURCE UNIQUE de lecture du
  *  réducteur (bande : une rangée par camp ; mono : le jet du challenger et le jet adverse FIGÉ). */
 function tavernSides(ctx: SequenceCloseCtx<TavernPayload>): {
-  player: TestResult; opponent: TestResult; playerActor?: Combatant; opponentActor?: Combatant;
+  joueur: TestResult; adversaire: TestResult; acteurDuJoueur?: Combatant; acteurDeLAdversaire?: Combatant;
 } | undefined {
   const { get, seq, done } = ctx;
   const p = seq.payload;
@@ -997,15 +997,15 @@ function tavernSides(ctx: SequenceCloseCtx<TavernPayload>): {
     const sien = step.participants.find((r) => r.id === p.opponentId);
     if (!mien || !sien || !estJete(mien.result) || !estJete(sien.result)) return undefined;
     return {
-      player: asTest(mien.result, mien.base), opponent: asTest(sien.result, sien.base),
-      playerActor: tavernActor(get, p.challengerId), opponentActor: tavernActor(get, p.opponentId),
+      joueur: asTest(mien.result, mien.base), adversaire: asTest(sien.result, sien.base),
+      acteurDuJoueur: tavernActor(get, p.challengerId), acteurDeLAdversaire: tavernActor(get, p.opponentId),
     };
   }
   if (!estJete(step.result)) return undefined;
   return {
-    player: asTest(step.result, step.base),
-    opponent: garanti(step.meta?.opposed?.aT, step.id, 'jet adverse figé de la manche'),
-    playerActor: actorIn(get(), p.challengerId),
+    joueur: asTest(step.result, step.base),
+    adversaire: garanti(step.meta?.opposed?.aT, step.id, 'jet adverse figé de la manche'),
+    acteurDuJoueur: actorIn(get(), p.challengerId),
   };
 }
 
@@ -1636,13 +1636,13 @@ function tavernClose(ctx: SequenceCloseCtx<TavernPayload>): SequenceVerdict<Tave
   const sides = tavernSides(ctx);
   if (!game || !sides) return { go: 'end', outcome: 'egalite' };
 
-  const bonusPlayer = sequenceDrBonus(seq.params, sides.playerActor);
-  const bonusOpponent = sequenceDrBonus(seq.params, sides.opponentActor, p.opponentValue);
-  const { winner, dr } = resolveTavernRound(game, sides.player, sides.opponent, {
+  const bonusPlayer = sequenceDrBonus(seq.params, sides.acteurDuJoueur);
+  const bonusOpponent = sequenceDrBonus(seq.params, sides.acteurDeLAdversaire, p.opponentValue);
+  const { winner, dr } = resolveTavernRound(game, sides.joueur, sides.adversaire, {
     joueur: bonusPlayer, adversaire: bonusOpponent,
   });
-  const mien = { roll: sides.player.roll, sl: dr.joueur };
-  const sien = { roll: sides.opponent.roll, sl: dr.adversaire };
+  const mien = { roll: sides.joueur.roll, sl: dr.joueur };
+  const sien = { roll: sides.adversaire.roll, sl: dr.adversaire };
   const departage = winner === 'egalite' ? resolveSequenceTie(seq.params.tieBreak, mien, sien) : 'egalite';
   const recit = winner === 'egalite' ? recitDuDepartage(seq.params.tieBreak, mien, sien) : undefined;
   const manche: TavernGameResult['winner'] = winner !== 'egalite'
@@ -1662,8 +1662,8 @@ function tavernClose(ctx: SequenceCloseCtx<TavernPayload>): SequenceVerdict<Tave
   }
 
   const { cum, done } = sequenceCumRound(seq, {
-    [CAMP_PLAYER]: { success: sides.player.success, sl: dr.joueur },
-    [CAMP_OPPONENT]: { success: sides.opponent.success, sl: dr.adversaire },
+    [CAMP_PLAYER]: { success: sides.joueur.success, sl: dr.joueur },
+    [CAMP_OPPONENT]: { success: sides.adversaire.success, sl: dr.adversaire },
   });
   if (!done.length) return { go: 'continue', cum, payload: { ...suite, last: { dr } }, roundActors };
   const cp = cum[CAMP_PLAYER] ?? 0;
@@ -2244,15 +2244,15 @@ function sidesClose(ctx: SequenceCloseCtx<TavernPayload>, game: TavernGame): Seq
     roundSL(tr, seq.params.drCap) + sequenceDrBonus(seq.params, acteur, nue);
   const prise = (t2: number, side: SequenceSide): number => Math.max(0, Math.ceil(t2 / Math.max(1, side.div)));
   const cum = {
-    [CAMP_PLAYER]: (seq.cum[CAMP_PLAYER] ?? 0) + prise(total(jets.player, jets.playerActor), mien),
-    [CAMP_OPPONENT]: (seq.cum[CAMP_OPPONENT] ?? 0) + prise(total(jets.opponent, jets.opponentActor, p.opponentValue), sien),
+    [CAMP_PLAYER]: (seq.cum[CAMP_PLAYER] ?? 0) + prise(total(jets.joueur, jets.acteurDuJoueur), mien),
+    [CAMP_OPPONENT]: (seq.cum[CAMP_OPPONENT] ?? 0) + prise(total(jets.adversaire, jets.acteurDeLAdversaire, p.opponentValue), sien),
   };
   // VICTOIRE AU CRITIQUE, sous la condition DÉCLARÉE du camp : le dé des unités, multiplié par ce que
   // le camp porte, ne dépasse pas ce qu'il a pris.
   const auCritique = (tr: TestResult, side: SequenceSide, pris: number): boolean =>
     tr.success && isDoubleRoll(tr.roll) && (tr.roll % 10) * Math.max(1, side.mult) <= pris;
-  const critMien = auCritique(jets.player, mien, cum[CAMP_PLAYER]);
-  const critSien = auCritique(jets.opponent, sien, cum[CAMP_OPPONENT]);
+  const critMien = auCritique(jets.joueur, mien, cum[CAMP_PLAYER]);
+  const critSien = auCritique(jets.adversaire, sien, cum[CAMP_OPPONENT]);
   // « plus de la moitié des pièces de son adversaire » : STRICTEMENT plus.
   const gagneMien = critMien || cum[CAMP_PLAYER] > sien.pieces / 2;
   const gagneSien = critSien || cum[CAMP_OPPONENT] > mien.pieces / 2;
@@ -2383,7 +2383,7 @@ function combinedClose(ctx: SequenceCloseCtx<TavernPayload>, game: TavernGame): 
     const effacements = { ...etat.effacements, [CAMP_PLAYER]: etat.effacements[CAMP_PLAYER] + 1 };
     const heros = combinedActor(get, p, CAMP_PLAYER);
     log.push(t('tavern.cerevisEffacee', { who: garanti(heros, p.challengerId, 'cérévis').label }));
-    if (heros && combinedEcheance(effacements[CAMP_PLAYER], regles.eraseEvery) && regles.ops?.length) {
+    if (heros && combinedEcheance(effacements[CAMP_PLAYER], regles.effacementsParEcheance) && regles.ops?.length) {
       log.push(...applyOps(heros, [...regles.ops], { idNeuf: get().forgerUnId, rng: battleRng(), source: { kind: 'jeuDeTaverne', id: game.id } }));
     }
     return { go: 'continue', cum: marques, payload: { ...p, combined: { ...etat, effacements, efface: true } }, log };
@@ -2397,31 +2397,31 @@ function combinedClose(ctx: SequenceCloseCtx<TavernPayload>, game: TavernGame): 
 
   // 2) LA PREMIÈRE LECTURE : le plus BAS DR prend la marque (l.90). À égalité, personne ne perd le
   //    tour — la source ne désigne QUE « le joueur qui a obtenu le moins de DR ».
-  const drMien = sides.player.sl;
-  const drSien = sides.opponent.sl;
+  const drMien = sides.joueur.sl;
+  const drSien = sides.adversaire.sl;
   const perdant = regles.markLoser
     ? (drMien < drSien ? CAMP_PLAYER : drSien < drMien ? CAMP_OPPONENT : undefined)
     : undefined;
   if (perdant) {
     marques[perdant] = (marques[perdant] ?? 0) + 1;
-    const qui = perdant === CAMP_PLAYER ? garanti(sides.playerActor, p.challengerId, 'cérévis').label : p.opponentName;
+    const qui = perdant === CAMP_PLAYER ? garanti(sides.acteurDuJoueur, p.challengerId, 'cérévis').label : p.opponentName;
     log.push(t('tavern.cerevisChouette', { who: qui, dr: perdant === CAMP_PLAYER ? drMien : drSien }));
   }
 
   // 3) LA SECONDE LECTURE, sur LE MÊME dé (`LDB 12 l.202-208`) : chaque échec compte, et l'échéance
   //    déclarée paie ce que la donnée dit.
   for (const camp of [CAMP_PLAYER, CAMP_OPPONENT] as const) {
-    const jet = camp === CAMP_PLAYER ? sides.player : sides.opponent;
-    const acteur = camp === CAMP_PLAYER ? sides.playerActor : sides.opponentActor;
+    const jet = camp === CAMP_PLAYER ? sides.joueur : sides.adversaire;
+    const acteur = camp === CAMP_PLAYER ? sides.acteurDuJoueur : sides.acteurDeLAdversaire;
     const difficulty = difficulteDuSiege(p, difficulteDeBase(game, p.choices?.[p.challengerId]), camp === CAMP_PLAYER ? p.challengerId : idAdverse(p));
     const cible2 = combinedSecondTarget(regles, acteur, difficulty, p.opponentValue);
     const combine = evaluateCombinedTest(jet.roll, jet.target, cible2);
     if (combine.b.success) continue;
     echecs[camp] += 1;
-    const qui = camp === CAMP_PLAYER ? garanti(sides.playerActor, p.challengerId, 'cérévis').label : p.opponentName;
+    const qui = camp === CAMP_PLAYER ? garanti(sides.acteurDuJoueur, p.challengerId, 'cérévis').label : p.opponentName;
     log.push(t('tavern.cerevisGorgee', { who: qui }));
     const porteur = combinedActor(get, p, camp);
-    if (porteur && combinedEcheance(echecs[camp], regles.failEvery) && regles.ops?.length) {
+    if (porteur && combinedEcheance(echecs[camp], regles.echecsParEcheance) && regles.ops?.length) {
       log.push(t('tavern.cerevisAlcool', { who: qui }));
       // ANCRAGE DE RÈGLE : ce que la partie fait boire se relie à la FICHE DU JEU, qui porte sa règle
       // verbatim — une pastille d'ivresse sans fiche ne dirait pas d'où elle vient.

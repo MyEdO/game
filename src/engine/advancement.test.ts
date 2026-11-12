@@ -41,28 +41,28 @@ const hero = (xp: number): Combatant =>
 
 describe('advanceCost — Tableau de Coût (LDB 07 l.51-70), verbatim', () => {
   it('Caractéristique : coûts par bande (déjà-achetées → coût de la prochaine)', () => {
-    expect(advanceCost(0, 'characteristic')).toBe(25); // bande 0 à 5
-    expect(advanceCost(5, 'characteristic')).toBe(25);
-    expect(advanceCost(6, 'characteristic')).toBe(30); // bande 6 à 10
-    expect(advanceCost(10, 'characteristic')).toBe(30);
-    expect(advanceCost(11, 'characteristic')).toBe(40);
-    expect(advanceCost(25, 'characteristic')).toBe(70);
-    expect(advanceCost(70, 'characteristic')).toBe(450);
-    expect(advanceCost(71, 'characteristic')).toBe(520); // 71 et +
-    expect(advanceCost(999, 'characteristic')).toBe(520);
+    expect(advanceCost(0, 'caracteristique')).toBe(25); // bande 0 à 5
+    expect(advanceCost(5, 'caracteristique')).toBe(25);
+    expect(advanceCost(6, 'caracteristique')).toBe(30); // bande 6 à 10
+    expect(advanceCost(10, 'caracteristique')).toBe(30);
+    expect(advanceCost(11, 'caracteristique')).toBe(40);
+    expect(advanceCost(25, 'caracteristique')).toBe(70);
+    expect(advanceCost(70, 'caracteristique')).toBe(450);
+    expect(advanceCost(71, 'caracteristique')).toBe(520); // 71 et +
+    expect(advanceCost(999, 'caracteristique')).toBe(520);
   });
   it('Compétence : coûts par bande', () => {
-    expect(advanceCost(0, 'skill')).toBe(10);
-    expect(advanceCost(5, 'skill')).toBe(10);
-    expect(advanceCost(6, 'skill')).toBe(15);
-    expect(advanceCost(11, 'skill')).toBe(20);
-    expect(advanceCost(25, 'skill')).toBe(40);
-    expect(advanceCost(71, 'skill')).toBe(440);
+    expect(advanceCost(0, 'competence')).toBe(10);
+    expect(advanceCost(5, 'competence')).toBe(10);
+    expect(advanceCost(6, 'competence')).toBe(15);
+    expect(advanceCost(11, 'competence')).toBe(20);
+    expect(advanceCost(25, 'competence')).toBe(40);
+    expect(advanceCost(71, 'competence')).toBe(440);
   });
   it('hors carrière : coût DOUBLE (LDB 07 l.91)', () => {
-    expect(advanceCost(0, 'characteristic', false)).toBe(50);
-    expect(advanceCost(0, 'skill', false)).toBe(20);
-    expect(advanceCost(11, 'characteristic', false)).toBe(80);
+    expect(advanceCost(0, 'caracteristique', false)).toBe(50);
+    expect(advanceCost(0, 'competence', false)).toBe(20);
+    expect(advanceCost(11, 'caracteristique', false)).toBe(80);
   });
 });
 

@@ -350,7 +350,7 @@ module de sa primitive, déclaré au manifeste des primitives (champ `css`) et m
 | `inspect-panel.css` | `InspectPanel` | `.insp-head`, `.insp-id`, `.insp-lbl`, `.insp-badges`, `.insp-badge`, `.insp-pv-num` |
 | `equipment-panel.css` | `EquipmentPanel` | `.equip-panel`, `.equip-slots`, `.eq-*`, `.equip-sets`, `.set-*`, `.weap-quals` |
 | `combat-console.css` | `CombatConsole` (organisme) | `.combat-console` (l'EMPREINTE du pont — bande + saillie du fronton —, + `[data-forme]`), `.cc-phase` (+ `[data-phase]`, ses TROIS adresses), `.cc-dock` (la BANDE, qui porte la matière), `.cc-bay*`, `.cc-arsenal*`, `.cc-sets`/`.cc-set*`, `.cc-grid*`, `.cc-cell` (l'alvéole, posée à côté de `.chip`), `.cc-ico`, `.cc-lbl`, `.cc-key`, `.cc-cost`, `.cc-quick`, `.cc-arch*` (le fronton), `.cc-gutter*`, `.cc-socle`, `.cc-conduit*`, `.cc-corner`, `.cc-end` — identité et mise en page INTERNE ; la matière de la bande est la peau `.skin-pont`, celle du bandeau de phase la peau `.skin-bois` |
-| `fx-chip.css` | `FxChip` / `EffectChips` | `.fx-chips` (la rangée), `.fx-chip` (+ tons `.malus`, `.buff`, `.state`, `.more`, compte `<b>`, durée `<em>`), `.fx-chip-label` |
+| `fx-chip.css` | `FxChip` / `EffectChips` | `.fx-chips` (la rangée), `.fx-chip` (+ tons `.malus`, `.effet`, `.etat`, `.more`, compte `<b>`, durée `<em>`), `.fx-chip-label` |
 | `spectator-chip.css` | `SpectatorChip` | `.spectator-chip` — l'ANCRAGE est un état de la primitive (`data-pose='ecran'`), pas une règle recopiée chez chacun de ses trois hôtes |
 | `ready-row.css` | `ReadyRow` | `.ready-row`, `.ready-chip` (+ `.ok`), `.ready-seat` |
 | `gear-assign-list.css` | `GearAssignList` | `.gear-list`, `.gear-row`, `.gear-name`, `.gear-unid`, `.gear-acts`, `.gear-act`, `.gear-assign` |

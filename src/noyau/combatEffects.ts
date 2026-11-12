@@ -2177,7 +2177,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   },
   startMassBattle: {
     group: 'Combat & social', label: libelleEffet('startMassBattle'), icon: 'outil-de-carte/depart',
-    make: () => ({ type: 'startMassBattle', battle: { allyMight: 50, enemyMight: 50, plannedRounds: 3 } }),
+    make: () => ({ type: 'startMassBattle', battle: { puissanceAlliee: 50, puissanceEnnemie: 50, plannedRounds: 3 } }),
     apply: (e, env) => { env.get().amorcerLaBataille(e.battle); }, // ouvre l'écran de bataille sur le spec authoré (ADE II 08)
     // Les rencontres mappées aux Scènes de combat/menace doivent exister dans la scène courante.
     refs: (e, ctx) => Object.entries(e.battle.sceneEncounters ?? {}).flatMap(([sceneId, encId]) =>
