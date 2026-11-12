@@ -51,6 +51,10 @@ export const WORKFLOWS = Object.freeze({
     etat: 'autosignale',
     raison: `le step sous !cancelled() exécute ${SIGNALEUR} avec job.status ; les refus de fusion sont visibles sur la PR et ses tickets par reprendre-file.mjs`,
   },
+  'facteur.yml': {
+    etat: 'autosignale',
+    raison: `le step sous !cancelled() exécute ${SIGNALEUR} avec job.status ; un relais refusé fait sortir facteur.mjs en code non nul`,
+  },
   'fermetures.yml': {
     etat: 'autosignale',
     raison:

@@ -8,12 +8,12 @@ extends SceneTree
 ## toutes leur ombre ; chaque sommet vu de l'étage tombe sur une case que le masque lié à sa matière retire, ceux du rez
 ## sur une case qu'il garde, chaque sommet du rez, dont les deux triangles sont sur deux cases, porte en `UV2` le texel
 ## au masque de la case de son triangle (`MiseEnPage.texel_du_masque`), et l'instance en ombre seule de l'étage, entière
-## et jamais masquée, projette ; tout ce qui projette (l'ombre de l'étage, le toit, les arêtes, leurs couronnes) est dans
-## une matière standard, dont Godot dessine
-## l'ombre comme pour toute matière qui ne déplace pas ses sommets ; une arête cachée sort du compte visible des
-## instances vues de son groupe, ses instances en ombre seule entières ; de chaque case du sol, le rayon vers le soleil
-## touche le toit et l'étage ; la couronne du mur abattu ne projette rien. Le toit et les arêtes rendus, chacun se
-## montre et projette.
+## et jamais masquée, projette ; tout ce qui projette (l'ombre de l'étage, l'instance en ombre seule du toit et de chaque
+## couronne, les arêtes) est dans une matière standard, dont Godot dessine l'ombre comme pour toute matière qui ne
+## déplace pas ses sommets, et l'instance vue d'une nappe retirée est cachée ; une arête cachée sort du compte visible
+## des instances vues de son groupe, ses instances en ombre seule entières ; de chaque case du sol, le rayon vers le
+## soleil touche le toit et l'étage ; la couronne du mur abattu ne projette rien. Le toit et les arêtes rendus, chacun
+## se montre et projette.
 
 const RECETTE_AUTONOME := true
 const METRES_PAR_CASE := 2.0
@@ -70,11 +70,11 @@ func _recetter() -> void:
 	retires["couronne kit"] = couronnes.kit
 	retires["ombre de l'étage"] = ombre_de_l_etage
 	for nom: String in retires:
-		for maillage: GeometryInstance3D in _maillages(retires[nom]):
+		if not _vus(retires[nom]).is_empty() or _projetants(retires[nom]).is_empty():
+			_fautes.append("retiré : %s n'est pas en ombre seule (vus %s, projetants %s)" % [nom, _vus(retires[nom]), _projetants(retires[nom])])
+		for maillage: GeometryInstance3D in _projetants(retires[nom]):
 			if not _matieres(maillage).all(func(matiere: Material) -> bool: return matiere is BaseMaterial3D):
 				_fautes.append("%s (%s) projette par une matière qui n'est pas standard : %s" % [nom, maillage.name, _matieres(maillage)])
-			if not maillage.is_visible_in_tree() or maillage.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY:
-				_fautes.append("retiré : %s (%s) n'est pas en ombre seule (visible %s, ombre %d)" % [nom, maillage.name, maillage.is_visible_in_tree(), maillage.cast_shadow])
 	if not _maillages(couronnes.abattue).all(func(m: GeometryInstance3D) -> bool: return not m.is_visible_in_tree()):
 		_fautes.append("la couronne du mur abattu projette encore son ombre")
 	var soleil := (monde.get_node("Lumiere/Soleil") as Node3D).global_basis.z
@@ -92,9 +92,8 @@ func _recetter() -> void:
 	monde.cacher_le_bati([], ["abattue"], [])
 	_aretes_montrees(groupes, 1, "rendues")
 	for nom: String in retires:
-		for maillage in _maillages(retires[nom]):
-			if not maillage.is_visible_in_tree() or maillage.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_ON:
-				_fautes.append("rendu : %s (%s) ne se montre pas ou ne projette pas" % [nom, maillage.name])
+		if _vus(retires[nom]).is_empty() or _projetants(retires[nom]).is_empty():
+			_fautes.append("rendu : %s ne se montre pas ou ne projette pas (vus %s, projetants %s)" % [nom, _vus(retires[nom]), _projetants(retires[nom])])
 	for faute in _fautes:
 		push_error("[ombres-du-regard] " + faute)
 	print("[ombres-du-regard] erreurs=", _fautes.size())
@@ -165,6 +164,16 @@ func _matieres(maillage: GeometryInstance3D) -> Array:
 		return [maillage.material_override]
 	var instance := maillage as MeshInstance3D
 	return range(instance.mesh.get_surface_count()).map(func(rang: int) -> Material: return instance.get_active_material(rang))
+
+
+## Les maillages de `noeud` et de ses descendants que la caméra voit.
+func _vus(noeud: Node) -> Array:
+	return _maillages(noeud).filter(func(m: GeometryInstance3D) -> bool: return m.is_visible_in_tree() and m.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY)
+
+
+## Les maillages de `noeud` et de ses descendants qui projettent leur ombre.
+func _projetants(noeud: Node) -> Array:
+	return _maillages(noeud).filter(func(m: GeometryInstance3D) -> bool: return m.is_visible_in_tree() and m.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_OFF)
 
 
 ## Les maillages de `noeud` et de ses descendants.

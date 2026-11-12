@@ -38,7 +38,7 @@
  *           SANS DANGER, mais actée : chaise (chaise de meuble vs chaise à porteurs EDOC 07 l.192),
  *           charrette, barque.
  *       • décor↔trapping : un DÉCOR homonyme d'une POSSESSION ordinaire (le sac PORTE l'objet, la scène
- *           POSE le décor — deux entités, même mot) — rocher, tonneau, marmite, tente, hamac, bourse (la
+ *           POSE le décor — deux entités, même mot) — rocher, tonneau, marmite, tente, hamac, coffre, etendard, bourse (la
  *           Bourse de sac, LDB folio 301, vs la bourse POSÉE au sol — #1680 ligne 14).
  *       • décor↔qualité : siege — la qualité d'arme « Siège » (ADE II folio 89) vs le FAUTEUIL d'opéra
  *           (#1680 ligne 14). Même patron que `belier`,
@@ -67,8 +67,8 @@ const CATEGORIES: Record<string, { id: string }[]> = {
 
 /** Ensemble VOULU des ids partagés entre ≥ 2 catalogues (cf. familles documentées ci-dessus). */
 const KNOWN_CROSS = [
-  'arme', 'beni', 'bourse', 'broyeur-d-os', 'carreau', 'chaise', 'charrette', 'chute',
-  'cornes', 'corruption', 'effrayant', 'etreinte-glaciale',
+  'arme', 'beni', 'bourse', 'broyeur-d-os', 'carreau', 'chaise', 'charrette', 'chute', 'coffre',
+  'cornes', 'corruption', 'effrayant', 'etendard', 'etreinte-glaciale',
   'filet', 'flechette', 'frenesie', 'frisson-paralysant', 'fuite', 'haine', 'hamac', 'hurlement-de-la-bete-indomptable',
   'hurlement-fantomatique', 'infecte', 'langue-prehensile', 'magique', 'marmite', 'maudit', 'mauvais-oeil',
   'morsure', 'mouvement', 'ogre', 'perturbant', 'pieces-detachees-de-navire', 'pistolet', 'poudre-impregnee-d-aqshy',
