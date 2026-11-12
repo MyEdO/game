@@ -1,4 +1,4 @@
-import { formatDice, parseDiceRequired, totalDuDe, type DiceSpec } from './dice';
+import { formatDice, parseDice, totalDuDe, type DiceSpec } from './dice';
 
 /**
  * Lookup PARTAGÉ d'une entrée de table d100 par fourchette `[min, max]` — SOURCE UNIQUE des tirages
@@ -74,7 +74,8 @@ export type PorteurDeDe = { readonly die: string; readonly id?: string };
 
 /** LE constructeur du dé d'une table tirée : il le lit sur son nœud — FAIL-FAST sur une expression illisible. PUR. */
 export function deDeLaTableTiree(table: PorteurDeDe): DeDeTable {
-  const de = parseDiceRequired(table.die, `${table.id ?? 'table'}.die`);
+  const de = parseDice(table.die);
+  if (!de) throw new Error(`${table.id ?? 'table'}.die invalide : ${table.die}`);
   // eslint-disable-next-line murs/marques -- #1667 : l'unique cast de ce module — forger la marque EST le corps de métier de `deDeLaTableTiree` (cf. JSDoc de `DeDeTable`).
   return de as DeDeTable;
 }

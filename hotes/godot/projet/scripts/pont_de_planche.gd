@@ -1,5 +1,5 @@
 ## Le pont d'une planche (#3935) : il rend à `demarrer`, à `monde` et à `aretes` les réponses enregistrées d'un état de
-## partie (`Planche`, `hotes/godot/recettes/ecran.ts`), et toute autre méthode au pont de la page. Le combat
+## partie (`Planche`, `hotes/godot/recettes/ecran.ts`), et toute autre méthode au pont du noyau. Le combat
 ## (`combat.gd`) montre alors cet état comme une partie qu'il démarre, sans la jouer.
 class_name PontDePlanche
 extends PontDuNoyau
@@ -63,13 +63,13 @@ func appeler(methode: String, entree: Variant = null) -> Dictionary:
 	return super(methode, entree)
 
 
-## Le paramètre `cle` de la partie de la planche (son `scenario`), sinon celui de l'adresse de la page.
+## Le paramètre `cle` de la partie de la planche (son `scenario`), sinon celui du lancement (`PontDuNoyau.parametre`).
 func parametre(cle: String) -> String:
 	return str(_planche.parametres[cle]) if _planche.get("parametres", {}).has(cle) else super(cle)
 
 
-func publier_l_ecran(ecran: Callable) -> void:
-	super(ecran)
+func publier_l_ecran(publie: Callable) -> void:
+	super(publie)
 	_publier_la_planche_montree(false)
 	_calme.start(CALME_S)
 
@@ -82,4 +82,4 @@ func _constater_le_calme() -> void:
 
 
 func _publier_la_planche_montree(montree: bool) -> void:
-	JavaScriptBridge.eval("globalThis.wfrpPlancheMontree = %s" % JSON.stringify(_nom if montree else null), true)
+	_transport.publier("wfrpPlancheMontree", _nom if montree else null)

@@ -29,10 +29,10 @@ import riverNavJson from '../data/river-navigation.json';
 import type { RiverNavigationData } from '../data/schemas/defs/river-navigation';
 import riverPerilsJson from '../data/river-perils.json';
 import { RIVER_CRIT_SET, type ShipCritKey } from '../data/shipCriticals';
-import { findTableEntry } from './tables';
+import { deDeLaTableTiree, findTableEntry } from './tables';
 import { basculesDeForce } from './forceDuVent';
 import { memoParVersion } from '../data/versionDataset';
-import { d10, d100, parseDiceRequired, rollDice, tirer, type RNG, type Tirage } from './dice';
+import { d10, d100, rollDice, tirer, type RNG, type Tirage } from './dice';
 import { bonus } from './characteristics';
 import type { Combatant, Difficulty } from './types';
 import { RULE_REF } from './ruleRefs';
@@ -82,8 +82,8 @@ export const riverDirLabel = (id: RiverWindDirId): string => DATA.windDirections
 export function rollRiverWind(rng: RNG): { force: RiverWindForceId; dir: RiverWindDirId } {
   const { windForces, windDirections } = DATA;
   return {
-    force: findTableEntry(windForces.entries, rollDice(parseDiceRequired(windForces.die, 'river-navigation › windForces.die'), rng)).id as RiverWindForceId,
-    dir: findTableEntry(windDirections.entries, rollDice(parseDiceRequired(windDirections.die, 'river-navigation › windDirections.die'), rng)).id as RiverWindDirId,
+    force: findTableEntry(windForces.entries, rollDice(deDeLaTableTiree(windForces), rng)).id as RiverWindForceId,
+    dir: findTableEntry(windDirections.entries, rollDice(deDeLaTableTiree(windDirections), rng)).id as RiverWindDirId,
   };
 }
 

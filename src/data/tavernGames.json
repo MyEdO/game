@@ -5,10 +5,7 @@
     "label": "L'Al-zahr",
     "roundShape": "pot",
     "pot": {
-      "dice": {
-        "count": 2,
-        "faces": 10
-      },
+      "die": "2d10",
       "targetRange": {
         "min": 7,
         "max": 15
