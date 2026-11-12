@@ -118,19 +118,20 @@ export function couvertureDe(p: Float32Array, indices: ArrayLike<number>): Couve
 }
 
 /** Les coordonnées barycentriques, sur les côtés u et v d'un triangle, du point p de son plan donné depuis son premier
- *  sommet ; `null` hors du triangle. */
+ *  sommet ; `null` pour un point à plus de `SOUDURE_M` des bords du triangle, hors de lui (#3842). */
 function coinsDe(px: number, py: number, pz: number, ux: number, uy: number, uz: number, vx: number, vy: number, vz: number): readonly [number, number] | null {
   const [uu, uv, vv, pu, pv] = [ux * ux + uy * uy + uz * uz, ux * vx + uy * vy + uz * vz, vx * vx + vy * vy + vz * vz, px * ux + py * uy + pz * uz, px * vx + py * vy + pz * vz];
   const det = uu * vv - uv * uv;
   const bb = (vv * pu - uv * pv) / det, bc = (uu * pv - uv * pu) / det;
-  return bb < 0 || bc < 0 || bb + bc > 1 ? null : [bb, bc];
+  const [bu, bv] = [SOUDURE_M / Math.sqrt(uu), SOUDURE_M / Math.sqrt(vv)];
+  return bb < -bu || bc < -bv || bb + bc > 1 + Math.max(bu, bv) ? null : [bb, bc];
 }
 
 /** Chaque triangle de `couverture` qui couvre le point (x, y, z) de normale (nx, ny, nz) : tourné du même côté que
  *  lui, à `PORTEE_DE_COUVERTURE_M` de lui au plus, la projection du point le long de la normale du triangle tombant
- *  dans le triangle. `visite` reçoit l'écart signé e du point au triangle, positif derrière, l'indice t de son premier
- *  sommet dans `couverture.indices`, les coordonnées barycentriques (a, b, c) de la projection et la normale unitaire
- *  (tx, ty, tz) du triangle. */
+ *  dans le triangle ou à `SOUDURE_M` au plus de ses bords (#3842). `visite` reçoit l'écart signé e du point au
+ *  triangle, positif derrière, l'indice t de son premier sommet dans `couverture.indices`, les coordonnées
+ *  barycentriques (a, b, c) de la projection et la normale unitaire (tx, ty, tz) du triangle. */
 export function visiterLaCouverture(
   x: number, y: number, z: number, nx: number, ny: number, nz: number, couverture: Couverture,
   visite: (e: number, t: number, a: number, b: number, c: number, tx: number, ty: number, tz: number) => void,
@@ -343,21 +344,31 @@ interface Touche {
   readonly de: Couvrant;
   readonly coins: readonly (readonly [number, number])[];
   readonly e: number;
+  /** La normale unitaire du triangle, ou la somme normée de celles des triangles couvrants dont l'écart égale le sien à
+   *  `SOUDURE_M` près (#3842). */
   readonly n: Vecteur;
 }
 
 /** Le triangle de `couvrants` qui couvre le point `q`, de normale (nx, ny, nz), au plus près, à `PERCEE_M` devant lui au
- *  plus ; `null` sans lui. */
+ *  plus ; `null` sans lui. Un triangle couvrant dont l'écart égale celui du retenu à `SOUDURE_M` près ne le remplace pas
+ *  et ajoute sa normale à la sienne ; un triangle plus près de plus de `SOUDURE_M` le remplace (#3842). */
 function toucher(q: Point, nx: number, ny: number, nz: number, couvrants: readonly Couvrant[]): Touche | null {
-  let touche: Touche | null = null;
+  let touche = null as Omit<Touche, 'n'> | null, normales = 0;
+  const somme: Vecteur = [0, 0, 0];
   for (const de of couvrants) {
     const { indices } = de.surface;
     visiterLaCouverture(q.x, q.y, q.z, nx, ny, nz, de.surface, (e, t, a, b, c, tx, ty, tz) => {
-      if (e < -PERCEE_M || (touche && Math.abs(e) >= Math.abs(touche.e))) return;
-      touche = { de, coins: [[indices[t], a], [indices[t + 1], b], [indices[t + 2], c]], e, n: [tx, ty, tz] };
+      if (e < -PERCEE_M) return;
+      const ecart = touche ? Math.abs(e) - Math.abs(touche.e) : -Infinity;
+      if (ecart > SOUDURE_M) return;
+      if (ecart >= -SOUDURE_M) { somme[0] += tx; somme[1] += ty; somme[2] += tz; normales++; return; }
+      touche = { de, coins: [[indices[t], a], [indices[t + 1], b], [indices[t + 2], c]], e };
+      [somme[0], somme[1], somme[2], normales] = [tx, ty, tz, 1];
     });
   }
-  return touche;
+  if (!touche) return null;
+  const l = normales > 1 ? Math.hypot(...somme) : 1;
+  return { ...touche, n: [somme[0] / l, somme[1] / l, somme[2] / l] };
 }
 
 /** Les poids du sommet `s` de `m`, par nom d'os. */

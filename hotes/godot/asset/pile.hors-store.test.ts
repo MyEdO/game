@@ -1,6 +1,6 @@
 // La pile des couches résolue au montage (#3842) : la couche du dessous cède à celle qui la couvre.
 import { describe, expect, it } from 'vitest';
-import { endroitDe, ENTRAINEMENT, HALO_M, JEU_M, PERCEE_M, PORTEE_DE_COUVERTURE_M, SAUT_D_ARETE, SERRAGE_M, ordreDesCouches, resoudreLaPile, type CoucheDePile, type MaillageDePile, type PieceDePile } from './pile.ts';
+import { couvertureDe, endroitDe, ENTRAINEMENT, HALO_M, JEU_M, PERCEE_M, PORTEE_DE_COUVERTURE_M, SAUT_D_ARETE, SERRAGE_M, ordreDesCouches, resoudreLaPile, type CoucheDePile, type MaillageDePile, type PieceDePile, visiterLaCouverture } from './pile.ts';
 
 /** Une nappe carrée de `cote` mètres centrée en (`cx`, 0) à la hauteur `z`, en grille de `n` × `n` mailles, tournée vers
  *  +Z. Elle est tout entière sur l'os `os`, ou, avec `vers`, passe de `os` à `vers` par des poids tous différents d'un
@@ -200,6 +200,52 @@ describe('resoudreLaPile', () => {
       expect(Math.abs(recul(triangles[t + a]) - recul(triangles[t + b]))).toBeLessThanOrEqual(ENTRAINEMENT * hauteur + 1e-5);
     }
     expect(recul(sommetEn(dessous, 0.19))).toBe(0);
+  });
+
+  it('sous une couverture confondue avec lui, chaque point recule de même au bruit près, le long du faîte compris (#3842)', () => {
+    /** La nappe de `cote` mètres sur l'os `os`, pliée en toit de faîte x = 0, chaque point déplacé de `bruit(s, axe)`. */
+    const toit = (os: string, bruit: (s: number, axe: number) => number): MaillageDePile => {
+      const m = nappe(0, os);
+      for (let s = 0; s < m.positions.length / 3; s++) {
+        m.positions[s * 3 + 2] = 0.5 * (0.1 - Math.abs(m.positions[s * 3]));
+        for (let axe = 0; axe < 3; axe++) m.positions[s * 3 + axe] += bruit(s, axe);
+      }
+      return m;
+    };
+    /** Un bruit de `signe` × 1e-6 m, de signe tiré par sommet et par axe de la graine `graine`. */
+    const bruite = (signe: number, graine: number) => (s: number, axe: number) => {
+      const h = Math.sin(s * 12.9898 + axe * 78.233 + graine * 37.719) * 43758.5453;
+      return signe * 1e-6 * (h - Math.floor(h) < 0.5 ? -1 : 1);
+    };
+    const resolu = (signe: number, graine: number) => {
+      const sujet = toit('bras', () => 0);
+      const avant = Float32Array.from(sujet.positions);
+      empiler([piece(sujet), piece(toit('manche', bruite(signe, graine)))]);
+      return { avant, apres: sujet.positions };
+    };
+    const [plus, moins] = [resolu(1, 1), resolu(-1, 2)];
+    const sommets = plus.avant.length / 3;
+    for (let s = 0; s < sommets; s++) {
+      for (const { avant, apres } of [plus, moins]) {
+        expect(Math.hypot(apres[s * 3] - avant[s * 3], apres[s * 3 + 1] - avant[s * 3 + 1], apres[s * 3 + 2] - avant[s * 3 + 2])).toBeGreaterThan(JEU_M / 2);
+      }
+      for (let axe = 0; axe < 3; axe++) expect(Math.abs(plus.apres[s * 3 + axe] - moins.apres[s * 3 + axe])).toBeLessThanOrEqual(1e-5);
+    }
+  });
+});
+
+describe('visiterLaCouverture', () => {
+  const couverture = couvertureDe(Float32Array.from([0, 0, 0, 0.1, 0, 0, 0, 0.1, 0]), [0, 1, 2]);
+  /** Les triangles visités depuis le point au-dessus du sommet (0, 0) du triangle, décalé de `d` mètres vers son dehors. */
+  const visites = (d: number) => {
+    const t: number[] = [];
+    visiterLaCouverture(-d / Math.SQRT2, -d / Math.SQRT2, 0.005, 0, 0, 1, couverture, (_e, triangle) => t.push(triangle));
+    return t;
+  };
+
+  it('une projection à la soudure près d’un sommet, hors du triangle, y tombe ; au-delà, non (#3842)', () => {
+    expect(visites(1e-6)).toEqual([0]);
+    expect(visites(1e-3)).toEqual([]);
   });
 });
 
