@@ -39,6 +39,7 @@ import steamBreakdown from '../../steam-breakdown.json';
 import advancementCosts from '../../advancementCosts.json';
 import reglesOptionnelles from '../../reglesOptionnelles.json';
 import vehicles from '../../vehicles.json';
+import classesDuDisque from '../../classes.json';
 import traits from '../../traits.json';
 import { corruptionExposureSchema } from '../defs-scenes/effets';
 import { menaceIds } from '../../../engine/menace';
@@ -91,6 +92,18 @@ describe('trappingRefSchema — branches de TrappingRef', () => {
     const resolues = avecDotations(CARRIERE_FIXTURE, { classe: [], niveau: [ref] }, () =>
       resolveTrappingChoices(dotationsDuHeros(CARRIERE_FIXTURE), { [adresseDeCreation.dotation([0])]: 1 }));
     expect(resolues).toEqual([{ id: 'pistolet' }]);
+  });
+});
+
+// LDB 05 l.552 ; #4053
+describe('classes.json — une Classe ne porte que des dotations sans texte', () => {
+  const classe = classesDuDisque[0];
+  const classeDotee = (trappings: unknown[]) => [{ ...classe, trappings }];
+
+  it('une Classe nommée qui porte un `{text}`, à la racine ou dans un `{choice}`, est refusée', () => {
+    expect(validateDataset('classes.json', classeDotee([{ id: 'dague' }, { choice: [{ id: 'capuchon' }, { id: 'masque' }] }]))).toBeNull();
+    expect(validateDataset('classes.json', classeDotee([{ id: 'dague' }, { text: 'Déjeuner' }]))).toEqual(expect.stringContaining(`« ${classe.id} »`));
+    expect(validateDataset('classes.json', classeDotee([{ choice: [{ id: 'capuchon' }, { text: 'Masque' }] }]))).toEqual(expect.stringContaining(`« ${classe.id} »`));
   });
 });
 

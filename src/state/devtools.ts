@@ -133,7 +133,7 @@ import { actionsDe } from '../noyau/monde/usable';
 import { attendreEntreeEnScene, EntreeEnSceneNonAtteinte } from './entreeEnScene';
 import { scheduleFlowTimer } from '../web/minuteries';
 import { editeur, type CommandesEditeur } from './editeurBridge';
-import { stockageWeb } from '../web/stockageWeb';
+import { stockageWeb } from '../hote/stockageWeb';
 import { lireLeTexte } from '../lib/stockage';
 import { browserFreezeTimeout, browserUnfreezeTimeout } from '../lib/figerDelais';
 import { modaleDuDessus, type LayerPlan } from './dismissStack';
@@ -148,7 +148,7 @@ import { avecSequelles, traumaById } from '../engine/trauma';
 import type { HitLocation } from '../engine/types';
 import { openSkillTest } from '../noyau/combatEffects';
 import { EMPTY_FLOW, type FlowTest } from '../engine/flowCore';
-import { idDEntropie } from '../web/entropie';
+import { idDEntropie } from '../hote/entropie';
 import { estObjet } from '../lib/objet.mjs';
 
 function entreeDeRecette(dataset: string, id: string): unknown {

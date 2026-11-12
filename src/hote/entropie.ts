@@ -1,5 +1,5 @@
 /**
- * L'ENTROPIE DE L'HÔTE (#2817, D8) : le seul site de `Math.random` de `src/` (mur `murs/entropie`,
+ * L'ENTROPIE DE L'HÔTE (#2817, D8) : le seul site de `Math.random` des zones (mur `murs/entropie`,
  * `oxlint.config.mjs`). Le moteur et le noyau n'en tirent jamais : ils reçoivent un `RNG` nommé par
  * l'appelant, et l'hôte sème le RNG de bataille de `graineDEntropie` au branchement du store.
  */
