@@ -7,7 +7,7 @@
  */
 import { Icon } from '../Icon';
 import { ICON_DEFS } from '../../data/icons';
-import { BACKDROPS } from '../backdrops';
+import { FONDS } from '../../data/fonds';
 import { SceneBackdrop } from '../SceneBackdrop';
 import { MediaSelect, type MediaOption } from '../MediaSelect';
 import { SearchFilterField, useFilteredList } from '../SearchFilterField';
@@ -39,17 +39,17 @@ export function IconField({ label, value, onChange }: { label: string; value?: s
   );
 }
 
-/** Options du picker de bande d'ambiance (#371) : catalogue COMPLET `src/ui/backdrops`, patron IconField. */
+/** Options du picker de bande d'ambiance (#371) : catalogue COMPLET `src/data/fonds`, patron IconField. */
 const BACKDROP_OPTIONS: MediaOption[] = [
   { key: '', media: undefined, label: 'Repli d’ambiance (dégradé)' },
-  ...Object.values(BACKDROPS)
+  ...Object.values(FONDS)
     .sort((a, b) => a.id.localeCompare(b.id))
     .map((d) => ({ key: d.id, label: d.label, sub: d.id })),
 ];
 
 /** Picker de fond d'ambiance (`SceneBackdrop`) — même patron que `IconField` (`MediaSelect`). */
 export function BackdropField({ label, value, onChange }: { label: string; value?: string; onChange: (v: string | undefined) => void }) {
-  const known = value != null && !!BACKDROPS[value];
+  const known = value != null && !!FONDS[value];
   return (
     <label className="ed-field">
       {label}

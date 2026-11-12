@@ -97,7 +97,7 @@ const construireScene = (): Scene => buildScene({
           id: 'accueil',
           desc: 'Bonjour, voyageur. Cherchez-vous des remèdes… ou seulement à bavarder ?',
           choices: [
-            { id: 'montrez-moi-marchandises', label: 'Montrez-moi vos marchandises.', flow: flowFromEffects([{ type: 'openMerchant', entityId: 'herboriste' }]) },
+            { id: 'montrez-moi-marchandises', label: 'Montrez-moi vos marchandises.', flow: flowFromEffects([{ type: 'openMerchant', entityId: { id: 'herboriste' } }]) },
             { id: 'autre-fois-partir', label: 'Une autre fois. (Partir)' },
           ],
         },

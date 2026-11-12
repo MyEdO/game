@@ -4506,7 +4506,9 @@
             "kind": "do",
             "effect": {
              "type": "openMerchant",
-             "entityId": "medecin"
+             "entityId": {
+              "id": "medecin"
+             }
             }
            }
           ]
@@ -4549,7 +4551,9 @@
                }
               }
              ],
-             "entityId": "medecin"
+             "entityId": {
+              "id": "medecin"
+             }
             }
            }
           ]
@@ -4737,7 +4741,9 @@
             "kind": "do",
             "effect": {
              "type": "openMerchant",
-             "entityId": "taverniere"
+             "entityId": {
+              "id": "taverniere"
+             }
             }
            }
           ]
@@ -4945,7 +4951,9 @@
                }
               }
              ],
-             "entityId": "frere"
+             "entityId": {
+              "id": "frere"
+             }
             }
            }
           ]
@@ -5121,7 +5129,9 @@
             "kind": "do",
             "effect": {
              "type": "openMerchant",
-             "entityId": "forgeron"
+             "entityId": {
+              "id": "forgeron"
+             }
             }
            }
           ]
@@ -5167,7 +5177,9 @@
             "kind": "do",
             "effect": {
              "type": "openMerchant",
-             "entityId": "echoppiere"
+             "entityId": {
+              "id": "echoppiere"
+             }
             }
            }
           ]
@@ -16812,8 +16824,12 @@
         "kind": "do",
         "effect": {
          "type": "startDialogue",
-         "dialogue": "dlg-prisonnier",
-         "speakerId": "prisonnier"
+         "dialogue": {
+          "id": "dlg-prisonnier"
+         },
+         "speakerId": {
+          "id": "prisonnier"
+         }
         }
        }
       ]

@@ -23,9 +23,12 @@ extends Node
 ## lieu et la carte du monde sont la couche « monde », plein écran, jamais une fenêtre posée par-dessus : chacun hérite
 ## du cadre `projet/cadres/monde.tscn`, posé sous les panneaux de la scène comme toute disposition, le titre en grand
 ## et les gestes en tête, la bourse du groupe dessous quand l'écran la montre (`bourse`), et n'y ajoute que son
-## contenu. L'écran du lieu (`projet/ecrans/ecranDuLieu.tscn`) range en cartes ses services (`service/`) et les
-## points d'intérêt de son plan qui mènent à une scène (`poi/`, chacun le choix `ecranDuLieu` `entrer`) en grille,
-## puis les trajets qui en partent, une carte par ligne, chacun sa destination et son départ ; la carte (`projet/ecrans/carteDuMonde.tscn`),
+## contenu. L'écran du lieu (`projet/ecrans/ecranDuLieu.tscn`) ouvre la carte en tête (`lieu/carte`) et se
+## partage en deux : à gauche le plan de la carte vu d'ici, sur son parchemin (`lieu/plan`, ici en `alerte`) puis, sous leur
+## titre (`lieu/trajets`), les trajets qui en partent, un par ligne, chacun sa destination et son départ ; à droite,
+## sous leur titre (`lieu/services`), ses services (`service/` : le fond de leur vignette, leur icône, le boniment de
+## leur hôte, ce qu'on y fait) et les points d'intérêt de son plan qui mènent à une scène (`poi/`, chacun le choix
+## `ecranDuLieu` `entrer`), en cartes ; la carte (`projet/ecrans/carteDuMonde.tscn`),
 ## son plan (`carte/plan` : chaque lieu visible, ici en `alerte`, sous chaque destination le départ du trajet qui y
 ## mène, le même élément qu'à l'écran du lieu, et chaque route entre deux lieux visibles, celles qui partent d'ici et
 ## sont ouvertes en `reussite`), puis la reprise d'un voyage interrompu. L'échoppe (`projet/ecrans/marchand.tscn`, lue

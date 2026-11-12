@@ -24,17 +24,21 @@ extends Node
 ## une scène sans script (`projet/scenes/Ecran.tscn`) : chaque zone y est un nœud `Zone` (`projet/scripts/zone.gd`) posé
 ## dans le conteneur qui la montre, sa `source` une clé de `vue.zones` ou des `zones` de la suite, qu'elle ajoute
 ## (`ajout`) au lieu de les remplacer. Une zone dessine chaque élément par le composant de son type
-## (`projet/composants/<type>.tscn`, une scène sans script), le réconcilie par type et par id, et le pose sur son
+## (`projet/composants/<type>.tscn`, une scène sans script), ou par celui qu'elle donne à ce type à cet usage
+## (`formes`, `<type>:<forme>` : `projet/composants/<forme>.tscn`), le réconcilie par type et par id, et le pose sur son
 ## composant : chaque `Liaison` y écrit un champ de l'élément dans une propriété du contrôle qui la porte (le ton en
 ## variation du thème, `art/theme.tres`), chaque `Geste` joue l'intention que l'élément porte par le signal `geste` de
 ## la zone (un bouton à bascule garde l'état que la vue lui donne ; le routeur envoie `{ fiche }` à `fiche`, `{ creation
 ## }` à `creation`, toute autre intention à `jouer`), chaque `Saisie` lit la valeur d'un formulaire, et une zone
-## imbriquée y montre le champ que sa `source` nomme. Le plan (`plan`) est le seul composant qui se dessine : son
+## imbriquée y montre le champ que sa `source` nomme. L'icône (`icone`) et le fond (`fond`) ne portent que l'id de
+## leur dessin : `Dessin` (`projet/scripts/dessin.gd`) le lit au catalogue que la construction dépose une fois dans le
+## projet (`art/dessins.json`, `hotes/godot/asset/dessins.ts`) et le trace aux couleurs du thème. Le plan (`plan`) est le seul composant qui se dessine : son
 ## contrôle `Plan` (`projet/scripts/plan.gd`) trace chaque trait d'un point à l'autre et chaque point à sa place dans le
 ## contrôle, chacun à la couleur de son ton, et pose sous chaque point son composant (`point` : son nom, puis ses
 ## éléments). Le `detail` d'une puce ou d'une ligne se pose sur sa `Bulle` (`projet/scripts/bulle.gd`), qui couvre le
 ## composant et montre au survol la bulle du thème repliée au mot. Les héros du groupe se rangent en cartes au pied de
-## l'écran, « Nouveau héros » en tête du journal ; la barre du combat (`combat.offres`) les surmonte, chacun de ses choix
+## l'écran (`projet/composants/heros.tscn` : le portrait, le nom, les Blessures en trait, la bourse, puis ce que la
+## carte porte d'autre), « Nouveau héros » au pied du journal ; la barre du combat (`combat.offres`) les surmonte, chacun de ses choix
 ## en onglet, sauf la part du tour (`economie/aucun`), au panneau de l'actif ; la création ouverte se pose au centre,
 ## sa page titrée en tête, ses rubriques défilant dessous, ses gestes en rangée au pied ; la conversation se pose en bas
 ## au centre, son interlocuteur en titre, sa réplique, puis ses réponses l'une sous l'autre ; la fiche ouverte se pose
