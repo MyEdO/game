@@ -11,7 +11,7 @@
   "couche": "manteau",
   "couvre": [],
   "chaines": [
-    "jupe"
+    "cape"
   ],
   "silhouettes": [
     "feminin",
@@ -26,7 +26,7 @@
     }
   ],
   "glb": {
-    "sha256": "20f8187589b0ad43b73410d51af9c135b5201032c5203ad8514286d505bc6a73",
-    "octets": 690216
+    "sha256": "0d53fd74a363253ffb8332ec5211d399356237de9500a3e91b139c1a13c85ab1",
+    "octets": 747472
   }
 }

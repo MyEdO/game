@@ -65,10 +65,6 @@
     "bras_sup_d_01",
     "bras_sup_d_02",
     "bras_sup_d_03",
-    "cape_01",
-    "cape_02",
-    "cape_03",
-    "cape_04",
     "aile_g_01",
     "aile_g_02",
     "aile_g_03",
@@ -85,22 +81,86 @@
     "foot_r",
     "ball_r",
     "ball_leaf_r",
-    "jupe_avant_01",
-    "jupe_avant_02",
-    "jupe_avant_03",
-    "jupe_arriere_01",
-    "jupe_arriere_02",
-    "jupe_arriere_03",
-    "jupe_g_01",
-    "jupe_g_02",
-    "jupe_g_03",
-    "jupe_d_01",
-    "jupe_d_02",
-    "jupe_d_03",
     "queue_01",
     "queue_02",
     "queue_03",
-    "queue_04"
+    "queue_04",
+    "jupe_avant_01",
+    "jupe_avant_02",
+    "jupe_avant_03",
+    "jupe_avant_avant_g_01",
+    "jupe_avant_avant_g_02",
+    "jupe_avant_avant_g_03",
+    "jupe_avant_g_01",
+    "jupe_avant_g_02",
+    "jupe_avant_g_03",
+    "jupe_g_avant_g_01",
+    "jupe_g_avant_g_02",
+    "jupe_g_avant_g_03",
+    "jupe_g_01",
+    "jupe_g_02",
+    "jupe_g_03",
+    "jupe_g_arriere_g_01",
+    "jupe_g_arriere_g_02",
+    "jupe_g_arriere_g_03",
+    "jupe_arriere_g_01",
+    "jupe_arriere_g_02",
+    "jupe_arriere_g_03",
+    "jupe_arriere_arriere_g_01",
+    "jupe_arriere_arriere_g_02",
+    "jupe_arriere_arriere_g_03",
+    "jupe_arriere_01",
+    "jupe_arriere_02",
+    "jupe_arriere_03",
+    "jupe_arriere_arriere_d_01",
+    "jupe_arriere_arriere_d_02",
+    "jupe_arriere_arriere_d_03",
+    "jupe_arriere_d_01",
+    "jupe_arriere_d_02",
+    "jupe_arriere_d_03",
+    "jupe_d_arriere_d_01",
+    "jupe_d_arriere_d_02",
+    "jupe_d_arriere_d_03",
+    "jupe_d_01",
+    "jupe_d_02",
+    "jupe_d_03",
+    "jupe_d_avant_d_01",
+    "jupe_d_avant_d_02",
+    "jupe_d_avant_d_03",
+    "jupe_avant_d_01",
+    "jupe_avant_d_02",
+    "jupe_avant_d_03",
+    "jupe_avant_avant_d_01",
+    "jupe_avant_avant_d_02",
+    "jupe_avant_avant_d_03",
+    "cape_g_arriere_g_01",
+    "cape_g_arriere_g_02",
+    "cape_g_arriere_g_03",
+    "cape_g_arriere_g_04",
+    "cape_arriere_g_01",
+    "cape_arriere_g_02",
+    "cape_arriere_g_03",
+    "cape_arriere_g_04",
+    "cape_arriere_arriere_g_01",
+    "cape_arriere_arriere_g_02",
+    "cape_arriere_arriere_g_03",
+    "cape_arriere_arriere_g_04",
+    "cape_arriere_01",
+    "cape_arriere_02",
+    "cape_arriere_03",
+    "cape_arriere_04",
+    "cape_arriere_arriere_d_01",
+    "cape_arriere_arriere_d_02",
+    "cape_arriere_arriere_d_03",
+    "cape_arriere_arriere_d_04",
+    "cape_arriere_d_01",
+    "cape_arriere_d_02",
+    "cape_arriere_d_03",
+    "cape_arriere_d_04",
+    "cape_d_arriere_d_01",
+    "cape_d_arriere_d_02",
+    "cape_d_arriere_d_03",
+    "cape_d_arriere_d_04"
   ],
   "bornesArticulaires": {
     "root": {
@@ -985,60 +1045,396 @@
         1
       ]
     },
-    "cape_01": {
+    "cape_g_arriere_g_01": {
       "x": [
-        -1,
-        145
+        -180,
+        180
       ],
       "y": [
-        -2,
-        2
+        -180,
+        180
       ],
       "z": [
-        -66,
-        27
+        -180,
+        180
       ]
     },
-    "cape_02": {
+    "cape_g_arriere_g_02": {
       "x": [
-        -1,
-        1
+        -180,
+        180
       ],
       "y": [
-        -1,
-        1
+        -180,
+        180
       ],
       "z": [
-        -1,
-        1
+        -180,
+        180
       ]
     },
-    "cape_03": {
+    "cape_g_arriere_g_03": {
       "x": [
-        -1,
-        1
+        -180,
+        180
       ],
       "y": [
-        -1,
-        1
+        -180,
+        180
       ],
       "z": [
-        -1,
-        1
+        -180,
+        180
       ]
     },
-    "cape_04": {
+    "cape_g_arriere_g_04": {
       "x": [
-        -1,
-        1
+        -180,
+        180
       ],
       "y": [
-        -1,
-        1
+        -180,
+        180
       ],
       "z": [
-        -1,
-        1
+        -180,
+        180
+      ]
+    },
+    "cape_arriere_g_01": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
+      ]
+    },
+    "cape_arriere_g_02": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
+      ]
+    },
+    "cape_arriere_g_03": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
+      ]
+    },
+    "cape_arriere_g_04": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
+      ]
+    },
+    "cape_arriere_arriere_g_01": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
+      ]
+    },
+    "cape_arriere_arriere_g_02": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
+      ]
+    },
+    "cape_arriere_arriere_g_03": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
+      ]
+    },
+    "cape_arriere_arriere_g_04": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
+      ]
+    },
+    "cape_arriere_01": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
+      ]
+    },
+    "cape_arriere_02": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
+      ]
+    },
+    "cape_arriere_03": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
+      ]
+    },
+    "cape_arriere_04": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
+      ]
+    },
+    "cape_arriere_arriere_d_01": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
+      ]
+    },
+    "cape_arriere_arriere_d_02": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
+      ]
+    },
+    "cape_arriere_arriere_d_03": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
+      ]
+    },
+    "cape_arriere_arriere_d_04": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
+      ]
+    },
+    "cape_arriere_d_01": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
+      ]
+    },
+    "cape_arriere_d_02": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
+      ]
+    },
+    "cape_arriere_d_03": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
+      ]
+    },
+    "cape_arriere_d_04": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
+      ]
+    },
+    "cape_d_arriere_d_01": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
+      ]
+    },
+    "cape_d_arriere_d_02": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
+      ]
+    },
+    "cape_d_arriere_d_03": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
+      ]
+    },
+    "cape_d_arriere_d_04": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
       ]
     },
     "aile_g_01": {
@@ -1281,33 +1677,33 @@
     },
     "jupe_avant_02": {
       "x": [
-        -1,
-        1
+        -180,
+        180
       ],
       "y": [
-        -1,
-        1
+        -180,
+        180
       ],
       "z": [
-        -1,
-        1
+        -180,
+        180
       ]
     },
     "jupe_avant_03": {
       "x": [
-        -1,
-        1
+        -180,
+        180
       ],
       "y": [
-        -1,
-        1
+        -180,
+        180
       ],
       "z": [
-        -1,
-        1
+        -180,
+        180
       ]
     },
-    "jupe_arriere_01": {
+    "jupe_avant_avant_g_01": {
       "x": [
         -180,
         180
@@ -1321,32 +1717,116 @@
         180
       ]
     },
-    "jupe_arriere_02": {
+    "jupe_avant_avant_g_02": {
       "x": [
-        -1,
-        1
+        -180,
+        180
       ],
       "y": [
-        -1,
-        1
+        -180,
+        180
       ],
       "z": [
-        -1,
-        1
+        -180,
+        180
       ]
     },
-    "jupe_arriere_03": {
+    "jupe_avant_avant_g_03": {
       "x": [
-        -1,
-        1
+        -180,
+        180
       ],
       "y": [
-        -1,
-        1
+        -180,
+        180
       ],
       "z": [
-        -1,
-        1
+        -180,
+        180
+      ]
+    },
+    "jupe_avant_g_01": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
+      ]
+    },
+    "jupe_avant_g_02": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
+      ]
+    },
+    "jupe_avant_g_03": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
+      ]
+    },
+    "jupe_g_avant_g_01": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
+      ]
+    },
+    "jupe_g_avant_g_02": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
+      ]
+    },
+    "jupe_g_avant_g_03": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
       ]
     },
     "jupe_g_01": {
@@ -1365,30 +1845,324 @@
     },
     "jupe_g_02": {
       "x": [
-        -1,
-        1
+        -180,
+        180
       ],
       "y": [
-        -1,
-        1
+        -180,
+        180
       ],
       "z": [
-        -1,
-        1
+        -180,
+        180
       ]
     },
     "jupe_g_03": {
       "x": [
-        -1,
-        1
+        -180,
+        180
       ],
       "y": [
-        -1,
-        1
+        -180,
+        180
       ],
       "z": [
-        -1,
-        1
+        -180,
+        180
+      ]
+    },
+    "jupe_g_arriere_g_01": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
+      ]
+    },
+    "jupe_g_arriere_g_02": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
+      ]
+    },
+    "jupe_g_arriere_g_03": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
+      ]
+    },
+    "jupe_arriere_g_01": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
+      ]
+    },
+    "jupe_arriere_g_02": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
+      ]
+    },
+    "jupe_arriere_g_03": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
+      ]
+    },
+    "jupe_arriere_arriere_g_01": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
+      ]
+    },
+    "jupe_arriere_arriere_g_02": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
+      ]
+    },
+    "jupe_arriere_arriere_g_03": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
+      ]
+    },
+    "jupe_arriere_01": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
+      ]
+    },
+    "jupe_arriere_02": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
+      ]
+    },
+    "jupe_arriere_03": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
+      ]
+    },
+    "jupe_arriere_arriere_d_01": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
+      ]
+    },
+    "jupe_arriere_arriere_d_02": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
+      ]
+    },
+    "jupe_arriere_arriere_d_03": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
+      ]
+    },
+    "jupe_arriere_d_01": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
+      ]
+    },
+    "jupe_arriere_d_02": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
+      ]
+    },
+    "jupe_arriere_d_03": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
+      ]
+    },
+    "jupe_d_arriere_d_01": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
+      ]
+    },
+    "jupe_d_arriere_d_02": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
+      ]
+    },
+    "jupe_d_arriere_d_03": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
       ]
     },
     "jupe_d_01": {
@@ -1407,30 +2181,156 @@
     },
     "jupe_d_02": {
       "x": [
-        -1,
-        1
+        -180,
+        180
       ],
       "y": [
-        -1,
-        1
+        -180,
+        180
       ],
       "z": [
-        -1,
-        1
+        -180,
+        180
       ]
     },
     "jupe_d_03": {
       "x": [
-        -1,
-        1
+        -180,
+        180
       ],
       "y": [
-        -1,
-        1
+        -180,
+        180
       ],
       "z": [
-        -1,
-        1
+        -180,
+        180
+      ]
+    },
+    "jupe_d_avant_d_01": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
+      ]
+    },
+    "jupe_d_avant_d_02": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
+      ]
+    },
+    "jupe_d_avant_d_03": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
+      ]
+    },
+    "jupe_avant_d_01": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
+      ]
+    },
+    "jupe_avant_d_02": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
+      ]
+    },
+    "jupe_avant_d_03": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
+      ]
+    },
+    "jupe_avant_avant_d_01": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
+      ]
+    },
+    "jupe_avant_avant_d_02": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
+      ]
+    },
+    "jupe_avant_avant_d_03": {
+      "x": [
+        -180,
+        180
+      ],
+      "y": [
+        -180,
+        180
+      ],
+      "z": [
+        -180,
+        180
       ]
     },
     "queue_01": {
@@ -1495,21 +2395,81 @@
       "jupe_avant_01",
       "jupe_avant_02",
       "jupe_avant_03",
-      "jupe_arriere_01",
-      "jupe_arriere_02",
-      "jupe_arriere_03",
+      "jupe_avant_avant_g_01",
+      "jupe_avant_avant_g_02",
+      "jupe_avant_avant_g_03",
+      "jupe_avant_g_01",
+      "jupe_avant_g_02",
+      "jupe_avant_g_03",
+      "jupe_g_avant_g_01",
+      "jupe_g_avant_g_02",
+      "jupe_g_avant_g_03",
       "jupe_g_01",
       "jupe_g_02",
       "jupe_g_03",
+      "jupe_g_arriere_g_01",
+      "jupe_g_arriere_g_02",
+      "jupe_g_arriere_g_03",
+      "jupe_arriere_g_01",
+      "jupe_arriere_g_02",
+      "jupe_arriere_g_03",
+      "jupe_arriere_arriere_g_01",
+      "jupe_arriere_arriere_g_02",
+      "jupe_arriere_arriere_g_03",
+      "jupe_arriere_01",
+      "jupe_arriere_02",
+      "jupe_arriere_03",
+      "jupe_arriere_arriere_d_01",
+      "jupe_arriere_arriere_d_02",
+      "jupe_arriere_arriere_d_03",
+      "jupe_arriere_d_01",
+      "jupe_arriere_d_02",
+      "jupe_arriere_d_03",
+      "jupe_d_arriere_d_01",
+      "jupe_d_arriere_d_02",
+      "jupe_d_arriere_d_03",
       "jupe_d_01",
       "jupe_d_02",
-      "jupe_d_03"
+      "jupe_d_03",
+      "jupe_d_avant_d_01",
+      "jupe_d_avant_d_02",
+      "jupe_d_avant_d_03",
+      "jupe_avant_d_01",
+      "jupe_avant_d_02",
+      "jupe_avant_d_03",
+      "jupe_avant_avant_d_01",
+      "jupe_avant_avant_d_02",
+      "jupe_avant_avant_d_03"
     ],
     "cape": [
-      "cape_01",
-      "cape_02",
-      "cape_03",
-      "cape_04"
+      "cape_g_arriere_g_01",
+      "cape_g_arriere_g_02",
+      "cape_g_arriere_g_03",
+      "cape_g_arriere_g_04",
+      "cape_arriere_g_01",
+      "cape_arriere_g_02",
+      "cape_arriere_g_03",
+      "cape_arriere_g_04",
+      "cape_arriere_arriere_g_01",
+      "cape_arriere_arriere_g_02",
+      "cape_arriere_arriere_g_03",
+      "cape_arriere_arriere_g_04",
+      "cape_arriere_01",
+      "cape_arriere_02",
+      "cape_arriere_03",
+      "cape_arriere_04",
+      "cape_arriere_arriere_d_01",
+      "cape_arriere_arriere_d_02",
+      "cape_arriere_arriere_d_03",
+      "cape_arriere_arriere_d_04",
+      "cape_arriere_d_01",
+      "cape_arriere_d_02",
+      "cape_arriere_d_03",
+      "cape_arriere_d_04",
+      "cape_d_arriere_d_01",
+      "cape_d_arriere_d_02",
+      "cape_d_arriere_d_03",
+      "cape_d_arriere_d_04"
     ],
     "queue": [
       "queue_01",
@@ -6771,19 +7731,19 @@
         "os": [
           {
             "nom": "pelvis",
-            "poids": 0.8685690760612488
+            "poids": 0.8685691952705383
           },
           {
             "nom": "spine_01",
-            "poids": 0.13053837418556213
+            "poids": 0.13053838908672333
           },
           {
             "nom": "thigh_l",
-            "poids": 0.0003039085422642529
+            "poids": 0.00030390857136808336
           },
           {
             "nom": "thigh_r",
-            "poids": 0.000588584749493748
+            "poids": 0.0005885848077014089
           }
         ],
         "deltas": {
@@ -16294,7 +17254,7 @@
     }
   ],
   "glb": {
-    "sha256": "a57bb554390e724e282712f63c72d09a742e0efcd9b7918bf26f815ebb58b894",
-    "octets": 53496760
+    "sha256": "69d981827c6d0956a594329e7fe968176ef39d4ca46ab89c327321fb69ee566d",
+    "octets": 58982032
   }
 }
