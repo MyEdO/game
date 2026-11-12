@@ -1,4 +1,6 @@
 import { libelleEffet, type Effect, type Flow } from '../data/schemas/defs-scenes/effets';
+import { cibleDeFeuilleSchema } from '../data/schemas/grammaire/mecanique';
+import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import type { Jeu } from './etat';
 import { crochetDuSol } from './objetsAuSol';
 import type { Get, PatchDeFlux, Set as SetFn } from './flowTypes';
@@ -766,11 +768,11 @@ export function effectTargets(get: Get, target: 'party' | 'hero', heroId?: strin
  * et de l'entrée `scene` de `CIBLES_PAR_RACINE`.
  */
 export const CIBLES_D_EFFET_DE_SCENE = [
-  { on: 'party', label: 'Tout le groupe' },
-  { on: 'hero', label: 'Un héros' },
-  { on: 'navire', label: 'Le navire' },
+  { on: 'party', label: libelleDeValeur(cibleDeFeuilleSchema, 'party') },
+  { on: 'hero', label: libelleDeValeur(cibleDeFeuilleSchema, 'hero') },
+  { on: 'navire', label: libelleDeValeur(cibleDeFeuilleSchema, 'navire') },
   { on: 'role', label: 'Un rôle d’équipage' },
-  { on: 'membreAuHasard', label: 'Un membre du bord au hasard' },
+  { on: 'membreAuHasard', label: libelleDeValeur(cibleDeFeuilleSchema, 'membreAuHasard') },
   { on: 'volontaires', label: 'Les héros volontaires' },
 ] as const;
 export type CibleDEffetDeScene = (typeof CIBLES_D_EFFET_DE_SCENE)[number]['on'];
