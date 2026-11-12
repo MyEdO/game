@@ -485,7 +485,7 @@ ${tableChamps(ENC_FIELDS)}
 
 - Les places d'un meuble viennent de son TYPE (\`PropData.seatSlots\` dans \`src/data/props.json\`) ;
   la Scène ne déclare que l'OCCUPATION. \`src/noyau/monde/seating.ts\` est l'unique couture de résolution.
-- Un occupant du GROUPE est un **EMPLACEMENT**, pas un personnage : \`{ kind: 'party', rang }\` avec
+- Un occupant du GROUPE est un **EMPLACEMENT**, pas un personnage : \`{ kind: 'groupe', rang }\` avec
   \`1 ≤ rang ≤ PARTY_MAX\` (\`src/noyau/monde/combatants.ts\`). Un document ne peut pas nommer un héros que
   le joueur créera plus tard ; le runtime résout \`party[rang - 1]\`. Un rang hors borne est une
   ERREUR de document ; un rang que le groupe courant n'atteint pas s'élague au chargement.

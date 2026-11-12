@@ -33,6 +33,6 @@ describe('NotchGauge — crans, valeur, tons', () => {
     // min=-15, max=15, value=0 → milieu → 5/10 crans allumés.
     const html = renderToStaticMarkup(<NotchGauge label="Manann" value={0} min={-15} max={15} />);
     expect(countOn(html)).toBe(5);
-    expect(html).toContain('data-tone="neutral"');
+    expect(html).toContain('data-tone="neutre"');
   });
 });

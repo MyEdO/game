@@ -199,11 +199,11 @@ export function freeAttackSourcesOf(actor: Combatant, weapon?: Weapon): TriggerS
 /** Combattants visés par un effet selon `on` (le porteur, la victime touchée, ou TOUS ceux Engagés
  *  avec lui — Sang corrosif : « tous ceux qui sont Engagés avec elle », alliés compris). */
 function targetsFor(get: Get, actor: Combatant, on: TriggeredEffect['on'], victim?: Combatant): Combatant[] {
-  if (on === 'self') return [actor];
-  if (on === 'victim') return victim ? [victim] : [];
+  if (on === 'soi') return [actor];
+  if (on === 'victime') return victim ? [victim] : [];
   const battle = get().battle;
   if (!battle) return [];
-  if (on === 'grappled') { // les adversaires EMPOIGNÉS par le porteur (`grapplingWith`) — la victime absorbée
+  if (on === 'empoigne') { // les adversaires EMPOIGNÉS par le porteur (`grapplingWith`) — la victime absorbée
     const held = new Set(actor.grapplingWith ?? []);
     return battle.combatants.filter((c) => held.has(c.id));
   }
@@ -219,12 +219,12 @@ function targetsFor(get: Get, actor: Combatant, on: TriggeredEffect['on'], victi
       const eligible = battle.combatants.filter((c) =>
         c.id !== actor.id && c.kind !== actor.kind && !isOutOfAction(c)
         && isEngagedWith(c, actor.id) && !held.includes(c.id)
-        && (on.sizeAtMost !== 'self' || SIZE_ORDER[effectiveSize(c.size)] <= selfSize));
+        && (on.sizeAtMost !== 'soi' || SIZE_ORDER[effectiveSize(c.size)] <= selfSize));
       eligible.sort((a, b) => combatDistance(actor, a) - combatDistance(actor, b)); // les plus proches d'abord
       return eligible.slice(0, capacity);
     }
     // GÉOMÉTRIE : tous les combattants à portée d'un centre (arc d'Azyr, Trait/Talent d'aire)
-    const center = on.near === 'self' ? actor : victim;
+    const center = on.near === 'soi' ? actor : victim;
     if (!center?.pos) return [];
     const radius = porteeEnCases(on.radiusMeters, sceneMetresPerTile(get().scene));
     // ORCHESTRATEUR d'aire PARTAGÉ (combatantsWithinRadius), distance d'EMPREINTE (la Taille compte) : un effet
@@ -234,7 +234,7 @@ function targetsFor(get: Get, actor: Combatant, on: TriggeredEffect['on'], victi
       (c) => c.id !== center.id && c.id !== actor.id && !isOutOfAction(c),
       (_ctr, c) => combatDistance(center, c));
   }
-  return battle.combatants.filter((c) => c.id !== actor.id && isEngagedWith(c, actor.id)); // 'engaged'
+  return battle.combatants.filter((c) => c.id !== actor.id && isEngagedWith(c, actor.id)); // 'engages'
 }
 
 /** Contexte d'application d'effets déclenchés. `margin` (marge d'un Test opposé) alimente les échelles

@@ -108,7 +108,7 @@ describe('Effet de scène `waterExposure` — cascade + contraction DIRECTE', ()
     const h1 = hero('h1', { wounds: { current: 1, max: 12 } } as Partial<Combatant>);
     const h2 = hero('h2');
     banc.setState({ party: [h1, h2] });
-    applyEffects(banc.getState, banc.setState, [{ type: 'waterExposure', mode: 'immersion', source: 'grande-ville-marais', target: 'party' }]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'waterExposure', mode: 'immersion', source: 'grande-ville-marais', target: 'groupe' }]);
     const pc = banc.getState().pendingCascade!;
     expect(pc.participants).toHaveLength(2);
     const s1 = pc.participants.find((s) => s.actorId === 'h1')!;

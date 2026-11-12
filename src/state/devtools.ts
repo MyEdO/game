@@ -1931,7 +1931,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       const c = actorIn(g(), id);
       if (!c) return `✗ combattant ${id} introuvable`;
       if (!etatConnu(name)) return `✗ État « ${name} » inconnu — ids valides : ${etatIdsConnus().join(', ')}`;
-      nePeutPasDifferer(applyEffects(() => useGame.getState(), useGame.setState, [{ type: 'ops', on: 'hero', heroId: id, ops: [{ op: 'condition', id: { id: name }, value: n }] }]), 'devtools.condition');
+      nePeutPasDifferer(applyEffects(() => useGame.getState(), useGame.setState, [{ type: 'ops', on: 'heros', heroId: id, ops: [{ op: 'condition', id: { id: name }, value: n }] }]), 'devtools.condition');
       return `✓ ${c.label} : +${n} ${name}`;
     },
 
@@ -2047,7 +2047,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       const c = actorIn(g(), id);
       if (!c) return `✗ combattant ${id} introuvable`;
       if (!findPsychologyById(type)) return `✗ état psychologique « ${type} » inconnu — ids valides : ${psychologies.map((p) => p.id).join(', ')}`;
-      nePeutPasDifferer(applyEffects(() => useGame.getState(), useGame.setState, [{ type: 'ops', on: 'hero', heroId: id, ops: [opPsy.pose(type)] }]), 'devtools.psych');
+      nePeutPasDifferer(applyEffects(() => useGame.getState(), useGame.setState, [{ type: 'ops', on: 'heros', heroId: id, ops: [opPsy.pose(type)] }]), 'devtools.psych');
       return `✓ ${c.label} : ${psychologyLabel(type)}`;
     },
 

@@ -165,11 +165,11 @@ const HYBRIDE_AVANT = {
   "kind": "hurlement",
   "activation": "action",
   "coutEnAvantage": 0,
-  "targeting": "self",
+  "ciblage": "soi",
   "effects": [
     {
       "trigger": "onHit",
-      "on": "self",
+      "on": "soi",
       "flow": {
         "kind": "do",
         "effect": {

@@ -58,7 +58,7 @@
     "effects": [
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
           "kind": "si",
           "condition": {
@@ -194,7 +194,7 @@
     "effects": [
       {
         "trigger": "onCrit",
-        "on": "victim",
+        "on": "victime",
         "attackType": "distance",
         "coupCritique": true,
         "flow": {
@@ -245,7 +245,7 @@
     "effects": [
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
           "kind": "sequence",
           "etapes": [
@@ -297,7 +297,7 @@
     "effects": [
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
           "kind": "sequence",
           "etapes": [
@@ -340,7 +340,7 @@
     "effects": [
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
           "kind": "sequence",
           "etapes": [
@@ -384,7 +384,7 @@
     "effects": [
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
           "kind": "sequence",
           "etapes": [
@@ -430,7 +430,7 @@
     "effects": [
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
           "kind": "sequence",
           "etapes": [
@@ -635,7 +635,7 @@
     "effects": [
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
           "kind": "choix",
           "invite": "Renverser",
@@ -701,7 +701,7 @@
     "effects": [
       {
         "trigger": "onCrit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
           "kind": "sequence",
           "etapes": [
@@ -1202,7 +1202,7 @@
     "effects": [
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
           "kind": "si",
           "condition": {

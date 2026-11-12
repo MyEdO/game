@@ -19,7 +19,7 @@ function scèneAttablée(assis: boolean, species = 'humain'): Scene {
     { id: PROP, kind: 'prop', pos: { x: 2, y: 2 }, decor: { id: TABLE }, facing: 'N', usable: { assise: true } },
     { id: 'f1', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 3, y: 2 }, facing: 'S', appearance: { species } },
   ] as unknown as SceneEntity[];
-  if (assis) s.seatAssignments = { [PROP]: { 'place-2': { kind: 'entity', entityId: 'f1' } } };
+  if (assis) s.seatAssignments = { [PROP]: { 'place-2': { kind: 'entite', entityId: 'f1' } } };
   return s;
 }
 
@@ -33,9 +33,9 @@ const meneur = (): Combatant =>
 describe('partyTokenOf — la dérivation UNIQUE du jeton de groupe', () => {
   it('meneur assis : la position de RENDU devient l’ancre, la place voyage avec lui', () => {
     const scene = scèneAttablée(false);
-    scene.seatAssignments = { [PROP]: { 'place-2': { kind: 'party', rang: 1 } } };
+    scene.seatAssignments = { [PROP]: { 'place-2': { kind: 'groupe', rang: 1 } } };
     const jeton = partyTokenOf(scene, meneur(), { x: 3, y: 2 }, ['h'])!;
-    const place = seatPoseOf(scene, { kind: 'party', rang: 1 })!;
+    const place = seatPoseOf(scene, { kind: 'groupe', rang: 1 })!;
     expect(jeton.seat).toEqual(place);
     expect(jeton.pos.x).toBeCloseTo(place.anchor.x, 6);
     expect(jeton.pos.y).toBeCloseTo(place.anchor.y, 6);
@@ -62,7 +62,7 @@ describe('marque de sol du groupe — cohérente avec la pose', () => {
   });
 
   it('meneur ASSIS : le repère s’éteint, l’anneau d’équipe reste (il suit le corps)', () => {
-    const place = seatPoseOf(scèneAttablée(true), { kind: 'entity', entityId: 'f1' })!;
+    const place = seatPoseOf(scèneAttablée(true), { kind: 'entite', entityId: 'f1' })!;
     const marks = dynamicMarks(null, { x: 3, y: 2 }, [], jeton(place));
     expect(marks.party).toBeNull();
     expect(marks.rings.map((r) => r.id)).toContain('h');
@@ -72,7 +72,7 @@ describe('marque de sol du groupe — cohérente avec la pose', () => {
 describe('œil POV assis', () => {
   it('descend sous l’œil debout, et se dérive de la hauteur d’assise', () => {
     const scene = scèneAttablée(true);
-    const place = seatPoseOf(scene, { kind: 'entity', entityId: 'f1' })!;
+    const place = seatPoseOf(scene, { kind: 'entite', entityId: 'f1' })!;
     const h = seatedEyeH(scene, place, 0);
     expect(h).toBeCloseTo(place.anchor.h + EYE_H_ASSIS, 6); // sol à 0 dans cette scène
     expect(h).toBeLessThan(EYE_H);
@@ -80,14 +80,14 @@ describe('œil POV assis', () => {
 
   it('un siège PLUS HAUT lève l’œil d’autant (aucun nombre magique)', () => {
     const scene = scèneAttablée(true);
-    const place = seatPoseOf(scene, { kind: 'entity', entityId: 'f1' })!;
+    const place = seatPoseOf(scene, { kind: 'entite', entityId: 'f1' })!;
     const perche = { anchor: { ...place.anchor, h: place.anchor.h + 0.3 } };
     expect(seatedEyeH(scene, perche, 0) - seatedEyeH(scene, place, 0)).toBeCloseTo(0.3, 6);
   });
 
   it('`makeCamera` POSE réellement l’œil à la hauteur reçue', () => {
     const scene = scèneAttablée(true);
-    const place = seatPoseOf(scene, { kind: 'entity', entityId: 'f1' })!;
+    const place = seatPoseOf(scene, { kind: 'entite', entityId: 'f1' })!;
     const debout = makeCamera(scene, { x: 3, y: 2 }, 'S');
     const assis = makeCamera(scene, { x: place.anchor.x, y: place.anchor.y }, place.facing, seatedEyeH(scene, place, 0));
     expect(assis.eye.z).toBeLessThan(debout.eye.z);
