@@ -25,6 +25,14 @@ export function chargerLesReglesMaison(stockage: Stockage | null): void {
   temoigner(stockage, CLE_DU_TEMOIN, TEMOIN_DES_RETRAITS, retraits);
 }
 
+/** Repose les règles maison du joueur : celles que `stockage` persiste (`chargerLesReglesMaison`), aucune s'il n'en
+ *  persiste pas ; sans stockage (`null`), celles de la session restent. */
+export function reposerLesReglesMaison(stockage: Stockage | null): void {
+  if (!stockage) return;
+  if (lireDictionnaire(stockage, CLE_DES_REGLES)) chargerLesReglesMaison(stockage);
+  else poserLesReglesMaisonPersistees({});
+}
+
 /** Le témoin des règles retirées par les chargements depuis la dernière prise, RETIRÉ de `stockage` : `null` sans
  *  retrait. */
 export function prendreLeTemoinDesReglesMaison(stockage: Stockage | null): RetraitsDElagage | null {

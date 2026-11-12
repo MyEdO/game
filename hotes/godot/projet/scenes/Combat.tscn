@@ -1,9 +1,10 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/combat.gd" id="1_combat"]
 [ext_resource type="PackedScene" path="res://scenes/Plateau.tscn" id="2_plateau"]
 [ext_resource type="PackedScene" path="res://scenes/Ecran.tscn" id="3_ecran"]
 [ext_resource type="Script" path="res://scripts/zone.gd" id="4_zone"]
+[ext_resource type="PackedScene" path="res://scenes/Reglages.tscn" id="5_reglages"]
 [ext_resource type="Theme" path="res://art/cartes.tres" id="t_cartes"]
 
 [node name="Combat" type="Node"]
@@ -89,3 +90,5 @@ alignment = 2
 [node name="Zone" type="Node" parent="Sauvegardes/Cadre/Pile/Gestes"]
 script = ExtResource("4_zone")
 source = "sauvegardes.gestes"
+
+[node name="Reglages" parent="." instance=ExtResource("5_reglages")]
