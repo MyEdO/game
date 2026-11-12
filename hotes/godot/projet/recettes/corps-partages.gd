@@ -1,6 +1,6 @@
 extends SceneTree
 
-## Les corps partagés (#3946, `MontageDeComposition.scene_du_glb`) : sur le pont figé de l'atelier (`PontFige`, l'atelier
+## Les corps partagés (#3946, `MontageDeComposition.scene_du_modele`) : sur le pont figé de l'atelier (`PontFige`, l'atelier
 ## figé par la sonde, `hotes/godot/recettes/atelier.ts`, `figerLeRepos`), la base humanoïde demandée par plusieurs
 ## montages n'est téléchargée et lue qu'une fois : chaque corps est une instance de la même scène empaquetée, qui
 ## partage ses meshes, et aucun nœud ne reste hors de l'arbre. Un clip bouclé pour un corps
@@ -29,7 +29,7 @@ func _recetter() -> void:
 		quit(2)
 		return
 	var pont := PontFige.poser(self, lu)
-	MontageDeComposition.retenir_les_modeles(lu.modeles)
+	MontageDeComposition.retenir_les_modeles(lu.modeles, lu.listage)
 	var base: Dictionary = lu.modeles.bases.filter(func(b: Dictionary) -> bool: return b.id == BASE)[0]
 	var orphelins := Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT)
 	var montages: Array[MontageDeComposition] = []
@@ -41,7 +41,7 @@ func _recetter() -> void:
 		scenes.append(null)
 		_tirer(montage, scenes, i)
 	await _attendre(func() -> bool: return not null in scenes)
-	_verifier(pont.requetes.count("modeles/%s" % lu.modeles.glb[BASE]) == 1, "la base téléchargée %d fois pour %d demandes" % [pont.requetes.count("modeles/%s" % lu.modeles.glb[BASE]), CORPS])
+	_verifier(pont.requetes.count("modeles/%s" % lu.modeles.fichiers[BASE].glb) == 1, "la base téléchargée %d fois pour %d demandes" % [pont.requetes.count("modeles/%s" % lu.modeles.fichiers[BASE].glb), CORPS])
 	for i in CORPS:
 		montages[i].poser_le_modele(base, scenes[i])
 		_verifier(montages[i].squelette != null and montages[i].lecteur != null, "corps %d sans squelette ou sans lecteur : %s" % [i, montages[i].erreurs])
@@ -75,10 +75,10 @@ func _recetter() -> void:
 	second.lecteur.advance(0.3)
 	_verifier(second.lecteur.assigned_animation == clip, "un corps ne joue plus son clip après la libération d'un autre")
 
-	MontageDeComposition.retenir_les_modeles(lu.modeles)
+	MontageDeComposition.retenir_les_modeles(lu.modeles, lu.listage)
 	var relu := MontageDeComposition.new()
 	root.add_child(relu)
-	relu.poser_le_modele(base, await relu.scene_du_glb(BASE, relu.erreurs))
+	relu.poser_le_modele(base, await relu.scene_du_modele(BASE, relu.erreurs))
 	_verifier(relu.modele != null and _meshes(relu) != meshes, "les modèles retenus de nouveau, la base n'est pas relue")
 	_verifier(_meshes(second) == meshes, "les modèles retenus de nouveau, un corps posé perd ses meshes")
 	for faute in _fautes:
@@ -89,7 +89,7 @@ func _recetter() -> void:
 
 ## La scène de la base tirée par `montage` au rang `rang` de `scenes`.
 func _tirer(montage: MontageDeComposition, scenes: Array[Node3D], rang: int) -> void:
-	scenes[rang] = await montage.scene_du_glb(BASE, montage.erreurs)
+	scenes[rang] = await montage.scene_du_modele(BASE, montage.erreurs)
 
 
 ## Les images passées jusqu'à ce que `tenu` le soit, au plus `IMAGES_D_ATTENTE`.

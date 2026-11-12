@@ -42,7 +42,6 @@ const doc = document(
     tirageQuotidien: { label: 'Tirage quotidien', hint: 'Dé lancé chaque jour de voyage : la face `perilDie` de la route fait survenir une Péripétie' },
   },
   {
-    codex: { keys: ['peripeties'] },
     edit: { niche: { categories: { peripeties: 'entries' } } },
   },
   // LDB 51 l.210

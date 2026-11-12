@@ -4,9 +4,10 @@
  * Chaque catégorie projette un tableau de `src/data` (façade `index.ts`) en `CodexItem` RICHE :
  * faits-clés + **sections structurées** dont les entités citées (compétences, talents, sorts,
  * traits, qualités…) sont des **liens `CodexRef`** vers leur propre fiche (cross-références).
- * **Ajouter une catégorie = sa clé déclarée au def (`exposition.codex.keys`), puis son entrée dans
- * `CODEX_SPECS`**, que `satisfies Record<CleCodex, …>` exige ; enrichir = ajouter des sections (data),
- * pas un composant.
+ * **Ajouter une catégorie = sa clé déclarée au def (`exposition.codex.keys`, ou sa clé de
+ * `edit.niche.categories` pour une table nichée, que `document()` pose en `codex.keys`), puis son
+ * entrée dans `CODEX_SPECS`**, que `satisfies Record<CleCodex, …>` exige ; enrichir = ajouter des
+ * sections (data), pas un composant.
  */
 import { composeRollLabel } from '../rollSeam';
 import { memoParVersion } from '../../data/versionDataset';
@@ -15,7 +16,7 @@ import {
   species, careers, characteristics, classes, skills, talents,
   qualities, trappings, siegeEngines, weaponGroups, etats, maladies, creatures, traits, spells, maneuvers, domains, mutations, mutationTables, gods,
   stars, locations, findLocationById, findCreatureById, books, bookAbr, careerLevels, raceAppearance, levelsForCareer, skillRefLabel, talentRefLabel, refLabel, trappingRefLabel, qualityRefLabel, advancementLabel, weaponGroupLabel, qualitySubtypeLabel, qualityTypeLabel,
-  skillInstanceLabel, careersForSpecies, findCareerById, entryKey, libelleDeClasse, findSpeciesById, eyes, hairs, tableDesYeux, tableDesCheveux, eyesDie, hairsDie, details, semencesDeScene, defautsDeCompilation, names,
+  skillInstanceLabel, careersForSpecies, findCareerById, careerLabelFor, entryKey, libelleDeClasse, findSpeciesById, eyes, hairs, tableDesYeux, tableDesCheveux, eyesDie, hairsDie, details, semencesDeScene, defautsDeCompilation, names,
   pregens, oups, interludeEvents, peripeties, talentsAleatoires, carrieresAleatoires, especesAleatoires, cargaisonsAleatoires, psychologyLabel,
   allAxes,
   calendarMonths, calendarIntercalary, calendarWeekdays, calendarPhases, weather, weatherConditions, symptoms, symptomLabel,
@@ -1824,7 +1825,7 @@ const CODEX_SPECS = {
     build: () => pregens.map((p) => {
       const actuelle = garanti(carriereActuelle({ carrieres: p.carrieres }), p.id, 'carrière actuelle du pré-tiré');
       return depuisEnveloppe(p, {
-        sub: join(findSpeciesById(p.species.id)?.label ?? p.species.id, findCareerById(actuelle.id)?.label ?? actuelle.id, tr('codex.fiche.niveau2', { level: actuelle.niveau })),
+        sub: join(findSpeciesById(p.species.id)?.label ?? p.species.id, careerLabelFor({ career: actuelle.id, appearance: { sex: p.sex } }), tr('codex.fiche.niveau2', { level: actuelle.niveau })),
         meta: facts(fact(tr('codex.fiche.motivation'), p.motivation)),
       });
     }),
@@ -2604,7 +2605,7 @@ const CODEX_SPECS = {
         fact(tr('codex.fiche.difficulte'), g.difficulty ? DIFFICULTY_LABELS[g.difficulty] : null),
         fact(tr('codex.fiche.speciaux'), g.specials?.length ? g.specials.map((sp) => `${refLabel('talents', { id: sp.hasTalent })} : ${
           sp.effet === 'cran' ? tr('codex.fiche.cranPlusFacile', { steps: sp.steps, v: sp.steps > 1 ? 's' : '' }) : DIFFICULTY_LABELS[sp.difficulty]}`).join(' ; ') : null),
-        fact(tr('codex.fiche.mode'), g.pot ? tr('codex.fiche.miseEtPotD', { count: g.pot.dice.count, faces: g.pot.dice.faces })
+        fact(tr('codex.fiche.mode'), g.pot ? tr('codex.fiche.miseEtPotD', { die: formatDice(deDeLaTableTiree(g.pot)) })
           : g.volley ? tr('codex.fiche.voleeDeLancers', { throws: g.volley.throws })
             : g.mode === 'extended' ? tr('codex.fiche.etenduDr', { v: g.target ?? '?' }) : tr('codex.fiche.opposeSimple')),
         fact(tr('codex.fiche.plafondDeDr'), g.drCap ?? null),

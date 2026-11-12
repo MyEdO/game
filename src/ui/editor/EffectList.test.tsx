@@ -132,12 +132,12 @@ describe('selects guidés (audit M9) — fini les ids à taper', () => {
 
   it('openMerchant : entités marchandes de la scène (ou explication si aucune)', () => {
     const withM = renderToStaticMarkup(
-      <EffectList effects={[{ type: 'openMerchant', entityId: '' }]} onChange={() => {}}
+      <EffectList effects={[{ type: 'openMerchant', entityId: { id: '' } }]} onChange={() => {}}
         ctx={{ encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE, merchants: [{ id: 'armurier', label: 'Maître armurier' }] }} />,
     );
     expect(withM).toContain('Maître armurier (armurier)');
     const without = renderToStaticMarkup(
-      <EffectList effects={[{ type: 'openMerchant', entityId: '' }]} onChange={() => {}}
+      <EffectList effects={[{ type: 'openMerchant', entityId: { id: '' } }]} onChange={() => {}}
         ctx={{ encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE, merchants: [] }} />,
     );
     expect(without).toContain('Aucune entité marchande');

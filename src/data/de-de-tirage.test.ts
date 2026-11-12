@@ -9,7 +9,8 @@ import { DEFS_DE_DOCUMENT, validateDataset } from './schemas/validate';
 import { z } from 'zod';
 import { META_CHARGE, tableTiree } from './schemas/grammaire/document';
 import { deDeTirageDe } from './rangees';
-import { formatDice, parseDiceRequired } from '../engine/dice';
+import { formatDice } from '../engine/dice';
+import { deDeLaTableTiree } from '../engine/tables';
 import { weatherDie, type Season } from '../engine/travelStages';
 import { encounterDie } from '../engine/travelTables';
 import { SHIP_CRIT_SET } from './shipCriticals';
@@ -191,7 +192,7 @@ describe('dé de tirage — en donnée, lu par le lecteur (#1667)', () => {
     const vues = tablesNichees();
     expect(vues.map((t) => t.ou).sort(), 'tables tirées nichées').toEqual(Object.keys(TABLES_NICHEES_LIVRE).sort());
     for (const t of vues) {
-      expect(formatDice(parseDiceRequired(t.die, t.ou)), `${t.ou} (${TABLES_NICHEES_LIVRE[t.ou].ref})`).toBe(TABLES_NICHEES_LIVRE[t.ou].die);
+      expect(formatDice(deDeLaTableTiree({ die: t.die, id: t.ou })), `${t.ou} (${TABLES_NICHEES_LIVRE[t.ou].ref})`).toBe(TABLES_NICHEES_LIVRE[t.ou].die);
     }
   });
 

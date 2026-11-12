@@ -41,7 +41,7 @@ import {
   signature,
   type IdConceptPose,
 } from '../../scripts/docs/lib/structures-lexique.mjs';
-import { CLES_ENVELOPPE, document, type Exposition } from './schemas/grammaire/document';
+import { CLES_ENVELOPPE, document, type DeclarationExposition } from './schemas/grammaire/document';
 import { SANS_LIVRE_DEFINITIF, SOURCE_EN_PROFONDEUR } from './schemas/grammaire/sans-livre';
 import { marquerCollection, marqueDeRecord } from './schemas/grammaire/collection-cle';
 import type { SchemaDef } from './schemas/types';
@@ -1222,7 +1222,7 @@ describe('contrôle POSITIF côté DONNÉE : le détecteur MORD (#1465 F21)', ()
  * `entries` — les clés du record disparaîtraient de l'index des ids, en silence.
  */
 describe('régime `valeurs` : le scan descend dans `entries` d’un record ENVELOPPÉ', () => {
-  const expositionDeSonde: Exposition = { codex: { keys: ['sondes'] }, edit: { dataset: 'sonde.json' } };
+  const expositionDeSonde: DeclarationExposition = { codex: { keys: ['sondes'] }, edit: { dataset: 'sonde.json' } };
   it('une clé d’`entries` entre à l’index (collision avec `teintesJeu.json`) ; l’enveloppe n’y entre pas', { timeout: 60_000 }, () => {
     const copie = mkdtempSync(join(tmpdir(), 'structures-record-'));
     try {
@@ -1257,7 +1257,7 @@ describe('régime `valeurs` : le scan descend dans `entries` d’un record ENVEL
  * comme tout objet (`TERMES_COLLECTION_A_CLE`, `scripts/docs/lib/structures-lexique.mts`).
  */
 describe('collection à clé déclarée : la carte d’un record MARQUÉ n’est jamais hors strate', () => {
-  const expositionDeSonde: Exposition = { codex: { keys: ['sondes'] }, edit: { dataset: 'sonde.json' } };
+  const expositionDeSonde: DeclarationExposition = { codex: { keys: ['sondes'] }, edit: { dataset: 'sonde.json' } };
   const carte = <S extends z.ZodType>(s: S) => marquerCollection(s, marqueDeRecord());
   const cotes = z.strictObject({ a: z.number(), b: z.number() });
   const renvois = z.strictObject({ a: z.string(), b: z.string() });
@@ -1315,7 +1315,7 @@ describe('collection à clé déclarée : la carte d’un record MARQUÉ n’est
  * (volet « formes DÉCLARÉES jamais observées » ci-dessus).
  */
 describe('clés portées : l’entrée PARTIELLE embarquée d’un document porte ses clés', () => {
-  const expositionDeSonde: Exposition = { codex: { keys: ['sondes'] }, edit: { dataset: 'sonde.json' } };
+  const expositionDeSonde: DeclarationExposition = { codex: { keys: ['sondes'] }, edit: { dataset: 'sonde.json' } };
   const a = document(
     'a',
     'entite',
@@ -1369,7 +1369,7 @@ describe('clés portées : l’entrée PARTIELLE embarquée d’un document port
  * l'hôte, et il n'entre pas dans la mesure d'enveloppe de D (un patch n'est sommé de rien).
  */
 describe('formes : l’entrée PARTIELLE embarquée est mesurée comme une entrée de son document', () => {
-  const expositionDeSonde: Exposition = { codex: { keys: ['sondes'] }, edit: { dataset: 'sonde.json' } };
+  const expositionDeSonde: DeclarationExposition = { codex: { keys: ['sondes'] }, edit: { dataset: 'sonde.json' } };
   const lien = z.strictObject({ cibleId: z.string() });
   const alpha = document('alpha', 'entite', {}, {}, expositionDeSonde);
   const a = document('a', 'entite', { liens: z.array(lien).optional() }, { liens: { label: 'Liens' } }, expositionDeSonde);
@@ -1420,7 +1420,7 @@ describe('formes : l’entrée PARTIELLE embarquée est mesurée comme une entr�
  * canoniques n'est plus un site de forme (#2972).
  */
 describe('signature projetée : une réf `{ id }` imbriquée qui résout reste une clé de la signature', () => {
-  const expositionDeSonde: Exposition = { codex: { keys: ['sondes'] }, edit: { dataset: 'sonde.json' } };
+  const expositionDeSonde: DeclarationExposition = { codex: { keys: ['sondes'] }, edit: { dataset: 'sonde.json' } };
   const alpha = document('alpha', 'entite', {}, {}, expositionDeSonde);
   const x = document(
     'x',

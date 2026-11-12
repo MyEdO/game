@@ -66,7 +66,6 @@ const doc = document(
     sub: { label: 'Sous-tirage', hint: 'Départage les variantes d’un même seuil (Étoile du Sorcier)' },
   },
   {
-    codex: { keys: ['stars'] },
     edit: { niche: { categories: { stars: 'entries' } } },
   },
   {

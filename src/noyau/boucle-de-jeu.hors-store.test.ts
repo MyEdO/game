@@ -3547,7 +3547,7 @@ describe('Marchand — ouvrirLeMarchand / achat et vente au panier (#2)', () => 
 
   it('Effet openMerchant : ouvre la boutique d’une entité depuis un dialogue (#2)', () => {
     banc.setState({ party: [hero()], scene: merchantScene() });
-    applyEffects(banc.getState, banc.setState, [{ type: 'openMerchant', entityId: 'pnj' }]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'openMerchant', entityId: { id: 'pnj' } }]);
     expect(banc.getState().merchant?.entityId).toBe('pnj');
   });
 

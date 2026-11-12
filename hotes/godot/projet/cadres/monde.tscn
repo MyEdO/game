@@ -53,9 +53,10 @@ source = "fenetre.gestes"
 [node name="Etape" type="VBoxContainer" parent="Cadre/Marges/Colonne"]
 theme = ExtResource("t_etape_du_monde")
 
-[node name="Zone" type="Node" parent="Cadre/Marges/Colonne/Etape"]
+[node name="Zone" type="Node" parent="Cadre/Marges/Colonne/Etape" node_paths=PackedStringArray("masque")]
 script = ExtResource("1_zone")
 source = "fenetre.etape"
+masque = NodePath("..")
 
 [node name="Bourse" type="HBoxContainer" parent="Cadre/Marges/Colonne"]
 

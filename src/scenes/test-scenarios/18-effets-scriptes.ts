@@ -66,7 +66,7 @@ const construireVillage = (): Scene => buildScene({
               label: 'Ouvrir son infirmaire (soins payants).',
               flow: flowFromEffects([
                 {
-                  type: 'medicalAid', entityId: 'medecin',
+                  type: 'medicalAid', entityId: { id: 'medecin' },
                   acts: [{ act: 'blessures', cost: { silver: 5 } }, { act: 'hemorragie', cost: { silver: 5 } }],
                 },
                 { type: 'endDialogue' },

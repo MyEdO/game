@@ -101,7 +101,7 @@ function construireScene(documents: readonly DocumentNarratif[]): Scene {
     entities: [
       {
         id: 'liasse-edo', kind: 'prop', decor: { id: 'bureau' }, pos: { x: 3, y: 2 }, label: 'Liasse de documents',
-        usable: { actions: [{ id: 'lire', label: 'Parcourir la liasse', flow: flowFromEffects([{ type: 'startDialogue', dialogue: 'dlg-liasse' }]) }] },
+        usable: { actions: [{ id: 'lire', label: 'Parcourir la liasse', flow: flowFromEffects([{ type: 'startDialogue', dialogue: { id: 'dlg-liasse' } }]) }] },
       },
     ],
     dialogues: [
