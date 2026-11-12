@@ -20,7 +20,7 @@ from pistes import sacs  # noqa: E402
 from script_node import lancer  # noqa: E402
 from chaines import ajouter_chaines, cuire_chaines  # noqa: E402
 from filets import draper  # noqa: E402
-from corpulence import ajouter_corpulence  # noqa: E402
+from corpulence import RELIEF_DE_CORPULENCE, ajouter_corpulence  # noqa: E402
 from diagnostic_poids import imprimer_retournements  # noqa: E402
 from poids import (PASSES_MAX, SUITE_DE_CORRECTION, peau_lineaire, etats_ponderes, sommets_des_surfaces,  # noqa: E402
                    jumeaux, preparer_correction, avancer_correction, appliquer_correction, imprimer_correction, refuser_correction,
@@ -456,6 +456,7 @@ def construire(args):
     manifeste = poser(squelette, peaux)
     manifeste['appuis']['plusBas'] = candidats
     manifeste['gabarit'] = table
+    manifeste['reliefDeCorpulence'] = RELIEF_DE_CORPULENCE
     manifeste = {'os': [b.name for b in squelette.data.bones], 'chaines': chaines, **manifeste, 'silhouettes': formes,
                  'osAPositionAnimee': os_a_position_animee(squelette, clips, manifeste['gabarit']['racine'])}
     clear_animation(squelette)

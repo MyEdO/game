@@ -7,6 +7,7 @@
  */
 import type { ManifesteDeBase } from '../asset/manifesteDeBase';
 import { poidsDeSilhouettes, poseDuGabarit, type PoseDuGabarit } from '../asset/gabarit';
+import { CORPULENCE } from '../asset/silhouettes';
 import { ligneAuRang } from '../asset/attache';
 import { BUILD_NEUTRE } from '../../../src/lib/corpulence';
 import { findCouleurById, findTeinteById, pieceRacine, emblemeDuPorteur, type EmblemeResolu, type Portee, type PorteeDeComposition, type SurchargesDEmblemes } from '../../../src/noyau/index';
@@ -69,6 +70,10 @@ export interface CompositionSurLaBase {
    *  matériau du GLB vers le nom de ce matériau ; vide sinon. Le pont choisit le matériau ; Godot le prend au GLB par
    *  son nom, sans lire ni `sex` ni `parSexe`. */
   materiaux: Record<string, string>;
+  /** par surface de la base dont `palette` est `peau`, le facteur de force de sa normal map, `1 + (r − 1) × w`, `r` le
+   *  `reliefDeCorpulence` du manifeste et `w` le poids de `corpulence` dans `morphes` (#4002) ; vide sans
+   *  `reliefDeCorpulence` ou à poids nul. Godot le multiplie au `normal_scale` du matériau de la surface. */
+  reliefs: Record<string, number>;
   /** la couleur `#rrggbb` de chaque emplacement de palette que la composition colore (`couleurs`), résolue au
    *  nuancier (`findCouleurById`, surface du noyau), vide sans `couleurs`. La composition ne porte que des ids
    *  (#2966) ; Godot ne lit aucun catalogue pour colorer. */
@@ -161,8 +166,10 @@ export function composerSurLaBase(base: BaseDeLAtelier, manifestes: Readonly<Rec
     montes.push({ ligne, element: element ?? null, ...emblemeMonte(embleme, element === undefined ? undefined : manifestes[element]), ...(teinte ? { palette: { ...teinte.palette } } : {}) });
     if (element === undefined) manquants.push({ ligne, champ: p.cle.champ, id: p.cle.id, label: p.label, ...(p.par ? { par: p.par } : {}) });
   }
-  const { gabarit, appuis, clips, clipsDeuxMains, surfaces = [] } = manifestes[base.id] as ManifesteDeBase;
+  const { gabarit, appuis, clips, clipsDeuxMains, surfaces = [], reliefDeCorpulence } = manifestes[base.id] as ManifesteDeBase;
   const morphes = gabarit ? poidsDeSilhouettes({ sex: portee.sex, build: portee.build ?? BUILD_NEUTRE, st: portee.facteurs.st }, gabarit) : {};
+  const corpulence = morphes[CORPULENCE] ?? 0;
+  const relief = reliefDeCorpulence === undefined || corpulence === 0 ? undefined : 1 - corpulence + reliefDeCorpulence * corpulence;
   return {
     montes,
     manquants,
@@ -170,6 +177,7 @@ export function composerSurLaBase(base: BaseDeLAtelier, manifestes: Readonly<Rec
     ...(gabarit ? { gabarit: poseDuGabarit({ gabarit, appuis, clips, clipsDeuxMains }, portee.facteurs, morphes) } : {}),
     morphes,
     materiaux: Object.fromEntries(surfaces.flatMap(({ nom, parSexe }) => (parSexe?.[portee.sex] ? [[nom, parSexe[portee.sex]!]] : []))),
+    reliefs: relief === undefined ? {} : Object.fromEntries(surfaces.flatMap(({ nom, palette }) => (palette === 'peau' ? [[nom, relief]] : []))),
     palette: paletteDesCouleurs(portee.couleurs),
   };
 }

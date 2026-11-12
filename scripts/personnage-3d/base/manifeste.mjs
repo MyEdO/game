@@ -1,8 +1,8 @@
 // LE MANIFESTE COMPLET D'UNE BASE (#2972, `ManifesteDeBase` de `hotes/godot/asset/manifesteDeBase.ts`), écrit sous
 // `manifeste` dans le dossier de production de son GLB exporté (`production.ts`, #3106). Chaque champ a une source :
 // - construit par la construction Blender (`humanoide.py`), lu en JSON sur l'entrée standard : `os`, `chaines`,
-//   `zones`, `emplacements`, `prises`, `silhouettes`, `gabarit` (dont `st`, `silhouettes.bornes_de_st`), `appuis.pieds`,
-//   `osAPositionAnimee` ;
+//   `zones`, `emplacements`, `prises`, `silhouettes`, `reliefDeCorpulence`, `gabarit` (dont `st`,
+//   `silhouettes.bornes_de_st`), `appuis.pieds`, `osAPositionAnimee` ;
 // - déclaré par le corps (`<declaration.json>`, `champsDeclares`) : `base`, `porteur`, `bornesArticulaires`, `clips`,
 //   `clipsDeuxMains`, `prisesOccupees` et `surfaces` ;
 // - mesuré par l'évaluateur (`appuis.ts`) : `appuis.vitesseAuSol`, celle du clip du rôle `marche` ;

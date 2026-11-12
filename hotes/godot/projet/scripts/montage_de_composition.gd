@@ -1017,16 +1017,18 @@ func choisir_l_embleme(id: String, embleme: String) -> String:
 ## Chaque élément monté s'habille, au montage et à chaque composition, de la `palette` de la dernière réponse de
 ## `composer`, chaque emplacement de palette que colore la `palette` de son entrée de `montes` (sa teinte) pris à
 ## celle-ci quand cette entrée monte cet élément, et de l'emblème demandé à son emplacement ; la base posée s'habille
-## des `materiaux` et de la palette de la même réponse, à sa pose et à chaque composition. Habiller, c'est rendre
+## des `materiaux`, de la palette et des `reliefs` de la même réponse, à sa pose et à chaque composition. Habiller, c'est rendre
 ## d'abord à chaque surface de ses meshes son override ; sur la base, chaque surface dont le matériau actif porte (par
 ## `resource_name`) le `nom` d'une surface que `materiaux` nomme prend en override le matériau du GLB de ce nom, ceux
 ## qu'aucune primitive ne porte compris (`GLTFState.get_materials`, relevés par nom à la lecture du GLB,
 ## `MontageDeComposition.materiaux_de_la_base`), un nom absent du GLB ajoutant `materiau-absent : <nom>` aux `erreurs`
 ## ; puis c'est donner à chaque surface dont le matériau actif porte (par `resource_name`) le `nom` d'une de ses
 ## `surfaces` un matériau propre (`MontageDeComposition.materiau_local`, `projet/scripts/montage_de_composition.gd`)
-## si la palette colore son emplacement de palette, si elle est `blason` sous un emblème demandé, ou si la texture de
-## sa `matiere` est au projet : celle-ci l'habille comme le monde (section « Monde », `VolumeDeScene.texturer`), projetée sur
-## les trois axes du repère du mesh, l'albédo à blanc ; la couleur y remplace l'albédo du GLB, texture comprise, pour
+## si la palette colore son emplacement de palette, si elle est `blason` sous un emblème demandé, si la texture de
+## sa `matiere` est au projet, ou, sur la base, si `reliefs` lui donne un facteur autre que 1 ; le `normal_scale` de ce
+## matériau propre est celui du matériau actif, remplaçant compris, multiplié par ce facteur (1 sans facteur). La
+## texture de la `matiere` habille la surface comme le monde (section « Monde », `VolumeDeScene.texturer`), projetée
+## sur les trois axes du repère du mesh, l'albédo à blanc ; la couleur y remplace l'albédo du GLB, texture comprise, pour
 ## que la tête et le corps d'une même peau aient la même couleur, ou teint la texture de sa matière ; l'emblème en
 ## devient la couche *detail* (`detail_enabled`, `detail_albedo`, `detail_blend_mode` mix), lue aux UV du GLB :
 ## `detail_uv_layer` UV1, ou UV2 sur une surface à matière texturée, dont la matière projette l'UV1, la pièce recevant
@@ -1059,9 +1061,10 @@ func _habiller(id: String) -> bool:
 	return posee
 
 
-## Les meshes de la base posée habillés des matériaux de la composition et de sa palette (`peindre`, `surfaces` de la
-## base) : chaque surface que `materiaux` nomme prend le matériau de la base de ce nom (`materiaux_de_la_base`), un nom
-## absent du GLB ajoutant `materiau-absent` aux erreurs ; puis les pièces refondues (`refondre`).
+## Les meshes de la base posée habillés des matériaux de la composition, de sa palette et de ses `reliefs` (`peindre`,
+## `surfaces` de la base) : chaque surface que `materiaux` nomme prend le matériau de la base de ce nom
+## (`materiaux_de_la_base`), un nom absent du GLB ajoutant `materiau-absent` aux erreurs ; puis les pièces refondues
+## (`refondre`).
 func habiller_la_base() -> void:
 	if base.is_empty():
 		return
@@ -1073,20 +1076,21 @@ func habiller_la_base() -> void:
 			erreurs.append("materiau-absent : %s" % materiaux[surface])
 		else:
 			remplacants[surface] = remplacant
-	peindre(_pieces_de_la_base, modeles.surfaces[base.id], null, composee.get("palette", {}), remplacants)
+	peindre(_pieces_de_la_base, modeles.surfaces[base.id], null, composee.get("palette", {}), remplacants, composee.get("reliefs", {}))
 	_demander_la_refonte()
 
 
 ## Chaque surface de `meshes` dont le matériau du GLB porte le `nom` d'une de `surfaces` prend le matériau que
 ## `remplacants` donne à ce nom, puis reçoit un matériau propre (`materiau_local`) si `palette` colore son emplacement de
-## palette, si elle est `blason` et `texture` n'est pas nulle, ou si la texture de sa `matiere` est au projet : celle-ci
+## palette, si elle est `blason` et `texture` n'est pas nulle, si la texture de sa `matiere` est au projet, ou si
+## `reliefs` donne à ce nom un facteur autre que 1, qui multiplie son `normal_scale` (#4002) : celle-ci
 ## l'habille comme le monde (`VolumeDeScene.texturer`), l'albédo à blanc ; la couleur remplace l'albédo du GLB,
 ## texture comprise,
 ## pour que la tête et le corps d'une même peau aient la même couleur, ou teint la texture de sa matière ; `texture`
 ## devient la couche de détail, en mélange, lue aux UV du GLB : l'UV1, ou l'UV2 où la matière projette l'UV1 sur les
 ## trois axes (`_uv2_des_emblemes`). Toute autre surface garde le matériau du GLB. Rend si `texture` est posée sur une
 ## surface au moins.
-static func peindre(meshes: Array, surfaces: Array, texture: ImageTexture, palette: Dictionary, remplacants: Dictionary = {}) -> bool:
+static func peindre(meshes: Array, surfaces: Array, texture: ImageTexture, palette: Dictionary, remplacants: Dictionary = {}, reliefs: Dictionary = {}) -> bool:
 	var par_nom := {}
 	for surface in surfaces:
 		par_nom[surface.nom] = surface
@@ -1106,7 +1110,8 @@ static func peindre(meshes: Array, surfaces: Array, texture: ImageTexture, palet
 			var blason: bool = texture != null and surface.get("blason", false)
 			var matiere := _matiere_texturee(surface)
 			var texturee := not matiere.is_empty()
-			if couleur == null and not blason and not texturee:
+			var relief: float = reliefs.get(surface.nom, 1.0)
+			if couleur == null and not blason and not texturee and relief == 1.0:
 				continue
 			var local := materiau_local(piece, rang)
 			if local == null:
@@ -1118,6 +1123,7 @@ static func peindre(meshes: Array, surfaces: Array, texture: ImageTexture, palet
 				local.albedo_texture = null
 			if couleur != null:
 				local.albedo_color = Color(couleur)
+			local.normal_scale *= relief
 			if blason:
 				local.detail_enabled = true
 				local.detail_albedo = texture

@@ -48,6 +48,8 @@ OS_DU_DONNEUR = 'game_engine'
 """Le rig MPFB (`rigs/standard/weights.<rig>.json`) dont les os nomment ceux d'UAL, à la casse près."""
 ECART_MAX = 1e-4
 """Écart maximal (m) entre le corps posé portant la clé et le déplacement lié (inverse du skin)."""
+RELIEF_DE_CORPULENCE = 0.2
+"""#4002"""
 
 RECALAGE = (('joint-l-upper-leg', 'thigh_l'), ('joint-r-upper-leg', 'thigh_r'), ('joint-l-shoulder', 'upperarm_l'),
             ('joint-r-shoulder', 'upperarm_r'), ('joint-neck', 'neck_01'), ('joint-head', 'Head'))
