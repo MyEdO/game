@@ -69,12 +69,14 @@ func _process(_delta: float) -> void:
 	_combattant.vetir(_file[0].corps)
 
 
-## Le corps en tête de file photographié : son clip arrêté, la caméra cadrée, une image rendue puis gardée. Une photo
+## Le corps en tête de file photographié : son arbre d'états arrêté (`Combattant.figer`), son clip de repos figé à sa
+## première image, la caméra cadrée, une image rendue puis gardée. Une photo
 ## déjà prise de lui pendant le rendu (un habillage tardif relance le repos) n'en reprend pas une autre.
 func _photographier() -> void:
 	if _file.is_empty():
 		return
 	var demande: Dictionary = _file[0]
+	_combattant.figer()
 	if _montage.lecteur != null:
 		_montage.lecteur.seek(0.0, true)
 		_montage.lecteur.pause()
