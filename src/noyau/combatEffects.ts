@@ -1,5 +1,6 @@
 import { libelleEffet, type Effect, type Flow } from '../data/schemas/defs-scenes/effets';
-import { LIBELLES_DE_CIBLE_DE_SCENE } from '../data/schemas/grammaire/mecanique';
+import { cibleDeFeuilleSchema } from '../data/schemas/grammaire/mecanique';
+import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import type { Jeu } from './etat';
 import { crochetDuSol } from './objetsAuSol';
 import type { Get, PatchDeFlux, Set as SetFn } from './flowTypes';
@@ -767,11 +768,11 @@ export function effectTargets(get: Get, target: 'party' | 'hero', heroId?: strin
  * et de l'entrée `scene` de `CIBLES_PAR_RACINE`.
  */
 export const CIBLES_D_EFFET_DE_SCENE = [
-  { on: 'party', label: LIBELLES_DE_CIBLE_DE_SCENE.party },
-  { on: 'hero', label: LIBELLES_DE_CIBLE_DE_SCENE.hero },
-  { on: 'navire', label: LIBELLES_DE_CIBLE_DE_SCENE.navire },
+  { on: 'party', label: libelleDeValeur(cibleDeFeuilleSchema, 'party') },
+  { on: 'hero', label: libelleDeValeur(cibleDeFeuilleSchema, 'hero') },
+  { on: 'navire', label: libelleDeValeur(cibleDeFeuilleSchema, 'navire') },
   { on: 'role', label: 'Un rôle d’équipage' },
-  { on: 'membreAuHasard', label: LIBELLES_DE_CIBLE_DE_SCENE.membreAuHasard },
+  { on: 'membreAuHasard', label: libelleDeValeur(cibleDeFeuilleSchema, 'membreAuHasard') },
   { on: 'volontaires', label: 'Les héros volontaires' },
 ] as const;
 export type CibleDEffetDeScene = (typeof CIBLES_D_EFFET_DE_SCENE)[number]['on'];

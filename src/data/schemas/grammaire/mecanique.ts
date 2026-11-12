@@ -909,8 +909,9 @@ export const compareOpSchema = z.enum(['>=', '<=', '==', '<', '>']);
 const LIBELLES_D_ACTEUR = { target: 'la cible', caster: 'le lanceur' } as const;
 export const actorRefSchema = enumNomme(LIBELLES_D_ACTEUR);
 
-/** Cibles d'un Effet de SCÈNE nommées par une chaîne (`CIBLES_D_EFFET_DE_SCENE`, `noyau/combatEffects.ts`). */
-export const LIBELLES_DE_CIBLE_DE_SCENE = { party: 'Tout le groupe', hero: 'Un héros', navire: 'Le navire', membreAuHasard: 'Un membre du bord au hasard' } as const;
+/** Cible d'une feuille `ops` nommée par une chaîne (`EffectOp.on`, `engine/flowCore.ts`) : celles d'une scène
+ *  (`CIBLES_D_EFFET_DE_SCENE`, `noyau/combatEffects.ts`), puis l'acteur du déclenché. */
+export const cibleDeFeuilleSchema = enumNomme({ party: 'Tout le groupe', hero: 'Un héros', navire: 'Le navire', membreAuHasard: 'Un membre du bord au hasard', ...LIBELLES_D_ACTEUR });
 
 /** `Relation | Camp` (`src/engine/relations.ts`) — union complète lue par la Condition `relation`.
  *  Resserré depuis `z.string()` (variantes `domains`/`talents`/`etats`/`spells`) : les 9 JSON ne
@@ -1663,7 +1664,7 @@ function construire(regimes: Regimes) {
   const effectOp = marquerProduit(nommerChamps(z.strictObject({
     type: z.literal('ops'),
     ops: executeesDe(gameOp),
-    on: z.union([variante('Cible désignée', enumNomme({ ...LIBELLES_DE_CIBLE_DE_SCENE, ...LIBELLES_D_ACTEUR })), cibleDeRoleSchema, cibleDeVolontairesSchema]).optional(),
+    on: z.union([variante('Cible désignée', cibleDeFeuilleSchema), cibleDeRoleSchema, cibleDeVolontairesSchema]).optional(),
     heroId: z.string().optional(),
     untilTime: z.number().optional(),
     label: z.string().optional(),
