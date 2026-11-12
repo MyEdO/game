@@ -122,7 +122,7 @@ import { beginShipwreck } from './shipwreck';
 import { isInanimate, isStructure, structureAimCell, ramVsNonDoor } from '../engine/structures';
 import { rollStructureCritical, structureCollapseLog, tableDesCritiquesDeStructure, type StructureCriticalResolved } from '../engine/structureCritical';
 import { structureCriticalsDie } from '../data/structureCriticals';
-import { actorIn, ecrireActeur, inBattleId } from './monde/combatants';
+import { actorIn, auContactDeLaSerie, ecrireActeur, inBattleId } from './monde/combatants';
 import type { IdDeCombattant } from './designations';
 import { nomDIndividu } from './monde/sceneNpc';
 import { garanti } from '../lib/garanti';
@@ -151,10 +151,10 @@ function critRollTwiceFor(c: Combatant | undefined | null): boolean {
 }
 import { domainOnHitEffects, domainCasterOps, isSorceryDomain, domainEnvironmentBonus } from '../engine/domainAttributes';
 import { decayZones, discTiles, wallTiles, clampZoneTiles, metersToTiles, resolveZoneMeters, type BattleZone } from './monde/zones';
-import { carryOverState } from '../engine/persistence';
+import { entreeEnRencontre, sortieDeRencontre } from '../engine/persistence';
 import { contractionDue, applyContraction, hasActiveCapability, diseaseDefs } from '../engine/disease';
 import { resolveCritique, jeuDeCritique, critiquesDuCoup, relanceLaLocalisation, estUnCoupCritique, type CauseCoupCritique, porteurDeCritique, regimeDePorteur, type OrigineCritique, REGIMES_DE_CRITIQUE, type OptionsCritique, critiqueTriviale, critWoundLocation, critImmediateSummary, opRestitueeParLeBandeau, prendreAmputationsDifferees, critTableKeyFor, critTableRows, type CriticalResolved, type CritTableKey } from '../engine/critical';
-import { facesDuDe, findTableEntry } from '../engine/tables';
+import { deDeLaTableTiree, facesDuDe, findTableEntry } from '../engine/tables';
 import { isFumble, rollOups, desDOups, desDeBrisDeLame, casseSurMaladresse, CLE_SOLIDE, ligneDeSolide, SOURCE_SOLIDE, type OupsResolved, type DemandeDeCasse } from '../engine/oups';
 import { lireSalveMisfire, TABLE_SALVE_MISFIRE } from '../engine/artilleryMisfire';
 import { artilleryMisfireDie } from '../data/artilleryMisfire';
@@ -174,7 +174,7 @@ import { toBrass, fromBrass } from '../engine/money';
 import { partyMoneyTotal, condCtx } from './bourseFlow';
 import { Scene, sceneMetresPerTile, isMerScene, setStructureDown, setTileCollapsed, parapetTilesAbove, heightAt, surfaceDAtterrissage, structureIsDown, climbEdgeBetween, type VictoryCondition } from './monde/scene';
 import { STEP_MAX_M } from './monde/relief';
-import { placeCombatant } from './monde/spawn';
+import { placeCombatant, spawnEnemy } from './monde/spawn';
 import { rollInitiative, combatOrder } from './combatSetup'; // relance d'Initiative par Round (LDB 13 l.43)
 import { sweepDismountDeaths, mountedAttackMods, defenseDodgeMods, mountMovement, mouvementDeCourse, mountOf, chargeDmgProxy, mountUp, mountableNear, movementRemaining, canMove, riderFearSize, combatGeomOf, attackGeomOf, meleeWeaponInRange, pickAttackWeaponList } from './mount';
 import { lineOfSightCover, losClear, tilesBetween, tileSeenByFoe, makeLosMemo } from './monde/lineOfSight';
@@ -673,15 +673,18 @@ export function attackEnv(
   opts?: { dansLeTas?: boolean; tirImmobile?: boolean },
 ): AttackEnv {
   const scene = get().scene!;
-  // Environnement composé sur le combat où l'attaquant est DÉJÀ à sa case d'attaque (Charge/rejoindre).
-  const battle = withAttackerAt(get().battle!, attacker);
+  // Environnement composé sur le combat où l'attaquant est DÉJÀ à sa case d'attaque (Charge/rejoindre) ; hors
+  // bataille (série d'attaques subies, `serieSubie`), aucune file de combat.
+  const bataille = get().battle;
+  const enBataille = bataille && withAttackerAt(bataille, attacker);
   const sc = sceneCombatModifiers(scene, get().gameTime);
   const dayW = activeDayWeather(get);
   const env: ModLine[] = [];
   // Empoignade (LDB 14 l.169) : un attaquant NON partie à l'Empoignade, mêlée comme tir.
-  const gm = grappleEnvMod(attacker, target, battle.combatants);
+  const gm = grappleEnvMod(attacker, target, enBataille?.combatants ?? []);
   if (gm) env.push(gm);
   if (weapon.type === 'ranged') {
+    const battle = garanti(enBataille, attacker.id, 'combat du tir');
     const occupants = battle.combatants
       .filter((c) => c.id !== attacker.id && c.id !== target.id && !isOutOfAction(c) && c.pos)
       .map((c) => c.pos!);
@@ -750,10 +753,12 @@ export function attackEnv(
   // En contrebas (LDB 14 l.67) : l'attaquant le PLUS BAS est pénalisé (la hauteur ne donne AUCUN bonus
   // « high-ground » — RAW : seul ce malus existe). Comparaison de la hauteur métrique des surfaces.
   if ((target.pos?.h ?? 0) - (attacker.pos?.h ?? 0) > STEP_MAX_M) env.push(ligneDeRegle('cible-en-contrebas', 'en-contrebas'));
-  // Surnombre (LDB 14 l.110) : attaquants du camp de l'attaquant au contact de la cible.
-  const onm = outnumberMod(effectifAuContact(battle, target, attacker.kind));
-  if (onm) env.push(onm);
-  env.push(...mountedAttackMods(battle, attacker, target, 'melee')); // LDB 14 l.180/181
+  if (enBataille) {
+    // Surnombre (LDB 14 l.110) : attaquants du camp de l'attaquant au contact de la cible.
+    const onm = outnumberMod(effectifAuContact(enBataille, target, attacker.kind));
+    if (onm) env.push(onm);
+    env.push(...mountedAttackMods(enBataille, attacker, target, 'melee')); // LDB 14 l.180/181
+  }
   return { env, blocked: false, inMelee: false, crowd: [], cm: null, sc, flankRear };
 }
 
@@ -3467,7 +3472,7 @@ function verdictDeDefenseReactive(s: Jeu, attacker: Combatant, target: Combatant
     return modesDeTir.length ? { refus: null, modesDeTir } : { refus: 'tir-non-opposable' };
   }
   if (weapon?.type !== 'melee') return { refus: 'sans-arme-de-coup' };
-  if (combatDistance(attacker, target) > reachTiles(weapon)) return { refus: 'hors-allonge' }; // Allonge incluse (RAW-3)
+  if (!auContactDeLaSerie(s, attacker, target) && combatDistance(attacker, target) > reachTiles(weapon)) return { refus: 'hors-allonge' }; // Allonge incluse (RAW-3)
   if (cannotDefend(target)) return { refus: 'ne-peut-se-defendre' }; // LDB 16 l.135
   return { refus: null };
 }
@@ -3521,7 +3526,7 @@ export function maybeOpenDefense(
   const atk = rollMeleeAttacker(attacker, target, weapon, battleRng(), undefined, env, flankRear); // jet d'attaque figé, flanc/dos compris
   // Charge montée (LDB 14 l.183) : Force (Bonus) + Taille de la MONTURE aux DÉGÂTS — la fenêtre porte le
   // proxy, sinon l'opposition différée le perdrait (le chemin inline le passe, resolveAttack).
-  const dmgProxy = chargeDmgProxy(get().battle!.combatants, attacker, fromCharge);
+  const dmgProxy = chargeDmgProxy(get().battle?.combatants, attacker, fromCharge);
   // Composée HORS du littéral, avec les MÊMES options que le jet figé ci-dessus (flanc/dos compris) :
   // la Difficulté affichée après la fenêtre est celle qui a fait la cible, pas une recomposition d'un
   // contexte appauvri.
@@ -3765,6 +3770,37 @@ export function doAttack(get: Get, set: SetFn, attacker: Combatant, target: Comb
   // r.victim = allié touché par un tir dévié (LDB 14 l.116) ; l'enchaînement non déclaré est le balayage
   // de la machine (`autoCleave`), joué par l'après-coup.
   return applyAttackResult(get, set, attacker, r.victim ?? target, r.weapon, r.res, { suite });
+}
+
+/** OUVRE à la porte le dé `nombre` de l'op `attaquesSubies` sur le héros `cible` (patron `ouvrirChute`) : l'op voyage
+ *  dans le `meta` de l'étape, la cible est son `actorId` ; l'applier `nombreDAttaquesSubies` ouvre la série au dé tombé.
+ *  MDG 15 l.163-164, l.177-178 */
+export function ouvrirLeNombreDAttaquesSubies(set: SetFn, cible: Combatant, op: Extract<GameOp, { op: 'attaquesSubies' }>): void {
+  pushDie(set, {
+    id: `nombreDAttaquesSubies-${cible.id}`,
+    kind: 'nombreDAttaquesSubies',
+    label: tr('step.nombreDAttaquesSubies'),
+    icon: 'action/attaquer',
+    spec: deDeLaTableTiree({ die: op.nombre }),
+    actorId: cible.id,
+    meta: { differeLaSuite: true, attaquesSubies: [op] },
+  }, revealPurpose('sequence', false));
+}
+
+/** Ouvre la SÉRIE D'ATTAQUES SUBIES de `op` sur le héros `cible`, hors bataille : l'assaillant naît de son statbloc
+ *  (`spawnEnemy`, sans case), le héros entre dans la rencontre (`entreeEnRencontre`), `restantes` est le dé tombé
+ *  à la porte, puis la première attaque part par `doAttack`. MDG 15 l.163-164, l.177-178 */
+export function ouvrirLaSerieSubie(get: Get, set: SetFn, cible: Combatant, op: Extract<GameOp, { op: 'attaquesSubies' }>, restantes: number): Applique {
+  const assaillant = spawnEnemy({ statblock: op.assaillant.statblock }, get().forgerUnId('assaillant'), undefined);
+  const heros = entreeEnRencontre(cible);
+  set((s: Jeu) => ({ party: s.party.map((h) => (h.id === cible.id ? heros : h)), serieSubie: { assaillant, cibleId: cible.id, avant: cible, restantes } }));
+  return doAttack(get, set, assaillant, heros);
+}
+
+/** Ferme la série d'attaques subies : le héros rendu au groupe par la couture de retour (`sortieDeRencontre`). */
+export function fermerLaSerieSubie(get: Get, set: SetFn): void {
+  const serie = garanti(get().serieSubie, 'serieSubie', 'série d’attaques subies');
+  set((s: Jeu) => ({ party: s.party.map((h) => (h.id === serie.cibleId ? sortieDeRencontre(serie.avant, h) : h)), serieSubie: null }));
 }
 
 /**
@@ -6985,7 +7021,7 @@ export function finalizeBattle(get: Get, set: SetFn): void {
   // (`outOfRencontre`, LDB 17 l.31) n'en sort pas.
   const newParty = party.map((h) => {
     const c = battle.combatants.find((x) => x.id === h.id && x.kind === 'hero');
-    return c ? { ...h, ...carryOverState(c) } : h;
+    return c ? sortieDeRencontre(h, c) : h;
   });
   set({ party: newParty });
   if (endLines.length) get().ecrireAuJournal(endLines);
@@ -8770,7 +8806,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
 /** Les genres d'étape que ce module déclare (table `appliers`). */
 export const GENRES_D_ETAPE = [
   'mouvementDeFuite', 'sauvegarde', 'casseDArme', 'deviation', 'tableDIncantationImparfaite', 'maladieDeFinDeCombat',
-  'corruptionDeFinDeCombat', 'issueDuPiegeALame', 'piegeALame', 'psychologieDeCombat',
+  'corruptionDeFinDeCombat', 'issueDuPiegeALame', 'piegeALame', 'psychologieDeCombat', 'nombreDAttaquesSubies',
 ] as const;
 /** Les genres d'étape à pli que ce module déclare (table `plis`). */
 export const PLIS = ['deviation'] as const satisfies readonly (typeof GENRES_D_ETAPE)[number][];
@@ -8870,6 +8906,15 @@ export const TABLES = {
      *  `resume:false` → la reprise de l'IA part de la FERMETURE de séquence (`jetValider('cascade')`, la sortie du bilan
      *  → `resumeSuspendedAI`). Le reste de l'attaque re-déclenché APPEND ses conséquences à la séquence
      *  (préservées par le liveMerge de commitStep). */
+    /** Le dé `nombre` de l'op `attaquesSubies` est tombé (lancé ou POSÉ) : la série s'ouvre sur le héros de l'étape
+     *  (`ouvrirLaSerieSubie`). Héros introuvable = conséquence PERDUE : elle se DIT (patron `chuteDe`). */
+    nombreDAttaquesSubies: (get, set, step, heros) => {
+      const op = step.meta?.attaquesSubies?.[0];
+      if (!op || !step.de?.result) return;
+      if (!heros) return { consequences: freeCons([tr('cascade.cibleDisparue', { label: step.label ?? '' })]) };
+      jouerFlowEntier(ouvrirLaSerieSubie(get, set, heros, op, step.de.result.total));
+      return { consequences: freeCons([]) };
+    },
     deviation: (get, set, step) => {
       const dev = step.deviation;
       if (!dev) return;

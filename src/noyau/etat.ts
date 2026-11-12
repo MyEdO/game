@@ -69,6 +69,9 @@ export interface TourEnCours {
   parquee?: true;
 }
 
+/** La série d'attaques subies hors bataille (`EtatDeJeu.serieSubie`). */
+export interface SerieSubie { assaillant: Combatant; cibleId: string; avant: Combatant; restantes: number }
+
 export interface BattleState {
   combatants: Combatant[];
   order: string[];
@@ -427,6 +430,11 @@ export interface EtatDeJeu {
    *  puis quitté SANS payer → plus de Marchandage avec ce marchand jusqu'au prochain réassort. Reset en nouvelle partie. */
   merchantStocks: MerchantStocks;
   battle: BattleState | null;
+  /** La SÉRIE D'ATTAQUES SUBIES hors bataille (op `attaquesSubies`) : l'assaillant, seul hôte hors du groupe, lu par
+   *  `porteurParId` et `touchActors` ; `cibleId`, le héros attaqué, au contact de l'assaillant ; `avant`, ce héros tel
+   *  qu'il était avant d'entrer dans la rencontre ; `restantes`, les attaques encore dues. `null` hors série. MDG 15
+   *  l.163-164, l.177-178 */
+  serieSubie: SerieSubie | null;
   campaignSceneId: string | null;
   /** Couche NARRATIVE de la campagne chargée (#765/#767) — bloc `{affaires, indices, presetsPnj, objets}`
    *  du paquet, posé par `chargerLeProjet`, lu par id via les résolveurs UNIQUES de `resolveursDuNarratif.ts`. RUNTIME
@@ -748,6 +756,7 @@ export function etatInitialDuJeu(): EtatDeJeu {
     merchantStocks: {},
     tavernGames: null,
     battle: null,
+    serieSubie: null,
     campaignSceneId: null,
     interlude: null,
     bank: [],

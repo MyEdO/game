@@ -14,7 +14,7 @@ import { RULE_REF } from '../engine/ruleRefs';
 import { battleRng } from './battleRng';
 import { d10, d100, type RNG } from '../engine/dice';
 import { petitePriereAnswered } from '../engine/prayer';
-import { applyOps, resolveFormula, demandesDeDes, gelerOpsCtx, D10_CHUTE, OPS_CTX_HORS_CANAL, estOpDuNavire, estOpDeLaBourseDuGroupe, estOpDuMarche, nomDeSource,
+import { applyOps, resolveFormula, demandesDeDes, gelerOpsCtx, D10_CHUTE, OPS_CTX_HORS_CANAL, estOpDuNavire, estOpDAttaquesSubies, estOpDeLaBourseDuGroupe, estOpDuMarche, nomDeSource,
   type OpsCtx, type DemandeDe, type Formula, type GameOp } from '../engine/ops';
 import { rule } from '../engine/policy';
 import { gainCorruption, corruptionTarget, poseCorruptionPending, expositionPending } from './corruptionFlow';
@@ -44,7 +44,7 @@ import { contractDisease, applyContraction, diseaseDefs } from '../engine/diseas
 import { memoParVersion } from '../data/versionDataset';
 import { HEAL_SKILL } from '../engine/healing';
 import { ouvrirLeMedecin } from './medicFlow';
-import { ouvrirLesContagions } from './combatFlow';
+import { ouvrirLeNombreDAttaquesSubies, ouvrirLesContagions } from './combatFlow';
 import { activeSeaPrecipitation, openPortAt, setVesselHull } from './seaVoyageFlow';
 import { placeById } from './worldMap';
 import { openScriptedPsych } from './encounterPsychFlow';
@@ -869,12 +869,29 @@ export function messageCibleHorsScene(e: { label?: string; on?: EffectOp['on'] }
 }
 
 /** Le refus d'une op de NAVIRE posée sur une autre cible que `navire` : elle n'y aurait aucun effet. */
-export function messageOpDuNavireHorsNavire(e: { on?: EffectOp['on']; ops: readonly GameOp[] }): string | undefined {
+function messageOpDuNavireHorsNavire(e: { on?: EffectOp['on']; ops: readonly GameOp[] }): string | undefined {
   const ops = e.ops.filter(estOpDuNavire).map((o) => o.op);
   const on = genreDeCible(e.on) ?? 'party';
   return ops.length && on !== 'navire'
     ? t('eff.opDuNavireHorsNavire', { on, ops: ops.join(', ') })
     : undefined;
+}
+
+/** Les cibles de scène qui désignent au plus UN héros : l'op `attaquesSubies` n'en vise pas d'autre. */
+const CIBLES_UNIQUES: readonly string[] = ['hero', 'membreAuHasard'] satisfies CibleDEffetDeScene[];
+
+/** Le refus de l'op `attaquesSubies` posée sur une cible qui n'est pas unique, ou plus d'une fois dans la feuille. MDG 15
+ *  l.163-164 */
+function messageAttaquesSubiesSansCibleUnique(e: { on?: EffectOp['on']; ops: readonly GameOp[] }): string | undefined {
+  const on = genreDeCible(e.on) ?? 'party';
+  const n = e.ops.filter(estOpDAttaquesSubies).length;
+  if (n > 1) return t('eff.attaquesSubiesUneParFeuille', { on, n });
+  return n && !CIBLES_UNIQUES.includes(on) ? t('eff.attaquesSubiesSansCibleUnique', { on }) : undefined;
+}
+
+/** Le refus d'une op posée sur une cible qu'elle ne vise pas (op de navire, attaques subies). */
+export function messageOpHorsDeSaCible(e: { on?: EffectOp['on']; ops: readonly GameOp[] }): string | undefined {
+  return messageOpDuNavireHorsNavire(e) ?? messageAttaquesSubiesSansCibleUnique(e);
 }
 
 /** Ouvre la modale d'un Test de compétence — SOURCE UNIQUE (le nœud Flow `test` ET `Effect.test` y
@@ -1668,8 +1685,10 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // + programmation des ops `delayed`.
       const on = feuilleAuthoree.on ?? 'party';
       if (!estCibleDeScene(on)) throw new Error(messageCibleHorsScene(feuilleAuthoree, on));
-      const horsNavire = messageOpDuNavireHorsNavire(feuilleAuthoree);
-      if (horsNavire) throw new Error(horsNavire);
+      const horsCible = messageOpHorsDeSaCible(feuilleAuthoree);
+      if (horsCible) throw new Error(horsCible);
+      // Refusée AVANT tout `set` (aucune op de la feuille, aucun dé posé) : la série s'ouvre hors bataille, une à la fois.
+      if (feuilleAuthoree.ops.some(estOpDAttaquesSubies) && (env.get().battle || env.get().serieSubie)) throw new Error(t('eff.attaquesSubiesSerieEngagee'));
       const base = { rng: battleRng(), sl: env.sl };
       const e = resoudreLesOpsDuMonde(env, feuilleAuthoree, base.rng);
       if (!e) return;
@@ -1695,14 +1714,16 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       env.set(touchActors(env.get()));
       lines.forEach((l) => env.log(l));
       if (!env.get().battle) ouvrirLesContagions(env.get, env.set, targets.map((c) => c.id));
+      const serie = feuille.ops.find(estOpDAttaquesSubies);
+      if (serie) ouvrirLeNombreDAttaquesSubies(env.set, targets[0], serie);
     },
     // Un contenu de scène fautif se refuse dans l'ÉDITEUR (`validateScene`), avec le MÊME message
     // que la levée du marcheur.
     refs: (e) => {
       const on = e.on ?? 'party';
       if (!estCibleDeScene(on)) return [{ level: 'error', message: messageCibleHorsScene(e, on) }];
-      const horsNavire = messageOpDuNavireHorsNavire(e);
-      return horsNavire ? [{ level: 'error', message: horsNavire }] : [];
+      const horsCible = messageOpHorsDeSaCible(e);
+      return horsCible ? [{ level: 'error', message: horsCible }] : [];
     },
   },
   zoneBlast: {

@@ -1,0 +1,126 @@
+/**
+ * La série d'attaques subies hors bataille (#3892) : l'op `attaquesSubies` appliquée par l'effet de scène `ops`, `battle`
+ * nul, ouvre son dé `nombre` à la porte (`nombreDAttaquesSubies`) ; le dé tombé, la Défense du héros s'ouvre par la
+ * chaîne d'une attaque d'ennemi (`doAttack` → `maybeOpenDefense`). MDG 15
+ * l.163-164, l.177-178 ; `.claude/rules/moteur-et-flux.md:13`.
+ */
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { horsBataille } from './coupHorsBataille.testkit';
+import { imposerLesD100 } from './battleRng.testkit';
+import { applyEffects, EFFECT_HANDLERS, type EffectRefCtx } from './combatEffects';
+import { ouvrirLeBanc, type Banc } from './banc.testkit';
+import { heroFaceAUnEnnemi } from './combatDeTest.testkit';
+import { fermerLaSerieSubie } from './combatFlow';
+import { fenetreDeDefense } from './fenetreDeDefense';
+import { porteurParId } from './monde/combatants';
+import { testScene } from '../scenes/test-fixture';
+import { entreeEnRencontre } from '../engine/persistence';
+import type { Effect } from '../data/schemas/defs-scenes/effets';
+import { t } from '../i18n';
+import { gameOpSchema } from '../data/schemas/grammaire/mecanique';
+
+afterEach(() => vi.restoreAllMocks());
+
+const rats = { type: 'statblock', label: 'Rats géants', char: { 'capacite-de-combat': 35 }, traits: [{ id: 'arme', value: 5 }] };
+const op = gameOpSchema.parse({ op: 'attaquesSubies', assaillant: { statblock: rats }, nombre: '1d10' });
+const attaques = (on: 'hero' | 'party', heroId?: string): Effect => ({ type: 'ops', on, ...(heroId ? { heroId } : {}), ops: [op] });
+
+/** Le héros du groupe, aucune bataille, l'op appliquée : le dé `nombre` ouvert à la porte, non tombé. */
+function deOuvert() {
+  const { banc, H } = horsBataille(testScene());
+  applyEffects(banc.getState, banc.setState, [attaques('hero', H.id)]);
+  return { banc, H, etape: banc.getState().pendingCascade!.participants[0] };
+}
+
+/** La série ouverte : le dé `nombre` POSÉ à 7 à la porte, les d100 de la première attaque imposés (65, 23). */
+function serieOuverte() {
+  const { banc, H, etape } = deOuvert();
+  imposerLesD100(65, 23);
+  banc.getState().jetImposerLeResultat('cascadeTirage', 7, etape.id);
+  banc.getState().jetValider('cascade');
+  return { banc, H };
+}
+
+/** L'état que l'application de l'op ne doit pas toucher quand elle est refusée. */
+const etatTouche = (s: ReturnType<Banc['getState']>) =>
+  ({ party: s.party, battle: s.battle, serieSubie: s.serieSubie, pendingCascade: s.pendingCascade, pendingDefense: s.pendingDefense });
+
+describe('série d’attaques subies hors bataille (#3892)', () => {
+  it('le dé `nombre` passe par la porte : étape à dé nu du héros, aucune série avant qu’il tombe', () => {
+    const { banc, H, etape } = deOuvert();
+    expect(etape).toMatchObject({ kind: 'nombreDAttaquesSubies', actorId: H.id, de: { spec: { n: 1, sides: 10 } } });
+    expect(etape.meta).toMatchObject({ differeLaSuite: true, attaquesSubies: [op] });
+    expect(banc.getState().serieSubie).toBeNull();
+    expect(banc.getState().party[0]).toBe(H);
+  });
+
+  it('pose `serieSubie` au dé tombé : l’assaillant né du statbloc, `restantes` = le d10 posé, le héros sous sa forme de rencontre', () => {
+    const { banc, H } = serieOuverte();
+    const s = banc.getState();
+    expect(s.battle).toBeNull();
+    expect(s.serieSubie).toMatchObject({ cibleId: H.id, restantes: 7, avant: H });
+    expect(s.serieSubie!.assaillant).toMatchObject({ label: 'Rats géants', kind: 'enemy' });
+    expect(s.serieSubie!.assaillant.pos).toBeUndefined();
+    expect(s.party[0]).not.toBe(H);
+    expect(s.party[0]).toEqual(entreeEnRencontre(H));
+  });
+
+  it('`porteurParId` rend l’assaillant de la série', () => {
+    const { banc } = serieOuverte();
+    const s = banc.getState();
+    expect(porteurParId(s, s.serieSubie!.assaillant.id)).toBe(s.serieSubie!.assaillant);
+  });
+
+  it('la Défense du héros s’ouvre : `pendingDefense` posé, fenêtre de Défense non nulle', () => {
+    const { banc, H } = serieOuverte();
+    const s = banc.getState();
+    expect(s.pendingDefense).toMatchObject({ attackerId: s.serieSubie!.assaillant.id, defenderId: H.id });
+    expect(fenetreDeDefense(s)).toMatchObject({ attaquantId: s.serieSubie!.assaillant.id, defenseurId: H.id });
+  });
+
+  it('deux cibles (« on: party », deux héros) : refus, aucun état posé', () => {
+    const { banc, H } = horsBataille(testScene());
+    banc.setState({ party: [H, { ...structuredClone(H), id: 'second', label: 'Second' }] });
+    expect(() => applyEffects(banc.getState, banc.setState, [attaques('party')])).toThrow(t('eff.attaquesSubiesSansCibleUnique', { on: 'party' }));
+    const s = banc.getState();
+    expect(s.serieSubie).toBeNull();
+    expect(s.pendingDefense).toBeNull();
+  });
+
+  it('deux ops `attaquesSubies` dans la même feuille : refus, au lancer comme à l’éditeur', () => {
+    const { banc, H } = horsBataille(testScene());
+    const feuille: Extract<Effect, { type: 'ops' }> = { type: 'ops', on: 'hero', heroId: H.id, ops: [op, op] };
+    const message = t('eff.attaquesSubiesUneParFeuille', { on: 'hero', n: 2 });
+    expect(EFFECT_HANDLERS.ops.refs!(feuille, {} as EffectRefCtx)).toEqual([{ level: 'error', message }]);
+    const avant = etatTouche(banc.getState());
+    expect(() => applyEffects(banc.getState, banc.setState, [feuille])).toThrow(message);
+    expect(etatTouche(banc.getState())).toEqual(avant);
+  });
+
+  it('en bataille : refus nommé, aucun état posé', () => {
+    const banc = ouvrirLeBanc();
+    const { H } = heroFaceAUnEnnemi(banc, testScene());
+    const avant = etatTouche(banc.getState());
+    expect(() => applyEffects(banc.getState, banc.setState, [attaques('hero', H.id)])).toThrow(t('eff.attaquesSubiesSerieEngagee'));
+    expect(etatTouche(banc.getState())).toEqual(avant);
+  });
+
+  it('une série déjà ouverte : refus nommé, la série en cours n’est pas écrasée', () => {
+    const { banc, H } = serieOuverte();
+    const avant = etatTouche(banc.getState());
+    expect(() => applyEffects(banc.getState, banc.setState, [attaques('hero', H.id)])).toThrow(t('eff.attaquesSubiesSerieEngagee'));
+    expect(etatTouche(banc.getState())).toEqual(avant);
+  });
+
+  it('la sortie rend au groupe le héros d’avant, augmenté de ce qui sort de la rencontre', () => {
+    const { banc, H } = serieOuverte();
+    const enRencontre = banc.getState().party[0];
+    enRencontre.engagedWith = ['quelquun'];
+    enRencontre.wounds = { ...enRencontre.wounds, current: enRencontre.wounds.current - 2 };
+    fermerLaSerieSubie(banc.getState, banc.setState);
+    const s = banc.getState();
+    expect(s.serieSubie).toBeNull();
+    expect(s.party[0].engagedWith).toEqual(H.engagedWith);
+    expect(s.party[0].wounds.current).toBe(H.wounds.current - 2);
+  });
+});
