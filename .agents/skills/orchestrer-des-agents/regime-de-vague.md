@@ -18,7 +18,7 @@ prochain lot ancré, ou NOMMER le blocage réel (quota, validation utilisateur, 
   si elle rougit la CI ou casse le livrable ; un arrêt se dit avec sa vraie cause, jamais « bloqué par
   l'utilisateur » sans verbatim.
 - **Défaut dans le périmètre d'un autre chantier** : dédupliquer par symptôme ET remède, lire le ticket
-  propriétaire en entier, y déposer faits mesurés et questions, ne rien committer qui préempte sa réponse
+  propriétaire en entier, envoyer faits mesurés et questions en courrier (skill `se-coordonner-entre-comptes`), ne rien committer qui préempte sa réponse
   (fiche `user-doctrine-format-unifie-reextraction-permise`). Un fichier qu'un autre chantier touche s'édite dans mon worktree : la collision se règle à la fusion (fiche `user-doctrine-wip-voisin-s-edite`).
 - **Frictions** (#2683) : chaque brief de session demande une ligne « Friction : quoi · coût mesuré · outil »,
   versée au sas du suivi (`--friction <texte>`) ; elle n'en sort en ticket (gabarit #101,
