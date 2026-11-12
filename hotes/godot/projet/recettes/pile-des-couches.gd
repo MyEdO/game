@@ -1,7 +1,8 @@
 extends SceneTree
 
 ## La pile des couches posée sur la fusion (#3842, `hotes/godot/pont/CONTRAT.md`, section « Pile des couches ») : sans
-## page, `MontageDeComposition.refondre` fond les pièces telles que leurs auteurs les ont faites, et retient la demande
+## réponse du pont (`PontDuNoyau.resoudre_la_pile`, qu'un pont non ouvert, `PontDuNoyau.est_pret`, ne rend pas),
+## `MontageDeComposition.refondre` fond les pièces telles que leurs auteurs les ont faites, et retient la demande
 ## de pile du corps et de la manche qui le couvre. La réponse reçue pour cette demande (`recevoir_la_pile`) se fond :
 ## le triangle masqué du corps ne se dessine plus, son triangle gardé est à ses sommets reculés, pour un quart sur son
 ## os et trois quarts sur celui qu'il gagne, lié au repère que la manche lui donne ; les pièces gardent leurs meshes. La réponse d'une autre demande est
@@ -45,7 +46,7 @@ func _recetter() -> void:
 	if _triangles(montage.fusion) != 4:
 		_fautes.append("sans pile, %d triangles fondus, attendu 4" % _triangles(montage.fusion))
 	if not montage.pile_posee().is_empty():
-		_fautes.append("une pile posée sans réponse de la page")
+		_fautes.append("une pile posée sans réponse du pont")
 	var signature: String = montage.get("_pile_fondue")
 	if signature == "":
 		return _finir("aucune demande de pile pour un corps et sa manche")
