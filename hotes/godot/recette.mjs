@@ -131,6 +131,8 @@
 //   chacun de ces ouvrages ; « Tester la scène » ouvre le combat sur elle.
 //   Avant « Tester la scène », à la zone Logique (#3606 M3b2), « Ajouter un dialogue » le crée, pressé, à l'inspecteur :
 //   un nœud ajouté, choisi comme départ, marqué « ▶ », identifié « accueil » à son formulaire ; « Supprimer » le retire.
+//   Puis (#3606 M4c) « Ajouter une rencontre » la crée, pressée, à l'inspecteur : ses membres comptés, son objectif de
+//   victoire changé en « Survivre N Rounds » ; « Supprimer » la retire.
 // - `atelier` : `--base` importé seul (`importer.mjs --sans-publier`) dans `--modeles`, dossier neuf servi sous
 //   `modeles/` ; la base choisie à la liste de tête « Corps », aucun emplacement à l'onglet Équipement ; `--element` importé puis
 //   « Recharger les modèles » : l'élément, tenu, offert par la liste de chaque prise, de chaque emplacement dont l'os le
@@ -2260,6 +2262,19 @@ async function parcoursEditeur() {
   await cliquerAuPanneau({ element: 'bouton/dialogue/supprimer' })
   await waitFor(session, `!(globalThis.wfrpEcran?.editeur?.zones['editeur.logique'] ?? []).some((el) => (el.valeurs ?? []).some((b) => b.id === 'logique/dialogue/${dialogue}'))`)
   noter(`« Supprimer » : ${(await editeur()).zones['editeur.logique'].find((el) => el.id === 'logique/dialogue').texte}`)
+  await cliquerAuPanneau({ element: 'bouton/logique/rencontre/ajouter' })
+  await waitFor(session, montre('rencontre/membres'))
+  e = await editeur()
+  const rencontre = inspecte(e, 'nommer').champs[0].valeur
+  assert.equal(boutonDeLEditeur(e, `logique/rencontre/${rencontre}`)?.presse, true, '« Ajouter une rencontre » : la rencontre neuve, pressée à la zone Logique, à l’inspecteur')
+  const objectif = `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((el) => el.id === 'valeur/victoryCondition/type')?.valeurs.find((b) => b.presse)?.jeu.args[2]?.type`
+  await choisirAuChamp('valeur/victoryCondition/type', (v) => v?.type === 'surviveRounds', `${objectif} === 'surviveRounds'`)
+  e = await editeur()
+  noter(`« Ajouter une rencontre » : « ${rencontre} », ${e.zones['editeur.logique'].find((el) => el.id === 'logique/rencontre').texte} ; ${inspecte(e, 'rencontre/membres').texte} ; objectif « ${inspecte(e, 'valeur/victoryCondition/type').valeurs.find((b) => b.presse).libelle} »`)
+  await capturer('3606-m4c-1-rencontre')
+  await cliquerAuPanneau({ element: 'bouton/rencontre/supprimer' })
+  await waitFor(session, `!(globalThis.wfrpEcran?.editeur?.zones['editeur.logique'] ?? []).some((el) => (el.valeurs ?? []).some((b) => b.id === 'logique/rencontre/${rencontre}'))`)
+  noter(`« Supprimer » : ${(await editeur()).zones['editeur.logique'].find((el) => el.id === 'logique/rencontre').texte}`)
   await cliquerAuPanneau({ element: 'bouton/tester' })
   await waitFor(session, '!globalThis.wfrpEcran?.editeur && !!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
   const v = await vue()

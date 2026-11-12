@@ -1,6 +1,6 @@
 /**
  * L'ALLER-RETOUR DE L'ÉDITEUR GODOT (#3606, garde #841) : les écritures que le formulaire tiré du schéma offre à
- * l'inspecteur d'une zone d'effet, d'un déclencheur et de son adresse de prose, d'un personnage, d'un dialogue, d'un décor et d'une coque, jouées comme la méthode `editer` du pont les joue
+ * l'inspecteur d'une zone d'effet, d'un déclencheur et de son adresse de prose, d'un personnage, d'un dialogue, d'une rencontre, d'un décor et d'une coque, jouées comme la méthode `editer` du pont les joue
  * (`hotes/godot/pont/pont.ts`) : le jeu d'un élément des zones passé en JSON, validé par `gesteDuFormulaire` ou
  * `boutonDeLEdition`, puis joué par `editer` sur la session d'édition ; le document relu avant et après. Partagé par la garde (`src/scene-field-editability-guard.test.ts`) et par la copie de
  * mesure de #841 ; la garde décide de ce qu'une écriture crédite (`ecritureCreditee`).
@@ -148,11 +148,29 @@ function identifier(s: SessionDEdition, id: string, vers: string, out: EcritureJ
   return suite;
 }
 
+/** La session `s` après le geste `valeur` `geste`, porté par la saisie `saisie` ; son écriture, avec son chemin depuis
+ *  la scène, s'ajoute à `out` : celle du choix d'une variante de discriminant `discriminant`, son discriminant et chaque
+ *  champ qu'elle pose et que la variante quittée ne portait pas. */
+function consigner(s: SessionDEdition, geste: Extract<GesteDEdition, { geste: 'valeur' }>, saisie: string, discriminant: string | undefined, out: EcritureJouee[]): SessionDEdition {
+  const avant = sceneEditee(s);
+  const suite = jouer(s, geste);
+  const { collection } = FORMULAIRES[geste.porteur.sorte];
+  const porteurs: readonly { id: string }[] = avant[collection] ?? [];
+  const rang = porteurs.findIndex((p) => p.id === geste.porteur.id);
+  const quittee = geste.chemin.reduce<unknown>((o, pas) => (estObjet(o) || Array.isArray(o) ? (o as Record<Segment, unknown>)[pas] : undefined), porteurs[rang]);
+  const variante = discriminant !== undefined && estObjet(geste.valeur) && discriminant in geste.valeur ? geste.valeur : undefined;
+  const ecrits = variante
+    ? Object.keys(variante).filter((cle) => cle === discriminant || !(estObjet(quittee) && cle in quittee)).map((cle) => ({ chemin: [...geste.chemin, cle], valeur: variante[cle] }))
+    : [{ chemin: geste.chemin, valeur: geste.valeur }];
+  for (const ecrit of ecrits) out.push({ avant, apres: sceneEditee(suite), chemin: [collection, rang, ...ecrit.chemin], valeur: ecrit.valeur, saisie });
+  return suite;
+}
+
 /** La session `s` où chaque offre du geste `valeur` de son inspecteur est jouée une fois, celles qui emportent des champs
  *  après les autres, la plus profonde d'abord, jusqu'à ce qu'aucune ne reste ; le choix d'une autre variante rouvre les
  *  offres de ses champs ; seules jouent les offres dont l'id commence par `branche` (toutes, par défaut) ; chaque
- *  écriture, avec son chemin depuis la scène, s'ajoute à
- *  `out` : le choix d'une variante écrit son discriminant (l'id de son choix, `valeur/<chemin>/<discriminant>`). */
+ *  écriture consignée à `out` (`consigner`), le discriminant du choix d'une variante à l'id de son choix
+ *  (`valeur/<chemin>/<discriminant>`). */
 function jouerLInspecteur(depart: SessionDEdition, out: EcritureJouee[], branche = ''): SessionDEdition {
   let s = depart;
   const jouees = new Set<string>();
@@ -169,16 +187,8 @@ function jouerLInspecteur(depart: SessionDEdition, out: EcritureJouee[], branche
     }
     const geste = gesteDuJeu(zones, offre.jeu);
     if (geste?.geste !== 'valeur') throw new Error(`l’offre ${offre.id} ne joue pas le geste valeur`);
-    const avant = sceneEditee(s);
-    s = jouer(s, geste);
-    const { collection } = FORMULAIRES[geste.porteur.sorte];
-    const porteurs: readonly { id: string }[] = avant[collection] ?? [];
-    const rang = porteurs.findIndex((p) => p.id === geste.porteur.id);
     const discriminant = offre.emporte && offre.saisie === 'saisieChoix' ? offre.id.slice(`valeur/${geste.chemin.join('/')}/`.length) : undefined;
-    const ecrit = discriminant !== undefined && estObjet(geste.valeur) && discriminant in geste.valeur
-      ? { chemin: [...geste.chemin, discriminant], valeur: geste.valeur[discriminant] }
-      : { chemin: geste.chemin, valeur: geste.valeur };
-    out.push({ avant, apres: sceneEditee(s), chemin: [collection, rang, ...ecrit.chemin], valeur: ecrit.valeur, saisie: offre.saisie });
+    s = consigner(s, geste, offre.saisie, discriminant, out);
   }
   throw new Error(`plus de ${GESTES_AU_PLUS} offres du geste valeur`);
 }
@@ -190,17 +200,17 @@ function choixDeLInspecteur(zones: Pick<ZonesDeLEditeur, 'editeur.inspecteur'>, 
   return choix;
 }
 
-/** Chaque variante du choix d'id `id` de l'inspecteur de la session `s`, choisie depuis `s`, les offres de sa seule
- *  branche jouées (`jouerLInspecteur`, l'id du choix sans son discriminant) : chaque branche d'une union (le `Flow`,
- *  #3606 M2b ; l'Effet de sa branche `effet`), dont l'inspecteur ne joue que la première variante non choisie, et qui en
- *  change en se jouant. */
+/** Chaque variante du choix d'id `id` de l'inspecteur de la session `s`, choisie depuis `s` et consignée (`consigner`),
+ *  les offres de sa seule branche jouées (`jouerLInspecteur`, l'id du choix sans son discriminant) : chaque branche
+ *  d'une union (le `Flow`, #3606 M2b ; l'Effet de sa branche `effet` ; l'objectif de victoire d'une rencontre), dont
+ *  l'inspecteur ne joue que la première variante non choisie, et qui en change en se jouant. */
 function jouerLesVariantes(s: SessionDEdition, id: string, out: EcritureJouee[]): void {
   const branche = id.slice(0, id.lastIndexOf('/') + 1);
   const zones = { 'editeur.inspecteur': inspecteurDeLaSession(s) };
   for (const v of choixDeLInspecteur(zones, id).valeurs) {
     const geste = gesteDuJeu(zones, v.jeu);
-    if (!geste) throw new Error(`la variante ${v.id} ne joue aucun geste`);
-    jouerLInspecteur(jouer(s, geste), out, branche);
+    if (geste?.geste !== 'valeur') throw new Error(`la variante ${v.id} ne joue pas le geste valeur`);
+    jouerLInspecteur(consigner(s, geste, 'saisieChoix', id.slice(branche.length), out), out, branche);
   }
 }
 
@@ -234,9 +244,16 @@ function jouerLAdresse(s: SessionDEdition, out: EcritureJouee[]): void {
  *  ouvrent des sorts à choisir (`listesDeSorts`). */
 const FICHES = ['vouivre-zoo-imperial', 'l-ombre-du-fleuve'] as const;
 
-/** La fiche d'un personnage enrôlé dans une rencontre neuve : son arme simple admet d'autres apparences que sa forme
+/** La fiche d'un personnage enrôlé dans une rencontre : son arme simple admet d'autres apparences que sa forme
  *  (`EntityAppearance.apparencesObjets`, #2948). */
 const ENROLE = 'sergent-du-guet';
+
+/** Le choix de l'objectif de victoire d'une rencontre, joué objectif par objectif (`jouerLesVariantes`). */
+const VICTOIRE = 'valeur/victoryCondition/type';
+
+/** Le second membre d'une rencontre fait monture, puis la monture que chevauche le premier, choisie parmi elles. */
+const MONTURE = 'valeur/members/1/mount';
+const CHEVAUCHEE = 'valeur/members/0/ridesEntityId';
 
 /** La scène d'un projet du jeu qui déclare un dialogue, et la case libre où s'y pose un personnage de la première des
  *  `FICHES`, qui le choisit (`dialogueId`). */
@@ -269,8 +286,10 @@ const cliquer = (s: SessionDEdition, x: number, y: number): SessionDEdition => j
 /** Les écritures jouées sur une zone d'effet neuve, un déclencheur neuf, puis l'adresse de prose de son Effet
  *  (`jouerLAdresse`), et un personnage de chacune des `FICHES` d'une scène neuve de la première campagne du jeu, ouverte
  *  avec le `Source/` servi (`SOURCE`), chacun posé à son outil (Zone, Personnage), un dialogue que la zone Logique y
- *  ajoute, son nœud ajouté renommé (`identifier`), et un personnage d'`ENROLE`
- *  enrôlé dans une rencontre neuve ; puis sur un personnage de la
+ *  ajoute, son nœud ajouté renommé (`identifier`), une rencontre que la zone Logique y ajoute, où un personnage
+ *  d'`ENROLE` et un de la première des `FICHES` s'enrôlent à leur inspecteur (`rencontres`, `{ geste: 'membre' }`), le
+ *  second fait monture et chevauché par le premier (`MONTURE`, `CHEVAUCHEE`), puis chacun de ses objectifs de victoire
+ *  (`VICTOIRE`) ; puis sur un personnage de la
  *  première des `FICHES` et un décor de type `DECOR` posés dans une scène neuve du `PROJET_A_PRESETS`, puis sur chaque
  *  branche du flux de l'action qu'il reçoit (`ACTION_DU_DECOR`, `FLUX_DU_DECOR`) et sur chaque type d'Effet de sa
  *  branche `effet` (`EFFET_DU_DECOR`), sur un personnage de
@@ -287,7 +306,13 @@ export function ecrituresJouees(): EcritureJouee[] {
   jouerLAdresse(s, out);
   FICHES.forEach((fiche, rang) => { s = jouerLInspecteur(cliquer(presser(presser(s, 'outil/personnage'), `personnage/${fiche}`), 5 + rang, 5), out); });
   s = identifier(jouerLInspecteur(ajouter(s, 'dialogue', out), out), 'identifier/noeud/n2', 'noeud-joue', out);
-  s = jouerLInspecteur(presser(cliquer(presser(presser(s, 'outil/personnage'), `personnage/${ENROLE}`), 5 + FICHES.length, 5), 'rencontre/neuve'), out);
+  s = ajouter(s, 'rencontre', out);
+  const rencontre = porteurDeLaSel(s.sel)!.id;
+  s = jouerLInspecteur(presser(cliquer(presser(presser(s, 'outil/personnage'), `personnage/${ENROLE}`), 5 + FICHES.length, 5), `rencontre/${rencontre}/enrole`), out);
+  s = presser(cliquer(presser(presser(s, 'outil/personnage'), `personnage/${FICHES[0]}`), 6 + FICHES.length, 5), `rencontre/${rencontre}/enrole`);
+  s = jouerLInspecteur(presser(s, `logique/rencontre/${rencontre}`), out);
+  jouerLInspecteur(choisir(s, MONTURE, (v) => v === true), out, CHEVAUCHEE);
+  jouerLesVariantes(s, VICTOIRE, out);
   const aPresets = allBuiltinCampaigns.find((c) => c.id === PROJET_A_PRESETS);
   if (!aPresets) throw new Error(`aucune campagne ${PROJET_A_PRESETS}`);
   const neuve = presser(ouvrirLEdition(paquetDuJeu(aPresets), false), 'scenes/ajouter');

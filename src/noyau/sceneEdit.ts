@@ -1233,7 +1233,7 @@ interface EcritureDuPorteur<D> {
 }
 
 /** Ce qui, sur la carte du monde `worldMap`, désigne la rencontre `id` de la scène `sceneId` : les embuscades de route
- *  qui la lancent (`WorldMap.routes[].ambush`), dites ; `undefined` sans elles. #3606 B4 */
+ *  qui la lancent (`WorldMap.routes[].ambush`), dites ; `undefined` sans elles. #3606 */
 function embuscadesDeLaRencontre(worldMap: WorldMap, sceneId: string, id: string): string | undefined {
   const routes = worldMap.routes.filter((r) => r.ambush?.scene.id === sceneId && r.ambush.encounter === id).map((r) => `« ${r.id} »`);
   return routes.length ? tr('ecran.editeur.rencontre.embuscade', { id, routes: routes.join(', ') }) : undefined;

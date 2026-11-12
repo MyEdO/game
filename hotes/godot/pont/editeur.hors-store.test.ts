@@ -439,6 +439,73 @@ describe('l’éditeur de carte par le pont, la logique (#3606 M3b2)', () => {
   });
 });
 
+describe('l’éditeur de carte par le pont, la rencontre (#3606 M4c)', () => {
+  /** Une table ouverte sur la campagne, sa scène `scene` éditée (la première sans elle). */
+  function ouverte(scene?: string) {
+    const { appel } = table();
+    const jouer = (edition: unknown) => editionDe(appel('editer', { edition }));
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const premiere = editionDe(appel('editer', { ouvrir: CAMPAGNE }));
+    return { appel, jouer, presser, e: scene ? presser(boutonDe(premiere, `scenes/${scene}`)) : premiere };
+  }
+  const inspecte = (e: Edition, id: string) => e.vue.zones['editeur.inspecteur'].find((el) => el.id === id);
+  /** Les ids des éléments de l'inspecteur, et des valeurs de ses choix, sous `prefixe`. */
+  const idsSous = (e: Edition, prefixe: string) => e.vue.zones['editeur.inspecteur']
+    .flatMap((el) => (el.type === 'choix' || el.type === 'liste' ? [el.id, ...el.valeurs.map((v) => v.id)] : [el.id])).filter((id) => id.startsWith(prefixe));
+
+  it('« Ajouter une rencontre » la crée sélectionnée, son inspecteur à son formulaire ; un personnage s’y enrôle à son inspecteur, et la liste des membres n’écrit que leur monture', () => {
+    const { jouer, presser, e } = ouverte();
+    const ajoutee = presser(boutonDe(e, 'logique/rencontre/ajouter'));
+    const choisi = (ajoutee.vue.zones['editeur.logique'].find((el) => el.id === 'logique/rencontre/liste') as Choix).valeurs.filter((b) => b.presse);
+    expect(choisi.map((b) => b.jeu)).toEqual([{ edition: { geste: 'selectionner', porteur: { sorte: 'rencontre', id: choisi[0].libelle } } }]);
+    const id = choisi[0].libelle;
+    expect(inspecte(ajoutee, 'nommer')).toMatchObject({ type: 'formulaire', refus: null, champs: [{ valeur: id }] });
+    expect(inspecte(ajoutee, 'rencontre/membres')).toMatchObject({ type: 'ligne', texte: 'Membres (0) — un personnage s’enrôle à son inspecteur' });
+    expect(boutonDe(ajoutee, 'rencontre/supprimer').refus, 'une rencontre que rien ne désigne se retire').toBeNull();
+    presser(valeursDe(presser(boutonDe(ajoutee, 'outil/personnage')), 'fiches')[0]);
+    jouer({ geste: 'appui', point: point(1, 1) });
+    const pose = jouer({ geste: 'relache', point: point(1, 1) });
+    const enrole = presser(valeursDeLInspecteur(pose, `rencontre/${id}`).find((b) => b.id === `rencontre/${id}/enrole`)!);
+    const inspectee = presser(boutonDe(enrole, `logique/rencontre/${id}`));
+    const membres = inspectee.vue.zones['editeur.inspecteur'].filter((el): el is Ligne => el.id.startsWith('rencontre/membre'));
+    expect(membres.map((l) => l.texte)).toEqual(['Membres (1) — un personnage s’enrôle à son inspecteur', expect.stringMatching(/ — Ennemi$/)]);
+    expect(idsSous(inspectee, 'valeur/members')).toEqual(['valeur/members', 'valeur/members/0', 'valeur/members/0/mount', 'valeur/members/0/mount/0', 'valeur/members/0/mount/1', 'valeur/members/0/mount/aucune']);
+  });
+
+  it('une rencontre renommée l’est dans le « Démarrer un combat » du déclencheur qui la lance', () => {
+    const { appel, presser, e } = ouverte();
+    presser(boutonDe(e, 'logique/rencontre/enc-zone1'));
+    const renommee = editionDe(appel('editer', { type: 'nommer', args: ['enc-cour'] }));
+    expect(boutonDe(renommee, 'logique/rencontre/enc-cour').presse).toBe(true);
+    const declencheur = presser(boutonDe(renommee, 'logique/declencheur/fight-enc-zone1'));
+    const lance = declencheur.vue.zones['editeur.inspecteur'].flatMap((el) => (el.type === 'choix' || el.type === 'liste') && el.id.endsWith('/encounter/id') ? el.valeurs.filter((v) => v.presse).map((v) => v.libelle) : []);
+    expect(lance).toEqual(['enc-cour']);
+  });
+
+  it('une rencontre qu’une embuscade de route lance ne se renomme ni ne se supprime, le refus dit à l’auteur', () => {
+    const { appel, presser, e } = ouverte('arene-route-embuscade');
+    const choisie = presser(boutonDe(e, 'logique/rencontre/enc-embuscade'));
+    const nom = inspecte(choisie, 'nommer') as Formulaire;
+    expect(nom.refus).toContain('« route-futaie »');
+    expect(erreurDe(appel('editer', { type: 'nommer', args: ['enc-bois'] }))).toEqual(expect.objectContaining({ categorie: 'regle', message: `editer : ${nom.refus}` }));
+    const supprimer = boutonDe(choisie, 'rencontre/supprimer');
+    expect(supprimer.refus).toBe(nom.refus);
+    expect(erreurDe(appel('editer', supprimer.jeu))).toEqual(expect.objectContaining({ categorie: 'regle', message: `editer : ${nom.refus}` }));
+  });
+
+  it('la cible d’un objectif « seuil de dommage » se choisit parmi les membres ; la monture chevauchée, parmi les seules montures', () => {
+    const { presser, e } = ouverte();
+    const choisie = presser(boutonDe(e, 'logique/rencontre/enc-zone1'));
+    const membres = idsSous(choisie, 'rencontre/membre/').map((id) => id.slice('rencontre/membre/'.length));
+    expect(membres).toHaveLength(6);
+    const seuil = presser(valeursDeLInspecteur(choisie, 'valeur/victoryCondition/type').find((b) => b.libelle === 'Sortie à seuil de dommage')!);
+    expect(valeursDeLInspecteur(seuil, 'valeur/victoryCondition/targetId/ajouter').map((b) => b.libelle)).toEqual(membres);
+    const monture = presser(boutonDe(choisie, 'valeur/members/1/mount/1'));
+    expect(inspecte(monture, `rencontre/membre/${membres[1]}`)).toMatchObject({ texte: expect.stringMatching(/ — Ennemi, monture$/) });
+    expect(valeursDeLInspecteur(monture, 'valeur/members/0/ridesEntityId/ajouter').map((b) => b.libelle)).toEqual([membres[1]]);
+  });
+});
+
 describe('l’éditeur de carte par le pont, l’architecture', () => {
   it('un corps bâti sur la case pointée se nomme et se type ; un étage au-dessus devient la couche éditée, où se bâtit une partie ; le dernier étage ne se supprime pas', () => {
     const { appel } = table();

@@ -18,7 +18,7 @@ import {
   segmentDeLaSelection, structureAppearances, structuresCrenelables, structuresDeLArete, crenellatedAt, terrainIds, terrainLabel, tileAt,
   ACTIONS_D_ARCHITECTURE, avertissementsDeLaSession, cadreDeLaSession, BORNES_DE_LA_TROUPE, casesDuDefaut, PLAN_DEFECT_FAMILIES, versLaFautive, AMBIANCES, ENVIRONNEMENTS, METEOS, PARTS_RELIEF, lightLevels, matieresDe, reposDeScene, sceneMetresPerTile, matieresCouvrantes, PENTE_TOIT_DEG, PROFILS_DE_TOIT, toitureEffective, BORNES_D_OUVERTURE, buildingsMeta, corpsActif, DEFAUTS_D_OUVERTURE, FACADE_APPEARANCE_IDS, SORTES_D_OUVERTURE, OUVRAGES, refusDOuvrage, selRect, effectZoneRect, ENTREES_DE_DOSSIER, isRoomZone, poigneeDeLaSelection, sameSel, sceneZoneTiles,
   type AreteDessinee, type BrouillonDArete, type Difficulty, type GesteDEdition, type PatchDArete, type PatchDEntite, type PatchDeScene, type PatchDeZone, type Scene, type Sel, type SessionDEdition,
-  type WallPaint, ZONE_VARIANTS, ECRITURES_DES_PORTEURS, FORMULAIRES, porteurDeLaSel, porteursDeLaScene, refusDeRetrait, type SorteDePorteur, bornesAuPoint, champDeLElement, champsDeclares, champsDuRecord, champsOfferts, choixDuNoeud, elementDuNoeud, formeAuPoint, recordDuNoeud, formulaireDe, gestesDeLaListe, refusDeLaValeur, unionDuNoeud, valeurNeuveDe, varianteCourante, variantesAChoisir, type FieldDesc, type Segment,
+  type WallPaint, ZONE_VARIANTS, ECRITURES_DES_PORTEURS, FORMULAIRES, porteurDeLaSel, porteursDeLaScene, refusDeRetrait, refusHorsDeLaScene, type DonneeDuPorteur, type SorteDePorteur, bornesAuPoint, champDeLElement, champsDeclares, champsDuRecord, champsOfferts, choixDuNoeud, elementDuNoeud, formeAuPoint, recordDuNoeud, formulaireDe, gestesDeLaListe, refusDeLaValeur, unionDuNoeud, valeurNeuveDe, varianteCourante, variantesAChoisir, type FieldDesc, type Segment,
   allMusicDefs, apparencesDeLOuverture, champDuMessage, ciblesDAncreDeBataille, groupesDuLieu,
   isWearable, objetsDeLInventaire, trappingsInstanciables,
   candidatsDuSlot, carriereActuelle, careers, designationsDeCarriere, dotationsDuPnj, emplacementsDeDotation, estEmplacementRacine, ficheDuCombattant,
@@ -195,10 +195,10 @@ export interface ZonesDeLEditeur {
   'editeur.pointee': Ligne[];
   /**
    * la logique de la scène éditée : pour chaque sorte de porteur qui s'y liste (`FORMULAIRES`, `logique` : le
-   * déclencheur, le dialogue), la ligne `logique/<sorte>` qui compte ses porteurs, puis, s'il en a, chacun en liste par
+   * déclencheur, le dialogue, la rencontre), la ligne `logique/<sorte>` qui compte ses porteurs, puis, s'il en a, chacun en liste par
    * son identifiant, pressé s'il est sélectionné, qui joue `{ geste: 'selectionner', porteur: { sorte, id } }` ; puis,
    * quand sa sorte se crée (`creer`, `ECRITURES_DES_PORTEURS`), « Ajouter », `{ geste: 'ajouter', sorte }`, qui pose un
-   * porteur neuf et le sélectionne (le dialogue : `addDialogue`)
+   * porteur neuf et le sélectionne (le dialogue : `addDialogue` ; la rencontre : `addEncounter`)
    */
   'editeur.logique': (Choix | Ligne | Bouton)[];
   /**
@@ -316,6 +316,15 @@ export interface ZonesDeLEditeur {
    * et des entrées qu'il couvre ; le supprimer, `{ geste: 'supprimer' }`, refusé avec sa raison tant qu'une référence le
    * désigne (`refusDeRetrait`, `removeDialogue`).
    *
+   * D'une rencontre : le formulaire qui la renomme, de son identifiant (`renameEncounter`), refusé avec sa raison
+   * quand une embuscade de route de la carte du monde la lance (`refusHorsDeLaScene`) ; la ligne `rencontre/membres`
+   * qui compte ses membres, enrôlés à l'inspecteur du personnage (`{ geste: 'membre' }`), puis, pour chacun, la ligne
+   * `rencontre/membre/<entité>`, le nom de son entité, son côté et s'il est une monture ; le formulaire tiré du schéma
+   * (`formulaireDe('rencontre', …)`) de ses circonstances, de sa fin (la cible d'un objectif `woundsThreshold` parmi
+   * ses membres), des entrées qu'elle couvre, et de chaque membre sa monture et celle qu'il chevauche, parmi les
+   * montures, la liste des membres sans « Retirer », « Monter » ni « Ajouter » ; la supprimer, refusé avec sa raison
+   * comme un dialogue, ou tant qu'une embuscade la lance (`removeEncounter`).
+   *
    * D'une zone : la poignée qui la redimensionne ; d'un déclencheur, le formulaire qui le renomme ; d'une zone d'effet,
    * le formulaire qui la nomme et celui qui change son identifiant, sa nature (non déclarée, intérieur ou extérieur),
    * sa forme (rectangle ou disque), son emprise au pinceau et l'aire rendue entière, refusée sans découpe, si elle
@@ -328,7 +337,8 @@ export interface ZonesDeLEditeur {
    * la traversée (`onCross`) et à chaque Round (`perRound`), d'un déclencheur, celui de sa condition d'entrée (`when`)
    * et de son flux (`flow`), chaque élément d'id `valeur/<chemin>`, un élément de liste sous le rang de son chemin : un objet
    * présent, sa ligne titre, ses champs, puis « Retirer » si son absence est admise ; absent, « Ajouter », qui pose sa
-   * valeur neuve (ses seuls champs requis) ;
+   * valeur neuve (ses seuls champs requis), ou le choix de l'objet parmi ceux que son contexte pose, absent s'il n'en
+   * pose aucun ;
    *
    * une union dont chaque variante est nommée (`unionDuNoeud`, `src/noyau/codex/editFields.ts` : une Condition, une op,
    * toute union discriminée, ou qui se lit à la présence de son discriminant, ou sans discriminant, à la forme de ses
@@ -345,7 +355,8 @@ export interface ZonesDeLEditeur {
    * une liste présente, sa ligne titre, puis chaque élément, ses éléments, « Retirer » et, hors du premier, « Monter »,
    * enfin « Ajouter », qui pose un élément neuf en fin, ou, d'un élément à choix, le choix de l'élément ajouté en fin,
    * parmi ceux que son contexte pose au rang neuf, chacun de ces boutons écrivant la liste entière (`gestesDeLaListe`),
-   * et absente, « Ajouter » seul ;
+   * et absente, « Ajouter » seul ; une liste que son porteur n'écrit pas entière, sa ligne titre et les éléments de
+   * chaque élément seuls ;
    *
    * un choix, une énumération, un booléen, un littéral ou une référence au catalogue de son type, sa sous-liste
    * comprise, chaque option jouée d'un bouton, en liste au-delà de `CHOIX_EN_BOUTONS`, précédées de « Aucune » si son
@@ -1245,7 +1256,7 @@ function elementsDuChamp(porteur: PorteurDeValeur, f: FieldDesc, valeur: unknown
   const retirer = retirable ? [bouton(`${id}/retirer`, t('ecran.editeur.valeur.retirer', { libelle: f.label }), ecrireLaValeur(porteur, ici))] : [];
   if (f.contexte && estChampDAdresse(f.noeud)) return elementsDeLAdresse(porteur, f, valeur, ici, retirer, f.contexte.source);
   if (champsDeclares(f.noeud)) {
-    if (valeur === undefined) return [ajoutDeLObjet(porteur, f, ici)];
+    if (valeur === undefined) return ajoutDeLObjet(porteur, f, ici);
     const objet = valeur as Record<string, unknown>;
     return [ligne(id, f.label), ...elementsDuFormulaire(porteur, champsSous(f, ici, f.noeud, objet), objet, ici), ...retirer];
   }
@@ -1268,7 +1279,7 @@ function elementsDuChamp(porteur: PorteurDeValeur, f: FieldDesc, valeur: unknown
 function elementsDeLAdresse(porteur: PorteurDeValeur, f: FieldDesc, valeur: unknown, ici: Segment[], retirer: Bouton[], source: SourceDeLEdition): (Choix | Ligne | Bouton | Formulaire)[] {
   const id = `valeur/${ici.join('/')}`;
   const sansSource = ligne(`${id}/etat`, t('ecran.editeur.adresse.sansSource'));
-  if (valeur === undefined) return [source.manifeste ? ajoutDeLObjet(porteur, f, ici) : sansSource];
+  if (valeur === undefined) return source.manifeste ? ajoutDeLObjet(porteur, f, ici) : [sansSource];
   const adresse = valeur as Parameters<typeof etatDeLAdresse>[1];
   const etat = etatDeLAdresse(source, adresse);
   const charge = etat.etat === 'resolue' || etat.etat === 'refusee';
@@ -1332,10 +1343,12 @@ function elementsDeLUnion(porteur: PorteurDeValeur, f: FieldDesc, valeur: unknow
  *  (#3606 B3), ses éléments, « Retirer » et, hors du premier,
  *  « Monter » ; puis « Ajouter » (`ajoutALaListe`). Chaque bouton écrit la liste entière (`gestesDeLaListe`). Une liste
  *  à laquelle rien ne s'ajoute (un élément récursif, sans valeur neuve ni choix) : la saisie de sa valeur entière
- *  (`argumentDeValeur`), en JSON. */
+ *  (`argumentDeValeur`), en JSON. Une liste que son contexte n'écrit pas entière (`ContexteDuChamp.ecrivable`) : son
+ *  libellé et les éléments de chacun, sans « Retirer », « Monter » ni « Ajouter ». */
 function elementsDeLaListe(porteur: PorteurDeValeur, f: FieldDesc, valeur: unknown, ici: Segment[]): (Choix | Ligne | Bouton | Formulaire)[] {
   const id = `valeur/${ici.join('/')}`;
   const liste = Array.isArray(valeur) ? valeur : [];
+  if (!(f.contexte?.ecrivable(ici, valeur) ?? true)) return [ligne(id, f.label), ...liste.flatMap((e, rang) => elementsDuChamp(porteur, champDeLElement(f, rang), e, [...ici, rang]))];
   const element = elementDuNoeud(f.noeud);
   const gestes = gestesDeLaListe(liste, valeurNeuveDe(element));
   const elements = liste.flatMap((e, rang) => {
@@ -1354,14 +1367,15 @@ function elementsDeLaListe(porteur: PorteurDeValeur, f: FieldDesc, valeur: unkno
 }
 
 /** « Ajouter » de l'objet absent du champ `f`, au chemin `ici`, d'id `valeur/<chemin>/ajouter` : le choix de l'objet posé
- *  parmi ceux que son contexte y pose (`FieldDesc.contexte`), sinon le bouton qui écrit sa valeur neuve (`valeurNeuveDe`). */
-function ajoutDeLObjet(porteur: PorteurDeValeur, f: FieldDesc, ici: Segment[]): Bouton | Choix | Formulaire {
+ *  parmi ceux que son contexte y pose (`FieldDesc.contexte`), aucun s'il n'en pose aucun, sinon le bouton qui écrit sa
+ *  valeur neuve (`valeurNeuveDe`). */
+function ajoutDeLObjet(porteur: PorteurDeValeur, f: FieldDesc, ici: Segment[]): (Bouton | Choix | Formulaire)[] {
   const id = `valeur/${ici.join('/')}/ajouter`;
   const libelle = t('ecran.editeur.valeur.ajouter', { libelle: f.label });
   const valeurs = f.contexte?.choix(ici);
-  if (!valeurs) return bouton(id, libelle, ecrireLaValeur(porteur, ici, valeurNeuveDe(f.noeud)));
+  if (!valeurs) return [bouton(id, libelle, ecrireLaValeur(porteur, ici, valeurNeuveDe(f.noeud)))];
   const a: ArgumentDuGeste = { nom: 'valeur', optionnel: false, saisie: 'choix', libelle, valeur: null, valeurs: [...valeurs], bornes: null, note: null, champs: null };
-  return elementDeValeur(id, porteur, ici, { ...f, label: libelle }, a);
+  return valeurs.length ? [elementDeValeur(id, porteur, ici, { ...f, label: libelle }, a)] : [];
 }
 
 /** « Ajouter » à la liste `liste` du champ `f`, au chemin `ici`, d'élément `element`, d'id `valeur/<chemin>/ajouter` :
@@ -1562,13 +1576,14 @@ function logique(s: SessionDEdition): (Choix | Ligne | Bouton)[] {
 
 /** L'inspecteur du porteur de formulaire `porteur` de la session `s` qui se renomme par la table de sa sorte
  *  (`ECRITURES_DES_PORTEURS`, `renommer`), ses éléments d'id `<prefixe>/…` : le formulaire qui le nomme, de son
- *  identifiant ; ses éléments `propres` ; le formulaire tiré du schéma de sa sorte (`formulaireDe`) ; le supprimer,
- *  refusé avec la raison du retrait (`refusDeRetrait`) quand sa sorte se retire par la table. #3606 C4 */
+ *  identifiant, refusé avec ce qui le désigne hors de la scène (`refusHorsDeLaScene`) ; ses éléments `propres` ; le
+ *  formulaire tiré du schéma de sa sorte (`formulaireDe`) ; le supprimer, refusé avec la raison du retrait
+ *  (`refusDeRetrait`) quand sa sorte se retire par la table. #3606 C4 */
 function inspecteurDuPorteur(s: SessionDEdition, prefixe: string, porteur: { sorte: SorteDePorteur; id: string }, propres: (Choix | Ligne | Bouton | Formulaire)[]): (Choix | Ligne | Bouton | Formulaire)[] {
   const donnee = porteursDeLaScene(sceneEditee(s), porteur.sorte).find((d) => d.id === porteur.id)!;
   const refus = ECRITURES_DES_PORTEURS[porteur.sorte].retirer ? refusDeRetrait(s) : null;
   return [
-    formulaireDuNom(porteur.id, false),
+    { ...formulaireDuNom(porteur.id, false), refus: refusHorsDeLaScene(s) },
     ...propres,
     ...elementsDuFormulaire(porteur, formulaireDe(porteur.sorte, donnee, cadreDeLaSession(s)), donnee as unknown as Record<string, unknown>),
     bouton(`${prefixe}/supprimer`, t('ecran.editeur.inspecteur.supprimer'), { geste: 'supprimer' }, false, refus),
@@ -1578,11 +1593,11 @@ function inspecteurDuPorteur(s: SessionDEdition, prefixe: string, porteur: { sor
 /** Le plus long extrait de la réplique d'un nœud que l'inspecteur du dialogue montre, en caractères (`coupeAuMot`). */
 const LONGUEUR_DE_L_EXTRAIT = 60;
 
-/** L'inspecteur du dialogue `dlg` de la session `s` (`inspecteurDuPorteur`) : pour chacun de ses nœuds, sa ligne, le
- *  marqueur du départ, son identifiant, l'extrait de sa réplique et les nœuds où mènent ses réponses, puis le formulaire
- *  qui change son identifiant (`identifiantsDesElements`). #3606 B3 */
-function inspecteurDeDialogue(s: SessionDEdition, dlg: NonNullable<Scene['dialogues']>[number]): (Choix | Ligne | Bouton | Formulaire)[] {
-  const noeuds = dlg.nodes.flatMap((n) => {
+/** Les éléments propres du dialogue `dlg` : pour chacun de ses nœuds, sa ligne, le marqueur du départ, son
+ *  identifiant, l'extrait de sa réplique et les nœuds où mènent ses réponses, puis le formulaire qui change son
+ *  identifiant (`identifiantsDesElements`). #3606 B3 */
+function noeudsDuDialogue(_s: SessionDEdition, dlg: DonneeDuPorteur['dialogue']): (Choix | Ligne | Bouton | Formulaire)[] {
+  return dlg.nodes.flatMap((n) => {
     const vers = n.choices.flatMap((c) => (c.next ? [c.next.id] : []));
     const texte = [
       `${n.id === dlg.start.id ? '▶ ' : ''}${n.id}`,
@@ -1594,22 +1609,52 @@ function inspecteurDeDialogue(s: SessionDEdition, dlg: NonNullable<Scene['dialog
       ...identifiantsDesElements('noeud', [n.id], (id) => t('ecran.editeur.noeud.identifier', { id })),
     ];
   });
-  return inspecteurDuPorteur(s, 'dialogue', { sorte: 'dialogue', id: dlg.id }, noeuds);
+}
+
+/** Les éléments propres de la rencontre `enc` de la session `s` : la ligne qui compte ses membres, enrôlés à
+ *  l'inspecteur du personnage (`rencontres`), puis, pour chacun, le nom de son entité (`nomALEcran`), son côté, et s'il
+ *  est une monture. #3606 */
+function membresDeLaRencontre(s: SessionDEdition, enc: DonneeDuPorteur['rencontre']): Ligne[] {
+  const entites = sceneEditee(s).entities;
+  const membres = enc.members ?? [];
+  return [
+    ligne('rencontre/membres', t('ecran.editeur.rencontre.membres', { n: membres.length })),
+    ...membres.map((m) => {
+      const ent = entites.find((e) => e.id === m.entityId);
+      const valeurs = { nom: ent ? nomALEcran(s, ent) : m.entityId, cote: t(`ecran.editeur.rencontre.${m.side === 'allie' ? 'allie' : 'ennemi'}`) };
+      return ligne(`rencontre/membre/${m.entityId}`, t(m.mount ? 'ecran.editeur.rencontre.membre.monture' : 'ecran.editeur.rencontre.membre', valeurs));
+    }),
+  ];
+}
+
+/** Les éléments propres de l'inspecteur d'un porteur qui se liste à la zone Logique (`FORMULAIRES`, `logique`), par
+ *  sorte : les nœuds d'un dialogue (`noeudsDuDialogue`), les membres d'une rencontre (`membresDeLaRencontre`) ; sans
+ *  entrée, aucun. Un déclencheur, une zone de la carte, s'inspecte comme elle (`inspecteurDeZone`). */
+const PROPRES_DE_LA_LOGIQUE: { readonly [S in SorteDePorteur]?: (s: SessionDEdition, donnee: DonneeDuPorteur[S]) => (Choix | Ligne | Bouton | Formulaire)[] } = {
+  dialogue: noeudsDuDialogue,
+  rencontre: membresDeLaRencontre,
+};
+
+/** L'inspecteur du porteur de sorte `sorte` et de donnée `donnee` de la session `s` qui se liste à la zone Logique
+ *  (`inspecteurDuPorteur`, ses éléments d'id `<sorte>/…`), ses éléments propres (`PROPRES_DE_LA_LOGIQUE`). */
+function inspecteurDeLaLogique<S extends SorteDePorteur>(s: SessionDEdition, sorte: S, donnee: DonneeDuPorteur[S]): (Choix | Ligne | Bouton | Formulaire)[] {
+  const propres: ((s: SessionDEdition, donnee: DonneeDuPorteur[S]) => (Choix | Ligne | Bouton | Formulaire)[]) | undefined = PROPRES_DE_LA_LOGIQUE[sorte];
+  return inspecteurDuPorteur(s, sorte, { sorte, id: donnee.id }, propres?.(s, donnee) ?? []);
 }
 
 /** L'inspecteur de la sélection de la session `s` (`editeur.inspecteur`) : de l'entité, de l'entrée, de la zone, du
- *  dialogue ou de l'arête sélectionnée ; sans elle, celui de la scène. */
+ *  porteur listé à la zone Logique (`inspecteurDeLaLogique`) ou de l'arête sélectionnée ; sans elle, celui de la scène. */
 export function inspecteurDeLaSession(s: SessionDEdition): (Choix | Ligne | Bouton | Formulaire)[] {
   const scene = sceneEditee(s);
   const ent = entiteDeLaSelection(scene, s.sel);
   const entree = entreeDeLaSelection(s);
   const zone = zonesLues(scene).find((z) => sameSel(z.sel, s.sel));
   const porteur = porteurDeLaSel(s.sel);
-  const dialogue = porteur?.sorte === 'dialogue' ? porteursDeLaScene(scene, 'dialogue').find((d) => d.id === porteur.id) : undefined;
+  const logique = porteur && FORMULAIRES[porteur.sorte].logique ? porteursDeLaScene(scene, porteur.sorte).find((d) => d.id === porteur.id) : undefined;
   if (ent) return inspecteurDEntite(s, ent);
   if (entree) return inspecteurDEntree(s, entree);
   if (zone) return inspecteurDeZone(s, zone);
-  if (dialogue) return inspecteurDeDialogue(s, dialogue);
+  if (porteur && logique) return inspecteurDeLaLogique(s, porteur.sorte, logique);
   const architecture = inspecteurDArchitecture(s);
   if (architecture.length) return architecture;
   return s.sel ? inspecteurDArete(s) : inspecteurDeScene(s);
@@ -2033,6 +2078,11 @@ export function gesteDuFormulaire(z: Pick<ZonesDeLEditeur, 'editeur.inspecteur'>
     default: return { geste: 'nommer', ...(texte !== undefined ? { nom: texte } : {}) };
   }
 }
+
+/** Le refus du formulaire de verbe `verbe` de l'inspecteur que portent les zones `z` qui se refuse (`Formulaire.refus`,
+ *  le nom d'un porteur que désigne la carte du monde) ; `null` sans lui. */
+export const refusDuFormulaire = (z: Pick<ZonesDeLEditeur, 'editeur.inspecteur'>, verbe: unknown): string | null =>
+  z['editeur.inspecteur'].find((e): e is Formulaire => e.type === 'formulaire' && e.verbe === verbe && e.refus !== null)?.refus ?? null;
 
 /** Pourquoi la session `s` n'écrit pas la valeur du geste `g` (`refusDeLaValeur`), dit à l'auteur, la règle enfreinte
  *  telle qu'elle se dit ; `null` si elle l'écrit. */

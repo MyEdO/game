@@ -46,9 +46,9 @@ export type Terrain = string & {};
 
 /** Les nœuds du dialogue, que désignent `start` et `choices[].next`. */
 const NOEUDS = { collection: 'nodes', catalogue: 'nœuds du dialogue' } as const satisfies PorteeLocale;
-/** Les membres de la rencontre, que désigne la cible de son objectif `woundsThreshold`. #3606 B5 */
+/** Les membres de la rencontre, que désigne la cible de son objectif `woundsThreshold`. #3606 */
 export const MEMBRES_DE_LA_RENCONTRE = { collection: 'members', catalogue: 'membres de la rencontre' } as const satisfies PorteeLocale;
-/** Les montures de la rencontre, ses membres qui portent `mount`, que désigne la monture chevauchée d'un membre. #3606 B5 */
+/** Les montures de la rencontre, ses membres qui portent `mount`, que désigne la monture chevauchée d'un membre. #3606 */
 export const MONTURES_DE_LA_RENCONTRE = { collection: 'members', catalogue: 'montures de la rencontre', retient: [{ champ: 'mount' }] } as const satisfies PorteeLocale;
 
 /** `Dir8` (`geometry/dir8.ts`) — orientation MONDE éditable, projetée au rendu. MÊME vocabulaire que le cap

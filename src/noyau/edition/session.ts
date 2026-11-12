@@ -700,7 +700,7 @@ export function refusDeLaValeur(s: SessionDEdition, g: Extract<GesteDEdition, { 
 
 /** Pourquoi le porteur de la sélection de la session `s` ne se renomme ni ne se retire : ce qui le désigne hors de sa
  *  scène, sur la carte du monde de son projet, par la table de sa sorte (`ECRITURES_DES_PORTEURS`, `viseHorsDeLaScene`),
- *  dit à l'auteur ; `null` sans lui. #3606 B4 */
+ *  dit à l'auteur ; `null` sans lui. #3606 */
 export function refusHorsDeLaScene(s: SessionDEdition): string | null {
   const porteur = porteurDeLaSel(s.sel);
   const worldMap = s.projet.worldMap;

@@ -661,7 +661,7 @@ const CHAMPS_DE_LA_RENCONTRE: CheminsOfferts = [['victoryCondition'], ['onVictor
 
 /** Les champs que le formulaire de la rencontre `enc` offre : les siens (`CHAMPS_DE_LA_RENCONTRE`), et de chacun de ses
  *  membres, à son rang, sa monture et celle qu'il chevauche ; ses membres s'enrôlent et se retirent par leurs
- *  écrivains (`addMember`, `removeMember`). #3606 B6 */
+ *  écrivains (`addMember`, `removeMember`). #3606 */
 const champsDeLaRencontre = (enc: EncounterDef): CheminsOfferts =>
   [...CHAMPS_DE_LA_RENCONTRE, ...(enc.members ?? []).flatMap((_, i) => [['members', i, 'mount'], ['members', i, 'ridesEntityId']])];
 
