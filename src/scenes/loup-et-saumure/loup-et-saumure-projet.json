@@ -1844,7 +1844,9 @@
      },
      "victoryCondition": {
       "type": "woundsThreshold",
-      "targetId": "cogue",
+      "targetId": {
+       "id": "cogue"
+      },
       "atOrBelowPercent": 50
      }
     }
@@ -3150,7 +3152,9 @@
      },
      "victoryCondition": {
       "type": "woundsThreshold",
-      "targetId": "serpent-de-sel",
+      "targetId": {
+       "id": "serpent-de-sel"
+      },
       "atOrBelowPercent": 50
      }
     }

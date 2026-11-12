@@ -10731,7 +10731,9 @@
       },
       {
        "entityId": "enemy-enc-zone5-2",
-       "ridesEntityId": "enemy-enc-zone5-1"
+       "ridesEntityId": {
+        "id": "enemy-enc-zone5-1"
+       }
       },
       {
        "entityId": "enemy-enc-zone5-3",
@@ -10739,7 +10741,9 @@
       },
       {
        "entityId": "enemy-enc-zone5-4",
-       "ridesEntityId": "enemy-enc-zone5-3"
+       "ridesEntityId": {
+        "id": "enemy-enc-zone5-3"
+       }
       },
       {
        "entityId": "enemy-enc-zone5-5"

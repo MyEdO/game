@@ -5,9 +5,9 @@
  * Les ÉCRIVAINS vivent dans `./sceneEdit` ; les deux modules sont au `BRIDGE_PATH` de
  * `scripts/guards/lib/sceneFieldEditability.mjs`.
  */
-import { dialoguesDeLaScene, sceneMetresPerTile, type Dialogue, type DialogueChoice, type DialogueNode, type EntityKind, type FaceDArete, type Scene, type SceneEffectZone, type SceneEntity, type Trigger, type WallSeg, type WallSide, type ZoneArea, type CellSide, porteAuteur } from './monde/scene';
+import { dialoguesDeLaScene, sceneMetresPerTile, type Dialogue, type DialogueChoice, type DialogueNode, type EncounterDef, type EntityKind, type FaceDArete, type Scene, type SceneEffectZone, type SceneEntity, type Trigger, type WallSeg, type WallSide, type ZoneArea, type CellSide, porteAuteur } from './monde/scene';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
-import { dialogueSchema, faceDAreteSchema, optionalDeSceneSchema, sceneEffectZoneSchema, sceneEntitySchema, sceneSchema, triggerSchema, type Terrain } from '../data/schemas/defs-scenes/scene';
+import { dialogueSchema, encounterDefSchema, faceDAreteSchema, optionalDeSceneSchema, sceneEffectZoneSchema, sceneEntitySchema, sceneSchema, triggerSchema, type Terrain } from '../data/schemas/defs-scenes/scene';
 import { projetSchema } from '../data/schemas/defs-scenes/projet';
 import { idsDeLaPortee } from '../data/schemas/grammaire/collection-cle';
 import { noeudsAuChemin, ouverts, pasDeDonnee } from '../data/schemas/grammaire/descente';
@@ -122,7 +122,7 @@ export function structuresDeLArete(paint: WallPaint): StructureData[] {
 export type Layers = { triggers: boolean; spawns: boolean; roofs: boolean; entries: boolean; rest: boolean; zones: boolean };
 
 /** Les types de sélection qui désignent un élément de la scène par son seul identifiant. */
-type TypeDeSelParId = 'entity' | 'trigger' | 'entry' | 'effectZone' | 'dialogue';
+type TypeDeSelParId = 'entity' | 'trigger' | 'entry' | 'effectZone' | 'dialogue' | 'encounter';
 
 /** Sélection unifiée — une seule chose sélectionnée à la fois, sur la carte comme dans les panneaux. */
 export type Sel =
@@ -429,13 +429,14 @@ export function pickArchitectureEdge(scene: Scene, fx: number, fy: number, z: nu
 export type EntityTool = Extract<Tool, { mode: 'entity' }>;
 
 /** La donnée du porteur de chaque sorte de formulaire tiré du schéma. */
-export interface DonneeDuPorteur { zone: SceneEffectZone; declencheur: Trigger; entite: SceneEntity; dialogue: Dialogue }
+export interface DonneeDuPorteur { zone: SceneEffectZone; declencheur: Trigger; entite: SceneEntity; dialogue: Dialogue; rencontre: EncounterDef }
 
 /** La sorte d'un porteur de formulaire tiré du schéma. */
 export type SorteDePorteur = keyof DonneeDuPorteur;
 
-/** Les chemins de clés, depuis la donnée d'un porteur, des champs qu'il offre : chacun avec tout ce qu'il porte. */
-type CheminsOfferts = readonly (readonly string[])[];
+/** Les chemins de clés et de rangs, depuis la donnée d'un porteur, des champs qu'il offre : chacun avec tout ce qu'il
+ *  porte. */
+type CheminsOfferts = readonly (readonly Segment[])[];
 
 /** Le cadre où vit un porteur de formulaire tiré du schéma : sa scène, les scènes et le narratif de son projet, et le
  *  `Source/` que ses adresses de prose désignent (`SourceDeLEdition`). */
@@ -451,6 +452,8 @@ interface FormulaireDuPorteur<D> {
   collection: CollectionDe<D>;
   sel: TypeDeSelParId;
   schema: unknown;
+  /** Le porteur se liste à la zone Logique de l'éditeur, qui le sélectionne ; sinon il s'atteint sur la carte. */
+  logique?: true;
   champs: (donnee: D, cadre: CadreDuPorteur) => CheminsOfferts;
   choix?: (donnee: D, chemin: readonly Segment[], cadre: CadreDuPorteur) => readonly ChoixDuContexte[] | undefined;
 }
@@ -461,7 +464,7 @@ interface FormulaireDuPorteur<D> {
 const CHAMPS_DU_PERSONNAGE: CheminsOfferts = [['combat', 'optionals'], ['combat', 'skills'], ['combat', 'randomChars'], ['combat', 'hiddenUntilCombat'], ['statblock'], ['amateur'], ['merchant'], ['tavernGame'], ['appearance'], ['anim']];
 
 /** Les profils d'auteur qu'un PNJ de carrière ne porte pas (`refusDuPnjDeCarriere`) : son profil personnalisé et son preset. */
-const PROFILS_D_AUTEUR: readonly string[] = ['statblock', 'presetId'];
+const PROFILS_D_AUTEUR: readonly Segment[] = ['statblock', 'presetId'];
 
 /** L'apparence d'un PNJ de carrière : chacune de ses clés (`entityAppearanceSchema`), hors de la tenue, que sa carrière
  *  actuelle habille (`refusDuPnjDeCarriere`). */
@@ -653,6 +656,15 @@ function choixDuDialogue(dlg: Dialogue, chemin: readonly Segment[]): readonly Ch
   return noeud && choices === 'choices' && rangDuChoix === noeud.choices.length ? pose(choixNeuf(noeud)) : undefined;
 }
 
+/** Les champs d'une rencontre que son formulaire offre entiers. */
+const CHAMPS_DE_LA_RENCONTRE: CheminsOfferts = [['victoryCondition'], ['onVictory'], ['surprise'], ['maneuverability'], ['threat'], ['terrain'], ['banRanged'], ['siege'], ['couvre']];
+
+/** Les champs que le formulaire de la rencontre `enc` offre : les siens (`CHAMPS_DE_LA_RENCONTRE`), et de chacun de ses
+ *  membres, à son rang, sa monture et celle qu'il chevauche ; ses membres s'enrôlent et se retirent par leurs
+ *  écrivains (`addMember`, `removeMember`). #3606 B6 */
+const champsDeLaRencontre = (enc: EncounterDef): CheminsOfferts =>
+  [...CHAMPS_DE_LA_RENCONTRE, ...(enc.members ?? []).flatMap((_, i) => [['members', i, 'mount'], ['members', i, 'ridesEntityId']])];
+
 /** Le formulaire d'une entité, par son type : d'un personnage, ses champs (`champsDuPersonnage`), aux choix de son
  *  contexte (`choixDuPersonnage`) ; d'un décor, ses actions authorées (`ACTIONS_DU_DECOR`), aux choix de son contexte
  *  (`choixDuDecor`), son assise s'écrivant à ses places ; d'un départ de héros, aucun champ. */
@@ -665,10 +677,11 @@ const FORMULAIRE_DU_TYPE: { readonly [K in EntityKind]: Omit<FormulaireDuPorteur
 /** Les formulaires tirés du schéma, par sorte de porteur (`FormulaireDuPorteur`). D'une zone d'effet, son Test de
  *  traversée, ses effets à la traversée et à chaque Round, son rendu tant qu'elle dure (#3834) ; d'un déclencheur, sa
  *  condition d'entrée et son flux ; d'une entité, celui de son type (`FORMULAIRE_DU_TYPE`) ; d'un dialogue, son nœud de
- *  départ, ses nœuds et les entrées qu'il couvre, aux choix de son contexte (`choixDuDialogue`). */
+ *  départ, ses nœuds et les entrées qu'il couvre, aux choix de son contexte (`choixDuDialogue`) ; d'une rencontre, ses
+ *  circonstances, sa fin et les entrées qu'elle couvre, et de ses membres leur seule monture (`CHAMPS_DE_LA_RENCONTRE`). */
 export const FORMULAIRES: { readonly [S in SorteDePorteur]: FormulaireDuPorteur<DonneeDuPorteur[S]> } = {
   zone: { collection: 'effectZones', sel: 'effectZone', schema: sceneEffectZoneSchema, champs: () => [['crossTest'], ['onCross'], ['perRound'], ['rendu']] },
-  declencheur: { collection: 'triggers', sel: 'trigger', schema: triggerSchema, champs: () => [['when'], ['flow']] },
+  declencheur: { collection: 'triggers', sel: 'trigger', schema: triggerSchema, logique: true, champs: () => [['when'], ['flow']] },
   entite: {
     collection: 'entities',
     sel: 'entity',
@@ -676,7 +689,8 @@ export const FORMULAIRES: { readonly [S in SorteDePorteur]: FormulaireDuPorteur<
     champs: (ent, cadre) => FORMULAIRE_DU_TYPE[ent.kind].champs(ent, cadre),
     choix: (ent, chemin, cadre) => FORMULAIRE_DU_TYPE[ent.kind].choix?.(ent, chemin, cadre),
   },
-  dialogue: { collection: 'dialogues', sel: 'dialogue', schema: dialogueSchema, champs: () => [['start'], ['nodes'], ['couvre']], choix: choixDuDialogue },
+  dialogue: { collection: 'dialogues', sel: 'dialogue', schema: dialogueSchema, logique: true, champs: () => [['start'], ['nodes'], ['couvre']], choix: choixDuDialogue },
+  rencontre: { collection: 'encounters', sel: 'encounter', schema: encounterDefSchema, logique: true, champs: champsDeLaRencontre },
 };
 
 /** Le porteur de formulaire que la sélection `sel` désigne (`FORMULAIRES`, `sel`) : sa sorte et son identifiant ;
@@ -702,12 +716,13 @@ export const cheminOffert = (offerts: CheminsOfferts, chemin: readonly Segment[]
   offerts.some((o) => prefixe(o, chemin) || prefixe(chemin, o));
 
 /** L'écriture au chemin `chemin`, où la donnée vaut `actuelle`, est-elle offerte par les champs `offerts` : sous l'un
- *  d'eux ; sur le chemin de l'un d'eux, si chaque clé que porte `actuelle` l'est, de proche en proche (elle n'emporte
- *  aucun champ qu'ils n'offrent pas). */
+ *  d'eux ; sur le chemin de l'un d'eux, si chaque clé que porte `actuelle`, ou chaque élément d'une liste à son rang,
+ *  l'est, de proche en proche (elle n'emporte aucun champ qu'ils n'offrent pas). */
 export function ecritureOfferte(offerts: CheminsOfferts, chemin: readonly Segment[], actuelle: unknown): boolean {
   if (offerts.some((o) => prefixe(o, chemin))) return true;
   if (!offerts.some((o) => prefixe(chemin, o))) return false;
-  return !estObjet(actuelle) || Object.entries(actuelle).every(([cle, v]) => v === undefined || ecritureOfferte(offerts, [...chemin, cle], v));
+  const entrees: [Segment, unknown][] = Array.isArray(actuelle) ? actuelle.map((v, i) => [i, v]) : estObjet(actuelle) ? Object.entries(actuelle) : [];
+  return entrees.every(([cle, v]) => v === undefined || ecritureOfferte(offerts, [...chemin, cle], v));
 }
 
 /** Le formulaire tiré du schéma du porteur de sorte `sorte` (`FORMULAIRES`) : le nœud où s'écrit sa donnée `donnee`, à

@@ -105,10 +105,10 @@ export function avertissementsDeLaSession(s: SessionDEdition): Warning[] {
 }
 
 /** La sorte du porteur de formulaire que désigne la portée d'un avertissement (`Warning.scope`). */
-const SORTE_DE_LA_PORTEE: Partial<Record<Warning['scope'], SorteDePorteur>> = { entity: 'entite', trigger: 'declencheur', dialogue: 'dialogue' };
+const SORTE_DE_LA_PORTEE: Partial<Record<Warning['scope'], SorteDePorteur>> = { entity: 'entite', trigger: 'declencheur', dialogue: 'dialogue', encounter: 'rencontre' };
 
 /** L'avertissement `w` désigne-t-il un fautif que l'éditeur sélectionne : un défaut de plan, un ouvrage d'architecture,
- *  une entité, un déclencheur ou un dialogue (`SORTE_DE_LA_PORTEE`) ? Les autres se corrigent ailleurs. */
+ *  une entité, un déclencheur, un dialogue ou une rencontre (`SORTE_DE_LA_PORTEE`) ? Les autres se corrigent ailleurs. */
 export const versLaFautive = (w: Warning): boolean =>
   !!w.plan || !!architectureSelectionForWarning(w) || (!!w.refId && SORTE_DE_LA_PORTEE[w.scope] !== undefined);
 
@@ -120,7 +120,7 @@ export function casesDuDefaut(s: SessionDEdition): { x: number; y: number; z: nu
 
 /** La session `s` amenée au fautif de l'avertissement `w` de sa scène `scene`, à sa couche : un défaut de plan, suivi,
  *  à l'outil de sélection, sa zone d'effet sélectionnée s'il en vise une ; un ouvrage d'architecture sélectionné à
- *  l'outil d'architecture ; une entité, un déclencheur ou un dialogue sélectionné à l'outil de sélection
+ *  l'outil d'architecture ; une entité, un déclencheur, un dialogue ou une rencontre sélectionné à l'outil de sélection
  *  (`selDuPorteur`), l'entité et le déclencheur à leur couche. */
 function versLAvertissement(s: SessionDEdition, scene: Scene, w: Warning): SessionDEdition {
   const vers = (z: number | undefined, sel: Sel, outil: OutilDeLEditeur, defaut: string | null = null): SessionDEdition => ({
@@ -339,8 +339,9 @@ export interface SessionDEdition {
  *  d'écriture de sa sorte (`ECRITURES_DES_PORTEURS`, `creer`), sélectionné ; écrire
  *  une valeur au chemin `chemin` du formulaire du porteur `porteur` (`formulaireDe`, `undefined`
  *  retire le champ), ou y resceller l'adresse de prose au chemin `chemin` après relecture (`avecLAdresseRescellee`) ; nommer l'entité, l'entrée, le
- *  déclencheur, le dialogue, la zone d'effet ou le corps sélectionné, ou la scène sans sélection (`nom` absent : l'entité reprend
- *  le nom de sa fiche ; le déclencheur et le dialogue y prennent leur identifiant, par la table de leur sorte, `renommer`) ;
+ *  déclencheur, le dialogue, la rencontre, la zone d'effet ou le corps sélectionné, ou la scène sans sélection (`nom` absent : l'entité
+ *  reprend le nom de sa fiche ; le déclencheur, le dialogue et la rencontre y prennent leur identifiant, par la table de leur
+ *  sorte, `renommer`) ;
  *  changer l'identifiant de la zone d'effet sélectionnée, de l'élément `element` de la sous-collection à clé du porteur
  *  sélectionné (l'action d'un décor, le nœud d'un dialogue, par la table, `renommerElement`), ou de la scène sans
  *  sélection ; éditer une autre scène du projet, en ajouter une vide, dupliquer
@@ -697,12 +698,22 @@ export function refusDeLaValeur(s: SessionDEdition, g: Extract<GesteDEdition, { 
   return ecrite.ok ? null : ecrite.refus;
 }
 
-/** Pourquoi la session `s` ne supprime pas sa sélection : le refus du retrait de son porteur par la table de sa sorte
- *  (`sceneSansLePorteur`), dit à l'auteur ; `null` si elle la supprime. */
+/** Pourquoi le porteur de la sélection de la session `s` ne se renomme ni ne se retire : ce qui le désigne hors de sa
+ *  scène, sur la carte du monde de son projet, par la table de sa sorte (`ECRITURES_DES_PORTEURS`, `viseHorsDeLaScene`),
+ *  dit à l'auteur ; `null` sans lui. #3606 B4 */
+export function refusHorsDeLaScene(s: SessionDEdition): string | null {
+  const porteur = porteurDeLaSel(s.sel);
+  const worldMap = s.projet.worldMap;
+  return (porteur && worldMap && ECRITURES_DES_PORTEURS[porteur.sorte].viseHorsDeLaScene?.(worldMap, s.sceneId, porteur.id)) ?? null;
+}
+
+/** Pourquoi la session `s` ne supprime pas sa sélection : ce qui désigne son porteur hors de sa scène
+ *  (`refusHorsDeLaScene`), ou le refus du retrait de son porteur par la table de sa sorte (`sceneSansLePorteur`), dit à
+ *  l'auteur ; `null` si elle la supprime. */
 export function refusDeRetrait(s: SessionDEdition): string | null {
   const porteur = porteurDeLaSel(s.sel);
   const retrait = porteur && sceneSansLePorteur(sceneEditee(s), porteur);
-  return retrait && !retrait.ok ? retrait.regle : null;
+  return refusHorsDeLaScene(s) ?? (retrait && !retrait.ok ? retrait.regle : null);
 }
 
 /** La session après le geste `g`, sur la couche éditée, l'une de la vue (`vueDeLaScene`) : les ponts d'un navire en sont.
@@ -716,8 +727,9 @@ export function refusDeRetrait(s: SessionDEdition): string | null {
  *  absente, poser un navire dans une scène qui n'est pas à l'échelle de son plan, poser
  *  une volée que son plan refuse, écrire sans arête, entité ou entrée sélectionnée, écrire une valeur que refuse
  *  `refusDeLaValeur`, sélectionner un porteur absent de sa collection, ajouter un porteur d'une sorte qui ne se crée pas
- *  par la table, renommer une entrée, un déclencheur ou un dialogue, ou réidentifier une zone d'effet ou un élément d'un
- *  porteur, d'un nom vide ou déjà pris, supprimer un porteur dont le retrait est refusé (`refusDeRetrait`), copier sans entité sélectionnée, coller sans copie ou sans case pointée sur la couche éditée,
+ *  par la table, renommer une entrée, un déclencheur, un dialogue ou une rencontre, ou réidentifier une zone d'effet ou un
+ *  élément d'un porteur, d'un nom vide ou déjà pris, renommer un porteur que désigne un site hors de sa scène
+ *  (`refusHorsDeLaScene`), supprimer un porteur dont le retrait est refusé (`refusDeRetrait`), copier sans entité sélectionnée, coller sans copie ou sans case pointée sur la couche éditée,
  *  dupliquer sans entité sélectionnée, poser une troupe sans personnage sélectionné ou sans case où en poser une copie, supprimer sans sélection, enregistrer hors du dépôt, l'issue d'un enregistrement ou
  *  d'un chargement qui n'est pas en cours, d'un chapitre qui n'est pas celui qu'elle attend, demander une planche pendant un chargement, régler ou retirer un calque
  *  absent) la rend telle quelle. */
@@ -818,7 +830,7 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
       }
       const porteur = porteurDeLaSel(s.sel);
       const renommer = porteur && ECRITURES_DES_PORTEURS[porteur.sorte].renommer;
-      if (!porteur || !renommer) return s;
+      if (!porteur || !renommer || refusHorsDeLaScene(s) !== null) return s;
       const renommee = renommer(scene, porteur.id, g.nom);
       return renommee === scene ? s : ecrire(s, renommee, selDuPorteur(porteur.sorte, g.nom.trim()));
     }
@@ -895,7 +907,7 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
     case 'supprimer': {
       const porteur = porteurDeLaSel(s.sel);
       const retrait = porteur && sceneSansLePorteur(scene, porteur);
-      if (retrait) return retrait.ok ? ecrire(s, retrait.valeur) : s;
+      if (retrait) return retrait.ok && refusHorsDeLaScene(s) === null ? ecrire(s, retrait.valeur) : s;
       return s.sel ? ecrire(s, deleteSel(scene, s.sel)) : s;
     }
     case 'annuler':

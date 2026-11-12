@@ -116,7 +116,7 @@ export function buildEncounter(a: AuthoredEncounter): BuiltEncounter {
     if (e.side) m.side = e.side;
     if (e.ai) m.ai = e.ai;
     if (e.mount) m.mount = e.mount;
-    if (e.rides != null && ids[e.rides]) m.ridesEntityId = ids[e.rides];
+    if (e.rides != null && ids[e.rides]) m.ridesEntityId = { id: ids[e.rides] };
     return m;
   });
   const encounter: EncounterDef = { id: a.id, members };

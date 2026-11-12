@@ -12,9 +12,9 @@ import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import type { SourceDeLEdition } from './adresseDeProse';
 import { emptyNarratif } from '../monde/campaignNarratif';
-import { emptyScene, type Dialogue, type Scene } from '../monde/scene';
+import { emptyScene, type Dialogue, type EncounterDef, type Scene } from '../monde/scene';
 import { addEffectZone, addTrigger, avecLaValeur, type Segment } from '../sceneEdit';
-import { choixDuChamp, formulaireDe, porteurDeLaSel, type CadreDuPorteur, type Sel } from '../sceneEditLecture';
+import { choixDuChamp, ecritureOfferte, formulaireDe, porteurDeLaSel, type CadreDuPorteur, type Sel } from '../sceneEditLecture';
 import { gestesDeLaListe, newEffect, newOp, valeurNeuveDe, variantesAChoisir } from '../valeursNeuves';
 import seaEventsJson from '../../data/sea-events.json';
 import { givePossessionSchema } from '../../data/schemas/defs-scenes/effets';
@@ -32,7 +32,7 @@ import type { GameOp } from '../../engine/ops';
 import { choixDeLaFeuilleDId, creatureSemee, findCreatureById } from '../../data';
 import { especeDApparenceSchema, tenueFermeeSchema } from '../../data/schemas/grammaire/valeurs';
 import { optionalEntrySchema } from '../../data/schemas/defs/creatures';
-import { dialogueNodeSchema, dialogueSchema } from '../../data/schemas/defs-scenes/scene';
+import { dialogueNodeSchema, dialogueSchema, encounterDefSchema, victoryConditionSchema } from '../../data/schemas/defs-scenes/scene';
 import { jsonCanonique } from '../../lib/jsonCanonique.mjs';
 
 /** Un narratif vide : aucun preset de PNJ, aucune entrée à référencer. */
@@ -517,6 +517,71 @@ describe('le formulaire d’un dialogue (#3606 M3b1a)', () => {
   });
 });
 
+/** La rencontre `enc` : `cavalier` y chevauche la monture `cheval`, `archer` va à pied ; sa victoire, au seuil de 50 %. */
+const RENCONTRE: EncounterDef = {
+  id: 'enc',
+  members: [{ entityId: 'cavalier', ridesEntityId: { id: 'cheval' } }, { entityId: 'cheval', mount: true }, { entityId: 'archer' }],
+  victoryCondition: { type: 'woundsThreshold', atOrBelowPercent: 50 },
+};
+
+/** Le cadre de `RENCONTRE`, dans une scène où `badaud` est un personnage hors de la rencontre. */
+const CADRE_DE_LA_RENCONTRE: CadreDuPorteur = {
+  ...CADRE_VIDE,
+  scene: {
+    ...emptyScene('s', 4, 4),
+    encounters: [RENCONTRE],
+    entities: ['cavalier', 'cheval', 'archer', 'badaud'].map((id) => ({ kind: 'personnage', id, pos: { x: 0, y: 0 } })) as Scene['entities'],
+  },
+};
+
+describe('le formulaire d’une rencontre (#3606 M4b)', () => {
+  it('offre ses circonstances, sa fin, les entrées qu’elle couvre, et de chaque membre seulement sa monture (B6)', () => {
+    const champs = formulaireDe('rencontre', RENCONTRE, CADRE_DE_LA_RENCONTRE);
+    expect(champs.map((c) => c.key)).toEqual(['victoryCondition', 'onVictory', 'surprise', 'maneuverability', 'threat', 'terrain', 'banRanged', 'siege', 'couvre', 'members']);
+    const offert = champs.find((c) => c.key === 'members')!.contexte!.offert;
+    const sousLeMembre = (rang: number) => ['entityId', 'side', 'ai', 'mount', 'ridesEntityId'].filter((cle) => offert(['members', rang, cle]));
+    expect([sousLeMembre(0), sousLeMembre(2)]).toEqual([['mount', 'ridesEntityId'], ['mount', 'ridesEntityId']]);
+  });
+
+  it('la cible de la victoire se choisit parmi les membres, la monture chevauchée parmi les montures, posées `{ id }` ; le parse refuse les autres (B5)', () => {
+    const vise = (chemin: Segment[]) => choixDuChamp('rencontre', RENCONTRE, chemin, CADRE_DE_LA_RENCONTRE)?.map((c) => c.valeur);
+    expect(vise(['victoryCondition', 'targetId'])).toEqual([{ id: 'cavalier' }, { id: 'cheval' }, { id: 'archer' }]);
+    expect(vise(['members', 2, 'ridesEntityId'])).toEqual([{ id: 'cheval' }]);
+    const fautes = (enc: EncounterDef) => encounterDefSchema.safeParse(enc).error?.issues.map((i) => i.message) ?? [];
+    expect(fautes({ ...RENCONTRE, victoryCondition: { type: 'woundsThreshold', targetId: { id: 'badaud' }, atOrBelowPercent: 50 } }))
+      .toEqual([expect.stringContaining('« badaud » est absent du catalogue des membres de la rencontre')]);
+    expect(fautes({ ...RENCONTRE, members: [RENCONTRE.members![0], { entityId: 'cheval' }, RENCONTRE.members![2]] }))
+      .toEqual([expect.stringContaining('« cheval » est absent du catalogue des montures de la rencontre')]);
+    expect(fautes(RENCONTRE)).toEqual([]);
+  });
+
+  it('une écriture sur le chemin d’un champ offert descend une liste élément par élément : la liste des membres et un membre entiers ne sont pas offerts, sa monture l’est (B6)', () => {
+    const offerts = [['members', 0, 'mount'], ['members', 0, 'ridesEntityId'], ['members', 1, 'mount'], ['members', 1, 'ridesEntityId']] as const;
+    const [cavalier, cheval] = RENCONTRE.members!;
+    expect(ecritureOfferte(offerts, ['members'], [cavalier, cheval])).toBe(false);
+    expect(ecritureOfferte(offerts, ['members', 1], cheval)).toBe(false);
+    expect(ecritureOfferte(offerts, ['members', 1, 'mount'], true)).toBe(true);
+    expect(ecritureOfferte([['usable', 'actions']], ['usable'], { actions: [{ id: 'a' }] }), 'une liste sous un champ offert s’écrit entière').toBe(true);
+  });
+
+  it('chaque objectif de victoire se choisit par variante nommée ; la valeur neuve de chacune passe le parse de la rencontre (décision 3)', () => {
+    const variantes = variantesAChoisir(victoryConditionSchema, undefined)!;
+    expect(variantes.map((v) => [v.cle, v.libelle, v.valeur])).toEqual([
+      ['allEnemiesDead', 'Tous les ennemis hors d’action', { type: 'allEnemiesDead' }],
+      ['destroyStructure', 'Détruire une structure', { type: 'destroyStructure', edge: { x: 0, y: 0, side: 'N' } }],
+      ['surviveRounds', 'Survivre N Rounds', { type: 'surviveRounds', rounds: 0 }],
+      ['reachZone', 'Atteindre une zone', { type: 'reachZone', rect: { x: 0, y: 0, w: 0, h: 0 } }],
+      ['woundsThreshold', 'Sortie à seuil de dommage', { type: 'woundsThreshold', atOrBelowPercent: 0 }],
+      ['firstBlood', 'Duel judiciaire — premier sang', { type: 'firstBlood' }],
+    ]);
+    for (const v of variantes) expect(encounterDefSchema.safeParse({ ...RENCONTRE, victoryCondition: v.valeur }).success, v.cle).toBe(true);
+  });
+
+  it('la sélection d’une rencontre désigne son porteur', () => {
+    expect(porteurDeLaSel({ type: 'encounter', id: 'enc' })).toEqual({ sorte: 'rencontre', id: 'enc' });
+  });
+});
+
 /** La saisie que l'hôte rend à chaque chemin des formulaires tirés du schéma (`FORMULAIRES`), toutes branches ouvertes,
  *  sans valeur, comme le descend `elementsDuChamp` (`src/hote/editeur.ts`) : `variantes` d'une union nommée, `ajouter`
  *  ou `json` d'une liste, `json` d'une op sans forme déclarée, sinon celle de la feuille (`choix`, `nombre`, `texte`,
@@ -573,6 +638,7 @@ function saisiesDesFormulaires(): Map<string, string> {
     ['entite', { kind: 'personnage', id: 'p', pos: { x: 0, y: 0 }, vehicule: { id: 'x' } }],
     ['entite', { kind: 'prop', id: 'd', ref: 'x', pos: { x: 0, y: 0 }, usable: { actions: [{ id: 'a' }] } }],
     ['dialogue', DIALOGUE],
+    ['rencontre', RENCONTRE],
   ] as const;
   for (const [sorte, donnee] of porteurs) for (const f of formulaireDe(sorte, donnee as never, { ...CADRE_VIDE, scene: vide })) champ(f, `${sorte}/${f.key}`);
   return saisies;

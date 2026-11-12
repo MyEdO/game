@@ -7146,7 +7146,7 @@ function victoryConditionMet(vc: VictoryCondition | undefined, battle: BattleSta
     }
     case 'woundsThreshold': {
       if (vc.targetId === undefined) return !enemiesAlive;
-      const target = inBattleId(battle, vc.targetId);
+      const target = inBattleId(battle, vc.targetId.id);
       return !!target && auSeuilDeBlessures(target, vc.atOrBelowPercent);
     }
     case 'firstBlood':
@@ -7171,7 +7171,7 @@ function resolveSurrenderThreshold(battle: BattleState, vc: VictoryCondition | u
   if (vc?.type !== 'woundsThreshold') return [];
   const cibles = vc.targetId === undefined
     ? battle.combatants.filter((c) => c.kind === 'ennemi' && !c.inert)
-    : [inBattleId(battle, vc.targetId)].filter((c): c is Combatant => !!c);
+    : [inBattleId(battle, vc.targetId.id)].filter((c): c is Combatant => !!c);
   return cibles.filter((c) => !isOutOfAction(c) && auSeuilDeBlessures(c, vc.atOrBelowPercent)).map((c) => {
     c.outOfRencontre = true;
     if (estNavire(c)) {

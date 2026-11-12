@@ -13,6 +13,8 @@ import type { FireArc, AuthoredShipPoste } from '../engine/types';
 import type { Dir8 } from '../geometry/dir8';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import type { Effect } from '../data/schemas/defs-scenes/effets';
+import type { WorldMap } from './worldMap';
+import { t as tr } from '../i18n';
 import { nextEntityId } from '../lib/entityId';
 import { findCreatureById, findPropById, refEstVolumique, semencesDeScene, siegeEngines } from '../data';
 import { siegeEmplacementEntity } from './monde/siegeEmplacement';
@@ -688,7 +690,7 @@ export function deleteSel(scene: Scene, sel: Sel): Scene {
     const encounters = scene.encounters.map((e) => {
       const members = (e.members ?? []).filter((m) => m.entityId !== sel.id);
       if (members.length === (e.members ?? []).length) return e;
-      return { ...e, members: members.map((m) => (m.ridesEntityId === sel.id ? { ...m, ridesEntityId: undefined } : m)) };
+      return { ...e, members: members.map((m) => (m.ridesEntityId?.id === sel.id ? { ...m, ridesEntityId: undefined } : m)) };
     });
     return { ...removeEntity({ ...scene, encounters }, sel.id) };
   }
@@ -886,12 +888,18 @@ export function renameTrigger(scene: Scene, from: string, to: string): Scene {
   return { ...scene, triggers: scene.triggers.map((t) => (t.id === from ? { ...t, id: next } : t)) };
 }
 
-/** Renomme la rencontre `from`. Refusé (scène inchangée) pour un id vide ou déjà porté par une autre
- *  rencontre : « Démarrer un combat » désigne une rencontre par son id. */
+/** Renomme la rencontre `from` et le PROPAGE à chaque effet « Démarrer un combat » et « Poursuite » de la scène qui la
+ *  désigne (`sitesDeLaScene`). Refusé (scène inchangée) pour un id vide ou déjà porté par une autre rencontre.
+ *  `sceneSchema` (portée `encounters`). */
 export function renameEncounter(scene: Scene, from: string, to: string): Scene {
   const next = to.trim();
   if (!next || next === from || scene.encounters.some((e) => e.id === next) || !scene.encounters.some((e) => e.id === from)) return scene;
-  return { ...scene, encounters: scene.encounters.map((e) => (e.id === from ? { ...e, id: next } : e)) };
+  const copie = structuredClone(scene);
+  for (const { effet } of sitesDeLaScene(copie).effets) {
+    const lance = effet as Effect;
+    if ((lance.type === 'startCombat' || lance.type === 'startPursuit') && lance.encounter?.id === from) lance.encounter = { id: next };
+  }
+  return { ...copie, encounters: copie.encounters.map((e) => (e.id === from ? { ...e, id: next } : e)) };
 }
 
 /** Crée un dialogue d'un seul nœud de départ, sans choix (id frais). */
@@ -1212,14 +1220,23 @@ function sceneAvecLEntite(scene: Scene, avant: SceneEntity, apres: SceneEntity):
 /** Ce que la table d'écriture d'une sorte de porteur déclare : la scène où sa donnée `avant` devient `apres`, ou son
  *  refus ; et, pour la sorte qui les a, la scène où un porteur neuf est créé, sous son identifiant ; celle où le porteur
  *  `de` prend l'identifiant `vers`, propagé à ce qui le désigne ; celle où le porteur `id` est retiré ; celle où
- *  l'élément `de` de la sous-collection à clé du porteur `id` prend l'identifiant `vers`. Un renommage sous un
- *  identifiant vide ou déjà pris rend la scène telle quelle. */
+ *  l'élément `de` de la sous-collection à clé du porteur `id` prend l'identifiant `vers` ; ce qui, hors de la scène
+ *  `sceneId`, sur la carte du monde, désigne le porteur `id`, dit. Un renommage sous un identifiant vide ou déjà pris
+ *  rend la scène telle quelle. */
 interface EcritureDuPorteur<D> {
   ecrire: (scene: Scene, avant: D, apres: D) => EcritureDeValeur<Scene>;
   creer?: (scene: Scene) => { scene: Scene; id: string };
   renommer?: (scene: Scene, de: string, vers: string) => Scene;
   retirer?: (scene: Scene, id: string) => Scene;
   renommerElement?: (scene: Scene, id: string, de: string, vers: string) => Scene;
+  viseHorsDeLaScene?: (worldMap: WorldMap, sceneId: string, id: string) => string | undefined;
+}
+
+/** Ce qui, sur la carte du monde `worldMap`, désigne la rencontre `id` de la scène `sceneId` : les embuscades de route
+ *  qui la lancent (`WorldMap.routes[].ambush`), dites ; `undefined` sans elles. #3606 B4 */
+function embuscadesDeLaRencontre(worldMap: WorldMap, sceneId: string, id: string): string | undefined {
+  const routes = worldMap.routes.filter((r) => r.ambush?.scene.id === sceneId && r.ambush.encounter === id).map((r) => `« ${r.id} »`);
+  return routes.length ? tr('ecran.editeur.rencontre.embuscade', { id, routes: routes.join(', ') }) : undefined;
 }
 
 /** La scène `scene` où l'action authorée `de` du décor `id` prend l'identifiant `vers` (`renameActionAuthoree`). */
@@ -1237,11 +1254,13 @@ function noeudRenomme(scene: Scene, id: string, de: string, vers: string): Scene
   return dialogue && renomme !== dialogue ? porteurRemplace(scene, 'dialogue', id, renomme!) : scene;
 }
 
-/** La table d'écriture des porteurs de formulaire, par sorte : d'une zone d'effet, d'un déclencheur ou d'un dialogue, le
- *  remplacement dans sa collection (`porteurRemplace`) ; d'une entité, sa porte (`sceneAvecLEntite`), et le renommage
+/** La table d'écriture des porteurs de formulaire, par sorte : d'une zone d'effet, d'un déclencheur, d'un dialogue ou
+ *  d'une rencontre, le remplacement dans sa collection (`porteurRemplace`) ; d'une entité, sa porte (`sceneAvecLEntite`), et le renommage
  *  d'une action d'un décor (`actionRenommee`) ; d'un déclencheur, son renommage (`renameTrigger`) et son retrait
  *  (`deleteSel`) ; d'un dialogue, sa création (`addDialogue`), son renommage (`renameDialogue`), son retrait
- *  (`removeDialogue`) et le renommage d'un de ses nœuds (`noeudRenomme`). */
+ *  (`removeDialogue`) et le renommage d'un de ses nœuds (`noeudRenomme`) ; d'une rencontre, sa création
+ *  (`addEncounter`), son renommage (`renameEncounter`), son retrait (`removeEncounter`) et les embuscades de route qui
+ *  la désignent (`embuscadesDeLaRencontre`). */
 export const ECRITURES_DES_PORTEURS: { readonly [S in SorteDePorteur]: EcritureDuPorteur<DonneeDuPorteur[S]> } = {
   zone: { ecrire: (scene, avant, apres) => ({ ok: true, valeur: porteurRemplace(scene, 'zone', avant.id, apres) }) },
   declencheur: {
@@ -1256,6 +1275,13 @@ export const ECRITURES_DES_PORTEURS: { readonly [S in SorteDePorteur]: EcritureD
     renommer: renameDialogue,
     retirer: removeDialogue,
     renommerElement: noeudRenomme,
+  },
+  rencontre: {
+    ecrire: (scene, avant, apres) => ({ ok: true, valeur: porteurRemplace(scene, 'rencontre', avant.id, apres) }),
+    creer: addEncounter,
+    renommer: renameEncounter,
+    retirer: removeEncounter,
+    viseHorsDeLaScene: embuscadesDeLaRencontre,
   },
 };
 
@@ -1402,7 +1428,7 @@ export function removeMember(scene: Scene, encId: string, entityId: string): Sce
         ...e,
         members: (e.members ?? [])
           .filter((m) => m.entityId !== entityId)
-          .map((m) => (m.ridesEntityId === entityId ? { ...m, ridesEntityId: undefined } : m)),
+          .map((m) => (m.ridesEntityId?.id === entityId ? { ...m, ridesEntityId: undefined } : m)),
       };
     }),
   };

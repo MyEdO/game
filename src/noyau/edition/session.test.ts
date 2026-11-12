@@ -17,6 +17,7 @@ import type { SourceDeLEdition } from './adresseDeProse';
 import { emptyNarratif } from '../monde/campaignNarratif';
 import { emptyScene, heightAt, isWalkable, type Scene } from '../monde/scene';
 import { buildScene, type MapSpec } from '../mapSpec';
+import { emptyWorldMap, type WorldMap } from '../worldMap';
 import { avertissementsDeLaSession, cadreDeLaSession, champDuMessage, editer, groupesDuLieu, ouvrirLEdition, planDeLaVolee, sceneEditee, vueDeLaScene, type GesteDEdition, type SessionDEdition } from './session';
 import { poserLesNavires, provenanceDesNavires } from '../planDeNavire';
 import { validateScene } from '../validateScene';
@@ -34,7 +35,7 @@ import { apparencesDObjetsSchema, couleursSchema, slotSchema } from '../../data/
 import { apparences, apparencesAdmissiblesDObjet, findTrappingById } from '../../data/apparencesObjets';
 import { emptyStatblock, statblockDeLaCreature } from '../../data/valeursNeuves';
 import { valeurNeuveDe } from '../valeursNeuves';
-import { refusDeLaValeur, refusDeRetrait } from './session';
+import { refusDeLaValeur, refusDeRetrait, refusHorsDeLaScene } from './session';
 import { refusDeLEntite, sceneEntitySchema } from '../../data/schemas/defs-scenes/scene';
 import { creatures, findCreatureById, MERCHANT_ARCHETYPES, siegeEngines, spells, talents, traits } from '../../data';
 import { TAVERN_GAMES } from '../../engine/tavernGame';
@@ -828,7 +829,7 @@ describe('les dialogues de la scène éditée, par la table d’écriture de leu
   it('ajouter crée un dialogue sur un cran et le sélectionne ; une sorte qui ne se crée pas par la table est sans objet', () => {
     const s = ouverteSur(AUBERGE);
     const ajoute = jouer(s, { geste: 'ajouter', sorte: 'dialogue' });
-    const neuf = sceneEditee(ajoute).dialogues.at(-1)!;
+    const neuf = sceneEditee(ajoute).dialogues[sceneEditee(ajoute).dialogues.length - 1];
     expect([ajoute.sel, sceneEditee(ajoute).dialogues.length, ajoute.historique.passe.length]).toEqual([{ type: 'dialogue', id: neuf.id }, 4, s.historique.passe.length + 1]);
     expect(jouer(s, { geste: 'ajouter', sorte: 'zone' })).toBe(s);
   });
@@ -885,5 +886,90 @@ describe('les dialogues de la scène éditée, par la table d’écriture de leu
     const rang = avertissementsDeLaSession(s).findIndex((w) => w.scope === 'dialogue' && w.refId === 'casse');
     expect(rang).toBeGreaterThanOrEqual(0);
     expect(jouer(s, { geste: 'avertissement', rang }).sel).toEqual({ type: 'dialogue', id: 'casse' });
+  });
+});
+
+describe('les rencontres de la scène éditée, par la table d’écriture de leur sorte (#3606 M4b)', () => {
+  const jouer = (s: SessionDEdition, ...gestes: GesteDEdition[]) => gestes.reduce(editer, s);
+  const personnage = (id: string): Scene['entities'][number] => ({ id, kind: 'personnage', pos: { x: 1, y: 1 }, creature: { id: 'humain' } });
+  /** `enc-bois`, lancée par le déclencheur `lisiere` et l'embuscade de la route `route-bois` ; `enc-pont`, par la
+   *  poursuite du déclencheur `pont` ; `enc-libre`, par personne. Dans `enc-bois`, `cavalier` chevauche `cheval`. */
+  const CLAIRIERE: Scene = {
+    ...emptyScene('clairiere', 6, 6),
+    entities: ['cavalier', 'cheval', 'archer', 'badaud'].map(personnage),
+    triggers: [
+      { id: 'lisiere', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: flowFromEffects([{ type: 'startCombat', encounter: { id: 'enc-bois' } }] as Effect[]) },
+      { id: 'pont', rect: { x: 1, y: 0, w: 1, h: 1 }, flow: flowFromEffects([{ type: 'startPursuit', partyRole: 'fleeing', distance: 4, skill: { id: 'athletisme' }, foes: [{ ref: { id: 'humain' } }], encounter: { id: 'enc-pont' } }] as Effect[]) },
+    ],
+    encounters: [
+      { id: 'enc-bois', members: [{ entityId: 'cavalier', ridesEntityId: { id: 'cheval' } }, { entityId: 'cheval', mount: true }, { entityId: 'archer' }] },
+      { id: 'enc-pont', members: [] },
+      { id: 'enc-libre', members: [] },
+    ],
+  };
+  const CARTE = {
+    ...emptyWorldMap('carte'),
+    routes: [{ id: 'route-bois', a: { id: 'x' }, b: { id: 'y' }, km: 1, modes: ['pied'], ambush: { scene: { id: 'clairiere' }, encounter: 'enc-bois' } }],
+  } satisfies WorldMap;
+  const ouverteSurLaCarte = (worldMap: WorldMap) => ouvrirLEdition({ scenes: [CLAIRIERE], narratif: NARRATIF_VIDE, worldMap } as unknown as Parameters<typeof ouvrirLEdition>[0], false);
+  const choisie = (id: string, worldMap: WorldMap = CARTE) => jouer(ouverteSurLaCarte(worldMap), { geste: 'selectionner', porteur: { sorte: 'rencontre', id } });
+  const ids = (s: SessionDEdition) => sceneEditee(s).encounters.map((e) => e.id);
+
+  it('ajouter crée une rencontre sans membre sur un cran et la sélectionne', () => {
+    const s = ouverteSurLaCarte(CARTE);
+    const ajoute = jouer(s, { geste: 'ajouter', sorte: 'rencontre' });
+    const neuve = sceneEditee(ajoute).encounters[3];
+    expect([ajoute.sel, neuve.members, ajoute.historique.passe.length]).toEqual([{ type: 'encounter', id: neuve.id }, [], s.historique.passe.length + 1]);
+  });
+
+  it('nommer une rencontre la renomme, propagé à « Démarrer un combat » et à la poursuite, resélectionnée ; un nom pris est sans objet', () => {
+    const bois = jouer(choisie('enc-bois', emptyWorldMap('carte')), { geste: 'nommer', nom: ' enc-foret ' });
+    expect([bois.sel, ids(bois), JSON.stringify(sceneEditee(bois).triggers[0].flow).includes('"enc-foret"')]).toEqual([{ type: 'encounter', id: 'enc-foret' }, ['enc-foret', 'enc-pont', 'enc-libre'], true]);
+    const pont = jouer(choisie('enc-pont'), { geste: 'nommer', nom: 'enc-gue' });
+    expect(JSON.stringify(sceneEditee(pont).triggers[1].flow).includes('"enc-gue"')).toBe(true);
+    expect(validateScene([sceneEditee(pont)]).filter((w) => w.level === 'error' && w.message.includes('catalogue des rencontres'))).toEqual([]);
+    const pris = choisie('enc-pont');
+    expect(jouer(pris, { geste: 'nommer', nom: 'enc-libre' })).toBe(pris);
+  });
+
+  it('une rencontre qu’une embuscade de route du projet lance ne se renomme ni ne se retire, et son refus se dit (B4)', () => {
+    const s = choisie('enc-bois');
+    expect(jouer(s, { geste: 'nommer', nom: 'enc-foret' })).toBe(s);
+    expect(refusHorsDeLaScene(s)).toContain('« route-bois »');
+    expect(refusDeRetrait(s)).toContain('« route-bois »');
+  });
+
+  it('supprimer une rencontre qu’un effet de la scène lance est sans objet, et son refus se dit ; une rencontre libre se retire sur un cran', () => {
+    const s = choisie('enc-pont');
+    expect(jouer(s, { geste: 'supprimer' })).toBe(s);
+    expect(refusDeRetrait(s)).toContain('« enc-pont »');
+    const libre = choisie('enc-libre');
+    expect(refusDeRetrait(libre)).toBeNull();
+    const retire = jouer(libre, { geste: 'supprimer' });
+    expect([retire.sel, ids(retire), retire.historique.passe.length]).toEqual([null, ['enc-bois', 'enc-pont'], libre.historique.passe.length + 1]);
+  });
+
+  it('la cible de la victoire s’écrit parmi les membres, la monture chevauchée parmi les montures ; la liste des membres ne s’écrit pas entière (B5, B6)', () => {
+    const s = choisie('enc-bois');
+    const valeur = (chemin: Segment[], v?: unknown): Extract<GesteDEdition, { geste: 'valeur' }> => ({ geste: 'valeur', porteur: { sorte: 'rencontre', id: 'enc-bois' }, chemin, ...(v === undefined ? {} : { valeur: v }) });
+    const offerts = (chemin: Segment[]) => choixDuChamp('rencontre', sceneEditee(s).encounters[0], chemin, cadreDeLaSession(s))?.map((c) => c.valeur);
+    expect(offerts(['victoryCondition', 'targetId'])).toEqual([{ id: 'cavalier' }, { id: 'cheval' }, { id: 'archer' }]);
+    expect(offerts(['members', 2, 'ridesEntityId'])).toEqual([{ id: 'cheval' }]);
+    const seuil = jouer(s, valeur(['victoryCondition'], { type: 'woundsThreshold', atOrBelowPercent: 50 }), valeur(['victoryCondition', 'targetId'], { id: 'archer' }));
+    expect(sceneEditee(seuil).encounters[0].victoryCondition).toEqual({ type: 'woundsThreshold', targetId: { id: 'archer' }, atOrBelowPercent: 50 });
+    expect(refusDeLaValeur(seuil, valeur(['victoryCondition', 'targetId'], { id: 'badaud' })), 'un personnage hors de la rencontre').toBe('horsSorte');
+    expect(sceneEditee(jouer(s, valeur(['members', 2, 'ridesEntityId'], { id: 'cheval' }))).encounters[0].members![2]).toEqual({ entityId: 'archer', ridesEntityId: { id: 'cheval' } });
+    const membres = sceneEditee(s).encounters[0].members!;
+    expect(refusDeLaValeur(s, valeur(['members'], [...membres, { entityId: 'badaud' }])), 'enrôler passe par `addMember`').toBe('nonOffert');
+    expect(refusDeLaValeur(s, valeur(['members'], [])), 'retirer passe par `removeMember`').toBe('nonOffert');
+    expect(refusDeLaValeur(s, valeur(['members', 0, 'entityId'], 'badaud'))).toBe('nonOffert');
+  });
+
+  it('un avertissement d’une rencontre sélectionne cette rencontre', () => {
+    const casse = { ...CLAIRIERE, encounters: [...CLAIRIERE.encounters, { id: 'enc-casse', members: [{ entityId: 'fantome' }] }] };
+    const s = ouverteSur(casse);
+    const rang = avertissementsDeLaSession(s).findIndex((w) => w.scope === 'encounter' && w.refId === 'enc-casse');
+    expect(rang).toBeGreaterThanOrEqual(0);
+    expect(jouer(s, { geste: 'avertissement', rang }).sel).toEqual({ type: 'encounter', id: 'enc-casse' });
   });
 });

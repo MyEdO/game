@@ -28,8 +28,9 @@ import { estCibleType, varianteAdmise } from '../../../engine/psych/ciblage';
 export type RegimeDeListe = 'passive' | 'executee';
 const REGIMES_DES_LISTES = new WeakMap<object, RegimeDeListe>();
 
-/** La variante `noeud` d'une union (`Condition`, `Flow`, sélecteur, fenêtre, cible), nommée `label` à l'affichage. */
-const variante = <T extends z.ZodType>(label: string, noeud: T): T => nommerNoeud(noeud, { label });
+/** La variante `noeud` d'une union (`Condition`, `Flow`, sélecteur, fenêtre, cible, objectif de victoire), nommée
+ *  `label` à l'affichage. */
+export const variante = <T extends z.ZodType>(label: string, noeud: T): T => nommerNoeud(noeud, { label });
 
 /** Le régime d'une liste d'ops, `undefined` hors de `passifsDe` et `executeesDe`. */
 export function regimeDeListe(noeud: unknown): RegimeDeListe | undefined {

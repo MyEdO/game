@@ -92,12 +92,12 @@ describe('LogicDock — sortie à seuil de dommage (#215 ; MDG 15 l.143, l.166-1
     expect(select.value).toBe('');
     expect(montage.container.textContent).toContain('% de ses Blessures ou moins');
     await choisir(select, 'syrene');
-    expect(pose.encounters[0].victoryCondition).toEqual({ type: 'woundsThreshold', targetId: 'syrene', atOrBelowPercent: 50 });
+    expect(pose.encounters[0].victoryCondition).toEqual({ type: 'woundsThreshold', targetId: { id: 'syrene' }, atOrBelowPercent: 50 });
   });
 
   it('revenir à « chaque adversaire » retire la cible', async () => {
     (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-    const scene = rencontre({ type: 'woundsThreshold', targetId: 'syrene', atOrBelowPercent: 40 });
+    const scene = rencontre({ type: 'woundsThreshold', targetId: { id: 'syrene' }, atOrBelowPercent: 40 });
     let pose: Scene = scene;
     const montage = monterRacine(null);
     await act(() => montage.rendre(dock({ scene, tab: 'encounters', encSel: 'e1', setScene: (s: Scene) => { pose = s; } })));

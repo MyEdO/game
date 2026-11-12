@@ -175,16 +175,14 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
     expect(fautifs).toEqual([]);
   });
 
-  /** Une condition de victoire par seuil de Blessures cible une entité de SA scène, sous un seuil utile. */
-  it.each(bundledFiles.map((f) => [f] as const))('%s : toute victoire par seuil de Blessures cible une entité de sa scène', (file) => {
+  /** Une condition de victoire par seuil de Blessures porte un seuil utile ; sa cible, le parse la juge parmi les membres. */
+  it.each(bundledFiles.map((f) => [f] as const))('%s : toute victoire par seuil de Blessures porte un seuil dans ]0,100]', (file) => {
     const doc = parseProject(lireProjetLivre(file));
     const fautifs: string[] = [];
     for (const sc of doc.scenes) {
-      const ids = new Set(sc.entities.map((e) => e.id));
       for (const enc of sc.encounters) {
         const vc = enc.victoryCondition;
         if (vc?.type !== 'woundsThreshold') continue;
-        if (vc.targetId !== undefined && !ids.has(vc.targetId)) fautifs.push(`${sc.id}/${enc.id} : cible « ${vc.targetId} » absente de la scène`);
         if (!(vc.atOrBelowPercent > 0 && vc.atOrBelowPercent <= 100)) fautifs.push(`${sc.id}/${enc.id} : seuil ${vc.atOrBelowPercent} % hors ]0,100]`);
       }
     }
