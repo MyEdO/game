@@ -18,6 +18,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { availableParallelism } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
+import { estObjet } from '../../../src/lib/objet.mjs'
 import { chargerEvaluateur } from './charger.mjs'
 
 const FACTEURS = ['sl', 'legs', 'arms', 'head', 'st']
@@ -35,8 +36,7 @@ function lirePlafonds(chemin, silhouettes = {}) {
   const noms = Object.keys(silhouettes)
   if (noms.length > 1 || noms.some((nom) => silhouettes[nom] !== 1)) throw new Error('--plafonds : une passe de la porte, le corps neutre ou une silhouette seule à 1')
   const table = JSON.parse(readFileSync(chemin, 'utf8'))
-  const estUneTable = (t) => t !== null && typeof t === 'object' && !Array.isArray(t)
-  if (!estUneTable(table) || !Object.values(table).every((passe) => estUneTable(passe) && Object.values(passe).every((n) => Number.isInteger(n) && n >= 1))) {
+  if (!estObjet(table) || !Object.values(table).every((passe) => estObjet(passe) && Object.values(passe).every((n) => Number.isInteger(n) && n >= 1))) {
     throw new Error(`--plafonds : ${chemin} n’est pas une table { "<passe>": { "<clip>": <entier ≥ 1> } }`)
   }
   return table[noms[0] ?? 'neutre'] ?? {}
