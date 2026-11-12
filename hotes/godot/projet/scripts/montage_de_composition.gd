@@ -1436,6 +1436,12 @@ func recevoir_la_pile(reponse: Dictionary, signature: String) -> void:
 	empilee.emit()
 
 
+## Si le modèle posé attend un travail différé : sa refonte (`_demander_la_refonte`) ou la pile de ses couches,
+## demandée au pont (`_empiler`).
+func en_travail() -> bool:
+	return _refonte_demandee or _pile_demandee != ""
+
+
 ## Le bilan de la pile des couches que porte la fusion (`BilanDePile`, `asset/pile.ts`), `{}` si elle n'en porte pas.
 func pile_posee() -> Dictionary:
 	return pile.bilan if _pile_fondue != "" and pile.get("signature") == _pile_fondue else {}
