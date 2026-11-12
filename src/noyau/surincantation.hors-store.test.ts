@@ -21,7 +21,7 @@ const ENTREES: EntreesDeLaPartie = { graine: 7, reglesMaison: {}, cadence: 'manu
 
 /** Sort d'épreuve : seuls Portée, Cible, Durée, famille et NI comptent ici. */
 const sort = (id: string, champs: Pick<SpellData, 'family' | 'range' | 'target' | 'duration' | 'cn'>): SpellData => ({
-  id, type: 'spells', label: id, ecole: 'Épreuve', subType: null, desc: '', effects: { kind: 'seq', steps: [] },
+  id, type: 'spells', label: id, ecole: 'Épreuve', subType: null, desc: '', effects: { kind: 'sequence', etapes: [] },
   source: { book: 'livre-de-base', page: 243 }, ...champs,
 } as SpellData);
 

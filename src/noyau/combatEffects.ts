@@ -168,7 +168,7 @@ export function pushCombatStep(set: SetFn, step: BuiltCascadeStep | ((index: num
 }
 
 /** Items ramassables d'un décor : l'objet posé au sol qu'il montre (`objetDuSol`, clé = son uid), puis un par feuille
- *  `do` « donneuse » de CHAQUE action authorée encore jouable (`actionsAuthorees`). `key` =
+ *  `effet` « donneuse » de CHAQUE action authorée encore jouable (`actionsAuthorees`). `key` =
  *  `<actionId>:eff:<index dans flowEffects(action.flow)>` — elle porte l'action, parce que le ramassage épuise UNE
  *  action, pas un décor. Effets non-objet & branches (test) ignorés. */
 export function entityPickables(ent: SceneEntity, flags: Drapeaux, objetDe: TrappingResolver, objetsAuSol: Jeu['objetsAuSol']): { key: string; label: string }[] {
@@ -194,16 +194,16 @@ export const cleFeuilleRamassee = (entId: string, actionId: string, index: numbe
 /**
  * Le Flow d'une action authorée PRIVÉ des feuilles déjà ramassées — SOURCE UNIQUE de « ce qu'il reste
  * à donner », lue par l'exécuteur d'exploration (`jouerAction`) comme par le pool de combat.
- * L'original n'est pas touché : un `seq` rend une copie sans ces pas, une feuille unique ramassée rend
+ * L'original n'est pas touché : un `sequence` rend une copie sans ces pas, une feuille unique ramassée rend
  * le Flow VIDE.
  */
 export function flowRestant(entId: string, action: { id: string; flow: Flow }, flags: Drapeaux): Flow {
   const pris = (i: number) => !!flags[cleFeuilleRamassee(entId, action.id, i)];
-  if (action.flow.kind === 'seq') {
+  if (action.flow.kind === 'sequence') {
     let rang = -1;
-    return { ...action.flow, steps: action.flow.steps.filter((s) => (s.kind === 'do' ? !pris(++rang) : true)) };
+    return { ...action.flow, etapes: action.flow.etapes.filter((s) => (s.kind === 'effet' ? !pris(++rang) : true)) };
   }
-  return action.flow.kind === 'do' && pris(0) ? EMPTY_FLOW : action.flow;
+  return action.flow.kind === 'effet' && pris(0) ? EMPTY_FLOW : action.flow;
 }
 
 /** Joue les déclencheurs de zone (`triggersEnJeu` : authorés + dérivés des portes secrètes) où le groupe
@@ -222,25 +222,25 @@ export function checkTriggers(get: Get, set: SetFn) {
     const issue = runFlow(get, set, trig.flow, t('eff.titreDeDecouverte'));
     // Le déclencheur a ouvert un dé (#1508) : les déclencheurs SUIVANTS de la même case sont AUTHORÉS
     // APRÈS lui, donc ils sont sa suite. Chacun garde sa garde `when` et son marquage `once` en
-    // repartant en Flow (`if` de la grammaire + Effet `setFlag`) : la condition se relit sur l'état
+    // repartant en Flow (`si` de la grammaire + Effet `setFlag`) : la condition se relit sur l'état
     // VIVANT au moment où il jouera, exactement comme le tour de boucle qu'il remplace.
     if (issue === OPS_DIFFEREES) {
       const restants = dansLaZone.slice(i + 1).map(enFlowDeDeclencheur);
-      if (restants.length) confierLaSuite(set, [{ verbe: 'reprendreFlow', flow: { kind: 'seq', steps: restants }, label: t('eff.titreDeDecouverte') }]);
+      if (restants.length) confierLaSuite(set, [{ verbe: 'reprendreFlow', flow: { kind: 'sequence', etapes: restants }, label: t('eff.titreDeDecouverte') }]);
       return;
     }
   }
 }
 
-/** UN déclencheur de zone en FLOW pur (#1508) : sa garde `when` devient le `if` de la grammaire, son
+/** UN déclencheur de zone en FLOW pur (#1508) : sa garde `when` devient le `si` de la grammaire, son
  *  marquage `once` l'Effet `setFlag` — le tour de boucle, en donnée différable. */
 function enFlowDeDeclencheur(trig: Trigger): Flow {
   const corps: Flow = trig.once
-    ? { kind: 'seq', steps: [{ kind: 'do', effect: { type: 'setFlag', flag: `__trigger_${trig.id}`, value: true } as Effect }, trig.flow] }
+    ? { kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'setFlag', flag: `__trigger_${trig.id}`, value: true } as Effect }, trig.flow] }
     : trig.flow;
   const pasDejaJoue: Condition = { kind: 'flag', expr: `!__trigger_${trig.id}` };
   const cond: Condition = trig.when ? { kind: 'all', of: [pasDejaJoue, trig.when] } : pasDejaJoue;
-  return { kind: 'if', cond, then: corps };
+  return { kind: 'si', condition: cond, alors: corps };
 }
 
 /** Sépare d'un lot d'Effets les giveTrapping ATTRIBUABLES (sans heroId) → lignes de butin
@@ -335,7 +335,7 @@ export function harvestVictoryCreature(get: Get, set: SetFn, creatureId: string)
   /** L'échec, Degré par Degré, jusqu'à la quantité nulle : un cran de moins par DR sous 0. ZI 13 l.316 */
   const parDegre = (dr: number): Flow => (harvestYield(p, size, dr).enc === 0
     ? EMPTY_FLOW
-    : { kind: 'if', cond: { kind: 'slThreshold', op: '>=', value: dr }, then: pieces(dr), else: parDegre(dr - 1) });
+    : { kind: 'si', condition: { kind: 'slThreshold', op: '>=', value: dr }, alors: pieces(dr), sinon: parDegre(dr - 1) });
   const titre = stepDetail(t('eff.recolte'), dataLabel(name));
   // ZI 13 l.316 : sans MJ, le récolteur joue sa meilleure Compétence admise (choix d'ingénierie de l'orchestrateur).
   const admis = testsDeRecolte(c);
@@ -411,8 +411,8 @@ export function scheduleDelayedOps(
     + resolveFormula(op.forHours ?? 0, target, rng) * 60
     + resolveFormula(op.forDays ?? 0, target, rng) * 24 * 60;
   const flow: Flow = {
-    kind: 'do',
-    effect: {
+    kind: 'effet',
+    effet: {
       type: 'ops', ...cible, ops: op.ops,
       ...(base.label ? { label: base.label } : {}),
       ...(forMin > 0 ? { untilTime: executeAt + forMin } : {}),
@@ -899,7 +899,7 @@ export function messageOpHorsDeSaCible(e: { on?: EffectOp['on']; ops: readonly G
 
 /** Ouvre la modale d'un Test de compétence — SOURCE UNIQUE (le nœud Flow `test` ET `Effect.test` y
  *  passent). `onSuccess`/`onFailure` = branches (Flows) ; `after` = continuation reprise APRÈS la
- *  branche (suite d'un `seq`). Choix du meilleur PJ effectif (malus social compris), candidats,
+ *  branche (suite d'un `sequence`). Choix du meilleur PJ effectif (malus social compris), candidats,
  *  `easierIf`, outil. Retourne false si aucun héros vivant ne peut tenter (le flux continue sans Test). */
 export function openSkillTest(
   get: Get, set: SetFn, spec: FlowTest, cc: ConditionCtx, onSuccess: Flow, onFailure: Flow, after: Flow,
@@ -1079,16 +1079,16 @@ function ouvrirGeste(get: Get, set: SetFn, e: Effect, suite: Flow, sl?: number):
 }
 
 /**
- * Exécute un Flow (logique authorée : séquence/branches/Test) — SOURCE UNIQUE. `do` accumule les
+ * Exécute un Flow (logique authorée : séquence/branches/Test) — SOURCE UNIQUE. `effet` accumule les
  * Effets et les applique en lot (butin attribuable via `applyEffectsLoot`) — un GESTE JOUEUR (`suspensif`)
- * vide le lot et prend la pile restante comme suite, comme `test` ; `if` vide d'abord le lot
+ * vide le lot et prend la pile restante comme suite, comme `test` ; `si` vide d'abord le lot
  * (la condition lit l'état VIVANT — flags/horloge — donc après les Effets émis) puis branche ; `test`
  * vide le lot, ouvre la modale et SUSPEND — la branche choisie + la continuation (reste de la pile)
  * sont reprises par `jetValider('test')`. Pas de boucle → terminaison garantie.
  *
  * Rend `OPS_DIFFEREES` (#1508) quand un lot a ouvert un dé à la porte : la pile RESTANTE lui a été
  * confiée, et l'appelant n'a plus rien à jouer. CHAQUE vidange du lot est un point d'application, donc
- * chacune consulte le signal — le `if` et le `test` compris, dont le NŒUD COURANT n'est pas encore
+ * chacune consulte le signal — le `si` et le `test` compris, dont le NŒUD COURANT n'est pas encore
  * consommé et repart en tête de la continuation (il branchera quand le dé sera tombé, sur l'état que
  * la conséquence aura produit).
  */
@@ -1100,7 +1100,7 @@ export function runFlow(get: Get, set: SetFn, flow: Flow, label: string = t('eff
   /** Le lot vient d'ouvrir un dé : `node` (non consommé) et le reste de la pile deviennent SA suite. */
   const vidange = (node: Flow, reste: ResteDuFlow<Effect>): ArretDeFlow<Applique> | undefined => {
     if (!flush()) return undefined;
-    confierLaSuite(set, [{ verbe: 'reprendreFlow', flow: { kind: 'seq', steps: [node, ...reste().steps] }, label, ...(sl !== undefined ? { sl } : {}) }]);
+    confierLaSuite(set, [{ verbe: 'reprendreFlow', flow: { kind: 'sequence', etapes: [node, ...reste().etapes] }, label, ...(sl !== undefined ? { sl } : {}) }]);
     return { arret: OPS_DIFFEREES };
   };
   const suspendu: ArretDeFlow<Applique> = { arret: undefined };
@@ -1109,38 +1109,38 @@ export function runFlow(get: Get, set: SetFn, flow: Flow, label: string = t('eff
     conditions: () => ({ ...condCtx(get), ...(sl !== undefined ? { sl } : {}) }),
     avantDecision: vidange,
     feuille: (node, reste) => {
-      // Les VOLONTAIRES décident avant la feuille : même patron que le `choice` ci-dessous.
-      const volontaires = node.effect.type === 'ops' && typeof node.effect.on === 'object' && 'volontaires' in node.effect.on ? node.effect.on.volontaires : undefined;
+      // Les VOLONTAIRES décident avant la feuille : même patron que le `choix` ci-dessous.
+      const volontaires = node.effet.type === 'ops' && typeof node.effet.on === 'object' && 'volontaires' in node.effet.on ? node.effet.on.volontaires : undefined;
       if (volontaires !== undefined) {
         const differe = vidange(node, reste);
         if (differe) return differe;
         const after = reste();
-        return demanderLesVolontaires(get, set, node.effect as EffectOp, volontaires, after, label, sl) ? suspendu : after;
+        return demanderLesVolontaires(get, set, node.effet as EffectOp, volontaires, after, label, sl) ? suspendu : after;
       }
       // GESTE JOUEUR (`suspensif`) : même patron que le `test` ci-dessous — le lot se vide d'abord, le
       // reste de la pile devient la suite que son pending rejouera.
-      if (!(EFFECT_HANDLERS[node.effect.type] as EffectHandler).suspensif) { batch.push(node.effect); return undefined; }
+      if (!(EFFECT_HANDLERS[node.effet.type] as EffectHandler).suspensif) { batch.push(node.effet); return undefined; }
       const differe = vidange(node, reste);
       if (differe) return differe;
       const after = reste();
-      return ouvrirGeste(get, set, node.effect, after, sl) ? suspendu : after;
+      return ouvrirGeste(get, set, node.effet, after, sl) ? suspendu : after;
     },
     test: (node, reste) => {
       const after = reste();
       if (node.test.crewTestType) {
         if (ouvrirLeTestDEquipage(get, set, node, after, label, sl)) return suspendu;
         // Aucun marin apte à bord : aucun DR au total, échec. MDG 14 l.13
-        return { kind: 'seq', steps: [node.fail, after] };
+        return { kind: 'sequence', etapes: [node.echec, after] };
       }
       // Test non joué ou personne ne peut tenter → on reprend directement la continuation.
       // lecture déclarée : la `gate` d'un Test de scène se juge par héros, chacun par `resoudreFlowTest` (MDG 15 l.197)
       const parmi = node.test.gate ? testeursAdmis(get, node.test) : undefined;
-      return openSkillTest(get, set, node.test, condCtx(get), node.success, node.fail, after, parmi ? { parmi } : undefined) ? suspendu : after;
+      return openSkillTest(get, set, node.test, condCtx(get), node.reussite, node.echec, after, parmi ? { parmi } : undefined) ? suspendu : after;
     },
     choix: (node, reste) => {
       const after = reste();
       if (ouvrirLeChoixDuFlow(get, set, node, after, label, sl)) return suspendu;
-      return { kind: 'seq', steps: [node.non ?? EMPTY_FLOW, after] };
+      return { kind: 'sequence', etapes: [node.non ?? EMPTY_FLOW, after] };
     },
     // Vidange FINALE : la pile est vide, il n'y a plus de suite à confier — le signal est rendu tel quel
     // à l'appelant, à qui de décider (c'est lui qui sait s'il enchaîne quelque chose).
@@ -1162,13 +1162,13 @@ function referentDeScene(get: Get, set: SetFn): Referent | Combatant {
 }
 
 /**
- * Ouvre la DÉCISION d'un nœud `choice` d'un Flow de scène (`runFlow`) : une étape de choix `choixDeFlux`
+ * Ouvre la DÉCISION d'un nœud `choix` d'un Flow de scène (`runFlow`) : une étape de choix `choixDeFlux`
  * au MENEUR du groupe, oui / renoncer, dont l'applier joue la branche puis `after`. L'auto-pilote prend
  * « oui » (`defaultChoice`), comme la décision automatique d'un choix de combat (`resolveFlowChoice`).
  * `false` quand le nœud n'est pas offert : un coût d'Avantage hors combat (LDB 14 l.219), ou aucun
  * meneur pour décider — la branche « non » se joue alors.
  */
-function ouvrirLeChoixDuFlow(get: Get, set: SetFn, node: Extract<Flow, { kind: 'choice' }>, after: Flow, label: string, sl?: number): boolean {
+function ouvrirLeChoixDuFlow(get: Get, set: SetFn, node: Extract<Flow, { kind: 'choix' }>, after: Flow, label: string, sl?: number): boolean {
   const decideur = meneurDeboutDuMonde(get()) ?? meneurDuMonde(get());
   if (node.advantageCost != null || !decideur) return false;
   openChoice(get, set, {
@@ -1203,7 +1203,7 @@ function ccDuTesteur(cc: ConditionCtx, h: Combatant): ConditionCtx {
 function demanderLesVolontaires(get: Get, set: SetFn, e: EffectOp, question: string, after: Flow, label: string, sl?: number): boolean {
   const heros = effectTargets(get, 'party');
   if (!heros.length) { get().ecrireAuJournal(t('eff.volontairesAucun', { question })); return false; }
-  const meta = { choiceYes: { kind: 'do' as const, effect: e }, after, flowLabel: label, ...(sl !== undefined ? { flowSl: sl } : {}) };
+  const meta = { choiceYes: { kind: 'effet' as const, effet: e }, after, flowLabel: label, ...(sl !== undefined ? { flowSl: sl } : {}) };
   const etapes = heros.map((h, i) => choiceStep({
     id: `volontaireDeFlux-${question}-${h.id}`, kind: 'volontaireDeFlux', actorId: h.id, icon: 'interface/reflexion',
     label: stepPrecision(dataLabel(question), dataLabel(h.label)),
@@ -2452,12 +2452,12 @@ export const TABLES = {
       // conséquence journalisée (`jouerLesClotures`).
       return { consequences: freeCons(journal) };
     },
-    /** Décision d'un nœud `choice` de `runFlow` (`ouvrirLeChoixDuFlow`) : la branche choisie, puis la
+    /** Décision d'un nœud `choix` de `runFlow` (`ouvrirLeChoixDuFlow`) : la branche choisie, puis la
      *  continuation du Flow, sous le libellé et le DR du Flow qui l'a ouverte. */
     choixDeFlux: (get, set, step) => {
       if (step.chosen !== 'oui' && step.chosen !== 'non') return;
       const branche = (step.chosen === 'oui' ? step.meta?.choiceYes : step.meta?.choiceNo) ?? EMPTY_FLOW;
-      jouerFlowEntier(runFlow(get, set, { kind: 'seq', steps: [branche, step.meta?.after ?? EMPTY_FLOW] }, step.meta?.flowLabel, step.meta?.flowSl));
+      jouerFlowEntier(runFlow(get, set, { kind: 'sequence', etapes: [branche, step.meta?.after ?? EMPTY_FLOW] }, step.meta?.flowLabel, step.meta?.flowSl));
       return { consequences: freeCons([]) };
     },
     /** Réponse d'un héros à la question des VOLONTAIRES (`demanderLesVolontaires`) : la dernière étape de la
@@ -2465,14 +2465,14 @@ export const TABLES = {
     volontaireDeFlux: (get, set, step, _hero, sctx) => {
       if (step.chosen !== 'oui' && step.chosen !== 'non') return;
       const feuille = step.meta?.choiceYes;
-      if (!feuille || feuille.kind !== 'do' || feuille.effect.type !== 'ops') return { consequences: freeCons([]) };
-      const e = feuille.effect;
+      if (!feuille || feuille.kind !== 'effet' || feuille.effet.type !== 'ops') return { consequences: freeCons([]) };
+      const e = feuille.effet;
       const oui = sctx.steps.slice(0, sctx.index + 1)
         .filter((x) => x.kind === 'volontaireDeFlux' && x.id.startsWith(`volontaireDeFlux-${(e.on as CibleDeVolontaires).volontaires}-`) && x.chosen === 'oui' && x.actorId)
         .map((x) => x.actorId!);
       if (!oui.length) get().ecrireAuJournal(t('eff.volontairesAucun', { question: (e.on as CibleDeVolontaires).volontaires }));
-      const feuilles: Flow[] = oui.map((heroId) => ({ kind: 'do', effect: { ...e, on: 'hero', heroId } }));
-      jouerFlowEntier(runFlow(get, set, { kind: 'seq', steps: [...feuilles, step.meta?.after ?? EMPTY_FLOW] }, step.meta?.flowLabel, step.meta?.flowSl));
+      const feuilles: Flow[] = oui.map((heroId) => ({ kind: 'effet', effet: { ...e, on: 'hero', heroId } }));
+      jouerFlowEntier(runFlow(get, set, { kind: 'sequence', etapes: [...feuilles, step.meta?.after ?? EMPTY_FLOW] }, step.meta?.flowLabel, step.meta?.flowSl));
       return { consequences: freeCons([]) };
     },
     chuteDe: (get, set, step, hero) => {

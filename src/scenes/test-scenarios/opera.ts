@@ -245,12 +245,12 @@ function construireScene(): Scene {
             type: 'delayedEffect', afterMinutes: 10,
             // Séquence d'échéance : ambiance + souffle des pétards, PUIS un Test de Perception (le vol de Glimbrin).
             flow: {
-              kind: 'seq',
-              steps: [
-                { kind: 'do', effect: { type: 'journal', desc: 'Près de l’allée centrale, la lueur d’une mèche embrase la pénombre…' } },
-                { kind: 'do', effect: { type: 'setLight', level: 0.8 } },
-                { kind: 'do', effect: { type: 'zoneBlast', center: { x: 9, y: 8 }, radius: 1, ops: [{ op: 'wounds', amount: 2 }] } },
-                { kind: 'do', effect: { type: 'journal', desc: 'Une volée de pétards éclate sur le siège du professeur Pakker ! Le spectacle s’interrompt dans les cris — mais sans panique. Dans le brouhaha, une petite silhouette se faufile sous son fauteuil…' } },
+              kind: 'sequence',
+              etapes: [
+                { kind: 'effet', effet: { type: 'journal', desc: 'Près de l’allée centrale, la lueur d’une mèche embrase la pénombre…' } },
+                { kind: 'effet', effet: { type: 'setLight', level: 0.8 } },
+                { kind: 'effet', effet: { type: 'zoneBlast', center: { x: 9, y: 8 }, radius: 1, ops: [{ op: 'wounds', amount: 2 }] } },
+                { kind: 'effet', effet: { type: 'journal', desc: 'Une volée de pétards éclate sur le siège du professeur Pakker ! Le spectacle s’interrompt dans les cris — mais sans panique. Dans le brouhaha, une petite silhouette se faufile sous son fauteuil…' } },
                 testFlow(
                   {
                     skill: { id: 'perception' }, difficulty: 'difficile', label: 'Repérer le voleur dans le brouhaha',

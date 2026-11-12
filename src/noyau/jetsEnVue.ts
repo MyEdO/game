@@ -373,7 +373,7 @@ const LECTEURS: Record<FlowKey, (s: Jeu) => JetEnVue | null> = {
     if (pa.target2 != null && pa.skill2) lignes.push(ligne(pa.heroId, pa.skill2, pa.roll != null ? { roll: pa.roll, target: pa.target2, sl: pa.sl2 ?? 0, success: pa.success2 } : null, pa.target2));
     const ennemi = r && pa.enemyValue != null && pa.enemyRoll != null && s.massBattle ? evaluateTest(pa.enemyRoll, pa.enemyValue) : null;
     if (!ennemi) return vue('activite', lignes);
-    lignes.push(ligne(null, libelleDePuissance(s.massBattle!.enemy.label), ennemi));
+    lignes.push(ligne(null, libelleDePuissance(s.massBattle!.ennemi.label), ennemi));
     return vue('activite', lignes, { gagnante: pa.success ? 0 : lignes.length - 1, drNet: Math.abs(pa.enemySL ?? 0) });
   },
   marchandage: (s) => {

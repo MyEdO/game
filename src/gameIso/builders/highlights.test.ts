@@ -39,9 +39,9 @@ describe('buildHighlights — surbrillances sémantiques (clés historiques stab
   it('hors de mon tour (coop) : AUCUNE grille, mais les teintes d’équipe restent', () => {
     const b = { combatants: [cbt('h1', 'hero', { x: 0, y: 0 }), cbt('e1', 'enemy', { x: 3, y: 3 })], zones: [] } as unknown as BattleState;
     const els = buildHighlights(scene(), b, { ...VIEW, myTurn: false, walkReach: new Map([['1,1', 1]]), activeId: 'h1' });
-    expect(els.every((e) => e.kind === 'team')).toBe(true);
-    expect(els.find((e) => e.key === 'tth1-0-0')).toMatchObject({ kind: 'team', hero: true, active: true });
-    expect(els.find((e) => e.key === 'tte1-0-0')).toMatchObject({ kind: 'team', hero: false, active: false });
+    expect(els.every((e) => e.kind === 'equipe')).toBe(true);
+    expect(els.find((e) => e.key === 'tth1-0-0')).toMatchObject({ kind: 'equipe', hero: true, active: true });
+    expect(els.find((e) => e.key === 'tte1-0-0')).toMatchObject({ kind: 'equipe', hero: false, active: false });
   });
 
   it('teintes d’équipe : cavalier exclu (représenté par sa monture), empreinte N×N couverte, monture du cavalier actif « active »', () => {
@@ -52,7 +52,7 @@ describe('buildHighlights — surbrillances sémantiques (clés historiques stab
     expect(els.find((e) => e.key.startsWith('tth1'))).toBeUndefined(); // pas de pastille 1×1 du cavalier
     const mTiles = els.filter((e) => e.key.startsWith('ttm1'));
     expect(mTiles).toHaveLength(4); // Grande créature → empreinte 2×2
-    expect(mTiles[0]).toMatchObject({ kind: 'team', active: true }); // monture du cavalier actif
+    expect(mTiles[0]).toMatchObject({ kind: 'equipe', active: true }); // monture du cavalier actif
   });
 
   it('zones persistantes : fumée vs feu, au sol', () => {
@@ -84,10 +84,10 @@ describe('buildHighlights — surbrillances sémantiques (clés historiques stab
       crowdIds: new Set(['e2']),
       candidates: { ids: ['a1', 'e2'], friendly: false, checkedIds: new Set(['a1']) },
     });
-    expect(els.find((e) => e.key === 'tgt-e1')).toMatchObject({ kind: 'ring', tone: 'target' });
-    expect(els.find((e) => e.key === 'crowd-e2')).toMatchObject({ kind: 'ring', tone: 'crowd' });
-    expect(els.find((e) => e.key === 'cand-a1')).toMatchObject({ kind: 'ring', tone: 'ally' }); // déjà coché → vert
-    expect(els.find((e) => e.key === 'cand-e2')).toMatchObject({ kind: 'ring', tone: 'target' });
+    expect(els.find((e) => e.key === 'tgt-e1')).toMatchObject({ kind: 'anneau', tone: 'cible' });
+    expect(els.find((e) => e.key === 'crowd-e2')).toMatchObject({ kind: 'anneau', tone: 'foule' });
+    expect(els.find((e) => e.key === 'cand-a1')).toMatchObject({ kind: 'anneau', tone: 'allie' }); // déjà coché → vert
+    expect(els.find((e) => e.key === 'cand-e2')).toMatchObject({ kind: 'anneau', tone: 'cible' });
   });
 });
 
@@ -111,7 +111,7 @@ describe('buildHighlights — bandes de portée du tireur survolé (rangeBandSou
     const b = { combatants: [], zones: [] } as unknown as BattleState;
     const rangeM = 20; // Portée×3 = 60 m = 30 cases (mpt = 2)
     const els = buildHighlights(carte(), b, { ...VIEW, rangeBandSource: { pos: { x: 0, y: 0 }, rangeM } });
-    const rb = els.filter((e) => e.kind === 'rangeBand');
+    const rb = els.filter((e) => e.kind === 'bandeDePortee');
     const at = (dx: number, dy: number) => rb.find((e) => e.cell.x === dx && e.cell.y === dy);
     expect(at(1, 0)).toMatchObject({ tone: 'bonus' });
     expect(at(10, 0)).toMatchObject({ tone: 'neutre' });
@@ -124,7 +124,7 @@ describe('buildHighlights — bandes de portée du tireur survolé (rangeBandSou
     // Tireur au centre d'une carte 40×40, Portée 150 m → rayon théorique 225 cases : sans borne le semis
     // émettait 203 401 éléments (451²) au lieu des 1 600 cases de la carte.
     const els = buildHighlights(carte(), b, { ...VIEW, rangeBandSource: { pos: { x: 20, y: 20 }, rangeM: 150 } });
-    const rb = els.filter((e) => e.kind === 'rangeBand');
+    const rb = els.filter((e) => e.kind === 'bandeDePortee');
     expect(rb.filter((e) => horsCarte(e, 40, 40))).toHaveLength(0);
     expect(rb).toHaveLength(1600); // 40×40 : toute la carte est dans la bande, rien de plus
   });
@@ -132,7 +132,7 @@ describe('buildHighlights — bandes de portée du tireur survolé (rangeBandSou
   it('un tireur au BORD ne peint que le quart de bandes qui tombe sur la carte', () => {
     const b = { combatants: [], zones: [] } as unknown as BattleState;
     const els = buildHighlights(emptyScene('scene-test', 6, 6), b, { ...VIEW, rangeBandSource: { pos: { x: 5, y: 5 }, rangeM: 20 } });
-    const rb = els.filter((e) => e.kind === 'rangeBand');
+    const rb = els.filter((e) => e.kind === 'bandeDePortee');
     expect(rb.filter((e) => horsCarte(e, 6, 6))).toHaveLength(0);
     expect(rb).toHaveLength(36);
   });
@@ -149,6 +149,6 @@ describe('buildHighlights — bandes de portée du tireur survolé (rangeBandSou
   it('rangeBandSource absent : aucun élément rangeBand', () => {
     const b = { combatants: [], zones: [] } as unknown as BattleState;
     const els = buildHighlights(emptyScene('scene-test', 6, 6), b, VIEW);
-    expect(els.some((e) => e.kind === 'rangeBand')).toBe(false);
+    expect(els.some((e) => e.kind === 'bandeDePortee')).toBe(false);
   });
 });

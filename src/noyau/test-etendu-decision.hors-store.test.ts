@@ -23,8 +23,8 @@ const heros = (seed: number, crocheteur = false) => {
 };
 const etendu = (over: Partial<TestEtendu> = {}): TestEtendu =>
   ({ type: 'extendedTest', characteristic: 'force', difficulty: 'difficile', label: 'Forcer la grille', drCible: 3, flag: 'cede', ...over });
-const seul = (e: TestEtendu): Flow => ({ kind: 'do', effect: e });
-const puis = (e: TestEtendu): Flow => ({ kind: 'seq', steps: [seul(e), { kind: 'do', effect: { type: 'setFlag', flag: 'apres' } }] });
+const seul = (e: TestEtendu): Flow => ({ kind: 'effet', effet: e });
+const puis = (e: TestEtendu): Flow => ({ kind: 'sequence', etapes: [seul(e), { kind: 'effet', effet: { type: 'setFlag', flag: 'apres' } }] });
 const annonce = (e: TestEtendu) => testAnnonce(seul(e), { cc: condCtx(get), groupe: get().party });
 
 /** La cible d'un Round que l'applier ouvre pour `e`, l'état rendu tel qu'avant. */

@@ -240,7 +240,7 @@ export function newOp(op: GameOp['op'] | string): GameOp {
     case 'commission': return { op: 'commission', montant: { brass: 48000 } };
     case 'constructeurDEscale': return { op: 'constructeurDEscale', competence: 68, duree: { dice: { n: 1, sides: 10 } } };
     case 'rationsDEscale': return { op: 'rationsDEscale', montant: { brass: 3 } };
-    case 'infestation': return { op: 'infestation', crewTestType: { id: '' }, difficulty: 'intermediaire', drCible: 10, chaqueNuit: { kind: 'seq', steps: [] } };
+    case 'infestation': return { op: 'infestation', crewTestType: { id: '' }, difficulty: 'intermediaire', drCible: 10, chaqueNuit: { kind: 'sequence', etapes: [] } };
     default: {
       const payload = OP_DEFS[op];
       if (payload) return sansReferenceElue(payload, valeurNeuveDe(payload)) as GameOp;

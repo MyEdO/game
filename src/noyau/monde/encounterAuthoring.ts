@@ -27,9 +27,9 @@ export type AuthoredEnemy = AuMoinsUnPorteurDeFiche & {
   facing?: Dir8;
   label?: string;
   anim?: SceneEntity['anim'];
-  /** Camp au spawn (défaut 'enemy'). */
-  side?: 'enemy' | 'ally';
-  /** PNJ allié piloté par l'IA (avec `side:'ally'`) : agit seul, le joueur ne le micro-gère pas. */
+  /** Camp au spawn (défaut 'ennemi'). */
+  side?: 'ennemi' | 'allie';
+  /** PNJ allié piloté par l'IA (avec `side:'allie'`) : agit seul, le joueur ne le micro-gère pas. */
   ai?: boolean;
   /** Monture rideable. */
   mount?: boolean;

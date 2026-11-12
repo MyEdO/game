@@ -105,7 +105,7 @@ describe('jouerALaTaverne', () => {
     await drain();
     const res = get().tavernGames!.result!;
     expect(res.rounds).toBeGreaterThanOrEqual(1);
-    expect(Math.max(res.playerSL, res.opponentSL)).toBeGreaterThanOrEqual(10); // cible atteinte
+    expect(Math.max(res.dr.joueur, res.dr.adversaire)).toBeGreaterThanOrEqual(10); // cible atteinte
   });
 
   it('Test opposé RÉEL (#579) : contre la SALLE, le jet adverse est roulé et FIGÉ AVANT que le joueur ne lance', () => {
@@ -226,12 +226,12 @@ describe('jouerALaTaverne', () => {
     const aT = step.meta!.opposed!.aT;
     await drain();
     const res = get().tavernGames!.result!;
-    // Recompose le verdict SEUL depuis le jet adverse figé + le DR final connu du joueur (`res.playerSL`) —
+    // Recompose le verdict SEUL depuis le jet adverse figé + le DR final connu du joueur (`res.dr.joueur`) —
     // même comparaison que `resolveOpposed` côté moteur (`engine/tavernGame.resolveTavernRound`).
-    const opp = resolveOpposed({ roll: 0, target: 0, sl: res.playerSL, success: res.playerSL > 0, isDouble: false }, aT);
+    const opp = resolveOpposed({ roll: 0, target: 0, sl: res.dr.joueur, success: res.dr.joueur > 0, isDouble: false }, aT);
     const expectedWinner = opp.winner === 'attaquant' ? 'joueur' : opp.winner === 'defenseur' ? 'adversaire' : 'egalite';
     expect(res.winner).toBe(expectedWinner);
-    expect(res.opponentSL).toBe(aT.sl); // aucun plafond déclaré : le DR adverse passe entier
+    expect(res.dr.adversaire).toBe(aT.sl); // aucun plafond déclaré : le DR adverse passe entier
   }
 });
 
@@ -342,9 +342,9 @@ describe('Bras de fer (NADJ 16 l.34)', () => {
     expect(get().sequence, 'cible atteinte : la séquence est retirée').toBeNull();
     const res = get().tavernGames!.result!;
     expect(res.winner).toBe('joueur');
-    expect(res.playerSL).toBeGreaterThanOrEqual(10);
+    expect(res.dr.joueur).toBeGreaterThanOrEqual(10);
     expect(res.rounds).toBe(2);
-    expect(res.detail).toBe(`${res.playerSL} DR cumulés contre ${res.opponentSL} en 2 manches`);
+    expect(res.detail).toBe(`${res.dr.joueur} DR cumulés contre ${res.dr.adversaire} en 2 manches`);
   });
 
   it('une partie emportée en UNE manche le dit au singulier', () => {
@@ -353,7 +353,7 @@ describe('Bras de fer (NADJ 16 l.34)', () => {
     get().jouerALaTaverne(a.id, { gameId: 'bras-de-fer', opponent: { kind: 'heros', id: b.id } });
     poseManche({ [a.id]: 10, [b.id]: 0 });
     const res = get().tavernGames!.result!;
-    expect(res.detail).toBe(`${res.playerSL} DR cumulés contre ${res.opponentSL} en 1 manche`);
+    expect(res.detail).toBe(`${res.dr.joueur} DR cumulés contre ${res.dr.adversaire} en 1 manche`);
   });
 
   /**
@@ -471,7 +471,7 @@ describe('Bras de fer (NADJ 16 l.34)', () => {
     expect(cum.joueur, 'le total ne descend jamais sous 0').toBeGreaterThanOrEqual(0);
     get().jetRegler('cascade', 'abandon', true);
     const res = get().tavernGames!.result!;
-    expect([res.playerSL, res.opponentSL]).toEqual([cum.joueur, cum.adversaire]);
+    expect([res.dr.joueur, res.dr.adversaire]).toEqual([cum.joueur, cum.adversaire]);
     expect(res.detail).toBe(`${a.label} abandonne. ${cum.joueur} DR cumulés contre ${cum.adversaire} en 2 manches`);
   });
 

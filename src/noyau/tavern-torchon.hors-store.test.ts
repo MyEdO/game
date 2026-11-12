@@ -210,8 +210,8 @@ describe('Le torchon trempé (NADJ 16 l.109-111)', () => {
     // les deux totaux sont négatifs après 24 lancers — un barème qui ajouterait, ou un compte inversé,
     // ne les produirait pas.
     const res = get().tavernGames!.result!;
-    expect(res.playerSL, 'les points d’un camp de 12 sobres passent sous zéro').toBeLessThan(0);
-    expect(res.opponentSL).toBeLessThan(0);
+    expect(res.dr.joueur, 'les points d’un camp de 12 sobres passent sous zéro').toBeLessThan(0);
+    expect(res.dr.adversaire).toBeLessThan(0);
   });
 
   /**

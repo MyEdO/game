@@ -87,8 +87,8 @@ describe('amorcerLaBataille / état', () => {
     start(); // interlude ouvert (budget de préparation)
     const s = banc.getState();
     expect(s.screen).toBe('interlude'); // pas d'écran de bataille séparé : la prépa se joue dans l'interlude
-    expect(armyMight(s.massBattle!.ally)).toBe(50);
-    expect(armyMight(s.massBattle!.enemy)).toBe(55);
+    expect(armyMight(s.massBattle!.allie)).toBe(50);
+    expect(armyMight(s.massBattle!.ennemi)).toBe(55);
     expect(s.massBattle?.phase).toBe('prep');
     expect(s.massBattle?.situation).toEqual([]); // composée seulement à `engagerLaBataille`
     expect(s.massBattle?.pool.length).toBeGreaterThan(0);
@@ -195,16 +195,16 @@ describe('Activités de bataille pré-combat (l.79-106)', () => {
     // Sabotage maintenant possible : −5 sur la Puissance de DÉPART (wounds.max) ET la courante.
     prep('sabotage');
     resolveBattleTest({ roll: 10, success: true, sl: 2 });
-    expect(armyStartMight(mbState().enemy)).toBe(50); // 55 − 5
-    expect(armyMight(mbState().enemy)).toBe(50);
+    expect(armyStartMight(mbState().ennemi)).toBe(50); // 55 − 5
+    expect(armyMight(mbState().ennemi)).toBe(50);
   });
 
   it('Rassembler des forces (l.96) : Stupéfiant → +10 de Puissance de DÉPART (le plafond suit)', () => {
     start({ allyMight: 50 });
     prep('rassembler-des-forces');
     resolveBattleTest({ roll: 3, success: true, sl: 6 });
-    expect(armyStartMight(mbState().ally)).toBe(60);
-    expect(armyMight(mbState().ally)).toBe(60);
+    expect(armyStartMight(mbState().allie)).toBe(60);
+    expect(armyMight(mbState().allie)).toBe(60);
   });
 
   it('budget UNIQUE : sans interlude ouvert, AUCUNE préparation possible (Round 1 direct)', () => {
@@ -303,7 +303,7 @@ describe('Scènes cinématiques — MULTI-PJ en Soutien (l.116-118)', () => {
     expect(second).not.toBe(first);
     resolveBattleTest({ roll: 10, success: true, sl: 2 });
     const mb = mbState();
-    expect(armyMight(mb.enemy)).toBe(55 - 10 - 10); // cumul (−10 Ligne de mire [succès → général tombe], −10 Compte à rebours)
+    expect(armyMight(mb.ennemi)).toBe(55 - 10 - 10); // cumul (−10 Ligne de mire [succès → général tombe], −10 Compte à rebours)
     expect(mb.actedHeroes).toHaveLength(2);
     expect(mb.resolvedScenes).toEqual(expect.arrayContaining(['ligne-de-mire', 'compte-a-rebours']));
   });
@@ -324,7 +324,7 @@ describe('Scènes cinématiques — MULTI-PJ en Soutien (l.116-118)', () => {
     auRound();
     banc.getState().fenetreChoisir('batailleDeMasse', 'scene', 'ligne-de-mire');
     resolveBattleTest({ roll: 10, success: true, sl: 2 }); // succès simple
-    expect(armyMight(mbState().enemy)).toBe(55 - 10); // −5 (succès) −5 (général tombé)
+    expect(armyMight(mbState().ennemi)).toBe(55 - 10); // −5 (succès) −5 (général tombé)
   });
 
   it('Survol : le général ne tombe (−15) qu\'au Succès Stupéfiant (DR ≥ 6, l.217)', () => {
@@ -332,7 +332,7 @@ describe('Scènes cinématiques — MULTI-PJ en Soutien (l.116-118)', () => {
     auRound();
     banc.getState().fenetreChoisir('batailleDeMasse', 'scene', 'survol');
     resolveBattleTest({ roll: 5, success: true, sl: 2 }); // succès simple : pas d'approche au Corps à corps
-    expect(armyMight(mbState().enemy)).toBe(55 - 5); // −5 seulement, général debout
+    expect(armyMight(mbState().ennemi)).toBe(55 - 5); // −5 seulement, général debout
   });
 
   it('Survol : Échec Stupéfiant impose une Charge au Round suivant (l.217)', () => {
@@ -414,7 +414,7 @@ describe('Scène de COMBAT — touches ET kills (l.139)', () => {
     });
     banc.getState().fenetreFermer('victoire');
     const after = mbState();
-    expect(armyMight(after.enemy)).toBe(55 - 7);
+    expect(armyMight(after.ennemi)).toBe(55 - 7);
     expect(after.combatScene).toBeUndefined();
     expect(after.resolvedScenes).toContain('charge');
     expect(banc.getState().screen).toBe('massBattle');
@@ -432,7 +432,7 @@ describe('Duel (l.225) — vraie Scène de combat + intervention', () => {
       battle: null,
     });
     banc.getState().fenetreFermer('victoire');
-    expect(armyMight(mbState().enemy)).toBe(55 - 20);
+    expect(armyMight(mbState().ennemi)).toBe(55 - 20);
     expect(mbState().imposed).not.toContain('charge');
   });
 
@@ -446,7 +446,7 @@ describe('Duel (l.225) — vraie Scène de combat + intervention', () => {
       battle: null,
     });
     banc.getState().fenetreFermer('victoire');
-    expect(armyMight(mbState().enemy)).toBe(55 - 10);
+    expect(armyMight(mbState().ennemi)).toBe(55 - 10);
     expect(mbState().imposed).toContain('charge');
   });
 
@@ -460,8 +460,8 @@ describe('Duel (l.225) — vraie Scène de combat + intervention', () => {
     });
     banc.getState().fenetreFermer('repli');
     const after = mbState();
-    expect(armyMight(after.ally)).toBe(50 - 20);
-    expect(armyMight(after.enemy)).toBe(55);
+    expect(armyMight(after.allie)).toBe(50 - 20);
+    expect(armyMight(after.ennemi)).toBe(55);
     expect(after.phase).toBe('round');
     expect(after.combatScene).toBeUndefined();
     expect(after.resolvedScenes).toContain('duel');
@@ -481,7 +481,7 @@ describe('Percée (l.173) — vraie Scène de COMBAT + enchaînement sur DÉFAIT
       battle: null,
     });
     banc.getState().fenetreFermer('victoire');
-    expect(armyMight(mbState().ally)).toBe(Math.min(50 + 10, 50)); // plafonné à la Puissance de départ (l.135)
+    expect(armyMight(mbState().allie)).toBe(Math.min(50 + 10, 50)); // plafonné à la Puissance de départ (l.135)
     expect(mbState().imposed).not.toContain('charge');
   });
 
@@ -495,7 +495,7 @@ describe('Percée (l.173) — vraie Scène de COMBAT + enchaînement sur DÉFAIT
     });
     banc.getState().fenetreFermer('repli');
     expect(mbState().imposed).toContain('charge');
-    expect(armyMight(mbState().ally)).toBe(50);
+    expect(armyMight(mbState().allie)).toBe(50);
     expect(mbState().phase).toBe('round');
     seedBattleRng(7);
     banc.getState().fenetreChoisir('batailleDeMasse', 'engager', true);
@@ -514,7 +514,7 @@ describe('Tenez votre position (l.161) — Point de rupture + bonus cumulatif', 
     expect(pa.enemyValue).toBeGreaterThan(0); // jet opposé de l'ennemi figé
     resolveBattleTest({ roll: 10, success: true, sl: 3, enemySL: -2 });
     const mb = mbState();
-    expect(armyMight(mb.enemy)).toBe(55 - 2);
+    expect(armyMight(mb.ennemi)).toBe(55 - 2);
     expect(mb.sceneState['tenez-votre-position'].held).toBe(1);
     expect(mb.sceneState['tenez-votre-position'].breakpoint).toBe(0);
     expect(mb.imposed).toContain('tenez-votre-position');
@@ -532,7 +532,7 @@ describe('Tenez votre position (l.161) — Point de rupture + bonus cumulatif', 
     expect(mb.sceneState['tenez-votre-position'].breakpoint).toBe(12);
     expect(mb.sceneState['tenez-votre-position'].broken).toBe(true);
     expect(mb.imposed).not.toContain('tenez-votre-position');
-    expect(armyMight(mb.enemy)).toBe(55); // pas de −2 : la position n'a pas tenu
+    expect(armyMight(mb.ennemi)).toBe(55); // pas de −2 : la position n'a pas tenu
   });
 
   /** Ouvre la Scène de tenue APRÈS `heldRounds` Rounds déjà tenus. L'armée ennemie porte le solde de
@@ -920,8 +920,8 @@ describe('Test spectaculaire, avancement & issue (l.120/124)', () => {
     const mb = mbState();
     expect(mb.awaitingNext).toBe(true);
     expect(mb.round).toBe(1);
-    expect(armyMight(mb.ally)).toBeLessThanOrEqual(50 - 5);
-    expect(armyMight(mb.enemy)).toBeLessThanOrEqual(55 - 5);
+    expect(armyMight(mb.allie)).toBeLessThanOrEqual(50 - 5);
+    expect(armyMight(mb.ennemi)).toBeLessThanOrEqual(55 - 5);
   });
 
   it('la validation de la bataille passe au Round suivant et réinitialise l\'état par-Round', () => {
@@ -946,16 +946,16 @@ describe('Test spectaculaire, avancement & issue (l.120/124)', () => {
     seedBattleRng(9);
     banc.getState().fenetreChoisir('batailleDeMasse', 'engager', true);
     const mb = mbState();
-    expect(armyMight(mb.enemy)).toBe(0);
+    expect(armyMight(mb.ennemi)).toBe(0);
     expect(mb.phase).toBe('over');
-    expect(mb.outcome).toBe('ally');
+    expect(mb.outcome).toBe('allie');
   });
 });
 
 describe('Modèle Combattant-armée (Blessures = Puissance)', () => {
   it('l\'armée est un Combattant INANIMÉ : PB courantes = Puissance, PB max = départ, inerte', () => {
     start({ allyMight: 50, enemyMight: 55 });
-    const ally = mbState().ally.combatant;
+    const ally = mbState().allie.combatant;
     expect(ally.wounds.current).toBe(50);
     expect(ally.wounds.max).toBe(50);
     expect(ally.inert).toBe(true);
@@ -967,7 +967,7 @@ describe('Modèle Combattant-armée (Blessures = Puissance)', () => {
     auRound();
     banc.getState().fenetreChoisir('batailleDeMasse', 'scene', 'motivation');
     resolveBattleTest({ roll: 10, success: true, sl: 4 }); // +4 tenté, déjà à 50/50
-    expect(armyMight(mbState().ally)).toBe(50);
+    expect(armyMight(mbState().allie)).toBe(50);
   });
 
   it('après une perte, un gain de Scène ne remonte pas au-delà du départ', () => {
@@ -975,13 +975,13 @@ describe('Modèle Combattant-armée (Blessures = Puissance)', () => {
     auRound();
     seedBattleRng(7);
     banc.getState().fenetreChoisir('batailleDeMasse', 'engager', true);
-    const afterClash = armyMight(mbState().ally);
+    const afterClash = armyMight(mbState().allie);
     expect(afterClash).toBeLessThan(50);
     banc.getState().fenetreValider('batailleDeMasse');
     banc.getState().fenetreChoisir('batailleDeMasse', 'scene', 'motivation');
     resolveBattleTest({ roll: 10, success: true, sl: 6 });
-    expect(armyMight(mbState().ally)).toBeLessThanOrEqual(50);
-    expect(armyMight(mbState().ally)).toBeGreaterThan(afterClash);
+    expect(armyMight(mbState().allie)).toBeLessThanOrEqual(50);
+    expect(armyMight(mbState().allie)).toBeGreaterThan(afterClash);
   });
 });
 

@@ -9,7 +9,7 @@
  *  3. le LECTEUR (`symptomOnTick`, `tickDisease`) ne tire sa Difficulté et ses ops QUE du nœud —
  *     vérifié étape par étape sur chaque maladie porteuse (chemin DIFFÉRÉ), la COUVERTURE des
  *     porteurs et des sévérités étant elle-même assertée depuis la donnée ;
- *  4. la branche `success` est VIDE partout : le canal `maladie-test-quotidien` (`noyau/restFlow.ts`) n'applique
+ *  4. la branche `reussite` est VIDE partout : le canal `maladie-test-quotidien` (`noyau/restFlow.ts`) n'applique
  *     que l'échec, une branche de réussite peuplée serait ignorée en silence.
  */
 import { describe, it, expect } from 'vitest';
@@ -127,10 +127,10 @@ describe('cycle de maladie — le JET vit dans le nœud `test` du Flow (#1657 B2
     expect(cycles().filter((c) => c.tick!.difficultyBySeverity !== undefined).map((c) => c.id)).toEqual(['toxine']);
   });
 
-  it('MORSURE : le porteur REFUSE une branche `success` peuplée et une branche `fail` à embranchement', () => {
+  it('MORSURE : le porteur REFUSE une branche `reussite` peuplée et une branche `echec` à embranchement', () => {
     // AFFORDANCE MORTE, verrouillée PAR CONSTRUCTION (`noeudTest`, option `echecSeulServi`) : le canal
     // différé (`bandeDeNuit`, applier `maladie-test-quotidien`, `noyau/restFlow.ts`) rend une liste VIDE sur
-    // une réussite, et `spellOps` extrait les ops À PLAT — un `if` sous `fail` promettrait les ops des
+    // une réussite, et `spellOps` extrait les ops À PLAT — un `si` sous `echec` promettrait les ops des
     // deux côtés. Les deux formes seraient authorables sans effet, donc menteuses.
     const base = lire('symptoms.json');
     const avecNoeud = (mute: (n: Record<string, unknown>) => void) => base.map((s) => {
@@ -146,17 +146,17 @@ describe('cycle de maladie — le JET vit dans le nœud `test` du Flow (#1657 B2
       expect(issue, `${chemin} : le refus ne NOMME pas la branche`).toBeTruthy();
       expect(issue!.message).toContain(extrait);
     };
-    refus((n) => { n.success = { kind: 'do', effect: { type: 'ops', ops: [{ op: 'kill' }], on: 'target' } }; },
-      'onTick.test.success', 'ne serait jamais jouée');
-    refus((n) => { n.fail = { kind: 'if', cond: { kind: 'flag', expr: 'x' }, then: { kind: 'do', effect: { type: 'ops', ops: [{ op: 'kill' }], on: 'target' } } }; },
-      'onTick.test.fail', 'EMBRANCHEMENT');
+    refus((n) => { n.reussite = { kind: 'effet', effet: { type: 'ops', ops: [{ op: 'kill' }], on: 'target' } }; },
+      'onTick.test.reussite', 'ne serait jamais jouée');
+    refus((n) => { n.echec = { kind: 'si', condition: { kind: 'flag', expr: 'x' }, alors: { kind: 'effet', effet: { type: 'ops', ops: [{ op: 'kill' }], on: 'target' } } }; },
+      'onTick.test.echec', 'EMBRANCHEMENT');
     // Le MÊME nœud passe le contrat NON resserré : c'est bien `echecSeulServi` qui mord.
     const nu = structuredClone((base.find((s) => s.id === 'blesse')!.onTick as { test: unknown }).test) as Record<string, unknown>;
-    nu.success = { kind: 'do', effect: { type: 'ops', ops: [{ op: 'kill' }], on: 'target' } };
+    nu.reussite = { kind: 'effet', effet: { type: 'ops', ops: [{ op: 'kill' }], on: 'target' } };
     expect(noeudTest(flowSchema, { difficulteRequise: true }).safeParse(nu).success).toBe(true);
     expect(noeudDuCycle.safeParse(nu).success).toBe(false);
   });
-  it('la branche `success` de chaque nœud est VIDE : le canal différé n’applique que l’échec', () => {
+  it('la branche `reussite` de chaque nœud est VIDE : le canal différé n’applique que l’échec', () => {
     const peuplees: string[] = [];
     const noeuds = [
       ...cycles().filter((c) => c.tick!.test).map((c) => [`symptoms/${c.id}`, c.tick!.test] as const),
@@ -165,10 +165,10 @@ describe('cycle de maladie — le JET vit dans le nœud `test` du Flow (#1657 B2
     for (const [nom, node] of noeuds) {
       const n = node as z.infer<typeof noeudDuCycle>;
       let blocs = 0;
-      walkFlow(n.success, () => { blocs++; });
-      if (blocs !== 1 || spellOps(n.success, 'target').length) peuplees.push(nom);
+      walkFlow(n.reussite, () => { blocs++; });
+      if (blocs !== 1 || spellOps(n.reussite, 'target').length) peuplees.push(nom);
     }
-    expect(peuplees, 'branche `success` peuplée : `restFlow` (applier `maladie-test-quotidien`) l’ignorerait en silence').toEqual([]);
+    expect(peuplees, 'branche `reussite` peuplée : `restFlow` (applier `maladie-test-quotidien`) l’ignorerait en silence').toEqual([]);
   });
 
   it('`symptomOnTick` ne tire sa Difficulté et ses ops QUE du nœud (sévérité comprise)', () => {
@@ -182,7 +182,7 @@ describe('cycle de maladie — le JET vit dans le nœud `test` du Flow (#1657 B2
       }
       const node = tick!.test as z.infer<typeof noeudDuCycle>;
       expect(lu.difficulty, `symptoms/${id}`).toBe(node.test.difficulty);
-      expect(lu.onFail, `symptoms/${id}`).toEqual(spellOps(node.fail, 'target'));
+      expect(lu.onFail, `symptoms/${id}`).toEqual(spellOps(node.echec, 'target'));
       const bySev = tick!.difficultyBySeverity as Record<string, string> | undefined;
       for (const sev of ['moderee', 'grave'] as const) {
         expect(symptomOnTick({ symptomId: id, severity: sev })!.difficulty, `symptoms/${id}/${sev}`).toBe(bySev?.[sev] ?? node.test.difficulty);
@@ -209,10 +209,10 @@ describe('cycle de maladie — le JET vit dans le nœud `test` du Flow (#1657 B2
     /** Ce que la DONNÉE déclare pour un symptôme (ou pour la maladie), recalculé depuis le nœud. */
     const attendu = (diseaseName: string, symptomId: string) => {
       const daily = diseaseDefs()[diseaseName]?.dailyTest;
-      if (daily && daily.symptomId === symptomId) return { difficulty: daily.test.test.difficulty, onFail: spellOps(daily.test.fail, 'target') };
+      if (daily && daily.symptomId === symptomId) return { difficulty: daily.test.test.difficulty, onFail: spellOps(daily.test.echec, 'target') };
       const tick = cycles().find((c) => c.id === symptomId)?.tick;
       const node = tick?.test as z.infer<typeof noeudDuCycle> | undefined;
-      return node ? { difficulty: node.test.difficulty, onFail: spellOps(node.fail, 'target') } : undefined;
+      return node ? { difficulty: node.test.difficulty, onFail: spellOps(node.echec, 'target') } : undefined;
     };
     let vus = 0;
     const couverture = new Set<string>();

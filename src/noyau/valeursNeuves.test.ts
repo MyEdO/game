@@ -38,16 +38,16 @@ describe('valeurs neuves de l’atelier au noyau (#3059) : toute valeur neuve pa
   });
 
   it('Flow : chaque branche, nommée, naît conforme, chaque flux qu’elle porte à la séquence vide, où la récursion s’arrête (#3606 M2b)', () => {
-    const vide = { kind: 'seq', steps: [] };
+    const vide = { kind: 'sequence', etapes: [] };
     for (const [schema, effet] of [[sceneFlowSchema, { type: 'setFlag', flag: '' }], [flowSchema, { type: 'ops', ops: [] }]] as const) {
       expect(valeurNeuveDe(schema)).toEqual(vide);
       const variantes = variantesAChoisir(schema, undefined)!;
       expect(variantes.map((v) => [v.cle, v.libelle, v.valeur])).toEqual([
-        ['seq', 'Séquence', vide],
-        ['do', 'Effet', { kind: 'do', effect: effet }],
-        ['if', 'Si', { kind: 'if', cond: { kind: 'always' }, then: vide }],
-        ['test', 'Test', { kind: 'test', test: {}, success: vide, fail: vide }],
-        ['choice', 'Choix', { kind: 'choice', oui: vide, prompt: '' }],
+        ['sequence', 'Séquence', vide],
+        ['effet', 'Effet', { kind: 'effet', effet: effet }],
+        ['si', 'Si', { kind: 'si', condition: { kind: 'always' }, alors: vide }],
+        ['test', 'Test', { kind: 'test', test: {}, reussite: vide, echec: vide }],
+        ['choix', 'Choix', { kind: 'choix', oui: vide, prompt: '' }],
       ]);
       for (const v of variantes) expect(refusHorsSentinelle(schema, v.valeur), v.cle).toEqual([]);
     }

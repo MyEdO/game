@@ -89,8 +89,8 @@ describe('Navigation & rame (l.11-17)', () => {
     expect(navPenaltyMods({})).toEqual([]);
     // Chaque malus PORTE sa fiche de règle (#1117 L5b) : la chip s'ouvre sur la note du Tableau des Vents.
     expect(navPenaltyMods({ derive: true })).toEqual([{ label: t('rv.modDrift'), value: -10, famille: 'circonstance', ref: RULE_REF['navigation-derive'] }]);
-    expect(navPenaltyMods({ outOfControl: true })).toEqual([{ label: t('rv.modOutOfControl'), value: -20, famille: 'circonstance', ref: RULE_REF['navigation-greement'] }]);
-    expect(navPenaltyMods({ derive: true, outOfControl: true }).reduce((s, m) => s + m.value, 0)).toBe(-30);
+    expect(navPenaltyMods({ horsDeControle: true })).toEqual([{ label: t('rv.modHorsDeControle'), value: -20, famille: 'circonstance', ref: RULE_REF['navigation-greement'] }]);
+    expect(navPenaltyMods({ derive: true, horsDeControle: true }).reduce((s, m) => s + m.value, 0)).toBe(-30);
   });
 
   it('renflouage à l\'échouage (MSRC 7 l.99) : le malus = −(Enc du bateau + Enc de la cargaison), point par point', () => {

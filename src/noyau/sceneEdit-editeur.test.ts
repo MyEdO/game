@@ -681,15 +681,15 @@ describe('flowEffectCount — l’atelier annonce les effets de TOUTE profondeur
   const journal = (desc: string): Effect => ({ type: 'journal', desc });
 
   it('compte les effets de premier niveau', () => {
-    expect(flowEffectCount({ kind: 'seq', steps: [{ kind: 'do', effect: journal('a') }, { kind: 'do', effect: journal('b') }] })).toBe(2);
+    expect(flowEffectCount({ kind: 'sequence', etapes: [{ kind: 'effet', effet: journal('a') }, { kind: 'effet', effet: journal('b') }] })).toBe(2);
   });
 
   it('compte l’effet niché sous un « si » — les deux branches', () => {
     const flow: Flow = {
-      kind: 'if',
-      cond: { kind: 'flag', expr: 'porte_ouverte' },
-      then: { kind: 'do', effect: journal('entrée') },
-      else: { kind: 'do', effect: journal('refoulé') },
+      kind: 'si',
+      condition: { kind: 'flag', expr: 'porte_ouverte' },
+      alors: { kind: 'effet', effet: journal('entrée') },
+      sinon: { kind: 'effet', effet: journal('refoulé') },
     };
     expect(flowEffectCount(flow)).toBe(2);
   });
@@ -698,8 +698,8 @@ describe('flowEffectCount — l’atelier annonce les effets de TOUTE profondeur
     const flow: Flow = {
       kind: 'test',
       test: { skill: { id: 'escalade' } },
-      success: { kind: 'do', effect: journal('gravi') },
-      fail: { kind: 'seq', steps: [{ kind: 'do', effect: journal('chute') }, { kind: 'do', effect: journal('bruit') }] },
+      reussite: { kind: 'effet', effet: journal('gravi') },
+      echec: { kind: 'sequence', etapes: [{ kind: 'effet', effet: journal('chute') }, { kind: 'effet', effet: journal('bruit') }] },
     };
     expect(flowEffectCount(flow)).toBe(3);
   });

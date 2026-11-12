@@ -68,14 +68,14 @@ export function visePersonneChoisie(o: GameOp): boolean {
  *  (`resistanceSiAmis`, VDM 10 l.327). Sans personne, ces Traits restent sans effet. */
 export function fluxDEnvers(effet: EffectOp, personne: Personne | undefined, amis: boolean): Flow {
   const autres = effet.ops.filter((o) => !visePersonneChoisie(o));
-  const steps: Flow[] = autres.length ? [{ kind: 'do', effect: { ...effet, ops: autres } }] : [];
+  const steps: Flow[] = autres.length ? [{ kind: 'effet', effet: { ...effet, ops: autres } }] : [];
   if (personne) {
     for (const o of effet.ops) {
       if (o.op !== 'grantPsychTrait' || o.envers !== 'personneChoisie') continue;
       const { envers: _envers, resistanceSiAmis, ...trait } = o;
-      const pose: Flow = { kind: 'do', effect: { ...effet, ops: [{ ...trait, cible: refDeCible(ciblePsy.individu(personne.id)) }] } };
-      steps.push(amis && resistanceSiAmis ? { kind: 'test', test: resistanceSiAmis, success: EMPTY_FLOW, fail: pose } : pose);
+      const pose: Flow = { kind: 'effet', effet: { ...effet, ops: [{ ...trait, cible: refDeCible(ciblePsy.individu(personne.id)) }] } };
+      steps.push(amis && resistanceSiAmis ? { kind: 'test', test: resistanceSiAmis, reussite: EMPTY_FLOW, echec: pose } : pose);
     }
   }
-  return { kind: 'seq', steps };
+  return { kind: 'sequence', etapes: steps };
 }

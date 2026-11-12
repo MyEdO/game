@@ -56,12 +56,12 @@ const construireScene = (): Scene => buildScene({
       // Reddition à mi-coque (woundsThreshold sur la COQUE ennemie) : la victoire = la reddition, pas le naufrage.
       victoryCondition: { type: 'woundsThreshold', targetId: 'cogue-duel', atOrBelowPercent: 50 },
       members: [
-        { entityId: 'grimm-duel', side: 'ally' },
-        { entityId: 'grimm-helm', side: 'ally' },
-        { entityId: 'grimm-gun', side: 'ally' },
-        { entityId: 'cogue-duel', side: 'enemy' },
-        { entityId: 'cogue-helm', side: 'enemy' },
-        { entityId: 'cogue-gun', side: 'enemy' },
+        { entityId: 'grimm-duel', side: 'allie' },
+        { entityId: 'grimm-helm', side: 'allie' },
+        { entityId: 'grimm-gun', side: 'allie' },
+        { entityId: 'cogue-duel', side: 'ennemi' },
+        { entityId: 'cogue-helm', side: 'ennemi' },
+        { entityId: 'cogue-gun', side: 'ennemi' },
       ],
     },
   ],

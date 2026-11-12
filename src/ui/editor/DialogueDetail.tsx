@@ -32,7 +32,7 @@ import { addDialogueNode, removeDialogueNode, renameDialogueNode } from '../../n
 const CHOICE_ICON_IDS = Object.values(ICON_DEFS).map((d) => d.id).sort();
 
 /** Nombre de blocs de PREMIER niveau d'un Flow (badge du choix). */
-const flowLen = (flow?: Flow): number => (!flow ? 0 : flow.kind === 'seq' ? flow.steps.length : 1);
+const flowLen = (flow?: Flow): number => (!flow ? 0 : flow.kind === 'sequence' ? flow.etapes.length : 1);
 
 export function DialogueDetail({ dialogue, onChange, onRename, ctx }: {
   dialogue: Dialogue;
