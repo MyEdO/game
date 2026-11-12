@@ -165,7 +165,7 @@ describe('le store joue le compte des Blessures critiques du coup', () => {
   it("Mort subite : le Critique d'un Test opposé ne frappe pas le figurant (LDB 14 l.3 ; LDB 18 l.44)", () => {
     const { H, cible } = coupQuiDepasse(false, { pa: 1, endurance: 10 });
     const log: string[] = [];
-    applyCoupCritiqueSec(banc.getState, banc.setState, cible, 44, 'double', { attackerId: H.id, weapon: epee.label, weaponObj: epee }, log);
+    applyCoupCritiqueSec(banc.getState, banc.setState, cible, 44, 'double', { attackerId: H.id, weapon: epee.label, weaponObj: epee }, log, H);
     expect(cible.criticalWounds ?? 0).toBe(0);
     expect(totalPA(cible)).toBe(6);
     expect(banc.getState().pendingCascade ?? null).toBeNull();
@@ -432,7 +432,7 @@ describe("Impénétrable et Bâclée au Projectile et au Critique opposé (LDB 6
     setRule('combat-deviation-critique', false);
     const { H, cible } = coup({ roll: 45, double: false, current: 20, pieces: [bacle, impenetrable()] });
     const log: string[] = [];
-    applyCoupCritiqueSec(banc.getState, banc.setState, cible, roll, 'double', { attackerId: H.id, weapon: epee.label, weaponObj: epee }, log);
+    applyCoupCritiqueSec(banc.getState, banc.setState, cible, roll, 'double', { attackerId: H.id, weapon: epee.label, weaponObj: epee }, log, H);
     return { cible, log };
   }
 

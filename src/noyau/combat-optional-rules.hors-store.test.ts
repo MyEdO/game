@@ -130,8 +130,9 @@ describe('combat-deviation-critique — offre de Déviation Critique (LDB 63 l.3
 
   it('opposé : ENNEMI blindé dévie AUTO quand la règle est ON (−1 PA, Critique ignoré)', () => {
     const e = enemy({ armour: { ...armoured }, criticalWounds: 0 });
-    setBattle([hero({}), e]);
-    applyCoupCritiqueSec(banc.getState, banc.setState, e, 11, 'double', { attackerId: 'h1' }, []);
+    const h = hero({});
+    setBattle([h, e]);
+    applyCoupCritiqueSec(banc.getState, banc.setState, e, 11, 'double', { attackerId: h.id }, [], h);
     const ee = banc.getState().battle!.combatants.find((c) => c.id === 'e1')!;
     expect(ee.criticalWounds ?? 0).toBe(0); // Critique dévié
     expect(apSum(ee)).toBe(17);             // une zone −1 PA
@@ -140,8 +141,9 @@ describe('combat-deviation-critique — offre de Déviation Critique (LDB 63 l.3
   it('opposé désactivé : ENNEMI blindé ne dévie PLUS (subit le Critique sec — bug rule-gate)', () => {
     setRule('combat-deviation-critique', false);
     const e = enemy({ armour: { ...armoured }, criticalWounds: 0 });
-    setBattle([hero({}), e]);
-    applyCoupCritiqueSec(banc.getState, banc.setState, e, 11, 'double', { attackerId: 'h1' }, []);
+    const h = hero({});
+    setBattle([h, e]);
+    applyCoupCritiqueSec(banc.getState, banc.setState, e, 11, 'double', { attackerId: h.id }, [], h);
     const ee = banc.getState().battle!.combatants.find((c) => c.id === 'e1')!;
     expect(ee.criticalWounds ?? 0).toBe(1); // Critique subi (pas d'auto-déviation)
     expect(apSum(ee)).toBe(18);             // PA toute intacte
