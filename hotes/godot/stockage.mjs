@@ -1,5 +1,5 @@
 // LE STOCKAGE DU PONT HORS D'UNE PAGE (#3009, `pont/CONTRAT.md`, section « Transport ») : ce que le bundle lit en
-// `localStorage` quand aucun navigateur ne le porte (`pontDuBundle`, `construire.mjs`), au contrat de `Stockage`
+// `localStorage` quand aucun navigateur ne le porte (`pontDuBundle`, `processus.mjs`), au contrat de `Stockage`
 // (`src/lib/stockage.ts`). Ses clés vivent en mémoire ; avec un fichier, elles en sont relues à l'ouverture et y sont
 // réécrites à chaque changement.
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'

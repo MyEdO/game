@@ -14,6 +14,7 @@
 import type { RuleValue } from '../../engine/policy';
 import { etatInitialDuJeu, initialNet, type EtatDeJeu } from '../etat';
 import { pruneSeatAssignments } from '../monde/seating';
+import { rencontreEngagee } from '../monde/combatants';
 import { reposerPaquetDeCampagne } from '../monde/registreDesScenes';
 import { elaguerLePersiste, rienDElague, type RetraitsDElagage } from './elagage';
 import { FORMAT_SAVE } from './formats.generated';
@@ -202,7 +203,7 @@ export type RefusDeSauvegarde = 'combat' | 'invite';
 
 /** La raison de ne pas écrire la save de `etat` à la demande du siège `siege`, `null` si elle s'écrit. */
 export function refusDeSauvegarde(etat: Pick<EtatDeJeu, 'battle' | 'serieSubie'>, siege: number): RefusDeSauvegarde | null {
-  if (etat.battle || etat.serieSubie) return 'combat';
+  if (rencontreEngagee(etat)) return 'combat';
   return siege === 0 ? null : 'invite';
 }
 

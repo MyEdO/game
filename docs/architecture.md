@@ -392,7 +392,7 @@ src/engine/                 Règles WFRP4, PUR + testé, sans hôte (mur `murs/s
                               Consommée par : sorts, Imparfaites (miscast), mutations, traits, qualités
                               (`passive`), effets déclenchés (`Flow`/`Trigger`), CONSOMMABLES. Jalon 2.6 :
                               PerSL (échelle par DR), onlyGroups, grantTrait/grantTalent/augmentWeapon/…
-                              CATALOGUE GÉNÉRÉ des 102 ops (+ `Condition`/`Flow`/`EffectTrigger` de
+                              CATALOGUE GÉNÉRÉ des ops (+ `Condition`/`Flow`/`EffectTrigger` de
                               flowCore.ts) : `docs/vocabulaire-mecanique.md` (`npm run docs:vocabulaire`)
                               — index par CONCEPT en français, résolution mesurée (« exécutée » /
                               « inerte au switch » / « hors switch » : les deux dernières = impur résolu
@@ -519,7 +519,7 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                             Psychologie, la Condition `cibleEnVue`, `foeInLoS` et la cible de Frénésie ;
                             `sourcesPsyEnVue` : ces combattants et l'étiquette de la scène, `etiquetteDeScene`), et les modules qui
                             ne lisent ni ne posent d'état de combat ni de flux : IA (`ai.ts`), apparition
-                            (`spawn.ts`), navires (`ship*.ts`), marchands (`merchants/`), narratif de
+                            (`spawn.ts`), navires (`ship*.ts`), narratif de
                             campagne, pièces, vision, authoring ASCII (`asciiMap.ts`, et son export inverse `sceneToAscii.ts`).
   monde/scene.ts            SCÈNE : fonctions PURES (tuiles, murs, portes, relief) + 34 types exportés,
                             dont 24 `z.infer` des schémas de `data/schemas/defs-scenes/`. Restent 10
@@ -641,8 +641,9 @@ src/hoteTexte/              HÔTE TEXTE du noyau (#2898) : une partie pilotable 
                             outils et leur schéma), `serveur.ts` (ce qu'ils font) ; servi par
                             `scripts/hote-texte.mjs` (SDK MCP, stdio), déclaré par `.mcp.json`.
 hotes/godot/                HÔTE GODOT du noyau (#2928, zone `hotes`) : le pont JSON que Godot appelle, dans la page de
-                            l'export web ou, hors d'une page, par un processus Node (`vivant.mjs`, #3945 : `npm run
-                            godot:ouvrir` ouvre l'éditeur Godot sur le projet, qui y joue sur le noyau vivant).
+                            l'export web ou, hors d'une page, par un processus Node (`processus.mjs` : `vivant.mjs`
+                            sous l'éditeur, #3945, que `npm run godot:ouvrir` ouvre sur le projet ; `embarque.mjs`,
+                            empaqueté à côté de l'exécutable de bureau, #3951).
                             `pont/pont.ts` (une méthode = une chaîne JSON en entrée, une en sortie, jamais une levée ;
                             gestes par le module commun, vue faite des lecteurs du noyau, jetons tenus par numéro ; la
                             porte `appelerEnOctets` des transports de Godot passe les tableaux de `morceaux` en un
@@ -661,13 +662,20 @@ hotes/godot/                HÔTE GODOT du noyau (#2928, zone `hotes`) : le pont
                             `scripts/guards/lib/gdscriptSansRegle.mjs`) ;
                             jetons armés en minuteurs. `construire.mjs --sonde` importe une copie du projet, contrôle
                             chaque script puis exécute les recettes sous `recettes/` déclarant au premier niveau
-                            `const RECETTE_AUTONOME := true`, avec `--pont=<vivant.mjs>` pour seul argument ; `equipement.gd`, qui attend une
-                            vue JSON, ne porte pas cette déclaration. L'éditeur est épinglé (`npm run godot:sonde`,
+                            `const RECETTE_AUTONOME := true`, avec `--pont=<vivant.mjs>` pour seul argument ; une recette à rendu réel
+                            ne porte pas cette déclaration. L'éditeur est épinglé (`npm run godot:sonde`,
                             étape scripts et recettes autonomes de la CI). `--export --sortie <dossier>` produit
                             l'export Web et, à côté, chaque modèle en scène que l'éditeur fabrique de son GLB
                             (`projet/outils/fabrique_de_modeles.gd`, textures compressées avec mipmaps, #3946), que
                             `recette.mjs` joue au navigateur : un tour complet, l'atelier, ou les vues
-                            nommées d'une scène (`--parcours cadrages`, `cadrages/`).
+                            nommées d'une scène (`--parcours cadrages`, `cadrages/`). `--bureau --sortie <dossier>`
+                            (`npm run godot:bureau`, #3951) produit l'exécutable de bureau de la plateforme, son noyau
+                            embarqué (`noyau/` : Node, le bundle, le point d'entrée) et ses modèles en scène, puis lui
+                            fait jouer une partie ; le workflow `bureau.yml`, lancé à la main, le fait sous Linux et
+                            sous Windows et en garde le dossier en artefact. Deux rendus dessinent les mêmes scènes : Forward+ hors d'une page,
+                            le rendu de compatibilité dans la page ou en repli ; `--rendus` (`npm run godot:rendus`,
+                            étape de la CI) joue en rendu réel, sous chacun des deux, les recettes déclarant
+                            `const RECETTE_RENDUE := true`.
   etalons/                  les planches (`planches/<nom>.json`, un état de partie enregistré depuis le pont par
                             `etalons.mjs --enregistrer`, que le jeu montre à `?planche=<nom>`), l'étalon de chacune
                             (`<nom>.png`, sa capture) et `valides.json` (l'empreinte des étalons validés). `npm run
@@ -935,7 +943,7 @@ Deux restrictions posées en 0cd24a01 (#232/#91) sans ticket au moment du commit
   `netOwnership.controlsActive`). Garde : `src/noyau/jets-sans-classe.hors-store.test.ts` (coop × commandée),
   `src/noyau/voyage-cadence.hors-store.test.ts` (jour sous ordres par route). Lever ⇒ router les Tests de routine par
   owner de poste comme le fait déjà le registre de modales pour les interruptions.
-- **Conseil de bord (paie hebdomadaire + Moral, #229) hostOnly** — `CHOIX_DES_FENETRES.council`
+- **Conseil de bord (paie hebdomadaire + Moral, #229) hostOnly** — `CHOIX_DES_FENETRES.conseil`
   (`src/noyau/choixDesFenetres.ts`, `qui: 'hote'`) : décision de bourse PARTAGÉE (argent du groupe) → seul
   l'hôte la tranche, comme les autres actions à l'argent du groupe (achat/vente marchand…) ; le choix d'un
   invité se refuse à la frontière (`choix.refus.hoteSeul`). Lever ⇒ un vote ou une délégation de la paie.

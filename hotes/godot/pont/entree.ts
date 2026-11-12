@@ -14,7 +14,7 @@ import { stockageWeb } from '../../../src/hote/stockageWeb';
  * @contrat Transport
  * - La page charge le bundle `wfrp-pont.js` (`node hotes/godot/construire.mjs --pont-seul --sortie <dossier>`), qui
  *   expose `globalThis.wfrpPont`. Le bundle lit les API de navigateur que déclare `API_DU_NAVIGATEUR`
- *   (`construire.mjs`), dont `localStorage`, le stockage du pont, où vivent les sauvegardes ; la construction
+ *   (`processus.mjs`), dont `localStorage`, le stockage du pont, où vivent les sauvegardes ; la construction
  *   l'exécute dans un contexte qui ne porte qu'elles, et la CI rougit si `demarrer`, `vue` ou `sauvegardes` n'y
  *   répondent pas `ok: true`.
  */
