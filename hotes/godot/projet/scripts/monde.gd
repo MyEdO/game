@@ -7,7 +7,7 @@
 ## l'interface laisse au monde (`cadre`), de biais en tactique, à la verticale et sans perspective au plateau ; et l'œil
 ## du regard `immersion`, posé par qui l'instancie (`poser_l_oeil`), qui marche sur le sol touché sous lui (`sol_sous`).
 ## Le clavier ne mène rien pendant une saisie (`clavier_libre`), ni d'une touche qu'une fenêtre incrustée a prise
-## (`forces_du_clavier`). Il rend la caméra posée (`camera`), la case du triangle que le rayon du pointeur touche, hors
+## (`forces_du_clavier`). Il rend la caméra posée (`camera`), le lieu qu'elle suit (`lieu_suivi`), la case du triangle que le rayon du pointeur touche, hors
 ## des cases que le masque du volume retire, et le point de la carte touché, et le point de l'écran d'un lieu ; il pose les plaques de surbrillance et les
 ## noms que lui passe qui l'instancie, l'arête choisie, les nappes de toit du volume, chacune levée quand le groupe est
 ## dessous, ses couronnes crénelées, chacune cachée quand son mur tombe, ses arêtes dégagées, abattues sous le cran de
@@ -464,6 +464,11 @@ func suivre(lieu: Vector3) -> void:
 		return
 	_suivi_lieu = lieu
 	_rejoindre(lieu)
+
+
+## Le lieu que la caméra suit (`suivre`), `null` tant qu'elle n'en suit aucun.
+func lieu_suivi() -> Variant:
+	return _suivi_lieu
 
 
 func _rejoindre(lieu: Vector3) -> void:

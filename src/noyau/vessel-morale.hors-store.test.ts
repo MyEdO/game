@@ -2,11 +2,13 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { seedBattleRng } from './battleRng';
-import { resolveShoreLeaveDesertion } from './shipCrew';
+import { resolveShoreLeaveDesertion, semainesDuConseil, choixDePaieOuverts } from './shipCrew';
 import { creditBourse, partyMoneyTotal } from './bourseFlow';
-import { MINUTES_PER_DAY } from '../engine/clock';
+import { MINUTES_PER_DAY, campaignStart, dayIndex } from '../engine/clock';
+import { applyEffects } from './combatEffects';
 import { makeRNG } from '../engine/dice';
-import { toBrass, type Money } from '../engine/money';
+import { toBrass, fromBrass, formatMoney, type Money } from '../engine/money';
+import { t } from '../i18n';
 
 import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { setCadence } from '../engine/cadence';
@@ -163,6 +165,97 @@ describe('Conseil de bord (#229) — cadence MANUELLE : la paie remonte en modal
     banc.getState().avancerLeTemps(8 * MINUTES_PER_DAY);
     expect(banc.getState().pendingCouncil).toBeNull();
     expect(banc.getState().vessel!.morale.lastMoraleWeek).toBe(1); // recalculé sur place
+  });
+});
+
+describe('Saut d’horloge long (MDG 14 l.143, l.293-302, #1652) — chaque semaine franchie se règle', () => {
+  // Un saut de N semaines règle N semaines, comme N sauts d'une semaine : même solde, mêmes recalculs.
+  const soldeMousse = fromBrass(288);
+  const recalcs = () => banc.getState().journal.filter((l) => l.startsWith("Moral de l'équipage recalculé")).length;
+  const sauter = (pas: number[], conseil?: string) => {
+    banc.setState({ gameTime: 0, lastUpkeepDay: 0, journal: [], pendingCouncil: null, pendingCascade: null, suspendedCascades: [], vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, crew: [{ roleId: 'mousse', count: 1 }] } });
+    creditBourse(banc.getState, banc.setState, banc.getState().party[0].id, { gold: 5000, silver: 0, brass: 0 });
+    const avant = toBrass(partyMoneyTotal(banc.getState));
+    let jetsAuConseil = 0;
+    for (const j of pas) {
+      banc.getState().avancerLeTemps(j * MINUTES_PER_DAY);
+      if (!conseil) continue;
+      banc.getState().fenetreChoisir('conseil', 'paie', conseil);
+      jetsAuConseil += banc.getState().pendingCouncil?.results?.length ?? 0;
+      banc.getState().fenetreFermer('conseil');
+    }
+    const s = banc.getState();
+    return {
+      paye: avant - toBrass(partyMoneyTotal(banc.getState)),
+      semaine: s.vessel!.morale.lastMoraleWeek,
+      soldes: s.journal.filter((l) => l === t('crew.paid', { money: formatMoney(soldeMousse) })),
+      recalcs: recalcs(),
+      jetsAuConseil,
+    };
+  };
+
+  it('cadence auto : un saut de 32 jours = quatre sauts de 8 jours (quatre soldes, quatre recalculs)', () => {
+    setCadence('rapide');
+    const unSaut = sauter([32]);
+    const quatreSauts = sauter([8, 8, 8, 8]);
+    expect(quatreSauts).toEqual({ paye: 4 * 288, semaine: 4, soldes: Array(4).fill(t('crew.paid', { money: formatMoney(soldeMousse) })), recalcs: 4, jetsAuConseil: 0 });
+    expect(unSaut).toEqual(quatreSauts);
+  });
+
+  it('cadence manuelle : un Conseil pour le bloc de 32 jours règle quatre semaines, comme quatre Conseils', () => {
+    const unSaut = sauter([32], 'paie-reguliere');
+    const quatreSauts = sauter([8, 8, 8, 8], 'paie-reguliere');
+    expect(quatreSauts).toEqual({ paye: 4 * 288, semaine: 4, soldes: Array(4).fill(t('crew.paid', { money: formatMoney(soldeMousse) })), recalcs: 4, jetsAuConseil: 4 });
+    expect(unSaut).toEqual(quatreSauts);
+  });
+
+  it('cadence manuelle : les semaines qui passent pendant que le Conseil siège rejoignent son bloc', () => {
+    banc.setState({ vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, crew: [{ roleId: 'mousse', count: 1 }] } });
+    creditBourse(banc.getState, banc.setState, banc.getState().party[0].id, { gold: 5000, silver: 0, brass: 0 });
+    banc.getState().avancerLeTemps(8 * MINUTES_PER_DAY);
+    expect(semainesDuConseil(banc.getState())).toBe(1);
+    banc.getState().avancerLeTemps(14 * MINUTES_PER_DAY);
+    expect(semainesDuConseil(banc.getState())).toBe(3);
+    banc.getState().fenetreChoisir('conseil', 'paie', 'paie-reguliere');
+    expect(banc.getState().vessel!.morale.lastMoraleWeek).toBe(3);
+    expect(recalcs()).toBe(3);
+    expect(banc.getState().pendingCouncil?.semaines).toBe(3);
+    expect(toBrass({ gold: 5000, silver: 0, brass: 0 }) - toBrass(partyMoneyTotal(banc.getState))).toBe(3 * 288);
+    expect(banc.getState().journal.filter((l) => l === t('crew.paid', { money: formatMoney(soldeMousse) }))).toHaveLength(3);
+  });
+
+  it('cadence auto : la solvabilité se juge semaine par semaine (trois soldes payées, la quatrième due)', () => {
+    setCadence('rapide');
+    banc.setState({ vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, crew: [{ roleId: 'mousse', count: 1 }] } });
+    creditBourse(banc.getState, banc.setState, banc.getState().party[0].id, fromBrass(3 * 288));
+    banc.getState().avancerLeTemps(32 * MINUTES_PER_DAY);
+    const s = banc.getState();
+    const paye = t('crew.paid', { money: formatMoney(soldeMousse) });
+    const impaye = t('crew.cannotPay', { money: formatMoney(soldeMousse) });
+    const suite = s.journal.flatMap((l) => (l === paye ? ['paid'] : l === impaye ? ['cannotPay'] : l.startsWith("Moral de l'équipage recalculé") ? ['recalc'] : []));
+    expect(toBrass(partyMoneyTotal(banc.getState))).toBe(0);
+    expect(s.vessel!.wagesOwed).toBe(288);
+    expect(suite).toEqual(['paid', 'recalc', 'paid', 'recalc', 'paid', 'recalc', 'cannotPay', 'recalc']);
+  });
+
+  it('un navire posé par `setVessel` ne doit rien des semaines d’avant sa pose (MDG 14 l.143)', () => {
+    setCadence('rapide');
+    banc.setState({ gameTime: campaignStart(), lastUpkeepDay: dayIndex(campaignStart()) });
+    applyEffects(banc.getState, banc.setState, [{ type: 'setVessel', vehicleId: 'cogue', crew: [{ roleId: 'mousse', count: 2 }] }]);
+    creditBourse(banc.getState, banc.setState, banc.getState().party[0].id, { gold: 5000, silver: 0, brass: 0 });
+    const avant = toBrass(partyMoneyTotal(banc.getState));
+    banc.getState().avancerLeTemps(1 * MINUTES_PER_DAY);
+    expect({ paye: avant - toBrass(partyMoneyTotal(banc.getState)), recalcs: recalcs() }).toEqual({ paye: 0, recalcs: 0 });
+    banc.getState().avancerLeTemps(7 * MINUTES_PER_DAY);
+    expect({ paye: avant - toBrass(partyMoneyTotal(banc.getState)), recalcs: recalcs() }).toEqual({ paye: 2 * 288, recalcs: 1 });
+  });
+
+  it('cadence manuelle : un choix dont la bourse ne couvre pas la solde du bloc est refusé', () => {
+    banc.setState({ vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, crew: [{ roleId: 'mousse', count: 1 }] } });
+    creditBourse(banc.getState, banc.setState, banc.getState().party[0].id, fromBrass(3 * 288)); // trois soldes, bloc de quatre
+    banc.getState().avancerLeTemps(32 * MINUTES_PER_DAY);
+    expect(choixDePaieOuverts(banc.getState())).not.toContain('paie-reguliere');
+    expect(choixDePaieOuverts(banc.getState())).toContain('paie-chiche');
   });
 });
 

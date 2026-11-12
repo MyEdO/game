@@ -39,9 +39,9 @@ function heroes(): Combatant[] {
 /** SÉQUENCE de poursuite en cours (l'état vit dans le socle). */
 function pursuitSeq(p: Partial<PursuitPayload> & { foes: PursuitFoe[] }): EtatDeFamille<'pursuit'> {
   return {
-    def: 'pursuit', round: 1, cum: {},
-    params: { score: { fleeing: 'min', pursuers: 'max' } },
-    payload: {
+    definition: 'pursuit', manche: 1, cumuls: {},
+    parametres: { score: { fleeing: 'min', pursuers: 'max' } },
+    chargeUtile: {
       partyRole: 'fleeing', distance: 2, escapeAt: 10, skill: 'athletisme',
       policy: { ...PURSUIT_POLICY_DEFAUT }, manche: 1, phase: 'course', retires: [],
       ...p,

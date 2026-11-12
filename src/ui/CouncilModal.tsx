@@ -10,7 +10,9 @@ import { moraleBand, findMoraleFactor, payChoices, payChoiceCostBrass } from '..
 import { formatEffetSigne } from '../engine/dice';
 import { fromBrass, toBrass } from '../engine/money';
 import { partyMoneyTotal } from '../noyau/bourseFlow';
+import { semainesDuConseil } from '../noyau/shipCrew';
 import { moraleTone } from './shipStatus';
+import { t, pluriel } from '../i18n';
 
 /**
  * CONSEIL DE BORD hebdomadaire (#229, MDG 14) — remplace les lignes de journal muettes de la paie quand un
@@ -23,6 +25,7 @@ import { moraleTone } from './shipStatus';
 export function CouncilModal() {
   const p = useGame((s) => s.pendingCouncil);
   const purseBrass = useGame((s) => toBrass(partyMoneyTotal(() => s)));
+  const semaines = useGame(semainesDuConseil);
   const choisir = useGame((s) => s.fenetreChoisir);
   const fermer = useGame((s) => s.fenetreFermer);
   const lever = () => fermer('conseil');
@@ -41,7 +44,7 @@ export function CouncilModal() {
       <Modal title={title} className="council-modal" onClose={lever} etape={p.phase}
         footer={<button className="btn btn-primary" onClick={lever}>Clore le conseil</button>}
       >
-        {chosen && <p className="port-hint">Paie de la semaine : <b>{chosen.label}</b>.</p>}
+        {chosen && <p className="port-hint">{t('crew.paieDesSemaines', { n: p.semaines ?? 1, s: pluriel(p.semaines ?? 1) })} : <b>{chosen.label}</b>.</p>}
         <MultiRollList entries={p.results ?? []} />
         <p className={`council-result ${moraleTone(after)}`}>
           Moral : <b>{p.before}</b> → <b>{after}</b> ({delta >= 0 ? '+' : ''}{delta}) — {band.label}
@@ -50,11 +53,11 @@ export function CouncilModal() {
     );
   }
 
-  // ── Phase CHOIX : la paie de la semaine (décision requise → non annulable ; « Pas de paie » gratuit) ──
+  // ── Phase CHOIX : la paie du bloc de semaines (décision requise → non annulable ; « Pas de paie » gratuit) ──
   const money = fromBrass(purseBrass);
   const options = payChoices().map(({ factorId }) => {
     const f = findMoraleFactor(factorId);
-    const costBrass = payChoiceCostBrass(p.wageBrass, factorId);
+    const costBrass = semaines * payChoiceCostBrass(p.wageBrass, factorId);
     const refus = refusDe[factorId];
     return {
       key: factorId,
@@ -75,9 +78,9 @@ export function CouncilModal() {
   return (
     <Modal title={title} className="council-modal" onClose={undefined} etape={p.phase}>
       <p className="port-hint">
-        Solde due (paie régulière) : <b><Coins money={fromBrass(p.wageBrass)} /></b> · Bourse <Coins money={money} />
+        {t('crew.soldeDue', { n: semaines, s: pluriel(semaines) })} : <b><Coins money={fromBrass(semaines * p.wageBrass)} /></b> · Bourse <Coins money={money} />
       </p>
-      <OptionChooser layout="grid" groupLabel="Paie de la semaine" options={options} />
+      <OptionChooser layout="grid" groupLabel={t('crew.paieDesSemaines', { n: semaines, s: pluriel(semaines) })} options={options} />
     </Modal>
   );
 }

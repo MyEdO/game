@@ -28,7 +28,8 @@ import type { WorldMap } from './worldMap';
 import { formatDice, type RNG } from '../engine/dice';
 import type { CascadeStep } from './pendings';
 import { reprendreLeVoyage } from './travelFlow';
-import { applyEffects, runFlow } from './combatEffects';
+import { applyEffects, jouerFlowEntier, runFlow } from './combatEffects';
+import { imposerLesD100 } from './battleRng.testkit';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import { navigationDuNavire } from './shipCrew';
 import { estCompetenceDePropulsion } from '../engine/propulsion';
@@ -57,10 +58,12 @@ import { jete } from '../engine/tests.testkit';
 import { hullNavalTraits } from '../engine/navalTraits';
 import { avecLesTables, cleDeFixture } from './noyau.testkit';
 import { tablesDuJeu } from './tablesDuJeu';
+import { chargerLaSave, lireSave, snapshotSave } from './persistance/save';
 import type { GenreDeCascade } from './tablesPosees';
 import { desEnSuite } from '../engine/dice.testkit';
 import { ligneDe } from '../engine/modLine.testkit';
 import { RULE_REF } from '../engine/ruleRefs';
+import { refDeRegle } from '../engine/reglesChiffrees';
 import { blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 
 /** Le réseau où le siège 1, assis à la table (`siegesDeLaTable`), tient le rôle MJ. */
@@ -470,6 +473,132 @@ describe('Infestation de rats géants — Extermination des nuisibles Complexe (
       seen.add(spoiled);
     }
     expect([...seen].some((v) => v % 3 !== 0)).toBe(true);
+  });
+});
+
+describe('Infestation — les rats attaquent sur une étape d’Extermination à DR négatif (MDG 15 l.161-164, l.176-178)', () => {
+  beforeEach(freshState);
+  afterEach(() => { resetRule('test-etendu-dr-minimum'); resetRule('equipage-zero-dr-succes'); });
+
+  /** La journée de mer RÉELLE sous l'Infestation `ligne` de la donnée (son op appliquée par son Flow) : le d100 de
+   *  chaque rangée de l'Extermination POSÉ à `d100(cible)`, la graine `graine` posée au moment de ce jet (elle tire
+   *  les 1d10 heures puis le soir : `membreAuHasard`, dés de `chaqueNuit`). Rend l'état à la tombée de la nuit. */
+  function journeeInfestee(ligne: 'infestation-de-rats-geants' | 'infestation-de-rats', d100: (cible: number) => number, graine: number) {
+    const ev = seaBoardEventById(ligne)!;
+    jouerFlowEntier(runFlow(get, set, ev.consequence!, ev.label));
+    get().partirEnVoyage('r1', 'mer', { cadence: 'jourParJour' });
+    for (let i = 0; i < 30 && !get().pendingRest; i++) {
+      if (!get().pendingCascade) break;
+      avanceEtapeCascade(get, (e, rangee) => (e.kind === 'equipage-extermination' && rangee ? (seedBattleRng(graine), d100(rangee.target!)) : undefined));
+    }
+    return get();
+  }
+
+  /** Les étapes de dé `nombre` d'attaques subies, en avant-plan comme derrière (`suspendedCascades`). */
+  const etapesDAttaques = (s: ReturnType<typeof get>) => [s.pendingCascade, ...s.suspendedCascades]
+    .flatMap((c) => c?.participants ?? []).filter((x) => x.kind === 'nombreDAttaquesSubies');
+
+  /** Le dé `nombre` posé à 1 : la série d'une attaque s'ouvre, son d100 d'attaque et de localisation imposés (`des`),
+   *  puis le héros perd sa Défense (97). Rend le coup tranché. */
+  function uneAttaquePerdue(des: number[]) {
+    avanceEtapeCascade(get, () => 1);
+    expect(get().serieSubie).toBeTruthy();
+    imposerLesD100(...des);
+    get().jetLancer('defense');
+    get().jetImposerLeResultat('defense', 97);
+    const coup = get().pendingDefense!.result!;
+    get().jetValider('defense');
+    return coup;
+  }
+
+  it('Extermination à DR −1 : au soir, le dé `nombre` sur le héros tiré, la journée close, `chaqueNuit` jouée ; puis la série', () => {
+    const s = journeeInfestee('infestation-de-rats-geants', (cible) => cible, 1);
+    expect(s.travelPlan!.kmDone).toBeGreaterThan(0);
+    expect(s.pendingRest).toBeTruthy();
+    expect(s.vessel!.infestation!.assaillie).toBeUndefined();
+    expect(s.journal).toContain(t('eff.membreAuHasardMarin'));
+    expect(s.journal).toContain(t('eff.cargaisonPerdueEnc', { enc: 0 }));
+    expect(s.pendingCascade).toMatchObject({ purpose: 'sequence' });
+    const [etape, ...autres] = etapesDAttaques(s);
+    expect(autres).toEqual([]);
+    expect(etape).toMatchObject({ actorId: 'soldat-de-test', de: { spec: { n: 1, sides: 10 } } });
+    expect(etape.meta!.attaquesSubies![0].assaillant.statblock).toMatchObject({ label: 'Rats géants', char: { 'capacite-de-combat': 35 } });
+    avanceEtapeCascade(get, () => 3);
+    expect(get().serieSubie).toMatchObject({ cibleId: 'soldat-de-test', restantes: 3 });
+    expect(get().pendingDefense).toMatchObject({ attackerId: get().serieSubie!.assaillant.id, defenderId: 'soldat-de-test' });
+  });
+
+  it('échec à DR 0, `test-etendu-dr-minimum` désactivée : aucune attaque', () => {
+    const s = journeeInfestee('infestation-de-rats', (cible) => cible + 1, 3);
+    expect(s.pendingRest).toBeTruthy();
+    expect(etapesDAttaques(s)).toEqual([]);
+    expect(s.serieSubie).toBeNull();
+  });
+
+  it('échec à DR 0, `test-etendu-dr-minimum` activée : l’étape compte −1 DR, les rats attaquent (LDB 12 l.185)', () => {
+    setRule('test-etendu-dr-minimum', true);
+    const s = journeeInfestee('infestation-de-rats', (cible) => cible + 1, 3);
+    expect(s.pendingRest).toBeTruthy();
+    expect(etapesDAttaques(s).map((e) => e.actorId)).toEqual(['soldat-de-test']);
+  });
+
+  it('réussite à DR 0, `test-etendu-dr-minimum` activée : l’étape compte +1 DR, aucune attaque (LDB 12 l.185 ; MDG 14 l.13)', () => {
+    setRule('test-etendu-dr-minimum', true);
+    setRule('equipage-zero-dr-succes', true);
+    const s = journeeInfestee('infestation-de-rats', (cible) => cible, 3);
+    expect(s.vessel!.infestation!.progres).toBe(1);
+    expect(etapesDAttaques(s)).toEqual([]);
+  });
+
+  it('rats géants : une touche qui blesse expose à la fièvre du rongeur (MDG 15 l.164)', () => {
+    journeeInfestee('infestation-de-rats-geants', (cible) => cible, 1);
+    const coup = uneAttaquePerdue([20, 23]);
+    expect(coup.hit && (coup.woundsLost ?? 0) > 0).toBe(true);
+    const s = get();
+    expect(s.serieSubie).toBeNull();
+    expect(s.pendingCascade!.participants.filter((x) => x.kind === 'maladieDeFinDeCombat').map((x) => [x.meta?.disease, x.participants!.map((p) => p.id)]))
+      .toEqual([['fievre-du-rongeur', ['soldat-de-test']]]);
+  });
+
+  it('rats : une touche qui blesse n’expose à aucune maladie (MDG 15 l.178)', () => {
+    journeeInfestee('infestation-de-rats', (cible) => cible + 10, 1);
+    const coup = uneAttaquePerdue([20, 23]);
+    expect(coup.hit && (coup.woundsLost ?? 0) > 0).toBe(true);
+    const s = get();
+    expect(s.serieSubie).toBeNull();
+    expect((s.pendingCascade?.participants ?? []).filter((x) => x.kind === 'maladieDeFinDeCombat')).toEqual([]);
+  });
+
+  it('rats (Très petite) contre un héros halfling (Petite) : la ligne « plus petit » +10 est dans leur jet (LDB 85 l.366)', () => {
+    set({ party: tousLesHerosDeScenario(idsDeTest).filter((h) => h.id === 'voleur-de-test') });
+    expect(get().party[0].size).toBe('petite');
+    journeeInfestee('infestation-de-rats', (cible) => cible + 10, 1);
+    avanceEtapeCascade(get, () => 1);
+    const pd = get().pendingDefense!;
+    expect(pd.defenderId).toBe('voleur-de-test');
+    expect(ligneDe(pd.atkCompo!.difficultyParts, refDeRegle('taille-modificateurs-en-combat'))?.value).toBe(10);
+  });
+
+  it('un marin tiré au sort : aucune série, une ligne au journal (MDG 15 l.161)', () => {
+    const avant = get().journal.length;
+    const s = journeeInfestee('infestation-de-rats-geants', (cible) => cible, 13);
+    expect(s.pendingRest).toBeTruthy();
+    expect(etapesDAttaques(s)).toEqual([]);
+    expect(s.serieSubie).toBeNull();
+    expect(s.journal.slice(avant).filter((l) => l === t('eff.membreAuHasardMarin'))).toHaveLength(1);
+  });
+
+  it('le marqueur `assaillie` et `surDRNegatif` traversent une sauvegarde puis un chargement (MDG 15 l.161, l.176)', () => {
+    const ev = seaBoardEventById('infestation-de-rats-geants')!;
+    jouerFlowEntier(runFlow(get, set, ev.consequence!, ev.label));
+    const { vessel } = get();
+    const infestation = vessel!.infestation!;
+    set({ vessel: { ...vessel!, infestation: { ...infestation, assaillie: true } } });
+    const lu = lireSave(JSON.stringify(snapshotSave(get(), '2026-11-12T00:00:00Z')));
+    if (typeof lu === 'string') throw new Error(lu);
+    const { etat } = chargerLaSave(lu);
+    expect(etat.vessel!.infestation!.assaillie).toBe(true);
+    expect(etat.vessel!.infestation!.surDRNegatif).toEqual(infestation.surDRNegatif);
   });
 });
 

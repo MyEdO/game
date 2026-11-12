@@ -60,9 +60,9 @@ async function drain(opts: { des?: number[]; choix?: string } = {}): Promise<{ t
     if (p) {
       const cur = p.participants[p.cursor];
       if (cur) {
-        const enCours = get().sequence?.payload as { manche?: number } | undefined;
+        const enCours = get().sequence?.chargeUtile as { manche?: number } | undefined;
         trace.push({
-          id: cur.id, kind: cur.kind, manche: enCours?.manche ?? 0, round: get().sequence?.round ?? 0,
+          id: cur.id, kind: cur.kind, manche: enCours?.manche ?? 0, round: get().sequence?.manche ?? 0,
           ...(cur.actorId ? { actorId: cur.actorId } : {}),
         });
       }
@@ -182,7 +182,7 @@ describe('Al-zahr — la partie au store', () => {
     const a = tableDeJeu();
     const avant = toBrass(bourseOf(get().party[0]));
     get().jouerALaTaverne(a.id, { gameId: 'al-zahr', opponent: { kind: 'profil', id: 'humain' }, stakeBrass: 100, tablePlayers: 3 });
-    expect(get().sequence?.def).toBe('tavern');
+    expect(get().sequence?.definition).toBe('tavern');
     await drain();
     const res = get().tavernGames!.result!;
     expect(res.gameLabel).toBe('L\'Al-zahr');
@@ -217,7 +217,7 @@ describe('Al-zahr — la partie au store', () => {
     get().jetValider('cascade');
     const fenetres: string[] = [];
     let fenetreDeB = false;
-    for (let i = 0; i < 200 && get().pendingCascade && (get().sequence?.payload as { manche?: number } | undefined)?.manche === 1; i++) {
+    for (let i = 0; i < 200 && get().pendingCascade && (get().sequence?.chargeUtile as { manche?: number } | undefined)?.manche === 1; i++) {
       const st = cur();
       fenetres.push(st.actorId === a.id ? 'A' : st.actorId === b.id ? 'B' : 'autre');
       if (st.actorId === b.id && st.table && !st.table.result && !fenetreDeB) { fenetreDeB = true; fermeEntreDeuxManches('fenêtre de B'); }
@@ -226,7 +226,7 @@ describe('Al-zahr — la partie au store', () => {
     expect(get().journal).toContain(`${a.label} abandonne la manche.`);
     expect(fenetreDeB, 'B garde ses fenêtres après le pli').toBe(true);
     expect(fenetres.filter((f) => f !== 'B'), 'ni le plié, ni un habitué n’ont de fenêtre').toEqual([]);
-    expect((get().sequence?.payload as { manche?: number } | undefined)?.manche, 'la manche suivante s’ouvre').toBe(2);
+    expect((get().sequence?.chargeUtile as { manche?: number } | undefined)?.manche, 'la manche suivante s’ouvre').toBe(2);
   });
 
   it('ABANDON à la fenêtre d’OUVERTURE (l.17) : rien n’est encore misé — la manche n’est pas jouée, la partie est perdue', () => {
@@ -254,7 +254,7 @@ describe('Al-zahr — la partie au store', () => {
     get().jetValider('cascade');
     get().jetImposerLeResultat('cascadeTirage', 20, cur().id);
     get().jetValider('cascade');
-    expect((get().sequence!.payload as { manche: number }).manche).toBe(2);
+    expect((get().sequence!.chargeUtile as { manche: number }).manche).toBe(2);
     expect(cur().kind, 'ouverture de la manche 2').toBe('tavernePotCible');
     expect(cur().actorId, 'l’annonce d’un autre se lit à la fenêtre du challenger').toBe(a.id);
     expect(cur().options, 'ce n’est pas lui qui choisit la cible').toBeUndefined();
@@ -268,7 +268,7 @@ describe('Al-zahr — la partie au store', () => {
   it('la MISE puis la CIBLE (l.17) : l’ouverture ne prend rien ; sa clôture prélève la mise de chacun, puis la cible est annoncée', () => {
     const a = tableDeJeu();
     get().jouerALaTaverne(a.id, { gameId: 'al-zahr', opponent: { kind: 'profil', id: 'humain' }, stakeBrass: 100, tablePlayers: 3 });
-    const payload = () => get().sequence!.payload as { pot?: number; net?: Record<string, number>; seats?: unknown[]; mises?: Record<string, number>; target?: number | null };
+    const payload = () => get().sequence!.chargeUtile as { pot?: number; net?: Record<string, number>; seats?: unknown[]; mises?: Record<string, number>; target?: number | null };
     expect(payload().seats).toHaveLength(3);
     expect(payload().pot, 'fenêtre d’ouverture : pot vide').toBe(0);
     expect(payload().net?.[a.id] ?? 0, 'rien n’est engagé').toBe(0);
@@ -290,10 +290,10 @@ describe('Al-zahr — la partie au store', () => {
     seedBattleRng(3);
     const avant = toBrass(bourseOf(get().party[0]));
     get().jouerALaTaverne(a.id, { gameId: 'al-zahr', opponent: { kind: 'profil', id: 'humain' }, stakeBrass: 100, tablePlayers: 3 });
-    banc.setState({ sequence: { ...get().sequence!, params: { ...get().sequence!.params, maxRounds: 8 } } });
+    banc.setState({ sequence: { ...get().sequence!, parametres: { ...get().sequence!.parametres, maxRounds: 8 } } });
     let sousSaMise = false;
     for (let i = 0; i < 60 && get().pendingCascade; i++) {
-      const p = get().sequence?.payload as { pot?: number; mises?: Record<string, number> } | undefined;
+      const p = get().sequence?.chargeUtile as { pot?: number; mises?: Record<string, number> } | undefined;
       if (p) {
         expect(Object.values(p.mises ?? {}).reduce((x, y) => x + y, 0), `pas ${i} : Σ mises = pot`).toBe(p.pot ?? 0);
         if ((p.mises?.[a.id] ?? 0) < 0) sousSaMise = true;
@@ -308,7 +308,7 @@ describe('Al-zahr — la partie au store', () => {
   it('mise plafonnée à la bourse du challenger', () => {
     const a = tableDeJeu(50);
     get().jouerALaTaverne(a.id, { gameId: 'al-zahr', opponent: { kind: 'profil', id: 'humain' }, stakeBrass: 100000 });
-    expect((get().sequence!.payload as { stakeBrass: number }).stakeBrass).toBe(50);
+    expect((get().sequence!.chargeUtile as { stakeBrass: number }).stakeBrass).toBe(50);
   });
 
   it('sans le sou : aucune partie ne s’ouvre (garde explicite, la source est muette)', () => {
@@ -390,7 +390,7 @@ describe('Al-zahr — la partie au store', () => {
     // Borne ramenée à un seul tour : la partie est coupée le pot encore plein (artefact d'anti-boucle).
     get().jouerALaTaverne(a.id, { gameId: 'al-zahr', opponent: { kind: 'profil', id: 'humain' }, stakeBrass: 100, tablePlayers: 3 });
     const avant = toBrass(bourseOf(get().party[0]));
-    banc.setState({ sequence: { ...get().sequence!, params: { ...get().sequence!.params, maxRounds: 2 } } });
+    banc.setState({ sequence: { ...get().sequence!, parametres: { ...get().sequence!.parametres, maxRounds: 2 } } });
     const { journal } = await drain();
     const res = get().tavernGames!.result!;
     expect(journal.some((l) => l.includes('Partie interrompue')), 'la reprise est dite').toBe(true);

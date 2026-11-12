@@ -3,7 +3,11 @@
 // triplanaire dans le repère du maillage, relief compris, rendu des deux côtés, ses paramètres nommés comme les
 // propriétés de cette matière (`VolumeDeScene.texturer`), plus le masque du retrait (`retrait`, `RetraitDuMonde`) : un
 // sommet dont la case (`UV2`) est retirée se replie ; une case hors du masque lié (aucun lié, avant le premier
-// `VolumeDeScene.retirer` ou après `retirer(null)` : la texture noire par défaut) n'est pas lue, rien ne s'y replie.
+// `VolumeDeScene.retirer` ou après `retirer(null)` : la texture noire par défaut) n'est pas lue, rien ne s'y replie ; et
+// la vision du groupe (`vision`, `VisionDuMonde`, `VolumeDeScene.voir`) : l'état de la case sous le fragment, lu au plan
+// de sa couche et fondu depuis la vision d'avant, multiplie l'albédo par sa teinte, en lumière linéaire : sous
+// `OUTPUT_IS_SRGB` (rendu de compatibilité), l'albédo est en sRGB et le moteur le linéarise après `fragment()`
+// (`recettes/voile-de-la-vision.gd`) ; sans vision liée, la texture blanche et les teintes à 1 : rien n'est voilé.
 // `vertex()` sans branche, comme le code généré : sous une branche, le pilote arrondit autrement la projection des
 // textures.
 shader_type spatial;
@@ -17,9 +21,31 @@ uniform sampler2D albedo_texture : source_color, filter_linear_mipmap, repeat_en
 uniform sampler2D normal_texture : hint_roughness_normal, filter_linear_mipmap, repeat_enable;
 uniform float uv1_triplanar_sharpness : hint_range(0.0, 150.0, 0.001);
 uniform vec3 uv1_scale = vec3(1.0);
+uniform sampler2D vision_avant : filter_linear, hint_default_white;
+uniform sampler2D vision : filter_linear, hint_default_white;
+uniform float vision_fondu : hint_range(0.0, 1.0) = 1.0;
+uniform vec3 vision_teintes = vec3(1.0);
+uniform int vision_rangees_par_plan = 1;
+uniform float vision_cases_par_metre = 1.0;
 
 varying vec3 uv1_triplanar_pos;
 varying vec3 uv1_power_normal;
+varying vec2 vision_case;
+varying flat float vision_premiere_rangee;
+
+vec3 en_lineaire(vec3 couleur) {
+	return mix(
+			pow((couleur + vec3(0.055)) * (1.0 / (1.0 + 0.055)), vec3(2.4)),
+			couleur * (1.0 / 12.92),
+			lessThan(couleur, vec3(0.04045)));
+}
+
+vec3 en_srgb(vec3 couleur) {
+	return mix(
+			pow(couleur, vec3(1.0 / 2.4)) * (1.0 + 0.055) - vec3(0.055),
+			couleur * 12.92,
+			lessThan(couleur, vec3(0.0031308)));
+}
 
 void vertex() {
 	TANGENT = vec3(0.0, 0.0, -1.0) * abs(NORMAL.x);
@@ -35,11 +61,11 @@ void vertex() {
 	uv1_power_normal /= dot(uv1_power_normal, vec3(1.0));
 	uv1_triplanar_pos *= vec3(1.0, -1.0, 1.0);
 	if (!OUTPUT_IS_SRGB) {
-		COLOR.rgb = mix(
-				pow((COLOR.rgb + vec3(0.055)) * (1.0 / (1.0 + 0.055)), vec3(2.4)),
-				COLOR.rgb * (1.0 / 12.92),
-				lessThan(COLOR.rgb, vec3(0.04045)));
+		COLOR.rgb = en_lineaire(COLOR.rgb);
 	}
+	vision_case = VERTEX.xz * vision_cases_par_metre;
+	float rangees_par_plan = float(vision_rangees_par_plan);
+	vision_premiere_rangee = floor(UV2.y / (2.0 * rangees_par_plan)) * rangees_par_plan;
 	ivec2 texel = ivec2(UV2);
 	ivec2 taille = textureSize(retrait, 0);
 	float lue = float(all(lessThan(texel, taille))) * texelFetch(retrait, min(texel, taille - 1), 0).r;
@@ -54,6 +80,19 @@ vec4 triplanar_texture(sampler2D p_sampler, vec3 p_weights, vec3 p_triplanar_pos
 	return samp;
 }
 
+float etat_vu(sampler2D plan) {
+	float rangees_par_plan = float(vision_rangees_par_plan);
+	vec2 texel = vec2(vision_case.x + 0.5, vision_premiere_rangee + clamp(vision_case.y + 0.5, 0.5, rangees_par_plan - 0.5));
+	return texture(plan, texel / vec2(textureSize(plan, 0))).r;
+}
+
+float part_de_lumiere(float etat) {
+	float exploree = 128.0 / 255.0;
+	float sous = mix(vision_teintes.x, vision_teintes.y, clamp(etat / exploree, 0.0, 1.0));
+	float dessus = mix(vision_teintes.y, vision_teintes.z, clamp((etat - exploree) / (1.0 - exploree), 0.0, 1.0));
+	return mix(sous, dessus, step(exploree, etat));
+}
+
 void fragment() {
 	if (uv1_triplanar) {
 		ALBEDO = triplanar_texture(albedo_texture, uv1_power_normal, uv1_triplanar_pos).rgb;
@@ -62,6 +101,10 @@ void fragment() {
 		}
 	} else {
 		ALBEDO = COLOR.rgb;
+	}
+	float lumiere = part_de_lumiere(mix(etat_vu(vision_avant), etat_vu(vision), vision_fondu));
+	if (lumiere != 1.0) {
+		ALBEDO = OUTPUT_IS_SRGB ? en_srgb(en_lineaire(ALBEDO) * lumiere) : ALBEDO * lumiere;
 	}
 	ROUGHNESS = roughness;
 }

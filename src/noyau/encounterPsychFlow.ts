@@ -20,6 +20,7 @@ import { Scene } from './monde/scene';
 import type { CascadeStep, BatchParticipant } from './pendings';
 import { ficheDEntite, nomDIndividu } from './monde/sceneNpc';
 import { presetDuNarratif, type ResolveurDePreset } from './monde/resolveursDuNarratif';
+import { enEmbuscade } from './visionDuGroupe';
 import { etiquetteDeScene } from './monde/porteurs';
 import { encounterPsych } from '../engine/encounterPsych';
 import { estCibleType, identiteDeCiblage, libelleDePsy, type CiblePsy } from '../engine/psych/ciblage';
@@ -55,7 +56,7 @@ export interface PendingEncounterPsych {
  *  Un embusqueur caché n'inspire pas la Peur avant le combat. */
 export function sceneFearSources(scene: Scene, presetDe: ResolveurDePreset): Combatant[] {
   return (scene.entities ?? [])
-    .filter((e) => e.kind === 'personnage' && !e.combat?.hiddenUntilCombat)
+    .filter((e) => e.kind === 'personnage' && !enEmbuscade(e))
     .map((e) => ficheDEntite(e, presetDe));
 }
 
