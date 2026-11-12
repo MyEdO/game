@@ -69,7 +69,7 @@ describe('Défense de manœuvre de zone — cascade influençable (héros) vs si
     expect(p, 'une manœuvre de zone touchant des héros DOIT ouvrir une cascade de défense (pas de silence)').toBeTruthy();
     expect(p!.purpose).toBe('combat');
     // Reprise du tour de la créature à la fermeture (attaques gratuites restantes / avance).
-    expect(p!.maneuverResume).toEqual({ attackerId: E.id, free: true });
+    expect(p!.maneuverResume).toEqual({ attackerId: E.id });
     // UNE étape par héros ciblé.
     expect(p!.participants.length).toBe(2);
     for (const step of p!.participants) {

@@ -2387,7 +2387,7 @@ export interface PendingCascade extends MultiPending<CascadeStep> {
    *  héros ciblé y jette sa réaction INFLUENÇABLE. À la fermeture, le store REPREND le tour de la créature
    *  `attackerId` (attaques gratuites restantes puis avance) au lieu du `resumeSuspendedAI` générique —
    *  `free` = la manœuvre était une attaque gratuite (ne re-déclenche pas les libres d'Arme post-Action). */
-  maneuverResume?: { attackerId: string; free: boolean };
+  maneuverResume?: { attackerId: string };
   /** Séquence PARQUÉE par le pilote IMMÉDIAT (`cascade.runCascadeImmediate`) sur un choix sans défaut,
    *  ou derrière un combat ouvert en plein vol : le choix validé ou le combat clos, la suite reprend par ce
    *  même pilote (`cascade.avanceUnPas`), jamais en fenêtre, avec le CONTEXTE de son lancement

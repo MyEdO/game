@@ -199,7 +199,8 @@ describe('après-coup — le cas suspendu rejoint le témoin (#1508 T3b-4)', () 
     const h2 = g().battle!.combatants.find((c) => c.id === 'h2')!;
     h2.traits = [{ id: 'demoniaque', value: 9 }] as never;
     const trace = jouer();
-    expect(trace.filter((t) => t.startsWith('defense(')), trace.join(' | ')).toEqual(['defense(Griffe→h)', 'defense(Griffe→h2)']);
+    // Puis la gratuite de créature du tour : le Piétinement (LDB 85 l.387), une fois la chaîne close.
+    expect(trace.filter((t) => t.startsWith('defense(')).slice(0, 3), trace.join(' | ')).toEqual(['defense(Griffe→h)', 'defense(Griffe→h2)', 'defense(Piétinement→h)']);
     expect(g().battle!.combatants.find((c) => c.id === 'h2')!.wounds.current, 'le maillon suspendu a porté sur h2').toBeLessThan(200);
     expect(g().pendingCascade).toBeNull();
   });

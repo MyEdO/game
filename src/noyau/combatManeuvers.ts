@@ -549,7 +549,7 @@ export function resolveManeuver(
   // (dispatchCascadeDone → resumeManeuverDefense), sans `defenseDeManoeuvre` bidon pour un Test simple.
   const p = get().pendingCascade;
   if (p && p.purpose === 'combat' && !p.maneuverResume) {
-    set({ pendingCascade: { ...p, maneuverResume: { attackerId: attacker.id, free: def.activation === 'free' } } });
+    set({ pendingCascade: { ...p, maneuverResume: { attackerId: attacker.id } } });
     return true; // tour SUSPENDU : le Test de Résistance influençable tient la main
   }
   return false;
@@ -595,7 +595,7 @@ function openManeuverDefenseCascade(
   });
   startCascade(get, set, { title: attackerLabel, purpose: 'combat', steps });
   const p = get().pendingCascade;
-  if (p) set({ pendingCascade: { ...p, maneuverResume: { attackerId: attacker.id, free: def.activation === 'free' } } });
+  if (p) set({ pendingCascade: { ...p, maneuverResume: { attackerId: attacker.id } } });
 }
 
 /** Le défenseur choisit sa meilleure réaction : Parade (Corps à corps) ou Esquive (Agilité + avances,

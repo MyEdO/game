@@ -4118,15 +4118,16 @@ export function aiAvailableFreeAttack(get: Get, set: SetFn, actor: Combatant): b
  * `pendingFreeAttacks` ; la fermeture les rappelle : `jetValider('defense')`, `resumeManeuverDefense`, et
  * `resumeSuspendedAI` pour une étape de Blessure critique.
  *
- * `disponibles` : les gratuites d'Arme ne suivent QUE l'Action (jamais une gratuite — celle que nomme la
- * `suite` de la fenêtre —, ni une manœuvre gratuite), le site le déclare.
+ * Les gratuites d'Arme partent quand l'Action de ce tour est faite par l'acteur actif (LDB 21 l.33) : un
+ * état de la bataille, jamais une déclaration du site qui reprend la main (#4011).
  *
  * Les gratuites de créature ne partent qu'au TOUR de la créature (garde d'entrée d'`aiCreatureFreeAttacks`,
  * LDB 13 l.14, LDB 85 l.43) : hors de son tour, la file reste intacte et l'appelant reprend sa suite.
  */
-export function drainerLesGratuites(get: Get, set: SetFn, actor: Combatant, opts: { disponibles: boolean }): boolean {
+export function drainerLesGratuites(get: Get, set: SetFn, actor: Combatant): boolean {
   if (defenseEnCours(get())) return true; // une fenêtre est déjà vivante : la file attend sa fermeture
-  if (opts.disponibles && aiAvailableFreeAttack(get, set, actor)) return true;
+  const battle = get().battle;
+  if (battle?.acted && activeCombatant(battle)?.id === actor.id && aiAvailableFreeAttack(get, set, actor)) return true;
   return aiCreatureFreeAttacks(get, set, actor);
 }
 
@@ -4601,9 +4602,8 @@ function maneuverCascadePending(get: Get): boolean {
 /** Reprend le tour de la créature après la fermeture d'une cascade de DÉFENSE à sa manœuvre de zone
  *  (Souffle/Regard/…). Miroir du « tail » de `jetValider('defense')` : les héros ont défendu (influençable), on
  *  vérifie la fin de combat, puis on enchaîne les attaques gratuites RESTANTES (file persistée) — qui peuvent
- *  ROUVRIR une cascade (souffle → vomi → …) — sinon on avance. `free` = manœuvre gratuite (ne re-déclenche
- *  PAS les libres d'Arme post-Action, comme `jetValider('defense')` pour la gratuite que nomme la `suite` de sa fenêtre). */
-export function resumeManeuverDefense(get: Get, set: SetFn, resume: { attackerId: string; free: boolean }): void {
+ *  ROUVRIR une cascade (souffle → vomi → …) — sinon on avance. */
+export function resumeManeuverDefense(get: Get, set: SetFn, resume: { attackerId: string }): void {
   checkBattleOver(get, set);
   const battle = get().battle;
   if (!battle || battle.over) return;
@@ -4611,7 +4611,7 @@ export function resumeManeuverDefense(get: Get, set: SetFn, resume: { attackerId
   if (attacker && !isOutOfAction(attacker)) {
     // Manœuvre-ACTION (Regard/Étreinte) → libres d'Arme (Frénésie) après l'Action, puis la file de
     // créature : UN appel qui s'arrête à la première fenêtre ouverte (#1852).
-    if (drainerLesGratuites(get, set, attacker, { disponibles: !resume.free })) return;
+    if (drainerLesGratuites(get, set, attacker)) return;
   }
   resumeEnemyTurn(get, set); // → advanceTurn
 }
@@ -7494,7 +7494,7 @@ export function resumeSuspendedAI(get: Get, set: SetFn): void {
   if (isOutOfAction(active)) { advanceTurn(get, set); return; }
   // Acteur IA ayant déjà agi (conséquence d'attaque) → ses gratuites restantes, puis fin de tour. LDB 85 l.41-43 ; #1858
   if (battle.acted) {
-    if (active.pendingFreeAttacks?.length && drainerLesGratuites(get, set, active, { disponibles: false })) return;
+    if (drainerLesGratuites(get, set, active)) return;
     resumeEnemyTurn(get, set);
     return;
   }
@@ -7908,7 +7908,7 @@ function frapperPuisAvancer(get: Get, set: SetFn, acteur: Combatant, cible: Comb
   // Attaques GRATUITES après l'attaque principale : d'Arme « disponibles » (Frénésie LDB 21 l.33 =
   // seule source en donnée) puis de créature (Morsure/Caudale/Piétinement, OPPOSÉES). La file
   // s'arrête à la première fenêtre ouverte ; ne PAS avancer alors (reprise via jetValider('defense')).
-  if (!drainerLesGratuites(get, set, acteur, { disponibles: true })) armerLaSuite(get, set, acteur, { kind: 'avancer' }, beatHold(get, 'postAttack'));
+  if (!drainerLesGratuites(get, set, acteur)) armerLaSuite(get, set, acteur, { kind: 'avancer' }, beatHold(get, 'postAttack'));
 }
 
 /** Le sort de ZONE d'un tour d'IA (ZdE, LDB 47 l.28), au centre décidé par l'IA pure. */

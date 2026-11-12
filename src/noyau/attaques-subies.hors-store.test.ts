@@ -10,7 +10,7 @@ import { horsBataille } from './coupHorsBataille.testkit';
 import { imposerLesD100 } from './battleRng.testkit';
 import { battleRng } from './battleRng';
 import { applyEffects, EFFECT_HANDLERS, type EffectRefCtx } from './combatEffects';
-import { ouvrirLeBanc, type Banc } from './banc.testkit';
+import { ouvrirLeBanc, type Banc, type EntreesDuBanc } from './banc.testkit';
 import { heroFaceAUnEnnemi } from './combatDeTest.testkit';
 import { fermerLaSerieSubie } from './combatFlow';
 import { refusDeSauvegarde } from './persistance/save';
@@ -41,15 +41,15 @@ const attaques = (on: 'hero' | 'party', heroId?: string): Effect => ({ type: 'op
 const troisBlessures = (heroId: string): Effect => ({ type: 'ops', on: 'hero', heroId, ops: [gameOpSchema.parse({ op: 'wounds', amount: 3 })] });
 
 /** Le héros du groupe, aucune bataille, l'op appliquée (puis les Effets `suivants`) : le dé `nombre` ouvert à la porte, non tombé. */
-function deOuvert(suivants: (heroId: string) => Effect[] = () => []) {
-  const { banc, H } = horsBataille(testScene());
+function deOuvert(suivants: (heroId: string) => Effect[] = () => [], reglesMaison?: EntreesDuBanc['reglesMaison']) {
+  const { banc, H } = horsBataille(testScene(), reglesMaison);
   applyEffects(banc.getState, banc.setState, [attaques('hero', H.id), ...suivants(H.id)]);
   return { banc, H, etape: banc.getState().pendingCascade!.participants[0] };
 }
 
 /** La série ouverte : le dé `nombre` POSÉ à `nombre` (7) à la porte, les d100 de la série imposés (`des`). */
-function serieOuverte(des: number[] = [65, 23], nombre = 7, suivants?: (heroId: string) => Effect[]) {
-  const { banc, H, etape } = deOuvert(suivants);
+function serieOuverte(des: number[] = [65, 23], nombre = 7, suivants?: (heroId: string) => Effect[], reglesMaison?: EntreesDuBanc['reglesMaison']) {
+  const { banc, H, etape } = deOuvert(suivants, reglesMaison);
   imposerLesD100(...des);
   banc.getState().jetImposerLeResultat('cascadeTirage', nombre, etape.id);
   banc.getState().jetValider('cascade');
@@ -238,8 +238,8 @@ describe('série d’attaques subies hors bataille (#3892)', () => {
 
   /** La série de 2 attaques d'où le héros sort après un Critique encaissé (« Subir ») à la première, la sévérité POSÉE à
    *  `severite`, la localisation au d100 `lieu`, sa révélation validée, la seconde attaque parée : la série fermée. */
-  function serieFermeeApresUnCritique(severite: number, lieu: number) {
-    const { banc, H } = serieOuverte([22, 23, lieu, 20], 2);
+  function serieFermeeApresUnCritique(severite: number, lieu: number, reglesMaison?: EntreesDuBanc['reglesMaison']) {
+    const { banc, H } = serieOuverte([22, 23, lieu, 20], 2, undefined, reglesMaison);
     defendre(banc, 97);
     const etape = trancherLeCritique(banc, severite, 'subir');
     const pc = banc.getState().pendingCascade!;
@@ -254,8 +254,7 @@ describe('série d’attaques subies hors bataille (#3892)', () => {
     (s.pendingCascade?.participants ?? []).filter((x) => x.kind === 'maladieDeFinDeCombat' || x.kind === 'corruptionDeFinDeCombat');
 
   it('Critique encaissé pendant la série, maladies « full » : l’Infection mineure s’ouvre à la fermeture et frappe le héros rendu au groupe : LDB 20 l.90', () => {
-    setRule('maladie-mode', 'full');
-    const { banc, H } = serieFermeeApresUnCritique(1, 50);
+    const { banc, H } = serieFermeeApresUnCritique(1, 50, { 'maladie-mode': 'full' });
     const [etape, ...autres] = etapesDeFinDeRencontre(banc.getState());
     expect(autres).toEqual([]);
     expect(etape).toMatchObject({ kind: 'maladieDeFinDeCombat', meta: { entry: 'infection', disease: 'infection-mineure' } });
@@ -265,6 +264,12 @@ describe('série d’attaques subies hors bataille (#3892)', () => {
     banc.getState().jetLancer('cascadeEnBande', H.id);
     banc.getState().jetValider('cascade');
     expect(banc.getState().party[0].diseases?.map((d) => d.id)).toContain('infection-mineure');
+  });
+
+  it('Critique encaissé pendant la série, maladies « off » : aucune étape de fin de rencontre : LDB 20 l.90', () => {
+    const { banc } = serieFermeeApresUnCritique(1, 50, { 'maladie-mode': 'off' });
+    expect(etapesDeFinDeRencontre(banc.getState())).toEqual([]);
+    expect(banc.getState().party[0].diseases ?? []).toEqual([]);
   });
 
   /** La seule étape encore ouverte de la séquence, un `testDeclenche`. */
@@ -350,8 +355,7 @@ describe('série d’attaques subies hors bataille (#3892)', () => {
   });
 
   it('série sans Critique : aucune étape de fin de rencontre', () => {
-    setRule('maladie-mode', 'full');
-    const { banc } = serieOuverte([20, 23], 1);
+    const { banc } = serieOuverte([20, 23], 1, undefined, { 'maladie-mode': 'full' });
     expect(defendre(banc, 5).hit).toBe(false);
     const s = banc.getState();
     expect(s.serieSubie).toBeNull();
