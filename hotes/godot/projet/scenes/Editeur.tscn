@@ -90,6 +90,12 @@ source = "editeur.fichier"
 script = ExtResource("3_zone")
 source = "editeur.pointee"
 
+[node name="Logique" type="VBoxContainer" parent="Interface/Outils/Defilement/Pile"]
+
+[node name="Zone" type="Node" parent="Interface/Outils/Defilement/Pile/Logique"]
+script = ExtResource("3_zone")
+source = "editeur.logique"
+
 [node name="Inspecteur" type="TabContainer" parent="Interface/Outils/Defilement/Pile"]
 size_flags_horizontal = 3
 clip_tabs = false

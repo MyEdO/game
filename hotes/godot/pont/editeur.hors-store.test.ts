@@ -360,6 +360,85 @@ describe('l’éditeur de carte par le pont, les zones', () => {
   });
 });
 
+describe('l’éditeur de carte par le pont, la logique (#3606 M3b2)', () => {
+  /** Une table ouverte sur la campagne et le dialogue neuf que la zone Logique y ajoute, sélectionné. */
+  function ajoute() {
+    const { appel } = table();
+    const jouer = (edition: unknown) => editionDe(appel('editer', { edition }));
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const ouverte = editionDe(appel('editer', { ouvrir: CAMPAGNE }));
+    const avant = ouverte.vue.zones['editeur.logique'].find((el) => el.id === 'logique/dialogue') as Ligne;
+    const ajoutee = presser(boutonDe(ouverte, 'logique/dialogue/ajouter'));
+    return { appel, jouer, presser, ouverte, avant, ajoutee };
+  }
+  const inspecte = (e: Edition, id: string) => e.vue.zones['editeur.inspecteur'].find((el) => el.id === id);
+
+  it('la zone liste les déclencheurs et les dialogues de la scène, comptés ; « Ajouter un dialogue » le crée sélectionné, son inspecteur à son formulaire', () => {
+    const { ouverte, avant, ajoutee } = ajoute();
+    const lignes = ouverte.vue.zones['editeur.logique'].filter((el): el is Ligne => el.type === 'ligne');
+    expect(lignes.map((el) => el.id)).toEqual(expect.arrayContaining(['logique/declencheur', 'logique/dialogue']));
+    expect(lignes.filter((el) => el.texte.startsWith('ecran.')).map((el) => el.id), 'chaque sorte listée a son texte').toEqual([]);
+    const n = Number(/\((\d+)\)/.exec(avant.texte)![1]);
+    expect((ajoutee.vue.zones['editeur.logique'].find((el) => el.id === 'logique/dialogue') as Ligne).texte).toBe(`Dialogues (${n + 1})`);
+    const liste = ajoutee.vue.zones['editeur.logique'].find((el) => el.id === 'logique/dialogue/liste') as Choix;
+    const choisi = liste.valeurs.filter((b) => b.presse);
+    expect(choisi).toHaveLength(1);
+    expect(choisi[0].jeu).toEqual({ edition: { geste: 'selectionner', porteur: { sorte: 'dialogue', id: choisi[0].libelle } } });
+    expect(inspecte(ajoutee, 'nommer')).toMatchObject({ type: 'formulaire', champs: [{ valeur: choisi[0].libelle }] });
+    expect(inspecte(ajoutee, 'dialogue/noeud/n1')).toMatchObject({ type: 'ligne', texte: '▶ n1' });
+    expect(inspecte(ajoutee, 'valeur/nodes/0')).toMatchObject({ type: 'ligne', texte: 'nœuds 1 « n1 »' });
+    expect(boutonDe(ajoutee, 'dialogue/supprimer').refus, 'un dialogue que rien ne désigne se retire').toBeNull();
+  });
+
+  it('sélectionner un porteur de la liste ouvre son inspecteur ; un déclencheur s’y sélectionne aussi', () => {
+    const { presser, ajoutee, appel } = ajoute();
+    const id = ((inspecte(ajoutee, 'nommer') as Formulaire).champs[0] as { valeur: string }).valeur;
+    const scene = presser(boutonDe(editionDe(appel('editer', { edition: { geste: 'outil', outil: { mode: 'select' } } })), 'logique/dialogue/ajouter'));
+    expect(inspecte(scene, 'nommer')).not.toMatchObject({ champs: [{ valeur: id }] });
+    const reprise = presser(boutonDe(scene, `logique/dialogue/${id}`));
+    expect(boutonDe(reprise, `logique/dialogue/${id}`).presse).toBe(true);
+    expect(inspecte(reprise, 'nommer')).toMatchObject({ champs: [{ valeur: id }] });
+    const declencheurs = reprise.vue.zones['editeur.logique'].find((el) => el.id === 'logique/declencheur/liste') as Choix | undefined;
+    if (declencheurs) expect(inspecte(presser(declencheurs.valeurs[0]), 'zone/uneFois')?.type, 'le déclencheur s’inspecte comme sur la carte').toBe('bouton');
+  });
+
+  it('un dialogue se renomme ; un nœud ajouté porte son identifiant, se renomme, et le départ le suit', () => {
+    const { appel, presser, ajoutee } = ajoute();
+    const renomme = editionDe(appel('editer', { type: 'nommer', args: ['accueil-du-relais'] }));
+    expect(boutonDe(renomme, 'logique/dialogue/accueil-du-relais').presse).toBe(true);
+    const noeud = valeursDeLInspecteur(renomme, 'valeur/nodes/ajouter').find((b) => b.libelle === 'n2')!;
+    const deux = presser(noeud);
+    expect(inspecte(deux, 'dialogue/noeud/n2')).toMatchObject({ type: 'ligne', texte: 'n2' });
+    expect((inspecte(deux, 'identifier/noeud/n2') as Formulaire).champs.map((c) => c.type)).toEqual(['fixe', 'saisieTexte']);
+    const depart = presser(valeursDeLInspecteur(deux, 'valeur/start/id').find((b) => b.libelle === 'n2')!);
+    expect(inspecte(depart, 'dialogue/noeud/n2')).toMatchObject({ texte: '▶ n2' });
+    const renommee = editionDe(appel('editer', { type: 'identifier', args: ['n2', 'salut'] }));
+    expect(inspecte(renommee, 'dialogue/noeud/salut')).toMatchObject({ texte: '▶ salut' });
+    expect(inspecte(renommee, 'valeur/nodes/1')).toMatchObject({ texte: 'nœuds 2 « salut »' });
+    expect(ajoutee.vue.zones['editeur.inspecteur'].some((el) => el.id === 'identifier/noeud/salut')).toBe(false);
+  });
+
+  it('un dialogue qu’un personnage désigne ne se supprime pas, la raison dite ; désigné ailleurs, il se supprime', () => {
+    const { appel, jouer, presser, ajoutee } = ajoute();
+    const id = ((inspecte(ajoutee, 'nommer') as Formulaire).champs[0] as { valeur: string }).valeur;
+    const outil = presser(boutonDe(ajoutee, 'outil/personnage'));
+    presser(valeursDe(outil, 'fiches')[0]);
+    jouer({ geste: 'appui', point: point(1, 1) });
+    const pose = jouer({ geste: 'relache', point: point(1, 1) });
+    const offre = pose.vue.zones['editeur.inspecteur'].find((el) => el.id.startsWith('valeur/dialogueId') && el.type !== 'ligne') as Choix;
+    const designe = presser(offre.valeurs.find((b) => b.libelle === id)!);
+    const dialogue = presser(boutonDe(designe, `logique/dialogue/${id}`));
+    const refus = boutonDe(dialogue, 'dialogue/supprimer').refus;
+    expect(refus, 'la raison du retrait refusé').toMatch(/\S/);
+    expect(erreurDe(appel('editer', boutonDe(dialogue, 'dialogue/supprimer').jeu))).toMatchObject({ categorie: 'regle', message: `editer : ${refus}` });
+    const libre = presser(boutonDe(dialogue, 'annuler'));
+    const retenu = presser(boutonDe(libre, `logique/dialogue/${id}`));
+    expect(boutonDe(retenu, 'dialogue/supprimer').refus, 'plus désigné, il se retire').toBeNull();
+    const supprime = presser(boutonDe(retenu, 'dialogue/supprimer'));
+    expect((supprime.vue.zones['editeur.logique'].find((el) => el.id === 'logique/dialogue/liste') as Choix | undefined)?.valeurs.some((b) => b.libelle === id) ?? false).toBe(false);
+  });
+});
+
 describe('l’éditeur de carte par le pont, l’architecture', () => {
   it('un corps bâti sur la case pointée se nomme et se type ; un étage au-dessus devient la couche éditée, où se bâtit une partie ; le dernier étage ne se supprime pas', () => {
     const { appel } = table();

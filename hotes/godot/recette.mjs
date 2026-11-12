@@ -129,6 +129,8 @@
 //   façade au nord et son ouverture ; une volée de quatre cases tirée vers le palier, posée ; un décor tourné à l’est,
 //   un départ, un déclencheur tiré : la validation ne dit aucune erreur. « Enregistrer » écrit au dépôt la scène et
 //   chacun de ces ouvrages ; « Tester la scène » ouvre le combat sur elle.
+//   Avant « Tester la scène », à la zone Logique (#3606 M3b2), « Ajouter un dialogue » le crée, pressé, à l'inspecteur :
+//   un nœud ajouté, choisi comme départ, marqué « ▶ », identifié « accueil » à son formulaire ; « Supprimer » le retire.
 // - `atelier` : `--base` importé seul (`importer.mjs --sans-publier`) dans `--modeles`, dossier neuf servi sous
 //   `modeles/` ; la base choisie à la liste de tête « Corps », aucun emplacement à l'onglet Équipement ; `--element` importé puis
 //   « Recharger les modèles » : l'élément, tenu, offert par la liste de chaque prise, de chaque emplacement dont l'os le
@@ -2241,6 +2243,23 @@ async function parcoursEditeur() {
   assert.deepEqual(batie.entities.map((en) => [en.kind, en.pos, en.facing]), [['prop', ici(5, 4), 'E'], ['heroStart', ici(3, 5), undefined]], 'le décor tourné, le départ')
   assert.deepEqual(batie.triggers.map((tr) => [tr.rect, tr.flow]), [[{ ...ici(6, 4), w: 3, h: 3 }, { kind: 'sequence', etapes: [] }]], 'le déclencheur, au flux vide')
   noter(`« Enregistrer » : ${MANUSCRITS[ecrit]} porte la scène ${batie.id} : ${batie.layers.length} couches, ${batie.walls.length} arêtes, ${batie.architecture[0].storeys.length} étages, ${batie.effectZones.length} pièce, ${batie.entities.length} entités, ${batie.triggers.length} déclencheur`)
+  await cliquerAuPanneau({ element: 'bouton/logique/dialogue/ajouter' })
+  await waitFor(session, montre('dialogue/noeud/n1'))
+  e = await editeur()
+  const dialogue = inspecte(e, 'nommer').champs[0].valeur
+  assert.equal(boutonDeLEditeur(e, `logique/dialogue/${dialogue}`)?.presse, true, '« Ajouter un dialogue » : le dialogue neuf, pressé à la zone Logique, à l’inspecteur')
+  await choisirAuChamp('valeur/nodes/ajouter', (v) => v.at(-1)?.id === 'n2', montre('dialogue/noeud/n2'))
+  const ligneDuNoeud = (id) => `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((el) => el.id === 'dialogue/noeud/${id}')?.texte`
+  await choisirAuChamp('valeur/start/id', (v) => v === 'n2', `${ligneDuNoeud('n2')} === '▶ n2'`)
+  await taper('saisieTexte/identifier/noeud/n2/id', 'accueil')
+  await cliquerAuPanneau({ element: 'formulaire/identifier/noeud/n2' })
+  await waitFor(session, `${ligneDuNoeud('accueil')} === '▶ accueil'`)
+  e = await editeur()
+  noter(`« Ajouter un dialogue » : « ${dialogue} », ${e.zones['editeur.logique'].find((el) => el.id === 'logique/dialogue').texte} ; un nœud ajouté, choisi au départ, identifié « accueil » : ${inspecte(e, 'dialogue/noeud/accueil').texte}`)
+  await capturer('3606-m3b2-1-dialogue')
+  await cliquerAuPanneau({ element: 'bouton/dialogue/supprimer' })
+  await waitFor(session, `!(globalThis.wfrpEcran?.editeur?.zones['editeur.logique'] ?? []).some((el) => (el.valeurs ?? []).some((b) => b.id === 'logique/dialogue/${dialogue}'))`)
+  noter(`« Supprimer » : ${(await editeur()).zones['editeur.logique'].find((el) => el.id === 'logique/dialogue').texte}`)
   await cliquerAuPanneau({ element: 'bouton/tester' })
   await waitFor(session, '!globalThis.wfrpEcran?.editeur && !!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
   const v = await vue()

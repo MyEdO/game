@@ -1,14 +1,14 @@
 /**
  * L'ALLER-RETOUR DE L'ÉDITEUR GODOT (#3606, garde #841) : les écritures que le formulaire tiré du schéma offre à
- * l'inspecteur d'une zone d'effet, d'un déclencheur et de son adresse de prose, d'un personnage, d'un décor et d'une coque, jouées comme la méthode `editer` du pont les joue
+ * l'inspecteur d'une zone d'effet, d'un déclencheur et de son adresse de prose, d'un personnage, d'un dialogue, d'un décor et d'une coque, jouées comme la méthode `editer` du pont les joue
  * (`hotes/godot/pont/pont.ts`) : le jeu d'un élément des zones passé en JSON, validé par `gesteDuFormulaire` ou
  * `boutonDeLEdition`, puis joué par `editer` sur la session d'édition ; le document relu avant et après. Partagé par la garde (`src/scene-field-editability-guard.test.ts`) et par la copie de
  * mesure de #841 ; la garde décide de ce qu'une écriture crédite (`ecritureCreditee`).
  */
 import { allBuiltinCampaigns, paquetDuJeu } from './scenes/campaign';
 import { editer, ouvrirLEdition, sceneEditee, type GesteDEdition, type Scene, type Segment, type SessionDEdition } from './noyau/index';
-import { FORMULAIRES } from './noyau/sceneEditLecture';
-import { boutonDeLEdition, gesteDuFormulaire, zonesDeLEditeur, type ZonesDeLEditeur } from './hote/editeur';
+import { FORMULAIRES, porteurDeLaSel, type SorteDePorteur } from './noyau/sceneEditLecture';
+import { boutonDeLEdition, gesteDuFormulaire, inspecteurDeLaSession, zonesDeLEditeur, type ZonesDeLEditeur } from './hote/editeur';
 import type { Bouton, Choix, Formulaire, Jeu, Ligne } from './hote/elements';
 import type { Manifeste } from './data/source/chapitres';
 import { estObjet } from './lib/objet.mjs';
@@ -95,9 +95,10 @@ function offres(elements: readonly (Choix | Ligne | Bouton | Formulaire)[]): Off
   }).filter((o) => !recursif(o.chemin));
 }
 
-/** Le geste d'édition que joue le jeu `jeu` des zones `zones` d'une session, passé en JSON comme le pont le reçoit ;
+/** Le geste d'édition que joue le jeu `jeu` des zones `zones` d'une session, toutes ou son inspecteur seul
+ *  (`inspecteurDeLaSession`), passé en JSON comme le pont le reçoit ;
  *  `undefined` si les zones ne l'offrent pas. */
-function gesteDuJeu(zones: ZonesDeLEditeur, jeu: Jeu): GesteDEdition | undefined {
+function gesteDuJeu(zones: Pick<ZonesDeLEditeur, 'editeur.inspecteur'> & Partial<ZonesDeLEditeur>, jeu: Jeu): GesteDEdition | undefined {
   const recu = JSON.parse(JSON.stringify(jeu)) as Record<string, unknown>;
   if ('edition' in recu) return boutonDeLEdition(zones, recu.edition) ? (recu.edition as GesteDEdition) : undefined;
   return gesteDuFormulaire(zones, recu);
@@ -112,6 +113,41 @@ function presser(s: SessionDEdition, id: string): SessionDEdition {
   return jouer(s, geste);
 }
 
+/** La session `s` où la zone Logique ajoute un porteur de sorte `sorte` (`logique/<sorte>/ajouter`), sélectionné ;
+ *  l'écriture de sa collection entière, le porteur neuf compris, avec son chemin depuis la scène, s'ajoute à `out`. */
+function ajouter(s: SessionDEdition, sorte: SorteDePorteur, out: EcritureJouee[]): SessionDEdition {
+  const avant = sceneEditee(s);
+  const suite = presser(s, `logique/${sorte}/ajouter`);
+  const porteur = porteurDeLaSel(suite.sel);
+  const { collection } = FORMULAIRES[sorte];
+  const porteurs: readonly { id: string }[] = sceneEditee(suite)[collection] ?? [];
+  const rang = porteurs.findIndex((p) => p.id === porteur?.id);
+  if (porteur?.sorte !== sorte || rang < 0) throw new Error(`la zone Logique n’a pas ajouté de porteur ${sorte}`);
+  out.push({ avant, apres: sceneEditee(suite), chemin: [collection], valeur: porteurs, saisie: 'bouton' });
+  return suite;
+}
+
+/** La session `s` où le formulaire d'id `id` de son inspecteur, qui change l'identifiant d'un élément d'un porteur
+ *  (`identifier/<famille>/<élément>`), est joué sous l'identifiant `vers` ; l'écriture, avec son chemin depuis la
+ *  scène, s'ajoute à `out`. */
+function identifier(s: SessionDEdition, id: string, vers: string, out: EcritureJouee[]): SessionDEdition {
+  const zones = { 'editeur.inspecteur': inspecteurDeLaSession(s) };
+  const formulaire = zones['editeur.inspecteur'].find((e): e is Formulaire => e.type === 'formulaire' && e.id === id);
+  const designe = formulaire?.champs[0];
+  const element = designe?.type === 'fixe' ? designe.valeur : undefined;
+  const geste = element === undefined ? undefined : gesteDuFormulaire(zones, { type: 'identifier', args: [element, vers] });
+  const porteur = porteurDeLaSel(s.sel);
+  if (geste?.geste !== 'identifier' || !porteur) throw new Error(`aucun formulaire ${id} qui change un identifiant`);
+  const avant = sceneEditee(s);
+  const suite = jouer(s, geste);
+  const { collection } = FORMULAIRES[porteur.sorte];
+  const porteurs: readonly { id: string; nodes?: readonly { id: string }[] }[] = avant[collection] ?? [];
+  const rang = porteurs.findIndex((p) => p.id === porteur.id);
+  const noeud = porteurs[rang].nodes!.findIndex((n) => n.id === element);
+  out.push({ avant, apres: sceneEditee(suite), chemin: [collection, rang, 'nodes', noeud, 'id'], valeur: vers, saisie: 'saisieTexte' });
+  return suite;
+}
+
 /** La session `s` où chaque offre du geste `valeur` de son inspecteur est jouée une fois, celles qui emportent des champs
  *  après les autres, la plus profonde d'abord, jusqu'à ce qu'aucune ne reste ; le choix d'une autre variante rouvre les
  *  offres de ses champs ; seules jouent les offres dont l'id commence par `branche` (toutes, par défaut) ; chaque
@@ -121,7 +157,7 @@ function jouerLInspecteur(depart: SessionDEdition, out: EcritureJouee[], branche
   let s = depart;
   const jouees = new Set<string>();
   for (let n = 0; n < GESTES_AU_PLUS; n++) {
-    const zones = zonesDeLEditeur(s);
+    const zones = { 'editeur.inspecteur': inspecteurDeLaSession(s) };
     const restantes = offres(zones['editeur.inspecteur']).filter((o) => o.id.startsWith(branche) && !jouees.has(o.id));
     const offre = restantes.find((o) => !o.emporte) ?? restantes.reduce((a, o) => (o.chemin.length > a.chemin.length ? o : a), restantes[0]);
     if (!offre) return s;
@@ -148,7 +184,7 @@ function jouerLInspecteur(depart: SessionDEdition, out: EcritureJouee[], branche
 }
 
 /** Le choix d'id `id` de l'inspecteur des zones `zones`. */
-function choixDeLInspecteur(zones: ZonesDeLEditeur, id: string): Choix {
+function choixDeLInspecteur(zones: Pick<ZonesDeLEditeur, 'editeur.inspecteur'>, id: string): Choix {
   const choix = zones['editeur.inspecteur'].find((e): e is Choix => (e.type === 'choix' || e.type === 'liste') && e.id === id);
   if (!choix) throw new Error(`aucun choix ${id} dans l’inspecteur`);
   return choix;
@@ -160,7 +196,7 @@ function choixDeLInspecteur(zones: ZonesDeLEditeur, id: string): Choix {
  *  change en se jouant. */
 function jouerLesVariantes(s: SessionDEdition, id: string, out: EcritureJouee[]): void {
   const branche = id.slice(0, id.lastIndexOf('/') + 1);
-  const zones = zonesDeLEditeur(s);
+  const zones = { 'editeur.inspecteur': inspecteurDeLaSession(s) };
   for (const v of choixDeLInspecteur(zones, id).valeurs) {
     const geste = gesteDuJeu(zones, v.jeu);
     if (!geste) throw new Error(`la variante ${v.id} ne joue aucun geste`);
@@ -170,7 +206,7 @@ function jouerLesVariantes(s: SessionDEdition, id: string, out: EcritureJouee[])
 
 /** La session `s` où le choix d'id `id` de son inspecteur vaut la première de ses valeurs qui satisfait `voulu`. */
 function choisir(s: SessionDEdition, id: string, voulu: (valeur: unknown) => boolean): SessionDEdition {
-  const v = choixDeLInspecteur(zonesDeLEditeur(s), id).valeurs.find((v) => 'type' in v.jeu && v.jeu.type === 'valeur' && voulu(v.jeu.args[2]));
+  const v = choixDeLInspecteur({ 'editeur.inspecteur': inspecteurDeLaSession(s) }, id).valeurs.find((v) => 'type' in v.jeu && v.jeu.type === 'valeur' && voulu(v.jeu.args[2]));
   if (!v) throw new Error(`aucune valeur voulue au choix ${id}`);
   return v.presse ? s : presser(s, v.id);
 }
@@ -232,7 +268,8 @@ const cliquer = (s: SessionDEdition, x: number, y: number): SessionDEdition => j
 
 /** Les écritures jouées sur une zone d'effet neuve, un déclencheur neuf, puis l'adresse de prose de son Effet
  *  (`jouerLAdresse`), et un personnage de chacune des `FICHES` d'une scène neuve de la première campagne du jeu, ouverte
- *  avec le `Source/` servi (`SOURCE`), chacun posé à son outil (Zone, Personnage), et un personnage d'`ENROLE`
+ *  avec le `Source/` servi (`SOURCE`), chacun posé à son outil (Zone, Personnage), un dialogue que la zone Logique y
+ *  ajoute, son nœud ajouté renommé (`identifier`), et un personnage d'`ENROLE`
  *  enrôlé dans une rencontre neuve ; puis sur un personnage de la
  *  première des `FICHES` et un décor de type `DECOR` posés dans une scène neuve du `PROJET_A_PRESETS`, puis sur chaque
  *  branche du flux de l'action qu'il reçoit (`ACTION_DU_DECOR`, `FLUX_DU_DECOR`) et sur chaque type d'Effet de sa
@@ -249,13 +286,14 @@ export function ecrituresJouees(): EcritureJouee[] {
   }
   jouerLAdresse(s, out);
   FICHES.forEach((fiche, rang) => { s = jouerLInspecteur(cliquer(presser(presser(s, 'outil/personnage'), `personnage/${fiche}`), 5 + rang, 5), out); });
+  s = identifier(jouerLInspecteur(ajouter(s, 'dialogue', out), out), 'identifier/noeud/n2', 'noeud-joue', out);
   s = jouerLInspecteur(presser(cliquer(presser(presser(s, 'outil/personnage'), `personnage/${ENROLE}`), 5 + FICHES.length, 5), 'rencontre/neuve'), out);
   const aPresets = allBuiltinCampaigns.find((c) => c.id === PROJET_A_PRESETS);
   if (!aPresets) throw new Error(`aucune campagne ${PROJET_A_PRESETS}`);
   const neuve = presser(ouvrirLEdition(paquetDuJeu(aPresets), false), 'scenes/ajouter');
   const pnj = jouerLInspecteur(cliquer(presser(presser(neuve, 'outil/personnage'), `personnage/${FICHES[0]}`), 5, 5), out);
   const decor = jouerLInspecteur(cliquer(presser(presser(pnj, 'outil/prop'), `prop/${DECOR}`), 3, 3), out);
-  const action = presser(decor, choixDeLInspecteur(zonesDeLEditeur(decor), ACTION_DU_DECOR).valeurs[0].id);
+  const action = presser(decor, choixDeLInspecteur({ 'editeur.inspecteur': inspecteurDeLaSession(decor) }, ACTION_DU_DECOR).valeurs[0].id);
   jouerLInspecteur(action, out);
   jouerLesVariantes(action, FLUX_DU_DECOR, out);
   jouerLesVariantes(choisir(action, FLUX_DU_DECOR, (v) => estObjet(v) && v.kind === 'effet'), EFFET_DU_DECOR, out);
