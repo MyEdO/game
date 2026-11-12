@@ -19,6 +19,7 @@ import {
   plageDeLigne1, plageEnTexte, prefixesDeChapitres,
 } from './decoupe.ts';
 import { descRefSchema } from '../schemas/grammaire/valeurs';
+import { poserRegimeVivant } from '../schemas/grammaire/idsVivants';
 // @ts-expect-error - plugin ESM JS (pas de types) — même convention que `vite.config.ts`
 import { proseSource } from '../../../scripts/source/prose-source-plugin.mjs';
 // @ts-expect-error - garde ESM JS (pas de types) — même convention que `vite.config.ts`
@@ -154,11 +155,18 @@ describe('livre FORGÉ à 120 chapitres — la chaîne entière porte le numéro
       ch,
       parts: [{ kind: 'blocs' as const, sec: 'chapitre-105', secOcc: 1, b0: 0, b1: 0, sum: 'a'.repeat(16) }],
     });
-    expect(descRefSchema.safeParse(adresse('105')).success).toBe(true);
-    expect(descRefSchema.safeParse(adresse('007')).success).toBe(true);
-    expect(descRefSchema.safeParse(adresse('21')).success).toBe(true);
-    expect(descRefSchema.safeParse(adresse('7')).success).toBe(false);
-    expect(descRefSchema.safeParse(adresse('10a')).success).toBe(false);
+    // Le livre forgé entre au catalogue des livres par la couture du régime vivant, restaurée ensuite.
+    const vrai = poserRegimeVivant(undefined);
+    poserRegimeVivant((cle) => (cle === 'books.json' ? new Set([LIVRE]) : vrai?.(cle)));
+    try {
+      expect(descRefSchema.safeParse(adresse('105')).success).toBe(true);
+      expect(descRefSchema.safeParse(adresse('007')).success).toBe(true);
+      expect(descRefSchema.safeParse(adresse('21')).success).toBe(true);
+      expect(descRefSchema.safeParse(adresse('7')).success).toBe(false);
+      expect(descRefSchema.safeParse(adresse('10a')).success).toBe(false);
+    } finally {
+      poserRegimeVivant(vrai);
+    }
   });
 });
 
