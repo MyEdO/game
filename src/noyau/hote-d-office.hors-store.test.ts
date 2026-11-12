@@ -116,7 +116,7 @@ describe('Étape hôte en bataille : le héros IA qui incante (#3892)', () => {
     c.spells = [findSpellById('flechette')!.id]; c.pos = { x: 5, y: 5 }; c.advantage = 0;
     const ennemi = (id: string, x: number): Combatant => {
       const e = spawnEnemy({ ref: 'humain' }, id, { x, y: 5 });
-      e.kind = 'enemy'; e.skills = []; e.spells = []; e.talents = []; e.wounds = blessuresDeBase(30, 30, e);
+      e.kind = 'ennemi'; e.skills = []; e.spells = []; e.talents = []; e.wounds = blessuresDeBase(30, 30, e);
       return e;
     };
     const battle = {

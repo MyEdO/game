@@ -52,7 +52,7 @@ describe('poste — adaptateurs de projection (donnée-vue commune)', () => {
 });
 
 /** Deux héros nus : `postesOccupes` ne lit qu'un id de poste, jamais une caractéristique. */
-const h = (id: string, label: string): Combatant => ({ id, label, kind: 'hero' } as Combatant);
+const h = (id: string, label: string): Combatant => ({ id, label, kind: 'heros' } as Combatant);
 
 describe('reposAsPoste — « Repos » est une LIGNE ÉPINGLABLE du roster', () => {
   it('son id EST la constante de résolution (source unique de la valeur)', () => {

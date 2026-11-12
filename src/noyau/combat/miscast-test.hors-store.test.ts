@@ -33,8 +33,8 @@ describe('Maladresse — Test imbriqué routé cadence-aware (Lot 4d)', () => {
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const E = b.combatants.find((c) => c.kind === 'enemy')!;
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const E = b.combatants.find((c) => c.kind === 'ennemi')!;
     H.wounds = blessuresDeBase(200, 200, H);
     E.wounds = blessuresDeBase(200, 200, E);
     banc.setState({ battle: { ...b }, pendingCascade: null, pendingLogQueue: [] });
@@ -46,23 +46,23 @@ describe('Maladresse — Test imbriqué routé cadence-aware (Lot 4d)', () => {
   /** Cherche la graine de `battleRng` qui, sur une Colère de `who`, produit une entrée À TEST (« Purifier
    *  la chair », « Visions sacrées »…) → une étape `testDeclenche` apparaît dans la cascade. Renvoie la
    *  graine ; on REJOUE ensuite proprement avec elle. (Le contrecoup tire d'abord le d100 de table.) */
-  function seedYieldingTest(who: 'hero' | 'enemy'): number {
+  function seedYieldingTest(who: 'heros' | 'ennemi'): number {
     for (let s = 0; s < 300; s++) {
       const { H, E } = setup();
       seedBattleRng(s);
-      applyMiscast(banc.getState, banc.setState, who === 'hero' ? H : E, 'colere');
+      applyMiscast(banc.getState, banc.setState, who === 'heros' ? H : E, 'colere');
       avanceEtapeCascade(banc.getState); // le dé du Tableau tombe à SON étape : la ligne n'existe qu'après
       const casc = banc.getState().pendingCascade;
       const hasTestStep = !!casc?.participants.some((p) => p.kind === 'testDeclenche');
       // Héros : une étape influençable (suspendue) ; Ennemi : ligne « Résistance » dans la file différée.
       const inlineTest = banc.getState().pendingLogQueue.some((q) => /Résistance/.test(q.line));
-      if (who === 'hero' ? hasTestStep : inlineTest) return s;
+      if (who === 'heros' ? hasTestStep : inlineTest) return s;
     }
     throw new Error('aucune graine ne produit une entrée de Colère à Test');
   }
 
   it('(a) lanceur HÉROS MANUEL : étape testDeclenche INFLUENÇABLE appendue APRÈS la révélation', () => {
-    const seed = seedYieldingTest('hero');
+    const seed = seedYieldingTest('heros');
     const { H } = setup();
     seedBattleRng(seed);
     applyMiscast(banc.getState, banc.setState, H, 'colere');
@@ -118,7 +118,7 @@ describe('Maladresse — Test imbriqué routé cadence-aware (Lot 4d)', () => {
   });
 
   it('(b) lanceur ENNEMI : jet INLINE (pas de cascade), branche d’échec appliquée tout de suite', () => {
-    const seed = seedYieldingTest('enemy');
+    const seed = seedYieldingTest('ennemi');
     const { E } = setup();
     E.characteristics.endurance = 1; // Résistance minimale → échec quasi sûr → Sonné posé inline
     seedBattleRng(seed);

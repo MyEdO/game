@@ -15,7 +15,7 @@ describe('Scénario Magie hors combat', () => {
 
   it('est un scénario d’EXPLORATION (pas d’autoCombat)', () => {
     expect(scenario.autoCombat).toBeUndefined();
-    expect(party.every((h) => h.kind === 'hero')).toBe(true);
+    expect(party.every((h) => h.kind === 'heros')).toBe(true);
   });
 
   it('la scène compilée (buildScene) est une arène 14×9 plate, départ héros en (2,4), sans combat', () => {

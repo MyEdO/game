@@ -278,7 +278,7 @@ export const TABLES = {
         const { roll, mod } = rollWindsOfMagic(battleRng());
         let revealed = false;
         for (const c of battle.combatants) {
-          if (c.kind !== 'hero' || isOutOfAction(c) || !hasSecondeVue(c)) continue;
+          if (c.kind !== 'heros' || isOutOfAction(c) || !hasSecondeVue(c)) continue;
           const res = rollTest(testValue(c, { skill: { id: 'perception' } }), 'facile', battleRng());
           if (res.success) { revealed = true; sink(t('cs.windsOfMagicSeen', { name: c.label }), c); }
         }

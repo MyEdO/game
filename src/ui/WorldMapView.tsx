@@ -444,7 +444,7 @@ export function WorldMapView({ initialRouteId, hereId }: { initialRouteId?: stri
 
   return (
     <ScreenShell title={<><Icon id="navigation/campagne" size="sm" /> {map.label}</>} onClose={close} meta={{ time: gameTime, money }}>
-      <Split side="end" align="stretch" stackBelow={900} gap="xl" pad="xl" className="screen-scroll worldmap-layout">
+      <Split side="fin" align="stretch" stackBelow={900} gap="xl" pad="xl" className="screen-scroll worldmap-layout">
       <div className="worldmap-canvas">
         <MapCanvas
           className="wm-map"

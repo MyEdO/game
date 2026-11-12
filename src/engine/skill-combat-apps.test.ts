@@ -11,7 +11,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testki
 
 function mk(over: Partial<Combatant> = {}): Combatant {
   return blessuresSurLeProfil({
-    id: 'a', name: 'A', kind: 'hero',
+    id: 'a', name: 'A', kind: 'heros',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 40, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 45, 'force-mentale': 30, sociabilite: 38 },
     conditions: [], activeEffects: [], skills: [], talents: [], traits: [], psychState: [],
     weapons: [], armour: [], wounds: blessuresDeBase(10), advantage: 0,

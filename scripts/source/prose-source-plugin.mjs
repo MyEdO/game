@@ -128,6 +128,35 @@ export function manifesteDe(corpus) {
 const texteManifeste = (corpus) => JSON.stringify(manifesteDe(corpus), null, 1)
 
 /**
+ * Sert la route `chemin` du `Source/` sur la réponse `res` : le manifeste (`ROUTE_MANIFESTE`), ou le texte d'un chapitre
+ * (`ROUTE`), 404 et sa raison s'il n'existe pas. Le serveur de dev de Vite (`configureServer`) et celui de l'éditeur
+ * Godot sous `--depot` (`hotes/godot/servir.mjs`) l'appellent, jamais un build : rien de `Source/` ne part en asset.
+ * @param {string} chemin le chemin de l'URL, sans sa requête
+ * @param {import('node:http').ServerResponse} res
+ * @param {typeof CORPUS_DISQUE} [corpus]
+ * @returns {boolean} la route est-elle celle du `Source/` (et servie) ?
+ */
+export function servirLaSource(chemin, res, corpus = CORPUS_DISQUE) {
+  if (chemin === ROUTE_MANIFESTE) {
+    res.setHeader('Content-Type', 'application/json; charset=utf-8')
+    res.end(texteManifeste(corpus))
+    return true
+  }
+  const m = ROUTE.exec(chemin)
+  if (!m) return false
+  const fichier = corpus.chemin(m[1], m[2])
+  if (!fichier) {
+    res.statusCode = 404
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8')
+    res.end(`chapitre-introuvable : ${m[1]} ch.${m[2]}`)
+    return true
+  }
+  res.setHeader('Content-Type', 'text/markdown; charset=utf-8')
+  res.end(readText(cheminDuDepot(fichier)))
+  return true
+}
+
+/**
  * @param {{ corpus?: typeof CORPUS_DISQUE }} [options] `corpus` n'est injecté que par les tests du
  *   plugin (fixture hors dépôt) ; la production lit le `Source/` du dépôt.
  */
@@ -173,23 +202,7 @@ export function proseSource(options = {}) {
 
     configureServer(server) {
       server.middlewares.use((req, res, next) => {
-        const chemin0 = String(req.url ?? '').split('?')[0]
-        if (chemin0 === ROUTE_MANIFESTE) {
-          res.setHeader('Content-Type', 'application/json; charset=utf-8')
-          res.end(texteManifeste(corpus))
-          return
-        }
-        const m = ROUTE.exec(chemin0)
-        if (!m) return next()
-        const chemin = corpus.chemin(m[1], m[2])
-        if (!chemin) {
-          res.statusCode = 404
-          res.setHeader('Content-Type', 'text/plain; charset=utf-8')
-          res.end(`chapitre-introuvable : ${m[1]} ch.${m[2]}`)
-          return
-        }
-        res.setHeader('Content-Type', 'text/markdown; charset=utf-8')
-        res.end(readText(cheminDuDepot(chemin)))
+        if (!servirLaSource(String(req.url ?? '').split('?')[0], res, corpus)) next()
       })
       for (const dossier of corpus.dossiers()) server.watcher.add(cheminDuDepot(dossier))
       server.watcher.on('change', (fichier) => {

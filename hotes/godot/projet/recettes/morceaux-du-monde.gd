@@ -104,7 +104,7 @@ func _morceau(cle: String, empreinte: String, hauteur: float, z: int, rangee: in
 		normales.append_array([0.0, 1.0, 0.0])
 		couleurs.append_array([1.0, 1.0, 1.0, 1.0])
 	return {cle = cle, empreinte = empreinte, rangee = rangee, positions = positions, normales = normales, couleurs = couleurs,
-		cases = [[0, 0, z], [0, 0, z], [1, 0, z], [1, 0, z]], surfaces = [{debut = 0, fin = SOMMETS, matiere = "terrain--terre"}]}
+		cases = [0, 0, z, 0, 0, z, 1, 0, z, 1, 0, z], surfaces = [{debut = 0, fin = SOMMETS, matiere = "terrain--terre"}]}
 
 
 func _manifeste(morceaux: Array, toits: Array) -> Dictionary:

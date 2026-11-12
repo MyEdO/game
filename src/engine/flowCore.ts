@@ -246,8 +246,8 @@ export type Condition =
    *  `value` (défaut 1) — Cœur vaillant (`braveheart`) octroyable par talent OU effet. Acteur absent = 0. */
   | { kind: 'capability'; who: ActorRef; id: string; op?: CompareOp; value?: number }
   /** Camp / RELATION d'un acteur (`who`) — gate « seulement les ennemis / les alliés / les neutres »
-   *  (riders de domaine offensifs : `who:'target', is:'opponent'`). `ally`/`opponent` sont RELATIFS à
-   *  l'autre acteur (même camp / camp différent) ; `party`/`neutral`/`hostile` sont ABSOLUS (le `kind`).
+   *  (riders de domaine offensifs : `who:'target', is:'adversaire'`). `allie`/`adversaire` sont RELATIFS à
+   *  l'autre acteur (même camp / camp différent) ; `groupe`/`neutre`/`hostile` sont ABSOLUS (le `kind`).
    *  Acteur(s) absent(s) = false. */
   | { kind: 'relation'; who: ActorRef; is: Relation | Camp }
   /** L'acteur (`who`) POSSÈDE un élément : appartenance à un **Groupe** (faction, via `groupMatch`),
@@ -431,7 +431,7 @@ export function evalCondition(cond: Condition, ctx: ConditionCtx): boolean {
     case 'relation': {
       const a = cond.who === 'caster' ? ctx.caster : ctx.target;
       if (!a) return false;
-      if (cond.is === 'party' || cond.is === 'neutral' || cond.is === 'hostile') return a.camp === cond.is; // camp ABSOLU
+      if (cond.is === 'groupe' || cond.is === 'neutre' || cond.is === 'hostile') return a.camp === cond.is; // camp ABSOLU
       const other = cond.who === 'caster' ? ctx.target : ctx.caster; // RELATIF à l'autre acteur
       return !!other && relationBetween(a, other) === cond.is;
     }

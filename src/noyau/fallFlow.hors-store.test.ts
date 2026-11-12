@@ -268,8 +268,8 @@ describe('franchirLArete, chute — combat', () => {
     banc.abandonner();
     const sc = cliffScene();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    b.combatants.filter((c) => c.kind === 'enemy').forEach((e) => (e.dead = true));
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    b.combatants.filter((c) => c.kind === 'ennemi').forEach((e) => (e.dead = true));
     H.engagedWith = [];
     placeCombatant(H, sc, atPos);
     banc.setState({ scene: sc, battle: { ...b, turn: b.order.indexOf(H.id), action: null, movementUsed: 0, acted: false, movedPreAction: false, reachable: new Map(), preview: null } });

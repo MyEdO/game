@@ -47,7 +47,7 @@ export function recast(cond: Condition, kind: Condition['kind']): Condition {
     case 'roundDeCombat': return { kind: 'roundDeCombat' };
     case 'nearestFoe': return cond.kind === 'nearestFoe' ? cond : { kind: 'nearestFoe', op: '<=', value: 3 };
     case 'capability': return cond.kind === 'capability' ? cond : { kind: 'capability', who: ACTEUR, id: 'braveheart', op: '>=', value: 1 };
-    case 'relation': return cond.kind === 'relation' ? cond : { kind: 'relation', who: ACTEUR, is: 'opponent' };
+    case 'relation': return cond.kind === 'relation' ? cond : { kind: 'relation', who: ACTEUR, is: 'adversaire' };
     case 'has': return cond.kind === 'has' ? cond : { kind: 'has', who: ACTEUR, what: 'group', value: '' };
     case 'casterChaosDomain': return cond.kind === 'casterChaosDomain' ? cond : { kind: 'casterChaosDomain', is: 'nurgle' };
     case 'skill': return cond.kind === 'skill' ? cond : { kind: 'skill', id: '', who: HEROS };

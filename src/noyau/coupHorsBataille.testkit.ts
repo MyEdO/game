@@ -20,7 +20,7 @@ export function horsBataille(scene: Scene): { banc: Banc; H: Combatant; E: Comba
   banc.setState({ party: [heroDuDuel()] });
   banc.getState().lancerLaScene(scene);
   expect(banc.getState().battle).toBeNull();
-  return { banc, H: banc.getState().party[0], E: combattantDeTest({ id: 'assaillant', kind: 'enemy', label: 'Assaillant' }) };
+  return { banc, H: banc.getState().party[0], E: combattantDeTest({ id: 'assaillant', kind: 'ennemi', label: 'Assaillant' }) };
 }
 
 /** Le coup de `attaquant` sur `cible`, résolu par le moteur aux d100 imposés, puis appliqué ; l'arme, celle du héros par défaut. */

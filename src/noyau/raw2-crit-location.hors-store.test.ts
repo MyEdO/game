@@ -16,7 +16,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 /** LDB 17 l.68 ; LDB 18 l.53 ; #1595 c.6226467544. */
 const mk = (): Combatant =>
   (blessuresSurLeProfil({
-    id: 'T', name: 'Cible', kind: 'enemy',
+    id: 'T', name: 'Cible', kind: 'ennemi',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 35, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], traumas: [],
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -65,8 +65,8 @@ describe("réglage attack.localisationDuCritique — « Je ne faillirai pas ! »
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const E = b.combatants.find((c) => c.kind === 'enemy')!;
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const E = b.combatants.find((c) => c.kind === 'ennemi')!;
     H.pos = { x: 10, y: 10 };
     H.resilience = 1;
     E.pos = { x: 11, y: 10 };
@@ -103,7 +103,7 @@ describe("réglage attack.localisationDuCritique — « Je ne faillirai pas ! »
     const coup = (pa: number) => {
       attaqueRatee(2, pa, 9);
       forcer(32);
-      const E = banc.getState().battle!.combatants.find((c) => c.kind === 'enemy')!;
+      const E = banc.getState().battle!.combatants.find((c) => c.kind === 'ennemi')!;
       const res = banc.getState().pendingAttack!.result!;
       expect(res.location, 'le jet inversé, 23, est le Bras gauche').toBe('brasG');
       banc.getState().jetRegler('attaque', 'localisationDuCritique', 'jambeG');

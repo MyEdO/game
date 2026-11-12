@@ -21,7 +21,7 @@ export function pontDOuverture(s: Jeu): Combatant | undefined {
   const ordonnes = battle.order.map((id) => inBattleId(battle, id)).filter((c): c is Combatant => !!c);
   const debout = ordonnes.filter((c) => !isOutOfAction(c));
   return debout.find((c) => controlsCombatant(s, c))
-    ?? debout.find((c) => c.kind === 'hero')
+    ?? debout.find((c) => c.kind === 'heros')
     ?? ordonnes.find((c) => controlsCombatant(s, c))
     ?? inBattleId(battle, battle.order[0]);
 }

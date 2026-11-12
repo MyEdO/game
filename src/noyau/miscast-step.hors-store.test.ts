@@ -462,7 +462,7 @@ describe('Imparfaite/Colère — le tirage en étape à table (#942 L6)', () => 
   it('lanceur NON contrôlé par le siège local (ennemi sans siège MJ) : l’étape est POUSSÉE et le socle la résout D’OFFICE', () => {
     const hero = mageSolo();
     setDesFixes(true);
-    const npc = { ...structuredClone(hero), id: 'npc-1', kind: 'enemy' } as Combatant;
+    const npc = { ...structuredClone(hero), id: 'npc-1', kind: 'ennemi' } as Combatant;
     npc.conditions = [];
     banc.setState({ party: [hero, npc] });
     seedBattleRng(2);

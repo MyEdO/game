@@ -1,6 +1,6 @@
 /**
  * Attaque GRATUITE de Frénésie d'un HÉROS en Auto-combat (retour playtest 2026-06-27 : « un héros en
- * frénésie n'utilise pas son attaque gratuite »). `aiAvailableFreeAttack` était gardé `kind==='enemy'` → un héros
+ * frénésie n'utilise pas son attaque gratuite »). `aiAvailableFreeAttack` était gardé `kind==='ennemi'` → un héros
  * AUTO-piloté (sans UI) ne la jouait jamais. Gate corrigé en `!aiDriven` : enemy + héros auto la jouent ;
  * un héros MANUEL la déclenche lui-même via l'affordance UI (donc `aiAvailableFreeAttack` reste un no-op pour lui).
  */
@@ -27,8 +27,8 @@ describe('Frénésie — attaque gratuite d’un héros (Auto-combat)', () => {
     banc.getState().lancerLeCombat('enc-mutants', undefined, { noSurprise: true });
     banc.getState().fenetreValider('debutDuRound');
     const b = banc.getState().battle!;
-    const hero = b.combatants.find((c) => c.kind === 'hero' && (c.weapons ?? []).some((w) => w.type === 'melee'))!;
-    const foe = b.combatants.find((c) => c.kind === 'enemy' && !c.dead)!;
+    const hero = b.combatants.find((c) => c.kind === 'heros' && (c.weapons ?? []).some((w) => w.type === 'melee'))!;
+    const foe = b.combatants.find((c) => c.kind === 'ennemi' && !c.dead)!;
     hero.psychState = [{ type: 'frenesie' } as never];   // frénétique → attaque libre d'Arme (LDB 21 l.33)
     foe.pos = { x: hero.pos!.x + 1, y: hero.pos!.y };      // ennemi AU CONTACT (cible de l'attaque gratuite)
     foe.wounds = blessuresDeBase(99, 99, foe);  // survit pour qu'on mesure l'attaque, pas la mort

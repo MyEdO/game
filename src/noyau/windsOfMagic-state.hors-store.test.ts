@@ -114,7 +114,7 @@ describe('#491 — Vents Tourbillonnants, câblage state', () => {
     banc.getState().lancerLeCombat('enc-mutants');
     const battle = banc.getState().battle!;
     banc.setState({ battle: { ...battle, windsOfMagic: { roll: 5, mod, revealed: false } } });
-    const w = battle.combatants.find((c) => c.kind === 'hero')!;
+    const w = battle.combatants.find((c) => c.kind === 'heros')!;
     banc.setState({ pendingCast: { casterId: w.id, targetId: w.id, spellId: 'arc-de-t-essla', missile: false, focused: false, result: null } });
     banc.getState().jetLancer('incantation');
     return banc.getState().pendingCast!.result!.target;
@@ -132,7 +132,7 @@ describe('#491 — Vents Tourbillonnants, câblage state', () => {
     seedBattleRng(1);
     banc.getState().lancerLeCombat('enc-mutants');
     const battle = banc.getState().battle!;
-    const w = battle.combatants.find((c) => c.kind === 'hero')!;
+    const w = battle.combatants.find((c) => c.kind === 'heros')!;
     w.spells = ['arc-de-t-essla'];
     banc.setState({ battle: { ...battle, windsOfMagic: { roll: 5, mod, revealed: false } } });
     banc.setState({ pendingFocus: { casterId: w.id, spellId: 'arc-de-t-essla', result: null } });

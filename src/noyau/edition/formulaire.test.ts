@@ -10,11 +10,12 @@
  */
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
+import type { SourceDeLEdition } from './adresseDeProse';
 import { emptyNarratif } from '../monde/campaignNarratif';
 import { emptyScene, type Scene } from '../monde/scene';
-import { addEffectZone, addTrigger, avecLaValeur, gestesDeLaListe, type Segment } from '../sceneEdit';
+import { addEffectZone, addTrigger, avecLaValeur, type Segment } from '../sceneEdit';
 import { formulaireDe, type CadreDuPorteur } from '../sceneEditLecture';
-import { newEffect, newOp, valeurNeuveDe, variantesAChoisir } from '../valeursNeuves';
+import { gestesDeLaListe, newEffect, newOp, valeurNeuveDe, variantesAChoisir } from '../valeursNeuves';
 import seaEventsJson from '../../data/sea-events.json';
 import { givePossessionSchema } from '../../data/schemas/defs-scenes/effets';
 import { bornesAuPoint, champDeLElement, champsDeclares, champsDuRecord, champsOfferts, choixDuNoeud, cleOfferte, elementDuNoeud, formeAuPoint, inferFields, kindDuNoeud, recordDuNoeud, unionDuNoeud, varianteCourante, type FieldDesc } from '../codex/editFields';
@@ -37,8 +38,11 @@ import { jsonCanonique } from '../../lib/jsonCanonique.mjs';
 /** Un narratif vide : aucun preset de PNJ, aucune entrée à référencer. */
 const NARRATIF_VIDE = emptyNarratif();
 
+/** Aucun `Source/` servi : aucun chapitre. */
+const SANS_SOURCE: SourceDeLEdition = { manifeste: null, chapitres: {} };
+
 /** Le cadre d'un porteur d'une scène vide, au narratif vide. */
-const CADRE_VIDE: CadreDuPorteur = { scene: emptyScene('s', 4, 4), projet: { scenes: [], narratif: NARRATIF_VIDE } };
+const CADRE_VIDE: CadreDuPorteur = { scene: emptyScene('s', 4, 4), projet: { scenes: [], narratif: NARRATIF_VIDE }, source: SANS_SOURCE };
 
 type Zone = NonNullable<Scene['effectZones']>[number];
 type Declencheur = Scene['triggers'][number];

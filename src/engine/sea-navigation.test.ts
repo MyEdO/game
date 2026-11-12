@@ -15,7 +15,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testki
 const seq = (...vals: number[]): RNG => desEnSuite(vals, { boucle: true, borne: true });
 
 const hull = (E: number): Combatant => (blessuresSurLeProfil({
-  id: 'coque', name: 'Coque', kind: 'enemy',
+  id: 'coque', name: 'Coque', kind: 'ennemi',
   characteristics: { 'capacite-de-combat': 0, 'capacite-de-tir': 0, force: 0, endurance: E, initiative: 0, agilite: 0, dexterite: 0, intelligence: 0, 'force-mentale': 0, sociabilite: 0 },
   movement: 0, wounds: blessuresDeBase(50), weapons: [], skills: [], talents: [],
 }) as unknown as Combatant);

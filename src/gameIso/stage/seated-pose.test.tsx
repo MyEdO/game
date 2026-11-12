@@ -25,7 +25,7 @@ function scèneAttablée(assis: boolean, species = 'humain'): Scene {
 
 const meneur = (): Combatant =>
   (blessuresSurLeProfil({
-    id: 'h', label: 'Meneur', kind: 'hero', pos: { x: 3, y: 2 }, size: 'moyenne', wounds: blessuresDeBase(12),
+    id: 'h', label: 'Meneur', kind: 'heros', pos: { x: 3, y: 2 }, size: 'moyenne', wounds: blessuresDeBase(12),
     weapons: [], characteristics: {}, advantage: 0, conditions: [], armour: {}, skills: [], talents: [], movement: 4,
     career: 'soldat', species: 'humain',
   })) as unknown as Combatant;

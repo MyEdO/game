@@ -40,8 +40,8 @@ describe('Assommante — nœud Flow test OPPOSÉ (Force figée vs Résistance, r
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
     const wielder = enemies[0]; // le porteur de l'arme Assommante (attaquant)
     const prey = enemies[1];    // une victime ENNEMIE (cas b)
     enemies.slice(2).forEach((e) => (e.dead = true));

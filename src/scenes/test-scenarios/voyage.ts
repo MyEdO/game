@@ -154,7 +154,7 @@ const construireEmbuscade = (): Scene => buildScene({
       { creature: { id: 'gobelin' }, pos: { x: 9, y: 3 }, hidden: true },
       { creature: { id: 'gobelin' }, pos: { x: 10, y: 5 }, hidden: true },
     ],
-    surprise: 'party', // annulée si la Perception du voyage est réussie (« le groupe les voit venir »)
+    surprise: 'groupe', // annulée si la Perception du voyage est réussie (« le groupe les voit venir »)
   }],
 });
 

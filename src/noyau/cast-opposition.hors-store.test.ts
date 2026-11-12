@@ -33,8 +33,8 @@ describe('Incantation opposée (SpellSpec.opposed — multijet)', () => {
     banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('debutDuRound');
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
     enemies.slice(1).forEach((e) => (e.dead = true));
     const E = enemies[0];
     E.groups = ['demon']; // cible Démoniaque (le gate `onlyGroups` de Fauche-démon)
@@ -232,7 +232,7 @@ describe('#1028 — rangée d’opposition : possession, jamais le kind', () => 
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.id === caster.id)!;
     const P = b.combatants.find((c) => c.id === allie.id)!;
-    const E = b.combatants.find((c) => c.kind === 'enemy')!;
+    const E = b.combatants.find((c) => c.kind === 'ennemi')!;
     P.aiControlled = true; // PNJ allié piloté par l'IA : AUCUN siège ne tient son jet
     banc.setState({ battle: { ...b }, net: { ...banc.getState().net, mode: 'local', mySeat: 0, gmSeat: undefined, ownership: {} } });
     return { H, P, E };

@@ -49,9 +49,9 @@ describe('Précipitations Très abondantes au combat ouvert pendant un voyage en
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const E = b.combatants.find((c) => c.kind === 'enemy')!;
-    b.combatants.filter((c) => c.kind === 'enemy' && c !== E).forEach((c) => { c.dead = true; });
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const E = b.combatants.find((c) => c.kind === 'ennemi')!;
+    b.combatants.filter((c) => c.kind === 'ennemi' && c !== E).forEach((c) => { c.dead = true; });
     H.pos = { x: 5, y: 5 };
     E.pos = { x: 5, y: 8 };
     return { H, E };

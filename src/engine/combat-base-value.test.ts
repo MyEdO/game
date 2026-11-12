@@ -26,7 +26,7 @@ function hero(opts: {
   const enc = opts.enc ?? 0;
   const items: ItemInstance[] = enc > 0 ? [{ uid: 'x', label: 'charge', kind: 'misc', qualities: [], enc, equipped: false }] : [];
   return blessuresSurLeProfil({
-    id: 'h', label: 'Sujet', kind: 'hero',
+    id: 'h', label: 'Sujet', kind: 'heros',
     characteristics: chars(),
     wounds: blessuresDeBase(12),
     advantage: opts.advantage ?? 0,

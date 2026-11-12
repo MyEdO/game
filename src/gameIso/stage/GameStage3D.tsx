@@ -254,7 +254,7 @@ void verrouDesModesDeCadre;
  */
 export function centreDuGroupe(frame: StageFrame, actors: readonly ActorPose[]): { x: number; y: number } | null {
   if (frame.mode === 'subjectif') return { x: frame.partyPos.x, y: frame.partyPos.y };
-  const héros = actors.filter((a) => a.c.kind === 'hero');
+  const héros = actors.filter((a) => a.c.kind === 'heros');
   if (héros.length === 0) return null;
   return {
     x: héros.reduce((s, a) => s + a.x, 0) / héros.length,

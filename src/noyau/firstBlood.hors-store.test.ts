@@ -28,8 +28,8 @@ function setup(scene: Scene = testScene()) {
   banc.getState().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = banc.getState().battle!;
-  const H = b.combatants.find((c) => c.kind === 'hero')!;
-  const E = b.combatants.find((c) => c.kind === 'enemy')!;
+  const H = b.combatants.find((c) => c.kind === 'heros')!;
+  const E = b.combatants.find((c) => c.kind === 'ennemi')!;
   return { H, E };
 }
 
@@ -73,7 +73,7 @@ describe('Duel judiciaire — premier sang (#471, NADJ 06 l.175-177)', () => {
     setup();
     // Tous les ennemis directement à 0 PB et morts : la fin STANDARD (incapacité), indépendante du premier sang.
     const b = banc.getState().battle!;
-    for (const c of b.combatants) if (c.kind === 'enemy') { c.dead = true; c.wounds = { ...c.wounds, current: 0 }; }
+    for (const c of b.combatants) if (c.kind === 'ennemi') { c.dead = true; c.wounds = { ...c.wounds, current: 0 }; }
     banc.setState({ battle: { ...b, victoryCondition: { type: 'firstBlood' } } });
     const over = checkBattleOver(banc.getState, banc.setState);
     draineCascade(banc.getState);

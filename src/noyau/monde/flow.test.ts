@@ -82,7 +82,7 @@ describe('evalCondition — géométrie d’arène + capacités (récupération 
     expect(evalCondition({ kind: 'nearestFoe', op: '<=', value: 3 }, base)).toBe(false); // +∞ → jamais ≤
   });
   it('capability : niveau d’une CombatFeature de l’acteur (Cœur vaillant)', () => {
-    const av = { id: 'c', woundsCurrent: 10, woundsMax: 10, size: 3, advantage: 0, camp: 'party' as const, groups: [], talents: [], traits: [], conditions: {}, chars: {} as Record<string, number>, capabilities: { braveheart: 1 } };
+    const av = { id: 'c', woundsCurrent: 10, woundsMax: 10, size: 3, advantage: 0, camp: 'groupe' as const, groups: [], talents: [], traits: [], conditions: {}, chars: {} as Record<string, number>, capabilities: { braveheart: 1 } };
     expect(evalCondition({ kind: 'capability', who: 'target', id: 'braveheart' }, { ...base, target: av })).toBe(true); // défaut >= 1
     expect(evalCondition({ kind: 'capability', who: 'target', id: 'braveheart', op: '>=', value: 2 }, { ...base, target: av })).toBe(false);
     expect(evalCondition({ kind: 'capability', who: 'target', id: 'slayer' }, { ...base, target: av })).toBe(false); // capacité absente → 0

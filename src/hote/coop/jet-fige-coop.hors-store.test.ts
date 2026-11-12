@@ -51,7 +51,7 @@ function table(banc: Banc, invite: string): { guest: GuestSession; chezLInvite: 
 
 const chars = { 'capacite-de-combat': 45, 'capacite-de-tir': 50, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 40, 'force-mentale': 30, sociabilite: 30 };
 const rapiere: Weapon = { name: 'Rapière', label: 'Rapière', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, uid: 'ra', qualities: [{ id: 'rapide' }] } as unknown as Weapon;
-const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }): Combatant =>
+const mk = (id: string, kind: 'heros' | 'ennemi', pos: { x: number; y: number }): Combatant =>
   (blessuresSurLeProfil({ id, name: id, label: id, kind, characteristics: { ...chars }, conditions: [], engagedWith: [], skills: [], talents: [], items: [],
      weapons: [rapiere], advantage: 0, size: 'moyenne', pos, wounds: blessuresDeBase(18),
      armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4 }) as unknown as Combatant);
@@ -75,12 +75,12 @@ describe('Test opposé à jet figé en coop : masqué chez l’invité avant sa 
   it('Défense du héros de l’invité contre l’ennemi que l’hôte jette au siège MJ', () => {
     const banc = ouvrirLeBanc({ etat: { net: NET('hote', 0, 'h') } });
     seedBattleRng(7);
-    const combatants = [mk('e', 'enemy', { x: 1, y: 0 }), mk('h', 'hero', { x: 0, y: 0 })];
+    const combatants = [mk('e', 'ennemi', { x: 1, y: 0 }), mk('h', 'heros', { x: 0, y: 0 })];
     const order = combatants.map((c) => c.id);
     banc.setState({
       battle: { combatants, order, baseOrder: order, turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(),
         movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null } as unknown as BattleState,
-      mode: 'battle', scene: testScene(), party: combatants.filter((c) => c.kind === 'hero'),
+      mode: 'battle', scene: testScene(), party: combatants.filter((c) => c.kind === 'heros'),
     });
     const { guest, chezLInvite } = table(banc, 'h');
     openAttackCascade(banc.getState, banc.setState, { attackerId: 'e', targetId: 'h', location: null, result: null, weaponUid: 'ra' }, 'Attaque', 'action/attaquer');
@@ -108,7 +108,7 @@ describe('Test opposé à jet figé en coop : masqué chez l’invité avant sa 
     banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('debutDuRound');
     const b = banc.getState().battle!;
-    const [E, ...autres] = b.combatants.filter((c) => c.kind === 'enemy');
+    const [E, ...autres] = b.combatants.filter((c) => c.kind === 'ennemi');
     autres.forEach((e) => (e.dead = true));
     E.skills = [{ id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 15 }];
     E.spells = ['carreau'];

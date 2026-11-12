@@ -24,7 +24,7 @@ beforeEach(() => {
 const g = () => banc.getState();
 
 const chars = { 'capacite-de-combat': 45, 'capacite-de-tir': 50, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 40 };
-const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, weapons: Weapon[], over: Partial<Combatant> = {}): Combatant =>
+const mk = (id: string, kind: 'heros' | 'ennemi', pos: { x: number; y: number }, weapons: Weapon[], over: Partial<Combatant> = {}): Combatant =>
   (blessuresSurLeProfil({ id, name: id, label: id, kind, characteristics: { ...chars }, conditions: [], engagedWith: [], skills: [], talents: [],
     weapons, advantage: 0, size: 'moyenne', pos, wounds: blessuresDeBase(18),
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, ...over }) as unknown as Combatant);
@@ -35,8 +35,8 @@ const bouclier: Weapon = { ...weaponFromItem(itemFromTrappingById('bouclier', id
  *  sur le héros (la même valeur hors de la fenêtre où une op a écrit la projection avant `reconcileAdvantageToPool`). */
 function ouvrirLaDefense(avantage: number, dejaUtilise = false, projete = avantage): void {
   seedBattleRng(7);
-  const ennemi = mk('e', 'enemy', { x: 1, y: 0 }, [epee]);
-  const heros = mk('h', 'hero', { x: 0, y: 0 }, [epee, bouclier], {
+  const ennemi = mk('e', 'ennemi', { x: 1, y: 0 }, [epee]);
+  const heros = mk('h', 'heros', { x: 0, y: 0 }, [epee, bouclier], {
     talents: [{ talentId: 'porte-bouclier', times: 1 }], advantage: projete, usedShieldReactionRound: dejaUtilise,
   } as Partial<Combatant>);
   const battle = {

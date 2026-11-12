@@ -35,11 +35,11 @@ import {
 const SCENE = emptyScene('scene-test', 8, 8);
 const MPT = sceneMetresPerTile(SCENE);
 
-const cbt = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }): Combatant =>
+const cbt = (id: string, kind: 'heros' | 'ennemi', pos: { x: number; y: number }): Combatant =>
   ({ id, label: id, kind, pos, size: 'moyenne', conditions: [], wounds: { current: 10, max: 10 } } as unknown as Combatant);
 
 const BATTLE = {
-  combatants: [cbt('h1', 'hero', { x: 2, y: 2 }), cbt('e1', 'enemy', { x: 5, y: 5 })],
+  combatants: [cbt('h1', 'heros', { x: 2, y: 2 }), cbt('e1', 'ennemi', { x: 5, y: 5 })],
   order: ['h1', 'e1'],
   turn: 0,
   zones: [{ id: 'z1', blocksLoS: true, tiles: [{ x: 1, y: 1 }, { x: 1, y: 2 }] }],
