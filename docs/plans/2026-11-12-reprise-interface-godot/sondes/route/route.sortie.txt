@@ -1,0 +1,1481 @@
+
+===== graine 7
+--- pas 0 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-jour,relief-terre,equipage-pied
+   fenetre.corps: L[scene/jour] Wellentag · 33 Jahrdrung 2512 CI
+   fenetre.corps: L[scene/moment] Après-midi · temps sec
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Survie en extérieur cible=≤ 90 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+   heros Mira (test): JET[jets/0/1] qui=null Perception cible=≤ 79 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Aldric (test): JET[jets/0/2] qui=null Métier (Cartographe) cible=≤ 99 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Greta Hartmann: JET[jets/0/3] qui=null Survie en extérieur cible=≤ 28 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   journal+ Wellentag · 33 Jahrdrung 2512 CI
+   journal+ L’aubergiste essuie un verre en jaugeant le groupe. « La route du hameau (24 km) n’est pas sûre, mais le bourg (30 km) a ses relais et sa diligence — et depuis le hameau, la longue route d’Altdorf (96 km) vous prendra trois nuits. » Chacun tient déjà son poste de voyage : Bjorn au plein air, Mira aux aguets, Aldric cartographie, Greta fourrage. Le groupe part blessé : chaque nuit apportera son lot de récupération, de faim, de Vérole et de cauchemars. À Altdorf, un cercle au sol ouvrira le répit entre deux aventures. (Ouvrez la carte du monde pour voyager.)
+   journal+ — En route vers Steinbruck (30 km, à pied) —
+   journal+ Météo : Temps sec.
+--- pas 1 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-jour,relief-terre,equipage-pied
+   fenetre.corps: L[scene/jour] Wellentag · 33 Jahrdrung 2512 CI
+   fenetre.corps: L[scene/moment] Après-midi · temps sec
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Survie en extérieur cible=≤ 90 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Mira (test): JET[jets/0/1] qui=null Perception cible=≤ 79 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+   heros Aldric (test): JET[jets/0/2] qui=null Métier (Cartographe) cible=≤ 99 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Greta Hartmann: JET[jets/0/3] qui=null Survie en extérieur cible=≤ 28 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+--- pas 2 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-jour,relief-terre,equipage-pied
+   fenetre.corps: L[scene/jour] Wellentag · 33 Jahrdrung 2512 CI
+   fenetre.corps: L[scene/moment] Après-midi · temps sec
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Survie en extérieur cible=≤ 90 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Mira (test): JET[jets/0/1] qui=null Perception cible=≤ 79 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Aldric (test): JET[jets/0/2] qui=null Métier (Cartographe) cible=≤ 99 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+   heros Greta Hartmann: JET[jets/0/3] qui=null Survie en extérieur cible=≤ 28 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+--- pas 3 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-jour,relief-terre,equipage-pied
+   fenetre.corps: L[scene/jour] Wellentag · 33 Jahrdrung 2512 CI
+   fenetre.corps: L[scene/moment] Après-midi · temps sec
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Survie en extérieur cible=≤ 90 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Mira (test): JET[jets/0/1] qui=null Perception cible=≤ 79 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Aldric (test): JET[jets/0/2] qui=null Métier (Cartographe) cible=≤ 99 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Greta Hartmann: JET[jets/0/3] qui=null Survie en extérieur cible=≤ 28 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+--- pas 4 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-jour,relief-terre,equipage-pied
+   fenetre.corps: L[scene/jour] Wellentag · 33 Jahrdrung 2512 CI
+   fenetre.corps: L[scene/moment] Après-midi · temps sec
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetValider@cascade] Continuer *
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Survie en extérieur cible=≤ 90 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetAjouterUnDR@cascadeEnBande] Chance : +1 DR ; B[jetPactiser@cascadeEnBande] Pacte
+   heros Mira (test): JET[jets/0/1] qui=null Perception cible=≤ 79 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Aldric (test): JET[jets/0/2] qui=null Métier (Cartographe) cible=≤ 99 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Greta Hartmann: JET[jets/0/3] qui=null Survie en extérieur cible=≤ 28 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+--- pas 5 disposition=repos titre=Repos etape=null
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.corps: PAYSAGE ciel-nuit,relief-terre,voile-nuit,halte-toit
+   fenetre.corps: L[scene/jour] Wellentag · 33 Jahrdrung 2512 CI
+   fenetre.corps: L[scene/moment] Nuit à l’auberge — Weiler → Steinbruck
+   fenetre.corps: L[repos/temps] Plein air réussi : aucun Test d’Exposition dû au mauvais temps cette nuit.
+   fenetre.corps: L[repos/note] Note 1 CO 4/– · Bourse 6 CO 10/–
+   fenetre.gestes: B[fenetreValider@repos] Dormir *
+   journal+ État Exténué subi.
+   journal+ État Exténué subi.
+   journal+ Cartographie : 2/4 DR.
+   journal+ Voilà qui est utile ! : Les Personnages découvrent quelque chose d'important pour leur aventure, des ragots, un message égaré, une scène dont ils n'étaient pas censés être les témoins, etc.
+--- pas 6 disposition=voyage titre=Nuit à l’auberge etape={"id":"bande-contagion-bjorn-0-1","genre":"contagion","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · temps sec
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Résistance cible=≤ 60 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+   heros Mira (test): JET[jets/0/1] qui=null Résistance cible=≤ 49 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Aldric (test): JET[jets/0/2] qui=null Résistance cible=≤ 50 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   journal+ Mitterfruhl 2512 CI
+   journal+ — Le groupe dort jusqu’à l’aube —
+--- pas 7 disposition=voyage titre=Nuit à l’auberge etape={"id":"bande-contagion-bjorn-0-1","genre":"contagion","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · temps sec
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Résistance cible=≤ 60 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Mira (test): JET[jets/0/1] qui=null Résistance cible=≤ 49 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+   heros Aldric (test): JET[jets/0/2] qui=null Résistance cible=≤ 50 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+--- pas 8 disposition=voyage titre=Nuit à l’auberge etape={"id":"bande-contagion-bjorn-0-1","genre":"contagion","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · temps sec
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Résistance cible=≤ 60 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Mira (test): JET[jets/0/1] qui=null Résistance cible=≤ 49 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Aldric (test): JET[jets/0/2] qui=null Résistance cible=≤ 50 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+--- pas 9 disposition=voyage titre=Nuit à l’auberge etape={"id":"bande-contagion-bjorn-0-1","genre":"contagion","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · temps sec
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetValider@cascade] Continuer *
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Résistance cible=≤ 60 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetAjouterUnDR@cascadeEnBande] Chance : +1 DR ; B[jetPactiser@cascadeEnBande] Pacte
+   heros Mira (test): JET[jets/0/1] qui=null Résistance cible=≤ 49 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Aldric (test): JET[jets/0/2] qui=null Résistance cible=≤ 50 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+--- pas 10 disposition=voyage titre=Nuit à l’auberge etape={"id":"bande-recov-bjorn-1","genre":"recuperation","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · temps sec
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Résistance cible=≤ 60 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+   heros Greta Hartmann: JET[jets/0/1] qui=null Résistance cible=≤ 56 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   journal+ Aldric (test) contracte : Vérole Urticante.
+--- pas 11 disposition=voyage titre=Nuit à l’auberge etape={"id":"bande-recov-bjorn-1","genre":"recuperation","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · temps sec
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Résistance cible=≤ 60 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Greta Hartmann: JET[jets/0/1] qui=null Résistance cible=≤ 56 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+--- pas 12 disposition=voyage titre=Nuit à l’auberge etape={"id":"bande-recov-bjorn-1","genre":"recuperation","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · temps sec
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetValider@cascade] Continuer *
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Résistance cible=≤ 60 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetAjouterUnDR@cascadeEnBande] Chance : +1 DR ; B[jetPactiser@cascadeEnBande] Pacte
+   heros Greta Hartmann: JET[jets/0/1] qui=null Résistance cible=≤ 56 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+--- pas 13 disposition=voyage titre=Nuit à l’auberge etape={"id":"bande-nm-greta-1","genre":"cauchemar","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · temps sec
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Greta Hartmann: JET[jets/0/0] qui=null Calme cible=≤ 76 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+   journal+ Bjorn (test) récupère 8 PB.
+   journal+ Greta Hartmann récupère 4 PB.
+--- pas 14 disposition=voyage titre=Nuit à l’auberge etape={"id":"bande-nm-greta-1","genre":"cauchemar","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · temps sec
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetValider@cascade] Continuer *
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Greta Hartmann: JET[jets/0/0] qui=null Calme cible=≤ 76 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetAjouterUnDR@cascadeEnBande] Chance : +1 DR ; B[jetPactiser@cascadeEnBande] Pacte
+--- pas 15 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · beau temps
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 30 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Survie en extérieur cible=≤ 99 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+   heros Mira (test): JET[jets/0/1] qui=null Perception cible=≤ 79 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Aldric (test): JET[jets/0/2] qui=null Métier (Cartographe) cible=≤ 99 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Greta Hartmann: JET[jets/0/3] qui=null Survie en extérieur cible=≤ 38 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   journal+ Greta Hartmann dort d'un sommeil sans rêve.
+   journal+ Météo : Beau temps.
+--- pas 16 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · beau temps
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 30 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Survie en extérieur cible=≤ 99 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Mira (test): JET[jets/0/1] qui=null Perception cible=≤ 79 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+   heros Aldric (test): JET[jets/0/2] qui=null Métier (Cartographe) cible=≤ 99 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Greta Hartmann: JET[jets/0/3] qui=null Survie en extérieur cible=≤ 38 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+--- pas 17 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · beau temps
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 30 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Survie en extérieur cible=≤ 99 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Mira (test): JET[jets/0/1] qui=null Perception cible=≤ 79 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Aldric (test): JET[jets/0/2] qui=null Métier (Cartographe) cible=≤ 99 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+   heros Greta Hartmann: JET[jets/0/3] qui=null Survie en extérieur cible=≤ 38 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+--- pas 18 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · beau temps
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 30 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Survie en extérieur cible=≤ 99 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Mira (test): JET[jets/0/1] qui=null Perception cible=≤ 79 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Aldric (test): JET[jets/0/2] qui=null Métier (Cartographe) cible=≤ 99 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Greta Hartmann: JET[jets/0/3] qui=null Survie en extérieur cible=≤ 38 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+--- pas 19 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · beau temps
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 30 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetValider@cascade] Continuer *
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Survie en extérieur cible=≤ 99 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetAjouterUnDR@cascadeEnBande] Chance : +1 DR ; B[jetPactiser@cascadeEnBande] Pacte
+   heros Mira (test): JET[jets/0/1] qui=null Perception cible=≤ 79 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Aldric (test): JET[jets/0/2] qui=null Métier (Cartographe) cible=≤ 99 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Greta Hartmann: JET[jets/0/3] qui=null Survie en extérieur cible=≤ 38 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+--- pas 20 disposition=recitDeVoyage titre=Récit de voyage etape=null
+   fenetre.corps: L[recit/issue] Arrivée à Steinbruck
+   fenetre.corps: L[recit/route] Parti de Weiler pour Steinbruck · 30 km, à pied
+   fenetre.corps: L[recit/duree] Voyage de 22 h 30 min.
+   fenetre.gestes: B[fenetreFermer@recitDeVoyage] Continuer *
+   journal+ Aldric (test) reçoit une ration trouvée en chemin.
+   journal+ La carte de l'itinéraire est ACHEVÉE (4/4 DR).
+   journal+ Voyage tranquille : le voyage est heureusement sans incident, les Personnages se reposent bien, le paysage est particulièrement inspirant, et peut-être rencontrent-ils un PNJ guérisseur ou un prêtre serviable. Les Personnages peuvent guérir toutes les Blessures et récupérer de tous les États Exténué.
+   journal+ Voyage tranquille : le groupe récupère toutes ses Blessures et tous ses États Exténué.
+   journal+ — Arrivée à Steinbruck —
+   journal+ Aldric (test) : les symptômes de « Vérole Urticante » se déclarent.
+
+===== graine 1
+--- pas 0 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-jour,relief-terre,equipage-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Wellentag · 33 Jahrdrung 2512 CI
+   fenetre.corps: L[scene/moment] Après-midi · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Survie en extérieur cible=≤ 90 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+   heros Mira (test): JET[jets/0/1] qui=null Perception cible=≤ 79 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Aldric (test): JET[jets/0/2] qui=null Métier (Cartographe) cible=≤ 99 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Greta Hartmann: JET[jets/0/3] qui=null Survie en extérieur cible=≤ 38 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   journal+ Wellentag · 33 Jahrdrung 2512 CI
+   journal+ L’aubergiste essuie un verre en jaugeant le groupe. « La route du hameau (24 km) n’est pas sûre, mais le bourg (30 km) a ses relais et sa diligence — et depuis le hameau, la longue route d’Altdorf (96 km) vous prendra trois nuits. » Chacun tient déjà son poste de voyage : Bjorn au plein air, Mira aux aguets, Aldric cartographie, Greta fourrage. Le groupe part blessé : chaque nuit apportera son lot de récupération, de faim, de Vérole et de cauchemars. À Altdorf, un cercle au sol ouvrira le répit entre deux aventures. (Ouvrez la carte du monde pour voyager.)
+   journal+ — En route vers Steinbruck (30 km, à pied) —
+   journal+ Météo : Pluie.
+--- pas 1 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-jour,relief-terre,equipage-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Wellentag · 33 Jahrdrung 2512 CI
+   fenetre.corps: L[scene/moment] Après-midi · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Survie en extérieur cible=≤ 90 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Mira (test): JET[jets/0/1] qui=null Perception cible=≤ 79 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+   heros Aldric (test): JET[jets/0/2] qui=null Métier (Cartographe) cible=≤ 99 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Greta Hartmann: JET[jets/0/3] qui=null Survie en extérieur cible=≤ 38 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+--- pas 2 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-jour,relief-terre,equipage-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Wellentag · 33 Jahrdrung 2512 CI
+   fenetre.corps: L[scene/moment] Après-midi · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Survie en extérieur cible=≤ 90 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Mira (test): JET[jets/0/1] qui=null Perception cible=≤ 79 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Aldric (test): JET[jets/0/2] qui=null Métier (Cartographe) cible=≤ 99 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+   heros Greta Hartmann: JET[jets/0/3] qui=null Survie en extérieur cible=≤ 38 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+--- pas 3 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-jour,relief-terre,equipage-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Wellentag · 33 Jahrdrung 2512 CI
+   fenetre.corps: L[scene/moment] Après-midi · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Survie en extérieur cible=≤ 90 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Mira (test): JET[jets/0/1] qui=null Perception cible=≤ 79 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Aldric (test): JET[jets/0/2] qui=null Métier (Cartographe) cible=≤ 99 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Greta Hartmann: JET[jets/0/3] qui=null Survie en extérieur cible=≤ 38 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+--- pas 4 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-jour,relief-terre,equipage-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Wellentag · 33 Jahrdrung 2512 CI
+   fenetre.corps: L[scene/moment] Après-midi · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetValider@cascade] Continuer *
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Survie en extérieur cible=≤ 90 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetAjouterUnDR@cascadeEnBande] Chance : +1 DR ; B[jetPactiser@cascadeEnBande] Pacte
+   heros Mira (test): JET[jets/0/1] qui=null Perception cible=≤ 79 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Aldric (test): JET[jets/0/2] qui=null Métier (Cartographe) cible=≤ 99 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Greta Hartmann: JET[jets/0/3] qui=null Survie en extérieur cible=≤ 38 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+--- pas 5 disposition=repos titre=Repos etape=null
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.corps: PAYSAGE ciel-nuit,relief-terre,voile-nuit,halte-toit,meteo-pluie
+   fenetre.corps: L[scene/jour] Wellentag · 33 Jahrdrung 2512 CI
+   fenetre.corps: L[scene/moment] Nuit à l’auberge — Weiler → Steinbruck
+   fenetre.corps: L[repos/temps] Plein air réussi : aucun Test d’Exposition dû au mauvais temps cette nuit.
+   fenetre.corps: L[repos/note] Note 1 CO 4/– · Bourse 6 CO 10/–
+   fenetre.gestes: B[fenetreValider@repos] Dormir *
+   journal+ État Exténué subi.
+   journal+ État Exténué subi.
+   journal+ Cartographie : 0/4 DR.
+   journal+ Voilà qui est utile ! : Les Personnages découvrent quelque chose d'important pour leur aventure, des ragots, un message égaré, une scène dont ils n'étaient pas censés être les témoins, etc.
+--- pas 6 disposition=voyage titre=Nuit à l’auberge etape={"id":"bande-contagion-bjorn-0-1","genre":"contagion","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Résistance cible=≤ 60 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+   heros Mira (test): JET[jets/0/1] qui=null Résistance cible=≤ 59 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Aldric (test): JET[jets/0/2] qui=null Résistance cible=≤ 40 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   journal+ Mitterfruhl 2512 CI
+   journal+ — Le groupe dort jusqu’à l’aube —
+--- pas 7 disposition=voyage titre=Nuit à l’auberge etape={"id":"bande-contagion-bjorn-0-1","genre":"contagion","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Résistance cible=≤ 60 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Mira (test): JET[jets/0/1] qui=null Résistance cible=≤ 59 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+   heros Aldric (test): JET[jets/0/2] qui=null Résistance cible=≤ 40 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+--- pas 8 disposition=voyage titre=Nuit à l’auberge etape={"id":"bande-contagion-bjorn-0-1","genre":"contagion","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Résistance cible=≤ 60 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Mira (test): JET[jets/0/1] qui=null Résistance cible=≤ 59 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Aldric (test): JET[jets/0/2] qui=null Résistance cible=≤ 40 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+--- pas 9 disposition=voyage titre=Nuit à l’auberge etape={"id":"bande-contagion-bjorn-0-1","genre":"contagion","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetValider@cascade] Continuer *
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Résistance cible=≤ 60 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetRelancer@cascadeEnBande] Relancer ; B[jetAjouterUnDR@cascadeEnBande] Chance : +1 DR ; B[jetForcerLaReussite@cascadeEnBande] Résilience ; B[jetPactiser@cascadeEnBande] Pacte
+   heros Mira (test): JET[jets/0/1] qui=null Résistance cible=≤ 59 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Aldric (test): JET[jets/0/2] qui=null Résistance cible=≤ 40 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+--- pas 10 disposition=voyage titre=Nuit à l’auberge etape={"id":"bande-recov-bjorn-1","genre":"recuperation","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Résistance cible=≤ 60 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+   heros Greta Hartmann: JET[jets/0/1] qui=null Résistance cible=≤ 56 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   journal+ Bjorn (test) contracte : Vérole Urticante.
+   journal+ Mira (test) contracte : Vérole Urticante.
+   journal+ Aldric (test) contracte : Vérole Urticante.
+--- pas 11 disposition=voyage titre=Nuit à l’auberge etape={"id":"bande-recov-bjorn-1","genre":"recuperation","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Résistance cible=≤ 60 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Greta Hartmann: JET[jets/0/1] qui=null Résistance cible=≤ 56 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+--- pas 12 disposition=voyage titre=Nuit à l’auberge etape={"id":"bande-recov-bjorn-1","genre":"recuperation","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetValider@cascade] Continuer *
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Résistance cible=≤ 60 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetAjouterUnDR@cascadeEnBande] Chance : +1 DR ; B[jetPactiser@cascadeEnBande] Pacte
+   heros Greta Hartmann: JET[jets/0/1] qui=null Résistance cible=≤ 56 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+--- pas 13 disposition=voyage titre=Nuit à l’auberge etape={"id":"bande-nm-greta-1","genre":"cauchemar","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Greta Hartmann: JET[jets/0/0] qui=null Calme cible=≤ 76 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+   journal+ Bjorn (test) récupère 8 PB.
+   journal+ Greta Hartmann récupère 6 PB.
+--- pas 14 disposition=voyage titre=Nuit à l’auberge etape={"id":"bande-nm-greta-1","genre":"cauchemar","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetValider@cascade] Continuer *
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Greta Hartmann: JET[jets/0/0] qui=null Calme cible=≤ 76 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetAjouterUnDR@cascadeEnBande] Chance : +1 DR ; B[jetPactiser@cascadeEnBande] Pacte
+--- pas 15 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 30 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Survie en extérieur cible=≤ 90 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+   heros Mira (test): JET[jets/0/1] qui=null Perception cible=≤ 79 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Aldric (test): JET[jets/0/2] qui=null Métier (Cartographe) cible=≤ 99 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Greta Hartmann: JET[jets/0/3] qui=null Survie en extérieur cible=≤ 38 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   journal+ Greta Hartmann dort d'un sommeil sans rêve.
+   journal+ Météo : Pluie.
+--- pas 16 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 30 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Survie en extérieur cible=≤ 90 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Mira (test): JET[jets/0/1] qui=null Perception cible=≤ 79 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+   heros Aldric (test): JET[jets/0/2] qui=null Métier (Cartographe) cible=≤ 99 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Greta Hartmann: JET[jets/0/3] qui=null Survie en extérieur cible=≤ 38 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+--- pas 17 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 30 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Survie en extérieur cible=≤ 90 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Mira (test): JET[jets/0/1] qui=null Perception cible=≤ 79 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Aldric (test): JET[jets/0/2] qui=null Métier (Cartographe) cible=≤ 99 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+   heros Greta Hartmann: JET[jets/0/3] qui=null Survie en extérieur cible=≤ 38 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+--- pas 18 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 30 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Survie en extérieur cible=≤ 90 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Mira (test): JET[jets/0/1] qui=null Perception cible=≤ 79 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Aldric (test): JET[jets/0/2] qui=null Métier (Cartographe) cible=≤ 99 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Greta Hartmann: JET[jets/0/3] qui=null Survie en extérieur cible=≤ 38 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+--- pas 19 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 30 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetValider@cascade] Continuer *
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Survie en extérieur cible=≤ 90 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetAjouterUnDR@cascadeEnBande] Chance : +1 DR ; B[jetPactiser@cascadeEnBande] Pacte
+   heros Mira (test): JET[jets/0/1] qui=null Perception cible=≤ 79 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Aldric (test): JET[jets/0/2] qui=null Métier (Cartographe) cible=≤ 99 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Greta Hartmann: JET[jets/0/3] qui=null Survie en extérieur cible=≤ 38 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+--- pas 20 disposition=recitDeVoyage titre=Récit de voyage etape=null
+   fenetre.corps: L[recit/issue] Arrivée à Steinbruck
+   fenetre.corps: L[recit/route] Parti de Weiler pour Steinbruck · 30 km, à pied
+   fenetre.corps: L[recit/duree] Voyage de 22 h 30 min.
+   fenetre.gestes: B[fenetreFermer@recitDeVoyage] Continuer *
+   journal+ Aldric (test) reçoit une ration trouvée en chemin.
+   journal+ Greta Hartmann reçoit une ration trouvée en chemin.
+   journal+ La carte de l'itinéraire est ACHEVÉE (4/4 DR).
+   journal+ Voilà qui est utile ! : Les Personnages découvrent quelque chose d'important pour leur aventure, des ragots, un message égaré, une scène dont ils n'étaient pas censés être les témoins, etc.
+   journal+ — Arrivée à Steinbruck —
+   journal+ Bjorn (test) : les symptômes de « Vérole Urticante » se déclarent.
+   journal+ Mira (test) : les symptômes de « Vérole Urticante » se déclarent.
+   journal+ Aldric (test) : les symptômes de « Vérole Urticante » se déclarent.
+
+===== graine 2
+--- pas 0 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-jour,relief-terre,equipage-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Wellentag · 33 Jahrdrung 2512 CI
+   fenetre.corps: L[scene/moment] Après-midi · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Survie en extérieur cible=≤ 90 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+   heros Mira (test): JET[jets/0/1] qui=null Perception cible=≤ 79 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Aldric (test): JET[jets/0/2] qui=null Métier (Cartographe) cible=≤ 99 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Greta Hartmann: JET[jets/0/3] qui=null Survie en extérieur cible=≤ 38 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   journal+ Wellentag · 33 Jahrdrung 2512 CI
+   journal+ L’aubergiste essuie un verre en jaugeant le groupe. « La route du hameau (24 km) n’est pas sûre, mais le bourg (30 km) a ses relais et sa diligence — et depuis le hameau, la longue route d’Altdorf (96 km) vous prendra trois nuits. » Chacun tient déjà son poste de voyage : Bjorn au plein air, Mira aux aguets, Aldric cartographie, Greta fourrage. Le groupe part blessé : chaque nuit apportera son lot de récupération, de faim, de Vérole et de cauchemars. À Altdorf, un cercle au sol ouvrira le répit entre deux aventures. (Ouvrez la carte du monde pour voyager.)
+   journal+ — En route vers Steinbruck (30 km, à pied) —
+   journal+ Météo : Pluie.
+--- pas 1 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-jour,relief-terre,equipage-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Wellentag · 33 Jahrdrung 2512 CI
+   fenetre.corps: L[scene/moment] Après-midi · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Survie en extérieur cible=≤ 90 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Mira (test): JET[jets/0/1] qui=null Perception cible=≤ 79 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+   heros Aldric (test): JET[jets/0/2] qui=null Métier (Cartographe) cible=≤ 99 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Greta Hartmann: JET[jets/0/3] qui=null Survie en extérieur cible=≤ 38 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+--- pas 2 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-jour,relief-terre,equipage-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Wellentag · 33 Jahrdrung 2512 CI
+   fenetre.corps: L[scene/moment] Après-midi · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Survie en extérieur cible=≤ 90 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Mira (test): JET[jets/0/1] qui=null Perception cible=≤ 79 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Aldric (test): JET[jets/0/2] qui=null Métier (Cartographe) cible=≤ 99 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+   heros Greta Hartmann: JET[jets/0/3] qui=null Survie en extérieur cible=≤ 38 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+--- pas 3 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-jour,relief-terre,equipage-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Wellentag · 33 Jahrdrung 2512 CI
+   fenetre.corps: L[scene/moment] Après-midi · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Survie en extérieur cible=≤ 90 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Mira (test): JET[jets/0/1] qui=null Perception cible=≤ 79 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Aldric (test): JET[jets/0/2] qui=null Métier (Cartographe) cible=≤ 99 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Greta Hartmann: JET[jets/0/3] qui=null Survie en extérieur cible=≤ 38 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+--- pas 4 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-jour,relief-terre,equipage-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Wellentag · 33 Jahrdrung 2512 CI
+   fenetre.corps: L[scene/moment] Après-midi · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetValider@cascade] Continuer *
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Survie en extérieur cible=≤ 90 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetAjouterUnDR@cascadeEnBande] Chance : +1 DR ; B[jetPactiser@cascadeEnBande] Pacte
+   heros Mira (test): JET[jets/0/1] qui=null Perception cible=≤ 79 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Aldric (test): JET[jets/0/2] qui=null Métier (Cartographe) cible=≤ 99 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Greta Hartmann: JET[jets/0/3] qui=null Survie en extérieur cible=≤ 38 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+--- pas 5 disposition=repos titre=Repos etape=null
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.corps: PAYSAGE ciel-nuit,relief-terre,voile-nuit,halte-toit,meteo-pluie
+   fenetre.corps: L[scene/jour] Wellentag · 33 Jahrdrung 2512 CI
+   fenetre.corps: L[scene/moment] Nuit à l’auberge — Weiler → Steinbruck
+   fenetre.corps: L[repos/temps] Plein air réussi : aucun Test d’Exposition dû au mauvais temps cette nuit.
+   fenetre.corps: L[repos/note] Note 1 CO 4/– · Bourse 6 CO 10/–
+   fenetre.gestes: B[fenetreValider@repos] Dormir *
+   journal+ État Exténué subi.
+   journal+ La carte de l'itinéraire est ACHEVÉE (4/4 DR).
+   journal+ Temps libre : le voyage est si détendu et sans encombre que les Personnages se retrouvent avec du temps libre. Chaque Personnage peut effectuer une Activité de voyage supplémentaire.
+--- pas 6 disposition=voyage titre=Nuit à l’auberge etape={"id":"bande-contagion-bjorn-0-1","genre":"contagion","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Résistance cible=≤ 60 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+   heros Mira (test): JET[jets/0/1] qui=null Résistance cible=≤ 59 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Aldric (test): JET[jets/0/2] qui=null Résistance cible=≤ 50 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   journal+ Mitterfruhl 2512 CI
+   journal+ — Le groupe dort jusqu’à l’aube —
+--- pas 7 disposition=voyage titre=Nuit à l’auberge etape={"id":"bande-contagion-bjorn-0-1","genre":"contagion","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Résistance cible=≤ 60 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Mira (test): JET[jets/0/1] qui=null Résistance cible=≤ 59 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+   heros Aldric (test): JET[jets/0/2] qui=null Résistance cible=≤ 50 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+--- pas 8 disposition=voyage titre=Nuit à l’auberge etape={"id":"bande-contagion-bjorn-0-1","genre":"contagion","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Résistance cible=≤ 60 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Mira (test): JET[jets/0/1] qui=null Résistance cible=≤ 59 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Aldric (test): JET[jets/0/2] qui=null Résistance cible=≤ 50 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+--- pas 9 disposition=voyage titre=Nuit à l’auberge etape={"id":"bande-contagion-bjorn-0-1","genre":"contagion","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetValider@cascade] Continuer *
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Résistance cible=≤ 60 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetAjouterUnDR@cascadeEnBande] Chance : +1 DR ; B[jetPactiser@cascadeEnBande] Pacte
+   heros Mira (test): JET[jets/0/1] qui=null Résistance cible=≤ 59 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Aldric (test): JET[jets/0/2] qui=null Résistance cible=≤ 50 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+--- pas 10 disposition=voyage titre=Nuit à l’auberge etape={"id":"bande-recov-bjorn-1","genre":"recuperation","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Résistance cible=≤ 60 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+   heros Greta Hartmann: JET[jets/0/1] qui=null Résistance cible=≤ 56 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   journal+ Aldric (test) contracte : Vérole Urticante.
+--- pas 11 disposition=voyage titre=Nuit à l’auberge etape={"id":"bande-recov-bjorn-1","genre":"recuperation","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Résistance cible=≤ 60 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Greta Hartmann: JET[jets/0/1] qui=null Résistance cible=≤ 56 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+--- pas 12 disposition=voyage titre=Nuit à l’auberge etape={"id":"bande-recov-bjorn-1","genre":"recuperation","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetValider@cascade] Continuer *
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Résistance cible=≤ 60 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetAjouterUnDR@cascadeEnBande] Chance : +1 DR ; B[jetPactiser@cascadeEnBande] Pacte
+   heros Greta Hartmann: JET[jets/0/1] qui=null Résistance cible=≤ 56 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+--- pas 13 disposition=voyage titre=Nuit à l’auberge etape={"id":"bande-nm-greta-1","genre":"cauchemar","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Greta Hartmann: JET[jets/0/0] qui=null Calme cible=≤ 76 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+   journal+ Bjorn (test) récupère 8 PB.
+   journal+ Greta Hartmann récupère 6 PB.
+--- pas 14 disposition=voyage titre=Nuit à l’auberge etape={"id":"bande-nm-greta-1","genre":"cauchemar","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetValider@cascade] Continuer *
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Greta Hartmann: JET[jets/0/0] qui=null Calme cible=≤ 76 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetRelancer@cascadeEnBande] Relancer ; B[jetAjouterUnDR@cascadeEnBande] Chance : +1 DR ; B[jetForcerLaReussite@cascadeEnBande] Résilience ; B[jetPactiser@cascadeEnBande] Pacte
+--- pas 15 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 30 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Survie en extérieur cible=≤ 90 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+   heros Mira (test): JET[jets/0/1] qui=null Perception cible=≤ 79 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Greta Hartmann: JET[jets/0/2] qui=null Survie en extérieur cible=≤ 28 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   journal+ Greta Hartmann est en proie à de terribles cauchemars (Calme +40 raté) → Exténué.
+   journal+ Météo : Pluie.
+--- pas 16 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 30 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Survie en extérieur cible=≤ 90 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Mira (test): JET[jets/0/1] qui=null Perception cible=≤ 79 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+   heros Greta Hartmann: JET[jets/0/2] qui=null Survie en extérieur cible=≤ 28 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+--- pas 17 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 30 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Survie en extérieur cible=≤ 90 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Mira (test): JET[jets/0/1] qui=null Perception cible=≤ 79 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Greta Hartmann: JET[jets/0/2] qui=null Survie en extérieur cible=≤ 28 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+--- pas 18 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 30 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetValider@cascade] Continuer *
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Survie en extérieur cible=≤ 90 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetAjouterUnDR@cascadeEnBande] Chance : +1 DR ; B[jetPactiser@cascadeEnBande] Pacte
+   heros Mira (test): JET[jets/0/1] qui=null Perception cible=≤ 79 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Greta Hartmann: JET[jets/0/2] qui=null Survie en extérieur cible=≤ 28 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+--- pas 19 disposition=recitDeVoyage titre=Récit de voyage etape=null
+   fenetre.corps: L[recit/issue] Arrivée à Steinbruck
+   fenetre.corps: L[recit/route] Parti de Weiler pour Steinbruck · 30 km, à pied
+   fenetre.corps: L[recit/duree] Voyage de 22 h 30 min.
+   fenetre.gestes: B[fenetreFermer@recitDeVoyage] Continuer *
+   journal+ État Exténué subi.
+   journal+ Voyage tranquille : le voyage est heureusement sans incident, les Personnages se reposent bien, le paysage est particulièrement inspirant, et peut-être rencontrent-ils un PNJ guérisseur ou un prêtre serviable. Les Personnages peuvent guérir toutes les Blessures et récupérer de tous les États Exténué.
+   journal+ Voyage tranquille : le groupe récupère toutes ses Blessures et tous ses États Exténué.
+   journal+ — Arrivée à Steinbruck —
+   journal+ Aldric (test) : les symptômes de « Vérole Urticante » se déclarent.
+
+===== graine 3
+--- pas 0 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-jour,relief-terre,equipage-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Wellentag · 33 Jahrdrung 2512 CI
+   fenetre.corps: L[scene/moment] Après-midi · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Survie en extérieur cible=≤ 90 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+   heros Mira (test): JET[jets/0/1] qui=null Perception cible=≤ 79 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Aldric (test): JET[jets/0/2] qui=null Métier (Cartographe) cible=≤ 99 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Greta Hartmann: JET[jets/0/3] qui=null Survie en extérieur cible=≤ 38 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   journal+ Wellentag · 33 Jahrdrung 2512 CI
+   journal+ L’aubergiste essuie un verre en jaugeant le groupe. « La route du hameau (24 km) n’est pas sûre, mais le bourg (30 km) a ses relais et sa diligence — et depuis le hameau, la longue route d’Altdorf (96 km) vous prendra trois nuits. » Chacun tient déjà son poste de voyage : Bjorn au plein air, Mira aux aguets, Aldric cartographie, Greta fourrage. Le groupe part blessé : chaque nuit apportera son lot de récupération, de faim, de Vérole et de cauchemars. À Altdorf, un cercle au sol ouvrira le répit entre deux aventures. (Ouvrez la carte du monde pour voyager.)
+   journal+ — En route vers Steinbruck (30 km, à pied) —
+   journal+ Météo : Pluie.
+--- pas 1 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-jour,relief-terre,equipage-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Wellentag · 33 Jahrdrung 2512 CI
+   fenetre.corps: L[scene/moment] Après-midi · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Survie en extérieur cible=≤ 90 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Mira (test): JET[jets/0/1] qui=null Perception cible=≤ 79 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+   heros Aldric (test): JET[jets/0/2] qui=null Métier (Cartographe) cible=≤ 99 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Greta Hartmann: JET[jets/0/3] qui=null Survie en extérieur cible=≤ 38 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+--- pas 2 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-jour,relief-terre,equipage-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Wellentag · 33 Jahrdrung 2512 CI
+   fenetre.corps: L[scene/moment] Après-midi · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Survie en extérieur cible=≤ 90 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Mira (test): JET[jets/0/1] qui=null Perception cible=≤ 79 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Aldric (test): JET[jets/0/2] qui=null Métier (Cartographe) cible=≤ 99 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+   heros Greta Hartmann: JET[jets/0/3] qui=null Survie en extérieur cible=≤ 38 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+--- pas 3 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-jour,relief-terre,equipage-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Wellentag · 33 Jahrdrung 2512 CI
+   fenetre.corps: L[scene/moment] Après-midi · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Survie en extérieur cible=≤ 90 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Mira (test): JET[jets/0/1] qui=null Perception cible=≤ 79 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Aldric (test): JET[jets/0/2] qui=null Métier (Cartographe) cible=≤ 99 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Greta Hartmann: JET[jets/0/3] qui=null Survie en extérieur cible=≤ 38 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+--- pas 4 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-jour,relief-terre,equipage-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Wellentag · 33 Jahrdrung 2512 CI
+   fenetre.corps: L[scene/moment] Après-midi · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetValider@cascade] Continuer *
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Survie en extérieur cible=≤ 90 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetAjouterUnDR@cascadeEnBande] Chance : +1 DR ; B[jetPactiser@cascadeEnBande] Pacte
+   heros Mira (test): JET[jets/0/1] qui=null Perception cible=≤ 79 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Aldric (test): JET[jets/0/2] qui=null Métier (Cartographe) cible=≤ 99 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Greta Hartmann: JET[jets/0/3] qui=null Survie en extérieur cible=≤ 38 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+--- pas 5 disposition=repos titre=Repos etape=null
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.corps: PAYSAGE ciel-nuit,relief-terre,voile-nuit,halte-toit,meteo-pluie
+   fenetre.corps: L[scene/jour] Wellentag · 33 Jahrdrung 2512 CI
+   fenetre.corps: L[scene/moment] Nuit à l’auberge — Weiler → Steinbruck
+   fenetre.corps: L[repos/temps] Plein air réussi : aucun Test d’Exposition dû au mauvais temps cette nuit.
+   fenetre.corps: L[repos/note] Note 1 CO 4/– · Bourse 6 CO 10/–
+   fenetre.gestes: B[fenetreValider@repos] Dormir *
+   journal+ État Exténué subi.
+   journal+ La carte de l'itinéraire est ACHEVÉE (4/4 DR).
+   journal+ Un merveilleux hébergement : les Personnages passent aux abords d'une confortable auberge-relais, et s'ils sont prêts à dépenser quelques pièces, ils se retrouvent l'esprit tranquille, le ventre plein et le corps guéri de tout État persistant.
+--- pas 6 disposition=voyage titre=Nuit à l’auberge etape={"id":"bande-contagion-bjorn-0-1","genre":"contagion","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Résistance cible=≤ 60 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+   heros Mira (test): JET[jets/0/1] qui=null Résistance cible=≤ 59 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Aldric (test): JET[jets/0/2] qui=null Résistance cible=≤ 50 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   journal+ Mitterfruhl 2512 CI
+   journal+ — Le groupe dort jusqu’à l’aube —
+--- pas 7 disposition=voyage titre=Nuit à l’auberge etape={"id":"bande-contagion-bjorn-0-1","genre":"contagion","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Résistance cible=≤ 60 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Mira (test): JET[jets/0/1] qui=null Résistance cible=≤ 59 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+   heros Aldric (test): JET[jets/0/2] qui=null Résistance cible=≤ 50 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+--- pas 8 disposition=voyage titre=Nuit à l’auberge etape={"id":"bande-contagion-bjorn-0-1","genre":"contagion","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Résistance cible=≤ 60 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Mira (test): JET[jets/0/1] qui=null Résistance cible=≤ 59 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Aldric (test): JET[jets/0/2] qui=null Résistance cible=≤ 50 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+--- pas 9 disposition=voyage titre=Nuit à l’auberge etape={"id":"bande-contagion-bjorn-0-1","genre":"contagion","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetValider@cascade] Continuer *
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Résistance cible=≤ 60 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetAjouterUnDR@cascadeEnBande] Chance : +1 DR ; B[jetPactiser@cascadeEnBande] Pacte
+   heros Mira (test): JET[jets/0/1] qui=null Résistance cible=≤ 59 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Aldric (test): JET[jets/0/2] qui=null Résistance cible=≤ 50 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+--- pas 10 disposition=voyage titre=Nuit à l’auberge etape={"id":"bande-recov-bjorn-1","genre":"recuperation","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Résistance cible=≤ 60 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+   heros Greta Hartmann: JET[jets/0/1] qui=null Résistance cible=≤ 56 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+--- pas 11 disposition=voyage titre=Nuit à l’auberge etape={"id":"bande-recov-bjorn-1","genre":"recuperation","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Résistance cible=≤ 60 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Greta Hartmann: JET[jets/0/1] qui=null Résistance cible=≤ 56 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+--- pas 12 disposition=voyage titre=Nuit à l’auberge etape={"id":"bande-recov-bjorn-1","genre":"recuperation","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetValider@cascade] Continuer *
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Résistance cible=≤ 60 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetAjouterUnDR@cascadeEnBande] Chance : +1 DR ; B[jetPactiser@cascadeEnBande] Pacte
+   heros Greta Hartmann: JET[jets/0/1] qui=null Résistance cible=≤ 56 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+--- pas 13 disposition=voyage titre=Nuit à l’auberge etape={"id":"bande-nm-greta-1","genre":"cauchemar","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Greta Hartmann: JET[jets/0/0] qui=null Calme cible=≤ 76 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+   journal+ Bjorn (test) récupère 7 PB.
+   journal+ Greta Hartmann récupère 6 PB.
+--- pas 14 disposition=voyage titre=Nuit à l’auberge etape={"id":"bande-nm-greta-1","genre":"cauchemar","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetValider@cascade] Continuer *
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Greta Hartmann: JET[jets/0/0] qui=null Calme cible=≤ 76 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetAjouterUnDR@cascadeEnBande] Chance : +1 DR ; B[jetPactiser@cascadeEnBande] Pacte
+--- pas 15 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 30 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Survie en extérieur cible=≤ 90 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+   heros Mira (test): JET[jets/0/1] qui=null Perception cible=≤ 79 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Greta Hartmann: JET[jets/0/2] qui=null Survie en extérieur cible=≤ 38 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   journal+ Greta Hartmann dort d'un sommeil sans rêve.
+   journal+ Météo : Pluie.
+--- pas 16 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 30 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Survie en extérieur cible=≤ 90 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Mira (test): JET[jets/0/1] qui=null Perception cible=≤ 79 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+   heros Greta Hartmann: JET[jets/0/2] qui=null Survie en extérieur cible=≤ 38 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+--- pas 17 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 30 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Survie en extérieur cible=≤ 90 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Mira (test): JET[jets/0/1] qui=null Perception cible=≤ 79 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Greta Hartmann: JET[jets/0/2] qui=null Survie en extérieur cible=≤ 38 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+--- pas 18 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 30 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetValider@cascade] Continuer *
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Survie en extérieur cible=≤ 90 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetAjouterUnDR@cascadeEnBande] Chance : +1 DR ; B[jetPactiser@cascadeEnBande] Pacte
+   heros Mira (test): JET[jets/0/1] qui=null Perception cible=≤ 79 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Greta Hartmann: JET[jets/0/2] qui=null Survie en extérieur cible=≤ 38 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+--- pas 19 disposition=recitDeVoyage titre=Récit de voyage etape=null
+   fenetre.corps: L[recit/issue] Arrivée à Steinbruck
+   fenetre.corps: L[recit/route] Parti de Weiler pour Steinbruck · 30 km, à pied
+   fenetre.corps: L[recit/duree] Voyage de 22 h 30 min.
+   fenetre.gestes: B[fenetreFermer@recitDeVoyage] Continuer *
+   journal+ État Exténué subi.
+   journal+ État Exténué subi.
+   journal+ Voilà qui est utile ! : Les Personnages découvrent quelque chose d'important pour leur aventure, des ragots, un message égaré, une scène dont ils n'étaient pas censés être les témoins, etc.
+   journal+ — Arrivée à Steinbruck —
+
+===== graine 4
+--- pas 0 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-jour,relief-terre,equipage-pied,meteo-pluie-diluvienne
+   fenetre.corps: L[scene/jour] Wellentag · 33 Jahrdrung 2512 CI
+   fenetre.corps: L[scene/moment] Après-midi · pluie diluvienne
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Survie en extérieur cible=≤ 80 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+   heros Mira (test): JET[jets/0/1] qui=null Perception cible=≤ 79 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Aldric (test): JET[jets/0/2] qui=null Métier (Cartographe) cible=≤ 99 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Greta Hartmann: JET[jets/0/3] qui=null Survie en extérieur cible=≤ 38 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   journal+ Wellentag · 33 Jahrdrung 2512 CI
+   journal+ L’aubergiste essuie un verre en jaugeant le groupe. « La route du hameau (24 km) n’est pas sûre, mais le bourg (30 km) a ses relais et sa diligence — et depuis le hameau, la longue route d’Altdorf (96 km) vous prendra trois nuits. » Chacun tient déjà son poste de voyage : Bjorn au plein air, Mira aux aguets, Aldric cartographie, Greta fourrage. Le groupe part blessé : chaque nuit apportera son lot de récupération, de faim, de Vérole et de cauchemars. À Altdorf, un cercle au sol ouvrira le répit entre deux aventures. (Ouvrez la carte du monde pour voyager.)
+   journal+ — En route vers Steinbruck (30 km, à pied) —
+   journal+ Météo : Pluie diluvienne.
+--- pas 1 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-jour,relief-terre,equipage-pied,meteo-pluie-diluvienne
+   fenetre.corps: L[scene/jour] Wellentag · 33 Jahrdrung 2512 CI
+   fenetre.corps: L[scene/moment] Après-midi · pluie diluvienne
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Survie en extérieur cible=≤ 80 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Mira (test): JET[jets/0/1] qui=null Perception cible=≤ 79 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+   heros Aldric (test): JET[jets/0/2] qui=null Métier (Cartographe) cible=≤ 99 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Greta Hartmann: JET[jets/0/3] qui=null Survie en extérieur cible=≤ 38 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+--- pas 2 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-jour,relief-terre,equipage-pied,meteo-pluie-diluvienne
+   fenetre.corps: L[scene/jour] Wellentag · 33 Jahrdrung 2512 CI
+   fenetre.corps: L[scene/moment] Après-midi · pluie diluvienne
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Survie en extérieur cible=≤ 80 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Mira (test): JET[jets/0/1] qui=null Perception cible=≤ 79 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Aldric (test): JET[jets/0/2] qui=null Métier (Cartographe) cible=≤ 99 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+   heros Greta Hartmann: JET[jets/0/3] qui=null Survie en extérieur cible=≤ 38 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+--- pas 3 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-jour,relief-terre,equipage-pied,meteo-pluie-diluvienne
+   fenetre.corps: L[scene/jour] Wellentag · 33 Jahrdrung 2512 CI
+   fenetre.corps: L[scene/moment] Après-midi · pluie diluvienne
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Survie en extérieur cible=≤ 80 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Mira (test): JET[jets/0/1] qui=null Perception cible=≤ 79 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Aldric (test): JET[jets/0/2] qui=null Métier (Cartographe) cible=≤ 99 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Greta Hartmann: JET[jets/0/3] qui=null Survie en extérieur cible=≤ 38 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+--- pas 4 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-jour,relief-terre,equipage-pied,meteo-pluie-diluvienne
+   fenetre.corps: L[scene/jour] Wellentag · 33 Jahrdrung 2512 CI
+   fenetre.corps: L[scene/moment] Après-midi · pluie diluvienne
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetValider@cascade] Continuer *
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Survie en extérieur cible=≤ 80 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetAjouterUnDR@cascadeEnBande] Chance : +1 DR ; B[jetPactiser@cascadeEnBande] Pacte
+   heros Mira (test): JET[jets/0/1] qui=null Perception cible=≤ 79 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Aldric (test): JET[jets/0/2] qui=null Métier (Cartographe) cible=≤ 99 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Greta Hartmann: JET[jets/0/3] qui=null Survie en extérieur cible=≤ 38 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+--- pas 5 disposition=repos titre=Repos etape=null
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.corps: PAYSAGE ciel-nuit,relief-terre,voile-nuit,halte-toit,meteo-pluie-diluvienne
+   fenetre.corps: L[scene/jour] Wellentag · 33 Jahrdrung 2512 CI
+   fenetre.corps: L[scene/moment] Nuit à l’auberge — Weiler → Steinbruck
+   fenetre.corps: L[repos/temps] Plein air réussi : aucun Test d’Exposition dû au mauvais temps cette nuit.
+   fenetre.corps: L[repos/note] Note 1 CO 4/– · Bourse 6 CO 10/–
+   fenetre.gestes: B[fenetreValider@repos] Dormir *
+   journal+ Aldric (test) reçoit une ration trouvée en chemin.
+   journal+ Greta Hartmann reçoit une ration trouvée en chemin.
+   journal+ La carte de l'itinéraire est ACHEVÉE (4/4 DR).
+   journal+ Un merveilleux hébergement : les Personnages passent aux abords d'une confortable auberge-relais, et s'ils sont prêts à dépenser quelques pièces, ils se retrouvent l'esprit tranquille, le ventre plein et le corps guéri de tout État persistant.
+--- pas 6 disposition=voyage titre=Nuit à l’auberge etape={"id":"bande-contagion-bjorn-0-1","genre":"contagion","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie-diluvienne
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie diluvienne
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Résistance cible=≤ 60 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+   heros Mira (test): JET[jets/0/1] qui=null Résistance cible=≤ 59 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Aldric (test): JET[jets/0/2] qui=null Résistance cible=≤ 50 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   journal+ Mitterfruhl 2512 CI
+   journal+ — Le groupe dort jusqu’à l’aube —
+--- pas 7 disposition=voyage titre=Nuit à l’auberge etape={"id":"bande-contagion-bjorn-0-1","genre":"contagion","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie-diluvienne
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie diluvienne
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Résistance cible=≤ 60 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Mira (test): JET[jets/0/1] qui=null Résistance cible=≤ 59 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+   heros Aldric (test): JET[jets/0/2] qui=null Résistance cible=≤ 50 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+--- pas 8 disposition=voyage titre=Nuit à l’auberge etape={"id":"bande-contagion-bjorn-0-1","genre":"contagion","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie-diluvienne
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie diluvienne
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Résistance cible=≤ 60 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Mira (test): JET[jets/0/1] qui=null Résistance cible=≤ 59 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Aldric (test): JET[jets/0/2] qui=null Résistance cible=≤ 50 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+--- pas 9 disposition=voyage titre=Nuit à l’auberge etape={"id":"bande-contagion-bjorn-0-1","genre":"contagion","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie-diluvienne
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie diluvienne
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetValider@cascade] Continuer *
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Résistance cible=≤ 60 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetAjouterUnDR@cascadeEnBande] Chance : +1 DR ; B[jetPactiser@cascadeEnBande] Pacte
+   heros Mira (test): JET[jets/0/1] qui=null Résistance cible=≤ 59 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Aldric (test): JET[jets/0/2] qui=null Résistance cible=≤ 50 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+--- pas 10 disposition=voyage titre=Nuit à l’auberge etape={"id":"bande-recov-bjorn-1","genre":"recuperation","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie-diluvienne
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie diluvienne
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Résistance cible=≤ 60 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+   heros Greta Hartmann: JET[jets/0/1] qui=null Résistance cible=≤ 66 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   journal+ Mira (test) contracte : Vérole Urticante.
+   journal+ Aldric (test) contracte : Vérole Urticante.
+--- pas 11 disposition=voyage titre=Nuit à l’auberge etape={"id":"bande-recov-bjorn-1","genre":"recuperation","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie-diluvienne
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie diluvienne
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Résistance cible=≤ 60 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Greta Hartmann: JET[jets/0/1] qui=null Résistance cible=≤ 66 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+--- pas 12 disposition=voyage titre=Nuit à l’auberge etape={"id":"bande-recov-bjorn-1","genre":"recuperation","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie-diluvienne
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie diluvienne
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetValider@cascade] Continuer *
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Résistance cible=≤ 60 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetRelancer@cascadeEnBande] Relancer ; B[jetAjouterUnDR@cascadeEnBande] Chance : +1 DR ; B[jetForcerLaReussite@cascadeEnBande] Résilience ; B[jetPactiser@cascadeEnBande] Pacte
+   heros Greta Hartmann: JET[jets/0/1] qui=null Résistance cible=≤ 66 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+--- pas 13 disposition=voyage titre=Nuit à l’auberge etape={"id":"bande-nm-greta-1","genre":"cauchemar","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie-diluvienne
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie diluvienne
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Greta Hartmann: JET[jets/0/0] qui=null Calme cible=≤ 86 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+   journal+ Bjorn (test) récupère 3 PB.
+   journal+ Greta Hartmann récupère 6 PB.
+--- pas 14 disposition=voyage titre=Nuit à l’auberge etape={"id":"bande-nm-greta-1","genre":"cauchemar","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie-diluvienne
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie diluvienne
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetValider@cascade] Continuer *
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Greta Hartmann: JET[jets/0/0] qui=null Calme cible=≤ 86 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetAjouterUnDR@cascadeEnBande] Chance : +1 DR ; B[jetPactiser@cascadeEnBande] Pacte
+--- pas 15 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 30 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Survie en extérieur cible=≤ 90 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+   heros Mira (test): JET[jets/0/1] qui=null Perception cible=≤ 79 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Greta Hartmann: JET[jets/0/2] qui=null Survie en extérieur cible=≤ 38 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   journal+ Greta Hartmann dort d'un sommeil sans rêve.
+   journal+ Météo : Pluie.
+--- pas 16 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 30 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Survie en extérieur cible=≤ 90 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Mira (test): JET[jets/0/1] qui=null Perception cible=≤ 79 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+   heros Greta Hartmann: JET[jets/0/2] qui=null Survie en extérieur cible=≤ 38 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+--- pas 17 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 30 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Survie en extérieur cible=≤ 90 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Mira (test): JET[jets/0/1] qui=null Perception cible=≤ 79 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Greta Hartmann: JET[jets/0/2] qui=null Survie en extérieur cible=≤ 38 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+--- pas 18 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 30 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetValider@cascade] Continuer *
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Survie en extérieur cible=≤ 90 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetAjouterUnDR@cascadeEnBande] Chance : +1 DR ; B[jetPactiser@cascadeEnBande] Pacte
+   heros Mira (test): JET[jets/0/1] qui=null Perception cible=≤ 79 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Greta Hartmann: JET[jets/0/2] qui=null Survie en extérieur cible=≤ 38 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+--- pas 19 disposition=recitDeVoyage titre=Récit de voyage etape=null
+   fenetre.corps: L[recit/issue] Arrivée à Steinbruck
+   fenetre.corps: L[recit/route] Parti de Weiler pour Steinbruck · 30 km, à pied
+   fenetre.corps: L[recit/duree] Voyage de 22 h 30 min.
+   fenetre.gestes: B[fenetreFermer@recitDeVoyage] Continuer *
+   journal+ État Exténué subi.
+   journal+ Voyage tranquille : le voyage est heureusement sans incident, les Personnages se reposent bien, le paysage est particulièrement inspirant, et peut-être rencontrent-ils un PNJ guérisseur ou un prêtre serviable. Les Personnages peuvent guérir toutes les Blessures et récupérer de tous les États Exténué.
+   journal+ Voyage tranquille : le groupe récupère toutes ses Blessures et tous ses États Exténué.
+   journal+ — Arrivée à Steinbruck —
+   journal+ Mira (test) : les symptômes de « Vérole Urticante » se déclarent.
+   journal+ Aldric (test) : les symptômes de « Vérole Urticante » se déclarent.
+
+===== graine 5
+--- pas 0 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-jour,relief-terre,equipage-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Wellentag · 33 Jahrdrung 2512 CI
+   fenetre.corps: L[scene/moment] Après-midi · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Survie en extérieur cible=≤ 90 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+   heros Mira (test): JET[jets/0/1] qui=null Perception cible=≤ 79 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Aldric (test): JET[jets/0/2] qui=null Métier (Cartographe) cible=≤ 99 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Greta Hartmann: JET[jets/0/3] qui=null Survie en extérieur cible=≤ 38 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   journal+ Wellentag · 33 Jahrdrung 2512 CI
+   journal+ L’aubergiste essuie un verre en jaugeant le groupe. « La route du hameau (24 km) n’est pas sûre, mais le bourg (30 km) a ses relais et sa diligence — et depuis le hameau, la longue route d’Altdorf (96 km) vous prendra trois nuits. » Chacun tient déjà son poste de voyage : Bjorn au plein air, Mira aux aguets, Aldric cartographie, Greta fourrage. Le groupe part blessé : chaque nuit apportera son lot de récupération, de faim, de Vérole et de cauchemars. À Altdorf, un cercle au sol ouvrira le répit entre deux aventures. (Ouvrez la carte du monde pour voyager.)
+   journal+ — En route vers Steinbruck (30 km, à pied) —
+   journal+ Météo : Pluie.
+--- pas 1 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-jour,relief-terre,equipage-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Wellentag · 33 Jahrdrung 2512 CI
+   fenetre.corps: L[scene/moment] Après-midi · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Survie en extérieur cible=≤ 90 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Mira (test): JET[jets/0/1] qui=null Perception cible=≤ 79 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+   heros Aldric (test): JET[jets/0/2] qui=null Métier (Cartographe) cible=≤ 99 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Greta Hartmann: JET[jets/0/3] qui=null Survie en extérieur cible=≤ 38 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+--- pas 2 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-jour,relief-terre,equipage-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Wellentag · 33 Jahrdrung 2512 CI
+   fenetre.corps: L[scene/moment] Après-midi · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Survie en extérieur cible=≤ 90 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Mira (test): JET[jets/0/1] qui=null Perception cible=≤ 79 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Aldric (test): JET[jets/0/2] qui=null Métier (Cartographe) cible=≤ 99 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+   heros Greta Hartmann: JET[jets/0/3] qui=null Survie en extérieur cible=≤ 38 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+--- pas 3 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-jour,relief-terre,equipage-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Wellentag · 33 Jahrdrung 2512 CI
+   fenetre.corps: L[scene/moment] Après-midi · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Survie en extérieur cible=≤ 90 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Mira (test): JET[jets/0/1] qui=null Perception cible=≤ 79 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Aldric (test): JET[jets/0/2] qui=null Métier (Cartographe) cible=≤ 99 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Greta Hartmann: JET[jets/0/3] qui=null Survie en extérieur cible=≤ 38 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+--- pas 4 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-jour,relief-terre,equipage-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Wellentag · 33 Jahrdrung 2512 CI
+   fenetre.corps: L[scene/moment] Après-midi · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetValider@cascade] Continuer *
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Survie en extérieur cible=≤ 90 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetAjouterUnDR@cascadeEnBande] Chance : +1 DR ; B[jetPactiser@cascadeEnBande] Pacte
+   heros Mira (test): JET[jets/0/1] qui=null Perception cible=≤ 79 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Aldric (test): JET[jets/0/2] qui=null Métier (Cartographe) cible=≤ 99 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Greta Hartmann: JET[jets/0/3] qui=null Survie en extérieur cible=≤ 38 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+--- pas 5 disposition=repos titre=Repos etape=null
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.corps: PAYSAGE ciel-nuit,relief-terre,voile-nuit,halte-toit,meteo-pluie
+   fenetre.corps: L[scene/jour] Wellentag · 33 Jahrdrung 2512 CI
+   fenetre.corps: L[scene/moment] Nuit à l’auberge — Weiler → Steinbruck
+   fenetre.corps: L[repos/temps] Plein air réussi : aucun Test d’Exposition dû au mauvais temps cette nuit.
+   fenetre.corps: L[repos/note] Note 1 CO 4/– · Bourse 6 CO 10/–
+   fenetre.gestes: B[fenetreValider@repos] Dormir *
+   journal+ Aldric (test) reçoit une ration trouvée en chemin.
+   journal+ Greta Hartmann reçoit une ration trouvée en chemin.
+   journal+ Cartographie : 3/4 DR.
+   journal+ Un merveilleux hébergement : les Personnages passent aux abords d'une confortable auberge-relais, et s'ils sont prêts à dépenser quelques pièces, ils se retrouvent l'esprit tranquille, le ventre plein et le corps guéri de tout État persistant.
+--- pas 6 disposition=voyage titre=Nuit à l’auberge etape={"id":"bande-contagion-bjorn-0-1","genre":"contagion","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Résistance cible=≤ 60 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+   heros Mira (test): JET[jets/0/1] qui=null Résistance cible=≤ 59 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Aldric (test): JET[jets/0/2] qui=null Résistance cible=≤ 50 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   journal+ Mitterfruhl 2512 CI
+   journal+ — Le groupe dort jusqu’à l’aube —
+--- pas 7 disposition=voyage titre=Nuit à l’auberge etape={"id":"bande-contagion-bjorn-0-1","genre":"contagion","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Résistance cible=≤ 60 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Mira (test): JET[jets/0/1] qui=null Résistance cible=≤ 59 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+   heros Aldric (test): JET[jets/0/2] qui=null Résistance cible=≤ 50 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+--- pas 8 disposition=voyage titre=Nuit à l’auberge etape={"id":"bande-contagion-bjorn-0-1","genre":"contagion","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Résistance cible=≤ 60 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Mira (test): JET[jets/0/1] qui=null Résistance cible=≤ 59 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Aldric (test): JET[jets/0/2] qui=null Résistance cible=≤ 50 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+--- pas 9 disposition=voyage titre=Nuit à l’auberge etape={"id":"bande-contagion-bjorn-0-1","genre":"contagion","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetValider@cascade] Continuer *
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Résistance cible=≤ 60 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetRelancer@cascadeEnBande] Relancer ; B[jetAjouterUnDR@cascadeEnBande] Chance : +1 DR ; B[jetForcerLaReussite@cascadeEnBande] Résilience ; B[jetPactiser@cascadeEnBande] Pacte
+   heros Mira (test): JET[jets/0/1] qui=null Résistance cible=≤ 59 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Aldric (test): JET[jets/0/2] qui=null Résistance cible=≤ 50 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+--- pas 10 disposition=voyage titre=Nuit à l’auberge etape={"id":"bande-recov-bjorn-1","genre":"recuperation","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Résistance cible=≤ 60 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+   heros Greta Hartmann: JET[jets/0/1] qui=null Résistance cible=≤ 66 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   journal+ Bjorn (test) contracte : Vérole Urticante.
+   journal+ Aldric (test) contracte : Vérole Urticante.
+--- pas 11 disposition=voyage titre=Nuit à l’auberge etape={"id":"bande-recov-bjorn-1","genre":"recuperation","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Résistance cible=≤ 60 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Greta Hartmann: JET[jets/0/1] qui=null Résistance cible=≤ 66 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+--- pas 12 disposition=voyage titre=Nuit à l’auberge etape={"id":"bande-recov-bjorn-1","genre":"recuperation","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetValider@cascade] Continuer *
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Résistance cible=≤ 60 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetAjouterUnDR@cascadeEnBande] Chance : +1 DR ; B[jetPactiser@cascadeEnBande] Pacte
+   heros Greta Hartmann: JET[jets/0/1] qui=null Résistance cible=≤ 66 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+--- pas 13 disposition=voyage titre=Nuit à l’auberge etape={"id":"bande-nm-greta-1","genre":"cauchemar","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Greta Hartmann: JET[jets/0/0] qui=null Calme cible=≤ 86 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+   journal+ Bjorn (test) récupère 8 PB.
+   journal+ Greta Hartmann récupère 6 PB.
+--- pas 14 disposition=voyage titre=Nuit à l’auberge etape={"id":"bande-nm-greta-1","genre":"cauchemar","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 24 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetValider@cascade] Continuer *
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Greta Hartmann: JET[jets/0/0] qui=null Calme cible=≤ 86 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetAjouterUnDR@cascadeEnBande] Chance : +1 DR ; B[jetPactiser@cascadeEnBande] Pacte
+--- pas 15 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 30 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Survie en extérieur cible=≤ 90 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+   heros Mira (test): JET[jets/0/1] qui=null Perception cible=≤ 79 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Aldric (test): JET[jets/0/2] qui=null Métier (Cartographe) cible=≤ 99 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Greta Hartmann: JET[jets/0/3] qui=null Survie en extérieur cible=≤ 38 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   journal+ Greta Hartmann dort d'un sommeil sans rêve.
+   journal+ Météo : Pluie.
+--- pas 16 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 30 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Survie en extérieur cible=≤ 90 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Mira (test): JET[jets/0/1] qui=null Perception cible=≤ 79 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+   heros Aldric (test): JET[jets/0/2] qui=null Métier (Cartographe) cible=≤ 99 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Greta Hartmann: JET[jets/0/3] qui=null Survie en extérieur cible=≤ 38 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+--- pas 17 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 30 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Survie en extérieur cible=≤ 90 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Mira (test): JET[jets/0/1] qui=null Perception cible=≤ 79 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Aldric (test): JET[jets/0/2] qui=null Métier (Cartographe) cible=≤ 99 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+   heros Greta Hartmann: JET[jets/0/3] qui=null Survie en extérieur cible=≤ 38 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+--- pas 18 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 30 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Survie en extérieur cible=≤ 90 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Mira (test): JET[jets/0/1] qui=null Perception cible=≤ 79 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Aldric (test): JET[jets/0/2] qui=null Métier (Cartographe) cible=≤ 99 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Greta Hartmann: JET[jets/0/3] qui=null Survie en extérieur cible=≤ 38 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetLancer@cascadeEnBande] Lancer * ; B[jetForcerLaReussite@cascadeEnBande] Résilience
+--- pas 19 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   fenetre.corps: PAYSAGE ciel-aube,relief-terre,voile-aube,equipage-pied,lanterne-pied,meteo-pluie
+   fenetre.corps: L[scene/jour] Mitterfruhl 2512 CI
+   fenetre.corps: L[scene/moment] Aube · pluie
+   fenetre.corps: PLAN[voyage/carte]
+   fenetre.corps: L[voyage/route] À pied · 30 km sur 30
+   fenetre.corps: PLAN[voyage/frise]
+   fenetre.gestes: B[jetValider@cascade] Continuer *
+   fenetre.gestes: B[jetLancer@cascade*] Tout résoudre
+   heros Bjorn (test): JET[jets/0/0] qui=null Survie en extérieur cible=≤ 90 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"] ; B[jetAjouterUnDR@cascadeEnBande] Chance : +1 DR ; B[jetPactiser@cascadeEnBande] Pacte
+   heros Mira (test): JET[jets/0/1] qui=null Perception cible=≤ 79 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Aldric (test): JET[jets/0/2] qui=null Métier (Cartographe) cible=≤ 99 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+   heros Greta Hartmann: JET[jets/0/3] qui=null Survie en extérieur cible=≤ 38 de= issue= ["type","id","ton","qui","cible","resultat","dr","verdict","modificateurs","detail","libelle"]
+--- pas 20 disposition=recitDeVoyage titre=Récit de voyage etape=null
+   fenetre.corps: L[recit/issue] Arrivée à Steinbruck
+   fenetre.corps: L[recit/route] Parti de Weiler pour Steinbruck · 30 km, à pied
+   fenetre.corps: L[recit/duree] Voyage de 22 h 30 min.
+   fenetre.gestes: B[fenetreFermer@recitDeVoyage] Continuer *
+   journal+ La carte de l'itinéraire est ACHEVÉE (4/4 DR).
+   journal+ Bonne compagnie : une rencontre fortuite sur la route avec d'autres voyageurs rappelle aux Personnages qu'il existe encore des gens bien en ce monde. Bien sûr, s'ils ne sont pas eux-mêmes des gens recommandables, ils peuvent chercher à profiter de la situation.
+   journal+ — Arrivée à Steinbruck —
+   journal+ Bjorn (test) : les symptômes de « Vérole Urticante » se déclarent.
+   journal+ Aldric (test) : les symptômes de « Vérole Urticante » se déclarent.

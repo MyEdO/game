@@ -1,0 +1,83 @@
+import { it, beforeEach } from 'vitest';
+import { writeFileSync } from 'node:fs';
+import { idsDeTest } from '/home/user/game/src/engine/idsDeTest.testkit';
+import { ouvrirLeBanc, type Banc } from '/home/user/game/src/noyau/banc.testkit';
+import { tousLesHerosDeScenario } from '/home/user/game/src/scenes/test-scenarios/_heros';
+import { buildSeaPlan, runSeaDay } from '/home/user/game/src/noyau/seaVoyageFlow';
+import { seedBattleRng } from '/home/user/game/src/noyau/battleRng';
+import { emptyScene } from '/home/user/game/src/noyau/monde/scene';
+import { avanceEtapeCascade } from '/home/user/game/src/noyau/cascade.testkit';
+
+let banc: Banc;
+const get = () => banc.getState();
+const set: Banc['setState'] = (e) => banc.setState(e);
+const seaMap: any = {
+  id: 'm', label: 'Mer des Griffes',
+  places: [
+    { id: 'A', label: 'Salzenmund', pos: { x: 0, y: 0 }, scene: { id: 'port-a' } },
+    { id: 'B', label: 'Erengrad', pos: { x: 10, y: 0 }, scene: { id: 'port-b' }, port: { taille: 3, richesse: 3, production: ['bois-mer'] } },
+  ],
+  routes: [{ id: 'r1', a: { id: 'A' }, b: { id: 'B' }, km: 550, modes: ['mer'], sea: true, seaHeading: 'est' }],
+};
+function freshState(graine: number) {
+  seedBattleRng(graine);
+  set({
+    party: tousLesHerosDeScenario(idsDeTest).slice(0, 3),
+    scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
+    battle: null, worldMap: seaMap, lieu: 'A', travelPlan: null, travelRecap: null, pendingRest: null,
+    pendingCascade: null, suspendedCascades: [], gameTime: 8 * 60, lastUpkeepDay: 0,
+    vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } }, journal: [],
+  } as never);
+}
+const etat = () => {
+  const g: any = get();
+  const p = g.pendingCascade;
+  const cur = p?.participants[p.cursor];
+  return `slot=${p ? p.purpose + '[' + p.title + '] cursor=' + p.cursor + '/' + p.participants.length + ' cur=' + (cur?.kind ?? '-') + (cur?.committed ? '(commit)' : '') : 'null'}`
+    + ` pile=[${g.suspendedCascades.map((x: any) => x.purpose + ':' + x.title + '@' + x.cursor + '/' + x.participants.length).join(',')}]`
+    + ` pendingTest=${g.pendingTest ? g.pendingTest.label + '/roll=' + g.pendingTest.roll : 'null'}`
+    + ` travelPlan=${!!g.travelPlan} daysAtSea=${g.travelPlan?.sea?.daysAtSea} daysToEvent=${g.travelPlan?.sea?.daysToEvent} lines=${g.travelPlan?.sea?.lines?.length} events=${g.travelPlan?.sea?.events?.length} log=${g.travelPlan?.log?.length}`
+    + ` pendingRest=${!!g.pendingRest} shoreLeave=${!!g.pendingShoreLeave} gameTime=${g.gameTime} recap=${!!g.travelRecap}`;
+};
+const out: string[] = [];
+function jouer(titre: string, id: string, graine: number, preparer?: () => void) {
+  freshState(graine);
+  preparer?.();
+  out.push(`\n===== ${titre} (graine ${graine})`);
+  const plan = buildSeaPlan(get as any, 'r1', 'A', 'B', seaMap.routes[0], { cadence: 'jourParJour' })!;
+  set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysToEvent: 1, forcedEventId: undefined } } } as never);
+  runSeaDay(get as any, set as any);
+  out.push(`apres runSeaDay : ${etat()}`);
+  for (let i = 0; i < 40; i++) {
+    const g: any = get();
+    let acte = '';
+    if (g.pendingTest) { if (g.pendingTest.roll == null) g.jetLancer('test'); get().jetValider('test'); acte = 'jetValider(test)'; }
+    else if (g.pendingCascade) { acte = 'avanceEtape(' + (avanceEtapeCascade(get as any) ?? '?') + ')'; }
+    else { out.push(`pas ${i} : AUCUN slot ni pendingTest -> stop`); break; }
+    banc.reprendreTout();
+    out.push(`pas ${i} ${acte} -> ${etat()}`);
+    if (get().pendingRest) { out.push('>>> pendingRest ouvert : journée close (halte)'); break; }
+  }
+  out.push(`FINAL ${etat()}`);
+  out.push(`journal(queue): ${JSON.stringify(get().journal.slice(-6))}`);
+}
+const F='/tmp/claude-0/-home-user/47cccebd-91e8-5432-b0c8-43d48aefbcdb/scratchpad/lecteur-4005/q5nat.txt';
+it('scan', () => {
+  banc = ouvrirLeBanc();
+  const trouve: Record<string, number> = {};
+  for (let g = 1; g <= 400; g++) {
+    freshState(g);
+    const plan = buildSeaPlan(get as any, 'r1', 'A', 'B', seaMap.routes[0], { cadence: 'jourParJour' })!;
+    set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysToEvent: 1, forcedEventId: undefined } } } as never);
+    runSeaDay(get as any, set as any);
+    const ev = (get() as any).travelPlan?.sea?.events?.[0]?.title;
+    const slot = (get() as any).pendingCascade;
+    if (ev && !(ev in trouve)) trouve[ev] = g;
+    void slot;
+  }
+  out.push('SCAN titre -> graine: ' + JSON.stringify(trouve));
+  const WANT: Record<string, number> = {};
+  for (const [t, g] of Object.entries(trouve)) if (/Ouragan|Message dans|pestif|Albatros|Feu bleu|Navigation ordinaire|Autres voyageurs|Débris|Canot|fantôme/i.test(t)) WANT[t] = g;
+  for (const [t, g] of Object.entries(WANT)) jouer('NATUREL ' + t, t, g);
+  writeFileSync(F, out.join('\n'));
+});

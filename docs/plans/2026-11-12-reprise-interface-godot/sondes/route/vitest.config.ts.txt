@@ -1,0 +1,3 @@
+import base from '/home/user/game/vitest.noyau.config';
+import { defineConfig, mergeConfig } from '/home/user/game/node_modules/vitest/dist/config.js';
+export default mergeConfig(base, defineConfig({ root: '/home/user/game', test: { include: ['/tmp/claude-0/-home-user/47cccebd-91e8-5432-b0c8-43d48aefbcdb/scratchpad/sonde/*.sonde.test.ts'], dir: '/tmp/claude-0/-home-user/47cccebd-91e8-5432-b0c8-43d48aefbcdb/scratchpad/sonde' } }));

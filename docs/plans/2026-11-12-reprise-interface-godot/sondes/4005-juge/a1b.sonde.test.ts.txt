@@ -1,0 +1,71 @@
+import { it } from 'vitest';
+import { tablesPosees } from '/home/user/game/src/noyau/tablesPosees';
+import { writeFileSync } from 'node:fs';
+
+
+import { creerPont } from '/home/user/game/hotes/godot/pont/pont';
+import { enFocus, gestesDessines } from '/home/user/game/hotes/godot/pont/dessines';
+import { horlogeVirtuelle } from '/home/user/game/src/noyau/index';
+import { TABLES } from '/home/user/game/src/noyau/travelPostes';
+import { runFlow, jouerFlowEntier } from '/home/user/game/src/noyau/combatEffects';
+
+const trace: string[] = [];
+const etat = (get: any) => `slot=${get().pendingCascade?.purpose ?? 'null'}[${get().pendingCascade?.title ?? ''}] cursor=${get().pendingCascade?.cursor}/${get().pendingCascade?.participants?.length} pile=[${get().suspendedCascades.map((p: any) => p.purpose + ':' + p.title + '@' + p.cursor + '/' + p.participants.length).join(',')}] pendingTest=${!!get().pendingTest} travelRecap=${!!get().travelRecap}`;
+const orig = (TABLES.appliers as any).etapeRencontre;
+let INJECTER = true;
+let MODE: 'test' | 'expose' = 'test';
+let storeGet: any = null;
+(TABLES.appliers as any).etapeRencontre = (get: any, set: any, step: any, hero: any) => {
+  const r = orig(get, set, step, hero);
+  storeGet = get;
+  if (!INJECTER) { trace.push(`[applier etapeRencontre] TEMOIN sans runFlow tiree=${step.table?.result?.id} ${etat(get)}`); return r; }
+  trace.push(`[applier etapeRencontre] tiree=${step.table?.result?.id} AVANT runFlow ${etat(get)}`);
+  const flow = MODE === 'expose' ? { kind: 'do', effect: { type: 'ops', on: 'party', ops: [{ op: 'exposeDisease', disease: 'verole-du-tanneur' }] } } : { kind: 'test', test: { skill: { id: 'survie-en-exterieur' }, difficulty: 'accessible' }, success: { kind: 'seq', steps: [] },
+    fail: { kind: 'do', effect: { type: 'ops', on: 'party', ops: [{ op: 'condition', id: { id: 'extenue' }, value: 1 }] } } };
+  jouerFlowEntier(runFlow(get, set, flow as any, 'Voyage fatigant !'));
+  trace.push(`[applier etapeRencontre] APRÈS runFlow ${etat(get)}`);
+  return r;
+};
+
+it('A1 : runFlow(test) depuis etapeRencontre dans la journée travelDay', () => {
+  const out: string[] = [];
+  for (const [graine, inj, mode] of [[7, false, 'test'], [7, true, 'test'], [2, false, 'test'], [2, true, 'test'], [7, true, 'expose'], [2, true, 'expose']] as const) {
+    INJECTER = inj; MODE = mode;
+    trace.length = 0;
+    const pont = creerPont();
+    const appeler = (m: string, e: unknown) => { const r = JSON.parse(pont.appeler(m, JSON.stringify(e))); if (!r.ok) throw new Error(m + JSON.stringify(r)); return r; };
+    const lignes: string[] = [];
+    const jouer = (m: string, e: unknown) => {
+      let s = appeler(m, e); lignes.push(...s.zones['journal.lignes'].map((l: any) => l.texte));
+      horlogeVirtuelle((jeton: any) => { s = appeler('reprendre', { jeton }); lignes.push(...s.zones['journal.lignes'].map((l: any) => l.texte)); return s.programmes; }, s.programmes).vider();
+      return s;
+    };
+    let s = jouer('demarrer', { scenario: 'voyage', graine });
+    for (let pas = 0; s.vue.projection.fenetre && pas < 20; pas++) s = jouer('jouer', enFocus(s.vue)?.jeu ?? gestesDessines(s.vue)[0].jeu);
+    s = jouer('jouer', s.vue.zones['exploration.gestes'].find((b: any) => b.libelle === 'Carte du monde').jeu);
+    const plan = s.vue.zones['fenetre.corps'].find((e: any) => e.type === 'plan');
+    s = jouer('jouer', plan.points.flatMap((p: any) => p.elements).find((e: any) => e.id === 'r-grandroute').valeurs[0].jeu);
+    out.push(`\n===== graine ${graine} injection=${inj} mode=${mode}`);
+    let vusTest = false;
+    for (let pas = 0; pas < 40 && s.vue.projection.fenetre; pas++) {
+      const z = s.vue.zones;
+      const titre = (z['fenetre.titre'][0] as any)?.texte;
+      out.push(`--- pas ${pas} disposition=${s.vue.disposition} titre=${titre} etape=${JSON.stringify(s.vue.projection.fenetre?.etape ?? null).slice(0, 140)}`);
+      if (trace.length) { out.push(...trace.map((l) => '   ' + l)); trace.length = 0; }
+      for (const h of z['groupe.heros']) { const j = h.elements.filter((e: any) => e.type === 'jet'); if (j.length) out.push(`   heros ${h.nom}: ${j.map((e: any) => e.libelle + ' ' + (e.cible ?? '') + ' ' + (e.verdict ?? '')).join(' ; ')}`); }
+      for (const e of z['fenetre.corps'] ?? []) if (e.type === 'ligne') out.push(`   corps: ${e.texte}`);
+      if (lignes.length) { out.push(...lignes.map((l) => `   journal+ ${l}`)); lignes.length = 0; }
+      if (titre === 'Voyage fatigant !') vusTest = true;
+      if (s.vue.disposition === 'repos') { out.push(`   >>> HALTE ouverte (vusTest=${vusTest})`); break; }
+      const g = enFocus(s.vue)?.jeu ?? gestesDessines(s.vue).flatMap((x: any) => (x.type === 'choix' ? x.valeurs : [])).find((b: any) => !b.refus)?.jeu;
+      if (!g) { out.push('   >>> AUCUN GESTE'); break; }
+      s = jouer('jouer', g);
+    }
+    if (trace.length) out.push(...trace.map((l) => '   ' + l));
+    out.push(`   FIN fenetre=${!!s.vue.projection.fenetre} disposition=${s.vue.disposition} titre=${(s.vue.zones['fenetre.titre'][0] as any)?.texte}`);
+    if (storeGet) { const g = storeGet(); out.push(`   ETAT FINAL ${etat(storeGet)} travelPlan=${!!g.travelPlan} pendingRest=${!!g.pendingRest} recapDays=${g.travelPlan?.recap?.days?.length} extenue=${g.party.map((h: any) => h.label + ':' + (h.conditions ?? []).filter((c: any) => c.id === 'extenue').map((c: any) => c.value ?? c.stacks ?? 1).join('')).join(',')}`); }
+    out.push(`   tablesPosees.etapeRencontre est le wrapper : ${tablesPosees().appliers.etapeRencontre === (TABLES.appliers as any).etapeRencontre}`);
+    pont.fermer();
+  }
+  writeFileSync('/tmp/claude-0/-home-user/47cccebd-91e8-5432-b0c8-43d48aefbcdb/scratchpad/juge-4005/a1b.txt', out.join('\n'));
+});
