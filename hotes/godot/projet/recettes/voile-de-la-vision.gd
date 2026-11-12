@@ -11,13 +11,9 @@ extends SceneTree
 ## La part se lit en lumière linéaire, l'environnement de la recette en tonemap linéaire : la teinte du noyau est une
 ## part de lumière linéaire, que la courbe filmique, transformation d'affichage, abaisserait encore sur les pixels sombres.
 ##
-## Rendu réel, hors de `npm run godot:sonde` : la sonde joue ses recettes en `--headless`, dont le rendu ne peint aucune
-## image, et ne joue donc pas celle-ci (elle n'en contrôle que l'analyse). Elle se joue sous un écran virtuel :
-##   xvfb-run -a -s "-screen 0 640x480x24" <godot> --path hotes/godot/projet --rendering-driver opengl3 \
-##     --script res://recettes/voile-de-la-vision.gd
-## sur un projet importé (`<godot> --headless --path hotes/godot/projet --import`) ; elle sort en 0, ou en 1 avec ses
-## fautes.
+## Rendu réel, sous chacun des deux rendus : `npm run godot:rendus`.
 
+const RECETTE_RENDUE := true
 const LARGEUR := 8
 const HAUTEUR := 6
 const METRES_PAR_CASE := 2.0

@@ -8,22 +8,19 @@ extends SceneTree
 ## toute inconnue, à celle de l'inconnue, et le mur du kit et la boîte à la part du sol voisin (la part de lumière du
 ## shader de monde et sa jumelle de `MiseEnPage.teinte_d_instance`, tenues égales) ; la première couche vue et la seconde
 ## explorée, le toit à la part de l'explorée : il lit le plan de sa couche ; la case d'un mur inconnue et sa voisine
-## vue, le mur, cadré de près, rend le témoin (sa teinte d'instance blanche, au moins `INTERIEUR_LISIBLE` pixels loin de
-## son bord, ceux du témoin à `PIXELS_MELES` près) ; à mi-fondu de la vue vers l'inconnue, chacun à mi-chemin, l'état de l'explorée, à la part
-## qu'il y prend ; sous l'éclairage d'un extérieur du jeu, dont le ciel se reflète, en plongée et au ras du sol, chacun,
-## le sol compris, à la part de son état (`_a_l_ombre`).
+## vue, le mur, cadré de près, rend la vision toute vue (sa teinte d'instance blanche, au moins `INTERIEUR_LISIBLE`
+## pixels loin de son bord, ceux de la vision toute vue à `PIXELS_MELES` près) ; à mi-fondu de la vue vers l'inconnue,
+## chacun à mi-chemin, l'état de l'explorée, à la part qu'il y prend ; sous l'éclairage d'un extérieur du jeu, dont le
+## ciel se reflète, en plongée et au ras du sol, chacun, le sol compris, à la part de son état (`_a_l_ombre`).
 ##
 ## La part se lit en lumière linéaire, l'environnement de la recette en tonemap linéaire (`monde_du_bati`) : la teinte du
 ## noyau est une part de lumière linéaire, que la courbe filmique, transformation d'affichage, abaisserait encore sur les
-## pixels sombres.
+## pixels sombres. La recette mesure le voile des surfaces : le brouillard volumétrique de Forward+ ajoute une lumière
+## diffuse que la vision ne voile pas, la recette le coupe (`_a_l_ombre`).
 ##
-## Rendu réel, hors de `npm run godot:sonde` : la sonde joue ses recettes en `--headless`, dont le rendu ne peint aucune
-## image, et ne joue donc pas celle-ci (elle n'en contrôle que l'analyse). Elle se joue sous un écran virtuel :
-##   xvfb-run -a -s "-screen 0 640x480x24" <godot> --path hotes/godot/projet --rendering-driver opengl3 \
-##     --script res://recettes/voile-du-bati.gd
-## sur un projet importé, kit compris (`<godot> --headless --path hotes/godot/projet --import`) ; elle sort en 0, ou en 1
-## avec ses fautes.
+## Rendu réel, sous chacun des deux rendus : `npm run godot:rendus`.
 
+const RECETTE_RENDUE := true
 const LARGEUR := 8
 const HAUTEUR := 6
 const METRES_PAR_CASE := 2.0
@@ -34,11 +31,16 @@ const EXPLOREE := 128
 const INCONNUE := 0
 ## L'écart toléré entre la part de lumière lue et l'attendue, sous l'éclairage du jeu.
 const TOLERANCE := 0.04
+## `CREUX_DU_PILOTE` de `hotes/godot/recette.mjs` ; `projet/scripts/monde.gd`, `@contrat Monde`.
+const CREUX_DU_PILOTE := 0.1
 ## Le mur du kit sépare la case (2, 4), la sienne, de sa voisine (2, 3) ; la boîte, (5, 4) de (5, 3).
 const MUR := {cle = "kit", famille = "colombage", milieu = {x = 2.0, y = 3.5}, cases = [{x = 2, y = 4, z = 0}, {x = 2, y = 3, z = 0}]}
 const BOITE := {cle = "boite", famille = null, milieu = {x = 5.0, y = 3.5}, cases = [{x = 5, y = 4, z = 0}, {x = 5, y = 3, z = 0}]}
 ## La luminance (linéaire) d'un pixel du témoin sous laquelle sa part ne se lit pas.
 const LUMINANCE_LISIBLE := 0.02
+## L'écart de canal au-delà duquel un pixel est d'un objet : ce que l'objet change à ses pixels, au-dessus de ce que son
+## absence change au brouillard et aux ombres autour.
+const ECART_DE_L_OBJET := 0.03
 ## Le moins de pixels (un sur deux de chaque sens) loin du bord d'un mur cadré de près, et la part d'entre eux que le
 ## rendu peut mêler au sol vu à travers la pièce du kit (un pixel sur 15 500 en tactique).
 const INTERIEUR_LISIBLE := 40
@@ -159,13 +161,13 @@ static func regarder(monde: Monde, regard: String) -> void:
 
 
 ## Sous le regard `regard`, les deux murs cadrés de près (en immersion, l'œil du regard) : la case de chacun inconnue et
-## sa voisine vue, chacun rend le témoin sans vision, teinte d'instance blanche et pixels loin de son bord, au moins
-## `INTERIEUR_LISIBLE`, identiques.
+## sa voisine vue, chacun rend le témoin de la vision toute vue, teinte d'instance blanche et pixels loin de son bord, au
+## moins `INTERIEUR_LISIBLE`, identiques.
 func _entre(monde: Monde, regard: String, objets: Dictionary) -> void:
 	var volume := monde.volume
 	if regard != "immersion":
 		monde.cadrer(Vector3(3.5, 0.0, 3.5), 0.0, Monde.DISTANCE_MIN)
-	volume.voir(null)
+	volume.voir(_vision(func(_c: Vector2i, _couche: int) -> int: return VUE))
 	var temoin := await _image()
 	var masques := {}
 	for nom in ["mur du kit", "boîte"]:
@@ -189,10 +191,12 @@ func _entre(monde: Monde, regard: String, objets: Dictionary) -> void:
 ## Sous l'éclairage d'un extérieur du jeu (`LUMIERE_DU_JEU`), sous deux caméras : la tactique d'un demi-tour (azimut
 ## 180), en plongée vers la face du mur du kit et de la boîte que son soleil laisse à l'ombre, et l'œil de l'immersion
 ## au ras du sol, qui le voit en rasant : toute explorée, toute inconnue, chacun, le sol compris, à la part de lumière
-## de son état, contre le témoin sans vision.
+## de son état, contre le témoin sans vision, au plus `TOLERANCE` au-dessus et `CREUX_DU_PILOTE` de plus au-dessous. Le
+## brouillard volumétrique, que la vision ne voile pas, coupé.
 func _a_l_ombre(monde: Monde, objets: Dictionary) -> void:
 	var volume := monde.volume
 	(monde.get_node("Lumiere") as Lumiere).eclairer(LUMIERE_DU_JEU, METRES_PAR_CASE)
+	(monde.get_node("Lumiere/Environnement") as WorldEnvironment).environment.volumetric_fog_enabled = false
 	var lus := objets.merged({sol = [monde.get_node("VolumeDeScene/Volume/Morceaux").get_child(0).get_node("Vu")]})
 	for camera in ["en plongée", "au ras du sol"]:
 		if camera == "en plongée":
@@ -220,7 +224,7 @@ func _a_l_ombre(monde: Monde, objets: Dictionary) -> void:
 					continue
 				var part := _part(temoin, voilee, masques[nom])
 				print("[voile-du-bati] sous le ciel du jeu, %s, %s : %s %.3f, attendue %.3f" % [camera, etat[2], nom, part, etat[1]])
-				if absf(part - etat[1]) > TOLERANCE:
+				if part - etat[1] > TOLERANCE or part - etat[1] < -(TOLERANCE + CREUX_DU_PILOTE):
 					_fautes.append("sous le ciel du jeu, %s, %s : %s à la part %.3f, attendue %.3f" % [camera, etat[2], nom, part, etat[1]])
 		volume.voir(null)
 
@@ -237,12 +241,14 @@ func _objets(monde: Monde) -> Dictionary:
 	return objets
 
 
-## Les pixels (un sur deux de chaque sens) où `avec` diffère de `sans`, d'une luminance lisible dans `avec`.
+## Les pixels (un sur deux de chaque sens) où un canal de `avec` s'écarte de `sans` de plus de `ECART_DE_L_OBJET`, d'une
+## luminance lisible dans `avec`.
 func _masque(avec: Image, sans: Image) -> Array[Vector2i]:
 	var pixels: Array[Vector2i] = []
 	for y in range(0, avec.get_height(), 2):
 		for x in range(0, avec.get_width(), 2):
-			if avec.get_pixel(x, y) != sans.get_pixel(x, y) and _luminance(avec.get_pixel(x, y)) > LUMINANCE_LISIBLE:
+			var ecart := avec.get_pixel(x, y) - sans.get_pixel(x, y)
+			if maxf(absf(ecart.r), maxf(absf(ecart.g), absf(ecart.b))) > ECART_DE_L_OBJET and _luminance(avec.get_pixel(x, y)) > LUMINANCE_LISIBLE:
 				pixels.append(Vector2i(x, y))
 	return pixels
 

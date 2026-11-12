@@ -695,10 +695,13 @@ func _zoomer(sens: float) -> void:
 ## (`VolumeDeScene.voir`) ; chaque instance vue d'une arête prend pour couleur la part de lumière de la meilleure des
 ## cases qu'elle sépare (`cases`), fondue comme le reste, en sRGB (`MiseEnPage.teinte_d_instance`, jumelle de
 ## `part_de_lumiere` du shader, recette `projet/recettes/voile-du-bati.gd`) ; sans vision, blanche. Ses matières n'ont
-## pas de spéculaire, que la couleur d'instance ne voilerait pas. Le reflet d'un fragment voilé suit sa part de lumière.
+## pas de spéculaire, que la couleur d'instance ne voilerait pas. La couleur d'instance, en sRGB, se lit de même sous
+## les deux rendus (`vertex_color_is_srgb`). Le reflet d'un fragment voilé suit sa part de lumière.
 ## La part est exacte par passe de lumière ; sous un soleil qui porte une ombre, le pilote de compatibilité somme deux
 ## passes déjà encodées en sRGB, et la part rendue s'abaisse avec la luminance du pixel, mesurée jusqu'à 0,10 sous la
-## teinte (#3950, `CREUX_DU_PILOTE` de `hotes/godot/recette.mjs`).
+## teinte (#3950, `CREUX_DU_PILOTE` de `hotes/godot/recette.mjs`). Sous Forward+, le brouillard volumétrique
+## (`scenes/Lumiere.tscn`) diffuse une lumière que la vision ne voile pas : mesuré sous le ciel du jeu, une case inconnue
+## se rend à 0,17 de sa lumière au soleil et jusqu'à 0,26 sur une face à l'ombre, pour 0,15 (#4066).
 ##
 ## `Monde.poser_la_meteo` pose la météo (`meteo`) dans le volume : une averse de particules par boîte, étirées dans le
 ## sens de leur chute, et chaque nappe translucide, sans éclairage ni brume de profondeur. Il joue aussi son son

@@ -709,8 +709,9 @@ func _teinte_d_arete(a: Dictionary) -> Color:
 
 
 ## La copie de `mesh` que voient les instances vues de ses arêtes, une par maillage : chaque matière remplacée par sa
-## copie qui prend pour albédo la couleur de l'instance (`vertex_color_use_as_albedo`), sans spéculaire
-## (`metallic_specular`), que la couleur d'instance ne voile pas, une par matière.
+## copie qui prend pour albédo la couleur de l'instance (`vertex_color_use_as_albedo`), en sRGB, que chaque rendu lit de
+## même (`vertex_color_is_srgb`), sans spéculaire (`metallic_specular`), que la couleur d'instance ne voile pas, une par
+## matière.
 func _maillage_teint(mesh: Mesh) -> Mesh:
 	if not _maillages_teints.has(mesh):
 		var copie: Mesh = mesh.duplicate()
@@ -719,6 +720,7 @@ func _maillage_teint(mesh: Mesh) -> Mesh:
 			if not _matieres_teintes.has(matiere):
 				var teinte: BaseMaterial3D = matiere.duplicate()
 				teinte.vertex_color_use_as_albedo = true
+				teinte.vertex_color_is_srgb = true
 				teinte.metallic_specular = 0.0
 				_matieres_teintes[matiere] = teinte
 			copie.surface_set_material(rang, _matieres_teintes[matiere])
