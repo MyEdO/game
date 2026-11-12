@@ -24,7 +24,7 @@ export function canReroll(ownRollFailed: boolean, alreadyRerolled: boolean): boo
  * séance (`terminerLaSeance`, partyFlow).
  */
 export function restoreFortune(party: Combatant[]): Combatant[] {
-  return party.map((h) => (h.kind === 'hero'
+  return party.map((h) => (h.kind === 'heros'
     ? { ...h, ...(h.fate != null ? { fortune: fortuneMax(h) } : {}), resistanceUsed: undefined }
     : h));
 }

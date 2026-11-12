@@ -19,7 +19,7 @@ const q_ = (labels: string[]): QualityInstance[] => labels.map((l) => {
 function mkWearer(labels: string[]): Combatant {
   const qualities = q_(labels);
   return blessuresSurLeProfil({
-    id: 'h', name: 'A', kind: 'hero',
+    id: 'h', name: 'A', kind: 'heros',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 40, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(10), advantage: 0, conditions: [], movement: 4, skills: [], talents: [],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -53,7 +53,7 @@ describe('wornArmourPenalty', () => {
 describe('testValue + port d’armure', () => {
   function hero(id: string, ag: number, items: unknown[]): Combatant {
     return blessuresSurLeProfil({
-      id, name: id, kind: 'hero',
+      id, name: id, kind: 'heros',
       characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: ag, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
       wounds: blessuresDeBase(10), advantage: 0, conditions: [], movement: 4,
       skills: [{ id: 'discretion', characteristic: 'agilite', advances: 0 }], talents: [],

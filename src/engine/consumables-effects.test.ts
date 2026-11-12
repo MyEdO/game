@@ -56,7 +56,7 @@ function drinkPure(c: Combatant, id: string): void {
 function view(c: Combatant) {
   return {
     id: c.id ?? 'x', woundsCurrent: c.wounds.current, woundsMax: c.wounds.max, size: 3, advantage: 0,
-    camp: 'party' as const, groups: c.groups ?? [], talents: [], traits: [], conditions: {},
+    camp: 'groupe' as const, groups: c.groups ?? [], talents: [], traits: [], conditions: {},
     chars: Object.fromEntries(Object.entries(c.characteristics)) as never,
   };
 }

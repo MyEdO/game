@@ -65,16 +65,16 @@ const dome = (indice: number): Combatant['activeEffects'] =>
 
 describe('LDB 85 l.98 — « après chaque coup reçu » : le Projectile magique EST un coup reçu', () => {
   it('Démoniaque d’Indice 1 : la sauvegarde tombe toujours, le Dard ne retire AUCUNE Blessure', () => {
-    const mage = mk('hero', 'mage');
-    const demon = mk('enemy', 'demon', { traits: [{ id: 'demoniaque', value: 1 }] as never });
+    const mage = mk('heros', 'mage');
+    const demon = mk('ennemi', 'demon', { traits: [{ id: 'demoniaque', value: 1 }] as never });
     setBattle([mage, demon]);
     castMissile(mage, demon);
     expect(demon.wounds.current, 'le coup est ignoré (1d10 ≥ 1)').toBe(30);
   });
 
   it('Démoniaque d’Indice 11 : aucune sauvegarde ne tombe, le Dard blesse normalement', () => {
-    const mage = mk('hero', 'mage');
-    const demon = mk('enemy', 'demon', { traits: [{ id: 'demoniaque', value: 11 }] as never });
+    const mage = mk('heros', 'mage');
+    const demon = mk('ennemi', 'demon', { traits: [{ id: 'demoniaque', value: 11 }] as never });
     setBattle([mage, demon]);
     castMissile(mage, demon);
     expect(demon.wounds.current, 'aucun 1d10 n’atteint 11').toBeLessThan(30);
@@ -83,18 +83,18 @@ describe('LDB 85 l.98 — « après chaque coup reçu » : le Projectile magique
 
 describe('LDB 47 l.410 — le Dôme couvre contre les attaques MAGIQUES, et son Indice vient de la DONNÉE', () => {
   it('Dôme d’Indice 1, lanceur DEHORS : le Projectile est dévié', () => {
-    const warden = mk('hero', 'gardien', { pos: { x: 5, y: 5 }, activeEffects: dome(1) });
-    const cible = mk('hero', 'couvert', { pos: { x: 6, y: 5 } });
-    const mage = mk('enemy', 'mage', { pos: { x: 20, y: 5 } });
+    const warden = mk('heros', 'gardien', { pos: { x: 5, y: 5 }, activeEffects: dome(1) });
+    const cible = mk('heros', 'couvert', { pos: { x: 6, y: 5 } });
+    const mage = mk('ennemi', 'mage', { pos: { x: 20, y: 5 } });
     setBattle([warden, cible, mage]);
     castMissile(mage, cible);
     expect(cible.wounds.current, 'le dôme sauve (1d10 ≥ 1)').toBe(30);
   });
 
   it('Dôme d’Indice 11 : aucun dé ne l’atteint — le Projectile passe (l’Indice n’est PAS un nombre du code)', () => {
-    const warden = mk('hero', 'gardien', { pos: { x: 5, y: 5 }, activeEffects: dome(11) });
-    const cible = mk('hero', 'couvert', { pos: { x: 6, y: 5 } });
-    const mage = mk('enemy', 'mage', { pos: { x: 20, y: 5 } });
+    const warden = mk('heros', 'gardien', { pos: { x: 5, y: 5 }, activeEffects: dome(11) });
+    const cible = mk('heros', 'couvert', { pos: { x: 6, y: 5 } });
+    const mage = mk('ennemi', 'mage', { pos: { x: 20, y: 5 } });
     setBattle([warden, cible, mage]);
     castMissile(mage, cible);
     expect(cible.wounds.current, 'un seuil de 11 ne sauve jamais').toBeLessThan(30);
@@ -105,9 +105,9 @@ describe('LDB 47 l.410 — le Dôme couvre contre les attaques MAGIQUES, et son 
     // nombre de dés jetés se LIT sur l'avance du RNG (une sonde après coup, même graine).
     const avecNDomes = (n: number): number => {
       seedBattleRng(7);
-      const gardiens = Array.from({ length: n }, (_, i) => mk('hero', `gardien${i}`, { pos: { x: 5, y: 5 }, activeEffects: dome(11) }));
-      const cible = mk('hero', 'couvert', { pos: { x: 6, y: 5 } });
-      const mage = mk('enemy', 'mage', { pos: { x: 20, y: 5 } });
+      const gardiens = Array.from({ length: n }, (_, i) => mk('heros', `gardien${i}`, { pos: { x: 5, y: 5 }, activeEffects: dome(11) }));
+      const cible = mk('heros', 'couvert', { pos: { x: 6, y: 5 } });
+      const mage = mk('ennemi', 'mage', { pos: { x: 20, y: 5 } });
       setBattle([...gardiens, cible, mage]);
       castMissile(mage, cible);
       return battleRng().int(1, 1_000_000);
@@ -118,9 +118,9 @@ describe('LDB 47 l.410 — le Dôme couvre contre les attaques MAGIQUES, et son 
   it('la cible porte DÉJÀ le Trait que le dôme octroie : un seul dé, pas deux', () => {
     const avecDome = (sousDome: boolean): number => {
       seedBattleRng(7);
-      const gardien = mk('hero', 'gardien', { pos: { x: 5, y: 5 }, ...(sousDome ? { activeEffects: dome(11) } : {}) });
-      const cible = mk('hero', 'couvert', { pos: { x: 6, y: 5 }, traits: [{ id: 'protection', value: 11 }] as never });
-      const mage = mk('enemy', 'mage', { pos: { x: 20, y: 5 } });
+      const gardien = mk('heros', 'gardien', { pos: { x: 5, y: 5 }, ...(sousDome ? { activeEffects: dome(11) } : {}) });
+      const cible = mk('heros', 'couvert', { pos: { x: 6, y: 5 }, traits: [{ id: 'protection', value: 11 }] as never });
+      const mage = mk('ennemi', 'mage', { pos: { x: 20, y: 5 } });
       setBattle([gardien, cible, mage]);
       castMissile(mage, cible);
       return battleRng().int(1, 1_000_000);
@@ -132,9 +132,9 @@ describe('LDB 47 l.410 — le Dôme couvre contre les attaques MAGIQUES, et son 
     // Le Trait propre est jeté d'abord (Indice 11 : il ne peut PAS sauver), le Trait octroyé ensuite
     // (Indice 1 : il sauve toujours). Les DEUX dés sont jetés, les DEUX s'écrivent, dans cet ordre —
     // une réussite n'efface pas le dé qui l'a précédée.
-    const warden = mk('hero', 'gardien', { pos: { x: 5, y: 5 }, activeEffects: dome(1) });
-    const cible = mk('hero', 'couvert', { pos: { x: 6, y: 5 }, traits: [{ id: 'demoniaque', value: 11 }] as never });
-    const mage = mk('enemy', 'mage', { pos: { x: 20, y: 5 } });
+    const warden = mk('heros', 'gardien', { pos: { x: 5, y: 5 }, activeEffects: dome(1) });
+    const cible = mk('heros', 'couvert', { pos: { x: 6, y: 5 }, traits: [{ id: 'demoniaque', value: 11 }] as never });
+    const mage = mk('ennemi', 'mage', { pos: { x: 20, y: 5 } });
     setBattle([warden, cible, mage]);
     const lignes = castMissile(mage, cible);
     const rate = lignes.findIndex((x) => /n’ignore pas le coup — sauvegarde 1d10 : \d+ < Démoniaque \(11\+\)\./.test(x));
@@ -152,8 +152,8 @@ describe('LDB 47 l.410 — le Dôme couvre contre les attaques MAGIQUES, et son 
    * touche « finit en rien » — le journal d'exploration n'est pas ouvrable pendant un combat.
    */
   it('F2 — sauvegarde RATÉE : le journal de la touche (Blessures) est dans `battle.log`, pas dans `journal`', () => {
-    const mage = mk('hero', 'mage');
-    const demon = mk('enemy', 'demon', { traits: [{ id: 'demoniaque', value: 11 }] as never });
+    const mage = mk('heros', 'mage');
+    const demon = mk('ennemi', 'demon', { traits: [{ id: 'demoniaque', value: 11 }] as never });
     setBattle([mage, demon]);
     castMissile(mage, demon);
     const lu = banc.getState().battle!.log.map((e) => e.text).join(' | ');
@@ -164,9 +164,9 @@ describe('LDB 47 l.410 — le Dôme couvre contre les attaques MAGIQUES, et son 
   });
 
   it('Dôme d’Indice 1, lanceur DEDANS : « provenant de l’extérieur » — rien n’est dévié', () => {
-    const warden = mk('hero', 'gardien', { pos: { x: 5, y: 5 }, activeEffects: dome(1) });
-    const cible = mk('hero', 'couvert', { pos: { x: 6, y: 5 } });
-    const mage = mk('enemy', 'mage', { pos: { x: 5, y: 6 } });
+    const warden = mk('heros', 'gardien', { pos: { x: 5, y: 5 }, activeEffects: dome(1) });
+    const cible = mk('heros', 'couvert', { pos: { x: 6, y: 5 } });
+    const mage = mk('ennemi', 'mage', { pos: { x: 5, y: 6 } });
     setBattle([warden, cible, mage]);
     castMissile(mage, cible);
     expect(cible.wounds.current, 'le lanceur est sous le dôme').toBeLessThan(30);

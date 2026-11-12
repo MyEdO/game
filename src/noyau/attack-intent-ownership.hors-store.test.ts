@@ -31,7 +31,7 @@ const NET0 = initialNet();
 
 // Fixture mk()/setup() de `defense-surfacage.hors-store.test.ts` (#989) — même arène, mêmes sièges.
 const chars = { 'capacite-de-combat': 45, 'capacite-de-tir': 50, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
-const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, weapons: Weapon[]): Combatant =>
+const mk = (id: string, kind: 'heros' | 'ennemi', pos: { x: number; y: number }, weapons: Weapon[]): Combatant =>
   (blessuresSurLeProfil({ id, name: id, label: id, kind, characteristics: { ...chars }, conditions: [], engagedWith: [], skills: [], talents: [],
      weapons, advantage: 0, size: 'moyenne', pos, wounds: blessuresDeBase(18),
      armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4 }) as unknown as Combatant);
@@ -40,8 +40,8 @@ const sword: Weapon = { name: 'Épée', label: 'Épée', type: 'melee', damage: 
 /** Siège 0 = hôte spectateur, siège 1 = joueur du héros `h`, siège 2 = MJ (conduit l'ennemi `e`). */
 function setup(net: Record<string, unknown> = {}) {
   seedBattleRng(7);
-  const enemy = mk('e', 'enemy', { x: 1, y: 0 }, [sword]);
-  const hero = mk('h', 'hero', { x: 0, y: 0 }, [sword]);
+  const enemy = mk('e', 'ennemi', { x: 1, y: 0 }, [sword]);
+  const hero = mk('h', 'heros', { x: 0, y: 0 }, [sword]);
   const battle: BattleState = {
     combatants: [enemy, hero], order: [enemy.id, hero.id], baseOrder: [enemy.id, hero.id],
     turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(),

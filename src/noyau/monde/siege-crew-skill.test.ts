@@ -28,21 +28,21 @@ const CHARS = (CT = 30) => ({ 'capacite-de-combat': 30, 'capacite-de-tir': CT, f
 const proj = (spec: string, advances = 0): SkillInstance => ({ id: 'projectiles', spec, characteristic: 'capacite-de-tir', advances });
 
 const mkGunner = (id: string, pos: { x: number; y: number }, skills: SkillInstance[] = [], CT = 30): Combatant =>
-  (blessuresSurLeProfil({ id, name: id, kind: 'hero', characteristics: CHARS(CT), wounds: blessuresDeBase(12), advantage: 0,
+  (blessuresSurLeProfil({ id, name: id, kind: 'heros', characteristics: CHARS(CT), wounds: blessuresDeBase(12), advantage: 0,
     conditions: [], skills, talents: [], weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
     movement: 4, pos, loaded: true })) as unknown as Combatant;
 
 const mkCrew = (id: string, skills: SkillInstance[] = [], alive = true): Combatant =>
-  (blessuresSurLeProfil({ id, name: id, kind: 'npc', conditions: [], weapons: [], skills, talents: [], characteristics: CHARS(30) as never,
+  (blessuresSurLeProfil({ id, name: id, kind: 'pnj', conditions: [], weapons: [], skills, talents: [], characteristics: CHARS(30) as never,
     dead: !alive, wounds: blessuresDeBase(5, alive ? 5 : 0) })) as unknown as Combatant;
 
 const mkEnemy = (id: string, x: number, y: number): Combatant =>
-  (blessuresSurLeProfil({ id, name: id, kind: 'enemy', pos: { x, y }, conditions: [], weapons: [], skills: [], talents: [],
+  (blessuresSurLeProfil({ id, name: id, kind: 'ennemi', pos: { x, y }, conditions: [], weapons: [], skills: [], talents: [],
     characteristics: { ...CHARS(0), endurance: 30 }, wounds: blessuresDeBase(60), advantage: 0,
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 } })) as unknown as Combatant;
 
 const mkEmplacement = (poste: ShipPoste, pos = { x: 5, y: 5 }): Combatant =>
-  ({ id: 'emplacement', name: 'Affût', kind: 'enemy', pos, conditions: [], weapons: [], wounds: { current: 30, max: 30 },
+  ({ id: 'emplacement', name: 'Affût', kind: 'ennemi', pos, conditions: [], weapons: [], wounds: { current: 30, max: 30 },
     advantage: 0, postes: [poste] }) as unknown as Combatant;
 
 const mkPoste = (engineId: string, crewIds: string[]): ShipPoste => ({ item: itemFromTrappingById(engineId, idsDeTest)!, crewIds });

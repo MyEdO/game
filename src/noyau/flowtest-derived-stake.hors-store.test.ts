@@ -161,7 +161,7 @@ function enjeuxDesRangeesDeCritique(): { entryId: string; stake: StakeRef | unde
 }
 
 const hero = (): Combatant => (blessuresSurLeProfil({
-  id: 'H1', label: 'Sonde', kind: 'hero',
+  id: 'H1', label: 'Sonde', kind: 'heros',
   characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 40, endurance: 40, initiative: 40, agilite: 40, dexterite: 40, intelligence: 40, 'force-mentale': 40, sociabilite: 40 },
   wounds: blessuresDeBase(10), advantage: 0, conditions: [], movement: 4,
   skills: [], talents: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, items: [],

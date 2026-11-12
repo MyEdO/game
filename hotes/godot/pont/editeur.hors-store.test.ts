@@ -8,7 +8,8 @@
  * Les écrivains dédiés de la scène y passent aussi : sa musique, son message d'introduction saisi sur plusieurs lignes,
  * ses ancres de bataille, ses groupes, et l'apparence d'une ouverture de façade (#3606). Le formulaire tiré du schéma
  * d'un personnage écrit son rôle au combat, ses options au contexte de sa fiche, et ses onglets se partagent ses
- * éléments (#3606 M1a).
+ * éléments (#3606 M1a). Une adresse de prose s'y désigne par des choix seuls, son chapitre demandé à l'hôte puis rendu,
+ * chacun de ses fragments scellé par le noyau (#3606 M2g).
  */
 import { describe, expect, it } from 'vitest';
 import { erreurDe, modelesCommites, morceauxDe, servirLesModeles, table, type Reponse } from './pont.testkit';
@@ -25,6 +26,7 @@ import { findCreatureById, traits } from '../../../src/data';
 import { parseTraitInstance } from '../../../src/data/refFormatLivre';
 import { dossierDesProjetsLivres, listerProjetsLivres, PROJETS_MANUSCRITS } from '../../../scripts/guards/lib/projetsLivres.mjs';
 import { lireProjetLivre } from '../../../scripts/source/projetLivre.mjs';
+import type { Fragment } from '../../../src/data/source/decoupe';
 
 interface Edition {
   vue: { zones: ZonesDeLEditeur; couche: number };
@@ -36,6 +38,7 @@ interface Edition {
   depot?: { id: string; texte: string };
   calque: CalqueAffiche | null;
   planche?: { image: string };
+  chapitre?: { book: string; ch: string };
   memoire?: { calques: { version: string; calques: Record<string, Record<string, Record<string, unknown>>> }; oublier: string[]; deplacer: { de: string; vers: string }[] };
 }
 
@@ -961,6 +964,58 @@ describe('l’éditeur de carte par le pont, la volée', () => {
     expect(ligneDes('plan'), 'la raison du plan, en clair').toMatchObject({ texte: poser.refus });
     expect(erreurDe(appel('editer', poser.jeu))).toEqual({ categorie: 'regle', message: `editer : ${poser.refus}` });
     expect(presser(boutonDe(tracee, 'volee/effacer')).surcouche.cases).toEqual([]);
+  });
+});
+
+describe('l’éditeur de carte par le pont, l’adresse de prose (#3606 M2g)', () => {
+  /** Un chapitre de fixture : une section à un paragraphe et une table légendée, une autre section. */
+  const TEXTE = [
+    '# Les Armes', '', 'Les armes du Vieux Monde sont nombreuses et variées, de la dague à l’arquebuse.', '',
+    '**TABLE DES ARMES**', '', '| Arme | Dégâts | Prix |', '|---|---|---|', '| Dague | BF+2 | 1 pa |', '| Épée | BF+4 | 10 co |', '',
+    '# Les Armures', '', 'Une armure protège son porteur des coups, au prix de sa discrétion.', '',
+  ].join('\n');
+  const MANIFESTE = JSON.stringify({ 'livre-de-base': { abbr: 'LDB', chapitres: [{ ch: '01', fichier: '01 - Armes.md', titre: 'Les Armes', octets: TEXTE.length }] } });
+  const D = 'valeur/flow/etapes/0/effet/descRef';
+  const jeuDe = (b: Bouton) => (b.jeu as { args: unknown[] }).args[2];
+
+  /** La première campagne du jeu ouverte, avec ou sans le `Source/` servi, un déclencheur tracé dont la première étape
+   *  écrit au journal, sans adresse. */
+  function auJournal(manifeste?: string) {
+    const { appel } = table();
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const choisir = (e: Edition, id: string, voulu: (v: unknown) => boolean) => presser(valeursDeLInspecteur(e, id).find((b) => voulu(jeuDe(b)))!);
+    let e = editionDe(appel('editer', { ouvrir: CAMPAGNE, ...(manifeste ? { manifeste } : {}) }));
+    presser(boutonDe(presser(boutonDe(e, 'outil/zone')), 'zone/trigger'));
+    editionDe(appel('editer', { edition: { geste: 'appui', point: point(2, 2) } }));
+    e = presser(boutonDe(editionDe(appel('editer', { edition: { geste: 'relache', point: point(2, 2) } })), 'valeur/flow/etapes/ajouter'));
+    e = choisir(e, 'valeur/flow/etapes/0/kind', (v) => (v as { kind: string }).kind === 'effet');
+    e = choisir(e, 'valeur/flow/etapes/0/effet/type', (v) => (v as { type: string }).type === 'journal');
+    return { appel, choisir, e };
+  }
+
+  it('une cellule de table se désigne par des choix seuls : le livre, le chapitre que l’hôte charge à la demande, la cellule, sa table, sa ligne, sa colonne ; l’empreinte n’est jamais offerte', () => {
+    const { appel, choisir, e: journal } = auJournal(MANIFESTE);
+    const livre = choisir(journal, `${D}/ajouter`, (v) => (v as { book: string }).book === 'livre-de-base');
+    expect(livre.chapitre, 'sans chapitre choisi, rien ne se charge').toBeUndefined();
+    const demande = choisir(livre, `${D}/ch`, (v) => v === '01');
+    expect(demande.chapitre).toEqual({ book: 'livre-de-base', ch: '01' });
+    expect(demande.vue.zones['editeur.inspecteur'].find((el) => el.id === `${D}/etat`)).toMatchObject({ texte: 'Chargement du chapitre…' });
+    expect(erreurDe(appel('editer', { edition: { geste: 'chapitre', book: 'livre-de-base', ch: '02', texte: TEXTE } })).message, 'un autre chapitre que l’attendu se refuse').toBe('editer : chapitre, livre-de-base ch.02 n’est pas le chapitre attendu');
+    const charge = editionDe(appel('editer', { edition: { geste: 'chapitre', book: 'livre-de-base', ch: '01', texte: TEXTE } }));
+    expect(charge.chapitre, 'reçu, il ne se redemande pas').toBeUndefined();
+    let e = choisir(charge, `${D}/parts/ajouter`, (v) => (v as Fragment[])[0].kind === 'cellule');
+    e = choisir(e, `${D}/parts/0/row`, (v) => v === 'Épée');
+    e = choisir(e, `${D}/parts/0/table`, (v) => v === 'table des armes#1');
+    e = choisir(e, `${D}/parts/0/col`, (v) => v === 'Prix');
+    const ids = e.vue.zones['editeur.inspecteur'].map((el) => el.id);
+    expect(ids.filter((id) => id.startsWith(`${D}/parts/0/`) && !id.includes('/', `${D}/parts/0/`.length)), 'l’empreinte n’est jamais offerte').toEqual([`${D}/parts/0/kind`, `${D}/parts/0/sec`, `${D}/parts/0/secOcc`, `${D}/parts/0/row`, `${D}/parts/0/col`, `${D}/parts/0/table`, `${D}/parts/0/retirer`]);
+    expect(e.vue.zones['editeur.inspecteur'].find((el) => el.id === `${D}/etat`)).toMatchObject({ texte: 'Passage : 10 co' });
+  });
+
+  it('sans Source servi, l’adresse le dit et ne se compose pas ; aucun chapitre ne s’attend, un chapitre rendu se refuse', () => {
+    const { appel, e } = auJournal();
+    expect(e.vue.zones['editeur.inspecteur'].find((el) => el.id.startsWith(D))).toMatchObject({ id: `${D}/etat`, texte: 'Le Source n’est pas servi : l’adresse s’édite sur le poste de développement.' });
+    expect(erreurDe(appel('editer', { edition: { geste: 'chapitre', book: 'livre-de-base', ch: '01', texte: TEXTE } })).categorie).toBe('validation');
   });
 });
 

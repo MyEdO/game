@@ -38,8 +38,8 @@ describe('Piège-lame — Test opposé de Force CADENCE-AWARE (op breakBlade, d�
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!; // le héros piégeur (défenseur)
-    const A = b.combatants.find((c) => c.kind === 'enemy')!; // l'attaquant dont la lame est visée
+    const H = b.combatants.find((c) => c.kind === 'heros')!; // le héros piégeur (défenseur)
+    const A = b.combatants.find((c) => c.kind === 'ennemi')!; // l'attaquant dont la lame est visée
     banc.setState({ battle: { ...b }, pendingCascade: null, pendingLogQueue: [] });
     return { H, A };
   }

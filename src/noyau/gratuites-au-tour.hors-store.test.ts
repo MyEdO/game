@@ -27,9 +27,9 @@ function frappeGratuite(tourDe: 'heros' | 'creature', fileEpuisee = false) {
   g().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = g().battle!;
-  const heros = b.combatants.find((c) => c.kind === 'hero')!;
-  const [E] = b.combatants.filter((c) => c.kind === 'enemy');
-  b.combatants.filter((c) => c.kind === 'enemy' && c.id !== E.id).forEach((e) => (e.dead = true));
+  const heros = b.combatants.find((c) => c.kind === 'heros')!;
+  const [E] = b.combatants.filter((c) => c.kind === 'ennemi');
+  b.combatants.filter((c) => c.kind === 'ennemi' && c.id !== E.id).forEach((e) => (e.dead = true));
   E.size = 'enorme'; E.advantage = 3; E.pendingFreeAttacks = fileEpuisee ? [] : undefined;
   E.pos = { x: 6, y: 10 }; heros.pos = { x: 7, y: 10 };
   heros.wounds = blessuresDeBase(200, 200, heros);
@@ -73,9 +73,9 @@ describe('Gratuites de créature : une file épuisée ne repart pas dans le mêm
     g().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = g().battle!;
-    const heros = b.combatants.find((c) => c.kind === 'hero')!;
-    const [E] = b.combatants.filter((c) => c.kind === 'enemy');
-    b.combatants.filter((c) => c.kind === 'enemy' && c.id !== E.id).forEach((e) => (e.dead = true));
+    const heros = b.combatants.find((c) => c.kind === 'heros')!;
+    const [E] = b.combatants.filter((c) => c.kind === 'ennemi');
+    b.combatants.filter((c) => c.kind === 'ennemi' && c.id !== E.id).forEach((e) => (e.dead = true));
     E.traits = [...(E.traits ?? []), { id: 'souffle', value: 3, arg: 'feu' }] as never;
     E.advantage = 7; E.pendingFreeAttacks = undefined;
     E.pos = { x: 6, y: 10 }; heros.pos = { x: 7, y: 10 }; heros.aiControlled = true;

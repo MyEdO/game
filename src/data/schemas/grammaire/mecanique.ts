@@ -922,13 +922,13 @@ export const cibleDeFeuilleSchema = enumNomme({ party: 'Tout le groupe', hero: '
 
 /** `Relation | Camp` (`src/engine/relations.ts`) — union complète lue par la Condition `relation`.
  *  Resserré depuis `z.string()` (variantes `domains`/`talents`/`etats`/`spells`) : les 9 JSON ne
- *  portent que `'opponent'` aujourd'hui, sans-risque vis-à-vis de l'enum SOURCE (vérifié au parse). */
+ *  portent que `'adversaire'` aujourd'hui, sans-risque vis-à-vis de l'enum SOURCE (vérifié au parse). */
 export const relationOrCampSchema = enumNomme({
-  self: 'soi-même',
-  ally: 'allié (même camp)',
-  opponent: 'adversaire (camp ≠)',
-  party: 'du groupe (joueur)',
-  neutral: 'neutre (PNJ)',
+  soi: 'soi-même',
+  allie: 'allié (même camp)',
+  adversaire: 'adversaire (camp ≠)',
+  groupe: 'du groupe (joueur)',
+  neutre: 'neutre (PNJ)',
   hostile: 'hostile (ennemi)',
 });
 

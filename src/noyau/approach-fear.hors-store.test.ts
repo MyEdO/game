@@ -27,10 +27,10 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const hero = (over: Partial<Combatant>): Combatant =>
-  combattantDeTest({ id: 'h', kind: 'hero', label: 'H', pos: { x: 5, y: 5 }, conditions: [], characteristics: { 'force-mentale': 50 }, skills: [], wounds: blessuresDeBase(10),
+  combattantDeTest({ id: 'h', kind: 'heros', label: 'H', pos: { x: 5, y: 5 }, conditions: [], characteristics: { 'force-mentale': 50 }, skills: [], wounds: blessuresDeBase(10),
      psychState: [{ type: 'peur', sourceId: 'e', indice: 2, calmeDR: 0 }], ...over });
 const mover = (over: Partial<Combatant>): Combatant =>
-  combattantDeTest({ id: 'e', kind: 'enemy', label: 'Spectre', pos: { x: 6, y: 5 }, conditions: [], wounds: blessuresDeBase(10), ...over });
+  combattantDeTest({ id: 'e', kind: 'ennemi', label: 'Spectre', pos: { x: 6, y: 5 }, conditions: [], wounds: blessuresDeBase(10), ...over });
 
 /** Pose un combat minimal (héros craintifs + source de Peur), puis appelle le déclencheur. `fromPos` =
  *  la position de la source AVANT son déplacement (l'« approche » se mesure contre elle). */
@@ -206,8 +206,8 @@ describe('Approche du HÉROS vers un ennemi qui le craint (LDB 21 l.27)', () => 
     banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('debutDuRound');
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const foes = b.combatants.filter((c) => c.kind === 'enemy');
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const foes = b.combatants.filter((c) => c.kind === 'ennemi');
     let i = 0;
     for (const e of foes) e.pos = { x: 20 + i++, y: 20 }; // libère le couloir y=10
     const E = foes[0];

@@ -31,7 +31,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  */
 
 const chars = { 'capacite-de-combat': 45, 'capacite-de-tir': 50, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
-const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, weapons: Weapon[]): Combatant =>
+const mk = (id: string, kind: 'heros' | 'ennemi', pos: { x: number; y: number }, weapons: Weapon[]): Combatant =>
   (blessuresSurLeProfil({ id, name: id, label: id, kind, characteristics: { ...chars }, conditions: [], engagedWith: [], skills: [], talents: [],
      weapons, advantage: 0, size: 'moyenne', pos, wounds: blessuresDeBase(40),
      armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4 }) as unknown as Combatant);
@@ -40,8 +40,8 @@ const sword: Weapon = { name: 'Épée', label: 'Épée', type: 'melee', damage: 
 /** Ennemi PORTEUR d'une gratuite de mêlée (Morsure, LDB 85 l.237) au contact d'un héros SURFACÉ. */
 function setup() {
   seedBattleRng(7);
-  const enemy = mk('e', 'enemy', { x: 1, y: 0 }, [sword]);
-  const hero = mk('h', 'hero', { x: 0, y: 0 }, [sword]);
+  const enemy = mk('e', 'ennemi', { x: 1, y: 0 }, [sword]);
+  const hero = mk('h', 'heros', { x: 0, y: 0 }, [sword]);
   enemy.traits = [{ id: 'morsure', value: 14 }];
   enemy.advantage = 3;
   const battle: BattleState = {
@@ -126,9 +126,9 @@ describe('#1852 — une gratuite de créature après une défense : deux fenêtr
  *  le coup principal, l'enchaînement de balayage et la gratuite se suivent — chacun SA fenêtre. */
 function setupTaille() {
   seedBattleRng(7);
-  const enemy = mk('e', 'enemy', { x: 1, y: 0 }, [sword]);
-  const h1 = mk('h1', 'hero', { x: 0, y: 0 }, [sword]);
-  const h2 = mk('h2', 'hero', { x: 2, y: 0 }, [sword]);
+  const enemy = mk('e', 'ennemi', { x: 1, y: 0 }, [sword]);
+  const h1 = mk('h1', 'heros', { x: 0, y: 0 }, [sword]);
+  const h2 = mk('h2', 'heros', { x: 2, y: 0 }, [sword]);
   enemy.traits = [{ id: 'morsure', value: 14 }];
   enemy.size = 'enorme'; // Taille supérieure → `res.cleave` (LDB 85 l.362)
   enemy.characteristics['capacite-de-combat'] = 80;
@@ -153,8 +153,8 @@ function setupTaille() {
  *  défense sur le chargeur PENDANT le télégraphe de sa charge. */
 function setupRiposte() {
   seedBattleRng(3);
-  const hero = mk('h', 'hero', { x: 4, y: 0 }, [sword]); // hors contact : il approche PUIS charge
-  const enemy = mk('e', 'enemy', { x: 0, y: 0 }, [sword]);
+  const hero = mk('h', 'heros', { x: 4, y: 0 }, [sword]); // hors contact : il approche PUIS charge
+  const enemy = mk('e', 'ennemi', { x: 0, y: 0 }, [sword]);
   enemy.talents = [{ talentId: 'frappe-reactive', times: 1 }] as never;
   enemy.characteristics.initiative = 99; // Test d'Initiative de la riposte quasi-garanti
   const battle: BattleState = {

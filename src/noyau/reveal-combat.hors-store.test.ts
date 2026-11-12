@@ -23,7 +23,7 @@ describe('Conséquences d’attaque en révélation (store)', () => {
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    return { b, hero: b.combatants.find((c) => c.kind === 'hero')!, enemy: b.combatants.find((c) => c.kind === 'enemy')! };
+    return { b, hero: b.combatants.find((c) => c.kind === 'heros')!, enemy: b.combatants.find((c) => c.kind === 'ennemi')! };
   }
 
   it('un Coup Critique ouvre une séquence de conséquence « Coup Critique » (panneau riche)', () => {
@@ -100,7 +100,7 @@ describe('Conséquences d’attaque en révélation (store)', () => {
   it('Déviation Critique → étape de CHOIX inline : « Subir » applique le Critique, « Dévier » l’ignore', () => {
     banc.getState().ensemencerLeTirage(2);
     const { hero, enemy } = battle();
-    const heroNow = () => banc.getState().battle!.combatants.find((c) => c.kind === 'hero')!;
+    const heroNow = () => banc.getState().battle!.combatants.find((c) => c.kind === 'heros')!;
     hero.armour.corps = 3; // PA au corps → la déviation est possible
     const res = {
       hit: true, attackerRoll: 33, netSL: 2, critical: true, advantageTo: 'attaquant',

@@ -390,9 +390,9 @@ describe('Scène de COMBAT — touches ET kills (l.139)', () => {
     auRound();
     const mb = mbState();
     banc.setState({ massBattle: { ...mb, combatScene: { sceneId: 'charge', hits: 0, hitters: [] } } });
-    const hero = { id: 'h1', kind: 'hero', bodyShape: 'biped' } as unknown as Combatant;
-    const foe = { id: 'e1', kind: 'enemy', bodyShape: 'biped' } as unknown as Combatant;
-    const other = { id: 'h2', kind: 'hero', bodyShape: 'biped' } as unknown as Combatant;
+    const hero = { id: 'h1', kind: 'heros', bodyShape: 'biped' } as unknown as Combatant;
+    const foe = { id: 'e1', kind: 'ennemi', bodyShape: 'biped' } as unknown as Combatant;
+    const other = { id: 'h2', kind: 'heros', bodyShape: 'biped' } as unknown as Combatant;
     const g = banc.getState; const s = banc.setState;
     massBattleTrackHit(g, s, hero, foe);
     massBattleTrackHit(g, s, hero, foe);

@@ -37,14 +37,14 @@ describe('Engagés avec le porteur (LDB 85 l.282 ; Q12 B)', () => {
   const cible = () => cibleRelative('engagesAvecPorteur');
 
   it('vise tout combattant Engagé avec le porteur, de tout camp, et lui seul', () => {
-    const porteur = mk('p', 'enemy', { engagedWith: ['a', 'b'] });
-    expect(vise(cible(), sourceCombattant(mk('a', 'hero')), 'appartenance', porteur)).toBe(true);
-    expect(vise(cible(), sourceCombattant(mk('b', 'enemy')), 'percu', porteur)).toBe(true);
-    expect(vise(cible(), sourceCombattant(mk('c', 'hero')), 'appartenance', porteur)).toBe(false);
+    const porteur = mk('p', 'ennemi', { engagedWith: ['a', 'b'] });
+    expect(vise(cible(), sourceCombattant(mk('a', 'heros')), 'appartenance', porteur)).toBe(true);
+    expect(vise(cible(), sourceCombattant(mk('b', 'ennemi')), 'percu', porteur)).toBe(true);
+    expect(vise(cible(), sourceCombattant(mk('c', 'heros')), 'appartenance', porteur)).toBe(false);
   });
 
   it('un interlocuteur n’est jamais Engagé', () => {
-    expect(vise(cible(), { genre: 'interlocuteur', groups: [] }, 'percu', mk('p', 'enemy'))).toBe(false);
+    expect(vise(cible(), { genre: 'interlocuteur', groups: [] }, 'percu', mk('p', 'ennemi'))).toBe(false);
   });
 });
 
@@ -52,69 +52,69 @@ describe('Étrangers au porteur (Q15 A)', () => {
   const cible = () => cibleRelative('etrangersAuPorteur');
 
   it('vise un combattant d’un autre camp, jamais un compagnon ni le porteur', () => {
-    const porteur = mk('p', 'hero');
-    expect(vise(cible(), sourceCombattant(mk('e', 'enemy')), 'percu', porteur)).toBe(true);
-    expect(vise(cible(), sourceCombattant(mk('n', 'npc')), 'percu', porteur)).toBe(true);
-    expect(vise(cible(), sourceCombattant(mk('h', 'hero')), 'percu', porteur)).toBe(false);
+    const porteur = mk('p', 'heros');
+    expect(vise(cible(), sourceCombattant(mk('e', 'ennemi')), 'percu', porteur)).toBe(true);
+    expect(vise(cible(), sourceCombattant(mk('n', 'pnj')), 'percu', porteur)).toBe(true);
+    expect(vise(cible(), sourceCombattant(mk('h', 'heros')), 'percu', porteur)).toBe(false);
     expect(vise(cible(), sourceCombattant(porteur), 'percu', porteur)).toBe(false);
   });
 
   it('le camp d’un PNJ est son groupe', () => {
-    const porteur = mk('p', 'enemy');
-    expect(vise(cible(), sourceCombattant(mk('e', 'enemy')), 'percu', porteur)).toBe(false);
-    expect(vise(cible(), sourceCombattant(mk('h', 'hero')), 'percu', porteur)).toBe(true);
+    const porteur = mk('p', 'ennemi');
+    expect(vise(cible(), sourceCombattant(mk('e', 'ennemi')), 'percu', porteur)).toBe(false);
+    expect(vise(cible(), sourceCombattant(mk('h', 'heros')), 'percu', porteur)).toBe(true);
   });
 
   it('ni l’individu ni le Groupe que vise un lien du porteur (Amour, Camaraderie) n’est étranger', () => {
-    const parIndividu = mk('p', 'hero', { psychTraits: [{ type: lien!.id as PsychType, cible: ciblePsy.individu('e') }] });
-    expect(vise(cible(), sourceCombattant(mk('e', 'enemy')), 'percu', parIndividu)).toBe(false);
-    expect(vise(cible(), sourceCombattant(mk('f', 'enemy')), 'percu', parIndividu)).toBe(true);
-    const parGroupe = mk('p', 'hero', { psychTraits: [{ type: lien!.id as PsychType, cible: ciblePsy.groupe(sansRace!.id) }] });
-    expect(vise(cible(), sourceCombattant(mk('e', 'enemy', { groups: [sansRace!.id] })), 'percu', parGroupe)).toBe(false);
+    const parIndividu = mk('p', 'heros', { psychTraits: [{ type: lien!.id as PsychType, cible: ciblePsy.individu('e') }] });
+    expect(vise(cible(), sourceCombattant(mk('e', 'ennemi')), 'percu', parIndividu)).toBe(false);
+    expect(vise(cible(), sourceCombattant(mk('f', 'ennemi')), 'percu', parIndividu)).toBe(true);
+    const parGroupe = mk('p', 'heros', { psychTraits: [{ type: lien!.id as PsychType, cible: ciblePsy.groupe(sansRace!.id) }] });
+    expect(vise(cible(), sourceCombattant(mk('e', 'ennemi', { groups: [sansRace!.id] })), 'percu', parGroupe)).toBe(false);
   });
 
   it('un interlocuteur est étranger, sauf si ses Groupes sont visés par un lien du porteur', () => {
-    const porteur = mk('p', 'hero', { psychTraits: [{ type: lien!.id as PsychType, cible: ciblePsy.groupe(sansRace!.id) }] });
+    const porteur = mk('p', 'heros', { psychTraits: [{ type: lien!.id as PsychType, cible: ciblePsy.groupe(sansRace!.id) }] });
     expect(vise(cible(), { genre: 'interlocuteur', groups: [] }, 'percu', porteur)).toBe(true);
     expect(vise(cible(), { genre: 'interlocuteur', groups: [sansRace!.id] }, 'percu', porteur)).toBe(false);
   });
 
   it('un lien à Cible relative ne retire personne des étrangers', () => {
-    const porteur = mk('p', 'hero', { psychTraits: [{ type: lien!.id as PsychType, cible: cible() }] });
-    expect(vise(cible(), sourceCombattant(mk('e', 'enemy')), 'percu', porteur)).toBe(true);
+    const porteur = mk('p', 'heros', { psychTraits: [{ type: lien!.id as PsychType, cible: cible() }] });
+    expect(vise(cible(), sourceCombattant(mk('e', 'ennemi')), 'percu', porteur)).toBe(true);
   });
 });
 
 describe('Autres Races que le porteur (LDB 19 l.152 ; EDOC 12 l.219)', () => {
   const cible = () => cibleRelative('autresRacesQueLePorteur');
-  const porteur = () => mk('p', 'hero', { groups: [raceA!.id] });
+  const porteur = () => mk('p', 'heros', { groups: [raceA!.id] });
 
   it('vise une source d’une autre Race, jamais une source de la sienne ni le porteur', () => {
-    expect(vise(cible(), sourceCombattant(mk('b', 'enemy', { groups: [raceB!.id] })), 'percu', porteur())).toBe(true);
-    expect(vise(cible(), sourceCombattant(mk('a', 'enemy', { groups: [raceA!.id] })), 'percu', porteur())).toBe(false);
+    expect(vise(cible(), sourceCombattant(mk('b', 'ennemi', { groups: [raceB!.id] })), 'percu', porteur())).toBe(true);
+    expect(vise(cible(), sourceCombattant(mk('a', 'ennemi', { groups: [raceA!.id] })), 'percu', porteur())).toBe(false);
     const p = porteur();
     expect(vise(cible(), sourceCombattant(p), 'percu', p)).toBe(false);
   });
 
   it('une source sans Race n’est pas de la Race du porteur : elle est visée', () => {
-    expect(vise(cible(), sourceCombattant(mk('s', 'enemy', { groups: [sansRace!.id] })), 'percu', porteur())).toBe(true);
+    expect(vise(cible(), sourceCombattant(mk('s', 'ennemi', { groups: [sansRace!.id] })), 'percu', porteur())).toBe(true);
     expect(vise(cible(), { genre: 'interlocuteur', groups: [] }, 'percu', porteur())).toBe(true);
   });
 
   it('seul un Groupe marqué Race compte : partager un Groupe sans Race n’est pas être de la même Race', () => {
-    const p = mk('p', 'hero', { groups: [raceA!.id, sansRace!.id] });
-    expect(vise(cible(), sourceCombattant(mk('b', 'enemy', { groups: [raceB!.id, sansRace!.id] })), 'percu', p)).toBe(true);
+    const p = mk('p', 'heros', { groups: [raceA!.id, sansRace!.id] });
+    expect(vise(cible(), sourceCombattant(mk('b', 'ennemi', { groups: [raceB!.id, sansRace!.id] })), 'percu', p)).toBe(true);
   });
 
   it('un porteur sans Race ne se vise jamais lui-même', () => {
-    const p = mk('p', 'hero', { groups: [sansRace!.id] });
+    const p = mk('p', 'heros', { groups: [sansRace!.id] });
     expect(vise(cible(), sourceCombattant(p), 'percu', p)).toBe(false);
-    expect(vise(cible(), sourceCombattant(mk('b', 'enemy', { groups: [raceB!.id] })), 'percu', p)).toBe(true);
+    expect(vise(cible(), sourceCombattant(mk('b', 'ennemi', { groups: [raceB!.id] })), 'percu', p)).toBe(true);
   });
 
   it('un porteur de deux Races ne vise aucune source de l’une ou de l’autre', () => {
-    const metis = mk('p', 'hero', { groups: [raceA!.id, raceB!.id] });
-    expect(vise(cible(), sourceCombattant(mk('b', 'enemy', { groups: [raceB!.id] })), 'percu', metis)).toBe(false);
+    const metis = mk('p', 'heros', { groups: [raceA!.id, raceB!.id] });
+    expect(vise(cible(), sourceCombattant(mk('b', 'ennemi', { groups: [raceB!.id] })), 'percu', metis)).toBe(false);
   });
 });
 
@@ -126,17 +126,17 @@ describe('Pulsions de haine (LDB 19 l.152 ; EDOC 12 l.219)', () => {
 
   it('la mutation pose un Trait qui se déclenche devant une autre Race, pas devant la sienne', () => {
     expect(pulsions).toBeDefined();
-    const mutant = mk('m', 'hero', { groups: [raceA!.id], pos: { x: 0, y: 0 } });
+    const mutant = mk('m', 'heros', { groups: [raceA!.id], pos: { x: 0, y: 0 } });
     attachMutation(mutant, mutationById(pulsions!.id)!, desDuTest);
     expect(mutant.psychTraits?.some((t) => t.cible === cible())).toBe(true);
-    expect(targetedTrigger(mutant, [sourceCombattant(mk('a', 'enemy', { groups: [raceA!.id] }))])).toBeNull();
-    expect(targetedTrigger(mutant, [sourceCombattant(mk('b', 'enemy', { groups: [raceB!.id] }))])?.cible).toBe(cible());
+    expect(targetedTrigger(mutant, [sourceCombattant(mk('a', 'ennemi', { groups: [raceA!.id] }))])).toBeNull();
+    expect(targetedTrigger(mutant, [sourceCombattant(mk('b', 'ennemi', { groups: [raceB!.id] }))])?.cible).toBe(cible());
   });
 
   it('un skaven mutant ne vise pas un skaven allié : LDB 84 l.63 nomme les skavens une race', () => {
-    const mutant = mk('m', 'enemy', { groups: ['skaven'], pos: { x: 0, y: 0 } });
+    const mutant = mk('m', 'ennemi', { groups: ['skaven'], pos: { x: 0, y: 0 } });
     attachMutation(mutant, mutationById(pulsions!.id)!, desDuTest);
-    expect(targetedTrigger(mutant, [sourceCombattant(mk('allie', 'enemy', { groups: ['skaven'] }))])).toBeNull();
-    expect(targetedTrigger(mutant, [sourceCombattant(mk('h', 'hero', { groups: [raceA!.id] }))])?.cible).toBe(cible());
+    expect(targetedTrigger(mutant, [sourceCombattant(mk('allie', 'ennemi', { groups: ['skaven'] }))])).toBeNull();
+    expect(targetedTrigger(mutant, [sourceCombattant(mk('h', 'heros', { groups: [raceA!.id] }))])?.cible).toBe(cible());
   });
 });

@@ -47,7 +47,7 @@ const set: Banc['setState'] = (e) => banc.setState(e);
 
 function hero(p: Partial<Combatant>): Combatant {
   return blessuresSurLeProfil({
-    id: 'h1', label: 'Héros', kind: 'hero',
+    id: 'h1', label: 'Héros', kind: 'heros',
     characteristics: { 'capacite-de-combat': 35, 'capacite-de-tir': 40, force: 35, endurance: 40, initiative: 30, agilite: 30, dexterite: 32, intelligence: 40, 'force-mentale': 35, sociabilite: 30 },
     wounds: blessuresDeBase(12, 10), advantage: 0, conditions: [], movement: 4,
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -73,7 +73,7 @@ const arbalete = {
 function setBattle(combatants: Combatant[], activeId: string) {
   const order = combatants.map((c) => c.id);
   banc.setState({
-    mode: 'battle', party: combatants.filter((c) => c.kind === 'hero'),
+    mode: 'battle', party: combatants.filter((c) => c.kind === 'heros'),
     battle: {
       combatants, order, baseOrder: order, turn: order.indexOf(activeId), round: 1,
       action: null, selectedSpellId: null, reachable: new Map(), movementUsed: 0, acted: false,
@@ -177,7 +177,7 @@ describe('Fin de rencontre (combatFlow) — Contraction et Corruption', () => {
       id: 'sv', label: 'Survivant', conditions: ETAT, tookCriticalThisFight: true,
       skills: [{ id: 'resistance', advances: 10, characteristic: 'endurance' }] as never,
     } as never);
-    const bete = hero({ id: 'be', label: 'Bête', kind: 'enemy', dead: true, traits: [{ id: 'corruption', arg: 'mineure' }] } as never);
+    const bete = hero({ id: 'be', label: 'Bête', kind: 'ennemi', dead: true, traits: [{ id: 'corruption', arg: 'mineure' }] } as never);
     setBattle([survivant, bete], 'sv');
     survivant.diseaseExposure = [{ disease: 'courante-galopante', difficulty: 'intermediaire' }] as never;
 

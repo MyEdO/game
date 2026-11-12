@@ -133,7 +133,7 @@ describe('set réellement DÉSARMÉ : les Mains nues reviennent', () => {
 
 describe('invariant « jamais sans arme » + statbloc', () => {
   it('sans objet NI loadout : `recomputeLoadout` rend Mains nues (aucun combattant sans arme)', () => {
-    const c = { id: 'x', label: 'X', kind: 'hero', items: [], characteristics: { force: 30, endurance: 30 } } as unknown as Combatant;
+    const c = { id: 'x', label: 'X', kind: 'heros', items: [], characteristics: { force: 30, endurance: 30 } } as unknown as Combatant;
     recomputeLoadout(c);
     expect(c.weapons.map((w) => w.label)).toEqual(['Mains nues']);
   });

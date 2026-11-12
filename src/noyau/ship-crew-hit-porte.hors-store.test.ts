@@ -222,7 +222,7 @@ describe('#1657 B3-2 — voyage MARITIME : le coup à l’équipage s’applique
 describe('#1657 B3-2 — la porte SÉPARE : bande pour les sièges, inline JOURNALISÉ pour le reste', () => {
   /** Un marin PNJ : aucun siège ne le tient (il n'est pas du groupe) → voie inline. */
   const marin = (): Combatant => (blessuresSurLeProfil({
-    id: 'marin', name: 'Marin', label: 'Marin', kind: 'npc',
+    id: 'marin', name: 'Marin', label: 'Marin', kind: 'pnj',
     characteristics: { 'capacite-de-combat': 31, 'capacite-de-tir': 31, force: 31, endurance: 31, initiative: 31, agilite: 31, dexterite: 31, intelligence: 31, 'force-mentale': 31, sociabilite: 31 },
     skills: [], talents: [], traits: [], conditions: [], activeEffects: [], liveTraits: [], weapons: [], items: [],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },

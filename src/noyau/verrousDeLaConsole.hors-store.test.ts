@@ -119,7 +119,7 @@ describe('Matrice des verrous d’État : le registre ferme ce que la console gr
   };
   for (const etat of ['brise', 'sonne'] as const) {
     it(`${etat} : chaque entrée se ferme ou reste ouverte selon son attendu`, () => {
-      const partie = auTour('pastilles-entite', (c) => c.kind === 'hero');
+      const partie = auTour('pastilles-entite', (c) => c.kind === 'heros');
       try {
         const ctx = contexte(partie);
         const ecarts: string[] = [];
@@ -142,7 +142,7 @@ describe('Matrice des verrous d’État : le registre ferme ce que la console gr
 
 describe('État qui verrouille l’Action (LDB 16 l.52) : la raison du verdict est celle du verbe', () => {
   it('Brisé : l’offre du Soin, refusée, porte la MÊME raison que le gate', () => {
-    const partie = auTour('pastilles-entite', (c) => c.kind === 'hero');
+    const partie = auTour('pastilles-entite', (c) => c.kind === 'heros');
     try {
       const ctx = contexte(partie);
       addCondition(ctx.active, 'brise');
@@ -157,7 +157,7 @@ describe('État qui verrouille l’Action (LDB 16 l.52) : la raison du verdict e
 
 describe('Préalables et pertinence : l’offre refuse ce que le verbe refuse', () => {
   it('Recharger sans arme à recharger est fermé', () => {
-    const partie = auTour('pastilles-entite', (c) => c.kind === 'hero');
+    const partie = auTour('pastilles-entite', (c) => c.kind === 'heros');
     try {
       const ctx = contexte(partie);
       expect(ctx.active.weapons.some((w) => aRecharger(ctx.active, w)), 'témoin : une arme est à recharger').toBe(false);
@@ -168,7 +168,7 @@ describe('Préalables et pertinence : l’offre refuse ce que le verbe refuse', 
   });
 
   it('Viser n’est plus offert au tireur déjà en joue (pertinence, LDB 14 l.61)', () => {
-    const tireur = (c: Combatant) => c.kind === 'hero' && c.weapons.some((w) => w.type === 'distance');
+    const tireur = (c: Combatant) => c.kind === 'heros' && c.weapons.some((w) => w.type === 'distance');
     const partie = auTour('ecuries-clayonnage', tireur);
     try {
       const id = activeCombatant(partie.etat().battle!)!.id;
@@ -185,7 +185,7 @@ describe('Préalables et pertinence : l’offre refuse ce que le verbe refuse', 
   });
 
   it('Coque : la Bordée se ferme quand aucune pièce n’est chargée (`postesPretsAFaireFeu`, lu par `ouvrirLaBordee`)', () => {
-    const partie = auTour('duel-naval', (c) => !!c.postes?.length && c.kind === 'hero');
+    const partie = auTour('duel-naval', (c) => !!c.postes?.length && c.kind === 'heros');
     try {
       const ctx = contexte(partie);
       expect(actionGate('bordee', ctx), 'témoin : pièces chargées, la Bordée est ouverte').toEqual({ ok: true });
@@ -197,7 +197,7 @@ describe('Préalables et pertinence : l’offre refuse ce que le verbe refuse', 
   });
 
   it('Coque : chant sans chanteur et recharge sans pièce déchargée sont fermés', () => {
-    const partie = auTour('duel-naval', (c) => !!c.postes?.length && c.kind === 'hero');
+    const partie = auTour('duel-naval', (c) => !!c.postes?.length && c.kind === 'heros');
     try {
       const ctx = contexte(partie);
       expect(actionGate('chanson-de-marin', { ...ctx, args: { shipId: ctx.active.id } }).reason).toBe(t('agate.noShantySinger'));

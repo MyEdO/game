@@ -9,9 +9,9 @@ import type { Scene } from '../../noyau/monde/scene';
  * ASPERSION (MDG 16 l.19, #497) : « Asperger d'eau » (`aspergerDEau`) gate ses cibles
  * sur `waterSprayCandidates(active, battle.combatants.filter(c => c.kind === active.kind))` — VOULU
  * (« ≥1 ALLIÉ Créature marine adjacent ») : la créature marine à asperger doit donc entrer en jeu
- * avec le MÊME `kind` que le héros, jamais `kind:'enemy'`. Mécanisme canonique = `side:'allie'` sur un
+ * avec le MÊME `kind` que le héros, jamais `kind:'ennemi'`. Mécanisme canonique = `side:'allie'` sur un
  * membre de rencontre (`AuthoredEnemy.side`, `encounterAuthoring.ts`) — `combatSlice.ts` bascule
- * `enemies[i].kind = 'hero'` pour tout membre `side:'allie'` (même précédent que le cheval montable
+ * `enemies[i].kind = 'heros'` pour tout membre `side:'allie'` (même précédent que le cheval montable
  * d'`entrainement.ts`) ; `ai:true` l'IA-pilote pour que le joueur n'ait pas à jouer son tour.
  *
  * Victoire = `surviveRounds` (aucun véritable adversaire n'est nécessaire : `victoryConditionMet`
@@ -59,7 +59,7 @@ export const scenario: TestScenario = {
   tests:
     // MDG 16 l.19
     "Action « Asperger d'eau » (#497) : une Créature marine ALLIÉE (anguille mâcheprise, " +
-    "`side:'allie'` → `kind:'hero'`) échouée sur la terre (`offTerrain`, aucune tuile d'eau, adjacente " +
+    "`side:'allie'` → `kind:'heros'`) échouée sur la terre (`offTerrain`, aucune tuile d'eau, adjacente " +
     "AU SPAWN) suffoque Round après Round (`suffocationTick`, #477) sauf si le Soldat, outre à eau en " +
     "poche (`hasWaterContainer`), l'asperge (`aspergerDEau` pose `wateredThisRound`, aucun jet, consomme " +
     "l'Action) ; `waterSprayCandidates` filtre STRICTEMENT par `kind` identique à l'aspergeur.",

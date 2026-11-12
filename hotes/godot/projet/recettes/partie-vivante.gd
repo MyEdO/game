@@ -4,7 +4,10 @@ extends SceneTree
 ## ouvert sur le processus du noyau (`TransportDuProcessus`, `--pont=<chemin>` après `--`), le combat
 ## (`scenes/Combat.tscn`) montre le panneau des scénarios ; un clic sur le bouton de `dome` démarre la partie, dont la
 ## première vue se montre ; une pile des couches demandée (`PontDuNoyau.resoudre_la_pile`), suivie d'un appel écrit
-## avant qu'elle ne soit rendue, revient `ok: true` à son rappel, et l'appel reçoit sa propre réponse ; un clic sur un
+## avant qu'elle ne soit rendue, revient `ok: true` à son rappel, et l'appel reçoit sa propre réponse ; `morceaux` de
+## toutes les clés du manifeste (`monde`) arrive en octets (`PontDuNoyau._recoller`) : chaque géométrie porte quatre
+## `PackedFloat32Array` aux tailles que disent ses surfaces, et les clés et empreintes du manifeste ; le `monde` demandé
+## ensuite reçoit sa propre réponse, le manifeste de nouveau ; un clic sur un
 ## geste de l'écran publié, la fin du tour s'il est offert, change la vue ; ni panne ni refus ne se signale, et l'avis
 ## de panne du combat reste vide. Le code de sortie dit le verdict : 0 tenu, 1 une faute.
 
@@ -14,6 +17,8 @@ const SCENARIO := "dome"
 const ATTENTE_S := 120.0
 ## La plus petite pile valide (`PileDemandee`, `hotes/godot/pont/pile.ts`) : aucune pièce.
 const PILE := {pieces = [], parents = {}, osDeChaine = []}
+## Les familles de géométries d'une réponse de `morceaux`, et leur liste au manifeste de `monde`.
+const FAMILLES := {volume = ["monde", "morceaux"], toits = ["toits"], couronnes = ["couronnes"]}
 var _fautes: Array[String] = []
 ## Chaque panne et chaque refus signalés par le pont.
 var _signales: Array[String] = []
@@ -46,6 +51,7 @@ func _recetter() -> void:
 			print("[partie-vivante] pile : ok=%s" % piles[0].get("ok"))
 			if piles[0].get("ok") != true or not piles[0].has("bilan"):
 				_fautes.append("la pile rend %s" % JSON.stringify(piles[0]).left(200))
+		_verifier_les_morceaux(pont)
 		if await _attendre(func() -> bool: return _geste(pont) != null, "un geste à l'écran publié"):
 			var geste: Dictionary = _geste(pont)
 			print("[partie-vivante] geste : %s (%s)" % [geste.element, geste.texte])
@@ -61,6 +67,61 @@ func _recetter() -> void:
 		push_error("[partie-vivante] " + faute)
 	print("[partie-vivante] erreurs=", _fautes.size())
 	quit(0 if _fautes.is_empty() else 1)
+
+
+## `morceaux` de toutes les clés du manifeste, reçu en octets aux tailles que disent ses surfaces, puis un `monde` qui
+## reçoit le manifeste de nouveau.
+func _verifier_les_morceaux(pont: PontDuNoyau) -> void:
+	var monde := pont.appeler("monde")
+	if monde.get("ok") != true or monde.monde == null:
+		_fautes.append("monde rend %s" % JSON.stringify(monde).left(200))
+		return
+	var demande := {source = "partie"}
+	for famille: String in FAMILLES:
+		demande[famille] = _au_manifeste(monde, famille).keys()
+	var recus := pont.appeler("morceaux", demande)
+	if recus.get("ok") != true or not recus.has("octets"):
+		_fautes.append("morceaux rend %s" % JSON.stringify(recus).left(200))
+		return
+	var geometries := 0
+	for famille: String in FAMILLES:
+		var empreintes := {}
+		for geometrie: Dictionary in recus[famille]:
+			geometries += 1
+			empreintes[geometrie.cle] = geometrie.empreinte
+			_verifier_la_geometrie(geometrie)
+		if empreintes != _au_manifeste(monde, famille):
+			_fautes.append("morceaux : les clés et empreintes de %s ne sont pas celles du manifeste" % famille)
+	print("[partie-vivante] morceaux : %d géométries, %d octets" % [geometries, int(recus.octets)])
+	if recus.volume.is_empty():
+		_fautes.append("morceaux : aucun morceau du volume reçu")
+	var encore := pont.appeler("monde")
+	if encore.get("ok") != true or encore.has("octets") or encore.monde != monde.monde:
+		_fautes.append("le monde demandé après morceaux reçoit %s" % JSON.stringify(encore).left(200))
+
+
+## L'empreinte de chaque clé de la famille `famille` au manifeste `monde`, par clé.
+func _au_manifeste(monde: Dictionary, famille: String) -> Dictionary:
+	var liste: Variant = monde
+	for cle: String in FAMILLES[famille]:
+		liste = liste[cle]
+	var empreintes := {}
+	for entree: Dictionary in liste:
+		empreintes[entree.cle] = entree.empreinte
+	return empreintes
+
+
+## Les quatre tableaux de `geometrie` en `PackedFloat32Array`, aux tailles que disent ses surfaces : trois nombres par
+## sommet pour `positions` et `normales`, quatre pour `couleurs`, trois par triangle pour `cases`.
+func _verifier_la_geometrie(geometrie: Dictionary) -> void:
+	var sommets := 0
+	for surface: Dictionary in geometrie.surfaces:
+		sommets = maxi(sommets, int(surface.fin))
+	var tailles := {positions = sommets * 3, normales = sommets * 3, couleurs = sommets * 4, cases = sommets}
+	for tableau: String in tailles:
+		var recu: Variant = geometrie[tableau]
+		if not recu is PackedFloat32Array or recu.size() != tailles[tableau]:
+			_fautes.append("morceaux : %s de %s vaut %s de taille %s au lieu de %d" % [tableau, geometrie.cle, type_string(typeof(recu)), recu.size() if recu is PackedFloat32Array else "?", tailles[tableau]])
 
 
 ## Le bouton publié qui dessine l'élément `element`, `null` hors de l'écran.

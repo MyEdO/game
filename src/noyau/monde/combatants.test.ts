@@ -24,7 +24,7 @@ function hero(
   return blessuresSurLeProfil({
     id,
     label: id,
-    kind: 'hero',
+    kind: 'heros',
     wounds: blessuresDeBase(10, opts.wounds ?? 10),
     dead: opts.dead ?? false,
     conditions: opts.conditions ?? [],

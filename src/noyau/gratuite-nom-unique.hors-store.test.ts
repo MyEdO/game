@@ -37,9 +37,9 @@ function engage(tourDe: 'heros' | 'creature'): { H: Combatant; E: Combatant } {
   g().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = g().battle!;
-  const H = b.combatants.find((c) => c.kind === 'hero')!;
-  const [E] = b.combatants.filter((c) => c.kind === 'enemy');
-  b.combatants.filter((c) => c.kind === 'enemy' && c.id !== E.id).forEach((e) => (e.dead = true));
+  const H = b.combatants.find((c) => c.kind === 'heros')!;
+  const [E] = b.combatants.filter((c) => c.kind === 'ennemi');
+  b.combatants.filter((c) => c.kind === 'ennemi' && c.id !== E.id).forEach((e) => (e.dead = true));
   const [porteur, cible] = tourDe === 'heros' ? [H, E] : [E, H];
   porteur.traits = TRAITS;
   porteur.size = 'enorme';

@@ -30,13 +30,13 @@ function setup() {
   useGame.getState().lancerLeCombat('enc-mutants');
   useGame.getState().fenetreValider('debutDuRound');
   const b = useGame.getState().battle!;
-  const H = b.combatants.find((c) => c.kind === 'hero')!;
+  const H = b.combatants.find((c) => c.kind === 'heros')!;
   let i = 0;
-  for (const e of b.combatants.filter((c) => c.kind === 'enemy')) e.pos = { x: 20 + i++, y: 20 };
+  for (const e of b.combatants.filter((c) => c.kind === 'ennemi')) e.pos = { x: 20 + i++, y: 20 };
   H.pos = { x: 6, y: 10 };
   const turn = b.order.indexOf(H.id);
   useGame.setState({ battle: { ...b, turn, action: null, acted: false, movementUsed: 0, movedPreAction: false, preview: null }, localIntent: null });
-  return { H, E: b.combatants.find((c) => c.kind === 'enemy')! };
+  return { H, E: b.combatants.find((c) => c.kind === 'ennemi')! };
 }
 
 const get = () => useGame.getState();

@@ -36,11 +36,11 @@ import { desDuTest } from '../engine/dice.testkit';
 import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 /** Porteur sans séquelle. */
-const hero38 = (): Combatant => combattantDeTest({ id: 'h', label: 'H', kind: 'hero', traumas: [] });
+const hero38 = (): Combatant => combattantDeTest({ id: 'h', label: 'H', kind: 'heros', traumas: [] });
 
 /** Le MÊME porteur : `resolveCritique` lit l'Endurance (sévérité du d100). */
 const heroCritique = (): Combatant => combattantDeTest({
-  id: 'h', label: 'H', kind: 'hero', traumas: [],
+  id: 'h', label: 'H', kind: 'heros', traumas: [],
   characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 40 },
   wounds: blessuresDeBase(12, 6), bodyShape: 'humanoide', critEntriesSuffered: [],
 });

@@ -31,7 +31,7 @@ function makeHarness(party: Combatant[]): { get: Get; set: Set } {
 
 function makeHero(id: string): Combatant {
   return blessuresSurLeProfil({
-    id, label: id, kind: 'hero',
+    id, label: id, kind: 'heros',
     characteristics: { force: 30, endurance: 30 } as Combatant['characteristics'],
     items: [], talents: [], skills: [], conditions: [], advantage: 0, wounds: blessuresDeBase(10),
   }) as unknown as Combatant;
