@@ -379,10 +379,10 @@ static func relief_de(nom: String) -> String:
 
 ## `materiau`, une matière standard ou du shader de monde (qui nomme ses paramètres comme les propriétés de la matière
 ## standard), habillé de la matière `nom` si sa texture est au projet : la texture et son relief s'il y est, projetés
-## sur les trois axes du repère du mesh, un motif tous les `MiseEnPage.METRES_PAR_MOTIF` ; rend si la texture y est.
-static func texturer(materiau: Material, nom: String) -> bool:
+## sur les trois axes du repère du mesh, un motif tous les `MiseEnPage.METRES_PAR_MOTIF`.
+static func texturer(materiau: Material, nom: String) -> void:
 	if not ResourceLoader.exists(texture_de(nom)):
-		return false
+		return
 	var propriete := "shader_parameter/" if materiau is ShaderMaterial else ""
 	materiau.set(propriete + "albedo_texture", load(texture_de(nom)))
 	materiau.set(propriete + "uv1_triplanar", true)
@@ -391,7 +391,6 @@ static func texturer(materiau: Material, nom: String) -> bool:
 	if ResourceLoader.exists(relief_de(nom)):
 		materiau.set(propriete + "normal_enabled", true)
 		materiau.set(propriete + "normal_texture", load(relief_de(nom)))
-	return true
 
 
 ## La pièce de l'arête `a`, debout à son pied (`a.pied`) : celle du kit, `<famille>--<pièce>`, étirée à la longueur de
