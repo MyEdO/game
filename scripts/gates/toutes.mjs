@@ -437,7 +437,8 @@ export const ECRIT_LU = {
       '`chargerAssets` (hotes/godot/asset/charger.mjs) n’est appelé que par `editeur`, `modeleWeb` et `deposerLesAssets` ' +
       '(hotes/godot/construire.mjs), sous `--sonde`, `--export` et `--ouvrir` ; aucun écrivain ne joue : ' +
       '`recupererModeles` (#2948) ne joue que sous ces trois modes, `deposerLesModeles` (hotes/godot/listage.mjs) que ' +
-      'sous `--export`, dans son `--sortie` (#3778), comme `deposerLesPlanches` (hotes/godot/planches.mjs, #3935)',
+      'sous `--export`, dans son `--sortie` (#3778), comme `deposerLesPlanches` (hotes/godot/planches.mjs, #3935) ; ' +
+      'le stockage du bundle exécuté est `stockageDuProcessus(null)` (hotes/godot/stockage.mjs, #3009), en mémoire seule',
   },
   'godot:sonde': {
     ecrit: [],
@@ -455,8 +456,8 @@ export const ECRIT_LU = {
         'à son premier `rejoindre`, sert le dépôt réel (`servir({ depot })`) : `servirLeDepot` (hotes/godot/servir.mjs) n’y ' +
         'écrit un projet manuscrit qu’à un `PUT depot/<id>`, que seul l’enregistrement de l’éditeur envoie (`_deposer`, ' +
         'hotes/godot/projet/scripts/editeur.gd), que seule la recette `editeur-navire.gd` ouvre, sur le pont figé ' +
-        '(`pont_fige.gd`), dont `requeter` n’envoie aucune requête ; la seule recette qui ouvre le pont vivant, ' +
-        '`partie-vivante.gd`, joue un combat (`Combat.tscn`) et n’ouvre pas l’éditeur',
+        '(`pont_fige.gd`), dont `requeter` n’envoie aucune requête ; les seules recettes qui ouvrent le pont vivant, ' +
+        '`partie-vivante.gd` et `campagne.gd`, jouent une partie (`Combat.tscn`) et n’ouvrent pas l’éditeur',
     },
     lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'Source/', 'tsconfig.json', 'package.json'],
     raison:
@@ -470,7 +471,9 @@ export const ECRIT_LU = {
       'Chaque recette reçoit `--pont=<hotes/godot/vivant.mjs>`, qui bâtit le bundle en mémoire (`write: false`). ' +
       'Écrit sous hotes/godot/projet/modeles/ les seuls GLB, et peut écrire sous src/scenes/ par le pont vivant ' +
       '(`ecritFerme`) ; `deposerLesModeles` (hotes/godot/listage.mjs, #3778) et `deposerLesPlanches` ' +
-      '(hotes/godot/planches.mjs, #3935) n’écrivent que sous `--export`',
+      '(hotes/godot/planches.mjs, #3935) n’écrivent que sous `--export` ; le stockage du pont vivant ' +
+      '(`stockageDuProcessus`, hotes/godot/stockage.mjs, #3009) est le fichier que chaque recette reçoit en ' +
+      '`--stockage=`, `stockage.json` dans la COPIE du projet, donc hors de l’arbre',
   },
   'personnage-3d:tests': {
     ecrit: [],

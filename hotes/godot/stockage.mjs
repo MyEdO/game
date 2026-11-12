@@ -4,13 +4,13 @@
 // réécrites à chaque changement.
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
+import { estObjet } from '../../src/lib/objet.mjs'
 
 /** Les clés gardées dans `fichier` : un objet JSON de chaînes ; rien s'il est absent, illisible ou d'une autre forme. */
 function relire(fichier) {
   try {
     const lu = JSON.parse(readFileSync(fichier, 'utf8'))
-    const estUneTable = lu !== null && typeof lu === 'object' && !Array.isArray(lu) && Object.values(lu).every((v) => typeof v === 'string')
-    return estUneTable ? Object.entries(lu) : []
+    return estObjet(lu) && Object.values(lu).every((v) => typeof v === 'string') ? Object.entries(lu) : []
   } catch {
     return []
   }
