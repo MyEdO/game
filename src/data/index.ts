@@ -2608,7 +2608,7 @@ export type ShipSize = 'minuscule' | 'tres-petite' | 'petite' | 'moyenne' | 'gra
  *  longueurs explicites — barque 5 m et esquif 10 m tombent dans la MÊME `ShipSize` « minuscule » avec des
  *  tarifs DIFFÉRENTS, la Taille ne peut donc pas discriminer). `maxLengthM` = borne haute inclusive du
  *  palier (`null` = bande OUVERTE au-delà — le dernier élément du tableau, triés par longueur croissante) ;
- *  `value` = CO (coût) ou Enc (poids) selon le champ porteur ; `maison` = réf nue du tarif au-delà de la
+ *  `value` = CO (coût), Enc (poids) ou jours (durée de pose) selon le champ porteur ; `maison` = réf nue du tarif au-delà de la
  *  dernière borne chiffrée par le livre porté sur la bande concernée. */
 export interface InstallBand { maxLengthM: number | null; value: number; maison?: string }
 /** Coût / Poids d'INSTALLATION d'une Amélioration navale (MDG 12, lignes « Coût : / Poids : » de chaque

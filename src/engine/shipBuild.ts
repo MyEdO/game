@@ -253,10 +253,10 @@ function bandValue(bands: InstallBand[], lengthM: number): number {
   return bands.length ? bands[bands.length - 1].value : 0;
 }
 
-/** Coût (CO) ou poids (Enc) d'installation d'une Amélioration : palier de LONGUEUR × multiplicateur
+/** Coût (CO), poids (Enc) ou durée de pose (jours) d'installation d'une Amélioration : palier de LONGUEUR × multiplicateur
  *  `per:'5m'` (« par tranche de 5 mètres de Taille », l.225/289 — tranches ENTAMÉES comptées) ou
  *  `per:'unite'` (× `units`). `'modele'` (Embarcation de bord) → `null` : le prix est celui du modèle
- *  embarqué, résolu par l'appelant. PUR. */
+ *  embarqué, résolu par l'appelant ; sur la durée, l'appelant retombe sur `REPARATION.joursDePose`. PUR. */
 export function installAmount(
   part: InstallBareme,
   lengthM: number,
