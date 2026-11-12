@@ -686,6 +686,16 @@ describe('CriticalResolved.naturel : le dé du tableau, avant le modificateur de
       resetData();
     }
   });
+  it('sous `twice`, les deux lancers se tirent au dé du tableau (LDB 41 l.170 ; LDB 18 l.53 ; #1667)', () => {
+    setEnTete('aaCriticalsCorps', [{ ancetre: '[criticals-aa-corps]', champ: 'die', valeur: 'd10' }]);
+    try {
+      const doubles = Array.from({ length: 50 }, (_, s) => resolveCritique('aa', cible(), 'corps', makeRNG(s + 1), { twice: true }).naturel);
+      expect(Math.max(...doubles)).toBeLessThanOrEqual(10);
+      expect(Math.min(...doubles)).toBeGreaterThanOrEqual(1);
+    } finally {
+      resetData();
+    }
+  });
   it('aa, 8 Blessures au-delà de 0 : roll 128, naturel 48 (AA 07 l.36)', () => {
     const r = resolveCritique('aa', cible(), 'corps', makeRNG(1), { overkill: 8, forcedRoll: 48 });
     expect(r.roll).toBe(128);
