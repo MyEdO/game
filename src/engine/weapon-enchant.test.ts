@@ -15,7 +15,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testki
 
 /** Construit un `TriggeredEffect` onHit→victim portant `ops` (forme unifiée des onHit d'arme). */
 const onHitFlow = (ops: unknown[]): TriggeredEffect =>
-  ({ trigger: 'onHit', on: 'victim', flow: { kind: 'do', effect: { type: 'ops', on: 'victim', ops } as never } });
+  ({ trigger: 'onHit', on: 'victim', flow: { kind: 'effet', effet: { type: 'ops', on: 'victim', ops } as never } });
 
 /**
  * Enchantement d'arme (op `augmentWeapon`) : B. de Droiture (Magique), Marteau ardent de Sigmar
@@ -127,8 +127,8 @@ describe('augmentWeapon — enchantement porté par l’arme, replié dans c.wea
     const justiceTest: Flow = {
       kind: 'test',
       test: { skill: { id: 'resistance' }, difficulty: 'accessible', onlyGroups: ['criminel'] },
-      success: { kind: 'seq', steps: [] },
-      fail: { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'inconscient' } }] } },
+      reussite: { kind: 'sequence', etapes: [] },
+      echec: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'inconscient' } }] } },
     };
     const c = wielder(weaponItem('w', 'Épée', '+BF+4'));
     applyOps(c, [{

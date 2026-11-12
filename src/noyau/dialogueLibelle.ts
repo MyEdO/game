@@ -42,7 +42,7 @@ const MOT_DU_JET = 'Test';
  * Termes qu'un flux INTERDIT à son PROPRE libellé de réponse — tout ce que le tag DÉRIVÉ dira déjà :
  * la Compétence, sa spécialisation, la Caractéristique, la Difficulté déclarée (forme complète ET nom
  * seul), le DR CUMULÉ d'un Test étendu, et le mot « Test ». Le parcours descend dans TOUTES les
- * branches (`seq`, `if`, `test`, `yes`/`no` d'un `choice`) : un jet enfoui annonce autant qu'un jet de
+ * branches (`sequence`, `si`, `test`, `oui`/`non` d'un `choix`) : un jet enfoui annonce autant qu'un jet de
  * tête.
  */
 function termesDuFlux(flow: NoeudBrut, voc: VocabulaireDuTag, out: string[] = []): string[] {
@@ -60,11 +60,11 @@ function termesDuFlux(flow: NoeudBrut, voc: VocabulaireDuTag, out: string[] = []
     if (typeof n.drCible === 'number') out.push(`${n.drCible} DR`);
     out.push(MOT_DU_JET);
   };
-  const effect = flow.effect as NoeudBrut;
+  const effet = flow.effet as NoeudBrut;
   if (flow.kind === 'test') prendre(flow.test as NoeudBrut);
-  if (flow.kind === 'do' && effect?.type === 'extendedTest') prendre(effect);
-  const branches = [flow.then, flow.else, flow.success, flow.fail, flow.oui, flow.non];
-  for (const suite of [flow.steps as NoeudBrut[] | undefined, branches as NoeudBrut[]]) {
+  if (flow.kind === 'effet' && effet?.type === 'extendedTest') prendre(effet);
+  const branches = [flow.alors, flow.sinon, flow.reussite, flow.echec, flow.oui, flow.non];
+  for (const suite of [flow.etapes as NoeudBrut[] | undefined, branches as NoeudBrut[]]) {
     for (const s of suite ?? []) termesDuFlux(s, voc, out);
   }
   return out;

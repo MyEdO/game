@@ -18,9 +18,9 @@ function seqRNG(...vals: number[]): RNG {
 
 describe('Puissance de Bataille — estimation (ADE II 08 l.24-47)', () => {
   it('table de force relative (l.28-32) : couple {allié, ennemi}', () => {
-    expect(mightFromRelation('egale')).toEqual({ ally: 50, enemy: 50 });
-    expect(mightFromRelation('insignifiante')).toEqual({ ally: 30, enemy: 70 });
-    expect(mightFromRelation('ecrasante')).toEqual({ ally: 70, enemy: 30 });
+    expect(mightFromRelation('egale')).toEqual({ allie: 50, ennemi: 50 });
+    expect(mightFromRelation('insignifiante')).toEqual({ allie: 30, ennemi: 70 });
+    expect(mightFromRelation('ecrasante')).toEqual({ allie: 70, ennemi: 30 });
     expect(POWER_ESTIMATE).toHaveLength(5);
   });
 
@@ -43,12 +43,12 @@ describe('Puissance de Bataille — estimation (ADE II 08 l.24-47)', () => {
   });
 
   it('normalisation (l.34) : retirer 10 aux deux jusqu\'à ≤ 100 ; décidé si écart brut > 100', () => {
-    expect(normalizeMights(50, 50)).toEqual({ ally: 50, enemy: 50, decided: false });
-    expect(normalizeMights(120, 40)).toEqual({ ally: 100, enemy: 20, decided: false }); // −20 des deux
+    expect(normalizeMights(50, 50)).toEqual({ allie: 50, ennemi: 50, decided: false });
+    expect(normalizeMights(120, 40)).toEqual({ allie: 100, ennemi: 20, decided: false }); // −20 des deux
     const r = normalizeMights(150, 30);
     expect(r.decided).toBe(true); // écart brut 120 > 100
-    expect(r.ally).toBe(100);
-    expect(r.enemy).toBe(0);
+    expect(r.allie).toBe(100);
+    expect(r.ennemi).toBe(0);
   });
 });
 
@@ -152,9 +152,9 @@ describe('Rassemblement (l.122)', () => {
 
 describe('Issue de la bataille (l.124) & aléa (l.309)', () => {
   it('l\'armée à la plus haute Puissance gagne', () => {
-    expect(battleOutcome(30, 20)).toBe('ally');
-    expect(battleOutcome(10, 40)).toBe('enemy');
-    expect(battleOutcome(25, 25)).toBe('draw');
+    expect(battleOutcome(30, 20)).toBe('allie');
+    expect(battleOutcome(10, 40)).toBe('ennemi');
+    expect(battleOutcome(25, 25)).toBe('egalite');
     expect(isDestroyed(0)).toBe(true);
     expect(isDestroyed(5)).toBe(false);
   });

@@ -100,7 +100,7 @@ const FENETRES_A_JET: Partial<Record<ModalKey, Fixture>> = {
         heroId: H.id, kind: 'catalog', label: 'Tenez', skillLabel: 'Commandement', skillValue: 40, difficulty: 'intermediaire', ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, roll: 30, target: 40, sl: 1, success: true,
         enemyValue: 45, enemyRoll: 60, enemySL: -2,
       },
-      massBattle: { enemy: { label: 'Orques' } } as NonNullable<Jeu['massBattle']>,
+      massBattle: { ennemi: { label: 'Orques' } } as NonNullable<Jeu['massBattle']>,
     },
     flux: ['activite'],
     oppose: true,

@@ -1102,8 +1102,8 @@ export function createCombatSlice(get: Get, set: Set) {
       const chiefs = teamCommandTargets(active, battle.combatants);
       if (!chiefs.length) return;
       const onSuccess: Flow = {
-        kind: 'seq',
-        steps: chiefs.map((c) => ({ kind: 'do', effect: { type: 'ops', on: 'hero', heroId: c.id, ops: [{ op: 'teamCommander', commanderId: active.id }] } })),
+        kind: 'sequence',
+        etapes: chiefs.map((c) => ({ kind: 'effet', effet: { type: 'ops', on: 'hero', heroId: c.id, ops: [{ op: 'teamCommander', commanderId: active.id }] } })),
       };
       set({ battle: { ...markActed(get, set), action: null } }); // le Test EST l'Action (réussite ou non)
       openSkillTest(get, set,
@@ -1472,7 +1472,7 @@ export function createCombatSlice(get: Get, set: Set) {
       // les couples pré-montés (ridesEntityId → la monture). Le cavalier monte SUR sa monture.
       const idxByEntity = new Map(roster.map((r, i) => [r.ent.id, i]));
       roster.forEach(({ m }, i) => {
-        if (m.side === 'ally') enemies[i].kind = 'hero';
+        if (m.side === 'allie') enemies[i].kind = 'hero';
         if (m.ai) enemies[i].aiControlled = true; // PNJ allié IA (défenseur de siège) : agit seul (aiDriven)
         if (m.mount) enemies[i].mountable = true;
       });

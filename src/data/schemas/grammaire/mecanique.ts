@@ -14,7 +14,7 @@ import { CATEGORY_BY_SOURCE_KIND, type EffectSourceKind } from '../../../engine/
 import { trousDeLEnjeu, type StakeRef } from '../../index';
 import { messageRecurrenceHorloge, SELF_REF, type Formula, type GameOp, type OpPassive } from '../../../engine/ops';
 import { NARRATIVE_MARKERS } from '../../../engine/conditions';
-import { ARG_TEMPLATE, CHAMPS_DE_DECISION, INDICE_TEMPLATE, type Condition, type EffectOp, type EffectTrigger, type Flow, type TriggeredEffect } from '../../../engine/flowCore';
+import { ARG_TEMPLATE, CHAMPS_DE_DECISION, INDICE_TEMPLATE, type Condition, type EffectOp, type EffectTrigger, type Flow, type FlowTestNode, type TriggeredEffect } from '../../../engine/flowCore';
 import { acteDeDeverrouillageSchema, attackKindSchema, chaosAlignSchema, charKeySchema, cibleEtendueSchema, contexteDeTestSchema, deDeTirageSchema, diceSpecSchema, difficultySchema, effetSigneSchema, idDIconeSchema, enumNomme, shipLocationSchema, exposureLevelSchema, formulaSchema, formuleSansTirageSchema, hitLocationSchema, mainSchema, messageDeTermeDeJet, meteoImposeeSchema, statutSchema, ouReserve, plageSchema, reachSchema, natureDInfluenceSchema, sizeCategorySchema, symptomSeveritySchema, tirageSchema } from './valeurs';
 import { traitInstanceSchema } from './reference';
 import { idDe, marquerOpAtteinte, ref, refs, refOuSpec, specAuCatalogue, specDe, specFermeeDe, tirageSurTable, type RegimeDePorteur, type TypeEntite } from './ref';
@@ -1277,12 +1277,12 @@ export interface OptionsNoeudTest {
    */
   readonly difficulteRequise?: boolean;
   /**
-   * Le porteur ne SERT que la branche `fail`, et il l'applique par extraction PLATE de ses ops
+   * Le porteur ne SERT que la branche `echec`, et il l'applique par extraction PLATE de ses ops
    * (`spellOps`, `engine/flowCore.ts`) — c'est le régime du cycle de maladie : l'applier de repos
    * (`bandeDeNuit`, applier `maladie-test-quotidien`, `noyau/restFlow.ts`) rend une liste VIDE sur une
-   * réussite, et `symptomOnTick` (`engine/disease.ts`) ne lit que `fail`.
-   * Deux formes seraient alors AUTHORABLES SANS EFFET, donc menteuses : une branche `success`
-   * peuplée (jamais jouée) et une branche `fail` à embranchement (`if`/`test`/`choice`), dont
+   * réussite, et `symptomOnTick` (`engine/disease.ts`) ne lit que `echec`.
+   * Deux formes seraient alors AUTHORABLES SANS EFFET, donc menteuses : une branche `reussite`
+   * peuplée (jamais jouée) et une branche `echec` à embranchement (`si`/`test`/`choix`), dont
    * `spellOps` APLATIRAIT les ops — promises quelle que soit l'issue. Le contrat les REFUSE.
    */
   readonly echecSeulServi?: boolean;
@@ -1294,31 +1294,29 @@ export interface OptionsNoeudTest {
 }
 
 /**
- * Un Flow est-il une branche PLATE ? — que des `seq`/`do` : aucun embranchement dont `spellOps`
+ * Un Flow est-il une branche PLATE ? — que des `sequence`/`effet` : aucun embranchement dont `spellOps`
  * (extraction plate) promettrait les ops des deux côtés. Rend le `kind` fautif, ou `null`.
  */
-function kindDEmbranchement(flow: unknown): string | null {
-  const n = flow as { kind?: string; steps?: unknown[] } | null;
-  if (!n || typeof n !== 'object') return null;
-  if (n.kind === 'seq') {
-    for (const e of n.steps ?? []) {
+function kindDEmbranchement(flow: Flow<unknown>): string | null {
+  if (flow.kind === 'sequence') {
+    for (const e of flow.etapes) {
       const k = kindDEmbranchement(e);
       if (k) return k;
     }
     return null;
   }
-  return n.kind === 'do' ? null : (n.kind ?? 'inconnu');
+  return flow.kind === 'effet' ? null : flow.kind;
 }
 
 /**
  * NŒUD `test` d'un Flow (`Flow<E>`, `engine/flowCore.ts:559`) — jet ALÉATOIRE interactif dont l'issue
- * choisit la branche `success` ou `fail`. Le nœud ne dépend PAS du type de la feuille `do` de ses
+ * choisit la branche `reussite` ou `echec`. Le nœud ne dépend PAS du type de la feuille `effet` de ses
  * branches : seul le schéma de BRANCHE change (`arbreDeFlow`, composé par `flowSchema` mécanique et
  * `sceneFlowSchema`, `defs-scenes/effets.ts`). La fabrique le déclare donc une seule fois, paramétré
  * par sa branche — `test` est toujours `flowTestSchema`, la forme UNIQUE du jet en donnée.
  */
 export function noeudTest<B extends z.ZodType>(branche: B, options: OptionsNoeudTest = {}) {
-  const marque = marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('test'), test: flowTestSchema, success: branche, fail: branche }), { kind: { label: "type"  }, test: { label: "Test" }, success: { label: "réussite" , texte: { regime: "technique",usage: "branche de Flow paramétrée par son schéma"} }, fail: { label: "échec" , texte: { regime: "technique",usage: "branche de Flow paramétrée par son schéma"} } }), 'noeudTest', 'test');
+  const marque = marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('test'), test: flowTestSchema, reussite: branche, echec: branche }), { kind: { label: "type"  }, test: { label: "Test" }, reussite: { label: "réussite" , texte: { regime: "technique",usage: "branche de Flow paramétrée par son schéma"} }, echec: { label: "échec" , texte: { regime: "technique",usage: "branche de Flow paramétrée par son schéma"} } }), 'noeudTest', 'test');
   const exige = options.difficulteRequise ? marque.superRefine(exigerDuTest('difficulty')) : marque;
   const noeud = options.decisionAuPorteur
     ? exige.superRefine((v, ctx) => refuserLaDecision(v, ctx, 'la Difficulté de ce nœud se décide au porteur.'))
@@ -1327,25 +1325,24 @@ export function noeudTest<B extends z.ZodType>(branche: B, options: OptionsNoeud
   return noeud.superRefine((valeur, ctx) => {
     // La branche est GÉNÉRIQUE (`B extends z.ZodType`) : son type de sortie est opaque ici, seule la
     // FORME du nœud de Flow est inspectée — celle que `flowCore.ts` déclare pour tout `Flow<E>`.
-    const v = valeur as { success: unknown; fail: unknown };
-    const succes = v.success as { kind?: string; steps?: unknown[] };
-    if (succes?.kind !== 'seq' || (succes.steps ?? []).length > 0) {
+    const v = valeur as FlowTestNode<unknown>;
+    if (v.reussite.kind !== 'sequence' || v.reussite.etapes.length > 0) {
       ctx.addIssue({
         code: 'custom',
-        path: ['success'],
+        path: ['reussite' satisfies keyof FlowTestNode<unknown>],
         message:
-          'ce nœud ne SERT que sa branche d’ÉCHEC : une branche « success » peuplée ne serait jamais jouée. '
-          + 'Elle s’écrit vide : {kind:"seq",steps:[]}.',
+          'ce nœud ne SERT que sa branche d’ÉCHEC : une branche « reussite » peuplée ne serait jamais jouée. '
+          + 'Elle s’écrit vide : {kind:"sequence",etapes:[]}.',
       });
     }
-    const embranchement = kindDEmbranchement(v.fail);
+    const embranchement = kindDEmbranchement(v.echec);
     if (embranchement) {
       ctx.addIssue({
         code: 'custom',
-        path: ['fail'],
+        path: ['echec' satisfies keyof FlowTestNode<unknown>],
         message:
           'branche d’ÉCHEC à EMBRANCHEMENT (« ' + embranchement + ' ») : ce nœud est lu par extraction PLATE '
-          + '(spellOps), qui appliquerait les ops des DEUX côtés. La branche d’échec ne porte que des feuilles « do ».',
+          + '(spellOps), qui appliquerait les ops des DEUX côtés. La branche d’échec ne porte que des feuilles « effet ».',
       });
     }
   });
@@ -1613,17 +1610,17 @@ function payloadsDe(regimes: Regimes): Readonly<Record<string, z.ZodType<unknown
  *  non typées (`OPS_NON_TYPEES`), quelle que soit la famille qui l'atteint. */
 const OP_EN_DONNEE = z.looseObject({ op: z.string() });
 
-/** `Flow<E>` (`engine/flowCore.ts:559`) — arbre récursif ACYCLIQUE (seq/do/if/test/choice), paramétré
- *  par sa feuille `do`, sa `Condition` et le coût d'Avantage de son `choice`. */
+/** `Flow<E>` (`engine/flowCore.ts:559`) — arbre récursif ACYCLIQUE (sequence/effet/si/test/choix), paramétré
+ *  par sa feuille `effet`, sa `Condition` et le coût d'Avantage de son `choix`. */
 export function arbreDeFlow<E>(feuille: z.ZodType<E>, condition: z.ZodType<Condition>, coutDAvantage: z.ZodType<number | typeof INDICE_TEMPLATE>): z.ZodType<Flow<E>> {
   const flow: z.ZodType<Flow<E>> = z.lazy(() =>
     z.discriminatedUnion('kind', [
-      variante('Séquence', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('seq'), steps: z.array(flow) }), { kind: { label: "type"  }, steps: { label: "étape" } }), 'arbreDeFlow', 'flow.seq')),
-      variante('Effet', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('do'), effect: feuille }), { kind: { label: "type"  }, effect: { label: "effet" } }), 'arbreDeFlow', 'flow.do')),
-      variante('Si', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('if'), cond: condition, then: flow, else: flow.optional() }), { kind: { label: "type"  }, cond: { label: "condition" }, then: { label: "alors" }, else: { label: "sinon" } }), 'arbreDeFlow', 'flow.if')),
+      variante('Séquence', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('sequence'), etapes: z.array(flow) }), { kind: { label: "type"  }, etapes: { label: "étape" } }), 'arbreDeFlow', 'flow.seq')),
+      variante('Effet', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('effet'), effet: feuille }), { kind: { label: "type"  }, effet: { label: "effet" } }), 'arbreDeFlow', 'flow.do')),
+      variante('Si', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('si'), condition, alors: flow, sinon: flow.optional() }), { kind: { label: "type"  }, condition: { label: "condition" }, alors: { label: "alors" }, sinon: { label: "sinon" } }), 'arbreDeFlow', 'flow.if')),
       variante('Test', noeudTest(flow)),
       variante('Choix', proseNommee(nommerChamps(z.strictObject({
-        kind: z.literal('choice'),
+        kind: z.literal('choix'),
         advantageCost: coutDAvantage.optional(),
         icon: idDIconeSchema.optional(),
         oui: flow,
@@ -1663,7 +1660,7 @@ function construire(regimes: Regimes) {
   }), { op: { label: "opération" , texte: { regime: "technique"} } }), 'construire', 'gameOp').transform((v) => v as GameOp);
 
   /** EFFECTOP — pont UNIQUE entre la logique authorée (Flow) et le moteur mécanique des sorts : applique
-   *  des `GameOp` à une cible (`party`/`hero` scène, ou `caster`/`target` incantation). Feuille `do` par
+   *  des `GameOp` à une cible (`party`/`hero` scène, ou `caster`/`target` incantation). Feuille `effet` par
    *  DÉFAUT du `Flow<E>` générique (`engine/flowCore.ts:559`), et l'un des membres de l'union `Effect` de
    *  scène (`defs-scenes/effets.ts`). `on` = les 5 valeurs de
    *  l'interface TS : `'party'`/`'hero'`/`'navire'` (scène) ou `'caster'`/`'target'` (contexte d'incantation). Le

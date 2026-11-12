@@ -172,8 +172,8 @@ describe('renameActionAuthoree — l’unicité d’un id d’action se garde au
   const decor = (actions: ActionAuthoree[]): SceneEntity =>
     ({ id: 'coffre', kind: 'prop', pos: { x: 1, y: 1 }, decor: { id: 'coffre' }, usable: { actions } });
   const deux = (): ActionAuthoree[] => [
-    { id: 'fouiller', flow: { kind: 'seq', steps: [] } },
-    { id: 'crocheter', flow: { kind: 'seq', steps: [] } },
+    { id: 'fouiller', flow: { kind: 'sequence', etapes: [] } },
+    { id: 'crocheter', flow: { kind: 'sequence', etapes: [] } },
   ];
 
   it('vers un id LIBRE : renommé', () => {

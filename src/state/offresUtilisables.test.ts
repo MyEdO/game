@@ -25,7 +25,7 @@ function poser(entities: SceneEntity[], partyPos = { x: 5, y: 6 }): Scene {
 const coffre = (over: Partial<SceneEntity> = {}): SceneEntity =>
   ({
     id: 'coffre', kind: 'prop', pos: { x: 5, y: 5 }, label: 'Coffre bardé de fer',
-    usable: { actions: [{ id: 'fouiller', flow: { kind: 'seq', steps: [] }, unique: true }] },
+    usable: { actions: [{ id: 'fouiller', flow: { kind: 'sequence', etapes: [] }, unique: true }] },
     ...over,
   }) as SceneEntity;
 

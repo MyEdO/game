@@ -7,7 +7,8 @@
 ## en retire, masqué case par case dans le shader sans toucher ni aux maillages ni à leur ombre (`retirer`) ; les nappes
 ## de toit et les couronnes crénelées des murs, dans des matières standard, réconciliées de même par clé et empreinte ;
 ## les arêtes de la scène, en unités de plateau, chacune la pièce du kit des arêtes (`KIT`) que l'arête nomme, sinon sa
-## boîte ; et ce que qui l'instancie en cache à la caméra (`cacher`) ou en retire (`retirer_les_couronnes`).
+## boîte, en groupes d'instances (`poser_les_aretes`) ; et ce que qui l'instancie en cache à la caméra (`cacher`) ou en
+## retire (`retirer_les_couronnes`).
 class_name VolumeDeScene
 extends Node3D
 
@@ -52,8 +53,9 @@ var _masque: Image = null
 var _retrait: ImageTexture = null
 ## Le kit des arêtes, hors de l'arbre, `null` sans kit au projet.
 var _kit: Node3D
-## Les clés des arêtes, des nappes de toit et des couronnes cachées à la caméra (`cacher`).
-var _cachees := {aretes = [], toits = [], couronnes = []}
+## Les clés des arêtes cachées à la caméra (`cacher`), indexées (`aretes`, chaque clé à `true`), et celles des nappes
+## de toit et des couronnes cachées, en tableaux (`toits`, `couronnes`).
+var _cachees := {aretes = {}, toits = [], couronnes = []}
 ## Les clés des couronnes retirées (`retirer_les_couronnes`).
 var _retirees: Array = []
 
@@ -212,18 +214,27 @@ func _nappe(nappe: Dictionary) -> MeshInstance3D:
 	return instance
 
 
-## Les arêtes `aretes` (`CONTRAT.md`, méthode `aretes`), chacune sur le côté de sa case, debout à son pied (`_piece`),
-## cachée si `cacher` la nomme ; réconciliées par clé (`reconcilier`) : une arête inchangée à la même échelle garde sa
-## pièce, une arête changée (une porte ouverte) reçoit la sienne, une arête partie la quitte.
+## Les arêtes `aretes` (`CONTRAT.md`, méthode `aretes`), chacune sur le côté de sa case, debout à son pied, en groupes
+## d'instances : les arêtes de même `bloc`, `famille`, `piece`, `sens` et `hauteurM`, dans l'ordre reçu, une instance
+## chacune de chaque maillage de leur pièce (`_groupe`) ; cachées si `cacher` les nomme. Les groupes sont réconciliés
+## par clé (`reconcilier`) : un groupe dont les arêtes n'ont pas changé à la même échelle reste, un groupe changé (une
+## porte ouverte quitte un groupe et en rejoint un autre) est refait, un groupe parti quitte l'arbre.
 func poser_les_aretes(aretes: Array) -> void:
-	reconcilier(_aretes, aretes.map(func(a: Dictionary) -> Dictionary: return {cle = a.cle, empreinte = [a, metres_par_case]}), par_cle(aretes), _piece)
+	var groupes := {}
+	for a: Dictionary in aretes:
+		groupes.get_or_add("%s|%s|%s|%s|%s|%s" % [a.bloc, a.famille, a.piece, a.sens.x, a.sens.y, a.hauteurM], []).append(a)
+	reconcilier(_aretes, groupes.keys().map(func(cle: String) -> Dictionary: return {cle = cle, empreinte = [groupes[cle], metres_par_case]}), groupes, _groupe)
 	_montrer_le_pose()
 
 
-## Chaque arête cachée à la caméra si `aretes` la nomme, chaque nappe de toit si `toits` la nomme, chaque couronne si
-## `couronnes` la nomme, par leur clé (`_cacher_sous`) ; montrées sinon, et de même pour celles qui se poseront.
+## Chaque arête cachée à la caméra si `aretes` la nomme, son ombre gardée (`_ecrire_les_instances`), chaque nappe de
+## toit si `toits` la nomme, chaque couronne si `couronnes` la nomme (`_cacher_sous`), par leur clé ; montrées sinon, et
+## de même pour celles qui se poseront. Une clé qui ne nomme rien de posé ne cache rien.
 func cacher(aretes: Array, toits: Array, couronnes: Array) -> void:
-	_cachees = {aretes = aretes, toits = toits, couronnes = couronnes}
+	var index := {}
+	for cle in aretes:
+		index[cle] = true
+	_cachees = {aretes = index, toits = toits, couronnes = couronnes}
 	_montrer_le_pose()
 
 
@@ -234,37 +245,36 @@ func retirer_les_couronnes(cles: Array) -> void:
 
 
 func _montrer_le_pose() -> void:
-	_cacher_sous(_aretes, _cachees.aretes)
+	for groupe: Node3D in _aretes.get_children():
+		_ecrire_les_instances(groupe)
 	_cacher_sous(_toits, _cachees.toits)
 	_cacher_sous(_couronnes, _cachees.couronnes)
 	for couronne: Node3D in _couronnes.get_children():
 		couronne.visible = not _retirees.has(couronne.get_meta("cle"))
 
 
-## Ce qui est posé : le nombre de triangles peints des morceaux posés, masqués compris, d'arêtes et de nappes de toit
-## posées, et de couronnes montrées.
+## Ce qui est posé : le nombre de triangles peints des morceaux posés, masqués compris, d'arêtes posées (celles de
+## chaque groupe), de nappes de toit posées, et de couronnes montrées.
 func ce_qui_est_pose() -> Dictionary:
 	var triangles := 0
 	for morceau: Node3D in _morceaux.get_children():
 		triangles = int(MiseEnPage.triangles_de_plus(triangles, (morceau.get_node("Vu") as MeshInstance3D).mesh.get_faces().size()))
+	var aretes := []
+	for groupe: Node3D in _aretes.get_children():
+		aretes.append_array(groupe.get_meta("aretes"))
 	return {
 		triangles = triangles,
-		aretes = _aretes.get_child_count(),
+		aretes = aretes.size(),
 		toits = _toits.get_child_count(),
 		couronnes = _couronnes.get_children().filter(func(couronne: Node3D) -> bool: return couronne.visible).size(),
 	}
 
 
-## Chaque pièce sous `parent` que `cles` nomme cachée à la caméra, chacun de ses maillages en ombre seule
-## (`SHADOWS_ONLY`, #3758), montrée sinon.
+## Chaque nappe sous `parent` (`_nappe`) que `cles` nomme cachée à la caméra, en ombre seule (`SHADOWS_ONLY`, #3758),
+## montrée sinon.
 func _cacher_sous(parent: Node3D, cles: Array) -> void:
-	for piece: Node3D in parent.get_children():
-		var ombre := GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY if cles.has(piece.get_meta("cle")) else GeometryInstance3D.SHADOW_CASTING_SETTING_ON
-		var maillages := piece.find_children("*", "GeometryInstance3D", true, false)
-		if piece is GeometryInstance3D:
-			maillages.append(piece)
-		for maillage: GeometryInstance3D in maillages:
-			maillage.cast_shadow = ombre
+	for nappe: GeometryInstance3D in parent.get_children():
+		nappe.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY if cles.has(nappe.get_meta("cle")) else GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 
 
 ## Le maillage d'une géométrie du monde (`positions`, `normales`, `couleurs`, `surfaces`) : une surface par matière,
@@ -393,21 +403,90 @@ static func texturer(materiau: Material, nom: String) -> void:
 		materiau.set(propriete + "normal_texture", load(relief_de(nom)))
 
 
-## La pièce de l'arête `a`, debout à son pied (`a.pied`) : celle du kit, `<famille>--<pièce>`, étirée à la longueur de
-## l'arête et à la hauteur de son mur (`MiseEnPage.echelle_de_piece`) ; sinon sa boîte (`_boite`).
-func _piece(a: Dictionary) -> Node3D:
-	var nom := "%s--%s" % [a.famille, a.piece]
-	if _kit == null or a.famille == null or not _kit.has_node(nom):
-		var boite := MeshInstance3D.new()
-		poser_sur_l_arete(boite, _boite(a.piece), a)
-		return boite
+## Le nœud du groupe des arêtes `aretes` (même `bloc`, `famille`, `piece`, `sens` et `hauteurM`), à l'origine de
+## `Aretes` : orienté et étiré sur leur sens (`_etirer_sur`), il porte leur pièce, celle du kit, `<famille>--<pièce>`,
+## mise à la hauteur de leur mur (`MiseEnPage.echelle_de_piece`), sinon leur boîte (`_boite`), où chaque maillage
+## devient deux instances groupées de même place et de même maillage (`_instances`), une par arête : `Vu_<maillage>`,
+## que la caméra voit sans qu'il porte d'ombre, et `Ombre_<maillage>`, en ombre seule (`SHADOWS_ONLY`, #3758). Les
+## arêtes vont en méta (`aretes`) ; les instances s'écrivent une fois le groupe dans l'arbre (`_ecrire_les_instances`).
+func _groupe(aretes: Array) -> Node3D:
+	var a: Dictionary = aretes[0]
 	var sens := Vector2(a.sens.x, a.sens.y)
-	var piece := Node3D.new()
-	piece.position = MiseEnPage.centre_d_arete(Vector2(a.milieu.x, a.milieu.y), a.pied, metres_par_case, 0.0)
-	piece.rotation.y = MiseEnPage.lacet_d_arete(sens)
-	piece.scale = MiseEnPage.echelle_de_piece(sens, a.hauteurM, metres_par_case)
-	piece.add_child(_kit.get_node(nom).duplicate())
-	return piece
+	var nom := "%s--%s" % [a.famille, a.piece]
+	var groupe := Node3D.new()
+	_etirer_sur(groupe, sens)
+	var socle := 0.0
+	if _kit != null and a.famille != null and _kit.has_node(nom):
+		groupe.scale = MiseEnPage.echelle_de_piece(sens, a.hauteurM, metres_par_case)
+		groupe.add_child(_kit.get_node(nom).duplicate())
+	else:
+		var boite := MeshInstance3D.new()
+		boite.name = "Boite"
+		boite.mesh = _boite(a.piece)
+		socle = boite.mesh.size.y
+		groupe.add_child(boite)
+	for maillage: MeshInstance3D in groupe.find_children("*", "MeshInstance3D", true, false):
+		var vu := _instances(maillage, "Vu_%s" % maillage.name, GeometryInstance3D.SHADOW_CASTING_SETTING_OFF, aretes.size(), socle)
+		var ombre := _instances(maillage, "Ombre_%s" % maillage.name, GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY, aretes.size(), socle)
+		vu.set_meta("ombre", ombre)
+		maillage.add_sibling(vu)
+		maillage.add_sibling(ombre)
+		maillage.get_parent().remove_child(maillage)
+		maillage.free()
+	groupe.set_meta("aretes", aretes)
+	return groupe
+
+
+## Les instances groupées `nom` du maillage de `maillage`, à sa place, dans ses matières, `nombre` instances projetant
+## l'ombre `ombre`, pour une pièce dont le centre est à `socle` au-dessus de son pied (`translation_d_instance`).
+func _instances(maillage: MeshInstance3D, nom: String, ombre: GeometryInstance3D.ShadowCastingSetting, nombre: int, socle: float) -> MultiMeshInstance3D:
+	var multimesh := MultiMesh.new()
+	multimesh.transform_format = MultiMesh.TRANSFORM_3D
+	multimesh.mesh = maillage.mesh
+	multimesh.instance_count = nombre
+	var instances := MultiMeshInstance3D.new()
+	instances.name = nom
+	instances.multimesh = multimesh
+	instances.transform = maillage.transform
+	instances.cast_shadow = ombre
+	instances.set_meta("socle", socle)
+	return instances
+
+
+## Les instances du groupe `groupe` (`_groupe`), une par arête, dans l'ordre des arêtes montrées puis des arêtes cachées
+## (`cacher`), le même pour chaque maillage : `Vu_<maillage>` n'en montre que les premières, `Ombre_<maillage>` les
+## projette toutes. Réécrites seulement si l'ensemble de ses arêtes cachées, lu à l'index de `cacher`, a changé depuis
+## la dernière écriture (méta `cachees`, absente d'un groupe neuf).
+func _ecrire_les_instances(groupe: Node3D) -> void:
+	var aretes: Array = groupe.get_meta("aretes")
+	var cachees := aretes.filter(func(a: Dictionary) -> bool: return _cachees.aretes.has(a.cle))
+	var cles := cachees.map(func(a: Dictionary) -> String: return a.cle)
+	if groupe.has_meta("cachees") and groupe.get_meta("cachees") == cles:
+		return
+	var ordre := aretes.filter(func(a: Dictionary) -> bool: return not _cachees.aretes.has(a.cle))
+	var montrees := ordre.size()
+	ordre.append_array(cachees)
+	for vu: MultiMeshInstance3D in groupe.find_children("Vu_*", "MultiMeshInstance3D", true, false):
+		var ombre: MultiMeshInstance3D = vu.get_meta("ombre")
+		for rang in ordre.size():
+			var instance := Transform3D(Basis.IDENTITY, translation_d_instance(vu, ordre[rang]))
+			vu.multimesh.set_instance_transform(rang, instance)
+			ombre.multimesh.set_instance_transform(rang, instance)
+		vu.multimesh.visible_instance_count = montrees
+	groupe.set_meta("cachees", cles)
+
+
+## La translation, dans `instances` (des instances groupées d'un maillage d'un groupe d'arêtes, dans l'arbre), de
+## l'instance de l'arête `a` : là où ce maillage était quand sa pièce se posait au centre de l'arête
+## (`MiseEnPage.centre_d_arete`, à son socle), lu par un témoin sans rotation ni échelle posé à ce centre sous `Aretes`.
+func translation_d_instance(instances: MultiMeshInstance3D, a: Dictionary) -> Vector3:
+	var temoin := Node3D.new()
+	_aretes.add_child(temoin)
+	temoin.position = MiseEnPage.centre_d_arete(Vector2(a.milieu.x, a.milieu.y), a.pied, metres_par_case, instances.get_meta("socle"))
+	var translation := instances.to_local(temoin.to_global(_aretes.to_local(instances.global_position)))
+	_aretes.remove_child(temoin)
+	temoin.free()
+	return translation
 
 
 ## La boîte de la pièce `piece` d'une arête : le seuil d'une porte ouverte ou d'une brèche, une porte fermée, sinon un
@@ -424,7 +503,11 @@ func _boite(piece: String) -> BoxMesh:
 ## Le maillage `mesh` posé par `instance` sur l'arête `a`, debout à son pied (`a.pied`).
 func poser_sur_l_arete(instance: MeshInstance3D, mesh: BoxMesh, a: Dictionary) -> void:
 	instance.mesh = mesh
-	var sens := Vector2(a.sens.x, a.sens.y)
 	instance.position = MiseEnPage.centre_d_arete(Vector2(a.milieu.x, a.milieu.y), a.pied, metres_par_case, mesh.size.y)
-	instance.rotation.y = MiseEnPage.lacet_d_arete(sens)
-	instance.scale.x = MiseEnPage.longueur_d_arete(sens)
+	_etirer_sur(instance, Vector2(a.sens.x, a.sens.y))
+
+
+## `noeud` orienté sur une arête qui court selon `sens` et étiré à sa longueur.
+func _etirer_sur(noeud: Node3D, sens: Vector2) -> void:
+	noeud.rotation.y = MiseEnPage.lacet_d_arete(sens)
+	noeud.scale.x = MiseEnPage.longueur_d_arete(sens)

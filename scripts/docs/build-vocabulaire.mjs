@@ -381,7 +381,7 @@ function rendu() {
   out += section(
     'Condition — l\'algèbre de test PURE des flux',
     flow, 'Condition', 'kind', '`kind`',
-    'Prédicat PUR évalué par `evalCondition` : le `cond` d\'un nœud `Flow` `if`, le `lockedUntil` d\'un État, le gate d\'un\neffet déclenché. Composables par `all`/`any`/`not`.',
+    'Prédicat PUR évalué par `evalCondition` : le `cond` d\'un nœud `Flow` `si`, le `lockedUntil` d\'un État, le gate d\'un\neffet déclenché. Composables par `all`/`any`/`not`.',
   )
   out += section(
     'Flow — les nœuds de flux authorés',

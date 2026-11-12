@@ -95,7 +95,7 @@ describe('entityBlockedAt — empreinte multi-cases des décors', () => {
     expect(entityBlockedAt(scene, 4, 3, 0)).toBe(false); // la charrette 2×1 ne couvrait pas cette case
   });
   it('décor INTERACTIF 1×1 (coffre fouillable) bloque sa case — on l’aborde, on ne marche pas dessus', () => {
-    const chest = { id: 'k', kind: 'prop', pos: { x: 6, y: 6 }, decor: { id: 'coffre' }, usable: { actions: [{ id: 'fouiller', flow: { kind: 'seq', steps: [] } }] } } as unknown as SceneEntity;
+    const chest = { id: 'k', kind: 'prop', pos: { x: 6, y: 6 }, decor: { id: 'coffre' }, usable: { actions: [{ id: 'fouiller', flow: { kind: 'sequence', etapes: [] } }] } } as unknown as SceneEntity;
     const sc2 = { entities: [chest] } as unknown as Scene;
     expect(entityBlockedAt(sc2, 6, 6, 0)).toBe(true);
     expect(entityBlockedAt(sc2, 7, 6, 0)).toBe(false); // adjacent libre (fouille P5 / Ramasser en combat)

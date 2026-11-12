@@ -35,8 +35,8 @@ const hub = (retouche: (copie: Scene) => void): Scene => {
 
 /** Le chemin de l'effet du premier choix du premier nœud du dialogue du médecin, et le hub où cet effet vaut `effet`. */
 const RANG_DIALOGUE = HUB.dialogues.findIndex((d) => d.id === 'dlg-medecin');
-const EFFET = `dialogues.${RANG_DIALOGUE}.nodes.0.choices.0.flow.steps.0.effect`;
-const avecEffet = (effet: unknown) => hub((c) => Object.assign(c.dialogues[RANG_DIALOGUE].nodes[0].choices[0].flow!.steps![0], { effect: effet }));
+const EFFET = `dialogues.${RANG_DIALOGUE}.nodes.0.choices.0.flow.etapes.0.effet`;
+const avecEffet = (effet: unknown) => hub((c) => Object.assign(c.dialogues[RANG_DIALOGUE].nodes[0].choices[0].flow!.etapes![0], { effet }));
 
 const PORTEURS = [
   {

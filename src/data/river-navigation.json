@@ -177,7 +177,7 @@
       "note": "ch.5 « Navigation fluviale » — TABLEAU DES VENTS, notes 4-5 (l.40-41)."
     }
   },
-  "outOfControl": {
+  "horsDeControle": {
     "navPenalty": -20,
     "source": {
       "book": "mort-sur-le-reik-compagnon",

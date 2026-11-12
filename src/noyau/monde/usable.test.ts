@@ -32,7 +32,7 @@ const ids = (sc: Scene, e: SceneEntity) => actionsDe(sc, e).map((a) => a.id);
 
 /** Une action AUTHORÉE minimale : un id, un Flow vide — l'auteur n'a rien d'autre à poser. */
 const action = (id: string, over: Partial<ActionAuthoree> = {}): ActionAuthoree =>
-  ({ id, flow: { kind: 'seq', steps: [] }, ...over });
+  ({ id, flow: { kind: 'sequence', etapes: [] }, ...over });
 
 describe('actionsDe — les CAPACITÉS D’INSTANCE se dérivent sans rien activer', () => {
   it('un PNJ à `dialogueId` est utilisable SANS `usable`', () => {

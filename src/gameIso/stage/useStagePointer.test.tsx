@@ -918,7 +918,7 @@ describe('useStagePointer — le décor VOLUMIQUE se désigne, et ne coûte que 
     const scene = emptyScene('scene-test', 8, 8);
     scene.entities = [{
       id: 'table-1', kind: 'prop', pos: { x: 2, y: 3 }, decor: { id: ref }, facing: 'S',
-      usable: { actions: [{ id: 'fouiller', flow: { kind: 'seq', steps: [] }, unique: true }] },
+      usable: { actions: [{ id: 'fouiller', flow: { kind: 'sequence', etapes: [] }, unique: true }] },
     }] as typeof scene.entities;
     return scene;
   };
@@ -1007,7 +1007,7 @@ describe('useStagePointer — le décor VOLUMIQUE se désigne, et ne coûte que 
       // Le meuble HAUT que le rayon touche alors que le pixel tombe sur la case de la table : posé
       // ADJACENT au groupe pour que son affordance se serve sur place, et donc s'observe.
       { id: 'comptoir-1', kind: 'prop', pos: { x: 3, y: 2 }, decor: { id: 'comptoir-droit' }, facing: 'S',
-        usable: { actions: [{ id: 'fouiller', flow: { kind: 'seq', steps: [] }, unique: true }] } },
+        usable: { actions: [{ id: 'fouiller', flow: { kind: 'sequence', etapes: [] }, unique: true }] } },
     ] as typeof scene.entities;
     const surLaTable = tileCenter(2, 3, dims);
 
@@ -1205,7 +1205,7 @@ describe('useStagePointer — le décor VOLUMIQUE se désigne, et ne coûte que 
     const prises = { 'place-1': pnjAssis('a'), 'place-2': pnjAssis('b'), 'place-3': pnjAssis('c'), 'place-4': pnjAssis('d') };
     scene.entities = [{
       id: 'table-1', kind: 'prop', pos: { x: 2, y: 3 }, decor: { id: 'table-ronde-4-tabourets' }, facing: 'S',
-      usable: { assise: true, actions: [{ id: 'fouiller', flow: { kind: 'seq', steps: [] }, unique: true }] },
+      usable: { assise: true, actions: [{ id: 'fouiller', flow: { kind: 'sequence', etapes: [] }, unique: true }] },
     }] as typeof scene.entities;
     scene.seatAssignments = { 'table-1': prises };
     const vierge = useGame.getInitialState();
@@ -1247,7 +1247,7 @@ describe('useStagePointer — le décor VOLUMIQUE se désigne, et ne coûte que 
     const scene = emptyScene('scene-test', 8, 8);
     scene.entities = [{
       id: 'table-1', kind: 'prop', pos: { x: 2, y: 3 }, decor: { id: 'table-ronde-4-tabourets' }, facing: 'S',
-      usable: { assise: true, actions: [{ id: 'fouiller', flow: { kind: 'seq', steps: [] }, unique: true }] },
+      usable: { assise: true, actions: [{ id: 'fouiller', flow: { kind: 'sequence', etapes: [] }, unique: true }] },
     }] as typeof scene.entities;
     scene.seatAssignments = { 'table-1': { 'place-1': pnjAssis('a'), 'place-2': pnjAssis('b'), 'place-3': pnjAssis('c'), 'place-4': pnjAssis('d') } };
     const vierge = useGame.getInitialState();
@@ -1294,7 +1294,7 @@ describe('useStagePointer — le décor VOLUMIQUE se désigne, et ne coûte que 
       // GÉOMÉTRIE d'assise existe, et il n'offre pourtant aucun geste.
       { id: 'table-1', kind: 'prop', pos: { x: 2, y: 3 }, decor: { id: 'table-ronde-4-tabourets' }, facing: 'S' },
       { id: 'coffre-1', kind: 'prop', pos: { x: 2, y: 3 }, decor: { id: REF_BILLBOARD }, facing: 'S',
-        usable: { actions: [{ id: 'fouiller', flow: { kind: 'seq', steps: [] }, unique: true }] } },
+        usable: { actions: [{ id: 'fouiller', flow: { kind: 'sequence', etapes: [] }, unique: true }] } },
     ] as typeof scene.entities;
     // La fixture DIT ce qu'elle prétend : le premier décor n'offre RIEN (`estUtilisable` faux) alors
     // que son type porte des places — la géométrie ne dépend pas de l'activation (`seatSlotsOf`),
@@ -1481,7 +1481,7 @@ describe('useStagePointer — le clic d’exploration joue l’intention du noya
     vi.useRealTimers();
   });
 
-  const FOUILLE = { id: 'fouiller', flow: { kind: 'seq' as const, steps: [] }, unique: true };
+  const FOUILLE = { id: 'fouiller', flow: { kind: 'sequence' as const, etapes: [] }, unique: true };
   const sceneAvec = (entities: Scene['entities']) => {
     const scene = emptyScene('scene-test', 8, 8);
     scene.entities = entities;

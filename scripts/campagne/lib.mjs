@@ -231,9 +231,9 @@ export function poste(trappingId, side, crewIds = []) {
   return { trappingId, side, crewIds };
 }
 
-/** Flow PLAT (séquence de `do`) à partir d'une liste d'Effets — forme attendue par `Trigger.flow`. */
+/** Flow PLAT (séquence de `effet`) à partir d'une liste d'Effets — forme attendue par `Trigger.flow`. */
 export function flowOf(effects) {
-  return { kind: 'seq', steps: effects.map((effect) => ({ kind: 'do', effect })) };
+  return { kind: 'sequence', etapes: effects.map((effet) => ({ kind: 'effet', effet })) };
 }
 /** Effect `document` (#679) qui remet au joueur l'entrée `doc` (`{ id, titre, prose }`) du registre
  *  `narratif.documents` du paquet — le générateur la déclare à ce registre et la désigne par son id. */
@@ -244,9 +244,9 @@ export function remetLeDocument(doc) {
 export function flagWhen(expr) {
   return { kind: 'flag', expr };
 }
-/** Nœud Flow `test` (jet de compétence → RÉUSSITE/ÉCHEC) ; `success`/`fail` = listes d'Effets (→ flowOf). */
-export function testNode(test, success = [], fail = []) {
-  return { kind: 'test', test, success: flowOf(success), fail: flowOf(fail) };
+/** Nœud Flow `test` (jet de compétence → RÉUSSITE/ÉCHEC) ; `reussite`/`echec` = listes d'Effets (→ flowOf). */
+export function testNode(test, reussite = [], echec = []) {
+  return { kind: 'test', test, reussite: flowOf(reussite), echec: flowOf(echec) };
 }
 
 /** Trigger de combat standard (une fois) : entrer dans le rect lance la rencontre. */

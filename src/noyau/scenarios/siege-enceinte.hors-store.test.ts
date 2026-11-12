@@ -335,11 +335,11 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
     // Servants de REMPART (affûts du chemin de ronde, z1) : alliés pilotés par l'IA.
     const crewRempart = crewAt(1);
     expect(crewRempart.length).toBeGreaterThan(0);
-    for (const id of crewRempart) expect(by(id)).toEqual({ entityId: id, side: 'ally', ai: true });
+    for (const id of crewRempart) expect(by(id)).toEqual({ entityId: id, side: 'allie', ai: true });
     // Servants de la BATTERIE assaillante (z0) : ennemis (pas d'IA-flag → agissent comme ennemis normaux).
     const crewBatterie = crewAt(0);
     expect(crewBatterie.length).toBeGreaterThan(0);
-    for (const id of crewBatterie) expect(by(id)).toEqual({ entityId: id, side: 'enemy' });
+    for (const id of crewBatterie) expect(by(id)).toEqual({ entityId: id, side: 'ennemi' });
     // Emplacements (rempart alliés / batterie ennemis) : INERTES, enrôlés SANS `ai`.
     const empls = scenarioConstruit.scene.entities.filter((e) => e.postes?.length);
     expect(empls.length).toBe(4);
@@ -351,6 +351,6 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
     // Gobelins fantassins : 6 ennemis (marqueurs 'o').
     const gobs = scenarioConstruit.scene.entities.filter((e) => e.creature?.id === 'gobelin');
     expect(gobs.length).toBe(6);
-    for (const g of gobs) expect(by(g.id)).toEqual({ entityId: g.id, side: 'enemy' });
+    for (const g of gobs) expect(by(g.id)).toEqual({ entityId: g.id, side: 'ennemi' });
   });
 });

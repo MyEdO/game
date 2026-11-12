@@ -24,7 +24,7 @@ describe('la bataille de masse par le pont', () => {
     }
     let c = corps(suite);
     expect(c['bataille/round'], 'le Round').toMatchObject({ texte: 'Round de bataille 1 / 3' });
-    expect(parId(c['armee/ally'] as Entite).puissance as Jauge, 'la Puissance alliée').toMatchObject({ courant: 50, texte: '50 · départ 50' });
+    expect(parId(c['armee/allie'] as Entite).puissance as Jauge, 'la Puissance alliée').toMatchObject({ courant: 50, texte: '50 · départ 50' });
     const tenue = parId(c['scene/tenez-votre-position'] as Entite);
     expect(tenue.position, 'la position tenue').toMatchObject({ libelle: 'Point de rupture 0/10' });
     expect((parId(c['scene/pluie-de-fleches'] as Entite).engager as Bouton).libelle, 'un combat engage tout le groupe, sans postes').toBe('Engager le combat');

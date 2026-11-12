@@ -55,7 +55,7 @@ const construireScene = (): Scene => buildScene({
         // index 4 = l'ANGUILLE DU REIK, dans l'eau entre les deux bateaux.
         { creature: { id: 'anguille-du-reik' }, pos: { x: 8, y: 6 }, label: 'Anguille du Reik' },
         // index 5 = la BARGE des aventuriers (coque MSRC), côté allié ; équipage exposé = 2 héros du pont.
-        { vehicule: { id: 'barge-fluviale' }, pos: { x: 3, y: 6 }, side: 'ally', label: 'Barge des aventuriers',
+        { vehicule: { id: 'barge-fluviale' }, pos: { x: 3, y: 6 }, side: 'allie', label: 'Barge des aventuriers',
           crewIds: [...CREW] },
       ],
     },

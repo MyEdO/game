@@ -88,8 +88,8 @@ function construireScene(): Scene {
         id: 'greement',
         victoryCondition: { type: 'woundsThreshold', targetId: 'cogue-pirate', atOrBelowPercent: 50 },
         members: [
-          { entityId: 'cogue-test', side: 'ally' },
-          { entityId: 'cogue-pirate', side: 'enemy' },
+          { entityId: 'cogue-test', side: 'allie' },
+          { entityId: 'cogue-pirate', side: 'ennemi' },
         ],
       },
     ],

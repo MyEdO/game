@@ -164,7 +164,7 @@ describe('#1262 lot 3 — un Test déclenché HORS fin de Round ne se roule pas 
       // `source` : l'entité porteuse, telle que `withSource` la tague au dispatcher — c'est d'elle que
       // l'étape DÉRIVE son enjeu (#1262 V2 L6d). Une fixture sans porteur ne serait pas le chemin réel.
       source: { kind: 'etat', id: 'empoisonne' },
-      flow: { kind: 'test', test: { skill: 'resistance', difficulty: 'intermediaire', label: 'Tenir bon' }, success: { kind: 'seq', steps: [] }, fail: { kind: 'seq', steps: [] } },
+      flow: { kind: 'test', test: { skill: 'resistance', difficulty: 'intermediaire', label: 'Tenir bon' }, reussite: { kind: 'sequence', etapes: [] }, echec: { kind: 'sequence', etapes: [] } },
     } as unknown as TriggeredEffect;
 
     expect(isOutOfAction(H), 'sonde inerte sans ça : le porteur DOIT être hors d’action').toBe(true);
@@ -210,7 +210,7 @@ describe('#1262 lot 3 — un « Vous pouvez… » ne se tranche pas chez l’hô
     const { H } = setupCoop();
     const eff = {
       trigger: 'onHit', on: 'self', optional: true,
-      flow: { kind: 'test', test: { skill: 'calme', difficulty: 'intermediaire', label: 'Se ressaisir' }, success: { kind: 'seq', steps: [] }, fail: { kind: 'seq', steps: [] } },
+      flow: { kind: 'test', test: { skill: 'calme', difficulty: 'intermediaire', label: 'Se ressaisir' }, reussite: { kind: 'sequence', etapes: [] }, echec: { kind: 'sequence', etapes: [] } },
     } as unknown as TriggeredEffect;
 
     applyTriggeredEffects(g, H, [eff], 'onHit', { rng: desDuTest, set: banc.setState });

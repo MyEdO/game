@@ -20,8 +20,8 @@ const heros = (label: string, seed: number) => {
   h.fortune = 2; h.resilience = 2; h.characteristics.force = 45;
   return h;
 };
-const apres = (flag: string): Flow => ({ kind: 'do', effect: { type: 'setFlag', flag } });
-const puis = (effect: Effect, flag: string): Flow => ({ kind: 'seq', steps: [{ kind: 'do', effect }, apres(flag)] });
+const apres = (flag: string): Flow => ({ kind: 'effet', effet: { type: 'setFlag', flag } });
+const puis = (effect: Effect, flag: string): Flow => ({ kind: 'sequence', etapes: [{ kind: 'effet', effet: effect }, apres(flag)] });
 
 beforeEach(() => {
   banc.setState({ battle: null, party: [heros('Vivant', 1), heros('Autre', 2)], flags: {}, etats: {},
@@ -39,9 +39,9 @@ describe('designerHeros — la désignation porte la suite du Flow', () => {
   });
 
   it('`runFlow` : la suite au-delà du LOT (un `if` qui suit) attend elle aussi le choix', () => {
-    runFlow(get, banc.setState, { kind: 'seq', steps: [
-      { kind: 'do', effect: { type: 'designerHeros', etat: 'sosie' } },
-      { kind: 'if', cond: { kind: 'etat', etat: 'sosie' }, then: apres('sosie-designe'), else: apres('sosie-absent') },
+    runFlow(get, banc.setState, { kind: 'sequence', etapes: [
+      { kind: 'effet', effet: { type: 'designerHeros', etat: 'sosie' } },
+      { kind: 'si', condition: { kind: 'etat', etat: 'sosie' }, alors: apres('sosie-designe'), sinon: apres('sosie-absent') },
     ] });
     expect(get().flags['sosie-absent'], 'la branche ne s’évalue pas avant la désignation').toBeUndefined();
     get().fenetreChoisir('designationHeros', 'heros', 'h-1');
@@ -57,7 +57,7 @@ describe('designerHeros — la désignation porte la suite du Flow', () => {
   });
 
   it('l’invite de l’Effet est portée par la désignation', () => {
-    runFlow(get, banc.setState, { kind: 'do', effect: { type: 'designerHeros', etat: 'sosie', invite: 'Lequel ?' } });
+    runFlow(get, banc.setState, { kind: 'effet', effet: { type: 'designerHeros', etat: 'sosie', invite: 'Lequel ?' } });
     expect(get().pendingDesignationHeros?.invite).toBe('Lequel ?');
   });
 

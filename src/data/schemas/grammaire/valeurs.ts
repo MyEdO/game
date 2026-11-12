@@ -9,6 +9,7 @@ import { tableTotale } from '../../../lib/tableTotale';
 import type { Dir8 } from '../../../geometry/dir8';
 import type { FormuleSansTirage } from '../../../engine/ops';
 import type { RegleOptionnelleId } from '../../../engine/policy';
+import type { Equipe } from '../../../engine/relations';
 import { z } from 'zod';
 import { parseStatus } from '../../../engine/money';
 import { parseDice, totalDuDe } from '../../../engine/dice';
@@ -72,10 +73,13 @@ export function enumNomme<const V extends Readonly<Record<string, string>>>(
   return noeud;
 }
 
-/** Taille d'agglomération d'un marché : la colonne de la table de Disponibilité (LDB 59 l.25-34). */
 /** Id d'icône du registre `src/data/icons/` (`npm run gen`) : un id hors registre se refuse au parse. */
 export const idDIconeSchema = enumNomme(LIBELLES_DES_ICONES);
 
+/** Équipe d'un combattant ou d'une armée (`Equipe`, `engine/relations.ts`). */
+export const equipeSchema = enumNomme({ allie: 'Allié', ennemi: 'Ennemi' } satisfies Record<Equipe, string>);
+
+/** Taille d'agglomération d'un marché : la colonne de la table de Disponibilité (LDB 59 l.25-34). */
 export const settlementSchema = enumNomme({ village: 'village', ville: 'ville', cite: 'cité' });
 export type Settlement = z.output<typeof settlementSchema>;
 

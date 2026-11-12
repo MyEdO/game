@@ -3,8 +3,8 @@ import { scanMarcheursDeFlow, marcheurLabel } from '../scripts/guards/lib/marche
 import { readCorpus, sAppliqueA } from '../scripts/guards/lib/sourceCorpus.mjs';
 
 /**
- * UN SEUL MARCHEUR DE FLOW (#1874 DoD 4). Exécuter un Flow, c'est `executerFlow` : la marche décide `seq`
- * et `if`, ses hôtes (`runFlow`, `runCombatFlow`, `runPureFlowLines`, le consommable) ne décident que ce
+ * UN SEUL MARCHEUR DE FLOW (#1874 DoD 4). Exécuter un Flow, c'est `executerFlow` : la marche décide `sequence`
+ * et `si`, ses hôtes (`runFlow`, `runCombatFlow`, `runPureFlowLines`, le consommable) ne décident que ce
  * qu'elle leur délègue. Le parcours de TOUT l'arbre (validation, chemins de nœud) est `walkFlow`. Les deux
  * vivent dans le module du Flow, le FOYER ; hors de lui, aucun marcheur, sans exception.
  * Empreinte et angles morts : en tête de `scripts/guards/lib/marcheursDeFlow.mjs`.
@@ -36,7 +36,7 @@ describe('marcheurs-de-flow-guard — l’empreinte sépare le MARCHEUR du PRÉD
       '  const stack = [flow];',
       '  while (stack.length) {',
       '    const node = stack.shift()!;',
-      "    switch (node.kind) { case 'seq': stack.unshift(...node.steps); break; case 'do': applique(node); break; }",
+      "    switch (node.kind) { case 'sequence': stack.unshift(...node.etapes); break; case 'effet': applique(node); break; }",
       '  }',
       '}',
     ].join('\n'))).toEqual(['src/noyau/x.ts [marche]']);
@@ -46,7 +46,7 @@ describe('marcheurs-de-flow-guard — l’empreinte sépare le MARCHEUR du PRÉD
     expect(scan([
       'export function lignes(flow: Flow): string[] {',
       '  const out: string[] = [];',
-      "  const walk = (f: Flow): void => { switch (f.kind) { case 'seq': f.steps.forEach(walk); break; case 'do': out.push('x'); break; } };",
+      "  const walk = (f: Flow): void => { switch (f.kind) { case 'sequence': f.etapes.forEach(walk); break; case 'effet': out.push('x'); break; } };",
       '  walk(flow);',
       '  return out;',
       '}',
@@ -56,13 +56,13 @@ describe('marcheurs-de-flow-guard — l’empreinte sépare le MARCHEUR du PRÉD
   it('PRÉDICAT (patron `flowHasChoiceSeulement`) : clause `seq` qui rend — non vu', () => {
     expect(scan([
       'function aDesChoix(flow: Flow): boolean {',
-      "  switch (flow.kind) { case 'do': return true; case 'seq': return flow.steps.every(aDesChoix); default: return false; }",
+      "  switch (flow.kind) { case 'effet': return true; case 'sequence': return flow.etapes.every(aDesChoix); default: return false; }",
       '}',
     ].join('\n'))).toEqual([]);
   });
 
   it('le foyer est exempt, tout autre module de `src/` est vu', () => {
-    const marcheur = "export function m(f: Flow): void { switch (f.kind) { case 'seq': f.steps.forEach(m); break; } }";
+    const marcheur = "export function m(f: Flow): void { switch (f.kind) { case 'sequence': f.etapes.forEach(m); break; } }";
     expect(scan(marcheur, FOYER)).toEqual([]);
     expect(scan(marcheur, 'src/engine/autre.ts')).toEqual(['src/engine/autre.ts [m]']);
   });
