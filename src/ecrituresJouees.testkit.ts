@@ -129,7 +129,7 @@ function choixDeLInspecteur(zones: ZonesDeLEditeur, id: string): Choix {
 
 /** Chaque variante du choix d'id `id` de l'inspecteur de la session `s`, choisie depuis `s`, les offres de sa seule
  *  branche jouées (`jouerLInspecteur`, l'id du choix sans son discriminant) : chaque branche d'une union (le `Flow`,
- *  #3606 M2b ; l'Effet de sa branche `do`), dont l'inspecteur ne joue que la première variante non choisie, et qui en
+ *  #3606 M2b ; l'Effet de sa branche `effet`), dont l'inspecteur ne joue que la première variante non choisie, et qui en
  *  change en se jouant. */
 function jouerLesVariantes(s: SessionDEdition, id: string, out: EcritureJouee[]): void {
   const branche = id.slice(0, id.lastIndexOf('/') + 1);
@@ -166,8 +166,8 @@ const DECOR = 'brasero';
 const ACTION_DU_DECOR = 'valeur/usable/ajouter';
 const FLUX_DU_DECOR = 'valeur/usable/actions/0/flow/kind';
 
-/** Le choix du type de l'Effet de la branche `do` de ce flux, joué type par type (`jouerLesVariantes`). */
-const EFFET_DU_DECOR = 'valeur/usable/actions/0/flow/effect/type';
+/** Le choix du type de l'Effet de la branche `effet` de ce flux, joué type par type (`jouerLesVariantes`). */
+const EFFET_DU_DECOR = 'valeur/usable/actions/0/flow/effet/type';
 
 /** La coque pirate de la scène d'embuscade de la barge du sel, à Améliorations d'instance et à postes dotés de leur
  *  coffre (MDG 12), et sa case. */
@@ -183,7 +183,7 @@ const cliquer = (s: SessionDEdition, x: number, y: number): SessionDEdition => e
  *  enrôlé dans une rencontre neuve ; puis sur un personnage de la
  *  première des `FICHES` et un décor de type `DECOR` posés dans une scène neuve du `PROJET_A_PRESETS`, puis sur chaque
  *  branche du flux de l'action qu'il reçoit (`ACTION_DU_DECOR`, `FLUX_DU_DECOR`) et sur chaque type d'Effet de sa
- *  branche `do` (`EFFET_DU_DECOR`), sur un personnage de
+ *  branche `effet` (`EFFET_DU_DECOR`), sur un personnage de
  *  la première des `FICHES` posé dans la scène `A_DIALOGUE`, et sur la coque
  *  `COQUE`, sélectionnée ; chacun
  *  joué à son inspecteur (`jouerLInspecteur`). */
@@ -204,8 +204,8 @@ export function ecrituresJouees(): EcritureJouee[] {
   const action = presser(decor, choixDeLInspecteur(zonesDeLEditeur(decor), ACTION_DU_DECOR).valeurs[0].id);
   jouerLInspecteur(action, out);
   jouerLesVariantes(action, FLUX_DU_DECOR, out);
-  const feuille = choixDeLInspecteur(zonesDeLEditeur(action), FLUX_DU_DECOR).valeurs.find((v) => v.jeu.type === 'valeur' && estObjet(v.jeu.args[2]) && v.jeu.args[2].kind === 'do');
-  if (!feuille) throw new Error(`aucune branche do au choix ${FLUX_DU_DECOR}`);
+  const feuille = choixDeLInspecteur(zonesDeLEditeur(action), FLUX_DU_DECOR).valeurs.find((v) => 'type' in v.jeu && v.jeu.type === 'valeur' && estObjet(v.jeu.args[2]) && v.jeu.args[2].kind === 'effet');
+  if (!feuille) throw new Error(`aucune branche effet au choix ${FLUX_DU_DECOR}`);
   jouerLesVariantes(presser(action, feuille.id), EFFET_DU_DECOR, out);
   const aDialogue = allBuiltinCampaigns.find((c) => c.id === A_DIALOGUE.campagne);
   if (!aDialogue) throw new Error(`aucune campagne ${A_DIALOGUE.campagne}`);

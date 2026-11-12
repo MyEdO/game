@@ -45,9 +45,9 @@ import { SymbolFlags, TypeFlags } from 'typescript/unstable/sync';
 // `grammaire/valeurs.ts:moneyPartialSchema`).
 // La marche suit chaque identifiant jusqu'à sa déclaration : le schéma d'un `const`, et le CORPS d'une fabrique (une
 // fonction de la grammaire, `conditionDe`, `arbreDeFlow`, `objetDeRef`…), dont les shapes sont ceux de ses produits.
-// Aucun nœud listé ne l'arrête ; seul un `z.custom<T>()` est une frontière, STRUCTURELLE (aucun shape à marcher),
-// détectée et jamais listée. Un type encore MANUSCRIT du moteur (`Condition`, `Flow`, `GameOp`, `FlowTest`) déclare
-// ses propriétés hors de tout shape : son intérieur reste hors du périmètre tant qu'il n'est pas la sortie de son schéma.
+// Seul un `z.custom<T>()` l'arrête : une frontière STRUCTURELLE (aucun shape à marcher), détectée à sa forme. Un type
+// encore MANUSCRIT du moteur (`Condition`, `Flow`, `GameOp`, `FlowTest`) déclare ses propriétés hors de tout shape :
+// son intérieur reste hors du périmètre tant qu'il n'est pas la sortie de son schéma.
 // Le niveau importe : le SYMBOLE d'un type inféré d'un schéma zod est anonyme et déclaré dans
 // `zod/v4/core/util.d.cts`, alors que ses PROPRIÉTÉS pointent la ligne exacte du shape. Une
 // frontière posée sur le type lâcherait donc en silence dès qu'un corps manuscrit passe en
