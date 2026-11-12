@@ -12,8 +12,9 @@ export interface SceneField {
   field: string;
   /** La déclaration du champ ; pour une propriété synthétique, celle du champ qui porte le type mappé. */
   decl: Declaration;
-  /** Clé LITTÉRALE d'un type mappé, sans déclaration : l'id de ce type. */
-  synthetique?: { porteur: number };
+  /** L'id du type PORTEUR d'une propriété sans déclaration propre : clé LITTÉRALE d'un type mappé, ou propriété
+   *  produite par une fabrique (une déclaration pour tous ses produits). */
+  porteur?: number;
 }
 
 export interface FieldEditability {
@@ -31,13 +32,15 @@ export interface FieldEditability {
 }
 
 /** Ensemble d'IDENTITÉS du document : les déclarations de propriété des shapes atteints depuis
- *  `sceneSchema`, nœuds-frontière exclus. */
+ *  `sceneSchema`, corps des fabriques et annotations de type de la donnée compris, `z.custom` et types du moteur
+ *  exclus. */
 export function documentDeclarations(program: SessionProgramme, root: string): Set<Node>;
 
 /** Le Program du périmètre de cette garde, bâti à chaque appel : l'appelant le tient et le libère. */
 export function programmeDuPerimetre(root: string): SessionProgramme;
 export function sceneScope(program: SessionProgramme, root: string): SceneField[];
-/** Clé d'identité d'un champ : sa déclaration, ou `id du type mappé#nom` pour une propriété synthétique. */
+/** Clé d'identité d'un champ : sa déclaration, ou `id du porteur#nom` pour une propriété synthétique ou produite par
+ *  une fabrique. */
 export function cleDuChamp(champ: SceneField): Declaration | string;
 /** Portées d'exécution atteintes depuis `src/ui/**` ou la méthode `editer` du pont Godot par fermeture transitive des
  *  appels. */

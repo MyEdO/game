@@ -9,13 +9,3 @@ export function downloadText(filename: string, text: string, type = 'application
   a.click();
   URL.revokeObjectURL(url);
 }
-
-/** Slug sûr pour un nom de fichier (accents retirés, espaces → tirets). */
-export function fileSlug(s: string): string {
-  return s
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .replace(/[^a-zA-Z0-9]+/g, '-')
-    .replace(/(^-|-$)/g, '')
-    .toLowerCase() || 'sans-nom';
-}
