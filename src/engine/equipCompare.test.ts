@@ -79,9 +79,9 @@ describe('compareEquip (accordéon « équiper » du marchand)', () => {
 
   it('distance : compare la Portée, n’exige pas d’arme de mêlée tenue', () => {
     const h = hero({ weapons: [{ uid: 'm', label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] }] });
-    const arc = it_({ label: 'Arc', kind: 'ranged', damage: { plusBF: false, flat: 9 }, range: 90, qualities: [] });
+    const arc = it_({ label: 'Arc', kind: 'distance', damage: { plusBF: false, flat: 9 }, range: 90, qualities: [] });
     const c = compareEquip(arc, h);
-    expect(c.slot).toBe('ranged');
+    expect(c.slot).toBe('distance');
     expect(c.currentName).toBeNull(); // pas d'arme à distance tenue
     expect(c.rows.find((r) => r.label === 'Portée')!.trend).toBe('up');
   });

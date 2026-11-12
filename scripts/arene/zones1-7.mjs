@@ -162,7 +162,7 @@ export function makeZone2() {
       {
         // Le gardien du trésor : on le SURPREND dans sa salle (embuscade des héros).
         id: 'enc-ruines-tresor',
-        surprise: 'enemies',
+        surprise: 'ennemis',
         enemies: [
           { creature: { id: 'orc' }, pos: { x: 22, y: 4 }, optionals: [{ id: 'insensible-a-la-douleur' }] },
           { creature: { id: 'gobelin' }, pos: { x: 20, y: 3 } },
@@ -350,7 +350,7 @@ export function makeZone4() {
     encounters: [
       {
         id: 'enc-zone4',
-        surprise: 'party',
+        surprise: 'groupe',
         enemies: [
           { creature: { id: 'squelette' }, pos: { x: 8, y: 3 } },
           { creature: { id: 'squelette' }, pos: { x: 16, y: 7 } },
@@ -525,7 +525,7 @@ export function makeZone6() {
     encounters: [
       {
         id: 'enc-zone6',
-        surprise: 'party',
+        surprise: 'groupe',
         enemies: [
           { creature: { id: 'gor' }, pos: { x: 14, y: 6 } },
           { creature: { id: 'gor' }, pos: { x: 20, y: 16 }, optionals: [{ id: 'armure', value: 2 }] },

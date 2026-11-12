@@ -13,7 +13,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const cc = (spec: string, advances: number) => ({ id: 'corps-a-corps', spec, characteristic: 'capacite-de-combat', advances } as SkillInstance);
 const heros = (over: Partial<Combatant> = {}): Combatant => combattantDeTest({
-  id: 'h', label: 'Gerhardt', kind: 'hero', wounds: blessuresDeBase(12), fortune: 0, resilience: 0,
+  id: 'h', label: 'Gerhardt', kind: 'heros', wounds: blessuresDeBase(12), fortune: 0, resilience: 0,
   characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40 } as Combatant['characteristics'],
   weapons: [unarmedWeapon()], ...over,
 });

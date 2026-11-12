@@ -40,7 +40,7 @@ const base = (over: Partial<Jeu>): Jeu =>
     },
     party: [{ id: H_HOST }, { id: H_OWNER }],
     battle: { order: [H_HOST, H_OWNER], turn: 0, combatants: [
-      { id: H_HOST, kind: 'hero' }, { id: H_OWNER, kind: 'hero' }, { id: 'e1', kind: 'enemy' },
+      { id: H_HOST, kind: 'heros' }, { id: H_OWNER, kind: 'heros' }, { id: 'e1', kind: 'ennemi' },
     ] },
     ...over,
   }) as unknown as Jeu;

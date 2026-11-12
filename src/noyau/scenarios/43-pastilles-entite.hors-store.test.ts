@@ -28,7 +28,7 @@ function ouvrir() {
   // L'ordre du Round est tiré à l'Initiative : on se place au TOUR DU SOLDAT, celui que le joueur
   // exerce en recette (même patron que `42-belier-porte.hors-store.test`, dont la poussée exige l'actif chef).
   const b = banc.getState().battle!;
-  const soldat = b.combatants.find((c) => c.kind === 'hero' && !!c.mannedPoste)!;
+  const soldat = b.combatants.find((c) => c.kind === 'heros' && !!c.mannedPoste)!;
   banc.setState({ battle: { ...b, turn: b.order.indexOf(soldat.id), acted: false, action: null, movementUsed: 0 } });
   return banc.getState();
 }
@@ -47,7 +47,7 @@ describe('Scénario « Pastilles d’entité » — le banc de recette de la zon
   it('le Soldat ACTIF est chef du bélier, et les trois porteurs sont à UNE case (aucun pas requis)', () => {
     const st = ouvrir();
     const b = st.battle!;
-    const soldat = b.combatants.find((c) => c.kind === 'hero')!;
+    const soldat = b.combatants.find((c) => c.kind === 'heros')!;
     expect(soldat.mannedPoste, 'le Soldat sert le bélier (chef de pièce)').toBeTruthy();
     expect(b.order, 'et il entre bien dans l’ordre du Round').toContain(soldat.id);
     const cheval = b.combatants.find((c) => c.mountable)!;

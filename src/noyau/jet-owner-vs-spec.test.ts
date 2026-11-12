@@ -46,7 +46,7 @@ const ghostPending = (seen: Set<string>) =>
 const stateWith = (pendingKey: string, pending: unknown, ids: string[]): Jeu =>
   ({
     battle: null, // hors combat : `actorIn` résout dans le GROUPE
-    party: ids.map((id) => ({ id, kind: 'hero' })),
+    party: ids.map((id) => ({ id, kind: 'heros' })),
     [pendingKey]: pending,
   }) as unknown as Jeu;
 

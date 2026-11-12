@@ -28,7 +28,7 @@ const mk = (chars: Partial<Record<string, number>>, skills: { id: string; advanc
   combattantDeTest({
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30, ...chars },
     skills: skills.map((s) => ({ ...s, characteristic: 'dexterite' }) as SkillInstance),
-    kind: 'hero', wounds: blessuresDeBase(10), conditions: [], talents: [],
+    kind: 'heros', wounds: blessuresDeBase(10), conditions: [], talents: [],
   });
 const seq = (values: number[]): RNG => desEnSuite(values);
 
@@ -75,17 +75,17 @@ describe('resolveBattery — lâcher une bordée (DR partagé, MDG 14)', () => {
 
 // ── Flux JOUABLE (noyau) : Test d'équipage MULTI des Artilleurs → volée sur la coque (jumeau de la manœuvre). ──
 const gunnerPJ = (): Combatant =>
-  combattantDeTest({ id: 'gunner', label: 'Artilleur', kind: 'hero',
+  combattantDeTest({ id: 'gunner', label: 'Artilleur', kind: 'heros',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 40, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(10), advantage: 0, conditions: [], fortune: 2, resilience: 1,
     skills: [{ id: 'projectiles', spec: 'poudre-noire', characteristic: 'capacite-de-tir', advances: 30 }], talents: [], weapons: [],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, pos: { x: 5, y: 5 } });
 const battPoste = (): ShipPoste =>
-  ({ side: 'tribord', item: { uid: 'canon', label: 'Canon moyen', kind: 'ranged', subType: 'armes-de-siege', damage: { flat: 14, plusBF: false }, range: 75, qualities: [{ id: 'recharge', value: 6 }] }, crewIds: ['gunner'] }) as unknown as ShipPoste;
+  ({ side: 'tribord', item: { uid: 'canon', label: 'Canon moyen', kind: 'distance', subType: 'armes-de-siege', damage: { flat: 14, plusBF: false }, range: 75, qualities: [{ id: 'recharge', value: 6 }] }, crewIds: ['gunner'] }) as unknown as ShipPoste;
 const firingShip = (): Combatant =>
-  combattantDeTest({ id: 'ship', label: 'Frégate', kind: 'npc', bodyShape: 'vehicule', creatureId: 'bateau-de-patrouille', crewIds: ['gunner'], postes: [battPoste()], pos: { x: 5, y: 5 }, wounds: blessuresDeBase(60), conditions: [], weapons: [] });
+  combattantDeTest({ id: 'ship', label: 'Frégate', kind: 'pnj', bodyShape: 'vehicule', creatureId: 'bateau-de-patrouille', crewIds: ['gunner'], postes: [battPoste()], pos: { x: 5, y: 5 }, wounds: blessuresDeBase(60), conditions: [], weapons: [] });
 const enemyHull = (pos = { x: 9, y: 5 }): Combatant =>
-  combattantDeTest({ id: 'target', label: 'Caraque', kind: 'enemy', bodyShape: 'vehicule', creatureId: 'knarr', pos,
+  combattantDeTest({ id: 'target', label: 'Caraque', kind: 'ennemi', bodyShape: 'vehicule', creatureId: 'knarr', pos,
     characteristics: { 'capacite-de-combat': 0, 'capacite-de-tir': 0, force: 0, endurance: 40, initiative: 0, agilite: 0, dexterite: 0, intelligence: 0, 'force-mentale': 0, sociabilite: 0 },
     wounds: blessuresDeBase(90), advantage: 0, conditions: [], weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, skills: [], talents: [], crewIds: [] });
 
@@ -175,14 +175,14 @@ const navScene = () =>
     layers: [{ z: 0, tiles: new Array(400).fill('eau') }], entities: [], dialogues: [], triggers: [], encounters: [] });
 /** Marin exposé de la coque cible (pour être balayé par l'aire). */
 const sailor = (id: string): Combatant =>
-  combattantDeTest({ id, label: id, kind: 'enemy', pos: { x: 9, y: 5 }, wounds: blessuresDeBase(6), advantage: 0,
+  combattantDeTest({ id, label: id, kind: 'ennemi', pos: { x: 9, y: 5 }, wounds: blessuresDeBase(6), advantage: 0,
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 0, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, conditions: [], traits: [], talents: [], skills: [], weapons: [] });
 /** Coque cible AVEC équipage exposé. */
 const crewedHull = (crewIds: string[]): Combatant => ({ ...enemyHull(), crewIds } as Combatant);
 /** Pièce avec qualités/enchant custom (Atout d'aire + effet onHit générique). */
 const aireePoste = (qualities: { id: string; value?: number }[], onHit?: unknown): ShipPoste =>
-  ({ side: 'tribord', crewIds: ['gunner'], item: { uid: 'canon', label: 'Canon', kind: 'ranged', subType: 'armes-de-siege', damage: { flat: 14, plusBF: false }, range: 75,
+  ({ side: 'tribord', crewIds: ['gunner'], item: { uid: 'canon', label: 'Canon', kind: 'distance', subType: 'armes-de-siege', damage: { flat: 14, plusBF: false }, range: 75,
     qualities: [{ id: 'recharge', value: 6 }, ...qualities], ...(onHit ? { enchants: [{ onHitEffects: onHit }] } : {}) } } as unknown as ShipPoste);
 const shipWith = (poste: ShipPoste): Combatant => (blessuresSurLeProfil({ ...firingShip(), postes: [poste], wounds: blessuresDeBase(60) }) as Combatant);
 
@@ -236,7 +236,7 @@ describe('bordée à munition à AIRE — balaie l’équipage exposé du navire
 describe('rollCrewRole — cumul de rôles (Manque de bras, MDG 14 l.53)', () => {
   const cap = (): Combatant =>
     combattantDeTest({ id: 'cap', label: 'Cap', characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
-      kind: 'hero', wounds: blessuresDeBase(10), skills: [{ id: 'commandement', characteristic: 'sociabilite', advances: 30 }], conditions: [], talents: [] });
+      kind: 'heros', wounds: blessuresDeBase(10), skills: [{ id: 'commandement', characteristic: 'sociabilite', advances: 30 }], conditions: [], talents: [] });
 
   it('cumul → +2 crans de Difficulté : cible PLUS DURE (−20) qu\'un jet normal, même dé', () => {
     const normal = jete(rollCrewRole(cap(), 'capitaine', NAVIGATION, makeRNG(5))!.result);
@@ -334,7 +334,7 @@ describe('bordée et véhicule routier réel (chariot-lourd) — EDOC 07 l.332-3
 
   it('en TIREUR : un chariot ne lâche pas de bordée — refus dit, aucun Test ouvert', () => {
     seedBattleRng(7);
-    const tireur = lourd({ id: 'ship', kind: 'npc', crewIds: ['gunner'], postes: [battPoste()], pos: { x: 5, y: 5 } });
+    const tireur = lourd({ id: 'ship', kind: 'pnj', crewIds: ['gunner'], postes: [battPoste()], pos: { x: 5, y: 5 } });
     banc.setState({ battle: { combatants: [tireur, gunnerPJ(), enemyHull()], order: ['ship'], turn: 0, round: 1, acted: false, log: [] } as never,
       party: [gunnerPJ()], facing: { ship: 'N' }, pendingShipBattery: null, refus: null, scene: navScene() as never });
     expect(() => banc.getState().ouvrirLaBordee('ship', 'target')).not.toThrow();

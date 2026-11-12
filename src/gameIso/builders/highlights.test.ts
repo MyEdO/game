@@ -5,7 +5,7 @@ import { Combatant } from '../../engine/types';
 import { buildHighlights, rangeBandTone, type HighlightEl, type HighlightsView } from './highlights';
 import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
-function cbt(id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number; z?: number }, extra: Partial<Combatant> = {}): Combatant {
+function cbt(id: string, kind: 'heros' | 'ennemi', pos: { x: number; y: number; z?: number }, extra: Partial<Combatant> = {}): Combatant {
   return blessuresSurLeProfil({ id, name: id, kind, pos, size: 'moyenne', conditions: [], wounds: blessuresDeBase(10), ...extra }) as unknown as Combatant;
 }
 
@@ -37,7 +37,7 @@ describe('buildHighlights — surbrillances sémantiques (clés historiques stab
   });
 
   it('hors de mon tour (coop) : AUCUNE grille, mais les teintes d’équipe restent', () => {
-    const b = { combatants: [cbt('h1', 'hero', { x: 0, y: 0 }), cbt('e1', 'enemy', { x: 3, y: 3 })], zones: [] } as unknown as BattleState;
+    const b = { combatants: [cbt('h1', 'heros', { x: 0, y: 0 }), cbt('e1', 'ennemi', { x: 3, y: 3 })], zones: [] } as unknown as BattleState;
     const els = buildHighlights(scene(), b, { ...VIEW, myTurn: false, walkReach: new Map([['1,1', 1]]), activeId: 'h1' });
     expect(els.every((e) => e.kind === 'equipe')).toBe(true);
     expect(els.find((e) => e.key === 'tth1-0-0')).toMatchObject({ kind: 'equipe', hero: true, active: true });
@@ -45,8 +45,8 @@ describe('buildHighlights — surbrillances sémantiques (clés historiques stab
   });
 
   it('teintes d’équipe : cavalier exclu (représenté par sa monture), empreinte N×N couverte, monture du cavalier actif « active »', () => {
-    const rider = cbt('h1', 'hero', { x: 0, y: 0 }, { mountId: 'm1' });
-    const mount = cbt('m1', 'enemy', { x: 0, y: 0 }, { riderId: 'h1', size: 'grande' } as Partial<Combatant>);
+    const rider = cbt('h1', 'heros', { x: 0, y: 0 }, { mountId: 'm1' });
+    const mount = cbt('m1', 'ennemi', { x: 0, y: 0 }, { riderId: 'h1', size: 'grande' } as Partial<Combatant>);
     const b = { combatants: [rider, mount], zones: [] } as unknown as BattleState;
     const els = buildHighlights(scene(), b, { ...VIEW, activeId: 'h1' });
     expect(els.find((e) => e.key.startsWith('tth1'))).toBeUndefined(); // pas de pastille 1×1 du cavalier
@@ -75,7 +75,7 @@ describe('buildHighlights — surbrillances sémantiques (clés historiques stab
 
   it('anneaux : cibles d’attaque (target), tirer-dans-le-tas (crowd), candidats soin/cochés (ally)', () => {
     const b = {
-      combatants: [cbt('e1', 'enemy', { x: 1, y: 1 }), cbt('e2', 'enemy', { x: 2, y: 2 }), cbt('a1', 'hero', { x: 3, y: 3 })],
+      combatants: [cbt('e1', 'ennemi', { x: 1, y: 1 }), cbt('e2', 'ennemi', { x: 2, y: 2 }), cbt('a1', 'heros', { x: 3, y: 3 })],
       zones: [],
     } as unknown as BattleState;
     const els = buildHighlights(scene(), b, {
@@ -139,7 +139,7 @@ describe('buildHighlights — bandes de portée du tireur survolé (rangeBandSou
 
   it('empreinte N×N débordant le bord : seules les cases DE LA CARTE reçoivent la teinte d’équipe', () => {
     // Grande créature (empreinte 2×2) au coin bas-droit : 3 des 4 cases tombent hors carte.
-    const g = cbt('g1', 'enemy', { x: 5, y: 5 }, { size: 'grande' } as Partial<Combatant>);
+    const g = cbt('g1', 'ennemi', { x: 5, y: 5 }, { size: 'grande' } as Partial<Combatant>);
     const b = { combatants: [g], zones: [] } as unknown as BattleState;
     const els = buildHighlights(emptyScene('scene-test', 6, 6), b, VIEW);
     expect(els.filter((e) => horsCarte(e, 6, 6))).toHaveLength(0);

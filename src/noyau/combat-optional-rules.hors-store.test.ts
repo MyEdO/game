@@ -22,7 +22,7 @@ const CHARS = { 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 40, endu
 
 const hero = (p: Partial<Combatant>): Combatant =>
   (blessuresSurLeProfil({
-    id: 'h1', name: 'Hardi', kind: 'hero', characteristics: CHARS,
+    id: 'h1', name: 'Hardi', kind: 'heros', characteristics: CHARS,
     wounds: blessuresDeBase(15), advantage: 0, conditions: [], movement: 4, skills: [], talents: [],
     engagedWith: [], pos: { x: 0, y: 0 }, size: 'moyenne', weapons: [], items: [], fate: 0,
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -31,7 +31,7 @@ const hero = (p: Partial<Combatant>): Combatant =>
 
 const enemy = (p: Partial<Combatant>): Combatant =>
   (blessuresSurLeProfil({
-    id: 'e1', name: 'Brute', kind: 'enemy', important: true /* LDB 18 l.44 : hors Mort subite */, characteristics: CHARS,
+    id: 'e1', name: 'Brute', kind: 'ennemi', important: true /* LDB 18 l.44 : hors Mort subite */, characteristics: CHARS,
     wounds: blessuresDeBase(20), advantage: 0, conditions: [], movement: 4, skills: [], talents: [],
     engagedWith: [], pos: { x: 1, y: 0 }, size: 'moyenne',
     weapons: [{ label: 'Gourdin', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [] } as Weapon], items: [],
@@ -152,7 +152,7 @@ describe('combat-deviation-critique — offre de Déviation Critique (LDB 63 l.3
 
 // ── Règle 3 : « Tir dans un corps à corps » (combat-tir-dans-la-melee, LDB 14 l.112-116) ──
 describe('combat-tir-dans-la-melee — −20 + tir égaré (LDB 14 l.112-116)', () => {
-  const bow: Weapon = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 7 }, range: 30, qualities: [] } as Weapon;
+  const bow: Weapon = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 7 }, range: 30, qualities: [] } as Weapon;
 
   // « Tir dans la mêlée » = la cible est Engagée avec un ALLIÉ du tireur. Tireur HÉROS (arc), cible
   // ENNEMIE engagée avec un autre HÉROS (le combattant de mêlée du groupe).
@@ -189,7 +189,7 @@ describe('combat-cible-inconsciente — cible Inconsciente (LDB 16 l.113)', () =
   it('défaut (critique) : resolveMelee NE marque PAS autoKill (comportement RAW = Critique)', () => {
     const atk = enemy({});
     const def = hero({ conditions: [{ id: 'inconscient', value: 1 }] });
-    const res = resolveMelee(atk, def, sword, makeRNG(1), { defense: 'none' });
+    const res = resolveMelee(atk, def, sword, makeRNG(1), { defense: 'aucune' });
     expect(res.autoKill).toBeFalsy();
     expect(res.hit).toBe(true);
     expect(res.critical).toBe(true); // helpless → réussite critique (RAW)
@@ -199,7 +199,7 @@ describe('combat-cible-inconsciente — cible Inconsciente (LDB 16 l.113)', () =
     setRule('combat-cible-inconsciente', 'mort-auto');
     const atk = enemy({});
     const def = hero({ conditions: [{ id: 'inconscient', value: 1 }] });
-    const res = resolveMelee(atk, def, sword, makeRNG(1), { defense: 'none' });
+    const res = resolveMelee(atk, def, sword, makeRNG(1), { defense: 'aucune' });
     expect(res.autoKill).toBe(true);
     expect(res.hit).toBe(true);
   });

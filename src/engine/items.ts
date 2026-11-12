@@ -179,7 +179,7 @@ function armeDeLaDonnee({ subType, weaponGroup, ...arme }: ArmeDerivee): Weapon 
  *  retrouvent par uid). #2907 */
 export interface WeaponSpec extends ProprietesIntrinsequesDArme {
   label: string;
-  type?: 'melee' | 'ranged';
+  type?: 'melee' | 'distance';
   damage: WeaponDamageSpec;
   qualities?: QualityInstance[];
   subType?: string;
@@ -349,7 +349,7 @@ export function weaponItem(spec: WeaponSpec & { conjured?: boolean }): ItemInsta
  *  `ItemKind` (`ItemInstance.kind`). Deux vocabulaires distincts, jamais une recopie. */
 function kindOf(categorie: string): ItemKind {
   if (categorie === 'melee') return 'melee';
-  if (categorie === 'ranged') return 'ranged';
+  if (categorie === 'distance') return 'distance';
   if (categorie === 'armor') return 'armor';
   if (categorie === 'ammunition') return 'ammo';
   return 'misc';
@@ -388,7 +388,7 @@ export function gabaritDObjet(id: string, resolveTrapping: TrappingResolver = fi
     ...(t.weaponGroup ? { weaponGroup: t.weaponGroup.id } : {}),
     ...(t.munitions?.length ? { defaultAmmo: t.munitions[0] } : {}),
     ...(t.derivedWeapon ? { derivedWeapon: armeDeLaDonnee(t.derivedWeapon) } : {}),
-    hands: kind === 'melee' || kind === 'ranged' ? (t.hands === 2 ? 2 : 1) : undefined, // champ typé (LDB 62)
+    hands: kind === 'melee' || kind === 'distance' ? (t.hands === 2 ? 2 : 1) : undefined, // champ typé (LDB 62)
     qty: kind === 'ammo' ? (t.packSize ?? 1) : undefined, // taille de paquet typée
   };
   return deciderApparenceALaNaissance(objet, contexte, resolveTrapping);
@@ -608,7 +608,7 @@ export function setADeuxMains(c: Combatant, lo: WeaponLoadout): boolean {
  *  arcs/arbalètes ordinaires et toute arme à deux mains. Détection du pistolet par la QUALITÉ (id stable,
  *  multilangue-safe), pas par le nom. */
 export function isOffHandEligible(it: ItemInstance): boolean {
-  if (it.kind !== 'melee' && it.kind !== 'ranged') return false;
+  if (it.kind !== 'melee' && it.kind !== 'distance') return false;
   if (weaponHands(it) !== 1) return false;
   if (it.kind === 'melee') return true;
   return hasQuality(it, 'pistolet'); // Atout Pistolet (qualities.json id) — seule arme à distance utilisable de la 2nde main
@@ -841,7 +841,7 @@ export function setNonCharge(c: Combatant, lo: WeaponLoadout): boolean {
   const items = c.items ?? [];
   return [lo.main, lo.secondaire].some((uid) => {
     const it = uid ? items.find((i) => i.uid === uid) : undefined;
-    return !!it && it.kind === 'ranged' && aRecharger(c, weaponFromItem(it));
+    return !!it && it.kind === 'distance' && aRecharger(c, weaponFromItem(it));
   });
 }
 
@@ -880,7 +880,7 @@ function requiresCrewedPoste(it: Pick<ItemInstance, 'subType' | 'qualities'>): b
 export function weaponFromItem(it: ItemInstance, hand?: Main, ctx?: ContexteDeManiement): Weapon {
   return applyEnchants(buildWeapon({
     ...copierIntrinseques(it, true),
-    label: itemLabel(it), trappingId: it.trappingId, type: it.kind as 'melee' | 'ranged',
+    label: itemLabel(it), trappingId: it.trappingId, type: it.kind as 'melee' | 'distance',
     // Possession de catalogue SANS profil de Dégâts (lasso, mortier, munitions de trait) : « +BF » nu.
     // Convention UNIQUE du profil d'arme — elle vit ICI, plus aucun appelant ne la redéclare.
     damage: it.damage ?? { plusBF: true, flat: 0, bare: true },
@@ -902,7 +902,7 @@ export function objetDeSlot(c: Combatant, uid?: string): ItemInstance | undefine
 /** L'objet peut-il occuper un slot de set (`objetDeSlot`) : non détruit, hors contenant, arme de mêlée ou à distance,
  *  sans Équipe. LDB 14 ; LDB 62 ; ADE II 8 l.233 */
 export const peutEtreTenu = (i: GabaritDObjet): boolean =>
-  !i.destroyed && !i.inside && (i.kind === 'melee' || i.kind === 'ranged') && !requiresCrewedPoste(i);
+  !i.destroyed && !i.inside && (i.kind === 'melee' || i.kind === 'distance') && !requiresCrewedPoste(i);
 
 /** Recalcule armes/armure actives + encombrement. Les ARMES viennent du loadout actif (contrainte 2 mains,
  *  tag `hand`) ; si aucun loadout, ensureDefaultLoadout en crée un automatiquement — UN SEUL modèle. Les armes et
@@ -1056,7 +1056,7 @@ export function ensureDefaultLoadout(c: Combatant): void {
   if (c.loadouts?.length) return;
   const items = (c.items ?? []).filter((i) => objetDeSlot(c, i.uid) === i);
   const melee = items.filter((i) => i.kind === 'melee');
-  const ranged = items.filter((i) => i.kind === 'ranged');
+  const ranged = items.filter((i) => i.kind === 'distance');
 
   const set1: WeaponLoadout = { id: newLoadoutId(c) };
   if (melee.length) {
@@ -1275,7 +1275,7 @@ export function endommagerLEquipementPorte(c: Combatant): { localisations: numbe
   const pieces = new Set(locs.flatMap((loc) => piecesPorteesA(c, loc)));
   for (const piece of pieces) piece.damageTaken = (piece.damageTaken ?? 0) + 1;
   const enSet = new Set((c.loadouts ?? []).flatMap((lo) => [lo.main, lo.secondaire]));
-  const objets = (c.items ?? []).filter((i) => (i.kind === 'melee' || i.kind === 'ranged') && !i.inside && !i.destroyed && (i.equipped || enSet.has(i.uid)));
+  const objets = (c.items ?? []).filter((i) => (i.kind === 'melee' || i.kind === 'distance') && !i.inside && !i.destroyed && (i.equipped || enSet.has(i.uid)));
   let armes = objets.filter((it) => endommagerLObjetArme(it) !== 'intacte').length;
   armes += c.weapons.filter((x) => estUneVraieArme(x) && !objetSourceDeLArme(c, x)).filter(damageWeapon).length;
   if (pieces.size || objets.length) recomputeLoadout(c);
@@ -1360,7 +1360,7 @@ export function inventaireDesDotations(dotations: readonly DotationResolue[], id
   // SANS conflit de couche (max une pièce par couche × localisation, meilleure PA d'abord —
   // LDB 63 : pas de « 2 armures de cuir »). Les doublons restent dans l'inventaire (déséquipés).
   const melee = items.filter((i) => i.kind === 'melee');
-  const ranged = items.filter((i) => i.kind === 'ranged');
+  const ranged = items.filter((i) => i.kind === 'distance');
   if (melee.length) melee.sort((a, b) => damageScore(b.damage) - damageScore(a.damage))[0].equipped = true;
   if (ranged.length) ranged[0].equipped = true;
   const holder = { items } as Combatant; // equipConflicts lit c.items (équipés au fil de l'eau)
@@ -1416,7 +1416,7 @@ export function chargeLArme(munition: { trappingId?: string; subType?: string },
  *  porteur, PLUS — s'il SERT cette pièce (`mannedPoste`) — le STOCK DU POSTE (MDG 12 l.410-424 :
  *  le coffre à boulets de la pièce), en tête (le stock de bord prime sur la besace du servant). */
 export function compatibleAmmo(c: Combatant, weapon: Weapon): ItemInstance[] {
-  if (weapon.type !== 'ranged') return [];
+  if (weapon.type !== 'distance') return [];
   const match = (i: ItemInstance) => i.kind === 'ammo' && (i.qty ?? 0) > 0 && chargeLArme(i, weapon);
   const poste = c.mannedPoste;
   const posteStock = poste && poste.item.uid === weapon.uid ? (poste.ammo ?? []).filter(match) : [];

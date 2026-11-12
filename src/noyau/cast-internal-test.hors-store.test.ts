@@ -33,9 +33,9 @@ describe('Lot 4b — Sort à Test interne (Chute) cadence-aware en contexte d’
     banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('debutDuRound');
     const b = banc.getState().battle!;
-    const W = b.combatants.find((c) => c.kind === 'hero' && c.label === 'W')!;
-    const A = b.combatants.find((c) => c.kind === 'hero' && c.label === 'A')!;
-    const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+    const W = b.combatants.find((c) => c.kind === 'heros' && c.label === 'W')!;
+    const A = b.combatants.find((c) => c.kind === 'heros' && c.label === 'A')!;
+    const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
     enemies.slice(1).forEach((e) => (e.dead = true));
     const E = enemies[0];
     W.pos = { x: 10, y: 10 }; A.pos = { x: 11, y: 10 }; E.pos = { x: 12, y: 10 };

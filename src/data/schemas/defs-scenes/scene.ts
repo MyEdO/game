@@ -613,7 +613,7 @@ export const triggerSchema = nommerChamps(z.strictObject({
 // ── Rencontre ───────────────────────────────────────────────────────────────────────────────────
 
 /** Camp d'un membre/d'une circonstance de rencontre. */
-export const campSchema = z.enum(['party', 'enemies']);
+export const campSchema = z.enum(['groupe', 'ennemis']);
 /** `ThreatTier` (`engine/advantagePool.ts`) — palier de Menace (`AA 11 l.53-65`). */
 export const threatTierSchema = z.enum(['dangereuse', 'tresDangereuse', 'extreme']);
 

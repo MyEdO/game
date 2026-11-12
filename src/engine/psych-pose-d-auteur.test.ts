@@ -18,13 +18,13 @@ import { groups, psychologies } from '../data';
 import { blessuresSurLeProfil, blessuresDeBase, profilDeTest } from './combattantDeTest.testkit';
 
 const porteur = (psychState: PsychAffliction[] = []): Combatant => (blessuresSurLeProfil({
-  id: 'h1', label: 'h1', kind: 'hero', advantage: 0, conditions: [], characteristics: profilDeTest(), psychState, psychTraits: [],
+  id: 'h1', label: 'h1', kind: 'heros', advantage: 0, conditions: [], characteristics: profilDeTest(), psychState, psychTraits: [],
   groups: [], weapons: [], armour: {} as never, skills: [], talents: [], movement: 4, wounds: blessuresDeBase(10),
 }) as unknown as Combatant);
 
 const devenant = psychologies.find((p) => !!p.becomes);
 const devenue = psychologies.find((p) => p.id === devenant?.becomes?.id);
-const etendue = psychologies.find((p) => p.resolution === 'extended');
+const etendue = psychologies.find((p) => p.resolution === 'etendu');
 const ciblee = psychologies.find((p) => p.cibles && !p.targetCauses);
 const nonCiblee = psychologies.find((p) => !p.cibles && !p.becomes);
 const groupe = groups[0];

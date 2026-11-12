@@ -20,7 +20,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const hero = (p: Partial<Combatant>): Combatant =>
   (blessuresSurLeProfil({
-    id: 'h', label: 'Hilda', kind: 'hero',
+    id: 'h', label: 'Hilda', kind: 'heros',
     characteristics: { 'capacite-de-combat': 50, 'capacite-de-tir': 50, force: 50, endurance: 50, initiative: 50, agilite: 50, dexterite: 50, intelligence: 50, 'force-mentale': 50, sociabilite: 50 },
     wounds: blessuresDeBase(10), advantage: 0, conditions: [], skills: [], talents: [],
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },

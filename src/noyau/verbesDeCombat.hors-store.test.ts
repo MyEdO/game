@@ -52,7 +52,7 @@ const courir = (partie: Partie, pt: { x: number; y: number }): void => {
 /** L'état du duel ouvert, le tour au héros, H et E au contact sans être Engagés. */
 function etatDuDuel(): { etat: EtatDeJeu; idDeE: string } {
   const ouverture = creerPartie(etatInitialDuJeu(), ENTREES);
-  ouverture.lancer({ party: [heroDuDuel()], scene: testScene(), combatDirect: 'enc-mutants' });
+  ouverture.lancer({ party: [heroDuDuel()], scene: testScene(), projet: null, combatDirect: 'enc-mutants' });
   ouverture.envoyer({ type: 'fenetreValider', args: ['debutDuRound'] });
   const garde = ouverture.etat();
   ouverture.fermer();
@@ -162,7 +162,7 @@ describe('Course : un seul verdict pour l’offre, le geste et la zone (`refusDe
     const partie = creerPartie(etatInitialDuJeu(), ENTREES);
     try {
       jouer(partie, partie.lancer({ ...lancementDuScenario(testScenarios.find((s) => s.id === 'entrainement')!, idsDeTest), combatDirect: 'enc-entrainement' }));
-      for (let pas = 0; pas < 40 && !(activeCombatant(partie.etat().battle!)?.kind === 'hero'); pas++) {
+      for (let pas = 0; pas < 40 && !(activeCombatant(partie.etat().battle!)?.kind === 'heros'); pas++) {
         const e = partie.etat();
         const intentions: Intention[] = e.pendingDefense
           ? [{ type: 'jetLancer', args: ['defense'] }, { type: 'jetValider', args: ['defense'] }]

@@ -25,7 +25,7 @@ import { COMPETENCE_DU_MODE } from '../../../engine/propulsion';
 import { listeCle } from './collection-cle';
 import { libelleDeValeur } from './meta';
 import { descendre } from './descente';
-import { marquerProduit } from './interne/produits';
+import { marquerProduit, produitDe } from './interne/produits';
 import { saisonParId } from '../../saisons';
 import { LIBELLES_DES_ICONES } from '../../icons';
 import { MAX_FRAGMENTS, estGraphieDeChapitre } from '../../source/decoupe';
@@ -106,6 +106,9 @@ export const amateurSchema = enumNomme({
  * `valeurs-de-champ.test.ts` se tenant par VOCABULAIRE.
  */
 export const mutationKindSchema = enumNomme({ physique: 'Physique', mentale: 'Mentale' });
+
+/** Le genre d'une arme, d'un Groupe d'arme ou d'une attaque : corps à corps ou à distance (LDB 62). */
+export const genreDArmeSchema = enumNomme({ melee: 'Corps à corps', distance: 'À distance' });
 
 /** Les rôles d'animation d'ambiance d'une entité de scène. */
 export const roleAmbiantSchema = enumNomme({ repas: 'Se nourrit', priere: 'Prie', tapi: 'Se recroqueville', debout: 'Se tient debout', hurlement: 'Hurle' });
@@ -456,6 +459,9 @@ export const descRefSchema = descRefSchemaDe();
 
 /** Vue TS de `descRefSchema` — la MÊME forme que `DescRef` du parseur (`src/data/source/decoupe.ts`). */
 export type DescRef = z.infer<typeof descRefSchema>;
+
+/** Le nœud `noeud` est-il une adresse de prose (`descRefSchemaDe`), quels que soient les genres de fragment qu'il admet ? */
+export const estAdresseDeProse = (noeud: unknown): boolean => produitDe(noeud)?.fabrique === 'descRefSchemaDe';
 
 /**
  * ENTRÉE DE CATALOGUE DE SPÉCIALISATION (`SpecEntry`, `src/data/index.ts`) — ce qu'une def de

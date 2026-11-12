@@ -23,7 +23,7 @@ import { testScenarios } from '../scenes/test-scenarios';
 import { DESIGNATIONS } from './designations';
 
 const ENTREES = { graine: 3, cadence: 'manuel' as const, desFixes: true, persisterLeHeros: () => {}, reglesMaison: {} };
-const HEROS = { id: 'h', label: 'H', kind: 'hero', conditions: [], items: [] } as unknown as Combatant;
+const HEROS = { id: 'h', label: 'H', kind: 'heros', conditions: [], items: [] } as unknown as Combatant;
 /** Les ids du monde que porte `texte` (`<genre>-<n>`, préfixés ou non d'une dérivation). */
 const idsDuMonde = (texte: string): Set<string> => new Set(texte.match(/(?:it|hero|pos|favor)-\d+/g) ?? []);
 

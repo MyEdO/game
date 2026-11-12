@@ -79,6 +79,11 @@
 // - `creation` (`--scenario marche-equipement`) : l'entrée de la scène poursuivie à l'Entrée, « Nouveau héros » ouvre
 //   la création sur la race, sans résultat ni suivante avant le d100 ; le d100 tiré, la suivante à l'Entrée ; la
 //   carrière tirée, puis les Caractéristiques ; « Nouveau héros » pressé ferme la création sans héros nouveau.
+// - `campagne` (#3009) : « Jouer » ouvre une partie au groupe, sans scène : les pré-tirés à recruter, les campagnes du
+//   jeu, dont « Lancer » ne se joue pas groupe vide ; deux pré-tirés recrutés à leur bouton, chacun en carte au pied de
+//   l'écran, son recrutement refusé ensuite ; « Lancer » de la Diligence pose sa scène d'entrée, le groupe composé au
+//   monde, sa fenêtre d'ouverture en main ; « Quitter la partie » rend le menu, le pont sans partie ; « Jouer » de
+//   nouveau, un pré-tiré recruté, l'Arène lancée sans recharger la page.
 // - `editeur` (#3508), servi avec une copie des projets manuscrits du dépôt (`servir.mjs`, `depot`) : « Éditeur » ouvre la
 //   Diligence telle que le dépôt la sert, sur sa couche 0, rien à enregistrer ; l'outil Hauteur, « Haute (4 m) » et le
 //   pinceau 3×3 choisis à leurs boutons, un glissé de deux cases sur la carte : bouton tenu, la surcouche couvre
@@ -107,6 +112,9 @@
 //   « Nouvelle masse de toiture » y pose une masse, que « +1 » monte à deux niveaux. L'outil Sélection, un clic sur la
 //   case voisine du décor choisit le déclencheur qui la couvre : à son inspecteur, sa condition « TOUS (ET) » choisie en
 //   liste, puis « Ajouter » lui donne une condition dans son contenu ; « Annuler » deux fois la retire.
+//   Au flux du même déclencheur, un pas d'effet « journal » : son adresse de prose (#3606 M2g) se désigne par des choix
+//   seuls, le livre, le chapitre que Godot charge à la demande (`source/`), une cellule ajoutée, sa ligne choisie : le
+//   passage désigné se lit à l'inspecteur, l'empreinte jamais offerte ; « Annuler » rend le flux d'avant.
 //   « Charger une planche… » ouvre le choix d'un fichier de la page, que la recette remplit d'une planche quadrillée : le
 //   calque se pose sur toute la carte ; « Caler par deux points », puis le centre d'une case comme premier point de
 //   l'image, son coin comme son nœud, et le centre de la case quatre plus loin comme second point, le coin de la case
@@ -128,7 +136,7 @@
 //   ceux-là seuls (`CONTRAT.md`, « Atelier 3D ») ; les aides, l'élément monté puis démonté (« Aucun ») ; si une surface de `--element` porte
 //   `blason: true` (#3111), deux emblèmes posés tour à tour à la prise `main`, chacun sans erreur publiée, puis
 //   « Aucun » et le premier reposé, ces quatre choix sans requête du GLB de l'élément (`performance`, page) ni appel
-//   `composer` de Godot (`wfrpPont.appeler` enveloppé, témoins : le GLB requis au montage, `modeles` appelé au premier
+//   `composer` de Godot (`appelerEnOctets` enveloppé, témoins : le GLB requis au montage, `modeles` appelé au premier
 //   rechargement) ; puis « Aucun » : l'emblème effacé au démontage, l'élément remonté sans emblème (le défaut de la
 //   composition), le premier reposé avant le rechargement (sans surface `blason`, une ligne du journal dit la preuve non
 //   jouée) ; à l'onglet Animation, un clip joué, mis en pause, avancé et reculé d'une image (au clic puis à l'Entrée),
@@ -161,6 +169,7 @@
 //   node hotes/godot/recette.mjs --parcours etage --scenario fenetre-ecuries --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours regards --scenario fenetre-ecuries --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours creation --scenario marche-equipement --web <export> --captures <dossier>
+//   node hotes/godot/recette.mjs --parcours campagne --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours vehicule --scenario caraque --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours cadrages --scenario a-bord-de-la-caraque --vues hotes/godot/cadrages/a-bord-de-la-caraque.json
 //     --web <export> --captures <dossier>
@@ -217,7 +226,7 @@ const { values: o } = parseArgs({
   options: { parcours: { type: 'string', default: 'combat' }, web: chaine, captures: chaine, scenario: { type: 'string', default: 'dome' }, graine: { type: 'string', default: '7' }, modeles: chaine, base: chaine, element: chaine, reexport: chaine, piece: chaine, vues: chaine, route: chaine, preset: chaine, clip: { type: 'string', default: 'Sword_Attack' }, statique: { type: 'boolean' } },
 })
 if (o.statique && o.modeles) throw new Error('--statique sert les modèles déposés dans l’export : --modeles hors de propos')
-if (!o.web || !o.captures) throw new Error('usage : node hotes/godot/recette.mjs --web <dossier de l’export> --captures <dossier> [--parcours combat|critique|fin|dialogue|exploration|relief|etage|regards|meteo|vehicule|cadrages|bord --route <route.json>|brume|fiche|inventaire|creation|editeur|atelier|composition|preset]')
+if (!o.web || !o.captures) throw new Error('usage : node hotes/godot/recette.mjs --web <dossier de l’export> --captures <dossier> [--parcours combat|critique|fin|dialogue|exploration|relief|etage|regards|meteo|vehicule|cadrages|bord --route <route.json>|brume|fiche|inventaire|creation|campagne|editeur|atelier|composition|preset]')
 if (o.parcours === 'atelier' && o.modeles && !(o.base && o.element && o.reexport)) throw new Error('--parcours atelier avec --modeles <dossier neuf> attend --base, --element et --reexport <dossier de production>')
 if (o.parcours === 'cadrages' && !o.vues) throw new Error('--parcours cadrages attend --vues <fichier JSON des vues nommées>')
 if (o.parcours === 'composition' && !(o.modeles && o.base && o.piece)) throw new Error('--parcours composition attend --modeles <dossier neuf>, --base et --piece <production skinnée>')
@@ -426,7 +435,7 @@ async function parcoursCombat() {
   const heros = actif(v)
   assert.equal(v.projection.fenetre, null, 'l’Entrée joue le geste au focus et ferme la fenêtre du round')
   assert.deepEqual(zone(v, 'fenetre.titre'), [], 'sans fenêtre, la zone du titre est vide')
-  assert.equal(heros?.camp, 'hero', 'un héros est actif')
+  assert.equal(heros?.camp, 'heros', 'un héros est actif')
   assert.equal(v.projection.combat.barre.forme, 'ouverte')
   assert.equal(zone(v, 'combat.actif')[0]?.nom, heros.nom, 'le panneau nomme l’actif')
   noter(`Entrée : fenêtre fermée ; actif ${heros.nom}, barre ouverte`)
@@ -474,7 +483,7 @@ async function parcoursCombat() {
   v = await vue()
   const second = actif(v)
   assert.notEqual(second.id, heros.id, 'la fin du tour passe la main')
-  assert.equal(second.camp, 'hero')
+  assert.equal(second.camp, 'heros')
   const vers = v.cases.find((c) => c.zone === 'marche' && c.cout === 1).case
   noter(`fin du tour de ${heros.nom} ; actif ${second.nom}`)
   await cliquerCase(vers)
@@ -492,7 +501,7 @@ async function parcoursCombat() {
   await attendreLaVue("v.projection.fenetre?.etape?.genre === 'jetDeDefense'", 60000)
   v = await vue()
   const adversaire = actif(v)
-  assert.equal(adversaire.camp, 'enemy', 'les jetons repris, le noyau joue l’adversaire')
+  assert.equal(adversaire.camp, 'ennemi', 'les jetons repris, le noyau joue l’adversaire')
   assert.ok(element(v, 'fenetre.corps', 'defense/qui')?.texte.includes(adversaire.nom), 'la Défense répond à l’adversaire actif')
   const defenseur = v.projection.fenetre.proprietaire
   assert.equal(defenseur.genre, 'porteur', 'la Défense est à un héros')
@@ -609,7 +618,7 @@ async function parcoursRelief() {
   await capturer('3476-r1-round')
   let v = await fermerLesFenetres()
   const heros = actif(v)
-  assert.equal(heros?.camp, 'hero', 'un héros est actif')
+  assert.equal(heros?.camp, 'heros', 'un héros est actif')
   const plateau = v.cases.filter((c) => c.zone === 'marche' && c.cout === 1 && c.case.y === 2)
   assert.ok(plateau.length > 0, `une case du bord du plateau à une case de ${heros.nom} en ${heros.pos}`)
   const vers = plateau[0].case
@@ -1307,6 +1316,63 @@ async function parcoursInventaire() {
   await capturer('3328-inventaire-3-consommable')
 }
 
+/** Le bouton d'id `<prefixe>/…` de l'entité `id` de la zone `z` de la vue `v`. */
+const boutonDeLEntite = (v, z, id, prefixe) => element(v, z, id).elements.find((e) => e.type === 'bouton' && e.id.startsWith(`${prefixe}/`))
+/** « Jouer » pressé au menu : la partie ouverte au groupe, ses pré-tirés et ses campagnes montrés ; sa vue. */
+async function ouvrirAuGroupe() {
+  await cliquerBouton('Jouer')
+  await waitFor(session, '!!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.some((b) => b.element?.startsWith("bouton/recruter/"))', { timeoutMs: 120000, evaluerMs: FIL_DE_LA_PAGE_MS })
+  return vue()
+}
+/** Le pré-tiré de rang `rang` de la zone `groupe.pretires` recruté à son bouton ; la vue d'après, son héros au groupe. */
+async function recruterLePretire(rang) {
+  const v = await vue()
+  const carte = zone(v, 'groupe.pretires')[rang]
+  await cliquerBouton(bouton(boutonDeLEntite(v, 'groupe.pretires', carte.id, 'recruter')))
+  const apres = await vue()
+  assert.equal(zone(apres, 'groupe.heros').at(-1).nom, carte.nom, `${carte.nom} recruté entre au groupe`)
+  assert.ok(boutonDeLEntite(apres, 'groupe.pretires', carte.id, 'recruter').refus, `${carte.nom} au groupe ne se recrute plus`)
+  return apres
+}
+/** La campagne `id` lancée à son bouton de la zone `groupe.campagnes` ; la vue d'après, sa scène d'entrée posée. */
+async function lancerLaCampagne(id) {
+  await cliquerBouton(bouton(boutonDeLEntite(await vue(), 'groupe.campagnes', `campagne/${id}`, 'lancer')))
+  await attendreLaVue('v.projection.scene && v.plateau')
+  await attendreLeMonde()
+  return vue()
+}
+async function parcoursCampagne() {
+  let v = await ouvrirAuGroupe()
+  assert.equal(v.projection.scene, null, 'la partie ouverte au groupe n’a pas de scène')
+  assert.deepEqual(zone(v, 'groupe.heros'), [], 'ni de héros')
+  const diligence = boutonDeLEntite(v, 'groupe.campagnes', 'campagne/la-diligence', 'lancer')
+  assert.ok(diligence.refus, 'groupe vide, la campagne ne se lance pas')
+  assert.equal(trouver((await ecran()).boutons, bouton(diligence)), undefined, 'son bouton refusé ne se joue pas')
+  noter(`au groupe : ${zone(v, 'groupe.pretires').length} pré-tirés, campagnes ${zone(v, 'groupe.campagnes').map((e) => e.nom).join(' · ')} ; « ${diligence.libelle} » refusé : ${diligence.refus}`)
+  await capturer('3009-campagne-1-groupe-vide')
+  await recruterLePretire(0)
+  v = await recruterLePretire(1)
+  const groupe = zone(v, 'groupe.heros').map((e) => e.nom)
+  noter(`groupe composé : ${groupe.join(', ')}`)
+  await capturer('3009-campagne-2-groupe-compose')
+  v = await lancerLaCampagne('la-diligence')
+  assert.equal(v.projection.fenetre?.cle, 'ouverture', 'la Diligence s’ouvre sur sa fenêtre d’ouverture')
+  assert.deepEqual(zone(v, 'groupe.heros').map((e) => e.nom), groupe, 'le groupe composé entre en scène')
+  assert.deepEqual([zone(v, 'groupe.pretires'), zone(v, 'groupe.campagnes')], [[], []], 'la composition se ferme, la partie en cours')
+  noter(`campagne lancée : scène ${v.projection.scene.nom}, fenêtre « ${zone(v, 'fenetre.titre')[0].texte} »`)
+  await capturer('3009-campagne-3-lancee')
+  await cliquerBouton({ element: 'bouton/quitter' })
+  await waitFor(session, '!!globalThis.wfrpEcran && !wfrpEcran.cases && wfrpEcran.boutons.some((b) => b.texte === "Jouer")', { timeoutMs: 30000, evaluerMs: FIL_DE_LA_PAGE_MS })
+  assert.equal(JSON.parse(await lire(`wfrpPont.appeler('vue')`)).ok, false, 'la partie quittée, le pont n’en tient plus')
+  noter('« Quitter la partie » rend le menu')
+  v = await ouvrirAuGroupe()
+  assert.deepEqual(zone(v, 'groupe.heros'), [], 'la partie suivante s’ouvre sur un groupe vide')
+  await recruterLePretire(2)
+  v = await lancerLaCampagne('arene')
+  noter(`seconde partie sans recharger : scène ${v.projection.scene.nom}`)
+  await capturer('3009-campagne-4-seconde-partie')
+}
+
 /** Le bouton de la vue d'id `id` dans la zone `z` pressé à l'écran, puis la vue que le pont rend. */
 async function presser(z, id) {
   const v = await vue()
@@ -1977,6 +2043,36 @@ async function parcoursEditeur() {
   await cliquerPoint(...cases[`${dx + 1},${dy}`])
   await waitFor(session, montre('valeur/when/kind'))
   assert.deepEqual(etatDuDeclencheur(await editeur()), declencheurAvant, '« Annuler » trois fois, le déclencheur recliqué : rendu à sa condition d’avant la Bourse')
+  await ajouterLePas('valeur/flow', rangDuPas, 'effet', `valeur/flow/etapes/${rangDuPas}/effet/flag`)
+  e = await editeur()
+  const adresse = `${pasDOps}/descRef`
+  await choisirALaListe(`${pasDOps}/type`, inspecte(e, `${pasDOps}/type`).valeurs.find((b) => b.jeu.args[2]?.type === 'journal').id, 'editeur.inspecteur', montre(`${adresse}/ajouter`))
+  const ligneDeLAdresse = `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((el) => el.id === '${adresse}/etat')?.texte ?? ''`
+  /** La valeur du champ `id` de l'inspecteur dont la valeur jouée satisfait `voulue`, choisie en liste ou au clic,
+   *  jusqu'à l'état `attendu`. */
+  const choisirAuChamp = async (id, voulue, attendu) => {
+    const champ = inspecte(await editeur(), id)
+    const valeur = champ.valeurs.find((b) => voulue(b.jeu.args[2]))
+    if (champ.type === 'liste') await choisirALaListe(id, valeur.id, 'editeur.inspecteur', attendu)
+    else await cliquerAuPanneau({ element: `bouton/${valeur.id}` })
+    await waitFor(session, attendu, { timeoutMs: 30000 })
+  }
+  await choisirAuChamp(`${adresse}/ajouter`, (v) => v.book === 'livre-de-base', montre(`${adresse}/ch`))
+  await choisirAuChamp(`${adresse}/ch`, (v) => v === '64', `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((el) => el.id === '${adresse}/ch')?.valeurs.find((b) => b.presse)?.jeu.args[2] === '64'`)
+  await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((el) => el.id === '${adresse}/parts/ajouter')?.valeurs ?? []).some((b) => b.jeu.args[2]?.at(-1)?.kind === 'cellule')`, { timeoutMs: 30000 })
+  await choisirAuChamp(`${adresse}/parts/ajouter`, (v) => v.at(-1).kind === 'cellule', montre(`${adresse}/parts/0/row`))
+  e = await editeur()
+  const ligneVoulue = inspecte(e, `${adresse}/parts/0/row`).valeurs.find((b) => !b.presse && b.refus === null)
+  await choisirAuChamp(`${adresse}/parts/0/row`, (v) => v === ligneVoulue.jeu.args[2], `(${ligneDeLAdresse}).startsWith('Passage : ') && globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((el) => el.id === '${adresse}/parts/0/row')?.valeurs.find((b) => b.presse)?.libelle === ${JSON.stringify(ligneVoulue.libelle)}`)
+  e = await editeur()
+  assert.ok(!e.zones['editeur.inspecteur'].some((el) => el.id.startsWith(`${adresse}/parts/0/sum`)), 'l’empreinte du fragment n’est jamais offerte')
+  noter(`le flux du même déclencheur, un pas d’effet « ${pressee(`${pasDOps}/type`)} » : son adresse de prose, livre « ${pressee(`${adresse}/book`)} », chapitre « ${pressee(`${adresse}/ch`)} » chargé à la demande, une cellule ajoutée, la ligne « ${pressee(`${adresse}/parts/0/row`)} » à la colonne « ${pressee(`${adresse}/parts/0/col`)} » : ${inspecte(e, `${adresse}/etat`).texte}`)
+  await capturer('3606-m2g-1-cellule')
+  for (let n = 0; n < 7; n++) await cliquerAuPanneau({ element: 'bouton/annuler' })
+  await waitFor(session, `!(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id.startsWith('valeur/flow/etapes/${rangDuPas}/'))`)
+  await cliquerPoint(...cases[`${dx + 1},${dy}`])
+  await waitFor(session, montre('valeur/when/kind'))
+  assert.deepEqual(etatDuDeclencheur(await editeur()), declencheurAvant, '« Annuler » sept fois, le déclencheur recliqué : rendu à son flux d’avant l’adresse')
   const planche = join(depot, 'planche.png')
   ecrirePlanche(planche)
   await session.rpc('Page.setInterceptFileChooserDialog', { enabled: true })
@@ -2273,13 +2369,13 @@ async function choisirDansLaListe(cle, article, sens = 1) {
   await nouvelEcran()
 }
 
-/** Les appels de Godot au pont, comptés par méthode dans `recetteAppels` de la page : `wfrpPont.appeler` enveloppé, que
- *  `PontDuNoyau.appeler` (`projet/scripts/pont.gd`) relit sur `globalThis.wfrpPont` à chaque appel ; le tampon des
- *  mesures de ressources élargi pour que chaque requête y entre. */
+/** Les appels de Godot au pont, comptés par méthode dans `recetteAppels` de la page : `wfrpPont.appelerEnOctets`
+ *  enveloppé, la porte du transport de la page (`projet/scripts/transport_de_la_page.gd`), relue sur
+ *  `globalThis.wfrpPont` à chaque appel ; le tampon des mesures de ressources élargi pour que chaque requête y entre. */
 const SONDER_LA_PAGE = `(() => {
   performance.setResourceTimingBufferSize(1e6)
-  const pont = globalThis.wfrpPont, appeler = pont.appeler, n = (globalThis.recetteAppels = {})
-  pont.appeler = function (methode, ...reste) { n[methode] = (n[methode] ?? 0) + 1; return appeler.call(this, methode, ...reste) }
+  const pont = globalThis.wfrpPont, appelerEnOctets = pont.appelerEnOctets, n = (globalThis.recetteAppels = {})
+  pont.appelerEnOctets = function (methode, ...reste) { n[methode] = (n[methode] ?? 0) + 1; return appelerEnOctets.call(this, methode, ...reste) }
   return true
 })()`
 /** Le nombre d'appels `methode` de Godot au pont depuis `SONDER_LA_PAGE`. */
@@ -2926,7 +3022,7 @@ async function parcoursPreset() {
   }
 }
 
-const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, dialogue: parcoursDialogue, document: parcoursDocument, incantation: parcoursIncantation, soin: parcoursSoin, voyage: parcoursVoyage, marche: parcoursMarche, repos: parcoursRepos, repit: parcoursRepit, ouvrage: parcoursOuvrage, bataille: parcoursBataille, exploration: parcoursExploration, relief: parcoursRelief, etage: parcoursEtage, regards: parcoursRegards, meteo: parcoursMeteo, vehicule: parcoursVehicule, cadrages: parcoursCadrages, bord: parcoursBord, brume: parcoursBrume, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, editeur: parcoursEditeur, atelier: parcoursAtelier, composition: parcoursComposition, preset: parcoursPreset }
+const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, dialogue: parcoursDialogue, document: parcoursDocument, incantation: parcoursIncantation, soin: parcoursSoin, voyage: parcoursVoyage, marche: parcoursMarche, repos: parcoursRepos, repit: parcoursRepit, ouvrage: parcoursOuvrage, bataille: parcoursBataille, exploration: parcoursExploration, relief: parcoursRelief, etage: parcoursEtage, regards: parcoursRegards, meteo: parcoursMeteo, vehicule: parcoursVehicule, cadrages: parcoursCadrages, bord: parcoursBord, brume: parcoursBrume, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, campagne: parcoursCampagne, editeur: parcoursEditeur, atelier: parcoursAtelier, composition: parcoursComposition, preset: parcoursPreset }
 if (!(o.parcours in PARCOURS)) throw new Error(`--parcours ${o.parcours} : ${Object.keys(PARCOURS).join(' ou ')} attendu`)
 
 let echec = null

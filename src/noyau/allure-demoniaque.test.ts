@@ -18,7 +18,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTes
  */
 const caster = (spec?: string): Combatant =>
   (blessuresSurLeProfil({
-    id: 'w', name: 'W', kind: 'hero', species: 'humains-reiklander',
+    id: 'w', name: 'W', kind: 'heros', species: 'humains-reiklander',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 40, sociabilite: 35 },
     wounds: blessuresDeBase(15), advantage: 0, conditions: [], skills: [], traits: [],
     talents: spec ? [{ talentId: 'magie-du-chaos', spec, times: 1 }] : [],

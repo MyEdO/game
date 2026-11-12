@@ -45,8 +45,8 @@ describe('Fuite intégrée à la modale (store)', () => {
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const E = b.combatants.find((c) => c.kind === 'enemy')!;
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const E = b.combatants.find((c) => c.kind === 'ennemi')!;
     E.characteristics['capacite-de-combat'] = 90; // le coup dans le dos (+20) touche à coup sûr
     H.wounds = blessuresDeBase(40, 40, H);
     H.engagedWith = [E.id];
@@ -92,8 +92,8 @@ describe('Fuite intégrée à la modale (store)', () => {
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const E = b.combatants.find((c) => c.kind === 'enemy')!;
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const E = b.combatants.find((c) => c.kind === 'ennemi')!;
     H.fortune = 2;
     H.wounds = blessuresDeBase(40, 40, H);
     H.engagedWith = [E.id];
@@ -143,7 +143,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('debutDuRound');
     const b = banc.getState().battle!;
-    const heroes = b.combatants.filter((c) => c.kind === 'hero');
+    const heroes = b.combatants.filter((c) => c.kind === 'heros');
     const frappeur = heroes.find((c) => c.label === 'A')!;
     const fuyard = heroes.find((c) => c.label === 'B')!;
     frappeur.pos = { x: 6, y: 10 };
@@ -229,7 +229,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
 
     // (b) frappeur ENNEMI (IA) : rangée TÉMOIN, jet auto-roulé à l'ouverture (le fuyard garde le sien).
     const b = banc.getState().battle!;
-    const E = b.combatants.find((c) => c.kind === 'enemy')!;
+    const E = b.combatants.find((c) => c.kind === 'ennemi')!;
     const H = live(fuyard.id);
     H.engagedWith = [E.id];
     E.engagedWith = [H.id];
@@ -255,7 +255,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const [E1, E2] = b.combatants.filter((c) => c.kind === 'enemy');
+    const [E1, E2] = b.combatants.filter((c) => c.kind === 'ennemi');
     E1.pos = { x: 16, y: 11 };
     E2.pos = { x: 17, y: 11 };
     E1.engagedWith = [E2.id];
@@ -290,9 +290,9 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const [E1, E2] = b.combatants.filter((c) => c.kind === 'enemy');
-    b.combatants.filter((c) => c.kind === 'enemy').slice(2).forEach((e) => (e.dead = true));
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const [E1, E2] = b.combatants.filter((c) => c.kind === 'ennemi');
+    b.combatants.filter((c) => c.kind === 'ennemi').slice(2).forEach((e) => (e.dead = true));
     H.size = 'grande';
     H.characteristics['capacite-de-combat'] = 90;
     H.pos = { x: 6, y: 10 };
@@ -337,9 +337,9 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('debutDuRound');
     const b = banc.getState().battle!;
-    const [fuyard, voisin] = b.combatants.filter((c) => c.kind === 'hero');
-    const [E] = b.combatants.filter((c) => c.kind === 'enemy');
-    b.combatants.filter((c) => c.kind === 'enemy' && c.id !== E.id).forEach((e) => (e.dead = true));
+    const [fuyard, voisin] = b.combatants.filter((c) => c.kind === 'heros');
+    const [E] = b.combatants.filter((c) => c.kind === 'ennemi');
+    b.combatants.filter((c) => c.kind === 'ennemi' && c.id !== E.id).forEach((e) => (e.dead = true));
     E.size = 'enorme';
     E.characteristics['capacite-de-combat'] = 90;
     E.pos = { x: 6, y: 10 };
@@ -415,7 +415,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
   // un ARC en main ne tire donc pas dans le dos : il frappe (arme de mêlée, mains nues à défaut).
   it('frappeur avec un ARC en main : le coup dans le dos reste un Test de CORPS À CORPS', () => {
     const { frappeur, fuyard } = duelHeros(10);
-    frappeur.weapons = [{ name: 'Arc', label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 4 }, qualities: [], range: 60 }] as never;
+    frappeur.weapons = [{ name: 'Arc', label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 4 }, qualities: [], range: 60 }] as never;
     fuyard.wounds = blessuresDeBase(40, 40, fuyard);
     banc.setState({ battle: { ...banc.getState().battle! } });
 
@@ -463,7 +463,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
   it('MJ (gmSeat) : le coup dans le dos d’un ENNEMI reste témoin auto-roulé — aucune impasse', () => {
     const { fuyard } = duelHeros(9);
     const b = banc.getState().battle!;
-    const E = b.combatants.find((c) => c.kind === 'enemy')!;
+    const E = b.combatants.find((c) => c.kind === 'ennemi')!;
     const H = live(fuyard.id);
     H.engagedWith = [E.id];
     E.engagedWith = [H.id];

@@ -52,8 +52,8 @@ function startFight(seed = 7) {
   banc.getState().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = banc.getState().battle!;
-  const H = b.combatants.find((c) => c.kind === 'hero')!;
-  const E = b.combatants.find((c) => c.kind === 'enemy')!;
+  const H = b.combatants.find((c) => c.kind === 'heros')!;
+  const E = b.combatants.find((c) => c.kind === 'ennemi')!;
   H.items = (H.items ?? []).filter((i) => i.kind !== 'armor'); H.armour = { ...SANS_PA }; // aucune PA → la Déviation Critique (LDB 63) ne s'offre pas : on isole la fenêtre de sévérité
   return { H, E };
 }

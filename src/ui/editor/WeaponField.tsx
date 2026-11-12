@@ -38,7 +38,7 @@ export function WeaponField({ value, onChange }: { value: ArmeDerivee | undefine
         <label className="dr">Type
           <select value={w.type} onChange={(e) => patch({ type: e.target.value as Weapon['type'] })}>
             <option value="melee">Mêlée</option>
-            <option value="ranged">Distance</option>
+            <option value="distance">Distance</option>
           </select>
         </label>
         <label className="dr">Dégâts<input placeholder="+BF / +BF+4 / +9" value={damageString(w.damage)} onChange={(e) => patch({ damage: parseDamage(e.target.value) })} /></label>

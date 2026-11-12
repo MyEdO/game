@@ -35,7 +35,7 @@ function seq(...values: number[]): RNG {
 
 const cible = (E = 30): Combatant =>
   (blessuresSurLeProfil({
-    id: 't', name: 'Cible', label: 'Cible', kind: 'enemy',
+    id: 't', name: 'Cible', label: 'Cible', kind: 'ennemi',
     characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 40, endurance: E, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(12, 0),
     conditions: [], skills: [], traumas: [], critEntriesSuffered: [], bodyShape: 'humanoide',

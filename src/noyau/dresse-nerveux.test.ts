@@ -17,7 +17,7 @@ import { blessuresSurLeProfil, blessuresDeBase, profilDeTest } from '../engine/c
  * aucun code par-nom de discipline.
  */
 const mk = (over: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
-  id: 'x', name: 'X', kind: 'enemy', characteristics: profilDeTest({ 'capacite-de-combat': 30, endurance: 40 }), skills: [], talents: [], traits: [],
+  id: 'x', name: 'X', kind: 'ennemi', characteristics: profilDeTest({ 'capacite-de-combat': 30, endurance: 40 }), skills: [], talents: [], traits: [],
   conditions: [], activeEffects: [], liveTraits: [], weapons: [], armour: { corps: 0 },
   wounds: blessuresDeBase(10), advantage: 0,
   ...over,

@@ -59,7 +59,7 @@ describe('OP_DEFS — payload strict par op, repli nominatif, rouge au SITE', ()
       expect(res.error!.issues[0].message).toBe(`GameOp « condition » : ${messageRecurrenceHorloge('inconscient')}`);
     }
     expect(() => applyOps(
-      blessuresSurLeProfil({ id: 'c', label: 'Cobaye', kind: 'hero', characteristics: {}, wounds: blessuresDeBase(5), advantage: 0, conditions: [], movement: 4, weapons: [], armour: {}, skills: [], talents: [] }) as unknown as Combatant,
+      blessuresSurLeProfil({ id: 'c', label: 'Cobaye', kind: 'heros', characteristics: {}, wounds: blessuresDeBase(5), advantage: 0, conditions: [], movement: 4, weapons: [], armour: {}, skills: [], talents: [] }) as unknown as Combatant,
       [{ op: 'condition', id: { id: 'inconscient' }, perRound: true, durationHours: 1 }],
       { idNeuf: idsDeTest, rng: desDuTest },
     ), 'le PARSE et l’APPLICATION disent le même refus').toThrow(messageRecurrenceHorloge('inconscient'));

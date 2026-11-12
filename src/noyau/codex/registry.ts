@@ -1484,7 +1484,7 @@ const CODEX_SPECS = {
       ].filter(Boolean) as string[];
       // Allonge = mêlée, Portée = distance (LDB 62). Tir/munition : « Portée 50 m » (fixe) / « BF×3 m » (jet)
       // sinon le modificateur de munition (« Portée ×½ », `ammoRangeModLabel`) ; jamais « Allonge 50 ».
-      const reachFact = (t.categorie === 'ranged' || t.categorie === 'ammunition')
+      const reachFact = (t.categorie === 'distance' || t.categorie === 'ammunition')
         ? fact(tr('codex.fiche.portee'), rangeSpecLabel(t.range) ?? ammoRangeModLabel(t.ammoRangeMod))
         : fact(tr('codex.fiche.allonge'), t.reach);
       return depuisEnveloppe(t, {
@@ -2608,7 +2608,7 @@ const CODEX_SPECS = {
           sp.effet === 'cran' ? tr('codex.fiche.cranPlusFacile', { steps: sp.steps, v: sp.steps > 1 ? 's' : '' }) : DIFFICULTY_LABELS[sp.difficulty]}`).join(' ; ') : null),
         fact(tr('codex.fiche.mode'), g.pot ? tr('codex.fiche.miseEtPotD', { die: formatDice(deDeLaTableTiree(g.pot)) })
           : g.volley ? tr('codex.fiche.voleeDeLancers', { throws: g.volley.throws })
-            : g.mode === 'extended' ? tr('codex.fiche.etenduDr', { v: g.target ?? '?' }) : tr('codex.fiche.opposeSimple')),
+            : g.mode === 'etendu' ? tr('codex.fiche.etenduDr', { v: g.target ?? '?' }) : tr('codex.fiche.opposeSimple')),
         fact(tr('codex.fiche.plafondDeDr'), g.drCap ?? null),
         fact(tr('codex.fiche.nombreCible'), g.pot?.targetRange ? fourchette(g.pot.targetRange.min, g.pot.targetRange.max) : null),
         fact(tr('codex.fiche.totalExact'), g.volley?.exact ?? null),
@@ -2856,7 +2856,7 @@ export function combatantSections(c: Combatant, nomDIndividu?: NomDIndividu): Co
   const ch = c.characteristics;
   const charRows: CodexRow[] = [
     { t: 'kv', k: 'M', v: String(c.movement), kref: { category: 'characteristics', id: 'mouvement', label: tr('codex.fiche.mouvement') } },
-    ...CHAR_KEYS.map((k) => ({ t: 'kv', k: charAbr(k), v: ch[k] > 0 || c.kind === 'hero' ? String(effectiveChar(c, k)) : '–', kref: { category: 'characteristics', id: k, label: CHAR_LABELS[k] } } as CodexRow)),
+    ...CHAR_KEYS.map((k) => ({ t: 'kv', k: charAbr(k), v: ch[k] > 0 || c.kind === 'heros' ? String(effectiveChar(c, k)) : '–', kref: { category: 'characteristics', id: k, label: CHAR_LABELS[k] } } as CodexRow)),
     { t: 'kv', k: tr('codex.fiche.taille'), v: SIZE_LABEL[effectiveSize(c.size)] }, // Taille : pas une caractéristique → pas de lien Codex
   ];
   const skillRows: CodexRow[] = (c.skills ?? []).map((s) =>

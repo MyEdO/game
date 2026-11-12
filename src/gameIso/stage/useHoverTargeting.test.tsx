@@ -46,11 +46,11 @@ function setup() {
   useGame.getState().lancerLeCombat('enc-mutants');
   useGame.getState().fenetreValider('debutDuRound');
   const battle = useGame.getState().battle!;
-  const active = battle.combatants.find((combatant) => combatant.kind === 'hero')!;
+  const active = battle.combatants.find((combatant) => combatant.kind === 'heros')!;
   active.pos = { x: 6, y: 10 };
   active.engagedWith = [];
   let enemyX = 20;
-  for (const enemy of battle.combatants.filter((combatant) => combatant.kind === 'enemy')) {
+  for (const enemy of battle.combatants.filter((combatant) => combatant.kind === 'ennemi')) {
     enemy.pos = { x: enemyX++, y: 20 };
   }
   useGame.setState({
@@ -131,7 +131,7 @@ describe('useHoverTargeting — modale bloquante (arbitre modal)', () => {
   /** Un ennemi collé au héros actif : cible valide au corps à corps (réticule au survol). */
   function foeNextTo(active: ReturnType<typeof setup>) {
     const battle = useGame.getState().battle!;
-    const foe = battle.combatants.find((c) => c.kind === 'enemy')!;
+    const foe = battle.combatants.find((c) => c.kind === 'ennemi')!;
     foe.pos = { x: active.pos!.x + 1, y: active.pos!.y };
     return foe;
   }
@@ -282,7 +282,7 @@ describe('useHoverTargeting — pendant un interlude piloté par la carte, le su
   it('2ᵉ frappe (Deux armes) : le survol de la cible porte le réticule ET sa Difficulté', () => {
     const active = setup();
     const battle = useGame.getState().battle!;
-    const foe = battle.combatants.find((c) => c.kind === 'enemy')!;
+    const foe = battle.combatants.find((c) => c.kind === 'ennemi')!;
     foe.pos = { x: active.pos!.x + 1, y: active.pos!.y };
     const off = { label: 'Dague', name: 'Dague', type: 'melee', uid: 'off-1', hand: 'secondaire', damage: { plusBF: true, flat: 2 }, qualities: [] };
     active.weapons = [...active.weapons, off as never];
@@ -344,7 +344,7 @@ describe('useHoverTargeting — le survol n’affiche que le FAISABLE, le refus 
   /** Un ennemi à 3 cases : hors d'Allonge, dans la portée de Charge (2×M) — les autres, au loin. */
   function foeAPorteeDeCharge(active: ReturnType<typeof setup>) {
     const battle = useGame.getState().battle!;
-    const foe = battle.combatants.find((c) => c.kind === 'enemy')!;
+    const foe = battle.combatants.find((c) => c.kind === 'ennemi')!;
     foe.pos = { x: active.pos!.x + 3, y: active.pos!.y };
     return foe;
   }
@@ -429,7 +429,7 @@ describe('useHoverTargeting — grisage hors-LdV du SORT', () => {
   it('mode Incanter armé : l’ennemi derrière le mur est grisé, celui de la brèche non — Action dépensée comprise', () => {
     const active = setup();
     const battle = useGame.getState().battle!;
-    const foes = battle.combatants.filter((c) => c.kind === 'enemy');
+    const foes = battle.combatants.filter((c) => c.kind === 'ennemi');
     expect(foes.length, 'la rencontre doit fournir deux ennemis à placer').toBeGreaterThanOrEqual(2);
     const [vu, cache] = foes;
     active.pos = { x: 2, y: 0 };
@@ -476,7 +476,7 @@ describe('useHoverTargeting — le survol lit le verdict du clic', () => {
 
   it('Action DÉPENSÉE, Morsure armée (gratuite, LDB 85 l.237) : réticule, anneau et Tab sur l’adjacent, et le clic l’accepte', () => {
     const active = setup();
-    const foe = useGame.getState().battle!.combatants.find((c) => c.kind === 'enemy')!;
+    const foe = useGame.getState().battle!.combatants.find((c) => c.kind === 'ennemi')!;
     foe.pos = { x: active.pos!.x + 1, y: active.pos!.y };
     active.traits = [...(active.traits ?? []), { id: 'morsure', value: 10 }];
     active.advantage = 1;
@@ -491,7 +491,7 @@ describe('useHoverTargeting — le survol lit le verdict du clic', () => {
 
   it('FRÉNÉSIE (LDB 21 l.33) : la case qui ÉLOIGNE de la cible imposée ne se peint pas, et le clic dit le refus', () => {
     const active = setup();
-    const foe = useGame.getState().battle!.combatants.find((c) => c.kind === 'enemy')!;
+    const foe = useGame.getState().battle!.combatants.find((c) => c.kind === 'ennemi')!;
     foe.pos = { x: active.pos!.x + 3, y: active.pos!.y };
     active.psychState = [...(active.psychState ?? []), { type: 'frenesie' } as never];
     const recul = { x: active.pos!.x - 2, y: active.pos!.y };
@@ -503,7 +503,7 @@ describe('useHoverTargeting — le survol lit le verdict du clic', () => {
 
   it('FRÉNÉSIE, deux adjacents : seule la cible IMPOSÉE porte réticule, anneau et Tab', () => {
     const active = setup();
-    const [imposee, autre] = useGame.getState().battle!.combatants.filter((c) => c.kind === 'enemy');
+    const [imposee, autre] = useGame.getState().battle!.combatants.filter((c) => c.kind === 'ennemi');
     imposee.pos = { x: active.pos!.x + 1, y: active.pos!.y };
     autre.pos = { x: active.pos!.x - 1, y: active.pos!.y };
     active.psychState = [...(active.psychState ?? []), { type: 'frenesie' } as never];

@@ -30,7 +30,7 @@ function makeNavalParty(idNeuf: FabriqueDId): Combatant[] {
   for (const id of GUNNERS) {
     const g = party.find((h) => h.id === id);
     // Chargé d'emblée → tir dès le 1er Round. L'état de charge vit sur CHAQUE arme (arbitrage 2026-08-16).
-    if (g) for (const w of g.weapons.filter((x) => x.type === 'ranged')) loadWeapon(g, w);
+    if (g) for (const w of g.weapons.filter((x) => x.type === 'distance')) loadWeapon(g, w);
   }
   return party;
 }

@@ -201,8 +201,8 @@ describe('enjamber la croisée — combat', () => {
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const foes = b.combatants.filter((c) => c.kind === 'enemy');
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const foes = b.combatants.filter((c) => c.kind === 'ennemi');
     foes.forEach((e) => (e.dead = true));
     H.engagedWith = [];
     placeCombatant(H, sc, dedans);

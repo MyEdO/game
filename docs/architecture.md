@@ -646,8 +646,10 @@ hotes/godot/                HÔTE GODOT du noyau (#2928, zone `hotes`) : le pont
                             sous l'éditeur, #3945, que `npm run godot:ouvrir` ouvre sur le projet ; `embarque.mjs`,
                             empaqueté à côté de l'exécutable de bureau, #3951).
                             `pont/pont.ts` (une méthode = une chaîne JSON en entrée, une en sortie, jamais une levée ;
-                            gestes par le module commun, vue faite des lecteurs du noyau, jetons tenus par numéro),
-                            `pont/entree.ts` (`globalThis.wfrpPont`), contrat `pont/CONTRAT.md` ; `construire.mjs
+                            gestes par le module commun, vue faite des lecteurs du noyau, jetons tenus par numéro ; la
+                            porte `appelerEnOctets` des transports de Godot passe les tableaux de `morceaux` en un
+                            tampon de `Float32`, `pont/octets.ts`, #3948), `pont/entree.ts` (`globalThis.wfrpPont`),
+                            contrat `pont/CONTRAT.md` ; `construire.mjs
                             --pont-seul` bâtit le bundle iife par Vite (`npm run pont:godot`, étape de la CI).
   asset/                    le contrat d'asset d'un personnage 3D (lecteur GLB, manifeste, import par `importer.mjs`) ;
                             le manifeste d'élément du schéma 3 et sa validation contre la base et la donnée du jeu (`asset/element.ts`) ;
@@ -670,7 +672,8 @@ hotes/godot/                HÔTE GODOT du noyau (#2928, zone `hotes`) : le pont
                             nommées d'une scène (`--parcours cadrages`, `cadrages/`). `--bureau --sortie <dossier>`
                             (`npm run godot:bureau`, #3951) produit l'exécutable de bureau de la plateforme, son noyau
                             embarqué (`noyau/` : Node, le bundle, le point d'entrée) et ses modèles en scène, puis lui
-                            fait jouer une partie. Deux rendus dessinent les mêmes scènes : Forward+ hors d'une page,
+                            fait jouer une partie ; le workflow `bureau.yml`, lancé à la main, le fait sous Linux et
+                            sous Windows et en garde le dossier en artefact. Deux rendus dessinent les mêmes scènes : Forward+ hors d'une page,
                             le rendu de compatibilité dans la page ou en repli ; `--rendus` (`npm run godot:rendus`,
                             étape de la CI) joue en rendu réel, sous chacun des deux, les recettes déclarant
                             `const RECETTE_RENDUE := true`.

@@ -615,7 +615,7 @@ export interface FinDeSeance {
 }
 
 /** Les héros dont la fin de séance coche les cases. */
-export const herosDeLaSeance = (s: Pick<Jeu, 'party'>): Combatant[] => s.party.filter((h) => h.kind === 'hero');
+export const herosDeLaSeance = (s: Pick<Jeu, 'party'>): Combatant[] => s.party.filter((h) => h.kind === 'heros');
 
 /** Ouvre la fin de séance, aucune case cochée : l'Effet `sessionEnd` (#83), le menu de jeu, le récap de chapitre. */
 export function ouvrirLaFinDeSeance(set: Set): void {
@@ -751,9 +751,24 @@ export function refusDeComposerLeHeros(s: Pick<Jeu, 'battle' | 'net' | 'party'>,
   return refusComposition(s) ?? (seatOwns(s, seat, heroId) ? null : t('pf.heroOfAnotherSeat'));
 }
 
+/** Raison du refus de RECRUTER `heros` pour le siège qui décide (`decidingSeat`) : le refus d'ajout au groupe
+ *  (`refusDAjoutAuGroupe`) du héros qu'il bâtira, puis la raison qui refuse l'engagement lui-même
+ *  (`verdictDEngagement`) ; `null` s'il se recrute. Verdict UNIQUE de `recruterLeHeros` et des écrans qui l'offrent. */
+export function refusDeRecruter(s: Pick<Jeu, 'battle' | 'party' | 'net'>, heros: HerosEngage): string | null {
+  const verdict = verdictDEngagement(heros);
+  const seat = decidingSeat(s);
+  return 'refus' in verdict ? refusDAjoutAuGroupe(s, undefined, seat) ?? verdict.refus : refusDAjoutAuGroupe(s, verdict.id, seat);
+}
+
+/** Raison du refus de RENVOYER le héros `heroId` pour le siège qui décide (`refusDeComposerLeHeros`) ; `null` s'il se
+ *  renvoie. Verdict UNIQUE de `renvoyerLeHeros` et des écrans qui l'offrent. */
+export function refusDeRenvoyer(s: Pick<Jeu, 'battle' | 'net' | 'party'>, heroId: string): string | null {
+  return refusDeComposerLeHeros(s, heroId, decidingSeat(s));
+}
+
 /** Raison du refus de LANCER la partie avec ce groupe : un groupe vide, ou un siège invité qui a encore des
  *  emplacements à remplir (`seatSlotsRemaining`) ; `null` si elle se lance. Verdict UNIQUE de `lancerCampagne`
- *  (`scenes/campaign.ts`) et de l'écran d'équipe. */
+ *  (`scenes/campaign.ts`), du pont d'un hôte (`lancer`) et de l'écran d'équipe. */
 export function refusDeLancer(s: Pick<Jeu, 'net' | 'party'>): string | null {
   if (s.party.length === 0) return t('party.action.start.empty');
   const invites = new Set(s.net.slots.filter((seat) => seat !== 0));
@@ -775,9 +790,7 @@ export function recruterLeHeros(get: Get, set: Set, heros: HerosEngage): void {
   const s = get();
   const seat = decidingSeat(s);
   // Tout refus se juge AVANT de bâtir : un geste refusé ne consomme aucun id (#2907).
-  const verdict = verdictDEngagement(heros);
-  const refus = 'refus' in verdict ? refusDAjoutAuGroupe(s, undefined, seat) ?? verdict.refus : refusDAjoutAuGroupe(s, verdict.id, seat);
-  if (compositionRefusee(get, set, refus)) return;
+  if (compositionRefusee(get, set, refusDeRecruter(s, heros))) return;
   const copy: Combatant = ensureBourse(herosDeLEngagement(heros, get().forgerUnId, battleRng()), get().forgerUnId);
   const wealth = richesseDeLEngagement(heros, battleRng());
   const rangs = { ...rangsDuGroupe(s), [copy.id]: rangDAjout(s, seat)! };
@@ -805,7 +818,7 @@ export function releaseHeroSeats<S extends Scene | null>(scene: S): S {
   return next as S;
 }
 
-/** Retire un héros du groupe (écran d'équipe), refusé par `refusDeComposerLeHeros`, et nettoie sa possession
+/** Retire un héros du groupe (écran d'équipe), refusé par `refusDeRenvoyer`, et nettoie sa possession
  *  réseau ; son rang (`net.rangs`) reste vide.
  *  SUCCESSION (§6/§19, décision №3, SOCLE POSSESSIONS #615) — jamais d'orphelin gelé : les
  *  Possessions du héros retiré ET sa Bourse passent à un héritier VIVANT, défaut = le DOYEN (1er
@@ -814,7 +827,7 @@ export function releaseHeroSeats<S extends Scene | null>(scene: S): S {
  *  (groupe vidé ou tout-morts) → repli : rien à hériter, la Bourse/les Possessions du partant
  *  restent SUR LUI (il quitte le groupe avec son bien, aucun héritier vivant à défausser dessus). */
 export function renvoyerLeHeros(get: Get, set: Set, heroId: string): void {
-  if (compositionRefusee(get, set, refusDeComposerLeHeros(get(), heroId, decidingSeat(get())))) return;
+  if (compositionRefusee(get, set, refusDeRenvoyer(get(), heroId))) return;
   const s = get();
   const idx = s.party.findIndex((h) => h.id === heroId);
   if (idx < 0) return;

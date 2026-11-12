@@ -21,7 +21,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * Sans ces champs, la modale n'a rien à afficher : c'est ici que le trou d'affichage se ferme.
  */
 const skilled = (id: string, pos: { x: number; y: number } | undefined, skillId = 'perception', advances = 1, chars: Partial<Record<string, number>> = {}): Combatant => (blessuresSurLeProfil({
-  id, name: id, kind: 'hero', pos,
+  id, name: id, kind: 'heros', pos,
   characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30, ...chars },
   wounds: blessuresDeBase(10), advantage: 0, conditions: [], movement: 4,
   skills: [{ id: skillId, characteristic: 'agilite', advances }], talents: [],

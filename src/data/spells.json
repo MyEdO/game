@@ -4057,7 +4057,7 @@
           {
             "kind": "relation",
             "who": "target",
-            "is": "ally"
+            "is": "allie"
           },
           {
             "kind": "not",
@@ -4499,7 +4499,7 @@
       "affects": {
         "kind": "relation",
         "who": "target",
-        "is": "ally"
+        "is": "allie"
       }
     },
     "duration": {
@@ -11983,7 +11983,7 @@
       "affects": {
         "kind": "relation",
         "who": "target",
-        "is": "ally"
+        "is": "allie"
       }
     },
     "duration": {
@@ -12082,7 +12082,7 @@
       "affects": {
         "kind": "relation",
         "who": "target",
-        "is": "ally"
+        "is": "allie"
       }
     },
     "duration": {
@@ -12229,7 +12229,7 @@
       "affects": {
         "kind": "relation",
         "who": "target",
-        "is": "ally"
+        "is": "allie"
       }
     },
     "duration": {
@@ -16267,7 +16267,7 @@
       "affects": {
         "kind": "relation",
         "who": "target",
-        "is": "ally"
+        "is": "allie"
       }
     },
     "duration": {
@@ -17278,7 +17278,7 @@
                 "passive": [
                   {
                     "op": "weaponRollMod",
-                    "phase": "attack",
+                    "phase": "attaque",
                     "drMod": -1
                   }
                 ]
@@ -20219,7 +20219,7 @@
           "condition": {
             "kind": "relation",
             "who": "target",
-            "is": "ally"
+            "is": "allie"
           },
           "alors": {
             "kind": "effet",
@@ -20250,7 +20250,7 @@
           "condition": {
             "kind": "relation",
             "who": "target",
-            "is": "opponent"
+            "is": "adversaire"
           },
           "alors": {
             "kind": "effet",
@@ -20329,7 +20329,7 @@
           "condition": {
             "kind": "relation",
             "who": "target",
-            "is": "opponent"
+            "is": "adversaire"
           },
           "alors": {
             "kind": "test",
@@ -24129,12 +24129,12 @@
           {
             "kind": "relation",
             "who": "target",
-            "is": "self"
+            "is": "soi"
           },
           {
             "kind": "relation",
             "who": "target",
-            "is": "ally"
+            "is": "allie"
           }
         ]
       }
@@ -24276,7 +24276,7 @@
       "affects": {
         "kind": "relation",
         "who": "target",
-        "is": "ally"
+        "is": "allie"
       }
     },
     "duration": {
@@ -24409,7 +24409,7 @@
       "affects": {
         "kind": "relation",
         "who": "target",
-        "is": "ally"
+        "is": "allie"
       }
     },
     "duration": {
@@ -27101,7 +27101,7 @@
       "affects": {
         "kind": "relation",
         "who": "target",
-        "is": "opponent"
+        "is": "adversaire"
       }
     },
     "duration": {
@@ -27493,7 +27493,7 @@
       "affects": {
         "kind": "relation",
         "who": "target",
-        "is": "opponent"
+        "is": "adversaire"
       },
       "excludesCaster": true
     },
@@ -27603,7 +27603,7 @@
       "affects": {
         "kind": "relation",
         "who": "target",
-        "is": "ally"
+        "is": "allie"
       }
     },
     "duration": {
@@ -28090,7 +28090,7 @@
       "affects": {
         "kind": "relation",
         "who": "target",
-        "is": "ally"
+        "is": "allie"
       }
     },
     "duration": {

@@ -44,7 +44,7 @@ describe('sceneCombatModifiers — obscurité (horloge) / météo (LDB 14 l.75/7
 describe('Exemple RAW LDB 14 l.96 — « -30 plus +20 font -10 » (chaîne réelle scène → attaque)', () => {
   const mkc = (over: Partial<Combatant> = {}): Combatant =>
     (blessuresSurLeProfil({
-      id: 'x', name: 'X', kind: 'enemy',
+      id: 'x', name: 'X', kind: 'ennemi',
       characteristics: { 'capacite-de-combat': 50, force: 30, endurance: 30, agilite: 40 },
       wounds: blessuresDeBase(12), advantage: 0, conditions: [], weapons: [],
       armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },

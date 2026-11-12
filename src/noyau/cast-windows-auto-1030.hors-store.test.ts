@@ -39,8 +39,8 @@ function setup(spells: string[], n = 1, magick = true) {
   banc.getState().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = banc.getState().battle!;
-  const H = b.combatants.find((c) => c.kind === 'hero')!;
-  const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+  const H = b.combatants.find((c) => c.kind === 'heros')!;
+  const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
   enemies.slice(n).forEach((e) => (e.dead = true));
   const cibles = enemies.slice(0, n);
   cibles.forEach((E, i) => {
@@ -174,7 +174,7 @@ describe('#1030 — Contre-sort : politique d’auto-résolution de la cadence A
     // Sort ENNEMI (IA, aucun siège MJ) : les DEUX contre-lanceurs sont des héros — l'un au siège 0
     // (local), l'autre au siège 1. Un contre-lanceur doit être HOSTILE au lanceur (`counterspellCandidates`).
     const b = banc.getState().battle!;
-    const h2 = { ...b.combatants.find((c) => c.kind === 'hero')!, id: 'h2', label: 'W2', pos: { x: 10, y: 11 }, dispelledThisRound: undefined } as Combatant;
+    const h2 = { ...b.combatants.find((c) => c.kind === 'heros')!, id: 'h2', label: 'W2', pos: { x: 10, y: 11 }, dispelledThisRound: undefined } as Combatant;
     banc.setState({
       battle: { ...b, combatants: [...b.combatants, h2], order: [...b.order, h2.id] },
       net: { ...banc.getState().net, mode: 'hote', mySeat: 0, gmSeat: undefined, ownership: { h2: 1 }, slots: [0, 1, 0, 0] } as Jeu['net'],
@@ -332,8 +332,8 @@ describe('#1030 — opposition de cible : même politique d’auto-résolution',
 
     // …et une incantation NON opposée du nouveau combat s'applique normalement.
     const b = banc.getState().battle!;
-    const H2 = b.combatants.find((c) => c.kind === 'hero')!;
-    const E2 = b.combatants.find((c) => c.kind === 'enemy')!;
+    const H2 = b.combatants.find((c) => c.kind === 'heros')!;
+    const E2 = b.combatants.find((c) => c.kind === 'ennemi')!;
     banc.setState({
       pendingCast: {
         casterId: H2.id, targetId: E2.id, spellId: 'flechette', missile: true, focused: false, counterspellRouted: true,

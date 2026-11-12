@@ -267,7 +267,7 @@ describe('MODE TABLE — poser le dé d’une étape à table (option « Dés fi
     // n'a QUE l'autorisation de siège à vérifier (`intentAllowedFor`) — re-juger son état local ferait
     // tomber en silence un geste légitime (le mode d'échec verbatim de `opSetForcedRoll`).
     resetDesFixes(); // option éteinte CHEZ L'HÔTE
-    const hero = combattantDeTest({ id: 'h1', label: 'Aldo', kind: 'hero' });
+    const hero = combattantDeTest({ id: 'h1', label: 'Aldo', kind: 'heros' });
     banc.setState({
       party: [hero],
       net: { mode: 'hote', mySeat: 0, roomCode: 'ABCD', seatNames: {}, presence: {}, ownership: { h1: 1 }, gmSeat: null } as never,

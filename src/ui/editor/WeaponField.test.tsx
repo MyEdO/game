@@ -30,7 +30,7 @@ describe('WeaponField — Allonge = choix FERMÉ sur l’axe (LDB 62 l.156-164)'
   });
 
   it('une arme à DISTANCE n’expose pas l’Allonge (Portée à la place)', () => {
-    const h = renderToStaticMarkup(<WeaponField value={{ ...melee, type: 'ranged' }} onChange={() => {}} />);
+    const h = renderToStaticMarkup(<WeaponField value={{ ...melee, type: 'distance' }} onChange={() => {}} />);
     expect(h).not.toContain(REACH_LABELS.considerable);
   });
 });

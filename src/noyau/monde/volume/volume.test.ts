@@ -46,13 +46,13 @@ function cheminDeRonde(): Scene {
 }
 
 describe('volumeDuMonde (#3476)', () => {
-  it('trois sommets par triangle : trois nombres par position et par normale, quatre par couleur opaque, une case par triangle', () => {
+  it('trois sommets par triangle : trois nombres par position et par normale, quatre par couleur opaque, trois nombres de case par triangle', () => {
     for (const m of volumeDuMonde(marche()).morceaux) {
       expect(m.positions.length % 9).toBe(0);
       expect(m.normales.length).toBe(m.positions.length);
       expect(m.couleurs.length).toBe((m.positions.length / 3) * 4);
       expect(m.couleurs.every((c) => c >= 0 && c <= 1)).toBe(true);
-      expect(m.cases.length).toBe(m.positions.length / 9);
+      expect(m.cases.length).toBe(m.positions.length / 3);
       expect(triangles(m).every((t) => t.couleur[3] === 1)).toBe(true);
     }
   });
@@ -293,7 +293,7 @@ describe('volumeDuMonde, les faces hors de la carte (#3948)', () => {
       const v = volumeDuMonde(s);
       const blocs = Math.ceil(s.dimensions.w / CASES_PAR_MORCEAU);
       expect(v.morceaux.map((m) => m.cle).filter((cle) => cle.split('/').slice(2).map(Number).some((b) => b < 0 || b >= blocs)), `x=${x}`).toEqual([]);
-      expect(v.morceaux.flatMap((m) => m.cases).filter((c) => !surLaCarte(s)(c)), `x=${x}`).toEqual([]);
+      expect(trianglesDuVolume(v).map((t) => t.case).filter((c) => !surLaCarte(s)(c)), `x=${x}`).toEqual([]);
       const mer = trianglesDuVolume(v).filter((t) => t.surface.flottaison);
       const parCase = mer.length / flottaison.size;
       expect(Number.isInteger(parCase), 'autant de triangles de mer par case').toBe(true);
@@ -331,7 +331,7 @@ describe('toitsDuMonde, toitsLeves (#3476)', () => {
     expect(nappe.cle).toBe(nappeKey('bourg', 'maison'));
     expect(nappe.surfaces.map((s) => s.matiere).sort()).toEqual(['roof--tuile', 'structure--plain']);
     expect(nappe.positions.length % 9).toBe(0);
-    expect(nappe.cases).toHaveLength(nappe.positions.length / 9);
+    expect(nappe.cases).toHaveLength(nappe.positions.length / 3);
     const hauteurs = nappe.positions.filter((_, i) => i % 3 === 1);
     expect(Math.max(...hauteurs), 'le faîte au-dessus de l’égout').toBeGreaterThan(Math.min(...hauteurs));
   });
@@ -370,7 +370,7 @@ describe('la crénelure du volume (#3476)', () => {
     expect(autres).toEqual([]);
     expect(couronne.cle).toBe(edgeKey(rempart));
     expect(couronne.surfaces.map((x) => x.matiere)).toEqual(['structure--mur-en-pierre']);
-    expect(couronne.cases).toHaveLength(couronne.positions.length / 9);
+    expect(couronne.cases).toHaveLength(couronne.positions.length / 3);
     expect(Math.min(...hauteurs(couronne.positions))).toBeCloseTo(METRES_PER_LEVEL, 3);
   });
 
@@ -380,7 +380,7 @@ describe('la crénelure du volume (#3476)', () => {
     const [couronne] = couronnesDuMonde(s);
     expect(couronne.cle).toBe('1,1,N,1');
     expect(Math.min(...hauteurs(couronne.positions))).toBeCloseTo(2 * METRES_PER_LEVEL, 3);
-    expect(couronne.cases.every(([, , z]) => z === 1)).toBe(true);
+    expect(triangles(couronne).every((t) => t.case[2] === 1)).toBe(true);
   });
 });
 

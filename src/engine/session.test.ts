@@ -18,7 +18,7 @@ describe('Fin de séance — Ambitions (LDB 05) & Détermination (LDB 17)', () =
   });
 
   it('regainDetermination : +1 plafonné au max du héros (resolveMax)', () => {
-    const hero = { kind: 'hero', resolve: 0, resilience: 2, talents: [], skills: [], activeEffects: [] } as unknown as Combatant;
+    const hero = { kind: 'heros', resolve: 0, resilience: 2, talents: [], skills: [], activeEffects: [] } as unknown as Combatant;
     expect(regainDetermination(hero, 1)).toBe(1);
     hero.resolve = 2; // resolveMax = resilience = 2 → déjà au max
     expect(regainDetermination(hero, 1)).toBe(2);

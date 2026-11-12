@@ -43,7 +43,7 @@ const ECART_MAX = 0.1;
 
 function hero(id: string, pos: { x: number; y: number }): Combatant {
   return blessuresSurLeProfil({
-    id, label: id, kind: 'hero', species: 'humains-reiklander', pos, size: 'moyenne',
+    id, label: id, kind: 'heros', species: 'humains-reiklander', pos, size: 'moyenne',
     wounds: blessuresDeBase(12, 9), weapons: [],
     characteristics: { 'capacite-de-combat': 40, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     advantage: 0, conditions: [], armour: {},

@@ -11,8 +11,8 @@ import { loadWeapon, setNonCharge, weaponFromItem } from '../engine/items';
 import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 import type { Combatant, ItemInstance } from '../engine/types';
 
-const heros = (id: string, over: Partial<Combatant> = {}): Combatant => combattantDeTest({ id, label: id, kind: 'hero', pos: { x: 5, y: 5 }, ...over });
-const ennemi = (id: string, over: Partial<Combatant> = {}): Combatant => combattantDeTest({ id, label: id, kind: 'enemy', pos: { x: 6, y: 5 }, ...over });
+const heros = (id: string, over: Partial<Combatant> = {}): Combatant => combattantDeTest({ id, label: id, kind: 'heros', pos: { x: 5, y: 5 }, ...over });
+const ennemi = (id: string, over: Partial<Combatant> = {}): Combatant => combattantDeTest({ id, label: id, kind: 'ennemi', pos: { x: 6, y: 5 }, ...over });
 const SANS = { assailli: null, cloue: false, renfort: false };
 const ko = { wounds: { current: 0, max: 10 }, dead: true } as Partial<Combatant>;
 
@@ -24,7 +24,7 @@ function combat(combattants: Combatant[], net: Record<string, unknown> = {}, ent
     turn: -1, round: 1, action: null, selectedSpellId: null, reachable: new Map(),
     movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
   } as unknown as BattleState;
-  banc.setState({ battle, mode: 'battle', party: combattants.filter((c) => c.kind === 'hero'), net: { ...initialNet(), ...net } } as never);
+  banc.setState({ battle, mode: 'battle', party: combattants.filter((c) => c.kind === 'heros'), net: { ...initialNet(), ...net } } as never);
   return banc;
 }
 
@@ -80,7 +80,7 @@ describe('etatsDeSituation — les États que porte le combat, pas le Combatant'
 
   it('Assailli suit le Surnombre de la résolution (LDB 14 l.110) : un camp au contact, jamais deux camps additionnés', () => {
     const H = heros('H');
-    const neutre = combattantDeTest({ id: 'N', label: 'N', kind: 'npc', pos: { x: 5, y: 6 } });
+    const neutre = combattantDeTest({ id: 'N', label: 'N', kind: 'pnj', pos: { x: 5, y: 6 } });
     // Un ennemi et un PNJ au contact : aucun camp n'est à deux contre un — la résolution n'accorde aucun Surnombre.
     expect(outnumberMod(1)).toBeNull();
     expect(etatsDeSituation(H, battleDe([H, ennemi('E1'), neutre]))).toEqual(SANS);
@@ -102,8 +102,8 @@ describe('etatsDeSituation — les États que porte le combat, pas le Combatant'
 });
 
 describe('setNonCharge — un set porte-t-il une arme à distance à recharger ?', () => {
-  const arbalete = { uid: 'w-arb', label: 'Arbalète', kind: 'ranged', subType: 'Arbalète', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [{ id: 'recharge', value: 1 }], enc: 1, equipped: true } as ItemInstance;
-  const arc = { uid: 'w-arc', label: 'Arc', kind: 'ranged', subType: 'Arc', damage: { plusBF: false, flat: 4 }, range: 50, qualities: [], enc: 1, equipped: true } as ItemInstance;
+  const arbalete = { uid: 'w-arb', label: 'Arbalète', kind: 'distance', subType: 'Arbalète', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [{ id: 'recharge', value: 1 }], enc: 1, equipped: true } as ItemInstance;
+  const arc = { uid: 'w-arc', label: 'Arc', kind: 'distance', subType: 'Arc', damage: { plusBF: false, flat: 4 }, range: 50, qualities: [], enc: 1, equipped: true } as ItemInstance;
   const porteur = () => heros('H', { items: [{ ...arbalete }, { ...arc }], loadouts: [{ id: 'arb', main: 'w-arb' }, { id: 'arc', main: 'w-arc' }] as never, activeLoadoutId: 'arc' });
 
   it('arme à recharge non chargée, dans un set NON ACTIF : non chargé', () => {

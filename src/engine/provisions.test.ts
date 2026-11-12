@@ -19,7 +19,7 @@ const ration = (uid: string): ItemInstance => ({ ...itemFromTrappingById('ration
 
 function hero(opts: { endurance?: number; rations?: number; brouet?: boolean; traits?: { id: string }[] } = {}): Combatant {
   return blessuresSurLeProfil({
-    id: 'h', label: 'Gunnar', kind: 'hero',
+    id: 'h', label: 'Gunnar', kind: 'heros',
     characteristics: chars(opts.endurance),
     wounds: blessuresDeBase(12), advantage: 0, conditions: [],
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },

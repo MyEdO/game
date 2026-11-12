@@ -17,7 +17,7 @@ import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.te
  */
 
 const mk = (over: Partial<Combatant> = {}): Combatant => combattantDeTest({
-  id: 'd', label: 'Démon', kind: 'enemy', characteristics: { endurance: 40 },
+  id: 'd', label: 'Démon', kind: 'ennemi', characteristics: { endurance: 40 },
   wounds: blessuresDeBase(12, 0),
   ...over,
 });
@@ -51,7 +51,7 @@ describe('onWoundLoss — TOUTE perte de PB (mêlée OU distance) ; le type voya
     const foe = alive({ id: 'fo', engagedWith: ['ac'] as never });
     const g = (() => ({ battle: { combatants: [acid, foe] } })) as never;
     const before = foe.wounds.current;
-    fireTriggers(g, acid, 'onWoundLoss', { attackType: 'ranged', rng: makeRNG(1) } as never);
+    fireTriggers(g, acid, 'onWoundLoss', { attackType: 'distance', rng: makeRNG(1) } as never);
     expect(foe.wounds.current).toBeLessThan(before); // aucun gate « mêlée seulement »
   });
 
@@ -62,7 +62,7 @@ describe('onWoundLoss — TOUTE perte de PB (mêlée OU distance) ; le type voya
     };
     const g = ((c: Combatant) => () => ({ battle: { combatants: [c] } })) as never;
     const ranged = alive({ id: 'r' });
-    applyTriggeredEffects((g as (c: Combatant) => unknown)(ranged) as never, ranged, [eff], 'onWoundLoss', { rng: desDuTest, attackType: 'ranged' });
+    applyTriggeredEffects((g as (c: Combatant) => unknown)(ranged) as never, ranged, [eff], 'onWoundLoss', { rng: desDuTest, attackType: 'distance' });
     expect(hasCondition(ranged, COND.sonne)).toBe(false); // type ≠ → ignoré
     const melee = alive({ id: 'm' });
     applyTriggeredEffects((g as (c: Combatant) => unknown)(melee) as never, melee, [eff], 'onWoundLoss', { rng: desDuTest, attackType: 'melee' });

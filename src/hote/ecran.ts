@@ -10,7 +10,7 @@
  * aucun id.
  */
 import {
-  ACTIONS, avecSigne, batailleEnVue, fenetreDuJeu, carteEnVue, cleDuGeste, dayIndex, formatImperial, formatJourImperial, marchandEnVue, marcheEnVue, voyageEnVue, VERBE_DE_CHOIX, type AxeDuChoix, type FenetreAChoix, conditionLabel, conversationEnVue, difficultyText, documentEnVue, lieuEnVue, formatMoney, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDuSoin, ficheDuPorteur, gestesDeLObjet, interludeEnVue, jetsEnVue, porteurParId, recitEnVue, reposEnVue, toneOf,
+  ACTIONS, avecSigne, batailleEnVue, intentionDeRenvoi, partieEnCours, refusDeRenvoyer, fenetreDuJeu, carteEnVue, cleDuGeste, dayIndex, formatImperial, formatJourImperial, marchandEnVue, marcheEnVue, voyageEnVue, VERBE_DE_CHOIX, type AxeDuChoix, type FenetreAChoix, conditionLabel, conversationEnVue, difficultyText, documentEnVue, lieuEnVue, formatMoney, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDuSoin, ficheDuPorteur, gestesDeLObjet, interludeEnVue, jetsEnVue, porteurParId, recitEnVue, reposEnVue, toneOf,
   type CombatEvent, type Equipe, type EntreeDeLaFiche, type LieuDuPlan, type PlanDeLaCarte, type FicheDuPorteur, type GesteAChoix, type GesteDuNoyau, type GesteFermable, type FenetreDAttaque, type FenetreDIncantation, type Jeu, type JetEnVue, type LigneDeJet, type LigneDuJournal, type ModLine, type RollBreakdown, type TrajetEnVue,
 } from '../noyau/index';
 import { pluriel, t } from '../i18n';
@@ -18,6 +18,7 @@ import { garanti } from '../lib/garanti';
 import type { Projection } from './projection';
 import { CHOIX_EN_BOUTONS, type FenetreADessiner } from './gestes';
 import { zonesDeLaCreation, type ZonesDeLaCreation } from './creation';
+import { zonesDeLaPartie, type ZonesDeLaPartie } from './groupe';
 import { elementsDesGestes, ligne, resume, type Bouton, type Choix, type Element, type Entite, type FicheOuverte, type Formulaire, type Jet, type Ligne, type PanneauDeLHote, type Plan, type Puce, type Saisie, type Ton } from './elements';
 
 /**
@@ -47,7 +48,7 @@ import { elementsDesGestes, ligne, resume, type Bouton, type Choix, type Element
  * laissée vide part `null`. Seuls les gestes `ouvert` de la fenêtre (`fenetreADessiner`, `src/hote/gestes.ts`) se
  * dessinent.
  */
-export interface ZonesDeLEcran extends ZonesDeLaCreation {
+export interface ZonesDeLEcran extends ZonesDeLaCreation, ZonesDeLaPartie {
   /** le titre de la fenêtre qui tient la main. */
   'fenetre.titre': Ligne[];
   /** l'étape de séquence et le nom de qui tient la main. */
@@ -115,7 +116,8 @@ export interface ZonesDeLEcran extends ZonesDeLaCreation {
   'journal.titre': Ligne[];
   /** chaque héros du groupe en carte (`herosDuGroupe`) : ses Blessures, sa bourse, le bouton qui ouvre sa fiche,
    *  pressé quand elle est ouverte, qui la ferme alors, ses États, puis ce que la fenêtre dit de lui : le jet qu'il jette
-   *  en route et les gestes qui le désignent, sa nuit à la halte. */
+   *  en route et les gestes qui le désignent, sa nuit à la halte ; avant le lancement, « Renvoyer », dont le `jeu` est
+   *  l'intention du noyau qui le renvoie (`intentionDeRenvoi`), refusé avec sa raison (`refusDeRenvoyer`). */
   'groupe.heros': Entite[];
   /**
    * la fiche ouverte (`ficheDuPorteur`, surface du noyau), en statbloc : le combattant en entité : son espèce et sa
@@ -677,7 +679,7 @@ function revelationDeLEtape(etat: Jeu): Element[] {
   const r = pc?.participants[pc.cursor]?.reveal;
   if (!r) return [];
   const crit = r.kind === 'critique' ? r.crit : undefined;
-  const ton: Ton = r.subjectId && porteurParId(etat, r.subjectId)?.kind === 'hero' ? 'echec' : 'reussite';
+  const ton: Ton = r.subjectId && porteurParId(etat, r.subjectId)?.kind === 'heros' ? 'echec' : 'reussite';
   const prefixe = crit ? 'critique' : 'revelation';
   return [
     ...(crit ? [
@@ -759,7 +761,7 @@ const ordreDuTour = (etat: Jeu, c: Combat): Puce[] =>
   (etat.battle?.order ?? []).flatMap((id) => {
     const x = porteurParId(etat, id);
     if (!x) return [];
-    return [puce(`ordre/${id}`, x.label, t('ecran.jauge', { courant: x.wounds.current, max: x.wounds.max }), null, id === c.actif?.id ? 'alerte' : x.kind === 'enemy' ? 'echec' : 'neutre')];
+    return [puce(`ordre/${id}`, x.label, t('ecran.jauge', { courant: x.wounds.current, max: x.wounds.max }), null, id === c.actif?.id ? 'alerte' : x.kind === 'ennemi' ? 'echec' : 'neutre')];
   });
 
 /** Le ton de chaque issue du combat. */
@@ -798,7 +800,8 @@ function gestesDesCartes(etat: Jeu, gestes: (Bouton | Choix | Formulaire)[]): { 
 
 /** Chaque héros du groupe en carte (`heros/`) : son portrait, son nom, ses Blessures en jauge, sa bourse, le bouton qui ouvre sa
  *  fiche, pressé quand elle est ouverte, qui la ferme alors, ses États en puces, puis ce que la fenêtre dit de lui
- *  (`surLesCartes`) et les gestes qui le désignent (`gestesDesCartes`), `gestes`. */
+ *  (`surLesCartes`) et les gestes qui le désignent (`gestesDesCartes`), `gestes` ; tant qu'aucune partie n'est en
+ *  cours (`partieEnCours`), le bouton qui le renvoie, refusé par `refusDeRenvoyer`. */
 function herosDuGroupe(etat: Jeu, ouverte: FicheOuverte | null, gestes: Map<string, Bouton[]>): Entite[] {
   const { parHeros } = surLesCartes(etat);
   return etat.party.map((h): Entite => {
@@ -814,6 +817,7 @@ function herosDuGroupe(etat: Jeu, ouverte: FicheOuverte | null, gestes: Map<stri
         ...etatsEnPuces(f.etats),
         ...(parHeros.get(h.id) ?? []),
         ...(gestes.get(h.id) ?? []),
+        ...(partieEnCours(etat) ? [] : [{ type: 'bouton', id: `renvoyer/${h.id}`, libelle: t('ecran.groupe.renvoyer'), jeu: intentionDeRenvoi(h.id), presse: false, focus: false, refus: refusDeRenvoyer(etat, h.id) } satisfies Bouton]),
       ],
     };
   });
@@ -997,6 +1001,7 @@ export function zonesDeLEcran(etat: Jeu, p: Projection, fenetre: FenetreADessine
     'groupe.heros': herosDuGroupe(etat, fiche, gestesSurLesCartes),
     ...zonesDeLaFiche(etat, fiche),
     ...zonesDeLaCreation(etat, panneau && 'creation' in panneau ? panneau.creation : null),
+    ...zonesDeLaPartie(etat),
   };
 }
 
@@ -1026,7 +1031,7 @@ const tonDeLEvenement = (etat: Jeu, e: CombatEvent): Ton => {
   if (e.kind === 'round') return 'alerte';
   if (toneOf(e.kind) !== 'grave') return 'neutre';
   const frappe = e.targetId ?? e.actorId;
-  return frappe && porteurParId(etat, frappe)?.kind === 'hero' ? 'echec' : 'reussite';
+  return frappe && porteurParId(etat, frappe)?.kind === 'heros' ? 'echec' : 'reussite';
 };
 
 /** Les lignes que le journal ajoute, numérotées à la suite des `avant` lignes déjà écrites : une par événement, son

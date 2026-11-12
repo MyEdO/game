@@ -45,8 +45,8 @@ function setup() {
   banc.getState().lancerLeCombat('enc-mutants');
   banc.getState().fenetreValider('debutDuRound');
   const b = banc.getState().battle!;
-  const heroes = b.combatants.filter((c) => c.kind === 'hero');
-  const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+  const heroes = b.combatants.filter((c) => c.kind === 'heros');
+  const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
   enemies.slice(1).forEach((e) => (e.dead = true));
   const E = enemies[0];
   E.characteristics.intelligence = 48;

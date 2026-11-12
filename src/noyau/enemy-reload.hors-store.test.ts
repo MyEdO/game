@@ -16,7 +16,7 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /** L'état de charge vit sur l'ARME — raccourci de FIXTURE vers l'arme à distance du combattant. */
-const rangedOf = (c: Combatant): Weapon => c.weapons.find((w) => w.type === 'ranged')!;
+const rangedOf = (c: Combatant): Weapon => c.weapons.find((w) => w.type === 'distance')!;
 
 /**
  * #126 — Recharge (Indice) (LDB 62 l.333-335) ne distingue pas héros/ennemi : « Une arme déchargée
@@ -24,12 +24,12 @@ const rangedOf = (c: Combatant): Weapon => c.weapons.find((w) => w.type === 'ran
  * suit donc le MÊME cycle `loaded`/rechargement que le héros (spawn chargé → tir → déchargé → Test étendu),
  * sans état ni chemin parallèle. Ces tests figent la parité de bout en bout.
  */
-const CROSSBOW: Weapon = { label: 'Arbalète', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 60, reload: 1, qualities: [] };
+const CROSSBOW: Weapon = { label: 'Arbalète', type: 'distance', damage: { plusBF: false, flat: 9 }, range: 60, reload: 1, qualities: [] };
 const CHARS = { 'capacite-de-combat': 40, 'capacite-de-tir': 60, force: 35, endurance: 35, initiative: 35, agilite: 35, dexterite: 35, intelligence: 35, 'force-mentale': 35, sociabilite: 35 };
 
 function enemyWith(over: Partial<Combatant>): Combatant {
   return blessuresSurLeProfil({
-    id: 'e1', name: 'Arbalétrier', kind: 'enemy', characteristics: CHARS, wounds: blessuresDeBase(10),
+    id: 'e1', name: 'Arbalétrier', kind: 'ennemi', characteristics: CHARS, wounds: blessuresDeBase(10),
     advantage: 0, conditions: [], movement: 4, skills: [], talents: [], traits: [], engagedWith: [],
     size: 'moyenne', weapons: [CROSSBOW], items: [],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -38,7 +38,7 @@ function enemyWith(over: Partial<Combatant>): Combatant {
 }
 function heroAt(x: number, y: number): Combatant {
   return blessuresSurLeProfil({
-    id: 'h1', name: 'Héros', kind: 'hero', characteristics: CHARS, wounds: blessuresDeBase(12),
+    id: 'h1', name: 'Héros', kind: 'heros', characteristics: CHARS, wounds: blessuresDeBase(12),
     advantage: 0, conditions: [], movement: 4, skills: [], talents: [], traits: [], engagedWith: [],
     pos: { x, y }, size: 'moyenne',
     weapons: [{ name: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [] }],
@@ -59,7 +59,7 @@ describe('#126 — Rechargement des ennemis (parité héros, LDB 62 l.333-335)',
     const arbalete = findTrappingById('arbalete')!;
     expect(qualityIndice({ qualities: arbalete.qualities, subType: arbalete.subType?.id }, 'recharge')).toBe(1);
     const e = spawnEnemy({ statblock: { name: 'Arbalétrier', char: { B: 10 }, traits: [{ id: 'a-distance', value: 9, arg: 'arbalete', range: 60 }] } as never }, 'e1', { x: 5, y: 5 });
-    const rw = e.weapons.find((w) => w.type === 'ranged')!;
+    const rw = e.weapons.find((w) => w.type === 'distance')!;
     expect(rw.reload).toBe(1);   // Indice de Recharge résolu par libellé
     expect(rw.loaded).toBe(true); // chargé au spawn → PAS de recharge à vide au 1er Round
     // Preuve « pas de softlock tour 1 » : l'IA choisit de TIRER (pas de reload), l'arme étant chargée.

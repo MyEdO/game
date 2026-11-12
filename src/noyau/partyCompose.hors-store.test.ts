@@ -15,7 +15,9 @@ import { partyMoneyTotal } from './bourseFlow';
 import { bourseOf } from '../engine/bourse';
 import { withActingSeat } from './netOwnership';
 import { emplacementsDuGroupe, fermerLeSiege } from './sieges';
-import { refusDeComposerLeHeros, refusDeLancer } from './partyFlow';
+import { refusDeComposerLeHeros, refusDeLancer, refusDeRecruter, refusDeRenvoyer } from './partyFlow';
+import { pretiresOfferts } from './creation/engagement';
+import { careerLabelFor, findSpeciesById } from '../data';
 import { lancerCampagne } from '../scenes/campaign';
 import { t } from '../i18n';
 import { brouillonComplet, engage } from './creation/engagement.testkit';
@@ -28,7 +30,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 /** Un prétiré de fixture dont une possession du catalogue est imprimée à 1d10. */
 const AUX_DES: PregenDef = { ...PRETIRE_DE_TEST, trappings: [{ id: 'chiffons', count: { roll: { n: 1, sides: 10 } } }] };
 
-const hero = (id: string): Combatant => combattantDeTest({ id, label: `Héros ${id}`, kind: 'hero' });
+const hero = (id: string): Combatant => combattantDeTest({ id, label: `Héros ${id}`, kind: 'heros' });
 
 describe('composition d’équipe (partyFlow + net.slots)', () => {
   it('recruterLeHeros : le noyau bâtit le héros du brouillon, pose la possession du siège, crédite sa Richesse de départ', () => {
@@ -54,6 +56,19 @@ describe('composition d’équipe (partyFlow + net.slots)', () => {
     const s = banc.getState();
     expect(s.party.map((h) => [h.id, h.label])).toEqual([[idDuPretire(def.id), def.label]]);
     expect(toBrass(bourseOf(s.party[0]))).toBe(toBrass(richesseDuPretire(def, makeRNG(31))));
+  });
+
+  it('pretiresOfferts : chaque pré-tiré de la donnée, son nom, son espèce, sa carrière, et le refus de son recrutement', () => {
+    const autre: PregenDef = { ...PRETIRE_DE_TEST, id: 'autre-pretire-de-test', label: 'Autre prétiré de test', sex: 'F' };
+    poserLesPretires([PRETIRE_DE_TEST, autre]);
+    const offre = (def: PregenDef, refus: string | null) => ({ id: def.id, nom: def.label, espece: findSpeciesById(def.species.id)!.label, carriere: careerLabelFor({ career: 'herboriste', appearance: { sex: def.sex } }), recrutement: { type: 'recruterLeHeros', args: [{ pretire: def.id }] }, refus });
+    expect(pretiresOfferts(banc.getState())).toEqual([offre(PRETIRE_DE_TEST, null), offre(autre, null)]);
+    banc.getState().recruterLeHeros({ pretire: PRETIRE_DE_TEST.id });
+    expect(pretiresOfferts(banc.getState()), 'le pré-tiré au groupe se refuse, du verdict du verbe').toEqual([
+      offre(PRETIRE_DE_TEST, t('pf.partyDuplicate', { name: PRETIRE_DE_TEST.label })), offre(autre, null),
+    ]);
+    expect(refusDeRecruter(banc.getState(), { pretire: 'zz-inconnu' })).toBe(t('party.pretireInconnu', { id: 'zz-inconnu' }));
+    expect(refusDeRenvoyer(banc.getState(), idDuPretire(PRETIRE_DE_TEST.id))).toBeNull();
   });
 
   it('remplacerLeHeros par un pré-tiré : aucun dé tiré, la Bourse du remplacé portée', () => {

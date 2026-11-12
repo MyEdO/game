@@ -288,10 +288,10 @@ function applyBatteryVolley(get: Get, set: Set, ship: Combatant, target: Combata
  * cible et vire pour amener son bord le plus armé EN BATTERIE. Repérés (Perception réussie, `noSurprise`) → non appelée :
  * placement authoré (~150 m, aucun avantage). Mute pos + facing.
  */
-function applyNavalSurprisePosition(get: Get, set: Set, surprisedSide: 'party' | 'enemies'): void {
+function applyNavalSurprisePosition(get: Get, set: Set, surprisedSide: 'groupe' | 'ennemis'): void {
   const { battle, scene } = get();
   if (!battle || !scene) return;
-  const surprisedKind = surprisedSide === 'party' ? 'hero' : 'enemy';
+  const surprisedKind = surprisedSide === 'groupe' ? 'heros' : 'ennemi';
   const ambushers = battle.combatants.filter((c) => estNavire(c) && c.kind !== surprisedKind && c.pos);
   const victims = battle.combatants.filter((c) => estNavire(c) && c.kind === surprisedKind && c.pos);
   if (!ambushers.length || !victims.length) return;
@@ -1151,7 +1151,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const scene = get().scene;
       const blocked = !!(hero.pos && target.pos && scene) && !losClear(scene, hero.pos, target.pos, smokeOf(battle));
       // Chaque cause dit LA SIENNE : une cible hors de portée n'annonce pas un mur qui n'existe pas.
-      if (weapon.type !== 'ranged') return void refuserGeste(get, set, t('cs.refusTirArmeDeMelee', { weapon: weapon.label }));
+      if (weapon.type !== 'distance') return void refuserGeste(get, set, t('cs.refusTirArmeDeMelee', { weapon: weapon.label }));
       if (!inFiringBand(hero, target, weapon, sceneMetresPerTile(scene))) return void refuserGeste(get, set, t('cf.horsDePortee'));
       if (blocked) return void refuserGeste(get, set, t('cf.ligneDeVueMasquee'));
       // Le tir se résout par la modale de jet NORMALE (jetLancer('attaque')/jetValider('attaque')) ; le tireur n'est PAS actif.
@@ -1231,7 +1231,7 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!battle || battle.over || battle.acted) return;
       const active = activeCombatant(battle);
       if (!active || !canTakeAction(active)) return;
-      if (!active.weapons.some((w) => w.type === 'ranged')) return; // viser = pour le tir
+      if (!active.weapons.some((w) => w.type === 'distance')) return; // viser = pour le tir
       active.aiming = true;
       set({ battle: { ...markActed(get, set), action: null, log: [...get().battle!.log, ev('visee', t('cs.aim', { name: active.label }), active.id)] } });
       bus.emit(EVT.SCENE_DIRTY);
@@ -1304,7 +1304,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const active = activeCombatant(battle);
       if (!active) return;
       const rw = weaponUid
-        ? active.weapons.find((w) => w.uid === weaponUid && w.type === 'ranged')
+        ? active.weapons.find((w) => w.uid === weaponUid && w.type === 'distance')
         : armeADistanceParDefaut(active);
       if (!rw) return; // aucune arme à distance : rien à choisir
       // Chef qui SERT cette pièce : le cycle de charge vit sur la PIÈCE — la bascule doit la décharger ELLE.
@@ -1446,7 +1446,7 @@ export function createCombatSlice(get: Get, set: Set) {
         // (AskUserQuestion 2026-08-16), donc celui posé au
         // combat précédent (ou à l'équipement) tient ; `loadWeapon` capture le choix courant, et
         // `selectedAmmo` retombe sur la 1re compatible quand il n'y en a aucun.
-        for (const rw of c.weapons.filter((w) => w.type === 'ranged')) loadWeapon(c, rw);
+        for (const rw of c.weapons.filter((w) => w.type === 'distance')) loadWeapon(c, rw);
         return c;
       });
       // Chaque membre RÉFÉRENCE une entité de la scène. L'entité PORTE le profil/apparence/arme/traits
@@ -1472,7 +1472,7 @@ export function createCombatSlice(get: Get, set: Set) {
       // les couples pré-montés (ridesEntityId → la monture). Le cavalier monte SUR sa monture.
       const idxByEntity = new Map(roster.map((r, i) => [r.ent.id, i]));
       roster.forEach(({ m }, i) => {
-        if (m.side === 'allie') enemies[i].kind = 'hero';
+        if (m.side === 'allie') enemies[i].kind = 'heros';
         if (m.ai) enemies[i].aiControlled = true; // PNJ allié IA (défenseur de siège) : agit seul (aiDriven)
         if (m.mount) enemies[i].mountable = true;
       });
@@ -1485,8 +1485,8 @@ export function createCombatSlice(get: Get, set: Set) {
         mountUp(enemies[i], mount); // partage la position/empreinte de la monture (LDB 14 l.179)
       });
       // Structures destructibles de siège (AA 10 l.94-127) : chaque arête portant une `structure` INTACTE devient
-      // un Combattant inerte à PV (kind 'npc' → ne fausse pas la fin de combat, cf. checkBattleOver qui ne
-      // compte que les 'enemy'). Son `structureEdge` mémorise l'arête à ABATTRE (BRÈCHE) à sa destruction ;
+      // un Combattant inerte à PV (kind 'pnj' → ne fausse pas la fin de combat, cf. checkBattleOver qui ne
+      // compte que les 'ennemi'). Son `structureEdge` mémorise l'arête à ABATTRE (BRÈCHE) à sa destruction ;
       // une structure déjà abattue n'est pas ré-instanciée, une porte secrète masquée (`porteMasquee`) non plus.
       // Source = WallSeg (≠ SceneEntity) → enrôlée ICI.
       const structures = (scene.walls ?? [])
@@ -1512,7 +1512,7 @@ export function createCombatSlice(get: Get, set: Set) {
           hero.pos ? { ...hero.pos } : { x: 0, y: 0 },
           { charsRolled: mp.charsRolled, learnedTraits: mp.learnedTraits },
         );
-        mount.kind = 'hero'; // allié — exclue des DEUX bornes de fin de combat : `enemiesAlive` (kind:'enemy'
+        mount.kind = 'heros'; // allié — exclue des DEUX bornes de fin de combat : `enemiesAlive` (kind:'ennemi'
         // seulement) et `heroesAlive` (`!mountable`, checkBattleOver, combatFlow.ts) — jamais un héros.
         mount.mountable = true;
         if ('wounds' in mp && mp.wounds) mount.wounds.current = Math.min(mp.wounds.current, mount.wounds.max); // patron l.2476-2479
@@ -1525,8 +1525,8 @@ export function createCombatSlice(get: Get, set: Set) {
       // ALLIÉE (celle de campagne si connue, sinon la 1re coque alliée) → PASSAGERS (hors ordre ET hors rendu),
       // qui s'expriment par les Tests d'équipage (manœuvre / bordée) et n'ont pas de tour individuel person-scale.
       if (isMerScene(scene)) {
-        const allyHull = all.find((c) => estNavire(c) && c.kind === 'hero' && (!vessel0 || c.creatureId === vessel0.vehicleId))
-          ?? all.find((c) => estNavire(c) && c.kind === 'hero');
+        const allyHull = all.find((c) => estNavire(c) && c.kind === 'heros' && (!vessel0 || c.creatureId === vessel0.vehicleId))
+          ?? all.find((c) => estNavire(c) && c.kind === 'heros');
         if (allyHull) allyHull.crewIds = [...new Set([...(allyHull.crewIds ?? []), ...heroes.map((h) => h.id)])];
       }
       // Postes d'artillerie (MDG 12-13) : sert chaque poste de coque à son chef de pièce (mannedPoste +
@@ -2896,14 +2896,14 @@ export function cloturesDuCombat(get: Get, set: Set) {
           return;
         }
         const prevActed = battle.acted; // restitution de la Frénésie (LDB 21 l.33)
-        const isDualMain = !!pa.dualMode && !pa.dualSecond && attacker.kind === 'hero'; // main directrice d'un dual
+        const isDualMain = !!pa.dualMode && !pa.dualSecond && attacker.kind === 'heros'; // main directrice d'un dual
         const isDualSecond = !!pa.dualSecond; // 2ᵉ frappe (off-hand)
         // Maladresse de l'attaquant (LDB 14 l.19) : ÉCRITE par le temps `oupsAttaquant` de l'après-coup ;
         // mesurée ICI parce qu'elle exclut le balayage que ce site déclare ci-dessous.
         const fumbled = attackerFumbled(lance, weapon, attacker);
         const off = attacker.weapons.find((w) => w.hand === 'secondaire' && w.type === 'melee' && (w.hands ?? 1) === 1);
         const mainRoll = lance.attackerDetail?.roll;
-        const coupPrincipal = attacker.kind === 'hero' && !wasChain && !isDualSecond && !pa.freeKind;
+        const coupPrincipal = attacker.kind === 'heros' && !wasChain && !isDualSecond && !pa.freeKind;
         // Frénésie (LDB 21 l.33), `grantFreeAttack{available}` : la suite rend l'Action (`restitution`) ;
         // plafond /Round via `freeAttacksThisTurn['arme']`.
         const frenesie = coupPrincipal && hasFreeWeaponAttack(attacker);
@@ -2931,7 +2931,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
         // Tir IMMOBILE (LDB 14 l.70) : le héros a renoncé à bouger pour annuler le −10 → on consomme son
         // Mouvement du Tour. Seule CETTE posture tombe : elle a un PRIX (le Mouvement). « Dans le tas » ne
         // coûte rien (`LDB 14 l.106`). HÉROS SEUL — parité stricte avec `attackEnv` et `heldGroundStanceBlock`.
-        if (pa.tirImmobile && weapon.type === 'ranged' && attacker.kind === 'hero') {
+        if (pa.tirImmobile && weapon.type === 'distance' && attacker.kind === 'heros') {
           const b2 = get().battle;
           if (b2) {
             const { tirImmobile: _depensee, ...restantes } = b2.stances?.[attacker.id] ?? {};

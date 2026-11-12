@@ -47,8 +47,8 @@ describe('#500 — BattleZone.crossTest : Forêt d’épines (LDB 48 l.749)', ()
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const hero = b.combatants.find((c) => c.kind === 'hero')!;
-    const enemy = b.combatants.filter((c) => c.kind === 'enemy')[0];
+    const hero = b.combatants.find((c) => c.kind === 'heros')!;
+    const enemy = b.combatants.filter((c) => c.kind === 'ennemi')[0];
     hero.pos = { x: 5, y: 10 };
     enemy.pos = { x: 5, y: 11 };
     // Lanceur du sort — présent dans la BATAILLE (retiré ensuite au cas « hors combat »).

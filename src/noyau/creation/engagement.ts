@@ -13,11 +13,12 @@ import type { RosterEntry } from '../persistance/roster';
 import type { IdDePretire } from '../designations';
 import type { HorsDesignation } from '../actionsDuNoyau';
 import { decidingSeat } from '../netOwnership';
-import { refusDAjoutAuGroupe, refusDeComposerLeHeros } from '../partyFlow';
+import { refusDAjoutAuGroupe, refusDeComposerLeHeros, refusDeRecruter } from '../partyFlow';
 import { buildHero, draftWealth, stepIds, validateStep, type CreatorDraft } from './brouillon';
-import { pregens } from '../../data';
+import { careerLabelFor, findSpeciesById, pregens } from '../../data';
 import { idDuPretire, possessionsTireesDuPretire, pretire, richesseDuPretire } from '../../data/pregens';
 import type { RNG } from '../../engine/dice';
+import { carriereActuelle } from '../../engine/pnjDeCarriere';
 import { recomputeLoadout } from '../../engine/items';
 import { garanti } from '../../lib/garanti';
 import { t } from '../../i18n';
@@ -64,6 +65,29 @@ export function richesseDeLEngagement(h: HerosEngage, rng: RNG): Money {
   return draftWealth(h.brouillon).montant;
 }
 
+/** Un pré-tiré tel que le groupe le recrute : son nom, son espèce, sa carrière en cours, l'intention qui le recrute,
+ *  et le refus de son recrutement (`refusDeRecruter`), `null` s'il se recrute. */
+export interface PretireOffert {
+  id: IdDePretire;
+  nom: string;
+  espece: string | null;
+  carriere: string;
+  recrutement: Intention;
+  refus: string | null;
+}
+
+/** Chaque pré-tiré de la donnée (`pregens`, dans son ordre) tel que le groupe de `s` le recrute. */
+export function pretiresOfferts(s: Pick<Jeu, 'battle' | 'party' | 'net'>): PretireOffert[] {
+  return pregens.map((d) => ({
+    id: d.id,
+    nom: d.label,
+    espece: findSpeciesById(d.species.id)?.label ?? null,
+    carriere: careerLabelFor({ career: carriereActuelle(d)?.id, appearance: { sex: d.sex } }),
+    recrutement: { type: 'recruterLeHeros', args: [{ pretire: d.id }] },
+    refus: refusDeRecruter(s, { pretire: d.id }),
+  }));
+}
+
 /** Le refus d'un héros nouveau au groupe : le refus d'ajout du siège qui décide (`refusDAjoutAuGroupe`) ; `null` s'il
  *  y entre. */
 export const refusDUnNouveauHeros = (s: Pick<Jeu, 'battle' | 'party' | 'net'>): string | null => refusDAjoutAuGroupe(s, undefined, decidingSeat(s));
@@ -86,4 +110,9 @@ export function engagement(d: CreatorDraft, idDuRoster: FabriqueDuRoster, heroId
 /** L'intention qui engage au groupe le héros nouveau de `d`, pour un hôte sans roster. */
 export function intentionDEngagement(d: CreatorDraft): Intention {
   return { type: 'recruterLeHeros', args: [{ brouillon: d }] };
+}
+
+/** L'intention qui renvoie du groupe le héros `heroId`. */
+export function intentionDeRenvoi(heroId: string): Intention {
+  return { type: 'renvoyerLeHeros', args: [heroId] };
 }

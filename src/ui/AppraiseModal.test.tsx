@@ -30,7 +30,7 @@ const noop = () => {};
 /** Évaluateur minimal : Int 40 + 15 Augmentations d'Évaluation (la Compétence que roule le flux). */
 function hero(): Combatant {
   return {
-    id: 'h', label: 'H', kind: 'hero', speciesId: 'humains-reiklander',
+    id: 'h', label: 'H', kind: 'heros', speciesId: 'humains-reiklander',
     characteristics: { intelligence: 40, sociabilite: 40, agilite: 40 } as Combatant['characteristics'],
     skills: [{ id: 'evaluation', advances: 15 }] as SkillInstance[],
     talents: [], items: [], conditions: [], advantage: 0, weapons: [],

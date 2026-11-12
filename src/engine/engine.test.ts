@@ -27,7 +27,7 @@ describe("Atouts d'arme (LDB Les armes)", () => {
     (blessuresSurLeProfil({
       id: 'a',
       name: 'a',
-      kind: 'enemy',
+      kind: 'ennemi',
       characteristics: { 'capacite-de-combat': cc, 'capacite-de-tir': cc, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
       wounds: blessuresDeBase(20),
       advantage: 0,
@@ -44,7 +44,7 @@ describe("Atouts d'arme (LDB Les armes)", () => {
     def.armour.brasD = 3; // jet 44 → reverseRoll 44 → Bras droit
     const hit = (q: string[]) => {
       const atk = fighter(50, { qualities: q.map((s) => parseQualityInstance(s)!), damage: { plusBF: false, flat: 10 } });
-      return resolveMelee(atk, def, atk.weapons[0], rngOf(44), { defense: 'none' });
+      return resolveMelee(atk, def, atk.weapons[0], rngOf(44), { defense: 'aucune' });
     };
     expect(hit(['Perforante']).woundsLost! - hit([]).woundsLost!).toBe(1);
   });
@@ -107,18 +107,18 @@ describe("Atouts d'arme (LDB Les armes)", () => {
     const def = fighter(30);
     const hit = (q: string[]) => {
       const atk = fighter(50, { qualities: q.map((s) => parseQualityInstance(s)!) });
-      return resolveMelee(atk, def, atk.weapons[0], rngOf(44), { defense: 'none' });
+      return resolveMelee(atk, def, atk.weapons[0], rngOf(44), { defense: 'aucune' });
     };
     expect(hit(['Pointue']).netSL - hit([]).netSL).toBe(1);
     expect(hit(['Pointue']).woundsLost! - hit([]).woundsLost!).toBe(1);
   });
   it('Empaleuse : Critique sur un multiple de 10', () => {
     const emp = fighter(60, { qualities: [{ id: 'empaleuse' }] });
-    const r = resolveMelee(emp, fighter(30), emp.weapons[0], rngOf(20), { defense: 'none' });
+    const r = resolveMelee(emp, fighter(30), emp.weapons[0], rngOf(20), { defense: 'aucune' });
     expect(r.hit).toBe(true);
     expect(r.critical).toBe(true);
     const plain = fighter(60);
-    expect(resolveMelee(plain, fighter(30), plain.weapons[0], rngOf(20), { defense: 'none' }).critical).toBe(false);
+    expect(resolveMelee(plain, fighter(30), plain.weapons[0], rngOf(20), { defense: 'aucune' }).critical).toBe(false);
   });
   it('Empaleuse : un Test RATÉ sur un multiple de 10, Test opposé gagné, ne génère aucun Critique (LDB 13 l.183)', () => {
     const emp = fighter(30, { qualities: [{ id: 'empaleuse' }] });
@@ -130,8 +130,8 @@ describe("Atouts d'arme (LDB Les armes)", () => {
     const def = fighter(30);
     const plain = fighter(40); // CC 40, jet 45 → échec
     const prec = fighter(40, { qualities: [{ id: 'precise' }] }); // +10 → cible 50, jet 45 → réussite
-    expect(resolveMelee(plain, def, plain.weapons[0], rngOf(45), { defense: 'none' }).hit).toBe(false);
-    expect(resolveMelee(prec, def, prec.weapons[0], rngOf(45), { defense: 'none' }).hit).toBe(true);
+    expect(resolveMelee(plain, def, plain.weapons[0], rngOf(45), { defense: 'aucune' }).hit).toBe(false);
+    expect(resolveMelee(prec, def, prec.weapons[0], rngOf(45), { defense: 'aucune' }).hit).toBe(true);
   });
 });
 
@@ -140,7 +140,7 @@ describe('Découpe de la résolution de mêlée (split attaquant/défenseur)', (
     (blessuresSurLeProfil({
       id: 'x',
       name: 'x',
-      kind: 'enemy',
+      kind: 'ennemi',
       characteristics: { 'capacite-de-combat': cc, 'capacite-de-tir': cc, force: 30, endurance: 30, initiative: 30, agilite: 35, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
       wounds: blessuresDeBase(20),
       advantage: 0,
@@ -197,7 +197,7 @@ describe('Découpe de la résolution de mêlée (split attaquant/défenseur)', (
     const d = fighter(30);
     const rate = { roll: 95, target: 80, success: false, sl: -2, isDouble: false };
     const melee = rederivePassiveAttack(a, d, a.weapons[0], rate, 'melee', { rng: makeRNG(1595) });
-    const tir = rederivePassiveAttack(a, d, { ...a.weapons[0], type: 'ranged' }, rate, 'ranged', { rng: makeRNG(1595) });
+    const tir = rederivePassiveAttack(a, d, { ...a.weapons[0], type: 'distance' }, rate, 'distance', { rng: makeRNG(1595) });
     expect({ advantageTo: melee.advantageTo, netSL: melee.netSL, hit: melee.hit }).toEqual({ advantageTo: tir.advantageTo, netSL: tir.netSL, hit: tir.hit });
   });
 });
@@ -208,7 +208,7 @@ describe('Sur la défensive (+20 en défense, LDB Combat l.118)', () => {
     (blessuresSurLeProfil({
       id: 'c',
       name: 'c',
-      kind: 'enemy',
+      kind: 'ennemi',
       characteristics: { 'capacite-de-combat': cc, 'capacite-de-tir': cc, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
       wounds: blessuresDeBase(20),
       advantage: 0,
@@ -291,7 +291,7 @@ describe('Avantage en combat (LDB Déplacement l.37 : +10 par point)', () => {
   const mk = (cc: number, advantage = 0): Combatant => (blessuresSurLeProfil({
     id: 'c',
     label: 'c',
-    kind: 'enemy',
+    kind: 'ennemi',
     characteristics: { 'capacite-de-combat': cc, 'capacite-de-tir': cc, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(10),
     advantage,
@@ -305,8 +305,8 @@ describe('Avantage en combat (LDB Déplacement l.37 : +10 par point)', () => {
   it('1 Avantage (+10) fait toucher là où 0 Avantage échoue (cible nue, même jet)', () => {
     const target = mk(30);
     // CC 40, jet 45 : sans Avantage cible=40 → échec ; +1 Avantage cible=50 → réussite.
-    const a0 = resolveMelee(mk(40, 0), target, mk(40).weapons[0], rngOf(45), { defense: 'none' });
-    const a1 = resolveMelee(mk(40, 1), target, mk(40).weapons[0], rngOf(45), { defense: 'none' });
+    const a0 = resolveMelee(mk(40, 0), target, mk(40).weapons[0], rngOf(45), { defense: 'aucune' });
+    const a1 = resolveMelee(mk(40, 1), target, mk(40).weapons[0], rngOf(45), { defense: 'aucune' });
     expect(a0.hit).toBe(false);
     expect(a1.hit).toBe(true);
   });
@@ -432,7 +432,7 @@ describe('Dégâts d’arme (parsing via effectiveWeaponDamage)', () => {
     expect(effectiveWeaponDamage({ label: 'x', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] }, { bf: 3, passif: 0 })).toBe(7);
   });
   it('+9 (distance) ignore BF', () => {
-    expect(effectiveWeaponDamage({ label: 'x', type: 'ranged', damage: { plusBF: false, flat: 9 }, qualities: [] }, { bf: 3, passif: 0 })).toBe(9);
+    expect(effectiveWeaponDamage({ label: 'x', type: 'distance', damage: { plusBF: false, flat: 9 }, qualities: [] }, { bf: 3, passif: 0 })).toBe(9);
   });
 });
 
@@ -441,7 +441,7 @@ function dummy(name: string, chars: Partial<Characteristics>, wounds: number, we
   return blessuresSurLeProfil({
     id: name,
     label: name,
-    kind: 'enemy',
+    kind: 'ennemi',
     characteristics: { ...base, ...chars },
     wounds: blessuresDeBase(wounds),
     advantage: 0,
@@ -543,7 +543,7 @@ describe('Coup Critique au niveau moteur (LDB 18-Traumatisme : double uniquement
     const heavy: Weapon = { label: 'Maillet', type: 'melee', damage: { plusBF: true, flat: 20 }, qualities: [] };
     const a = dummy('Brute', { 'capacite-de-combat': 90, force: 40 }, 20, heavy);
     const d = dummy('Frêle', { 'capacite-de-combat': 20, endurance: 20 }, 3, heavy); // Blessures max 3
-    const res = resolveMelee(a, d, heavy, makeRNG(1), { defense: 'none' });
+    const res = resolveMelee(a, d, heavy, makeRNG(1), { defense: 'aucune' });
     expect(res.hit).toBe(true);
     expect(res.woundsLost!).toBeGreaterThan(d.wounds.max); // gros coup → overkill géré par le STORE, plus par applyHit
     // `critical` du moteur = uniquement un double réussi (l'arme n'a pas l'Atout Empaleuse).
@@ -557,7 +557,7 @@ function caster(chars: Partial<Characteristics>, skills: SkillInstance[] = [], w
   return blessuresSurLeProfil({
     id: 'c',
     label: 'Mage',
-    kind: 'hero',
+    kind: 'heros',
     characteristics: { ...base, ...chars },
     wounds: blessuresDeBase(wounds),
     advantage: 0,
@@ -883,7 +883,7 @@ describe('Création de héros', () => {
       label: 'Test',
       seed: 7,
     });
-    expect(hero.kind).toBe('hero');
+    expect(hero.kind).toBe('heros');
     expect(hero.skills.length).toBeGreaterThan(0);
     expect(hero.wounds.max).toBeGreaterThan(0);
     expect(hero.movement).toBe(4);

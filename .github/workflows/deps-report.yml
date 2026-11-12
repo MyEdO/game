@@ -7,9 +7,13 @@ permissions:
   contents: read
 
 jobs:
-  rendus:
+  imports:
+    strategy:
+      fail-fast: false
+      matrix:
+        cas: [avant, apres, apres-sans-vulkan, apres-sans-pilotes]
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -21,32 +25,31 @@ jobs:
       - uses: ./.github/actions/caches-3d
       - run: npm run pont:godot
       - run: npm run godot:sonde
-      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends xvfb libgl1-mesa-dri mesa-vulkan-drivers libxcursor1 libxinerama1 libxrandr2 libxi6
-      - run: npm run godot:rendus
+      - if: ${{ matrix.cas != 'avant' }}
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends xvfb libgl1-mesa-dri mesa-vulkan-drivers libxcursor1 libxinerama1 libxrandr2 libxi6
+      - name: Machine
+        run: nproc; free -m; df -h /tmp | tail -1; ls -la /dev/dri 2>&1 | head; ls /usr/share/vulkan/icd.d 2>&1 | head -20
+      - name: Imports répétés
+        run: |
+          G=$(ls ~/.cache/wfrp-godot/4.7-stable/Godot_v4.7-stable_linux.x86_64)
+          case "${{ matrix.cas }}" in
+            apres-sans-vulkan) export VK_DRIVER_FILES=/nonexistent.json VK_ICD_FILENAMES=/nonexistent.json ;;
+            apres-sans-pilotes) sudo mv /usr/share/vulkan/icd.d /usr/share/vulkan/icd.d.retire || true; sudo mv /usr/lib/x86_64-linux-gnu/dri /usr/lib/x86_64-linux-gnu/dri.retire || true ;;
+          esac
+          plantes=0
+          for i in $(seq 1 14); do
+            rm -rf /tmp/copie; cp -r hotes/godot/projet /tmp/copie; rm -rf /tmp/copie/.godot
+            code=0; "$G" --headless --path /tmp/copie --import > /tmp/import-$i.log 2>&1 || code=$?
+            echo "import $i : code $code"
+            if [ "$code" != 0 ]; then plantes=$((plantes+1)); grep -n -B6 -A30 'handle_crash' /tmp/import-$i.log | cut -c1-240 || tail -30 /tmp/import-$i.log; fi
+          done
+          echo "plantés : $plantes sur 14"
+      - name: Bibliothèques chargées
+        if: ${{ !cancelled() }}
+        run: |
+          G=$(ls ~/.cache/wfrp-godot/4.7-stable/Godot_v4.7-stable_linux.x86_64)
+          rm -rf /tmp/copie; cp -r hotes/godot/projet /tmp/copie; rm -rf /tmp/copie/.godot
+          LD_DEBUG=libs "$G" --headless --path /tmp/copie --import > /tmp/ld.log 2>&1 || echo "code $?"
+          grep -oE 'calling init: [^ ]+' /tmp/ld.log | sort | uniq -c | sort -rn | head -80
       - if: ${{ !cancelled() }}
-        run: npm run godot:rendus
-      - if: ${{ !cancelled() }}
-        run: free -m; nproc; df -h /tmp; ls -la ~/.config/godot ~/.local/share/godot ~/.cache/godot 2>&1 | head -40; sudo dmesg | tail -30
-
-  bureau:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: package.json
-          check-latest: true
-          cache: npm
-      - run: npm ci
-      - uses: ./.github/actions/caches-3d
-      - run: npm run godot:bureau
-      - if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: bureau-${{ matrix.os }}
-          path: dist/bureau
+        run: sudo dmesg | tail -20

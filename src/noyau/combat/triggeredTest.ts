@@ -632,7 +632,7 @@ export function resolveFlowChoice(ctx: ExecCtx, node: Extract<Flow, { kind: 'cho
       defaultChoice: 'non',
       meta: {
         choiceYes: node.oui, choiceNo: node.non ?? EMPTY_FLOW, after,
-        ...(node.coutEnAvantage != null ? { choiceCost: node.coutEnAvantage } : {}),
+        ...(node.coutEnAvantage != null ? { coutEnAvantage: node.coutEnAvantage } : {}),
         ...(branchTargetId ? { choiceTargetId: branchTargetId } : {}),
         // CONTEXTE d'ops PORTÉ (sl, horloge, libellé, sort et ENTITÉ PORTEUSE) : la branche le retrouve
         // à la reprise — sans lui, un Test ouvert par le OUI perdrait son enjeu (#1262 V2 L6d) et un effet
@@ -697,7 +697,7 @@ export function routeTriggeredTest(get: Get, set: SetFn, target: Combatant, acto
   // `pendingTest`, Chance/Résilience), jamais inline (doctrine « un jet = une modale » — elle vaut
   // hors combat comme en combat). Gate `slThreshold` évaluée d'abord (openSkillTest ne la connaît pas) ;
   // `noOwnTestFailed` tamponne la ré-entrance (jetValider('test') ne ré-émet pas).
-  if (!get().battle && flow.kind === 'test' && target.kind === 'hero') {
+  if (!get().battle && flow.kind === 'test' && target.kind === 'heros') {
     const cc = combatConditionCtx(target, opsCtx ?? {});
     // Un Test SUBI (effet déclenché : Venin, Hurlement, Crampes, zone franchie…) n'est pas soutenu —
     // LDB 12 l.197. Défaut de la VOIE, tri-état : la donnée peut le rouvrir (`noSupport:false`).
@@ -908,7 +908,7 @@ export const TABLES = {
     choixDeclenche: (get, set, step, hero) => {
       if (!hero) return;
       const yes = step.chosen === 'oui';
-      const cost = typeof step.meta?.choiceCost === 'number' ? step.meta.choiceCost : undefined;
+      const cost = typeof step.meta?.coutEnAvantage === 'number' ? step.meta.coutEnAvantage : undefined;
       const yesFlow = step.meta?.choiceYes;
       const noFlow = step.meta?.choiceNo;
       const fa = step.meta?.freeAttack;

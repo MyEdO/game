@@ -1682,7 +1682,7 @@ function CombatConsoleMock() {
   const actif = herosExemple();
   /* Acteur ADVERSE de la forme spectatrice : le même pregen, du camp d'en face — la galerie ne
      fabrique pas de statblock, elle change le CAMP (seule entrée que l'arche lit pour sa teinte). */
-  const adverse = { ...actif, id: 'e-demo', label: 'Mutant', kind: 'enemy' as const };
+  const adverse = { ...actif, id: 'e-demo', label: 'Mutant', kind: 'ennemi' as const };
   const rien = () => {};
   return (
     <div className="gallery-scene"><div className="gallery-scene-track">

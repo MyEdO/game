@@ -60,7 +60,7 @@ export function effectiveWeaponRange(weapon: { range?: WeaponRangeSpec | null },
  *  LDB 62) — par opposition à une Portée fixe en mètres (arc/arbalète/poudre). C'est le classifieur des
  *  armes lancées, seules concernées par la Dispersion d'un Test de Projectiles (Lancer) raté (LDB 14). */
 export function isThrownWeapon(weapon: { type?: string; range?: WeaponRangeSpec | null }): boolean {
-  return weapon.type === 'ranged' && typeof weapon.range === 'object' && weapon.range != null && 'bf' in weapon.range;
+  return weapon.type === 'distance' && typeof weapon.range === 'object' && weapon.range != null && 'bf' in weapon.range;
 }
 
 /**
@@ -145,11 +145,11 @@ export interface WeaponContext {
   mounted?: boolean;
   /** L'attaquant possède la Spécialisation de Corps à corps du Groupe de l'arme (`hasWeaponGroupSkill`). */
   hasGroupSkill?: boolean;
-  /** MODE de la Spé de Projectiles qui couvre le Groupe de l'arme (`weaponGroupSkillMode`) : `'degraded'`
+  /** MODE de la Spé de Projectiles qui couvre le Groupe de l'arme (`weaponGroupSkillMode`) : `'degrade'`
    *  déclenche la perte de tous les Atouts (Défauts conservés) d'une arme à distance utilisée hors de sa
    *  Spé exacte — Arbalète/Lancer par toute autre Spé de Tir (LDB 62 l.184), Ingénierie par Poudre noire
-   *  (l.188). `'full'`/`'none'` n'altèrent pas le profil ici. */
-  groupSkillMode?: 'full' | 'degraded' | 'none';
+   *  (l.188). `'complet'`/`'aucun'` n'altèrent pas le profil ici. */
+  groupSkillMode?: 'complet' | 'degrade' | 'aucun';
   /** Combat « au contact » avec la cible (LDB 62 l.176, Option « Longueur d'arme ») : toute arme plus
    *  longue que Courte y est traitée comme une Arme improvisée. Dérivé de `areInContact(attacker, target)`. */
   auContact?: boolean;
@@ -191,7 +191,7 @@ export function effectiveWeapon(w: Weapon, ctx?: WeaponContext): Weapon {
   if (ctx?.hasGroupSkill === false && manie.subType === 'fleau') return { ...manie, qualities: [{ id: 'dangereuse' }], noFamilyQualities: true };
 
   // LDB 62 l.184,188
-  if (ctx?.groupSkillMode === 'degraded') {
+  if (ctx?.groupSkillMode === 'degrade') {
     const kept = resolveQualities(manie).filter((r) => !isAtoutQuality(r.id)).map((r) => (r.indice != null ? { id: r.id, value: r.indice } : { id: r.id }));
     return { ...manie, qualities: kept, noFamilyQualities: true };
   }
