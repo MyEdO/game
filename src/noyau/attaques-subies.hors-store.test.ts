@@ -35,16 +35,19 @@ const rats = { type: 'statblock', label: 'Rats géants', char: { 'capacite-de-co
 const op = gameOpSchema.parse({ op: 'attaquesSubies', assaillant: { statblock: rats }, nombre: '1d10' });
 const attaques = (on: 'hero' | 'party', heroId?: string): Effect => ({ type: 'ops', on, ...(heroId ? { heroId } : {}), ops: [op] });
 
-/** Le héros du groupe, aucune bataille, l'op appliquée : le dé `nombre` ouvert à la porte, non tombé. */
-function deOuvert() {
+/** Trois Blessures au héros `heroId` : l'Effet authoré qui SUIT l'op dans la liste. */
+const troisBlessures = (heroId: string): Effect => ({ type: 'ops', on: 'hero', heroId, ops: [gameOpSchema.parse({ op: 'wounds', amount: 3 })] });
+
+/** Le héros du groupe, aucune bataille, l'op appliquée (puis les Effets `suivants`) : le dé `nombre` ouvert à la porte, non tombé. */
+function deOuvert(suivants: (heroId: string) => Effect[] = () => []) {
   const { banc, H } = horsBataille(testScene());
-  applyEffects(banc.getState, banc.setState, [attaques('hero', H.id)]);
+  applyEffects(banc.getState, banc.setState, [attaques('hero', H.id), ...suivants(H.id)]);
   return { banc, H, etape: banc.getState().pendingCascade!.participants[0] };
 }
 
 /** La série ouverte : le dé `nombre` POSÉ à `nombre` (7) à la porte, les d100 de la série imposés (`des`). */
-function serieOuverte(des: number[] = [65, 23], nombre = 7) {
-  const { banc, H, etape } = deOuvert();
+function serieOuverte(des: number[] = [65, 23], nombre = 7, suivants?: (heroId: string) => Effect[]) {
+  const { banc, H, etape } = deOuvert(suivants);
   imposerLesD100(...des);
   banc.getState().jetImposerLeResultat('cascadeTirage', nombre, etape.id);
   banc.getState().jetValider('cascade');
@@ -97,10 +100,10 @@ describe('série d’attaques subies hors bataille (#3892)', () => {
     expect(s.pendingDefense).toBeNull();
   });
 
-  it('deux ops `attaquesSubies` dans la même feuille : refus, au lancer comme à l’éditeur', () => {
+  it('`attaquesSubies` accompagnée dans sa feuille : refus, au lancer comme à l’éditeur', () => {
     const { banc, H } = horsBataille(testScene());
-    const feuille: Extract<Effect, { type: 'ops' }> = { type: 'ops', on: 'hero', heroId: H.id, ops: [op, op] };
-    const message = t('eff.attaquesSubiesUneParFeuille', { on: 'hero', n: 2 });
+    const feuille: Extract<Effect, { type: 'ops' }> = { type: 'ops', on: 'hero', heroId: H.id, ops: [op, gameOpSchema.parse({ op: 'wounds', amount: 3 })] };
+    const message = t('eff.attaquesSubiesSeuleDansSaFeuille', { on: 'hero', ops: 'attaquesSubies, wounds' });
     expect(EFFECT_HANDLERS.ops.refs!(feuille, {} as EffectRefCtx)).toEqual([{ level: 'error', message }]);
     const avant = etatTouche(banc.getState());
     expect(() => applyEffects(banc.getState, banc.setState, [feuille])).toThrow(message);
@@ -166,6 +169,34 @@ describe('série d’attaques subies hors bataille (#3892)', () => {
     expect(s.journal).toContain(ligneDuCoup(res));
     expect(s.serieSubie).toMatchObject({ cibleId: H.id, restantes: 6 });
     expect(s.pendingDefense).toMatchObject({ attackerId: s.serieSubie!.assaillant.id, defenderId: H.id });
+  });
+
+  it('l’Effet suivant attend la fin de la série, Défense perdue : ses 3 Blessures tombent après la fermeture', () => {
+    const { banc, H } = serieOuverte([20, 23], 1, (id) => [troisBlessures(id)]);
+    expect(banc.getState().party[0].wounds.current).toBe(H.wounds.current);
+    const res = defendre(banc, 97);
+    const s = banc.getState();
+    expect(res.hit && !!res.woundsLost).toBe(true);
+    expect(s.serieSubie).toBeNull();
+    expect(s.party[0].wounds.current).toBe(Math.max(0, H.wounds.current - res.woundsLost! - 3));
+  });
+
+  it('l’Effet suivant attend la fin de la série, Défense gagnée : ses 3 Blessures tombent après la fermeture', () => {
+    const { banc, H } = serieOuverte([20, 23], 1, (id) => [troisBlessures(id)]);
+    expect(banc.getState().party[0].wounds.current).toBe(H.wounds.current);
+    expect(defendre(banc, 5).hit).toBe(false);
+    const s = banc.getState();
+    expect(s.serieSubie).toBeNull();
+    expect(s.party[0].wounds.current).toBe(H.wounds.current - 3);
+  });
+
+  it('l’Effet suivant attend pendant la Déviation d’un Critique : la série ouverte, ses 3 Blessures retenues', () => {
+    const { banc, H } = serieOuverte([22, 23, 50], 1, (id) => [troisBlessures(id)]);
+    defendre(banc, 97);
+    const s = banc.getState();
+    expect(s.pendingCascade!.participants.find((x) => x.kind === 'deviation')?.options).toBeTruthy();
+    expect(s.serieSubie).toMatchObject({ cibleId: H.id, restantes: 1 });
+    expect(s.party[0].wounds.current).toBe(H.wounds.current);
   });
 
   it('série de 3 attaques jusqu’à son terme : une Défense par attaque, puis le héros rendu au groupe, Blessures reportées', () => {

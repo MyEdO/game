@@ -883,18 +883,18 @@ function messageOpDuNavireHorsNavire(e: { on?: EffectOp['on']; ops: readonly Gam
 /** Les cibles de scène qui désignent au plus UN héros : l'op `attaquesSubies` n'en vise pas d'autre. */
 const CIBLES_UNIQUES: readonly string[] = ['hero', 'membreAuHasard'] satisfies CibleDEffetDeScene[];
 
-/** Le refus de l'op `attaquesSubies` posée sur une cible qui n'est pas unique, ou plus d'une fois dans la feuille. MDG 15
- *  l.163-164 */
-function messageAttaquesSubiesSansCibleUnique(e: { on?: EffectOp['on']; ops: readonly GameOp[] }): string | undefined {
+/** Le refus de l'op `attaquesSubies` accompagnée dans sa feuille (sa série garde la suite de la feuille, pas ses
+ *  voisines : #1508), ou posée sur une cible qui n'est pas unique. MDG 15 l.163-164 */
+function messageAttaquesSubiesMalPosee(e: { on?: EffectOp['on']; ops: readonly GameOp[] }): string | undefined {
   const on = genreDeCible(e.on) ?? 'party';
-  const n = e.ops.filter(estOpDAttaquesSubies).length;
-  if (n > 1) return t('eff.attaquesSubiesUneParFeuille', { on, n });
-  return n && !CIBLES_UNIQUES.includes(on) ? t('eff.attaquesSubiesSansCibleUnique', { on }) : undefined;
+  if (!e.ops.some(estOpDAttaquesSubies)) return undefined;
+  if (e.ops.length > 1) return t('eff.attaquesSubiesSeuleDansSaFeuille', { on, ops: e.ops.map((o) => o.op).join(', ') });
+  return CIBLES_UNIQUES.includes(on) ? undefined : t('eff.attaquesSubiesSansCibleUnique', { on });
 }
 
 /** Le refus d'une op posée sur une cible qu'elle ne vise pas (op de navire, attaques subies). */
 export function messageOpHorsDeSaCible(e: { on?: EffectOp['on']; ops: readonly GameOp[] }): string | undefined {
-  return messageOpDuNavireHorsNavire(e) ?? messageAttaquesSubiesSansCibleUnique(e);
+  return messageOpDuNavireHorsNavire(e) ?? messageAttaquesSubiesMalPosee(e);
 }
 
 /** Ouvre la modale d'un Test de compétence — SOURCE UNIQUE (le nœud Flow `test` ET `Effect.test` y

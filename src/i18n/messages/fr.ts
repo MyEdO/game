@@ -2776,7 +2776,7 @@ export const fr = {
   'eff.sceneDePsychologie': 'Scène',
   'eff.opDuNavireHorsNavire': "Effet à « on: {on} » : {ops} ne vise que le navire (« on: navire »).",
   'eff.attaquesSubiesSansCibleUnique': "Effet à « on: {on} » : attaquesSubies vise une cible unique (« on: hero » ou « on: membreAuHasard »).",
-  'eff.attaquesSubiesUneParFeuille': "Effet à « on: {on} » : {n} ops attaquesSubies dans la feuille, une seule y est admise.",
+  'eff.attaquesSubiesSeuleDansSaFeuille': "Effet à « on: {on} » : attaquesSubies est seule dans sa feuille (ops : {ops}) ; ce qui la suit s'écrit en Effet suivant.",
   'eff.attaquesSubiesSerieEngagee': "attaquesSubies : la série d'attaques subies s'ouvre hors bataille, et une seule à la fois.",
   'eff.navireAbsent': 'Le navire : pas de navire de campagne — sans effet.',
   'eff.manannDejaApplique': 'Humeur de Manann : facteur « {factor} » déjà appliqué à ce navire — sans effet.',

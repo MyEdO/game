@@ -231,7 +231,7 @@ export function activeCombatant(battle: BattleState): Combatant | undefined {
 }
 
 import { objetDuNarratif } from './monde/resolveursDuNarratif';
-import { pushReveal, pushCombatStep, applyEffects, gearFromEffects, drainPendingLog, ouvrirChute, cloturer, ctxRepris, revealPurpose, nePeutPasDifferer, jouerFlowEntier, OPS_DIFFEREES, type Applique } from './combatEffects';
+import { pushReveal, pushCombatStep, applyEffects, gearFromEffects, drainPendingLog, ouvrirChute, cloturer, ctxRepris, revealPurpose, nePeutPasDifferer, jouerFlowEntier, jouerLesClotures, OPS_DIFFEREES, type Applique } from './combatEffects';
 import { teamCommandMod } from './monde/commandTeam';
 import { collectHeroRoundEndUpkeep } from './combat/roundHooks';
 import { aiDriven, controlsCombatant, defenseSurfaced } from './netOwnership';
@@ -250,7 +250,7 @@ import { effectiveTalents } from '../engine/talentEffects';
 import { memoParVersion } from '../data/versionDataset';
 import { nightBands, splitBandRows } from './nightBands';
 import { combatEndBands, combatEndRowMeta } from './combatEndBands';
-import type { CascadeStepMeta, ChaineDeBalayage, EnchainementDuCoup, TirsDeBordee, RebondDeChaine, SeuilDeSauvegarde, SauvegardeSuite, SuiteDeCoup, ToucheDeProjectile, PendingCasseDArme, QueueDuCoup } from './pendings';
+import type { CascadeStepMeta, ChaineDeBalayage, EnchainementDuCoup, TirsDeBordee, RebondDeChaine, SeuilDeSauvegarde, SauvegardeSuite, SuiteDeCoup, ToucheDeProjectile, PendingCasseDArme, QueueDuCoup, Suite } from './pendings';
 import { APRES_COUP, type IssueOpposee, type PendingApproach } from './pendings';
 import { refuserGeste, refuserGesteDuSiege } from './refusVisible';
 import { freeCons, resultLines, rollStep, rollSansPilote, surfaceOf, surfaceRow, monoStep, pousseSi, hostStep, idDansLaSequence, openSequence, openBand, pushHost, pushTableDone, pushTable, pushChoice, pushDisplay, pushDie, tableStep, makeBandFactory, stepDetail, stepPrecision, stepPsych, stepSansPeur, type ChoiceSpec, type Consequence, type TableSpec } from './rollSeam';
@@ -3798,12 +3798,14 @@ export function ouvrirLeNombreDAttaquesSubies(set: SetFn, cible: Combatant, op: 
 
 /** Ouvre la SÉRIE D'ATTAQUES SUBIES de `op` sur le héros `cible`, hors bataille : l'assaillant naît de son statbloc
  *  (`spawnEnemy`, sans case), le héros entre dans la rencontre (`entreeEnRencontre`), `restantes` est le dé tombé
- *  à la porte, puis la première attaque part par `doAttack`, sa suite déclarée `subie` (`poursuivreLaSerie`).
+ *  à la porte, `apresSuite` la suite que ce dé faisait attendre (#1508), gardée par la série jusqu'à sa fermeture ;
+ *  puis la première attaque part par `doAttack`, sa suite déclarée `subie` (`poursuivreLaSerie`).
  *  MDG 15 l.163-164, l.177-178 */
-export function ouvrirLaSerieSubie(get: Get, set: SetFn, cible: Combatant, op: Extract<GameOp, { op: 'attaquesSubies' }>, restantes: number): Applique {
+export function ouvrirLaSerieSubie(get: Get, set: SetFn, cible: Combatant, op: Extract<GameOp, { op: 'attaquesSubies' }>, restantes: number, apresSuite: Suite | undefined): Applique {
   const assaillant = spawnEnemy({ statblock: op.assaillant.statblock }, get().forgerUnId('assaillant'), undefined);
   const heros = entreeEnRencontre(cible);
-  set((s: Jeu) => ({ party: s.party.map((h) => (h.id === cible.id ? heros : h)), serieSubie: { assaillant, cibleId: cible.id, avant: cible, restantes } }));
+  const serieSubie = { assaillant, cibleId: cible.id, avant: cible, restantes, ...(apresSuite ? { apresSuite } : {}) };
+  set((s: Jeu) => ({ party: s.party.map((h) => (h.id === cible.id ? heros : h)), serieSubie }));
   return doAttack(get, set, assaillant, heros, { mode: 'subie' });
 }
 
@@ -3834,10 +3836,13 @@ export function poursuivreLaSerie(get: Get, set: SetFn): boolean {
   return get().serieSubie ? poursuivreLaSerie(get, set) : false;
 }
 
-/** Ferme la série d'attaques subies : le héros rendu au groupe par la couture de retour (`sortieDeRencontre`). */
+/** Ferme la série d'attaques subies, sa sortie unique : le héros rendu au groupe par la couture de retour
+ *  (`sortieDeRencontre`) et la série vidée, PUIS sa suite jouée (`jouerLesClotures`). Dans cet ordre : la suite
+ *  s'applique au héros rendu, que la sortie n'écrase plus, et hors de toute série, qu'elle peut rouvrir. */
 export function fermerLaSerieSubie(get: Get, set: SetFn): void {
   const serie = garanti(get().serieSubie, 'serieSubie', 'série d’attaques subies');
   set((s: Jeu) => ({ party: s.party.map((h) => (h.id === serie.cibleId ? sortieDeRencontre(serie.avant, h) : h)), serieSubie: null }));
+  jouerLesClotures(get, set, serie.apresSuite ?? []);
 }
 
 /**
@@ -8945,13 +8950,14 @@ export const TABLES = {
      *  → `resumeSuspendedAI`). Le reste de l'attaque re-déclenché APPEND ses conséquences à la séquence
      *  (préservées par le liveMerge de commitStep). */
     /** Le dé `nombre` de l'op `attaquesSubies` est tombé (lancé ou POSÉ) : la série s'ouvre sur le héros de l'étape
-     *  (`ouvrirLaSerieSubie`). Héros introuvable = conséquence PERDUE : elle se DIT (patron `chuteDe`). */
+     *  (`ouvrirLaSerieSubie`) et garde la suite de l'étape (`suiteGardee`). Héros introuvable = conséquence PERDUE :
+     *  elle se DIT (patron `chuteDe`). */
     nombreDAttaquesSubies: (get, set, step, heros) => {
       const op = step.meta?.attaquesSubies?.[0];
       if (!op || !step.de?.result) return;
       if (!heros) return { consequences: freeCons([tr('cascade.cibleDisparue', { label: step.label ?? '' })]) };
-      jouerFlowEntier(ouvrirLaSerieSubie(get, set, heros, op, step.de.result.total));
-      return { consequences: freeCons([]) };
+      jouerFlowEntier(ouvrirLaSerieSubie(get, set, heros, op, step.de.result.total, step.meta?.apresSuite));
+      return { consequences: freeCons([]), suiteGardee: true };
     },
     deviation: (get, set, step) => {
       const dev = step.deviation;
