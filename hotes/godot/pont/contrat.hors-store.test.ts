@@ -11,7 +11,7 @@ import { idsDeTest } from '../../../src/engine/idsDeTest.testkit';
 import { afterAll, describe, it, expect, vi } from 'vitest';
 import { drainer, erreurDe, fautesDeLaFenetre, suiteDe, table } from './pont.testkit';
 import type { VueDuPont } from './pont';
-import { CLIC_DU_CHAMP, cleDuGeste, plateauDeLaScene } from '../../../src/noyau/index';
+import { CLIC_DU_CHAMP, PREFERENCES, cleDuGeste, plateauDeLaScene, preferenceDef } from '../../../src/noyau/index';
 import { VERBES } from '../../../src/hote/verbes.generated';
 import { scenario } from '../../../src/scenes/test-scenarios/22-dome';
 import { testScenarios } from '../../../src/scenes/test-scenarios';
@@ -36,7 +36,19 @@ describe('le pont avant sa partie', () => {
   it('une méthode inconnue se refuse en `validation` et nomme les méthodes du contrat', () => {
     const e = erreurDe(appel('simulerAttaque', {}));
     expect(e.categorie).toBe('validation');
-    expect(e.message).toBe('méthode inconnue : simulerAttaque (méthodes : demarrer, ouvrir, lancer, quitter, scenarios, vue, monde, morceaux, retrait, vision, aretes, jouer, plan, regarder, fiche, creation, reprendre, modeles, composer, vehicule, catalogues, vitrine, echantillons, echantillon, presetDeComposition, editer, erreursGlobales)');
+    expect(e.message).toBe('méthode inconnue : simulerAttaque (méthodes : demarrer, ouvrir, lancer, quitter, scenarios, vue, monde, morceaux, retrait, vision, aretes, jouer, plan, regarder, fiche, creation, reprendre, modeles, composer, vehicule, catalogues, vitrine, preferences, echantillons, echantillon, presetDeComposition, editer, erreursGlobales)');
+  });
+
+  it('`preferences` rend sans partie la valeur effective de chaque préférence de la table, par id', () => {
+    const volume = preferenceDef('volume-ambiance')!;
+    const avant = volume.get();
+    volume.set(0.35);
+    try {
+      expect(appel('preferences')).toEqual({ ok: true, preferences: Object.fromEntries(PREFERENCES.map((p) => [p.id, p.get()])) });
+      expect(appel('preferences')).toMatchObject({ preferences: { 'volume-ambiance': 0.35 } });
+    } finally {
+      volume.set(avant);
+    }
   });
 
   it('`modeles` rend les modèles de l’atelier sans partie ; une entrée sans `manifestes` ou sans `osDesRigides` se refuse', () => {

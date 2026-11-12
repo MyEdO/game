@@ -63,7 +63,7 @@ describe('effetsDeLAppel — le rendu de chaque coup, incantation et son de l’
   });
 
   it('un son de scène : le son du registre ; l’attaque spéciale d’une créature sur elle-même ne rend aucun coup', () => {
-    expect(effetsDeLAppel(ETAT, [{ type: 'emis', evt: 'sfx', payload: { id: 'porte-ouvre' } }])).toEqual([{ quoi: 'son', son: { id: 'porte-ouvre', fichiers: expect.any(Array), volume: expect.any(Number) }, fois: 1, ecartS: 0 }]);
+    expect(effetsDeLAppel(ETAT, [{ type: 'emis', evt: 'sfx', payload: { id: 'porte-ouvre' } }])).toEqual([{ quoi: 'son', son: { id: 'porte-ouvre', fichiers: expect.any(Array), volume: expect.any(Number), canal: 'effets' }, fois: 1, ecartS: 0 }]);
     expect(effetsDeLAppel(ETAT, [emis({ kind: 'creature', from: 'a', to: 'a', defense: 'aucune', result: { hit: true }, creatureAttack: 'hurlement' })])).toEqual([]);
   });
 
