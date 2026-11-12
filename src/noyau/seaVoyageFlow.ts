@@ -28,6 +28,7 @@
  * l'effectif minimal → Manque de bras (MDG 14 l.55). En combat, l'équipage est réel
  * (`battle.combatants`) et le Manque de bras s'applique aussi (`shipCrew.ts`).
  */
+import type { IconId } from '../data/icons';
 import { battleRng } from './battleRng';
 import { nomDuNavire } from './carriers';
 import { ouvrirLeRepos } from './restFlow';
@@ -526,7 +527,7 @@ export function dossierDuNavire(vessel: CampaignVessel, party: Combatant[]): Dos
  *  `null`. Lu par `refusDeDepart` (`travelFlow`) et par l'estimation de la carte du monde (#3059). */
 export function refusDuDepartEnMer(get: Get<Jeu>): string | null {
   const ship = voyageShip(get);
-  if (!ship) return t('tf.noVessel');
+  if (!ship) return t('tf.sansNavire');
   const refus = refusDAppareiller(ship.vessel);
   return refus ? raisonDuRefusDAppareiller(refus) : null;
 }
@@ -660,7 +661,7 @@ export function etapeDEquipage(get: Get, testTypeId: string, kind: GenreDEtape, 
 }
 
 /** Options d'une étape de Test d'équipage (`etapeDEquipage`). */
-type CrewStepOpts = { sense?: PairedSense; extraDR?: number; difficulty?: Difficulty; icon?: string; contexte?: ContexteDeTest };
+type CrewStepOpts = { sense?: PairedSense; extraDR?: number; difficulty?: Difficulty; icon?: IconId; contexte?: ContexteDeTest };
 
 /** Test d'équipage d'une étape de voyage dont le `kind` est l'id de son enjeu : ce que CE jet change, jamais
  *  la règle-cadre du remplacement par un Test d'équipage (MDG 14 l.63). */

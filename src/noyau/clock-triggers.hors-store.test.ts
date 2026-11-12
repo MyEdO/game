@@ -119,7 +119,7 @@ describe('Re-ciblage sans EMPILEMENT — [removeTrait, grantTrait]', () => {
     const h = hero('Béni');
     attachMutation(h, mutFromCatalog(HAINE_SPORADIQUE), makeRNG(11));
     const priere = findSpellById('vaincre-les-impies')!;
-    applyOps(h, spellEffectOps(priere.effects), { idNeuf: idsDeTest, rng: makeRNG(5), label: priere.label, source: { kind: 'prayer', id: priere.id } });
+    applyOps(h, spellEffectOps(priere.effects), { idNeuf: idsDeTest, rng: makeRNG(5), label: priere.label, source: { kind: 'priere', id: priere.id } });
     expect(haineTraits(h)).toHaveLength(4); // 3 du prêtre + 1 de la mutation
     atDays([h], 0, 1);
 
@@ -173,7 +173,7 @@ describe('BORNE du Trait accordé — la semaine du Désespoir (VDM 09 l.280) vi
     set({ party: [victime, hero('Témoin', 2)], gameTime: 12 * 60, lastUpkeepDay: 0, lastNightDay: 0, battle: null, pendingCascade: null });
     // Incantation à midi du jour 0 (le chemin de sort passe `now`, cf. combatFlow) — les réveils suivants
     // sont à 8 h : la semaine RAW en couvre exactement sept.
-    applyOps(victime, [op], { idNeuf: idsDeTest, rng: makeRNG(5), now: get().gameTime, label: sort.label, source: { kind: 'spell', id: sort.id } });
+    applyOps(victime, [op], { idNeuf: idsDeTest, rng: makeRNG(5), now: get().gameTime, label: sort.label, source: { kind: 'sort', id: sort.id } });
     expect((get().party[0].traits ?? []).some((t) => t.id === 'desespoir')).toBe(true);
 
     let matins = 0;

@@ -64,8 +64,8 @@ export function ShipManeuverModal() {
   });
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: t('verbe.annuler'), onClick: cancel, verbe: 'annuler' },
-    ...(rollAll ? [{ key: 'rollAll', label: <><Icon id="navigation/des" size="sm" /> Tout lancer</>, onClick: rollAll, verbe: 'lancer' as const }] : []),
+    { key: 'abandonner', label: t('verbe.annuler'), onClick: cancel, verbe: 'annuler' },
+    ...(rollAll ? [{ key: 'lancerLesRangees' as const, label: <><Icon id="navigation/des" size="sm" /> Tout lancer</>, onClick: rollAll, verbe: 'lancer' as const }] : []),
     { key: 'valider', label: 'Manœuvrer', onClick: confirm, verbe: 'valider' },
   ];
 

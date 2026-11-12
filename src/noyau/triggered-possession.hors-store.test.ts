@@ -163,7 +163,7 @@ describe('#1262 lot 3 — un Test déclenché HORS fin de Round ne se roule pas 
       trigger: 'onWoundLoss', on: 'self',
       // `source` : l'entité porteuse, telle que `withSource` la tague au dispatcher — c'est d'elle que
       // l'étape DÉRIVE son enjeu (#1262 V2 L6d). Une fixture sans porteur ne serait pas le chemin réel.
-      source: { kind: 'condition', id: 'empoisonne' },
+      source: { kind: 'etat', id: 'empoisonne' },
       flow: { kind: 'test', test: { skill: 'resistance', difficulty: 'intermediaire', label: 'Tenir bon' }, success: { kind: 'seq', steps: [] }, fail: { kind: 'seq', steps: [] } },
     } as unknown as TriggeredEffect;
 

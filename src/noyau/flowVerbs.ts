@@ -13,7 +13,7 @@
  */
 
 /** Les verbes du cycle de jet différé (cf. `RollFlowHandlers`). `resister` = Résistance (Menace),
- *  LDB 10 — exposé par les seuls flux à `caps.resist` (Tests qui « résistent à une menace »).
+ *  LDB 10 — exposé par les seuls flux à `caps.resister` (Tests qui « résistent à une menace »).
  *  `annuler` = « Annuler » unifié (cascade-aware + `onCancel` métier) — exposé par les flux annulables ;
  *  sans `pid` (annuler ferme la modale/cascade entière, pas un slot). */
 export const VERBES_DE_JET = ['lancer', 'relancer', 'ajouterUnDR', 'pactiser', 'forcerLaReussite', 'imposerLeResultat', 'resister', 'annuler', 'inverser', 'valider'] as const;

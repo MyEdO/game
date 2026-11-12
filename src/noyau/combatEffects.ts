@@ -1,3 +1,4 @@
+import type { IconId } from '../data/icons';
 import { libelleEffet, type Effect, type Flow } from '../data/schemas/defs-scenes/effets';
 import { cibleDeFeuilleSchema } from '../data/schemas/grammaire/mecanique';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
@@ -218,14 +219,14 @@ export function checkTriggers(get: Get, set: SetFn) {
     if (trig.when && !evalCondition(trig.when, condCtx(get))) continue;
     if (trig.once) flags[`__trigger_${trig.id}`] = true;
     set({ flags: { ...flags } });
-    const issue = runFlow(get, set, trig.flow, t('eff.flowTitleDiscovery'));
+    const issue = runFlow(get, set, trig.flow, t('eff.titreDeDecouverte'));
     // Le déclencheur a ouvert un dé (#1508) : les déclencheurs SUIVANTS de la même case sont AUTHORÉS
     // APRÈS lui, donc ils sont sa suite. Chacun garde sa garde `when` et son marquage `once` en
     // repartant en Flow (`if` de la grammaire + Effet `setFlag`) : la condition se relit sur l'état
     // VIVANT au moment où il jouera, exactement comme le tour de boucle qu'il remplace.
     if (issue === OPS_DIFFEREES) {
       const restants = dansLaZone.slice(i + 1).map(enFlowDeDeclencheur);
-      if (restants.length) confierLaSuite(set, [{ verbe: 'reprendreFlow', flow: { kind: 'seq', steps: restants }, label: t('eff.flowTitleDiscovery') }]);
+      if (restants.length) confierLaSuite(set, [{ verbe: 'reprendreFlow', flow: { kind: 'seq', steps: restants }, label: t('eff.titreDeDecouverte') }]);
       return;
     }
   }
@@ -329,13 +330,13 @@ export function harvestVictoryCreature(get: Get, set: SetFn, creatureId: string)
   /** Les pièces prélevées au DR `dr` du jet ; aucune quand la quantité tombe à 0. ZI 13 l.316 */
   const pieces = (dr: number): Flow => {
     const { enc, total } = harvestYield(p, size, dr, 'frais');
-    return enc > 0 ? flowFromEffects([{ type: 'giveTrapping', custom: t('eff.harvestPart', { creature: name, enc }), price: total }]) : EMPTY_FLOW; // objet CUSTOM (hors catalogue)
+    return enc > 0 ? flowFromEffects([{ type: 'giveTrapping', custom: t('eff.pieceDeRecolte', { creature: name, enc }), price: total }]) : EMPTY_FLOW; // objet CUSTOM (hors catalogue)
   };
   /** L'échec, Degré par Degré, jusqu'à la quantité nulle : un cran de moins par DR sous 0. ZI 13 l.316 */
   const parDegre = (dr: number): Flow => (harvestYield(p, size, dr).enc === 0
     ? EMPTY_FLOW
     : { kind: 'if', cond: { kind: 'slThreshold', op: '>=', value: dr }, then: pieces(dr), else: parDegre(dr - 1) });
-  const titre = stepDetail(t('eff.harvest'), dataLabel(name));
+  const titre = stepDetail(t('eff.recolte'), dataLabel(name));
   // ZI 13 l.316 : sans MJ, le récolteur joue sa meilleure Compétence admise (choix d'ingénierie de l'orchestrateur).
   const admis = testsDeRecolte(c);
   const { skill } = bestForTests(get().party, admis)?.test ?? admis[0];
@@ -377,7 +378,7 @@ function jouerEffetsProgrammes(get: Get, set: SetFn, entrees: ScheduledEffect[])
     // `caster` est un instantané minimal du défunt — applySummon n'en lit que id/name/kind/pos.
     if (s.respawn) { for (const line of applySummon(get, set, s.respawn.caster as unknown as Combatant, s.respawn.summon, { rng: battleRng() })) get().ecrireAuJournal(line); continue; }
     if (!s.flow) continue;
-    const issue = runFlow(get, set, s.flow, t('eff.flowTitleEvent'));
+    const issue = runFlow(get, set, s.flow, t('eff.titreDEvenement'));
     if (issue === OPS_DIFFEREES) {
       const restants = entrees.slice(i + 1);
       if (restants.length) confierLaSuite(set, [{ verbe: 'effetsProgrammes', restants }]);
@@ -628,7 +629,7 @@ export function ouvrirChute(set: SetFn, cible: Combatant, metres: number): void 
   pushDie(set, {
     id: `chute-${cible.id}`,
     kind: 'chuteDe',
-    label: t('op.fall.deDegats'),
+    label: t('op.chute.deDegats'),
     icon: 'journal/chute',
     spec: D10_CHUTE,
     actorId: cible.id,
@@ -849,7 +850,7 @@ function avecDureeTiree(env: EffectEnv, e: EffectOp, pendantJours: Formula, suje
   const { pendantJours: _tiree, ...reste } = e;
   const jours = Math.max(0, Math.round(resolveFormula(pendantJours, sujet, rng)));
   const label = e.label ?? env.label;
-  env.log(t('eff.pendantJours', { label: label ?? t('eff.flowTitle'), n: jours }));
+  env.log(t('eff.pendantJours', { label: label ?? t('eff.titreDeFlux'), n: jours }));
   return { ...reste, untilTime: env.get().gameTime + jours * MINUTES_PER_DAY, ...(label ? { label } : {}) };
 }
 
@@ -919,7 +920,7 @@ export function openSkillTest(
   const socialDetail = (c: Combatant): string | undefined => {
     const parts: string[] = [];
     const pl = psychMod ? socialPsychLabel(c, spec.vsGroups!) : undefined;
-    if (pl) parts.push(t('eff.socialPsychEnvers', { mods: pl, groupes: groupesLabel(spec.vsGroups!) }));
+    if (pl) parts.push(t('eff.psychologieSocialeEnvers', { mods: pl, groupes: groupesLabel(spec.vsGroups!) }));
     const sl = tgtStatus ? statusCharmLabel(actorStatus(c), tgtStatus, { begging: spec.begging }) : undefined;
     if (sl) parts.push(sl);
     return parts.length ? parts.join(' · ') : undefined;
@@ -1074,7 +1075,7 @@ function ouvrirGeste(get: Get, set: SetFn, e: Effect, suite: Flow, sl?: number):
  * consommé et repart en tête de la continuation (il branchera quand le dé sera tombé, sur l'état que
  * la conséquence aura produit).
  */
-export function runFlow(get: Get, set: SetFn, flow: Flow, label: string = t('eff.flowTitle'), sl?: number): Applique {
+export function runFlow(get: Get, set: SetFn, flow: Flow, label: string = t('eff.titreDeFlux'), sl?: number): Applique {
   const batch: Effect[] = [];
   const flush = (): Applique => {
     return batch.length ? applyEffectsLoot(get, set, batch.splice(0), label, sl) : undefined;
@@ -1314,7 +1315,7 @@ export interface EffectHandler<T extends Effect = Effect> {
   group: string;
   /** Libellé long (picker) et icône (rangée repliée). */
   label: string;
-  icon: string;
+  icon: IconId;
   /** Effet par défaut posé quand l'auteur ajoute ce type. */
   make(): T;
   /** GESTE JOUEUR : l'effet ouvre un pending qui CONFIE la suite (patron `openSkillTest(..., after)`) —
@@ -1387,7 +1388,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       const clues = revealClue(env.get().clues, ind, env.get().gameTime, e.stade);
       if (clues === env.get().clues) return;
       env.set({ clues });
-      const key = before?.statut === 'refute' ? 'eff.clueReactivate' : before ? 'eff.clueAdvance' : 'eff.clueReveal';
+      const key = before?.statut === 'refute' ? 'eff.indiceReactive' : before ? 'eff.indicePrecise' : 'eff.indiceRevele';
       env.log(t(key, { titre: ind.titre }));
     },
   },
@@ -1400,7 +1401,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       const clues = discreditClue(env.get().clues, ind, env.get().gameTime);
       if (clues === env.get().clues) return;
       env.set({ clues });
-      env.log(t('eff.clueDiscredit', { titre: ind.titre }));
+      env.log(t('eff.indiceEcarte', { titre: ind.titre }));
     },
   },
   startDialogue: {
@@ -1453,7 +1454,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
         const rest = s.objectives.filter((o) => o.id !== e.id);
         return { objectives: [...rest, { id: e.id, text: texte, deadline }] };
       });
-      env.log(t('eff.objectiveSet', { text: texte }));
+      env.log(t('eff.objectifPose', { text: texte }));
     },
   },
   clearObjective: {
@@ -1473,7 +1474,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
           objectifsSoldes: [...s.objectifsSoldes, ...soldes.filter((o) => !dejaLa.has(o.id))],
         };
       });
-      env.log(done ? t('eff.objectiveDone', { text: done.text }) : t('eff.objectiveClearAll'));
+      env.log(done ? t('eff.objectifAccompli', { text: done.text }) : t('eff.objectifsEffaces'));
     },
   },
   setLight: {
@@ -1532,7 +1533,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       if (e.appraiseTriedDay != null) it.appraiseTriedDay = e.appraiseTriedDay;
       if (e.price) it.price = { gold: e.price.gold ?? 0, silver: e.price.silver ?? 0, brass: e.price.brass ?? 0 };
       const who = env.mutateHero(e.heroId, (h) => avecObjet(h, it)); // arrive NON équipé
-      env.log(who ? t('eff.recover', { name: who.label, item: it.label }) : t('eff.recoverSansHeros', { item: it.label }));
+      env.log(who ? t('eff.recuperation', { name: who.label, item: it.label }) : t('eff.recuperationSansHeros', { item: it.label }));
     },
   },
   givePossession: {
@@ -1548,7 +1549,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
         ? { nature: 'vehicule', vehicleId: r.id, ...commun }
         : { nature: e.nature === 'serviteur' ? 'serviteur' : 'bete', ref: 'custom' in r ? r : { id: r.id }, ...commun };
       const uid = ajouterLaPossession(env.get, env.set, input);
-      env.log(t('eff.recover', { name: owner.label, item: possessionLabel({ ...input, uid } as Possession) }));
+      env.log(t('eff.recuperation', { name: owner.label, item: possessionLabel({ ...input, uid } as Possession) }));
     },
     // La bête ou le serviteur donné est une RÉFÉRENCE : sa fiche (monture de combat, `spawnEnemy`) s'y lit (#1882).
     refs: (e) => {
@@ -1567,8 +1568,8 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // groupe vide tout à 0, jamais esquivée par le tout-ou-rien de `payFromGroup`.
       const m = e.montant;
       mouvementDeLaBourseDuGroupe(env.get, env.set, toBrass(toMoney(m)));
-      const parts = [m.gold && t('eff.coin.gold', { n: m.gold }), m.silver && t('eff.coin.silver', { n: m.silver }), m.brass && t('eff.coin.brass', { n: m.brass })].filter(Boolean); // noms canon FR (couronne/pistole/sou)
-      if (parts.length) env.log(t('eff.purse', { sign: (m.gold ?? 0) < 0 || (m.silver ?? 0) < 0 ? '' : '+', parts: parts.join(' ') }));
+      const parts = [m.gold && t('eff.piece.or', { n: m.gold }), m.silver && t('eff.piece.argent', { n: m.silver }), m.brass && t('eff.piece.cuivre', { n: m.brass })].filter(Boolean); // noms canon FR (couronne/pistole/sou)
+      if (parts.length) env.log(t('eff.bourse', { sign: (m.gold ?? 0) < 0 || (m.silver ?? 0) < 0 ? '' : '+', parts: parts.join(' ') }));
     },
   },
   giveXp: {
@@ -1576,7 +1577,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     make: () => ({ type: 'giveXp', amount: 50 }),
     apply: (e, env) => {
       env.set((s: Jeu) => ecrireActeur(s, idsDuGroupe(s), (h) => ({ ...h, xp: (h.xp ?? 0) + e.amount })));
-      env.log(t('eff.xp', { amount: e.amount }));
+      env.log(t('eff.px', { amount: e.amount }));
     },
   },
   learnSpell: {
@@ -1592,9 +1593,9 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
         (h) => (learnable(h) ? { ...h, spells: [...(h.spells ?? []), sp.id] } : h),
         (heros) => heros.findIndex(learnable),
       );
-      if (!who) { env.log(e.heroId ? t('eff.heroUnknown', { id: e.heroId }) : t('eff.learnSpellNoOne', { spell: sp.label })); return; }
+      if (!who) { env.log(e.heroId ? t('eff.herosInconnu', { id: e.heroId }) : t('eff.sortSansApprenti', { spell: sp.label })); return; }
       const verdict = verdictApprentissage(who, sp);
-      env.log(t(verdict === 'dejaConnu' ? 'pf.spellAlreadyKnown' : verdict === 'nonEligible' ? 'pf.spellCannotLearn' : 'eff.learnSpell', { name: who.label, spell: sp.label }));
+      env.log(t(verdict === 'dejaConnu' ? 'pf.spellAlreadyKnown' : verdict === 'nonEligible' ? 'pf.spellCannotLearn' : 'eff.sortAppris', { name: who.label, spell: sp.label }));
     },
   },
   petitePriere: {
@@ -1622,10 +1623,10 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       const threshold = 1 + Math.max(0, priereAdv) * Number(rule('priere-petites-bonus-par-avance'));
       const roll = d100(battleRng());
       if (petitePriereAnswered(roll, threshold)) {
-        env.log(t('eff.petitePriereOk', { name: target.label, roll, threshold }));
-        jouerFlowEntier(runFlow(env.get, env.set, e.reward, t('eff.petitePriereReward'))); // récompense authorée (bonus/don/flag)
+        env.log(t('eff.petitePriereExaucee', { name: target.label, roll, threshold }));
+        jouerFlowEntier(runFlow(env.get, env.set, e.reward, t('eff.recompenseDePetitePriere'))); // récompense authorée (bonus/don/flag)
       } else {
-        env.log(t('eff.petitePriereKo', { name: target.label, roll }));
+        env.log(t('eff.petitePriereSansReponse', { name: target.label, roll }));
       }
     },
   },
@@ -1645,7 +1646,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     apply: (_e, env) => {
       // Début de session (LDB 17 l.41) : Chance regagnée jusqu'au maximum = Destin actuel.
       env.set((s: Jeu) => ecrireActeur(s, idsDuGroupe(s), (h) => restoreFortune([h])[0]));
-      env.log(t('eff.restoreFortune'));
+      env.log(t('eff.fortuneRestauree'));
     },
   },
   grantFavor: {
@@ -1734,7 +1735,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
         return applyOps(real, e.ops, { idNeuf: env.get().forgerUnId, rng: battleRng() });
       });
       env.set(touchActors(env.get()));
-      env.log(t('eff.blast', { lines: lines.join(' · ') }));
+      env.log(t('eff.souffleDeZone', { lines: lines.join(' · ') }));
     },
     refs: (e, ctx) => {
       const out: EffectRefIssue[] = [];
@@ -1759,12 +1760,12 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // Hors combat, l'atterrissage du groupe est une POSE : `poserLeGroupe` (déclencheurs, cap du groupe).
       // Un `to` où le groupe ne se pose pas (faute d'authoring, levée par `refs`) REFUSE l'Effet entier.
       const sc = env.get().scene;
-      if (e.to && sc && !groupePosable(sc, e.to)) return void refuserGeste(env.get, env.set, t('eff.fallAtterrissageRefuse'));
+      if (e.to && sc && !groupePosable(sc, e.to)) return void refuserGeste(env.get, env.set, t('eff.chuteAtterrissageRefuse'));
       if (e.to && env.get().battle && sc) for (const c of targets) placeCombatant(c, sc, e.to);
       if (e.to && !env.get().battle) poserLeGroupe(env.get, env.set, e.to);
       if (targets.length) {
         env.set(touchActors(env.get()));
-        env.log(t('eff.fallOuverte', { m, noms: targets.map((c) => c.label).join(', ') }));
+        env.log(t('eff.chuteOuverte', { m, noms: targets.map((c) => c.label).join(', ') }));
         for (const c of targets) ouvrirChute(env.set, c, m);
       }
     },
@@ -1789,10 +1790,10 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       const whoId = cible.id;
       const who = env.mutateHero(whoId, (h) => (porte(h) ? h : { ...h, diseases: [...(h.diseases ?? []), { ...dz }] }));
       if (who) {
-        const line = t('eff.diseaseContracted', { name: who.label, disease: e.disease });
+        const line = t('eff.maladieContractee', { name: who.label, disease: e.disease });
         env.log(line);
         // VISIBLE (le journal seul ne suffit pas) : effet d'AUTEUR → révélation témoin.
-        env.pushReveal({ kind: 'effet', title: t('eff.diseaseTitle', { disease: e.disease }), lines: [line], subjectId: whoId });
+        env.pushReveal({ kind: 'effet', title: t('eff.titreDeMaladie', { disease: e.disease }), lines: [line], subjectId: whoId });
       }
     },
   },
@@ -1858,7 +1859,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       const steps: BuiltCascadeStep[] = [];
       const lines: string[] = [];
       for (const c of heroes) {
-        if (isWeatherWarded(c)) { lines.push(t('eff.weatherWarded', { name: c.label, what: t(kind === 'froid' ? 'eff.wardFroid' : 'eff.wardChaleur') })); continue; }
+        if (isWeatherWarded(c)) { lines.push(t('eff.meteoConjuree', { name: c.label, what: t(kind === 'froid' ? 'eff.protectionDuFroid' : 'eff.protectionDeLaChaleur') })); continue; }
         const resVal = testValue(c, { skill: { id: 'resistance' }, characteristic: 'endurance' });
         const target = kind === 'froid' ? exposureTarget(c, resVal) : Math.max(0, resVal);
         // Ligne montée ICI : au FROID la cible vient d'`exposureTarget` (le manteau manquant y est fondu,
@@ -1899,10 +1900,10 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       const labels = traumas.map((tr) => tr.label);
       const who = env.mutateHero(whoId, (h) => ({ ...h, traumas: avecSequelles(h.traumas, structuredClone(traumas)), criticalWounds: (h.criticalWounds ?? 0) + 1 }));
       if (who) {
-        const line = t('eff.criticalSuffered', { name: who.label, kind: e.kind, location: e.location });
+        const line = t('eff.critiqueSubi', { name: who.label, kind: e.kind, location: e.location });
         env.log(line);
         // VISIBLE (le journal seul ne suffit pas) : effet d'AUTEUR → révélation témoin.
-        env.pushReveal({ kind: 'effet', title: t('eff.criticalTitle', { kind: e.kind }), lines: [line, ...labels], subjectId: whoId });
+        env.pushReveal({ kind: 'effet', title: t('eff.titreDeCritique', { kind: e.kind }), lines: [line, ...labels], subjectId: whoId });
       }
     },
   },
@@ -1912,7 +1913,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     apply: (e, env) => {
       // Trauma « Cauchemars » (LDB 21 l.95) posé sur un héros (défaut : le premier).
       const who = env.mutateHero(e.heroId, (h) => ({ ...h, nightmares: true }));
-      if (who) env.log(t('eff.nightmares', { name: who.label }));
+      if (who) env.log(t('eff.cauchemars', { name: who.label }));
     },
   },
   ambitionLost: {
@@ -1928,9 +1929,9 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       const acquired = !!trait;
       const who = trait ? env.mutateHero(cible.id, (h) => { const pose = { ...h }; grantPsychTrait(pose, trait.type); return pose; }) : cible;
       if (!who) return;
-      const line = t(acquired ? 'eff.ambitionTrauma' : 'eff.ambitionResisted', { name: who.label, roll: res.test.roll, target: res.test.target });
+      const line = t(acquired ? 'eff.ambitionTraumatisme' : 'eff.ambitionEncaissee', { name: who.label, roll: res.test.roll, target: res.test.target });
       env.log(line);
-      if (acquired) env.pushReveal({ kind: 'effet', title: t('eff.ambitionTitle'), lines: [line], subjectId: who.id });
+      if (acquired) env.pushReveal({ kind: 'effet', title: t('eff.titreDAmbition'), lines: [line], subjectId: who.id });
     },
   },
   inflictPsychology: {
@@ -1941,7 +1942,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // Psychologie de rencontre (`openScriptedPsych`, applier 'psychologieDeRencontre' partagé) — jamais un jet
       // silencieux. Frénésie s'octroie déjà via `ops`/`grantPsychTrait` (capacité, pas une affliction testée).
       const heroes = env.targets(e.target ?? 'party', e.heroId);
-      openScriptedPsych(env.get, env.set, e.kind, Math.max(1, e.indice ?? 1), e.label || t('eff.psychScene'), heroes);
+      openScriptedPsych(env.get, env.set, e.kind, Math.max(1, e.indice ?? 1), e.label || t('eff.sceneDePsychologie'), heroes);
     },
   },
   corruptionExposure: {
@@ -2007,7 +2008,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
         feedFromMeal(nourri);
         return nourri;
       }));
-      env.log(t('eff.meal'));
+      env.log(t('eff.repas'));
     },
   },
   interlude: {
@@ -2092,7 +2093,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
           ...(e.crew && e.crew.length ? { crew: e.crew.filter((h) => h.roleId && h.count > 0) } : {}),
         },
       });
-      env.log(t('eff.setVessel', { name: e.label?.trim() || v.label }));
+      env.log(t('eff.navirePossede', { name: e.label?.trim() || v.label }));
     },
     refs: (e) => {
       const v = e.vehicleId ? findVehicleById(e.vehicleId) : undefined;
@@ -2106,25 +2107,25 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     make: () => ({ type: 'adjustVessel' }),
     apply: (e, env) => {
       const vessel = env.get().vessel;
-      if (!vessel) { env.log(t('eff.vesselNoVessel')); return; }
+      if (!vessel) { env.log(t('eff.sansNavire')); return; }
       const parts: string[] = [];
       const next: typeof vessel = { ...vessel };
-      if (e.label?.trim()) { next.label = e.label.trim(); parts.push(t('eff.vesselName', { label: e.label.trim() })); }
-      if (e.morale != null) { next.morale = { ...vessel.morale, score: e.morale }; parts.push(t('eff.vesselMorale', { n: e.morale })); }
-      if (e.saboteurDR != null) { next.saboteurDR = clampSaboteurDR(e.saboteurDR); parts.push(t('eff.vesselSabotage', { n: next.saboteurDR })); }
-      if (e.waterLitres != null) { next.waterLitres = Math.max(0, e.waterLitres); parts.push(t('eff.vesselWater', { n: next.waterLitres })); }
-      if (e.provisions != null) { next.provisions = Math.max(0, e.provisions); parts.push(t('eff.vesselProvisions', { n: next.provisions })); }
-      if (e.crew && e.crew.length) { next.crew = e.crew.filter((h) => h.roleId && h.count > 0); parts.push(t('eff.vesselCrew', { n: next.crew.reduce((s, h) => s + h.count, 0) })); }
+      if (e.label?.trim()) { next.label = e.label.trim(); parts.push(t('eff.navireNom', { label: e.label.trim() })); }
+      if (e.morale != null) { next.morale = { ...vessel.morale, score: e.morale }; parts.push(t('eff.navireMoral', { n: e.morale })); }
+      if (e.saboteurDR != null) { next.saboteurDR = clampSaboteurDR(e.saboteurDR); parts.push(t('eff.navireSabotage', { n: next.saboteurDR })); }
+      if (e.waterLitres != null) { next.waterLitres = Math.max(0, e.waterLitres); parts.push(t('eff.navireEau', { n: next.waterLitres })); }
+      if (e.provisions != null) { next.provisions = Math.max(0, e.provisions); parts.push(t('eff.navireProvisions', { n: next.provisions })); }
+      if (e.crew && e.crew.length) { next.crew = e.crew.filter((h) => h.roleId && h.count > 0); parts.push(t('eff.navireEquipage', { n: next.crew.reduce((s, h) => s + h.count, 0) })); }
       // Blessures de coque : valeur ABSOLUE d'auteur → seam `setVesselHull` (#308, pas d'écriture directe
       // de `vessel.wounds` — resynchronise aussi la copie de travail `travelPlan.vehicle` si active).
       const hullMax = e.hullMax ?? vessel.wounds?.max ?? env.get().travelPlan?.vehicle?.wounds.max;
       const hasHullWrite = hullMax != null && (e.hullMax != null || e.hullCurrent != null);
       const hullCurrent = hasHullWrite ? (e.hullCurrent ?? hullMax) : undefined;
-      if (hasHullWrite) parts.push(t('eff.vesselHull', { cur: Math.max(0, Math.min(hullCurrent!, hullMax!)), max: hullMax! }));
-      if (!parts.length) { env.log(t('eff.vesselNoField')); return; }
+      if (hasHullWrite) parts.push(t('eff.navireCoque', { cur: Math.max(0, Math.min(hullCurrent!, hullMax!)), max: hullMax! }));
+      if (!parts.length) { env.log(t('eff.navireSansChamp')); return; }
       env.set({ vessel: next });
       if (hasHullWrite) setVesselHull(env.get, env.set, hullCurrent!, hullMax!);
-      env.log(t('eff.vesselDone', { parts: parts.join(', ') }));
+      env.log(t('eff.navireModifie', { parts: parts.join(', ') }));
     },
   },
 
@@ -2212,11 +2213,11 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     apply: (e, env) => {
       const { get, set } = env;
       const caster = actorIn(get(), e.casterId);
-      if (!caster) { env.log(t('eff.castCasterMissing', { id: e.casterId })); return; }
+      if (!caster) { env.log(t('eff.lanceurAbsent', { id: e.casterId })); return; }
       const spell = findSpellById(e.spellId);
-      if (!spell) { env.log(t('eff.castSpellMissing', { id: e.spellId })); return; }
+      if (!spell) { env.log(t('eff.sortAbsent', { id: e.spellId })); return; }
       const target = (e.targetId ? actorIn(get(), e.targetId) : undefined) ?? caster;
-      if (e.mode === 'forceSuccess') {
+      if (e.mode === 'forcerLaReussite') {
         // Exécuteur déclaré par `combatFlow` (table `lancerLeSortGaranti`). #98
         for (const line of tablesPosees().lancerLeSortGaranti(get, set, caster, target, spell.id)) env.log(line);
         env.log(`${caster.label} incante ${spell.label} (rituel garanti).`);
@@ -2300,7 +2301,7 @@ export function openWaterExposure(get: Get, set: SetFn, heroes: readonly Combata
     const step = monoStep({
       id: `${kind}-${h.id}`, kind, actor: h, icon: 'voyage/vague',
       rollLabel: refLabel('skills', WATER_EXPOSURE.test.skill),
-      label: t('eff.waterExposure', { mode: e.mode === 'immersion' ? 'immersion' : 'ingestion', detail: detail ? ` (${detail})` : '' }),
+      label: t('eff.expositionHydrique', { mode: e.mode === 'immersion' ? 'immersion' : 'ingestion', detail: detail ? ` (${detail})` : '' }),
       difficulty: WATER_EXPOSURE.test.difficulty,
       ligne: {
         test: { skill: WATER_EXPOSURE.test.skill },
@@ -2312,7 +2313,7 @@ export function openWaterExposure(get: Get, set: SetFn, heroes: readonly Combata
     });
     return step ? [step] : [];
   });
-  if (steps.length) openSequence(get, set, { title: t('eff.waterTitle'), icon: 'voyage/vague', purpose: 'test', steps });
+  if (steps.length) openSequence(get, set, { title: t('eff.titreDeLEau'), icon: 'voyage/vague', purpose: 'test', steps });
 }
 
 /** Étape de cascade `waterExposure` (MSRC 16 l.49) : Test raté → d100 « avec un modificateur de +10
@@ -2321,14 +2322,14 @@ export function openWaterExposure(get: Get, set: SetFn, heroes: readonly Combata
  *  n'est pas blessé » honoré par `drawWaterDisease`. Déjà porteur → rien de neuf (dédoublonnée). */
 const appliquerLExpositionHydrique: CascadeApplier = (_get, _set, step, hero) => {
   if (!hero || !step.result) return;
-  if (step.result.success) return { consequences: freeCons([t('eff.waterSafe', { name: hero.label })]) };
+  if (step.result.success) return { consequences: freeCons([t('eff.eauSansContagion', { name: hero.label })]) };
   const draw = drawWaterDisease(Math.max(0, -step.result.sl), isWounded(hero), battleRng());
   const lines = applyContraction(hero, draw.disease, false, battleRng());
   const rollTxt = draw.modified !== draw.roll ? `${draw.roll} (+${draw.modified - draw.roll} → ${draw.modified})` : String(draw.roll);
   return {
     consequences: freeCons([
-      t('eff.waterDraw', { roll: rollTxt, disease: diseaseLabel(draw.disease) }),
-      ...(lines.length ? lines : [t('eff.waterAlready', { name: hero.label })]),
+      t('eff.tirageDeLEau', { roll: rollTxt, disease: diseaseLabel(draw.disease) }),
+      ...(lines.length ? lines : [t('eff.eauDejaPorteur', { name: hero.label })]),
     ]),
   };
 };
@@ -2378,8 +2379,8 @@ function openMedicalAidEffect(get: Get, set: SetFn, e: Extract<Effect, { type: '
   // valeur de Guérison et son Bonus d'Intelligence s'y LISENT. Sans fiche, ou sans la Compétence
   // Avancée Guérison sur cette fiche (LDB 09 l.30), aucune infirmerie ne s'ouvre — et le refus se DIT.
   const npc = sceneNpc(get().scene, e.entityId.id, presetDuNarratif(get().campaignNarratif));
-  if (!npc) { get().ecrireAuJournal(t('eff.medicNoNpc', { id: e.entityId.id || '(aucun)' })); return; }
-  if (!possesses(npc, { id: HEAL_SKILL })) { get().ecrireAuJournal(t('eff.medicNoHealSkill', { name: npc.label })); return; }
+  if (!npc) { get().ecrireAuJournal(t('eff.medecinSansPnj', { id: e.entityId.id || '(aucun)' })); return; }
+  if (!possesses(npc, { id: HEAL_SKILL })) { get().ecrireAuJournal(t('eff.medecinSansCompetenceDeSoin', { name: npc.label })); return; }
   ouvrirLeMedecin(get, set, undefined, {
     id: e.entityId.id,
     label: npc.label,
@@ -2467,7 +2468,7 @@ export const TABLES = {
       const perte = avant - hero.wounds.current;
       const aTerre = !dejaATerre && hasCondition(hero, 'a-terre');
       set(touchActors(get()));
-      return { consequences: freeCons([t('eff.fallTarget', {
+      return { consequences: freeCons([t('eff.chuteDeLaCible', {
         name: hero.label,
         m: metres,
         lost: perte,

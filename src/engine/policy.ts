@@ -14,6 +14,7 @@
  * Réf. : la citation de chaque règle est portée par son champ `ref` (livre + chapitre, et la ligne
  * quand le passage en porte une) ; les formes réelles sont mesurées au schéma de la donnée.
  */
+import type { IconId } from '../data/icons';
 import reglesOptionnellesJson from '../data/reglesOptionnelles.json';
 import { bumperDataset, indexParId } from '../data/versionDataset';
 import type { SourceRef } from '../data/schemas/grammaire/valeurs';
@@ -73,14 +74,13 @@ export interface RuleAction {
   when: RuleValue;
   label: string;
   /**
-   * Id du registre d'icônes (`src/data/icons/`) et nom de l'action du store à déclencher. Tous deux
-   * restent des `string` ICI : le moteur est une couche FEUILLE, il ne peut pas importer le type
-   * `IconId` ni les clés de l'hôte sans inverser la dépendance. La liaison est donc
-   * vérifiée côté hôte (chaque `icon` existe au registre,
-   * chaque `run` désigne une fonction de l'hôte), doublée d'un throw DEV au site de résolution
-   * (`HouseRulesModal`) : un renommage du store ne peut pas se solder par un bouton disparu.
+   * Id du registre d'icônes (`src/data/icons/`) et nom de l'action du store à déclencher. `run` reste
+   * un `string` ICI : le moteur est une couche FEUILLE, il ne peut pas importer les clés de l'hôte sans
+   * inverser la dépendance. La liaison est donc vérifiée côté hôte (chaque `run` désigne une fonction
+   * de l'hôte), doublée d'un throw DEV au site de résolution (`HouseRulesModal`) : un renommage du store
+   * ne peut pas se solder par un bouton disparu.
    */
-  icon: string;
+  icon: IconId;
   run: string;
 }
 

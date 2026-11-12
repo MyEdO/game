@@ -19,7 +19,7 @@ const combatant = (p: Partial<Combatant> = {}): Combatant =>
     ...p,
   }) as Combatant);
 
-const SRC = { kind: 'spell', id: 'benediction-de-puissance' } as const;
+const SRC = { kind: 'sort', id: 'benediction-de-puissance' } as const;
 
 describe('grantNaturalWeapon — stampe ctx.source sur l’arme naturelle créée', () => {
   it('avec ctx.source : l’arme (activeEffects[].naturalWeapon ET c.weapons) porte la source', () => {

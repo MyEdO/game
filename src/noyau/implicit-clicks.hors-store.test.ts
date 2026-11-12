@@ -117,7 +117,7 @@ describe('Course implicite — zone au-delà de la Marche, jet au commit (LDB 15
 
   it("zone de Course NOMINALE indisponible sous un mode-CASE (#198, résidus) : `battle.reachable` déjà "
     + "peuplé par Pousser/Téléportation/pose de zone ne doit pas se faire recouvrir par la Marche+Course "
-    + "normales — sinon la grille 'run' (data-tile) ratisse toute la carte au lieu du seul ensemble du mode", () => {
+    + "normales — sinon la grille 'course' (data-tile) ratisse toute la carte au lieu du seul ensemble du mode", () => {
     const { H } = setup();
     expect(computeRunReach(banc.getState).size).toBeGreaterThan(0); // témoin : hors mode-case, la Course normale s'affiche
     const b = banc.getState().battle!;

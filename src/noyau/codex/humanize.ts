@@ -376,7 +376,7 @@ function humanizeFall(tableId: string): string {
 }
 
 /** UN terme joueur pour la CAUSE PERSISTANTE (prédicat `estCausePersistante`, `engine/ops.ts`) : le
- *  même que le journal (`op.condPerRoundUnless`/`op.condRegain`). SOURCE UNIQUE de la formulation,
+ *  même que le journal (`op.etatParRoundSauf`/`op.etatRegagne`). SOURCE UNIQUE de la formulation,
  *  composée par les trois lecteurs du Codex (`humanizeOp`, `opRows`, dialecte miscast de `registry`). */
 export const causePersistante = (): string => t('codex.causePersistante');
 
@@ -605,9 +605,9 @@ export function humanizeOp(o: GameOp): string {
     }) + (o.equipageEpargne ? t('codex.op.shipCritical.equipageEpargne') : '');
     case 'navireMod': return t('codex.op.navireMod', {
       axes: [
-        ...(o.m !== undefined ? [t('eff.navireModM', { m: `${o.m >= 0 ? '+' : '−'}${Math.abs(o.m)}` })] : []),
-        ...(o.manDR !== undefined ? [t('eff.navireModMan', { dr: `${o.manDR >= 0 ? '+' : '−'}${Math.abs(o.manDR)}` })] : []),
-        ...(o.evite ? [t('eff.navireModEvite', { perils: o.evite.map((id) => findSeaHazard(id)?.label ?? id).join(', ') })] : []),
+        ...(o.m !== undefined ? [t('eff.modificateurDuNavireM', { m: `${o.m >= 0 ? '+' : '−'}${Math.abs(o.m)}` })] : []),
+        ...(o.manDR !== undefined ? [t('eff.modificateurDuNavireManoeuvre', { dr: `${o.manDR >= 0 ? '+' : '−'}${Math.abs(o.manDR)}` })] : []),
+        ...(o.evite ? [t('eff.modificateurDuNavireEvite', { perils: o.evite.map((id) => findSeaHazard(id)?.label ?? id).join(', ') })] : []),
       ].join(', '),
       duree: o.jusqua === 'carenage' ? t('eff.jusquAuCarenage') : o.jusqua === 'evenementDeBord' ? t('eff.jusquAuProchainEvenement') : t('codex.op.pendantJours', { n: humanizeFormula(o.jusqua.jours) }),
     });

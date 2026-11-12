@@ -69,8 +69,8 @@ function comptesAttendus(els: readonly HighlightEl[]): Map<HighlightSlot, number
 describe('Marques volumiques — le compte d’instances est celui des éléments du builder', () => {
   it('la scène témoin produit bien les quatre natures mesurées (sinon la sonde ne pèse rien)', () => {
     const c = comptesAttendus(ELS);
-    expect(c.get('walk')).toBe(3);
-    expect(c.get('run')).toBe(1); // `5,2` seul : `3,2` est déjà en Marche
+    expect(c.get('deplacement')).toBe(3);
+    expect(c.get('course')).toBe(1); // `5,2` seul : `3,2` est déjà en Marche
     expect(c.get('teamActive')).toBe(1);
     expect(c.get('team')).toBe(1);
     expect(c.get('zoneSmoke')).toBe(2);
@@ -96,17 +96,17 @@ describe('Marques volumiques — le compte d’instances est celui des élément
   });
 
   it('réécriture EN PLACE : le pool ne change pas d’identité quand les marques changent', () => {
-    const mesh = buildHighlightMesh('walk', slotCapacity(3));
+    const mesh = buildHighlightMesh('deplacement', slotCapacity(3));
     const tampon = mesh.instanceMatrix.array;
-    writeHighlightInstances(mesh, ELS.filter((e) => e.kind === 'walk'), MPT);
-    writeHighlightInstances(mesh, ELS.filter((e) => e.kind === 'walk').slice(0, 1), MPT);
+    writeHighlightInstances(mesh, ELS.filter((e) => e.kind === 'deplacement'), MPT);
+    writeHighlightInstances(mesh, ELS.filter((e) => e.kind === 'deplacement').slice(0, 1), MPT);
     expect(mesh.count).toBe(1);
     expect(mesh.instanceMatrix.array).toBe(tampon); // même tampon : rien n'a été réalloué
   });
 
   it('le retour est un signal de CHANGEMENT : muet à l’identique, vrai au déplacement comme à l’effacement', () => {
-    const marches = ELS.filter((e) => e.kind === 'walk');
-    const mesh = buildHighlightMesh('walk', slotCapacity(marches.length));
+    const marches = ELS.filter((e) => e.kind === 'deplacement');
+    const mesh = buildHighlightMesh('deplacement', slotCapacity(marches.length));
     expect(writeHighlightInstances(mesh, marches, MPT)).toBe(true);
     const version = mesh.instanceMatrix.version; // `needsUpdate` n'a QUE son mutateur : la version en tient le compte
     expect(writeHighlightInstances(mesh, marches, MPT), 'rien n’a bougé : rien à repeindre').toBe(false);
@@ -127,21 +127,21 @@ describe('Marques volumiques — le compte d’instances est celui des élément
   });
 
   it('un pool SATURÉ écrit ce qu’il peut, sans déborder son tampon', () => {
-    const mesh = buildHighlightMesh('walk', 2);
-    expect(writeHighlightInstances(mesh, ELS.filter((e) => e.kind === 'walk'), MPT)).toBe(true);
+    const mesh = buildHighlightMesh('deplacement', 2);
+    expect(writeHighlightInstances(mesh, ELS.filter((e) => e.kind === 'deplacement'), MPT)).toBe(true);
     expect(mesh.count).toBe(2);
   });
 });
 
 describe('Marques volumiques — pose MONDE et rang de superposition', () => {
   it('une case connue tombe au point monde de sa case, décollée du lift de son slot', () => {
-    const el = ELS.find((e) => e.kind === 'walk' && e.cell.x === 4 && e.cell.y === 2)!;
+    const el = ELS.find((e) => e.kind === 'deplacement' && e.cell.x === 4 && e.cell.y === 2)!;
     const p = new THREE.Vector3();
     highlightMatrix(el, MPT).decompose(p, new THREE.Quaternion(), new THREE.Vector3());
     const attendu = gpToWorld({ x: 4, y: 2, h: 0 }, MPT); // la conversion du monde, `worldTris.ts`
     expect(p.x).toBeCloseTo(attendu.x, 9);
     expect(p.z).toBeCloseTo(attendu.z, 9);
-    expect(p.y).toBeCloseTo(attendu.y + slotLiftM('walk'), 9);
+    expect(p.y).toBeCloseTo(attendu.y + slotLiftM('deplacement'), 9);
   });
 
   it('le carré fait UNE case de côté (en monde, une case n’est plus un losange)', () => {
@@ -150,12 +150,12 @@ describe('Marques volumiques — pose MONDE et rang de superposition', () => {
     expect([s.x, s.z]).toEqual([MPT, MPT]);
   });
 
-  it('rang de lift CROISSANT : walk < team < zone < ring (les coplanaires ne se z-fightent pas)', () => {
-    const lifts = ['walk', 'team', 'zoneSmoke', 'ringContour'] as const;
+  it('rang de lift CROISSANT : deplacement < team < zone < ring (les coplanaires ne se z-fightent pas)', () => {
+    const lifts = ['deplacement', 'team', 'zoneSmoke', 'ringContour'] as const;
     const suite = lifts.map(slotLiftM);
     expect(suite).toEqual([...suite].sort((a, b) => a - b));
     expect(new Set(suite).size).toBe(4);
-    expect(slotLiftM('walk')).toBeCloseTo(SPECKLE_LIFT_M, 12); // le rang s'exprime en crans de ce lift
+    expect(slotLiftM('deplacement')).toBeCloseTo(SPECKLE_LIFT_M, 12); // le rang s'exprime en crans de ce lift
   });
 
   it('un anneau posé sur une teinte d’équipe est AU-DESSUS d’elle, sur la même case', () => {
@@ -236,7 +236,7 @@ describe('Marques volumiques — l’anneau-contour est un CADRE, pas un quad pl
 
 describe('Marques volumiques — teintes du catalogue partagé, jamais un littéral', () => {
   it('chaque nature prend la teinte que le catalogue partagé lui donne', () => {
-    expect(highlightTint({ key: 'k', cell: { x: 0, y: 0, z: 0 }, h: 0, kind: 'walk' })).toBe(WALK_TINT);
+    expect(highlightTint({ key: 'k', cell: { x: 0, y: 0, z: 0 }, h: 0, kind: 'deplacement' })).toBe(WALK_TINT);
     expect(highlightTint({ key: 'k', cell: { x: 0, y: 0, z: 0 }, h: 0, kind: 'zone', smoke: true })).toBe(ZONE_SMOKE_TINT);
     expect(highlightTint({ key: 'k', cell: { x: 0, y: 0, z: 0 }, h: 0, kind: 'ring', tone: 'target' })).toBe(RING_TARGET_TINT);
     expect(highlightTint({ key: 'k', cell: { x: 0, y: 0, z: 0 }, h: 0, kind: 'team', hero: true, active: false })).toBe(tileTint(true, false));

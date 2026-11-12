@@ -77,8 +77,8 @@ export function useExtendedTestJetProps(): ComponentProps<typeof RollShell> | nu
     /* « Round suivant » cumule + ouvre le Round suivant ; à la réussite, ferme la cascade.
        « Renoncer » ouvert aussi APRÈS le jet (`clotures.cancel` du flux `testEtendu`). */
     actions: [
-      { key: 'cancel', label: 'Renoncer', onClick: cancel, verbe: 'annuler' },
-      { key: 'confirm', label: willSucceed ? <><Icon id="interface/fait" size="sm" /> Réussir !</> : 'Round suivant →', onClick: () => next(), verbe: 'valider' },
+      { key: 'abandonner', label: 'Renoncer', onClick: cancel, verbe: 'annuler' },
+      { key: 'confirmer', label: willSucceed ? <><Icon id="interface/fait" size="sm" /> Réussir !</> : 'Round suivant →', onClick: () => next(), verbe: 'valider' },
     ],
     onCancel: cancel,
   };

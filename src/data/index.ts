@@ -3,6 +3,7 @@
  * écran 'dataEditor'). Les *.json de ce dossier sont la SOURCE CANONIQUE app-owned, curée à la main :
  * aucune migration ne les régénère.
  */
+import type { IconId } from './icons/types';
 import type { EntityAppearance, EspeceDApparence } from '../engine/authoringAppearance';
 import type { PlayerText } from '../i18n/playerText';
 import type { EntreeDeLivre } from './source/livre-extrait';
@@ -298,7 +299,7 @@ export const ACTIVITY_STAKES = activitiesStakeJson as ActivityStakeEntry[];
 export interface ActionDef {
   id: ActionId;
   label: string;
-  icon: string;
+  icon: IconId;
   surface:
     | 'deduite-du-set' | 'geste-d-etat' | 'grille' | 'gouttiere-arche' | 'selecteur-de-sets'
     | 'coin-de-tour' | 'bandeau-de-phase' | 'interlude' | 'pastille-etat' | 'pastille-entite' | 'frise'
@@ -1505,7 +1506,7 @@ export interface EtatData extends StatusData {
   persistsAfterCombat?: boolean;
   /** AFFICHAGE (couche UI, hors RAW LDB 16) : icône du registre `<Icon>` (id `famille/nom`) + sévérité
    *  0-100 (≥50 = incapacitant → créneau unique de l'ordre de bataille). Lus par `effectIcons.conditionMeta`. */
-  icon?: string;
+  icon?: IconId;
   severity?: number;
   /** Dangerosité IA de l'État infligé, en « Blessures espérées » (contrôle > simple malus) — lue par
    *  `aiSpellValue.opValue` (`op:'condition'`). Absente → menace mineure (1). */
@@ -1525,7 +1526,7 @@ export interface PsychologyData extends StatusData {
   stakeForm?: StakeForm;
   /** AFFICHAGE (couche UI, hors RAW LDB 21) : icône du registre `<Icon>` (id `famille/nom`), à l'égal
    *  d'`EtatData.icon`. Lu par `cibleLabel` (engine/psychology.ts). */
-  icon?: string;
+  icon?: IconId;
   /** Porter cet état psy IMMUNISE à la Psychologie (Frénésie, LDB 21 l.33) — lu GÉNÉRIQUEMENT par
    *  `isPsychImmune` (jamais codé par-nom), à l'égal du drapeau de trait « Immunité (Psychologie) ». */
   psychImmune?: boolean;
@@ -2705,7 +2706,7 @@ export interface LieuServiceData {
   id: string;
   type: 'lieux-services';
   label: string;
-  icon?: string;
+  icon?: IconId;
   desc?: string;
   /** Réplique de boniment (saveur maison) du bandeau d'interlocuteur statique (`SpeakerBanner`). */
   hostLine?: string;
@@ -2932,7 +2933,7 @@ export const hairsDie = (): DeDeTable => deDeTirageDe<typeof couleurDesCheveux>(
 export const calendarMonths = calendarMonthsJson as { id: string; type: 'calendarMonths'; label: string; days: number }[];
 export const calendarIntercalary = calendarIntercalaryJson as { id: string; type: 'calendarIntercalary'; label: string; afterMonth: number }[];
 export const calendarWeekdays = calendarWeekdaysJson as { id: string; type: 'calendarWeekdays'; label: string }[];
-export const calendarPhases = calendarPhasesJson as { id: string; type: 'calendarPhases'; seuil: number; label: string; icon: string }[];
+export const calendarPhases = calendarPhasesJson as { id: string; type: 'calendarPhases'; seuil: number; label: string; icon: IconId }[];
 /** Table de Météo de voyage TERRESTRE (EDOC 8). `seasons` = plages du dé `die` → météo par saison ;
  *  `conditions` = EFFETS par météo (mêmes formes de donnée que `sea-weather.json`). Éditable au Codex. */
 const weatherData = weatherJson as {

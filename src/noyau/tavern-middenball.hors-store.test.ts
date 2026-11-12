@@ -119,7 +119,7 @@ describe('Middenball — les camps, le tour, la somme (NADJ 16 l.117-119)', () =
       expect(f.result, 'et leur jet est DÉJÀ tombé').toBeTruthy();
       expect(f.base, 'leur valeur est celle de la fiche de l’habitué').toBe(tavernGameValue(pnjAuProfil('humain', 'h')!, findTavernGameById('middenball')!));
     }
-    expect(get().sequence?.payload).toMatchObject({ teams: { player: expect.any(Array), opponent: expect.any(Array) } });
+    expect(get().sequence?.payload).toMatchObject({ teams: { joueur: expect.any(Array), adversaire: expect.any(Array) } });
   });
 
   it('l’OPTION choisie décide la Compétence ET la Difficulté de la rangée (Bagarre +20 vs Athlétisme +0)', () => {
@@ -153,7 +153,7 @@ describe('Middenball — les camps, le tour, la somme (NADJ 16 l.117-119)', () =
 
     const p = get().sequence!.payload as { last: { playerSL: number; opponentSL: number } };
     expect(p.last).toEqual({ playerSL: 33, opponentSL: 11 });
-    expect(get().sequence!.cum, 'total ≥ 25 pour le camp le plus haut : un but').toEqual({ player: 1, opponent: 0 });
+    expect(get().sequence!.cum, 'total ≥ 25 pour le camp le plus haut : un but').toEqual({ joueur: 1, adversaire: 0 });
     for (const h of party) expect(get().party.find((x) => x.id === h.id)!.advantage, '+1 Avantage pour le tour suivant').toBe(1);
     expect(get().journal.some((l) => l.includes('BUT'))).toBe(true);
   });
@@ -172,15 +172,15 @@ describe('Middenball — les camps, le tour, la somme (NADJ 16 l.117-119)', () =
     poseTour(3, 3, 1);
     expect(get().party[0].advantage).toBe(2);
     const camps = () => (get().sequence!.payload as { advantage?: { player: number; opponent: number } }).advantage;
-    expect(camps(), 'les figurants suivent la même suite').toEqual({ player: 2, opponent: 0 });
+    expect(camps(), 'les figurants suivent la même suite').toEqual({ joueur: 2, adversaire: 0 });
     choisir(0);
     poseTour(1, 1, 1); // 11 contre 11 : égalité, chaque camp perd 1 (LDB 14 l.219)
     expect(get().party[0].advantage).toBe(1);
-    expect(camps()).toEqual({ player: 1, opponent: 0 });
+    expect(camps()).toEqual({ joueur: 1, adversaire: 0 });
     choisir(0);
     poseTour(1, 1, 3); // tour perdu : tout part
     expect(get().party[0].advantage).toBe(0);
-    expect(camps()).toEqual({ player: 0, opponent: 1 });
+    expect(camps()).toEqual({ joueur: 0, adversaire: 1 });
   });
 
   it('le camp qui PERD le tour : ses héros perdent leur Avantage (LDB 14 l.219, l.119 « règles habituelles »)', () => {
@@ -269,7 +269,7 @@ describe('Middenball — les camps, le tour, la somme (NADJ 16 l.117-119)', () =
 
     const p = get().sequence!.payload as { last: { playerSL: number; opponentSL: number } };
     expect(p.last).toEqual({ playerSL: 44, opponentSL: 33 });
-    expect(get().sequence!.cum, 'un seul but, pour le camp le plus haut').toEqual({ player: 1, opponent: 0 });
+    expect(get().sequence!.cum, 'un seul but, pour le camp le plus haut').toEqual({ joueur: 1, adversaire: 0 });
   });
 
   it('total sous le seuil : l’équipe la plus haute gagne l’Avantage, mais AUCUN but', () => {
@@ -278,7 +278,7 @@ describe('Middenball — les camps, le tour, la somme (NADJ 16 l.117-119)', () =
     choisir(0);
     poseTour(2, 2, 1); // 22 contre 11 : le plus haut, mais < 25
 
-    expect(get().sequence!.cum).toEqual({ player: 0, opponent: 0 });
+    expect(get().sequence!.cum).toEqual({ joueur: 0, adversaire: 0 });
     expect(get().party.find((x) => x.id === party[0].id)!.advantage).toBe(1);
   });
 
@@ -294,7 +294,7 @@ describe('Middenball — les camps, le tour, la somme (NADJ 16 l.117-119)', () =
     expect(tours).toEqual([1, 2, 3, 4, 5, 6]);
     expect(get().sequence, 'les deux mi-temps consommées, la séquence est retirée').toBeNull();
     const res = get().tavernGames!.result!;
-    expect(res.winner).toBe('player');
+    expect(res.winner).toBe('joueur');
     expect(res.playerSL, 'le score final EST le compte de buts').toBe(6);
     expect(res.opponentSL).toBe(0);
     expect(res.rounds).toBe(6);
@@ -331,7 +331,7 @@ describe('Middenball — les camps, le tour, la somme (NADJ 16 l.117-119)', () =
     expect(get().sequence).toBeNull();
     const res = get().tavernGames!.result!;
     expect(res.rounds).toBe(6);
-    expect(['player', 'opponent', 'tie']).toContain(res.winner);
+    expect(['joueur', 'adversaire', 'egalite']).toContain(res.winner);
     expect(res.playerSL + res.opponentSL, 'des buts ont pu tomber, jamais des DR bruts').toBeLessThanOrEqual(6);
   });
 });

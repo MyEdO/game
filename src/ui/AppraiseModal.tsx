@@ -70,8 +70,8 @@ export function AppraiseModalView({
 
   const actions: RollAction[] = owned
     ? [
-        { key: 'cancel', label: t('verbe.annuler'), onClick: onCancel, verbe: 'annuler' },
-        { key: 'confirm', label: t('verbe.valider'), onClick: onConfirm, verbe: 'valider' },
+        { key: 'abandonner', label: t('verbe.annuler'), onClick: onCancel, verbe: 'annuler' },
+        { key: 'confirmer', label: t('verbe.valider'), onClick: onConfirm, verbe: 'valider' },
       ]
     : [];
 

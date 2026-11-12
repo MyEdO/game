@@ -5,6 +5,7 @@
  *  - Opérations bancaires : LDB 23 l.164-176
  *  - Revenus : LDB 08 l.105-120 (`gainDeStatut`, `engine/money`)
  */
+import type { IconId } from '../data/icons';
 import { RNG, roll, rollDice } from './dice';
 import { Money, fromBrass, toBrass, priceToMoney, gainDeStatut, enPieces, PA_PER_SC, type StatusTier } from './money';
 import type { CharKey, Combatant, Difficulty, SkillInstance, Availability, StakeForm } from './types';
@@ -344,7 +345,7 @@ export interface ActivityDef {
   label: string;
   /** Icône du registre (`src/data/icons`, id `famille/nom`) — affichée par les volets/boutons
    *  d'Activité. REQUIS ; icône ∈ registre validé par `data-wellformed.test.ts`. */
-  icon: string;
+  icon: IconId;
   contexts: ActivityContext[];
   source: { book: string; page: number };
   /** Tests AU CHOIX, chacun avec sa Difficulté ; l'acteur tente le meilleur qu'il peut tenter. LDB 23 l.209 ; AA 12 l.49 */

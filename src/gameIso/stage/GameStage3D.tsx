@@ -66,6 +66,7 @@ import * as THREE from 'three';
 import { freeYaw, type Dims, type Rot } from '../../geometry/iso';
 import { hauteurDe, type LectureDArete, type Scene } from '../../noyau/monde/scene';
 import type { Dir8 } from '../../geometry/dir8';
+import type { VerrouDesMots } from '../../noyau/fabriquesDuNoyau';
 import { reposerAffineCamera, reposerPovCamera, StretchedOrthographicCamera } from '../backends/webgl/cameras';
 import { fogCurveOf, povDepth } from '../pov/camera';
 import { pxPerM } from '../../noyau/monde/volume/worldTris';
@@ -238,6 +239,9 @@ export type StageFrame =
        *  la même hauteur. */
       eyeH?: number;
     };
+/** VERROU : un mode de cadre ne prend que des mots du lexique (#3938). */
+const verrouDesModesDeCadre: VerrouDesMots<StageFrame['mode']> = true;
+void verrouDesModesDeCadre;
 
 /**
  * CENTRE DE PROXIMITÉ du montage (#1372) — la position du GROUPE, en CASES, celle dont l'entrée en

@@ -244,7 +244,7 @@ export function devisDuPanier(m: MerchantState, { ent, party, bourse, refusHote 
     return { id: c.id, qty: c.qty, unitaire, sousTotal: unitaire ? fromBrass(toBrass(unitaire) * c.qty) : null };
   });
   const total = fromBrass(lignes.reduce((s, l) => s + (l.sousTotal ? toBrass(l.sousTotal) : 0), 0));
-  return { lignes, total, refus: refusHote ?? (!lignes.length ? t('mf.panierVide') : !canAfford(bourse, total) ? t('mf.cartPurseKo') : null) };
+  return { lignes, total, refus: refusHote ?? (!lignes.length ? t('mf.panierVide') : !canAfford(bourse, total) ? t('mf.bourseInsuffisantePourLePanier') : null) };
 }
 
 /** Refus d'ajout d'une unité de la ligne `id` au panier, contre la bourse `bourse` du groupe que le panier
@@ -259,7 +259,7 @@ export function refusDAjout(m: MerchantState, id: string, contexte: ContexteDAch
   return m.bargainBuy != null ? t('mf.panierFige')
     : enPanier >= stockQty ? t('mf.stockEpuise', { label })
     : !unitaire ? t('mf.sansPrix', { label })
-    : !canAfford(bourse, moneyAdd(devisDuPanier(m, contexte).total, unitaire)) ? t('mf.purseKo', { label })
+    : !canAfford(bourse, moneyAdd(devisDuPanier(m, contexte).total, unitaire)) ? t('mf.bourseInsuffisante', { label })
     : null;
 }
 
@@ -279,7 +279,7 @@ function partyAvailabilityBonus(party: Combatant[], gossipDay = false): number {
  *  pré-tirage affiché (`openStockRevealCascade`) ET de la conséquence de l'étape. Le tirage n'est pas
  *  un Test de Compétence : c'est l'ARTICLE qui nomme la ligne, avec la nature du dé. */
 function stockTraceLine(l: StockLine): string {
-  return traceLineOf({ label: stepDetail(dataLabel(l.label), t('mf.dispoTrace')), roll: l.test!.roll, target: l.test!.target, success: true, issue: t('mf.dispoQty', { qty: l.qty }) });
+  return traceLineOf({ label: stepDetail(dataLabel(l.label), t('mf.traceDeDisponibilite')), roll: l.test!.roll, target: l.test!.target, success: true, issue: t('mf.quantiteDisponible', { qty: l.qty }) });
 }
 /** Instantané de stock FRAIS d'un archétype à un instant `now`, avec un bonus de Disponibilité (Carrière
  *  cohérente + éventuelle recherche active, LDB 59 l.50). PUR (aucun `set`/`ecrireAuJournal`) — SOURCE UNIQUE de calcul,
@@ -331,7 +331,7 @@ function rollFreshStock(
   entityId: string, ent: SceneEntity | undefined, arch: MerchantArchetypeDef, settlement: Settlement, now: number, restockPeriod: number, gossipDay: boolean,
 ): { id: string; qty: number }[] {
   const { stock, tested } = computeFreshStockLines(get, ent, arch, entityId, settlement, now, restockPeriod, gossipDay);
-  if (tested.length) get().ecrireAuJournal(t('mf.marketRoll', { settlement, lignes: tested.map((l) => t('mf.stockLine', { label: l.label, qty: l.qty })).join(', ') }));
+  if (tested.length) get().ecrireAuJournal(t('mf.tirageDuMarche', { settlement, lignes: tested.map((l) => t('mf.ligneDeStock', { label: l.label, qty: l.qty })).join(', ') }));
   persistStock(set, entityId, stock, now);
   return stock;
 }
@@ -370,7 +370,7 @@ function openStockRevealCascade(
     ...(outcome?.length ? { outcome: toRecapLines(outcome) } : {}),
     meta: { entityId, archetype, settlement, now, restockPeriod, gossipDay, resaleRate, buyMarkup, ...(backdrop != null ? { backdrop } : {}) },
   };
-  startCascade(get, set, { title: t('mf.restockTitle'), purpose: 'test', steps: [step] });
+  startCascade(get, set, { title: t('mf.titreDeReassort'), purpose: 'test', steps: [step] });
 }
 
 /** Ouverture PARTAGÉE d'une visite marchande (#369) — `ent` est l'override d'ENTITÉ de scène (PNJ posé
@@ -379,7 +379,7 @@ function openStockRevealCascade(
  *  par les deux entrées — aucune n'est un fork de l'autre. */
 function openMerchantByArchetype(get: Get, set: Set, entityId: string, archetype: string, ent?: SceneEntity, backdrop?: string): void {
   const arch = findMerchantArchetypeById(archetype);
-  if (!arch) { get().ecrireAuJournal(t('mf.archetypeUnknown', { archetype })); return; }
+  if (!arch) { get().ecrireAuJournal(t('mf.archetypeInconnu', { archetype })); return; }
   const settlement: Settlement = ent?.merchant?.settlement ?? arch.settlement;
   const resaleRate = ent?.merchant?.resaleRate ?? arch.resaleRate;
   const buyMarkup = ent?.merchant?.buyMarkup ?? arch.buyMarkup ?? 1; // majoration d’achat (1 = prix listé ; >1 = vend plus cher)
@@ -465,7 +465,7 @@ function chercherLaDisponibilite(get: Get, set: Set): void {
   // Test de Ragot du groupe (Soutien LDB 12) — Intermédiaire (+0), le RAW ne chiffre pas la difficulté.
   const best = partyAssisted(get().party, { skill: { id: 'ragot' }, characteristic: 'sociabilite' });
   if (!best) {
-    get().ecrireAuJournal(t('mf.noGossip'));
+    get().ecrireAuJournal(t('mf.sansRagot'));
     finalizeSearchAvailability(get, set, m.entityId, restockPeriod, false);
     return;
   }
@@ -491,7 +491,7 @@ function quitterLeMarchand(get: Get, set: Set): void {
   const renege = !!m && ((m.bargainBuy != null && !m.bargainPaid) || (m.bargainSell != null && !m.bargainSellUsed));
   if (m && renege) {
     set((s) => ({ merchantStocks: { ...s.merchantStocks, [m.entityId]: { ...s.merchantStocks[m.entityId], bargainLocked: true } } }));
-    get().ecrireAuJournal(t('mf.renege'));
+    get().ecrireAuJournal(t('mf.marcheRenie'));
   }
   repartirLesAchats(get, set); // ne pas perdre les objets payés non répartis
   set({ merchant: null });
@@ -518,7 +518,7 @@ function refuserLeMarche(get: Get, set: Set, mode: ModeDeMarche): void {
     merchant: { ...s.merchant!, ...patch, bargainLocked: true },
     merchantStocks: { ...s.merchantStocks, [m.entityId]: { ...s.merchantStocks[m.entityId], bargainLocked: true } },
   }));
-  get().ecrireAuJournal(t('mf.bargainRefused'));
+  get().ecrireAuJournal(t('mf.marcheRefuse'));
 }
 
 function payerLesAchats(get: Get, set: Set): void {
@@ -526,7 +526,7 @@ function payerLesAchats(get: Get, set: Set): void {
   const cart = m.cart ?? [];
   const devis = devisDuPanier(m, contexteDAchat(get(), m));
   const total = devis.total;
-  if (devis.refus || !payFromGroup(get, set, total, { purpose: 'panier marchand' })) { refuserGeste(get, set, devis.refus ?? t('mf.cartPurseKo')); return; }
+  if (devis.refus || !payFromGroup(get, set, total, { purpose: 'panier marchand' })) { refuserGeste(get, set, devis.refus ?? t('mf.bourseInsuffisantePourLePanier')); return; }
   // Crée les objets achetés (par UNITÉ) en attente de répartition + déplète le stock. Une ligne
   // UNITÉ (véhicule/créature-monture, #760) rejoint elle aussi `pendingDistribution` — le joueur
   // choisit le héros PROPRIÉTAIRE via le même écran de répartition que les objets de sac ;
@@ -553,7 +553,7 @@ function payerLesAchats(get: Get, set: Set): void {
       merchantStocks: { ...s.merchantStocks, [eid]: { ...persisted, stock: newStock, rolledAt: persisted?.rolledAt ?? s.gameTime } },
     };
   });
-  get().ecrireAuJournal(t('mf.paid', { total: formatMoney(total), count, s: count > 1 ? 's' : '' }));
+  get().ecrireAuJournal(t('mf.paye', { total: formatMoney(total), count, s: count > 1 ? 's' : '' }));
 }
 
 /** Range chaque achat payé chez le héros que lui donne la répartition (`marchand.repartition`) : corps de la validation
@@ -678,7 +678,7 @@ export function optionsDeTroc(party: readonly Combatant[]): OptionDeTroc[] {
       const trapping = findTrappingById(trappingId);
       if (!trapping) continue;
       const horsCommerce = barterRefusal(trappingId);
-      const refus = horsCommerce ? t('trade.barterRefused', { reason: horsCommerce }) : listedBrassOf(trapping) > 0 ? null : t('mf.barterNoPrice');
+      const refus = horsCommerce ? t('trade.barterRefused', { reason: horsCommerce }) : listedBrassOf(trapping) > 0 ? null : t('mf.trocSansPrix');
       out.push({ heroId: h.id, trappingId, count: exemplairesCedables(h, trappingId).length, refus });
     }
   }
@@ -699,12 +699,12 @@ export function devisDeTroc(m: MerchantState, party: Combatant[], opts: DemandeD
   const dispo = hero ? exemplairesCedables(hero, opts.giveTrappingId).length : 0;
   const label = findTrappingById(opts.giveTrappingId)?.label ?? opts.giveTrappingId;
   const refus = refused ? t('trade.barterRefused', { reason: refused })
-    : !quote ? t('mf.barterNoPrice')
-    : dispo < quote.giveCount ? t('mf.barterNeed', { n: quote.giveCount, label, dispo })
-    : stockQty < getCount ? t('mf.barterNoStock')
+    : !quote ? t('mf.trocSansPrix')
+    : dispo < quote.giveCount ? t('mf.trocExige', { n: quote.giveCount, label, dispo })
+    : stockQty < getCount ? t('mf.trocSansStock')
     : null;
   const max = Math.max(1, stockQty); // borne de la quantité acquise : le stock du marchand, plancher 1
-  return refus == null && quote ? { refus: null, quote, getCount, max } : { refus: refus ?? t('mf.barterNoPrice'), quote, getCount, max };
+  return refus == null && quote ? { refus: null, quote, getCount, max } : { refus: refus ?? t('mf.trocSansPrix'), quote, getCount, max };
 }
 
 /** La demande du Troc composé dans l'échoppe `m` ; `null` : le bien cédé ou l'article acquis manque. */
@@ -742,7 +742,7 @@ function troquerLesObjets(get: Get, set: Set): void {
       merchantStocks: { ...s.merchantStocks, [eid]: { stock: newStock, rolledAt: persisted?.rolledAt ?? s.gameTime } },
     };
   });
-  get().ecrireAuJournal(t('mf.barterDone', {
+  get().ecrireAuJournal(t('mf.trocConclu', {
     giveCount: quote.giveCount, giveLabel: donne,
     getCount, getLabel: recu,
     giveAv: quote.giveAv, ratio: `${quote.ratio.give}:${quote.ratio.get}`, getAv: quote.getAv,
@@ -808,14 +808,14 @@ export function coutDeReparation(item: ItemInstance): Money {
 /** Refus de réparer `item` aux frais de son porteur `hero` : la raison affichée, ou `null`. Tombe dans
  *  `reparerLObjet`, lu par l'écran. */
 export function refusDeReparation(hero: Combatant, item: ItemInstance, refusHote: string | null): string | null {
-  return refusHote ?? refusDeBourse(hero, coutDeReparation(item), 'mf.repairPurseKo', { label: item.label });
+  return refusHote ?? refusDeBourse(hero, coutDeReparation(item), 'mf.bourseInsuffisantePourLaReparation', { label: item.label });
 }
 
 /** Chaque objet abîmé d'un héros du groupe, avec ce qui refuse de le réparer : une arme réduite à l'état improvisé
  *  (`isRepairable`), puis la bourse de son porteur (`refusDeReparation`). */
 export function objetsAReparer(party: readonly Combatant[]): { hero: Combatant; item: ItemInstance; refus: string | null }[] {
   return party.flatMap((hero) => (hero.items ?? []).filter((item) => (item.damageTaken ?? 0) > 0).map((item) => ({
-    hero, item, refus: isRepairable(item) ? refusDeReparation(hero, item, null) : t('mf.repairIrreparable', { label: item.label }),
+    hero, item, refus: isRepairable(item) ? refusDeReparation(hero, item, null) : t('mf.irreparable', { label: item.label }),
   })));
 }
 
@@ -833,7 +833,7 @@ function reparerLObjet(get: Get, set: Set, uid: string): void {
     recomputeLoadout(clone);
     return clone;
   }));
-  get().ecrireAuJournal(msg('mf.repairDone', { label: item.label }));
+  get().ecrireAuJournal(msg('mf.reparationFaite', { label: item.label }));
 }
 
 /** Ouvre le Marchandage du meilleur négociateur du groupe (Soutien, LDB 12) contre `opposant`, pour
@@ -948,7 +948,7 @@ export function appraiseRefus(party: Combatant[]): string | null {
  *  sur elle ; `null` sinon. LDB 10 l.336 */
 export function refusDeDetection(party: Combatant[], cible: CibleDeDetection & { label: string }): string | null {
   if (!bestDetector(party)) return appraiseNobody('detection');
-  return appraiseLeader(party, 'detection', cible) ? null : t('mf.detectDejaTentee', { label: cible.label });
+  return appraiseLeader(party, 'detection', cible) ? null : t('mf.detectionDejaTentee', { label: cible.label });
 }
 
 /** Démarreur PARTAGÉ Évaluation/Détection — sur un objet d'inventaire (`itemUid`) OU une ligne de
@@ -1004,7 +1004,7 @@ const joursAvantDeRetenter = (cible: CibleDEvaluation, jour: number): number =>
 export function refusDEvaluation(party: Combatant[], cible: CibleDEvaluation, mode: ModeDEvaluation, jour: number): string | null {
   if (mode === 'detection') return refusDeDetection(party, cible);
   const jours = joursAvantDeRetenter(cible, jour);
-  return jours > 0 ? t('mf.appraiseRetenter', { label: cible.label, jours }) : appraiseRefus(party);
+  return jours > 0 ? t('mf.evaluationARetenter', { label: cible.label, jours }) : appraiseRefus(party);
 }
 
 /** Évaluation (LDB 59 l.41) ou Détection d'artefact (LDB 10 l.336) d'un objet porté par un héros, ou d'une ligne de
@@ -1069,34 +1069,34 @@ function acquitterLEvaluation(get: Get, set: Set): void {
     const rules = line ? (line.effect.qualities?.length ?? (line.effect.identified === false ? 1 : 0)) : 1;
     if (!pa.success) {
       patchAppraiseTarget(get, set, pa, { detecteur: pa.actorId });
-      get().ecrireAuJournal(t('mf.detectNothing', { actor: pa.actorName, item: pa.itemName }));
+      get().ecrireAuJournal(t('mf.detectionVaine', { actor: pa.actorName, item: pa.itemName }));
       return;
     }
     if (!isMagic) {
       patchAppraiseTarget(get, set, pa, { detecteur: pa.actorId });
-      get().ecrireAuJournal(t('mf.detectNotMagic', { actor: pa.actorName, item: pa.itemName }));
+      get().ecrireAuJournal(t('mf.detectionSansAura', { actor: pa.actorName, item: pa.itemName }));
       return;
     }
     // Succès : aura sentie ; chaque DR apprend une règle → tout révélé quand DR couvre les règles.
     const allKnown = pa.sl >= Math.max(1, rules);
     patchAppraiseTarget(get, set, pa, { detecteur: pa.actorId, magicKnown: true, ...(allKnown ? { identified: true } : {}) });
-    get().ecrireAuJournal(t(allKnown ? 'mf.detectAll' : 'mf.detectPartial', { actor: pa.actorName, item: pa.itemName, dr: pa.sl }));
+    get().ecrireAuJournal(t(allKnown ? 'mf.detectionComplete' : 'mf.detectionPartielle', { actor: pa.actorName, item: pa.itemName, dr: pa.sl }));
     return;
   }
   if (!pa.success) {
     // Un échec à DR 0 offre un nouvel essai (LDB 12 l.94) ; à DR négatif, le délai de la règle maison
     // `marche-evaluation-delai-jours` court.
     if (pa.sl < 0) patchAppraiseTarget(get, set, pa, { appraiseTriedDay: gameDay(get()) });
-    get().ecrireAuJournal(t('mf.appraiseFail', { item: pa.itemName }));
+    get().ecrireAuJournal(t('mf.evaluationRatee', { item: pa.itemName }));
     return;
   }
   patchAppraiseTarget(get, set, pa, { identified: true });
-  if (pa.truePriceBrass <= 0) { get().ecrireAuJournal(t('mf.appraiseUnique', { item: pa.itemName })); return; }
+  if (pa.truePriceBrass <= 0) { get().ecrireAuJournal(t('mf.evaluationPieceUnique', { item: pa.itemName })); return; }
   const est = appraiseEstimate(pa.availability as Parameters<typeof appraiseEstimate>[0], pa.truePriceBrass);
   const range = est.min === est.max
     ? formatMoney(fromBrass(est.min))
-    : t('mf.estimateRange', { min: formatMoney(fromBrass(est.min)), max: formatMoney(fromBrass(est.max)) });
-  get().ecrireAuJournal(t('mf.appraiseValue', { item: pa.itemName, range }));
+    : t('mf.fourchetteDEstimation', { min: formatMoney(fromBrass(est.min)), max: formatMoney(fromBrass(est.max)) });
+  get().ecrireAuJournal(t('mf.evaluationValeur', { item: pa.itemName, range }));
 }
 
 export function creerActionsDuMarchand(get: Get, set: Set) {
@@ -1212,9 +1212,9 @@ export const TABLES = {
       finalizeSearchAvailability(get, set, entityId, Number(meta.restockPeriod ?? MINUTES_PER_DAY), gossipDay);
       return {
         consequences: freeCons([stepDetail(
-          actor ? dataLabel(actor.label) : t('eff.party'),
+          actor ? dataLabel(actor.label) : t('eff.groupe'),
           // LDB 59 l.50
-          estJete(step.result) ? t(gossipDay ? 'mf.searchOk' : 'mf.searchKo') : t('mf.searchSansJet'),
+          estJete(step.result) ? t(gossipDay ? 'mf.rechercheReussie' : 'mf.rechercheRatee') : t('mf.rechercheSansJet'),
         )]),
       };
     },

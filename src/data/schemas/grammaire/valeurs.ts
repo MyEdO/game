@@ -26,6 +26,7 @@ import { libelleDeValeur } from './meta';
 import { descendre } from './descente';
 import { marquerProduit } from './interne/produits';
 import { saisonParId } from '../../saisons';
+import { LIBELLES_DES_ICONES } from '../../icons';
 import { MAX_FRAGMENTS, estGraphieDeChapitre } from '../../source/decoupe';
 
 export const blocageDeLivraison = nommerChamps(z.strictObject({ ticket: z.string(), raison: z.string() }), {
@@ -72,6 +73,9 @@ export function enumNomme<const V extends Readonly<Record<string, string>>>(
 }
 
 /** Taille d'agglomération d'un marché : la colonne de la table de Disponibilité (LDB 59 l.25-34). */
+/** Id d'icône du registre `src/data/icons/` (`npm run gen`) : un id hors registre se refuse au parse. */
+export const idDIconeSchema = enumNomme(LIBELLES_DES_ICONES);
+
 export const settlementSchema = enumNomme({ village: 'village', ville: 'ville', cite: 'cité' });
 export type Settlement = z.output<typeof settlementSchema>;
 

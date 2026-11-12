@@ -35,8 +35,8 @@ describe('chipCodex — routage d’information UNIQUE de la famille des pastill
   it.each([
     ['talent', 'chanceux', 'talents'],
     ['trait', 'peur', 'traits'],
-    ['condition', 'assourdi', 'etats'],
-    ['psychology', 'frenesie', 'psychologies'],
+    ['etat', 'assourdi', 'etats'],
+    ['psychologie', 'frenesie', 'psychologies'],
   ] as const)('un effet de source %s ouvre la fiche de SON entité (id stable)', (kind, id, category) => {
     const chip = summarizeEffects([], [buff({ source: { kind, id } })]).visible[0];
     expect(chipCodex(chip)).toMatchObject({ category, id });

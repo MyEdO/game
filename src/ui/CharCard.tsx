@@ -4,7 +4,7 @@ import { libelleDEchelon } from '../engine/money';
 import { actorStatus } from '../engine/social';
 import { OrnateFrame } from './Ornaments';
 import { Icon } from './Icon';
-import type { IconIdInput } from '../data/icons';
+import type { IconId } from '../data/icons';
 import { RoseAxes, type RoseAxisValue } from './RoseAxes';
 import { MetalStatus } from './MetalStatus';
 import { WaxSeal } from './WaxSeal';
@@ -256,7 +256,7 @@ export function SeatCard({
 
 /** Carte-action du vivier (même famille visuelle que la carte de candidat) : créer / importer, avec
  *  une ligne d'invite pour ne pas être une icône dans le vide. */
-export function ActionCard({ icon, label, invite, onClick, title }: { icon: IconIdInput; label: string; invite?: string; onClick: () => void; title?: string }) {
+export function ActionCard({ icon, label, invite, onClick, title }: { icon: IconId; label: string; invite?: string; onClick: () => void; title?: string }) {
   return (
     // `btn` (canon) : la carte-action EST un bouton — styles de carte surchargés par `.candidate-action-card`.
     <button type="button" className="btn candidate-action-card" onClick={onClick} title={title}>

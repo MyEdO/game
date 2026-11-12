@@ -82,7 +82,7 @@ export interface SequenceTieSide {
   roll: number;
   sl: number;
 }
-export type SequenceTieBreak = (a: SequenceTieSide, b: SequenceTieSide) => 'a' | 'b' | 'tie';
+export type SequenceTieBreak = (a: SequenceTieSide, b: SequenceTieSide) => 'a' | 'b' | 'egalite';
 
 /** Le récit du départage DÉCLARÉ (ce qu'il a lu de chaque camp) — `undefined` s'il n'en tient pas. */
 export function recitDuDepartage(departage: string | undefined, a: SequenceTieSide, b: SequenceTieSide): string | undefined {
@@ -91,9 +91,9 @@ export function recitDuDepartage(departage: string | undefined, a: SequenceTieSi
 }
 
 /** Départage une égalité selon le nom DÉCLARÉ. Aucun (ou inconnu) : l'égalité reste. */
-export function resolveSequenceTie(departage: string | undefined, a: SequenceTieSide, b: SequenceTieSide): 'a' | 'b' | 'tie' {
+export function resolveSequenceTie(departage: string | undefined, a: SequenceTieSide, b: SequenceTieSide): 'a' | 'b' | 'egalite' {
   const fn = departage ? tablesPosees().departages[departage]?.departage : undefined;
-  return fn ? fn(a, b) : 'tie';
+  return fn ? fn(a, b) : 'egalite';
 }
 
 /* ── FAMILLE (5) : MISE, POT, ABANDON, ÉLIMINATION ───────────────────────────────────────────
@@ -546,13 +546,13 @@ export const TABLES = {
   } satisfies PartDeTable<'scoresDeSequence', typeof SCORES_DE_SEQUENCE>,
   departages: {
     /** L'égalité reste une égalité. */
-    nul: { departage: () => 'tie' },
+    nul: { departage: () => 'egalite' },
     /** « les joueurs comparent le résultat de leur dé d'unités pour ce Test. Celui qui a le nombre le
      *  plus bas gagne » (NADJ 16 l.105). Le chiffre des unités d'un d100 : 100 → 0. */
     'units-lowest': { departage: (a, b) => {
       const ua = a.roll % 10;
       const ub = b.roll % 10;
-      return ua < ub ? 'a' : ub < ua ? 'b' : 'tie';
+      return ua < ub ? 'a' : ub < ua ? 'b' : 'egalite';
     }, recit: (a, b) => t('sequence.departageUnites', { mien: a.roll % 10, sien: b.roll % 10 }) },
   } satisfies PartDeTable<'departages', typeof DEPARTAGES>,
   effetsDePot: {

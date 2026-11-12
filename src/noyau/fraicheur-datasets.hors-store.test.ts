@@ -285,7 +285,7 @@ describe('#1692 — les vues DÉRIVÉES d’un dataset suivent son édition', ()
     expect(navBaseDifficulty()).toBe('difficile');
     expect(tackDifficulty()).toBe('difficile');
     expect(driftPctOfSpeed()).toBe(40);
-    expect(navPenaltyMods({ drift: true })[0].value).toBe(-30);
+    expect(navPenaltyMods({ derive: true })[0].value).toBe(-30);
     expect(capsizeRightDifficulty()).toBe('difficile');
     expect(capsizeRightCumulative()).toBe(-15);
   });

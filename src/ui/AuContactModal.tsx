@@ -86,8 +86,8 @@ export function AuContactModal() {
     : undefined;
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: 'Renoncer', onClick: cancel, verbe: 'annuler' },
-    { key: 'confirm', label: t('verbe.valider'), onClick: confirm, verbe: 'valider' },
+    { key: 'abandonner', label: 'Renoncer', onClick: cancel, verbe: 'annuler' },
+    { key: 'confirmer', label: t('verbe.valider'), onClick: confirm, verbe: 'valider' },
   ];
 
   if (pd.phase === 'choice') {

@@ -20,6 +20,7 @@ import { Prose } from './Prose';
 import { GameOpChips } from './GameOpChips';
 import { EntityRef } from './EntityChip';
 import type { GameOp } from '../engine/ops';
+import type { VerrouDesMots } from '../noyau/fabriquesDuNoyau';
 
 /** La note est celle d'une RANGÉE (`OptionChooser`, verbe | conséquence) : le verbe porte l'icône,
  *  la note n'en porte pas (juge B12, Q9, #1920). Posé par la rangée, lu par la note. */
@@ -40,6 +41,12 @@ export function StakeNote({ stake }: { stake: StakeRef }) {
     </div>
   );
 }
+
+/** La branche qu'un jet a tranchée. */
+export type BrancheTranchee = 'reussite' | 'echec';
+/** VERROU : une branche tranchée ne prend que des mots du lexique (#3938). */
+const verrouDesBranches: VerrouDesMots<BrancheTranchee> = true;
+void verrouDesBranches;
 
 /**
  * `OutcomeNote` — l'encadré « Réussite / Échec » d'un jet, en régime CALCULÉ (#1117, arbitrage user
@@ -71,7 +78,7 @@ export function OutcomeNote({ onSuccess, onFail, onSuccessBy, onFailBy, realized
   onFail?: GameOp[];
   onSuccessBy?: { category: string; id: string };
   onFailBy?: { category: string; id: string };
-  realized?: 'reussite' | 'echec';
+  realized?: BrancheTranchee;
   sl?: number;
 }) {
   const succ = realized === 'echec' ? undefined : onSuccess;

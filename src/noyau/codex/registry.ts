@@ -1254,14 +1254,14 @@ const CODEX_SPECS = {
       const n = datasetObject('riverNavigation');
       const forceLabel = new Map(n.windForces.entries.map((f) => [f.id, f.label]));
       const dirLabel = new Map(n.windDirections.entries.map((d) => [d.id, d.label]));
-      const effectText = (e: { pct?: number; derive?: boolean; tack?: boolean; capsizeRisk?: boolean; riggingRisk?: boolean } | undefined): string => {
+      const effectText = (e: { pourcentage?: number; derive?: boolean; louvoyage?: boolean; risqueDeChavirage?: boolean; risqueDeGreement?: boolean } | undefined): string => {
         if (!e) return '—';
         const parts: string[] = [];
-        if (e.pct != null) parts.push(tr('codex.riviere.vitesse', { pct: `${e.pct > 0 ? '+' : ''}${e.pct}` }));
+        if (e.pourcentage != null) parts.push(tr('codex.riviere.vitesse', { pct: `${e.pourcentage > 0 ? '+' : ''}${e.pourcentage}` }));
         if (e.derive) parts.push(tr('codex.riviere.derive'));
-        if (e.tack) parts.push(tr('codex.riviere.louvoyer'));
-        if (e.capsizeRisk) parts.push(tr('codex.riviere.chavirage'));
-        if (e.riggingRisk) parts.push(tr('codex.riviere.greement'));
+        if (e.louvoyage) parts.push(tr('codex.riviere.louvoyer'));
+        if (e.risqueDeChavirage) parts.push(tr('codex.riviere.chavirage'));
+        if (e.risqueDeGreement) parts.push(tr('codex.riviere.greement'));
         return parts.join(' · ') || '—';
       };
       return [{

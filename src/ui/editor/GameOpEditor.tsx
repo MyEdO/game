@@ -44,7 +44,7 @@ import { JsonField } from './JsonField';
 import { Icon } from '../Icon';
 import { NumberField } from '../NumberField';
 import { useClesDeRangees } from '../useClesDeRangees';
-import type { IconIdInput } from '../../data/icons';
+import type { IconId } from '../../data/icons';
 import { NATURES_D_INFLUENCE, TERMES_DE_JET, admetLePeche, estSansTirage, formuleSansTirageSchema, type NatureDInfluence } from '../../data/schemas/grammaire/valeurs';
 import { libelleDeLaNature } from './interne/libelleDeLaNature';
 import { FORME_DE_CLE, contientLePeche, formulaForShape, newOp, paramsDeRegle, shapeOf, type FormulaShape } from '../../noyau/valeursNeuves';
@@ -60,7 +60,7 @@ const CHARS = Object.keys(CHAR_LABELS) as CharKey[];
 /** Icône de CHAQUE op (rendue à côté du libellé partout SAUF dans le `<select>`/`<optgroup>` natif,
  *  qui ne peut afficher que du texte) — vocabulaire LARGE : plusieurs ops apparentées partagent
  *  la même icône (cf. defs/mecanique.ts, « pas une métaphore par op individuelle »). */
-const OP_ICON: Record<GameOp['op'], IconIdInput> = {
+const OP_ICON: Record<GameOp['op'], IconId> = {
   wounds: 'journal/degats', heal: 'journal/soin', healCaster: 'journal/soin', fall: 'journal/chute',
   condition: 'magie/zone', removeCondition: 'magie/souffle',
   charMod: 'mecanique/modificateur', ap: 'mecanique/protection', testMod: 'mecanique/modificateur',

@@ -1232,7 +1232,7 @@ describe('Événements laissés au MJ et marché du port (#1652 lot 9 — MDG 15
       set({ journal: [] });
       jour('culte-de-la-personnalite');
       draineCascade(get);
-      const annonces = get().journal.filter((l) => Array.from({ length: 10 }, (_, i) => t('op.narrativeNombre', { text: "combien d'initiés sensibles à ses paroles il a rassemblés", n: i + 1 })).some((a) => a === l));
+      const annonces = get().journal.filter((l) => Array.from({ length: 10 }, (_, i) => t('op.nombreNarratif', { text: "combien d'initiés sensibles à ses paroles il a rassemblés", n: i + 1 })).some((a) => a === l));
       expect(annonces, get().journal.join('\n')).toHaveLength(1);
     }
   });

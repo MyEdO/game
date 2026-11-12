@@ -57,8 +57,8 @@ export function DispelModal() {
   });
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: t('verbe.annuler'), onClick: cancel, verbe: 'annuler' },
-    { key: 'confirm', label: t('verbe.valider'), onClick: confirm, verbe: 'valider' },
+    { key: 'abandonner', label: t('verbe.annuler'), onClick: cancel, verbe: 'annuler' },
+    { key: 'confirmer', label: t('verbe.valider'), onClick: confirm, verbe: 'valider' },
   ];
 
   return (

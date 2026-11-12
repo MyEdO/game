@@ -14,6 +14,7 @@
  *    la nuit : l'abri insère les jets d'Exposition). RAW : « chaque Personnage bénéficie d'une Activité
  *    par Étape » (l.131) ; un échec octroie un Exténué (l.133).
  */
+import type { IconId } from '../data/icons';
 import { battleRng } from './battleRng';
 import {
   travelActivitySpec, aggregateActivityOutcomes, activityById,
@@ -63,7 +64,7 @@ import { ecrireActeur } from './monde/combatants';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 
-const POSTE_ICON: Record<string, string> = {
+const POSTE_ICON: Record<string, IconId> = {
   'plein-air': 'expedition/grand-air', approvisionnement: 'objet/consommable', 'recueillir-informations': 'expedition/rumeurs', 'rester-aux-aguets': 'interface/oeil',
   'etablir-cartes': 'expedition/cartographie', 'pratiquer-competence': 'expedition/entrainement', recuperer: 'repos/lit', 'monter-camp': 'repos/campement',
 };
@@ -455,7 +456,7 @@ export const TABLES = {
     etapeExposition: (_get, _set, step, hero) => {
       if (!hero || !step.result) return;
       const weatherLabel = String(step.meta?.weatherLabel ?? '');
-      if (step.meta?.warded) return { consequences: freeCons([t('eff.weatherWarded', { name: hero.label, what: t('eff.wardFroid') })]) };
+      if (step.meta?.warded) return { consequences: freeCons([t('eff.meteoConjuree', { name: hero.label, what: t('eff.protectionDuFroid') })]) };
       // Le jet est DÉJÀ affiché par la rangée de l'étape (CascadeModal) — pas de re-print (#295 Lot 5) ;
       // succès sans effet (rien à ajouter) → aucune conséquence.
       if (step.result.success) return { consequences: freeCons([]) };

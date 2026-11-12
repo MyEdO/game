@@ -10,7 +10,7 @@ import type { Flow } from '../../data/schemas/defs-scenes/effets';
 import { EMPTY_FLOW } from '../../engine/flowCore';
 import { Ctx } from './EffectList';
 import { Icon } from '../Icon';
-import { ICON_DEFS } from '../../data/icons';
+import { ICON_DEFS, estIdDIcone } from '../../data/icons';
 import { FlowEditor } from './FlowEditor';
 import { WhenEditor } from './ConditionEditor';
 import { condSummary } from './interne/resumeDeCondition';
@@ -29,7 +29,7 @@ import { addDialogueNode, removeDialogueNode, renameDialogueNode } from '../../n
 
 /** Ids posables au clic pour `DialogueChoice.icon` — DÉRIVÉS du registre d'icônes (`ICON_DEFS`,
  *  généré depuis `icons/defs/`), jamais une liste tenue à la main. */
-const CHOICE_ICON_IDS = Object.keys(ICON_DEFS).sort();
+const CHOICE_ICON_IDS = Object.values(ICON_DEFS).map((d) => d.id).sort();
 
 /** Nombre de blocs de PREMIER niveau d'un Flow (badge du choix). */
 const flowLen = (flow?: Flow): number => (!flow ? 0 : flow.kind === 'seq' ? flow.steps.length : 1);
@@ -153,7 +153,7 @@ export function DialogueDetail({ dialogue, onChange, onRename, ctx }: {
                       <input className="choice-text" value={c.label} onChange={(e) => updChoice(ci, { label: e.target.value })} placeholder="Texte du choix" />
                       <label className="dr" title="Icône d'affordance affichée devant le choix (registre d'icônes — jamais un emoji collé au texte).">
                         {c.icon ? <Icon id={c.icon} size="sm" /> : '—'}
-                        <select value={c.icon ?? ''} onChange={(e) => updChoice(ci, { icon: e.target.value || undefined })}>
+                        <select value={c.icon ?? ''} onChange={(e) => updChoice(ci, { icon: estIdDIcone(e.target.value) ? e.target.value : undefined })}>
                           <option value="">(aucune icône)</option>
                           {CHOICE_ICON_IDS.map((id) => (
                             <option key={id} value={id}>

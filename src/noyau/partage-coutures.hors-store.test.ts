@@ -28,7 +28,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 const geler = memoByRef((s: Scene) => s);
 const VIERGE = JSON.stringify(etatInitialDuJeu());
 /** L'entité source des ops : une DONNÉE gelée, comme celle qu'un effet du catalogue porte. */
-const SOURCE = { kind: 'spell', id: 'partage' } as const;
+const SOURCE = { kind: 'sort', id: 'partage' } as const;
 gelerProfond(SOURCE);
 
 /** Une écriture EN PLACE dans une donnée gelée : la faute que la copie à la couture prévient. */
