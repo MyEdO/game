@@ -283,7 +283,7 @@ export function effectSummary(effect: Effect, ctx: Pick<Ctx, 'scenes' | 'cibles'
       const b: MassBattleSpec = e.battle ?? {};
       const rounds = b.plannedRounds ?? 1;
       const sit = b.situations?.length ? `, ${b.situations.length} situation(s)` : '';
-      return `Combat de masse : ${nomDArmee(b, 'allie')} (${b.allyMight ?? 0}) vs ${nomDArmee(b, 'ennemi')} (${b.enemyMight ?? 0}) — ${rounds} Round${rounds > 1 ? 's' : ''}${sit}`;
+      return `Combat de masse : ${nomDArmee(b, 'allie')} (${b.puissanceAlliee ?? 0}) vs ${nomDArmee(b, 'ennemi')} (${b.puissanceEnnemie ?? 0}) — ${rounds} Round${rounds > 1 ? 's' : ''}${sit}`;
     }
     case 'transition': {
       const sc = ctx.scenes?.find((s) => s.id === e.scene?.id);
@@ -1116,7 +1116,7 @@ function SceneMultiSelect({ value, onChange, placeholder }: { value: string[]; o
  *  Réutilise les primitives d'effet (`.test-fields`/`.tf-row`/`.dr`, patron `ListRefField`, select de
  *  rencontre de `startCombat`). Aucun id tapé : toute Scène/rencontre passe par un picker. */
 function MassBattleFields({ identite, battle, onChange, ctx }: { identite: string; battle: MassBattleSpec; onChange: (b: MassBattleSpec) => void; ctx: Ctx }) {
-  const b = battle ?? ({ allyMight: 50, enemyMight: 50 } as MassBattleSpec);
+  const b = battle ?? ({ puissanceAlliee: 50, puissanceEnnemie: 50 } as MassBattleSpec);
   const set = (patch: Partial<MassBattleSpec>) => onChange({ ...b, ...patch });
   const rounds = Math.max(1, Math.floor(b.plannedRounds ?? 1));
   const situations = b.situations ?? [];
@@ -1125,14 +1125,14 @@ function MassBattleFields({ identite, battle, onChange, ctx }: { identite: strin
   return (
     <div className="test-fields">
       <div className="tf-row">
-        <label className="dr" style={{ flex: 1 }}>Alliés<input value={b.allyName ?? ''} placeholder={nomDArmee({ ...b, allyName: undefined }, 'allie')} onChange={(ev) => set({ allyName: ev.target.value || undefined })} /></label>
-        <label className="dr" style={{ flex: 1 }}>Ennemis<input value={b.enemyName ?? ''} placeholder={nomDArmee({ ...b, enemyName: undefined }, 'ennemi')} onChange={(ev) => set({ enemyName: ev.target.value || undefined })} /></label>
+        <label className="dr" style={{ flex: 1 }}>Alliés<input value={b.nomDesAllies ?? ''} placeholder={nomDArmee({ ...b, nomDesAllies: undefined }, 'allie')} onChange={(ev) => set({ nomDesAllies: ev.target.value || undefined })} /></label>
+        <label className="dr" style={{ flex: 1 }}>Ennemis<input value={b.nomDesEnnemis ?? ''} placeholder={nomDArmee({ ...b, nomDesEnnemis: undefined }, 'ennemi')} onChange={(ev) => set({ nomDesEnnemis: ev.target.value || undefined })} /></label>
       </div>
       <div className="tf-row">
-        <label className="dr">Puissance alliée<NumberField variant="nu" label="Puissance alliée" min={0} max={100} value={b.allyMight ?? 0} onChange={(n) => set({ allyMight: clampMight(n) })} /></label>
-        <label className="dr">Puissance ennemie<NumberField variant="nu" label="Puissance ennemie" min={0} max={100} value={b.enemyMight ?? 0} onChange={(n) => set({ enemyMight: clampMight(n) })} /></label>
+        <label className="dr">Puissance alliée<NumberField variant="nu" label="Puissance alliée" min={0} max={100} value={b.puissanceAlliee ?? 0} onChange={(n) => set({ puissanceAlliee: clampMight(n) })} /></label>
+        <label className="dr">Puissance ennemie<NumberField variant="nu" label="Puissance ennemie" min={0} max={100} value={b.puissanceEnnemie ?? 0} onChange={(n) => set({ puissanceEnnemie: clampMight(n) })} /></label>
         <label className="dr">Estimer (force relative)
-          <select value="" onChange={(ev) => { const r = POWER_ESTIMATE.find((p) => p.id === ev.target.value); if (r) set({ allyMight: r.allie, enemyMight: r.ennemi }); }}>
+          <select value="" onChange={(ev) => { const r = POWER_ESTIMATE.find((p) => p.id === ev.target.value); if (r) set({ puissanceAlliee: r.allie, puissanceEnnemie: r.ennemi }); }}>
             <option value="">— remplir les Puissances —</option>
             {POWER_ESTIMATE.map((p) => <option key={p.id} value={p.id}>{p.label} ({p.allie}/{p.ennemi})</option>)}
           </select>
@@ -1141,7 +1141,7 @@ function MassBattleFields({ identite, battle, onChange, ctx }: { identite: strin
       <div className="tf-row">
         <label className="dr">Rounds prévus<NumberField variant="nu" label="Rounds prévus" min={1} value={rounds} onChange={(plannedRounds) => set({ plannedRounds })} /></label>
         <label className="dr">Taille de tirage<NumberField variant="nu" label="Taille de tirage" min={1} value={b.situationSize ?? 3} onChange={(situationSize) => set({ situationSize })} /></label>
-        <label className="dr">Modif. permanent (Planification)<NumberField variant="nu" label="Modificateur permanent (Planification)" value={b.allyMod ?? 0} onChange={(allyMod) => set({ allyMod })} /></label>
+        <label className="dr">Modif. permanent (Planification)<NumberField variant="nu" label="Modificateur permanent (Planification)" value={b.modificateurAllie ?? 0} onChange={(allyMod) => set({ modificateurAllie: allyMod })} /></label>
       </div>
       <ProseField label="Terrain (description)" ariaLabel="Description du terrain" value={b.terrain ?? ''} onChange={(terrain) => set({ terrain: terrain || undefined })} />
       <ProvenanceDuTexte copie identite={identite} sujet="du terrain" value={b} onChange={set} />

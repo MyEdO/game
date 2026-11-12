@@ -27,7 +27,7 @@ const ARMEE = 'Horde du Chaos';
 function holdPending(over: Partial<PendingActivity> = {}): PendingActivity {
   const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vétéran', seed: 42 });
   useGame.setState({ party: [hero], battle: null, massBattle: null, interlude: null, journal: [] });
-  useGame.getState().amorcerLaBataille({ allyMight: 50, enemyMight: 55, plannedRounds: 3, enemyName: ARMEE });
+  useGame.getState().amorcerLaBataille({ puissanceAlliee: 50, puissanceEnnemie: 55, plannedRounds: 3, nomDesEnnemis: ARMEE });
   return {
     heroId: hero.id, kind: 'catalog', activityId: 'tenez-votre-position', battle: 'round',
     label: 'Tenez votre position', skillLabel: 'Corps à corps', skillValue: 42, difficulty: 'intermediaire', ligne: { base: 42, mods: [], target: 42, difficulty: 'intermediaire' },

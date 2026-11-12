@@ -558,7 +558,7 @@ export function bandCommonMeta(metas: readonly (CascadeStepMeta | undefined)[]):
  *  fraîchement construite, peuplés sur une étape venue d'une sauvegarde. */
 const ROW_DEPUIS_ETAPE = [
   'base', 'target', 'mods', 'clamped', 'difficulty', 'menace', 'skill',
-  'rerolled', 'forced', 'fixed', 'outcome',
+  'rerolled', 'forcee', 'fixed', 'outcome',
 ] as const;
 
 /** RANGÉE dérivée d'une étape MONO — le jet descend, la situation reste à la bande. Le `meta` ENTIER

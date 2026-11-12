@@ -167,7 +167,7 @@ export function cloturesDesTestsDeScene(get: Get, set: Set) {
         reprendreLaSuite(get, set, p.suite);
       } else {
         // La porte tient : un nouveau Round s'ouvre (chacun re-frappe — jets remis à zéro).
-        set({ pendingForceDoor: { ...p, doorB, participants: p.participants.map((x) => ({ ...x, result: null, rerolled: false, forced: false })) } });
+        set({ pendingForceDoor: { ...p, doorB, participants: p.participants.map((x) => ({ ...x, result: null, rerolled: false, forcee: false })) } });
         get().ecrireAuJournal(t('store.doorHolds', { label: p.label, n: dmg, s: dmg > 1 ? 's' : '', left: doorB, sB: doorB > 1 ? 's' : '' }));
       }
     },

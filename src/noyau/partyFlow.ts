@@ -358,7 +358,7 @@ export function acheterLaCaracteristique(get: Get, set: Set, heroId: string, cha
       msg = t('pf.charNeedsMentor', { name: clone.label, what: CHAR_LABELS[char] });
       return h;
     }
-    const manque = refusDePx(clone, advanceCost(clone.charAdvances?.[char] ?? 0, 'characteristic', inC));
+    const manque = refusDePx(clone, advanceCost(clone.charAdvances?.[char] ?? 0, 'caracteristique', inC));
     if (manque) {
       msg = manque;
       return h;
@@ -403,7 +403,7 @@ export function acheterLaCompetence(get: Get, set: Set, heroId: string, skill: R
       clone.skills.push({ id: skillId, spec, characteristic, advances: 0 });
     }
     const avant = clone.skills.find((sk) => sk.id === skillId && memeSpecialisation(sk.spec, spec))?.advances ?? 0;
-    const manque = refusDePx(clone, advanceCost(avant, 'skill', inC, discount));
+    const manque = refusDePx(clone, advanceCost(avant, 'competence', inC, discount));
     if (manque) {
       msg = manque;
       return h;
