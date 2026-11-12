@@ -7,7 +7,7 @@ extends PontDuNoyau
 
 ## @contrat Écran publié
 ## Une planche est un état de partie figé par le pont, déposé dans l'export (`construire.mjs --export`) sous
-## `planches/<nom>.json` : les réponses de `demarrer`, `aretes` et `retrait`), le monde de son scénario sous
+## `planches/<nom>.json` (les réponses de `demarrer`, `aretes` et `retrait`), le monde de son scénario sous
 ## `planches/mondes/<scenario>.json` (`{ monde, morceaux }` : la réponse de `monde`, et celle de `morceaux` à toutes ses
 ## clés, que le pont de la planche rend à toute entrée). L'adresse `?planche=<nom>`
 ## l'ouvre à la place du menu d'entrée : le combat la montre par son routeur, comme la partie de `?scenario=` qu'il

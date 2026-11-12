@@ -38,11 +38,10 @@ export function deposerLesPlanches(sortie, planches) {
 
 /** Le refus du banc pour le navigateur `navigateur` (le `product` de `Browser.getVersion`, `<nom>/<version>`) lancé
  *  sur `plateforme` et `architecture` (`process.platform`, `process.arch`) : ce qu'il a lu, ce qu'il attend et la
- *  commande qui installe le build épinglé ; `null` pour le build épinglé sous Linux x86-64. PURE. */
+ *  commande qui installe le build épinglé ; `null` pour le seul `Chrome/<EPINGLE.chrome>` sous Linux x86-64. PURE. */
 export function refusDuNavigateur(navigateur, { plateforme, architecture }) {
-  const version = navigateur.slice(navigateur.indexOf('/') + 1)
   const surLaPlateforme = plateforme === PLATEFORME.plateforme && architecture === PLATEFORME.architecture
-  if (surLaPlateforme && version === EPINGLE.chrome) return null
+  if (surLaPlateforme && navigateur === `Chrome/${EPINGLE.chrome}`) return null
   return `navigateur ${navigateur} sous ${plateforme}-${architecture}, le banc attend Chrome ${EPINGLE.chrome} sous ` +
     `${PLATEFORME.plateforme}-${PLATEFORME.architecture} ; sur une telle machine : ` +
     `PLAYWRIGHT_BROWSERS_PATH=<dossier> npx -y playwright@${EPINGLE.playwright} install chromium, puis le banc avec ce même PLAYWRIGHT_BROWSERS_PATH`
@@ -50,25 +49,3 @@ export function refusDuNavigateur(navigateur, { plateforme, architecture }) {
 
 /** Les étalons de `fichiers` (le contenu du dossier des étalons) qu'aucune planche de `noms` ne porte. PURE. */
 export const etalonsSansPlanche = (fichiers, noms) => fichiers.filter((f) => f.endsWith('.png') && !noms.includes(f.slice(0, -'.png'.length)))
-
-/** `travail` de chaque élément de `elements`, mené par deux files concurrentes : ses résultats dans l'ordre de
- *  `elements`, quel que soit l'ordre d'arrivée. Au premier échec, aucune file ne prend d'élément neuf, et l'échec est
- *  rendu une fois les deux files arrêtées. */
-export async function enDeuxFiles(elements, travail) {
-  const resultats = []
-  let suivant = 0
-  let echec = null
-  const file = async () => {
-    while (!echec && suivant < elements.length) {
-      const i = suivant++
-      try {
-        resultats[i] = await travail(elements[i])
-      } catch (e) {
-        echec ??= { e }
-      }
-    }
-  }
-  await Promise.all([file(), file()])
-  if (echec) throw echec.e
-  return resultats
-}

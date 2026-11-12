@@ -2,16 +2,15 @@
  * LES PLANCHES ET LEURS ÉTALONS (#3935, `planches.mjs`) : `deposerLesPlanches` écrit chaque planche sous
  * `<sortie>/planches/<nom>.json`, sans son monde, et le monde de chaque scénario sous `<sortie>/planches/mondes/`, celles
  * d'un dépôt précédent retirées ; deux mondes pour un scénario sont refusés. `refusDuNavigateur` ne laisse passer que
- * le Chrome d'`EPINGLE` sous Linux x86-64, et nomme sinon ce qu'il a lu, ce qu'il attend et la commande d'installation.
- * `etalonsSansPlanche` rend les étalons qu'aucune planche ne porte. `enDeuxFiles` rend les résultats dans l'ordre des
- * éléments quel que soit l'ordre d'arrivée, et n'en prend aucun neuf après un échec.
+ * le `Chrome/<version>` d'`EPINGLE` sous Linux x86-64, et nomme sinon ce qu'il a lu, ce qu'il attend et la commande
+ * d'installation. `etalonsSansPlanche` rend les étalons qu'aucune planche ne porte.
  */
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
-import { deposerLesPlanches, enDeuxFiles, EPINGLE, etalonsSansPlanche, refusDuNavigateur } from './planches.mjs';
+import { deposerLesPlanches, EPINGLE, etalonsSansPlanche, refusDuNavigateur } from './planches.mjs';
 
 const racine = mkdtempSync(join(tmpdir(), 'planches-3935-'));
 afterAll(() => rmSync(racine, { recursive: true, force: true }));
@@ -40,7 +39,11 @@ describe('deposerLesPlanches', () => {
 
 describe('refusDuNavigateur', () => {
   it('laisse passer le Chrome épinglé sous Linux x86-64', () => {
-    expect(refusDuNavigateur(`HeadlessChrome/${EPINGLE.chrome}`, LINUX)).toBeNull();
+    expect(refusDuNavigateur(`Chrome/${EPINGLE.chrome}`, LINUX)).toBeNull();
+  });
+
+  it('refuse un autre binaire à la version épinglée', () => {
+    expect(refusDuNavigateur(`HeadlessChrome/${EPINGLE.chrome}`, LINUX)).toContain(`HeadlessChrome/${EPINGLE.chrome} sous linux-x64`);
   });
 
   it('refuse un autre build, en nommant ce qu’il a lu, ce qu’il attend et la commande d’installation', () => {
@@ -62,37 +65,3 @@ describe('etalonsSansPlanche', () => {
   });
 });
 
-describe('enDeuxFiles', () => {
-  it('rend les résultats dans l’ordre des éléments, le premier arrivé en dernier', async () => {
-    const arrivees: string[] = [];
-    const delais: Record<string, number> = { a: 40, b: 5, c: 5, d: 5 };
-    const resultats = await enDeuxFiles(['a', 'b', 'c', 'd'], async (x: string) => {
-      await new Promise((r) => setTimeout(r, delais[x]));
-      arrivees.push(x);
-      return x.toUpperCase();
-    });
-    expect(arrivees[arrivees.length - 1]).toBe('a');
-    expect(resultats).toEqual(['A', 'B', 'C', 'D']);
-  });
-
-  it('mène deux travaux à la fois, jamais plus', async () => {
-    let enCours = 0;
-    let pic = 0;
-    await enDeuxFiles([1, 2, 3, 4, 5], async () => {
-      pic = Math.max(pic, ++enCours);
-      await new Promise((r) => setTimeout(r, 5));
-      enCours--;
-    });
-    expect(pic).toBe(2);
-  });
-
-  it('ne prend aucun élément neuf après un échec, et le rend', async () => {
-    const pris: number[] = [];
-    await expect(enDeuxFiles([1, 2, 3, 4, 5], async (x: number) => {
-      pris.push(x);
-      await new Promise((r) => setTimeout(r, 5));
-      if (x === 1) throw new Error('planche 1');
-    })).rejects.toThrow('planche 1');
-    expect(pris).toEqual([1, 2]);
-  });
-});

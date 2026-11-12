@@ -1,13 +1,14 @@
 // LE BANC DES ÉTALONS (#3935) : chaque planche de l'export Web de l'hôte Godot (`<export>/planches/`, déposées par
 // `construire.mjs --export`, `planches.mjs`) montrée dans un Chrome sans GPU, à la vue de référence (`VUE_REFERENCE`,
-// `scripts/recette/lib.mjs`), sans son monde 3D (`?planche=<nom>&monde=sans`, un navigateur neuf par planche, deux
-// files concurrentes, `projet/scripts/pont_de_planche.gd`), capturée une fois dite montrée (`wfrpPlancheMontree`), et
-// comparée pixel à pixel à son étalon `etalons/<nom>.png`. Avant toute capture, le navigateur lancé et la plateforme
-// passent l'épingle (`refusDuNavigateur`, `EPINGLE`), sinon le banc sort en 1. Un étalon qu'aucune planche de l'export
-// ne porte, un pixel d'écart, un étalon absent ou d'une autre taille, ou une erreur de la page, sort en 1. Le rapport
-// (`--rapport <dossier>`) garde le rendu de chaque planche, sa capture avec le monde, et une page qui les range près de
-// leur étalon, l'écart en surimpression ; il dit de chaque étalon s'il est celui que l'utilisateur a validé
-// (`valides.json` : son empreinte). Le rapport, le journal et le code de sortie suivent l'ordre des noms.
+// `scripts/recette/lib.mjs`), sans son monde 3D (`?planche=<nom>&monde=sans`, `projet/scripts/pont_de_planche.gd`, un
+// navigateur neuf par planche, deux planches de front par `enFileBornee`), capturée une fois dite montrée
+// (`wfrpPlancheMontree`), et comparée pixel à pixel à son étalon `etalons/<nom>.png`. Avant toute capture, le navigateur
+// lancé et la plateforme passent l'épingle (`refusDuNavigateur` : `Chrome/<EPINGLE.chrome>` sous Linux x86-64), sinon
+// le banc sort en 1. Un étalon qu'aucune planche de l'export ne porte, un pixel d'écart, un étalon absent ou d'une autre
+// taille, ou une erreur de la page, sort en 1. Le rapport (`--rapport <dossier>`) garde le rendu de chaque planche, sa
+// capture avec le monde, et une page qui les range près de leur étalon, l'écart en surimpression ; il dit de chaque
+// étalon s'il est celui que l'utilisateur a validé (`valides.json` : son empreinte). Le rapport, le journal et le code de
+// sortie suivent l'ordre des noms.
 //
 //   npm run godot:etalons                                                     l'export, puis le banc qui compare
 //   node hotes/godot/etalons.mjs --web <export> [--rapport <dossier>] [--planche <nom>]...
@@ -17,8 +18,9 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 
 import { join } from 'node:path'
 import { parseArgs } from 'node:util'
 import { decodePng } from '../../scripts/qc/lib/pngDecode.mjs'
+import { enFileBornee } from '../../scripts/guards/lib/fileBornee.mjs'
 import { VUE_REFERENCE, consoleGuard, launchSession, sleep, waitFor } from '../../scripts/recette/lib.mjs'
-import { DOSSIER_DES_ETALONS, VALIDES, enDeuxFiles, etalonsSansPlanche, refusDuNavigateur } from './planches.mjs'
+import { DOSSIER_DES_ETALONS, VALIDES, etalonsSansPlanche, refusDuNavigateur } from './planches.mjs'
 import { FIL_DE_LA_PAGE_MS, WEBGL_LOGICIEL, servir } from './servir.mjs'
 
 const { values: o } = parseArgs({
@@ -122,7 +124,7 @@ async function comparer() {
   }
   let lignes
   try {
-    lignes = await enDeuxFiles(noms, juger)
+    lignes = await enFileBornee(noms.map((nom) => () => juger(nom)), { deFront: 2 })
   } finally {
     srv.fermer()
   }
