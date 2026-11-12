@@ -24,7 +24,7 @@ import { idDe, ref, refOuSpec, refTypee } from '../grammaire/ref';
 import { typeDePossessionSchema } from '../grammaire/reference';
 import { INSTANCIABLE_PAR_ID } from '../grammaire/sousListes';
 import { listeCle } from '../grammaire/collection-cle';
-import { customStatblockSchema, DIALOGUES_DE_LA_SCENE, MARCHANDS_DE_LA_SCENE, PERSONNAGES_DE_LA_SCENE, ptSchema, SCENES_DU_PROJET, wallSideSchema } from './communs';
+import { customStatblockSchema, DIALOGUES_DE_LA_SCENE, MARCHANDS_DE_LA_SCENE, PERSONNAGES_DE_LA_SCENE, ptSchema, RENCONTRES_DE_LA_SCENE, SCENES_DU_PROJET, wallSideSchema } from './communs';
 import { waterAppliesToSchema } from '../defs/water-exposure';
 import type { ChampDeDecision, EffectOp, Flow as CoreFlow, FlowTest, TriggeredEffect as CoreTriggeredEffect } from '../../../engine/flowCore';
 import type { ScheduleSpec } from '../../../engine/clock';
@@ -184,7 +184,7 @@ export const giveMoneySchema = nommerChamps(z.strictObject({
  *  authore ses propres octrois via cette action, à tout point narratif (victoire, objectif, dialogue…). */
 export const giveXpSchema = nommerChamps(z.strictObject({ type: z.literal('giveXp'), amount: z.number() }), { type: { label: "type"  }, amount: { label: "quantité" } });
 
-export const startCombatSchema = nommerChamps(z.strictObject({ type: z.literal('startCombat'), encounter: z.string() }), { type: { label: "type"  }, encounter: { label: "rencontre" , texte: { regime: "technique"} } });
+export const startCombatSchema = nommerChamps(z.strictObject({ type: z.literal('startCombat'), encounter: ref(RENCONTRES_DE_LA_SCENE) }), { type: { label: "type"  }, encounter: { label: "rencontre" , texte: { regime: "technique"} } });
 
 /** Combat de masse / Puissance de Bataille : ouvre l'écran de bataille sur le
  *  `MassBattleSpec` AUTHORÉ (armées, Rounds prévus, situations de Scènes par Round, rencontres des
@@ -482,7 +482,7 @@ export const startPursuitSchema = nommerChamps(z.strictObject({
   escapeAt: z.number().optional(),
   skill: refOuSpec('skill'),
   foes: listeCle(pursuitFoeSchema, 'id'),
-  encounter: z.string().optional(),
+  encounter: ref(RENCONTRES_DE_LA_SCENE).optional(),
   policy: pursuitPolicySchema.optional(),
 }), { type: { label: "type"  }, partyRole: { label: "rôle du groupe"  }, distance: { label: "distance" }, escapeAt: { label: "distance de fuite" }, skill: { label: "Compétence" }, foes: { label: "adversaires" }, encounter: { label: "rencontre" , texte: { regime: "technique"} }, policy: { label: "décisions de poursuite" } });
 

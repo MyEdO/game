@@ -98,7 +98,7 @@ const DIALOGUES: Dialogue[] = [
           {
             id: 'tirer-epee',
             label: 'Tirer l’épée.',
-            flow: flowFromEffects([{ type: 'endDialogue' }, { type: 'startCombat', encounter: 'enc-homme-de-main' }]),
+            flow: flowFromEffects([{ type: 'endDialogue' }, { type: 'startCombat', encounter: { id: 'enc-homme-de-main' } }]),
           },
           { id: 'reculer', label: 'Reculer.', flow: flowFromEffects([{ type: 'endDialogue' }]) },
         ],

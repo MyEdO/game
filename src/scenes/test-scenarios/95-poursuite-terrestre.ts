@@ -37,7 +37,7 @@ const construireScene = (): Scene => buildScene({
             { ref: { id: 'humain' } },
             { ref: { id: 'humain' } },
           ],
-          encounter: 'enc-rattrapage',
+          encounter: { id: 'enc-rattrapage' },
         },
       ]),
     },

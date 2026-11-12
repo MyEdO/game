@@ -79,7 +79,7 @@ function construireScene(): Scene {
               flow: flowFromEffects([
                 { type: 'journal', desc: 'Phillipe dégaine son épée et vous emboîte le pas vers le mutant.' },
                 { type: 'endDialogue' },
-                { type: 'startCombat', encounter: 'enc-knud' },
+                { type: 'startCombat', encounter: { id: 'enc-knud' } },
               ]),
             },
             {

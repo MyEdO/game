@@ -201,7 +201,7 @@ describe('LogicDock — onglet Dialogues (master-détail de nœuds)', () => {
 describe('effectSummary — résumés humains des rangées repliées', () => {
   it('résume les effets courants en clair', () => {
     expect(effectSummary({ type: 'giveXp', amount: 50 }, SCENE)).toContain('50 PX');
-    expect(effectSummary({ type: 'startCombat', encounter: 'enc-rats' }, SCENE)).toContain('enc-rats');
+    expect(effectSummary({ type: 'startCombat', encounter: { id: 'enc-rats' } }, SCENE)).toContain('enc-rats');
     expect(effectSummary({ type: 'setFlag', flag: 'porte_ouverte', value: true }, SCENE)).toContain('porte_ouverte');
     expect(effectSummary({ type: 'giveMoney', montant: { gold: 2, silver: 5, brass: 0 } }, SCENE)).toBe('Argent : 2 CO 5/–');
     expect(

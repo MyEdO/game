@@ -317,14 +317,14 @@ describe('enchaînement JOUR → halte de nuit → reprise → arrivée', () => 
     expect(get().lieu).toBe('pb');
   });
 
-  it('péripétie de combat pendant le jour : le voyage est INTERROMPU (recap.then), pas de halte', () => {
+  it('péripétie de transition pendant le jour : le voyage est INTERROMPU (recap.then), pas de halte', () => {
     seedBattleRng(1);
     const h = hero({ items: [ration('r1')] });
-    setup(map({ km: 30, perils: [{ label: 'Brigands !', chancePct: 100, effects: [{ type: 'startCombat', encounter: 'enc-test' }] }] }), [h]);
+    setup(map({ km: 30, perils: [{ label: 'Brigands !', chancePct: 100, effects: [{ type: 'transition', scene: { id: 'lieu-b-scene' } }] }] }), [h]);
     get().partirEnVoyage('r1', 'pied');
     drainCascade();
     const st = get();
-    expect(st.battle).toBeNull(); // différé derrière le récit
+    expect(st.scene?.id).toBe('lieu-a-scene'); // différé derrière le récit
     expect(st.travelRecap?.then?.kind).toBe('effects');
     expect(st.travelPlan?.interrupted).toBe(true);
     expect(st.pendingRest).toBeFalsy(); // interrompu → pas de halte de nuit

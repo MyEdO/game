@@ -46,7 +46,7 @@ const construireScene = (): Scene => buildScene({
       once: true,
       flow: flowFromEffects([
         { type: 'journal', desc: 'La warband vous a repérés — les casters ennemis lèvent déjà les mains. À l’assaut !' },
-        { type: 'startCombat', encounter: 'enc-magie' },
+        { type: 'startCombat', encounter: { id: 'enc-magie' } },
       ]),
     },
   ],

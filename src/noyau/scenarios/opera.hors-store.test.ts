@@ -218,7 +218,7 @@ describe('Opéra — Théâtre : intrigue n°1 (la bombe de la loge royale)', ()
     expect(enc.members?.map((m) => m.entityId)).toEqual(['etudiant-1', 'etudiant-2']);
     const dlg = scenarioConstruit.scene.dialogues.find((d) => d.id === 'dlg-etudiants')!;
     const fight = dlg.nodes.flatMap((n) => n.choices).flatMap((c) => c.flow ? flowEffects(c.flow) : []);
-    expect(fight.some((e) => e.type === 'startCombat' && e.encounter === 'enc-etudiants')).toBe(true);
+    expect(fight.some((e) => e.type === 'startCombat' && e.encounter.id === 'enc-etudiants')).toBe(true);
   });
 
   it('sans désamorçage, l’explosion frappe l’antichambre au bout de la mèche', () => {

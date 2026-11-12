@@ -24,7 +24,7 @@ describe('Scénario 95 — Poursuite terrestre', () => {
     if (startPursuit?.type !== 'startPursuit') throw new Error('type narrowing');
     expect(startPursuit.partyRole).toBe('fleeing');
     expect(startPursuit.foes.length).toBe(3);
-    expect(startPursuit.encounter).toBe('enc-rattrapage');
+    expect(startPursuit.encounter).toEqual({ id: 'enc-rattrapage' });
   });
 
   it('la compétence de Mouvement testée et le bestiaire du secours résolvent (données réelles)', () => {
