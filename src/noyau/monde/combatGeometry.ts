@@ -222,7 +222,7 @@ export function combatantsWithinRadius(
 }
 
 /** Cases bloquant la Ligne de Vue (zones opaques : Fumée du Souffle…) — L11 : lues de `battle.zones`. */
-export const smokeOf = (battle: BattleState): Pt[] => losBlockingTiles(battle.zones);
+export const smokeOf = (battle: Pick<BattleState, 'zones'>): Pt[] => losBlockingTiles(battle.zones);
 
 const DIR8_RING: Dir8[] = ['N', 'NE', 'E', 'SE', 'S', 'SO', 'O', 'NO'];
 /** Flanc/dos (LDB 14 l.62) : l'attaquant frappe-t-il hors du champ de vision avant du défenseur ?

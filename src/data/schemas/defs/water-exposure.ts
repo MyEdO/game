@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { document, tableTiree } from '../grammaire/document';
 import { enumNomme, plageSchema } from '../grammaire/valeurs';
 import { fixerLeTest, flowTestSchema } from '../grammaire/mecanique';
+import { idDe } from '../grammaire/ref';
 
 export const file = 'water-exposure.json';
 export const famille = 'config';
@@ -20,8 +21,8 @@ const waterExposureAutoSchema = z.union([
   nommerChamps(z.strictObject({ kind: z.literal('woundsRemaining'), op: z.literal('<='), value: z.number() }), { kind: { label: 'Type' }, op: { label: 'Opération' }, value: { label: 'Valeur' } }),
   nommerChamps(z.strictObject({ kind: z.literal('woundsLost'), op: z.literal('>='), value: z.number() }), { kind: { label: 'Type' }, op: { label: 'Opération' }, value: { label: 'Valeur' } }),
   nommerChamps(z.strictObject({ kind: z.literal('woundsLost'), op: z.literal('between'), ...plageSchema.shape }), { kind: { label: 'Type' }, op: { label: 'Opération' }, ...metaDesChamps(plageSchema, { exigees: true }) }),
-  nommerChamps(z.strictObject({ kind: z.literal('perCondition'), condition: z.string() }), { kind: { label: 'Type' }, condition: { label: 'Condition' } }),
-  nommerChamps(z.strictObject({ kind: z.literal('hasCondition'), condition: z.string() }), { kind: { label: 'Type' }, condition: { label: 'Condition' } }),
+  nommerChamps(z.strictObject({ kind: z.literal('perCondition'), condition: idDe('etat') }), { kind: { label: 'Type' }, condition: { label: 'Condition' } }),
+  nommerChamps(z.strictObject({ kind: z.literal('hasCondition'), condition: idDe('etat') }), { kind: { label: 'Type' }, condition: { label: 'Condition' } }),
 ]);
 
 const doc = document(
@@ -51,7 +52,7 @@ const doc = document(
   diseases: tableTiree(
     nommerChamps(z.strictObject({
       ...plageSchema.shape,
-      disease: z.string(),
+      disease: idDe('maladie'),
       rerollUnlessWounded: z.boolean().optional(),
     }), {
       ...metaDesChamps(plageSchema, { exigees: true }),

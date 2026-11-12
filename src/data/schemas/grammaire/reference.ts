@@ -188,7 +188,7 @@ const swapGrantSchema = z.union([
 export const optionalSwapSchema = nommerNoeud(nommerChamps(z.strictObject({
   note: z.literal('swap'),
   label: z.string(),
-  remove: z.array(z.string()),
+  remove: z.array(idDe('trait', undefined, { nue: true })),
   /** Un ou plusieurs octrois (Vouivre ZI : 4 — 3 caractéristiques + 1 compétence). */
   grant: z.array(swapGrantSchema),
   size: sizeCategorySchema.optional(),

@@ -1373,7 +1373,7 @@ export interface MerchantFamilyData {
   id: string;
   type: 'merchantFamilies';
   label: string;
-  match: { categorie?: string; shield?: boolean; unit?: boolean };
+  match: { categorie?: TrappingTypeId; shield?: boolean; unit?: boolean };
   columns: string[];
 }
 export const merchantFamilies = merchantFamiliesJson as MerchantFamilyData[];

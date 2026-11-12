@@ -13,12 +13,12 @@ import { meneurDuMonde } from './monde/combatants';
 import { smokeOf } from './monde/combatGeometry';
 import { isOutOfAction } from '../engine/conditions';
 import type { Combatant } from '../engine/types';
-import type { EtatDeJeu } from './etat';
+import type { BattleState, EtatDeJeu } from './etat';
 
 /** Tranche d'état nécessaire au calcul de visibilité : ses champs sont les dépendances du mémo `vueDeLaScene`. */
 export interface VisionInput {
   scene: Scene | null;
-  battle: { combatants: Combatant[]; zones?: unknown } | null;
+  battle: { combatants: Combatant[]; zones?: BattleState['zones'] } | null;
   party?: Combatant[];
   partyPos: Pt;
   gameTime: number;
@@ -58,7 +58,7 @@ export function sceneLightSources(s: Pick<VisionInput, 'scene' | 'battle' | 'par
 export function sceneLightField(s: VisionInput, occ: Occ = buildOpaque(s.scene!)): { light: ReturnType<typeof computeLightField>; smoke: Pt[] } {
   const scene = s.scene!;
   const ambient = ambientScalar(scene, s.gameTime, s.lightLevel);
-  const smoke: Pt[] = s.battle?.zones ? smokeOf(s.battle as never) : [];
+  const smoke: Pt[] = s.battle?.zones ? smokeOf(s.battle) : [];
   return { light: computeLightField(scene, ambient, sceneLightSources(s), smoke, occ), smoke };
 }
 

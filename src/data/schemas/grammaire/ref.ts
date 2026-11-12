@@ -71,8 +71,8 @@ export const TYPES = {
   // chiffre pas se lit au registre, l'id résout donc AU PARSE comme toute autre référence.
   regleOptionnelle: { espace: 'reglesOptionnelles.json', catalogue: 'règles optionnelles' },
   terrain: { espace: 'terrains.json', catalogue: 'terrains' },
-  // PALIER D'ÉCLAIRAGE (#1716) : la semence d'éclairage d'une scène neuve (`semences-de-scene.json`)
-  // nomme un palier — l'id résout AU PARSE, là où `Scene.ambientLight` reste une chaîne libre.
+  // PALIER D'ÉCLAIRAGE (#1716) : la semence d'éclairage d'une scène neuve (`semences-de-scene.json`) et
+  // `Scene.ambientLight` nomment un palier — l'id résout AU PARSE.
   lightLevel: { espace: 'lightLevels.json', catalogue: 'paliers d’éclairage' },
   prop: { espace: 'props.json', catalogue: 'décors' },
   building: { espace: 'buildings.json', catalogue: 'bâtiments' },

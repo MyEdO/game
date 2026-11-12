@@ -3,14 +3,14 @@ import { nommerChamps, nommerNoeud } from '../grammaire/meta';
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { passifsDe } from '../grammaire/mecanique';
-import { ref } from '../grammaire/ref';
+import { idDe, ref } from '../grammaire/ref';
 
 /** LDB 18 l.247/251/273/277/281 */
 const cumulSchema = nommerChamps(z.strictObject({
   portee: z.enum(['localisation', 'porteur']),
   parPalier: nommerChamps(z.strictObject({ taille: z.number(), ops: passifsDe() }), { taille: { label: 'Taille' }, ops: { label: 'Opérations' } }).optional(),
   escalade: nommerChamps(z
-    .strictObject({ atLeast: z.number(), versTraumaId: z.string(), mode: z.enum(['remplace', 'ajoute']) }), {
+    .strictObject({ atLeast: z.number(), versTraumaId: idDe('trauma'), mode: z.enum(['remplace', 'ajoute']) }), {
     atLeast: { label: 'Minimum' },
     versTraumaId: { label: 'Traumatisme associé' },
     mode: { label: 'Mode' },

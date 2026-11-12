@@ -984,10 +984,11 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
      *  IMMÉDIAT (liste des ids valides) plutôt qu'un routage silencieux vers un écran blanc (#211,
      *  ex. 'game' n'existe pas : `SCREENS` est la source unique, `noyau/etat.ts`). */
     screen: (screen: string) => {
-      if (!(SCREENS as readonly string[]).includes(screen)) {
+      const ecran = SCREENS.find((s) => s === screen);
+      if (!ecran) {
         throw new Error(`__wfrp.screen : id invalide « ${screen} » — écrans valides : ${SCREENS.join(', ')}`);
       }
-      g().setScreen(screen as never);
+      g().setScreen(ecran);
       return g().screen;
     },
 

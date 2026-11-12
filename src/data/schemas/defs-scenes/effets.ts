@@ -54,7 +54,7 @@ export const favorLevelSchema = enumNomme({
   importante: 'Faveur Importante',
 });
 /** `CrewHire` (`engine/crewMorale.ts`) — un rôle d'équipage salarié et son effectif. */
-export const crewHireSchema = nommerChamps(z.strictObject({ roleId: z.string(), count: z.number() }), { roleId: { label: "rôle" , texte: { regime: "technique"} }, count: { label: "nombre" } });
+export const crewHireSchema = nommerChamps(z.strictObject({ roleId: idDe('crewRole', undefined, { nue: true }), count: z.number() }), { roleId: { label: "rôle" , texte: { regime: "technique"} }, count: { label: "nombre" } });
 /** `PursuitFoeRef` (`noyau/pursuitFlow.ts`) — adversaire de poursuite : une RÉFÉRENCE de vivant
  *  (`livingRefSchema` — bestiaire ou statbloc d'éditeur), jamais des stats recopiées. Son Mouvement et
  *  sa valeur de Test de Mouvement se LISENT sur la fiche référencée, résolus au démarrage
@@ -145,7 +145,7 @@ export const giveTrappingSchema = nommerChamps(z.strictObject({
   trappingId: objetDonneSchema.optional(),
   custom: z.string().optional(),
   heroId: z.string().optional(),
-  qualities: z.array(z.string()).optional(),
+  qualities: z.array(idDe('quality', undefined, { nue: true })).optional(),
   identified: z.boolean().optional(),
   teinte: ref('material', undefined, 'objet').optional(),
   apparence: ref('apparence').optional(),
@@ -302,7 +302,7 @@ export const inflictPsychologySchema = nommerChamps(z.strictObject({
 /** LDB 20 */
 export const inflictDiseaseSchema = nommerChamps(z.strictObject({
   type: z.literal('inflictDisease'),
-  disease: z.string(),
+  disease: idDe('maladie', undefined, { nue: true }),
   heroId: z.string().optional(),
 }), { type: { label: "type"  }, disease: { label: "maladie" , texte: { regime: "technique"} }, heroId: { label: "héros" , texte: { regime: "technique"} } });
 

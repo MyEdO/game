@@ -50,11 +50,12 @@ import { t } from '../i18n';
 import { tablesPosees, type FragmentDeTables, type PartDeTable } from './tablesPosees';
 import type { DEPARTAGES, EFFETS_DE_POT, LANCERS, SCORES_DE_SEQUENCE } from '../engine/sequenceVocab';
 
-/** La définition d'un id, déclarée par son module de DOMAINE (`TablesDuJeu.sequences`), ou `undefined`
- *  (état restauré d'une save dont l'id n'est plus une famille du jeu, famille de fixture d'un test).
- *  LECTEUR OUVERT : l'id vient de l'état, et le cycle ne lit jamais la charge utile (`SequenceDef<never>`). */
-export function sequenceDefOf(id: string): SequenceDef<never> | undefined {
-  return (tablesPosees().sequences as unknown as Readonly<Record<string, SequenceDef<never> | undefined>>)[id];
+/** La définition de la séquence `seq`, déclarée par son module de DOMAINE (`TablesDuJeu.sequences`) sous son
+ *  `definition`, ou `undefined` (état restauré d'une save dont l'id n'est plus une famille du jeu, famille de
+ *  fixture d'un test). LECTEUR OUVERT : l'id vient de l'état ; la définition rangée sous un id reçoit la charge
+ *  utile de cet id, ce que la table keyée par `definition` porte et que le type ne corrèle pas. */
+export function sequenceDefOf<P>(seq: { readonly definition: string; readonly chargeUtile: P }): SequenceDef<P> | undefined {
+  return (tablesPosees().sequences as unknown as Readonly<Record<string, SequenceDef<P> | undefined>>)[seq.definition];
 }
 
 /* ── FAMILLE (3) : FORMULE DE SCORE PAR CAMP ─────────────────────────────────────────────────────
@@ -326,7 +327,7 @@ export function sequencePhaseOf(params: SequenceParams, round: number): {
 export function sequenceBoardOf(get: Get): SequenceBoard | null {
   const seq = activeSequence(get);
   if (!seq) return null;
-  return sequenceDefOf(seq.definition)?.tableau?.(get, seq as SequenceState<never>) ?? null;
+  return sequenceDefOf(seq)?.tableau?.(get, seq) ?? null;
 }
 
 /* ── LE CYCLE : ouvrir → clore → rouvrir/dénouer ─────────────────────────────────────────────────*/
@@ -351,7 +352,7 @@ export function startSequence<P>(
   get: Get, set: Set,
   init: { definition: string; parametres?: SequenceParams; chargeUtile: P; cumuls?: Record<string, number> },
 ): void {
-  if (!sequenceDefOf(init.definition)) {
+  if (!sequenceDefOf(init)) {
     console.error(`[sequence] définition « ${init.definition} » inconnue — aucune séquence ouverte.`);
     return;
   }
@@ -401,14 +402,14 @@ export function clearSequence(set: Set): void {
 export function openSequenceRound(get: Get, set: Set): void {
   const seq = activeSequence(get);
   if (!seq) return;
-  const def = sequenceDefOf(seq.definition);
+  const def = sequenceDefOf(seq);
   if (!def) { clearSequence(set); return; }
-  const next = { ...seq, manche: seq.manche + 1 } as EtatDeSequence;
+  const next: SequenceState = { ...seq, manche: seq.manche + 1 };
   const rng = battleRng();
-  const manche = def.manche(get, next as never, rng);
+  const manche = def.manche(get, next, rng);
   if (!manche || !manche.steps.length) { clearSequence(set); return; }
   if (manche.chargeUtile !== undefined) next.chargeUtile = manche.chargeUtile;
-  set({ sequence: next });
+  set({ sequence: next as EtatDeSequence });
   // Résolue sur place (manche `immediate`, ou porte rendue en branche I) : la manche se CLÔT ici ; une
   // fenêtre ouverte ou un pilote interrompu (`undefined`) laisse la clôture à `dispatchCascadeDone`.
   const resolues = manche.immediate
@@ -433,39 +434,39 @@ export function openSequenceRound(get: Get, set: Set): void {
 export function closeSequenceRound(get: Get, set: Set, mancheClose: MancheClose): void {
   const seq = activeSequence(get);
   if (!seq) return;
-  const def = sequenceDefOf(seq.definition);
+  const def = sequenceDefOf(seq);
   if (!def) { clearSequence(set); return; }
   // Manche ABANDONNÉE avant tout jet (LDB 12 l.176) : elle n'est pas jouée — aucun réducteur, et le
   // dénouement compte les manches jouées, celle-ci exclue.
   if (seq.abandon !== undefined && !mancheClose.participants.some(jetPose)) {
     clearSequence(set);
-    def.denouer?.(get, set, { ...seq, manche: seq.manche - 1 } as never, seq.abandon);
+    def.denouer?.(get, set, { ...seq, manche: seq.manche - 1 }, seq.abandon);
     return;
   }
-  const verdict = def.clore({ get, seq: seq as never, mancheClose, rng: battleRng() });
-  const apres = {
+  const verdict = def.clore({ get, seq, mancheClose, rng: battleRng() });
+  const apres: SequenceState = {
     ...seq,
     ...(verdict.cumuls ? { cumuls: verdict.cumuls } : {}),
     ...(verdict.chargeUtile !== undefined ? { chargeUtile: verdict.chargeUtile } : {}),
-  } as EtatDeSequence;
+  };
   const borne = verdict.suite === 'poursuivre' && apres.manche >= borneOf(apres.parametres);
   // EFFETS DE MANCHE (famille 4) : le socle DÉCLENCHE ce que la donnée déclare, sur les porteurs que
   // le verdict NOMME — le réducteur du domaine, lui, ne mute rien. La manche qui CONCLUT (verdict de
   // fin, ou borne atteinte) est dite comme telle : l'attrition ne frappe que les manches qui passent.
   const effets = verdict.porteurs
-    ? sequenceRoundOps(get, apres as SequenceState, apres.manche, verdict.porteurs, verdict.suite === 'fin' || borne)
+    ? sequenceRoundOps(get, apres, apres.manche, verdict.porteurs, verdict.suite === 'fin' || borne)
     : [];
   for (const l of [...(verdict.log ?? []), ...effets]) get().ecrireAuJournal(l);
   // Fin de la séquence : son issue, sinon l'abandon demandé (`SequenceState.abandon`), sinon la borne.
   const outcome = verdict.suite === 'fin' ? verdict.issue : seq.abandon ?? (borne ? SEQUENCE_BORNE : undefined);
   if (outcome === undefined) {
-    set({ sequence: apres });
+    set({ sequence: apres as EtatDeSequence });
     openSequenceRound(get, set);
     return;
   }
   if (outcome === SEQUENCE_BORNE) get().ecrireAuJournal(t('seq.borne', { max: borneOf(apres.parametres) }));
   clearSequence(set);
-  def.denouer?.(get, set, apres as never, outcome);
+  def.denouer?.(get, set, apres, outcome);
 }
 
 /** Un jet de l'étape est POSÉ : Test, table ou dé résolu ; sur une bande, les rangées INTERACTIVES
@@ -495,7 +496,7 @@ export function sequenceAbandonEtatOf(get: Get<Jeu>): SequenceAbandon | null {
   const seq = activeSequence(get);
   const pc = get().pendingCascade;
   if (!seq || pc?.purpose !== SEQUENCE_PURPOSE) return null;
-  const abandon = sequenceDefOf(seq.definition)?.abandon?.(seq as SequenceState<never>);
+  const abandon = sequenceDefOf(seq)?.abandon?.(seq);
   if (!abandon) return null;
   if (seq.abandon !== undefined) return { ...abandon, refus: t('seq.abandonDemande') };
   if (abandon.refus !== undefined) return abandon;
