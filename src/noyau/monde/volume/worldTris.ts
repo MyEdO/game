@@ -595,33 +595,40 @@ export function faceUv1(p: Vec3, f: FaceUvFrame): UV {
 /** Faces → triangles monde, biais coplanaire appliqué, montants développés en croix et faces verticales
  *  développées en boîtes minces à la profondeur que `depthOf` leur résout. Le RANG se calcule
  *  sur la liste FOURNIE (cf. `coplanarRanks` : la porter à l'échelle de la scène), quads de montants
- *  compris. Le `rank` rendu pour un montant est le PLUS HAUT de ses deux quads. */
+ *  compris. Composé de `faceQuadsOriented`, `coplanarRanks` et `faceGeometry`. */
 export function facesGeometry(faces: readonly Face[], mpt: number, depthOf?: FaceDepth): FaceGeom[] {
   const parts = faces.map((f) => faceQuadsOriented(f, mpt, depthOf?.(f)));
   const ranks = coplanarRanks(parts.flatMap((p) => p.quads));
-  const out: FaceGeom[] = [];
   let k = 0;
-  faces.forEach((face, i) => {
-    const { quads: qs, oriented } = parts[i];
-    const faceFrame = faceUvFrame(facePoly(face, mpt));
-    const tris: Tri[] = [];
-    const uv: [UV, UV, UV][] = [];
-    const uv1: [UV, UV, UV][] = [];
-    let rank = 0;
-    let normal: Vec3 | null = null;
-    for (const q of qs) {
-      const r = ranks[k++];
-      rank = Math.max(rank, r);
-      const biased = biasPoly(q, r);
-      if (qs.length === 1) normal = polyNormal(biased); // une croix de montant n'a pas UNE normale
-      const quadFrame = planarFrame(polyNormal(biased)); // chaque quad porte SA maille de monde
-      for (const tri of fanTriangles(biased)) {
-        tris.push(tri);
-        uv.push(tri.map((p) => planarUV(p, quadFrame)) as [UV, UV, UV]);
-        uv1.push(tri.map((p) => faceUv1(p, faceFrame)) as [UV, UV, UV]);
-      }
+  return faces.map((face, i) => faceGeometry(face, mpt, parts[i], ranks.slice(k, (k += parts[i].quads.length))));
+}
+
+/** La géométrie d'UNE face depuis ses quads orientés (`faceQuadsOriented`) et le rang de chacun de ses
+ *  quads, dans leur ordre (`coplanarRanks`). Le `rank` rendu pour un montant est le PLUS HAUT de ses
+ *  deux quads. */
+export function faceGeometry(
+  face: Face,
+  mpt: number,
+  { quads: qs, oriented }: { quads: readonly WorldPoly[]; oriented: boolean },
+  ranks: readonly number[],
+): FaceGeom {
+  const faceFrame = faceUvFrame(facePoly(face, mpt));
+  const tris: Tri[] = [];
+  const uv: [UV, UV, UV][] = [];
+  const uv1: [UV, UV, UV][] = [];
+  let rank = 0;
+  let normal: Vec3 | null = null;
+  qs.forEach((q, j) => {
+    const r = ranks[j];
+    rank = Math.max(rank, r);
+    const biased = biasPoly(q, r);
+    if (qs.length === 1) normal = polyNormal(biased); // une croix de montant n'a pas UNE normale
+    const quadFrame = planarFrame(polyNormal(biased)); // chaque quad porte SA maille de monde
+    for (const tri of fanTriangles(biased)) {
+      tris.push(tri);
+      uv.push(tri.map((p) => planarUV(p, quadFrame)) as [UV, UV, UV]);
+      uv1.push(tri.map((p) => faceUv1(p, faceFrame)) as [UV, UV, UV]);
     }
-    out.push({ tris, uv, uv1, normal, rank, oriented });
   });
-  return out;
+  return { tris, uv, uv1, normal, rank, oriented };
 }

@@ -20,7 +20,7 @@ import type { Terrain } from '../data/schemas/defs-scenes/scene';
 import { CAP_IDENTITE_PROP } from '../data/props.types';
 import { DIR4_ORDER, estCardinal, rotateDir8, type Dir4 } from '../geometry/dir8';
 import { garanti } from '../lib/garanti';
-import type { Scene, SceneEffectZone, SceneEntity, WallSeg } from './monde/scene';
+import type { Scene, SceneDuVolume, SceneEffectZone, SceneEntity, WallSeg } from './monde/scene';
 import { edgeOf, heightAt, porteAuteur, sceneMetresPerTile, tileAt } from './monde/scene';
 import { edgeKey } from './monde/facades';
 import type { Pt } from './monde/path';
@@ -60,7 +60,7 @@ export const TYPES_DE_NAVIRE: readonly { id: string; label: string }[] = PLANS_D
 export const CAPS_DES_PONTS: readonly Dir4[] = DIR4_ORDER;
 
 /** `scene` est-elle à l'échelle du plan des ponts du type de navire `ref` ? Ses ponts ne s'y posent qu'alors. */
-export const aLEchelleDesPonts = (scene: Scene, ref: string): boolean =>
+export const aLEchelleDesPonts = (scene: SceneDuVolume, ref: string): boolean =>
   sceneMetresPerTile(garanti(planDe(ref), ref, 'plan de navire').ponts) === sceneMetresPerTile(scene);
 
 /** Les ponts du type `ref` avec ce qu'y ajoutent les Améliorations `upgrades` ; une Amélioration qui ne change
@@ -118,7 +118,7 @@ interface PoseDeNavire {
  *  n'est pas à l'échelle de son plan, ou s'il n'est pas à un cap cardinal, faute que le schéma de scène nomme
  *  (`refusDeLEntite`) : ses ponts ne se posent pas. Ses ponts se centrent sur son empreinte de combattant, la case centrée sur
  *  l'entier, au plus près quand leurs côtés n'ont pas la parité de l'empreinte. */
-function poseDe(scene: Scene, ent: SceneEntity): PoseDeNavire | null {
+function poseDe(scene: SceneDuVolume, ent: SceneEntity): PoseDeNavire | null {
   const plan = planDe(ent.vehicule?.id);
   if (!plan || !aLEchelleDesPonts(scene, plan.ponts.id)) return null;
   const cap = ent.facing ?? 'N';
@@ -132,7 +132,7 @@ function poseDe(scene: Scene, ent: SceneEntity): PoseDeNavire | null {
 }
 
 /** Les poses des navires de `scene`. */
-const posesDe = (scene: Scene): PoseDeNavire[] => scene.entities.flatMap((e) => poseDe(scene, e) ?? []);
+const posesDe = (scene: SceneDuVolume): PoseDeNavire[] => scene.entities.flatMap((e) => poseDe(scene, e) ?? []);
 
 const idsDesNaviresPoses = memoByRef((scene: Scene): ReadonlySet<string> => new Set(posesDe(scene).map((pose) => pose.id)));
 
@@ -250,7 +250,7 @@ export function poserUnNavire(scene: Scene, ref: string, p: Pt, z: number, cap: 
  *  (`edgeKey`), qu'un hôte garde pour la marche et le pointage, le navire se montrant par son modèle 3D
  *  (`naviresDeLaScene`) ; et sa flottaison : les cases (clés `x,y,z`) du rectangle de ses ponts à l'étage de son pont le
  *  plus bas, la mer qui borde sa coque, sa flottaison étant à la hauteur 0 de la scène. */
-export function provenanceDesNavires(scene: Scene): { cases: ReadonlyMap<string, string>; aretes: ReadonlyMap<string, string>; flottaison: ReadonlyMap<string, string> } {
+export function provenanceDesNavires(scene: SceneDuVolume): { cases: ReadonlyMap<string, string>; aretes: ReadonlyMap<string, string>; flottaison: ReadonlyMap<string, string> } {
   const cases = new Map<string, string>();
   const aretes = new Map<string, string>();
   const flottaison = new Map<string, string>();
