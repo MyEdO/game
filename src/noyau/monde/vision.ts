@@ -12,7 +12,7 @@
  * sont canon ; la DONNÉE les porte en mètres et `rayonEnCases` les convertit à l'échelle de la scène
  * (`Scene.metresPerTile`, défaut `LDB 15 l.12`).
  */
-import { Scene, type SceneEntity, tileAt, heightAt, edgeOf, sceneMetresPerTile, areteOcculte } from './scene';
+import { Scene, type SceneDuVolume, type SceneEntity, tileAt, heightAt, edgeOf, sceneMetresPerTile, areteOcculte } from './scene';
 import { wallOnSight } from './lineOfSight';
 import { terrainOpaque, terrainSolidHeightM } from './terrain';
 import { METRES_PER_LEVEL } from './relief';
@@ -196,7 +196,7 @@ export const rayonEnCases = (radiusM: number, mpt: number): number => radiusM / 
 
 /** Sources de lumière POSÉES sur la carte : props dont le TYPE (`props.json` `light`) émet, ou
  *  override d'instance `SceneEntity.light`. PUR. */
-export function mapLights(scene: Scene): LightSource[] {
+export function mapLights(scene: SceneDuVolume): LightSource[] {
   const out: LightSource[] = [];
   const mpt = sceneMetresPerTile(scene);
   for (const e of scene.entities) {
@@ -236,7 +236,7 @@ export const FLAME_LIFT_M = 1;
  *
  * Rien à rendre sans type résolu : la source garde alors le défaut du rendu. PUR.
  */
-function foyerDe(scene: Scene, ent: SceneEntity, prop: PropData | undefined, mpt: number): { foyer?: LightSource['foyer'] } {
+function foyerDe(scene: SceneDuVolume, ent: SceneEntity, prop: PropData | undefined, mpt: number): { foyer?: LightSource['foyer'] } {
   if (!prop) return {};
   const emettrice = prop.volume.primitives.find((p) => p.emet);
   const ancre = ancreDuDecor(ent, mpt);
