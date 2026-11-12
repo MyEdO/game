@@ -331,11 +331,20 @@ export const ECRIT_LU = {
   },
   'test:noyau': {
     ecrit: [],
+    ecritFerme: {
+      'hotes/godot/projet/modeles/':
+        'le même dépôt que `godot:sonde` : `recupererModeles` (hotes/godot/asset/release.ts, #2948), que jouent la suite des ' +
+        'assets (`asset.hors-store.test.ts`) et la table de test du pont avant de lister les modèles (`modelesCommites`, ' +
+        'hotes/godot/pont/pont.testkit.ts, #3945), n’y écrit un `<id>.glb` que s’il y manque ou n’a pas la somme de sa ' +
+        'provenance, par temporaire exclusif puis renommage : un lecteur concurrent ne voit jamais un fichier partiel ; ' +
+        '`test:noyau` précède `godot:sonde` dans le job `types` de ci.yml, la même lane, une SÉRIE',
+    },
     lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'Source/', 'vitest.noyau.config.ts', 'package.json'],
     raison: RETRAIT_WORKTREE_FERME +
       'La suite du noyau (`vitest.noyau.config.ts`, #2817) : les tests `MOTIF_HORS_STORE` du noyau et de ses hôtes (`HOTES_DU_NOYAU`), sans le store, ' +
       'chargés par `src/data/overrides.ts` et le greffon `proseSource()` (scripts/source/prose-source-plugin.mjs), qui ' +
-      'LIT Source/ pour la prose adressée ; aucun `registryGen` : aucune cible de code produite, rien d’écrit dans l’arbre',
+      'LIT Source/ pour la prose adressée ; aucun `registryGen` : aucune cible de code produite, rien d’écrit dans l’arbre ' +
+      'hors des GLB épinglés, que git ignore (`ecritFerme`)',
   },
   'noyau:chargement': {
     ecrit: [],
@@ -449,7 +458,8 @@ export const ECRIT_LU = {
         'le GLB de somme épinglée, jamais un fichier partiel ; `/modeles/*.glb` est gitignoré (hotes/godot/projet/.gitignore) ' +
         'et sa seule autre gate lectrice du dossier, `personnage-3d:tests` (#3145, ses manifestes), suit `godot:sonde` dans le job ' +
         '`types` de ci.yml, donc dans la même lane, une SÉRIE dans l’ordre du fichier (`lanesDeCi`) : elle ne lit ' +
-        'qu’après l’écriture ; le lint lit des modules, la suite du noyau n’en lit que les provenances',
+        'qu’après l’écriture ; le lint lit des modules ; la suite du noyau, de la même lane, la précède et y dépose les ' +
+        'mêmes GLB (`ecritFerme` de `test:noyau`)',
       'src/scenes/':
         'le pont vivant (hotes/godot/vivant.mjs, #3945), que chaque recette reçoit en `--pont=` et que le pont natif lance ' +
         'à son premier `rejoindre`, sert le dépôt réel (`servir({ depot })`) : `servirLeDepot` (hotes/godot/servir.mjs) n’y ' +
@@ -489,6 +499,25 @@ export const ECRIT_LU = {
       'aucune recette rendue ne reçoit le pont vivant ; LIT ce que lit `godot:sonde` : hotes/ (le projet et son ' +
       'constructeur), scripts/, les zones du noyau chargées par `chargerAssets`, leurs catalogues et Source/, ' +
       'tsconfig.json et package.json. Écrit sous hotes/godot/projet/modeles/ les seuls GLB (`ecritFerme`)',
+  },
+  'godot:recette': {
+    ecrit: [],
+    ecritFerme: {
+      'hotes/godot/projet/modeles/':
+        'le même dépôt que `godot:sonde` (`deposerLesAssets`, hotes/godot/construire.mjs, par `piloter`) : `recupererModeles` ' +
+        'n’y écrit un `<id>.glb` que s’il y manque ou n’a pas la somme de sa provenance, par temporaire exclusif puis ' +
+        'renommage ; `godot:recette` suit `godot:sonde` et `godot:rendus` dans la lane `types` du rejeu local ' +
+        '(`LANE_LOCALE_DE_JOB`), une SÉRIE, et joue seule de son job `corpus` dans ci.yml',
+    },
+    lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'Source/', 'tsconfig.json', 'package.json'],
+    raison:
+      'Les recettes natives de l’hôte Godot (`hotes/godot/lot-de-recettes.mjs --natif`, #3945) : chaque jeu natif de ' +
+      '`JEUX_DU_PARCOURS` par `recette.mjs --natif`, qui bâtit le pont en mémoire (`write: false`), sert le jeu sans ' +
+      'export (`servir.mjs`) et lance Godot `--headless` sur une COPIE importée du projet sous `os.tmpdir()`, effacée ' +
+      '(`piloter`, hotes/godot/construire.mjs) ; le parcours `editeur` sert une COPIE des projets manuscrits sous ' +
+      '`os.tmpdir()` (`depot`), où son enregistrement écrit, jamais sous src/scenes/ ; les journaux vont sous ' +
+      '`dist/godot-recettes/`, que git ignore et qu’aucune gate ne lit ; LIT ce que lit `godot:sonde`. Écrit sous ' +
+      'hotes/godot/projet/modeles/ les seuls GLB (`ecritFerme`)',
   },
   'personnage-3d:tests': {
     ecrit: [],

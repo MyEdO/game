@@ -8,6 +8,7 @@ import { findTeinteById } from '../../../src/noyau/index';
 import { modelesCommites, servirLesModeles, suiteDe, table, vueDe } from './pont.testkit';
 import type { CombattantProjete } from '../../../src/hote/projection';
 
+const COMMITES = await modelesCommites();
 const { appel } = table();
 
 describe('la teinte et l’armure d’un combattant sur la base (#3456)', () => {
@@ -20,7 +21,7 @@ describe('la teinte et l’armure d’un combattant sur la base (#3456)', () => 
   });
 
   it('l’épée teinte monte à sa prise sous la palette de sa teinte ; les brassards de la Lame et de l’armure de statbloc de l’orc montent leur élément', () => {
-    servirLesModeles(appel, modelesCommites());
+    servirLesModeles(appel, COMMITES);
     const { combattants } = vueDe(appel('vue')).corps;
     expect(combattants[lame.id]?.montes).toContainEqual({ ligne: 'main', element: 'humanoide--rigide--epee', palette: findTeinteById('aethyrique')!.palette });
     for (const c of [lame, orc]) expect(combattants[c.id]?.montes).toContainEqual({ ligne: 'ligne/piece/brassards', element: 'humanoide--armure--brassards' });

@@ -88,6 +88,7 @@ func _ready() -> void:
 	for zone in _zones:
 		zone.geste.connect(_jouer)
 	_defilement.get_v_scroll_bar().value_changed.connect(func(_valeur: float) -> void: _publier_l_ecran())
+	_pont.suivre_les_listes(_interface, _publier_l_ecran)
 	for pages in _interface.find_children("*", "TabContainer", true, false):
 		(pages as TabContainer).tab_clicked.connect(func(_onglet: int) -> void: _publier_l_ecran())
 	for conteneur in _interface.find_children("*", "Container", true, false):

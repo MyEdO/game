@@ -1,8 +1,9 @@
 // LE LOT DES RECETTES DE L'HÔTE GODOT (#4007) : chaque jeu de `JEUX_DU_PARCOURS`, l'un après l'autre, par
-// `recette.mjs` sur un export déjà produit (`node hotes/godot/construire.mjs --export --sortie <web>`). Le journal et
-// les captures de chaque jeu vont sous `--captures/<nom du jeu>/` ; le verdict de chacun s'imprime, la fin d'un journal
-// rouge aussi, et le code est non nul dès qu'un jeu est rouge. Joué chaque semaine par `.github/workflows/canari.yml`.
-//   node hotes/godot/lot-de-recettes.mjs --web <export> --captures <dossier> [--jeux combat,relief]
+// `recette.mjs` sur un export déjà produit (`node hotes/godot/construire.mjs --export --sortie <web>`), ou sans export
+// (`--natif`, #3945). Le journal et les captures de chaque jeu vont sous `--captures/<nom du jeu>/` ; le verdict de
+// chacun s'imprime, la fin d'un journal rouge aussi, et le code est non nul dès qu'un jeu est rouge. Joué chaque
+// semaine par `.github/workflows/canari.yml`.
+//   node hotes/godot/lot-de-recettes.mjs (--web <export> | --natif) --captures <dossier> [--jeux combat,relief]
 import { spawnSync } from 'node:child_process'
 import { closeSync, mkdirSync, openSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
@@ -63,8 +64,9 @@ const DELAI_MS = 90 * 60 * 1000
 const QUEUE = 15
 
 if (import.meta.main) {
-  const { values: o } = parseArgs({ options: { web: { type: 'string' }, captures: { type: 'string' }, jeux: { type: 'string' } } })
-  if (!o.web || !o.captures) throw new Error('usage : node hotes/godot/lot-de-recettes.mjs --web <dossier de l’export> --captures <dossier> [--jeux <nom>,<nom>]')
+  const { values: o } = parseArgs({ options: { web: { type: 'string' }, natif: { type: 'boolean' }, captures: { type: 'string' }, jeux: { type: 'string' } } })
+  if (!o.web === !o.natif || !o.captures) throw new Error('usage : node hotes/godot/lot-de-recettes.mjs (--web <dossier de l’export> | --natif) --captures <dossier> [--jeux <nom>,<nom>]')
+  const lieu = o.natif ? ['--natif'] : ['--web', resolve(o.web)]
   const jeux = Object.entries(JEUX_DU_PARCOURS).flatMap(([parcours, parNom]) => Object.entries(parNom).map(([nom, args]) => ({ nom, parcours, args })))
   const voulus = o.jeux?.split(',') ?? jeux.map((j) => j.nom)
   const inconnus = voulus.filter((nom) => !jeux.some((j) => j.nom === nom))
@@ -77,7 +79,7 @@ if (import.meta.main) {
     const sortie = openSync(journal, 'w')
     const debut = Date.now()
     const pret = !PREPARER[nom] || PREPARER[nom](dossier, sortie) === 0
-    const status = pret ? spawnSync(process.execPath, [RECETTE, '--web', resolve(o.web), '--captures', dossier, '--parcours', parcours, ...args.map((a) => a.replace(DOSSIER, dossier))], { cwd: RACINE, stdio: ['ignore', sortie, sortie], timeout: DELAI_MS }).status : 1
+    const status = pret ? spawnSync(process.execPath, [RECETTE, ...lieu, '--captures', dossier, '--parcours', parcours, ...args.map((a) => a.replace(DOSSIER, dossier))], { cwd: RACINE, stdio: ['ignore', sortie, sortie], timeout: DELAI_MS }).status : 1
     closeSync(sortie)
     console.log(`${nom} : ${status === 0 ? 'vert' : 'ROUGE'} (${Math.round((Date.now() - debut) / 1000)} s)`)
     if (status === 0) continue

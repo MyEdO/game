@@ -1,8 +1,13 @@
-// LES RECETTES DE L'HÔTE GODOT (#2928, #3086) :
-// l'export Web (`node hotes/godot/construire.mjs --export --sortie <web>`) servi par `servir.mjs`, Chromium piloté au clic et
-// au clavier sur le canevas comme un joueur. Godot publie à la page ce que l'écran porte (`globalThis.wfrpEcran`,
-// `pont/CONTRAT.md`, section « Écran publié ») : le texte et le centre de chaque bouton, le point de chaque case, l'état
-// de l'atelier. Aucun geste ne passe par le pont : chaque intention part d'un clic, d'un cran de molette ou d'une frappe.
+// LES RECETTES DE L'HÔTE GODOT (#2928, #3086), jouées au clic et au clavier comme un joueur, dans l'un de deux lieux
+// qui portent les mêmes noms (`pilotage/`) :
+// - `--natif` (#3945, `pilotage/natif.mjs`) : sans export ni navigateur, le jeu lancé sur une copie importée du projet,
+//   sans rendu, son pont et son serveur dans ce processus ; `--rendu <méthode>` le lance en rendu réel sur un écran
+//   virtuel. Ce qu'il ne sait pas faire se refuse, la raison dite (`REFUS`) ; sans rendu, une capture se saute, notée ;
+// - `--web <export>` (`pilotage/page.mjs`) : l'export Web (`node hotes/godot/construire.mjs --export --sortie <web>`)
+//   servi par `servir.mjs`, Chromium piloté sur le canevas.
+// Godot publie ce que l'écran porte (`globalThis.wfrpEcran`, `pont/CONTRAT.md`, section « Écran publié ») : le texte et
+// le centre de chaque bouton, le point de chaque case, l'état de l'atelier. Aucun geste ne passe par le pont : chaque
+// intention part d'un clic, d'un cran de molette ou d'une frappe.
 // Chaque parcours s'ouvre depuis le menu d'entrée :
 // - `combat` (défaut) : avec `--modeles` et `--element` (#3253), le dossier neuf servi sous `modeles/` reçoit la base et
 //   les éléments du projet (manifestes, provenances et licences de `projet/modeles`, GLB tirés de la Release par
@@ -167,6 +172,7 @@
 // Chaque étape est assertée ; une assertion fausse, une erreur relevée par le pont (`erreursGlobales`) ou une erreur de
 // console rendent un code non nul.
 //
+//   node hotes/godot/recette.mjs --natif --captures <dossier> [--parcours editeur] [--scenario dome] [--graine 7]
 //   node hotes/godot/recette.mjs --web <dossier de l'export> --captures <dossier> [--scenario dome] [--graine 7]
 //   node hotes/godot/recette.mjs --web <export> --captures <dossier> --statique
 //   node hotes/godot/recette.mjs --scenario embleme-au-combat --web <export> --captures <dossier> --modeles <dossier neuf>
@@ -210,6 +216,9 @@
  * dans `wfrpEcran.editeur`, et le fichier que « Enregistrer » écrit à la copie ; il amène chaque bouton et chaque champ
  * du panneau par la molette, aux crans que dit son point au défilement publié (`wfrpEcran.panneau`) ; il intercepte le choix de fichier de
  * la page (`Page.setInterceptFileChooserDialog`) et remplit l'`input[data-planche]` d'une planche qu'il écrit.
+ * En natif (`--natif`), les mêmes parcours se jouent sans export : `wfrpEcran` et `wfrpPont` vivent dans le processus de
+ * la recette, chaque geste est une commande du pilote (`projet/recettes/pilote.gd`), et le choix de fichier rend le
+ * chemin de la planche.
  * @contrat Écran publié
  */
 import assert from 'node:assert/strict'
@@ -220,22 +229,20 @@ import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 import { crc32, deflateSync } from 'node:zlib'
-import { FIL_DE_LA_PAGE_MS, WEBGL_LOGICIEL, servir } from './servir.mjs'
+import { FIL_DE_LA_PAGE_MS } from './servir.mjs'
 import { LISTAGE } from './listage.mjs'
 import { JEUX_DU_PARCOURS } from './lot-de-recettes.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { gestesDessines } from './pont/dessines.ts'
 import { dossierDesProjetsLivres, listerProjetsLivres, PROJETS_MANUSCRITS } from '../../scripts/guards/lib/projetsLivres.mjs'
-import { ATTENTE_ECHUE, clic, consoleGuard, evaluate, geste, launchSession, molette, poserFichier, realKey, realKeyDown, realKeyUp, shot, sleep, waitFor } from '../../scripts/recette/lib.mjs'
-
 import { chargerAssets, chargerEvaluateur } from './asset/charger.mjs'
 
 const chaine = { type: 'string' }
 const { values: o } = parseArgs({
-  options: { parcours: { type: 'string', default: 'combat' }, web: chaine, captures: chaine, scenario: { type: 'string', default: 'dome' }, graine: { type: 'string', default: '7' }, modeles: chaine, base: chaine, element: chaine, reexport: chaine, piece: chaine, vues: chaine, route: chaine, preset: chaine, clip: { type: 'string', default: 'Sword_Attack' }, statique: { type: 'boolean' } },
+  options: { parcours: { type: 'string', default: 'combat' }, web: chaine, captures: chaine, scenario: { type: 'string', default: 'dome' }, graine: { type: 'string', default: '7' }, modeles: chaine, base: chaine, element: chaine, reexport: chaine, piece: chaine, vues: chaine, route: chaine, preset: chaine, clip: { type: 'string', default: 'Sword_Attack' }, statique: { type: 'boolean' }, natif: { type: 'boolean' }, rendu: chaine },
 })
 if (o.statique && o.modeles) throw new Error('--statique sert les modèles déposés dans l’export : --modeles hors de propos')
-if (!o.web || !o.captures) throw new Error('usage : node hotes/godot/recette.mjs --web <dossier de l’export> --captures <dossier> [--parcours <nom>] ; les parcours : l’en-tête du fichier')
+if (!o.web === !o.natif || !o.captures || (o.rendu && !o.natif)) throw new Error('usage : node hotes/godot/recette.mjs (--web <dossier de l’export> | --natif [--rendu <méthode>]) --captures <dossier> [--parcours <nom>] ; les parcours : l’en-tête du fichier')
 if (o.parcours === 'atelier' && o.modeles && !(o.base && o.element && o.reexport)) throw new Error('--parcours atelier avec --modeles <dossier neuf> attend --base, --element et --reexport <dossier de production>')
 if (o.parcours === 'cadrages' && !o.vues) throw new Error('--parcours cadrages attend --vues <fichier JSON des vues nommées>')
 if (o.parcours === 'bord' && !o.route) throw new Error('--parcours bord attend --route <route.json> (`hotes/godot/recettes/route-a-bord.hors-store.test.ts`)')
@@ -255,13 +262,50 @@ for (const rel of depot ? MANUSCRITS : []) {
 /** Le dossier des modèles que lisent les preuves : `--modeles`, sinon celui du projet, que le serveur sert ou dont
  *  l'export servi en `--statique` a fabriqué les scènes. */
 const DOSSIER_SERVI = o.modeles ?? fileURLToPath(new URL('./projet/modeles', import.meta.url))
-const srv = await servir({ web: o.web, ...(o.modeles && { modeles: o.modeles }), ...(o.statique && { statique: true }), ...(depot && { depot }) })
-const session = await launchSession({ width: 1280, height: 720, timeoutMs: 30000, args: WEBGL_LOGICIEL })
-const garde = consoleGuard(session)
+/** Le lieu où la recette se joue, choisi une fois : la page de l'export (`--web`), ou le jeu lancé sans export
+ *  (`--natif`). Les deux portent les mêmes noms. */
+const lieu = await import(o.natif ? './pilotage/natif.mjs' : './pilotage/page.mjs')
+const { ATTENTE_ECHUE, clic, evaluate, geste, molette, realKey, realKeyDown, realKeyUp, shot, sleep, waitFor } = lieu
+const { session, srv, garde } = await lieu.ouvrir({ web: o.web, modeles: o.modeles, statique: o.statique, depot, scenario: o.scenario, graine: o.graine, rendu: o.rendu })
 const noter = (t) => console.log('·', t)
 const lire = (expression) => evaluate(session, expression, { timeoutMs: FIL_DE_LA_PAGE_MS })
 const vue = async () => JSON.parse(await lire(`wfrpPont.appeler('vue')`)).vue
-const ecran = async () => JSON.parse(await lire('JSON.stringify(globalThis.wfrpEcran ?? null)'))
+/** L'attente la plus longue d'une publication après un appel de Godot au pont. */
+const PERIME_MS = 2000
+/** Le suivi des publications, posé une fois dans le lieu où vivent `wfrpEcran` et `wfrpPont` : `recetteEcran.perime`
+ *  dit la dernière méthode que Godot a appelée au pont depuis la dernière publication (`null` sans elle). La recette
+ *  lit la vue au pont, où elle change dès l'appel de Godot ; l'écran, lui, se publie à l'image qui suit sa mise en
+ *  page. */
+const SUIVRE_LES_PUBLICATIONS = `(() => {
+  if (globalThis.recetteEcran) return true
+  const suivi = (globalThis.recetteEcran = { perime: null, publie: globalThis.wfrpEcran })
+  Object.defineProperty(globalThis, 'wfrpEcran', { configurable: true, get: () => suivi.publie, set: (ecran) => { suivi.publie = ecran; suivi.perime = null } })
+  const pont = globalThis.wfrpPont, appelerEnOctets = pont.appelerEnOctets
+  pont.appelerEnOctets = function (methode, ...reste) { if (methode !== 'erreursGlobales') suivi.perime = methode; return appelerEnOctets.call(this, methode, ...reste) }
+  return true
+})()`
+/** L'écran publié, attendu à jour (`SUIVRE_LES_PUBLICATIONS`) `PERIME_MS` au plus, et la méthode qui le laisse périmé
+ *  au-delà. */
+const LIRE_L_ECRAN = `new Promise((rendre) => {
+  const debut = performance.now()
+  const lire = () => {
+    const perime = globalThis.recetteEcran?.perime ?? null
+    if (perime === null || performance.now() - debut > ${PERIME_MS}) rendre(JSON.stringify({ ecran: globalThis.wfrpEcran ?? null, perime }))
+    else setTimeout(lire, 10)
+  }
+  lire()
+})`
+/** L'écran publié, à jour de la vue que Godot a reçue du pont. */
+const ecran = async () => {
+  const { ecran, perime } = JSON.parse(await lire(LIRE_L_ECRAN))
+  if (perime !== null) noter(`écran lu périmé : aucune publication ${PERIME_MS} ms après l'appel « ${perime} » de Godot`)
+  return ecran
+}
+/** Le menu d'entrée publié, le suivi des publications posé (`SUIVRE_LES_PUBLICATIONS`). */
+async function attendreLeMenu() {
+  await waitFor(session, '!!globalThis.wfrpPont && !!globalThis.wfrpEcran && wfrpEcran.boutons.length > 0', { timeoutMs: 120000, evaluerMs: FIL_DE_LA_PAGE_MS })
+  await lire(SUIVRE_LES_PUBLICATIONS)
+}
 /** Attend que la vue, lue par le pont, vérifie `condition` (une expression sur `v`). */
 const attendreLaVue = (condition, timeoutMs = 30000) =>
   waitFor(session, `(() => { try { const v = JSON.parse(wfrpPont.appeler('vue')).vue; return !!(${condition}) } catch { return false } })()`, { timeoutMs, evaluerMs: FIL_DE_LA_PAGE_MS })
@@ -322,11 +366,48 @@ const trouver = (boutons, quoi) =>
   boutons.find((x) => (typeof quoi === 'string' ? x.texte === quoi : 'element' in quoi ? x.element === quoi.element : 'choix' in quoi ? x.choix?.includes(quoi.choix) : 'onglet' in quoi ? x.onglet && x.texte === quoi.onglet : x.cle === quoi.cle))
 /** Le bouton publié qui dessine le bouton `b` de la vue. */
 const bouton = (b) => ({ element: `bouton/${b.id}` })
+/** L'attente la plus longue d'un bouton ou d'une case à l'écran publié : une vue se publie à l'image qui suit sa mise
+ *  en page, après que le pont l'a rendue. */
+const PUBLICATION_MS = 8000
+/** L'écran publié une fois que `lu(ecran)` y trouve ce qu'il cherche, et ce qu'il y trouve ; `PUBLICATION_MS` échues,
+ *  le dernier écran lu, sans lui. */
+async function attendreALEcran(lu) {
+  const echeance = Date.now() + PUBLICATION_MS
+  for (;;) {
+    const e = await ecran()
+    const trouve = e && lu(e)
+    if (trouve || Date.now() >= echeance) return [e, trouve]
+    await sleep(50)
+  }
+}
 async function cliquerBouton(quoi) {
-  const { boutons } = await ecran()
-  const b = trouver(boutons, quoi)
+  const [{ boutons }, b] = await attendreALEcran((e) => trouver(e.boutons, quoi))
   if (!b) throw new Error(`bouton ${JSON.stringify(quoi)} absent ; boutons : ${boutons.map((x) => `${x.element ?? x.cle ?? ''} « ${x.texte} »`).join(' | ')}`)
   await cliquerPoint(b.x, b.y)
+}
+/** La liste déroulante publiée `quoi` une fois que `tient(liste)`, attendue (`attendreALEcran`) ; `etat` dit ce qui
+ *  est attendu d'elle. */
+async function attendreLaListe(quoi, tient, etat) {
+  const [e, liste] = await attendreALEcran((e) => {
+    const l = trouver(e.boutons, quoi)
+    return l && tient(l) && l
+  })
+  assert.ok(liste, `la liste ${JSON.stringify(quoi)} ${etat} ; publiée : ${JSON.stringify(trouver(e?.boutons ?? [], quoi))}`)
+  return liste
+}
+/** Les cases que couvre l'emprise d'un pinceau 3×3 glissé sur trois cases d'une rangée. */
+const EMPRISE_DU_GLISSE = 15
+const FLECHE_HAUT = { key: 'ArrowUp', code: 'ArrowUp', windowsVirtualKeyCode: 38 }
+const FLECHE_BAS = { key: 'ArrowDown', code: 'ArrowDown', windowsVirtualKeyCode: 40 }
+/** L'article de rang `rang` de la liste déroulante `quoi` désigné au clavier, la liste attendue ouverte : une flèche
+ *  vers lui tant qu'elle en désigne un autre (`designe`), l'article désigné attendu à l'écran après chacune. */
+async function designerALaListe(quoi, rang) {
+  let liste = await attendreLaListe(quoi, (l) => l.ouverte, 'est ouverte')
+  while (liste.designe !== rang) {
+    const { designe } = liste
+    await realKey(session, designe > rang ? FLECHE_HAUT : FLECHE_BAS)
+    liste = await attendreLaListe(quoi, (l) => l.ouverte && l.designe !== designe, `désigne un autre article que le ${designe} après la flèche`)
+  }
 }
 /** L'onglet titré du libellé du choix `choix` montré quand `quoi` n'est pas à l'écran : un choix de la barre du combat
  *  (`combat.offres`) est l'un de ses onglets. */
@@ -339,12 +420,14 @@ async function presserLOffre(b) {
   await cliquerBouton(bouton(b))
 }
 async function cliquerCase({ x, y, z = 0 }) {
-  const [px, py] = (await ecran()).cases[`${x},${y},${z}`]
-  await cliquerPoint(px, py)
+  const [e, point] = await attendreALEcran((e) => !e.glisse && e.cases?.[`${x},${y},${z}`])
+  assert.ok(point, `la case ${x},${y},${z} est à l'écran ; cases : ${Object.keys(e?.cases ?? {}).join(' ')}`)
+  await cliquerPoint(...point)
 }
 async function capturer(nom) {
   await sleep(400)
-  noter(`capture ${await shot(session, nom, o.captures)}`)
+  const image = await shot(session, nom, o.captures)
+  noter(image ? `capture ${image}` : `capture ${nom} sautée : sans rendu`)
 }
 /** Chaque fenêtre qui tient la main fermée à l'Entrée, jusqu'à ce qu'aucune ne la tienne ; la vue d'alors. */
 async function fermerLesFenetres() {
@@ -357,11 +440,10 @@ async function fermerLesFenetres() {
   }
   return v
 }
-/** La page rechargée à deviceScaleFactor 2, son menu publié. */
+/** Le jeu redessiné en haute définition (`lieu.enHauteDefinition`), son menu publié. */
 async function enHauteDefinition() {
-  await session.rpc('Emulation.setDeviceMetricsOverride', { width: 1280, height: 720, deviceScaleFactor: 2, mobile: false })
-  await session.rpc('Page.reload')
-  await waitFor(session, '!!globalThis.wfrpEcran && wfrpEcran.boutons.length > 0', { timeoutMs: 120000, evaluerMs: FIL_DE_LA_PAGE_MS })
+  await lieu.enHauteDefinition(session)
+  await attendreLeMenu()
 }
 async function finirLeTour() {
   await cliquerBouton({ element: 'bouton/fin-de-tour' })
@@ -836,7 +918,7 @@ async function parcoursCadrages() {
       await realKey(session, { key: 'v', code: 'KeyV', windowsVirtualKeyCode: 86 }, { delaiEntreeMs: FIL_DE_LA_PAGE_MS })
       await attendreLaVue(`v.plateau.regard === '${suivant}'`, 300000)
     }
-    const reponse = JSON.parse(await lire(`new Promise((rendre) => wfrpCadrer(${JSON.stringify(JSON.stringify(cadrage))}, rendre))`))
+    const reponse = JSON.parse(await lieu.rappeler(session, 'wfrpCadrer', JSON.stringify(cadrage)))
     assert.equal(reponse.ok, true, `${nom} : ${JSON.stringify(reponse.erreur)}`)
     const { camera } = reponse
     const plan = { z: cadrage.etage ?? 0, ...(camera.case && { oeil: { case: camera.case, lacet: camera.lacet } }) }
@@ -993,9 +1075,9 @@ async function parcoursIncantation() {
   const rang = liste.choix.indexOf('Fléchette')
   assert.ok(rang >= 0, `Fléchette est offerte : ${liste.choix.join(', ')}`)
   await geste(session, { surface: 'canvas', x: liste.x, y: liste.y }, { qui: 'liste des sorts' }, clic())
-  await sleep(400)
+  await attendreLaListe({ element: cle }, (l) => l.ouverte, 'est ouverte au clic')
   await capturer('3328-j1-2-liste-ouverte')
-  for (let n = 0; n <= rang; n++) await realKey(session, { key: 'ArrowDown', code: 'ArrowDown', windowsVirtualKeyCode: 40 })
+  await designerALaListe({ element: cle }, rang)
   await marquer()
   await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
   await nouvelEcran()
@@ -1474,52 +1556,23 @@ async function parcoursEditeur() {
     await cliquerBouton(quoi)
   }
   /** La valeur `id` de la liste déroulante `liste` des options de l'outil choisie : la liste amenée sur le panneau,
-   *  cliquée, qui prend le focus, le pointeur sorti d'elle, refermée par Échap puis rouverte par Entrée : ouverte au
-   *  clavier, elle désigne sa valeur pressée, sinon sa première valeur offerte (`OptionButton.show_popup`), alors qu'au
-   *  clic, elle désigne l'article qu'elle recouvre sous le pointeur ; la flèche montée ou descendue de là jusqu'à elle,
-   *  sur chaque valeur offerte, une image au moins entre deux flèches, puis Entrée ;
-   *  l'écran attendu ensuite : la valeur pressée, sinon la condition `attendu`. Une frappe perdue par la liste ouverte
-   *  laisse l'écran inchangé : Échap la ferme et le choix se rejoue, trois essais au plus ; une autre valeur pressée
-   *  depuis l'ouverture est l'échec rendu tel quel. */
+   *  cliquée, attendue ouverte, le pointeur sorti d'elle ; son article désigné au clavier (`designerALaListe`), puis
+   *  Entrée ; l'écran attendu ensuite : la valeur pressée, sinon la condition `attendu`. */
   const choisirALaListe = async (liste, id, zone = 'editeur.options', attendu = null) => {
-    const valeurs = async () => (await editeur()).zones[zone].find((el) => el.id === liste).valeurs
-    const presses = async () => (await valeurs()).map((b) => `${b.id}:${b.presse}`).join(',')
-    const libelle = (await valeurs()).find((b) => b.id === id).libelle
+    const valeurs = (await editeur()).zones[zone].find((el) => el.id === liste).valeurs
+    const libelle = valeurs.find((b) => b.id === id).libelle
     const fait = attendu ?? `globalThis.wfrpEcran?.editeur?.zones['${zone}'].find((el) => el.id === '${liste}')?.valeurs.find((b) => b.id === '${id}')?.presse === true`
-    for (let essai = 1; ; essai++) {
-      const ouverture = await presses()
-      const deroulante = await amenerAuPanneau({ element: `liste/${liste}` })
-      const rang = deroulante.choix.indexOf(libelle)
-      assert.ok(rang >= 0, `${libelle} est offert : ${deroulante.choix.join(', ')}`)
-      const offertes = (await valeurs()).map((b, i) => (b.refus === null ? i : -1)).filter((i) => i >= 0)
-      const pressee = (await valeurs()).findIndex((b) => b.presse && b.refus === null)
-      const depart = offertes.indexOf(pressee >= 0 ? pressee : offertes[0])
-      const pas = offertes.indexOf(rang) - depart
-      await geste(session, { surface: 'canvas', x: deroulante.x, y: deroulante.y }, { qui: `liste ${liste}` }, clic())
-      await sleep(400)
-      await geste(session, { surface: 'canvas', x: 1000, y: 700 }, { qui: `le pointeur hors de la liste ${liste}` }, ({ x, y }, emettre) => emettre('souris', { type: 'mouseMoved', x, y }))
-      await sleep(400)
-      await realKey(session, { key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 })
-      await sleep(400)
-      await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
-      await sleep(400)
-      const fleche = pas < 0 ? { key: 'ArrowUp', code: 'ArrowUp', windowsVirtualKeyCode: 38 } : { key: 'ArrowDown', code: 'ArrowDown', windowsVirtualKeyCode: 40 }
-      for (let n = 0; n < Math.abs(pas); n++) {
-        await realKey(session, fleche)
-        await sleep(60)
-      }
-      await marquer()
-      await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
-      try {
-        await waitFor(session, fait)
-        return
-      } catch (erreur) {
-        if (erreur.code !== ATTENTE_ECHUE || essai === 3 || (await presses()) !== ouverture) throw erreur
-        noter(`liste ${liste} : « ${libelle} » non choisie à l’essai ${essai}, Échap puis un nouvel essai`)
-      }
-      await realKey(session, { key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 })
-      await sleep(400)
-    }
+    const quoi = { element: `liste/${liste}` }
+    const deroulante = await amenerAuPanneau(quoi)
+    const rang = deroulante.choix.indexOf(libelle)
+    assert.ok(rang >= 0, `${libelle} est offert : ${deroulante.choix.join(', ')}`)
+    await geste(session, { surface: 'canvas', x: deroulante.x, y: deroulante.y }, { qui: `liste ${liste}` }, clic())
+    await attendreLaListe(quoi, (l) => l.ouverte, 'est ouverte au clic')
+    await geste(session, { surface: 'canvas', x: 1000, y: 700 }, { qui: `le pointeur hors de la liste ${liste}` }, ({ x, y }, emettre) => emettre('souris', { type: 'mouseMoved', x, y }))
+    await designerALaListe(quoi, rang)
+    await marquer()
+    await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+    await waitFor(session, fait)
   }
   let e = await editeur()
   assert.equal(boutonDeLEditeur(e, 'couche/0')?.presse, true, 'la carte s’ouvre sur sa couche 0')
@@ -1576,11 +1629,12 @@ async function parcoursEditeur() {
       await emettre('souris', { type: 'mouseMoved', x: cx, y: cy, button: 'left', buttons: 1 })
       await nouvelEcran()
     }
+    await waitFor(session, `globalThis.wfrpEcran?.editeur?.surcouche.cases.length === ${EMPRISE_DU_GLISSE}`)
     tenu = { surcouche: (await editeur()).surcouche, point: (await ecran()).cases[`${x0 + 2},${y0}`] }
     const [fx, fy] = cases[`${x0 + 2},${y0}`]
     await emettre('souris', { type: 'mouseReleased', x: fx, y: fy, button: 'left', clickCount: 1 })
   })
-  assert.equal(tenu.surcouche.cases.length, 15, `bouton tenu, la surcouche couvre l’emprise 3×3 sur trois cases : ${JSON.stringify(tenu.surcouche.cases)}`)
+  assert.equal(tenu.surcouche.cases.length, EMPRISE_DU_GLISSE, `bouton tenu, la surcouche couvre l’emprise 3×3 sur trois cases : ${JSON.stringify(tenu.surcouche.cases)}`)
   assert.deepEqual(tenu.point, avant, 'bouton tenu, le monde reste tel quel')
   await waitFor(session, `globalThis.wfrpEcran?.editeur?.surcouche.cases.length === 0 && wfrpEcran.cases['${x0 + 2},${y0}'][1] < ${avant[1] - 20}`)
   e = await editeur()
@@ -2097,11 +2151,8 @@ async function parcoursEditeur() {
   assert.deepEqual(etatDuDeclencheur(await editeur()), declencheurAvant, '« Annuler » sept fois, le déclencheur recliqué : rendu à son flux d’avant l’adresse')
   const planche = join(depot, 'planche.png')
   ecrirePlanche(planche)
-  await session.rpc('Page.setInterceptFileChooserDialog', { enabled: true })
-  await cliquerAuPanneau({ element: 'bouton/calque/charger' })
-  await waitFor(session, '!!document.querySelector("input[data-planche]")')
-  await poserFichier(session, 'input[data-planche]', planche)
-  await waitFor(session, 'globalThis.wfrpEcran?.editeur?.calque_pose === true', { timeoutMs: 30000 })
+  await lieu.choisirLeFichier(session, planche, () => cliquerAuPanneau({ element: 'bouton/calque/charger' }))
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.calque_pose === true && wfrpEcran.editeur.zones['editeur.calque'].some((l) => l.id === 'calque/echelle')`, { timeoutMs: 30000 })
   e = await editeur()
   const ligneDuCalque = (e, id) => e.zones['editeur.calque'].find((l) => l.id === id)?.texte
   const echelle = (e) => Number(ligneDuCalque(e, 'calque/echelle').split(' ')[0])
@@ -2377,15 +2428,15 @@ async function cliquerAmene(quoi, sens, ou) {
   await cliquerBouton(quoi)
 }
 /** L'article `article` choisi dans la liste déroulante de clé `cle`, ou dans celle qui l'offre sans clé, amenée à l'écran dans le sens `sens` : son texte,
- *  ou `{ id }`, son id publié (`ids`) ; la liste ouverte au clic, puis l'article atteint au clavier, chaque flèche
- *  descendant d'un article depuis le haut, et retenu à l'Entrée. */
+ *  ou `{ id }`, son id publié (`ids`) ; la liste ouverte au clic, puis l'article désigné au clavier
+ *  (`designerALaListe`) et retenu à l'Entrée. */
 async function choisirDansLaListe(cle, article, sens = 1) {
-  const liste = await amener(cle === undefined ? { choix: article } : { cle }, sens)
+  const quoi = cle === undefined ? { choix: article } : { cle }
+  const liste = await amener(quoi, sens)
   const rang = typeof article === 'string' ? liste.choix.indexOf(article) : liste.ids.indexOf(article.id)
   assert.ok(rang >= 0, `« ${typeof article === 'string' ? article : article.id} » offert par la liste ${cle} : ${liste.choix.join(', ')}`)
   await geste(session, { surface: 'canvas', x: liste.x, y: liste.y }, { qui: `liste ${cle ?? article}` }, clic())
-  await sleep(400)
-  for (let n = 0; n <= rang; n++) await realKey(session, { key: 'ArrowDown', code: 'ArrowDown', windowsVirtualKeyCode: 40 })
+  await designerALaListe(quoi, rang)
   await marquer()
   await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
   await nouvelEcran()
@@ -3018,9 +3069,7 @@ async function prouverLaPile() {
 async function parcoursPreset() {
   const preset = JSON.parse(readFileSync(new URL('../../src/data/presets-de-personnage.json', import.meta.url), 'utf8')).find((x) => x.id === o.preset)
   assert.ok(preset, `--preset ${o.preset} : un preset de src/data/presets-de-personnage.json`)
-  await session.rpc('Emulation.setDeviceMetricsOverride', { width: 1280, height: 720, deviceScaleFactor: 2, mobile: false })
-  await session.rpc('Page.reload')
-  await waitFor(session, '!!globalThis.wfrpEcran && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
+  await enHauteDefinition()
   await cliquerBouton('Atelier')
   await attendreLAtelier('b.some((x) => x.cle === "modele/corps")', 120000)
   await choisirDansLaListe('modele/corps', 'humanoide')
@@ -3050,8 +3099,7 @@ assert.deepEqual(Object.keys(PARCOURS).filter((parcours) => !(parcours in JEUX_D
 
 let echec = null
 try {
-  await session.rpc('Page.navigate', { url: `${srv.url}index.html?scenario=${o.scenario}&graine=${o.graine}&recette=1` })
-  await waitFor(session, '!!globalThis.wfrpEcran && wfrpEcran.boutons.length > 0', { timeoutMs: 120000, evaluerMs: FIL_DE_LA_PAGE_MS })
+  await attendreLeMenu()
   await PARCOURS[o.parcours]()
   const releve = JSON.parse(await lire(`wfrpPont.appeler('erreursGlobales')`))
   assert.deepEqual(releve, { ok: true, erreurs: [] }, 'aucune erreur de la page relevée par le pont')
@@ -3061,10 +3109,10 @@ try {
   console.error('ÉCHEC', e.message)
   try { noter(`état à l’échec : ${JSON.stringify((await ecran())?.atelier?.composition)}`); await capturer('echec') } catch (diagnostic) { console.error('ÉCHEC DU DIAGNOSTIC', diagnostic.message) }
 } finally {
+  await session.close()
   const erreurs = garde.errors()
   console.log(`console : ${garde.entries.length} entrée(s), ${erreurs.length} erreur(s), ${garde.warnings().length} avertissement(s)`)
-  for (const e of [...erreurs, ...garde.warnings()]) console.log(' ', e.level, e.text)
-  await session.close()
+  for (const e of [...erreurs, ...garde.warnings()]) console.log(' ', e.type, e.text)
   srv.fermer()
   if (depot) rmSync(depot, { recursive: true, force: true })
 }

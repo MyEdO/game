@@ -88,6 +88,7 @@ func _ready() -> void:
 	_plateau.case_cliquee.connect(_cliquer)
 	_plateau.case_inspectee.connect(_inspecter)
 	_plateau.habille.connect(_publier_l_ecran)
+	_pont.suivre_les_listes(_ecran, _publier_l_ecran)
 	_monde.cadrage_change.connect(_recadrer)
 	_scene.resized.connect(func() -> void: _monde.cadre = _scene.get_global_rect())
 	if not await _pont.rejoindre(func(texte: String) -> void: _refus.text = texte, func(texte: String) -> void: _panne.text = texte):
@@ -268,13 +269,13 @@ func _publier_l_ecran() -> void:
 	_pont.publier_l_ecran(_ecran_publie)
 
 
-## Ce que l'écran porte : ses boutons (`PontDuNoyau.boutons_a_l_ecran`), le point de chaque case du plateau, la part de
-## l'écran où le monde se voit (`Monde.cadre`), ce que porte le corps de chaque combattant dessiné (`Plateau.corps`) et
-## les navires posés (`Plateau.navires`).
+## Ce que l'écran porte : ses boutons (`PontDuNoyau.boutons_a_l_ecran`), le point de chaque case du plateau, si la
+## caméra glisse (`Monde.glisse`), la part de l'écran où le monde se voit (`Monde.cadre`), ce que porte le corps de
+## chaque combattant dessiné (`Plateau.corps`) et les navires posés (`Plateau.navires`).
 func _ecran_publie() -> Dictionary:
 	var cadre := _monde.cadre
 	return {
-		boutons = PontDuNoyau.boutons_a_l_ecran([_ecran, _scenarios]), cases = _plateau.points(),
+		boutons = PontDuNoyau.boutons_a_l_ecran([_ecran, _scenarios]), cases = _plateau.points(), glisse = _monde.glisse(),
 		cadre = [cadre.position.x, cadre.position.y, cadre.size.x, cadre.size.y], corps = _plateau.corps(), navires = _plateau.navires(),
 	}
 
@@ -283,9 +284,9 @@ func _ecran_publie() -> Dictionary:
 ## un cadrage en JSON, sous le regard de la partie (`Plateau.cadrer`) ; la caméra posée et deux images dessinées, `rendre`
 ## reçoit la réponse en JSON : `{ ok: true, camera }` (`Plateau.camera`), ou
 ## `{ ok: false, erreur: { categorie: "validation", message } }`.
-func _cadrer(args: Array) -> void:
-	var cadrage: Variant = JSON.parse_string(str(args[0]))
-	var refus := _plateau.cadrer(cadrage) if cadrage is Dictionary else "cadrage illisible : %s" % args[0]
+func _cadrer(entree: String, rendre: Callable) -> void:
+	var cadrage: Variant = JSON.parse_string(entree)
+	var refus := _plateau.cadrer(cadrage) if cadrage is Dictionary else "cadrage illisible : %s" % entree
 	var reponse := {ok = refus == ""}
 	if refus == "":
 		await RenderingServer.frame_post_draw
@@ -293,7 +294,7 @@ func _cadrer(args: Array) -> void:
 		reponse.camera = _plateau.camera()
 	else:
 		reponse.erreur = {categorie = "validation", message = refus}
-	(args[1] as JavaScriptObject).call("call", null, JSON.stringify(reponse))
+	rendre.call(JSON.stringify(reponse))
 
 
 ## La touche du regard (`changer_de_regard`) passe au regard suivant (`regarder`, `plateau.regardSuivant`).

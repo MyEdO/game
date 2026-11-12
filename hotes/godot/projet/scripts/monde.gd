@@ -472,6 +472,13 @@ func _rejoindre(lieu: Vector3) -> void:
 	_suivi = create_tween()
 	_suivi.tween_property(_pivot, "position", lieu, DUREE_QUART_S)
 	_suivi.tween_callback(cadrage_change.emit)
+	cadrage_change.emit()
+
+
+## Si la caméra des regards `tactique` et `plateau` glisse vers un lieu ou pivote : les points de l'écran (`points`)
+## changent jusqu'à ce qu'elle se pose, où le cadrage se dit changé.
+func glisse() -> bool:
+	return (_suivi != null and _suivi.is_running()) or (_pivotement != null and _pivotement.is_running())
 
 
 ## L'œil du regard `immersion` au lieu `lieu`, tourné du lacet `lacet` et du tangage `tangage`.
@@ -618,6 +625,7 @@ func _pivoter(sens: float) -> void:
 	_pivotement.tween_property(_pivot, "rotation:y", MiseEnPage.lacet_du_plateau(_lacet) if _regard == "plateau" else _lacet, DUREE_QUART_S)
 	_pivotement.tween_callback(_abattre_les_aretes)
 	_pivotement.tween_callback(cadrage_change.emit)
+	cadrage_change.emit()
 
 
 func _zoomer(sens: float) -> void:

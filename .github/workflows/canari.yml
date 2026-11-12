@@ -137,8 +137,8 @@ jobs:
         continue-on-error: true
         if: ${{ !cancelled() && steps.server-install.outcome == 'success' }}
         run: npm run server:typecheck
-      # L'export Web de l'hôte Godot et le lot de ses recettes (#4007) : aucune gate de `ci.yml` ne joue
-      # `hotes/godot/recette.mjs`, qu'une refonte périmait sans qu'aucun run le voie. Chrome est celui du runner.
+      # L'export Web de l'hôte Godot et le lot de ses recettes dans la page (#4007) : `ci.yml` ne joue que les jeux
+      # natifs de `hotes/godot/recette.mjs` (`godot:recette`, #3945), jamais l'export. Chrome est celui du runner.
       - if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         uses: ./.github/actions/caches-3d
       - id: godot-export
