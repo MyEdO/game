@@ -73,7 +73,7 @@ import { rangeSpecLabel, ammoRangeModLabel } from '../../engine/weaponStats';
 import { formatSpellRange, formatSpellDuration } from '../../engine/spellRangeFormat';
 import { effectiveEntry } from '../../engine/variants';
 import { Coins } from '../Coins';
-import { graineDEntropie, idDEntropie } from '../../web/entropie';
+import { graineDEntropie, idDEntropie } from '../../hote/entropie';
 import { Icon } from '../Icon';
 import { OptionChooser } from '../OptionChooser';
 import { MediaSelect, type MediaOption } from '../MediaSelect';
@@ -304,7 +304,12 @@ export function CharacterCreator() {
   };
 
   const create = () => {
-    if (engagerLeHeros(stockageDuRoster(), useGame.getState(), d, idDEntropie, editing?.heroId) === null) closeCreator();
+    const jeu = useGame.getState();
+    const engage = engagerLeHeros(stockageDuRoster(), jeu, d, idDEntropie, editing?.heroId);
+    if ('refus' in engage) return;
+    if (engage.intention.type === 'recruterLeHeros') jeu.recruterLeHeros(...engage.intention.args);
+    else jeu.remplacerLeHeros(...engage.intention.args);
+    closeCreator();
   };
 
   const stepProps: StepProps = { d, setD, skillsSub, setSkillsSub };
@@ -976,7 +981,7 @@ export function CharScreen({ d, setD }: StepProps): ReactNode {
               d.charMode === 'repartition' ? (
                 <b className={points.total === points.quota ? 'ok-text' : 'warn-text'}>Points : {points.total}/{points.quota}</b>
               ) : (
-                <NotchGauge value={tiredCount} max={10} notches={10} format={(v, m) => `${v}/${m} tirées`} tone={tiredCount === 10 ? 'ok' : 'neutral'} />
+                <NotchGauge value={tiredCount} max={10} notches={10} format={(v, m) => `${v}/${m} tirées`} tone={tiredCount === 10 ? 'ok' : 'neutre'} />
               )
             }
           >
@@ -1470,14 +1475,14 @@ function speciesSkillsZones(d: CreatorDraft, setD: (d: CreatorDraft) => void, sp
                 max={SPECIES_SKILLS_PLUS5}
                 notches={SPECIES_SKILLS_PLUS5}
                 format={(v, m) => `${v}/${m} à +5`}
-                tone={d.speciesPlus5.length === SPECIES_SKILLS_PLUS5 ? 'ok' : 'neutral'}
+                tone={d.speciesPlus5.length === SPECIES_SKILLS_PLUS5 ? 'ok' : 'neutre'}
               />
               <NotchGauge
                 value={d.speciesPlus3.length}
                 max={SPECIES_SKILLS_PLUS3}
                 notches={SPECIES_SKILLS_PLUS3}
                 format={(v, m) => `${v}/${m} à +3`}
-                tone={d.speciesPlus3.length === SPECIES_SKILLS_PLUS3 ? 'ok' : 'neutral'}
+                tone={d.speciesPlus3.length === SPECIES_SKILLS_PLUS3 ? 'ok' : 'neutre'}
               />
             </>
           }
@@ -1559,7 +1564,7 @@ function careerSkillsZones(d: CreatorDraft, setD: (d: CreatorDraft) => void, att
               value={total}
               max={CAREER_SKILL_ADVANCES}
               format={(v, m) => `${v} / ${m} · reste ${m - v}`}
-              tone={done ? 'ok' : 'neutral'}
+              tone={done ? 'ok' : 'neutre'}
             />
           }
         >

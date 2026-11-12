@@ -1,9 +1,10 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/combat.gd" id="1_combat"]
 [ext_resource type="PackedScene" path="res://scenes/Plateau.tscn" id="2_plateau"]
 [ext_resource type="PackedScene" path="res://scenes/Ecran.tscn" id="3_ecran"]
 [ext_resource type="Script" path="res://scripts/zone.gd" id="4_zone"]
+[ext_resource type="PackedScene" path="res://scenes/Reglages.tscn" id="5_reglages"]
 [ext_resource type="Theme" path="res://art/cartes.tres" id="t_cartes"]
 
 [node name="Combat" type="Node"]
@@ -42,3 +43,52 @@ size_flags_horizontal = 3
 [node name="Zone" type="Node" parent="Scenarios/Cadre/Defilement/Sections"]
 script = ExtResource("4_zone")
 source = "scenarios.sections"
+
+[node name="Sauvegardes" type="CanvasLayer" parent="."]
+layer = 2
+
+[node name="Cadre" type="PanelContainer" parent="Sauvegardes"]
+visible = false
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -280.0
+offset_top = -220.0
+offset_right = 280.0
+offset_bottom = 220.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("t_cartes")
+theme_type_variation = &"Fenetre"
+
+[node name="Pile" type="VBoxContainer" parent="Sauvegardes/Cadre"]
+theme_type_variation = &"PileAeree"
+layout_mode = 2
+
+[node name="Avis" type="VBoxContainer" parent="Sauvegardes/Cadre/Pile"]
+layout_mode = 2
+
+[node name="Zone" type="Node" parent="Sauvegardes/Cadre/Pile/Avis"]
+script = ExtResource("4_zone")
+source = "sauvegardes.avis"
+
+[node name="Emplacements" type="VBoxContainer" parent="Sauvegardes/Cadre/Pile"]
+theme_type_variation = &"PileAeree"
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Zone" type="Node" parent="Sauvegardes/Cadre/Pile/Emplacements"]
+script = ExtResource("4_zone")
+source = "sauvegardes.emplacements"
+
+[node name="Gestes" type="HBoxContainer" parent="Sauvegardes/Cadre/Pile"]
+layout_mode = 2
+alignment = 2
+
+[node name="Zone" type="Node" parent="Sauvegardes/Cadre/Pile/Gestes"]
+script = ExtResource("4_zone")
+source = "sauvegardes.gestes"
+
+[node name="Reglages" parent="." instance=ExtResource("5_reglages")]

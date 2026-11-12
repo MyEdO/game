@@ -75,11 +75,11 @@ describe('forme persistée — ce que le chargement lit', () => {
       { id: 'table-1', kind: 'prop', decor: { id: 'table-ronde-4-tabourets' }, pos: { x: 5, y: 5 }, usable: { assise: true } },
       { id: 'pnj-1', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 5, y: 6 } },
     ] as typeof scene.entities;
-    const ancien = { 'table-1': { 'place-nord': { kind: 'entity' as const, entityId: 'pnj-1' } } };
+    const ancien = { 'table-1': { 'place-nord': { kind: 'entite' as const, entityId: 'pnj-1' } } };
     expect(pruneSeatAssignments({ ...scene, seatAssignments: ancien }, 4), 'l’élagage est MUET').toEqual({});
     // La MÊME assise, dite au vocabulaire courant, SURVIT : c'est bien l'id, et rien d'autre, qui
     // décide — sans cette moitié, le contrat ci-dessus passerait aussi sur une scène mal formée.
-    const courant = { 'table-1': { 'place-1': { kind: 'entity' as const, entityId: 'pnj-1' } } };
+    const courant = { 'table-1': { 'place-1': { kind: 'entite' as const, entityId: 'pnj-1' } } };
     expect(pruneSeatAssignments({ ...scene, seatAssignments: courant }, 4)).toEqual(courant);
   });
   it('une op de Talent hors grammaire (`grantTalent`) lève à `applyOps` (#1473)', () => {
@@ -87,11 +87,11 @@ describe('forme persistée — ce que le chargement lit', () => {
     expect(() => applyOps(h, [{ op: 'grantTalent', talentId: 'chanceux' } as never], { idNeuf: idsDeTest, rng: makeRNG(1) })).toThrow();
   });
   it('une chute se dérive de ses `participants` ; une chute à tombant unique lève (#700)', () => {
-    const tombantUnique = { combatantId: 'h', to: { x: 1, y: 1 }, metres: 4, attempt: null, phase: 'choice', result: null };
+    const tombantUnique = { combatantId: 'h', to: { x: 1, y: 1 }, metres: 4, attempt: null, phase: 'choix', result: null };
     // LE DÉFAUT, sur le chemin réel : `FallModal` dérive sa phase par `phaseDeChute` à l'ouverture.
     expect(() => phaseDeChute(tombantUnique as never)).toThrow(TypeError);
     const courante: PendingFall = { test: testDeRegle('chute', 'tenter'), to: { x: 1, y: 1 }, metres: 4, initiateurId: 'h', participants: [{ id: 'h', attempt: null, result: null }] };
-    expect(phaseDeChute(courante)).toBe('choice');
+    expect(phaseDeChute(courante)).toBe('choix');
   });
   it('l’empreinte d’un décor à recette TOURNE avec son cap (#1509)', () => {
     const scene = emptyScene('scene-test', 12, 12);

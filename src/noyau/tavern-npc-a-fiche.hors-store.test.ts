@@ -89,10 +89,10 @@ describe('#1279 S4-b — l’adversaire de taverne à FICHE', () => {
     jouerALaTaverne(get, set, challenger.id, { gameId: 'dominos', opponent: { kind: 'pnj', id: 'pnj-plantule' } });
 
     const seq = activeSequence<{ opponentValue: number; opponentName: string; opponentId?: string }>(get)!;
-    expect(seq.payload.opponentId).toBe('pnj-plantule');
-    expect(seq.payload.opponentName).toBe('Plantule');
-    expect(seq.payload.opponentValue).toBe(tavernGameValue(sceneNpc(get().scene, 'pnj-plantule', presetPnjById)!, jeu));
-    expect(seq.payload.opponentValue).toBe(55);
+    expect(seq.chargeUtile.opponentId).toBe('pnj-plantule');
+    expect(seq.chargeUtile.opponentName).toBe('Plantule');
+    expect(seq.chargeUtile.opponentValue).toBe(tavernGameValue(sceneNpc(get().scene, 'pnj-plantule', presetPnjById)!, jeu));
+    expect(seq.chargeUtile.opponentValue).toBe(55);
   });
 
   it('la valeur du PNJ est la SIENNE, pas celle du challenger (le défaut de l’adversaire abstrait)', () => {
@@ -103,7 +103,7 @@ describe('#1279 S4-b — l’adversaire de taverne à FICHE', () => {
     jouerALaTaverne(get, set, challenger.id, { gameId: 'dominos', opponent: { kind: 'pnj', id: 'pnj-plantule' } });
     const seq = activeSequence<{ opponentValue: number }>(get)!;
 
-    expect(seq.payload.opponentValue).not.toBe(tavernGameValue(challenger, jeu));
+    expect(seq.chargeUtile.opponentValue).not.toBe(tavernGameValue(challenger, jeu));
   });
 
   it('la SCÈNE décide : `tavernGame` sur l’entité déclare le jeu et la mise de départ (patron `NADJ 04 l.72`)', () => {
@@ -154,7 +154,7 @@ describe('#1906 — une partie REFUSÉE le dit au journal, jamais un retour muet
     jouerALaTaverne(get, set, get().party[0]!.id, { gameId: 'dominos', opponent: { kind: 'profil', id: 'humain' } });
     const seq = activeSequence(get);
     expect(seq).not.toBeNull();
-    set({ sequence: { ...seq!, payload: { ...(seq!.payload as object), challengerId: 'heros-parti' } } } as never);
+    set({ sequence: { ...seq!, chargeUtile: { ...(seq!.chargeUtile as object), challengerId: 'heros-parti' } } } as never);
     expect(() => sequenceBoardOf(get)).toThrow(/tableau de taverne — challenger/);
   });
 
@@ -236,8 +236,8 @@ describe('L2 #1548 — le PNJ de taverne RENOMMÉ garde son nom', () => {
     jouerALaTaverne(get, set, challenger.id, { gameId: 'dominos', opponent: { kind: 'pnj', id: 'pnj-gerta' } });
 
     const seq = activeSequence<{ opponentName: string; opponentValue: number }>(get)!;
-    expect(seq.payload.opponentName).toBe('Gerta la Rusée');
-    expect(seq.payload.opponentValue).toBe(45); // Pari de la FICHE
+    expect(seq.chargeUtile.opponentName).toBe('Gerta la Rusée');
+    expect(seq.chargeUtile.opponentValue).toBe(45); // Pari de la FICHE
   });
 });
 

@@ -216,7 +216,7 @@ describe('Pré-jet de préparation de bataille — la cible rendue par le volet 
     const meneur = instruit(vétéran(), 10);
     const second = instruit(withBourseMoney(createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Second', seed: 1602 }), { gold: 1, silver: 0, brass: 0 }, idsDeTest), 5);
     const b = banc([meneur, second]);
-    b.actions.amorcerLaBataille({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
+    b.actions.amorcerLaBataille({ puissanceAlliee: 50, puissanceEnnemie: 55, plannedRounds: 3 });
     for (const id of [meneur.id, second.id]) b.actions.fenetreChoisir('batailleDeMasse', 'ajouterAuPoste', 'planification', id);
     const s = b.getState();
     const { ligne } = preJetDePreparation(s, s.massBattle!, héros(b, meneur.id), battleActivityById('planification')!)!.pending;
@@ -240,7 +240,7 @@ describe('Pré-jet de préparation de bataille — la cible rendue par le volet 
     const b = ouvrirLeBanc({ graine: 7, desFixes: false, etat: { party: [a, second], scene: SCENE } });
     b.actions.ouvrirLInterlude(4);
     draineCascade(b.getState);
-    b.actions.amorcerLaBataille({ allyMight: 40 + (i % 30), enemyMight: 55, plannedRounds: 3 });
+    b.actions.amorcerLaBataille({ puissanceAlliee: 40 + (i % 30), puissanceEnnemie: 55, plannedRounds: 3 });
     // Réservoir de modificateur posé, comme un Repérage réussi le pose (ADE II 8 l.100).
     if (i % 2) b.setState((s) => ({ massBattle: { ...s.massBattle!, planningBonus: 20 } }));
     const ecarts: string[] = [];

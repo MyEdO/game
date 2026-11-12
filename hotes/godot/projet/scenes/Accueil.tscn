@@ -1,6 +1,8 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/accueil.gd" id="1_accueil"]
+[ext_resource type="Script" path="res://scripts/zone.gd" id="2_zone"]
+[ext_resource type="PackedScene" path="res://scenes/Reglages.tscn" id="3_reglages"]
 
 [node name="Accueil" type="CenterContainer"]
 anchors_preset = 15
@@ -18,18 +20,19 @@ layout_mode = 2
 text = "WFRP"
 horizontal_alignment = 1
 
-[node name="Jouer" type="Button" parent="Menu"]
+[node name="Gestes" type="VBoxContainer" parent="Menu"]
 layout_mode = 2
-text = "Jouer"
 
-[node name="Combat" type="Button" parent="Menu"]
-layout_mode = 2
-text = "Combat"
+[node name="Zone" type="Node" parent="Menu/Gestes"]
+script = ExtResource("2_zone")
+source = "accueil.gestes"
 
-[node name="Atelier" type="Button" parent="Menu"]
+[node name="Refus" type="Label" parent="Menu"]
 layout_mode = 2
-text = "Atelier"
+horizontal_alignment = 1
 
-[node name="Editeur" type="Button" parent="Menu"]
+[node name="Panne" type="Label" parent="Menu"]
 layout_mode = 2
-text = "Éditeur"
+horizontal_alignment = 1
+
+[node name="Reglages" parent="." instance=ExtResource("3_reglages")]

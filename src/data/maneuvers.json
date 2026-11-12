@@ -8,7 +8,7 @@
     "coutEnAvantage": 0,
     "stat": "capacite-de-combat",
     "defense": "auto",
-    "targeting": "melee",
+    "ciblage": "melee",
     "effects": [],
     "source": {
       "book": "livre-de-base",
@@ -26,7 +26,7 @@
     "coutEnAvantage": 1,
     "stat": "capacite-de-combat",
     "defense": "auto",
-    "targeting": "melee",
+    "ciblage": "melee",
     "effects": [],
     "source": {
       "book": "livre-de-base",
@@ -44,11 +44,11 @@
     "coutEnAvantage": 1,
     "stat": "capacite-de-combat",
     "defense": "auto",
-    "targeting": "melee",
+    "ciblage": "melee",
     "effects": [
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
           "kind": "si",
           "condition": {
@@ -110,7 +110,7 @@
     "coutEnAvantage": 0,
     "stat": "capacite-de-combat",
     "defense": "auto",
-    "targeting": "melee",
+    "ciblage": "melee",
     "effects": [],
     "source": {
       "book": "livre-de-base",
@@ -128,11 +128,11 @@
     "coutEnAvantage": 0,
     "stat": "capacite-de-combat",
     "defense": "auto",
-    "targeting": "melee",
+    "ciblage": "melee",
     "effects": [
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
           "kind": "si",
           "condition": {
@@ -181,14 +181,14 @@
     "coutEnAvantage": 1,
     "stat": "capacite-de-tir",
     "defense": "esquive",
-    "targeting": "ranged",
+    "ciblage": "distance",
     "range": {
       "bonusOf": "endurance"
     },
     "effects": [
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
           "kind": "sequence",
           "etapes": [
@@ -248,12 +248,12 @@
     "coutEnAvantage": 2,
     "stat": "capacite-de-combat",
     "defense": "auto",
-    "targeting": "melee",
+    "ciblage": "melee",
     "magic": true,
     "effects": [
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
           "kind": "effet",
           "effet": {
@@ -296,12 +296,12 @@
     "coutEnAvantage": 1,
     "stat": "capacite-de-tir",
     "defense": "init",
-    "targeting": "ranged",
-    "advantageMode": "variable",
+    "ciblage": "distance",
+    "modeDAvantage": "variable",
     "effects": [
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
           "kind": "si",
           "condition": {
@@ -388,7 +388,7 @@
     "coutEnAvantage": 2,
     "stat": "capacite-de-tir",
     "defense": "esquive",
-    "targeting": "zone",
+    "ciblage": "zone",
     "range": {
       "bonusOf": "endurance",
       "plus": 20
@@ -404,7 +404,7 @@
     "effects": [
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
           "kind": "effet",
           "effet": {
@@ -439,7 +439,7 @@
     "coutEnAvantage": 3,
     "stat": "capacite-de-tir",
     "defense": "esquive",
-    "targeting": "zone",
+    "ciblage": "zone",
     "range": {
       "bonusOf": "endurance"
     },
@@ -449,7 +449,7 @@
     "effects": [
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
           "kind": "sequence",
           "etapes": [
@@ -523,13 +523,13 @@
     "kind": "hurlement",
     "activation": "free",
     "coutEnAvantage": 2,
-    "targeting": "allAround",
+    "ciblage": "toutAutour",
     "defense": "resist",
-    "advantageMode": "all",
+    "modeDAvantage": "tout",
     "effects": [
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
           "kind": "sequence",
           "etapes": [
@@ -618,12 +618,12 @@
     "kind": "hurlement",
     "activation": "free",
     "coutEnAvantage": 1,
-    "targeting": "allFoes",
+    "ciblage": "adversairesAutour",
     "defense": "auto",
     "effects": [
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
           "kind": "sequence",
           "etapes": [
@@ -695,12 +695,12 @@
     "coutEnAvantage": 0,
     "stat": "capacite-de-combat",
     "defense": "esquive",
-    "targeting": "melee",
+    "ciblage": "melee",
     "magic": true,
     "effects": [
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
           "kind": "effet",
           "effet": {
@@ -736,11 +736,11 @@
     "kind": "hurlement",
     "activation": "action",
     "coutEnAvantage": 0,
-    "targeting": "self",
+    "ciblage": "soi",
     "effects": [
       {
         "trigger": "onHit",
-        "on": "self",
+        "on": "soi",
         "flow": {
           "kind": "effet",
           "effet": {
@@ -883,11 +883,11 @@
     "kind": "hurlement",
     "activation": "action",
     "coutEnAvantage": 0,
-    "targeting": "self",
+    "ciblage": "soi",
     "effects": [
       {
         "trigger": "onHit",
-        "on": "self",
+        "on": "soi",
         "flow": {
           "kind": "effet",
           "effet": {
@@ -923,7 +923,7 @@
     "coutEnAvantage": 1,
     "stat": "capacite-de-combat",
     "defense": "auto",
-    "targeting": "melee",
+    "ciblage": "melee",
     "ecartDeTailleMin": 1,
     "subType": {
       "id": "bagarre"

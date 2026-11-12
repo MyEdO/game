@@ -140,7 +140,7 @@ describe('exploration : chaque tombant déclare SA hauteur', () => {
     const p = g().pendingFall!;
     expect(p).toMatchObject({ metres: 4, suspendu: 2, allege: 1 });
     expect(p.participants.map((x) => [x.attempt, x.suspendre])).toEqual([[null, null], [null, null]]);
-    expect(phaseDeChute(p)).toBe('choice');
+    expect(phaseDeChute(p)).toBe('choix');
   });
 
   it('axe hauteur manquant alors qu’il est offert → refus NOMMÉ, rangée non déclarée', () => {
@@ -169,7 +169,7 @@ describe('exploration : chaque tombant déclare SA hauteur', () => {
     g().jetRegler('chute', 'tenter', true, A);
     g().jetRegler('chute', 'suspendre', false, B);
     g().jetRegler('chute', 'tenter', false, B);
-    expect(phaseDeChute(g().pendingFall!)).toBe('roll');
+    expect(phaseDeChute(g().pendingFall!)).toBe('jet');
     g().jetLancer('chute', A);
     const r = g().pendingFall!.participants.find((x) => x.id === A)!.result!;
     expect(r.effectiveMetres).toBe(Math.max(0, 2 - Math.max(0, r.dr)));

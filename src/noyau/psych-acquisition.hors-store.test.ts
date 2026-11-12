@@ -317,7 +317,7 @@ describe('ADE II 09 l.9-11 — Phobie du noir hors combat (Terreur d’auteur `i
   /** Le héros (FM 30, Terreurs déjà subies `avant`) rate son Calme (d100 = 100) face à une Terreur d'auteur. */
   const terreurDAuteur = (avant: TerreurSubie[]) => {
     banc.setState({ battle: null, mode: 'exploration', journal: [], pendingCascade: null, party: [hero({ label: 'Hardi', terreursSubies: avant })] });
-    applyEffects(banc.getState, banc.setState, [{ type: 'inflictPsychology', kind: 'terreur', indice: 1, label: 'Un hurlement dans la nuit', target: 'hero', heroId: 'h1' }]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'inflictPsychology', kind: 'terreur', indice: 1, label: 'Un hurlement dans la nuit', target: 'heros', heroId: 'h1' }]);
     draineEtapes(banc.getState, 5, () => 100);
     return banc.getState().party[0];
   };

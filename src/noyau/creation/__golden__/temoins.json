@@ -128,6 +128,9 @@
    "feuille-de-parchemin",
    "feuille-de-parchemin",
    "feuille-de-parchemin",
+   "alcool",
+   "livre",
+   "lettre-de-recommandation",
    "necessaire-d-ecriture"
   ],
   "wounds": {
@@ -273,6 +276,7 @@
    "chapeau",
    "bourse",
    "besace",
+   "dejeuner",
    "craie",
    "justaucorps-de-cuir",
    "chiffons",
@@ -428,6 +432,7 @@
    "chapeau",
    "bourse",
    "besace",
+   "dejeuner",
    "craie",
    "justaucorps-de-cuir",
    "chiffons",
@@ -908,6 +913,9 @@
    "feuille-de-parchemin",
    "feuille-de-parchemin",
    "feuille-de-parchemin",
+   "alcool",
+   "livre",
+   "lettre-de-recommandation",
    "necessaire-d-ecriture"
   ],
   "wounds": {

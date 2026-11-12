@@ -1,5 +1,5 @@
 // Banc de la GARDE `refsDeLigne.mjs` (#1993) : chaque forme refusée est vue, chaque forme permise
-// passe, puis le balayage réel de `scripts/docs/` et `scripts/gates/`.
+// passe, puis le balayage réel de `RACINES_BALAYEES`.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
@@ -69,7 +69,7 @@ test('sitesFautifs : ancre stable, réf à soi-même, regex, heure, URL, citatio
   for (const p of permises) assert.deepEqual(sitesFautifs(p, 'scripts/docs/build-x.mjs'), [], p)
 })
 
-test('GARDE : aucun numéro de ligne (`fichier.ext:NN`, `l.NN`) vers un autre fichier sous scripts/docs/ ni scripts/gates/', () => {
+test('GARDE : aucun numéro de ligne (`fichier.ext:NN`, `l.NN`) vers un autre fichier sous `RACINES_BALAYEES`', () => {
   const fichiers = fichiersBalayes()
   assert.ok(fichiers.length > 50, `balayage suspect : ${fichiers.length} fichier(s)`)
   assert.ok(fichiers.every((f) => RACINES_BALAYEES.some((r) => f.startsWith(r))), 'fichier hors des racines balayées')

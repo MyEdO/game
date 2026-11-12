@@ -1321,11 +1321,9 @@ export function damageScore(d?: WeaponDamageSpec): number {
   return d && 'flat' in d ? d.flat : 0;
 }
 
-/** Construit l'inventaire d'un héros depuis des `TrappingRef[]` (possessions de Classe + niveau de
- *  carrière — déjà des refs par id). Le `count` d'une ref `{id}` (`compteDeLaDotation`, tiré sur `rng`)
- *  se résout ici, puis `inventaireDesDotations`. Une ref sans `id` est ignorée : `{text}` (flavor hors
- *  catalogue : « Réseau d'informateurs »), et un emplacement non tranché (`{choice}`, `{wildcard}`,
- *  `trappingChoices.ts`). */
+/** L'inventaire des dotations d'objet (`estDotationDObjet`) de `refs` : le `count` d'une ref `{id}`
+ *  (`compteDeLaDotation`, tiré sur `rng`) se résout ici, puis `inventaireDesDotations`. Une dotation de
+ *  texte, de possession ou un emplacement non tranché (`trappingChoices.ts`) ne donne aucun objet. */
 export function buildInventory(refs: TrappingRef[], rng: RNG, idNeuf: FabriqueDId, contexte?: ContexteDeNaissanceDObjet): ItemInstance[] {
   return inventaireDesDotations(refs.filter(estDotationDObjet).map((ref) => ({ ref, ...(ref.count ? { n: compteDeLaDotation(ref, (de) => rollDice(de, rng)) } : {}) })), idNeuf, contexte);
 }
@@ -1366,6 +1364,8 @@ export function inventaireDesDotations(dotations: readonly DotationResolue[], id
   const holder = { items } as Combatant; // equipConflicts lit c.items (équipés au fil de l'eau)
   const armours = items.filter((i) => i.kind === 'armor').sort((a, b) => (b.pa ?? 0) - (a.pa ?? 0));
   for (const a of armours) if (!equipConflicts(holder, a).length) a.equipped = true;
+  // LDB 61 l.21
+  for (const it of items) if (it.kind !== 'armor' && isWearable(it) && !equipConflicts(holder, it).length) it.equipped = true;
   return items;
 }
 

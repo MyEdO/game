@@ -53,7 +53,7 @@ import { useLowerLayerOpacity, setLowerLayerOpacity, useLowerLayerMode, setLower
 import { useEditorLayers } from './editorLayers';
 import { LayerField, sceneLayerZs } from './LayerField';
 import { OptionChooser } from '../OptionChooser';
-import { idDEntropie } from '../../web/entropie';
+import { idDEntropie } from '../../hote/entropie';
 import { lireBlocsAvances } from '../../data/schemas/blocsAvances';
 
 /** Titres des gestes du menu Fichier dont le refus n'a aucune modale à lui (`refusDuGeste`) : le
@@ -105,11 +105,11 @@ export function Editor({
     hide: hideAutosaveRecovery,
     show: showAutosaveRecovery,
   } = useEditorAutosave(scene, (s) => setScene(clone(s)));
-  const [tool, setTool] = useState<Tool>({ mode: 'select' });
+  const [tool, setTool] = useState<Tool>({ mode: 'selection' });
   const [architectureMode, setArchitectureMode] = useState(false);
   const [architectureBodyId, setArchitectureBodyId] = useState<string | null>(null);
   const [architectureStoreyId, setArchitectureStoreyId] = useState<string | null>(null);
-  const [architectureAction, setArchitectureAction] = useState<'select' | 'facade'>('select');
+  const [architectureAction, setArchitectureAction] = useState<'selection' | 'facade'>('selection');
   const [sel, setSel] = useState<Sel>(null);
   // Défaut de plan MIS EN ÉVIDENCE sur la carte — ANNOTATION, pas sélection : un défaut porte souvent
   // un ENSEMBLE de cases (`PlanDefectAt`), là où `sel` ne désigne qu'un objet éditable. Les deux
@@ -301,8 +301,8 @@ export function Editor({
 
   function selectMapTool(next: Tool) {
     setArchitectureMode(false);
-    setArchitectureAction('select');
-    if (next.mode !== 'stair') setStairRun([]);
+    setArchitectureAction('selection');
+    if (next.mode !== 'escalier') setStairRun([]);
     setTool(next);
   }
 
@@ -311,7 +311,7 @@ export function Editor({
   function armZoneTiles(zoneId: string, paint: 'add' | 'remove') {
     if (!scene.effectZones?.some((z) => z.id === zoneId)) return;
     setLayers((prev) => (prev.zones ? prev : { ...prev, zones: true }));
-    selectMapTool({ mode: 'zoneTiles', zoneId, paint });
+    selectMapTool({ mode: 'casesDeZone', zoneId, paint });
   }
 
   /** Ajoute la case au tracé de volée, ou l'en retire si elle y est déjà (même geste, deux sens). */
@@ -321,7 +321,7 @@ export function Editor({
 
   /** Pose la volée planifiée : des COTES, rien d'autre — la traversée verticale s'en dérive. */
   function applyStairRun() {
-    if (tool.mode !== 'stair') return;
+    if (tool.mode !== 'escalier') return;
     const posee = placeStairFlight(scene, stairRun, currentLayer, tool.toZ);
     if (!posee) return;
     setScene(posee);
@@ -329,9 +329,9 @@ export function Editor({
   }
 
   function enterArchitectureMode() {
-    setTool({ mode: 'select' });
+    setTool({ mode: 'selection' });
     setArchitectureMode(true);
-    setArchitectureAction('select');
+    setArchitectureAction('selection');
     if (architectureBody) {
       setArchitectureBodyId(architectureBody.id);
       setArchitectureStoreyId(architectureStorey?.id ?? null);
@@ -352,7 +352,7 @@ export function Editor({
     if (body?.storeys[0] && scene.layers.some((layer) => layer.z === body.storeys[0].z)) {
       setCurrentLayer(body.storeys[0].z);
     }
-    setArchitectureAction('select');
+    setArchitectureAction('selection');
     setSel({ type: 'architectureBody', id });
   }
 
@@ -360,7 +360,7 @@ export function Editor({
     const storey = architectureBody?.storeys.find((candidate) => candidate.id === id);
     setArchitectureStoreyId(id);
     if (storey && scene.layers.some((layer) => layer.z === storey.z)) setCurrentLayer(storey.z);
-    setArchitectureAction('select');
+    setArchitectureAction('selection');
     if (architectureBody) setSel({ type: 'architectureStorey', bodyId: architectureBody.id, id });
   }
 
@@ -373,7 +373,7 @@ export function Editor({
     setScene(out.scene);
     setArchitectureBodyId(out.id);
     setArchitectureStoreyId(out.storeyId);
-    setArchitectureAction('select');
+    setArchitectureAction('selection');
     setSel({ type: 'architectureBody', id: out.id });
   }
 
@@ -385,7 +385,7 @@ export function Editor({
     setScene(out.scene);
     setArchitectureStoreyId(out.id);
     setCurrentLayer(out.z);
-    setArchitectureAction('select');
+    setArchitectureAction('selection');
     setSel({ type: 'architectureStorey', bodyId: architectureBody.id, id: out.id });
   }
 
@@ -601,7 +601,7 @@ export function Editor({
       // sélectionne EN PLUS comme zone (l'inspecteur reste le moyen de la retailler).
       const at = w.plan.at;
       if (scene.layers.some((layer) => layer.z === at.z)) setCurrentLayer(at.z);
-      setTool({ mode: 'select' });
+      setTool({ mode: 'selection' });
       if (at.kind === 'zone') {
         if (scene.effectZones?.some((z) => z.id === at.zoneId)) setSel({ type: 'effectZone', id: at.zoneId });
       }
@@ -629,8 +629,8 @@ export function Editor({
       else if (z !== undefined) setArchitectureStoreyId(body?.storeys.find((storey) => storey.z === z)?.id ?? null);
       else setArchitectureStoreyId(body?.storeys[0]?.id ?? null);
       if (z !== undefined && scene.layers.some((layer) => layer.z === z)) setCurrentLayer(z);
-      setTool({ mode: 'select' });
-      setArchitectureAction('select');
+      setTool({ mode: 'selection' });
+      setArchitectureAction('selection');
       setSel(architectureSel);
       return;
     }
@@ -1031,7 +1031,7 @@ export function Editor({
           architectureBodyId={architectureBody?.id ?? null}
           architectureZ={architectureStorey?.z ?? null}
           architectureAction={architectureAction}
-          onArchitectureActionComplete={() => setArchitectureAction('select')}
+          onArchitectureActionComplete={() => setArchitectureAction('selection')}
           traceLayer={traceLayer}
           lowerLayerOpacity={lowerLayerOpacity}
           lowerLayerMode={lowerLayerMode}

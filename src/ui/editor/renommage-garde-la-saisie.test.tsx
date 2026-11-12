@@ -97,7 +97,7 @@ function Inspecteur({ initiale, sel0 }: { initiale: Scene; sel0: Sel }) {
       openLogic={() => undefined}
       resizeScene={() => undefined}
       narratif={emptyNarratif()}
-      tool={{ mode: 'select' }}
+      tool={{ mode: 'selection' }}
       armZoneTiles={() => undefined}
       zoneFocusKey={null}
     />

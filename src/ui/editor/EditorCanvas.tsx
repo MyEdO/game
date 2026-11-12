@@ -226,7 +226,7 @@ export function EditorCanvas({
   architectureMode: boolean;
   architectureBodyId: string | null;
   architectureZ: number | null;
-  architectureAction: 'select' | 'facade';
+  architectureAction: 'selection' | 'facade';
   onArchitectureActionComplete: () => void;
   /** Calque de référence (planche décalquée) — `position` bascule SOUS/AU-DESSUS de la scène (jamais
    *  dans la Scène/un export) ; `pointerEvents: none` TOUJOURS (le calage capte le clic en amont). */
@@ -430,7 +430,7 @@ export function EditorCanvas({
   // Les AUTRES gestes ne gèlent RIEN, et n'ont aucune raison de le faire : peindre une emprise de
   // zone, déplacer une entité ou GOMMER (`eraseAt` retire une ENTITÉ, jamais du terrain) ne touche
   // aucune dépendance de la cuisson — le monde suit au tick, sans une recuisson.
-  const gelDuMonde = gesteEnCours?.sorte === 'trait' && (tool.mode === 'tile' || tool.mode === 'height' || tool.mode === 'crenellated');
+  const gelDuMonde = gesteEnCours?.sorte === 'trait' && (tool.mode === 'terrain' || tool.mode === 'hauteur' || tool.mode === 'crenelage');
   const gelDuTrait = useRef(scene);
   if (!gelDuMonde) gelDuTrait.current = scene;
   const sceneGelée = gelDuTrait.current;
@@ -507,7 +507,7 @@ export function EditorCanvas({
   // (`floorSvg` sur les `FloorEl` de la scène VIVE), pas par un losange symbolique.
   const apercuTrait = useMemo(
     () => {
-      if (tool.mode !== 'tile' || !traitCases.length) return [];
+      if (tool.mode !== 'terrain' || !traitCases.length) return [];
       const vues = new Set(traitCases.map((c) => `${c.x},${c.y}`));
       return buildFloors(scene, undefined, { activeZ: currentLayer })
         .filter((el) => el.cell.z === currentLayer && vues.has(`${el.cell.x},${el.cell.y}`))
@@ -885,7 +885,7 @@ export function EditorCanvas({
           )}
           {/* Volée en cours de TRACÉ : cases numérotées dans l'ordre du geste — aucune cote n'est
               écrite tant que le plan n'est pas validé depuis la palette. */}
-          {tool.mode === 'stair' && stairRun.length > 0 && (
+          {tool.mode === 'escalier' && stairRun.length > 0 && (
             <g pointerEvents="none">
               {stairRun.map((c, i) => (
                 <g key={`sr-${c.x}-${c.y}`}>

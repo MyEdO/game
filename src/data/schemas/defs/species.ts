@@ -86,7 +86,7 @@ const doc = document(
     codex: { keys: ['races'] },
     edit: { dataset: 'species' },
   },
-  { exiges: ['source'] },
+  { exiges: ['source'], espace: { discriminant: 'refChar' } },
 );
 
 export const schema = doc.schema;

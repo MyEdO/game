@@ -138,10 +138,10 @@ export function rowForcedDie(
   if (!flow.fixable || !flow.picker) return {};
   const pick = flow.picker(slot, row.actor, s);
   // La marque appartient au dé COURANT : une Résilience postérieure re-tire le dé, la mention s'efface.
-  const mark = !!slot.fixed && !slot.forced;
+  const mark = !!slot.fixed && !slot.forcee;
 
   // Résilience en cours : le dé CHOISI prime (le point est dépensé, l'issue reste une réussite).
-  if (slot.forced && pick) return { forcedRoll: { ...pick, onSet }, fixedMark: mark };
+  if (slot.forcee && pick) return { forcedRoll: { ...pick, onSet }, fixedMark: mark };
   if (!canFixDie(s, row.actor?.id)) return { fixedMark: mark };
   if (isRolled) return pick ? { forcedRoll: { roll: pick.roll, target: pick.target, ...(pick.max != null ? { max: pick.max } : {}), onSet, fixed: true }, fixedMark: mark } : { fixedMark: mark };
   // AVANT le jet : la saisie LANCE puis substitue — même geste pré-armé que la Résilience pré-jet (`jetForcerLaReussite`).

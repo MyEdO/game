@@ -5,5 +5,6 @@ export const sound: SoundDef = {
   id: 'piece',
   label: 'Pièces',
   files: ['piece.ogg'],
+  canal: 'interface',
   volume: 0.7,
 };

@@ -65,7 +65,7 @@ describe('Désengagement & Taille (store)', () => {
 
     banc.getState().rompreLEngagement();
 
-    expect(banc.getState().pendingDisengage?.phase).toBe('choice'); // pas de court-circuit
+    expect(banc.getState().pendingDisengage?.phase).toBe('choix'); // pas de court-circuit
   });
 
   it('plus grand qu’un seul de deux Engagés (pas tous) → Désengagement normal', () => {
@@ -79,7 +79,7 @@ describe('Désengagement & Taille (store)', () => {
 
     banc.getState().rompreLEngagement();
 
-    expect(banc.getState().pendingDisengage?.phase).toBe('choice');
+    expect(banc.getState().pendingDisengage?.phase).toBe('choix');
     // les liens ne sont PAS levés tant que le Désengagement n'a pas réussi
     expect(banc.getState().battle!.combatants.find((c) => c.id === H.id)!.engagedWith).toContain(E1.id);
   });

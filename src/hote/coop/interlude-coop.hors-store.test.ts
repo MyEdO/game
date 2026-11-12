@@ -86,7 +86,7 @@ describe('Interlude en coop : l’invité mène les Activités de SON héros', (
 
   it('préparation de bataille : le jet s’ouvre MENÉ par son héros', () => {
     const { banc, guest, invite } = table();
-    banc.actions.amorcerLaBataille({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
+    banc.actions.amorcerLaBataille({ puissanceAlliee: 50, puissanceEnnemie: 55, plannedRounds: 3 });
     guest.sendIntent('menerLActionDeBataille', [invite.id, prepaDe(invite)]);
     expect(banc.getState().pendingActivity?.heroId).toBe(invite.id);
   });
@@ -95,7 +95,7 @@ describe('Interlude en coop : l’invité mène les Activités de SON héros', (
 describe('Interlude en coop : l’invité est refusé sur le héros d’un autre siège', () => {
   it('Entraînement, Faveur, préparation de bataille du héros de l’hôte : rien ne bouge, le refus se dit', () => {
     const { banc, guest, hote } = table();
-    banc.actions.amorcerLaBataille({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
+    banc.actions.amorcerLaBataille({ puissanceAlliee: 50, puissanceEnnemie: 55, plannedRounds: 3 });
     const avant = JSON.stringify([banc.getState().interlude, banc.getState().favors, banc.getState().pendingActivity]);
     const journal = banc.getState().journal.length;
     for (const args of entrainement(hote.id)) guest.sendIntent('fenetreChoisir', args);

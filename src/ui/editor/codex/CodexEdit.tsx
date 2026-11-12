@@ -134,6 +134,9 @@ const OPS_FIELDS: Record<string, string[]> = {
 const opsFieldsOf = (categoryKey: string): string[] => OPS_FIELDS[categoryKey] ?? [];
 
 type Entry = Record<string, unknown>;
+/** Les géométries de `TriggeredEffect.on` : la zone autour d'un centre, la sélection d'adversaires engagés. */
+type ZoneDEffet = Extract<TriggeredEffect['on'], { near: unknown }>;
+type SelectionDEffet = Extract<TriggeredEffect['on'], { pick: unknown }>;
 
 /**
  * COUTURE format livre ↔ refs structurées de l'atelier (#1548) : une ref par LIGNE, rendue par le
@@ -167,14 +170,14 @@ function LignesFormatLivreField<T>(
 }
 
 /** Axes du PROFIL de manœuvre rendus par `ManeuverDefField` (selects/checkbox). */
-const MANEUVER_PROFILE_KEYS = ['kind', 'activation', 'coutEnAvantage', 'advantageMode', 'stat', 'defense', 'targeting', 'range', 'blast', 'magic'];
+const MANEUVER_PROFILE_KEYS = ['kind', 'activation', 'coutEnAvantage', 'modeDAvantage', 'stat', 'defense', 'ciblage', 'range', 'blast', 'magic'];
 
 /** Le document de la catégorie porte-t-il `alsoIn` (clé d'enveloppe, `CLES_ENVELOPPE` de `grammaire/document.ts`) ? */
 const porteAlsoIn = (categoryKey: string): boolean => {
   const ds = editableDataset(categoryKey);
   if (ds !== undefined) return noeudDuChamp(datasetFile(ds), 'alsoIn') !== undefined;
   const objet = editableObjectDataset(categoryKey);
-  return objet?.mode === 'single' && noeudDuChamp(datasetObjectFile(objet.ds), 'alsoIn') !== undefined;
+  return objet?.mode === 'unique' && noeudDuChamp(datasetObjectFile(objet.ds), 'alsoIn') !== undefined;
 };
 
 /**
@@ -822,7 +825,7 @@ function TriggeredEffectsField({ value, onChange, noeud, label = 'effets déclen
   const ctx = useMemo(() => ({ ...ctxDeCatalogue('declenche'), famille: familleDesEffets(noeud) }), [noeud]);
   const list = value ?? [];
   const set = (i: number, patch: Partial<TriggeredEffect>) => onChange(list.map((e, j) => (j === i ? { ...e, ...patch } : e)));
-  const add = () => onChange([...list, { trigger: 'onHit', on: 'victim', flow: EMPTY_FLOW }]);
+  const add = () => onChange([...list, { trigger: 'onHit', on: 'victime', flow: EMPTY_FLOW }]);
   const cles = useClesDeRangees(value);
   return (
     <div className="ed-field">
@@ -838,8 +841,8 @@ function TriggeredEffectsField({ value, onChange, noeud, label = 'effets déclen
             <label className="dr">Cible
               <select value={typeof eff.on === 'object' ? ('pick' in eff.on ? 'pick' : 'near') : eff.on}
                 onChange={(e) => set(i, { on:
-                  e.target.value === 'near' ? { near: 'victim', radiusMeters: 2 }
-                  : e.target.value === 'pick' ? { pick: 'engaged', sizeAtMost: 'self', max: 1 }
+                  e.target.value === 'near' ? { near: 'victime', radiusMeters: 2 }
+                  : e.target.value === 'pick' ? { pick: 'engages', sizeAtMost: 'soi', max: 1 }
                   : e.target.value as TriggeredEffect['on'] })}>
                 {optionsDuNoeud(effectOnSchema).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                 <option value="near">les cibles à portée (zone)</option>
@@ -847,15 +850,15 @@ function TriggeredEffectsField({ value, onChange, noeud, label = 'effets déclen
               </select>
             </label>
             {typeof eff.on === 'object' && 'near' in eff.on && (
-              <label className="dr">à ≤ <NumberField variant="nu" label="Rayon de la zone (m)" min={1} width="3.4em" value={eff.on.radiusMeters} onChange={(radiusMeters) => set(i, { on: { near: (eff.on as { near: 'self' | 'victim' }).near, radiusMeters } })} /> m de
-              <select value={eff.on.near} onChange={(e) => set(i, { on: { near: e.target.value as 'self' | 'victim', radiusMeters: (eff.on as { radiusMeters: number }).radiusMeters } })}>
-                <option value="victim">la victime</option>
-                <option value="self">soi</option>
+              <label className="dr">à ≤ <NumberField variant="nu" label="Rayon de la zone (m)" min={1} width="3.4em" value={eff.on.radiusMeters} onChange={(radiusMeters) => set(i, { on: { near: (eff.on as ZoneDEffet).near, radiusMeters } })} /> m de
+              <select value={eff.on.near} onChange={(e) => set(i, { on: { near: e.target.value as ZoneDEffet['near'], radiusMeters: (eff.on as { radiusMeters: number }).radiusMeters } })}>
+                <option value="victime">la victime</option>
+                <option value="soi">soi</option>
               </select></label>
             )}
             {typeof eff.on === 'object' && 'pick' in eff.on && (
-              <label className="dr">max <NumberField variant="nu" label="Nombre maximum de cibles" min={1} width="3.4em" value={eff.on.max} onChange={(max) => set(i, { on: { pick: 'engaged', ...((eff.on as { sizeAtMost?: 'self' }).sizeAtMost ? { sizeAtMost: 'self' as const } : {}), max } })} />
-              <input type="checkbox" checked={(eff.on as { sizeAtMost?: 'self' }).sizeAtMost === 'self'} onChange={(e) => set(i, { on: { pick: 'engaged', ...(e.target.checked ? { sizeAtMost: 'self' as const } : {}), max: (eff.on as { max: number }).max } })} /> Taille ≤ la sienne</label>
+              <label className="dr">max <NumberField variant="nu" label="Nombre maximum de cibles" min={1} width="3.4em" value={eff.on.max} onChange={(max) => set(i, { on: { pick: 'engages', ...((eff.on as SelectionDEffet).sizeAtMost ? { sizeAtMost: 'soi' as const } : {}), max } })} />
+              <input type="checkbox" checked={(eff.on as SelectionDEffet).sizeAtMost === 'soi'} onChange={(e) => set(i, { on: { pick: 'engages', ...(e.target.checked ? { sizeAtMost: 'soi' as const } : {}), max: (eff.on as { max: number }).max } })} /> Taille ≤ la sienne</label>
             )}
             <label className="dr" title="RAW « Vous pouvez… » (Contrôle de la Frénésie) : le héros CHOISIT de déclencher (étape de choix en fin de Round) ; l’IA ne l’exerce jamais">
               <input type="checkbox" checked={!!eff.optional} onChange={(e) => set(i, { optional: e.target.checked || undefined })} /> optionnel
@@ -919,8 +922,8 @@ function ManeuverDefField({ entry, edit }: { entry: Entry; edit: (key: string, v
         </label>
         <label className="dr">Coût d’Avantage<NumberField variant="nu" label="Coût d’Avantage" min={0} value={m.coutEnAvantage ?? 0} onChange={(n) => edit('coutEnAvantage', n)} /></label>
         <label className="dr">Avantage
-          <select value={m.advantageMode ?? 'fixed'} onChange={(e) => edit('advantageMode', e.target.value === 'fixed' ? undefined : (e.target.value as ManeuverDef['advantageMode']))}>
-            {optionsDe('maneuvers.json', 'advantageMode').map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+          <select value={m.modeDAvantage ?? 'fixe'} onChange={(e) => edit('modeDAvantage', e.target.value === 'fixe' ? undefined : (e.target.value as ManeuverDef['modeDAvantage']))}>
+            {optionsDe('maneuvers.json', 'modeDAvantage').map(([v, l]) => <option key={v} value={v}>{l}</option>)}
           </select>
         </label>
       </div>
@@ -938,8 +941,8 @@ function ManeuverDefField({ entry, edit }: { entry: Entry; edit: (key: string, v
           </select>
         </label>
         <label className="dr">Ciblage
-          <select value={m.targeting ?? 'melee'} onChange={(e) => edit('targeting', e.target.value as ManeuverDef['targeting'])}>
-            {optionsDe('maneuvers.json', 'targeting').map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+          <select value={m.ciblage ?? 'melee'} onChange={(e) => edit('ciblage', e.target.value as ManeuverDef['ciblage'])}>
+            {optionsDe('maneuvers.json', 'ciblage').map(([v, l]) => <option key={v} value={v}>{l}</option>)}
           </select>
         </label>
         <label className="dr"><input type="checkbox" checked={!!m.magic} onChange={(e) => edit('magic', e.target.checked || undefined)} /> Magique</label>

@@ -13,7 +13,7 @@ import { planChrome } from '../PlanChrome';
 import { NumberField } from '../NumberField';
 import { WorldMapPlacePanel } from './WorldMapPlacePanel';
 import { WorldMapRoutePanel } from './WorldMapRoutePanel';
-import { idDEntropie } from '../../web/entropie';
+import { idDEntropie } from '../../hote/entropie';
 
 /**
  * Éditeur de la CARTE DU MONDE (#T2 Voyage) — overlay plein écran de l'éditeur de niveau.

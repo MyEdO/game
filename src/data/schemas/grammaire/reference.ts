@@ -250,7 +250,7 @@ export const manieAussiSchema = recordDIds('weaponGroup', nommerChamps(z.strictO
  *  ou joker « Atout au choix » `qualityChoice` — « X de qualité » LDB 60 Fabrication, #657 Lot 1),
  *  texte narratif hors catalogue (+ quantité), dotation de POSSESSION (`dotationDePossessionSchema`,
  *  véhicule ou bête — SOCLE POSSESSIONS #615/#617 §9), choix « A ou B » (`choice`, RÉCURSIF, EN MIROIR d'`advancementRefSchema`),
- *  ou joker (`wildcard`). Dupliqué dans `careerLevels`/`classes`/`creatures`. Sa `spec` est la PRÉCISION
+ *  ou joker (`wildcard`). Composé par `careerLevels`/`creatures` ; `classes` compose `dotationSansTexteSchema`. Sa `spec` est la PRÉCISION
  *  d'un objet, nommée comme telle : `trappings.json` ne déclare aucun catalogue de Spécialisations. */
 type CountSpecInfer = z.infer<typeof countSpecSchema>;
 type QualityRefInfer = z.infer<typeof qualityRefSchema>;
@@ -274,17 +274,27 @@ export const dotationDePossessionSchema = refTypee(typeDePossessionSchema, {}, {
   label: nommerNoeud(z.string().optional(), { nom: 'libellé' }),
 });
 export type DotationDePossession = z.infer<typeof dotationDePossessionSchema>;
-export const trappingRefSchema: z.ZodType<
+type DotationSansTexte =
   | { id: string; spec?: string; count?: CountSpecInfer; qualities?: QualityRefInfer[]; qualityChoice?: true }
-  | { text: string; count?: CountSpecInfer }
   | DotationDePossession
   | { choice: unknown[] }
-  | { wildcard: 'arme' }
-> = z.union([
-  dotationDeCatalogueSchema,
-  dotationDeTexteSchema,
-  dotationDePossessionSchema,
-  nommerChamps(z.strictObject({ choice: z.array(z.lazy(() => trappingRefSchema)) }), { choice: { label: "choix" } }),
-  nommerChamps(z.strictObject({ wildcard: z.literal('arme') }), { wildcard: { label: "choix libre" } }),
-]);
+  | { wildcard: 'arme' };
+type DotationDeTexte = z.infer<typeof dotationDeTexteSchema>;
+
+const jokerDeDotationSchema = nommerChamps(z.strictObject({ wildcard: z.literal('arme') }), { wildcard: { label: "choix libre" } });
+
+/** Les branches typées d'une dotation, plus les formes `autres`, dont le `{choice}` se referme sur `soi`. */
+function formesDeDotation<T, A = never>(soi: () => z.ZodType<T>, ...autres: z.ZodType<A>[]) {
+  return z.union([
+    dotationDeCatalogueSchema,
+    ...autres,
+    dotationDePossessionSchema,
+    marquerProduit(nommerChamps(z.strictObject({ choice: z.array(z.lazy(soi)) }), { choice: { label: "choix" } }), 'formesDeDotation', 'choix'),
+    jokerDeDotationSchema,
+  ]);
+}
+
+/** Dotation sans texte : `classes.json`. LDB 05 l.552 ; #4053 */
+export const dotationSansTexteSchema: z.ZodType<DotationSansTexte> = formesDeDotation(() => dotationSansTexteSchema);
+export const trappingRefSchema: z.ZodType<DotationSansTexte | DotationDeTexte> = formesDeDotation(() => trappingRefSchema, dotationDeTexteSchema);
 

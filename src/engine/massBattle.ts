@@ -143,13 +143,13 @@ export interface ClashResult {
  *  réduit celle de l'adverse de 10 + DR (min 5), simultanément (les deux DR sont figés AVANT réduction).
  *  Ne retourne QUE les pertes ; le flux les applique en Blessures sur chaque Combattant-armée. */
 export function resolveClash(
-  allyMight: number,
-  enemyMight: number,
-  opts: { allyMod?: number; enemyMod?: number; rng: RNG },
+  puissanceAlliee: number,
+  puissanceEnnemie: number,
+  opts: { modificateurAllie?: number; modificateurEnnemi?: number; rng: RNG },
 ): ClashResult {
   const rng = opts.rng;
-  const allyTest = rollMightTest(allyMight, opts.allyMod ?? 0, rng);
-  const enemyTest = rollMightTest(enemyMight, opts.enemyMod ?? 0, rng);
+  const allyTest = rollMightTest(puissanceAlliee, opts.modificateurAllie ?? 0, rng);
+  const enemyTest = rollMightTest(puissanceEnnemie, opts.modificateurEnnemi ?? 0, rng);
   return {
     allyTest,
     enemyTest,
@@ -255,9 +255,9 @@ export type BattleOutcome = Equipe | 'egalite';
 
 /** « À la fin des Rounds de bataille prévus, l'armée avec la Puissance la plus élevée gagne. Le côté
  *  adverse doit fuir, sous peine d'être détruit. » (l.124). Égalité → indécis. */
-export function battleOutcome(allyMight: number, enemyMight: number): BattleOutcome {
-  if (allyMight === enemyMight) return 'egalite';
-  return allyMight > enemyMight ? 'allie' : 'ennemi';
+export function battleOutcome(puissanceAlliee: number, puissanceEnnemie: number): BattleOutcome {
+  if (puissanceAlliee === puissanceEnnemie) return 'egalite';
+  return puissanceAlliee > puissanceEnnemie ? 'allie' : 'ennemi';
 }
 
 /** Une armée réduite à 0 est DÉTRUITE — la bataille se conclut immédiatement (l.19/124). */

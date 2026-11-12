@@ -446,7 +446,7 @@ describe('SONDE D — Exposition (chaleur) de bout en bout : drop → cancelsRow
     const h1 = h('h1'); h1.items = [heavy];
     const h2 = h('h2'); h2.items = [];
     set({ party: [h1, h2], pendingCascade: null, journal: [] } as never);
-    applyEffects(get, set, [{ type: 'exposureNight', kind: 'chaleur', count: 2, target: 'party' }]);
+    applyEffects(get, set, [{ type: 'exposureNight', kind: 'chaleur', count: 2, target: 'groupe' }]);
 
     const wave0 = get().pendingCascade!.participants[0];
     expect(wave0.participants!.map((r) => r.id)).toEqual(['h1', 'h2']);

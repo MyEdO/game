@@ -559,7 +559,7 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
   // Empoignade (LDB 14 l.161) : action de Test opposé de Force entre deux Empoignés → flux dédié.
   if (option.targeting === 'grapple') return get().ouvrirLEmpoignade(target.id);
   if (option.targeting === 'zone') {
-    set({ pendingManeuver: { attackerId: active.id, kind: option.kind!, attaque: option.id, targetId: target.id, avantageSpent: option.advantageMode === 'variable' ? 1 : option.cost.advantage, result: null }, battle: { ...battle, action: null, selectedAttack: undefined } });
+    set({ pendingManeuver: { attackerId: active.id, kind: option.kind!, attaque: option.id, targetId: target.id, avantageSpent: option.modeDAvantage === 'variable' ? 1 : option.cost.advantage, result: null }, battle: { ...battle, action: null, selectedAttack: undefined } });
     return;
   }
   // === MÊLÉE : approche-puis-frappe (le SEUL exécuteur charge/moveAttack du jeu) ===
@@ -673,10 +673,10 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
     }
   }
   // Cible Inconsciente (LDB 16 l.113) : l'attaquant gagne « Je ne faillirai pas ! » SANS dépenser de
-  // Résilience → réutilise le MÊME picker de Localisation (`pa.forced`/CritLocationPicker, LDB 17 l.68)
+  // Résilience → réutilise le MÊME picker de Localisation (`pa.forcee`/CritLocationPicker, LDB 17 l.68)
   // que le Critique forcé par Résilience. Réservé au joueur qui PILOTE ; l'IA (doAttack) résout hors de
   // ce chemin (pendingAttack), donc ne voit jamais ce choix.
-  if (isHelplessTarget(target) && pilotedByHuman(get(), active)) pa = { ...pa, forced: true };
+  if (isHelplessTarget(target) && pilotedByHuman(get(), active)) pa = { ...pa, forcee: true };
   if (coutPaye) pa = { ...pa, coutPaye };
   if (active.chargedThisTurn) pa = { ...pa, fromCharge: true }; // LDB 15 l.35
   // (2) FRAPPE — après le glissé d'approche (sur-le-champ au contact) : la suite du tour du joueur, armée par l'armeur

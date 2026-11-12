@@ -99,7 +99,7 @@ describe('Aux Armes p.89 — qualités de mêlée câblées', () => {
   it('Déstabilisante : effet onHit data-driven — choix (2 Av) → Test opposé Force/Athlétisme → À Terre (effects, donnée)', () => {
     const eff = findQualityById('destabilisante')?.effects?.[0];
     expect(eff?.trigger).toBe('onHit');
-    expect(eff?.on).toBe('victim');
+    expect(eff?.on).toBe('victime');
     // Nœud `choix` opt-in coûtant 2 Avantages (cadence-aware : modale héros / auto IA).
     const choice = eff?.flow;
     expect(choice?.kind).toBe('choix');

@@ -46,7 +46,7 @@
     "effects": [
       {
         "trigger": "onKill",
-        "on": "self",
+        "on": "soi",
         "flow": {
           "kind": "test",
           "test": {
@@ -231,7 +231,7 @@
     "effects": [
       {
         "trigger": "onRoundEnd",
-        "on": "self",
+        "on": "soi",
         "flow": {
           "kind": "si",
           "condition": {
@@ -346,7 +346,7 @@
     "effects": [
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
           "kind": "sequence",
           "etapes": [
@@ -480,7 +480,7 @@
     "effects": [
       {
         "trigger": "onSlain",
-        "on": "self",
+        "on": "soi",
         "flow": {
           "kind": "effet",
           "effet": {
@@ -785,7 +785,7 @@
     "effects": [
       {
         "trigger": "onCombatStart",
-        "on": "self",
+        "on": "soi",
         "flow": {
           "kind": "effet",
           "effet": {
@@ -967,7 +967,7 @@
     "effects": [
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
           "kind": "si",
           "condition": {
@@ -1034,7 +1034,7 @@
     "effects": [
       {
         "trigger": "onRoundEnd",
-        "on": "self",
+        "on": "soi",
         "flow": {
           "kind": "si",
           "condition": {
@@ -1194,7 +1194,7 @@
     "effects": [
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
           "kind": "si",
           "condition": {
@@ -1339,7 +1339,7 @@
     "effects": [
       {
         "trigger": "onStartled",
-        "on": "self",
+        "on": "soi",
         "flow": {
           "kind": "si",
           "condition": {
@@ -1452,7 +1452,7 @@
     },
     "aura": {
       "rangeChar": "endurance",
-      "affects": "all",
+      "affects": "tous",
       "passive": [
         {
           "op": "testMod",
@@ -1591,7 +1591,7 @@
     "effects": [
       {
         "trigger": "onRoundStart",
-        "on": "self",
+        "on": "soi",
         "flow": {
           "kind": "si",
           "condition": {
@@ -1741,7 +1741,7 @@
     "effects": [
       {
         "trigger": "onWoundLoss",
-        "on": "engaged",
+        "on": "engages",
         "flow": {
           "kind": "sequence",
           "etapes": [
@@ -1917,7 +1917,7 @@
     "effects": [
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
           "kind": "sequence",
           "etapes": [
@@ -1960,7 +1960,7 @@
     "effects": [
       {
         "trigger": "onHit",
-        "on": "self",
+        "on": "soi",
         "flow": {
           "kind": "si",
           "condition": {
@@ -2005,7 +2005,7 @@
     "effects": [
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
           "kind": "si",
           "condition": {
@@ -2272,8 +2272,8 @@
       {
         "trigger": "onRoundEnd",
         "on": {
-          "pick": "engaged",
-          "sizeAtMost": "self",
+          "pick": "engages",
+          "sizeAtMost": "soi",
           "max": 1
         },
         "flow": {
@@ -2312,7 +2312,7 @@
       },
       {
         "trigger": "onRoundEnd",
-        "on": "grappled",
+        "on": "empoigne",
         "flow": {
           "kind": "effet",
           "effet": {
@@ -2338,7 +2338,7 @@
       },
       {
         "trigger": "onWoundLoss",
-        "on": "grappled",
+        "on": "empoigne",
         "flow": {
           "kind": "effet",
           "effet": {
@@ -2382,7 +2382,7 @@
     "effects": [
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
           "kind": "effet",
           "effet": {
@@ -2436,7 +2436,7 @@
     "effects": [
       {
         "trigger": "onTurnStart",
-        "on": "self",
+        "on": "soi",
         "flow": {
           "kind": "si",
           "condition": {
@@ -2542,7 +2542,7 @@
     "effects": [
       {
         "trigger": "onSlain",
-        "on": "self",
+        "on": "soi",
         "flow": {
           "kind": "effet",
           "effet": {
@@ -2794,7 +2794,7 @@
     "effects": [
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
           "kind": "si",
           "condition": {
@@ -2828,7 +2828,7 @@
       },
       {
         "trigger": "onRoundStart",
-        "on": "grappled",
+        "on": "empoigne",
         "flow": {
           "kind": "effet",
           "effet": {
@@ -2869,7 +2869,7 @@
     "effects": [
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
           "kind": "effet",
           "effet": {
@@ -2898,7 +2898,7 @@
       },
       {
         "trigger": "onRoundStart",
-        "on": "grappled",
+        "on": "empoigne",
         "flow": {
           "kind": "effet",
           "effet": {
@@ -2937,7 +2937,7 @@
       {
         "trigger": "onRoundStart",
         "on": {
-          "near": "self",
+          "near": "soi",
           "radiusMeters": 2
         },
         "flow": {
@@ -3014,7 +3014,7 @@
     "effects": [
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
           "kind": "si",
           "condition": {
@@ -3130,7 +3130,7 @@
     "effects": [
       {
         "trigger": "onRoundStart",
-        "on": "self",
+        "on": "soi",
         "flow": {
           "kind": "effet",
           "effet": {
@@ -3219,7 +3219,7 @@
     "effects": [
       {
         "trigger": "onWake",
-        "on": "self",
+        "on": "soi",
         "flow": {
           "kind": "effet",
           "effet": {

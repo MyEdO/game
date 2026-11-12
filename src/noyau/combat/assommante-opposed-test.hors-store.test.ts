@@ -13,6 +13,10 @@ import { testValue, skillBaseValue } from '../../engine/skills';
 import { testScene } from '../../scenes/test-fixture';
 import type { Weapon } from '../../engine/types';
 import { blessuresDeBase } from '../../engine/combattantDeTest.testkit';
+import { heroFaceAUnEnnemi } from '../combatDeTest.testkit';
+import { imposerLesD100 } from '../battleRng.testkit';
+import { doAttack } from '../combatFlow';
+import { armeDeTest } from '../../engine/objetsDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -169,5 +173,32 @@ describe('Assommante — nœud Flow test OPPOSÉ (Force figée vs Résistance, r
     expect(banc.getState().pendingCascade).toBeNull();
     const live = banc.getState().battle!.combatants.find((c) => c.id === prey.id)!;
     expect(hasCondition(live, 'sonne')).toBe(false); // pas à la Tête → pas de Test opposé, pas de Sonné
+  });
+});
+
+describe('Assommante à la Tête d’un héros : le coup attend le Test de l’Atout (#4011)', () => {
+  it('la gratuite `onHit` du coup (Assaut féroce, LDB 10 l.78) attend la clôture du Test : LDB 62 l.235', () => {
+    const { H, E } = heroFaceAUnEnnemi(banc, testScene());
+    const g = banc.getState;
+    E.weapons = [armeDeTest('marteau-a-bec-de-corbin')];
+    E.talents = [...(E.talents ?? []), { talentId: 'assaut-feroce', times: 1 }];
+    E.advantage = 3;
+    H.wounds = blessuresDeBase(200, 200, H);
+    banc.setState({ battle: { ...g().battle! } });
+    imposerLesD100(20, 23, 20, 23, 20, 23, 20, 23);
+    doAttack(g, banc.setState, E, H);
+    g().jetLancer('defense');
+    g().jetImposerLeResultat('defense', 97);
+    expect(g().pendingDefense!.result).toMatchObject({ hit: true, location: 'tete' });
+    g().jetValider('defense');
+    const gratuites = () => g().battle!.combatants.find((c) => c.id === E.id)!.freeAttacksThisTurn?.['assaut-feroce'];
+    const ouvertes = g().pendingCascade!.participants.filter((x) => !x.committed);
+    expect(ouvertes.map((x) => x.kind)).toEqual(['testDeclenche']);
+    expect(gratuites()).toBeUndefined();
+    expect(g().pendingDefense).toBeNull();
+    g().jetLancer('cascade', ouvertes[0].id);
+    g().jetValider('cascade');
+    expect(gratuites()).toBe(1);
+    expect(g().pendingDefense).toMatchObject({ attackerId: E.id, defenderId: H.id });
   });
 });

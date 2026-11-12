@@ -1,4 +1,5 @@
-## Le dessin d'un élément (#3935, `Icone` et `Fond` de `src/hote/elements.ts`) : celui que l'élément nomme par son id,
+## Le dessin d'un élément (#3935, `Icone`, `Fond` et `Paysage` de `src/hote/elements.ts`) : celui que l'élément nomme par
+## son id, ou ceux qu'il nomme en liste, tracés l'un sur l'autre dans l'ordre (les couches d'un paysage),
 ## lu au catalogue des dessins (`CATALOGUE`, déposé à la construction, `hotes/godot/asset/dessins.ts`), tracé aux
 ## couleurs du thème (`Dessin` : `encre` pour `currentColor`, puis la couleur du nom de chaque jeton `var(--<jeton>)`,
 ## ses tirets en soulignés) et posé en texture sur l'image qui le porte, son parent, à la finesse de sa taille
@@ -18,11 +19,12 @@ func poser(element: Dictionary) -> void:
 	if _catalogue.is_empty():
 		_catalogue = JSON.parse_string(FileAccess.get_file_as_string(CATALOGUE))
 	var famille: Dictionary = _catalogue[element.type]
-	var id := str(element[element.type])
+	var nommes: Variant = element[element.type]
+	var couches: Array = nommes if nommes is Array else [nommes]
 	var echelle := MiseEnPage.echelle_de_dessin(cible.custom_minimum_size.x, cible.custom_minimum_size.y, famille.largeur, famille.hauteur)
-	var cle := "%s/%s@%s" % [element.type, id, echelle]
+	var cle := "%s/%s@%s" % [element.type, "+".join(couches), echelle]
 	if not _traces.has(cle):
-		_traces[cle] = _tracer(cible, famille, str(famille.dessins[id]), echelle)
+		_traces[cle] = _tracer(cible, famille, "".join(couches.map(func(couche: Variant) -> String: return str(famille.dessins[couche]))), echelle)
 	cible.texture = _traces[cle]
 
 

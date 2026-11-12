@@ -16,6 +16,10 @@ Contrat : `hotes/godot/pont/CONTRAT.md`, sections « Effets », « Musique » et
 - Le lier par `rendu` à ce qui le joue : Groupe d'arme (`weaponGroups.json`), objet du Groupe hétérogène
   `machine-de-guerre` (`trappings.json`), Domaine (`domains.json`), manœuvre (`maneuvers.json`), Type de Souffle
   (`breath-types.json`). La résolution vit dans `src/noyau/effetsDeLAppel.ts` ; ne jamais lire un libellé.
+- Ce que le groupe ne voit pas ne se montre pas (#3950) : `effetsDeLAppel` passe chaque effet par la vision du groupe
+  (`src/noyau/visionDuGroupe.ts`). Un coup, une incantation ou une zone dont l'auteur est hors de vue arrive avec `de`,
+  `depart` et `trajet` à `null` : seule son arrivée ou sa nappe joue. Tout visuel et tout son neufs acceptent donc un
+  effet sans auteur (`Effets._partir`, recette `projet/recettes/vision-du-combat.gd`).
 - Une lumière : son ton (`lightTones.json`) porte `visuel` (feu, flammèche, lueur) et `son` en boucle.
 - Un flottant : son texte est un message de `src/i18n/messages/fr.ts` (clés `fx.*`), sa teinte `TEINTE_DU_FLOTTANT` ;
   un son de la partie (pas, heurt, victoire, dés) : son id dans `SONS_DE_LA_PARTIE` (`effetsDeLAppel.ts`).
@@ -33,7 +37,10 @@ Contrat : `hotes/godot/pont/CONTRAT.md`, sections « Effets », « Musique » et
   [--filtre <filtres ffmpeg>] [--debut <s>] [--duree <s>]` le convertit en Ogg Vorbis mono 44,1 kHz, le dépose sous
   `hotes/godot/projet/sons/` (ignoré par git) et l'inscrit à `provenance.json` ; elle refuse une autre licence ou un nom
   déjà épinglé. Plusieurs variantes d'un même son : `souffle-1.ogg`, `souffle-2.ogg`…
-- Sa définition sous `src/data/sons/defs/<id>.ts` (`files` : ses variantes, `volume`), puis `npm run gen`.
+- Sa définition sous `src/data/sons/defs/<id>.ts` (`files` : ses variantes, `volume`, `canal` : `ambiance` pour une
+  boucle d'ambiance, `interface` pour un son d'interface, absent pour un effet ; une `music` joue sur `musique`), puis
+  `npm run gen`. Godot le joue sur le bus d'`AudioServer` nommé par son canal
+  (`hotes/godot/projet/default_bus_layout.tres`, recette `mixage.gd`), au volume que le joueur y règle.
 - Le verser à la Release `modeles-3d` : branche `transfert/<x>` partie de `main`, fichiers ajoutés par `git add -f` ;
   `.github/workflows/transfert.yml` vérifie les empreintes, verse sans écraser et supprime la branche.
 
@@ -54,6 +61,8 @@ Le vocabulaire est fermé des deux côtés, à étendre ensemble :
 - `src/noyau/vitrineDesEffets.test.ts` pour la donnée ; une recette Godot (`hotes/godot/projet/recettes/effets.gd`,
   `foyers.gd`, `atelier-du-vehicule.gd`) pour le rendu. `npm run godot:sonde` les joue toutes, et vérifie que chaque
   visuel, projectile et fichier de la vitrine est connu de Godot : sa scène existe (`Effets.chemin_de_l_effet`).
+- Ce qui change l'image se prouve sous les deux rendus, Forward+ hors d'une page et compatibilité dans la page
+  (#3951) : une recette `const RECETTE_RENDUE := true`, lue aux pixels, que `npm run godot:rendus` joue sous chacun.
 
 ## Pièges connus
 - Sous le rendu de compatibilité, une particule `CPUParticles3D` pas encore née se peint en noir : un éclat naît d'un
@@ -62,8 +71,8 @@ Le vocabulaire est fermé des deux côtés, à étendre ensemble :
   d'avance, et tout autre enfant (éclair, `AnimationPlayer`) est retiré ; un éclat ne règle donc que des gerbes en
   enfants directs.
 - La `taille` d'une gerbe est sa vraie mesure, en mètres (#3832) : une particule ne garde son échelle que par
-  `billboard_keep_scale`, réglé dans les ressources partagées `effets/particule_*.tres`. Juger une taille au rendu réel : `xvfb-run` et
-  `--rendering-driver opengl3`, la sonde headless ne peint rien.
+  `billboard_keep_scale`, réglé dans les ressources partagées `effets/particule_*.tres`. Juger une taille au rendu
+  réel, par une recette rendue (`npm run godot:rendus`) : la sonde headless ne peint rien.
 - Un son en boucle (`Effets.son_en_boucle(son)`) libéré juste avant la sortie fuit : attendre
   `Foyer.SON_LIBERE_S` après avoir libéré son lecteur.
 - Un nœud qui prend la couleur de l'effet est du groupe `teinte`, enregistré dans la scène : une gerbe garde son dégradé

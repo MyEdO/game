@@ -154,7 +154,7 @@ describe('document() — enveloppe posée par la fabrique', () => {
   it('EXIGE une exposition Codex/éditeur déclarée (clés, ou exemption motivée)', () => {
     expect(() =>
       // @ts-expect-error — `codex` vide : ni `keys` ni `exempt`.
-      document('jouet', 'entite', { max: z.number() }, { max: { label: 'Max' } }, { codex: {}, edit: { object: 'single' } }),
+      document('jouet', 'entite', { max: z.number() }, { max: { label: 'Max' } }, { codex: {}, edit: { object: 'unique' } }),
     ).toThrow(/`codex` exige/);
     expect(() =>
       // @ts-expect-error — `edit` vide : ni `dataset`, ni `object`, ni `niche`, ni `none`.

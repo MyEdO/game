@@ -15,6 +15,7 @@ import type { EffectOp } from '../engine/flowCore';
 import type { Combatant } from '../engine/types';
 import { caracDuCombattant, type Referent } from '../engine/formule';
 import { profilNavalDe } from '../engine/coque';
+import { humanizeFormula } from './codex/humanize';
 import { spoilCargoByEnc, valeurDeLaCargaison } from '../engine/cargo';
 import { addManann, applyManannFactor, cargoBasePrice, meteosActives, modificateursActifs, rollRandomCargo, spoilCargoByPct, type ModificateurDuNavire } from '../engine/seaVoyage';
 import { ajouterAuRoster } from '../engine/crewMorale';
@@ -170,9 +171,8 @@ function appliquerOpDuNavire(get: Get, set: Set, coque: Combatant, o: OpDuNavire
     }
     case 'constructeurDEscale': {
       const vessel = garanti(get().vessel, o.op, 'navire de campagne de la coque visée');
-      const jours = Math.max(1, Math.round(resolveFormula(o.duree, ref, ctx.rng)));
-      set({ vessel: { ...vessel, constructeurDEscale: { competence: o.competence, jours } } });
-      return [t('eff.constructeurDEscale', { label: nomDeSource(ctx), competence: o.competence, jours })];
+      set({ vessel: { ...vessel, constructeurDEscale: { competence: o.competence, duree: o.duree } } });
+      return [t('eff.constructeurDEscale', { label: nomDeSource(ctx), competence: o.competence, duree: humanizeFormula(o.duree) })];
     }
     case 'rationsDEscale': {
       const vessel = garanti(get().vessel, o.op, 'navire de campagne de la coque visée');
@@ -183,7 +183,7 @@ function appliquerOpDuNavire(get: Get, set: Set, coque: Combatant, o: OpDuNavire
     case 'infestation': {
       const vessel = garanti(get().vessel, o.op, 'navire de campagne de la coque visée');
       const label = nomDeSource(ctx);
-      set({ vessel: { ...vessel, infestation: { label, crewTestType: o.crewTestType.id, difficulty: o.difficulty, drCible: o.drCible, progres: 0, chaqueNuit: o.chaqueNuit } } });
+      set({ vessel: { ...vessel, infestation: { label, crewTestType: o.crewTestType.id, difficulty: o.difficulty, drCible: o.drCible, progres: 0, chaqueNuit: o.chaqueNuit, ...(o.surDRNegatif ? { surDRNegatif: o.surDRNegatif } : {}) } } });
       return [t('eff.infestation', { label, dr: o.drCible })];
     }
   }

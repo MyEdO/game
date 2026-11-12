@@ -47,7 +47,7 @@ export function SeaVoyageBody({ day }: { day: TravelRecapDay }) {
             tone={(v) => (v <= 25 ? 'danger' : v <= 50 ? 'warn' : 'ok')} stacked />
           {chrome.waterLitres != null && (
             <NotchGauge label={t('sv.eauAutonomie')} value={chrome.waterLitres} max={Math.max(chrome.waterLitres, 1)}
-              format={(v) => t('sv.litres', { litres: v })} tone={(v) => (v <= 0 ? 'danger' : 'neutral')} stacked />
+              format={(v) => t('sv.litres', { litres: v })} tone={(v) => (v <= 0 ? 'danger' : 'neutre')} stacked />
           )}
         </div>
       </div>

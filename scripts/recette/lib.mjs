@@ -286,8 +286,8 @@ export function killChromeTree(chrome, { plateforme = process.platform, executer
 
 /**
  * Filet de sécurité process-wide : tout Chrome spawné par ce module qui survivrait à un chemin
- * d'échec non couvert (SIGINT, script tiers oubliant son try/finally) est tué + son profil purgé
- * à la sortie du process — jamais de fuite silencieuse. `process.on('exit')` est SYNCHRONE : l'arrêt
+ * d'échec non couvert (script tiers oubliant son try/finally, SIGTERM d'un lanceur à délai, rendu en sortie) est tué
+ * + son profil purgé à la sortie du process — jamais de fuite silencieuse. `process.on('exit')` est SYNCHRONE : l'arrêt
  * (`killChromeTree`) et la purge (`purgerProfil`, retentée jusqu'à `ATTENTE_EXTINCTION_MS`) y attendent
  * en synchrone (`attendreSync`).
  */
@@ -310,6 +310,7 @@ export function nettoyerALaSortie(enfants, { tuer = killChromeTree, supprimer = 
   return echecs;
 }
 process.on('exit', () => { nettoyerALaSortie(activeChildren); });
+process.on('SIGTERM', () => process.exit(143));
 
 /** `resoudreChrome` sur le disque et l'environnement réels. */
 const chromeDeLaMachine = (explicite) =>
@@ -384,6 +385,27 @@ export async function waitForWsUrl(port, timeoutMs = 10000, { recuperer = fetch 
     await sleep(250);
   }
   throw new Error(`Chrome (CDP) indisponible sur le port ${port} après ${timeoutMs}ms.${dernier ? ` Dernier échec : ${dernier.message}` : ''}`, { cause: dernier ?? undefined });
+}
+
+/** Le port et l'URL WebSocket du navigateur qui tient le profil `profile`, lus dans le `DevToolsActivePort` que
+ *  Chrome lancé avec `--remote-debugging-port=0` y écrit (le port, puis le chemin du WebSocket du navigateur),
+ *  attendu `timeoutMs` au plus : un fichier absent, vide ou d'une seule ligne s'attend. */
+export async function lireDevToolsActivePort(profile, timeoutMs = 10000, { lire = (chemin) => readFileSync(chemin, 'utf8') } = {}) {
+  const fichier = join(profile, 'DevToolsActivePort');
+  const deadline = Date.now() + timeoutMs;
+  let lu = 'absent';
+  while (Date.now() < deadline) {
+    try {
+      const [ligne1 = '', ligne2 = ''] = lire(fichier).split('\n').map((l) => l.trim());
+      const port = Number(ligne1);
+      if (Number.isInteger(port) && port > 0 && ligne2.startsWith('/')) return { port, wsUrl: `ws://127.0.0.1:${port}${ligne2}` };
+      lu = JSON.stringify(`${ligne1}\n${ligne2}`.trim());
+    } catch (e) {
+      if (e.code !== 'ENOENT') throw e;
+    }
+    await sleep(250);
+  }
+  throw new Error(`Chrome (CDP) : ${fichier} sans ses deux lignes (port, chemin du WebSocket) après ${timeoutMs}ms — dernière lecture : ${lu}`);
 }
 
 /** Préfixe des profils Chrome JETABLES du kit, sous `os.tmpdir()` — la purge des orphelins le lit. */
@@ -528,13 +550,12 @@ export async function pourChaqueVue(session, fn, { reposMs = 500 } = {}) {
  * écrans. Une recette responsive passe sa vue explicitement (`pourChaqueVue`, `setMobileViewport`).
  * `args` : des drapeaux de Chrome propres à la recette (le WebGL logiciel de l'hôte Godot, `hotes/godot/recette.mjs`).
  */
-export async function launchSession({ chromePath, width = VUE_REFERENCE.largeur, height = VUE_REFERENCE.hauteur, port, mobile = false, timeoutMs = 10000, args = [] } = {}) {
+export async function launchSession({ chromePath, width = VUE_REFERENCE.largeur, height = VUE_REFERENCE.hauteur, mobile = false, timeoutMs = 10000, args = [] } = {}) {
   const lancement = chromeDeLaMachine(chromePath);
-  const cdpPort = port ?? 9222 + Math.floor(Math.random() * 2000);
   const profile = join(os.tmpdir(), nomDeProfil(process.pid));
   mkdirSync(profile, { recursive: true });
   const chrome = spawn(lancement.chemin, [
-    ...lancement.args, '--headless=new', '--mute-audio', `--remote-debugging-port=${cdpPort}`, `--user-data-dir=${profile}`,
+    ...lancement.args, '--headless=new', '--mute-audio', '--remote-debugging-port=0', `--user-data-dir=${profile}`,
     `--window-size=${width},${height}`, '--no-first-run', '--no-default-browser-check', ...args, 'about:blank',
   ], { ...OPTIONS_SPAWN_CHROME });
   const childEntry = { chrome, profile };
@@ -543,11 +564,11 @@ export async function launchSession({ chromePath, width = VUE_REFERENCE.largeur,
   // Tout échec APRÈS le spawn (avant qu'un `session` ne soit rendu à l'appelant, donc avant qu'il
   // puisse appeler `session.close()`) doit tuer ce Chrome et purger son profil ici — sinon fuite.
   try {
-    const wsUrl = await waitForWsUrl(cdpPort, timeoutMs); // même délai réglable que l’amorçage de l’app
+    const { port, wsUrl } = await lireDevToolsActivePort(profile, timeoutMs); // même délai réglable que l’amorçage de l’app
     const ws = new WebSocket(wsUrl);
     await new Promise((resolve, reject) => { ws.onopen = resolve; ws.onerror = reject; });
 
-    const session = brancherCdp(ws, { chrome, profile, port: cdpPort });
+    const session = brancherCdp(ws, { chrome, profile, port });
 
     const { targetId } = await session.rpc('Target.createTarget', { url: 'about:blank' });
     session.targetId = targetId;

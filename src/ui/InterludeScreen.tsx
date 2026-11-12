@@ -213,7 +213,7 @@ export function InterludeScreen({ seam }: { seam?: InterludeSeam } = {}) {
   return (
     <div className="interlude-shell tx-ink">
       <div className="interlude-column">
-        <OrnateFrame tone="gold" className="interlude-masthead">
+        <OrnateFrame tone="or" className="interlude-masthead">
           <h1 className="display-title">{t('interlude.title')}</h1>
           <p className="subtitle">
             {interlude.weeks} semaine{interlude.weeks > 1 ? 's' : ''} de répit avant la prochaine aventure
@@ -873,7 +873,7 @@ function EntrainementPane({ hero, etat, mene, desc, porteur }: { hero: Combatant
       blocked={banniere}
       cost={sel ? <>{sel.xpCost} PX (il vous en reste {xp}) + tuteur <CoinsB brass={sel.tutorMinBrass} /> à <CoinsB brass={sel.tutorMaxBrass} /></> : undefined}
       note={sel
-        ? <>{sel.kind === 'skill' ? <SkillChip skillId={sel.id} show={sel.label} /> : sel.label} {t(sel.advanced ? 'interlude.entrainement.avancee' : 'interlude.entrainement.base', { min: fmt(sel.tutorMinBrass), max: fmt(sel.tutorMaxBrass) })}</>
+        ? <>{sel.kind === 'competence' ? <SkillChip skillId={sel.id} show={sel.label} /> : sel.label} {t(sel.advanced ? 'interlude.entrainement.avancee' : 'interlude.entrainement.base', { min: fmt(sel.tutorMinBrass), max: fmt(sel.tutorMaxBrass) })}</>
         : t('interlude.entrainement.choisir', {
             min: fmt(entrainementTutorRange(false).minBrass), max: fmt(entrainementTutorRange(false).maxBrass),
             minAvancee: fmt(entrainementTutorRange(true).minBrass), maxAvancee: fmt(entrainementTutorRange(true).maxBrass),

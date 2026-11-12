@@ -234,9 +234,9 @@ describe('coûts et refus NOMMÉS (A4)', () => {
   it('chute : « Tenter » avec l’Action déjà prise → refus NOMMÉ, la modale reste au choix', () => {
     const { H } = combat(falaise(), top, { acted: true });
     g().franchirLArete(foot);
-    expect(phaseDeChute(g().pendingFall!)).toBe('choice');
+    expect(phaseDeChute(g().pendingFall!)).toBe('choix');
     g().jetRegler('chute', 'tenter', true, H.id);
-    expect(phaseDeChute(g().pendingFall!)).toBe('choice');
+    expect(phaseDeChute(g().pendingFall!)).toBe('choix');
     dit('fall.actionDejaPrise', { name: H.label });
     g().jetRegler('chute', 'tenter', false, H.id); // sauter sans Test reste permis
     expect(g().battle!.combatants.find((x) => x.id === H.id)!.pos).toMatchObject(foot);

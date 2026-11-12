@@ -5,10 +5,13 @@
  * MDG 12 l.70-75 ; MDG 14 l.238 ; MDG 12 l.195-364 ; MDG 15 l.319.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
+import { imposerLesD100 } from './battleRng.testkit';
+import { REPARATION } from '../engine/seaNavigation';
+import { MINUTES_PER_DAY } from '../engine/clock';
 import { creerPartie, etatInitialDuJeu, type EntreesDeLaPartie, type EtatDeJeu, type Partie } from './index';
 import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
-import { findVehicleById, NAVAL_TRAITS } from '../data';
+import { findNavalTrait, findVehicleById, NAVAL_TRAITS } from '../data';
 import { emptyScene } from './monde/scene';
 import { toBrass, toMoney, add as moneyAdd, fromBrass, type Money } from '../engine/money';
 import { bourseOf, withBourseMoney } from '../engine/bourse';
@@ -267,5 +270,38 @@ describe('#3059 — Activités en mer : valider la semaine est une décision d�
   it('plafond de planque : la bourse du héros (7 CO)', () => {
     const hero = withBourseMoney(tousLesHerosDeScenario(idsDeTest)[0], { gold: 7, silver: 0, brass: 0 }, idsDeTest);
     expect(plafondDePlanque({ party: [hero], pendingSeaActivities: null }, hero)).toBe(7);
+  });
+});
+
+describe('#1652 — la pose d’une Amélioration fait passer sa durée (MDG 12 l.230 ; MDG 12 l.293)', () => {
+  afterEach(() => vi.restoreAllMocks());
+  const riche = { gold: 100000, silver: 0, brass: 0 };
+
+  /** Pose `traitId` sur un navire `vehicleId` à quai, d100 imposés `des` ; rend le devis et les jours passés. */
+  function poser(vehicleId: string, traitId: string, ...des: number[]) {
+    const partie = aQuai(navire({ vehicleId }), riche);
+    try {
+      const devis = devisDAmelioration(partie.etat().vessel, traitId, 1, riche, null);
+      imposerLesD100(...des);
+      const avant = partie.etat().gameTime;
+      partie.envoyer({ type: 'installerLAmelioration', args: [traitId, 1] });
+      expect(partie.etat().vessel!.upgrades?.map((u) => u.id)).toEqual([traitId]);
+      return { duree: devis.duree, jours: (partie.etat().gameTime - avant) / MINUTES_PER_DAY };
+    } finally {
+      partie.fermer();
+    }
+  }
+
+  it.each([
+    ['blindage-fer', 'cogue', 16], ['blindage-fer', 'caravelle-tileenne', 32],
+    ['lissage', 'cogue', 8], ['lissage', 'caravelle-tileenne', 16],
+  ] as const)('%s sur %s : le devis dit %i jours, et ils passent', (traitId, vehicleId, jours) => {
+    expect(poser(vehicleId, traitId)).toEqual({ duree: jours, jours });
+  });
+
+  it('Amélioration sans durée au livre (Ancre) : 1d10 jours, maison (`reparation.joursDePose`)', () => {
+    expect(findNavalTrait('ancre')!.install!.jours).toBeUndefined();
+    expect(poser('cogue', 'ancre', 40)).toEqual({ duree: REPARATION.joursDePose, jours: 4 });
+    expect(poser('cogue', 'ancre', 90).jours).toBe(9);
   });
 });

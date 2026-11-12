@@ -378,13 +378,13 @@ describe('édition de scène — hauteur métrique (paintHeight)', () => {
 
 describe('édition de scène — pose', () => {
   it('placeEntity : pose DIRECTE d’un décor précis avec ses défauts de catalogue', () => {
-    const { scene, id } = placeEntity(emptyScene('scene-test', 10, 10), { mode: 'entity', kind: 'prop', ref: 'tonneau' }, { x: 1, y: 1 });
+    const { scene, id } = placeEntity(emptyScene('scene-test', 10, 10), { mode: 'entite', kind: 'prop', ref: 'tonneau' }, { x: 1, y: 1 });
     const ent = scene.entities.find((e) => e.id === id)!;
     expect(ent.decor?.id).toBe('tonneau');
     expect(ent.kind).toBe('prop');
   });
   it('placeEntity : le personnage posé NOMME la fiche élue — `ref`, aucun nom recopié (sa fiche le nomme), apparence dérivée (#1882)', () => {
-    const { scene, id } = placeEntity(emptyScene('scene-test', 10, 10), { mode: 'entity', kind: 'personnage', ref: 'humain' }, { x: 1, y: 1 });
+    const { scene, id } = placeEntity(emptyScene('scene-test', 10, 10), { mode: 'entite', kind: 'personnage', ref: 'humain' }, { x: 1, y: 1 });
     const ent = scene.entities.find((e) => e.id === id)!;
     expect(ent).toMatchObject({ kind: 'personnage', creature: { id: 'humain' } });
     expect(ent).not.toHaveProperty('label');
@@ -393,13 +393,13 @@ describe('édition de scène — pose', () => {
     expect(validateScene([scene]).filter((w) => w.scope === 'entity' && w.level === 'error')).toEqual([]);
   });
   it('placeEntity : une fiche hors bestiaire est refusée en la nommant (un libellé n’est pas un id)', () => {
-    expect(() => placeEntity(emptyScene('scene-test', 10, 10), { mode: 'entity', kind: 'personnage', ref: 'Humain' }, { x: 1, y: 1 }))
+    expect(() => placeEntity(emptyScene('scene-test', 10, 10), { mode: 'entite', kind: 'personnage', ref: 'Humain' }, { x: 1, y: 1 }))
       .toThrow(/« Humain » n'est pas une fiche du bestiaire/);
   });
   it('placeEntity : pose sur l’étage courant (z), absent au sol', () => {
-    const ground = placeEntity(emptyScene('scene-test', 10, 10), { mode: 'entity', kind: 'prop', ref: 'tonneau' }, { x: 1, y: 1 }, 0);
+    const ground = placeEntity(emptyScene('scene-test', 10, 10), { mode: 'entite', kind: 'prop', ref: 'tonneau' }, { x: 1, y: 1 }, 0);
     expect(ground.scene.entities.find((e) => e.id === ground.id)!.z).toBeUndefined();
-    const upper = placeEntity(emptyScene('scene-test', 10, 10), { mode: 'entity', kind: 'prop', ref: 'tonneau' }, { x: 1, y: 1 }, 2);
+    const upper = placeEntity(emptyScene('scene-test', 10, 10), { mode: 'entite', kind: 'prop', ref: 'tonneau' }, { x: 1, y: 1 }, 2);
     expect(upper.scene.entities.find((e) => e.id === upper.id)!.z).toBe(2);
   });
   it('addTrigger / addRestZone créent au bon endroit', () => {
@@ -512,7 +512,7 @@ describe('édition de scène — emplacement de siège (postes authorés à l’
   });
 
   it('les mutations de poste sont des no-op sur une entité SANS poste', () => {
-    const s = placeEntity(emptyScene('scene-test', 10, 10), { mode: 'entity', kind: 'personnage', ref: 'humain' }, { x: 1, y: 1 }).scene;
+    const s = placeEntity(emptyScene('scene-test', 10, 10), { mode: 'entite', kind: 'personnage', ref: 'humain' }, { x: 1, y: 1 }).scene;
     const id = s.entities[0].id;
     expect(setPosteCrew(s, id, ['x']).entities[0].postes).toBeUndefined();
     expect(setPosteSide(s, id, 'proue').entities[0].postes).toBeUndefined();
@@ -722,7 +722,7 @@ describe('éditeur — les places assises suivent le geste, atomiquement', () =>
       { id: 'table-1', kind: 'prop', pos: { x: 2, y: 2 }, decor: { id: 'table-ronde-4-tabourets' }, facing: 'N' },
       { id: 'pnj-aubergiste', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 2, y: 1 }, label: 'Aubergiste' },
     ];
-    s.seatAssignments = { 'table-1': { 'place-1': { kind: 'entity', entityId: 'pnj-aubergiste' } } };
+    s.seatAssignments = { 'table-1': { 'place-1': { kind: 'entite', entityId: 'pnj-aubergiste' } } };
     return s;
   }
 
@@ -747,12 +747,12 @@ describe('éditeur — les places assises suivent le geste, atomiquement', () =>
 
   it('reposer le PNJ sur l’abord de SA place le laisse assis', () => {
     const moved = moveSel(attablee(), { type: 'entity', id: 'pnj-aubergiste' }, { x: 2, y: 1 });
-    expect(moved.seatAssignments).toEqual({ 'table-1': { 'place-1': { kind: 'entity', entityId: 'pnj-aubergiste' } } });
+    expect(moved.seatAssignments).toEqual({ 'table-1': { 'place-1': { kind: 'entite', entityId: 'pnj-aubergiste' } } });
   });
 
   it('déplacer le MEUBLE emporte les corps attablés sur les nouveaux abords', () => {
     const moved = moveSel(attablee(), { type: 'entity', id: 'table-1' }, { x: 5, y: 5 });
-    expect(moved.seatAssignments).toEqual({ 'table-1': { 'place-1': { kind: 'entity', entityId: 'pnj-aubergiste' } } });
+    expect(moved.seatAssignments).toEqual({ 'table-1': { 'place-1': { kind: 'entite', entityId: 'pnj-aubergiste' } } });
     expect(moved.entities.find((e) => e.id === 'pnj-aubergiste')?.pos).toEqual({ x: 5, y: 4 });
     expect(validateScene([moved]).filter((w) => w.level === 'error')).toEqual([]);
   });

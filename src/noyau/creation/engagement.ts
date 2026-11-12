@@ -88,6 +88,33 @@ export function pretiresOfferts(s: Pick<Jeu, 'battle' | 'party' | 'net'>): Preti
   }));
 }
 
+/** Un héros du roster tel que le groupe le recrute : son nom, son espèce, sa carrière en cours, l'intention qui le
+ *  recrute, et le refus de son recrutement (`refusDeRecruter`), `null` s'il se recrute. */
+export interface HerosDuRosterOffert {
+  id: IdDeHerosDuRoster;
+  nom: string;
+  espece: string | null;
+  carriere: string | null;
+  recrutement: Intention;
+  refus: string | null;
+}
+
+/** Chaque entrée de `roster`, dans son ordre, telle que le groupe de `s` la recrute : son brouillon engagé sous l'id
+ *  de son héros, que le roster garde. */
+export function herosDuRosterOfferts(s: Pick<Jeu, 'battle' | 'party' | 'net'>, roster: readonly RosterEntry[]): HerosDuRosterOffert[] {
+  return roster.map((e) => {
+    const engage: HerosEngage = { brouillon: e.draft, id: e.hero.id };
+    return {
+      id: e.hero.id,
+      nom: e.hero.label,
+      espece: findSpeciesById(e.hero.species)?.label ?? null,
+      carriere: e.hero.career ? careerLabelFor(e.hero) : null,
+      recrutement: { type: 'recruterLeHeros', args: [engage] },
+      refus: refusDeRecruter(s, engage),
+    };
+  });
+}
+
 /** Le refus d'un héros nouveau au groupe : le refus d'ajout du siège qui décide (`refusDAjoutAuGroupe`) ; `null` s'il
  *  y entre. */
 export const refusDUnNouveauHeros = (s: Pick<Jeu, 'battle' | 'party' | 'net'>): string | null => refusDAjoutAuGroupe(s, undefined, decidingSeat(s));
@@ -107,9 +134,15 @@ export function engagement(d: CreatorDraft, idDuRoster: FabriqueDuRoster, heroId
   return { hero: { ...buildHero(d, idDuRoster, id), id }, wealth: draftWealth(d).montant, draft: d };
 }
 
-/** L'intention qui engage au groupe le héros nouveau de `d`, pour un hôte sans roster. */
-export function intentionDEngagement(d: CreatorDraft): Intention {
-  return { type: 'recruterLeHeros', args: [{ brouillon: d }] };
+/** L'intention qui fait entrer un brouillon engagé au groupe. */
+export type IntentionDEngagement = Extract<Intention, { type: 'recruterLeHeros' | 'remplacerLeHeros' }>;
+
+/** L'intention qui fait entrer au groupe le brouillon `d`, son entrée de roster sous l'id `idDeLEntree` : le héros
+ *  ajouté sous cet id (`recruterLeHeros`), ou, en édition, en place du héros `heroId`, qui garde son id et désigne son
+ *  entrée par `idDeRoster` quand elle porte un autre id (`remplacerLeHeros`). */
+export function intentionDEngagement(d: CreatorDraft, idDeLEntree: IdDeHerosDuRoster, heroId?: string): IntentionDEngagement {
+  if (!heroId) return { type: 'recruterLeHeros', args: [{ brouillon: d, id: idDeLEntree }] };
+  return { type: 'remplacerLeHeros', args: [heroId, { brouillon: d, id: heroId, ...(idDeLEntree === heroId ? {} : { idDeRoster: idDeLEntree }) }] };
 }
 
 /** L'intention qui renvoie du groupe le héros `heroId`. */

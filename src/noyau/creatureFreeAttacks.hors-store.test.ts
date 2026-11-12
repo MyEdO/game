@@ -105,7 +105,7 @@ describe('aiCreatureFreeAttacks — attaques gratuites de créature (RAW)', () =
     const before = H.wounds.current;
     aiCreatureFreeAttacks(banc.getState, banc.setState, E);
     const e = banc.getState().battle!.combatants.find((c) => c.id === E.id)!;
-    expect(e.pendingFreeAttacks).toBeUndefined(); // file épuisée
+    expect(e.pendingFreeAttacks, 'file épuisée pour ce tour').toEqual([]);
     expect(banc.getState().battle!.combatants.find((c) => c.id === H.id)!.wounds.current).toBeLessThan(before); // ≥ 1 attaque a touché
   });
 

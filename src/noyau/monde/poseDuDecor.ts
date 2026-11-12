@@ -15,7 +15,7 @@
 import { findPropById } from '../../data';
 import { calageDuDecalage, dessusSous, empreinteDuProp, offsetAncre, type Calage } from '../../data/props.types';
 import { ancreDuDecor } from './footprint';
-import { heightAt, sceneMetresPerTile, type Scene, type SceneEntity } from './scene';
+import { heightAt, sceneMetresPerTile, type Scene, type SceneDuVolume, type SceneEntity } from './scene';
 
 /** Le dessus du décor `support` à l'aplomb du point `p` (cases), en mètres depuis son pied ; `undefined` sans dessus. */
 function dessusA(support: SceneEntity, p: { x: number; y: number }, mpt: number): number | undefined {
@@ -24,7 +24,7 @@ function dessusA(support: SceneEntity, p: { x: number; y: number }, mpt: number)
   return dessusSous(findPropById(support.decor?.id), support.facing, (p.x - a.x) * mpt, (p.y - a.y) * mpt);
 }
 
-const entite = (scene: Scene, id: string): SceneEntity | undefined => scene.entities.find((e) => e.id === id);
+const entite = (scene: SceneDuVolume, id: string): SceneEntity | undefined => scene.entities.find((e) => e.id === id);
 
 /** Ce qui fait tomber un appui : le support n'est pas un décor de la scène, il est sur une autre couche, l'ancre du décor
  *  posé n'est au-dessus d'aucun de ses dessus, ou la chaîne des supports revient sur le décor posé. */
@@ -34,7 +34,7 @@ export interface FauteDAppui {
 }
 
 /** La faute de l'appui de `ent` ; `undefined` s'il n'est posé sur rien ou si son appui tient. */
-export function fauteDAppui(scene: Scene, ent: SceneEntity): FauteDAppui | undefined {
+export function fauteDAppui(scene: SceneDuVolume, ent: SceneEntity): FauteDAppui | undefined {
   if (!ent.sur) return undefined;
   const support = entite(scene, ent.sur);
   const faute = (f: FauteDAppui['faute']): FauteDAppui => ({ faute: f, support: ent.sur! });
@@ -47,7 +47,7 @@ export function fauteDAppui(scene: Scene, ent: SceneEntity): FauteDAppui | undef
 }
 
 /** `e` est-il le décor `id`, ou porté par lui de proche en proche ? */
-export function portePar(scene: Scene, e: SceneEntity, id: string): boolean {
+export function portePar(scene: SceneDuVolume, e: SceneEntity, id: string): boolean {
   const vus = new Set<string>();
   for (let porte: SceneEntity | undefined = e; porte && !vus.has(porte.id); porte = porte.sur ? entite(scene, porte.sur) : undefined) {
     if (porte.id === id) return true;
@@ -58,7 +58,7 @@ export function portePar(scene: Scene, e: SceneEntity, id: string): boolean {
 
 /** Le PIED d'un décor, en mètres : le dessus de son support à l'aplomb de son ancre quand son appui tient, sinon le sol
  *  de sa case. */
-export function piedDuDecor(scene: Scene, ent: SceneEntity): number {
+export function piedDuDecor(scene: SceneDuVolume, ent: SceneEntity): number {
   const support = ent.sur && !fauteDAppui(scene, ent) ? entite(scene, ent.sur) : undefined;
   if (!support) return heightAt(scene, ent.pos.x, ent.pos.y, ent.z ?? 0);
   const mpt = sceneMetresPerTile(scene);

@@ -71,7 +71,7 @@ describe('sélecteur de dé HÉRITÉ de la coquille — modale sans aucun code l
     open();
     expect(shellHtml()).not.toContain('Dé choisi');
     useGame.getState().jetForcerLaReussite('mainEnsanglantee');
-    expect(useGame.getState().pendingHandGate!.forced).toBe(true);
+    expect(useGame.getState().pendingHandGate!.forcee).toBe(true);
     const html = shellHtml();
     expect(html).toContain('Dé choisi'); // « Dé choisi (Je ne faillirai pas !) »
     expect(html).toContain('max="60"'); // borné à la cible : le choix doit RESTER une réussite

@@ -50,7 +50,7 @@ const texte = (e: Element) => (e.textContent ?? '').replace(/\s+/g, ' ').trim();
 function menu(canSacrifice: boolean, options: { refusEsquive?: string; canFuir?: boolean } = {}, mountId?: string) {
   useGame.setState({
     battle: { combatants: [{ ...mk('Héros', 'heros'), ...(mountId ? { mountId } : {}) }, mk('Brute', 'ennemi')] } as never,
-    pendingDisengage: { moverId: 'Héros', foeId: 'Brute', canSacrifice, ...options, phase: 'choice', atk: null, def: null, result: null },
+    pendingDisengage: { moverId: 'Héros', foeId: 'Brute', canSacrifice, ...options, phase: 'choix', atk: null, def: null, result: null },
   } as never);
   act(() => root.render(<DisengageModal />));
   const corps = host.querySelector('.modal-body')!;

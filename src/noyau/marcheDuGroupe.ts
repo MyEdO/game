@@ -32,7 +32,7 @@ export function poserLeGroupe(get: Get, set: Set, pt: Pt): boolean {
   // MARCHER, C'EST SE LEVER : le meneur assis qui fait un pas quitte sa place. Libéré AVANT
   // l'écriture de `partyPos`, dans la MÊME écriture — aucun état intermédiaire ne le montre assis
   // à une place dont il s'est déjà éloigné. Scène sans assise → aucun delta (même référence).
-  const debout = get().party.length ? releaseSeat(scene, { kind: 'party', rang: RANG_MENEUR }) : scene;
+  const debout = get().party.length ? releaseSeat(scene, { kind: 'groupe', rang: RANG_MENEUR }) : scene;
   set(debout === scene ? { partyPos: pt } : { partyPos: pt, scene: debout });
   // CAP DU GROUPE le long du pas (écrivain unique) — `orienterSelonLeChemin` reste la couture des caps
   // INDIVIDUELS du combat. DELTA NUL : un pas qui ne change que l'ÉTAGE (escalier, `z` seul) ne

@@ -420,17 +420,17 @@ export function clampTarget(raw: number, policy: TestPolicy = getTestPolicy()): 
   return target === raw ? { target } : { target, clamped: target - raw };
 }
 
-/** Un Round d'un Test ÉTENDU, cumul planché à 0. Règle optionnelle `test-etendu-dr-minimum` lue ICI,
- *  pour tout Test étendu. LDB 12 l.170-185 */
+/** Un Round d'un Test ÉTENDU, cumul planché à 0 ; `sl` est le DR que le Round apporte au cumul. Règle
+ *  optionnelle `test-etendu-dr-minimum` lue ICI, pour tout Test étendu. LDB 12 l.170-185 */
 export function extendedTestStep(
   prev: number,
   r: { success: boolean; sl: number },
   drCible: number,
-): { total: number; done: boolean; repart: boolean } {
+): { total: number; done: boolean; repart: boolean; sl: number } {
   const sl = rule('test-etendu-dr-minimum') ? (r.success ? Math.max(1, r.sl) : Math.min(-1, r.sl)) : r.sl;
   const brut = prev + sl;
   const total = Math.max(0, brut);
-  return { total, done: total >= drCible, repart: brut < 0 };
+  return { total, done: total >= drCible, repart: brut < 0, sl };
 }
 
 /** Les Rounds `jets` d'un Test étendu, dans l'ordre, depuis `prev` : le Test s'arrête à la cible.

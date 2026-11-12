@@ -44,7 +44,7 @@ const bow: Weapon = { label: 'Arc', type: 'distance', damage: { plusBF: false, f
 
 /** onHitEffect posant l'État En flammes (patron Épée ardente de Rhuin) → arme « infligeant *En flammes* ». */
 const flameOnHit: TriggeredEffect = {
-  trigger: 'onHit', on: 'victim',
+  trigger: 'onHit', on: 'victime',
   flow: { kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'ops', ops: [{ op: 'condition', id: { id: 'en-flammes' } }] } }] },
 };
 const flameSword: Weapon = { label: 'Épée ardente', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [], onHitEffects: [flameOnHit] };

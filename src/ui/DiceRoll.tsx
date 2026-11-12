@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { entierDEntropie } from '../web/entropie';
+import { entierDEntropie } from '../hote/entropie';
 
 /**
  * Roulis de dés — PRIMITIVE UNIQUE (#396, arbitrage user 2026-07-13/14 : « ça se lance, avec des

@@ -57,7 +57,7 @@ describe('onWoundLoss — TOUTE perte de PB (mêlée OU distance) ; le type voya
 
   it('un effet `attackType:\'melee\'` ne réagit qu’aux pertes de MÊLÉE', () => {
     const eff: TriggeredEffect = {
-      trigger: 'onWoundLoss', on: 'self', attackType: 'melee',
+      trigger: 'onWoundLoss', on: 'soi', attackType: 'melee',
       flow: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'sonne' }, value: 1 }] } } as never,
     };
     const g = ((c: Combatant) => () => ({ battle: { combatants: [c] } })) as never;

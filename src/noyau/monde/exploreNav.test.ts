@@ -108,7 +108,7 @@ describe('exploreSeatPlan — marcher vers l’ABORD d’une place libre', () =>
   };
 
   it('planifie vers l’approche du premier slot libre et atteignable', () => {
-    const scene = scèneTable({ 'table-1': { 'place-1': { kind: 'entity', entityId: 'pnj-1' } } });
+    const scene = scèneTable({ 'table-1': { 'place-1': { kind: 'entite', entityId: 'pnj-1' } } });
     const plan = exploreSeatPlan(scene, 'table-1', depuis(scene, { x: 8, y: 8 }));
     expect(plan).toMatchObject({ slotId: 'place-2', approach: { x: 11, y: 10 } });
     expect(plan!.path[plan!.path.length - 1]).toEqual(plan!.approach);
@@ -130,7 +130,7 @@ describe('exploreSeatPlan — marcher vers l’ABORD d’une place libre', () =>
   });
 
   it('toutes les places prises → null (rien à planifier)', () => {
-    const prises = Object.fromEntries(seatSlotsOf(scèneTable(), 'table-1').map((s) => [s.slotId, { kind: 'entity' as const, entityId: `pnj-${s.slotId}` }]));
+    const prises = Object.fromEntries(seatSlotsOf(scèneTable(), 'table-1').map((s) => [s.slotId, { kind: 'entite' as const, entityId: `pnj-${s.slotId}` }]));
     const sc = scèneTable({ 'table-1': prises });
     expect(exploreSeatPlan(sc, 'table-1', depuis(sc, { x: 8, y: 8 }))).toBeNull();
   });
@@ -160,7 +160,7 @@ describe('exploreSeatPlan — marcher vers l’ABORD d’une place libre', () =>
    */
   it('table PLEINE mais FOUILLABLE : le plan retombe sur une case adjacente, jamais sur null', () => {
     const prises = Object.fromEntries(seatSlotsOf(scèneTable(), 'table-1')
-      .map((s) => [s.slotId, { kind: 'entity' as const, entityId: `pnj-${s.slotId}` }]));
+      .map((s) => [s.slotId, { kind: 'entite' as const, entityId: `pnj-${s.slotId}` }]));
     const sc = scèneTable({ 'table-1': prises });
     (sc.entities[0] as SceneEntity).usable = { assise: true, actions: [{ id: 'fouiller', flow: emptyFlow, unique: true }] };
 
@@ -178,7 +178,7 @@ describe('exploreSeatPlan — marcher vers l’ABORD d’une place libre', () =>
    *  lui comme il mène au sol nu — c'est la parité que le geste avalé rompait (#1443, round 2). */
   it('table PLEINE et SANS fouille : on ne monte pas dessus, on s’en APPROCHE', () => {
     const prises = Object.fromEntries(seatSlotsOf(scèneTable(), 'table-1')
-      .map((s) => [s.slotId, { kind: 'entity' as const, entityId: `pnj-${s.slotId}` }]));
+      .map((s) => [s.slotId, { kind: 'entite' as const, entityId: `pnj-${s.slotId}` }]));
     const sc = scèneTable({ 'table-1': prises });
     const plan = exploreMovePlan(sc, { x: 10, y: 10 }, depuis(sc, { x: 5, y: 5 }));
     expect(plan, 'le clic mène quelque part').not.toBeNull();
@@ -208,7 +208,7 @@ describe('exploreSeatPlan — marcher vers l’ABORD d’une place libre', () =>
   });
 
   it('exploreMovePlan route le clic d’un meuble à places vers CE plan (survol et clic, une seule source)', () => {
-    const scene = scèneTable({ 'table-1': { 'place-1': { kind: 'entity', entityId: 'pnj-1' } } });
+    const scene = scèneTable({ 'table-1': { 'place-1': { kind: 'entite', entityId: 'pnj-1' } } });
     const seat = exploreSeatPlan(scene, 'table-1', depuis(scene, { x: 8, y: 8 }))!;
     const plan = exploreMovePlan(scene, { x: 10, y: 10 }, depuis(scene, { x: 8, y: 8 }));
     expect(plan).toMatchObject({ dest: seat.approach });

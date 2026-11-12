@@ -1,4 +1,5 @@
 import type { Combatant, ItemInstance } from '../engine/types';
+import type { Formula } from '../engine/ops';
 import type { FateSaveSource } from '../engine/fortune';
 import type { SourceRef, RaceKey, Sexe } from '../data/schemas/grammaire/valeurs';
 import type { BattleActionMode } from './actionRegistry';
@@ -289,8 +290,9 @@ export interface CampaignVessel {
    *  lieu (sous de cuivre) et la source ; chaque commission tombe à sa livraison. MDG 15 l.261 */
   commissions?: { label: string; placeId: string; brass: number }[];
   /** Constructeur de navires de l'escale (op `constructeurDEscale`) : la Compétence de son Test de réparation et la
-   *  durée tirée de la réparation (jours) ; levé à l'appareillage. MDG 15 l.255 */
-  constructeurDEscale?: { competence: number; jours: number };
+   *  durée en jours de chacun de ses travaux, tirée à chaque réparation ou Amélioration ; levé à l'appareillage.
+   *  MDG 15 l.255 */
+  constructeurDEscale?: { competence: number; duree: Formula };
   /** Prix d'une ration-jour de cale à l'escale (op `rationsDEscale`), en sous de cuivre ; levé à l'appareillage.
    *  MDG 15 l.262 */
   rationsDEscale?: number;
@@ -298,7 +300,8 @@ export interface CampaignVessel {
    *  `perteAuDechargement`) ; levé à l'accostage suivant. MDG 15 l.250 */
   perteAuDechargement?: number;
   /** INFESTATION de la cale (op `infestation`) jusqu'à son extermination : `progres` DR cumulés au Test
-   *  étendu `crewTestType` ; `chaqueNuit` joue à chaque nuit en mer. MDG 15 l.159-164, l.174-178 ; MDG 14 l.98-104 */
+   *  étendu `crewTestType` ; `chaqueNuit` joue à chaque nuit en mer ; `assaillie`, posé par une étape à DR
+   *  négatif, fait jouer `surDRNegatif` au soir. MDG 15 l.159-164, l.174-178 ; MDG 14 l.98-104 */
   infestation?: {
     label: string;
     crewTestType: string;
@@ -306,6 +309,10 @@ export interface CampaignVessel {
     drCible: number;
     progres: number;
     chaqueNuit: import('../engine/flowCore').Flow;
+    /** MDG 15 l.161, l.176 */
+    surDRNegatif?: import('../engine/flowCore').Flow;
+    /** MDG 15 l.161, l.176 */
+    assaillie?: true;
   };
 }
 

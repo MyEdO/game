@@ -38,12 +38,12 @@ function hero() { return banc.getState().party[0]; }
 function st(heroId: string) { return banc.getState().interlude!.perHero[heroId]; }
 /** Une option de Base et une Avancée disponibles pour CE héros — recalculées après chaque achat. */
 function pickSkill(advanced: boolean): EntrainementOption {
-  const o = entrainementOptions(hero()).find((x) => x.kind === 'skill' && x.advanced === advanced);
+  const o = entrainementOptions(hero()).find((x) => x.kind === 'competence' && x.advanced === advanced);
   if (!o) throw new Error('aucune option de skill trouvée pour ce test');
   return o;
 }
 function pickChar(): EntrainementOption {
-  const o = entrainementOptions(hero()).find((x) => x.kind === 'characteristic');
+  const o = entrainementOptions(hero()).find((x) => x.kind === 'caracteristique');
   if (!o) throw new Error('aucune Caractéristique hors carrière trouvée pour ce test');
   return o;
 }
@@ -64,7 +64,7 @@ describe('Entraînement (LDB 23 l.130-136)', () => {
     const owned = h.skills.find((s) => s.id === opt.id && memeSpecialisation(s.spec, opt.spec));
     expect(owned?.advances).toBe(opt.advances + 1);
     expect(h.xp).toBe(xpBefore - opt.xpCost);
-    expect(opt.xpCost).toBe(advanceCost(opt.advances, 'skill', false));
+    expect(opt.xpCost).toBe(advanceCost(opt.advances, 'competence', false));
     expect(toBrass(partyMoneyTotal(banc.getState))).toBe(moneyBefore - expectedTutor);
     expect(st(heroId).left).toBe(leftBefore - 1);
   });
@@ -82,7 +82,7 @@ describe('Entraînement (LDB 23 l.130-136)', () => {
     const owned = h.skills.find((s) => s.id === opt.id && memeSpecialisation(s.spec, opt.spec));
     expect(owned?.advances).toBe(opt.advances + 1);
     expect(h.xp).toBe(xpBefore - opt.xpCost);
-    expect(opt.xpCost).toBe(advanceCost(opt.advances, 'skill', false)); // même coût PX que la Base
+    expect(opt.xpCost).toBe(advanceCost(opt.advances, 'competence', false)); // même coût PX que la Base
     expect(toBrass(partyMoneyTotal(banc.getState))).toBe(moneyBefore - expectedTutor);
   });
 
@@ -100,7 +100,7 @@ describe('Entraînement (LDB 23 l.130-136)', () => {
     const h = hero();
     expect(h.characteristics[charKey]).toBe(charBefore + 1);
     expect(h.xp).toBe(xpBefore - opt.xpCost);
-    expect(opt.xpCost).toBe(advanceCost(opt.advances, 'characteristic', false));
+    expect(opt.xpCost).toBe(advanceCost(opt.advances, 'caracteristique', false));
     expect(toBrass(partyMoneyTotal(banc.getState))).toBe(moneyBefore - expectedTutor);
   });
 

@@ -1,6 +1,6 @@
 import type { Combatant } from '../engine/types';
 import type { Stockage } from '../lib/stockage';
-import { stockageWeb } from '../web/stockageWeb';
+import { stockageWeb } from '../hote/stockageWeb';
 import { mettreAJourLeRoster } from '../hote/roster';
 
 /** Le stockage du roster web (#3041) : `localStorage`, relu à chaque appel. */

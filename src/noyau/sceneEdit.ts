@@ -1641,7 +1641,7 @@ function rebaseSeatedBodies(scene: Scene): Scene {
   for (const [propId, parMeuble] of Object.entries(scene.seatAssignments ?? {})) {
     const places = seatSlotsOf(scene, propId);
     for (const [slotId, occupant] of Object.entries(parMeuble)) {
-      if (occupant.kind !== 'entity') continue;
+      if (occupant.kind !== 'entite') continue;
       const place = places.find((candidate) => candidate.slotId === slotId);
       if (place) cibles.set(occupant.entityId, { x: place.approach.x, y: place.approach.y });
     }
@@ -1747,7 +1747,7 @@ export function removeEntity(scene: Scene, id: string): Scene {
  *  attablés quand c'est le MEUBLE qui bouge, et lève les places devenues inoccupables). */
 export function moveEntityTo(scene: Scene, id: string, to: Pt): Scene {
   const deplacee = emporterLesObjets(scene, { ...scene, entities: scene.entities.map((e) => (e.id === id ? { ...e, pos: { ...e.pos, x: to.x, y: to.y } } : e)) }, id);
-  const occupant: SeatOccupant = { kind: 'entity', entityId: id };
+  const occupant: SeatOccupant = { kind: 'entite', entityId: id };
   const pose = seatPoseOf(scene, occupant);
   const quitte = !!pose && (pose.approach.x !== to.x || pose.approach.y !== to.y);
   return normaliserLaPose(quitte ? releaseSeat(deplacee, occupant) : deplacee);
@@ -2364,39 +2364,39 @@ export function appliquerOutil(scene: Scene, tool: Tool, p: Pt, geste: GesteDOut
   if (!dansLaCarte(scene, p)) return null;
   const { z, brush } = geste;
   switch (tool.mode) {
-    case 'tile': return { scene: paintTiles(scene, p, tool.terrain, brush, z) };
-    case 'height': return { scene: paintHeight(scene, p, tool.metres, brush, z) };
-    case 'crenellated': return { scene: paintCrenellated(scene, p, tool.structure, brush, z) };
-    case 'zoneTiles': return { scene: paintEffectZone(scene, tool.zoneId, p, tool.paint) };
-    case 'erase': return { scene: eraseAt(scene, p, z, geste.point) };
-    case 'entity':
+    case 'terrain': return { scene: paintTiles(scene, p, tool.terrain, brush, z) };
+    case 'hauteur': return { scene: paintHeight(scene, p, tool.metres, brush, z) };
+    case 'crenelage': return { scene: paintCrenellated(scene, p, tool.structure, brush, z) };
+    case 'casesDeZone': return { scene: paintEffectZone(scene, tool.zoneId, p, tool.paint) };
+    case 'gomme': return { scene: eraseAt(scene, p, z, geste.point) };
+    case 'entite':
     case 'emplacement': {
-      if (tool.mode === 'entity' && tool.kind === 'prop') {
+      if (tool.mode === 'entite' && tool.kind === 'prop') {
         const out = placeEntity(scene, tool, p, z, geste.point);
         return { scene: out.scene, sel: { type: 'entity', id: out.id } };
       }
       const existing = entityAt(scene, p, z, geste.point);
       if (existing) return { scene, sel: { type: 'entity', id: existing.id } };
-      const out = tool.mode === 'entity' ? placeEntity(scene, tool, p, z) : placeEmplacement(scene, tool.trappingId, p, z);
+      const out = tool.mode === 'entite' ? placeEntity(scene, tool, p, z) : placeEmplacement(scene, tool.trappingId, p, z);
       return out && { scene: out.scene, sel: { type: 'entity', id: out.id } };
     }
-    case 'entry': {
+    case 'entree': {
       const out = placeEntry(scene, p, z);
       return { scene: out.scene, sel: { type: 'entry', id: out.id } };
     }
-    case 'encounter': {
+    case 'rencontre': {
       const out = addEnemyMember(scene, geste.encId, geste.encRef, p, z);
       return { scene: out.scene, sel: { type: 'entity', id: out.entityId }, encId: out.encId };
     }
-    case 'wall': {
+    case 'arete': {
       if (!geste.side) return null;
       if (tool.paint === 'diagBack') return { scene: toggleDiagonalWall(scene, p.x, p.y, '\\', z) };
       if (tool.paint === 'diagFwd') return { scene: toggleDiagonalWall(scene, p.x, p.y, '/', z) };
       return { scene: toggleEdgeWall(scene, p.x, p.y, geste.side, z, tool.paint === 'door' ? 'door' : 'wall', tool.structure) };
     }
-    case 'select':
+    case 'selection':
     case 'zone':
-    case 'stair':
+    case 'escalier':
       return null;
   }
 }
@@ -2404,7 +2404,7 @@ export function appliquerOutil(scene: Scene, tool: Tool, p: Pt, geste: GesteDOut
 /** Valide le rectangle `rect` tracé à l'outil `tool` sur la couche `z` : une zone (déclencheur, repos,
  *  pièce, zone d'effet) qu'il désigne, ou le terrain qu'il remplit. null pour un outil sans rectangle. */
 export function validerRectangle(scene: Scene, tool: Tool, rect: Rect, z: number): EffetDOutil | null {
-  if (tool.mode === 'tile') return { scene: fillTerrainRect(scene, rect, tool.terrain, z) };
+  if (tool.mode === 'terrain') return { scene: fillTerrainRect(scene, rect, tool.terrain, z) };
   if (tool.mode !== 'zone') return null;
   if (tool.zone === 'trigger') {
     const out = addTrigger(scene, rect, z);

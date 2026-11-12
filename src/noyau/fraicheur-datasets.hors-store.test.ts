@@ -260,9 +260,9 @@ describe('#1692 — les vues DÉRIVÉES d’un dataset suivent son édition', ()
   });
 
   it('un Coût d’Augmentation ÉDITÉ : `advanceCost` lit la NOUVELLE bande', () => {
-    expect(advanceCost(0, 'characteristic')).toBe(25);
+    expect(advanceCost(0, 'caracteristique')).toBe(25);
     setDataset('advancementCosts', datasetArray('advancementCosts').map((b, i) => (i === 0 ? { ...b, coutCarac: 99 } : b)));
-    expect(advanceCost(0, 'characteristic')).toBe(99);
+    expect(advanceCost(0, 'caracteristique')).toBe(99);
   });
 
   it('une bande de longueur de coque ÉDITÉE : `shipSizeOfLength` lit la NOUVELLE colonne « Taille »', () => {

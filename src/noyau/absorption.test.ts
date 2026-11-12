@@ -2,7 +2,7 @@
  * Trait de créature ABSORPTION (EDO 11 l.222) — mécanique 100 % DONNÉES (traits.json `absorption.effects`),
  * dispatchée par le système générique d'effets déclenchés (`fireTriggers`). Aucune branche par-nom dans le
  * moteur : tout passe par les extensions GÉNÉRALES de vocabulaire (Condition `engagedAdvantageLead`,
- * Formula `{woundsDealt}`, EffectTargeting `grappled` / `{pick}`).
+ * Formula `{woundsDealt}`, EffectTargeting `empoigne` / `{pick}`).
  *
  * RAW (verbatim) : « À la fin du Round, si la créature a un Avantage plus élevé que tous les adversaires
  * engagés, elle absorbe un adversaire de taille égale ou inférieure. Une victime absorbée gagne un nombre

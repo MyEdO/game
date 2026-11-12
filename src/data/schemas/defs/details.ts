@@ -41,7 +41,7 @@ const doc = document(
     taille: { label: 'Jet de Taille', hint: 'Dés de la Taille de départ en cm, par colonne d’espèce' },
     texts: { label: 'Textes d’aide', hint: 'Aides affichées à la création : Nom, Âge, Taille, Ambitions' },
   },
-  { codex: { keys: ['details'] }, edit: { object: 'single' } },
+  { codex: { keys: ['details'] }, edit: { object: 'unique' } },
 );
 
 export const schema = doc.schema;

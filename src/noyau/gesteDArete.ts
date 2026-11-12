@@ -185,7 +185,7 @@ function settleFall(get: Get, set: Set, p: PendingFall): void {
   soldeDeLAction(get, set, p.participants.some((x) => x.attempt === true), mouvementDeLaChute(p, initiateur?.suspendre === true, sceneMetresPerTile(scene)));
   if (mode === 'battle') {
     for (const { c, m } of chutes) {
-      if (m > 0) jouerFlowEntier(applyEffects(get, set, [{ type: 'fall', target: 'hero', heroId: c.id, metres: m, to: p.to }]));
+      if (m > 0) jouerFlowEntier(applyEffects(get, set, [{ type: 'fall', target: 'heros', heroId: c.id, metres: m, to: p.to }]));
       else { placeCombatant(c, scene, p.to); get().ecrireAuJournal(t('fall.jumpSafe', { name: c.label })); }
     }
     return;
@@ -205,7 +205,7 @@ function settleFall(get: Get, set: Set, p: PendingFall): void {
  *  (`effectTargets('party')`), l'initiateur en tête. */
 function tombantsDe(get: Get, battle: BattleState | null, initiateur: Combatant): Combatant[] {
   if (battle) return [initiateur];
-  const groupe = effectTargets(get, 'party');
+  const groupe = effectTargets(get, 'groupe');
   return [initiateur, ...groupe.filter((c) => c.id !== initiateur.id)];
 }
 

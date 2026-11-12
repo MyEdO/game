@@ -11,7 +11,7 @@ import { idsDeTest } from '../../../src/engine/idsDeTest.testkit';
 import { afterAll, describe, it, expect, vi } from 'vitest';
 import { drainer, erreurDe, fautesDeLaFenetre, suiteDe, table } from './pont.testkit';
 import type { VueDuPont } from './pont';
-import { CLIC_DU_CHAMP, cleDuGeste, plateauDeLaScene } from '../../../src/noyau/index';
+import { CLIC_DU_CHAMP, PREFERENCES, cleDuGeste, plateauDeLaScene, preferenceDef } from '../../../src/noyau/index';
 import { VERBES } from '../../../src/hote/verbes.generated';
 import { scenario } from '../../../src/scenes/test-scenarios/22-dome';
 import { testScenarios } from '../../../src/scenes/test-scenarios';
@@ -36,7 +36,19 @@ describe('le pont avant sa partie', () => {
   it('une méthode inconnue se refuse en `validation` et nomme les méthodes du contrat', () => {
     const e = erreurDe(appel('simulerAttaque', {}));
     expect(e.categorie).toBe('validation');
-    expect(e.message).toBe('méthode inconnue : simulerAttaque (méthodes : demarrer, ouvrir, lancer, quitter, scenarios, vue, monde, morceaux, retrait, aretes, jouer, plan, regarder, fiche, creation, reprendre, modeles, composer, vehicule, catalogues, vitrine, echantillons, echantillon, presetDeComposition, editer, erreursGlobales)');
+    expect(e.message).toBe('méthode inconnue : simulerAttaque (méthodes : accueil, demarrer, ouvrir, lancer, quitter, sauvegardes, sauvegarder, charger, scenarios, vue, monde, morceaux, retrait, vision, aretes, jouer, plan, regarder, fiche, creation, roster, reprendre, modeles, composer, vehicule, catalogues, vitrine, preferences, reglages, echantillons, echantillon, presetDeComposition, editer, erreursGlobales)');
+  });
+
+  it('`preferences` rend sans partie la valeur effective de chaque préférence de la table, par id', () => {
+    const volume = preferenceDef('volume-ambiance')!;
+    const avant = volume.get();
+    volume.set(0.35);
+    try {
+      expect(appel('preferences')).toEqual({ ok: true, preferences: Object.fromEntries(PREFERENCES.map((p) => [p.id, p.get()])) });
+      expect(appel('preferences')).toMatchObject({ preferences: { 'volume-ambiance': 0.35 } });
+    } finally {
+      volume.set(avant);
+    }
   });
 
   it('`modeles` rend les modèles de l’atelier sans partie ; une entrée sans `manifestes` ou sans `osDesRigides` se refuse', () => {
@@ -67,8 +79,8 @@ describe('le pont avant sa partie', () => {
     expect(erreurDe(appel('scenarios', { section: 'combat' }))).toEqual({ categorie: 'validation', message: 'scenarios : section hors de l’entrée (aucune clé)' });
   });
 
-  it('`vue`, `monde`, `morceaux` de la partie, `retrait`, `aretes`, `jouer`, `fiche` et `reprendre` se refusent sans partie', () => {
-    for (const [methode, entree] of [['vue', undefined], ['monde', undefined], ['morceaux', { source: 'partie', volume: [], toits: [], couronnes: [] }], ['retrait', undefined], ['aretes', undefined], ['jouer', { type: 'fenetreValider', args: ['debutDuRound'] }], ['fiche', { fiche: null }], ['regarder', { regard: 'plateau' }], ['reprendre', { jeton: 0 }]] as const) {
+  it('`vue`, `monde`, `morceaux` de la partie, `retrait`, `vision`, `aretes`, `jouer`, `fiche` et `reprendre` se refusent sans partie', () => {
+    for (const [methode, entree] of [['vue', undefined], ['monde', undefined], ['morceaux', { source: 'partie', volume: [], toits: [], couronnes: [] }], ['retrait', undefined], ['vision', undefined], ['aretes', undefined], ['jouer', { type: 'fenetreValider', args: ['debutDuRound'] }], ['fiche', { fiche: null }], ['regarder', { regard: 'plateau' }], ['reprendre', { jeton: 0 }]] as const) {
       expect(erreurDe(appel(methode, entree)), methode).toEqual({ categorie: 'validation', message: 'aucune partie : demarrer ou ouvrir d’abord' });
     }
   });

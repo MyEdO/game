@@ -1,6 +1,6 @@
 import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
-import { apparencesCandidates, recomputeLoadout, totalEncumbrance, maxEncumbrance, itemFromTrappingById, weaponWithAmmo, compatibleAmmo, selectedAmmo, emptyArmour, damageArmour, deviatableArmourAt, endommagerLEquipementPorte, buildWeapon, weaponHands, activeLoadout, ensureDefaultLoadout, unarmedWeapon, loadoutCreate, loadoutDelete, loadoutSetActive, loadoutSetSlot, setADeuxMains, loadoutLabel, isOffHandEligible, armourLayer, equipConflicts, isCapeItem, emplacementDArmure, emplacementDeCape, buildInventory, damageString, gabaritDObjet, hydratePoste, mannedPosteWeapon, itemLabel, customTrapping, wornArmourPoints, isWearable, reachIdOf, reachRankOf, isUnarmed, weaponFromItem, lacherLArme, tientUneArme, porteeDeTir } from './items';
+import { apparencesCandidates, recomputeLoadout, totalEncumbrance, maxEncumbrance, itemFromTrappingById, weaponWithAmmo, compatibleAmmo, selectedAmmo, emptyArmour, damageArmour, deviatableArmourAt, endommagerLEquipementPorte, buildWeapon, weaponHands, activeLoadout, ensureDefaultLoadout, unarmedWeapon, loadoutCreate, loadoutDelete, loadoutSetActive, loadoutSetSlot, setADeuxMains, loadoutLabel, isOffHandEligible, armourLayer, equipConflicts, isCapeItem, emplacementDArmure, emplacementDeCape, buildInventory, itemsEncumbrance, damageString, gabaritDObjet, hydratePoste, mannedPosteWeapon, itemLabel, customTrapping, wornArmourPoints, isWearable, reachIdOf, reachRankOf, isUnarmed, weaponFromItem, lacherLArme, tientUneArme, porteeDeTir } from './items';
 import { apparencesAdmissiblesDObjet } from '../data/apparencesObjets';
 import { effectiveWeaponRange } from './weaponDamage';
 import { createHero } from './character';
@@ -470,6 +470,15 @@ describe('couches d’armure (LDB 63) — armourLayer / equipConflicts', () => {
   it('buildInventory préserve la `value` (Indice) d\'un Atout ATTACHÉ — « Solide 3 » (correctif juge Lot 1)', () => {
     const [item] = buildInventory([{ id: 'epee-batarde', qualities: [{ id: 'solide', value: 3 }] }], makeRNG(1), idsDeTest);
     expect(item.qualities.find((q) => q.id === 'solide')).toEqual({ id: 'solide', value: 3 });
+  });
+});
+
+describe('buildInventory — vêtements et accessoires portés par défaut (LDB 61 l.21)', () => {
+  it('vêtements, première cape et bottes portés, seconde cape au sac ; Encombrement réduit de 1 par objet porté', () => {
+    const items = buildInventory(['vetements', 'cape', 'cape', 'bottes'].map((id) => ({ id })), makeRNG(1), idsDeTest);
+    expect(items.map((i) => [i.trappingId, !!i.equipped])).toEqual([['vetements', true], ['cape', true], ['cape', false], ['bottes', true]]);
+    const attendu = items.reduce((s, i) => s + Math.max(0, (i.enc ?? 0) - (i.equipped ? 1 : 0)), 0);
+    expect(itemsEncumbrance(items)).toBe(attendu);
   });
 });
 

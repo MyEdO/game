@@ -31,7 +31,7 @@ describe('jetForcerLaReussite@test — Résilience AVANT le jet', () => {
     expect(pt.success).toBe(true);
     expect(pt.sl).toBeGreaterThanOrEqual(1);
     expect(pt.roll).toBe(1); // « vous choisissez le résultat » → 01
-    expect(pt.forced).toBe(true);
+    expect(pt.forcee).toBe(true);
     expect(banc.getState().party[0].resilience).toBe(1);
   });
 
@@ -48,7 +48,7 @@ describe('jetForcerLaReussite@test — Résilience AVANT le jet', () => {
     expect(pt.success).toBe(true);
     expect(pt.roll).toBe(1); // sans enjeu de double, le choix rationnel est le score le plus bas
     expect(pt.sl).toBe(4); // dizaine(40) − dizaine(01) : le DR maximal atteignable contre une cible de 40
-    expect(pt.forced).toBe(true);
+    expect(pt.forcee).toBe(true);
     expect(banc.getState().party[0].resilience).toBe(1);
   });
 

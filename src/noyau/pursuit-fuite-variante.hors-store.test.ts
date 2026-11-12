@@ -50,8 +50,8 @@ function distanceAfterRound(h: Combatant, partyRole: 'fleeing' | 'pursuing'): nu
   banc.getState().ensemencerLeTirage(7);
   banc.setState({
     sequence: {
-      def: 'pursuit', round: 1, cum: {}, params: { score: { fleeing: 'min', pursuers: 'max' } },
-      payload: {
+      definition: 'pursuit', manche: 1, cumuls: {}, parametres: { score: { fleeing: 'min', pursuers: 'max' } },
+      chargeUtile: {
         partyRole, distance: 5, escapeAt: 10, skill: 'athletisme', policy: { ...PURSUIT_POLICY_DEFAUT },
         foes: [{ id: 'foe-1', label: 'Bandit', movement: 4, skill: 40 }], manche: 1, phase: 'course', retires: [],
       },

@@ -197,6 +197,7 @@ const champs = {
     }),
     entretienCrewTestDR: z.number(),
     constructeurLocal: z.number().int().min(1),
+    joursDePose: tirageSchema,
     maison: maisonSchema,
   }), {
     portCostGoldPerWound: { label: 'Coût au port par Blessure (co)' },
@@ -208,6 +209,7 @@ const champs = {
     temporaire: { label: 'Temporaire' },
     entretienCrewTestDR: { label: 'DR du Test d’entretien de l’équipage' },
     constructeurLocal: { label: 'Métier (Constructeur de navires) du constructeur local' },
+    joursDePose: { label: 'Durée de pose d’une Amélioration (jours)' },
     maison: { label: 'Arbitrage maison' },
   }),
 };
@@ -231,7 +233,7 @@ const doc = document(
     poursuite: { label: 'Course-poursuite', hint: "Distances d'échappement, delta de DR, pénalité à faible Mouvement" },
     reparation: { label: 'Réparations au port', hint: 'Coût, durée et rendement des réparations de coque, dont la réparation temporaire' },
   },
-  { codex: { keys: ['seaNavigation'] }, edit: { object: 'single' } },
+  { codex: { keys: ['seaNavigation'] }, edit: { object: 'unique' } },
   {
     // MDG 13 l.125, l.140 (vitesseMax) ; l.316, l.320 (reperes) ; l.320, l.326 (changementDeCap) ;
     // l.380, l.394 (drDeltas) ; l.343, l.345 (phares.voirLaLumiere) ; patron `structure-criticals.ts`.

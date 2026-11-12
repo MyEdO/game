@@ -922,6 +922,52 @@
                       }
                     }
                   ]
+                },
+                "surDRNegatif": {
+                  "kind": "effet",
+                  "effet": {
+                    "type": "ops",
+                    "on": "membreAuHasard",
+                    "ops": [
+                      {
+                        "op": "attaquesSubies",
+                        "assaillant": {
+                          "statblock": {
+                            "type": "statblock",
+                            "label": "Rats géants",
+                            "char": {
+                              "capacite-de-combat": 35
+                            },
+                            "traits": [
+                              {
+                                "id": "arme",
+                                "value": 5
+                              },
+                              {
+                                "id": "taille",
+                                "arg": "petite",
+                                "source": {
+                                  "book": "livre-de-base",
+                                  "page": 342,
+                                  "note": "LDB 85 l.351"
+                                }
+                              },
+                              {
+                                "id": "maladie",
+                                "arg": "fievre-du-rongeur"
+                              }
+                            ]
+                          }
+                        },
+                        "nombre": {
+                          "dice": {
+                            "n": 1,
+                            "sides": 10
+                          }
+                        }
+                      }
+                    ]
+                  }
                 }
               }
             ]
@@ -1154,6 +1200,44 @@
                       }
                     }
                   ]
+                },
+                "surDRNegatif": {
+                  "kind": "effet",
+                  "effet": {
+                    "type": "ops",
+                    "on": "membreAuHasard",
+                    "ops": [
+                      {
+                        "op": "attaquesSubies",
+                        "assaillant": {
+                          "statblock": {
+                            "type": "statblock",
+                            "label": "Rats",
+                            "char": {
+                              "capacite-de-combat": 25
+                            },
+                            "traits": [
+                              {
+                                "id": "arme",
+                                "value": 4
+                              },
+                              {
+                                "id": "taille",
+                                "arg": "tresPetite",
+                                "maison": "rat ordinaire entre souris (Minuscule) et chat (Très petite), plus petit que le rat géant (Petite), LDB 85 l.348-351 ; MDG 15 ne donne pas la Taille"
+                              }
+                            ]
+                          }
+                        },
+                        "nombre": {
+                          "dice": {
+                            "n": 1,
+                            "sides": 10
+                          }
+                        }
+                      }
+                    ]
+                  }
                 }
               }
             ]
@@ -1386,7 +1470,7 @@
                 "kind": "effet",
                 "effet": {
                   "type": "ops",
-                  "on": "party",
+                  "on": "groupe",
                   "ops": [
                     {
                       "op": "money",
@@ -1773,7 +1857,7 @@
           "kind": "effet",
           "effet": {
             "type": "ops",
-            "on": "party",
+            "on": "groupe",
             "pendantJours": {
               "dice": {
                 "n": 1,
@@ -2407,7 +2491,7 @@
                           "kind": "effet",
                           "effet": {
                             "type": "ops",
-                            "on": "party",
+                            "on": "groupe",
                             "ops": [
                               {
                                 "op": "money",
@@ -2631,7 +2715,7 @@
               "kind": "effet",
               "effet": {
                 "type": "ops",
-                "on": "party",
+                "on": "groupe",
                 "ops": [
                   {
                     "op": "money",
@@ -2758,7 +2842,7 @@
                 "kind": "effet",
                 "effet": {
                   "type": "ops",
-                  "on": "party",
+                  "on": "groupe",
                   "ops": [
                     {
                       "op": "money",
@@ -2805,7 +2889,7 @@
                     "kind": "effet",
                     "effet": {
                       "type": "ops",
-                      "on": "party",
+                      "on": "groupe",
                       "ops": [
                         {
                           "op": "money",
@@ -2876,7 +2960,7 @@
                   "kind": "effet",
                   "effet": {
                     "type": "ops",
-                    "on": "party",
+                    "on": "groupe",
                     "ops": [
                       {
                         "op": "money",
@@ -2941,7 +3025,7 @@
                 "kind": "effet",
                 "effet": {
                   "type": "ops",
-                  "on": "party",
+                  "on": "groupe",
                   "ops": [
                     {
                       "op": "money",

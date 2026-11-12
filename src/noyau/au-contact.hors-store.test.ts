@@ -73,7 +73,7 @@ describe('Au Contact — store + funnel (LDB 62 l.176)', () => {
 
     banc.getState().ouvrirLAuContact(E.id);
     let pd = banc.getState().pendingAuContact;
-    expect(pd?.phase).toBe('roll');
+    expect(pd?.phase).toBe('jet');
     expect(pd?.atk).not.toBeNull(); // jet du foe FIGÉ d'avance
 
     banc.getState().jetLancer('auContact');
@@ -84,7 +84,7 @@ describe('Au Contact — store + funnel (LDB 62 l.176)', () => {
     // Force l'issue « le mover l'emporte » (déterminisme), puis le héros tranche.
     banc.setState({ pendingAuContact: { ...pd, result: 'reussite' } });
     banc.getState().jetValider('auContact');
-    expect(banc.getState().pendingAuContact?.phase).toBe('choice');
+    expect(banc.getState().pendingAuContact?.phase).toBe('choix');
     banc.getState().jetRegler('auContact', 'issue', 'contact');
 
     const st = banc.getState();

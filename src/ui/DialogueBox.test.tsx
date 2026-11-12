@@ -76,7 +76,7 @@ describe('DialogueBox — résolution du locuteur PAR ID (#669)', () => {
   });
 
   it('locuteur POSÉ à l’éditeur sans libellé : le nom de son entité (#1463 S3), tiré pour un anonyme (#3712)', () => {
-    const pose = placeEntity(scene, { mode: 'entity', kind: 'personnage', ref: 'humain' }, { x: 2, y: 2 });
+    const pose = placeEntity(scene, { mode: 'entite', kind: 'personnage', ref: 'humain' }, { x: 2, y: 2 });
     expect(pose.scene.entities.find((e) => e.id === pose.id)).not.toHaveProperty('label');
     useGame.setState({ scene: pose.scene, flags: {}, gameTime: campaignStart(), party: [], dialogue: { dialogue: dlg, nodeId: 'n1', speakerId: pose.id, session: 1 } });
     container = document.createElement('div');

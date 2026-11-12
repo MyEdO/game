@@ -19,7 +19,7 @@ export interface LifeBarProps {
   value: number;
   max: number;
   label?: ReactNode;
-  /** Ton par PALIER, fixe ou dérivé `(value,max)→ton` — ignoré si `color` est fourni. Défaut `neutral`. */
+  /** Ton par PALIER, fixe ou dérivé `(value,max)→ton` — ignoré si `color` est fourni. Défaut `neutre`. */
   tone?: GaugeTone | ((value: number, max: number) => GaugeTone);
   /** Couleur CSS littérale (teinte CONTINUE, ex. `hpColor(ratio)`) — surcharge `tone` pour le remplissage. */
   color?: string;
@@ -38,7 +38,7 @@ export interface LifeBarProps {
 export function LifeBar({ value, max, label, tone, color, format, overlay, stacked, className, title }: LifeBarProps) {
   const overflowing = max > 0 && value > max;
   const frac = max > 0 ? Math.max(0, Math.min(1, value / max)) : 0;
-  const t: GaugeTone = overflowing ? 'danger' : typeof tone === 'function' ? tone(value, max) : tone ?? 'neutral';
+  const t: GaugeTone = overflowing ? 'danger' : typeof tone === 'function' ? tone(value, max) : tone ?? 'neutre';
   const display = format
     ? format(value, max)
     : overflowing

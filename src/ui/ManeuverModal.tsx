@@ -43,7 +43,7 @@ export function ManeuverModal() {
   const ligne = ligneDAttaquantDeManoeuvre(attacker, a.stat ?? 'capacite-de-tir', maneuverAttackerDifficulty(pm.kind));
   const label = libelleDeManoeuvre(attacker, pm.attaque);
   // LDB 85 l.290.
-  const variable = a.advantageMode === 'variable';
+  const variable = a.modeDAvantage === 'variable';
   const avOptions: RollSegOption[] = variable
     ? Array.from({ length: Math.max(1, attacker.advantage) }, (_, i) => i + 1).map((n) => ({
         key: String(n), label: `+${n} DR`, selected: pm.avantageSpent === n, onSelect: () => setAvantage(n),

@@ -12,6 +12,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { setRule, resetRule } from '../../engine/policy';
 import { useGame } from '../../state/store';
 import type { BattleState } from '../../noyau/etat';
+import type { AdvantagePools } from '../../engine/advantagePool';
 import { openAttackCascade, aiCreatureFreeAttacks } from '../../noyau/combatFlow';
 import { seedBattleRng } from '../../noyau/battleRng';
 import { testScene } from '../../scenes/test-fixture';
@@ -220,7 +221,7 @@ describe('Défense : volets Riposte et Porte-bouclier', () => {
     h.weapons = [BOUCLIER];
     h.talents = [{ talentId: 'porte-bouclier', times: 1 }] as Combatant['talents'];
     h.advantage = 3;
-    (b as BattleState & { advantagePools: { allies: number; foes: number } }).advantagePools = { allies: 3, foes: 0 };
+    (b as BattleState & { advantagePools: AdvantagePools }).advantagePools = { allies: 3, adversaires: 0 };
   };
 
   it('Riposte au plafond du Niveau : Oui et Non refusés avec la cause, aucun pressé', () => {

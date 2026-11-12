@@ -52,12 +52,12 @@ function seul(): Combatant {
 }
 
 /** Partie en cours, avec le compte que la table lui donne. Les MARQUES sont l'accumulateur du socle
- *  (`cum`), les échecs et effacements la charge utile du jeu. */
+ *  (`cumuls`), les échecs et effacements la charge utile du jeu. */
 function partie(challengerId: string, etat?: Partial<TavernCombinedState>, marks?: Record<string, number>): EtatDeFamille<typeof TAVERN_SEQUENCE> {
   return {
-    def: TAVERN_SEQUENCE, round: 2, cum: { ...marks },
-    params: { combined: structuredClone(CEREVIS.combined!) },
-    payload: {
+    definition: TAVERN_SEQUENCE, manche: 2, cumuls: { ...marks },
+    parametres: { combined: structuredClone(CEREVIS.combined!) },
+    chargeUtile: {
       gameId: 'cerevis', challengerId, opponentValue: OPPONENT, opponentName: NOM_HABITUE, stakeBrass: 0,
       combined: { echecs: { joueur: 0, adversaire: 0 }, effacements: { joueur: 0, adversaire: 0 }, tour: 1, ...etat },
     },
@@ -83,9 +83,9 @@ function tour(actorId: string, mien: { roll: number; target: number; sl: number 
 }
 
 /** Le compte tenu par la partie en cours. */
-const compte = (): TavernCombinedState => (get().sequence!.payload as TavernPayload).combined!;
+const compte = (): TavernCombinedState => (get().sequence!.chargeUtile as TavernPayload).combined!;
 /** Les MARQUES par camp, là où le socle les tient. */
-const marques = (): Record<string, number> => get().sequence!.cum;
+const marques = (): Record<string, number> => get().sequence!.cumuls;
 
 beforeEach(() => {
   seedBattleRng(5);
@@ -97,8 +97,8 @@ describe('Le Cerevis — la donnée porte la règle, et dit ce qui est maison', 
     expect(CEREVIS.difficulty, '« Pari Accessible (+20) »').toBe('accessible');
     expect(CEREVIS.skill).toEqual({ id: 'pari' });
     expect(CEREVIS.combined?.second, '« un Test combiné d’Initiative et de… »').toEqual({ characteristic: 'initiative' });
-    expect(CEREVIS.combined?.failEvery, '« Pour chaque 3 Tests d’Initiative auxquels vous échouez »').toBe(3);
-    expect(CEREVIS.combined?.eraseEvery, '« pour chaque 2 chouettes que vous effacez »').toBe(2);
+    expect(CEREVIS.combined?.echecsParEcheance, '« Pour chaque 3 Tests d’Initiative auxquels vous échouez »').toBe(3);
+    expect(CEREVIS.combined?.effacementsParEcheance, '« pour chaque 2 chouettes que vous effacez »').toBe(2);
     expect(CEREVIS.combined?.markLoser, '« Le joueur qui a obtenu le moins de DR […] doit marquer une chouette »').toBe(true);
     expect(CEREVIS.combined?.ops, 'le Tableau Ivre passe par l’op qui le porte (LDB 09 l.475)').toEqual([{ op: 'intoxicate' }]);
     // `NADJ 16 l.90` s'achève sur le Tableau Ivre : aucune fin de partie n'y est écrite. Le nombre
@@ -213,7 +213,7 @@ describe('Le Cerevis — les chouettes s’effacent au geste du joueur (l.88)', 
     const seq = get().sequence as EtatDeFamille<typeof TAVERN_SEQUENCE>;
     banc.setState({
       pendingCascade: null, // la fenêtre du 1ᵉʳ tour est remplacée par le tour POSÉ ci-dessous
-      sequence: { ...seq, cum: { joueur: 1 }, payload: { ...seq.payload, combined: { echecs: { joueur: 0, adversaire: 0 }, effacements: { joueur: 0, adversaire: 0 }, tour: 1 } } },
+      sequence: { ...seq, cumuls: { joueur: 1 }, chargeUtile: { ...seq.chargeUtile, combined: { echecs: { joueur: 0, adversaire: 0 }, effacements: { joueur: 0, adversaire: 0 }, tour: 1 } } },
     });
     closeSequenceRound(get, banc.setState, tour(a.id, { roll: 20, target: 90, sl: 1 }, { roll: 20, sl: 4 }));
     const etape = get().pendingCascade!.participants[0];

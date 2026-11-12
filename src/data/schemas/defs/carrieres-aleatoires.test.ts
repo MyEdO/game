@@ -105,6 +105,20 @@ describe('carrieres-aleatoires.json — colonnes, portions et couverture du dé'
     expect(validateDataset(FICHIER, docs)).toMatch(/variantes-chevalier : la colonne « halfling » ne tire pas la carrière détaillée « chevalier »/);
   });
 
+  it('REFUSE, en les nommant, deux variantes de la même carrière détaillée sur des colonnes disjointes', () => {
+    const docs = clone();
+    const soldat = docs.find((d) => d.id === 'variantes-soldat');
+    expect(soldat, 'la variante « variantes-soldat » manque à carrieres-aleatoires.json').toBeDefined();
+    const colonnes = soldat!.colonnes!;
+    const moitie = Math.ceil(colonnes.length / 2);
+    const seconde = structuredClone(soldat!);
+    seconde.id = 'variantes-soldat-bis';
+    seconde.colonnes = colonnes.slice(moitie);
+    soldat!.colonnes = colonnes.slice(0, moitie);
+    docs.push(seconde);
+    expect(validateDataset(FICHIER, docs)).toMatch(/variantes-soldat-bis : la carrière détaillée « soldat » porte déjà la variante « variantes-soldat » : une seule variante par carrière détaillée/);
+  });
+
   it('REFUSE une variante dont `colonnes` désigne une portion ou une variante', () => {
     const docs = clone();
     doc(docs, 'variantes-soldat').colonnes!.push('cotiers-humain');

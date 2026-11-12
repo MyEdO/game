@@ -13,7 +13,7 @@ const METEO := {
 		couleur = "#aebfd0", opacite = 0.45,
 	},
 	nappes = [{positions = [0.0, 0.6, 0.0, 2.0, 0.6, 0.0, 2.0, 0.6, 2.0], couleur = "#aab4bd", alpha = 0.3}],
-	son = {id = "pluie", fichiers = ["pluie.ogg"], volume = 0.5},
+	son = {id = "pluie", fichiers = ["pluie.ogg"], volume = 0.5, canal = "ambiance"},
 }
 var _fautes: Array[String] = []
 

@@ -150,7 +150,7 @@ describe('Malepierre — câblage PROD (Incantation, `incanterLeSort`/`jetLancer
     w.items = [carried];
     banc.setState({ party: [w] });
     banc.getState().incanterLeSort(w.id, spellId, w.id);
-    banc.getState().jetForcerLaReussite('incantation'); // au lieu du jet, ouvre `forced` (LDB 17 l.68) — requis avant `jetImposerLeResultat('incantation')`
+    banc.getState().jetForcerLaReussite('incantation'); // au lieu du jet, ouvre `forcee` (LDB 17 l.68) — requis avant `jetImposerLeResultat('incantation')`
     const before = banc.getState().pendingCast!.result!;
     expect(before.malepierreConsumed).toBeGreaterThan(0);
     banc.getState().jetImposerLeResultat('incantation', 1);

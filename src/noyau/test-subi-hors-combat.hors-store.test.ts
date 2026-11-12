@@ -321,7 +321,7 @@ describe('#1874 C0 — un Test SUBI hors combat : la conséquence tombe sur SON 
     decor();
     const onSuccess = {
       kind: 'sequence',
-      etapes: [{ kind: 'effet', effet: { type: 'ops', on: 'hero', heroId: 'h4', ops: [{ op: 'teamCommander', commanderId: 'h1' }] } }],
+      etapes: [{ kind: 'effet', effet: { type: 'ops', on: 'heros', heroId: 'h4', ops: [{ op: 'teamCommander', commanderId: 'h1' }] } }],
     } as unknown as Flow;
     openSkillTest(get, set, { skill: { id: 'commandement' }, difficulty: 'intermediaire', label: 'Commandant d’équipe' },
       condCtx(get), onSuccess, EMPTY_FLOW, EMPTY_FLOW, { actorId: 'h1' });
@@ -355,8 +355,8 @@ describe('#1874 C0 — un oubli de routage HURLE, il ne se tait jamais', () => {
     expect(erreurs[0].message, 'le refus NOMME la porte du vocabulaire déclenché').toContain('routeTriggeredTest');
     // Le vocabulaire de scène passe, `on` absent compris (= `party`).
     for (const feuille of [
-      { type: 'ops', on: 'party', ops: [{ op: 'heal', amount: 1 }] },
-      { type: 'ops', on: 'hero', heroId: 'h3', ops: [{ op: 'heal', amount: 1 }] },
+      { type: 'ops', on: 'groupe', ops: [{ op: 'heal', amount: 1 }] },
+      { type: 'ops', on: 'heros', heroId: 'h3', ops: [{ op: 'heal', amount: 1 }] },
       { type: 'ops', ops: [{ op: 'heal', amount: 1 }] },
     ] as Effect[]) {
       expect(validateScene([sceneAvecFeuille(feuille)]), JSON.stringify(feuille)).toEqual([]);

@@ -64,6 +64,14 @@ describe('offresDExploration — les offres de toute entité À PORTÉE, sans su
     expect(offresDExploration(banc.getState()).map((p) => p.porteurId), 'témoin de plain-pied').toEqual(['coffre']);
   });
 
+  it('le porteur d’une entité que le groupe ne connaît pas (`entiteConnue`) garde son offre, au nom neutre', () => {
+    const pnj = coffre({ id: 'passeur', kind: 'personnage', label: 'Passeur' });
+    poser([pnj]);
+    expect(offresDExploration(banc.getState()).map((p) => [p.porteurId, p.porteurLabel, p.offres.map((o) => o.id)]), 'en vue').toEqual([['passeur', 'Passeur', ['fouiller']]]);
+    banc.setState({ lightLevel: 0 });
+    expect(offresDExploration(banc.getState()).map((p) => [p.porteurId, p.porteurLabel, p.offres.map((o) => o.id)]), 'dans le noir').toEqual([['passeur', t('vision.horsDeVue'), ['fouiller']]]);
+  });
+
   it('DEUX entités à portée : DEUX porteurs', () => {
     poser([coffre(), coffre({ id: 'coffre-2', pos: { x: 6, y: 5 }, label: 'Un second coffre' })]);
     expect(offresDExploration(banc.getState()).map((p) => p.porteurId)).toEqual(['coffre', 'coffre-2']);
@@ -73,7 +81,7 @@ describe('offresDExploration — les offres de toute entité À PORTÉE, sans su
     const sc = poser([{ id: 'table', kind: 'prop', pos: { x: 5, y: 5 }, decor: { id: TABLE }, label: 'Table ronde', usable: { assise: true } } as SceneEntity]);
     expect(offresDExploration(banc.getState())[0].offres.map((o) => [o.id, o.gate.ok])).toEqual([['sasseoir', true]]);
     const seatAssignments = { table: tableTotale(
-      ['place-1', 'place-2', 'place-3', 'place-4'], (s) => ({ kind: 'entity' as const, entityId: `pnj-${s}` }),
+      ['place-1', 'place-2', 'place-3', 'place-4'], (s) => ({ kind: 'entite' as const, entityId: `pnj-${s}` }),
     ) };
     banc.setState({ scene: { ...sc, seatAssignments } });
     const prises = offresDExploration(banc.getState())[0].offres;

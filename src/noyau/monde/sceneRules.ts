@@ -3,7 +3,7 @@
  * Source : LDB `14 - _GoBack.md` l.75, l.76, l.82. Vit au noyau (lit la Scène) ;
  * les valeurs sont injectées dans `attackModifiers`/`defenseModifiers` via `env` (cf. combatFlow).
  */
-import type { Scene, SceneEntity } from './scene';
+import type { Scene, SceneDuVolume, SceneEntity } from './scene';
 import { isIndoor, sceneMetresPerTile } from './scene';
 import { isNight } from '../../engine/clock';
 import { ligneDeRegle } from '../../engine/reglesChiffrees';
@@ -84,7 +84,7 @@ const entityBlockIndex = memoByRefDeps<SceneEntity[], Set<string>>();
  *     case adjacente (exploration P5 comme combat « Ramasser », `ramassage` de `actions.json`) ; ou
  *   • SOLIDE par son TYPE (`props.json` `solid` : feu de camp, brasero, statue, tonneau…) : objet
  *     plein infranchissable. */
-export function entityBlockedAt(scene: Scene, x: number, y: number, z: number): boolean {
+export function entityBlockedAt(scene: SceneDuVolume, x: number, y: number, z: number): boolean {
   const mpt = sceneMetresPerTile(scene);
   return entityBlockIndex(scene.entities, [mpt], () => buildEntityBlockIndex(scene.entities, mpt)).has(`${x},${y},${z}`);
 }

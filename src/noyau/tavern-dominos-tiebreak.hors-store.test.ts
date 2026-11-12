@@ -36,9 +36,9 @@ function heros(): Combatant {
 /** Séquence de partie en cours, telle que `jouerALaTaverne` la pose. */
 function partie(tieBreak: DepartageDeSequence | undefined, challengerId: string): EtatDeFamille<typeof TAVERN_SEQUENCE> {
   return {
-    def: TAVERN_SEQUENCE, round: 1, cum: {},
-    params: { ...(tieBreak ? { tieBreak } : {}) },
-    payload: { gameId: 'dominos', challengerId, opponentValue: 40, opponentName: NOM_HABITUE, stakeBrass: 0 },
+    definition: TAVERN_SEQUENCE, manche: 1, cumuls: {},
+    parametres: { ...(tieBreak ? { tieBreak } : {}) },
+    chargeUtile: { gameId: 'dominos', challengerId, opponentValue: 40, opponentName: NOM_HABITUE, stakeBrass: 0 },
   };
 }
 
@@ -91,7 +91,7 @@ describe('Les dominos — NADJ 16 l.105', () => {
     const a = heros();
     banc.setState({ party: [a] });
     get().jouerALaTaverne(a.id, { gameId: 'dominos', opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
-    expect(get().sequence?.params.tieBreak).toBe('units-lowest');
+    expect(get().sequence?.parametres.tieBreak).toBe('units-lowest');
   });
 
   it('à DR ÉGAL, le dé d’unités le plus BAS gagne — même contre la valeur la plus HAUTE', () => {
@@ -138,8 +138,8 @@ describe('Les dominos — NADJ 16 l.105', () => {
       banc.setState({ party: [a], sequence: null, pendingCascade: null, tavernGames: null });
       get().jouerALaTaverne(a.id, { gameId: jeu.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' }, ...(jeu.team ? { allyProfil: 'elfe-haut-et-sylvain' } : {}) });
       const seq = get().sequence;
-      expect(seq?.def, `${jeu.id} : même orchestrateur pour tous`).toBe(TAVERN_SEQUENCE);
-      expect(seq?.params, jeu.id).toEqual({
+      expect(seq?.definition, `${jeu.id} : même orchestrateur pour tous`).toBe(TAVERN_SEQUENCE);
+      expect(seq?.parametres, jeu.id).toEqual({
         ...(jeu.tieBreak ? { tieBreak: jeu.tieBreak } : {}),
         ...(jeu.drCap != null ? { drCap: jeu.drCap } : {}),
         ...(jeu.roundOps ? { rounds: jeu.roundOps } : {}),

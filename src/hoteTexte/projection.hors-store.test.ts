@@ -15,6 +15,8 @@ import { nouvelEntete, ouvrirLaPartie } from '../hote/partie';
 import type { Geste } from '../hote/geste';
 import { casesAtteignables, projeter as projeterLaPartie } from '../hote/projection';
 import { BORNES, borner, ligneDeCombattant, pageDeLaCarte, projeter, rendreLaCarte, rendreLaVue, rendreLeJournal, rendreLesCases } from './vue';
+import { fermerLaTable, partie, verbe } from './hote.testkit';
+import { t } from '../i18n';
 
 /** La partie du scénario, sa pause de Round confirmée, puis `gestes` ; fermée après `faire`. */
 function auPremierTour(scenario: string, faire: (r: PartieRejouee) => void, ...gestes: Geste[]) {
@@ -191,6 +193,20 @@ describe('projection des positions', () => {
       expect(ligneDeCombattant(projete(etage.id))).toContain('(4,5) étage 1');
     } finally {
       partie.fermer();
+    }
+  });
+});
+
+describe('ce que le groupe ne voit pas (#3950, `embuscade-fluviale` : 5 ennemis hors de vue au départ)', () => {
+  it('`carte` liste les seuls combattants en vue ; la `fiche` d’un ennemi hors de vue se refuse en mots du joueur', { timeout: 120_000 }, () => {
+    const table = partie('embuscade-fluviale', verbe('fenetreValider', 'debutDuRound'));
+    try {
+      const listes = table.lire('carte').lignes.map((l) => l.slice(2).split(' ')[0]).sort();
+      expect(listes, 'la carte : les quatre héros et la barge alliée').toEqual(['chasseur-de-test', 'enemy-enc-fluvial-5', 'soldat-de-test', 'sorcier-de-test', 'tueur-de-test']);
+      const fiche = table.lire('fiche', { id: 'enemy-enc-fluvial-1' });
+      expect([fiche.erreur, fiche.texte], 'la fiche d’un pirate hors de vue').toEqual(['validation', expect.stringContaining(`fiche : ${t('vision.ficheHorsDeVue')}`)]);
+    } finally {
+      fermerLaTable();
     }
   });
 });

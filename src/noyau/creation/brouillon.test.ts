@@ -43,7 +43,7 @@ import {
   withSpeciesTalentChoice,
 } from './brouillon';
 import { CHAR_KEYS } from '../../engine/types';
-import { especeDApparence, trappingRefLabel } from '../../data';
+import { especeDApparence, trappingRefLabel, type TrappingRef } from '../../data';
 import { pettySpellQuota, probeHero, draftFromHero, type CreatorDraft } from './brouillon';
 import { speciesSkillDefaults, designer, createHero, resolveSpeciesTalents } from '../../engine/character';
 import { adresseDeCreation, type AdresseDeCreation } from '../../engine/adresseDeCreation';
@@ -489,6 +489,27 @@ describe('Possessions — emplacement `{wildcard:\'arme\'}` (LDB 05 l.542-583, c
       expect(objets).toEqual(expect.arrayContaining(['fleuret', 'baton-de-combat', 'pinceau', 'dague']));
       expect(objets).not.toContain('miroir-a-main');
       expect(objets).not.toContain('grande-hache');
+    });
+  });
+
+  // LDB 05 l.552, l.572 ; #4053
+  it('le héros créé reçoit chaque possession de départ de sa Classe et de son Niveau 1', () => {
+    const dotations: { classe: TrappingRef[]; niveau: TrappingRef[] } = {
+      classe: [{ id: 'dague' }, { choice: [{ id: 'capuchon' }, { id: 'masque' }] }],
+      niveau: [{ id: 'robes', spec: 'en lambeaux' }, { id: 'caissette' }, { id: 'eprouvettes' }, { id: 'alambic' }, { id: 'allumette', count: { roll: { n: 1, sides: 10 } } }],
+    };
+    avecDotations(CARRIERE_FIXTURE, dotations, () => {
+      const d = { ...withCareer(readyDraft(), CARRIERE_FIXTURE), careerTalent: undefined, wealthRoll: true };
+      expect(unresolvedTrappingSlots(d)).toEqual([trappingRefLabel(dotations.classe[1])]);
+      const trappingChoices = { [adresseDeCreation.dotation([1])]: 1 };
+      expect(unresolvedTrappingSlots({ ...d, trappingChoices })).toEqual([]);
+      const items = buildHero({ ...d, trappingChoices }, idsDeTest, 'h-depart').items ?? [];
+      const objets = items.map((it) => it.trappingId);
+      expect([...new Set(objets)].sort()).toEqual(['alambic', 'allumette', 'caissette', 'dague', 'eprouvettes', 'masque', 'robes']);
+      expect(items.find((it) => it.trappingId === 'robes')?.spec).toBe('en lambeaux');
+      const allumettes = objets.filter((id) => id === 'allumette').length;
+      expect(allumettes).toBeGreaterThanOrEqual(1);
+      expect(allumettes).toBeLessThanOrEqual(10);
     });
   });
 });

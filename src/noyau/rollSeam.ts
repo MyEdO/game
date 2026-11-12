@@ -294,7 +294,7 @@ export const freeCons = (texts: FreeConsLine[]): Consequence[] => texts
   .filter((x) => x.text.length > 0)
   .map(({ text, tone, icon }) => ({ say: 'out.free' as OutKey, vars: { text }, tone, icon }));
 
-/** Résout le côté d'un jet MONO (`hero-test`/`enemy`/`subi` non-`batch`) en acteur + éventuelle valeur
+/** Résout le côté d'un jet MONO (`actorId` ou `partyBest`, jamais `participants`) en acteur + éventuelle valeur
  *  DÉJÀ CALCULÉE (mandat coordinateur — le call-site ne calcule plus rien) :
  *   - `actorId` : l'acteur désigné, valeur = `testValue` (calculée par `effectiveTarget`, pas ici) ;
  *   - `partyBest` : le meilleur PJ du groupe pour la compétence/carac (`partyAssisted` par défaut —
@@ -558,7 +558,7 @@ export function bandCommonMeta(metas: readonly (CascadeStepMeta | undefined)[]):
  *  fraîchement construite, peuplés sur une étape venue d'une sauvegarde. */
 const ROW_DEPUIS_ETAPE = [
   'base', 'target', 'mods', 'clamped', 'difficulty', 'menace', 'skill',
-  'rerolled', 'forced', 'fixed', 'outcome',
+  'rerolled', 'forcee', 'fixed', 'outcome',
 ] as const;
 
 /** RANGÉE dérivée d'une étape MONO — le jet descend, la situation reste à la bande. Le `meta` ENTIER
@@ -660,7 +660,7 @@ function competenceDuTest(test: SujetDuJet | undefined): { skill?: RefDesignee }
   return test?.skill ? { skill: structuredClone(test.skill) } : {}; // #2097
 }
 
-/** Résout un test skill/characteristic SIMPLE (mono, `hero-test`/`enemy`/`subi` à `actorId`) en `CascadeStep`
+/** Résout un test skill/characteristic SIMPLE (mono, côté `actorId`) en `CascadeStep`
  *  prêt pour `startCascade`/`runCascadeImmediate` — calque `openSkillTest` (`combatEffects.ts:308-392`)
  *  réduit au cas générique (pas de candidats/mod social : hors périmètre du seam Ronde 0). */
 function buildMonoStep(get: Get, req: RollRequest, kind: GenreDEtape, meta?: CascadeStepMeta): CascadeStep {

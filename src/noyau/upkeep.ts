@@ -230,9 +230,8 @@ export function runDailyUpkeep(get: Get, set: Set, opts: { caredFor?: boolean; f
     }
   }
   if (rations > 0) lines.unshift(t('upkeep.rationsUsed', { n: rations, s: rations > 1 ? 's' : '' }));
-  // Navire de campagne (MDG 14) : PAIE hebdomadaire de l'équipage salarié puis recalcul du Moral, une
-  // fois par semaine calendaire (garde interne à `tickCampaignVesselWeek` ; un saut de plusieurs jours ne
-  // recalcule qu'au franchissement de semaine). #216.
+  // Navire de campagne (MDG 14) : PAIE hebdomadaire de l'équipage salarié puis recalcul du Moral, pour
+  // CHAQUE semaine calendaire franchie depuis `lastMoraleWeek` (`tickCampaignVesselWeek`). #216, #1652.
   set({ lastUpkeepDay: today, party: [...party] }); // persiste faim/eau/maladies/convalescence AVANT le débit des gages
   lines.push(...tickCampaignVesselWeek(get, set, today, battleRng())); // débite les bourses PAR-DESSUS (lit get().party à jour)
   get().ecrireAuJournal(lines);

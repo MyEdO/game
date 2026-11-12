@@ -29,8 +29,10 @@ const FORMES := &"formes"
 const POIDS := &"poids_des_formes"
 ## La métadonnée du mesh d'une pièce skinnée : par surface, son maillage de la demande de pile (`_maillage`).
 const MAILLAGES := &"maillages_de_pile"
-## Le calque d'une pièce dessinée seule ; une pièce fondue (`refondre`) n'est sur aucun.
-const CALQUE := 1
+## Le calque des corps, la troisième couche de rendu (`VisualInstance3D.layers`) : celui d'une pièce dessinée seule et
+## de la fusion ; une pièce fondue (`refondre`) n'est sur aucun. La lampe d'une source portée l'exclut de son ombre
+## (`Foyer`).
+const CALQUE := 4
 ## Les poids d'un sommet d'une pièce rigide fondue : tout sur son os.
 const POIDS_RIGIDE := [1.0, 0.0, 0.0, 0.0]
 ## Les canaux libres d'un mesh (`Mesh.ARRAY_CUSTOM0` à `3`), qu'aucun `BaseMaterial3D` ne lit : une pièce fondue les
@@ -1344,6 +1346,7 @@ func refondre() -> void:
 	fusion.name = "Fusion"
 	fusion.mesh = mesh
 	fusion.skin = skin
+	fusion.layers = CALQUE
 	squelette.add_child(fusion)
 	fusion.skeleton = fusion.get_path_to(squelette)
 
@@ -1434,6 +1437,12 @@ func recevoir_la_pile(reponse: Dictionary, signature: String) -> void:
 	pile = {signature = signature, bilan = reponse.bilan, maillages = maillages}
 	refondre()
 	empilee.emit()
+
+
+## Si le modèle posé attend un travail différé : sa refonte (`_demander_la_refonte`) ou la pile de ses couches,
+## demandée au pont (`_empiler`).
+func en_travail() -> bool:
+	return _refonte_demandee or _pile_demandee != ""
 
 
 ## Le bilan de la pile des couches que porte la fusion (`BilanDePile`, `asset/pile.ts`), `{}` si elle n'en porte pas.

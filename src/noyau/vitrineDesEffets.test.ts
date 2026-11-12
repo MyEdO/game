@@ -57,7 +57,7 @@ describe('la vitrine des effets de l’atelier (#3777, #3783, #3825, #3822)', ()
   });
 
   it('chaque manœuvre de zone et chaque Type de Souffle a son rendu ; le hurlement se centre sur son auteur', () => {
-    const deZone = maneuvers.filter((m) => ['zone', 'allFoes', 'allAround'].includes(m.targeting));
+    const deZone = maneuvers.filter((m) => ['zone', 'adversairesAutour', 'toutAutour'].includes(m.ciblage));
     expect(deZone.filter((m) => !m.rendu).map((m) => m.id)).toEqual([]);
     expect(v.manoeuvres.map((m) => m.id)).toEqual(deZone.map((m) => m.id));
     expect(zoneDe(v.manoeuvres.find((m) => m.id === 'hurlement-fantomatique')!.effet)).toMatchObject({ centre: { x: 0, y: 0 }, trajet: null, nappe: { visuel: 'onde' } });

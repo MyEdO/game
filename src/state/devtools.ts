@@ -133,7 +133,7 @@ import { actionsDe } from '../noyau/monde/usable';
 import { attendreEntreeEnScene, EntreeEnSceneNonAtteinte } from './entreeEnScene';
 import { scheduleFlowTimer } from '../web/minuteries';
 import { editeur, type CommandesEditeur } from './editeurBridge';
-import { stockageWeb } from '../web/stockageWeb';
+import { stockageWeb } from '../hote/stockageWeb';
 import { lireLeTexte } from '../lib/stockage';
 import { browserFreezeTimeout, browserUnfreezeTimeout } from '../lib/figerDelais';
 import { modaleDuDessus, type LayerPlan } from './dismissStack';
@@ -148,7 +148,7 @@ import { avecSequelles, traumaById } from '../engine/trauma';
 import type { HitLocation } from '../engine/types';
 import { openSkillTest } from '../noyau/combatEffects';
 import { EMPTY_FLOW, type FlowTest } from '../engine/flowCore';
-import { idDEntropie } from '../web/entropie';
+import { idDEntropie } from '../hote/entropie';
 import { estObjet } from '../lib/objet.mjs';
 
 function entreeDeRecette(dataset: string, id: string): unknown {
@@ -1261,7 +1261,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     /** Lance une bataille de masse de démonstration (ADE II 08) sans scénario : __wfrp.massBattle(60, 40, 3).
      *  Les Scènes de COMBAT ne s'amorcent que si la scène courante porte les rencontres attendues. */
     massBattle: (ally = 50, enemy = 55, rounds = 3) => {
-      g().amorcerLaBataille({ allyMight: ally, enemyMight: enemy, plannedRounds: rounds, terrain: 'Les deux armées se font face dans la plaine.' });
+      g().amorcerLaBataille({ puissanceAlliee: ally, puissanceEnnemie: enemy, plannedRounds: rounds, terrain: 'Les deux armées se font face dans la plaine.' });
       return `✓ bataille de masse lancée — Puissance ${ally} contre ${enemy}, ${rounds} Round(s)`;
     },
 
@@ -1931,7 +1931,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       const c = actorIn(g(), id);
       if (!c) return `✗ combattant ${id} introuvable`;
       if (!etatConnu(name)) return `✗ État « ${name} » inconnu — ids valides : ${etatIdsConnus().join(', ')}`;
-      nePeutPasDifferer(applyEffects(() => useGame.getState(), useGame.setState, [{ type: 'ops', on: 'hero', heroId: id, ops: [{ op: 'condition', id: { id: name }, value: n }] }]), 'devtools.condition');
+      nePeutPasDifferer(applyEffects(() => useGame.getState(), useGame.setState, [{ type: 'ops', on: 'heros', heroId: id, ops: [{ op: 'condition', id: { id: name }, value: n }] }]), 'devtools.condition');
       return `✓ ${c.label} : +${n} ${name}`;
     },
 
@@ -2047,7 +2047,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       const c = actorIn(g(), id);
       if (!c) return `✗ combattant ${id} introuvable`;
       if (!findPsychologyById(type)) return `✗ état psychologique « ${type} » inconnu — ids valides : ${psychologies.map((p) => p.id).join(', ')}`;
-      nePeutPasDifferer(applyEffects(() => useGame.getState(), useGame.setState, [{ type: 'ops', on: 'hero', heroId: id, ops: [opPsy.pose(type)] }]), 'devtools.psych');
+      nePeutPasDifferer(applyEffects(() => useGame.getState(), useGame.setState, [{ type: 'ops', on: 'heros', heroId: id, ops: [opPsy.pose(type)] }]), 'devtools.psych');
       return `✓ ${c.label} : ${psychologyLabel(type)}`;
     },
 

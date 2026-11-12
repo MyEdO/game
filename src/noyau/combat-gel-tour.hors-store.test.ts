@@ -220,7 +220,7 @@ describe('#1852 — la PORTE : aucune défense ne s’ouvre par-dessus une défe
     const { enemy, hero } = setup();
     maybeOpenDefense(g, banc.setState, enemy, hero, sword);
     const premiere = g().pendingDefense;
-    expect(drainerLesGratuites(g, banc.setState, enemy, { disponibles: true }), 'file suspendue par la fenêtre vivante').toBe(true);
+    expect(drainerLesGratuites(g, banc.setState, enemy), 'file suspendue par la fenêtre vivante').toBe(true);
     expect(g().pendingDefense, 'aucune gratuite n’a écrasé le slot').toBe(premiere);
     expect(g().pendingCascade!.participants.filter((s) => s.jet === 'defense')).toHaveLength(1);
   });
@@ -299,7 +299,8 @@ describe('#1852 — la file des gratuites S’ARRÊTE à la première fenêtre o
   it('Frénésie (gratuite d’Arme) PUIS Morsure : la 2ᵉ ne se déclare pas par-dessus la fenêtre de la 1ʳᵉ', () => {
     const { enemy } = setup();
     (enemy.psychState ??= []).push({ type: 'frenesie' }); // LDB 21 l.33 : « un Test de CC gratuit chaque Round »
-    const suspendu = drainerLesGratuites(g, banc.setState, enemy, { disponibles: true });
+    banc.setState({ battle: { ...g().battle!, acted: true } }); // l'Action du tour, faite par l'acteur actif
+    const suspendu = drainerLesGratuites(g, banc.setState, enemy);
     expect(suspendu, 'la gratuite d’Arme a ouvert SA fenêtre → la file s’arrête').toBe(true);
     expect(g().pendingDefense, 'une défense, et une seule').not.toBeNull();
     expect(g().pendingCascade!.participants.filter((s) => s.jet === 'defense')).toHaveLength(1);

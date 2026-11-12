@@ -166,7 +166,7 @@ const doc = document(
     affaler: { label: 'Affaler les voiles', hint: 'Difficulté, localisation d’échec critique et dérive induite' },
     encalmine: { label: 'Encalminé', hint: 'Distances et DR de remorquage en absence de vent' },
   },
-  { codex: { keys: ['seaWeather'] }, edit: { object: 'single' } },
+  { codex: { keys: ['seaWeather'] }, edit: { object: 'unique' } },
 );
 
 export const schema = doc.schema;

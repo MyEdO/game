@@ -144,14 +144,14 @@ export function fermetureDeLaResilience(a: RollActorView, v: RollInfluenceView):
 export interface PendingBase {
   rerolled?: boolean;
   /** Réussite forcée par Résilience (LDB 17 l.68) — posé par `forcerLaReussite`, ouvre `imposerLeResultat`. */
-  forced?: boolean;
+  forcee?: boolean;
   /** MENACE à laquelle ce Test RÉSISTE (« Résistance (Menace) », LDB 10 l.1016-1020 : `maladie` /
    *  `corruption` / `mutation` / `magie` / `poison`…) — posé par le SITE qui ouvre le pending/l'étape.
    *  Présent + talent disponible ⇒ le verbe `resister` offre l'auto-succès (1× par spec et par séance). */
   menace?: MenaceId;
   /** DÉ FIXÉ à la main (option de confort « Dés fixés », `engine/fixedDie.ts`) — PROVENANCE, pas une
    *  règle : distingue le dé saisi par le joueur (aucun coût, jet évalué au naturel) du dé CHOISI de la
-   *  Résilience (`forced`, réussite garantie). Lu par l'UI (mention « dé fixé » sur la rangée). */
+   *  Résilience (`forcee`, réussite garantie). Lu par l'UI (mention « dé fixé » sur la rangée). */
   fixed?: boolean;
 }
 
@@ -431,7 +431,7 @@ export interface RollFlowHandlers {
   picker?: (slot: any, actor: Combatant | undefined, s?: Jeu) => ForcedPick | null;
   /** Slot CONCRET visé (MONO : le pending ; MULTI : le participant `pid`, ou le premier). Accesseur
    *  PUR en LECTURE SEULE — extraction de `locate` sans son `commit`. Il ouvre à l'UI la provenance du
-   *  slot (`forced`/`fixed`) et sa forme, sans qu'elle ait à connaître la clé de pending du flux :
+   *  slot (`forcee`/`fixed`) et sa forme, sans qu'elle ait à connaître la clé de pending du flux :
    *  c'est ce qui permet à `RollShell` de dériver le sélecteur de dé pour TOUT flux. `null` si le
    *  pending est fermé ou le `pid` inconnu. */
   slotOf: (get: Get, pid?: string) => PendingBase | null;
@@ -581,7 +581,7 @@ function opResist<P extends PendingBase>(
 /**
  * Dé CHOISI d'un jet. DEUX provenances, un seul mécanisme :
  *  - Résilience (LDB 17 l.68 : « au lieu de lancer les dés pour un Test, vous choisissez le résultat ») —
- *    slot `forced`, le point est déjà dépensé par `forcerLaReussite`, le dé doit rester une réussite ;
+ *    slot `forcee`, le point est déjà dépensé par `forcerLaReussite`, le dé doit rester une réussite ;
  *  - option de confort « Dés fixés » (`fixed`) — aucune ressource, tout le d100 est permis, l'issue est
  *    celle du dé saisi, évaluée NORMALEMENT (réussite/échec, DR, doubles réels).
  *
@@ -648,7 +648,7 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
       return { slot, commit: (patch, opts) => {
         if (!admis(get, set, p, slot, patch, opts)) return false;
         set({
-          [spec.key]: { ...slot, ...patch, ...(opts?.rerolled ? { rerolled: true } : {}), ...(opts?.forced ? { forced: true, fixed: false } : {}), ...(opts?.fixed ? { fixed: true } : {}) },
+          [spec.key]: { ...slot, ...patch, ...(opts?.rerolled ? { rerolled: true } : {}), ...(opts?.forced ? { forcee: true, fixed: false } : {}), ...(opts?.fixed ? { fixed: true } : {}) },
           ...(opts?.touch ? touch(get()) : {}),
         } as PatchDeFlux);
         return true;
@@ -666,7 +666,7 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
       if (!admis(get, set, p, slot, patch, opts)) return false;
       set({
         [spec.key]: spec.multi!.replace(p, slots.map((x) => x === slot
-          ? { ...x, ...patch, ...(opts?.rerolled ? { rerolled: true } : {}), ...(opts?.forced ? { forced: true, fixed: false } : {}), ...(opts?.fixed ? { fixed: true } : {}) }
+          ? { ...x, ...patch, ...(opts?.rerolled ? { rerolled: true } : {}), ...(opts?.forced ? { forcee: true, fixed: false } : {}), ...(opts?.fixed ? { fixed: true } : {}) }
           : x)),
         ...(opts?.touch ? touch(get()) : {}),
       } as PatchDeFlux);
@@ -759,11 +759,11 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
     const voieOuverte = engineReverseAvailable(actor, q, cur.roll, cur.target, evaluer) && !!engineReversePreview(actor, q, cur.roll, cur.target, evaluer);
     return voieOuverte ? { actor, cur, q, evaluer } : 'sansVoieDInversion';
   };
-  /** Le dé CHOISI (Résilience, slot `forced`) ou FIXÉ (option « Dés fixés ») : un accesseur qui lit le dé du slot et
+  /** Le dé CHOISI (Résilience, slot `forcee`) ou FIXÉ (option « Dés fixés ») : un accesseur qui lit le dé du slot et
    *  sait réécrire son issue. Fenêtre de `opSetForcedRoll` ; l'option, elle, se juge au siège (`canFixDie`). */
   const fermetureDuDeChoisi = (slot: Slot, actor: Combatant | undefined, p: P): FermetureDuJet | null => {
     if (!spec.caps?.forcer) return 'nonOffert';
-    if (slot.forced && !actor) return 'sansActeur';
+    if (slot.forcee && !actor) return 'sansActeur';
     if (!fixable) return 'deNonFixable';
     return dieRead?.(slot, actor, p) ? null : 'jetNonLance';
   };
@@ -828,7 +828,7 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
         pactiser: impose ? 'jetImpose' : parActeur(() => fermetureDuPacte(vue, faits)),
         forcerLaReussite: fermetureDuForcage(s, get, p, slot, actor),
         // Le dé FIXÉ se juge au siège qui le pose (`canFixDie`) ; l'op ne le rejuge pas (`VerbesDeJet.jetImposerLeResultat`).
-        imposerLeResultat: fermetureDuDeChoisi(slot, actor, p) ?? (!slot.forced && !canFixDie(s, actor?.id) ? 'desFixesInactifs' : null),
+        imposerLeResultat: fermetureDuDeChoisi(slot, actor, p) ?? (!slot.forcee && !canFixDie(s, actor?.id) ? 'desFixesInactifs' : null),
         resister: !spec.caps?.resister ? 'nonOffert' : temoin ? 'rangeeTemoin' : parActeur((a) => fermetureDeLaResistance(a, menace, rolled, spec.outcome(slot))),
         annuler: fermetureDeLAnnulation(s, p),
         inverser: typeof voie === 'string' ? voie : null,
@@ -926,9 +926,9 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
       const actor = spec.actor(s, loc.slot, p);
       const fermee = fermetureDuDeChoisi(loc.slot, actor, p);
       if (fermee) { refuserGesteDuSiege(get, set, libelleDeLaFermeture(fermee)); return; }
-      // PROVENANCE du dé : slot `forced` ⇒ Résilience (le point est déjà dépensé, le dé doit rester une
+      // PROVENANCE du dé : slot `forcee` ⇒ Résilience (le point est déjà dépensé, le dé doit rester une
       // réussite) ; sinon ⇒ « dé fixé » (option de confort).
-      const fixed = !loc.slot.forced;
+      const fixed = !loc.slot.forcee;
       // GARDE STRUCTURELLE (`fermetureDuDeChoisi`) : un dé fixé exige que le moteur sache le RÉÉVALUER (une cible
       // à confronter). `picker` EST ce contrat. Sans lui, `spec.resolve(…, {roll, fixed})` retomberait sur la branche
       // `if (forced)` du flux — auto-succès GRATUIT, saisie ignorée : le geste est refusé (cette garde tient aussi

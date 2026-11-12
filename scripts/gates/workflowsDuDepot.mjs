@@ -87,6 +87,12 @@ export const WORKFLOWS = Object.freeze({
       '`on: workflow_dispatch:` seul : lancé et regardé par une main humaine (AGENTS.md § Pile et ' +
       'commandes : cible `jeu`, « prod — sur demande explicite SEULEMENT » ; cible `dev`, le test de l’hôte Godot)',
   },
+  'bureau.yml': {
+    etat: 'manuel',
+    raison:
+      '`on: workflow_dispatch:` seul : lancé par celui qui veut l’exécutable de bureau (#3951), qui lit son run et ' +
+      'en télécharge l’artefact ; `npm run godot:bureau` y rougit si l’exécutable ne joue pas sa partie',
+  },
 })
 
 /** Dossier des workflows, relatif à la racine du dépôt. */

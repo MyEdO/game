@@ -14,18 +14,18 @@ const cases = (s: Scene) => sceneZoneTiles(s.effectZones![0]).map((p) => `${p.x}
 
 describe('appliquerOutil — zoneTiles', () => {
   it('ajouter une case hors de l’aire l’y inclut, l’emprise reste exactement ce qui est peint', () => {
-    const out = appliquerOutil(scene(), { mode: 'zoneTiles', zoneId: 'cour', paint: 'add' }, { x: 4, y: 1 }, geste)!;
+    const out = appliquerOutil(scene(), { mode: 'casesDeZone', zoneId: 'cour', paint: 'add' }, { x: 4, y: 1 }, geste)!;
     expect(cases(out.scene)).toEqual(['1,1', '1,2', '2,1', '2,2', '4,1']);
   });
 
   it('retirer une case découpe la zone', () => {
-    const out = appliquerOutil(scene(), { mode: 'zoneTiles', zoneId: 'cour', paint: 'remove' }, { x: 1, y: 1 }, geste)!;
+    const out = appliquerOutil(scene(), { mode: 'casesDeZone', zoneId: 'cour', paint: 'remove' }, { x: 1, y: 1 }, geste)!;
     expect(cases(out.scene)).toEqual(['1,2', '2,1', '2,2']);
   });
 
   it('une zone inconnue, ou une case déjà dans l’état peint : la scène reste la même', () => {
     const s = scene();
-    expect(appliquerOutil(s, { mode: 'zoneTiles', zoneId: 'absente', paint: 'add' }, { x: 4, y: 1 }, geste)!.scene).toBe(s);
-    expect(appliquerOutil(s, { mode: 'zoneTiles', zoneId: 'cour', paint: 'add' }, { x: 1, y: 1 }, geste)!.scene.effectZones![0]).toBe(s.effectZones![0]);
+    expect(appliquerOutil(s, { mode: 'casesDeZone', zoneId: 'absente', paint: 'add' }, { x: 4, y: 1 }, geste)!.scene).toBe(s);
+    expect(appliquerOutil(s, { mode: 'casesDeZone', zoneId: 'cour', paint: 'add' }, { x: 1, y: 1 }, geste)!.scene.effectZones![0]).toBe(s.effectZones![0]);
   });
 });

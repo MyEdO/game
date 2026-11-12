@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
-import { MESSAGE_DU_REFUS, useGame } from '../state/store';
+import { useGame } from '../state/store';
+import { MESSAGE_DU_REFUS } from '../hote/sauvegardes';
 import type { RefusDeSauvegarde } from '../noyau/persistance/save';
 import { useModalA11y } from './Modal';
 import { ScreenMeta } from './ScreenMeta';

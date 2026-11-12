@@ -17,8 +17,8 @@ import { versDisque } from '../grammaire/prose';
 
 type Entree = Record<string, unknown>;
 
-/** Un document d'une entrée : la première du document réel, portant `cle` à `valeur`. */
-const avec = (doc: readonly Entree[], cle: string, valeur: unknown): Entree[] => [{ ...structuredClone(doc[0]), [cle]: valeur }];
+/** Le document réel, sa première entrée portant `cle` à `valeur`. */
+const avec = (doc: readonly Entree[], cle: string, valeur: unknown): Entree[] => [{ ...structuredClone(doc[0]), [cle]: valeur }, ...doc.slice(1)];
 
 const messages = (schema: z.ZodType, doc: unknown): string => {
   const r = schema.safeParse(doc);

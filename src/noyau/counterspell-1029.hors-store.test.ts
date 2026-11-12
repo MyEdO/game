@@ -262,7 +262,7 @@ describe('#1029/#1040 — le Contre-sort au RAW : moment, verrous, hostilité, N
     castSpell(banc.getState, banc.setState, H, E, 'flechette');
     banc.getState().jetForcerLaReussite('incantation'); // avant le jet : le geste lance puis force (`auJetDu`)
     const pc = banc.getState().pendingCast!;
-    expect(pc.forced, 'la réussite est achetée par la Résilience').toBe(true);
+    expect(pc.forcee, 'la réussite est achetée par la Résilience').toBe(true);
     // L'aiguillage a vu le résultat FINAL : soit il a routé (non-critique), soit il attend le choix
     // d'effet (Critique) — jamais une Dissipation jouée sur le jet naturel intermédiaire.
     expect(pc.result!.isCritical ? !pc.counterspellRouted : pc.counterspellRouted).toBe(true);

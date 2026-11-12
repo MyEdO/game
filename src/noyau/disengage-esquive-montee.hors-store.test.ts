@@ -26,7 +26,7 @@ describe('Désengagement : Esquive du cavalier', () => {
     if (monte) H.mountId = 'monture-sonde';
     banc.setState({ battle: { ...b, turn: b.order.indexOf(H.id), action: null, movementUsed: 0, acted: false } });
     banc.getState().rompreLEngagement();
-    expect(banc.getState().pendingDisengage?.phase).toBe('choice');
+    expect(banc.getState().pendingDisengage?.phase).toBe('choix');
   }
   const cible = () => banc.getState().pendingDisengage!.def!.target;
 

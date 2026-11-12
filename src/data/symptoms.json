@@ -217,7 +217,7 @@
     "effects": [
       {
         "trigger": "onOwnTestFailed",
-        "on": "self",
+        "on": "soi",
         "flow": {
           "kind": "si",
           "condition": {
@@ -243,7 +243,7 @@
       },
       {
         "trigger": "onOwnTestFailed",
-        "on": "self",
+        "on": "soi",
         "flow": {
           "kind": "test",
           "test": {
@@ -278,7 +278,7 @@
       },
       {
         "trigger": "onOwnTestFailed",
-        "on": "self",
+        "on": "soi",
         "flow": {
           "kind": "si",
           "condition": {

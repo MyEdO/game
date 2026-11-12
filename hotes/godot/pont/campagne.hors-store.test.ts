@@ -3,12 +3,12 @@
  * des zones `groupe.pretires` et `groupe.heros`, une campagne du jeu lancée par le bouton de `groupe.campagnes`
  * (`lancer`), la partie quittée (`quitter`), puis une autre ouverte sous le même pont.
  */
-import { afterEach, describe, it, expect } from 'vitest';
+import { afterEach, describe, it, expect, vi } from 'vitest';
 import { drainer, erreurDe, suiteDe, table } from './pont.testkit';
 import { t } from '../../../src/i18n';
 import { etatInitialDuJeu, pretiresOfferts } from '../../../src/noyau/index';
 import { allBuiltinCampaigns } from '../../../src/scenes/campaign';
-import type { Bouton, Entite } from '../../../src/hote/elements';
+import type { Bouton, Element, Entite, Jet } from '../../../src/hote/elements';
 import type { Pont, VueDuPont } from './pont';
 
 let ouvert: Pont | null = null;
@@ -76,7 +76,7 @@ describe('jouer une campagne par le pont', () => {
     expect(s.vue.zones['groupe.heros'].flatMap((e) => e.elements).some((x) => x.id.startsWith('renvoyer/')), 'plus de renvoi en cours de partie').toBe(false);
     expect(s.vue.zones['groupe.pretires']).toEqual([]);
     expect(s.vue.zones['groupe.campagnes']).toEqual([]);
-    expect(s.vue.zones['partie.gestes'].map((b) => b.jeu), 'la partie se quitte à tout moment').toEqual([{ quitter: true }]);
+    expect(s.vue.zones['partie.gestes'].map((b) => b.jeu), 'la partie se sauvegarde, se règle et se quitte à tout moment').toEqual([{ sauvegardes: true }, { reglages: true }, { quitter: true }]);
     expect(erreurDe(appel('lancer', { lancer: 'arene' })).message, 'une partie en cours ne se relance pas').toMatch(/déjà en cours/);
   });
 
@@ -101,7 +101,27 @@ describe('jouer une campagne par le pont', () => {
     expect(jetonsDuDome(), 'la même partie rejouée, ses jetons numérotés après ceux de la partie quittée').toEqual(premiers.map((id) => id + suivant));
     expect(erreurDe(appel('reprendre', { jeton: premiers[0] })), 'un jeton de la partie quittée ne se reprend pas').toEqual({ categorie: 'validation', message: `jeton inconnu : ${premiers[0]}` });
     appel('quitter');
-    suiteDe(appel('jouer', recruter(suiteDe(appel('ouvrir', {})).vue, 'wanda-weltschmertz').jeu));
+    suiteDe(appel('jouer', recruter(suiteDe(appel('ouvrir', { graine: 7 })).vue, 'wanda-weltschmertz').jeu));
     expect(drainer(appel, appel('lancer', { lancer: 'arene' })).suite.vue.plateau, 'l’Arène lancée après un scénario quitté').not.toBeNull();
+  });
+
+  it('sans graine, les dés d’une partie viennent de l’entropie de l’hôte', () => {
+    /** Le d100 de la race du premier héros créé dans une partie ouverte par `entree`. */
+    const d100 = (entree: { graine?: number }): string => {
+      const { pont, appel } = table();
+      ouvert = pont;
+      const geste = (zone: Element[], id: string): unknown => zone.find((e): e is Bouton => e.type === 'bouton' && e.id === id)!.jeu;
+      let s = suiteDe(appel('ouvrir', entree));
+      s = suiteDe(appel('creation', geste(s.vue.zones['groupe.gestes'], 'creation')));
+      s = suiteDe(appel('creation', geste(s.vue.zones['creation.corps'], 'tirage')));
+      appel('quitter');
+      return s.vue.zones['creation.corps'].find((e): e is Jet => e.type === 'jet' && e.id === 'tirage')!.resultat!;
+    };
+    const parGraine = [1, 2, 3, 7, 0x8000].map((graine) => d100({ graine }));
+    expect(new Set(parGraine).size, 'le d100 suit la graine').toBeGreaterThan(1);
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    expect(d100({}), 'la graine tirée de l’entropie : 0x8000').toBe(parGraine[4]);
+    vi.spyOn(Math, 'random').mockReturnValue(7 / 0x10000);
+    expect(d100({}), 'une autre entropie, une autre graine').toBe(parGraine[3]);
   });
 });

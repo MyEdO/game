@@ -43,7 +43,7 @@ import { rollLine } from '../ligneDeJet';
 import { type BuiltCascadeStep } from '../stepBrand';
 import { recoveryGeometry, effectSourcesOf, fireOwnTestFailed } from '../triggeredEffects';
 import { emitCombatEvent } from '../combatEvents';
-import { inBattleId, actorIn, coqueParId } from '../monde/combatants';
+import { inBattleId, actorIn, coqueParId, rencontreEngagee } from '../monde/combatants';
 import { fluxDEnvers, personneDuDecideurAuto, personnesCandidates, sontAmis, visePersonneChoisie, type Personne } from '../personneChoisie';
 import { poserLeTraitAcquis } from '../cibleAcquise';
 import { ciblePsyLue } from '../../engine/psych/ciblage';
@@ -188,7 +188,7 @@ export function simpleTriggeredTestStep(
     // ENJEU du Flow (#1117/#1262 V2 L6d) : déjà résolu par `withDerivedStake` chez l'appelant (déclaré,
     // sinon dérivé du porteur) — cette fabrique le TRANSMET, elle ne devine rien.
     stake: ft.stake,
-    meta: { onSuccess: branches.onSuccess, onFail: branches.onFail, after, ...extraMeta },
+    meta: { onSuccess: branches.onSuccess, onFail: branches.onFail, after, ...extraMeta, differeLaSuite: true },
     // Tag de DONNÉE (`FlowTest.menace` — Venin/lames empoisonnées : 'Poison') → l'étape offre
     // l'auto-succès du talent Résistance (Menace) (LDB 10, verbe `jetResister('cascade')`).
     ...(ft.menace ? { menace: ft.menace } : {}),
@@ -353,7 +353,7 @@ export function collectRoundEndTestSteps(get: Get, c: Combatant): BuiltCascadeSt
           options: [{ key: 'oui', label: dataLabel(prompt) }, { key: 'non', label: t('opt.renoncer') }],
           defaultChoice: 'non',
           // ENTITÉ PORTEUSE (ids) : le OUI ouvre LE Test — il en dérive son enjeu (#1262 V2 L6d).
-          meta: { choiceYes: eff.flow, choiceNo: EMPTY_FLOW, after: EMPTY_FLOW, opsDeCtx: porterOpsCtx({ idNeuf: get().forgerUnId, rng: battleRng(), caster: c, ...(eff.source ? { source: eff.source } : {}) }) },
+          meta: { differeLaSuite: true, choiceYes: eff.flow, choiceNo: EMPTY_FLOW, after: EMPTY_FLOW, opsDeCtx: porterOpsCtx({ idNeuf: get().forgerUnId, rng: battleRng(), caster: c, ...(eff.source ? { source: eff.source } : {}) }) },
         });
         pousseSi(optional, choix);
         continue;
@@ -410,8 +410,7 @@ export function runCombatFlow(ctx: ExecCtx, flow: Flow): void {
       // Ops IMPURES `grantFreeAttack` : résolues par `accorderLAttaqueGratuite` (combatFlow) — la frappe
       // vise le TIERS de `ctx.freeAttack` (chargeur/victime), pas `unit` (le porteur). `applyOps` les
       // laisse inertes → on les passe quand même (no-op) pour garder le journal des autres ops.
-      // Une frappe qui SUSPEND (fenêtre de défense ouverte) arrête le dispatch : la suivante se
-      // déclarera à la fermeture, jamais par-dessus la fenêtre (#1852).
+      // Gratuite terminale : `refuserLaGratuiteNonTerminale` (data/schemas/grammaire/mecanique.ts, #4011).
       if (ctx.freeAttack) for (const op of node.effet.ops) if (op.op === 'grantFreeAttack' && accorderLAttaqueGratuite(ctx.get, ctx.set, unit, op, ctx.freeAttack)) break;
       // Op IMPURE `interruptFocus` (LDB 46 l.144) : `applyFocusInterruption` (combatFlow) résout l'interruption
       // sur `unit` (le focaliseur) — perte des DR + Imparfaite Mineure (qui peut appender sa propre étape).
@@ -528,7 +527,7 @@ export function resolveFlowTest(ctx: ExecCtx, node: Extract<Flow, { kind: 'test'
         id: triggeredTestStepId(c, ft.label, skillLabel), kind: 'testDeclenche', icon: 'navigation/des', rollLabel: skillLabel,
         actor: c, ligne: { test: decision.sujet }, label, difficulty,
         stake: ft.stake,
-        meta: { onSuccess: node.reussite, onFail: node.echec, after, opposed: { aT, attackerId: attacker.id, attackerName: attacker.label, ...opposedAttackerFreeze(opp!), difficulty: decision.declaree, ...(opp!.bonusSL ? { bonusSL: opp!.bonusSL } : {}), ...(opp!.defenderMustWin ? { defenderMustWin: true } : {}) }, ...extraMeta },
+        meta: { onSuccess: node.reussite, onFail: node.echec, after, opposed: { aT, attackerId: attacker.id, attackerName: attacker.label, ...opposedAttackerFreeze(opp!), difficulty: decision.declaree, ...(opp!.bonusSL ? { bonusSL: opp!.bonusSL } : {}), ...(opp!.defenderMustWin ? { defenderMustWin: true } : {}) }, ...extraMeta, differeLaSuite: true },
         ...(ft.menace ? { menace: ft.menace } : {}),
       })
       : simpleTriggeredTestStep(c, ft, cc, { onSuccess: node.reussite, onFail: node.echec }, after, extraMeta);
@@ -621,7 +620,7 @@ export function resolveFlowChoice(ctx: ExecCtx, node: Extract<Flow, { kind: 'cho
     // Coût hors de portée : l'option reste PRÉSENTE et porte SA cause (rendue au survol/focus/tap par
     // `OptionChooser`, jamais inline) — l'applier refuse déjà la dépense, l'écran cesse de le taire.
     const abordable = choiceAffordable(ctx.get, decider, node.coutEnAvantage);
-    // CIBLE de la branche : quand la branche vise une AUTRE unité que le décideur (`on:'victim'` —
+    // CIBLE de la branche : quand la branche vise une AUTRE unité que le décideur (`on:'victime'` —
     // Déstabilisante : le porteur décide, le Test opposé vise la VICTIME ; un sort : sa cible), on sérialise
     // son id pour le restaurer en `ctx.target` côté applier (sinon la branche viserait le décideur).
     const branchTargetId = ctx.target && ctx.target.id !== decider.id ? ctx.target.id : undefined;
@@ -631,7 +630,7 @@ export function resolveFlowChoice(ctx: ExecCtx, node: Extract<Flow, { kind: 'cho
       options: [{ key: 'oui', label: dataLabel(yesLabel), ...(abordable ? {} : { refus: t('opt.avantageInsuffisant', { n: node.coutEnAvantage ?? 0, dispo: spendableAdvantage(ctx.get().battle, decider) }) }) }, { key: 'non', label: t('opt.renoncer') }],
       defaultChoice: 'non',
       meta: {
-        choiceYes: node.oui, choiceNo: node.non ?? EMPTY_FLOW, after,
+        choiceYes: node.oui, choiceNo: node.non ?? EMPTY_FLOW, after, differeLaSuite: true,
         ...(node.coutEnAvantage != null ? { coutEnAvantage: node.coutEnAvantage } : {}),
         ...(branchTargetId ? { choiceTargetId: branchTargetId } : {}),
         // CONTEXTE d'ops PORTÉ (sl, horloge, libellé, sort et ENTITÉ PORTEUSE) : la branche le retrouve
@@ -668,7 +667,7 @@ function designerLaPersonne(ctx: ExecCtx, cible: Combatant, effet: EffectOp, oc:
       label: t('step.personneChoisie', { src: nomDeSource(oc), name: cible.label }),
       options: candidates.map((p) => ({ key: p.id, label: dataLabel(p.label) })),
       defaultChoice: (auto ?? candidates[0]).id,
-      meta: { feuilleEnvers: { kind: 'effet', effet: effet }, after, choiceTargetId: cible.id, opsDeCtx: porterOpsCtx(oc) },
+      meta: { feuilleEnvers: { kind: 'effet', effet: effet }, after, choiceTargetId: cible.id, opsDeCtx: porterOpsCtx(oc), differeLaSuite: true },
     }));
     return FIN_DU_FLOW;
   }
@@ -691,13 +690,16 @@ function ligneDeDesignation(cible: Combatant, personne: Personne | undefined, oc
  * `after`. Le `caster`/référent = `actor` (le porteur de l'effet : Force de la source pour les formules) ;
  * `target` = la cible de l'effet (qui jette le Test). `opsCtx` porte le contexte de la touche
  * (`woundsDealt`/`sl`/`location`/`attackKind`) lu par les Conditions `si` du Flow (Venin sur PB perdus).
+ * Dans une rencontre engagée (`rencontreEngagee` : bataille ou série d'attaques subies, #3892), le Test est
+ * l'étape `testDeclenche` de la séquence (`differeLaSuite`), qui tient la main avant la suite du coup (#4011) ;
+ * hors rencontre, la modale de jet du héros (`openSkillTest`).
  */
 export function routeTriggeredTest(get: Get, set: SetFn, target: Combatant, actor: Combatant, flow: Flow, opsCtx?: OpsCtx): void {
-  // HORS COMBAT, un Test SUBI par un HÉROS passe par la MODALE de jet CANONIQUE (`openSkillTest` →
+  // HORS RENCONTRE, un Test SUBI par un HÉROS passe par la MODALE de jet CANONIQUE (`openSkillTest` →
   // `pendingTest`, Chance/Résilience), jamais inline (doctrine « un jet = une modale » — elle vaut
-  // hors combat comme en combat). Gate `slThreshold` évaluée d'abord (openSkillTest ne la connaît pas) ;
+  // hors rencontre comme en rencontre). Gate `slThreshold` évaluée d'abord (openSkillTest ne la connaît pas) ;
   // `noOwnTestFailed` tamponne la ré-entrance (jetValider('test') ne ré-émet pas).
-  if (!get().battle && flow.kind === 'test' && target.kind === 'heros') {
+  if (!rencontreEngagee(get()) && flow.kind === 'test' && target.kind === 'heros') {
     const cc = combatConditionCtx(target, opsCtx ?? {});
     // Un Test SUBI (effet déclenché : Venin, Hurlement, Crampes, zone franchie…) n'est pas soutenu —
     // LDB 12 l.197. Défaut de la VOIE, tri-état : la donnée peut le rouvrir (`noSupport:false`).
@@ -766,7 +768,7 @@ export function reprendreTestSubi(get: Get, set: SetFn, pt: PendingTest, success
  * `resolveFlowTest`), qui journalise. Le mono EST le cas N=1 — aucune seconde forme.
  *
  * Rend l'étape à INSÉRER (`undefined` si personne n'est surfacé) : la couture décide où elle atterrit
- * (combat → `pushCombatStep` ; voyage → `insert` de l'applier ou `pushStep(…, 'travelDay')`), et
+ * (combat → `pushCombatStep` ; voyage → `insert` de l'applier ou `pushStep(…, revealPurpose('travelDay', false))`), et
  * DRAINE elle-même les lignes inline (`drainPendingLog`) dans SON journal.
  */
 export function bandeTriggeredTest(

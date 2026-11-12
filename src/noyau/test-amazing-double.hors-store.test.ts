@@ -50,7 +50,7 @@ describe('amazingTestLabel — libellé du double (LDB 12 l.127), règle `test-c
       .toEqual({ success: false, text: 'Échec Stupéfiant' });
   });
   it('aucun badge sur une réussite FORCÉE (Résilience) — pas un vrai double de dé', () => {
-    expect(amazingTestLabel(basePending({ roll: 1, success: true, isDouble: false, forced: true }))).toBeNull();
+    expect(amazingTestLabel(basePending({ roll: 1, success: true, isDouble: false, forcee: true }))).toBeNull();
   });
 });
 

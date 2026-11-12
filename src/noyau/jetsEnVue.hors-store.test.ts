@@ -61,7 +61,7 @@ const FENETRES_A_JET: Partial<Record<ModalKey, Fixture>> = {
   battement: { patch: { pendingBattement: { attackerId: H.id, foeId: E.id, result: tr(34, 45) } }, flux: ['battement'] },
   distraire: { patch: { pendingDistraire: { moverId: H.id, foeId: E.id, atk: tr(20, 50), defRoll: tr(70, 40), result: 'reussite' } }, flux: ['distraire'], oppose: true },
   manoeuvre: { patch: { pendingManeuver: { attackerId: H.id, kind: 'vomi', attaque: 'vomi', avantageSpent: 0, result: tr(30, 40) } }, flux: ['manoeuvre'] },
-  auContact: { patch: { pendingAuContact: { moverId: H.id, foeId: E.id, phase: 'choice', atk: tr(20, 50), def: tr(70, 40), result: 'echec' } }, flux: ['auContact'], oppose: true },
+  auContact: { patch: { pendingAuContact: { moverId: H.id, foeId: E.id, phase: 'choix', atk: tr(20, 50), def: tr(70, 40), result: 'echec' } }, flux: ['auContact'], oppose: true },
   empoignade: { patch: { pendingGrapple: { actorId: H.id, foeId: E.id, phase: 'options', canBreak: false, atk: tr(25, 40), def: tr(35, 50), result: 'reussite' } }, flux: ['empoignade'], oppose: true },
   frenesie: { patch: { pendingFrenzy: { combatantId: H.id, result: jet(12, 30) } }, flux: ['frenesie'] },
   approche: { patch: { pendingApproach: { combatantId: H.id, test: TEST, sourceId: E.id, sourceName: E.label, intent: { kind: 'entity', id: E.id }, result: jet(55, 30) } }, flux: ['approche'] },
@@ -279,7 +279,7 @@ describe('jetsEnVue — la classe des fenêtres à jet', () => {
   });
 
   it('le jet figé d’un Test opposé reste à lancer, sans gagnante ni DR net, tant que la réponse n’est pas jetée', () => {
-    const s = { ...BASE, pendingAuContact: { moverId: H.id, foeId: E.id, phase: 'roll', atk: tr(20, 50), def: null, result: null } } as Jeu;
+    const s = { ...BASE, pendingAuContact: { moverId: H.id, foeId: E.id, phase: 'jet', atk: tr(20, 50), def: null, result: null } } as Jeu;
     expect(jetsEnVue(s)).toEqual([{ flux: 'auContact', oppose: null, lignes: [
       { genre: 'test', qui: E.id, test: 'Corps à corps', cible: null, jet: null },
       { genre: 'test', qui: H.id, test: 'Corps à corps', cible: null, jet: null },

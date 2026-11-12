@@ -16,7 +16,7 @@ describe('Contrecoup — la pastille de l’effet porte SA rangée (LDB 40 l.75)
     } as ActiveEffect;
     const h = { conditions: [], activeEffects: [effet] };
     const chip = summarizeEffects(h.conditions, h.activeEffects).visible
-      .find((c) => c.kind === 'buff' && c.source?.id === 'colere-purifier-la-chair');
+      .find((c) => c.kind === 'effet' && c.source?.id === 'colere-purifier-la-chair');
     expect(chip, 'la pastille de l’effet porte son entité source').toBeTruthy();
     const cible = chipCodex(chip!);
     expect(cible, 'une pastille reliée à aucune règle n’ouvrirait ni fiche ni popover').toBeTruthy();

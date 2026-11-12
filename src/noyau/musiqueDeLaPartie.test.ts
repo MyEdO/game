@@ -25,7 +25,7 @@ describe('la musique de la partie', () => {
   });
 
   it('une sélection rend ses pistes sous sa clé ; le silence n’en rend aucune', () => {
-    expect(musiqueDeLaPartie(at({}))).toEqual({ cle: 'ctx:exploration', pistes: musicDefsFor('exploration').map((d) => ({ id: d.id, fichiers: d.files, volume: d.volume ?? 1 })) });
+    expect(musiqueDeLaPartie(at({}))).toEqual({ cle: 'ctx:exploration', pistes: musicDefsFor('exploration').map((d) => ({ id: d.id, fichiers: d.files, volume: d.volume ?? 1, canal: 'musique' })) });
     expect(musiqueDeLaSelection({ def: 'musique-taverne' })).toMatchObject({ cle: 'def:musique-taverne', pistes: [{ id: 'musique-taverne' }] });
     expect(musiqueDeLaSelection(null)).toBe(null);
   });

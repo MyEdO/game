@@ -32,7 +32,8 @@ export interface FieldEditability {
 }
 
 /** Ensemble d'IDENTITÉS du document : les déclarations de propriété des shapes atteints depuis
- *  `sceneSchema`, corps des fabriques compris, `z.custom` exclu. */
+ *  `sceneSchema`, corps des fabriques et annotations de type de la donnée compris, `z.custom` et types du moteur
+ *  exclus. */
 export function documentDeclarations(program: SessionProgramme, root: string): Set<Node>;
 
 /** Le Program du périmètre de cette garde, bâti à chaque appel : l'appelant le tient et le libère. */
@@ -60,8 +61,6 @@ export const ALLER_RETOUR: string;
 export function idsOf(checker: Checker, cles: Map<Declaration | string, string>, type: unknown, name: string): Set<string>;
 /** Ids de champ du périmètre que le dernier pas de `chemin` écrit dans `doc`, marché sur le type `Scene`. */
 export function idsDuChemin(checker: Checker, cles: Map<Declaration | string, string>, scene: unknown, doc: unknown, chemin: readonly (string | number)[]): Set<string>;
-/** Les préfixes du chemin d'une écriture jouée qu'elle a créés : absents avant, présents après. */
-export function pasCrees(e: Pick<EcritureJouee, 'avant' | 'apres' | 'chemin'>): (string | number)[][];
 /** Le document a changé au chemin, la valeur relue est la jouée, la saisie n'est pas du JSON. */
 export function ecritureCreditee(e: EcritureJouee): boolean;
 /** `program` absent : bâti pour CET appel (~8 s). `ecrituresJouees` : créditées par aller-retour (`ALLER_RETOUR`). */

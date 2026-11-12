@@ -268,7 +268,7 @@ export function fenetreDAttaque(s: Jeu): FenetreDAttaque | null {
     defenseAttendue,
     attente: res && defenseAttendue ? t('defense.awaiting', { cible: cible.label }) : null,
     // LDB 17 l.68 ; #1595 c.6226467544, c.6228496170 R1.
-    critiqueALocaliser: res && pa.forced && coup?.compte.relance
+    critiqueALocaliser: res && pa.forcee && coup?.compte.relance
       ? choix('localisationDuCritique', res.critLocation ?? null, LOCALISATIONS_A_L_ECRAN.map((l) => ({ valeur: l, libelle: locationLabel(l, cible.bodyShape) })))
       : null,
     annulation: refusDAnnulerLAttaque(pa),

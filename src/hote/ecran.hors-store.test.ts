@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { nouvelEntete, ouvrirLaPartie } from './partie';
 import { lignesDuJournal, zonesDeLEcran } from './ecran';
+import { SANS_ROSTER } from './roster';
 import { fenetreADessiner } from './gestes';
 import { projeter } from './projection';
 import { dayIndex, formatJourImperial, type Jeu, type LigneDuJournal } from '../noyau/index';
@@ -64,7 +65,7 @@ describe('la fenêtre du Destin (`fenetre.corps`, `fenetre.gestes`)', () => {
       const ecran = (source: NonNullable<Jeu['pendingFateSave']>['source']) => {
         const etat = { ...partie.etat(), pendingFateSave: { heroId: heros.id, source } };
         const fenetre = fenetreADessiner(etat);
-        return zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetre, null);
+        return zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetre, null, SANS_ROSTER);
       };
       const lent = ecran('slow');
       expect(lent['fenetre.corps'], 'l’enjeu en alerte, puis les Points de Destin du héros').toMatchObject([{ id: 'destin/enjeu', ton: 'alerte' }, { id: 'destin/points', valeur: String(heros.fate ?? 0) }]);
@@ -83,7 +84,7 @@ describe('la fenêtre de la victoire (`fenetre.corps`, `fenetre.gestes`)', () =>
     const { partie } = ouvrirLaPartie(nouvelEntete('dome', { graine: 7 }), () => {});
     try {
       const etat: Jeu = { ...partie.etat(), pendingVictory: { xp: 30, gold: { gold: 0, silver: 5, brass: 0 }, defeated: [{ label: 'Gobelin', count: 2 }, { label: 'Chef', count: 1 }], messages: ['La foule acclame.'] } };
-      const zones = zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), null);
+      const zones = zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), null, SANS_ROSTER);
       expect(zones['fenetre.corps'], 'en puces ce qui est gagné, puis les vaincus et les messages').toMatchObject([
         { id: 'victoire/xp', valeur: '+30' }, { id: 'victoire/argent', valeur: '5/–' },
         { id: 'victoire/vaincu/0', texte: 'Gobelin ×2' }, { id: 'victoire/vaincu/1', texte: 'Chef' }, { id: 'victoire/message/0', texte: 'La foule acclame.' },
@@ -91,7 +92,7 @@ describe('la fenêtre de la victoire (`fenetre.corps`, `fenetre.gestes`)', () =>
       const dessines = (z: typeof zones) => [...z['fenetre.gestes'], ...z['fenetre.reglages']].map((g) => g.id);
       expect(dessines(zones), 'un choix sans valeur ne se dessine pas').not.toContain('fenetreChoisir@victoire#depecer');
       const aDepecer: Jeu = { ...etat, pendingVictory: { ...etat.pendingVictory!, defeated: [{ label: 'Griffon', count: 1, creatureId: 'griffon' }] } };
-      const temoin = zonesDeLEcran(aDepecer, projeter(aDepecer, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(aDepecer), null);
+      const temoin = zonesDeLEcran(aDepecer, projeter(aDepecer, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(aDepecer), null, SANS_ROSTER);
       expect(temoin['fenetre.reglages'].map((g) => g.id), 'témoin : une créature à dépecer se dessine en réglage de la fenêtre').toContain('fenetreChoisir@victoire#depecer');
     } finally {
       partie.fermer();
@@ -107,7 +108,7 @@ describe('le panneau du combat (`combat.avis`)', () => {
       const avis = (battle: typeof b) => {
         const etat: Jeu = { ...partie.etat(), pendingRoundStart: null, battle };
         expect(fenetreADessiner(etat), 'témoin : aucune fenêtre ne tient la main').toBeNull();
-        return zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), null, null)['combat.avis'];
+        return zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), null, null, SANS_ROSTER)['combat.avis'];
       };
       expect(avis(b).map((l) => l.id)).not.toContain('finDeTourArmee');
       expect(avis({ ...b, endTurnArmed: turnEconomyStamp(b) }), 'le second geste finit le tour : l’écran le dit').toContainEqual(expect.objectContaining({ id: 'finDeTourArmee', ton: 'alerte', texte: t('ecran.finDeTourArmee') }));
@@ -122,7 +123,7 @@ describe('le début du Round (`fenetre.gestes`)', () => {
     const { partie } = ouvrirLaPartie(nouvelEntete('dome', { graine: 7 }), () => {});
     try {
       const debut = partie.etat();
-      const zones = (etat: Jeu) => zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), null);
+      const zones = (etat: Jeu) => zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), null, SANS_ROSTER);
       const dessines = (etat: Jeu) => { const z = zones(etat); return { gestes: z['fenetre.gestes'].map((g) => g.id), reglages: z['fenetre.reglages'].map((g) => g.id) }; };
       expect(debut.pendingRoundStart, 'le combat du dôme s’ouvre sur la pause de Round').not.toBeNull();
       const seul = { gestes: ['fenetreValider@debutDuRound'], reglages: ['fenetreChoisir@debutDuRound#promouvoir'] };
@@ -145,7 +146,7 @@ describe('ce que l’étape de la cascade annonce (`fenetre.corps`)', () => {
       const parade = heros.weapons[0];
       const etape = choiceStep(choixPiegeLame({ defenderId: heros.id, attackerId: ennemi.id, weapon: lame, parryWeaponUid: parade.uid!, defSL: 2, roll: 34 }, heros, ennemi, parade))!;
       const etat: Jeu = { ...partie.etat(), pendingCascade: { title: t('step.paradePiegerLame'), icon: 'objet/arme', purpose: 'combat', cursor: 0, log: [], participants: [etape], seq: 1 } };
-      const corps = zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), null)['fenetre.corps'];
+      const corps = zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), null, SANS_ROSTER)['fenetre.corps'];
       expect(corps.filter((e) => e.id.startsWith('issue/')).map((e) => 'texte' in e && e.texte), 'ses deux lignes, dans l’ordre du flux').toEqual(etape.outcome!.map((l) => l.text));
     } finally {
       partie.fermer();

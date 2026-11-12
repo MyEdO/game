@@ -10,7 +10,7 @@ import { horsBataille } from './coupHorsBataille.testkit';
 import { imposerLesD100 } from './battleRng.testkit';
 import { battleRng } from './battleRng';
 import { applyEffects, EFFECT_HANDLERS, type EffectRefCtx } from './combatEffects';
-import { ouvrirLeBanc, type Banc } from './banc.testkit';
+import { ouvrirLeBanc, type Banc, type EntreesDuBanc } from './banc.testkit';
 import { heroFaceAUnEnnemi } from './combatDeTest.testkit';
 import { fermerLaSerieSubie } from './combatFlow';
 import { refusDeSauvegarde } from './persistance/save';
@@ -34,22 +34,22 @@ afterEach(() => {
 });
 
 const rats = { type: 'statblock', label: 'Rats géants', char: { 'capacite-de-combat': 35 }, traits: [{ id: 'arme', value: 5 }] };
-const op = gameOpSchema.parse({ op: 'attaquesSubies', assaillant: { statblock: rats }, nombre: '1d10' });
-const attaques = (on: 'hero' | 'party', heroId?: string): Effect => ({ type: 'ops', on, ...(heroId ? { heroId } : {}), ops: [op] });
+const op = gameOpSchema.parse({ op: 'attaquesSubies', assaillant: { statblock: rats }, nombre: { dice: { n: 1, sides: 10 } } });
+const attaques = (on: 'heros' | 'groupe', heroId?: string): Effect => ({ type: 'ops', on, ...(heroId ? { heroId } : {}), ops: [op] });
 
 /** Trois Blessures au héros `heroId` : l'Effet authoré qui SUIT l'op dans la liste. */
-const troisBlessures = (heroId: string): Effect => ({ type: 'ops', on: 'hero', heroId, ops: [gameOpSchema.parse({ op: 'wounds', amount: 3 })] });
+const troisBlessures = (heroId: string): Effect => ({ type: 'ops', on: 'heros', heroId, ops: [gameOpSchema.parse({ op: 'wounds', amount: 3 })] });
 
 /** Le héros du groupe, aucune bataille, l'op appliquée (puis les Effets `suivants`) : le dé `nombre` ouvert à la porte, non tombé. */
-function deOuvert(suivants: (heroId: string) => Effect[] = () => []) {
-  const { banc, H } = horsBataille(testScene());
-  applyEffects(banc.getState, banc.setState, [attaques('hero', H.id), ...suivants(H.id)]);
+function deOuvert(suivants: (heroId: string) => Effect[] = () => [], reglesMaison?: EntreesDuBanc['reglesMaison']) {
+  const { banc, H } = horsBataille(testScene(), reglesMaison);
+  applyEffects(banc.getState, banc.setState, [attaques('heros', H.id), ...suivants(H.id)]);
   return { banc, H, etape: banc.getState().pendingCascade!.participants[0] };
 }
 
 /** La série ouverte : le dé `nombre` POSÉ à `nombre` (7) à la porte, les d100 de la série imposés (`des`). */
-function serieOuverte(des: number[] = [65, 23], nombre = 7, suivants?: (heroId: string) => Effect[]) {
-  const { banc, H, etape } = deOuvert(suivants);
+function serieOuverte(des: number[] = [65, 23], nombre = 7, suivants?: (heroId: string) => Effect[], reglesMaison?: EntreesDuBanc['reglesMaison']) {
+  const { banc, H, etape } = deOuvert(suivants, reglesMaison);
   imposerLesD100(...des);
   banc.getState().jetImposerLeResultat('cascadeTirage', nombre, etape.id);
   banc.getState().jetValider('cascade');
@@ -96,7 +96,7 @@ describe('série d’attaques subies hors bataille (#3892)', () => {
   it('deux cibles (« on: party », deux héros) : refus, aucun état posé', () => {
     const { banc, H } = horsBataille(testScene());
     banc.setState({ party: [H, { ...structuredClone(H), id: 'second', label: 'Second' }] });
-    expect(() => applyEffects(banc.getState, banc.setState, [attaques('party')])).toThrow(t('eff.attaquesSubiesSansCibleUnique', { on: 'party' }));
+    expect(() => applyEffects(banc.getState, banc.setState, [attaques('groupe')])).toThrow(t('eff.attaquesSubiesSansCibleUnique', { on: 'groupe' }));
     const s = banc.getState();
     expect(s.serieSubie).toBeNull();
     expect(s.pendingDefense).toBeNull();
@@ -104,8 +104,8 @@ describe('série d’attaques subies hors bataille (#3892)', () => {
 
   it('`attaquesSubies` accompagnée dans sa feuille : refus, au lancer comme à l’éditeur', () => {
     const { banc, H } = horsBataille(testScene());
-    const feuille: Extract<Effect, { type: 'ops' }> = { type: 'ops', on: 'hero', heroId: H.id, ops: [op, gameOpSchema.parse({ op: 'wounds', amount: 3 })] };
-    const message = t('eff.attaquesSubiesSeuleDansSaFeuille', { on: 'hero', ops: 'attaquesSubies, wounds' });
+    const feuille: Extract<Effect, { type: 'ops' }> = { type: 'ops', on: 'heros', heroId: H.id, ops: [op, gameOpSchema.parse({ op: 'wounds', amount: 3 })] };
+    const message = t('eff.attaquesSubiesSeuleDansSaFeuille', { on: 'heros', ops: 'attaquesSubies, wounds' });
     expect(EFFECT_HANDLERS.ops.refs!(feuille, {} as EffectRefCtx)).toEqual([{ level: 'error', message }]);
     const avant = etatTouche(banc.getState());
     expect(() => applyEffects(banc.getState, banc.setState, [feuille])).toThrow(message);
@@ -116,14 +116,14 @@ describe('série d’attaques subies hors bataille (#3892)', () => {
     const banc = ouvrirLeBanc();
     const { H } = heroFaceAUnEnnemi(banc, testScene());
     const avant = etatTouche(banc.getState());
-    expect(() => applyEffects(banc.getState, banc.setState, [attaques('hero', H.id)])).toThrow(t('eff.attaquesSubiesSerieEngagee'));
+    expect(() => applyEffects(banc.getState, banc.setState, [attaques('heros', H.id)])).toThrow(t('eff.attaquesSubiesSerieEngagee'));
     expect(etatTouche(banc.getState())).toEqual(avant);
   });
 
   it('une série déjà ouverte : refus nommé, la série en cours n’est pas écrasée', () => {
     const { banc, H } = serieOuverte();
     const avant = etatTouche(banc.getState());
-    expect(() => applyEffects(banc.getState, banc.setState, [attaques('hero', H.id)])).toThrow(t('eff.attaquesSubiesSerieEngagee'));
+    expect(() => applyEffects(banc.getState, banc.setState, [attaques('heros', H.id)])).toThrow(t('eff.attaquesSubiesSerieEngagee'));
     expect(etatTouche(banc.getState())).toEqual(avant);
   });
 
@@ -238,8 +238,8 @@ describe('série d’attaques subies hors bataille (#3892)', () => {
 
   /** La série de 2 attaques d'où le héros sort après un Critique encaissé (« Subir ») à la première, la sévérité POSÉE à
    *  `severite`, la localisation au d100 `lieu`, sa révélation validée, la seconde attaque parée : la série fermée. */
-  function serieFermeeApresUnCritique(severite: number, lieu: number) {
-    const { banc, H } = serieOuverte([22, 23, lieu, 20], 2);
+  function serieFermeeApresUnCritique(severite: number, lieu: number, reglesMaison?: EntreesDuBanc['reglesMaison']) {
+    const { banc, H } = serieOuverte([22, 23, lieu, 20], 2, undefined, reglesMaison);
     defendre(banc, 97);
     const etape = trancherLeCritique(banc, severite, 'subir');
     const pc = banc.getState().pendingCascade!;
@@ -254,8 +254,7 @@ describe('série d’attaques subies hors bataille (#3892)', () => {
     (s.pendingCascade?.participants ?? []).filter((x) => x.kind === 'maladieDeFinDeCombat' || x.kind === 'corruptionDeFinDeCombat');
 
   it('Critique encaissé pendant la série, maladies « full » : l’Infection mineure s’ouvre à la fermeture et frappe le héros rendu au groupe : LDB 20 l.90', () => {
-    setRule('maladie-mode', 'full');
-    const { banc, H } = serieFermeeApresUnCritique(1, 50);
+    const { banc, H } = serieFermeeApresUnCritique(1, 50, { 'maladie-mode': 'full' });
     const [etape, ...autres] = etapesDeFinDeRencontre(banc.getState());
     expect(autres).toEqual([]);
     expect(etape).toMatchObject({ kind: 'maladieDeFinDeCombat', meta: { entry: 'infection', disease: 'infection-mineure' } });
@@ -267,18 +266,96 @@ describe('série d’attaques subies hors bataille (#3892)', () => {
     expect(banc.getState().party[0].diseases?.map((d) => d.id)).toContain('infection-mineure');
   });
 
-  it('« Coupure à l’orteil » encaissée pendant la série : le Test d’amputation s’ouvre à la fermeture, sur le héros rendu au groupe : LDB 18 l.171', () => {
-    setRule('maladie-mode', 'off');
+  it('Critique encaissé pendant la série, maladies « off » : aucune étape de fin de rencontre : LDB 20 l.90', () => {
+    const { banc } = serieFermeeApresUnCritique(1, 50, { 'maladie-mode': 'off' });
+    expect(etapesDeFinDeRencontre(banc.getState())).toEqual([]);
+    expect(banc.getState().party[0].diseases ?? []).toEqual([]);
+  });
+
+  /** La seule étape encore ouverte de la séquence, un `testDeclenche`. */
+  function seuleEtapeOuverte(banc: Banc) {
+    const ouvertes = banc.getState().pendingCascade!.participants.filter((x) => !x.committed);
+    expect(ouvertes.map((x) => x.kind)).toEqual(['testDeclenche']);
+    return ouvertes[0];
+  }
+
+  /** Lance l'étape `id` de la séquence au d100 `de` POSÉ, puis la valide. */
+  function lancerLEtape(banc: Banc, id: string, de: number) {
+    imposerLesD100(de);
+    banc.getState().jetLancer('cascade', id);
+    banc.getState().jetValider('cascade');
+  }
+
+  it('« Coupure à l’orteil » encaissée pendant la série : le Test s’ouvre à la fermeture en étape de la séquence, son échec ampute le héros rendu au groupe : LDB 18 l.171', () => {
     const { banc, H, etape } = serieFermeeApresUnCritique(46, 85);
     expect(etape.table?.result?.id).toBe('coupure-a-l-orteil');
-    const s = banc.getState();
-    expect(s.pendingTest).toMatchObject({ actorId: H.id, difficulty: 'intermediaire' });
+    let s = banc.getState();
+    const pc = s.pendingCascade!;
+    const test = pc.participants[pc.cursor];
+    expect(test).toMatchObject({ kind: 'testDeclenche', actorId: H.id, difficulty: 'intermediaire', rollLabel: 'Résistance' });
+    expect(s.pendingTest).toBeNull();
     expect(s.party[0].traumas?.some((t) => t.pendingAmputation)).toBe(false);
+    lancerLEtape(banc, test.id, 99);
+    const amputation = banc.getState().pendingCascade!.participants.find((x) => x.kind === 'testDeclenche' && !x.committed)!;
+    expect(amputation).toMatchObject({ actorId: H.id, difficulty: 'accessible', label: 'Amputation' });
+    lancerLEtape(banc, amputation.id, 5);
+    s = banc.getState();
+    expect(s.serieSubie).toBeNull();
+    expect(s.party[0].traumas?.find((t) => t.traumaId === 'orteil-ampute')).toMatchObject({ location: 'jambeG', count: 1 });
+  });
+
+  it('« Orteil contusionné » encaissé pendant la série : son Test est la seule fenêtre, sa clôture ouvre la Défense suivante, la série se ferme au compte juste : criticals.json `orteil-contusionne`, LDB 18 l.161 ; #4011', () => {
+    const { banc, H } = serieOuverte([22, 23, 85, 20], 2);
+    defendre(banc, 97);
+    const etape = trancherLeCritique(banc, 1, 'subir');
+    expect(etape.table?.result?.id).toBe('orteil-contusionne');
+    const pc = banc.getState().pendingCascade!;
+    if (pc.participants[pc.cursor].kind === 'critique') banc.getState().jetValider('cascade');
+    let s = banc.getState();
+    const test = seuleEtapeOuverte(banc);
+    expect(test).toMatchObject({ actorId: H.id, difficulty: 'accessible', rollLabel: 'Résistance' });
+    expect(s.pendingTest).toBeNull();
+    expect(s.pendingDefense).toBeNull();
+    expect(s.serieSubie).toMatchObject({ restantes: 2 });
+    lancerLEtape(banc, test.id, 99);
+    s = banc.getState();
+    expect(s.serieSubie).toMatchObject({ restantes: 1 });
+    expect(s.pendingDefense).toMatchObject({ attackerId: s.serieSubie!.assaillant.id, defenderId: H.id });
+    expect(defendre(banc, 5).hit).toBe(false);
+    s = banc.getState();
+    expect(s.serieSubie).toBeNull();
+    expect(s.pendingDefense).toBeNull();
+  });
+
+  it('Crampes abdominales, Défense ratée à DR −5 : Sonné, le Test de Force Mentale est la seule fenêtre, sa clôture ouvre la Défense suivante, la série se ferme : MSRC 16 l.152-158 ; #4011', () => {
+    const { banc, H } = horsBataille(testScene());
+    banc.setState({ party: [{ ...H, diseases: [{ id: 'colique', phase: 'active', symptoms: [{ symptomId: 'crampes-abdominales' }], minutesLeft: 1e5, durationMinutes: 1e5 }] }] });
+    applyEffects(banc.getState, banc.setState, [attaques('heros', H.id)]);
+    imposerLesD100(20, 23, 99, 96);
+    banc.getState().jetImposerLeResultat('cascadeTirage', 2, banc.getState().pendingCascade!.participants[0].id);
+    banc.getState().jetValider('cascade');
+    expect(defendre(banc, 75).defenderDetail).toMatchObject({ success: false, sl: -5 });
+    let s = banc.getState();
+    const test = seuleEtapeOuverte(banc);
+    expect(test).toMatchObject({ actorId: H.id, label: 'Force Mentale (crampes)' });
+    expect(s.party[0].conditions).toContainEqual({ id: 'sonne', value: 1 });
+    expect(s.pendingTest).toBeNull();
+    expect(s.pendingDefense).toBeNull();
+    expect(s.serieSubie).toMatchObject({ restantes: 2 });
+    banc.getState().jetLancer('cascade', test.id);
+    banc.getState().jetValider('cascade');
+    s = banc.getState();
+    expect(s.party[0].conditions).toContainEqual({ id: 'a-terre', value: 1 });
+    expect(s.serieSubie).toMatchObject({ restantes: 1 });
+    expect(s.pendingDefense).toMatchObject({ attackerId: s.serieSubie!.assaillant.id, defenderId: H.id });
+    expect(defendre(banc, 5).hit).toBe(false);
+    s = banc.getState();
+    expect(s.serieSubie).toBeNull();
+    expect(s.pendingDefense).toBeNull();
   });
 
   it('série sans Critique : aucune étape de fin de rencontre', () => {
-    setRule('maladie-mode', 'full');
-    const { banc } = serieOuverte([20, 23], 1);
+    const { banc } = serieOuverte([20, 23], 1, undefined, { 'maladie-mode': 'full' });
     expect(defendre(banc, 5).hit).toBe(false);
     const s = banc.getState();
     expect(s.serieSubie).toBeNull();
@@ -342,13 +419,13 @@ describe('série d’attaques subies hors bataille (#3892)', () => {
   /** La série d'un assaillant à la dague (« Arme (dague) », `bladed` au catalogue) contre le héros armé d'un Brise-épée
    *  (Piège-lame) : sa Parade au Brise-épée, réussie sur un double (11), ouvre l'étape de choix « piège-lame », tranchée
    *  `choix`. LDB 62 l.278-280 */
-  function piegeALameDansLaSerie(choix: 'piege' | 'critique') {
+  function piegeALameOuvert() {
     const { banc, H } = horsBataille(testScene());
     const briseEpee = { label: 'Brise-épée', type: 'melee' as const, damage: { plusBF: true, flat: 3 }, qualities: [{ id: 'piege-lame' }], bladed: true, uid: 'brise-epee' };
     banc.setState({ party: [{ ...H, weapons: [briseEpee, ...H.weapons] }] });
     const coupeJarret = { type: 'statblock', label: 'Coupe-jarret', char: { 'capacite-de-combat': 35 }, traits: [{ id: 'arme', value: 5, arg: 'dague' }] };
-    const opDague = gameOpSchema.parse({ op: 'attaquesSubies', assaillant: { statblock: coupeJarret }, nombre: '1d10' });
-    applyEffects(banc.getState, banc.setState, [{ type: 'ops', on: 'hero', heroId: H.id, ops: [opDague] }]);
+    const opDague = gameOpSchema.parse({ op: 'attaquesSubies', assaillant: { statblock: coupeJarret }, nombre: { dice: { n: 1, sides: 10 } } });
+    applyEffects(banc.getState, banc.setState, [{ type: 'ops', on: 'heros', heroId: H.id, ops: [opDague] }]);
     imposerLesD100(65, 23);
     banc.getState().jetImposerLeResultat('cascadeTirage', 2, banc.getState().pendingCascade!.participants[0].id);
     banc.getState().jetValider('cascade');
@@ -358,10 +435,24 @@ describe('série d’attaques subies hors bataille (#3892)', () => {
     expect(defendre(banc, 11)).toMatchObject({ hit: false, parryWeapon: { uid: briseEpee.uid } });
     const etape = g().pendingCascade!.participants.find((x) => x.kind === 'piegeALame')!;
     expect(etape.piegeLame).toMatchObject({ defenderId: H.id, attackerId: g().serieSubie!.assaillant.id });
-    g().jetRegler('cascade', 'choix', choix, etape.id);
-    g().jetValider('cascade');
+    return { banc, H, etape };
+  }
+
+  function piegeALameDansLaSerie(choix: 'piege' | 'critique') {
+    const { banc, H, etape } = piegeALameOuvert();
+    banc.getState().jetRegler('cascade', 'choix', choix, etape.id);
+    banc.getState().jetValider('cascade');
     return { banc, H };
   }
+
+  it('Piège-lame en Parade : la série attend le choix Piéger ou Critique, aucune Défense suivante avant lui : LDB 62 l.278-280 ; #4011', () => {
+    const { banc } = piegeALameOuvert();
+    const s = banc.getState();
+    expect(s.pendingDefense).toBeNull();
+    expect(s.serieSubie).toMatchObject({ restantes: 2 });
+    const pc = s.pendingCascade!;
+    expect(pc.participants[pc.cursor].kind).toBe('piegeALame');
+  });
 
   it('Piège-lame en Parade, « Coup Critique » : le Critique placé sur l’assaillant se dit, la série se poursuit : LDB 62 l.278, LDB 14 l.3', () => {
     const { banc, H } = piegeALameDansLaSerie('critique');
@@ -386,11 +477,44 @@ describe('série d’attaques subies hors bataille (#3892)', () => {
     expect(s.pendingDefense).toMatchObject({ attackerId: assaillant.id, defenderId: H.id });
   });
 
+  /** La série de 2 attaques d'un assaillant au Marteau à bec-de-corbin (Assommante, LDB 62 l.235), dont la 1ʳᵉ touche la
+   *  Tête du héros (d100 20 → 02) : la Défense perdue, l'étape `testDeclenche` de l'Atout ouverte. */
+  function assommanteALaTete() {
+    const { banc, H } = horsBataille(testScene());
+    const brute = { type: 'statblock', label: 'Brute', char: { 'capacite-de-combat': 35, force: 60 }, traits: [{ id: 'arme', value: 5, arg: 'marteau-a-bec-de-corbin' }] };
+    const opBrute = gameOpSchema.parse({ op: 'attaquesSubies', assaillant: { statblock: brute }, nombre: { dice: { n: 1, sides: 10 } } });
+    applyEffects(banc.getState, banc.setState, [{ type: 'ops', on: 'heros', heroId: H.id, ops: [opBrute] }]);
+    imposerLesD100(20, 23, 20, 23, 20);
+    banc.getState().jetImposerLeResultat('cascadeTirage', 2, banc.getState().pendingCascade!.participants[0].id);
+    banc.getState().jetValider('cascade');
+    const coup = defendre(banc, 97);
+    expect(coup).toMatchObject({ hit: true, location: 'tete' });
+    return { banc, H };
+  }
+
+  it('Assommante à la Tête : le Test de l’Atout s’ouvre SEUL, sa clôture ouvre la Défense suivante, la série se ferme au compte juste : LDB 62 l.235 ; #4011', () => {
+    const { banc } = assommanteALaTete();
+    let s = banc.getState();
+    const ouvertes = s.pendingCascade!.participants.filter((x) => !x.committed);
+    expect(ouvertes.map((x) => x.kind)).toEqual(['testDeclenche']);
+    expect(s.pendingDefense).toBeNull();
+    expect(s.serieSubie).toMatchObject({ restantes: 2 });
+    banc.getState().jetLancer('cascade', ouvertes[0].id);
+    banc.getState().jetValider('cascade');
+    s = banc.getState();
+    expect(s.serieSubie).toMatchObject({ restantes: 1 });
+    expect(s.pendingDefense).toMatchObject({ attackerId: s.serieSubie!.assaillant.id });
+    expect(defendre(banc, 5).hit).toBe(false);
+    s = banc.getState();
+    expect(s.serieSubie).toBeNull();
+    expect(s.pendingDefense).toBeNull();
+  });
+
   it('héros Inconscient, régime « critique » : le Critique du coup se tranche et s’applique, puis la série se ferme : LDB 16 l.113', () => {
     const { banc, H } = horsBataille(testScene());
     setRule('combat-cible-inconsciente', 'critique');
     const inconscient = gameOpSchema.parse({ op: 'condition', id: { id: 'inconscient' }, value: 1 });
-    applyEffects(banc.getState, banc.setState, [{ type: 'ops', on: 'hero', heroId: H.id, ops: [inconscient] }, attaques('hero', H.id)]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'ops', on: 'heros', heroId: H.id, ops: [inconscient] }, attaques('heros', H.id)]);
     imposerLesD100(20);
     banc.getState().jetImposerLeResultat('cascadeTirage', 2, banc.getState().pendingCascade!.participants[0].id);
     banc.getState().jetValider('cascade');
@@ -478,7 +602,7 @@ describe('série d’attaques subies hors bataille (#3892)', () => {
     const { banc, H } = horsBataille(testScene());
     const arme = { ...H.weapons[0], qualities: [{ id: 'bacle' }, { id: 'solide', value: 1 }] };
     banc.setState({ party: [{ ...H, weapons: [arme, ...H.weapons.slice(1)] }] });
-    applyEffects(banc.getState, banc.setState, [attaques('hero', H.id)]);
+    applyEffects(banc.getState, banc.setState, [attaques('heros', H.id)]);
     imposerLesD100(20, 23, 75);
     banc.getState().jetImposerLeResultat('cascadeTirage', 3, banc.getState().pendingCascade!.participants[0].id);
     banc.getState().jetValider('cascade');
@@ -498,7 +622,7 @@ describe('série d’attaques subies hors bataille (#3892)', () => {
   it('la cible hors d’action avant la fin : la série se ferme au terme du coup en cours', () => {
     const { banc, H } = serieOuverte([20, 20]);
     const inconscient = gameOpSchema.parse({ op: 'condition', id: { id: 'inconscient' }, value: 1 });
-    applyEffects(banc.getState, banc.setState, [{ type: 'ops', on: 'hero', heroId: H.id, ops: [inconscient] }]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'ops', on: 'heros', heroId: H.id, ops: [inconscient] }]);
     expect(banc.getState().serieSubie).toMatchObject({ restantes: 7 });
     defendre(banc, 5);
     const s = banc.getState();
@@ -516,7 +640,7 @@ describe('série d’attaques subies hors bataille (#3892)', () => {
     const { banc, H } = horsBataille(testScene());
     setRule('combat-cible-inconsciente', 'mort-auto');
     const inconscient = gameOpSchema.parse({ op: 'condition', id: { id: 'inconscient' }, value: 1 });
-    applyEffects(banc.getState, banc.setState, [{ type: 'ops', on: 'hero', heroId: H.id, ops: [inconscient] }, attaques('hero', H.id)]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'ops', on: 'heros', heroId: H.id, ops: [inconscient] }, attaques('heros', H.id)]);
     imposerLesD100(20);
     banc.getState().jetImposerLeResultat('cascadeTirage', 7, banc.getState().pendingCascade!.participants[0].id);
     banc.getState().jetValider('cascade');

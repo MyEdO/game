@@ -28,7 +28,8 @@ import type { WorldMap } from './worldMap';
 import { formatDice, type RNG } from '../engine/dice';
 import type { CascadeStep } from './pendings';
 import { reprendreLeVoyage } from './travelFlow';
-import { applyEffects, runFlow } from './combatEffects';
+import { applyEffects, jouerFlowEntier, runFlow } from './combatEffects';
+import { imposerLesD100 } from './battleRng.testkit';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import { navigationDuNavire } from './shipCrew';
 import { estCompetenceDePropulsion } from '../engine/propulsion';
@@ -57,10 +58,12 @@ import { jete } from '../engine/tests.testkit';
 import { hullNavalTraits } from '../engine/navalTraits';
 import { avecLesTables, cleDeFixture } from './noyau.testkit';
 import { tablesDuJeu } from './tablesDuJeu';
+import { chargerLaSave, lireSave, snapshotSave } from './persistance/save';
 import type { GenreDeCascade } from './tablesPosees';
 import { desEnSuite } from '../engine/dice.testkit';
 import { ligneDe } from '../engine/modLine.testkit';
 import { RULE_REF } from '../engine/ruleRefs';
+import { refDeRegle } from '../engine/reglesChiffrees';
 import { blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 
 /** Le réseau où le siège 1, assis à la table (`siegesDeLaTable`), tient le rôle MJ. */
@@ -470,6 +473,132 @@ describe('Infestation de rats géants — Extermination des nuisibles Complexe (
       seen.add(spoiled);
     }
     expect([...seen].some((v) => v % 3 !== 0)).toBe(true);
+  });
+});
+
+describe('Infestation — les rats attaquent sur une étape d’Extermination à DR négatif (MDG 15 l.161-164, l.176-178)', () => {
+  beforeEach(freshState);
+  afterEach(() => { resetRule('test-etendu-dr-minimum'); resetRule('equipage-zero-dr-succes'); });
+
+  /** La journée de mer RÉELLE sous l'Infestation `ligne` de la donnée (son op appliquée par son Flow) : le d100 de
+   *  chaque rangée de l'Extermination POSÉ à `d100(cible)`, la graine `graine` posée au moment de ce jet (elle tire
+   *  les 1d10 heures puis le soir : `membreAuHasard`, dés de `chaqueNuit`). Rend l'état à la tombée de la nuit. */
+  function journeeInfestee(ligne: 'infestation-de-rats-geants' | 'infestation-de-rats', d100: (cible: number) => number, graine: number) {
+    const ev = seaBoardEventById(ligne)!;
+    jouerFlowEntier(runFlow(get, set, ev.consequence!, ev.label));
+    get().partirEnVoyage('r1', 'mer', { cadence: 'jourParJour' });
+    for (let i = 0; i < 30 && !get().pendingRest; i++) {
+      if (!get().pendingCascade) break;
+      avanceEtapeCascade(get, (e, rangee) => (e.kind === 'equipage-extermination' && rangee ? (seedBattleRng(graine), d100(rangee.target!)) : undefined));
+    }
+    return get();
+  }
+
+  /** Les étapes de dé `nombre` d'attaques subies, en avant-plan comme derrière (`suspendedCascades`). */
+  const etapesDAttaques = (s: ReturnType<typeof get>) => [s.pendingCascade, ...s.suspendedCascades]
+    .flatMap((c) => c?.participants ?? []).filter((x) => x.kind === 'nombreDAttaquesSubies');
+
+  /** Le dé `nombre` posé à 1 : la série d'une attaque s'ouvre, son d100 d'attaque et de localisation imposés (`des`),
+   *  puis le héros perd sa Défense (97). Rend le coup tranché. */
+  function uneAttaquePerdue(des: number[]) {
+    avanceEtapeCascade(get, () => 1);
+    expect(get().serieSubie).toBeTruthy();
+    imposerLesD100(...des);
+    get().jetLancer('defense');
+    get().jetImposerLeResultat('defense', 97);
+    const coup = get().pendingDefense!.result!;
+    get().jetValider('defense');
+    return coup;
+  }
+
+  it('Extermination à DR −1 : au soir, le dé `nombre` sur le héros tiré, la journée close, `chaqueNuit` jouée ; puis la série', () => {
+    const s = journeeInfestee('infestation-de-rats-geants', (cible) => cible, 1);
+    expect(s.travelPlan!.kmDone).toBeGreaterThan(0);
+    expect(s.pendingRest).toBeTruthy();
+    expect(s.vessel!.infestation!.assaillie).toBeUndefined();
+    expect(s.journal).toContain(t('eff.membreAuHasardMarin'));
+    expect(s.journal).toContain(t('eff.cargaisonPerdueEnc', { enc: 0 }));
+    expect(s.pendingCascade).toMatchObject({ purpose: 'sequence' });
+    const [etape, ...autres] = etapesDAttaques(s);
+    expect(autres).toEqual([]);
+    expect(etape).toMatchObject({ actorId: 'soldat-de-test', de: { spec: { n: 1, sides: 10 } } });
+    expect(etape.meta!.attaquesSubies![0].assaillant.statblock).toMatchObject({ label: 'Rats géants', char: { 'capacite-de-combat': 35 } });
+    avanceEtapeCascade(get, () => 3);
+    expect(get().serieSubie).toMatchObject({ cibleId: 'soldat-de-test', restantes: 3 });
+    expect(get().pendingDefense).toMatchObject({ attackerId: get().serieSubie!.assaillant.id, defenderId: 'soldat-de-test' });
+  });
+
+  it('échec à DR 0, `test-etendu-dr-minimum` désactivée : aucune attaque', () => {
+    const s = journeeInfestee('infestation-de-rats', (cible) => cible + 1, 3);
+    expect(s.pendingRest).toBeTruthy();
+    expect(etapesDAttaques(s)).toEqual([]);
+    expect(s.serieSubie).toBeNull();
+  });
+
+  it('échec à DR 0, `test-etendu-dr-minimum` activée : l’étape compte −1 DR, les rats attaquent (LDB 12 l.185)', () => {
+    setRule('test-etendu-dr-minimum', true);
+    const s = journeeInfestee('infestation-de-rats', (cible) => cible + 1, 3);
+    expect(s.pendingRest).toBeTruthy();
+    expect(etapesDAttaques(s).map((e) => e.actorId)).toEqual(['soldat-de-test']);
+  });
+
+  it('réussite à DR 0, `test-etendu-dr-minimum` activée : l’étape compte +1 DR, aucune attaque (LDB 12 l.185 ; MDG 14 l.13)', () => {
+    setRule('test-etendu-dr-minimum', true);
+    setRule('equipage-zero-dr-succes', true);
+    const s = journeeInfestee('infestation-de-rats', (cible) => cible, 3);
+    expect(s.vessel!.infestation!.progres).toBe(1);
+    expect(etapesDAttaques(s)).toEqual([]);
+  });
+
+  it('rats géants : une touche qui blesse expose à la fièvre du rongeur (MDG 15 l.164)', () => {
+    journeeInfestee('infestation-de-rats-geants', (cible) => cible, 1);
+    const coup = uneAttaquePerdue([20, 23]);
+    expect(coup.hit && (coup.woundsLost ?? 0) > 0).toBe(true);
+    const s = get();
+    expect(s.serieSubie).toBeNull();
+    expect(s.pendingCascade!.participants.filter((x) => x.kind === 'maladieDeFinDeCombat').map((x) => [x.meta?.disease, x.participants!.map((p) => p.id)]))
+      .toEqual([['fievre-du-rongeur', ['soldat-de-test']]]);
+  });
+
+  it('rats : une touche qui blesse n’expose à aucune maladie (MDG 15 l.178)', () => {
+    journeeInfestee('infestation-de-rats', (cible) => cible + 10, 1);
+    const coup = uneAttaquePerdue([20, 23]);
+    expect(coup.hit && (coup.woundsLost ?? 0) > 0).toBe(true);
+    const s = get();
+    expect(s.serieSubie).toBeNull();
+    expect((s.pendingCascade?.participants ?? []).filter((x) => x.kind === 'maladieDeFinDeCombat')).toEqual([]);
+  });
+
+  it('rats (Très petite) contre un héros halfling (Petite) : la ligne « plus petit » +10 est dans leur jet (LDB 85 l.366)', () => {
+    set({ party: tousLesHerosDeScenario(idsDeTest).filter((h) => h.id === 'voleur-de-test') });
+    expect(get().party[0].size).toBe('petite');
+    journeeInfestee('infestation-de-rats', (cible) => cible + 10, 1);
+    avanceEtapeCascade(get, () => 1);
+    const pd = get().pendingDefense!;
+    expect(pd.defenderId).toBe('voleur-de-test');
+    expect(ligneDe(pd.atkCompo!.difficultyParts, refDeRegle('taille-modificateurs-en-combat'))?.value).toBe(10);
+  });
+
+  it('un marin tiré au sort : aucune série, une ligne au journal (MDG 15 l.161)', () => {
+    const avant = get().journal.length;
+    const s = journeeInfestee('infestation-de-rats-geants', (cible) => cible, 13);
+    expect(s.pendingRest).toBeTruthy();
+    expect(etapesDAttaques(s)).toEqual([]);
+    expect(s.serieSubie).toBeNull();
+    expect(s.journal.slice(avant).filter((l) => l === t('eff.membreAuHasardMarin'))).toHaveLength(1);
+  });
+
+  it('le marqueur `assaillie` et `surDRNegatif` traversent une sauvegarde puis un chargement (MDG 15 l.161, l.176)', () => {
+    const ev = seaBoardEventById('infestation-de-rats-geants')!;
+    jouerFlowEntier(runFlow(get, set, ev.consequence!, ev.label));
+    const { vessel } = get();
+    const infestation = vessel!.infestation!;
+    set({ vessel: { ...vessel!, infestation: { ...infestation, assaillie: true } } });
+    const lu = lireSave(JSON.stringify(snapshotSave(get(), '2026-11-12T00:00:00Z')));
+    if (typeof lu === 'string') throw new Error(lu);
+    const { etat } = chargerLaSave(lu);
+    expect(etat.vessel!.infestation!.assaillie).toBe(true);
+    expect(etat.vessel!.infestation!.surDRNegatif).toEqual(infestation.surDRNegatif);
   });
 });
 
@@ -2866,5 +2995,76 @@ describe('Salissures — Test de Résistance hebdomadaire du vaisseau par la por
     expect(traces, 'le dé du navire a UNE surface : sa trace au journal (#1291)').toHaveLength(1);
     expect(traces[0], 'la trace dit QUI lance (le navire) et QUOI (#1595)').toContain(navire);
     expect(traces[0]).toContain(libelle);
+  });
+});
+
+describe('Une journée de mer en vol ne se relance pas, la bande d’équipage reste dans sa séquence hôte (#4006)', () => {
+  beforeEach(freshState);
+
+  /** Les séquences `travelDay` vivantes, slot et pile confondus (`pendingCascade`/`suspendedCascades`). */
+  const journeesVivantes = () => [get().pendingCascade, ...get().suspendedCascades].filter((c) => c?.purpose === 'travelDay');
+  /** Une étape de la cascade, puis les reprises différées du banc (patron des sondes du jour). */
+  const unPas = (poser?: PoseDe) => { avanceEtapeCascade(get, poser); banc.reprendreTout(); };
+
+  it('le péril d’auteur dont l’effet ouvre un Test parque le jour : sa clôture le reprend UNE fois, `daysAtSea` +1', () => {
+    const perilMap: WorldMap = {
+      ...seaMap,
+      routes: [{ ...seaMap.routes[0], perils: [{ label: 'Froid mordant', chancePct: 100, effects: [{ type: 'exposureNight', kind: 'froid', count: 1, target: 'groupe' }] }] }],
+    };
+    set({ worldMap: perilMap } as never);
+    const plan = buildSeaPlan(get, 'r1', 'A', 'B', perilMap.routes[0], { cadence: 'jourParJour' })!;
+    set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysToEvent: 5 } } } as never);
+    runSeaDay(get, set);
+    const jour = get().pendingCascade!;
+    expect(jour.purpose, 'prémisse : le jour tient le slot').toBe('travelDay');
+    for (let i = 0; i < 10 && get().pendingCascade?.purpose !== 'test'; i++) unPas();
+    expect(get().pendingCascade?.purpose, 'prémisse : l’effet du péril ouvre sa séquence `test`').toBe('test');
+    expect(get().suspendedCascades.map((c) => c.purpose), 'prémisse : le jour attend en pile').toEqual(['travelDay']);
+    const curseurParque = get().suspendedCascades[0]!.cursor;
+    expect(curseurParque, 'prémisse : le jour est parqué après son étape de péril').toBeGreaterThan(0);
+    for (let i = 0; i < 10 && get().pendingCascade?.purpose === 'test'; i++) unPas();
+    expect(journeesVivantes(), 'une seule journée vivante à la clôture du Test').toHaveLength(1);
+    expect(get().pendingCascade?.cursor, 'le jour parqué est repris à son curseur, pas rebâti').toBe(curseurParque);
+    expect(get().suspendedCascades).toEqual([]);
+    for (let i = 0; i < 40 && get().pendingCascade && !get().pendingRest; i++) {
+      unPas();
+      expect(journeesVivantes().length).toBeLessThanOrEqual(1);
+    }
+    expect(get().pendingRest, 'le jour se dénoue sur la halte').toBeTruthy();
+    expect(get().travelPlan!.sea!.daysAtSea).toBe(1);
+    expect(get().journal.filter((l) => l.includes(t('tf.perilDAuteur', { label: 'Froid mordant' }))), 'le jour n’est bâti qu’une fois').toHaveLength(1);
+  });
+
+  it('Ouragan : la bande du coup à l’équipage (MDG 13 l.763) se joue dans le Test de l’événement, puis le vrai jour joue sa Progression', () => {
+    seedBattleRng(1);
+    set({ party: get().party.map((h) => ({ ...h, shipStation: 'greement', skills: (h.skills ?? []).filter((s) => s.id !== 'voile') })) } as never);
+    const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { cadence: 'jourParJour' })!;
+    set({ travelPlan: { ...plan, sea: { ...plan.sea!, forcedEventId: 'ouragan' } } } as never);
+    runSeaDay(get, set);
+    expect(get().pendingCascade?.purpose, 'prémisse : le Test d’équipage de l’Ouragan tient le slot').toBe('test');
+    const estBande = (x: CascadeStep) => x.id.startsWith('mer-equipage-touche');
+    const bandeVivante = () => [get().pendingCascade, ...get().suspendedCascades].some((c) => c?.participants.some(estBande));
+    const affalerRate: PoseDe = (etape) => (etape.kind === 'testDEquipage' ? 99 : undefined);
+    let bandeVue = false;
+    let bandeDansLeTest = false;
+    for (let i = 0; i < 20 && get().pendingCascade?.purpose === 'test'; i++) {
+      expect(journeesVivantes(), 'aucune journée avant la clôture du Test de l’événement').toEqual([]);
+      if (bandeVivante()) bandeVue = true;
+      if (get().pendingCascade!.participants.some(estBande)) bandeDansLeTest = true;
+      unPas(affalerRate);
+    }
+    if (bandeVivante()) bandeVue = true;
+    expect(bandeVue, 'prémisse : Affaler raté, le tirage des Critiques porte un coup à l’équipage, une bande `mer-equipage-touche` existe').toBe(true);
+    expect(bandeDansLeTest, 'la bande `mer-equipage-touche` rejoint la séquence du Test').toBe(true);
+    const jour = get().pendingCascade;
+    expect(jour?.purpose, 'la clôture du Test bâtit le vrai jour').toBe('travelDay');
+    expect(jour!.participants.some(estBande), 'la bande ne passe pas dans le jour').toBe(false);
+    expect(jour!.participants.some((x) => x.kind === 'merProgressionChoix' || x.kind === 'equipage-progression'), 'le jour porte sa Progression, quelle que soit sa forme').toBe(true);
+    for (let i = 0; i < 40 && get().pendingCascade && !get().pendingRest; i++) {
+      unPas();
+      expect(get().travelPlan!.sea!.daysAtSea).toBe(get().pendingRest ? 1 : 0);
+    }
+    expect(get().pendingRest).toBeTruthy();
+    expect(get().travelPlan!.sea!.daysAtSea).toBe(1);
   });
 });

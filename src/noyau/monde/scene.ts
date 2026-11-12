@@ -393,6 +393,13 @@ export interface Scene {
   groups?: string[];
 }
 
+/** Les champs de la scène que lit son volume (`volumeDuMonde`, `src/noyau/monde/volume/volume.ts`) : sa projection et
+ *  les dépendances de son mémo en sont tirées. */
+export const CHAMPS_DU_VOLUME = ['dimensions', 'metresPerTile', 'reliefDefaults', 'layers', 'walls', 'entities', 'flags'] as const;
+
+/** La scène vue par son volume (`CHAMPS_DU_VOLUME`). */
+export type SceneDuVolume = Pick<Scene, (typeof CHAMPS_DU_VOLUME)[number]>;
+
 export type SceneStationAnchor = z.infer<typeof sceneStationAnchorSchema>;
 
 /** Échelle métrique d'une case (m/case), LDB 15 l.12 : source UNIQUE, que lisent la couche Mer et le plateau d'un hôte. PUR. */
@@ -414,7 +421,7 @@ export function isMerScene(scene: { metresPerTile?: number } | null | undefined)
 }
 
 /** Grille de tuiles d'une couche (défaut z=0 = base). Repli sur la 1ʳᵉ couche si `z` absent. */
-export function layerTiles(scene: Scene, z = 0): Terrain[] {
+export function layerTiles(scene: SceneDuVolume, z = 0): Terrain[] {
   return (scene.layers.find((l) => l.z === z) ?? scene.layers[0]).tiles;
 }
 
@@ -431,7 +438,7 @@ export function startOf(scene: Scene): Pt | null {
   return e.z ? { x: e.pos.x, y: e.pos.y, z: e.z } : { x: e.pos.x, y: e.pos.y };
 }
 
-export function tileAt(scene: Scene, x: number, y: number, z = 0): Terrain {
+export function tileAt(scene: SceneDuVolume, x: number, y: number, z = 0): Terrain {
   if (x < 0 || y < 0 || x >= scene.dimensions.w || y >= scene.dimensions.h) return terrainHorsGrille();
   // Aucun repli de tuile : le schéma exige `tiles.length === w×h` sur chaque couche (#1789), donc
   // toute case DANS la grille porte son terrain.
@@ -441,7 +448,7 @@ export function tileAt(scene: Scene, x: number, y: number, z = 0): Terrain {
 /** Hauteur RÉELLE (mètres) de la surface de la case (x,y) sur la couche `z` : >0 surélevée, <0 en
  *  contrebas. Hors-grille ou sans tableau `height` → 0. Repli sur la 1ʳᵉ couche si `z` absent, comme
  *  `tileAt`. PORTEUSE : pilote rampe/falaise (`surfaceLink`), distance verticale et chute. */
-export function heightAt(scene: Scene, x: number, y: number, z = 0): number {
+export function heightAt(scene: SceneDuVolume, x: number, y: number, z = 0): number {
   if (x < 0 || y < 0 || x >= scene.dimensions.w || y >= scene.dimensions.h) return 0;
   const layer = scene.layers.find((l) => l.z === z) ?? scene.layers[0];
   return layer.height?.[y * scene.dimensions.w + x] ?? 0;
@@ -471,14 +478,14 @@ export function liftDe(scene: Scene, p: Pt): number {
 
 /** Id de structure crénelée d'une case de chemin de ronde (couche `z`), ou `null`. Marqueur de RENDU PUR
  *  (la crénelure `cretesDePerimetre` en dérive les merlons de PÉRIMÈTRE) — n'affecte NI passabilité NI LdV. PUR. */
-export function crenellatedAt(scene: Scene, x: number, y: number, z = 0): string | null {
+export function crenellatedAt(scene: SceneDuVolume, x: number, y: number, z = 0): string | null {
   if (x < 0 || y < 0 || x >= scene.dimensions.w || y >= scene.dimensions.h) return null;
   const layer = scene.layers.find((l) => l.z === z) ?? scene.layers[0];
   return layer.crenellated?.[y * scene.dimensions.w + x] ?? null;
 }
 
 /** La case (x,y,z) porte-t-elle une crénelure (marqueur de rendu) ? */
-export function isCrenellated(scene: Scene, x: number, y: number, z = 0): boolean {
+export function isCrenellated(scene: SceneDuVolume, x: number, y: number, z = 0): boolean {
   return crenellatedAt(scene, x, y, z) !== null;
 }
 
@@ -488,7 +495,7 @@ export function groupePosable(scene: Scene, pt: { x: number; y: number; z?: numb
   return isWalkable(scene, pt.x, pt.y, pt.z ?? 0);
 }
 
-export function isWalkable(scene: Scene, x: number, y: number, z = 0, swim?: ReadonlySet<string>): boolean {
+export function isWalkable(scene: SceneDuVolume, x: number, y: number, z = 0, swim?: ReadonlySet<string>): boolean {
   if (z > 0 && tileCollapsed(scene, x, y, z)) return false; // passerelle effondrée → plus marchable
   if (entityBlockedAt(scene, x, y, z)) return false; // empreinte multi-cases d'un décor (foot {w,h}), SA couche seulement
   // Impassabilité de la MASSE = le TERRAIN (bloc plein `mur` = walkable:false) ; le sol du TUNNEL (`pierre`)
@@ -771,7 +778,7 @@ export function setStructureDown<S extends Pick<Scene, 'walls' | 'flags'>>(scene
   return { ...scene, flags: { ...scene.flags, [structureDownKey(x, y, side, z)]: down } };
 }
 
-const PREFIXE_TUILE_EFFONDREE = '__tile_down_';
+export const PREFIXE_TUILE_EFFONDREE = '__tile_down_';
 
 /** Clé de flag d'effondrement d'une TUILE d'étage (`scene.flags`) — présent & `true` = la passerelle de
  *  la case (x,y,z) s'est effondrée (z>0). Absent = intacte. Calque le patron flag des portes/structures. */
@@ -902,7 +909,7 @@ export const DEFAULT_TERRAIN: Terrain = semencesDeScene.terrain.id;
  *  ce module ne choisit plus ni matière, ni terrain, ni échelle. `ambientLight` ABSENT de la semence
  *  vaut `auto` — la sentinelle est l’absence côté semence (champ typé `idDe('lightLevel')`), et la
  *  scène produite la porte EN CLAIR, comme avant #1716. L'`id` vient de l'appelant : l'hôte le forge
- *  unique (`idDEntropie`, `src/web/entropie.ts`, #2817). */
+ *  unique (`idDEntropie`, `src/hote/entropie.ts`, #2817). */
 /** Le sol d'une scène neuve : une couche au terrain de la semence (`semences-de-scene.json`). */
 function coucheDeSemence(w: number, h: number): Scene['layers'] {
   return [{ z: 0, tiles: new Array<Terrain>(w * h).fill(semencesDeScene.terrain.id) }];

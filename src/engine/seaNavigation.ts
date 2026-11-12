@@ -68,6 +68,7 @@ const DATA = seaNavJson as unknown as {
     temporaire: { difficultyMin: Difficulty; difficultyMax: Difficulty; hoursPerRepair: number; woundsPerRepair: Tirage; failDamage: Tirage };
     entretienCrewTestDR: number;
     constructeurLocal: number;
+    joursDePose: Tirage;
   };
 };
 

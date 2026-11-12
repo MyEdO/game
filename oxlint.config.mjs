@@ -86,7 +86,7 @@ const VERROU_LISTAGE = [
 ].map((selector) => ({ selector, message: MSG_ORDRE_TOTAL }));
 
 const STOCKAGES_WEB = ['localStorage', 'sessionStorage'];
-const MSG_STOCKAGE_WEB = 'Stockage web (#1897) : le `localStorage` et le `sessionStorage` ne se touchent que par `stockageWeb(genre)` (`src/web/stockageWeb.ts`), quel que soit l’objet porteur (`window`, `globalThis`, `self`, déstructuration, accès indexé).';
+const MSG_STOCKAGE_WEB = 'Stockage web (#1897) : le `localStorage` et le `sessionStorage` ne se touchent que par `stockageWeb(genre)` (`src/hote/stockageWeb.ts`), quel que soit l’objet porteur (`window`, `globalThis`, `self`, déstructuration, accès indexé).';
 
 const REMEDE_CONSOLE = 'rendre l’information VISIBLE, la nommer en `aria-label`/`aria-describedby`, ou la confier au popover `CodexRef` (verbatim de la donnée)';
 const VERROU_CONSOLE = [{
@@ -196,8 +196,8 @@ const MODULES_DE_MINUTERIES = ['timers', 'node:timers', 'timers/promises', 'node
 const APPEL_DE_MINUTERIE = `:matches(CallExpression, NewExpression) > Identifier.callee[name=/^(${MINUTERIES.join('|')})$/]`;
 const MSG_MINUTERIE = `Minuterie nue (#405, #415, #2817) : \`src/engine\` n’en pose aucune ; sous src/noyau, un appel différé passe par \`programmer\` (\`src/noyau/plateforme.ts\`) ; sous src/state, src/lib et src/web, un timer réel passe par \`scheduleCombatTimer\`/\`scheduleFlowTimer\` (\`${SOURCE_DES_MINUTERIES}\`). Les deux voies aboutissent au registre tracé que \`clearTrackedTimers\` annule au teardown de test.`;
 
-const MSG_SANS_HOTE = 'Sans hôte (#2817, AGENTS.md règle 3) : `src/engine` et `src/noyau` tournent sans hôte, qui leur FOURNIT ce qu’ils ne tirent pas d’eux-mêmes : un tirage passe par le `RNG` que l’appelant nomme (`battleRng()` au noyau, semé par l’hôte de `graineDEntropie`, `src/web/entropie.ts`), l’heure du jeu par `gameTime` de l’état, un appel différé par `programmer` (`src/noyau/plateforme.ts`), un id unique d’un projet à l’autre par l’appelant (`idDEntropie` de l’hôte ; `nextEntityId` au sein d’une collection), le navigateur par les services de `src/web`.';
-const MSG_ENTROPIE = 'Entropie (#2817) : `Math.random` ne s’écrit que dans `src/web/entropie.ts`, le seul site d’entropie de `src/` — un jet de règle prend un `RNG` nommé par l’appelant, une présentation ou un son tire de `entierDEntropie`, une graine de `graineDEntropie`, un id d’entité de `idDEntropie`.';
+const MSG_SANS_HOTE = 'Sans hôte (#2817, AGENTS.md règle 3) : `src/engine` et `src/noyau` tournent sans hôte, qui leur FOURNIT ce qu’ils ne tirent pas d’eux-mêmes : un tirage passe par le `RNG` que l’appelant nomme (`battleRng()` au noyau, semé par l’hôte de `graineDEntropie`, `src/hote/entropie.ts`), l’heure du jeu par `gameTime` de l’état, un appel différé par `programmer` (`src/noyau/plateforme.ts`), un id unique d’un projet à l’autre par l’appelant (`idDEntropie` de l’hôte ; `nextEntityId` au sein d’une collection), le navigateur par les services de `src/web`.';
+const MSG_ENTROPIE = 'Entropie (#2817) : `Math.random` ne s’écrit que dans `src/hote/entropie.ts`, le seul site d’entropie des zones — un jet de règle prend un `RNG` nommé par l’appelant, une présentation ou un son tire de `entierDEntropie`, une graine de `graineDEntropie`, un id d’entité de `idDEntropie`.';
 const VERROU_ENTROPIE = [
   { object: 'Math', property: 'random' },
   { property: 'Math' },
@@ -711,7 +711,7 @@ export const BLOCS_LINT = [
   {
     // #2817, #2928
     files: CODE_DES_ZONES,
-    excludeFiles: ['src/web/entropie.ts', '**/*.test.*', '**/*.bench.*'],
+    excludeFiles: ['src/hote/entropie.ts', '**/*.test.*', '**/*.bench.*'],
     rules: { 'murs/entropie': ['error', ...VERROU_ENTROPIE] },
   },
   {

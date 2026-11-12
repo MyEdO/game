@@ -87,6 +87,7 @@ func _derouler(lu: Dictionary, pont: PontDuDegagement, combat: Node) -> void:
 	if rendue != null:
 		_verifier(_retiree(volume, rendue), "avant le clic, la case %s pas retirée" % [rendue])
 	pont.fige.retrait = lu.retraitDuClic
+	pont.fige.vision = lu.visionDuClic
 	var depuis := pont.appels.size()
 	(combat.get_node("Plateau") as Plateau).case_cliquee.emit(Vector3i(int(lu.case.x), int(lu.case.y), 0))
 	var au_clic := pont.appels.slice(depuis)

@@ -1,6 +1,6 @@
 ## Le seul point de contact avec le noyau (`hotes/godot/pont/CONTRAT.md`), par le transport de son lieu (`Transport`) : la
-## page de l'export Web (`TransportDeLaPage`) ou un processus Node (`TransportDuProcessus`) ; dont l'image que l'auteur
-## choisit sur son disque (`choisir_une_image`), la pile des couches d'une tenue (`resoudre_la_pile`), les requêtes au
+## page de l'export Web (`TransportDeLaPage`) ou un processus Node (`TransportDuProcessus`) ; dont le fichier que le joueur
+## choisit sur son disque (`choisir_un_fichier`), celui qu'il y enregistre (`enregistrer_un_fichier`), la pile des couches d'une tenue (`resoudre_la_pile`), les requêtes au
 ## serveur du jeu (`requeter`), ce que l'écran porte (`publier_l_ecran`, retenu dans `ecran`) et ce que Godot expose
 ## (`exposer`).
 ## Un appel envoie le nom d'une méthode et une chaîne JSON, et rend la réponse décodée ; une réponse `ok: false` est un
@@ -20,6 +20,11 @@ const SILENCE_S := 10.0
 ## mesurés : un GLB de base de 42 Mo s'y reçoit en une vingtaine d'images (#3470), pas en plus de 600 par 64 Kio.
 const BLOC_DE_TELECHARGEMENT := 16777216
 
+## Un genre de fichier que le joueur choisit ou enregistre : `accepte`, ce que le champ de fichier de la page admet ;
+## `filtre`, celui du dialogue du système ; `type`, le type MIME du fichier remis par la page.
+const IMAGES := {accepte = "image/png,image/jpeg,image/webp", filtre = "*.png, *.jpg, *.jpeg, *.webp ; Images PNG, JPEG ou WebP"}
+const HEROS := {accepte = ".json,application/json", filtre = "*.json ; Personnage exporté", type = "application/json"}
+
 ## Le paramètre (`parametre`) que la recette pose à `1` (`hotes/godot/recette.mjs`, `en_recette`).
 const PARAMETRE_DE_RECETTE := "recette"
 
@@ -29,6 +34,10 @@ var essai := false
 ## Si la partie à ouvrir est une partie au groupe (`ouvrir`), que le joueur compose puis lance sur une campagne du jeu
 ## (`lancer`), plutôt qu'un scénario de test : « Jouer » de l'accueil le pose.
 var au_groupe := false
+## Si le combat s'ouvre sur les sauvegardes à charger (`sauvegardes`), sans partie : « Reprendre » de l'accueil le pose.
+var reprise := false
+## L'emplacement de la sauvegarde que le combat charge à son ouverture (`charger`), `null` sans chargement demandé.
+var a_charger: Variant = null
 ## Si une recette pilote le jeu (`PARAMETRE_DE_RECETTE`) : l'écran se publie (`publier_l_ecran`), une image ne se dessine
 ## que si l'écran a changé (`OS.low_processor_usage_mode`), sans anticrénelage multiéchantillon (`Viewport.msaa_3d`), car
 ## dans l'export Web chaque image tient le fil de la page où la recette lit l'écran publié et où arrive chacun de ses
@@ -68,7 +77,9 @@ var _transport: Transport
 
 	@abstract func adresse(relative: String) -> String
 
-	@abstract func choisir_une_image() -> Dictionary
+	@abstract func choisir_un_fichier(genre: Dictionary) -> Dictionary
+
+	@abstract func enregistrer_un_fichier(genre: Dictionary, nom: String, texte: String) -> void
 
 	@abstract func parametre(cle: String) -> String
 
@@ -89,14 +100,36 @@ func est_pret() -> bool:
 
 
 ## Le pont rejoint par un écran : chaque refus rendu à `au_refus` (son message), chaque panne à `a_la_panne`, chacun abonné
-## une fois et désabonné à la libération de son objet ; `true` une fois le lieu du noyau ouvert, `false` (la panne
-## signalée) s'il ne s'ouvre pas.
+## une fois et désabonné à la libération de son objet ; `true` une fois le lieu du noyau ouvert et les volumes posés
+## (`regler_les_volumes`), `false` (la panne signalée) s'il ne s'ouvre pas.
 func rejoindre(au_refus: Callable, a_la_panne: Callable) -> bool:
 	if not refus.is_connected(au_refus):
 		refus.connect(au_refus)
 	if not panne.is_connected(a_la_panne):
 		panne.connect(a_la_panne)
-	return await _transport.ouvrir()
+	if not await _transport.ouvrir():
+		return false
+	regler_les_volumes()
+	return true
+
+
+## @contrat Effets
+## Les volumes du joueur se posent sur les bus d'`AudioServer` (`projet/default_bus_layout.tres`) :
+## `PontDuNoyau.regler_les_volumes` lit la méthode `preferences` et pose sur chaque bus dont la préférence
+## `volume-<nom du bus>` existe sa valeur (de 0 à 1, `AudioServer.set_bus_volume_linear`) ; les bus `Master` et
+## `musique-jouee` n'en ont aucune. `rejoindre` l'appelle une fois le lieu du noyau ouvert, le panneau des réglages
+## après chaque réglage (`projet/scripts/reglages.gd`). La recette `projet/recettes/mixage.gd` le vérifie.
+
+## Le volume de chaque bus d'`AudioServer` dont la préférence `volume-<nom du bus>` existe (méthode `preferences`), posé
+## à sa valeur ; rien si l'appel ne rend pas `ok`.
+func regler_les_volumes() -> void:
+	var reponse := appeler("preferences")
+	if reponse.get("ok") != true:
+		return
+	for bus in AudioServer.bus_count:
+		var cle := "volume-%s" % AudioServer.get_bus_name(bus)
+		if reponse.preferences.has(cle):
+			AudioServer.set_bus_volume_linear(bus, reponse.preferences[cle])
 
 
 ## La réponse de `methode` sur `entree` (un objet, ou `null` sans entrée) : décodée, `ok` vrai ou faux, chaque tableau
@@ -388,10 +421,16 @@ func requeter(relative: String, recueil: Array[String], methode := HTTPClient.ME
 	return resultat[3]
 
 
-## L'image PNG, JPEG ou WebP que l'auteur choisit sur son disque : `{ octets, type }`, son contenu et son type MIME ; `{}`
-## s'il renonce.
-func choisir_une_image() -> Dictionary:
-	return await _transport.choisir_une_image()
+## Le fichier du genre `genre` (`IMAGES`, `HEROS`) que le joueur choisit sur son disque : `{ octets, type }`, son contenu
+## et son type MIME ; `{}` s'il renonce.
+func choisir_un_fichier(genre: Dictionary) -> Dictionary:
+	return await _transport.choisir_un_fichier(genre)
+
+
+## Le texte `texte` remis au joueur en fichier du genre `genre`, sous le nom `nom` : téléchargé par la page, écrit où le
+## joueur le choisit hors d'elle.
+func enregistrer_un_fichier(genre: Dictionary, nom: String, texte: String) -> void:
+	_transport.enregistrer_un_fichier(genre, nom, texte)
 
 
 ## La pile des couches `demande` (`PileDemandee`, en JSON, `CONTRAT.md`, « Pile des couches ») résolue par le lieu du

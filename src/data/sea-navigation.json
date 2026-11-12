@@ -557,6 +557,12 @@
       "note": "ch.13 « Navigation maritime » — RÉPARER LES NAVIRES + Réparations temporaires (l.639-651) ; entretienCrewTestDR croise ch.14 « Entretien » (l.122)."
     },
     "constructeurLocal": 50,
-    "maison": "Le constructeur naval local (MDG 13 l.643) n'a pas de profil : il teste son Métier (Constructeur de navires) à 50 (consigne utilisateur 2026-11-07)."
+    "joursDePose": {
+      "dice": {
+        "n": 1,
+        "sides": 10
+      }
+    },
+    "maison": "Le constructeur naval local (MDG 13 l.643) n'a pas de profil : il teste son Métier (Constructeur de navires) à 50 (consigne utilisateur 2026-11-07). Une Amélioration dont le livre ne chiffre pas la pose (MDG 12 l.195-364) prend 1d10 jours, la durée d’un travail du Constructeur de navires itinérant (MDG 15 l.255)."
   }
 }

@@ -8,16 +8,14 @@ extends SceneTree
 ## `VolumeDeScene.cacher` : les montrées puis les cachées, dans l'ordre reçu ; cachées, `Vu` ne montre que les
 ## premières, `Ombre` les garde toutes. Plus de huit foyers : onze murs, un par bloc, chacun sous sa lampe, sont tous
 ## éclairés, lus aux pixels de l'image rendue ; témoin : les mêmes murs dans un seul bloc, un seul groupe, n'en ont que
-## huit, la borne du rendu de compatibilité (`rendering/limits/opengl/max_lights_per_object`).
+## huit sous le rendu de compatibilité, sa borne (`rendering/limits/opengl/max_lights_per_object`), et tous sous
+## Forward+, qui n'en a pas.
 ##
-## Rendu réel, hors de `npm run godot:sonde` : en `--headless`, `MultiMesh.get_instance_transform` rend l'identité et le
-## rendu ne peint aucune image ; la sonde ne joue donc pas celle-ci (elle n'en contrôle que l'analyse). Elle se joue sous
-## un écran virtuel :
-##   xvfb-run -a -s "-screen 0 800x600x24" <godot> --path hotes/godot/projet --rendering-driver opengl3 \
-##     --script res://recettes/aretes-en-instances.gd
-## sur un projet importé (`<godot> --headless --path hotes/godot/projet --import`) ; elle sort en 0, ou en 1 avec ses
-## fautes.
+## Rendu réel, sous chacun des deux rendus : `npm run godot:rendus`. En `--headless`,
+## `MultiMesh.get_instance_transform` rend l'identité et le rendu ne peint aucune image : la sonde n'en contrôle que
+## l'analyse.
 
+const RECETTE_RENDUE := true
 const EPSILON := 1e-4
 const METRES_PAR_CASE := 2.0
 const DECALAGE := Vector3(2.5, 0.0, -1.5)
@@ -228,8 +226,9 @@ func _foyers(scene: Node3D, camera: Camera3D) -> void:
 		volume.free()
 	if eclaires["un bloc par mur"] != MURS:
 		_fautes.append("un bloc par mur : %d murs éclairés, attendu %d" % [eclaires["un bloc par mur"], MURS])
-	if eclaires["un seul bloc"] != 8:
-		_fautes.append("témoin dans un seul bloc : %d murs éclairés, attendu 8 (la borne par objet)" % eclaires["un seul bloc"])
+	var borne := 8 if RenderingServer.get_current_rendering_method() == "gl_compatibility" else MURS
+	if eclaires["un seul bloc"] != borne:
+		_fautes.append("témoin dans un seul bloc : %d murs éclairés, attendu %d (la borne par objet)" % [eclaires["un seul bloc"], borne])
 
 
 func _image() -> Image:

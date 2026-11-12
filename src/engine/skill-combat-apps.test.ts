@@ -60,7 +60,7 @@ describe('Applications de combat — substitution sociale (LDB 09 l.207/287)', (
     expect(combatSubstitute(defender(), attacker(false), 'defense')).toBeNull();
   });
   it('substitution aussi en ATTAQUE (role both) contre une cible effrayée', () => {
-    const sub = combatSubstitute(defender(), attacker(true), 'attack');
+    const sub = combatSubstitute(defender(), attacker(true), 'attaque');
     expect(sub?.skillId).toBe('intimidation');
   });
   it('sans la Compétence sociale → pas de substitution', () => {

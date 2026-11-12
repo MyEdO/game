@@ -6,7 +6,8 @@
  */
 import { idsDeTest, rosterDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
-import { ajouterAuRoster, chargerLeRoster, engagerLeHeros, mettreAJourLeRoster, prendreLesTemoinsDuRoster, retirerDuRoster } from './roster';
+import { ajouterAuRoster, chargerLeRoster, mettreAJourLeRoster, prendreLesTemoinsDuRoster, retirerDuRoster } from './roster';
+import { engagerSurLeJeu } from './roster.testkit';
 import { ouvrirLeBanc, surUnBancHorsTest } from '../noyau/banc.testkit';
 import { newDraft } from '../noyau/creation/brouillon';
 import { createHero } from '../engine/character';
@@ -133,7 +134,7 @@ describe('engager un brouillon de création (#3059)', () => {
     const s = stockageEnMemoire();
     const banc = ouvrirLeBanc();
     const d = brouillonComplet();
-    expect(engagerLeHeros(s, banc.getState(), d, rosterDeTest('session'))).toBeNull();
+    expect(engagerSurLeJeu(s, banc.getState(), d, rosterDeTest('session'))).toBeNull();
     const [entree] = chargerLeRoster(s);
     expect(entree.draft).toEqual(d);
     expect(banc.getState().party.map((h) => h.id)).toEqual([entree.hero.id]);
@@ -142,7 +143,7 @@ describe('engager un brouillon de création (#3059)', () => {
   it('une étape invalide refuse, sans rien écrire', () => {
     const s = stockageEnMemoire();
     const banc = ouvrirLeBanc();
-    expect(engagerLeHeros(s, banc.getState(), newDraft(4242), rosterDeTest('session'))).toBe('Choisissez votre race.');
+    expect(engagerSurLeJeu(s, banc.getState(), newDraft(4242), rosterDeTest('session'))).toBe('Choisissez votre race.');
     expect(chargerLeRoster(s)).toEqual([]);
     expect(banc.getState().party).toEqual([]);
   });
@@ -150,13 +151,13 @@ describe('engager un brouillon de création (#3059)', () => {
   it('un groupe complet refuse, sans rien écrire', () => {
     const s = stockageEnMemoire();
     const banc = ouvrirLeBanc({ etat: { party: [1, 2, 3, 4].map(membre) } });
-    expect(engagerLeHeros(s, banc.getState(), brouillonComplet(), rosterDeTest('session'))).toBe('Le groupe est complet (4 héros).');
+    expect(engagerSurLeJeu(s, banc.getState(), brouillonComplet(), rosterDeTest('session'))).toBe('Le groupe est complet (4 héros).');
     expect(chargerLeRoster(s)).toEqual([]);
   });
 
   it('deux sessions engagent chacune un brouillon au même roster : il garde les deux héros (#2907 S2)', () => {
     const s = stockageEnMemoire();
-    for (const label of ['Alda', 'Bruno']) surUnBancHorsTest((banc) => expect(engagerLeHeros(s, banc.getState(), brouillonComplet(label), rosterDeTest(label))).toBeNull());
+    for (const label of ['Alda', 'Bruno']) surUnBancHorsTest((banc) => expect(engagerSurLeJeu(s, banc.getState(), brouillonComplet(label), rosterDeTest(label))).toBeNull());
     expect(chargerLeRoster(s).map((e) => e.hero.label)).toEqual(['Alda', 'Bruno']);
   });
 
@@ -167,7 +168,7 @@ describe('engager un brouillon de création (#3059)', () => {
     poserLesPretires();
     const pretire = { ...membre(2), id: idDuPretire(PRETIRE_DE_TEST.id) };
     const banc = ouvrirLeBanc({ etat: { party: [auRoster, pretire] } });
-    for (const h of [auRoster, pretire]) expect(engagerLeHeros(s, banc.getState(), brouillonComplet(), rosterDeTest('session'), h.id)).toBeNull();
+    for (const h of [auRoster, pretire]) expect(engagerSurLeJeu(s, banc.getState(), brouillonComplet(), rosterDeTest('session'), h.id)).toBeNull();
     expect(banc.getState().party.map((h) => h.id)).toEqual([auRoster.id, pretire.id]);
     expect(banc.getState().party.map((h) => h.label)).toEqual([brouillonComplet().label, brouillonComplet().label]);
     expect(chargerLeRoster(s).map((e) => e.hero.id)).toEqual([auRoster.id, pretire.id]);
@@ -182,7 +183,7 @@ describe('engager un brouillon de création (#3059)', () => {
       etats: { sosie: a.id },
       pendingOrders: [{ heroId: a.id, trappingId: 'corde' }],
     } });
-    for (const label of ['Édité', 'Rééditée']) expect(engagerLeHeros(s, banc.getState(), brouillonComplet(label), rosterDeTest(label), a.id)).toBeNull();
+    for (const label of ['Édité', 'Rééditée']) expect(engagerSurLeJeu(s, banc.getState(), brouillonComplet(label), rosterDeTest(label), a.id)).toBeNull();
     const etat = banc.getState();
     expect(etat.party.map((h) => h.id)).toEqual([a.id, b.id]);
     const cites = [...etat.possessions.map((p) => p.ownerId), ...Object.values(etat.etats), ...etat.pendingOrders.map((o) => o.heroId)];

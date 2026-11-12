@@ -40,7 +40,7 @@ import { documentDuNarratif, indiceDuNarratif, objetDuNarratif, presetDuNarratif
 import { revealClue, discreditClue } from './monde/clues';
 import { creatureSemee, navireSeme, findCreatureById, findVehicleById, refLabel, WATER_EXPOSURE, diseaseLabel, nightStakeRef, combatStakeRef, flowStakeRef, testSkillLabel } from '../data';
 import { moraleBase } from '../engine/crewMorale';
-import { clampSaboteurDR, shipboardSouls } from './shipCrew';
+import { clampSaboteurDR, semaineDuJour, shipboardSouls } from './shipCrew';
 import { harvestProfileFor, harvestSizeOf, harvestYield, testsDeRecolte } from '../engine/harvest';
 import { applySummon } from './summonFlow';
 import { contractDisease, applyContraction, diseaseDefs } from '../engine/disease';
@@ -54,7 +54,7 @@ import { openScriptedPsych } from './encounterPsychFlow';
 import { refusDOuvrirLaTaverne, tavernNpcOffers } from './tavernFlow';
 import { ouvrirLeRepos, placesOfKind, sceneLieu } from './restFlow';
 import { avecSequelles, traumaById, dechirureFractureFicheId, permanentAmputations } from '../engine/trauma';
-import { DAY_PHASES, MINUTES_PER_DAY, minutesUntilNext, scheduleAt } from '../engine/clock';
+import { DAY_PHASES, MINUTES_PER_DAY, dayIndex, minutesUntilNext, scheduleAt } from '../engine/clock';
 import { TIME_COST } from '../engine/timeCost';
 import { feedFromMeal, applyFaimTest, applySoifTest } from '../engine/provisions';
 import { isWeatherWarded, exposureTarget, exposureCoatMods, type ExposureKind } from '../engine/exposure';
@@ -82,7 +82,7 @@ import { startGroundPursuit } from './pursuitFlow';
 import { sourceExposureMod, autoExposureMods, drawWaterDisease, isWounded } from '../engine/waterExposure';
 import { loseWounds, hasCondition } from '../engine/conditions';
 import { touchActors } from './combatOrParty';
-import { actorIn, coqueParId, ecrireActeur, inBattleId, meneurDeboutDuMonde, meneurDuMonde } from './monde/combatants';
+import { actorIn, coqueParId, ecrireActeur, inBattleId, meneurDeboutDuMonde, meneurDuMonde, rencontreEngagee } from './monde/combatants';
 import { appliquerAuNavire, ouvrirLeTestDEquipage, referentDuNavire } from './navireOps';
 import type { Referent } from '../engine/formule';
 import { marinsDuRole } from '../engine/shipCritical';
@@ -398,7 +398,7 @@ export function scheduleDelayedOps(
   get: Get, set: SetFn, target: Combatant,
   op: Extract<import('../engine/ops').GameOp, { op: 'delayed' }>,
   base: { now: number; untilTime?: number; label?: string },
-  cible: Pick<EffectOp, 'on' | 'heroId'> = { on: 'hero', heroId: target.id },
+  cible: Pick<EffectOp, 'on' | 'heroId'> = { on: 'heros', heroId: target.id },
 ): void {
   const rng = battleRng();
   const delayMin = op.afterDuration
@@ -752,9 +752,9 @@ export function cloturer(get: Get, set: SetFn, applique: Applique, suite: Suite)
 /** Cibles d'un EffectOp de scène (`ops` on=party/hero) : les héros vivants concernés,
  *  dans le bon ensemble (file de combat si en combat, sinon le groupe). `hero` = celui désigné par
  *  `heroId` (défaut : 1er vivant) ; `party` = tous les héros vivants. SOURCE UNIQUE (pas de dup). */
-export function effectTargets(get: Get, target: 'party' | 'hero', heroId?: string): Combatant[] {
+export function effectTargets(get: Get, target: 'groupe' | 'heros', heroId?: string): Combatant[] {
   const pool = get().battle?.combatants ?? get().party;
-  if (target === 'hero') {
+  if (target === 'heros') {
     const id = heroId || pool.find((c) => c.kind === 'heros' && !c.dead)?.id;
     return pool.filter((c) => c.id === id);
   }
@@ -769,8 +769,8 @@ export function effectTargets(get: Get, target: 'party' | 'hero', heroId?: strin
  * et de l'entrée `scene` de `CIBLES_PAR_RACINE`.
  */
 export const CIBLES_D_EFFET_DE_SCENE = [
-  { on: 'party', label: libelleDeValeur(cibleDeFeuilleSchema, 'party') },
-  { on: 'hero', label: libelleDeValeur(cibleDeFeuilleSchema, 'hero') },
+  { on: 'groupe', label: libelleDeValeur(cibleDeFeuilleSchema, 'groupe') },
+  { on: 'heros', label: libelleDeValeur(cibleDeFeuilleSchema, 'heros') },
   { on: 'navire', label: libelleDeValeur(cibleDeFeuilleSchema, 'navire') },
   { on: 'role', label: 'Un rôle d’équipage' },
   { on: 'membreAuHasard', label: libelleDeValeur(cibleDeFeuilleSchema, 'membreAuHasard') },
@@ -857,7 +857,7 @@ function avecDureeTiree(env: EffectEnv, e: EffectOp, pendantJours: Formula, suje
 /** Un membre du bord tiré au hasard, au prorata des âmes à bord (`shipboardSouls`) : un héros vivant, ou un marin
  *  de l'effectif PNJ, sans fiche, qui ne rend aucune cible. MDG 15 l.161, l.176 */
 function membreDuBordAuHasard(get: Get, rng: RNG): Combatant[] {
-  const heros = effectTargets(get, 'party');
+  const heros = effectTargets(get, 'groupe');
   const ames = heros.length + shipboardSouls(get()).crew;
   if (!ames) return [];
   const i = rng.int(0, ames - 1);
@@ -881,7 +881,7 @@ function messageOpDuNavireHorsNavire(e: { on?: EffectOp['on']; ops: readonly Gam
 }
 
 /** Les cibles de scène qui désignent au plus UN héros : l'op `attaquesSubies` n'en vise pas d'autre. */
-const CIBLES_UNIQUES: readonly string[] = ['hero', 'membreAuHasard'] satisfies CibleDEffetDeScene[];
+const CIBLES_UNIQUES: readonly string[] = ['heros', 'membreAuHasard'] satisfies CibleDEffetDeScene[];
 
 /** Le refus de l'op `attaquesSubies` accompagnée dans sa feuille (sa série garde la suite de la feuille, pas ses
  *  voisines : #1508), ou posée sur une cible qui n'est pas unique. MDG 15 l.163-164 */
@@ -1201,7 +1201,7 @@ function ccDuTesteur(cc: ConditionCtx, h: Combatant): ConditionCtx {
  * `false` sans héros vivant : la feuille ne vise personne. MDG 15 l.196
  */
 function demanderLesVolontaires(get: Get, set: SetFn, e: EffectOp, question: string, after: Flow, label: string, sl?: number): boolean {
-  const heros = effectTargets(get, 'party');
+  const heros = effectTargets(get, 'groupe');
   if (!heros.length) { get().ecrireAuJournal(t('eff.volontairesAucun', { question })); return false; }
   const meta = { choiceYes: { kind: 'effet' as const, effet: e }, after, flowLabel: label, ...(sl !== undefined ? { flowSl: sl } : {}) };
   const etapes = heros.map((h, i) => choiceStep({
@@ -1239,7 +1239,7 @@ export interface EffectEnv {
    *  qu'une feuille ne nomme pas (`EffectOp.label`). */
   label?: string;
   /** Cibles d'un effet `party`/`hero` (héros vivants concernés, bon ensemble) — `effectTargets`. */
-  targets(on: 'party' | 'hero', heroId?: string): Combatant[];
+  targets(on: 'groupe' | 'heros', heroId?: string): Combatant[];
   /**
    * Héros choisi, lu là où le jeu le lit : chaque membre du groupe pris dans la file de combat en
    * combat (`inBattleId`), sinon au groupe. `heroId` désigne ; absent, `pick(heros)` rend l'index
@@ -1672,7 +1672,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     apply: (e, env) => {
       // Faveur de départ de campagne ou octroi narratif (#509) — cible : héros désigné, sinon le
       // premier héros vivant (`env.targets` : même défaut que les autres Effets `hero`).
-      const hero = env.targets('hero', e.heroId)[0];
+      const hero = env.targets('heros', e.heroId)[0];
       if (hero) env.get().accorderLaFaveur(hero.id, e.level, e.owedTo, garanti(e.desc, e.owedTo, 'texte de la Faveur matérialisé'));
     },
   },
@@ -1680,25 +1680,25 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   // ── Afflictions ────────────────────────────────────────────────────────
   ops: {
     group: 'Afflictions', label: libelleEffet('ops'), icon: 'mecanique/modificateur',
-    make: () => ({ type: 'ops', on: 'party', ops: [{ op: 'wounds', amount: 5 }] }),
+    make: () => ({ type: 'ops', on: 'groupe', ops: [{ op: 'wounds', amount: 5 }] }),
     apply: (feuilleAuthoree, env) => {
       // EffectOp : applique les GameOps (vocabulaire mécanique des sorts) à la cible de SCÈNE
       // (`party`/`hero`, défaut `party`). `applyLeafOps` = SOURCE UNIQUE : contexte de FEUILLE
       // (untilTime/label bakés par un consommable — la branche d'un `test` suspendu garde sa durée)
       // + programmation des ops `delayed`.
-      const on = feuilleAuthoree.on ?? 'party';
+      const on = feuilleAuthoree.on ?? 'groupe';
       if (!estCibleDeScene(on)) throw new Error(messageCibleHorsScene(feuilleAuthoree, on));
       const horsCible = messageOpHorsDeSaCible(feuilleAuthoree);
       if (horsCible) throw new Error(horsCible);
       // Refusée AVANT tout `set` (aucune op de la feuille, aucun dé posé) : la série s'ouvre hors bataille, une à la fois.
-      if (feuilleAuthoree.ops.some(estOpDAttaquesSubies) && (env.get().battle || env.get().serieSubie)) throw new Error(t('eff.attaquesSubiesSerieEngagee'));
+      if (feuilleAuthoree.ops.some(estOpDAttaquesSubies) && rencontreEngagee(env.get())) throw new Error(t('eff.attaquesSubiesSerieEngagee'));
       const base = { rng: battleRng(), sl: env.sl };
       const e = resoudreLesOpsDuMonde(env, feuilleAuthoree, base.rng);
       if (!e) return;
       if (on === 'navire') { appliquerAuNavire(env.get, env.set, e, { idNeuf: env.get().forgerUnId, ...base, label: e.label ?? env.label }).forEach((l) => env.log(l)); return; }
       if (typeof on === 'object' && 'volontaires' in on) throw new Error(t('eff.volontairesHorsFlow', { question: on.volontaires }));
       const targets = on === 'membreAuHasard' ? membreDuBordAuHasard(env.get, base.rng)
-        : typeof on === 'object' ? marinsDuRole(env.targets('party'), on.role.id) : env.targets(on, e.heroId);
+        : typeof on === 'object' ? marinsDuRole(env.targets('groupe'), on.role.id) : env.targets(on, e.heroId);
       if (!targets.length) {
         if (typeof on === 'object') env.log(t('eff.roleSansTitulaire', { role: refLabel('crewRoles', on.role) }));
         if (on === 'membreAuHasard') env.log(t('eff.membreAuHasardMarin'));
@@ -1723,7 +1723,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     // Un contenu de scène fautif se refuse dans l'ÉDITEUR (`validateScene`), avec le MÊME message
     // que la levée du marcheur.
     refs: (e) => {
-      const on = e.on ?? 'party';
+      const on = e.on ?? 'groupe';
       if (!estCibleDeScene(on)) return [{ level: 'error', message: messageCibleHorsScene(e, on) }];
       const horsCible = messageOpHorsDeSaCible(e);
       return horsCible ? [{ level: 'error', message: horsCible }] : [];
@@ -1768,7 +1768,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   },
   fall: {
     group: 'Afflictions', label: libelleEffet('fall'), icon: 'journal/chute',
-    make: () => ({ type: 'fall', target: 'party', metres: 4 }),
+    make: () => ({ type: 'fall', target: 'groupe', metres: 4 }),
     apply: (e, env) => {
       // Chute (LDB 15 l.80-84) : 3 Dégâts/mètre + 1d10, réduits par le Bonus d'Endurance mais
       // PAS par les PA ; si les Blessures subies > BE → État À Terre. `to` repose le groupe (hors
@@ -1820,12 +1820,12 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   },
   inflictHunger: {
     group: 'Afflictions', label: libelleEffet('inflictHunger'), icon: 'drapeau/affame',
-    make: () => ({ type: 'inflictHunger', days: 1, target: 'party' }),
+    make: () => ({ type: 'inflictHunger', days: 1, target: 'groupe' }),
     apply: (e, env) => {
       // Faim (LDB 18 l.337-343) posée par l'auteur (siège, cachot, traversée sans vivres) : `days`
       // échecs de Test de Faim encaissés d'affilée, via la fonction PURE `applyFaimTest` (1ᵉʳ → −10 F/E ;
       // 2ᵉ+ → −10 autres + 1d10 Dégâts ignorant les PA, min 1). Réutilise le moteur des provisions.
-      const heroes = env.targets(e.target ?? 'party', e.heroId);
+      const heroes = env.targets(e.target ?? 'groupe', e.heroId);
       const n = Math.max(1, e.days ?? 1);
       const lines: string[] = [];
       for (const c of heroes) {
@@ -1845,11 +1845,11 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   },
   inflictThirst: {
     group: 'Afflictions', label: libelleEffet('inflictThirst'), icon: 'drapeau/affame',
-    make: () => ({ type: 'inflictThirst', days: 1, target: 'party' }),
+    make: () => ({ type: 'inflictThirst', days: 1, target: 'groupe' }),
     apply: (e, env) => {
       // Soif (LDB 18 l.340, miroir de la Faim) posée par l'auteur — via la fonction PURE partagée
       // `applySoifTest` (1ᵉʳ → −10 Int/FM/Soc ; 2ᵉ+ → −10 autres + 1d10 Dégâts ignorant les PA, min 1).
-      const heroes = env.targets(e.target ?? 'party', e.heroId);
+      const heroes = env.targets(e.target ?? 'groupe', e.heroId);
       const n = Math.max(1, e.days ?? 1);
       const lines: string[] = [];
       for (const c of heroes) {
@@ -1867,14 +1867,14 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   },
   exposureNight: {
     group: 'Afflictions', label: libelleEffet('exposureNight'), icon: 'repos/froid',
-    make: () => ({ type: 'exposureNight', kind: 'froid', count: 2, target: 'party' }),
+    make: () => ({ type: 'exposureNight', kind: 'froid', count: 2, target: 'groupe' }),
     apply: (e, env) => {
       // Exposition (LDB 18 l.326-334) posée par l'auteur (nuit glaciale, désert, tempête) : `count` Tests
       // de Résistance PAR HÉROS, chacun une ÉTAPE de cascade INFLUENÇABLE (Chance/Résilience) — jamais de
       // jet silencieux (calque `waterExposure` / la nuit de repos). L'escalade froid/chaleur (`meta.kind`)
       // + la peau de phoque vivent dans l'applier partagé `exposition-nocturne`. La protection magique (`weatherWard`)
       // court-circuite comme dans le moteur eager `exposureNight`.
-      const heroes = env.targets(e.target ?? 'party', e.heroId);
+      const heroes = env.targets(e.target ?? 'groupe', e.heroId);
       const count = Math.max(1, e.count ?? 2);
       const kind: ExposureKind = e.kind ?? 'froid';
       const steps: BuiltCascadeStep[] = [];
@@ -1957,12 +1957,12 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   },
   inflictPsychology: {
     group: 'Afflictions', label: libelleEffet('inflictPsychology'), icon: 'drapeau/peur',
-    make: () => ({ type: 'inflictPsychology', kind: 'peur', indice: 1, label: 'Une vision terrifiante', target: 'party' }),
+    make: () => ({ type: 'inflictPsychology', kind: 'peur', indice: 1, label: 'Une vision terrifiante', target: 'groupe' }),
     apply: (e, env) => {
       // Source de Peur/Terreur SCÉNIQUE (apparition, présage) : MÊME cascade de Tests de Calme que la
       // Psychologie de rencontre (`openScriptedPsych`, applier 'psychologieDeRencontre' partagé) — jamais un jet
       // silencieux. Frénésie s'octroie déjà via `ops`/`grantPsychTrait` (capacité, pas une affliction testée).
-      const heroes = env.targets(e.target ?? 'party', e.heroId);
+      const heroes = env.targets(e.target ?? 'groupe', e.heroId);
       openScriptedPsych(env.get, env.set, e.kind, Math.max(1, e.indice ?? 1), e.label || t('eff.sceneDePsychologie'), heroes);
     },
   },
@@ -2002,8 +2002,8 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   },
   waterExposure: {
     group: 'Afflictions', label: libelleEffet('waterExposure'), icon: 'voyage/vague',
-    make: () => ({ type: 'waterExposure', mode: 'ingestion', target: 'hero' }),
-    apply: (e, env) => openWaterExposure(env.get, env.set, env.targets(e.target ?? 'hero', e.heroId), e, 'expositionHydrique'),
+    make: () => ({ type: 'waterExposure', mode: 'ingestion', target: 'heros' }),
+    apply: (e, env) => openWaterExposure(env.get, env.set, env.targets(e.target ?? 'heros', e.heroId), e, 'expositionHydrique'),
   },
 
   // ── Temps & repos ──────────────────────────────────────────────────────
@@ -2106,7 +2106,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
         vessel: {
           vehicleId: e.vehicleId,
           ...(e.label?.trim() ? { label: e.label.trim() } : {}), // #230 — nom d'instance (affichage)
-          morale: { score: e.morale ?? moraleBase(), lastMoraleWeek: 0, factors: [] },
+          morale: { score: e.morale ?? moraleBase(), lastMoraleWeek: semaineDuJour(dayIndex(env.get().gameTime)), factors: [] }, // MDG 14 l.143
           ...(e.hullMax != null ? { wounds: { current: e.hullCurrent ?? e.hullMax, max: e.hullMax } } : {}),
           ...(e.saboteurDR != null ? { saboteurDR: e.saboteurDR } : {}),
           ...(e.waterLitres != null ? { waterLitres: Math.max(0, e.waterLitres) } : {}),
@@ -2175,7 +2175,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   },
   startMassBattle: {
     group: 'Combat & social', label: libelleEffet('startMassBattle'), icon: 'outil-de-carte/depart',
-    make: () => ({ type: 'startMassBattle', battle: { allyMight: 50, enemyMight: 50, plannedRounds: 3 } }),
+    make: () => ({ type: 'startMassBattle', battle: { puissanceAlliee: 50, puissanceEnnemie: 50, plannedRounds: 3 } }),
     apply: (e, env) => { env.get().amorcerLaBataille(e.battle); }, // ouvre l'écran de bataille sur le spec authoré (ADE II 08)
     // Les rencontres mappées aux Scènes de combat/menace doivent exister dans la scène courante.
     refs: (e, ctx) => Object.entries(e.battle.sceneEncounters ?? {}).flatMap(([sceneId, encId]) =>
@@ -2469,7 +2469,7 @@ export const TABLES = {
         .filter((x) => x.kind === 'volontaireDeFlux' && x.id.startsWith(`volontaireDeFlux-${(e.on as CibleDeVolontaires).volontaires}-`) && x.chosen === 'oui' && x.actorId)
         .map((x) => x.actorId!);
       if (!oui.length) get().ecrireAuJournal(t('eff.volontairesAucun', { question: (e.on as CibleDeVolontaires).volontaires }));
-      const feuilles: Flow[] = oui.map((heroId) => ({ kind: 'effet', effet: { ...e, on: 'hero', heroId } }));
+      const feuilles: Flow[] = oui.map((heroId) => ({ kind: 'effet', effet: { ...e, on: 'heros', heroId } }));
       jouerFlowEntier(runFlow(get, set, { kind: 'sequence', etapes: [...feuilles, step.meta?.after ?? EMPTY_FLOW] }, step.meta?.flowLabel, step.meta?.flowSl));
       return { consequences: freeCons([]) };
     },

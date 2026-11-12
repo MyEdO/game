@@ -352,7 +352,7 @@ describe('Héros qui balaie sur une gratuite : l’Action d’origine au bout de
     banc.setState({ battle: { ...banc.getState().battle!, acted: true } });
     h.wounds.current = 0; (h as { dead?: boolean }).dead = true;
     jouerLApresCoup(banc.getState, banc.setState, { attackerId: 'h', targetId: e2.id, weapon: sword, res: toucheDuHeros(false),
-      suite: { restitution: { prevActed: false }, enchainement: { mode: 'hero', wasChain: true } }, depuis: 'oupsAttaquant' });
+      suite: { restitution: { prevActed: false }, enchainement: { mode: 'heros', wasChain: true } }, depuis: 'oupsAttaquant' });
     const st = banc.getState();
     expect(st.pendingCleave, 'un mort ne garde aucune chaîne ouverte').toBeNull();
     expect(st.battle!.acted).toBe(false);
@@ -366,7 +366,7 @@ describe('Héros qui balaie sur une gratuite : l’Action d’origine au bout de
     h.characteristics['capacite-de-combat'] = 95; h.advantage = 1;
     e1.characteristics['capacite-de-combat'] = 5; e1.characteristics.agilite = 5;
     accorderLAttaqueGratuite(banc.getState, banc.setState, h,
-      { op: 'grantFreeAttack', weapon: 'held', when: 'immediate', advantageOrMovement: true }, { targetId: e1.id, cap: 1, key: 'assaut-feroce' });
+      { op: 'grantFreeAttack', weapon: 'held', when: 'immediate', avantageOuMouvement: true }, { targetId: e1.id, cap: 1, key: 'assaut-feroce' });
     expect(banc.getState().battle!.combatants.find((c) => c.id === e1.id)!.wounds.current, 'la gratuite a touché e1').toBeLessThan(200);
     expect(banc.getState().pendingCleave?.attackerId, 'la chaîne est offerte au héros').toBe('h');
     expect(banc.getState().pendingCleave?.restitution, 'la chaîne emporte la restitution de la gratuite').toEqual({ prevActed: false });
@@ -389,7 +389,7 @@ describe('Héros qui balaie sur une gratuite : l’Action d’origine au bout de
     banc.setState({ pendingCleave: { attackerId: 'h', hitIds: ['e1'], count: 0, fm: false, restitution: { prevActed: false } } });
     banc.setState({ battle: { ...banc.getState().battle!, acted: true } });
     accorderLAttaqueGratuite(banc.getState, banc.setState, h,
-      { op: 'grantFreeAttack', weapon: 'held', when: 'immediate', advantageOrMovement: true }, { targetId: e1.id, cap: 1, key: 'assaut-feroce' });
+      { op: 'grantFreeAttack', weapon: 'held', when: 'immediate', avantageOuMouvement: true }, { targetId: e1.id, cap: 1, key: 'assaut-feroce' });
     expect(banc.getState().battle!.combatants.find((c) => c.id === e1.id)!.wounds.current, 'la gratuite a touché e1').toBeLessThan(200);
     expect(banc.getState().pendingCleave?.restitution, 'la restitution d’ouverture reste celle de la chaîne').toEqual({ prevActed: false });
   });

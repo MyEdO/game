@@ -171,7 +171,7 @@ export function noeudDeLEntree(dataset: string, entree: object): unknown {
   const lieu = `noeudDeLEntree : dataset « ${dataset} » (${fichier ?? 'aucun fichier'}, suite « ${suite ?? '(aucune)'} »)`;
   if (!schema || suite === undefined) throw new Error(`${lieu} — aucune route d'édition déclarée (\`exposition.edit\`).`);
   let noeuds: readonly unknown[];
-  if (objet?.mode === 'single') noeuds = [schema];
+  if (objet?.mode === 'unique') noeuds = [schema];
   else {
     const collection = atteindre(schema, undefined, suite);
     if (!collection) throw new Error(`${lieu} — la suite ne mène à aucune collection à clé du schéma.`);

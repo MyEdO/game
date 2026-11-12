@@ -177,7 +177,7 @@
 }
 
 /* Tons sémantiques des crans allumés (charte : tokens uniquement). */
-.notch-gauge[data-tone='neutral'] .notch-gauge__notch[data-on] { background: var(--silver); border-color: var(--silver); }
+.notch-gauge[data-tone='neutre'] .notch-gauge__notch[data-on] { background: var(--silver); border-color: var(--silver); }
 .notch-gauge[data-tone='ok'] .notch-gauge__notch[data-on] { background: var(--ok-bright); border-color: var(--ok); }
 .notch-gauge[data-tone='warn'] .notch-gauge__notch[data-on] { background: var(--gold2); border-color: var(--gold); }
 .notch-gauge[data-tone='danger'] .notch-gauge__notch[data-on] { background: var(--danger); border-color: var(--danger); }

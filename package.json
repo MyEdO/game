@@ -26,6 +26,8 @@
     "pont:godot": "node hotes/godot/construire.mjs --pont-seul",
     "godot:sonde": "node hotes/godot/construire.mjs --sonde",
     "godot:ouvrir": "node hotes/godot/construire.mjs --ouvrir",
+    "godot:bureau": "node hotes/godot/construire.mjs --bureau --sortie dist/bureau",
+    "godot:rendus": "node hotes/godot/construire.mjs --rendus",
     "godot:etalons": "node hotes/godot/construire.mjs --export --sortie dist/godot && node hotes/godot/etalons.mjs --web dist/godot",
     "godot:editeur": "node hotes/godot/construire.mjs --export --sortie dist/godot && node hotes/godot/servir.mjs --web dist/godot --depot",
     "godot:importer": "node hotes/godot/importer.mjs",

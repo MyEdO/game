@@ -3556,6 +3556,98 @@
     }
   },
   {
+    "id": "caissette",
+    "type": "trappings",
+    "label": "Caissette",
+    "categorie": "trapping",
+    "subType": {
+      "id": "sacs-et-contenants"
+    },
+    "enc": 1,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.3435) : Encombrement posé sur le repère Besace, Enc 1 (LDB 64 l.10).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 109,
+      "note": "LDB 08 l.3435"
+    }
+  },
+  {
+    "id": "sac-a-cordons",
+    "type": "trappings",
+    "label": "Sac à cordons",
+    "categorie": "trapping",
+    "subType": {
+      "id": "sacs-et-contenants"
+    },
+    "enc": 1,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (MDG 09 l.763) : Encombrement posé sur le repère Besace, Enc 1 (LDB 64 l.10).",
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 78,
+      "note": "MDG 09 l.763"
+    }
+  },
+  {
+    "id": "paquetage",
+    "type": "trappings",
+    "label": "Paquetage",
+    "categorie": "trapping",
+    "subType": {
+      "id": "sacs-et-contenants"
+    },
+    "enc": 2,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (AA 02 l.163) : Encombrement posé sur le repère Sac à dos, Enc 2 (LDB 64 l.20).",
+    "source": {
+      "book": "aux-armes",
+      "page": 10,
+      "note": "AA 02 l.163"
+    }
+  },
+  {
+    "id": "coffre",
+    "type": "trappings",
+    "label": "Coffre",
+    "categorie": "trapping",
+    "subType": {
+      "id": "sacs-et-contenants"
+    },
+    "enc": 4,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (MDG 09 l.99) : Encombrement posé sur le repère objet surdimensionné, Enc 4 (LDB 61 l.25).",
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 64,
+      "note": "MDG 09 l.99"
+    }
+  },
+  {
     "id": "amulette",
     "type": "trappings",
     "label": "Amulette",
@@ -4175,6 +4267,218 @@
     }
   },
   {
+    "id": "tablier",
+    "type": "trappings",
+    "label": "Tablier",
+    "categorie": "trapping",
+    "subType": {
+      "id": "vetements-et-accessoires"
+    },
+    "enc": 1,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (ADE II 02 l.968) : Encombrement posé sur le repère Vêtement, Enc 1 (LDB 65 l.30).",
+    "source": {
+      "book": "archives-de-l-empire-2",
+      "page": 37,
+      "note": "ADE II 02 l.968"
+    }
+  },
+  {
+    "id": "echarpe",
+    "type": "trappings",
+    "label": "Écharpe",
+    "categorie": "trapping",
+    "subType": {
+      "id": "vetements-et-accessoires"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.2570) : Encombrement posé sur le repère Gants, Enc 0 (LDB 65 l.20).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 94,
+      "note": "LDB 08 l.2570"
+    }
+  },
+  {
+    "id": "livree",
+    "type": "trappings",
+    "label": "Livrée",
+    "categorie": "trapping",
+    "subType": {
+      "id": "vetements-et-accessoires"
+    },
+    "enc": 1,
+    "availability": "limitee",
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": {
+      "gold": 6,
+      "silver": 0,
+      "brass": 0
+    },
+    "maison": "Prix, Encombrement et Disponibilité lus sur LDB 65 l.42 (moitié du prix de l'Habit de cour, l.21 : 12CO, Enc 1, Limitée).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 64,
+      "note": "LDB 08 l.816"
+    }
+  },
+  {
+    "id": "insigne",
+    "type": "trappings",
+    "label": "Insigne",
+    "categorie": "trapping",
+    "subType": {
+      "id": "vetements-et-accessoires"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.541) : Encombrement posé sur le repère Symbole religieux, Enc 0 (LDB 65 l.27).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 59,
+      "note": "LDB 08 l.541"
+    }
+  },
+  {
+    "id": "symbole-de-grade",
+    "type": "trappings",
+    "label": "Symbole de grade",
+    "categorie": "trapping",
+    "subType": {
+      "id": "vetements-et-accessoires"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.549) : Encombrement posé sur le repère Symbole religieux, Enc 0 (LDB 65 l.27).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 59,
+      "note": "LDB 08 l.549"
+    }
+  },
+  {
+    "id": "perruque",
+    "type": "trappings",
+    "label": "Perruque",
+    "categorie": "trapping",
+    "subType": {
+      "id": "vetements-et-accessoires"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.2228) : Encombrement posé sur le repère Chapeau, Enc 0 (LDB 65 l.15).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 88,
+      "note": "LDB 08 l.2228"
+    }
+  },
+  {
+    "id": "casquette",
+    "type": "trappings",
+    "label": "Casquette",
+    "categorie": "trapping",
+    "subType": {
+      "id": "vetements-et-accessoires"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.2631) : Encombrement posé sur le repère Chapeau, Enc 0 (LDB 65 l.15).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 95,
+      "note": "LDB 08 l.2631"
+    }
+  },
+  {
+    "id": "couronne-de-fleurs",
+    "type": "trappings",
+    "label": "Couronne de fleurs",
+    "categorie": "trapping",
+    "subType": {
+      "id": "vetements-et-accessoires"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.3781-3783) : Encombrement posé sur le repère Chapeau, Enc 0 (LDB 65 l.15).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 115,
+      "note": "LDB 08 l.3781-3783"
+    }
+  },
+  {
+    "id": "fourrures-de-rhinox",
+    "type": "trappings",
+    "label": "Fourrures de rhinox",
+    "categorie": "trapping",
+    "subType": {
+      "id": "vetements-et-accessoires"
+    },
+    "sizeFor": "grande",
+    "enc": 2,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (ADE II 02 l.929) : Encombrement posé sur le repère Manteau, Enc 1 (LDB 65 l.22), doublé à la taille ogre (ADE II 02 l.708).",
+    "source": {
+      "book": "archives-de-l-empire-2",
+      "page": 36,
+      "note": "ADE II 02 l.929"
+    }
+  },
+  {
     "id": "biere-pinte",
     "type": "trappings",
     "label": "Bière, pinte",
@@ -4532,6 +4836,98 @@
     "source": {
       "book": "livre-de-base",
       "page": 302
+    }
+  },
+  {
+    "id": "gros-morceau-de-viande",
+    "type": "trappings",
+    "label": "Gros morceau de viande",
+    "categorie": "trapping",
+    "subType": {
+      "id": "nourriture-boisson-et-hebergement"
+    },
+    "enc": 1,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (ADE II 02 l.880) : Encombrement posé sur le repère Nourriture, courses/journée, Enc 1 (LDB 66 l.15).",
+    "source": {
+      "book": "archives-de-l-empire-2",
+      "page": 35,
+      "note": "ADE II 02 l.880"
+    }
+  },
+  {
+    "id": "alcool",
+    "type": "trappings",
+    "label": "Alcool",
+    "categorie": "trapping",
+    "subType": {
+      "id": "nourriture-boisson-et-hebergement"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.2082) : Encombrement posé sur le repère Spiritueux, pinte, Enc 0 (LDB 66 l.17).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 86,
+      "note": "LDB 08 l.2082"
+    }
+  },
+  {
+    "id": "dejeuner",
+    "type": "trappings",
+    "label": "Déjeuner",
+    "categorie": "trapping",
+    "subType": {
+      "id": "nourriture-boisson-et-hebergement"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 05 l.554) : Encombrement posé sur le repère Vivres, 1 jour, Enc 0 (LDB 66 l.20).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 37,
+      "note": "LDB 05 l.554"
+    }
+  },
+  {
+    "id": "eau",
+    "type": "trappings",
+    "label": "Eau",
+    "categorie": "trapping",
+    "subType": {
+      "id": "nourriture-boisson-et-hebergement"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.2985) : Encombrement posé sur le repère Bière, pinte, Enc 0 (LDB 66 l.9).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 101,
+      "note": "LDB 08 l.2985"
     }
   },
   {
@@ -5597,6 +5993,354 @@
     }
   },
   {
+    "id": "loupe",
+    "type": "trappings",
+    "label": "Loupe",
+    "categorie": "trapping",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.2204) : Encombrement posé sur le repère Bésicles, Enc 0 (LDB 67 l.22).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 88,
+      "note": "LDB 08 l.2204"
+    }
+  },
+  {
+    "id": "instruments-de-torture",
+    "type": "trappings",
+    "label": "Instruments de torture",
+    "categorie": "trapping",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
+    "enc": 1,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.1893) : Encombrement posé sur le repère Outils professionnels, Enc 1 (LDB 69 l.10).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 83,
+      "note": "LDB 08 l.1893"
+    }
+  },
+  {
+    "id": "brosse",
+    "type": "trappings",
+    "label": "Brosse",
+    "categorie": "trapping",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.2745) : Encombrement posé sur le repère Brosse pour le sol, Enc 0 (LDB 67 l.25).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 97,
+      "note": "LDB 08 l.2745"
+    }
+  },
+  {
+    "id": "filet-de-peche",
+    "type": "trappings",
+    "label": "Filet de pêche",
+    "categorie": "trapping",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
+    "enc": 1,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (MDG 09 l.763) : Encombrement posé sur le repère Filet lesté, Enc 1 (AA 08 l.290).",
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 78,
+      "note": "MDG 09 l.763"
+    }
+  },
+  {
+    "id": "eprouvettes",
+    "type": "trappings",
+    "label": "Éprouvettes",
+    "categorie": "trapping",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (VDM 03 l.70) : Encombrement posé sur le repère Pilon & Mortier, Enc 0 (LDB 67 l.51).",
+    "source": {
+      "book": "vents-de-la-magie",
+      "page": 36,
+      "note": "VDM 03 l.70"
+    }
+  },
+  {
+    "id": "alambic",
+    "type": "trappings",
+    "label": "Alambic",
+    "categorie": "trapping",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
+    "enc": 1,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (VDM 03 l.70) : Encombrement posé sur le repère barème de LDB 61 l.7-13, rang de la mandoline.",
+    "source": {
+      "book": "vents-de-la-magie",
+      "page": 36,
+      "note": "VDM 03 l.70"
+    }
+  },
+  {
+    "id": "trepied",
+    "type": "trappings",
+    "label": "Trépied",
+    "categorie": "trapping",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
+    "enc": 1,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (VDM 03 l.70) : Encombrement posé sur le repère barème de LDB 61 l.7-13, rang de la mandoline.",
+    "source": {
+      "book": "vents-de-la-magie",
+      "page": 36,
+      "note": "VDM 03 l.70"
+    }
+  },
+  {
+    "id": "encre",
+    "type": "trappings",
+    "label": "Encre",
+    "categorie": "trapping",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.352-354) : Encombrement posé sur le repère Plume d'oie, Enc 0 (LDB 67 l.56).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 56,
+      "note": "LDB 08 l.352-354"
+    }
+  },
+  {
+    "id": "canne-a-peche",
+    "type": "trappings",
+    "label": "Canne à pêche",
+    "categorie": "trapping",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
+    "enc": 2,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.2678) : Encombrement posé sur le repère entre Canne de marche, Enc 1 (LDB 65 l.12) et Perche (3 mètres), Enc 3 (LDB 67 l.48).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 96,
+      "note": "LDB 08 l.2678"
+    }
+  },
+  {
+    "id": "appats",
+    "type": "trappings",
+    "label": "Appâts",
+    "categorie": "trapping",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.2678) : Encombrement posé sur le repère Vers (6), Enc 0 (LDB 70 l.27).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 96,
+      "note": "LDB 08 l.2678"
+    }
+  },
+  {
+    "id": "sextant",
+    "type": "trappings",
+    "label": "Sextant",
+    "categorie": "trapping",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.2773) : Encombrement posé sur le repère Télescope, Enc 0 (LDB 67 l.61).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 97,
+      "note": "LDB 08 l.2773"
+    }
+  },
+  {
+    "id": "monocle",
+    "type": "trappings",
+    "label": "Monocle",
+    "categorie": "trapping",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.3280) : Encombrement posé sur le repère Bésicles, Enc 0 (LDB 67 l.22).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 106,
+      "note": "LDB 08 l.3280"
+    }
+  },
+  {
+    "id": "sphere-armillaire",
+    "type": "trappings",
+    "label": "Sphère armillaire",
+    "categorie": "trapping",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
+    "enc": 1,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (VDM 07 l.88) : Encombrement posé sur le repère barème de LDB 61 l.7-13, rang de la mandoline (l.11).",
+    "source": {
+      "book": "vents-de-la-magie",
+      "page": 92,
+      "note": "VDM 07 l.88"
+    }
+  },
+  {
+    "id": "planetaire",
+    "type": "trappings",
+    "label": "Planétaire",
+    "categorie": "trapping",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
+    "enc": 1,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (VDM 07 l.88) : Encombrement posé sur le repère barème de LDB 61 l.7-13, rang de la mandoline (l.11).",
+    "source": {
+      "book": "vents-de-la-magie",
+      "page": 92,
+      "note": "VDM 07 l.88"
+    }
+  },
+  {
+    "id": "theodolite",
+    "type": "trappings",
+    "label": "Théodolite",
+    "categorie": "trapping",
+    "subType": {
+      "id": "outils-et-necessaires"
+    },
+    "enc": 3,
+    "availability": "exotique",
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": {
+      "gold": 6,
+      "silver": 0,
+      "brass": 0
+    },
+    "source": {
+      "book": "aux-armes",
+      "page": 88,
+      "note": "AA 08 l.40"
+    }
+  },
+  {
     "id": "carte",
     "type": "trappings",
     "label": "Carte",
@@ -5982,6 +6726,144 @@
     "source": {
       "book": "livre-de-base",
       "page": 304
+    }
+  },
+  {
+    "id": "velin",
+    "type": "trappings",
+    "label": "Vélin",
+    "categorie": "trapping",
+    "subType": {
+      "id": "livres-et-documents"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (AA 02 l.403) : Encombrement posé sur le repère Parchemin/feuille, Enc 0 (LDB 68 l.20).",
+    "source": {
+      "book": "aux-armes",
+      "page": 16,
+      "note": "AA 02 l.403"
+    }
+  },
+  {
+    "id": "livre",
+    "type": "trappings",
+    "label": "Livre",
+    "categorie": "trapping",
+    "subType": {
+      "id": "livres-et-documents"
+    },
+    "enc": 1,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.2082) : Encombrement posé sur le repère Livre, toute spécialité, Enc 1 (LDB 68 l.12-19).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 86,
+      "note": "LDB 08 l.2082"
+    }
+  },
+  {
+    "id": "guide-de-l-observateur-des-etoiles",
+    "type": "trappings",
+    "label": "Guide de l'observateur des étoiles",
+    "categorie": "trapping",
+    "subType": {
+      "id": "livres-et-documents"
+    },
+    "enc": 1,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (VDM 07 l.74) : Encombrement posé sur le repère Livre, toute spécialité, Enc 1 (LDB 68 l.12-19).",
+    "source": {
+      "book": "vents-de-la-magie",
+      "page": 92,
+      "note": "VDM 07 l.74"
+    }
+  },
+  {
+    "id": "journal",
+    "type": "trappings",
+    "label": "Journal",
+    "categorie": "trapping",
+    "subType": {
+      "id": "livres-et-documents"
+    },
+    "enc": 1,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.352) : Encombrement posé sur le repère Livre, toute spécialité, Enc 1 (LDB 68 l.12-19).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 56,
+      "note": "LDB 08 l.352"
+    }
+  },
+  {
+    "id": "lettre-de-recommandation",
+    "type": "trappings",
+    "label": "Lettre de recommandation",
+    "categorie": "trapping",
+    "subType": {
+      "id": "livres-et-documents"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.2082) : Encombrement posé sur le repère Document légal, Enc 0 (LDB 68 l.10).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 86,
+      "note": "LDB 08 l.2082"
+    }
+  },
+  {
+    "id": "choix-de-textes",
+    "type": "trappings",
+    "label": "Choix de textes",
+    "categorie": "trapping",
+    "subType": {
+      "id": "livres-et-documents"
+    },
+    "enc": 1,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.1954) : Encombrement posé sur le repère Livre, toute spécialité, Enc 1 (LDB 68 l.12-19).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 84,
+      "note": "LDB 08 l.1954"
     }
   },
   {
@@ -6476,6 +7358,56 @@
     "source": {
       "book": "livre-de-base",
       "page": 305
+    }
+  },
+  {
+    "id": "presse-a-imprimer",
+    "type": "trappings",
+    "label": "Presse à imprimer",
+    "categorie": "trapping",
+    "subType": {
+      "id": "outils-professionnels-et-ateliers"
+    },
+    "enc": "ND",
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.199) : Encombrement posé sur le repère Atelier, Enc ND (LDB 69 l.9).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 53,
+      "note": "LDB 08 l.199"
+    }
+  },
+  {
+    "id": "laboratoire-alchimique-portatif",
+    "type": "trappings",
+    "label": "Laboratoire alchimique portatif",
+    "categorie": "trapping",
+    "subType": {
+      "id": "outils-professionnels-et-ateliers"
+    },
+    "enc": 3,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": {
+      "gold": 12,
+      "silver": 0,
+      "brass": 0
+    },
+    "maison": "Prix imprimé hors table (VDM 03 l.659), sans Encombrement ni Disponibilité : Encombrement posé sur le repère barème de LDB 61 l.7-13, rang du grand sac (l.13) : « grande malle de voyage » (VDM 03 l.659).",
+    "source": {
+      "book": "vents-de-la-magie",
+      "page": 50,
+      "note": "VDM 03 l.659"
     }
   },
   {
@@ -7067,7 +7999,7 @@
             "onHitEffects": [
               {
                 "trigger": "onHit",
-                "on": "victim",
+                "on": "victime",
                 "flow": {
                   "kind": "si",
                   "condition": {
@@ -7821,7 +8753,7 @@
             "onHitEffects": [
               {
                 "trigger": "onHit",
-                "on": "victim",
+                "on": "victime",
                 "flow": {
                   "kind": "si",
                   "condition": {
@@ -7960,6 +8892,29 @@
     },
     "consumableDuration": {
       "days": 1
+    }
+  },
+  {
+    "id": "assortiment-d-herbes",
+    "type": "trappings",
+    "label": "Assortiment d'herbes",
+    "categorie": "trapping",
+    "subType": {
+      "id": "herbes-et-potions"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.3594) : Encombrement posé sur le repère herbes et potions, Enc 0 (LDB 72 l.9-16).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 112,
+      "note": "LDB 08 l.3594"
     }
   },
   {
@@ -8668,6 +9623,29 @@
     }
   },
   {
+    "id": "clef-des-secrets",
+    "type": "trappings",
+    "label": "Clef des Secrets",
+    "categorie": "trapping",
+    "subType": {
+      "id": "possessions-diverses"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (VDM 10 l.70) : Encombrement posé sur le repère Clef, Enc 0 (LDB 67 l.28).",
+    "source": {
+      "book": "vents-de-la-magie",
+      "page": 128,
+      "note": "VDM 10 l.70"
+    }
+  },
+  {
     "id": "instrument",
     "type": "trappings",
     "label": "Instrument",
@@ -8691,6 +9669,29 @@
     "source": {
       "book": "livre-de-base",
       "page": 308
+    }
+  },
+  {
+    "id": "porte-bougie",
+    "type": "trappings",
+    "label": "Porte-bougie",
+    "categorie": "trapping",
+    "subType": {
+      "id": "possessions-diverses"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (VDM 04 l.86) : Encombrement posé sur le repère Bougie, Enc 0 (LDB 74 l.18).",
+    "source": {
+      "book": "vents-de-la-magie",
+      "page": 56,
+      "note": "VDM 04 l.86"
     }
   },
   {
@@ -8875,6 +9876,29 @@
     }
   },
   {
+    "id": "hamac",
+    "type": "trappings",
+    "label": "Hamac",
+    "categorie": "trapping",
+    "subType": {
+      "id": "possessions-diverses"
+    },
+    "enc": 1,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (MDG 09 l.87) : Encombrement posé sur le repère Sac de couchage, Enc 1 (LDB 74 l.37).",
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 64,
+      "note": "MDG 09 l.87"
+    }
+  },
+  {
     "id": "paquet-de-cartes",
     "type": "trappings",
     "label": "Paquet de cartes",
@@ -8897,6 +9921,29 @@
     "source": {
       "book": "livre-de-base",
       "page": 308
+    }
+  },
+  {
+    "id": "carquois",
+    "type": "trappings",
+    "label": "Carquois",
+    "categorie": "trapping",
+    "subType": {
+      "id": "possessions-diverses"
+    },
+    "enc": 1,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (AA 02 l.163) : Encombrement posé sur le repère Besace, Enc 1 (LDB 64 l.10).",
+    "source": {
+      "book": "aux-armes",
+      "page": 10,
+      "note": "AA 02 l.163"
     }
   },
   {
@@ -8947,6 +9994,29 @@
     "source": {
       "book": "livre-de-base",
       "page": 308
+    }
+  },
+  {
+    "id": "porte-bonheur",
+    "type": "trappings",
+    "label": "Porte-bonheur",
+    "categorie": "trapping",
+    "subType": {
+      "id": "possessions-diverses"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.3753) : Encombrement posé sur le repère Amulette, Enc 0 (LDB 65 l.9).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 115,
+      "note": "LDB 08 l.3753"
     }
   },
   {
@@ -9033,6 +10103,328 @@
     "source": {
       "book": "livre-de-base",
       "page": 308
+    }
+  },
+  {
+    "id": "epee-d-entrainement-en-bois",
+    "type": "trappings",
+    "label": "Épée d'entraînement en bois",
+    "categorie": "trapping",
+    "subType": {
+      "id": "possessions-diverses"
+    },
+    "enc": 1,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.771) : Encombrement posé sur le repère Épée, Enc 1 (LDB 61 l.11).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 63,
+      "note": "LDB 08 l.771"
+    }
+  },
+  {
+    "id": "relique",
+    "type": "trappings",
+    "label": "Relique",
+    "categorie": "trapping",
+    "subType": {
+      "id": "possessions-diverses"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.1728) : Encombrement posé sur le repère Symbole religieux, Enc 0 (LDB 65 l.27).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 80,
+      "note": "LDB 08 l.1728"
+    }
+  },
+  {
+    "id": "tete-de-troll",
+    "type": "trappings",
+    "label": "Tête de troll",
+    "categorie": "trapping",
+    "subType": {
+      "id": "possessions-diverses"
+    },
+    "enc": 3,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.1484) : Encombrement posé sur le repère barème de LDB 61 l.7-13, rang du tonneau (l.13).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 76,
+      "note": "LDB 08 l.1484"
+    }
+  },
+  {
+    "id": "tete-de-geant",
+    "type": "trappings",
+    "label": "Tête de géant",
+    "categorie": "trapping",
+    "subType": {
+      "id": "possessions-diverses"
+    },
+    "enc": 4,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.1492) : Encombrement posé sur le repère objet surdimensionné, Enc 4 (LDB 61 l.25).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 76,
+      "note": "LDB 08 l.1492"
+    }
+  },
+  {
+    "id": "tete-de-dragon",
+    "type": "trappings",
+    "label": "Tête de dragon",
+    "categorie": "trapping",
+    "subType": {
+      "id": "possessions-diverses"
+    },
+    "enc": 4,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.1502) : Encombrement posé sur le repère objet surdimensionné, Enc 4 (LDB 61 l.25).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 76,
+      "note": "LDB 08 l.1502"
+    }
+  },
+  {
+    "id": "sifflet",
+    "type": "trappings",
+    "label": "Sifflet",
+    "categorie": "trapping",
+    "subType": {
+      "id": "possessions-diverses"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.2639) : Encombrement posé sur le repère petit instrument, Enc 0 (LDB 74 l.47).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 95,
+      "note": "LDB 08 l.2639"
+    }
+  },
+  {
+    "id": "poudres-colorees",
+    "type": "trappings",
+    "label": "Poudres colorées",
+    "categorie": "trapping",
+    "subType": {
+      "id": "possessions-diverses"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.2985) : Encombrement posé sur le repère Poudre pour le visage, Enc 0 (LDB 65 l.24).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 101,
+      "note": "LDB 08 l.2985"
+    }
+  },
+  {
+    "id": "breloque",
+    "type": "trappings",
+    "label": "Breloque",
+    "categorie": "trapping",
+    "subType": {
+      "id": "possessions-diverses"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.2985) : Encombrement posé sur le repère Amulette, Enc 0 (LDB 65 l.9).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 101,
+      "note": "LDB 08 l.2985"
+    }
+  },
+  {
+    "id": "colifichet",
+    "type": "trappings",
+    "label": "Colifichet",
+    "categorie": "trapping",
+    "subType": {
+      "id": "possessions-diverses"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.2985) : Encombrement posé sur le repère Amulette, Enc 0 (LDB 65 l.9).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 101,
+      "note": "LDB 08 l.2985"
+    }
+  },
+  {
+    "id": "crane",
+    "type": "trappings",
+    "label": "Crâne",
+    "categorie": "trapping",
+    "subType": {
+      "id": "possessions-diverses"
+    },
+    "enc": 1,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (LDB 08 l.3345) : Encombrement posé sur le repère barème de LDB 61 l.7-13, rang de la mandoline (l.11).",
+    "source": {
+      "book": "livre-de-base",
+      "page": 107,
+      "note": "LDB 08 l.3345"
+    }
+  },
+  {
+    "id": "peau-de-grand-felin",
+    "type": "trappings",
+    "label": "Peau de grand félin",
+    "categorie": "trapping",
+    "subType": {
+      "id": "possessions-diverses"
+    },
+    "enc": 0,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (AA 03 l.414) : Encombrement posé sur le repère Couverture, Enc 0 (LDB 74 l.23).",
+    "source": {
+      "book": "aux-armes",
+      "page": 36,
+      "note": "AA 03 l.414"
+    }
+  },
+  {
+    "id": "etendard",
+    "type": "trappings",
+    "label": "Étendard",
+    "categorie": "trapping",
+    "subType": {
+      "id": "possessions-diverses"
+    },
+    "enc": 3,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (AA 04 l.222) : Encombrement posé sur le repère Perche (3 mètres), Enc 3 (LDB 67 l.48).",
+    "source": {
+      "book": "aux-armes",
+      "page": 46,
+      "note": "AA 04 l.222"
+    }
+  },
+  {
+    "id": "trophee",
+    "type": "trappings",
+    "label": "Trophée",
+    "categorie": "trapping",
+    "subType": {
+      "id": "possessions-diverses"
+    },
+    "enc": 1,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (ADE I 07 l.217) : Encombrement posé sur le repère barème de LDB 61 l.7-13, rang de la mandoline (l.11).",
+    "source": {
+      "book": "archives-de-l-empire-1",
+      "page": 91,
+      "note": "ADE I 07 l.217"
+    }
+  },
+  {
+    "id": "souvenirs",
+    "type": "trappings",
+    "label": "Souvenirs",
+    "categorie": "trapping",
+    "subType": {
+      "id": "possessions-diverses"
+    },
+    "enc": 1,
+    "availability": null,
+    "reach": null,
+    "loc": null,
+    "pa": null,
+    "damage": null,
+    "qualities": [],
+    "price": null,
+    "maison": "Aucune table d'équipement ne liste cet objet (ADE I 07 l.172-174) : Encombrement posé sur le repère barème de LDB 61 l.7-13, rang de la besace (l.11).",
+    "source": {
+      "book": "archives-de-l-empire-1",
+      "page": 90,
+      "note": "ADE I 07 l.172-174"
     }
   },
   {
@@ -13987,7 +15379,7 @@
     "onHitEffects": [
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
           "kind": "effet",
           "effet": {
@@ -15375,7 +16767,7 @@
     "onHitEffects": [
       {
         "trigger": "onHit",
-        "on": "self",
+        "on": "soi",
         "flow": {
           "kind": "si",
           "condition": {
@@ -15522,7 +16914,7 @@
     "onHitEffects": [
       {
         "trigger": "onHit",
-        "on": "self",
+        "on": "soi",
         "flow": {
           "kind": "si",
           "condition": {
@@ -15582,7 +16974,7 @@
       {
         "trigger": "onHit",
         "on": {
-          "near": "self",
+          "near": "soi",
           "radiusMeters": 6
         },
         "flow": {
@@ -15610,7 +17002,7 @@
       },
       {
         "trigger": "onHit",
-        "on": "self",
+        "on": "soi",
         "flow": {
           "kind": "si",
           "condition": {
@@ -15637,7 +17029,7 @@
       {
         "trigger": "onHit",
         "on": {
-          "near": "self",
+          "near": "soi",
           "radiusMeters": 6
         },
         "flow": {
@@ -15680,7 +17072,7 @@
       },
       {
         "trigger": "onHit",
-        "on": "self",
+        "on": "soi",
         "flow": {
           "kind": "si",
           "condition": {
@@ -15910,7 +17302,7 @@
     "onHitEffects": [
       {
         "trigger": "onHit",
-        "on": "self",
+        "on": "soi",
         "flow": {
           "kind": "si",
           "condition": {
@@ -15976,7 +17368,7 @@
     "onHitEffects": [
       {
         "trigger": "onCrit",
-        "on": "self",
+        "on": "soi",
         "coupCritique": true,
         "flow": {
           "kind": "effet",

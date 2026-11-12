@@ -32,7 +32,7 @@ const doc = document(
       hint: 'Les 3 issues offertes à CELUI des deux empoignés qui remporte le Test opposé de Force',
     },
   },
-  { codex: { keys: ['grapple'] }, edit: { object: 'single' } },
+  { codex: { keys: ['grapple'] }, edit: { object: 'unique' } },
 );
 
 export const schema = doc.schema;

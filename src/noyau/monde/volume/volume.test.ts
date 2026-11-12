@@ -117,6 +117,19 @@ describe('volumeDuMonde (#3476)', () => {
     expect(Math.max(...tris.flatMap((t) => t.ys))).toBeGreaterThan(0.5);
   });
 
+  it('les faces d’un décor qui éclaire forment des surfaces à part, qui portent `luminaire` ; celles du même décor sans lumière, non', () => {
+    const s = emptyScene('scene-test', 3, 1);
+    s.layers[0].tiles = Array(3).fill('plancher');
+    s.entities.push({ id: 'tonneau-eteint', kind: 'prop', decor: { id: 'tonneau' }, pos: { x: 0, y: 0 } });
+    s.entities.push({ id: 'tonneau-allume', kind: 'prop', decor: { id: 'tonneau' }, pos: { x: 2, y: 0 }, light: { radiusM: 5 } });
+    const tris = trianglesDuVolume(volumeDuMonde(s)).filter((t) => t.matiere.startsWith('prop--'));
+    const matieresDe = (x: number) => tris.filter((t) => t.case[0] === x).map((t) => t.matiere).sort();
+    expect(tris.filter((t) => t.case[0] === 0).map((t) => t.surface.luminaire)).toEqual(tris.filter((t) => t.case[0] === 0).map(() => undefined));
+    expect(tris.filter((t) => t.case[0] === 2).map((t) => t.surface.luminaire)).toEqual(tris.filter((t) => t.case[0] === 2).map(() => true));
+    expect(matieresDe(2)).toEqual(matieresDe(0));
+    expect(matieresDe(2).length).toBeGreaterThan(0);
+  });
+
   it('le décor que son terrain pose (le bois, ses arbres) se dresse sur chacune de ses cases', () => {
     const s = emptyScene('scene-test', 3, 1);
     s.layers[0].tiles = ['herbe', 'bois', 'herbe'];

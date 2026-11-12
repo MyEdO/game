@@ -16,7 +16,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * dépenser de Résilience. LDB 17 l.68 : « Si vous infligez un Coup Critique, vous pouvez choisir
  * la Localisation atteinte, plutôt que de la laisser au hasard. » `helplessTest` (combat.ts) force
  * déjà succès+Critique ; il ne restait qu'à débloquer le picker de Localisation EXISTANT
- * (réglage `attaque.localisationDuCritique`, gated par `pendingAttack.forced`) pour l'attaquant qui PILOTE. L'IA
+ * (réglage `attaque.localisationDuCritique`, gated par `pendingAttack.forcee`) pour l'attaquant qui PILOTE. L'IA
  * (`doAttack`) ne passe jamais par `pendingAttack` : aucun choix, tirage inchangé.
  */
 describe('#124 — cible Inconsciente : choix de Localisation (RAW-2 gratuit, LDB 17 l.68)', () => {
@@ -48,13 +48,13 @@ describe('#124 — cible Inconsciente : choix de Localisation (RAW-2 gratuit, LD
     E.conditions = [{ id: 'inconscient', value: 1 }];
     E.important = true; // LDB 18 l.44 : hors Mort subite
     cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
-    // Débloqué DÈS la déclaration (avant tout jet) : même mécanisme que la Résilience (`pa.forced`),
+    // Débloqué DÈS la déclaration (avant tout jet) : même mécanisme que la Résilience (`pa.forcee`),
     // mais gratuit — cf. LDB 16 l.113 « sans avoir à dépenser un Point de Résilience ».
-    expect(banc.getState().pendingAttack?.forced).toBe(true);
+    expect(banc.getState().pendingAttack?.forcee).toBe(true);
     banc.getState().jetLancer('attaque');
     const pa = banc.getState().pendingAttack!;
     expect(pa.result?.critical).toBe(true); // helplessTest (combat.ts) : Critique déjà forcé (inchangé par #124)
-    // AVANT #124, réglage `attaque.localisationDuCritique` était bloqué par le garde `!pa.forced` (combatSlice.ts) :
+    // AVANT #124, réglage `attaque.localisationDuCritique` était bloqué par le garde `!pa.forcee` (combatSlice.ts) :
     // la Localisation restait un tirage au hasard malgré le Critique forcé.
     banc.getState().jetRegler('attaque', 'localisationDuCritique', 'jambeG');
     expect(banc.getState().pendingAttack!.result!.critLocation).toBe('jambeG');

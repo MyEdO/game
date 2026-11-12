@@ -1,0 +1,71 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/liaison.gd" id="1_liaison"]
+[ext_resource type="Theme" path="res://art/jet_de_heros.tres" id="t_jet_de_heros"]
+
+[node name="Jet" type="HBoxContainer"]
+theme_type_variation = &"RangeeSerree"
+
+[node name="detail" type="Node" parent="."]
+script = ExtResource("1_liaison")
+champ = "detail"
+propriete = &"tooltip_text"
+
+[node name="Resultat" type="PanelContainer" parent="."]
+custom_minimum_size = Vector2(40, 0)
+size_flags_vertical = 4
+theme = ExtResource("t_jet_de_heros")
+
+[node name="ton" type="Node" parent="Resultat"]
+script = ExtResource("1_liaison")
+champ = "ton"
+propriete = &"theme_type_variation"
+
+[node name="De" type="Label" parent="Resultat"]
+theme_type_variation = &"De"
+horizontal_alignment = 1
+
+[node name="resultat" type="Node" parent="Resultat/De"]
+script = ExtResource("1_liaison")
+champ = "resultat"
+
+[node name="Phrase" type="VBoxContainer" parent="."]
+size_flags_horizontal = 3
+theme_type_variation = &"PileTassee"
+
+[node name="Libelle" type="Label" parent="Phrase"]
+
+[node name="libelle" type="Node" parent="Phrase/Libelle"]
+script = ExtResource("1_liaison")
+champ = "libelle"
+
+[node name="Issue" type="HBoxContainer" parent="Phrase"]
+theme_type_variation = &"RangeeSerree"
+
+[node name="Cible" type="Label" parent="Phrase/Issue"]
+theme_type_variation = &"Discret"
+
+[node name="cible" type="Node" parent="Phrase/Issue/Cible"]
+script = ExtResource("1_liaison")
+champ = "cible"
+cacher_si_nul = true
+
+[node name="Verdict" type="Label" parent="Phrase/Issue"]
+
+[node name="verdict" type="Node" parent="Phrase/Issue/Verdict"]
+script = ExtResource("1_liaison")
+champ = "verdict"
+cacher_si_nul = true
+
+[node name="ton" type="Node" parent="Phrase/Issue/Verdict"]
+script = ExtResource("1_liaison")
+champ = "ton"
+propriete = &"theme_type_variation"
+
+[node name="Dr" type="Label" parent="Phrase/Issue"]
+theme_type_variation = &"Discret"
+
+[node name="dr" type="Node" parent="Phrase/Issue/Dr"]
+script = ExtResource("1_liaison")
+champ = "dr"
+cacher_si_nul = true

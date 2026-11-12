@@ -1,0 +1,29 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/plan.gd" id="1_plan"]
+[ext_resource type="Script" path="res://scripts/liaison.gd" id="2_liaison"]
+[ext_resource type="Script" path="res://scripts/zone.gd" id="3_zone"]
+[ext_resource type="Theme" path="res://art/carte_du_voyage.tres" id="t_carte_du_voyage"]
+
+[node name="CarteDuVoyage" type="PanelContainer"]
+custom_minimum_size = Vector2(210, 124)
+theme_type_variation = &"CarteDuVoyage"
+
+[node name="Plan" type="Container" parent="."]
+theme = ExtResource("t_carte_du_voyage")
+script = ExtResource("1_plan")
+
+[node name="points" type="Node" parent="Plan"]
+script = ExtResource("2_liaison")
+champ = "points"
+propriete = &"points"
+
+[node name="traits" type="Node" parent="Plan"]
+script = ExtResource("2_liaison")
+champ = "traits"
+propriete = &"traits"
+
+[node name="Zone" type="Node" parent="Plan"]
+script = ExtResource("3_zone")
+source = "points"
+formes = PackedStringArray("point:lieuDuPlan")

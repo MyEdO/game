@@ -13,7 +13,7 @@ import { refusDeRecuperation } from '../engine/rest';
 import { formatMoney, toBrass } from '../engine/money';
 import { fenetreDuJeu } from './combatAuto';
 import { activeExposureSeverity, nuitDispenseeParPleinAir } from './combatFlow';
-import { nightTitle, noteDAubergeCouverte, restCost } from './restFlow';
+import { nightTitle, noteDAubergeCouverte, restCost, toitDeLaNuit, type ToitDeLaNuit } from './restFlow';
 import { reglageDuChoixDeFenetre } from './choixDeFenetre';
 import { VERBE_DE_CHOIX, type AxeDe } from './choixDesFenetres';
 import { totalDesBourses } from './bourseFlow';
@@ -26,10 +26,11 @@ export interface ChoixDeRepos { libelle: string; valeurs: { libelle: string; ges
 /** Un dormeur : son couchage, sa pitance, et ce qui l'attend cette nuit. */
 export interface DormeurEnVue { id: string; couchage: ChoixDeRepos; pitance: ChoixDeRepos; alertes: string[] }
 
-/** La nuit à régler : son titre, le temps qu'il fait (`null` : clément), ses dormeurs, et sa note (`null` : gratuite),
- *  couverte ou non par les bourses du groupe. */
+/** La nuit à régler : son titre, son toit, le temps qu'il fait (`null` : clément), ses dormeurs, et sa note (`null` :
+ *  gratuite), couverte ou non par les bourses du groupe. */
 export interface ReposEnVue {
   nuit: string;
+  toit: ToitDeLaNuit;
   temps: { texte: string; alerte: boolean } | null;
   dormeurs: DormeurEnVue[];
   note: { texte: string; couverte: boolean } | null;
@@ -61,6 +62,7 @@ export function reposEnVue(s: Jeu): ReposEnVue | null {
   const cout = restCost(p, s.party);
   return {
     nuit: [`${nightTitle(p, s.party)} — ${p.lieu}`, ...(p.days > 1 ? [t('rf.nuits', { n: p.days })] : []), ...(p.quality === 'pietre' ? [t('rf.pietre')] : [])].join(' · '),
+    toit: toitDeLaNuit(p, s.party),
     temps: tempsDeLaNuit(s),
     dormeurs: s.party.filter((h) => !h.dead && p.perHero[h.id]).map((h) => {
       const { lodging, food } = p.perHero[h.id];

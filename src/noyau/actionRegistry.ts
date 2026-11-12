@@ -62,6 +62,7 @@ import { isArcaneSpell, castBlockedBy, castInfoIsPrayer, focusSkillFor, focusWin
 import { t } from '../i18n';
 import { aPorteeDe } from './monde/exploreNav';
 import { postesPretsAFaireFeu } from './monde/shipBattery';
+import { nomEnVue } from './visionDuGroupe';
 
 /** Verdict d'un gate : l'indisponibilité PORTE SA RAISON (patron `GatedAction`, charte UI). */
 export interface ActionGate {
@@ -1095,7 +1096,7 @@ export function etatDeLaBarre(s: Jeu): EtatDeLaBarre {
   const battle = s.battle;
   const active = battle && !battle.over ? activeCombatant(battle) : undefined;
   if (!battle || !active) return { forme: 'spectatrice', raison: t('barre.personneNAgit') };
-  if (!controlsCombatant(s, active)) return { forme: 'spectatrice', raison: t('barre.nonPilote', { name: active.label }) };
+  if (!controlsCombatant(s, active)) return { forme: 'spectatrice', raison: t('barre.nonPilote', { name: garanti(nomEnVue(s, active.id), active.id, 'nom de l’actif') }) };
   if (surfaceTientLaMain(s)) return { forme: 'tenue', raison: t('barre.mainTenue') };
   return { forme: 'ouverte', active, battle };
 }

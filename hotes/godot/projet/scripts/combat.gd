@@ -1,13 +1,17 @@
 ## Le combat, hôte du noyau (`hotes/godot/pont/CONTRAT.md`), et le seul lecteur de la vue : il ouvre une partie au
-## groupe (`ouvrir`, `PontDuNoyau.au_groupe`), que le joueur compose puis lance sur une campagne du jeu (`lancer`), ou démarre la partie des
+## groupe (`ouvrir`, `PontDuNoyau.au_groupe`), que le joueur compose puis lance sur une campagne du jeu (`lancer`),
+## charge une sauvegarde (`charger`, `PontDuNoyau.a_charger`) ou montre celles à charger (`PontDuNoyau.reprise`), ou démarre la partie des
 ## paramètres `scenario` et `graine` (`PontDuNoyau.parametre`), la scène que l'éditeur a mise à l'essai (`PontDuNoyau.essai`), ou,
 ## sans paramètre `scenario`, le scénario que le joueur choisit au panneau des scénarios (`scenarios`), pose au plateau le monde de sa scène (son manifeste,
 ## `monde`, et les seuls morceaux dont l'empreinte a bougé, `morceaux`), à nouveau chaque fois que la partie change de
 ## scène (`vue.projection.scene`) ou que sa clé change (`plateau.cleDuMonde`), ce que le regard en retire (`retrait`), à
-## nouveau chaque fois que l'empreinte du masque change (`plateau.cleDuRetrait`), et ses arêtes (`aretes`), à nouveau
+## nouveau chaque fois que l'empreinte du masque change (`plateau.cleDuRetrait`), ce que le groupe en connaît
+## (`vision`, `VolumeDeScene.voir`), à nouveau chaque fois que sa clé change (`vue.vision`), la première vision d'une
+## scène posée sans fondu depuis celle de la scène d'avant, et ses arêtes (`aretes`), à nouveau
 ## chaque fois que leur empreinte change (`plateau.cleDesAretes`), et applique chaque suite. La vue va au plateau, sa lumière (`vue.lumiere`) à la `Lumiere` du monde, sa musique (`vue.musique`) à la `Musique` ; la fenêtre prend la disposition que la vue nomme (`vue.disposition`,
 ## `Disposition`) ; chaque zone de l'écran (`Zone.racines`, scène `Ecran` sans script) reçoit les éléments de sa source
-## qui lui reviennent (`Zone.montrer_toutes` : `vue.zones`, et ce que la suite ajoute, `zones` : les lignes du journal) ;
+## qui lui reviennent (`Zone.montrer_toutes` : `vue.zones`, et ce que les suites ont ajouté depuis le début de la
+## partie, `zones` : les lignes du journal, qu'une zone posée plus tard reçoit donc toutes) ;
 ## le journal va au plateau ; chaque jeton programmé est armé en minuteur et repris à son échéance. Chaque geste du joueur part en intention : celle de l'élément pressé
 ## (`Zone.geste` ; la fiche d'un combattant, montrée ou fermée, par la méthode `fiche` ; la création d'un héros par la
 ## méthode `creation`), un clic du champ (`vue.champ` : le verbe du clic, sur la case et le combattant qui s'y tient ;
@@ -32,8 +36,10 @@ extends Node
 ## composant : chaque `Liaison` y écrit un champ de l'élément dans une propriété du contrôle qui la porte (le ton en
 ## variation du thème, `art/theme.tres`), chaque `Geste` joue l'intention que l'élément porte par le signal `geste` de
 ## la zone (un bouton à bascule garde l'état que la vue lui donne ; le routeur envoie `{ fiche }` à `fiche`, `{ creation
-## }` à `creation`, `{ lancer }` à `lancer`, `{ quitter }` à `quitter`, d'où il revient à l'accueil, toute autre
-## intention à `jouer`), chaque `Saisie` lit la valeur d'un formulaire, et une zone
+## }` à `creation`, `{ roster }` à `roster`, `{ lancer }` à `lancer`, `{ quitter }` à `quitter`, d'où il revient à l'accueil, `{ sauvegardes }`
+## au panneau des sauvegardes (`sauvegardes`), `{ reglages }` au panneau des réglages (`reglages`,
+## `projet/scripts/reglages.gd`), `{ sauvegarder }` à `sauvegarder`, `{ charger }` à `charger`, la partie
+## ouverte quittée d'abord et le combat rechargé, toute autre intention à `jouer`), chaque `Saisie` lit la valeur d'un formulaire, et une zone
 ## imbriquée y montre le champ que sa `source` nomme. L'icône (`icone`) et le fond (`fond`) ne portent que l'id de
 ## leur dessin : `Dessin` (`projet/scripts/dessin.gd`) le lit au catalogue que la construction dépose une fois dans le
 ## projet (`art/dessins.json`, `hotes/godot/asset/dessins.ts`) et le trace aux couleurs du thème. Le plan (`plan`) est le seul composant qui se dessine : son
@@ -63,6 +69,8 @@ extends Node
 @onready var _panne: Label = $Ecran/Interface/Avis/Panne
 @onready var _apercu: Control = $Ecran/Interface/Apercu
 @onready var _scenarios: Control = $Scenarios/Cadre
+@onready var _sauvegardes: Control = $Sauvegardes/Cadre
+@onready var _reglages: PanneauDesReglages = $Reglages
 @onready var _pont: PontDuNoyau = get_node("/root/Pont")
 
 var _vue: Dictionary = {}
@@ -71,9 +79,14 @@ var _musique := Musique.new()
 var _cle_du_monde := ""
 ## La scène et l'empreinte du masque du retrait posé au volume (`plateau.cleDuRetrait`), vide avant le premier.
 var _cle_du_retrait := ""
+## La scène et la clé de la vision posée au volume (`vue.vision`), vide avant la première.
+var _cle_de_la_vision := ""
 ## La scène et l'empreinte des arêtes posées au plateau (`plateau.cleDesAretes`), vide avant les premières.
 var _cle_des_aretes := ""
 var _zones: Array[Zone] = []
+## Ce que les suites ont ajouté à l'écran depuis le début de la partie (`zones`), par source : une zone posée en
+## cours de partie (`Disposition`) le reçoit en entier.
+var _ajouts := {}
 ## Une publication de l'écran attend l'image qui vient (`_publier_l_ecran`).
 var _publication_prevue := false
 
@@ -90,10 +103,23 @@ func _ready() -> void:
 		return
 	_pont.exposer("wfrpCadrer", _cadrer)
 	await _indexer_les_modeles()
+	for zone in Zone.racines(_sauvegardes):
+		zone.geste.connect(_jouer)
+	_reglages.change.connect(_publier_l_ecran)
 	var entree := {}
 	var graine := _pont.parametre("graine")
 	if graine.is_valid_int():
 		entree.graine = graine.to_int()
+	if _pont.a_charger != null:
+		var reponse := _pont.appeler("charger", entree.merged({charger = _pont.a_charger}))
+		_pont.a_charger = null
+		_suivre(reponse)
+		if reponse.get("ok") != true:
+			_montrer_les_sauvegardes(_pont.appeler("sauvegardes"))
+		return
+	if _pont.reprise:
+		_montrer_les_sauvegardes(_pont.appeler("sauvegardes"))
+		return
 	if _pont.au_groupe:
 		_suivre(_pont.appeler("ouvrir", entree))
 		return
@@ -127,21 +153,91 @@ func _indexer_les_modeles() -> void:
 
 
 ## L'intention d'un geste : la fiche que l'écran montre va à `fiche`, un geste de la création d'un héros à `creation`,
-## la campagne à lancer à `lancer`, la partie à quitter à `quitter` (`_quitter`), toute autre à `jouer`.
+## un geste sur le roster de l'hôte à `roster` (`_jouer_le_roster`), la campagne à lancer à `lancer`, la partie à quitter à `quitter` (`_quitter`), le panneau des sauvegardes à ouvrir à
+## `sauvegardes` ou à fermer (`_fermer_les_sauvegardes`), l'emplacement où écrire à `sauvegarder`, celui à charger à
+## `_charger`, le panneau des réglages à ouvrir à `PanneauDesReglages.ouvrir`, toute autre à `jouer`.
 func _jouer(jeu: Dictionary) -> void:
 	if jeu.has("quitter"):
 		_quitter()
 		return
+	if jeu.has("sauvegardes"):
+		if jeu.sauvegardes:
+			_montrer_les_sauvegardes(_pont.appeler("sauvegardes"))
+		else:
+			_fermer_les_sauvegardes()
+		return
+	if jeu.has("sauvegarder"):
+		_montrer_les_sauvegardes(_pont.appeler("sauvegarder", jeu))
+		return
+	if jeu.has("reglages"):
+		_reglages.ouvrir()
+		return
+	if jeu.has("charger"):
+		_charger(jeu.charger)
+		return
+	if jeu.has("roster"):
+		_jouer_le_roster(jeu)
+		return
 	_suivre(_pont.appeler("fiche" if jeu.has("fiche") else "creation" if jeu.has("creation") else "lancer" if jeu.has("lancer") else "jouer", jeu))
+
+
+## Un geste sur le roster de l'hôte (`roster`), sa suite suivie : le fichier qu'elle porte (`fichier`) est remis au
+## joueur ; le choix qu'elle demande (`choix`) est fait par le joueur, et le texte du fichier choisi revient au pont
+## (`{ importe }`, `null` s'il renonce).
+func _jouer_le_roster(jeu: Dictionary) -> void:
+	var reponse := _pont.appeler("roster", jeu)
+	_suivre(reponse)
+	if reponse.has("fichier"):
+		_pont.enregistrer_un_fichier(PontDuNoyau.HEROS, reponse.fichier.nom, reponse.fichier.texte)
+	if reponse.has("choix"):
+		var choisi := await _pont.choisir_un_fichier(PontDuNoyau.HEROS)
+		_suivre(_pont.appeler("roster", {roster = {importe = choisi.octets.get_string_from_utf8() if choisi.has("octets") else null}}))
 
 
 ## La partie quittée (`quitter`) : l'accueil revient, d'où une autre s'ouvre ; un refus laisse l'écran tel quel.
 func _quitter() -> void:
 	if _pont.appeler("quitter").get("ok") != true:
 		return
+	_revenir_a_l_accueil()
+
+
+## L'accueil revient, plus rien ne disant au combat comment s'ouvrir.
+func _revenir_a_l_accueil() -> void:
 	_pont.au_groupe = false
 	_pont.essai = false
+	_pont.reprise = false
 	get_tree().change_scene_to_file("res://scenes/Accueil.tscn")
+
+
+## Le panneau des sauvegardes montre les zones de `reponse` (`sauvegardes`, `sauvegarder`) ; une réponse refusée le
+## laisse tel quel, le refus dit à l'avis.
+func _montrer_les_sauvegardes(reponse: Dictionary) -> void:
+	if reponse.get("ok") != true:
+		return
+	Zone.montrer_toutes(Zone.racines(_sauvegardes), reponse.zones)
+	_sauvegardes.visible = true
+	_publier_l_ecran.call_deferred()
+
+
+## Le panneau des sauvegardes fermé : sur la partie ouverte, ou, sans partie, sur l'accueil.
+func _fermer_les_sauvegardes() -> void:
+	if _vue.is_empty():
+		_revenir_a_l_accueil()
+		return
+	_sauvegardes.visible = false
+	_publier_l_ecran.call_deferred()
+
+
+## La sauvegarde de l'emplacement `emplacement` à charger : la partie ouverte quittée (`quitter`, son point de reprise
+## gardé), le combat se recharge et l'ouvre (`PontDuNoyau.a_charger`), son monde reposé de zéro.
+func _charger(emplacement: Variant) -> void:
+	if not _vue.is_empty() and _pont.appeler("quitter").get("ok") != true:
+		return
+	_pont.au_groupe = false
+	_pont.essai = false
+	_pont.reprise = false
+	_pont.a_charger = emplacement
+	get_tree().reload_current_scene()
 
 
 func _reprendre(jeton: int) -> void:
@@ -156,6 +252,7 @@ func _suivre(reponse: Dictionary) -> void:
 	_refus.text = ""
 	_poser_le_monde_de(_vue.projection.scene, _vue.plateau)
 	_poser_le_retrait_de(_vue.projection.scene, _vue.plateau)
+	_poser_la_vision_de(_vue.projection.scene, _vue.vision)
 	_poser_les_aretes_de(_vue.projection.scene, _vue.plateau)
 	_plateau.montrer(_vue)
 	_plateau.jouer_les_effets(reponse.effets)
@@ -165,7 +262,9 @@ func _suivre(reponse: Dictionary) -> void:
 	if _disposition.disposer(_vue.disposition):
 		_relier()
 	Portrait.corps = _vue.corps.combattants
-	Zone.montrer_toutes(_zones, _vue.zones.merged(reponse.zones))
+	for source in reponse.zones:
+		_ajouts.get_or_add(source, []).append_array(reponse.zones[source])
+	Zone.montrer_toutes(_zones, _vue.zones.merged(_ajouts))
 	for programme in reponse.programmes:
 		get_tree().create_timer(MiseEnPage.secondes(programme.delai)).timeout.connect(_reprendre.bind(int(programme.id)))
 	_publier_l_ecran.call_deferred()
@@ -194,27 +293,36 @@ func _poser_le_monde_de(scene: Variant, plateau: Variant) -> void:
 ## Ce que le regard de la partie retire du volume du monde (`retrait`) masqué au volume (`VolumeDeScene.retirer`), si le
 ## masque de son empreinte (`plateau.cleDuRetrait`) n'y est pas déjà.
 func _poser_le_retrait_de(scene: Variant, plateau: Variant) -> void:
-	var cle := "" if scene == null or plateau == null else "%s|%s" % [scene.id, plateau.cleDuRetrait]
-	if cle == _cle_du_retrait:
-		return
-	_cle_du_retrait = cle
-	if scene == null or plateau == null:
-		return
-	var reponse := _pont.appeler("retrait")
-	if reponse.get("ok") == true:
-		_monde.volume.retirer(reponse)
+	_cle_du_retrait = _reposer(_cle_du_retrait, scene, null if plateau == null else plateau.cleDuRetrait, "retrait", _monde.volume.retirer)
+
+
+## Ce que le groupe connaît de la scène `scene` (`vision`) voilé au volume (`VolumeDeScene.voir`), si la vision de sa clé
+## (`vue.vision`) n'y est pas déjà ; la première d'une scène posée sans fondu, la vision de la scène d'avant levée.
+func _poser_la_vision_de(scene: Variant, vision: Variant) -> void:
+	var avant := _cle_de_la_vision
+	_cle_de_la_vision = _reposer(avant, scene, vision, "vision", func(reponse: Dictionary) -> void:
+		if not avant.begins_with("%s|" % scene.id):
+			_monde.volume.voir(null)
+		_monde.volume.voir(reponse))
+
+
+## La réponse de la méthode `methode` du pont posée par `poser`, si l'empreinte `empreinte` de la scène `scene` n'est pas
+## celle de la clé `cle` déjà posée : rend la clé `scène|empreinte` de ce qui est posé, `""` sans scène ni empreinte,
+## sans rien demander.
+func _reposer(cle: String, scene: Variant, empreinte: Variant, methode: String, poser: Callable) -> String:
+	var neuve := "" if scene == null or empreinte == null else "%s|%s" % [scene.id, empreinte]
+	if neuve != cle and neuve != "":
+		var reponse := _pont.appeler(methode)
+		if reponse.get("ok") == true:
+			poser.call(reponse)
+	return neuve
 
 
 ## Les arêtes de la scène `scene` (`aretes`) sur le volume du monde (`VolumeDeScene.poser_les_aretes`), si celles de
 ## leur empreinte (`plateau.cleDesAretes`) n'y sont pas déjà.
 func _poser_les_aretes_de(scene: Variant, plateau: Variant) -> void:
-	var cle := "" if scene == null or plateau == null else "%s|%s" % [scene.id, plateau.cleDesAretes]
-	if cle == _cle_des_aretes:
-		return
-	_cle_des_aretes = cle
-	var reponse := _pont.appeler("aretes")
-	if reponse.get("ok") == true:
-		_monde.volume.poser_les_aretes(reponse.aretes)
+	_cle_des_aretes = _reposer(_cle_des_aretes, scene, null if plateau == null else plateau.cleDesAretes, "aretes", func(reponse: Dictionary) -> void:
+		_monde.volume.poser_les_aretes(reponse.aretes))
 
 
 ## La bulle de l'aperçu suit sa case à l'écran, la caméra tournée ou zoomée.
@@ -252,14 +360,15 @@ func _republier(_valeur: Variant) -> void:
 
 
 ## L'écran publié à la recette (`PontDuNoyau.publier_l_ecran`, `_ecran_publie`), une fois la vue mise en page, une
-## fois par image.
+## fois par image ; rien si le combat a quitté l'arbre avant cette image (la partie quittée, une sauvegarde chargée).
 func _publier_l_ecran() -> void:
 	if _publication_prevue:
 		return
 	_publication_prevue = true
 	await get_tree().process_frame
 	_publication_prevue = false
-	_pont.publier_l_ecran(_ecran_publie)
+	if is_inside_tree():
+		_pont.publier_l_ecran(_ecran_publie)
 
 
 ## Ce que l'écran porte : ses boutons (`PontDuNoyau.boutons_a_l_ecran`), le point de chaque case du plateau, la part de
@@ -268,7 +377,7 @@ func _publier_l_ecran() -> void:
 func _ecran_publie() -> Dictionary:
 	var cadre := _monde.cadre
 	return {
-		boutons = PontDuNoyau.boutons_a_l_ecran([_ecran, _scenarios]), cases = _plateau.points(),
+		boutons = PontDuNoyau.boutons_a_l_ecran([_ecran, _scenarios, _sauvegardes, _reglages.racine()]), cases = _plateau.points(),
 		cadre = [cadre.position.x, cadre.position.y, cadre.size.x, cadre.size.y], corps = _plateau.corps(), navires = _plateau.navires(),
 	}
 

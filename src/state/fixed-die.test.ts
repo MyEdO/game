@@ -201,7 +201,7 @@ describe('provenance & re-dérivation — le dé courant fait foi (sonde `lens` 
     expect(useGame.getState().pendingHandGate!.success).toBe(false); // évalué au naturel : 95 > 60
     useGame.getState().jetForcerLaReussite('mainEnsanglantee');
     const p = useGame.getState().pendingHandGate!;
-    expect(p.forced).toBe(true);
+    expect(p.forcee).toBe(true);
     expect(p.success).toBe(true);
     expect(p.fixed).toBeFalsy(); // le dé n'est plus celui du joueur : la provenance change AVEC le dé
     const die = rowForcedDie(useGame.getState(), 'mainEnsanglantee', { actor: useGame.getState().battle!.combatants[0], rolled: true } as never, true);

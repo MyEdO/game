@@ -62,6 +62,7 @@ import {
   lireProcessus,
   nettoyerALaSortie,
   waitForWsUrl,
+  lireDevToolsActivePort,
   purgerProfil,
   leverApresNettoyage,
   waitForAppSilently,
@@ -2081,6 +2082,30 @@ test('nettoyerALaSortie : un échec est NOMMÉ et n’arrête pas les nettoyages
 
 test('waitForWsUrl : à l’échéance, le DERNIER échec est nommé', async () => {
   await assert.rejects(() => waitForWsUrl(9, 50, { recuperer: async () => { throw new Error('ECONNREFUSED') } }), /Dernier échec : ECONNREFUSED/)
+})
+
+/** Lecteur de `DevToolsActivePort` qui rend `etats` dans l'ordre (le dernier se répète) ; `null` = fichier absent. */
+const lecteurDe = (...etats) => {
+  const lus = []
+  return { lus, lire: (chemin) => { lus.push(chemin); const e = etats[Math.min(lus.length, etats.length) - 1]; if (e === null) throw erreurDeCode('ENOENT'); return e } }
+}
+
+test('lireDevToolsActivePort : le port de la première ligne, le WebSocket du chemin de la seconde, lus dans le profil', async () => {
+  const l = lecteurDe('41237\n/devtools/browser/0b5e-77\n')
+  assert.deepEqual(await lireDevToolsActivePort('/p', 1000, l), { port: 41237, wsUrl: 'ws://127.0.0.1:41237/devtools/browser/0b5e-77' })
+  assert.deepEqual(l.lus, [joinPath('/p', 'DevToolsActivePort')])
+})
+
+for (const [cas, etat] of [['absent', null], ['vide', ''], ['d’une seule ligne', '41237\n']]) {
+  test(`lireDevToolsActivePort : un fichier ${cas} s’attend, puis se lit`, async () => {
+    const l = lecteurDe(etat, '41237\n/devtools/browser/0b5e-77')
+    assert.equal((await lireDevToolsActivePort('/p', 2000, l)).port, 41237)
+    assert.equal(l.lus.length, 2)
+  })
+}
+
+test('lireDevToolsActivePort : à l’échéance, l’erreur NOMME le fichier attendu', async () => {
+  await assert.rejects(() => lireDevToolsActivePort('/p', 50, lecteurDe('41237\n')), (e) => e.message.includes(joinPath('/p', 'DevToolsActivePort')) && /"41237"/.test(e.message))
 })
 
 test('purgerProfil : un handle TENU (EBUSY) se réessaie, une autre erreur LÈVE', async () => {

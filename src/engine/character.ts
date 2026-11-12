@@ -412,10 +412,8 @@ export function createHero(opts: CreateHeroOptions): Combatant {
     addSkill(designee, i < espece.plus5.length ? 5 : 3);
   });
 
-  // 5) Possessions : classe + carrière → inventaire à stats, armes/armures équipées. Les refs `{id}`
-  //    (catalogue) deviennent des objets ; les refs `{text}` (« Arme (Base) », flavor) n'ont pas de
-  //    stats → ignorées par buildInventory (un libellé non catalogué n'est pas trouvé). Les emplacements
-  //    de dotation se résolvent par `opts.trappingChoices` AVANT `buildInventory`.
+  // 5) Possessions de Classe et de Niveau 1 (LDB 05 l.552, l.572), emplacements résolus par
+  //    `opts.trappingChoices` avant `buildInventory`.
   const rawTrappings = resolveTrappingChoices(dotationsDuHeros(opts.careerId), opts.trappingChoices ?? {});
   const items = buildInventory(rawTrappings, fluxDeCreation(opts.seed, 'possessions'), opts.idNeuf, contexteDeNaissanceDObjet({ species: opts.speciesId, career: opts.careerId }));
   const id = opts.id ?? opts.idNeuf('hero');

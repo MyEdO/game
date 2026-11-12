@@ -7,7 +7,9 @@ extends Node
 ## @contrat L'écran de Godot
 ## L'écran (`projet/scenes/Ecran.tscn`) se partage en trois : le journal à droite, le groupe au pied, et la scène
 ## (`Scene`), l'espace qui reste, que la fiche ouverte rétrécit à sa gauche, où se posent la disposition, le tour, l'actif
-## et le dialogue, et où se cadre le monde (`Monde.cadre`) ; rien ne recouvre le groupe ni le journal. Les zones de la
+## et le dialogue, et où se cadre le monde (`Monde.cadre`) ; rien ne recouvre le groupe ni le journal. Une disposition
+## qui range elle-même les lignes du journal (`journal.lignes`) le tient dans sa scène : son panneau se cache et la
+## scène prend sa largeur. Les zones de la
 ## fenêtre vivent dans sa disposition, une scène d'éditeur sans script que le nœud `Disposition`
 ## (`projet/scripts/disposition.gd`) de l'écran instancie : `projet/ecrans/<disposition>.tscn` quand elle existe, la
 ## générique `projet/ecrans/fenetre.tscn` sinon. Une disposition dédiée range autrement les mêmes sources : une zone qui
@@ -46,17 +48,28 @@ extends Node
 ## son transfert en formulaire vers un porteur co-localisé). Le voyage
 ## (`projet/ecrans/voyage.tscn`) est la disposition de toute étape d'une séquence jouée en route (`voyageEnVue`,
 ## `src/noyau/voyageEnVue.ts`) : la journée ne s'y arrête qu'aux vrais choix (`jouerLaJournee`, `src/noyau/cascade.ts`),
-## le reste va au journal. Il montre dans le paysage l'heure de jeu et la météo du jour (`voyage/heure`,
-## `voyage/meteo`), ce qui tient la journée, les jets qu'aucun héros ne jette (`jets/`), les km faits sur ceux du trajet
-## par son moyen (`voyage/route`), puis la frise (`voyage/etape/` : le départ, chaque nuit passée en route à son km,
-## l'arrivée) ; le jet d'un héros et les gestes qui le désignent sont sur sa carte (`groupe.heros`). La halte
-## de nuit (`projet/ecrans/repos.tscn`) hérite du même cadre : dans le paysage la nuit, son lieu et l'heure, la même
-## route et sa frise, puis la note du repos ; la nuit de chaque dormeur, son couchage et sa pitance, est sur sa carte.
+## le reste va au journal. C'est une scène, jamais une fenêtre : son paysage tient tout le cadre (`scene/paysage`, les
+## couches du moment, de la voie, de l'équipage et de la météo, que `Dessin` trace l'une sur l'autre) et tout s'y pose.
+## En tête le jour, puis le moment et la météo (`scene/jour`, `scene/moment`), face à la carte du trajet
+## (`voyage/carte`, en `carteDuVoyage` : chaque lieu, l'arrivée, le groupe sur sa route) ; à droite le récit : le
+## titre de ce qui tient la journée, le journal de la partie, ses dernières lignes au pied et le reste au défilement, les jets qu'aucun
+## héros ne jette (`jets/`), puis ses gestes ; au pied les km faits sur ceux du trajet par son moyen (`voyage/route`)
+## et la frise (`voyage/frise`, en `frise` : le départ, chaque nuit passée en route à son km, le groupe, l'arrivée).
+## Le jet d'un héros (en `jetDeHeros` : son dé dans un anneau à son ton, puis son test et son issue) et les gestes
+## qui le désignent sont sur sa carte (`groupe.heros`), cerclée quand c'est à lui d'agir. La halte de nuit
+## (`projet/ecrans/repos.tscn`) est la même scène, hors d'un trajet comme en route : son paysage est celui de la nuit
+## et de son toit, son moment la nuit et son lieu ; la nuit de chaque dormeur, son couchage et sa pitance, est sur sa
+## carte.
 ## Le document remis (`projet/ecrans/document.tscn`) se pose au centre, son texte dans un
 ## défilement : le Markdown verbatim de la donnée, montré tel quel. Un écran dédié neuf, c'est une scène de plus sous
 ## `projet/ecrans/`, sans ligne de GDScript.
 
 const GENERIQUE := "res://ecrans/fenetre.tscn"
+## La source des lignes du journal : la disposition qui la range tient le journal dans sa scène.
+const LIGNES_DU_JOURNAL := "journal.lignes"
+
+## Le panneau du journal de l'écran, caché sous une disposition qui range elle-même ses lignes.
+@export var journal: Control
 
 ## Le chemin de la scène posée, `""` avant la première.
 var scene := ""
@@ -75,5 +88,6 @@ func disposer(disposition: Variant) -> bool:
 		_posee.queue_free()
 	_posee = load(chemin).instantiate()
 	add_sibling(_posee)
+	journal.visible = not Zone.racines(_posee).any(func(zone: Zone) -> bool: return zone.source == LIGNES_DU_JOURNAL)
 	scene = chemin
 	return true

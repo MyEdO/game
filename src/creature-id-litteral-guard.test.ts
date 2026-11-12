@@ -24,7 +24,7 @@ const MORTES_PROUVEES = new Set<string>([
   "src/noyau/give-possession-effect.hors-store.test.ts|expect(refs({ type: 'givePossession', nature: 'bete', ref: { id: '', type: 'creature' } } as never, ctx)).toEqual([{ level: 'error', message: 'Possession → créature inexistante « (aucune) »' }]);",
   "src/noyau/give-possession-effect.hors-store.test.ts|expect(refs({ type: 'givePossession', nature: 'bete', ref: { id: 'licorne-mauve', type: 'creature' } } as never, ctx)).toEqual([{ level: 'error', message: 'Possession → créature inexistante « licorne-mauve »' }]);",
   "src/noyau/validateScene-contenu.test.ts|expect(() => spawnEnemy({ ref: 'ref-qui-nexiste-nulle-part' }, 'e-1', { x: 2, y: 2 })).toThrow(RefIrresoluble);",
-  "src/noyau/sceneEdit-editeur.test.ts|expect(() => placeEntity(emptyScene('scene-test', 10, 10), { mode: 'entity', kind: 'personnage', ref: 'Humain' }, { x: 1, y: 1 }))",
+  "src/noyau/sceneEdit-editeur.test.ts|expect(() => placeEntity(emptyScene('scene-test', 10, 10), { mode: 'entite', kind: 'personnage', ref: 'Humain' }, { x: 1, y: 1 }))",
 ]);
 
 /** Une créature du bestiaire. */
@@ -40,7 +40,7 @@ const MOTIFS: { re: RegExp; resout: (id: string) => boolean }[] = [
   { re: /(?<=foes:[^\n]*)\bref:\s*\{\s*id:\s*'([^']*)'\s*\}/g, resout: creature },
   { re: /creatureId:\s*'([^']*)'/g, resout: refDeCombattant },
   { re: /\{[^{}]*kind:\s*'personnage'[^{}]*?\bcreature:\s*\{\s*id:\s*'([^']*)'/g, resout: creature },
-  { re: /mode:\s*'entity',\s*kind:\s*'personnage',\s*ref:\s*'([^']*)'/g, resout: creature },
+  { re: /mode:\s*'entite',\s*kind:\s*'personnage',\s*ref:\s*'([^']*)'/g, resout: creature },
 ];
 
 function sites(): { rel: string; ligne: number; id: string; resolu: boolean; motif: number; texte: string }[] {

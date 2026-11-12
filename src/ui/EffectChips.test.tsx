@@ -105,7 +105,7 @@ describe('EffectChips', () => {
 
   it('une pastille SANS règle reste affichée mais NUE : son icône, et aucune promesse d’information', () => {
     const html = renderToStaticMarkup(<EffectChips effects={[buff()]} />);
-    expect(html).toContain('fx-chip buff'); // l'état mécanique actif reste visible au joueur
+    expect(html).toContain('fx-chip effet'); // l'état mécanique actif reste visible au joueur
     expect(html).not.toContain('codex-ref'); // ni popover, ni clic vers une fiche
     expect(html).not.toContain('title=');
   });

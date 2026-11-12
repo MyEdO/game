@@ -166,7 +166,7 @@ describe('Intégrité des données src/data/*.json', () => {
   it("4bis — le périmètre de template est PAR FICHIER : `$arg` dans une qualité est un placeholder (contre-épreuve)", () => {
     const probe = (file: string, gabarit: string) => {
       const s: Scan = { parseErrors: [], unknownOps: [], badFormulas: [], badPlaceholders: [], strayImpureOps: [], strayFreeAttacks: [] };
-      walk({ effects: [{ trigger: 'onCrit', on: 'victim', flow: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'a-terre' }, durationRounds: gabarit }] } } }] }, file, '', s);
+      walk({ effects: [{ trigger: 'onCrit', on: 'victime', flow: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'a-terre' }, durationRounds: gabarit }] } } }] }, file, '', s);
       return s.badPlaceholders;
     };
     expect(probe('traits.json', '$arg'), 'un Trait porte un `$arg` : `withArg` le substitue.').toEqual([]);
@@ -191,7 +191,7 @@ describe('Intégrité des données src/data/*.json', () => {
   it("6ter bis — la porte lit le FICHIER : un grantFreeAttack dans une manœuvre est refusé, dans un talent non (contre-épreuve)", () => {
     const probe = (file: string) => {
       const s: Scan = { parseErrors: [], unknownOps: [], badFormulas: [], badPlaceholders: [], strayImpureOps: [], strayFreeAttacks: [] };
-      walk({ effects: [{ trigger: 'onHit', on: 'self', flow: { kind: 'effet', effet: { type: 'ops', on: 'caster', ops: [{ op: 'grantFreeAttack', when: 'immediate' }] } } }] }, file, '', s);
+      walk({ effects: [{ trigger: 'onHit', on: 'soi', flow: { kind: 'effet', effet: { type: 'ops', on: 'caster', ops: [{ op: 'grantFreeAttack', when: 'immediate' }] } } }] }, file, '', s);
       return s.strayFreeAttacks;
     };
     expect(probe('maneuvers.json')).toHaveLength(1);

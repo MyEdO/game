@@ -66,7 +66,7 @@ describe('Gratuites de créature et Déviation (LDB 63 l.30, #1858)', () => {
       const b = banc.getState().battle!;
       expect({ round: b.round, turn: b.turn }, 'toujours le tour de la créature').toEqual(tour);
       expect(E.freeAttacksThisTurn?.pietinement, 'Piétinement est parti une fois').toBe(1);
-      expect(E.pendingFreeAttacks, 'la file du tour est épuisée : rien ne repart au tour suivant').toBeUndefined();
+      expect(E.pendingFreeAttacks, 'la file du tour est épuisée : rien ne repart dans ce tour').toEqual([]);
       const h = b.combatants.find((c) => c.id === H.id)!;
       expect(h.conditions.some((c) => c.id === 'surpris'), `Surpris conservé après « ${cle} » (LDB 16 l.139)`).toBe(true);
     });

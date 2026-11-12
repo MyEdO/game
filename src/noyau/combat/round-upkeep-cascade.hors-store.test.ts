@@ -220,7 +220,7 @@ describe('Upkeep de fin de Round — héros en cascade, ennemis en silence', () 
     expect(merged.participants.map((s) => s.id)).toEqual(['fear', 'zone-def']); // fusion, aucun fragment perdu
     // `maneuverResume` est posé par son UNIQUE producteur de la même façon (combatManeuvers.ts:461/:506 :
     // tag sur la séquence `purpose:'combat'` en cours).
-    banc.setState({ pendingCascade: { ...merged, maneuverResume: { attackerId: E.id, free: true } } });
+    banc.setState({ pendingCascade: { ...merged, maneuverResume: { attackerId: E.id } } });
 
     banc.getState().jetLancer('cascade');
     banc.getState().fenetreFermer('cascade'); // « Terminer » → dispatchCascadeDone

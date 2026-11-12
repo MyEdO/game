@@ -805,7 +805,7 @@ export interface ClassData {
   /** Ids de `groups.json` accordés à tout titulaire d'une carrière de cette Classe (`groupesDe`) —
    *  ex. la classe des Roublards ouvre le Groupe « Criminel ». Absent = aucun Groupe. */
   grantGroups?: string[];
-  /** Possessions de départ (`TrappingRef` : id du catalogue + quantité, ou `{text}` flavor hors catalogue). */
+  /** Possessions de départ (`dotationSansTexteSchema`). LDB 05 l.552 */
   trappings: TrappingRef[];
   desc: string;
   source: SourceRef;
@@ -957,9 +957,9 @@ export interface SkillData {
   /** Substitution en COMBAT d'une Compétence sociale à la Compétence de combat (LDB 09) : Intimidation
    *  « à la place de Corps à corps … face à ceux qui ont peur de vous » (l.287), Dressage « au lieu de
    *  Corps à corps » après avoir instillé la peur (l.207). `role` = défense / attaque / les deux ; `gate`
-   *  = condition d'accès (`fear` : l'adversaire est sous une Peur/intimidation SOURCÉE par ce personnage).
+   *  = condition d'accès (`peur` : l'adversaire est sous une Peur/intimidation SOURCÉE par ce personnage).
    *  Lu par `engine/skillCombatApps`. */
-  combatSubstitute?: { role: 'defense' | 'attack' | 'both'; gate: 'fear' };
+  combatSubstitute?: { role: 'defense' | 'attaque' | 'lesDeux'; gate: 'peur' };
   /** OUTIL requis par la Compétence (Crochetage → outils de crochetage, LDB 09 l.168 : « Les Niveaux de
    *  Difficulté supposent l'utilisation d'outils de crochetage. Des crochets improvisés… peuvent être
    *  utilisés avec une pénalité de -10 ») : `capability` = clé `ItemCapabilities` que doit porter un
@@ -1685,20 +1685,20 @@ export interface ManeuverDef {
   /** Déclenchement RAW : Action normale, gratuite (coût d'Avantage), ou gratuite à la Charge. */
   activation: 'action' | 'free' | 'charge';
   coutEnAvantage: number;
-  /** Gestion de l'Avantage dépensé : `fixed` = `coutEnAvantage` (défaut) ; `variable` = le joueur
-   *  CHOISIT (Regard : +1 DR par Avantage, LDB 85 l.290) ; `all` = dépense tout (Hurlement, l.170). */
-  advantageMode?: 'fixed' | 'variable' | 'all';
+  /** Gestion de l'Avantage dépensé : `fixe` = `coutEnAvantage` (défaut) ; `variable` = le joueur
+   *  CHOISIT (Regard : +1 DR par Avantage, LDB 85 l.290) ; `tout` = dépense tout (Hurlement, l.170). */
+  modeDAvantage?: 'fixe' | 'variable' | 'tout';
   /** Caractéristique du jet de l'attaquant (capacite-de-combat mêlée / capacite-de-tir distance·zone) ;
    *  absent = AUCUN jet d'attaquant (Hurlement : chaque cible teste sa Résistance). */
   stat?: 'capacite-de-combat' | 'capacite-de-tir';
   /** Défense opposée : Esquive / Parade, Initiative (Regard), Résistance/auto sans opposition. */
   defense?: 'esquive' | 'parade' | 'init' | 'resist' | 'auto';
-  /** Mode de ciblage (le résolveur en dérive la géométrie moteur). `self` = capacité SUR SOI (pas de
+  /** Mode de ciblage (le résolveur en dérive la géométrie moteur). `soi` = capacité SUR SOI (pas de
    *  cible adverse ni d'opposition — transformation, mue, auto-buff) : les `effects` s'appliquent au
-   *  porteur. `allFoes` / `allAround` = même géométrie (rayon autour de l'attaquant), populations
+   *  porteur. `adversairesAutour` / `toutAutour` = même géométrie (rayon autour de l'attaquant), populations
    *  DIFFÉRENTES : le camp adverse quand le texte le désigne (Middenheim 04 l.11 « contre ses ennemis »),
    *  TOUT le monde quand il ne le désigne pas (LDB 85 l.170 « Toutes les créatures vivantes »). */
-  targeting: 'melee' | 'ranged' | 'zone' | 'allFoes' | 'allAround' | 'self';
+  ciblage: 'melee' | 'distance' | 'zone' | 'adversairesAutour' | 'toutAutour' | 'soi';
   /** Portée / Souffle STRUCTURÉS (`ManeuverMeasure`) — mètres = `bonus(ref) + plus`. `range` résolu contre
    *  l'Attaquant, `blast` contre la cible au centre (RAW l.251). Remplace la formule-chaîne re-parsée au runtime. */
   range?: ManeuverMeasure;
@@ -1925,7 +1925,7 @@ export interface TraitData {
    *  `skillDRBonus`/`charDRBonusOf`. Aucun code par-nom. */
   aura?: {
     rangeChar: CharKey;
-    affects?: 'enemies' | 'allies' | 'all';
+    affects?: 'ennemis' | 'allies' | 'tous';
     passive: import('../engine/ops').OpPassive[];
   };
   /** Trait STANDARD (LDB 76 l.28-31 : « ajoutés à la liste Facultative de TOUTES les créatures ») —
@@ -2608,7 +2608,7 @@ export type ShipSize = 'minuscule' | 'tres-petite' | 'petite' | 'moyenne' | 'gra
  *  longueurs explicites — barque 5 m et esquif 10 m tombent dans la MÊME `ShipSize` « minuscule » avec des
  *  tarifs DIFFÉRENTS, la Taille ne peut donc pas discriminer). `maxLengthM` = borne haute inclusive du
  *  palier (`null` = bande OUVERTE au-delà — le dernier élément du tableau, triés par longueur croissante) ;
- *  `value` = CO (coût) ou Enc (poids) selon le champ porteur ; `maison` = réf nue du tarif au-delà de la
+ *  `value` = CO (coût), Enc (poids) ou jours (durée de pose) selon le champ porteur ; `maison` = réf nue du tarif au-delà de la
  *  dernière borne chiffrée par le livre porté sur la bande concernée. */
 export interface InstallBand { maxLengthM: number | null; value: number; maison?: string }
 /** Coût / Poids d'INSTALLATION d'une Amélioration navale (MDG 12, lignes « Coût : / Poids : » de chaque
@@ -2617,9 +2617,12 @@ export interface InstallBand { maxLengthM: number | null; value: number; maison?
  *  `'modele'` = ceux du modèle embarqué (Embarcation de bord). `weightEnc` absent = aucun poids (Lissage).
  *  Donnée consommée par le chantier construction/réparation navale (lot systèmes) — aucune valeur codée en
  *  dur. */
+export type InstallBareme = { bands: InstallBand[]; per?: '5m' | '10m' | 'unite' } | 'modele';
 export interface NavalInstall {
-  installation: { bands: InstallBand[]; per?: '5m' | '10m' | 'unite' } | 'modele';
-  weightEnc?: { bands: InstallBand[]; per?: '5m' | '10m' | 'unite' } | 'modele';
+  installation: InstallBareme;
+  weightEnc?: InstallBareme;
+  /** Durée de la pose (jours) par palier de longueur ; absente : `reparation.joursDePose`. MDG 12 l.230 ; MDG 12 l.293 */
+  jours?: InstallBareme;
 }
 export interface NavalTraitData {
   /** id STABLE (slug) — la clé d'appariement avec `ship.traits`/`Combatant.upgrades` (`NavalTraitRef.id`). */

@@ -15,8 +15,8 @@ type Entry = Record<string, unknown>;
  *  déclarations `exposition` des defs de schéma (`src/data/schemas/exposition-derivee.ts`, #1472).
  *  Le cast aux clés d'`overrides` est tenu par `exposition-contrats.test.ts` (routes ⊆ bindings). */
 const CATEGORY_DATASET = CATEGORY_DATASET_DERIVE as Record<string, DatasetKey>;
-const OBJECT_CATEGORY = OBJECT_CATEGORY_DERIVE as Record<string, { ds: ObjectDatasetKey; mode: 'single' | 'record' }>;
-export const editableObjectDataset = (categoryKey: string): { ds: ObjectDatasetKey; mode: 'single' | 'record' } | undefined => OBJECT_CATEGORY[categoryKey];
+const OBJECT_CATEGORY = OBJECT_CATEGORY_DERIVE as Record<string, { ds: ObjectDatasetKey; mode: 'unique' | 'parCle' }>;
+export const editableObjectDataset = (categoryKey: string): { ds: ObjectDatasetKey; mode: 'unique' | 'parCle' } | undefined => OBJECT_CATEGORY[categoryKey];
 /** Une catégorie est éditable au Codex ssi elle a un dataset tableau OU un dataset-objet. */
 export const editableDataset = (categoryKey: string): DatasetKey | undefined => CATEGORY_DATASET[categoryKey];
 export const isEditableCategory = (categoryKey: string): boolean => !!CATEGORY_DATASET[categoryKey] || !!OBJECT_CATEGORY[categoryKey];
@@ -150,7 +150,7 @@ export function editableEntries(categoryKey: string): Entry[] {
   const obj = editableObjectDataset(categoryKey);
   if (obj) {
     const data = datasetObject(obj.ds) as Record<string, unknown>;
-    if (obj.mode === 'single') return [data as Entry];
+    if (obj.mode === 'unique') return [data as Entry];
     const entries = Object.values(data) as Entry[];
     return entries.length ? entries : [{}];
   }

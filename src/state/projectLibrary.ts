@@ -1,6 +1,6 @@
 import { ouvrirLaBibliotheque } from '../hote/bibliotheque';
 import { accesBase, idbDisponible } from '../web/indexedDb';
-import { stockageWeb } from '../web/stockageWeb';
+import { stockageWeb } from '../hote/stockageWeb';
 
 const STORE = 'projects';
 

@@ -97,7 +97,7 @@
     "type": "raw.manifest",
     "label": "Humeur de Manann et événements en mer (MDG)",
     "ticket": "#1652",
-    "bloque": "Attaques des rats de l'Infestation sur une étape à DR négatif de l'Extermination (1d10 attaques, CC 35 et Arme +5 pour les rats géants, CC 25 et Arme +4 pour les rats, l.162-164, l.177-178 ; fièvre du rongeur pour qui est blessé par les rats géants, l.164) : aucune porte de jet ne joue une attaque subie hors combat. Améliorations : la durée d'installation (MDG 12 l.230, l.293 ; MDG 15 l.255, 1d10 jours avec le Constructeur itinérant) n'est pas jouée, l'installation est immédiate. Vivres de cale non typés : les biscuits de mer (Moral −1d10 si seule nourriture, MDG 14 l.166), la soupe de chou fermenté (scorbut, MDG 14 l.230) et le poisson de la Bonne pêche ne se distinguent pas dans la cale ; la cale s'avitaille en nourriture préservée."
+    "bloque": "Blindage : il s'installe dans tout port, pas seulement sur un chantier naval spécialisé (MDG 12 l.230), #4052. Vivres de cale non typés : les biscuits de mer (Moral −1d10 si seule nourriture, MDG 14 l.166), la soupe de chou fermenté (scorbut, MDG 14 l.230) et le poisson de la Bonne pêche ne se distinguent pas dans la cale ; la cale s'avitaille en nourriture préservée."
   },
   {
     "id": "4e/maladies#maladie-type",

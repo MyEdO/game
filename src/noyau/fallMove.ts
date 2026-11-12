@@ -118,8 +118,8 @@ export function metresRetenus(p: PendingFall, part: TombantParticipant): number 
 /** PHASE d'une chute volontaire, DÉRIVÉE de l'état (patron `counterspellDeclarePhase`) : `'choice'` tant
  *  qu'une rangée n'a pas déclaré ses DEUX axes — le Test (`attempt`) et, quand la suspension est offerte,
  *  la hauteur (`suspendre`) —, `'roll'` ensuite. */
-export function phaseDeChute(p: PendingFall): 'choice' | 'roll' {
-  return p.participants.some((x) => doitDeclarer(p, x)) ? 'choice' : 'roll';
+export function phaseDeChute(p: PendingFall): 'choix' | 'jet' {
+  return p.participants.some((x) => doitDeclarer(p, x)) ? 'choix' : 'jet';
 }
 
 const doitDeclarer = (p: PendingFall, x: TombantParticipant): boolean => x.attempt === null || (p.suspendu !== undefined && x.suspendre == null);
@@ -127,7 +127,7 @@ const doitDeclarer = (p: PendingFall, x: TombantParticipant): boolean => x.attem
 /** Les rangées DUES d'une chute, dans l'ordre de sa phase (`phaseDeChute`) : celles qui n'ont pas déclaré, puis celles
  *  qui tentent le Test sans l'avoir jeté. */
 export const rangeesDuesDeChute = (p: PendingFall): TombantParticipant[] =>
-  p.participants.filter((x) => (phaseDeChute(p) === 'choice' ? doitDeclarer(p, x) : x.attempt === true && !x.result));
+  p.participants.filter((x) => (phaseDeChute(p) === 'choix' ? doitDeclarer(p, x) : x.attempt === true && !x.result));
 
 /** Les tombants `rangees`, chacun nommé avec l'id que prennent les verbes de la chute : « Nom (id), … ». */
 export const tombantsNommes = (s: Jeu, rangees: readonly TombantParticipant[]): string =>

@@ -80,7 +80,7 @@ describe('offresUtilisables — la pastille de toute entité À PORTÉE, sans su
     expect(libres.map((o) => [o.id, o.gate.ok])).toEqual([['sasseoir', true]]);
 
     const seatAssignments = { table: tableTotale(
-      ['place-1', 'place-2', 'place-3', 'place-4'], (s) => ({ kind: 'entity' as const, entityId: `pnj-${s}` }),
+      ['place-1', 'place-2', 'place-3', 'place-4'], (s) => ({ kind: 'entite' as const, entityId: `pnj-${s}` }),
     ) };
     useGame.setState({ scene: { ...sc, seatAssignments } } as Partial<GameState>);
     const prises = offresUtilisables(useGame.getState())[0].offres;

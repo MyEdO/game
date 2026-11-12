@@ -7,6 +7,7 @@ import type { JSX } from 'react';
  */
 import type { CellSide } from '../../noyau/monde/scene';
 import type { ScreenBounds } from '../../geometry/iso';
+import type { VerrouDesMots } from '../../noyau/fabriquesDuNoyau';
 
 /** Un objet du tri de profondeur.
  *  `x,y` (tuile) = culling écran (absent ⇒ toujours rendu) ; `z` = étage (z < activeZ ⇒ filtre
@@ -24,7 +25,7 @@ export interface StageObj {
   op?: number;
   h?: number;
   ghost?: boolean;
-  kind?: 'floor' | 'wall' | 'roof' | 'prop';
+  kind?: 'sol' | 'mur' | 'toit' | 'decor';
   side?: CellSide;
   roomZoneIds?: readonly string[];
   bounds?: ScreenBounds;
@@ -32,6 +33,10 @@ export interface StageObj {
   roofSpan?: { w: number; h: number };
   roofCells?: readonly { x: number; y: number; z: number }[];
 }
+
+/** VERROU : le genre d'un objet du tri ne prend que des mots du lexique (#3977). */
+const verrouDuGenre: VerrouDesMots<NonNullable<StageObj['kind']>> = true;
+void verrouDuGenre;
 
 /** Concatène puis trie par profondeur (tri STABLE : l'ordre d'émission départage les ex æquo, comme le
  *  push historique) — appelé UNE fois par memo de couches statiques, jamais à la frame. */

@@ -53,7 +53,7 @@ import { registerScene } from './monde/registreDesScenes';
 import { vehicleCombatant } from '../engine/vehicle';
 import { type StakeRef, type VoyageStakeId, voyageStakeRef, conditionLabel, findVehicleById, findCrewRoleById, findCrewTestTypeById, findNavalTrait, NAVAL_TRAITS, diseaseLabel, refLabel, libelleOuAbsence, testSkillLabel } from '../data';
 import { profilNavalDe } from '../engine/coque';
-import { installCost, prixDeLaReparation, rollPortRepair, rollSteamBreakdown, steamBreakdownTriggered, shipSizeOfLength, propulsionDuNavire, STEAM_SKILL, type PropulsionDuNavire, type SteamBreakdownEntry } from '../engine/shipBuild';
+import { installAmount, installCost, prixDeLaReparation, rollPortRepair, rollSteamBreakdown, steamBreakdownTriggered, shipSizeOfLength, propulsionDuNavire, STEAM_SKILL, type PropulsionDuNavire, type SteamBreakdownEntry } from '../engine/shipBuild';
 import { COMPETENCE_DU_MODE, estCompetenceDePropulsion, type PropulsionKind } from '../engine/propulsion';
 import { deMonde, formatDice, roll as rollDice, tirer, type RNG, type Tirage } from '../engine/dice';
 import { facesDuDe, findTableEntry } from '../engine/tables';
@@ -62,7 +62,7 @@ import type { ModLine } from '../engine/combat';
 import { RULE_REF } from '../engine/ruleRefs';
 import { testValue, partyAssisted, partyBest, refusPersonneNePeutTenter, type SupportDetail } from '../engine/skills';
 import { buildWeapon } from '../engine/items';
-import { applyOps, resolveFormula, type GameOp, type PairedSense } from '../engine/ops';
+import { applyOps, resolveFormula, type Formula, type GameOp, type PairedSense } from '../engine/ops';
 import { damageHull, healHull } from './monde/shipDamage';
 import { itemCapability } from '../engine/capabilities';
 import { toDate, MINUTES_PER_DAY, minutesUntilNext, duskMinute, dayIndex } from '../engine/clock';
@@ -100,7 +100,7 @@ import { toMoney, canAfford, formatMoney, fromBrass, type Money } from '../engin
 import { partyMoneyTotal, payFromGroup, refusDeGesteSurLeGroupe, mouvementDeLaBourseDuGroupe } from './bourseFlow';
 import { rollShipCritical, applyCrewHit, exposedCrew, type ShipCriticalResolved } from '../engine/shipCritical';
 import { bandeTriggeredTest } from './combat/triggeredTest';
-import { drainPendingLog, jouerFlowEntier, runFlow } from './combatEffects';
+import { drainPendingLog, jouerFlowEntier, revealPurpose, runFlow } from './combatEffects';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import type { ShipCritKey } from '../data/shipCriticals';
 import { contractDisease, applyContraction, contractionDue, diseaseDefs, maladieDeclaree } from '../engine/disease';
@@ -126,6 +126,7 @@ import { t, t as tr } from '../i18n'; // `tr` : alias pour les portées où `t` 
 import { stepPrecision, idDansLaSequence } from './rollSeam';
 import { actorIn, equipageApte, inBattleId } from './monde/combatants';
 import { garanti } from '../lib/garanti';
+import { referentDuNavire } from './navireOps';
 import type { PlayerText } from '../i18n/playerText';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { FragmentDeTables, GenreDEtape, PartDeTable } from './tablesPosees';
@@ -1287,6 +1288,10 @@ const tableDesEvenementsDeBord = memoParVersion('seaBoardEvents', () => new Map<
   lines: (die) => [t('sv.boardEventLine', { label: findTableEntry(evenementsDeBord(), die).label })],
 }]]));
 
+/** Une JOURNÉE de voyage est en vol : sa séquence `purpose:'travelDay'` tient le slot ou attend en pile
+ *  (`pendingCascade`/`suspendedCascades`, noyau/cascade.ts). */
+const journeeEnVol = (s: Jeu): boolean => [s.pendingCascade, ...s.suspendedCascades].some((c) => c?.purpose === 'travelDay');
+
 /**
  * Boucle maritime — appelée par `runTravelDays`/`reprendreLeVoyage` (plan `sea`) et la reprise de nuit.
  * UN JOUR = périls d'auteur (inline) → événement de bord (inline, peut surfacer) → la CASCADE du jour
@@ -1296,9 +1301,10 @@ const tableDesEvenementsDeBord = memoParVersion('seaBoardEvents', () => new Map<
  */
 export function runSeaDay(get: Get, set: Set): void {
   const plan = get().travelPlan;
-  // Une cascade est déjà active (ou suspendue derrière un combat) : l'arbitre la montre, rien à faire —
-  // `reprendreLeVoyage` (couture d'événement) ne ré-entre dans AUCUNE FSM (#275 Ronde 2 cran 3, Décision c).
-  if (!plan?.sea || plan.interrupted || get().pendingSteamSave || get().pendingCascade) return;
+  // Une cascade est déjà active, ou une journée est en vol (parquée en pile derrière un combat ou une
+  // séquence qu'un de ses appliers a ouverte) : l'arbitre la montre, sa clôture la reprend, rien à faire —
+  // `reprendreLeVoyage` (couture d'événement) ne ré-entre dans AUCUNE FSM (#275 Ronde 2 cran 3, Décision c ; #4006).
+  if (!plan?.sea || plan.interrupted || get().pendingSteamSave || get().pendingCascade || journeeEnVol(get())) return;
   const sea = plan.sea;
   // VOYAGE RAPIDE (MDG 15 l.21-37) : ce plan ne déroule JAMAIS la journée par étape — le palier
   // calculé s'applique en un bloc (`finalizeFastVoyage`, ré-entrant après un abordage ancré).
@@ -1485,7 +1491,13 @@ export function continueSeaDayAfterCascade(get: Get, set: Set, auPv: CascadeStep
   const sea = plan.sea;
 
   // MDG 15 l.160-161, l.175-176
-  const infestation = get().vessel?.infestation;
+  const vesselDuSoir = get().vessel;
+  const infestation = vesselDuSoir?.infestation;
+  if (vesselDuSoir && infestation?.assaillie) {
+    const { assaillie: _jouee, ...sansMarqueur } = infestation;
+    set({ vessel: { ...vesselDuSoir, infestation: sansMarqueur } });
+    if (infestation.surDRNegatif) jouerFlowEntier(runFlow(get, set, infestation.surDRNegatif, infestation.label));
+  }
   if (infestation) jouerFlowEntier(runFlow(get, set, infestation.chaqueNuit, infestation.label));
 
   // Eau douce (ch.13 l.209-213 + ch.14 l.242) : consommation par bande de Température × POPULATION EMBARQUÉE
@@ -2107,7 +2119,8 @@ function openPirateHail(get: Get, set: Set, b: SeaBoarding, fouille: boolean): v
  *  Le coup à l'ÉQUIPAGE de la rangée (MDG 13 l.763) s'applique ICI, en voyage comme en combat :
  *  conséquence certaine appliquée, ÉPREUVE ouverte par la PORTE canonique (bande pour les héros
  *  tenus, voie inline sinon), sur les personnes exposées à bord (#1657 B3-2), sauf `equipageEpargne`
- *  (MDG 15 l.49-51). */
+ *  (MDG 15 l.49-51). La bande rejoint la séquence HÔTE (`revealPurpose`, #4006) : celle en vol (jour, Test
+ *  d'un événement de bord), à défaut celle du combat ou du jour. */
 export function applyVesselCritical(get: Get, set: Set, crit: ShipCriticalResolved, equipageEpargne?: true): void {
   const vessel = get().vessel;
   if (vessel) set({ vessel: { ...vessel, criticals: [...(vessel.criticals ?? []), crit.note] } });
@@ -2125,7 +2138,7 @@ export function applyVesselCritical(get: Get, set: Set, crit: ShipCriticalResolv
   const victimes = coup.victims.map((id) => equipage.find((c) => c.id === id)).filter(Boolean) as Combatant[];
   pushStep(set, (index) => bandeTriggeredTest(
     get, set, victimes, coup.testFlow!, `mer-equipage-touche-${crit.id}-${index}`, { idNeuf: get().forgerUnId, rng: battleRng(), label: crit.label, hull: coque },
-  ), 'travelDay');
+  ), revealPurpose('travelDay', false));
   // Voie INLINE (personne à bord sans siège) : ses lignes partent dans la file différée — la mer n'a
   // pas de `battle.log`, on les déverse dans le journal du voyage (source unique `drainPendingLog`).
   const lignes = drainPendingLog(get, set).map((e) => e.text);
@@ -2213,10 +2226,13 @@ export function entrerDansLeTourbillon(get: Get, set: Set, whirlpoolId: string, 
 }
 
 // ── Services PORTUAIRES (#30 — réparation, carénage, Améliorations, construction) ────────────────
-// Flux MINIMAL data-driven, consommé par la recette `__wfrp` (DEV) et les tests — l'écran de chantier
-// (UI) viendra dessus. La CONSTRUCTION (ch.12 l.108-164) est un DEVIS pur (`engine/shipBuild.buildShip`) :
-// posséder le navire construit = créer son entrée `vehicles.json` au Codex (donnée app-owned) puis
-// pointer `vessel.vehicleId` dessus.
+// MDG 12 l.108-164 ; MDG 13 l.639-651 ; MDG 15 l.255
+
+/** Jours d'UN travail du chantier (réparation ou pose), tirés de `f` sur le référent du navire de campagne :
+ *  au moins un. MDG 15 l.255 ; MDG 12 l.230 ; MDG 12 l.293 */
+function joursDuChantier(get: Get, set: Set, f: Formula, rng: RNG): number {
+  return Math.max(1, Math.round(resolveFormula(f, garanti(referentDuNavire(get, set), 'navire', 'référent du navire au chantier'), rng)));
+}
 
 /** Devis du CHANTIER naval d'un navire contre la bourse `bourse` du groupe : réparation (ch.13 l.643 ;
  *  ch.12 l.295) et carénage (ch.13 l.150-159), avec le refus de chaque geste (`null` : le geste passe).
@@ -2269,8 +2285,9 @@ export function portRepairVessel(get: Get, set: Set): string[] {
   const cost = Math.ceil(prix);
   payFromGroup(get, set, toMoney({ gold: cost }), { purpose: 'réparation navire' });
   set({ vessel: { ...get().vessel!, wounds: { current: max, max }, criticals: [] } });
-  const duree = constructeur ? t('sv.dureeJours', { n: constructeur.jours }) : t('sv.dureeHeures', { n: Math.max(1, heures) });
-  get().avancerLeTemps(constructeur ? constructeur.jours * MINUTES_PER_DAY : Math.max(1, heures) * 60);
+  const jours = constructeur ? joursDuChantier(get, set, constructeur.duree, rng) : null;
+  const duree = jours !== null ? t('sv.dureeJours', { n: jours }) : t('sv.dureeHeures', { n: Math.max(1, heures) });
+  get().avancerLeTemps(jours !== null ? jours * MINUTES_PER_DAY : Math.max(1, heures) * 60);
   return [t('sv.hullRefit', { ship: v.label, missing, cost, lissage: lissage ? t('sv.fragSmoothed', { pct: REPARATION.lissageRepairSurcoutPct }) : '', duree, competence, reussis, tests })];
 }
 
@@ -2291,22 +2308,23 @@ export function portCareenVessel(get: Get, set: Set): string[] {
 }
 
 /** Devis de POSE d'une Amélioration navale (MDG 12 l.195-364) : coût et poids par bande de Taille
- *  (`installCost`), et refus (`null` : la pose passe) contre la bourse `bourse` du groupe. SOURCE UNIQUE de
- *  `installerLAmelioration` et de l'écran du port. PUR. */
-export type DevisDAmelioration = { traitId: string; label: string; enc: number | null } & ({ refus: null; gold: number } | { refus: string; gold: number | null });
+ *  (`installCost`), durée en jours (`duree`, tirée à la pose), et refus (`null` : la pose passe) contre la bourse
+ *  `bourse` du groupe. SOURCE UNIQUE de `installerLAmelioration` et de l'écran du port. PUR. MDG 15 l.255 */
+export type DevisDAmelioration = { traitId: string; label: string; enc: number | null } & ({ refus: null; gold: number; duree: Formula } | { refus: string; gold: number | null; duree: Formula | null });
 
 export function devisDAmelioration(vessel: CampaignVessel | null, traitId: string, units: number, bourse: Money, refusHote: string | null): DevisDAmelioration {
   const v = vessel ? findVehicleById(vessel.vehicleId) : undefined;
   const entry = findNavalTrait(traitId);
   const label = entry?.label ?? traitId;
-  if (!vessel || !v?.ship || !entry) return { traitId, label, gold: null, enc: null, refus: t('sv.upgradeNotFound') };
-  if (entry.kind !== 'amelioration') return { traitId, label, gold: null, enc: null, refus: t('sv.upgradeIsTrait', { label }) };
-  if (!entry.install) return { traitId, label, gold: null, enc: null, refus: t('sv.upgradeNoPrice', { label }) };
+  if (!vessel || !v?.ship || !entry) return { traitId, label, gold: null, enc: null, duree: null, refus: t('sv.upgradeNotFound') };
+  if (entry.kind !== 'amelioration') return { traitId, label, gold: null, enc: null, duree: null, refus: t('sv.upgradeIsTrait', { label }) };
+  if (!entry.install) return { traitId, label, gold: null, enc: null, duree: null, refus: t('sv.upgradeNoPrice', { label }) };
   const { gold, enc } = installCost(entry.install, v.ship.lengthM, units);
-  if (gold == null) return { traitId, label, gold, enc, refus: t('sv.upgradeEmbedded', { label }) };
-  if (refusHote) return { traitId, label, gold, enc, refus: refusHote };
-  if (!canAfford(bourse, toMoney({ gold }))) return { traitId, label, gold, enc, refus: t('sv.upgradeTooExpensive', { label, gold }) };
-  return { traitId, label, gold, enc, refus: null };
+  const duree: Formula = vessel.constructeurDEscale?.duree ?? (entry.install.jours && installAmount(entry.install.jours, v.ship.lengthM)) ?? REPARATION.joursDePose;
+  if (gold == null) return { traitId, label, gold, enc, duree, refus: t('sv.upgradeEmbedded', { label }) };
+  if (refusHote) return { traitId, label, gold, enc, duree, refus: refusHote };
+  if (!canAfford(bourse, toMoney({ gold }))) return { traitId, label, gold, enc, duree, refus: t('sv.upgradeTooExpensive', { label, gold }) };
+  return { traitId, label, gold, enc, duree, refus: null };
 }
 
 /** Améliorations proposées au chantier : celles à pose chiffrée que le navire ne porte pas encore, chacune
@@ -2320,16 +2338,19 @@ export function ameliorationsAuChantier(vessel: CampaignVessel, bourse: Money, r
 }
 
 /** POSE d'une Amélioration navale : le refus de `devisDAmelioration` tombe avant tout débit ; la réf rejoint
- *  `vessel.upgrades` (recopiée sur la coque à chaque départ). `units` = cabines multiples, etc. */
+ *  `vessel.upgrades` (recopiée sur la coque à chaque départ), et les jours de la pose passent. `units` = cabines
+ *  multiples, etc. MDG 12 l.230 ; MDG 12 l.293 ; MDG 15 l.255 */
 export function installerLAmelioration(get: Get, set: Set, traitId: string, units = 1): string[] {
   const vessel = get().vessel;
   const devis = devisDAmelioration(vessel, traitId, units, partyMoneyTotal(get), refusDeGesteSurLeGroupe(get()));
   if (devis.refus !== null) { refuserGeste(get, set, devis.refus); return []; }
   const navire = garanti(vessel, 'vessel', 'navire du devis d’Amélioration');
   const { gold, enc, label } = devis;
+  const jours = joursDuChantier(get, set, devis.duree, battleRng());
   payFromGroup(get, set, toMoney({ gold }), { purpose: 'amélioration navire' });
   set({ vessel: { ...navire, upgrades: [...(navire.upgrades ?? []), { id: traitId, ...(units > 1 ? { value: units } : {}) }] } });
-  return [t('sv.upgradeInstalled', { label, gold, enc: enc ? t('sv.fragUpgradeEnc', { enc }) : '' })];
+  get().avancerLeTemps(jours * MINUTES_PER_DAY);
+  return [t('sv.upgradeInstalled', { label, gold, enc: enc ? t('sv.fragUpgradeEnc', { enc }) : '', duree: t('sv.dureeJours', { n: jours }) })];
 }
 
 // ── Événements de PORT (ch.15 l.127-129 + l.239-263) ─────────────────────────────────────────────
@@ -2733,18 +2754,17 @@ export const TABLES = {
       if (!step.result) return;
       return { consequences: freeCons(resolveSeaCrisisRound(get, set, step.result.sl)) };
     },
-    /** Extermination des nuisibles (MDG 14 l.98-104) : Test étendu, 1d10 h par Test — cumul mutualisé
-     *  (`extendedTestStep`, #273 Étape 1 : consolidation arithmétique, cadence INCHANGÉE — un jet par jour). */
+    /** Extermination des nuisibles : MDG 14 l.98-104 ; MDG 15 l.161, l.176 */
     'equipage-extermination': (get, set, step) => {
       if (!step.result) return;
       const vessel = get().vessel;
       const inf = vessel?.infestation;
       if (!vessel || !inf) return;
       const rng = battleRng();
-      const { total: progres, done } = extendedTestStep(inf.progres, step.result, inf.drCible);
+      const { total: progres, done, sl } = extendedTestStep(inf.progres, step.result, inf.drCible);
       get().avancerLHorloge(rollDice(1, 10, rng) * 60); // « Chaque Test nécessite … 1d10 heures » (MDG 14 l.100)
       const { infestation: _exterminee, ...sansInfestation } = vessel;
-      set({ vessel: done ? sansInfestation : { ...vessel, infestation: { ...inf, progres } } });
+      set({ vessel: done ? sansInfestation : { ...vessel, infestation: { ...inf, progres, ...(sl < 0 ? { assaillie: true as const } : {}) } } });
       const j = [t(done ? 'sv.verminCleared' : 'sv.verminProgress', { label: inf.label, progress: progres, need: inf.drCible })];
       noteSeaLine(get, set, j);
       return { consequences: freeCons(j) };

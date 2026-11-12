@@ -51,13 +51,13 @@ export function fearsBy(foe: Combatant, self: Combatant): boolean {
 /** Compétence sociale que `self` peut SUBSTITUER à sa Compétence de combat contre `foe`, pour un `role`
  *  (défense/attaque), avec sa valeur de Test — ou `null` si aucune (pas la Compétence, ou gate non rempli).
  *  RAW : Intimidation/Dressage « à la place de / au lieu de Corps à corps » quand `foe` a peur de `self`. */
-export function combatSubstitute(self: Combatant, foe: Combatant, role: 'defense' | 'attack'): { skillId: string; value: number } | null {
+export function combatSubstitute(self: Combatant, foe: Combatant, role: 'defense' | 'attaque'): { skillId: string; value: number } | null {
   let best: { skillId: string; value: number } | null = null;
   for (const inst of self.skills ?? []) {
     const sub = byId('skill', inst.id)?.combatSubstitute;
-    if (!sub || (sub.role !== 'both' && sub.role !== role)) continue;
+    if (!sub || (sub.role !== 'lesDeux' && sub.role !== role)) continue;
     if (!possesses(self, { id: inst.id })) continue;
-    if (sub.gate === 'fear' && !fearsBy(foe, self)) continue;
+    if (sub.gate === 'peur' && !fearsBy(foe, self)) continue;
     const value = skillBaseValue(self, { skill: inst }); // même valeur que la défense sociale résolue
     if (!best || value > best.value) best = { skillId: inst.id, value };
   }

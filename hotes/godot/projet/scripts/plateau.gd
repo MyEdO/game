@@ -1,14 +1,16 @@
 ## Le plateau du jeu : sur le monde de la scène (`Monde`), sous le regard du plateau (`vue.plateau.regard`,
-## `Monde.regarder`), sa caméra à la suite de l'actif du combat, sinon du groupe (`Monde.suivre`), ou l'œil du meneur
+## `Monde.regarder`), sa caméra à la suite de l'actif du combat en vue, sinon du groupe (`Monde.suivre`), d'abord du
+## premier combattant dessiné tant qu'elle ne suit rien, ou l'œil du meneur
 ## (`Immersion`, dont chaque case jouée part en clic), ses nappes de toit retirées (`toitsLeves`), ses arêtes retirées, abattues sous le cran de la caméra
 ## (`aretesDegagees`), et ses couronnes crénelées, tombées avec leur mur (`couronnesAbattues`, `Monde.cacher_le_bati`),
-## chaque combattant à sa case et sa couche (`voisins`) ou, en exploration, le meneur du groupe à la case du groupe, à
+## chaque combattant que la vue nomme à sa case et sa couche (`voisins`, réconciliés par id : celui qu'elle ne nomme plus
+## quitte l'arbre avec ses marques) ou, en exploration, le meneur du groupe à la case du groupe, à
 ## la station d'une case que le modèle d'un navire rogne (`Monde.poser_les_stations`), chacun sous son corps (`vue.corps`,
 ## aucun sous son `refus`), son véhicule (`vue.corps.vehicules`) et les marques de ses États (`vue.marques`,
 ## `MarquesDEtats`), les zones qui durent (`vue.zonesQuiDurent`, `ZonesQuiDurent`), chaque navire de la scène sous le modèle
 ## de son corps (`vue.corps.navires`, `MontageDesNavires`), sous tout regard, coupé sous les ponts que le regard
-## retire (`plateau.coupesDesNavires`), sa mer bordée par sa coque (`VolumeDeScene.border_la_mer`), et chaque entité de la scène nommée à sa case, les surbrillances des cases
-## que la vue peint (`vue.cases`), des cibles, des entités nommées et de l'aperçu du premier clic, et la case sous le
+## retire (`plateau.coupesDesNavires`), sa mer bordée par sa coque (`VolumeDeScene.border_la_mer`), et chaque entité que l'exploration nomme (`exploration.entites`, aucune en combat) nommée à sa case, les surbrillances des cases
+## que la vue peint (`vue.cases`), des cibles à la case que `vue.casesDesCibles` leur donne, en vue ou non, des entités nommées et de l'aperçu du premier clic, et la case sous le
 ## pointeur jusqu'au clic, chacun sur le sol de sa case ; aucun combattant sous l'œil de l'immersion ; les effets de chaque
 ## appel entre ses combattants (`Effets`), dont le chemin de chaque déplacement, que son combattant parcourt (#3822). Il ne rend que la
 ## case cliquée : celle que le monde désigne sous le pointeur, ou que l'œil franchit ou vise ; et, au clic droit, la
@@ -71,21 +73,24 @@ func montrer(vue: Dictionary) -> void:
 		dessines = combat.voisins.liste
 	elif exploration != null:
 		dessines = exploration.heros.slice(0, 1)
-		_nommer_les_entites(exploration.entites.liste)
+	_nommer_les_entites([] if exploration == null else exploration.entites.liste)
 	if vue.plateau != null:
 		_monde.regarder(vue.plateau.regard)
 		_monde.poser_les_stations(vue.corps.navires)
 		_monde.cacher_le_bati(vue.plateau.toitsLeves, vue.plateau.couronnesAbattues, vue.plateau.aretesDegagees)
 		_combattants.visible = vue.plateau.regard != "immersion"
-		var suivi: Array = dessines.filter(func(c: Dictionary) -> bool: return c.pos != null and (actif == null or c.id == actif))
+		var libre := _monde.lieu_suivi() == null
+		var suivi: Array = dessines.filter(func(c: Dictionary) -> bool: return c.pos != null and (combat == null or libre or c.id == actif))
 		if not suivi.is_empty():
 			_monde.suivre(_lieu(suivi[0].pos))
 	_immersion.montrer(vue)
 	if vue.plateau != null:
 		_navires.poser(vue.corps.navires, vue.plateau.coupesDesNavires, vue.plateau.metresParCase)
+	var poses := {}
 	for c in dessines:
 		if c.pos == null:
 			continue
+		poses[c.id] = true
 		var lieu := _lieu(c.pos)
 		if not _modeles.has(c.id):
 			var modele: Combattant = scene_combattant.instantiate()
@@ -95,9 +100,20 @@ func montrer(vue: Dictionary) -> void:
 			_modeles[c.id] = modele
 		_modeles[c.id].montrer(c, lieu, c.id == actif, null if vue.corps.refus != null else vue.corps.combattants.get(c.id), vue.corps.vehicules.get(c.id), vue.plateau.metresParCase)
 		_marquer(c.id, lieu, vue.marques.get(c.id, []), vue.plateau.metresParCase)
+	_retirer_hors_de(_modeles, poses)
+	_retirer_hors_de(_marques, poses)
 	if vue.plateau != null:
 		_zones.poser(vue.zonesQuiDurent, func(case: Dictionary) -> Vector3: return _lieu([case.x, case.y, case.get("z", 0)]), vue.plateau.metresParCase)
 	_peindre()
+
+
+## Chaque nœud de `noeuds` (par id de combattant) dont l'id n'est pas l'un de `poses` retiré de l'arbre, avec ce qu'il
+## porte.
+static func _retirer_hors_de(noeuds: Dictionary, poses: Dictionary) -> void:
+	for id: String in noeuds.keys():
+		if not poses.has(id):
+			noeuds[id].queue_free()
+			noeuds.erase(id)
 
 
 ## Les marques `marques` des États du combattant `id`, posées au sol `lieu` de sa case.
@@ -126,15 +142,16 @@ func jouer_les_effets(effets: Array) -> void:
 	_effets.jouer(effets, lieux, _vue.plateau.metresParCase)
 
 
-## L'auteur `de` d'un effet se tourne vers `vers` et s'anime, sauf sur lui-même (un sort sur soi, un hurlement).
+## L'auteur `de` d'un effet, s'il est encore dessiné, se tourne vers `vers` et s'anime, sauf sur lui-même (un sort sur
+## soi, un hurlement).
 func _agir(de: String, vers: Vector3) -> void:
-	var auteur: Node3D = _modeles[de]
-	if not auteur.position.is_equal_approx(vers):
-		auteur.agir_vers(vers)
+	if _modeles.has(de) and not _modeles[de].position.is_equal_approx(vers):
+		_modeles[de].agir_vers(vers)
 
 
+## La cible `vers` d'un coup qui touche, si elle est encore dessinée, accuse le coup.
 func _subir(vers: String, touche: bool) -> void:
-	if touche:
+	if touche and _modeles.has(vers):
 		_modeles[vers].subir()
 
 
@@ -144,7 +161,7 @@ func _parcourir(qui: String, lieux: Array, metres: Array) -> void:
 		_modeles[qui].parcourir(lieux, metres)
 
 
-## Chaque entité de la scène nommée au-dessus de sa case (`Monde.etiqueter`).
+## Chaque entité de `entites` nommée au-dessus de sa case, à la place des précédentes (`Monde.etiqueter`).
 func _nommer_les_entites(entites: Array) -> void:
 	var noms := {}
 	for e in entites:
@@ -220,10 +237,8 @@ func point_de_l_apercu() -> Variant:
 	var apercu: Variant = null if combat == null else combat.apercu
 	if apercu == null:
 		return null
-	var case: Variant = apercu.case
-	for c in combat.voisins.liste:
-		if c.id == apercu.cible:
-			case = c.pos
+	var vises := _cases_des([apercu.cible])
+	var case: Variant = apercu.case if vises.is_empty() else vises[0]
 	if case == null:
 		return null
 	return _monde.a_l_ecran(_lieu(case))
@@ -237,6 +252,11 @@ func points() -> Dictionary:
 		for cle: String in couche:
 			points["%s,%d" % [cle, z]] = couche[cle]
 	return points
+
+
+## Les cases (`[x, y, z]`) que `vue.casesDesCibles` donne aux cibles `ids`, en vue ou non ; un id nul n'en a aucune.
+func _cases_des(ids: Array) -> Array:
+	return ids.filter(func(id: Variant) -> bool: return id != null).map(func(id: String) -> Array: return _vue.casesDesCibles[id])
 
 
 ## Le monde de la scène (`monde`, la réponse de l'appel `monde`) sous le plateau : son volume, ses nappes de toit et
@@ -261,13 +281,12 @@ func _peindre() -> void:
 		surligner.call([c.case.x, c.case.y, c.case.get("z", 0)], Monde.ITEM_ATTEIGNABLE)
 	var combat: Variant = _vue.get("projection", {}).get("combat")
 	if combat != null:
-		var vises: Array = combat.cibles.liste.duplicate()
+		for case: Array in _cases_des(combat.cibles.liste):
+			surligner.call(case, Monde.ITEM_CIBLE)
 		var apercu: Variant = combat.apercu
-		if apercu != null and apercu.cible != null:
-			vises.append(apercu.cible)
-		for c in combat.voisins.liste:
-			if c.pos != null and vises.has(c.id):
-				surligner.call(c.pos, Monde.ITEM_SURVOL if apercu != null and apercu.cible == c.id else Monde.ITEM_CIBLE)
+		if apercu != null:
+			for case: Array in _cases_des([apercu.cible]):
+				surligner.call(case, Monde.ITEM_SURVOL)
 		if apercu != null and apercu.case != null:
 			surligner.call(apercu.case, Monde.ITEM_SURVOL)
 	var exploration: Variant = _vue.get("projection", {}).get("exploration")
@@ -313,7 +332,9 @@ func _survoler(case: Variant) -> void:
 
 ## @contrat Vue
 ## Le jeu pose sa caméra sous le regard (`Monde.regarder`, la touche V passant au regard suivant), à la suite de
-## l'actif du combat, sinon du groupe, dès que son lieu change ; en tactique et au plateau, elle pivote d'un quart de
+## l'actif du combat, sinon du groupe, dès que son lieu change ; tant qu'elle ne suit aucun lieu
+## (`Monde.lieu_suivi`), elle prend le premier combattant dessiné ; ensuite, en combat, `combat.actif` nul (avant le
+## premier tour, ou l'actif hors de la vue du groupe) la laisse où elle est ; en tactique et au plateau, elle pivote d'un quart de
 ## tour (A, E d'un AZERTY) ou librement (bouton du milieu tenu), zoome à la molette, glisse au clavier (`avant`,
 ## `arriere`, `gauche`, `droite`) et revient au lieu suivi (Origine) ; en immersion, l'œil du meneur, à la hauteur de
 ## l'œil de la case du sol sous lui, marche librement au clavier, court (Maj tenue), regarde à la souris captive

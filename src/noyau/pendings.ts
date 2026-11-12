@@ -179,7 +179,7 @@ export interface PendingTest {
   success: boolean;
   sl: number;
   /** Réussite forcée par Résilience AVANT le jet (LDB 17 l.68) : affichage « garanti », sans dé. */
-  forced?: boolean;
+  forcee?: boolean;
   /** Dé FIXÉ par le joueur (option « Dés fixés », `PendingBase.fixed`) — jamais posé sur ce flux :
    *  sans cible dérivable, la saisie y est refusée (garde `fixed-die-inventaire.hors-store.test.ts`). */
   fixed?: boolean;
@@ -240,7 +240,7 @@ export interface PendingSteamSave {
   roll: number | null;
   success: boolean;
   sl: number;
-  forced?: boolean;
+  forcee?: boolean;
   rerolled?: boolean;
 }
 /** Rechargement en attente (LDB 62 l.335 : Test étendu de Projectiles, Indice DR).
@@ -428,7 +428,7 @@ export interface PendingAttack {
   harpoonRopeCut?: boolean;
   /** Réussite FORCÉE, « Je ne faillirai pas ! » (LDB 17 l.68) : ouvre le choix d'`AttackResult.critLocation`
    *  sous `CompteDesCritiques.relance`. */
-  forced?: boolean;
+  forcee?: boolean;
   /** Dé FIXÉ par le joueur (option « Dés fixés », `PendingBase.fixed`). */
   fixed?: boolean;
   /** Tir rapide (talent, LDB 10) : cette attaque est une INTERRUPTION hors de l'ordre (déclarée à
@@ -488,7 +488,7 @@ export interface PendingHandGate {
   success: boolean;
   rerolled?: boolean;
   /** Réussite forcée par Résilience (LDB 17 l.68). */
-  forced?: boolean;
+  forcee?: boolean;
   /** Dé FIXÉ par le joueur (option « Dés fixés », `PendingBase.fixed`). */
   fixed?: boolean;
   /** Action d'attaque FIGÉE à rouvrir sur RÉUSSITE (le porteur de données `pendingAttack` + le titre/icône
@@ -542,7 +542,7 @@ export interface PendingBattement {
   result: TestResult | null; // jet de Corps à corps de l'attaquant ; null = pas encore lancé
   rerolled?: boolean;
   /** Réussite forcée par Résilience (LDB 17 l.68) → le joueur peut CHOISIR la valeur du dé. */
-  forced?: boolean;
+  forcee?: boolean;
 }
 /** L'issue d'un Test opposé pour celui qui le mène : il l'emporte, le perd, ou statu quo. */
 export type IssueOpposee = 'reussite' | 'echec' | 'egalite';
@@ -560,7 +560,7 @@ export interface PendingDistraire {
   /** Relance par Chance de l'Athlétisme déjà effectuée (1 max/Test, LDB 12 l.40). */
   rerolled?: boolean;
   /** Réussite forcée par Résilience (LDB 17 l.68) → l'emporte simplement (issue binaire). */
-  forced?: boolean;
+  forcee?: boolean;
 }
 /** Manœuvre de créature en attente (Souffle/Vomi/Langue/Regard/Étreinte — LDB 85) qu'un héros active.
  *  La modale n'influence QUE le jet de l'attaquant (`result` : son TestResult CC/CT figé) ; l'apply
@@ -582,7 +582,7 @@ export interface PendingManeuver {
   result: TestResult | null; // null = pas encore lancé
   rerolled?: boolean;
   /** Réussite forcée par Résilience (LDB 17 l.68). */
-  forced?: boolean;
+  forcee?: boolean;
 }
 /** Course en attente (LDB 15 l.41) : Test de `course` ; succès → déplacement étendu (Marche + Course +
  *  DR). Lancer → Chance/Résilience → Appliquer (ouvre le déplacement étendu). */
@@ -602,7 +602,7 @@ export interface PendingRun {
  *  bordure d'une falaise, `noyau/fallMove.planFranchissement`) vers `to` (case d'atterrissage, couche
  *  comprise), hauteur RÉELLE `metres` (relief). Étape À PARTICIPANTS, patron Contre-sort
  *  (`CounterParticipant.declared`) : UNE rangée par TOMBANT, chacune déclare son choix pré-jet. La PHASE
- *  (`'choice' | 'roll'`) se DÉRIVE de l'état par `phaseDeChute` (`noyau/fallMove.ts`), jamais stockée
+ *  (`'choix' | 'jet'`) se DÉRIVE de l'état par `phaseDeChute` (`noyau/fallMove.ts`), jamais stockée
  *  ni déduite au site UI (#1117). `initiateurId` = qui a ouvert le geste (le meneur en exploration,
  *  l'actif en combat) : propriétaire de la fenêtre (Confirmer / Annuler). */
 export interface PendingFall extends MultiPending<TombantParticipant> {
@@ -697,7 +697,7 @@ export interface PendingShanty {
   shantyId: string | null;
   result: JetPose | null;
   rerolled?: boolean;
-  forced?: boolean;
+  forcee?: boolean;
 }
 /** Approche d'une source de PEUR (LDB 21 l.27) : le clic d'approche est DIFFÉRÉ derrière ce Test sec.
  *  Succès → l'intention est relancée (approches libres ce Tour) ; échec → aucune approche ce Tour
@@ -1022,7 +1022,7 @@ export interface ToucheDeProjectile {
  *    posé sur chacun de ses coups par `ouvrirLaSerieSubie` puis `poursuivreLaSerie`. MDG 15 l.163-164, l.177-178.
  */
 export type EnchainementDuCoup =
-  | { mode: 'hero'; wasChain: boolean }
+  | { mode: 'heros'; wasChain: boolean }
   | ({ mode: 'chaine' } & ChaineDeBalayage)
   | ({ mode: 'bordee' } & TirsDeBordee)
   | { mode: 'auto' }
@@ -1258,7 +1258,7 @@ export interface PendingDefense {
   /** Relance par Chance déjà effectuée (1 max/Test, LDB 12 l.40). */
   rerolled?: boolean;
   /** Défense forcée par Résilience (LDB 17 l.68) → le joueur peut CHOISIR la valeur du dé. */
-  forced?: boolean;
+  forcee?: boolean;
   /** Dé FIXÉ par le joueur (option « Dés fixés », `PendingBase.fixed`). */
   fixed?: boolean;
   /** Réaction de Porte-Bouclier (variante AA 13 l.84) déclarée par le défenseur pour CETTE défense au
@@ -1271,7 +1271,7 @@ export interface PendingDefense {
    *  après coup ni deviné à la fermeture. */
   suite: SuiteDeDefense;
 }
-/** Désengagement en attente (LDB 15 l.43-68) : un MENU de choix (phase 'choice') —
+/** Désengagement en attente (LDB 15 l.43-68) : un MENU de choix (phase 'choix') —
  *  Sacrifier l'Avantage / Esquiver / Fuir / Renoncer — puis le Test d'Esquive (phase 'esquive'). */
 export interface PendingDisengage {
   moverId: string; // héros qui se désengage (actif)
@@ -1281,7 +1281,7 @@ export interface PendingDisengage {
   refusEsquive?: string;
   /** Fuite ouverte (`peutFuir`, LDB 15 l.61). Absente = ouverte. */
   canFuir?: boolean;
-  phase: 'choice' | 'esquive' | 'fuir'; // 'choice' = menu ; 'esquive' = Test d'Esquive ; 'fuir' = coup dans le dos SUBI + Test `fuite` influençable
+  phase: 'choix' | 'esquive' | 'fuir'; // 'choix' = menu ; 'esquive' = Test d'Esquive ; 'fuir' = coup dans le dos SUBI + Test `fuite` influençable
   atk: TestResult | null; // Esquive : jet de Corps à corps du foe, figé (jamais relancé)
   def: TestResult | null; // Esquive : jet d'Esquive du mover
   result: IssueOpposee | null; // 'egalite' = égalité parfaite du Test opposé → statu quo
@@ -1328,12 +1328,12 @@ export function fleeToucheDu(pd: PendingDisengage): boolean {
  *  Test opposé de Corps à corps `mover` vs `foe` pour entrer dans la longueur d'arme. Le VAINQUEUR
  *  choisit « combat normal » (retire l'état au contact) ou « au contact » (le pose). Calque
  *  `PendingDisengage` : le jet du foe (`atk`) est figé, seul le jet du mover (`def`, Corps à corps)
- *  se (re)joue. `phase 'roll'` = Test opposé influençable ; `phase 'choice'` = le vainqueur HÉROS
+ *  se (re)joue. `phase 'jet'` = Test opposé influençable ; `phase 'choix'` = le vainqueur HÉROS
  *  tranche (un foe IA tranche par heuristique, sans phase de choix montrée). */
 export interface PendingAuContact {
   moverId: string; // héros initiateur (actif)
   foeId: string; // adversaire ciblé (Engagé en mêlée)
-  phase: 'roll' | 'choice';
+  phase: 'jet' | 'choix';
   atk: TestResult | null; // jet de Corps à corps du foe, figé (jamais relancé)
   def: TestResult | null; // jet de Corps à corps du mover (influençable)
   result: IssueOpposee | null; // 'reussite' = le mover (héros) l'emporte ; 'egalite' = statu quo
@@ -1343,13 +1343,13 @@ export interface PendingAuContact {
 
 /** Action d'Empoignade en attente (LDB 14 l.161) : Test opposé de FORCE `actor` vs `foe` pour son
  *  Action, OU « Briser » (gratuit) si Avantage supérieur. Calque `PendingAuContact` : le jet de Force du
- *  foe (`atk`) est figé, seul le jet de l'acteur (`def`) se (re)joue. `phase 'roll'` = Test opposé
+ *  foe (`atk`) est figé, seul le jet de l'acteur (`def`) se (re)joue. `phase 'jet'` = Test opposé
  *  influençable (+ bouton « Briser » si `canBreak`) ; `phase 'options'` = le vainqueur choisit Dégâts /
  *  Empêtrer l'adversaire / Se libérer (LDB 14 l.161). */
 export interface PendingGrapple {
   actorId: string; // celui qui agit (Empoigné, à son tour)
   foeId: string; // l'autre Empoigné
-  phase: 'roll' | 'options';
+  phase: 'jet' | 'options';
   canBreak: boolean; // Avantage STRICTEMENT supérieur → peut Briser l'Empoignade gratuitement
   atk: TestResult | null; // jet de Force du foe, figé (jamais relancé)
   def: TestResult | null; // jet de Force de l'acteur (influençable)
@@ -1373,7 +1373,7 @@ export interface PendingCast {
   /** Relance par Chance déjà effectuée (1 max/Test, LDB 12 l.40). */
   rerolled?: boolean;
   /** Incantation forcée par Résilience (LDB 17 l.68) → le joueur peut CHOISIR la valeur du dé. */
-  forced?: boolean;
+  forcee?: boolean;
   /** Dé FIXÉ par le joueur (option « Dés fixés », `PendingBase.fixed`). */
   fixed?: boolean;
   /** « Prêchez, ma sœur ! » (LDB 40 l.40-42, option `priere-conviction`) : Prière entonnée
@@ -1693,7 +1693,10 @@ export type Cloture =
   | { verbe: 'reprendreFlow'; flow: Flow; label?: string; sl?: number }
   /** Reste d'une pile de Flow d'effet déclenché, rejoué par le walker de COMBAT (`runCombatFlow`) sur
    *  sa cible et avec le contexte porté de sa pile. */
-  | { verbe: 'reprendreFlowDeCombat'; flow: Flow; cibleId: string; ctx: OpsCtxPorte; label: string };
+  | { verbe: 'reprendreFlowDeCombat'; flow: Flow; cibleId: string; ctx: OpsCtxPorte; label: string }
+  /** Après-coup d'un coup appliqué (`combatFlow.jouerLApresCoup`), confié à l'étape que son application a poussée
+   *  et qui attend (`combatFlow.applyAttackResult`). */
+  | { verbe: 'apresCoup'; queue: QueueDuCoup };
 
 /**
  * CONTEXTE d'une feuille d'ops PORTÉ jusqu'à sa reprise (#1508, #2689) — la partition TOTALE d'`OpsCtx`
@@ -1723,10 +1726,12 @@ export function referentDeLEtape(step: Pick<CascadeStep, 'meta'>): string | unde
 
 export interface CascadeStepMeta {
   [key: string]: number | string | boolean | string[] | Flow | GameOp[] | OpsCtxPorte | Cloture[] | OpposedFreeze | FreeAttackFreeze | BladeTrapFreeze | ManeuverDefenseFreeze | undefined;
-  /** DÉCLARE que cette étape fait ATTENDRE sa conséquence à un dé (#1508) : le lot/la pile qui l'a
-   *  produite lui confie SA SUITE (`apresSuite`) au lieu de continuer par-dessus le dé en vol. Posé par
-   *  les mints du canal (`operationsDe`, `chuteDe`) ; lu par les DEUX walkers de Flow, qui n'ont ainsi aucune
-   *  liste de `kind` à tenir — un troisième kind à dé déclare le même champ et il est servi. */
+  /** DÉCLARE que cette étape fait ATTENDRE sa conséquence à un jet ou à un choix (#1508, #4011) : le lot, la pile,
+   *  le coup ou l'étape dont l'application l'a poussée lui confie SA SUITE (`apresSuite`) au lieu de continuer
+   *  par-dessus. Posé par les mints (`operationsDe`, `chuteDe`, `nombreDAttaquesSubies`, `testDeclenche`,
+   *  `choixDeclenche`, `personneChoisie`, `piegeALame`) ; lu par les walkers de Flow, `combatFlow.applyAttackResult`
+   *  et `cascade.commitStep` (`combatEffects.comptePasDifferes`), qui n'ont ainsi aucune liste de `kind` à tenir —
+   *  un kind de plus déclare le même champ et il est servi. */
   differeLaSuite?: boolean;
   /** L'op `attaquesSubies` dont l'étape `nombreDAttaquesSubies` tire le dé `nombre` (`combatFlow.ouvrirLeNombreDAttaquesSubies`),
    *  relue par son applier pour ouvrir la série. */
@@ -1777,7 +1782,7 @@ export interface CascadeStepMeta {
   /** Feuille d'ops SUSPENDUE d'une étape `personneChoisie` (VDM 10 l.327) : jouée, Traits psy `envers` la
    *  personne désignée (`noyau/personneChoisie.fluxDEnvers`), quand le décideur a choisi. */
   feuilleEnvers?: Flow;
-  /** CIBLE de la branche d'un `choixDeclenche` quand elle DIFFÈRE du décideur (`on:'victim'` : le décideur
+  /** CIBLE de la branche d'un `choixDeclenche` quand elle DIFFÈRE du décideur (`on:'victime'` : le décideur
    *  est le porteur/attaquant `caster`, mais la branche `yes` vise la VICTIME — Déstabilisante : Test opposé
    *  contre la cible touchée). Id sérialisable, restauré en `ctx.target` par l'applier. Absent ⇒ la cible =
    *  le décideur (Frappe réactive : Test sur soi, le tiers voyage dans `freeAttack`). */
@@ -1922,7 +1927,7 @@ export interface BatchParticipant extends RollParticipant {
   /** Relance par Chance déjà effectuée (1 max/Test, LDB 12 l.40). */
   rerolled?: boolean;
   /** Réussite forcée par Résilience (LDB 17 l.68). */
-  forced?: boolean;
+  forcee?: boolean;
   /** Paramètres CHIFFRÉS et SÉRIALISABLES de la conséquence de CETTE rangée (jamais de closure — coop),
    *  jumeau du `meta` d'étape (`CascadeStepMeta`) : une bande dont l'applier diverge PAR HÉROS
    *  (Psychologie : type, source, indice, DR déjà cumulé, difficulté allégée) porte ici ce qui lui est
@@ -2380,9 +2385,8 @@ export interface PendingCascade extends MultiPending<CascadeStep> {
   combatEndBoundary?: boolean;
   /** Cascade de DÉFENSE à une MANŒUVRE de zone IA (Souffle/Vomi/Regard/Étreinte/Langue, LDB 85) : chaque
    *  héros ciblé y jette sa réaction INFLUENÇABLE. À la fermeture, le store REPREND le tour de la créature
-   *  `attackerId` (attaques gratuites restantes puis avance) au lieu du `resumeSuspendedAI` générique —
-   *  `free` = la manœuvre était une attaque gratuite (ne re-déclenche pas les libres d'Arme post-Action). */
-  maneuverResume?: { attackerId: string; free: boolean };
+   *  `attackerId` (attaques gratuites restantes puis avance) au lieu du `resumeSuspendedAI` générique. */
+  maneuverResume?: { attackerId: string };
   /** Séquence PARQUÉE par le pilote IMMÉDIAT (`cascade.runCascadeImmediate`) sur un choix sans défaut,
    *  ou derrière un combat ouvert en plein vol : le choix validé ou le combat clos, la suite reprend par ce
    *  même pilote (`cascade.avanceUnPas`), jamais en fenêtre, avec le CONTEXTE de son lancement

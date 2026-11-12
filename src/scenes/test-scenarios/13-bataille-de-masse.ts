@@ -97,9 +97,9 @@ export const scenario: TestScenario = {
     party: groupeDeScenario(idNeuf, 'soldat', 'chasseur', 'sorcier', 'tueur'),
     scene: construireScene(),
     massBattle: {
-      enemyName: 'Horde ennemie',
-      allyMight: 50,
-      enemyMight: 55,
+      nomDesEnnemis: 'Horde ennemie',
+      puissanceAlliee: 50,
+      puissanceEnnemie: 55,
       plannedRounds: 3,
       terrain: 'La plaine boueuse s\'étend devant les remparts ; la horde dévale la pente en hurlant.',
       scenes: [

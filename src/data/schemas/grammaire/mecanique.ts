@@ -14,7 +14,7 @@ import { CATEGORY_BY_SOURCE_KIND, type EffectSourceKind } from '../../../engine/
 import { trousDeLEnjeu, type StakeRef } from '../../index';
 import { messageRecurrenceHorloge, SELF_REF, type Formula, type GameOp, type OpPassive } from '../../../engine/ops';
 import { NARRATIVE_MARKERS } from '../../../engine/conditions';
-import { ARG_TEMPLATE, CHAMPS_DE_DECISION, INDICE_TEMPLATE, type Condition, type EffectOp, type EffectTrigger, type Flow, type FlowTestNode, type TriggeredEffect } from '../../../engine/flowCore';
+import { ARG_TEMPLATE, CHAMPS_DE_DECISION, INDICE_TEMPLATE, flowHasFreeAttack, walkFlow, type Condition, type EffectOp, type EffectTrigger, type Flow, type FlowTestNode, type TriggeredEffect } from '../../../engine/flowCore';
 import { acteDeDeverrouillageSchema, attackKindSchema, chaosAlignSchema, charKeySchema, cibleEtendueSchema, contexteDeTestSchema, deDeTirageSchema, diceSpecSchema, difficultySchema, effetSigneSchema, idDIconeSchema, enumNomme, shipLocationSchema, exposureLevelSchema, formulaSchema, formuleSansTirageSchema, genreDArmeSchema, hitLocationSchema, mainSchema, messageDeTermeDeJet, meteoImposeeSchema, statutSchema, ouReserve, plageSchema, reachSchema, natureDInfluenceSchema, sizeCategorySchema, symptomSeveritySchema, tirageSchema } from './valeurs';
 import { traitInstanceSchema } from './reference';
 import { idDe, marquerOpAtteinte, ref, refs, refOuSpec, specAuCatalogue, specDe, specFermeeDe, tirageSurTable, type RegimeDePorteur, type TypeEntite } from './ref';
@@ -466,7 +466,9 @@ const DECLARATIONS_D_OPS = {
     difficulty: difficultySchema,
     ...cibleEtendueSchema.shape,
     chaqueNuit: z.lazy(() => flowSchema),
-  }), { op: { label: "opération"  }, crewTestType: { label: "Test d’équipage" , texte: { regime: "technique"} }, difficulty: { label: "difficulté" }, ...metaDesChamps(cibleEtendueSchema, { exigees: true }), chaqueNuit: { label: "chaque nuit" } }),
+    /** MDG 15 l.161, l.176 */
+    surDRNegatif: z.lazy(() => flowSchema).optional(),
+  }), { op: { label: "opération"  }, crewTestType: { label: "Test d’équipage" , texte: { regime: "technique"} }, difficulty: { label: "difficulté" }, ...metaDesChamps(cibleEtendueSchema, { exigees: true }), chaqueNuit: { label: "chaque nuit" }, surDRNegatif: { label: "sur une étape à DR négatif" } }),
   /** `combatEnMer` — MDG 15 l.136-139, l.142-143, l.165-168 */
   combatEnMer: nommerChamps(z.strictObject({
     op: z.literal('combatEnMer'),
@@ -481,7 +483,7 @@ const DECLARATIONS_D_OPS = {
   attaquesSubies: nommerChamps(z.strictObject({
     op: z.literal('attaquesSubies'),
     assaillant: nommerChamps(z.strictObject({ statblock: customStatblockSchema }), { statblock: { label: "profil personnalisé" } }),
-    nombre: deDeTirageSchema,
+    nombre: tirageSchema,
   }), { op: { label: "opération"  }, assaillant: { label: "assaillant" }, nombre: { label: "nombre d’attaques" , texte: { regime: "technique"} } }),
   /** `commission` — MDG 15 l.261 */
   commission: nommerChamps(z.strictObject({
@@ -493,7 +495,7 @@ const DECLARATIONS_D_OPS = {
     op: z.literal('constructeurDEscale'),
     competence: z.number().int().min(1),
     duree: formulaSchema,
-  }), { op: { label: "opération"  }, competence: { label: "Métier (Constructeur de navires)" }, duree: { label: "durée de la réparation (jours)" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
+  }), { op: { label: "opération"  }, competence: { label: "Métier (Constructeur de navires)" }, duree: { label: "durée de chaque réparation ou Amélioration (jours)" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
   /** `rationsDEscale` — MDG 15 l.262 */
   rationsDEscale: nommerChamps(z.strictObject({
     op: z.literal('rationsDEscale'),
@@ -919,7 +921,7 @@ export const actorRefSchema = enumNomme(LIBELLES_D_ACTEUR);
 
 /** Cible d'une feuille `ops` nommée par une chaîne (`EffectOp.on`, `engine/flowCore.ts`) : celles d'une scène
  *  (`CIBLES_D_EFFET_DE_SCENE`, `noyau/combatEffects.ts`), puis l'acteur du déclenché. */
-export const cibleDeFeuilleSchema = enumNomme({ party: 'Tout le groupe', hero: 'Un héros', navire: 'Le navire', membreAuHasard: 'Un membre du bord au hasard', ...LIBELLES_D_ACTEUR });
+export const cibleDeFeuilleSchema = enumNomme({ groupe: 'Tout le groupe', heros: 'Un héros', navire: 'Le navire', membreAuHasard: 'Un membre du bord au hasard', ...LIBELLES_D_ACTEUR });
 
 /** `Relation | Camp` (`src/engine/relations.ts`) — union complète lue par la Condition `relation`.
  *  Resserré depuis `z.string()` (variantes `domains`/`talents`/`etats`/`spells`) : les 9 JSON ne
@@ -1354,17 +1356,17 @@ export function noeudTest<B extends z.ZodType>(branche: B, options: OptionsNoeud
 /** CIBLE simple d'un effet déclenché — la branche chaîne de `EffectTargeting` (les deux autres sont
  *  des géométries, pas un univers de valeurs). */
 export const effectOnSchema = enumNomme({
-  self: 'soi-même',
-  victim: 'la victime',
-  engaged: 'les adversaires engagés',
-  grappled: 'la victime empoignée (absorbée)',
+  soi: 'soi-même',
+  victime: 'la victime',
+  engages: 'les adversaires engagés',
+  empoigne: 'la victime empoignée (absorbée)',
 });
 
 /** `EffectTargeting` (`engine/flowCore.ts:632`). */
 export const effectTargetingSchema = z.union([
   variante('Cible désignée', effectOnSchema),
-  nommerChamps(z.strictObject({ near: z.enum(['victim', 'self']), radiusMeters: z.number() }), { near: { label: "près de"  }, radiusMeters: { label: "rayon en mètres" } }),
-  nommerChamps(z.strictObject({ pick: z.literal('engaged'), sizeAtMost: z.literal('self').optional(), max: z.number() }), { pick: { label: "sélection"  }, sizeAtMost: { label: "Taille maximale"  }, max: { label: "maximum" } }),
+  nommerChamps(z.strictObject({ near: z.enum(['victime', 'soi']), radiusMeters: z.number() }), { near: { label: "près de"  }, radiusMeters: { label: "rayon en mètres" } }),
+  nommerChamps(z.strictObject({ pick: z.literal('engages'), sizeAtMost: z.literal('soi').optional(), max: z.number() }), { pick: { label: "sélection"  }, sizeAtMost: { label: "Taille maximale"  }, max: { label: "maximum" } }),
 ]);
 
 /** DÉCLENCHEUR d'un `TriggeredEffect` (`EffectTrigger`, `engine/flowCore.ts`). Le `satisfies` garde
@@ -1611,6 +1613,29 @@ function payloadsDe(regimes: Regimes): Readonly<Record<string, z.ZodType<unknown
  *  non typées (`OPS_NON_TYPEES`), quelle que soit la famille qui l'atteint. */
 const OP_EN_DONNEE = z.looseObject({ op: z.string() });
 
+/**
+ * Une attaque gratuite est le DERNIER geste de son Flow d'effet déclenché (#4011, `runCombatFlow`,
+ * `noyau/combat/triggeredTest.ts`) : refuse une op `grantFreeAttack` suivie d'une op dans sa feuille, et une
+ * étape de `sequence` qui en porte une (`flowHasFreeAttack`, à quelque profondeur de branche) suivie d'une étape.
+ */
+function refuserLaGratuiteNonTerminale(flow: Flow<EffectOp>, ctx: z.RefinementCtx): void {
+  walkFlow(flow, (noeud, chemin) => {
+    if (noeud.kind === 'effet') {
+      noeud.effet.ops.forEach((o, i) => {
+        if (o.op === 'grantFreeAttack' && i < noeud.effet.ops.length - 1) {
+          ctx.addIssue({ code: 'custom', path: ['flow', ...chemin, 'effet', 'ops', i], message: 'attaque gratuite suivie d’une opération : « grantFreeAttack » est la DERNIÈRE opération de sa feuille.' });
+        }
+      });
+    } else if (noeud.kind === 'sequence') {
+      noeud.etapes.forEach((e, i) => {
+        if (i < noeud.etapes.length - 1 && flowHasFreeAttack(e)) {
+          ctx.addIssue({ code: 'custom', path: ['flow', ...chemin, 'etapes', i], message: 'attaque gratuite suivie d’une étape : l’étape qui accorde « grantFreeAttack » est la DERNIÈRE de sa séquence.' });
+        }
+      });
+    }
+  });
+}
+
 /** `Flow<E>` (`engine/flowCore.ts:559`) — arbre récursif ACYCLIQUE (sequence/effet/si/test/choix), paramétré
  *  par sa feuille `effet`, sa `Condition` et le coût d'Avantage de son `choix`. */
 export function arbreDeFlow<E>(feuille: z.ZodType<E>, condition: z.ZodType<Condition>, coutDAvantage: z.ZodType<number | typeof INDICE_TEMPLATE>): z.ZodType<Flow<E>> {
@@ -1665,7 +1690,7 @@ function construire(regimes: Regimes) {
    *  DÉFAUT du `Flow<E>` générique (`engine/flowCore.ts:559`), et l'un des membres de l'union `Effect` de
    *  scène (`defs-scenes/effets.ts`). `on` = les 5 valeurs de
    *  l'interface TS : `'party'`/`'hero'`/`'navire'` (scène) ou `'caster'`/`'target'` (contexte d'incantation). Le
-   *  ciblage `'self'`/`'victim'` est le vocabulaire du NIVEAU TRIGGER (`effectTargetingSchema`), pas de la
+   *  ciblage `'soi'`/`'victime'` est le vocabulaire du NIVEAU TRIGGER (`effectTargetingSchema`), pas de la
    *  feuille : sur la feuille, `'caster'` = porteur, `'target'` = cible résolue par le trigger. */
   declarerEnfants(gameOp, Object.entries(opDefs).map(([op, noeud]) => ({ noeud, segment: '^' + op })), valeur => {
     const op = (valeur as { op?: string } | null)?.op;
@@ -1697,7 +1722,7 @@ function construire(regimes: Regimes) {
     attackType: genreDArmeSchema.optional(),
     coupCritique: z.boolean().optional(),
     optional: z.boolean().optional(),
-  }), { trigger: { label: "déclenchement"  }, on: { label: "cible"  }, flow: { label: "enchaînement", transparent: true }, condition: { label: "condition" , texte: { regime: "technique"} }, attackType: { label: "type d’attaque"  }, coupCritique: { label: "sur Coup Critique seulement" }, optional: { label: "facultatif" } }), 'construire', 'triggeredEffect');
+  }).superRefine((v, ctx) => refuserLaGratuiteNonTerminale(v.flow, ctx)), { trigger: { label: "déclenchement"  }, on: { label: "cible"  }, flow: { label: "enchaînement", transparent: true }, condition: { label: "condition" , texte: { regime: "technique"} }, attackType: { label: "type d’attaque"  }, coupCritique: { label: "sur Coup Critique seulement" }, optional: { label: "facultatif" } }), 'construire', 'triggeredEffect');
 
   /** Entrée d100 d'une table de voyage (`TravelTableEntry`, `src/engine/travelTables.ts`), partagée par
    *  `rencontres-edoc`/`incidents-monture`/`problemes-vehicule`. */

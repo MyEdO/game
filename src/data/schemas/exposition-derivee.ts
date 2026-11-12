@@ -13,7 +13,7 @@ import type { SchemaDef } from './types';
 /** Route d'un dataset-OBJET : la clé JS du dataset et la projection de l'éditeur. */
 export interface RouteObjet {
   readonly ds: string;
-  readonly mode: 'single' | 'record';
+  readonly mode: 'unique' | 'parCle';
 }
 
 /** Exemption d'exposition au Codex, telle que déclarée par le def. */

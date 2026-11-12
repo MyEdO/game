@@ -21,7 +21,7 @@
  *    le nom ET la forme que la donnée authorée donne DÉJÀ à un coût d'Avantage (`ManeuverDef.coutEnAvantage`,
  *    `src/data/index.ts`, `maneuvers.json`) ;
  *  - `src/data/talents.json` ops `grantFreeAttack` — 1 : `cost: {advantageOrMovement: true}` APLATI sur
- *    l'op (`advantageOrMovement: true`), même vocabulaire (`coutEnAvantage` pour un nombre d'Avantage).
+ *    l'op (`avantageOuMouvement: true`), même vocabulaire (`coutEnAvantage` pour un nombre d'Avantage).
  * Les deux dernières familles sont des RESHAPES, pas des renommages purs : la valeur cible est
  * ASSERTÉE littéralement avant écriture.
  * IDEMPOTENT : rejouée sur l'état final, elle n'écrit rien et sort 0.
@@ -144,7 +144,7 @@ if (!choix) anomalies.push('nœuds Flow `choix` porteurs d’un coût : AUCUN �
 let gratuites = 0;
 for (const [f, { data }] of documents) {
   for (const op of partout(data, (o) => o.op === 'grantFreeAttack')) {
-    if (Object.hasOwn(op, 'advantageOrMovement') || Object.hasOwn(op, 'coutEnAvantage')) { gratuites++; continue; }
+    if (Object.hasOwn(op, 'avantageOuMouvement') || Object.hasOwn(op, 'coutEnAvantage')) { gratuites++; continue; }
     if (!Object.hasOwn(op, 'cost')) continue;
     const c = op.cost;
     if (!c || typeof c !== 'object' || c.advantageOrMovement !== true || Object.keys(c).length !== 1) {
@@ -153,7 +153,7 @@ for (const [f, { data }] of documents) {
     }
     gratuites++;
     const sortie = {};
-    for (const [k, v] of Object.entries(op)) { if (k === 'cost') sortie.advantageOrMovement = true; else sortie[k] = v; }
+    for (const [k, v] of Object.entries(op)) { if (k === 'cost') sortie.avantageOuMouvement = true; else sortie[k] = v; }
     remplace(op, sortie);
   }
 }

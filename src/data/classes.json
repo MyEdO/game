@@ -23,7 +23,7 @@
         "id": "besace"
       },
       {
-        "text": "Déjeuner"
+        "id": "dejeuner"
       }
     ],
     "desc": "Il s'agit communément de citoyens respectueux des lois qui vivent et travaillent dans les nombreuses villes et cités de l'Empire. Beaucoup de Citadins appartiennent à la classe moyenne et gagnent convenablement leur vie.",
@@ -72,7 +72,13 @@
     "label": "Courtisans",
     "trappings": [
       {
-        "text": "Costume luxueux"
+        "id": "vetements",
+        "spec": "costume luxueux",
+        "qualities": [
+          {
+            "id": "raffine"
+          }
+        ]
       },
       {
         "id": "dague"
@@ -250,7 +256,7 @@
         }
       },
       {
-        "text": "Alumette",
+        "id": "allumette",
         "count": {
           "roll": {
             "n": 1,
@@ -259,7 +265,14 @@
         }
       },
       {
-        "text": "Capuchon ou Masque"
+        "choice": [
+          {
+            "id": "capuchon"
+          },
+          {
+            "id": "masque"
+          }
+        ]
       }
     ],
     "desc": "Principalement habitants de villes et de cités, ces personnes gagnent leur vie grâce à des actes considérés comme illégaux, ou du moins peu recommandables, sur le dos de la plupart des citoyens respectueux de la Loi. Les Roublards appartiennent tous à la classe inférieure, mais certains peuvent gagner beaucoup d'argent, bien qu'ils ne soient pas en mesure d'accéder à un statur élevé.",

@@ -5,7 +5,7 @@ metadata:
   type: user
 ---
 
-Verbatim (2026-10-13, après la question de #1595 (NAVAL : 3 comportements sous MDG 14 l.39 ETIREE hors de sa question) sur le nombre de Périodes de travail par jour, que MDG 15 l.76 + 13 l.62 + 12 l.41 tranchaient) : « Mes verbatines sur les régles ne valent que si le RAW est vraiment absent et s'évaporent automatiquement des que c'est contredit. »
+Verbatim (2026-10-13, après la question de #1595 (NAVAL : 3 comportements sous MDG 14 l.39 ETIREE hors de sa question) sur le nombre de Périodes de travail par jour, que MDG 15 l.76, MDG 13 l.62 et MDG 12 l.41 tranchaient) : « Mes verbatines sur les régles ne valent que si le RAW est vraiment absent et s'évaporent automatiquement des que c'est contredit. »
 
 **Why :** l'utilisateur n'arbitre que ce que le RAW laisse ouvert ([[user-doctrine-jamais-arbitrer-un-fait]]). Un verbatim obtenu sur une question que le RAW tranchait — directement ou par déduction depuis la règle générale ou les règles voisines — est né d'une question viciée : il ne fait pas précédent contre le livre.
 

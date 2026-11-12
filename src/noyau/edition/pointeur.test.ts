@@ -17,11 +17,11 @@ const vide = (): Scene => emptyScene('pointeur', 6, 4);
 
 describe('pointeur de l’éditeur', () => {
   it('hors de la carte, l’appui n’ouvre aucun geste', () => {
-    expect(appuyer(vide(), ctx({ mode: 'tile', terrain: 'pierre' }), au(-1, 0))).toEqual({ geste: null });
+    expect(appuyer(vide(), ctx({ mode: 'terrain', terrain: 'pierre' }), au(-1, 0))).toEqual({ geste: null });
   });
 
   it('le pinceau de terrain : un seul cran pour le trait, le trait tracé case par case', () => {
-    const c = ctx({ mode: 'tile', terrain: 'pierre' });
+    const c = ctx({ mode: 'terrain', terrain: 'pierre' });
     const a = appuyer(vide(), c, au(1, 1));
     expect(a.cran).toBe(true);
     const g = glisser(a.scene!, c, a.geste, au(2, 1));
@@ -32,15 +32,15 @@ describe('pointeur de l’éditeur', () => {
   });
 
   it('le pinceau de hauteur trace l’emprise de chaque écriture, sa taille comprise', () => {
-    const a = appuyer(vide(), ctx({ mode: 'height', metres: 4 }, { brush: 3 }), au(1, 1));
+    const a = appuyer(vide(), ctx({ mode: 'hauteur', metres: 4 }, { brush: 3 }), au(1, 1));
     expect(a.geste?.sorte === 'trait' && a.geste.trace).toHaveLength(9);
   });
 
   it('la gomme ouvre un cran par entité retirée, et ne trace que sa case', () => {
-    const c = ctx({ mode: 'entity', kind: 'prop', ref: 'tonneau' });
+    const c = ctx({ mode: 'entite', kind: 'prop', ref: 'tonneau' });
     const pose1 = appuyer(vide(), c, au(1, 1)).scene!;
     const pose2 = appuyer(pose1, c, au(3, 1)).scene!;
-    const gomme = ctx({ mode: 'erase' }, { brush: 3 });
+    const gomme = ctx({ mode: 'gomme' }, { brush: 3 });
     const a = appuyer(pose2, gomme, au(1, 1));
     expect(a.geste, 'la gomme trace sa seule case, quel que soit le pinceau').toEqual({ sorte: 'trait', cran: true, trace: [{ x: 1, y: 1 }] });
     const g = glisser(a.scene!, gomme, a.geste, au(3, 1));
@@ -49,7 +49,7 @@ describe('pointeur de l’éditeur', () => {
   });
 
   it('le rectangle de terrain se tire puis se remplit au relâché, d’un cran', () => {
-    const c = ctx({ mode: 'tile', terrain: 'pierre' }, { terrainRect: true });
+    const c = ctx({ mode: 'terrain', terrain: 'pierre' }, { terrainRect: true });
     const a = appuyer(vide(), c, au(1, 1));
     expect(a.scene).toBeUndefined();
     const g = glisser(vide(), c, a.geste, au(3, 2));
@@ -66,23 +66,23 @@ describe('pointeur de l’éditeur', () => {
   });
 
   it('l’outil murs vise l’arête la plus proche du point, depuis sa case', () => {
-    const c = ctx({ mode: 'wall', paint: 'wall' });
+    const c = ctx({ mode: 'arete', paint: 'wall' });
     const pt = au(2, 1, { x: 2.05, y: 0.6 });
     expect(areteVisee(c, pt)).toEqual({ x: 2, y: 1, side: 'N' });
     const a = appuyer(vide(), c, pt);
     expect(a.cran).toBe(true);
     expect(a.scene!.walls).toEqual([expect.objectContaining({ x: 2, y: 1, side: 'N' })]);
-    expect(areteVisee(ctx({ mode: 'select' }), pt)).toBeNull();
+    expect(areteVisee(ctx({ mode: 'selection' }), pt)).toBeNull();
   });
 
   it('en sélection, une arête de mur proche l’emporte sur la case', () => {
     const scene = setEdgeWall(vide(), 2, 1, 'N', 0, 'wall');
-    expect(appuyer(scene, ctx({ mode: 'select' }), au(2, 1, { x: 2, y: 0.55 })).sel).toEqual({ type: 'wall', x: 2, y: 1, side: 'N', z: 0 });
+    expect(appuyer(scene, ctx({ mode: 'selection' }), au(2, 1, { x: 2, y: 0.55 })).sel).toEqual({ type: 'wall', x: 2, y: 1, side: 'N', z: 0 });
   });
 
   it('la sélection d’une entité ouvre son déplacement : rien au clic simple, un cran au premier pas réel', () => {
-    const scene = appuyer(vide(), ctx({ mode: 'entity', kind: 'prop', ref: 'tonneau' }), au(1, 1)).scene!;
-    const c = ctx({ mode: 'select' });
+    const scene = appuyer(vide(), ctx({ mode: 'entite', kind: 'prop', ref: 'tonneau' }), au(1, 1)).scene!;
+    const c = ctx({ mode: 'selection' });
     const a = appuyer(scene, c, au(1, 1));
     const sel = { type: 'entity', id: scene.entities[0].id };
     expect(a.sel).toEqual(sel);
@@ -97,13 +97,13 @@ describe('pointeur de l’éditeur', () => {
     const c = ctx({ mode: 'zone', zone: 'trigger' });
     const scene = relacher(vide(), c, appuyer(vide(), c, au(0, 0)).geste, au(1, 1)).scene!;
     const sel = { type: 'trigger' as const, id: scene.triggers[0].id };
-    const g = glisser(scene, ctx({ mode: 'select' }), saisirLaPoignee(ctx({ mode: 'select' }, { sel })), au(3, 2));
+    const g = glisser(scene, ctx({ mode: 'selection' }), saisirLaPoignee(ctx({ mode: 'selection' }, { sel })), au(3, 2));
     expect(g.cran).toBe(true);
     expect(g.scene!.triggers[0].rect).toEqual({ x: 0, y: 0, w: 4, h: 3 });
   });
 
   it('le tracé de volée bascule chaque case une fois, sans écrire la scène', () => {
-    const c = ctx({ mode: 'stair', toZ: 1 });
+    const c = ctx({ mode: 'escalier', toZ: 1 });
     const a = appuyer(vide(), c, au(1, 1));
     expect(a.volee).toEqual({ x: 1, y: 1 });
     expect(glisser(vide(), c, a.geste, au(1, 1)).volee).toBeUndefined();
@@ -112,7 +112,7 @@ describe('pointeur de l’éditeur', () => {
   });
 
   it('en mode architecture, le plan du pointeur est celui de ses arêtes', () => {
-    expect(planDuPointeur(ctx({ mode: 'select' }, { z: 0, architecture: { z: 1, action: 'select', bodyId: null } }))).toBe(1);
-    expect(planDuPointeur(ctx({ mode: 'select' }, { z: 0 }))).toBe(0);
+    expect(planDuPointeur(ctx({ mode: 'selection' }, { z: 0, architecture: { z: 1, action: 'selection', bodyId: null } }))).toBe(1);
+    expect(planDuPointeur(ctx({ mode: 'selection' }, { z: 0 }))).toBe(0);
   });
 });

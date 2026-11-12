@@ -459,7 +459,7 @@ describe('InterludeScreen — préparation de bataille : « Entreprendre » suit
       ? { ...h, skills: [...h.skills.filter((s) => s.id !== 'savoir'), { id: 'savoir', spec: 'guerre', characteristic: 'intelligence' as const, advances: savoirGuerre }] }
       : h));
     useGame.setState({ party });
-    useGame.getState().amorcerLaBataille({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
+    useGame.getState().amorcerLaBataille({ puissanceAlliee: 50, puissanceEnnemie: 55, plannedRounds: 3 });
     const s = useGame.getState();
     const catalog = interludeCatalog(s);
     return renderToStaticMarkup(
@@ -600,7 +600,7 @@ describe('InterludeScreen — abordabilité (#3059 S4) : chaque volet payant lit
     const seam = buildSeam();
     const hero = seam.party[0];
     viderLaBourse(hero.id);
-    const opt = entrainementOptions(useGame.getState().party[0]).find((o) => o.kind === 'characteristic')!;
+    const opt = entrainementOptions(useGame.getState().party[0]).find((o) => o.kind === 'caracteristique')!;
     const html = renderToStaticMarkup(<InterludeScreen seam={{ ...relu(seam), openPane: { heroId: hero.id, pane: 'entrainement' } }} />);
     expect(raisonDeLOption(html, cleDEntrainement(opt))).toBe('Vétéran : la bourse ne couvre même pas le tuteur le moins cher (1 sc).');
     expect(raisonDuGeste(() => pratiquer(useGame.getState, hero.id, 'entrainement', { entrainement: cleDEntrainement(opt) }))).toEqual([raisonDeLOption(html, cleDEntrainement(opt))]);
@@ -756,7 +756,7 @@ describe('InterludeScreen — catalogue (#3059 S5) : chaque volet lit les cibles
       setRule('interlude-assister-coute-un-creneau', cout);
       try {
         const seam = buildSeam();
-        useGame.getState().amorcerLaBataille({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
+        useGame.getState().amorcerLaBataille({ puissanceAlliee: 50, puissanceEnnemie: 55, plannedRounds: 3 });
         return mdToPlain(renderToStaticMarkup(<InterludeScreen seam={aAltdorf(seam, 'planification')} />));
       } finally { resetRule('interlude-assister-coute-un-creneau'); }
     };
@@ -767,7 +767,7 @@ describe('InterludeScreen — catalogue (#3059 S5) : chaque volet lit les cibles
   it('préparation déjà faite : la bannière dit le refus du geste', () => {
     const seam = buildSeam();
     const heroId = seam.party[0].id;
-    useGame.getState().amorcerLaBataille({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
+    useGame.getState().amorcerLaBataille({ puissanceAlliee: 50, puissanceEnnemie: 55, plannedRounds: 3 });
     useGame.getState().menerLActionDeBataille(heroId, 'inspire');
     useGame.setState({ pendingActivity: { ...useGame.getState().pendingActivity!, roll: 20, success: true, sl: 2 } });
     useGame.getState().jetValider('activite');
@@ -792,7 +792,7 @@ describe('InterludeScreen — chaque volet affiche le pré-jet du noyau (#3059 S
     const seam = buildSeam();
     const party = seam.party.map((h, i) => ({ ...h, skills: [...h.skills.filter((s) => s.id !== 'savoir'), { id: 'savoir', spec: 'guerre', characteristic: 'intelligence' as const, advances: i === 0 ? 10 : 5 }] }));
     useGame.setState({ party });
-    useGame.getState().amorcerLaBataille({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
+    useGame.getState().amorcerLaBataille({ puissanceAlliee: 50, puissanceEnnemie: 55, plannedRounds: 3 });
     for (const h of party) useGame.getState().fenetreChoisir('batailleDeMasse', 'ajouterAuPoste', 'planification', h.id);
     const s = useGame.getState();
     const html = renderToStaticMarkup(<InterludeScreen seam={{ ...seam, party, phase: 'activities', catalog: interludeCatalog(s), massBattle: s.massBattle, openPane: { heroId: party[0].id, pane: 'planification' } }} />);

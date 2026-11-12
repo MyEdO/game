@@ -24,7 +24,7 @@ const SITES: Record<keyof typeof PROSES_NOMMEES, { schema: z.ZodType; nu: Record
   'narratif.ouverture.pitch': { schema: ouvertureSchema, nu: { titre: 'Titre', pitch: 'Texte.' } },
   'narratif.indices[].stades[].prose': { schema: indiceStadeSchema, nu: { id: 'stade', prose: 'Texte.' } },
   'narratif.documents[].prose': { schema: documentNarratifSchema, nu: { id: 'document', titre: 'Titre', prose: 'Texte.' } },
-  'massBattle.terrain': { schema: massBattleSpecSchema, nu: { allyMight: 50, enemyMight: 50, terrain: 'Texte.' } },
+  'massBattle.terrain': { schema: massBattleSpecSchema, nu: { puissanceAlliee: 50, puissanceEnnemie: 50, terrain: 'Texte.' } },
   'scenes[].startMessage.texte': { schema: messageIntroductionSchema, nu: { texte: 'Texte.' } },
   'worldMap.routes[].refus.texte': { schema: refusRouteSchema, nu: { texte: 'Texte.' } },
   'worldMap.places[].prose': { schema: mapPlaceSchema, nu: { id: 'lieu', label: 'Lieu', pos: { x: 10, y: 10 }, scene: { id: 's1' }, prose: 'Texte.' } },

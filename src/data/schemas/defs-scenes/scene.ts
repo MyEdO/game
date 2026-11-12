@@ -81,8 +81,8 @@ export const authoredShipPosteSchema = nommerChamps(z.strictObject({
 }), { trappingId: { label: "pièce", texte: { regime: "technique" } }, side: { label: "côté" }, cover: { label: "couvert" }, crewIds: { label: "servants", texte: { regime: "technique" } }, chambered: { label: "munitions chambrées" }, loaded: { label: "chargée" }, reloadProgress: { label: "progression de la recharge" }, ammo: { label: "munitions", texte: { regime: "technique" } }, selectedAmmo: { label: "munition choisie" }, anchor: { label: "ancre" } });
 /** `SeatOccupant` (`noyau/monde/seating.ts:53`) — un RANG du groupe (jamais un id de héros) ou un PNJ de la scène. */
 export const seatOccupantSchema = z.discriminatedUnion('kind', [
-  nommerChamps(z.strictObject({ kind: z.literal('party'), rang: z.number() }), { kind: { label: "type"  }, rang: { label: "rang" } }),
-  nommerChamps(z.strictObject({ kind: z.literal('entity'), entityId: z.string() }), { kind: { label: "type"  }, entityId: { label: "entité" , texte: { regime: "technique"} } }),
+  nommerChamps(z.strictObject({ kind: z.literal('groupe'), rang: z.number() }), { kind: { label: "type"  }, rang: { label: "rang" } }),
+  nommerChamps(z.strictObject({ kind: z.literal('entite'), entityId: z.string() }), { kind: { label: "type"  }, entityId: { label: "entité" , texte: { regime: "technique"} } }),
 ]);
 
 // ── Entité de scène ─────────────────────────────────────────────────────────────────────────────

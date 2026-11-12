@@ -61,7 +61,7 @@ const doc = document(
     carte: { label: 'Carte par défaut', hint: 'Libellé d’une carte du monde neuve', texte: { regime: 'designation' } },
     profil: { label: 'Profil par défaut', hint: 'Libellé d’un statbloc personnalisé d’une fiche sans nom', texte: { regime: 'designation' } },
   },
-  { codex: { keys: ['semencesDeScene'] }, edit: { object: 'single' } },
+  { codex: { keys: ['semencesDeScene'] }, edit: { object: 'unique' } },
   { exiges: ['maison'] },
 );
 

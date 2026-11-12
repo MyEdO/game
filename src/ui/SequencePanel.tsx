@@ -4,7 +4,7 @@
  * cumuls vivent dans l'état de séquence et n'apparaissaient nulle part (la fenêtre disait « Jet en
  * cours… »).
  *
- * Rien n'est DÉRIVÉ ici : la donnée vient du système lui-même (`SequenceDef.board`, lu par
+ * Rien n'est DÉRIVÉ ici : la donnée vient du système lui-même (`SequenceDef.tableau`, lu par
  * `sequenceBoardOf`) — l'UI ne connaît ni jeu ni poursuite. Composé des primitives partagées :
  * `Band` (bande titrée de rubrique, compteur à droite) et `LifeBar` (barre LISSE — un cumul vers une
  * cible est une vraie jauge continue, jamais des paliers discrets, donc pas `NotchGauge`). Un camp
@@ -25,11 +25,11 @@ export function SequencePanel() {
 
   // Le compteur est le SEUL texte que ce panneau produit : deux patrons complets du catalogue (avec
   // et sans phase), le rang passant par la fabrique de fraction du seam.
-  const compteur = board.rounds
+  const compteur = board.manches
     ? (board.phase
-      ? t('seqPanel.manchePhase', { n: stepFraction(Math.min(board.round, board.rounds), board.rounds), phase: board.phase })
-      : t('seqPanel.manche', { n: stepFraction(Math.min(board.round, board.rounds), board.rounds) }))
-    : t('seqPanel.manche', { n: board.round });
+      ? t('seqPanel.manchePhase', { n: stepFraction(Math.min(board.manche, board.manches), board.manches), phase: board.phase })
+      : t('seqPanel.manche', { n: stepFraction(Math.min(board.manche, board.manches), board.manches) }))
+    : t('seqPanel.manche', { n: board.manche });
 
   return (
     <Band title={board.title} right={compteur}>
@@ -44,7 +44,7 @@ export function SequencePanel() {
                 value={camp.score}
                 max={camp.target}
                 label={camp.label}
-                tone={(v, m) => (v >= m ? 'ok' : 'neutral')}
+                tone={(v, m) => (v >= m ? 'ok' : 'neutre')}
                 format={(v, m) => `${stepFraction(v, m)} ${board.unit ?? t('seqPanel.uniteDr')}`}
               />
             ) : (

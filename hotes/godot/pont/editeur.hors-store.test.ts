@@ -393,7 +393,7 @@ describe('l’éditeur de carte par le pont, la logique (#3606 M3b2)', () => {
   it('sélectionner un porteur de la liste ouvre son inspecteur ; un déclencheur s’y sélectionne aussi', () => {
     const { presser, ajoutee, appel } = ajoute();
     const id = ((inspecte(ajoutee, 'nommer') as Formulaire).champs[0] as { valeur: string }).valeur;
-    const scene = presser(boutonDe(editionDe(appel('editer', { edition: { geste: 'outil', outil: { mode: 'select' } } })), 'logique/dialogue/ajouter'));
+    const scene = presser(boutonDe(editionDe(appel('editer', { edition: { geste: 'outil', outil: { mode: 'selection' } } })), 'logique/dialogue/ajouter'));
     expect(inspecte(scene, 'nommer')).not.toMatchObject({ champs: [{ valeur: id }] });
     const reprise = presser(boutonDe(scene, `logique/dialogue/${id}`));
     expect(boutonDe(reprise, `logique/dialogue/${id}`).presse).toBe(true);
@@ -547,7 +547,7 @@ describe('l’éditeur de carte par le pont, l’architecture', () => {
     presser(boutonDe(bati, 'architecture/facade'));
     const posee = jouer({ geste: 'appui', point: { case: { x: 2, y: 2 }, f: { x: 2, y: 1.55 } } });
     const inspecteur = (e: Edition) => e.vue.zones['editeur.inspecteur'];
-    expect(boutonDe(posee, 'architecture/select').presse, 'la façade posée, le clic revient à la sélection').toBe(true);
+    expect(boutonDe(posee, 'architecture/selection').presse, 'la façade posée, le clic revient à la sélection').toBe(true);
     expect(inspecteur(posee).find((el) => el.id === 'facade/apparence')).toMatchObject({ type: 'liste' });
     const apparence = (inspecteur(posee).find((el) => el.id === 'facade/apparence') as Choix).valeurs.find((v) => !v.presse)!;
     expect(boutonDe(presser(apparence), apparence.id).presse).toBe(true);
@@ -590,7 +590,7 @@ describe('l’éditeur de carte par le pont, l’architecture', () => {
     jouer({ geste: 'appui', point: point(3, 3) });
     jouer({ geste: 'glisse', point: point(4, 5) });
     const exclue = jouer({ geste: 'relache', point: point(4, 5) });
-    expect(boutonDe(exclue, 'architecture/select').presse, 'l’exclusion tirée, le clic revient à la sélection').toBe(true);
+    expect(boutonDe(exclue, 'architecture/selection').presse, 'l’exclusion tirée, le clic revient à la sélection').toBe(true);
     expect(inspecteur(exclue).find((el) => el.id === 'toiture/exclusion/0')).toMatchObject({ texte: 'Exclusion de toiture : 2 × 3 cases depuis 3, 3 · couche 0' });
     expect(inspecteur(presser(boutonDe(exclue, 'toiture/exclusion/0/retirer'))).some((el) => el.id.startsWith('toiture/exclusion/'))).toBe(false);
   });
@@ -1454,7 +1454,7 @@ describe('l’éditeur de carte par le pont, le navire (#3772)', () => {
     const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
     const ouverte = editionDe(appel('editer', { ouvrir: CAMPAGNE }));
     const outil = presser(boutonDe(ouverte, 'outil/navire'));
-    const echelle = presser(boutonDe(editionDe(appel('editer', { edition: { geste: 'outil', outil: { mode: 'select' } } })), 'scene/echelle/plus'));
+    const echelle = presser(boutonDe(editionDe(appel('editer', { edition: { geste: 'outil', outil: { mode: 'selection' } } })), 'scene/echelle/plus'));
     expect(boutonDe(echelle, 'outil/navire').refus).toBe('Ses ponts ne se posent pas dans une scène à 3 m par case');
     expect(erreurDe(appel('editer', boutonDe(echelle, 'outil/navire').jeu)).categorie).toBe('regle');
     expect(boutonDe(outil, 'navire/caraque').refus).toBeNull();

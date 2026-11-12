@@ -146,7 +146,7 @@ const doc = document(
       hint: 'Test, nombre de tentatives et issues (%) du placement spéculatif de cargaison',
     },
   },
-  { codex: { keys: ['seaCargo'] }, edit: { object: 'single' } },
+  { codex: { keys: ['seaCargo'] }, edit: { object: 'unique' } },
 );
 
 export const schema = doc.schema;

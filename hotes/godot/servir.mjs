@@ -11,9 +11,8 @@
 // serveur continue.
 //
 //   node hotes/godot/servir.mjs --web <dossier de l'export> [--modeles <dossier> | --statique] [--depot]
-import { createServer } from 'node:http'
-import { createReadStream, fstatSync, readFileSync } from 'node:fs'
-import { basename, extname, join, resolve, sep } from 'node:path'
+import { readFileSync } from 'node:fs'
+import { basename, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 import { dossierDesProjetsLivres, listerProjetsLivres, PROJETS_MANUSCRITS } from '../../scripts/guards/lib/projetsLivres.mjs'
@@ -23,32 +22,13 @@ import { servirLaSource } from '../../scripts/source/prose-source-plugin.mjs'
 import { ecrireTexteAtomique } from '../../scripts/guards/lib/ecritureJsonAtomique.mjs'
 import { DOSSIER_DES_MODELES, LISTAGE, listage } from './listage.mjs'
 import { DOSSIER_DES_PLANCHES } from './planches.mjs'
+import { ecouter, rendre, TYPES } from './statique.mjs'
 
 /** Le WebGL 2 de l'export, en logiciel dans un Chrome sans GPU, sans l'avertissement de repli. */
 export const WEBGL_LOGICIEL = ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist']
 /** La borne d'une lecture de la page : l'export Web de Godot tient le fil de la page le temps de chaque image, et celle
  *  qui lit un GLB ou dessine en WebGL logiciel une vue à deviceScaleFactor 2 dure plus que le défaut du kit. */
 export const FIL_DE_LA_PAGE_MS = 120000
-
-const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.wasm': 'application/wasm', '.png': 'image/png', '.json': 'application/json; charset=utf-8', '.glb': 'model/gltf-binary' }
-
-/** Le chemin `rel` sous `racine`, ou `null` s'il en sort. */
-function sous(racine, rel) {
-  const chemin = resolve(racine, rel)
-  return chemin.startsWith(racine + sep) ? chemin : null
-}
-
-/** Le fichier `chemin` en 200, ou 404 s'il ne s'ouvre pas en fichier ; une lecture coupée ferme la réponse. */
-function envoyer(res, chemin, entetes = {}) {
-  const flux = createReadStream(chemin)
-  flux.on('error', () => (res.headersSent ? res.destroy() : res.writeHead(404).end()))
-  flux.on('open', (fd) => {
-    const etat = fstatSync(fd)
-    if (!etat.isFile()) return void (flux.destroy(), res.writeHead(404).end())
-    res.writeHead(200, { 'Content-Type': TYPES[extname(chemin)] ?? 'application/octet-stream', 'Content-Length': etat.size, ...entetes })
-    flux.pipe(res)
-  })
-}
 
 /** La racine du dépôt où ce serveur vit, que `--depot` sert. */
 const RACINE_DU_DEPOT = fileURLToPath(new URL('../..', import.meta.url))
@@ -131,13 +111,7 @@ function servirLeDepot(req, res, depot, id) {
 export function servir({ web, modeles = DOSSIER_DES_MODELES, depot, statique = false }) {
   const racine = web && resolve(web)
   const dossier = resolve(modeles)
-  const serveur = createServer((req, res) => {
-    let rel
-    try {
-      rel = decodeURIComponent(new URL(req.url, 'http://local').pathname).replace(/^\/+/, '')
-    } catch {
-      return void res.writeHead(400).end()
-    }
+  return ecouter((req, res, rel) => {
     if (depot && rel.startsWith('depot/')) return servirLeDepot(req, res, resolve(depot), rel.slice('depot/'.length))
     if (depot && rel.startsWith('source/')) return void (servirLaSource(`/${rel}`, res) || res.writeHead(404).end())
     if (!statique && rel === `modeles/${LISTAGE}`) return void res.writeHead(200, { 'Content-Type': TYPES['.json'], 'Cache-Control': 'no-store' }).end(JSON.stringify(listage(dossier)))
@@ -146,11 +120,8 @@ export function servir({ web, modeles = DOSSIER_DES_MODELES, depot, statique = f
       : rel.startsWith('modeles/') ? [dossier, rel.slice('modeles/'.length), sansCache]
       : rel.startsWith('planches/') ? [DOSSIER_DES_PLANCHES, rel.slice('planches/'.length), sansCache]
       : [racine, rel || 'index.html', {}]
-    const fichier = base && sous(base, chemin)
-    if (!fichier) return void res.writeHead(404).end()
-    envoyer(res, fichier, entetes)
+    rendre(res, base, chemin, entetes)
   })
-  return new Promise((ok) => serveur.listen(0, '127.0.0.1', () => ok({ url: `http://127.0.0.1:${serveur.address().port}/`, fermer: () => serveur.close() })))
 }
 
 if (import.meta.main) {

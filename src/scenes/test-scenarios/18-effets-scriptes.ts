@@ -102,7 +102,7 @@ const construireVillage = (): Scene => buildScene({
       once: true,
       flow: flowFromEffects([
         { type: 'journal', desc: 'Une planche vermoulue cède sous votre pied — vous plongez dans la cave à provisions !' },
-        { type: 'fall', target: 'party', metres: 3, to: { x: 9, y: 6 } },
+        { type: 'fall', target: 'groupe', metres: 3, to: { x: 9, y: 6 } },
         { type: 'inflictTrauma', kind: 'dechirure', severity: 'mineur', location: 'jambeD' },
       ]),
     },

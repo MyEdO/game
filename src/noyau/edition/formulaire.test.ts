@@ -436,7 +436,7 @@ const DIALOGUE: Dialogue = {
   id: 'd',
   start: { id: 'a' },
   nodes: [
-    { id: 'a', choices: [{ id: 'suivre', label: 'Suivre', when: { kind: 'flag', expr: 'x' }, cost: { gold: 1 }, flow: { kind: 'effet', effet: { type: 'fall', target: 'party', metres: 4 } }, next: { id: 'b' } }] },
+    { id: 'a', choices: [{ id: 'suivre', label: 'Suivre', when: { kind: 'flag', expr: 'x' }, cost: { gold: 1 }, flow: { kind: 'effet', effet: { type: 'fall', target: 'groupe', metres: 4 } }, next: { id: 'b' } }] },
     { id: 'b', choices: [] },
   ],
 };

@@ -13,7 +13,8 @@ import { VERBES } from '../hote/verbes.generated';
 import { appelEcrit, type Lecture } from './outils';
 import { casesAtteignables } from '../hote/projection';
 import { borner, enSuspens, projeter, rendreLaCarte, rendreLaFiche, rendreLaSuite, rendreLaVue, rendreLeJournal, rendreLesCases, rendreLesGestes, rendreLesOffres, rendreLesVerbes, replier } from './vue';
-import { etatDeLaBarre, gestesDExploration } from '../noyau/index';
+import { etatDeLaBarre, gestesDExploration, porteurEnVue } from '../noyau/index';
+import { t } from '../i18n';
 
 /** Le disque que le lanceur prête, par NOM de partie : lire son fichier (`null` s'il n'existe pas), l'écrire, y ajouter ;
  *  la prendre pour ce serveur (`null`, ou qui la tient déjà) et la rendre. */
@@ -130,6 +131,7 @@ export function creerHote(disque: Disque) {
       case 'vue':
         return rendu(rendreLaVue(projection(r)));
       case 'fiche': {
+        if (id && !porteurEnVue(etat, id)) throw new ErreurDeGeste('validation', `fiche : ${t('vision.ficheHorsDeVue')}`);
         const fiche = id ? rendreLaFiche(etat, id) : null;
         if (!fiche) throw new ErreurDeGeste('validation', `fiche : aucun combattant ${id ?? '(`id` attendu)'} (${appelEcrit('lire', { quoi: 'carte' })})`);
         return rendu(fiche);

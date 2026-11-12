@@ -77,6 +77,11 @@ export function porteurParId(s: Jeu, id: string): Combatant | undefined {
   return inBattleId(s.battle, id) ?? assaillantDeLaSerie(s, id) ?? s.party.find((c) => c.id === id);
 }
 
+/** Une rencontre est-elle engagée : une bataille, ou une série d'attaques subies (`serieSubie`, #3892) ? */
+export function rencontreEngagee(s: Pick<Jeu, 'battle' | 'serieSubie'>): boolean {
+  return !!(s.battle || s.serieSubie);
+}
+
 /** L'assaillant de la série d'attaques subies (`serieSubie`) s'il porte l'id `id`. */
 function assaillantDeLaSerie(s: Pick<Jeu, 'serieSubie'>, id: string): Combatant | undefined {
   const a = s.serieSubie?.assaillant;

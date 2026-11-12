@@ -12,7 +12,7 @@ import { FIXTURES, FLUX, FOE, HERO, PERDANT } from './inventaireDuDeFixe.testkit
  * L'évaluation d'un dé saisi vit dans `makeRollFlow` : elle prend la cible que l'ACCESSEUR DE DÉ du flux
  * (`RollFlowSpec.die`, ou sa dérivation depuis la lentille) désigne, l'évalue par `evaluateTest`, puis la
  * projette par le `write` du même accesseur. Aucun résolveur de flux n'est sollicité — ils traitent
- * `forced` comme un auto-succès de Résilience et rendraient une réussite GRATUITE en ignorant la saisie.
+ * `forcee` comme un auto-succès de Résilience et rendraient une réussite GRATUITE en ignorant la saisie.
  *
  * Cette garde ouvre un pending FIXTURE RÉEL pour CHAQUE flux portant `imposerLeResultat` et vérifie les deux
  * invariants du socle :

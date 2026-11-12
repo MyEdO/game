@@ -1,5 +1,5 @@
 /**
- * Activation JOUEUR d'une capacité SUR SOI (targeting:'self') — Métamorphose de l'Enfant d'Ulric
+ * Activation JOUEUR d'une capacité SUR SOI (ciblage:'soi') — Métamorphose de l'Enfant d'Ulric
  * (Middenheim p.116) : la hotbar propose la manœuvre APPLICABLE (prendre/reprendre la forme) ; l'action
  * `manoeuvrerSurSoi` résout la transformation sur le porteur, applique le delta RAW + Traits + apparence,
  * consomme l'Action du tour ET la prochaine (loseTurn) = prix de DEUX actions, et se toggle proprement.

@@ -5,7 +5,9 @@
  * l'arrivée, l'écran du lieu tient la main (`lieuEnVue`) : ses services et ses trajets ; « Explorer » entre dans sa scène.
  */
 import { afterEach, describe, it, expect } from 'vitest';
-import { departDeLaCarte, drainer, table, gestesDessines } from './pont.testkit';
+import { departDeLaCarte, drainer, suiteDe, table, gestesDessines } from './pont.testkit';
+import { AUTO_SLOT, cleDEmplacement } from '../../../src/hote/sauvegardes';
+import type { SaveGame } from '../../../src/noyau/index';
 import type { Bouton, Choix, Element, Entite, Ligne, Plan } from '../../../src/hote/elements';
 import type { Pont, Suite } from './pont';
 
@@ -15,7 +17,7 @@ afterEach(() => { ouvert?.appeler('quitter'); ouvert = null; });
 
 /** Une partie neuve du scénario `voyage`, son entrée passée. */
 function partie() {
-  const { pont, appel } = table();
+  const { pont, appel, stockage } = table();
   ouvert = pont;
   /** Joue le geste que l'Entrée jouerait, ou le premier bouton ouvert, tant qu'une fenêtre autre que `jusqua` tient la
    *  main. */
@@ -29,7 +31,7 @@ function partie() {
     return suite;
   };
   const jouer = (b: Bouton, jusqua?: string): Suite => avancer(drainer(appel, appel('jouer', b.jeu)).suite, jusqua);
-  return { jouer, suite: avancer(drainer(appel, appel('demarrer', { scenario: 'voyage', graine: 7 })).suite) };
+  return { jouer, appel, stockage, suite: avancer(drainer(appel, appel('demarrer', { scenario: 'voyage', graine: 7 })).suite) };
 }
 
 const parId = (elements: readonly Element[]) => Object.fromEntries(elements.map((e) => [e.id, e]));
@@ -94,6 +96,28 @@ describe('le voyage par le pont', () => {
     expect(suite.vue.projection.scene?.id, 'Explorer entre dans la scène du lieu').toBe('test-voyage-bourg');
     const leLieu = suite.vue.zones['exploration.gestes'].find((b) => b.libelle === 'Le lieu')!;
     expect(p.jouer(leLieu, 'ecranDuLieu').vue.projection.fenetre?.cle, 'le lieu se rouvre depuis sa scène').toBe('ecranDuLieu');
+  });
+
+  it('entrer dans la scène du lieu pose le point de reprise d’une campagne à l’emplacement automatique, jamais celui d’un scénario de test', () => {
+    const p = partie();
+    /** Le voyage jusqu'au bourg, puis « Explorer » : la suite, le groupe entré dans la scène du lieu. */
+    const explorer = (depart: Suite): Suite => {
+      let suite = p.jouer(carte(depart), 'carteDuMonde');
+      suite = p.jouer(mode(suite, 'r-grandroute', 'pied'), 'ecranDuLieu');
+      return p.jouer(suite.vue.zones['fenetre.gestes'].find((b): b is Bouton => b.type === 'bouton' && b.libelle === 'Explorer')!);
+    };
+    expect(p.appel('sauvegarder', { sauvegarder: 1 }).ok, 'le scénario de test s’écrit à la main').toBe(true);
+    explorer(p.suite);
+    expect(p.stockage.getItem(cleDEmplacement(AUTO_SLOT)), 'un scénario de test ne garde aucun point de reprise').toBeNull();
+
+    // La sauvegarde du scénario, posée en campagne : l'identité d'un document de projet.
+    const save = JSON.parse(p.stockage.getItem(cleDEmplacement(1))!) as SaveGame;
+    p.stockage.setItem(cleDEmplacement(1), JSON.stringify({ ...save, data: { ...save.data, campaignDoc: { ...save.data.campaignDoc, projet: { id: 'campagne-de-test' } } } }));
+    p.appel('quitter');
+    const arrivee = explorer(suiteDe(p.appel('charger', { charger: 1, graine: 7 })));
+    const garde = JSON.parse(p.stockage.getItem(cleDEmplacement(AUTO_SLOT)) ?? 'null') as SaveGame | null;
+    expect(garde?.data.scene?.id, 'le point de reprise est la scène où le groupe vient d’entrer').toBe(arrivee.vue.projection.scene!.id);
+    expect(garde?.data.scene?.id).not.toBe(save.data.scene?.id);
   });
 
   it('une embuscade en chemin : le récit l’annonce, chaque journée et ce qui s’y est passé, puis il faut faire face', () => {

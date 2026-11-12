@@ -1,6 +1,6 @@
 /**
  * z-blindness des manœuvres de ZONE (Souffle/Vomi/Hurlement, #798) — `combatantsWithinRadius` (défaut
- * z-aware, cf. `combatGeometry.ts`) protège déjà `resolveManeuver` (targeting `zone`/`allFoes`, sites
+ * z-aware, cf. `combatGeometry.ts`) protège déjà `resolveManeuver` (ciblage `zone`/`adversairesAutour`, sites
  * combatManeuvers.ts:410/418/432) puisque `attacker.pos`/`center.pos` PORTENT leur `z`. Le SEUL trou
  * restant : la zone de Fumée (Souffle (Fumée)) posait ses cases via `smokeZone` SANS propager le `z` du
  * centre — une case de même (x,y) à un autre étage se retrouvait donc « couverte » (`zoneCovers` compare

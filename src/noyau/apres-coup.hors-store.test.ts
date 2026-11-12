@@ -76,7 +76,7 @@ function monte(charge: Charge, susp: Suspension | null, temoin = false): void {
     combatants: combattants, order: combattants.map((c) => c.id), baseOrder: combattants.map((c) => c.id),
     turn: combattants.indexOf(attaquant), round: 1, action: null, selectedSpellId: null, reachable: new Map(),
     movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
-    ...(charge === 'reaction' ? { advantagePools: { allies: 3, foes: 0 } } : {}),
+    ...(charge === 'reaction' ? { advantagePools: { allies: 3, adversaires: 0 } } : {}),
   } as unknown as BattleState;
   banc.setState({
     battle, mode: 'battle', scene: testScene(), party: combattants.filter((c) => c.kind === 'heros'),
@@ -199,7 +199,9 @@ describe('après-coup — le cas suspendu rejoint le témoin (#1508 T3b-4)', () 
     const h2 = g().battle!.combatants.find((c) => c.id === 'h2')!;
     h2.traits = [{ id: 'demoniaque', value: 9 }] as never;
     const trace = jouer();
-    expect(trace.filter((t) => t.startsWith('defense(')), trace.join(' | ')).toEqual(['defense(Griffe→h)', 'defense(Griffe→h2)']);
+    // Puis la gratuite de créature du tour, une fois la chaîne close : le Piétinement (LDB 85 l.387), dont la
+    // réussite relance le balayage sur h2 (LDB 85 l.360).
+    expect(trace.filter((t) => t.startsWith('defense(')), trace.join(' | ')).toEqual(['defense(Griffe→h)', 'defense(Griffe→h2)', 'defense(Piétinement→h)', 'defense(Griffe→h2)']);
     expect(g().battle!.combatants.find((c) => c.id === 'h2')!.wounds.current, 'le maillon suspendu a porté sur h2').toBeLessThan(200);
     expect(g().pendingCascade).toBeNull();
   });

@@ -82,7 +82,7 @@ describe('jetImposerLeResultat@attaque — choisir la valeur du dé d’un succ�
   });
 
   // Sans Résilience en cours, le MÊME verbe sert l'autre provenance du dé (option « Dés fixés », #939) :
-  // il applique bien la valeur, mais ÉVALUÉE — aucune réussite forcée, aucun `forced` posé. (L'affordance,
+  // il applique bien la valeur, mais ÉVALUÉE — aucune réussite forcée, aucun `forcee` posé. (L'affordance,
   // elle, reste gatée par l'option + le contrôle du siège : `fixed-die.test.ts`.)
   it('attaque non forcée → le dé s’applique au NATUREL, sans rien forcer', () => {
     seedBattleRng(7);
@@ -98,7 +98,7 @@ describe('jetImposerLeResultat@attaque — choisir la valeur du dé d’un succ�
     expect(res.attackerRoll).toBe(44);
     expect(res.attackerDetail!.success).toBe(true); // 44 ≤ 45 : réussite RÉELLE du dé, pas forcée
     expect(res.attackerDetail!.sl).toBe(0); // dizaine(45) − dizaine(44) : aucun plancher de Résilience
-    expect(banc.getState().pendingAttack!.forced).toBeFalsy();
+    expect(banc.getState().pendingAttack!.forcee).toBeFalsy();
     expect(banc.getState().battle!.combatants.find((c) => c.id === 'A')!.resilience).toBe(2);
   });
 });
@@ -120,7 +120,7 @@ describe('jetImposerLeResultat@incantation — même choix sur une INCANTATION f
 
   it('11 (le plus bas double réussi) → Incantation Critique', () => {
     setupForcedCast();
-    expect(banc.getState().pendingCast!.forced).toBe(true);
+    expect(banc.getState().pendingCast!.forcee).toBe(true);
     banc.getState().jetImposerLeResultat('incantation', 11);
     const res = banc.getState().pendingCast!.result!;
     expect(res.roll).toBe(11);
@@ -163,10 +163,10 @@ describe('jetImposerLeResultat@defense — même choix sur une DÉFENSE forcée'
     banc.getState().jetForcerLaReussite('defense');
   }
 
-  it('le force pose `forced`, puis le défenseur choisit son dé (11 = double)', () => {
+  it('le force pose `forcee`, puis le défenseur choisit son dé (11 = double)', () => {
     setupForcedDefense();
     const pd = banc.getState().pendingDefense!;
-    expect(pd.forced).toBe(true);
+    expect(pd.forcee).toBe(true);
     expect(pd.result!.hit).toBe(false); // « vous l'emportez avec au moins DR +1 »
     banc.getState().jetImposerLeResultat('defense', 11);
     const after = banc.getState().pendingDefense!;

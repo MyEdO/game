@@ -2,16 +2,13 @@ extends SceneTree
 
 ## Plus de huit foyers sur le monde en morceaux (#3948) : un sol de 32 × 24 cases posé par `VolumeDeScene` en morceaux de
 ## 8 × 8 cases sous onze lampes, chacune au-dessus d'un morceau ; chaque lampe éclaire le sol sous elle, lu aux pixels de
-## l'image rendue. Témoin : le même sol en un seul morceau n'est éclairé que par huit d'entre elles, la borne du rendu de
-## compatibilité (`rendering/limits/opengl/max_lights_per_object`).
+## l'image rendue. Témoin : sous le rendu de compatibilité, le même sol en un seul morceau n'est éclairé que par huit
+## d'entre elles, sa borne par objet (`rendering/limits/opengl/max_lights_per_object`) ; sous Forward+, qui n'a pas
+## cette borne, par toutes.
 ##
-## Rendu réel, hors de `npm run godot:sonde` : la sonde joue ses recettes en `--headless`, dont le rendu ne peint aucune
-## image, et ne joue donc pas celle-ci (elle n'en contrôle que l'analyse). Elle se joue sous un écran virtuel :
-##   xvfb-run -a -s "-screen 0 800x600x24" <godot> --path hotes/godot/projet --rendering-driver opengl3 \
-##     --script res://recettes/foyers-sur-morceaux.gd
-## sur un projet importé (`<godot> --headless --path hotes/godot/projet --import`) ; elle sort en 0, ou en 1 avec ses
-## fautes.
+## Rendu réel, sous chacun des deux rendus : `npm run godot:rendus`.
 
+const RECETTE_RENDUE := true
 const LARGEUR := 32
 const HAUTEUR := 24
 const CASES_PAR_MORCEAU := 8
@@ -84,8 +81,9 @@ func _recetter() -> void:
 		volume.free()
 	if eclaires["en morceaux"] != LAMPES:
 		_fautes.append("en morceaux : %d lampes éclairent leur sol, attendu %d" % [eclaires["en morceaux"], LAMPES])
-	if eclaires["en un morceau"] != 8:
-		_fautes.append("témoin en un morceau : %d lampes éclairent leur sol, attendu 8 (la borne par objet)" % eclaires["en un morceau"])
+	var borne := 8 if RenderingServer.get_current_rendering_method() == "gl_compatibility" else LAMPES
+	if eclaires["en un morceau"] != borne:
+		_fautes.append("témoin en un morceau : %d lampes éclairent leur sol, attendu %d (la borne par objet du rendu)" % [eclaires["en un morceau"], borne])
 	for faute in _fautes:
 		push_error("[foyers-sur-morceaux] " + faute)
 	print("[foyers-sur-morceaux] erreurs=", _fautes.size())

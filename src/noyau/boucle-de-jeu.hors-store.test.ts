@@ -1034,7 +1034,7 @@ describe('Boucle de jeu (store)', () => {
     const turn = st.battle!.order.indexOf(H.id);
     banc.setState({ battle: { ...st.battle!, turn, action: null, movementUsed: 0, movedPreAction: false, acted: false } });
     banc.getState().rompreLEngagement(); // ouvre le menu de choix
-    expect(banc.getState().pendingDisengage!.phase).toBe('choice');
+    expect(banc.getState().pendingDisengage!.phase).toBe('choix');
     expect(banc.getState().pendingDisengage!.canSacrifice).toBe(true); // Avantage supérieur → option dispo
     banc.getState().jetRegler('desengagement', 'sacrifier', true); // « Sacrifier l'Avantage »
     st = banc.getState();
@@ -1160,7 +1160,7 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().cliquerLaCase({ x: H.pos!.x - 1, y: H.pos!.y }, undefined, { confirm: true });
     st = banc.getState();
     expect(st.pendingDisengage).not.toBeNull(); // routé vers le Désengagement
-    expect(st.pendingDisengage!.phase).toBe('choice'); // clic-sol Engagé ouvre le menu de désengagement
+    expect(st.pendingDisengage!.phase).toBe('choix'); // clic-sol Engagé ouvre le menu de désengagement
   });
 
   it('Désengagement B égalité parfaite : statu quo — ni fuite, ni Avantage à l’adversaire', () => {
@@ -1267,7 +1267,7 @@ describe('Boucle de jeu (store)', () => {
     const turn = st.battle!.order.indexOf(H.id);
     banc.setState({
       battle: { ...st.battle!, turn, action: null, movementUsed: 0, movedPreAction: false, acted: false },
-      pendingDisengage: { moverId: H.id, foeId: E.id, canSacrifice: false, phase: 'choice', atk: null, def: null, result: null },
+      pendingDisengage: { moverId: H.id, foeId: E.id, canSacrifice: false, phase: 'choix', atk: null, def: null, result: null },
     });
     banc.getState().jetRegler('desengagement', 'fuir', true);
     st = banc.getState();

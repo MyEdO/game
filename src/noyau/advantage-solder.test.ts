@@ -63,11 +63,11 @@ describe('Battement (LDB 10 l.103 / AA 13 l.17)', () => {
     setRule('combat-aa-avantage-groupe', true);
     const a = mk('h', 'heros', { engagedWith: ['e'] });
     const e = mk('e', 'ennemi');
-    const { get, battle } = makeGet([a, e], { allies: 0, foes: 3 });
+    const { get, battle } = makeGet([a, e], { allies: 0, adversaires: 3 });
     resolveBattement(get, a, e, roll(true, 2)); // 2 DR → −1
-    expect(battle.advantagePools).toEqual({ allies: 0, foes: 2 });
+    expect(battle.advantagePools).toEqual({ allies: 0, adversaires: 2 });
     resolveBattement(get, a, e, roll(true, 6)); // 6 DR → −2
-    expect(battle.advantagePools).toEqual({ allies: 0, foes: 0 });
+    expect(battle.advantagePools).toEqual({ allies: 0, adversaires: 0 });
   });
 
   it('LDB : un Battement réussi retire 1 + DR de l’Avantage INDIVIDUEL du foe', () => {
@@ -82,9 +82,9 @@ describe('Battement (LDB 10 l.103 / AA 13 l.17)', () => {
     setRule('combat-aa-avantage-groupe', true);
     const a = mk('h', 'heros', { engagedWith: ['e'] });
     const e = mk('e', 'ennemi');
-    const { get, battle } = makeGet([a, e], { allies: 0, foes: 3 });
+    const { get, battle } = makeGet([a, e], { allies: 0, adversaires: 3 });
     resolveBattement(get, a, e, roll(false, -1));
-    expect(battle.advantagePools).toEqual({ allies: 0, foes: 3 });
+    expect(battle.advantagePools).toEqual({ allies: 0, adversaires: 3 });
   });
 });
 
@@ -151,18 +151,18 @@ describe('Empoignade opposée (LDB 14 l.161) — le +1 du vainqueur crédite la 
   it('mode groupe : quand l’actor PERD, foe gagne +1 dans la RÉSERVE de son camp (pas per-combattant)', () => {
     setRule('combat-aa-avantage-groupe', true);
     // actor (héros) F 5 vs foe (ennemi) F 90 → l’ennemi gagne le Test opposé de Force sur (presque) tout seed.
-    // On balaie des seeds jusqu’à observer UNE défaite de l’actor et on vérifie le crédit de RÉSERVE (foes=1),
+    // On balaie des seeds jusqu’à observer UNE défaite de l’actor et on vérifie le crédit de RÉSERVE (adversaires=1),
     // et que l’Avantage INDIVIDUEL du foe reste 0 (projection = réserve, pas un +1 per-combattant).
     let sawDefeat = false;
     for (let seed = 1; seed <= 40 && !sawDefeat; seed++) {
       seedBattleRng(seed);
       const actor = mk('h', 'heros', { characteristics: { ...CHARS, force: 5 }, grapplingWith: ['e'] });
       const foe = mk('e', 'ennemi', { characteristics: { ...CHARS, force: 90 }, grapplingWith: ['h'] });
-      const { get, battle } = makeGet([actor, foe], { allies: 0, foes: 0 });
+      const { get, battle } = makeGet([actor, foe], { allies: 0, adversaires: 0 });
       const line = resolveGrappleOpposed(get, actor, foe);
-      if (line.includes(foe.label) && battle.advantagePools!.foes === 1) {
+      if (line.includes(foe.label) && battle.advantagePools!.adversaires === 1) {
         sawDefeat = true;
-        expect(battle.advantagePools).toEqual({ allies: 0, foes: 1 }); // crédit de RÉSERVE
+        expect(battle.advantagePools).toEqual({ allies: 0, adversaires: 1 }); // crédit de RÉSERVE
         expect(foe.advantage).toBe(1); // projeté depuis la réserve (mirror), pas un +1 direct
       }
     }

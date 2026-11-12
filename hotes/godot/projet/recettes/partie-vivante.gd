@@ -1,8 +1,11 @@
+class_name PartieVivante
 extends SceneTree
 
 ## Une partie sur le noyau vivant (#3945, `hotes/godot/pont/CONTRAT.md`, section « Transport ») : sur le pont de l'arbre,
-## ouvert sur le processus du noyau (`TransportDuProcessus`, `--pont=<chemin>` après `--`), le combat
-## (`scenes/Combat.tscn`) montre le panneau des scénarios ; un clic sur le bouton de `dome` démarre la partie, dont la
+## ouvert sur le processus du noyau (`TransportDuProcessus` : `--pont=<chemin>` après `--` sous l'éditeur, le noyau
+## embarqué dans l'exécutable de bureau, qui joue cette recette en boucle principale, `application/run/main_loop_type`,
+## #3951), la scène du combat (`scenes/Combat.tscn`) prend la place de la scène en cours et montre le panneau des
+## scénarios ; un clic sur le bouton de `dome` démarre la partie, dont la
 ## première vue se montre ; une pile des couches demandée (`PontDuNoyau.resoudre_la_pile`), suivie d'un appel écrit
 ## avant qu'elle ne soit rendue, revient `ok: true` à son rappel, et l'appel reçoit sa propre réponse ; `morceaux` de
 ## toutes les clés du manifeste (`monde`) arrive en octets (`PontDuNoyau._recoller`) : chaque géométrie porte quatre
@@ -13,6 +16,7 @@ extends SceneTree
 
 const RECETTE_AUTONOME := true
 const SCENARIO := "dome"
+const COMBAT := "res://scenes/Combat.tscn"
 ## L'attente la plus longue d'un état : le lancement du processus et le démarrage de la partie compris.
 const ATTENTE_S := 120.0
 ## La plus petite pile valide (`PileDemandee`, `hotes/godot/pont/pile.ts`) : aucune pièce.
@@ -34,8 +38,9 @@ func _recetter() -> void:
 	pont.panne.connect(func(message: String) -> void: _signales.append("panne : " + message))
 	pont.refus.connect(func(message: String) -> void: _signales.append("refus : " + message))
 	pont.en_recette = true
-	var combat: Node = (load("res://scenes/Combat.tscn") as PackedScene).instantiate()
-	root.add_child(combat)
+	change_scene_to_file(COMBAT)
+	await scene_changed
+	var combat := current_scene
 	var lancer := "bouton/lancer/" + SCENARIO
 	if await _attendre(func() -> bool: return _publie(pont, lancer) != null, "le bouton de %s au panneau des scénarios" % SCENARIO):
 		_cliquer(_publie(pont, lancer))

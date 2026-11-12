@@ -27,11 +27,11 @@ import { t } from '../i18n';
 import { useGesteDeJet } from './useGesteDeJet';
 
 /** Enjeu servi par chaque fenêtre du Désengagement. */
-const DISENGAGE_STAKE: Record<PendingDisengage['phase'], FlowStakeId> = { choice: 'desengagement-choix', esquive: 'desengagement-esquive', fuir: 'desengagement-fuir' };
+const DISENGAGE_STAKE: Record<PendingDisengage['phase'], FlowStakeId> = { choix: 'desengagement-choix', esquive: 'desengagement-esquive', fuir: 'desengagement-fuir' };
 
 /**
  * Modale de Désengagement (LDB 15 l.43-68). Trois phases, une seule coquille de jet PARTAGÉE :
- * - **'choice'** : PAS un jet — le MENU d'options (`OptionChooser`) Sacrifier l'Avantage / Esquiver /
+ * - **'choix'** : PAS un jet — le MENU d'options (`OptionChooser`) Sacrifier l'Avantage / Esquiver /
  *   Fuir + Résilience pré-jet, rendu dans un `Modal` simple (RollShell ne fait pas les menus).
  * - **'esquive'** : `RollShell` opposé (2 rangées) — [0] Corps à corps du foe FIGÉ (témoin) vs
  *   [1] Esquive du mover INTERACTIVE (cycle d'influence), `winnerIndex`/`outcome`. Appliquer = `jetValider('desengagement')`.
@@ -62,8 +62,8 @@ export function DisengageModal() {
   if (!mover || !foe) return null;
   const header = <VsHeader actor={mover} target={foe} label="quitter le corps à corps" verb="melee/se-desengager" />;
 
-  // ── Phase 'choice' : MENU d'options (pas un jet) — Modal simple + OptionChooser + Résilience pré-jet. ──
-  if (pd.phase === 'choice') {
+  // ── Phase 'choix' : MENU d'options (pas un jet) — Modal simple + OptionChooser + Résilience pré-jet. ──
+  if (pd.phase === 'choix') {
     // « Avantage de groupe » (AA 11 l.37) : l'option A devient « Retraite stratégique » à coût FIXE (2 Av,
     // 1 avec Impitoyable) débité de la réserve du camp ; sinon LDB « Sacrifier l'Avantage » (→ 0).
     const groupMode = groupAdvantage();

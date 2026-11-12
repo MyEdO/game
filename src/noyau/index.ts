@@ -28,11 +28,12 @@ export { PARTS_RELIEF } from '../data/materials.types';
 export type { Cadence } from '../engine/cadence';
 export type { FabriqueDId, FabriqueDuRoster } from '../engine/fabriqueDId';
 export type { Equipe } from '../engine/relations';
-export { refusDesSurcharges, ruleOverrides, type RegleOptionnelleId, type RuleValue } from '../engine/policy';
+export { OPTIONAL_RULES, refusDesSurcharges, ruleOverrides, type OptionalRule, type RegleOptionnelleId, type RuleValue } from '../engine/policy';
 export { actionGate, offreArmee, offresDeLActif, offresParPorteur, etatDeLaBarre, type EtatDeLaBarre, type ActionCtx, type Offre } from './actionRegistry';
 export { ACTIONS } from '../data/index';
 export { CADRE_DES_ICONES, ICON_DEFS } from '../data/icons';
 export { CADRE_DES_FONDS, FONDS } from '../data/fonds';
+export { CADRE_DES_PAYSAGES, COUCHES_DE_PAYSAGE, type IdDeCouche } from '../data/paysages';
 export { ENTREES_DE_DOSSIER } from '../data/dossiers';
 export { findCouleurById, findTeinteById, gardeRobe } from '../data/index';
 export type { EmblemeDef } from '../data/schemas/defs/garde-robe';
@@ -98,6 +99,7 @@ export { sceneZoneTiles } from './monde/zones';
 export { capDeLEntite, capsOfferts, effectZoneRect, entiteDeLaSelection, ficheEditee, FACES_D_ARETE, fichesDePersonnage, libelleDeStructure, lumiereAllumee, poigneeDeLaSelection, sameSel, segmentDeLaSelection, selRect, structuresCrenelables, structuresDeLArete, type Sel, type WallPaint, ZONE_VARIANTS } from './sceneEditLecture';
 export { lumiereDeLaScene, type LumiereDeLaScene } from './lumiereDeLaScene';
 export { effetsDeLAppel, vitrineDesEffets, zonesQuiDurent, type Effet, type VitrineDesEffets, type ZoneQuiDure } from './effetsDeLAppel';
+export { cleDeLaVision, combattantEnVue, entiteConnue, nomEnVue, porteurEnVue, visionDuMonde, type VisionDuMonde } from './visionDuGroupe';
 export { marquesDesEtats, type MarqueDEtat } from './marquesDesEtats';
 export { musiqueDeLaPartie, type MusiqueDeLaPartie } from './musiqueDeLaPartie';
 export { meteoDuRegard, type MeteoDuRegard } from './monde/meteo';
@@ -134,17 +136,17 @@ export { avecSigne } from '../engine/types';
 export { MANIEMENTS, ROLES_D_ANIMATION, maniementDeLaForme, type RoleDAnimation } from './animation';
 export type { VerrouDesMots } from './fabriquesDuNoyau';
 export type { Maniement } from '../data/schemas/grammaire/valeurs';
-export { lireLeRoster, ecrireLeRoster, idDeRosterDuHeros, rosterAvecLeHeros, type HerosDuRoster, type RosterEntry } from './persistance/roster';
-export { engagement, intentionDEngagement, intentionDeRenvoi, pretiresOfferts, refusDEngagement, refusDUnNouveauHeros } from './creation/engagement';
+export { lireLeRoster, ecrireLeRoster, idDeRosterDuHeros, rosterAvecLeHeros, rosterExport, rosterImport, type HerosDuRoster, type RosterEntry } from './persistance/roster';
+export { engagement, herosDuRosterOfferts, intentionDEngagement, intentionDeRenvoi, pretiresOfferts, refusDEngagement, refusDUnNouveauHeros, type IntentionDEngagement } from './creation/engagement';
 export { partieEnCours, refusDeLancer, refusDeRenvoyer } from './partyFlow';
 export type { CreatorDraft } from './creation/brouillon';
 export { apresLeGeste, brouillonDeLaPartie, pagesDeCreation, refusDeLaPage, rubriquesDeLaPage, type GesteDuBrouillon, type PageDeCreation, type RubriqueDeCreation } from './creation/vueDeLaCreation';
-export { lireLesRetraits, cumulerLesRetraits, type RetraitsDElagage } from './persistance/elagage';
-export { poserLesReglesMaisonPersistees, surchargerUneRegleMaison, retablirUneRegleMaison } from './reglesMaison';
-export { preferenceDef, preferencesAPersister, poserLesPreferencesPersistees, valeurDEntree, type IdDePreference, type Preference, type PrefValue } from './preferences';
+export { lireLesRetraits, cumulerLesRetraits, nommerLesRetraits, type RetraitsDElagage } from './persistance/elagage';
+export { poserLesReglesMaisonPersistees, reglesMaisonMutables, surchargerUneRegleMaison, retablirUneRegleMaison } from './reglesMaison';
+export { PREFERENCES, preferenceDef, preferencesAPersister, poserLesPreferencesPersistees, valeurDEntree, type IdDePreference, type Preference, type PrefValue } from './preferences';
 export {
-  snapshotSave, metaDeSave, lireSave, exporterLaSauvegarde, chargerLaSave, refusDeSauvegarde,
-  type SaveGame, type SaveMeta, type ObsoleteCause, CAUSES_DE_REFUS_DE_SAVE,
+  snapshotSave, metaDeSave, lireSave, exporterLaSauvegarde, chargerLaSave, refusDeSauvegarde, estUnPointDeReprise, pointDeRepriseAGarder,
+  type SaveGame, type SaveMeta, type ObsoleteCause, type RefusDeSauvegarde, CAUSES_DE_REFUS_DE_SAVE,
 } from './persistance/save';
 export { aEcrire, campagneDUneEntree, entreesRelues, idDesignable, projetDUneEntree, type CampagneLancee, type EntreeListee, type SavedProject } from './persistance/bibliotheque';
 export { ProjetRefuse, type ProjectDoc } from './worldMap';

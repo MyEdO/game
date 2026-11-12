@@ -42,9 +42,9 @@ export interface CreatureAttack {
   /** Caractéristique du jet d'attaquant (capacite-de-combat mêlée / capacite-de-tir distance·zone) ;
    *  absent = pas de jet d'attaquant (Hurlement : chaque cible teste sa Résistance). */
   stat?: 'capacite-de-combat' | 'capacite-de-tir';
-  /** Gestion de l'Avantage dépensé : `fixed` (défaut) / `variable` (Regard) / `all` (Hurlement). */
-  advantageMode?: 'fixed' | 'variable' | 'all';
-  /** Attaque de ZONE (Souffle/Vomi) — dérivé de `def.targeting === 'zone'`. */
+  /** Gestion de l'Avantage dépensé : `fixe` (défaut) / `variable` (Regard) / `tout` (Hurlement). */
+  modeDAvantage?: ManeuverDef['modeDAvantage'];
+  /** Attaque de ZONE (Souffle/Vomi) — dérivé de `def.ciblage === 'zone'`. */
   aoe?: boolean;
   /** Attaque magique (Souffle, Étreinte glaciale). */
   magic?: boolean;
@@ -151,14 +151,14 @@ export function creatureAttacks(traits: TraitList): CreatureAttack[] {
   for (const inst of traits) {
     for (const g of findTraitById(inst.id)?.grantsManeuvers ?? []) {
       const def = manoeuvreDeLInstance(g.id, inst);
-      if (!def || def.ecartDeTailleMin != null || def.targeting === 'self') continue;
+      if (!def || def.ecartDeTailleMin != null || def.ciblage === 'soi') continue;
       const indice = inst.value ?? 0;
       out.push({
         cle: def.id, kind: def.kind, label: traitLisible(inst), bonus: indice, indice, type: inst.arg, def,
         trigger: def.activation, avantage: def.coutEnAvantage,
-        ...(def.stat ? { stat: def.stat } : {}), ...(def.advantageMode ? { advantageMode: def.advantageMode } : {}),
+        ...(def.stat ? { stat: def.stat } : {}), ...(def.modeDAvantage ? { modeDAvantage: def.modeDAvantage } : {}),
         ...(inst.count != null ? { count: inst.count } : {}),
-        ...(def.targeting === 'zone' ? { aoe: true } : {}), ...(def.magic ? { magic: true } : {}),
+        ...(def.ciblage === 'zone' ? { aoe: true } : {}), ...(def.magic ? { magic: true } : {}),
         ...(def.kind === 'tentacules' ? { perTentacle: true } : {}),
         ...(inst.confere?.length ? { confere: inst.confere } : {}),
         ...(inst.value != null && findTraitById(inst.id)?.bfInclus ? { bfInclus: true as const } : {}),
@@ -188,7 +188,7 @@ export const attaqueDeCle = (traits: TraitList, cle: string): CreatureAttack | u
 function attaqueDEcart(def: ManeuverDef): CreatureAttack {
   return {
     cle: def.id, kind: def.kind, label: def.label, bonus: 0, indice: 0, def, trigger: def.activation, avantage: def.coutEnAvantage,
-    ...(def.stat ? { stat: def.stat } : {}), ...(def.advantageMode ? { advantageMode: def.advantageMode } : {}),
+    ...(def.stat ? { stat: def.stat } : {}), ...(def.modeDAvantage ? { modeDAvantage: def.modeDAvantage } : {}),
   };
 }
 
@@ -204,17 +204,17 @@ export const attaqueNaturelle = (traits: TraitList, kind: string): CreatureAttac
   attaquesNaturelles(traits).find((a) => a.kind === kind);
 
 // ---------------------------------------------------------------------------
-// Capacités SUR SOI (targeting:'self') — transformation/mue/auto-buff octroyées par un trait
+// Capacités SUR SOI (ciblage:'soi') — transformation/mue/auto-buff octroyées par un trait
 // ---------------------------------------------------------------------------
 
-/** Manœuvres SUR SOI (`targeting:'self'`) octroyées par les traits de `c` (Métamorphose humain↔hybride de
+/** Manœuvres SUR SOI (`ciblage:'soi'`) octroyées par les traits de `c` (Métamorphose humain↔hybride de
  *  l'Enfant d'Ulric…). SÉPARÉ de `creatureAttacks` (orienté attaque : une manœuvre par trait). PUR. */
 export function selfManeuversOf(c: Combatant): ManeuverDef[] {
   const out: ManeuverDef[] = [];
   for (const tr of c.traits ?? [])
     for (const r of findTraitById(tr.id)?.grantsManeuvers ?? []) {
       const def = findManeuverById(r.id);
-      if (def?.targeting === 'self') out.push(def);
+      if (def?.ciblage === 'soi') out.push(def);
     }
   return out;
 }

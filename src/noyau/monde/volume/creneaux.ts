@@ -7,7 +7,7 @@ import type { StructureAppearanceDef, WallPart } from '../../../data/structureAp
 import { DIR4_ORDER, DIR8_DELTA } from '../../../geometry/dir8';
 import { isoPxToM } from '../iso';
 import { METRES_PER_LEVEL, gradeBetween } from '../relief';
-import { crenellatedAt, edgeOf, heightAt, isCrenellated, isWalkable, structureAt, wallEnds, type Scene, type WallSide } from '../scene';
+import { crenellatedAt, edgeOf, heightAt, isCrenellated, isWalkable, structureAt, wallEnds, type SceneDuVolume, type WallSide } from '../scene';
 import { structureAppearance } from './structures';
 import type { Face, GP } from './types';
 
@@ -55,7 +55,7 @@ export interface CreteDePerimetre {
  *  crénelée), sa couronne (`crownFaces`) assise à la surface de la case. Merlons CEINTURANT la zone, jamais à
  *  l'intérieur. Une crête n'est PAS un `WallSeg` de scène : elle ne coupe NI le passage NI la LdV plongeante (les
  *  défenseurs tirent par-dessus). La MAÇONNERIE, elle, vient du bloc plein du sol. */
-export function cretesDePerimetre(scene: Scene): CreteDePerimetre[] {
+export function cretesDePerimetre(scene: SceneDuVolume): CreteDePerimetre[] {
   const { w, h } = scene.dimensions;
   const out: CreteDePerimetre[] = [];
   for (const { z, crenellated } of scene.layers) {

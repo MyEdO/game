@@ -12,7 +12,7 @@ try {
   process.exit(2)
 }
 if (positionals.length !== 2 && positionals.length !== 3) {
-  console.error('usage : npm run godot:valider -- <element.json> [<base.json>] <element.glb> [--glb-base <base.glb>] (sans base : décor, véhicule)')
+  console.error('usage : npm run godot:valider -- <element.json> [<base.json>] <element.glb> [--glb-base <base.glb>] (sans base : décor, véhicule, Amélioration)')
   process.exit(2)
 }
 

@@ -838,7 +838,7 @@ export function entrainementTutorRange(advanced: boolean): { minBrass: number; m
 }
 
 export interface EntrainementOption {
-  kind: 'skill' | 'characteristic';
+  kind: 'competence' | 'caracteristique';
   /** `id` STABLE de la Compétence ou clé `CharKey` de la Caractéristique. */
   id: string;
   spec?: string;
@@ -879,8 +879,8 @@ export function entrainementOptions(hero: Combatant): EntrainementOption[] {
       const advances = hero.charAdvances?.[k] ?? 0;
       const range = entrainementTutorRange(false);
       return {
-        kind: 'characteristic' as const, id: k, label: libelleDEntrainement({ id: k }), advanced: false, advances,
-        xpCost: advanceCost(advances, 'characteristic', false),
+        kind: 'caracteristique' as const, id: k, label: libelleDEntrainement({ id: k }), advanced: false, advances,
+        xpCost: advanceCost(advances, 'caracteristique', false),
         tutorMinBrass: range.minBrass, tutorMaxBrass: range.maxBrass,
       };
     });
@@ -895,8 +895,8 @@ export function entrainementOptions(hero: Combatant): EntrainementOption[] {
       const advanced = s.acces === 'avancee';
       const range = entrainementTutorRange(advanced);
       skillOptions.push({
-        kind: 'skill' as const, id: s.id, spec, label: libelleDEntrainement({ id: s.id, spec }), advanced, advances,
-        xpCost: advanceCost(advances, 'skill', false),
+        kind: 'competence' as const, id: s.id, spec, label: libelleDEntrainement({ id: s.id, spec }), advanced, advances,
+        xpCost: advanceCost(advances, 'competence', false),
         tutorMinBrass: range.minBrass, tutorMaxBrass: range.maxBrass,
       });
     }

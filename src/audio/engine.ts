@@ -2,41 +2,31 @@
  * Moteur audio minimal (Jalon 8 — arbitrage « assets libres CC0 », packs Kenney.nl +
  * pistes OpenGameArt dans `public/audio/`). SFX par `HTMLAudioElement` jetable (variante au
  * hasard, registre `defs/`) ; MUSIQUE sur un canal dédié (boucle + fondu enchaîné, contexte
- * résolu par `data/sons/musique.ts`). Volumes (effets/musique) + sourdine PERSISTANTS.
+ * résolu par `data/sons/musique.ts`). Le volume d'un son est celui de son canal (`brancherLeVolumeDesCanaux`) fois
+ * son volume propre ; la sourdine est PERSISTANTE.
  * Les erreurs de lecture (politique d'autoplay avant la première interaction) sont silencieuses ;
  * la musique se relance au premier geste utilisateur.
  */
 import { SOUND_DEFS } from '../data/sons/_registry.generated';
-import { findSonById } from '../data/sons/registre';
-import type { SoundDef } from '../data/sons/types';
+import { canalDuSon, findSonById } from '../data/sons/registre';
+import type { CanalDeSon, SoundDef } from '../data/sons/types';
 import { musicDefsFor, type MusicSelection } from '../data/sons/musique';
 import { lireDictionnaire } from '../lib/stockage';
-import { stockageWeb } from '../web/stockageWeb';
-import { entierDEntropie } from '../web/entropie';
+import { stockageWeb } from '../hote/stockageWeb';
+import { entierDEntropie } from '../hote/entropie';
 
 const LS_KEY = 'wfrp4.audio';
 
 export interface AudioPrefs {
-  volume: number; // effets 0..1
-  musicVolume: number; // musique 0..1
   muted: boolean; // coupe TOUT (effets + musique)
 }
 
-const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
+const AUDIO_PAR_DEFAUT: AudioPrefs = { muted: false };
 
-const AUDIO_PAR_DEFAUT: AudioPrefs = { volume: 0.8, musicVolume: 0.6, muted: false };
-
-const volumeConforme = (v: unknown): v is number => typeof v === 'number' && v >= 0 && v <= 1;
-
-/** Les réglages persistés ; une valeur non conforme (volume hors de 0..1, sourdine non booléenne) est
- *  ignorée : son défaut s'applique. */
+/** Les réglages persistés ; une sourdine non booléenne est ignorée : son défaut s'applique. */
 export function loadAudioPrefs(): AudioPrefs {
   const p = lireDictionnaire(stockageWeb('localStorage'), LS_KEY) ?? {};
-  return {
-    volume: volumeConforme(p.volume) ? p.volume : AUDIO_PAR_DEFAUT.volume,
-    musicVolume: volumeConforme(p.musicVolume) ? p.musicVolume : AUDIO_PAR_DEFAUT.musicVolume,
-    muted: typeof p.muted === 'boolean' ? p.muted : AUDIO_PAR_DEFAUT.muted,
-  };
+  return { muted: typeof p.muted === 'boolean' ? p.muted : AUDIO_PAR_DEFAUT.muted };
 }
 
 let prefs = loadAudioPrefs();
@@ -49,18 +39,18 @@ function savePrefs(): void {
   }
 }
 
-export const getVolume = (): number => prefs.volume;
-export const getMusicVolume = (): number => prefs.musicVolume;
+/** Le volume d'un canal (0..1), lu à chaque lecture d'un son ; 1 tant qu'aucun lecteur n'est branché. */
+let volumeDuCanal: (canal: CanalDeSon) => number = () => 1;
+
+/** Branche la lecture du volume d'un canal, que l'hôte tient (`state/audioWiring.ts`). */
+export function brancherLeVolumeDesCanaux(lecteur: (canal: CanalDeSon) => number): void {
+  volumeDuCanal = lecteur;
+}
+
+/** Le volume auquel la def `def` joue : celui de son canal fois son volume propre. */
+const volumeDe = (def: SoundDef): number => Math.min(1, volumeDuCanal(canalDuSon(def)) * (def.volume ?? 1));
+
 export const isMuted = (): boolean => prefs.muted;
-export function setVolume(v: number): void {
-  prefs = { ...prefs, volume: clamp01(v) };
-  savePrefs();
-}
-export function setMusicVolume(v: number): void {
-  prefs = { ...prefs, musicVolume: clamp01(v) };
-  savePrefs();
-  if (music.el && music.def) music.el.volume = musicTargetVolume(music.def); // retour immédiat
-}
 export function setMuted(m: boolean): void {
   prefs = { ...prefs, muted: m };
   savePrefs();
@@ -70,12 +60,14 @@ export function setMuted(m: boolean): void {
 
 /** Joue un son du registre (variante au hasard). No-op : sourdine, id inconnu, hors navigateur. */
 export function playSfx(id: string): void {
-  if (prefs.muted || prefs.volume <= 0 || typeof Audio === 'undefined') return;
+  if (prefs.muted || typeof Audio === 'undefined') return;
   const def = findSonById(id);
   if (!def || !def.files.length) return;
+  const volume = volumeDe(def);
+  if (volume <= 0) return;
   const file = def.files[entierDEntropie(def.files.length)];
   const a = new Audio(`${import.meta.env.BASE_URL}audio/${file}`);
-  a.volume = Math.min(1, prefs.volume * (def.volume ?? 1));
+  a.volume = volume;
   void a.play().catch(() => {}); // autoplay refusé avant la 1ʳᵉ interaction : silencieux
 }
 
@@ -97,7 +89,10 @@ const selectionKey = (sel: MusicSelection): string | null =>
 // `?.` : import.meta.env n'existe pas sous tsx (scripts de galerie SSR).
 if (import.meta.env?.DEV) (globalThis as unknown as { __music?: typeof music }).__music = music;
 
-const musicTargetVolume = (def: SoundDef) => Math.min(1, prefs.musicVolume * (def.volume ?? 1));
+/** Réapplique à la musique en cours le volume de son canal. */
+export function reappliquerLeVolumeDeLaMusique(): void {
+  if (music.el && music.def) music.el.volume = volumeDe(music.def);
+}
 
 /** Fondu linéaire vers `target` puis `done` (l'élément peut être abandonné en route : on vérifie). */
 function fadeTo(el: HTMLAudioElement, target: number, done?: () => void): void {
@@ -156,7 +151,7 @@ export function playMusic(sel: MusicSelection): void {
   music.el = el;
   music.def = def;
   el.play().then(
-    () => fadeTo(el, musicTargetVolume(def)),
+    () => fadeTo(el, volumeDe(def)),
     () => armAutoplayUnlock(), // bloqué avant la 1ʳᵉ interaction → retente au premier geste
   );
 }

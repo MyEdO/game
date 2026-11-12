@@ -84,7 +84,7 @@ export function titreDeChapitre(chapitre, texte = '') {
 }
 
 /** Accès au corpus `Source/` sur le DISQUE : le lecteur PARTAGÉ, sa mémoire, ses dossiers et son index. */
-const CORPUS_DISQUE = {
+export const CORPUS_DISQUE = {
   dossiers: () => BOOKS.map(([, dir]) => dir),
   chemin: cheminChapitre,
   lire: lireChapitre,
@@ -124,6 +124,19 @@ export function manifesteDe(corpus) {
   return manifeste
 }
 
+/**
+ * Le texte du chapitre `ch` du livre `book` TEL QUE SERVI (fins de ligne ramenées au LF par `readText`), `null` s'il
+ * n'existe pas : la réponse de la route `ROUTE` (`servirLaSource`).
+ * @param {string} book
+ * @param {string} ch
+ * @param {typeof CORPUS_DISQUE} [corpus]
+ * @returns {string | null}
+ */
+export function texteDuChapitre(book, ch, corpus = CORPUS_DISQUE) {
+  const fichier = corpus.chemin(book, ch)
+  return fichier ? readText(cheminDuDepot(fichier)) : null
+}
+
 /** Texte du manifeste : UNE sérialisation, pour l'unique réponse qui le sert — celle du dev. */
 const texteManifeste = (corpus) => JSON.stringify(manifesteDe(corpus), null, 1)
 
@@ -144,15 +157,15 @@ export function servirLaSource(chemin, res, corpus = CORPUS_DISQUE) {
   }
   const m = ROUTE.exec(chemin)
   if (!m) return false
-  const fichier = corpus.chemin(m[1], m[2])
-  if (!fichier) {
+  const texte = texteDuChapitre(m[1], m[2], corpus)
+  if (texte === null) {
     res.statusCode = 404
     res.setHeader('Content-Type', 'text/plain; charset=utf-8')
     res.end(`chapitre-introuvable : ${m[1]} ch.${m[2]}`)
     return true
   }
   res.setHeader('Content-Type', 'text/markdown; charset=utf-8')
-  res.end(readText(cheminDuDepot(fichier)))
+  res.end(texte)
   return true
 }
 

@@ -54,7 +54,7 @@ function sceneDuDecor(id: string): Scene {
   const { w, h } = empreinteDuProp(findPropById(id), undefined, semencesDeScene.metresPerTile);
   const taillee = sceneVide(w + 2 * BORD, h + 2 * BORD);
   const centre = { x: (taillee.dimensions.w - 1) / 2, y: (taillee.dimensions.h - 1) / 2 };
-  return placeEntity(taillee, { mode: 'entity', kind: 'prop', ref: id }, { x: BORD, y: BORD }, 0, centre).scene;
+  return placeEntity(taillee, { mode: 'entite', kind: 'prop', ref: id }, { x: BORD, y: BORD }, 0, centre).scene;
 }
 
 /** Une scène de `COTE_DU_SOL` cases de côté couverte du terrain `id`. */

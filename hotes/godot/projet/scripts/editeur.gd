@@ -16,7 +16,7 @@
 ## (`Monde.poser_le_calque`) ; chaque zone de l'écran (`Zone.racines`) reçoit les éléments de sa source (`vue.zones`). Les
 ## calques de la campagne se gardent dans `user://calques/<id>.json`, relus à l'ouverture et réécrits à chaque `memoire`,
 ## chaque planche dans `user://<image>.png` : une planche demandée (`planche`) se choisit sur le disque de l'auteur
-## (`PontDuNoyau.choisir_une_image`), s'écrit là, et sa taille, ou rien, revient au pont. Chaque geste part au pont :
+## (`PontDuNoyau.choisir_un_fichier`), s'écrit là, et sa taille, ou rien, revient au pont. Chaque geste part au pont :
 ## celui de l'élément pressé (`Zone.geste`, `{ edition }`), ou le pointeur sur
 ## le monde, appuyé, glissé d'une case à l'autre et relâché, chacun au point de la carte que le monde touche
 ## (`Monde.touche_sous`). Un refus se dit. Chaque réponse montrée, et chaque défilement du panneau ou onglet choisi, qui
@@ -39,8 +39,8 @@ extends Node
 ## profondeur s'il passe dessus, sinon juste dessous), et les zones dans son panneau d'outils, à gauche. Il garde les
 ## calques de la campagne dans `user://calques/<id>.json`, qu'il passe à `{ ouvrir }` et réécrit à chaque `memoire`,
 ## dont il efface les planches à oublier et déplace les planches à déplacer ; chaque planche dans `user://<image>.png`.
-## Une réponse qui porte `planche` ouvre le choix d'un fichier (`PontDuNoyau.choisir_une_image`) : dans la page, par
-## `wfrpPont.choisirUneImage` (`hotes/godot/pont/fichier.ts` : un `<input type=file>` marqué `data-planche`, posé au
+## Une réponse qui porte `planche` ouvre le choix d'un fichier (`PontDuNoyau.choisir_un_fichier`) : dans la page, par
+## `wfrpPont.choisirUnFichier` (`hotes/godot/pont/fichier.ts` : un `<input type=file>` marqué `data-fichier`, posé au
 ## document le temps du choix) ; hors d'une page, par le dialogue de fichier natif (section « Transport ») ; l'image
 ## lue, PNG, JPEG ou WebP, s'écrit au chemin de la planche, et sa taille revient
 ## au pont, ou `null` si l'auteur renonce ou si elle ne se lit pas. Il envoie le geste de l'élément pressé, et le
@@ -231,7 +231,7 @@ func _garder(memoire: Dictionary) -> void:
 ## La planche `image` choisie sur le disque de l'auteur, écrite en `user://<image>.png`, puis sa taille rendue au pont ;
 ## rien s'il renonce ou si l'image ne se lit pas.
 func _charger_la_planche(image: String) -> void:
-	var choisie := await _pont.choisir_une_image()
+	var choisie := await _pont.choisir_un_fichier(PontDuNoyau.IMAGES)
 	var lue := Image.new()
 	var issue := ERR_FILE_UNRECOGNIZED
 	match choisie.get("type", ""):

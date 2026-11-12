@@ -146,12 +146,12 @@ export type ExpositionCodex =
 
 type ExpositionEditHorsNiche =
   | { readonly dataset: string }
-  | { readonly object: 'single' | 'record' }
+  | { readonly object: 'unique' | 'parCle' }
   | { readonly none: string; readonly dataset?: string };
 type ExpositionNiche = { readonly niche: { readonly categories: Readonly<Record<string, string>> } };
 /**
  * Ce que l'ÉDITEUR édite : le dataset-liste dont ce document est une entrée, l'OBJET de configuration
- * qu'il forme à lui seul (`single`) ou dont il est une valeur (`record`), les TABLEAUX NICHÉS qu'il
+ * qu'il forme à lui seul (`unique`) ou dont il est une valeur (`parCle`), les TABLEAUX NICHÉS qu'il
  * porte (`niche`), ou rien (`none`, raison exigée — vraie lecture seule, aucune route d'édition).
  * Un document `none` dont les entrées SONT un dataset-liste de la mémoire (`src/data/overrides.ts`
  * `ARRAYS`) le nomme par `dataset` : sans route d'édition, il garde son fichier, et sa clé de dataset

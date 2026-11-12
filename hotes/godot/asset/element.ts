@@ -2,7 +2,7 @@
  * LE MANIFESTE D'UN ÉLÉMENT (#2972, schéma 3) : la pièce sémantique qu'un GLB dessine, et sa validation contre le
  * manifeste de la base pour laquelle il se construit (`manifesteDeBase.ts`). La catégorie fixe, par discriminant, la forme
  * de `cle` et de `liaison`, la présence de `couche`, `couvre`, `chaines`, `emplacements`, `silhouettes` et `postes`, et si
- * l'élément a une base (`REGLES_DES_CATEGORIES`) : sans base (décor, véhicule, #2987), il ne nomme aucune base et ses
+ * l'élément a une base (`REGLES_DES_CATEGORIES`) : sans base (décor, véhicule, Amélioration, #2987), il ne nomme aucune base et ses
  * meshes restent à la racine de sa scène ou sous ses propres nœuds ; une clé bien formée se résout contre la donnée
  * du jeu (`ecartsDeCleDElement`, surface du noyau). Ses surfaces (`surfaces.ts`) admettent le blason.
  * Un vêtement, une armure ou un accessoire offre des `emplacements`, ids de la garde-robe (`estEmplacement`, #3116), ou

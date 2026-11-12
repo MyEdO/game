@@ -254,10 +254,10 @@ describe('utiliserLObjet : chaque refus est dit', () => {
     expect([refus(), g().battle!.combatants[1].items!.length]).toEqual([t('cs.consommableHorsDuTour', { name: 'B' }), 1]);
   });
 
-  it('en combat, l’actif n’est pas piloté', () => {
+  it('en combat, l’actif n’est pas piloté, et hors de vue il n’est pas nommé', () => {
     enBataille([heros('e1', { kind: 'ennemi' }), heros('a', { items: [potion('pa')] })]);
     g().utiliserLObjet('pa');
-    expect(refus()).toBe(t('barre.nonPilote', { name: 'E1' }));
+    expect(refus()).toBe(t('barre.nonPilote', { name: t('vision.horsDeVue') }));
   });
 
   it('en combat clos, personne n’agit', () => {

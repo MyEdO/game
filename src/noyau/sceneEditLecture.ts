@@ -53,36 +53,36 @@ import type { Rect, Pt, EffectZoneSeed, Segment } from './sceneEdit';
  *  personnage NOMME sa fiche au bestiaire — `ref` y est REQUISE, comme au schéma de scène
  *  (`PORTEURS_DU_TYPE`) — et le départ des héros n'a rien à référencer. */
 export type Tool =
-  | { mode: 'select' }
-  | { mode: 'tile'; terrain: Terrain }
-  | { mode: 'entity'; kind: 'prop'; ref: string }
-  | { mode: 'entity'; kind: 'personnage'; ref: string }
-  | { mode: 'entity'; kind: 'heroStart' }
+  | { mode: 'selection' }
+  | { mode: 'terrain'; terrain: Terrain }
+  | { mode: 'entite'; kind: 'prop'; ref: string }
+  | { mode: 'entite'; kind: 'personnage'; ref: string }
+  | { mode: 'entite'; kind: 'heroStart' }
   | { mode: 'zone'; zone: ZoneVariant }
   // EMPRISE d'une zone d'effet au PINCEAU (`SceneEffectZone.tiles`) : `zoneId` = id STABLE de la zone
   // peinte, `paint` le sens du geste — l'appui et le glissé ajoutent (ou retirent) des cases, comme le
   // pinceau de terrain pose son terrain. Corriger une pièce qui déborde se fait SUR la carte.
-  | { mode: 'zoneTiles'; zoneId: string; paint: 'add' | 'remove' }
-  | { mode: 'entry' }
-  | { mode: 'encounter' }
+  | { mode: 'casesDeZone'; zoneId: string; paint: 'add' | 'remove' }
+  | { mode: 'entree' }
+  | { mode: 'rencontre' }
   // `structure` (id de `structures.json`) = le MATÉRIAU porté par l'outil, mémorisé entre les poses
   // (comme un outil de peinture porte sa couleur) — plus besoin de repasser par l'inspecteur (#830).
-  | { mode: 'wall'; paint: WallPaint; structure?: string }
+  | { mode: 'arete'; paint: WallPaint; structure?: string }
   // Hauteur métrique d'une surface (porteuse : marchabilité/combat/chute, cf. `relief.ts`). On peint des
   // MÈTRES ; la traversée verticale s'auto-dérive du delta de hauteur (`surfaceLink`), sans escalier.
-  | { mode: 'height'; metres: number }
+  | { mode: 'hauteur'; metres: number }
   // VOLÉE d'escalier : file de cases dont les cotes montent par crans franchissables jusqu'au plancher
   // de l'étage `toZ` (invariant PARTAGÉ avec le compilateur ASCII — `noyau/stairFlight.ts`). L'outil ne
   // pose AUCUN décor : une volée est du relief, la traversée s'en dérive comme pour toute surface.
-  | { mode: 'stair'; toZ: number }
+  | { mode: 'escalier'; toZ: number }
   // Emplacement de siège : pose une SceneEntity portant un poste d'artillerie (`trappingId` = engin du
   // catalogue `armes-de-siege`). Le créneau (arc) et l'équipage s'éditent ensuite dans l'inspecteur.
   | { mode: 'emplacement'; trappingId: string }
   // Crénelage (#841 FU-H) : marque le pourtour peint comme portant un PARAPET crénelé (décoration de
   // rendu — `paintCrenellated`, orthogonal à `height`). `structure` = id de `structures.json` (le rendu en
   // dérive merlons/bandes/arase) ; `null` = gomme la marque.
-  | { mode: 'crenellated'; structure: string | null }
-  | { mode: 'erase' };
+  | { mode: 'crenelage'; structure: string | null }
+  | { mode: 'gomme' };
 
 /** Variantes de l'outil ZONE (rail « zone » de la Palette), la pièce d'abord. `room` et `effect` produisent toutes
  *  deux une `SceneEffectZone` ; ce qui les distingue est leur GRAINE ci-dessous, pas le créateur. */
@@ -426,7 +426,7 @@ export function pickArchitectureEdge(scene: Scene, fx: number, fy: number, z: nu
 
 /** L'outil d'ENTITÉ seul — ce que `placeEntity` demande, dérivé de `Tool` pour qu'aucun site ne
  *  redise sa forme (la palette le construit, le canevas le transmet, la pose le consomme). */
-export type EntityTool = Extract<Tool, { mode: 'entity' }>;
+export type EntityTool = Extract<Tool, { mode: 'entite' }>;
 
 /** La donnée du porteur de chaque sorte de formulaire tiré du schéma. */
 export interface DonneeDuPorteur { zone: SceneEffectZone; declencheur: Trigger; entite: SceneEntity; dialogue: Dialogue; rencontre: EncounterDef }
@@ -575,7 +575,7 @@ function choixDesApparencesDObjets(ent: SceneEntity, reste: readonly Segment[], 
 function munitionsDeLaPiece(trappingId: string): ChoixDuContexte[] {
   const piece = { trappingId, subType: findTrappingById(trappingId)?.subType?.id };
   return trappingsInstanciables()
-    .filter((m) => gabaritDObjet(m.id)?.kind === 'ammo' && chargeLArme({ trappingId: m.id, subType: m.subType?.id }, piece))
+    .filter((m) => chargeLArme({ trappingId: m.id, subType: m.subType?.id }, piece) && gabaritDObjet(m.id)?.kind === 'ammo')
     .map((m) => ({ valeur: m.id, libelle: m.label, refus: null }));
 }
 

@@ -7,7 +7,7 @@ import { Combatant, CharKey, CHAR_LABELS, ItemInstance, type Main } from '../eng
 import { choisirApparenceDObjet, recomputeLoadout, loadoutCreate, loadoutDelete, loadoutSetSlot, equipConflicts, canStow, isOffHandEligible, setADeuxMains } from '../engine/items';
 import type { Possession } from '../engine/possession';
 import { possessionLabel } from '../engine/possession';
-import { resolveCarrier, porteurLocalise, porteurDeLObjet, refusSansPorteur, refusDuHerosPorteur, lotDeLObjet, sansLeLot, avecLeLot, ecrireLesPorteurs } from './monde/carrier';
+import { resolveCarrier, porteurLocalise, porteurDeLObjet, refusSansPorteur, refusDuHerosPorteur, lotDeLObjet, sansLeLot, avecLeLot, ecrireLesPorteurs, type Carrier } from './monde/carrier';
 import { carriersColocated } from '../engine/cargo';
 import { refuserGeste, refuserGesteDuSiege } from './refusVisible';
 import { refusDepensePx, refusDInventaire, refusDuBackground, refuseSi } from './verrousDeFiche';
@@ -143,7 +143,7 @@ export function equiperLObjet(get: Get, set: Set, uid: string): void {
   set((s) => {
     const carrier = resolveCarrier(s, carrierId);
     if (!carrier) return {};
-    if (carrier.kind === 'hero') {
+    if (carrier.kind === 'heros') {
       return ecrireActeur(s, carrierId, (h) => {
         const clone: Combatant = structuredClone(h);
         clone.items ??= [];
@@ -195,7 +195,7 @@ export function rangerLObjet(get: Get, set: Set, uid: string, containerUid: stri
   set((s) => {
     const carrier = resolveCarrier(s, carrierId);
     if (!carrier) return {};
-    if (carrier.kind === 'hero') {
+    if (carrier.kind === 'heros') {
       return ecrireActeur(s, carrierId, (h) => {
         const clone: Combatant = structuredClone(h);
         clone.items ??= [];
@@ -283,8 +283,8 @@ export function garnirLaPanoplie(get: Get, set: Set, heroId: string, id: string,
 }
 
 /** Libellé d'un porteur déjà résolu (héros ou possession — doctrine id/label). */
-function carrierLabel(carrier: { kind: 'hero'; hero: Combatant } | { kind: 'possession'; possession: Possession }): string {
-  return carrier.kind === 'hero' ? carrier.hero.label : possessionLabel(carrier.possession);
+function carrierLabel(carrier: Carrier): string {
+  return carrier.kind === 'heros' ? carrier.hero.label : possessionLabel(carrier.possession);
 }
 
 /** Donne un objet de son PORTEUR (héros ou possession) à un autre — #620 généralise le don héros→héros
@@ -298,7 +298,7 @@ export function transmettreLObjet(get: Get, set: Set, uid: string, toCarrierId: 
   const state = get();
   const from = resolveCarrier(state, fromCarrierId)!;
   const to = resolveCarrier(state, toCarrierId);
-  const fromItems = from.kind === 'hero' ? (from.hero.items ?? []) : from.possession.items;
+  const fromItems = from.kind === 'heros' ? (from.hero.items ?? []) : from.possession.items;
   const item = fromItems.find((i) => i.uid === uid)!;
   if (!to) return void refuserGeste(get, set, t('pf.giveNotFound'));
   if (fromCarrierId === toCarrierId) return void refuserGeste(get, set, t('pf.giveSelf', { from: carrierLabel(from), item: item.label }));
@@ -310,7 +310,7 @@ export function transmettreLObjet(get: Get, set: Set, uid: string, toCarrierId: 
   const toLabel = carrierLabel(to);
   set((s) => ecrireLesPorteurs(s, {
     [fromCarrierId]: (items) => sansLeLot(items, lot),
-    [toCarrierId]: (items) => avecLeLot(items, lot, to.kind === 'hero'),
+    [toCarrierId]: (items) => avecLeLot(items, lot, to.kind === 'heros'),
   }));
   get().ecrireAuJournal(t('pf.give', { from: fromLabel, item: item.label, to: toLabel }));
 }
@@ -358,7 +358,7 @@ export function acheterLaCaracteristique(get: Get, set: Set, heroId: string, cha
       msg = t('pf.charNeedsMentor', { name: clone.label, what: CHAR_LABELS[char] });
       return h;
     }
-    const manque = refusDePx(clone, advanceCost(clone.charAdvances?.[char] ?? 0, 'characteristic', inC));
+    const manque = refusDePx(clone, advanceCost(clone.charAdvances?.[char] ?? 0, 'caracteristique', inC));
     if (manque) {
       msg = manque;
       return h;
@@ -403,7 +403,7 @@ export function acheterLaCompetence(get: Get, set: Set, heroId: string, skill: R
       clone.skills.push({ id: skillId, spec, characteristic, advances: 0 });
     }
     const avant = clone.skills.find((sk) => sk.id === skillId && memeSpecialisation(sk.spec, spec))?.advances ?? 0;
-    const manque = refusDePx(clone, advanceCost(avant, 'skill', inC, discount));
+    const manque = refusDePx(clone, advanceCost(avant, 'competence', inC, discount));
     if (manque) {
       msg = manque;
       return h;
@@ -814,7 +814,7 @@ export function recruterLeHeros(get: Get, set: Set, heros: HerosEngage): void {
 export function releaseHeroSeats<S extends Scene | null>(scene: S): S {
   if (!scene?.seatAssignments) return scene;
   let next: Scene = scene;
-  for (let rang = 1; rang <= PARTY_MAX; rang++) next = releaseSeat(next, { kind: 'party', rang });
+  for (let rang = 1; rang <= PARTY_MAX; rang++) next = releaseSeat(next, { kind: 'groupe', rang });
   return next as S;
 }
 

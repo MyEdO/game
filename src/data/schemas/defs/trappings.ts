@@ -171,7 +171,7 @@ const doc = document(
         grants: { label: 'Accorde' },
       }))
       .optional(),
-    /** Absent (pas seulement `null`) sur 5 entrées — reflet du contenu réel. */
+    /** LDB 61 l.5 */
     enc: z.union([z.number(), z.literal('ND'), z.literal('Variable'), z.null()]).optional(),
     /** ADE II 2 l.706-710 */
     sizeFor: sizeCategorySchema.optional(),

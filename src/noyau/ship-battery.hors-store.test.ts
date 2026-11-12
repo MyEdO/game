@@ -224,7 +224,7 @@ describe('bordée à munition à AIRE — balaie l’équipage exposé du navire
   it('EXTENSIBILITÉ : un canon CUSTOM (atout onHit posant un État + Tir de zone) → touche multiple ET applique l’État, SANS code spécifique', () => {
     const crew = [sailor('m1'), sailor('m2')];
     // Atout onHit générique : pose « en-flammes » sur la victime (chemin fireTriggers, pas de pose bespoke).
-    const onHit = [{ trigger: 'onHit', on: 'victim', flow: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'en-flammes-navire' }, value: 1 }] } } }];
+    const onHit = [{ trigger: 'onHit', on: 'victime', flow: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'en-flammes-navire' }, value: 1 }] } } }];
     setupNaval(aireePoste([{ id: 'tir-de-zone', value: 2 }], onHit), crewedHull(['m1', 'm2']), crew);
     const after = banc.getState().battle!.combatants;
     const hull = after.find((c) => c.id === 'target')!;

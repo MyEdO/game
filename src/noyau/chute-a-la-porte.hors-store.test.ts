@@ -3,7 +3,7 @@ import { tableTotale } from '../lib/tableTotale';
 import { t } from '../i18n';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { applyLeafOps, applyEffectsLoot, ouvrirChute, runFlow, checkTriggers, confierLaSuite, jouerFlowEntier, pushCombatStep, OPS_DIFFEREES, porterOpsCtx, ctxRepris } from './combatEffects';
+import { applyLeafOps, applyEffectsLoot, ouvrirChute, runFlow, checkTriggers, confierLaSuite, jouerFlowEntier, pushCombatStep, revealPurpose, OPS_DIFFEREES, porterOpsCtx, ctxRepris } from './combatEffects';
 import { runPureFlowLines } from './combat/flowEval';
 import { openSequence } from './rollSeam';
 import { buildAuthorPerilSteps } from './authorPerils';
@@ -312,7 +312,7 @@ describe('(iv) une chute de hauteur CONNUE ouvre AUSSI son dé (`chuteDe`)', () 
     });
     runFlow(banc.getState, banc.setState, { kind: 'sequence', etapes: [
       { kind: 'effet', effet: { type: 'fall', target: 'party', metres: 4 } },
-      { kind: 'effet', effet: { type: 'ops', on: 'party', ops: [{ op: 'heal', amount: 50 }] } },
+      { kind: 'effet', effet: { type: 'ops', on: 'groupe', ops: [{ op: 'heal', amount: 50 }] } },
     ] } as unknown as Flow);
     const st = banc.getState().pendingCascade!.participants[0];
     banc.getState().jetImposerLeResultat('cascadeTirage', 8, st.id); // 3×4 + 8 − BE 3 = 17
@@ -343,7 +343,7 @@ describe('(v) ORDRE AUTHORÉ : ce qui suit une feuille à dé attend le dé, il 
   it('walker de SCÈNE (`runFlow`) : chute (−17) PUIS soin (+50, plafonné) → 200, jamais 183', () => {
     const flow = { kind: 'sequence', etapes: [
       { kind: 'effet', effet: { type: 'fall', target: 'party', metres: 4 } },
-      { kind: 'effet', effet: { type: 'ops', on: 'party', ops: [{ op: 'heal', amount: 50 }] } },
+      { kind: 'effet', effet: { type: 'ops', on: 'groupe', ops: [{ op: 'heal', amount: 50 }] } },
     ] } as unknown as Flow;
     runFlow(banc.getState, banc.setState, flow);
     expect(heros().wounds.current, 'rien du lot ne s’applique avant le dé').toBe(190);
@@ -379,7 +379,7 @@ describe('(v) ORDRE AUTHORÉ : ce qui suit une feuille à dé attend le dé, il 
   it('walker de SCÈNE, nœud `if` : la branche attend le dé — 200, jamais 183', () => {
     const flow = { kind: 'sequence', etapes: [
       { kind: 'effet', effet: { type: 'fall', target: 'party', metres: 4 } },
-      { kind: 'si', condition: { kind: 'always' }, alors: { kind: 'effet', effet: { type: 'ops', on: 'party', ops: [{ op: 'heal', amount: 50 }] } } },
+      { kind: 'si', condition: { kind: 'always' }, alors: { kind: 'effet', effet: { type: 'ops', on: 'groupe', ops: [{ op: 'heal', amount: 50 }] } } },
     ] } as unknown as Flow;
     runFlow(banc.getState, banc.setState, flow);
     expect(heros().wounds.current, 'la branche ne s’évalue même pas avant le dé').toBe(190);
@@ -419,6 +419,26 @@ describe('(v) ORDRE AUTHORÉ : ce qui suit une feuille à dé attend le dé, il 
     banc.getState().jetImposerLeResultat('cascadeTirage', 4, st.id);
     banc.getState().jetValider('cascade');
     expect(heros().wounds.current).toBe(190 - (3 * 25 + 4 - BE) + 50);
+  });
+
+  it('grappe à DEUX dés (gréement) : la suite attend le 2ᵉ dé, que l’applier du 1ᵉʳ a poussé (#4011 G1)', () => {
+    const cible = heros();
+    banc.setState({ party: [{ ...cible, shipStation: 'greement', wounds: blessuresDeBase(200, 100) } as Combatant, coque()] });
+    const flow = { kind: 'sequence', etapes: [
+      { kind: 'effet', effet: { type: 'ops', on: 'target', ops: opsDeChute() } },
+      { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'heal', amount: 1000 }] } },
+    ] } as unknown as Flow;
+    runCombatFlow({ get: banc.getState, set: banc.setState, target: heros(), caster: heros(), label: 'Mât brisé', opsCtx: { hull: coque() } }, flow);
+    const hauteur = banc.getState().pendingCascade!.participants[0];
+    banc.getState().jetImposerLeResultat('cascadeTirage', 11, hauteur.id);
+    banc.getState().jetValider('cascade');
+    expect(heros().wounds.current, 'le soin attend le dé des Dégâts').toBe(100);
+    const pc = banc.getState().pendingCascade!;
+    const degats = pc.participants[pc.cursor];
+    banc.getState().jetImposerLeResultat('cascadeTirage', 4, degats.id);
+    banc.getState().jetValider('cascade');
+    // 100 − (3×11 + 4 − 3) = 66, puis +1000 → plafond 200. Soin avant le 2ᵉ dé : 200 − 34 = 166.
+    expect(heros().wounds.current).toBe(200);
   });
 });
 
@@ -495,11 +515,11 @@ describe('(viii) un contexte que la reprise ne saurait pas rebâtir REFUSE de se
     try {
       const heros = marin('h1', { kind: 'heros' } as Partial<Combatant>);
       const porteur = marin('e1', { kind: 'ennemi' } as Partial<Combatant>);
-      banc.setState({ battle: { combatants: [heros, porteur], advantagePools: { allies: 0, foes: 0 } } as unknown as BattleState,
+      banc.setState({ battle: { combatants: [heros, porteur], advantagePools: { allies: 0, adversaires: 0 } } as unknown as BattleState,
         pendingCascade: null, suspendedCascades: [], journal: [], party: [heros] });
       const porte = JSON.parse(JSON.stringify(porterOpsCtx({ idNeuf: idsDeTest, rng: desDuTest, caster: porteur, onOpposingAdvantage: () => [] })));
       const lignes = ctxRepris(banc.getState, banc.setState, porte, heros)!.onOpposingAdvantage!(2);
-      expect(banc.getState().battle!.advantagePools, 'les alliés, camp adverse du porteur, gagnent +2').toEqual({ allies: 2, foes: 0 });
+      expect(banc.getState().battle!.advantagePools, 'les alliés, camp adverse du porteur, gagnent +2').toEqual({ allies: 2, adversaires: 0 });
       expect([heros.advantage, porteur.advantage]).toEqual([2, 0]);
       expect(lignes).toHaveLength(1);
     } finally {
@@ -702,7 +722,7 @@ describe('(x) CLÔTURE DU VERBE : ce que le site allait faire APRÈS son Flow at
     seedBattleRng(3);
     banc.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [], pendingLoot: null, party: [marinBlesse('h1')] });
     const issue = applyEffectsLoot(banc.getState, banc.setState, [
-      { type: 'fall', target: 'party', metres: 4 } as unknown as Effect,
+      { type: 'fall', target: 'groupe', metres: 4 } as unknown as Effect,
       { type: 'giveTrapping', custom: 'Talisman-sonde' } as Effect,
     ], 'Fouille');
     expect(issue, 'le lot a rendu la main').toBe(OPS_DIFFEREES);
@@ -718,7 +738,7 @@ describe('(x) CLÔTURE DU VERBE : ce que le site allait faire APRÈS son Flow at
     seedBattleRng(3);
     banc.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [], pendingLoot: null, party: [marinBlesse('h1')] });
     jouerFlowEntier(applyEffectsLoot(banc.getState, banc.setState, [
-      { type: 'fall', target: 'party', metres: 4 } as unknown as Effect,
+      { type: 'fall', target: 'groupe', metres: 4 } as unknown as Effect,
       { type: 'giveMoney', montant: { gold: 1 } } as unknown as Effect,
       { type: 'giveTrapping', custom: 'Talisman-sonde' } as Effect,
     ], 'Fouille'));
@@ -967,14 +987,14 @@ describe('(xii) ROUTE RÉELLE : la chute d’un Test RATÉ passe par la porte, d
 
   /** Monte la bande d'Athlétisme du `crewHit` — le geste EXACT des deux routes du jeu :
    *  combat `combatFlow.applyHullCriticalToTarget` (`pushCombatStep`) et voyage
-   *  `seaVoyageFlow.applyVesselCritical:2334` (`pushStep(…, 'travelDay')`). */
+   *  `seaVoyageFlow.applyVesselCritical` (`pushStep(…, revealPurpose('travelDay', false))`). */
   const ouvrirLaBande = (victimes: Combatant[], purpose: 'combat' | 'travelDay'): void => {
     const { test, label } = noeudCrewHit();
     const bande = (index: number) => bandeTriggeredTest(
       banc.getState, banc.setState, victimes, test, `crew-hit-${index}`, { idNeuf: idsDeTest, rng: desDuTest, label, hull: coqueMoyenne() },
     );
     if (purpose === 'combat') pushCombatStep(banc.setState, bande);
-    else pushStep(banc.setState, bande, 'travelDay');
+    else pushStep(banc.setState, bande, revealPurpose('travelDay', false));
   };
 
   /**

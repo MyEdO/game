@@ -494,7 +494,7 @@ describe('Attaque — issue d’un coup sans prise', () => {
     act(() => useGame.getState().jetForcerLaReussite('attaque'));
     act(() => useGame.getState().jetImposerLeResultat('attaque', 33));
     const pa = useGame.getState().pendingAttack!;
-    expect([pa.forced, pa.result?.critical, pa.result?.sansPrise], 'précondition : jet forcé, Critique obtenu, coup sans prise').toEqual([true, true, 'ethere']);
+    expect([pa.forcee, pa.result?.critical, pa.result?.sansPrise], 'précondition : jet forcé, Critique obtenu, coup sans prise').toEqual([true, true, 'ethere']);
     expect(rendues!.forcedExtra, 'pas de Localisation à choisir pour un Critique non appliqué').toBeUndefined();
     expect(vue.querySelector('.rm-loc-grid')).toBeNull();
   });

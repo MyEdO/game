@@ -36,7 +36,7 @@ import type { PlayerText } from '../../../i18n/playerText';
 /** `DayPhaseId` (`engine/clock.ts`) — phases d'AFFICHAGE de la journée. */
 export const dayPhaseIdSchema = z.enum(['aube', 'matin', 'midi', 'apresmidi', 'crepuscule', 'soir', 'nuit']);
 /** Cible d'un effet de scène : tout le groupe, ou UN héros (`heroId`, défaut le premier). */
-export const effectTargetSchema = z.enum(['party', 'hero']);
+export const effectTargetSchema = z.enum(['groupe', 'heros']);
 /** Statbloc custom d'éditeur d'un vivant : le snapshot EST son identité. */
 const statblocDeVivantSchema = nommerChamps(z.strictObject({ custom: customStatblockSchema }), { custom: { label: "profil personnalisé" } });
 /** Source de `LivingRef` (`engine/possession.ts`) : le bestiaire (édition Codex vivante) OU un statbloc custom. */
@@ -76,10 +76,10 @@ export const pursuitPolicySchema = nommerChamps(z.strictObject({
 }), { sacrifice: { label: "sacrifice"  }, ecartM: { label: "écart de Mouvement" }, arret: { label: "arrêt"  }, prioritaires: { label: "cibles prioritaires" , texte: { regime: "technique"} } });
 /** ADE II 8. */
 export const massBattleSpecSchema = proseNommee(nommerChamps(z.strictObject({
-  allyName: z.string().optional(),
-  enemyName: z.string().optional(),
-  allyMight: z.number(),
-  enemyMight: z.number(),
+  nomDesAllies: z.string().optional(),
+  nomDesEnnemis: z.string().optional(),
+  puissanceAlliee: z.number(),
+  puissanceEnnemie: z.number(),
   /** ADE II 8 l.124. */
   plannedRounds: z.number().optional(),
   /** ADE II 8 l.128. */
@@ -90,8 +90,8 @@ export const massBattleSpecSchema = proseNommee(nommerChamps(z.strictObject({
   /** Rencontres à démarrer pour les Scènes de COMBAT/MENACE (par id de Scène → id d'encounter). */
   sceneEncounters: z.record(z.string(), z.string()).optional(),
   /** ADE II 8 l.81. */
-  allyMod: z.number().optional(),
-}), { allyName: { label: "nom des alliés" , texte: { regime: "designation"} }, enemyName: { label: "nom des ennemis" , texte: { regime: "designation"} }, allyMight: { label: "puissance alliée" }, enemyMight: { label: "puissance ennemie" }, plannedRounds: { label: "Rounds prévus" }, scenes: { label: "Scènes" , texte: { regime: "technique"} }, situations: { label: "situations" , texte: { regime: "technique"} }, situationSize: { label: "taille de situation" }, sceneEncounters: { label: "rencontres de scène" , texte: { regime: "technique"} }, allyMod: { label: "modificateur allié" } }), 'massBattle.terrain');
+  modificateurAllie: z.number().optional(),
+}), { nomDesAllies: { label: "nom des alliés" , texte: { regime: "designation"} }, nomDesEnnemis: { label: "nom des ennemis" , texte: { regime: "designation"} }, puissanceAlliee: { label: "puissance alliée" }, puissanceEnnemie: { label: "puissance ennemie" }, plannedRounds: { label: "Rounds prévus" }, scenes: { label: "Scènes" , texte: { regime: "technique"} }, situations: { label: "situations" , texte: { regime: "technique"} }, situationSize: { label: "taille de situation" }, sceneEncounters: { label: "rencontres de scène" , texte: { regime: "technique"} }, modificateurAllie: { label: "modificateur allié" } }), 'massBattle.terrain');
 
 /** `ScheduleSpec` (`engine/clock.ts`) — échéance d'horloge, résolue par `scheduleAt` (source unique
  *  de `delayedEffect` ET `setObjective`). Étalée en SHAPE : `DelayedEffect` (manuscrit, ci-dessous) la

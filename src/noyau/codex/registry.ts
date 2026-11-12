@@ -1617,7 +1617,7 @@ const CODEX_SPECS = {
         fact(tr('codex.fiche.activation'), valeurFR('maneuvers.json', 'activation', m.activation)),
         fact(tr('codex.fiche.coutAv'), m.coutEnAvantage),
         fact(tr('codex.fiche.portee'), m.range ? formatManeuverMeasure(m.range) : null),
-        fact(tr('codex.fiche.cible'), valeurFR('maneuvers.json', 'targeting', m.targeting)),
+        fact(tr('codex.fiche.cible'), valeurFR('maneuvers.json', 'ciblage', m.ciblage)),
       ),
       sections: sections(...reverseSections('maneuvers', m.id)),
     })),

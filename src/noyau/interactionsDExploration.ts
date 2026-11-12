@@ -14,6 +14,7 @@ import { aPorteeDe, cheminsDuGroupe, exploreMovePlan, exploreSeatPlan, type Expl
 import { ficheDEntite, nomDEntite } from './monde/sceneNpc';
 import { entityBlockedAt } from './monde/sceneRules';
 import { presetDuNarratif } from './monde/resolveursDuNarratif';
+import { enEmbuscade, entiteConnue, type EntreesDeLaConnaissance } from './visionDuGroupe';
 import { TIME_COST } from '../engine/timeCost';
 import { refuserGeste } from './refusVisible';
 import { porteurDExploration } from './gesteDArete';
@@ -56,9 +57,6 @@ function placesLibres(scene: Scene, entityId: string) {
   return placesDe(scene, entityId).filter((p) => !scene.seatAssignments?.[entityId]?.[p.slotId]);
 }
 
-/** Un ennemi d'embuscade n'offre rien et ne s'interpelle pas en exploration. */
-const enEmbuscade = (ent: SceneEntity): boolean => !!ent.combat?.hiddenUntilCombat;
-
 /** Verdict d'une offre d'exploration : la pastille le peint, le clic s'en sert pour savoir ce qu'il peut jouer sans
  *  rien demander. Ouverte par défaut (`actionsDe` a déjà retiré l'injouable) ; seule l'assise sans place libre se
  *  refuse, avec sa raison (arbitrage 2026-08-24 : la raison au survol). */
@@ -80,15 +78,17 @@ interface OffresDExplorationParPorteur {
 }
 
 /** Les offres d'exploration du champ : un porteur par entité qui offre quelque chose (`actionsDe`) à portée du groupe
- *  (`aPorteeDe`, la portée de `jouerAction`), hors embuscade ; aucune pendant un dialogue. */
-export function offresDExploration(s: Pick<Jeu, 'scene' | 'dialogue' | 'partyPos' | 'flags' | 'objetsAuSol' | 'campaignNarratif'>): OffresDExplorationParPorteur[] {
+ *  (`aPorteeDe`, la portée de `jouerAction`), hors embuscade ; aucune pendant un dialogue. Le porteur d'une entité que
+ *  le groupe ne connaît pas (`entiteConnue`) porte le nom neutre `vision.horsDeVue`. */
+export function offresDExploration(s: Pick<Jeu, 'scene' | 'dialogue' | 'partyPos' | 'flags' | 'objetsAuSol' | 'campaignNarratif'> & EntreesDeLaConnaissance): OffresDExplorationParPorteur[] {
   const { scene } = s;
   if (!scene || s.dialogue) return [];
   const porteurs: OffresDExplorationParPorteur[] = [];
   for (const ent of scene.entities) {
     if (enEmbuscade(ent) || !aPorteeDe(s.partyPos, ent)) continue;
     const offres = actionsDe(scene, ent, s).map((o) => ({ ...o, gate: porteDOffre(scene, ent, o.origine) }));
-    if (offres.length) porteurs.push({ porteurId: ent.id, porteurLabel: nomDEntite(ent, presetDuNarratif(s.campaignNarratif)), offres });
+    const porteurLabel = entiteConnue(s, ent) ? nomDEntite(ent, presetDuNarratif(s.campaignNarratif)) : t('vision.horsDeVue');
+    if (offres.length) porteurs.push({ porteurId: ent.id, porteurLabel, offres });
   }
   return porteurs;
 }
@@ -128,7 +128,7 @@ export function intentionDuClicDExploration(s: Jeu, tuile: Pt, entiteId: string 
   // MEUBLE À PLACES : il AJOUTE l'assise sans retirer d'affordance ; sans place servable, la chaîne des offres reprend
   // (son offre d'assise, `actionsDe`, le garde utilisable).
   if (ent?.kind === 'prop' && placesJouables(sc, ent.id).length) {
-    const assisIci = !!meneurDuMonde(s) && seatPoseOf(sc, { kind: 'party', rang: RANG_MENEUR })?.propId === ent.id;
+    const assisIci = !!meneurDuMonde(s) && seatPoseOf(sc, { kind: 'groupe', rang: RANG_MENEUR })?.propId === ent.id;
     // UNE source de « place LIBRE » : le plan d'assise, d'un seul point quand le groupe est déjà sur un abord libre.
     const place = exploreSeatPlan(sc, ent.id, chemins);
     if (assisIci || (place && place.path.length < 2)) return { kind: 'interagir', id: ent.id };
@@ -158,7 +158,7 @@ export function intentionDuClicDExploration(s: Jeu, tuile: Pt, entiteId: string 
 function seLeverDe(get: Get, set: Set, entityId: string): boolean {
   const { scene } = get();
   if (!scene || !meneurDuMonde(get())) return false;
-  const occupant = { kind: 'party', rang: RANG_MENEUR } as const;
+  const occupant = { kind: 'groupe', rang: RANG_MENEUR } as const;
   if (!placesDe(scene, entityId).length) return false;
   if (seatPoseOf(scene, occupant)?.propId !== entityId) return false;
   set({ scene: releaseSeat(scene, occupant) });
@@ -176,7 +176,7 @@ function sasseoirA(get: Get, set: Set, entityId: string): void {
   if (!scene || !leaderId) return;
   const places = placesDe(scene, entityId);
   if (!places.length) return;
-  const occupant = { kind: 'party', rang: RANG_MENEUR } as const;
+  const occupant = { kind: 'groupe', rang: RANG_MENEUR } as const;
   const cible = placesLibres(scene, entityId).find((p) => memeCase(p.approach, partyPos));
   if (cible) {
     // REVALIDATION ATOMIQUE dans le callback `set` : entre le choix de la place ci-dessus et

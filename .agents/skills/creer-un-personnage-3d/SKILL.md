@@ -12,7 +12,7 @@ Les contrats exécutables sont `hotes/godot/asset/element.ts` et
 `hotes/godot/asset/manifesteDeBase.ts`.
 
 Valider le manifeste et son GLB par **`npm run godot:valider -- <element.json> <base.json> <element.glb>`** ;
-un décor ou un véhicule, sans base, par **`npm run godot:valider -- <element.json> <element.glb>`** (#2987).
+un décor, un véhicule ou une Amélioration, sans base, par **`npm run godot:valider -- <element.json> <element.glb>`** (#2987).
 Un élément sur base se construit dans le dépôt, `scripts/personnage-3d/element/<base>/<categorie>--<valeur>/`
 (`donnees.py`, `modele.py`), par le constructeur commun `element/construire.py` : section 3 de la procédure.
 Un véhicule (navire, engin de siège) se construit par `scripts/personnage-3d/vehicule/` : chapitre 9 de la procédure.

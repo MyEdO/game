@@ -300,7 +300,7 @@ describe('Effet ops { op: corruption } (gain direct via ops generiques)', () => 
   it('cible le heros designe et applique le compteur via l\'Effet ops', () => {
     const { b, party } = party2();
     banc.setState({ party });
-    applyEffects(banc.getState, banc.setState, [{ type: 'ops', on: 'hero', heroId: b.id, ops: [{ op: 'corruption', amount: 2, align: 'nurgle' }] }]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'ops', on: 'heros', heroId: b.id, ops: [{ op: 'corruption', amount: 2, align: 'nurgle' }] }]);
     expect(banc.getState().party.find((h) => h.id === b.id)!.corruption).toBe(2);
   });
 
@@ -311,7 +311,7 @@ describe('Effet ops { op: corruption } (gain direct via ops generiques)', () => 
     a.corruption = 4; // seuil depasse au prochain gain
     a.resilience = 0; // mutation directe
     banc.setState({ party });
-    applyEffects(banc.getState, banc.setState, [{ type: 'ops', on: 'hero', heroId: a.id, ops: [{ op: 'corruption', amount: 1, align: 'nurgle' }] }]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'ops', on: 'heros', heroId: a.id, ops: [{ op: 'corruption', amount: 1, align: 'nurgle' }] }]);
     const pc = banc.getState().pendingCorruption!;
     expect(pc.kind).toBe('seuil');
     expect(pc.align).toBe('nurgle'); // l\'alignement voyage source -> modale

@@ -57,7 +57,7 @@ describe('Jeux de taverne — moteur générique (NADJ 16)', () => {
     // exactement celui que la correction supprime.
     expect(manches.reduce((n, sl) => n + Math.max(0, sl), 0)).toBe(9);
     // Et le plancher du TOTAL, lui, existe bien : une chute sous 0 ramène à 0 (« recommencez »).
-    expect(extendedTestStep(2, { success: false, sl: -9 }, 10)).toEqual({ total: 0, done: false, repart: true });
+    expect(extendedTestStep(2, { success: false, sl: -9 }, 10)).toEqual({ total: 0, done: false, repart: true, sl: -9 });
   });
 
   /** « à chaque tour, ajoutez votre Bonus de Force au nombre de DR que vous avez obtenus » (l.34) —

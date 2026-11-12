@@ -95,7 +95,7 @@ describe('effets onHit des manœuvres de zone/action (data) — appliqués par l
 /**
  * Hurlement fantomatique porte un nœud Flow `test` enfoui dans son Flow
  * `seq[ do(1d10) , test{Résistance → Brisé} , do(3 Assourdi) ]`. Routé par les actions du noyau (un `test` non routé
- * LÈVE). La manœuvre cible `allFoes` → un banshee ENNEMI hurle sur le HÉROS : héros MANUEL → le Test
+ * LÈVE). La manœuvre cible `adversairesAutour` → un banshee ENNEMI hurle sur le HÉROS : héros MANUEL → le Test
  * suspend en ÉTAPE de cascade `testDeclenche` INFLUENÇABLE (avec `meta.after` = le `do(3 Assourdi)`) ; le
  * `do(1d10)` AVANT s'applique tout de suite ; après `jetLancer('cascade', id)`+`jetValider('cascade')`, la branche PUIS la
  * continuation `after` (3 Assourdi) s'appliquent — preuve que l'ordre du Flow `seq` est préservé.
@@ -139,7 +139,7 @@ describe('Hurlement fantomatique — Test de trigger enfoui routé (cadence-awar
   });
 
   /**
-   * #402 — le filtre `allFoes` doit lire la CAPABILITY `undead` (portée par le TRAIT Mort-vivant),
+   * #402 — le filtre `adversairesAutour` doit lire la CAPABILITY `undead` (portée par le TRAIT Mort-vivant),
    * PAS le Groupe bestiaire (déclaré par l'entrée, `CreatureData.grantGroups`).
    * Contre-preuve du juge de réfutation : une créature du Groupe « mort-vivant » SANS le
    * Trait (ex. RAW Goule de crypte, `creatures.json`) reste une cible VALIDE du Hurlement fantomatique
@@ -182,7 +182,7 @@ describe('Hurlement fantomatique — Test de trigger enfoui routé (cadence-awar
 
   /**
    * #1231 — « Toutes les créatures vivantes (ne possédant pas le trait Mort-vivant) » (LDB 85 l.170) :
-   * le Hurlement fantomatique ne connaît AUCUN camp (`targeting:'allAround'`). Un allié de la banshee,
+   * le Hurlement fantomatique ne connaît AUCUN camp (`ciblage:'toutAutour'`). Un allié de la banshee,
    * vivant et à portée, le prend comme les autres ; elle-même jamais.
    */
   it('un ALLIÉ vivant de la banshee, à portée, subit le hurlement (aucun camp) — l’émettrice non', () => {

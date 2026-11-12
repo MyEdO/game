@@ -6,6 +6,7 @@ import { partyMoneyTotal, refusDeGesteSurLeGroupe } from '../noyau/bourseFlow';
 import { findVehicleById, findNavalTrait, findNavalPortById, type NavalPortData } from '../data';
 import { type PortProfile } from '../engine/seaVoyage';
 import { REPARATION } from '../engine/seaNavigation';
+import { humanizeFormula } from '../noyau/codex/humanize';
 import { findCargoEntryById } from '../engine/cargo';
 import { toMoney, priceToMoney, fromBrass, formatMoney, PA_PER_CO, type Money } from '../engine/money';
 import { moraleBand } from '../engine/crewMorale';
@@ -270,6 +271,7 @@ export function PortView({ initialTab = 'coque' }: { initialTab?: 'coque' | 'car
                         btnClassName="small"
                       />
                     </div>
+                    {devis.duree !== null && <p className="port-hint">Pose : {humanizeFormula(devis.duree)} jour(s)</p>}
                     <Prose md={findNavalTrait(devis.traitId)?.desc ?? ''} porteur={{ type: 'navalTraits', id: devis.traitId, chemin: 'desc' }} />
                   </div>
                 ))}

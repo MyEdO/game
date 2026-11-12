@@ -323,7 +323,7 @@ describe('#1262 V2 L6d — l’enjeu nomme l’entité qui EXIGE le jet, jamais 
   };
 
   /** Le Test « à la touche » authoré par le sort (forme réelle de `morsure-de-l-hiver`). */
-  const testOnHit = { trigger: 'onHit', on: 'victim', flow: { kind: 'test', test: { skill: 'resistance', difficulty: 'intermediaire' }, reussite: EMPTY_FLOW, echec: EMPTY_FLOW } } as unknown as TriggeredEffect;
+  const testOnHit = { trigger: 'onHit', on: 'victime', flow: { kind: 'test', test: { skill: 'resistance', difficulty: 'intermediaire' }, reussite: EMPTY_FLOW, echec: EMPTY_FLOW } } as unknown as TriggeredEffect;
 
   it('effet FONDU par un sort : l’enjeu nomme le SORT (jamais l’épée qui le porte)', () => {
     const c = porteur();

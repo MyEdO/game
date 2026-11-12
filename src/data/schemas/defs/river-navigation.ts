@@ -89,7 +89,7 @@ const doc = document(
     echouage: { label: 'Échouage', hint: 'Dégâts de coque infligés par un échouage' },
     temporaryRepair: { label: 'Réparation temporaire', hint: 'Difficulté, malus de Charpentier, Blessures réparées par Test' },
   },
-  { codex: { keys: ['riverNavigation'] }, edit: { object: 'single' } },
+  { codex: { keys: ['riverNavigation'] }, edit: { object: 'unique' } },
 );
 
 export const schema = doc.schema;

@@ -60,7 +60,7 @@ const estDifficulte = (v) => typeof v === 'string' && v.length > 0;
 const negatif = (f) => ({ times: { of: f, factor: -1 } });
 const en = (f, facteur) => ({ times: { of: f, factor: facteur } });
 const surLeNavire = (ops) => ({ kind: 'do', effect: { type: 'ops', on: 'navire', ops } });
-const surLaBourse = (brass) => ({ kind: 'do', effect: { type: 'ops', on: 'party', ops: [{ op: 'money', montant: { brass }, groupe: true }] } });
+const surLaBourse = (brass) => ({ kind: 'do', effect: { type: 'ops', on: 'groupe', ops: [{ op: 'money', montant: { brass }, groupe: true }] } });
 const laBourseCouvre = (nom) => ({ kind: 'money', atLeast: { brass: { tire: nom } } });
 const seq = (...steps) => ({ kind: 'seq', steps });
 const enjeu = (cle, entryId) => ({ key: { dataset: 'voyage', kind: cle, entryId, entryCategory: 'seaPortEvents' } });

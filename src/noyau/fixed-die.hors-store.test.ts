@@ -201,7 +201,7 @@ describe('provenance & re-dérivation — le dé courant fait foi (sonde `lens` 
     expect(banc.getState().pendingHandGate!.success, 'évalué au naturel : 95 > 60').toBe(false);
     banc.getState().jetForcerLaReussite('mainEnsanglantee');
     const p = banc.getState().pendingHandGate!;
-    expect([p.forced, p.success, !!p.fixed]).toEqual([true, true, false]);
+    expect([p.forcee, p.success, !!p.fixed]).toEqual([true, true, false]);
   });
 
   it('pending FERMÉ (post-Appliquer) : le verbe est inerte, aucun crash', () => {
@@ -216,7 +216,7 @@ describe('provenance & re-dérivation — le dé courant fait foi (sonde `lens` 
     openHandGate();
     setDesFixes(true);
     banc.getState().jetImposerLeResultat('mainEnsanglantee', 41);
-    expect(banc.getState().pendingHandGate!.forced).toBeFalsy();
+    expect(banc.getState().pendingHandGate!.forcee).toBeFalsy();
     expect(banc.getState().battle!.combatants[0].resilience).toBe(3);
   });
 
@@ -270,7 +270,7 @@ describe('Test OPPOSÉ — plancher de Résilience vs évaluation naturelle du d
     const r = banc.getState().pendingAttack!.result!;
     expect(r.attackerRoll).toBe(11);
     expect(r.attackerDetail!.sl).toBe(evaluateTest(11, 45).sl);
-    expect(banc.getState().pendingAttack!.forced).toBeFalsy();
+    expect(banc.getState().pendingAttack!.forcee).toBeFalsy();
   });
 });
 

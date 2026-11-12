@@ -92,7 +92,7 @@ describe('summarizeEffects', () => {
   });
   it('place les buffs après les malus et expose leur durée + bonus', () => {
     const r = summarizeEffects([cond('sonne')], [buff('Bénédiction de Bataille', 10, 2, 'capacite-de-combat')], 5);
-    expect(r.visible.map((c) => c.kind)).toEqual(['malus', 'buff']);
+    expect(r.visible.map((c) => c.kind)).toEqual(['malus', 'effet']);
     expect(r.visible[1].rounds).toBe(2);
     expect(r.visible[1].bonus).toBe(10);
   });
@@ -120,7 +120,7 @@ describe('summarizeEffects — états-drapeaux (Frénésie)', () => {
     const r = summarizeEffects([], [], 5, { frenzied: true });
     const fr = r.visible.find((c) => c.label === 'Frénésie');
     expect(fr).toBeTruthy();
-    expect(fr?.kind).toBe('state');
+    expect(fr?.kind).toBe('etat');
     expect(fr?.icon).toBeTruthy();
   });
   it('sans drapeau, aucune pastille Frénésie', () => {
@@ -128,7 +128,7 @@ describe('summarizeEffects — états-drapeaux (Frénésie)', () => {
   });
   it('ordonne malus → état-drapeau → buff', () => {
     const r = summarizeEffects([cond('sonne')], [buff('Bénédiction', 10, 2)], 5, { frenzied: true });
-    expect(r.visible.map((c) => c.kind)).toEqual(['malus', 'state', 'buff']);
+    expect(r.visible.map((c) => c.kind)).toEqual(['malus', 'etat', 'effet']);
   });
   it('Visée / Sur la défensive / Focalisation (avec DR en compteur)', () => {
     const r = summarizeEffects([], [], 9, { aiming: true, defensiveStance: true, focusDr: 2 });

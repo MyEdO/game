@@ -103,8 +103,9 @@ masque = NodePath("..")
 size_flags_horizontal = 3
 mouse_filter = 2
 
-[node name="Disposition" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene"]
+[node name="Disposition" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene" node_paths=PackedStringArray("journal")]
 script = ExtResource("2_disposition")
+journal = NodePath("../../../../Droite")
 
 [node name="Hud" type="VBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene"]
 anchors_preset = 15
@@ -232,18 +233,46 @@ theme_type_variation = &"Fenetre"
 [node name="Colonnes" type="HBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Groupe"]
 theme_type_variation = &"RangeeAeree"
 
-[node name="Pretires" type="ScrollContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Groupe/Colonnes"]
+[node name="Recrues" type="ScrollContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Groupe/Colonnes"]
 size_flags_horizontal = 3
 horizontal_scroll_mode = 0
 
-[node name="Cartes" type="VBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Groupe/Colonnes/Pretires"]
+[node name="Pile" type="VBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Groupe/Colonnes/Recrues"]
 theme_type_variation = &"PileSerree"
 size_flags_horizontal = 3
 
-[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene/Groupe/Colonnes/Pretires/Cartes" node_paths=PackedStringArray("masque")]
+[node name="Avis" type="VBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Groupe/Colonnes/Recrues/Pile"]
+
+[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene/Groupe/Colonnes/Recrues/Pile/Avis" node_paths=PackedStringArray("masque")]
+script = ExtResource("1_zone")
+source = "groupe.avis"
+masque = NodePath("../../../../..")
+repli = true
+
+[node name="Import" type="HBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Groupe/Colonnes/Recrues/Pile"]
+
+[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene/Groupe/Colonnes/Recrues/Pile/Import" node_paths=PackedStringArray("masque")]
+script = ExtResource("1_zone")
+source = "groupe.import"
+masque = NodePath("../../../../..")
+repli = true
+
+[node name="Roster" type="VBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Groupe/Colonnes/Recrues/Pile"]
+theme_type_variation = &"PileSerree"
+
+[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene/Groupe/Colonnes/Recrues/Pile/Roster" node_paths=PackedStringArray("masque")]
+script = ExtResource("1_zone")
+source = "groupe.roster"
+masque = NodePath("../../../../..")
+repli = true
+
+[node name="Pretires" type="VBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Groupe/Colonnes/Recrues/Pile"]
+theme_type_variation = &"PileSerree"
+
+[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene/Groupe/Colonnes/Recrues/Pile/Pretires" node_paths=PackedStringArray("masque")]
 script = ExtResource("1_zone")
 source = "groupe.pretires"
-masque = NodePath("../../../..")
+masque = NodePath("../../../../..")
 
 [node name="Campagnes" type="ScrollContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Groupe/Colonnes"]
 size_flags_horizontal = 3

@@ -251,10 +251,10 @@ export interface SequenceCombinedRules {
   second: { skill?: RefASpecialisation; characteristic?: CharKey };
   /** Tous les combien d'échecs de la SECONDE lecture les `ops` se paient (`NADJ 16 l.90` : « Pour
    *  chaque 3 Tests d'Initiative auxquels vous échouez »). 0/absent : à chaque échec. */
-  failEvery?: number;
+  echecsParEcheance?: number;
   /** Tous les combien de MARQUES effacées les `ops` se paient (`l.90` : « pour chaque 2 chouettes que
    *  vous effacez »). */
-  eraseEvery?: number;
+  effacementsParEcheance?: number;
   /** Ce que coûte l'échéance (échecs cumulés, ou marques effacées) — appliqué au porteur. */
   ops?: readonly GameOp[];
   /** Le camp qui obtient le MOINS de DR à la première lecture prend une MARQUE (`l.90`). */

@@ -134,7 +134,7 @@ describe('Riders « à la touche » data-driven (Feu / Lumière / Mort / Vie) �
 describe('Cieux — arc d’Azyr (LDB 48 l.106) : géométrie on:{near} + bypass métal', () => {
   // « se dirigent vers toutes les autres cibles dans les 2 mètres, à l’exception de ceux possédant le
   //   Talent Magie des Arcanes (Cieux), infligeant un nombre de Dégâts égal à votre BFM ». L’effet est
-  //   une GÉOMÉTRIE (`on:{near:'victim',radiusMeters:2}`) résolue par `applyTriggeredEffects` (≠ runPureFlowLines
+  //   une GÉOMÉTRIE (`on:{near:'victime',radiusMeters:2}`) résolue par `applyTriggeredEffects` (≠ runPureFlowLines
   //   direct des autres riders) : il faut un `battle` (positions) pour exercer le ciblage de zone + le bypass.
   const at = (over: Partial<Combatant>, x: number, y: number): Combatant =>
     mk({ ...over, pos: { x, y } } as Partial<Combatant>);

@@ -154,7 +154,7 @@ function baseProps() {
     architectureMode: false,
     architectureBodyId: null,
     architectureZ: null,
-    architectureAction: 'select' as const,
+    architectureAction: 'selection' as const,
     onArchitectureActionComplete: () => {},
     traceLayer: null,
     lowerLayerOpacity: 0.22,
@@ -196,7 +196,7 @@ afterEach(() => {
 /** Monte l'éditeur, la scène suivie comme le ferait l'historique. Les options portent ce que les
  *  correctifs interrogent : scène de départ, couche éditée, mode de couche, calques d'authoring. */
 async function monter(
-  tool: { mode: 'tile'; terrain: 'eau' } | { mode: 'erase' } | { mode: 'select' },
+  tool: { mode: 'terrain'; terrain: 'eau' } | { mode: 'gomme' } | { mode: 'selection' },
   opts: {
     scene?: Scene;
     currentLayer?: number;
@@ -332,7 +332,7 @@ async function monter(
 
 describe('Éditeur — la voie volumique monte le MÊME monde que le jeu (#1176, P3-3)', () => {
   it('canevas AVANT le SVG (donc dessous), SVG au-dessus par son contexte d’empilement, et le SVG ne peint plus le sol', async () => {
-    const h = await monter({ mode: 'select' });
+    const h = await monter({ mode: 'selection' });
     const canvas = h.canvas();
     expect(canvas).not.toBeNull();
     expect(canvas!.compareDocumentPosition(h.svg) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -341,14 +341,14 @@ describe('Éditeur — la voie volumique monte le MÊME monde que le jeu (#1176,
   });
 
   it('AUCUN picker de sprite inscrit — le picking de l’éditeur reste géométrique', async () => {
-    await monter({ mode: 'select' });
+    await monter({ mode: 'selection' });
     expect(hasSpritePicker()).toBe(false);
   });
 });
 
 describe('Éditeur — cadence de la cuisson (#1176, P3-3)', () => {
   it('un geste qui ne touche PAS le read-set du monde (déplacement d’entité) ne recuit rien', async () => {
-    const h = await monter({ mode: 'select' });
+    const h = await monter({ mode: 'selection' });
     const avant = h.cuissons();
     await h.bougerUneEntite();
     await h.bougerUneEntite();
@@ -356,7 +356,7 @@ describe('Éditeur — cadence de la cuisson (#1176, P3-3)', () => {
   });
 
   it('un TRAIT de pinceau reste sur la cuisson d’AVANT le geste ; le relâché en paie exactement UNE', async () => {
-    const h = await monter({ mode: 'tile', terrain: 'eau' });
+    const h = await monter({ mode: 'terrain', terrain: 'eau' });
     const avant = h.cuissons();
     await h.down(2, 2);
     await h.move(3, 2);
@@ -368,7 +368,7 @@ describe('Éditeur — cadence de la cuisson (#1176, P3-3)', () => {
   });
 
   it('…et pendant le trait, les cases peintes se voient — aperçu WYSIWYG par le backend affine', async () => {
-    const h = await monter({ mode: 'tile', terrain: 'eau' });
+    const h = await monter({ mode: 'terrain', terrain: 'eau' });
     expect(h.svg.querySelector('[data-apercu-trait]')).toBeNull();
     await h.down(2, 2);
     await h.move(3, 2);
@@ -381,7 +381,7 @@ describe('Éditeur — cadence de la cuisson (#1176, P3-3)', () => {
   });
 
   it('…et l’aperçu couvre l’EMPRISE du pinceau, celle que les peintres écrivent (#3059)', async () => {
-    const h = await monter({ mode: 'tile', terrain: 'eau' }, { brush: 3 });
+    const h = await monter({ mode: 'terrain', terrain: 'eau' }, { brush: 3 });
     await h.down(0, 0);
     const cases = empriseDuPinceau(sceneAtelier().dimensions, { x: 0, y: 0 }, 3);
     expect(cases).toHaveLength(4); // le coin rogne le carré 3×3
@@ -399,18 +399,18 @@ describe('Éditeur — ce que le monde volumique donne à voir (#1176, P3-3)', (
   it('les EMBUSQUEURS se voient : la loi de JEU les coupe, l’authoring pose leur marque', async () => {
     // La loi de JEU (aucune option d'authoring) coupe bien l'entité — sans quoi ce test ne dirait rien.
     expect(buildTokens(sceneEmbuscade(), undefined, null, { activeZ: 0, viewZ: null, top: true }, [])).toEqual([]);
-    const h = await monter({ mode: 'select' }, { scene: sceneEmbuscade() });
+    const h = await monter({ mode: 'selection' }, { scene: sceneEmbuscade() });
     expect(h.empreintes().length).toBeGreaterThan(0);
   });
 
   it('mode ISOLÉ : un jeton d’une couche masquée ne laisse aucune marque (aucun jeton fantôme)', async () => {
-    const gabarit = await monter({ mode: 'select' }, { scene: sceneEmbuscade(), currentLayer: 1, lowerLayerMode: 'gabarit' });
+    const gabarit = await monter({ mode: 'selection' }, { scene: sceneEmbuscade(), currentLayer: 1, lowerLayerMode: 'gabarit' });
     expect(gabarit.empreintes().length).toBeGreaterThan(0); // couche du dessous : gabarit d'alignement, le jeton est là
     await act(async () => root!.unmount());
     root = null;
     container!.remove();
     container = null;
-    const isolee = await monter({ mode: 'select' }, { scene: sceneEmbuscade(), currentLayer: 1, lowerLayerMode: 'isolee' });
+    const isolee = await monter({ mode: 'selection' }, { scene: sceneEmbuscade(), currentLayer: 1, lowerLayerMode: 'isolee' });
     expect(isolee.empreintes()).toHaveLength(0); // couche isolée : rien du dessous
   });
 
@@ -421,13 +421,13 @@ describe('Éditeur — ce que le monde volumique donne à voir (#1176, P3-3)', (
    */
   it('le décor d’une couche du DESSUS ne revient pas au canevas ; celui du DESSOUS reste en gabarit', async () => {
     expect(propsBuilder.buildProps(sceneDeuxDecors()), 'le builder, lui, les émet tous les deux').toHaveLength(2);
-    const rez = await monter({ mode: 'select' }, { scene: sceneDeuxDecors(), currentLayer: 0, lowerLayerMode: 'gabarit' });
+    const rez = await monter({ mode: 'selection' }, { scene: sceneDeuxDecors(), currentLayer: 0, lowerLayerMode: 'gabarit' });
     expect(rez.sujets()).toBe(1); // on n'édite pas ce qui flotte au-dessus de sa tête
     await act(async () => root!.unmount());
     root = null;
     container!.remove();
     container = null;
-    const etage = await monter({ mode: 'select' }, { scene: sceneDeuxDecors(), currentLayer: 1, lowerLayerMode: 'gabarit' });
+    const etage = await monter({ mode: 'selection' }, { scene: sceneDeuxDecors(), currentLayer: 1, lowerLayerMode: 'gabarit' });
     expect(etage.sujets()).toBe(2); // le dessous reste dessiné : c'est le gabarit d'alignement
   });
 
@@ -440,13 +440,13 @@ describe('Éditeur — ce que le monde volumique donne à voir (#1176, P3-3)', (
    */
   it('les TOITS ne sont peints qu’une fois : aucune masse au canevas, le plan étiqueté au SVG', async () => {
     const scene = scenarioToitsConstruit.scene; // masure à 4 pièces sous UNE nappe à deux pans (masse z=0)
-    const avec = await monter({ mode: 'select' }, { scene, currentLayer: 1, roofs: true });
+    const avec = await monter({ mode: 'selection' }, { scene, currentLayer: 1, roofs: true });
     const facesAvec = avec.faces();
     // Les nappes en PLAN de l'éditeur ont leur signature : des losanges à `opacity=0,7` (`authoring/roofsSvg`).
     const plansSvg = avec.svg.querySelectorAll('path[opacity="0.7"]').length;
     expect(facesAvec).toBeGreaterThan(0); // le monde est bien cuit (murs, sols)
     expect(plansSvg).toBeGreaterThan(0); // …et le SVG porte les nappes en plan
-    const sans = await remonter({ mode: 'select' }, { scene, currentLayer: 1, roofs: false });
+    const sans = await remonter({ mode: 'selection' }, { scene, currentLayer: 1, roofs: false });
     // Le calque éteint ne change RIEN au canevas (il n'y avait aucune masse à retirer)…
     expect(sans.faces()).toBe(facesAvec);
     // …et retire bien les nappes du SVG : la case garde son sens, sur la voie qui les peint.
@@ -460,7 +460,7 @@ describe('Éditeur — ce que le monde volumique donne à voir (#1176, P3-3)', (
    * entités ne sont pas dans le read-set de la cuisson).
    */
   it('la GOMME retire le jeton à l’instant du clic — sans recuire le monde', async () => {
-    const h = await monter({ mode: 'erase' }, { scene: sceneEmbuscade() });
+    const h = await monter({ mode: 'gomme' }, { scene: sceneEmbuscade() });
     const facesAvant = h.faces();
     expect(h.empreintes().length).toBeGreaterThan(0);
     await h.down(3, 3); // la case de l'embusqueur
@@ -479,13 +479,13 @@ describe('Éditeur — ce que le monde volumique donne à voir (#1176, P3-3)', (
  */
 describe('Éditeur — grille de cases et marques d’entité (#1176, P3-3)', () => {
   it('la GRILLE est montée, un trait par rangée et par colonne', async () => {
-    const h = await monter({ mode: 'select' });
+    const h = await monter({ mode: 'selection' });
     expect(h.grille()).toBe(8 + 8 + 2); // scène d'atelier 8×8
   });
 
   it('un EMBUSQUÉ non enrôlé porte quand même ses tirets — sinon rien ne le distingue d’un figurant', async () => {
     const seul = { ...sceneEmbuscade(), encounters: [] };
-    const h = await monter({ mode: 'select' }, { scene: seul });
+    const h = await monter({ mode: 'selection' }, { scene: seul });
     const marques = h.empreintes();
     expect(marques.length).toBeGreaterThan(0);
     // La marque est AU-DESSUS du canevas (le SVG l'est tout entier) et n'est pas transparente.
@@ -494,7 +494,7 @@ describe('Éditeur — grille de cases et marques d’entité (#1176, P3-3)', ()
   });
 
   it('…et sa marque est un CONTOUR au sol, jamais un aplat qui barre le corps', async () => {
-    const h = await monter({ mode: 'select' }, { scene: sceneEmbuscade() });
+    const h = await monter({ mode: 'selection' }, { scene: sceneEmbuscade() });
     expect(h.empreintes().every((p) => p.getAttribute('fill') === 'none')).toBe(true);
   });
 });
@@ -517,26 +517,26 @@ async function remonter(...args: Parameters<typeof monter>) {
 describe('Éditeur — canaux ISOLÉ et VOILÉ au canevas (#1176, P3-3, vague B)', () => {
   it.each(['gabarit', 'isolee'] as const)('mode %s : un MEUBLE VOLUMIQUE posé à la couche active est cuit et dessiné au canevas', async (lowerLayerMode) => {
     const meuble = sceneMobilier();
-    const avec = await monter({ mode: 'select' }, { scene: meuble, currentLayer: 0, lowerLayerMode });
+    const avec = await monter({ mode: 'selection' }, { scene: meuble, currentLayer: 0, lowerLayerMode });
     const facesAvec = avec.faces();
-    const sans = await remonter({ mode: 'select' }, { scene: { ...meuble, entities: [] }, currentLayer: 0, lowerLayerMode });
+    const sans = await remonter({ mode: 'selection' }, { scene: { ...meuble, entities: [] }, currentLayer: 0, lowerLayerMode });
     expect(facesAvec).toBeGreaterThan(sans.faces());
   });
 
   it('mode ISOLÉ : les faces de la couche du dessous quittent le dessin (canal DÉGAGEMENT)', async () => {
     const scene = sceneDeuxCouches();
-    const gabarit = await monter({ mode: 'select' }, { scene, currentLayer: 1, lowerLayerMode: 'gabarit' });
+    const gabarit = await monter({ mode: 'selection' }, { scene, currentLayer: 1, lowerLayerMode: 'gabarit' });
     const avec = gabarit.faces();
-    const isolee = await remonter({ mode: 'select' }, { scene, currentLayer: 1, lowerLayerMode: 'isolee' });
+    const isolee = await remonter({ mode: 'selection' }, { scene, currentLayer: 1, lowerLayerMode: 'isolee' });
     expect(avec).toBeGreaterThan(0);
     expect(isolee.faces()).toBeLessThan(avec);
   });
 
   it('mode GABARIT : la couche du dessous est VOILÉE par la teinte, et le curseur la dose', async () => {
     const scene = sceneDeuxCouches();
-    const clair = await monter({ mode: 'select' }, { scene, currentLayer: 1, lowerLayerMode: 'gabarit', lowerLayerOpacity: 0.9 });
+    const clair = await monter({ mode: 'selection' }, { scene, currentLayer: 1, lowerLayerMode: 'gabarit', lowerLayerOpacity: 0.9 });
     const lumClair = clair.lumiereMoyenne();
-    const sombre = await remonter({ mode: 'select' }, { scene, currentLayer: 1, lowerLayerMode: 'gabarit', lowerLayerOpacity: 0.3 });
+    const sombre = await remonter({ mode: 'selection' }, { scene, currentLayer: 1, lowerLayerMode: 'gabarit', lowerLayerOpacity: 0.3 });
     // À scène et faces IDENTIQUES, la seule chose qui change est la teinte du gabarit : le curseur dose.
     expect(sombre.faces()).toBe(clair.faces());
     expect(sombre.lumiereMoyenne()).toBeLessThan(lumClair);
@@ -544,13 +544,13 @@ describe('Éditeur — canaux ISOLÉ et VOILÉ au canevas (#1176, P3-3, vague B)
 
   it('BASCULE SOUS SEUIL : un gabarit quasi éteint ISOLE au lieu de noircir', async () => {
     const scene = sceneDeuxCouches();
-    const visible = await monter({ mode: 'select' }, { scene, currentLayer: 1, lowerLayerOpacity: 0.4 });
+    const visible = await monter({ mode: 'selection' }, { scene, currentLayer: 1, lowerLayerOpacity: 0.4 });
     const facesVoilees = visible.faces();
-    const eteint = await remonter({ mode: 'select' }, { scene, currentLayer: 1, lowerLayerOpacity: 0.05 });
+    const eteint = await remonter({ mode: 'selection' }, { scene, currentLayer: 1, lowerLayerOpacity: 0.05 });
     // Sous le seuil, la couche du dessous n'est plus DESSINÉE (dégagement) — elle n'est pas peinte en noir.
     expect(eteint.faces()).toBeLessThan(facesVoilees);
     // …et ce qui reste dessiné est à PLEINE teinte : la couche active, pas une couche noircie.
-    const actifSeul = await remonter({ mode: 'select' }, { scene, currentLayer: 1, lowerLayerMode: 'isolee' });
+    const actifSeul = await remonter({ mode: 'selection' }, { scene, currentLayer: 1, lowerLayerMode: 'isolee' });
     expect(eteint.lumiereMoyenne()).toBeCloseTo(actifSeul.lumiereMoyenne(), 9);
   });
 
@@ -578,7 +578,7 @@ describe('Éditeur — canaux ISOLÉ et VOILÉ au canevas (#1176, P3-3, vague B)
 describe('Éditeur — plaque de décalquage et marqueurs d’auteur (#1176, P3-3, vague B)', () => {
   for (const position of ['below', 'above'] as const)
     it(`la plaque « ${position} » est montée en QUAD MONDE (et quitte le SVG)`, async () => {
-      const h = await monter({ mode: 'select' }, { traceLayer: { position } });
+      const h = await monter({ mode: 'selection' }, { traceLayer: { position } });
       const mesh = h.decalque();
       expect(mesh).not.toBeNull();
       expect(mesh!.geometry.getAttribute('position').count).toBe(4);
@@ -593,7 +593,7 @@ describe('Éditeur — plaque de décalquage et marqueurs d’auteur (#1176, P3-
    * `data:` URL. Un réglage scalaire est une REPOSE : rien ne se remonte, l'opacité s'écrit en place.
    */
   it('un cran d’OPACITÉ s’écrit en place : mêmes objets, image jamais re-décodée', async () => {
-    const h = await monter({ mode: 'select' }, { traceLayer: { position: 'above' } });
+    const h = await monter({ mode: 'selection' }, { traceLayer: { position: 'above' } });
     const mesh = h.decalque()!;
     const mat = mesh.material as THREE.MeshBasicMaterial;
     const avant = [mesh.uuid, mesh.geometry.uuid, mat.uuid, mat.map!.uuid];
@@ -609,7 +609,7 @@ describe('Éditeur — plaque de décalquage et marqueurs d’auteur (#1176, P3-
   });
 
   it('une AUTRE planche, elle, se recharge — et elle seule (le quad et son matériau restent)', async () => {
-    const h = await monter({ mode: 'select' }, { traceLayer: { position: 'above' } });
+    const h = await monter({ mode: 'selection' }, { traceLayer: { position: 'above' } });
     const mesh = h.decalque()!;
     const mat = mesh.material as THREE.MeshBasicMaterial;
     const texAvant = mat.map!.uuid;
@@ -624,7 +624,7 @@ describe('Éditeur — plaque de décalquage et marqueurs d’auteur (#1176, P3-
   });
 
   it('un CALAGE déplacé rebâtit la forme, et rien d’autre', async () => {
-    const h = await monter({ mode: 'select' }, { traceLayer: { position: 'above' } });
+    const h = await monter({ mode: 'selection' }, { traceLayer: { position: 'above' } });
     const mesh = h.decalque()!;
     const mat = mesh.material as THREE.MeshBasicMaterial;
     const géoAvant = mesh.geometry.uuid;
@@ -639,14 +639,14 @@ describe('Éditeur — plaque de décalquage et marqueurs d’auteur (#1176, P3-
   });
 
   it('les SOURCES LUMINEUSES posées portent un marqueur d’auteur (en plein jour, rien ne les trahirait)', async () => {
-    const h = await monter({ mode: 'select' }, { scene: sceneLampe() });
+    const h = await monter({ mode: 'selection' }, { scene: sceneLampe() });
     expect(h.marqueursLampe()).toBe(1);
     // …et la portée authorée s'y lit : le cercle est là, à côté du point.
     expect(h.svg.querySelectorAll('[data-lampes-auteur] ellipse').length).toBe(1);
   });
 
   it('…et une scène SANS source n’en montre aucun', async () => {
-    const h = await monter({ mode: 'select' });
+    const h = await monter({ mode: 'selection' });
     expect(h.svg.querySelector('[data-lampes-auteur]')).toBeNull();
   });
 });
@@ -669,7 +669,7 @@ describe('Éditeur — mode calage du calque de référence', () => {
   }
 
   it('calque VISIBLE + contraste : le décor passe en aplat cyan UNIQUE, le reste du monde est intact', async () => {
-    const h = await monter({ mode: 'select' }, { scene: sceneMobilier(), traceLayer: { position: 'above' } });
+    const h = await monter({ mode: 'selection' }, { scene: sceneMobilier(), traceLayer: { position: 'above' } });
     const avant = tri(h);
     expect(avant.decor.length).toBeGreaterThan(0);
     await h.régler({ contraste: true });
@@ -683,7 +683,7 @@ describe('Éditeur — mode calage du calque de référence', () => {
   });
 
   it('la case rendue à zéro remet au décor ses matériaux d’ORIGINE et retire les arêtes', async () => {
-    const h = await monter({ mode: 'select' }, { scene: sceneMobilier(), traceLayer: { position: 'above' } });
+    const h = await monter({ mode: 'selection' }, { scene: sceneMobilier(), traceLayer: { position: 'above' } });
     const avant = tri(h);
     await h.régler({ contraste: true });
     expect(h.aretesCalage()).not.toBeNull();
@@ -693,7 +693,7 @@ describe('Éditeur — mode calage du calque de référence', () => {
   });
 
   it('contraste demandé sur un calque MASQUÉ : le mode ne s’allume pas', async () => {
-    const h = await monter({ mode: 'select' }, { scene: sceneMobilier(), traceLayer: { position: 'above' } });
+    const h = await monter({ mode: 'selection' }, { scene: sceneMobilier(), traceLayer: { position: 'above' } });
     const avant = tri(h);
     await h.régler({ contraste: true, visible: false });
     expect(tri(h).decor).toEqual(avant.decor);
@@ -701,7 +701,7 @@ describe('Éditeur — mode calage du calque de référence', () => {
   });
 
   it('sans calque du tout, le décor garde son rendu de jeu', async () => {
-    const h = await monter({ mode: 'select' }, { scene: sceneMobilier() });
+    const h = await monter({ mode: 'selection' }, { scene: sceneMobilier() });
     expect(h.rangsDeDecor().length).toBeGreaterThan(0);
     for (const mat of tri(h).decor) expect((mat as THREE.MeshBasicMaterial).color.getHexString()).not.toBe(CALAGE_APLAT.slice(1));
     expect(h.aretesCalage()).toBeNull();
@@ -711,13 +711,13 @@ describe('Éditeur — mode calage du calque de référence', () => {
 /** Le monde volumique est LE monde, ici comme au jeu (#1176 P3-4) : aucun interrupteur de voie. */
 describe('Éditeur — aucun interrupteur de voie ne subsiste', () => {
   it('aucun interrupteur de voie dans la barre de vue', async () => {
-    const h = await monter({ mode: 'select' });
+    const h = await monter({ mode: 'selection' });
     expect(h.el.querySelector('[aria-label="Monde volumique (DEV)"]')).toBeNull();
     expect(h.el.querySelector('[aria-label="Monde en couches SVG (DEV)"]')).toBeNull();
   });
 
   it('le canevas est monté d’office, sans rien à armer', async () => {
-    const h = await monter({ mode: 'select' });
+    const h = await monter({ mode: 'selection' });
     expect(h.canvas()).not.toBeNull();
   });
 });

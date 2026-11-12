@@ -23,10 +23,10 @@ import { ChipDeRefus } from '../ChipDeRefus';
 /** Valeur de `<select>` d'un occupant : préfixée par sa NATURE, pour qu'un rang de groupe et un id
  *  d'entité ne se confondent jamais. */
 const valueOf = (occupant: SeatOccupant): string =>
-  occupant.kind === 'party' ? `party:${occupant.rang}` : `entity:${occupant.entityId}`;
+  occupant.kind === 'groupe' ? `party:${occupant.rang}` : `entity:${occupant.entityId}`;
 
 const occupantOf = (value: string): SeatOccupant =>
-  value.startsWith('party:') ? { kind: 'party', rang: Number(value.slice(6)) } : { kind: 'entity', entityId: value.slice(7) };
+  value.startsWith('party:') ? { kind: 'groupe', rang: Number(value.slice(6)) } : { kind: 'entite', entityId: value.slice(7) };
 
 /** Les emplacements du groupe, dans l'ordre — liste FIXE, indépendante du document et de la partie. */
 const EMPLACEMENTS = Array.from({ length: PARTY_MAX }, (_, i) => i + 1);

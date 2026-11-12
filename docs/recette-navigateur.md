@@ -349,7 +349,7 @@ La passer EXPLICITEMENT vise un autre serveur (celui que `npm run dev` a imprim�
 ```js
 import { openApp, gotoScreen, selectOption, clickButtonByText, shot, vueRecette } from './scripts/recette/lib.mjs';
 // URL explicite du port dérivé imprimé par `npm run dev` dans CE worktree ; `opts` = ceux de
-// `launchSession` (`{ width, height, mobile, chromePath, port, args }`).
+// `launchSession` (`{ width, height, mobile, chromePath, args }`).
 const { largeur, hauteur } = vueRecette('portable');
 const session = await openApp('http://localhost:5182/', { width: largeur, height: hauteur });
 await gotoScreen(session, 'compendium');
@@ -1616,9 +1616,11 @@ variable, aucune de ces tentatives ne vise le Worker de production.
 ### Le kit deux-navigateurs (`scripts/recette/lib.mjs`)
 
 Deux appels d'`openApp` dans le MÊME script node = **deux Chrome headless indépendants** : profil
-temporaire tiré au hasard pour chacun (`os.tmpdir()`), port CDP tiré au hasard, donc deux
-`window.__wfrp`, deux `localStorage`/`sessionStorage` (le token de reprise de siège compris). L'option
-`port` de `launchSession` (transmise par `openApp`) ne fixe QUE le port CDP — inutile de la poser.
+temporaire tiré au hasard pour chacun (`os.tmpdir()`), donc deux `window.__wfrp`, deux
+`localStorage`/`sessionStorage` (le token de reprise de siège compris). Chaque Chrome choisit son port CDP
+(`--remote-debugging-port=0`) et l'écrit dans le `DevToolsActivePort` de son profil ; `launchSession` le lit
+là (`lireDevToolsActivePort`) et se branche sur le WebSocket que ce fichier nomme : une session parle au
+Chrome qu'elle a lancé, même lancée en même temps qu'une autre. `session.port` est ce port lu.
 
 **Teardown** : `session.close` pour CHAQUE session dans un `finally` (ferme le target, tue l'ARBRE
 Chrome — `taskkill /T`, seul fiable sous Windows — et purge le profil). Le `process.on('exit')` du

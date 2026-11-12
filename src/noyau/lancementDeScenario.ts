@@ -16,6 +16,8 @@ import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import type { CampaignDoc, CampaignVessel } from './etat';
 import type { Get, Set } from './flowTypes';
 import { creditBourse } from './bourseFlow';
+import { semaineDuJour } from './shipCrew';
+import { dayIndex } from '../engine/clock';
 
 /** Ce qu'un scénario CONSTRUIT, à chaque appel de sa fabrique, sur les datasets VIVANTS (#1692). */
 export interface ContenuDeScenario {
@@ -75,7 +77,7 @@ export function demarrerLeLancement(get: Get, set: Set, l: LancementDeScenario):
   // Bourse et navire APRÈS le reset que pose le chargement de la scène.
   const lead = get().party[0];
   if (l.bourse && lead) creditBourse(get, set, lead.id, l.bourse);
-  if (l.vessel) set({ vessel: l.vessel });
+  if (l.vessel) set({ vessel: { ...l.vessel, morale: { ...l.vessel.morale, lastMoraleWeek: semaineDuJour(dayIndex(get().gameTime)) } } }); // MDG 14 l.143
   if (l.combatDirect) get().lancerLeCombat(l.combatDirect);
   if (l.semainesDInterlude) get().ouvrirLInterlude(l.semainesDInterlude);
   if (l.massBattle) get().amorcerLaBataille(l.massBattle);

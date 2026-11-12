@@ -132,7 +132,7 @@ const DISPATCH = new Set<string>([
   // NE réveille PAS une proie endormie (Inconscient magique) quand CETTE créature l'attaque (morsure indolore),
   // là où toute autre attaque la réveille. Dispatché (capability lue par le modifier).
   'Salive analgésique',
-  // Métamorphose (Enfant d'Ulric, Middenheim p.116) : le trait `grantsManeuvers` DEUX manœuvres `targeting:'self'`
+  // Métamorphose (Enfant d'Ulric, Middenheim p.116) : le trait `grantsManeuvers` DEUX manœuvres `ciblage:'soi'`
   // (forme hybride / forme humaine) portant les ops `transform`/`endTransform` — bascule de profil DELTA (tableau RAW
   // VERBATIM), Traits hybrides et apparence, PERSISTANTE et réversible, au prix de DEUX Actions (loseTurn). Activée
   // par le JOUEUR via `manoeuvrerSurSoi` (hotbar). Dispatché (grantsManeuvers). Auto-transformation de l'IA à câbler.

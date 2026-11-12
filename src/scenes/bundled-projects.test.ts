@@ -507,7 +507,7 @@ describe('provenance locale, références présentes résolubles et régime docu
     doc.scenes[0].triggers.push({
       id: 'bataille', rect: { x: 0, y: 0, w: 1, h: 1 },
       flow: { kind: 'sequence', etapes: [{ kind: 'sequence', etapes: [
-        { kind: 'effet', effet: { type: 'startMassBattle', battle: { allyMight: 50, enemyMight: 50, ...battle } } },
+        { kind: 'effet', effet: { type: 'startMassBattle', battle: { puissanceAlliee: 50, puissanceEnnemie: 50, ...battle } } },
       ] }] },
     });
     return doc;

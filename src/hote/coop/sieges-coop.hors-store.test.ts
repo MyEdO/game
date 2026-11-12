@@ -18,7 +18,7 @@ import { idDuPretire } from '../../data/pregens';
 import { PRETIRE_DE_TEST, poserLesPretires } from '../../noyau/creation/pretireDeTest.testkit';
 import { etatInitialDuJeu, initialNet, type EtatDeJeu } from '../../noyau/etat';
 import { t } from '../../i18n';
-import { engagerLeHeros } from '../roster';
+import { engagerSurLeJeu } from '../roster.testkit';
 import { brouillonComplet } from '../../noyau/creation/engagement.testkit';
 import { stockageEnMemoire } from '../../lib/stockage.testkit';
 
@@ -86,13 +86,13 @@ describe('Engager en coop : le héros de chaque siège entre au groupe (#2907 S3
         ...miroir.etat,
         recruterLeHeros: (h: unknown) => session.sendIntent('recruterLeHeros', [h]),
         remplacerLeHeros: (id: string, h: unknown) => session.sendIntent('remplacerLeHeros', [id, h]),
-      }) as unknown as Parameters<typeof engagerLeHeros>[1];
+      }) as unknown as Parameters<typeof engagerSurLeJeu>[1];
     };
     const [antoine, berthe] = [invite(1, 'Antoine'), invite(2, 'Berthe')];
     host.broadcastSnapshot();
-    expect(engagerLeHeros(stockageEnMemoire(), hote.getState(), brouillonComplet('Hôte'), rosterDeTest('entropie-hote'))).toBeNull();
-    expect(engagerLeHeros(stockageEnMemoire(), antoine(), brouillonComplet('Antoine'), rosterDeTest('entropie-antoine'))).toBeNull();
-    expect(engagerLeHeros(stockageEnMemoire(), berthe(), brouillonComplet('Berthe'), rosterDeTest('entropie-berthe'))).toBeNull();
+    expect(engagerSurLeJeu(stockageEnMemoire(), hote.getState(), brouillonComplet('Hôte'), rosterDeTest('entropie-hote'))).toBeNull();
+    expect(engagerSurLeJeu(stockageEnMemoire(), antoine(), brouillonComplet('Antoine'), rosterDeTest('entropie-antoine'))).toBeNull();
+    expect(engagerSurLeJeu(stockageEnMemoire(), berthe(), brouillonComplet('Berthe'), rosterDeTest('entropie-berthe'))).toBeNull();
     host.broadcastSnapshot();
     const groupe = hote.getState().party;
     expect(groupe.map((h) => h.label).slice(1).sort()).toEqual(['Antoine', 'Berthe', 'Hôte']);

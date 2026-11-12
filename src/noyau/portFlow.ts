@@ -12,13 +12,13 @@
  * à l'achat, `sellChance.drDuVendeur` à la vente) s'ajoutent au DR de LEUR camp.
  *
  * VENTE (`vendreAuPort`, dernier reliquat #275/#274) : CASCADE (`noyau/rollSeam.ts` `openRoll` +
- * `noyau/cascade.ts`) — Ragot (hero-test), recherche d'acheteur (dé de MONDE par `openWorldTest`,
- * porteur `WORLD_STEP_OWNER`), Marchandage opposé (hero-test pour le héros, le marchand roule via
+ * `noyau/cascade.ts`) — Ragot (jet de héros), recherche d'acheteur (dé de MONDE par `openWorldTest`,
+ * porteur `WORLD_STEP_OWNER`), Marchandage opposé (jet de héros pour le héros, le marchand roule via
  * `engine/seaVoyage.rollMerchantOpposition`, moteur pur) sont chacun une étape routée par la policy
  * M/V/I (`surfaceDeLEtape`) — chaque continuation ENCHAÎNE l'étape suivante depuis l'applier de la
  * précédente (patron `merchantFlow.ts` Ragot→réassort ; défère via `setTimeout` si la cascade est
  * encore EN COURS de commit, patron `seaVoyageFlow.ts` `merDesertion`). ACHAT (`acheterAuPort`, #266)
- * suit le MÊME patron : le Marchandage d'achat s'ouvre par `openRoll` (hero-test) — SURFACÉ comme la
+ * suit le MÊME patron : le Marchandage d'achat s'ouvre par `openRoll` (jet de héros) — SURFACÉ comme la
  * vente, jamais un jet interne silencieux. Seul le BRADAGE (`jeterAuPort`) reste synchrone (¼ du prix,
  * aucun Test de Marchandage au RAW, MDG 15 l.399).
  */
@@ -297,7 +297,7 @@ function finalizePortBuy(get: Get, set: Set, cargoId: string, want: number, base
 }
 
 /** ACHAT d'une cargaison (l.319-349) : prix = Enc × prix de base, modulé par le Marchandage OPPOSÉ (#266)
- *  — SURFACÉ par `openRoll` (hero-test « Marchandage — achat ») comme la vente, jamais un jet interne.
+ *  — SURFACÉ par `openRoll` (jet de héros « Marchandage — achat ») comme la vente, jamais un jet interne.
  *  Le marchand roule via `rollMerchantOpposition` (moteur pur, appelé par l'applier) ; le vendeur NPC porte
  *  ses +DR de lot partiel/Surplus (l.339-341). Sans marchandeur dans le groupe, l'achat se conclut au prix
  *  plein (aucun jet). Débité, ajouté à la cale plafonnée à 150 % (MDG 12 l.75). */
@@ -359,7 +359,7 @@ function finalizePortSale(get: Get, set: Set, lotId: IdDeCargaison, sellEnc: num
   return t('port.sold', { enc: sellEnc, label, pct: offerPct, bargain: bargainLine, money: formatMoney(fromBrass(gross * PA_PER_CO)) });
 }
 
-/** 3. Marchandage opposé (vendeur PJ +DR, l.387-397) — hero-test (`openRoll`) pour le héros ; le
+/** 3. Marchandage opposé (vendeur PJ +DR, l.387-397) — jet de héros (`openRoll`) pour le héros ; le
  *  marchand roule via `rollMerchantOpposition` (moteur pur, appelé par l'applier). Sans marchandeur
  *  dans le groupe, la vente se conclut au prix d'offre pris tel quel (aucun jet). */
 function openPortSellBargainStep(get: Get, set: Set, lotId: IdDeCargaison, sellEnc: number): void {
@@ -403,7 +403,7 @@ function openPortSellBuyerStep(get: Get, set: Set, lotId: IdDeCargaison, sellEnc
 
 const PORT_SELL_BUYER_KIND = 'acheteurAuPort';
 
-/** 1. Test de Ragot PRÉALABLE éventuel (port qui produit / Surplus, l.366-372, hero-test). Aucun
+/** 1. Test de Ragot PRÉALABLE éventuel (port qui produit / Surplus, l.366-372, jet de héros). Aucun
  *  candidat au Ragot → même message qu'avant, aucun jet à ouvrir. */
 const PORT_SELL_GOSSIP_KIND = 'port-vente-ragot';
 

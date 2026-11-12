@@ -119,7 +119,7 @@ describe('Middenball — les camps, le tour, la somme (NADJ 16 l.117-119)', () =
       expect(f.result, 'et leur jet est DÉJÀ tombé').toBeTruthy();
       expect(f.base, 'leur valeur est celle de la fiche de l’habitué').toBe(tavernGameValue(pnjAuProfil('humain', 'h')!, findTavernGameById('middenball')!));
     }
-    expect(get().sequence?.payload).toMatchObject({ teams: { joueur: expect.any(Array), adversaire: expect.any(Array) } });
+    expect(get().sequence?.chargeUtile).toMatchObject({ teams: { joueur: expect.any(Array), adversaire: expect.any(Array) } });
   });
 
   it('l’OPTION choisie décide la Compétence ET la Difficulté de la rangée (Bagarre +20 vs Athlétisme +0)', () => {
@@ -151,9 +151,9 @@ describe('Middenball — les camps, le tour, la somme (NADJ 16 l.117-119)', () =
     // 11 rangées à 3 DR = 33 (≥ 25) contre 11 rangées à 1 DR = 11.
     poseTour(3, 3, 1);
 
-    const p = get().sequence!.payload as { last: { dr: Record<CampDeTaverne, number> } };
+    const p = get().sequence!.chargeUtile as { last: { dr: Record<CampDeTaverne, number> } };
     expect(p.last).toEqual({ dr: { joueur: 33, adversaire: 11 } });
-    expect(get().sequence!.cum, 'total ≥ 25 pour le camp le plus haut : un but').toEqual({ joueur: 1, adversaire: 0 });
+    expect(get().sequence!.cumuls, 'total ≥ 25 pour le camp le plus haut : un but').toEqual({ joueur: 1, adversaire: 0 });
     for (const h of party) expect(get().party.find((x) => x.id === h.id)!.advantage, '+1 Avantage pour le tour suivant').toBe(1);
     expect(get().journal.some((l) => l.includes('BUT'))).toBe(true);
   });
@@ -171,7 +171,7 @@ describe('Middenball — les camps, le tour, la somme (NADJ 16 l.117-119)', () =
     choisir(0);
     poseTour(3, 3, 1);
     expect(get().party[0].advantage).toBe(2);
-    const camps = () => (get().sequence!.payload as { advantage?: { player: number; opponent: number } }).advantage;
+    const camps = () => (get().sequence!.chargeUtile as { advantage?: { player: number; opponent: number } }).advantage;
     expect(camps(), 'les figurants suivent la même suite').toEqual({ joueur: 2, adversaire: 0 });
     choisir(0);
     poseTour(1, 1, 1); // 11 contre 11 : égalité, chaque camp perd 1 (LDB 14 l.219)
@@ -267,9 +267,9 @@ describe('Middenball — les camps, le tour, la somme (NADJ 16 l.117-119)', () =
     choisir(0);
     poseTour(4, 4, 3); // 11×4 = 44 contre 11×3 = 33 : les deux ≥ 25
 
-    const p = get().sequence!.payload as { last: { dr: Record<CampDeTaverne, number> } };
+    const p = get().sequence!.chargeUtile as { last: { dr: Record<CampDeTaverne, number> } };
     expect(p.last).toEqual({ dr: { joueur: 44, adversaire: 33 } });
-    expect(get().sequence!.cum, 'un seul but, pour le camp le plus haut').toEqual({ joueur: 1, adversaire: 0 });
+    expect(get().sequence!.cumuls, 'un seul but, pour le camp le plus haut').toEqual({ joueur: 1, adversaire: 0 });
   });
 
   it('total sous le seuil : l’équipe la plus haute gagne l’Avantage, mais AUCUN but', () => {
@@ -278,7 +278,7 @@ describe('Middenball — les camps, le tour, la somme (NADJ 16 l.117-119)', () =
     choisir(0);
     poseTour(2, 2, 1); // 22 contre 11 : le plus haut, mais < 25
 
-    expect(get().sequence!.cum).toEqual({ joueur: 0, adversaire: 0 });
+    expect(get().sequence!.cumuls).toEqual({ joueur: 0, adversaire: 0 });
     expect(get().party.find((x) => x.id === party[0].id)!.advantage).toBe(1);
   });
 
@@ -287,7 +287,7 @@ describe('Middenball — les camps, le tour, la somme (NADJ 16 l.117-119)', () =
     get().jouerALaTaverne(party[0].id, { gameId: 'middenball', opponent: { kind: 'profil', id: 'humain' }, allyProfil: 'humain' });
     const tours: number[] = [];
     for (let i = 0; i < 8 && get().sequence; i++) {
-      tours.push(get().sequence!.round);
+      tours.push(get().sequence!.manche);
       choisir(0);
       poseTour(3, 3, 1);
     }

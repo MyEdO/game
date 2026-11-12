@@ -44,7 +44,7 @@ const doc = document(
     dispoPct: { label: 'Tableau de Disponibilité', hint: "Pourcentage de réussite du Test d'achat, par taille de colonie" },
     barterRatios: { label: 'Ratios de troc', hint: "Ratio d'objets échangés entre deux Disponibilités, au troc" },
   },
-  { codex: { keys: ['disponibilite'] }, edit: { object: 'single' } },
+  { codex: { keys: ['disponibilite'] }, edit: { object: 'unique' } },
 );
 
 export const schema = doc.schema;

@@ -66,7 +66,7 @@ describe('consommables — effet en FLOW (#50 : migration GameOp[] → Flow)', (
     })(baked);
     expect(leaves).toHaveLength(2);
     for (const e of leaves) {
-      expect(e.on).toBe('hero');
+      expect(e.on).toBe('heros');
       expect(e.heroId).toBe('h1');
       expect(e.untilTime).toBe(4242);
       expect(e.label).toBe('Belladone');

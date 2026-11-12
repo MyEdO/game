@@ -65,7 +65,7 @@ describe('buildTokens — figurants (PNJ d’ambiance)', () => {
       { id: 'f2', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 4, y: 4 } }, // debout : aucune place
     ] as SceneEntity[];
     s.encounters = [] as Scene['encounters'];
-    s.seatAssignments = { 'table-1': { 'place-2': { kind: 'entity', entityId: 'f1' } } };
+    s.seatAssignments = { 'table-1': { 'place-2': { kind: 'entite', entityId: 'f1' } } };
     const par = new Map(buildTokens(s, allVisible(s), null, VIEW, ['h1', 'h2']).map((e) => [e.id, e.subject]));
     const assis = par.get('f1') as { kind: string; seat?: { slotId: string; facing: string; anchor: { x: number; y: number; h: number } } };
     expect(assis.seat?.slotId).toBe('place-2');

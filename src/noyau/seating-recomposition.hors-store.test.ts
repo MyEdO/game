@@ -33,9 +33,9 @@ const SLOT_DU_RANG = ['place-1', 'place-2', 'place-3', 'place-4'];
 
 const hero = (id: string): Combatant => combattantDeTest({ id, label: id.toUpperCase(), kind: 'heros', xp: 0 });
 
-const poseDe = (rang: number) => seatPoseOf(banc.getState().scene!, { kind: 'party', rang });
+const poseDe = (rang: number) => seatPoseOf(banc.getState().scene!, { kind: 'groupe', rang });
 const placesDeGroupe = () =>
-  Object.values(banc.getState().scene?.seatAssignments ?? {}).flatMap((m) => Object.values(m)).filter((o) => o.kind === 'party');
+  Object.values(banc.getState().scene?.seatAssignments ?? {}).flatMap((m) => Object.values(m)).filter((o) => o.kind === 'groupe');
 
 /** Attable les `rangs` demandés par la primitive RÉELLE (`assignSeat`), puis entre en scène. */
 function attable(rangs: number[], party: Combatant[]): void {
@@ -43,7 +43,7 @@ function attable(rangs: number[], party: Combatant[]): void {
   sc.id = 'taverne';
   sc.entities.push({ id: PROP, kind: 'prop', pos: { x: 5, y: 5 }, decor: { id: TABLE }, facing: 'N', usable: { assise: true } });
   for (const rang of rangs) {
-    const r = assignSeat(sc, PROP, SLOT_DU_RANG[rang - 1], { kind: 'party', rang }, party.length);
+    const r = assignSeat(sc, PROP, SLOT_DU_RANG[rang - 1], { kind: 'groupe', rang }, party.length);
     if (!r.ok) throw new Error(`assignSeat refusé (rang ${rang}) : ${r.reason}`);
     sc = r.scene;
   }

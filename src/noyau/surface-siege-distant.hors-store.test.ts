@@ -117,7 +117,7 @@ describe('Le héros d’un siège DISTANT garde ses fenêtres chez l’hôte (#1
     E[0].engagedWith = [H[0].id];
     set({
       battle: { ...g().battle! },
-      pendingDisengage: { moverId: H[0].id, foeId: E[0].id, canSacrifice: false, phase: 'choice', atk: null, def: null, result: null },
+      pendingDisengage: { moverId: H[0].id, foeId: E[0].id, canSacrifice: false, phase: 'choix', atk: null, def: null, result: null },
     } as never);
 
     g().jetRegler('desengagement', 'fuir', true);

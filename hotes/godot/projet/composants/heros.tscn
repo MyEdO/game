@@ -1,13 +1,24 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/liaison.gd" id="1_liaison"]
 [ext_resource type="Script" path="res://scripts/zone.gd" id="2_zone"]
 [ext_resource type="Theme" path="res://art/discret.tres" id="t_discret"]
+[ext_resource type="Theme" path="res://art/tour_du_heros.tres" id="t_tour_du_heros"]
 
 [node name="Heros" type="PanelContainer"]
 custom_minimum_size = Vector2(230, 0)
 size_flags_horizontal = 3
 theme_type_variation = &"CarteDeHeros"
+
+[node name="Tour" type="Panel" parent="."]
+mouse_filter = 2
+theme = ExtResource("t_tour_du_heros")
+theme_type_variation = &"neutre"
+
+[node name="ton" type="Node" parent="Tour"]
+script = ExtResource("1_liaison")
+champ = "ton"
+propriete = &"theme_type_variation"
 
 [node name="Rangee" type="HBoxContainer" parent="."]
 theme_type_variation = &"RangeeDeCarte"
@@ -65,6 +76,16 @@ script = ExtResource("2_zone")
 source = "elements"
 ids = PackedStringArray("bourse")
 formes = PackedStringArray("puce:bourse")
+
+[node name="Jets" type="VBoxContainer" parent="Rangee/Pile"]
+theme_type_variation = &"PileSerree"
+
+[node name="Zone" type="Node" parent="Rangee/Pile/Jets" node_paths=PackedStringArray("masque")]
+script = ExtResource("2_zone")
+source = "elements"
+ids = PackedStringArray("jets/")
+formes = PackedStringArray("jet:jetDeHeros")
+masque = NodePath("..")
 
 [node name="Elements" type="HFlowContainer" parent="Rangee/Pile"]
 theme_type_variation = &"FluxSerre"

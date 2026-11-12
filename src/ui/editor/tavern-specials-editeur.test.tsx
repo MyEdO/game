@@ -37,7 +37,7 @@ describe('Inspecteur — un jeu de taverne orphelin se signale', () => {
         scene={scene} otherScenes={[]} worldMap={null} setScene={() => undefined}
         sel={{ type: 'entity', id: entity.id }} setSel={() => undefined}
         enemyCreatures={[{ id: 'humain', label: 'Humain' }]} openLogic={() => undefined} resizeScene={() => undefined}
-        narratif={emptyNarratif()} tool={{ mode: 'select' }} armZoneTiles={() => undefined} zoneFocusKey={null}
+        narratif={emptyNarratif()} tool={{ mode: 'selection' }} armZoneTiles={() => undefined} zoneFocusKey={null}
       />,
     ));
     return [...montage.container.querySelectorAll('select')]

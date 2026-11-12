@@ -10,16 +10,17 @@
  * aucun id.
  */
 import {
-  ACTIONS, avecSigne, batailleEnVue, intentionDeRenvoi, partieEnCours, refusDeRenvoyer, fenetreDuJeu, carteEnVue, cleDuGeste, dayIndex, formatImperial, formatJourImperial, marchandEnVue, marcheEnVue, voyageEnVue, VERBE_DE_CHOIX, type AxeDuChoix, type FenetreAChoix, conditionLabel, conversationEnVue, difficultyText, documentEnVue, lieuEnVue, formatMoney, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDuSoin, ficheDuPorteur, gestesDeLObjet, interludeEnVue, jetsEnVue, porteurParId, recitEnVue, reposEnVue, toneOf,
-  type CombatEvent, type Equipe, type EntreeDeLaFiche, type LieuDuPlan, type PlanDeLaCarte, type FicheDuPorteur, type GesteAChoix, type GesteDuNoyau, type GesteFermable, type FenetreDAttaque, type FenetreDIncantation, type Jeu, type JetEnVue, type LigneDeJet, type LigneDuJournal, type ModLine, type RollBreakdown, type TrajetEnVue,
+  ACTIONS, avecSigne, batailleEnVue, intentionDeRenvoi, partieEnCours, refusDeRenvoyer, fenetreDuJeu, carteEnVue, cleDuGeste, dayIndex, formatJourImperial, marchandEnVue, marcheEnVue, voyageEnVue, VERBE_DE_CHOIX, type AxeDuChoix, type FenetreAChoix, conditionLabel, conversationEnVue, difficultyText, documentEnVue, lieuEnVue, formatMoney, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDuSoin, ficheDuPorteur, gestesDeLObjet, interludeEnVue, jetsEnVue, porteurParId, recitEnVue, reposEnVue, toneOf, nomEnVue, porteurEnVue,
+  type CombatEvent, type Equipe, type EntreeDeLaFiche, type IdDeCouche, type LieuDuPlan, type PlanDeLaCarte, type FicheDuPorteur, type GesteAChoix, type GesteDuNoyau, type GesteFermable, type FenetreDAttaque, type FenetreDIncantation, type Jeu, type JetEnVue, type LigneDeJet, type LigneDuJournal, type ModLine, type RollBreakdown, type TrajetEnVue,
 } from '../noyau/index';
 import { pluriel, t } from '../i18n';
 import { garanti } from '../lib/garanti';
-import type { Projection } from './projection';
+import { ordreEnVue, type Projection } from './projection';
 import { CHOIX_EN_BOUTONS, type FenetreADessiner } from './gestes';
 import { zonesDeLaCreation, type ZonesDeLaCreation } from './creation';
 import { zonesDeLaPartie, type ZonesDeLaPartie } from './groupe';
-import { elementsDesGestes, ligne, resume, type Bouton, type Choix, type Element, type Entite, type FicheOuverte, type Formulaire, type Jet, type Ligne, type PanneauDeLHote, type Plan, type Puce, type Saisie, type Ton } from './elements';
+import type { RosterMontre } from './roster';
+import { elementsDesGestes, ligne, resume, type Bouton, type Choix, type Element, type Entite, type FicheOuverte, type Formulaire, type Jet, type Ligne, type PanneauDeLHote, type Paysage, type Plan, type Puce, type Saisie, type Ton } from './elements';
 
 /**
  * @contrat Vue
@@ -216,9 +217,8 @@ const posture = (id: string, p: FenetreDAttaque['tirDansLeTas']): Puce | null =>
  *  celle de la défense (à jeter ou tombées ; l'issue que l'inversion du dé donnerait au détail de l'attaquant), le DR
  *  net, l'issue ou l'attente d'une Défense. */
 function corpsDeLAttaque(etat: Jeu, a: FenetreDAttaque): Element[] {
-  const nom = (id: string) => porteurParId(etat, id)?.label ?? null;
-  const attaquant = nom(a.attaquantId);
-  const cible = nom(a.cibleId);
+  const attaquant = nomEnVue(etat, a.attaquantId);
+  const cible = nomEnVue(etat, a.cibleId);
   const inversion = a.influences.inversion?.apercu ?? null;
   const elements: (Element | null)[] = [
     ligne('cible', t('ecran.attaque.cible', { cible: cible ?? '' })),
@@ -247,8 +247,8 @@ function corpsDeLAttaque(etat: Jeu, a: FenetreDAttaque): Element[] {
  *  ligne du lanceur (à jeter ou tombée), les pas de Surincantation qui restent, les cibles supplémentaires à désigner
  *  sur la carte, l'issue. */
 function corpsDeLIncantation(etat: Jeu, f: FenetreDIncantation): Element[] {
-  const lanceur = garanti(porteurParId(etat, f.lanceurId), f.lanceurId, 'lanceur de l’incantation').label;
-  const cible = f.surSoi ? t('ecran.incantation.surSoi') : garanti(porteurParId(etat, f.cibleId), f.cibleId, 'cible de l’incantation').label;
+  const lanceur = garanti(nomEnVue(etat, f.lanceurId), f.lanceurId, 'lanceur de l’incantation');
+  const cible = f.surSoi ? t('ecran.incantation.surSoi') : garanti(nomEnVue(etat, f.cibleId), f.cibleId, 'cible de l’incantation');
   const l = f.ligne;
   const s = f.surincantation;
   const elements: (Element | null)[] = [
@@ -268,7 +268,7 @@ function corpsDeLIncantation(etat: Jeu, f: FenetreDIncantation): Element[] {
 /** Une ligne de jet d'une fenêtre (`jetsEnVue`) : qui jette, le Test, la table ou le dé, et ce qui est tombé : le dé
  *  et son verdict, ou ce que la table ou le dé lit. */
 function jetDeLaLigne(etat: Jeu, id: string, l: LigneDeJet): Jet {
-  const qui = l.qui === null ? null : porteurParId(etat, l.qui)?.label ?? null;
+  const qui = l.qui === null ? null : nomEnVue(etat, l.qui);
   switch (l.genre) {
     case 'test': return jet(id, {
       qui, libelle: l.test, cible: l.cible === null ? null : t('ecran.jet.cible', { cible: l.cible }),
@@ -323,7 +323,7 @@ function corpsDeLaFenetre(etat: Jeu): Element[] {
   const incantation = jetDeLEtape === 'incantation' ? fenetreDIncantation(etat) : null;
   if (incantation) return corpsDeLIncantation(etat, incantation);
   const defense = jetDeLEtape === 'defense' ? fenetreDeDefense(etat) : null;
-  const nom = (id: string) => garanti(porteurParId(etat, id), id, 'combattant de la Défense').label;
+  const nom = (id: string) => garanti(nomEnVue(etat, id), id, 'combattant de la Défense');
   return [
     ...(defense ? [ligne('defense/qui', t('ecran.defense.qui', { attaquant: nom(defense.attaquantId), defenseur: nom(defense.defenseurId), arme: defense.arme }))] : []),
     ...(defense?.jet ? [jet('defense/jet', {
@@ -508,13 +508,14 @@ const choixDuDormeur = (id: string, c: Repos['dormeurs'][number]['couchage']): C
   valeurs: c.valeurs.map((v, i): Bouton => ({ type: 'bouton', id: String(i), libelle: v.libelle, jeu: { type: v.geste.verbe, args: v.geste.args }, presse: v.choisie, focus: false, refus: null })),
 });
 
-/** La nuit à régler (`reposEnVue`) : la nuit, le temps qu'il fait (en alerte quand il expose), puis la note, en alerte
- *  quand les bourses ne la couvrent pas ; la nuit de chaque dormeur est sur sa carte (`surLesCartes`). */
+/** La nuit à régler (`reposEnVue`) : la tête de sa scène (`scene` : le paysage de la halte, le jour, la nuit et son
+ *  lieu), le temps qu'il fait (en alerte quand il expose), puis la note, en alerte quand les bourses ne la couvrent
+ *  pas ; la nuit de chaque dormeur est sur sa carte (`surLesCartes`). */
 function nuitDuRepos(etat: Jeu, cle: string): Element[] {
   const r = reposEnVue(etat);
   if (!r) return [];
   return [
-    ligne(`${cle}/nuit`, r.nuit),
+    ...scene(etat, paysageDeLaHalte(r.toit, voyageEnVue(etat)), r.nuit),
     ...(r.temps ? [ligne(`${cle}/temps`, r.temps.texte, r.temps.alerte ? 'alerte' : 'neutre')] : []),
     ...(r.note ? [ligne(`${cle}/note`, r.note.texte, r.note.couverte ? 'neutre' : 'alerte')] : []),
   ];
@@ -566,19 +567,93 @@ function echoppe(etat: Jeu): Element[] {
   ];
 }
 
-/** Le trajet en cours (`voyageEnVue`) : l'heure de jeu et la météo du jour, les km faits sur ceux du trajet par son
- *  moyen, puis sa frise : le départ, chaque nuit passée en route et son km, l'arrivée. */
+type Voyage = NonNullable<ReturnType<typeof voyageEnVue>>;
+
+/** Le ciel de chaque moment du jour, et le voile qu'il pose sur le relief. */
+const CIEL_DU_MOMENT: Record<Voyage['moment']['id'], readonly IdDeCouche[]> = {
+  aube: ['ciel-aube', 'voile-aube'], matin: ['ciel-jour'], midi: ['ciel-jour'], apresmidi: ['ciel-jour'],
+  crepuscule: ['ciel-soir', 'voile-soir'], soir: ['ciel-nuit', 'voile-nuit'], nuit: ['ciel-nuit', 'voile-nuit'],
+};
+
+/** La couche de chaque météo du jour ; `null` : un temps qui ne se voit pas. */
+const COUCHE_DE_LA_METEO: Record<NonNullable<Voyage['meteo']>['id'], IdDeCouche | null> = {
+  sec: null, beau: null, pluie: 'meteo-pluie', 'pluie-diluvienne': 'meteo-pluie-diluvienne', neige: 'meteo-neige', blizzard: 'meteo-blizzard',
+};
+
+/** Le relief de chaque voie. */
+const RELIEF_DE_LA_VOIE: Record<Voyage['voie'], IdDeCouche> = { terrestre: 'relief-terre', fluvial: 'relief-fleuve', maritime: 'relief-mer' };
+
+/** L'équipage d'un trajet, qui nomme sa couche (`equipage-…`) et celle de sa lanterne (`lanterne-…`). */
+type Equipage = 'pied' | 'monture' | 'attelage' | 'barge' | 'navire';
+
+/** L'équipage du trajet : le navire en mer, la barge au fleuve ; sur la route, les marcheurs, les cavaliers ou l'attelage. */
+const equipage = (v: Voyage): Equipage => (v.voie === 'maritime' ? 'navire' : v.voie === 'fluvial' ? 'barge' : v.mode === 'pied' ? 'pied' : v.mode === 'monture' ? 'monture' : 'attelage');
+
+/** La tête d'une scène du monde : son paysage, ses couches de la plus lointaine à la plus proche, le jour de jeu,
+ *  puis ce qui se dit du moment. */
+const scene = (etat: Jeu, couches: IdDeCouche[], moment: string): Element[] => [
+  { type: 'paysage', id: 'scene/paysage', paysage: couches } satisfies Paysage,
+  ligne('scene/jour', formatJourImperial(etat.gameTime)),
+  ligne('scene/moment', moment),
+];
+
+/** Le paysage du trajet : le ciel du moment, le relief de la voie, le voile du moment, l'équipage, sa lanterne quand
+ *  le moment pose un voile, puis la météo du jour. */
+function paysageDuVoyage(v: Voyage): IdDeCouche[] {
+  const [ciel, ...voile] = CIEL_DU_MOMENT[v.moment.id];
+  const meteo = v.meteo && COUCHE_DE_LA_METEO[v.meteo.id];
+  const e = equipage(v);
+  return [ciel, RELIEF_DE_LA_VOIE[v.voie], ...voile, `equipage-${e}`, ...(voile.length > 0 ? [`lanterne-${e}` as const] : []), ...(meteo ? [meteo] : [])];
+}
+
+/** Le paysage d'une halte : la nuit sur son relief, le toit de la nuit (le feu du campement, les fenêtres d'un logis,
+ *  le bord et ses lanternes sur l'eau du trajet `v`, la mer hors d'un trajet), puis la météo du jour. */
+function paysageDeLaHalte(toit: NonNullable<ReturnType<typeof reposEnVue>>['toit'], v: Voyage | null): IdDeCouche[] {
+  const meteo = v?.meteo && COUCHE_DE_LA_METEO[v.meteo.id];
+  const bord = v?.voie === 'fluvial' ? 'barge' : 'navire';
+  const halte: IdDeCouche[] = toit === 'bord' ? [`equipage-${bord}`, `lanterne-${bord}`] : [toit === 'campement' ? 'halte-feu' : 'halte-toit'];
+  return ['ciel-nuit', toit === 'bord' ? RELIEF_DE_LA_VOIE[v?.voie === 'fluvial' ? 'fluvial' : 'maritime'] : 'relief-terre', 'voile-nuit', ...halte, ...(meteo ? [meteo] : [])];
+}
+
+/** La frise du trajet, en plan d'une seule ligne : le départ, chaque nuit passée en route à son km, là où est le
+ *  groupe (`ici`, en `reussite`, sans nom), l'arrivée ; la route faite en `alerte`, celle qui reste en `neutre`. */
+function friseDuVoyage(v: Voyage): Plan {
+  const point = (id: string, nom: string, km: number, ton: Ton): Plan['points'][number] => ({ type: 'point', id, nom, x: v.km > 0 ? km / v.km : 1, y: 0, ton, elements: [] });
+  const faits = [point('depart', v.de, 0, 'alerte'), ...v.nuits.map((n, i) => point(`nuit/${i}`, t('ecran.voyage.nuit', { nuit: i + 1 }), n, 'alerte')), point('ici', '', v.fait, 'reussite')];
+  const points = [...faits, point('arrivee', v.vers, v.km, 'neutre')];
+  return { type: 'plan', id: 'voyage/frise', points, traits: points.slice(1).map((p, i) => ({ id: p.id, de: points[i].id, vers: p.id, ton: i < faits.length - 1 ? 'alerte' : 'neutre' })) };
+}
+
+/** La carte du trajet, en plan : chaque lieu que la carte montre, sans son nom, l'arrivée en `reussite`, chaque route
+ *  en `neutre` ; quand elle montre les deux bouts du trajet, là où est le groupe sur sa route (`ici`, en `alerte`) et
+ *  la part faite de cette route en `alerte`. */
+function carteDuVoyage(v: Voyage): Plan {
+  const lieu = (id: string) => v.carte.lieux.find((l) => l.id === id);
+  const [de, vers] = [lieu(v.depart), lieu(v.arrivee)];
+  const part = v.km > 0 ? v.fait / v.km : 1;
+  const point = (id: string, x: number, y: number, ton: Ton): Plan['points'][number] => ({ type: 'point', id, nom: '', x, y, ton, elements: [] });
+  const lieux = v.carte.lieux.map((l) => point(`lieu/${l.id}`, l.x, l.y, l.id === v.arrivee ? 'reussite' : 'neutre'));
+  const routes = v.carte.routes.filter((r) => r.route !== v.route).map((r) => ({ id: r.route, de: `lieu/${r.de}`, vers: `lieu/${r.vers}`, ton: 'neutre' as const }));
+  if (!de || !vers) return { type: 'plan', id: 'voyage/carte', points: lieux, traits: routes };
+  return {
+    type: 'plan', id: 'voyage/carte',
+    points: [...lieux, point('ici', de.x + (vers.x - de.x) * part, de.y + (vers.y - de.y) * part, 'alerte')],
+    traits: [...routes, { id: 'reste', de: 'ici', vers: `lieu/${v.arrivee}`, ton: 'neutre' }, { id: 'fait', de: `lieu/${v.depart}`, vers: 'ici', ton: 'alerte' }],
+  };
+}
+
+/** Le trajet en cours (`voyageEnVue`) : hors d'une halte, qui tient la sienne (`nuitDuRepos`), la tête de sa scène
+ *  (`scene` : son paysage, le jour, le moment du jour et la météo) ; puis sa carte (`carteDuVoyage`), les km faits sur
+ *  ceux du trajet par son moyen, et sa frise (`friseDuVoyage`). */
 function voyage(etat: Jeu): Element[] {
   const v = voyageEnVue(etat);
   if (!v) return [];
-  const km = (n: number) => t('ecran.voyage.km', { km: n });
+  const moment = v.meteo ? t('ecran.voyage.moment', { moment: v.moment.nom, meteo: v.meteo.nom.toLocaleLowerCase('fr') }) : v.moment.nom;
   return [
-    ligne('voyage/heure', formatImperial(v.heure)),
-    ...(v.meteo ? [ligne('voyage/meteo', v.meteo)] : []),
-    jauge('voyage/route', t('ecran.voyage.route', { moyen: v.moyen }), [v.fait, v.km]),
-    puce('voyage/etape/depart', v.de, km(0)),
-    ...v.nuits.map((n, i) => puce(`voyage/etape/nuit/${i}`, t('ecran.voyage.nuit', { nuit: i + 1 }), km(n))),
-    puce('voyage/etape/arrivee', v.vers, km(v.km)),
+    ...(reposEnVue(etat) ? [] : scene(etat, paysageDuVoyage(v), moment)),
+    carteDuVoyage(v),
+    ligne('voyage/route', t('ecran.voyage.route', { moyen: v.moyen, fait: v.fait, km: v.km })),
+    friseDuVoyage(v),
   ];
 }
 
@@ -638,7 +713,7 @@ function choixPortes(elements: readonly Element[]): Set<string> {
 /** Le patient du soin en attente (`fenetreDuSoin`) ; le soigneur est celui qui tient la fenêtre et jette. */
 function patientDuSoin(etat: Jeu): Element[] {
   const f = fenetreDuSoin(etat);
-  return f ? [ligne('soin', t('ecran.soin.patient', { patient: garanti(porteurParId(etat, f.patientId), f.patientId, 'patient du soin').label }))] : [];
+  return f ? [ligne('soin', t('ecran.soin.patient', { patient: garanti(nomEnVue(etat, f.patientId), f.patientId, 'patient du soin') }))] : [];
 }
 
 /** Le texte du document remis (`documentEnVue`) ; son titre est celui de la fenêtre. */
@@ -716,12 +791,12 @@ const actifDuCombat = (actif: NonNullable<Combat['actif']>): Entite => ({
   ],
 });
 
-/** Ce que l'aperçu du premier clic dit : le Mouvement qu'il coûte, ou la cible qu'il vise. */
-function apercuDe(c: Combat): string | null {
+/** Ce que l'aperçu du premier clic dit : le Mouvement qu'il coûte, ou la cible qu'il vise (`nomEnVue`). */
+function apercuDe(etat: Jeu, c: Combat): string | null {
   const a = c.apercu;
   if (!a) return null;
   if (a.cout !== null) return t('ecran.apercu', { cout: a.cout });
-  const cible = [c.actif, ...c.voisins.liste].find((v) => v?.id === a.cible)?.nom;
+  const cible = a.cible === null ? null : nomEnVue(etat, a.cible);
   return cible ? t('ecran.apercu.cible', { cible }) : null;
 }
 
@@ -755,10 +830,10 @@ function offresDuCombat(c: Combat): Choix[] {
   });
 }
 
-/** L'ordre du tour (`battle.order`) : chaque combattant en puce, ses Blessures pour valeur ; celui qui joue en alerte,
- *  un ennemi en échec. */
+/** L'ordre du tour en vue (`ordreEnVue`) : chaque combattant en puce, ses Blessures pour valeur ; celui qui joue en
+ *  alerte, un ennemi en échec. */
 const ordreDuTour = (etat: Jeu, c: Combat): Puce[] =>
-  (etat.battle?.order ?? []).flatMap((id) => {
+  ordreEnVue(etat).flatMap((id) => {
     const x = porteurParId(etat, id);
     if (!x) return [];
     return [puce(`ordre/${id}`, x.label, t('ecran.jauge', { courant: x.wounds.current, max: x.wounds.max }), null, id === c.actif?.id ? 'alerte' : x.kind === 'ennemi' ? 'echec' : 'neutre')];
@@ -800,15 +875,16 @@ function gestesDesCartes(etat: Jeu, gestes: (Bouton | Choix | Formulaire)[]): { 
 
 /** Chaque héros du groupe en carte (`heros/`) : son portrait, son nom, ses Blessures en jauge, sa bourse, le bouton qui ouvre sa
  *  fiche, pressé quand elle est ouverte, qui la ferme alors, ses États en puces, puis ce que la fenêtre dit de lui
- *  (`surLesCartes`) et les gestes qui le désignent (`gestesDesCartes`), `gestes` ; tant qu'aucune partie n'est en
- *  cours (`partieEnCours`), le bouton qui le renvoie, refusé par `refusDeRenvoyer`. */
+ *  (`surLesCartes`) et les gestes qui le désignent (`gestesDesCartes`), `gestes` ; en `alerte` quand l'un d'eux a le
+ *  focus : c'est à lui d'agir ; tant qu'aucune partie n'est en cours (`partieEnCours`), le bouton qui le renvoie,
+ *  refusé par `refusDeRenvoyer`. */
 function herosDuGroupe(etat: Jeu, ouverte: FicheOuverte | null, gestes: Map<string, Bouton[]>): Entite[] {
   const { parHeros } = surLesCartes(etat);
   return etat.party.map((h): Entite => {
     const f = garanti(ficheDuPorteur(etat, h.id), h.id, 'héros du groupe');
     const presse = ouverte?.porteur === h.id;
     return {
-      type: 'entite', id: `heros/${h.id}`, ton: 'neutre', nom: f.nom,
+      type: 'entite', id: `heros/${h.id}`, ton: (gestes.get(h.id) ?? []).some((g) => g.focus) ? 'alerte' : 'neutre', nom: f.nom,
       elements: [
         { type: 'portrait', id: 'portrait', combattant: h.id },
         jauge('blessures', t('ecran.jauge.blessures'), f.blessures),
@@ -954,10 +1030,10 @@ function objetDeLaFiche(etat: Jeu, f: FicheDuPorteur, ouverte: FicheOuverte): En
 }
 
 /** Les zones de la fiche `ouverte`, le statbloc de son porteur : sa tête, sa fermeture, son profil, chaque section
- *  non vide en entité (son bandeau pour nom), la source de son profil, la possession choisie ; vides sans fiche ou sans
- *  son porteur. */
+ *  non vide en entité (son bandeau pour nom), la source de son profil, la possession choisie ; vides sans fiche, sans
+ *  son porteur, ou son porteur hors de vue (`porteurEnVue`). */
 function zonesDeLaFiche(etat: Jeu, ouverte: FicheOuverte | null): Pick<ZonesDeLEcran, 'fiche.porteur' | 'fiche.gestes' | 'fiche.profil' | 'fiche.sections' | 'fiche.source' | 'fiche.objet'> {
-  const f = ouverte && ficheDuPorteur(etat, ouverte.porteur);
+  const f = ouverte && porteurEnVue(etat, ouverte.porteur) && ficheDuPorteur(etat, ouverte.porteur);
   if (!ouverte || !f) return { 'fiche.porteur': [], 'fiche.gestes': [], 'fiche.profil': [], 'fiche.sections': [], 'fiche.source': [], 'fiche.objet': [] };
   const sections = sectionsDeLaFiche(f, ouverte);
   return {
@@ -971,9 +1047,10 @@ function zonesDeLaFiche(etat: Jeu, ouverte: FicheOuverte | null): Pick<ZonesDeLE
   };
 }
 
-/** Les zones de l'écran de la partie `etat`, de sa projection `p`, de la fenêtre qui tient la main `fenetre` et du
- *  panneau que l'hôte tient ouvert `panneau` : la fiche ou la création (`zonesDeLaCreation`). */
-export function zonesDeLEcran(etat: Jeu, p: Projection, fenetre: FenetreADessiner | null, panneau: PanneauDeLHote): ZonesDeLEcran {
+/** Les zones de l'écran de la partie `etat`, de sa projection `p`, de la fenêtre qui tient la main `fenetre`, du
+ *  panneau que l'hôte tient ouvert `panneau` : la fiche ou la création (`zonesDeLaCreation`), et du roster `roster` que
+ *  l'hôte montre au groupe à composer (`zonesDeLaPartie`). */
+export function zonesDeLEcran(etat: Jeu, p: Projection, fenetre: FenetreADessiner | null, panneau: PanneauDeLHote, roster: RosterMontre): ZonesDeLEcran {
   const fiche = panneau && 'fiche' in panneau ? panneau.fiche : null;
   const c = p.combat;
   const { restants: gestes, parHeros: gestesSurLesCartes } = gestesDesCartes(etat, fenetre ? elementsDesGestes(fenetre.gestes) : []);
@@ -991,7 +1068,7 @@ export function zonesDeLEcran(etat: Jeu, p: Projection, fenetre: FenetreADessine
     'combat.ordre': c ? ordreDuTour(etat, c) : [],
     'combat.actif': c?.actif ? [actifDuCombat(c.actif)] : [],
     'combat.avis': c ? avisDuCombat(c, fenetre !== null) : [],
-    'combat.apercu': c ? [apercuDe(c)].flatMap((a) => (a === null ? [] : [ligne('apercu', a)])) : [],
+    'combat.apercu': c ? [apercuDe(etat, c)].flatMap((a) => (a === null ? [] : [ligne('apercu', a)])) : [],
     'combat.offres': c ? offresDuCombat(c) : [],
     'exploration.gestes': (fenetre ? [] : p.exploration?.gestes.liste ?? []).map((g, i): Bouton => ({
       type: 'bouton', id: `exploration/${i}`, libelle: g.libelle, jeu: { suite: g.gestes.map((x) => ({ type: x.verbe, args: x.args })) }, presse: false, focus: false, refus: g.refus ?? null,
@@ -1001,7 +1078,7 @@ export function zonesDeLEcran(etat: Jeu, p: Projection, fenetre: FenetreADessine
     'groupe.heros': herosDuGroupe(etat, fiche, gestesSurLesCartes),
     ...zonesDeLaFiche(etat, fiche),
     ...zonesDeLaCreation(etat, panneau && 'creation' in panneau ? panneau.creation : null),
-    ...zonesDeLaPartie(etat),
+    ...zonesDeLaPartie(etat, roster),
   };
 }
 

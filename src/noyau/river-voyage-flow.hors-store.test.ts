@@ -628,7 +628,7 @@ describe('chavirage — le redressement s’ouvre Round par Round (#1104a)', () 
     expect(round1, 'le Round 2 s’insère tant qu’il reste des Rounds (BE)').toBeTruthy();
     // MSRC 7 l.40
     expect(lignesDe(round1!.mods, RULE_REF['navigation-chavirage']))
-      .toEqual([{ label: t('rv.rightingCumul', { n: 2 }), value: -5, famille: 'circonstance', ref: RULE_REF['navigation-chavirage'] }]);
+      .toEqual([{ label: t('fleuve.cumulDeRedressement', { n: 2 }), value: -5, famille: 'circonstance', ref: RULE_REF['navigation-chavirage'] }]);
     const pilote2 = partyAssisted(get().party, { skill: { id: 'voile', spec: 'chaland' } })!;
     expect(round1!.target).toBe(pilote2.value + DIFFICULTY_MODIFIERS.accessible - 5);
     expect(inexplique(round1!)).toBe(0);
@@ -683,7 +683,7 @@ describe('Navigation du jour — Difficulté déclarée, malus NOMMÉS (#1112)',
     const built = buildRiverDayCascade(get, set, get().worldMap!.routes[0]);
     const nav = built.steps.find((s) => s.kind === 'fleuveNavigation')!;
     expect(nav.difficulty).toBe('intermediaire'); // le malus n'est PAS une Difficulté
-    expect(malus(nav)).toEqual([{ label: t('rv.modHorsDeControle'), value: -20, famille: 'circonstance', ref: RULE_REF['navigation-greement'] }]);
+    expect(malus(nav)).toEqual([{ label: t('fleuve.modificateurHorsDeControle'), value: -20, famille: 'circonstance', ref: RULE_REF['navigation-greement'] }]);
     // Le malus est compris dans la cible, et la ligne explique TOUT l'écart (cliquet).
     expect(inexplique(nav)).toBe(0);
   });
@@ -705,7 +705,7 @@ describe('péril fluvial — l’évitement porte les malus de dérive/hors-cont
     seedBattleRng(2);
     const out = applierDe('fleuveTestDePeril')!(get, set, check, undefined, { steps: [check], index: 0 });
     const nav = (out?.insert ?? []).find((s) => s.kind === 'fleuvePerilNavigation')!;
-    expect(malus(nav)).toEqual([{ label: t('rv.modHorsDeControle'), value: -20, famille: 'circonstance', ref: RULE_REF['navigation-greement'] }]);
+    expect(malus(nav)).toEqual([{ label: t('fleuve.modificateurHorsDeControle'), value: -20, famille: 'circonstance', ref: RULE_REF['navigation-greement'] }]);
     expect(nav.difficulty).toBe('intermediaire'); // le malus n'est pas une Difficulté
     expect(inexplique(nav), 'le malus est compris dans la cible, et TOUT l’écart est nommé').toBe(0);
     // Le Test de Navigation du JOUR et l'évitement voient le MÊME modificateur (une seule règle).
