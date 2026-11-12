@@ -3359,7 +3359,7 @@ export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r:
 function armeDeLaCasse(get: Get, casse: PendingCasseDArme): Weapon | undefined {
   const reprise = casse.reprise;
   if (reprise.mode === 'oups') return reprise.weapon;
-  const porteur = inBattleId(get().battle, reprise.bt.attackerId);
+  const porteur = porteurParId(get(), reprise.bt.attackerId);
   return porteur?.weapons.find((w) => w.uid === reprise.bt.weaponUid);
 }
 
@@ -3368,7 +3368,7 @@ function armeDeLaCasse(get: Get, casse: PendingCasseDArme): Weapon | undefined {
 function demandesDeLaCasse(get: Get, casse: PendingCasseDArme): DemandeDeCasse[] {
   const reprise = casse.reprise;
   if (reprise.mode === 'piegeALame') {
-    const porteur = inBattleId(get().battle, reprise.bt.attackerId);
+    const porteur = porteurParId(get(), reprise.bt.attackerId);
     const lame = porteur?.weapons.find((w) => w.uid === reprise.bt.weaponUid);
     return porteur && lame ? desDeBrisDeLame(porteur, lame) : [];
   }
@@ -3816,16 +3816,17 @@ export function ouvrirLaSerieSubie(get: Get, set: SetFn, cible: Combatant, op: E
  *  ouvert (`pendingFateSave`), le coup n'est pas achevé : la série attend. La dernière attaque achevée ou la cible hors
  *  d'action, la série se ferme (`fermerLaSerieSubie`) ; sinon l'assaillant qui perd son Action (`loseNextAction`) la
  *  voit décomptée sans être jouée (LDB 14 l.28), et l'attaque suivante part par `doAttack`. Une attaque à laquelle
- *  l'assaillant renonce (`doAttack` sans après-coup) est achevée de même. Rend `true` quand une fenêtre tient la main.
+ *  l'assaillant renonce (`doAttack` sans après-coup) est achevée de même. Rend un `Applique` : `OPS_DIFFEREES` quand une
+ *  fenêtre ou le Destin tient la main, `undefined` quand la série s'est fermée.
  *  MDG 15 l.163-164, l.177-178 */
-export function poursuivreLaSerie(get: Get, set: SetFn): boolean {
-  if (get().pendingFateSave) return true;
+export function poursuivreLaSerie(get: Get, set: SetFn): Applique {
+  if (get().pendingFateSave) return OPS_DIFFEREES;
   const serie = garanti(get().serieSubie, 'serieSubie', 'série d’attaques subies');
   const restantes = serie.restantes - 1;
   const cible = garanti(get().party.find((h) => h.id === serie.cibleId), serie.cibleId, 'cible de la série d’attaques subies');
   if (restantes <= 0 || isOutOfAction(cible)) {
     fermerLaSerieSubie(get, set);
-    return false;
+    return undefined;
   }
   const { assaillant } = serie;
   if (assaillant.loseNextAction) {
@@ -3834,8 +3835,8 @@ export function poursuivreLaSerie(get: Get, set: SetFn): boolean {
     return poursuivreLaSerie(get, set);
   }
   set({ serieSubie: { ...serie, restantes } });
-  if (doAttack(get, set, assaillant, cible, { mode: 'subie' }) === OPS_DIFFEREES) return true;
-  return get().serieSubie ? poursuivreLaSerie(get, set) : false;
+  if (doAttack(get, set, assaillant, cible, { mode: 'subie' }) === OPS_DIFFEREES) return OPS_DIFFEREES;
+  return get().serieSubie ? poursuivreLaSerie(get, set) : undefined;
 }
 
 /** Ferme la série d'attaques subies, sa sortie unique : le héros rendu au groupe par la couture de retour
@@ -4056,7 +4057,7 @@ function jouerLaSuiteDuCoup(get: Get, set: SetFn, attacker: Combatant, target: C
     case 'tirRapide': suspendu = runPreemptShots(get, set, enchainement.faits); break; // la boucle des tireurs reprend (#997)
     case 'aucun': break; // le site d'origine a tranché : aucun balayage ne suit ce coup
     case 'apresCoup': suspendu = jouerLApresCoup(get, set, enchainement.queue); break; // LDB 10 l.1037 ; LDB 85 l.71
-    case 'subie': suspendu = poursuivreLaSerie(get, set); break; // MDG 15 l.163-164, l.177-178
+    case 'subie': suspendu = poursuivreLaSerie(get, set) === OPS_DIFFEREES; break; // MDG 15 l.163-164, l.177-178
   }
   if (suspendu) return true;
   if (restitution && !portee) set({ battle: { ...get().battle!, acted: restitution.prevActed } });
@@ -7354,9 +7355,10 @@ export function finishCombatEnd(get: Get, set: SetFn): void {
  *  de « 1 Round minimum » — il subit alors −20 pendant 1 Round, journalisé par l'appelant) ; false s'il doit
  *  la LÂCHER (aucun gantelet, ou SECOND évènement de lâcher pendant la période). Pose/réarme le marqueur
  *  transitoire `drop.gauntletSavedRound`. */
-function lockedGauntletHolds(wielder: Combatant, drop: Weapon, round: number): boolean {
+function lockedGauntletHolds(wielder: Combatant, drop: Weapon, roundCourant: number | undefined): boolean {
   const hasGauntlet = hasCapability(wielder, 'preventForcedDrop'); // capacité agrégée (gantelet PORTÉ/TENU)
   if (!hasGauntlet) return false;
+  const round = garanti(roundCourant, wielder.id, 'Round du gantelet verrouillé hors bataille (LDB 13 l.13)');
   const saved = drop.gauntletSavedRound;
   if (saved != null && round <= saved + 1) { drop.gauntletSavedRound = undefined; return false; } // 2e évènement dans la période → lâche
   drop.gauntletSavedRound = round; // 1re sauvegarde (ou période écoulée → réarmement) : garde l'arme, −20/1 Round
@@ -7374,9 +7376,7 @@ function lockedGauntletHolds(wielder: Combatant, drop: Weapon, round: number): b
  * l'autre », acquittée par « Continuer/Terminer ») plutôt qu'une ligne noyée. `defenderSL` = le DR PROPRE du
  * jet résolu (la marge nette se recompose avec `bt`). */
 export function applyBladeTrap(get: Get, set: SetFn, defender: Combatant, bt: BladeTrapFreeze, defenderSL: number, des: Map<string, number> = new Map()): Applique {
-  const battle = get().battle;
-  if (!battle) return undefined;
-  const attacker = inBattleId(battle, bt.attackerId);
+  const attacker = porteurParId(get(), bt.attackerId);
   if (!attacker || isOutOfAction(attacker)) return undefined;
   const drop = attacker.weapons.find((w) => w.uid === bt.weaponUid);
   if (!drop) return undefined;
@@ -7408,8 +7408,9 @@ export function applyBladeTrap(get: Get, set: SetFn, defender: Combatant, bt: Bl
   // Gantelet verrouillé (AA folio 94) : anti-lâcher — la lame DÉTRUITE échappe à cette grâce (un gantelet
   // ne sauve pas une arme brisée). Sinon, la 1re fois dans la période le porteur GARDE l'arme (−20/1 Round) ;
   // le 2e évènement de lâcher la fait tomber. Capacité lue en DONNÉE (`preventForcedDrop`), jamais par nom.
-  if (!brisee && lockedGauntletHolds(attacker, drop, battle.round)) {
+  if (!brisee && lockedGauntletHolds(attacker, drop, get().battle?.round)) {
     pushDisplay(set, { id: idDansLaSequence(get, `cons-issue-du-piege-a-lame-${defender.id}`, 'combat'), kind: 'issueDuPiegeALame', actorId: defender.id, icon: 'action/se-defendre', label: tr('cf.libelleDuPiegeALame'), outcome: toRecapLines([...usure, tr('cf.ganteletVerrouilleRetient', { name: attacker.label, weapon: drop.label })]) });
+    set(touchActors(get()));
     bus.emit(EVT.SCENE_DIRTY);
     checkBattleOver(get, set);
     return undefined;
@@ -7419,6 +7420,7 @@ export function applyBladeTrap(get: Get, set: SetFn, defender: Combatant, bt: Bl
   // Étape d'AFFICHAGE empilée (comme un Coup Critique) : visible « l'un sous l'autre », acquittée par le
   // joueur. `actorId` = le défenseur piégeur (propriétaire de la modale en coop). Applier muet (préserve `outcome`).
   pushDisplay(set, { id: idDansLaSequence(get, `cons-issue-du-piege-a-lame-${defender.id}`, 'combat'), kind: 'issueDuPiegeALame', actorId: defender.id, icon: 'objet/arme', label: tr('cf.libelleDuPiegeALame'), outcome: toRecapLines([...usure, line]) });
+  set(touchActors(get()));
   bus.emit(EVT.SCENE_DIRTY);
   checkBattleOver(get, set);
   return undefined;
@@ -8933,7 +8935,7 @@ export const TABLES = {
       if (!demande) return dit(); // la grappe a changé sous le dé : rien n'est appliqué au hasard
       des.set(demande.cle, tirage);
       if (casse.reprise.mode === 'piegeALame') {
-        const defenseur = inBattleId(get().battle, casse.reprise.defenderId);
+        const defenseur = porteurParId(get(), casse.reprise.defenderId);
         if (!defenseur) return dit([tr('cascade.cibleDisparue', { label: step.label ?? '' })]);
         // Le seul dé du Piège-lame vient de tomber : l'application n'a plus rien à ouvrir — et si elle le
         // faisait, le fail-fast le dirait plutôt que de laisser la conséquence jouer devant un dé.
@@ -9050,18 +9052,17 @@ export const TABLES = {
     piegeALame: (get, set, step) => {
       const pbt = step.piegeLame;
       if (!pbt) return;
-      const battle = get().battle;
-      const defender = inBattleId(battle, pbt.defenderId);
-      const attacker = inBattleId(battle, pbt.attackerId);
-      if (!defender || !attacker) return;
+      const defender = porteurParId(get(), pbt.defenderId);
+      const attacker = porteurParId(get(), pbt.attackerId);
+      if (!defender || !attacker) return { consequences: freeCons([tr('cascade.cibleDisparue', { label: step.label ?? '' })]) };
       if (step.chosen !== 'piege') {
         // Coup Critique normal sur la défense (le défenseur place le Critique sur l'attaquant).
         const parryWeaponObj = defender.weapons.find((w) => w.uid === pbt.parryWeaponUid);
         const parryWeaponName = parryWeaponObj?.label ?? 'arme';
         const lines = [tr('cf.critiqueEnDefense', { name: defender.label })];
         applyCoupCritiqueSec(get, set, attacker, pbt.roll, 'double', { attackerId: defender.id, weapon: parryWeaponName, weaponObj: parryWeaponObj }, lines, defender);
-        const b = get().battle!;
-        set({ battle: { ...b, log: [...b.log, ...evLines(lines, 'information', defender.id, attacker.id)] } });
+        journaliser(get, set, lines, 'information', { actorId: defender.id, targetId: attacker.id });
+        set(touchActors(get()));
         bus.emit(EVT.SCENE_DIRTY);
         checkBattleOver(get, set);
         return;

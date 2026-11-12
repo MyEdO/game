@@ -235,6 +235,106 @@ describe('série d’attaques subies hors bataille (#3892)', () => {
     expect(s.party[0].wounds.current).toBe(H.wounds.current - coup.woundsLost! - 3);
   });
 
+  /** Un Critique LÉTAL encaissé pendant la série (sévérité 100, « Subir ») au héros à Destin : la mort suspendue au
+   *  Destin (`pendingFateSave`), la série en attente, ses 3 Blessures non tombées. */
+  function critiqueLetalPendantLaSerie() {
+    const { banc, H } = serieOuverte([22, 23, 50, 20], 2, (id) => [troisBlessures(id)]);
+    expect(H.fate ?? 0).toBeGreaterThan(0);
+    const coup = defendre(banc, 97);
+    trancherLeCritique(banc, 100, 'subir');
+    const s = banc.getState();
+    expect(s.pendingFateSave).toMatchObject({ heroId: H.id, foeId: s.serieSubie!.assaillant.id });
+    expect(s.serieSubie).toMatchObject({ cibleId: H.id, restantes: 2 });
+    expect(s.pendingDefense).toBeNull();
+    return { banc, H, coup };
+  }
+
+  it('Critique létal, Destin « Comment ça a pu rater ? » : la série reprend, Défense suivante ouverte, puis se ferme et ses 3 Blessures tombent : LDB 17 l.32', () => {
+    const { banc, H } = critiqueLetalPendantLaSerie();
+    banc.getState().fenetreChoisir('destin', 'issue', 'eviter');
+    let s = banc.getState();
+    expect(s.pendingFateSave).toBeNull();
+    expect(s.party[0].fate).toBe((H.fate ?? 0) - 1);
+    expect(s.serieSubie).toMatchObject({ cibleId: H.id, restantes: 1 });
+    expect(s.pendingDefense).toMatchObject({ attackerId: s.serieSubie!.assaillant.id, defenderId: H.id });
+    expect(defendre(banc, 5).hit).toBe(false);
+    s = banc.getState();
+    expect(s.serieSubie).toBeNull();
+    expect(s.party[0].dead).toBeFalsy();
+    expect(s.party[0].wounds.current).toBe(H.wounds.current - 3);
+  });
+
+  it('Critique létal, Destin « Meurs un autre jour » : le héros Inconscient, hors d’action, la série se ferme : LDB 17 l.31', () => {
+    const { banc, H } = critiqueLetalPendantLaSerie();
+    banc.getState().fenetreChoisir('destin', 'issue', 'survivre');
+    const s = banc.getState();
+    expect(s.pendingFateSave).toBeNull();
+    expect(s.serieSubie).toBeNull();
+    expect(s.pendingDefense).toBeNull();
+    expect(s.party[0].fate).toBe((H.fate ?? 0) - 1);
+    expect(s.party[0].conditions).toContainEqual({ id: 'inconscient', value: 1 });
+    expect(s.party[0].dead).toBeFalsy();
+  });
+
+  it('Critique létal, Destin refusé : le seul héros meurt, la série se ferme sur la défaite du groupe : LDB 17 l.29', () => {
+    const { banc, H } = critiqueLetalPendantLaSerie();
+    banc.getState().fenetreChoisir('destin', 'issue', 'accepter');
+    const s = banc.getState();
+    expect(s.pendingFateSave).toBeNull();
+    expect(s.serieSubie).toBeNull();
+    expect(s.pendingDefense).toBeNull();
+    expect(s.party[0].fate).toBe(H.fate);
+    expect(s.party[0].dead).toBe(true);
+    expect(s.partyWiped).toBe(true);
+  });
+
+  /** La série d'un assaillant à la dague (« Arme (dague) », `bladed` au catalogue) contre le héros armé d'un Brise-épée
+   *  (Piège-lame) : sa Parade au Brise-épée, réussie sur un double (11), ouvre l'étape de choix « piège-lame », tranchée
+   *  `choix`. LDB 62 l.278-280 */
+  function piegeALameDansLaSerie(choix: 'piege' | 'critique') {
+    const { banc, H } = horsBataille(testScene());
+    const briseEpee = { label: 'Brise-épée', type: 'melee' as const, damage: { plusBF: true, flat: 3 }, qualities: [{ id: 'piege-lame' }], bladed: true, uid: 'brise-epee' };
+    banc.setState({ party: [{ ...H, weapons: [briseEpee, ...H.weapons] }] });
+    const coupeJarret = { type: 'statblock', label: 'Coupe-jarret', char: { 'capacite-de-combat': 35 }, traits: [{ id: 'arme', value: 5, arg: 'dague' }] };
+    const opDague = gameOpSchema.parse({ op: 'attaquesSubies', assaillant: { statblock: coupeJarret }, nombre: '1d10' });
+    applyEffects(banc.getState, banc.setState, [{ type: 'ops', on: 'hero', heroId: H.id, ops: [opDague] }]);
+    imposerLesD100(65, 23);
+    banc.getState().jetImposerLeResultat('cascadeTirage', 2, banc.getState().pendingCascade!.participants[0].id);
+    banc.getState().jetValider('cascade');
+    const g = banc.getState;
+    g().jetRegler('defense', 'reaction', 'parade');
+    g().jetRegler('defense', 'armeDeParade', briseEpee.uid);
+    expect(defendre(banc, 11)).toMatchObject({ hit: false, parryWeapon: { uid: briseEpee.uid } });
+    const etape = g().pendingCascade!.participants.find((x) => x.kind === 'piegeALame')!;
+    expect(etape.piegeLame).toMatchObject({ defenderId: H.id, attackerId: g().serieSubie!.assaillant.id });
+    g().jetRegler('cascade', 'choix', choix, etape.id);
+    g().jetValider('cascade');
+    return { banc, H };
+  }
+
+  it('Piège-lame en Parade, « Coup Critique » : le Critique placé sur l’assaillant se dit, la série se poursuit : LDB 62 l.278, LDB 14 l.3', () => {
+    const { banc, H } = piegeALameDansLaSerie('critique');
+    const s = banc.getState();
+    expect(s.journal).toContain(t('cf.critiqueEnDefense', { name: H.label }));
+    expect(s.serieSubie).toMatchObject({ cibleId: H.id, restantes: 1 });
+    expect(s.pendingDefense).toMatchObject({ attackerId: s.serieSubie!.assaillant.id, defenderId: H.id });
+  });
+
+  it('Piège-lame en Parade, « Piéger » gagné : la dague arrachée des mains de l’assaillant, la série se poursuit : LDB 62 l.280', () => {
+    const { banc, H } = piegeALameDansLaSerie('piege');
+    const g = banc.getState;
+    const test = g().pendingCascade!.participants.find((x) => x.kind === 'testDeclenche')!;
+    g().jetLancer('cascade', test.id);
+    g().jetValider('cascade');
+    const s = g();
+    const assaillant = s.serieSubie!.assaillant;
+    const issue = s.pendingCascade!.participants.find((x) => x.kind === 'issueDuPiegeALame')!;
+    expect(issue.outcome).toContainEqual(expect.objectContaining({ text: t('cf.armeLachee', { name: assaillant.label, weapon: 'Dague' }) }));
+    expect(assaillant.weapons.some((w) => w.label === 'Dague')).toBe(false);
+    expect(s.serieSubie).toMatchObject({ cibleId: H.id, restantes: 1 });
+    expect(s.pendingDefense).toMatchObject({ attackerId: assaillant.id, defenderId: H.id });
+  });
+
   it('héros Inconscient, régime « critique » : le Critique du coup se tranche et s’applique, puis la série se ferme : LDB 16 l.113', () => {
     const { banc, H } = horsBataille(testScene());
     setRule('combat-cible-inconsciente', 'critique');

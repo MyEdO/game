@@ -19,7 +19,7 @@ import { rollLine, type RollLineParts } from './ligneDeJet';
 import { toRecapLines } from './recapLine';
 import { attaqueDeCle, type AttackKind, selfManeuversOf, selfManeuverApplicable } from '../engine/creatureAttacks';
 import { battleRng } from './battleRng';
-import { activeCombatant, jetDeRecharge, appliquerLaRecharge, advanceCombatJet, STANCE_BLOCK, firedWeapon, openAttackCascade, poserLeTestDeMain, poserLEtapeDAttaque, startDisengage, completeFlee, startAuContact, startGrapple, resolveGrappleWin, applyAttackResult, jouerLesTirsDeBordee, openSurfacedDefense, castSpell, applyCast, effectiveSpellOf, finishPlayerAction, applyMiscast, useSpellComponent, checkBattleOver, resumeEnemyTurn, advanceTurn, resolveRoundBoundary, enterRoundStartPause, lancerLeRound, inFiringBand, maybeRunEnemyTurn, resumeSuspendedAI, resumeManeuverDefense, attackerFumbled, applyOups, jouerLApresCoup, ciblesDuBalayage, ciblesDeLaDoubleFrappe, resolveDualSecond, overcastTargetCandidates, overcastReset, drainerLesGratuites, attackWeaponOf, victimeDuCoup, applyWail, spellSightOf, castZoneSpell, castCommitZone, zoneRadiusTilesAt, routeCounterspell, applyCounterspellOutcome, applyCounterspellFallback, counterspellJoinable, counterspellDeclarePhase, counterspellRolls, resumeAfterCounterspell, openCastOppositionStep, castExtraTargets, resolveCastChain, applySurprise, resolveMovement, retenuParLaPeur, markActed, noteApproachMove, clearApproachMoves, frenzyTarget, finishCombatEnd, battleAreaTargets, siegeBlastRadiusTiles, startleOnStormAtCombatStart, stampEnvWeatherAtCombatStart, windsOfMagicAtCombatStart, releaseSeatsOfCombatants } from './combatFlow';
+import { activeCombatant, jetDeRecharge, appliquerLaRecharge, advanceCombatJet, STANCE_BLOCK, firedWeapon, openAttackCascade, poserLeTestDeMain, poserLEtapeDAttaque, startDisengage, completeFlee, startAuContact, startGrapple, resolveGrappleWin, applyAttackResult, jouerLesTirsDeBordee, openSurfacedDefense, castSpell, applyCast, effectiveSpellOf, finishPlayerAction, applyMiscast, useSpellComponent, checkBattleOver, resumeEnemyTurn, poursuivreLaSerie, advanceTurn, resolveRoundBoundary, enterRoundStartPause, lancerLeRound, inFiringBand, maybeRunEnemyTurn, resumeSuspendedAI, resumeManeuverDefense, attackerFumbled, applyOups, jouerLApresCoup, ciblesDuBalayage, ciblesDeLaDoubleFrappe, resolveDualSecond, overcastTargetCandidates, overcastReset, drainerLesGratuites, attackWeaponOf, victimeDuCoup, applyWail, spellSightOf, castZoneSpell, castCommitZone, zoneRadiusTilesAt, routeCounterspell, applyCounterspellOutcome, applyCounterspellFallback, counterspellJoinable, counterspellDeclarePhase, counterspellRolls, resumeAfterCounterspell, openCastOppositionStep, castExtraTargets, resolveCastChain, applySurprise, resolveMovement, retenuParLaPeur, markActed, noteApproachMove, clearApproachMoves, frenzyTarget, finishCombatEnd, battleAreaTargets, siegeBlastRadiusTiles, startleOnStormAtCombatStart, stampEnvWeatherAtCombatStart, windsOfMagicAtCombatStart, releaseSeatsOfCombatants } from './combatFlow';
 import { auContactEligible, grappleActionEligible, hasFreeWeaponAttack, resolveManeuver, availableAttacks, attaqueImmediate, startBattement, startDistraire, resolveBattement, resolveDistraire, battementFoes, distraireFoes, adversairesDuBattement, adversairesADistraire } from './combatManeuvers';
 import { resolveWeaponArea } from './combatArea';
 import { removeEntity, applyZoneCrossings, displaceSmaller } from './combatPlacement';
@@ -183,6 +183,13 @@ function acquireAnimositeOnFate(get: Get, set: Set, hero: Combatant, foeId: stri
   const calme = calmeDeLAnimositeAcquise(hero, battleRng());
   if (!calme || calme.success) return null;
   return acquerirLeTrait(get, set, hero, 'animosite', ciblesDAnimositeAcquise(hero, tueur));
+}
+
+/** Hors bataille, le Destin résolu rend la main à la série d'attaques subies ouverte (`poursuivreLaSerie`), qui l'attendait.
+ *  LDB 17 l.29-32 ; MDG 15 l.163-164 */
+function reprendreHorsBatailleApresLeDestin(get: Get, set: Set): void {
+  set(touchActors(get()));
+  if (get().serieSubie) jouerFlowEntier(poursuivreLaSerie(get, set));
 }
 
 /** La bataille reprend après le Destin : la limite de Round pour une mort lente, le tour adverse sinon. */
@@ -1903,7 +1910,7 @@ export function choixDuCombat(get: Get, set: Set): Pick<CorpsDesChoix, 'destin' 
       journaliser(get, set, [t('cs.fateDodge', { name: hero.label })], 'information', { actorId: hero.id });
       if (anim) journaliser(get, set, [anim], 'peur', { actorId: hero.id });
       if (get().battle) resumeEnemyTurn(get, set);
-      else set(touchActors(get()));
+      else reprendreHorsBatailleApresLeDestin(get, set);
     },
     survivre: () => {
       const p = get().pendingFateSave;
@@ -1921,7 +1928,7 @@ export function choixDuCombat(get: Get, set: Set): Pick<CorpsDesChoix, 'destin' 
       journaliser(get, set, [t('cs.fateFlee', { name: hero.label })], 'information', { actorId: hero.id });
       if (anim) journaliser(get, set, [anim], 'peur', { actorId: hero.id });
       if (get().battle) reprendreApresLeDestin(get, set, p.source);
-      else set(touchActors(get()));
+      else reprendreHorsBatailleApresLeDestin(get, set);
     },
     accepter: () => {
       const p = get().pendingFateSave;
@@ -1933,7 +1940,7 @@ export function choixDuCombat(get: Get, set: Set): Pick<CorpsDesChoix, 'destin' 
         journaliser(get, set, [t('cs.succumb', { name: hero.label })], 'mort', { actorId: hero.id });
       }
       if (get().battle) reprendreApresLeDestin(get, set, p.source);
-      else set(touchActors(get()));
+      else reprendreHorsBatailleApresLeDestin(get, set);
     },
   } satisfies Record<ChoixDesFenetres['destin']['issue'], () => void>;
   return {
