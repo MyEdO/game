@@ -34,7 +34,7 @@ import { ecrituresJouees } from './ecrituresJouees.testkit';
  *    un `{ flags }` passé en lecture à un contexte d'évaluation ne crédite aucun champ de `Scene`.
  *
  * ANGLE MORT DÉCLARÉ — les répliques virtuelles (`forme({ … })`) éprouvent le NOMMAGE du porteur
- * anonyme, l'inclusion par IDENTITÉ et la coupe aux nœuds-frontière, pas la POSITION réelle du
+ * anonyme, l'inclusion par IDENTITÉ et la descente des fabriques, pas la POSITION réelle du
  * symbole rendu par `z.infer` (`zod/v4/core/util.d.cts`) : ce chemin-là n'est couvert que par la
  * mesure sur le programme RÉEL (cliquet de compte + la mesure du SEAM, qui bâtit le programme du
  * DOCUMENT avec un module modifié EN MÉMOIRE).
@@ -145,6 +145,43 @@ export interface Scene { id: string; effectZones: SceneEffectZone[] }\n`,
     } finally { program.dispose(); }
   });
 
+  it('NON VACANTE : une écriture jouée crédite le pas de son chemin qu’elle CRÉE, jamais un pas déjà présent avant elle', () => {
+    const program = virtualProgram({
+      'src/noyau/monde/scene.ts': `export interface Cond { kind: 'a' | 'b'; x?: number }
+export interface Trigger { id: string; when?: Cond }
+export interface Scene { id: string; triggers: Trigger[] }\n`,
+    });
+    const doc = (when?: Record<string, unknown>) => ({ id: 's', triggers: [{ id: 't', ...(when ? { when } : {}) }] });
+    const credites = (avant: unknown) => auditSceneFieldEditability(VIRTUAL_ROOT, program, { ecrituresJouees: [
+      { avant, apres: doc({ kind: 'a' }), chemin: ['triggers', 0, 'when', 'kind'], valeur: 'a', saisie: 'saisieChoix' },
+    ] }).filter((r) => r.authors.length).map((r) => r.id);
+    try {
+      expect(credites(doc()), 'la Condition absente avant, créée par le choix de sa variante').toEqual(['Trigger.when', 'Cond.kind']);
+      expect(credites(doc({ kind: 'b' })), 'la Condition déjà présente : seul son discriminant est écrit').toEqual(['Cond.kind']);
+    } finally { program.dispose(); }
+  });
+
+  it('une propriété PRODUITE PAR UNE FABRIQUE se nomme par son porteur : de deux produits, l’écrit est crédité, l’autre reste orphelin', () => {
+    // `objetDeRef` (`grammaire/ref.ts`) : UNE déclaration `id` pour chaque référence qu'il construit.
+    const program = virtualProgram({
+      'src/data/schemas/grammaire/ref.ts': `declare function forme<T>(shape: T): { readonly sortie: T };
+export function ref<F>(feuille: F) { return forme({ id: feuille }); }\n`,
+      'src/data/schemas/defs-scenes/scene.ts': `import { ref } from '../grammaire/ref';
+declare function forme<T>(shape: T): { readonly sortie: T };
+export const sceneSchema = forme({ id: '', arme: ref(0).sortie, embleme: ref('').sortie });\n`,
+      'src/noyau/monde/scene.ts': `import type { sceneSchema } from '../../data/schemas/defs-scenes/scene';
+export type Scene = (typeof sceneSchema)['sortie'];\n`,
+    });
+    const doc = (arme: number) => ({ id: 's', arme: { id: arme }, embleme: { id: 'e' } });
+    try {
+      const rows = auditSceneFieldEditability(VIRTUAL_ROOT, program, { ecrituresJouees: [
+        { avant: doc(0), apres: doc(1), chemin: ['arme', 'id'], valeur: 1, saisie: 'saisieNombre' },
+      ] });
+      const authors = (id: string) => rows.find((r) => r.id === id)?.authors;
+      expect([authors('Scene.arme.id'), authors('Scene.embleme.id')]).toEqual([[ALLER_RETOUR], []]);
+    } finally { program.dispose(); }
+  });
+
   it('NON VACANTE (c) : à travers `Array.map`, seule l’annotation de la COLLECTION crédite — pas un homonyme', () => {
     const program = virtualProgram({
       'src/noyau/monde/scene.ts': `export interface SceneEffectZone { id: string; tiles: number[] }
@@ -226,17 +263,19 @@ export const tracerCalque = () => {
     // tout corps passé en `z.infer`). Aucune refonte de frontière ne ferme ce mode seule.
     // 239 = mesure du 2026-08-25 (243 de l'étalon, moins les 4 `victoryCondition.edge.*` remappés sur
     // `ArchitectureEdgeRef.*` par la réutilisation du type — la liste positive ci-dessus les couvre).
-    expect(scope.length, 'périmètre effondré').toBeGreaterThanOrEqual(239);
+    // 404 = mesure du 2026-11-12 (#3606 M2f1 : `FRONTIERE` retirée, corps des fabriques descendus).
+    expect(scope.length, 'périmètre effondré').toBeGreaterThanOrEqual(404);
   });
 
-  it('le périmètre inclut par IDENTITÉ — une feuille d’un AUTRE module composée par le document y entre, un nœud-frontière n’y entre pas', () => {
+  it('le périmètre inclut par IDENTITÉ — une feuille d’un AUTRE module composée par le document y entre, et la marche descend dans le corps d’une fabrique', () => {
     // Réplique STRUCTURELLE du seam réel (`sceneSchema` compose `moneyPartialSchema`, feuille de
-    // `grammaire/valeurs.ts`, et `conditionSchema`, vocabulaire partagé de `grammaire/`) : le schéma
-    // composant vit dans un AUTRE module. La marche part de `sceneSchema` et suit les IDENTITÉS ;
-    // elle s'arrête au nœud-frontière.
+    // `grammaire/valeurs.ts`, et `conditionSchema`, produit de la fabrique `conditionDe` de `grammaire/`) : le schéma
+    // composant vit dans un AUTRE module. La marche part de `sceneSchema` et suit les IDENTITÉS, jusque dans le corps
+    // de la fabrique.
     const program = virtualProgram({
       'src/data/schemas/grammaire/mecanique.ts': `declare function forme<T>(shape: T): { readonly sortie: T };
-export const conditionSchema = forme({ flag: '' });\n`,
+function conditionDe() { return forme({ flag: '' }); }
+export const conditionSchema = conditionDe();\n`,
       'src/data/schemas/defs-scenes/communs.ts': `declare function forme<T>(shape: T): { readonly sortie: T };
 export const moneySchema = forme({ gold: 0 });\n`,
       'src/data/schemas/defs-scenes/scene.ts': `import { moneySchema } from './communs';
@@ -254,7 +293,7 @@ export type Scene = (typeof sceneSchema)['sortie'];\n`,
       expect(all, 'la feuille d’un AUTRE module, composée par le document, entre par IDENTITÉ').toContain(
         'Money.gold'
       );
-      expect(all, 'le nœud-frontière reste du vocabulaire partagé').not.toContain('Condition.flag');
+      expect(all, 'le shape que la fabrique construit entre au périmètre').toContain('Scene.when.flag');
 
     } finally { program.dispose(); }
   });
@@ -299,6 +338,8 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
     // pose de Trait nomme les champs de la pose, à son premier porteur, et son Talent est `TalentRef`.
     // #3606 M1c : l'apparence d'une entité est l'entrée d'`entityAppearanceSchema` (`grammaire/valeurs.ts`) ; ses
     // couleurs, clés d'emplacement de palette d'un type mappé.
+    // #3606 M2f1 : la marche descend dans le corps des fabriques — l'`id` d'une référence (`objetDeRef`, `grammaire/ref.ts`),
+    // la prose adressée d'une réplique (`proseNommee`, `grammaire/prose.ts`) et son adresse (`grammaire/valeurs.ts`).
     const DOC = ['src/noyau/monde/scene.ts', 'src/data/schemas/defs-scenes/scene.ts'];
     const fichier = (r: { decl: ts.Declaration }) =>
       path.relative(ROOT, r.decl.getSourceFile().fileName).split(path.sep).join('/');
@@ -308,6 +349,7 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
       horsDocument.map((r) => `${r.id} @ ${fichier(r)}`).sort(),
       'ce que la frontière par MODULE perdrait'
     ).toEqual([
+      'AuthoredShipPoste.selectedAmmo.id @ src/data/schemas/grammaire/ref.ts',
       'CaracteristiqueChiffree.characteristic @ src/data/schemas/grammaire/valeurs.ts',
       'CaracteristiqueChiffree.value @ src/data/schemas/grammaire/valeurs.ts',
       'CharStats.B @ src/data/schemas/defs-scenes/communs.ts',
@@ -323,6 +365,7 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
       'CharStats.intelligence @ src/data/schemas/defs-scenes/communs.ts',
       'CharStats.sociabilite @ src/data/schemas/defs-scenes/communs.ts',
       'Couleurs.accent @ src/data/schemas/grammaire/valeurs.ts',
+      'Couleurs.accent.id @ src/data/schemas/grammaire/ref.ts',
       'Couleurs.bois @ src/data/schemas/grammaire/valeurs.ts',
       'Couleurs.cheveux @ src/data/schemas/grammaire/valeurs.ts',
       'Couleurs.corne @ src/data/schemas/grammaire/valeurs.ts',
@@ -361,16 +404,41 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
       'CustomStatblock.traits.source @ src/data/schemas/grammaire/reference.ts',
       'CustomStatblock.traits.value @ src/data/schemas/grammaire/reference.ts',
       'CustomStatblock.type @ src/data/schemas/defs-scenes/communs.ts',
+      'Dialogue.start.id @ src/data/schemas/grammaire/ref.ts',
+      'DialogueNode.adapteDe @ src/data/schemas/grammaire/prose.ts',
+      'DialogueNode.desc @ src/data/schemas/grammaire/prose.ts',
+      'DialogueNode.descRef @ src/data/schemas/grammaire/prose.ts',
+      'DialogueNode.descRef.book @ src/data/schemas/grammaire/valeurs.ts',
+      'DialogueNode.descRef.ch @ src/data/schemas/grammaire/valeurs.ts',
+      'DialogueNode.descRef.parts @ src/data/schemas/grammaire/valeurs.ts',
       'EntityAppearance.apparencesObjets @ src/data/schemas/grammaire/valeurs.ts',
       'EntityAppearance.armurePortee @ src/data/schemas/grammaire/valeurs.ts',
       'EntityAppearance.couleurs @ src/data/schemas/grammaire/valeurs.ts',
       'EntityAppearance.embleme @ src/data/schemas/grammaire/valeurs.ts',
+      'EntityAppearance.embleme.id @ src/data/schemas/grammaire/ref.ts',
       'EntityAppearance.sex @ src/data/schemas/grammaire/valeurs.ts',
       'EntityAppearance.species @ src/data/schemas/grammaire/valeurs.ts',
       'EntityAppearance.tenue @ src/data/schemas/grammaire/valeurs.ts',
+      'FragmentBlocs.b0 @ src/data/schemas/grammaire/valeurs.ts',
+      'FragmentBlocs.b1 @ src/data/schemas/grammaire/valeurs.ts',
+      'FragmentBlocs.finSec @ src/data/schemas/grammaire/valeurs.ts',
+      'FragmentBlocs.finSecOcc @ src/data/schemas/grammaire/valeurs.ts',
+      'FragmentBlocs.kind @ src/data/schemas/grammaire/valeurs.ts',
+      'FragmentBlocs.sec @ src/data/schemas/grammaire/valeurs.ts',
+      'FragmentBlocs.secOcc @ src/data/schemas/grammaire/valeurs.ts',
+      'FragmentBlocs.sum @ src/data/schemas/grammaire/valeurs.ts',
+      'FragmentCellule.col @ src/data/schemas/grammaire/valeurs.ts',
+      'FragmentCellule.kind @ src/data/schemas/grammaire/valeurs.ts',
+      'FragmentCellule.row @ src/data/schemas/grammaire/valeurs.ts',
+      'FragmentCellule.sec @ src/data/schemas/grammaire/valeurs.ts',
+      'FragmentCellule.secOcc @ src/data/schemas/grammaire/valeurs.ts',
+      'FragmentCellule.sum @ src/data/schemas/grammaire/valeurs.ts',
+      'FragmentCellule.table @ src/data/schemas/grammaire/valeurs.ts',
+      'MarchandDeScene.archetype.id @ src/data/schemas/grammaire/ref.ts',
       'MoneyPartial.brass @ src/data/schemas/grammaire/valeurs.ts',
       'MoneyPartial.gold @ src/data/schemas/grammaire/valeurs.ts',
       'MoneyPartial.silver @ src/data/schemas/grammaire/valeurs.ts',
+      'OffreDeTaverne.id @ src/data/schemas/grammaire/ref.ts',
       'OptionalSwap.grant @ src/data/schemas/grammaire/reference.ts',
       'OptionalSwap.grant.value @ src/data/schemas/grammaire/reference.ts',
       'OptionalSwap.label @ src/data/schemas/grammaire/reference.ts',
@@ -389,6 +457,8 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
       'Pt.x @ src/data/schemas/defs-scenes/communs.ts',
       'Pt.y @ src/data/schemas/defs-scenes/communs.ts',
       'Pt.z @ src/data/schemas/defs-scenes/communs.ts',
+      'Scene.startMessage.adapteDe @ src/data/schemas/grammaire/prose.ts',
+      'SceneEntity.upgrades.id @ src/data/schemas/grammaire/ref.ts',
       'SceneEntity.upgrades.value @ src/data/schemas/grammaire/reference.ts',
       'SourceRef.book @ src/data/schemas/grammaire/valeurs.ts',
       'SourceRef.note @ src/data/schemas/grammaire/valeurs.ts',

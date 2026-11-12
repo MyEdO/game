@@ -11,6 +11,33 @@ import type { SorteDePorteur } from './noyau/sceneEditLecture';
 import { boutonDeLEdition, gesteDuFormulaire, zonesDeLEditeur, type ZonesDeLEditeur } from './hote/editeur';
 import type { Bouton, Choix, Formulaire, Jeu, Ligne } from './hote/elements';
 import { estObjet } from './lib/objet.mjs';
+// @ts-expect-error - lecteur ESM JS (pas de types) — même convention que `vite.config.ts`
+import { cheminChapitre, lireChapitre, oublierChapitre } from '../scripts/source/lecteur-fs.mjs';
+// @ts-expect-error - plugin ESM JS (pas de types) — même convention que `vite.config.ts`
+import { manifesteDe } from '../scripts/source/prose-source-plugin.mjs';
+import { cheminDuDepot } from '../scripts/source/adresses.mjs';
+// @ts-expect-error - bibliothèque ESM JS (pas de types) — même convention que `vite.config.ts`
+import { readText, sigleDe } from '../scripts/raw/_lib.mjs';
+
+/** Le chapitre du `Source/` versionné que sert l'aller-retour : le chapitre 13 du Livre de base, dont la première section
+ *  à table porte une table titrée (« Localisation ») : une cellule s'y désigne avec sa table. */
+const CHAPITRE_SERVI = { book: 'livre-de-base', ch: '13' } as const;
+
+/** Le manifeste de ce seul chapitre, de la forme que sert le poste (`manifesteDe`, `scripts/source/prose-source-plugin.mjs`). */
+const manifesteServi = () => manifesteDe({
+  dossiers: () => [], livres: () => [CHAPITRE_SERVI.book], chapitres: () => [CHAPITRE_SERVI.ch],
+  chemin: cheminChapitre, lire: lireChapitre, oublier: oublierChapitre, abbr: sigleDe,
+});
+
+/** La session `s` où le geste `geste` est joué, puis le chapitre qu'elle attend chargé du `Source/` versionné, comme
+ *  l'hôte le charge (`GET source/<livre>/<ch>.md`, `servirLaSource`). */
+function jouer(s: SessionDEdition, geste: GesteDEdition): SessionDEdition {
+  const joue = editer(s, geste);
+  const attendu = joue.chapitreEnAttente;
+  if (!attendu) return joue;
+  const chemin = cheminChapitre(attendu.book, attendu.ch);
+  return editer(joue, { geste: 'chapitre', book: attendu.book, ch: attendu.ch, texte: chemin ? readText(cheminDuDepot(chemin)) : null });
+}
 
 /** Une écriture jouée : le document avant et après, le chemin écrit depuis la scène, la valeur jouée et la saisie qui
  *  l'a portée (`bouton`, ou le type de la saisie d'un choix ou d'un formulaire). */
@@ -79,7 +106,7 @@ function presser(s: SessionDEdition, id: string): SessionDEdition {
   const b = Object.values(zones).flat().flatMap((e: Choix | Ligne | Bouton | Formulaire) => (e.type === 'bouton' ? [e] : e.type === 'choix' || e.type === 'liste' ? e.valeurs : [])).find((v) => v.id === id);
   const geste = b && gesteDuJeu(zones, b.jeu);
   if (!geste) throw new Error(`aucun bouton ${id} dans les zones de l’éditeur`);
-  return editer(s, geste);
+  return jouer(s, geste);
 }
 
 /** Les collections de la scène où vit le porteur de chaque sorte du geste `valeur`. */
@@ -106,18 +133,26 @@ function jouerLInspecteur(depart: SessionDEdition, out: EcritureJouee[], branche
     }
     const geste = gesteDuJeu(zones, offre.jeu);
     if (geste?.geste !== 'valeur') throw new Error(`l’offre ${offre.id} ne joue pas le geste valeur`);
-    const avant = sceneEditee(s);
-    s = editer(s, geste);
-    const collection = COLLECTION_DU_PORTEUR[geste.porteur.sorte];
-    const porteurs: readonly { id: string }[] = avant[collection] ?? [];
-    const rang = porteurs.findIndex((p) => p.id === geste.porteur.id);
     const discriminant = offre.emporte && offre.saisie === 'saisieChoix' ? offre.id.slice(`valeur/${geste.chemin.join('/')}/`.length) : undefined;
-    const ecrit = discriminant !== undefined && estObjet(geste.valeur) && discriminant in geste.valeur
-      ? { chemin: [...geste.chemin, discriminant], valeur: geste.valeur[discriminant] }
-      : { chemin: geste.chemin, valeur: geste.valeur };
-    out.push({ avant, apres: sceneEditee(s), chemin: [collection, rang, ...ecrit.chemin], valeur: ecrit.valeur, saisie: offre.saisie });
+    s = ecrire(s, geste, offre.saisie, out, discriminant);
   }
   throw new Error(`plus de ${GESTES_AU_PLUS} offres du geste valeur`);
+}
+
+/** La session `s` où le geste `valeur` `geste` est joué (`jouer`), son écriture, avec son chemin depuis la scène et la
+ *  saisie `saisie` qui l'a portée, ajoutée à `out` : sous le seul `discriminant` quand elle choisit une variante qui le
+ *  porte. */
+function ecrire(s: SessionDEdition, geste: Extract<GesteDEdition, { geste: 'valeur' }>, saisie: string, out: EcritureJouee[], discriminant?: string): SessionDEdition {
+  const avant = sceneEditee(s);
+  const apres = jouer(s, geste);
+  const collection = COLLECTION_DU_PORTEUR[geste.porteur.sorte];
+  const porteurs: readonly { id: string }[] = avant[collection] ?? [];
+  const rang = porteurs.findIndex((p) => p.id === geste.porteur.id);
+  const ecrit = discriminant !== undefined && estObjet(geste.valeur) && discriminant in geste.valeur
+    ? { chemin: [...geste.chemin, discriminant], valeur: geste.valeur[discriminant] }
+    : { chemin: geste.chemin, valeur: geste.valeur };
+  out.push({ avant, apres: sceneEditee(apres), chemin: [collection, rang, ...ecrit.chemin], valeur: ecrit.valeur, saisie });
+  return apres;
 }
 
 /** Le choix d'id `id` de l'inspecteur des zones `zones`. */
@@ -127,17 +162,26 @@ function choixDeLInspecteur(zones: ZonesDeLEditeur, id: string): Choix {
   return choix;
 }
 
-/** Chaque variante du choix d'id `id` de l'inspecteur de la session `s`, choisie depuis `s`, les offres de sa seule
- *  branche jouées (`jouerLInspecteur`, l'id du choix sans son discriminant) : chaque branche d'une union (le `Flow`,
- *  #3606 M2b ; l'Effet de sa branche `do`), dont l'inspecteur ne joue que la première variante non choisie, et qui en
- *  change en se jouant. */
+/** Le geste `valeur` du choix d'id `id` de l'inspecteur de la session `s` dont la valeur satisfait `voulue`. */
+function gesteDuChoix(s: SessionDEdition, id: string, voulue: (valeur: unknown) => boolean): Extract<GesteDEdition, { geste: 'valeur' }> {
+  const zones = zonesDeLEditeur(s);
+  const b = choixDeLInspecteur(zones, id).valeurs.find((v) => 'args' in v.jeu && v.jeu.type === 'valeur' && voulue(v.jeu.args[2]));
+  const geste = b && gesteDuJeu(zones, b.jeu);
+  if (geste?.geste !== 'valeur') throw new Error(`aucune valeur voulue au choix ${id}`);
+  return geste;
+}
+
+/** Chaque valeur du choix d'id `id` de l'inspecteur de la session `s`, choisie depuis `s` et notée (`ecrire`), les
+ *  offres de sa seule branche jouées (`jouerLInspecteur`, l'id du choix sans son dernier pas) : chaque branche d'une union
+ *  (le `Flow`, #3606 M2b ; l'Effet de sa branche `effet`), dont l'inspecteur ne joue que la première valeur non choisie,
+ *  et qui en change en se jouant. */
 function jouerLesVariantes(s: SessionDEdition, id: string, out: EcritureJouee[]): void {
   const branche = id.slice(0, id.lastIndexOf('/') + 1);
   const zones = zonesDeLEditeur(s);
   for (const v of choixDeLInspecteur(zones, id).valeurs) {
     const geste = gesteDuJeu(zones, v.jeu);
-    if (!geste) throw new Error(`la variante ${v.id} ne joue aucun geste`);
-    jouerLInspecteur(editer(s, geste), out, branche);
+    if (geste?.geste !== 'valeur') throw new Error(`la variante ${v.id} ne joue pas le geste valeur`);
+    jouerLInspecteur(ecrire(s, geste, 'saisieChoix', out), out, branche);
   }
 }
 
@@ -166,8 +210,16 @@ const DECOR = 'brasero';
 const ACTION_DU_DECOR = 'valeur/usable/ajouter';
 const FLUX_DU_DECOR = 'valeur/usable/actions/0/flow/kind';
 
-/** Le choix du type de l'Effet de la branche `do` de ce flux, joué type par type (`jouerLesVariantes`). */
-const EFFET_DU_DECOR = 'valeur/usable/actions/0/flow/effect/type';
+/** Le choix du type de l'Effet de la branche `effet` de ce flux, joué type par type (`jouerLesVariantes`). */
+const EFFET_DU_DECOR = 'valeur/usable/actions/0/flow/effet/type';
+
+/** L'Effet de ce flux qui porte une adresse de prose, composée sur le `CHAPITRE_SERVI` (`jouerLInspecteur`) ; puis une
+ *  cellule neuve de son adresse, qui désigne sa table, chacune scellée par l'écriture. */
+const PROSE_DU_DECOR = { effet: 'journal', adresse: 'valeur/usable/actions/0/flow/effet/descRef/' } as const;
+const estCellule = (v: unknown): boolean => {
+  const dernier: unknown = Array.isArray(v) ? v[v.length - 1] : undefined;
+  return estObjet(dernier) && dernier.kind === 'cellule';
+};
 
 /** La coque pirate de la scène d'embuscade de la barge du sel, à Améliorations d'instance et à postes dotés de leur
  *  coffre (MDG 12), et sa case. */
@@ -176,14 +228,15 @@ const COQUE = { campagne: 'barge-du-sel', scene: 'barge-du-sel-embuscade', case:
 const point = (x: number, y: number) => ({ case: { x, y }, f: { x, y } });
 
 /** La session `s` où l'outil actif clique la case `(x, y)`. */
-const cliquer = (s: SessionDEdition, x: number, y: number): SessionDEdition => editer(editer(s, { geste: 'appui', point: point(x, y) }), { geste: 'relache', point: point(x, y) });
+const cliquer = (s: SessionDEdition, x: number, y: number): SessionDEdition => jouer(jouer(s, { geste: 'appui', point: point(x, y) }), { geste: 'relache', point: point(x, y) });
 
 /** Les écritures jouées sur une zone d'effet neuve, un déclencheur neuf et un personnage de chacune des `FICHES` d'une
  *  scène neuve de la première campagne du jeu, chacun posé à son outil (Zone, Personnage), et un personnage d'`ENROLE`
  *  enrôlé dans une rencontre neuve ; puis sur un personnage de la
  *  première des `FICHES` et un décor de type `DECOR` posés dans une scène neuve du `PROJET_A_PRESETS`, puis sur chaque
  *  branche du flux de l'action qu'il reçoit (`ACTION_DU_DECOR`, `FLUX_DU_DECOR`) et sur chaque type d'Effet de sa
- *  branche `do` (`EFFET_DU_DECOR`), sur un personnage de
+ *  branche `effet` (`EFFET_DU_DECOR`), puis sur l'adresse de prose de l'un d'eux et sa cellule (`PROSE_DU_DECOR`),
+ *  sur un personnage de
  *  la première des `FICHES` posé dans la scène `A_DIALOGUE`, et sur la coque
  *  `COQUE`, sélectionnée ; chacun
  *  joué à son inspecteur (`jouerLInspecteur`). */
@@ -192,21 +245,25 @@ export function ecrituresJouees(): EcritureJouee[] {
   let s = presser(ouvrirLEdition(paquetDuJeu(allBuiltinCampaigns[0]), false), 'scenes/ajouter');
   for (const [sorte, de, a] of [['effect', 2, 3], ['trigger', 0, 1]] as const) {
     s = presser(presser(s, 'outil/zone'), `zone/${sorte}`);
-    s = jouerLInspecteur(editer(editer(s, { geste: 'appui', point: point(de, de) }), { geste: 'relache', point: point(a, a) }), out);
+    s = jouerLInspecteur(jouer(jouer(s, { geste: 'appui', point: point(de, de) }), { geste: 'relache', point: point(a, a) }), out);
   }
   FICHES.forEach((fiche, rang) => { s = jouerLInspecteur(cliquer(presser(presser(s, 'outil/personnage'), `personnage/${fiche}`), 5 + rang, 5), out); });
   s = jouerLInspecteur(presser(cliquer(presser(presser(s, 'outil/personnage'), `personnage/${ENROLE}`), 5 + FICHES.length, 5), 'rencontre/neuve'), out);
   const aPresets = allBuiltinCampaigns.find((c) => c.id === PROJET_A_PRESETS);
   if (!aPresets) throw new Error(`aucune campagne ${PROJET_A_PRESETS}`);
-  const neuve = presser(ouvrirLEdition(paquetDuJeu(aPresets), false), 'scenes/ajouter');
+  const neuve = presser(ouvrirLEdition(paquetDuJeu(aPresets), false, undefined, manifesteServi()), 'scenes/ajouter');
   const pnj = jouerLInspecteur(cliquer(presser(presser(neuve, 'outil/personnage'), `personnage/${FICHES[0]}`), 5, 5), out);
   const decor = jouerLInspecteur(cliquer(presser(presser(pnj, 'outil/prop'), `prop/${DECOR}`), 3, 3), out);
   const action = presser(decor, choixDeLInspecteur(zonesDeLEditeur(decor), ACTION_DU_DECOR).valeurs[0].id);
   jouerLInspecteur(action, out);
   jouerLesVariantes(action, FLUX_DU_DECOR, out);
-  const feuille = choixDeLInspecteur(zonesDeLEditeur(action), FLUX_DU_DECOR).valeurs.find((v) => v.jeu.type === 'valeur' && estObjet(v.jeu.args[2]) && v.jeu.args[2].kind === 'do');
-  if (!feuille) throw new Error(`aucune branche do au choix ${FLUX_DU_DECOR}`);
-  jouerLesVariantes(presser(action, feuille.id), EFFET_DU_DECOR, out);
+  const effet = jouer(action, gesteDuChoix(action, FLUX_DU_DECOR, (v) => estObjet(v) && v.kind === 'effet'));
+  jouerLesVariantes(effet, EFFET_DU_DECOR, out);
+  const adresse = jouerLInspecteur(jouer(effet, gesteDuChoix(effet, EFFET_DU_DECOR, (v) => estObjet(v) && v.type === PROSE_DU_DECOR.effet)), out, PROSE_DU_DECOR.adresse);
+  const ajout = gesteDuChoix(adresse, `${PROSE_DU_DECOR.adresse}parts/ajouter`, estCellule);
+  const rang = (ajout.valeur as unknown[]).length - 1;
+  const cellule = ecrire(adresse, ajout, 'saisieChoix', out);
+  ecrire(cellule, gesteDuChoix(cellule, `${PROSE_DU_DECOR.adresse}parts/${rang}/table`, () => true), 'saisieChoix', out);
   const aDialogue = allBuiltinCampaigns.find((c) => c.id === A_DIALOGUE.campagne);
   if (!aDialogue) throw new Error(`aucune campagne ${A_DIALOGUE.campagne}`);
   const dialogues = presser(presser(ouvrirLEdition(paquetDuJeu(aDialogue), false), `scenes/${A_DIALOGUE.scene}`), 'outil/personnage');
