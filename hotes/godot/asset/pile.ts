@@ -3,13 +3,14 @@
  * couvre. Les pièces se résolvent de la plus extérieure à la plus intérieure, sur la tenue posée au repos, sans rien
  * lire d'une pièce que sa géométrie et ses poids.
  *
- * Un point est couvert par le triangle le plus proche d'une pièce qui couvre la sienne, tourné du même côté, à
+ * Un point est couvert par le triangle le plus proche de l'endroit d'une pièce qui couvre la sienne (`endroitDe` : la
+ * doublure d'une double nappe ne couvre rien), tourné du même côté que son dehors (`dehorsDesSommets`), à
  * `PORTEE_DE_COUVERTURE_M` derrière lui au plus, ou `PERCEE_M` devant. Sa couverture le retient : il reprend, au point couvrant, les
  * poids de peau qu'elle a une fois résolue, tout entier jusqu'à `SERRAGE_M` d'elle, de moins en moins jusqu'à
  * `PORTEE_DE_COUVERTURE_M`. Elle ne le retient pas si elle flotte sur une chaîne plus que lui (`FLOTTEMENT`), ni si elle tient à
  * une autre partie du corps que lui (`PARENTE`). Les points de sa pièce à moins de `HALO_M` d'un point plus retenu
- * qu'eux le suivent, en fondu avec la distance, et des points que leur auteur a liés aux mêmes poids restent liés
- * pareil.
+ * qu'eux le suivent, en fondu avec la distance, ses voisins d'arête aussi quelle que soit la longueur de l'arête, à
+ * `SAUT_D_ARETE` de poids déplacés près, et des points que leur auteur a liés aux mêmes poids restent liés pareil.
  *
  * Un point retenu devant sa couverture, ou à moins de `JEU_M` derrière elle, recule à `JEU_M`, et ses voisins d'arête
  * reculent avec lui sans qu'aucun triangle se retourne (`ENTRAINEMENT`). Un triangle dont les trois points sont retenus
@@ -30,6 +31,8 @@ export const SERRAGE_M = 0.01;
 export const JEU_M = 0.003;
 /** La distance, en mètres, jusqu'à laquelle un point suit un point retenu de sa pièce. */
 export const HALO_M = 0.03;
+/** La part de poids que sa couverture déplace à un point sans que ses voisins d'arête le suivent. */
+export const SAUT_D_ARETE = 1 / 3;
 /** L'écart de poids de chaîne, couverture moins sujet, à partir duquel la couverture flotte et ne retient rien. */
 export const FLOTTEMENT = 0.5;
 /** La part des poids d'un point et de sa couverture portée par les mêmes os, un os et son parent comptant pour moitié,
@@ -114,11 +117,21 @@ export function couvertureDe(p: Float32Array, indices: ArrayLike<number>): Couve
   return { positions: p, indices, grille };
 }
 
+/** Les coordonnées barycentriques, sur les côtés u et v d'un triangle, du point p de son plan donné depuis son premier
+ *  sommet ; `null` pour un point à plus de `SOUDURE_M` des bords du triangle, hors de lui (#3842). */
+function coinsDe(px: number, py: number, pz: number, ux: number, uy: number, uz: number, vx: number, vy: number, vz: number): readonly [number, number] | null {
+  const [uu, uv, vv, pu, pv] = [ux * ux + uy * uy + uz * uz, ux * vx + uy * vy + uz * vz, vx * vx + vy * vy + vz * vz, px * ux + py * uy + pz * uz, px * vx + py * vy + pz * vz];
+  const det = uu * vv - uv * uv;
+  const bb = (vv * pu - uv * pv) / det, bc = (uu * pv - uv * pu) / det;
+  const [bu, bv] = [SOUDURE_M / Math.sqrt(uu), SOUDURE_M / Math.sqrt(vv)];
+  return bb < -bu || bc < -bv || bb + bc > 1 + Math.max(bu, bv) ? null : [bb, bc];
+}
+
 /** Chaque triangle de `couverture` qui couvre le point (x, y, z) de normale (nx, ny, nz) : tourné du même côté que
  *  lui, à `PORTEE_DE_COUVERTURE_M` de lui au plus, la projection du point le long de la normale du triangle tombant
- *  dans le triangle. `visite` reçoit l'écart signé e du point au triangle, positif derrière, l'indice t de son premier
- *  sommet dans `couverture.indices`, les coordonnées barycentriques (a, b, c) de la projection et la normale unitaire
- *  (tx, ty, tz) du triangle. */
+ *  dans le triangle ou à `SOUDURE_M` au plus de ses bords (#3842). `visite` reçoit l'écart signé e du point au
+ *  triangle, positif derrière, l'indice t de son premier sommet dans `couverture.indices`, les coordonnées
+ *  barycentriques (a, b, c) de la projection et la normale unitaire (tx, ty, tz) du triangle. */
 export function visiterLaCouverture(
   x: number, y: number, z: number, nx: number, ny: number, nz: number, couverture: Couverture,
   visite: (e: number, t: number, a: number, b: number, c: number, tx: number, ty: number, tz: number) => void,
@@ -141,12 +154,35 @@ export function visiterLaCouverture(
       if (tx * nx + ty * ny + tz * nz <= 0) continue;
       const e = (ax - x) * tx + (ay - y) * ty + (az - z) * tz;
       if (Math.abs(e) > PORTEE_DE_COUVERTURE_M) continue;
-      const [px, py, pz] = [x + e * tx - ax, y + e * ty - ay, z + e * tz - az];
-      const [uu, uv, vv, pu, pv] = [ux * ux + uy * uy + uz * uz, ux * vx + uy * vy + uz * vz, vx * vx + vy * vy + vz * vz, px * ux + py * uy + pz * uz, px * vx + py * vy + pz * vz];
-      const det = uu * vv - uv * uv;
-      const bb = (vv * pu - uv * pv) / det, bc = (uu * pv - uv * pu) / det;
-      if (bb < 0 || bc < 0 || bb + bc > 1) continue;
-      visite(e, t, 1 - bb - bc, bb, bc, tx, ty, tz);
+      const coins = coinsDe(x + e * tx - ax, y + e * ty - ay, z + e * tz - az, ux, uy, uz, vx, vy, vz);
+      if (coins) visite(e, t, 1 - coins[0] - coins[1], coins[0], coins[1], tx, ty, tz);
+    }
+  }
+}
+
+/** Chaque triangle de `couverture` que traverse le segment de (ax, ay, az) à (bx, by, bz) : `visite` reçoit la part du
+ *  segment faite à la traversée, de 0 en a à 1 en b, et l'écart signé de a au triangle, positif derrière. */
+export function croiserLaCouverture(
+  ax: number, ay: number, az: number, bx: number, by: number, bz: number, couverture: Couverture,
+  visite: (part: number, ea: number) => void,
+): void {
+  const { positions: p, indices, grille } = couverture;
+  const vus = new Set<number>();
+  for (let i = cellule(Math.min(ax, bx)); i <= cellule(Math.max(ax, bx)); i++) for (let j = cellule(Math.min(ay, by)); j <= cellule(Math.max(ay, by)); j++) for (let k = cellule(Math.min(az, bz)); k <= cellule(Math.max(az, bz)); k++) {
+    for (const t of grille.get(cle(i, j, k)) ?? []) {
+      if (vus.has(t)) continue;
+      vus.add(t);
+      const o = indices[t] * 3, [ox, oy, oz] = [p[o], p[o + 1], p[o + 2]];
+      const [ux, uy, uz] = [p[indices[t + 1] * 3] - ox, p[indices[t + 1] * 3 + 1] - oy, p[indices[t + 1] * 3 + 2] - oz];
+      const [vx, vy, vz] = [p[indices[t + 2] * 3] - ox, p[indices[t + 2] * 3 + 1] - oy, p[indices[t + 2] * 3 + 2] - oz];
+      let [tx, ty, tz] = [uy * vz - uz * vy, uz * vx - ux * vz, ux * vy - uy * vx];
+      const aire2 = Math.hypot(tx, ty, tz);
+      if (aire2 <= 0) continue;
+      tx /= aire2; ty /= aire2; tz /= aire2;
+      const ea = (ox - ax) * tx + (oy - ay) * ty + (oz - az) * tz, eb = (ox - bx) * tx + (oy - by) * ty + (oz - bz) * tz;
+      if (ea * eb >= 0) continue;
+      const part = ea / (ea - eb);
+      if (coinsDe(ax + part * (bx - ax) - ox, ay + part * (by - ay) - oy, az + part * (bz - az) - oz, ux, uy, uz, vx, vy, vz)) visite(part, ea);
     }
   }
 }
@@ -170,6 +206,34 @@ export function normalesDesSommets({ positions: p, indices }: SurfaceDePile): Fl
   return normales;
 }
 
+/** L'endroit de `surface` : ses triangles, par trois indices, tournés à l'opposé du point de `peaux` (des positions à
+ *  plat) le plus proche de leur centre, ou dont ce point est dans leur plan à `SOUDURE_M` près (#3842) ; tous, sans
+ *  peau. La doublure d'une double nappe, tournée vers le corps, n'en est pas. */
+export function endroitDe({ positions: p, indices }: SurfaceDePile, peaux: readonly Float32Array[]): Uint32Array {
+  const endroit: number[] = [];
+  for (let t = 0; t + 2 < indices.length; t += 3) {
+    const [a, b, c] = [indices[t] * 3, indices[t + 1] * 3, indices[t + 2] * 3];
+    const [cx, cy, cz] = [(p[a] + p[b] + p[c]) / 3, (p[a + 1] + p[b + 1] + p[c + 1]) / 3, (p[a + 2] + p[b + 2] + p[c + 2]) / 3];
+    let proche = Infinity, [dx, dy, dz] = [0, 0, 0];
+    for (const q of peaux) for (let s = 0; s < q.length; s += 3) {
+      const d = (cx - q[s]) ** 2 + (cy - q[s + 1]) ** 2 + (cz - q[s + 2]) ** 2;
+      if (d < proche) [proche, dx, dy, dz] = [d, cx - q[s], cy - q[s + 1], cz - q[s + 2]];
+    }
+    const [ux, uy, uz, vx, vy, vz] = [p[b] - p[a], p[b + 1] - p[a + 1], p[b + 2] - p[a + 2], p[c] - p[a], p[c + 1] - p[a + 1], p[c + 2] - p[a + 2]];
+    const [nx, ny, nz] = [uy * vz - uz * vy, uz * vx - ux * vz, ux * vy - uy * vx];
+    if (nx * dx + ny * dy + nz * dz >= -SOUDURE_M * Math.hypot(nx, ny, nz)) endroit.push(indices[t], indices[t + 1], indices[t + 2]);
+  }
+  return Uint32Array.from(endroit);
+}
+
+/** Le dehors de chaque sommet de `surface` : la somme des normales, pondérées par leur aire, de ses triangles de
+ *  l'`endroit` (`endroitDe`), moins celle de ses autres triangles. */
+export function dehorsDesSommets(surface: SurfaceDePile, endroit: ArrayLike<number>): Float32Array {
+  const dehors = normalesDesSommets({ positions: surface.positions, indices: endroit }), toutes = normalesDesSommets(surface);
+  for (let i = 0; i < dehors.length; i++) dehors[i] = 2 * dehors[i] - toutes[i];
+  return dehors;
+}
+
 /** Ce que l'ordre des couches lit d'une pièce d'une tenue. */
 export interface CoucheDePile {
   /** Le rang de sa couche dans `COUCHES` (`element.ts`), `RANG_DU_CORPS` pour le corps. */
@@ -180,10 +244,10 @@ export interface CoucheDePile {
   readonly neutres: readonly SurfaceDePile[];
 }
 
-/** Les voix des sommets de `sujet` que `couverture` couvre : pour `sujet` s'ils sont devant leur triangle couvrant le
- *  plus proche, contre lui s'ils sont derrière (à distance égale, derrière). */
-function voter(sujet: SurfaceDePile, couverture: Couverture): { pour: number; contre: number } {
-  const p = sujet.positions, n = normalesDesSommets(sujet);
+/** Les voix des sommets de `sujet`, de dehors `n` (`dehorsDesSommets`), que `couverture` couvre : pour `sujet` s'ils
+ *  sont devant leur triangle couvrant le plus proche, contre lui s'ils sont derrière (à distance égale, derrière). */
+function voter(sujet: SurfaceDePile, n: Float32Array, couverture: Couverture): { pour: number; contre: number } {
+  const p = sujet.positions;
   let pour = 0, contre = 0;
   for (let s = 0; s < p.length / 3; s++) {
     let derriere = Infinity, devant = Infinity;
@@ -198,14 +262,19 @@ function voter(sujet: SurfaceDePile, couverture: Couverture): { pour: number; co
 }
 
 /** Dit, pour deux pièces d'une tenue, si `e` couvre `f` : couche plus extérieure ; à couche égale, un accessoire couvre
- *  ce qui n'en est pas un ; sinon celle dont les sommets sont devant l'autre au repos neutre, à la majorité des voix
- *  (`voter`), chaque paire votée une fois. Sans sommet de l'une couvert par l'autre, ou à égalité, aucune ne couvre
- *  l'autre. */
-export function ordreDesCouches<E extends CoucheDePile>(): (e: E, f: E) => boolean {
-  const couvertures = new Map<SurfaceDePile, Couverture>();
-  const couvertureDeLaSurface = (s: SurfaceDePile): Couverture => {
-    const connue = couvertures.get(s) ?? couvertureDe(s.positions, s.indices);
-    couvertures.set(s, connue);
+ *  ce qui n'en est pas un ; sinon celle dont les sommets sont devant l'endroit de l'autre au repos neutre, à la majorité
+ *  des voix (`voter`), chaque paire votée une fois. Sans sommet de l'une couvert par l'autre, ou à égalité, aucune ne
+ *  couvre l'autre. `peaux` : les positions au repos de la peau de la tenue (`peauDeLaTenue`, `evaluateur/corps.ts`), d'où
+ *  se lit l'endroit (`endroitDe`). */
+export function ordreDesCouches<E extends CoucheDePile>(peaux: readonly Float32Array[]): (e: E, f: E) => boolean {
+  const votantes = new Map<SurfaceDePile, { dehors: Float32Array; couverture: Couverture }>();
+  const votante = (s: SurfaceDePile) => {
+    let connue = votantes.get(s);
+    if (!connue) {
+      const endroit = endroitDe(s, peaux);
+      connue = { dehors: dehorsDesSommets(s, endroit), couverture: couvertureDe(s.positions, endroit) };
+      votantes.set(s, connue);
+    }
     return connue;
   };
   const avances = new Map<E, Map<E, number>>();
@@ -217,7 +286,8 @@ export function ordreDesCouches<E extends CoucheDePile>(): (e: E, f: E) => boole
     if (voix === undefined) {
       voix = 0;
       for (const se of e.neutres) for (const sf of f.neutres) {
-        const [deSe, deSf] = [voter(se, couvertureDeLaSurface(sf)), voter(sf, couvertureDeLaSurface(se))];
+        const [ve, vf] = [votante(se), votante(sf)];
+        const [deSe, deSf] = [voter(se, ve.dehors, vf.couverture), voter(sf, vf.dehors, ve.couverture)];
         voix += deSe.pour + deSf.contre - deSe.contre - deSf.pour;
       }
       deE.set(f, voix);
@@ -250,9 +320,8 @@ interface Point {
   nz: number;
 }
 
-function souder(piece: PieceDePile): Point[] {
+function souder(piece: PieceDePile, endroits: ReadonlyMap<MaillageDePile, Uint32Array>): Point[] {
   const parCle = new Map<string, Point>();
-  const pointDe = new Map<MaillageDePile, Point[]>();
   for (const m of piece.maillages) {
     const points: Point[] = [];
     const p = m.positions;
@@ -263,15 +332,8 @@ function souder(piece: PieceDePile): Point[] {
       point.membres.push([m, s]);
       points.push(point);
     }
-    pointDe.set(m, points);
-    const ind = m.indices;
-    for (let t = 0; t + 2 < ind.length; t += 3) {
-      const [a, b, c] = [ind[t], ind[t + 1], ind[t + 2]];
-      const [ux, uy, uz] = [p[b * 3] - p[a * 3], p[b * 3 + 1] - p[a * 3 + 1], p[b * 3 + 2] - p[a * 3 + 2]];
-      const [vx, vy, vz] = [p[c * 3] - p[a * 3], p[c * 3 + 1] - p[a * 3 + 1], p[c * 3 + 2] - p[a * 3 + 2]];
-      const [nx, ny, nz] = [uy * vz - uz * vy, uz * vx - ux * vz, ux * vy - uy * vx];
-      for (const s of [a, b, c]) { const q = points[s]; q.nx += nx; q.ny += ny; q.nz += nz; }
-    }
+    const dehors = dehorsDesSommets(m, endroits.get(m) as Uint32Array);
+    points.forEach((q, s) => { q.nx += dehors[s * 3]; q.ny += dehors[s * 3 + 1]; q.nz += dehors[s * 3 + 2]; });
   }
   return [...parCle.values()];
 }
@@ -282,21 +344,31 @@ interface Touche {
   readonly de: Couvrant;
   readonly coins: readonly (readonly [number, number])[];
   readonly e: number;
+  /** La normale unitaire du triangle, ou la somme normée de celles des triangles couvrants dont l'écart égale le sien à
+   *  `SOUDURE_M` près (#3842). */
   readonly n: Vecteur;
 }
 
 /** Le triangle de `couvrants` qui couvre le point `q`, de normale (nx, ny, nz), au plus près, à `PERCEE_M` devant lui au
- *  plus ; `null` sans lui. */
+ *  plus ; `null` sans lui. Un triangle couvrant dont l'écart égale celui du retenu à `SOUDURE_M` près ne le remplace pas
+ *  et ajoute sa normale à la sienne ; un triangle plus près de plus de `SOUDURE_M` le remplace (#3842). */
 function toucher(q: Point, nx: number, ny: number, nz: number, couvrants: readonly Couvrant[]): Touche | null {
-  let touche: Touche | null = null;
+  let touche = null as Omit<Touche, 'n'> | null, normales = 0;
+  const somme: Vecteur = [0, 0, 0];
   for (const de of couvrants) {
     const { indices } = de.surface;
     visiterLaCouverture(q.x, q.y, q.z, nx, ny, nz, de.surface, (e, t, a, b, c, tx, ty, tz) => {
-      if (e < -PERCEE_M || (touche && Math.abs(e) >= Math.abs(touche.e))) return;
-      touche = { de, coins: [[indices[t], a], [indices[t + 1], b], [indices[t + 2], c]], e, n: [tx, ty, tz] };
+      if (e < -PERCEE_M) return;
+      const ecart = touche ? Math.abs(e) - Math.abs(touche.e) : -Infinity;
+      if (ecart > SOUDURE_M) return;
+      if (ecart >= -SOUDURE_M) { somme[0] += tx; somme[1] += ty; somme[2] += tz; normales++; return; }
+      touche = { de, coins: [[indices[t], a], [indices[t + 1], b], [indices[t + 2], c]], e };
+      [somme[0], somme[1], somme[2], normales] = [tx, ty, tz, 1];
     });
   }
-  return touche;
+  if (!touche) return null;
+  const l = normales > 1 ? Math.hypot(...somme) : 1;
+  return { ...touche, n: [somme[0] / l, somme[1] / l, somme[2] / l] };
 }
 
 /** Les poids du sommet `s` de `m`, par nom d'os. */
@@ -357,9 +429,13 @@ const LIBRE: Reprise = { poids: new Map(), part: 0 };
 
 /** Ce que chaque point de `points` reprend d'une couverture qui retient `tenues` : ce qu'elle en retient, ou, s'ils
  *  sont retenus plus que lui, les poids des points retenus à moins de `HALO_M` de lui, chacun pesé par sa proximité,
- *  pour la plus grande part que l'un d'eux lui laisse, la sienne éteinte avec leur distance : deux voisins ne sont pas
- *  retenus d'un écart plus grand que ce fondu. */
-function reprendre(points: readonly Point[], tenues: ReadonlyMap<Point, Reprise>): Map<Point, Reprise> {
+ *  pour la plus grande part que l'un d'eux lui laisse, la sienne éteinte avec leur distance. Une arête plus longue que
+ *  ce fondu ne porte pas tout l'écart : les voisins d'arête (`voisins`) d'un point en reprennent les poids pour sa
+ *  part, moins ce qu'il faut pour que la part de ses poids `propres` déplacée sans eux tienne en `SAUT_D_ARETE`. */
+function reprendre(
+  points: readonly Point[], tenues: ReadonlyMap<Point, Reprise>, voisins: ReadonlyMap<Point, ReadonlyMap<Point, number>>,
+  propres: ReadonlyMap<Point, ReadonlyMap<string, number>>,
+): Map<Point, Reprise> {
   const cellule = (x: number): number => Math.floor(x / HALO_M);
   const grille = new Map<number, Point[]>();
   for (const q of tenues.keys()) {
@@ -390,6 +466,20 @@ function reprendre(points: readonly Point[], tenues: ReadonlyMap<Point, Reprise>
     for (const [nom, pk] of poids) poids.set(nom, (pk / somme) * (part - propre.part) / part);
     for (const [nom, pk] of propre.poids) poids.set(nom, (poids.get(nom) ?? 0) + pk * propre.part / part);
     reprises.set(q, { poids, part });
+  }
+  for (const [q, { poids, part }] of [...reprises].sort(([, a], [, b]) => b.part - a.part)) {
+    let memes = 0;
+    for (const [nom, pk] of propres.get(q) as ReadonlyMap<string, number>) memes += Math.min(pk, poids.get(nom) ?? 0);
+    if (part * (1 - memes) <= SAUT_D_ARETE) continue;
+    const due = part - SAUT_D_ARETE / (1 - memes);
+    for (const v of voisins.get(q)?.keys() ?? []) {
+      const propre = reprises.get(v) ?? LIBRE;
+      if (propre.part >= due) continue;
+      const melange = new Map<string, number>();
+      for (const [nom, pk] of propre.poids) melange.set(nom, pk * propre.part / due);
+      for (const [nom, pk] of poids) melange.set(nom, (melange.get(nom) ?? 0) + pk * (due - propre.part) / due);
+      reprises.set(v, { poids: melange, part: due });
+    }
   }
   return reprises;
 }
@@ -527,8 +617,10 @@ function appliquer(q: Point, repris: ReadonlyMap<string, number>, reste: number,
   }
 }
 
-/** Résout la pile `pieces` en place : `couvre(e, f)` dit si la pièce `e` couvre la pièce `f`. */
-export function resoudreLaPile<P extends PieceDePile>(pieces: readonly P[], couvre: (e: P, f: P) => boolean, squelette: SqueletteDePile): BilanDePile {
+/** Résout la pile `pieces` en place : `couvre(e, f)` dit si la pièce `e` couvre la pièce `f`. `peaux` : les positions
+ *  au repos de la peau de la tenue (`peauDeLaTenue`, `evaluateur/corps.ts`), d'où se lit l'endroit de chaque pièce
+ *  (`endroitDe`) ; une pièce qui n'en couvre aucune est tout entière à l'endroit. */
+export function resoudreLaPile<P extends PieceDePile>(pieces: readonly P[], couvre: (e: P, f: P) => boolean, squelette: SqueletteDePile, peaux: readonly Float32Array[]): BilanDePile {
   for (const { poids } of pieces.flatMap((p) => p.maillages)) for (let s = 0; s < poids.length; s += INFLUENCES) {
     const somme = poids[s] + poids[s + 1] + poids[s + 2] + poids[s + 3];
     if (somme > 0) for (let k = 0; k < INFLUENCES; k++) poids[s + k] /= somme;
@@ -546,18 +638,25 @@ export function resoudreLaPile<P extends PieceDePile>(pieces: readonly P[], couv
   const resolues: P[] = [];
   const couvrantsDe = new Map<PieceDePile, Couvrant[]>();
   const origines = new Map(pieces.flatMap((p) => p.maillages).map((m) => [m, { os: Uint16Array.from(m.os), poids: Float32Array.from(m.poids), noms: m.noms }]));
+  const endroits = new Map(pieces.flatMap((piece) => {
+    const nue = !pieces.some((f) => couvre(piece, f));
+    return piece.maillages.map((m) => [m, nue ? m.indices : endroitDe(m, peaux)] as const);
+  }));
   const retenir = (piece: PieceDePile): void => {
-    couvrantsDe.set(piece, piece.maillages.map((m) => ({ surface: couvertureDe(m.positions, m.indices), resolus: m, auteur: origines.get(m) as Poids })));
+    couvrantsDe.set(piece, piece.maillages.map((m) => ({ surface: couvertureDe(m.positions, endroits.get(m) as Uint32Array), resolus: m, auteur: origines.get(m) as Poids })));
   };
   let couverts = 0, suiveurs = 0, recules = 0, flottants = 0, masques = 0;
   for (const piece of ordre) {
     const couvertures = resolues.filter((e) => couvre(e, piece)).map((e) => couvrantsDe.get(e) as Couvrant[]);
     resolues.push(piece);
     if (!couvertures.length) { retenir(piece); continue; }
-    const points = souder(piece);
+    const points = souder(piece, endroits);
     const propres = new Map(points.map((q) => [q, poidsParNom(...q.membres[0])]));
     const repris = new Map<Point, Map<string, number>>(), restes = new Map<Point, number>(), reculs = new Map<Point, Vecteur>();
     const tenus = new Set<Point>(), pleins = new Set<Point>(), laisses = new Set<Point>();
+    const pointDe = new Map<MaillageDePile, Point[]>(piece.maillages.map((m) => [m, new Array<Point>(m.positions.length / 3)]));
+    for (const q of points) for (const [m, s] of q.membres) (pointDe.get(m) as Point[])[s] = q;
+    const voisins = voisinsDe(piece, pointDe);
     for (const couvrants of couvertures) {
       const tenues = new Map<Point, Reprise>();
       for (const q of points) {
@@ -571,7 +670,7 @@ export function resoudreLaPile<P extends PieceDePile>(pieces: readonly P[], couv
         const pas = part * Math.min(0, e - JEU_M), deja = reculs.get(q);
         if (pas < 0 && (!deja || -pas > Math.hypot(...deja))) reculs.set(q, [pas * n[0], pas * n[1], pas * n[2]]);
       }
-      for (const [q, { poids, part }] of reprendre(points, tenues)) {
+      for (const [q, { poids, part }] of reprendre(points, tenues, voisins, propres)) {
         const reste = restes.get(q) ?? 1;
         const melange = repris.get(q) ?? new Map<string, number>();
         for (const [nom, pk] of poids) melange.set(nom, (melange.get(nom) ?? 0) + reste * part * pk);
@@ -581,9 +680,6 @@ export function resoudreLaPile<P extends PieceDePile>(pieces: readonly P[], couv
     }
     for (const q of laisses) if (!tenus.has(q)) flottants++;
     if (!repris.size) { retenir(piece); continue; }
-    const pointDe = new Map<MaillageDePile, Point[]>(piece.maillages.map((m) => [m, new Array<Point>(m.positions.length / 3)]));
-    for (const q of points) for (const [m, s] of q.membres) (pointDe.get(m) as Point[])[s] = q;
-    const voisins = voisinsDe(piece, pointDe);
     entrainer(reculs, voisins);
     apaiser(reculs, voisins);
     for (const bloc of blocsRigides(voisins, propres)) {
