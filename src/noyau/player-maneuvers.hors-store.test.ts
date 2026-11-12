@@ -21,7 +21,7 @@ import { cliquerSurLeCombattant } from './combatOrParty';
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
-const at = (kind: 'hero' | 'enemy', id: string, x: number, y: number, over: Partial<Combatant> = {}): Combatant =>
+const at = (kind: 'heros' | 'ennemi', id: string, x: number, y: number, over: Partial<Combatant> = {}): Combatant =>
   (blessuresSurLeProfil({
     id, name: id, kind,
     characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 30, force: 30, endurance: 35, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
@@ -35,8 +35,8 @@ const mkBattle = (combatants: Combatant[], over: Partial<BattleState> = {}): Bat
 
 describe('availableAttacks — énumération (pur)', () => {
   it('Arme d’abord (1ʳᵉ) ; Morsure +10 présente avec Avantage ≥ 1, absente à 0', () => {
-    const enemy = at('enemy', 'E', 5, 6);
-    const heroAdv = at('hero', 'H', 5, 5, { traits: [{ id: 'morsure', value: 10 }], advantage: 1 });
+    const enemy = at('ennemi', 'E', 5, 6);
+    const heroAdv = at('heros', 'H', 5, 5, { traits: [{ id: 'morsure', value: 10 }], advantage: 1 });
     const m = availableAttacks(heroAdv, mkBattle([heroAdv, enemy]));
     expect(m[0]?.id).toBe('arme'); // Arme d'abord
     const morsure = m.find((x) => x.id === 'morsure');
@@ -44,51 +44,51 @@ describe('availableAttacks — énumération (pur)', () => {
     expect(morsure!.targeting).toBe('melee'); // mêlée → approche-puis-frappe
     expect(morsure!.cost.advantage).toBe(1);
 
-    const heroNoAdv = at('hero', 'H', 5, 5, { traits: [{ id: 'morsure', value: 10 }], advantage: 0 });
+    const heroNoAdv = at('heros', 'H', 5, 5, { traits: [{ id: 'morsure', value: 10 }], advantage: 0 });
     expect(availableAttacks(heroNoAdv, mkBattle([heroNoAdv, enemy])).some((x) => x.id === 'morsure')).toBe(false);
   });
 
   it('Souffle +15 (Feu) : attaque de ZONE présente avec Avantage ≥ 2', () => {
-    const enemy = at('enemy', 'E', 5, 6);
-    const hero = at('hero', 'H', 5, 5, { traits: [{ id: 'souffle', value: 15, arg: 'feu' }], advantage: 2 });
+    const enemy = at('ennemi', 'E', 5, 6);
+    const hero = at('heros', 'H', 5, 5, { traits: [{ id: 'souffle', value: 15, arg: 'feu' }], advantage: 2 });
     const souffle = availableAttacks(hero, mkBattle([hero, enemy])).find((x) => x.id === 'souffle');
     expect(souffle).toBeTruthy();
     expect(souffle!.targeting).toBe('zone'); // pendingManeuver (clic = point d’impact, LDB 85 « cible visible »)
     expect(souffle!.cost.advantage).toBe(2);
 
-    const heroLow = at('hero', 'H', 5, 5, { traits: [{ id: 'souffle', value: 15, arg: 'feu' }], advantage: 1 });
+    const heroLow = at('heros', 'H', 5, 5, { traits: [{ id: 'souffle', value: 15, arg: 'feu' }], advantage: 1 });
     expect(availableAttacks(heroLow, mkBattle([heroLow, enemy])).some((x) => x.id === 'souffle')).toBe(false);
   });
 
   it('Piétinement : présent si un adversaire adjacent PLUS PETIT existe et Avantage ≥ 1', () => {
-    const small = at('enemy', 'E', 5, 6, { size: 'petite' });
-    const hero = at('hero', 'H', 5, 5, { size: 'grande', advantage: 1 });
+    const small = at('ennemi', 'E', 5, 6, { size: 'petite' });
+    const hero = at('heros', 'H', 5, 5, { size: 'grande', advantage: 1 });
     const piet = availableAttacks(hero, mkBattle([hero, small])).find((x) => x.id === 'pietinement');
     expect(piet).toBeTruthy();
     expect(piet, 'attaque gratuite de mêlée CANONIQUE (LDB 85 l.387)').toMatchObject({ targeting: 'melee', reach: 1, forceMelee: true, freeKind: 'pietinement', cost: { action: false, advantage: findManeuverById('pietinement')!.coutEnAvantage } });
     expect(piet!.cost.movement, 'aucun Mouvement sans Se cabrer').toBeUndefined();
 
-    const heroNoAdv = at('hero', 'H', 5, 5, { size: 'grande', advantage: 0 });
+    const heroNoAdv = at('heros', 'H', 5, 5, { size: 'grande', advantage: 0 });
     expect(availableAttacks(heroNoAdv, mkBattle([heroNoAdv, small])).some((x) => x.id === 'pietinement')).toBe(false);
   });
 
   it('trait Tentacules : présente avec l’arme que le trait accorde + un ennemi + pas encore utilisée', () => {
-    const enemy = at('enemy', 'E', 5, 6);
-    const hero = at('hero', 'H', 5, 5, { traits: [{ id: 'tentacules' }] });
+    const enemy = at('ennemi', 'E', 5, 6);
+    const hero = at('heros', 'H', 5, 5, { traits: [{ id: 'tentacules' }] });
     recomputeLoadout(hero);
     const t = availableAttacks(hero, mkBattle([hero, enemy])).find((x) => x.id === 'tentacule');
     expect(t).toBeTruthy();
     expect(t!.targeting).toBe('melee');
     expect(t!.cost.advantage).toBe(0);
 
-    const used = at('hero', 'H', 5, 5, { traits: [{ id: 'tentacules' }], freeAttacksThisTurn: { tentacules: 1 } }); // déjà jouée ce tour → plafond 1/tour atteint
+    const used = at('heros', 'H', 5, 5, { traits: [{ id: 'tentacules' }], freeAttacksThisTurn: { tentacules: 1 } }); // déjà jouée ce tour → plafond 1/tour atteint
     recomputeLoadout(used);
     expect(availableAttacks(used, mkBattle([used, enemy])).some((x) => x.id === 'tentacule')).toBe(false);
   });
 
   it('deux sources de Tentacules : deux uids d’arme distincts, la manœuvre épingle l’une d’elles (#2907)', () => {
-    const enemy = at('enemy', 'E', 5, 6);
-    const hero = at('hero', 'H', 5, 5, { traits: [{ id: 'tentacules' }, { id: 'tentacules', src: { kind: 'mutation', id: 'tentacule-epais' } }] });
+    const enemy = at('ennemi', 'E', 5, 6);
+    const hero = at('heros', 'H', 5, 5, { traits: [{ id: 'tentacules' }, { id: 'tentacules', src: { kind: 'mutation', id: 'tentacule-epais' } }] });
     recomputeLoadout(hero);
     const uids = hero.weapons.filter((w) => w.attackKind === 'tentacules').map((w) => w.uid);
     expect(uids).toHaveLength(2);
@@ -98,16 +98,16 @@ describe('availableAttacks — énumération (pur)', () => {
   });
 
   it('inclut l’Arme (1ʳᵉ attaque) mais exclut les manœuvres de Charge (Cornes)', () => {
-    const enemy = at('enemy', 'E', 5, 6);
-    const hero = at('hero', 'H', 5, 5, { traits: [{ id: 'cornes', value: 8 }], advantage: 5 });
+    const enemy = at('ennemi', 'E', 5, 6);
+    const hero = at('heros', 'H', 5, 5, { traits: [{ id: 'cornes', value: 8 }], advantage: 5 });
     const m = availableAttacks(hero, mkBattle([hero, enemy]));
     expect(m.some((x) => x.id === 'cornes')).toBe(false); // déclenchement charge (auto) → exclu de la liste
     expect(m.some((x) => x.id === 'arme')).toBe(true); // l'Arme EST une attaque de la liste
   });
 
   it('Métamorphose (Enfant d’Ulric) : la manœuvre SUR SOI (targeting self) n’apparaît PAS dans les attaques', () => {
-    const enemy = at('enemy', 'E', 5, 6);
-    const hero = at('hero', 'H', 5, 5, { traits: [{ id: 'metamorphose' }], advantage: 5 });
+    const enemy = at('ennemi', 'E', 5, 6);
+    const hero = at('heros', 'H', 5, 5, { traits: [{ id: 'metamorphose' }], advantage: 5 });
     const m = availableAttacks(hero, mkBattle([hero, enemy]));
     expect(m.some((x) => x.id === 'forme-hybride-ulric' || x.id === 'forme-humaine-ulric' || x.kind === 'hurlement')).toBe(false);
   });
@@ -122,8 +122,8 @@ describe('manœuvres en combat (store)', () => {
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
     enemies.slice(1).forEach((e) => (e.dead = true));
     const E = enemies[0];
     H.pos = { x: 10, y: 10 };

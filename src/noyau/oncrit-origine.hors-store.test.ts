@@ -39,8 +39,8 @@ describe('onCrit : chaque Blessure critique non létale, le filtre coupCritique 
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const E = b.combatants.find((c) => c.kind === 'enemy')!;
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const E = b.combatants.find((c) => c.kind === 'ennemi')!;
     H.pos = { x: 10, y: 10 };
     E.pos = { x: 14, y: 10 };
     E.important = true; // LDB 18 l.44 : hors Mort subite

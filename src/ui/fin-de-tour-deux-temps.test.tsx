@@ -27,7 +27,7 @@ beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 });
 
-function combattant(id: string, label: string, kind: Combatant['kind'] = 'hero'): Combatant {
+function combattant(id: string, label: string, kind: Combatant['kind'] = 'heros'): Combatant {
   const c = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label, seed: 11 });
   c.id = id;
   c.kind = kind;
@@ -40,7 +40,7 @@ let root: Root;
 
 function combat() {
   const h = combattant('h1', 'Gunnar');
-  const e = combattant('e1', 'Brigand', 'enemy');
+  const e = combattant('e1', 'Brigand', 'ennemi');
   e.pos = { x: 9, y: 9 };
   act(() => {
     useGame.setState({

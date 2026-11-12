@@ -148,8 +148,8 @@ describe('porte secrète — combat : aucune découverte', () => {
     banc.abandonner();
     const sc = plan();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    b.combatants.filter((c) => c.kind === 'enemy').forEach((e) => (e.dead = true));
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    b.combatants.filter((c) => c.kind === 'ennemi').forEach((e) => (e.dead = true));
     H.engagedWith = [];
     placeCombatant(H, sc, { x: 3, y: 2 });
     banc.setState({

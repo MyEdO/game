@@ -31,7 +31,7 @@ const HYBRIDE_ULRIC: GameOp[] = [
 ];
 
 /** Humain à 30 partout : né au maximum dérivé, 3 + 6 + 3 = 12 (`combattantDeTest`). */
-const human = (): Combatant => combattantDeTest({ id: 'u', label: 'Enfant d’Ulric', kind: 'enemy', traits: [{ id: 'metamorphose' }] });
+const human = (): Combatant => combattantDeTest({ id: 'u', label: 'Enfant d’Ulric', kind: 'ennemi', traits: [{ id: 'metamorphose' }] });
 
 const TAG = 'ulric-hybride';
 

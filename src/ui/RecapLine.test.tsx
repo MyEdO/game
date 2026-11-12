@@ -16,8 +16,8 @@ import { recapLineOfEvent, recapLinesOfEvents } from '../gameIso/combatNarration
 import { ev } from '../noyau/combatLog';
 
 const combatants = [
-  { id: 'h1', label: 'Gustav', kind: 'hero' },
-  { id: 'e1', label: 'Rat géant', kind: 'enemy' },
+  { id: 'h1', label: 'Gustav', kind: 'heros' },
+  { id: 'e1', label: 'Rat géant', kind: 'ennemi' },
 ];
 
 /** Texte NU d'un rendu (balises retirées, espaces normalisés) — la comparaison porte sur ce que le

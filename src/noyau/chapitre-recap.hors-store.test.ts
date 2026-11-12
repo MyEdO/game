@@ -22,7 +22,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 function hero(id: string, xp: number, over: Partial<Combatant> = {}): Combatant {
   return combattantDeTest({
-    id, label: id.toUpperCase(), kind: 'hero', xp,
+    id, label: id.toUpperCase(), kind: 'heros', xp,
     characteristics: {} as Combatant['characteristics'],
     items: [], talents: [], skills: [], conditions: [], advantage: 0, wounds: blessuresDeBase(10),
     ...over,

@@ -6,10 +6,10 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTes
 
 // Cogue : équipage NOMINAL 15 (vehicles.json). Un marin « présent » = crewId vivant (exposedCrew : !dead && PB>0).
 const crewman = (id: string): Combatant =>
-  ({ id, name: id, kind: 'enemy', pos: { x: 0, y: 0 }, wounds: { current: 5, max: 5 } }) as unknown as Combatant;
+  ({ id, name: id, kind: 'ennemi', pos: { x: 0, y: 0 }, wounds: { current: 5, max: 5 } }) as unknown as Combatant;
 const crew = Array.from({ length: 15 }, (_, i) => crewman(`m${i}`));
 const cogue = {
-  id: 'ship', name: 'Cogue', kind: 'enemy', bodyShape: 'vehicule', creatureId: 'cogue',
+  id: 'ship', name: 'Cogue', kind: 'ennemi', bodyShape: 'vehicule', creatureId: 'cogue',
   pos: { x: 5, y: 5 }, crewIds: crew.map((c) => c.id),
 } as unknown as Combatant;
 const combatants = [cogue, ...crew];

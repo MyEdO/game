@@ -18,7 +18,7 @@ import { blessuresSurLeProfil, blessuresDeBase, profilDeTest } from './combattan
 
 const rngOf = deFixe;
 const mk = (o: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
-  id: 'c', label: 'c', kind: 'enemy', advantage: 0, conditions: [],
+  id: 'c', label: 'c', kind: 'ennemi', advantage: 0, conditions: [],
   characteristics: profilDeTest({ 'force-mentale': 35 }), psychState: [], psychTraits: [], groups: [],
   weapons: [], armour: {} as never, skills: [], talents: [], movement: 4, wounds: blessuresDeBase(10), ...o,
 }) as Combatant);
@@ -45,21 +45,21 @@ describe('Sans Peur (Ennemi) — Test de Calme Accessible (+20), un seul Test (L
   });
 
   it('TERREUR : réussite → la Peur héritée naît surmontée ; échec → Brisé + Peur subie (LDB 21 l.56)', () => {
-    const ok = mk({ id: 'h', kind: 'hero' });
+    const ok = mk({ id: 'h', kind: 'heros' });
     applyOps(ok, psychBranchOps({ kind: 'terreur', sourceId: 'o', indice: 2 }, { success: true, sansPeur: true }), { idNeuf: idsDeTest, rng: rngOf(50), sl: 1 });
     expect(ok.conditions).toEqual([]);
     expect(sousPeur(ok.psychState!.find((p) => p.type === 'peur')!)).toBe(false);
-    const ko = mk({ id: 'h', kind: 'hero' });
+    const ko = mk({ id: 'h', kind: 'heros' });
     applyOps(ko, psychBranchOps({ kind: 'terreur', sourceId: 'o', indice: 2 }, { success: false, sansPeur: true }), { idNeuf: idsDeTest, rng: rngOf(50), sl: -1 });
     expect(ko.conditions.find((k) => k.id === 'brise')?.value).toBe(3);
     expect(sousPeur(ko.psychState!.find((p) => p.type === 'peur')!)).toBe(true);
   });
 
   it('TERREUR : la Peur héritée garde son PLEIN Indice ; sans le Talent, la réussite n’exempte que de la Terreur', () => {
-    const heros = mk({ id: 'h', kind: 'hero' });
+    const heros = mk({ id: 'h', kind: 'heros' });
     applyOps(heros, psychBranchOps({ kind: 'terreur', sourceId: 'o', indice: 2 }, { success: true, sansPeur: true }), { idNeuf: idsDeTest, rng: rngOf(50) });
     expect(heros.psychState!.find((p) => p.type === 'peur' && p.sourceId === 'o')!.indice).toBe(2);
-    const sansTalent = mk({ id: 'h2', kind: 'hero' });
+    const sansTalent = mk({ id: 'h2', kind: 'heros' });
     applyOps(sansTalent, psychBranchOps({ kind: 'terreur', sourceId: 'o', indice: 2 }, { success: true }), { idNeuf: idsDeTest, rng: rngOf(50) });
     expect(sousPeur(sansTalent.psychState!.find((p) => p.type === 'peur')!)).toBe(true);
   });

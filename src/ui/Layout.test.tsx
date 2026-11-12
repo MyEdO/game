@@ -61,9 +61,9 @@ describe('#1800 — Stack/Row/Grid/Split : props de placement → attributs data
   });
 
   it('Split : aside/side/sticky, cassure 700 par défaut et surchargeable', () => {
-    const html = renderToStaticMarkup(<Split aside="md" side="end" sticky stackBelow={900}>x</Split>);
+    const html = renderToStaticMarkup(<Split aside="md" side="fin" sticky stackBelow={900}>x</Split>);
     expect(html).toContain('data-aside="md"');
-    expect(html).toContain('data-side="end"');
+    expect(html).toContain('data-side="fin"');
     expect(html).toContain('data-sticky=""');
     expect(html).toContain('data-stack-below="900"');
     expect(renderToStaticMarkup(<Split>x</Split>)).toContain('data-stack-below="700"');

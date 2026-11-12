@@ -28,10 +28,10 @@ function setup() {
   banc.getState().lancerLeCombat('enc-mutants');
   banc.getState().fenetreValider('debutDuRound');
   const b = banc.getState().battle!;
-  const H = b.combatants.find((c) => c.kind === 'hero')!;
+  const H = b.combatants.find((c) => c.kind === 'heros')!;
   // Éloigne tous les ennemis pour libérer la grille autour du héros (couloir y=10 libre).
   let i = 0;
-  for (const e of b.combatants.filter((c) => c.kind === 'enemy')) e.pos = { x: 20 + i++, y: 20 };
+  for (const e of b.combatants.filter((c) => c.kind === 'ennemi')) e.pos = { x: 20 + i++, y: 20 };
   H.pos = { x: 6, y: 10 };
   const turn = b.order.indexOf(H.id);
   banc.setState({ battle: { ...b, turn, action: null, acted: false, movementUsed: 0, movedPreAction: false } });
@@ -76,7 +76,7 @@ describe('clic-sol implicite — tap 1 aperçu, tap 2 déplace', () => {
     const { H } = setup();
     const st0 = banc.getState();
     const h = st0.battle!.combatants.find((c) => c.id === H.id)!;
-    const e = st0.battle!.combatants.find((c) => c.kind === 'enemy')!;
+    const e = st0.battle!.combatants.find((c) => c.kind === 'ennemi')!;
     e.pos = { x: h.pos!.x + 1, y: h.pos!.y };
     h.engagedWith = [e.id]; e.engagedWith = [h.id];
     const at = { ...h.pos! };
@@ -176,7 +176,7 @@ describe('clic-ennemi implicite', () => {
     const { H } = setup();
     const st0 = banc.getState();
     const h = st0.battle!.combatants.find((c) => c.id === H.id)!;
-    const e = st0.battle!.combatants.find((c) => c.kind === 'enemy')!;
+    const e = st0.battle!.combatants.find((c) => c.kind === 'ennemi')!;
     e.pos = { x: h.pos!.x + 1, y: h.pos!.y };
     h.advantage = 0;
     cliquerSurLeCombattant(banc.getState, e.id);
@@ -193,7 +193,7 @@ describe('clic-ennemi implicite', () => {
     const { H } = setup();
     const st0 = banc.getState();
     const h = st0.battle!.combatants.find((c) => c.id === H.id)!;
-    const e = st0.battle!.combatants.find((c) => c.kind === 'enemy')!;
+    const e = st0.battle!.combatants.find((c) => c.kind === 'ennemi')!;
     e.pos = { x: h.pos!.x + 2, y: h.pos!.y };
     h.advantage = 0;
     // Spec HUD § ARBITRAGE 2026-08-19 : hors d'Allonge, l'approche se DEMANDE (Charge armée) — son
@@ -215,7 +215,7 @@ describe('clic-ennemi implicite', () => {
     banc.setState({ battle: { ...banc.getState().battle!, movementUsed: 1, movedPreAction: true } });
     const st0 = banc.getState();
     const h = st0.battle!.combatants.find((c) => c.id === H.id)!;
-    const e = st0.battle!.combatants.find((c) => c.kind === 'enemy')!;
+    const e = st0.battle!.combatants.find((c) => c.kind === 'ennemi')!;
     e.pos = { x: h.pos!.x + 2, y: h.pos!.y };
     const pos0 = { ...h.pos! };
     cliquerSurLeCombattant(banc.getState, e.id, { confirm: true, intentionId: 'charge' });
@@ -231,7 +231,7 @@ describe('clic-ennemi implicite', () => {
     const { H } = setup();
     const st0 = banc.getState();
     const h = st0.battle!.combatants.find((c) => c.id === H.id)!;
-    const e = st0.battle!.combatants.find((c) => c.kind === 'enemy')!;
+    const e = st0.battle!.combatants.find((c) => c.kind === 'ennemi')!;
     e.pos = { x: h.pos!.x + 12, y: h.pos!.y }; // M4 → 2M+1 = 9
     cliquerSurLeCombattant(banc.getState, e.id);
     const st = banc.getState();
@@ -243,7 +243,7 @@ describe('clic-ennemi implicite', () => {
   it('Action déjà prise (sans Frénésie) : le clic-ennemi est inerte', () => {
     const { H } = setup();
     banc.setState({ battle: { ...banc.getState().battle!, acted: true } });
-    const e = banc.getState().battle!.combatants.find((c) => c.kind === 'enemy')!;
+    const e = banc.getState().battle!.combatants.find((c) => c.kind === 'ennemi')!;
     cliquerSurLeCombattant(banc.getState, e.id);
     expect(banc.getState().pendingAttack).toBeNull();
     void H;

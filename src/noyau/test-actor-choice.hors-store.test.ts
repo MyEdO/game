@@ -15,7 +15,7 @@ describe('Test de scène — choix du lanceur dans le groupe', () => {
   beforeEach(() => { banc.setState({ battle: null, pendingTest: null }); });
 
   const mk = (id: string, name: string, dex: number) => (blessuresSurLeProfil({
-    id, name, kind: 'hero',
+    id, name, kind: 'heros',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: dex, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(10), advantage: 0, conditions: [], movement: 4, skills: [], talents: [],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, items: [],

@@ -26,7 +26,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 const scene = () =>
   ({ id: 's', label: '', dimensions: { w: 30, h: 21 }, layers: [{ z: 0, tiles: Array(630).fill('herbe') }], entities: [], dialogues: [], triggers: [], encounters: [], flags: {} } as never);
 
-const C = (kind: 'hero' | 'enemy', id: string, x: number, over: Partial<Combatant> = {}): Combatant =>
+const C = (kind: 'heros' | 'ennemi', id: string, x: number, over: Partial<Combatant> = {}): Combatant =>
   (blessuresSurLeProfil({
     id, name: id, kind, pos: { x, y: 10 }, movement: 4,
     characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
@@ -36,8 +36,8 @@ const C = (kind: 'hero' | 'enemy', id: string, x: number, over: Partial<Combatan
   })) as unknown as Combatant;
 
 function planFor(heroX: number, over: Partial<Combatant> = {}) {
-  const enemy = C('enemy', 'e', 2, over);
-  const hero = C('hero', 'h', heroX);
+  const enemy = C('ennemi', 'e', 2, over);
+  const hero = C('heros', 'h', heroX);
   const input: EnemyTurnInput = { enemy, heroes: [hero], scene: scene(), blocked: new Set([`${heroX},10`]), movement: 4, spells: [] };
   const action = chooseEnemyAction(input);
   return { enemy, hero, ...aiApproachPlan(input, enemy, action, makeRNG(3)), action };
@@ -45,9 +45,9 @@ function planFor(heroX: number, over: Partial<Combatant> = {}) {
 
 describe('aiApproachPlan — Charge à portée de Course / Course au-delà', () => {
   it('À Terre ne fait que ramper (LDB 16 l.35, `gating.movement: crawl`) : ni Charge ni Course, le plan de Marche reste', () => {
-    const enemy = C('enemy', 'e', 2);
+    const enemy = C('ennemi', 'e', 2);
     addCondition(enemy, 'a-terre');
-    const hero = C('hero', 'h', 25);
+    const hero = C('heros', 'h', 25);
     const input: EnemyTurnInput = { enemy, heroes: [hero], scene: scene(), blocked: new Set(['25,10']), movement: 2, spells: [] };
     const action = chooseEnemyAction(input);
     const { plan, ran } = aiApproachPlan(input, enemy, action, makeRNG(3));
@@ -89,10 +89,10 @@ describe('Course ennemie — le journal du tour (LDB 15 l.41)', () => {
   afterEach(() => { vi.restoreAllMocks(); });
 
   it('contient EXACTEMENT la ligne du Test de `course` puis la Course, à la forme de celle du héros (`cs.run`, cases parcourues)', () => {
-    const enemy = C('enemy', 'e', 2, { label: 'Gobelin' } as Partial<Combatant>);
+    const enemy = C('ennemi', 'e', 2, { label: 'Gobelin' } as Partial<Combatant>);
     // Héros à 11 cases : hors de la Charge (8), au contact par la Course — l'ennemi s'arrête AVANT
     // d'épuiser son budget (Marche + Course + DR), et la ligne dit les cases PARCOURUES, pas le budget.
-    const hero = C('hero', 'h', 13);
+    const hero = C('heros', 'h', 13);
     banc.setState({ scene: scene(), party: [], pendingCascade: null, actorMove: null,
       battle: { combatants: [enemy, hero], order: ['e', 'h'], turn: 0, round: 1, log: [], over: null } as never });
     seedBattleRng(3);

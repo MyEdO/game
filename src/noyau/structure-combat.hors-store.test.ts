@@ -66,7 +66,7 @@ function start(structId: string, opts?: { down?: boolean; seed?: number }) {
   banc.abandonner();
   const b = banc.getState().battle!;
   const S = b.combatants.find((c) => c.bodyShape === 'structure');
-  const H = b.combatants.find((c) => c.kind === 'hero')!;
+  const H = b.combatants.find((c) => c.kind === 'heros')!;
   return { S, H, b };
 }
 
@@ -96,7 +96,7 @@ describe('Structures de siège — enrôlement au combat (AA 10 l.94-127)', () =
     expect(S).toBeTruthy();
     expect(S!.id).toBe('structure-2-2-E-0');
     expect(S!.bodyShape).toBe('structure');
-    expect(S!.kind).toBe('npc');
+    expect(S!.kind).toBe('pnj');
     expect(S!.pos).toEqual({ x: 2, y: 2 });
     expect(S!.structureEdge).toEqual({ x: 2, y: 2, side: 'E', z: 0 });
   });
@@ -109,7 +109,7 @@ describe('Structures de siège — enrôlement au combat (AA 10 l.94-127)', () =
   it("la présence de la structure ne déclenche pas la victoire, et elle n'a PAS de tour (hors `order`)", () => {
     const { S, b } = start('porte-de-ville');
     expect(b.over).toBeNull(); // 3 Mutants vivants → combat en cours
-    expect(b.order).not.toContain(S!.id); // inerte 'npc' → aucun tour (sinon boucle figée)
+    expect(b.order).not.toContain(S!.id); // inerte 'pnj' → aucun tour (sinon boucle figée)
     expect(b.combatants).toContain(S); // mais RESTE ciblable
   });
 });
@@ -175,7 +175,7 @@ describe('Structures de siège — à 0 Blessure, la Structure reste debout (AA 
       const nav = spawnEnemy({ vehicule: 'cogue' }, 'nav', { x: 9, y: 5 });
       expect(usesSuddenDeath(S!)).toBe(false);
       expect(usesSuddenDeath(nav)).toBe(false);
-      const pnj = b.combatants.find((c) => c.kind === 'enemy' && !c.important);
+      const pnj = b.combatants.find((c) => c.kind === 'ennemi' && !c.important);
       expect(pnj, 'un PNJ non important').toBeTruthy();
       expect(usesSuddenDeath(pnj!), 'contrôle').toBe(true);
     });
@@ -211,7 +211,7 @@ describe('Structures de siège — Critique de Structure (AA 10 l.112-127)', () 
     const { S, H } = start('mur-en-pierre');
     const log: string[] = [];
     const before = S!.wounds.current;
-    expect(applyStructureCriticalToTarget(idsDeTest, banc.setState, S!, { attackerId: H.id, attackerKind: 'hero' }, log, { forcedRoll: 98 }).destroyed).toBe(true);
+    expect(applyStructureCriticalToTarget(idsDeTest, banc.setState, S!, { attackerId: H.id, attackerKind: 'heros' }, log, { forcedRoll: 98 }).destroyed).toBe(true);
     expect(S!.wounds.current).toBe(before);
     expect(S!.criticalWounds).toBe(1);
     collapseStructure(banc.getState, banc.setState, S!);
@@ -222,7 +222,7 @@ describe('Structures de siège — Critique de Structure (AA 10 l.112-127)', () 
   it("ligne à Blessures (forcedRoll 40, Secouée = 1) → 1 Blessure retirée, comptée au cumul, Structure gardée", () => {
     const { S, H } = start('mur-en-pierre');
     const before = S!.wounds.current;
-    expect(applyStructureCriticalToTarget(idsDeTest, banc.setState, S!, { attackerId: H.id, attackerKind: 'hero' }, [], { forcedRoll: 40 }).destroyed).toBe(false);
+    expect(applyStructureCriticalToTarget(idsDeTest, banc.setState, S!, { attackerId: H.id, attackerKind: 'heros' }, [], { forcedRoll: 40 }).destroyed).toBe(false);
     expect(S!.wounds.current).toBe(before - 1);
     expect(S!.criticalWounds).toBe(1);
   });
@@ -230,14 +230,14 @@ describe('Structures de siège — Critique de Structure (AA 10 l.112-127)', () 
   it("Blessure Triviale (forcedRoll 10, Ébréchée) → 0 Blessure retirée, hors du cumul (AA 07 l.79)", () => {
     const { S, H } = start('mur-en-pierre');
     const before = S!.wounds.current;
-    applyStructureCriticalToTarget(idsDeTest, banc.setState, S!, { attackerId: H.id, attackerKind: 'hero' }, [], { forcedRoll: 10 });
+    applyStructureCriticalToTarget(idsDeTest, banc.setState, S!, { attackerId: H.id, attackerKind: 'heros' }, [], { forcedRoll: 10 });
     expect(S!.wounds.current).toBe(before);
     expect(S!.criticalWounds ?? 0).toBe(0);
   });
 
   it("le Critique empile une ÉTAPE À TABLE : le tirage est DÉCLARÉ (table + dé + ligne stable), la séquence l'affiche", () => {
     const { S, H } = start('mur-en-pierre');
-    applyStructureCriticalToTarget(idsDeTest, banc.setState, S!, { attackerId: H.id, attackerKind: 'hero' }, [], { forcedRoll: 40 });
+    applyStructureCriticalToTarget(idsDeTest, banc.setState, S!, { attackerId: H.id, attackerKind: 'heros' }, [], { forcedRoll: 40 });
     const steps = banc.getState().pendingCascade!.participants;
     const step = steps[steps.length - 1];
     expect(stepInteraction(step)).toBe('affichage'); // dé déjà tiré (le coup est résolu) → l'étape MONTRE
@@ -301,7 +301,7 @@ describe('Structures de siège — à 0, seul le 96+ effondre (AA 10 l.114, l.12
 });
 
 describe('Structures de siège — le jet du Critique prend le modificateur du mode (AA 10 l.114 ; AA 07 l.36 ; LDB 18 l.17)', () => {
-  const heros = (H: Combatant) => ({ attackerId: H.id, attackerKind: 'hero' as const });
+  const heros = (H: Combatant) => ({ attackerId: H.id, attackerKind: 'heros' as const });
   /** Dernière étape de Critique de Structure de la cascade : sa déclaration et son tirage. */
   const derniereEtape = () => {
     const st = (banc.getState().pendingCascade?.participants ?? []).filter((p) => p.table?.tableId === STRUCTURE_CRIT_TABLE).slice(-1)[0];

@@ -39,7 +39,7 @@ const ARC = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 8 }
 
 function hero(id: string, pos: { x: number; y: number }, weapons: unknown[] = []): Combatant {
   return blessuresSurLeProfil({
-    id, label: id, kind: 'hero', pos, size: 'moyenne',
+    id, label: id, kind: 'heros', pos, size: 'moyenne',
     wounds: blessuresDeBase(12), weapons,
     characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     advantage: 0, conditions: [], armour: {},
@@ -48,7 +48,7 @@ function hero(id: string, pos: { x: number; y: number }, weapons: unknown[] = []
 }
 
 function ennemi(id: string, pos: { x: number; y: number }): Combatant {
-  return { ...hero(id, pos), kind: 'enemy' } as unknown as Combatant;
+  return { ...hero(id, pos), kind: 'ennemi' } as unknown as Combatant;
 }
 
 /**

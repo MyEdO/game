@@ -18,7 +18,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 describe('Dissipation permanente — Action de combat', () => {
   const langue = { id: 'langue', spec: 'magick', characteristic: 'intelligence' as const, advances: 20 };
   const mk = (id: string, spells: string[], extra: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
-    id, name: id, kind: 'hero',
+    id, name: id, kind: 'heros',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 40, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], movement: 4,
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -31,7 +31,7 @@ describe('Dissipation permanente — Action de combat', () => {
     const mage = mk('mage', ['forme-bestiale']); // ids STABLES (subType Bête)
     const allie = mk('allie', ['incarnation-de-wyssan'], { pos: { x: 2, y: 1 } }); // subType Bête → même Domaine
     const cible: Combatant = mk('cible', [], {
-      kind: 'enemy', pos: { x: 5, y: 5 },
+      kind: 'ennemi', pos: { x: 5, y: 5 },
       activeEffects: [{ label: 'Malédiction', characteristic: 'agilite', bonus: -10, duration: { scale: 'rounds', left: 9 },
         spell: { spellId: 'malefice', ni: 2, casterId: 'ennemi', label: 'Maléfice' } }],
     } as unknown as Combatant) as Combatant;
@@ -88,7 +88,7 @@ describe('Dissipation permanente — Action de combat', () => {
     const mage = mk('mage', ['forme-bestiale']);
     const allie = mk('allie', ['incarnation-de-wyssan'], { pos: { x: 20, y: 20 } }); // même Domaine mais hors de portée
     const cible: Combatant = mk('cible', [], {
-      kind: 'enemy', pos: { x: 5, y: 5 },
+      kind: 'ennemi', pos: { x: 5, y: 5 },
       activeEffects: [{ label: 'Malédiction', characteristic: 'agilite', bonus: -10, duration: { scale: 'rounds', left: 9 },
         spell: { spellId: 'malefice', ni: 2, casterId: 'ennemi', label: 'Maléfice' } }],
     } as unknown as Combatant) as Combatant;

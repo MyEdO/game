@@ -9,7 +9,7 @@ import { applyStructureCriticalToTarget } from './combatFlow';
 it('le chemin de combat tire le dé de structure authoré', () => {
   sousLeDe('structureCriticals', 'd6', () => {
     const banc = ouvrirLeBanc();
-    const target = { ...tousLesHerosDeScenario(idsDeTest)[0], kind: 'enemy' as const, id: 'mur' };
+    const target = { ...tousLesHerosDeScenario(idsDeTest)[0], kind: 'ennemi' as const, id: 'mur' };
     const int = vi.spyOn(battleRng(), 'int').mockReturnValue(3);
     applyStructureCriticalToTarget(idsDeTest, banc.setState, target, {}, []);
     expect(int).toHaveBeenCalledExactlyOnceWith(1, 6);

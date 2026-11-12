@@ -93,7 +93,7 @@ describe('lumiereDeLaScene', () => {
   });
 
   it('une source portée porte la clé de son porteur, `portee/<id>` (#3811)', () => {
-    const porteur = { id: 'mage', kind: 'hero', pos: { x: 1, y: 1 }, wounds: { current: 10, max: 10 }, conditions: [], traits: [], talents: [], activeEffects: [{ light: { radiusM: 6 } }] } as unknown as Combatant;
+    const porteur = { id: 'mage', kind: 'heros', pos: { x: 1, y: 1 }, wounds: { current: 10, max: 10 }, conditions: [], traits: [], talents: [], activeEffects: [{ light: { radiusM: 6 } }] } as unknown as Combatant;
     const { sources } = lumiereDeLaScene({ ...etat(emptyScene('scene-test', 4, 4), MIDI), party: [porteur] }, 'tactique');
     expect(sources.map((source) => source.cle)).toEqual(['portee/mage']);
   });

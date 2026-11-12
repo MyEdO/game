@@ -20,13 +20,13 @@ const chars = { 'capacite-de-combat': 50, 'capacite-de-tir': 30, force: 45, endu
 
 function setup(targetTraits: { id: string }[], heroArmourCorps = 0): { hero: Combatant; enemy: Combatant } {
   const enemy = blessuresSurLeProfil({
-    id: 'e1', label: 'Champion', kind: 'enemy', characteristics: chars, wounds: blessuresDeBase(30),
+    id: 'e1', label: 'Champion', kind: 'ennemi', characteristics: chars, wounds: blessuresDeBase(30),
     advantage: 0, conditions: [], movement: 4, skills: [], talents: [], traits: targetTraits, engagedWith: [], pos: { x: 1, y: 0 },
     size: 'moyenne', weapons: [{ label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [] }],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, items: [],
   }) as unknown as Combatant;
   const hero = blessuresSurLeProfil({
-    id: 'h1', label: 'Attaquant', kind: 'hero', characteristics: chars, wounds: blessuresDeBase(20),
+    id: 'h1', label: 'Attaquant', kind: 'heros', characteristics: chars, wounds: blessuresDeBase(20),
     advantage: 0, conditions: [], movement: 4, skills: [], talents: [], traits: [], engagedWith: [], pos: { x: 0, y: 0 },
     size: 'moyenne', weapons: [{ label: 'Dague', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [] }],
     items: [], criticalWounds: 0, fate: 0,

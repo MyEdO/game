@@ -19,7 +19,7 @@ const pr = (o: Partial<PendingReload> & { weaponName?: string }): PendingReload 
 // Acteur fictif portant l'arme de rechargement (uid → nom). Le nom d'affichage suit `weaponName` du test.
 const actorWith = (weaponName: string, uid = 'w-arb'): Combatant =>
   ({
-    id: 'h1', label: 'Archère', kind: 'hero', fortune: 0, items: [], armour: emptyArmour(0),
+    id: 'h1', label: 'Archère', kind: 'heros', fortune: 0, items: [], armour: emptyArmour(0),
     weapons: [{ uid, label: weaponName, type: 'distance', damage: { plusBF: false, flat: 0 }, qualities: [] }],
   } as unknown as Combatant);
 

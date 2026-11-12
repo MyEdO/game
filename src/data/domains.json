@@ -69,7 +69,7 @@
               {
                 "kind": "relation",
                 "who": "target",
-                "is": "opponent"
+                "is": "adversaire"
               },
               {
                 "kind": "not",
@@ -147,7 +147,7 @@
               {
                 "kind": "relation",
                 "who": "target",
-                "is": "opponent"
+                "is": "adversaire"
               },
               {
                 "kind": "not",
@@ -328,7 +328,7 @@
               {
                 "kind": "relation",
                 "who": "target",
-                "is": "opponent"
+                "is": "adversaire"
               },
               {
                 "kind": "not",

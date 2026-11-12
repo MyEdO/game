@@ -80,7 +80,7 @@ export function enjeuDuSoin(s: Pick<Jeu, 'party'>, ph: Pick<PendingHeal, 'mode' 
 export function fenetreDuSoin(s: Jeu): { patientId: string; mode: ChoixNomme<HealMode>; test: ChoixNomme<TestDeSoin>; bandages: ChoixNomme<string> | null } | null {
   const ph = s.pendingHeal;
   if (!ph) return null;
-  const pool = (s.battle?.combatants ?? s.party).filter((c) => c.kind === 'hero');
+  const pool = (s.battle?.combatants ?? s.party).filter((c) => c.kind === 'heros');
   const porteurs = pool.filter((c) => porteDesBandages(c) || c.id === ph.bandagesDe);
   return {
     patientId: ph.targetId,

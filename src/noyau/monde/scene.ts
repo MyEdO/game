@@ -139,7 +139,7 @@ export interface SceneEntity {
    *  (noyau/merchantFlow, couture UNIQUE). */
   merchant?: z.input<typeof marchandDeSceneSchema>;
   /** JOUEUR de taverne (#1279 S4) : présent = ce personnage PROPOSE une partie, et il la joue de SA
-   *  fiche (`TavernOpponent` `kind:'npc'` — ses Caractéristiques et ses Compétences avec avances,
+   *  fiche (`TavernOpponent` `kind:'pnj'` — ses Caractéristiques et ses Compétences avec avances,
    *  jamais une valeur recopiée). RÔLE optionnel, au même titre que `dialogue`/`merchant`.
    *
    *  Le patron est AUTHORÉ dans la source, pas inventé : `NADJ 04 l.72` — « Elle jouera une partie de

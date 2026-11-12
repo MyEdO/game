@@ -628,7 +628,7 @@ describe('Blessure critique — le dé en tête, le Critique, les voies dessous 
   const CHARS = { 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 40, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
   const combattant = (p: Partial<Combatant>): Combatant =>
     (blessuresSurLeProfil({
-      id: 'x', label: 'X', kind: 'hero', characteristics: CHARS,
+      id: 'x', label: 'X', kind: 'heros', characteristics: CHARS,
       wounds: blessuresDeBase(15), advantage: 0, conditions: [], movement: 4, skills: [], talents: [],
       engagedWith: [], pos: { x: 0, y: 0 }, size: 'moyenne', weapons: [], items: [], fate: 0,
       armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -643,8 +643,8 @@ describe('Blessure critique — le dé en tête, le Critique, les voies dessous 
   /** Ouvre la fenêtre unique sur un HÉROS BLINDÉ (siège humain : les voies lui sont offertes). */
   function openCritique() {
     seedBattleRng(424242);
-    const h = combattant({ id: 'h1', label: 'Hardi', kind: 'hero', armour: { tete: 0, brasG: 0, brasD: 0, corps: 3, jambeG: 0, jambeD: 0 } });
-    const e = combattant({ id: 'e1', label: 'Brute', kind: 'enemy', pos: { x: 1, y: 0 }, weapons: [gourdin] });
+    const h = combattant({ id: 'h1', label: 'Hardi', kind: 'heros', armour: { tete: 0, brasG: 0, brasD: 0, corps: 3, jambeG: 0, jambeD: 0 } });
+    const e = combattant({ id: 'e1', label: 'Brute', kind: 'ennemi', pos: { x: 1, y: 0 }, weapons: [gourdin] });
     useGame.setState({
       battle: { combatants: [e, h], order: ['e1', 'h1'], baseOrder: ['e1', 'h1'], turn: 0, round: 1, action: null,
         selectedSpellId: null, reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null } as never,

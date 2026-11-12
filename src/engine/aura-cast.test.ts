@@ -9,7 +9,7 @@ import type { Combatant } from './types';
  * d'incantation augmenté.
  */
 const mk = (over: Partial<Combatant> = {}): Combatant => ({
-  id: 'm', name: 'Mage', kind: 'enemy',
+  id: 'm', name: 'Mage', kind: 'ennemi',
   characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 40, 'force-mentale': 40, sociabilite: 30 },
   skills: [], talents: [], traits: [], conditions: [], activeEffects: [],
   ...over,

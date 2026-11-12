@@ -22,7 +22,7 @@ import { ciblePsy } from './psych/ciblage';
 
 function hero(p: Partial<Combatant> = {}): Combatant {
   return blessuresSurLeProfil({
-    id: 'h', label: 'Cobaye', kind: 'hero',
+    id: 'h', label: 'Cobaye', kind: 'heros',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 45, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 38, sociabilite: 30 },
     wounds: blessuresDeBase(12, 10), advantage: 0, conditions: [], movement: 4,
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -485,7 +485,7 @@ describe('applyOps — opérations unitaires', () => {
 
     // L'op `disarm` est l'entrée DONNÉE de `items.lacherLArme` : l'arme TENUE se lit dans `c.weapons`.
     it('statbloc (armes sans objet) : l’épée quitte les mains, les Mains nues la remplacent, le journal la nomme', () => {
-      const c = hero({ kind: 'enemy', items: [], weapons: [{ uid: 'sb-epee', label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] } as Weapon] });
+      const c = hero({ kind: 'ennemi', items: [], weapons: [{ uid: 'sb-epee', label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] } as Weapon] });
       const lines = applyOps(c, [{ op: 'disarm' }], { idNeuf: idsDeTest, rng: desDuTest, location: 'brasD' });
       expect(c.weapons.map(isUnarmed)).toEqual([true]);
       expect(lines[0]).toMatch(/lâche Épée/);
@@ -826,7 +826,7 @@ describe('op `gainResource` — un `amount` NÉGATIF retire (Dague voleuse de ch
 });
 
 describe('OpsCtx.surLigne — les lignes d’une application, par rang d’op', () => {
-  const cible = (): Combatant => (blessuresSurLeProfil({ id: 't', label: 'Cible', kind: 'enemy', characteristics: profilDeTest({ agilite: 40 }), wounds: blessuresDeBase(10), conditions: [], skills: [], talents: [], traits: [], activeEffects: [], weapons: [], items: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 } }) as unknown as Combatant);
+  const cible = (): Combatant => (blessuresSurLeProfil({ id: 't', label: 'Cible', kind: 'ennemi', characteristics: profilDeTest({ agilite: 40 }), wounds: blessuresDeBase(10), conditions: [], skills: [], talents: [], traits: [], activeEffects: [], weapons: [], items: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 } }) as unknown as Combatant);
   const ops = [
     { op: 'wounds', amount: 2, ignoreTB: true, ignoreAP: true },
     { op: 'charMod', characteristic: 'agilite', mod: -10, durationRounds: 3 },

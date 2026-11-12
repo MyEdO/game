@@ -28,8 +28,8 @@ describe('refusDuSlot — le refus de la rangée, lu par la poignée du flux', (
     banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('debutDuRound');
     const b = banc.getState().battle!;
-    const [A, B] = b.combatants.filter((c) => c.kind === 'hero') as Combatant[];
-    const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+    const [A, B] = b.combatants.filter((c) => c.kind === 'heros') as Combatant[];
+    const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
     enemies.slice(1).forEach((e) => (e.dead = true));
     const E = enemies[0];
     [A, B].forEach((h, i) => { h.pos = { x: 10, y: 10 + i }; h.wounds = blessuresDeBase(99, 99, h); h.fortune = 2; h.resilience = 2; });
