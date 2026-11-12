@@ -54,7 +54,7 @@ function partie(n: number): Combatant[] {
 }
 
 const bande = () => get().pendingCascade?.participants.find((s) => s.kind === 'taverneRound');
-const payload = () => get().sequence?.payload as {
+const payload = () => get().sequence?.chargeUtile as {
   throwers?: { id: string; camp: string }[];
 } | undefined;
 
@@ -273,7 +273,7 @@ describe('Le torchon trempé (NADJ 16 l.109-111)', () => {
  * sans rien inventer au catalogue livré (une 2ᵉ entrée réelle demanderait une source, ch.16 n'en
  * donne qu'un jeu à lanceurs) :
  *  (a) la FIXTURE passe le schéma du fichier — c'est bien une entrée JSON valide, pas un objet forgé ;
- *  (b) ses PARAMÈTRES pilotent une partie RÉELLE (le flux ne lit QUE `seq.params` pour la sanction) :
+ *  (b) ses PARAMÈTRES pilotent une partie RÉELLE (le flux ne lit QUE `seq.parametres` pour la sanction) :
  *      le récit sort en toutes lettres de la fixture, et la pinte du Torchon n'y apparaît nulle part.
  * CE QUE LA SONDE NE COUVRE PAS, dit plutôt que supposé : l'effectif et les danseurs restent ceux du
  * Torchon (ils viennent de l'ENTRÉE, pas des paramètres) — la conversion entrée→paramètres, elle, est
@@ -317,7 +317,7 @@ describe('famille (10) — un 2ᵉ jeu à lanceurs est une ENTRÉE JSON, récit 
     get().jouerALaTaverne(party[0].id, { gameId: 'torchon', opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' }, allyProfil: 'elfe-haut-et-sylvain' });
     // La SANCTION jouée est celle des paramètres — ceux de la fixture, convertis par la même porte.
     const seq = get().sequence!;
-    banc.setState({ sequence: { ...seq, params: tavernParams(FIXTURE as never) } });
+    banc.setState({ sequence: { ...seq, parametres: tavernParams(FIXTURE as never) } });
     poseLancer(0, 5, -2); // lancer manqué, puis Test de sanction ÉCHOUÉ
 
     expect(recit.some((l) => l.includes('perd la face')), 'le coup manqué se raconte comme la fixture le dit').toBe(true);

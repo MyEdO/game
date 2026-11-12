@@ -114,6 +114,6 @@ describe('Taverne : le lancer de volée relit le verdict du d100 (NADJ 16 l.70)'
     participants[idx] = { ...band, participants: [{ ...row, result: { roll: 97, target: row.target!, sl: t.sl, success: t.success } }] };
     banc.setState({ pendingCascade: { ...pc, participants, cursor: idx } });
     get().jetValider('cascade');
-    expect((get().sequence?.payload as TavernPayload | undefined)?.volley?.gains.joueur).toEqual([0]);
+    expect((get().sequence?.chargeUtile as TavernPayload | undefined)?.volley?.gains.joueur).toEqual([0]);
   });
 });

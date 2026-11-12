@@ -88,8 +88,8 @@ const BASELINE = { totalCalls: 758, totalAdHocResets: 301 }; // +1 (#1117 L3 : `
 // resets ad hoc RESSERRÉS 299 → 297 au passage de #1279 Sf : la mesure réelle est 297 depuis le
 // resserrage de #1135, que le commentaire ci-dessus annonçait déjà — le cliquet gardait 2 de mou
 // qu'il condamnait lui-même. Un cliquet qui ne colle pas à sa mesure ne borne plus rien.
-// +1/+1 (#1279 lot final : `setSequenceCum` — la PORTE du socle de séquence sur son ACCUMULATEUR PAR
-// CAMP, jumelle de `setSequencePayload` (déjà comptée). Elle existe parce qu'une étape APPENDÉE à la
+// +1/+1 (#1279 lot final : `setSequenceCumuls` — la PORTE du socle de séquence sur son ACCUMULATEUR PAR
+// CAMP, jumelle de `setSequenceChargeUtile` (déjà comptée). Elle existe parce qu'une étape APPENDÉE à la
 // fenêtre — la sanction d'un lanceur, `SequenceParams.throwerPenalty` — compte AVANT que la manche ne
 // se close, quand son applier n'a aucun verdict à rendre. Sans elle, les trois familles migrées
 // (points du Torchon, buts d'équipe, marques du Cerevis) garderaient un compteur JUMEAU dans leur

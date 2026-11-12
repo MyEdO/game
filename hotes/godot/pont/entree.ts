@@ -12,7 +12,7 @@ import { resoudreLaPile } from './pileEnFond';
  * @contrat Transport
  * - La page charge le bundle `wfrp-pont.js` (`node hotes/godot/construire.mjs --pont-seul --sortie <dossier>`), qui
  *   expose `globalThis.wfrpPont`. Le bundle lit les API de navigateur que déclare `API_DU_NAVIGATEUR`
- *   (`construire.mjs`) ; la construction l'exécute dans un contexte qui ne porte qu'elles, et la CI rougit si
+ *   (`processus.mjs`) ; la construction l'exécute dans un contexte qui ne porte qu'elles, et la CI rougit si
  *   `demarrer` ou `vue` n'y répondent pas `ok: true`.
  */
 (globalThis as typeof globalThis & { wfrpPont: Pont & { choisirUneImage: typeof choisirUneImage; resoudreLaPile: typeof resoudreLaPile } }).wfrpPont = { ...creerPont(), choisirUneImage, resoudreLaPile };

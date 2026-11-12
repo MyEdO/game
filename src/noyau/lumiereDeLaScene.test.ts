@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { lumiereDeLaScene } from './lumiereDeLaScene';
 import { emptyScene, type Scene } from './monde/scene';
 import { MISSING_TONE } from './monde/volume/missing';
+import type { Combatant } from '../engine/types';
 
 const MIDI = 12 * 60;
 const MINUIT = 0;
@@ -89,5 +90,11 @@ describe('lumiereDeLaScene', () => {
     const cles = (partyPos: { x: number; y: number }) => lumiereDeLaScene({ ...etat(s, MIDI), partyPos }, 'tactique').sources.map((source) => source.cle);
     expect(cles({ x: 0, y: 0 })).toEqual(['posee/lampe', 'posee/brasero']);
     expect(cles({ x: 3, y: 3 })).toEqual(['posee/lampe', 'posee/brasero']);
+  });
+
+  it('une source portée porte la clé de son porteur, `portee/<id>` (#3811)', () => {
+    const porteur = { id: 'mage', kind: 'heros', pos: { x: 1, y: 1 }, wounds: { current: 10, max: 10 }, conditions: [], traits: [], talents: [], activeEffects: [{ light: { radiusM: 6 } }] } as unknown as Combatant;
+    const { sources } = lumiereDeLaScene({ ...etat(emptyScene('scene-test', 4, 4), MIDI), party: [porteur] }, 'tactique');
+    expect(sources.map((source) => source.cle)).toEqual(['portee/mage']);
   });
 });

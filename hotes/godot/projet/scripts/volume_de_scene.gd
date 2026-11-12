@@ -14,6 +14,9 @@
 class_name VolumeDeScene
 extends Node3D
 
+## La couche de rendu de l'ombre des luminaires (`_morceau`), la deuxième (`VisualInstance3D.layers`), que la lampe d'un
+## foyer exclut de son ombre (`Foyer`).
+const COUCHE_DES_LUMINAIRES := 2
 ## Netteté de la projection d'une texture de matière sur les trois axes (`texturer`, `_matiere`).
 const NETTETE_DU_MOTIF := 4.0
 ## Le kit des arêtes (`CONTRAT.md`, méthode `aretes`) : une pièce par nœud racine, `<famille>--<pièce>`.
@@ -333,10 +336,16 @@ static func _manquants_sous(parent: Node, voulus: Array) -> Array:
 	return voulus.filter(func(voulu: Dictionary) -> bool: return posees.get(voulu.cle) != voulu.empreinte).map(func(voulu: Dictionary) -> String: return voulu.cle)
 
 
-## Le nœud du morceau `morceau` (`MorceauDuMonde`, `_vu_et_ombre`) maillé (`_mailler`) ; les navires dont il porte la mer
-## (`flottaison`), et sa géométrie s'il en porte, que `border_la_mer` remaille.
+## Le nœud du morceau `morceau` (`MorceauDuMonde`, `_vu_et_ombre`) maillé (`_mailler`) ; s'il porte un luminaire
+## (surfaces `luminaire`, #3811), `Ombre` sans ses surfaces et `OmbreDesLuminaires`, en ombre seule sur
+## `COUCHE_DES_LUMINAIRES`, avec elles seules ; les navires dont il porte la mer (`flottaison`), et sa géométrie s'il en
+## porte, que `border_la_mer` remaille.
 func _morceau(morceau: Dictionary) -> Node3D:
 	var noeud := _vu_et_ombre()
+	if morceau.surfaces.any(_est_d_un_luminaire):
+		var des_luminaires := _en_ombre_seule("OmbreDesLuminaires")
+		des_luminaires.layers = COUCHE_DES_LUMINAIRES
+		noeud.add_child(des_luminaires)
 	var flottaisons: Array = morceau.surfaces.filter(func(surface: Dictionary) -> bool: return surface.has("flottaison")).map(func(surface: Dictionary) -> String: return surface.flottaison)
 	noeud.set_meta("flottaisons", flottaisons)
 	if not flottaisons.is_empty():
@@ -353,20 +362,37 @@ func _vu_et_ombre() -> Node3D:
 	vu.name = "Vu"
 	vu.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	noeud.add_child(vu)
-	var ombre := MeshInstance3D.new()
-	ombre.name = "Ombre"
-	ombre.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
-	ombre.material_override = couleur_des_sommets
-	noeud.add_child(ombre)
+	noeud.add_child(_en_ombre_seule("Ombre"))
 	return noeud
 
 
+## Une instance en ombre seule (`SHADOWS_ONLY`, #3758) nommée `nom`, dans la matière standard `couleur_des_sommets`.
+func _en_ombre_seule(nom: String) -> MeshInstance3D:
+	var ombre := MeshInstance3D.new()
+	ombre.name = nom
+	ombre.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
+	ombre.material_override = couleur_des_sommets
+	return ombre
+
+
+## Si `surface` est d'un décor qui éclaire (`luminaire`, `CONTRAT.md`, section « Monde »).
+static func _est_d_un_luminaire(surface: Dictionary) -> bool:
+	return surface.has("luminaire")
+
+
 ## Le maillage de la géométrie `morceau` (`_maillage_de`, chaque case sur la `rangee` du morceau, dans les matières que
-## le masque lie) posé sur les deux instances du nœud `noeud`.
+## le masque lie) posé sur les instances du nœud `noeud` : entier sur `Vu` ; sur `Ombre` aussi, ou, si le morceau porte
+## un luminaire, sans ses surfaces, qui vont à `OmbreDesLuminaires`.
 func _mailler(noeud: Node3D, morceau: Dictionary) -> void:
-	var maillage := _maillage_de(morceau, func(c: Vector3) -> Vector2i: return MiseEnPage.texel_du_masque(Vector2i(int(c.x), int(c.y)), int(morceau.rangee)), true)
+	var texel_de := func(c: Vector3) -> Vector2i: return MiseEnPage.texel_du_masque(Vector2i(int(c.x), int(c.y)), int(morceau.rangee))
+	var maillage := _maillage_de(morceau, texel_de, true)
 	(noeud.get_node("Vu") as MeshInstance3D).mesh = maillage
-	(noeud.get_node("Ombre") as MeshInstance3D).mesh = maillage
+	var des_luminaires: MeshInstance3D = noeud.get_node_or_null("OmbreDesLuminaires")
+	if des_luminaires == null:
+		(noeud.get_node("Ombre") as MeshInstance3D).mesh = maillage
+		return
+	(noeud.get_node("Ombre") as MeshInstance3D).mesh = _maillage_de(morceau, texel_de, true, func(surface: Dictionary) -> bool: return not _est_d_un_luminaire(surface))
+	des_luminaires.mesh = _maillage_de(morceau, texel_de, true, _est_d_un_luminaire)
 
 
 ## Le nœud d'une nappe de toit ou d'une couronne (`NappeDuMonde`, `_vu_et_ombre`) : son maillage (`_maillage_de`, chaque
@@ -449,9 +475,9 @@ func _cacher_sous(parent: Node3D, cles: Array) -> void:
 ## dans `cases`), chaque tableau retourné en entier (`_retournes`) ;
 ## sans les surfaces d'un navire (`navire`), que le rayon du pointeur touche et que le modèle du navire montre ; la mer
 ## d'un navire (`flottaison`) hors du contour de sa coque (`border_la_mer`, `_hors_du_contour`), entière tant qu'il
-## n'est pas connu. Godot tient pour face avant le sens horaire, le volume le sens trigonométrique : chaque tableau
-## retourné en entier retourne chaque triangle.
-func _maillage_de(geometrie: Dictionary, texel_de: Callable, masquee: bool) -> ArrayMesh:
+## n'est pas connu ; de ses seules surfaces que `retenue` retient, s'il est donné. Godot tient pour face avant le sens
+## horaire, le volume le sens trigonométrique : chaque tableau retourné en entier retourne chaque triangle.
+func _maillage_de(geometrie: Dictionary, texel_de: Callable, masquee: bool, retenue := Callable()) -> ArrayMesh:
 	var sommets := PackedFloat32Array(geometrie.positions).to_byte_array().to_vector3_array()
 	var normales := PackedFloat32Array(geometrie.normales).to_byte_array().to_vector3_array()
 	var couleurs := PackedFloat32Array(geometrie.couleurs).to_byte_array().to_color_array()
@@ -462,7 +488,7 @@ func _maillage_de(geometrie: Dictionary, texel_de: Callable, masquee: bool) -> A
 	var rangs := [Mesh.ARRAY_VERTEX, Mesh.ARRAY_NORMAL, Mesh.ARRAY_COLOR, Mesh.ARRAY_TEX_UV2]
 	var maillage := ArrayMesh.new()
 	for surface: Dictionary in geometrie.surfaces:
-		if surface.has("navire"):
+		if surface.has("navire") or (retenue.is_valid() and not retenue.call(surface)):
 			continue
 		var tableaux := []
 		tableaux.resize(Mesh.ARRAY_MAX)
