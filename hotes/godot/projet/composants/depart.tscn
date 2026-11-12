@@ -1,0 +1,25 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/liaison.gd" id="1_liaison"]
+[ext_resource type="Script" path="res://scripts/zone.gd" id="2_zone"]
+
+[node name="Depart" type="HBoxContainer"]
+size_flags_horizontal = 3
+theme_type_variation = &"RangeeSerree"
+
+[node name="Distance" type="Label" parent="."]
+size_flags_horizontal = 3
+theme_type_variation = &"Mesure"
+
+[node name="libelle" type="Node" parent="Distance"]
+script = ExtResource("1_liaison")
+champ = "libelle"
+
+[node name="Valeurs" type="HBoxContainer" parent="."]
+theme_type_variation = &"RangeeSerree"
+alignment = 2
+
+[node name="Zone" type="Node" parent="Valeurs"]
+script = ExtResource("2_zone")
+source = "valeurs"
+

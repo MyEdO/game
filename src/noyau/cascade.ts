@@ -41,6 +41,9 @@ import { journaliser } from './combatLog';
 import { tablesPosees } from './tablesPosees';
 import { jouerLesClotures } from './combatEffects';
 import { fireOwnTestFailed } from './triggeredEffects';
+import { tenuParUnHumain } from './sieges';
+import { jouerLaPaireDuJet } from './combatAuto';
+import { SEQUENCE_HARD_MAX_ROUNDS } from './sequenceContract';
 
 /** Le trigger `onOwnTestFailed` d'un Test raté (MSRC 16 l.152), sur le RNG SEEDABLE (`battleRng`). */
 const emettreOwnTestFailed = (get: Get, actor: Combatant, sl: number): string[] => fireOwnTestFailed(get, actor, { sl, rng: battleRng() });
@@ -1872,13 +1875,15 @@ function piloteImmediat(get: Get, set: Set, steps: CascadeStep[], ctx: ContexteD
     title, purpose: ctx?.purpose ?? 'test', ...fusionnerLesBornes(bornesInitiales, collectees),
     participants: cur, seq, cursor, piloteImmediat: repriseDe(ctx),
   });
+  // PARQUER, c'est OUVRIR le slot : la cascade qui le tient se suspend, comme à `startCascade` (#3892).
+  const parquer = (casc: PendingCascade): void => { suspendActiveCascade(get, set); set({ pendingCascade: casc }); };
   const slotALEntree = get().pendingCascade; // un slot DÉJÀ vivant n'est pas une interruption de CE pilote
   const combatALEntree = get().battle; // un combat DÉJÀ ouvert n'est pas une interruption de CE pilote
 
   for (let i = depuis; i < cur.length; i++) {
     const st = cur[i];
     if (ctx?.auxVraisChoix && attendUnVraiChoix(get, st)) {
-      set({ pendingCascade: curseurPose(get, parquee(i, ctx.title), i) });
+      parquer(curseurPose(get, parquee(i, ctx.title), i));
       return undefined;
     }
     // Jet POSÉ PAR CE PILOTE : aucune fenêtre ne s'ouvrira dessus — le goulot (`commitStep`) en dérive
@@ -1913,10 +1918,12 @@ function piloteImmediat(get: Get, set: Set, steps: CascadeStep[], ctx: ContexteD
     // Prédicat UNIQUE de `resolveRemainingCascade` : un choix sans défaut AUTEURISÉ, une fenêtre hôte
     // vivante (#1765). On ne tranche PAS en silence — la cascade s'arrête PENDANTE, surfacée
     // (`pendingCascade`) pour que l'appelant/la modale la reprenne (devtools `advanceRiverDay`/
-    // `skipToArrival`, cadence commandée, tout futur appelant immédiat). Affichage / quantité : rien
+    // `skipToArrival`, cadence commandée, tout futur appelant immédiat) ; une étape hôte qu'aucun humain
+    // ne tient s'y joue ensuite d'office (`jouerLHoteDOffice`, #3892). Affichage / quantité : rien
     // à résoudre avant la conséquence (`quantityStep` naît avec son nombre d'ouverture).
     if (!stepReady(cur[i], get())) {
-      set({ pendingCascade: parquee(i, ctx?.title ?? choix.label ?? 'Choix') });
+      parquer(parquee(i, ctx?.title ?? choix.label ?? 'Choix'));
+      jouerLHoteDOffice(get, cur[i]);
       return undefined;
     }
     const r = commitStep(get, set, cur, i, { seq, purpose: ctx?.purpose, unwitnessed, rowSurface: ctx?.rowSurface });
@@ -1936,6 +1943,28 @@ function piloteImmediat(get: Get, set: Set, steps: CascadeStep[], ctx: ContexteD
     if (get().partyWiped) return undefined; // l'applier a constaté l'anéantissement : plus personne à qui appliquer la suite
   }
   return { steps: cur, seq, collectees, clos: !clotureHorsCombat(get, set, slotALEntree) };
+}
+
+/**
+ * L'ÉTAPE HÔTE QU'AUCUN HUMAIN NE TIENT, parquée dans le slot (#3892) : elle se joue par les MÊMES verbes qu'un
+ * humain sur sa fenêtre (`combatAuto.jouerLaPaireDuJet`), sur ce slot — `sieges.tenuParUnHumain` : « leur étape se
+ * résout d'office et se montre au bilan ». Une paire par manche (Test étendu), tant qu'elle fait bouger l'état (le
+ * slot de la cascade ou celui du jet) et que le curseur reste sur cette étape non validée ; rien ne bouge : l'étape
+ * reste parquée. Borne : `SEQUENCE_HARD_MAX_ROUNDS` manches.
+ */
+function jouerLHoteDOffice(get: Get, st: CascadeStep): void {
+  const jet = st.jet;
+  if (!jet || st.committed || porteursDeLEtape(st).some((id) => tenuParUnHumain(get(), id))) return;
+  const slot = PENDING_BY_JET[jet];
+  for (let manche = 0; manche < SEQUENCE_HARD_MAX_ROUNDS; manche++) {
+    const avant = get();
+    jouerLaPaireDuJet(get, jet);
+    const apres = get();
+    if (apres.pendingCascade === avant.pendingCascade && (slot == null || apres[slot] === avant[slot])) return;
+    const p = apres.pendingCascade;
+    const courante = p?.participants[p.cursor];
+    if (courante?.id !== st.id || courante.committed) return;
+  }
 }
 
 /**

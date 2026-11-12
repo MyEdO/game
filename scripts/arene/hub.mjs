@@ -141,7 +141,7 @@ const dlgMedecin = {
       id: 'accueil',
       desc: 'Encore vivant ? Bien. J’ai des potions, du faxtoryll pour les saignements, des membres de rechange… et la scie, si vraiment il faut OPÉRER.',
       choices: [
-        { id: 'voir-remedes-protheses', label: 'Voir les remèdes et prothèses.', icon: 'medical/aid', flow: flowOf([{ type: 'openMerchant', entityId: 'medecin' }]) },
+        { id: 'voir-remedes-protheses', label: 'Voir les remèdes et prothèses.', icon: 'medical/aid', flow: flowOf([{ type: 'openMerchant', entityId: { id: 'medecin' } }]) },
         {
           id: 'passer-sur-table',
           label: 'Passer sur la table (actes payants).',
@@ -155,7 +155,7 @@ const dlgMedecin = {
               { act: 'traumatisme', cost: { silver: 5 } },
               { act: 'chirurgie', cost: { silver: 6 } },
             ],
-            entityId: 'medecin',
+            entityId: { id: 'medecin' },
           }]),
         },
         { id: 'plus-tard', label: 'Plus tard.', flow: flowOf([{ type: 'endDialogue' }]) },
@@ -172,7 +172,7 @@ const dlgForgeron = {
       id: 'accueil',
       desc: 'Le sable bouffe le fil des lames plus vite que les monstres. Montre-moi ton acier — je vends, je rachète, je RÉPARE.',
       choices: [
-        { id: 'armes-armures-reparations', label: 'Armes, armures et réparations.', icon: 'merchant/cart', flow: flowOf([{ type: 'openMerchant', entityId: 'forgeron' }]) },
+        { id: 'armes-armures-reparations', label: 'Armes, armures et réparations.', icon: 'merchant/cart', flow: flowOf([{ type: 'openMerchant', entityId: { id: 'forgeron' } }]) },
         { id: 'plus-tard', label: 'Plus tard.', flow: flowOf([{ type: 'endDialogue' }]) },
       ],
     },
@@ -187,7 +187,7 @@ const dlgEchoppier = {
       id: 'accueil',
       desc: 'Onguents, herbes, cordages, torches — tout ce qui manque quand la nuit tombe sur la route. Entrez, entrez : ma boutique a tout ce que le sable n’a pas encore mangé.',
       choices: [
-        { id: 'voir-etal-herbes', label: 'Voir l’étal (herbes, potions, fournitures).', icon: 'merchant/cart', flow: flowOf([{ type: 'openMerchant', entityId: 'echoppiere' }]) },
+        { id: 'voir-etal-herbes', label: 'Voir l’étal (herbes, potions, fournitures).', icon: 'merchant/cart', flow: flowOf([{ type: 'openMerchant', entityId: { id: 'echoppiere' } }]) },
         { id: 'plus-tard', label: 'Plus tard.', flow: flowOf([{ type: 'endDialogue' }]) },
       ],
     },
@@ -202,7 +202,7 @@ const dlgTaverne = {
       id: 'accueil',
       desc: 'Bienvenue au Trophée ! Table, chambre, et de quoi remplir les sacoches — la route ne nourrit personne, prenez des RATIONS avant de voyager.',
       choices: [
-        { id: 'voir-garde-manger', label: 'Voir le garde-manger (rations, vivres, pintes).', icon: 'rest/stew', flow: flowOf([{ type: 'openMerchant', entityId: 'taverniere' }]) },
+        { id: 'voir-garde-manger', label: 'Voir le garde-manger (rations, vivres, pintes).', icon: 'rest/stew', flow: flowOf([{ type: 'openMerchant', entityId: { id: 'taverniere' } }]) },
         {
           id: 'repas-chaud',
           // Repas de MIDI (sans dormir) : prix de groupe d'auteur — la nuit passe par la modale de Repos.
@@ -262,7 +262,7 @@ const dlgFrere = {
           id: 'recevoir-soins',
           label: 'Recevoir des soins (actes payants).',
           icon: 'medical/aid',
-          flow: flowOf([{ type: 'medicalAid', acts: [{ act: 'blessures', cost: { silver: 5 } }, { act: 'hemorragie', cost: { silver: 5 } }], entityId: 'frere' }]),
+          flow: flowOf([{ type: 'medicalAid', acts: [{ act: 'blessures', cost: { silver: 5 } }, { act: 'hemorragie', cost: { silver: 5 } }], entityId: { id: 'frere' } }]),
         },
         {
           id: 'recevoir-benediction',

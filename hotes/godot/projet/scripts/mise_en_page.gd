@@ -85,8 +85,8 @@ const ECART_DES_MARQUES := 0.3
 const HAUTEUR_DU_VISUEL_DE_MARQUE := 0.9
 ## La marge, en pixels, entre le bord d'un plan et ses points.
 const MARGE_DU_PLAN := 28.0
-## Le rayon, en pixels, d'un point du plan.
-const RAYON_DU_POINT := 7.0
+## Les pixels de la texture d'un dessin par pixel d'écran : l'écran étire l'interface (`window/stretch`).
+const FINESSE_DE_DESSIN := 2.0
 ## L'écart, en pixels, entre un point du plan et ce qui se pose sous lui.
 const ECART_SOUS_LE_POINT := 2.0
 ## Ce que la coupe d'un navire ôte (m) sous le plus bas des sols qu'un regard lui retire (`hauteur_de_coupe`) : le
@@ -412,6 +412,12 @@ static func echelle_d_image(largeur_voulue: float, largeur: int) -> float:
 	return 1.0 if largeur == 0 else largeur_voulue / largeur
 
 
+## L'échelle d'un dessin au cadre de `largeur_du_cadre` sur `hauteur_du_cadre` unités qui couvre `largeur` sur `hauteur`
+## pixels d'écran, sa texture `FINESSE_DE_DESSIN` fois plus fine que l'écran.
+static func echelle_de_dessin(largeur: float, hauteur: float, largeur_du_cadre: float, hauteur_du_cadre: float) -> float:
+	return FINESSE_DE_DESSIN * maxf(largeur / largeur_du_cadre, hauteur / hauteur_du_cadre)
+
+
 ## Le pas d'image d'un clip de `duree` secondes, sa piste suivante de `cles` clés réparties sur le clip retenue si son pas
 ## est plus fin que `pas` (0 : aucune piste retenue encore).
 static func pas_d_image(pas: float, duree: float, cles: int) -> float:
@@ -722,12 +728,12 @@ static func point_du_plan(taille: Vector2, x: float, y: float) -> Vector2:
 	return Vector2(MARGE_DU_PLAN, MARGE_DU_PLAN) + Vector2(x, y) * (taille - Vector2(MARGE_DU_PLAN, MARGE_DU_PLAN) * 2.0)
 
 
-## Le coin d'un contrôle de `largeur` sur `hauteur` centré sous le point du plan `centre`, gardé dans le plan de
-## `largeur_du_plan` sur `hauteur_du_plan`.
-static func sous_le_point(centre: Vector2, largeur: float, hauteur: float, largeur_du_plan: float, hauteur_du_plan: float) -> Vector2:
+## Le coin d'un contrôle de `largeur` sur `hauteur` centré sous le point du plan `centre`, de rayon `rayon`, gardé dans
+## le plan de `largeur_du_plan` sur `hauteur_du_plan`.
+static func sous_le_point(centre: Vector2, rayon: float, largeur: float, hauteur: float, largeur_du_plan: float, hauteur_du_plan: float) -> Vector2:
 	return Vector2(
 		clampf(centre.x - largeur / 2.0, 0.0, maxf(0.0, largeur_du_plan - largeur)),
-		clampf(centre.y + RAYON_DU_POINT + ECART_SOUS_LE_POINT, 0.0, maxf(0.0, hauteur_du_plan - hauteur)))
+		clampf(centre.y + rayon + ECART_SOUS_LE_POINT, 0.0, maxf(0.0, hauteur_du_plan - hauteur)))
 
 
 ## Le lieu, au sol, de la cible de la vitrine des effets de l'atelier, à `distance_m` mètres de l'auteur posé à l'origine

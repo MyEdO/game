@@ -1,5 +1,5 @@
 ## L'éditeur de carte (#3508), hôte de la méthode `editer` du pont (`hotes/godot/pont/CONTRAT.md`, section « Éditeur ») :
-## il ouvre la campagne du jeu de l'adresse de la page (`?campagne=<id>`, sinon `CAMPAGNE`), telle que le dépôt la sert
+## il ouvre la campagne du jeu du paramètre `campagne` (`PontDuNoyau.parametre`, sinon `CAMPAGNE`), telle que le dépôt la sert
 ## (`GET depot/<id>`) s'il la sert, sinon telle que le jeu l'embarque, et applique chaque réponse. Le texte qu'une
 ## réponse donne à enregistrer s'écrit au dépôt (`PUT depot/<id>`), et l'issue de l'écriture revient au pont.
 ## Avant d'ouvrir, il indexe les modèles du serveur (`MontageDeComposition.indexer_les_modeles`), que le pont lit pour
@@ -18,13 +18,13 @@
 ## celui de l'élément pressé (`Zone.geste`, `{ edition }`), ou le pointeur sur
 ## le monde, appuyé, glissé d'une case à l'autre et relâché, chacun au point de la carte que le monde touche
 ## (`Monde.touche_sous`). Un refus se dit. Chaque réponse montrée, et chaque défilement du panneau ou onglet choisi, qui
-## change ses boutons à l'écran, il publie à la page ce que l'écran porte (`PontDuNoyau.publier_l_ecran`), que la
+## change ses boutons à l'écran, il publie ce que l'écran porte (`PontDuNoyau.publier_l_ecran`), que la
 ## recette lit.
 extends Node
 
 ## @contrat Éditeur
 ## Le routeur `projet/scripts/editeur.gd` (scène `projet/scenes/Editeur.tscn`, ouverte par le bouton « Éditeur » du
-## menu) ouvre la campagne de l'adresse de la page (`?campagne=<id>`, la Diligence sans elle), avec le `projet` que sert
+## menu) ouvre la campagne du paramètre `campagne` (la Diligence sans lui), avec le `projet` que sert
 ## `GET depot/<id>` s'il répond (`PontDuNoyau.requeter`), une fois les modèles du serveur indexés
 ## (`MontageDeComposition.indexer_les_modeles`), pose le monde rendu (`Monde.poser`, son manifeste et les morceaux dont
 ## l'empreinte a bougé, `morceaux` de source `edition`), masqué au-dessus de la couche éditée (`retrait`), ses arêtes
@@ -37,9 +37,10 @@ extends Node
 ## profondeur s'il passe dessus, sinon juste dessous), et les zones dans son panneau d'outils, à gauche. Il garde les
 ## calques de la campagne dans `user://calques/<id>.json`, qu'il passe à `{ ouvrir }` et réécrit à chaque `memoire`,
 ## dont il efface les planches à oublier et déplace les planches à déplacer ; chaque planche dans `user://<image>.png`.
-## Une réponse qui porte `planche` ouvre le choix d'un fichier par la page (`PontDuNoyau.choisir_une_image`, par
-## `wfrpPont.choisirUneImage`, `hotes/godot/pont/fichier.ts` : un `<input type=file>` marqué `data-planche`, posé au
-## document le temps du choix) ; l'image lue, PNG, JPEG ou WebP, s'écrit au chemin de la planche, et sa taille revient
+## Une réponse qui porte `planche` ouvre le choix d'un fichier (`PontDuNoyau.choisir_une_image`) : dans la page, par
+## `wfrpPont.choisirUneImage` (`hotes/godot/pont/fichier.ts` : un `<input type=file>` marqué `data-planche`, posé au
+## document le temps du choix) ; hors d'une page, par le dialogue de fichier natif (section « Transport ») ; l'image
+## lue, PNG, JPEG ou WebP, s'écrit au chemin de la planche, et sa taille revient
 ## au pont, ou `null` si l'auteur renonce ou si elle ne se lit pas. Il envoie le geste de l'élément pressé, et le
 ## pointeur sur le monde : l'appui au point touché (`Monde.touche_sous`), un glissé à chaque case nouvelle sous le
 ## bouton tenu, le relâché au point touché, le dernier si le pointeur a quitté le monde. Une réponse qui porte `depot`

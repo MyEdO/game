@@ -10,7 +10,7 @@ import { t } from '../i18n';
 import { bus, EVT } from './bus';
 import { cloturer, runFlow, flowRestant } from './combatEffects';
 import { removeEntity } from './combatPlacement';
-import { aPorteeDe, exploreMovePlan, exploreSeatPlan, optionsDeCheminDuGroupe, type ExploreMovePlan } from './monde/exploreNav';
+import { aPorteeDe, cheminsDuGroupe, exploreMovePlan, exploreSeatPlan, type ExploreMovePlan } from './monde/exploreNav';
 import { ficheDEntite, nomDEntite } from './monde/sceneNpc';
 import { entityBlockedAt } from './monde/sceneRules';
 import { presetDuNarratif } from './monde/resolveursDuNarratif';
@@ -28,7 +28,7 @@ import type { ActionGate } from './actionRegistry';
 import type { Jeu, PendingInteract } from './etat';
 import type { RefusGeste } from './gesteDArete';
 import type { RoomFocus } from './monde/rooms';
-import { cheminsDepuis, type Pt } from './monde/path';
+import type { Pt } from './monde/path';
 
 /**
  * EXÉCUTEURS des capacités d'instance (#1687) — table TOTALE keyée par le MÊME `CapaciteId` que
@@ -115,7 +115,7 @@ export type IntentionDExploration =
 export function intentionDuClicDExploration(s: Jeu, tuile: Pt, entiteId: string | null): IntentionDExploration | null {
   const sc = s.scene;
   if (!sc || s.mode !== 'exploration' || s.dialogue) return null;
-  const chemins = cheminsDepuis(sc, s.partyPos, optionsDeCheminDuGroupe(s.party));
+  const chemins = cheminsDuGroupe(sc, s.partyPos, s.party);
   const ent = entiteId === null ? undefined : sc.entities.find((e) => e.id === entiteId);
   // Case d'arrivée partagée avec l'aperçu de survol (`exploreMovePlan`) : escalier, abord d'une place, case
   // adjacente d'une entité, ou la case même.

@@ -32,7 +32,7 @@ import { optionalEntrySchema } from '../../data/schemas/defs/creatures';
 const NARRATIF_VIDE = emptyNarratif();
 
 /** Le cadre d'un porteur d'une scène vide, au narratif vide. */
-const CADRE_VIDE: CadreDuPorteur = { scene: emptyScene('s', 4, 4), narratif: NARRATIF_VIDE };
+const CADRE_VIDE: CadreDuPorteur = { scene: emptyScene('s', 4, 4), projet: { scenes: [], narratif: NARRATIF_VIDE } };
 
 type Zone = NonNullable<Scene['effectZones']>[number];
 type Declencheur = Scene['triggers'][number];

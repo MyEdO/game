@@ -308,7 +308,7 @@ function figerLEcran(listage: Listage | null): { vues: VueFigee[]; planches: Pla
   s = voyage.jouer('jouer', focus(s));
   figer(voyage, 'lieu', 'écran du lieu, ses services et ses trajets', s);
   const forgeron = s.vue.zones['fenetre.corps'].find((e): e is Entite => e.id === 'service/forgeron')!;
-  s = voyage.jouer('jouer', (forgeron.elements[0] as Bouton).jeu);
+  s = voyage.jouer('jouer', forgeron.elements.find((e): e is Bouton => e.type === 'bouton')!.jeu);
   figer(voyage, 'echoppe', 'échoppe : l’étal et ses prix, le panier vide, les possessions à vendre', s);
   const article = s.vue.zones['fenetre.corps'].filter((e): e is Entite => e.id.startsWith('etal/')).flatMap((f) => f.elements as Bouton[]).find((b) => !b.refus)!;
   s = voyage.jouer('jouer', article.jeu);
@@ -347,7 +347,7 @@ function figerLEcran(listage: Listage | null): { vues: VueFigee[]; planches: Pla
     const p = unPont([]);
     let m = viderLesFenetres(p.jouer, p.jouer('demarrer', { scenario, graine: 7 }));
     m = p.jouer('jouer', m.vue.zones['exploration.gestes'].find((b) => b.libelle === 'Le lieu')!.jeu);
-    m = p.jouer('jouer', (m.vue.zones['fenetre.corps'].find((e): e is Entite => e.id.startsWith('service/'))!.elements[0] as Bouton).jeu);
+    m = p.jouer('jouer', m.vue.zones['fenetre.corps'].find((e): e is Entite => e.id.startsWith('service/'))!.elements.find((e): e is Bouton => e.type === 'bouton')!.jeu);
     for (let pas = 0; !m.vue.zones['fenetre.corps'].some((e) => e.id === 'bourse'); pas++) {
       if (pas > 12) throw new Error(`aucun marché après ${pas} gestes : ${JSON.stringify(m.vue.zones['fenetre.titre'])}`);
       m = p.jouer('jouer', presse(m));

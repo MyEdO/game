@@ -1455,6 +1455,38 @@ describe('l’éditeur de carte par le pont, le formulaire tiré du schéma (#36
     ] } });
   });
 
+  it('une référence d’un flux se choisit dans la liste de sa portée, exactement : nul marchand parmi les décors de SA scène, les scènes du projet pour une transition ; choisie, elle s’écrit (#3606 M2d)', { timeout: 120_000 }, () => {
+    const { appel } = table();
+    let e = editionDe(appel('editer', { ouvrir: servi.id, projet: JSON.stringify(servi) }));
+    const jouer = (edition: unknown) => (e = editionDe(appel('editer', { edition })));
+    const presser = (id: string) => (e = editionDe(appel('editer', boutonDe(e, id).jeu)));
+    const choisir = (id: string, libelle: string) => (e = editionDe(appel('editer', valeursDeLInspecteur(e, id).find((b) => b.libelle === libelle)!.jeu)));
+    const valeurDe = (b: Bouton) => (b.jeu as { args: unknown[] }).args[2];
+
+    presser('scenes/ajouter');
+    presser('outil/prop');
+    presser(valeursDe(e, 'decors').find((b) => b.id === 'prop/brasero')!.id);
+    jouer({ geste: 'appui', point: point(5, 5) });
+    jouer({ geste: 'relache', point: point(5, 5) });
+    presser('outil/zone'); presser('zone/trigger');
+    jouer({ geste: 'appui', point: point(0, 0) });
+    jouer({ geste: 'relache', point: point(1, 1) });
+    presser('valeur/flow/steps/ajouter');
+    choisir('valeur/flow/steps/0/kind', 'Effet');
+    choisir('valeur/flow/steps/0/effect/type', 'Ouvrir une boutique');
+    expect(valeursDeLInspecteur(e, 'valeur/flow/steps/0/effect/entityId/id'), 'le brasero posé n’est pas un marchand de la scène').toEqual([]);
+    choisir('valeur/flow/steps/0/effect/type', 'Transition de scène');
+    const offertes = valeursDeLInspecteur(e, 'valeur/flow/steps/0/effect/scene/id');
+    e = editionDe(appel('editer', offertes[0].jeu));
+    expect(valeursDeLInspecteur(e, 'valeur/flow/steps/0/effect/scene/id')[0].presse, 'la scène choisie est écrite').toBe(true);
+
+    const enregistree = editionDe(appel('editer', boutonDe(e, 'enregistrer').jeu));
+    const projet = JSON.parse(enregistree.depot!.texte) as { scenes: Scene[] };
+    expect(offertes.map(valeurDe), 'les scènes du projet, exactement').toEqual(projet.scenes.map((sc) => sc.id));
+    const scene = projet.scenes.find((sc) => sc.triggers.some((t) => JSON.stringify(t.flow).includes('"transition"')))!;
+    expect(scene.triggers[0].flow).toEqual({ kind: 'seq', steps: [{ kind: 'do', effect: { type: 'transition', scene: { id: valeurDe(offertes[0]) } } }] });
+  });
+
   it('la musique, le message d’introduction sur plusieurs lignes, les ancres de bataille, les groupes du lieu et l’apparence d’une ouverture s’écrivent par leurs écrivains dédiés ; enregistrés, rouverts du dépôt, ils sont relus et la validation ne dit aucune erreur', { timeout: 120_000 }, () => {
     const { appel } = table();
     let e = editionDe(appel('editer', { ouvrir: servi.id, projet: JSON.stringify(servi) }));

@@ -1273,8 +1273,8 @@ static func cuire_les_formes(mesh: MeshInstance3D, morphes: Dictionary) -> void:
 
 ## @contrat Pile des couches
 ## Dans une tenue fondue, la couche du dessous cède à celle qui la couvre (#3842) : à chaque refonte,
-## `MontageDeComposition.refondre` demande à la page la pile de ce qu'il fond
-## (`wfrpPont.resoudreLaPile(demande, rendre)`, `PontDuNoyau.resoudre_la_pile`), que la page résout hors du fil de
+## `MontageDeComposition.refondre` demande au pont la pile de ce qu'il fond
+## (`PontDuNoyau.resoudre_la_pile`, `wfrpPont.resoudreLaPile(demande, rendre)`), que le lieu du noyau résout sans tenir
 ## l'image par la fonction de l'évaluateur (`resoudreLaPile`, `asset/pile.ts`). Une pièce de la demande est le corps de
 ## la base, ou un élément monté qui déclare une couche (`couches` de `modeles`), par ses surfaces skinnées visibles et
 ## fondues, dans l'ordre où Godot les fond ; une tenue d'une seule pièce ne demande rien. La fusion se dessine d'abord
@@ -1349,7 +1349,7 @@ func refondre() -> void:
 
 
 ## Par maillage que la pile des couches résout (`[pièce, surface]`), ses tableaux résolus, parmi les pièces `fondues` ;
-## aucun tant que la pile de ce qui est fondu n'est pas reçue (`recevoir_la_pile`), demandée à la page si elle ne
+## aucun tant que la pile de ce qui est fondu n'est pas reçue (`recevoir_la_pile`), demandée au pont si elle ne
 ## l'est pas déjà. Les pièces de la demande : les meshes de la base, puis ceux de chaque élément monté qui déclare une
 ## couche (`couches` de `modeles`), chacun par ses surfaces skinnées fondues.
 func _empiler(fondues: Dictionary) -> Dictionary:
@@ -1414,7 +1414,7 @@ func _maillage(piece: MeshInstance3D, surface: int) -> Dictionary:
 	return maillage
 
 
-## La réponse `reponse` de la page à la demande de pile de signature `signature` (`PileResolue`, `CONTRAT.md`, « Pile des
+## La réponse `reponse` du pont à la demande de pile de signature `signature` (`PileResolue`, `CONTRAT.md`, « Pile des
 ## couches ») : gardée, fondue (`refondre`) et dite (`empilee`) si elle répond à ce qui est fondu, oubliée sinon.
 func recevoir_la_pile(reponse: Dictionary, signature: String) -> void:
 	if _pile_demandee == signature:
