@@ -9,6 +9,7 @@ import { entityBlockedAt } from '../sceneRules';
 import { versionDesDatasets } from '../../../data/versionDataset';
 import { terrainOverlayProp, terrainsAvecGlyphe } from '../terrain';
 import { garanti } from '../../../lib/garanti';
+import { tableTotale } from '../../../lib/tableTotale';
 import { facesDuDessus } from './pente';
 import { parseHex } from '../../../lib/couleurHex';
 import { MISSING_TONE } from './missing';
@@ -519,9 +520,9 @@ export function volumeDepuis(scene: Readonly<SceneDuVolume>, precedent: EtatDuVo
 
 /** La scène vue par son volume : les champs `CHAMPS_DU_VOLUME` de `scene`, ses drapeaux réduits aux tuiles effondrées
  *  (`PREFIXE_TUILE_EFFONDREE`). */
-const projectionDuVolume = (scene: Scene): SceneDuVolume => Object.fromEntries(CHAMPS_DU_VOLUME.map((c) => [c, c === 'flags'
+const projectionDuVolume = (scene: Scene): SceneDuVolume => tableTotale(CHAMPS_DU_VOLUME, (c) => c === 'flags'
   ? Object.fromEntries(Object.entries(scene.flags).filter(([cle]) => cle.startsWith(PREFIXE_TUILE_EFFONDREE)))
-  : scene[c]])) as SceneDuVolume;
+  : scene[c]) as SceneDuVolume;
 
 /** Le dernier volume calculé et son état de reprise, par la version des datasets (`versionDesDatasets` : le volume lit
  *  les catalogues) et les champs de la scène que lit le volume (`CHAMPS_DU_VOLUME`), les tuiles effondrées par la
