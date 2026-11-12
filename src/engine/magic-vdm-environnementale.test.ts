@@ -27,6 +27,7 @@ import {
 import { resolveCasting, resolveFocus, castLandProbability } from './magic';
 import type { Combatant } from './types';
 import { makeRNG } from './dice';
+import { deDeLaTableTiree, facesDuDe } from './tables';
 import { datasetObject, setObjectDataset } from '../data/overrides';
 import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
@@ -59,7 +60,7 @@ describe('registre — la donnée porte le chapitre 14 en entier', () => {
 
   it('les trois tables du chapitre couvrent leur dé sans trou ni chevauchement', () => {
     for (const t of arcaneTables) {
-      const faces = t.die === 'd10' ? 10 : 100;
+      const faces = facesDuDe(deDeLaTableTiree(t));
       let next = 1;
       for (const r of t.entries) {
         expect(r.min).toBe(next);

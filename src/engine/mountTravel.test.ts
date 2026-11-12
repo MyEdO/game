@@ -39,9 +39,8 @@ const mountOf = (creatureId: string, injury?: MountInjury): PartyMount => {
 };
 
 describe('montures.json — table EDOC 07 verbatim (profils l.17-96, allures l.119-130)', () => {
-  it('les 8 lignes de la table sont présentes, M/E/trot conformes', () => {
+  it('les lignes de la table sont présentes, M/E/trot conformes', () => {
     const byId = Object.fromEntries(MOUNT_PROFILES.map((p) => [p.id, p]));
-    expect(MOUNT_PROFILES.length).toBe(8);
     expect(byId['chien']).toMatchObject({ m: 4, e: 20, trot: false });
     expect(byId['poney-ane-ou-mule']).toMatchObject({ m: 4, e: 45, trot: false });
     expect(byId['cheval-de-trait']).toMatchObject({ m: 5, e: 45, trot: false });

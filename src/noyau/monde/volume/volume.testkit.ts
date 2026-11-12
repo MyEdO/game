@@ -17,7 +17,7 @@ export function triangles(g: Geometrie) {
       xs: [0, 3, 6].map((k) => g.positions[t * 9 + k]),
       normale: g.normales.slice(t * 9, t * 9 + 3),
       couleur: g.couleurs.slice(t * 12, t * 12 + 4),
-      case: g.cases[t],
+      case: g.cases.slice(t * 3, t * 3 + 3),
       matiere: surface.matiere,
       surface,
     };

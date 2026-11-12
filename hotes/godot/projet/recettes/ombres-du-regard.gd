@@ -6,8 +6,10 @@ extends SceneTree
 ## arêtes, une boîte et une pièce du kit, chacune sous sa couronne, et la couronne d'un mur abattu. Le toit levé, les
 ## arêtes dégagées sous tout cran : la caméra ne voit ni le toit, ni les arêtes, ni leurs couronnes, qui projettent
 ## toutes leur ombre ; chaque sommet vu de l'étage tombe sur une case que le masque lié à sa matière retire, ceux du rez
-## sur une case qu'il garde, et l'instance en ombre seule de l'étage, entière et jamais masquée, projette ; tout ce qui
-## projette (l'ombre de l'étage, le toit, les arêtes, leurs couronnes) est dans une matière standard, dont Godot dessine
+## sur une case qu'il garde, chaque sommet du rez, dont les deux triangles sont sur deux cases, porte en `UV2` le texel
+## au masque de la case de son triangle (`MiseEnPage.texel_du_masque`), et l'instance en ombre seule de l'étage, entière
+## et jamais masquée, projette ; tout ce qui projette (l'ombre de l'étage, le toit, les arêtes, leurs couronnes) est dans
+## une matière standard, dont Godot dessine
 ## l'ombre comme pour toute matière qui ne déplace pas ses sommets ; une arête cachée sort du compte visible des
 ## instances vues de son groupe, ses instances en ombre seule entières ; de chaque case du sol, le rayon vers le soleil
 ## touche le toit et l'étage ; la couronne du mur abattu ne projette rien. Le toit et les arêtes rendus, chacun se
@@ -35,8 +37,8 @@ func _recetter() -> void:
 	print("[ombres-du-regard] version=", Engine.get_version_info().string)
 	var monde: Monde = (load("res://scenes/Monde.tscn") as PackedScene).instantiate()
 	root.add_child(monde)
-	var rez := _nappe("sol/0/0/0", 0.0).merged({rangee = 0, cases = [[0, 0, 0], [0, 0, 0]]}, true)
-	var etage := _nappe("sol/1/0/0", 3.0).merged({rangee = ETAGE_AU_MASQUE, cases = [[0, 0, 1], [0, 0, 1]]}, true)
+	var rez := _nappe("sol/0/0/0", 0.0).merged({rangee = 0, cases = [0, 0, 0, 1, 0, 0]}, true)
+	var etage := _nappe("sol/1/0/0", 3.0).merged({rangee = ETAGE_AU_MASQUE, cases = [0, 0, 1, 0, 0, 1]}, true)
 	var toits := [_nappe("maison", 5.0)]
 	var nappes_des_murs := [_nappe("boite", 3.0), _nappe("kit", 3.0), _nappe("abattue", 3.0)]
 	monde.poser({monde = {metresParCase = METRES_PAR_CASE, hauteurs = [{z = 0, rangees = SOLS}, {z = 1, rangees = SOLS}], morceaux = [rez, etage]},
@@ -52,6 +54,7 @@ func _recetter() -> void:
 	var morceaux := monde.get_node("VolumeDeScene/Volume/Morceaux")
 	_masque(morceaux.get_node("sol_1_0_0"), true, "l'étage retiré")
 	_masque(morceaux.get_node("sol_0_0_0"), false, "le rez")
+	_texels_des_triangles(morceaux.get_node("sol_0_0_0"), rez)
 	var ombre_de_l_etage: MeshInstance3D = morceaux.get_node("sol_1_0_0/Ombre")
 	if not ombre_de_l_etage.is_visible_in_tree() or ombre_de_l_etage.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY or ombre_de_l_etage.mesh != (morceaux.get_node("sol_1_0_0/Vu") as MeshInstance3D).mesh or ombre_de_l_etage.material_override != monde.volume.couleur_des_sommets:
 		_fautes.append("l'étage retiré : son instance en ombre seule n'est pas entière, dans la matière d'ombre standard, du même maillage")
@@ -135,9 +138,25 @@ func _masque(morceau: Node, retire: bool, nom: String) -> void:
 				return
 
 
+## Chaque sommet vu de `morceau`, posé d'une seule surface depuis la géométrie `geometrie`, porte en `UV2` le texel au
+## masque de la case de son triangle ; les tableaux du maillage sont retournés en entier (`VolumeDeScene._retournes`).
+func _texels_des_triangles(morceau: Node, geometrie: Dictionary) -> void:
+	var texels: PackedVector2Array = (morceau.get_node("Vu") as MeshInstance3D).mesh.surface_get_arrays(0)[Mesh.ARRAY_TEX_UV2]
+	texels.reverse()
+	var cases: Array = geometrie.cases
+	if texels.size() != cases.size():
+		_fautes.append("%s : %d texels pour %d sommets" % [geometrie.cle, texels.size(), cases.size()])
+		return
+	for triangle in cases.size() / 3:
+		var attendu := Vector2(MiseEnPage.texel_du_masque(Vector2i(int(cases[triangle * 3]), int(cases[triangle * 3 + 1])), int(geometrie.rangee)))
+		for sommet in 3:
+			if texels[triangle * 3 + sommet] != attendu:
+				_fautes.append("%s : le sommet %d du triangle %d porte le texel %s, attendu %s, celui de sa case" % [geometrie.cle, sommet, triangle, texels[triangle * 3 + sommet], attendu])
+
+
 ## Une géométrie du monde de clé `cle`, le carré à la hauteur `hauteur` (`_carre`), d'une matière.
 func _nappe(cle: String, hauteur: float) -> Dictionary:
-	return {cle = cle, empreinte = cle, positions = _carre(hauteur), normales = NORMALES, couleurs = COULEURS, cases = [[0, 0, 1], [0, 0, 1]], surfaces = [{debut = 0, fin = 6, matiere = "terrain--terre"}]}
+	return {cle = cle, empreinte = cle, positions = _carre(hauteur), normales = NORMALES, couleurs = COULEURS, cases = [0, 0, 1, 0, 0, 1], surfaces = [{debut = 0, fin = 6, matiere = "terrain--terre"}]}
 
 
 ## Les matières de rendu de `maillage` : la sienne, sinon celle de chaque surface.

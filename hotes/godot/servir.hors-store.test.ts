@@ -7,8 +7,10 @@
  * fichiers sans les GLB ni leur fiche d'import, le même listage en forme `scene`, et fait fabriquer la scène de chaque
  * modèle listé ; servi en `statique`, l'export rend ce dépôt.
  * Avec un dépôt (#3508, section « Éditeur ») : `GET depot/<id>` rend un projet manuscrit, prose matérialisée ;
- * `PUT depot/<id>` écrit à sa place un texte en forme dépôt de ce projet, et refuse tout autre texte sans rien écrire.
- * Sans export (le pont vivant, `vivant.mjs`), seuls `modeles/` et `depot/` répondent.
+ * `PUT depot/<id>` écrit à sa place un texte en forme dépôt de ce projet, et refuse tout autre texte sans rien écrire ;
+ * `GET source/manifest.json` et `GET source/<livre>/<NNN>.md` rendent l'index des chapitres et le texte d'un chapitre du
+ * `Source/` de ce dépôt-ci (#3606 M2g), 404 sans dépôt, export statique ou non.
+ * Sans export (le pont vivant, `vivant.mjs`), seuls `modeles/`, `depot/` et `source/` répondent.
  */
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -22,6 +24,8 @@ import { deposerLesModeles, LISTAGE } from './listage.mjs';
 import { dossierDesProjetsLivres, listerProjetsLivres, PROJETS_MANUSCRITS } from '../../scripts/guards/lib/projetsLivres.mjs';
 import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
+import { cheminDuDepot } from '../../scripts/source/adresses.mjs';
+import { books } from '../../src/data';
 
 const racine = mkdtempSync(join(tmpdir(), 'servir-3086-'));
 const web = join(racine, 'web');
@@ -159,6 +163,23 @@ describe('servir, le dépôt', () => {
 
   it('sans dépôt, depot/ n’est pas servi', async () => {
     expect((await fetch(`${await demarrer()}depot/${id}`)).status).toBe(404);
+  });
+
+  it('source/ sert l’index des chapitres et le texte d’un chapitre du Source/ de ce dépôt ; un chapitre absent reçoit 404', async () => {
+    const manifeste = await fetch(`${url}source/manifest.json`);
+    expect(manifeste.status).toBe(200);
+    const [premier] = (await manifeste.json() as Record<string, { chapitres: { ch: string; fichier: string }[] }>)['livre-de-base'].chapitres;
+    const chapitre = await fetch(`${url}source/livre-de-base/${premier.ch}.md`);
+    const dir = books.find((b) => b.id === 'livre-de-base')!.dir!;
+    expect([chapitre.status, await chapitre.text()]).toEqual([200, readFileSync(cheminDuDepot(join(dir, premier.fichier)), 'utf8').replace(/\r\n?/g, '\n')]);
+    expect((await fetch(`${url}source/livre-de-base/999.md`)).status).toBe(404);
+  });
+
+  it('sans dépôt, source/ n’est pas servi, que l’export soit statique ou non', async () => {
+    const statique = await servir({ web, statique: true });
+    serveurs.push(statique);
+    const statuts = await Promise.all([await demarrer(), statique.url].flatMap((u) => ['source/manifest.json', 'source/livre-de-base/01.md'].map(async (c) => (await fetch(`${u}${c}`)).status)));
+    expect(statuts).toEqual([404, 404, 404, 404]);
   });
 
   it('PUT écrit un texte en forme dépôt du projet à sa place', async () => {

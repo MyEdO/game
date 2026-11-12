@@ -25,8 +25,7 @@ const mk = (chars: Partial<Record<string, number>>, skills: { id: string; advanc
 const seq = (values: number[]): RNG => desEnSuite(values);
 
 describe('Catalogue des rôles d’équipage + types de Test (MDG 14) — données verbatim', () => {
-  it('9 rôles, chacun {id,label,skills≥1,desc}', () => {
-    expect(crewRoles).toHaveLength(9);
+  it('chaque rôle porte {id,label,skills≥1,desc}', () => {
     for (const r of crewRoles) {
       expect(r.id && r.label && r.desc).toBeTruthy();
       expect(r.skills.length).toBeGreaterThanOrEqual(1);

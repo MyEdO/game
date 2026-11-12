@@ -25,9 +25,9 @@ func _recetter() -> void:
 	var monde: Monde = (load("res://scenes/Monde.tscn") as PackedScene).instantiate()
 	root.add_child(monde)
 	var rez := {cle = "sol/0/0/0", empreinte = "rez", rangee = 0, positions = TRIANGLE, normales = NORMALES, couleurs = COULEURS,
-		cases = [[0, 0, 0]], surfaces = [{debut = 0, fin = 3, matiere = "terrain--terre"}]}
+		cases = [0, 0, 0], surfaces = [{debut = 0, fin = 3, matiere = "terrain--terre"}]}
 	var etage := {cle = "sol/1/0/0", empreinte = "etage", rangee = 2, positions = PLANCHER, normales = NORMALES, couleurs = COULEURS,
-		cases = [[0, 0, 1]], surfaces = [{debut = 0, fin = 3, matiere = "terrain--terre"}]}
+		cases = [0, 0, 1], surfaces = [{debut = 0, fin = 3, matiere = "terrain--terre"}]}
 	monde.poser({monde = {metresParCase = 2.0, hauteurs = [{z = 0, rangees = [[0.0]]}, {z = 1, rangees = [[4.0]]}], morceaux = [rez, etage]},
 		toits = [], couronnes = []}, {volume = [rez, etage], toits = [], couronnes = []})
 	await physics_frame
