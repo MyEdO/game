@@ -153,7 +153,7 @@ type MotDuLexique = ActionDuLexique | ActionDeLaMachinerie | ActionDeFenetre | A
   | 'commandes' | 'commission' | 'commune' | 'competence' | 'concernes' | 'condition' | 'confirmer' | 'conjuree'
   | 'connecte' | 'connexion' | 'connu' | 'conseil' | 'constructeur' | 'contact' | 'contagion' | 'contamine' | 'contour'
   | 'contractee' | 'contre' | 'controle' | 'convalescence' | 'copier' | 'corde' | 'cornes' | 'corps' | 'correct'
-  | 'corruption' | 'couchage' | 'coucher' | 'coup' | 'coups' | 'course' | 'courte' | 'creature' | 'critique'
+  | 'corruption' | 'couchage' | 'coucher' | 'coup' | 'coups' | 'course' | 'courte' | 'cout' | 'creature' | 'critique'
   | 'critiques' | 'curseur' | 'd' | 'dans' | 'de' | 'debout' | 'debris' | 'debut' | 'decaler' | 'declaration'
   | 'declenche' | 'decor' | 'defaite' | 'defense' | 'defenseur' | 'defensive' | 'degagement' | 'degats' | 'dehors'
   | 'deja' | 'delestage' | 'demande' | 'depart' | 'depecer' | 'depense' | 'deplacement' | 'depot' | 'derive' | 'des'
@@ -280,7 +280,7 @@ const verrousDuLexique: [
   Verrou<Mots<AttackPlan['kind'] | NonNullable<BattleState['preview']>['kind']>, MotDuLexique>,
   Verrou<Mots<NonNullable<Extract<Effect, { type: 'castSpell' }>['mode']>>, MotDuLexique>,
   Verrou<Mots<Equipe | BattleOutcome | Station['faction']>, MotDuLexique>,
-  Verrou<Mots<Flow['kind'] | Exclude<ClesDeLUnion<Flow>, 'kind' | 'icon' | 'prompt' | 'advantageCost'>>, MotDuLexique>, // #3977
+  Verrou<Mots<Flow['kind'] | Exclude<ClesDeLUnion<Flow>, 'kind' | 'icon'>>, MotDuLexique>, // #3977
   Verrou<Mots<keyof NonNullable<RollFlowSpec<PendingBase>['caps']>>, MotDuLexique>,
   Verrou<Mots<Segments<Extract<MsgKey, `codex.op.${string}`>>>, MotDuLexique>,
   Verrou<Mots<VainqueurDeTaverne>, MotDuLexique>,

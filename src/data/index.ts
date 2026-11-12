@@ -1684,8 +1684,8 @@ export interface ManeuverDef {
   kind: import('../engine/creatureAttacks').AttackKind;
   /** Déclenchement RAW : Action normale, gratuite (coût d'Avantage), ou gratuite à la Charge. */
   activation: 'action' | 'free' | 'charge';
-  advantageCost: number;
-  /** Gestion de l'Avantage dépensé : `fixed` = `advantageCost` (défaut) ; `variable` = le joueur
+  coutEnAvantage: number;
+  /** Gestion de l'Avantage dépensé : `fixed` = `coutEnAvantage` (défaut) ; `variable` = le joueur
    *  CHOISIT (Regard : +1 DR par Avantage, LDB 85 l.290) ; `all` = dépense tout (Hurlement, l.170). */
   advantageMode?: 'fixed' | 'variable' | 'all';
   /** Caractéristique du jet de l'attaquant (capacite-de-combat mêlée / capacite-de-tir distance·zone) ;
@@ -3808,7 +3808,7 @@ export function specLabel(category: string, refId: string, specId: string): Play
 }
 /**
  * MINTEUR (b) de `PlayerText` (#1318 V8a₁) — le PASSAGE des textes AUTHORÉS (le `label` d'une entité
- * de catalogue, le `title` d'une entrée de table, le `prompt` d'un nœud de Flow, l'intitulé d'un péril
+ * de catalogue, le `title` d'une entrée de table, l'`invite` d'un nœud de Flow, l'intitulé d'un péril
  * de scène) vers l'affichage. Ces textes ne sont PAS traduisibles par clé : ils vivent dans la donnée,
  * et une 2ᵉ langue les surcharge par fichier `id → label` (plan évacué → #320, Phase E).
  *

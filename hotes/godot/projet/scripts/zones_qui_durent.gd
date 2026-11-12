@@ -1,13 +1,14 @@
 ## Les zones qui durent sur le plateau (`vue.zonesQuiDurent`, `CONTRAT.md`, section « Vue », #3834) : sur chaque case
-## de chacune, les gerbes continues de son visuel (`Effets.GERBES`, `Effets.gerbe_continue`) à sa teinte, et son son en
-## boucle à sa case centrale. Une zone se nomme par sa `cle` d'une vue à l'autre : une zone déjà posée reste telle
-## quelle, une zone qui ne dure plus est retirée.
+## de chacune, la scène de son visuel posée en continu (`Effets.pose_continue`) à sa teinte, et son son en boucle à sa
+## case centrale. Une zone se nomme par sa `cle` d'une vue à l'autre : une zone déjà posée reste telle quelle, une zone
+## qui ne dure plus est retirée.
 class_name ZonesQuiDurent
 extends Node3D
 
 ## @contrat Effets
 ## Le plateau pose `vue.zonesQuiDurent` par son nœud `ZonesQuiDurent` (`projet/scripts/zones_qui_durent.gd`) : sur
-## chaque case d'une zone, les gerbes continues de son visuel à sa teinte, et son son en boucle à sa case centrale.
+## chaque case d'une zone, la scène de son visuel (`res://effets/visuels/`) posée en continu à sa teinte, et son son en
+## boucle à sa case centrale.
 ## Une zone se nomme par sa `cle` : déjà posée, elle reste telle quelle ; absente de la vue, elle est retirée.
 ## La recette `projet/recettes/zones-et-marques.gd` le vérifie.
 
@@ -38,13 +39,11 @@ func _zone(zone: Dictionary, lieu: Callable, metres_par_case: float) -> Node3D:
 	add_child(noeud, true)
 	if zone.visuel != null:
 		for case: Dictionary in zone.cases:
-			var nappe := Node3D.new()
+			var nappe := Effets.pose_continue(Effets.FAMILLE_DES_VISUELS, zone.visuel, Color(zone.couleur))
 			nappe.name = zone.visuel
 			nappe.position = lieu.call(case)
 			nappe.scale = MiseEnPage.echelle_au_plateau(metres_par_case)
 			noeud.add_child(nappe, true)
-			for gerbe: Dictionary in Effets.GERBES[zone.visuel].gerbes:
-				nappe.add_child(Effets.gerbe_continue(gerbe, gerbe.taille, Color(zone.couleur)))
 	if zone.boucle != null:
 		var lecteur := Effets.son_en_boucle(zone.boucle)
 		lecteur.position = lieu.call(zone.centre)

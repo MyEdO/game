@@ -53,7 +53,7 @@ function nodeSummary(node: Flow, ctx: Ctx): string | JSX.Element {
     case 'effet': return <><Icon id={EFFECT_ICON[node.effet.type]} size="sm" /> {effectSummary(node.effet, ctx)}</>;
     case 'si': return <><Icon id="interface/branchement" size="sm" /> Si {condSummary(node.condition, ctx.narratif)}{node.sinon != null ? ' · sinon…' : ''}</>;
     case 'test': return <><Icon id="navigation/des" size="sm" /> Test {node.test.skill ? refLabel('skills', node.test.skill) : (node.test.characteristic || '?')} → ✓ / ✗</>;
-    case 'choix': return <><Icon id="interface/balance" size="sm" /> Choix{node.advantageCost != null ? ` (${node.advantageCost} Av)` : ''} « {node.prompt} » → ✓ / ✗</>;
+    case 'choix': return <><Icon id="interface/balance" size="sm" /> Choix{node.coutEnAvantage != null ? ` (${node.coutEnAvantage} Av)` : ''} « {node.invite} » → ✓ / ✗</>;
     case 'sequence': return `▸ ${node.etapes.length} bloc(s)`;
   }
 }
@@ -325,9 +325,9 @@ export function FlowEditor({ flow, onChange, ctx }: { flow: Flow; onChange: (f: 
           )}
           {node.kind === 'choix' && (
             <Stack className="eff-body">
-              <ProseField label="Invite du choix" value={node.prompt} onChange={(prompt) => updAt(i, { ...node, prompt })} />
+              <ProseField label="Invite du choix" value={node.invite} onChange={(invite) => updAt(i, { ...node, invite })} />
               <ProvenanceDuTexte copie identite={`${cles[i]}/choix`} sujet="du choix" value={node} onChange={(patch) => updAt(i, { ...node, ...patch })} />
-              <NumberField label="Coût en Avantage" value={typeof node.advantageCost === 'number' ? node.advantageCost : 0} min={0} onChange={(advantageCost) => updAt(i, { ...node, advantageCost: advantageCost })} />
+              <NumberField label="Coût en Avantage" value={typeof node.coutEnAvantage === 'number' ? node.coutEnAvantage : 0} min={0} onChange={(coutEnAvantage) => updAt(i, { ...node, coutEnAvantage })} />
               <span className="branch-label ok">Si OUI :</span>
               <FlowEditor flow={node.oui} ctx={ctx} onChange={(yes) => updAt(i, { ...node, oui: yes })} />
               <label className="ed-check"><input type="checkbox" checked={node.non !== undefined} onChange={(e) => updAt(i, { ...node, non: e.target.checked ? EMPTY_FLOW : undefined })} /> Branche NON</label>

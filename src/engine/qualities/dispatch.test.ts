@@ -91,7 +91,7 @@ describe('Aux Armes p.89 — qualités de mêlée câblées', () => {
     const choix = steps[1];
     expect(choix?.kind).toBe('choix');
     if (choix?.kind !== 'choix') throw new Error('nœud de choix absent');
-    expect(choix.advantageCost).toBe('$indice'); // X = l'Indice imprimé (1A / 2A), jamais un coût figé
+    expect(choix.coutEnAvantage).toBe('$indice'); // X = l'Indice imprimé (1A / 2A), jamais un coût figé
     const sup = choix.oui.kind === 'effet' && choix.oui.effet.type === 'ops' ? choix.oui.effet.ops : undefined;
     expect(sup?.[0]).toMatchObject({ op: 'condition', id: { id: 'hemorragique' } });
     expect(findQualityById('taillade')?.capabilities).toBeUndefined(); // plus de capability bespoke
@@ -104,7 +104,7 @@ describe('Aux Armes p.89 — qualités de mêlée câblées', () => {
     const choice = eff?.flow;
     expect(choice?.kind).toBe('choix');
     if (choice?.kind !== 'choix') throw new Error('flow doit être un choice');
-    expect(choice.advantageCost).toBe(2);
+    expect(choice.coutEnAvantage).toBe(2);
     // Branche `oui` = Test OPPOSÉ Force/Athlétisme des deux côtés (défenseur jette F+athletisme,
     // attaquant pré-jeté opposed{F+athletisme}).
     const test = choice.oui;
@@ -280,7 +280,7 @@ describe('Indice d’un Atout — il atteint le COÛT du choix et le libellé IM
     expect(flow?.kind).toBe('sequence');
     const choix = flow?.kind === 'sequence' ? flow.etapes.find((f) => f.kind === 'choix') : undefined;
     expect(choix, 'le nœud `choice` de Taillade a disparu : le coût en Avantages n’est plus offert').toBeDefined();
-    expect(choix?.kind === 'choix' ? choix.advantageCost : null).toBe('$indice');
+    expect(choix?.kind === 'choix' ? choix.coutEnAvantage : null).toBe('$indice');
   });
 });
 

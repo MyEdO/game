@@ -1170,12 +1170,12 @@ function referentDeScene(get: Get, set: SetFn): Referent | Combatant {
  */
 function ouvrirLeChoixDuFlow(get: Get, set: SetFn, node: Extract<Flow, { kind: 'choix' }>, after: Flow, label: string, sl?: number): boolean {
   const decideur = meneurDeboutDuMonde(get()) ?? meneurDuMonde(get());
-  if (node.advantageCost != null || !decideur) return false;
+  if (node.coutEnAvantage != null || !decideur) return false;
   openChoice(get, set, {
     title: label, purpose: 'test', icon: node.icon ?? 'interface/reflexion',
-    id: `choixDeFlux-${node.prompt}`, kind: 'choixDeFlux', actorId: decideur.id, label: dataLabel(node.prompt),
+    id: `choixDeFlux-${node.invite}`, kind: 'choixDeFlux', actorId: decideur.id, label: dataLabel(node.invite),
     options: [
-      { key: 'oui', label: dataLabel(node.prompt), ...detailDeBranche(node.oui) },
+      { key: 'oui', label: dataLabel(node.invite), ...detailDeBranche(node.oui) },
       { key: 'non', label: t('opt.renoncer'), ...detailDeBranche(node.non) },
     ],
     defaultChoice: 'oui',

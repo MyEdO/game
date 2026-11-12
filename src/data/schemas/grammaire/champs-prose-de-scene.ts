@@ -13,7 +13,7 @@ export const PROSES_NOMMEES = {
   'grantFavor.desc': { champ: 'desc', label: 'faveur', regime: 'narration', presence: 'requis', porteur: 'adresse' },
   'stake.authored': { champ: 'authored', label: 'enjeu rédigé', regime: 'narration', presence: 'requis', porteur: 'folio' },
   'narrative.text': { champ: 'text', label: 'texte', regime: 'narration', presence: 'requis', porteur: 'folio' },
-  'flow.choice.prompt': { champ: 'prompt', label: 'invite', regime: 'narration', presence: 'requis', porteur: 'folio' },
+  'flow.choice.invite': { champ: 'invite', label: 'invite', regime: 'narration', presence: 'requis', porteur: 'folio' },
   'dialogues[].nodes[].desc': { champ: 'desc', label: 'réplique', regime: 'narration', presence: 'requis', porteur: 'adresse' },
   'journal.desc': { champ: 'desc', label: 'texte', regime: 'narration', presence: 'requis', porteur: 'adresse' },
   'designerHeros.invite': { champ: 'invite', label: 'invite', regime: 'narration', presence: 'optionnel', porteur: 'folio' },

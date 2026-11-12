@@ -380,7 +380,7 @@ function humanizeFall(tableId: string): string {
  *  composée par les trois lecteurs du Codex (`humanizeOp`, `opRows`, dialecte miscast de `registry`). */
 export const causePersistante = (): string => t('codex.causePersistante');
 
-/** MAGNITUDE d'un coût d'Avantage (`Flow` `choice.advantageCost`) telle qu'un JOUEUR la lit. Un coût
+/** MAGNITUDE d'un coût d'Avantage (`Flow` `choice.coutEnAvantage`) telle qu'un JOUEUR la lit. Un coût
  *  resté TEMPLATE (`INDICE_TEMPLATE`, substitué par `withArg` sur l'instance porteuse) se lit comme le
  *  livre l'imprime — `AA 08 l.87` « **Taillade (XA) :** … dépenser X Avantages ». SOURCE UNIQUE des deux
  *  lecteurs de Codex (`humanizeFlow`, `describe::flowSummary`) : un `$indice` ne doit jamais atteindre
@@ -694,10 +694,10 @@ export function humanizeFlow(f: Flow, etats: readonly EtatDeclare[]): string {
       return t(f.test.opposed ? 'codex.flow.jetOppose' : 'codex.flow.jet', { sujet, ok: humanizeFlow(f.reussite, etats), ko: humanizeFlow(f.echec, etats) });
     }
     case 'choix': {
-      const cout = coutAvantageTexte(f.advantageCost);
+      const cout = coutAvantageTexte(f.coutEnAvantage);
       return t('codex.flow.choix', {
         cout: cout ? t('codex.flow.choix.cout', { cout }) : '',
-        prompt: f.prompt,
+        invite: f.invite,
         oui: humanizeFlow(f.oui, etats),
         non: flowMuet(f.non) ? '' : t('codex.flow.sinon', { sinon: humanizeFlow(f.non!, etats) }),
       });
