@@ -1452,6 +1452,9 @@
                           "n": 1,
                           "sides": 100
                         }
+                      },
+                      "vivre": {
+                        "id": "ration-biscuits-de-mer"
                       }
                     },
                     {
@@ -2091,6 +2094,9 @@
                       "n": 1,
                       "sides": 10
                     }
+                  },
+                  "vivre": {
+                    "id": "nourriture-courses-journee"
                   }
                 },
                 {
@@ -2390,6 +2396,9 @@
                     "n": 1,
                     "sides": 10
                   }
+                },
+                "vivre": {
+                  "id": "nourriture-courses-journee"
                 }
               },
               {
@@ -3150,6 +3159,9 @@
                       "n": 1,
                       "sides": 10
                     }
+                  },
+                  "vivre": {
+                    "id": "ration-nourriture-preservee"
                   }
                 },
                 {
@@ -3180,7 +3192,7 @@
           "page": 133,
           "note": "ch.15 « Longs voyages » — TABLEAU DES ÉVÉNEMENTS D’ESCALE DANS UN PORT (l.239-263)."
         },
-        "maison": "Le butin : 1d10 jours de vivres (l.235) et 1d100 Enc de cargaison (l.209) (consigne utilisateur 2026-11-07)."
+        "maison": "Le butin : 1d10 jours de vivres (l.235), de la nourriture préservée (l.249 ne type pas les provisions), et 1d100 Enc de cargaison (l.209) (consigne utilisateur 2026-11-07)."
       },
       {
         "min": 6,

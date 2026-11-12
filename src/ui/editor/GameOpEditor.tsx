@@ -28,7 +28,8 @@ import { opSummary } from './interne/resumeDOp';
 import type { Condition } from '../../engine/flowCore';
 import { TestFields } from './FlowEditor';
 import { SizeCategory, SIZE_LABEL } from '../../engine/size';
-import { etats, effectTables, mutationTables, lightTones, type TrappingData } from '../../data';
+import { etats, effectTables, mutationTables, lightTones, refLabel, type TrappingData } from '../../data';
+import { VIVRES_DE_CALE } from '../../engine/seaNavigation';
 import { fallTables } from '../../data/shipCriticals';
 import { terrainsElectifs } from '../../noyau/monde/terrain';
 import { ListeDIds, RefField } from '../compendium/refField/RefField';
@@ -391,7 +392,7 @@ const DEDICATED: ReadonlySet<GameOp['op']> = new Set([
   'corruption', 'sinMod', 'corruptionExposure', 'gainResource', 'grantTrait', 'grantTalent', 'grantNaturalWeapon', 'narrative',
   'summon', 'polymorph', 'lifeSteal', 'push', 'teleport', 'chain', 'rollTable', 'rollMutation', 'armourPierce', 'light',
   'fall', 'domeWard', 'offTerrainMod', 'moveScale', 'maxWeaponHands', 'giveTrapping', 'banish',
-  'endPsych', 'beginPsych', 'grantPsychTrait', 'removePsychTrait',
+  'endPsych', 'beginPsych', 'grantPsychTrait', 'removePsychTrait', 'provisions',
 ]);
 
 /** `ListeDIds` du champ `champ` de l'op éditée, sur son nœud. */
@@ -548,6 +549,40 @@ function TypePsyField({ fieldKey, noeud, value, nullable, onChange }: {
   fieldKey: string; noeud: unknown; value: { id: string } | undefined; nullable?: boolean; onChange: (v: unknown) => void;
 }) {
   return <RefField cfg={{ ds: 'psychologies', single: true }} fieldKey={fieldKey} noeud={noeud} nullable={nullable} value={value?.id ?? ''} onChange={onChange} />;
+}
+
+type OpProvisions = Extract<GameOp, { op: 'provisions' }>;
+/** Les natures EXCLUSIVES de l'op `provisions` (`DECLARATIONS_D_OPS.provisions`, `grammaire/mecanique.ts`). */
+const NATURES_DE_PROVISIONS = { jours: 'Jours de vivres', rations: 'Rations', gateesPct: 'Part gâtée (%)', eauTonneaux: 'Tonneaux d’eau' } as const;
+type NatureDeProvisions = keyof typeof NATURES_DE_PROVISIONS;
+
+/** L'op `provisions` : sa nature, sa quantité, et le vivre de la cale (`VIVRES_DE_CALE.vivres`) que `jours` et
+ *  `rations` ajoutent. MDG 14 l.245-252 */
+function ProvisionsFields({ op, onChange }: { op: OpProvisions; onChange: (o: GameOp) => void }) {
+  const nature: NatureDeProvisions = op.jours !== undefined ? 'jours' : op.rations !== undefined ? 'rations' : op.gateesPct !== undefined ? 'gateesPct' : 'eauTonneaux';
+  const vivre = op.vivre ?? { id: VIVRES_DE_CALE.vivres[0] };
+  const quantite: Formula = op.jours ?? op.rations ?? op.eauTonneaux ?? 1;
+  const poser = (n: NatureDeProvisions, q: Formula): void => onChange(
+    n === 'gateesPct' ? { op: 'provisions', gateesPct: op.gateesPct ?? 10 }
+      : n === 'eauTonneaux' ? { op: 'provisions', eauTonneaux: q }
+        : n === 'rations' ? { op: 'provisions', rations: q, vivre } : { op: 'provisions', jours: q, vivre });
+  return <>
+    <label className="dr">Nature
+      <select value={nature} onChange={(e) => poser(e.target.value as NatureDeProvisions, quantite)}>
+        {(Object.keys(NATURES_DE_PROVISIONS) as NatureDeProvisions[]).map((n) => <option key={n} value={n}>{NATURES_DE_PROVISIONS[n]}</option>)}
+      </select>
+    </label>
+    {nature === 'gateesPct'
+      ? <NumberField label="Part gâtée (%)" min={1} max={100} value={op.gateesPct ?? 10} onChange={(gateesPct) => onChange({ op: 'provisions', gateesPct })} />
+      : <FormulaField label={NATURES_DE_PROVISIONS[nature]} value={quantite} min={0} onChange={(q) => poser(nature, q)} />}
+    {(nature === 'jours' || nature === 'rations') && (
+      <label className="dr">Vivre de la cale
+        <select value={vivre.id} onChange={(e) => onChange({ ...op, vivre: { id: VIVRES_DE_CALE.vivres.find((id) => id === e.target.value) ?? vivre.id } } as GameOp)}>
+          {VIVRES_DE_CALE.vivres.map((id) => <option key={id} value={id}>{refLabel('trappings', { id })}</option>)}
+        </select>
+      </label>
+    )}
+  </>;
 }
 
 function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: GameOp) => void; noeudListe: unknown }) {
@@ -1003,6 +1038,7 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
             <ListeDIdsDOp champ="onlyGroups" label="Groupes visés (vide = toute cible)" value={o.onlyGroups} onChange={(onlyGroups) => upd({ onlyGroups })} />
           </>
         )}
+        {op.op === 'provisions' && <ProvisionsFields op={op} onChange={onChange} />}
         {op.op === 'rollMutation' && (
           <>
             <label className="dr">Table de Corruption

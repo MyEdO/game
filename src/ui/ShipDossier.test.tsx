@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { CampaignVessel } from '../noyau/etat';
+import type { VivresDeCale } from '../engine/provisions';
 import type { Combatant } from '../engine/types';
 import { ShipDossierView } from './ShipDossier';
 import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
@@ -67,6 +68,17 @@ describe('ShipDossier — dossier de navire persistant (#227)', () => {
     expect(html).toContain('Facteurs appliqués (2)');
     expect(html).toContain('Vaincre ou contrer des suivants de Stromfels'); // findManannFactor(...).label
     expect(html).toContain('Grand sacrifice à Manann'); // second facteur
+  });
+
+  it('Vivres d’équipage : le total en jours-homme et le détail par vivre de la cale, dans l’ordre de la liste (MDG 14 l.245-252)', () => {
+    const html = renderToStaticMarkup(<ShipDossierView vessel={{ ...vessel(), provisions: { 'ration-biscuits-de-mer': 40, 'nourriture-courses-journee': 12 } as VivresDeCale }} party={[hero('h1')]} onClose={() => {}} initialTab="apercu" />);
+    expect(html).toContain('Vivres d’équipage : <b>52 jour(s)-homme</b>');
+    const detail = html.match(/<ul class="ship-dossier-list" aria-label="Vivres de la cale">([\s\S]*?)<\/ul>/)?.[1];
+    expect(detail?.match(/<li>[^<]*<b>\d+<\/b>/g)).toEqual([
+      '<li>Nourriture, courses/journée : <b>12</b>',
+      '<li>Ration de nourriture préservée pour un jour : <b>0</b>',
+      '<li>Ration de biscuits de mer pour un jour : <b>40</b>',
+    ]);
   });
 
   it('État : salissures, critique de coque, sabotage, eau + autonomie, dernière traversée', () => {

@@ -172,13 +172,13 @@ export function opSummary(o: GameOp): string {
     case 'meteoImposee': return `météo ${[...Object.values(o.meteo ?? {}), ...(o.ventInverse ? ['vent inversé'] : [])].join(', ')} · ${formulaSummary(o.jours)} j${o.aggravation ? ' (aggravation)' : ''}`;
     case 'cargaison': return o.perteAuDechargement !== undefined ? `−${formulaSummary(o.perteAuDechargement)} Enc au déchargement` : o.perduePct !== undefined ? `−${o.perduePct} % de la cargaison` : o.perdueEnc !== undefined ? `−${formulaSummary(o.perdueEnc)} Enc de cargaison` : `${formulaSummary(o.enc)} Enc de cargaison tirée`;
     case 'equipage': return o.perdusPct !== undefined ? `Équipage −${o.perdusPct} % des PNJ` : `Équipage ${formulaSummary(o.delta)}${o.role ? ` (${refLabel('crewRoles', o.role)})` : ''}${o.sansSolde ? ' · sans solde jusqu’au port' : ''}`;
-    case 'provisions': return o.gateesPct !== undefined ? `${o.gateesPct} % des provisions gâtées` : o.rations !== undefined ? `+${formulaSummary(o.rations)} ration(s)` : o.eauTonneaux !== undefined ? `+${formulaSummary(o.eauTonneaux)} tonneau(x) d’eau` : `+${formulaSummary(o.jours)} j de vivres`;
+    case 'provisions': return o.gateesPct !== undefined ? `${o.gateesPct} % des provisions gâtées` : o.rations !== undefined ? `+${formulaSummary(o.rations)} ration(s) de « ${refLabel('trappings', o.vivre)} »` : o.eauTonneaux !== undefined ? `+${formulaSummary(o.eauTonneaux)} tonneau(x) d’eau` : `+${formulaSummary(o.jours)} j de « ${refLabel('trappings', o.vivre)} »`;
     case 'perilDeMer': return o.collision !== undefined ? `Collision : ${o.collision.id}` : `Tourbillon : ${o.tourbillon.id}`;
     case 'navireHostile': return `${refLabel('vehicles', o.navire)} · ${o.equipage.nombre} × ${refLabel('creatures', o.equipage)}${o.exigence === 'fouille' ? ' · fouille' : ''}`;
     case 'infestation': return `${refLabel('crewTestTypes', o.crewTestType)} · ${o.drCible} DR`;
     case 'commission': return `colis livré contre ${formulaSummary(o.montant.brass)} sous de cuivre`;
     case 'constructeurDEscale': return `Constructeur de navires ${o.competence} · ${formulaSummary(o.duree)} j`;
-    case 'rationsDEscale': return `ration-jour de cale à ${formulaSummary(o.montant.brass)} sous de cuivre`;
+    case 'rationsDEscale': return `ration-jour de vivres frais à ${formulaSummary(o.montant.brass)} sous de cuivre`;
     case 'attaquesSubies': return `${formatDice(o.nombre.dice)} attaque(s) de ${o.assaillant.statblock.label}`;
     case 'combatEnMer': return `Combat : ${o.adversaire.nombre} × ${refLabel('creatures', o.adversaire)}${o.repousseAPct !== undefined ? ` · repoussé à ${o.repousseAPct} %` : ''}${o.victoire ? ' · sur la victoire' : ''}`;
     default: return `${(o as GameOp).op}`;

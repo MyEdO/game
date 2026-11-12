@@ -1270,11 +1270,12 @@ export type GameOp =
   | { op: 'equipage'; perdusPct: number; delta?: never; role?: never; sansSolde?: never }
   /** PROVISIONS de bord : `jours` jours de vivres de l'équipage gagnés, OU `gateesPct` % des provisions à
    *  bord gâtées (cale et rations des héros), OU `rations` rations de mer, OU `eauTonneaux` tonneaux d'eau
-   *  douce, exclusifs. Op de NAVIRE. MDG 15 l.169-170, l.235-236, l.194 ; MDG 14 l.242 */
-  | { op: 'provisions'; jours: Formula; gateesPct?: never; rations?: never; eauTonneaux?: never }
-  | { op: 'provisions'; gateesPct: number; jours?: never; rations?: never; eauTonneaux?: never }
-  | { op: 'provisions'; rations: Formula; jours?: never; gateesPct?: never; eauTonneaux?: never }
-  | { op: 'provisions'; eauTonneaux: Formula; jours?: never; gateesPct?: never; rations?: never }
+   *  douce, exclusifs ; `vivre` : le vivre de la cale (`sea-navigation.json` `longsVoyages.vivresDeCale`) que
+   *  `jours` ou `rations` ajoutent. Op de NAVIRE. MDG 15 l.169-170, l.235-236, l.194, l.223 ; MDG 14 l.242, l.245-252 */
+  | { op: 'provisions'; jours: Formula; vivre: { id: Id<'trapping'> }; gateesPct?: never; rations?: never; eauTonneaux?: never }
+  | { op: 'provisions'; gateesPct: number; jours?: never; rations?: never; eauTonneaux?: never; vivre?: never }
+  | { op: 'provisions'; rations: Formula; vivre: { id: Id<'trapping'> }; jours?: never; gateesPct?: never; eauTonneaux?: never }
+  | { op: 'provisions'; eauTonneaux: Formula; jours?: never; gateesPct?: never; rations?: never; vivre?: never }
   /** PÉRIL DE MER : le navire heurte le péril `collision` (`sea-perils.json` hazards), OU un tourbillon
    *  (`tourbillon`) l'aspire à la périphérie de sa zone. Op de NAVIRE. MDG 15 l.140-141, l.146, l.181-183 ;
    *  MDG 13 l.446, l.475-499, l.514-537 */
@@ -1303,7 +1304,7 @@ export type GameOp =
    *  de navires) `competence`, et chaque réparation ou Amélioration prend `duree` jours, tirés au travail. Op de
    *  NAVIRE. MDG 15 l.255 */
   | { op: 'constructeurDEscale'; competence: number; duree: Formula }
-  /** RATIONS D'ESCALE : jusqu'à l'appareillage, la ration-jour de cale s'achète au port à `montant`. Op de NAVIRE.
+  /** RATIONS D'ESCALE : jusqu'à l'appareillage, les vivres frais s'achètent au port à `montant`. Op de NAVIRE.
    *  MDG 15 l.262 */
   | { op: 'rationsDEscale'; montant: { brass: Formula } }
   /** MARCHÉ D'UN PORT altéré : au port de l'escale jusqu'au départ du navire, les colonnes de l'Index basculent

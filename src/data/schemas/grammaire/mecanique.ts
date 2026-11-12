@@ -17,11 +17,12 @@ import { NARRATIVE_MARKERS } from '../../../engine/conditions';
 import { ARG_TEMPLATE, CHAMPS_DE_DECISION, INDICE_TEMPLATE, type Condition, type EffectOp, type EffectTrigger, type Flow, type FlowTestNode, type TriggeredEffect } from '../../../engine/flowCore';
 import { acteDeDeverrouillageSchema, attackKindSchema, chaosAlignSchema, charKeySchema, cibleEtendueSchema, contexteDeTestSchema, deDeTirageSchema, diceSpecSchema, difficultySchema, effetSigneSchema, idDIconeSchema, enumNomme, shipLocationSchema, exposureLevelSchema, formulaSchema, formuleSansTirageSchema, genreDArmeSchema, hitLocationSchema, mainSchema, messageDeTermeDeJet, meteoImposeeSchema, statutSchema, ouReserve, plageSchema, reachSchema, natureDInfluenceSchema, sizeCategorySchema, symptomSeveritySchema, tirageSchema } from './valeurs';
 import { traitInstanceSchema } from './reference';
-import { idDe, marquerOpAtteinte, ref, refs, refOuSpec, specAuCatalogue, specDe, specFermeeDe, tirageSurTable, type RegimeDePorteur, type TypeEntite } from './ref';
+import { idDe, marquerOpAtteinte, recordDIds, ref, refs, refOuSpec, specAuCatalogue, specDe, specFermeeDe, tirageSurTable, type RegimeDePorteur, type TypeEntite } from './ref';
 import { CIBLE_D_APPARTENANCE, DECLARABLE_PAR_UN_PORTEUR, INSTANCIABLE_PAR_ID, RACINE_D_APPARENCE } from './sousListes';
 import { GROUPES_TIRABLES } from '../../obsessions';
 import { customStatblockSchema } from '../defs-scenes/communs';
 import { estCibleType, varianteAdmise } from '../../../engine/psych/ciblage';
+import { VIVRES_DE_CALE } from '../../../engine/seaNavigation';
 
 /** Régime d'une liste d'ops, posé par sa fabrique (`passifsDe`, `executeesDe`) et lu par IDENTITÉ : une
  *  liste construite à la main n'en a aucun. */
@@ -205,6 +206,19 @@ function refuserLaCibleHorsCiblage(type: string, cible: unknown, ctx: z.Refineme
     ctx.addIssue({ code: 'custom', path: ['cible'], message: `« ${type} » ne vise pas un Groupe : voir ses « cibles » (psychology.json).` });
   }
 }
+
+/** Un vivre posé dans la cale du navire est l'un des vivres de `sea-navigation.json` `longsVoyages.vivresDeCale`.
+ *  MDG 14 l.245-252 */
+function refuserLeVivreHorsCale(id: string, path: PropertyKey[], ctx: z.RefinementCtx): void {
+  if (!(VIVRES_DE_CALE.vivres as readonly string[]).includes(id)) {
+    ctx.addIssue({ code: 'custom', path, message: `« ${id} » n'est pas un vivre de la cale (sea-navigation.json, longsVoyages.vivresDeCale : ${VIVRES_DE_CALE.vivres.join(', ')}).` });
+  }
+}
+
+/** Les vivres de la cale (`VivresDeCale`, `engine/provisions.ts`), en rations (jours-homme) par vivre, posés par
+ *  `setVessel`/`adjustVessel`. MDG 14 l.245-252 */
+export const vivresDeCaleSchema = recordDIds('trapping', nommerNoeud(z.number(), { nom: 'rations (jours-homme)' }))
+  .superRefine((v, ctx) => { for (const id of Object.keys(v)) refuserLeVivreHorsCale(id, [id], ctx); });
 
 /** Le SUJET d'un jet : ce qu'il teste, Compétence ou Caractéristique (LDB 12 l.7, l.131). */
 export const sujetDuJetSchema = nommerChamps(z.strictObject({
@@ -518,11 +532,12 @@ const DECLARATIONS_D_OPS = {
     },
   }),
   /** `provisions` : jours de vivres gagnés (`jours`), part gâtée (`gateesPct`), rations de mer (`rations`) OU tonneaux
-   *  d'eau (`eauTonneaux`), exclusifs. MDG 15 l.169-170, l.235-236, l.194 ; MDG 14 l.242 */
+   *  d'eau (`eauTonneaux`), exclusifs ; `jours` et `rations` nomment leur vivre de la cale (`vivre`).
+   *  MDG 15 l.169-170, l.235-236, l.194 ; MDG 14 l.242, l.245-252 */
   provisions: z.union([
-    nommerChamps(z.strictObject({ op: z.literal('provisions'), jours: formulaSchema }), { op: { label: "opération"  }, jours: { label: "jours de vivres" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
+    nommerChamps(z.strictObject({ op: z.literal('provisions'), jours: formulaSchema, vivre: ref('trapping') }).superRefine((o, ctx) => refuserLeVivreHorsCale(o.vivre.id, ['vivre'], ctx)), { op: { label: "opération"  }, jours: { label: "jours de vivres" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, vivre: { label: "vivre de la cale", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } } }),
     nommerChamps(z.strictObject({ op: z.literal('provisions'), gateesPct: z.number().int().min(1).max(100) }), { op: { label: "opération"  }, gateesPct: { label: "part gâtée (%)" } }),
-    nommerChamps(z.strictObject({ op: z.literal('provisions'), rations: formulaSchema }), { op: { label: "opération"  }, rations: { label: "rations" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
+    nommerChamps(z.strictObject({ op: z.literal('provisions'), rations: formulaSchema, vivre: ref('trapping') }).superRefine((o, ctx) => refuserLeVivreHorsCale(o.vivre.id, ['vivre'], ctx)), { op: { label: "opération"  }, rations: { label: "rations" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, vivre: { label: "vivre de la cale", texte: { regime: "technique", usage: "référence mécanique résolue au catalogue" } } }),
     nommerChamps(z.strictObject({ op: z.literal('provisions'), eauTonneaux: formulaSchema }), { op: { label: "opération"  }, eauTonneaux: { label: "tonneaux d’eau" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
   ], {
     error: (iss) => {

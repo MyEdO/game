@@ -20,11 +20,12 @@ import { spoilCargoByEnc, valeurDeLaCargaison } from '../engine/cargo';
 import { addManann, applyManannFactor, cargoBasePrice, meteosActives, modificateursActifs, rollRandomCargo, spoilCargoByPct, type ModificateurDuNavire } from '../engine/seaVoyage';
 import { ajouterAuRoster } from '../engine/crewMorale';
 import { seasonOfMonth } from '../engine/travelStages';
-import { isRation, LITRES_PAR_TONNEAU } from '../engine/provisions';
+import { isRation, LITRES_PAR_TONNEAU, rationsDeCale, type VivresDeCale } from '../engine/provisions';
+import type { Id } from '../data/schemas/grammaire/ref';
 
 import { rollShipCritical } from '../engine/shipCritical';
 import { resoudreFlowTest } from '../engine/decisionDuTest';
-import { dataLabel, findCrewRoleById } from '../data';
+import { dataLabel, findCrewRoleById, refLabel } from '../data';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { applyShipMoraleDelta, applyVesselCrewLoss, shipboardSouls } from './shipCrew';
 import { applyVesselCritical, combattreEnMer, coqueDuNavireDeCampagne, entrerDansLeTourbillon, etapeDEquipage, heurterLePeril, localisationAleatoire, navireHostileEnVue, noteSeaLine, persistHullWounds, setVesselHull, vesselManann, voyageShip } from './seaVoyageFlow';
@@ -147,9 +148,9 @@ function appliquerOpDuNavire(get: Get, set: Set, coque: Combatant, o: OpDuNavire
     }
     case 'provisions':
       if (o.gateesPct !== undefined) return gaterLesProvisions(get, set, o.gateesPct);
-      if (o.rations !== undefined) return ajouterDesRations(get, set, joursTires(o.rations, ref, ctx));
+      if (o.rations !== undefined) return ajouterDesRations(get, set, joursTires(o.rations, ref, ctx), o.vivre.id);
       if (o.eauTonneaux !== undefined) return ajouterDeLEau(get, set, joursTires(o.eauTonneaux, ref, ctx));
-      return ajouterDesVivres(get, set, joursTires(o.jours, ref, ctx));
+      return ajouterDesVivres(get, set, joursTires(o.jours, ref, ctx), o.vivre.id);
     case 'equipage':
       return o.perdusPct !== undefined
         ? changerLEquipage(get, set, -Math.round(shipboardSouls(get()).crew * o.perdusPct / 100), undefined, undefined)
@@ -205,8 +206,8 @@ function changerLEquipage(get: Get, set: Set, delta: number, roleId: string | un
   return [...lignes, t('eff.equipageRole', { n: delta, role: dataLabel(garanti(findCrewRoleById(roleId), roleId, 'rôle d’équipage').label), sansSolde: sansSolde ? t('eff.equipageSansSolde') : '' })];
 }
 
-/** Gâte `pct` % des provisions à bord : les vivres de la cale (`vessel.provisions`) et les rations de chaque
- *  héros, arrondi à l'entier inférieur. MDG 15 l.169-170 */
+/** Gâte `pct` % des provisions à bord : chaque vivre de la cale (`vessel.provisions`) et les rations de chaque
+ *  héros, arrondi à l'entier inférieur par vivre et par héros. MDG 15 l.169-170 */
 function gaterLesProvisions(get: Get, set: Set, pct: number): string[] {
   let jetees = 0;
   const party = get().party.map((h) => {
@@ -219,28 +220,36 @@ function gaterLesProvisions(get: Get, set: Set, pct: number): string[] {
   const lignes = [t('sv.rationsSpoiled', { n: jetees })];
   const vessel = garanti(get().vessel, 'provisions', 'navire de campagne de la coque visée');
   if (vessel.provisions == null) return lignes;
-  const perdues = Math.floor(vessel.provisions * pct / 100);
-  set({ vessel: { ...vessel, provisions: vessel.provisions - perdues } });
-  return [...lignes, t('eff.provisionsGatees', { perdues, total: vessel.provisions - perdues })];
+  const provisions: VivresDeCale = {};
+  let perdues = 0;
+  for (const [id, n] of Object.entries(vessel.provisions) as [Id<'trapping'>, number][]) {
+    const gatees = Math.floor(n * pct / 100);
+    perdues += gatees;
+    provisions[id] = n - gatees;
+  }
+  set({ vessel: { ...vessel, provisions } });
+  return [...lignes, t('eff.provisionsGatees', { perdues, total: rationsDeCale(provisions) })];
 }
 
-/** Ajoute `jours` jours de vivres de l'équipage (une ration par marin et par jour) aux provisions de la
- *  cale. MDG 15 l.235-236 ; MDG 14 l.238 */
-function ajouterDesVivres(get: Get, set: Set, jours: number): string[] {
+/** Ajoute `jours` jours de vivres de l'équipage (une ration par marin et par jour) de `vivre` à la cale.
+ *  MDG 15 l.223, l.235-236 ; MDG 14 l.238 */
+function ajouterDesVivres(get: Get, set: Set, jours: number, vivre: Id<'trapping'>): string[] {
   const vessel = garanti(get().vessel, 'provisions', 'navire de campagne de la coque visée');
   if (vessel.provisions == null) return [t('eff.provisionsSansSuivi')];
   const equipage = shipboardSouls(get()).crew;
   const rations = jours * equipage;
-  set({ vessel: { ...vessel, provisions: vessel.provisions + rations } });
-  return [t('eff.provisionsJours', { n: jours, equipage, rations, total: vessel.provisions + rations })];
+  const provisions = { ...vessel.provisions, [vivre]: (vessel.provisions[vivre] ?? 0) + rations };
+  set({ vessel: { ...vessel, provisions } });
+  return [t('eff.provisionsJours', { n: jours, equipage, rations, vivre: refLabel('trappings', { id: vivre }), total: rationsDeCale(provisions) })];
 }
 
-/** Ajoute `n` rations de mer (jours-homme) aux vivres de la cale. MDG 15 l.194 ; MDG 14 l.238 */
-export function ajouterDesRations(get: Get, set: Set, n: number): string[] {
+/** Ajoute `n` rations (jours-homme) de `vivre` à la cale. MDG 15 l.194 ; MDG 14 l.238, l.245-252 */
+export function ajouterDesRations(get: Get, set: Set, n: number, vivre: Id<'trapping'>): string[] {
   const vessel = garanti(get().vessel, 'provisions', 'navire de campagne de la coque visée');
   if (vessel.provisions == null) return [t('eff.provisionsSansSuivi')];
-  set({ vessel: { ...vessel, provisions: vessel.provisions + n } });
-  return [t('eff.provisionsRations', { n, total: vessel.provisions + n })];
+  const provisions = { ...vessel.provisions, [vivre]: (vessel.provisions[vivre] ?? 0) + n };
+  set({ vessel: { ...vessel, provisions } });
+  return [t('eff.provisionsRations', { n, vivre: refLabel('trappings', { id: vivre }), total: rationsDeCale(provisions) })];
 }
 
 /** Embarque `n` tonneaux d'eau douce. MDG 15 l.194 ; MDG 14 l.242 */

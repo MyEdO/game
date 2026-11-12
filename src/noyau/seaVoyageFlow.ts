@@ -75,7 +75,7 @@ import {
 import {
   seaMilesPerDay, orientationOutcome, rollCourseChange, deDuChangementDeCap, foulingEffects, weeklyFoulingLevel,
   lighthouseSpotDifficulty, lighthouseOrientationDR, savoirOceansBonus, pursuitDistanceGain,
-  pursuitLowMPenalty, voileSansProfil, forcePaceDifficulty, exhaustionDifficulty, REPARATION, overspeedRow, overspeedDamage,
+  pursuitLowMPenalty, voileSansProfil, forcePaceDifficulty, exhaustionDifficulty, REPARATION, overspeedRow, overspeedDamage, VIVRES_DE_CALE,
 } from '../engine/seaNavigation';
 import { expireOnRespite, exposureTarget, exposureCoatMods, exposureFirstFailChars, isWeatherWarded } from '../engine/exposure';
 import { pursuitOutcome } from '../engine/pursuit';
@@ -95,7 +95,7 @@ import { groupsFor } from '../engine/groups';
 import { traverseeCommandee, voyageDayEntry, DEFAULT_VOYAGE_ORDERS, type VoyageOrders, type VoyageCadence } from './voyageCadence';
 import { ajouterAuRoster, crewRoleValue, crewTestModParts, moraleBand, weeklyCrewWageBrass, crewTalentDR, UNDERCREW_DR, capToSuccesMinime, crewTestSuccess, rudeEpreuveMoraleDelta, SUCCES_MINIME_CAP } from '../engine/crewMorale';
 import type { NightEntry } from './restFlow';
-import { provisioningManifest } from '../engine/provisions';
+import { provisioningManifest, rationsDeCale } from '../engine/provisions';
 import { toMoney, canAfford, formatMoney, fromBrass, type Money } from '../engine/money';
 import { partyMoneyTotal, payFromGroup, refusDeGesteSurLeGroupe, mouvementDeLaBourseDuGroupe } from './bourseFlow';
 import { rollShipCritical, applyCrewHit, exposedCrew, type ShipCriticalResolved } from '../engine/shipCritical';
@@ -317,23 +317,32 @@ export function vesselManann(vessel: CampaignVessel | null): ManannMood {
 const FOOD_SHORTAGE_FACTOR = 'nourriture-insuffisante';
 
 /**
- * VIVRES de l'équipage PNJ sur `days` jour(s) (MDG 14 l.238 : « rations de mer de la cale ») : l'effectif
- * nominal (`shipboardSouls().crew`) consomme une ration/jour de `vessel.provisions`. À court → le facteur
- * de Moral `nourriture-insuffisante` (−2d10, l.171) est ACTIVÉ pour le prochain recalcul hebdomadaire ;
- * couvert → il est retiré (réapprovisionné). `provisions` absent = ravitaillement d'équipage réputé assuré
- * (décision de périmètre de `waterLitres`) → aucune consommation, aucun facteur. Mute `vessel`. #245. */
+ * VIVRES de l'équipage PNJ sur `days` jour(s) : l'effectif nominal (`shipboardSouls().crew`) mange une ration par
+ * marin et par jour sur `vessel.provisions`, vivre après vivre dans l'ordre de `VIVRES_DE_CALE.vivres`. À court,
+ * le facteur de Moral `nourriture-insuffisante` est ACTIVÉ pour le prochain recalcul hebdomadaire ; couvert, il
+ * est retiré. `provisions` absent : vivres non suivis, aucune consommation. MDG 14 l.171, l.238, l.263 ; #245
+ */
 function consumeCrewProvisions(get: Get, set: Set, days: number): string[] {
   const vessel = get().vessel;
   if (!vessel) return [];
   const crew = shipboardSouls(get()).crew;
   const need = crew * Math.max(0, days);
-  if (vessel.provisions == null || need <= 0) return []; // ravitaillement réputé assuré / pas d'équipage PNJ
-  const left = Math.max(0, vessel.provisions - need);
-  const short = vessel.provisions < need;
+  if (vessel.provisions == null || need <= 0) return [];
+  const provisions = { ...vessel.provisions };
+  let reste = need;
+  for (const id of VIVRES_DE_CALE.vivres) {
+    const stock = provisions[id];
+    if (stock === undefined) continue;
+    const mange = Math.min(reste, stock);
+    provisions[id] = stock - mange;
+    reste -= mange;
+  }
+  const left = rationsDeCale(provisions);
+  const short = reste > 0;
   const factors = short
     ? (vessel.morale.factors.includes(FOOD_SHORTAGE_FACTOR) ? vessel.morale.factors : [...vessel.morale.factors, FOOD_SHORTAGE_FACTOR])
     : vessel.morale.factors.filter((f) => f !== FOOD_SHORTAGE_FACTOR);
-  set({ vessel: { ...vessel, provisions: left, morale: { ...vessel.morale, factors } } });
+  set({ vessel: { ...vessel, provisions, morale: { ...vessel.morale, factors } } });
   return [short
     ? t('sv.crewFoodOut')
     : t('sv.crewFoodLeft', { need, left, s: left > 1 ? 's' : '' })];
@@ -518,7 +527,7 @@ export function dossierDuNavire(vessel: CampaignVessel, party: Combatant[]): Dos
     refusDAppareiller: refus ? raisonDuRefusDAppareiller(refus) : null,
     heroes, crewCount,
     autonomyDays: vessel.waterLitres != null && dailyWater > 0 ? Math.floor(vessel.waterLitres / dailyWater) : null,
-    provisionDays: vessel.provisions != null && crewCount > 0 ? Math.floor(vessel.provisions / crewCount) : null,
+    provisionDays: vessel.provisions != null && crewCount > 0 ? Math.floor(rationsDeCale(vessel.provisions) / crewCount) : null,
     weeklyWageBrass: weeklyCrewWageBrass(vessel.crew),
     soldesParRole: (vessel.crew ?? []).map((h) => ({ roleId: h.roleId, count: h.count, weeklyBrass: weeklyCrewWageBrass([h]) })),
   };
@@ -1497,8 +1506,8 @@ export function continueSeaDayAfterCascade(get: Get, set: Set, auPv: CascadeStep
 
   // Eau douce (ch.13 l.209-213 + ch.14 l.242) : consommation par bande de Température × POPULATION EMBARQUÉE
   // (héros + effectif PNJ nominal, `shipboardSouls` — MDG 14 l.238 : « l'équipage … a besoin de beaucoup
-  // d'eau »), si le navire suit ses tonneaux (`vessel.waterLitres`). La Soif elle-même suit la décision de
-  // périmètre de `provisions.ts` (volet Soif non simulé) : à sec, on AVERTIT.
+  // d'eau »), si le navire suit ses tonneaux (`vessel.waterLitres`). À sec, la Soif se joue à l'entretien
+  // quotidien (`upkeep.ts`, `hasWater`), LDB 18 l.340.
   const vessel0 = get().vessel;
   if (vessel0?.waterLitres != null) {
     const souls = shipboardSouls(get()).total;
