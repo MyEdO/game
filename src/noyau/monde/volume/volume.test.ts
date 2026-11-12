@@ -247,13 +247,28 @@ describe('volumeDuMonde, les faces hors de la carte (#3948)', () => {
     }
   });
 
-  it('un décor d’une couche absente de la scène ne va à aucun morceau', () => {
-    const s = deuxEtages();
-    s.entities.push({ id: 'tonneau-2', kind: 'prop', decor: { id: 'tonneau' }, pos: { x: 2, y: 2 }, z: 3 });
+  /** Deux couches de 6 × 6 cases, le rez à z 0 et l'étage à z 2 (la couche 1 retirée), et un tonneau en (2, 2) à `z`. */
+  const coucheRetiree = (z?: number): Scene => {
+    const s = emptyScene('scene-test', 6, 6);
+    s.layers[0].tiles = Array(36).fill('plancher');
+    s.layers.push({ z: 2, tiles: Array(36).fill('planches'), height: Array(36).fill(6) });
+    if (z !== undefined) s.entities.push({ id: 'tonneau-1', kind: 'prop', decor: { id: 'tonneau' }, pos: { x: 2, y: 2 }, z });
+    return s;
+  };
+
+  it('un décor entre deux couches : rangé à la couche du dessus, montré quand la couche active est au-dessus de lui, retiré dessous', () => {
+    const s = coucheRetiree(1);
     const v = volumeDuMonde(s);
-    expect(v.morceaux.map((m) => m.cle.split('/')[1]).sort()).toEqual(expect.arrayContaining(['0', '1']));
-    expect(v.morceaux.every((m) => ['0', '1'].includes(m.cle.split('/')[1]) && Number.isFinite(m.rangee))).toBe(true);
-    expect(trianglesDuVolume(v).some((t) => t.case[2] === 3)).toBe(false);
+    const decor = trianglesDuVolume(v).filter((t) => t.matiere.startsWith('prop--'));
+    expect(decor.length).toBeGreaterThan(0);
+    expect(new Set(decor.map((t) => `${t.morceau.cle} ${t.case.join(',')} ${t.morceau.rangee}`))).toEqual(new Set([`pose/2/0/0 2,2,2 ${3 * 6}`]));
+    const montres = (activeZ: number) => trianglesMontres(v, retraitDuMonde(s, activeZ)).filter((t) => t.matiere.startsWith('prop--')).length;
+    expect(montres(2), 'la couche active au-dessus du décor').toBe(decor.length);
+    expect(montres(0), 'la couche active sous le décor').toBe(0);
+  });
+
+  it('un décor au-dessus de la plus haute couche ne va à aucun morceau', () => {
+    expect(volumeDuMonde(coucheRetiree(3)).morceaux).toEqual(volumeDuMonde(coucheRetiree()).morceaux);
   });
 
   it('un navire posé à cheval sur le bord : ses faces aux cases de la carte, sa mer teintée à ses cases', () => {

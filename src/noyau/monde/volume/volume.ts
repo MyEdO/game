@@ -86,7 +86,7 @@ interface GeometrieDuMonde {
   /**
    * La case `[x, y, z]` de chaque triangle, sa couche comprise, dans l'ordre des triangles : toujours sur la carte, la
    * case de la carte la plus proche pour une face posée hors d'elle (un décor hors de la carte, le pont ou la mer d'un
-   * navire posé au bord).
+   * navire posé au bord). Dans un morceau (`MorceauDuMonde`), sa couche est une couche de la scène (`caseSurLaCarte`).
    */
   cases: [number, number, number][];
   /**
@@ -111,9 +111,10 @@ interface GeometrieDuMonde {
  * @contrat Monde
  * Un morceau du volume (`MorceauDuMonde`) : les faces d'un genre des cases d'un bloc de `CASES_PAR_MORCEAU` ×
  * `CASES_PAR_MORCEAU` cases d'une couche de la scène, triangulées avec tout le volume. La face d'une case va au morceau
- * de sa case (`cases`, sur la carte) : le sol, la mer, le décor à sa case d'ancrage, la crête à la case crénelée qu'elle
- * ceinture (`CreteDePerimetre.case`), quand la case de son arête peut sortir de la carte ; une face d'une couche absente
- * de la scène (`Scene.layers`) ne va à aucun.
+ * de sa case sur la carte (`caseSurLaCarte`, `cases`) : le sol, la mer, le décor à sa case d'ancrage, la crête à la case
+ * crénelée qu'elle ceinture (`CreteDePerimetre.case`), quand la case de son arête peut sortir de la carte ; une face
+ * d'une couche absente de la scène (`Scene.layers`) va à la plus basse couche au-dessus d'elle, une face au-dessus de
+ * la plus haute couche à aucun.
  */
 export interface MorceauDuMonde extends GeometrieDuMonde {
   /**
@@ -230,10 +231,13 @@ function triangulees<F extends FaceListee>(scene: Scene, listees: readonly F[]):
   return listees.map((f, i) => ({ ...f, geom: geoms[i] }));
 }
 
-/** Les faces `faces` déjà triangulées (`triangulees`), orientées (`trianglesOrientes`) et colorées depuis la donnée,
- *  chacune à la variance de teinte de sa case, rangée à la case de la carte la plus proche (`caseSurLaCarte`), les
- *  triangles d'une même matière à la suite. */
-function emballer(scene: Scene, faces: readonly (FaceListee & { geom: FaceGeom })[]): GeometrieDuMonde {
+/** Une face triangulée (`triangulees`) et la case `surLaCarte` où elle se range sur la carte. */
+type FaceRangee = FaceListee & { geom: FaceGeom; surLaCarte: { x: number; y: number; z: number } };
+
+/** Les faces `faces` déjà triangulées et rangées (`FaceRangee`), orientées (`trianglesOrientes`) et colorées depuis la
+ *  donnée, chacune à la variance de teinte de sa case, rangée à sa case `surLaCarte`, les triangles d'une même matière à la
+ *  suite. */
+function emballer(scene: Scene, faces: readonly FaceRangee[]): GeometrieDuMonde {
   const centre = centreDeLaCarte(scene.dimensions, sceneMetresPerTile(scene));
   const parMatiere = new Map<string, Provenance & { matiere: string; faces: number[] }>();
   faces.forEach(({ face, navire, flottaison }, i) => {
@@ -254,7 +258,7 @@ function emballer(scene: Scene, faces: readonly (FaceListee & { geom: FaceGeom }
       const [r, v, b] = parseHex(couleurDeMatiere(m)) ?? parseHex(MISSING_TONE)!;
       const k = tintVarFactor(recetteDeMatiere(m), faces[i].cell) / 255;
       const couleur = [...[r, v, b].map((c) => arrondi(Math.min(1, c * k))), 1];
-      const { x, y, z } = caseSurLaCarte(scene, faces[i].cell);
+      const { x, y, z } = faces[i].surLaCarte;
       for (const { sommets, normale } of trianglesOrientes(faces[i].geom, centre)) {
         const n = normale ?? { x: 0, y: 1, z: 0 };
         cases.push([x, y, z]);
@@ -277,10 +281,17 @@ function empreinteDe({ positions, normales, couleurs, cases, surfaces, rangee }:
   return h.toString(36);
 }
 
-/** La case de la carte de `scene` la plus proche de `cell`, à sa couche. */
-const caseSurLaCarte = (scene: Scene, { x, y, z }: { x: number; y: number; z: number }): { x: number; y: number; z: number } => {
+/** La case `(x, y)` de la carte de `scene` la plus proche de `cell`, à la couche `z` de `cell`. */
+const caseBornee = (scene: Scene, { x, y, z }: { x: number; y: number; z: number }): { x: number; y: number; z: number } => {
   const { w, h } = scene.dimensions;
   return { x: Math.min(Math.max(x, 0), w - 1), y: Math.min(Math.max(y, 0), h - 1), z };
+};
+
+/** La case de la carte de `scene` la plus proche de `cell` (`caseBornee`), à la plus basse couche de la scène
+ *  (`Scene.layers`) qui n'est pas sous la sienne : sa couche si la scène l'a ; `undefined` au-dessus de la plus haute. */
+const caseSurLaCarte = (scene: Scene, cell: { x: number; y: number; z: number }): { x: number; y: number; z: number } | undefined => {
+  const z = Math.min(...scene.layers.map((l) => l.z).filter((lz) => lz >= cell.z));
+  return Number.isFinite(z) ? { ...caseBornee(scene, cell), z } : undefined;
 };
 
 /** La rangée du masque où commence le plan du genre `genre` de la couche d'indice `i` (`scene.layers`), pour une scène
@@ -290,8 +301,8 @@ const rangeeDuPlan = (i: number, genre: Genre, h: number): number => (2 * i + (g
 /** Le volume du monde de `scene`, de toutes ses couches, en morceaux : le sol (terrain, relief, raccords, piliers), la
  *  mer de la flottaison de chaque navire (`MER`, à la hauteur 0, à la place du sol de la scène hors de ses ponts), les
  *  crêtes des zones crénelées (`cretesDePerimetre`) et les décors volumiques (`decorsVolumiques`), triangulés ensemble,
- *  puis rangés au morceau de la case de la carte la plus proche de chaque face (`caseSurLaCarte`) et de son genre ; une
- *  face d'une couche absente de la scène ne va à aucun. Le sol et les crêtes d'une case que les ponts d'un
+ *  puis rangés au morceau de la case sur la carte de chaque face (`caseSurLaCarte`) et de son genre ; une face au-dessus
+ *  de la plus haute couche ne va à aucun. Le sol et les crêtes d'une case que les ponts d'un
  *  navire posent portent ce navire (`provenanceDesNavires`) ; ses décors, non. Mémoïsé par scène. PUR. */
 export const volumeDuMonde = memoByRef((scene: Scene): VolumeDuMonde => {
   const mpt = sceneMetresPerTile(scene);
@@ -313,13 +324,13 @@ export const volumeDuMonde = memoByRef((scene: Scene): VolumeDuMonde => {
   const decors = decorsVolumiques(scene, mpt).map((f) => ({ ...f, genre: 'pose' as const }));
   const { w, h } = scene.dimensions;
   const indiceDe = new Map(scene.layers.map((l, i) => [l.z, i]));
-  const parMorceau = new Map<string, { genre: Genre; z: number; faces: (FaceListee & { geom: FaceGeom })[] }>();
+  const parMorceau = new Map<string, { genre: Genre; z: number; faces: FaceRangee[] }>();
   for (const f of triangulees(scene, [...sol, ...mer, ...cretes, ...decors])) {
-    const { genre } = f;
-    const { x, y, z } = caseSurLaCarte(scene, f.cell);
-    if (!indiceDe.has(z)) continue;
-    const cle = `${genre}/${z}/${Math.floor(x / CASES_PAR_MORCEAU)}/${Math.floor(y / CASES_PAR_MORCEAU)}`;
-    (parMorceau.get(cle) ?? parMorceau.set(cle, { genre, z, faces: [] }).get(cle)!).faces.push(f);
+    const surLaCarte = caseSurLaCarte(scene, f.cell);
+    if (!surLaCarte) continue;
+    const { x, y, z } = surLaCarte;
+    const cle = `${f.genre}/${z}/${Math.floor(x / CASES_PAR_MORCEAU)}/${Math.floor(y / CASES_PAR_MORCEAU)}`;
+    (parMorceau.get(cle) ?? parMorceau.set(cle, { genre: f.genre, z, faces: [] }).get(cle)!).faces.push({ ...f, surLaCarte });
   }
   const morceaux = [...parMorceau].map(([cle, { genre, z, faces }]) => {
     const contenu = { ...emballer(scene, faces), rangee: rangeeDuPlan(indiceDe.get(z)!, genre, h) };
@@ -362,11 +373,15 @@ export const toitsDuMonde = memoByRef((scene: Scene): NappeDuMonde[] => {
     const faces = parNappe.get(cle) ?? parNappe.set(cle, []).get(cle)!;
     for (const face of el.faces) faces.push({ face, cell: el.cell });
   }
-  return [...parNappe].map(([cle, listees]) => nappe(cle, emballer(scene, triangulees(scene, listees))));
+  return [...parNappe].map(([cle, listees]) => nappe(scene, cle, listees));
 });
 
-/** La nappe `cle` de géométrie `geometrie`, et son empreinte. */
-const nappe = (cle: string, geometrie: GeometrieDuMonde): NappeDuMonde => ({ cle, empreinte: empreinteDe(geometrie), ...geometrie });
+/** La nappe `cle` des faces `listees` de `scene`, triangulées ensemble (`triangulees`), chacune rangée à la case de la
+ *  carte la plus proche de la sienne (`caseBornee`), et son empreinte. */
+const nappe = (scene: Scene, cle: string, listees: readonly FaceListee[]): NappeDuMonde => {
+  const geometrie = emballer(scene, triangulees(scene, listees).map((f) => ({ ...f, surLaCarte: caseBornee(scene, f.cell) })));
+  return { cle, empreinte: empreinteDe(geometrie), ...geometrie };
+};
 
 /** Les nappes de toit que le groupe dégage, posé sur `allies` (`clearedSpace`, `cutawayForSection`) : celles qui
  *  couvrent l'espace où il se tient. PUR. */
@@ -390,6 +405,6 @@ export const couronnesDuMonde = memoByRef((scene: Scene): NappeDuMonde[] => {
     if (!app.parapet) return [];
     const [a, b] = wallEnds(seg);
     const faces = crownFaces(app, a, b, piedDeLArete(scene, seg) + (app.wallHeightM ?? WALL_H_M));
-    return [nappe(edgeKey(seg), emballer(scene, triangulees(scene, faces.map((face) => ({ face, cell: { x: seg.x, y: seg.y, z: seg.z ?? 0 } })))))];
+    return [nappe(scene, edgeKey(seg), faces.map((face) => ({ face, cell: { x: seg.x, y: seg.y, z: seg.z ?? 0 } })))];
   });
 });
