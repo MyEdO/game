@@ -45,6 +45,7 @@ export const JEUX_DU_PARCOURS = {
   creation: { creation: ['--scenario', 'marche-equipement'] },
   campagne: { campagne: [] },
   roster: { roster: [] },
+  reglages: { reglages: [] },
   editeur: { editeur: [] },
   atelier: { atelier: [] },
   composition: {},

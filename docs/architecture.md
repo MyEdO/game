@@ -610,7 +610,12 @@ src/hote/                   COMMUN AUX HÔTES du noyau (#2928) : ce qu'un hôte 
                             `fichierDuHeros` rend le fichier d'export d'un héros, `importerAuRoster` en importe un),
                             `reglesMaison.ts` et `preferences.ts` (leur persistance sur le même
                             `Stockage` ; un chargement de règles maison qui élague cumule son témoin sous sa propre
-                            clé, que `prendreLeTemoinDesReglesMaison` consomme au montage du panneau des règles),
+                            clé, que `prendreLeTemoinDesReglesMaison` consomme au montage du panneau des règles ;
+                            `reposerLesReglesMaison` repose celles du joueur avant une partie du jeu),
+                            `reglages.ts` (les préférences et les règles maison en zones `reglages.*`, chaque entrée
+                            rendue par la forme de son contrôle, et `jouerUnReglage`, le geste qui en règle une et
+                            la persiste), `accueil.ts` (les entrées de l'hôte avant toute partie, zone
+                            `accueil.gestes`),
                             `sauvegardes.ts` (les emplacements de sauvegarde sur le même `Stockage` : écrire, lire, retirer,
                             lister ; une save d'un autre format ou illisible est REJETÉE et RETIRÉE à la lecture,
                             son retrait cumulé dans le témoin, que `prendreLesRetraitsDeSauvegardes` consomme pour

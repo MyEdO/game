@@ -37,7 +37,8 @@ extends Node
 ## variation du thème, `art/theme.tres`), chaque `Geste` joue l'intention que l'élément porte par le signal `geste` de
 ## la zone (un bouton à bascule garde l'état que la vue lui donne ; le routeur envoie `{ fiche }` à `fiche`, `{ creation
 ## }` à `creation`, `{ roster }` à `roster`, `{ lancer }` à `lancer`, `{ quitter }` à `quitter`, d'où il revient à l'accueil, `{ sauvegardes }`
-## au panneau des sauvegardes (`sauvegardes`), `{ sauvegarder }` à `sauvegarder`, `{ charger }` à `charger`, la partie
+## au panneau des sauvegardes (`sauvegardes`), `{ reglages }` au panneau des réglages (`reglages`,
+## `projet/scripts/reglages.gd`), `{ sauvegarder }` à `sauvegarder`, `{ charger }` à `charger`, la partie
 ## ouverte quittée d'abord et le combat rechargé, toute autre intention à `jouer`), chaque `Saisie` lit la valeur d'un formulaire, et une zone
 ## imbriquée y montre le champ que sa `source` nomme. L'icône (`icone`) et le fond (`fond`) ne portent que l'id de
 ## leur dessin : `Dessin` (`projet/scripts/dessin.gd`) le lit au catalogue que la construction dépose une fois dans le
@@ -69,6 +70,7 @@ extends Node
 @onready var _apercu: Control = $Ecran/Interface/Apercu
 @onready var _scenarios: Control = $Scenarios/Cadre
 @onready var _sauvegardes: Control = $Sauvegardes/Cadre
+@onready var _reglages: PanneauDesReglages = $Reglages
 @onready var _pont: PontDuNoyau = get_node("/root/Pont")
 
 var _vue: Dictionary = {}
@@ -103,6 +105,7 @@ func _ready() -> void:
 	await _indexer_les_modeles()
 	for zone in Zone.racines(_sauvegardes):
 		zone.geste.connect(_jouer)
+	_reglages.change.connect(_publier_l_ecran)
 	var entree := {}
 	var graine := _pont.parametre("graine")
 	if graine.is_valid_int():
@@ -152,7 +155,7 @@ func _indexer_les_modeles() -> void:
 ## L'intention d'un geste : la fiche que l'écran montre va à `fiche`, un geste de la création d'un héros à `creation`,
 ## un geste sur le roster de l'hôte à `roster` (`_jouer_le_roster`), la campagne à lancer à `lancer`, la partie à quitter à `quitter` (`_quitter`), le panneau des sauvegardes à ouvrir à
 ## `sauvegardes` ou à fermer (`_fermer_les_sauvegardes`), l'emplacement où écrire à `sauvegarder`, celui à charger à
-## `_charger`, toute autre à `jouer`.
+## `_charger`, le panneau des réglages à ouvrir à `PanneauDesReglages.ouvrir`, toute autre à `jouer`.
 func _jouer(jeu: Dictionary) -> void:
 	if jeu.has("quitter"):
 		_quitter()
@@ -165,6 +168,9 @@ func _jouer(jeu: Dictionary) -> void:
 		return
 	if jeu.has("sauvegarder"):
 		_montrer_les_sauvegardes(_pont.appeler("sauvegarder", jeu))
+		return
+	if jeu.has("reglages"):
+		_reglages.ouvrir()
 		return
 	if jeu.has("charger"):
 		_charger(jeu.charger)
@@ -371,7 +377,7 @@ func _publier_l_ecran() -> void:
 func _ecran_publie() -> Dictionary:
 	var cadre := _monde.cadre
 	return {
-		boutons = PontDuNoyau.boutons_a_l_ecran([_ecran, _scenarios, _sauvegardes]), cases = _plateau.points(),
+		boutons = PontDuNoyau.boutons_a_l_ecran([_ecran, _scenarios, _sauvegardes, _reglages.racine()]), cases = _plateau.points(),
 		cadre = [cadre.position.x, cadre.position.y, cadre.size.x, cadre.size.y], corps = _plateau.corps(), navires = _plateau.navires(),
 	}
 
