@@ -4,15 +4,16 @@
 // (`entreeDHote`, `scripts/entree-d-hote.mjs` : le gel du catalogue, puis `hotes/godot/pont/entree.ts`, avec le greffon
 // `proseSource()`) ; le bundle tient seul dans une page et expose `globalThis.wfrpPont` (`hotes/godot/pont/CONTRAT.md`).
 // Il dit sa taille, puis l'EXÉCUTE dans un `node:vm` qui ne porte que les API de navigateur déclarées
-// (`API_DU_NAVIGATEUR`) : `demarrer` et `vue` répondent `ok: true`, un second `demarrer` `ok: false`, sinon le code de
-// sortie est 1 ; `--sortie <dossier>` l'y écrit, sans quoi rien ne s'écrit. La CI le joue (`npm run pont:godot`), pour
+// (`API_DU_NAVIGATEUR`) : `demarrer` et `vue` répondent `ok: true`, un second `demarrer` `ok: false`, `morceaux` par
+// `appelerEnOctets` tient les octets que dit son en-tête, sinon le code de sortie est 1 ; `--sortie <dossier>` l'y écrit, sans quoi rien ne s'écrit. La CI le joue (`npm run pont:godot`), pour
 // qu'un changement du moteur qui casse le bundle de navigateur, à sa construction comme à son évaluation, ne passe pas
 // vert. `--sonde` importe le projet (`hotes/godot/projet/`) par l'éditeur épinglé (`EDITEUR`), puis contrôle chaque
 // script (`--check-only`) et joue les recettes déclarant `const RECETTE_AUTONOME := true` sous `recettes/`, les vues
 // de l'écran figées par le pont (`hotes/godot/recettes/ecran.ts`), le véhicule, le repos et les échantillons de
 // l'atelier figés (`hotes/godot/recettes/vehicule.ts`, `hotes/godot/recettes/atelier.ts`,
-// `hotes/godot/recettes/decor.ts`), le chemin du groupe (`hotes/godot/recettes/chemin.ts`) et l'éditeur du navire
-// (`hotes/godot/recettes/editeur.ts`) écrits dans la copie, chaque recette lancée avec `--pont=<vivant.mjs>` ; la CI la joue
+// `hotes/godot/recettes/decor.ts`), le chemin du groupe (`hotes/godot/recettes/chemin.ts`), l'éditeur du navire
+// (`hotes/godot/recettes/editeur.ts`) et le dégagement du combat (`hotes/godot/recettes/degagement.ts`) écrits dans la copie,
+// chaque recette lancée avec `--pont=<vivant.mjs>` ; la CI la joue
 // (`npm run godot:sonde`). `--export --sortie <dossier>` y écrit le bundle,
 // puis l'export Web du projet (`export_presets.cfg`) et, à côté, le dossier des modèles et son listage
 // (`deposerLesModeles`, #3778), chaque modèle en scène que l'éditeur fabrique de son GLB (`fabriquer`, #3946), et les
@@ -52,6 +53,7 @@ const assets = () => (assetsCharges ??= chargerAssets([
   "export { figerLeDecor } from '/hotes/godot/recettes/decor.ts';",
   "export { figerLeChemin } from '/hotes/godot/recettes/chemin.ts';",
   "export { figerLEditeurDuNavire } from '/hotes/godot/recettes/editeur.ts';",
+  "export { figerLeDegagement } from '/hotes/godot/recettes/degagement.ts';",
   "export { recupererEpingles } from '/hotes/godot/asset/epingles.ts';",
 ]))
 
@@ -147,10 +149,26 @@ function executer(code) {
     ['demarrer', { scenario: SCENARIO }, (r) => r.ok === false && r.erreur?.categorie === 'validation'],
     ['erreursGlobales', undefined, (r) => r.ok === true && Array.isArray(r.erreurs) && r.erreurs.length === 0],
   ]
-  return attendus.flatMap(([methode, entree, tient]) => {
+  const ecarts = attendus.flatMap(([methode, entree, tient]) => {
     const r = appel(methode, entree)
     return tient(r) ? [] : [`${methode} ${JSON.stringify(entree ?? null)} : ${JSON.stringify(r).slice(0, 400)}`]
   })
+  return [...ecarts, ...ecartsDesOctets(pont, appel('monde'))]
+}
+
+/** Les écarts de la porte en octets du pont (`appelerEnOctets`, `octets`) sur toutes les clés du manifeste `monde` :
+ *  `morceaux` tient un `ArrayBuffer` de la longueur que dit son en-tête, une autre méthode aucun. */
+function ecartsDesOctets(pont, monde) {
+  if (typeof pont.appelerEnOctets !== 'function' || typeof pont.octets !== 'function') return ['`globalThis.wfrpPont.appelerEnOctets` ou `octets` absent']
+  const cles = (liste) => liste.map(({ cle }) => cle)
+  const entree = { source: 'partie', volume: cles(monde.monde.morceaux), toits: cles(monde.toits), couronnes: cles(monde.couronnes) }
+  const entete = JSON.parse(pont.appelerEnOctets('morceaux', JSON.stringify(entree)))
+  const tenus = pont.octets()
+  const ecarts = entete.ok === true && entete.volume?.length > 0 && Object.prototype.toString.call(tenus) === '[object ArrayBuffer]' && tenus.byteLength === entete.octets
+    ? []
+    : [`morceaux en octets : ${JSON.stringify(entete).slice(0, 400)}, octets() ${Object.prototype.toString.call(tenus)} de ${tenus?.byteLength}`]
+  pont.appelerEnOctets('vue')
+  return pont.octets() === null ? ecarts : [...ecarts, 'octets() après vue : des octets au lieu de null']
 }
 
 
@@ -334,10 +352,11 @@ function surUneCopie(binaire, figerLesDessins, faire) {
  *  l'écran figées (`figerVuesDeLEcran`) écrites sous `recettes/vues/ecran.json` de la copie, et le véhicule de l'atelier
  *  figé sur le listage des modèles du projet (`figerLeVehicule`) sous `recettes/vues/vehicule.json`, l'atelier du
  *  repos (`figerLeRepos`) sous `recettes/vues/repos.json`, les échantillons de l'atelier figés (`figerLeDecor`) sous
- *  `recettes/vues/decor.json`, le chemin du groupe figé (`figerLeChemin`) sous `recettes/vues/chemin.json` et l'éditeur
- *  du navire figé (`figerLEditeurDuNavire`) sous `recettes/vues/editeur-navire.json`, que lisent leurs recettes ; chaque
- *  recette reçoit `--pont=<VIVANT>`, que la copie ne porte pas sous `res://../vivant.mjs`. */
-function sonder(binaire, { DOSSIER_DES_MODELES, figerVuesDeLEcran, figerLeVehicule, figerLeRepos, figerLeDecor, figerLeChemin, figerLEditeurDuNavire, figerLesDessins }) {
+ *  `recettes/vues/decor.json`, le chemin du groupe figé (`figerLeChemin`) sous `recettes/vues/chemin.json`, l'éditeur
+ *  du navire figé (`figerLEditeurDuNavire`) sous `recettes/vues/editeur-navire.json` et le dégagement du combat figé
+ *  (`figerLeDegagement`) sous `recettes/vues/degagement.json`, que lisent leurs recettes ; chaque recette reçoit
+ *  `--pont=<VIVANT>`, que la copie ne porte pas sous `res://../vivant.mjs`. */
+function sonder(binaire, { DOSSIER_DES_MODELES, figerVuesDeLEcran, figerLeVehicule, figerLeRepos, figerLeDecor, figerLeChemin, figerLEditeurDuNavire, figerLeDegagement, figerLesDessins }) {
   return surUneCopie(binaire, figerLesDessins, (copie) => {
     mkdirSync(join(copie, 'recettes', 'vues'), { recursive: true })
     writeFileSync(join(copie, 'recettes', 'vues', 'ecran.json'), JSON.stringify(figerVuesDeLEcran()))
@@ -347,6 +366,7 @@ function sonder(binaire, { DOSSIER_DES_MODELES, figerVuesDeLEcran, figerLeVehicu
     writeFileSync(join(copie, 'recettes', 'vues', 'decor.json'), JSON.stringify(figerLeDecor(modeles)))
     writeFileSync(join(copie, 'recettes', 'vues', 'chemin.json'), JSON.stringify(figerLeChemin(modeles)))
     writeFileSync(join(copie, 'recettes', 'vues', 'editeur-navire.json'), JSON.stringify(figerLEditeurDuNavire(modeles)))
+    writeFileSync(join(copie, 'recettes', 'vues', 'degagement.json'), JSON.stringify(figerLeDegagement(modeles)))
     const scripts = scriptsDe(copie)
     if (!scripts.length) return [`aucun script sous ${PROJET}`]
     const erreurs = scripts.flatMap((script) => godot(binaire, copie, ['--check-only', '--script', script]).erreurs)

@@ -33,7 +33,7 @@ import {
 import { METRES_PER_LEVEL } from './monde/relief';
 import { entityKindSchema, typeNonNomme, type Terrain, type SceneRoofDefaults, type ReliefDefaults, PENTE_TOIT_DEG } from '../data/schemas/defs-scenes/scene';
 import { champsDeclares, choixDuNoeud, cleOfferte, elementDuNoeud, formeAuPoint, recordDuNoeud, unionDuNoeud, varianteCourante, videDuNoeud, type ChoixDuContexte, type ContexteDuChamp } from './codex/editFields';
-import { valeurNeuveDe, variantesAChoisir } from './valeursNeuves';
+import { gestesDeLaListe, valeurNeuveDe, variantesAChoisir } from './valeursNeuves';
 import { jsonCanonique } from '../lib/jsonCanonique.mjs';
 import { buildingRoofMaterial } from './monde/buildings';
 import { sceneZoneTiles, zoneAreaTiles } from './monde/zones';
@@ -47,8 +47,9 @@ import { appuiSous, emporterLesObjets, normaliserLesAppuis, poseDeLAncre } from 
 import { entitesEnCaseEtage } from './monde/decorIndex';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { sitesDeLaScene } from '../data/schemas/defs-scenes/sites-de-paquet';
-import { choixDuChamp, ecritureOfferte, formeDuPorteur, type CadreDuPorteur, type DonneeDuPorteur, type SorteDePorteur, type EntityTool, type Sel, type Tool, EFFECT_ZONE_SEEDS, canonEdge, dansLaCarte, edgeWallState, effectZoneArea, effectZoneRect, empriseDuPinceau, entityAt, selPos, selRect } from './sceneEditLecture';
+import { cheminOffert, choixDuChamp, ecritureOfferte, formeDuPorteur, type CadreDuPorteur, type DonneeDuPorteur, type SorteDePorteur, type EntityTool, type Sel, type Tool, EFFECT_ZONE_SEEDS, canonEdge, dansLaCarte, edgeWallState, effectZoneArea, effectZoneRect, empriseDuPinceau, entityAt, selPos, selRect } from './sceneEditLecture';
 import { estObjet } from '../lib/objet.mjs';
+import { adresseRecalee, adresseRescellee, adressesScellees, estCheminDerive } from './edition/adresseDeProse';
 
 export type Rect = { x: number; y: number; w: number; h: number };
 export type Pt = { x: number; y: number };
@@ -1041,19 +1042,6 @@ type Objet = Record<string, unknown>;
 /** Le nœud admet-il que son champ soit retiré ? */
 const retirable = (noeud: unknown): boolean => videDuNoeud(noeud) === undefined;
 
-/** Ce que jouent les gestes de la liste `liste`, d'élément neuf `neuve` : « Ajouter », la liste où il s'ajoute en fin
- *  (`null` sans élément neuf, `valeurNeuveDe` n'en bâtissant aucun) ; pour chaque élément, « Retirer », la liste sans
- *  lui, et « Monter », celle où il passe avant le précédent (`null` pour le premier). */
-export function gestesDeLaListe(liste: readonly unknown[], neuve: unknown): { ajouter: unknown[] | null; elements: { retirer: unknown[]; monter: unknown[] | null }[] } {
-  return {
-    ajouter: neuve === undefined ? null : [...liste, neuve],
-    elements: liste.map((e, rang) => ({
-      retirer: liste.filter((_, i) => i !== rang),
-      monter: rang ? [...liste.slice(0, rang - 1), e, liste[rang - 1], ...liste.slice(rang + 1)] : null,
-    })),
-  };
-}
-
 /** La valeur `valeur` est-elle de la sorte du nœud `noeud`, où la valeur `actuelle` est écrite ? `undefined` : s'il
  *  admet le retrait ; d'un champ à choix, l'une de ses valeurs (`choixDuNoeud`) ; d'un objet, sa valeur neuve
  *  (`valeurNeuveDe`) ; d'une union, l'une de ses variantes à choisir (`variantesAChoisir`), ou de l'union qu'est sa
@@ -1146,14 +1134,28 @@ export function avecLaValeur(objet: unknown, donnee: Objet, chemin: readonly Seg
 }
 
 /** La donnée `donnee` du porteur de sorte `sorte` où `valeur` s'écrit au chemin `chemin` de son formulaire
- *  (`formeDuPorteur`, dans le cadre `cadre` ; `avecLaValeur`, aux choix que son contexte y pose, `choixDuChamp`),
- *  ou son refus : une écriture hors de ses champs, ou qui emporte un champ qu'ils n'offrent pas (`ecritureOfferte`),
- *  n'est pas offerte. */
+ *  (`formeDuPorteur`, dans le cadre `cadre` ; `avecLaValeur`, aux choix que son contexte y pose, `choixDuChamp`), son
+ *  adresse de prose recalée (`adresseRecalee`) et chaque fragment d'adresse scellé sur le `Source/` du cadre
+ *  (`adressesScellees`) ; ou son refus : une écriture hors de ses champs, ou qui emporte un champ qu'ils n'offrent pas
+ *  (`ecritureOfferte`), à ce qu'une adresse de prose dérive (`estCheminDerive`), ou qui apporte un fragment que seul un
+ *  chapitre non chargé scellerait, n'est pas offerte. */
 export function avecLaValeurDuPorteur<S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], chemin: readonly Segment[], valeur: unknown, cadre: CadreDuPorteur): EcritureDeValeur<DonneeDuPorteur[S]> {
   const { noeud, champs: offerts } = formeDuPorteur(sorte, donnee, cadre);
   const actuelle = chemin.reduce<unknown>((o, pas) => (estObjet(o) || Array.isArray(o) ? (o as Record<Segment, unknown>)[pas] : undefined), donnee);
-  if (!ecritureOfferte(offerts, chemin, actuelle)) return { ok: false, refus: 'nonOffert' };
-  return avecLaValeur(noeud, donnee as unknown as Objet, chemin, valeur, (ici) => choixDuChamp(sorte, donnee, ici, cadre)) as EcritureDeValeur<DonneeDuPorteur[S]>;
+  if (!ecritureOfferte(offerts, chemin, actuelle) || estCheminDerive(noeud, donnee, chemin)) return { ok: false, refus: 'nonOffert' };
+  const ecrite = avecLaValeur(noeud, donnee as unknown as Objet, chemin, valeur, (ici) => choixDuChamp(sorte, donnee, ici, cadre));
+  if (!ecrite.ok) return ecrite;
+  const scellee = adressesScellees(noeud, donnee, adresseRecalee(noeud, donnee, ecrite.valeur, chemin), cadre.source);
+  return scellee === undefined ? { ok: false, refus: 'nonOffert' } : { ok: true, valeur: scellee as DonneeDuPorteur[S] };
+}
+
+/** La donnée `donnee` du porteur de sorte `sorte` où l'adresse de prose au chemin `chemin` de son formulaire est
+ *  rescellée après relecture (`adresseRescellee`), sur le `Source/` du cadre `cadre` ; ou son refus : un chemin que son
+ *  formulaire n'offre pas, qui ne désigne pas une adresse, ou dont le chapitre n'est pas chargé. */
+export function avecLAdresseRescellee<S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], chemin: readonly Segment[], cadre: CadreDuPorteur): EcritureDeValeur<DonneeDuPorteur[S]> {
+  const { noeud, champs: offerts } = formeDuPorteur(sorte, donnee, cadre);
+  const rescellee = cheminOffert(offerts, chemin) ? adresseRescellee(noeud, donnee, chemin, cadre.source) : undefined;
+  return rescellee === undefined ? { ok: false, refus: 'nonOffert' } : { ok: true, valeur: rescellee as DonneeDuPorteur[S] };
 }
 
 /** La liste ou le record `v` d'un patch, `undefined` (son absence, `champ`) quand il est vide ou `null`. */
@@ -1503,7 +1505,7 @@ function rebaseSeatedBodies(scene: Scene): Scene {
   for (const [propId, parMeuble] of Object.entries(scene.seatAssignments ?? {})) {
     const places = seatSlotsOf(scene, propId);
     for (const [slotId, occupant] of Object.entries(parMeuble)) {
-      if (occupant.kind !== 'entity') continue;
+      if (occupant.kind !== 'entite') continue;
       const place = places.find((candidate) => candidate.slotId === slotId);
       if (place) cibles.set(occupant.entityId, { x: place.approach.x, y: place.approach.y });
     }
@@ -1609,7 +1611,7 @@ export function removeEntity(scene: Scene, id: string): Scene {
  *  attablés quand c'est le MEUBLE qui bouge, et lève les places devenues inoccupables). */
 export function moveEntityTo(scene: Scene, id: string, to: Pt): Scene {
   const deplacee = emporterLesObjets(scene, { ...scene, entities: scene.entities.map((e) => (e.id === id ? { ...e, pos: { ...e.pos, x: to.x, y: to.y } } : e)) }, id);
-  const occupant: SeatOccupant = { kind: 'entity', entityId: id };
+  const occupant: SeatOccupant = { kind: 'entite', entityId: id };
   const pose = seatPoseOf(scene, occupant);
   const quitte = !!pose && (pose.approach.x !== to.x || pose.approach.y !== to.y);
   return normaliserLaPose(quitte ? releaseSeat(deplacee, occupant) : deplacee);
@@ -2226,39 +2228,39 @@ export function appliquerOutil(scene: Scene, tool: Tool, p: Pt, geste: GesteDOut
   if (!dansLaCarte(scene, p)) return null;
   const { z, brush } = geste;
   switch (tool.mode) {
-    case 'tile': return { scene: paintTiles(scene, p, tool.terrain, brush, z) };
-    case 'height': return { scene: paintHeight(scene, p, tool.metres, brush, z) };
-    case 'crenellated': return { scene: paintCrenellated(scene, p, tool.structure, brush, z) };
-    case 'zoneTiles': return { scene: paintEffectZone(scene, tool.zoneId, p, tool.paint) };
-    case 'erase': return { scene: eraseAt(scene, p, z, geste.point) };
-    case 'entity':
+    case 'terrain': return { scene: paintTiles(scene, p, tool.terrain, brush, z) };
+    case 'hauteur': return { scene: paintHeight(scene, p, tool.metres, brush, z) };
+    case 'crenelage': return { scene: paintCrenellated(scene, p, tool.structure, brush, z) };
+    case 'casesDeZone': return { scene: paintEffectZone(scene, tool.zoneId, p, tool.paint) };
+    case 'gomme': return { scene: eraseAt(scene, p, z, geste.point) };
+    case 'entite':
     case 'emplacement': {
-      if (tool.mode === 'entity' && tool.kind === 'prop') {
+      if (tool.mode === 'entite' && tool.kind === 'prop') {
         const out = placeEntity(scene, tool, p, z, geste.point);
         return { scene: out.scene, sel: { type: 'entity', id: out.id } };
       }
       const existing = entityAt(scene, p, z, geste.point);
       if (existing) return { scene, sel: { type: 'entity', id: existing.id } };
-      const out = tool.mode === 'entity' ? placeEntity(scene, tool, p, z) : placeEmplacement(scene, tool.trappingId, p, z);
+      const out = tool.mode === 'entite' ? placeEntity(scene, tool, p, z) : placeEmplacement(scene, tool.trappingId, p, z);
       return out && { scene: out.scene, sel: { type: 'entity', id: out.id } };
     }
-    case 'entry': {
+    case 'entree': {
       const out = placeEntry(scene, p, z);
       return { scene: out.scene, sel: { type: 'entry', id: out.id } };
     }
-    case 'encounter': {
+    case 'rencontre': {
       const out = addEnemyMember(scene, geste.encId, geste.encRef, p, z);
       return { scene: out.scene, sel: { type: 'entity', id: out.entityId }, encId: out.encId };
     }
-    case 'wall': {
+    case 'arete': {
       if (!geste.side) return null;
       if (tool.paint === 'diagBack') return { scene: toggleDiagonalWall(scene, p.x, p.y, '\\', z) };
       if (tool.paint === 'diagFwd') return { scene: toggleDiagonalWall(scene, p.x, p.y, '/', z) };
       return { scene: toggleEdgeWall(scene, p.x, p.y, geste.side, z, tool.paint === 'door' ? 'door' : 'wall', tool.structure) };
     }
-    case 'select':
+    case 'selection':
     case 'zone':
-    case 'stair':
+    case 'escalier':
       return null;
   }
 }
@@ -2266,7 +2268,7 @@ export function appliquerOutil(scene: Scene, tool: Tool, p: Pt, geste: GesteDOut
 /** Valide le rectangle `rect` tracé à l'outil `tool` sur la couche `z` : une zone (déclencheur, repos,
  *  pièce, zone d'effet) qu'il désigne, ou le terrain qu'il remplit. null pour un outil sans rectangle. */
 export function validerRectangle(scene: Scene, tool: Tool, rect: Rect, z: number): EffetDOutil | null {
-  if (tool.mode === 'tile') return { scene: fillTerrainRect(scene, rect, tool.terrain, z) };
+  if (tool.mode === 'terrain') return { scene: fillTerrainRect(scene, rect, tool.terrain, z) };
   if (tool.mode !== 'zone') return null;
   if (tool.zone === 'trigger') {
     const out = addTrigger(scene, rect, z);

@@ -26,6 +26,7 @@ import {
   trappingRefLabel, valeursDeLEmplacement, type EmplacementDeDotation, type ParcoursDeCarriere,
   findSpellById, listesDeSorts, sortsImprimes,
   aLEchelleDesPonts, CAPS_DES_PONTS, TYPES_DE_NAVIRE, vueDeLaScene,
+  PHRASE_REFUS, estChampDAdresse, etatDeLAdresse, type SourceDeLEdition,
 } from '../noyau/index';
 import { pluriel, t } from '../i18n';
 import { coupeAuMot } from '../lib/coupeAuMot.mjs';
@@ -44,7 +45,8 @@ import { renduDe, type ArgumentDuGeste, type GesteDeLaFenetre } from './gestes';
  * ouverte : sans `projet`, celui que le jeu embarque, qui ne s'enregistre pas ; avec lui, le texte du projet que sert
  * le dépôt (`GET depot/<id>`, ci-dessus), passé par la porte (`projetDuDepot`), qui s'y enregistre ; avec `calques`, le
  * texte des calques que l'hôte gardait pour cette campagne (`CalquesStockes`, `src/noyau/edition/calque.ts`), retirés
- * s'ils ne sont pas du format courant (`FORMAT_CALQUES`) ou pas du JSON.
+ * s'ils ne sont pas du format courant (`FORMAT_CALQUES`) ou pas du JSON ; avec `manifeste`, le texte de l'index des
+ * chapitres du `Source/` que sert le poste (`GET source/manifest.json`, `Manifeste`, `src/data/source/chapitres.ts`).
  *
  * Un geste d'édition est soit un geste du pointeur, `{ geste: 'appui' | 'glisse' | 'relache', point: { case: { x, y },
  * f: { x, y } } }` (la case touchée en entiers, le point de la carte touché en cases continues, une case centrée sur
@@ -57,7 +59,9 @@ import { renduDe, type ArgumentDuGeste, type GesteDeLaFenetre } from './gestes';
  * éditée (`provenanceDesNavires`), sans glissé ; l'outil navire pose son navire sur la case), soit l'issue de
  * l'écriture d'un enregistrement en cours, `{ geste: 'enregistrement', reussi }`, soit celle du chargement d'une
  * planche en cours, `{ geste: 'chargement', image }`, `image` nulle si l'auteur renonce ou `{ largeur, hauteur }` en
- * pixels entiers positifs, soit le geste `{ edition }` que porte un bouton des zones de l'éditeur, égal en profondeur.
+ * pixels entiers positifs, soit celle du chargement du chapitre attendu, `{ geste: 'chapitre', book, ch, texte }`,
+ * `texte` le Markdown que sert `GET source/<book>/<ch>.md` ou `null` s'il n'a pas pu se charger, soit le geste
+ * `{ edition }` que porte un bouton des zones de l'éditeur, égal en profondeur.
  *
  * Le formulaire de l'inspecteur qui nomme l'entité, l'entrée, le déclencheur, la zone d'effet ou le corps sélectionné,
  * ou la scène sans sélection, se joue `{ type: 'nommer', args }` (`gesteDuFormulaire`, `src/hote/editeur.ts`), en `{
@@ -310,8 +314,8 @@ export interface ZonesDeLEditeur {
    * valeur neuve (ses seuls champs requis) ;
    *
    * une union dont chaque variante est nommée (`unionDuNoeud`, `src/noyau/codex/editFields.ts` : une Condition, une op,
-   * toute union discriminée, ou qui se lit à la présence de son discriminant, ou à la clé propre de ses branches, comme
-   * une formule, son nombre et chacune de ses formes), le choix de sa variante, d'id `valeur/<chemin>/<discriminant>`
+   * toute union discriminée, ou qui se lit à la présence de son discriminant, ou sans discriminant, à la forme de ses
+   * branches, comme une formule, son nombre et chacune de ses formes), le choix de sa variante, d'id `valeur/<chemin>/<discriminant>`
    * (`valeur/<chemin>/forme` sans discriminant), chaque variante posant sa valeur neuve (`variantesAChoisir`,
    * `src/noyau/valeursNeuves.ts` : `recast` pour une Condition, qui enveloppe la courante sous ET, OU, NON ; `newOp`
    * pour une op), la courante pressée, précédées de « Aucune » si son absence est admise, puis les champs de la
@@ -462,7 +466,7 @@ const choix = (id: string, libelle: string, valeurs: Bouton[], type: Choix['type
 function optionsDeLaVolee(s: SessionDEdition, toZ: number): (Choix | Ligne | Bouton)[] {
   const plan = planDeLaVolee(s)!;
   const etages = couchesDeLaVue(s)
-    .map((z) => bouton(`etage/${z}`, t('ecran.editeur.couche', { z }), { geste: 'outil', outil: { mode: 'stair', toZ: z } }, toZ === z));
+    .map((z) => bouton(`etage/${z}`, t('ecran.editeur.couche', { z }), { geste: 'outil', outil: { mode: 'escalier', toZ: z } }, toZ === z));
   const arrondi = (m: number) => Math.round(m * 100) / 100;
   return [
     choix('etages', t('ecran.editeur.volee.etage'), etages),
@@ -480,14 +484,14 @@ function optionsDeLaVolee(s: SessionDEdition, toZ: number): (Choix | Ligne | Bou
  *  aucune : elle efface la chose de la case. */
 function options(s: SessionDEdition): (Choix | Ligne | Bouton)[] {
   const outil = s.outil;
-  if (outil.mode === 'select' || outil.mode === 'erase' || outil.mode === 'entry' || (outil.mode === 'entity' && outil.kind === 'heroStart')) return [];
-  if (outil.mode === 'stair') return optionsDeLaVolee(s, outil.toZ);
+  if (outil.mode === 'selection' || outil.mode === 'gomme' || outil.mode === 'entree' || (outil.mode === 'entite' && outil.kind === 'heroStart')) return [];
+  if (outil.mode === 'escalier') return optionsDeLaVolee(s, outil.toZ);
   if (outil.mode === 'zone') {
     return [choix('zones', t('ecran.editeur.zones'),
       ZONE_VARIANTS.map((zone) => bouton(`zone/${zone}`, t(`ecran.editeur.zone.${zone}`), { geste: 'outil', outil: { mode: 'zone', zone } }, outil.zone === zone)))];
   }
   if (outil.mode === 'architecture') return optionsDArchitecture(s, outil.action);
-  if (outil.mode === 'zoneTiles') return [...emprise(outil.zoneId, outil), bouton('emprise/finir', t('ecran.editeur.zone.emprise.finir'), { geste: 'outil', outil: { mode: 'select' } })];
+  if (outil.mode === 'casesDeZone') return [...emprise(outil.zoneId, outil), bouton('emprise/finir', t('ecran.editeur.zone.emprise.finir'), { geste: 'outil', outil: { mode: 'selection' } })];
   if (outil.mode === 'emplacement') {
     return [choix('engins', t('ecran.editeur.engins'),
       siegeEngines().map((e) => bouton(`engin/${e.id}`, e.label, { geste: 'outil', outil: { mode: 'emplacement', trappingId: e.id } }, outil.trappingId === e.id)), 'liste')];
@@ -501,36 +505,36 @@ function options(s: SessionDEdition): (Choix | Ligne | Bouton)[] {
         bouton(`navire/cap/${cap}`, t(`ecran.editeur.cap.${cap}`), { geste: 'outil', outil: { ...outil, cap } }, outil.cap === cap))),
     ];
   }
-  if (outil.mode === 'entity') {
+  if (outil.mode === 'entite') {
     const kind = outil.kind;
     const offerts = kind === 'prop' ? props : fichesDePersonnage();
     return [choix(kind === 'prop' ? 'decors' : 'fiches', t(kind === 'prop' ? 'ecran.editeur.decors' : 'ecran.editeur.fiches'),
-      offerts.map((o) => bouton(`${kind}/${o.id}`, o.label, { geste: 'outil', outil: { mode: 'entity', kind, ref: o.id } }, outil.ref === o.id)), 'liste')];
+      offerts.map((o) => bouton(`${kind}/${o.id}`, o.label, { geste: 'outil', outil: { mode: 'entite', kind, ref: o.id } }, outil.ref === o.id)), 'liste')];
   }
   const pinceaux = PINCEAUX.map((n) => bouton(`pinceau/${n}`, t('ecran.editeur.pinceau.taille', { n }), { geste: 'pinceau', taille: n }, s.pinceau === n && !s.rectangle));
-  if (outil.mode === 'tile') {
+  if (outil.mode === 'terrain') {
     const rectangle = bouton('pinceau/rectangle', t('ecran.editeur.pinceau.rectangle'), { geste: 'rectangle', actif: !s.rectangle }, s.rectangle);
-    const terrains = terrainIds().map((id) => bouton(`terrain/${id}`, terrainLabel(id), { geste: 'outil', outil: { mode: 'tile', terrain: id } }, outil.terrain === id));
+    const terrains = terrainIds().map((id) => bouton(`terrain/${id}`, terrainLabel(id), { geste: 'outil', outil: { mode: 'terrain', terrain: id } }, outil.terrain === id));
     return [choix('pinceau', t('ecran.editeur.pinceau'), [...pinceaux, rectangle]), choix('terrains', t('ecran.editeur.terrains'), terrains, 'liste')];
   }
-  if (outil.mode === 'wall') {
-    const peintures = PEINTURES.map((paint) => bouton(`arete/${paint}`, t(`ecran.editeur.arete.${paint}`), { geste: 'outil', outil: { mode: 'wall', paint } }, outil.paint === paint));
+  if (outil.mode === 'arete') {
+    const peintures = PEINTURES.map((paint) => bouton(`arete/${paint}`, t(`ecran.editeur.arete.${paint}`), { geste: 'outil', outil: { mode: 'arete', paint } }, outil.paint === paint));
     const posables = structuresDeLArete(outil.paint);
     if (!posables.length) return [choix('aretes', t('ecran.editeur.aretes'), peintures)];
     const structuresDeLOutil = [
-      bouton('structure/defaut', t('ecran.editeur.structure.defaut'), { geste: 'outil', outil: { mode: 'wall', paint: outil.paint } }, outil.structure === undefined),
-      ...posables.map((st) => bouton(`structure/${st.id}`, st.label, { geste: 'outil', outil: { mode: 'wall', paint: outil.paint, structure: st.id } }, outil.structure === st.id)),
+      bouton('structure/defaut', t('ecran.editeur.structure.defaut'), { geste: 'outil', outil: { mode: 'arete', paint: outil.paint } }, outil.structure === undefined),
+      ...posables.map((st) => bouton(`structure/${st.id}`, st.label, { geste: 'outil', outil: { mode: 'arete', paint: outil.paint, structure: st.id } }, outil.structure === st.id)),
     ];
     return [choix('aretes', t('ecran.editeur.aretes'), peintures), choix('structures', t('ecran.editeur.structures'), structuresDeLOutil, 'liste')];
   }
-  if (outil.mode === 'crenellated') {
+  if (outil.mode === 'crenelage') {
     const parapets = [
-      ...structuresCrenelables().map((st) => bouton(`crenelage/${st.id}`, st.label, { geste: 'outil', outil: { mode: 'crenellated', structure: st.id } }, outil.structure === st.id)),
-      bouton('crenelage/gomme', t('ecran.editeur.crenelage.gomme'), { geste: 'outil', outil: { mode: 'crenellated', structure: null } }, outil.structure === null),
+      ...structuresCrenelables().map((st) => bouton(`crenelage/${st.id}`, st.label, { geste: 'outil', outil: { mode: 'crenelage', structure: st.id } }, outil.structure === st.id)),
+      bouton('crenelage/gomme', t('ecran.editeur.crenelage.gomme'), { geste: 'outil', outil: { mode: 'crenelage', structure: null } }, outil.structure === null),
     ];
     return [choix('pinceau', t('ecran.editeur.pinceau'), pinceaux), choix('parapets', t('ecran.editeur.crenelage'), parapets, 'liste')];
   }
-  const hauteurs = HAUTEURS.map((h) => bouton(`hauteur/${h.cle}`, `${t(`ecran.editeur.hauteur.${h.cle}`)} (${h.metres} m)`, { geste: 'outil', outil: { mode: 'height', metres: h.metres } }, outil.metres === h.metres));
+  const hauteurs = HAUTEURS.map((h) => bouton(`hauteur/${h.cle}`, `${t(`ecran.editeur.hauteur.${h.cle}`)} (${h.metres} m)`, { geste: 'outil', outil: { mode: 'hauteur', metres: h.metres } }, outil.metres === h.metres));
   return [choix('pinceau', t('ecran.editeur.pinceau'), pinceaux), choix('hauteurs', t('ecran.editeur.hauteurs'), hauteurs)];
 }
 
@@ -562,7 +566,7 @@ function optionsDArchitecture(s: SessionDEdition, action: (typeof ACTIONS_D_ARCH
   return [
     ...(corps.length ? [choix('corps', t('ecran.editeur.corps'), corps.map((c) => bouton(`corps/${c.id}`, c.label ?? c.id, { geste: 'corps', id: c.id }, c.id === actif?.id)))] : []),
     choix('architecture/action', t('ecran.editeur.architecture.action'), ACTIONS_D_ARCHITECTURE.map((a) =>
-      bouton(`architecture/${a}`, t(`ecran.editeur.architecture.${a}`), { geste: 'outil', outil: { mode: 'architecture', action: a } }, action === a, a === 'select' || actif ? null : t('ecran.editeur.ouvrage.refus.sansCorps')))),
+      bouton(`architecture/${a}`, t(`ecran.editeur.architecture.${a}`), { geste: 'outil', outil: { mode: 'architecture', action: a } }, action === a, a === 'selection' || actif ? null : t('ecran.editeur.ouvrage.refus.sansCorps')))),
     ...OUVRAGES.map((o) => {
       const refus = refusDOuvrage(s, o);
       return bouton(`batir/${o}`, t(`ecran.editeur.ouvrage.${o}`), { geste: 'batir', ouvrage: o }, false, refus && t(`ecran.editeur.ouvrage.refus.${refus}`));
@@ -728,7 +732,7 @@ function equipe(s: SessionDEdition, ent: Scene['entities'][number], id: keyof ty
 }
 
 /** Les clés d'un occupant de place, sa nature en tête. */
-const cleDeLOccupant = (o: SeatOccupant): string => (o.kind === 'party' ? `heros-${o.rang}` : o.entityId);
+const cleDeLOccupant = (o: SeatOccupant): string => (o.kind === 'groupe' ? `heros-${o.rang}` : o.entityId);
 
 /** L'assise du décor `ent` de la session `s` : l'ouvrir au jeu ; chacune des places que son type porte, tenue par
  *  personne, par un personnage de la scène ou par un emplacement du groupe, chaque occupant refusé avec sa raison. */
@@ -738,8 +742,8 @@ function places(s: SessionDEdition, ent: Scene['entities'][number]): (Choix | Bo
   if (!slots.length) return [];
   const tenues = scene.seatAssignments?.[ent.id] ?? {};
   const occupants: { occupant: SeatOccupant; nom: string }[] = [
-    ...scene.entities.filter((e) => e.kind === 'personnage').map((e) => ({ occupant: { kind: 'entity' as const, entityId: e.id }, nom: nomALEcran(s, e) })),
-    ...Array.from({ length: PARTY_MAX }, (_, i) => ({ occupant: { kind: 'party' as const, rang: i + 1 }, nom: labelEmplacement(i + 1) })),
+    ...scene.entities.filter((e) => e.kind === 'personnage').map((e) => ({ occupant: { kind: 'entite' as const, entityId: e.id }, nom: nomALEcran(s, e) })),
+    ...Array.from({ length: PARTY_MAX }, (_, i) => ({ occupant: { kind: 'groupe' as const, rang: i + 1 }, nom: labelEmplacement(i + 1) })),
   ];
   return [
     bouton('assise', t('ecran.editeur.assise'), { geste: 'entite', patch: { assise: !ent.usable?.assise } }, !!ent.usable?.assise),
@@ -913,10 +917,10 @@ function rencontres(s: SessionDEdition, ent: Scene['entities'][number]): (Choix 
       return choix(id, t('ecran.editeur.rencontre', { id: enc.id }), [
         bouton(`${id}/enrole`, t('ecran.editeur.rencontre.enrole'), membre({ enrole: !m }), !!m),
         ...(m ? [
-          bouton(`${id}/ennemi`, t('ecran.editeur.rencontre.ennemi'), membre({ camp: 'enemy' }), m.side !== 'ally'),
-          bouton(`${id}/allie`, t('ecran.editeur.rencontre.allie'), membre({ camp: 'ally' }), m.side === 'ally'),
+          bouton(`${id}/ennemi`, t('ecran.editeur.rencontre.ennemi'), membre({ camp: 'ennemi' }), m.side !== 'allie'),
+          bouton(`${id}/allie`, t('ecran.editeur.rencontre.allie'), membre({ camp: 'allie' }), m.side === 'allie'),
         ] : []),
-        ...(m?.side === 'ally' ? [bouton(`${id}/ia`, t('ecran.editeur.rencontre.ia'), membre({ ia: !m.ai }), !!m.ai)] : []),
+        ...(m?.side === 'allie' ? [bouton(`${id}/ia`, t('ecran.editeur.rencontre.ia'), membre({ ia: !m.ai }), !!m.ai)] : []),
       ]);
     }),
     bouton('rencontre/neuve', t('ecran.editeur.rencontre.neuve'), { geste: 'membre', patch: { rencontre: null, enrole: true } }),
@@ -1148,9 +1152,9 @@ function inspecteurDeFacade(scene: Scene, corps: NonNullable<ReturnType<typeof c
 /** L'emprise au pinceau de la zone d'effet `zoneId` : y ajouter des cases, en retirer (l'outil d'emprise armé dans ce
  *  sens, pressé). */
 function emprise(zoneId: string, outil: SessionDEdition['outil']): Choix[] {
-  const sens = outil.mode === 'zoneTiles' && outil.zoneId === zoneId ? outil.paint : null;
+  const sens = outil.mode === 'casesDeZone' && outil.zoneId === zoneId ? outil.paint : null;
   return [choix('emprise', t('ecran.editeur.zone.emprise'), (['add', 'remove'] as const).map((paint) =>
-    bouton(`emprise/${paint}`, t(`ecran.editeur.zone.emprise.${paint}`), { geste: 'outil', outil: { mode: 'zoneTiles', zoneId, paint } }, sens === paint)))];
+    bouton(`emprise/${paint}`, t(`ecran.editeur.zone.emprise.${paint}`), { geste: 'outil', outil: { mode: 'casesDeZone', zoneId, paint } }, sens === paint)))];
 }
 
 /** Le porteur des valeurs qu'écrit un formulaire tiré du schéma (`{ geste: 'valeur' }`). */
@@ -1216,6 +1220,7 @@ function elementsDuChamp(porteur: PorteurDeValeur, f: FieldDesc, valeur: unknown
   const id = `valeur/${ici.join('/')}`;
   const retirable = valeur !== undefined && f.nullable && (f.contexte?.ecrivable(ici, valeur) ?? true);
   const retirer = retirable ? [bouton(`${id}/retirer`, t('ecran.editeur.valeur.retirer', { libelle: f.label }), ecrireLaValeur(porteur, ici))] : [];
+  if (f.contexte && estChampDAdresse(f.noeud)) return elementsDeLAdresse(porteur, f, valeur, ici, retirer, f.contexte.source);
   if (champsDeclares(f.noeud)) {
     if (valeur === undefined) return [ajoutDeLObjet(porteur, f, ici)];
     const objet = valeur as Record<string, unknown>;
@@ -1231,6 +1236,33 @@ function elementsDuChamp(porteur: PorteurDeValeur, f: FieldDesc, valeur: unknown
   return [elementDeValeur(id, porteur, ici, f, a), ...(a.saisie === 'choix' ? aucune : retirer)];
 }
 
+/** Les éléments du champ adresse de prose `f` (`estChampDAdresse`), de valeur `valeur`, au chemin `ici`, « Retirer »
+ *  `retirer`, sur le `Source/` `source` : absente, le choix de son livre (`ajoutDeLObjet`), ou, sans `Source/` servi, la
+ *  ligne qui le dit ; présente, son libellé, ses champs offerts (son empreinte jamais), ses fragments seulement sur son
+ *  chapitre chargé, puis ce que dit son état (`etatDeLAdresse`) : le `Source/` absent, le chapitre à choisir, qui se
+ *  charge ou introuvable, le passage qu'elle résout, ou le refus du parseur (`PHRASE_REFUS`), et, d'une empreinte qui
+ *  diverge, « Resceller après relecture » (`{ geste: 'resceller', porteur, chemin }`). */
+function elementsDeLAdresse(porteur: PorteurDeValeur, f: FieldDesc, valeur: unknown, ici: Segment[], retirer: Bouton[], source: SourceDeLEdition): (Choix | Ligne | Bouton | Formulaire)[] {
+  const id = `valeur/${ici.join('/')}`;
+  const sansSource = ligne(`${id}/etat`, t('ecran.editeur.adresse.sansSource'));
+  if (valeur === undefined) return [source.manifeste ? ajoutDeLObjet(porteur, f, ici) : sansSource];
+  const adresse = valeur as Parameters<typeof etatDeLAdresse>[1];
+  const etat = etatDeLAdresse(source, adresse);
+  const charge = etat.etat === 'resolue' || etat.etat === 'refusee';
+  const champs = champsSous(f, ici, f.noeud, adresse as unknown as Record<string, unknown>).filter((c) => charge || c.key !== 'parts');
+  const dit = (texte: string) => [ligne(`${id}/etat`, texte)];
+  const lignes = etat.etat === 'sansSource' ? [sansSource]
+    : etat.etat === 'resolue' ? (etat.md ? dit(t('ecran.editeur.adresse.passage', { texte: coupeAuMot(etat.md, LONGUEUR_DU_PASSAGE) })) : [])
+      : etat.etat === 'refusee' ? dit(etat.erreur.fragment === undefined ? PHRASE_REFUS[etat.erreur.error] : t('ecran.editeur.adresse.refus', { rang: etat.erreur.fragment + 1, phrase: PHRASE_REFUS[etat.erreur.error] }))
+        : dit(t(`ecran.editeur.adresse.${etat.etat}`));
+  const resceller = etat.etat === 'refusee' && etat.erreur.error === 'empreinte-divergente'
+    ? [bouton(`${id}/resceller`, t('ecran.editeur.adresse.resceller'), { geste: 'resceller', porteur, chemin: ici })] : [];
+  return [ligne(id, f.label), ...elementsDuFormulaire(porteur, champs, adresse as unknown as Record<string, unknown>, ici), ...lignes, ...resceller, ...retirer];
+}
+
+/** Le plus long passage qu'une adresse de prose montre, en caractères (`coupeAuMot`). */
+const LONGUEUR_DU_PASSAGE = 240;
+
 /** Les éléments du champ record `f` (`recordDuNoeud`) qui offre des clés (`champsDuRecord`), de valeur `valeur`, au
  *  chemin `ici`, « Retirer » `retirer` : présent, son libellé, chacune de ses entrées, comme les champs d'un objet, et
  *  « Retirer » ; absent, « Ajouter », qui le pose vide (`valeurNeuveDe`). */
@@ -1241,7 +1273,7 @@ function elementsDuRecord(porteur: PorteurDeValeur, f: FieldDesc, valeur: unknow
 }
 
 /** Les éléments du champ union `f` (`unionDuNoeud`), de valeur `valeur`, au chemin `ici`, les discriminants `tenus` déjà
- *  choisis : le choix de sa variante, d'id `valeur/<chemin>/<discriminant>` (`…/forme` d'une union à clé propre),
+ *  choisis : le choix de sa variante, d'id `valeur/<chemin>/<discriminant>` (`…/forme` d'une union sans discriminant),
  *  chacune posant sa valeur (celles que son
  *  contexte y pose, `FieldDesc.contexte`, sinon `variantesAChoisir`), suivi de « Aucune » si son absence est
  *  admise ; puis, de la variante courante, une union
@@ -1708,11 +1740,12 @@ function refusDEnregistrer(s: SessionDEdition): string | null {
  * montre la plaque de la sélection et joint leurs noms) (`prop`, `personnage`, `heroStart` ou `entree`, son nom comme à
  * `editeur.pointee`, et si elle est sélectionnée). `aretes` porte les arêtes de la couche éditée hors des ponts des
  * navires (`aretesDeLaCouche`, chacune comme la méthode `aretes` la sert), rendues avec `monde`, comme `navires`, les navires de la
- * scène sous la forme de `corps.navires` (section « Corps d'un combattant »). `monde` porte le volume du monde de la
- * vue de la scène éditée, les ponts de ses navires posés (`vueDeLaScene`), jusqu'à la couche éditée, sans les
- * surplombs des couches au-dessus, qu'il porte en `ombre` avec ces couches (`volumeDuMonde(scene, activeZ)`, section
- * « Monde ») ; il n'est rendu qu'à l'ouverture, et sans geste en cours quand
- * la scène ou la couche a changé depuis le dernier rendu : jamais pendant un glissé, dont la surcouche tient lieu. Le
+ * scène sous la forme de `corps.navires` (section « Corps d'un combattant »). `monde` porte le manifeste du volume du monde de
+ * la vue de la scène éditée, les ponts de ses navires posés (`vueDeLaScene`), comme `monde.monde` (section « Monde ») ;
+ * `morceaux`, source `edition`, en sert la géométrie. `retrait` porte le masque des couches au-dessus de la couche
+ * éditée (`retraitDuMonde(scene, z)`, section « Monde »). Tous deux ne sont rendus qu'à l'ouverture, et sans geste en
+ * cours quand la scène ou la couche a changé depuis le dernier rendu : jamais pendant un glissé, dont la surcouche
+ * tient lieu. Le
  * geste « Enregistrer » rend `depot: { id, texte }`, le texte du projet, ses scènes à jour (`scenesDeLaSession`), passé
  * par la porte, en forme dépôt (`texteAEnregistrer`) ; l'enregistrement est en cours jusqu'à son issue, et les scènes
  * écrites ne sont tenues pour enregistrées qu'à l'issue réussie.
@@ -1740,27 +1773,27 @@ function refusDEnregistrer(s: SessionDEdition): string | null {
  *  (`vueDeLaScene`), ses navires posés par leurs ponts. */
 export function zonesDeLEditeur(s: SessionDEdition): ZonesDeLEditeur {
   const scene = sceneEditee(s);
-  const terrain = s.outil.mode === 'tile' ? s.outil.terrain : terrainIds()[0];
+  const terrain = s.outil.mode === 'terrain' ? s.outil.terrain : terrainIds()[0];
   const outil = s.outil;
-  const kindDeLOutil = (kind: 'prop' | 'personnage') => (outil.mode === 'entity' && outil.kind === kind ? outil.ref : undefined);
+  const kindDeLOutil = (kind: 'prop' | 'personnage') => (outil.mode === 'entite' && outil.kind === kind ? outil.ref : undefined);
   const etages = couchesDeLaVue(s);
   const navire = outil.mode === 'navire' ? outil : { ref: TYPES_DE_NAVIRE[0].id, cap: CAPS_DES_PONTS[0] };
   const outils = [
-    bouton('outil/select', t('ecran.editeur.outil.select'), { geste: 'outil', outil: { mode: 'select' } }, s.outil.mode === 'select'),
-    bouton('outil/tile', t('ecran.editeur.outil.tile'), { geste: 'outil', outil: { mode: 'tile', terrain } }, s.outil.mode === 'tile'),
-    bouton('outil/height', t('ecran.editeur.outil.height'), { geste: 'outil', outil: { mode: 'height', metres: HAUTEURS[0].metres } }, s.outil.mode === 'height'),
-    bouton('outil/wall', t('ecran.editeur.outil.wall'), { geste: 'outil', outil: { mode: 'wall', paint: 'wall' } }, s.outil.mode === 'wall'),
-    bouton('outil/stair', t('ecran.editeur.outil.stair'), { geste: 'outil', outil: { mode: 'stair', toZ: etages.find((z) => z > s.z) ?? s.z } }, s.outil.mode === 'stair'),
-    bouton('outil/crenellated', t('ecran.editeur.outil.crenellated'), { geste: 'outil', outil: { mode: 'crenellated', structure: structuresCrenelables()[0]?.id ?? null } }, s.outil.mode === 'crenellated'),
-    bouton('outil/prop', t('ecran.editeur.outil.prop'), { geste: 'outil', outil: { mode: 'entity', kind: 'prop', ref: kindDeLOutil('prop') ?? props[0].id } }, kindDeLOutil('prop') !== undefined),
-    bouton('outil/personnage', t('ecran.editeur.outil.personnage'), { geste: 'outil', outil: { mode: 'entity', kind: 'personnage', ref: kindDeLOutil('personnage') ?? fichesDePersonnage()[0].id } }, kindDeLOutil('personnage') !== undefined),
+    bouton('outil/select', t('ecran.editeur.outil.select'), { geste: 'outil', outil: { mode: 'selection' } }, s.outil.mode === 'selection'),
+    bouton('outil/tile', t('ecran.editeur.outil.tile'), { geste: 'outil', outil: { mode: 'terrain', terrain } }, s.outil.mode === 'terrain'),
+    bouton('outil/height', t('ecran.editeur.outil.height'), { geste: 'outil', outil: { mode: 'hauteur', metres: HAUTEURS[0].metres } }, s.outil.mode === 'hauteur'),
+    bouton('outil/wall', t('ecran.editeur.outil.wall'), { geste: 'outil', outil: { mode: 'arete', paint: 'wall' } }, s.outil.mode === 'arete'),
+    bouton('outil/stair', t('ecran.editeur.outil.stair'), { geste: 'outil', outil: { mode: 'escalier', toZ: etages.find((z) => z > s.z) ?? s.z } }, s.outil.mode === 'escalier'),
+    bouton('outil/crenellated', t('ecran.editeur.outil.crenellated'), { geste: 'outil', outil: { mode: 'crenelage', structure: structuresCrenelables()[0]?.id ?? null } }, s.outil.mode === 'crenelage'),
+    bouton('outil/prop', t('ecran.editeur.outil.prop'), { geste: 'outil', outil: { mode: 'entite', kind: 'prop', ref: kindDeLOutil('prop') ?? props[0].id } }, kindDeLOutil('prop') !== undefined),
+    bouton('outil/personnage', t('ecran.editeur.outil.personnage'), { geste: 'outil', outil: { mode: 'entite', kind: 'personnage', ref: kindDeLOutil('personnage') ?? fichesDePersonnage()[0].id } }, kindDeLOutil('personnage') !== undefined),
     bouton('outil/navire', t('ecran.editeur.outil.navire'), { geste: 'outil', outil: { mode: 'navire', ref: navire.ref, cap: navire.cap } }, outil.mode === 'navire', refusDuNavire(scene, navire.ref)),
     bouton('outil/emplacement', t('ecran.editeur.outil.emplacement'), { geste: 'outil', outil: { mode: 'emplacement', trappingId: outil.mode === 'emplacement' ? outil.trappingId : siegeEngines()[0].id } }, outil.mode === 'emplacement'),
-    bouton('outil/heroStart', t('ecran.editeur.outil.heroStart'), { geste: 'outil', outil: { mode: 'entity', kind: 'heroStart' } }, s.outil.mode === 'entity' && s.outil.kind === 'heroStart'),
-    bouton('outil/entry', t('ecran.editeur.outil.entry'), { geste: 'outil', outil: { mode: 'entry' } }, s.outil.mode === 'entry'),
-    bouton('outil/architecture', t('ecran.editeur.outil.architecture'), { geste: 'outil', outil: { mode: 'architecture', action: 'select' } }, outil.mode === 'architecture'),
+    bouton('outil/heroStart', t('ecran.editeur.outil.heroStart'), { geste: 'outil', outil: { mode: 'entite', kind: 'heroStart' } }, s.outil.mode === 'entite' && s.outil.kind === 'heroStart'),
+    bouton('outil/entry', t('ecran.editeur.outil.entry'), { geste: 'outil', outil: { mode: 'entree' } }, s.outil.mode === 'entree'),
+    bouton('outil/architecture', t('ecran.editeur.outil.architecture'), { geste: 'outil', outil: { mode: 'architecture', action: 'selection' } }, outil.mode === 'architecture'),
     bouton('outil/zone', t('ecran.editeur.outil.zone'), { geste: 'outil', outil: { mode: 'zone', zone: outil.mode === 'zone' ? outil.zone : ZONE_VARIANTS[0] } }, outil.mode === 'zone'),
-    bouton('outil/erase', t('ecran.editeur.outil.erase'), { geste: 'outil', outil: { mode: 'erase' } }, s.outil.mode === 'erase'),
+    bouton('outil/erase', t('ecran.editeur.outil.erase'), { geste: 'outil', outil: { mode: 'gomme' } }, s.outil.mode === 'gomme'),
   ];
   const couches = etages.map((z) => bouton(`couche/${z}`, t('ecran.editeur.couche', { z }), { geste: 'couche', z }, s.z === z));
   const p = s.pointee;
@@ -1940,6 +1973,13 @@ export function estLIssueDUnChargement(g: unknown): g is Extract<GesteDEdition, 
   if (!estObjet(g) || g.geste !== 'chargement' || Object.keys(g).length !== 2 || !('image' in g)) return false;
   const { image } = g;
   return image === null || (estObjet(image) && Object.keys(image).length === 2 && [image.largeur, image.hauteur].every((n) => estEntier(n) && n > 0));
+}
+
+/** Si `g` est l'issue du chargement d'un chapitre du `Source/` : `{ geste: 'chapitre', book, ch, texte }`, son livre et
+ *  son chapitre en chaînes, `texte` le Markdown du chapitre ou `null` s'il n'a pas pu se charger, rien de plus. */
+export function estLIssueDUnChapitre(g: unknown): g is Extract<GesteDEdition, { geste: 'chapitre' }> {
+  return estObjet(g) && g.geste === 'chapitre' && Object.keys(g).length === 4 && typeof g.book === 'string' && typeof g.ch === 'string'
+    && 'texte' in g && (g.texte === null || typeof g.texte === 'string');
 }
 
 /** Si `g` est un geste du pointeur : `{ geste: 'appui' | 'glisse' | 'relache', point: { case: { x, y }, f: { x, y } } }`,

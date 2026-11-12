@@ -9,7 +9,7 @@
  *
  * DEUX provenances, un seul contrôle (`ForcedRollPicker`) :
  *  - **Résilience** — LDB 17 l.68 : « au lieu de lancer les dés pour un Test, vous choisissez le
- *    résultat ». Le slot est `forced` (le point est déjà dépensé par `forceSuccess`) ; le dé choisi
+ *    résultat ». Le slot est `forced` (le point est déjà dépensé par `forcerLaReussite`) ; le dé choisi
  *    doit rester une réussite (`maxForcedRoll`). INCONDITIONNEL : offert sur tout flux à Résilience,
  *    y compris un Test binaire (le dé y change le DR affiché, jamais l'issue).
  *  - **Dé fixé** — option de confort `des-fixes` (`engine/fixedDie.ts`), gatée par le prédicat
@@ -122,9 +122,9 @@ export function rowForcedDie(
   if (row.forcedRoll) return { forcedRoll: row.forcedRoll };
   if (!flowKey || row.noForcedDie || row.interactive === false) return {};
   const flow = FLOWS[flowKey];
-  if (!fluxAccepte(flowKey, 'setForcedRoll')) return {};
+  if (!fluxAccepte(flowKey, 'imposerLeResultat')) return {};
   // Un dé ne se SAISIT que là où le socle sait le RÉÉVALUER : `fixable` = l'ACCESSEUR DE DÉ du flux est
-  // complet (lire où vit le dé, réécrire l'issue re-dérivée). Même gate côté fabrique (`setForcedRoll`).
+  // complet (lire où vit le dé, réécrire l'issue re-dérivée). Même gate côté fabrique (`imposerLeResultat`).
 
   const multi = FLOW_VERBS[flowKey].kind === 'multi';
   // Le slot se résout sur le pid RÉEL : `row.pid` quand le site scope sa clé React, sinon la `key`.
@@ -138,10 +138,10 @@ export function rowForcedDie(
   if (!flow.fixable || !flow.picker) return {};
   const pick = flow.picker(slot, row.actor, s);
   // La marque appartient au dé COURANT : une Résilience postérieure re-tire le dé, la mention s'efface.
-  const mark = !!slot.fixed && !slot.forced;
+  const mark = !!slot.fixed && !slot.forcee;
 
   // Résilience en cours : le dé CHOISI prime (le point est dépensé, l'issue reste une réussite).
-  if (slot.forced && pick) return { forcedRoll: { ...pick, onSet }, fixedMark: mark };
+  if (slot.forcee && pick) return { forcedRoll: { ...pick, onSet }, fixedMark: mark };
   if (!canFixDie(s, row.actor?.id)) return { fixedMark: mark };
   if (isRolled) return pick ? { forcedRoll: { roll: pick.roll, target: pick.target, ...(pick.max != null ? { max: pick.max } : {}), onSet, fixed: true }, fixedMark: mark } : { fixedMark: mark };
   // AVANT le jet : la saisie LANCE puis substitue — même geste pré-armé que la Résilience pré-jet (`jetForcerLaReussite`).

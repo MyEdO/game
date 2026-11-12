@@ -4,12 +4,15 @@
  *  non parsée à la racine du paquet, et son paquet : la jouer, l'ouvrir dans l'éditeur ou l'exporter
  *  fait passer son paquet par la porte `parseProject` AU GESTE (#1692), comme une entrée de
  *  bibliothèque (`campagneDeLEntree`). */
+import { estIdDIcone, type IconId } from '../data/icons';
 import { Scene } from '../noyau/monde/scene';
 import { WorldMap, parseProject, documentDeProjet, playerEntryError, type ProjectDoc, type ProjectIdentite } from '../noyau/worldMap';
 import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import { sourceRefSchema } from '../data/schemas/grammaire/valeurs';
+import type { Combatant } from '../engine/types';
 import type { Jeu } from '../noyau/etat';
 import type { Get } from '../noyau/flowTypes';
+import { lancementDuProjet, poserLeLancement, type LancementDeScenario } from '../noyau/lancementDeScenario';
 import { refusDeLancer } from '../noyau/partyFlow';
 import areneProjet from './arene/arene-projet.json';
 import loupEtSaumureProjet from './loup-et-saumure/loup-et-saumure-projet.json';
@@ -26,7 +29,7 @@ interface PaquetDuJeu {
  *  #211. */
 export interface BuiltinCampaign extends ProjectIdentite {
   /** L'icône est REQUISE sur une campagne exposée au picker (l'enveloppe la pose optionnelle). */
-  icon: string;
+  icon: IconId;
   paquet: PaquetDuJeu;
   /** Nom du fichier du paquet sous `src/scenes/` (`diligence-projet.json`), tel que ce registre le déclare. */
   fichier: string;
@@ -61,10 +64,17 @@ export function campagneALancer(choisie: Jeu['pendingCampaign']): NonNullable<Je
   return choisie ?? campagneDuJeu(areneCampaign);
 }
 
-/** LANCE la campagne `campagneALancer(choisie)` par `chargerLeProjet`, SOURCE UNIQUE de « Lancer »
- *  (`PartyScreen`), du repli de défaite (`CampaignView`) et de `__wfrp.campaign` ; `sceneId` remplace
- *  sa scène d'entrée. Rend le refus du groupe (`refusDeLancer`), ou celui de la porte énoncé au joueur
- *  (`playerEntryError`, `noyau/worldMap.ts`), `null` quand la campagne est chargée. */
+/** LE lancement de la campagne `lancee` (`campagneDuJeu`) par le groupe `party`, constructeur UNIQUE que partagent
+ *  les hôtes du noyau (`lancementDuProjet`) : sa scène d'entrée, que `sceneId` remplace, et l'identité de son document. */
+export function lancementDeLaCampagne(lancee: NonNullable<Jeu['pendingCampaign']>, party: Combatant[], sceneId: string = lancee.startSceneId): LancementDeScenario {
+  return lancementDuProjet(lancee, party, sceneId, lancee.projet);
+}
+
+/** POSE la campagne `campagneALancer(choisie)` par le groupe en place, sur la séquence unique du lancement
+ *  (`poserLeLancement` de `lancementDeLaCampagne`) : « Lancer » du store web (`PartyScreen`), repli de défaite
+ *  (`CampaignView`) et `__wfrp.campaign` ; `sceneId` remplace sa scène d'entrée. Rend le refus du groupe
+ *  (`refusDeLancer`), ou celui de la porte énoncé au joueur (`playerEntryError`, `noyau/worldMap.ts`), `null` quand
+ *  la campagne est chargée. */
 export function lancerCampagne(get: Get, choisie: Jeu['pendingCampaign'], sceneId?: string): string | null {
   const refus = refusDeLancer(get());
   if (refus) return refus;
@@ -74,7 +84,7 @@ export function lancerCampagne(get: Get, choisie: Jeu['pendingCampaign'], sceneI
   } catch (err) {
     return playerEntryError(err, 'jouer');
   }
-  get().chargerLeProjet({ scenes: lancee.scenes, entryId: sceneId ?? lancee.startSceneId, worldMap: lancee.worldMap ?? null, narratif: lancee.narratif, projet: lancee.projet });
+  poserLeLancement(get, lancementDeLaCampagne(lancee, get().party, sceneId));
   return null;
 }
 
@@ -129,7 +139,8 @@ function campagneDuPaquet(paquet: PaquetDuJeu & Readonly<Record<string, unknown>
   const type = paquet.type === 'projet' ? paquet.type : refus('type');
   const id = chaine('id');
   const label = chaine('label');
-  const icon = chaine('icon');
+  const iconLue = chaine('icon');
+  const icon = estIdDIcone(iconLue) ? iconLue : refus('icon');
   const versionContenu = typeof paquet.versionContenu === 'number' ? paquet.versionContenu : refus('versionContenu');
   const desc = optionnelle('desc');
   const auteur = optionnelle('auteur');

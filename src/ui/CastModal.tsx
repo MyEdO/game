@@ -33,14 +33,14 @@ const plural = (n: number) => (n > 1 ? 's' : '');
 
 /** L'icône et le libellé de chaque axe de Surincantation. */
 const META: Record<OvercastAxis, [ReactNode, string]> = {
-  range: [<Icon id="magic/range" size="sm" />, 'Portée'], zone: [<Icon id="magic/area" size="sm" />, 'Zone'], duration: [<Icon id="ui/wait" size="sm" />, 'Durée'], targets: [<Icon id="action/aim" size="sm" />, 'Cibles'], damage: [<Icon id="journal/damage" size="sm" />, 'Dégâts'],
+  range: [<Icon id="magie/portee" size="sm" />, 'Portée'], zone: [<Icon id="magie/zone" size="sm" />, 'Zone'], duration: [<Icon id="interface/attendre" size="sm" />, 'Durée'], targets: [<Icon id="action/viser" size="sm" />, 'Cibles'], damage: [<Icon id="journal/degats" size="sm" />, 'Dégâts'],
 };
 
 /** L'icône et l'infobulle de chaque effet d'Incantation Critique. LDB 46 l.30-32 */
 const EFFETS: Record<CritChoice, [Parameters<typeof Icon>[0]['id'], string]> = {
-  critique: ['journal/critical', 'Si le Sort inflige des Dégâts, il inflige aussi une Blessure Critique.'],
-  puissance: ['magic/area', 'Le Sort est lancé quels que soient son NI et votre DR, mais il peut être Dissipé.'],
-  ineluctable: ['action/defend', 'Si vous avez assez de DR pour lancer le Sort, il ne peut pas être Dissipé.'],
+  critique: ['journal/critique', 'Si le Sort inflige des Dégâts, il inflige aussi une Blessure Critique.'],
+  puissance: ['magie/zone', 'Le Sort est lancé quels que soient son NI et votre DR, mais il peut être Dissipé.'],
+  ineluctable: ['action/se-defendre', 'Si vous avez assez de DR pour lancer le Sort, il ne peut pas être Dissipé.'],
 };
 
 /**
@@ -121,7 +121,7 @@ export function CastModal() {
     onReroll: reroll,
     onBonusSL: bonusSL,
     // L'OFFRE du Pacte se dit par la présence du handler ; sa fenêtre est celle du flux (`vue.fermetures`).
-    ...(!vue.fermetures.darkPact ? { onDarkPact: darkPact } : {}),
+    ...(!vue.fermetures.pactiser ? { onDarkPact: darkPact } : {}),
     onForce: forceSuccess,
   }, {
     interactive: influencesLocally(useGame.getState(), pc.casterId),
@@ -138,17 +138,17 @@ export function CastModal() {
     // décliner la Dissipation serait inatteignable. L'annulation se juge au flux (`vue.annulation`), jamais au genre
     // du lanceur.
     ...(csp
-      ? [{ key: 'cancel', label: 'Laisser passer', onClick: cspCancel, verbe: 'cancel', flux: 'contreSort' } as RollAction]
+      ? [{ key: 'annuler', label: 'Laisser passer', onClick: cspCancel, verbe: 'annuler', flux: 'contreSort' } as RollAction]
       : !vue.annulation
-        ? [{ key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' } as RollAction]
+        ? [{ key: 'annuler', label: t('verbe.annuler'), onClick: cancel, verbe: 'annuler' } as RollAction]
         : []),
     {
-      key: 'confirm',
+      key: 'confirmer',
       // Le libellé « (dissipé) » EST le verdict de la comparaison au jet masqué : même calendrier que l'issue (#990).
-      label: csp ? (castRevealed && csp.participants.some((p) => p.result?.dispelled) ? 'Appliquer (dissipé)' : 'Appliquer') : placeable ? <><Icon id="map-tool/pin" size="sm" /> Poser la zone</> : 'Appliquer',
+      label: csp ? (castRevealed && csp.participants.some((p) => p.result?.dispelled) ? 'Appliquer (dissipé)' : 'Appliquer') : placeable ? <><Icon id="outil-de-carte/epingle" size="sm" /> Poser la zone</> : 'Appliquer',
       title: placeable && !csp ? "La modale s'efface — clique une case du champ de bataille pour déposer la zone" : undefined,
       onClick: csp ? cspConfirm : pcs ? oppConfirm : placeable ? () => regler('incantation', 'carte', 'zone') : confirm,
-      verbe: 'confirm',
+      verbe: 'valider',
       flux: csp ? 'contreSort' : pcs ? 'opposition' : 'incantation',
     },
   ];
@@ -183,7 +183,7 @@ export function CastModal() {
                 </>
               )
             }
-            verb="action/cast"
+            verb="action/incanter"
           />
         </>
       }
@@ -196,7 +196,7 @@ export function CastModal() {
           {vue.ton && (
             <OptionChooser
               layout="seg"
-              groupLabel={<><Icon id="faith/prayer" size="sm" /> Ton de la Prière</>}
+              groupLabel={<><Icon id="foi/priere" size="sm" /> Ton de la Prière</>}
               options={vue.ton.options.map((o) => ({
                 key: o.valeur ? 'discreet' : 'aloud', label: o.libelle, selected: vue.ton!.choisie === o.valeur,
                 onSelect: () => regler('incantation', 'discret', !!o.valeur), refus: o.refus ?? undefined,
@@ -206,7 +206,7 @@ export function CastModal() {
           {vue.forme && (
             <div className="rm-options">
               {/* LDB 47 */}
-              <span className="mini-title"><Icon id="item/weapon" size="sm" /> Forme de l'arme invoquée</span>
+              <span className="mini-title"><Icon id="objet/arme" size="sm" /> Forme de l'arme invoquée</span>
               <OptionChooser
                 layout="grid"
                 options={vue.forme.options.map((o) => ({
@@ -224,7 +224,7 @@ export function CastModal() {
               désignation des cibles supplémentaires est SÉPARÉE de l'allocation (en combat : sur la carte). */}
           {sur && (
             <div className="rm-options">
-              <span className="mini-title"><Icon id="magic/gust" size="sm" /> Surincantation — {sur.restant} pas (+{sur.coutDuPas} DR) restant{plural(sur.restant)}</span>
+              <span className="mini-title"><Icon id="magie/souffle" size="sm" /> Surincantation — {sur.restant} pas (+{sur.coutDuPas} DR) restant{plural(sur.restant)}</span>
               <Stack gap="sm">
                 {sur.axes.map((a) => (
                   <Row key={a.axe} gap="md" align="center">
@@ -250,7 +250,7 @@ export function CastModal() {
                 // s'étirerait sur toute la largeur.
                 <Row>
                   <button className="btn small" onClick={() => regler('incantation', 'carte', 'cibles')} title="Choisir les cibles supplémentaires sur le champ de bataille">
-                    <Icon id="nav/campaign" size="sm" /> Désigner les cibles ({sur.cibles.designees}/{sur.cibles.capacite})
+                    <Icon id="navigation/campagne" size="sm" /> Désigner les cibles ({sur.cibles.designees}/{sur.cibles.capacite})
                   </button>
                 </Row>
               ) : (
@@ -263,7 +263,7 @@ export function CastModal() {
               {/* EDOC 13 l.276 */}
               {sur.jetsSurLeTableau && (
                 <Row gap="md" align="center">
-                  <span {...grow}><Icon id="nav/dice" size="sm" /> Jets sur le Tableau</span>
+                  <span {...grow}><Icon id="navigation/des" size="sm" /> Jets sur le Tableau</span>
                   <QtyStepper
                     center={<strong>{sur.jetsSurLeTableau.choisis}</strong>}
                     onDec={() => regler('incantation', 'jetsDeTable', sur.jetsSurLeTableau!.choisis - 1)}
@@ -279,7 +279,7 @@ export function CastModal() {
           {vue.critique && (
             <div className="rm-options">
               {/* LDB 46 l.26-32 : aucune présélection, la fenêtre ne retient aucun effet tant qu'il n'est pas choisi. */}
-              <span className="mini-title"><Icon id="magic/power" size="sm" /> Incantation Critique — choisir l'effet</span>
+              <span className="mini-title"><Icon id="magie/puissance" size="sm" /> Incantation Critique — choisir l'effet</span>
               <OptionChooser
                 layout="grid"
                 options={vue.critique.options.map((o) => ({
@@ -294,7 +294,7 @@ export function CastModal() {
               modale d'incantation (cible IA = témoin auto-roulée, cible héros = interactive). */}
           {pcs && (
             <div className="cs-rows">
-              <span className="mini-title"><Icon id="action/defend" size="sm" /> Opposition — la cible oppose son {libelleDOppositionDeSort(pcs)}</span>
+              <span className="mini-title"><Icon id="action/se-defendre" size="sm" /> Opposition — la cible oppose son {libelleDOppositionDeSort(pcs)}</span>
               {pcs.participants.map((part) => {
                 const actor = pool.find((c) => c.id === part.id);
                 if (!actor) return null;
@@ -309,7 +309,7 @@ export function CastModal() {
                    rangée : sinon « Résiste ! » livre le verdict que le dé masqué cachait. Conséquence
                    assumée (arbitrage #990) : chacun joue à l'aveugle et lit son propre verdict à la fin. */
                 const oppNote = r && castRevealed
-                  ? <div className={`cs-outcome ${r.resisted ? 'ok-text' : 'muted'}`}>{r.resisted ? <><Icon id="ui/done" size="sm" /> Résiste !</> : `subit · marge DR ${r.margin}`}</div>
+                  ? <div className={`cs-outcome ${r.resisted ? 'ok-text' : 'muted'}`}>{r.resisted ? <><Icon id="interface/fait" size="sm" /> Résiste !</> : `subit · marge DR ${r.margin}`}</div>
                   : undefined;
                 // COOP : même gate que la rangée Contre-sort voisine (#1005 — `influencesLocally`, routé par
                 // le PORTEUR du jet), composé avec `part.interactive` (cible IA = rangée témoin, auto-roulée).
@@ -326,7 +326,7 @@ export function CastModal() {
                     forcedRoll={die.forcedRoll}
                     fixedMark={die.fixedMark}
                     interactive={owned}
-                    rollLabel={<><Icon id="action/defend" size="sm" /> Résister</>}
+                    rollLabel={<><Icon id="action/se-defendre" size="sm" /> Résister</>}
                     onRoll={() => oppRoll(part.id)}
                     rerolled={!!part.rerolled}
                     /* La cible ne RÉSISTE pas : issue défavorable même sur un Test propre réussi
@@ -336,8 +336,8 @@ export function CastModal() {
                     onBonusSL={() => oppBonusSL(part.id)}
                     onDarkPact={() => oppDarkPact(part.id)}
                     onForce={() => oppForce(part.id)}
-                    /* Résistance (Menace : Magie), LDB 10 l.1020 : la fenêtre est le verbe `resist` du flux. */
-                    resist={pcs.menace != null && !fermeturesDuFlux(useGame.getState(), 'opposition', part.id).resist
+                    /* Résistance (Menace : Magie), LDB 10 l.1020 : la fenêtre est le verbe `resister` du flux. */
+                    resist={pcs.menace != null && !fermeturesDuFlux(useGame.getState(), 'opposition', part.id).resister
                       ? { menace: pcs.menace, onResist: () => oppResist(part.id) } : undefined}
                   />
                 );
@@ -354,7 +354,7 @@ export function CastModal() {
               ennemi du MJ (#1028) ; les autres la lisent. */}
           {csp && (
             <div className="cs-rows">
-              <span className="mini-title"><Icon id="action/defend" size="sm" /> Contre-sort — chaque contre-lanceur oppose son Langue (Magick)</span>
+              <span className="mini-title"><Icon id="action/se-defendre" size="sm" /> Contre-sort — chaque contre-lanceur oppose son Langue (Magick)</span>
               {csp.participants.map((part) => {
                 const actor = pool.find((c) => c.id === part.id);
                 if (!actor) return null;
@@ -396,7 +396,7 @@ export function CastModal() {
                 const cspNote = cspSituation || cspOutcome ? (
                   <>
                     {cspSituation && <div className="hint">{cspSituation}</div>}
-                    {cspOutcome && <div className={`cs-outcome ${cspOutcome.dispelled ? 'ok-text' : 'muted'}`}>{cspOutcome.dispelled ? <><Icon id="ui/done" size="sm" /> Dissipé !</> : `DR net ${cspOutcome.casterNetSL >= 0 ? '+' : ''}${cspOutcome.casterNetSL}`}</div>}
+                    {cspOutcome && <div className={`cs-outcome ${cspOutcome.dispelled ? 'ok-text' : 'muted'}`}>{cspOutcome.dispelled ? <><Icon id="interface/fait" size="sm" /> Dissipé !</> : `DR net ${cspOutcome.casterNetSL >= 0 ? '+' : ''}${cspOutcome.casterNetSL}`}</div>}
                   </>
                 ) : null;
                 return (
@@ -408,7 +408,7 @@ export function CastModal() {
                     forcedRoll={die.forcedRoll}
                     fixedMark={die.fixedMark}
                     interactive={owned && part.declared !== 'passer'}
-                    rollLabel={<><Icon id="action/defend" size="sm" /> Contre-sort</>}
+                    rollLabel={<><Icon id="action/se-defendre" size="sm" /> Contre-sort</>}
                     onRoll={onRoll}
                     rollBlocked={refusDeRangee(st, 'contreSort', part.id)}
                     /* PHASE 1 : chaque rangée possédée déclare (contrer seul / s'unir / passer) ; s'unir

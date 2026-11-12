@@ -22,10 +22,10 @@ describe('Psychologie IA (Terreur au début du Round, LDB 21 l.9, l.54-56)', () 
   });
 
   it('fearSourceFor : Énorme AGRESSIVE vs Moyenne → Terreur 2 ; statbloc Peur 4 ; rien si pas de source', () => {
-    const big = { id: 'b', kind: 'enemy', size: 'enorme' } as Combatant; // adversaire → agressive (LDB 85 l.381-383)
-    const med = { id: 'm', kind: 'hero', size: 'moyenne' } as Combatant;
+    const big = { id: 'b', kind: 'ennemi', size: 'enorme' } as Combatant; // adversaire → agressive (LDB 85 l.381-383)
+    const med = { id: 'm', kind: 'heros', size: 'moyenne' } as Combatant;
     expect(fearSourceFor(med, sourceCombattant(big))).toEqual({ kind: 'terreur', indice: 2 });
-    expect(fearSourceFor(med, sourceCombattant({ id: 'p', kind: 'enemy', size: 'moyenne', causesPeur: 4 } as Combatant))).toEqual({ kind: 'peur', indice: 4 });
+    expect(fearSourceFor(med, sourceCombattant({ id: 'p', kind: 'ennemi', size: 'moyenne', causesPeur: 4 } as Combatant))).toEqual({ kind: 'peur', indice: 4 });
     expect(fearSourceFor(med, sourceCombattant(med))).toBeNull();
   });
 
@@ -37,9 +37,9 @@ describe('Psychologie IA (Terreur au début du Round, LDB 21 l.9, l.54-56)', () 
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const E = b.combatants.find((c) => c.kind === 'enemy')!;
-    b.combatants.filter((c) => c.kind === 'enemy' && c.id !== E.id).forEach((e) => (e.dead = true));
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const E = b.combatants.find((c) => c.kind === 'ennemi')!;
+    b.combatants.filter((c) => c.kind === 'ennemi' && c.id !== E.id).forEach((e) => (e.dead = true));
     H.pos = { x: 10, y: 10 };
     E.pos = { x: 11, y: 10 }; // adjacent → Ligne de Vue dégagée
     banc.setState({ battle: { ...b } });
@@ -108,7 +108,7 @@ describe('Psychologie IA (Terreur au début du Round, LDB 21 l.9, l.54-56)', () 
     expect(E.groups).toEqual(['cultiste']);
     expect(h.psychTraits, 'au-delà du Bonus de FM 1 : la Phobie de sa cause').toEqual([{ type: 'phobie', cible: ciblePsy.groupe('cultiste') }]);
     expect(h.terreursSubies).toEqual([]);
-    expect(banc.getState().battle!.log.map((l) => l.text)).toContain(t('cf.phobieGain', { name: h.label, groupe: groupLabel('cultiste') }));
+    expect(banc.getState().battle!.log.map((l) => l.text)).toContain(t('cf.phobieAcquise', { name: h.label, groupe: groupLabel('cultiste') }));
   });
 
   it('un ennemi Immunité (Psychologie) n’est pas affecté', () => {
@@ -133,7 +133,7 @@ describe('Psychologie IA (Terreur au début du Round, LDB 21 l.9, l.54-56)', () 
     E.characteristics['force-mentale'] = 10; // Calme raté à coup sûr
     E.traits = [...(E.traits ?? []), { id: 'belliqueux' }];
     E.advantage = 2;
-    const rival = banc.getState().battle!.combatants.find((c) => c.kind === 'enemy' && c.id !== E.id)!;
+    const rival = banc.getState().battle!.combatants.find((c) => c.kind === 'ennemi' && c.id !== E.id)!;
     rival.dead = false; rival.wounds = blessuresDeBase(10, 10, rival); rival.advantage = 0; rival.pos = { x: 12, y: 10 };
     E.engagedWith = [rival.id]; rival.engagedWith = [E.id]; // camarades qui en viennent aux mains
     banc.setState({ battle: { ...banc.getState().battle! } });

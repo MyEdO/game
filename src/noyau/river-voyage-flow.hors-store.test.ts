@@ -323,7 +323,7 @@ describe('renflouage à l\'échouage (l.99) — l\'Enc de la CARGAISON entre dan
       { uid: 'convoi-1', ownerId, nature: 'vehicule', vehicleId: 'diligence', location: { kind: 'avec-le-groupe' }, items: [], cargo: [{ uid: 'lot-2', cargoId: 'vin-eau-de-vie', enc: 30, basePriceGold: 10 }] },
     ];
     const detect = {
-      id: 'river-peril-0', kind: 'fleuveDetectionDePeril' as const, actorId: ownerId, icon: 'nautical/tack', label: fixtureText('Détection'),
+      id: 'river-peril-0', kind: 'fleuveDetectionDePeril' as const, actorId: ownerId, icon: 'nautique/louvoyage' as const, label: fixtureText('Détection'),
       result: { roll: 99, target: 30, sl: -6, success: false }, meta: { perilId: 'eaux-peu-profondes' },
     };
     const echouage = Array.from({ length: 40 }, (_, seed) => {
@@ -589,7 +589,7 @@ describe('péril fluvial — la ligne du Test d’évitement nomme la Compétenc
  */
 describe('chavirage — le redressement s’ouvre Round par Round (#1104a)', () => {
   const capsizeStep = () => ({
-    id: 'fleuve-chavirage', kind: 'fleuveChavirage' as const, actorId: get().party[0].id, icon: 'nautical/wind',
+    id: 'fleuve-chavirage', kind: 'fleuveChavirage' as const, actorId: get().party[0].id, icon: 'nautique/vent' as const,
     label: fixtureText('Retirer la voile (chavirage)'), rollLabel: 'Voile', base: 40, difficulty: 'accessible' as const,
     target: 60, result: { roll: 95, target: 60, sl: -3, success: false }, interactive: true, meta: { savoir: 0 },
   });
@@ -618,7 +618,7 @@ describe('chavirage — le redressement s’ouvre Round par Round (#1104a)', () 
     set({ travelPlan: buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0])! });
     const be = 3;
     const round0 = {
-      id: 'river-capsize-right-0', kind: 'fleuveRedressement' as const, actorId: get().party[0].id, icon: 'nautical/tack',
+      id: 'river-capsize-right-0', kind: 'fleuveRedressement' as const, actorId: get().party[0].id, icon: 'nautique/louvoyage' as const,
       label: fixtureText('Redressement du bateau — Round 1/3'), rollLabel: 'Voile', base: 40, difficulty: 'accessible' as const,
       target: 60, result: { roll: 98, target: 60, sl: -4, success: false }, interactive: true,
       meta: { rightRound: 0, rightRounds: be },
@@ -628,7 +628,7 @@ describe('chavirage — le redressement s’ouvre Round par Round (#1104a)', () 
     expect(round1, 'le Round 2 s’insère tant qu’il reste des Rounds (BE)').toBeTruthy();
     // MSRC 7 l.40
     expect(lignesDe(round1!.mods, RULE_REF['navigation-chavirage']))
-      .toEqual([{ label: t('rv.rightingCumul', { n: 2 }), value: -5, famille: 'circonstance', ref: RULE_REF['navigation-chavirage'] }]);
+      .toEqual([{ label: t('fleuve.cumulDeRedressement', { n: 2 }), value: -5, famille: 'circonstance', ref: RULE_REF['navigation-chavirage'] }]);
     const pilote2 = partyAssisted(get().party, { skill: { id: 'voile', spec: 'chaland' } })!;
     expect(round1!.target).toBe(pilote2.value + DIFFICULTY_MODIFIERS.accessible - 5);
     expect(inexplique(round1!)).toBe(0);
@@ -644,7 +644,7 @@ describe('chavirage — le redressement s’ouvre Round par Round (#1104a)', () 
     launch(false, 45);
     set({ travelPlan: buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0])! });
     const round0 = {
-      id: 'river-capsize-right-0', kind: 'fleuveRedressement' as const, actorId: get().party[0].id, icon: 'nautical/tack',
+      id: 'river-capsize-right-0', kind: 'fleuveRedressement' as const, actorId: get().party[0].id, icon: 'nautique/louvoyage' as const,
       label: fixtureText('Redressement du bateau — Round 1/3'), rollLabel: 'Voile', base: 40, difficulty: 'accessible' as const,
       target: 60, result: { roll: 12, target: 60, sl: 4, success: true }, interactive: true,
       meta: { rightRound: 0, rightRounds: 3 },
@@ -679,11 +679,11 @@ describe('Navigation du jour — Difficulté déclarée, malus NOMMÉS (#1112)',
   it('hors de contrôle : la Difficulté RESTE celle du RAW, le −20 est une chip NOMMÉE comprise dans la cible', () => {
     launch(false, 45);
     const plan = buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0])!;
-    set({ travelPlan: { ...plan, river: { ...plan.river!, windForce: 'leger', windDir: 'arriere', outOfControl: true } } });
+    set({ travelPlan: { ...plan, river: { ...plan.river!, windForce: 'leger', windDir: 'arriere', horsDeControle: true } } });
     const built = buildRiverDayCascade(get, set, get().worldMap!.routes[0]);
     const nav = built.steps.find((s) => s.kind === 'fleuveNavigation')!;
     expect(nav.difficulty).toBe('intermediaire'); // le malus n'est PAS une Difficulté
-    expect(malus(nav)).toEqual([{ label: t('rv.modOutOfControl'), value: -20, famille: 'circonstance', ref: RULE_REF['navigation-greement'] }]);
+    expect(malus(nav)).toEqual([{ label: t('fleuve.modificateurHorsDeControle'), value: -20, famille: 'circonstance', ref: RULE_REF['navigation-greement'] }]);
     // Le malus est compris dans la cible, et la ligne explique TOUT l'écart (cliquet).
     expect(inexplique(nav)).toBe(0);
   });
@@ -699,13 +699,13 @@ describe('péril fluvial — l’évitement porte les malus de dérive/hors-cont
   it('hors de contrôle : l’étape insérée porte la chip NOMMÉE et une cible qui l’inclut', () => {
     launch(false, 45, { riverPerils: [{ perilId: 'debris', chancePct: 100 }] });
     const plan = buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0])!;
-    set({ travelPlan: { ...plan, river: { ...plan.river!, windForce: 'leger', windDir: 'arriere', outOfControl: true } } });
+    set({ travelPlan: { ...plan, river: { ...plan.river!, windForce: 'leger', windDir: 'arriere', horsDeControle: true } } });
     const built = buildRiverDayCascade(get, set, get().worldMap!.routes[0]);
     const check = built.steps.find((s) => s.kind === 'fleuveTestDePeril')!;
     seedBattleRng(2);
     const out = applierDe('fleuveTestDePeril')!(get, set, check, undefined, { steps: [check], index: 0 });
     const nav = (out?.insert ?? []).find((s) => s.kind === 'fleuvePerilNavigation')!;
-    expect(malus(nav)).toEqual([{ label: t('rv.modOutOfControl'), value: -20, famille: 'circonstance', ref: RULE_REF['navigation-greement'] }]);
+    expect(malus(nav)).toEqual([{ label: t('fleuve.modificateurHorsDeControle'), value: -20, famille: 'circonstance', ref: RULE_REF['navigation-greement'] }]);
     expect(nav.difficulty).toBe('intermediaire'); // le malus n'est pas une Difficulté
     expect(inexplique(nav), 'le malus est compris dans la cible, et TOUT l’écart est nommé').toBe(0);
     // Le Test de Navigation du JOUR et l'évitement voient le MÊME modificateur (une seule règle).
@@ -734,7 +734,7 @@ describe('chavirage — le compte de Rounds de redressement a un plancher (#1112
     const plan = buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0])!;
     set({ travelPlan: { ...plan, vehicle: { ...plan.vehicle!, characteristics: { ...plan.vehicle!.characteristics, endurance: 0 } } } });
     const step = {
-      id: 'fleuve-chavirage', kind: 'fleuveChavirage' as const, actorId: get().party[0].id, icon: 'nautical/wind',
+      id: 'fleuve-chavirage', kind: 'fleuveChavirage' as const, actorId: get().party[0].id, icon: 'nautique/vent' as const,
       label: fixtureText('Retirer la voile (chavirage)'), rollLabel: 'Voile', base: 40, difficulty: 'accessible' as const,
       target: 60, result: { roll: 95, target: 60, sl: -3, success: false }, interactive: true, meta: { savoir: 0 },
     };

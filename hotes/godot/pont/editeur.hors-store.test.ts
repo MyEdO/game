@@ -8,12 +8,13 @@
  * Les écrivains dédiés de la scène y passent aussi : sa musique, son message d'introduction saisi sur plusieurs lignes,
  * ses ancres de bataille, ses groupes, et l'apparence d'une ouverture de façade (#3606). Le formulaire tiré du schéma
  * d'un personnage écrit son rôle au combat, ses options au contexte de sa fiche, et ses onglets se partagent ses
- * éléments (#3606 M1a).
+ * éléments (#3606 M1a). Une adresse de prose s'y désigne par des choix seuls, son chapitre demandé à l'hôte puis rendu,
+ * chacun de ses fragments scellé par le noyau (#3606 M2g).
  */
 import { describe, expect, it } from 'vitest';
-import { erreurDe, modelesCommites, servirLesModeles, table, type Reponse } from './pont.testkit';
-import type { NavireServi } from './pont';
-import type { AreteDessinee, Scene, VolumeDuMonde } from '../../../src/noyau/index';
+import { erreurDe, modelesCommites, morceauxDe, servirLesModeles, table, type Reponse } from './pont.testkit';
+import type { MondeDuPont, MorceauxDuPont, NavireServi } from './pont';
+import type { AreteDessinee, RetraitDuMonde, Scene } from '../../../src/noyau/index';
 import { allBuiltinCampaigns } from '../../../src/scenes/campaign';
 import type { Bouton, Choix, Formulaire, Ligne } from '../../../src/hote/elements';
 import type { CalqueAffiche, SurcoucheDeLEdition, ZonesDeLEditeur } from '../../../src/hote/editeur';
@@ -25,16 +26,19 @@ import { findCreatureById, traits } from '../../../src/data';
 import { parseTraitInstance } from '../../../src/data/refFormatLivre';
 import { dossierDesProjetsLivres, listerProjetsLivres, PROJETS_MANUSCRITS } from '../../../scripts/guards/lib/projetsLivres.mjs';
 import { lireProjetLivre } from '../../../scripts/source/projetLivre.mjs';
+import type { Fragment } from '../../../src/data/source/decoupe';
 
 interface Edition {
   vue: { zones: ZonesDeLEditeur; couche: number };
   surcouche: SurcoucheDeLEdition;
-  monde?: VolumeDuMonde;
+  monde?: NonNullable<MondeDuPont['monde']>;
+  retrait?: RetraitDuMonde;
   aretes?: AreteDessinee[];
   navires?: Record<string, NavireServi>;
   depot?: { id: string; texte: string };
   calque: CalqueAffiche | null;
   planche?: { image: string };
+  chapitre?: { book: string; ch: string };
   memoire?: { calques: { version: string; calques: Record<string, Record<string, Record<string, unknown>>> }; oublier: string[]; deplacer: { de: string; vers: string }[] };
 }
 
@@ -84,7 +88,8 @@ describe('l’éditeur de carte par le pont', () => {
     const ouverte = editionDe(appel('editer', { ouvrir: CAMPAGNE }));
     expect(ouverte.vue.zones['editeur.titre']).toHaveLength(1);
     expect(boutonDe(ouverte, 'outil/select').presse).toBe(true);
-    expect(ouverte.monde!.cases.length, 'le monde de la scène, à l’ouverture').toBeGreaterThan(0);
+    expect(ouverte.monde!.morceaux.length, 'le manifeste du monde de la scène, à l’ouverture').toBeGreaterThan(0);
+    expect(ouverte.retrait, 'et le masque de la couche éditée').toMatchObject({ largeur: expect.any(Number), rangees: 2 * ouverte.monde!.hauteurs.length * ouverte.monde!.hauteurs[0].rangees.length });
     expect(boutonDe(ouverte, 'annuler').refus).toBe('Rien à annuler');
 
     const visee = jouer({ geste: 'appui', point: point(1, 1) });
@@ -103,11 +108,41 @@ describe('l’éditeur de carte par le pont', () => {
     const fini = jouer({ geste: 'relache', point: point(1, 1) });
     expect(fini.surcouche.cases).toEqual([]);
     expect(fini.monde, 'au relâché, le monde peint').toBeDefined();
-    expect(fini.monde).not.toEqual(ouverte.monde);
+    const empreinteAvant = new Map(ouverte.monde!.morceaux.map((m) => [m.cle, m.empreinte]));
+    const bouges = fini.monde!.morceaux.filter((m) => empreinteAvant.get(m.cle) !== m.empreinte);
+    expect(bouges.length, 'des morceaux ont bougé').toBeGreaterThan(0);
+    expect(bouges.map((m) => m.cle).filter((cle) => !/^(sol|pose)\/0\/0\/0$/.test(cle)), 'seuls ceux du bloc de la case peinte').toEqual([]);
+    const recus = appel('morceaux', { source: 'edition', volume: bouges.map((m) => m.cle), toits: [], couronnes: [] }) as unknown as MorceauxDuPont;
+    expect(recus.volume.map((m) => [m.cle, m.empreinte]), 'morceaux, source edition, les rend tels qu’au manifeste').toEqual(bouges.map((m) => [m.cle, m.empreinte]));
+    const cles = fini.monde!.morceaux.map((m) => m.cle);
+    const tous = appel('morceaux', { source: 'edition', volume: ['sol/99/0/0', ...[...cles].reverse()], toits: [], couronnes: [] }) as unknown as MorceauxDuPont;
+    expect(cles.length, 'plusieurs morceaux').toBeGreaterThan(1);
+    expect(tous.volume.map((m) => m.cle), 'dans l’ordre du manifeste, l’inconnue omise').toEqual(cles);
 
     const annule = presser(boutonDe(fini, 'annuler'));
     expect(annule.monde).toEqual(ouverte.monde);
     expect(boutonDe(annule, 'retablir').refus).toBeNull();
+  });
+
+  it('pendant une glisse, morceaux source edition rend la scène du dernier manifeste ; au relâché, celle du neuf', () => {
+    const { appel } = table();
+    const jouer = (edition: unknown) => editionDe(appel('editer', { edition }));
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const ouverte = editionDe(appel('editer', { ouvrir: CAMPAGNE }));
+    const avant = jouer({ geste: 'appui', point: point(1, 1) }).vue.zones['editeur.pointee'][0].texte;
+    jouer({ geste: 'relache', point: point(1, 1) });
+    presser(valeursDe(presser(boutonDe(ouverte, 'outil/tile')), 'terrains').find((b) => !avant.includes(` · ${b.libelle} · `))!);
+    jouer({ geste: 'appui', point: point(1, 1) });
+    const glisse = jouer({ geste: 'glisse', point: point(2, 1) });
+    expect([glisse.monde, glisse.surcouche.cases.length], 'la glisse ne rend que la surcouche').toEqual([undefined, 2]);
+    const cles = ouverte.monde!.morceaux.map((m) => m.cle);
+    const pendant = appel('morceaux', { source: 'edition', volume: cles, toits: [], couronnes: [] }) as unknown as MorceauxDuPont;
+    expect(pendant.volume.map((m) => [m.cle, m.empreinte]), 'les morceaux de l’ouverture').toEqual(ouverte.monde!.morceaux.map((m) => [m.cle, m.empreinte]));
+    const fini = jouer({ geste: 'relache', point: point(2, 1) });
+    const bouges = fini.monde!.morceaux.filter((m) => ouverte.monde!.morceaux.find((o) => o.cle === m.cle)?.empreinte !== m.empreinte);
+    expect(bouges.length, 'le trait relâché change des morceaux').toBeGreaterThan(0);
+    const apres = appel('morceaux', { source: 'edition', volume: bouges.map((m) => m.cle), toits: [], couronnes: [] }) as unknown as MorceauxDuPont;
+    expect(apres.volume.map((m) => [m.cle, m.empreinte]), 'ceux du manifeste neuf').toEqual(bouges.map((m) => [m.cle, m.empreinte]));
   });
 
   it('un geste que les zones n’offrent pas, ou un point mal formé, se refuse ; un bouton refusé se refuse en règle', () => {
@@ -152,7 +187,7 @@ describe('l’éditeur de carte par le pont, les murs', () => {
     const materiau = valeursDe(portes, 'structures')[1];
     presser(materiau);
     const posee = jouer({ geste: 'appui', point: { case: { x: 1, y: 1 }, f: { x: 1, y: 0.6 } } });
-    expect(auNord(posee.aretes!), 'la porte posée, au monde rendu').toEqual([{ cle: '1,1,N,0', case: { x: 1, y: 1 }, milieu: { x: 1, y: 0.5 }, sens: { x: 1, y: 0 }, pied: 0, piece: 'porte-ouverte', famille: 'colombage', hauteurM: 4 }]);
+    expect(auNord(posee.aretes!), 'la porte posée, au monde rendu').toEqual([{ cle: '1,1,N,0', case: { x: 1, y: 1 }, milieu: { x: 1, y: 0.5 }, sens: { x: 1, y: 0 }, pied: 0, piece: 'porte-ouverte', famille: 'colombage', hauteurM: 4, bloc: '0/0/0' }]);
     jouer({ geste: 'relache', point: { case: { x: 1, y: 1 }, f: { x: 1, y: 0.6 } } });
 
     presser(boutonDe(posee, 'outil/select'));
@@ -366,7 +401,7 @@ describe('l’éditeur de carte par le pont, l’architecture', () => {
     presser(boutonDe(bati, 'architecture/facade'));
     const posee = jouer({ geste: 'appui', point: { case: { x: 2, y: 2 }, f: { x: 2, y: 1.55 } } });
     const inspecteur = (e: Edition) => e.vue.zones['editeur.inspecteur'];
-    expect(boutonDe(posee, 'architecture/select').presse, 'la façade posée, le clic revient à la sélection').toBe(true);
+    expect(boutonDe(posee, 'architecture/selection').presse, 'la façade posée, le clic revient à la sélection').toBe(true);
     expect(inspecteur(posee).find((el) => el.id === 'facade/apparence')).toMatchObject({ type: 'liste' });
     const apparence = (inspecteur(posee).find((el) => el.id === 'facade/apparence') as Choix).valeurs.find((v) => !v.presse)!;
     expect(boutonDe(presser(apparence), apparence.id).presse).toBe(true);
@@ -409,7 +444,7 @@ describe('l’éditeur de carte par le pont, l’architecture', () => {
     jouer({ geste: 'appui', point: point(3, 3) });
     jouer({ geste: 'glisse', point: point(4, 5) });
     const exclue = jouer({ geste: 'relache', point: point(4, 5) });
-    expect(boutonDe(exclue, 'architecture/select').presse, 'l’exclusion tirée, le clic revient à la sélection').toBe(true);
+    expect(boutonDe(exclue, 'architecture/selection').presse, 'l’exclusion tirée, le clic revient à la sélection').toBe(true);
     expect(inspecteur(exclue).find((el) => el.id === 'toiture/exclusion/0')).toMatchObject({ texte: 'Exclusion de toiture : 2 × 3 cases depuis 3, 3 · couche 0' });
     expect(inspecteur(presser(boutonDe(exclue, 'toiture/exclusion/0/retirer'))).some((el) => el.id.startsWith('toiture/exclusion/'))).toBe(false);
   });
@@ -554,7 +589,7 @@ describe('l’éditeur de carte par le pont, l’essai', () => {
     const partie = appel('demarrer', { essai: true }) as Reponse & { vue?: { projection: { scene: { id: string } | null } } };
     expect(partie.ok).toBe(true);
     expect(partie.vue!.projection.scene, 'la partie s’ouvre sur la scène éditée, à jour').toEqual({ id: seconde.id.slice('scenes/'.length), nom: 'Relais de poste' });
-    expect(erreurDe(appel('demarrer', { essai: true })).message).toMatch(/^demarrer : une partie par page/);
+    expect(erreurDe(appel('demarrer', { essai: true })).message).toBe('demarrer : une partie est ouverte ; quitter d’abord');
   });
 });
 
@@ -821,7 +856,7 @@ describe('l’éditeur de carte par le pont, le combat et l’ameublement', () =
     const deux = presser(valeursDeLInspecteur(une, 'valeur/usable/actions/ajouter')[0]);
     const formulaire = (e: Edition, id: string) => e.vue.zones['editeur.inspecteur'].find((el) => el.id === id) as Formulaire | undefined;
     expect(formulaire(deux, 'identifier/action/fouiller-2')?.champs.map((c) => c.type)).toEqual(['fixe', 'saisieTexte']);
-    expect(boutonDe(deux, 'valeur/usable/actions/1/flow/steps/ajouter').libelle, 'les pas de l’enchaînement s’ajoutent au formulaire (#3606 M2b)').toMatch(/^Ajouter/);
+    expect(boutonDe(deux, 'valeur/usable/actions/1/flow/etapes/ajouter').libelle, 'les pas de l’enchaînement s’ajoutent au formulaire (#3606 M2b)').toMatch(/^Ajouter/);
     const renommee = editionDe(appel('editer', { type: 'identifier', args: ['fouiller-2', 'coffre'] }));
     expect(formulaire(renommee, 'identifier/action/coffre')?.champs[1]).toMatchObject({ valeur: 'coffre' });
     expect(erreurDe(appel('editer', { type: 'identifier', args: ['coffre'] })).categorie, 'sans action désignée').toBe('validation');
@@ -929,6 +964,58 @@ describe('l’éditeur de carte par le pont, la volée', () => {
     expect(ligneDes('plan'), 'la raison du plan, en clair').toMatchObject({ texte: poser.refus });
     expect(erreurDe(appel('editer', poser.jeu))).toEqual({ categorie: 'regle', message: `editer : ${poser.refus}` });
     expect(presser(boutonDe(tracee, 'volee/effacer')).surcouche.cases).toEqual([]);
+  });
+});
+
+describe('l’éditeur de carte par le pont, l’adresse de prose (#3606 M2g)', () => {
+  /** Un chapitre de fixture : une section à un paragraphe et une table légendée, une autre section. */
+  const TEXTE = [
+    '# Les Armes', '', 'Les armes du Vieux Monde sont nombreuses et variées, de la dague à l’arquebuse.', '',
+    '**TABLE DES ARMES**', '', '| Arme | Dégâts | Prix |', '|---|---|---|', '| Dague | BF+2 | 1 pa |', '| Épée | BF+4 | 10 co |', '',
+    '# Les Armures', '', 'Une armure protège son porteur des coups, au prix de sa discrétion.', '',
+  ].join('\n');
+  const MANIFESTE = JSON.stringify({ 'livre-de-base': { abbr: 'LDB', chapitres: [{ ch: '01', fichier: '01 - Armes.md', titre: 'Les Armes', octets: TEXTE.length }] } });
+  const D = 'valeur/flow/etapes/0/effet/descRef';
+  const jeuDe = (b: Bouton) => (b.jeu as { args: unknown[] }).args[2];
+
+  /** La première campagne du jeu ouverte, avec ou sans le `Source/` servi, un déclencheur tracé dont la première étape
+   *  écrit au journal, sans adresse. */
+  function auJournal(manifeste?: string) {
+    const { appel } = table();
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const choisir = (e: Edition, id: string, voulu: (v: unknown) => boolean) => presser(valeursDeLInspecteur(e, id).find((b) => voulu(jeuDe(b)))!);
+    let e = editionDe(appel('editer', { ouvrir: CAMPAGNE, ...(manifeste ? { manifeste } : {}) }));
+    presser(boutonDe(presser(boutonDe(e, 'outil/zone')), 'zone/trigger'));
+    editionDe(appel('editer', { edition: { geste: 'appui', point: point(2, 2) } }));
+    e = presser(boutonDe(editionDe(appel('editer', { edition: { geste: 'relache', point: point(2, 2) } })), 'valeur/flow/etapes/ajouter'));
+    e = choisir(e, 'valeur/flow/etapes/0/kind', (v) => (v as { kind: string }).kind === 'effet');
+    e = choisir(e, 'valeur/flow/etapes/0/effet/type', (v) => (v as { type: string }).type === 'journal');
+    return { appel, choisir, e };
+  }
+
+  it('une cellule de table se désigne par des choix seuls : le livre, le chapitre que l’hôte charge à la demande, la cellule, sa table, sa ligne, sa colonne ; l’empreinte n’est jamais offerte', () => {
+    const { appel, choisir, e: journal } = auJournal(MANIFESTE);
+    const livre = choisir(journal, `${D}/ajouter`, (v) => (v as { book: string }).book === 'livre-de-base');
+    expect(livre.chapitre, 'sans chapitre choisi, rien ne se charge').toBeUndefined();
+    const demande = choisir(livre, `${D}/ch`, (v) => v === '01');
+    expect(demande.chapitre).toEqual({ book: 'livre-de-base', ch: '01' });
+    expect(demande.vue.zones['editeur.inspecteur'].find((el) => el.id === `${D}/etat`)).toMatchObject({ texte: 'Chargement du chapitre…' });
+    expect(erreurDe(appel('editer', { edition: { geste: 'chapitre', book: 'livre-de-base', ch: '02', texte: TEXTE } })).message, 'un autre chapitre que l’attendu se refuse').toBe('editer : chapitre, livre-de-base ch.02 n’est pas le chapitre attendu');
+    const charge = editionDe(appel('editer', { edition: { geste: 'chapitre', book: 'livre-de-base', ch: '01', texte: TEXTE } }));
+    expect(charge.chapitre, 'reçu, il ne se redemande pas').toBeUndefined();
+    let e = choisir(charge, `${D}/parts/ajouter`, (v) => (v as Fragment[])[0].kind === 'cellule');
+    e = choisir(e, `${D}/parts/0/row`, (v) => v === 'Épée');
+    e = choisir(e, `${D}/parts/0/table`, (v) => v === 'table des armes#1');
+    e = choisir(e, `${D}/parts/0/col`, (v) => v === 'Prix');
+    const ids = e.vue.zones['editeur.inspecteur'].map((el) => el.id);
+    expect(ids.filter((id) => id.startsWith(`${D}/parts/0/`) && !id.includes('/', `${D}/parts/0/`.length)), 'l’empreinte n’est jamais offerte').toEqual([`${D}/parts/0/kind`, `${D}/parts/0/sec`, `${D}/parts/0/secOcc`, `${D}/parts/0/row`, `${D}/parts/0/col`, `${D}/parts/0/table`, `${D}/parts/0/retirer`]);
+    expect(e.vue.zones['editeur.inspecteur'].find((el) => el.id === `${D}/etat`)).toMatchObject({ texte: 'Passage : 10 co' });
+  });
+
+  it('sans Source servi, l’adresse le dit et ne se compose pas ; aucun chapitre ne s’attend, un chapitre rendu se refuse', () => {
+    const { appel, e } = auJournal();
+    expect(e.vue.zones['editeur.inspecteur'].find((el) => el.id.startsWith(D))).toMatchObject({ id: `${D}/etat`, texte: 'Le Source n’est pas servi : l’adresse s’édite sur le poste de développement.' });
+    expect(erreurDe(appel('editer', { edition: { geste: 'chapitre', book: 'livre-de-base', ch: '01', texte: TEXTE } })).categorie).toBe('validation');
   });
 });
 
@@ -1164,7 +1251,7 @@ describe('l’éditeur de carte par le pont, une scène bâtie de bout en bout',
     expect(corps.facades!.flatMap((f) => f.features ?? []).map((f) => f.kind), 'une façade et son ouverture').toEqual(['gable']);
     expect(neuve.effectZones!.map((z) => [z.presentation, z.area]), 'la pièce').toEqual([['interior', { kind: 'rect', ...ici(0, 0), w: 3, h: 3 }]]);
     expect(neuve.entities.map((en) => [en.kind, en.pos, en.facing])).toEqual([['prop', ici(5, 4), 'E'], ['heroStart', ici(3, 5), undefined]]);
-    expect(neuve.triggers.map((tr) => [tr.rect, tr.flow]), 'le déclencheur tiré, au flux vide').toEqual([[{ ...ici(6, 4), w: 3, h: 3 }, { kind: 'seq', steps: [] }]]);
+    expect(neuve.triggers.map((tr) => [tr.rect, tr.flow]), 'le déclencheur tiré, au flux vide').toEqual([[{ ...ici(6, 4), w: 3, h: 3 }, { kind: 'sequence', etapes: [] }]]);
 
     const { appel: rouvrir } = table();
     const depot = mkdtempSync(join(tmpdir(), 'editeur-3508-'));
@@ -1192,8 +1279,9 @@ describe('l’éditeur de carte par le pont, le navire (#3772)', () => {
     const posee = editionDe(appel('editer', { edition: { geste: 'appui', point: point(10, 6) } }));
     expect(Object.keys(posee.navires!)).toEqual(['navire-0']);
     expect(posee.navires!['navire-0']).toMatchObject({ corps: { element: 'vehicule--caraque', cap: 'E', taille: 'reelle' } });
-    expect(posee.monde!.surfaces.filter((sf) => sf.navire === 'navire-0').length, 'le sol de ses ponts, touché sans être peint').toBeGreaterThan(0);
-    expect(posee.monde!.surfaces.filter((sf) => sf.flottaison === 'navire-0').length, 'sa mer').toBeGreaterThan(0);
+    const surfaces = morceauxDe(appel, 'edition', posee.monde!).flatMap((m) => m.surfaces);
+    expect(surfaces.filter((sf) => sf.navire === 'navire-0').length, 'le sol de ses ponts, touché sans être peint').toBeGreaterThan(0);
+    expect(surfaces.filter((sf) => sf.flottaison === 'navire-0').length, 'sa mer').toBeGreaterThan(0);
     const couches = posee.vue.zones['editeur.couches'].find((el) => el.id === 'couches') as Choix;
     expect(couches.valeurs.map((b) => b.id)).toEqual(['couche/0', 'couche/1', 'couche/2', 'couche/3']);
     const pont = presser(boutonDe(posee, 'couche/2'));
@@ -1220,7 +1308,7 @@ describe('l’éditeur de carte par le pont, le navire (#3772)', () => {
     const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
     const ouverte = editionDe(appel('editer', { ouvrir: CAMPAGNE }));
     const outil = presser(boutonDe(ouverte, 'outil/navire'));
-    const echelle = presser(boutonDe(editionDe(appel('editer', { edition: { geste: 'outil', outil: { mode: 'select' } } })), 'scene/echelle/plus'));
+    const echelle = presser(boutonDe(editionDe(appel('editer', { edition: { geste: 'outil', outil: { mode: 'selection' } } })), 'scene/echelle/plus'));
     expect(boutonDe(echelle, 'outil/navire').refus).toBe('Ses ponts ne se posent pas dans une scène à 3 m par case');
     expect(erreurDe(appel('editer', boutonDe(echelle, 'outil/navire').jeu)).categorie).toBe('regle');
     expect(boutonDe(outil, 'navire/caraque').refus).toBeNull();
@@ -1263,9 +1351,9 @@ describe('l’éditeur de carte par le pont, le formulaire tiré du schéma (#36
     expect(valeursDeLInspecteur(e, 'valeur/flow/kind').map((b) => [b.libelle, b.presse]), 'le flux requis : ses cinq branches, la séquence neuve pressée, aucun retrait').toEqual([
       ['Séquence', true], ['Effet', false], ['Si', false], ['Test', false], ['Choix', false],
     ]);
-    presser('valeur/flow/steps/ajouter');
-    choisir('valeur/flow/steps/0/kind', 'Effet');
-    saisir('valeur/flow/steps/0/effect/flag', 'porte');
+    presser('valeur/flow/etapes/ajouter');
+    choisir('valeur/flow/etapes/0/kind', 'Effet');
+    saisir('valeur/flow/etapes/0/effet/flag', 'porte');
     expect(erreurDe(appel('editer', { type: 'valeur', args: [declencheur, ['once'], false] })).categorie, 'un champ qu’un geste dédié écrit, hors du formulaire').toBe('validation');
     choisir('valeur/when/kind', 'TOUS (ET)');
     expect(option('valeur/when/kind', 'TOUS (ET)').presse).toBe(true);
@@ -1306,7 +1394,7 @@ describe('l’éditeur de carte par le pont, le formulaire tiré du schéma (#36
     presser('valeur/crossTest/ajouter');
     choisir('valeur/crossTest/characteristic', 'Force');
     choisir('valeur/crossTest/stake/forme', 'clé');
-    expect(formulaire('valeur/crossTest/stake/values').champs[2], 'un record à clé ouverte, sans clé offerte, se saisit en JSON').toMatchObject({ type: 'saisieJson' });
+    expect(inspecteur().filter((el) => el.id.startsWith('valeur/crossTest/stake/key/')).map((el) => [el.id.slice('valeur/crossTest/stake/key/'.length), el.type]), 'la forme authorée d’un enjeu au catalogue est sa clé seule, chaque champ à son contrôle (#3606 M2e3)').toEqual([['dataset', 'choix'], ['kind', 'formulaire'], ['entryId', 'formulaire'], ['entryCategory', 'formulaire']]);
     presser('valeur/crossTest/stake/forme/aucune');
     presser('valeur/onCross/ajouter');
     choisir('valeur/onCross/0/op', 'Points de Corruption');
@@ -1334,7 +1422,7 @@ describe('l’éditeur de carte par le pont, le formulaire tiré du schéma (#36
     const neuve = (JSON.parse(enregistree.depot!.texte) as { scenes: Scene[] }).scenes.find((sc) => sc.effectZones?.some((z) => z.id === zone.id))!;
     expect(neuve.triggers.find((t) => t.id === declencheur.id)).toMatchObject({
       when: { kind: 'all', of: [{ kind: 'flag', expr: 'porte' }, { kind: 'not', of: { kind: 'foeInLoS' } }] },
-      flow: { kind: 'seq', steps: [{ kind: 'do', effect: { type: 'setFlag', flag: 'porte' } }] },
+      flow: { kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'setFlag', flag: 'porte' } }] },
     });
     expect(neuve.effectZones!.find((z) => z.id === zone.id)).toMatchObject({
       crossTest: { characteristic: 'force' },
@@ -1346,7 +1434,7 @@ describe('l’éditeur de carte par le pont, le formulaire tiré du schéma (#36
     expect(option('valeur/when/kind', 'TOUS (ET)').presse, 'rouverte, la condition du déclencheur').toBe(true);
     expect(option('valeur/when/of/1/of/kind', 'Ennemi en Ligne de Vue').presse).toBe(true);
     expect(formulaire('valeur/when/of/0/expr').champs[2]).toMatchObject({ valeur: 'porte' });
-    expect(formulaire('valeur/flow/steps/0/effect/flag').champs[2], 'rouvert, le flux du déclencheur').toMatchObject({ valeur: 'porte' });
+    expect(formulaire('valeur/flow/etapes/0/effet/flag').champs[2], 'rouvert, le flux du déclencheur').toMatchObject({ valeur: 'porte' });
     rouvrir('editer', { edition: { geste: 'appui', point: point(3, 3) } });
     e = editionDe(rouvrir('editer', { edition: { geste: 'relache', point: point(3, 3) } }));
     expect(option('valeur/onCross/0/characteristic', 'Agilité').presse, 'rouverte, les ops de la zone').toBe(true);
@@ -1370,17 +1458,17 @@ describe('l’éditeur de carte par le pont, le formulaire tiré du schéma (#36
      *  « Drapeaux » `drapeau` ; un troisième pas ajouté se retire. */
     const ecrireLeFlux = (flux: string, effet: (pas: string) => void, drapeau: string) => {
       expect(option(`${flux}/kind`, 'Séquence').presse, 'le flux neuf est une séquence').toBe(true);
-      presser(`${flux}/steps/ajouter`);
-      choisir(`${flux}/steps/0/kind`, 'Séquence');
-      presser(`${flux}/steps/0/steps/ajouter`);
-      choisir(`${flux}/steps/0/steps/0/kind`, 'Effet');
-      effet(`${flux}/steps/0/steps/0/effect`);
-      presser(`${flux}/steps/ajouter`);
-      choisir(`${flux}/steps/1/kind`, 'Si');
-      choisir(`${flux}/steps/1/cond/kind`, 'Drapeaux');
-      saisir(`${flux}/steps/1/cond/expr`, drapeau);
-      presser(`${flux}/steps/ajouter`);
-      presser(`${flux}/steps/2/retirer`);
+      presser(`${flux}/etapes/ajouter`);
+      choisir(`${flux}/etapes/0/kind`, 'Séquence');
+      presser(`${flux}/etapes/0/etapes/ajouter`);
+      choisir(`${flux}/etapes/0/etapes/0/kind`, 'Effet');
+      effet(`${flux}/etapes/0/etapes/0/effet`);
+      presser(`${flux}/etapes/ajouter`);
+      choisir(`${flux}/etapes/1/kind`, 'Si');
+      choisir(`${flux}/etapes/1/condition/kind`, 'Drapeaux');
+      saisir(`${flux}/etapes/1/condition/expr`, drapeau);
+      presser(`${flux}/etapes/ajouter`);
+      presser(`${flux}/etapes/2/retirer`);
     };
     const validation = () => (e.vue.zones['editeur.validation'][0] as Ligne).texte;
 
@@ -1411,13 +1499,13 @@ describe('l’éditeur de carte par le pont, le formulaire tiré du schéma (#36
 
     const enregistree = editionDe(appel('editer', boutonDe(e, 'enregistrer').jeu));
     const scene = (JSON.parse(enregistree.depot!.texte) as { scenes: Scene[] }).scenes.find((sc) => sc.effectZones?.some((z) => z.onCross?.some((o) => o.op === 'infestation')))!;
-    const si = (drapeau: string) => ({ kind: 'if', cond: { kind: 'flag', expr: drapeau }, then: { kind: 'seq', steps: [] } });
-    expect(scene.entities?.find((en) => en.usable)?.usable?.actions?.[0].flow).toEqual({ kind: 'seq', steps: [
-      { kind: 'seq', steps: [{ kind: 'do', effect: { type: 'setFlag', flag: 'braise' } }] },
+    const si = (drapeau: string) => ({ kind: 'si', condition: { kind: 'flag', expr: drapeau }, alors: { kind: 'sequence', etapes: [] } });
+    expect(scene.entities?.find((en) => en.usable)?.usable?.actions?.[0].flow).toEqual({ kind: 'sequence', etapes: [
+      { kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'setFlag', flag: 'braise' } }] },
       si('braise'),
     ] });
-    expect(scene.effectZones!.flatMap((z) => z.onCross ?? []).find((o) => o.op === 'infestation')).toMatchObject({ chaqueNuit: { kind: 'seq', steps: [
-      { kind: 'seq', steps: [{ kind: 'do', effect: { type: 'ops', ops: [{ op: 'corruption', amount: 1 }] } }] },
+    expect(scene.effectZones!.flatMap((z) => z.onCross ?? []).find((o) => o.op === 'infestation')).toMatchObject({ chaqueNuit: { kind: 'sequence', etapes: [
+      { kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'ops', ops: [{ op: 'corruption', amount: 1 }] } }] },
       si('rats'),
     ] } });
   });
@@ -1438,20 +1526,20 @@ describe('l’éditeur de carte par le pont, le formulaire tiré du schéma (#36
     presser('outil/zone'); presser('zone/trigger');
     jouer({ geste: 'appui', point: point(0, 0) });
     jouer({ geste: 'relache', point: point(1, 1) });
-    presser('valeur/flow/steps/ajouter');
-    choisir('valeur/flow/steps/0/kind', 'Effet');
-    choisir('valeur/flow/steps/0/effect/type', 'Ouvrir une boutique');
-    expect(valeursDeLInspecteur(e, 'valeur/flow/steps/0/effect/entityId/id'), 'le brasero posé n’est pas un marchand de la scène').toEqual([]);
-    choisir('valeur/flow/steps/0/effect/type', 'Transition de scène');
-    const offertes = valeursDeLInspecteur(e, 'valeur/flow/steps/0/effect/scene/id');
+    presser('valeur/flow/etapes/ajouter');
+    choisir('valeur/flow/etapes/0/kind', 'Effet');
+    choisir('valeur/flow/etapes/0/effet/type', 'Ouvrir une boutique');
+    expect(valeursDeLInspecteur(e, 'valeur/flow/etapes/0/effet/entityId/id'), 'le brasero posé n’est pas un marchand de la scène').toEqual([]);
+    choisir('valeur/flow/etapes/0/effet/type', 'Transition de scène');
+    const offertes = valeursDeLInspecteur(e, 'valeur/flow/etapes/0/effet/scene/id');
     e = editionDe(appel('editer', offertes[0].jeu));
-    expect(valeursDeLInspecteur(e, 'valeur/flow/steps/0/effect/scene/id')[0].presse, 'la scène choisie est écrite').toBe(true);
+    expect(valeursDeLInspecteur(e, 'valeur/flow/etapes/0/effet/scene/id')[0].presse, 'la scène choisie est écrite').toBe(true);
 
     const enregistree = editionDe(appel('editer', boutonDe(e, 'enregistrer').jeu));
     const projet = JSON.parse(enregistree.depot!.texte) as { scenes: Scene[] };
     expect(offertes.map(valeurDe), 'les scènes du projet, exactement').toEqual(projet.scenes.map((sc) => sc.id));
     const scene = projet.scenes.find((sc) => sc.triggers.some((t) => JSON.stringify(t.flow).includes('"transition"')))!;
-    expect(scene.triggers[0].flow).toEqual({ kind: 'seq', steps: [{ kind: 'do', effect: { type: 'transition', scene: { id: valeurDe(offertes[0]) } } }] });
+    expect(scene.triggers[0].flow).toEqual({ kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'transition', scene: { id: valeurDe(offertes[0]) } } }] });
   });
 
   it('la musique, le message d’introduction sur plusieurs lignes, les ancres de bataille, les groupes du lieu et l’apparence d’une ouverture s’écrivent par leurs écrivains dédiés ; enregistrés, rouverts du dépôt, ils sont relus et la validation ne dit aucune erreur', { timeout: 120_000 }, () => {

@@ -151,7 +151,7 @@ export function newOp(op: GameOp['op'] | string): GameOp {
     case 'attackWardFM': return { op: 'attackWardFM' };
     case 'grantWeapon': return { op: 'grantWeapon', label: '', damage: { bonusOf: 'force-mentale' } };
     case 'grantNaturalWeapon': return { op: 'grantNaturalWeapon', label: '', damage: 3 };
-    case 'grantFreeAttack': return { op: 'grantFreeAttack', weapon: 'held', when: 'immediate', advantageOrMovement: true };
+    case 'grantFreeAttack': return { op: 'grantFreeAttack', weapon: 'held', when: 'immediate', avantageOuMouvement: true };
     case 'grantTrait': return { op: 'grantTrait', trait: { id: '' } };
     case 'removeTrait': return { op: 'removeTrait', trait: { id: '' } };
     case 'grantPsychTrait': return opPsy.octroi('');
@@ -218,7 +218,7 @@ export function newOp(op: GameOp['op'] | string): GameOp {
     case 'senseLoss': return { op: 'senseLoss', sense: 'vue' };
     case 'loseTurn': return { op: 'loseTurn' };
     case 'removeShipPoste': return { op: 'removeShipPoste' };
-    case 'weaponRollMod': return { op: 'weaponRollMod', phase: 'attack', drMod: -1 };
+    case 'weaponRollMod': return { op: 'weaponRollMod', phase: 'attaque', drMod: -1 };
     case 'weaponDamageMod': return { op: 'weaponDamageMod', mode: 'maxUnits' };
     case 'armourPierce': return { op: 'armourPierce', amount: 1 };
     case 'critOnRoll': return { op: 'critOnRoll', mod: 10, equals: 0 };
@@ -240,7 +240,7 @@ export function newOp(op: GameOp['op'] | string): GameOp {
     case 'commission': return { op: 'commission', montant: { brass: 48000 } };
     case 'constructeurDEscale': return { op: 'constructeurDEscale', competence: 68, duree: { dice: { n: 1, sides: 10 } } };
     case 'rationsDEscale': return { op: 'rationsDEscale', montant: { brass: 3 } };
-    case 'infestation': return { op: 'infestation', crewTestType: { id: '' }, difficulty: 'intermediaire', targetDR: 10, chaqueNuit: { kind: 'seq', steps: [] } };
+    case 'infestation': return { op: 'infestation', crewTestType: { id: '' }, difficulty: 'intermediaire', drCible: 10, chaqueNuit: { kind: 'sequence', etapes: [] } };
     default: {
       const payload = OP_DEFS[op];
       if (payload) return sansReferenceElue(payload, valeurNeuveDe(payload)) as GameOp;
@@ -278,12 +278,12 @@ export function valeurNeuveDe(noeud: unknown): unknown {
 }
 
 /** La valeur NEUVE de la variante `v` de l'union `u`, depuis la valeur `actuelle` : d'une op, celle de sa fabrique
- *  (`newOp`) ; d'une Condition, celle de `recast`, qui enveloppe l'actuelle sous ET, OU, NON ; de toute autre branche,
- *  sa valeur neuve, son discriminant posé, sauf pour la variante qui ne le porte pas (clé vide) et pour une union à clé
- *  propre, qui n'en a pas. */
+ *  (`newOp`) ; d'une Condition, union dont une variante est le produit de la Condition de sa clé, celle de `recast`,
+ *  qui enveloppe l'actuelle sous ET, OU, NON ; de toute autre branche, sa valeur neuve, son discriminant posé, sauf pour
+ *  la variante qui ne le porte pas (clé vide) et pour une union sans discriminant. */
 function neuveDeLaVariante(u: UnionDuNoeud, v: VarianteDuNoeud, actuelle: unknown): unknown {
   if (declarationDEnfants(u.noeud)) return newOp(v.cle);
-  if (u.variantes.some((w) => classeDeProduit(w.noeud)?.fabrique === 'conditionDe')) return recast((actuelle as Condition | undefined) ?? CONDITION_TOUJOURS, v.cle as Condition['kind']);
+  if (u.variantes.some((w) => classeDeProduit(w.noeud)?.role === `condition.${w.cle}`)) return recast((actuelle as Condition | undefined) ?? CONDITION_TOUJOURS, v.cle as Condition['kind']);
   const neuve = valeurNeuveDe(v.noeud);
   return v.cle === '' || u.discriminant === '' ? neuve : { ...(neuve as object), [u.discriminant]: v.cle };
 }
@@ -300,4 +300,17 @@ export function variantesAChoisir(noeud: unknown, actuelle: unknown): ValeurDeVa
   if (!u) return undefined;
   const courante = varianteCourante(u, actuelle);
   return u.variantes.map((v) => ({ cle: v.cle, libelle: v.libelle, valeur: v === courante ? actuelle : neuveDeLaVariante(u, v, actuelle), courante: v === courante }));
+}
+
+/** Ce que jouent les gestes de la liste `liste`, d'élément neuf `neuve` : « Ajouter », la liste où il s'ajoute en fin
+ *  (`null` sans élément neuf, `valeurNeuveDe` n'en bâtissant aucun) ; pour chaque élément, « Retirer », la liste sans
+ *  lui, et « Monter », celle où il passe avant le précédent (`null` pour le premier). */
+export function gestesDeLaListe(liste: readonly unknown[], neuve: unknown): { ajouter: unknown[] | null; elements: { retirer: unknown[]; monter: unknown[] | null }[] } {
+  return {
+    ajouter: neuve === undefined ? null : [...liste, neuve],
+    elements: liste.map((e, rang) => ({
+      retirer: liste.filter((_, i) => i !== rang),
+      monter: rang ? [...liste.slice(0, rang - 1), e, liste[rang - 1], ...liste.slice(rang + 1)] : null,
+    })),
+  };
 }

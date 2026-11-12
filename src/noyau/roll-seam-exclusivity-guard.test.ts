@@ -1580,6 +1580,8 @@ describe('#1508 — angles morts du scan, mesurés (alias local, appel par objet
       'src/noyau/combatFlow.ts jouerLaFrappePassive',
       'src/noyau/combatFlow.ts jouerLaSuiteDuCoup',
       'src/noyau/combatFlow.ts jouerLesTirsDeBordee',
+      'src/noyau/combatFlow.ts ouvrirLaSerieSubie',
+      'src/noyau/combatFlow.ts poursuivreLaSerie',
       'src/noyau/combatFlow.ts resumeCleaveChain',
       'src/noyau/combatFlow.ts runCleaveChain',
       'src/noyau/combatFlow.ts runPreemptShots',

@@ -29,7 +29,7 @@ import type { RollBreakdown, ModLine } from '../engine/combat';
 import { battleRng } from './battleRng';
 import { rollOups } from '../engine/oups';
 import { touchActors, seaMagicContext, windsMagicModOf } from './combatOrParty';
-import { actorIn, inBattleId } from './monde/combatants';
+import { actorIn, inBattleId, porteurParId } from './monde/combatants';
 import { garanti } from '../lib/garanti';
 import {
   lancerLAttaque, lancerLIncantation, renoncerALIncantation, laisserPasserLeContreSort,
@@ -99,11 +99,11 @@ export function rederiveAttack(attacker: Combatant, target: Combatant, p: Pendin
     // Substitution sociale (Intimidation/Dressage, LDB 09 l.207/287) : base et libelle viennent du jet
     // de defense FIGE. Sans eux, la rangee defenseur repartait sur une Parade a base 0.
     const sub = mode === 'social' ? { base: dd.base, label: dd.label } : undefined;
-    return weapon.type === 'ranged'
+    return weapon.type === 'distance'
       ? finishRanged(attacker, target, weapon, atk2, def, mode, { rng: battleRng(), fige: r.critLocation }, p.distanceTiles, p.location ?? undefined, [], r.parryWeapon, dodge, 2, compo, p.withhold)
       : finishMelee(attacker, target, weapon, atk2, def, mode, { rng: battleRng(), fige: r.critLocation }, p.location ?? undefined, [], dodge, dmgProxy, r.parryWeapon, p.withhold, sub, compo);
   }
-  return rederivePassiveAttack(attacker, target, weapon, atk2, weapon.type === 'ranged' ? 'ranged' : 'melee', { rng: battleRng(), fige: r.critLocation }, p.location ?? undefined, p.withhold, compo, dmgProxy);
+  return rederivePassiveAttack(attacker, target, weapon, atk2, weapon.type === 'distance' ? 'distance' : 'melee', { rng: battleRng(), fige: r.critLocation }, p.location ?? undefined, p.withhold, compo, dmgProxy);
 }
 
 /** Arme avec laquelle cette Défense pare : la DÉCLARÉE (réglage `defense.armeDeParade`), sinon `defaultParryWeapon`. Lue par le jet et par sa fenêtre. */
@@ -122,7 +122,7 @@ function finishDefenseResult(attacker: Combatant, defender: Combatant, p: Pendin
   const tirage = { rng: battleRng(), fige: p.result?.critLocation ?? p.critLocation };
   // La Difficulté de l'attaque a été FIGÉE à l'ouverture de la fenêtre (`atkCompo`) : le jet est
   // antérieur, et son contexte (flanc/dos notamment) ne voyage pas jusqu'ici.
-  return p.weapon.type === 'ranged'
+  return p.weapon.type === 'distance'
     ? finishRanged(attacker, defender, p.weapon, atk, def, p.mode, tirage, p.distanceTiles, p.location ?? undefined, p.env ?? [], parry, dodgeMods, metresPerTile, p.atkCompo, !!p.withhold)
     : finishMelee(attacker, defender, p.weapon, atk, def, p.mode, tirage, p.location ?? undefined, p.env ?? [], dodgeMods, p.dmgProxy, parry, !!p.withhold, sub, p.atkCompo);
 }
@@ -133,18 +133,18 @@ function finishDefenseResult(attacker: Combatant, defender: Combatant, p: Pendin
  * s'annulent : personne ne gagne d'office, les deux Points restent brûlés, le Test se résout aux
  * dés (arbitrage utilisateur 2026-07-31 [entériné 2026-08-03], verbatim au ticket #1000).
  * Le dé posé et la localisation restent (RAW).
- * `attaquantForce` = forçage de l'attaquant (voyage sur l'attaque figée) ; `p.forced` = forçage du
+ * `attaquantForce` = forçage de l'attaquant (voyage sur l'attaque figée) ; `p.forcee` = forçage du
  * défenseur — `defenderForcing` couvre le forçage EN COURS, dont le drapeau n'est posé qu'APRÈS le
  * patch (`opForceSuccess`).
  */
 export function opposedForcingCancelled(p: PendingDefense, defenderForcing = false): boolean {
-  return attaquantForce(p) && (defenderForcing || !!p.forced);
+  return attaquantForce(p) && (defenderForcing || !!p.forcee);
 }
 /** L'ATTAQUANT a-t-il dépensé « Je ne faillirai pas ! » (LDB 17 l.68) sur le jet figé de cette fenêtre ?
  *  Le forçage vit sur l'attaque elle-même, que seule la suite PILOTÉE porte — une frappe de la machine
  *  n'a pas d'attaque en attente, donc pas de garantie à honorer ici. */
 function attaquantForce(p: PendingDefense): boolean {
-  return p.suite.mode === 'pilotee' && !!p.suite.pa.forced;
+  return p.suite.mode === 'pilotee' && !!p.suite.pa.forcee;
 }
 /** Ligne factuelle rendue au joueur qui dépense le SECOND Point (#1000) — l'annulation n'est jamais
  *  silencieuse. Consommateur : la fenêtre de défense (`useDefenseJetProps`). */
@@ -154,7 +154,7 @@ export const OPPOSED_FORCING_CANCELLED_NOTE = 'Les deux Résiliences s’annulen
  *  opposé, vous l'emportez avec au moins DR +1 ») → DR de l'opposant + 1, au minimum 1 : c'est la
  *  garantie elle-même qui fonde ce minimum. Garanties ANNULÉES (#1000) → plancher NUL : le dé posé
  *  s'évalue au naturel, DR 0 compris (LDB 12 l.94). */
-function opposedForcedFloor(opponentSL: number, cancelled: boolean): number {
+function plancherOpposeForce(opponentSL: number, cancelled: boolean): number {
   return cancelled ? 0 : Math.max(opponentSL + 1, 1);
 }
 
@@ -271,32 +271,32 @@ function requeteDEtape(st: CascadeStep, rangee: { skill?: RefDesignee }): Revers
 
 /** Les verbes de jet du noyau (`NOM_DU_VERBE_DE_JET`) : chacun joue son verbe sur le flux `flux` qui l'accepte
  *  (`FluxDuVerbe`), sur la rangée `pid` d'un flux à plusieurs jets (`viseUneRangee`). `jetImposerLeResultat` pose le dé
- *  `roll` ; `jetAnnuler` et `jetValider` agissent sur la fenêtre entière, sans rangée. */
+ *  `lancer` ; `jetAnnuler` et `jetValider` agissent sur la fenêtre entière, sans rangée. */
 export interface VerbesDeJet {
-  [NOM_DU_VERBE_DE_JET.roll]: (flux: FluxDuVerbe<'roll'>, pid?: IdDeRangee) => void;
-  [NOM_DU_VERBE_DE_JET.reroll]: (flux: FluxDuVerbe<'reroll'>, pid?: IdDeRangee) => void;
-  [NOM_DU_VERBE_DE_JET.bonusSL]: (flux: FluxDuVerbe<'bonusSL'>, pid?: IdDeRangee) => void;
-  [NOM_DU_VERBE_DE_JET.darkPact]: (flux: FluxDuVerbe<'darkPact'>, pid?: IdDeRangee) => void;
-  [NOM_DU_VERBE_DE_JET.forceSuccess]: (flux: FluxDuVerbe<'forceSuccess'>, pid?: IdDeRangee) => void;
-  [NOM_DU_VERBE_DE_JET.setForcedRoll]: (flux: FluxDuVerbe<'setForcedRoll'>, roll: number, pid?: IdDeRangee) => void;
-  [NOM_DU_VERBE_DE_JET.resist]: (flux: FluxDuVerbe<'resist'>, pid?: IdDeRangee) => void;
-  [NOM_DU_VERBE_DE_JET.cancel]: (flux: FluxDuVerbe<'cancel'>) => void;
-  [NOM_DU_VERBE_DE_JET.reverse]: (flux: FluxDuVerbe<'reverse'>, pid?: IdDeRangee) => void;
-  [NOM_DU_VERBE_DE_JET.confirm]: (flux: FluxDuVerbe<'confirm'>) => void;
+  [NOM_DU_VERBE_DE_JET.lancer]: (flux: FluxDuVerbe<'lancer'>, pid?: IdDeRangee) => void;
+  [NOM_DU_VERBE_DE_JET.relancer]: (flux: FluxDuVerbe<'relancer'>, pid?: IdDeRangee) => void;
+  [NOM_DU_VERBE_DE_JET.ajouterUnDR]: (flux: FluxDuVerbe<'ajouterUnDR'>, pid?: IdDeRangee) => void;
+  [NOM_DU_VERBE_DE_JET.pactiser]: (flux: FluxDuVerbe<'pactiser'>, pid?: IdDeRangee) => void;
+  [NOM_DU_VERBE_DE_JET.forcerLaReussite]: (flux: FluxDuVerbe<'forcerLaReussite'>, pid?: IdDeRangee) => void;
+  [NOM_DU_VERBE_DE_JET.imposerLeResultat]: (flux: FluxDuVerbe<'imposerLeResultat'>, roll: number, pid?: IdDeRangee) => void;
+  [NOM_DU_VERBE_DE_JET.resister]: (flux: FluxDuVerbe<'resister'>, pid?: IdDeRangee) => void;
+  [NOM_DU_VERBE_DE_JET.annuler]: (flux: FluxDuVerbe<'annuler'>) => void;
+  [NOM_DU_VERBE_DE_JET.inverser]: (flux: FluxDuVerbe<'inverser'>, pid?: IdDeRangee) => void;
+  [NOM_DU_VERBE_DE_JET.valider]: (flux: FluxDuVerbe<'valider'>) => void;
 }
 
 /** Le corps de la clôture de chaque flux qui se clôt : sa seule entrée est `jetValider`. */
-export type CloturesDuJet = { readonly [F in FluxDuVerbe<'confirm'>]: () => void };
+export type CloturesDuJet = { readonly [F in FluxDuVerbe<'valider'>]: () => void };
 
 /** Le geste PRÉ-ARMÉ de la Résilience avant le jet (LDB 17 l.68), encadré en un geste (`withPreRollFixedDie`) : « au
  *  lieu de lancer les dés », le forçage se passe du dé quand le flux le sait ; sinon le jet du flux tombe d'abord, par
- *  son verbe `roll` quand il l'accepte, puis il est forcé. */
+ *  son verbe `lancer` quand il l'accepte, puis il est forcé. */
 function auJetDu(h: RollFlowHandlers, flux: FlowKey, get: Get, set: Set, pid?: string): (forcer: () => boolean) => void {
   return (forcer) => {
     let sansDe = false;
     withPreRollFixedDie(get, set, () => {
       sansDe = forcer();
-      if (!sansDe && fluxAccepte(flux, 'roll')) h.roll(get, set, pid);
+      if (!sansDe && fluxAccepte(flux, 'lancer')) h.lancer(get, set, pid);
     }, () => { if (!sansDe) forcer(); });
   };
 }
@@ -319,23 +319,23 @@ export function creerVerbesDeJet(get: Get, set: Set, clotures: CloturesDuJet): V
     if (refus) { refuserGeste(get, set, refus); return; }
     geste(FLOWS[flux as FlowKey], flux as FlowKey, pid as string | undefined);
   };
-  const simple = (verbe: Exclude<RollVerb, 'roll' | 'setForcedRoll' | 'forceSuccess' | 'cancel' | 'confirm'>) =>
+  const simple = (verbe: Exclude<RollVerb, 'lancer' | 'imposerLeResultat' | 'forcerLaReussite' | 'annuler' | 'valider'>) =>
     (flux: FlowKey, pid?: string) => jouer(verbe, flux, pid, (h, _f, rangee) => h[verbe](get, set, rangee));
   return {
-    [NOM_DU_VERBE_DE_JET.roll]: (flux, pid) => jouer('roll', flux, pid, (h, f, rangee) => {
-      if (rangee !== undefined || !rangeeFacultative(f, 'roll')) h.roll(get, set, rangee);
+    [NOM_DU_VERBE_DE_JET.lancer]: (flux, pid) => jouer('lancer', flux, pid, (h, f, rangee) => {
+      if (rangee !== undefined || !rangeeFacultative(f, 'lancer')) h.lancer(get, set, rangee);
       else h.lancerSansRangee(get, set, FLOW_VERBS[f].kind === 'multi' && FLOW_VERBS[f].pidIsActor);
     }),
-    [NOM_DU_VERBE_DE_JET.reroll]: simple('reroll'),
-    [NOM_DU_VERBE_DE_JET.bonusSL]: simple('bonusSL'),
-    [NOM_DU_VERBE_DE_JET.darkPact]: simple('darkPact'),
-    [NOM_DU_VERBE_DE_JET.resist]: simple('resist'),
-    [NOM_DU_VERBE_DE_JET.reverse]: simple('reverse'),
-    [NOM_DU_VERBE_DE_JET.forceSuccess]: (flux, pid) => jouer('forceSuccess', flux, pid, (h, f, rangee) => h.forceSuccess(get, set, rangee, auJetDu(h, f, get, set, rangee))),
-    [NOM_DU_VERBE_DE_JET.setForcedRoll]: (flux, roll, pid) => jouer('setForcedRoll', flux, pid, (h, _f, rangee) => h.setForcedRoll(get, set, roll, rangee)),
-    [NOM_DU_VERBE_DE_JET.cancel]: (flux) => jouer('cancel', flux, undefined, (h) => h.cancel(get, set)),
-    [NOM_DU_VERBE_DE_JET.confirm]: (flux) => jouer('confirm', flux, undefined, (h) => {
-      const fermeture = h.fermetures(get).confirm;
+    [NOM_DU_VERBE_DE_JET.relancer]: simple('relancer'),
+    [NOM_DU_VERBE_DE_JET.ajouterUnDR]: simple('ajouterUnDR'),
+    [NOM_DU_VERBE_DE_JET.pactiser]: simple('pactiser'),
+    [NOM_DU_VERBE_DE_JET.resister]: simple('resister'),
+    [NOM_DU_VERBE_DE_JET.inverser]: simple('inverser'),
+    [NOM_DU_VERBE_DE_JET.forcerLaReussite]: (flux, pid) => jouer('forcerLaReussite', flux, pid, (h, f, rangee) => h.forcerLaReussite(get, set, rangee, auJetDu(h, f, get, set, rangee))),
+    [NOM_DU_VERBE_DE_JET.imposerLeResultat]: (flux, roll, pid) => jouer('imposerLeResultat', flux, pid, (h, _f, rangee) => h.imposerLeResultat(get, set, roll, rangee)),
+    [NOM_DU_VERBE_DE_JET.annuler]: (flux) => jouer('annuler', flux, undefined, (h) => h.annuler(get, set)),
+    [NOM_DU_VERBE_DE_JET.valider]: (flux) => jouer('valider', flux, undefined, (h) => {
+      const fermeture = h.fermetures(get).valider;
       if (!fermeture) clotures[flux]();
       else if (FERMETURES_DITES.has(fermeture)) refuserGeste(get, set, libelleDeLaFermeture(fermeture));
     }),
@@ -355,8 +355,8 @@ function crewRoleFlowSpec<P extends import('./rollFlowFactory').PendingBase & { 
     rolled: (r) => !!r.result,
     die: roll3Die<ShipManeuverParticipant, P>(),
     actor: (s, r) => actorIn(s, r.id),
-    clotures: { cancel: 'toujours' },
-    caps: { forced: true },
+    clotures: { annuler: 'toujours' },
+    caps: { forcer: true },
     resolve: (_s, r, actor, _get, forced) => {
       if (!actor || refusSansJet(r) != null) return null; // LDB 09 l.30 ; #2588 Q1
       if (!forced) return rollCrewRole(actor, r.roleId, r.navigation, battleRng(), r.cumul, r.sense);
@@ -390,7 +390,7 @@ function holdVerdict(p: PendingActivity & ActivityOppositionOn, jet: { roll: num
   const et = evaluateTest(p.enemyRoll, p.enemyValue, p.enemyBase);
   const pj = { roll: jet.roll, target: p.target, base: p.skillBase, success: jet.success, sl: jet.sl, isDouble: false };
   const opp = resolveOpposed(pj, et);
-  return { held: opp.winner !== 'defender', enemySL: et.sl - jet.sl };
+  return { held: opp.winner !== 'defenseur', enemySL: et.sl - jet.sl };
 }
 
 /** Lecture du dé `tr` d'une Activité : COMBINÉ (LDB 12 l.206 : UN dé confronté à DEUX valeurs), OPPOSÉ de
@@ -533,7 +533,7 @@ function opposedBinaryFlow<P extends import('./rollFlowFactory').PendingBase & {
     } : {}),
     rolled: cfg.rolled ?? ((p) => cfg.actorTR(p) != null),
     actor: (s, p) => actorIn(s, cfg.actorId(p)),
-    caps: { forced: true },
+    caps: { forcer: true },
     resolve: (s, p, actor) => (actor && cfg.foeTR(p) != null ? opposedPatch(p, cfg.rollActor(s, actor)) : null),
     outcome: (p) => testOutcome(cfg.actorTR(p)),
     perdu: (p) => p.result != null && p.result !== 'reussite',
@@ -544,7 +544,7 @@ function opposedBinaryFlow<P extends import('./rollFlowFactory').PendingBase & {
       // au titre de la Résilience passe par le socle : sans ce plancher, la ré-opposition contre le jet
       // FIGÉ de l'adversaire DÉTRUIRAIT la réussite déjà payée par le point.
       // `cancelled:false` STRUCTUREL : le foe est figé, aucun verbe ne lui ouvre de forçage (#1000).
-      floorSL: (p) => opposedForcedFloor(cfg.foeTR(p)?.sl ?? 0, false),
+      floorSL: (p) => plancherOpposeForce(cfg.foeTR(p)?.sl ?? 0, false),
       forceWin: (slot, _actor, tr) => (slot.result && tr ? ({ result: 'reussite' } as Partial<P>) : null),
     },
   });
@@ -645,7 +645,7 @@ function refusDuJetDeChute(s: Jeu, pid: string): string | null {
   const p = s.pendingFall;
   const part = p?.participants.find((x) => x.id === pid);
   if (!p || !part) return null;
-  if (phaseDeChute(p) === 'choice') return refusDesDeclarationsDues(s, p);
+  if (phaseDeChute(p) === 'choix') return refusDesDeclarationsDues(s, p);
   return part.attempt === true ? null : t('fall.refus.sansTest', { tombant: tombantsNommes(s, [part]) });
 }
 
@@ -723,7 +723,7 @@ export const FLOWS = paresseux({
     // mêmes environnement et options de tir) OU Résilience (LDB 17 l.68) selon `forced`.
     // Dé choisi (`picker`) : le d100 de l'attaquant — son inverse donne la localisation (LDB 13 l.142).
     caps: {
-      forced: true,
+      forcer: true,
     },
     // ACCESSEUR DE DÉ : le d100 de l'attaquant (son inverse donne la localisation, LDB 13 l.142).
     die: {
@@ -733,7 +733,7 @@ export const FLOWS = paresseux({
         return actor && t ? { result: rederiveAttack(actor, t, p, tr, s.battle?.combatants) } : null;
       },
       // Test opposé : « vous l'emportez avec au moins DR +1 » (LDB 17 l.68) — cf. INVARIANT de `resolve`.
-      floorSL: (p) => opposedForcedFloor(p.result?.defenderDetail?.sl ?? 0, false),
+      floorSL: (p) => plancherOpposeForce(p.result?.defenderDetail?.sl ?? 0, false),
     },
     resolve: (s, p, actor, get, forced) => {
       const target = actorIn(s, p.targetId);
@@ -749,7 +749,7 @@ export const FLOWS = paresseux({
         // Dé PAR DÉFAUT : « vous choisissez le résultat » (LDB 17 l.68) = LE MEILLEUR (`bestForcedRoll`,
         // policy-aware), jamais le dé raté courant. Test opposé : « vous l'emportez avec au moins DR +1 ».
         const aDie = bestForcedRoll(ad.target);
-        const atk2 = forcedTR(aDie, cibleBrute(ad), Math.max(evaluateTest(aDie, cibleBrute(ad)).sl, opposedForcedFloor(defSL, false)), ad.base);
+        const atk2 = forcedTR(aDie, cibleBrute(ad), Math.max(evaluateTest(aDie, cibleBrute(ad)).sl, plancherOpposeForce(defSL, false)), ad.base);
         return { result: rederiveAttack(actor, target, p, atk2, s.battle?.combatants) };
       }
       const battle = s.battle;
@@ -784,7 +784,7 @@ export const FLOWS = paresseux({
         // Le Talent d'Inversion porte sur la COMPETENCE reellement lancee (LDB 23 l.209) : l'arme
         // FIGEE au jet fait foi, jamais un re-choix qui pourrait basculer melee/distance.
         const weapon = p.weapon ?? firedWeapon(actor, target, p.weaponUid, s.battle?.combatants, p.harpoonRopeCut);
-        return attackTestOf(actor, weapon, weapon.type === 'ranged' ? 'ranged' : 'melee'); // Spécialisation comprise (LDB 23 l.209)
+        return attackTestOf(actor, weapon, weapon.type === 'distance' ? 'distance' : 'melee'); // Spécialisation comprise (LDB 23 l.209)
       },
       current: (p) => (p.result?.attackerDetail ? { roll: p.result.attackerDetail.roll, target: p.result.attackerDetail.target } : null),
       evaluate: (s, p, actor, _get, tr) => {
@@ -843,23 +843,23 @@ export const FLOWS = paresseux({
   defense: () => makeRollFlow<PendingDefense>({
     key: 'pendingDefense',
     rolled: (p) => !!p.result,
-    actor: (s, p) => actorIn(s, p.defenderId),
+    actor: (s, p) => porteurParId(s, p.defenderId),
     // Résolveur UNIQUE (`caps.forced`) : seul le jet du défenseur se (re)joue (`p.atk` figé).
     caps: {
-      forced: true,
+      forcer: true,
     },
     die: {
       read: (p) => (p.def ? deDuJet(p.def) : null),
       write: (s, p, actor, _g, tr) => {
-        const att = actorIn(s, p.attackerId);
+        const att = porteurParId(s, p.attackerId);
         return att && actor ? { def: tr, result: finishDefenseResult(att, actor, p, tr, defenseDodgeMods(s, actor), sceneMetresPerTile(s.scene)) } : null;
       },
       // Test opposé : le défenseur forcé l'emporte avec au moins DR +1 (LDB 17 l.68) — sauf annulation
       // mutuelle (#1000 : `opposedForcingCancelled`), le dé CHOISI restant posé.
-      floorSL: (p) => opposedForcedFloor(p.atk.sl, opposedForcingCancelled(p)),
+      floorSL: (p) => plancherOpposeForce(p.atk.sl, opposedForcingCancelled(p)),
     },
     resolve: (s, p, actor, _get, forced) => {
-      const attacker = actorIn(s, p.attackerId);
+      const attacker = porteurParId(s, p.attackerId);
       if (!attacker || !actor) return null;
       const mpt = sceneMetresPerTile(s.scene);
       if (forced) {
@@ -869,12 +869,12 @@ export const FLOWS = paresseux({
         // les DEUX garanties s'éteignent (`opposedForcingCancelled`, lue aussi par `forcedOpposedAtk` via
         // le `forced` que la fabrique posera juste après ce patch — transmis ici en avance).
         const cancelled = opposedForcingCancelled(p, true);
-        const pForced: PendingDefense = { ...p, forced: true };
+        const pForced: PendingDefense = { ...p, forcee: true };
         // Dé PAR DÉFAUT : « vous choisissez le résultat » (LDB 17 l.68) = LE MEILLEUR (`bestForcedRoll`,
         // policy-aware), jamais le dé raté courant. Le plancher est celui de `opposedForcedFloor` : la
         // garantie (LDB 17 l.68) si elle vit encore, RIEN si elle est annulée (#1000).
         const dDie = bestForcedRoll(p.def.target);
-        const def2 = forcedTR(dDie, cibleBrute(p.def), Math.max(evaluateTest(dDie, cibleBrute(p.def)).sl, opposedForcedFloor(p.atk.sl, cancelled)), p.def.base);
+        const def2 = forcedTR(dDie, cibleBrute(p.def), Math.max(evaluateTest(dDie, cibleBrute(p.def)).sl, plancherOpposeForce(p.atk.sl, cancelled)), p.def.base);
         return { def: def2, result: finishDefenseResult(attacker, actor, pForced, def2, defenseDodgeMods(s, actor), mpt) };
       }
       // Rapide : −10 à la parade d'une arme non-Rapide (LDB 62 l.298-302).
@@ -887,7 +887,7 @@ export const FLOWS = paresseux({
     bonus: {
       guard: (p) => !!p.result?.defenderDetail,
       derive: (s, p, actor) => {
-        const attacker = actorIn(s, p.attackerId);
+        const attacker = porteurParId(s, p.attackerId);
         if (!attacker) return null;
         const dd = p.result!.defenderDetail!;
         const def2 = bumpSL(hydrateTR(dd));
@@ -903,7 +903,7 @@ export const FLOWS = paresseux({
       skillOf: (_s, p) => ({ skill: p.mode === 'parade' ? { id: 'corps-a-corps' } : p.mode === 'esquive' ? { id: 'esquive' } : undefined }),
       current: (p) => (p.def ? { roll: p.def.roll, target: p.def.target } : null),
       evaluate: (s, p, actor, _get, tr) => {
-        const attacker = actorIn(s, p.attackerId); if (!attacker) return null;
+        const attacker = porteurParId(s, p.attackerId); if (!attacker) return null;
         // `tr.success` = issue RÉELLE du dé renversé (voir attack.reverse.evaluate — jamais forcé).
         const def2 = hydrateTR({ roll: tr.roll, ...cibleMesuree(p.def!), base: p.def!.base, success: tr.success, sl: tr.sl });
         return { patch: { def: def2, result: finishDefenseResult(attacker, actor, p, def2, defenseDodgeMods(s, actor), sceneMetresPerTile(s.scene)) }, issue: tr };
@@ -939,7 +939,7 @@ export const FLOWS = paresseux({
     // Projectile suit le dé inversé (LDB 46 l.156) : choisir le dé le re-dérive (socle + accesseur).
     // Picker : 11 → Incantation Critique seulement pour un sort (les Prières n'ont pas de Critique).
     caps: {
-      forced: true,
+      forcer: true,
     },
     // ACCESSEUR DE DÉ : le d100 d'incantation ; `critable` faux pour une Prière (aucun Critique).
     die: {
@@ -1033,7 +1033,7 @@ export const FLOWS = paresseux({
   contreSort: () => makeRollFlow<PendingCounterspell, CounterParticipant>({
     key: 'pendingCounterspell',
     onCancel: laisserPasserLeContreSort,
-    clotures: { confirm: 'toujours' },
+    clotures: { valider: 'toujours' },
     // PORTE UNIQUE en phase de déclaration (#1042/#1059) : décliner s'y dit `passer` sur sa rangée ; ni laisser passer
     // ni appliquer avant que chacun ait déclaré (LDB 46 l.156), ni appliquer avant le jet de chaque rangée qui lance
     // tant que le Sort n'est pas dissipé (#3324).
@@ -1073,7 +1073,7 @@ export const FLOWS = paresseux({
     // Issue CANONIQUE : le Contre-sort du contre-lanceur RÉUSSIT (son jet propre passe) → sinon Chance (LDB 12).
     outcome: (part) => testOutcome(part.result?.counter),
     perdu: (part) => !!part.result && !part.result.dispelled,
-    caps: { forced: true },
+    caps: { forcer: true },
     // ACCESSEUR DE DÉ : le dé du Contre-sort vit dans `result.counter`. LDB 17 l.68 — « au lieu de lancer
     // les dés pour un Test, vous choisissez le résultat » ; Test opposé → « vous l'emportez avec au moins
     // DR +1 » (`resilience`). Un dé FIXÉ (option de confort) s'évalue au naturel, modificateurs propres
@@ -1121,7 +1121,7 @@ export const FLOWS = paresseux({
     // Chaque rangée INTERACTIVE a son jet ; une témoin n'en doit aucun (`jetValider('opposition')`).
     jetPose: (p) => oppositionsEnAttente(p).length === 0,
     // La clôture se montre refusée tant qu'une cible doit encore opposer son Test.
-    clotures: { confirm: 'toujours' },
+    clotures: { valider: 'toujours' },
     cloture: (p) => (oppositionsEnAttente(p).length ? 'oppositionsDues' : null),
     actor: (s, part) => actorIn(s, part.id),
     resolve: (s, part, actor, _get, forced) => {
@@ -1149,12 +1149,12 @@ export const FLOWS = paresseux({
       }
       const oppose = { ...rollTest(oppVal, 'intermediaire', battleRng()), base: oppBase };
       const o = resolveOpposed(castT, oppose);
-      return { result: { oppose, resisted: o.winner !== 'attacker', margin: Math.max(0, castT.sl - oppose.sl) } };
+      return { result: { oppose, resisted: o.winner !== 'attaquant', margin: Math.max(0, castT.sl - oppose.sl) } };
     },
     // Issue CANONIQUE : la cible RÉSISTE au sort (`resisted`) ; sinon le lanceur l'emporte → SA Chance (héros défenseur).
     outcome: (part) => sealOutcome(!!part.result?.resisted, part.result?.oppose.sl ?? 0, part.result?.oppose.roll ?? 0, part.result?.oppose.target ?? 0),
-    // `resist` : « résister aux sorts » = la menace 'Magie' du talent (tag posé par openCastOpposition).
-    caps: { forced: true, resist: true },
+    // `resister` : « résister aux sorts » = la menace 'Magie' du talent (tag posé par openCastOpposition).
+    caps: { forcer: true, resister: true },
     // ACCESSEUR DE DÉ : le dé de la cible vit dans `result.oppose`. LDB 17 l.68 — « vous choisissez le
     // résultat » ; Test opposé contre l'incantation FIGÉE → « vous l'emportez avec au moins DR +1 »
     // (`resilience` : la cible résiste). Un dé FIXÉ s'évalue au naturel — l'opposition tranche.
@@ -1165,7 +1165,7 @@ export const FLOWS = paresseux({
         if (!pcCast) return null;
         const castT = castTestOf(pcCast);
         const o = resolveOpposed(castT, tr);
-        return { result: { oppose: tr, resisted: o.winner !== 'attacker', margin: Math.max(0, castT.sl - tr.sl) } };
+        return { result: { oppose: tr, resisted: o.winner !== 'attaquant', margin: Math.max(0, castT.sl - tr.sl) } };
       },
       resilience: (s, _part, _actor, _get, tr) => {
         const pcCast = s.pendingCast?.result;
@@ -1184,7 +1184,7 @@ export const FLOWS = paresseux({
         const castT = castTestOf(pcCast);
         const oppose = bumpSL(cur.oppose);
         const o = resolveOpposed(castT, oppose);
-        return { result: { oppose, resisted: o.winner !== 'attacker', margin: Math.max(0, castT.sl - oppose.sl) } };
+        return { result: { oppose, resisted: o.winner !== 'attaquant', margin: Math.max(0, castT.sl - oppose.sl) } };
       },
     },
   }),
@@ -1205,7 +1205,7 @@ export const FLOWS = paresseux({
       write: (_s, _r, _a, _g, tr) => ({ result: { roll: tr.roll, sl: tr.sl, success: tr.success } }),
     },
     multi: { slots: (p) => p.rounds, idOf: (r) => r.id, replace: (p, rounds) => ({ ...p, rounds }) },
-    clotures: { cancel: 'toujours' },
+    clotures: { annuler: 'toujours' },
     rolled: (r) => !!r.result,
     actor: (s, _r, p) => (p ? actorIn(s, p.actorId) : undefined),
     resolve: (_s, _r, _actor, _get, forced, p) => {
@@ -1220,7 +1220,7 @@ export const FLOWS = paresseux({
       return { result: { roll: t.roll, sl: t.sl, success: t.success } };
     },
     outcome: (r) => testOutcome(r.result),
-    caps: { forced: true },
+    caps: { forcer: true },
     bonus: {
       derive: (_s, r) => bumpResultSL(r),
     },
@@ -1243,7 +1243,7 @@ export const FLOWS = paresseux({
    */
   cascade: () => makeRollFlow<PendingCascade, CascadeStep>({
     key: 'pendingCascade',
-    clotures: { confirm: 'toujours' },
+    clotures: { valider: 'toujours' },
     cloture: fermetureDeLEtape,
     multi: { slots: (p) => p.participants, idOf: (st) => st.id, replace: (p, parts) => ({ ...p, participants: parts }), refusDuSlot: refusDuJetDEtape, sansRangee: toutResoudre },
     rolled: (st) => !!st.result,
@@ -1258,7 +1258,7 @@ export const FLOWS = paresseux({
       // Dé CHOISI au titre de la Résilience sur une étape OPPOSÉE : le DR est planché À EMPORTER
       // (LDB 17 l.68 « S'il s'agit d'un Test opposé, vous l'emportez avec au moins DR +1 ») — sans ce
       // plancher, la ré-opposition ci-dessus rendrait la réussite ACHETÉE au dé, donc au hasard.
-      floorSL: (st) => { const opp = stepOpposedFreeze(st); return opp ? opposedForcedFloor(opp.aT.sl, false) : 1; },
+      floorSL: (st) => { const opp = stepOpposedFreeze(st); return opp ? plancherOpposeForce(opp.aT.sl, false) : 1; },
     },
     resolve: (_s, st, _actor, _get, forced) => {
       if (st.target == null) return null; // étape sans jet → rien à lancer
@@ -1307,8 +1307,8 @@ export const FLOWS = paresseux({
     // Venin) ; `picker` (dé choisi) UNIQUEMENT sur une Peur de COMBAT (Test ÉTENDU, le DR
     // gagné dépend du dé, LDB 21 l.27) — pas sur une étape BINAIRE (Terreur/cible/Test de scène/nuit/opposé).
     caps: {
-      forced: true,
-      resist: true,
+      forcer: true,
+      resister: true,
     },
     bonus: {
       derive: (_s, st) => {
@@ -1327,7 +1327,7 @@ export const FLOWS = paresseux({
             result: {
               roll: def2.roll, target: st.target!, sl: def2.sl,
               success: opposedBranchSuccess(o, opp.defenderMustWin),
-              ...(o.winner === 'tie' ? { statuQuo: true as const } : {}),
+              ...(o.winner === 'egalite' ? { statuQuo: true as const } : {}),
             },
           };
         }
@@ -1349,7 +1349,7 @@ export const FLOWS = paresseux({
    */
   etalLot: () => makeRollFlow<PendingEtalLot, EtalLotRow>({
     key: 'pendingEtalLot',
-    clotures: { confirm: 'toujours' },
+    clotures: { valider: 'toujours' },
     multi: { slots: (p) => p.participants, idOf: (r) => r.id, replace: (p, parts) => ({ ...p, participants: parts }) },
     rolled: () => true,
     actor: () => undefined,
@@ -1360,9 +1360,9 @@ export const FLOWS = paresseux({
     // La POSE passe par l'ACCESSEUR (`die.write` ci-dessus), jamais par ici : le socle réévalue le dé
     // saisi lui-même. `resolve` n'a donc rien à faire — le dé est déjà tombé, il ne se re-jette pas.
     resolve: () => null,
-    // `caps.forced` OUVRE le geste de pose (`setForcedRoll` y est gardé). La Résilience, elle, n'est pas
-    // offerte : le flux ne déclare pas le verbe `forceSuccess` — on n'achète pas la marchandise d'un étal.
-    caps: { forced: true },
+    // `caps.forced` OUVRE le geste de pose (`imposerLeResultat` y est gardé). La Résilience, elle, n'est pas
+    // offerte : le flux ne déclare pas le verbe `forcerLaReussite` — on n'achète pas la marchandise d'un étal.
+    caps: { forcer: true },
     // Un dé de lot ne REUSSIT ni n’ECHOUE : il tombe. L’issue est scellée neutre sur sa valeur —
     // le socle exige une issue, le domaine n’en a pas à donner.
     outcome: (r) => sealOutcome(true, 0, r.value, r.max),
@@ -1384,7 +1384,7 @@ export const FLOWS = paresseux({
       write: (s, st, _a, get, tr) => poserLeDeDEtape(s, get, st, tr.roll),
     },
     resolve: (s, st, _a, get) => tirerLeDeDEtape(s, get, st),
-    caps: { forced: true },
+    caps: { forcer: true },
     outcome: (st) => { const de = deDEtape(st); return sealOutcome(true, 0, de?.roll ?? 0, de?.max ?? 0); },
   }),
 
@@ -1409,7 +1409,7 @@ export const FLOWS = paresseux({
     key: 'pendingForceDoor',
     // Renoncer CLÔT l'enfoncement (la porte tient) : la suite du Flow qui l'a ouvert se joue.
     onCancel: (get, set, p) => { set({ pendingForceDoor: null, pendingCascade: null }); reprendreLaSuite(get, set, p.suite); },
-    clotures: { confirm: 'toujours', cancel: 'toujours' },
+    clotures: { valider: 'toujours', annuler: 'toujours' },
     die: roll3Die<ForceDoorParticipant, PendingForceDoor>(),
     multi: { slots: (p) => p.participants, idOf: (r) => r.id, replace: (p, parts) => ({ ...p, participants: parts }) },
     rolled: (r) => !!r.result,
@@ -1428,7 +1428,7 @@ export const FLOWS = paresseux({
       return { result: { roll: t.roll, target: t.target, sl: t.sl, damage: degatsDEnfoncement(actor, arme, t.sl, p.doorBE) } };
     },
     outcome: (r) => cleanRollOutcome(r.result), // d100 propre réussi (LDB 12 l.25-28)
-    caps: { forced: true },
+    caps: { forcer: true },
     bonus: {
       // Chance « +1 DR » : +1 au DR → +1 dégât (avant réduction par le BE).
       derive: (_s, r, actor, p) => {
@@ -1452,9 +1452,9 @@ export const FLOWS = paresseux({
     actorTR: (p) => p.def, putActorTR: (tr) => ({ def: tr }),
     foeTR: (p) => p.atk, // jet du foe FIGÉ (LDB 15 l.43-68)
     // « Esquiver » : au menu seulement, option fermée par `refusDEsquiveDeDesengagement`.
-    ouvrirLeJet: (s, p) => (s.battle && p.phase === 'choice' && !p.refusEsquive ? { phase: 'esquive' } : null),
+    ouvrirLeJet: (s, p) => (s.battle && p.phase === 'choix' && !p.refusEsquive ? { phase: 'esquive' } : null),
     // LDB 15 l.49, l.63
-    refusDAnnuler: (s, p) => (p.phase !== 'choice' ? refusDeRenoncer(s, p.moverId) : null),
+    refusDAnnuler: (s, p) => (p.phase !== 'choix' ? refusDeRenoncer(s, p.moverId) : null),
   }),
 
   /**
@@ -1512,7 +1512,7 @@ export const FLOWS = paresseux({
     jetPose: (p) => !!fleeBackstab(p)?.result && (!fleeToucheDu(p) || !!fleeTouche(p)?.jet || fleeTouche(p)?.interactive === false),
     actor: (s, slot) => actorIn(s, slot.id),
     caps: {
-      forced: true,
+      forcer: true,
     },
     // ACCESSEUR DE DÉ de CHAQUE slot — coup dans le dos (un double 11 y inflige un Coup Critique,
     // LDB 13 l.183) comme Test `fuite` (binaire : le dé en fixe le DR, jamais l'issue forcée).
@@ -1576,10 +1576,10 @@ export const FLOWS = paresseux({
    */
   battement: () => makeRollFlow<PendingBattement>({
     key: 'pendingBattement',
-    clotures: { cancel: 'toujours' },
+    clotures: { annuler: 'toujours' },
     rolled: (p) => !!p.result,
     actor: (s, p) => actorIn(s, p.attackerId),
-    caps: { forced: true },
+    caps: { forcer: true },
     resolve: (_s, _p, actor) => {
       if (!actor) return null;
       return { result: rollManeuverAttacker(actor, 'capacite-de-combat', battleRng()) };
@@ -1628,10 +1628,10 @@ export const FLOWS = paresseux({
    *  choisi n'apporte rien de plus que le DR max de la Résilience par défaut. */
   manoeuvre: () => makeRollFlow<PendingManeuver>({
     key: 'pendingManeuver',
-    clotures: { cancel: 'toujours' },
+    clotures: { annuler: 'toujours' },
     rolled: (p) => !!p.result,
     actor: (s, p) => actorIn(s, p.attackerId),
-    caps: { forced: true },
+    caps: { forcer: true },
     resolve: (_s, p, actor) => {
       if (!actor) return null;
       const stat = attaqueDeCle(actor.traits ?? [], p.attaque)?.stat ?? 'capacite-de-tir';
@@ -1664,7 +1664,7 @@ export const FLOWS = paresseux({
     },
     rolled: (p) => !!p.result,
     actor: (s, p) => actorIn(s, p.combatantId),
-    caps: { forced: true },
+    caps: { forcer: true },
     resolve: (s, p, actor, _get, forced) => {
       if (!s.battle || !actor) return null;
       if (forced) {
@@ -1710,12 +1710,12 @@ export const FLOWS = paresseux({
     rolled: (part) => !!part.result,
     // Plus rien n'est dû : chaque tombant a déclaré, et chacun qui TENTE le Test l'a lancé (LDB 15 l.82).
     jetPose: (p) => rangeesDuesDeChute(p).length === 0,
-    clotures: { confirm: 'toujours' },
-    cloture: (p) => (phaseDeChute(p) === 'choice' ? 'declarationsDues' : rangeesDuesDeChute(p).length ? 'jetNonLance' : null),
+    clotures: { valider: 'toujours' },
+    cloture: (p) => (phaseDeChute(p) === 'choix' ? 'declarationsDues' : rangeesDuesDeChute(p).length ? 'jetNonLance' : null),
     actor: (s, part) => actorIn(s, part.id),
-    caps: { forced: true },
+    caps: { forcer: true },
     resolve: (_s, part, actor, _get, forced, p) => {
-      if (!actor || !p || part.attempt !== true || phaseDeChute(p) !== 'roll') return null;
+      if (!actor || !p || part.attempt !== true || phaseDeChute(p) !== 'jet') return null;
       const metres = metresRetenus(p, part);
       if (forced) {
         if (part.result?.success) return null; // rien à forcer si déjà réussi
@@ -1776,7 +1776,7 @@ export const FLOWS = paresseux({
       // l'opposition (LDB 17 l.68), il ne la retente pas.
       floorSL: (_r: BatchParticipant, _a: Combatant | undefined, p: PendingCascade) => {
         const opp = stepOpposedFreeze(p.participants[p.cursor]);
-        return opp ? opposedForcedFloor(opp.aT.sl, false) : 1;
+        return opp ? plancherOpposeForce(opp.aT.sl, false) : 1;
       },
     },
     multi: {
@@ -1790,12 +1790,12 @@ export const FLOWS = paresseux({
     rolled: (r) => !!r.result,
     actor: (s, r) => actorIn(s, r.id),
     // Une bande met en jeu les mêmes règles qu'une étape seule, et chaque rangée les joue POUR ELLE :
-    // Résilience (`forced`) et Résistance (Menace) (`resist`, LDB 10 l.1016-1020).
+    // Résilience (`forced`) et Résistance (Menace) (`resister`, LDB 10 l.1016-1020).
     caps: {
-      forced: true,
+      forcer: true,
       // Le tag `menace` de la rangée (`PendingBase.menace`, posé à la construction par le producteur de
       // la bande — comme sur l'étape mono) ouvre le verbe ; `resolve` reçoit alors `{ sl: BE }`.
-      resist: true,
+      resister: true,
     },
     resolve: (s, r, actor, _get, forced) => {
       if (!actor) return null; // rangée sans acteur résoluble (parité historique) — pas de jet
@@ -1842,7 +1842,7 @@ export const FLOWS = paresseux({
     key: 'pendingShanty',
     rolled: (p) => !!p.result,
     actor: (s, p) => actorIn(s, p.singerId),
-    caps: { forced: true },
+    caps: { forcer: true },
     resolve: (s, p, actor) => p.shantyId // chanson non choisie → pas de jet
       ? simpleTestResultResolve((_p, a) => valeurDeChanson(a), 'intermediaire')(s, p, actor)
       : null,
@@ -1854,7 +1854,7 @@ export const FLOWS = paresseux({
   /** Focalisation (Test étendu de magie) — vaut en combat ET hors combat (`actorIn`). */
   focalisation: () => makeRollFlow<PendingFocus>({
     key: 'pendingFocus',
-    clotures: { cancel: 'toujours' },
+    clotures: { annuler: 'toujours' },
     die: {
       read: (p) => (p.result?.target != null ? { roll: p.result.roll, target: p.result.target, critable: false } : null),
       // Un dé SAISI s'évalue au naturel, modificateurs propres du Test compris (`castTestDRMods`,
@@ -1868,7 +1868,7 @@ export const FLOWS = paresseux({
     },
     rolled: (p) => !!p.result,
     actor: (s, p) => actorIn(s, p.casterId),
-    caps: { forced: true },
+    caps: { forcer: true },
     resolve: (s, p, actor, _get, forced) => {
       const spell = findSpellById(p.spellId);
       if (!actor || !spell) return null;
@@ -1899,10 +1899,10 @@ export const FLOWS = paresseux({
    *  déjà le Soutien « même Domaine ». Le DR cumule sur `caster.dispel` au confirm. Calque `focus`. */
   dissipation: () => makeRollFlow<PendingDispel>({
     key: 'pendingDispel',
-    clotures: { cancel: 'toujours' },
+    clotures: { annuler: 'toujours' },
     rolled: (p) => !!p.result,
     actor: (s, p) => actorIn(s, p.casterId),
-    caps: { forced: true },
+    caps: { forcer: true },
     resolve: simpleTestResultResolve((p) => p.value, 'intermediaire'),
     outcome: (p) => testOutcome(p.result), // Round réussi → pas de Chance ; le cumul gère le DR négatif
     // Chance « +1 DR » (`bumpSL`) + Résilience GLOBALES via la lentille `result` (LDB 17) ; cible = valeur de Langue (Magick).
@@ -1911,7 +1911,7 @@ export const FLOWS = paresseux({
 
   // (Test de Psychologie héros (Peur/Terreur/Traits ciblés, LDB 21) : PLUS de flux `psych` dédié. C'est
   //  une CASCADE de Round — résolue par le `FLOWS.cascade` générique, applier 'psychologieDeCombat'. La Peur
-  //  forcée (Résilience) prend le DR maximal du `forceSuccess` générique, comme la psy de rencontre.)
+  //  forcée (Résilience) prend le DR maximal du `forcerLaReussite` générique, comme la psy de rencontre.)
 
   /** Entrée en Frénésie (LDB 21 l.31-35) : Test de FM. */
   frenesie: () => makeRollFlow<PendingFrenzy>({
@@ -1919,7 +1919,7 @@ export const FLOWS = paresseux({
     die: resultDie<PendingFrenzy>(),
     rolled: (p) => !!p.result,
     actor: (s, p) => actorIn(s, p.combatantId),
-    caps: { forced: true },
+    caps: { forcer: true },
     resolve: (s, p, actor, _get, forced) => {
       if (!s.battle || !actor) return null;
       if (forced) return forcedBinaryResult(p.result, cibleBrute(ligneDeFrenesie(actor))); // Résilience (LDB 17 l.68)
@@ -1939,7 +1939,7 @@ export const FLOWS = paresseux({
     die: resultDie<PendingApproach>(),
     rolled: (p) => !!p.result,
     actor: (s, p) => actorIn(s, p.combatantId),
-    caps: { forced: true },
+    caps: { forcer: true },
     resolve: (_s, p, actor, _get, forced) => {
       if (!actor) return null;
       if (forced) return forcedBinaryResult(p.result, cibleBrute(ligneDuTestNomme(actor, p.test))); // Résilience (LDB 17 l.68)
@@ -1963,7 +1963,7 @@ export const FLOWS = paresseux({
     die: resultDie<PendingWard>(),
     rolled: (p) => !!p.result,
     actor: (s, p) => actorIn(s, p.attackerId),
-    caps: { forced: true },
+    caps: { forcer: true },
     resolve: (s, p, actor, _get, forced) => {
       if (!actor) return null;
       // Résilience « Je ne faillirai pas ! » (LDB 17 l.68) : avant le jet (choisit 01) OU après un échec.
@@ -1989,13 +1989,13 @@ export const FLOWS = paresseux({
     key: 'pendingActivity',
     rolled: (p) => p.roll != null,
     actor: (s, p) => actorIn(s, p.heroId),
-    // Vrai Test joueur → Résilience GLOBALE (LDB 17 l.68, `caps.forced` + verbe `forceSuccess`) ; Chance
+    // Vrai Test joueur → Résilience GLOBALE (LDB 17 l.68, `caps.forced` + verbe `forcerLaReussite`) ; Chance
     // « +1 DR » (success intact). Cas simple + combiné/opposé unifiés dans `resolve`/`bonus` (pas de lentille :
     // le combiné/opposé porte deux issues, hors du cadre mono-jet de la lentille).
     // Le dé se CHOISIT (LDB 17 l.68, inconditionnel) via l'accesseur déclaré plus haut — `critable` reste
     // faux : un Test d'Activité/Scène n'a AUCUN Coup Critique (concept de COMBAT seul). Le dé PAR DÉFAUT
     // (`bestForcedRoll`, DR MAX) donne la meilleure issue (Succès Stupéfiant DR ≥ 6, l.208/217).
-    caps: { forced: true },
+    caps: { forcer: true },
     resolve: (_s, p, actor, _get, forced) => {
       // Cible EFFECTIVE d'un jet SIMPLE : compétence + Difficulté + Modificateur de SITUATION (Menace −20
       // l.219 / Planification l.75). Les openers de BATAILLE la pré-cuisent dans `p.target` (mod fondu) ; les
@@ -2024,10 +2024,10 @@ export const FLOWS = paresseux({
         // min(cibles) (`bestForcedRoll(min)`) → niveau `full` ; en tenue, le PJ l'emporte sur l'opposition.
         if (p.target2 != null) {
           const die2 = bestForcedRoll(Math.min(p.target, p.target2));
-          return { roll: die2, success: true, sl: Math.max(evaluateTest(die2, p.target).sl, 1), success2: true, sl2: Math.max(evaluateTest(die2, p.target2).sl, 1), combinedLevel: 'full' as const, forced: true };
+          return { roll: die2, success: true, sl: Math.max(evaluateTest(die2, p.target).sl, 1), success2: true, sl2: Math.max(evaluateTest(die2, p.target2).sl, 1), combinedLevel: 'full' as const, forcee: true };
         }
         const die = bestForcedRoll(effTarget);
-        const primary = { roll: die, target: effTarget, success: true, sl: Math.max(evaluateTest(die, effTarget).sl, 1), forced: true };
+        const primary = { roll: die, target: effTarget, success: true, sl: Math.max(evaluateTest(die, effTarget).sl, 1), forcee: true };
         if (p.battle === 'round' && p.enemyValue != null) return { ...primary, enemySL: Math.min(-1, (p.enemySL ?? 0)) };
         return primary;
       }
@@ -2098,8 +2098,8 @@ export const FLOWS = paresseux({
     rolled: (p) => p.roll != null,
     actor: (s, p) => actorIn(s, p.actorId),
     // Vrai Test joueur → Résilience GLOBALE (LDB 17 l.68) via la lentille (`caps.forced` + verbe
-    // `forceSuccess`) ; Chance « +1 DR » par `bumpSL` (success intact). Calque `heal`.
-    caps: { forced: true },
+    // `forcerLaReussite`) ; Chance « +1 DR » par `bumpSL` (success intact). Calque `heal`.
+    caps: { forcer: true },
     resolve: simpleTestResolve((p) => p.skillValue, (p) => p.difficulty, { actorless: true }), // Test étendu de Projectiles ; valeur bakée → actorless
     outcome: (p) => rollOutcome(p.roll, p.target, p.sl),
     // Chance « +1 DR » (le Test étendu cumule le DR) + Résilience GLOBALE via la lentille plate ; le garde du
@@ -2114,13 +2114,13 @@ export const FLOWS = paresseux({
 
   /** Main ensanglantée (AA 07 l.117) : Test de Dextérité Accessible (+20) PAR ACTION, AVANT d'ouvrir une
    *  attaque avec l'arme tenue dans la main gatée. Vrai Test joueur → Résilience GLOBALE (LDB 17 l.68) via
-   *  la lentille (`caps.forced` + verbe `forceSuccess`) ; Chance « +1 DR » par `bumpSL`. Calque `reload`.
+   *  la lentille (`caps.forced` + verbe `forcerLaReussite`) ; Chance « +1 DR » par `bumpSL`. Calque `reload`.
    *  L'issue (RÉUSSITE → ouvre l'attaque ; ÉCHEC → `disarm` + Action consommée) vit dans `jetValider('mainEnsanglantee')`. */
   mainEnsanglantee: () => makeRollFlow<PendingHandGate>({
     key: 'pendingHandGate',
     rolled: (p) => p.roll != null,
     actor: (s, p) => actorIn(s, p.attackerId),
-    caps: { forced: true },
+    caps: { forcer: true },
     resolve: (_s, p) => jetPose(jetDeLaLigne(p.ligne)) as Partial<PendingHandGate>, // ligne FIGÉE à l'ouverture
     outcome: (p) => rollOutcome(p.roll, p.target, p.sl),
     lens: flatRollLens((p) => p.success ? null : cibleBrute(p)),
@@ -2135,7 +2135,7 @@ export const FLOWS = paresseux({
     actor: (s, p) => actorIn(s, p.actorId),
     // Test opposé de héros (Force/Athlétisme) → Résilience GLOBALE (LDB 17 l.68) : le résolveur forcé
     // fait L'EMPORTER l'acteur sur la source FIGÉE (`p.opponentRoll`), calque `disengage`/`bargain`.
-    caps: { forced: true },
+    caps: { forcer: true },
     resolve: (_s, p, _actor, _get, forced) => {
       if (forced) {
         if (p.success) return null; // déjà réussi → rien à forcer
@@ -2187,7 +2187,7 @@ export const FLOWS = paresseux({
     touch: touchActors,
     // ISSUE au goulot (`apply`) — canal NARRATIF : `jetValider('test')` acquitte, il ne compose plus sa ligne.
     issue: (p) => describeTest(p),
-    caps: { forced: true },
+    caps: { forcer: true },
     resolve: (_s, p, actor, _get, forced) => {
       const tDR = actor ? drDeReussiteDuTest(_s, actor, p.sujet ?? {}) : 0;
       // Capricieux (MSRC 15 l.149-159) : delta de DR de la table du d10 de l'interlocuteur, tiré à
@@ -2203,7 +2203,7 @@ export const FLOWS = paresseux({
         return {
           roll: die, success: true,
           sl: Math.max(evaluateTest(die, p.target).sl + tDR + capDR, p.requireSL, 1),
-          forced: true,
+          forcee: true,
         };
       }
       const res = rollTest(p.skillValue, p.difficulty, battleRng());
@@ -2237,7 +2237,7 @@ export const FLOWS = paresseux({
     key: 'pendingSteamSave',
     rolled: (p) => p.roll != null,
     actor: (s, p) => actorIn(s, p.actorId),
-    caps: { forced: true },
+    caps: { forcer: true },
     resolve: simpleTestResolve((p) => p.skillValue, (p) => p.difficulty),
     outcome: (p) => rollOutcome(p.roll, p.target, p.sl),
     lens: flatRollLens((p) => p.success ? null : cibleBrute(p)), // rien à forcer si déjà réussi
@@ -2251,10 +2251,10 @@ export const FLOWS = paresseux({
     key: 'pendingCorruption',
     rolled: (p) => p.roll != null,
     actor: (s, p) => actorIn(s, p.heroId),
-    // Résistance (Menace) (LDB 10, `caps.resist`) : exposition → menace 'Corruption' ; seuil (échec =
+    // Résistance (Menace) (LDB 10, `caps.resister`) : exposition → menace 'Corruption' ; seuil (échec =
     // mutation) → menace 'Mutation'. Résilience (LDB 17 l.68, `caps.forced`) : ce Test en est un comme
     // un autre. Test SIMPLE → aucun plancher opposé ; l'accesseur de dé vient de la lentille.
-    caps: { forced: true, resist: true },
+    caps: { forcer: true, resister: true },
     resolve: (_s, p, actor) => (actor ? jetPose(jetDeLaLigne(ligneDuTestNomme(actor, p.test))) as Partial<PendingCorruption> : null),
     outcome: (p) => rollOutcome(p.roll, p.target ?? 0, p.sl),
     // Chance « +1 DR » (`bumpSL`, success intact), Résilience (LDB 17 l.68 — dé par défaut ET dé choisi,
@@ -2274,8 +2274,8 @@ export const FLOWS = paresseux({
     actor: (s, p) => actorIn(s, p.actorId),
     touch: touchActors,
     // Vrai Test joueur → Résilience GLOBALE (LDB 17 l.68) via la lentille (`caps.forced` + verbe
-    // `forceSuccess`) ; Chance « +1 DR » par `bumpSL` (success intact).
-    caps: { forced: true },
+    // `forcerLaReussite`) ; Chance « +1 DR » par `bumpSL` (success intact).
+    caps: { forcer: true },
     resolve: (_s, p) => jetPose(jetDeLaLigne(p.ligne)) as Partial<PendingAppraise>, // ligne FIGÉE à l'ouverture
     outcome: (p) => rollOutcome(p.roll, p.target, p.sl),
     lens: flatRollLens((p) => cibleBrute(p)),
@@ -2290,12 +2290,12 @@ export const FLOWS = paresseux({
       ...trDie<PendingBargain>(),
       // Test opposé vs un marchand FIGÉ : le plancher RAW est « l'emporter d'au moins DR +1 » (LDB 17 l.68).
       // `cancelled:false` STRUCTUREL : le marchand est figé, aucun verbe ne lui ouvre de forçage (#1000).
-      floorSL: (p) => opposedForcedFloor(p.merchantRoll?.sl ?? 0, false),
+      floorSL: (p) => plancherOpposeForce(p.merchantRoll?.sl ?? 0, false),
       resilience: (_s, p, _a, _g, chosen) => {
         if (p.merchantRoll == null) return null;
         const tr = bargainPlayerTR(p, chosen);
         const result = resolveOpposed(tr, p.merchantRoll);
-        return { roll: tr, result: { ...result, winner: 'attacker' as const, attackerWins: true, netSL: Math.max(1, result.netSL), decidedBy: 'force' as const } };
+        return { roll: tr, result: { ...result, winner: 'attaquant' as const, attackerWins: true, netSL: Math.max(1, result.netSL), decidedBy: 'force' as const } };
       },
     },
     rolled: (p) => p.roll != null,
@@ -2303,7 +2303,7 @@ export const FLOWS = paresseux({
     touch: touchActors,
     // Test opposé de héros vs marchand FIGÉ → Résilience GLOBALE (LDB 17 l.68) : le résolveur forcé fait
     // L'EMPORTER le joueur sur le marchand figé (`p.merchantRoll`), calque `recover`/`disengage`.
-    caps: { forced: true },
+    caps: { forcer: true },
     resolve: (_s, p, _actor, _get, forced) => {
       if (forced) {
         if (p.result?.attackerWins) return null; // le joueur l'emporte déjà → rien à forcer
@@ -2313,7 +2313,7 @@ export const FLOWS = paresseux({
         const player = bargainPlayerTR(p, forcedTR(die, cible, Math.max(evaluateTest(die, cible).sl, 1)));
         const result = resolveOpposed(player, p.merchantRoll); // re-oppose vs le marchand FIGÉ
         // Résilience = le joueur l'emporte d'au moins un Degré (LDB 17 l.68).
-        return { roll: player, result: { ...result, winner: 'attacker' as const, attackerWins: true, netSL: Math.max(1, result.netSL), decidedBy: 'force' as const } };
+        return { roll: player, result: { ...result, winner: 'attaquant' as const, attackerWins: true, netSL: Math.max(1, result.netSL), decidedBy: 'force' as const } };
       }
       const player = bargainPlayerTR(p, rollTest(p.playerSkill, 'intermediaire', battleRng()));
       // `opposant.valeur` = valeur NUE de l'opposant (aucun modificateur) — grandeur du départage à DR
@@ -2347,11 +2347,11 @@ export const FLOWS = paresseux({
     annulation: (_p, s) => (s.battle ? null : 'acteAChanger'),
     rolled: (p) => p.roll != null,
     actor: (s, p) => actorIn(s, p.healerId),
-    caps: { forced: true },
+    caps: { forcer: true },
     resolve: (s, p, actor) => jetDuSoin(s, p, actor),
     outcome: (p) => rollOutcome(p.roll, p.target, p.sl),
     // Résilience GLOBALE via la lentille plate ; le garde du forceSuccess (déjà réussi OU brouillon d'une opération, que le lancer arme :
-    // rien à forcer) vit dans `dieTarget` (→ null), pas dans `actorTR` (qui sert aussi le `bonusSL`).
+    // rien à forcer) vit dans `dieTarget` (→ null), pas dans `actorTR` (qui sert aussi le `ajouterUnDR`).
     lens: flatRollLens((p) => (p.success || estOperation(p.mode)) ? null : cibleBrute(p)),
     die: deDuSoin<PendingHeal>((p) => p.test, (p) => !p.success && !estOperation(p.mode)),
     // Inversion (LDB 23 l.209/218 ; LDB 10 l.899) : le Test déclaré, sous le contexte `bandages` quand une Guérison
@@ -2374,11 +2374,11 @@ export const FLOWS = paresseux({
     key: 'pendingSurgery',
     rolled: (p) => p.roll != null,
     actor: (s, p) => actorIn(s, p.healerId),
-    caps: { forced: true },
+    caps: { forcer: true },
     resolve: (s, p, actor) => jetDeSoin(s, cibleBrute(p.ligne), actor, 'guerison'), // le chirurgien peut être un PNJ hors actorIn : le jet se fait sans acteur live
     outcome: (p) => rollOutcome(p.roll, p.target, p.sl),
     // Résilience GLOBALE via la lentille plate ; le garde du forceSuccess (déjà réussi → rien à forcer)
-    // vit dans `dieTarget` (→ null), pas dans `actorTR` (qui sert aussi le `bonusSL`).
+    // vit dans `dieTarget` (→ null), pas dans `actorTR` (qui sert aussi le `ajouterUnDR`).
     lens: flatRollLens((p) => p.success ? null : cibleBrute(p)),
     die: deDuSoin<PendingSurgery>(() => 'guerison', (p) => !p.success),
   }),
@@ -2405,7 +2405,7 @@ function refusDuReglage(s: Jeu, flux: unknown, reglage: unknown, pid: unknown): 
 export function fermetureDuReglage(get: Get<Jeu>, flux: FluxRegle, reglage: ReglageDuJet, pid?: string): FermetureDuJet | null {
   const declaration = garanti(declarationDuReglageNomme(flux, reglage), `${flux}.${reglage}`, 'réglage déclaré');
   const jugee = declaration.phase === 'horsDuJet' ? undefined : pid;
-  return fermetureDeLaPhase(declaration.phase, FLOWS[flux].fermetures(get, jugee).roll) ?? declaration.offre?.(get()) ?? null;
+  return fermetureDeLaPhase(declaration.phase, FLOWS[flux].fermetures(get, jugee).lancer) ?? declaration.offre?.(get()) ?? null;
 }
 
 /** Le verbe qui règle un jet sur `get`/`set` : il refuse, et le dit, le réglage que son flux ne déclare pas

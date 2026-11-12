@@ -1,7 +1,7 @@
 /**
  * Le `flowSchema` de la GRAMMAIRE n'est PAS le Flow de SCÈNE (#1466, sonde du juge promue en garde).
  *
- * `flowSchema` est `Flow<EffectOp>` : sa feuille `do` porte un `EffectOp` (`{ type: 'ops', ops }`),
+ * `flowSchema` est `Flow<EffectOp>` : sa feuille `effet` porte un `EffectOp` (`{ type: 'ops', ops }`),
  * le vocabulaire du MOTEUR. Le Flow de scène est `Flow<Effect>` : sa feuille porte l'union `Effect`
  * de `defs-scenes/effets.ts` (`startCombat`, `transition`, `journal`…). Réutiliser le premier pour valider
  * le second rejetterait TOUTES les feuilles authorées — ce test le mesure sur la donnée réelle, pour
@@ -18,14 +18,14 @@ import { effectSchema, sceneFlowSchema } from '../defs-scenes/effets';
 const RACINE = fileURLToPath(new URL('../../../scenes/', import.meta.url));
 const PROJETS = listerProjetsLivres();
 
-/** Toutes les feuilles `{ kind:'do', effect }` des Flows authorés des projets livrés. */
+/** Toutes les feuilles `{ kind:'effet', effet }` des Flows authorés des projets livrés. */
 function feuillesDo(projets: unknown[]): unknown[] {
   const out: unknown[] = [];
   const marche = (n: unknown): void => {
     if (Array.isArray(n)) return void n.forEach(marche);
     if (!n || typeof n !== 'object') return;
     const o = n as Record<string, unknown>;
-    if (o.kind === 'do' && o.effect) out.push(o.effect);
+    if (o.kind === 'effet' && o.effet) out.push(o.effet);
     Object.values(o).forEach(marche);
   };
   projets.forEach(marche);
@@ -36,8 +36,8 @@ const projets = PROJETS.map((p) => JSON.parse(readFileSync(RACINE + p, 'utf8')))
 const croissance = structuredClone(projets);
 const paquet = croissance.find((p) => p.id === 'la-diligence');
 const scene = paquet.scenes.find((s: { id: string }) => s.id === 'la-diligence');
-paquet.worldMap.places.push({ id: 'lieu-croissance-2337', label: 'Lieu de contrôle', pos: { x: 20, y: 20 }, scene: scene.id, icon: 'scenario/hamlet' });
-scene.triggers.push({ id: 'declencheur-croissance-2337', rect: { x: 0, y: 0, w: 1, h: 1 }, once: true, flow: { kind: 'do', effect: { type: 'setFlag', flag: 'croissance-2337' } } });
+paquet.worldMap.places.push({ id: 'lieu-croissance-2337', label: 'Lieu de contrôle', pos: { x: 20, y: 20 }, scene: scene.id, icon: 'scenario/hameau' });
+scene.triggers.push({ id: 'declencheur-croissance-2337', rect: { x: 0, y: 0, w: 1, h: 1 }, once: true, flow: { kind: 'effet', effet: { type: 'setFlag', flag: 'croissance-2337' } } });
 
 describe.each([
   { nom: 'corpus livré', corpus: projets, ajoute: false },
@@ -62,7 +62,7 @@ describe.each([
   });
 
   it('POSITIF — un Flow de scène entier passe `sceneFlowSchema`, celui-là même que `flowSchema` refuse', () => {
-    const flow = { kind: 'seq', steps: [{ kind: 'do', effect: { type: 'startCombat', encounter: 'enc-1' } }] };
+    const flow = { kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'startCombat', encounter: 'enc-1' } }] };
     expect(sceneFlowSchema.safeParse(flow).success).toBe(true);
     expect(flowSchema.safeParse(flow).success).toBe(false);
   });
@@ -76,9 +76,9 @@ describe.each([
   });
 
   it('un Flow de scène entier est donc REFUSÉ par `flowSchema`, sur le `type` de sa feuille', () => {
-    const res = flowSchema.safeParse({ kind: 'seq', steps: [{ kind: 'do', effect: { type: 'startCombat', encounter: 'enc-1' } }] });
+    const res = flowSchema.safeParse({ kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'startCombat', encounter: 'enc-1' } }] });
     expect(res.success).toBe(false);
-    if (!res.success) expect(res.error.issues[0].path.join('.')).toBe('steps.0.effect.type');
+    if (!res.success) expect(res.error.issues[0].path.join('.')).toBe('etapes.0.effet.type');
   });
 
   it('la `Condition`, elle, est PARTAGÉE : celle d\'une scène passe `conditionSchema`', () => {
@@ -97,14 +97,14 @@ describe('grammaire — le nœud `test` des DEUX instances du Flow vient de la m
   const noeudMecanique = {
     kind: 'test',
     test: jet,
-    success: { kind: 'do', effect: { type: 'ops', ops: [{ op: 'heal', amount: 1 }] } },
-    fail: { kind: 'seq', steps: [] },
+    reussite: { kind: 'effet', effet: { type: 'ops', ops: [{ op: 'heal', amount: 1 }] } },
+    echec: { kind: 'sequence', etapes: [] },
   };
   const noeudScene = {
     kind: 'test',
     test: jet,
-    success: { kind: 'do', effect: { type: 'startCombat', encounter: 'enc-1' } },
-    fail: { kind: 'seq', steps: [] },
+    reussite: { kind: 'effet', effet: { type: 'startCombat', encounter: 'enc-1' } },
+    echec: { kind: 'sequence', etapes: [] },
   };
 
   it('POSITIF — le nœud `test` passe `flowSchema` (branche mécanique) ET `sceneFlowSchema` (branche de scène)', () => {
@@ -120,7 +120,7 @@ describe('grammaire — le nœud `test` des DEUX instances du Flow vient de la m
       ['sceneFlowSchema', sceneFlowSchema, noeudScene],
     ] as const;
     for (const [nom, schema, noeud] of cas)
-      for (const branche of ['success', 'fail'] as const) {
+      for (const branche of ['reussite', 'echec'] as const) {
         const ampute: Record<string, unknown> = { ...noeud };
         delete ampute[branche];
         expect(schema.safeParse(ampute).success, `${nom} : la branche \`${branche}\` n'est plus exigée.`).toBe(false);
@@ -128,7 +128,7 @@ describe('grammaire — le nœud `test` des DEUX instances du Flow vient de la m
   });
 
   it('une clé INCONNUE est refusée des deux côtés (le nœud reste STRICT)', () => {
-    expect(flowSchema.safeParse({ ...noeudMecanique, succes: noeudMecanique.success }).success).toBe(false);
-    expect(sceneFlowSchema.safeParse({ ...noeudScene, succes: noeudScene.success }).success).toBe(false);
+    expect(flowSchema.safeParse({ ...noeudMecanique, success: noeudMecanique.reussite }).success).toBe(false);
+    expect(sceneFlowSchema.safeParse({ ...noeudScene, success: noeudScene.reussite }).success).toBe(false);
   });
 });

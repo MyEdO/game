@@ -31,8 +31,8 @@ import { Split } from './Layout';
  * localisations — arbitrage USER). La fiche de combat `PosteSheet` (postes/manœuvre) reste distincte.
  */
 
-/** Humeur de Manann (MDG 15) → ton par SIGNE : favorable = ok, courroucée = danger, neutre = neutral. */
-const manannTone = (score: number): GaugeTone => (score > 0 ? 'ok' : score < 0 ? 'danger' : 'neutral');
+/** Humeur de Manann (MDG 15) → ton par SIGNE : favorable = ok, courroucée = danger, neutre = neutre. */
+const manannTone = (score: number): GaugeTone => (score > 0 ? 'ok' : score < 0 ? 'danger' : 'neutre');
 
 /** Surcharge de soute (MDG 12 l.70-75) : au-delà de la Contenance = surcharge (danger), proche = warn. */
 const cargoTone = (enc: number, cap: number): GaugeTone => {
@@ -86,7 +86,7 @@ export function ShipDossierView({ vessel, party, onClose, initialTab = 'apercu',
     <ScreenShell
       className="ship-dossier"
       title={<>
-        <Icon id="travel/sail-ship" size="sm" /> {name}
+        <Icon id="voyage/navire-a-voile" size="sm" /> {name}
         <span className="char-sub"> — {vd.label}{rig ? ` · ${libelleDeValeur(rigSchema, rig)}` : ''}</span>
       </>}
       onClose={onClose}
@@ -95,8 +95,8 @@ export function ShipDossierView({ vessel, party, onClose, initialTab = 'apercu',
         <Tabs
           tabs={[
             { key: 'apercu' as const, label: <><Icon id="scenario/naval" size="sm" /> Vue d’ensemble</> },
-            { key: 'cargaison' as const, label: <><Icon id="item/misc" size="sm" /> Cargaison</> },
-            { key: 'equipage' as const, label: <><Icon id="nav/seat-owner" size="sm" /> Équipage</> },
+            { key: 'cargaison' as const, label: <><Icon id="objet/divers" size="sm" /> Cargaison</> },
+            { key: 'equipage' as const, label: <><Icon id="navigation/proprietaire-du-siege" size="sm" /> Équipage</> },
           ]}
           active={tab}
           onChange={setTab}

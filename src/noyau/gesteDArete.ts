@@ -77,12 +77,12 @@ export type VerdictGeste = { mobile: Combatant; case: Pt } | RefusGeste;
 export type GesteOuvert = { mobile: Combatant; case: Pt; scene: Scene; battle: BattleState | null };
 
 const REFUS_DU_TOUR: Readonly<Record<RefusDuTour, MsgKey>> = {
-  'combat-over': 'geste.refus.combatTermine',
-  targeting: 'geste.refus.ciblage',
-  'no-active': 'geste.refus.aucunActif',
-  'not-controlled': 'geste.refus.pasLaMain',
-  engaged: 'geste.refus.engage',
-  'movement-spent': 'geste.refus.mouvementEpuise',
+  combatFini: 'geste.refus.combatTermine',
+  designation: 'geste.refus.ciblage',
+  sansActeur: 'geste.refus.aucunActif',
+  nonControle: 'geste.refus.pasLaMain',
+  engage: 'geste.refus.engage',
+  mouvementEpuise: 'geste.refus.mouvementEpuise',
 };
 
 /** LDB 14 l.179 ; CRB 032 l.53 ; #2205. */
@@ -118,7 +118,7 @@ function porteurDeCombat(s: Jeu, battle: BattleState): VerdictGeste {
   if (!tour.mobile) return refus(REFUS_DU_TOUR[tour.refus]);
   const vars = { name: tour.mobile.label };
   // `canMove` refuse deux cas : Mouvement épuisé, ou Mouvement → Action → Mouvement (`mount.ts:canMove`).
-  if (tour.refus === 'movement-spent' && movementRemaining(battle, tour.mobile) > 0) {
+  if (tour.refus === 'mouvementEpuise' && movementRemaining(battle, tour.mobile) > 0) {
     return refus('geste.refus.mouvementEntrelace', vars);
   }
   return refus(REFUS_DU_TOUR[tour.refus], vars);
@@ -185,7 +185,7 @@ function settleFall(get: Get, set: Set, p: PendingFall): void {
   soldeDeLAction(get, set, p.participants.some((x) => x.attempt === true), mouvementDeLaChute(p, initiateur?.suspendre === true, sceneMetresPerTile(scene)));
   if (mode === 'battle') {
     for (const { c, m } of chutes) {
-      if (m > 0) jouerFlowEntier(applyEffects(get, set, [{ type: 'fall', target: 'hero', heroId: c.id, metres: m, to: p.to }]));
+      if (m > 0) jouerFlowEntier(applyEffects(get, set, [{ type: 'fall', target: 'heros', heroId: c.id, metres: m, to: p.to }]));
       else { placeCombatant(c, scene, p.to); get().ecrireAuJournal(t('fall.jumpSafe', { name: c.label })); }
     }
     return;
@@ -195,7 +195,7 @@ function settleFall(get: Get, set: Set, p: PendingFall): void {
   // cibles et de `collapseStructure`) : la séquence compte d'emblée chaque dé de la chute.
   for (const { c, m } of chutes) {
     if (m > 0) {
-      get().ecrireAuJournal(t('eff.fallOuverte', { m, noms: c.label }));
+      get().ecrireAuJournal(t('eff.chuteOuverte', { m, noms: c.label }));
       ouvrirChute(set, c, m);
     } else get().ecrireAuJournal(t('fall.jumpSafe', { name: c.label }));
   }
@@ -205,7 +205,7 @@ function settleFall(get: Get, set: Set, p: PendingFall): void {
  *  (`effectTargets('party')`), l'initiateur en tête. */
 function tombantsDe(get: Get, battle: BattleState | null, initiateur: Combatant): Combatant[] {
   if (battle) return [initiateur];
-  const groupe = effectTargets(get, 'party');
+  const groupe = effectTargets(get, 'groupe');
   return [initiateur, ...groupe.filter((c) => c.id !== initiateur.id)];
 }
 
@@ -266,7 +266,7 @@ const CORPS_DU_FRANCHISSEMENT: Readonly<Record<GesteDeplacant, CorpsDuFranchisse
     set({ battle: { ...battle, log, acted, action: null, movementUsed: (battle.movementUsed ?? 0) + cost, movedPreAction: battle.movedPreAction || !battle.acted, reachable: new Map(), preview: null } });
     bus.emit(EVT.SCENE_DIRTY);
     // Lanceur = le mobile (`actorId`), LDB 15 l.57.
-    if (plan.kind === 'test') openSkillTest(get, set, plan.flow.test, combatConditionCtx(mover, {}), plan.flow.success, plan.flow.fail, EMPTY_FLOW, { actorId: mover.id });
+    if (plan.kind === 'test') openSkillTest(get, set, plan.flow.test, combatConditionCtx(mover, {}), plan.flow.reussite, plan.flow.echec, EMPTY_FLOW, { actorId: mover.id });
   },
   /** Chute VOLONTAIRE (LDB 15 l.82) : depuis `from` (case du sauteur) vers `to` (case cardinale plus
    *  basse, `planFranchissement`) — geste JOUEUR seulement (IA hors périmètre : elle ne saute jamais). Ouvre le

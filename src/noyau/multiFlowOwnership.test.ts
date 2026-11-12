@@ -25,7 +25,7 @@ const ENTRIES = Object.entries(FLOW_VERBS) as [string, Entry][];
 const MULTI = ENTRIES.filter(([, w]) => w.kind === 'multi');
 
 /** Les arguments du geste de jet `v` sur `flux`, la rangée `pid` posée (`VerbesDeJet`). */
-const argsDuGeste = (flux: string, v: RollVerb, pid: string): unknown[] => (v === 'setForcedRoll' ? [flux, 42, pid] : [flux, pid]);
+const argsDuGeste = (flux: string, v: RollVerb, pid: string): unknown[] => (v === 'imposerLeResultat' ? [flux, 42, pid] : [flux, pid]);
 
 const H_OWNER = 'h2'; // héros du siège 1
 const H_HOST = 'h1'; // héros du siège 0 (hôte)
@@ -40,7 +40,7 @@ const base = (over: Partial<Jeu>): Jeu =>
     },
     party: [{ id: H_HOST }, { id: H_OWNER }],
     battle: { order: [H_HOST, H_OWNER], turn: 0, combatants: [
-      { id: H_HOST, kind: 'hero' }, { id: H_OWNER, kind: 'hero' }, { id: 'e1', kind: 'enemy' },
+      { id: H_HOST, kind: 'heros' }, { id: H_OWNER, kind: 'heros' }, { id: 'e1', kind: 'ennemi' },
     ] },
     ...over,
   }) as unknown as Jeu;

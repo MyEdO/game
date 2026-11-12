@@ -4,7 +4,7 @@
  * zone, ses textes déjà traduits et son ton ; un hôte range chaque type dans un composant à lui et n'écrit aucun
  * libellé. Les gestes sont des éléments aussi : chacun porte l'intention qu'il joue (`Jeu`), prête à envoyer.
  */
-import type { CreatorDraft, GesteDEdition, GesteDuBrouillon, PageDeCreation } from '../noyau/index';
+import type { CreatorDraft, GesteDEdition, GesteDuBrouillon, IdDeCouche, PageDeCreation } from '../noyau/index';
 import type { ArgumentDuGeste, GesteDeLaFenetre } from './gestes';
 import { coupeAuMot } from '../lib/coupeAuMot.mjs';
 
@@ -65,9 +65,9 @@ export type GesteDeLaCreation = { geste: 'ouvrir'; args: [] } | { geste: 'engage
  *  (`Offre.geste`), une suite de verbes
  *  joués l'un après l'autre (un geste d'exploration : marcher jusqu'à une case, puis y agir), la fiche que l'hôte
  *  montre (`null` : aucune), qui ne touche pas la partie, un geste de la création d'un héros (`null` : la ferme), un
- *  geste de l'éditeur de carte (`editeur.ts`), ou, avant toute partie, l'id du scénario de test à démarrer
- *  (`scenarios.ts`). */
-export type Jeu = Appel | { suite: Appel[] } | { fiche: FicheOuverte | null } | { creation: GesteDeLaCreation | null } | { edition: GesteDEdition } | { scenario: string };
+ *  geste de l'éditeur de carte (`editeur.ts`), avant toute partie, l'id du scénario de test à démarrer
+ *  (`scenarios.ts`), le groupe composé, l'id de la campagne du jeu à lancer, ou la partie à quitter (`groupe.ts`). */
+export type Jeu = Appel | { suite: Appel[] } | { fiche: FicheOuverte | null } | { creation: GesteDeLaCreation | null } | { edition: GesteDEdition } | { scenario: string } | { lancer: string } | { quitter: true };
 
 /** Un geste d'un clic. `presse` : la valeur courante d'un choix, ou l'offre que l'actif vise ; `focus` : le geste que
  *  la fenêtre joue à l'Entrée ; `refus` : pourquoi il ne se joue pas, dit sous lui. */
@@ -115,8 +115,12 @@ export interface Icone { type: 'icone'; id: string; icone: string }
 /** Un fond d'ambiance : son id au registre des fonds (`src/data/fonds`), dont l'hôte tient le dessin. */
 export interface Fond { type: 'fond'; id: string; fond: string }
 
+/** Un paysage : ses couches, de la plus lointaine à la plus proche, chacune l'id d'un dessin du registre des paysages
+ *  (`src/data/paysages`), dont l'hôte tient le dessin et qu'il trace l'une sur l'autre. */
+export interface Paysage { type: 'paysage'; id: string; paysage: IdDeCouche[] }
+
 /** Un élément de la vue. */
-export type Element = Ligne | Puce | Jauge | Jet | Entite | Plan | Portrait | Icone | Fond | Bouton | Choix | Formulaire | Saisie;
+export type Element = Ligne | Puce | Jauge | Jet | Entite | Plan | Portrait | Icone | Fond | Paysage | Bouton | Choix | Formulaire | Saisie;
 
 /** Les bornes d'une saisie de nombre sans réglage : tout entier sur 32 bits, qu'un contrôle au pas de 1 tient
  *  exactement (le pas se cale sur l'écart à la borne, en réels). */

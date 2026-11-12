@@ -67,8 +67,8 @@ describe('Taillade (XA) — l’Indice de l’arme est le COÛT en Avantages du 
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const E = b.combatants.find((c) => c.kind === 'enemy')!;
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const E = b.combatants.find((c) => c.kind === 'ennemi')!;
     H.pos = { x: 10, y: 10 };
     E.pos = { x: 11, y: 10 };
     E.important = true; // LDB 18 l.44 : hors Mort subite
@@ -201,7 +201,7 @@ describe('Taillade (XA) — l’Indice de l’arme est le COÛT en Avantages du 
   /** Coup CRITIQUE gagné au Test opposé, tel qu'`applyAttackResult` le reçoit du flux d'attaque. */
   const coupCritique = (): AttackResult => ({
     hit: true, attackerRoll: 44, netSL: 4, location: 'corps', critLocation: 'corps',
-    damage: 6, woundsLost: 2, critical: true, advantageTo: 'attacker', defenderDefeated: false, log: 'touche',
+    damage: 6, woundsLost: 2, critical: true, advantageTo: 'attaquant', defenderDefeated: false, log: 'touche',
   });
 
   /** Draine la cascade du coup jusqu'à l'étape de CHOIX de Taillade et la rend telle qu'elle s'offre. */
@@ -265,8 +265,8 @@ describe('Déstabilisante — le choix à coût LITTÉRAL reste offert et libell
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const E = b.combatants.find((c) => c.kind === 'enemy')!;
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const E = b.combatants.find((c) => c.kind === 'ennemi')!;
     H.advantage = 3;
     const arme = weaponFromItem(itemFromTrappingById('serpe-de-guerre', idsDeTest)!); // Défensive, Taille, Déstabilisante
     emitCombatEvent('onHit', {

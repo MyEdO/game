@@ -17,7 +17,7 @@ import { t } from '../i18n';
 import { useGesteDeJet } from './useGesteDeJet';
 
 /** Enjeu servi par chaque fenêtre d'Au contact. */
-const AU_CONTACT_STAKE: Record<PendingAuContact['phase'], FlowStakeId> = { roll: 'au-contact-test', choice: 'au-contact-choix' };
+const AU_CONTACT_STAKE: Record<PendingAuContact['phase'], FlowStakeId> = { jet: 'au-contact-test', choix: 'au-contact-choix' };
 
 /**
  * Modale « Au Contact » (LDB 62 l.176, Option « Longueur d'arme »). Test OPPOSÉ de Corps à corps
@@ -25,7 +25,7 @@ const AU_CONTACT_STAKE: Record<PendingAuContact['phase'], FlowStakeId> = { roll:
  * - rangée [0] = TÉMOIN : le jet de Corps à corps du foe, FIGÉ (`interactive:false`) ;
  * - rangée [1] = INTERACTIVE : le jet de Corps à corps du mover (héros), porteur de son cycle
  *   d'influence (Lancer → Chance/+1 DR/Pacte/Résilience → Appliquer).
- * - phase 'choice' : le VAINQUEUR (héros) tranche via `OptionChooser` (« Au contact » / « Combat
+ * - phase 'choix' : le VAINQUEUR (héros) tranche via `OptionChooser` (« Au contact » / « Combat
  *   normal »). Un foe IA gagnant tranche en amont (pas de phase de choix montrée).
  */
 export function AuContactModal() {
@@ -78,7 +78,7 @@ export function AuContactModal() {
     onDarkPact: darkPact,
     onForce: force,
   }, {
-    rollLabel: t('verbe.roll'),
+    rollLabel: t('verbe.lancer'),
   });
 
   const issue = pd.def
@@ -86,11 +86,11 @@ export function AuContactModal() {
     : undefined;
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: 'Renoncer', onClick: cancel, verbe: 'cancel' },
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
+    { key: 'abandonner', label: 'Renoncer', onClick: cancel, verbe: 'annuler' },
+    { key: 'confirmer', label: t('verbe.valider'), onClick: confirm, verbe: 'valider' },
   ];
 
-  if (pd.phase === 'choice') {
+  if (pd.phase === 'choix') {
     // Le VAINQUEUR (héros) tranche : « Au contact » / « Combat normal ». Panneau résolu conservé.
     return (
       <RollShell
@@ -98,7 +98,7 @@ export function AuContactModal() {
         flowKey="auContact"
         stake={flowStakeRef(AU_CONTACT_STAKE[pd.phase])}
         title="Au contact"
-        extra={<VsHeader actor={mover} target={foe} label="entrer dans la longueur d'arme" verb="melee/close-in" />}
+        extra={<VsHeader actor={mover} target={foe} label="entrer dans la longueur d'arme" verb="melee/au-contact" />}
         rows={[foeRow, actorRow]}
         rolled
         winnerIndex={winnerIndex}
@@ -109,8 +109,8 @@ export function AuContactModal() {
             <OptionChooser
               layout="grid"
               options={[
-                { key: 'contact', label: <><Icon id="melee/close-in" size="sm" /> Au contact</>, primary: true, onSelect: () => regler('auContact', 'issue', 'contact'), title: 'Entrer dans la longueur d’arme : toute arme plus longue que Courte est traitée comme une Arme improvisée (les deux camps)' },
-                { key: 'normal', label: <><Icon id="action/attack" size="sm" /> Combat normal</>, onSelect: () => regler('auContact', 'issue', 'normal'), title: 'Le combat se poursuit à distance d’arme normale' },
+                { key: 'contact', label: <><Icon id="melee/au-contact" size="sm" /> Au contact</>, primary: true, onSelect: () => regler('auContact', 'issue', 'contact'), title: 'Entrer dans la longueur d’arme : toute arme plus longue que Courte est traitée comme une Arme improvisée (les deux camps)' },
+                { key: 'normal', label: <><Icon id="action/attaquer" size="sm" /> Combat normal</>, onSelect: () => regler('auContact', 'issue', 'normal'), title: 'Le combat se poursuit à distance d’arme normale' },
               ]}
             />
           </>
@@ -126,7 +126,7 @@ export function AuContactModal() {
       flowKey="auContact"
       stake={flowStakeRef(AU_CONTACT_STAKE[pd.phase])}
       title="Au contact"
-      extra={<VsHeader actor={mover} target={foe} label="entrer dans la longueur d'arme" verb="melee/close-in" />}
+      extra={<VsHeader actor={mover} target={foe} label="entrer dans la longueur d'arme" verb="melee/au-contact" />}
       rows={[foeRow, actorRow]}
       rolled={rolled}
       winnerIndex={winnerIndex}

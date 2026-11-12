@@ -18,7 +18,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const chars = { 'capacite-de-combat': 45, 'capacite-de-tir': 50, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 const sword: Weapon = { name: 'Épée', label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, uid: 'sw', qualities: [] } as unknown as Weapon;
-const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }): Combatant =>
+const mk = (id: string, kind: 'heros' | 'ennemi', pos: { x: number; y: number }): Combatant =>
   (blessuresSurLeProfil({ id, name: id, label: id, kind, characteristics: { ...chars }, conditions: [], engagedWith: [], skills: [], talents: [],
      weapons: [sword], advantage: 0, size: 'moyenne', pos, wounds: blessuresDeBase(200), fortune: 3,
      armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4 }) as unknown as Combatant);
@@ -26,9 +26,9 @@ const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }): 
 /** Un ennemi à CC 95 frappe un héros à CC/Ag 5 ; `gmSeat` pose un siège MJ (attaquant piloté). */
 function duel(seed: number, gmSeat?: number) {
   seedBattleRng(seed);
-  const enemy = mk('e', 'enemy', { x: 1, y: 0 });
+  const enemy = mk('e', 'ennemi', { x: 1, y: 0 });
   enemy.characteristics['capacite-de-combat'] = 95;
-  const hero = mk('h', 'hero', { x: 0, y: 0 });
+  const hero = mk('h', 'heros', { x: 0, y: 0 });
   hero.characteristics['capacite-de-combat'] = 5; hero.characteristics.agilite = 5;
   const battle = {
     combatants: [enemy, hero], order: [enemy.id, hero.id], baseOrder: [enemy.id, hero.id],
@@ -57,8 +57,8 @@ describe('Localisation relancée — choix forcé puis +1 DR (T3)', () => {
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const E = b.combatants.find((c) => c.kind === 'enemy')!;
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const E = b.combatants.find((c) => c.kind === 'ennemi')!;
     H.pos = { x: 10, y: 10 };
     H.resilience = 1;
     H.fortune = 2;
@@ -124,7 +124,7 @@ describe('Localisation relancée — défense pilotée, `openSurfacedDefense` (T
     for (let seed = 1; seed <= 300; seed++) {
       const { enemy, hero } = duel(seed, 0);
       const g = banc.getState;
-      openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
+      openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attaquer');
       g().jetLancer('attaque');
       const ouverture = g().pendingAttack?.result?.critLocation;
       g().jetValider('attaque');

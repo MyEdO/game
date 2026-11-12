@@ -34,7 +34,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const heros = (over: Partial<Combatant> = {}): Combatant =>
   (blessuresSurLeProfil({
-    id: 'h', label: 'Hilda', kind: 'hero',
+    id: 'h', label: 'Hilda', kind: 'heros',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 40, initiative: 30, agilite: 30, dexterite: 40, intelligence: 30, 'force-mentale': 35, sociabilite: 30 },
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], talents: [],
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -152,7 +152,7 @@ describe('Ragot non tentable : la journée de recherche est perdue (LDB 59 l.50)
     const avant = banc.getState().gameTime;
     const out = appliquer(step, hero);
     expect(banc.getState().gameTime).toBe(avant + MINUTES_PER_DAY);
-    expect(ligneDe(out)).toContain(t('mf.searchSansJet'));
+    expect(ligneDe(out)).toContain(t('mf.rechercheSansJet'));
   });
 
   it('port-vente-ragot : aucun acheteur, aucune recherche d’acheteur enchaînée (MDG 15 l.366-372)', () => {
@@ -204,8 +204,8 @@ describe('SEAM `onOwnTestFailed` : un échec sans jet est un Test raté de son p
     setDataset('symptoms', [...SYMPTOMES_LIVRES, {
       id: SONDE, type: 'symptoms', label: 'Sonde',
       effects: [
-        { trigger: 'onOwnTestFailed', on: 'self', flow: { kind: 'if', cond: { kind: 'slThreshold', op: '==', value: 0 }, then: { kind: 'do', effect: { type: 'ops', ops: [{ op: 'condition', id: { id: 'sonne' } }] } } } },
-        { trigger: 'onOwnTestFailed', on: 'self', flow: { kind: 'if', cond: { kind: 'slThreshold', op: '<', value: 0 }, then: { kind: 'do', effect: { type: 'ops', ops: [{ op: 'condition', id: { id: 'a-terre' } }] } } } },
+        { trigger: 'onOwnTestFailed', on: 'soi', flow: { kind: 'si', condition: { kind: 'slThreshold', op: '==', value: 0 }, alors: { kind: 'effet', effet: { type: 'ops', ops: [{ op: 'condition', id: { id: 'sonne' } }] } } } },
+        { trigger: 'onOwnTestFailed', on: 'soi', flow: { kind: 'si', condition: { kind: 'slThreshold', op: '<', value: 0 }, alors: { kind: 'effet', effet: { type: 'ops', ops: [{ op: 'condition', id: { id: 'a-terre' } }] } } } },
       ],
     } as never]);
     banc.setState({ party: [porteur()], journal: [], pendingCascade: null });

@@ -40,7 +40,7 @@ const VOC = { carac: CHAR_LABELS, difficultes: DIFFICULTY_LABELS, monnaie: { for
 const fluxDeTest = (over: Record<string, unknown> = {}) => ({
   kind: 'test',
   test: { skill: { id: 'crochetage' }, difficulty: 'difficile', label: 'Crocheter la cage', ...over },
-  success: { kind: 'seq', steps: [] }, fail: { kind: 'seq', steps: [] },
+  reussite: { kind: 'sequence', etapes: [] }, echec: { kind: 'sequence', etapes: [] },
 });
 
 /** Dépôt JOUET hors dépôt (dossier temporaire) : un document de scène et son catalogue de
@@ -101,8 +101,8 @@ describe('#1869 — le libellé d’une réponse ne dit pas le Test de son propr
     expect(trouvaille('Ouvrir (Difficile)')).toBe('Difficile');
   });
 
-  it('le DR CUMULÉ d’un Test étendu : nommé (le tag le porte depuis `targetDR`)', () => {
-    const etendu = { kind: 'do', effect: { type: 'extendedTest', skill: { id: 'crochetage' }, label: 'Forcer', targetDR: 5 } };
+  it('le DR CUMULÉ d’un Test étendu : nommé (le tag le porte depuis `drCible`)', () => {
+    const etendu = { kind: 'effet', effet: { type: 'extendedTest', skill: { id: 'crochetage' }, label: 'Forcer', drCible: 5 } };
     expect(trouvaille('Forcer la serrure, 5 DR', etendu)).toBe('5 DR');
   });
 
@@ -111,11 +111,11 @@ describe('#1869 — le libellé d’une réponse ne dit pas le Test de son propr
   });
 
   it('un jet ENFOUI dans le `yes` d’un nœud `choice` annonce autant qu’un jet de tête', () => {
-    const enfoui = { kind: 'choice', prompt: 'Insister ?', yes: fluxDeTest(), no: { kind: 'seq', steps: [] } };
+    const enfoui = { kind: 'choix', invite: 'Insister ?', oui: fluxDeTest(), non: { kind: 'sequence', etapes: [] } };
     expect(trouvaille('Insister (Test de Crochetage)', enfoui)).toBe('Crochetage');
   });
 
-  const sansTest = { kind: 'seq', steps: [] };
+  const sansTest = { kind: 'sequence', etapes: [] };
 
   it('le COÛT recopié dans le libellé : nommé, par sa notation de puce, son nom de pièce ou son abréviation', () => {
     expect(trouvaille('Repas chaud pour le groupe — 4 pa.', sansTest, { silver: 4 })).toBe('4 pa');

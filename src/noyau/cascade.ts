@@ -15,6 +15,7 @@
  *  - IMMÉDIAT (`runCascadeImmediate`) — repos de plusieurs jours, reprise auto, triche de recette :
  *    on lance chaque étape (RNG, sans influence) et on applique sa conséquence, sans modale.
  */
+import type { IconId } from '../data/icons';
 import type { Get, Set } from './flowTypes';
 import type { Jeu } from './etat';
 import type { Combatant, Difficulty } from '../engine/types';
@@ -82,6 +83,11 @@ const emettreOwnTestFailed = (get: Get, actor: Combatant, sl: number): string[] 
  * La classe : un applier qui déclenche LUI-MÊME une continuation écrivante (une reprise) doit dire ce
  * que son dé a DÉCIDÉ avant ce que la continuation en FAIT ; le goulot, qui journalise après l'applier,
  * arriverait derrière. Sépare « affiché sur l'étape » de « journalisé », sans second canal de texte.
+ *
+ * `suiteGardee` : l'applier a REMIS la suite de l'étape (`meta.apresSuite`) à un porteur qui la jouera lui-même, et le
+ * goulot ne la joue pas (il la retire du méta comme toujours). Un seul cas réel : `nombreDAttaquesSubies`, qui la remet
+ * à la série qu'il ouvre (`SerieSubie.apresSuite`, jouée par `fermerLaSerieSubie`) : jouée ici, elle passerait devant
+ * les attaques de la série, dont aucun dé ne porte de suite.
  */
 export type CascadeApplier = (
   get: Get,
@@ -89,7 +95,7 @@ export type CascadeApplier = (
   step: CascadeStep,
   hero: Combatant | undefined,
   ctx: { steps: CascadeStep[]; index: number },
-) => { consequences?: Consequence[]; dejaDites?: true; insert?: readonly BuiltCascadeStep[]; stopSequence?: true } | void;
+) => { consequences?: Consequence[]; dejaDites?: true; insert?: readonly BuiltCascadeStep[]; stopSequence?: true; suiteGardee?: true } | void;
 
 /** Ce qu'une étape d'AFFICHAGE dira en se validant, quand son monteur ne pouvait pas le poser d'avance : lu
  *  à l'arrivée du curseur sur l'état que les étapes d'avant ont laissé, posé en `outcome`. Son applier
@@ -135,7 +141,7 @@ function clotureDeCascade(done: PendingCascade): void {
  * Conséquence d'une ISSUE de TEST ÉTENDU (`PendingExtendedTest.outcome`, #273 Étape 1) — calque exact
  * de `CascadeApplier` ci-dessus (mute get/set, renvoie des `Consequence[]`), appliquée à la CLÔTURE du
  * Test étendu (`jetValider('testEtendu')`, noyau/testsDeScene.ts) qu'il ait atteint sa cible OU buté sur `tentativesMax`.
- * `reached` = `total ≥ targetDR` ; `false` = borne d'essais épuisée sans réussir (Commerce d'opportunité,
+ * `reached` = `total ≥ drCible` ; `false` = borne d'essais épuisée sans réussir (Commerce d'opportunité,
  * MDG 15 : « 10 DR en ≤ 3 tentatives » — l'échec de la borne EST une issue, jamais une boucle infinie).
  * Table séparée des appliers (`TablesDuJeu.issuesDeTestEtendu` : un Test étendu n'est PAS une étape de
  * cascade — `pendingExtendedTest` coexiste comme porteur de données à côté d'une cascade-hôte à 1 étape
@@ -358,11 +364,11 @@ export function lireEnSeuil(seuil: SeuilDeSauvegarde, de: CascadeDeResult, nom: 
   const sauve = de.total >= seuil.indice;
   return {
     sauve,
-    ligne: t(sauve ? 'cf.wardSaved' : 'cf.wardFailed', {
+    ligne: t(sauve ? 'cf.sauvegardeReussie' : 'cf.sauvegardeRatee', {
       name: nom,
       roll: de.total,
       trait: formatWardSave(seuil.source, seuil.indice),
-      src: seuil.dome ? t('cf.wardFromDome') : '',
+      src: seuil.dome ? t('cf.sauvegardeDuDome') : '',
     }),
   };
 }
@@ -520,7 +526,7 @@ export function opposedCascadeRoll(def: TestResult, opp: OpposedRowFreeze, targe
   return {
     roll: def.roll, target, sl: def.sl,
     success: opposedBranchSuccess(o, opp.defenderMustWin),
-    ...(o.winner === 'tie' ? { statuQuo: true as const } : {}),
+    ...(o.winner === 'egalite' ? { statuQuo: true as const } : {}),
   };
 }
 
@@ -1091,7 +1097,7 @@ export function pushStep(set: Set, step: CascadeStep | ((index: number) => Casca
     // APPEND : le curseur ne bouge QUE s'il était en bilan (`cursor === participants.length`) — sinon
     // il reste posé sur l'étape en cours, et ce n'est pas une ARRIVÉE (cf. `franchirLesHotesOrphelins`).
     if (same) return { pendingCascade: poserLeCurseur(g, { ...same, participants: [...same.participants, st], seq: compteur + 1 }, same.cursor >= same.participants.length) };
-    const fresh: PendingCascade = poserLeCurseur(g, { title: st.label ?? 'Conséquences', icon: st.icon ?? 'action/attack', purpose: p, cursor: 0, log: [], participants: [st], seq: 1 });
+    const fresh: PendingCascade = poserLeCurseur(g, { title: st.label ?? 'Conséquences', icon: st.icon ?? 'action/attaquer', purpose: p, cursor: 0, log: [], participants: [st], seq: 1 });
     // Slot occupé par un AUTRE purpose : on le SUSPEND (jamais un écrasement) — même `set` atomique
     // que `suspendActiveCascade`, dont `pushStep` n'a pas le `get`.
     return cur ? { pendingCascade: fresh, suspendedCascades: [...s.suspendedCascades, cur] } : { pendingCascade: fresh };
@@ -1191,7 +1197,7 @@ function assertIdsUniques(steps: readonly CascadeStep[], dejaLa: readonly Cascad
 export function startCascade(
   get: Get,
   set: Set,
-  opts: { title: string; icon?: string; purpose: PendingCascade['purpose']; steps: CascadeStep[]; log?: string[]; travelHalt?: boolean; roundBoundary?: boolean; combatEndBoundary?: boolean; restNights?: PendingCascade['restNights'] },
+  opts: { title: string; icon?: IconId; purpose: PendingCascade['purpose']; steps: CascadeStep[]; log?: string[]; travelHalt?: boolean; roundBoundary?: boolean; combatEndBoundary?: boolean; restNights?: PendingCascade['restNights'] },
 ): void {
   if (!opts.steps.length) return;
   assertBandeDeclarePossession(opts.steps);
@@ -1322,8 +1328,9 @@ function commitStep(get: Get, set: Set, steps: CascadeStep[], i: number, pilote:
     // dans le journal, et ce qui laisse la conséquence se mesurer sur l'état qu'elle a elle-même produit.
     // Rejouée ICI, au goulot, et pas dans l'applier : un applier qui rejouerait lui-même sa suite le
     // ferait avant ce journal, et toute grandeur lue par différence après coup (les Blessures d'une
-    // chute) serait faussée par ce que la suite a déjà changé.
-    jouerLesClotures(get, set, step.meta?.apresSuite ?? []);
+    // chute) serait faussée par ce que la suite a déjà changé. Une suite que l'applier a remise à un autre
+    // porteur (`suiteGardee`) n'est plus la sienne.
+    if (!out?.suiteGardee) jouerLesClotures(get, set, step.meta?.apresSuite ?? []);
   } finally {
     insereesParLApplier = fenetreInsertion?.inseres ?? [];
     bornes = fenetreInsertion?.bornes ?? null;

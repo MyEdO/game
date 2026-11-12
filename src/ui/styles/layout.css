@@ -107,11 +107,11 @@ ol.grid {
 .split[data-aside='sm'] { --aside: minmax(160px, 240px); }
 .split[data-aside='md'] { --aside: 270px; }
 .split[data-aside='lg'] { --aside: minmax(240px, 1.3fr); }
-.split[data-side='end'] { grid-template-columns: minmax(0, 1fr) var(--aside, minmax(160px, 240px)); }
+.split[data-side='fin'] { grid-template-columns: minmax(0, 1fr) var(--aside, minmax(160px, 240px)); }
 /* La colonne BORNÉE est désignée par sa POSITION, que `side` décide : première par défaut, dernière
-   en `side="end"`. Elle seule colle. */
-.split:not([data-side='end'])[data-sticky] > :first-child,
-.split[data-side='end'][data-sticky] > :last-child {
+   en `side="fin"`. Elle seule colle. */
+.split:not([data-side='fin'])[data-sticky] > :first-child,
+.split[data-side='fin'][data-sticky] > :last-child {
   position: sticky;
   top: 0;
   align-self: start;
@@ -134,8 +134,8 @@ ol.grid {
   .grid[data-stack-below='900'] {
     grid-template-columns: minmax(0, 1fr);
   }
-  .split[data-stack-below='900']:not([data-side='end'])[data-sticky] > :first-child,
-  .split[data-stack-below='900'][data-side='end'][data-sticky] > :last-child {
+  .split[data-stack-below='900']:not([data-side='fin'])[data-sticky] > :first-child,
+  .split[data-stack-below='900'][data-side='fin'][data-sticky] > :last-child {
     position: static;
   }
   .row[data-stack-below='900'] {
@@ -156,8 +156,8 @@ ol.grid {
   .grid[data-stack-below='700'] {
     grid-template-columns: minmax(0, 1fr);
   }
-  .split[data-stack-below='700']:not([data-side='end'])[data-sticky] > :first-child,
-  .split[data-stack-below='700'][data-side='end'][data-sticky] > :last-child {
+  .split[data-stack-below='700']:not([data-side='fin'])[data-sticky] > :first-child,
+  .split[data-stack-below='700'][data-side='fin'][data-sticky] > :last-child {
     position: static;
   }
   .row[data-stack-below='700'] {
@@ -174,8 +174,8 @@ ol.grid {
   .grid[data-stack-below='560'] {
     grid-template-columns: minmax(0, 1fr);
   }
-  .split[data-stack-below='560']:not([data-side='end'])[data-sticky] > :first-child,
-  .split[data-stack-below='560'][data-side='end'][data-sticky] > :last-child {
+  .split[data-stack-below='560']:not([data-side='fin'])[data-sticky] > :first-child,
+  .split[data-stack-below='560'][data-side='fin'][data-sticky] > :last-child {
     position: static;
   }
   .row[data-stack-below='560'] {

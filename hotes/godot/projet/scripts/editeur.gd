@@ -1,10 +1,13 @@
 ## L'éditeur de carte (#3508), hôte de la méthode `editer` du pont (`hotes/godot/pont/CONTRAT.md`, section « Éditeur ») :
 ## il ouvre la campagne du jeu du paramètre `campagne` (`PontDuNoyau.parametre`, sinon `CAMPAGNE`), telle que le dépôt la sert
-## (`GET depot/<id>`) s'il la sert, sinon telle que le jeu l'embarque, et applique chaque réponse. Le texte qu'une
+## (`GET depot/<id>`) s'il la sert, sinon telle que le jeu l'embarque, avec l'index des chapitres du `Source/` qu'il sert
+## (`GET source/manifest.json`), et applique chaque réponse ; un chapitre demandé (`chapitre`) se charge
+## (`GET source/<book>/<ch>.md`) et revient au pont. Le texte qu'une
 ## réponse donne à enregistrer s'écrit au dépôt (`PUT depot/<id>`), et l'issue de l'écriture revient au pont.
 ## Avant d'ouvrir, il indexe les modèles du serveur (`MontageDeComposition.indexer_les_modeles`), que le pont lit pour
-## servir le corps de chaque navire. Le monde rendu va au monde (`Monde.poser`), sur la couche éditée, avec les arêtes de
-## la couche (`VolumeDeScene.poser_les_aretes`) et les navires de la scène, chacun sous le modèle de son corps
+## servir le corps de chaque navire. Le monde rendu va au monde (`Monde.poser`) : son manifeste, et la géométrie de ses
+## seuls morceaux dont l'empreinte a bougé (`morceaux`, source `edition`), masqué au-dessus de la couche éditée
+## (`retrait`, `VolumeDeScene.retirer`), avec les arêtes de la couche (`VolumeDeScene.poser_les_aretes`) et les navires de la scène, chacun sous le modèle de son corps
 ## (`MontageDesNavires`) ; la surcouche : chaque zone de la couche nommée au-dessus de sa première case, les cases de
 ## la zone sélectionnée en plaques, la poignée de la sélection en survol, puis chaque repère d'une entité ou d'une entrée
 ## de la couche, en plaque sur le sol de sa case, celle du repère sélectionné en survol, et nommé au-dessus d'elle
@@ -25,7 +28,8 @@ extends Node
 ## Le routeur `projet/scripts/editeur.gd` (scène `projet/scenes/Editeur.tscn`, ouverte par le bouton « Éditeur » du
 ## menu) ouvre la campagne du paramètre `campagne` (la Diligence sans lui), avec le `projet` que sert
 ## `GET depot/<id>` s'il répond (`PontDuNoyau.requeter`), une fois les modèles du serveur indexés
-## (`MontageDeComposition.indexer_les_modeles`), pose le monde rendu (`Monde.poser`), ses arêtes
+## (`MontageDeComposition.indexer_les_modeles`), pose le monde rendu (`Monde.poser`, son manifeste et les morceaux dont
+## l'empreinte a bougé, `morceaux` de source `edition`), masqué au-dessus de la couche éditée (`retrait`), ses arêtes
 ## (`VolumeDeScene.poser_les_aretes`) et ses navires, chacun sous le modèle de son corps comme au plateau
 ## (`MontageDesNavires`), la surcouche en plaques sur le sol de ses cases (`Monde.peindre`) : chaque zone nommée
 ## au-dessus de sa première case, les cases de la zone sélectionnée, la poignée de la sélection en survol, chaque
@@ -42,8 +46,10 @@ extends Node
 ## au pont, ou `null` si l'auteur renonce ou si elle ne se lit pas. Il envoie le geste de l'élément pressé, et le
 ## pointeur sur le monde : l'appui au point touché (`Monde.touche_sous`), un glissé à chaque case nouvelle sous le
 ## bouton tenu, le relâché au point touché, le dernier si le pointeur a quitté le monde. Une réponse qui porte `depot`
-## part en `PUT depot/<id>`, et son issue revient au pont ; une écriture refusée dit sa raison. Une réponse qui porte
-## `essai` ouvre le combat (`projet/scenes/Combat.tscn`), qui démarre l'essai (`PontDuNoyau.essai`).
+## part en `PUT depot/<id>`, et son issue revient au pont ; une écriture refusée dit sa raison. Il passe à `{ ouvrir }`
+## l'index des chapitres du `Source/` (`manifeste`) que sert `GET source/manifest.json` s'il répond ; une réponse qui
+## porte `chapitre` le charge par `GET source/<book>/<ch>.md` et rend au pont `{ geste: 'chapitre', book, ch, texte }`,
+## `texte` nul s'il ne répond pas. Une réponse qui porte `essai` ouvre le combat (`projet/scenes/Combat.tscn`), qui démarre l'essai (`PontDuNoyau.essai`).
 
 ## La campagne qui s'ouvre sans `campagne` à l'adresse : celle de la Diligence, la carte que l'éditeur bâtit (#3508).
 const CAMPAGNE := "la-diligence"
@@ -107,7 +113,25 @@ func _ready() -> void:
 	var servi := await _pont.requeter("depot/%s" % ouvrir.ouvrir, hors_du_depot)
 	if not servi.is_empty():
 		ouvrir.projet = servi.get_string_from_utf8()
+	var manifeste := await _pont.requeter("source/manifest.json", hors_du_depot)
+	if not manifeste.is_empty():
+		ouvrir.manifeste = manifeste.get_string_from_utf8()
 	_suivre(_pont.appeler("editer", ouvrir))
+
+
+## Le monde d'une réponse de `editer` (`reponse.monde`, le manifeste du volume) posé au monde (`Monde.poser`), sans
+## nappe de toit ni couronne, la géométrie des seuls morceaux dont l'empreinte posée diffère demandée à `morceaux`
+## (`VolumeDeScene.manquants`), puis son masque (`reponse.retrait`, `VolumeDeScene.retirer`).
+func _poser_le_monde(reponse: Dictionary) -> void:
+	var monde := {monde = reponse.monde, toits = [], couronnes = []}
+	var manquants := _monde.volume.manquants(monde)
+	var recus := {volume = [], toits = [], couronnes = []}
+	if not manquants.volume.is_empty():
+		recus = _pont.appeler("morceaux", manquants.merged({source = "edition"}))
+		if recus.get("ok") != true:
+			return
+	_monde.poser(monde, recus)
+	_monde.volume.retirer(reponse.retrait)
 
 
 func _jouer(jeu: Dictionary) -> void:
@@ -120,14 +144,14 @@ func _pointer(geste: String, touche: Dictionary) -> void:
 
 
 ## Une réponse de `editer` : le monde, ses arêtes et ses navires posés s'il y en a un, la surcouche peinte, le calque posé, les zones
-## montrées, le texte à enregistrer écrit au dépôt, les calques gardés, et la planche demandée choisie ; la scène mise
-## à l'essai se joue au combat.
+## montrées, le texte à enregistrer écrit au dépôt, les calques gardés, la planche demandée choisie, et le chapitre
+## demandé chargé ; la scène mise à l'essai se joue au combat.
 func _suivre(reponse: Dictionary) -> void:
 	if reponse.get("ok") != true:
 		return
 	_refus.text = ""
 	if reponse.has("monde"):
-		_monde.poser(reponse.monde)
+		_poser_le_monde(reponse)
 		_monde.volume.poser_les_aretes(reponse.aretes)
 		_navires.poser(reponse.navires, {}, reponse.monde.metresParCase)
 	_vue = reponse.vue
@@ -168,6 +192,8 @@ func _suivre(reponse: Dictionary) -> void:
 		_garder(reponse.memoire)
 	if reponse.has("planche"):
 		_charger_la_planche(reponse.planche.image)
+	if reponse.has("chapitre"):
+		_charger_le_chapitre(reponse.chapitre)
 	if reponse.has("essai"):
 		_pont.essai = true
 		get_tree().change_scene_to_file.call_deferred("res://scenes/Combat.tscn")
@@ -221,6 +247,14 @@ func _charger_la_planche(image: String) -> void:
 		lue.save_png(chemin)
 		_planches.erase(image)
 	_jouer({edition = {geste = "chargement", image = {largeur = lue.get_width(), hauteur = lue.get_height()} if issue == OK else null}})
+
+
+## Le texte du chapitre `chapitre` du `Source/` que sert le poste (`GET source/<book>/<ch>.md`), rendu au pont, ou `null`
+## s'il ne se charge pas.
+func _charger_le_chapitre(chapitre: Dictionary) -> void:
+	var recueil: Array[String] = []
+	var lu := await _pont.requeter("source/%s/%s.md" % [chapitre.book, chapitre.ch], recueil)
+	_jouer({edition = {geste = "chapitre", book = chapitre.book, ch = chapitre.ch, texte = lu.get_string_from_utf8() if recueil.is_empty() else null}})
 
 
 ## Le texte `depot.texte` écrit au dépôt à la place du projet `depot.id`, puis l'issue de l'écriture rendue au pont ; une

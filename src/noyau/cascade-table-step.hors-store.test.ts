@@ -47,7 +47,7 @@ describe('Étape à TABLE — le tirage sur tableau, résolu en un site', () => 
   });
 
   const tableStep = (id: string, decl: Partial<CascadeStep['table']> = {}): CascadeStep =>
-    ({ id, kind: cleDeFixture('tableSpy'), label: fixtureText('Tirage'), icon: 'nav/dice', table: { tableId: SYNTH, ...decl }});
+    ({ id, kind: cleDeFixture('tableSpy'), label: fixtureText('Tirage'), icon: 'navigation/des', table: { tableId: SYNTH, ...decl }});
 
   it("l'interaction est inférée du champ `table` : sans résultat = à tirer, avec résultat = affichage prêt", () => {
     const st = tableStep('t1');
@@ -202,7 +202,7 @@ describe('MODE TABLE — poser le dé d’une étape à table (option « Dés fi
 
   /** Étape à table sur `T`, avec le `mod` voulu (le `mod` est ce qui rend le calcul du naturel visible). */
   const step = (mod?: number): CascadeStep =>
-    ({ id: 'tm', kind: cleDeFixture('tableModeSpy'), label: fixtureText('Tirage'), icon: 'nav/dice', table: { tableId: T, ...(mod != null ? { mod } : {}) }});
+    ({ id: 'tm', kind: cleDeFixture('tableModeSpy'), label: fixtureText('Tirage'), icon: 'navigation/des', table: { tableId: T, ...(mod != null ? { mod } : {}) }});
 
   const open = (mod?: number) =>
     startCascade(banc.getState, banc.setState, { title: 'Tirage', purpose: 'test', steps: [step(mod)] });
@@ -267,7 +267,7 @@ describe('MODE TABLE — poser le dé d’une étape à table (option « Dés fi
     // n'a QUE l'autorisation de siège à vérifier (`intentAllowedFor`) — re-juger son état local ferait
     // tomber en silence un geste légitime (le mode d'échec verbatim de `opSetForcedRoll`).
     resetDesFixes(); // option éteinte CHEZ L'HÔTE
-    const hero = combattantDeTest({ id: 'h1', label: 'Aldo', kind: 'hero' });
+    const hero = combattantDeTest({ id: 'h1', label: 'Aldo', kind: 'heros' });
     banc.setState({
       party: [hero],
       net: { mode: 'hote', mySeat: 0, roomCode: 'ABCD', seatNames: {}, presence: {}, ownership: { h1: 1 }, gmSeat: null } as never,
@@ -350,7 +350,7 @@ describe('Étape à TABLE — l’enjeu DESCEND à la ligne jouée (#1117)', () 
 
   /** Étape sur la VRAIE table de Critiques de Structure, portant l'enjeu de son `kind`. */
   const structureStep = (id: string, forcedRoll?: number): CascadeStep => ({
-    id, kind: cleDeFixture('stakeSpy'), label: fixtureText('Critique de Structure'), icon: 'nav/dice',
+    id, kind: cleDeFixture('stakeSpy'), label: fixtureText('Critique de Structure'), icon: 'navigation/des',
     table: { tableId: STRUCTURE_CRIT_TABLE, spec: { n: 1, sides: 100 }, ...(forcedRoll ? { forcedRoll } : {}) },
     stake: combatStakeRef('structure-critique'),
   });
@@ -394,7 +394,7 @@ describe('Étape à TABLE — l’enjeu DESCEND à la ligne jouée (#1117)', () 
 
   it('table SANS catégorie d’entrées : l’enjeu est rendu TEL QUEL (repli déclaré)', () => {
     const st: CascadeStep = {
-      id: 'n1', kind: cleDeFixture('stakeSpy'), label: fixtureText('Neutre'), icon: 'nav/dice',
+      id: 'n1', kind: cleDeFixture('stakeSpy'), label: fixtureText('Neutre'), icon: 'navigation/des',
       table: { tableId: NEUTRE, spec: { n: 1, sides: 100 }, forcedRoll: 50 }, stake: combatStakeRef('structure-critique'),
     };
     startCascade(banc.getState, banc.setState, { title: 'T', purpose: 'test', steps: [st] });
@@ -406,7 +406,7 @@ describe('Étape à TABLE — l’enjeu DESCEND à la ligne jouée (#1117)', () 
 
   it('étape SANS enjeu : le tirage n’en fabrique aucun', () => {
     const st: CascadeStep = {
-      id: 'm1', kind: cleDeFixture('stakeSpy'), label: fixtureText('Muette'), icon: 'nav/dice',
+      id: 'm1', kind: cleDeFixture('stakeSpy'), label: fixtureText('Muette'), icon: 'navigation/des',
       table: { tableId: STRUCTURE_CRIT_TABLE, spec: { n: 1, sides: 100 }, forcedRoll: 40 },
     };
     startCascade(banc.getState, banc.setState, { title: 'T', purpose: 'test', steps: [st] });

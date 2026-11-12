@@ -5,19 +5,19 @@ import type { Combatant, Weapon } from './types';
 import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 // Portée 20 m → Bout Portant si dist×2 ≤ 20/10 = 2, donc à ≤ 1 tuile (combat.ts rangeBandName).
-const bow = (): Weapon => ({ name: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 0 }, range: 20, qualities: [] } as unknown as Weapon);
+const bow = (): Weapon => ({ name: 'Arc', type: 'distance', damage: { plusBF: false, flat: 0 }, range: 20, qualities: [] } as unknown as Weapon);
 const shield = (indice: number): Weapon =>
   ({ name: 'Bouclier', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [{ id: 'protectrice', value: indice }] } as unknown as Weapon);
 
 // Un combattant réel porte Caractéristiques + Compétences (CC/Parade, Ag/Esquive) : le stub est COMPLET pour
 // que la sélection de mode (`bestRangedDefense`) puisse scorer chaque mode — un défenseur creux n'existe pas.
 const chars = { 'capacite-de-combat': 35, 'capacite-de-tir': 35, force: 35, endurance: 35, initiative: 30, agilite: 45, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
-const combatant = (id: string, kind: 'hero' | 'enemy', over: Partial<Combatant>): Combatant =>
+const combatant = (id: string, kind: 'heros' | 'ennemi', over: Partial<Combatant>): Combatant =>
   (blessuresSurLeProfil({ id, name: id, kind, characteristics: chars, conditions: [], engagedWith: [], skills: [], talents: [],
      weapons: [], advantage: 0, size: 'moyenne', wounds: blessuresDeBase(20),
      armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, ...over }) as unknown as Combatant);
-const atk = (over: Partial<Combatant> = {}): Combatant => combatant('a', 'hero', over);
-const def = (over: Partial<Combatant> = {}): Combatant => combatant('d', 'enemy', over);
+const atk = (over: Partial<Combatant> = {}): Combatant => combatant('a', 'heros', over);
+const def = (over: Partial<Combatant> = {}): Combatant => combatant('d', 'ennemi', over);
 
 describe('rangedDefenseModes — RAW défense contre les attaques à distance', () => {
   const w = bow();
@@ -72,18 +72,18 @@ describe('bestRangedDefense — meilleure défense AUTO contre un tir', () => {
 
 describe('resolveRanged — tir DÉFENDU = Test OPPOSÉ (cœur combineOpposed partagé avec la mêlée)', () => {
   const chars = { 'capacite-de-combat': 35, 'capacite-de-tir': 55, force: 35, endurance: 35, initiative: 30, agilite: 45, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
-  const base = (id: string, kind: 'hero' | 'enemy', over: Partial<Combatant> = {}): Combatant =>
+  const base = (id: string, kind: 'heros' | 'ennemi', over: Partial<Combatant> = {}): Combatant =>
     (blessuresSurLeProfil({ id, name: id, kind, characteristics: chars, conditions: [], engagedWith: [], skills: [], talents: [],
        weapons: [], advantage: 0, size: 'moyenne', wounds: blessuresDeBase(20),
        armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, ...over }) as unknown as Combatant);
-  const bw: Weapon = { name: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 4 }, range: 60, qualities: [] } as unknown as Weapon;
+  const bw: Weapon = { name: 'Arc', type: 'distance', damage: { plusBF: false, flat: 4 }, range: 60, qualities: [] } as unknown as Weapon;
 
   it('sans défense → résolution NON opposée (aucun defenderDetail)', () => {
-    const r = resolveRanged(base('a', 'hero'), base('d', 'enemy'), bw, makeRNG(3), 10);
+    const r = resolveRanged(base('a', 'heros'), base('d', 'ennemi'), bw, makeRNG(3), 10);
     expect(r.defenderDetail).toBeUndefined();
   });
   it('avec défense (esquive) → Test OPPOSÉ (defenderDetail présent)', () => {
-    const r = resolveRanged(base('a', 'hero'), base('d', 'enemy'), bw, makeRNG(3), 10, undefined, [], { mode: 'esquive' });
+    const r = resolveRanged(base('a', 'heros'), base('d', 'ennemi'), bw, makeRNG(3), 10, undefined, [], { mode: 'esquive' });
     expect(r.defenderDetail).toBeDefined();
   });
 });

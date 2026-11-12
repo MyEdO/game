@@ -47,7 +47,7 @@ const set: Banc['setState'] = (e) => banc.setState(e);
 
 function hero(p: Partial<Combatant>): Combatant {
   return blessuresSurLeProfil({
-    id: 'h1', label: 'Héros', kind: 'hero',
+    id: 'h1', label: 'Héros', kind: 'heros',
     characteristics: { 'capacite-de-combat': 35, 'capacite-de-tir': 40, force: 35, endurance: 40, initiative: 30, agilite: 30, dexterite: 32, intelligence: 40, 'force-mentale': 35, sociabilite: 30 },
     wounds: blessuresDeBase(12, 10), advantage: 0, conditions: [], movement: 4,
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -67,13 +67,13 @@ const effetCT = [{ id: 'fx1', label: 'Mystracine', testModChar: 'capacite-de-tir
 const epee = { uid: 'w2', label: 'Épée', type: 'melee', damage: 4, qualities: [] } as never;
 
 const arbalete = {
-  uid: 'w1', label: 'Arbalète', type: 'ranged', damage: 4, qualities: [], reload: 1, range: 60,
+  uid: 'w1', label: 'Arbalète', type: 'distance', damage: 4, qualities: [], reload: 1, range: 60,
 } as never;
 
 function setBattle(combatants: Combatant[], activeId: string) {
   const order = combatants.map((c) => c.id);
   banc.setState({
-    mode: 'battle', party: combatants.filter((c) => c.kind === 'hero'),
+    mode: 'battle', party: combatants.filter((c) => c.kind === 'heros'),
     battle: {
       combatants, order, baseOrder: order, turn: order.indexOf(activeId), round: 1,
       action: null, selectedSpellId: null, reachable: new Map(), movementUsed: 0, acted: false,
@@ -93,8 +93,8 @@ describe('Rechargement (combatSlice) — canal COMBAT du monteur', () => {
     setBattle([tireur], 'tir');
 
     // ORACLE recalculé à la main depuis les jumelles du moteur (jamais relu du site).
-    const nue = combatBaseValue(tireur, 'ranged', tireur.weapons[0]);
-    const jetee = combatValue(tireur, 'ranged', tireur.weapons[0]);
+    const nue = combatBaseValue(tireur, 'distance', tireur.weapons[0]);
+    const jetee = combatValue(tireur, 'distance', tireur.weapons[0]);
     expect(jetee, 'l’effet char-qualifié sépare la nue de la valeur jetée — sinon le test ne prouve rien').toBeLessThan(nue);
     expect(jetee, 'la valeur de COMBAT n’est pas la valeur hors combat : le canal a un sens')
       .not.toBe(testValue(tireur, { skill: { id: 'projectiles' }, characteristic: 'capacite-de-tir' }));
@@ -103,9 +103,9 @@ describe('Rechargement (combatSlice) — canal COMBAT du monteur', () => {
     const pr = get().pendingReload!;
     expect(pr.target).toBe(clampTarget(jetee + DIFFICULTY_MODIFIERS.intermediaire).target);
 
-    const ligne = rollLine({ actor: tireur, difficulty: 'intermediaire', valeur: pr.skillValue, combat: { kind: 'ranged', weapon: tireur.weapons[0] } });
+    const ligne = rollLine({ actor: tireur, difficulty: 'intermediaire', valeur: pr.skillValue, combat: { kind: 'distance', weapon: tireur.weapons[0] } });
     expect(ligne.base, 'Niveau de combat NU (LDB 09 l.17 sur CC/CT + Spé du Groupe)').toBe(nue);
-    expect(ligne.mods.reduce((s, m) => s + m.value, 0)).toBe(combatValueMods(tireur, 'ranged', tireur.weapons[0]));
+    expect(ligne.mods.reduce((s, m) => s + m.value, 0)).toBe(combatValueMods(tireur, 'distance', tireur.weapons[0]));
     expect(inexplique({ ...ligne, difficulty: pr.difficulty }), 'aucune chip « autres »').toBe(0);
   });
 });
@@ -117,7 +117,7 @@ describe('Main ensanglantée (`poserLeTestDeMain`) — cible montée sur la vale
     const dex = testValue(brute, { characteristic: 'dexterite' });
     expect(dex, 'l’État sépare la Dextérité nue de la valeur jetée').toBeLessThan(effectiveChar(brute, 'dexterite'));
 
-    openAttackCascade(get, set, { attackerId: 'br', targetId: 'br', location: null, result: null } as never, 'Attaquer', 'action/attack');
+    openAttackCascade(get, set, { attackerId: 'br', targetId: 'br', location: null, result: null } as never, 'Attaquer', 'action/attaquer');
     const pg = get().pendingHandGate!;
     expect(pg.ligne.base + pg.ligne.mods.reduce((n, m) => n + m.value, 0)).toBe(dex);
     expect(pg.target).toBe(clampTarget(dex + DIFFICULTY_MODIFIERS.accessible).target);
@@ -177,7 +177,7 @@ describe('Fin de rencontre (combatFlow) — Contraction et Corruption', () => {
       id: 'sv', label: 'Survivant', conditions: ETAT, tookCriticalThisFight: true,
       skills: [{ id: 'resistance', advances: 10, characteristic: 'endurance' }] as never,
     } as never);
-    const bete = hero({ id: 'be', label: 'Bête', kind: 'enemy', dead: true, traits: [{ id: 'corruption', arg: 'mineure' }] } as never);
+    const bete = hero({ id: 'be', label: 'Bête', kind: 'ennemi', dead: true, traits: [{ id: 'corruption', arg: 'mineure' }] } as never);
     setBattle([survivant, bete], 'sv');
     survivant.diseaseExposure = [{ disease: 'courante-galopante', difficulty: 'intermediaire' }] as never;
 
@@ -286,8 +286,8 @@ describe('ORACLE du canal combat — balayage EXHAUSTIF (#1153 L1b, sonde promue
     const CANAUX: { combat: RollLineCombat; test?: SujetDuJet }[] = [
       { combat: { kind: 'melee' } },
       { combat: { kind: 'melee', weapon: epee } },
-      { combat: { kind: 'ranged' } },
-      { combat: { kind: 'ranged', weapon: arbalete } },
+      { combat: { kind: 'distance' } },
+      { combat: { kind: 'distance', weapon: arbalete } },
       { combat: { kind: 'test' }, test: { characteristic: 'force-mentale' } },
       { combat: { kind: 'test' }, test: { characteristic: 'dexterite' } },
       { combat: { kind: 'test' }, test: { skill: { id: 'resistance' } } },
@@ -368,13 +368,13 @@ describe('SONDES PROMUES (#1153 L1b) — ce que le monteur NE fait PAS encore', 
       skills: [{ id: 'projectiles', advances: 20, characteristic: 'capacite-de-tir' }] as never,
       weapons: [arbalete],
     });
-    const valeur = combatValue(tireur, 'ranged', tireur.weapons[0]);
+    const valeur = combatValue(tireur, 'distance', tireur.weapons[0]);
     // Canal HORS COMBAT sur une valeur de combat : la reconstruction rate — en DEV, elle THROW.
     expect(() => rollLine({ actor: tireur, test: { characteristic: 'capacite-de-tir' }, difficulty: 'intermediaire', valeur }))
       .toThrow(/ne se reconstruit pas/);
     // MÊME valeur par son canal : la ligne se monte et s'explique intégralement.
-    const ligne = rollLine({ actor: tireur, difficulty: 'intermediaire', valeur, combat: { kind: 'ranged', weapon: tireur.weapons[0] } });
-    expect(ligne.base).toBe(combatBaseValue(tireur, 'ranged', tireur.weapons[0]));
+    const ligne = rollLine({ actor: tireur, difficulty: 'intermediaire', valeur, combat: { kind: 'distance', weapon: tireur.weapons[0] } });
+    expect(ligne.base).toBe(combatBaseValue(tireur, 'distance', tireur.weapons[0]));
     expect(inexplique({ ...ligne, difficulty: 'intermediaire' })).toBe(0);
   });
 

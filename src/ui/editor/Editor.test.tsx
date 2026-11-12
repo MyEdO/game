@@ -53,7 +53,7 @@ describe('Editor v2 (rendu)', () => {
     expect(html).toContain('↶');
     expect(html).toContain('↷');
     expect(html).toContain('Scène active'); // aria-label du sélecteur de scènes
-    expect(html).toContain('Monde'); // bouton « <Icon nav/campaign> Monde » (préfixe 🗺️ migré en icône)
+    expect(html).toContain('Monde'); // bouton « <Icon navigation/campagne> Monde » (préfixe 🗺️ migré en icône)
     expect(html).toContain('▶ Tester');
   });
 
@@ -81,9 +81,9 @@ describe('Editor v2 (rendu)', () => {
 
   it('rend la barre de statut (calques) et le dock Logique (onglets + compteurs)', () => {
     expect(html).toContain('Calques');
-    expect(html).toContain('Triggers'); // onglet « <Icon map-tool/zone> Triggers »
-    expect(html).toContain('Dialogues'); // onglet « <Icon merchant/haggle> Dialogues »
-    expect(html).toContain('Rencontres'); // onglet « <Icon action/attack> Rencontres » (préfixe ⚔️ migré)
+    expect(html).toContain('Triggers'); // onglet « <Icon outil-de-carte/zone> Triggers »
+    expect(html).toContain('Dialogues'); // onglet « <Icon marchand/marchander> Dialogues »
+    expect(html).toContain('Rencontres'); // onglet « <Icon action/attaquer> Rencontres » (préfixe ⚔️ migré)
     expect(html).toContain('Validation');
   });
 
@@ -176,7 +176,7 @@ describe('Editor v2 — un renommage au Narratif depuis une scène non-entrée (
     const { container, rendre } = monterRacine(null);
     const cite: Scene = {
       ...emptyScene('scene-test', 4, 4), id: 'a', label: 'A',
-      triggers: [{ id: 't0', rect: { x: 0, y: 0, w: 1, h: 1 }, once: true, flow: { kind: 'do', effect: { type: 'document', documentId: 'document-1' } } }],
+      triggers: [{ id: 't0', rect: { x: 0, y: 0, w: 1, h: 1 }, once: true, flow: { kind: 'effet', effet: { type: 'document', documentId: 'document-1' } } }],
     };
     await act(async () => { rendre(<Editor initialScene={cite} />); });
     const bouton = (texte: string) => [...container.querySelectorAll('button')].find((b) => b.textContent?.includes(texte))!;
@@ -214,7 +214,7 @@ describe('Editor v2 — un renommage au Narratif depuis une scène non-entrée (
     const relu = parseProject(projetsEcrits(base)[0].project);
     expect(relu.scenes.map((s) => [s.id, s.label])).toEqual([[a, 'A'], [b, 'B'], [c, 'A (copie) (copie)']]);
     for (const voisine of [relu.scenes[0], relu.scenes[2]]) {
-      expect(voisine.triggers[0].flow, voisine.id).toEqual({ kind: 'do', effect: { type: 'document', documentId: 'doc-lettre' } });
+      expect(voisine.triggers[0].flow, voisine.id).toEqual({ kind: 'effet', effet: { type: 'document', documentId: 'doc-lettre' } });
     }
   });
 });
@@ -332,7 +332,7 @@ describe('Editor v2 — authoring architectural', () => {
         openLogic={() => undefined}
         resizeScene={() => undefined}
         narratif={emptyNarratif()}
-        tool={{ mode: 'select' }}
+        tool={{ mode: 'selection' }}
         armZoneTiles={() => undefined}
         zoneFocusKey={null}
       />,

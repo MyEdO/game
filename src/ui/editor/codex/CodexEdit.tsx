@@ -5,6 +5,7 @@
  * piochés dans leurs vrais datasets, param libre « 8 Tentacules +8 » conservé). Validation et
  * transaction d'enregistrement : `data/atelierDuCodex.ts` ; écriture disque : File System Access (`fsPersist`).
  */
+import type { Equipe } from '../../../engine/relations';
 import { tableTotale } from '../../../lib/tableTotale';
 import { Fragment, useEffect, useId, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
 import { datasetArray, datasetObject, datasetFile, datasetObjectFile, ancetreDuDe, deDeLaTable, type DatasetKey } from '../../../data/overrides';
@@ -18,10 +19,11 @@ import { admetLAbsence, estDerive, inferFields, offreDesRangees, videDuNoeud, ty
 import { libelleDeValeur, metaDesChamps, optionsDuNoeud } from '../../../data/schemas/grammaire/meta';
 import { categoryByKey } from '../../../noyau/codex/registry';
 import { ACTIVITY_RESOLVERS, RESOLVER_OWNER, resolversOwnedBy } from '../../../engine/activities';
-import type { ActivityContext, OutcomeBand, BattleOutcome, BattleSide, BattleOutcomeTarget, BattleOutcomeScale, BattleCond, ActivityResolver, ResolverOwner } from '../../../engine/activities';
+import type { ActivityContext, OutcomeBand, BattleOutcome, BattleOutcomeTarget, BattleOutcomeScale, BattleCond, ActivityResolver, ResolverOwner } from '../../../engine/activities';
 import { weatherCondition } from '../../../engine/travelStages';
 import { weatherIdSchema } from '../../../data/schemas/defs/weather';
-import { outcomeOnSchema, battleCondSchema, battleOutcomeTargetSchema, battleOutcomeScaleSchema, battleSideSchema } from '../../../data/schemas/defs/activities';
+import { outcomeOnSchema, battleCondSchema, battleOutcomeTargetSchema, battleOutcomeScaleSchema } from '../../../data/schemas/defs/activities';
+import { equipeSchema } from '../../../data/schemas/grammaire/valeurs';
 import { waterAppliesToSchema, waterTableSchema } from '../../../data/schemas/defs/water-exposure';
 import { ChoixDeSpec, RefField, SaisieSuggeree, reposerLId, cfgDeLaFeuille, cfgDeLaListe, cfgDuNoeudASpec, cfgDuNoeudType, refFieldCfg, libelleDeDataset, useSuggestionsPartagees, useValeursDistinctes } from '../../compendium/refField/RefField';
 import { SaisieEnBrouillon } from '../../compendium/refField/SaisieEnBrouillon';
@@ -125,13 +127,16 @@ const OPS_FIELDS: Record<string, string[]> = {
   // kinds `condition`/`wounds`/`corruption`/`reduceToZero`/`castPenalty`/`suppressTalents`/`deitySkillMod`/`deityBan`/`prayerForAction`
   // que le vocabulaire `GameOp` réel), et `targetOps` (ops aux cibles de l'incantation).
   grapple: ['init'],
-  miscastMinor: ['ops', 'targetOps'], miscastMajor: ['ops', 'targetOps'], miscastWrath: ['ops', 'targetOps'],
-  miscastMinorVdm: ['ops', 'targetOps'], miscastMajorVdm: ['ops', 'targetOps'],
+  imparfaiteMineure: ['ops', 'targetOps'], imparfaiteMajeure: ['ops', 'targetOps'], colereDesDieux: ['ops', 'targetOps'],
+  imparfaiteMineureVdm: ['ops', 'targetOps'], imparfaiteMajeureVdm: ['ops', 'targetOps'],
   ...tableTotale(SHIP_CRIT_CATEGORIES, () => ['ops']),
 };
 const opsFieldsOf = (categoryKey: string): string[] => OPS_FIELDS[categoryKey] ?? [];
 
 type Entry = Record<string, unknown>;
+/** Les géométries de `TriggeredEffect.on` : la zone autour d'un centre, la sélection d'adversaires engagés. */
+type ZoneDEffet = Extract<TriggeredEffect['on'], { near: unknown }>;
+type SelectionDEffet = Extract<TriggeredEffect['on'], { pick: unknown }>;
 
 /**
  * COUTURE format livre ↔ refs structurées de l'atelier (#1548) : une ref par LIGNE, rendue par le
@@ -165,14 +170,14 @@ function LignesFormatLivreField<T>(
 }
 
 /** Axes du PROFIL de manœuvre rendus par `ManeuverDefField` (selects/checkbox). */
-const MANEUVER_PROFILE_KEYS = ['kind', 'activation', 'advantageCost', 'advantageMode', 'stat', 'defense', 'targeting', 'range', 'blast', 'magic'];
+const MANEUVER_PROFILE_KEYS = ['kind', 'activation', 'coutEnAvantage', 'modeDAvantage', 'stat', 'defense', 'ciblage', 'range', 'blast', 'magic'];
 
 /** Le document de la catégorie porte-t-il `alsoIn` (clé d'enveloppe, `CLES_ENVELOPPE` de `grammaire/document.ts`) ? */
 const porteAlsoIn = (categoryKey: string): boolean => {
   const ds = editableDataset(categoryKey);
   if (ds !== undefined) return noeudDuChamp(datasetFile(ds), 'alsoIn') !== undefined;
   const objet = editableObjectDataset(categoryKey);
-  return objet?.mode === 'single' && noeudDuChamp(datasetObjectFile(objet.ds), 'alsoIn') !== undefined;
+  return objet?.mode === 'unique' && noeudDuChamp(datasetObjectFile(objet.ds), 'alsoIn') !== undefined;
 };
 
 /**
@@ -196,7 +201,7 @@ export function dedicatedFieldKeys(categoryKey: string): Set<string> {
   if (categoryKey === 'axes') add('skills', 'talents'); // #409 : {id,spec?}[] → SkillSpecListField/TalentSpecListField
   if (categoryKey === 'traumas') add('prosthesis'); // {id,cancels}[] → éditeur dédié (ProsthesisField)
   if (CRITICAL_CATEGORIES.includes(categoryKey)) add('traumas', 'test'); // string[] d'ids → TraumaListField (#173) ; `test` → FlowEditor (#1682)
-  if (categoryKey === 'steamBreakdowns') add('restart'); // {test,targetDR?}[] → éditeur dédié
+  if (categoryKey === 'steamBreakdowns') add('restart'); // {test,drCible?}[] → éditeur dédié
   if (categoryKey === 'vehicles') add('ponts'); // [cartes, hauteurs] → éditeur dédié (PontsField)
   add(...opsFieldsOf(categoryKey)); // ops/occupantOps/crewOps/captainOps → GameOpEditor (#157)
   if (categoryKey === 'symptoms') add('passive', 'passiveBySeverity', 'onTick', 'visiblePassive', 'visibleLocations'); // GameOp[] + test de cycle + gate visibilité → éditeurs dédiés (capabilities = sous-form générique)
@@ -364,7 +369,7 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
   // Critique localisé (LDB 6/AA, #173) : `traumas` = string[] d'ids de fiche (`traumas.json`) →
   // éditeur dédié (TraumaListField, sélecteurs id→label) au lieu du datalist générique par-label.
   const hasTraumaList = CRITICAL_CATEGORIES.includes(categoryKey);
-  // Panne de Vapeur (`steamBreakdowns`, #157) : `restart` (Test de redémarrage) = {test,targetDR?}[].
+  // Panne de Vapeur (`steamBreakdowns`, #157) : `restart` (Test de redémarrage) = {test,drCible?}[].
   const hasRestartTest = categoryKey === 'steamBreakdowns';
   // Ponts d'un navire (`vehicles.ponts`, #3686) : la paire [cartes, hauteurs].
   const hasPonts = categoryKey === 'vehicles';
@@ -516,12 +521,12 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
         {fsApi && !dir && <button className="btn small" onClick={() => fs.connectDataDir().then(
           (h) => { if (h) setConnexion((c) => ({ ...c, dir: h, needsGrant: false })); },
           (e) => setMsg(`Échec de la connexion à src/data : ${String(e)}`),
-        )}><Icon id="file/folder" size="sm" /> Connecter src/data…</button>}
+        )}><Icon id="fichier/dossier" size="sm" /> Connecter src/data…</button>}
         {fsApi && dir && needsGrant && <button className="btn small" onClick={() => fs.grantPermission(dir).then(
           (ok) => { if (ok) setConnexion((c) => ({ ...c, needsGrant: false })); },
           (e) => setMsg(`Échec de l’autorisation d’écriture dans src/data : ${String(e)}`),
         )}>Autoriser l'écriture</button>}
-        {fsApi && dir && !needsGrant && <span className="de-ok"><Icon id="file/folder" size="sm" /> connecté</span>}
+        {fsApi && dir && !needsGrant && <span className="de-ok"><Icon id="fichier/dossier" size="sm" /> connecté</span>}
         <span className="de-spacer" />
         {(msg || connexion.echec) && <span className="de-msg">{msg || connexion.echec}</span>}
         <button className="btn small" onClick={onClose}>Fermer</button>
@@ -616,14 +621,14 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
           <div className="ed-field">
             <span>effet d’un CONSOMMABLE (potion/drogue/bandage) — Flow appliqué au buveur (ops, branches, Tests « au boire »)</span>
             <FlowEditor flow={(entry.consumable as Flow | undefined) ?? EMPTY_FLOW} ctx={ctxDeCatalogue('consommable')}
-              onChange={(f) => edit('consumable', f.kind === 'seq' && f.steps.length === 0 ? undefined : f)} />
+              onChange={(f) => edit('consumable', f.kind === 'sequence' && f.etapes.length === 0 ? undefined : f)} />
           </div>
         )}
         {EVENEMENTS_DE_MER.includes(categoryKey) && (
           <div className="ed-field">
             <span>conséquence de l’événement — Flow joué à bord ou à l’escale (ops du groupe, d’un héros ou du navire, branches, Tests, choix)</span>
             <FlowEditor flow={(entry.consequence as Flow | undefined) ?? EMPTY_FLOW} ctx={ctxDeCatalogue('evenementDeMer')}
-              onChange={(f) => edit('consequence', f.kind === 'seq' && f.steps.length === 0 ? undefined : f)} />
+              onChange={(f) => edit('consequence', f.kind === 'sequence' && f.etapes.length === 0 ? undefined : f)} />
           </div>
         )}
         {hasConsumable && <ConsumableDurationField value={entry.consumableDuration as ConsumableDuration | undefined} onChange={(v) => edit('consumableDuration', v)} />}
@@ -820,7 +825,7 @@ function TriggeredEffectsField({ value, onChange, noeud, label = 'effets déclen
   const ctx = useMemo(() => ({ ...ctxDeCatalogue('declenche'), famille: familleDesEffets(noeud) }), [noeud]);
   const list = value ?? [];
   const set = (i: number, patch: Partial<TriggeredEffect>) => onChange(list.map((e, j) => (j === i ? { ...e, ...patch } : e)));
-  const add = () => onChange([...list, { trigger: 'onHit', on: 'victim', flow: EMPTY_FLOW }]);
+  const add = () => onChange([...list, { trigger: 'onHit', on: 'victime', flow: EMPTY_FLOW }]);
   const cles = useClesDeRangees(value);
   return (
     <div className="ed-field">
@@ -836,8 +841,8 @@ function TriggeredEffectsField({ value, onChange, noeud, label = 'effets déclen
             <label className="dr">Cible
               <select value={typeof eff.on === 'object' ? ('pick' in eff.on ? 'pick' : 'near') : eff.on}
                 onChange={(e) => set(i, { on:
-                  e.target.value === 'near' ? { near: 'victim', radiusMeters: 2 }
-                  : e.target.value === 'pick' ? { pick: 'engaged', sizeAtMost: 'self', max: 1 }
+                  e.target.value === 'near' ? { near: 'victime', radiusMeters: 2 }
+                  : e.target.value === 'pick' ? { pick: 'engages', sizeAtMost: 'soi', max: 1 }
                   : e.target.value as TriggeredEffect['on'] })}>
                 {optionsDuNoeud(effectOnSchema).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                 <option value="near">les cibles à portée (zone)</option>
@@ -845,15 +850,15 @@ function TriggeredEffectsField({ value, onChange, noeud, label = 'effets déclen
               </select>
             </label>
             {typeof eff.on === 'object' && 'near' in eff.on && (
-              <label className="dr">à ≤ <NumberField variant="nu" label="Rayon de la zone (m)" min={1} width="3.4em" value={eff.on.radiusMeters} onChange={(radiusMeters) => set(i, { on: { near: (eff.on as { near: 'self' | 'victim' }).near, radiusMeters } })} /> m de
-              <select value={eff.on.near} onChange={(e) => set(i, { on: { near: e.target.value as 'self' | 'victim', radiusMeters: (eff.on as { radiusMeters: number }).radiusMeters } })}>
-                <option value="victim">la victime</option>
-                <option value="self">soi</option>
+              <label className="dr">à ≤ <NumberField variant="nu" label="Rayon de la zone (m)" min={1} width="3.4em" value={eff.on.radiusMeters} onChange={(radiusMeters) => set(i, { on: { near: (eff.on as ZoneDEffet).near, radiusMeters } })} /> m de
+              <select value={eff.on.near} onChange={(e) => set(i, { on: { near: e.target.value as ZoneDEffet['near'], radiusMeters: (eff.on as { radiusMeters: number }).radiusMeters } })}>
+                <option value="victime">la victime</option>
+                <option value="soi">soi</option>
               </select></label>
             )}
             {typeof eff.on === 'object' && 'pick' in eff.on && (
-              <label className="dr">max <NumberField variant="nu" label="Nombre maximum de cibles" min={1} width="3.4em" value={eff.on.max} onChange={(max) => set(i, { on: { pick: 'engaged', ...((eff.on as { sizeAtMost?: 'self' }).sizeAtMost ? { sizeAtMost: 'self' as const } : {}), max } })} />
-              <input type="checkbox" checked={(eff.on as { sizeAtMost?: 'self' }).sizeAtMost === 'self'} onChange={(e) => set(i, { on: { pick: 'engaged', ...(e.target.checked ? { sizeAtMost: 'self' as const } : {}), max: (eff.on as { max: number }).max } })} /> Taille ≤ la sienne</label>
+              <label className="dr">max <NumberField variant="nu" label="Nombre maximum de cibles" min={1} width="3.4em" value={eff.on.max} onChange={(max) => set(i, { on: { pick: 'engages', ...((eff.on as SelectionDEffet).sizeAtMost ? { sizeAtMost: 'soi' as const } : {}), max } })} />
+              <input type="checkbox" checked={(eff.on as SelectionDEffet).sizeAtMost === 'soi'} onChange={(e) => set(i, { on: { pick: 'engages', ...(e.target.checked ? { sizeAtMost: 'soi' as const } : {}), max: (eff.on as { max: number }).max } })} /> Taille ≤ la sienne</label>
             )}
             <label className="dr" title="RAW « Vous pouvez… » (Contrôle de la Frénésie) : le héros CHOISIT de déclencher (étape de choix en fin de Round) ; l’IA ne l’exerce jamais">
               <input type="checkbox" checked={!!eff.optional} onChange={(e) => set(i, { optional: e.target.checked || undefined })} /> optionnel
@@ -915,10 +920,10 @@ function ManeuverDefField({ entry, edit }: { entry: Entry; edit: (key: string, v
             {optionsDe('maneuvers.json', 'activation').map(([v, l]) => <option key={v} value={v}>{l}</option>)}
           </select>
         </label>
-        <label className="dr">Coût d’Avantage<NumberField variant="nu" label="Coût d’Avantage" min={0} value={m.advantageCost ?? 0} onChange={(n) => edit('advantageCost', n)} /></label>
+        <label className="dr">Coût d’Avantage<NumberField variant="nu" label="Coût d’Avantage" min={0} value={m.coutEnAvantage ?? 0} onChange={(n) => edit('coutEnAvantage', n)} /></label>
         <label className="dr">Avantage
-          <select value={m.advantageMode ?? 'fixed'} onChange={(e) => edit('advantageMode', e.target.value === 'fixed' ? undefined : (e.target.value as ManeuverDef['advantageMode']))}>
-            {optionsDe('maneuvers.json', 'advantageMode').map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+          <select value={m.modeDAvantage ?? 'fixe'} onChange={(e) => edit('modeDAvantage', e.target.value === 'fixe' ? undefined : (e.target.value as ManeuverDef['modeDAvantage']))}>
+            {optionsDe('maneuvers.json', 'modeDAvantage').map(([v, l]) => <option key={v} value={v}>{l}</option>)}
           </select>
         </label>
       </div>
@@ -936,8 +941,8 @@ function ManeuverDefField({ entry, edit }: { entry: Entry; edit: (key: string, v
           </select>
         </label>
         <label className="dr">Ciblage
-          <select value={m.targeting ?? 'melee'} onChange={(e) => edit('targeting', e.target.value as ManeuverDef['targeting'])}>
-            {optionsDe('maneuvers.json', 'targeting').map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+          <select value={m.ciblage ?? 'melee'} onChange={(e) => edit('ciblage', e.target.value as ManeuverDef['ciblage'])}>
+            {optionsDe('maneuvers.json', 'ciblage').map(([v, l]) => <option key={v} value={v}>{l}</option>)}
           </select>
         </label>
         <label className="dr"><input type="checkbox" checked={!!m.magic} onChange={(e) => edit('magic', e.target.checked || undefined)} /> Magique</label>
@@ -1208,7 +1213,7 @@ function ChampsDuTest({ test, index, onChange, difficulteFacultative = false }: 
 }
 
 /** Test de REDÉMARRAGE d'un moteur à vapeur (`steamBreakdowns.restart`, MDG 12, #157) :
- *  `{test:{skill?,characteristic?,difficulty},targetDR?}[]` — Compétence OU Caractéristique + Difficulté
+ *  `{test:{skill?,characteristic?,difficulty},drCible?}[]` — Compétence OU Caractéristique + Difficulté
  *  (+ DR cumulés si Test étendu). */
 function RestartTestField({ value, onChange }: { value: RestartTest[] | undefined; onChange: (v: RestartTest[]) => void }) {
   const list = value ?? [];
@@ -1219,7 +1224,7 @@ function RestartTestField({ value, onChange }: { value: RestartTest[] | undefine
       {list.map((r, i) => (
         <div className="tf-row" key={i}>
           <ChampsDuTest test={r.test} index={i} onChange={(patch) => set(list.map((x, j) => (j === i ? { ...x, test: { ...x.test, ...patch, difficulty: patch.difficulty ?? x.test.difficulty } } : x)))} />
-          <NumberField variant="nu" label="DR cumulés (étendu)" min={1} placeholder="DR cumulés (étendu)" width={64} vide value={r.targetDR} onChange={(n) => set(list.map((x, j) => (j === i ? { ...x, targetDR: n ?? undefined } : x)))} />
+          <NumberField variant="nu" label="DR cumulés (étendu)" min={1} placeholder="DR cumulés (étendu)" width={64} vide value={r.drCible} onChange={(n) => set(list.map((x, j) => (j === i ? { ...x, drCible: n ?? undefined } : x)))} />
           <button className="btn small danger" title="Retirer" onClick={() => set(list.filter((_, j) => j !== i))}>✕</button>
         </div>
       ))}
@@ -1325,7 +1330,7 @@ const OUTCOME_ON_OPTIONS = optionsDuNoeud(outcomeOnSchema);
 const BATTLE_COND_OPTIONS = optionsDuNoeud(battleCondSchema);
 const BATTLE_TARGET_OPTIONS = optionsDuNoeud(battleOutcomeTargetSchema);
 const BATTLE_SCALE_OPTIONS = optionsDuNoeud(battleOutcomeScaleSchema);
-const BATTLE_SIDE_OPTIONS = optionsDuNoeud(battleSideSchema);
+const BATTLE_SIDE_OPTIONS = optionsDuNoeud(equipeSchema);
 
 const LIBRE = metaPourFichier('activities.json')!.freeSkill;
 
@@ -1387,7 +1392,7 @@ function BattleOutcomeListField({ value, onChange }: { value: BattleOutcome[] | 
             {BATTLE_SCALE_OPTIONS.map(([s, l]) => <option key={s} value={s}>{l}</option>)}
           </select>
           <label className="dr">montant<NumberField variant="nu" label="montant" width={72} value={o.amount} onChange={(amount) => set(i, { amount })} /></label>
-          <select value={o.side ?? ''} onChange={(e) => set(i, { side: (e.target.value || undefined) as BattleSide | undefined })}>
+          <select value={o.side ?? ''} onChange={(e) => set(i, { side: (e.target.value || undefined) as Equipe | undefined })}>
             <option value="">— camp (auto) —</option>
             {BATTLE_SIDE_OPTIONS.map(([s, l]) => <option key={s} value={s}>{l}</option>)}
           </select>

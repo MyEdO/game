@@ -12,6 +12,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { setRule, resetRule } from '../../engine/policy';
 import { useGame } from '../../state/store';
 import type { BattleState } from '../../noyau/etat';
+import type { AdvantagePools } from '../../engine/advantagePool';
 import { openAttackCascade, aiCreatureFreeAttacks } from '../../noyau/combatFlow';
 import { seedBattleRng } from '../../noyau/battleRng';
 import { testScene } from '../../scenes/test-fixture';
@@ -26,7 +27,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDe
 
 const chars = { 'capacite-de-combat': 45, 'capacite-de-tir': 50, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 const sword: Weapon = { name: 'Épée', label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, uid: 'sw', subType: 'base', qualities: [] } as unknown as Weapon;
-const mk = (id: string, label: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }): Combatant =>
+const mk = (id: string, label: string, kind: 'heros' | 'ennemi', pos: { x: number; y: number }): Combatant =>
   (blessuresSurLeProfil({ id, name: label, label, kind, characteristics: { ...chars }, conditions: [], engagedWith: [], skills: [], talents: [],
      weapons: [sword], advantage: 0, size: 'moyenne', pos, wounds: blessuresDeBase(18),
      armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, resilience: 1 }) as unknown as Combatant);
@@ -48,8 +49,8 @@ afterEach(() => {
  *  `defenderWeapon` remplace l'arme (donc l'arme de parade par défaut) du défenseur ; `prepare` complète
  *  la fiche du héros et le combat avant l'attaque ; `atkDie` fixe le dé de l'attaque. */
 function openDefense(defenderWeapon?: Weapon, prepare?: (hero: Combatant, battle: BattleState) => void, atkDie?: number): HTMLDivElement {
-  const enemy = mk('e', 'Rat géant', 'enemy', { x: 1, y: 0 });
-  const hero = mk('h', 'Gunnar', 'hero', { x: 0, y: 0 });
+  const enemy = mk('e', 'Rat géant', 'ennemi', { x: 1, y: 0 });
+  const hero = mk('h', 'Gunnar', 'heros', { x: 0, y: 0 });
   if (defenderWeapon) hero.weapons = [defenderWeapon];
   const battle: BattleState = {
     combatants: [enemy, hero], order: [enemy.id, hero.id], baseOrder: [enemy.id, hero.id],
@@ -63,7 +64,7 @@ function openDefense(defenderWeapon?: Weapon, prepare?: (hero: Combatant, battle
   });
   const g = useGame.getState;
   seedBattleRng(3);
-  openAttackCascade(g, useGame.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
+  openAttackCascade(g, useGame.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attaquer');
   g().jetLancer('attaque');
   if (atkDie != null) g().jetImposerLeResultat('attaque', atkDie);
   g().jetValider('attaque');
@@ -78,8 +79,8 @@ function openDefense(defenderWeapon?: Weapon, prepare?: (hero: Combatant, battle
  *  l.237) — chemin de la MACHINE : la frappe entre par `aiCreatureFreeAttacks`, et c'est elle qui dit
  *  à la fenêtre ce qu'elle annonce. Le héros encaisse sans tomber (la fin de combat clorait tout). */
 function openBiteDefense(): HTMLDivElement {
-  const enemy = mk('e', 'Rat géant', 'enemy', { x: 1, y: 0 });
-  const hero = mk('h', 'Gunnar', 'hero', { x: 0, y: 0 });
+  const enemy = mk('e', 'Rat géant', 'ennemi', { x: 1, y: 0 });
+  const hero = mk('h', 'Gunnar', 'heros', { x: 0, y: 0 });
   hero.wounds = blessuresDeBase(200, 200, hero);
   enemy.traits = [{ id: 'morsure', value: 14 }];
   enemy.advantage = 1;
@@ -220,7 +221,7 @@ describe('Défense : volets Riposte et Porte-bouclier', () => {
     h.weapons = [BOUCLIER];
     h.talents = [{ talentId: 'porte-bouclier', times: 1 }] as Combatant['talents'];
     h.advantage = 3;
-    (b as BattleState & { advantagePools: { allies: number; foes: number } }).advantagePools = { allies: 3, foes: 0 };
+    (b as BattleState & { advantagePools: AdvantagePools }).advantagePools = { allies: 3, adversaires: 0 };
   };
 
   it('Riposte au plafond du Niveau : Oui et Non refusés avec la cause, aucun pressé', () => {
@@ -243,7 +244,7 @@ describe('Défense : volets Riposte et Porte-bouclier', () => {
   it('Riposte déclarée : le choix reste visible après le jet, figé, Oui pressé', () => {
     openDefense(RAPIERE, riposteur(0), 90);
     act(() => { useGame.getState().jetLancer('defense'); useGame.getState().jetImposerLeResultat('defense', 5); });
-    expect(useGame.getState().pendingDefense!.result!.advantageTo).toBe('defender');
+    expect(useGame.getState().pendingDefense!.result!.advantageTo).toBe('defenseur');
     const oui = segment('Riposte', 'Oui')!;
     expect(oui.getAttribute('aria-pressed')).toBe('true');
     expect(oui.getAttribute('aria-disabled')).toBe('true');
@@ -283,7 +284,7 @@ describe('Défense : volets Riposte et Porte-bouclier', () => {
       openDefense(undefined, porteBouclier, 90);
       act(() => { useGame.getState().jetRegler('defense', 'porteBouclier', 'degats'); });
       act(() => { useGame.getState().jetLancer('defense'); useGame.getState().jetImposerLeResultat('defense', 5); });
-      expect(useGame.getState().pendingDefense!.result!.advantageTo).toBe('defender');
+      expect(useGame.getState().pendingDefense!.result!.advantageTo).toBe('defenseur');
       const degats = segment('Porte-bouclier', 'Dégâts')!;
       expect(degats.getAttribute('aria-pressed')).toBe('true');
       const cause = document.getElementById(degats.getAttribute('aria-describedby') ?? '')?.textContent;

@@ -62,8 +62,8 @@ export function makeZone8() {
       {
         id: 'enc-zone8',
         enemies: [
-          // 0 : le gladiateur évadé — un ALLIÉ de scène à pied (vitrine side:'ally' hors monture).
-          { creature: { id: 'humain' }, pos: { x: 5, y: 10 }, side: 'ally', inventaire: { 'epee-batarde': false }, label: 'Gladiateur enchaîné', appearance: { tenue: 'mendiant' } },
+          // 0 : le gladiateur évadé — un ALLIÉ de scène à pied (vitrine side:'allie' hors monture).
+          { creature: { id: 'humain' }, pos: { x: 5, y: 10 }, side: 'allie', inventaire: { 'epee-batarde': false }, label: 'Gladiateur enchaîné', appearance: { tenue: 'mendiant' } },
           { creature: { id: 'gor' }, pos: { x: 14, y: 5 } },
           { creature: { id: 'gor' }, pos: { x: 22, y: 11 }, optionals: [{ id: 'armure', value: 2 }] },
           { creature: { id: 'gor' }, pos: { x: 12, y: 16 } },
@@ -194,7 +194,7 @@ export function makeZone10() {
           {
             id: 'crocheter-cage',
             label: 'Crocheter la cage.',
-            icon: 'ui/lock',
+            icon: 'interface/verrou',
             when: flagWhen('!prisonnier_libre'),
             flow: testNode(
               { skill: { id: 'crochetage' }, difficulty: 'accessible', label: 'Crocheter la cage du garde-manger', stake: { authored: 'Ouvrir la cage du colporteur : sa liberté, sa bourse de 40 pistoles et 50 XP ; raté, le crochet ripe et il reste dedans.' } },

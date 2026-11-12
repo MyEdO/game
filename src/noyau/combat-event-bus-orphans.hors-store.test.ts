@@ -27,7 +27,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  */
 
 const bare = (over: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
-  id: 'c', name: 'C', kind: 'enemy',
+  id: 'c', name: 'C', kind: 'ennemi',
   characteristics: profilDeTest({ force: 35, endurance: 35 }),
   wounds: blessuresDeBase(15), advantage: 0, conditions: [], skills: [], talents: [], traits: [],
   weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, items: [],
@@ -44,8 +44,8 @@ function withSyntheticTrait(id: string, effects: TriggeredEffect[]): Combatant {
   return bare({ traits: [{ id }] } as Partial<Combatant>);
 }
 const SELF_EMPETRE: TriggeredEffect = {
-  trigger: 'onHit', on: 'self',
-  flow: { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'empetre' }, value: 1 }] } },
+  trigger: 'onHit', on: 'soi',
+  flow: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'empetre' }, value: 1 }] } },
 };
 
 const TRAITS_LIVRES = [...traits];
@@ -69,8 +69,8 @@ describe('#316 — triggers orphelins câblés au bus (émission + déclenchemen
     const c = withSyntheticTrait('synth-oncharged', [
       { ...SELF_EMPETRE, trigger: 'onCharged' },
       {
-        trigger: 'onCharged', on: 'self',
-        flow: { kind: 'do', effect: { type: 'ops', on: 'target', ops: [
+        trigger: 'onCharged', on: 'soi',
+        flow: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [
           { op: 'condition', id: { id: 'a-terre' }, value: 1 },
           { op: 'grantFreeAttack', when: 'immediate' } as never,
         ] } },
@@ -100,8 +100,8 @@ describe('7bis — applyCoupCritiqueSec émet onCrit (Taillade sur Critique oppo
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const E = b.combatants.find((c) => c.kind === 'enemy')!;
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const E = b.combatants.find((c) => c.kind === 'ennemi')!;
     H.armour = { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }; // pas de PA déviable → application directe
     E.weapons = [taillade()];
     banc.setState({ battle: { ...b } });

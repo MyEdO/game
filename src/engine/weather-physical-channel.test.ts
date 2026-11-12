@@ -15,7 +15,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testki
  */
 const mk = (over: Partial<Combatant> = {}): Combatant =>
   (blessuresSurLeProfil({
-    id: 'x', name: 'X', kind: 'enemy',
+    id: 'x', name: 'X', kind: 'ennemi',
     characteristics: { 'capacite-de-combat': 50, 'capacite-de-tir': 50, force: 30, endurance: 30, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], weapons: [],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, skills: [], talents: [], movement: 4,
@@ -23,7 +23,7 @@ const mk = (over: Partial<Combatant> = {}): Combatant =>
   })) as unknown as Combatant;
 
 const sword: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
-const bow: Weapon = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [] };
+const bow: Weapon = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [] };
 const DELUGE = 'pluie-diluvienne';
 const METEO = (mods: ModLine[]) => mods.filter((m) => m.ref?.category === 'weatherConditions');
 
@@ -32,7 +32,7 @@ describe('#341 — canal météo « Tests physiques » : les 4 familles traverse
     const melee = METEO(attackModifiers(mk({ envWeather: DELUGE }), mk(), sword, { kind: 'melee' }));
     expect(melee).toHaveLength(1); // pas de double-compte
     expect(melee[0].value).toBe(-10);
-    const ranged = METEO(attackModifiers(mk({ envWeather: DELUGE }), mk(), bow, { kind: 'ranged', distanceTiles: 5 }));
+    const ranged = METEO(attackModifiers(mk({ envWeather: DELUGE }), mk(), bow, { kind: 'distance', distanceTiles: 5 }));
     expect(ranged.map((m) => m.value)).toEqual([-10]);
   });
 

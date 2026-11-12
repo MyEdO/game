@@ -24,7 +24,7 @@ function cliffScene(): Scene {
   return s;
 }
 
-function mk(id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number; h?: number }, opts: Partial<Combatant> = {}): Combatant {
+function mk(id: string, kind: 'heros' | 'ennemi', pos: { x: number; y: number; h?: number }, opts: Partial<Combatant> = {}): Combatant {
   return blessuresSurLeProfil({
     id, label: id, kind, pos, wounds: blessuresDeBase(10), weapons: [MELEE],
     characteristics: {} as never, advantage: 0, conditions: [], armour: {} as never, skills: [], talents: [], movement: 4,
@@ -37,8 +37,8 @@ function input(enemy: Combatant, heroes: Combatant[], extra: Partial<EnemyTurnIn
 }
 
 describe("IA — Grimpant exploite les cases atteignables par-delà la falaise", () => {
-  const enemy = mk('e', 'enemy', { x: 2, y: 4, h: 0 }, { traits: [{ id: 'grimpant' }] });
-  const hero = mk('h', 'hero', { x: 2, y: 0, h: 4 });
+  const enemy = mk('e', 'ennemi', { x: 2, y: 4, h: 0 }, { traits: [{ id: 'grimpant' }] });
+  const hero = mk('h', 'heros', { x: 2, y: 0, h: 4 });
 
   it('SANS traverse (capability non branchée à l’entrée IA) : reste coincé au pied de la falaise', () => {
     const action = chooseEnemyAction(input(enemy, [hero], { movement: 4 }));

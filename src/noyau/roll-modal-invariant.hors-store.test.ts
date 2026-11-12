@@ -96,7 +96,7 @@ const SURFACING: { file: keyof typeof SRC; fn: string; pred: RegExp }[] = [
   { file: 'combatFlow', fn: 'maybeHeroCleave', pred: /tenuParUnHumain/ }, // #1426 : la SURFACE, pas l'affordance locale
   { file: 'combatFlow', fn: 'ecrireLaMaladresse', pred: /jetSurfaced/ },
   { file: 'combatFlow', fn: 'openRoundEndCascade', pred: /surfaceOf/ }, // #1262 V1 lot 2 : la SURFACE, pas l'affordance locale
-  { file: 'combatFlow', fn: 'openCombatEndCascade', pred: /surfaceOf/ }, // #1262 V1 lot 5c : la SURFACE, pas l'affordance locale
+  { file: 'combatFlow', fn: 'ouvrirLaFinDeRencontre', pred: /surfaceOf/ }, // #1262 V1 lot 5c : la SURFACE, pas l'affordance locale
   { file: 'combatFlow', fn: 'passeDePsy', pred: /surfaceRow/ }, // #1262 V1 lot 5c : idem ; LDB 21 l.9, l.25
   { file: 'combatFlow', fn: 'applySurprise', pred: /surfaceOf/ }, // #1262 V1 lot 5c : le guetteur d'un autre siège entre dans la bande
   { file: 'combatFlow', fn: 'approachFearTrigger', pred: /surfaceOf/ }, // #1262 V1 lot 5c : idem pour le craintif
@@ -165,9 +165,9 @@ function freshCombat() {
   get().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = get().battle!;
-  const H = b.combatants.find((c) => c.kind === 'hero')!;
+  const H = b.combatants.find((c) => c.kind === 'heros')!;
   H.aiControlled = silence; // volet (d) : ré-silençage réel (contrôleur ≠ humain → pas de remontée)
-  const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+  const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
   const E = enemies[0];
   enemies.slice(1).forEach((e) => (e.dead = true)); // une seule source ennemie
   H.pos = { x: 10, y: 10 };

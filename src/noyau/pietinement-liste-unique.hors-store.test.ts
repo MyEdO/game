@@ -33,8 +33,8 @@ function engage(tourDe: 'heros' | 'creature', o: { tailleE: SizeCategory; taille
   g().lancerLeCombat('enc-mutants');
   g().fenetreValider('debutDuRound');
   const b = g().battle!;
-  const H = b.combatants.find((c) => c.kind === 'hero')!;
-  const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+  const H = b.combatants.find((c) => c.kind === 'heros')!;
+  const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
   enemies.slice(1).forEach((e) => (e.dead = true));
   const E = enemies[0];
   H.pos = { x: 10, y: 10 }; E.pos = { x: 11, y: 10 };
@@ -85,14 +85,14 @@ describe('Piétinement : une manœuvre, une liste de gratuites', () => {
 
   it('créature plus grande SANS trait : l’option existe, au coût de la manœuvre', () => {
     const { E } = engage('creature', { tailleE: 'enorme', tailleH: 'moyenne' });
-    expect(optionDe(E)?.cost.advantage).toBe(PIETINEMENT.advantageCost);
+    expect(optionDe(E)?.cost.advantage).toBe(PIETINEMENT.coutEnAvantage);
     expect(porteOuverte(E)).toBe(true);
   });
 
   it('héros Grand face à plus petit : l’option existe, au coût de la manœuvre, nommée par elle', () => {
     const { H } = engage('heros', { tailleE: 'moyenne', tailleH: 'grande' });
     const option = optionDe(H);
-    expect(option?.cost.advantage).toBe(PIETINEMENT.advantageCost);
+    expect(option?.cost.advantage).toBe(PIETINEMENT.coutEnAvantage);
     expect(option?.label).toBe(PIETINEMENT.label);
     expect(porteOuverte(H)).toBe(true);
   });

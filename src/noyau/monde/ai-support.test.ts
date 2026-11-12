@@ -18,7 +18,7 @@ const MELEE: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, 
 /** Lanceur générique ARMÉ par défaut, avec de vraies Caractéristiques (espérances chiffrables). */
 function caster(id: string, pos: { x: number; y: number }, opts: Partial<Combatant> = {}): Combatant {
   return blessuresSurLeProfil({
-    id, label: id, kind: 'enemy', pos,
+    id, label: id, kind: 'ennemi', pos,
     characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 40, endurance: 40, initiative: 40, agilite: 40, dexterite: 40, intelligence: 60, 'force-mentale': 60, sociabilite: 60 },
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], weapons: [],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -28,7 +28,7 @@ function caster(id: string, pos: { x: number; y: number }, opts: Partial<Combata
 
 function foeAt(id: string, x: number, y: number, opts: Partial<Combatant> = {}): Combatant {
   return blessuresSurLeProfil({
-    id, label: id, kind: 'hero',
+    id, label: id, kind: 'heros',
     characteristics: { 'capacite-de-combat': 35, 'capacite-de-tir': 35, force: 35, endurance: 35, initiative: 35, agilite: 35, dexterite: 35, intelligence: 35, 'force-mentale': 35, sociabilite: 35 },
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], weapons: [MELEE],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -39,7 +39,7 @@ function foeAt(id: string, x: number, y: number, opts: Partial<Combatant> = {}):
 function spellData(over: Partial<SpellData> = {}): SpellData {
   return { id: 'sp', label: 'Sort', ecole: 'sort', subType: null, family: 'arcane', cn: 0, range: null, target: null, duration: null, desc: '', source: { book: 'LDB', page: 0 }, ...over } as SpellData;
 }
-const doOps = (ops: unknown[], on: 'target' | 'caster' = 'target') => ({ kind: 'do', effect: { type: 'ops', on, ops } }) as unknown as SpellData['effects'];
+const doOps = (ops: unknown[], on: 'target' | 'caster' = 'target') => ({ kind: 'effet', effet: { type: 'ops', on, ops } }) as unknown as SpellData['effects'];
 function castable(over: Partial<CastableSpell> & { id?: string } = {}): CastableSpell {
   const data = over.data ?? spellData({ id: over.id ?? 'sp' });
   return { id: over.id ?? data.id, data, cn: over.cn ?? data.cn ?? 0, range: over.range ?? null, shape: over.shape ?? 'single', landProb: over.landProb ?? 1, focusState: over.focusState ?? 'none', active: over.active ?? false };

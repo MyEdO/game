@@ -40,15 +40,15 @@ export function planClimb(scene: Scene, from: Pt, to: Pt, hasGrimpeur: boolean, 
   const metres = Math.abs(heightAt(scene, to.x, to.y, to.z ?? 0) - heightAt(scene, from.x, from.y, from.z ?? 0));
   const foot = { x: from.x, y: from.y, z: from.z ?? 0 };
   const fall: Effect = fallerId
-    ? { type: 'fall', target: 'hero', heroId: fallerId, metres, to: foot }
-    : { type: 'fall', target: 'party', metres, to: foot };
+    ? { type: 'fall', target: 'heros', heroId: fallerId, metres, to: foot }
+    : { type: 'fall', target: 'groupe', metres, to: foot };
   return {
     kind: 'test',
     flow: {
       kind: 'test',
       test: { skill: { id: 'escalade' }, difficulty: c.difficulty ?? DIFFICULTE_PAR_DEFAUT, label: 'Escalade', stake: combatStakeRef('escalade-test', { values: { metres } }) },
-      success: EMPTY_FLOW,
-      fail: flowFromEffects([fall]),
+      reussite: EMPTY_FLOW,
+      echec: flowFromEffects([fall]),
     },
   };
 }

@@ -41,7 +41,7 @@ function monter(el: JSX.Element) {
 
 /** Une op SANS éditeur dédié : ses paramètres s'éditent au `JsonField` (repli de `GameOpEditor`). */
 const opJson = (amount: number): GameOp => ({ op: 'statusMod', amount } as GameOp);
-const fluxJson = (amount: number): Flow => ({ kind: 'seq', steps: [{ kind: 'do', effect: { type: 'ops', ops: [opJson(amount)] } as unknown as Effect }] } as Flow);
+const fluxJson = (amount: number): Flow => ({ kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'ops', ops: [opJson(amount)] } as unknown as Effect }] } as Flow);
 const BROUILLON = '{ "op": "statusMod", "amount": ';
 
 /** Les `JsonField` des paramètres d'op montés. */
@@ -97,7 +97,7 @@ function Inspecteur({ initiale, sel0 }: { initiale: Scene; sel0: Sel }) {
       openLogic={() => undefined}
       resizeScene={() => undefined}
       narratif={emptyNarratif()}
-      tool={{ mode: 'select' }}
+      tool={{ mode: 'selection' }}
       armZoneTiles={() => undefined}
       zoneFocusKey={null}
     />

@@ -5,7 +5,7 @@ import { oupsTable, oupsMisfire } from '../data/oups';
 import type { Combatant, Weapon } from './types';
 
 const sword: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
-const pistol: Weapon = { label: 'Pistolet', type: 'ranged', damage: { plusBF: false, flat: 9 }, qualities: [{ id: 'pistolet' }], subType: 'Poudre noire', range: 20 };
+const pistol: Weapon = { label: 'Pistolet', type: 'distance', damage: { plusBF: false, flat: 9 }, qualities: [{ id: 'pistolet' }], subType: 'Poudre noire', range: 20 };
 
 describe('isFumble (LDB 14 l.19)', () => {
   it('échec + double = Maladresse', () => {
@@ -87,9 +87,9 @@ const bacle = (over: Partial<Weapon> = {}): Weapon =>
 const solide = (n: number, ...autres: { id: string; value?: number }[]): Weapon =>
   ({ ...sword, qualities: [{ id: 'solide', value: n }, ...autres] }) as Weapon;
 const canon = (...q: { id: string; value?: number }[]): Weapon =>
-  ({ label: 'Pièce', type: 'ranged', damage: { plusBF: false, flat: 12 }, qualities: q }) as Weapon;
+  ({ label: 'Pièce', type: 'distance', damage: { plusBF: false, flat: 12 }, qualities: q }) as Weapon;
 const porteur = (over: Partial<Combatant> = {}): Combatant =>
-  ({ id: 'p', label: 'p', kind: 'hero', items: [], weapons: [], ...over }) as unknown as Combatant;
+  ({ id: 'p', label: 'p', kind: 'heros', items: [], weapons: [], ...over }) as unknown as Combatant;
 
 const MISFIRE: OupsResolved = { roll: 44, kind: 'misfire', label: 'Incident de Tir !' };
 const SONNE: OupsResolved = { roll: 33, kind: 'selfWound', label: 'Vous vous blessez' };
@@ -166,9 +166,9 @@ describe('desDOups — la grappe d’une Maladresse, dans l’ordre', () => {
 });
 
 describe('desDeBrisDeLame — la MÊME sauvegarde pour le Piège-lame (LDB 62 l.280)', () => {
-  it('lame Solide(1) : un 1d10 lu en seuil 9+, sous la clé `bladetrap-solide`', () => {
+  it('lame Solide(1) : un 1d10 lu en seuil 9+, sous la clé `piege-a-lame-solide`', () => {
     const d = desDeBrisDeLame(porteur(), solide(1));
-    expect(cles(d)).toEqual(['bladetrap-solide']);
+    expect(cles(d)).toEqual(['piege-a-lame-solide']);
     expect(d[0].lecture).toEqual({ kind: 'seuil', indice: 9, source: { kind: 'qualite', id: 'solide' } });
   });
 

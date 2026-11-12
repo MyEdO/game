@@ -27,7 +27,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const MAIN_SECONDAIRE = refDeRegle('main-secondaire');
 const PLAFOND = RULE_REF['combiner-les-difficultes'];
-const BENEDICTION = { label: 'Bénédiction de Bataille', source: { kind: 'spell' as const, id: 'benediction-de-bataille' } };
+const BENEDICTION = { label: 'Bénédiction de Bataille', source: { kind: 'sort' as const, id: 'benediction-de-bataille' } };
 const BENEDICTION_REF = { category: 'spells', id: BENEDICTION.source.id };
 
 /**
@@ -36,7 +36,7 @@ const BENEDICTION_REF = { category: 'spells', id: BENEDICTION.source.id };
  */
 const combatant = (over: Partial<Combatant>): Combatant =>
   (blessuresSurLeProfil({
-    id: 'A', label: 'A', kind: 'hero',
+    id: 'A', label: 'A', kind: 'heros',
     characteristics: { 'capacite-de-combat': 50, 'capacite-de-tir': 50, force: 35, endurance: 35, initiative: 30, agilite: 35, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(14), advantage: 0, conditions: [],
     weapons: [{ label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, reach: 'Moyenne', qualities: [] }],
@@ -56,7 +56,7 @@ const mkGet = (combatants: Combatant[]): (() => JeuDuNoyau) =>
 describe('previewAttack — parité aperçu ↔ résolution (R4)', () => {
   it('la valeur de toucher prévue == la cible du jet réellement résolu', () => {
     const a = combatant({ id: 'A', advantage: 1 });
-    const b = combatant({ id: 'B', kind: 'enemy', pos: { x: 1, y: 0 } });
+    const b = combatant({ id: 'B', kind: 'ennemi', pos: { x: 1, y: 0 } });
     const get = mkGet([a, b]);
     const preview = previewAttack(get, a, b);
     expect(preview.inRange).toBe(true);
@@ -68,7 +68,7 @@ describe('previewAttack — parité aperçu ↔ résolution (R4)', () => {
 
   it('estimation de dégâts : dmg = arme + Force, soak = Endurance + PA', () => {
     const a = combatant({ id: 'A' }); // F 35 → BF 3 ; Épée +BF+4 → 7
-    const b = combatant({ id: 'B', kind: 'enemy', pos: { x: 1, y: 0 }, armour: { tete: 0, brasG: 0, brasD: 0, corps: 2, jambeG: 0, jambeD: 0 } as never }); // E 35 → BE 3, PA corps 2
+    const b = combatant({ id: 'B', kind: 'ennemi', pos: { x: 1, y: 0 }, armour: { tete: 0, brasG: 0, brasD: 0, corps: 2, jambeG: 0, jambeD: 0 } as never }); // E 35 → BE 3, PA corps 2
     const p = previewAttack(mkGet([a, b]), a, b, 'corps');
     expect(p.dmg).toBe(7);
     expect(p.soak).toBe(5); // BE 3 + PA 2
@@ -76,13 +76,13 @@ describe('previewAttack — parité aperçu ↔ résolution (R4)', () => {
 
   it('mêlée hors de portée (au-delà de l’Allonge) → inRange false', () => {
     const a = combatant({ id: 'A', pos: { x: 0, y: 0 } });
-    const b = combatant({ id: 'B', kind: 'enemy', pos: { x: 5, y: 0 } });
+    const b = combatant({ id: 'B', kind: 'ennemi', pos: { x: 5, y: 0 } });
     expect(previewAttack(mkGet([a, b]), a, b).inRange).toBe(false);
   });
 
   it('le surnombre (2 contre 1) augmente la valeur de toucher prévue de +20 (LDB 14 l.110)', () => {
     const a = combatant({ id: 'A', pos: { x: 0, y: 0 } });
-    const b = combatant({ id: 'B', kind: 'enemy', pos: { x: 1, y: 0 } });
+    const b = combatant({ id: 'B', kind: 'ennemi', pos: { x: 1, y: 0 } });
     const ally = combatant({ id: 'A2', pos: { x: 1, y: 1 } }); // 2e attaquant au contact de B
     const solo = previewAttack(mkGet([a, b]), a, b).target;
     const duo = previewAttack(mkGet([a, ally, b]), a, b).target;
@@ -94,7 +94,7 @@ describe('previewAttack — parité aperçu ↔ résolution (R4)', () => {
       { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, reach: 'Moyenne', qualities: [], hand: 'main', hands: 1, uid: 'm' },
       { label: 'Dague', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, reach: 'Très courte', qualities: [], hand: 'secondaire', hands: 1, uid: 'o' },
     ] as never });
-    const b = combatant({ id: 'B', kind: 'enemy', pos: { x: 1, y: 0 } });
+    const b = combatant({ id: 'B', kind: 'ennemi', pos: { x: 1, y: 0 } });
     const get = mkGet([a, b]);
     const main = previewAttack(get, a, b); // auto → Épée (main), aucune pénalité
     expect(main.weapon.label).toBe('Épée');
@@ -114,8 +114,8 @@ describe('previewAttack — parité aperçu ↔ résolution (R4)', () => {
   });
 
   it('tir sans Ligne de Vue → blocked', () => {
-    const a = combatant({ id: 'A', pos: { x: 0, y: 0 }, weapons: [{ label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [] }] as never });
-    const b = combatant({ id: 'B', kind: 'enemy', pos: { x: 6, y: 0 } });
+    const a = combatant({ id: 'A', pos: { x: 0, y: 0 }, weapons: [{ label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [] }] as never });
+    const b = combatant({ id: 'B', kind: 'ennemi', pos: { x: 6, y: 0 } });
     const s = scene();
     (s.layers[0].tiles as string[])[3] = 'mur'; // mur intercalé sur la ligne (x=3,y=0)
     const get = (() => ({ scene: s, battle: { combatants: [a, b], movementUsed: 0 }, facing: {}, gameTime: 0, ecrireAuJournal: () => {} })) as unknown as () => JeuDuNoyau;
@@ -125,10 +125,10 @@ describe('previewAttack — parité aperçu ↔ résolution (R4)', () => {
   it('outOfSightTargetIds (grisage hors-LdV) : ennemi derrière un mur grisé au tir, pas en mêlée, pas les morts', () => {
     const s = scene();
     (s.layers[0].tiles as string[])[3] = 'mur'; // mur sur la ligne y=0 entre x=0 et x=6
-    const archer = combatant({ id: 'A', pos: { x: 0, y: 0 }, weapons: [{ label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [] }] as never });
-    const hidden = combatant({ id: 'E1', kind: 'enemy', pos: { x: 6, y: 0 } }); // derrière le mur
-    const seen = combatant({ id: 'E2', kind: 'enemy', pos: { x: 0, y: 5 } }); // ligne dégagée
-    const deadHidden = combatant({ id: 'E3', kind: 'enemy', pos: { x: 6, y: 1 }, dead: true });
+    const archer = combatant({ id: 'A', pos: { x: 0, y: 0 }, weapons: [{ label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [] }] as never });
+    const hidden = combatant({ id: 'E1', kind: 'ennemi', pos: { x: 6, y: 0 } }); // derrière le mur
+    const seen = combatant({ id: 'E2', kind: 'ennemi', pos: { x: 0, y: 5 } }); // ligne dégagée
+    const deadHidden = combatant({ id: 'E3', kind: 'ennemi', pos: { x: 6, y: 1 }, dead: true });
     const mk = (cs: Combatant[], order: string[]) =>
       (() => ({ scene: s, battle: { combatants: cs, order, turn: 0, movementUsed: 0 }, facing: {}, gameTime: 0, ecrireAuJournal: () => {}, net: NET_LOCAL })) as unknown as () => JeuDuNoyau;
     const ids = outOfSightTargetIds(mk([archer, hidden, seen, deadHidden], ['A', 'E1', 'E2', 'E3']));
@@ -142,7 +142,7 @@ describe('previewAttack — parité aperçu ↔ résolution (R4)', () => {
 
   it('décomposition : target = base NUE + Σ mods (somme BRUTE — le plafond a sa propre ligne)', () => {
     const a = combatant({ id: 'A', advantage: 1 });
-    const b = combatant({ id: 'B', kind: 'enemy', pos: { x: 1, y: 0 } });
+    const b = combatant({ id: 'B', kind: 'ennemi', pos: { x: 1, y: 0 } });
     const p = previewAttack(mkGet([a, b]), a, b);
     // La somme est BRUTE depuis #1153 L3a : re-combiner (`combineMods`) amputerait la ligne de plafond
     // que l'aperçu vient d'émettre. C'est `inexplique === 0` qui juge, comme partout ailleurs.
@@ -153,7 +153,7 @@ describe('previewAttack — parité aperçu ↔ résolution (R4)', () => {
 
   it('issue #202 — buff de Caractéristique (Bénédiction de Bataille +10 CC) : target INCHANGÉ, base amputé, ligne étiquetée `famille: \'jet\'`', () => {
     const a = combatant({ id: 'A', activeEffects: [{ ...BENEDICTION, characteristic: 'capacite-de-combat', bonus: 10 }] as never });
-    const b = combatant({ id: 'B', kind: 'enemy', pos: { x: 1, y: 0 } });
+    const b = combatant({ id: 'B', kind: 'ennemi', pos: { x: 1, y: 0 } });
     const withoutBuff = previewAttack(mkGet([combatant({ id: 'A' }), b]), combatant({ id: 'A' }), b);
     const withBuff = previewAttack(mkGet([a, b]), a, b);
     expect(withBuff.target).toBe(withoutBuff.target + 10); // le buff reste bien PORTÉ au jet (byte-identique à l'avant-split)
@@ -169,11 +169,11 @@ describe('previewAttack — parité aperçu ↔ résolution (R4)', () => {
  * RENDUE — leur écart est l'amputation du plafond des Difficultés, portée par sa propre ligne, plus
  * la borne `targetMax` de `clampTarget`.
  */
-const cibleNonEcretee = (a: Combatant, kind: 'melee' | 'ranged', w: Combatant['weapons'][number], mods: ModLine[]): number =>
+const cibleNonEcretee = (a: Combatant, kind: 'melee' | 'distance', w: Combatant['weapons'][number], mods: ModLine[]): number =>
   combatValue(a, kind, w) + combineMods(mods);
 
 describe('previewAttack — plafond des Difficultés NOMMÉ et cible écrêtée (#1153 L3a)', () => {
-  const foe = () => combatant({ id: 'B', kind: 'enemy', pos: { x: 1, y: 0 } });
+  const foe = () => combatant({ id: 'B', kind: 'ennemi', pos: { x: 1, y: 0 } });
   const hors = (p: { mods: ModLine[] }) => p.mods.filter((m) => !renvoieA(PLAFOND)(m));
 
   it('NOMINAL (aucun plafond, aucune borne) : la cible rendue EST la cible non écrêtée', () => {
@@ -290,7 +290,7 @@ describe('resolveDualSecond — la 2ᵉ frappe vise la cible que le moteur jette
       { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, reach: 'Moyenne', qualities: [], hand: 'main', hands: 1, uid: 'm' },
       { label: 'Dague', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, reach: 'Très courte', qualities: [], hand: 'main', hands: 1, uid: 'o' },
     ] as never });
-    const b = combatant({ id: 'B', kind: 'enemy', pos: { x: 1, y: 0 }, weapons: [] as never });
+    const b = combatant({ id: 'B', kind: 'ennemi', pos: { x: 1, y: 0 }, weapons: [] as never });
     const off = a.weapons[1];
     seedBattleRng(7);
     const res = resolveDualSecond(mkGet([a, b]), a, b, off, 30);
@@ -306,7 +306,7 @@ describe('resolveDualSecond — la 2ᵉ frappe vise la cible que le moteur jette
       { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, reach: 'Moyenne', qualities: [], hand: 'main', hands: 1, uid: 'm' },
       { label: 'Dague', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, reach: 'Très courte', qualities: [], hand: 'main', hands: 1, uid: 'o' },
     ] as never } as never);
-    const b = combatant({ id: 'B', kind: 'enemy', pos: { x: 1, y: 0 }, weapons: [] as never });
+    const b = combatant({ id: 'B', kind: 'ennemi', pos: { x: 1, y: 0 }, weapons: [] as never });
     const off = a.weapons[1];
     const mods = attackModifiers(a, b, off, { kind: 'melee' });
     const somme = mods.reduce((s, m) => s + m.value, 0);
@@ -323,28 +323,28 @@ describe('resolveDualSecond — la 2ᵉ frappe vise la cible que le moteur jette
 describe('attackPlan — gate PRÉ-clic du tir (parité avec le refus de sort)', () => {
   // Arc de Portée 4 m : bande Extrême ≤ ×3 = 12 m = 6 cases (1 case = 2 m).
   const archer = (over: Partial<Combatant> = {}) =>
-    combatant({ id: 'A', pos: { x: 0, y: 0 }, weapons: [{ label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 4, qualities: [] }] as never, ...over });
+    combatant({ id: 'A', pos: { x: 0, y: 0 }, weapons: [{ label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 8 }, range: 4, qualities: [] }] as never, ...over });
 
   it('cible sans Ligne de Vue → blocked (la modale ne s’ouvre jamais)', () => {
     const a = archer();
-    const b = combatant({ id: 'B', kind: 'enemy', pos: { x: 6, y: 0 } });
+    const b = combatant({ id: 'B', kind: 'ennemi', pos: { x: 6, y: 0 } });
     const s = scene();
     (s.layers[0].tiles as string[])[3] = 'mur';
     const get = (() => ({ scene: s, battle: { combatants: [a, b], movementUsed: 0 }, facing: {}, gameTime: 0, ecrireAuJournal: () => {} })) as unknown as () => JeuDuNoyau;
     const plan = attackPlan(get, a, b);
-    expect(plan.kind).toBe('blocked');
+    expect(plan.kind).toBe('bloque');
     expect((plan as { reason: string }).reason).toMatch(/ligne de vue/i);
   });
 
   it('au-delà de Portée ×3 → blocked « hors de portée » ; à exactement ×3 → attack', () => {
     const a = archer();
-    const far = combatant({ id: 'B', kind: 'enemy', pos: { x: 7, y: 0 } }); // 14 m > 12 m
-    const edge = combatant({ id: 'C', kind: 'enemy', pos: { x: 6, y: 0 } }); // 12 m = Extrême
+    const far = combatant({ id: 'B', kind: 'ennemi', pos: { x: 7, y: 0 } }); // 14 m > 12 m
+    const edge = combatant({ id: 'C', kind: 'ennemi', pos: { x: 6, y: 0 } }); // 12 m = Extrême
     const get = mkGet([a, far, edge]);
     const out = attackPlan(get, a, far);
-    expect(out.kind).toBe('blocked');
+    expect(out.kind).toBe('bloque');
     expect((out as { reason: string }).reason).toMatch(/hors de portée/i);
-    expect(attackPlan(get, a, edge).kind).toBe('attack');
+    expect(attackPlan(get, a, edge).kind).toBe('attaque');
   });
 });
 
@@ -359,7 +359,7 @@ describe('attackPlan — gate PRÉ-clic du tir (parité avec le refus de sort)',
 describe('Difficulté — parité PRÉ-jet ↔ ligne RÉSOLUE (#1153 L4)', () => {
   const archer = () => combatant({
     id: 'A', pos: { x: 0, y: 0 },
-    weapons: [{ label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [] }] as never,
+    weapons: [{ label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [] }] as never,
   });
   /** Le tireur a DÉJÀ bougé ce Round (`LDB 14 l.70` : −10) — lu à l'identique par l'aperçu et par la résolution. */
   const getMobile = (combatants: Combatant[]): (() => JeuDuNoyau) =>
@@ -367,7 +367,7 @@ describe('Difficulté — parité PRÉ-jet ↔ ligne RÉSOLUE (#1153 L4)', () =>
 
   it('tir mobile à courte portée : le résultat annonce la MÊME Difficulté combinée que l’aperçu', () => {
     const a = archer();
-    const b = combatant({ id: 'B', kind: 'enemy', pos: { x: 3, y: 0 } });
+    const b = combatant({ id: 'B', kind: 'ennemi', pos: { x: 3, y: 0 } });
     const get = getMobile([a, b]);
     const p = previewAttack(get, a, b);
     expect(p.difficultyCombined, 'la fixture doit VRAIMENT tomber hors des crans — sinon elle ne juge pas le régime').toEqual(expect.any(Number));
@@ -384,7 +384,7 @@ describe('Difficulté — parité PRÉ-jet ↔ ligne RÉSOLUE (#1153 L4)', () =>
 
   it('mêlée à la Localisation visée : le résultat annonce le MÊME cran (−20) que l’aperçu', () => {
     const a = combatant({ id: 'A' });
-    const b = combatant({ id: 'B', kind: 'enemy', pos: { x: 1, y: 0 } });
+    const b = combatant({ id: 'B', kind: 'ennemi', pos: { x: 1, y: 0 } });
     const get = mkGet([a, b]);
     const p = previewAttack(get, a, b, 'tete');
     expect(p.difficulty, 'entrée de la table `LDB 14 l.73`').toBe('difficile');
@@ -410,7 +410,7 @@ describe('Difficulté — parité PRÉ-jet ↔ ligne RÉSOLUE (#1153 L4)', () =>
     // Défenseur SANS arme et bien plus Agile que combattant : sa meilleure défense est l'Esquive —
     // la seule que la neige épaisse pénalise (`LDB 14 l.82`).
     const b = combatant({
-      id: 'B', kind: 'enemy', pos: { x: 1, y: 0 }, weapons: [] as never,
+      id: 'B', kind: 'ennemi', pos: { x: 1, y: 0 }, weapons: [] as never,
       characteristics: { 'capacite-de-combat': 25, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 70, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     });
     const neige = (): JeuDuNoyau => ({ ...mkGet([a, b])(), scene: { ...scene(), weather: 'neige' } }) as unknown as JeuDuNoyau;
@@ -438,11 +438,11 @@ describe('Difficulté — parité PRÉ-jet ↔ ligne RÉSOLUE (#1153 L4)', () =>
   it('TIR DÉFENDU : la rangée défense et le jet résolu disent la même Difficulté (neige)', () => {
     const archer = combatant({
       id: 'A', pos: { x: 0, y: 0 },
-      weapons: [{ label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [] }] as never,
+      weapons: [{ label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [] }] as never,
     });
     // Défenseur AGILE (Esquive = meilleure défense) et au CONTACT : à bout portant, le tir s'oppose (LDB 14 l.40).
     const b = combatant({
-      id: 'B', kind: 'enemy', pos: { x: 1, y: 0 }, weapons: [] as never,
+      id: 'B', kind: 'ennemi', pos: { x: 1, y: 0 }, weapons: [] as never,
       characteristics: { 'capacite-de-combat': 25, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 70, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     });
     const neige = (): JeuDuNoyau => ({ ...mkGet([archer, b])(), scene: { ...scene(), weather: 'neige' } }) as unknown as JeuDuNoyau;
@@ -468,8 +468,8 @@ describe('Difficulté — parité PRÉ-jet ↔ ligne RÉSOLUE (#1153 L4)', () =>
    * Chance relève le DR — jamais la Difficulté ni ses chips.
    */
   it('la CHANCE re-dérive sans changer la Difficulté annoncée (action réelle du flux)', () => {
-    const a = combatant({ id: 'A', kind: 'hero', fortune: 2 } as never);
-    const b = combatant({ id: 'B', kind: 'enemy', pos: { x: 1, y: 0 } });
+    const a = combatant({ id: 'A', kind: 'heros', fortune: 2 } as never);
+    const b = combatant({ id: 'B', kind: 'ennemi', pos: { x: 1, y: 0 } });
     banc.setState({
       // Neige épaisse : la scène pose une circonstance d'attaque (LDB 14 l.82) dans l'`env` — c'est
       // EXACTEMENT ce que la re-dérivation ne reçoit plus. Sans elle, la fixture ne discrimine rien.
@@ -483,7 +483,7 @@ describe('Difficulté — parité PRÉ-jet ↔ ligne RÉSOLUE (#1153 L4)', () =>
     expect(avant.difficulty, 'la fixture doit VRAIMENT composer un palier depuis l’env').toBe('tresDifficile');
 
     banc.setState({ pendingAttack: { attackerId: a.id, targetId: b.id, location: 'tete', result: r.res } } as never);
-    FLOWS.attaque.bonusSL(banc.getState, banc.setState);
+    FLOWS.attaque.ajouterUnDR(banc.getState, banc.setState);
     const apres = banc.getState().pendingAttack!.result!.attackerDetail!;
     expect(apres.sl, 'la Chance donne bien +1 DR').toBe(avant.sl + 1);
     expect(apres.difficulty, 'la Difficulté ne bouge pas d’un cran').toBe(avant.difficulty);
@@ -501,10 +501,10 @@ describe('Difficulté — parité PRÉ-jet ↔ ligne RÉSOLUE (#1153 L4)', () =>
    * et composition sont FIGÉS par la résolution d'origine.
    */
   it('CHANCE sur un TIR à bout portant : rien ne bouge que le DR (l’arme ne se re-choisit pas)', () => {
-    const arc = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [], uid: 'bow' };
+    const arc = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [], uid: 'bow' };
     const epee = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, reach: 'Moyenne', qualities: [], uid: 'sw' };
-    const a = combatant({ id: 'A', kind: 'hero', fortune: 2, pos: { x: 0, y: 0 }, weapons: [arc, epee] } as never);
-    const b = combatant({ id: 'B', kind: 'enemy', pos: { x: 1, y: 0 } }); // AU CONTACT : la mêlée est à portée
+    const a = combatant({ id: 'A', kind: 'heros', fortune: 2, pos: { x: 0, y: 0 }, weapons: [arc, epee] } as never);
+    const b = combatant({ id: 'B', kind: 'ennemi', pos: { x: 1, y: 0 } }); // AU CONTACT : la mêlée est à portée
     banc.setState({
       mode: 'battle', scene: scene(), party: [a], gameTime: 0,
       battle: { combatants: [a, b], order: [a.id, b.id], baseOrder: [a.id, b.id], turn: 0, round: 1, movementUsed: 0, acted: false, log: [], over: null, action: null, selectedSpellId: null, reachable: new Map() },
@@ -512,11 +512,11 @@ describe('Difficulté — parité PRÉ-jet ↔ ligne RÉSOLUE (#1153 L4)', () =>
       pendingAttack: { attackerId: a.id, targetId: b.id, location: null, result: null, weaponUid: 'bow' },
     } as never);
     seedBattleRng(3);
-    FLOWS.attaque.roll(banc.getState, banc.setState);
+    FLOWS.attaque.lancer(banc.getState, banc.setState);
     const avant = banc.getState().pendingAttack!.result!.attackerDetail!;
     expect(avant.label, 'la fixture doit VRAIMENT résoudre un TIR').toBe('Projectiles');
 
-    FLOWS.attaque.bonusSL(banc.getState, banc.setState);
+    FLOWS.attaque.ajouterUnDR(banc.getState, banc.setState);
     const apres = banc.getState().pendingAttack!.result!.attackerDetail!;
     expect(apres.sl).toBe(avant.sl + 1);
     expect(apres.label, 'le tir ne devient pas une frappe').toBe(avant.label);
@@ -537,12 +537,12 @@ describe('Difficulté — parité PRÉ-jet ↔ ligne RÉSOLUE (#1153 L4)', () =>
  * restant transportée → chip « autres » à chaque clic.
  */
 describe('BOUTON « +1 DR » sur la ligne résolue — le chemin du store fige l’arme (#1153)', () => {
-  const arbalete = { label: 'Arbalète', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [], uid: 'it-99' };
+  const arbalete = { label: 'Arbalète', type: 'distance', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [], uid: 'it-99' };
 
   /** Fixture du recetteur : Tireur ADJACENT au Gobelin (les mains nues sont à portée). */
   const ouvrir = (weaponUid?: string) => {
-    const a = combatant({ id: 'A', kind: 'hero', fortune: 4, pos: { x: 0, y: 0 }, weapons: [arbalete] } as never);
-    const b = combatant({ id: 'B', kind: 'enemy', pos: { x: 1, y: 0 }, weapons: [] as never });
+    const a = combatant({ id: 'A', kind: 'heros', fortune: 4, pos: { x: 0, y: 0 }, weapons: [arbalete] } as never);
+    const b = combatant({ id: 'B', kind: 'ennemi', pos: { x: 1, y: 0 }, weapons: [] as never });
     banc.setState({
       mode: 'battle', scene: scene(), party: [a], gameTime: 0,
       battle: { combatants: [a, b], order: [a.id, b.id], baseOrder: [a.id, b.id], turn: 0, round: 1, movementUsed: 0, acted: false, log: [], over: null, action: null, selectedSpellId: null, reachable: new Map() },
@@ -607,9 +607,9 @@ describe('BOUTON « +1 DR » sur la ligne résolue — le chemin du store fige l
    * d'influence. L'arme FIGÉE au jet rend la re-dérivation indépendante de la résolution d'uid.
    */
   it('uid HORS loadout actif : le jet fige l’arme tirée, les influences ne re-choisissent pas', () => {
-    const arc = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [], uid: 'w-arc' };
-    const a = combatant({ id: 'A', kind: 'hero', fortune: 4, pos: { x: 0, y: 0 }, weapons: [arc] } as never);
-    const b = combatant({ id: 'B', kind: 'enemy', pos: { x: 1, y: 0 }, weapons: [] as never });
+    const arc = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [], uid: 'w-arc' };
+    const a = combatant({ id: 'A', kind: 'heros', fortune: 4, pos: { x: 0, y: 0 }, weapons: [arc] } as never);
+    const b = combatant({ id: 'B', kind: 'ennemi', pos: { x: 1, y: 0 }, weapons: [] as never });
     banc.setState({
       mode: 'battle', scene: scene(), party: [a], gameTime: 0,
       battle: { combatants: [a, b], order: [a.id, b.id], baseOrder: [a.id, b.id], turn: 0, round: 1, movementUsed: 0, acted: false, log: [], over: null, action: null, selectedSpellId: null, reachable: new Map() },
@@ -644,13 +644,13 @@ describe('BOUTON « +1 DR » sur la ligne résolue — le chemin du store fige l
  * chip « autres ». Le patron correct est celui de `finishDefenseResult` : brancher par `weapon.type`.
  */
 describe('TIR DÉFENDU : les influences ne transforment pas le tir en frappe (#1153)', () => {
-  const arbalete = { label: 'Arbalète', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [], uid: 'it-99' };
+  const arbalete = { label: 'Arbalète', type: 'distance', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [], uid: 'it-99' };
 
   const ouvrir = () => {
-    const a = combatant({ id: 'A', kind: 'hero', fortune: 4, resilience: 2, pos: { x: 0, y: 0 }, weapons: [arbalete] } as never);
+    const a = combatant({ id: 'A', kind: 'heros', fortune: 4, resilience: 2, pos: { x: 0, y: 0 }, weapons: [arbalete] } as never);
     // Cible ADJACENTE et AGILE : à bout portant elle oppose son Esquive → `defenderDetail` posé.
     const b = combatant({
-      id: 'B', kind: 'enemy', pos: { x: 1, y: 0 }, weapons: [] as never,
+      id: 'B', kind: 'ennemi', pos: { x: 1, y: 0 }, weapons: [] as never,
       characteristics: { 'capacite-de-combat': 25, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 70, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     });
     banc.setState({
@@ -701,12 +701,12 @@ describe('TIR DÉFENDU : les influences ne transforment pas le tir en frappe (#1
  */
 describe('ATTAQUE NATURELLE : le gel du jet ne la transforme pas en arme tenue (#1026)', () => {
   it('freeKind morsure + fléchettes tenues : l’arme reste la morsure (mêlée)', () => {
-    const flechettes = { label: 'Fléchettes', type: 'ranged', damage: { plusBF: false, flat: 4 }, range: 20, qualities: [], uid: 'it-fl' };
+    const flechettes = { label: 'Fléchettes', type: 'distance', damage: { plusBF: false, flat: 4 }, range: 20, qualities: [], uid: 'it-fl' };
     const a = combatant({
-      id: 'A', kind: 'hero', pos: { x: 0, y: 0 }, weapons: [flechettes],
+      id: 'A', kind: 'heros', pos: { x: 0, y: 0 }, weapons: [flechettes],
       traits: [{ id: 'morsure', label: 'Morsure', indice: 4 }],
     } as never);
-    const b = combatant({ id: 'B', kind: 'enemy', pos: { x: 1, y: 0 } });
+    const b = combatant({ id: 'B', kind: 'ennemi', pos: { x: 1, y: 0 } });
     const battle = { combatants: [a, b] } as never;
     const pa = { attackerId: a.id, targetId: b.id, location: null, result: null, freeKind: 'morsure' } as unknown as PendingAttack;
     expect(attackWeaponOf(battle, a, b, pa).type, 'la morsure est une attaque de MÊLÉE').toBe('melee');

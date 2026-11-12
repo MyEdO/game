@@ -32,7 +32,7 @@ beforeAll(() => {
 const SOLO = { mode: 'local', mySeat: 0, roomCode: null, seatNames: {}, presence: {}, ownership: {} };
 
 const hero = (id: string, label: string, fm: number): Combatant => (blessuresSurLeProfil({
-  id, name: id, label, kind: 'hero',
+  id, name: id, label, kind: 'heros',
   characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 30, force: 35, endurance: 35, initiative: 30,
     agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': fm, sociabilite: 30, perception: 30 },
   conditions: [], traumas: [], engagedWith: [], skills: [], talents: [], items: [], weapons: [],

@@ -27,7 +27,7 @@ import type { PendingActivity } from './interludeFlow';
 
 const CHARS = { force: 40, dexterite: 40, agilite: 40, endurance: 40, 'force-mentale': 55, 'capacite-de-combat': 45, 'capacite-de-tir': 45, initiative: 40, intelligence: 40, sociabilite: 40 };
 const heros = (id: string, over: Partial<Combatant> = {}): Combatant => blessuresSurLeProfil({
-  id, name: id, label: id, kind: 'hero', characteristics: { ...CHARS }, wounds: blessuresDeBase(10), advantage: 0,
+  id, name: id, label: id, kind: 'heros', characteristics: { ...CHARS }, wounds: blessuresDeBase(10), advantage: 0,
   conditions: [], traumas: [], resilience: 0, fortune: 0, weapons: [unarmedWeapon()], items: [],
   armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, skills: [], talents: [], movement: 4,
   bodyShape: 'humanoide', pos: { x: 0, y: 0 }, ...over,
@@ -46,7 +46,7 @@ const INVERSE = { roll: 46, sl: 1, success: true };
 
 describe('Test étendu : le Round s’inverse sur la Compétence du Test', () => {
   const etendu = (skill?: PendingExtendedTest['skill']): PendingExtendedTest => ({
-    actorId: 'H', label: 'Recherche', skillLabel: 'Recherche', ...(skill ? { skill } : { characteristic: 'force' }), target: 55, targetDR: 5, total: 0,
+    actorId: 'H', label: 'Recherche', skillLabel: 'Recherche', ...(skill ? { skill } : { characteristic: 'force' }), target: 55, drCible: 5, total: 0,
     rounds: [{ id: 'round-1', interactive: true, result: { ...RATE } }],
   });
 
@@ -122,7 +122,7 @@ describe('Activité : Talents partout, jetons d’aventure sur les seules Scène
 
 describe('Battement : le Test de Corps à corps s’inverse', () => {
   const battement = (h: Combatant, banc: Banc) => banc.setState({
-    battle: { combatants: [h, heros('E', { kind: 'enemy' } as Partial<Combatant>)], order: ['H', 'E'], turn: 0, round: 1, log: [], over: null } as never,
+    battle: { combatants: [h, heros('E', { kind: 'ennemi' } as Partial<Combatant>)], order: ['H', 'E'], turn: 0, round: 1, log: [], over: null } as never,
     pendingBattement: { attackerId: 'H', foeId: 'E', result: hydrateTR({ roll: 64, target: 55, base: 45, sl: -1, success: false }) },
   });
 

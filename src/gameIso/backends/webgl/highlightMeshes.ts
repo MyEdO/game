@@ -42,67 +42,72 @@ import {
 } from '../../highlightTints';
 import { SPECKLE_LIFT_M } from './groundAccents';
 import { withRenderRank } from './renderRanks';
+import type { VerrouDesMots } from '../../../noyau/fabriquesDuNoyau';
 
 /** Un lot de MONTAGE : kind du builder divisé par son opacité de matériau. */
 export type HighlightSlot =
-  | 'walk'
-  | 'run'
-  | 'intent'
-  | 'rangeBand'
-  | 'team'
-  | 'teamActive'
-  | 'zoneFire'
-  | 'zoneSmoke'
-  | 'ringCrowd'
-  | 'ringContour';
+  | 'deplacement'
+  | 'course'
+  | 'intention'
+  | 'bandeDePortee'
+  | 'equipe'
+  | 'equipeActive'
+  | 'zoneDeFeu'
+  | 'zoneDeFumee'
+  | 'anneauDeFoule'
+  | 'anneauDeContour';
 
 /** Tous les slots, dans l'ordre de RANG croissant (cf. `SLOT_RANK`). */
 export const HIGHLIGHT_SLOTS: readonly HighlightSlot[] = [
-  'walk',
-  'run',
-  'team',
-  'teamActive',
-  'zoneFire',
-  'zoneSmoke',
-  'ringCrowd',
-  'ringContour',
-  'rangeBand',
-  'intent',
+  'deplacement',
+  'course',
+  'equipe',
+  'equipeActive',
+  'zoneDeFeu',
+  'zoneDeFumee',
+  'anneauDeFoule',
+  'anneauDeContour',
+  'bandeDePortee',
+  'intention',
 ];
+
+/** VERROU : un slot, un genre de marque et ses tons ne prennent que des mots du lexique (#3938). */
+const verrouDesMarques: VerrouDesMots<HighlightSlot | HighlightEl['kind'] | Extract<HighlightEl, { tone: string }>['tone']> = true;
+void verrouDesMarques;
 
 /** Slot d'un élément du builder. */
 export function highlightSlot(el: HighlightEl): HighlightSlot {
   switch (el.kind) {
-    case 'walk':
-      return 'walk';
-    case 'run':
-      return 'run';
-    case 'intent':
-      return 'intent';
-    case 'rangeBand':
-      return 'rangeBand';
-    case 'team':
-      return el.active ? 'teamActive' : 'team';
+    case 'deplacement':
+      return 'deplacement';
+    case 'course':
+      return 'course';
+    case 'intention':
+      return 'intention';
+    case 'bandeDePortee':
+      return 'bandeDePortee';
+    case 'equipe':
+      return el.active ? 'equipeActive' : 'equipe';
     case 'zone':
-      return el.smoke ? 'zoneSmoke' : 'zoneFire';
-    case 'ring':
-      return el.tone === 'crowd' ? 'ringCrowd' : 'ringContour';
+      return el.smoke ? 'zoneDeFumee' : 'zoneDeFeu';
+    case 'anneau':
+      return el.tone === 'foule' ? 'anneauDeFoule' : 'anneauDeContour';
   }
 }
 
 /** Opacité de chaque nature de marque de case — la table, tenue au banc de population
  *  (`stage/marques-parite.test.tsx`). */
 export const SLOT_OPACITY: Record<HighlightSlot, number> = {
-  walk: 0.32,
-  run: 0.24,
-  intent: 0.42, // la portée DEMANDÉE prime visuellement sur les portées permanentes qu'elle recouvre
-  rangeBand: 0.26,
-  team: 0.2,
-  teamActive: 0.3,
-  zoneFire: 0.35,
-  zoneSmoke: 0.5,
-  ringCrowd: 0.34,
-  ringContour: 0.9,
+  deplacement: 0.32,
+  course: 0.24,
+  intention: 0.42, // la portée DEMANDÉE prime visuellement sur les portées permanentes qu'elle recouvre
+  bandeDePortee: 0.26,
+  equipe: 0.2,
+  equipeActive: 0.3,
+  zoneDeFeu: 0.35,
+  zoneDeFumee: 0.5,
+  anneauDeFoule: 0.34,
+  anneauDeContour: 0.9,
 };
 
 /** Rang de SUPERPOSITION entre marques coplanaires. Il REPRODUIT l'ordre d'ÉMISSION du builder
@@ -111,16 +116,16 @@ export const SLOT_OPACITY: Record<HighlightSlot, number> = {
  *  Chaque slot a son rang PROPRE : deux marques d'un même kind peuvent couvrir la même case (une
  *  zone de fumée et une zone de feu qui se chevauchent), et un rang partagé les z-fighterait. */
 export const SLOT_RANK: Record<HighlightSlot, number> = {
-  walk: 0,
-  run: 1,
-  team: 2,
-  teamActive: 3,
-  zoneFire: 4,
-  zoneSmoke: 5,
-  ringCrowd: 6,
-  ringContour: 7,
-  rangeBand: 8,
-  intent: 9,
+  deplacement: 0,
+  course: 1,
+  equipe: 2,
+  equipeActive: 3,
+  zoneDeFeu: 4,
+  zoneDeFumee: 5,
+  anneauDeFoule: 6,
+  anneauDeContour: 7,
+  bandeDePortee: 8,
+  intention: 9,
 };
 
 /** Décollement (m) d'un slot au-dessus de la surface qui le porte. */
@@ -131,20 +136,20 @@ export function slotLiftM(slot: HighlightSlot): number {
 /** Teinte d'un élément — le catalogue partagé `gameIso/highlightTints`, `team` par l'identité d'équipe. */
 export function highlightTint(el: HighlightEl): string {
   switch (el.kind) {
-    case 'walk':
+    case 'deplacement':
       return WALK_TINT;
-    case 'run':
+    case 'course':
       return RUN_TINT;
-    case 'intent':
+    case 'intention':
       return INTENT_TINT;
-    case 'rangeBand':
+    case 'bandeDePortee':
       return RANGE_BAND_TINT[el.tone];
-    case 'team':
+    case 'equipe':
       return tileTint(el.hero, el.active);
     case 'zone':
       return el.smoke ? ZONE_SMOKE_TINT : ZONE_FIRE_TINT;
-    case 'ring':
-      return el.tone === 'crowd' ? RING_CROWD_TINT : el.tone === 'ally' ? RING_ALLY_TINT : RING_TARGET_TINT;
+    case 'anneau':
+      return el.tone === 'foule' ? RING_CROWD_TINT : el.tone === 'allie' ? RING_ALLY_TINT : RING_TARGET_TINT;
   }
 }
 
@@ -247,7 +252,7 @@ export function tileFrameGeometry(k = RING_FRAME_K): THREE.BufferGeometry {
  *  que le remplir. Toute marque PLEINE se retire du liseré de grille (`TILE_INSET_K`) ; le contour, lui,
  *  EST déjà un liseré. */
 export function buildHighlightMesh(slot: HighlightSlot, capacity: number): THREE.InstancedMesh {
-  const geo = slot === 'ringContour' ? tileFrameGeometry() : tileQuadGeometry(TILE_INSET_K);
+  const geo = slot === 'anneauDeContour' ? tileFrameGeometry() : tileQuadGeometry(TILE_INSET_K);
   const mat = materiauPlanTransparent({
     opacity: SLOT_OPACITY[slot],
     depthWrite: false,

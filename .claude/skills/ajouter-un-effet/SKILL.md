@@ -32,7 +32,10 @@ Contrat : `hotes/godot/pont/CONTRAT.md`, sections « Effets », « Musique » et
   [--filtre <filtres ffmpeg>] [--debut <s>] [--duree <s>]` le convertit en Ogg Vorbis mono 44,1 kHz, le dépose sous
   `hotes/godot/projet/sons/` (ignoré par git) et l'inscrit à `provenance.json` ; elle refuse une autre licence ou un nom
   déjà épinglé. Plusieurs variantes d'un même son : `souffle-1.ogg`, `souffle-2.ogg`…
-- Sa définition sous `src/data/sons/defs/<id>.ts` (`files` : ses variantes, `volume`), puis `npm run gen`.
+- Sa définition sous `src/data/sons/defs/<id>.ts` (`files` : ses variantes, `volume`, `canal` : `ambiance` pour une
+  boucle d'ambiance, `interface` pour un son d'interface, absent pour un effet ; une `music` joue sur `musique`), puis
+  `npm run gen`. Godot le joue sur le bus d'`AudioServer` nommé par son canal
+  (`hotes/godot/projet/default_bus_layout.tres`, recette `mixage.gd`), au volume que le joueur y règle.
 - Le verser à la Release `modeles-3d` : branche `transfert/<x>` partie de `main`, fichiers ajoutés par `git add -f` ;
   `.github/workflows/transfert.yml` vérifie les empreintes, verse sans écraser et supprime la branche.
 
@@ -40,24 +43,36 @@ Contrat : `hotes/godot/pont/CONTRAT.md`, sections « Effets », « Musique » et
 Le vocabulaire est fermé des deux côtés, à étendre ensemble :
 - schéma : `visuelDEffetSchema` et `projectileSchema` (`rendus.ts`), `visuelDeLumiereSchema` (`lightTones.ts`), puis le
   stock nommé de `src/data/schemas/grammaire/valeurs-de-champ.test.ts` ;
-- Godot : `Effets.GERBES` et `Effets.PROJECTILES` (`hotes/godot/projet/scripts/effets.gd`), `Foyer.FLAMMES`
-  (`foyer.gd`), chaque recette décrite en tête de sa constante.
+- Godot : une scène sous `hotes/godot/projet/effets/<famille>/<id>.tscn` (`visuels`, `projectiles`, `flammes` ; le nom
+  du fichier est l'id de la donnée), réglée dans l'éditeur par `npm run godot:ouvrir`. Un éclat : ses gerbes
+  `CPUParticles3D` en enfants directs, son `OmniLight3D` `Eclair`, son `AnimationPlayer` dont l'animation `eclat`
+  (jouée à la pose) pose l'émission à 0, éteint l'éclair et retire la scène au bout de sa vie. Une flamme : ses gerbes
+  enregistrées continues. Un projectile : `Corps`, sa maille, et s'il luit sa traînée et sa lampe. Les gerbes prennent
+  leur quad dans `effets/particule_lumineuse.tres` ou `particule_mate.tres`.
 
 ## 4. Le voir et le prouver
 - L'atelier le montre sans liste propre : la vitrine (`vitrineDesEffets`) parcourt les catalogues, l'onglet Effets
   offre un bouton par effet (règle `.claude/rules/hote-godot.md`).
 - `src/noyau/vitrineDesEffets.test.ts` pour la donnée ; une recette Godot (`hotes/godot/projet/recettes/effets.gd`,
   `foyers.gd`, `atelier-du-vehicule.gd`) pour le rendu. `npm run godot:sonde` les joue toutes, et vérifie que chaque
-  visuel, projectile et fichier de la vitrine est connu de Godot.
+  visuel, projectile et fichier de la vitrine est connu de Godot : sa scène existe (`Effets.chemin_de_l_effet`).
 
 ## Pièges connus
 - Sous le rendu de compatibilité, une particule `CPUParticles3D` pas encore née se peint en noir : un éclat naît d'un
   coup (`explosiveness` 1), une gerbe continue naît d'avance (`preprocess`). Une gerbe lumineuse se fond par addition.
+  Une zone qui dure pose l'éclat de son visuel en continu (`Effets.pose_continue`) : chaque gerbe émet sans fin, née
+  d'avance, et tout autre enfant (éclair, `AnimationPlayer`) est retiré ; un éclat ne règle donc que des gerbes en
+  enfants directs.
 - La `taille` d'une gerbe est sa vraie mesure, en mètres (#3832) : une particule ne garde son échelle que par
-  `billboard_keep_scale` (`_quad_de_particule`). Juger une taille au rendu réel : `xvfb-run` et
+  `billboard_keep_scale`, réglé dans les ressources partagées `effets/particule_*.tres`. Juger une taille au rendu réel : `xvfb-run` et
   `--rendering-driver opengl3`, la sonde headless ne peint rien.
 - Un son en boucle (`Effets.son_en_boucle(son)`) libéré juste avant la sortie fuit : attendre
   `Foyer.SON_LIBERE_S` après avoir libéré son lecteur.
+- Un nœud qui prend la couleur de l'effet est du groupe `teinte`, enregistré dans la scène : une gerbe garde son dégradé
+  blanc à son opacité et reçoit la teinte par `color`, une lampe par `light_color`, une maille par une copie de sa
+  matière en surcharge (`Effets.teinter`, qui ne modifie jamais une ressource de la scène).
+- Rejouer l'animation `eclat` dans l'éditeur rejoue l'éclat ; son dernier geste (`queue_free` de la racine, à la fin
+  exacte de l'animation) retire la scène en jeu.
 - Plusieurs éclats d'un même visuel posés ensemble : `add_child(eclat, true)`, sinon Godot les renomme.
 - Toute arithmétique, comparaison d'ordre ou mesure GDScript vit dans `mise_en_page.gd` (garde
   `src/hote/derive-du-noyau.hors-store.test.ts`).

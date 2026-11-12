@@ -34,7 +34,7 @@ const doc = document(
       maison: { label: 'Arbitrage maison' },
     }).optional(),
     /** Absent quand le jeu ne se résout pas au Test : l'Al-zahr est un jeu de MISE (`pot`). */
-    mode: z.enum(['opposed', 'extended']).optional(),
+    mode: z.enum(['oppose', 'etendu']).optional(),
     target: z.number().optional(),
     drCap: z.number().optional(),
     /** Id du départage d'égalité résolu par le socle de séquence (`units-lowest` Dominos l.105,
@@ -133,8 +133,8 @@ const doc = document(
     /** NADJ 16 l.90 */
     combined: nommerChamps(z.strictObject({
       second: sujetDuJetSchema,
-      failEvery: z.number().optional(),
-      eraseEvery: z.number().optional(),
+      echecsParEcheance: z.number().optional(),
+      effacementsParEcheance: z.number().optional(),
       ops: executeesDe().optional(),
       markLoser: z.boolean().optional(),
       /** Id d'État (`etats.json`) dont l'apparition arrête la partie (l.88 « rouler sous la table »). */
@@ -142,8 +142,8 @@ const doc = document(
       tours: z.number().optional(),
     }), {
       second: { label: 'Second Test' },
-      failEvery: { label: 'Fréquence d’échec' },
-      eraseEvery: { label: 'Fréquence d’effacement' },
+      echecsParEcheance: { label: 'Fréquence d’échec' },
+      effacementsParEcheance: { label: 'Fréquence d’effacement' },
       ops: { label: 'Opérations' },
       markLoser: { label: 'Marquer le perdant' },
       stopCondition: { label: 'Condition d’arrêt' },

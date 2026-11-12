@@ -4,48 +4,48 @@
     "type": "calendarPhases",
     "seuil": 300,
     "label": "Aube",
-    "icon": "time/dawn"
+    "icon": "temps/aube"
   },
   {
     "id": "matin",
     "type": "calendarPhases",
     "seuil": 480,
     "label": "Matin",
-    "icon": "time/morning"
+    "icon": "temps/matin"
   },
   {
     "id": "midi",
     "type": "calendarPhases",
     "seuil": 660,
     "label": "Midi",
-    "icon": "time/noon"
+    "icon": "temps/midi"
   },
   {
     "id": "apresmidi",
     "type": "calendarPhases",
     "seuil": 840,
     "label": "Après-midi",
-    "icon": "time/afternoon"
+    "icon": "temps/apres-midi"
   },
   {
     "id": "crepuscule",
     "type": "calendarPhases",
     "seuil": 1080,
     "label": "Crépuscule",
-    "icon": "time/dusk"
+    "icon": "temps/crepuscule"
   },
   {
     "id": "soir",
     "type": "calendarPhases",
     "seuil": 1200,
     "label": "Soir",
-    "icon": "time/evening"
+    "icon": "temps/soir"
   },
   {
     "id": "nuit",
     "type": "calendarPhases",
     "seuil": 1320,
     "label": "Nuit",
-    "icon": "time/night"
+    "icon": "temps/nuit"
   }
 ]

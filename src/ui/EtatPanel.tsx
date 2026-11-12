@@ -45,7 +45,7 @@ import { EntityRef } from './EntityChip';
 import { GameOpChips } from './GameOpChips';
 import { NotchGauge, type GaugeTone } from './NotchGauge';
 import { Icon } from './Icon';
-import type { IconIdInput } from '../data/icons';
+import type { IconId } from '../data/icons';
 import { PlaqueRow } from './PlaqueRow';
 import { Band } from './Band';
 
@@ -59,7 +59,7 @@ export const ETAT_ANCHOR_PSYCHOLOGIE = 'etat-psychologie';
 export const ETAT_ANCHOR_ENCOMBREMENT = 'etat-encombrement';
 
 /** Icône de repli quand aucune icône du registre ne porte la famille (jamais d'emoji). */
-const FALLBACK_ICON: IconIdInput = 'ui/warning';
+const FALLBACK_ICON: IconId = 'interface/attention';
 
 /** Taille FIXE d'un cran (px) des jauges à PEU de crans du registre (Seuils, Corruption) — `NotchGauge`
  *  `cellSize`, voir sa doc pour la justification du mode fixe. */
@@ -107,11 +107,11 @@ function Section({
   );
 }
 
-/** Ton d'un compteur de SEUIL (pt.4, #492) : `neutral` loin du seuil, `warn` à seuil−1,
+/** Ton d'un compteur de SEUIL (pt.4, #492) : `neutre` loin du seuil, `warn` à seuil−1,
  *  `danger` au seuil ATTEINT ou FRANCHI — vocabulaire `GaugeTone` de `NotchGauge` (pas de couleur
  *  littérale, pas de 4e famille de ton parallèle). */
 function seuilTone(value: number, limit: number): GaugeTone {
-  return value >= limit ? 'danger' : value === limit - 1 ? 'warn' : 'neutral';
+  return value >= limit ? 'danger' : value === limit - 1 ? 'warn' : 'neutre';
 }
 
 /** Bande « Réserves & seuils » (titre AFFICHÉ, arbitrage user 2026-07-18 — « Constitution c'est
@@ -277,7 +277,7 @@ export function EtatPanel({ hero }: { hero: Combatant }) {
                     // l'entité qui le porte quand il est dérivé (`derivedFrom.src`), là où le texte
                     // visible garde le seul libellé de l'État.
                     <CodexRef key={chip.key} category="etats" id={chip.condId} label={chip.label} ariaLabel={chipNom(chip)} className="chip">
-                      <Icon id={chip.icon as IconIdInput} size="sm" />
+                      <Icon id={chip.icon} size="sm" />
                       {chip.label}
                       {clock ? <em className="entity-badge">{clock}</em> : null}
                     </CodexRef>
@@ -301,7 +301,7 @@ export function EtatPanel({ hero }: { hero: Combatant }) {
                     fallback={{ body: meta.join(' · ') || undefined }}
                     className="chip tone-ok"
                   >
-                    <Icon id={chip.icon as IconIdInput} size="sm" />
+                    <Icon id={chip.icon} size="sm" />
                     {chip.label}
                     {metaNode}
                   </CodexRef>
@@ -319,7 +319,7 @@ export function EtatPanel({ hero }: { hero: Combatant }) {
                     fallback={{ body: parts || undefined }}
                     className="chip tone-warn"
                   >
-                    <Icon id="ui/warning" size="sm" />
+                    <Icon id="interface/attention" size="sm" />
                     {p.label}
                     {parts ? <em className="entity-badge">{parts}</em> : null}
                   </CodexRef>
@@ -365,7 +365,7 @@ export function EtatPanel({ hero }: { hero: Combatant }) {
             const row = (
               <PlaqueRow valueMuted
                 key={i}
-                prefix={<Icon id="medical/crutch" size="sm" />}
+                prefix={<Icon id="medical/bequille" size="sm" />}
                 content={<CodexRef category="traumas" id={t.traumaId} label={t.label}>{t.label}</CodexRef>}
                 sub={t.location ? locationLabel(t.location, hero.bodyShape) : undefined}
                 fx={(t.ops?.length ?? 0) > 0 ? <GameOpChips ops={t.ops!} /> : undefined}
@@ -411,7 +411,7 @@ export function EtatPanel({ hero }: { hero: Combatant }) {
             return (
               <PlaqueRow valueMuted
                 key={i}
-                prefix={<Icon id="nav/mutation" size="sm" />}
+                prefix={<Icon id="navigation/mutation" size="sm" />}
                 content={<CodexRef category="mutations" id={m.id} label={label}>{label}</CodexRef>}
                 sub={m.kind === 'physique' ? 'Mutation physique' : 'Mutation mentale'}
                 fx={(m.passive?.length ?? 0) > 0 ? <GameOpChips ops={m.passive!} /> : undefined}
@@ -430,7 +430,7 @@ export function EtatPanel({ hero }: { hero: Combatant }) {
             return (
               <PlaqueRow valueMuted
                 key={i}
-                prefix={<Icon id={(def?.icon as IconIdInput | undefined) ?? FALLBACK_ICON} size="sm" />}
+                prefix={<Icon id={(def?.icon) ?? FALLBACK_ICON} size="sm" />}
                 content={<CodexRef category="psychologies" id={p.type} label={label}>{texte}</CodexRef>}
                 fx={def?.passive?.length ? <GameOpChips ops={def.passive} /> : undefined}
               />

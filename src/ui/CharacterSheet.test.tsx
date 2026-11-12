@@ -23,7 +23,7 @@ const hero = (): Combatant =>
   (blessuresSurLeProfil({
     id: 'h',
     label: 'H',
-    kind: 'hero',
+    kind: 'heros',
     species: 'humains-reiklander',
     career: 'agitateur',
     careerLevel: 1,
@@ -476,7 +476,7 @@ describe('Onglet Possessions — registre `Band`/`PlaqueRow` (#492 lot POSSESSIO
 
     it('« Évaluer » : manquée ce jour, reste rendu, fermé et NOMMÉ (délai maison `marche-evaluation-delai-jours`)', () => {
       const evaluateur = { ...hero(), id: 'e', items: [{ ...inconnu, appraiseTriedDay: gameDay(useGame.getState()) }], skills: [{ id: 'evaluation', characteristic: 'intelligence', advances: 5 }] } as unknown as Combatant;
-      expect(etat(evaluateur, 'Évaluer', 'sheet-eval-u1')).toEqual({ rendu: true, ferme: 'true', raison: t('mf.appraiseRetenter', { label: 'Épée', jours: 1 }) });
+      expect(etat(evaluateur, 'Évaluer', 'sheet-eval-u1')).toEqual({ rendu: true, ferme: 'true', raison: t('mf.evaluationARetenter', { label: 'Épée', jours: 1 }) });
     });
 
     it('« Détecter » : offert quand un héros porte le Talent Détection d’artefact (LDB 10 l.336)', () => {

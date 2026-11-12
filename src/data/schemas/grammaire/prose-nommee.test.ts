@@ -8,7 +8,7 @@ import { indiceStadeSchema, documentNarratifSchema } from '../defs-scenes/narrat
 import { designerHerosSchema, ouvertureSchema, sousTitreOuvertureSchema, sousTitreClotureSchema } from './campagne';
 import { massBattleSpecSchema, setObjectiveSchema, grantFavorSchema, journalSchema, sceneFlowSchema } from '../defs-scenes/effets';
 import { dialogueNodeSchema, messageIntroductionSchema } from '../defs-scenes/scene';
-import { refusRouteSchema } from '../defs-scenes/worldmap';
+import { mapPlaceSchema, refusRouteSchema } from '../defs-scenes/worldmap';
 import { authoredStakeSchema, OP_DEFS, gameOpSchema, OPS_NON_TYPEES } from './mecanique';
 import { coDescendre, descendre, enfantsDe, declarationDEnfants, defDe } from './descente';
 import { fautesProseFinale, classificationsProseLocale } from '../../../../scripts/guards/lib/proseNommee.mjs';
@@ -24,9 +24,10 @@ const SITES: Record<keyof typeof PROSES_NOMMEES, { schema: z.ZodType; nu: Record
   'narratif.ouverture.pitch': { schema: ouvertureSchema, nu: { titre: 'Titre', pitch: 'Texte.' } },
   'narratif.indices[].stades[].prose': { schema: indiceStadeSchema, nu: { id: 'stade', prose: 'Texte.' } },
   'narratif.documents[].prose': { schema: documentNarratifSchema, nu: { id: 'document', titre: 'Titre', prose: 'Texte.' } },
-  'massBattle.terrain': { schema: massBattleSpecSchema, nu: { allyMight: 50, enemyMight: 50, terrain: 'Texte.' } },
+  'massBattle.terrain': { schema: massBattleSpecSchema, nu: { puissanceAlliee: 50, puissanceEnnemie: 50, terrain: 'Texte.' } },
   'scenes[].startMessage.texte': { schema: messageIntroductionSchema, nu: { texte: 'Texte.' } },
   'worldMap.routes[].refus.texte': { schema: refusRouteSchema, nu: { texte: 'Texte.' } },
+  'worldMap.places[].prose': { schema: mapPlaceSchema, nu: { id: 'lieu', label: 'Lieu', pos: { x: 10, y: 10 }, scene: { id: 's1' }, prose: 'Texte.' } },
   'narratif.ouverture.sousTitre.texte': { schema: sousTitreOuvertureSchema, nu: { texte: 'Texte.' } },
   'narratif.cloture.sousTitre.texte': { schema: sousTitreClotureSchema, nu: { texte: 'Texte.' } },
   'setObjective.desc': { schema: setObjectiveSchema, nu: { type: 'setObjective', id: 'objectif', desc: 'Texte.' } },
@@ -36,7 +37,7 @@ const SITES: Record<keyof typeof PROSES_NOMMEES, { schema: z.ZodType; nu: Record
   'dialogues[].nodes[].desc': { schema: dialogueNodeSchema, nu: { id: 'n', choices: [], desc: 'Texte.' } },
   'stake.authored': { schema: authoredStakeSchema, nu: { authored: 'Texte.' } },
   'narrative.text': { schema: OP_DEFS.narrative, nu: { op: 'narrative', text: 'Texte.' } },
-  'flow.choice.prompt': { schema: (() => { let choix: z.ZodType | undefined; descendre([sceneFlowSchema], ({ noeud }) => { if (declarationProseNommee(noeud) === PROSES_NOMMEES['flow.choice.prompt']) choix = noeud as z.ZodType; }); return choix!; })(), nu: { kind: 'choice', prompt: 'Texte.', yes: { kind: 'seq', steps: [] } } },
+  'flow.choice.invite': { schema: (() => { let choix: z.ZodType | undefined; descendre([sceneFlowSchema], ({ noeud }) => { if (declarationProseNommee(noeud) === PROSES_NOMMEES['flow.choice.invite']) choix = noeud as z.ZodType; }); return choix!; })(), nu: { kind: 'choix', invite: 'Texte.', oui: { kind: 'sequence', etapes: [] } } },
 };
 
 describe('prose nommée — déclaration et provenance locales', () => {
@@ -130,9 +131,9 @@ describe('prose nommée — déclaration et provenance locales', () => {
     expect(trouves).toBe(1);
   });
   it('un choix sourcé ne source ni le journal ni la narration maison de ses branches', () => {
-    const flow = { kind: 'choice', prompt: 'Entrer ?', source: SOURCE,
-      yes: { kind: 'do', effect: { type: 'journal', desc: 'Journal maison.' } },
-      no: { kind: 'do', effect: { type: 'ops', ops: [{ op: 'narrative', text: 'Narration maison.' }] } },
+    const flow = { kind: 'choix', invite: 'Entrer ?', source: SOURCE,
+      oui: { kind: 'effet', effet: { type: 'journal', desc: 'Journal maison.' } },
+      non: { kind: 'effet', effet: { type: 'ops', ops: [{ op: 'narrative', text: 'Narration maison.' }] } },
     };
     expect(sceneFlowSchema.safeParse(flow).error?.issues).toBeUndefined();
     const trouves: string[] = [];

@@ -37,7 +37,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 const NET0 = initialNet();
 const chars = { 'capacite-de-combat': 55, 'capacite-de-tir': 40, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 const sword: Weapon = { name: 'Épée', label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, uid: 'sw', qualities: [] } as unknown as Weapon;
-const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, talents: { talentId: string }[] = []): Combatant =>
+const mk = (id: string, kind: 'heros' | 'ennemi', pos: { x: number; y: number }, talents: { talentId: string }[] = []): Combatant =>
   (blessuresSurLeProfil({ id, name: id, label: id, kind, characteristics: { ...chars }, conditions: [], engagedWith: [], skills: [], talents,
      weapons: [sword], advantage: 0, size: 'moyenne', pos, wounds: blessuresDeBase(18), resolve: 2, fortune: 2,
      armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4 }) as unknown as Combatant);
@@ -45,8 +45,8 @@ const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, t
 /** Arène coop : `h2` (héros du siège 1, Battement en poche) engagé avec `e1`, et c'est SON tour. */
 function setup(net: Record<string, unknown> = {}) {
   seedBattleRng(7);
-  const hero = mk('h2', 'hero', { x: 0, y: 0 }, [{ talentId: 'battement' }]);
-  const enemy = mk('e1', 'enemy', { x: 1, y: 0 });
+  const hero = mk('h2', 'heros', { x: 0, y: 0 }, [{ talentId: 'battement' }]);
+  const enemy = mk('e1', 'ennemi', { x: 1, y: 0 });
   (hero as unknown as { engagedWith: string[] }).engagedWith = ['e1'];
   (enemy as unknown as { engagedWith: string[] }).engagedWith = ['h2'];
   const battle: BattleState = {
@@ -291,7 +291,7 @@ describe('#2961 — annulations et jets d’un flux mono : la possession suit le
  */
 describe('#3311 — chaque verbe de jet, joué par un siège, suit la possession de son flux', () => {
   /** Les arguments du verbe de jet `v` sur `flux`, la rangée `pid` posée sur un flux multi (`VerbesDeJet`). */
-  const args = (flux: string, v: RollVerb, pid?: string): unknown[] => [flux, ...(v === 'setForcedRoll' ? [42] : []), ...(pid ? [pid] : [])];
+  const args = (flux: string, v: RollVerb, pid?: string): unknown[] => [flux, ...(v === 'imposerLeResultat' ? [42] : []), ...(pid ? [pid] : [])];
 
   it.each(FLOW_VERBS.test.verbs.map((v) => [NOM_DU_VERBE_DE_JET[v], v] as const))('Test (mono) : %s — le siège du testeur joue, un tiers est refusé', (_nom, v) => {
     setup();
@@ -304,7 +304,7 @@ describe('#3311 — chaque verbe de jet, joué par un siège, suit la possession
 
   it.each(FLOW_VERBS.chute.verbs.filter((v) => !estVerbeDeFenetre(v)).map((v) => [NOM_DU_VERBE_DE_JET[v], v] as const))('chute (multi) : %s — le siège du tombant joue SA rangée, l’hôte est refusé', (_nom, v) => {
     setup();
-    const hote = mk('h1', 'hero', { x: 0, y: 1 });
+    const hote = mk('h1', 'heros', { x: 0, y: 1 });
     const pendingFall = { test: testDeRegle('chute', 'tenter'), to: { x: 0, y: 1 }, metres: 4, initiateurId: 'h1', participants: [
       { id: 'h1', interactive: true, attempt: true, result: null },
       { id: 'h2', interactive: true, attempt: true, result: null },

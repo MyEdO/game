@@ -44,7 +44,7 @@ export function SequencePanel() {
                 value={camp.score}
                 max={camp.target}
                 label={camp.label}
-                tone={(v, m) => (v >= m ? 'ok' : 'neutral')}
+                tone={(v, m) => (v >= m ? 'ok' : 'neutre')}
                 format={(v, m) => `${stepFraction(v, m)} ${board.unit ?? t('seqPanel.uniteDr')}`}
               />
             ) : (

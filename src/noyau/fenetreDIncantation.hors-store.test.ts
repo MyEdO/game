@@ -25,7 +25,7 @@ import { REGLAGE_DE_L_AXE } from './reglagesDuJet';
 const carreau = findSpellById('carreau')!;
 /** Sorts d'épreuve, clones du Carreau (Magie des Arcanes, une cible à portée) : seuls NI, Projectile, effets et Durée changent. */
 const epreuve = (id: string, champs: Partial<SpellData>): SpellData => ({ ...carreau, id, label: id, ...champs } as SpellData);
-const BLESSURES = { kind: 'seq', steps: [{ kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'wounds', amount: 3 }] } }] } as SpellData['effects'];
+const BLESSURES = { kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'wounds', amount: 3 }] } }] } as SpellData['effects'];
 const ROUNDS = { kind: 'rounds', value: { charOf: 'force-mentale' } } as const;
 const armure = findSpellById('armure-aethyrique')!;
 const FIXTURES = {
@@ -181,8 +181,8 @@ function enCombat(banc: Banc) {
   banc.getState().lancerLeCombat('enc-mutants');
   banc.getState().fenetreValider('debutDuRound');
   const b = banc.getState().battle!;
-  const H = b.combatants.find((c) => c.kind === 'hero')!;
-  const [E, ...autres] = b.combatants.filter((c) => c.kind === 'enemy');
+  const H = b.combatants.find((c) => c.kind === 'heros')!;
+  const [E, ...autres] = b.combatants.filter((c) => c.kind === 'ennemi');
   autres.forEach((e) => (e.dead = true));
   H.skills = [...H.skills.filter((s) => s.id !== 'langue'), { id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 60 }] as typeof H.skills;
   H.characteristics['force-mentale'] = 40;

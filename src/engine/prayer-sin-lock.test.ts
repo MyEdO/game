@@ -13,7 +13,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testki
  */
 const priest = (cult: string, sin: number, kind: 'beni' | 'invocation' = 'invocation'): Combatant =>
   (blessuresSurLeProfil({
-    id: 'p1', name: 'Prêtre', kind: 'hero', sinPoints: sin,
+    id: 'p1', name: 'Prêtre', kind: 'heros', sinPoints: sin,
     talents: [{ talentId: kind, spec: cult, times: 1 }],
     skills: [], characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(12), weapons: [], movement: 4,

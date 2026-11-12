@@ -6,6 +6,7 @@
  * Rounds le Rassemblement et le Round suivant ; l'issue de la bataille terminée. Lecteur PUR, lu par les hôtes du noyau
  * (`hote/ecran.ts`).
  */
+import type { Equipe } from '../engine/relations';
 import type { Jeu } from './etat';
 import type { GesteDuNoyau } from './actionsDuNoyau';
 import {
@@ -36,7 +37,7 @@ function gesteDeBataille(s: Jeu, libelle: string, geste: GesteDeLaFenetre): Gest
 
 /** Une armée : son camp, son nom, sa Puissance sur `max`, sa Puissance de départ, et le bonus de ses Tests de
  *  Puissance ce Round (`0` : aucun). */
-export interface ArmeeEnVue { camp: 'ally' | 'enemy'; nom: string; puissance: number; depart: number; max: number; bonus: number }
+export interface ArmeeEnVue { camp: Equipe; nom: string; puissance: number; depart: number; max: number; bonus: number }
 
 /** Un PJ libre qu'une Scène peut poster : son nom, s'il y est posté, et le verbe qui l'y poste ou l'en retire. */
 export interface PosteEnVue { nom: string; poste: boolean; geste: GesteDuNoyau }
@@ -59,7 +60,7 @@ export interface BatailleEnVue {
   tirerAlea: GesteDeBataille | null;
   choisirAlea: GesteDeBataille[];
   gestes: GesteDeBataille[];
-  issue: { gagnant: 'ally' | 'enemy' | null; texte: string } | null;
+  issue: { gagnant: Equipe | null; texte: string } | null;
 }
 
 /** La position d'une Scène qui se tient : son Point de rupture, ou sa déroute. ADE II 8 l.161 */
@@ -93,14 +94,14 @@ export function batailleEnVue(s: Jeu): BatailleEnVue | null {
   const mb = s.massBattle;
   if (!mb || fenetreDuJeu(s)?.cle !== 'batailleDeMasse') return null;
   const enRound = mb.phase === 'round';
-  const armee = (camp: 'ally' | 'enemy', bonus: number): ArmeeEnVue => {
-    const a = camp === 'ally' ? mb.ally : mb.enemy;
+  const armee = (camp: Equipe, bonus: number): ArmeeEnVue => {
+    const a = camp === 'allie' ? mb.allie : mb.ennemi;
     return { camp, nom: a.label, puissance: armyMight(a), depart: armyStartMight(a), max: MIGHT_MAX, bonus };
   };
   const aleaOuvert = enRound && !mb.hazard && !mb.awaitingNext;
   return {
     round: mb.phase === 'over' ? null : t('mbf.round', { n: mb.round, total: mb.plannedRounds }),
-    armees: [armee('ally', enRound ? mb.allyMod + (mb.round === 1 ? mb.firstRoundBonus : 0) : 0), armee('enemy', 0)],
+    armees: [armee('allie', enRound ? mb.modificateurAllie + (mb.round === 1 ? mb.firstRoundBonus : 0) : 0), armee('ennemi', 0)],
     terrain: enRound ? mb.terrain ?? null : null,
     menace: enRound ? massBattleThreatPenalty(mb) : 0,
     scenes: enRound ? scenesDuRound(s, mb) : [],
@@ -119,6 +120,6 @@ export function batailleEnVue(s: Jeu): BatailleEnVue | null {
 
 /** L'issue de la bataille terminée : le camp qui l'emporte, ou aucun vainqueur. ADE II 8 l.124 */
 function issueDe(mb: MassBattleState): NonNullable<BatailleEnVue['issue']> {
-  if (mb.outcome === 'ally' || mb.outcome === 'enemy') return { gagnant: mb.outcome, texte: t('mbf.issue', { armee: mb[mb.outcome].label }) };
+  if (mb.outcome === 'allie' || mb.outcome === 'ennemi') return { gagnant: mb.outcome, texte: t('mbf.issue', { armee: mb[mb.outcome].label }) };
   return { gagnant: null, texte: t('mbf.issueNulle') };
 }

@@ -210,8 +210,8 @@ describe('Le torchon trempé (NADJ 16 l.109-111)', () => {
     // les deux totaux sont négatifs après 24 lancers — un barème qui ajouterait, ou un compte inversé,
     // ne les produirait pas.
     const res = get().tavernGames!.result!;
-    expect(res.playerSL, 'les points d’un camp de 12 sobres passent sous zéro').toBeLessThan(0);
-    expect(res.opponentSL).toBeLessThan(0);
+    expect(res.dr.joueur, 'les points d’un camp de 12 sobres passent sous zéro').toBeLessThan(0);
+    expect(res.dr.adversaire).toBeLessThan(0);
   });
 
   /**
@@ -263,7 +263,7 @@ describe('Le torchon trempé (NADJ 16 l.109-111)', () => {
     expect(get().sequence, 'la séquence est retirée').toBeNull();
     const res = get().tavernGames!.result!;
     expect(res.rounds).toBe(24);
-    expect(['player', 'opponent', 'tie']).toContain(res.winner);
+    expect(['joueur', 'adversaire', 'egalite']).toContain(res.winner);
   });
 });
 
@@ -286,7 +286,7 @@ describe('famille (10) — un 2ᵉ jeu à lanceurs est une ENTRÉE JSON, récit 
     label: 'Sonde à lanceurs',
     desc: 'Entrée de SONDE (jamais livrée au catalogue) : elle mesure qu’un 2ᵉ jeu à lanceurs se déclare.',
     skill: { id: 'projectiles', spec: 'lancer' },
-    mode: 'opposed' as const,
+    mode: 'oppose' as const,
     team: { size: 2 },
     dancers: 3,
     roundShape: 'thrower' as const,

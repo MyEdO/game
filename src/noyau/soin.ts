@@ -68,7 +68,7 @@ export function refusDuModeDuSoin(s: Pick<Jeu, 'pendingHeal' | 'pendingSurgery' 
 /** L'enjeu annoncé du soin `ph` : celui de son acte, décliné par Test et Bandages pour l'Hémorragie et les Blessures ;
  *  le brouillon d'une opération, celui de l'opération qu'il arme, à sa cible de DR (`cibleDeLOperation`). */
 export function enjeuDuSoin(s: Pick<Jeu, 'party'>, ph: Pick<PendingHeal, 'mode' | 'test' | 'bandagesDe' | 'targetId' | 'plaie'>): StakeRef {
-  if (estOperation(ph.mode)) return flowStakeRef(HEAL_STAKE[ph.mode], { values: { targetDR: cibleDeLOperation(s, ph, ph.mode) } });
+  if (estOperation(ph.mode)) return flowStakeRef(HEAL_STAKE[ph.mode], { values: { drCible: cibleDeLOperation(s, ph, ph.mode) } });
   if (ph.mode === 'hemorragie') return flowStakeRef(ph.test === 'dexterite' ? 'soin-hemorragie-dexterite' : ph.bandagesDe ? 'soin-hemorragie-bandages' : 'soin-hemorragie');
   if (ph.mode === 'blessures') return flowStakeRef(ph.bandagesDe ? 'soin-blessures-bandages' : 'soin-blessures');
   return flowStakeRef(HEAL_STAKE[ph.mode]);
@@ -80,7 +80,7 @@ export function enjeuDuSoin(s: Pick<Jeu, 'party'>, ph: Pick<PendingHeal, 'mode' 
 export function fenetreDuSoin(s: Jeu): { patientId: string; mode: ChoixNomme<HealMode>; test: ChoixNomme<TestDeSoin>; bandages: ChoixNomme<string> | null } | null {
   const ph = s.pendingHeal;
   if (!ph) return null;
-  const pool = (s.battle?.combatants ?? s.party).filter((c) => c.kind === 'hero');
+  const pool = (s.battle?.combatants ?? s.party).filter((c) => c.kind === 'heros');
   const porteurs = pool.filter((c) => porteDesBandages(c) || c.id === ph.bandagesDe);
   return {
     patientId: ph.targetId,

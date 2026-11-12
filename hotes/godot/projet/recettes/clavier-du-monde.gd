@@ -8,7 +8,7 @@ const RECETTE_AUTONOME := true
 ## Le sol de chaque case, en mètres, dans le repère du volume : la case (0, 0) centrée sur l'origine.
 const REZ := [-1.0, 0.0, -1.0, 1.0, 0.0, -1.0, -1.0, 0.0, 1.0, 1.0, 0.0, -1.0, 1.0, 0.0, 1.0, -1.0, 0.0, 1.0,
 	1.0, 0.0, -1.0, 3.0, 0.0, -1.0, 1.0, 0.0, 1.0, 3.0, 0.0, -1.0, 3.0, 0.0, 1.0, 1.0, 0.0, 1.0]
-const CASES := [[0, 0, 0], [0, 0, 0], [1, 0, 0], [1, 0, 0]]
+const CASES := [0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0]
 const SOMMETS := 12
 ## Les images que chaque touche reste tenue.
 const IMAGES_TENUES := 3
@@ -28,10 +28,10 @@ func _recetter() -> void:
 	for _sommet in SOMMETS:
 		normales.append_array([0.0, 1.0, 0.0])
 		couleurs.append_array([1.0, 1.0, 1.0, 1.0])
-	monde.poser({metresParCase = 2.0, positions = REZ, normales = normales, couleurs = couleurs, cases = CASES,
-		surfaces = [{debut = 0, fin = SOMMETS, matiere = "terrain--terre"}],
-		hauteurs = [{z = 0, rangees = [[0.0, 0.0]]}],
-		ombre = {positions = [], normales = [], couleurs = [], cases = [], surfaces = []}})
+	var morceau := {cle = "sol/0/0/0", empreinte = "sol", rangee = 0, positions = REZ, normales = normales, couleurs = couleurs, cases = CASES,
+		surfaces = [{debut = 0, fin = SOMMETS, matiere = "terrain--terre"}]}
+	monde.poser({monde = {metresParCase = 2.0, hauteurs = [{z = 0, rangees = [[0.0, 0.0]]}], morceaux = [morceau]}, toits = [], couronnes = []},
+		{volume = [morceau], toits = [], couronnes = []})
 	monde.regarder("tactique")
 	var panneau := VBoxContainer.new()
 	root.add_child(panneau)

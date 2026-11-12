@@ -1,5 +1,5 @@
 /**
- * #2961 — teardown par défaut du verbe `cancel` d'un flux de jet (`rollFlowFactory`, `cancel`) : il ferme
+ * #2961 — teardown par défaut du verbe `annuler` d'un flux de jet (`rollFlowFactory`, `annuler`) : il ferme
  * le pending du flux, et la cascade seulement quand ce pending porte l'une de ses étapes-jets
  * (`PORTEURS_D_ETAPE`). Une cascade étrangère au flux reste ouverte.
  */

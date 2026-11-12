@@ -25,10 +25,10 @@
     "effects": [
       {
         "trigger": "onRoundEnd",
-        "on": "self",
+        "on": "soi",
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "target",
             "ops": [
@@ -43,7 +43,7 @@
         }
       }
     ],
-    "icon": "condition/deafened",
+    "icon": "etat/assourdi",
     "severity": 30,
     "aiThreat": 2,
     "marqueCouleur": "#9aa4b0"
@@ -84,7 +84,7 @@
     },
     "lockedReason": "il faut regagner au moins 1 Blessure",
     "resolveHeals": 1,
-    "icon": "condition/prone",
+    "icon": "etat/a-terre",
     "severity": 75,
     "aiThreat": 3,
     "marqueCouleur": "#b08a5a"
@@ -114,10 +114,10 @@
     "effects": [
       {
         "trigger": "onRoundEnd",
-        "on": "self",
+        "on": "soi",
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "target",
             "ops": [
@@ -132,7 +132,7 @@
         }
       }
     ],
-    "icon": "condition/blinded",
+    "icon": "etat/aveugle",
     "severity": 65,
     "aiThreat": 4,
     "marqueCouleur": "#8a8aa8"
@@ -166,18 +166,18 @@
     "effects": [
       {
         "trigger": "onRoundEnd",
-        "on": "self",
+        "on": "soi",
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "hiddenFromFoes"
           },
-          "then": {
-            "kind": "seq",
-            "steps": [
+          "alors": {
+            "kind": "sequence",
+            "etapes": [
               {
-                "kind": "do",
-                "effect": {
+                "kind": "effet",
+                "effet": {
                   "type": "ops",
                   "on": "target",
                   "ops": [
@@ -192,8 +192,8 @@
                 }
               },
               {
-                "kind": "if",
-                "cond": {
+                "kind": "si",
+                "condition": {
                   "kind": "compare",
                   "subject": {
                     "who": "target",
@@ -202,9 +202,9 @@
                   "op": "<=",
                   "value": 0
                 },
-                "then": {
-                  "kind": "do",
-                  "effect": {
+                "alors": {
+                  "kind": "effet",
+                  "effet": {
                     "type": "ops",
                     "on": "target",
                     "ops": [
@@ -224,7 +224,7 @@
       },
       {
         "trigger": "onRoundEnd",
-        "on": "self",
+        "on": "soi",
         "flow": {
           "kind": "test",
           "test": {
@@ -279,12 +279,12 @@
               }
             ]
           },
-          "success": {
-            "kind": "seq",
-            "steps": [
+          "reussite": {
+            "kind": "sequence",
+            "etapes": [
               {
-                "kind": "do",
-                "effect": {
+                "kind": "effet",
+                "effet": {
                   "type": "ops",
                   "on": "target",
                   "ops": [
@@ -303,8 +303,8 @@
                 }
               },
               {
-                "kind": "if",
-                "cond": {
+                "kind": "si",
+                "condition": {
                   "kind": "compare",
                   "subject": {
                     "who": "target",
@@ -313,9 +313,9 @@
                   "op": "<=",
                   "value": 0
                 },
-                "then": {
-                  "kind": "do",
-                  "effect": {
+                "alors": {
+                  "kind": "effet",
+                  "effet": {
                     "type": "ops",
                     "on": "target",
                     "ops": [
@@ -331,14 +331,14 @@
               }
             ]
           },
-          "fail": {
-            "kind": "seq",
-            "steps": []
+          "echec": {
+            "kind": "sequence",
+            "etapes": []
           }
         }
       }
     ],
-    "icon": "condition/broken",
+    "icon": "etat/brise",
     "severity": 70,
     "marqueCouleur": "#c060c0"
   },
@@ -368,7 +368,7 @@
     "gating": {
       "movement": "none"
     },
-    "icon": "condition/entangled",
+    "icon": "etat/empetre",
     "severity": 60,
     "aiThreat": 5,
     "marqueCouleur": "#7aa050"
@@ -393,10 +393,10 @@
     "effects": [
       {
         "trigger": "onRoundEnd",
-        "on": "self",
+        "on": "soi",
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "target",
             "ops": [
@@ -414,7 +414,7 @@
       },
       {
         "trigger": "onRoundEnd",
-        "on": "self",
+        "on": "soi",
         "flow": {
           "kind": "test",
           "test": {
@@ -425,12 +425,12 @@
             "label": "Résistance à l’Empoisonné",
             "argDifficulty": true
           },
-          "success": {
-            "kind": "seq",
-            "steps": [
+          "reussite": {
+            "kind": "sequence",
+            "etapes": [
               {
-                "kind": "do",
-                "effect": {
+                "kind": "effet",
+                "effet": {
                   "type": "ops",
                   "on": "target",
                   "ops": [
@@ -449,8 +449,8 @@
                 }
               },
               {
-                "kind": "if",
-                "cond": {
+                "kind": "si",
+                "condition": {
                   "kind": "compare",
                   "subject": {
                     "who": "target",
@@ -459,9 +459,9 @@
                   "op": "<=",
                   "value": 0
                 },
-                "then": {
-                  "kind": "do",
-                  "effect": {
+                "alors": {
+                  "kind": "effet",
+                  "effet": {
                     "type": "ops",
                     "on": "target",
                     "ops": [
@@ -477,14 +477,14 @@
               }
             ]
           },
-          "fail": {
-            "kind": "seq",
-            "steps": []
+          "echec": {
+            "kind": "sequence",
+            "etapes": []
           }
         }
       }
     ],
-    "icon": "condition/poisoned",
+    "icon": "etat/empoisonne",
     "severity": 55,
     "aiThreat": 4,
     "marqueCouleur": "#5fc05a",
@@ -509,10 +509,10 @@
     "effects": [
       {
         "trigger": "onRoundEnd",
-        "on": "self",
+        "on": "soi",
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "target",
             "ops": [
@@ -549,7 +549,7 @@
       "enjeu": "Test d’Athlétisme — réussi : 1 pion En flammes retiré, et 1 de plus par DR.",
       "form": "descripteur"
     },
-    "icon": "condition/ablaze",
+    "icon": "etat/en-flammes",
     "severity": 58,
     "aiThreat": 5,
     "marqueCouleur": "#ff7a2a",
@@ -575,7 +575,7 @@
       }
     ],
     "perStack": true,
-    "icon": "condition/fatigued",
+    "icon": "etat/extenue",
     "severity": 20,
     "marqueCouleur": "#8a8aa0"
   },
@@ -604,10 +604,10 @@
     "effects": [
       {
         "trigger": "onRoundEnd",
-        "on": "self",
+        "on": "soi",
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "target",
             "ops": [
@@ -625,7 +625,7 @@
       }
     ],
     "stacksReducedBy": "bleedIgnore",
-    "icon": "condition/bleeding",
+    "icon": "etat/hemorragique",
     "severity": 52,
     "aiThreat": 4,
     "marqueCouleur": "#d02828",
@@ -647,7 +647,7 @@
       "movement": "none",
       "cannotDefend": true
     },
-    "icon": "condition/unconscious",
+    "icon": "etat/inconscient",
     "severity": 100,
     "aiThreat": 8,
     "marqueCouleur": "#6a6a90"
@@ -676,7 +676,7 @@
     "effects": [
       {
         "trigger": "onRoundEnd",
-        "on": "self",
+        "on": "soi",
         "flow": {
           "kind": "test",
           "test": {
@@ -686,12 +686,12 @@
             "difficulty": "intermediaire",
             "label": "Résistance au Sonné"
           },
-          "success": {
-            "kind": "seq",
-            "steps": [
+          "reussite": {
+            "kind": "sequence",
+            "etapes": [
               {
-                "kind": "do",
-                "effect": {
+                "kind": "effet",
+                "effet": {
                   "type": "ops",
                   "on": "target",
                   "ops": [
@@ -710,8 +710,8 @@
                 }
               },
               {
-                "kind": "if",
-                "cond": {
+                "kind": "si",
+                "condition": {
                   "kind": "all",
                   "of": [
                     {
@@ -734,9 +734,9 @@
                     }
                   ]
                 },
-                "then": {
-                  "kind": "do",
-                  "effect": {
+                "alors": {
+                  "kind": "effet",
+                  "effet": {
                     "type": "ops",
                     "on": "target",
                     "ops": [
@@ -752,9 +752,9 @@
               }
             ]
           },
-          "fail": {
-            "kind": "seq",
-            "steps": []
+          "echec": {
+            "kind": "sequence",
+            "etapes": []
           }
         }
       }
@@ -763,7 +763,7 @@
       "action": "none",
       "movement": "half"
     },
-    "icon": "condition/stunned",
+    "icon": "etat/sonne",
     "severity": 80,
     "aiThreat": 6,
     "marqueCouleur": "#e0d060",
@@ -789,10 +789,10 @@
     "effects": [
       {
         "trigger": "onRoundEnd",
-        "on": "self",
+        "on": "soi",
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "target",
             "ops": [
@@ -812,7 +812,7 @@
       "movement": "none",
       "cannotDefend": true
     },
-    "icon": "condition/surprised",
+    "icon": "etat/surpris",
     "severity": 40,
     "aiThreat": 4,
     "marqueCouleur": "#f0e8a0"
@@ -829,10 +829,10 @@
     "effects": [
       {
         "trigger": "onRoundEnd",
-        "on": "self",
+        "on": "soi",
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "target",
             "ops": [
@@ -867,10 +867,10 @@
     "effects": [
       {
         "trigger": "onRoundEnd",
-        "on": "self",
+        "on": "soi",
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "target",
             "ops": [
@@ -902,13 +902,13 @@
     "effects": [
       {
         "trigger": "onRoundEnd",
-        "on": "self",
+        "on": "soi",
         "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
             {
-              "kind": "if",
-              "cond": {
+              "kind": "si",
+              "condition": {
                 "kind": "all",
                 "of": [
                   {
@@ -935,9 +935,9 @@
                   }
                 ]
               },
-              "then": {
-                "kind": "do",
-                "effect": {
+              "alors": {
+                "kind": "effet",
+                "effet": {
                   "type": "ops",
                   "on": "target",
                   "ops": [
@@ -952,8 +952,8 @@
               }
             },
             {
-              "kind": "if",
-              "cond": {
+              "kind": "si",
+              "condition": {
                 "kind": "all",
                 "of": [
                   {
@@ -979,9 +979,9 @@
                   }
                 ]
               },
-              "then": {
-                "kind": "do",
-                "effect": {
+              "alors": {
+                "kind": "effet",
+                "effet": {
                   "type": "ops",
                   "on": "target",
                   "ops": [

@@ -41,6 +41,7 @@ import { CAP_IDENTITE_PROP, capDecorAdmis } from '../data/props.types';
 import { DIR8_ORDER, estCardinal, type Dir8 } from '../geometry/dir8';
 import { decorsEnCaseEtage, entitesEnCaseEtage } from './monde/decorIndex';
 import { actionNeuve } from './monde/usable';
+import { choixSousUneAdresse, estCheminDerive, type SourceDeLEdition } from './edition/adresseDeProse';
 import { ancreDuDecor } from './monde/footprint';
 import { portePar } from './monde/poseDuDecor';
 import { aretesA } from './monde/wallIndex';
@@ -51,36 +52,36 @@ import type { Rect, Pt, EffectZoneSeed, Segment } from './sceneEdit';
  *  personnage NOMME sa fiche au bestiaire — `ref` y est REQUISE, comme au schéma de scène
  *  (`PORTEURS_DU_TYPE`) — et le départ des héros n'a rien à référencer. */
 export type Tool =
-  | { mode: 'select' }
-  | { mode: 'tile'; terrain: Terrain }
-  | { mode: 'entity'; kind: 'prop'; ref: string }
-  | { mode: 'entity'; kind: 'personnage'; ref: string }
-  | { mode: 'entity'; kind: 'heroStart' }
+  | { mode: 'selection' }
+  | { mode: 'terrain'; terrain: Terrain }
+  | { mode: 'entite'; kind: 'prop'; ref: string }
+  | { mode: 'entite'; kind: 'personnage'; ref: string }
+  | { mode: 'entite'; kind: 'heroStart' }
   | { mode: 'zone'; zone: ZoneVariant }
   // EMPRISE d'une zone d'effet au PINCEAU (`SceneEffectZone.tiles`) : `zoneId` = id STABLE de la zone
   // peinte, `paint` le sens du geste — l'appui et le glissé ajoutent (ou retirent) des cases, comme le
   // pinceau de terrain pose son terrain. Corriger une pièce qui déborde se fait SUR la carte.
-  | { mode: 'zoneTiles'; zoneId: string; paint: 'add' | 'remove' }
-  | { mode: 'entry' }
-  | { mode: 'encounter' }
+  | { mode: 'casesDeZone'; zoneId: string; paint: 'add' | 'remove' }
+  | { mode: 'entree' }
+  | { mode: 'rencontre' }
   // `structure` (id de `structures.json`) = le MATÉRIAU porté par l'outil, mémorisé entre les poses
   // (comme un outil de peinture porte sa couleur) — plus besoin de repasser par l'inspecteur (#830).
-  | { mode: 'wall'; paint: WallPaint; structure?: string }
+  | { mode: 'arete'; paint: WallPaint; structure?: string }
   // Hauteur métrique d'une surface (porteuse : marchabilité/combat/chute, cf. `relief.ts`). On peint des
   // MÈTRES ; la traversée verticale s'auto-dérive du delta de hauteur (`surfaceLink`), sans escalier.
-  | { mode: 'height'; metres: number }
+  | { mode: 'hauteur'; metres: number }
   // VOLÉE d'escalier : file de cases dont les cotes montent par crans franchissables jusqu'au plancher
   // de l'étage `toZ` (invariant PARTAGÉ avec le compilateur ASCII — `noyau/stairFlight.ts`). L'outil ne
   // pose AUCUN décor : une volée est du relief, la traversée s'en dérive comme pour toute surface.
-  | { mode: 'stair'; toZ: number }
+  | { mode: 'escalier'; toZ: number }
   // Emplacement de siège : pose une SceneEntity portant un poste d'artillerie (`trappingId` = engin du
   // catalogue `armes-de-siege`). Le créneau (arc) et l'équipage s'éditent ensuite dans l'inspecteur.
   | { mode: 'emplacement'; trappingId: string }
   // Crénelage (#841 FU-H) : marque le pourtour peint comme portant un PARAPET crénelé (décoration de
   // rendu — `paintCrenellated`, orthogonal à `height`). `structure` = id de `structures.json` (le rendu en
   // dérive merlons/bandes/arase) ; `null` = gomme la marque.
-  | { mode: 'crenellated'; structure: string | null }
-  | { mode: 'erase' };
+  | { mode: 'crenelage'; structure: string | null }
+  | { mode: 'gomme' };
 
 /** Variantes de l'outil ZONE (rail « zone » de la Palette), la pièce d'abord. `room` et `effect` produisent toutes
  *  deux une `SceneEffectZone` ; ce qui les distingue est leur GRAINE ci-dessous, pas le créateur. */
@@ -133,7 +134,7 @@ export type Sel =
   // l'inspecteur (type, structure destructible). Posée par l'outil murs, sélectionnée à l'outil ↖.
   | { type: 'wall'; x: number; y: number; side: WallSide; z: number };
 
-/** Combien d'EFFETS un Flow authoré porte-t-il, à TOUTE profondeur — les feuilles `do` nichées sous
+/** Combien d'EFFETS un Flow authoré porte-t-il, à TOUTE profondeur — les feuilles `effet` nichées sous
  *  un `si`, un `test` ou un `choix` comptent autant que celles de premier niveau. C'est le nombre que
  *  l'atelier annonce (pastille du dock, bouton « Effets (N) » de l'inspecteur) : un trigger dont tout
  *  l'effet vit dans une branche est un trigger qui AGIT. Distinct de `flowEffects` (moteur), qui
@@ -141,7 +142,7 @@ export type Sel =
 export function flowEffectCount(flow: Flow): number {
   let n = 0;
   walkFlow(flow, (node) => {
-    if (node.kind === 'do') n++;
+    if (node.kind === 'effet') n++;
   });
   return n;
 }
@@ -421,7 +422,7 @@ export function pickArchitectureEdge(scene: Scene, fx: number, fy: number, z: nu
 
 /** L'outil d'ENTITÉ seul — ce que `placeEntity` demande, dérivé de `Tool` pour qu'aucun site ne
  *  redise sa forme (la palette le construit, le canevas le transmet, la pose le consomme). */
-export type EntityTool = Extract<Tool, { mode: 'entity' }>;
+export type EntityTool = Extract<Tool, { mode: 'entite' }>;
 
 /** La donnée du porteur de chaque sorte de formulaire tiré du schéma. */
 export interface DonneeDuPorteur { zone: SceneEffectZone; declencheur: Trigger; entite: SceneEntity }
@@ -432,8 +433,9 @@ export type SorteDePorteur = keyof DonneeDuPorteur;
 /** Les chemins de clés, depuis la donnée d'un porteur, des champs qu'il offre : chacun avec tout ce qu'il porte. */
 type CheminsOfferts = readonly (readonly string[])[];
 
-/** Le cadre où vit un porteur de formulaire tiré du schéma : sa scène, et les scènes et le narratif de son projet. */
-export interface CadreDuPorteur { scene: Scene; projet: Pick<ProjectDoc, 'scenes' | 'narratif'> }
+/** Le cadre où vit un porteur de formulaire tiré du schéma : sa scène, les scènes et le narratif de son projet, et le
+ *  `Source/` que ses adresses de prose désignent (`SourceDeLEdition`). */
+export interface CadreDuPorteur { scene: Scene; projet: Pick<ProjectDoc, 'scenes' | 'narratif'>; source: SourceDeLEdition }
 
 /** Ce qu'un porteur de formulaire tiré du schéma déclare : le nœud de sa donnée, les champs qu'il offre, et les choix que
  *  son contexte pose à un chemin de sa donnée (`choixDuChamp`), dans son cadre. */
@@ -560,7 +562,7 @@ function choixDesApparencesDObjets(ent: SceneEntity, reste: readonly Segment[], 
 function munitionsDeLaPiece(trappingId: string): ChoixDuContexte[] {
   const piece = { trappingId, subType: findTrappingById(trappingId)?.subType?.id };
   return trappingsInstanciables()
-    .filter((m) => gabaritDObjet(m.id)?.kind === 'ammo' && chargeLArme({ trappingId: m.id, subType: m.subType?.id }, piece))
+    .filter((m) => chargeLArme({ trappingId: m.id, subType: m.subType?.id }, piece) && gabaritDObjet(m.id)?.kind === 'ammo')
     .map((m) => ({ valeur: m.id, libelle: m.label, refus: null }));
 }
 
@@ -688,27 +690,32 @@ function choixDeLaReferenceLocale(noeuds: readonly unknown[], cadre: CadreDuPort
 }
 
 /** Les choix que le contexte du porteur de sorte `sorte`, de donnée `donnee`, pose au chemin `chemin` de sa donnée, dans
- *  leur ordre, dans le cadre `cadre` : d'une référence narrative, chaque entrée du registre que son narratif désigne
- *  (`entreesNarratives`) ; d'une référence locale, chaque élément que sa portée admet (`choixDeLaReferenceLocale`) ;
- *  sinon ceux de son porteur (`FORMULAIRES`) ; `undefined` : ceux du nœud. */
+ *  leur ordre, dans le cadre `cadre` : sous une adresse de prose, ceux de son `Source/` (`choixSousUneAdresse`) ; d'une
+ *  référence narrative, chaque entrée du registre que son narratif désigne (`entreesNarratives`) ; d'une référence
+ *  locale, chaque élément que sa portée admet (`choixDeLaReferenceLocale`) ; sinon ceux de son porteur (`FORMULAIRES`) ;
+ *  `undefined` : ceux du nœud. */
 export function choixDuChamp<S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], chemin: readonly Segment[], cadre: CadreDuPorteur): readonly ChoixDuContexte[] | undefined {
   const cle = chemin[chemin.length - 1];
-  if (estReferenceNarrative(cle)) return entreesNarratives(cadre.projet.narratif, cle).map((e) => ({ valeur: e.id, libelle: e.label, refus: null }));
   const formulaire: FormulaireDuPorteur<DonneeDuPorteur[S]> = FORMULAIRES[sorte];
+  const deLAdresse = choixSousUneAdresse(formulaire.schema, donnee, chemin, cadre.source);
+  if (deLAdresse) return deLAdresse;
+  if (estReferenceNarrative(cle)) return entreesNarratives(cadre.projet.narratif, cle).map((e) => ({ valeur: e.id, libelle: e.label, refus: null }));
   return choixDeLaReferenceLocale(noeudsAuChemin(formulaire.schema, donnee, chemin), cadre) ?? formulaire.choix?.(donnee, chemin, cadre);
 }
 
 /** Le formulaire du porteur de sorte `sorte`, de donnée `donnee`, dans le cadre `cadre` : le champ de tête de
  *  chacun de ses champs offerts (`formeDuPorteur`), décrit par `inferFields` sur le nœud de sa donnée, dans son
- *  contexte : ce qu'il offre sous lui (`cheminOffert`), où il s'écrit entier (`ecritureOfferte`) et ses choix
- *  (`choixDuChamp`). */
+ *  contexte : ce qu'il offre sous lui (`cheminOffert`, jamais ce qu'une adresse de prose dérive,
+ *  `estCheminDerive`), où il s'écrit entier (`ecritureOfferte`), ses choix (`choixDuChamp`) et le `Source/` de
+ *  ses adresses. */
 export function formulaireDe<S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], cadre: CadreDuPorteur): FieldDesc[] {
   const { noeud, champs } = formeDuPorteur(sorte, donnee, cadre);
   const decrits = inferFields([donnee as unknown as Record<string, unknown>], { noeud, niveau: 'profondeur' });
   const contexte: ContexteDuChamp = {
-    offert: (chemin) => cheminOffert(champs, chemin),
+    offert: (chemin) => cheminOffert(champs, chemin) && !estCheminDerive(noeud, donnee, chemin),
     ecrivable: (chemin, actuelle) => ecritureOfferte(champs, chemin, actuelle),
     choix: (chemin) => choixDuChamp(sorte, donnee, chemin, cadre),
+    source: cadre.source,
   };
   return [...new Set(champs.map(([tete]) => tete))].flatMap((cle) => decrits.filter((f) => f.key === cle)).map((f) => ({ ...f, contexte }));
 }

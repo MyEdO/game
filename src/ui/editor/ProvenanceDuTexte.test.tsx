@@ -381,8 +381,8 @@ describe('provenance des nouveaux effets adressables', () => {
 describe('provenance des branches de Flow et de la narration stricte', () => {
   const ctx = { encounters: [], dialogues: [], cibles: CIBLES_D_EFFET_DE_SCENE };
   it.each([
-    [{ kind: 'choice', prompt: 'Entrer ?', yes: { kind: 'seq', steps: [] }, no: { kind: 'seq', steps: [] } }, 'du choix'],
-    [{ kind: 'test', test: { skill: { id: 'escalade' }, difficulty: 'intermediaire', stake: { authored: 'Enjeu maison.' } }, success: { kind: 'seq', steps: [] }, fail: { kind: 'seq', steps: [] } }, "de l'enjeu"],
+    [{ kind: 'choix', invite: 'Entrer ?', oui: { kind: 'sequence', etapes: [] }, non: { kind: 'sequence', etapes: [] } }, 'du choix'],
+    [{ kind: 'test', test: { skill: { id: 'escalade' }, difficulty: 'intermediaire', stake: { authored: 'Enjeu maison.' } }, reussite: { kind: 'sequence', etapes: [] }, echec: { kind: 'sequence', etapes: [] } }, "de l'enjeu"],
   ] as const)('%s : la référence est écrite sur le texte, les branches sont conservées', (initiale, sujet) => {
     let dernier: Flow;
     function Atelier() {
@@ -394,15 +394,15 @@ describe('provenance des branches de Flow et de la narration stricte', () => {
     choisir('Adapté', sujet);
     poserRef(sujet, REF);
     expect(sceneFlowSchema.safeParse(dernier!).error?.issues).toBeUndefined();
-    const node = dernier!.kind === 'seq' ? dernier!.steps[0] : dernier!;
-    if (node.kind === 'choice') {
+    const node = dernier!.kind === 'sequence' ? dernier!.etapes[0] : dernier!;
+    if (node.kind === 'choix') {
       expect(node.adapteDe).toEqual(REF);
-      expect(node.yes).toEqual(initiale.kind === 'choice' ? initiale.yes : undefined);
-      expect(node.no).toEqual(initiale.kind === 'choice' ? initiale.no : undefined);
+      expect(node.oui).toEqual(initiale.kind === 'choix' ? initiale.oui : undefined);
+      expect(node.non).toEqual(initiale.kind === 'choix' ? initiale.non : undefined);
     } else if (node.kind === 'test') {
       expect(node.test.stake).toEqual({ authored: 'Enjeu maison.', source: undefined, adapteDe: REF });
-      expect(node.success).toEqual({ kind: 'seq', steps: [] });
-      expect(node.fail).toEqual({ kind: 'seq', steps: [] });
+      expect(node.reussite).toEqual({ kind: 'sequence', etapes: [] });
+      expect(node.echec).toEqual({ kind: 'sequence', etapes: [] });
     } else throw new Error('branche perdue');
   });
   it('narrative : le texte saisi et sa référence appartiennent au payload strict', () => {

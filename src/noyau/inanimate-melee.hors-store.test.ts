@@ -34,7 +34,7 @@ function startWithVehicle() {
   banc.getState().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = banc.getState().battle!;
-  return { veh: b.combatants.find((c) => c.id === 'veh')!, H: b.combatants.find((c) => c.kind === 'hero')! };
+  return { veh: b.combatants.find((c) => c.id === 'veh')!, H: b.combatants.find((c) => c.kind === 'heros')! };
 }
 
 describe('Véhicule-coque attaqué en mêlée — inerte comme une structure (isInanimate)', () => {

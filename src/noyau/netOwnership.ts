@@ -195,8 +195,8 @@ export function defenseSurfaced(s: Jeu, defender: Combatant): boolean {
  * (qui a la main ICI) ; le SURFAÇAGE d'une défense, lui, passe par `defenseSurfaced` ci-dessus.
  */
 export function pilotedByHuman(s: Jeu, c: Combatant): boolean {
-  if (c.kind === 'hero') return !c.aiControlled && ownsLocal(s, c.id);
-  if (c.kind === 'enemy') return s.net.gmSeat != null; // conduit par le MJ (bac-à-sable) sinon IA
+  if (c.kind === 'heros') return !c.aiControlled && ownsLocal(s, c.id);
+  if (c.kind === 'ennemi') return s.net.gmSeat != null; // conduit par le MJ (bac-à-sable) sinon IA
   return false;
 }
 
@@ -287,22 +287,22 @@ export const JET_FIGE = {
  * `controlsCombatant` en dépendent ; `combatGate` le ré-exporte pour ses consommateurs historiques.)
  */
 export function aiDriven(s: Jeu, c: Combatant): boolean {
-  if (c.kind === 'enemy') return s.net.gmSeat == null; // ennemi = IA SAUF si un siège MJ le conduit
+  if (c.kind === 'ennemi') return s.net.gmSeat == null; // ennemi = IA SAUF si un siège MJ le conduit
   // PNJ allié IA (`Combatant.aiControlled`, ex. défenseur de siège) : agit SEUL même en jeu MANUEL — sans
   // attendre l'Auto-combat global. On ne pilote jamais le combattant d'un AUTRE siège (`ownsLocal`).
-  if (c.kind === 'hero' && c.aiControlled) return ownsLocal(s, c.id);
-  return c.kind === 'hero' && cadenceAutoCombat() && ownsLocal(s, c.id);
+  if (c.kind === 'heros' && c.aiControlled) return ownsLocal(s, c.id);
+  return c.kind === 'heros' && cadenceAutoCombat() && ownsLocal(s, c.id);
 }
 
 /**
  * Le siège LOCAL pilote-t-il À LA MAIN ce combattant MAINTENANT ? — prédicat UNIQUE des affordances de TOUR
  * (grille de déplacement, réticule, barre d'action, hotbar). Héros manuel → vrai ; héros Auto-combat →
  * faux ; PNJ `aiControlled` → faux ; ennemi sans MJ → faux ; ENNEMI quand le siège LOCAL porte le rôle MJ
- * → vrai (coop : `gmSeat === mySeat`) ; invocation alliée (`kind:'hero'`) → comme un héros.
+ * → vrai (coop : `gmSeat === mySeat`) ; invocation alliée (`kind:'heros'`) → comme un héros.
  */
 export function controlsCombatant(s: Jeu, c: Combatant): boolean {
   if (!pilotedByHuman(s, c) || aiDriven(s, c)) return false;
-  if (c.kind === 'hero') return true; // `pilotedByHuman` encode déjà `ownsLocal` (siège-aware)
+  if (c.kind === 'heros') return true; // `pilotedByHuman` encode déjà `ownsLocal` (siège-aware)
   // Ennemi/monde conduit par le MJ : seul le siège MJ le pilote — comparé au siège qui DÉCIDE
   // maintenant (le siège local, ou le siège AGISSANT pendant l'application de son intent).
   return s.net.mode === 'local' || s.net.gmSeat === decidingSeat(s);
@@ -337,8 +337,8 @@ export function seatInfluences(s: Jeu, seat: number, ownerId: string | undefined
   const c = porteurParId(s, ownerId);
   if (!c) return false;
   const solo = s.net.mode === 'local';
-  if (c.kind === 'hero') return !c.aiControlled && (solo || seatOwns(s, seat, c.id));
-  if (c.kind === 'enemy') return s.net.gmSeat != null && (solo || s.net.gmSeat === seat);
+  if (c.kind === 'heros') return !c.aiControlled && (solo || seatOwns(s, seat, c.id));
+  if (c.kind === 'ennemi') return s.net.gmSeat != null && (solo || s.net.gmSeat === seat);
   return false;
 }
 
@@ -373,7 +373,7 @@ export function controlsActive(state: Jeu): boolean {
   const activeId = b.order[b.turn];
   const active = inBattleId(b, activeId);
   if (!active) return true;
-  if (active.kind !== 'hero') {
+  if (active.kind !== 'heros') {
     // Actif non-héros : conduit par le siège MJ (bac-à-sable) → affordances si le siège qui DÉCIDE porte
     // le rôle MJ (le siège local, ou le siège AGISSANT pendant son intent). Sans MJ (`gmSeat` null) →
     // tour IA : vrai (l'UI est déjà inerte par ses propres verrous — inchangé). NB : le surfaçage FIN
@@ -516,10 +516,10 @@ const routeJet = (jet: JetOwnerRef, depense: boolean): Route => ({
 
 /** Le geste de jet `verbe` dépense-t-il une ressource du porteur ? Tous, sauf le lancer et les verbes de fenêtre
  *  (`estVerbeDeFenetre` : l'annulation et la clôture). */
-const depenseDuPorteur = (verbe: RollVerb): boolean => verbe !== 'roll' && !estVerbeDeFenetre(verbe);
+const depenseDuPorteur = (verbe: RollVerb): boolean => verbe !== 'lancer' && !estVerbeDeFenetre(verbe);
 
 /** La rangée (`pid`) d'un geste de jet : son dernier argument (`VerbesDeJet` : après le dé posé de `jetImposerLeResultat`). */
-const rangeeDuGeste = (verbe: RollVerb, args: unknown[]): string | undefined => idArg(args[verbe === 'setForcedRoll' ? 2 : 1]);
+const rangeeDuGeste = (verbe: RollVerb, args: unknown[]): string | undefined => idArg(args[verbe === 'imposerLeResultat' ? 2 : 1]);
 
 /**
  * Possession d'un geste de jet `verbe`, d'après le flux qu'il vise (1ᵉʳ argument) — un flux qui ne l'accepte pas :
@@ -539,7 +539,7 @@ const routeDuVerbeDeJet = (verbe: RollVerb): Route => ({
     if (!fluxAccepte(flux, verbe)) return false;
     const w: FlowVerbs = FLOW_VERBS[flux];
     if (w.kind === 'mono') return routeJet(w.jetOwner, depenseDuPorteur(verbe)).rule(s, seat, args);
-    if (flux === 'cascade' && (verbe === 'resist' || verbe === 'reverse')) return acteurDEtape(s, seat, rangeeDuGeste(verbe, args));
+    if (flux === 'cascade' && (verbe === 'resister' || verbe === 'inverser')) return acteurDEtape(s, seat, rangeeDuGeste(verbe, args));
     if (!w.pidIsActor || estVerbeDeFenetre(verbe)) return null;
     const rangee = rangeeDuGeste(verbe, args);
     if (rangee === undefined && rangeeFacultative(flux, verbe)) return true;

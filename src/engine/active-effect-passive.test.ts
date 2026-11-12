@@ -19,7 +19,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testki
 
 function hero(p: Partial<Combatant> = {}): Combatant {
   return blessuresSurLeProfil({
-    id: 'h', label: 'Cobaye', kind: 'hero',
+    id: 'h', label: 'Cobaye', kind: 'heros',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 45, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 38, sociabilite: 30 },
     wounds: blessuresDeBase(12, 10), advantage: 0, conditions: [], movement: 4,
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -31,7 +31,7 @@ function hero(p: Partial<Combatant> = {}): Combatant {
 const SORT_ID = 'toile-de-lumiere';
 const SOURCE: CodexTarget = { category: 'spells', id: SORT_ID };
 const LABEL = 'Toile de lumière';
-const CTX = { label: LABEL, source: { kind: 'spell' as const, id: SORT_ID }, defaultDurationRounds: 3, now: 0, rng: makeRNG(7) };
+const CTX = { label: LABEL, source: { kind: 'sort' as const, id: SORT_ID }, defaultDurationRounds: 3, now: 0, rng: makeRNG(7) };
 
 /** Les quatre ops qui vivaient en champs SCALAIRES de l'`ActiveEffect` avant #1791. */
 const OPS = [

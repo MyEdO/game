@@ -26,7 +26,7 @@ const ENTREES: EntreesDeLaPartie = { graine: 7, reglesMaison: {}, cadence: 'manu
 /** Le duel ouvert, au tour du héros. */
 function leDuel() {
   const ouverture = creerPartie(etatInitialDuJeu(), ENTREES);
-  ouverture.lancer({ party: [heroDuDuel()], scene: testScene(), combatDirect: 'enc-mutants' });
+  ouverture.lancer({ party: [heroDuDuel()], scene: testScene(), projet: null, combatDirect: 'enc-mutants' });
   ouverture.envoyer({ type: 'fenetreValider', args: ['debutDuRound'] });
   const garde = ouverture.etat();
   ouverture.fermer();
@@ -44,7 +44,7 @@ const bd = (label: string, roll: number, target: number): RollBreakdown => {
 const jet = (roll: number, target: number) => { const t = evaluateTest(roll, target); return { roll, target, sl: t.sl, success: t.success }; };
 const TEST: TestNomme = { skill: { id: 'athletisme' }, difficulty: 'intermediaire', label: 'Course' };
 const COUP: AttackResult = {
-  hit: true, attackerRoll: 21, netSL: 2, critical: false, advantageTo: 'attacker', defenderDefeated: false, log: '',
+  hit: true, attackerRoll: 21, netSL: 2, critical: false, advantageTo: 'attaquant', defenderDefeated: false, log: '',
   attackerDetail: bd('Corps à corps', 21, 45), defenderDetail: bd('Esquive', 60, 40),
 };
 const ATTAQUE: PendingAttack = { attackerId: H.id, targetId: E.id, location: null, result: COUP };
@@ -61,7 +61,7 @@ const FENETRES_A_JET: Partial<Record<ModalKey, Fixture>> = {
   battement: { patch: { pendingBattement: { attackerId: H.id, foeId: E.id, result: tr(34, 45) } }, flux: ['battement'] },
   distraire: { patch: { pendingDistraire: { moverId: H.id, foeId: E.id, atk: tr(20, 50), defRoll: tr(70, 40), result: 'reussite' } }, flux: ['distraire'], oppose: true },
   manoeuvre: { patch: { pendingManeuver: { attackerId: H.id, kind: 'vomi', attaque: 'vomi', avantageSpent: 0, result: tr(30, 40) } }, flux: ['manoeuvre'] },
-  auContact: { patch: { pendingAuContact: { moverId: H.id, foeId: E.id, phase: 'choice', atk: tr(20, 50), def: tr(70, 40), result: 'echec' } }, flux: ['auContact'], oppose: true },
+  auContact: { patch: { pendingAuContact: { moverId: H.id, foeId: E.id, phase: 'choix', atk: tr(20, 50), def: tr(70, 40), result: 'echec' } }, flux: ['auContact'], oppose: true },
   empoignade: { patch: { pendingGrapple: { actorId: H.id, foeId: E.id, phase: 'options', canBreak: false, atk: tr(25, 40), def: tr(35, 50), result: 'reussite' } }, flux: ['empoignade'], oppose: true },
   frenesie: { patch: { pendingFrenzy: { combatantId: H.id, result: jet(12, 30) } }, flux: ['frenesie'] },
   approche: { patch: { pendingApproach: { combatantId: H.id, test: TEST, sourceId: E.id, sourceName: E.label, intent: { kind: 'entity', id: E.id }, result: jet(55, 30) } }, flux: ['approche'] },
@@ -76,13 +76,13 @@ const FENETRES_A_JET: Partial<Record<ModalKey, Fixture>> = {
   infirmerie: {
     patch: {
       medic: {} as NonNullable<Jeu['medic']>,
-      pendingSurgery: { healerId: H.id, healerName: H.label, targetId: H.id, targetName: H.label, ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, intBonus: 3, target: 40, roll: 33, success: true, sl: 0, targetDR: 3, cumDR: 0 },
+      pendingSurgery: { healerId: H.id, healerName: H.label, targetId: H.id, targetName: H.label, ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, intBonus: 3, target: 40, roll: 33, success: true, sl: 0, drCible: 3, cumDR: 0 },
     },
     flux: ['chirurgie'],
   },
   soins: { patch: { pendingHeal: { healerId: H.id, healerName: H.label, targetId: H.id, targetName: H.label, mode: 'blessures', intBonus: 3, test: 'guerison', bandagesDe: null, skillValue: 40, difficulty: 'intermediaire', ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, target: 40, roll: 33, success: true, sl: 0 } }, flux: ['soins'] },
   rechargement: { patch: { pendingReload: { actorId: H.id, actorName: H.label, weaponUid: 'w', reload: 2, progressBefore: 0, skillValue: 40, difficulty: 'intermediaire', ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, roll: 12, target: 40, sl: 2, success: true } }, flux: ['rechargement'] },
-  mainEnsanglantee: { patch: { pendingHandGate: { attackerId: H.id, actorName: H.label, hand: 'main', ligne: { base: 40, mods: [], target: 60, difficulty: 'accessible' }, roll: 70, target: 60, sl: -1, success: false, pa: ATTAQUE, title: 'Main', icon: 'x' } }, flux: ['mainEnsanglantee'] },
+  mainEnsanglantee: { patch: { pendingHandGate: { attackerId: H.id, actorName: H.label, hand: 'main', ligne: { base: 40, mods: [], target: 60, difficulty: 'accessible' }, roll: 70, target: 60, sl: -1, success: false, pa: ATTAQUE, title: 'Main', icon: 'melee/au-contact' } }, flux: ['mainEnsanglantee'] },
   recuperation: {
     patch: {
       pendingStateRecovery: {
@@ -100,7 +100,7 @@ const FENETRES_A_JET: Partial<Record<ModalKey, Fixture>> = {
         heroId: H.id, kind: 'catalog', label: 'Tenez', skillLabel: 'Commandement', skillValue: 40, difficulty: 'intermediaire', ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, roll: 30, target: 40, sl: 1, success: true,
         enemyValue: 45, enemyRoll: 60, enemySL: -2,
       },
-      massBattle: { enemy: { label: 'Orques' } } as NonNullable<Jeu['massBattle']>,
+      massBattle: { ennemi: { label: 'Orques' } } as NonNullable<Jeu['massBattle']>,
     },
     flux: ['activite'],
     oppose: true,
@@ -116,7 +116,7 @@ const HORS_REGISTRE_A_JET: Record<string, Fixture> = {
       pendingBargain: {
         playerId: H.id, playerName: H.label, contrepartie: { titre: fixtureText(H.label), kind: 'marchand', mode: 'achat' }, opposant: { label: 'Marchand', valeur: 40 },
         playerSkill: 45, playerBase: 45, negotiator: false, roll: tr(20, 45), merchantRoll: tr(50, 40),
-        result: { attacker: tr(20, 45), defender: tr(50, 40), winner: 'attacker', attackerWins: true, netSL: 4, decidedBy: 'dr' },
+        result: { attacker: tr(20, 45), defender: tr(50, 40), winner: 'attaquant', attackerWins: true, netSL: 4, decidedBy: 'dr' },
       },
     },
     flux: ['marchandage'],
@@ -151,7 +151,7 @@ const ETAPES_HOTES: Record<HostJet, Fixture> = {
   testEtendu: {
     patch: {
       pendingCascade: cascade(etapeHote('testEtendu')),
-      pendingExtendedTest: { actorId: H.id, label: 'Porte', skillLabel: 'Force', target: 45, targetDR: 4, total: 0, rounds: [{ id: 'r1', result: { roll: 21, sl: 2, success: true } }] },
+      pendingExtendedTest: { actorId: H.id, label: 'Porte', skillLabel: 'Force', target: 45, drCible: 4, total: 0, rounds: [{ id: 'r1', result: { roll: 21, sl: 2, success: true } }] },
     },
     flux: ['testEtendu'],
   },
@@ -279,7 +279,7 @@ describe('jetsEnVue — la classe des fenêtres à jet', () => {
   });
 
   it('le jet figé d’un Test opposé reste à lancer, sans gagnante ni DR net, tant que la réponse n’est pas jetée', () => {
-    const s = { ...BASE, pendingAuContact: { moverId: H.id, foeId: E.id, phase: 'roll', atk: tr(20, 50), def: null, result: null } } as Jeu;
+    const s = { ...BASE, pendingAuContact: { moverId: H.id, foeId: E.id, phase: 'jet', atk: tr(20, 50), def: null, result: null } } as Jeu;
     expect(jetsEnVue(s)).toEqual([{ flux: 'auContact', oppose: null, lignes: [
       { genre: 'test', qui: E.id, test: 'Corps à corps', cible: null, jet: null },
       { genre: 'test', qui: H.id, test: 'Corps à corps', cible: null, jet: null },

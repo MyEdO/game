@@ -17,11 +17,11 @@
  *  - `src/data/talents.json` `[].variants[].combat.advantageDefenseReaction.cost` → `avantage` — 1 ;
  *  - `src/data/naval-traits.json` `[].install.cost` → `installation` — 21 (barème par bandes de coque
  *    ou 'modele', consommé par `installAmount`, `src/engine/shipBuild.ts`) ;
- *  - `src/data/qualities.json` nœuds Flow `kind:'choice'` — 1 : `cost: {advantage: N}` → `advantageCost: N`,
- *    le nom ET la forme que la donnée authorée donne DÉJÀ à un coût d'Avantage (`ManeuverDef.advantageCost`,
+ *  - `src/data/qualities.json` nœuds Flow `kind:'choice'` — 1 : `cost: {advantage: N}` → `coutEnAvantage: N`,
+ *    le nom ET la forme que la donnée authorée donne DÉJÀ à un coût d'Avantage (`ManeuverDef.coutEnAvantage`,
  *    `src/data/index.ts`, `maneuvers.json`) ;
  *  - `src/data/talents.json` ops `grantFreeAttack` — 1 : `cost: {advantageOrMovement: true}` APLATI sur
- *    l'op (`advantageOrMovement: true`), même vocabulaire (`advantageCost` pour un nombre d'Avantage).
+ *    l'op (`avantageOuMouvement: true`), même vocabulaire (`coutEnAvantage` pour un nombre d'Avantage).
  * Les deux dernières familles sont des RESHAPES, pas des renommages purs : la valeur cible est
  * ASSERTÉE littéralement avant écriture.
  * IDEMPOTENT : rejouée sur l'état final, elle n'écrit rien et sort 0.
@@ -46,7 +46,7 @@ const CARDINAL_RESHAPES = 2;
 
 /** Les nœuds Flow `choice` porteurs d'un coût d'Avantage se COMPTENT au rejeu, ils ne se GÈLENT pas :
  *  un talent de plus peut en apporter un, et un compte gelé lui ferait payer un recalage ici (#1812).
- *  Ce que ce passage possède, c'est la FORME du coût (`cost: {advantage}` → `advantageCost`), vérifiée
+ *  Ce que ce passage possède, c'est la FORME du coût (`cost: {advantage}` → `coutEnAvantage`), vérifiée
  *  nœud par nœud ci-dessous. `CARDINAL_RESHAPES` reste à 2 : le nœud de Déstabilisante + l'op
  *  `grantFreeAttack`, les deux gestes que CE passage a faits. */
 
@@ -121,11 +121,11 @@ for (const [f, chemin, de, vers] of RENOMMAGES) {
   cardinal += vus;
 }
 
-// RESHAPE 1 — nœud Flow `choice` : `cost: {advantage: N}` → `advantageCost: N`.
+// RESHAPE 1 — nœud Flow `choice` : `cost: {advantage: N}` → `coutEnAvantage: N`.
 let choix = 0;
 for (const [f, { data }] of documents) {
-  for (const noeud of partout(data, (o) => o.kind === 'choice' && typeof o.prompt === 'string')) {
-    if (Object.hasOwn(noeud, 'advantageCost')) { choix++; continue; }
+  for (const noeud of partout(data, (o) => o.kind === 'choix' && typeof o.invite === 'string')) {
+    if (Object.hasOwn(noeud, 'coutEnAvantage')) { choix++; continue; }
     if (!Object.hasOwn(noeud, 'cost')) continue;
     const c = noeud.cost;
     if (!c || typeof c !== 'object' || Object.keys(c).join(',') !== 'advantage' || typeof c.advantage !== 'number') {
@@ -134,17 +134,17 @@ for (const [f, { data }] of documents) {
     }
     choix++;
     const sortie = {};
-    for (const [k, v] of Object.entries(noeud)) { if (k === 'cost') sortie.advantageCost = c.advantage; else sortie[k] = v; }
+    for (const [k, v] of Object.entries(noeud)) { if (k === 'cost') sortie.coutEnAvantage = c.advantage; else sortie[k] = v; }
     remplace(noeud, sortie);
   }
 }
-if (!choix) anomalies.push('nœuds Flow `choice` porteurs d’un coût : AUCUN — périmètre déplacé');
+if (!choix) anomalies.push('nœuds Flow `choix` porteurs d’un coût : AUCUN — périmètre déplacé');
 
 // RESHAPE 2 — op `grantFreeAttack` : le sous-objet `cost` est APLATI sur l'op.
 let gratuites = 0;
 for (const [f, { data }] of documents) {
   for (const op of partout(data, (o) => o.op === 'grantFreeAttack')) {
-    if (Object.hasOwn(op, 'advantageOrMovement') || Object.hasOwn(op, 'advantageCost')) { gratuites++; continue; }
+    if (Object.hasOwn(op, 'avantageOuMouvement') || Object.hasOwn(op, 'coutEnAvantage')) { gratuites++; continue; }
     if (!Object.hasOwn(op, 'cost')) continue;
     const c = op.cost;
     if (!c || typeof c !== 'object' || c.advantageOrMovement !== true || Object.keys(c).length !== 1) {
@@ -153,7 +153,7 @@ for (const [f, { data }] of documents) {
     }
     gratuites++;
     const sortie = {};
-    for (const [k, v] of Object.entries(op)) { if (k === 'cost') sortie.advantageOrMovement = true; else sortie[k] = v; }
+    for (const [k, v] of Object.entries(op)) { if (k === 'cost') sortie.avantageOuMouvement = true; else sortie[k] = v; }
     remplace(op, sortie);
   }
 }

@@ -13,7 +13,7 @@
     "passive": [
       {
         "op": "weaponRollMod",
-        "phase": "parryAgainstAttacker",
+        "phase": "paradeAdverse",
         "drMod": -1
       }
     ]
@@ -58,14 +58,14 @@
     "effects": [
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "location",
             "is": "tete"
           },
-          "then": {
+          "alors": {
             "kind": "test",
             "test": {
               "skill": {
@@ -75,13 +75,13 @@
                 "attacker": "force"
               }
             },
-            "success": {
-              "kind": "seq",
-              "steps": []
+            "reussite": {
+              "kind": "sequence",
+              "etapes": []
             },
-            "fail": {
-              "kind": "do",
-              "effect": {
+            "echec": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "on": "target",
                 "ops": [
@@ -117,7 +117,7 @@
     "passive": [
       {
         "op": "weaponRollMod",
-        "phase": "parryByDefender",
+        "phase": "paradeDuDefenseur",
         "drMod": 1
       }
     ]
@@ -194,12 +194,12 @@
     "effects": [
       {
         "trigger": "onCrit",
-        "on": "victim",
-        "attackType": "ranged",
+        "on": "victime",
+        "attackType": "distance",
         "coupCritique": true,
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "target",
             "ops": [
@@ -245,13 +245,13 @@
     "effects": [
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
             {
-              "kind": "do",
-              "effect": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "on": "target",
                 "ops": [
@@ -297,13 +297,13 @@
     "effects": [
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
             {
-              "kind": "do",
-              "effect": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "on": "target",
                 "ops": [
@@ -340,13 +340,13 @@
     "effects": [
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
             {
-              "kind": "do",
-              "effect": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "on": "target",
                 "ops": [
@@ -384,13 +384,13 @@
     "effects": [
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
             {
-              "kind": "do",
-              "effect": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "on": "target",
                 "ops": [
@@ -430,13 +430,13 @@
     "effects": [
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
             {
-              "kind": "do",
-              "effect": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "on": "target",
                 "ops": [
@@ -571,7 +571,7 @@
     "passive": [
       {
         "op": "weaponRollMod",
-        "phase": "attackSuccess",
+        "phase": "attaqueReussie",
         "drMod": 1
       }
     ]
@@ -590,7 +590,7 @@
     "passive": [
       {
         "op": "weaponRollMod",
-        "phase": "attack",
+        "phase": "attaque",
         "flatMod": 10
       }
     ]
@@ -635,13 +635,13 @@
     "effects": [
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
-          "kind": "choice",
-          "prompt": "Renverser",
-          "icon": "condition/prone",
-          "advantageCost": 2,
-          "yes": {
+          "kind": "choix",
+          "invite": "Renverser",
+          "icon": "etat/a-terre",
+          "coutEnAvantage": 2,
+          "oui": {
             "kind": "test",
             "test": {
               "characteristic": "force",
@@ -654,13 +654,13 @@
                 "attackerLabel": "Force/Athlétisme"
               }
             },
-            "success": {
-              "kind": "seq",
-              "steps": []
+            "reussite": {
+              "kind": "sequence",
+              "etapes": []
             },
-            "fail": {
-              "kind": "do",
-              "effect": {
+            "echec": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "on": "target",
                 "ops": [
@@ -701,13 +701,13 @@
     "effects": [
       {
         "trigger": "onCrit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
             {
-              "kind": "do",
-              "effect": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "on": "target",
                 "ops": [
@@ -721,13 +721,13 @@
               }
             },
             {
-              "kind": "choice",
-              "prompt": "Ouvrir la plaie",
-              "icon": "condition/bleeding",
-              "advantageCost": "$indice",
-              "yes": {
-                "kind": "do",
-                "effect": {
+              "kind": "choix",
+              "invite": "Ouvrir la plaie",
+              "icon": "etat/hemorragique",
+              "coutEnAvantage": "$indice",
+              "oui": {
+                "kind": "effet",
+                "effet": {
                   "type": "ops",
                   "on": "target",
                   "ops": [
@@ -811,7 +811,7 @@
     "passive": [
       {
         "op": "weaponRollMod",
-        "phase": "parryByDefender",
+        "phase": "paradeDuDefenseur",
         "drMod": -1
       }
     ]
@@ -878,7 +878,7 @@
     "passive": [
       {
         "op": "weaponRollMod",
-        "phase": "attack",
+        "phase": "attaque",
         "drMod": -1
       }
     ],
@@ -920,7 +920,7 @@
     "passive": [
       {
         "op": "weaponRollMod",
-        "phase": "vsDefense",
+        "phase": "defenseAdverse",
         "drMod": 1
       }
     ],
@@ -1053,7 +1053,7 @@
     "passive": [
       {
         "op": "weaponRollMod",
-        "phase": "testFail",
+        "phase": "testRate",
         "drMod": 1
       }
     ]
@@ -1132,7 +1132,7 @@
     "passive": [
       {
         "op": "weaponRollMod",
-        "phase": "testFail",
+        "phase": "testRate",
         "drMod": -1
       }
     ]
@@ -1202,17 +1202,17 @@
     "effects": [
       {
         "trigger": "onHit",
-        "on": "victim",
+        "on": "victime",
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "woundsDealt",
             "op": ">",
             "value": 0
           },
-          "then": {
-            "kind": "do",
-            "effect": {
+          "alors": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "target",
               "ops": [

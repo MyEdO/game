@@ -67,12 +67,12 @@ describe('chemins nommés par leur schéma', () => {
     }
   });
   it('porte le journal récursif, sans traduction locale', () => {
-    const scene = { type: 'scene', id: 's', label: 'Scène', dimensions: { w: 1, h: 1 }, tiles: [], entities: [], triggers: [{ id: 'trig-0', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: { kind: 'seq', steps: [{ kind: 'do', effect: { type: 'journal', desc: '' } }] } }] };
+    const scene = { type: 'scene', id: 's', label: 'Scène', dimensions: { w: 1, h: 1 }, tiles: [], entities: [], triggers: [{ id: 'trig-0', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: { kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'journal', desc: '' } }] } }] };
     const faute = validateDocument(sceneSchema, scene)?.find(f => f.chemin[f.chemin.length - 1] === 'desc');
     expect(faute).toBeDefined();
     expect(cheminLisible(faute!.lieu)).toBe('déclencheur « trig-0 » › étape 1 › effet Journal › texte');
   });
-  const journalVide = () => ({ kind: 'do', effect: { type: 'journal', desc: '' } });
+  const journalVide = () => ({ kind: 'effet', effet: { type: 'journal', desc: '' } });
   const lieuxDeJournaux = (flow: unknown) => {
     const scene = { type: 'scene', id: 's', label: 'Scène', dimensions: { w: 1, h: 1 }, tiles: [], entities: [], triggers: [{ id: 'trig-0', rect: { x: 0, y: 0, w: 1, h: 1 }, flow }] };
     const fautes = validateDocument(sceneSchema, scene)!.filter(f => f.chemin[f.chemin.length - 1] === 'desc');
@@ -80,11 +80,11 @@ describe('chemins nommés par leur schéma', () => {
     return fautes.map(f => cheminLisible(f.lieu));
   };
   it('distingue les deux branches conditionnelles des vrais Journal vides', () => {
-    const lieux = lieuxDeJournaux({ kind: 'if', cond: { kind: 'always' }, then: journalVide(), else: journalVide() });
+    const lieux = lieuxDeJournaux({ kind: 'si', condition: { kind: 'always' }, alors: journalVide(), sinon: journalVide() });
     expect(lieux).toEqual(['déclencheur « trig-0 » › alors › effet Journal › texte', 'déclencheur « trig-0 » › sinon › effet Journal › texte']);
   });
   it('distingue les deux réponses de choix des vrais Journal vides', () => {
-    const lieux = lieuxDeJournaux({ kind: 'choice', prompt: 'Choisir', yes: journalVide(), no: journalVide() });
+    const lieux = lieuxDeJournaux({ kind: 'choix', invite: 'Choisir', oui: journalVide(), non: journalVide() });
     expect(lieux).toEqual(['déclencheur « trig-0 » › oui › effet Journal › texte', 'déclencheur « trig-0 » › non › effet Journal › texte']);
   });
   it('conserve la déclaration de prose composée', () => {
@@ -177,7 +177,7 @@ describe('chemins nommés par leur schéma', () => {
   it.each(['journal', 'réplique', 'stade'] as const)('refus canonique %s', cas => {
     const projet = projetJouet();
     const scene = projet.scenes[0];
-    if (cas === 'journal') scene.triggers.push({ id: 'trig-0', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: { kind: 'seq', steps: [{ kind: 'do', effect: { type: 'journal', desc: '' } }] } });
+    if (cas === 'journal') scene.triggers.push({ id: 'trig-0', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: { kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'journal', desc: '' } }] } });
     if (cas === 'réplique') scene.dialogues.push({ id: 'dialogue-0', start: { id: 'node-0' }, nodes: [{ id: 'node-0', desc: '', choices: [] }] });
     if (cas === 'stade') {
       projet.narratif.affaires.push({ id: 'affaire-0', titre: 'Affaire' });

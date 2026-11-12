@@ -70,7 +70,7 @@ describe('#57 — recherche active de Disponibilité (LDB 59 l.50)', () => {
     const journal = banc.getState().journal.map(String);
     const de = journal.indexOf(traceLineOf({ who: h.label, label: refLabel('skills', { id: 'ragot' }), roll: jet.roll, target: jet.target, sl: jet.sl, success: jet.success }));
     expect(de, journal.join(' | ')).toBeGreaterThanOrEqual(0);
-    expect(journal.slice(de + 1), journal.join(' | ')).toContain(String(stepDetail(dataLabel(h.label), t(jet.success ? 'mf.searchOk' : 'mf.searchKo'))));
+    expect(journal.slice(de + 1), journal.join(' | ')).toContain(String(stepDetail(dataLabel(h.label), t(jet.success ? 'mf.rechercheReussie' : 'mf.rechercheRatee'))));
   });
 
   it('Ragot réussi → réassort AVEC le bonus ; échoué → réassort SANS (stocks distincts)', () => {

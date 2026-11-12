@@ -85,7 +85,7 @@ export function GrappleModal() {
         etape={pd.phase}
         flowKey="empoignade"
         title="Empoignade"
-        extra={<VsHeader actor={actor} target={foe} label="lutte au corps à corps" verb="melee/grapple" />}
+        extra={<VsHeader actor={actor} target={foe} label="lutte au corps à corps" verb="melee/empoignade" />}
         rows={[foeRow, actorRow]}
         rolled
         winnerIndex={winnerIndex}
@@ -96,9 +96,9 @@ export function GrappleModal() {
             <OptionChooser
               layout="grid"
               options={[
-                { key: 'degats', label: <><Icon id="journal/damage" size="sm" /> Dégâts</>, primary: true, onSelect: () => regler('empoignade', 'issue', 'degats'), title: 'BF + DR Dégâts, en IGNORANT tous les Points d’Armure (Localisation au lancer de Force).' },
-                { key: 'empetrer', label: <><Icon id="condition/entangled" size="sm" /> Empêtrer</>, onSelect: () => regler('empoignade', 'issue', 'empetrer'), title: 'Conférer l’État Empêtré à l’adversaire.' },
-                { key: 'liberer', label: <><Icon id="melee/tumble" size="sm" /> Se libérer</>, onSelect: () => regler('empoignade', 'issue', 'liberer'), title: 'Te défaire de ton État Empêtré, et en retirer 1 de plus par DR obtenu.' },
+                { key: 'degats', label: <><Icon id="journal/degats" size="sm" /> Dégâts</>, primary: true, onSelect: () => regler('empoignade', 'issue', 'degats'), title: 'BF + DR Dégâts, en IGNORANT tous les Points d’Armure (Localisation au lancer de Force).' },
+                { key: 'empetrer', label: <><Icon id="etat/empetre" size="sm" /> Empêtrer</>, onSelect: () => regler('empoignade', 'issue', 'empetrer'), title: 'Conférer l’État Empêtré à l’adversaire.' },
+                { key: 'liberer', label: <><Icon id="melee/roule-boule" size="sm" /> Se libérer</>, onSelect: () => regler('empoignade', 'issue', 'liberer'), title: 'Te défaire de ton État Empêtré, et en retirer 1 de plus par DR obtenu.' },
               ]}
             />
           </>
@@ -109,12 +109,12 @@ export function GrappleModal() {
   }
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: 'Renoncer', onClick: cancel, verbe: 'cancel' },
+    { key: 'abandonner', label: 'Renoncer', onClick: cancel, verbe: 'annuler' },
     // Avantage supérieur : briser l'Empoignade gratuitement (par son Mouvement) — pré-jet uniquement.
     ...(pd.canBreak
-      ? [{ key: 'break', label: "Briser l'Empoignade", onClick: () => regler('empoignade', 'briser', true), title: 'Avantage supérieur : briser l’Empoignade gratuitement (par ton Mouvement).', verbe: 'roll' } as RollAction]
+      ? [{ key: 'rompre', label: "Briser l'Empoignade", onClick: () => regler('empoignade', 'briser', true), title: 'Avantage supérieur : briser l’Empoignade gratuitement (par ton Mouvement).', verbe: 'lancer' } as RollAction]
       : []),
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
+    { key: 'valider', label: t('verbe.valider'), onClick: confirm, verbe: 'valider' },
   ];
 
   return (
@@ -122,7 +122,7 @@ export function GrappleModal() {
       etape={pd.phase}
       flowKey="empoignade"
       title="Empoignade"
-      extra={<VsHeader actor={actor} target={foe} label="lutte au corps à corps" verb="melee/grapple" />}
+      extra={<VsHeader actor={actor} target={foe} label="lutte au corps à corps" verb="melee/empoignade" />}
       rows={[foeRow, actorRow]}
       rolled={rolled}
       winnerIndex={winnerIndex}

@@ -38,8 +38,8 @@ describe('Piège-lame — Test opposé de Force CADENCE-AWARE (op breakBlade, d�
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!; // le héros piégeur (défenseur)
-    const A = b.combatants.find((c) => c.kind === 'enemy')!; // l'attaquant dont la lame est visée
+    const H = b.combatants.find((c) => c.kind === 'heros')!; // le héros piégeur (défenseur)
+    const A = b.combatants.find((c) => c.kind === 'ennemi')!; // l'attaquant dont la lame est visée
     banc.setState({ battle: { ...b }, pendingCascade: null, pendingLogQueue: [] });
     return { H, A };
   }
@@ -49,11 +49,11 @@ describe('Piège-lame — Test opposé de Force CADENCE-AWARE (op breakBlade, d�
   function openTrapChoice(H: { id: string }, A: { id: string }, weapon: Weapon, defSL: number) {
     const pbt: PendingBladeTrap = { defenderId: H.id, attackerId: A.id, weapon, parryWeaponUid: 'parry-uid', defSL, roll: 33 };
     pushChoice(banc.setState, {
-      id: 'cons-bladetrap', kind: 'piegeALame', actorId: H.id, icon: 'item/weapon', label: fixtureText('Parade — piéger la lame ?'),
-      options: [{ key: 'trap', label: fixtureText('Piéger la lame') }, { key: 'crit', label: fixtureText('Coup Critique') }],
-      defaultChoice: 'crit', piegeLame: pbt,
+      id: 'cons-piege-a-lame', kind: 'piegeALame', actorId: H.id, icon: 'objet/arme', label: fixtureText('Parade — piéger la lame ?'),
+      options: [{ key: 'piege', label: fixtureText('Piéger la lame') }, { key: 'critique', label: fixtureText('Coup Critique') }],
+      defaultChoice: 'critique', piegeLame: pbt,
     });
-    banc.getState().jetRegler('cascade', 'choix', 'trap', 'cons-bladetrap');
+    banc.getState().jetRegler('cascade', 'choix', 'piege', 'cons-piege-a-lame');
     banc.getState().jetValider('cascade'); // commit du choix → l'applier append l'étape `testDeclenche`
   }
 
@@ -106,7 +106,7 @@ describe('Piège-lame — Test opposé de Force CADENCE-AWARE (op breakBlade, d�
     banc.getState().jetLancer('cascade', step.id);
     const rolled = jete(banc.getState().pendingCascade!.participants.find((s) => s.id === step.id)!.result);
     const o = resolveOpposed(aT, { roll: rolled.roll, target: rolled.target, success: rolled.success, sl: rolled.sl, isDouble: false });
-    expect(o.winner).not.toBe('attacker'); // le défenseur l’emporte (Force écrasante)
+    expect(o.winner).not.toBe('attaquant'); // le défenseur l’emporte (Force écrasante)
     banc.getState().jetValider('cascade');
     const outcome = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'issueDuPiegeALame')?.outcome ?? [];
 
@@ -186,7 +186,7 @@ describe('Piège-lame — Test opposé de Force CADENCE-AWARE (op breakBlade, d�
 
     banc.getState().jetLancer('cascade', step.id);
     const rolled = jete(banc.getState().pendingCascade!.participants.find((s) => s.id === step.id)!.result);
-    expect(resolveOpposed(aT, { roll: rolled.roll, target: rolled.target, success: rolled.success, sl: rolled.sl, isDouble: false, base: step.base }).winner).toBe('tie');
+    expect(resolveOpposed(aT, { roll: rolled.roll, target: rolled.target, success: rolled.success, sl: rolled.sl, isDouble: false, base: step.base }).winner).toBe('egalite');
     expect(rolled.success, 'égalité ≠ victoire du piégeur : la branche `breakBlade` n’est pas prise').toBe(false);
     expect(rolled.statuQuo, 'statu quo étampé : ce n’est pas un Test raté (aucun `onOwnTestFailed`)').toBe(true);
     banc.getState().jetValider('cascade');
@@ -209,7 +209,7 @@ describe('Piège-lame — Test opposé de Force CADENCE-AWARE (op breakBlade, d�
     const aT = step.meta!.opposed!.aT;
     banc.getState().jetLancer('cascade', step.id);
     const rolled = jete(banc.getState().pendingCascade!.participants.find((s) => s.id === step.id)!.result);
-    expect(resolveOpposed(aT, { roll: rolled.roll, target: rolled.target, success: rolled.success, sl: rolled.sl, isDouble: false }).winner).toBe('attacker');
+    expect(resolveOpposed(aT, { roll: rolled.roll, target: rolled.target, success: rolled.success, sl: rolled.sl, isDouble: false }).winner).toBe('attaquant');
     banc.getState().jetValider('cascade');
 
     const a = banc.getState().battle!.combatants.find((x) => x.id === A.id)!;

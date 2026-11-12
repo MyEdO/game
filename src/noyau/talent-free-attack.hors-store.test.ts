@@ -24,7 +24,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const HIT: AttackResult = {
   hit: true, attackerRoll: 40, netSL: 1, location: 'corps', damage: 3, woundsLost: 3,
-  critical: false, advantageTo: 'attacker', defenderDefeated: false, log: '',
+  critical: false, advantageTo: 'attaquant', defenderDefeated: false, log: '',
 };
 
 describe('Talents d’attaque déclenchée (grantFreeAttack en donnée)', () => {
@@ -36,8 +36,8 @@ describe('Talents d’attaque déclenchée (grantFreeAttack en donnée)', () => 
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const E = b.combatants.find((c) => c.kind === 'enemy')!;
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const E = b.combatants.find((c) => c.kind === 'ennemi')!;
     H.pos = { x: 10, y: 10 };
     E.pos = { x: 11, y: 10 }; // adjacent → l'attaque supplémentaire est à portée
     return { H, E };
@@ -63,7 +63,7 @@ describe('Talents d’attaque déclenchée (grantFreeAttack en donnée)', () => 
     campGain(banc.getState, H, 2);
     applySummon(banc.getState, banc.setState, H, { ref: 'loup' } as never, { rng: desDuTest });
     const loup = () => banc.getState().battle!.combatants.find((c) => c.summon)!;
-    expect(loup().kind).toBe('hero');
+    expect(loup().kind).toBe('heros');
     expect(loup().advantage).toBe(2);
     loup().talents = [...(loup().talents ?? []), { talentId: 'assaut-feroce', times: 1 }];
     loup().pos = { x: 11, y: 11 };

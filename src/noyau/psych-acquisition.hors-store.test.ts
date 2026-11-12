@@ -35,7 +35,7 @@ const CHARS = { 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 40, endu
 
 const hero = (p: Partial<Combatant> = {}): Combatant =>
   (blessuresSurLeProfil({
-    id: 'h1', name: 'Hardi', kind: 'hero', characteristics: CHARS,
+    id: 'h1', name: 'Hardi', kind: 'heros', characteristics: CHARS,
     wounds: blessuresDeBase(15), advantage: 0, conditions: [], movement: 4, skills: [], talents: [],
     engagedWith: [], pos: { x: 0, y: 0 }, size: 'moyenne', weapons: [], items: [], fate: 2,
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -52,7 +52,7 @@ function setBattle(combatants: Combatant[], fateSave: ReturnType<typeof banc.get
 }
 
 /** Le tueur `e1`, aux Groupes déclarés `groups`. */
-const adversaire = (groups: string[]) => hero({ id: 'e1', label: 'Brigand de Reikland', kind: 'enemy', fate: 0, groups } as Partial<Combatant>);
+const adversaire = (groups: string[]) => hero({ id: 'e1', label: 'Brigand de Reikland', kind: 'ennemi', fate: 0, groups } as Partial<Combatant>);
 
 describe('#62 — Animosité & Haine sur dépense de Destin (choix `destin.issue`)', () => {
   beforeEach(() => { setRule('psycho-acquisition-optionnelle', true); });
@@ -225,13 +225,13 @@ describe('ADE II 09 l.9-11 — Phobie du noir en combat (bande `psychologieDeCom
     const step = bandeRatee(foe, ['h1']);
     return { h: porteur('h1'), lignes: step.participants![0].outcome?.map((l) => l.text) ?? [] };
   };
-  const source = (groups: string[]) => hero({ id: 'e1', label: 'Spectre', kind: 'enemy', fate: 0, groups } as Partial<Combatant>);
+  const source = (groups: string[]) => hero({ id: 'e1', label: 'Spectre', kind: 'ennemi', fate: 0, groups } as Partial<Combatant>);
 
   it('une seule cause : Phobie sur l’id de Groupe, journal au libellé, Terreurs vidées', () => {
     const { h, lignes } = terreurRatee(source(['mort-vivant']), [{ brise: 2, groupes: ['mort-vivant'] }]);
     expect(h().psychTraits).toEqual([{ type: 'phobie', cible: ciblePsy.groupe('mort-vivant') }]);
     expect(h().terreursSubies).toEqual([]);
-    expect(lignes).toContain(t('cf.phobieGain', { name: 'Hardi', groupe: groupLabel('mort-vivant') }));
+    expect(lignes).toContain(t('cf.phobieAcquise', { name: 'Hardi', groupe: groupLabel('mort-vivant') }));
     expect(groupLabel('mort-vivant')).not.toBe('mort-vivant');
   });
 
@@ -258,7 +258,7 @@ describe('ADE II 09 l.9-11 — Phobie du noir en combat (bande `psychologieDeCom
   });
 
   it('les Groupes PERÇUS de la source : un Trait dissimulé ne se mémorise pas', () => {
-    const { h } = terreurRatee(hero({ id: 'e1', label: 'Spectre', kind: 'enemy', fate: 0, groups: ['mort-vivant'], traits: [{ id: 'demoniaque', hidden: true }] } as Partial<Combatant>), []);
+    const { h } = terreurRatee(hero({ id: 'e1', label: 'Spectre', kind: 'ennemi', fate: 0, groups: ['mort-vivant'], traits: [{ id: 'demoniaque', hidden: true }] } as Partial<Combatant>), []);
     expect(h().terreursSubies).toEqual([{ brise: 2, groupes: ['mort-vivant'] }]);
   });
 
@@ -279,7 +279,7 @@ describe('ADE II 09 l.9-11 — Phobie du noir en combat (bande `psychologieDeCom
   });
 
   it('la mémoire se vide dès l’étape poussée : une 2ᵉ Terreur avant le choix compte pour la suivante', () => {
-    const [spectre, rat] = [source(['mort-vivant']), hero({ id: 'e2', label: 'Rat géant', kind: 'enemy', fate: 0, groups: ['skaven'] } as Partial<Combatant>)];
+    const [spectre, rat] = [source(['mort-vivant']), hero({ id: 'e2', label: 'Rat géant', kind: 'ennemi', fate: 0, groups: ['skaven'] } as Partial<Combatant>)];
     setBattle([hero({ label: 'Hardi', terreursSubies: [{ brise: 1, groupes: ['skaven'] }, { brise: 1, groupes: ['skaven'] }] }), spectre, rat], null);
     const h = porteur('h1');
     bandeRatee(spectre, ['h1']);
@@ -317,7 +317,7 @@ describe('ADE II 09 l.9-11 — Phobie du noir hors combat (Terreur d’auteur `i
   /** Le héros (FM 30, Terreurs déjà subies `avant`) rate son Calme (d100 = 100) face à une Terreur d'auteur. */
   const terreurDAuteur = (avant: TerreurSubie[]) => {
     banc.setState({ battle: null, mode: 'exploration', journal: [], pendingCascade: null, party: [hero({ label: 'Hardi', terreursSubies: avant })] });
-    applyEffects(banc.getState, banc.setState, [{ type: 'inflictPsychology', kind: 'terreur', indice: 1, label: 'Un hurlement dans la nuit', target: 'hero', heroId: 'h1' }]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'inflictPsychology', kind: 'terreur', indice: 1, label: 'Un hurlement dans la nuit', target: 'heros', heroId: 'h1' }]);
     draineEtapes(banc.getState, 5, () => 100);
     return banc.getState().party[0];
   };
@@ -346,7 +346,7 @@ describe('ADE II 09 l.9-11 — Phobie du noir hors combat (Terreur d’auteur `i
     const h = terreurDAuteur([{ brise: 1, groupes: ['skaven'] }]);
     expect(h.psychTraits).toEqual([{ type: 'phobie', cible: ciblePsy.groupe('skaven') }]);
     expect(h.terreursSubies).toEqual([]);
-    const ligne = t('cf.phobieGain', { name: 'Hardi', groupe: groupLabel('skaven') });
+    const ligne = t('cf.phobieAcquise', { name: 'Hardi', groupe: groupLabel('skaven') });
     expect(banc.getState().journal.some((l) => l.startsWith(ligne)), ligne).toBe(true);
   });
 });

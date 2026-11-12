@@ -83,14 +83,14 @@ export function useHealJetProps({ embedded = false }: { embedded?: boolean } = {
   });
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' },
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
+    { key: 'abandonner', label: t('verbe.annuler'), onClick: cancel, verbe: 'annuler' },
+    { key: 'confirmer', label: t('verbe.valider'), onClick: confirm, verbe: 'valider' },
   ];
 
   return {
     flowKey: 'soins',
     stake: enjeuDuSoin(useGame.getState(), ph),
-    title: wounds ? <><Icon id="journal/heal" size="sm" /> Soigner les Blessures</> : trauma ? <><Icon id="medical/tear" size="sm" /> Soigner une déchirure</> : ammo ? <><Icon id="item/ammo" size="sm" /> Retirer une munition</> : <><Icon id="condition/bleeding" size="sm" /> Arrêter l’Hémorragie</>,
+    title: wounds ? <><Icon id="journal/soin" size="sm" /> Soigner les Blessures</> : trauma ? <><Icon id="medical/dechirure" size="sm" /> Soigner une déchirure</> : ammo ? <><Icon id="objet/munition" size="sm" /> Retirer une munition</> : <><Icon id="etat/hemorragique" size="sm" /> Arrêter l’Hémorragie</>,
     /* A→B canonique (décision utilisateur 2026-08-04) : portraits + flèche annotée de l'acte —
        plus AUCUNE phrase « A soigne B » en sous-titre. Le patient est en `full` : ses pastilles
        d'ÉTATS sont ce que le jet fait bouger (suivre l'Hémorragie passe par passe). EMBARQUÉ
@@ -111,10 +111,10 @@ export function useHealJetProps({ embedded = false }: { embedded?: boolean } = {
             options={combatModes.map((m) => ({
               key: m,
               label: m === 'blessures'
-                ? <><Icon id="journal/heal" size="sm" /> Blessures</>
+                ? <><Icon id="journal/soin" size="sm" /> Blessures</>
                 : m === 'munition'
-                  ? <><Icon id="item/ammo" size="sm" /> Munition ×{lodged}</>
-                  : <><Icon id="condition/bleeding" size="sm" /> Hémorragie ×{bleed}</>,
+                  ? <><Icon id="objet/munition" size="sm" /> Munition ×{lodged}</>
+                  : <><Icon id="etat/hemorragique" size="sm" /> Hémorragie ×{bleed}</>,
               selected: ph.mode === m,
               onSelect: () => setMode(m),
             }))}

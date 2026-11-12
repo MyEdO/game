@@ -14,7 +14,7 @@ import { cleDeSite, ecartsDeStock, type EntreeDeSite } from '../scripts/guards/l
  * d'un fichier non listé. Le scan balaie TOUT `SCAN_DIRS` (walk récursif), sans liste : tout fichier
  * naît couvert, et aucun ne porte de littéral FR (ABSOLUE depuis #1318 V8c₅, 2026-08-17).
  *
- * Couvre les FORMES d'émission de journal (PAS les libellés de MODALE/UI `{label:…}`/`prompt:` —
+ * Couvre les FORMES d'émission de journal (PAS les libellés de MODALE/UI `{label:…}`/`invite:` —
  * surface UI distincte, Phase D différée) :
  *   - `ev('<kind>', `…``               (événement de journal)
  *   - `.log(`…`` / `.log('…'`          (journal direct)
@@ -27,7 +27,7 @@ import { cleDeSite, ecartsDeStock, type EntreeDeSite } from '../scripts/guards/l
  *                                        accentué affecté, 10ᵉ forme #3041) : sites gelés en stock nominatif
  *                                        DÉCROISSANT (`STOCK_FORMES_TARDIVES`), le zéro des huit autres reste absolu
  *
- * NON couvert volontairement : les tableaux `outcome: […]` / `options: […]` / `label:`/`prompt:`
+ * NON couvert volontairement : les tableaux `outcome: […]` / `options: […]` / `label:`/`invite:`
  * d'étape de MODALE (surface UI distincte, Phase D) — leurs chaînes ne sont PAS du journal.
  */
 
@@ -221,7 +221,7 @@ function returnArrayLiterals(body: string): string[] {
 
 /**
  * 8ᵉ FORME (#1318 V8c₅) : littéral FR passé en PARAMÈTRE de `t()`/`tr()`. Un appel de catalogue n'est
- * pas un blanc-seing — `t('op.attrMod', { attr: 'Blessures' })` INTERPOLE ce littéral et l'affiche tel
+ * pas un blanc-seing — `t('op.modificateurDAttribut', { attr: 'Blessures' })` INTERPOLE ce littéral et l'affiche tel
  * quel. Le commentaire des 6ᵉ/7ᵉ formes disait « un littéral sous appel imbriqué reste du catalogue » :
  * c'était faux, et cette forme le mesure. Ce que les formes 6/7 constatent vraiment, c'est que ce
  * littéral-là n'est PAS une ligne de journal ; il est désormais compté ICI, à sa place.
@@ -521,11 +521,11 @@ describe('garde-fou i18n — narration moteur (Phase C, #410 inversé)', () => {
   it('8ᵉ FORME : un littéral FR en PARAMÈTRE de `t()` compte (le catalogue l’interpole et l’AFFICHE)', () => {
     // Le site réel (`engine/ops.ts:1847`) : le nom d'attribut passait en clair dans le gabarit — pris ici
     // sous une forme que le prédicat SAIT voir (accent), cf. la limite « littéral d'UN SEUL mot ».
-    expect(narrationCount("lines.push(t('op.attrMod', { name: c.label, attr: 'Détermination perdue' }));")).toBe(1);
+    expect(narrationCount("lines.push(t('op.modificateurDAttribut', { name: c.label, attr: 'Détermination perdue' }));")).toBe(1);
     // La CLÉ (1er littéral) n'est jamais du texte : elle ne compte pas.
-    expect(narrationCount("lines.push(t('op.heal', { name: c.label, n: 3 }));")).toBe(0);
+    expect(narrationCount("lines.push(t('op.soin', { name: c.label, n: 3 }));")).toBe(0);
     // Un paramètre qui vient du CATALOGUE (appel imbriqué) ne compte pas : c'est la forme à viser.
-    expect(narrationCount("lines.push(t('op.attrMod', { attr: t('op.attrWounds') }));")).toBe(0);
+    expect(narrationCount("lines.push(t('op.modificateurDAttribut', { attr: t('op.attributBlessures') }));")).toBe(0);
     // Aucun double comptage d'un `t()` imbriqué : le paramètre FR de l'appel INTERNE compte UNE fois.
     expect(narrationCount("lines.push(t('a.b', { x: t('c.d', { y: 'une phrase de plus' }) }));")).toBe(1);
     // `.at(`/`format(` ne sont pas des minteurs : leurs littéraux ne sont pas visés par cette forme.

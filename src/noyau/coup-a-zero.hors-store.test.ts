@@ -25,7 +25,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * (MSRC 07 l.46, l.74), véhicule routier (EDOC 07 l.334), Personnage selon `combat-aa-blessures`
  * (LDB 18 l.17, l.46 ; AA 07 l.36, l.65).
  */
-const canon: Weapon = { label: 'Canon', type: 'ranged', subType: 'armes-de-siege', damage: { flat: 14, plusBF: false }, range: 75, qualities: [] } as unknown as Weapon;
+const canon: Weapon = { label: 'Canon', type: 'distance', subType: 'armes-de-siege', damage: { flat: 14, plusBF: false }, range: 75, qualities: [] } as unknown as Weapon;
 const hache: Weapon = { label: 'Hache', type: 'melee', damage: { plusBF: false, flat: 0 }, qualities: [] } as unknown as Weapon;
 const sansDouble: TestResult = { roll: 6, target: 70, success: true, sl: 5, isDouble: false } as TestResult;
 
@@ -41,13 +41,13 @@ const tireur = (): Combatant => {
 };
 const touche = (woundsLost: number, over: Partial<AttackResult> = {}): AttackResult => ({
   hit: true, attackerRoll: 41, netSL: 2, location: 'corps', damage: woundsLost, woundsLost,
-  critical: false, advantageTo: 'attacker', defenderDefeated: false, log: 'touche', ...over,
+  critical: false, advantageTo: 'attaquant', defenderDefeated: false, log: 'touche', ...over,
 }) as AttackResult;
 
 const poser = (combatants: Combatant[]): void => {
   banc.setState({
     battle: { combatants, order: combatants.map((c) => c.id), turn: 0, round: 1, acted: false, log: [] } as never,
-    party: combatants.filter((c) => c.kind === 'hero'), scene: emptyScene('scene-test', 20, 20), travelPlan: null, facing: {}, vessel: null,
+    party: combatants.filter((c) => c.kind === 'heros'), scene: emptyScene('scene-test', 20, 20), travelPlan: null, facing: {}, vessel: null,
     journal: [], pendingCascade: null, suspendedCascades: [],
   } as never);
 };
@@ -69,7 +69,7 @@ describe('coup sur une coque à 0 Blessure', () => {
     const nav = coque('cogue', 'nav', 0);
     poser([h, nav]);
     expect(isOutOfAction(nav)).toBe(false);
-    const res = rederivePassiveAttack(h, nav, canon, sansDouble, 'ranged', { rng: makeRNG(1595) });
+    const res = rederivePassiveAttack(h, nav, canon, sansDouble, 'distance', { rng: makeRNG(1595) });
     expect(res.hit).toBe(true);
     expect(res.critical, 'le Coup Critique seul').toBe(false);
     const avant = nav.criticalWounds ?? 0;
@@ -83,7 +83,7 @@ describe('coup sur une coque à 0 Blessure', () => {
     const h = tireur();
     const nav = coque('cogue', 'nav', 20);
     poser([h, nav]);
-    expect(rederivePassiveAttack(h, nav, canon, sansDouble, 'ranged', { rng: makeRNG(1595) }).critical).toBe(false);
+    expect(rederivePassiveAttack(h, nav, canon, sansDouble, 'distance', { rng: makeRNG(1595) }).critical).toBe(false);
   });
 
   it('un chariot à 0 ne prend pas de Critique (EDOC 07 l.334), même sur un double', () => {
@@ -93,7 +93,7 @@ describe('coup sur une coque à 0 Blessure', () => {
     const aZero = (c: Combatant) => critiquesDuCoup(c, { coupCritique: null, prise: true, current: 0, touche: true, relance: relanceLaLocalisation(c, { coupCritique: null, prise: true, current: 0 }), blessures: 0 }).critiques.length;
     expect(aZero(dil)).toBe(0);
     expect(aZero(coque('cogue', 'nav', 0)), 'contrôle : le navire à 0').toBe(1);
-    expect(rederivePassiveAttack(h, dil, canon, sansDouble, 'ranged', { rng: makeRNG(1595) }).critical).toBe(false);
+    expect(rederivePassiveAttack(h, dil, canon, sansDouble, 'distance', { rng: makeRNG(1595) }).critical).toBe(false);
     const avant = dil.criticalWounds;
     applyAttackResult(banc.getState, banc.setState, h, dil, canon, touche(3, { critical: true, attackerRoll: 22 }));
     const apres = enJeu('dil')!;
@@ -121,7 +121,7 @@ describe('Personnage : Critique par les Blessures et Mort subite selon combat-aa
 
   const figurant = (current: number): Combatant => {
     const f = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Figurant', seed: 2 });
-    f.id = 'fig'; f.kind = 'enemy'; f.important = false; f.pos = { x: 6, y: 5 };
+    f.id = 'fig'; f.kind = 'ennemi'; f.important = false; f.pos = { x: 6, y: 5 };
     f.items = []; f.loadouts = undefined; f.activeLoadoutId = undefined; recomputeLoadout(f); // sans armure : aucune Déviation (LDB 63 l.30)
     f.wounds = { ...f.wounds, current };
     return f;

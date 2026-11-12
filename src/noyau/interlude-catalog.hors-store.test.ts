@@ -81,7 +81,7 @@ describe('Catalogue d’Activités d’interlude (ACE Annexe I, data-driven)', (
     forceRoll(97, false, -2);
     expect(hero().sinPoints).toBe(1); // l'échec n'expie rien
     expect(hasCondition(hero(), 'extenue')).toBe(false); // rien MAINTENANT (serait dissipé au repos)
-    expect(st().closeOps).toEqual([{ ops: [{ op: 'condition', id: { id: 'extenue' } }], ctx: { label: 'Pénitence', source: { kind: 'activity', id: 'penitence' }, sl: -2 } }]);
+    expect(st().closeOps).toEqual([{ ops: [{ op: 'condition', id: { id: 'extenue' } }], ctx: { label: 'Pénitence', source: { kind: 'activite', id: 'penitence' }, sl: -2 } }]);
     const avant = banc.getState().journal.length;
     banc.getState().fenetreValider('interlude');
     expect(hasCondition(hero(), 'extenue')).toBe(true); // posé après les nuits de clôture
@@ -169,7 +169,7 @@ describe('Catalogue d’Activités d’interlude (ACE Annexe I, data-driven)', (
     forceRoll(96, false, -3);
     expect(hero().masteredWeapons ?? []).toEqual([]);
     // Une arme SANS requiresMastery n'est pas une cible d'entraînement.
-    const ordinary = hero().items!.find((i) => i.uid !== 'wm1' && (i.kind === 'melee' || i.kind === 'ranged'));
+    const ordinary = hero().items!.find((i) => i.uid !== 'wm1' && (i.kind === 'melee' || i.kind === 'distance'));
     if (ordinary) {
       pratiquer(banc.getState, hero().id, 'entrainement-arme-inhabituelle', { itemUid: ordinary.uid });
       expect(banc.getState().pendingActivity).toBeNull();

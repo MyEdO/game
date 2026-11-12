@@ -8,8 +8,7 @@ import { SOUND_DEFS } from '../data/sons/_registry.generated';
  * une frontière NON compilée (id littéral, `byId.get(id)` absorbe silencieusement un id inconnu —
  * pas de son joué, aucune erreur). Toute réf littérale `playSfx('...')` de `src/**` (hors tests —
  * ids de fixture forgés) doit résoudre dans le registre (`src/data/sons/_registry.generated.ts`,
- * régénéré par `npm run gen`). Mécanique d'extraction JUMELLE de `no-phantom-icon.test.ts` :
- * `scripts/guards/lib/soundRefs.mjs`.
+ * régénéré par `npm run gen`). Mécanique d'extraction : `scripts/guards/lib/soundRefs.mjs`.
  */
 
 const IDS = new Set(SOUND_DEFS.map((d) => d.id));

@@ -438,14 +438,14 @@ describe('Infestation de rats géants — Extermination des nuisibles Complexe (
 
   it('Complexe (–10) descend au Test d’équipage d’Extermination en −1 DR plat (même canal que l’Ouragan)', () => {
     get().partirEnVoyage('r1', 'mer', { cadence: 'jourParJour' });
-    set({ vessel: { ...get().vessel!, infestation: { label: 'Infestation de rats géants', crewTestType: 'extermination-nuisibles', difficulty: 'complexe', targetDR: 25, progres: 0, chaqueNuit: EMPTY_FLOW } } });
+    set({ vessel: { ...get().vessel!, infestation: { label: 'Infestation de rats géants', crewTestType: 'extermination-nuisibles', difficulty: 'complexe', drCible: 25, progres: 0, chaqueNuit: EMPTY_FLOW } } });
     expect(driveDayCaptureExtermination()).toBe(-1);
   });
 
   it('l’événement de bord FORCÉ pose l’infestation de la donnée sur le navire : Complexe, 25 DR', () => {
     const inf = infestationDeLaDonnee();
     expect(inf.difficulty).toBe('complexe');
-    expect(inf.targetDR).toBe(25);
+    expect(inf.drCible).toBe(25);
     expect(inf.progres).toBe(0);
   });
 
@@ -603,7 +603,7 @@ describe('table appliers — les 10 Tests d’équipage de VOYAGE (#275 Ronde 2 
 
   it('extermination : progression cumulée jusqu’à extermination complète (MDG 14 l.98-104)', () => {
     planWithSea();
-    set({ vessel: { ...get().vessel!, infestation: { label: 'Rats', crewTestType: 'extermination-nuisibles', difficulty: 'intermediaire', targetDR: 5, progres: 0, chaqueNuit: EMPTY_FLOW } } });
+    set({ vessel: { ...get().vessel!, infestation: { label: 'Rats', crewTestType: 'extermination-nuisibles', difficulty: 'intermediaire', drCible: 5, progres: 0, chaqueNuit: EMPTY_FLOW } } });
     apply('equipage-extermination', 3, true);
     expect(get().vessel!.infestation?.progres).toBe(3);
     apply('equipage-extermination', 2, true);
@@ -791,7 +791,7 @@ describe('Embuscade maritime AUTHORÉE à ancrage déterministe — #212', () =>
     // Victoire du combat (raccourci de test — la résolution d'attaque RÉELLE est couverte ailleurs) :
     // l'ennemi tombe, `checkBattleOver` pose `over:'victoire'` + `pendingVictory`.
     const battle = get().battle!;
-    for (const c of battle.combatants) if (c.kind === 'enemy') c.dead = true;
+    for (const c of battle.combatants) if (c.kind === 'ennemi') c.dead = true;
     set({ battle: { ...battle } });
     checkBattleOver(get, set);
     expect(get().pendingVictory).toBeTruthy();
@@ -836,7 +836,7 @@ describe('Embuscade maritime AUTHORÉE à ancrage déterministe — #212', () =>
     const progression = joues.find((x) => x.kind === 'equipage-progression')!;
 
     const battle = get().battle!;
-    for (const c of battle.combatants) if (c.kind === 'enemy') c.dead = true;
+    for (const c of battle.combatants) if (c.kind === 'ennemi') c.dead = true;
     set({ battle: { ...battle } });
     checkBattleOver(get, set);
     get().fenetreFermer('victoire');
@@ -1302,7 +1302,7 @@ describe('#1652 — chaque événement lit SES paramètres en donnée (MDG 15 l.
   }
 
   it('Bonne humeur : sa `consequence` fait bouger le Moral (MDG 15 l.220 « Gagnez 2d10 Moral »)', () => {
-    const moral = (delta: object) => ({ kind: 'do', effect: { type: 'ops', on: 'navire', ops: [{ op: 'shipMorale', delta }] } });
+    const moral = (delta: object) => ({ kind: 'effet', effet: { type: 'ops', on: 'navire', ops: [{ op: 'shipMorale', delta }] } });
     expect(seaBoardEventById('bonne-humeur')?.consequence).toEqual(moral({ sign: 1, dice: { n: 2, sides: 10 } }));
     setDataset('seaBoardEvents', BOARD_EVENTS.map((e) => (e.id === 'bonne-humeur' ? { ...e, consequence: moral({ sign: 1, dice: { n: 0, sides: 10, plus: 4 } }) } : e)) as never);
     jourForce('bonne-humeur');
@@ -1787,12 +1787,12 @@ describe('Périls en mer — collision routée par la DONNÉE (#444, MDG 13 l.47
 
   /** La Collision soudaine heurte le péril `id` (op `perilDeMer`) — surcharge levée par `resetData`. */
   function forceHazard(id: string): void {
-    const consequence = { kind: 'do', effect: { type: 'ops', on: 'navire', ops: [{ op: 'perilDeMer', collision: { id } }] } };
+    const consequence = { kind: 'effet', effet: { type: 'ops', on: 'navire', ops: [{ op: 'perilDeMer', collision: { id } }] } };
     setDataset('seaBoardEvents', BOARD_EVENTS.map((e) => (e.id === 'collision-soudaine' ? { ...e, consequence } : e)) as never);
   }
 
   it('la Collision soudaine heurte un Rocher (MDG 15 l.181 « se heurte à un rocher »)', () => {
-    expect(seaBoardEventById('collision-soudaine')?.consequence).toEqual({ kind: 'do', effect: { type: 'ops', on: 'navire', ops: [{ op: 'perilDeMer', collision: { id: 'rocher' } }] } });
+    expect(seaBoardEventById('collision-soudaine')?.consequence).toEqual({ kind: 'effet', effet: { type: 'ops', on: 'navire', ops: [{ op: 'perilDeMer', collision: { id: 'rocher' } }] } });
   });
 
   it('le dégât suit l’IC ÉDITÉ en donnée (pas 47 figé) — modifier `sea-perils.json` en mémoire change le résultat', () => {
@@ -1891,7 +1891,7 @@ describe('Périls en mer — collision routée par la DONNÉE (#444, MDG 13 l.47
       const entangled = get().travelPlan!.sea!.entangled;
       expect(entangled).toBeTruthy();
       expect(entangled!.hazardId).toBe('debris-marins');
-      expect(entangled!.need).toBe(debris.freeTest!.targetDR); // cogue = Taille moyenne → bande moyenne/grande
+      expect(entangled!.need).toBe(debris.freeTest!.drCible); // cogue = Taille moyenne → bande moyenne/grande
       expect(entangled!.manDR).toBe(-1);
       expect(entangled!.mMod).toBe(0);
     } finally {
@@ -1916,7 +1916,7 @@ describe('Échouage/Empêtrement — dégagement par Test de Force (#444, applie
 
   it('Débris marins : l’étape de dégagement met en jeu SON enjeu (MDG 13 l.487-491), pas la progression bloquée de l’Échouage', () => {
     const plan = planWithSea();
-    const need = findSeaHazard('debris-marins')!.freeTest!.targetDR;
+    const need = findSeaHazard('debris-marins')!.freeTest!.drCible;
     set({ travelPlan: { ...plan, sea: { ...plan.sea!, entangled: { hazardId: 'debris-marins', label: 'Débris marins', need, progress: 0, manDR: -1, mMod: 0, difficulty: 'accessible' } } } });
     const st = apply('equipage-progression', 2, true)?.insert?.find((s) => s.kind === 'mer-degagement-debris');
     expect(st).toBeTruthy();
@@ -2015,7 +2015,7 @@ describe('Précipitations sur le pont — Tests d’équipage du jour de mer (MD
 
   it('un Test de Caractéristique SANS Compétence ouvert en mer (`runFlow` → `openSkillTest`) porte « Météo » (−10) sur la cible', () => {
     sousLaPluie('tres-abondantes', 'jourParJour');
-    runFlow(get, set, { kind: 'test', test: { characteristic: 'force', difficulty: 'intermediaire' }, success: EMPTY_FLOW, fail: EMPTY_FLOW });
+    runFlow(get, set, { kind: 'test', test: { characteristic: 'force', difficulty: 'intermediaire' }, reussite: EMPTY_FLOW, echec: EMPTY_FLOW });
     const pt = get().pendingTest!;
     expect(pt.sujet?.skill?.id).toBeUndefined();
     expect(pt.mods).toContainEqual(expect.objectContaining(METEO_CARAC));

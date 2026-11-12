@@ -93,8 +93,8 @@ export function BargainModalView({
 
   const actions: RollAction[] = owned
     ? [
-        { key: 'cancel', label: t('verbe.cancel'), onClick: onCancel, verbe: 'cancel' },
-        { key: 'confirm', label: 'Conclure', onClick: onConfirm, verbe: 'confirm' },
+        { key: 'abandonner', label: t('verbe.annuler'), onClick: onCancel, verbe: 'annuler' },
+        { key: 'confirmer', label: 'Conclure', onClick: onConfirm, verbe: 'valider' },
       ]
     : [];
 

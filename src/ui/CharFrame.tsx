@@ -22,6 +22,6 @@ export function CharFrame({ c, nom, ...rest }: Omit<PortraitTileProps, 'ring' | 
   const population = mode === 'battle' && battle ? battle.combatants : party;
   const { montesDissocies } = viewPolicy({ view: pov ? 'iso' : viewMode });
   const camp = campOf(c);
-  const team = camp === 'party' ? 'ally' : camp === 'hostile' ? 'enemy' : undefined;
+  const team = camp === 'groupe' ? 'allie' : camp === 'hostile' ? 'ennemi' : undefined;
   return <PortraitTile c={c} team={team} ring={combatantRingDecor(c, party.map((h) => h.id), population, montesDissocies)} title={nom} {...rest} />;
 }

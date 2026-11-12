@@ -9,7 +9,7 @@ extends SceneTree
 
 const RECETTE_AUTONOME := true
 const METRES_PAR_CASE := 2.0
-const CREPITEMENT := {id = "crepitement", fichiers = ["crepitement.ogg"], volume = 0.6}
+const CREPITEMENT := {id = "crepitement", fichiers = ["crepitement.ogg"], volume = 0.6, canal = "ambiance"}
 const FLAMME := {cle = "posee/brasero", x = 2, y = 3, z = 0, hM = 0.6, rayonCases = 5, couleur = "#ff8c3a", energie = 2.5, scintillement = {amplitude = 0.35, hz = 2.4}, visuel = "feu", son = CREPITEMENT}
 const LUEUR := {cle = "portee/mage", x = 6, y = 3, z = 0, hM = 1.0, rayonCases = 4, couleur = "#8fc8ff", energie = 2.1, scintillement = null, visuel = "lueur", son = null}
 const LUMIERE := {soleil = null, ambiante = {couleur = "#203040", energie = 0.2}, ciel = null,
@@ -88,7 +88,7 @@ func _verifier(foyer: Node, visuel: String, gerbes: int, son: String) -> void:
 		_fautes.append("%s : %d gerbes continues nées d'avance, attendu %d" % [visuel, emises.size(), gerbes])
 	for rang in emises.size():
 		var largeur := _largeur_peinte(emises[rang])
-		var taille: float = Foyer.FLAMMES[visuel][rang].taille[1] * MiseEnPage.echelle_au_plateau(METRES_PAR_CASE).x
+		var taille: float = (emises[rang] as CPUParticles3D).scale_amount_max * MiseEnPage.echelle_au_plateau(METRES_PAR_CASE).x
 		if largeur > taille + 0.0001:
 			_fautes.append("%s : une particule se peint large de %.2f, sa taille au plateau est %.2f" % [visuel, largeur, taille])
 	var lecteurs := foyer.get_children().filter(func(n: Node) -> bool: return n is AudioStreamPlayer3D)

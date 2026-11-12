@@ -329,7 +329,7 @@ export function CharacterCreator() {
     <div className="screen creator">
       <header className="bar">
         <Row as="button" className="btn small" onClick={closeCreator}>
-          ← <Icon id="nav/seat-owner" size="sm" /> Groupe ({party.length}/{PARTY_MAX})
+          ← <Icon id="navigation/proprietaire-du-siege" size="sm" /> Groupe ({party.length}/{PARTY_MAX})
         </Row>
         <h2>{editing ? 'Modifier le personnage' : 'Créateur de personnage'}</h2>
         <div className="wizard-steps">
@@ -357,7 +357,7 @@ export function CharacterCreator() {
 
       {editing && !editing.lossless && (
         <p className="hint warn-text" style={{ margin: '4px 12px' }}>
-          <Icon id="ui/warning" size="sm" /> Brouillon d'origine indisponible : race, carrière, identité et apparence sont repris, mais
+          <Icon id="interface/attention" size="sm" /> Brouillon d'origine indisponible : race, carrière, identité et apparence sont repris, mais
           les tirages, allocations et Talents sont à revoir étape par étape avant d'enregistrer.
         </p>
       )}
@@ -703,12 +703,12 @@ export function CareerScreen({ d, setD }: StepProps): ReactNode {
         </span>
         {d.careerRolls.length === 1 && (
           <button type="button" className="btn small" style={{ marginTop: 4 }} onClick={() => trigger()}>
-            <Icon id="nav/dice" size="sm" /> Pas convaincu : 2 jets de plus (3 choix, +{careerXpDuProchainJet(d)} PX)
+            <Icon id="navigation/des" size="sm" /> Pas convaincu : 2 jets de plus (3 choix, +{careerXpDuProchainJet(d)} PX)
           </button>
         )}
         {d.careerRolls.length >= 3 && (
           <button type="button" className="btn small" style={{ marginTop: 4 }} onClick={() => trigger()}>
-            <Icon id="nav/dice" size="sm" /> Continuer à relancer (+{careerXpDuProchainJet(d)} PX)
+            <Icon id="navigation/des" size="sm" /> Continuer à relancer (+{careerXpDuProchainJet(d)} PX)
           </button>
         )}
       </span>
@@ -958,7 +958,7 @@ export function CharScreen({ d, setD }: StepProps): ReactNode {
           onRoll={() => startCeremony(rollDraftChars(d))}
         >
           <button className="btn small" disabled={seq != null} onClick={() => startCeremony(rerollDraftChars(d))}>
-            <Icon id="nav/dice" size="sm" /> Relancer les dix jets (bonus perdus)
+            <Icon id="navigation/des" size="sm" /> Relancer les dix jets (bonus perdus)
           </button>
         </CreatorDice>
       )}
@@ -976,7 +976,7 @@ export function CharScreen({ d, setD }: StepProps): ReactNode {
               d.charMode === 'repartition' ? (
                 <b className={points.total === points.quota ? 'ok-text' : 'warn-text'}>Points : {points.total}/{points.quota}</b>
               ) : (
-                <NotchGauge value={tiredCount} max={10} notches={10} format={(v, m) => `${v}/${m} tirées`} tone={tiredCount === 10 ? 'ok' : 'neutral'} />
+                <NotchGauge value={tiredCount} max={10} notches={10} format={(v, m) => `${v}/${m} tirées`} tone={tiredCount === 10 ? 'ok' : 'neutre'} />
               )
             }
           >
@@ -1070,13 +1070,13 @@ export function CharScreen({ d, setD }: StepProps): ReactNode {
             right={<b className={destin.total === destin.quota ? 'ok-text' : 'warn-text'}>{destin.total}/{destin.quota}</b>}
           >
             <p className="hint">
-              <Icon id="resource/fate" size="sm" /> Destin : survie & Chance. <Icon id="resource/resilience" size="sm" /> Résilience :
+              <Icon id="ressource/destin" size="sm" /> Destin : survie & Chance. <Icon id="ressource/resilience" size="sm" /> Résilience :
               Détermination (votre Motivation la recharge).
             </p>
             <PlaqueGrid>
               <PlaqueRow
                 attention={charsAttention === 'fate'}
-                content={<><Icon id="resource/fate" size="sm" /> Points de Destin</>}
+                content={<><Icon id="ressource/destin" size="sm" /> Points de Destin</>}
                 meta={
                   <>
                     <em>race : {sp.fate.fate}</em>
@@ -1085,7 +1085,7 @@ export function CharScreen({ d, setD }: StepProps): ReactNode {
                 }
               />
               <PlaqueRow
-                content={<><Icon id="resource/resilience" size="sm" /> Points de Résilience</>}
+                content={<><Icon id="ressource/resilience" size="sm" /> Points de Résilience</>}
                 meta={
                   <>
                     <em>race : {sp.fate.resilience}</em>
@@ -1245,7 +1245,7 @@ export function StarScreen({ d, setD }: StepProps) {
         />
         {/* Astrologie : flavor PUR (ADE II 3 l.502-512, aucun effet de jeu) — sous le cadran, là où
             la roue laisse sa marge, jamais en concurrence avec le sens du signe. */}
-        <Section title="Astrologie (pur roleplay)" right={<button className="btn small" onClick={() => setD(rollDraftAstrology(d))}><Icon id="nav/dice" size="sm" /> Thème astral</button>}>
+        <Section title="Astrologie (pur roleplay)" right={<button className="btn small" onClick={() => setD(rollDraftAstrology(d))}><Icon id="navigation/des" size="sm" /> Thème astral</button>}>
           {d.ascendant || d.dwellings?.length ? (
             <div className="lore-text">
               {d.ascendant && <p style={{ margin: '0 0 6px' }}><b>Ascendant :</b> {d.ascendant}</p>}
@@ -1470,14 +1470,14 @@ function speciesSkillsZones(d: CreatorDraft, setD: (d: CreatorDraft) => void, sp
                 max={SPECIES_SKILLS_PLUS5}
                 notches={SPECIES_SKILLS_PLUS5}
                 format={(v, m) => `${v}/${m} à +5`}
-                tone={d.speciesPlus5.length === SPECIES_SKILLS_PLUS5 ? 'ok' : 'neutral'}
+                tone={d.speciesPlus5.length === SPECIES_SKILLS_PLUS5 ? 'ok' : 'neutre'}
               />
               <NotchGauge
                 value={d.speciesPlus3.length}
                 max={SPECIES_SKILLS_PLUS3}
                 notches={SPECIES_SKILLS_PLUS3}
                 format={(v, m) => `${v}/${m} à +3`}
-                tone={d.speciesPlus3.length === SPECIES_SKILLS_PLUS3 ? 'ok' : 'neutral'}
+                tone={d.speciesPlus3.length === SPECIES_SKILLS_PLUS3 ? 'ok' : 'neutre'}
               />
             </>
           }
@@ -1559,7 +1559,7 @@ function careerSkillsZones(d: CreatorDraft, setD: (d: CreatorDraft) => void, att
               value={total}
               max={CAREER_SKILL_ADVANCES}
               format={(v, m) => `${v} / ${m} · reste ${m - v}`}
-              tone={done ? 'ok' : 'neutral'}
+              tone={done ? 'ok' : 'neutre'}
             />
           }
         >
@@ -1650,7 +1650,7 @@ function talentsZones(d: CreatorDraft, setD: (d: CreatorDraft) => void): StepZon
                       <>
                         <span className="chip tone-warn">{t.auMaxi ? 'Maxi atteint : sans effet si gardé' : 'Déjà possédé'}</span>
                         <button className="btn small" aria-label={`Relancer ${designation}`} onClick={() => setD(rerollDraftTalent(d, t.adresse))}>
-                          <Icon id="nav/dice" size="sm" /> Relancer
+                          <Icon id="navigation/des" size="sm" /> Relancer
                         </button>
                       </>
                     )}
@@ -1891,7 +1891,7 @@ function trappingMeta(id: string): string {
   if (t.pa) bits.push(`${t.pa} PA (${t.loc ?? ''})`);
   if (t.reach && t.categorie === 'melee') bits.push(`Allonge ${t.reach}`);
   // Portée : « N m » (fixe) / « BF×k m » (jet) ; sinon le modificateur de la munition (« ×½ »).
-  if (t.categorie === 'ranged' || t.categorie === 'ammunition') { const p = rangeSpecLabel(t.range) ?? ammoRangeModLabel(t.ammoRangeMod); if (p) bits.push(`Portée ${p}`); }
+  if (t.categorie === 'distance' || t.categorie === 'ammunition') { const p = rangeSpecLabel(t.range) ?? ammoRangeModLabel(t.ammoRangeMod); if (p) bits.push(`Portée ${p}`); }
   if (t.enc) bits.push(`Enc. ${t.enc}`);
   if (t.qualities?.length) bits.push(t.qualities.map(qualityRefLabel).join(', '));
   return bits.join(' · ');
@@ -2026,7 +2026,7 @@ export function TrappingsScreen({ d, setD }: StepProps): ReactNode {
   return <CreatorStepFrame d={d} step={stepIdx} label="Possessions" zones={{ action, choice }} />;
 }
 
-/** Rangée du registre d'état civil — libellé au-dessus, contrôle + bouton d'effacement (`ui/undo`,
+/** Rangée du registre d'état civil — libellé au-dessus, contrôle + bouton d'effacement (`interface/revenir`,
  *  mineur/réversible) en fin de rangée (étalon = la planche ratifiée du créateur, écran Détails). */
 function IdentityRow({ label, control, onClear }: { label: string; control: ReactNode; onClear: () => void }) {
   return (
@@ -2035,7 +2035,7 @@ function IdentityRow({ label, control, onClear }: { label: string; control: Reac
       content={control}
       meta={
         <button type="button" className="btn small" title={`${label} : effacer`} onClick={onClear}>
-          <Icon id="ui/undo" size="sm" />
+          <Icon id="interface/revenir" size="sm" />
         </button>
       }
     />
@@ -2130,7 +2130,7 @@ export function DetailsScreen({ d, setD }: StepProps): ReactNode {
           label="Sexe"
           content={
             <button type="button" className="btn small" onClick={() => setD(withSexeSuivant(d))}>
-              <Icon id="ui/branch" size="sm" /> {libelleDeValeur(sexeSchema, d.apparence.sex)}
+              <Icon id="interface/branchement" size="sm" /> {libelleDeValeur(sexeSchema, d.apparence.sex)}
             </button>
           }
         />
@@ -2230,11 +2230,11 @@ export function PresentationScreen({ d }: StepProps): ReactNode {
         </Rubrique>
         <Rubrique title="Valeurs dérivées">
           <div className="creator-derived">
-            <span><Icon id="resource/wounds" size="sm" /> Blessures <b>{hero.wounds.max}</b></span>
-            <span><Icon id="resource/movement" size="sm" /> Mouvement <b>{hero.movement}</b></span>
-            <span><Icon id="resource/fate" size="sm" /> Destin <b>{hero.fate ?? '—'}</b> · Chance <b>{hero.fortune ?? '—'}</b></span>
-            <span><Icon id="resource/resilience" size="sm" /> Résilience <b>{hero.resilience ?? '—'}</b> · Dét. <b>{hero.resolve ?? '—'}</b></span>
-            <span><Icon id="resource/gold-purse" size="sm" /> Bourse <b><Coins money={draftWealth(d).montant} /></b></span>
+            <span><Icon id="ressource/blessures" size="sm" /> Blessures <b>{hero.wounds.max}</b></span>
+            <span><Icon id="ressource/mouvement" size="sm" /> Mouvement <b>{hero.movement}</b></span>
+            <span><Icon id="ressource/destin" size="sm" /> Destin <b>{hero.fate ?? '—'}</b> · Chance <b>{hero.fortune ?? '—'}</b></span>
+            <span><Icon id="ressource/resilience" size="sm" /> Résilience <b>{hero.resilience ?? '—'}</b> · Dét. <b>{hero.resolve ?? '—'}</b></span>
+            <span><Icon id="ressource/bourse" size="sm" /> Bourse <b><Coins money={draftWealth(d).montant} /></b></span>
             <span>PX création <b>+{xpTotal(d)}</b></span>
           </div>
         </Rubrique>

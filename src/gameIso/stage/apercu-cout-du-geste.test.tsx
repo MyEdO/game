@@ -27,7 +27,7 @@ const apercu = (mods: ModLine[]): AttackPreview => ({
 const dit = (p: AttackPreview): string | null => difficultyShownText(difficultyOf(p));
 
 const héros = {
-  id: 'h1', label: 'Héros', kind: 'hero', pos: { x: 1, y: 0 }, size: 'moyenne',
+  id: 'h1', label: 'Héros', kind: 'heros', pos: { x: 1, y: 0 }, size: 'moyenne',
   movement: 4, conditions: [], items: [], talents: [], traits: [], weapons: [], characteristics: {}, liveTraits: [],
 } as unknown as Combatant;
 const battle = (over: Partial<BattleState> = {}): BattleState =>
@@ -59,7 +59,7 @@ describe('le curseur porte ce que le geste fait du Mouvement', () => {
     const html = renderToStaticMarkup(
       <svg>
         <HoverMovePreview
-          move={{ kind: 'move', path: [{ x: 0, y: 0 }, { x: 1, y: 0 }], cost: 2, label: 'Aller (2)' }}
+          move={{ kind: 'deplacement', path: [{ x: 0, y: 0 }, { x: 1, y: 0 }], cost: 2, label: 'Aller (2)' }}
           at={{ x: 1, y: 0 }} footN={1} dims={dims} lift={() => 0} battle={battle()} activeC={héros}
         />
       </svg>,
@@ -69,24 +69,24 @@ describe('le curseur porte ce que le geste fait du Mouvement', () => {
   });
 
   it('le Mouvement déjà dépensé ce Tour est décompté du « avant »', () => {
-    expect(mouvementLigne(battle({ movementUsed: 1 } as Partial<BattleState>), héros, { kind: 'move', tile: { x: 1, y: 0 }, path: [], cost: 2 } as BattleState['preview']))
+    expect(mouvementLigne(battle({ movementUsed: 1 } as Partial<BattleState>), héros, { kind: 'deplacement', tile: { x: 1, y: 0 }, path: [], cost: 2 } as BattleState['preview']))
       .toBe('Mouvement 3 → 1');
   });
 
   it('un geste qui ne coûte AUCUN Mouvement ne parle pas de Mouvement', () => {
-    expect(mouvementLigne(battle(), héros, { kind: 'attack', targetId: 'e1' } as BattleState['preview'])).toBeNull();
+    expect(mouvementLigne(battle(), héros, { kind: 'attaque', targetId: 'e1' } as BattleState['preview'])).toBeNull();
   });
 
 });
 
 describe('l’aperçu tap-1 porte la Difficulté de l’attaque qu’il commettra', () => {
-  const cible = { ...héros, id: 'e1', kind: 'enemy', pos: { x: 3, y: 0 } } as unknown as Combatant;
+  const cible = { ...héros, id: 'e1', kind: 'ennemi', pos: { x: 3, y: 0 } } as unknown as Combatant;
 
   it('le badge d’ATTAQUE dit la Difficulté que la modale dira', () => {
     const html = renderToStaticMarkup(
       <svg>
         <TapPreview
-          battle={battle({ combatants: [héros, cible], preview: { kind: 'attack', targetId: 'e1', path: [] } } as unknown as Partial<BattleState>)}
+          battle={battle({ combatants: [héros, cible], preview: { kind: 'attaque', targetId: 'e1', path: [] } } as unknown as Partial<BattleState>)}
           activeC={héros} dims={dims} liftOf={() => 0} myTurn difficulty={{ difficulty: 'difficile' }}
         />
       </svg>,
@@ -99,7 +99,7 @@ describe('l’aperçu tap-1 porte la Difficulté de l’attaque qu’il commettr
     const html = renderToStaticMarkup(
       <svg>
         <TapPreview
-          battle={battle({ combatants: [héros, cible], preview: { kind: 'attack', targetId: 'e1', path: [] } } as unknown as Partial<BattleState>)}
+          battle={battle({ combatants: [héros, cible], preview: { kind: 'attaque', targetId: 'e1', path: [] } } as unknown as Partial<BattleState>)}
           activeC={héros} dims={dims} liftOf={() => 0} myTurn
         />
       </svg>,

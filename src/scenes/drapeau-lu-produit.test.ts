@@ -80,22 +80,22 @@ describe('#2539 — état déclaré → produit, sur chaque paquet livré', () =
 // qu'aucun paquet livré ne peuple.
 describe('#2219 · #2539 — chaque site lecteur est lu, chaque site producteur produit', () => {
   const flag = (expr: string) => ({ kind: 'flag', expr });
-  const pose = (f: string) => ({ kind: 'seq', steps: [{ kind: 'do', effect: { type: 'setFlag', flag: f } }] });
-  const si = (cond: unknown) => ({ kind: 'if', cond, then: { kind: 'seq', steps: [] } });
+  const pose = (f: string) => ({ kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'setFlag', flag: f } }] });
+  const si = (cond: unknown) => ({ kind: 'si', condition: cond, alors: { kind: 'sequence', etapes: [] } });
   const jouet = (): PaquetASites => ({
     scenes: [{
       id: 's',
       triggers: [
         { id: 't', rect: { x: 0, y: 0, w: 1, h: 1 }, when: { kind: 'all', of: [flag('dec')] }, flow: pose('produit') },
-        { id: 'u', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: { kind: 'seq', steps: [
+        { id: 'u', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: { kind: 'sequence', etapes: [
           si(flag('flux-declencheur')),
-          { kind: 'do', effect: { type: 'delayedEffect', afterMinutes: 5, cancelFlag: 'annule', flow: si({ kind: 'etat', etat: 'issue', value: 'v' }) } },
+          { kind: 'effet', effet: { type: 'delayedEffect', afterMinutes: 5, cancelFlag: 'annule', flow: si({ kind: 'etat', etat: 'issue', value: 'v' }) } },
         ] } },
       ],
       entities: [{ id: 'e', usable: { actions: [
-        { id: 'a', flow: { kind: 'seq', steps: [
-          { kind: 'do', effect: { type: 'setFlag', flag: 'par-action' } },
-          { kind: 'test', test: { skill: { id: 'perception' }, gate: flag('porte') }, success: { kind: 'seq', steps: [] }, fail: { kind: 'seq', steps: [] } },
+        { id: 'a', flow: { kind: 'sequence', etapes: [
+          { kind: 'effet', effet: { type: 'setFlag', flag: 'par-action' } },
+          { kind: 'test', test: { skill: { id: 'perception' }, gate: flag('porte') }, reussite: { kind: 'sequence', etapes: [] }, echec: { kind: 'sequence', etapes: [] } },
         ] } },
       ] } }],
       encounters: [{ id: 'r', onVictory: si({ kind: 'partyDead', who: { etat: 'sosie' } }) }],
@@ -125,24 +125,24 @@ describe('#2219 · #2539 — chaque site lecteur est lu, chaque site producteur 
     ]);
   });
 
-  const actionDe = (p: PaquetASites) => (p.scenes[0] as { entities: { usable: { actions: { flow: { steps: unknown[] } }[] } }[] }).entities[0].usable.actions[0].flow;
+  const actionDe = (p: PaquetASites) => (p.scenes[0] as { entities: { usable: { actions: { flow: { etapes: unknown[] } }[] } }[] }).entities[0].usable.actions[0].flow;
 
   it('`poserEtat` et `designerHeros` produisent l’état qu’un lecteur lit, `poserEtat` la valeur comparée', () => {
     const p = jouet();
-    actionDe(p).steps.push({ kind: 'do', effect: { type: 'designerHeros', etat: 'sosie' } }, { kind: 'do', effect: { type: 'poserEtat', etat: 'issue', valeur: 'v' } });
+    actionDe(p).etapes.push({ kind: 'effet', effet: { type: 'designerHeros', etat: 'sosie' } }, { kind: 'effet', effet: { type: 'poserEtat', etat: 'issue', valeur: 'v' } });
     expect(lusSansProducteur(p).filter((l) => / : (état|valeur) /.test(l))).toEqual([]);
   });
 
   it('une valeur comparée que nul `poserEtat` ne pose est nommée, même si l’état est produit', () => {
     const p = jouet();
-    actionDe(p).steps.push({ kind: 'do', effect: { type: 'poserEtat', etat: 'issue', valeur: 'autre' } });
+    actionDe(p).etapes.push({ kind: 'effet', effet: { type: 'poserEtat', etat: 'issue', valeur: 'autre' } });
     expect(lusSansProducteur(p).filter((l) => / : (état|valeur) /.test(l))).toEqual(['s › déclencheur u : valeur issue=v', 's › rencontre r : état sosie']);
   });
 
   it('un état déclaré que rien ne produit est nommé', () => {
     const p = jouet();
     (p.narratif as { etats?: unknown[] }).etats = [{ id: 'issue' }, { id: 'muet' }, { id: 'sosie' }];
-    actionDe(p).steps.push({ kind: 'do', effect: { type: 'poserEtat', etat: 'issue', valeur: 'v' } }, { kind: 'do', effect: { type: 'designerHeros', etat: 'orphelin' } });
+    actionDe(p).etapes.push({ kind: 'effet', effet: { type: 'poserEtat', etat: 'issue', valeur: 'v' } }, { kind: 'effet', effet: { type: 'designerHeros', etat: 'orphelin' } });
     expect(declaresNonProduits(p)).toEqual(['muet', 'sosie']);
   });
 });

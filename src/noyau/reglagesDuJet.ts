@@ -209,12 +209,12 @@ export const REGLAGES_DU_JET = {
     declaration: { ...horsDuJet, portee: 'rangee', effet: 'fige', toutes: (s) => (s.pendingCounterspell?.participants ?? []).filter((x) => !x.declared && x.interactive).map((x) => x.id) },
   },
   desengagement: {
-    sacrifier: { ...horsDuJet, effet: 'clot', offre: (s) => (s.pendingDisengage?.phase === 'choice' && s.pendingDisengage.canSacrifice ? null : 'nonOffert') },
-    fuir: { ...horsDuJet, effet: 'clot', offre: (s) => (s.pendingDisengage?.phase === 'choice' && s.pendingDisengage.canFuir !== false ? null : 'nonOffert') },
+    sacrifier: { ...horsDuJet, effet: 'clot', offre: (s) => (s.pendingDisengage?.phase === 'choix' && s.pendingDisengage.canSacrifice ? null : 'nonOffert') },
+    fuir: { ...horsDuJet, effet: 'clot', offre: (s) => (s.pendingDisengage?.phase === 'choix' && s.pendingDisengage.canFuir !== false ? null : 'nonOffert') },
   },
-  auContact: { issue: { ...horsDuJet, effet: 'clot', offre: (s) => (s.pendingAuContact?.phase === 'choice' && s.pendingAuContact.result === 'reussite' ? null : 'nonOffert') } },
+  auContact: { issue: { ...horsDuJet, effet: 'clot', offre: (s) => (s.pendingAuContact?.phase === 'choix' && s.pendingAuContact.result === 'reussite' ? null : 'nonOffert') } },
   empoignade: {
-    briser: { ...horsDuJet, effet: 'clot', offre: (s) => (s.pendingGrapple?.phase === 'roll' && !s.pendingGrapple.def && s.pendingGrapple.canBreak ? null : 'nonOffert') },
+    briser: { ...horsDuJet, effet: 'clot', offre: (s) => (s.pendingGrapple?.phase === 'jet' && !s.pendingGrapple.def && s.pendingGrapple.canBreak ? null : 'nonOffert') },
     issue: { ...horsDuJet, effet: 'clot', offre: (s) => (s.pendingGrapple?.phase === 'options' && s.pendingGrapple.result === 'reussite' ? null : 'nonOffert') },
   },
   chute: {
@@ -263,7 +263,7 @@ export const declarationDuReglage = (flux: unknown, reglage: unknown): Declarati
 /** Les réglages du flux `flux`, dans leur ordre de déclaration ; aucun pour un flux qui n'en a pas. */
 export const reglagesDuFlux = (flux: string): readonly ReglageDuJet[] => (estFluxRegle(flux) ? Object.keys(REGLAGES_DU_JET[flux]) as ReglageDuJet[] : []);
 
-/** Ce qui ferme maintenant un réglage de phase `phase`, d'après ce qui ferme le lancer de son jet (`roll`, `null` :
+/** Ce qui ferme maintenant un réglage de phase `phase`, d'après ce qui ferme le lancer de son jet (`lancer`, `null` :
  *  le dé reste à lancer) ; `null` : il se joue. */
 export function fermetureDeLaPhase(phase: PhaseDuReglage, roll: FermetureDuJet | null): FermetureDuJet | null {
   if (roll === 'sansJet') return roll;

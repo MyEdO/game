@@ -42,7 +42,7 @@ const set: Banc['setState'] = (e) => banc.setState(e);
 
 const ration = (uid: string): ItemInstance => ({ ...itemFromTrappingById('ration', idsDeTest)!, uid, enc: 0 });
 const hero = (p: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
-  id: 'h', label: 'Hilda', kind: 'hero',
+  id: 'h', label: 'Hilda', kind: 'heros',
   characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 35, sociabilite: 30 },
   wounds: blessuresDeBase(12), advantage: 0, conditions: [], skills: [], talents: [],
   weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -428,7 +428,7 @@ describe('#341 — Résistance de traversée Neige/Blizzard (pas BATCH au démar
     const steps = buildWeatherResistanceSteps(get, 'neige');
     // Jet FORCÉ en échec (déterministe) : la rangée est prête → jetValider('cascade') commit → applier.
     steps[0].participants![0].result = { roll: 99, target: steps[0].participants![0].target, sl: -4, success: false };
-    set({ pendingCascade: cascadeDeTest(steps, { title: 'Traversée', icon: 'rest/cold' }) });
+    set({ pendingCascade: cascadeDeTest(steps, { title: 'Traversée', icon: 'repos/froid' }) });
     get().jetValider('cascade');
     const st = get();
     expect(st.party[0].conditions.some((c) => c.id === 'extenue')).toBe(true);

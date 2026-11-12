@@ -239,11 +239,11 @@ func points() -> Dictionary:
 	return points
 
 
-## Le monde de la scène (`monde`, la réponse de l'appel `monde`) sous le plateau : son volume (`Monde.poser`), ses
-## nappes de toit et ses couronnes crénelées (`VolumeDeScene.poser_les_nappes`).
-func poser_le_monde(monde: Dictionary) -> void:
-	_monde.poser(monde.monde)
-	_monde.volume.poser_les_nappes(monde.toits, monde.couronnes)
+## Le monde de la scène (`monde`, la réponse de l'appel `monde`) sous le plateau : son volume, ses nappes de toit et
+## ses couronnes crénelées (`Monde.poser`, les géométries reçues `recus`, réponse de `morceaux`), et sa météo
+## (`Monde.poser_la_meteo`).
+func poser_le_monde(monde: Dictionary, recus: Dictionary) -> void:
+	_monde.poser(monde, recus)
 	_monde.poser_la_meteo(monde.meteo)
 
 
@@ -328,11 +328,14 @@ func _survoler(case: Variant) -> void:
 ## `1 / plateau.metresParCase` case) et lui pose son `gabarit`, ses silhouettes (`morphes`), ses `materiaux` et sa
 ## `palette` ; il pose les éléments de `montes` comme l'atelier les monte (section « Atelier 3D »), une entrée sans
 ## élément ne montant rien. L'emblème d'une entrée de `montes` se pose par `MontageDeComposition`
-## (`projet/scripts/montage_de_composition.gd`), comme à l'atelier. Le corps joue les clips de sa base par rôle (`clips`
-## de la base, réponse de `modeles`) : `repos` en boucle, `marche` au déplacement, `melee` vers une cible, `coup` au coup
-## reçu, `mort` hors de combat. Tant que sa main libre tient la seconde prise d'un objet (section « Atelier 3D »), un
-## rôle joue le clip de `clipsDeuxMains` sous le maniement de cet objet (`secondesPrises`), à défaut celui de `clips`
-## (`MontageDeComposition.clip`) ; le clip en cours passe à celui de son rôle quand la tenue change. Un combattant sans
+## (`projet/scripts/montage_de_composition.gd`), comme à l'atelier. Le corps est animé par un arbre d'états
+## (`AnimationTree` `Etats` de `Combattant.tscn`, machine `projet/animation/corps.tres`, #3949) dont chaque état joue le
+## clip de sa base qui tient son rôle (`clips` de la base, réponse de `modeles`) : `repos` en boucle, `marche` en boucle
+## au déplacement, `melee` vers une cible, `coup` au coup reçu, `melee` et `coup` revenant seuls au repos en fin de clip,
+## `mort` hors de combat, sans retour ; chaque passage d'un état à un autre est un fondu, réglé dans l'éditeur. Tant que
+## sa main libre tient la seconde prise d'un objet (section « Atelier 3D »), un rôle joue le clip de `clipsDeuxMains`
+## sous le maniement de cet objet (`secondesPrises`), à défaut celui de `clips` (`MontageDeComposition.clip`) ; l'état
+## en cours passe au clip de son rôle quand la tenue change (recette `projet/recettes/arbre-d-etats.gd`). Un combattant sans
 ## corps garde son anneau et son étiquette. Pour chaque véhicule de la vue (`vehicules`), Godot monte son corps sous le
 ## nœud `Vehicule` du combattant (`MontageDeVehicule`, `projet/scripts/montage_de_vehicule.gd`, que l'atelier monte de
 ## même) : il charge le GLB de son élément et le pose à la case du combattant, sur ses N×N cases depuis elle, son coin
@@ -353,8 +356,9 @@ func _survoler(case: Variant) -> void:
 ## dont le nom est l'un de `caches` (`MontageDeVehicule.cacher_selon`, même recette) ; puis le véhicule tourne autour du
 ## milieu de son empreinte, sa proue, le +Z de son repère, vers son `cap` (`Combattant.tourner_au_cap`, recette
 ## `projet/recettes/postes-du-vehicule.gd`). Un véhicule joue les clips de son élément par rôle (`clips`,
-## `MontageDeVehicule.lecteur`), comme un corps ceux de sa base : `repos` en boucle, `marche` en boucle au déplacement, et,
-## vers une cible, le clip de son rôle d'attaque, `tir` si sa table en porte un, `melee` sinon, suivi du repos
+## `MontageDeVehicule.lecteur`) sous le même arbre d'états, comme un corps ceux de sa base : `repos` en boucle, `marche`
+## en boucle au déplacement, et, vers une cible, le clip de son rôle d'attaque, `tir` si sa table en porte un, `melee`
+## sinon, puis le repos en fin de clip
 ## (recette `projet/recettes/clips-du-vehicule.gd`). Pour chaque navire de la vue (`navires`), le plateau monte son
 ## `corps` sous son nœud `Navires` (`MontageDesNavires`, `projet/scripts/montage_des_navires.gd`, que l'éditeur monte de
 ## même : `MontageDeVehicule`, son GLB tiré par le montage `Navires/Chargeur`), peint, ses

@@ -23,7 +23,7 @@ beforeAll(() => {
 });
 
 const chars = { 'capacite-de-combat': 60, 'capacite-de-tir': 50, force: 45, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 40, sociabilite: 30 };
-const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, weapons: Weapon[]): Combatant =>
+const mk = (id: string, kind: 'heros' | 'ennemi', pos: { x: number; y: number }, weapons: Weapon[]): Combatant =>
   (blessuresSurLeProfil({ id, name: id, label: id, kind, characteristics: { ...chars }, conditions: [], traumas: [], engagedWith: [], skills: [], talents: [], items: [],
      weapons, advantage: 0, size: 'moyenne', pos, wounds: blessuresDeBase(30), resilience: 2, fortune: 2,
      species: 'humains-reiklander', bodyShape: 'humanoide', movement: 4,
@@ -43,9 +43,9 @@ afterEach(() => {
 /** Bretteur à deux armes contre un gobelin ; `gmSeat: 0` surface la défense du gobelin (#989). */
 function duel(gmSeat: number | undefined) {
   seedBattleRng(1);
-  const bretteur = mk('Bretteur', 'hero', { x: 0, y: 0 }, [arme('m', 'main'), arme('o', 'secondaire')]);
+  const bretteur = mk('Bretteur', 'heros', { x: 0, y: 0 }, [arme('m', 'main'), arme('o', 'secondaire')]);
   bretteur.characteristics['capacite-de-combat'] = 95;
-  const gobelin = mk('Gobelin', 'enemy', { x: 1, y: 0 }, [arme('g', 'main')]);
+  const gobelin = mk('Gobelin', 'ennemi', { x: 1, y: 0 }, [arme('g', 'main')]);
   gobelin.characteristics['capacite-de-combat'] = 5;
   gobelin.characteristics.agilite = 5;
   const battle: BattleState = {
@@ -72,7 +72,7 @@ describe('#998 — Deux armes : la fenêtre survit entre les deux frappes (recet
   for (const [nom, gmSeat] of [['défenseur surfacé', 0], ['défenseur de l’IA', undefined]] as const) {
     it(`${nom} : frappe principale, « Appliquer », 2ᵉ frappe dans SA fenêtre, puis clôture`, () => {
       const { bretteur, gobelin } = duel(gmSeat);
-      act(() => { openAttackCascade(g, useGame.setState, { attackerId: bretteur.id, targetId: gobelin.id, location: null, result: null }, 'Attaque', 'action/attack'); });
+      act(() => { openAttackCascade(g, useGame.setState, { attackerId: bretteur.id, targetId: gobelin.id, location: null, result: null }, 'Attaque', 'action/attaquer'); });
       act(() => g().jetRegler('attaque', 'deuxArmes', true));
       act(() => g().jetLancer('attaque'));
       act(() => g().jetValider('attaque'));

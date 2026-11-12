@@ -82,8 +82,8 @@ function combat(scene: Scene, pos: Pt, tour: { movementUsed?: number; acted?: bo
   g().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = g().battle!;
-  const H = b.combatants.find((c) => c.kind === 'hero')!;
-  const foes = b.combatants.filter((c) => c.kind === 'enemy');
+  const H = b.combatants.find((c) => c.kind === 'heros')!;
+  const foes = b.combatants.filter((c) => c.kind === 'ennemi');
   foes.forEach((e) => (e.dead = true));
   H.engagedWith = [];
   placeCombatant(H, scene, pos);
@@ -107,7 +107,7 @@ describe('Engagé (LDB 15 l.43-49) : les TROIS gestes refusent, et se rouvrent a
       c.agir(c.vers);
       expect(aAgi(H.id, c.de)).toBe(false);
       dit('geste.refus.engage', { name: H.label });
-      expect(resolveMovement(g, c.vers)).toEqual({ status: 'blocked', reason: 'engaged' }); // MÊME préfixe
+      expect(resolveMovement(g, c.vers)).toEqual({ status: 'bloque', reason: 'engage' }); // MÊME préfixe
       disengageFrom(H, foe);
       c.agir(c.vers);
       expect(aAgi(H.id, c.de)).toBe(true);
@@ -234,9 +234,9 @@ describe('coûts et refus NOMMÉS (A4)', () => {
   it('chute : « Tenter » avec l’Action déjà prise → refus NOMMÉ, la modale reste au choix', () => {
     const { H } = combat(falaise(), top, { acted: true });
     g().franchirLArete(foot);
-    expect(phaseDeChute(g().pendingFall!)).toBe('choice');
+    expect(phaseDeChute(g().pendingFall!)).toBe('choix');
     g().jetRegler('chute', 'tenter', true, H.id);
-    expect(phaseDeChute(g().pendingFall!)).toBe('choice');
+    expect(phaseDeChute(g().pendingFall!)).toBe('choix');
     dit('fall.actionDejaPrise', { name: H.label });
     g().jetRegler('chute', 'tenter', false, H.id); // sauter sans Test reste permis
     expect(g().battle!.combatants.find((x) => x.id === H.id)!.pos).toMatchObject(foot);
@@ -321,7 +321,7 @@ describe('`computeMoveReach` consomme le préfixe : une action armée éteint la
     expect(computeMoveReach(g).size).toBeGreaterThan(0);
     banc.setState({ battle: { ...g().battle!, action: 'incantation' } });
     expect(computeMoveReach(g).size).toBe(0);
-    expect(resolveMovement(g, { x: 0, y: 1 })).toEqual({ status: 'blocked', reason: 'targeting' });
+    expect(resolveMovement(g, { x: 0, y: 1 })).toEqual({ status: 'bloque', reason: 'designation' });
   });
 });
 
@@ -353,7 +353,7 @@ describe('Test d’Escalade (LDB 15 l.57) : celui du GRIMPEUR', () => {
     const b = g().battle!;
     const cH = b.combatants.find((x) => x.id === H.id)!;
     const cS = b.combatants.find((x) => x.id === S.id)!;
-    const foes = b.combatants.filter((x) => x.kind === 'enemy');
+    const foes = b.combatants.filter((x) => x.kind === 'ennemi');
     foes.forEach((e) => { e.dead = true; e.engagedWith = []; });
     cH.engagedWith = []; cS.engagedWith = [];
     const scene = falaise({ kind: 'surface' });

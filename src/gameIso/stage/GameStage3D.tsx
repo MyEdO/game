@@ -66,6 +66,7 @@ import * as THREE from 'three';
 import { freeYaw, type Dims, type Rot } from '../../geometry/iso';
 import { hauteurDe, type LectureDArete, type Scene } from '../../noyau/monde/scene';
 import type { Dir8 } from '../../geometry/dir8';
+import type { VerrouDesMots } from '../../noyau/fabriquesDuNoyau';
 import { reposerAffineCamera, reposerPovCamera, StretchedOrthographicCamera } from '../backends/webgl/cameras';
 import { fogCurveOf, povDepth } from '../pov/camera';
 import { pxPerM } from '../../noyau/monde/volume/worldTris';
@@ -216,7 +217,7 @@ export type StageFrame =
    * l'échelle se prend sur le RENDU (`viewBoxScreen`, cadre en pixels mesuré) parce que la CSS
    * rétrécit l'élément. Tout le reste de cet écran l'ignore : c'est le même regard de plateau.
    */
-  | { mode: 'viewbox'; dims: Dims; viewBox: { x: number; y: number; w: number; h: number } }
+  | { mode: 'cadre'; dims: Dims; viewBox: { x: number; y: number; w: number; h: number } }
   /**
    * Regard PREMIÈRE PERSONNE : la case du groupe, son cap, et le milieu (dont dépend la portée).
    * `cid` = le sujet dont le GLISSEMENT de marche déplace l'œil (`anim.glide`) : la caméra suit la
@@ -238,6 +239,9 @@ export type StageFrame =
        *  la même hauteur. */
       eyeH?: number;
     };
+/** VERROU : un mode de cadre ne prend que des mots du lexique (#3938). */
+const verrouDesModesDeCadre: VerrouDesMots<StageFrame['mode']> = true;
+void verrouDesModesDeCadre;
 
 /**
  * CENTRE DE PROXIMITÉ du montage (#1372) — la position du GROUPE, en CASES, celle dont l'entrée en
@@ -250,7 +254,7 @@ export type StageFrame =
  */
 export function centreDuGroupe(frame: StageFrame, actors: readonly ActorPose[]): { x: number; y: number } | null {
   if (frame.mode === 'subjectif') return { x: frame.partyPos.x, y: frame.partyPos.y };
-  const héros = actors.filter((a) => a.c.kind === 'hero');
+  const héros = actors.filter((a) => a.c.kind === 'heros');
   if (héros.length === 0) return null;
   return {
     x: héros.reduce((s, a) => s + a.x, 0) / héros.length,
@@ -857,7 +861,7 @@ export function GameStage3D({ scene, lecture, mpt, frame, tintAt, keepEl, nappeV
     } else {
       // CADRE D'ÉCRAN de l'hôte : les deux conventions du dépôt (`stage3dCamera.ts`) — caméra de
       // groupe sur viewBox FIXE (le jeu), ou viewBox MOBILE mesuré sur le rendu (l'éditeur).
-      const écran = frame.mode === 'viewbox'
+      const écran = frame.mode === 'cadre'
         ? viewBoxScreen(frame.viewBox, { w, h })
         : stageScreen(anim ? anim.cam() : frame.cam, frame.zoom, { w, h });
       // Le lacet de l'IMAGE quand l'hôte en sert un (#1403) : la même valeur que celle dont sa caméra
@@ -1727,7 +1731,7 @@ export function GameStage3D({ scene, lecture, mpt, frame, tintAt, keepEl, nappeV
   // `data-precip` : le COMPTE de particules du semis d'intempéries — même raison que les deux autres
   // (le canevas n'a pas d'arbre), et la seule trace par laquelle la recette et les tests de montage
   // voient qu'il tombe quelque chose. Absent = rien ne tombe (météo claire, ou scène d'intérieur).
-  // `data-vue` : le REGARD de la frame (`affine` | `viewbox` | `pov`) — même raison que les autres traces.
+  // `data-vue` : le REGARD de la frame (`plateau` | `cadre` | `subjectif`) — même raison que les autres traces.
   // `data-sujets` : le nombre de SUJETS que la frame a à peindre en billboard (le décor), avant
   // toute rasterisation — la seule trace de ce que l'hôte a donné à voir (un banc headless ne rasterise
   // rien, et le canevas n'a pas d'arbre).

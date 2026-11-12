@@ -42,7 +42,7 @@ export function GearAssignList({ gear, assignable, onAssign, onAppraise }: {
             <span className="gear-name">
               {g.label}
               {(g.magic || aura) && (
-                <span title={unidentified ? (aura ? 'Aura magique sentie — règles non identifiées' : 'Objet magique — qualités à révéler') : 'Objet magique'}> <Icon id="action/cast" size="sm" /></span>
+                <span title={unidentified ? (aura ? 'Aura magique sentie — règles non identifiées' : 'Objet magique — qualités à révéler') : 'Objet magique'}> <Icon id="action/incanter" size="sm" /></span>
               )}
               {unidentified
                 ? <span className="gear-unid">{aura ? 'magique, non identifié' : 'non identifié'}</span>

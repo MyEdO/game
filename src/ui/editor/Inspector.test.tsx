@@ -48,7 +48,7 @@ function mount(entity?: SceneEntity) {
         openLogic={() => undefined}
         resizeScene={() => undefined}
         narratif={{ ...emptyNarratif(), presetsPnj: [{ id: 'preset-tavernier', profil: { label: 'Le Tavernier' } }] }}
-        tool={{ mode: 'select' }}
+        tool={{ mode: 'selection' }}
         armZoneTiles={() => undefined}
         zoneFocusKey={null}
       />,
@@ -128,7 +128,7 @@ describe('Inspector — apparence visuelle des murs', () => {
         openLogic={() => undefined}
         resizeScene={() => undefined}
         narratif={emptyNarratif()}
-        tool={{ mode: 'select' }}
+        tool={{ mode: 'selection' }}
         armZoneTiles={() => undefined}
         zoneFocusKey={null}
       />,
@@ -174,7 +174,7 @@ function mountWall(wall: NonNullable<Scene['walls']>[number]) {
       openLogic={() => undefined}
       resizeScene={() => undefined}
       narratif={{ affaires: [], indices: [], presetsPnj: [], objets: [], documents: [], etats: [] }}
-      tool={{ mode: 'select' }}
+      tool={{ mode: 'selection' }}
       armZoneTiles={() => undefined}
       zoneFocusKey={null}
     />,
@@ -556,7 +556,7 @@ describe('Inspector — l’identifiant affiché est celui de la zone SÉLECTION
           openLogic={() => undefined}
           resizeScene={() => undefined}
           narratif={emptyNarratif()}
-          tool={{ mode: 'select' }}
+          tool={{ mode: 'selection' }}
           armZoneTiles={() => undefined}
           zoneFocusKey={zoneFocusKey}
         />,
@@ -659,7 +659,7 @@ describe('Inspector — l’appareil mécanique d’une zone suit ce que la zone
           openLogic={() => undefined}
           resizeScene={() => undefined}
           narratif={emptyNarratif()}
-          tool={{ mode: 'select' }}
+          tool={{ mode: 'selection' }}
           armZoneTiles={() => undefined}
           zoneFocusKey={null}
         />,
@@ -719,7 +719,7 @@ describe('Inspector — places assises d’un décor', () => {
           openLogic={() => undefined}
           resizeScene={() => undefined}
           narratif={emptyNarratif()}
-          tool={{ mode: 'select' }}
+          tool={{ mode: 'selection' }}
           armZoneTiles={() => undefined}
           zoneFocusKey={null}
         />,
@@ -738,7 +738,7 @@ describe('Inspector — places assises d’un décor', () => {
       select.value = 'entity:pnj-aubergiste';
       select.dispatchEvent(new Event('change', { bubbles: true }));
     });
-    expect(sceneOf().seatAssignments).toEqual({ 'table-1': { 'place-1': { kind: 'entity', entityId: 'pnj-aubergiste' } } });
+    expect(sceneOf().seatAssignments).toEqual({ 'table-1': { 'place-1': { kind: 'entite', entityId: 'pnj-aubergiste' } } });
     expect(sceneOf().entities.find((e) => e.id === 'pnj-aubergiste')?.pos).toEqual({ x: 2, y: 1 });
   });
 
@@ -857,7 +857,7 @@ describe('Inspector — le profil de toiture est nommé par le NŒUD, une seule 
             openLogic={() => undefined}
             resizeScene={() => undefined}
             narratif={emptyNarratif()}
-            tool={{ mode: 'select' }}
+            tool={{ mode: 'selection' }}
             armZoneTiles={() => undefined}
             zoneFocusKey={null}
           />,
@@ -912,7 +912,7 @@ describe("Inspector — le type d'un ornement de façade est nommé par le NŒUD
           openLogic={() => undefined}
           resizeScene={() => undefined}
           narratif={emptyNarratif()}
-          tool={{ mode: 'select' }}
+          tool={{ mode: 'selection' }}
           armZoneTiles={() => undefined}
           zoneFocusKey={null}
         />,
@@ -932,9 +932,9 @@ describe('Inspector — un Effet `document` s’insère au clic dans la fouille 
     const ici = brut.scenes.findIndex((s) => s.entities.some((e) => e.id === 'cadavre-kastor-lieberung'));
     const cadavre = () => brut.scenes[ici].entities.find((e) => e.id === 'cadavre-kastor-lieberung')!;
     const fouiller = () => cadavre().usable!.actions!.find((a) => a.id === 'fouiller')!;
-    const etapes = () => (fouiller().flow as { steps: { kind: string; effect?: { type: string; documentId?: string } }[] }).steps;
-    const avecQuatre = etapes().filter((s) => s.effect?.documentId === 'edo-document-4-affidavit').length;
-    fouiller().flow = { kind: 'seq', steps: etapes().filter((s) => s.effect?.documentId !== 'edo-document-4-affidavit') } as Flow;
+    const etapes = () => (fouiller().flow as { etapes: { kind: string; effet?: { type: string; documentId?: string } }[] }).etapes;
+    const avecQuatre = etapes().filter((s) => s.effet?.documentId === 'edo-document-4-affidavit').length;
+    fouiller().flow = { kind: 'sequence', etapes: etapes().filter((s) => s.effet?.documentId !== 'edo-document-4-affidavit') } as Flow;
     let latest = brut.scenes[ici];
     const montage = monterRacine(null);
     const rendre = (s: Scene) => montage.rendre(
@@ -943,7 +943,7 @@ describe('Inspector — un Effet `document` s’insère au clic dans la fouille 
         setScene={(next) => { latest = next; rendre(next); }}
         sel={{ type: 'entity', id: 'cadavre-kastor-lieberung' }} setSel={() => undefined}
         enemyCreatures={[]} openLogic={() => undefined} resizeScene={() => undefined}
-        narratif={brut.narratif} tool={{ mode: 'select' }} armZoneTiles={() => undefined} zoneFocusKey={null}
+        narratif={brut.narratif} tool={{ mode: 'selection' }} armZoneTiles={() => undefined} zoneFocusKey={null}
       />,
     );
     await act(async () => rendre(latest));
@@ -982,7 +982,7 @@ function mountSur(scene: Scene, sel: Sel, otherScenes: Scene[] = []) {
       openLogic={() => undefined}
       resizeScene={() => undefined}
       narratif={emptyNarratif()}
-      tool={{ mode: 'select' }}
+      tool={{ mode: 'selection' }}
       armZoneTiles={() => undefined}
       zoneFocusKey={null}
     />,

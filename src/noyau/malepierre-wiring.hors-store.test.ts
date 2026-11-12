@@ -90,7 +90,7 @@ describe('Malepierre — câblage PROD (Incantation, `incanterLeSort`/`jetLancer
     banc.getState().jetLancer('incantation');
     const consumedBefore = banc.getState().pendingCast!.result!.malepierreConsumed;
     expect(consumedBefore).toBeGreaterThan(0);
-    FLOWS.incantation.bonusSL(banc.getState, banc.setState); // Chance « +1 DR » (LDB 17 l.24)
+    FLOWS.incantation.ajouterUnDR(banc.getState, banc.setState); // Chance « +1 DR » (LDB 17 l.24)
     const consumedAfterBonus = banc.getState().pendingCast!.result!.malepierreConsumed;
     expect(consumedAfterBonus).toBe(consumedBefore); // REPORTÉ (`rederiveCastSL`), jamais perdu ni redoublé
     banc.getState().jetValider('incantation');
@@ -150,7 +150,7 @@ describe('Malepierre — câblage PROD (Incantation, `incanterLeSort`/`jetLancer
     w.items = [carried];
     banc.setState({ party: [w] });
     banc.getState().incanterLeSort(w.id, spellId, w.id);
-    banc.getState().jetForcerLaReussite('incantation'); // au lieu du jet, ouvre `forced` (LDB 17 l.68) — requis avant `jetImposerLeResultat('incantation')`
+    banc.getState().jetForcerLaReussite('incantation'); // au lieu du jet, ouvre `forcee` (LDB 17 l.68) — requis avant `jetImposerLeResultat('incantation')`
     const before = banc.getState().pendingCast!.result!;
     expect(before.malepierreConsumed).toBeGreaterThan(0);
     banc.getState().jetImposerLeResultat('incantation', 1);

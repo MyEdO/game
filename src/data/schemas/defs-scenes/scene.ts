@@ -21,7 +21,7 @@ import { nommerChamps, metaDesChamps, nommerNoeud, type MetaDesChamps } from '..
 import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';
 import { roleAmbiantSchema } from '../grammaire/valeurs';
-import { amateurSchema, cell2Schema, deckCoverSchema, difficultySchema, dir8Schema, entityAppearanceSchema, enumNomme, moneyPartialSchema, pointDuPlanSchema, settlementSchema } from '../grammaire/valeurs';
+import { amateurSchema, cell2Schema, deckCoverSchema, difficultySchema, dir8Schema, entityAppearanceSchema, enumNomme, equipeSchema, idDIconeSchema, moneyPartialSchema, pointDuPlanSchema, settlementSchema } from '../grammaire/valeurs';
 import { joursDeReassortSchema, majorationDAchatSchema, tauxDeRachatSchema } from '../defs/merchants';
 import { conditionSchema, executeesDe, flowTestSchema } from '../grammaire/mecanique';
 import { navalTraitRefSchema, optionalSwapSchema, traitInstanceSchema } from '../grammaire/reference';
@@ -77,8 +77,8 @@ export const authoredShipPosteSchema = nommerChamps(z.strictObject({
 }), { trappingId: { label: "pièce", texte: { regime: "technique" } }, side: { label: "côté" }, cover: { label: "couvert" }, crewIds: { label: "servants", texte: { regime: "technique" } }, chambered: { label: "munitions chambrées" }, loaded: { label: "chargée" }, reloadProgress: { label: "progression de la recharge" }, ammo: { label: "munitions", texte: { regime: "technique" } }, selectedAmmo: { label: "munition choisie" }, anchor: { label: "ancre" } });
 /** `SeatOccupant` (`noyau/monde/seating.ts:53`) — un RANG du groupe (jamais un id de héros) ou un PNJ de la scène. */
 export const seatOccupantSchema = z.discriminatedUnion('kind', [
-  nommerChamps(z.strictObject({ kind: z.literal('party'), rang: z.number() }), { kind: { label: "type"  }, rang: { label: "rang" } }),
-  nommerChamps(z.strictObject({ kind: z.literal('entity'), entityId: z.string() }), { kind: { label: "type"  }, entityId: { label: "entité" , texte: { regime: "technique"} } }),
+  nommerChamps(z.strictObject({ kind: z.literal('groupe'), rang: z.number() }), { kind: { label: "type"  }, rang: { label: "rang" } }),
+  nommerChamps(z.strictObject({ kind: z.literal('entite'), entityId: z.string() }), { kind: { label: "type"  }, entityId: { label: "entité" , texte: { regime: "technique"} } }),
 ]);
 
 // ── Entité de scène ─────────────────────────────────────────────────────────────────────────────
@@ -563,15 +563,14 @@ export const dialogueChoiceSchema = nommerChamps(z.strictObject({
    *  du bouton que le joueur clique, et l'archive de dialogue la stocke comme telle. */
   label: z.string(),
   /** Icône d'affordance (registre `src/data/icons/`, rendue par `<Icon>` dans `DialogueBox`) — jamais
-   *  un emoji collé au `label` (#290, doctrine anti-emoji). Id de string brute (cf. AGENTS.md : la
-   *  logique reste pure, `<Icon>` valide l'id au rendu). */
-  icon: z.string().optional(),
+   *  un emoji collé au `label` (#290, doctrine anti-emoji). */
+  icon: idDIconeSchema.optional(),
   /** Condition d'AFFICHAGE du choix (algèbre `Condition`, cf. `evalCondition`). Absente = toujours visible. */
   when: conditionSchema.optional(),
   /** Prix de l'option (service payant : auberge, péage, pot-de-vin…). Le choix est RÉPÉTABLE mais
    *  désactivé si on ne peut pas payer ; à la sélection, le montant est débité AVANT le flow. */
   cost: moneyPartialSchema.optional(),
-  /** LOGIQUE exécutée à la sélection : séquence d'effets + branches `if`/`test` (exécutée par `runFlow`). */
+  /** LOGIQUE exécutée à la sélection : séquence d'effets + branches `si`/`test` (exécutée par `runFlow`). */
   flow: sceneFlowSchema.optional(),
   next: ref(NOEUDS).optional(),
 }), { id: { label: "identifiant" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, icon: { label: "icône" , texte: { regime: "technique"} }, when: { label: "condition" }, cost: { label: "coût" }, flow: { label: "enchaînement", transparent: true }, next: { label: "nœud suivant" , texte: { regime: "technique"} } });
@@ -606,7 +605,7 @@ export const triggerSchema = nommerChamps(z.strictObject({
    *  évaluée à l'entrée dans la zone. Absente = pas de garde (un pur événement horaire sans position =
    *  `delayedEffect`). */
   when: conditionSchema.optional(),
-  /** LOGIQUE exécutée à l'entrée : séquence d'effets + branches `if`/`test` (exécutée par `runFlow`). */
+  /** LOGIQUE exécutée à l'entrée : séquence d'effets + branches `si`/`test` (exécutée par `runFlow`). */
   flow: sceneFlowSchema,
   couvre: couvreSchema.optional(),
 }), { id: { label: "identifiant" , texte: { regime: "technique"} }, rect: { label: "rectangle" }, once: { label: "une seule fois" }, when: { label: "condition" }, flow: { label: "enchaînement", transparent: true }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} } });
@@ -614,7 +613,7 @@ export const triggerSchema = nommerChamps(z.strictObject({
 // ── Rencontre ───────────────────────────────────────────────────────────────────────────────────
 
 /** Camp d'un membre/d'une circonstance de rencontre. */
-export const campSchema = z.enum(['party', 'enemies']);
+export const campSchema = z.enum(['groupe', 'ennemis']);
 /** `ThreatTier` (`engine/advantagePool.ts`) — palier de Menace (`AA 11 l.53-65`). */
 export const threatTierSchema = z.enum(['dangereuse', 'tresDangereuse', 'extreme']);
 
@@ -660,8 +659,8 @@ export const victoryConditionSchema = z.discriminatedUnion('type', [
 export const encounterMemberSchema = nommerChamps(z.strictObject({
   /** id de la `SceneEntity` enrôlée. */
   entityId: z.string(),
-  /** Camp au spawn : 'ally' pose un combattant du côté des héros (ex. monture prêtée). Défaut 'enemy'. */
-  side: z.enum(['enemy', 'ally']).optional(),
+  /** Camp au spawn : 'allie' pose un combattant du côté des héros (ex. monture prêtée). Défaut 'ennemi'. */
+  side: equipeSchema.optional(),
   /** PNJ allié piloté par l'IA (`Combatant.aiControlled`) : un allié qui AGIT SEUL (défenseur de siège,
    *  équipage d'une pièce…) au lieu d'être contrôlé par le joueur. Sans effet sur un membre 'enemy'. */
   ai: z.boolean().optional(),

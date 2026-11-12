@@ -19,8 +19,8 @@ function station(over: Partial<Station> = {}): Station {
     kind: 'poste',
     pos: { x: 3, y: 2 },
     label: 'Baliste',
-    icon: 'action/serve-engine',
-    faction: 'ally',
+    icon: 'action/servir-l-engin',
+    faction: 'allie',
     assignedIds: [],
     manned: false,
     ref: { kind: 'poste', hullId: 'h1', posteUid: 'p1' },
@@ -30,9 +30,9 @@ function station(over: Partial<Station> = {}): Station {
 
 describe('stationTint — faction → teinte (source unique teamColors)', () => {
   it('allié/ennemi/neutre', () => {
-    expect(stationTint('ally')).toBe(ALLY_TINT);
-    expect(stationTint('enemy')).toBe(ENEMY_TINT);
-    expect(stationTint('neutral')).toBe(NEUTRAL_TINT);
+    expect(stationTint('allie')).toBe(ALLY_TINT);
+    expect(stationTint('ennemi')).toBe(ENEMY_TINT);
+    expect(stationTint('neutre')).toBe(NEUTRAL_TINT);
   });
 });
 
@@ -51,7 +51,7 @@ describe('stationMarker — centre au tileCenter de la case', () => {
 
 describe('stationMarker — teinte, anneau, badge', () => {
   it('teinte = faction', () => {
-    expect(stationMarker(station({ faction: 'enemy' }), dims).tint).toBe(ENEMY_TINT);
+    expect(stationMarker(station({ faction: 'ennemi' }), dims).tint).toBe(ENEMY_TINT);
   });
   it('anneau vrai UNIQUEMENT si sélectionnée', () => {
     expect(stationMarker(station({ id: 'a' }), dims, 'a').ring).toBe(true);

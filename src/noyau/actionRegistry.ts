@@ -14,6 +14,7 @@
  * candidats (`Offre.gate`), plus
  * jamais par des closures anonymes publiées positionnellement.
  */
+import type { IconId } from '../data/icons';
 import type { Combatant } from '../engine/types';
 import type { BattleState, Jeu } from './etat';
 import type { Get, Set } from './flowTypes';
@@ -328,12 +329,12 @@ export const GATES_DE_PERTINENCE: ReadonlySet<string> = new Set([
 
 /** L'arme à distance que prend `approvisionnerLArme` sans arme désignée : la première du porteur. */
 export function armeADistanceParDefaut(active: Combatant) {
-  return active.weapons.find((w) => w.type === 'ranged');
+  return active.weapons.find((w) => w.type === 'distance');
 }
 
 /** Les armes à distance du porteur — population du sélecteur `armes-a-distance` et du gate `tireur`. */
 function armesADistance(active: Combatant) {
-  return active.weapons.filter((w) => w.type === 'ranged');
+  return active.weapons.filter((w) => w.type === 'distance');
 }
 
 /** Le set au poing ouvre-t-il un corps à corps ? Arme de mêlée DU set, ou set MAINS NUES (`LDB 15 l.35-37`,
@@ -1001,7 +1002,7 @@ export interface Offre {
   porteurId?: string;
   /** Nom du CANDIDAT quand un même porteur en offre plusieurs (une pièce parmi deux, un objet d'un tas). */
   candidat?: string;
-  icon: string;
+  icon: IconId;
   /** Coût dans l'économie du tour, en toutes lettres — `null` quand l'acte n'en prend aucun. */
   cost: string | null;
   args: ContexteDOffre;

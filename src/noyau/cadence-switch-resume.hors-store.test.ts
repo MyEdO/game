@@ -24,7 +24,7 @@ describe('Bascule de Cadence en plein combat', () => {
     banc.getState().lancerLeCombat('enc-mutants', undefined, { noSurprise: true });
     banc.getState().fenetreValider('debutDuRound');
     const b = banc.getState().battle!;
-    const hero = b.combatants.find((c) => c.kind === 'hero')!;
+    const hero = b.combatants.find((c) => c.kind === 'heros')!;
     // place un héros en tête → tour héros, cadence MANUELLE (l'IA n'agit pas, le combat ATTEND le joueur)
     banc.setState({ battle: { ...b, order: [hero.id, ...b.order.filter((id) => id !== hero.id)], turn: 0, action: null } });
     return hero.id;

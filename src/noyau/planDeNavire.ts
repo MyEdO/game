@@ -134,11 +134,10 @@ function poseDe(scene: Scene, ent: SceneEntity): PoseDeNavire | null {
 /** Les poses des navires de `scene`. */
 const posesDe = (scene: Scene): PoseDeNavire[] => scene.entities.flatMap((e) => poseDe(scene, e) ?? []);
 
+const idsDesNaviresPoses = memoByRef((scene: Scene): ReadonlySet<string> => new Set(posesDe(scene).map((pose) => pose.id)));
+
 /** Le combattant `id` est-il un navire dont `scene` pose les ponts ? Ses ponts portent alors son corps. */
-export function estPoseParSesPonts(scene: Scene, id: string): boolean {
-  const ent = scene.entities.find((e) => e.id === id);
-  return ent !== undefined && poseDe(scene, ent) !== null;
-}
+export const estPoseParSesPonts = (scene: Scene, id: string): boolean => idsDesNaviresPoses(scene).has(id);
 
 /** La case hôte, en cases continues, de chaque point (x, y) des ponts `navire` posés selon `pose`. */
 function versLaScene(navire: Scene, pose: PoseDeNavire): (x: number, y: number) => Pt {

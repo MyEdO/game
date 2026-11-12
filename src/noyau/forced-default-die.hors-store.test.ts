@@ -23,7 +23,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  */
 const C = (over: Partial<Combatant>): Combatant =>
   (blessuresSurLeProfil({
-    id: 'X', name: 'X', label: 'X', kind: 'hero',
+    id: 'X', name: 'X', label: 'X', kind: 'heros',
     characteristics: { 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], traumas: [],
     weapons: [{ name: 'Épée', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [] }],
@@ -40,7 +40,7 @@ beforeEach(() => {
 function setupAttack() {
   seedBattleRng(7);
   banc.setState({
-    battle: { combatants: [C({ id: 'A', label: 'Att', resilience: 2 }), C({ id: 'B', label: 'Cible', kind: 'enemy', pos: { x: 1, y: 0 } })], log: [] } as never,
+    battle: { combatants: [C({ id: 'A', label: 'Att', resilience: 2 }), C({ id: 'B', label: 'Cible', kind: 'ennemi', pos: { x: 1, y: 0 } })], log: [] } as never,
     pendingAttack: {
       attackerId: 'A', targetId: 'B', location: null,
       result: {
@@ -77,13 +77,13 @@ describe('défense — même dé par défaut, plancher opposé conservé (LDB 17
     seedBattleRng(7);
     const atk = { roll: 30, target: 40, success: true, sl: 1, isDouble: false };
     banc.setState({
-      battle: { combatants: [C({ id: 'E', label: 'Orque', kind: 'enemy' }), C({ id: 'H', label: 'Héros', resilience: 2, pos: { x: 1, y: 0 } })], log: [] } as never,
+      battle: { combatants: [C({ id: 'E', label: 'Orque', kind: 'ennemi' }), C({ id: 'H', label: 'Héros', resilience: 2, pos: { x: 1, y: 0 } })], log: [] } as never,
       pendingDefense: {
         attackerId: 'E', defenderId: 'H', weapon: { name: 'Gourdin', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [] },
         location: null, atk, mode: 'esquive',
         def: { roll: 95, target: 50, success: false, sl: -4, isDouble: false },
         result: {
-          hit: true, attackerRoll: 30, netSL: 5, critical: false, advantageTo: 'attacker', defenderDefeated: false, log: '',
+          hit: true, attackerRoll: 30, netSL: 5, critical: false, advantageTo: 'attaquant', defenderDefeated: false, log: '',
           attackerDetail: { label: 'Corps à corps', base: 40, modifier: 0, target: 40, roll: 30, success: true, sl: 1 },
           defenderDetail: { label: 'Esquive', base: 50, modifier: 0, target: 50, roll: 95, success: false, sl: -4 },
         },
@@ -103,7 +103,7 @@ describe('incantation — le dé par défaut ne gonfle pas le DR (sonde `cast` p
   function setupCast() {
     seedBattleRng(7);
     banc.setState({
-      battle: { combatants: [C({ id: 'A', label: 'Mage', resilience: 2 }), C({ id: 'B', label: 'Cible', kind: 'enemy', pos: { x: 1, y: 0 } })], log: [] } as never,
+      battle: { combatants: [C({ id: 'A', label: 'Mage', resilience: 2 }), C({ id: 'B', label: 'Cible', kind: 'ennemi', pos: { x: 1, y: 0 } })], log: [] } as never,
       pendingCast: {
         casterId: 'A', targetId: 'A', spellId: 'drain', missile: false, focused: false,
         result: { cast: false, roll: 88, target: 45, sl: -4, isCritical: false, isFumble: false, log: 'raté' },
@@ -129,7 +129,7 @@ describe('plancher de NI — la Résilience fait PARTIR le sort (sonde S3 promue
   function setupSpell(spellId: string) {
     seedBattleRng(7);
     banc.setState({
-      battle: { combatants: [C({ id: 'A', label: 'Mage', resilience: 2 }), C({ id: 'B', label: 'Cible', kind: 'enemy', pos: { x: 1, y: 0 } })], log: [] } as never,
+      battle: { combatants: [C({ id: 'A', label: 'Mage', resilience: 2 }), C({ id: 'B', label: 'Cible', kind: 'ennemi', pos: { x: 1, y: 0 } })], log: [] } as never,
       pendingCast: {
         casterId: 'A', targetId: 'A', spellId, missile: false, focused: false,
         result: { cast: false, roll: 88, target: 45, sl: -4, isCritical: false, isFumble: false, log: 'raté' },

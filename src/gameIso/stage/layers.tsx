@@ -52,7 +52,7 @@ export function wallLayerObjs(wallEls: WallEl[], d: Dims, lod: number, detailOpt
       x: el.cell.x,
       y: el.cell.y,
       z: el.cell.z,
-      kind: 'wall',
+      kind: 'mur',
       ...(el.side === 'N' || el.side === 'E' ? { side: el.side } : {}),
       ...(el.roomZoneIds ? { roomZoneIds: el.roomZoneIds } : {}),
       bounds: occluder.bounds,
@@ -103,7 +103,7 @@ function solidTileTraitObjs(scene: Scene, dims: Dims, z: number, visible?: Reado
       out.push({
         d: depth(x, y, dims, z) + TRAIT_D,
         x, y, z,
-        kind: 'wall',
+        kind: 'mur',
         el: <g key={`bloc-${x},${y},${z},${side}`} dangerouslySetInnerHTML={{ __html: svg }} />,
       });
     }

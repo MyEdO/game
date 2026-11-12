@@ -41,9 +41,9 @@ function monte() {
   g().lancerLeCombat('enc-entrainement');
   expect(g().battle).toBeTruthy();
   if (g().pendingRoundStart) g().fenetreValider('debutDuRound');
-  nePeutPasDifferer(applyEffects(g, banc.setState, [{ type: 'ops', on: 'hero', heroId: H, ops: [opPsy.pose('frenesie')] }]), 'frenesie-critique-devie');
+  nePeutPasDifferer(applyEffects(g, banc.setState, [{ type: 'ops', on: 'heros', heroId: H, ops: [opPsy.pose('frenesie')] }]), 'frenesie-critique-devie');
   banc.setState({ battle: { ...g().battle!, ...etatDeTourNeuf(), turn: g().battle!.order.indexOf(H) } });
-  const foes = g().battle!.combatants.filter((c) => c.kind !== 'hero');
+  const foes = g().battle!.combatants.filter((c) => c.kind !== 'heros');
   const gob = foes.find((f) => f.id === 'enemy-enc-entrainement-3')!;
   const man = foes.find((f) => f.id === 'enemy-enc-entrainement-0')!;
   const hero = relu(H);
@@ -58,7 +58,7 @@ function monte() {
   expect(g().battle!.acted).toBe(false);
 
   g().ensemencerLeTirage(seedDuCritique());
-  openAttackCascade(g, banc.setState, { attackerId: H, targetId: gob.id, location: null, result: null }, 'Attaque', 'action/attack');
+  openAttackCascade(g, banc.setState, { attackerId: H, targetId: gob.id, location: null, result: null }, 'Attaque', 'action/attaquer');
   g().jetLancer('attaque');
   expect(g().pendingAttack?.result?.critical, 'le jet 1 doit être un Coup Critique').toBe(true);
   g().jetValider('attaque');

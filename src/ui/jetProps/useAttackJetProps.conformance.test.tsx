@@ -45,14 +45,14 @@ const sword = {
 const bow = {
   name: 'Arc',
   label: 'Arc',
-  type: 'ranged',
+  type: 'distance',
   damage: { plusBF: false, flat: 8 },
   range: 60,
   uid: 'bow',
   qualities: [],
 } as unknown as Weapon;
 
-function combatant(id: string, label: string, kind: 'hero' | 'enemy', x: number, weapons: Weapon[] = [sword], advantage = 0): Combatant {
+function combatant(id: string, label: string, kind: 'heros' | 'ennemi', x: number, weapons: Weapon[] = [sword], advantage = 0): Combatant {
   return blessuresSurLeProfil({
     id,
     name: label,
@@ -108,7 +108,7 @@ function renderAttack(opts: { ranged?: boolean; cases?: number; fog?: boolean; l
   // Tir : 20 cases = 40 m avec une Portée de 60 m → bande « Moyenne » (+0, aucune chip de portée) ;
   // 5 cases = 10 m → « Courte portée » (+20, entrée de la table). Mêlée : au contact. La distance est
   // CHOISIE pour que seules les circonstances mesurées pèsent.
-  const attacker = combatant('attacker', 'Elsa', 'hero', 0, opts.armes ?? [weapon], opts.avantage ?? 0);
+  const attacker = combatant('attacker', 'Elsa', 'heros', 0, opts.armes ?? [weapon], opts.avantage ?? 0);
   if (opts.morsure) (attacker as unknown as { traits: unknown[] }).traits = [{ id: 'morsure', value: 6 }];
   if (opts.pietinement) {
     attacker.size = 'enorme';
@@ -117,7 +117,7 @@ function renderAttack(opts: { ranged?: boolean; cases?: number; fog?: boolean; l
       ...(opts.bagarre ? [{ id: 'corps-a-corps', spec: 'bagarre', characteristic: 'capacite-de-combat', advances: opts.bagarre }] : []),
     ] as Combatant['skills'];
   }
-  const target = combatant('target', 'Gobelin', 'enemy', opts.cases ?? (opts.ranged ? 20 : 1));
+  const target = combatant('target', 'Gobelin', 'ennemi', opts.cases ?? (opts.ranged ? 20 : 1));
   if (opts.ethere) (target as unknown as { traits: unknown[] }).traits = [{ id: 'ethere' }];
   if (opts.cible?.pb != null) target.wounds = blessuresDeBase(18, opts.cible.pb, target);
   if (opts.cible?.important) target.important = true;
@@ -125,7 +125,7 @@ function renderAttack(opts: { ranged?: boolean; cases?: number; fog?: boolean; l
   if (opts.conditions) (attacker as unknown as { conditions: unknown[] }).conditions = opts.conditions;
   // Badauds AU CONTACT de la cible (`crowdEligible` : distance ≤ 1, la cible comprise) — c'est eux qui
   // font, ou non, le « groupe serré » du seuil de `crowdMod`.
-  const badauds = Array.from({ length: opts.badauds ?? 0 }, (_, i) => combatant(`badaud-${i}`, `Badaud ${i}`, 'enemy', (target.pos!.x) + (i % 2 === 0 ? 1 : -1)));
+  const badauds = Array.from({ length: opts.badauds ?? 0 }, (_, i) => combatant(`badaud-${i}`, `Badaud ${i}`, 'ennemi', (target.pos!.x) + (i % 2 === 0 ? 1 : -1)));
   const combatants = [attacker, target, ...badauds];
   const battle = {
     combatants,
@@ -161,7 +161,7 @@ function renderAttack(opts: { ranged?: boolean; cases?: number; fog?: boolean; l
     // au vrai site de déclaration — un champ porté par l'appelant primerait et court-circuiterait le prédicat.
     { attackerId: attacker.id, targetId: target.id, location: opts.location ?? null, result: null, ...(opts.morsure ? { freeKind: 'morsure' as const } : opts.pietinement ? { freeKind: 'pietinement' as const } : { weaponUid: weapon.uid }), ...(opts.tirArme ? {} : { tirImmobile: !opts.enMouvement }) },
     'Attaque',
-    'action/attack',
+    'action/attaquer',
   );
   host = document.createElement('div');
   document.body.appendChild(host);
@@ -494,7 +494,7 @@ describe('Attaque — issue d’un coup sans prise', () => {
     act(() => useGame.getState().jetForcerLaReussite('attaque'));
     act(() => useGame.getState().jetImposerLeResultat('attaque', 33));
     const pa = useGame.getState().pendingAttack!;
-    expect([pa.forced, pa.result?.critical, pa.result?.sansPrise], 'précondition : jet forcé, Critique obtenu, coup sans prise').toEqual([true, true, 'ethere']);
+    expect([pa.forcee, pa.result?.critical, pa.result?.sansPrise], 'précondition : jet forcé, Critique obtenu, coup sans prise').toEqual([true, true, 'ethere']);
     expect(rendues!.forcedExtra, 'pas de Localisation à choisir pour un Critique non appliqué').toBeUndefined();
     expect(vue.querySelector('.rm-loc-grid')).toBeNull();
   });

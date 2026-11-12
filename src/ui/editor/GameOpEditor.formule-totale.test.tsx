@@ -164,7 +164,7 @@ describe('FormulaField — dialecte du Péché (#2099)', () => {
 
   /** Nœud de la liste `ops` d'une rangée de miscast — lu par le résolveur de l'atelier (`noeudDeLEntree`). */
   const opsDeMiscast = (): unknown =>
-    enfantsDe(noeudDeLEntree('miscastMinor', datasetArray('miscastMinor')[0])).find((e) => e.cle === 'ops')?.noeud;
+    enfantsDe(noeudDeLEntree('imparfaiteMineure', datasetArray('imparfaiteMineure')[0])).find((e) => e.cle === 'ops')?.noeud;
 
   it('le dialecte se DÉRIVE du schéma du champ : rangée de miscast oui, op ordinaire non', () => {
     expect(admetLePeche(opsDeMiscast())).toBe(true);

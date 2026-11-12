@@ -98,7 +98,7 @@ export function ActivityModal() {
   if (enemyT) {
     // Seul producteur de l'opposition : `openHoldScene` (`massBattleFlow.ts`), sous bataille ouverte (#1906).
     if (!massBattle) throw new Error('[activité] opposition « Tenez votre position » sans bataille de masse ouverte (#1906)');
-    const enemyName = massBattle.enemy.label;
+    const enemyName = massBattle.ennemi.label;
     // La ligne montre la grandeur qui TRANCHE à DR égal (LDB 12 l.160) : la Puissance NUE en base, le
     // bonus cumulatif des Rounds tenus (ADE II 08 l.163) en ligne de mod NOMMÉE — même patron que le
     // Soutien du PJ ci-dessus (`supportSplit`). Sans Puissance nue posée, la base reste la cible jetée.
@@ -118,8 +118,8 @@ export function ActivityModal() {
   const issue = rolled ? describeActivity(pa) : '';
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' },
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
+    { key: 'abandonner', label: t('verbe.annuler'), onClick: cancel, verbe: 'annuler' },
+    { key: 'confirmer', label: t('verbe.valider'), onClick: confirm, verbe: 'valider' },
   ];
 
   return (

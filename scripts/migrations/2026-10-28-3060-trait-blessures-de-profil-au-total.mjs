@@ -164,12 +164,12 @@ const HYBRIDE_AVANT = {
   "label": "Prendre forme hybride",
   "kind": "hurlement",
   "activation": "action",
-  "advantageCost": 0,
-  "targeting": "self",
+  "coutEnAvantage": 0,
+  "ciblage": "soi",
   "effects": [
     {
       "trigger": "onHit",
-      "on": "self",
+      "on": "soi",
       "flow": {
         "kind": "do",
         "effect": {

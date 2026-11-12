@@ -1,10 +1,14 @@
-## Le combat, hôte du noyau (`hotes/godot/pont/CONTRAT.md`), et le seul lecteur de la vue : il démarre la partie des
+## Le combat, hôte du noyau (`hotes/godot/pont/CONTRAT.md`), et le seul lecteur de la vue : il ouvre une partie au
+## groupe (`ouvrir`, `PontDuNoyau.au_groupe`), que le joueur compose puis lance sur une campagne du jeu (`lancer`), ou démarre la partie des
 ## paramètres `scenario` et `graine` (`PontDuNoyau.parametre`), la scène que l'éditeur a mise à l'essai (`PontDuNoyau.essai`), ou,
-## sans paramètre `scenario`, le scénario que le joueur choisit au panneau des scénarios (`scenarios`), pose au plateau le monde de sa scène (`monde`), à nouveau chaque
-## fois que la partie change de scène (`vue.projection.scene`) ou que sa clé change (`plateau.cleDuMonde`), et ses arêtes
-## (`aretes`), à nouveau chaque fois que leur empreinte change (`plateau.cleDesAretes`), et applique chaque suite. La vue va au plateau, sa lumière (`vue.lumiere`) à la `Lumiere` du monde, sa musique (`vue.musique`) à la `Musique` ; la fenêtre prend la disposition que la vue nomme (`vue.disposition`,
+## sans paramètre `scenario`, le scénario que le joueur choisit au panneau des scénarios (`scenarios`), pose au plateau le monde de sa scène (son manifeste,
+## `monde`, et les seuls morceaux dont l'empreinte a bougé, `morceaux`), à nouveau chaque fois que la partie change de
+## scène (`vue.projection.scene`) ou que sa clé change (`plateau.cleDuMonde`), ce que le regard en retire (`retrait`), à
+## nouveau chaque fois que l'empreinte du masque change (`plateau.cleDuRetrait`), et ses arêtes (`aretes`), à nouveau
+## chaque fois que leur empreinte change (`plateau.cleDesAretes`), et applique chaque suite. La vue va au plateau, sa lumière (`vue.lumiere`) à la `Lumiere` du monde, sa musique (`vue.musique`) à la `Musique` ; la fenêtre prend la disposition que la vue nomme (`vue.disposition`,
 ## `Disposition`) ; chaque zone de l'écran (`Zone.racines`, scène `Ecran` sans script) reçoit les éléments de sa source
-## qui lui reviennent (`Zone.montrer_toutes` : `vue.zones`, et ce que la suite ajoute, `zones` : les lignes du journal) ;
+## qui lui reviennent (`Zone.montrer_toutes` : `vue.zones`, et ce que les suites ont ajouté depuis le début de la
+## partie, `zones` : les lignes du journal, qu'une zone posée plus tard reçoit donc toutes) ;
 ## le journal va au plateau ; chaque jeton programmé est armé en minuteur et repris à son échéance. Chaque geste du joueur part en intention : celle de l'élément pressé
 ## (`Zone.geste` ; la fiche d'un combattant, montrée ou fermée, par la méthode `fiche` ; la création d'un héros par la
 ## méthode `creation`), un clic du champ (`vue.champ` : le verbe du clic, sur la case et le combattant qui s'y tient ;
@@ -29,7 +33,8 @@ extends Node
 ## composant : chaque `Liaison` y écrit un champ de l'élément dans une propriété du contrôle qui la porte (le ton en
 ## variation du thème, `art/theme.tres`), chaque `Geste` joue l'intention que l'élément porte par le signal `geste` de
 ## la zone (un bouton à bascule garde l'état que la vue lui donne ; le routeur envoie `{ fiche }` à `fiche`, `{ creation
-## }` à `creation`, toute autre intention à `jouer`), chaque `Saisie` lit la valeur d'un formulaire, et une zone
+## }` à `creation`, `{ lancer }` à `lancer`, `{ quitter }` à `quitter`, d'où il revient à l'accueil, toute autre
+## intention à `jouer`), chaque `Saisie` lit la valeur d'un formulaire, et une zone
 ## imbriquée y montre le champ que sa `source` nomme. L'icône (`icone`) et le fond (`fond`) ne portent que l'id de
 ## leur dessin : `Dessin` (`projet/scripts/dessin.gd`) le lit au catalogue que la construction dépose une fois dans le
 ## projet (`art/dessins.json`, `hotes/godot/asset/dessins.ts`) et le trace aux couleurs du thème. Le plan (`plan`) est le seul composant qui se dessine : son
@@ -38,7 +43,8 @@ extends Node
 ## éléments). Le `detail` d'une puce ou d'une ligne se pose sur sa `Bulle` (`projet/scripts/bulle.gd`), qui couvre le
 ## composant et montre au survol la bulle du thème repliée au mot. Les héros du groupe se rangent en cartes au pied de
 ## l'écran (`projet/composants/heros.tscn` : le portrait, le nom, les Blessures en trait, la bourse, puis ce que la
-## carte porte d'autre), « Nouveau héros » au pied du journal ; la barre du combat (`combat.offres`) les surmonte, chacun de ses choix
+## carte porte d'autre), « Quitter la partie » et « Nouveau héros » au pied du journal ; avant le lancement, les
+## pré-tirés à recruter et les campagnes à lancer se rangent en deux colonnes sur la scène ; la barre du combat (`combat.offres`) les surmonte, chacun de ses choix
 ## en onglet, sauf la part du tour (`economie/aucun`), au panneau de l'actif ; la création ouverte se pose au centre,
 ## sa page titrée en tête, ses rubriques défilant dessous, ses gestes en rangée au pied ; la conversation se pose en bas
 ## au centre, son interlocuteur en titre, sa réplique, puis ses réponses l'une sous l'autre ; la fiche ouverte se pose
@@ -64,9 +70,14 @@ var _vue: Dictionary = {}
 var _musique := Musique.new()
 ## La scène et la clé du volume du monde posé au plateau, vide avant le premier.
 var _cle_du_monde := ""
+## La scène et l'empreinte du masque du retrait posé au volume (`plateau.cleDuRetrait`), vide avant le premier.
+var _cle_du_retrait := ""
 ## La scène et l'empreinte des arêtes posées au plateau (`plateau.cleDesAretes`), vide avant les premières.
 var _cle_des_aretes := ""
 var _zones: Array[Zone] = []
+## Ce que les suites ont ajouté à l'écran depuis le début de la partie (`zones`), par source : une zone posée en
+## cours de partie (`Disposition`) le reçoit en entier.
+var _ajouts := {}
 ## Une publication de l'écran attend l'image qui vient (`_publier_l_ecran`).
 var _publication_prevue := false
 
@@ -83,14 +94,17 @@ func _ready() -> void:
 		return
 	_pont.exposer("wfrpCadrer", _cadrer)
 	await _indexer_les_modeles()
-	var scenario := _pont.parametre("scenario")
-	if not _pont.essai and scenario == "":
-		scenario = await _choisir_un_scenario()
-	var entree := {essai = true} if _pont.essai else {scenario = scenario}
+	var entree := {}
 	var graine := _pont.parametre("graine")
 	if graine.is_valid_int():
 		entree.graine = graine.to_int()
-	_suivre(_pont.appeler("demarrer", entree))
+	if _pont.au_groupe:
+		_suivre(_pont.appeler("ouvrir", entree))
+		return
+	var scenario := _pont.parametre("scenario")
+	if not _pont.essai and scenario == "":
+		scenario = await _choisir_un_scenario()
+	_suivre(_pont.appeler("demarrer", entree.merged({essai = true} if _pont.essai else {scenario = scenario})))
 
 
 ## Le scénario que le joueur choisit au panneau des scénarios (`scenarios`, #3786) : l'id que porte le bouton pressé
@@ -117,9 +131,21 @@ func _indexer_les_modeles() -> void:
 
 
 ## L'intention d'un geste : la fiche que l'écran montre va à `fiche`, un geste de la création d'un héros à `creation`,
-## toute autre à `jouer`.
+## la campagne à lancer à `lancer`, la partie à quitter à `quitter` (`_quitter`), toute autre à `jouer`.
 func _jouer(jeu: Dictionary) -> void:
-	_suivre(_pont.appeler("fiche" if jeu.has("fiche") else "creation" if jeu.has("creation") else "jouer", jeu))
+	if jeu.has("quitter"):
+		_quitter()
+		return
+	_suivre(_pont.appeler("fiche" if jeu.has("fiche") else "creation" if jeu.has("creation") else "lancer" if jeu.has("lancer") else "jouer", jeu))
+
+
+## La partie quittée (`quitter`) : l'accueil revient, d'où une autre s'ouvre ; un refus laisse l'écran tel quel.
+func _quitter() -> void:
+	if _pont.appeler("quitter").get("ok") != true:
+		return
+	_pont.au_groupe = false
+	_pont.essai = false
+	get_tree().change_scene_to_file("res://scenes/Accueil.tscn")
 
 
 func _reprendre(jeton: int) -> void:
@@ -133,6 +159,7 @@ func _suivre(reponse: Dictionary) -> void:
 	_vue = reponse.vue
 	_refus.text = ""
 	_poser_le_monde_de(_vue.projection.scene, _vue.plateau)
+	_poser_le_retrait_de(_vue.projection.scene, _vue.plateau)
 	_poser_les_aretes_de(_vue.projection.scene, _vue.plateau)
 	_plateau.montrer(_vue)
 	_plateau.jouer_les_effets(reponse.effets)
@@ -142,22 +169,46 @@ func _suivre(reponse: Dictionary) -> void:
 	if _disposition.disposer(_vue.disposition):
 		_relier()
 	Portrait.corps = _vue.corps.combattants
-	Zone.montrer_toutes(_zones, _vue.zones.merged(reponse.zones))
+	for source in reponse.zones:
+		_ajouts.get_or_add(source, []).append_array(reponse.zones[source])
+	Zone.montrer_toutes(_zones, _vue.zones.merged(_ajouts))
 	for programme in reponse.programmes:
 		get_tree().create_timer(MiseEnPage.secondes(programme.delai)).timeout.connect(_reprendre.bind(int(programme.id)))
 	_publier_l_ecran.call_deferred()
 
 
 ## Le monde de la scène `scene` (`vue.projection.scene`), sous le regard du plateau (`plateau.cleDuMonde`), au plateau
-## (`Plateau.poser_le_monde`), s'il n'y est pas déjà.
+## (`Plateau.poser_le_monde`), s'il n'y est pas déjà : son manifeste (`monde`), et la géométrie des seules clés dont
+## l'empreinte posée diffère (`VolumeDeScene.manquants`, `morceaux` de la partie), demandée s'il en manque.
 func _poser_le_monde_de(scene: Variant, plateau: Variant) -> void:
 	var cle := "" if scene == null or plateau == null else "%s|%s" % [scene.id, plateau.cleDuMonde]
 	if cle == _cle_du_monde:
 		return
 	_cle_du_monde = cle
 	var monde := _pont.appeler("monde")
-	if monde.get("ok") == true and monde.monde != null:
-		_plateau.poser_le_monde(monde)
+	if monde.get("ok") != true or monde.monde == null:
+		return
+	var manquants := _monde.volume.manquants(monde)
+	var recus := {volume = [], toits = [], couronnes = []}
+	if not manquants.values().all(func(cles: Array) -> bool: return cles.is_empty()):
+		recus = _pont.appeler("morceaux", manquants.merged({source = "partie"}))
+		if recus.get("ok") != true:
+			return
+	_plateau.poser_le_monde(monde, recus)
+
+
+## Ce que le regard de la partie retire du volume du monde (`retrait`) masqué au volume (`VolumeDeScene.retirer`), si le
+## masque de son empreinte (`plateau.cleDuRetrait`) n'y est pas déjà.
+func _poser_le_retrait_de(scene: Variant, plateau: Variant) -> void:
+	var cle := "" if scene == null or plateau == null else "%s|%s" % [scene.id, plateau.cleDuRetrait]
+	if cle == _cle_du_retrait:
+		return
+	_cle_du_retrait = cle
+	if scene == null or plateau == null:
+		return
+	var reponse := _pont.appeler("retrait")
+	if reponse.get("ok") == true:
+		_monde.volume.retirer(reponse)
 
 
 ## Les arêtes de la scène `scene` (`aretes`) sur le volume du monde (`VolumeDeScene.poser_les_aretes`), si celles de

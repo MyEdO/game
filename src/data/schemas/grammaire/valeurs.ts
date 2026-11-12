@@ -9,6 +9,7 @@ import { tableTotale } from '../../../lib/tableTotale';
 import type { Dir8 } from '../../../geometry/dir8';
 import type { FormuleSansTirage } from '../../../engine/ops';
 import type { RegleOptionnelleId } from '../../../engine/policy';
+import type { Equipe } from '../../../engine/relations';
 import { z } from 'zod';
 import { parseStatus } from '../../../engine/money';
 import { parseDice, totalDuDe } from '../../../engine/dice';
@@ -24,8 +25,9 @@ import { COMPETENCE_DU_MODE } from '../../../engine/propulsion';
 import { listeCle } from './collection-cle';
 import { libelleDeValeur } from './meta';
 import { descendre } from './descente';
-import { marquerProduit } from './interne/produits';
+import { marquerProduit, produitDe } from './interne/produits';
 import { saisonParId } from '../../saisons';
+import { LIBELLES_DES_ICONES } from '../../icons';
 import { MAX_FRAGMENTS, estGraphieDeChapitre } from '../../source/decoupe';
 
 export const blocageDeLivraison = nommerChamps(z.strictObject({ ticket: z.string(), raison: z.string() }), {
@@ -71,6 +73,12 @@ export function enumNomme<const V extends Readonly<Record<string, string>>>(
   return noeud;
 }
 
+/** Id d'icône du registre `src/data/icons/` (`npm run gen`) : un id hors registre se refuse au parse. */
+export const idDIconeSchema = enumNomme(LIBELLES_DES_ICONES);
+
+/** Équipe d'un combattant ou d'une armée (`Equipe`, `engine/relations.ts`). */
+export const equipeSchema = enumNomme({ allie: 'Allié', ennemi: 'Ennemi' } satisfies Record<Equipe, string>);
+
 /** Taille d'agglomération d'un marché : la colonne de la table de Disponibilité (LDB 59 l.25-34). */
 export const settlementSchema = enumNomme({ village: 'village', ville: 'ville', cite: 'cité' });
 export type Settlement = z.output<typeof settlementSchema>;
@@ -98,6 +106,9 @@ export const amateurSchema = enumNomme({
  * `valeurs-de-champ.test.ts` se tenant par VOCABULAIRE.
  */
 export const mutationKindSchema = enumNomme({ physique: 'Physique', mentale: 'Mentale' });
+
+/** Le genre d'une arme, d'un Groupe d'arme ou d'une attaque : corps à corps ou à distance (LDB 62). */
+export const genreDArmeSchema = enumNomme({ melee: 'Corps à corps', distance: 'À distance' });
 
 /** Les rôles d'animation d'ambiance d'une entité de scène. */
 export const roleAmbiantSchema = enumNomme({ repas: 'Se nourrit', priere: 'Prie', tapi: 'Se recroqueville', debout: 'Se tient debout', hurlement: 'Hurle' });
@@ -342,7 +353,7 @@ export const fragmentBlocsSchema = nommerChamps(z.strictObject({
   finSecOcc: z.number().int().min(1).optional(),
   b1: z.number().int().min(0),
   sum: z.string().regex(/^[0-9a-f]{16}$/),
-}), { kind: { label: "type" }, sec: { label: "section" }, secOcc: { label: "occurrence de section" }, b0: { label: "premier bloc" }, finSec: { label: "section de fin" }, finSecOcc: { label: "occurrence de fin" }, b1: { label: "dernier bloc" }, sum: { label: "empreinte" } });
+}), { kind: { label: "type" }, sec: { label: "section" }, secOcc: { label: "occurrence de section" }, b0: { label: "premier bloc" }, finSec: { label: "section de fin" }, finSecOcc: { label: "occurrence de fin" }, b1: { label: "dernier bloc" }, sum: { label: "empreinte" } }, { label: 'Blocs de section' });
 
 /**
  * FRAGMENT DE CELLULE : une case de table, adressée par clé de LIGNE × en-tête de COLONNE — jamais
@@ -357,7 +368,7 @@ export const fragmentCelluleSchema = nommerChamps(z.strictObject({
   col: z.string().min(1),
   table: z.string().regex(/#\d+$/).optional(),
   sum: z.string().regex(/^[0-9a-f]{16}$/),
-}), { kind: { label: "type" }, sec: { label: "section" }, secOcc: { label: "occurrence de section" }, row: { label: "ligne" }, col: { label: "colonne" }, table: { label: "table" }, sum: { label: "empreinte" } });
+}), { kind: { label: "type" }, sec: { label: "section" }, secOcc: { label: "occurrence de section" }, row: { label: "ligne" }, col: { label: "colonne" }, table: { label: "table" }, sum: { label: "empreinte" } }, { label: 'Cellule de table' });
 
 /**
  * Nombre de fragments qu'une adresse doit porter pour ADRESSER quelque chose. En dessous, il n'y a
@@ -448,6 +459,9 @@ export const descRefSchema = descRefSchemaDe();
 
 /** Vue TS de `descRefSchema` — la MÊME forme que `DescRef` du parseur (`src/data/source/decoupe.ts`). */
 export type DescRef = z.infer<typeof descRefSchema>;
+
+/** Le nœud `noeud` est-il une adresse de prose (`descRefSchemaDe`), quels que soient les genres de fragment qu'il admet ? */
+export const estAdresseDeProse = (noeud: unknown): boolean => produitDe(noeud)?.fabrique === 'descRefSchemaDe';
 
 /**
  * ENTRÉE DE CATALOGUE DE SPÉCIALISATION (`SpecEntry`, `src/data/index.ts`) — ce qu'une def de
@@ -1227,7 +1241,7 @@ export const palierSchema = nommerChamps(z.strictObject({ seuil: z.number().int(
  * porteur par la SHAPE, à côté du `test` (`flowTestSchema`) quand la donnée nomme le sujet, à côté de la
  * seule Difficulté quand le code le fixe.
  */
-export const cibleEtendueSchema = nommerChamps(z.strictObject({ targetDR: z.number() }), { targetDR: { label: 'DR à atteindre' } });
+export const cibleEtendueSchema = nommerChamps(z.strictObject({ drCible: z.number() }), { drCible: { label: 'DR à atteindre' } });
 export type CibleEtendue = z.infer<typeof cibleEtendueSchema>;
 
 /**

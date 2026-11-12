@@ -27,11 +27,11 @@ function heros(id: string): Combatant {
 
 describe('CharFrame — identité du repère de sol', () => {
   it('le camp de la tuile et du repère vient de campOf, même si le kind dit autre chose', () => {
-    const c = { ...heros('camp-resolu'), kind: 'enemy' as const };
-    vi.spyOn(relations, 'campOf').mockReturnValue('party');
+    const c = { ...heros('camp-resolu'), kind: 'ennemi' as const };
+    vi.spyOn(relations, 'campOf').mockReturnValue('groupe');
     useGame.setState({ mode: 'exploration', party: [c], viewMode: 'iso' });
     const { container } = monterRacine(<CharFrame c={c} />);
-    expect(container.querySelector('.ptile')!.classList.contains('team-ally')).toBe(true);
+    expect(container.querySelector('.ptile')!.classList.contains('team-allie')).toBe(true);
     expect(container.querySelector<HTMLElement>('.ptile-wrap')!.style.getPropertyValue('--ptile-ring')).toBe(HERO_RING[0]);
     expect(container.querySelector('.ptile-ring circle')!.getAttribute('stroke-dasharray')).toBeNull();
   });
@@ -54,7 +54,7 @@ describe('CharFrame — identité du repère de sol', () => {
 
   it.each([false, true])('la monture reprend le repère effectivement affiché, vue du dessus : %s', (top) => {
     const cavalier = { ...heros('cavalier'), mountId: 'monture' };
-    const monture = { ...heros('monture'), kind: 'enemy' as const, riderId: cavalier.id };
+    const monture = { ...heros('monture'), kind: 'ennemi' as const, riderId: cavalier.id };
     const premier = heros('premier');
     const party = [premier, cavalier];
     const battle = { combatants: [monture, cavalier, premier] } as BattleState;
@@ -68,9 +68,9 @@ describe('CharFrame — identité du repère de sol', () => {
   });
 
   it.each([
-    ['allié hors groupe', 'hero', OUT_OF_PARTY_RING],
-    ['PNJ', 'npc', OUT_OF_PARTY_RING],
-    ['ennemi', 'enemy', ENEMY_RING],
+    ['allié hors groupe', 'heros', OUT_OF_PARTY_RING],
+    ['PNJ', 'pnj', OUT_OF_PARTY_RING],
+    ['ennemi', 'ennemi', ENEMY_RING],
   ] as const)('%s porte son repère de camp au sol et dans CharFrame', (_nom, kind, couleur) => {
     const party = [heros('aventurier')];
     const figurant = { ...heros('figurant'), kind };

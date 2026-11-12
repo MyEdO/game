@@ -55,7 +55,8 @@ couvert). Ajouter une source = l'ajouter **dans `fireTriggers`**, jamais un nouv
 **Le bus** : `emitCombatEvent(event, ctx)` (`src/noyau/combatEvents.ts`) — à chaque moment canonique,
 (a) joue les abonnés MACHINERIE (table `crochetsDeCombat`, lue par `combatHooks`, ordonnés par `order`) PUIS (b) diffuse
 l'événement aux TRIGGERS DE DONNÉES de `ctx.audience` via `fireTriggers`. Les deux journalisent via le
-même `sink`.
+même `sink`. `ctx.battle` est nullable : hors bataille (coup encaissé hors bataille, #3984), (a) ne joue
+pas, (b) joue.
 
 **Attaques gratuites — un seul émetteur, kind-agnostique.** Un Flow qui porte `grantFreeAttack`
 (`flowHasFreeAttack`) est SAUTÉ par le bus (`applyTriggeredEffects`) et joué ENTIER par
@@ -136,7 +137,7 @@ incrémentant `target.criticalWounds` (`noyau/combatFlow.ts`), **sans mourir** t
 (Inconscient ET `crit > BE`) n'est pas franchie, hors ligne mortelle du Tableau des Critiques.
 
 ### 4b. Suspecté (non clos par lecture statique) : « X est hors combat » puis ils continuent (#2661)
-- La ligne de journal `cf.outOfAction` n'est émise que si `isOutOfAction(target)` est vrai (plusieurs
+- La ligne de journal `cf.horsDeCombat` n'est émise que si `isOutOfAction(target)` est vrai (plusieurs
   sites de `noyau/combatFlow.ts`).
 - Un héros à Destin : `finalizeHeroDeath` pose `pendingFateSave` et **suspend** sans tuer.
 - Or Inconscient ⇒ `isOutOfAction` ⇒ devrait être filtré du ciblage. **S'ils continuent**, un invariant

@@ -45,8 +45,8 @@ function setup() {
   banc.getState().lancerLeCombat('enc-mutants');
   banc.getState().fenetreValider('debutDuRound');
   const b = banc.getState().battle!;
-  const heroes = b.combatants.filter((c) => c.kind === 'hero');
-  const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+  const heroes = b.combatants.filter((c) => c.kind === 'heros');
+  const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
   enemies.slice(1).forEach((e) => (e.dead = true));
   const E = enemies[0];
   E.characteristics.intelligence = 48;
@@ -211,7 +211,7 @@ describe('#1042/#1059 — Contre-sort : phase de déclaration puis Test Soutenu 
     banc.getState().jetAnnuler('contreSort');
     expect(banc.getState().pendingCounterspell, 'la fenêtre reste ouverte').toBeTruthy();
     // (2) FENÊTRE : la fermeture que l'effet applique est celle que la fenêtre montre à chaque siège.
-    expect(fermeturesDuFlux(banc.getState(), 'contreSort').cancel, 'aucun siège ne ferme pendant la phase').toBe('declarationsDues');
+    expect(fermeturesDuFlux(banc.getState(), 'contreSort').annuler, 'aucun siège ne ferme pendant la phase').toBe('declarationsDues');
     // (3) TOUT-PASS : la dernière déclaration ferme la fenêtre par le résolveur canonique, sans jet.
     declare(h1.id, 'passer');
     declare(h2.id, 'passer');

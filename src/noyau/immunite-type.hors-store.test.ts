@@ -40,8 +40,8 @@ function setup() {
   banc.getState().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = banc.getState().battle!;
-  const H = b.combatants.find((c) => c.kind === 'hero')!;
-  const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+  const H = b.combatants.find((c) => c.kind === 'heros')!;
+  const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
   enemies.slice(1).forEach((e) => (e.dead = true));
   const E = enemies[0];
   H.pos = { x: 10, y: 10 };
@@ -152,7 +152,7 @@ function zoneDuSort(spellId: string, tiles: Pt[]): BattleZone {
   const s = findSpellById(spellId)!;
   const op = structuredClone(spellOps(s.effects, 'caster').find((o) => o.op === 'zone')); // #2097
   if (op?.op !== 'zone') throw new Error(`${spellId} : pas d'op zone`);
-  return { label: s.label, tiles, rounds: 3, onCross: op.onCross, perRound: op.perRound, source: { kind: 'spell', id: s.id } };
+  return { label: s.label, tiles, rounds: 3, onCross: op.onCross, perRound: op.perRound, source: { kind: 'sort', id: s.id } };
 }
 
 /** La créature `id` apparue sur `pos`. */

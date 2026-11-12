@@ -40,7 +40,7 @@ const CO = 240;
 
 const INITIES = { op: 'narrative', text: "combien d'initiés sensibles à ses paroles il a rassemblés", nombre: d10 };
 const DECOUVERTE = { op: 'narrative', text: 'vous découvrez sa présence' };
-const COMMISSION = { kind: 'choice', prompt: 'Accepter le colis', yes: { kind: 'do', effect: { type: 'ops', on: 'navire', ops: [{ op: 'commission', montant: { brass: 200 * CO } }] } } };
+const COMMISSION = { kind: 'choix', invite: 'Accepter le colis', oui: { kind: 'effet', effet: { type: 'ops', on: 'navire', ops: [{ op: 'commission', montant: { brass: 200 * CO } }] } } };
 const VOILE_SANS_PROFIL = 51;
 const MAISON_DE_LA_POURSUITE = "Un navire hostile dont ni le chef ni l'équipage n'ont de profil à Voile (MDG 15 l.150, l.171 n'en donnent pas) mène sa Poursuite avec la Voile 51 du profil Marin (MDG 14 l.321).";
 
@@ -71,13 +71,13 @@ const rangee = (table, id) => sea[table]?.entries?.find((x) => x.id === id);
 
 if (!arrets.length) {
   const culte = rangee('boardEvents', 'culte-de-la-personnalite');
-  const opsDuCulte = culte?.consequence?.effect?.ops;
-  if (culte && (!Array.isArray(opsDuCulte) || opsDuCulte[0]?.op !== 'rollTable')) arrets.push('culte-de-la-personnalite : consequence hors de la forme `do` → `rollTable`');
+  const opsDuCulte = culte?.consequence?.effet?.ops;
+  if (culte && (!Array.isArray(opsDuCulte) || opsDuCulte[0]?.op !== 'rollTable')) arrets.push('culte-de-la-personnalite : consequence hors de la forme `effet` → `rollTable`');
   else if (culte && !opsDuCulte.some((o) => isDeepStrictEqual(o, INITIES))) { opsDuCulte.push(structuredClone(INITIES)); gestes++; }
 
   const passager = rangee('portEvents', 'passager-clandestin');
-  const echec = passager?.consequence?.fail?.effect?.ops;
-  if (passager && (!Array.isArray(echec) || echec.length !== 1)) arrets.push('passager-clandestin : branche `fail` hors de la forme `do` à une op');
+  const echec = passager?.consequence?.echec?.effet?.ops;
+  if (passager && (!Array.isArray(echec) || echec.length !== 1)) arrets.push('passager-clandestin : branche `echec` hors de la forme `effet` à une op');
   else if (passager && echec[0].op === 'rollTable') { echec[0] = { op: 'delayed', afterDays: d10, ops: [structuredClone(DECOUVERTE), echec[0]] }; gestes++; }
   else if (passager && echec[0].op !== 'delayed') arrets.push(`passager-clandestin : op « ${echec[0].op} » inattendue sur l'échec`);
 

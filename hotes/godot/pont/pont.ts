@@ -18,8 +18,8 @@
  * faite des lecteurs du noyau. Le pont (`pont.ts`) ne porte aucune règle ; il passe par le module commun des hôtes
  * (`src/hote/`). Ticket : #2928. Les tests `*.hors-store.test.ts` de ce dossier vérifient ce contrat.
  */
-import { CLIC_DU_CHAMP, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, editer, intentionDEngagement, ouvrirLEdition, projetDuDepot, essaiDeLaScene, texteAEnregistrer, pagesDeCreation, sceneEditee, vueDeLaScene, FIRE_ARCS, ficheDEntite, libelleDuBord, lireApparenceDAuteur, lireComposition, lireSurchargesDEmblemes, siegeEngines, vehiculeDuCombattant, type FireArc, lumiereDeLaScene, porteeDuCombattant, type Jeu, effetsDeLAppel, vitrineDesEffets, type Effet, type VitrineDesEffets, meteoDuRegard, aretesDeLaCouche, aretesDeLaScene, type AreteDessinee, naviresDeLaScene, stationsDuNavire, type EmprisesDesCases, type NavireDeLaScene, type StationDeNavire, casesDuGroupe, plateauDeLaScene, regardDuJeu, REGARDS, volumeDuRegard, type Regard, porteeDeComposition, presetDeComposition, couronnesDuMonde, toitsDuMonde, volumeDuMonde, echantillonDessine, famillesDEchantillons, type EchantillonDessine, type FamilleDEchantillons, type Composition, type GesteDEdition, type Scene, type SessionDEdition, type LectureAuSchema, type LigneDuJournal, type LumiereDeLaScene, type ProjectDoc, type Programme, type ResultatDeLAppel, type VehiculeDuCombattant, type EmblemeResolu, planDeLaCouche, type OeilDuPlan, musiqueDeLaPartie, type MusiqueDeLaPartie, zonesQuiDurent, type ZoneQuiDure, marquesDesEtats, type MarqueDEtat, type MeteoDuRegard, type NappeDuMonde, type PlateauDeLaScene, type VolumeDuMonde } from '../../../src/noyau/index';
-import { ErreurDeGeste, nouvelEntete, nouvellesEntrees, ouvrirLaPartie, ouvrirLeLancement, valider, type CategorieDErreur, type PartieOuverte } from '../../../src/hote/partie';
+import { CLIC_DU_CHAMP, partieEnCours, refusDeLancer, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, editer, intentionDEngagement, ouvrirLEdition, projetDuDepot, essaiDeLaScene, texteAEnregistrer, pagesDeCreation, vueDeLaScene, FIRE_ARCS, ficheDEntite, libelleDuBord, lireApparenceDAuteur, lireComposition, lireSurchargesDEmblemes, siegeEngines, vehiculeDuCombattant, type FireArc, lumiereDeLaScene, porteeDuCombattant, type Jeu, effetsDeLAppel, vitrineDesEffets, type Effet, type VitrineDesEffets, PREFERENCES, type PrefValue, meteoDuRegard, aretesDeLaCouche, aretesDeLaScene, type AreteDessinee, naviresDeLaScene, stationsDuNavire, type EmprisesDesCases, type NavireDeLaScene, type StationDeNavire, casesDuGroupe, masqueDuRegard, plateauDeLaScene, regardDuJeu, REGARDS, type Regard, porteeDeComposition, presetDeComposition, couronnesDuMonde, retraitDuMonde, toitsDuMonde, volumeDuMonde, echantillonDessine, famillesDEchantillons, type EchantillonDessine, type FamilleDEchantillons, type Composition, type GesteDEdition, type Scene, type SessionDEdition, type LectureAuSchema, type LigneDuJournal, type LumiereDeLaScene, type ProjectDoc, type Programme, type ResultatDeLAppel, type VehiculeDuCombattant, type EmblemeResolu, planDeLaCouche, type OeilDuPlan, musiqueDeLaPartie, type MusiqueDeLaPartie, zonesQuiDurent, type ZoneQuiDure, marquesDesEtats, type MarqueDEtat, type MeteoDuRegard, type MorceauDuMonde, type NappeDuMonde, type PlateauDeLaScene, type RetraitDuMonde, type VolumeDuMonde } from '../../../src/noyau/index';
+import { ErreurDeGeste, nouvelEntete, nouvellesEntrees, ouvrirAuGroupe, ouvrirLaPartie, ouvrirLeLancement, valider, type CategorieDErreur, type PartieAuGroupe } from '../../../src/hote/partie';
 import { envoyerLIntention, gesteDuVerbe, intentionDuGeste, SANS_PISTE } from '../../../src/hote/geste';
 import { casesAtteignables, projeter, type BornesDeLaProjection, type CaseAtteignable, type Projection } from '../../../src/hote/projection';
 import { estObjet } from '../../../src/lib/objet.mjs';
@@ -31,9 +31,10 @@ import { estListeDeChaines } from '../asset/attache';
 import type { TableDeClips } from '../asset/clips';
 import { type CreationOuverte, type GesteDeLaCreation, type PanneauDeLHote } from '../../../src/hote/elements';
 import { apresLaCreation, boutonDeLaCreation } from '../../../src/hote/creation';
-import { boutonDeLEdition, calqueAffiche, cheminDeLaPlanche, estLIssueDUnChargement, gesteDuFormulaire, estLIssueDUnEnregistrement, estUnGesteDuPointeur, memoireDesCalques, refusDeLaValeurDit, surcoucheDeLEdition, zonesDeLEditeur } from '../../../src/hote/editeur';
-import { allBuiltinCampaigns, paquetDuJeu } from '../../../src/scenes/campaign';
+import { boutonDeLEdition, calqueAffiche, cheminDeLaPlanche, estLIssueDUnChargement, estLIssueDUnChapitre, gesteDuFormulaire, estLIssueDUnEnregistrement, estUnGesteDuPointeur, memoireDesCalques, refusDeLaValeurDit, surcoucheDeLEdition, zonesDeLEditeur } from '../../../src/hote/editeur';
+import { allBuiltinCampaigns, campagneDuJeu, lancementDeLaCampagne, paquetDuJeu } from '../../../src/scenes/campaign';
 import { zonesDesScenarios } from '../../../src/hote/scenarios';
+import { enOctets } from './octets';
 
 /** Le service `persisterLeHeros` du pont : il ne persiste aucun héros, l'hôte Godot n'a pas de stockage (#3041). */
 const sansRoster = (): void => {};
@@ -351,27 +352,56 @@ export interface Suite {
 
 /**
  * @contrat Monde
- * La réponse de `monde` : le volume du monde de la scène en cours sous le regard de la partie, ses nappes de toit, ses
- * couronnes crénelées et sa météo.
+ * Ce qui nomme un morceau du volume ou une nappe dans un manifeste.
  */
-interface MondeDuPont {
+interface EmpreinteDuMonde {
+  /** Sa clé (`MorceauDuMonde.cle`, `NappeDuMonde.cle`). */
+  cle: string;
+  /** L'empreinte de son contenu : Godot garde le nœud posé tant qu'elle ne bouge pas. */
+  empreinte: string;
+}
+
+/**
+ * @contrat Monde
+ * Le manifeste du volume du monde (`VolumeDuMonde`), sans géométrie : Godot demande à `morceaux` ceux dont
+ * l'empreinte a bougé.
+ */
+interface ManifesteDuVolume {
+  /** L'échelle de la scène, en mètres par case (`VolumeDuMonde.metresParCase`). */
+  metresParCase: number;
+  /** La hauteur (m) de la surface de chaque case, par couche (`VolumeDuMonde.hauteurs`). */
+  hauteurs: VolumeDuMonde['hauteurs'];
+  /** Chaque morceau du volume, sa clé et son empreinte, dans l'ordre du volume. */
+  morceaux: EmpreinteDuMonde[];
+}
+
+/** Le manifeste du volume `v`. */
+const manifesteDe = ({ metresParCase, hauteurs, morceaux }: VolumeDuMonde): ManifesteDuVolume => ({ metresParCase, hauteurs, morceaux: empreintesDe(morceaux) });
+
+/** La clé et l'empreinte de chacun de `contenus`. */
+const empreintesDe = (contenus: readonly EmpreinteDuMonde[]): EmpreinteDuMonde[] => contenus.map(({ cle, empreinte }) => ({ cle, empreinte }));
+
+/** Ceux de `contenus` dont la clé est dans `cles`, dans l'ordre de `contenus`. */
+const parCles = <T extends EmpreinteDuMonde>(contenus: readonly T[], cles: readonly string[]): T[] => {
+  const voulues = new Set(cles);
+  return contenus.filter(({ cle }) => voulues.has(cle));
+};
+
+/**
+ * @contrat Monde
+ * La réponse de `monde` : le manifeste du volume du monde de la scène en cours, de ses nappes de toit, de ses
+ * couronnes crénelées, et sa météo sous le regard de la partie.
+ */
+export interface MondeDuPont {
+  /** le manifeste du volume du monde de la scène en cours (`ManifesteDuVolume`), `null` sans scène. */
+  monde: ManifesteDuVolume | null;
+  /** la clé (`nappeKey`) et l'empreinte de chaque nappe de toit (`toitsDuMonde`), une par masse de bâtiment. */
+  toits: EmpreinteDuMonde[];
   /**
-   * le volume du monde de la scène en cours (`VolumeDuMonde`), sous le regard de la partie (`volumeDuRegard`), `null`
-   * sans scène.
+   * la clé (`edgeKey`) et l'empreinte de chaque couronne crénelée (`couronnesDuMonde`), une par mur fortifié de chaque
+   * couche.
    */
-  monde: VolumeDuMonde | null;
-  /**
-   * Les nappes de toit (`toitsDuMonde`) ont la forme du volume (`positions`, `normales`, `couleurs`, `cases`,
-   * `surfaces`), une par masse de bâtiment, nommée par `cle` (`nappeKey`) : ses pans de couverture (matière
-   * `roof--<id>`) et ses pignons, de la matière du mur qu'ils prolongent (`structure--<id>`, `closureAppearance`).
-   */
-  toits: NappeDuMonde[];
-  /**
-   * Les couronnes crénelées (`couronnesDuMonde`) ont la même forme que les nappes de toit, une par mur fortifié
-   * (apparence à `parapet`) de chaque couche, nommée par la clé de son arête (`edgeKey`), posée au sommet de la face
-   * pleine du mur dressé à son pied (`crownFaces`, `piedDeLArete`).
-   */
-  couronnes: NappeDuMonde[];
+  couronnes: EmpreinteDuMonde[];
   /**
    * La météo (`meteoDuRegard`, `src/noyau/monde/meteo.ts`, `MeteoDuRegard`) est celle que la scène montre
    * (`sceneWeatherFx` : aucune en intérieur ni pour un id hors de `ambiance.json › iso.weather`), sous le regard de la
@@ -387,6 +417,27 @@ interface MondeDuPont {
    * scène entre dans `plateau.cleDuMonde`.
    */
   meteo: MeteoDuRegard | null;
+}
+
+/**
+ * @contrat Monde
+ * La réponse de `morceaux` : la géométrie de chaque clé demandée, une clé absente de la scène omise.
+ * Par `appeler`, ses tableaux en nombres.
+ * Par `appelerEnOctets`, l'en-tête d'`enOctets` (`EnteteDesMorceaux`, `pont/octets.ts`) : ses tableaux en bornes.
+ */
+export interface MorceauxDuPont {
+  /** les morceaux du volume demandés (`MorceauDuMonde`). */
+  volume: MorceauDuMonde[];
+  /**
+   * les nappes de toit demandées (`NappeDuMonde`) : leurs pans de couverture (matière `roof--<id>`) et leurs pignons,
+   * de la matière du mur qu'ils prolongent (`structure--<id>`, `closureAppearance`).
+   */
+  toits: NappeDuMonde[];
+  /**
+   * les couronnes crénelées demandées (`NappeDuMonde`), posées au sommet de la face pleine du mur dressé à leur pied
+   * (`crownFaces`, `piedDeLArete`).
+   */
+  couronnes: NappeDuMonde[];
 }
 
 /** Le clic du champ sur le combattant `id`, comme Godot le joue (`combat.gd`) : le verbe de `champ`, la case où
@@ -461,19 +512,37 @@ function calquesGardes(texte: string): unknown {
   }
 }
 
+/** L'index des chapitres du `Source/` que porte `texte`, le texte que sert le poste (`servir.mjs`, `source/manifest.json`) :
+ *  du JSON, par livre son sigle et ses chapitres, chacun sa graphie et son titre. */
+function manifesteServi(texte: unknown): NonNullable<SessionDEdition['manifeste']> {
+  valider(typeof texte === 'string', 'editer : manifeste, le texte de l’index des chapitres que sert le poste');
+  let lu: unknown;
+  try {
+    lu = JSON.parse(texte as string);
+  } catch {
+    throw new ErreurDeGeste('validation', 'editer : manifeste, JSON illisible');
+  }
+  const chapitre = (c: unknown) => estObjet(c) && typeof c.ch === 'string' && typeof c.titre === 'string';
+  const livre = (l: unknown) => estObjet(l) && typeof l.abbr === 'string' && Array.isArray(l.chapitres) && l.chapitres.every(chapitre);
+  valider(estObjet(lu) && Object.values(lu).every(livre), 'editer : manifeste, par livre { abbr, chapitres: { ch, titre }[] }');
+  return lu as NonNullable<SessionDEdition['manifeste']>;
+}
+
 /** Le pont : ses méthodes, chacune appelée par `appeler`. */
 export function creerPont() {
-  let ouverte: (PartieOuverte & { graine: number; pas: number; lignes: number; jour: number | null; panneau: PanneauDeLHote; brouillons: number; regard: Regard }) | null = null;
+  let ouverte: (PartieAuGroupe & { graine: number; pas: number; lignes: number; jour: number | null; panneau: PanneauDeLHote; brouillons: number; regard: Regard }) | null = null;
+  /** Le numéro du premier jeton de la prochaine partie : celui qui suit le dernier de la partie quittée (`quitter`). */
+  let premierJeton = 0;
   const erreurs: ErreurGlobale[] = [];
   /** Les manifestes et les modèles du dernier `modeles`, que `composer` et les corps de la vue lisent. */
   let modeles: { manifestes: Record<string, unknown>; modeles: ModelesDeLAtelier } | null = null;
   /** La session de l'éditeur de carte (`editer`), et la scène et la couche du dernier monde qu'elle a rendu. */
-  let edition: { session: SessionDEdition; monde: { scene: Scene; z: number } } | null = null;
+  let edition: { session: SessionDEdition; monde: { vue: Scene; z: number } } | null = null;
   /** Ce qui construit le lancement de la dernière scène mise à l'essai par l'éditeur, que `demarrer { essai }` ouvre. */
   let essai: Parameters<typeof ouvrirLeLancement>[1] | null = null;
 
   const demarree = () => {
-    if (!ouverte) throw new ErreurDeGeste('validation', 'aucune partie : demarrer d’abord');
+    if (!ouverte) throw new ErreurDeGeste('validation', 'aucune partie : demarrer ou ouvrir d’abord');
     return ouverte;
   };
 
@@ -597,6 +666,10 @@ export function creerPont() {
     return resultat;
   };
 
+  /** La partie `o` devenue celle du pont, à la graine `graine` : son pas, son journal, son panneau et son regard à
+   *  leur départ. */
+  const tenir = (o: PartieAuGroupe, graine: number): NonNullable<typeof ouverte> => (ouverte = { ...o, graine, pas: 0, lignes: 0, jour: null, panneau: null, brouillons: 0, regard: 'tactique' });
+
   const methodes: Record<string, (json?: string | null) => object> = {
     /**
      * `{ scenario, graine? }` : l'id d'un scénario de test du catalogue (`testScenarios`), la graine des dés (entier, 1
@@ -607,22 +680,67 @@ export function creerPont() {
      */
     demarrer(json) {
       const e = entreeDe('demarrer', json, (e) => ('essai' in e ? ['essai', 'graine'] : ['scenario', 'graine']));
-      valider(!ouverte, 'demarrer : une partie par page, déjà démarrée ; recharger la page pour en commencer une autre');
-      let o: PartieOuverte;
-      let graine: number;
+      valider(!ouverte, 'demarrer : une partie est ouverte ; quitter d’abord');
       if ('essai' in e) {
         valider(e.essai === true && essai, 'demarrer : essai, aucune scène mise à l’essai par editer');
         const entrees = nouvellesEntrees({ graine: e.graine as number | undefined });
-        o = ouvrirLeLancement(entrees, essai!, sansRoster);
-        graine = entrees.graine;
-      } else {
-        valider(typeof e.scenario === 'string', 'demarrer : scenario, l’id d’un scénario de test');
-        const entete = nouvelEntete(e.scenario as string, { graine: e.graine as number | undefined });
-        o = ouvrirLaPartie(entete, sansRoster);
-        graine = entete.graine;
+        const o = ouvrirLeLancement(entrees, essai!, sansRoster, premierJeton);
+        return suite(tenir(o, entrees.graine), o.lancement);
       }
-      ouverte = { ...o, graine, pas: 0, lignes: 0, jour: null, panneau: null, brouillons: 0, regard: 'tactique' };
-      return suite(ouverte, o.lancement);
+      valider(typeof e.scenario === 'string', 'demarrer : scenario, l’id d’un scénario de test');
+      const entete = nouvelEntete(e.scenario as string, { graine: e.graine as number | undefined });
+      const o = ouvrirLaPartie(entete, sansRoster, premierJeton);
+      return suite(tenir(o, entete.graine), o.lancement);
+    },
+    /**
+     * `{ graine? }` : la graine des dés (entier, 1 par défaut)
+     *
+     * @returns une `Suite` sans jeton ni journal : la partie ouverte au groupe, sans scène ni lancement. Son groupe se
+     * compose par les verbes du noyau que portent les zones `groupe.pretires` et `groupe.heros` (`jouer`), et par la
+     * création d'un héros (`creation`) ; `lancer` la lance. Refusé quand une partie est ouverte.
+     */
+    ouvrir(json) {
+      const e = entreeDe('ouvrir', json, ['graine']);
+      valider(!ouverte, 'ouvrir : une partie est ouverte ; quitter d’abord');
+      const entrees = nouvellesEntrees({ graine: e.graine as number | undefined });
+      return sansJeton(tenir(ouvrirAuGroupe(entrees, sansRoster, premierJeton), entrees.graine));
+    },
+    /**
+     * `{ lancer }` : l'id d'une campagne du jeu, le `jeu` d'un bouton de la zone `groupe.campagnes`
+     *
+     * @returns une `Suite` : le lancement de la campagne par le groupe composé (`lancementDeLaCampagne`,
+     * `src/scenes/campaign.ts`), sur la séquence unique du lancement, à sa scène d'entrée. Refusé (`validation`) sans
+     * partie ouverte, sur un id qui n'est celui d'aucune campagne du jeu, ou quand la partie est déjà en cours
+     * (`partieEnCours`, surface du noyau) ; refusé (`regle`) avec la raison du noyau quand le groupe ne se lance pas
+     * (`refusDeLancer`).
+     */
+    lancer(json) {
+      const o = demarree();
+      const e = entreeDe('lancer', json, ['lancer']);
+      const campagne = allBuiltinCampaigns.find((c) => c.id === e.lancer);
+      valider(campagne, `lancer : lancer, l’id d’une campagne du jeu (${allBuiltinCampaigns.map((c) => c.id).join(', ')})`);
+      const etat = o.partie.etat();
+      valider(!partieEnCours(etat), 'lancer : la partie est déjà en cours ; quitter, puis ouvrir, pour en lancer une autre');
+      const refus = refusDeLancer(etat);
+      if (refus) throw new ErreurDeGeste('regle', `lancer : ${refus}`);
+      const resultat = o.partie.lancer(lancementDeLaCampagne(campagneDuJeu(campagne!), etat.party));
+      o.pas++;
+      return suite(o, resultat);
+    },
+    /**
+     * aucune (le `jeu` `{ quitter: true }` du bouton de la zone `partie.gestes` la désigne à l'hôte)
+     *
+     * @returns rien : la partie ouverte est fermée, ses jetons en attente perdus (un jeton rendu après elle se refuse,
+     * `jeton inconnu`, aucun numéro ne resservant sous ce pont) ; `ouvrir` ou `demarrer` en ouvre une autre. Les
+     * modèles servis, la carte ouverte par `editer` et la scène mise à l'essai restent. Refusé sans partie ouverte.
+     */
+    quitter(json) {
+      entreeDe('quitter', json, []);
+      const o = demarree();
+      premierJeton = o.jetons.suivant();
+      o.partie.fermer();
+      ouverte = null;
+      return {};
     },
     /**
      * aucune
@@ -648,20 +766,59 @@ export function creerPont() {
     /**
      * aucune
      *
-     * @returns `{ monde, toits, couronnes, meteo }` : le volume du monde de la scène en cours (section « Monde »), sous
-     * le regard de la partie (`regarder`), sans ce qu'il retire pour le groupe, qu'il porte en `ombre`
-     * (`volumeDuRegard`, section « Vue », `plateau.cleDuMonde`), `null` sans scène, ses nappes de toit (`toitsDuMonde`)
-     * et les couronnes crénelées des murs de toutes ses couches (`couronnesDuMonde`), vides sans scène, et la météo que
-     * le regard montre (`meteoDuRegard`, section « Monde »), `null` sans scène ou sans météo à montrer ; à rappeler
-     * quand la scène ou `plateau.cleDuMonde` change
+     * @returns `{ monde, toits, couronnes, meteo }` (`MondeDuPont`) : le manifeste du volume du monde de la scène en
+     * cours (section « Monde »), `null` sans scène, les clés et empreintes de ses nappes de toit et de ses couronnes
+     * crénelées, vides sans scène, et la météo que le regard montre (`meteoDuRegard`), `null` sans scène ou sans météo
+     * à montrer ; à rappeler quand la scène ou `plateau.cleDuMonde` change
      */
     monde(json): MondeDuPont {
       entreeDe('monde', json, []);
       const o = demarree();
       const etat = o.partie.etat();
       const scene = etat.scene;
-      const regard = regardDuJeu(o.regard, !!etat.battle);
-      return { monde: scene ? volumeDuRegard(scene, casesDuGroupe(etat), regard) : null, toits: scene ? toitsDuMonde(scene) : [], couronnes: scene ? couronnesDuMonde(scene) : [], meteo: scene ? meteoDuRegard(scene, regard) : null };
+      if (!scene) return { monde: null, toits: [], couronnes: [], meteo: null };
+      return { monde: manifesteDe(volumeDuMonde(scene)), toits: empreintesDe(toitsDuMonde(scene)), couronnes: empreintesDe(couronnesDuMonde(scene)), meteo: meteoDuRegard(scene, regardDuJeu(o.regard, !!etat.battle)) };
+    },
+    /**
+     * `{ source, volume, toits, couronnes }` : `partie` (la scène de la partie) ou `edition` (celle du dernier
+     * manifeste que `editer` a rendu, ses navires posés), puis les clés demandées des morceaux du volume, des nappes de
+     * toit et des couronnes crénelées
+     *
+     * @returns `{ volume, toits, couronnes }` (`MorceauxDuPont`) : la géométrie de chaque clé demandée, dans l'ordre du
+     * manifeste, une clé absente de la scène omise ; refusé sans scène de la partie (`partie`) ou sans carte ouverte
+     * (`edition`).
+     * Par `appelerEnOctets`, l'en-tête d'`enOctets` : chaque tableau en `[debut, fin]` dans `octets()`.
+     */
+    morceaux(json): MorceauxDuPont {
+      const e = entreeDe('morceaux', json, ['source', 'volume', 'toits', 'couronnes']);
+      valider(e.source === 'partie' || e.source === 'edition', 'morceaux : source, partie ou edition');
+      for (const champ of ['volume', 'toits', 'couronnes']) valider(estListeDeChaines(e[champ]), `morceaux : ${champ}, une liste de clés`);
+      let scene: Scene | null;
+      if (e.source === 'partie') scene = demarree().partie.etat().scene;
+      else {
+        valider(edition !== null, 'morceaux : aucune carte ouverte, editer { ouvrir } d’abord');
+        scene = edition!.monde.vue;
+      }
+      valider(scene, 'morceaux : aucune scène');
+      return {
+        volume: parCles(volumeDuMonde(scene!).morceaux, e.volume as string[]),
+        toits: parCles(toitsDuMonde(scene!), e.toits as string[]),
+        couronnes: parCles(couronnesDuMonde(scene!), e.couronnes as string[]),
+      };
+    },
+    /**
+     * aucune
+     *
+     * @returns `{ masque, largeur, rangees }` (`RetraitDuMonde`, section « Monde ») : ce que le regard de la partie
+     * retire du volume du monde pour le groupe (`masqueDuRegard`, section « Vue ») ; refusé sans scène ; à rappeler
+     * quand `plateau.cleDuRetrait` change
+     */
+    retrait(json): RetraitDuMonde {
+      entreeDe('retrait', json, []);
+      const o = demarree();
+      const etat = o.partie.etat();
+      valider(etat.scene, 'retrait : aucune scène');
+      return masqueDuRegard(etat.scene!, casesDuGroupe(etat), regardDuJeu(o.regard, !!etat.battle));
     },
     /**
      * aucune
@@ -669,13 +826,14 @@ export function creerPont() {
      * @returns `{ aretes }` : les arêtes de toutes les couches de la scène en cours hors des ponts de ses navires, que
      * la marche garde et que le modèle du navire montre (`aretesDeLaScene`, `src/noyau/monde/aretes.ts`), vides sans
      * scène ; à rappeler quand `plateau.cleDesAretes` change. Chacune (`areteDessinee`) : `{ cle, case, milieu, sens,
-     * pied, piece, famille, hauteurM }`, sa clé `edgeKey`, la case dont elle borde un côté, son milieu et le sens où
+     * pied, piece, famille, hauteurM, bloc }`, sa clé `edgeKey`, la case dont elle borde un côté, son milieu et le sens où
      * elle court, en coins de grille (`wallEnds`) ; la hauteur en mètres d'où elle se dresse, celle de la plus basse des
      * deux cases qu'elle sépare (`piedDeLArete`, `src/noyau/monde/scene.ts`) ; sa pièce : une porte en jeu fermée ou
      * ouverte, la brèche d'une structure abattue, une fenêtre aux volets ouverts ou clos, sinon un mur ; la famille du
      * kit de son apparence (`kit` de `structureAppearance.json`, l'apparence étant celle du mur de la façade authorée
      * qui régit l'arête, sinon celle du segment : `apparenceDArete`, `src/noyau/monde/facades/`), `null` pour une
-     * apparence hors du catalogue ; la hauteur de son mur en mètres, `wallHeightM` sinon un étage
+     * apparence hors du catalogue ; la hauteur de son mur en mètres, `wallHeightM` sinon un étage ; son bloc
+     * `<z>/<bx>/<by>`, celui de sa case à sa couche (`blocDeLaCase`, `src/noyau/monde/volume/volume.ts`)
      */
     aretes(json): { aretes: AreteDessinee[] } {
       entreeDe('aretes', json, []);
@@ -733,7 +891,7 @@ export function creerPont() {
      * `{ regard }` : `tactique`, `plateau` ou `immersion` (`REGARDS`, `src/noyau/monde/aretes.ts`)
      *
      * @returns une `Suite` sans jeton ni journal : la vue, son plateau sous ce regard (section « Vue »,
-     * `plateau.regard`), gardé jusqu'au prochain `regarder` ; `tactique` à `demarrer`
+     * `plateau.regard`), gardé jusqu'au prochain `regarder` ; `tactique` à l'ouverture de la partie
      */
     regarder(json) {
       const o = demarree();
@@ -906,6 +1064,16 @@ export function creerPont() {
     /**
      * aucune
      *
+     * @returns `{ preferences }` : la valeur effective de chaque préférence de confort, par id (`PREFERENCES`, surface
+     * du noyau), dont `volume-<canal>` pour chaque canal du mixage ; avant ou après `demarrer`
+     */
+    preferences(json): { preferences: Record<string, PrefValue> } {
+      entreeDe('preferences', json, []);
+      return { preferences: Object.fromEntries(PREFERENCES.map((p) => [p.id, p.get()])) };
+    },
+    /**
+     * aucune
+     *
      * @returns `{ familles: { id, libelle, entrees: { id, libelle }[] }[] }` : chaque famille de ce que le jeu dessine
      * en 3D hors des modèles servis, `decor`, `sol`, `relief`, `toit` et `mur`, et chacune de ses entrées, au libellé de
      * sa donnée, dans l'ordre des libellés (`famillesDEchantillons`, surface du noyau, section « Atelier 3D ») ; avant
@@ -949,23 +1117,27 @@ export function creerPont() {
       return rendu;
     },
     /**
-     * `{ ouvrir, projet?, calques? }` : l'id d'une campagne du jeu (`allBuiltinCampaigns`, `src/scenes/campaign.ts`),
-     * le texte de son projet que sert le dépôt, et celui des calques que l'hôte garde ; ou `{ edition }` : un geste
-     * d'édition (`GesteDEdition`, `src/noyau/edition/session.ts`), un geste du pointeur, l'issue d'un enregistrement ou
-     * d'un chargement de planche, ou celui que porte un bouton des zones de l'éditeur, un qui l'offre sans refus
-     * d'abord ; ou `{ type: 'nommer' | 'identifier' | 'decrire' | 'drapeau', args }` : le formulaire de l'inspecteur
+     * `{ ouvrir, projet?, calques?, manifeste? }` : l'id d'une campagne du jeu (`allBuiltinCampaigns`,
+     * `src/scenes/campaign.ts`), le texte de son projet que sert le dépôt, celui des calques que l'hôte garde, et celui de
+     * l'index des chapitres du `Source/` que sert le poste ; ou `{ edition }` : un geste d'édition (`GesteDEdition`,
+     * `src/noyau/edition/session.ts`), un geste du pointeur, l'issue d'un enregistrement, d'un chargement de planche ou
+     * de celui du chapitre attendu (refusée en `validation` hors d'une attente, ou d'un autre chapitre), ou celui que
+     * porte un bouton des zones de l'éditeur, un qui l'offre sans refus d'abord ; ou `{ type: 'nommer' | 'identifier' |
+     * 'decrire' | 'drapeau', args }` : le formulaire de l'inspecteur
      * qui nomme la sélection ou la scène, `args` le nom saisi ou rien, qui change l'identifiant de la zone d'effet
      * sélectionnée, `args` l'identifiant saisi, qui décrit la scène, `args` la description ou rien, ou qui ajoute un
      * drapeau de départ, `args` son nom ; ou `{ type: 'valeur', args: [porteur, chemin, valeur?] }` : un formulaire
      * tiré du schéma, ses deux saisies posées égales en profondeur à celles d'un formulaire des zones, `valeur` absente
      * pour retirer le champ (section « Éditeur »)
      *
-     * @returns `{ vue: { zones, couche }, surcouche, calque, monde?, aretes?, navires?, depot?, essai?, planche?,
-     * memoire? }` (section « Éditeur ») ; un bouton refusé se refuse en `regle`, avec sa raison, comme un enregistrement que la
+     * @returns `{ vue: { zones, couche }, surcouche, calque, monde?, retrait?, aretes?, navires?, depot?, essai?,
+     * planche?, chapitre?, memoire? }` (section « Éditeur »), `chapitre` le `{ book, ch }` du chapitre que la session se
+     * met à attendre, que l'hôte charge (`GET source/<book>/<ch>.md`) puis rend en `{ edition: { geste: 'chapitre', book,
+     * ch, texte } }` ; un bouton refusé se refuse en `regle`, avec sa raison, comme un enregistrement que la
      * porte refuse
      */
     editer(json) {
-      const e = entreeDe('editer', json, (e) => ('ouvrir' in e ? ['ouvrir', 'projet', 'calques'] : 'type' in e ? ['type', 'args'] : ['edition']));
+      const e = entreeDe('editer', json, (e) => ('ouvrir' in e ? ['ouvrir', 'projet', 'calques', 'manifeste'] : 'type' in e ? ['type', 'args'] : ['edition']));
       const avant = 'ouvrir' in e ? null : edition?.session ?? null;
       let session: SessionDEdition;
       let depot: { id: string; texte: string } | null = null;
@@ -974,7 +1146,8 @@ export function creerPont() {
         valider(campagne !== undefined, `editer : ouvrir, l’id d’une campagne du jeu (${allBuiltinCampaigns.map((c) => c.id).join(', ')})`);
         valider(e.calques === undefined || typeof e.calques === 'string', 'editer : calques, le texte des calques que l’hôte garde');
         const gardes = e.calques === undefined ? undefined : calquesGardes(e.calques as string);
-        session = e.projet === undefined ? ouvrirLEdition(paquetDuJeu(campagne!), false, gardes) : ouvrirLEdition(projetServi(campagne!.id, e.projet), true, gardes);
+        const manifeste = e.manifeste === undefined ? null : manifesteServi(e.manifeste);
+        session = e.projet === undefined ? ouvrirLEdition(paquetDuJeu(campagne!), false, gardes, manifeste) : ouvrirLEdition(projetServi(campagne!.id, e.projet), true, gardes, manifeste);
       } else {
         valider(edition !== null, 'editer : aucune carte ouverte, editer { ouvrir } d’abord');
         const s = edition!.session;
@@ -982,9 +1155,13 @@ export function creerPont() {
         if ('type' in e) valider(nomme, 'editer : un formulaire des zones editeur.*, { type: nommer | identifier | decrire | drapeau, args: [texte] } ou { type: valeur, args: [porteur, chemin, valeur?] }');
         else if (estLIssueDUnEnregistrement(e.edition)) valider(s.depot?.enCours, 'editer : aucun enregistrement en cours');
         else if (estLIssueDUnChargement(e.edition)) valider(s.chargement, 'editer : aucun chargement de planche en cours');
+        else if (estLIssueDUnChapitre(e.edition)) {
+          const { book, ch } = e.edition;
+          valider(s.chapitreEnAttente?.book === book && s.chapitreEnAttente.ch === ch, `editer : chapitre, ${book} ch.${ch} n’est pas le chapitre attendu`);
+        }
         else if (!estUnGesteDuPointeur(e.edition)) {
           const b = boutonDeLEdition(zonesDeLEditeur(s), e.edition);
-          valider(b, 'editer : edition, un geste du pointeur ({ geste: appui | glisse | relache, point: { case: { x, y }, f: { x, y } } }, la case en entiers), l’issue d’un enregistrement ({ geste: enregistrement, reussi }), celle d’un chargement de planche ({ geste: chargement, image: { largeur, hauteur } | null }) ou le geste `{ edition }` d’un bouton des zones editeur.*');
+          valider(b, 'editer : edition, un geste du pointeur ({ geste: appui | glisse | relache, point: { case: { x, y }, f: { x, y } } }, la case en entiers), l’issue d’un enregistrement ({ geste: enregistrement, reussi }), celle d’un chargement de planche ({ geste: chargement, image: { largeur, hauteur } | null }), celle du chapitre attendu ({ geste: chapitre, book, ch, texte: texte | null }) ou le geste `{ edition }` d’un bouton des zones editeur.*');
           if (b!.refus) throw new ErreurDeGeste('regle', `editer : ${b!.refus}`);
         }
         const geste = nomme ?? (e.edition as GesteDEdition);
@@ -1002,20 +1179,22 @@ export function creerPont() {
         }
         session = editer(s, geste);
       }
-      const scene = sceneEditee(session);
       const vue = vueDeLaScene(session);
-      const neuf = !edition || 'ouvrir' in e || (session.geste === null && (scene !== edition.monde.scene || session.z !== edition.monde.z));
-      edition = { session, monde: neuf ? { scene, z: session.z } : edition!.monde };
+      const neuf = !edition || 'ouvrir' in e || (session.geste === null && (vue !== edition.monde.vue || session.z !== edition.monde.z));
+      edition = { session, monde: neuf ? { vue, z: session.z } : edition!.monde };
       const memoire = memoireDesCalques(avant, session);
       const charge = session.chargement && !avant?.chargement ? session.chargement : null;
+      const attendu = session.chapitreEnAttente;
+      const demande = attendu && (attendu.book !== avant?.chapitreEnAttente?.book || attendu.ch !== avant.chapitreEnAttente.ch) ? attendu : null;
       return {
         vue: { zones: zonesDeLEditeur(session), couche: session.z },
         surcouche: surcoucheDeLEdition(session),
         calque: calqueAffiche(session),
-        ...(neuf ? { monde: volumeDuMonde(vue, session.z), aretes: aretesDeLaCouche(vue, session.z), navires: naviresServis(vue) } : {}),
+        ...(neuf ? { monde: manifesteDe(volumeDuMonde(vue)), retrait: retraitDuMonde(vue, session.z), aretes: aretesDeLaCouche(vue, session.z), navires: naviresServis(vue) } : {}),
         ...(depot ? { depot } : {}),
         ...('edition' in e && (e.edition as GesteDEdition).geste === 'tester' ? { essai: true } : {}),
         ...(charge ? { planche: { image: cheminDeLaPlanche(session.projet.id, charge.sceneId, charge.z) } } : {}),
+        ...(demande ? { chapitre: demande } : {}),
         ...(memoire ? { memoire } : {}),
       };
     },
@@ -1043,14 +1222,20 @@ export function creerPont() {
 
   /**
    * @contrat Transport
-   * - `wfrpPont.appeler(methode, entree?)` est la fonction du pont que Godot appelle, hors du choix d'une image sur le
-   *   disque de l'auteur (`wfrpPont.choisirUneImage(rendre)`, section « Éditeur »), qui lit le document de la page et
-   *   `FileReader` à son appel seulement, hors de l'exécution de la construction. `methode` est le nom d'une méthode ;
-   *   `entree` est une chaîne JSON qui encode un objet, ou rien (absente ou `null`) pour une méthode sans entrée. Elle
-   *   rend toujours une chaîne JSON.
+   * - `wfrpPont.appeler(methode, entree?)` est la porte des outils (tests, vues figées, `recette.mjs`) ; Godot
+   *   appelle `appelerEnOctets`, hors du choix d'une image sur le disque de l'auteur
+   *   (`wfrpPont.choisirUneImage(rendre)`, section « Éditeur »), qui lit le document de la page et `FileReader` à son
+   *   appel seulement, hors de l'exécution de la construction. `methode` est le nom d'une méthode ; `entree` est une
+   *   chaîne JSON qui encode un objet, ou rien (absente ou `null`) pour une méthode sans entrée. Elle rend toujours
+   *   une chaîne JSON.
    * - La réponse vaut `{ "ok": true, … }` ou `{ "ok": false, "erreur": { "categorie", "message" } }`. `appeler` ne lève
    *   jamais.
    * - Une clé de l'entrée que la méthode ne lit pas se refuse.
+   * - `wfrpPont.appelerEnOctets(methode, entree?)` est la porte des transports de Godot.
+   * - Elle rend la chaîne d'`appeler`, sauf pour une réponse réussie de `morceaux`.
+   * - Celle-ci est l'en-tête d'`enOctets` (`pont/octets.ts`) : ses tableaux en bornes, `octets` sa longueur.
+   * - `wfrpPont.octets()` rend un `ArrayBuffer`, les octets de la dernière réponse d'`appelerEnOctets`.
+   * - Il vaut `null` quand elle n'en porte pas : autre méthode, ou refus.
    */
   /**
    * @contrat Erreurs
@@ -1058,7 +1243,9 @@ export function creerPont() {
    *   `{ porteur, objet? }` d'un combattant à fiche, héros du groupe ou combattant de la bataille (le message les
    *   nomme), ou dont l'`objet` n'est pas l'`uid` d'une possession de la fiche (le message les nomme) ; geste de la
    *   création qu'aucun bouton de l'écran n'offre ; entrée illisible, qui n'est pas un objet, ou avec une clé hors
-   *   contrat ; aucune partie avant `demarrer` ; second `demarrer` ; scénario inconnu, graine non entière ; verbe
+   *   contrat ; aucune partie avant `demarrer` ou `ouvrir` ; `demarrer` ou `ouvrir` sur une partie ouverte ; `lancer`
+   *   d'une campagne qui n'est pas du jeu (le message nomme les ids), ou sur une partie déjà en cours ; scénario
+   *   inconnu, graine non entière ; verbe
    *   inconnu (le message nomme les gestes de la fenêtre qui tient la main et les voisins de nom) ; argument de forme
    *   fausse, en trop ou manquant, id que l'état ne désigne pas ; verbe qui lève ; intention hors de l'allowlist d'un
    *   siège ; jeton inconnu ou déjà repris ; `composer` avant tout `modeles`, ou sur une base qu'il n'a pas servie ;
@@ -1069,9 +1256,12 @@ export function creerPont() {
    *   campagne qui n'est pas du jeu (le message nomme les ids), d'un `projet` servi illisible, d'un autre id ou que la
    *   porte refuse, avant toute carte ouverte, d'un geste qui n'est ni un geste du pointeur bien formé, ni l'issue d'un
    *   enregistrement en cours, ni celui d'un bouton des zones de l'éditeur, ni un formulaire que portent les zones de
-   *   l'éditeur, saisi de ses arguments (`gesteDuFormulaire`)
+   *   l'éditeur, saisi de ses arguments (`gesteDuFormulaire`) ; `morceaux` d'une source hors de `partie` et `edition`,
+   *   dont `volume`, `toits` ou `couronnes` n'est pas une liste de clés, de source `edition` avant toute carte ouverte,
+   *   ou sans scène ; `retrait` sans scène
    * - `permission` : intention d'un siège qui ne tient pas la main
-   * - `regle` : geste de la création refusé (sa raison : la page qui ne se quitte pas, l'engagement que la partie
+   * - `regle` : campagne que le groupe ne lance pas (`refusDeLancer`, sa raison : groupe vide, siège invité à
+   *   pourvoir) ; geste de la création refusé (sa raison : la page qui ne se quitte pas, l'engagement que la partie
    *   refuse) ; verbe de la barre refusé par le refus de son geste (`refusDuGeste`, sa raison) : barre non ouverte,
    *   aucune entrée pertinente qui déclare ce geste, argument qui ne désigne aucun candidat de l'entrée, entrée fermée
    *   par ses gates ; valeur d'un formulaire tiré du schéma que la session d'édition n'écrit pas (sa raison, section
@@ -1081,35 +1271,50 @@ export function creerPont() {
    * Les trois premières catégories sont celles du module commun (`CategorieDErreur`, `src/hote/partie.ts`) ; le texte
    * de chaque message vient de lui ou du noyau.
    */
-  /** Appelle la méthode `methode` sur l'entrée `json` : la réponse en JSON, jamais une levée. */
-  function appeler(methode: string, json?: string | null): string {
+  /** La réponse de la méthode `methode` sur l'entrée `json`, jamais une levée. */
+  function repondre(methode: string, json?: string | null): Reponse {
     try {
       const faire = Object.prototype.hasOwnProperty.call(methodes, methode) ? methodes[methode] : null;
       if (!faire) throw new ErreurDeGeste('validation', `méthode inconnue : ${String(methode)} (méthodes : ${Object.keys(methodes).join(', ')})`);
-      return JSON.stringify({ ok: true, ...faire(json) } satisfies Reponse);
+      return { ok: true, ...faire(json) };
     } catch (erreur) {
-      const reponse: Reponse = erreur instanceof ErreurDeGeste
+      return erreur instanceof ErreurDeGeste
         ? { ok: false, erreur: { categorie: erreur.categorie, message: erreur.message } }
         : { ok: false, erreur: { categorie: 'interne', message: erreur instanceof Error ? erreur.message : String(erreur) } };
-      return JSON.stringify(reponse);
     }
+  }
+
+  /** Appelle la méthode `methode` sur l'entrée `json` : la réponse en JSON, jamais une levée. */
+  function appeler(methode: string, json?: string | null): string {
+    return JSON.stringify(repondre(methode, json));
+  }
+
+  /** Les octets de la dernière réponse d'`appelerEnOctets`, `null` sans octets. */
+  let tenus: ArrayBuffer | null = null;
+
+  /** Appelle comme `appeler` ; une réponse réussie de `morceaux` rend l'en-tête d'`enOctets` et tient ses octets. */
+  function appelerEnOctets(methode: string, json?: string | null): string {
+    const reponse = repondre(methode, json);
+    tenus = null;
+    if (methode !== 'morceaux' || !reponse.ok) return JSON.stringify(reponse);
+    const { entete, octets } = enOctets(reponse as unknown as MorceauxDuPont);
+    tenus = octets;
+    return JSON.stringify({ ok: true, ...entete } satisfies Reponse);
+  }
+
+  /** Les octets de la dernière réponse d'`appelerEnOctets`, `null` si elle n'en porte pas. */
+  function octets(): ArrayBuffer | null {
+    return tenus;
   }
 
   /**
    * @contrat Méthodes
-   * `demarrer` ouvre la partie une seule fois par page : un second appel se refuse, et recommencer, c'est recharger la
-   * page. Un `demarrer` refusé n'ouvre rien. Le noyau ne tient qu'une partie par processus : un hôte sans page à
-   * recharger (la sonde qui fige les vues de l'écran, un scénario après l'autre) rend la sienne par `fermer()`, une
-   * fonction du pont hors de `appeler`, avant d'en ouvrir une autre sur un pont neuf.
+   * Le pont tient une partie à la fois, comme le noyau n'en tient qu'une par processus : `demarrer` (un scénario de
+   * test, l'essai de l'éditeur) ou `ouvrir` (une partie au groupe, que `lancer` lance sur une campagne du jeu) l'ouvre,
+   * `quitter` la ferme, et une autre s'ouvre ensuite sous le même pont, sans recharger la page. Un `demarrer` ou un
+   * `ouvrir` refusé n'ouvre rien.
    */
-  /** Ferme la partie ouverte : le noyau n'en tient qu'une par processus, et un hôte sans page à recharger (la sonde qui
-   *  fige un scénario après l'autre) la rend avant d'en démarrer une autre sur un pont neuf. */
-  function fermer(): void {
-    demarree().partie.fermer();
-    ouverte = null;
-  }
-
-  return { appeler, fermer };
+  return { appeler, appelerEnOctets, octets };
 }
 
 /** Le pont que la page expose à Godot. */

@@ -16,6 +16,7 @@
  * d'entrée d'où sort ce texte, VERBATIM. Sans `porteur`, le markdown est rendu tel quel : aucune
  * mention n'est liée. Deux états, aucun intermédiaire.
  */
+import type { Equipe } from '../engine/relations';
 import { useMemo, type ReactNode, type ComponentPropsWithoutRef } from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
 import { cellulesDe, estSeparateur } from '../data/source/decoupe';
@@ -38,7 +39,7 @@ interface HastNode {
   position?: { start: { offset?: number }; end: { offset?: number } };
 }
 
-export interface AnnotationProse { text: string; team?: 'ally' | 'enemy'; }
+export interface AnnotationProse { text: string; team?: Equipe; }
 
 function annoter(tree: HastNode, md: string, segments: readonly AnnotationProse[]): void {
   let offset = 0;
@@ -75,7 +76,7 @@ function annoter(tree: HastNode, md: string, segments: readonly AnnotationProse[
       let position = 0;
       for (const plage of visibles) {
         if (plage.a > position) morceaux.push({ type: 'text', value: decode.slice(position, plage.a) });
-        morceaux.push({ type: 'element', tagName: 'b', properties: { className: plage.team === 'ally' ? 'nm-ally' : 'nm-foe' }, children: [{ type: 'text', value: decode.slice(plage.a, plage.b) }] });
+        morceaux.push({ type: 'element', tagName: 'b', properties: { className: plage.team === 'allie' ? 'nm-ally' : 'nm-foe' }, children: [{ type: 'text', value: decode.slice(plage.a, plage.b) }] });
         position = plage.b;
       }
       if (position < decode.length) morceaux.push({ type: 'text', value: decode.slice(position) });

@@ -47,7 +47,7 @@ export function recast(cond: Condition, kind: Condition['kind']): Condition {
     case 'roundDeCombat': return { kind: 'roundDeCombat' };
     case 'nearestFoe': return cond.kind === 'nearestFoe' ? cond : { kind: 'nearestFoe', op: '<=', value: 3 };
     case 'capability': return cond.kind === 'capability' ? cond : { kind: 'capability', who: ACTEUR, id: 'braveheart', op: '>=', value: 1 };
-    case 'relation': return cond.kind === 'relation' ? cond : { kind: 'relation', who: ACTEUR, is: 'opponent' };
+    case 'relation': return cond.kind === 'relation' ? cond : { kind: 'relation', who: ACTEUR, is: 'adversaire' };
     case 'has': return cond.kind === 'has' ? cond : { kind: 'has', who: ACTEUR, what: 'group', value: '' };
     case 'casterChaosDomain': return cond.kind === 'casterChaosDomain' ? cond : { kind: 'casterChaosDomain', is: 'nurgle' };
     case 'skill': return cond.kind === 'skill' ? cond : { kind: 'skill', id: '', who: HEROS };
@@ -115,13 +115,13 @@ export function statblockDeLaCreature(c: CreatureData): CustomStatblock {
 }
 
 /** Nœud `test` NEUF : la compétence est la seule saisie laissée à l'auteur (sentinelle vide). */
-export const noeudTestNeuf = (): FlowTestNode<Effect> => ({ kind: 'test', test: { skill: { id: '' }, difficulty: 'intermediaire' }, success: EMPTY_FLOW, fail: EMPTY_FLOW });
+export const noeudTestNeuf = (): FlowTestNode<Effect> => ({ kind: 'test', test: { skill: { id: '' }, difficulty: 'intermediaire' }, reussite: EMPTY_FLOW, echec: EMPTY_FLOW });
 
 /** Bloc NEUF du menu « + Bloc » d'un Flow : condition, test de compétence ou choix du joueur. */
-export function blocNeuf(kind: 'if' | 'test' | 'choice'): Flow {
+export function blocNeuf(kind: Exclude<Flow['kind'], 'sequence' | 'effet'>): Flow {
   switch (kind) {
-    case 'if': return { kind: 'if', cond: { kind: 'flag', expr: '' }, then: EMPTY_FLOW };
+    case 'si': return { kind: 'si', condition: { kind: 'flag', expr: '' }, alors: EMPTY_FLOW };
     case 'test': return noeudTestNeuf();
-    case 'choice': return { kind: 'choice', prompt: '', yes: EMPTY_FLOW };
+    case 'choix': return { kind: 'choix', invite: '', oui: EMPTY_FLOW };
   }
 }

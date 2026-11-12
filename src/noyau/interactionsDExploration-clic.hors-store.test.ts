@@ -18,14 +18,14 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const coffre: SceneEntity = {
   id: 'coffre', kind: 'prop', pos: { x: 9, y: 6 }, label: 'Coffre bardé de fer',
-  usable: { actions: [{ id: 'fouiller', flow: { kind: 'seq', steps: [] }, unique: true }] },
+  usable: { actions: [{ id: 'fouiller', flow: { kind: 'sequence', etapes: [] }, unique: true }] },
 } as SceneEntity;
 const figurant: SceneEntity = { id: 'fig', kind: 'personnage', pos: { x: 5, y: 5 }, label: 'Badaud', creature: { id: 'humain' } } as SceneEntity;
 
 function poser(entities: SceneEntity[], partyPos = { x: 5, y: 6 }) {
   const sc = emptyScene('scene-clic', 12, 12);
   sc.entities = entities;
-  const heros = combattantDeTest({ id: 'h', label: 'H', kind: 'hero', movement: 4 });
+  const heros = combattantDeTest({ id: 'h', label: 'H', kind: 'heros', movement: 4 });
   banc.setState({ scene: sc, mode: 'exploration', partyPos, party: [heros], dialogue: null, flags: {}, pendingInteract: null } as never);
 }
 

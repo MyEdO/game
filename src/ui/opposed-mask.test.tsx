@@ -35,9 +35,9 @@ beforeAll(() => {
 });
 
 const chars = { 'capacite-de-combat': 45, 'capacite-de-tir': 50, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 40, sociabilite: 30 };
-const mk = (id: string, kind: 'hero' | 'enemy', weapons: Weapon[] = []): Combatant =>
+const mk = (id: string, kind: 'heros' | 'ennemi', weapons: Weapon[] = []): Combatant =>
   (blessuresSurLeProfil({ id, name: id, label: id, kind, characteristics: { ...chars }, conditions: [], traumas: [], engagedWith: [], skills: [], talents: [], items: [],
-     weapons, advantage: 0, size: 'moyenne', pos: { x: kind === 'hero' ? 0 : 1, y: 0 }, wounds: blessuresDeBase(18), resilience: 2, fortune: 2,
+     weapons, advantage: 0, size: 'moyenne', pos: { x: kind === 'heros' ? 0 : 1, y: 0 }, wounds: blessuresDeBase(18), resilience: 2, fortune: 2,
      species: 'humains-reiklander', bodyShape: 'humanoide', movement: 4,
      armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 } }) as unknown as Combatant);
 const sword: Weapon = { name: 'Épée', label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, uid: 'sw', qualities: [] } as unknown as Weapon;
@@ -76,8 +76,8 @@ const verdicts = () => [...host.querySelectorAll('.rm-roll-sl')].map((n) => n.te
 
 describe('#990 site 1 — défense réactive : l’attaque figée est masquée jusqu’à MON jet de défense', () => {
   it('IA attaquante, solo : « ? » avant `jetLancer@defense`, dé et DR exacts après', () => {
-    const enemy = mk('e', 'enemy', [sword]);
-    const hero = mk('h', 'hero', [sword]);
+    const enemy = mk('e', 'ennemi', [sword]);
+    const hero = mk('h', 'heros', [sword]);
     putBattle([enemy, hero], ['e', 'h']);
     expect(maybeOpenDefense(useGame.getState, useGame.setState, enemy, hero)).toBe(true);
     const atk = useGame.getState().pendingDefense!.atk;
@@ -98,8 +98,8 @@ describe('#990 site 2 — incantation opposée : la rangée du lanceur ET son ve
   const ENEMY_CAST = { cast: true, roll: 20, target: 50, sl: 3, isCritical: false, isFumble: false, log: '' };
 
   it('lanceur IA + Contre-sort : rangée « ? » et AUCUN « Sort lancé ! » avant le jet du contre-lanceur', () => {
-    const A = mk('A', 'hero');
-    const E = mk('E', 'enemy');
+    const A = mk('A', 'heros');
+    const E = mk('E', 'ennemi');
     putBattle([A, E], ['E', 'A']);
     useGame.setState({
       party: [A],
@@ -118,8 +118,8 @@ describe('#990 site 2 — incantation opposée : la rangée du lanceur ET son ve
   });
 
   it('échec du lanceur : « DR n < NI n » ne fuit pas non plus avant la réponse', () => {
-    const A = mk('A', 'hero');
-    const E = mk('E', 'enemy');
+    const A = mk('A', 'heros');
+    const E = mk('E', 'ennemi');
     putBattle([A, E], ['E', 'A']);
     useGame.setState({
       party: [A],
@@ -138,9 +138,9 @@ describe('#990 site 2 — incantation opposée : la rangée du lanceur ET son ve
   });
 
   it('MULTI (2 cibles) : B voit encore « ? » après le jet de A — chacun découvre après le SIEN', () => {
-    const A = mk('A', 'hero');
-    const B = mk('B', 'hero');
-    const E = mk('E', 'enemy');
+    const A = mk('A', 'heros');
+    const B = mk('B', 'heros');
+    const E = mk('E', 'ennemi');
     putBattle([A, B, E], ['E', 'A', 'B']);
     useGame.setState({
       party: [A, B],
@@ -165,8 +165,8 @@ describe('#990 site 2 — incantation opposée : la rangée du lanceur ET son ve
    *  manquer pour dix raisons) — c'est la COMPARAISON réussite ⇄ échec qui prouve que le bouton ne
    *  parle plus du verdict. Le témoin positif est un lanceur LOCAL (jamais masqué) : sa Résilience reste. */
   const castWith = (cast: boolean) => {
-    const A = mk('A', 'hero');
-    const E = mk('E', 'enemy');
+    const A = mk('A', 'heros');
+    const E = mk('E', 'ennemi');
     putBattle([A, E], ['E', 'A']);
     useGame.setState({
       party: [A],
@@ -191,8 +191,8 @@ describe('#990 site 2 — incantation opposée : la rangée du lanceur ET son ve
   });
 
   it('lanceur LOCAL (jet produit ICI) : rien n’est masqué, ni le dé ni ses affordances', () => {
-    const H = mk('H', 'hero');
-    const T = mk('T', 'enemy');
+    const H = mk('H', 'heros');
+    const T = mk('T', 'ennemi');
     putBattle([H, T], ['H', 'T']);
     useGame.setState({
       party: [H],
@@ -220,7 +220,7 @@ describe('#990 site 2 — incantation opposée : la rangée du lanceur ET son ve
    *  unique depuis #1078) neutralisés sous masque, intacts au découvert (aucun rendu nécessaire —
    *  c'est le contrat de la fonction, pas d'un écran). */
   it('rangée masquée : les champs DÉRIVÉS du résultat (rangée + sous-ligne) sont neutralisés, le reste traverse INTACT', () => {
-    const E = mk('E', 'enemy');
+    const E = mk('E', 'ennemi');
     const onRoll = () => {};
     const base = buildRollRow(
       {
@@ -268,8 +268,8 @@ describe('#990 site 2 — incantation opposée : la rangée du lanceur ET son ve
    *  l.1042/1098/1111 + `combatManeuvers` l.637) : `winnerIndex` est null avant la réponse, donc le
    *  cas n'est pas atteignable AUJOURD'HUI — le verrou empêche qu'il le devienne au prochain site. */
   it('panneau MASQUÉ : ni halo vainqueur/perdant ni badge « DR net », même si le site pose `winnerIndex`', () => {
-    const A = mk('A', 'hero');
-    const E = mk('E', 'enemy');
+    const A = mk('A', 'heros');
+    const E = mk('E', 'ennemi');
     putBattle([A, E], ['E', 'A']);
     const masked = { label: 'Force', base: 40, modifier: 0, target: 40, roll: 27, success: true, sl: 1, mask: 'roll' as const };
     const mine = { label: 'Force', base: 45, modifier: 0, target: 45, roll: 30, success: true, sl: 1 };
@@ -293,8 +293,8 @@ describe('#990 site 2 — incantation opposée : la rangée du lanceur ET son ve
   });
 
   it('« Lancer » du lanceur SURVIT au calendrier (le masque ne repose sur aucun ordre d’écriture)', () => {
-    const H = mk('H', 'hero');
-    const T = mk('T', 'enemy');
+    const H = mk('H', 'heros');
+    const T = mk('T', 'ennemi');
     putBattle([H, T], ['H', 'T']);
     useGame.setState({
       party: [H],
@@ -305,9 +305,9 @@ describe('#990 site 2 — incantation opposée : la rangée du lanceur ET son ve
   });
 
   it('issue par rangée : ni « Dissipé ! » ni « Appliquer (dissipé) » tant que TOUTES les réponses ne sont pas posées', () => {
-    const A = mk('A', 'hero');
-    const B = mk('B', 'hero');
-    const E = mk('E', 'enemy');
+    const A = mk('A', 'heros');
+    const B = mk('B', 'heros');
+    const E = mk('E', 'ennemi');
     putBattle([A, B, E], ['E', 'A', 'B']);
     useGame.setState({
       party: [A, B],
@@ -340,12 +340,12 @@ describe('#990 site 3 — étape de cascade `meta.opposed` (Assommante, table de
     label: fixtureText('Assommante'), ...over,
   });
   const openCascade = (s: ReturnType<typeof step>) => useGame.setState({
-    pendingCascade: cascadeDeTest([s], { title: 'Assommante', icon: 'nav/dice', purpose: 'combat' }),
+    pendingCascade: cascadeDeTest([s], { title: 'Assommante', icon: 'navigation/des', purpose: 'combat' }),
   });
 
   it('Assommante (adversaire RÉEL) : « ? » avant mon jet, valeurs exactes après', () => {
-    const hero = mk('h', 'hero');
-    const brute = mk('e', 'enemy', [sword]);
+    const hero = mk('h', 'heros');
+    const brute = mk('e', 'ennemi', [sword]);
     putBattle([brute, hero], ['e', 'h']);
     openCascade(step({ meta: { opposed: { aT: { roll: 33, target: 45, sl: 1, success: true }, attackerId: 'e', attackerName: 'Brute', attackerLabel: 'Force' } } }));
 
@@ -360,7 +360,7 @@ describe('#990 site 3 — étape de cascade `meta.opposed` (Assommante, table de
   });
 
   it('adversaire ABSTRAIT (table de taverne, aucun `attackerId`) : masqué aussi, révélé après mon jet', () => {
-    const hero = mk('h', 'hero');
+    const hero = mk('h', 'heros');
     useGame.setState({ battle: null, party: [hero], net: SOLO as never, pendingDefense: null, pendingCast: null });
     openCascade(step({ meta: { opposed: { aT: { roll: 71, target: 50, sl: -2, success: false }, attackerName: 'La maison', attackerLabel: 'Jeu' } } }));
 
@@ -381,8 +381,8 @@ describe('#990 site 3 — étape de cascade `meta.opposed` (Assommante, table de
  */
 describe('#990 site 4 — Empoignade / Au Contact / Distraire / Désengagement', () => {
   const duo = () => {
-    const hero = mk('h', 'hero', [sword]);
-    const foe = mk('e', 'enemy', [sword]);
+    const hero = mk('h', 'heros', [sword]);
+    const foe = mk('e', 'ennemi', [sword]);
     putBattle([hero, foe], ['h', 'e']);
     return { hero, foe };
   };
@@ -390,7 +390,7 @@ describe('#990 site 4 — Empoignade / Au Contact / Distraire / Désengagement',
 
   it('Empoignade : la Force figée du foe est « ? » avant `jetLancer@empoignade`, exacte après', () => {
     duo();
-    useGame.setState({ pendingGrapple: { actorId: 'h', foeId: 'e', phase: 'roll', canBreak: false, atk: FOE_TR, def: null, result: null } as never });
+    useGame.setState({ pendingGrapple: { actorId: 'h', foeId: 'e', phase: 'jet', canBreak: false, atk: FOE_TR, def: null, result: null } as never });
     act(() => { root.render(<GrappleModal />); });
     expect(dice()[0]).toBe('?');
     expect(verdicts()[0]).toBe('?');
@@ -414,7 +414,7 @@ describe('#990 site 4 — Empoignade / Au Contact / Distraire / Désengagement',
 
   it('Au Contact : le Corps à corps figé du foe est « ? » avant `jetLancer@auContact`, exact après', () => {
     duo();
-    useGame.setState({ pendingAuContact: { moverId: 'h', foeId: 'e', phase: 'roll', atk: FOE_TR, def: null, result: null } as never });
+    useGame.setState({ pendingAuContact: { moverId: 'h', foeId: 'e', phase: 'jet', atk: FOE_TR, def: null, result: null } as never });
     act(() => { root.render(<AuContactModal />); });
     expect(dice()[0]).toBe('?');
 
@@ -425,7 +425,7 @@ describe('#990 site 4 — Empoignade / Au Contact / Distraire / Désengagement',
 
   it('Désengagement : AUCUNE rangée de jet avant la réponse (phase de menu), les deux jets ensuite', () => {
     duo();
-    useGame.setState({ pendingDisengage: { moverId: 'h', foeId: 'e', canSacrifice: false, phase: 'choice', atk: FOE_TR, def: null, result: null } as never });
+    useGame.setState({ pendingDisengage: { moverId: 'h', foeId: 'e', canSacrifice: false, phase: 'choix', atk: FOE_TR, def: null, result: null } as never });
     act(() => { root.render(<DisengageModal />); });
     expect(dice(), 'le jet figé du foe n’est pas à l’écran tant que le mover n’a pas choisi/répondu').toEqual([]);
 

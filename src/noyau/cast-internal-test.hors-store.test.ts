@@ -33,9 +33,9 @@ describe('Lot 4b — Sort à Test interne (Chute) cadence-aware en contexte d’
     banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('debutDuRound');
     const b = banc.getState().battle!;
-    const W = b.combatants.find((c) => c.kind === 'hero' && c.label === 'W')!;
-    const A = b.combatants.find((c) => c.kind === 'hero' && c.label === 'A')!;
-    const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+    const W = b.combatants.find((c) => c.kind === 'heros' && c.label === 'W')!;
+    const A = b.combatants.find((c) => c.kind === 'heros' && c.label === 'A')!;
+    const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
     enemies.slice(1).forEach((e) => (e.dead = true));
     const E = enemies[0];
     W.pos = { x: 10, y: 10 }; A.pos = { x: 11, y: 10 }; E.pos = { x: 12, y: 10 };
@@ -57,13 +57,13 @@ describe('Lot 4b — Sort à Test interne (Chute) cadence-aware en contexte d’
 
   it('la DONNÉE convertie est bien un nœud Flow `test` (plus d’op `test`)', () => {
     const flow = findSpellById('chute')!.effects!;
-    expect(flow.kind).toBe('seq');
-    const step = flow.kind === 'seq' ? flow.steps[0] : flow; // seq → 1ʳᵉ étape
+    expect(flow.kind).toBe('sequence');
+    const step = flow.kind === 'sequence' ? flow.etapes[0] : flow; // seq → 1ʳᵉ étape
     expect(step.kind).toBe('test');
     if (step.kind !== 'test') throw new Error('attendu : nœud Flow `test`');
     expect(step.test.characteristic).toBe('dexterite');
-    expect(step.success.kind).toBe('seq'); // réussite = rien (l'objet tient)
-    expect(step.fail.kind).toBe('do');     // échec = la branche narrative (« l'objet tombe »)
+    expect(step.reussite.kind).toBe('sequence'); // réussite = rien (l'objet tient)
+    expect(step.echec.kind).toBe('effet');     // échec = la branche narrative (« l'objet tombe »)
   });
 
   it('VICTIME héros manuel → étape `testDeclenche` APPENDUE à la cascade `cast` (une seule cascade, influençable)', () => {

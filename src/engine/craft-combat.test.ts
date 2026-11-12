@@ -8,7 +8,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testki
 
 const fighter = (cc: number, weapon: Weapon): Combatant =>
   (blessuresSurLeProfil({
-    id: 'x', name: 'X', kind: 'enemy',
+    id: 'x', name: 'X', kind: 'ennemi',
     characteristics: { 'capacite-de-combat': cc, 'capacite-de-tir': cc, force: 40, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(20), advantage: 0, conditions: [],
     weapons: [weapon], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },

@@ -18,7 +18,7 @@ import { libelleDuTestNomme } from '../noyau/jetsEnVue';
 import { useGesteDeJet } from './useGesteDeJet';
 
 /** Enjeu servi par chaque phase de la chute. */
-const FALL_STAKE: Record<'choice' | 'roll', FlowStakeId> = { choice: 'chute-choix', roll: 'chute-test' };
+const FALL_STAKE: Record<'choix' | 'jet', FlowStakeId> = { choix: 'chute-choix', jet: 'chute-test' };
 
 /** Ce qu'une option de la rangée DÉCLARE (`jetRegler('chute', …)`) : le choix lit cette donnée, jamais sa clé. */
 type DeclarationDeChute = { attempt: boolean; suspendre?: boolean };
@@ -130,12 +130,12 @@ export function FallModal() {
   };
   const rows = p.participants.flatMap(rangee);
   const aLancer = p.participants.filter((x) => x.attempt === true);
-  const rolled = phase === 'roll' && aLancer.every((x) => !!x.result);
+  const rolled = phase === 'jet' && aLancer.every((x) => !!x.result);
   const unJet = aLancer.some((x) => !!x.result);
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' },
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
+    { key: 'abandonner', label: t('verbe.annuler'), onClick: cancel, verbe: 'annuler' },
+    { key: 'confirmer', label: t('verbe.valider'), onClick: confirm, verbe: 'valider' },
   ];
 
   return (
@@ -143,7 +143,7 @@ export function FallModal() {
       etape={phase}
       flowKey="chute"
       stake={flowStakeRef(FALL_STAKE[phase], { values: { metres: p.metres } })}
-      title={<><Icon id="melee/flee" size="sm" /> {p.test.label}</>}
+      title={<><Icon id="melee/fuir" size="sm" /> {p.test.label}</>}
       /* Z1 : la SITUATION que rien d'autre ne porte (la hauteur) ; Compétence et Difficulté sont à la
          ligne (`.rm-roll-diff`, #1072). */
       subtitle={p.suspendu !== undefined ? t('fall.modale.deniveleSuspendu', { metres: p.metres, suspendu: p.suspendu }) : t('fall.modale.denivele', { metres: p.metres })}

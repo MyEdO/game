@@ -59,7 +59,7 @@ function partie(challengerId: string, etat?: Partial<TavernCombinedState>, marks
     params: { combined: structuredClone(CEREVIS.combined!) },
     payload: {
       gameId: 'cerevis', challengerId, opponentValue: OPPONENT, opponentName: NOM_HABITUE, stakeBrass: 0,
-      combined: { fails: {}, erased: {}, tour: 1, ...etat },
+      combined: { echecs: { joueur: 0, adversaire: 0 }, effacements: { joueur: 0, adversaire: 0 }, tour: 1, ...etat },
     },
   };
 }
@@ -97,8 +97,8 @@ describe('Le Cerevis — la donnée porte la règle, et dit ce qui est maison', 
     expect(CEREVIS.difficulty, '« Pari Accessible (+20) »').toBe('accessible');
     expect(CEREVIS.skill).toEqual({ id: 'pari' });
     expect(CEREVIS.combined?.second, '« un Test combiné d’Initiative et de… »').toEqual({ characteristic: 'initiative' });
-    expect(CEREVIS.combined?.failEvery, '« Pour chaque 3 Tests d’Initiative auxquels vous échouez »').toBe(3);
-    expect(CEREVIS.combined?.eraseEvery, '« pour chaque 2 chouettes que vous effacez »').toBe(2);
+    expect(CEREVIS.combined?.echecsParEcheance, '« Pour chaque 3 Tests d’Initiative auxquels vous échouez »').toBe(3);
+    expect(CEREVIS.combined?.effacementsParEcheance, '« pour chaque 2 chouettes que vous effacez »').toBe(2);
     expect(CEREVIS.combined?.markLoser, '« Le joueur qui a obtenu le moins de DR […] doit marquer une chouette »').toBe(true);
     expect(CEREVIS.combined?.ops, 'le Tableau Ivre passe par l’op qui le porte (LDB 09 l.475)').toEqual([{ op: 'intoxicate' }]);
     // `NADJ 16 l.90` s'achève sur le Tableau Ivre : aucune fin de partie n'y est écrite. Le nombre
@@ -158,13 +158,13 @@ describe('Le Cerevis — les deux lectures du MÊME dé', () => {
     const a = seul();
     banc.setState({ sequence: partie(a.id) });
     closeSequenceRound(get, banc.setState, tour(a.id, { roll: 20, target: 90, sl: 1 }, { roll: 20, sl: 4 }));
-    expect(marques().player, 'le challenger a le moins de DR : la chouette est pour lui').toBe(1);
-    expect(marques().opponent ?? 0).toBe(0);
+    expect(marques().joueur, 'le challenger a le moins de DR : la chouette est pour lui').toBe(1);
+    expect(marques().adversaire ?? 0).toBe(0);
 
     banc.setState({ tavernGames: null, sequence: partie(a.id) });
     closeSequenceRound(get, banc.setState, tour(a.id, { roll: 20, target: 90, sl: 3 }, { roll: 20, sl: 3 }));
-    expect(marques().player ?? 0, 'DR égaux : la source ne désigne personne').toBe(0);
-    expect(marques().opponent ?? 0).toBe(0);
+    expect(marques().joueur ?? 0, 'DR égaux : la source ne désigne personne').toBe(0);
+    expect(marques().adversaire ?? 0).toBe(0);
   });
 
   /**
@@ -178,21 +178,21 @@ describe('Le Cerevis — les deux lectures du MÊME dé', () => {
     banc.setState({ sequence: partie(a.id) });
     // Dé ENTRE les deux cibles : le Pari passe (cible 95), l'Initiative lâche.
     closeSequenceRound(get, banc.setState, tour(a.id, { roll: cibleInit + 1, target: 95, sl: 5 }, { roll: 10, sl: 1 }));
-    expect(compte().fails.player, 'l’échec de la seconde lecture est compté').toBe(1);
+    expect(compte().echecs.joueur, 'l’échec de la seconde lecture est compté').toBe(1);
     expect(get().journal.some((l) => l.includes(a.label) && l.includes('grosse gorgée'))).toBe(true);
 
     banc.setState({ tavernGames: null, journal: [], sequence: partie(a.id) });
     // Dé sous les DEUX cibles : rien à boire.
     closeSequenceRound(get, banc.setState, tour(a.id, { roll: Math.max(1, cibleInit - 5), target: 95, sl: 5 }, { roll: 10, sl: 1 }));
-    expect(compte().fails.player ?? 0, 'les deux lectures réussissent').toBe(0);
+    expect(compte().echecs.joueur, 'les deux lectures réussissent').toBe(0);
     expect(get().journal.some((l) => l.includes('grosse gorgée'))).toBe(false);
   });
 
   it('L’ÉCHÉANCE : le TROISIÈME échec d’Initiative appelle l’alcool, pas les deux premiers', () => {
     const a = seul();
     const cibleInit = effectiveTarget(a, { characteristic: 'initiative' }, 'accessible');
-    const rate = (fails: number): void => {
-      banc.setState({ tavernGames: null, journal: [], sequence: partie(a.id, { fails: { player: fails } }) });
+    const rate = (echecs: number): void => {
+      banc.setState({ tavernGames: null, journal: [], sequence: partie(a.id, { echecs: { joueur: echecs, adversaire: 0 } }) });
       closeSequenceRound(get, banc.setState, tour(a.id, { roll: cibleInit + 1, target: 95, sl: 5 }, { roll: 10, sl: 1 }));
     };
     rate(0);
@@ -213,7 +213,7 @@ describe('Le Cerevis — les chouettes s’effacent au geste du joueur (l.88)', 
     const seq = get().sequence as EtatDeFamille<typeof TAVERN_SEQUENCE>;
     banc.setState({
       pendingCascade: null, // la fenêtre du 1ᵉʳ tour est remplacée par le tour POSÉ ci-dessous
-      sequence: { ...seq, cum: { player: 1 }, payload: { ...seq.payload, combined: { fails: {}, erased: {}, tour: 1 } } },
+      sequence: { ...seq, cum: { joueur: 1 }, payload: { ...seq.payload, combined: { echecs: { joueur: 0, adversaire: 0 }, effacements: { joueur: 0, adversaire: 0 }, tour: 1 } } },
     });
     closeSequenceRound(get, banc.setState, tour(a.id, { roll: 20, target: 90, sl: 1 }, { roll: 20, sl: 4 }));
     const etape = get().pendingCascade!.participants[0];
@@ -221,16 +221,16 @@ describe('Le Cerevis — les chouettes s’effacent au geste du joueur (l.88)', 
     expect(etape.options!.map((o) => o.key)).toEqual(['efface', 'garde']);
     get().jetRegler('cascade', 'choix', 'efface', etape.id);
     get().jetValider('cascade');
-    expect(marques().player, 'une chouette de moins').toBe(1);
-    expect(compte().erased.player).toBe(1);
+    expect(marques().joueur, 'une chouette de moins').toBe(1);
+    expect(compte().effacements.joueur).toBe(1);
   });
 
   it('DEUX chouettes effacées appellent l’alcool (l.90) — une seule, non', () => {
     const a = seul();
-    const poser = (erased: number): void => {
+    const poser = (effacements: number): void => {
       banc.setState({
         tavernGames: null, journal: [], pendingCascade: null,
-        sequence: partie(a.id, { erased: { player: erased } }, { player: 3 }),
+        sequence: partie(a.id, { effacements: { joueur: effacements, adversaire: 0 } }, { joueur: 3 }),
       });
       const pc: MancheClose = {
         participants: [{
@@ -241,10 +241,10 @@ describe('Le Cerevis — les chouettes s’effacent au geste du joueur (l.88)', 
       closeSequenceRound(get, banc.setState, pc);
     };
     poser(0);
-    expect(compte().erased.player, 'une chouette effacée').toBe(1);
+    expect(compte().effacements.joueur, 'une chouette effacée').toBe(1);
     expect(get().journal.some((l) => l.includes('Ivresse') || l.includes('gorgée') || l.includes('alcool')), 'pas encore l’échéance').toBe(false);
     poser(1);
-    expect(compte().erased.player).toBe(2);
+    expect(compte().effacements.joueur).toBe(2);
     expect(get().journal.length, 'la 2ᵉ effacée déclenche ce que la donnée déclare').toBeGreaterThan(1);
   });
 });
@@ -253,12 +253,12 @@ describe('Le Cerevis — la fin de partie (arbitrage maison assumé)', () => {
   it('au dernier tour DÉCLARÉ, le MOINS de chouettes l’emporte', () => {
     const a = seul();
     banc.setState({
-      sequence: partie(a.id, { tour: CEREVIS.combined!.tours! }, { player: 1, opponent: 3 }),
+      sequence: partie(a.id, { tour: CEREVIS.combined!.tours! }, { joueur: 1, adversaire: 3 }),
     });
     closeSequenceRound(get, banc.setState, tour(a.id, { roll: 20, target: 90, sl: 5 }, { roll: 20, sl: 5 }));
     const res = get().tavernGames!.result!;
-    expect(res.winner, '1 chouette contre 3 : le plus sobre gagne').toBe('player');
-    expect([res.playerSL, res.opponentSL], 'ce qui se compte, ce sont les chouettes').toEqual([1, 3]);
+    expect(res.winner, '1 chouette contre 3 : le plus sobre gagne').toBe('joueur');
+    expect([res.dr.joueur, res.dr.adversaire], 'ce qui se compte, ce sont les chouettes').toEqual([1, 3]);
     expect(get().sequence).toBeNull();
   });
 
@@ -267,7 +267,7 @@ describe('Le Cerevis — la fin de partie (arbitrage maison assumé)', () => {
     setDataset('tavernGames', catalogue.map((g) => (g.id === 'cerevis' ? { ...g, scoreUnit: 'marques', scoreUnitSingular: 'marque' } : g)));
     try {
       const a = seul();
-      banc.setState({ sequence: partie(a.id, { tour: CEREVIS.combined!.tours! }, { player: 1, opponent: 3 }) });
+      banc.setState({ sequence: partie(a.id, { tour: CEREVIS.combined!.tours! }, { joueur: 1, adversaire: 3 }) });
       closeSequenceRound(get, banc.setState, tour(a.id, { roll: 20, target: 90, sl: 5 }, { roll: 20, sl: 5 }));
       expect(get().tavernGames!.result!.detail).toContain('1 marque contre 3 en');
     } finally { setDataset('tavernGames', catalogue); }
@@ -276,9 +276,9 @@ describe('Le Cerevis — la fin de partie (arbitrage maison assumé)', () => {
   it('un joueur SOUS LA TABLE arrête la partie avant terme (l.88)', () => {
     const a = seul();
     addCondition(a, COND.inconscient);
-    banc.setState({ party: [a], sequence: partie(a.id, { tour: 1 }, { player: 0, opponent: 1 }) });
+    banc.setState({ party: [a], sequence: partie(a.id, { tour: 1 }, { joueur: 0, adversaire: 1 }) });
     closeSequenceRound(get, banc.setState, tour(a.id, { roll: 20, target: 90, sl: 5 }, { roll: 20, sl: 5 }));
     expect(get().journal.some((l) => l.includes('sous la table'))).toBe(true);
-    expect(get().tavernGames!.result!.winner, 'et le compte des chouettes tranche quand même').toBe('player');
+    expect(get().tavernGames!.result!.winner, 'et le compte des chouettes tranche quand même').toBe('joueur');
   });
 });

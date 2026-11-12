@@ -57,15 +57,15 @@ export function DispelModal() {
   });
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' },
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
+    { key: 'abandonner', label: t('verbe.annuler'), onClick: cancel, verbe: 'annuler' },
+    { key: 'confirmer', label: t('verbe.valider'), onClick: confirm, verbe: 'valider' },
   ];
 
   return (
     <RollShell
       flowKey="dissipation"
       stake={flowStakeRef('dissipation-test', { values: { ni: pd.ni } })}
-      title={<><Icon id="action/dispel" size="sm" /> Dissipation</>}
+      title={<><Icon id="action/dissiper" size="sm" /> Dissipation</>}
       /* Z1 : QUI dissipe QUOI. La PROGRESSION (DR cumulé vers le NI) n'est PAS ici — elle a sa zone
          unique, la barre de DR de la rangée (`extendedDr`, ci-dessus). */
       subtitle={

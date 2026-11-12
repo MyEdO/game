@@ -180,8 +180,8 @@ export function TavernGameModal() {
           <p className="tavern-vs">
             <strong>{result.gameLabel}</strong> — {result.challengerName} contre {result.opponentName}
           </p>
-          <p className={`tavern-verdict ${result.winner === 'player' ? 'ok-text' : result.winner === 'opponent' ? 'ko-text' : ''}`}>
-            {result.winner === 'player' ? `✓ ${result.challengerName} l'emporte !` : result.winner === 'opponent' ? `✗ ${result.opponentName} l'emporte.` : 'Égalité.'}
+          <p className={`tavern-verdict ${result.winner === 'joueur' ? 'ok-text' : result.winner === 'adversaire' ? 'ko-text' : ''}`}>
+            {result.winner === 'joueur' ? `✓ ${result.challengerName} l'emporte !` : result.winner === 'adversaire' ? `✗ ${result.opponentName} l'emporte.` : 'Égalité.'}
           </p>
           {/* Le score dans l'unité du jeu, composé par son dénouement (`TavernGamesResult.detail`). */}
           <p className="tavern-detail">{result.detail}</p>
@@ -213,7 +213,7 @@ export function TavernGameModal() {
                   {game.pot.targetRange ? ` · nombre cible ${fourchette(game.pot.targetRange.min, game.pot.targetRange.max)}` : ''}.
                 </p>
               ) : (
-                <p className="tavern-detail">Test opposé : <b>{skillLine}</b>{game.mode === 'extended' ? ` · premier à ${game.target ?? 10} DR cumulés` : ''}.</p>
+                <p className="tavern-detail">Test opposé : <b>{skillLine}</b>{game.mode === 'etendu' ? ` · premier à ${game.target ?? 10} DR cumulés` : ''}.</p>
               )}
             </>
           )}

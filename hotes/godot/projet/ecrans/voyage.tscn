@@ -1,57 +1,197 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=10 format=3]
 
-[ext_resource type="PackedScene" path="res://cadres/monde.tscn" id="1_monde"]
-[ext_resource type="Script" path="res://scripts/zone.gd" id="2_zone"]
-[ext_resource type="Theme" path="res://art/heure.tres" id="t_heure"]
+[ext_resource type="Script" path="res://scripts/zone.gd" id="1_zone"]
+[ext_resource type="Theme" path="res://art/jour.tres" id="t_jour"]
+[ext_resource type="Theme" path="res://art/moment.tres" id="t_moment"]
+[ext_resource type="Theme" path="res://art/titre_du_recit.tres" id="t_titre_du_recit"]
+[ext_resource type="Theme" path="res://art/etape_du_monde.tres" id="t_etape_du_monde"]
+[ext_resource type="Theme" path="res://art/journal.tres" id="t_journal"]
+[ext_resource type="Theme" path="res://art/discret.tres" id="t_discret"]
+[ext_resource type="Texture2D" path="res://art/fondu_de_la_chronique.tres" id="t_fondu"]
+[ext_resource type="Texture2D" path="res://art/fondu_du_paysage.tres" id="t_fondu_du_paysage"]
 
-[node name="Monde" instance=ExtResource("1_monde")]
+[node name="Voyage" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
 
-[node name="Paysage" type="PanelContainer" parent="Cadre/Marges/Colonne/Contenu"]
+[node name="Cadre" type="PanelContainer" parent="."]
+clip_contents = true
+layout_mode = 1
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 theme_type_variation = &"Paysage"
-size_flags_vertical = 3
 
-[node name="Marges" type="MarginContainer" parent="Cadre/Marges/Colonne/Contenu/Paysage"]
+[node name="Paysage" type="MarginContainer" parent="Cadre"]
+
+[node name="Zone" type="Node" parent="Cadre/Paysage"]
+script = ExtResource("1_zone")
+source = "fenetre.corps"
+ids = PackedStringArray("scene/paysage")
+
+[node name="Voile" type="TextureRect" parent="Cadre"]
+mouse_filter = 2
+texture = ExtResource("t_fondu_du_paysage")
+expand_mode = 1
+
+[node name="Marges" type="MarginContainer" parent="Cadre"]
 theme_type_variation = &"MargesDuPaysage"
 
-[node name="Scene" type="VBoxContainer" parent="Cadre/Marges/Colonne/Contenu/Paysage/Marges"]
-theme_type_variation = &"Pile"
+[node name="Scene" type="VBoxContainer" parent="Cadre/Marges"]
+theme_type_variation = &"PileSerree"
 
-[node name="Heure" type="VBoxContainer" parent="Cadre/Marges/Colonne/Contenu/Paysage/Marges/Scene"]
-theme = ExtResource("t_heure")
-
-[node name="Zone" type="Node" parent="Cadre/Marges/Colonne/Contenu/Paysage/Marges/Scene/Heure"]
-script = ExtResource("2_zone")
-source = "fenetre.corps"
-ids = PackedStringArray("voyage/heure", "voyage/meteo")
-
-[node name="Evenement" type="VBoxContainer" parent="Cadre/Marges/Colonne/Contenu/Paysage/Marges/Scene"]
+[node name="Haut" type="HBoxContainer" parent="Cadre/Marges/Scene"]
 size_flags_vertical = 3
-alignment = 1
 
-[node name="Zone" type="Node" parent="Cadre/Marges/Colonne/Contenu/Paysage/Marges/Scene/Evenement"]
-script = ExtResource("2_zone")
+[node name="Gauche" type="VBoxContainer" parent="Cadre/Marges/Scene/Haut"]
+size_flags_horizontal = 3
+theme_type_variation = &"PileSerree"
+
+[node name="Jour" type="VBoxContainer" parent="Cadre/Marges/Scene/Haut/Gauche"]
+theme = ExtResource("t_jour")
+
+[node name="Zone" type="Node" parent="Cadre/Marges/Scene/Haut/Gauche/Jour"]
+script = ExtResource("1_zone")
 source = "fenetre.corps"
+ids = PackedStringArray("scene/jour")
 
-[node name="Jets" type="HFlowContainer" parent="Cadre/Marges/Colonne/Contenu/Paysage/Marges/Scene"]
-theme_type_variation = &"Mosaique"
+[node name="Moment" type="VBoxContainer" parent="Cadre/Marges/Scene/Haut/Gauche"]
+theme = ExtResource("t_moment")
 
-[node name="Zone" type="Node" parent="Cadre/Marges/Colonne/Contenu/Paysage/Marges/Scene/Jets" node_paths=PackedStringArray("masque")]
-script = ExtResource("2_zone")
+[node name="Zone" type="Node" parent="Cadre/Marges/Scene/Haut/Gauche/Moment"]
+script = ExtResource("1_zone")
 source = "fenetre.corps"
-ids = PackedStringArray("jets/")
-masque = NodePath("..")
+ids = PackedStringArray("scene/moment")
 
-[node name="Route" type="VBoxContainer" parent="Cadre/Marges/Colonne/Contenu/Paysage/Marges/Scene"]
+[node name="Vide" type="Control" parent="Cadre/Marges/Scene/Haut/Gauche"]
+size_flags_vertical = 3
+mouse_filter = 2
 
-[node name="Zone" type="Node" parent="Cadre/Marges/Colonne/Contenu/Paysage/Marges/Scene/Route"]
-script = ExtResource("2_zone")
+[node name="Route" type="VBoxContainer" parent="Cadre/Marges/Scene/Haut/Gauche"]
+theme = ExtResource("t_moment")
+
+[node name="Zone" type="Node" parent="Cadre/Marges/Scene/Haut/Gauche/Route"]
+script = ExtResource("1_zone")
 source = "fenetre.corps"
 ids = PackedStringArray("voyage/route")
 
-[node name="Frise" type="HFlowContainer" parent="Cadre/Marges/Colonne/Contenu/Paysage/Marges/Scene"]
-theme_type_variation = &"Frise"
+[node name="Droite" type="VBoxContainer" parent="Cadre/Marges/Scene/Haut"]
+custom_minimum_size = Vector2(520, 0)
+theme_type_variation = &"PileSerree"
 
-[node name="Zone" type="Node" parent="Cadre/Marges/Colonne/Contenu/Paysage/Marges/Scene/Frise"]
-script = ExtResource("2_zone")
+[node name="Carte" type="VBoxContainer" parent="Cadre/Marges/Scene/Haut/Droite"]
+size_flags_horizontal = 8
+
+[node name="Zone" type="Node" parent="Cadre/Marges/Scene/Haut/Droite/Carte"]
+script = ExtResource("1_zone")
 source = "fenetre.corps"
-ids = PackedStringArray("voyage/etape/")
+ids = PackedStringArray("voyage/carte")
+formes = PackedStringArray("plan:carteDuVoyage")
+
+[node name="Fond" type="PanelContainer" parent="Cadre/Marges/Scene/Haut/Droite"]
+theme_type_variation = &"Recit"
+
+[node name="Recit" type="VBoxContainer" parent="Cadre/Marges/Scene/Haut/Droite/Fond"]
+theme_type_variation = &"PileSerree"
+
+[node name="Titre" type="VBoxContainer" parent="Cadre/Marges/Scene/Haut/Droite/Fond/Recit"]
+theme = ExtResource("t_titre_du_recit")
+
+[node name="Zone" type="Node" parent="Cadre/Marges/Scene/Haut/Droite/Fond/Recit/Titre" node_paths=PackedStringArray("masque")]
+script = ExtResource("1_zone")
+source = "fenetre.titre"
+masque = NodePath("../../../../../../../..")
+
+[node name="Fondu" type="TextureRect" parent="Cadre/Marges/Scene/Haut/Droite/Fond/Recit"]
+clip_children = 1
+custom_minimum_size = Vector2(0, 104)
+texture = ExtResource("t_fondu")
+expand_mode = 1
+
+[node name="Chronique" type="ScrollContainer" parent="Cadre/Marges/Scene/Haut/Droite/Fond/Recit/Fondu"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("t_journal")
+horizontal_scroll_mode = 0
+vertical_scroll_mode = 3
+
+[node name="Lignes" type="VBoxContainer" parent="Cadre/Marges/Scene/Haut/Droite/Fond/Recit/Fondu/Chronique"]
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_type_variation = &"PileSerree"
+alignment = 2
+
+[node name="Zone" type="Node" parent="Cadre/Marges/Scene/Haut/Droite/Fond/Recit/Fondu/Chronique/Lignes"]
+script = ExtResource("1_zone")
+source = "journal.lignes"
+ajout = true
+
+[node name="Etape" type="VBoxContainer" parent="Cadre/Marges/Scene/Haut/Droite/Fond/Recit"]
+theme = ExtResource("t_etape_du_monde")
+
+[node name="Zone" type="Node" parent="Cadre/Marges/Scene/Haut/Droite/Fond/Recit/Etape" node_paths=PackedStringArray("masque")]
+script = ExtResource("1_zone")
+source = "fenetre.etape"
+masque = NodePath("..")
+
+[node name="Corps" type="VBoxContainer" parent="Cadre/Marges/Scene/Haut/Droite/Fond/Recit"]
+theme_type_variation = &"PileSerree"
+
+[node name="Zone" type="Node" parent="Cadre/Marges/Scene/Haut/Droite/Fond/Recit/Corps" node_paths=PackedStringArray("masque")]
+script = ExtResource("1_zone")
+source = "fenetre.corps"
+masque = NodePath("..")
+
+[node name="Reglages" type="VBoxContainer" parent="Cadre/Marges/Scene/Haut/Droite/Fond/Recit"]
+
+[node name="Zone" type="Node" parent="Cadre/Marges/Scene/Haut/Droite/Fond/Recit/Reglages" node_paths=PackedStringArray("masque")]
+script = ExtResource("1_zone")
+source = "fenetre.reglages"
+masque = NodePath("..")
+
+[node name="Gestes" type="HBoxContainer" parent="Cadre/Marges/Scene/Haut/Droite/Fond/Recit"]
+theme_type_variation = &"RangeeSerree"
+
+[node name="Zone" type="Node" parent="Cadre/Marges/Scene/Haut/Droite/Fond/Recit/Gestes"]
+script = ExtResource("1_zone")
+source = "fenetre.gestes"
+
+[node name="Vide" type="Control" parent="Cadre/Marges/Scene/Haut/Droite"]
+size_flags_vertical = 3
+mouse_filter = 2
+
+[node name="Groupe" type="HBoxContainer" parent="Cadre/Marges/Scene/Haut/Droite"]
+size_flags_horizontal = 8
+theme = ExtResource("t_discret")
+
+[node name="Heros" type="HBoxContainer" parent="Cadre/Marges/Scene/Haut/Droite/Groupe"]
+
+[node name="Zone" type="Node" parent="Cadre/Marges/Scene/Haut/Droite/Groupe/Heros"]
+script = ExtResource("1_zone")
+source = "groupe.gestes"
+
+[node name="Partie" type="HBoxContainer" parent="Cadre/Marges/Scene/Haut/Droite/Groupe"]
+
+[node name="Zone" type="Node" parent="Cadre/Marges/Scene/Haut/Droite/Groupe/Partie"]
+script = ExtResource("1_zone")
+source = "partie.gestes"
+
+[node name="Frise" type="VBoxContainer" parent="Cadre/Marges/Scene"]
+
+[node name="Zone" type="Node" parent="Cadre/Marges/Scene/Frise"]
+script = ExtResource("1_zone")
+source = "fenetre.corps"
+ids = PackedStringArray("voyage/frise")
+formes = PackedStringArray("plan:frise")

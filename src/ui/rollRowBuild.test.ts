@@ -8,7 +8,7 @@ import type { Combatant } from '../engine/types';
 
 const hero = (): Combatant =>
   ({
-    id: 'H1', label: 'Héros H1', kind: 'hero',
+    id: 'H1', label: 'Héros H1', kind: 'heros',
     characteristics: {}, skills: [], conditions: [], talents: [], fortune: 2, resilience: 3,
   }) as unknown as Combatant;
 

@@ -26,7 +26,7 @@ const g = () => banc.getState();
 
 const CHARS = { 'capacite-de-combat': 45, 'capacite-de-tir': 55, force: 35, endurance: 43, initiative: 30, agilite: 40, dexterite: 30, intelligence: 40, 'force-mentale': 35, sociabilite: 30 };
 const mk = (id: string, over: Partial<Combatant> = {}): Combatant => blessuresSurLeProfil({
-  id, label: id, kind: 'hero', characteristics: { ...CHARS }, conditions: [], skills: [], talents: [], weapons: [], advantage: 0,
+  id, label: id, kind: 'heros', characteristics: { ...CHARS }, conditions: [], skills: [], talents: [], weapons: [], advantage: 0,
   pos: { x: 0, y: 0 }, wounds: blessuresDeBase(14), fortune: 2, resilience: 1, movement: 4,
   armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, ...over,
 } as Combatant) as Combatant;
@@ -134,7 +134,7 @@ describe('R4-E — aucun argent créé par l’infirmerie d’un PNJ payant', ()
 });
 
 describe('le premier jet du brouillon, quel que soit le geste qui le pose, passe par le lancer de l’acte', () => {
-  const luxee = (id: string) => mk(id, { wounds: blessuresDeBase(40), traumas: [{ uid: 't1', label: 'Épaule luxée (bras perdu)', location: 'brasD', targetDR: 6, ops: [{ op: 'maxWeaponHands', hands: 1 }], recoveryPenalty: [{ op: 'charMod', characteristic: 'capacite-de-combat', mod: -10 }] }] } as Partial<Combatant>);
+  const luxee = (id: string) => mk(id, { wounds: blessuresDeBase(40), traumas: [{ uid: 't1', label: 'Épaule luxée (bras perdu)', location: 'brasD', drCible: 6, ops: [{ op: 'maxWeaponHands', hands: 1 }], recoveryPenalty: [{ op: 'charMod', characteristic: 'capacite-de-combat', mod: -10 }] }] } as Partial<Combatant>);
   const barbierPayant = (): void => {
     poser([blesse('p')], { p: 1 });
     creditBourse(g, banc.setState, 'p', { gold: 0, silver: 10, brass: 0 });

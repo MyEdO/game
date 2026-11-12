@@ -8,7 +8,7 @@ import { t } from '../i18n';
 import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 const mk = (): Combatant => (blessuresSurLeProfil({
-  id: 'x', name: 'X', kind: 'hero', characteristics: {}, skills: [], talents: [], traits: [],
+  id: 'x', name: 'X', kind: 'heros', characteristics: {}, skills: [], talents: [], traits: [],
   conditions: [], activeEffects: [], liveTraits: [], weapons: [], armour: [],
   wounds: blessuresDeBase(10), advantage: 0,
 })) as unknown as Combatant;
@@ -176,7 +176,7 @@ describe('composantes NOMMÉES de la pénalité de Test (combatTestPenaltyParts)
 
   it('ce qui STACKE garde SA ligne : l’effet actif n’est pas fondu dans celle de l’État', () => {
     const c = mk(); addCondition(c, COND.sonne);
-    const malediction = { label: 'Malédiction de malchance', bonus: 0, duration: { scale: 'rounds' as const, left: 3 }, testMod: -10, source: { kind: 'spell' as const, id: 'malediction-de-malchance' } };
+    const malediction = { label: 'Malédiction de malchance', bonus: 0, duration: { scale: 'rounds' as const, left: 3 }, testMod: -10, source: { kind: 'sort' as const, id: 'malediction-de-malchance' } };
     c.activeEffects = [malediction];
     expect(combatTestPenaltyParts(c)).toEqual([
       nommee('etats', 'sonne', -10),
@@ -207,14 +207,14 @@ describe('composantes NOMMÉES de la pénalité de Test (combatTestPenaltyParts)
 });
 
 describe('pools distincts, sommés entre eux (LDB 14 l.95)', () => {
-  const effet = (id: string, kind: 'spell' | 'trapping', testMod: number) => ({ label: id, bonus: 0, duration: { scale: 'rounds', left: 3 }, source: { kind, id }, testMod });
+  const effet = (id: string, kind: 'sort' | 'objet', testMod: number) => ({ label: id, bonus: 0, duration: { scale: 'rounds', left: 3 }, source: { kind, id }, testMod });
   it('testMod global de Sorts : la pire pénalité seule (LDB 46 l.119)', () => {
-    const c = mk(); c.activeEffects = [effet('s1', 'spell', -10), effet('s2', 'spell', -20)] as never;
+    const c = mk(); c.activeEffects = [effet('s1', 'sort', -10), effet('s2', 'sort', -20)] as never;
     expect(combatTestPenalty(c)).toBe(-20);
     expect(testStatePenalty(c, 'charme')).toBe(-20);
   });
   it('testMod global d’un objet et d’un Sort : sommés', () => {
-    const c = mk(); c.activeEffects = [effet('o', 'trapping', -10), effet('s', 'spell', -10)] as never;
+    const c = mk(); c.activeEffects = [effet('o', 'objet', -10), effet('s', 'sort', -10)] as never;
     expect(combatTestPenalty(c)).toBe(-20);
   });
   it('aura : son propre pool (« une seule fois », LDB 85 l.262), sommé avec le pool des États (LDB 16 l.13)', () => {

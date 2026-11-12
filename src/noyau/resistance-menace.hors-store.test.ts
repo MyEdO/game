@@ -12,7 +12,7 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /**
- * Talent « Résistance (Menace) » CÂBLÉ sur les flux de jet (LDB 10 l.1016-1020) — verbe `resist` de la
+ * Talent « Résistance (Menace) » CÂBLÉ sur les flux de jet (LDB 10 l.1016-1020) — verbe `resister` de la
  * fabrique rollFlow (MÊME mécanisme d'auto-succès que la Résilience, autre ressource : 1× par spec et
  * par séance) : le Test tagué `menace` réussit d'office avec DR = Bonus d'Endurance. Le tag `menace` ET
  * la spec du talent sont des ids stables : exposition à la Corruption ('corruption'),
@@ -22,7 +22,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  */
 const hero = (p: Partial<Combatant> = {}): Combatant =>
   (blessuresSurLeProfil({
-    id: 'a', label: 'A', kind: 'hero',
+    id: 'a', label: 'A', kind: 'heros',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 43, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], skills: [],
     talents: [
@@ -172,7 +172,7 @@ describe('Résistance (Maladie) — Contraction de fin de combat (LDB 20 l.25/51
 describe('Résistance (Magie) — opposition à un Sort (« résister aux sorts »)', () => {
   it('pendingCastOpposition tagué `menace: magie` ; jetResister@opposition → la cible RÉSISTE (DR = BE)', () => {
     const a = hero();
-    const foe = hero({ id: 'e', label: 'E', kind: 'enemy', talents: [] });
+    const foe = hero({ id: 'e', label: 'E', kind: 'ennemi', talents: [] });
     banc.setState({ party: [a] });
     setBattle([a, foe]);
     banc.setState({

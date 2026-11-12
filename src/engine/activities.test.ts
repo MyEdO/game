@@ -85,16 +85,16 @@ describe('seuilDePerteBancaire — le seuil affiché est celui du jet (LDB 23 l.
 
 describe('statusIncome — « Gagner de l’argent grâce au Statut » (LDB 08 l.105-120)', () => {
   it('Bronze N : N × 2d10 sous de cuivre', () => {
-    const m = statusIncome('bronze', 2, seq([3, 4, 5, 6]), 'success'); // (3+4)+(5+6) = 18 sc
+    const m = statusIncome('bronze', 2, seq([3, 4, 5, 6]), 'reussite'); // (3+4)+(5+6) = 18 sc
     expect(toBrass(m)).toBe(18);
   });
   it('Argent N : N × 1d10 pistoles ; Or N : N couronnes', () => {
-    expect(toBrass(statusIncome('argent', 2, seq([1, 2]), 'success'))).toBe(3 * 12);
-    expect(toBrass(statusIncome('or', 3, seq([]), 'success'))).toBe(3 * 240);
+    expect(toBrass(statusIncome('argent', 2, seq([1, 2]), 'reussite'))).toBe(3 * 12);
+    expect(toBrass(statusIncome('or', 3, seq([]), 'reussite'))).toBe(3 * 240);
   });
   it('échec : la moitié ; Échec Stupéfiant : rien', () => {
-    expect(toBrass(statusIncome('argent', 1, seq([10]), 'fail'))).toBe(Math.floor((10 * 12) / 2));
-    expect(toBrass(statusIncome('or', 5, seq([]), 'astoundingFail'))).toBe(0);
+    expect(toBrass(statusIncome('argent', 1, seq([10]), 'echec'))).toBe(Math.floor((10 * 12) / 2));
+    expect(toBrass(statusIncome('or', 5, seq([]), 'echecStupefiant'))).toBe(0);
   });
 });
 
@@ -450,7 +450,7 @@ describe('entrainementOptions — Compétences/Caractéristiques HORS carrière 
   it('exclut les Caractéristiques DE la carrière (Soldat : CC/End/FM), inclut les autres, PX déjà doublé hors carrière (LDB 07 l.91)', () => {
     const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     const opts = entrainementOptions(h);
-    const chars = opts.filter((o) => o.kind === 'characteristic');
+    const chars = opts.filter((o) => o.kind === 'caracteristique');
     expect(chars.every((o) => !o.advanced)).toBe(true);
     // Capacité de Combat/Endurance/Force Mentale SONT de la carrière du Soldat (careerLevels.json) : absentes ici.
     expect(chars.some((o) => o.id === 'capacite-de-combat')).toBe(false);
@@ -464,7 +464,7 @@ describe('entrainementOptions — Compétences/Caractéristiques HORS carrière 
   it('marque `advanced` pour les Compétences Avancées, jamais pour une Compétence de Base', () => {
     const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     const opts = entrainementOptions(h);
-    const skillOpts = opts.filter((o) => o.kind === 'skill');
+    const skillOpts = opts.filter((o) => o.kind === 'competence');
     expect(skillOpts.length).toBeGreaterThan(0);
     const advanced = skillOpts.find((o) => o.advanced);
     expect(advanced).toBeTruthy();

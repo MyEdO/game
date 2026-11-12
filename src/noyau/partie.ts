@@ -85,7 +85,7 @@ function ajoutees<T>(vu: readonly T[], courant: readonly T[]): T[] {
 }
 
 /** Les verbes de jet qui lancent les dés : un hôte qui les envoie joue leur son (`EVT.DICE_ROLL`). */
-const LANCERS_DU_JOUEUR = new Set<RollVerb | null>(['roll', 'reroll']);
+const LANCERS_DU_JOUEUR = new Set<RollVerb | null>(['lancer', 'relancer']);
 
 /** Ouvre une partie sur `etatInitial` (`etatInitialDuJeu()`, ou l'état qu'un hôte a gardé), par son propriétaire
  *  (`ouvrirLeProprietaire`). */

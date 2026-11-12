@@ -1,5 +1,5 @@
 /**
- * Effet d'auteur `castSpell` `mode:'forceSuccess'` (#98) : le Flow du Sort se joue par le walker
+ * Effet d'auteur `castSpell` `mode:'forcerLaReussite'` (#98) : le Flow du Sort se joue par le walker
  * d'acteur (`lancerLeSortGaranti`), à DR = NI, choix, paliers et durée compris.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
@@ -15,10 +15,10 @@ import type { Flow } from '../engine/flowCore';
 import type { Combatant } from '../engine/types';
 
 const garanti = (casterId: string, spellId: string, targetId: string) =>
-  ({ kind: 'do', effect: { type: 'castSpell', casterId, spellId, targetId, mode: 'forceSuccess' } }) as unknown as Flow;
+  ({ kind: 'effet', effet: { type: 'castSpell', casterId, spellId, targetId, mode: 'forcerLaReussite' } }) as unknown as Flow;
 const bfm = (lanceur: Combatant) => resolveFormula({ bonusOf: 'force-mentale' }, lanceur, desDuTest);
 
-describe('castSpell forceSuccess : le Flow du Sort, à DR = NI', () => {
+describe('castSpell forcerLaReussite : le Flow du Sort, à DR = NI', () => {
   it('Colérique (VDM 10 l.324-332) : un seul palier, envers la personne désignée, avec sa durée', () => {
     const [w, s, p] = groupeDeScenario(idsDeTest, 'sorcier', 'soldat', 'pretre');
     const banc = ouvrirLeBanc({ graine: 7, etat: { party: [w, s, p] } });
@@ -29,7 +29,7 @@ describe('castSpell forceSuccess : le Flow du Sort, à DR = NI', () => {
     expect(vues.map((v) => v.kind), 'NI 2 : aucun palier à trancher').toEqual(['personneChoisie', 'testDeclenche']);
     const cible = banc.getState().party.find((c) => c.id === s.id)!;
     expect((cible.psychTraits ?? []).filter((t) => t.src?.id === 'colerique')).toEqual([
-      { type: 'prejuge', cible: ciblePsy.individu(p.id), src: { kind: 'spell', id: 'colerique' } },
+      { type: 'prejuge', cible: ciblePsy.individu(p.id), src: { kind: 'sort', id: 'colerique' } },
     ]);
     expect(cible.activeEffects?.filter((e) => e.grantedPsychTrait).map((e) => e.duration))
       .toEqual([{ scale: 'clock', until: maintenant + bfm(w) * 60 }]);

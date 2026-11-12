@@ -113,7 +113,7 @@ describe('le jet se lit avant sa confirmation', () => {
 describe('le champ et l’exploration se lisent', () => {
   it('l’aperçu du premier clic : sa case et son coût', { timeout: 120_000 }, () => {
     auPremierTour('siege-enceinte', (r) => {
-      expect(rendreLaVue(projeter(r.partie.etat(), r.gestes.length, r.journal.length)).join('\n')).toMatch(/^aperçu : move → \(12,44\) · coût 1/m);
+      expect(rendreLaVue(projeter(r.partie.etat(), r.gestes.length, r.journal.length)).join('\n')).toMatch(/^aperçu : deplacement → \(12,44\) · coût 1/m);
     }, { type: 'cliquerLaCase', args: [{ x: 12, y: 44 }] });
   });
   it('les cases sont celles que le champ peint (`porteesDuTour`), et `cases` les borne', { timeout: 120_000 }, () => {

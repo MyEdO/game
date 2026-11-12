@@ -190,10 +190,10 @@ const HARMFUL_TARGET_OPS = new Set<string>([
  *  que HARMFUL_TARGET_OPS (recensement du catalogue `GameOp`, engine/ops.ts) POUR LES OPS DONT LE SIGNE
  *  EST FIXE (soin, purge d'État/maladie/psy, octroi, protection…) : asymétrie ASSUMÉE avec HARMFUL —
  *  un offensif oublié rend un sort injouable sur l'ennemi (bug réel, HARMFUL doit rester complète) ;
- *  un bénéfique-clair oublié ici ne fait que retomber en 'any' (réticule des deux côtés, jamais caché).
+ *  un bénéfique-clair oublié ici ne fait que retomber en 'tout' (réticule des deux côtés, jamais caché).
  *  Les ops DUAL-SIGNE (`testMod`/`skillMod`/`attrMod`/`charDRBonus`/`sinMod`/`maxWeaponHands`… — la
- *  MÊME op est un buff OU un malus selon `amount`/`mod`/`hands`) sont VOLONTAIREMENT absentes : 'any'
- *  est le comportement voulu, jamais 'ally' pour un malus déguisé (Malédiction de malchance, testMod
+ *  MÊME op est un buff OU un malus selon `amount`/`mod`/`hands`) sont VOLONTAIREMENT absentes : 'tout'
+ *  est le comportement voulu, jamais 'allie' pour un malus déguisé (Malédiction de malchance, testMod
  *  amount:-10, LDB 49 l.62 — verrouillé par le test dual-signe de targetingModes.hors-store.test.ts). */
 const HELPFUL_TARGET_OPS = new Set<string>([
   'ap', 'heal', 'cureCriticalWound', 'cureDisease', 'removeCondition', 'grantTrait', 'grantTalent',
@@ -204,22 +204,22 @@ const HELPFUL_TARGET_OPS = new Set<string>([
   'grantCareerSkill', 'grantCareerTalent',
 ]);
 
-export type SpellAffinity = 'enemy' | 'ally' | 'any';
+export type SpellAffinity = 'ennemi' | 'allie' | 'tout';
 
 /** Côté qu'un sort VISE, DÉRIVÉ de ses effets modélisés (aucun champ manuel sur les 243 sorts) :
- *  Projectile / Test opposé / Souffle / Poussée, ou un op « cible » NOCIF → 'enemy' (ciblable sur
- *  l'ennemi, réticule + interdit hors portée comme le tir) ; un op « cible » BÉNÉFIQUE seul → 'ally' ; sinon
- *  (narratif, mixte, sans op de cible) → 'any' (réticule permissif des deux côtés). La SOURCE est
+ *  Projectile / Test opposé / Souffle / Poussée, ou un op « cible » NOCIF → 'ennemi' (ciblable sur
+ *  l'ennemi, réticule + interdit hors portée comme le tir) ; un op « cible » BÉNÉFIQUE seul → 'allie' ; sinon
+ *  (narratif, mixte, sans op de cible) → 'tout' (réticule permissif des deux côtés). La SOURCE est
  *  l'effet canon du sort (spells.json), pas une heuristique de mots-clés sur la description. */
 export function spellAffinity(spell: NonNullable<ReturnType<typeof findSpellById>>): SpellAffinity {
-  if (isMagicMissile(spell) || spell.opposed || spell.breathAttack) return 'enemy';
+  if (isMagicMissile(spell) || spell.opposed || spell.breathAttack) return 'ennemi';
   // Poussée/Attaques en chaîne portent leur effet positionnel en op `on:'caster'` (push/chain) — invisible
-  // au scan 'target' mais OFFENSIF (repousse/rebondit sur l'ennemi) → ciblage ennemi. teleport reste neutre ('any').
-  if (spellOps(spell.effects, 'caster').some((o) => o.op === 'push' || o.op === 'chain')) return 'enemy';
+  // au scan 'target' mais OFFENSIF (repousse/rebondit sur l'ennemi) → ciblage ennemi. teleport reste neutre ('tout').
+  if (spellOps(spell.effects, 'caster').some((o) => o.op === 'push' || o.op === 'chain')) return 'ennemi';
   const ops = spellOps(spell.effects, 'target').map((o) => o.op);
-  if (ops.some((o) => HARMFUL_TARGET_OPS.has(o))) return 'enemy';
-  if (ops.some((o) => HELPFUL_TARGET_OPS.has(o))) return 'ally';
-  return 'any';
+  if (ops.some((o) => HARMFUL_TARGET_OPS.has(o))) return 'ennemi';
+  if (ops.some((o) => HELPFUL_TARGET_OPS.has(o))) return 'allie';
+  return 'tout';
 }
 
 // ───────────────────────────────────────────────────────────────────────────
@@ -269,7 +269,7 @@ function castAffordance(get: Get, active: Combatant, target: Combatant): HoverTa
   const aff = spellAffinity(spell);
   const enemyOk = target.kind !== active.kind && !isOutOfAction(target);
   const allyOk = target.kind === active.kind && !target.dead && !target.outOfRencontre;
-  if (!(aff === 'enemy' ? enemyOk : aff === 'ally' ? allyOk : enemyOk || allyOk))
+  if (!(aff === 'ennemi' ? enemyOk : aff === 'allie' ? allyOk : enemyOk || allyOk))
     return { kind: 'none' };
   // Portée puis Ligne de Vue : la MÊME mesure que le clic et que `castSpell` (`castTargetBlock`) — une
   // 2ᵉ écriture ferait diverger ce que le survol montre de ce que le geste fait.
@@ -364,17 +364,17 @@ export function refusDAttaque(get: Get, active: Combatant, target: Combatant, op
     return { reason: 'cible-gratuite', texte: t('cs.refusCibleGratuite', { name: target.label, attaque: option.label }) };
   }
   if (!plan) return null;
-  const depensee = option.cost.action && plan.kind !== 'attack' ? refusActionDepensee(battle) : null;
+  const depensee = option.cost.action && plan.kind !== 'attaque' ? refusActionDepensee(battle) : null;
   if (depensee) return { reason: 'action-depensee', texte: depensee };
   const gesteImpose = isFrenzied(active) || !option.cost.action;
-  if (plan.kind !== 'attack' && plan.kind !== 'blocked' && !approche && !gesteImpose) {
+  if (plan.kind !== 'attaque' && plan.kind !== 'bloque' && !approche && !gesteImpose) {
     return { reason: 'approche-non-armee', texte: t('cs.refusApprocheNonArmee', { name: target.label }) };
   }
-  if (plan.kind === 'blocked') {
+  if (plan.kind === 'bloque') {
     const p = previewAttack(get, active, target, undefined, { weaponUid: option.weaponUid });
     return { reason: p.blocked ? 'los' : p.kind === 'melee' && isEngaged(active) ? 'engaged' : 'range', texte: plan.reason };
   }
-  if (plan.kind === 'attack' && !option.freeKind) {
+  if (plan.kind === 'attaque' && !option.freeKind) {
     const block = firedAttackBlock(get, active, target, option.weaponUid);
     if (block) return { reason: block.reason, texte: block.detail };
   }
@@ -427,15 +427,15 @@ function attackAffordance(get: Get, active: Combatant, target: Combatant): Hover
   // === MÊLÉE (Arme + gratuites) : approche-puis-frappe — chemin réel + réticule au survol (le clic commet) ;
   // l'aperçu est calculé depuis la case d'ARRIVÉE. Seul geste dont la Difficulté se compose depuis une arme
   // (`gesteAuTestDArme`, le prédicat du badge de l'aperçu tap-1).
-  if (!plan || plan.kind === 'blocked') return { kind: 'none' };
+  if (!plan || plan.kind === 'bloque') return { kind: 'none' };
   // `option.weaponUid` ÉPINGLE l'arme du poste servi pour l'option DÉDIÉE « Servir » (jamais pour 'arme',
   // qui reste auto-choisie parmi les armes PERSONNELLES — `pickAttackWeaponList`/addendum « un intent, une entrée »).
-  const p = apercuDuGeste(get, active, target, option, plan.kind === 'attack' ? undefined : plan.dest);
+  const p = apercuDuGeste(get, active, target, option, plan.kind === 'attaque' ? undefined : plan.dest);
   const palier = difficultyOf(p);
   return {
     kind: 'ok',
     // Gratuite (Morsure/Caudale/Tentacule) = toujours mêlée (trait solide) ; Arme = tir pointillé si à distance.
-    line: option.freeKind ? 'solid' : p.kind === 'ranged' ? 'dashed' : 'solid',
+    line: option.freeKind ? 'solid' : p.kind === 'distance' ? 'dashed' : 'solid',
     title: p.weapon.label,
     targetName: target.label,
     skill: attackTestLabel(active, p.weapon, p.kind),
@@ -448,7 +448,7 @@ function attackAffordance(get: Get, active: Combatant, target: Combatant): Hover
     // `rollLine` → `composeDifficulty`), dans les termes de la modale — jamais recomposée ici.
     ...(palier ? { difficulty: palier } : {}),
     dmg: p.dmg, // (gratuite : Dégâts de l'arme tenue = cosmétique ; le chemin/réticule, lui, est exact)
-    path: plan.kind === 'attack' ? undefined : plan.path,
+    path: plan.kind === 'attaque' ? undefined : plan.path,
   };
 }
 
@@ -559,17 +559,17 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
   // Empoignade (LDB 14 l.161) : action de Test opposé de Force entre deux Empoignés → flux dédié.
   if (option.targeting === 'grapple') return get().ouvrirLEmpoignade(target.id);
   if (option.targeting === 'zone') {
-    set({ pendingManeuver: { attackerId: active.id, kind: option.kind!, attaque: option.id, targetId: target.id, avantageSpent: option.advantageMode === 'variable' ? 1 : option.cost.advantage, result: null }, battle: { ...battle, action: null, selectedAttack: undefined } });
+    set({ pendingManeuver: { attackerId: active.id, kind: option.kind!, attaque: option.id, targetId: target.id, avantageSpent: option.modeDAvantage === 'variable' ? 1 : option.cost.advantage, result: null }, battle: { ...battle, action: null, selectedAttack: undefined } });
     return;
   }
   // === MÊLÉE : approche-puis-frappe (le SEUL exécuteur charge/moveAttack du jeu) ===
-  if (!plan || plan.kind === 'blocked') return;
+  if (!plan || plan.kind === 'bloque') return;
   // Tap 1 : APERÇU — sauf confirmation (tests), ré-entrée du choix cavalier/monture,
   // ou re-tap de la même cible avec le même plan.
   const prev = battle.preview;
   const samePreview = !!prev && 'targetId' in prev && prev.targetId === id && prev.kind === plan.kind;
   if (!opts?.confirm && !opts?.skipMountChoice && !samePreview) {
-    set({ battle: { ...battle, preview: plan.kind === 'attack' ? { kind: 'attack', targetId: id } : { ...plan, targetId: id } } });
+    set({ battle: { ...battle, preview: plan.kind === 'attaque' ? { kind: 'attaque', targetId: id } : { ...plan, targetId: id } } });
     bus.emit(EVT.SCENE_DIRTY);
     return;
   }
@@ -578,13 +578,13 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
   if (!opts?.skipMountChoice) {
     const rider = target.mountId ? target : inBattleId(battle, target.riderId);
     const mount = target.riderId ? target : inBattleId(battle, target.mountId);
-    if (rider && mount && rider.kind !== 'hero' && mount.kind !== 'hero' && !isOutOfAction(rider) && !isOutOfAction(mount)) {
+    if (rider && mount && rider.kind !== 'heros' && mount.kind !== 'heros' && !isOutOfAction(rider) && !isOutOfAction(mount)) {
       set({ pendingMountTarget: { riderId: rider.id, mountId: mount.id, intentionId: opts?.intentionId } });
       return;
     }
   }
   // Peur (LDB 21 l.27) : charger / rejoindre une source de Peur = s'en RAPPROCHER (`retenuParLaPeur`).
-  if ((plan.kind === 'charge' || plan.kind === 'moveAttack') && retenuParLaPeur(get, set, active, plan.dest, { kind: 'entity', id, intentionId: opts?.intentionId })) return;
+  if ((plan.kind === 'charge' || plan.kind === 'deplacementEtAttaque') && retenuParLaPeur(get, set, active, plan.dest, { kind: 'entity', id, intentionId: opts?.intentionId })) return;
   if (battle.preview) set({ battle: { ...get().battle!, preview: null } });
   // Bénédiction de Protection (LDB 41 l.142) : la cible bénie impose un Test de FM Accessible (+20)
   // AVANT d'engager quoi que ce soit (charge comprise). Le jet du HÉROS est INFLUENÇABLE (Chance/
@@ -634,7 +634,7 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
     const repondu = declarerLaCharge(get, set, active, target, plan.adv); // LDB 10 l.500
     pa = { attackerId: active.id, targetId: target.id, location: null, result: null, fromCharge: true, ...(repondu ? {} : { chargeUndo }), ...(option.freeKind ? { freeKind: option.freeKind } : {}), ...(option.weaponUid ? { weaponUid: option.weaponUid } : {}) };
   } else {
-    if (plan.kind === 'moveAttack') {
+    if (plan.kind === 'deplacementEtAttaque') {
       // Rejoindre la cible dans la Marche restante (pas une Charge → pas de bonus), puis attaquer.
       // MÊMES mutations qu'un segment de cliquerLaCaseDuCombat (snapshot d'annulation compris).
       const b = get().battle!;
@@ -673,10 +673,10 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
     }
   }
   // Cible Inconsciente (LDB 16 l.113) : l'attaquant gagne « Je ne faillirai pas ! » SANS dépenser de
-  // Résilience → réutilise le MÊME picker de Localisation (`pa.forced`/CritLocationPicker, LDB 17 l.68)
+  // Résilience → réutilise le MÊME picker de Localisation (`pa.forcee`/CritLocationPicker, LDB 17 l.68)
   // que le Critique forcé par Résilience. Réservé au joueur qui PILOTE ; l'IA (doAttack) résout hors de
   // ce chemin (pendingAttack), donc ne voit jamais ce choix.
-  if (isHelplessTarget(target) && pilotedByHuman(get(), active)) pa = { ...pa, forced: true };
+  if (isHelplessTarget(target) && pilotedByHuman(get(), active)) pa = { ...pa, forcee: true };
   if (coutPaye) pa = { ...pa, coutPaye };
   if (active.chargedThisTurn) pa = { ...pa, fromCharge: true }; // LDB 15 l.35
   // (2) FRAPPE — après le glissé d'approche (sur-le-champ au contact) : la suite du tour du joueur, armée par l'armeur

@@ -16,7 +16,7 @@ import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTes
 
 function hero(p: Partial<Combatant>): Combatant {
   return blessuresSurLeProfil({
-    id: 'h1', label: 'Doc', kind: 'hero',
+    id: 'h1', label: 'Doc', kind: 'heros',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 40, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(12, 10), advantage: 0, conditions: [], movement: 4,
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -162,7 +162,7 @@ describe('Guérison — flux combat', () => {
   it('jetValider@soins (ammo) succès : la munition est retirée et le plafond de soin est relevé', () => {
     const doc = hero({ id: 'doc', pos: { x: 1, y: 1 } });
     const t = hero({ id: 'al', wounds: blessuresDeBase(12, 10), conditions: [{ id: 'munition-logee', value: 1 }], pos: { x: 2, y: 1 } });
-    const ennemi = hero({ id: 'e', kind: 'enemy', pos: { x: 9, y: 9 } }); // le combat dure au-delà de la 1re Action
+    const ennemi = hero({ id: 'e', kind: 'ennemi', pos: { x: 9, y: 9 } }); // le combat dure au-delà de la 1re Action
     setBattle([doc, t, ennemi], 'doc');
     banc.getState().ouvrirLaGuerison('al');
     banc.getState().jetRegler('soins', 'mode', 'munition');
@@ -342,12 +342,12 @@ describe('Guérison — infirmerie (hors combat)', () => {
     banc.getState().jetLancer('soins'); // ARME l'opération — chirurgien figé — et pose la 1re passe
     const sg0 = banc.getState().medic!.surgery!;
     expect(sg0.healerId).toBe('doc');
-    expect(sg0.targetDR).toBeGreaterThanOrEqual(5); // cible MJ 5-10 (LDB 10)
+    expect(sg0.drCible).toBeGreaterThanOrEqual(5); // cible MJ 5-10 (LDB 10)
     expect(sg0.cumDR).toBe(0);
     expect(banc.getState().pendingHeal).toBeNull();
     expect(banc.getState().pendingSurgery?.roll).toBeNull(); // la passe posée, pas jetée
     // cible basse + compétence très haute → quelques passes suffisent (patient à 40 PB survit aux 1d10).
-    banc.setState({ medic: { ...banc.getState().medic!, surgery: { ...sg0, targetDR: 1, skill: 99 } } });
+    banc.setState({ medic: { ...banc.getState().medic!, surgery: { ...sg0, drCible: 1, skill: 99 } } });
     for (let i = 0; i < 12 && banc.getState().medic?.surgery; i++) {
       banc.getState().jetLancer('chirurgie');     // jet de Médecine du chirurgien (influençable)
       banc.getState().jetValider('chirurgie');      // applique + cumule ; réouvre ou termine
@@ -395,7 +395,7 @@ describe('Guérison — infirmerie (hors combat)', () => {
     banc.getState().jetRegler('soins', 'mode', 'chirurgie');
     banc.getState().jetLancer('soins');
     const sg0 = banc.getState().medic!.surgery!;
-    banc.setState({ medic: { ...banc.getState().medic!, surgery: { ...sg0, targetDR: 1, skill: 99 } } });
+    banc.setState({ medic: { ...banc.getState().medic!, surgery: { ...sg0, drCible: 1, skill: 99 } } });
     for (let i = 0; i < 12 && banc.getState().medic?.surgery; i++) {
       banc.getState().jetLancer('chirurgie');
       banc.getState().jetValider('chirurgie'); // à la cible : ouvre la cascade d'infection (aucun jet inline)
@@ -437,7 +437,7 @@ describe('Guérison — infirmerie (hors combat)', () => {
     const patient = hero({
       id: 'p', label: 'Patient', skills: [], wounds: blessuresDeBase(40),
       // Aide Médicale DÉJÀ reçue (awaitingMedicalAid absent) → la récupération est ouvrable (LDB 18 l.120).
-      traumas: [{ uid: 't1', label: 'Épaule luxée (bras perdu)', location: 'brasD', targetDR: 6, ops: [{ op: 'maxWeaponHands', hands: 1 }], recoveryPenalty: [{ op: 'charMod', characteristic: 'capacite-de-combat', mod: -10 }] }],
+      traumas: [{ uid: 't1', label: 'Épaule luxée (bras perdu)', location: 'brasD', drCible: 6, ops: [{ op: 'maxWeaponHands', hands: 1 }], recoveryPenalty: [{ op: 'charMod', characteristic: 'capacite-de-combat', mod: -10 }] }],
     });
     banc.setState({ mode: 'exploration', battle: null, party: [doc, patient], pendingHeal: null, pendingSurgery: null, medic: null });
     banc.getState().ouvrirLeMedecin('p');
@@ -446,7 +446,7 @@ describe('Guérison — infirmerie (hors combat)', () => {
     const sg0 = banc.getState().medic!.surgery!;
     expect(sg0.kind).toBe('reeducation');
     expect(sg0.difficulty).toBe('accessible'); // Test étendu de Guérison Accessible (+20), LDB 18 l.120/179
-    expect(sg0.targetDR).toBe(6);
+    expect(sg0.drCible).toBe(6);
     // compétence très haute → converge en quelques passes ; on garde la vraie cible DR 6.
     banc.setState({ medic: { ...banc.getState().medic!, surgery: { ...sg0, skill: 99 } } });
     for (let i = 0; i < 20 && banc.getState().medic?.surgery; i++) {
@@ -454,7 +454,7 @@ describe('Guérison — infirmerie (hors combat)', () => {
       banc.getState().jetValider('chirurgie');
     }
     const p = banc.getState().party.find((c) => c.id === 'p')!;
-    expect(p.traumas!.some((t) => t.targetDR != null)).toBe(false); // membre désactivé retiré (usage récupéré)
+    expect(p.traumas!.some((t) => t.drCible != null)).toBe(false); // membre désactivé retiré (usage récupéré)
     expect(p.wounds.current).toBe(40); // récupération = Guérison pure : AUCUN dégât (≠ Chirurgie)
     expect(p.conditions.some((c) => c.id === 'hemorragique')).toBe(false);
     expect(p.activeEffects?.some((e) => e.characteristic === 'capacite-de-combat' && e.bonus === -10)).toBe(true); // pénalité −10 / 1d10 j posée
@@ -465,7 +465,7 @@ describe('Guérison — infirmerie (hors combat)', () => {
     const doc = hero({ id: 'doc', skills: [{ id: 'guerison', advances: 30, characteristic: 'intelligence' }] });
     const patient = hero({
       id: 'p', label: 'Patient', skills: [], wounds: blessuresDeBase(40),
-      traumas: [{ uid: 't2', label: 'Épaule luxée (bras perdu)', location: 'brasD', targetDR: 6, awaitingMedicalAid: true, ops: [{ op: 'maxWeaponHands', hands: 1 }], recoveryPenalty: [{ op: 'charMod', characteristic: 'capacite-de-combat', mod: -10 }] }],
+      traumas: [{ uid: 't2', label: 'Épaule luxée (bras perdu)', location: 'brasD', drCible: 6, awaitingMedicalAid: true, ops: [{ op: 'maxWeaponHands', hands: 1 }], recoveryPenalty: [{ op: 'charMod', characteristic: 'capacite-de-combat', mod: -10 }] }],
     });
     banc.setState({ mode: 'exploration', battle: null, party: [doc, patient], pendingHeal: null, pendingSurgery: null, medic: null });
     banc.getState().ouvrirLeMedecin('p');

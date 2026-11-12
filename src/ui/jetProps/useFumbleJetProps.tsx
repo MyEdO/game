@@ -31,7 +31,7 @@ export function useFumbleJetProps(): ComponentProps<typeof RollShell> | null {
   const rolled = !!r;
   return {
     flowKey: 'maladresse',
-    title: <><Icon id="nav/dice" size="sm" /> {libelleDuJet('maladresse')}</>,
+    title: <><Icon id="navigation/des" size="sm" /> {libelleDuJet('maladresse')}</>,
     // Z1 : l'ACTEUR et le FAIT qui ouvre la fenêtre. Le NOM DE LA TABLE se lit sur la ligne de tirage
     // (`TableRollLine`, ci-dessous) et sur le bouton de lancement — jamais une troisième fois ici.
     subtitle: `${combatant.label} — Test de combat raté sur un double`,
@@ -41,11 +41,11 @@ export function useFumbleJetProps(): ComponentProps<typeof RollShell> | null {
     rows: [
       drawRow({
         row: { note: r ? <TableRollLine table={libelleDeTest('oups')} roll={r.roll} result={r.label} /> : undefined },
-        rollLabel: <><Icon id="nav/dice" size="sm" /> Lancer sur le Tableau des Oups !</>,
+        rollLabel: <><Icon id="navigation/des" size="sm" /> Lancer sur le Tableau des Oups !</>,
         onRoll: () => lancer(step.id),
         rollFrisson: true,
       }),
     ],
-    actions: [{ key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' }],
+    actions: [{ key: 'confirmer', label: t('verbe.valider'), onClick: confirm, verbe: 'valider' }],
   };
 }

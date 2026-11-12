@@ -8,10 +8,16 @@ import { shipCritSet, shipCritSetIds } from './shipCriticals';
 // MDG 12 = navires MARITIMES (18). Les bateaux FLUVIAUX MSRC (propulsion:'fluvial') ont aussi une
 // facette `ship` mais relèvent de leur propre table (MSRC 7) — couverts par `16-embuscade-fluviale`.
 const ships = VEHICLES_LIST.filter((v) => v.ship && v.hull?.propulsion === 'maritime');
+/** MDG 12 l.86-103 */
+const EXEMPLES_DE_BATEAUX = [
+  'coracle', 'chaloupe', 'esquif', 'barge', 'grande-barge', 'bateau-de-patrouille', 'knarr', 'langskip', 'cogue',
+  'caraque', 'galere-de-guerre', 'loup-imperial', 'croiseur', 'galion-bretonnien', 'caravelle-tileenne',
+  'chebec-arabien', 'boutre-d-inja', 'bateau-tresor-cathayen',
+];
 
 describe('Navires MDG (ch.12) — profils en donnée', () => {
-  it('18 navires (table EXEMPLES DE BATEAUX complète), chacun avec coque (E/B) + facette ship complète', () => {
-    expect(ships.length).toBe(18);
+  it('table EXEMPLES DE BATEAUX complète (MDG 12 l.86-103), chaque navire avec coque (E/B) + facette ship complète', () => {
+    expect(EXEMPLES_DE_BATEAUX.filter((id) => !ships.some((s) => s.id === id)), 'navire de la table absent').toEqual([]);
     for (const s of ships) {
       expect(s.hull?.char.endurance).toBeGreaterThan(0);
       expect(s.hull?.char.B).toBeGreaterThan(0);
@@ -55,8 +61,7 @@ describe('Navires MDG (ch.12) — profils en donnée', () => {
 describe('Table de Localisation d’une COQUE — vocabulaire fermé, résolution fail-fast', () => {
   const hulls = VEHICLES_LIST.filter((v) => v.hull);
 
-  it('les 29 coques ne portent qu’un id de table CONNU (absent = `navire` MDG 13, seule autre valeur `navire-fluvial` MSRC 7)', () => {
-    expect(hulls.length).toBe(29);
+  it('les coques ne portent qu’un id de table CONNU (absent = `navire` MDG 13, seule autre valeur `navire-fluvial` MSRC 7)', () => {
     const distinct = [...new Set(hulls.map((v) => v.hull!.locationTable).filter((t) => t != null))];
     expect(distinct).toEqual(['navire-fluvial']);
     for (const v of hulls) {

@@ -30,7 +30,7 @@ beforeAll(() => {
 
 const chars = { 'capacite-de-combat': 45, 'capacite-de-tir': 50, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 40, 'force-mentale': 40, sociabilite: 30 };
 const mk = (id: string, over: Partial<Combatant> = {}): Combatant =>
-  (blessuresSurLeProfil({ id, name: id, label: id, kind: 'hero', characteristics: { ...chars }, conditions: [], traumas: [], engagedWith: [], skills: [], talents: [], items: [],
+  (blessuresSurLeProfil({ id, name: id, label: id, kind: 'heros', characteristics: { ...chars }, conditions: [], traumas: [], engagedWith: [], skills: [], talents: [], items: [],
      weapons: [], advantage: 0, size: 'moyenne', pos: { x: 0, y: 0 }, wounds: blessuresDeBase(18, 12), resilience: 2, fortune: 2,
      species: 'humains-reiklander', bodyShape: 'humanoide', movement: 4,
      armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, ...over }) as unknown as Combatant);
@@ -138,12 +138,12 @@ describe('Chirurgie (MedicModal → useSurgeryJetProps) — la Difficulté vit s
       battle: null, party: [surgeon, patient],
       medic: {
         patientId: patient.id,
-        surgery: { kind: 'chirurgie', difficulty: DIFF, healerId: surgeon.id, healerName: surgeon.label, skill: 45, intBonus: 4, targetDR: 6, cumDR: 2 },
+        surgery: { kind: 'chirurgie', difficulty: DIFF, healerId: surgeon.id, healerName: surgeon.label, skill: 45, intBonus: 4, drCible: 6, cumDR: 2 },
       },
       pendingSurgery: {
         healerId: surgeon.id, healerName: surgeon.label, targetId: patient.id, targetName: patient.label,
         ligne: { base: 45, mods: [], target: 65, difficulty: DIFF }, intBonus: 4, target: 65, roll: null, success: false, sl: 0,
-        targetDR: 6, cumDR: 2,
+        drCible: 6, cumDR: 2,
       },
     } as never);
     act(() => root.render(<MedicModal />));
@@ -161,7 +161,7 @@ describe('dossier d’opération — l’A→B n’est rendu que s’il EXISTE',
       battle: null, party, pendingSurgery: null,
       medic: {
         patientId: party[party.length - 1].id,
-        surgery: { kind: 'chirurgie', difficulty: DIFF, healerId, healerName: 'Docteur', skill: 45, intBonus: 4, targetDR: 6, cumDR: 2 },
+        surgery: { kind: 'chirurgie', difficulty: DIFF, healerId, healerName: 'Docteur', skill: 45, intBonus: 4, drCible: 6, cumDR: 2 },
       },
     } as never);
     act(() => root.render(<MedicModal />));
@@ -217,12 +217,12 @@ describe('infirmerie — les gestes du jet posé sont au PIED de la boîte des s
       battle: null, party: [surgeon, patient],
       medic: {
         patientId: patient.id,
-        surgery: { kind: 'chirurgie', difficulty: DIFF, healerId: surgeon.id, healerName: surgeon.label, skill: 45, intBonus: 4, targetDR: 6, cumDR: 2 },
+        surgery: { kind: 'chirurgie', difficulty: DIFF, healerId: surgeon.id, healerName: surgeon.label, skill: 45, intBonus: 4, drCible: 6, cumDR: 2 },
       },
       pendingSurgery: {
         healerId: surgeon.id, healerName: surgeon.label, targetId: patient.id, targetName: patient.label,
         ligne: { base: 45, mods: [], target: 65, difficulty: DIFF }, intBonus: 4, target: 65, roll: null, success: false, sl: 0,
-        targetDR: 6, cumDR: 2,
+        drCible: 6, cumDR: 2,
       },
     } as never);
     act(() => root.render(<MedicModal />));
@@ -253,7 +253,7 @@ describe('infirmerie — Échap annule le jet posé, jamais l’opération qui l
   it('passe posée sur une opération qui a cumulé : Échap rend l’opération armée, cumul et patient intacts', () => {
     const surgeon = mk('Chirurgien');
     const patient = mk('Opéré', { conditions: [{ id: 'hemorragique', value: 1, unlockBy: 'surgery' }] } as never);
-    const operation = { kind: 'chirurgie', difficulty: DIFF, healerId: surgeon.id, healerName: surgeon.label, skill: 45, intBonus: 4, targetDR: 6, cumDR: 3, last: { roll: 12, sl: 3 }, stake: flowStakeRef('chirurgie-test', { values: { targetDR: 6 } }) };
+    const operation = { kind: 'chirurgie', difficulty: DIFF, healerId: surgeon.id, healerName: surgeon.label, skill: 45, intBonus: 4, drCible: 6, cumDR: 3, last: { roll: 12, sl: 3 }, stake: flowStakeRef('chirurgie-test', { values: { drCible: 6 } }) };
     useGame.setState({
       screen: 'campaign', mode: 'exploration', gameMenuOpen: false, dialogue: null, battle: null,
       party: [surgeon, patient], pendingHeal: null, pendingSurgery: null,
@@ -302,7 +302,7 @@ describe('infirmerie — Échap annule le jet posé, jamais l’opération qui l
   it('après une passe annulée par Échap puis l’opération arrêtée, le brouillon renaît sur un acte du patient', () => {
     const patient = mk('Opéré', { wounds: { current: 4, max: 12 }, conditions: [{ id: 'hemorragique', value: 1, unlockBy: 'surgery' }] } as never);
     const chir = soigneur();
-    const operation = { kind: 'chirurgie', difficulty: DIFF, healerId: chir.id, healerName: chir.label, skill: 45, intBonus: 4, targetDR: 6, cumDR: 3, last: { roll: 12, sl: 3 }, stake: flowStakeRef('chirurgie-test', { values: { targetDR: 6 } }) };
+    const operation = { kind: 'chirurgie', difficulty: DIFF, healerId: chir.id, healerName: chir.label, skill: 45, intBonus: 4, drCible: 6, cumDR: 3, last: { roll: 12, sl: 3 }, stake: flowStakeRef('chirurgie-test', { values: { drCible: 6 } }) };
     useGame.setState({
       screen: 'campaign', mode: 'exploration', gameMenuOpen: false, dialogue: null, battle: null,
       party: [chir, patient], pendingHeal: null, pendingSurgery: null,

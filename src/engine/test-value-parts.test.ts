@@ -24,7 +24,7 @@ const CK: CharKey = 'sociabilite';
 
 function hero(over: Partial<Combatant> = {}): Combatant {
   return {
-    id: 'h', label: 'Cobaye', kind: 'hero', speciesId: 'humains-reiklander',
+    id: 'h', label: 'Cobaye', kind: 'heros', speciesId: 'humains-reiklander',
     characteristics: { sociabilite: 40, agilite: 40, dexterite: 40, intelligence: 40 } as Combatant['characteristics'],
     skills: [{ id: 'marchandage', advances: 15 }] as SkillInstance[],
     talents: [], items: [], conditions: [], advantage: 0,
@@ -63,7 +63,7 @@ function withMutation(): Combatant {
  *  qui donne à la chip son renvoi Codex (`effectRef` → `CATEGORY_BY_SOURCE_KIND`). */
 const MYSTRACINE = 'Mystracine';
 function withEffetCharQualifie(): Combatant {
-  return hero({ activeEffects: [{ label: MYSTRACINE, testMod: -10, testModChar: CK, source: { kind: 'trapping', id: 'mystracine' } }] as unknown as Combatant['activeEffects'] });
+  return hero({ activeEffects: [{ label: MYSTRACINE, testMod: -10, testModChar: CK, source: { kind: 'objet', id: 'mystracine' } }] as unknown as Combatant['activeEffects'] });
 }
 
 /** Le MÊME effet SANS source déclarée — seul cas structurellement non liable au Codex (cf. test dédié). */
@@ -130,7 +130,7 @@ const SORT = spells[0];
 function withSortSkillMod(): Combatant {
   return hero({
     skills: [{ id: 'marchandage', advances: 15 }] as SkillInstance[],
-    activeEffects: [{ label: SORT.label, passive: [{ op: 'skillMod', skill: { id: 'marchandage' }, mod: -20 }], source: { kind: 'spell', id: SORT.id } }] as unknown as Combatant['activeEffects'],
+    activeEffects: [{ label: SORT.label, passive: [{ op: 'skillMod', skill: { id: 'marchandage' }, mod: -20 }], source: { kind: 'sort', id: SORT.id } }] as unknown as Combatant['activeEffects'],
   });
 }
 

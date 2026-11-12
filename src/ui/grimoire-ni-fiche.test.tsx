@@ -33,7 +33,7 @@ const sorcier = (): Combatant =>
   (blessuresSurLeProfil({
     id: 'w',
     label: 'Wilhelm',
-    kind: 'hero',
+    kind: 'heros',
     species: 'humains-reiklander',
     career: 'apprenti-sorcier',
     careerLevel: 1,

@@ -55,13 +55,13 @@ describe('atelier du Codex — chaque rangée de miscast s’édite sans erreur 
   it('Colère des dieux : le terme de Péché se relit et s’offre ; absent d’un Critique ordinaire', () => {
     // Une rangée dont le Péché vit dans un champ que l'atelier édite par `FormulaField` (`wounds.amount`).
     type Op = { op: string; amount?: unknown };
-    const colere = (editableEntries('miscastWrath') as { id: string; label: string; ops?: Op[] }[])
+    const colere = (editableEntries('colereDesDieux') as { id: string; label: string; ops?: Op[] }[])
       .find((e) => (e.ops ?? []).some((o) => o.op === 'wounds' && JSON.stringify(o.amount).includes('sinPoints')))!;
     expect(colere, 'aucune rangée de la Colère des dieux ne porte le Péché').toBeTruthy();
     container = document.createElement('div');
     document.body.appendChild(container);
     root = createRoot(container);
-    act(() => { root!.render(<CodexEdit categoryKey="miscastWrath" id={colere.id} onClose={() => {}} />); });
+    act(() => { root!.render(<CodexEdit categoryKey="colereDesDieux" id={colere.id} onClose={() => {}} />); });
     const formes = [...container.querySelectorAll<HTMLSelectElement>('select.fml-shape')];
     expect(formes.some((s) => s.value === 'peche'), 'le terme de Péché n’est pas relu sur sa forme').toBe(true);
     act(() => { root!.unmount(); });

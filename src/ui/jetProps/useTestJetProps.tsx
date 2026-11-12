@@ -70,8 +70,8 @@ export function useTestJetProps(): ComponentProps<typeof RollShell> | null {
   // Barre : « Annuler » et « Continuer », que le flux `test` ouvre (un Test de COMBAT est annulable avant le jet,
   // `FLOWS.test.fermetures(get).cancel` ; referme la cascade sans dépenser l'Action).
   const actions: RollAction[] = [
-    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' },
-    { key: 'confirm', label: 'Continuer', onClick: resolve, verbe: 'confirm' },
+    { key: 'abandonner', label: t('verbe.annuler'), onClick: cancel, verbe: 'annuler' },
+    { key: 'confirmer', label: 'Continuer', onClick: resolve, verbe: 'valider' },
   ];
 
   return {

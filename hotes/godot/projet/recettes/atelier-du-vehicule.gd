@@ -14,7 +14,8 @@ extends SceneTree
 ## l'emblème sur ses surfaces, aucun onglet Personnage, et l'onglet Couleurs réduit aux emplacements de palette de ses
 ## surfaces posées. La caraque n'attaque pas : l'onglet Animation ne montre aucune action ; l'onglet Effets offre un
 ## bouton par variante, par zone, par lumière, par son, par flottant et par musique de la vitrine (#3777, #3783, #3825,
-## `vitrine`), chacun d'un visuel, d'un projectile et de fichiers sonores que Godot connaît ; le coup d'un canon y part de
+## `vitrine`), chacun d'un visuel, d'un projectile et de fichiers sonores que Godot connaît, chaque son sur un canal
+## qui est un bus (#3949) ; le coup d'un canon y part de
 ## l'auteur, le souffle de feu pose sa nappe sur chaque case, la flamme son foyer sur la cible, le flottant critique
 ## monte, une musique joue, cède la place à une autre et se tait, la zone de feu dure sur ses cases, les marques des
 ## États se posent sur la cible et se retirent (#3834) ; le trébuchet choisi, sans place ni Amélioration à
@@ -104,17 +105,17 @@ func _vitrine(atelier: Node, pont: PontFige, cles: Array, lu: Dictionary) -> voi
 	for lumiere in vitrine.lumieres:
 		cles_des_boutons.append("lumiere/%s" % lumiere.id)
 		var source: Dictionary = lumiere.source
-		_verifier(source.visuel == null or Foyer.FLAMMES.has(source.visuel), "visuel de lumière inconnu de Godot : %s" % source.visuel)
+		_verifier(source.visuel == null or ResourceLoader.exists(Effets.chemin_de_l_effet(Effets.FAMILLE_DES_FLAMMES, source.visuel)), "visuel de lumière inconnu de Godot : %s" % source.visuel)
 		if source.son != null:
 			_connu({quoi = "son", son = source.son})
 	for zone in vitrine.zonesQuiDurent:
 		cles_des_boutons.append("zone-qui-dure/%s" % zone.id)
-		_verifier(Effets.GERBES.has(zone.zone.visuel), "visuel de zone qui dure inconnu de Godot : %s" % zone.zone.visuel)
+		_verifier(ResourceLoader.exists(Effets.chemin_de_l_effet(Effets.FAMILLE_DES_VISUELS, zone.zone.visuel)), "visuel de zone qui dure inconnu de Godot : %s" % zone.zone.visuel)
 		if zone.zone.boucle != null:
 			_connu({quoi = "son", son = zone.zone.boucle})
 	for marque in vitrine.marques:
 		cles_des_boutons.append("marque/%s" % marque.id)
-		_verifier(marque.marque.visuel == null or Foyer.FLAMMES.has(marque.marque.visuel), "visuel de marque inconnu de Godot : %s" % marque.marque.visuel)
+		_verifier(marque.marque.visuel == null or ResourceLoader.exists(Effets.chemin_de_l_effet(Effets.FAMILLE_DES_FLAMMES, marque.marque.visuel)), "visuel de marque inconnu de Godot : %s" % marque.marque.visuel)
 		if marque.marque.son != null:
 			_connu({quoi = "son", son = marque.marque.son})
 	for musique in vitrine.musiques:
@@ -192,8 +193,8 @@ func _ecouter(atelier: Node, musiques: Array) -> void:
 	_verifier(musique.get_child_count() == 0, "les musiques éteintes de la vitrine restent posées")
 
 
-## Chaque phase de l'effet `effet` d'un visuel que `Effets.GERBES` dessine, son trajet d'un projectile que
-## `Effets.PROJECTILES` forme, et chaque son de fichiers posés sous `res://sons/`.
+## Chaque phase de l'effet `effet` d'un visuel dont la scène existe, son trajet d'un projectile dont la scène existe, et
+## chaque son de fichiers posés sous `res://sons/`, sur un canal qui est un bus d'`AudioServer`.
 func _connu(effet: Dictionary) -> void:
 	var sons: Array = []
 	if effet.quoi == "son":
@@ -202,12 +203,13 @@ func _connu(effet: Dictionary) -> void:
 		var phase: Variant = effet.get(cle)
 		if phase == null:
 			continue
-		_verifier(phase.visuel == null or Effets.GERBES.has(phase.visuel), "visuel inconnu de Godot : %s" % phase.visuel)
+		_verifier(phase.visuel == null or ResourceLoader.exists(Effets.chemin_de_l_effet(Effets.FAMILLE_DES_VISUELS, phase.visuel)), "visuel inconnu de Godot : %s" % phase.visuel)
 		if phase.son != null:
 			sons.append(phase.son)
 	var trajet: Variant = effet.get("trajet")
-	_verifier(trajet == null or Effets.PROJECTILES.has(trajet.projectile), "projectile inconnu de Godot : %s" % [null if trajet == null else trajet.projectile])
+	_verifier(trajet == null or ResourceLoader.exists(Effets.chemin_de_l_effet(Effets.FAMILLE_DES_PROJECTILES, trajet.projectile)), "projectile inconnu de Godot : %s" % [null if trajet == null else trajet.projectile])
 	for son in sons:
+		_verifier(AudioServer.get_bus_index(son.canal) != -1, "son %s : son canal %s n'est pas un bus" % [son.id, son.canal])
 		for fichier in son.fichiers:
 			_verifier(FileAccess.file_exists("res://sons/%s" % fichier), "son %s : res://sons/%s absent" % [son.id, fichier])
 

@@ -9,7 +9,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testki
 /** Combatant minimal : seuls `characteristics` et `activeEffects` importent ici (pool non-cumul). */
 function mk(activeEffects: { characteristic: CharKey; bonus: number; label?: string; source?: EffectSource }[] = [], F = 40, over: Partial<Combatant> = {}): Combatant {
   return blessuresSurLeProfil({
-    id: 'c', label: 'c', kind: 'enemy', advantage: 0, conditions: [],
+    id: 'c', label: 'c', kind: 'ennemi', advantage: 0, conditions: [],
     characteristics: { force: F, agilite: 30, 'capacite-de-combat': 40 } as never,
     activeEffects: activeEffects.map((e) => ({ label: e.label ?? 'Effet', ...e })) as never,
     psychState: [], psychTraits: [], groups: [], weapons: [], armour: {} as never,
@@ -20,7 +20,7 @@ function mk(activeEffects: { characteristic: CharKey; bonus: number; label?: str
 
 /** Source frappée par tout lancement, Prières comprises (`runCastFlow`, `src/noyau/combatFlow.ts`) :
  *  le pool se lit à l'id du catalogue, jamais au `kind`. */
-const SORT = (id: string): EffectSource => ({ kind: 'spell', id });
+const SORT = (id: string): EffectSource => ({ kind: 'sort', id });
 
 describe('effectiveChar — pools de non-cumul (LDB 46 l.119, LDB 40 l.19) ; le reste se somme (LDB 14 l.95)', () => {
   it('aucun effet actif → valeur de base', () => {
@@ -105,13 +105,13 @@ describe('Fièvre : pénalité aux TESTS, jamais une baisse de Caractéristique 
 });
 
 describe('ActiveEffect.passive : le pool suit l’entité SOURCE, pas le canal (LDB 46 l.119, LDB 14 l.95)', () => {
-  const porteur = (kind: 'spell' | 'trapping') => mk([], 40, {
+  const porteur = (kind: 'sort' | 'objet') => mk([], 40, {
     activeEffects: ['a', 'b'].map((id) => ({ label: id, bonus: 0, duration: { scale: 'rounds', left: 3 }, source: { kind, id }, passive: [{ op: 'charMod', characteristic: 'force', mod: -10 }] })) as never,
   });
   it('deux objets : leurs réductions se somment', () => {
-    expect(effectiveChar(porteur('trapping'), 'force')).toBe(20);
+    expect(effectiveChar(porteur('objet'), 'force')).toBe(20);
   });
   it('deux Sorts : la pire pénalité seule', () => {
-    expect(effectiveChar(porteur('spell'), 'force')).toBe(30);
+    expect(effectiveChar(porteur('sort'), 'force')).toBe(30);
   });
 });

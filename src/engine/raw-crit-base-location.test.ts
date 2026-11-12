@@ -11,7 +11,7 @@ const weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4
 
 const target = (): Combatant =>
   (blessuresSurLeProfil({
-    id: 'T', name: 'Cible', kind: 'enemy',
+    id: 'T', name: 'Cible', kind: 'ennemi',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 35, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(20), advantage: 0, conditions: [], traumas: [],
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 4, jambeG: 0, jambeD: 0 }, // corps blindé (PA 4), tête nue (PA 0)
@@ -21,12 +21,12 @@ const target = (): Combatant =>
 // Coup Critique : dégâts bruts 12, jet de touche PAIR (pas de Partielle), aucun PA externe (Tir sûr / opposition).
 const crit: AttackResult = {
   hit: true, critical: true, attackerRoll: 12, netSL: 1, location: 'corps', damage: 12, apExternal: 0,
-  woundsLost: 5, advantageTo: 'attacker', defenderDefeated: false, log: '',
+  woundsLost: 5, advantageTo: 'attaquant', defenderDefeated: false, log: '',
 };
 
 const combattant = (over: Partial<Combatant> = {}): Combatant =>
   (blessuresSurLeProfil({
-    id: 'x', name: 'X', label: 'X', kind: 'hero',
+    id: 'x', name: 'X', label: 'X', kind: 'heros',
     characteristics: { 'capacite-de-combat': 50, 'capacite-de-tir': 50, force: 30, endurance: 30, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], weapons: [],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, skills: [], talents: [], movement: 4, ...over,

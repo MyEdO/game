@@ -237,6 +237,22 @@ function denivelesDe(scene: Scene, x: number, y: number, z: number): readonly De
   return deniveles;
 }
 
+const casesADeniveleParCouche = memoByRef((_scene: Scene) => new Map<number, readonly { x: number; y: number }[]>());
+
+/** Les cases de la couche `z` de `scene` d'où un mobile a un dénivelé (`denivelesDe`), rangée par rangée. Calculées
+ *  une fois par scène et par couche. */
+export function casesADenivele(scene: Scene, z: number): readonly { x: number; y: number }[] {
+  const parCouche = casesADeniveleParCouche(scene);
+  let cases = parCouche.get(z);
+  if (!cases) {
+    const { w, h } = scene.dimensions;
+    const trouvees: { x: number; y: number }[] = [];
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (denivelesDe(scene, x, y, z).length) trouvees.push({ x, y });
+    parCouche.set(z, (cases = trouvees));
+  }
+  return cases;
+}
+
 /** DÉNIVELÉS de capacité `capacite` : ceux du contrôleur posé sur la couche active (`denivelesDe`) dont une des
  *  deux cases est éclaircie. */
 const deniveles = (capacite: CapaciteArete) => ({ scene, visible, controleur, activeZ }: ContexteAretes): AreteUtilisable[] =>

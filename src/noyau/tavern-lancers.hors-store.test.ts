@@ -197,7 +197,7 @@ describe('La Bête parmi les Tailleurs — l’écrêtage aux quilles restantes 
     get().jouerALaTaverne(a.id, { gameId: 'bete-tailleurs', opponent: { kind: 'profil', id: 'humain' } });
     poseLancer(5, 20); // réussite à +60, DR posé bien au-delà des 16 quilles
     const res = get().tavernGames!.result!;
-    expect(res.playerSL, 'seize quilles, pas une de plus (l’écrêtage)').toBe(16);
+    expect(res.dr.joueur, 'seize quilles, pas une de plus (l’écrêtage)').toBe(16);
     expect(res.detail.startsWith('16 quilles contre'), res.detail).toBe(true);
     expect(get().sequence, 'la partie est close : plus rien à abattre des deux côtés').toBeNull();
   });
@@ -206,7 +206,7 @@ describe('La Bête parmi les Tailleurs — l’écrêtage aux quilles restantes 
     const a = seul();
     get().jouerALaTaverne(a.id, { gameId: 'bete-tailleurs', opponent: { kind: 'profil', id: 'humain' } });
     poseLancer(11, 0); // double sur une réussite = Critique (l.7), DR nul
-    expect(get().tavernGames!.result!.playerSL).toBe(16);
+    expect(get().tavernGames!.result!.dr.joueur).toBe(16);
   });
 });
 
@@ -229,7 +229,7 @@ describe('L’Arène — la cible se CHOISIT, le Critique encercle la suivante (
     const band = get().pendingCascade!.participants.find((s) => s.kind === 'taverneLancer')!;
     expect(band.participants![0].difficulty, 'la Difficulté vient de la ligne visée').toBe('accessible');
     poseLancer(11, 1); // Critique
-    expect(volley().gains.player, 'la ligne SUIVANTE (40) au lieu des 30 visés').toEqual([40]);
+    expect(volley().gains.joueur, 'la ligne SUIVANTE (40) au lieu des 30 visés').toEqual([40]);
   });
 
   it('sans Critique, la cible visée paie ses points — et un échec ne paie rien', () => {
@@ -237,10 +237,10 @@ describe('L’Arène — la cible se CHOISIT, le Critique encercle la suivante (
     get().jouerALaTaverne(a.id, { gameId: 'arene', opponent: { kind: 'profil', id: 'humain' } });
     trancher('taverneLancerVisee', '2');
     poseLancer(12, 1);
-    expect(volley().gains.player).toEqual([30]);
+    expect(volley().gains.joueur).toEqual([30]);
     trancher('taverneLancerVisee', '0'); // le nez : 10 points
     poseLancer(99, -2); // raté
-    expect(volley().gains.player).toEqual([30, 0]);
+    expect(volley().gains.joueur).toEqual([30, 0]);
   });
 });
 
@@ -253,11 +253,11 @@ describe('Les fléchettes — le total EXACT, et le dépassement qui TERMINE LE 
     get().jouerALaTaverne(a.id, { gameId: 'flechettes', opponent: { kind: 'profil', id: 'humain' } });
     const seq = get().sequence as EtatDeFamille<typeof TAVERN_SEQUENCE>;
     // Le lanceur du tour est le challenger : l'ordre est tiré au sort (l.97), on le fixe pour mesurer.
-    const throwers = [...(seq.payload.throwers ?? [])].sort((x) => (x.camp === 'player' ? -1 : 1));
+    const throwers = [...(seq.payload.throwers ?? [])].sort((x) => (x.camp === 'joueur' ? -1 : 1));
     banc.setState({
       sequence: {
         ...seq,
-        cum: { player: points, opponent: 0 },
+        cum: { joueur: points, adversaire: 0 },
         payload: {
           ...seq.payload, throwers,
           volley: { seat: 0, jet: 1, manche: 1, gains: {} },
@@ -280,7 +280,7 @@ describe('Les fléchettes — le total EXACT, et le dépassement qui TERMINE LE 
       const payload = get().sequence!.payload as TavernPayload;
       vus.add(payload.throwers![0].camp);
     }
-    expect([...vus].sort(), 'le challenger ouvre parfois, son vis-à-vis parfois').toEqual(['opponent', 'player']);
+    expect([...vus].sort(), 'le challenger ouvre parfois, son vis-à-vis parfois').toEqual(['adversaire', 'joueur']);
   });
 
   it('la donnée porte la règle : trois fléchettes, 501 pile, le dépassement termine le passage', () => {
@@ -319,16 +319,16 @@ describe('Les fléchettes — le total EXACT, et le dépassement qui TERMINE LE 
     expect(gain.amount).toBe(1);
     saisir('taverneLancerGain', 1);
     const res = get().tavernGames!.result!;
-    expect([res.winner, res.playerSL]).toEqual(['player', 501]);
+    expect([res.winner, res.dr.joueur]).toEqual(['joueur', 501]);
     expect(get().sequence).toBeNull();
   });
 
   it('un ÉCHEC CRITIQUE ne marque rien, là où un échec simple marque son dé des unités', () => {
     aDeuxDoigts(0);
     poseLancer(99, -3); // 99 : double sur un échec = Échec critique
-    expect(volley().gains.player).toEqual([0]);
+    expect(volley().gains.joueur).toEqual([0]);
     poseLancer(73, -1); // échec simple : « un jet raté de 73 vous donne 3 points »
-    expect(volley().gains.player).toEqual([0, 3]);
+    expect(volley().gains.joueur).toEqual([0, 3]);
   });
 });
 
@@ -347,10 +347,10 @@ describe('Les boules — la MEILLEURE boule décide, plafonnée à 6 DR (l.57)',
     get().jouerALaTaverne(a.id, { gameId: 'boules', opponent: { kind: 'profil', id: 'humain' } });
     poseLancer(12, 2);
     poseLancer(13, 5);
-    expect(volley().gains.player).toEqual([2, 5]);
+    expect(volley().gains.joueur).toEqual([2, 5]);
     poseLancer(14, 1);
     const res = get().tavernGames!.result!;
-    expect(res.playerSL, 'la meilleure des trois (5), pas leur somme (8)').toBe(5);
+    expect(res.dr.joueur, 'la meilleure des trois (5), pas leur somme (8)').toBe(5);
   });
 
   it('une boule RATÉE est hors-jeu (elle ne compte pas), et le DR est plafonné à 6', () => {
@@ -358,7 +358,7 @@ describe('Les boules — la MEILLEURE boule décide, plafonnée à 6 DR (l.57)',
     get().jouerALaTaverne(a.id, { gameId: 'boules', opponent: { kind: 'profil', id: 'humain' } });
     poseLancer(99, -4); // hors-jeu
     poseLancer(12, 9); // DR brut 9 : le plafond mord
-    expect(volley().gains.player).toEqual([0, 6]);
+    expect(volley().gains.joueur).toEqual([0, 6]);
   });
 
   it('PARTIE ENTIÈRE à graine réelle : elle conclut sans borne, et le score annoncé est celui du tableau', async () => {
@@ -380,9 +380,9 @@ describe('Les boules — la MEILLEURE boule décide, plafonnée à 6 DR (l.57)',
     expect(get().sequence, 'la partie s’est close d’elle-même').toBeNull();
     expect(get().journal.some((l) => l.includes('sur sa borne')), 'aucune coupure par l’anti-boucle').toBe(false);
     expect(vus.length, 'les trois boules du héros ont bien été jouées une à une').toBe(3);
-    expect(res.playerSL, 'le score final est le dernier montré au tableau').toBeGreaterThanOrEqual(0);
-    expect(res.playerSL).toBeLessThanOrEqual(6);
-    expect(['player', 'opponent', 'tie']).toContain(res.winner);
+    expect(res.dr.joueur, 'le score final est le dernier montré au tableau').toBeGreaterThanOrEqual(0);
+    expect(res.dr.joueur).toBeLessThanOrEqual(6);
+    expect(['joueur', 'adversaire', 'egalite']).toContain(res.winner);
   });
 });
 
@@ -427,7 +427,7 @@ describe('L’Alvatafl — les camps asymétriques et la victoire au Critique (l
     // Critique sur 11 : dé des unités 1 ≤ 1 prise, la partie est emportée sur une seule pièce.
     closeSequenceRound(get, banc.setState, manche(a.id, { roll: 11, sl: 1 - bonusInt }, { roll: 41, sl: 0 }));
     const res = get().tavernGames!.result!;
-    expect(res.playerSL).toBe(1);
+    expect(res.dr.joueur).toBe(1);
     expect(res.detail.startsWith('1 pièce prise contre'), res.detail).toBe(true);
   });
 
@@ -441,7 +441,7 @@ describe('L’Alvatafl — les camps asymétriques et la victoire au Critique (l
     expect(prises(assez), 'ce DR donne bien trois prises').toBe(3);
     banc.setState({ tavernGames: null, sequence: partie('nain', {}, a.id) });
     closeSequenceRound(get, banc.setState, manche(a.id, { roll: 33, sl: assez }, { roll: 41, sl: 0 }));
-    expect(get().tavernGames?.result?.winner, '3 ≤ 3 prises : la partie est emportée').toBe('player');
+    expect(get().tavernGames?.result?.winner, '3 ≤ 3 prises : la partie est emportée').toBe('joueur');
 
     const trop = 4 - bonusInt; // prises = 1, condition 3 ≤ 1 fausse
     expect(prises(trop)).toBe(1);
@@ -464,25 +464,25 @@ describe('L’Alvatafl — les camps asymétriques et la victoire au Critique (l
     // Camp ELFE : ses prises sont son total ENTIER (div 1) ; l'exemple du RAW donne 4 × 3 = 12.
     banc.setState({ tavernGames: null, sequence: partie('elfe', {}, a.id) });
     closeSequenceRound(get, banc.setState, manche(a.id, { roll: 33, sl: 12 - bonusInt }, { roll: 41, sl: 0 }));
-    expect(get().tavernGames?.result?.winner, '12 ≤ 12 pièces naines prises : partie emportée').toBe('player');
-    expect(get().tavernGames?.result?.playerSL, 'et ce sont bien 12 pièces').toBe(12);
+    expect(get().tavernGames?.result?.winner, '12 ≤ 12 pièces naines prises : partie emportée').toBe('joueur');
+    expect(get().tavernGames?.result?.dr.joueur, 'et ce sont bien 12 pièces').toBe(12);
 
     banc.setState({ tavernGames: null, sequence: partie('elfe', {}, a.id) });
     closeSequenceRound(get, banc.setState, manche(a.id, { roll: 33, sl: 11 - bonusInt }, { roll: 41, sl: 0 }));
     expect(get().tavernGames, '12 > 11 : rien n’est emporté — un ×1 aurait laissé passer').toBeNull();
-    expect((get().sequence!.cum as Record<string, number>).player).toBe(11);
+    expect((get().sequence!.cum as Record<string, number>).joueur).toBe(11);
   });
 
   it('sans Critique, c’est PLUS DE LA MOITIÉ des pièces d’en face qui emporte la partie', () => {
     const a = seul();
     const bonusInt = bonus(effectiveChar(a, 'intelligence'));
     // Camp NAIN à 6 pièces elfes prises (la moitié pile) : il lui en faut UNE de plus.
-    banc.setState({ tavernGames: null, sequence: partie('nain', { player: 6, opponent: 0 }, a.id) });
+    banc.setState({ tavernGames: null, sequence: partie('nain', { joueur: 6, adversaire: 0 }, a.id) });
     closeSequenceRound(get, banc.setState, manche(a.id, { roll: 41, sl: 1 - bonusInt }, { roll: 42, sl: 0 }));
-    expect(get().tavernGames?.result?.winner, '7 > 6 : plus de la moitié des 12 pièces elfes').toBe('player');
-    expect(get().tavernGames?.result?.playerSL, 'le score annoncé est le compte de PIÈCES prises').toBe(7);
+    expect(get().tavernGames?.result?.winner, '7 > 6 : plus de la moitié des 12 pièces elfes').toBe('joueur');
+    expect(get().tavernGames?.result?.dr.joueur, 'le score annoncé est le compte de PIÈCES prises').toBe(7);
 
-    banc.setState({ tavernGames: null, sequence: partie('nain', { player: 4, opponent: 0 }, a.id) });
+    banc.setState({ tavernGames: null, sequence: partie('nain', { joueur: 4, adversaire: 0 }, a.id) });
     closeSequenceRound(get, banc.setState, manche(a.id, { roll: 41, sl: 1 - bonusInt }, { roll: 42, sl: 0 }));
     expect(get().tavernGames, '5 ≤ 6 : la partie continue').toBeNull();
   });
@@ -490,10 +490,10 @@ describe('L’Alvatafl — les camps asymétriques et la victoire au Critique (l
   it('les DEUX camps au but le MÊME tour : match nul (l.28)', () => {
     const a = seul();
     const bonusInt = bonus(effectiveChar(a, 'intelligence'));
-    banc.setState({ tavernGames: null, sequence: partie('nain', { player: 6, opponent: 24 }, a.id) });
+    banc.setState({ tavernGames: null, sequence: partie('nain', { joueur: 6, adversaire: 24 }, a.id) });
     // Le camp elfe prend son total ENTIER (div 1) : +1 pièce naine lui suffit pour passer 24.
     closeSequenceRound(get, banc.setState, manche(a.id, { roll: 41, sl: 1 - bonusInt }, { roll: 42, sl: 1 - bonusInt }));
-    expect(get().tavernGames?.result?.winner).toBe('tie');
+    expect(get().tavernGames?.result?.winner).toBe('egalite');
   });
 });
 
@@ -508,11 +508,11 @@ describe('Plafond de DR et départage — les deux juges', () => {
   it('le juge de manche OPPOSÉE écrête le DR au plafond DÉCLARÉ par l’entrée', () => {
     const gros = (sl: number) => ({ roll: 11, target: 60, sl, success: true, isDouble: false, base: 60 });
     const avec = resolveTavernRound(BOULES, gros(9), gros(8));
-    expect([avec.playerSL, avec.opponentSL], 'les deux camps sont ramenés à 6').toEqual([6, 6]);
-    expect(avec.winner, 'et l’écart disparaît avec l’écrêtage').toBe('tie');
+    expect([avec.dr.joueur, avec.dr.adversaire], 'les deux camps sont ramenés à 6').toEqual([6, 6]);
+    expect(avec.winner, 'et l’écart disparaît avec l’écrêtage').toBe('egalite');
     const sans = resolveTavernRound(DOMINOS, gros(9), gros(8));
-    expect([sans.playerSL, sans.opponentSL], 'sans plafond déclaré, les DR passent entiers').toEqual([9, 8]);
-    expect(sans.winner).toBe('player');
+    expect([sans.dr.joueur, sans.dr.adversaire], 'sans plafond déclaré, les DR passent entiers').toEqual([9, 8]);
+    expect(sans.winner).toBe('joueur');
   });
 
   /** Une volée n'oppose pas deux jets mais deux SCORES : à égalité, c'est le départage DÉCLARÉ qui
@@ -525,8 +525,8 @@ describe('Plafond de DR et départage — les deux juges', () => {
     banc.setState({ sequence: { ...get().sequence!, params: { ...get().sequence!.params, tieBreak: cleDeFixture('test-le-defiant-gagne') } } });
     for (let i = 0; i < 6; i++) poseLancer(12, 4); // six boules à 4 DR : les deux camps à égalité
     const res = get().tavernGames!.result!;
-    expect([res.playerSL, res.opponentSL], 'même score des deux côtés').toEqual([4, 4]);
-    expect(res.winner, 'le départage déclaré tranche l’égalité').toBe('player');
+    expect([res.dr.joueur, res.dr.adversaire], 'même score des deux côtés').toEqual([4, 4]);
+    expect(res.winner, 'le départage déclaré tranche l’égalité').toBe('joueur');
   });
 
   it('le départage RAW des boules reste le match nul (l.57)', () => {
@@ -534,7 +534,7 @@ describe('Plafond de DR et départage — les deux juges', () => {
     banc.setState({ battle: null, party: [a, b], journal: [], tavernGames: null, pendingCascade: null, sequence: null });
     get().jouerALaTaverne(a.id, { gameId: 'boules', opponent: { kind: 'heros', id: b.id } });
     for (let i = 0; i < 6; i++) poseLancer(12, 4);
-    expect(get().tavernGames!.result!.winner).toBe('tie');
+    expect(get().tavernGames!.result!.winner).toBe('egalite');
   });
 });
 

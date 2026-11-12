@@ -44,7 +44,7 @@ beforeAll(() => {
 
 const chars = { 'capacite-de-combat': 45, 'capacite-de-tir': 50, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 40, 'force-mentale': 40, sociabilite: 30 };
 const mk = (id: string, over: Partial<Combatant> = {}): Combatant =>
-  (blessuresSurLeProfil({ id, name: id, label: id, kind: 'hero', characteristics: { ...chars }, conditions: [], traumas: [], engagedWith: [], skills: [], talents: [], items: [],
+  (blessuresSurLeProfil({ id, name: id, label: id, kind: 'heros', characteristics: { ...chars }, conditions: [], traumas: [], engagedWith: [], skills: [], talents: [], items: [],
      weapons: [], advantage: 0, size: 'moyenne', pos: { x: 0, y: 0 }, wounds: blessuresDeBase(18, 12), resilience: 2, fortune: 2,
      species: 'humains-reiklander', bodyShape: 'humanoide', movement: 4,
      armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, ...over }) as unknown as Combatant);
@@ -357,8 +357,8 @@ describe('registre de raccourcis — il se tait sous un dialogue de la pile (mê
     act(() => { useGame.getState().lancerLeCombat('enc-mutants'); });
     if (useGame.getState().pendingRoundStart) act(() => useGame.getState().fenetreValider('debutDuRound'));
     const b = useGame.getState().battle!;
-    const h = b.combatants.find((c) => c.kind === 'hero')!;
-    const cible = b.combatants.find((c) => c.kind !== 'hero')!;
+    const h = b.combatants.find((c) => c.kind === 'heros')!;
+    const cible = b.combatants.find((c) => c.kind !== 'heros')!;
     useGame.setState({
       pendingCascade: null, combatCursor: null,
       battle: {
@@ -522,7 +522,7 @@ describe('conversation PNJ — une surface de la pile qui suspend le jeu', () =>
     for (const [code, key] of [['KeyC', 'c'], ['KeyF', 'f'], ['KeyQ', 'q'], ['KeyE', 'e'], ['KeyV', 'v'], ['ArrowUp', 'ArrowUp'], ['ArrowLeft', 'ArrowLeft']]) touche(code, key);
     expect(pris(), 'aucun raccourci du registre n’est parti').toEqual([]);
     expect(useGame.getState().viewMode, 'la vue n’a pas basculé').toBe(s0.viewMode);
-    act(() => useGame.setState({ mode: 'battle', inspectId: null, hovered: 'h1', battle: { over: null, order: ['h1'], turn: 0, combatants: [combattantDeTest({ id: 'h1', kind: 'hero' })] } as never }));
+    act(() => useGame.setState({ mode: 'battle', inspectId: null, hovered: 'h1', battle: { over: null, order: ['h1'], turn: 0, combatants: [combattantDeTest({ id: 'h1', kind: 'heros' })] } as never }));
     expect(KEYBINDINGS.find((k) => k.id === 'inspecter')!.when(useGame.getState()), 'hors pile, I partirait en combat').toBe(true);
     touche('KeyI', 'i');
     expect(pris(), 'en plein combat, I se tait aussi').toEqual([]);

@@ -32,12 +32,12 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTes
 import { cliquerSurLeCombattant } from './combatOrParty';
 
 const chars = { 'capacite-de-combat': 45, 'capacite-de-tir': 50, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
-const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, weapons: Weapon[] = [sword], pv = 40): Combatant =>
+const mk = (id: string, kind: 'heros' | 'ennemi', pos: { x: number; y: number }, weapons: Weapon[] = [sword], pv = 40): Combatant =>
   (blessuresSurLeProfil({ id, name: id, label: id, kind, characteristics: { ...chars }, conditions: [], engagedWith: [], skills: [], talents: [],
      weapons, advantage: 0, size: 'moyenne', pos, wounds: blessuresDeBase(pv),
      armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4 }) as unknown as Combatant);
 const sword: Weapon = { name: 'Épée', label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, uid: 'sw', qualities: [] } as unknown as Weapon;
-const CROSSBOW: Weapon = { label: 'Arbalète', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 60, reload: 1, qualities: [], uid: 'xb', loaded: false } as unknown as Weapon;
+const CROSSBOW: Weapon = { label: 'Arbalète', type: 'distance', damage: { plusBF: false, flat: 9 }, range: 60, reload: 1, qualities: [], uid: 'xb', loaded: false } as unknown as Weapon;
 
 /** Pose un combat de Round 1 (ordre = ordre des combattants), en solo. */
 function poser(banc: Banc, seed: number, combattants: Combatant[]): void {
@@ -48,7 +48,7 @@ function poser(banc: Banc, seed: number, combattants: Combatant[]): void {
     movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
   } as unknown as BattleState;
   banc.setState({
-    battle, mode: 'battle', scene: testScene(), party: combattants.filter((c) => c.kind === 'hero'),
+    battle, mode: 'battle', scene: testScene(), party: combattants.filter((c) => c.kind === 'heros'),
     pendingDefense: null, pendingAttack: null, pendingCascade: null, suspendedCascades: [],
     net: { ...banc.getState().net, mode: 'local', mySeat: 0, gmSeat: undefined, ownership: {} },
   } as never);
@@ -56,8 +56,8 @@ function poser(banc: Banc, seed: number, combattants: Combatant[]): void {
 
 /** Le héros `h` (Auto-combat), hors contact, charge `e`, porteur de Frappe réactive au Test d'Initiative quasi-garanti. */
 function charge(banc: Banc, seed: number, autres: Combatant[] = [], pvDuChargeur = 40): void {
-  const h = mk('h', 'hero', { x: 4, y: 0 }, [sword], pvDuChargeur);
-  const e = mk('e', 'enemy', { x: 0, y: 0 });
+  const h = mk('h', 'heros', { x: 4, y: 0 }, [sword], pvDuChargeur);
+  const e = mk('e', 'ennemi', { x: 0, y: 0 });
   e.talents = [{ talentId: 'frappe-reactive', times: 1 }] as never;
   e.characteristics.initiative = 99;
   poser(banc, seed, [h, e, ...autres]);
@@ -153,7 +153,7 @@ describe('#3058 — la charge du héros en Auto-combat sur un porteur de Frappe 
   it('E (graine 1) : la riposte met le chargeur hors de combat — aucune frappe, le tour avance', () => {
     banc = ouvrirLeBanc({ cadence: 'auto' });
     clearAiTurnLog();
-    charge(banc, 1, [mk('h2', 'hero', { x: 9, y: 9 })], 1);
+    charge(banc, 1, [mk('h2', 'heros', { x: 9, y: 9 })], 1);
     maybeRunEnemyTurn(g, banc.setState);
     tantQue(auPremierTour);
     expect(isOutOfAction(b().combatants.find((c) => c.id === 'h')!), 'chemin : la riposte a mis le chargeur hors de combat').toBe(true);
@@ -175,13 +175,13 @@ describe('#3058 — la charge du héros en Auto-combat sur un porteur de Frappe 
   it('E-victoire (graine 1) : la riposte du héros met le dernier ennemi hors de combat — sous la séquence de fin, aucun télégraphe de son geste', () => {
     banc = ouvrirLeBanc();
     clearAiTurnLog();
-    const e = mk('e', 'enemy', { x: 4, y: 0 }, [sword], 1);
+    const e = mk('e', 'ennemi', { x: 4, y: 0 }, [sword], 1);
     e.traits = [{ id: 'corruption', arg: 'mineure' }] as never;
-    const h = mk('h', 'hero', { x: 0, y: 0 });
+    const h = mk('h', 'heros', { x: 0, y: 0 });
     h.talents = [{ talentId: 'frappe-reactive', times: 1 }] as never;
     h.characteristics.initiative = 99;
     h.aiControlled = true; // riposte résolue par l'IA ; le héros manuel `h2` tient le Test de fin de combat
-    poser(banc, 1, [e, h, mk('h2', 'hero', { x: 9, y: 9 })]);
+    poser(banc, 1, [e, h, mk('h2', 'heros', { x: 9, y: 9 })]);
     maybeRunEnemyTurn(g, banc.setState);
     tantQue(() => !isOutOfAction(b().combatants[0]));
     expect([isOutOfAction(b().combatants[0]), attaques('h', 'e'), attaques('e')], 'chemin : la riposte a fini l’ennemi avant sa frappe').toEqual([true, 1, 0]);
@@ -276,9 +276,9 @@ describe('#3058 — la charge du héros en Auto-combat sur un porteur de Frappe 
 
 /** L'ennemi `e`, source de Peur du héros MANUEL `h` qui le craint, s'en approche (Peur à l'approche, LDB 21 l.27). */
 function approche(banc: Banc, depart: { x: number; y: number }): void {
-  const h = mk('h', 'hero', { x: 0, y: 0 });
+  const h = mk('h', 'heros', { x: 0, y: 0 });
   h.psychState = [{ type: 'peur', sourceId: 'e', indice: 2, calmeDR: 0 }];
-  const e = mk('e', 'enemy', depart);
+  const e = mk('e', 'ennemi', depart);
   e.movement = 2;
   poser(banc, 4, [e, h]);
 }
@@ -374,7 +374,7 @@ describe('#3058 — fenêtre neutre à l’échéance d’un geste : il est parq
   it('F-frappe (graine 1) : au contact du héros manuel, la frappe parquée part une fois', () => {
     banc = ouvrirLeBanc();
     clearAiTurnLog();
-    poser(banc, 1, [mk('e', 'enemy', { x: 1, y: 0 }), mk('h', 'hero', { x: 0, y: 0 })]);
+    poser(banc, 1, [mk('e', 'ennemi', { x: 1, y: 0 }), mk('h', 'heros', { x: 0, y: 0 })]);
     expect(decider(), 'chemin : l’IA décide une frappe').toBe('frappe');
     expect(tenirPuisClore('e'), 'parquée sur la fenêtre').toEqual(['frappe', true]);
     tantQue(() => !g().pendingDefense);
@@ -388,7 +388,7 @@ describe('#3058 — fenêtre neutre à l’échéance d’un geste : il est parq
   it('F-avancer (graine 1) : la recharge finit le tour — l’« avancer » parqué avance une fois', () => {
     banc = ouvrirLeBanc();
     clearAiTurnLog();
-    poser(banc, 1, [mk('e', 'enemy', { x: 9, y: 0 }, [{ ...CROSSBOW }]), mk('h', 'hero', { x: 0, y: 0 })]);
+    poser(banc, 1, [mk('e', 'ennemi', { x: 9, y: 0 }, [{ ...CROSSBOW }]), mk('h', 'heros', { x: 0, y: 0 })]);
     expect(decider(), 'chemin : l’IA recharge, puis finit son tour').toBe('avancer');
     expect(tenirPuisClore('e'), 'parqué sur la fenêtre').toEqual(['avancer', true]);
     banc.reprendreTout();
@@ -399,7 +399,7 @@ describe('#3058 — fenêtre neutre à l’échéance d’un geste : il est parq
   it('M9 (graine 1) : un « avancer » réarmé ne part pas au minuteur qu’il remplace', () => {
     banc = ouvrirLeBanc();
     clearAiTurnLog();
-    poser(banc, 1, [mk('e', 'enemy', { x: 9, y: 0 }, [{ ...CROSSBOW }]), mk('h', 'hero', { x: 0, y: 0 })]);
+    poser(banc, 1, [mk('e', 'ennemi', { x: 9, y: 0 }, [{ ...CROSSBOW }]), mk('h', 'heros', { x: 0, y: 0 })]);
     expect(decider(), 'chemin : l’IA recharge, puis finit son tour').toBe('avancer');
     const premier = b().tourEnCours?.suite?.n ?? 0;
     ouvrirUneFenetreNeutre('e');
@@ -439,7 +439,7 @@ describe('#3058 — fenêtre neutre à l’échéance d’un geste : il est parq
   it('F-déplacer (graine 1) : le déplacement parqué se joue une fois', () => {
     banc = ouvrirLeBanc();
     clearAiTurnLog();
-    poser(banc, 1, [mk('e', 'enemy', { x: 9, y: 0 }), mk('h', 'hero', { x: 0, y: 0 })]);
+    poser(banc, 1, [mk('e', 'ennemi', { x: 9, y: 0 }), mk('h', 'heros', { x: 0, y: 0 })]);
     let glisses = 0;
     const off = bus.on(EVT.ANIM_MOVE, (p: { id: string }) => { if (p.id === 'e') glisses++; });
     try {
@@ -465,7 +465,7 @@ describe('#3058 — un geste décidé par l’IA ne part pas par-dessus une Acti
     h.spells = ['flechette'];
     h.weapons = [];
     poser(banc, 1, [h, pretire('e', { x: 7, y: 7 })]);
-    b().combatants[1].kind = 'enemy';
+    b().combatants[1].kind = 'ennemi';
     const n = incantations('h');
     maybeRunEnemyTurn(g, banc.setState);
     tantQue(() => !b().tourEnCours);
@@ -492,7 +492,7 @@ describe('#3058 — un déplacement décidé par l’IA ne part pas par-dessus u
   it('H-déplacer (graine 1) : déplacement parqué sur une fenêtre, bascule en manuel, le joueur se déplace, retour en Auto — un seul déplacement, le tour avance', () => {
     banc = ouvrirLeBanc({ cadence: 'auto' });
     clearAiTurnLog();
-    poser(banc, 1, [mk('h', 'hero', { x: 9, y: 0 }), mk('e', 'enemy', { x: 0, y: 0 })]);
+    poser(banc, 1, [mk('h', 'heros', { x: 9, y: 0 }), mk('e', 'ennemi', { x: 0, y: 0 })]);
     let glisses = 0;
     const off = bus.on(EVT.ANIM_MOVE, (p: { id: string }) => { if (p.id === 'h') glisses++; });
     try {
@@ -520,7 +520,7 @@ describe('#3058 — un geste périmé ne touche pas au tour suivant', () => {
   it('I (graine 1) : l’échéance d’un acteur dont le tour est passé ne frappe pas, ni n’efface la suite et le réticule du suivant', () => {
     banc = ouvrirLeBanc();
     clearAiTurnLog();
-    poser(banc, 1, [mk('e', 'enemy', { x: 1, y: 0 }), mk('e2', 'enemy', { x: 0, y: 1 }), mk('h', 'hero', { x: 0, y: 0 })]);
+    poser(banc, 1, [mk('e', 'ennemi', { x: 1, y: 0 }), mk('e2', 'ennemi', { x: 0, y: 1 }), mk('h', 'heros', { x: 0, y: 0 })]);
     maybeRunEnemyTurn(g, banc.setState);
     tantQue(() => !b().tourEnCours);
     expect([b().tourEnCours?.cle, suite()], 'chemin : `e` a armé sa frappe').toEqual(['1:0:e', 'frappe']);
@@ -540,7 +540,7 @@ describe('#3058 — saut de tour sans talent (une séquence de conséquences ouv
     it(`G (graine ${graine}) : au contact, 400 PV, Auto-combat — chaque combattant décide une fois par Round`, () => {
       banc = ouvrirLeBanc({ cadence: 'auto' });
       clearAiTurnLog();
-      poser(banc, graine, [mk('h', 'hero', { x: 1, y: 0 }, [sword], 400), mk('e', 'enemy', { x: 0, y: 0 }, [sword], 400)]);
+      poser(banc, graine, [mk('h', 'heros', { x: 1, y: 0 }, [sword], 400), mk('e', 'ennemi', { x: 0, y: 0 }, [sword], 400)]);
       maybeRunEnemyTurn(g, banc.setState);
       let sequenceApresLaFrappe = false;
       for (let i = 0; i < 2000 && b().round <= 3 && !b().over; i++) {
@@ -666,7 +666,7 @@ describe('#3059 — la Charge d’un héros MANUEL fait « être Chargé » ; sa
   });
 
   it('E manuel (graine 1) : la riposte met le chargeur hors de combat — aucune frappe, le tour ne passe pas seul', () => {
-    chargeManuelle(1, { autres: [mk('h2', 'hero', { x: 9, y: 9 })], pvDuChargeur: 1 });
+    chargeManuelle(1, { autres: [mk('h2', 'heros', { x: 9, y: 9 })], pvDuChargeur: 1 });
     cliquerLaCharge();
     jouerLaSequence();
     banc.reprendreTout();
@@ -698,7 +698,7 @@ describe('#3059 — la Charge d’un héros MANUEL fait « être Chargé » ; sa
   });
 
   it('P7 (graine 1) : chargeur K.O. par la riposte, puis Auto-combat — le combat avance', () => {
-    chargeManuelle(1, { autres: [mk('h2', 'hero', { x: 9, y: 9 })], pvDuChargeur: 1 });
+    chargeManuelle(1, { autres: [mk('h2', 'heros', { x: 9, y: 9 })], pvDuChargeur: 1 });
     cliquerLaCharge();
     jouerLaSequence();
     banc.reprendreTout();

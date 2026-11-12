@@ -198,7 +198,7 @@ export function PortView({ initialTab = 'coque' }: { initialTab?: 'coque' | 'car
 
   return (
     <ScreenShell
-      title={<><Icon id="travel/anchor" size="sm" /> Port de {port.label} — {nomDuNavire(vessel)}</>}
+      title={<><Icon id="voyage/ancre" size="sm" /> Port de {port.label} — {nomDuNavire(vessel)}</>}
       onClose={close}
       meta={{ money }}
       body="centered-wide"
@@ -207,9 +207,9 @@ export function PortView({ initialTab = 'coque' }: { initialTab?: 'coque' | 'car
       <Tabs
         className="port-tabnav"
         tabs={[
-          { key: 'coque' as const, label: <><Icon id="travel/repair" size="sm" /> Chantier</> },
-          { key: 'cargaison' as const, label: <><Icon id="item/misc" size="sm" /> Cargaison</> },
-          { key: 'escale' as const, label: <><Icon id="travel/anchor" size="sm" /> Escale{hasEscaleEvent ? ' •' : ''}</> },
+          { key: 'coque' as const, label: <><Icon id="voyage/reparer" size="sm" /> Chantier</> },
+          { key: 'cargaison' as const, label: <><Icon id="objet/divers" size="sm" /> Cargaison</> },
+          { key: 'escale' as const, label: <><Icon id="voyage/ancre" size="sm" /> Escale{hasEscaleEvent ? ' •' : ''}</> },
         ]}
         active={tab}
         onChange={setTab}
@@ -222,7 +222,7 @@ export function PortView({ initialTab = 'coque' }: { initialTab?: 'coque' | 'car
               <p>Blessures : <b>{woundsCur}/{woundsMax}</b>{vessel.criticals?.length ? ` · ${vessel.criticals.length} Critique(s) noté(s)` : ''}</p>
               <GatedAction
                 id="port-repair"
-                label={<><Icon id="travel/repair" size="sm" /> Réparer{missing > 0 ? <> — {missing} Blessure(s), <Coins money={toMoney({ gold: repairCost })} /></> : null}</>}
+                label={<><Icon id="voyage/reparer" size="sm" /> Réparer{missing > 0 ? <> — {missing} Blessure(s), <Coins money={toMoney({ gold: repairCost })} /></> : null}</>}
                 ariaLabel="Réparer la coque"
                 enabled={!chantier.refusReparation}
                 {...raisonSi(chantier.refusReparation)}
@@ -242,7 +242,7 @@ export function PortView({ initialTab = 'coque' }: { initialTab?: 'coque' | 'car
               <SalissuresDeLaCoque vessel={vessel} />
               <GatedAction
                 id="port-careen"
-                label={<><Icon id="travel/careen" size="sm" /> Caréner{careenCost > 0 ? <> — <Coins money={toMoney({ gold: careenCost })} /></> : null}</>}
+                label={<><Icon id="voyage/carener" size="sm" /> Caréner{careenCost > 0 ? <> — <Coins money={toMoney({ gold: careenCost })} /></> : null}</>}
                 ariaLabel="Caréner la coque"
                 enabled={!chantier.refusCarenage}
                 {...raisonSi(chantier.refusCarenage)}

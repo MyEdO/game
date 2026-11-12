@@ -7,7 +7,7 @@ import { Combatant, CharKey, CHAR_LABELS, ItemInstance, type Main } from '../eng
 import { choisirApparenceDObjet, recomputeLoadout, loadoutCreate, loadoutDelete, loadoutSetSlot, equipConflicts, canStow, isOffHandEligible, setADeuxMains } from '../engine/items';
 import type { Possession } from '../engine/possession';
 import { possessionLabel } from '../engine/possession';
-import { resolveCarrier, porteurLocalise, porteurDeLObjet, refusSansPorteur, refusDuHerosPorteur, lotDeLObjet, sansLeLot, avecLeLot, ecrireLesPorteurs } from './monde/carrier';
+import { resolveCarrier, porteurLocalise, porteurDeLObjet, refusSansPorteur, refusDuHerosPorteur, lotDeLObjet, sansLeLot, avecLeLot, ecrireLesPorteurs, type Carrier } from './monde/carrier';
 import { carriersColocated } from '../engine/cargo';
 import { refuserGeste, refuserGesteDuSiege } from './refusVisible';
 import { refusDepensePx, refusDInventaire, refusDuBackground, refuseSi } from './verrousDeFiche';
@@ -143,7 +143,7 @@ export function equiperLObjet(get: Get, set: Set, uid: string): void {
   set((s) => {
     const carrier = resolveCarrier(s, carrierId);
     if (!carrier) return {};
-    if (carrier.kind === 'hero') {
+    if (carrier.kind === 'heros') {
       return ecrireActeur(s, carrierId, (h) => {
         const clone: Combatant = structuredClone(h);
         clone.items ??= [];
@@ -195,7 +195,7 @@ export function rangerLObjet(get: Get, set: Set, uid: string, containerUid: stri
   set((s) => {
     const carrier = resolveCarrier(s, carrierId);
     if (!carrier) return {};
-    if (carrier.kind === 'hero') {
+    if (carrier.kind === 'heros') {
       return ecrireActeur(s, carrierId, (h) => {
         const clone: Combatant = structuredClone(h);
         clone.items ??= [];
@@ -283,8 +283,8 @@ export function garnirLaPanoplie(get: Get, set: Set, heroId: string, id: string,
 }
 
 /** Libellé d'un porteur déjà résolu (héros ou possession — doctrine id/label). */
-function carrierLabel(carrier: { kind: 'hero'; hero: Combatant } | { kind: 'possession'; possession: Possession }): string {
-  return carrier.kind === 'hero' ? carrier.hero.label : possessionLabel(carrier.possession);
+function carrierLabel(carrier: Carrier): string {
+  return carrier.kind === 'heros' ? carrier.hero.label : possessionLabel(carrier.possession);
 }
 
 /** Donne un objet de son PORTEUR (héros ou possession) à un autre — #620 généralise le don héros→héros
@@ -298,7 +298,7 @@ export function transmettreLObjet(get: Get, set: Set, uid: string, toCarrierId: 
   const state = get();
   const from = resolveCarrier(state, fromCarrierId)!;
   const to = resolveCarrier(state, toCarrierId);
-  const fromItems = from.kind === 'hero' ? (from.hero.items ?? []) : from.possession.items;
+  const fromItems = from.kind === 'heros' ? (from.hero.items ?? []) : from.possession.items;
   const item = fromItems.find((i) => i.uid === uid)!;
   if (!to) return void refuserGeste(get, set, t('pf.giveNotFound'));
   if (fromCarrierId === toCarrierId) return void refuserGeste(get, set, t('pf.giveSelf', { from: carrierLabel(from), item: item.label }));
@@ -310,7 +310,7 @@ export function transmettreLObjet(get: Get, set: Set, uid: string, toCarrierId: 
   const toLabel = carrierLabel(to);
   set((s) => ecrireLesPorteurs(s, {
     [fromCarrierId]: (items) => sansLeLot(items, lot),
-    [toCarrierId]: (items) => avecLeLot(items, lot, to.kind === 'hero'),
+    [toCarrierId]: (items) => avecLeLot(items, lot, to.kind === 'heros'),
   }));
   get().ecrireAuJournal(t('pf.give', { from: fromLabel, item: item.label, to: toLabel }));
 }
@@ -358,7 +358,7 @@ export function acheterLaCaracteristique(get: Get, set: Set, heroId: string, cha
       msg = t('pf.charNeedsMentor', { name: clone.label, what: CHAR_LABELS[char] });
       return h;
     }
-    const manque = refusDePx(clone, advanceCost(clone.charAdvances?.[char] ?? 0, 'characteristic', inC));
+    const manque = refusDePx(clone, advanceCost(clone.charAdvances?.[char] ?? 0, 'caracteristique', inC));
     if (manque) {
       msg = manque;
       return h;
@@ -403,7 +403,7 @@ export function acheterLaCompetence(get: Get, set: Set, heroId: string, skill: R
       clone.skills.push({ id: skillId, spec, characteristic, advances: 0 });
     }
     const avant = clone.skills.find((sk) => sk.id === skillId && memeSpecialisation(sk.spec, spec))?.advances ?? 0;
-    const manque = refusDePx(clone, advanceCost(avant, 'skill', inC, discount));
+    const manque = refusDePx(clone, advanceCost(avant, 'competence', inC, discount));
     if (manque) {
       msg = manque;
       return h;
@@ -615,7 +615,7 @@ export interface FinDeSeance {
 }
 
 /** Les héros dont la fin de séance coche les cases. */
-export const herosDeLaSeance = (s: Pick<Jeu, 'party'>): Combatant[] => s.party.filter((h) => h.kind === 'hero');
+export const herosDeLaSeance = (s: Pick<Jeu, 'party'>): Combatant[] => s.party.filter((h) => h.kind === 'heros');
 
 /** Ouvre la fin de séance, aucune case cochée : l'Effet `sessionEnd` (#83), le menu de jeu, le récap de chapitre. */
 export function ouvrirLaFinDeSeance(set: Set): void {
@@ -751,9 +751,24 @@ export function refusDeComposerLeHeros(s: Pick<Jeu, 'battle' | 'net' | 'party'>,
   return refusComposition(s) ?? (seatOwns(s, seat, heroId) ? null : t('pf.heroOfAnotherSeat'));
 }
 
+/** Raison du refus de RECRUTER `heros` pour le siège qui décide (`decidingSeat`) : le refus d'ajout au groupe
+ *  (`refusDAjoutAuGroupe`) du héros qu'il bâtira, puis la raison qui refuse l'engagement lui-même
+ *  (`verdictDEngagement`) ; `null` s'il se recrute. Verdict UNIQUE de `recruterLeHeros` et des écrans qui l'offrent. */
+export function refusDeRecruter(s: Pick<Jeu, 'battle' | 'party' | 'net'>, heros: HerosEngage): string | null {
+  const verdict = verdictDEngagement(heros);
+  const seat = decidingSeat(s);
+  return 'refus' in verdict ? refusDAjoutAuGroupe(s, undefined, seat) ?? verdict.refus : refusDAjoutAuGroupe(s, verdict.id, seat);
+}
+
+/** Raison du refus de RENVOYER le héros `heroId` pour le siège qui décide (`refusDeComposerLeHeros`) ; `null` s'il se
+ *  renvoie. Verdict UNIQUE de `renvoyerLeHeros` et des écrans qui l'offrent. */
+export function refusDeRenvoyer(s: Pick<Jeu, 'battle' | 'net' | 'party'>, heroId: string): string | null {
+  return refusDeComposerLeHeros(s, heroId, decidingSeat(s));
+}
+
 /** Raison du refus de LANCER la partie avec ce groupe : un groupe vide, ou un siège invité qui a encore des
  *  emplacements à remplir (`seatSlotsRemaining`) ; `null` si elle se lance. Verdict UNIQUE de `lancerCampagne`
- *  (`scenes/campaign.ts`) et de l'écran d'équipe. */
+ *  (`scenes/campaign.ts`), du pont d'un hôte (`lancer`) et de l'écran d'équipe. */
 export function refusDeLancer(s: Pick<Jeu, 'net' | 'party'>): string | null {
   if (s.party.length === 0) return t('party.action.start.empty');
   const invites = new Set(s.net.slots.filter((seat) => seat !== 0));
@@ -775,9 +790,7 @@ export function recruterLeHeros(get: Get, set: Set, heros: HerosEngage): void {
   const s = get();
   const seat = decidingSeat(s);
   // Tout refus se juge AVANT de bâtir : un geste refusé ne consomme aucun id (#2907).
-  const verdict = verdictDEngagement(heros);
-  const refus = 'refus' in verdict ? refusDAjoutAuGroupe(s, undefined, seat) ?? verdict.refus : refusDAjoutAuGroupe(s, verdict.id, seat);
-  if (compositionRefusee(get, set, refus)) return;
+  if (compositionRefusee(get, set, refusDeRecruter(s, heros))) return;
   const copy: Combatant = ensureBourse(herosDeLEngagement(heros, get().forgerUnId, battleRng()), get().forgerUnId);
   const wealth = richesseDeLEngagement(heros, battleRng());
   const rangs = { ...rangsDuGroupe(s), [copy.id]: rangDAjout(s, seat)! };
@@ -801,11 +814,11 @@ export function recruterLeHeros(get: Get, set: Set, heros: HerosEngage): void {
 export function releaseHeroSeats<S extends Scene | null>(scene: S): S {
   if (!scene?.seatAssignments) return scene;
   let next: Scene = scene;
-  for (let rang = 1; rang <= PARTY_MAX; rang++) next = releaseSeat(next, { kind: 'party', rang });
+  for (let rang = 1; rang <= PARTY_MAX; rang++) next = releaseSeat(next, { kind: 'groupe', rang });
   return next as S;
 }
 
-/** Retire un héros du groupe (écran d'équipe), refusé par `refusDeComposerLeHeros`, et nettoie sa possession
+/** Retire un héros du groupe (écran d'équipe), refusé par `refusDeRenvoyer`, et nettoie sa possession
  *  réseau ; son rang (`net.rangs`) reste vide.
  *  SUCCESSION (§6/§19, décision №3, SOCLE POSSESSIONS #615) — jamais d'orphelin gelé : les
  *  Possessions du héros retiré ET sa Bourse passent à un héritier VIVANT, défaut = le DOYEN (1er
@@ -814,7 +827,7 @@ export function releaseHeroSeats<S extends Scene | null>(scene: S): S {
  *  (groupe vidé ou tout-morts) → repli : rien à hériter, la Bourse/les Possessions du partant
  *  restent SUR LUI (il quitte le groupe avec son bien, aucun héritier vivant à défausser dessus). */
 export function renvoyerLeHeros(get: Get, set: Set, heroId: string): void {
-  if (compositionRefusee(get, set, refusDeComposerLeHeros(get(), heroId, decidingSeat(get())))) return;
+  if (compositionRefusee(get, set, refusDeRenvoyer(get(), heroId))) return;
   const s = get();
   const idx = s.party.findIndex((h) => h.id === heroId);
   if (idx < 0) return;

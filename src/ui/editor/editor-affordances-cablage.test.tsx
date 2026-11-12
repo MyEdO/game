@@ -40,7 +40,7 @@ function mount(scene: Scene, sel: Sel) {
   let latest = scene;
   // Outil de carte ARMÉ par l'inspecteur (pinceau d'emprise) — l'Éditeur le porte en vrai ; ici on
   // le garde pour vérifier CE QUE l'inspecteur arme, et le re-rendre à l'inspecteur (état `selected`).
-  let tool: Tool = { mode: 'select' };
+  let tool: Tool = { mode: 'selection' };
   const container = document.createElement('div');
   document.body.appendChild(container);
   const root: Root = createRoot(container);
@@ -62,7 +62,7 @@ function mount(scene: Scene, sel: Sel) {
         narratif={emptyNarratif()}
         tool={tool}
         armZoneTiles={(zoneId, paint) => {
-          tool = { mode: 'zoneTiles', zoneId, paint };
+          tool = { mode: 'casesDeZone', zoneId, paint };
           render(latest);
         }}
         zoneFocusKey={null}
@@ -406,10 +406,10 @@ describe('Inspecteur — l’EMPRISE d’une zone se peint SUR la carte (`SceneE
 
     expect(h.sceneOf().effectZones![0].tiles).toBeUndefined(); // zone PLEINE : aucune découpe au document
     expect(sceneZonesToBattle(h.sceneOf().effectZones)[0].tiles).toHaveLength(9);
-    expect(h.toolOf()).toEqual({ mode: 'select' }); // contre-épreuve : rien d'armé avant le geste
+    expect(h.toolOf()).toEqual({ mode: 'selection' }); // contre-épreuve : rien d'armé avant le geste
 
     await click(segButton(h.container, 'Retirer'));
-    expect(h.toolOf()).toEqual({ mode: 'zoneTiles', zoneId: 'salle', paint: 'remove' });
+    expect(h.toolOf()).toEqual({ mode: 'casesDeZone', zoneId: 'salle', paint: 'remove' });
 
     // Le geste de carte : le canevas route l'outil vers `paintEffectZone` (même couture, testée pure).
     const peinte = paintEffectZone(h.sceneOf(), 'salle', { x: 1, y: 1 }, 'remove');
@@ -524,7 +524,7 @@ function sceneNavale(): Scene {
   return {
     ...emptyScene('scene-test', 14, 14),
     entities,
-    encounters: [{ id: 'abordage', members: [{ entityId: 'coque' }, { entityId: 'marin', side: 'ally' }] }],
+    encounters: [{ id: 'abordage', members: [{ entityId: 'coque' }, { entityId: 'marin', side: 'allie' }] }],
   };
 }
 
@@ -599,8 +599,8 @@ describe('Atelier de dialogue — ICÔNE d’un choix (`DialogueChoice.icon`, #8
 
     const icone = Array.from(container.querySelectorAll('select'))
       .find((el) => el.closest('label')?.title.includes('affordance')) as HTMLSelectElement;
-    await setSelect(icone, 'resource/gold-purse');
-    expect(latest.nodes[0].choices[0].icon).toBe('resource/gold-purse');
+    await setSelect(icone, 'ressource/bourse');
+    expect(latest.nodes[0].choices[0].icon).toBe('ressource/bourse');
 
     expect((await renderDialogueBox(latest)).querySelector('button.dlg-choice svg.icon')).not.toBeNull();
 

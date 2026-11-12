@@ -142,7 +142,7 @@ const construireScene = (): Scene => buildScene({
         { statblock: MANNEQUIN, appearance: { species: 'humains-reiklander' }, pos: { x: 21, y: 2 } }, //  au loin dans le brouillard → invisible tant qu'on n'éclaire/approche pas
         { creature: { id: 'gobelin' }, pos: { x: 15, y: 7 } }, //         sparring : charge / Engagé / désengagement / deux armes
         { creature: { id: 'gobelin' }, pos: { x: 16, y: 9 } }, //         + cible plus petite que le Cheval → charge montée +20
-        { creature: { id: 'cheval' }, pos: { x: 5, y: 10 }, mount: true, side: 'ally' }, // monture libre à enfourcher
+        { creature: { id: 'cheval' }, pos: { x: 5, y: 10 }, mount: true, side: 'allie' }, // monture libre à enfourcher
       ],
     },
   ],
@@ -159,7 +159,7 @@ export const scenario: TestScenario = {
   id: 'entrainement',
   order: 1,
   category: 'combat',
-  icon: 'scenario/training',
+  icon: 'scenario/entrainement',
   title: "Terrain d'entraînement",
   tests:
     'Sandbox : tir + rechargement & ciblage/LdV (cible derrière un muret, cible au loin dans le brouillard), ' +

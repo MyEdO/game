@@ -32,7 +32,7 @@ let root: Root;
 
 /** Étape à DÉ NU du MONDE : 2d10 mètres de chute, +3 de modificateur pour lire l'opération à l'écran. */
 const chute = (mod?: number) => dieStep({
-  id: 'dn', kind: cleDeFixture('uiDieSpy'), label: fixtureText('Hauteur de chute'), icon: 'nav/dice',
+  id: 'dn', kind: cleDeFixture('uiDieSpy'), label: fixtureText('Hauteur de chute'), icon: 'navigation/des',
   spec: { n: 2, sides: 10 }, unite: 'm', worldOwner: true, ...(mod != null ? { mod } : {}),
 })!;
 
@@ -173,7 +173,7 @@ describe('Dé à SEUIL en fenêtre (#1508) — la rangée dit ce qu’on joue AV
     startCascade(useGame.getState, useGame.setState, {
       title: 'Sauvegarde', purpose: 'test',
       steps: [dieStep({
-        id: 'sv', kind: cleDeFixture('uiDieSpy'), label: fixtureText('Sauvegarde'), icon: 'journal/critical',
+        id: 'sv', kind: cleDeFixture('uiDieSpy'), label: fixtureText('Sauvegarde'), icon: 'journal/critique',
         spec: { n: 1, sides: 10 }, actorId: hero.id, seuil: DOME,
       })!],
     });

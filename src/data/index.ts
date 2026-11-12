@@ -3,6 +3,7 @@
  * écran 'dataEditor'). Les *.json de ce dossier sont la SOURCE CANONIQUE app-owned, curée à la main :
  * aucune migration ne les régénère.
  */
+import type { IconId } from './icons/types';
 import type { EntityAppearance, EspeceDApparence } from '../engine/authoringAppearance';
 import type { PlayerText } from '../i18n/playerText';
 import type { EntreeDeLivre } from './source/livre-extrait';
@@ -298,7 +299,7 @@ export const ACTIVITY_STAKES = activitiesStakeJson as ActivityStakeEntry[];
 export interface ActionDef {
   id: ActionId;
   label: string;
-  icon: string;
+  icon: IconId;
   surface:
     | 'deduite-du-set' | 'geste-d-etat' | 'grille' | 'gouttiere-arche' | 'selecteur-de-sets'
     | 'coin-de-tour' | 'bandeau-de-phase' | 'interlude' | 'pastille-etat' | 'pastille-entite' | 'frise'
@@ -592,6 +593,16 @@ function stakeEntry(key: StakeKey): { text?: string; rule?: { category: string; 
   return { ...(text ? { text } : {}), ...(rule ? { rule } : {}) };
 }
 
+/** Un TROU du gabarit d'enjeu : `{nom}`, rempli par la valeur que le flux calcule (`CatalogStake.values`). */
+const TROU_D_ENJEU = /\{(\w+)\}/g;
+
+/** Les TROUS du texte que `resolveStake` rendrait pour cette clé — `undefined` si la clé ne nomme aucune
+ *  entrée d'enjeu. Lu par le parse de la forme AUTHORÉE (`catalogStakeSchema`), qui n'a pas de `values`. */
+export function trousDeLEnjeu(key: StakeKey): string[] | undefined {
+  const entry = stakeEntry(key);
+  return entry && [...(entry.text ?? '').matchAll(TROU_D_ENJEU)].map((m) => m[1]);
+}
+
 /** RÉFÉRENCE d'enjeu — l'UNIQUE constructeur : la clé se valide À LA CONSTRUCTION (fail-closed au plus
  *  tôt : une étape qui LANCE et dont l'enjeu n'existe pas ne se construit pas). `entryId` = l'ENTRÉE
  *  JOUÉE quand l'étape en nomme une (le symptôme, la maladie contractée, la manœuvre subie, la chanson
@@ -726,7 +737,7 @@ export function resolveStake(ref: StakeRef): ResolvedStake {
   if (!entry) {
     throw new Error(`resolveStake('${ref.key.dataset}/${ref.key.kind}') : aucune entrée d'enjeu — une surface qui LANCE dit ce qu'elle met en jeu`);
   }
-  const text = entry.text?.replace(/\{(\w+)\}/g, (_m, name: string) => {
+  const text = entry.text?.replace(TROU_D_ENJEU, (_m, name: string) => {
     const v = ref.values?.[name];
     if (v == null) throw new Error(`resolveStake('${ref.key.dataset}/${ref.key.kind}') : valeur manquante pour « ${name} »`);
     return String(v);
@@ -946,9 +957,9 @@ export interface SkillData {
   /** Substitution en COMBAT d'une Compétence sociale à la Compétence de combat (LDB 09) : Intimidation
    *  « à la place de Corps à corps … face à ceux qui ont peur de vous » (l.287), Dressage « au lieu de
    *  Corps à corps » après avoir instillé la peur (l.207). `role` = défense / attaque / les deux ; `gate`
-   *  = condition d'accès (`fear` : l'adversaire est sous une Peur/intimidation SOURCÉE par ce personnage).
+   *  = condition d'accès (`peur` : l'adversaire est sous une Peur/intimidation SOURCÉE par ce personnage).
    *  Lu par `engine/skillCombatApps`. */
-  combatSubstitute?: { role: 'defense' | 'attack' | 'both'; gate: 'fear' };
+  combatSubstitute?: { role: 'defense' | 'attaque' | 'lesDeux'; gate: 'peur' };
   /** OUTIL requis par la Compétence (Crochetage → outils de crochetage, LDB 09 l.168 : « Les Niveaux de
    *  Difficulté supposent l'utilisation d'outils de crochetage. Des crochets improvisés… peuvent être
    *  utilisés avec une pénalité de -10 ») : `capability` = clé `ItemCapabilities` que doit porter un
@@ -1287,9 +1298,9 @@ interface GroupeDObjet {
 }
 export interface GroupeDArme extends GroupeDObjet {
   kind: 'weapon';
-  /** `melee` = Spé de Corps à corps, `ranged` = Spé de Projectiles : SOURCE des pools
+  /** `melee` = Spé de Corps à corps, `distance` = Spé de Projectiles : SOURCE des pools
    *  `weaponGroupsMelee`/`weaponGroupsRanged` (SPEC_SOURCES) ; absent sur les Groupes de siège. */
-  combat?: 'melee' | 'ranged';
+  combat?: 'melee' | 'distance';
   maniement: Maniement;
   /** Rendu visuel et sonore d'une arme du Groupe (`rendus.json`), à défaut du sien (#3771). */
   rendu?: { id: string };
@@ -1505,7 +1516,7 @@ export interface EtatData extends StatusData {
   persistsAfterCombat?: boolean;
   /** AFFICHAGE (couche UI, hors RAW LDB 16) : icône du registre `<Icon>` (id `famille/nom`) + sévérité
    *  0-100 (≥50 = incapacitant → créneau unique de l'ordre de bataille). Lus par `effectIcons.conditionMeta`. */
-  icon?: string;
+  icon?: IconId;
   severity?: number;
   /** Dangerosité IA de l'État infligé, en « Blessures espérées » (contrôle > simple malus) — lue par
    *  `aiSpellValue.opValue` (`op:'condition'`). Absente → menace mineure (1). */
@@ -1525,7 +1536,7 @@ export interface PsychologyData extends StatusData {
   stakeForm?: StakeForm;
   /** AFFICHAGE (couche UI, hors RAW LDB 21) : icône du registre `<Icon>` (id `famille/nom`), à l'égal
    *  d'`EtatData.icon`. Lu par `cibleLabel` (engine/psychology.ts). */
-  icon?: string;
+  icon?: IconId;
   /** Porter cet état psy IMMUNISE à la Psychologie (Frénésie, LDB 21 l.33) — lu GÉNÉRIQUEMENT par
    *  `isPsychImmune` (jamais codé par-nom), à l'égal du drapeau de trait « Immunité (Psychologie) ». */
   psychImmune?: boolean;
@@ -1568,11 +1579,11 @@ export interface PsychologyData extends StatusData {
   /** Moment du re-test d'une affliction ciblée active ; absent = début du Round. LDB 21 l.9, l.19, l.39, l.48 */
   retestAt?: 'roundStart' | 'roundEnd';
   /** Mode de RÉSOLUTION du Test de Psychologie (LDB 21), lu par l'applier GÉNÉRIQUE `psychologieDeCombat` (jamais
-   *  un dispatch `kind === 'terreur'` codé) : `'extended'` = Test ÉTENDU de Calme cumulant le DR vers l'Indice
-   *  (Peur, l.27) ; `'terreur'` = Test BINAIRE dont l'échec inflige `failCondition` (Indice + |DR négatifs|)
-   *  puis pose l'état `becomes` (Terreur → Peur, l.55-57) ; `'binary'` = Test BINAIRE activant l'affliction
+   *  un dispatch `kind === 'terreur'` codé) : `'etendu'` = Test ÉTENDU de Calme cumulant le DR vers l'Indice
+   *  (Peur, l.27) ; `'terreur'` = Test SIMPLE dont l'échec inflige `failCondition` (Indice + |DR négatifs|)
+   *  puis pose l'état `becomes` (Terreur → Peur, l.55-57) ; `'simple'` = Test SIMPLE (LDB 12 l.3-7) activant l'affliction
    *  CIBLÉE (traits ciblés). Absent (Frénésie/trauma) = pas de Test de résolution surmontable. */
-  resolution?: 'extended' | 'terreur' | 'binary';
+  resolution?: 'etendu' | 'terreur' | 'simple';
   /** (résolution `'terreur'`) État infligé à l'ÉCHEC (`EtatData.id`) ; la QUANTITÉ est déclarée par
    *  `failAmount` (défaut = Indice + |DR négatifs|, LDB 21 l.54). */
   failCondition?: { id: string };
@@ -1673,21 +1684,21 @@ export interface ManeuverDef {
   kind: import('../engine/creatureAttacks').AttackKind;
   /** Déclenchement RAW : Action normale, gratuite (coût d'Avantage), ou gratuite à la Charge. */
   activation: 'action' | 'free' | 'charge';
-  advantageCost: number;
-  /** Gestion de l'Avantage dépensé : `fixed` = `advantageCost` (défaut) ; `variable` = le joueur
-   *  CHOISIT (Regard : +1 DR par Avantage, LDB 85 l.290) ; `all` = dépense tout (Hurlement, l.170). */
-  advantageMode?: 'fixed' | 'variable' | 'all';
+  coutEnAvantage: number;
+  /** Gestion de l'Avantage dépensé : `fixe` = `coutEnAvantage` (défaut) ; `variable` = le joueur
+   *  CHOISIT (Regard : +1 DR par Avantage, LDB 85 l.290) ; `tout` = dépense tout (Hurlement, l.170). */
+  modeDAvantage?: 'fixe' | 'variable' | 'tout';
   /** Caractéristique du jet de l'attaquant (capacite-de-combat mêlée / capacite-de-tir distance·zone) ;
    *  absent = AUCUN jet d'attaquant (Hurlement : chaque cible teste sa Résistance). */
   stat?: 'capacite-de-combat' | 'capacite-de-tir';
   /** Défense opposée : Esquive / Parade, Initiative (Regard), Résistance/auto sans opposition. */
   defense?: 'esquive' | 'parade' | 'init' | 'resist' | 'auto';
-  /** Mode de ciblage (le résolveur en dérive la géométrie moteur). `self` = capacité SUR SOI (pas de
+  /** Mode de ciblage (le résolveur en dérive la géométrie moteur). `soi` = capacité SUR SOI (pas de
    *  cible adverse ni d'opposition — transformation, mue, auto-buff) : les `effects` s'appliquent au
-   *  porteur. `allFoes` / `allAround` = même géométrie (rayon autour de l'attaquant), populations
+   *  porteur. `adversairesAutour` / `toutAutour` = même géométrie (rayon autour de l'attaquant), populations
    *  DIFFÉRENTES : le camp adverse quand le texte le désigne (Middenheim 04 l.11 « contre ses ennemis »),
    *  TOUT le monde quand il ne le désigne pas (LDB 85 l.170 « Toutes les créatures vivantes »). */
-  targeting: 'melee' | 'ranged' | 'zone' | 'allFoes' | 'allAround' | 'self';
+  ciblage: 'melee' | 'distance' | 'zone' | 'adversairesAutour' | 'toutAutour' | 'soi';
   /** Portée / Souffle STRUCTURÉS (`ManeuverMeasure`) — mètres = `bonus(ref) + plus`. `range` résolu contre
    *  l'Attaquant, `blast` contre la cible au centre (RAW l.251). Remplace la formule-chaîne re-parsée au runtime. */
   range?: ManeuverMeasure;
@@ -1914,7 +1925,7 @@ export interface TraitData {
    *  `skillDRBonus`/`charDRBonusOf`. Aucun code par-nom. */
   aura?: {
     rangeChar: CharKey;
-    affects?: 'enemies' | 'allies' | 'all';
+    affects?: 'ennemis' | 'allies' | 'tous';
     passive: import('../engine/ops').OpPassive[];
   };
   /** Trait STANDARD (LDB 76 l.28-31 : « ajoutés à la liste Facultative de TOUTES les créatures ») —
@@ -2705,7 +2716,7 @@ export interface LieuServiceData {
   id: string;
   type: 'lieux-services';
   label: string;
-  icon?: string;
+  icon?: IconId;
   desc?: string;
   /** Réplique de boniment (saveur maison) du bandeau d'interlocuteur statique (`SpeakerBanner`). */
   hostLine?: string;
@@ -2932,7 +2943,7 @@ export const hairsDie = (): DeDeTable => deDeTirageDe<typeof couleurDesCheveux>(
 export const calendarMonths = calendarMonthsJson as { id: string; type: 'calendarMonths'; label: string; days: number }[];
 export const calendarIntercalary = calendarIntercalaryJson as { id: string; type: 'calendarIntercalary'; label: string; afterMonth: number }[];
 export const calendarWeekdays = calendarWeekdaysJson as { id: string; type: 'calendarWeekdays'; label: string }[];
-export const calendarPhases = calendarPhasesJson as { id: string; type: 'calendarPhases'; seuil: number; label: string; icon: string }[];
+export const calendarPhases = calendarPhasesJson as { id: string; type: 'calendarPhases'; seuil: number; label: string; icon: IconId }[];
 /** Table de Météo de voyage TERRESTRE (EDOC 8). `seasons` = plages du dé `die` → météo par saison ;
  *  `conditions` = EFFETS par météo (mêmes formes de donnée que `sea-weather.json`). Éditable au Codex. */
 const weatherData = weatherJson as {
@@ -3469,7 +3480,7 @@ export function weaponGroupLabel(id: string | null | undefined): PlayerText {
 }
 /** VOCABULAIRE FERMÉ des catégories de possession (`TrappingData.categorie`), miroir de l'enum du
  *  schéma `src/data/schemas/defs/trappings.ts` — une union, pas un registre de données. */
-export type TrappingTypeId = 'melee' | 'ranged' | 'ammunition' | 'armor' | 'trapping';
+export type TrappingTypeId = 'melee' | 'distance' | 'ammunition' | 'armor' | 'trapping';
 const groupeParId = indexParId('groups', groups);
 /** Résout un Groupe d'APPARTENANCE par son `id` STABLE (cible de Trait psy, filtre onlyGroups/exceptGroups). */
 export function findGroupById(id: string | null | undefined): GroupData | undefined {
@@ -3549,10 +3560,10 @@ export function findStarById(id: string | null | undefined): StarData | undefine
 export function trappingDesObjetsPuisDuCatalogue(objets: ReadonlyMap<string, TrappingData>, id: string): TrappingData | undefined {
   return objets.get(id) ?? findTrappingById(id);
 }
-/** ARMES choisissables `{ id, label }` : toute Possession `melee`/`ranged` hors « Mains nues »
+/** ARMES choisissables `{ id, label }` : toute Possession `melee`/`distance` hors « Mains nues »
  *  (`TrappingData.unarmed`), triée au libellé. `id` = `trappingId` STABLE. */
 export const armesChoisissables = memoParVersion('trappings', () => trappingsInstanciables()
-  .filter((t) => (t.categorie === 'melee' || t.categorie === 'ranged') && !t.unarmed)
+  .filter((t) => (t.categorie === 'melee' || t.categorie === 'distance') && !t.unarmed)
   .map((t) => ({ id: t.id, label: t.label }))
   .sort((a, b) => parLibelle(a.label, b.label)));
 /** Résout une Qualité par son `id` STABLE. */
@@ -3797,7 +3808,7 @@ export function specLabel(category: string, refId: string, specId: string): Play
 }
 /**
  * MINTEUR (b) de `PlayerText` (#1318 V8a₁) — le PASSAGE des textes AUTHORÉS (le `label` d'une entité
- * de catalogue, le `title` d'une entrée de table, le `prompt` d'un nœud de Flow, l'intitulé d'un péril
+ * de catalogue, le `title` d'une entrée de table, l'`invite` d'un nœud de Flow, l'intitulé d'un péril
  * de scène) vers l'affichage. Ces textes ne sont PAS traduisibles par clé : ils vivent dans la donnée,
  * et une 2ᵉ langue les surcharge par fichier `id → label` (plan évacué → #320, Phase E).
  *

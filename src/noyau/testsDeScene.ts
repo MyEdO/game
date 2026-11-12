@@ -31,7 +31,7 @@ import type { CorpsDesReglages } from './reglagesDuJet';
  *  (`jetValider('testEtendu')`) et par la fenêtre. LDB 12 l.170-185 */
 export function issueDuRound(p: PendingExtendedTest): ReturnType<typeof extendedTestStep> | null {
   const cur = p.rounds[p.rounds.length - 1];
-  return cur?.result ? extendedTestStep(p.total, cur.result, p.targetDR) : null;
+  return cur?.result ? extendedTestStep(p.total, cur.result, p.drCible) : null;
 }
 
 export function creerActionsDesTestsDeScene(get: Get, set: Set) {
@@ -42,7 +42,7 @@ export function creerActionsDesTestsDeScene(get: Get, set: Set) {
       // l'être, ligne au-dessus. L'enjeu vit sur l'ÉTAPE, que `CascadeModal` lit (`cur.stake`, #1117).
       const steps: BuiltCascadeStep[] = [];
       pousseSi(steps, hostStep(get, { id: idDansLaSequence(get, 'ext-jet', 'test'), kind: 'jetEtendu', jet: 'testEtendu', actorId: donnee.actorId, ...(stake ? { stake } : {}) }));
-      if (steps.length) openSequence(get, set, { title: donnee.label, icon: 'ui/key', purpose: 'test', steps });
+      if (steps.length) openSequence(get, set, { title: donnee.label, icon: 'interface/cle', purpose: 'test', steps });
     },
     // Enfoncer une porte à plusieurs (EDO Appendice 2) : flux multi PARALLÈLE (objet BE/B).
     enfoncerLaPorte: (opts) => {
@@ -57,7 +57,7 @@ export function creerActionsDesTestsDeScene(get: Get, set: Set) {
       // mint vérifie que `pendingForceDoor` est posé (il vient de l'être).
       const steps: BuiltCascadeStep[] = [];
       pousseSi(steps, hostStep(get, { id: 'forceDoor', kind: 'enfoncerLaPorte', jet: 'enfoncerLaPorte', groupOwner: true }));
-      if (steps.length) openSequence(get, set, { title: t('store.forceDoorTitle'), icon: 'action/force', purpose: 'combat', steps });
+      if (steps.length) openSequence(get, set, { title: t('store.forceDoorTitle'), icon: 'action/enfoncer', purpose: 'combat', steps });
     },
   } satisfies FabriqueDuNoyau;
 }
@@ -134,7 +134,7 @@ export function cloturesDesTestsDeScene(get: Get, set: Set) {
       const exhausted = !done && p.tentativesMax != null && p.rounds.length >= p.tentativesMax;
       if (done || exhausted) {
         set({ pendingExtendedTest: null, pendingCascade: null }); // ferme la cascade-hôte aussi
-        get().ecrireAuJournal(t('store.extendedDone', { label: p.label, issue: t(done ? 'store.extendedOk' : 'store.extendedKo'), total, target: p.targetDR }));
+        get().ecrireAuJournal(t('store.extendedDone', { label: p.label, issue: t(done ? 'store.extendedOk' : 'store.extendedKo'), total, target: p.drCible }));
         if (done && p.dispel) {
           // DISSIPATION réussie (LDB 46 l.160) : retire tous les effets du Sort de tous ses porteurs.
           const b = get().battle;
@@ -167,7 +167,7 @@ export function cloturesDesTestsDeScene(get: Get, set: Set) {
         reprendreLaSuite(get, set, p.suite);
       } else {
         // La porte tient : un nouveau Round s'ouvre (chacun re-frappe — jets remis à zéro).
-        set({ pendingForceDoor: { ...p, doorB, participants: p.participants.map((x) => ({ ...x, result: null, rerolled: false, forced: false })) } });
+        set({ pendingForceDoor: { ...p, doorB, participants: p.participants.map((x) => ({ ...x, result: null, rerolled: false, forcee: false })) } });
         get().ecrireAuJournal(t('store.doorHolds', { label: p.label, n: dmg, s: dmg > 1 ? 's' : '', left: doorB, sB: doorB > 1 ? 's' : '' }));
       }
     },
@@ -207,14 +207,14 @@ export function cloturesDesTestsDeScene(get: Get, set: Set) {
         if (c && effSuccess && (c.advantage ?? 0) < ca.cap) campGain(get, c, 1);
         set({ battle: { ...markActed(get, set), action: null } });
       }
-      // Branche choisie PUIS continuation (suite du `seq` parent d'un nœud `test`), jouées par le
+      // Branche choisie PUIS continuation (suite du `sequence` parent d'un nœud `test`), jouées par le
       // marcheur qui parle LEUR vocabulaire — même aiguillage que `reprendreFlow`/`reprendreFlowDeCombat` :
       // un Test SUBI (`pt.subi`) parle `target`/`caster` et repart chez le marcheur d'ACTEUR ; un Test de
       // scène parle `party`/`hero` et reste chez `runFlow` (butin de Test → fenêtre d'attribution).
       const branch = effSuccess ? pt.onSuccess : pt.onFailure;
       const issue = pt.subi
         ? reprendreTestSubi(get, set, pt, effSuccess)
-        : runFlow(get, set, { kind: 'seq', steps: [branch ?? EMPTY_FLOW, pt.after ?? EMPTY_FLOW] }, pt.label, pt.sl);
+        : runFlow(get, set, { kind: 'sequence', etapes: [branch ?? EMPTY_FLOW, pt.after ?? EMPTY_FLOW] }, pt.label, pt.sl);
       // CLÔTURES du Test (#1508) — elles suivent la branche, et attendent son dé s'il y en a un :
       //  · SEAM `onOwnTestFailed` (chemin modal JOUEUR — convergence des Tests de scène/compétence/combat,
       //    réf memory « JAMAIS rollTest inline chemin joueur ») : un Test RATÉ émet le trigger (Crampes

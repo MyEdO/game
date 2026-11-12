@@ -40,7 +40,7 @@ describe('PortraitTile', () => {
     // sm (frise) : illisible → jauge seule
     expect(renderToStaticMarkup(<PortraitTile c={c} size="sm" />)).not.toContain('life-bar__value');
     // ennemi : PB exacts réservés à l'Inspection — ni cartouche, ni fuite par le title
-    const foe = { ...base(), kind: 'enemy' } as Combatant;
+    const foe = { ...base(), kind: 'ennemi' } as Combatant;
     foe.wounds = blessuresDeBase(11, 9, foe);
     const foeMd = renderToStaticMarkup(<PortraitTile c={foe} size="md" />);
     expect(foeMd).not.toContain('life-bar__value');
@@ -58,10 +58,10 @@ describe('PortraitTile', () => {
     expect(identity).not.toContain('ptile-states');
   });
 
-  it('fond d’équipe : classe team-ally / team-enemy selon `team`', () => {
+  it('fond d’équipe : classe team-allie / team-ennemi selon `team`', () => {
     const c = base();
-    expect(renderToStaticMarkup(<PortraitTile c={c} team="ally" />)).toContain('team-ally');
-    expect(renderToStaticMarkup(<PortraitTile c={c} team="enemy" />)).toContain('team-enemy');
+    expect(renderToStaticMarkup(<PortraitTile c={c} team="allie" />)).toContain('team-allie');
+    expect(renderToStaticMarkup(<PortraitTile c={c} team="ennemi" />)).toContain('team-ennemi');
   });
 
   it('≤ 4 états visibles puis chevron ▾ (variante full)', () => {
@@ -71,9 +71,9 @@ describe('PortraitTile', () => {
       { id: 'empoisonne', value: 2 }, { id: 'hemorragique', value: 1 },
     ] as Combatant['conditions'];
     const html = renderToStaticMarkup(<PortraitTile c={c} />);
-    expect(html).toContain(iconSvg('condition/stunned')); // Sonné (sévérité max → 1er)
+    expect(html).toContain(iconSvg('etat/sonne')); // Sonné (sévérité max → 1er)
     expect(html).toContain('▾'); // 5 états → 4 + débordement
-    expect(html).not.toContain(iconSvg('condition/bleeding')); // Hémorragique (sévérité min) débordé
+    expect(html).not.toContain(iconSvg('etat/hemorragique')); // Hémorragique (sévérité min) débordé
     // 2 états → pas de chevron
     c.conditions = [{ id: 'sonne', value: 1 }, { id: 'a-terre', value: 1 }] as Combatant['conditions'];
     expect(renderToStaticMarkup(<PortraitTile c={c} />)).not.toContain('▾');
@@ -86,7 +86,7 @@ describe('PortraitTile', () => {
     expect(dead).toContain('class="ptile-wrap" data-fin="mort"');
     // La pastille de fin, teinte propre à la MORT, nommée (a11y) et marquée du crâne.
     expect(dead).toMatch(/<span class="end-mark es-mort" title="Mort" aria-label="Mort">/);
-    expect(dead).toContain(iconSvg('journal/death')); // crâne, pas une croix générique
+    expect(dead).toContain(iconSvg('journal/mort')); // crâne, pas une croix générique
     // un héros à 0 PB CONSCIENT reste À Terre (pas un état de fin) : aucune pastille
     const aterre = base();
     aterre.wounds = blessuresDeBase(12, 0, aterre);
@@ -156,7 +156,7 @@ describe('PortraitTile', () => {
     const html = renderToStaticMarkup(<PortraitTile c={c} ring={ring} />);
     expect(html).toContain(`--ptile-ring:${ring.color}`);
     expect(html).toContain('stroke="var(--ptile-ring)"');
-    const foe = { ...c, kind: 'enemy' } as Combatant;
+    const foe = { ...c, kind: 'ennemi' } as Combatant;
     const enemyRing = teamRingDecor(foe);
     expect(renderToStaticMarkup(<PortraitTile c={foe} ring={enemyRing} />)).toContain(`stroke-dasharray="${enemyRing.dash}"`);
   });

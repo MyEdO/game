@@ -1042,10 +1042,10 @@
     "effects": [
       {
         "trigger": "onDayStart",
-        "on": "self",
+        "on": "soi",
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "target",
             "ops": [

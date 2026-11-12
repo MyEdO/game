@@ -34,7 +34,7 @@ function startBelier(): { soldat: Combatant; crew: Combatant[]; ram: Combatant; 
   banc.abandonner();
   const b = banc.getState().battle!;
   const ram = b.combatants.find((c) => c.postes?.length)!;
-  const soldat = b.combatants.find((c) => c.kind === 'hero' && !!c.mannedPoste)!;
+  const soldat = b.combatants.find((c) => c.kind === 'heros' && !!c.mannedPoste)!;
   const crew = (ram.postes![0].crewIds ?? []).map((id) => b.combatants.find((c) => c.id === id)!);
   const porte = b.combatants.find((c) => c.creatureId === 'porte-de-ville')!;
   return { soldat, crew, ram, porte };
@@ -131,7 +131,7 @@ describe('Bélier — porte (belier-porte) : engin de siège CREWÉ, jamais une 
     // CHEF d'un engin mobile → bouton VISIBLE et actif (Équipe complète 6/6).
     expect(pushSlot(soldat, combatants)).toEqual({ show: true, undercrew: false });
     // Un autre héros du groupe (ne sert AUCUN poste) → aucun bouton.
-    const other = combatants.find((c) => c.kind === 'hero' && !c.mannedPoste)!;
+    const other = combatants.find((c) => c.kind === 'heros' && !c.mannedPoste)!;
     expect(other).toBeTruthy();
     expect(pushSlot(other, combatants)).toEqual({ show: false, undercrew: false });
     // Sous la moitié de l'Équipe (2/6) → bouton VISIBLE mais DÉSACTIVÉ (parité tir sous-effectif).
@@ -232,14 +232,14 @@ describe('Bélier — porte (belier-porte) : engin de siège CREWÉ, jamais une 
       banc.getState().cliquerLaCase({ x: soldat.pos!.x, y: soldat.pos!.y - dy });
     };
     // Départ (3 cases d'écart) : hors d'Allonge, la porte étant inanimée (jamais de Charge/approche implicite).
-    expect(attackPlan(() => banc.getState(), soldat, porte).kind).toBe('blocked');
+    expect(attackPlan(() => banc.getState(), soldat, porte).kind).toBe('bloque');
     pushBy(2); // (3,8) → (3,6) : reliquat de 1 case restant, toujours hors d'Allonge
-    expect(attackPlan(() => banc.getState(), soldat, porte).kind).toBe('blocked');
+    expect(attackPlan(() => banc.getState(), soldat, porte).kind).toBe('bloque');
     pushBy(1); // (3,6) → (3,5) : contact — la 2e poussée suffit
     expect(soldat.pos).toEqual({ x: 3, y: 5 });
     expect(ram.pos).toEqual({ x: 4, y: 5 }); // formation rigide : offset chef↔engin inchangé après 2 poussées cumulées
     // Contact DIRECT (dx=0) : la case (5,5) de l'empreinte 2×2 (colonnes 4-5) est juste au Nord de la porte (5,4).
-    expect(attackPlan(() => banc.getState(), soldat, porte).kind).toBe('attack');
+    expect(attackPlan(() => banc.getState(), soldat, porte).kind).toBe('attaque');
   });
 
   it("après avoir POUSSÉ la formation jusqu'à la porte (2 poussées, cap 2), le bélier l'assène (Force + Blessures)", () => {

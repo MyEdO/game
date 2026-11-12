@@ -24,9 +24,12 @@ func _recetter() -> void:
 	print("[regards] version=", Engine.get_version_info().string)
 	var monde: Monde = (load("res://scenes/Monde.tscn") as PackedScene).instantiate()
 	root.add_child(monde)
-	monde.poser({metresParCase = 2.0, positions = TRIANGLE + PLANCHER, normales = NORMALES + NORMALES, couleurs = COULEURS + COULEURS,
-		cases = [[0, 0, 0], [0, 0, 1]], surfaces = [{debut = 0, fin = 6, matiere = "terrain--terre"}],
-		hauteurs = [{z = 0, rangees = [[0.0]]}, {z = 1, rangees = [[4.0]]}], ombre = {positions = [], normales = [], couleurs = [], cases = [], surfaces = []}})
+	var rez := {cle = "sol/0/0/0", empreinte = "rez", rangee = 0, positions = TRIANGLE, normales = NORMALES, couleurs = COULEURS,
+		cases = [0, 0, 0], surfaces = [{debut = 0, fin = 3, matiere = "terrain--terre"}]}
+	var etage := {cle = "sol/1/0/0", empreinte = "etage", rangee = 2, positions = PLANCHER, normales = NORMALES, couleurs = COULEURS,
+		cases = [0, 0, 1], surfaces = [{debut = 0, fin = 3, matiere = "terrain--terre"}]}
+	monde.poser({monde = {metresParCase = 2.0, hauteurs = [{z = 0, rangees = [[0.0]]}, {z = 1, rangees = [[4.0]]}], morceaux = [rez, etage]},
+		toits = [], couronnes = []}, {volume = [rez, etage], toits = [], couronnes = []})
 	await physics_frame
 	_sol(monde, Vector3(0.6, 1.0, 0.6), Vector3i(0, 0, 0), 0.0)
 	_sol(monde, Vector3(0.6, 3.0, 0.6), Vector3i(0, 0, 1), 2.0)

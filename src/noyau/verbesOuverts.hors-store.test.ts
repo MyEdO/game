@@ -26,7 +26,7 @@ const ENTREES: EntreesDeLaPartie = { graine: 7, reglesMaison: {}, cadence: 'manu
 
 function leDuel() {
   const ouverture = creerPartie(etatInitialDuJeu(), ENTREES);
-  ouverture.lancer({ party: [heroDuDuel()], scene: testScene(), combatDirect: 'enc-mutants' });
+  ouverture.lancer({ party: [heroDuDuel()], scene: testScene(), projet: null, combatDirect: 'enc-mutants' });
   ouverture.envoyer({ type: 'fenetreValider', args: ['debutDuRound'] });
   const garde = ouverture.etat();
   ouverture.fermer();
@@ -42,7 +42,7 @@ const bd = (label: string, roll: number, target: number): RollBreakdown => {
   return { label, base: target, modifier: 0, target, roll, sl: t.sl, success: t.success };
 };
 const COUP: AttackResult = {
-  hit: true, attackerRoll: 21, netSL: 2, critical: false, advantageTo: 'attacker', defenderDefeated: false, log: '',
+  hit: true, attackerRoll: 21, netSL: 2, critical: false, advantageTo: 'attaquant', defenderDefeated: false, log: '',
   attackerDetail: bd('Corps à corps', 21, 45), defenderDetail: bd('Esquive', 60, 40),
 };
 const cascade = (step: CascadeStep): PendingCascade => ({ title: 'Témoin', cursor: 0, seq: 1, log: [], purpose: 'combat', participants: [step] });
@@ -235,7 +235,7 @@ describe('la Maladresse (LDB 14) : le flux `maladresse`, son tirage puis sa clô
 
   it('une étape sans Maladresse ne se tire ni ne s’applique', () => {
     const s = { ...BASE, pendingCascade: cascade(etape('maladresse')) } as Jeu;
-    expect([fermeturesDuFlux(s, 'maladresse').roll, fermeturesDuFlux(s, 'maladresse').confirm]).toEqual(['sansJet', 'sansJet']);
+    expect([fermeturesDuFlux(s, 'maladresse').lancer, fermeturesDuFlux(s, 'maladresse').valider]).toEqual(['sansJet', 'sansJet']);
   });
 });
 
@@ -243,7 +243,7 @@ describe('fermeturesDuFlux — la clôture d’une opposition au Sort', () => {
   it('se montre refusée tant qu’une cible interactive n’a pas opposé son Test', () => {
     const cible = (result: OppositionParticipant['result']) => ({ id: H.id, interactive: true, result }) as OppositionParticipant;
     const opposition = (part: OppositionParticipant) => ({ pendingCastOpposition: { participants: [part] } as unknown as PendingCastOpposition });
-    expect(fermeturesDuFlux({ ...BASE, ...opposition(cible(null)) } as Jeu, 'opposition').confirm).toBe('oppositionsDues');
-    expect(fermeturesDuFlux({ ...BASE, ...opposition(cible({ oppose: tr(30, 40), resisted: true, margin: 0 })) } as Jeu, 'opposition').confirm).toBeNull();
+    expect(fermeturesDuFlux({ ...BASE, ...opposition(cible(null)) } as Jeu, 'opposition').valider).toBe('oppositionsDues');
+    expect(fermeturesDuFlux({ ...BASE, ...opposition(cible({ oppose: tr(30, 40), resisted: true, margin: 0 })) } as Jeu, 'opposition').valider).toBeNull();
   });
 });

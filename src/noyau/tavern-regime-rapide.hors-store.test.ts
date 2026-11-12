@@ -80,7 +80,7 @@ describe('Régime RAPIDE — la règle optionnelle, DISTINCTE de l’ouverture d
     for (const entree of TAVERN_GAMES) {
       const jeu = findTavernGameById(entree.id)!;
       for (const cle of Object.keys(jeu)) if (!BLANCHE.has(cle)) fuites.push(`${entree.id}.${cle}`);
-      expect(jeu.mode, `${entree.id} : un Test opposé, rien d’autre`).toBe('opposed');
+      expect(jeu.mode, `${entree.id} : un Test opposé, rien d’autre`).toBe('oppose');
       // Aucune famille ne peut s'armer : les paramètres de séquence sont VIDES pour tout jeu.
       expect(tavernParams(jeu, 3), `${entree.id} : aucun paramètre de famille`).toEqual({});
     }
@@ -149,7 +149,7 @@ describe('Régime RAPIDE — la règle optionnelle, DISTINCTE de l’ouverture d
     expect(res.rounds, 'une seule manche : le plus de DR l’emporte').toBe(1);
     expect(res.stakeBrass).toBe(0);
     expect(res.netBrass, 'aucun mouvement de bourse : il n’y a pas de mise').toBe(0);
-    expect(['player', 'opponent', 'tie']).toContain(res.winner);
+    expect(['joueur', 'adversaire', 'egalite']).toContain(res.winner);
     expect(get().sequence, 'la partie est dénouée').toBeNull();
   });
 

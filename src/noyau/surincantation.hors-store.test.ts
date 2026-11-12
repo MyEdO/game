@@ -21,7 +21,7 @@ const ENTREES: EntreesDeLaPartie = { graine: 7, reglesMaison: {}, cadence: 'manu
 
 /** Sort d'épreuve : seuls Portée, Cible, Durée, famille et NI comptent ici. */
 const sort = (id: string, champs: Pick<SpellData, 'family' | 'range' | 'target' | 'duration' | 'cn'>): SpellData => ({
-  id, type: 'spells', label: id, ecole: 'Épreuve', subType: null, desc: '', effects: { kind: 'seq', steps: [] },
+  id, type: 'spells', label: id, ecole: 'Épreuve', subType: null, desc: '', effects: { kind: 'sequence', etapes: [] },
   source: { book: 'livre-de-base', page: 243 }, ...champs,
 } as SpellData);
 
@@ -160,7 +160,7 @@ describe('Surincantation — budget sur le NI effectif du jet', () => {
     lancer(FIXTURES.critique, (p) => {
       const pc = p.etat().pendingCast!;
       const L = p.etat().party.find((c) => c.id === pc.casterId)!;
-      const ennemi = { ...L, id: 'E', label: 'E', kind: 'enemy' as const, pos: { x: 1, y: 0 } };
+      const ennemi = { ...L, id: 'E', label: 'E', kind: 'ennemi' as const, pos: { x: 1, y: 0 } };
       const lanceurPose = { ...L, pos: { x: 0, y: 0 } };
       const plan = (r: typeof pc.result & object) => aiOvercastPlan(lanceurPose, 'X', FIXTURES.critique, r, [lanceurPose, ennemi], undefined, false);
       expect(plan(pc.result!), 'témoin : le jet lancé a un plan').toHaveProperty('extraTargetIds', ['E']);

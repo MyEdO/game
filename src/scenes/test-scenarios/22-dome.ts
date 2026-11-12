@@ -68,7 +68,7 @@ export const scenario: TestScenario = {
   id: 'dome',
   order: 20,
   category: 'magie',
-  icon: 'scenario/magic',
+  icon: 'scenario/magie',
   // LDB 47 l.410
   title: 'Dôme — la sauvegarde octroyée par une zone',
   tests:

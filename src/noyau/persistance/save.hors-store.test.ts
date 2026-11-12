@@ -18,7 +18,7 @@ import { scenario as conditionsEtendues } from '../../scenes/test-scenarios/98-c
 const etatDUnHote = (): EtatDeJeu & Record<string, unknown> => ({ ...etatInitialDuJeu(), camRot: 2, zoom: 1.8, reveler: true, sheetId: 'h', keyOverrides: { a: 'KeyA' } });
 
 /** Un héros minimal, porteur d'États. */
-const heros = (id: string, ...etats: string[]) => ({ id, label: id, kind: 'hero', conditions: etats.map((e) => ({ id: e, value: 1 })) });
+const heros = (id: string, ...etats: string[]) => ({ id, label: id, kind: 'heros', conditions: etats.map((e) => ({ id: e, value: 1 })) });
 
 const ENTREES = { graine: 3, cadence: 'manuel' as const, desFixes: true, persisterLeHeros: () => {} };
 
@@ -129,7 +129,7 @@ describe('chargerLaSave — l’état de jeu à ouvrir, ses règles, ses retrait
   it('une assise d’un héros absent du groupe est élaguée ; une scène sans assise n’en gagne pas le champ', () => {
     const sans = emptyScene('scene-sans-assise', 4, 4);
     expect('seatAssignments' in chargerLaSave(snapshotSave({ ...etatInitialDuJeu(), scene: sans }, 'x')).etat.scene!).toBe(false);
-    const avec = { ...emptyScene('scene-assise', 4, 4), seatAssignments: { 'table-absente': { 'place-1': { kind: 'party' as const, rang: 0 } } } };
+    const avec = { ...emptyScene('scene-assise', 4, 4), seatAssignments: { 'table-absente': { 'place-1': { kind: 'groupe' as const, rang: 0 } } } };
     expect(chargerLaSave(snapshotSave({ ...etatInitialDuJeu(), scene: avec }, 'x')).etat.scene!.seatAssignments).toEqual({});
   });
 
@@ -142,10 +142,10 @@ describe('chargerLaSave — l’état de jeu à ouvrir, ses règles, ses retrait
 
 describe('refusDeSauvegarde — l’hôte hors combat seul écrit la save', () => {
   it('en combat : `combat` ; d’un autre siège que l’hôte : `invite` ; sinon rien', () => {
-    const enCombat = { battle: {} as BattleState };
+    const enCombat = { battle: {} as BattleState, serieSubie: null };
     expect(refusDeSauvegarde(enCombat, 0)).toBe('combat');
     expect(refusDeSauvegarde(enCombat, 2)).toBe('combat');
-    expect(refusDeSauvegarde({ battle: null }, 2)).toBe('invite');
-    expect(refusDeSauvegarde({ battle: null }, 0)).toBeNull();
+    expect(refusDeSauvegarde({ battle: null, serieSubie: null }, 2)).toBe('invite');
+    expect(refusDeSauvegarde({ battle: null, serieSubie: null }, 0)).toBeNull();
   });
 });

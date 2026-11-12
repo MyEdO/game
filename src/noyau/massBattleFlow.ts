@@ -5,7 +5,7 @@
  *
  *   PRÉ-BATAILLE (l.79-110) : jusqu'à 3 Activités (Discours l.71, Planification, Infiltration,
  *     Rassembler des forces, Repérage, Sabotage) dont l'issue alimente la Puissance de départ et les
- *     modificateurs permanents (`allyMod`) AVANT le premier Round.
+ *     modificateurs permanents (`modificateurAllie`) AVANT le premier Round.
  *   ROUND DE BATAILLE (l.114-124) : (1) composition d'une SITUATION (un SOUS-ENSEMBLE de Scènes du
  *     moment : tirage/authorées + Scènes IMPOSÉES par l'ennemi — menaces l.219 et enchaînements) ; (2)
  *     Scènes cinématiques MULTI-PJ (l.116-118) résolues en SOUTIEN (LDB 12) ; (3) Test spectaculaire de
@@ -111,7 +111,7 @@ function cloneArmyCombatant(c: Combatant): Combatant {
 }
 
 /** Delta de Puissance d'une Scène résolue (affichage). */
-export interface SceneDelta { side: 'ally' | 'enemy'; amount: number; label: string }
+export interface SceneDelta { side: 'allie' | 'ennemi'; amount: number; label: string }
 
 /** Scène de COMBAT en cours (Charge/Pluie de flèches/Duel/Intrus…) : touches et PJ frappeurs suivis
  *  EN DIRECT par `massBattleTrackHit` durant la mêlée (l.139/145 ; intervention en Duel l.225). */
@@ -125,8 +125,8 @@ export interface MassBattleCombatScene {
 
 /** État runtime d'une bataille de masse. */
 export interface MassBattleState {
-  ally: MassBattleArmy;
-  enemy: MassBattleArmy;
+  allie: MassBattleArmy;
+  ennemi: MassBattleArmy;
   /** Rounds de bataille prévus (escarmouche = 1, siège ≥ 5, l.124). */
   plannedRounds: number;
   /** Round de bataille courant (1-based). */
@@ -137,7 +137,7 @@ export interface MassBattleState {
   /** Description narrative de la configuration du terrain du Round (l.126). */
   terrain?: string;
   /** Modificateur PERMANENT au Test de Puissance allié (Planification +10/+20, l.81). */
-  allyMod: number;
+  modificateurAllie: number;
   /** Bonus au Test de Puissance allié du PREMIER Round seul (Discours inspirant réussi, l.71). */
   firstRoundBonus: number;
   // ── Activités de bataille pré-combat (l.79-110) ──
@@ -265,28 +265,28 @@ function prepFlags(mb: MassBattleState): ReadonlySet<string> {
 const DEFAULT_SITUATION_SIZE = 3;
 
 /** Le nom d'une armée : celui authoré, sinon le défaut maison (`mbf.allyDefault`/`mbf.enemyDefault`). */
-export function nomDArmee(spec: MassBattleSpec, camp: 'ally' | 'enemy'): string {
-  return camp === 'ally' ? spec.allyName || t('mbf.allyDefault') : spec.enemyName || t('mbf.enemyDefault');
+export function nomDArmee(spec: MassBattleSpec, camp: 'allie' | 'ennemi'): string {
+  return camp === 'allie' ? spec.nomDesAllies || t('mbf.allyDefault') : spec.nomDesEnnemis || t('mbf.enemyDefault');
 }
 
 /** Ouvre une bataille de masse et bascule sur sa vue. */
 export function amorcerLaBataille(get: Get, set: Set, spec: MassBattleSpec): void {
   if (get().battle) { get().ecrireAuJournal(t('mbf.inCombat')); return; }
-  const allyMight = clampMight(spec.allyMight);
-  const enemyMight = clampMight(spec.enemyMight);
+  const allyMight = clampMight(spec.puissanceAlliee);
+  const enemyMight = clampMight(spec.puissanceEnnemie);
   // Le Rassemblement (sceneKind 'rally', l.122) n'est PAS une Scène cinématique de la pioche : il s'ouvre
   // entre les Rounds (`openMassBattleRally`). La pioche par défaut = les Scènes cinématiques (test/combat/
   // threat/hold, l.137-225).
   const defaultPool = ROUND_SCENES().filter((d) => d.sceneKind !== 'rally').map((d) => d.id);
   const pool = (spec.scenes && spec.scenes.length ? spec.scenes : defaultPool).filter((id) => !!battleSceneById(id));
   const mb: MassBattleState = {
-    ally: makeArmy(nomDArmee(spec, 'ally'), allyMight),
-    enemy: makeArmy(nomDArmee(spec, 'enemy'), enemyMight),
+    allie: makeArmy(nomDArmee(spec, 'allie'), allyMight),
+    ennemi: makeArmy(nomDArmee(spec, 'ennemi'), enemyMight),
     plannedRounds: Math.max(1, Math.floor(spec.plannedRounds ?? 1)),
     round: 1,
     phase: 'prep',
     terrain: spec.terrain,
-    allyMod: spec.allyMod ?? 0,
+    modificateurAllie: spec.modificateurAllie ?? 0,
     firstRoundBonus: 0,
     activitiesDone: [],
     planningBonus: 0,
@@ -304,8 +304,8 @@ export function amorcerLaBataille(get: Get, set: Set, spec: MassBattleSpec): voi
     sceneEncounters: spec.sceneEncounters,
     sceneState: {},
     log: [t('mbf.opened', {
-      ally: spec.allyName ? dataLabel(spec.allyName) : t('mbf.allyShortDefault'), allyMight,
-      enemy: spec.enemyName ? dataLabel(spec.enemyName) : t('mbf.enemyShortDefault'), enemyMight,
+      ally: spec.nomDesAllies ? dataLabel(spec.nomDesAllies) : t('mbf.allyShortDefault'), allyMight,
+      enemy: spec.nomDesEnnemis ? dataLabel(spec.nomDesEnnemis) : t('mbf.enemyShortDefault'), enemyMight,
     })],
   };
   set({ massBattle: mb });
@@ -400,7 +400,7 @@ function budgetedParty(s: EtatDInterlude): Combatant[] {
 /** ÉCART (allié − ennemi) d'une mesure d'armée NOMMÉE par une entrée (`difficultyFrom.gap`). PUR. */
 function battleMeasureGap(mb: MassBattleState, measure: BattleMeasure): number {
   switch (measure) {
-    case 'armyMight': return armyMight(mb.ally) - armyMight(mb.enemy);
+    case 'armyMight': return armyMight(mb.allie) - armyMight(mb.ennemi);
   }
 }
 
@@ -421,7 +421,7 @@ export function battleActivityDifficulty(def: ActivityDef, mb: MassBattleState, 
  *  (`testModFrom`) : Planification dépense le crédit de Repérage/Infiltration (l.75/100). PUR. */
 export function battleTestModPool(mb: MassBattleState, pool: BattleTestModPool): number {
   switch (pool) {
-    case 'allyTestMod': return mb.allyMod;
+    case 'allyTestMod': return mb.modificateurAllie;
     case 'firstRoundBonus': return mb.firstRoundBonus;
     case 'planningBonus': return mb.planningBonus;
   }
@@ -648,9 +648,9 @@ function openHoldScene(get: Get, set: Set, scene: ActivityDef): void {
   const skillBase = 'skill' in picked.test ? skillBaseValue(picked.actor, { skill: picked.test.skill }) : effectiveChar(picked.actor, picked.test.characteristic);
   const opposition: ActivityOppositionOn = {
     // Seuil de l'opposition (aucune Difficulté : Puissance + tenue) — écrêté par la primitive PARTAGÉE.
-    enemyValue: clampTarget(armyMight(mb.enemy) + enemyBonus).target,
+    enemyValue: clampTarget(armyMight(mb.ennemi) + enemyBonus).target,
     enemyRoll: d100(battleRng()),
-    enemyBase: armyMight(mb.enemy),
+    enemyBase: armyMight(mb.ennemi),
     skillBase,
   };
   openBattlePending(set, {
@@ -691,7 +691,7 @@ function openMassBattleRally(get: Get, set: Set): void {
 // ── Application des issues (appelée par `jetValider('activite')` pour une `PendingActivity` de bataille) ───
 
 /** Applique un delta de Puissance COURANTE à un camp par `GameOp` (`heal`/`wounds`). */
-function applyDelta(mb: MassBattleState, side: 'ally' | 'enemy', delta: number, idNeuf: FabriqueDId): MassBattleState {
+function applyDelta(mb: MassBattleState, side: 'allie' | 'ennemi', delta: number, idNeuf: FabriqueDId): MassBattleState {
   return { ...mb, [side]: armyWithMightDelta(mb[side], delta, idNeuf) };
 }
 
@@ -700,14 +700,14 @@ function applyDelta(mb: MassBattleState, side: 'ally' | 'enemy', delta: number, 
 function applyBattleOutcome(mb: MassBattleState, o: BattleOutcomeDelta, amount: number, label: string, idNeuf: FabriqueDId): { mb: MassBattleState; shown?: SceneDelta } {
   switch (o.target) {
     case 'might': {
-      const side = o.side ?? 'enemy';
+      const side = o.side ?? 'ennemi';
       return { mb: applyDelta(mb, side, amount, idNeuf), shown: { side, amount, label } };
     }
     case 'startMight': {
-      const side = o.side ?? 'ally';
+      const side = o.side ?? 'allie';
       return { mb: { ...mb, [side]: armyWithStartMightDelta(mb[side], amount) }, shown: { side, amount, label } };
     }
-    case 'allyTestMod': return { mb: { ...mb, allyMod: mb.allyMod + amount } };
+    case 'allyTestMod': return { mb: { ...mb, modificateurAllie: mb.modificateurAllie + amount } };
     case 'firstRoundBonus': return { mb: { ...mb, firstRoundBonus: mb.firstRoundBonus + amount } };
     case 'planningBonus': return { mb: { ...mb, planningBonus: mb.planningBonus + amount } };
   }
@@ -776,8 +776,8 @@ function applyBattleBands(
 function outcomeLabel(o: BattleOutcomeDelta, amount: number): string {
   const sign = amount >= 0 ? '+' : '';
   switch (o.target) {
-    case 'might': return t('mbf.outMight', { side: t((o.side ?? 'enemy') === 'ally' ? 'mbf.sideAlly' : 'mbf.sideEnemy'), amount: `${sign}${amount}` });
-    case 'startMight': return t('mbf.outStartMight', { side: t((o.side ?? 'ally') === 'ally' ? 'mbf.sideAlly' : 'mbf.sideEnemy'), amount: `${sign}${amount}` });
+    case 'might': return t('mbf.outMight', { side: t((o.side ?? 'ennemi') === 'allie' ? 'mbf.sideAlly' : 'mbf.sideEnemy'), amount: `${sign}${amount}` });
+    case 'startMight': return t('mbf.outStartMight', { side: t((o.side ?? 'allie') === 'allie' ? 'mbf.sideAlly' : 'mbf.sideEnemy'), amount: `${sign}${amount}` });
     case 'allyTestMod': return t('mbf.outAllyTestMod', { amount: `${sign}${amount}` });
     case 'firstRoundBonus': return t('mbf.outFirstRound', { amount: `${sign}${amount}` });
     case 'planningBonus': return t('mbf.outPlanning', { amount: `${sign}${amount}` });
@@ -900,7 +900,7 @@ function startBattleCombat(get: Get, set: Set, scene: ActivityDef): void {
 export function massBattleTrackHit(get: Get, set: Set, attacker: Combatant, target: Combatant): void {
   const mb = get().massBattle;
   if (!mb?.combatScene) return;
-  if (attacker.kind !== 'hero' || target.kind !== 'enemy' || isStructure(target)) return;
+  if (attacker.kind !== 'heros' || target.kind !== 'ennemi' || isStructure(target)) return;
   const cs = mb.combatScene;
   const hitters = cs.hitters.includes(attacker.id) ? cs.hitters : [...cs.hitters, attacker.id];
   set({ massBattle: { ...mb, combatScene: { ...cs, hits: cs.hits + 1, hitters } } });
@@ -977,15 +977,15 @@ export function choixDeLaBataille(get: Get, set: Set) {
  *  passage au Round suivant (l.122-124). */
 function jouerLeTestSpectaculaire(get: Get, set: Set): void {
   const mb = get().massBattle!;
-  const allyMod = mb.allyMod + (mb.round === 1 ? mb.firstRoundBonus : 0);
-  const clash = resolveClash(armyMight(mb.ally), armyMight(mb.enemy), { allyMod, enemyMod: 0, rng: battleRng() });
-  const ally = armyWithMightDelta(mb.ally, -clash.allyLoss, get().forgerUnId);
-  const enemy = armyWithMightDelta(mb.enemy, -clash.enemyLoss, get().forgerUnId);
+  const allyMod = mb.modificateurAllie + (mb.round === 1 ? mb.firstRoundBonus : 0);
+  const clash = resolveClash(armyMight(mb.allie), armyMight(mb.ennemi), { modificateurAllie: allyMod, modificateurEnnemi: 0, rng: battleRng() });
+  const ally = armyWithMightDelta(mb.allie, -clash.allyLoss, get().forgerUnId);
+  const enemy = armyWithMightDelta(mb.ennemi, -clash.enemyLoss, get().forgerUnId);
   const lines: string[] = [
     t('mbf.clash', { n: mb.round, total: mb.plannedRounds, enemyLoss: clash.enemyLoss, allyLoss: clash.allyLoss }),
     t('mbf.mightLine', { ally: ally.label, allyMight: armyMight(ally), enemy: enemy.label, enemyMight: armyMight(enemy) }),
   ];
-  let next: MassBattleState = { ...mb, ally, enemy, lastClash: clash };
+  let next: MassBattleState = { ...mb, allie: ally, ennemi: enemy, lastClash: clash };
   const destroyed = isDestroyed(armyMight(ally)) || isDestroyed(armyMight(enemy));
   if (destroyed || mb.round >= mb.plannedRounds) {
     const outcome = battleOutcome(armyMight(ally), armyMight(enemy));
@@ -1029,9 +1029,9 @@ export function validationsDeBatailleDeMasse(get: Get, set: Set) {
 }
 
 function outcomeLine(mb: MassBattleState, outcome: BattleOutcome, destroyed: boolean): string {
-  if (outcome === 'draw') return t('mbf.outcomeDraw');
-  const winner = outcome === 'ally' ? mb.ally.label : mb.enemy.label;
-  const loser = outcome === 'ally' ? mb.enemy.label : mb.ally.label;
+  if (outcome === 'egalite') return t('mbf.outcomeDraw');
+  const winner = outcome === 'allie' ? mb.allie.label : mb.ennemi.label;
+  const loser = outcome === 'allie' ? mb.ennemi.label : mb.allie.label;
   return t(destroyed ? 'mbf.outcomeDestroyed' : 'mbf.outcomeSuperior', { winner, loser });
 }
 
@@ -1048,8 +1048,8 @@ function cloreLaBataille(get: Get, set: Set): void {
 /** Libellé COURT d'une issue de bataille chiffrée (aperçu de la vue). */
 function shortOutcomeLabel(o: BattleOutcomeDelta): string {
   const target: Record<BattleOutcomeDelta['target'], string> = {
-    might: t((o.side ?? 'enemy') === 'ally' ? 'mbf.shortAlly' : 'mbf.shortEnemy'),
-    startMight: t((o.side ?? 'ally') === 'ally' ? 'mbf.shortAlly' : 'mbf.shortEnemy'),
+    might: t((o.side ?? 'ennemi') === 'allie' ? 'mbf.shortAlly' : 'mbf.shortEnemy'),
+    startMight: t((o.side ?? 'allie') === 'allie' ? 'mbf.shortAlly' : 'mbf.shortEnemy'),
     allyTestMod: t('mbf.shortAllyTestMod'), firstRoundBonus: t('mbf.shortFirstRound'), planningBonus: t('mbf.shortPlanning'),
   };
   const per = o.scale === 'perDR' ? t('mbf.perDR') : o.scale === 'perHit' ? t('mbf.perHit') : o.scale === 'perKill' ? t('mbf.perKill') : '';

@@ -23,7 +23,7 @@ export function ReadyRow({ ready }: { ready: Record<number, boolean> }) {
         const nom = nomDuSiege(net, seat);
         return (
           <span key={seat} className={`ready-chip${pret ? ' ok' : ''}`} data-seat={seat} data-pret={pret ? '' : undefined}>
-            <span className="ready-seat"><Icon id="nav/seat-owner" size="sm" /></span>
+            <span className="ready-seat"><Icon id="navigation/proprietaire-du-siege" size="sm" /></span>
             {nom} {pret ? '✓' : '…'}
           </span>
         );

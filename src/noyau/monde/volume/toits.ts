@@ -29,7 +29,7 @@
  * aussi le voisinage d'arête (`WALL_NB`), SOURCE UNIQUE relue par `walls.ts`.
  */
 import { heightAt, sceneMetresPerTile, type ArchitectureBody, type CellSide, type BuildingMass, type Scene, type WallSeg, type WallSide } from '../scene';
-import { memoByRef } from '../sceneMemo';
+import { memoByRef, memoByRefDeps } from '../sceneMemo';
 import { aretesA } from '../wallIndex';
 import { effectiveArchitecture, fittedPitchDeg, localCrossSpans, toitureEffective } from '../../sceneEdit';
 import { roofMaterial } from './matieres';
@@ -959,6 +959,8 @@ export function shelterSectionAt(field: ReadonlyMap<string, ShelterColumn>, x: n
   return field.get(vk(Math.round(x), Math.round(y)))?.sectionId ?? null;
 }
 
+const espaceRetenu = memoByRefDeps<Scene, ClearedSpace>();
+
 /** ESPACE DÉGAGÉ par les alliés (#818), résolution UNIQUE de la scène — consommée par la loi
  *  `cutawayForSection` (`stage/architectureVisibility.ts`) pour les toits ICI et pour les murs et
  *  façades dans l'hôte du monde (`stage/MondeDeCampagne`) : une seule vérité, jamais deux qui
@@ -988,8 +990,19 @@ export function shelterSectionAt(field: ReadonlyMap<string, ShelterColumn>, x: n
  *  le volume d'une masse dont il occupe un niveau — n'en voit AUCUNE : on ne regarde pas au travers
  *  d'un plafond (`computeVisible` ne marque jamais une case au-dessus du viewer). Le porche et le
  *  passage couvert ne sont PAS dedans : la masse les coiffe sans les enfermer, la vue y reste ouverte
- *  de tous côtés. `sight` absente ⇒ `null` : la vue n'est régie par aucune vision (éditeur, QC, POV). */
+ *  de tous côtés. `sight` absente ⇒ `null` : la vue n'est régie par aucune vision (éditeur, QC, POV).
+ *
+ *  Résolu une fois par scène, par cases des alliés et par vue (`memoByRefDeps`) : ses lecteurs d'un même pas (nappes,
+ *  arêtes, couvercle) reçoivent le même espace. */
 export function clearedSpace(
+  scene: Scene,
+  allies: readonly { x: number; y: number; z?: number }[],
+  sight?: ReadonlySet<string>,
+): ClearedSpace {
+  return espaceRetenu(scene, [sight, ...allies.flatMap((a) => [a.x, a.y, a.z])], () => espaceDegage(scene, allies, sight));
+}
+
+function espaceDegage(
   scene: Scene,
   allies: readonly { x: number; y: number; z?: number }[],
   sight?: ReadonlySet<string>,

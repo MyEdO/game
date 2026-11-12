@@ -38,7 +38,7 @@ export function SeaActivitiesModal() {
   const freeEnc = encLibreNominale(vessel);
 
   return (
-    <Modal title={<><Icon id="travel/anchor" size="sm" /> Activités en mer — semaine écoulée</>} taille="large"
+    <Modal title={<><Icon id="voyage/ancre" size="sm" /> Activités en mer — semaine écoulée</>} taille="large"
       footer={
         <>
           <GatedAction id="sea-act-confirm" label="Valider la semaine" enabled={refusDeValider == null} {...raisonSi(refusDeValider)} onClick={() => valider('activitesEnMer')} />

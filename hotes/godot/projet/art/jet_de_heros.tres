@@ -1,0 +1,21 @@
+[gd_resource type="Theme" load_steps=2 format=3]
+
+[sub_resource type="StyleBoxFlat" id="Anneau_a_lancer"]
+bg_color = Color(0, 0, 0, 0)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.725, 0.671, 0.573, 0.5)
+content_margin_left = 10.0
+content_margin_top = 2.0
+content_margin_right = 10.0
+content_margin_bottom = 2.0
+corner_radius_top_left = 999
+corner_radius_top_right = 999
+corner_radius_bottom_right = 999
+corner_radius_bottom_left = 999
+
+[resource]
+neutre/base_type = &"PanelContainer"
+neutre/styles/panel = SubResource("Anneau_a_lancer")

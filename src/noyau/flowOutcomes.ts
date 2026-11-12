@@ -47,7 +47,7 @@ import { rule } from '../engine/policy';
  *  dans le breakdown au-dessus — l'issue reste une phrase courte. */
 export function describeTest(pt: PendingTest): string {
   if (pt.roll == null) return '';
-  if (pt.forced) return t('out.testForced', { name: pt.actorName });
+  if (pt.forcee) return t('out.testForced', { name: pt.actorName });
   return pt.success ? t('out.testSuccess', { name: pt.actorName }) : t('out.testFail', { name: pt.actorName });
 }
 
@@ -56,7 +56,7 @@ export function describeTest(pt: PendingTest): string {
  * mécanique nouvelle). Retourne `null` quand il n'y a rien à afficher : règle coupée, avant le jet, sans double,
  * ou sur une réussite FORCÉE par Résilience (le « double » n'a pas eu lieu sur un vrai dé). */
 export function amazingTestLabel(pt: PendingTest): { success: boolean; text: string } | null {
-  if (!rule('test-critiques-doubles') || pt.roll == null || !pt.isDouble || pt.forced) return null;
+  if (!rule('test-critiques-doubles') || pt.roll == null || !pt.isDouble || pt.forcee) return null;
   return { success: pt.success, text: pt.success ? t('out.amazingSuccess') : t('out.amazingFail') };
 }
 
@@ -268,8 +268,8 @@ export function describeBattement(pb: PendingBattement, attackerName: string, fo
     : t('manv.battementFail', { name: attackerName, foe: foeName });
 }
 
-/** Distraire (LDB 10 l.364) : verdict du Test opposé Athlétisme vs Calme. Victoire (`success`) → le foe
- *  est distrait ; 'tie'/'failure' → rien. Popin = MÊME phrase que la ligne de journal (`manv.distraire*`). */
+/** Distraire (LDB 10 l.364) : verdict du Test opposé Athlétisme vs Calme. Victoire (`reussite`) → le foe
+ *  est distrait ; `egalite`/`echec` → rien. Popin = MÊME phrase que la ligne de journal (`manv.distraire*`). */
 export function describeDistraire(pd: PendingDistraire, moverName: string, foeName: string): string {
   if (pd.result == null) return '';
   return pd.result === 'reussite'

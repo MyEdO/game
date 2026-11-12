@@ -69,7 +69,7 @@ export function creerActionsDHorloge(get: Get, set: Set) {
         const upkeepLines = runDailyUpkeep(get, set, { onDeferTest: (t) => deferred.push(t) });
         // 2ᵉ des TROIS bâtisseurs à passer par la fabrique de bandes (#1117 L3).
         const steps = nightBands(restFlow.deferredUpkeepSteps(get().party, deferred));
-        if (steps.length) openSequence(get, set, { title: 'Entretien quotidien', icon: 'time/night', purpose: 'upkeep', steps, log: upkeepLines });
+        if (steps.length) openSequence(get, set, { title: 'Entretien quotidien', icon: 'temps/nuit', purpose: 'upkeep', steps, log: upkeepLines });
         // Même `purpose:'upkeep'` que la branche à jets ci-dessus : les deux issues du MÊME entretien
         // quotidien ouvrent la MÊME séquence (le témoin groupé est le cas « zéro jet à influencer »).
         else if (upkeepLines.length) pushReveal(set, { kind: 'round', title: 'Entretien quotidien', lines: upkeepLines }, { purpose: 'upkeep' });

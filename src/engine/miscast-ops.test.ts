@@ -22,7 +22,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testki
 
 function hero(p: Partial<Combatant> = {}): Combatant {
   return blessuresSurLeProfil({
-    id: 'h', label: 'Cobaye', kind: 'hero',
+    id: 'h', label: 'Cobaye', kind: 'heros',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 40, 'force-mentale': 35, sociabilite: 45 },
     wounds: blessuresDeBase(12, 10), advantage: 0, conditions: [], movement: 4,
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -103,10 +103,10 @@ describe('Tests imbriqués des tables → nœud Flow `test`', () => {
     if (node.kind !== 'test') return;
     expect(node.test.characteristic).toBe('force-mentale');
     expect(node.test.difficulty).toBe('accessible');
-    // Branche d'échec = un `do` ops {corruption +1}.
-    expect(node.fail.kind).toBe('do');
-    if (node.fail.kind === 'do' && node.fail.effect.type === 'ops') {
-      expect(node.fail.effect.ops).toContainEqual({ op: 'corruption', amount: 1 });
+    // Branche d'échec = un `effet` ops {corruption +1}.
+    expect(node.echec.kind).toBe('effet');
+    if (node.echec.kind === 'effet' && node.echec.effet.type === 'ops') {
+      expect(node.echec.effet.ops).toContainEqual({ op: 'corruption', amount: 1 });
     }
   });
 
@@ -129,17 +129,17 @@ describe('Tests imbriqués des tables → nœud Flow `test`', () => {
     expect(node.test.skill).toEqual({ id: 'resistance' });
     expect(node.test.difficulty).toBe('difficile');
     // Branche d'échec = seq[ do{Sonné}, if slThreshold(≤ −4) → do{Inconscient} ] (palier onFailHard).
-    expect(node.fail.kind).toBe('seq');
-    if (node.fail.kind !== 'seq') return;
-    const sonne = node.fail.steps[0];
-    expect(sonne.kind).toBe('do');
-    if (sonne.kind === 'do' && sonne.effect.type === 'ops') expect(sonne.effect.ops.some((o) => o.op === 'condition' && o.id.id === 'sonne')).toBe(true);
-    const hard = node.fail.steps[1];
-    expect(hard.kind).toBe('if');
-    if (hard.kind === 'if') {
-      expect(hard.cond).toEqual({ kind: 'slThreshold', op: '<=', value: -4 });
-      expect(hard.then.kind).toBe('do');
-      if (hard.then.kind === 'do' && hard.then.effect.type === 'ops') expect(hard.then.effect.ops.some((o) => o.op === 'condition' && o.id.id === 'inconscient')).toBe(true);
+    expect(node.echec.kind).toBe('sequence');
+    if (node.echec.kind !== 'sequence') return;
+    const sonne = node.echec.etapes[0];
+    expect(sonne.kind).toBe('effet');
+    if (sonne.kind === 'effet' && sonne.effet.type === 'ops') expect(sonne.effet.ops.some((o) => o.op === 'condition' && o.id.id === 'sonne')).toBe(true);
+    const hard = node.echec.etapes[1];
+    expect(hard.kind).toBe('si');
+    if (hard.kind === 'si') {
+      expect(hard.condition).toEqual({ kind: 'slThreshold', op: '<=', value: -4 });
+      expect(hard.alors.kind).toBe('effet');
+      if (hard.alors.kind === 'effet' && hard.alors.effet.type === 'ops') expect(hard.alors.effet.ops.some((o) => o.op === 'condition' && o.id.id === 'inconscient')).toBe(true);
     }
   });
 });
@@ -295,10 +295,10 @@ describe('81-87 Purifier la chair — Inconscient tant que la Colère dure (LDB 
       const r = rollMiscast('colere', makeRNG(seed), 0);
       if (r.rowId !== 'colere-purifier-la-chair') continue;
       const node: Flow = r.testFlow!;
-      if (node.kind !== 'test' || node.fail.kind !== 'seq') throw new Error('structure de la rangée inattendue');
-      const hard = node.fail.steps[1];
-      if (hard.kind !== 'if' || hard.then.kind !== 'do' || hard.then.effect.type !== 'ops') throw new Error('palier onFailHard introuvable');
-      return hard.then.effect.ops;
+      if (node.kind !== 'test' || node.echec.kind !== 'sequence') throw new Error('structure de la rangée inattendue');
+      const hard = node.echec.etapes[1];
+      if (hard.kind !== 'si' || hard.alors.kind !== 'effet' || hard.alors.effet.type !== 'ops') throw new Error('palier onFailHard introuvable');
+      return hard.alors.effet.ops;
     }
     throw new Error('rangée « Purifier la chair » introuvable');
   }
@@ -421,7 +421,7 @@ describe('enjeu du Test imbriqué d’une rangée tirée (#1667)', () => {
       const r = rollMiscast('mineure', makeRNG(1), 0, undefined, 53);
       expect(r.rowId).toBe('mineure-vdm-visions-impies');
       const test = r.testFlow as Extract<Flow, { kind: 'test' }>;
-      expect(test.test.stake?.key).toMatchObject({ entryId: 'mineure-vdm-visions-impies', entryCategory: 'miscastMinorVdm' });
+      expect(test.test.stake?.key).toMatchObject({ entryId: 'mineure-vdm-visions-impies', entryCategory: 'imparfaiteMineureVdm' });
     } finally {
       resetRule('magie-vdm-incantation');
     }

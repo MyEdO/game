@@ -259,7 +259,7 @@
     "type": "stakes",
     "label": "Réparation du gréement",
     "cascade": "voyage",
-    "template": "Réussi : malus de Navigation levés ({driftPenalty} dérive, {outOfControlPenalty} hors de contrôle).",
+    "template": "Réussi : malus de Navigation levés ({malusDeDerive} dérive, {malusHorsDeControle} hors de contrôle).",
     "form": "descripteur",
     "source": {
       "book": "mort-sur-le-reik-compagnon",
@@ -293,7 +293,7 @@
     "type": "stakes",
     "label": "Louvoyage",
     "cascade": "voyage",
-    "template": "Réussi : +{windPct} % de vitesse ; échec : +0 %.",
+    "template": "Réussi : +{pourcentageDuVent} % de vitesse ; échec : +0 %.",
     "form": "descripteur",
     "source": {
       "book": "mort-sur-le-reik-compagnon",
@@ -327,7 +327,7 @@
     "type": "stakes",
     "label": "Préserver le gréement",
     "cascade": "voyage",
-    "template": "Échec : Coup Critique au gréement, dérive hors de contrôle ({outOfControlPenalty} en Navigation).",
+    "template": "Échec : Coup Critique au gréement, dérive hors de contrôle ({malusHorsDeControle} en Navigation).",
     "form": "descripteur",
     "source": {
       "book": "mort-sur-le-reik-compagnon",
@@ -559,7 +559,7 @@
     "type": "stakes",
     "label": "Dégagement des Débris marins",
     "cascade": "voyage",
-    "template": "Test étendu : tant que le total de {targetDR} DR n'est pas atteint, le navire reste empêtré.",
+    "template": "Test étendu : tant que le total de {drCible} DR n'est pas atteint, le navire reste empêtré.",
     "form": "descripteur",
     "rule": {
       "id": "degagement-debris-marins",
@@ -1409,7 +1409,7 @@
     "type": "stakes",
     "label": "Chirurgie — une passe",
     "cascade": "flux",
-    "template": "Test étendu de Guérison : le DR cumule vers {targetDR}. Chaque passe coûte au patient 1d10 Blessures et 1 État Hémorragique.",
+    "template": "Test étendu de Guérison : le DR cumule vers {drCible}. Chaque passe coûte au patient 1d10 Blessures et 1 État Hémorragique.",
     "form": "descripteur",
     "rule": {
       "id": "chirurgie",
@@ -1679,7 +1679,7 @@
     "type": "stakes",
     "label": "Rééducation d’un membre — une passe",
     "cascade": "flux",
-    "template": "Test étendu de Guérison Accessible (+20) : le DR cumule vers {targetDR}, sans aucun dégât pour le patient. Cible atteinte : l’usage du membre est rendu, au prix d’une pénalité de −10 aux Tests qui l’impliquent pendant 1d10 jours (Mouvement de moitié pour une jambe). Arrêter : le cumul est perdu.",
+    "template": "Test étendu de Guérison Accessible (+20) : le DR cumule vers {drCible}, sans aucun dégât pour le patient. Cible atteinte : l’usage du membre est rendu, au prix d’une pénalité de −10 aux Tests qui l’impliquent pendant 1d10 jours (Mouvement de moitié pour une jambe). Arrêter : le cumul est perdu.",
     "form": "descripteur",
     "rule": {
       "id": "guerison",
@@ -2011,7 +2011,7 @@
     "cascade": "combat",
     "template": "Un d100 sur le tableau de la Colère des dieux, +10 par Point de Péché déjà accumulé : la ligne tirée dit la sanction divine. Après le lancer, les Points de Péché baissent de 1, jusqu’à un minimum de 0.",
     "form": "descripteur",
-    "entryCategory": "miscastWrath",
+    "entryCategory": "colereDesDieux",
     "source": {
       "book": "livre-de-base",
       "page": 218,

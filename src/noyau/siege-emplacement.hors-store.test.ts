@@ -31,7 +31,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 const CHARS = (CT = 75) =>
   ({ 'capacite-de-combat': 30, 'capacite-de-tir': CT, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 });
 
-const mkGunner = (id: string, kind: 'hero' | 'npc' | 'enemy', pos: { x: number; y: number }, CT = 75): Combatant =>
+const mkGunner = (id: string, kind: 'heros' | 'pnj' | 'ennemi', pos: { x: number; y: number }, CT = 75): Combatant =>
   combattantDeTest({
     id, label: id, kind, characteristics: CHARS(CT),
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], skills: [], talents: [], weapons: [],
@@ -39,18 +39,18 @@ const mkGunner = (id: string, kind: 'hero' | 'npc' | 'enemy', pos: { x: number; 
   });
 
 const mkCrewman = (id: string, alive = true): Combatant =>
-  combattantDeTest({ id, label: id, kind: 'npc', conditions: [], weapons: [], skills: [], talents: [], characteristics: CHARS(30) as never,
+  combattantDeTest({ id, label: id, kind: 'pnj', conditions: [], weapons: [], skills: [], talents: [], characteristics: CHARS(30) as never,
     dead: !alive, wounds: blessuresDeBase(5, alive ? 5 : 0) });
 
 const mkEnemy = (id: string, x: number, y: number, E = 30, wounds = 40): Combatant =>
-  combattantDeTest({ id, label: id, kind: 'enemy', pos: { x, y }, conditions: [], weapons: [], skills: [], talents: [],
+  combattantDeTest({ id, label: id, kind: 'ennemi', pos: { x, y }, conditions: [], weapons: [], skills: [], talents: [],
     characteristics: { ...CHARS(0), endurance: E }, wounds: blessuresDeBase(wounds), advantage: 0,
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 } });
 
 /** Emplacement AU SOL : une SceneEntity NON-navire qui PORTE la pièce (`postes`) — SANS `crewIds` au niveau
  *  porteur (≠ coque) pour que `shipOfCrew(chef)` rate et que l'arc retombe sur l'orientation du chef. */
 const mkEmplacement = (poste: ShipPoste, pos = { x: 5, y: 7 }): Combatant =>
-  combattantDeTest({ id: 'emplacement', label: 'Affût de baliste', kind: 'enemy', pos, conditions: [], weapons: [],
+  combattantDeTest({ id: 'emplacement', label: 'Affût de baliste', kind: 'ennemi', pos, conditions: [], weapons: [],
     inert: true, wounds: blessuresDeBase(0), advantage: 0, postes: [poste] }); // affût RAW-pur (AA 10 l.175-193) : 0 Blessure, immune
 
 const mkPoste = (engineId: string, crewIds: string[], side?: FireArc): ShipPoste =>
@@ -77,14 +77,14 @@ describe('(A) Service — emplacement au sol : spawn lit les postes, le chef est
   it('`applyShipPostes` pose `mannedPoste` sur le chef (crewIds[0]) et octroie la baliste dérivée (omni)', () => {
     const poste = mkPoste('baliste', ['gunner', 's1']);
     const emplacement = mkEmplacement(poste);
-    const gunner = mkGunner('gunner', 'npc', { x: 5, y: 6 });
+    const gunner = mkGunner('gunner', 'pnj', { x: 5, y: 6 });
     const s1 = mkCrewman('s1');
     const all = [emplacement, gunner, s1, mkEnemy('cible', 9, 5)];
     applyShipPostes(all);
     expect(gunner.mannedPoste).toBeTruthy();
     expect(gunner.mannedPoste!.item.uid).toBe(poste.item.uid);
     const w = gunner.weapons.find((x) => x.uid === poste.item.uid);
-    expect(w?.type).toBe('ranged');
+    expect(w?.type).toBe('distance');
     expect(w?.subType).toBe('armes-de-siege');
     expect(w?.mountSide).toBeUndefined(); // pas de `side` → arc omni
   });
@@ -96,7 +96,7 @@ describe('(B) Tir — le chef sert la pièce et touche la cible (resolveAttack, 
   it('une touche se résout via la pièce servie → Blessures infligées', () => {
     seedBattleRng(1);
     const poste = mkPoste('baliste', ['gunner', 's1']);
-    const gunner = mkGunner('gunner', 'hero', { x: 5, y: 5 }, 80);
+    const gunner = mkGunner('gunner', 'heros', { x: 5, y: 5 }, 80);
     gunner.skills = [{ id: 'projectiles', spec: 'arbalete', characteristic: 'capacite-de-tir', advances: 0 }] as never;
     const s1 = mkCrewman('s1');
     s1.skills = [{ id: 'projectiles', spec: 'arbalete', characteristic: 'capacite-de-tir', advances: 0 }] as never; // équipe COMPLÈTE et qualifiée (2/2)
@@ -121,7 +121,7 @@ describe('(C) Sous-effectif — la pénalité d’Arme d’équipe s’applique 
 
   it('baliste (Indice 2) servie en sous-effectif → recharge ×2 + Arme d’équipe retirée (firedWeapon ⊃ crewedFireWeapon)', () => {
     const poste = mkPoste('baliste', ['chef', 's1']); // baliste : arme-d-equipe Indice 2, Recharge 3, Dégâts 12
-    const chef = mkGunner('chef', 'hero', { x: 5, y: 5 });
+    const chef = mkGunner('chef', 'heros', { x: 5, y: 5 });
     chef.skills = arb();
     const all = [mkEmplacement(poste), chef, mkCrewman('s1', false), mkEnemy('cible', 12, 5)]; // s1 à terre → présent 1, déficit 1
     applyShipPostes(all);
@@ -132,7 +132,7 @@ describe('(C) Sous-effectif — la pénalité d’Arme d’équipe s’applique 
 
   it('effectif COMPLET (2/2) → arme nette : recharge normale, Arme d’équipe retirée (pas de double)', () => {
     const poste = mkPoste('baliste', ['chef', 's1']);
-    const chef = mkGunner('chef', 'hero', { x: 5, y: 5 });
+    const chef = mkGunner('chef', 'heros', { x: 5, y: 5 });
     chef.skills = arb();
     const s1 = mkCrewman('s1');
     s1.skills = arb();
@@ -145,7 +145,7 @@ describe('(C) Sous-effectif — la pénalité d’Arme d’équipe s’applique 
   it('Indice 3 (mortier) servi par le chef SEUL → Imprécise ajoutée (escalade de crewedFireWeapon, déficit ≥ 2)', () => {
     // crewedFireWeapon est la SOURCE UNIQUE de la dégradation (réutilisée par firedWeapon) — éprouvée sur
     // l'arme dérivée du poste (le mortier n'a PAS le Défaut Imprécise de base → la pénalité l'AJOUTE).
-    const chef = mkGunner('chef', 'hero', { x: 5, y: 5 });
+    const chef = mkGunner('chef', 'heros', { x: 5, y: 5 });
     const w0 = mannedPosteWeapon(chef, { item: itemFromTrappingById('mortier', idsDeTest)!, crewIds: ['chef'] } as ShipPoste)!;
     const w = crewedFireWeapon(w0, 1); // présent 1, Indice 3 → déficit 2
     expect(w.reload).toBe(8); // Recharge 4 ×2
@@ -159,9 +159,9 @@ describe('(D) Recharge — Test étendu du chef rechargeant l’emplacement au s
   const setup = (order = ['chef', 'emplacement', 's1']) => {
     const item = itemFromTrappingById('baliste', idsDeTest)!; // Recharge 3, Indice 2
     const poste: ShipPoste = { item, crewIds: [], loaded: false, reloadProgress: 2 };
-    const chef = mkGunner('chef', 'hero', { x: 5, y: 6 }, 80);
+    const chef = mkGunner('chef', 'heros', { x: 5, y: 6 }, 80);
     chef.skills = [{ id: 'projectiles', spec: 'arbalete', characteristic: 'capacite-de-tir', advances: 20 }] as never;
-    const s1 = mkGunner('s1', 'npc', { x: 6, y: 6 }, 40);
+    const s1 = mkGunner('s1', 'pnj', { x: 6, y: 6 }, 40);
     s1.skills = [{ id: 'projectiles', spec: 'arbalete', characteristic: 'capacite-de-tir', advances: 10 }] as never;
     const emplacement = mkEmplacement(poste);
     const all = [emplacement, chef, s1];
@@ -207,7 +207,7 @@ describe('(D) Recharge — Test étendu du chef rechargeant l’emplacement au s
 describe('(E) AoE — mortier + bombe explosion frappe un groupe au sol (branche terre de resolveWeaponArea)', () => {
   it('toutes les cibles dans le rayon Indice subissent DR+Dégâts ; hors rayon = épargné', () => {
     seedBattleRng(7);
-    const chef = mkGunner('chef', 'hero', { x: 0, y: 0 });
+    const chef = mkGunner('chef', 'heros', { x: 0, y: 0 });
     const mortier = mannedPosteWeapon(chef, { item: itemFromTrappingById('mortier', idsDeTest)!, crewIds: ['chef'] })!;
     const bomb = itemFromTrappingById('bombe-de-mortier', idsDeTest)!; // Explosion Indice 5, Dégâts 12
     const w: Weapon = weaponWithAmmo(mortier, bomb); // arme effective : la qualité a-explosion est fusionnée
@@ -238,10 +238,10 @@ describe('(F) Arc — emplacement au sol : omni sans side, sinon arc relatif au 
   /** Chef-héros au sol servant une pièce, SANS coque dans le combat (→ `shipOfCrew` rate → fallback chef). */
   const groundGunner = (side?: FireArc): { gunner: Combatant; uid: string } => {
     const item = itemFromTrappingById('pierrier', idsDeTest)!;
-    const w = mannedPosteWeapon(mkGunner('g', 'hero', { x: 5, y: 5 }), { item, crewIds: ['g'], ...(side ? { side } : {}) } as ShipPoste)!;
+    const w = mannedPosteWeapon(mkGunner('g', 'heros', { x: 5, y: 5 }), { item, crewIds: ['g'], ...(side ? { side } : {}) } as ShipPoste)!;
     delete (w as { reload?: number }).reload; // isole la garde d'ARC (pas le gate Recharge/munition)
     delete (w as { subType?: string }).subType; // pas de famille de munition → pas de gate 'noammo'
-    const gunner = mkGunner('g', 'hero', { x: 5, y: 5 });
+    const gunner = mkGunner('g', 'heros', { x: 5, y: 5 });
     gunner.weapons = [w];
     gunner.mannedPoste = { item, crewIds: ['g'], ...(side ? { side } : {}) } as ShipPoste;
     return { gunner, uid: w.uid! };

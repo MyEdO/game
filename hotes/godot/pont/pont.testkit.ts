@@ -8,7 +8,7 @@ import { join } from 'node:path';
 import { expect } from 'vitest';
 import { listage } from '../listage.mjs';
 import { tableTotale } from '../../../src/lib/tableTotale';
-import { creerPont, type Pont, type Suite, type VueDuPont } from './pont';
+import { creerPont, type MondeDuPont, type MorceauxDuPont, type Pont, type Suite, type VueDuPont } from './pont';
 import { gestesDessines } from './dessines';
 export { enFocus, gestesDessines } from './dessines';
 import type { CategorieDuPont } from './pont';
@@ -28,6 +28,16 @@ export function table() {
     return JSON.parse(brut) as Reponse;
   };
   return { pont, appel };
+}
+
+/** Le manifeste du monde de la partie (`monde`). */
+export const mondeDe = (appel: ReturnType<typeof table>['appel']): MondeDuPont => appel('monde') as unknown as MondeDuPont;
+
+/** La géométrie de chaque morceau du volume de `manifeste`, demandée à `morceaux` sur la scène de `source`. */
+export function morceauxDe(appel: ReturnType<typeof table>['appel'], source: 'partie' | 'edition', manifeste: NonNullable<MondeDuPont['monde']>): MorceauxDuPont['volume'] {
+  const r = appel('morceaux', { source, volume: manifeste.morceaux.map(({ cle }) => cle), toits: [], couronnes: [] });
+  expect(r.ok, JSON.stringify(r)).toBe(true);
+  return (r as unknown as MorceauxDuPont).volume;
 }
 
 /** La vue d'une réponse qui en porte une. */

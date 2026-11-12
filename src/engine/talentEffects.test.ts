@@ -17,7 +17,7 @@ const hero = (over: Partial<Combatant> = {}): Combatant =>
   (blessuresSurLeProfil({
     id: 'h',
     name: 'H',
-    kind: 'hero',
+    kind: 'heros',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(13),
     advantage: 0,

@@ -136,10 +136,10 @@ describe('WorldMapEditor — panneau Lieu (#419)', () => {
     setValue(input('Nom'), 'Nouvel Altdorf');
     expect(lastMap!.places[0].label).toBe('Nouvel Altdorf');
 
-    // « Porte » (map-tool/door) — une valeur qui CHANGE l'état (le lieu part sans `icon`, l.31) :
+    // « Porte » (outil-de-carte/porte) — une valeur qui CHANGE l'état (le lieu part sans `icon`, l.31) :
     // un `IconField` débranché laisserait `icon` à `undefined` et cette assertion échouerait.
     pickRef('Icône', 'Porte');
-    expect(lastMap!.places[0].icon).toBe('map-tool/door');
+    expect(lastMap!.places[0].icon).toBe('outil-de-carte/porte');
 
     pickRef("Fond d'ambiance", 'Taverne commune');
     expect(lastMap!.places[0].backdrop).toEqual({ id: 'taverne-commune' });
@@ -213,7 +213,7 @@ describe('WorldMapEditor — panneau Lieu / Plan du hub (#419)', () => {
     expect(lastMap!.places[0].poi![0].label).toBe('Comptoir du port');
 
     pickRef('Icône', 'Porte');
-    expect(lastMap!.places[0].poi![0].icon).toBe('map-tool/door');
+    expect(lastMap!.places[0].poi![0].icon).toBe('outil-de-carte/porte');
 
     // Placement par clic sur le plan (`MapCanvas` background click, #345) : le POI créé part au
     // centre {50,50} (WorldMapPlacePanel.tsx) — un `getBoundingClientRect` réel étant absent en

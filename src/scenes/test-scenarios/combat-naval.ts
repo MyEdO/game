@@ -30,7 +30,7 @@ function makeNavalParty(idNeuf: FabriqueDId): Combatant[] {
   for (const id of GUNNERS) {
     const g = party.find((h) => h.id === id);
     // Chargé d'emblée → tir dès le 1er Round. L'état de charge vit sur CHAQUE arme (arbitrage 2026-08-16).
-    if (g) for (const w of g.weapons.filter((x) => x.type === 'ranged')) loadWeapon(g, w);
+    if (g) for (const w of g.weapons.filter((x) => x.type === 'distance')) loadWeapon(g, w);
   }
   return party;
 }
@@ -69,7 +69,7 @@ const construireScene = (): Scene => buildScene({
         // équipage exposé (`crewIds`) = ces canonniers ; `applyShipPostes` leur pose le `mannedPoste`. Cap NORD
         // (appliqué par `orienterLesCombattants`) → la cogue, plein EST, tombe pile dans l'arc de la bordée TRIBORD
         // (octant 2) ; vire le cap (Phase 2 Manœuvre) et la cogue sort de l'arc.
-        { vehicule: { id: 'bateau-de-patrouille' }, pos: { x: 3, y: 6 }, side: 'ally', facing: 'N', label: 'Barge des aventuriers',
+        { vehicule: { id: 'bateau-de-patrouille' }, pos: { x: 3, y: 6 }, side: 'allie', facing: 'N', label: 'Barge des aventuriers',
           crewIds: [...GUNNERS], postes: [pierrierPoste(GUNNERS[0]), pierrierPoste(GUNNERS[1])] },
       ],
     },

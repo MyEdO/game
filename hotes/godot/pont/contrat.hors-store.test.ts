@@ -1,6 +1,6 @@
 /**
  * LE CONTRAT DU PONT (#2928, `CONTRAT.md`) : la réponse est toujours une chaîne JSON ; une méthode inconnue, une entrée
- * illisible ou hors contrat, un appel avant `demarrer`, un second `demarrer` (un par page, plan M-g) et un jeton inconnu
+ * illisible ou hors contrat, un appel avant `demarrer`, un `demarrer` sur une partie ouverte et un jeton inconnu
  * se refusent en `validation` ; un geste refusé porte la catégorie que le module commun lui donne (`validation`,
  * `permission`, `regle`), une levée qu'aucun contrôle n'attendait la catégorie `interne` ; la vue porte le plateau de
  * la scène, chaque verbe de sa fenêtre en geste prêt à dessiner (`fautesDeLaFenetre`) et les clics du champ ; les
@@ -11,7 +11,7 @@ import { idsDeTest } from '../../../src/engine/idsDeTest.testkit';
 import { afterAll, describe, it, expect, vi } from 'vitest';
 import { drainer, erreurDe, fautesDeLaFenetre, suiteDe, table } from './pont.testkit';
 import type { VueDuPont } from './pont';
-import { CLIC_DU_CHAMP, cleDuGeste, plateauDeLaScene } from '../../../src/noyau/index';
+import { CLIC_DU_CHAMP, PREFERENCES, cleDuGeste, plateauDeLaScene, preferenceDef } from '../../../src/noyau/index';
 import { VERBES } from '../../../src/hote/verbes.generated';
 import { scenario } from '../../../src/scenes/test-scenarios/22-dome';
 import { testScenarios } from '../../../src/scenes/test-scenarios';
@@ -36,7 +36,19 @@ describe('le pont avant sa partie', () => {
   it('une méthode inconnue se refuse en `validation` et nomme les méthodes du contrat', () => {
     const e = erreurDe(appel('simulerAttaque', {}));
     expect(e.categorie).toBe('validation');
-    expect(e.message).toBe('méthode inconnue : simulerAttaque (méthodes : demarrer, scenarios, vue, monde, aretes, jouer, plan, regarder, fiche, creation, reprendre, modeles, composer, vehicule, catalogues, vitrine, echantillons, echantillon, presetDeComposition, editer, erreursGlobales)');
+    expect(e.message).toBe('méthode inconnue : simulerAttaque (méthodes : demarrer, ouvrir, lancer, quitter, scenarios, vue, monde, morceaux, retrait, aretes, jouer, plan, regarder, fiche, creation, reprendre, modeles, composer, vehicule, catalogues, vitrine, preferences, echantillons, echantillon, presetDeComposition, editer, erreursGlobales)');
+  });
+
+  it('`preferences` rend sans partie la valeur effective de chaque préférence de la table, par id', () => {
+    const volume = preferenceDef('volume-ambiance')!;
+    const avant = volume.get();
+    volume.set(0.35);
+    try {
+      expect(appel('preferences')).toEqual({ ok: true, preferences: Object.fromEntries(PREFERENCES.map((p) => [p.id, p.get()])) });
+      expect(appel('preferences')).toMatchObject({ preferences: { 'volume-ambiance': 0.35 } });
+    } finally {
+      volume.set(avant);
+    }
   });
 
   it('`modeles` rend les modèles de l’atelier sans partie ; une entrée sans `manifestes` ou sans `osDesRigides` se refuse', () => {
@@ -67,9 +79,9 @@ describe('le pont avant sa partie', () => {
     expect(erreurDe(appel('scenarios', { section: 'combat' }))).toEqual({ categorie: 'validation', message: 'scenarios : section hors de l’entrée (aucune clé)' });
   });
 
-  it('`vue`, `monde`, `aretes`, `jouer`, `fiche` et `reprendre` se refusent sans partie', () => {
-    for (const [methode, entree] of [['vue', undefined], ['monde', undefined], ['aretes', undefined], ['jouer', { type: 'fenetreValider', args: ['debutDuRound'] }], ['fiche', { fiche: null }], ['regarder', { regard: 'plateau' }], ['reprendre', { jeton: 0 }]] as const) {
-      expect(erreurDe(appel(methode, entree)), methode).toEqual({ categorie: 'validation', message: 'aucune partie : demarrer d’abord' });
+  it('`vue`, `monde`, `morceaux` de la partie, `retrait`, `aretes`, `jouer`, `fiche` et `reprendre` se refusent sans partie', () => {
+    for (const [methode, entree] of [['vue', undefined], ['monde', undefined], ['morceaux', { source: 'partie', volume: [], toits: [], couronnes: [] }], ['retrait', undefined], ['aretes', undefined], ['jouer', { type: 'fenetreValider', args: ['debutDuRound'] }], ['fiche', { fiche: null }], ['regarder', { regard: 'plateau' }], ['reprendre', { jeton: 0 }]] as const) {
+      expect(erreurDe(appel(methode, entree)), methode).toEqual({ categorie: 'validation', message: 'aucune partie : demarrer ou ouvrir d’abord' });
     }
   });
 
@@ -82,17 +94,17 @@ describe('le pont avant sa partie', () => {
   it('un scénario inconnu ou une graine non entière se refuse, et ne démarre rien', () => {
     expect(erreurDe(appel('demarrer', { scenario: 'zz-inconnu', graine: 7 }))).toEqual({ categorie: 'validation', message: 'scénario inconnu : zz-inconnu' });
     expect(erreurDe(appel('demarrer', { scenario: 'dome', graine: 1.5 }))).toEqual({ categorie: 'validation', message: 'graine non entière : 1.5' });
-    expect(erreurDe(appel('vue')).message).toBe('aucune partie : demarrer d’abord');
+    expect(erreurDe(appel('vue')).message).toBe('aucune partie : demarrer ou ouvrir d’abord');
   });
 });
 
 describe('le pont et sa partie', () => {
-  it('`demarrer` ouvre la partie une fois par page ; un second appel se refuse', { timeout: 120_000 }, () => {
+  it('`demarrer` ouvre la partie ; un second appel, sur la partie ouverte, se refuse', { timeout: 120_000 }, () => {
     const { suite } = drainer(appel, appel('demarrer', { scenario: 'dome', graine: 7 }));
     expect(suite.vue.projection.fenetre?.gestes.length, 'la vue nomme les gestes de la fenêtre ouverte').toBeGreaterThan(0);
     const e = erreurDe(appel('demarrer', { scenario: 'dome', graine: 7 }));
     expect(e.categorie).toBe('validation');
-    expect(e.message).toMatch(/une partie par page, déjà démarrée/);
+    expect(e.message).toBe('demarrer : une partie est ouverte ; quitter d’abord');
     expect(vue(), '`vue` rend la vue de la dernière suite').toEqual(suite.vue);
   });
 

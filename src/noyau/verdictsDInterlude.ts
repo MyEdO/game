@@ -281,7 +281,7 @@ export function ciblesDActivite(h: Combatant, def: ActivityDef): CiblesDActivite
   const items = h.items ?? [];
   return {
     armes: def.resolver === 'masterWeapon'
-      ? items.filter((i) => (i.kind === 'melee' || i.kind === 'ranged') && i.requiresMastery && i.trappingId && !(h.masteredWeapons ?? []).includes(i.trappingId))
+      ? items.filter((i) => (i.kind === 'melee' || i.kind === 'distance') && i.requiresMastery && i.trappingId && !(h.masteredWeapons ?? []).includes(i.trappingId))
       : [],
     artefacts: def.resolver === 'identify' || def.resolver === 'identifyByResearch' ? items.filter((i) => i.identified === false) : [],
     sorts: def.resolver === 'memorizeDiscount' ? learnableSpells(h).filter((x) => x.cost > 0) : [],
@@ -337,7 +337,7 @@ function opsDeReussite(def: ActivityDef): GameOp[] | null {
 /** Refus d'une Activité dont la RÉUSSITE, sous la cible choisie, n'aurait rien à changer au héros
  *  (`reussiteSansObjet`, jugée avant le jet). ACE 12 l.15, ADE II 09 l.33 */
 function refusDeReussiteSansObjet(h: Combatant, def: ActivityDef, opts: CiblesChoisies): string | null {
-  const raison = reussiteSansObjet(h, opsCiblees(opsDeReussite(def) ?? [], viseDuTrait(h, opts.traitPsy)), { avantLeJet: true, source: { kind: 'activity', id: def.id } });
+  const raison = reussiteSansObjet(h, opsCiblees(opsDeReussite(def) ?? [], viseDuTrait(h, opts.traitPsy)), { avantLeJet: true, source: { kind: 'activite', id: def.id } });
   return raison ? t('if.reussiteSansObjet', { raison, label: def.label }) : null;
 }
 
@@ -547,7 +547,7 @@ function voiesDuTest(
       const item = ciblesDActivite(h, def).armes.find((i) => i.uid === cibles.itemUid);
       if (!item) return undefined;
       // L'arme synthétique n'a pas d'uid retrouvable : le gate de maîtrise est inerte pour ce Test.
-      const kind = item.kind === 'ranged' ? ('ranged' as const) : ('melee' as const);
+      const kind = item.kind === 'distance' ? ('distance' as const) : ('melee' as const);
       const valeur = combatValue(h, kind, buildWeapon({ label: item.label, type: kind, damage: item.damage ?? { plusBF: true, flat: 0 }, subType: item.subType, uid: `entrainement-${item.uid}` }));
       return { voies: [{ test: { skill: { id: weaponSkillId(kind) } }, valeur }] };
     }

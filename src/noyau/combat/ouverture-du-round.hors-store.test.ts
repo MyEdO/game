@@ -90,7 +90,7 @@ describe('Ouverture du Round après une révélation d’entretien (#2916)', () 
   });
 
   it('IA en tête : après la pause, elle joue son tour', () => {
-    dernierTourSaigne((cs) => cs.find((c) => c.kind === 'enemy' && !c.dead)!.id);
+    dernierTourSaigne((cs) => cs.find((c) => c.kind === 'ennemi' && !c.dead)!.id);
     advanceTurn(banc.getState, banc.setState);
     banc.getState().jetValider('cascade');
     expect(banc.getState().pendingRoundStart).toEqual({ round: 2 });

@@ -39,9 +39,9 @@ function drinkerCtx(get: Get, hero: Combatant): ConditionCtx {
 }
 
 /** Hôte de SCÈNE (`executerFlow`) du Flow baké d'un consommable — comme `runFlow`, mais : feuilles appliquées au
- *  BUVEUR via `applyLeafOps` (durée bakée + `delayed` programmées), `if` évalués avec sa vue d'acteur,
+ *  BUVEUR via `applyLeafOps` (durée bakée + `delayed` programmées), `si` évalués avec sa vue d'acteur,
  *  `test` gaté (`exceptGroups` du Bonnet de fou…) puis ouvert RESTREINT à lui (`actorId`). Un nœud
- *  `choice` (aucun consommable n'en porte) prend sa branche `no` — défaut conservateur, pas de décision
+ *  `choix` (aucun consommable n'en porte) prend sa branche `non` — défaut conservateur, pas de décision
  *  silencieuse. Les branches d'un `test` suspendu sont reprises par `jetValider('test')`→`runFlow` : leurs
  *  feuilles BAKÉES (`on:'hero'` + untilTime) y retombent sur le handler `ops` (applyLeafOps). */
 function runSceneConsumableFlow(get: Get, set: SetFn, hero: Combatant, flow: Flow, label: string, source?: EffectSource): void {
@@ -49,8 +49,8 @@ function runSceneConsumableFlow(get: Get, set: SetFn, hero: Combatant, flow: Flo
   executerFlow<Effect, void>(flow, {
     conditions: () => drinkerCtx(get, hero),
     feuille: (node, reste) => {
-      if (node.effect.type !== 'ops') return undefined;
-      const lines = applyLeafOps(get, set, hero, node.effect, { idNeuf: get().forgerUnId,
+      if (node.effet.type !== 'ops') return undefined;
+      const lines = applyLeafOps(get, set, hero, node.effet, { idNeuf: get().forgerUnId,
         rng: battleRng(),
         // PROVENANCE du produit bu : un poison qui enduit la lame (`augmentWeapon`) garde SON
         // identité sur les effets fondus dans l'arme (`stampSource`, engine/ops) — sans elle, le
@@ -62,8 +62,8 @@ function runSceneConsumableFlow(get: Get, set: SetFn, hero: Combatant, flow: Flo
       // pour un nœud `test` ci-dessous — sans quoi la fin du produit s'appliquerait par-dessus un
       // dé en vol. Reprise par `runFlow` : les feuilles bakées y retombent sur `ops`.
       if (lines === OPS_DIFFEREES) {
-        const steps = reste().steps;
-        if (steps.length) confierLaSuite(set, [{ verbe: 'reprendreFlow', flow: { kind: 'seq', steps }, label }]);
+        const steps = reste().etapes;
+        if (steps.length) confierLaSuite(set, [{ verbe: 'reprendreFlow', flow: { kind: 'sequence', etapes: steps }, label }]);
         return fini;
       }
       set(touchActors(get()));
@@ -83,27 +83,27 @@ function runSceneConsumableFlow(get: Get, set: SetFn, hero: Combatant, flow: Flo
       // EST le consommable, et sa fiche Codex porte déjà sa règle verbatim.
       const ft = { ...withDerivedStake(node.test, source), noSupport: node.test.noSupport ?? true };
       // Modale RESTREINTE au buveur ; impossible (mort) → continuation directe.
-      if (!openSkillTest(get, set, ft, cc, node.success, node.fail, after, { actorId: hero.id })) jouerFlowEntier(runFlow(get, set, after, label));
+      if (!openSkillTest(get, set, ft, cc, node.reussite, node.echec, after, { actorId: hero.id })) jouerFlowEntier(runFlow(get, set, after, label));
       return fini;
     },
-    choix: (node) => node.no,
+    choix: (node) => node.non,
     fin: () => undefined,
   });
 }
 
 /** Les ops que le Flow d'un consommable pose à son buveur quand tout réussit (Tests réussis, toutes les
- *  branches `if` et `choice`), ou `null` si une feuille n'est pas une op : son effet ne se lit pas en ops. */
+ *  branches `si` et `choix`), ou `null` si une feuille n'est pas une op : son effet ne se lit pas en ops. */
 function opsDeReussiteDuFlow(f: Flow): GameOp[] | null {
   const de = (fs: (Flow | undefined)[]): GameOp[] | null => {
     const parts = fs.filter((x): x is Flow => !!x).map(opsDeReussiteDuFlow);
     return parts.some((p) => p == null) ? null : parts.flatMap((p) => p!);
   };
   switch (f.kind) {
-    case 'do': return f.effect.type === 'ops' ? f.effect.ops : null;
-    case 'seq': return de(f.steps);
-    case 'if': return de([f.then, f.else]);
-    case 'test': return de([f.success]);
-    case 'choice': return de([f.yes, f.no]);
+    case 'effet': return f.effet.type === 'ops' ? f.effet.ops : null;
+    case 'sequence': return de(f.etapes);
+    case 'si': return de([f.alors, f.sinon]);
+    case 'test': return de([f.reussite]);
+    case 'choix': return de([f.oui, f.non]);
   }
 }
 
@@ -113,7 +113,7 @@ function opsDeReussiteDuFlow(f: Flow): GameOp[] | null {
 export function refusDeConsommer(hero: Combatant, item: ItemInstance): string | null {
   const flow = consommableDe(item);
   const ops = flow ? opsDeReussiteDuFlow(flow) : null;
-  const source: EffectSource | undefined = item.trappingId ? { kind: 'trapping', id: item.trappingId } : undefined;
+  const source: EffectSource | undefined = item.trappingId ? { kind: 'objet', id: item.trappingId } : undefined;
   const raison = ops ? reussiteSansObjet(hero, ops, { avantLeJet: true, ...(source ? { source } : {}) }) : null;
   return raison ? t('cs.consommableSansObjet', { raison, item: item.label }) : null;
 }
@@ -128,7 +128,7 @@ export function runConsumable(get: Get, set: SetFn, hero: Combatant, item: ItemI
   const inBattle = !!get().battle && get().battle!.combatants.some((c) => c.id === hero.id);
   // ENTITÉ PORTEUSE du Flow : la POSSESSION bue (id de catalogue). Un objet CUSTOM (hors catalogue)
   // n'en a pas — il n'a pas de fiche où renvoyer, la dérivation d'enjeu se tait alors (#1262 V2 L6d).
-  const source: EffectSource | undefined = item.trappingId ? { kind: 'trapping', id: item.trappingId } : undefined;
+  const source: EffectSource | undefined = item.trappingId ? { kind: 'objet', id: item.trappingId } : undefined;
   if (inBattle) {
     runCombatFlow({
       get, set, target: hero, caster: hero, label: item.label,

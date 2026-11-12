@@ -1,19 +1,20 @@
 // La pile des couches demandée par Godot (#3842) : la demande en base64, résolue par `resoudreLaPile`.
 import { describe, expect, it } from 'vitest';
 import { SERRAGE_M } from '../asset/pile';
+import { depuisBase64, enBase64 } from '../../../src/lib/base64';
 import { resoudreLaPileDUneTenue, type MaillageDeLaPile, type PileDemandee, type PileResolue } from './pile';
 
-const enBase64 = (t: Float32Array | Int32Array): string => Buffer.from(t.buffer).toString('base64');
-const flottants = (base64: string): number[] => { const o = Buffer.from(base64, 'base64'); return [...new Float32Array(o.buffer, o.byteOffset, o.length / 4)]; };
-const entiers = (base64: string): number[] => { const o = Buffer.from(base64, 'base64'); return [...new Int32Array(o.buffer, o.byteOffset, o.length / 4)]; };
+const base64De = (t: Float32Array | Int32Array): string => enBase64(new Uint8Array(t.buffer));
+const flottants = (base64: string): number[] => [...new Float32Array(depuisBase64(base64).buffer)];
+const entiers = (base64: string): number[] => [...new Int32Array(depuisBase64(base64).buffer)];
 
 /** Un carré de 10 cm de côté à la hauteur `z`, tourné vers +Z (face avant dans le sens horaire, comme dans Godot), tout
  *  entier sur l'os `os` ; `zNeutre`, sa hauteur sans forme. */
 function carre(z: number, os: string, zNeutre?: number): MaillageDeLaPile {
-  const a = (h: number) => enBase64(Float32Array.from([0, 0, h, 0.1, 0, h, 0, 0.1, h, 0.1, 0.1, h]));
+  const a = (h: number) => base64De(Float32Array.from([0, 0, h, 0.1, 0, h, 0, 0.1, h, 0.1, 0.1, h]));
   return {
-    positions: a(z), ...(zNeutre === undefined ? {} : { neutres: a(zNeutre) }), indices: enBase64(Int32Array.from([0, 2, 1, 1, 2, 3])),
-    os: enBase64(new Int32Array(16)), poids: enBase64(Float32Array.from([1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0])), noms: [os],
+    positions: a(z), ...(zNeutre === undefined ? {} : { neutres: a(zNeutre) }), indices: base64De(Int32Array.from([0, 2, 1, 1, 2, 3])),
+    os: base64De(new Int32Array(16)), poids: base64De(Float32Array.from([1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0])), noms: [os],
   };
 }
 const resoudre = (pieces: PileDemandee['pieces']) =>

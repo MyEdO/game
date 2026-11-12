@@ -5,7 +5,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testki
 
 /** Combattant nu (le bonus dépend UNIQUEMENT des États portés, lus en données via passiveMods). */
 const mk = (): Combatant => (blessuresSurLeProfil({
-  id: 'x', name: 'X', kind: 'enemy', characteristics: {}, skills: [], talents: [], traits: [],
+  id: 'x', name: 'X', kind: 'ennemi', characteristics: {}, skills: [], talents: [], traits: [],
   conditions: [], activeEffects: [], liveTraits: [], weapons: [], armour: [],
   wounds: blessuresDeBase(10), advantage: 0,
 })) as unknown as Combatant;

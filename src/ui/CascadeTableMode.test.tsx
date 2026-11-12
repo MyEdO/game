@@ -50,7 +50,7 @@ let root: Root;
 
 /** Étape à table (aucun acteur : le tirage est du MONDE — le siège hôte/MJ le contrôle). */
 const tableStep = (tableId: string, mod?: number): CascadeStep =>
-  ({ id: 'tm', kind: cleDeFixture('uiTableSpy'), label: fixtureText('Tirage sur tableau'), icon: 'nav/dice', table: { tableId, ...(mod != null ? { mod } : {}) }});
+  ({ id: 'tm', kind: cleDeFixture('uiTableSpy'), label: fixtureText('Tirage sur tableau'), icon: 'navigation/des', table: { tableId, ...(mod != null ? { mod } : {}) }});
 
 function openTable(mod?: number, tableId = T) {
   useGame.setState({
@@ -424,7 +424,7 @@ describe('Mode table — plancher ≠ 1 : l’écran affiche le dé du RÉSOLVEU
     // tomberait juste même avec un recalcul — la sonde ne prouverait alors rien.
     startCascade(useGame.getState, useGame.setState, {
       title: 'Tirage', purpose: 'test',
-      steps: [{ id: 'tm', kind: cleDeFixture('uiTableSpy'), label: fixtureText('Tirage'), icon: 'nav/dice', table: { tableId: T11, mod: -20, clamp: true, forcedRoll: 15 }}],
+      steps: [{ id: 'tm', kind: cleDeFixture('uiTableSpy'), label: fixtureText('Tirage'), icon: 'navigation/des', table: { tableId: T11, mod: -20, clamp: true, forcedRoll: 15 }}],
     });
     render();
     act(() => { useGame.getState().jetLancer('cascadeTirage', 'tm'); });
@@ -550,7 +550,7 @@ describe('bandes successives — le corps ne rend QUE la bande courante', () => 
   // une séquence (#1262 V2 L4, `cascade.assertBandeDeclarePossession`).
   const bandStep = (id: string, label: string, rows: ReturnType<typeof bandRow>[]): CascadeStep =>
     ({
-      id, kind: KIND_PROSE, label, icon: 'nav/dice', aggregate: 'none', participants: rows,
+      id, kind: KIND_PROSE, label, icon: 'navigation/des', aggregate: 'none', participants: rows,
       ...(new Set(rows.map((r) => r.id)).size > 1 ? { groupOwner: true } : { actorId: rows[0].id }),
     }) as CascadeStep;
 
@@ -628,7 +628,7 @@ describe('Blessure critique — le dé en tête, le Critique, les voies dessous 
   const CHARS = { 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 40, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
   const combattant = (p: Partial<Combatant>): Combatant =>
     (blessuresSurLeProfil({
-      id: 'x', label: 'X', kind: 'hero', characteristics: CHARS,
+      id: 'x', label: 'X', kind: 'heros', characteristics: CHARS,
       wounds: blessuresDeBase(15), advantage: 0, conditions: [], movement: 4, skills: [], talents: [],
       engagedWith: [], pos: { x: 0, y: 0 }, size: 'moyenne', weapons: [], items: [], fate: 0,
       armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -643,8 +643,8 @@ describe('Blessure critique — le dé en tête, le Critique, les voies dessous 
   /** Ouvre la fenêtre unique sur un HÉROS BLINDÉ (siège humain : les voies lui sont offertes). */
   function openCritique() {
     seedBattleRng(424242);
-    const h = combattant({ id: 'h1', label: 'Hardi', kind: 'hero', armour: { tete: 0, brasG: 0, brasD: 0, corps: 3, jambeG: 0, jambeD: 0 } });
-    const e = combattant({ id: 'e1', label: 'Brute', kind: 'enemy', pos: { x: 1, y: 0 }, weapons: [gourdin] });
+    const h = combattant({ id: 'h1', label: 'Hardi', kind: 'heros', armour: { tete: 0, brasG: 0, brasD: 0, corps: 3, jambeG: 0, jambeD: 0 } });
+    const e = combattant({ id: 'e1', label: 'Brute', kind: 'ennemi', pos: { x: 1, y: 0 }, weapons: [gourdin] });
     useGame.setState({
       battle: { combatants: [e, h], order: ['e1', 'h1'], baseOrder: ['e1', 'h1'], turn: 0, round: 1, action: null,
         selectedSpellId: null, reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null } as never,

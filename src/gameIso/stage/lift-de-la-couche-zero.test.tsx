@@ -60,13 +60,13 @@ const contexte = (scene: Scene): ContexteAretes => ({
 });
 
 const héros = {
-  id: 'h1', label: 'h1', kind: 'hero', pos: { x: 0, y: 0 }, size: 'moyenne',
+  id: 'h1', label: 'h1', kind: 'heros', pos: { x: 0, y: 0 }, size: 'moyenne',
   conditions: [], characteristics: {}, liveTraits: [], items: [],
 } as unknown as Combatant;
 
 const batailleQuiVise = (tile: { x: number; y: number }): BattleState => ({
   combatants: [héros], order: ['h1'], turn: 0, movementUsed: 0,
-  preview: { kind: 'move', path: [{ x: 0, y: 0 }, tile], tile, cost: 2 },
+  preview: { kind: 'deplacement', path: [{ x: 0, y: 0 }, tile], tile, cost: 2 },
 } as unknown as BattleState);
 
 describe('Le relief de la COUCHE 0 porte le lift — socle unique, une seule hauteur à l’écran', () => {

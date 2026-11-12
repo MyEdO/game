@@ -25,7 +25,7 @@ const CROSS_TEST_ZONE: BattleZone = {
   // `source` = l'ENTITÉ qui a posé la zone, comme `placeZoneFromOp` la pose en production (#1262 V2
   // L6d) : le Test de traversée en DÉRIVE son enjeu (« ce qui se joue : Forêt d'épines »).
   label: "Forêt d'épines", tiles: [{ x: 6, y: 10 }], rounds: 4, casterId: 'CASTER',
-  source: { kind: 'spell', id: 'foret-d-epines' },
+  source: { kind: 'sort', id: 'foret-d-epines' },
   onCross: [
     { op: 'condition', id: { id: 'hemorragique' } },
     { op: 'condition', id: { id: 'empetre' }, escapeStrength: { charOf: 'force-mentale' } },
@@ -47,8 +47,8 @@ describe('#500 — BattleZone.crossTest : Forêt d’épines (LDB 48 l.749)', ()
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const hero = b.combatants.find((c) => c.kind === 'hero')!;
-    const enemy = b.combatants.filter((c) => c.kind === 'enemy')[0];
+    const hero = b.combatants.find((c) => c.kind === 'heros')!;
+    const enemy = b.combatants.filter((c) => c.kind === 'ennemi')[0];
     hero.pos = { x: 5, y: 10 };
     enemy.pos = { x: 5, y: 11 };
     // Lanceur du sort — présent dans la BATAILLE (retiré ensuite au cas « hors combat »).

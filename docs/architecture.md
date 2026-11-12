@@ -320,6 +320,8 @@ src/lib/                     Couche NEUTRE, feuille de `COUCHES`, en amont de to
                             `lireLeTexte` et `retirerLaCle`, et les lecteurs JSON appliqués à un `Stockage` : `lireDictionnaire`
                             et `lireTableau`, avec `lesChaines` (#2404) ; `stockage.testkit.ts`, ses stockages de test (en mémoire, qui lève,
                             posé en `localStorage`).
+                            `base64.ts` : le base64 des octets dans les deux sens (`enBase64`, `depuisBase64`),
+                            seul site de `btoa` et `atob` (`murs/base64`, #3948).
 src/web/                     Services d'exécution du NAVIGATEUR (`window`, `document`, `localStorage`,
                             `indexedDB`, `setTimeout`, `navigator`), feuille de `COUCHES` : `state`,
                             `audio` et la présentation l'importent, ni `noyau` ni `data`.
@@ -503,11 +505,11 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                               frenzy/approach/test/heal + reload/recover/activity/corruption/appraise/
                               bargain) — un nouveau jet = 1 spec + 1 corps de clôture. Résilience « Je ne
                               faillirai pas ! » (LDB 17 l.68, GLOBALE) : mécanisme UNIQUE (factory
-                              `forceSuccess`/`setForcedRoll` + UI `ForcedRollPicker`). Un flux qui
+                              `forcerLaReussite`/`imposerLeResultat` + UI `ForcedRollPicker`). Un flux qui
                               l'offre déclare `caps: { forced: true }` ; son `resolve(s,p,actor,get,
                               forced?)` porte alors LES TROIS cas dans UN seul résolveur : `forced`
-                              absent = jet normal (RNG) ; `{}` = `forceSuccess` (dé par défaut : 01→DR
-                              max, ou opposé→jet courant forcé à ≥ DR+1) ; `{ roll }` = `setForcedRoll`
+                              absent = jet normal (RNG) ; `{}` = `forcerLaReussite` (dé par défaut : 01→DR
+                              max, ou opposé→jet courant forcé à ≥ DR+1) ; `{ roll }` = `imposerLeResultat`
                               (dé choisi, doit rester une réussite). PLUS de dérives `force`/`forceRoll`
                               séparées (l'ancien « code dérivé ») — la résolution forcée VIT dans le
                               résolveur du Test, à côté du jet normal. La localisation suit le dé inversé
@@ -643,8 +645,10 @@ hotes/godot/                HÔTE GODOT du noyau (#2928, zone `hotes`) : le pont
                             l'export web ou, hors d'une page, par un processus Node (`vivant.mjs`, #3945 : `npm run
                             godot:ouvrir` ouvre l'éditeur Godot sur le projet, qui y joue sur le noyau vivant).
                             `pont/pont.ts` (une méthode = une chaîne JSON en entrée, une en sortie, jamais une levée ;
-                            gestes par le module commun, vue faite des lecteurs du noyau, jetons tenus par numéro),
-                            `pont/entree.ts` (`globalThis.wfrpPont`), contrat `pont/CONTRAT.md` ; `construire.mjs
+                            gestes par le module commun, vue faite des lecteurs du noyau, jetons tenus par numéro ; la
+                            porte `appelerEnOctets` des transports de Godot passe les tableaux de `morceaux` en un
+                            tampon de `Float32`, `pont/octets.ts`, #3948), `pont/entree.ts` (`globalThis.wfrpPont`),
+                            contrat `pont/CONTRAT.md` ; `construire.mjs
                             --pont-seul` bâtit le bundle iife par Vite (`npm run pont:godot`, étape de la CI).
   asset/                    le contrat d'asset d'un personnage 3D (lecteur GLB, manifeste, import par `importer.mjs`) ;
                             le manifeste d'élément du schéma 3 et sa validation contre la base et la donnée du jeu (`asset/element.ts`) ;

@@ -40,8 +40,8 @@ describe('Assommante — nœud Flow test OPPOSÉ (Force figée vs Résistance, r
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
     const wielder = enemies[0]; // le porteur de l'arme Assommante (attaquant)
     const prey = enemies[1];    // une victime ENNEMIE (cas b)
     enemies.slice(2).forEach((e) => (e.dead = true));
@@ -90,7 +90,7 @@ describe('Assommante — nœud Flow test OPPOSÉ (Force figée vs Résistance, r
     // Le jet du défenseur (Résistance) est posé sur l’étape ; l’issue doit être COHÉRENTE avec resolveOpposed
     // (ATTAQUANT figé en 1ʳᵉ position, comme la production) : la victime résiste si l’attaquant ne l’emporte pas.
     const rolled = jete(banc.getState().pendingCascade!.participants.find((s) => s.id === step.id)!.result);
-    const expectedResist = resolveOpposed(aT, { roll: rolled.roll, target: rolled.target, success: rolled.success, sl: rolled.sl, isDouble: false }).winner !== 'attacker';
+    const expectedResist = resolveOpposed(aT, { roll: rolled.roll, target: rolled.target, success: rolled.success, sl: rolled.sl, isDouble: false }).winner !== 'attaquant';
     banc.getState().jetValider('cascade');
 
     const h = banc.getState().battle!.combatants.find((x) => x.id === H.id)!;
@@ -101,7 +101,7 @@ describe('Assommante — nœud Flow test OPPOSÉ (Force figée vs Résistance, r
   it('(a-bis) ÉGALITÉ (même DR + mêmes NUES) : STATU QUO — la victime RÉSISTE, PAS de Sonné', () => {
     // Deux étages d'égalité, tous deux nécessaires : même CIBLE effective → même DR sur un dé identique ;
     // mêmes valeurs NUES (`skillBaseValue`) → le départage à DR égal (LDB 12 l.160) ne tranche pas non
-    // plus. `resolveOpposed` conclut 'tie' → STATU QUO (l.160, arbitrage `opposedBranchSuccess`) : ici
+    // plus. `resolveOpposed` conclut 'egalite' → STATU QUO (l.160, arbitrage `opposedBranchSuccess`) : ici
     // « vous » (LDB 62 l.235 : « Si vous remportez le Test, votre adversaire gagne un État *Sonné*. »)
     // est l'ATTAQUANT, pas le jeteur — rien ne se passe se lit donc « la victime RÉSISTE ».
     const { H, wielder } = setup();
@@ -131,7 +131,7 @@ describe('Assommante — nœud Flow test OPPOSÉ (Force figée vs Résistance, r
     expect(rolled.target).toBe(aT.target);
     expect(rolled.sl).toBe(aT.sl);
     // Ré-opposition à l'identique de la production : les DEUX camps avec leur nue (jamais un mixte).
-    expect(resolveOpposed(aT, { roll: rolled.roll, target: rolled.target, success: rolled.success, sl: rolled.sl, isDouble: false, base: step.base }).winner).toBe('tie');
+    expect(resolveOpposed(aT, { roll: rolled.roll, target: rolled.target, success: rolled.success, sl: rolled.sl, isDouble: false, base: step.base }).winner).toBe('egalite');
     // L’étape conclut « résiste » (success) — un test simple plié sur le jet de l’ATTAQUANT aurait conclu autrement.
     expect(rolled.success).toBe(true);
     banc.getState().jetValider('cascade');

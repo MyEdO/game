@@ -213,7 +213,7 @@ const mutationPurpose = (get: Get): PendingCascade['purpose'] => (get().battle ?
 function natureStep(hero: Combatant, align: ChaosAlign | undefined, index: number): BuiltCascadeStep | undefined {
   return tableStep({
     id: `mutation-nature-${hero.id}-${index}`,
-    kind: 'mutationNature', actorId: hero.id, icon: 'nav/mutation',
+    kind: 'mutationNature', actorId: hero.id, icon: 'navigation/mutation',
     label: t('step.dissolution'),
     table: { tableId: mutationNatureTableId(hero.species), spec: { n: 1, sides: 100 } },
     mutation: { heroId: hero.id, align },
@@ -224,7 +224,7 @@ function natureStep(hero: Combatant, align: ChaosAlign | undefined, index: numbe
 function mutationTableStep(hero: Combatant, tableId: string, ctx: PendingMutationStep): BuiltCascadeStep | undefined {
   return tableStep({
     id: `mutation-table-${tableId}-${hero.id}`,
-    kind: 'mutationTable', actorId: hero.id, icon: 'nav/mutation',
+    kind: 'mutationTable', actorId: hero.id, icon: 'navigation/mutation',
     label: stepDetail(t('step.mutation'), mutationTablePlayerLabel(tableId)),
     table: { tableId, spec: mutationTableDie(tableId) },
     mutation: { ...ctx, tableId },
@@ -351,7 +351,7 @@ export function resolveCorruptionPending(get: Get, set: Set, pc: PendingCorrupti
 }
 
 /** Cible d'un effet de Corruption : héros désigné, sinon le premier vivant. #152 (suite #143) : le pool
- *  en combat est celui des PERSONNAGES (`followsCharacterRules`, PAS un proxy `kind==='hero'`) — un PNJ
+ *  en combat est celui des PERSONNAGES (`followsCharacterRules`, PAS un proxy `kind==='heros'`) — un PNJ
  *  humain hostile MODÉLISÉ (statbloc d'éditeur ou bestiaire rétro-flagué) y est éligible comme un héros. */
 export function corruptionTarget(s: Jeu, heroId?: string): Combatant | undefined {
   const pool = s.battle?.combatants.filter((c) => followsCharacterRules(c)) ?? s.party;

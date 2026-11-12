@@ -37,6 +37,7 @@ import { serveChef } from './monde/shipPostes';
 import type { AttackResult } from '../engine/combat';
 import type { OupsResolved } from '../engine/oups';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { markFixedDie } from './fixedDieMark';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -97,7 +98,7 @@ const epeeBacleeSolide = (): Weapon =>
 describe('Bâclé + Solide — le dé naît à la porte, AVANT toute mutation de l’arme', () => {
   const monte = (): { hero: Combatant; arme: Weapon } => {
     const arme = epeeBacleeSolide();
-    const hero = mk('hero', 'bretteur', { weapons: [arme] });
+    const hero = mk('heros', 'bretteur', { weapons: [arme] });
     setBattle([hero], [hero]);
     return { hero, arme };
   };
@@ -119,7 +120,7 @@ describe('Bâclé + Solide — le dé naît à la porte, AVANT toute mutation de
   it('l’étape NOMME l’arme misée — un porteur à deux armes sait laquelle son dé décide', () => {
     const arme = epeeBacleeSolide();
     const dague = { label: 'Dague', type: 'melee', damage: { plusBF: true, flat: 2 }, qualities: [] } as unknown as Weapon;
-    const hero = mk('hero', 'bretteur', { weapons: [arme, dague] });
+    const hero = mk('heros', 'bretteur', { weapons: [arme, dague] });
     setBattle([hero], [hero]);
     applyOups(banc.getState, banc.setState, hero, arme, MALADRESSE);
     const label = etapeCourante()!.label ?? '';
@@ -153,7 +154,7 @@ describe('Bâclé + Solide — le dé naît à la porte, AVANT toute mutation de
  */
 describe('Bâclé — le joueur applique sa Maladresse par le STORE (étape hôte + curseur)', () => {
   const monteHote = (arme: Weapon): Combatant => {
-    const hero = mk('hero', 'bretteur', { weapons: [arme] });
+    const hero = mk('heros', 'bretteur', { weapons: [arme] });
     setBattle([hero], [hero]);
     pushHost(banc.getState, banc.setState, (index) => ({ id: `cons-maladresse-${hero.id}-${index}`, kind: 'jetDeMaladresse', jet: 'maladresse', actorId: hero.id, maladresse: { weapon: arme, result: null } }));
     return hero;
@@ -211,7 +212,7 @@ describe('Bâclé — le joueur applique sa Maladresse par le STORE (étape hôt
   // UNE sauvegarde Solide par Maladresse : #1508 (commentaire du 2026-09-26), #1764 (commentaire du 2026-09-27) ; `LDB 60 l.30`, `l.50`, `LDB 14 l.34`.
   describe('Bâclé + Poudre noire + Solide(1), Incident de tir : UN dé pour l’événement', () => {
     const pistolet = (): Weapon =>
-      ({ label: 'Pistolet bâclé', type: 'ranged', subType: 'poudre noire', damage: { plusBF: false, flat: 8 }, qualities: [{ id: 'bacle' }, { id: 'solide', value: 1 }] }) as unknown as Weapon;
+      ({ label: 'Pistolet bâclé', type: 'distance', subType: 'poudre noire', damage: { plusBF: false, flat: 8 }, qualities: [{ id: 'bacle' }, { id: 'solide', value: 1 }] }) as unknown as Weapon;
     /** Toute étape de Sauvegarde Solide ENTRÉE dans la séquence, fût-elle ensuite refermée. */
     const vues = new Map<string, boolean>();
     let stop = (): void => {};
@@ -251,7 +252,7 @@ describe('Bâclé — le joueur applique sa Maladresse par le STORE (étape hôt
       expect([...vues.values()], 'UN dé, ouvert sur une arme encore entière — aucun sur une arme brisée').toEqual([false]);
       expect(brisee(arme)).toBe(true);
       expect(journal().filter((l) => /Sauvegarde 1d10/.test(l)), journal().join(' | ')).toHaveLength(1);
-      expect(journal().filter(detruite), journal().join(' | ')).toEqual(['Pistolet bâclé (Bâclé) se brise sur la Maladresse de bretteur.']);
+      expect(journal().filter(detruite), journal().join(' | ')).toEqual([markFixedDie('Pistolet bâclé (Bâclé) se brise sur la Maladresse de bretteur.')]);
     });
   });
 
@@ -293,12 +294,12 @@ describe('Bâclé — le joueur applique sa Maladresse par le STORE (étape hôt
 
 describe('Incident de tir + Salve — la table est une ÉTAPE, servie après LA sauvegarde', () => {
   const piece = (): Weapon =>
-    ({ label: 'Batterie', type: 'ranged', damage: { plusBF: false, flat: 12 }, chambered: 3, qualities: [{ id: 'salve', value: 9 }, { id: 'solide', value: 1 }] }) as unknown as Weapon;
+    ({ label: 'Batterie', type: 'distance', damage: { plusBF: false, flat: 12 }, chambered: 3, qualities: [{ id: 'salve', value: 9 }, { id: 'solide', value: 1 }] }) as unknown as Weapon;
 
   // UNE sauvegarde Solide par Incident de tir : #1508 (commentaire du 2026-09-26) ; `AA 10 l.264`, `l.274-276`, `LDB 14 l.34`, `LDB 60 l.30`.
   it('deux dés dans l’ordre : Sauvegarde Solide de l’Incident, puis TABLE de Salve — la sauvegarde réussie COUVRE la destruction du tableau', () => {
     const arme = piece();
-    const hero = mk('hero', 'canonnier', { weapons: [arme] });
+    const hero = mk('heros', 'canonnier', { weapons: [arme] });
     setBattle([hero], [hero]);
     expect(applyOups(banc.getState, banc.setState, hero, arme, INCIDENT)).toBe(OPS_DIFFEREES);
     expect(etapeCourante()!.id, 'le 1ᵉʳ dé est la Sauvegarde Solide de l’Incident').toContain('-solide-');
@@ -318,7 +319,7 @@ describe('Incident de tir + Salve — la table est une ÉTAPE, servie après LA 
 
   it('sauvegarde de l’Incident MANQUÉE : la pièce brisée ne rejoue pas un dé pour la ligne de Salve', () => {
     const arme = piece();
-    const hero = mk('hero', 'canonnier', { weapons: [arme] });
+    const hero = mk('heros', 'canonnier', { weapons: [arme] });
     setBattle([hero], [hero]);
     applyOups(banc.getState, banc.setState, hero, arme, INCIDENT);
     poser(1); // 1 < 9 : la Sauvegarde Solide de l’Incident a MANQUÉ — la pièce est brisée
@@ -332,7 +333,7 @@ describe('Incident de tir + Salve — la table est une ÉTAPE, servie après LA 
 
   it('ligne 10 (tir perdu) : la pièce n’est pas détruite → AUCUNE sauvegarde de plus', () => {
     const arme = piece();
-    const hero = mk('hero', 'canonnier', { weapons: [arme] });
+    const hero = mk('heros', 'canonnier', { weapons: [arme] });
     setBattle([hero], [hero]);
     applyOups(banc.getState, banc.setState, hero, arme, INCIDENT);
     poser(9);
@@ -345,7 +346,7 @@ describe('Incident de tir + Salve — la table est une ÉTAPE, servie après LA 
 describe('Solide imperdable — aucun dé, mais la sauvegarde se DIT (LDB 60 l.30)', () => {
   it('Bâclé + Solide(9) : la Maladresse s’applique sur place, l’arme tient, et le journal le dit', () => {
     const arme = { label: 'Épée bâclée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [{ id: 'bacle' }, { id: 'solide', value: 9 }] } as unknown as Weapon;
-    const hero = mk('hero', 'bretteur', { weapons: [arme] });
+    const hero = mk('heros', 'bretteur', { weapons: [arme] });
     setBattle([hero], [hero]);
     expect(applyOups(banc.getState, banc.setState, hero, arme, MALADRESSE), 'aucun dé à ouvrir').toBeUndefined();
     expect(brisee(arme), 'l’arme tient').toBeFalsy();
@@ -357,7 +358,7 @@ describe('Solide imperdable — aucun dé, mais la sauvegarde se DIT (LDB 60 l.3
 describe('aucune scission par PORTEUR — un ennemi conduit par l’IA suit le MÊME chemin', () => {
   it('le dé est roulé AU SOCLE (aucun siège ne le tient), et l’arme en subit l’issue', () => {
     const arme = epeeBacleeSolide();
-    const brute = mk('enemy', 'brute', { weapons: [arme] });
+    const brute = mk('ennemi', 'brute', { weapons: [arme] });
     setBattle([brute]);
     const issue = applyOups(banc.getState, banc.setState, brute, arme, MALADRESSE);
     expect(issue, 'la casse part à la porte pour un ennemi aussi').toBe(OPS_DIFFEREES);
@@ -400,8 +401,8 @@ describe('la casse suspend le coup — mais la reprise rend EXACTEMENT ce que la
 
   /** Le chemin JOUEUR d'une fenêtre de défense #1858 mode `machine` : c'est `jetValider('defense')` qui applique. */
   function monteDefense(armeAttaquant: Weapon, coup: SuiteDeCoup): { hero: Combatant; brute: Combatant } {
-    const hero = mk('hero', 'heros', { pos: { x: 0, y: 0 }, weapons: [EPEE_HERO()] });
-    const brute = mk('enemy', 'brute', { pos: { x: 1, y: 0 }, weapons: [armeAttaquant] });
+    const hero = mk('heros', 'heros', { pos: { x: 0, y: 0 }, weapons: [EPEE_HERO()] });
+    const brute = mk('ennemi', 'brute', { pos: { x: 1, y: 0 }, weapons: [armeAttaquant] });
     setBattle([brute, hero], [hero]);
     const result = echangeBacle();
     banc.setState({ pendingDefense: {
@@ -485,8 +486,8 @@ describe('la casse suspend le coup — mais la reprise rend EXACTEMENT ce que la
 describe('la SUITE du coup ne se joue qu’APRÈS le dé', () => {
   it('Maladresse du défenseur ENNEMI : `applyAttackResult` rend « suspendu », et l’Action gratuite n’est rendue qu’à la reprise', () => {
     const arme = epeeBacleeSolide();
-    const hero = mk('hero', 'frappeur', { pos: { x: 0, y: 0 }, weapons: [{ label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] } as unknown as Weapon] });
-    const brute = mk('enemy', 'brute', { pos: { x: 1, y: 0 }, weapons: [arme] });
+    const hero = mk('heros', 'frappeur', { pos: { x: 0, y: 0 }, weapons: [{ label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] } as unknown as Weapon] });
+    const brute = mk('ennemi', 'brute', { pos: { x: 1, y: 0 }, weapons: [arme] });
     setBattle([hero, brute], [hero]);
     const res: AttackResult = {
       hit: true, attackerRoll: 30, netSL: 2, location: 'corps', damage: 5, woundsLost: 3,
@@ -507,8 +508,8 @@ describe('la SUITE du coup ne se joue qu’APRÈS le dé', () => {
     const armeAttaquant = epeeBacleeSolide();
     const armeDefenseur = epeeBacleeSolide();
     // Attaquant `aiControlled` : `jetSurfaced` faux → sa Maladresse s'écrit d'office (`ecrireLaMaladresse`).
-    const frappeur = mk('hero', 'frappeur', { pos: { x: 0, y: 0 }, weapons: [armeAttaquant], aiControlled: true });
-    const rival = mk('enemy', 'rival', { pos: { x: 1, y: 0 }, weapons: [armeDefenseur] });
+    const frappeur = mk('heros', 'frappeur', { pos: { x: 0, y: 0 }, weapons: [armeAttaquant], aiControlled: true });
+    const rival = mk('ennemi', 'rival', { pos: { x: 1, y: 0 }, weapons: [armeDefenseur] });
     setBattle([frappeur, rival], [frappeur]);
     // Test opposé raté des DEUX côtés sur un double (LDB 14 l.13) : l'attaquant ET le défenseur
     // ennemi bâclent le MÊME échange, chacun avec une arme Bâclé + Solide (donc un dé à la porte).
@@ -564,8 +565,8 @@ describe('la SUITE du coup ne se joue qu’APRÈS le dé', () => {
 describe('Piège-lame — le désarmement ne dépend pas du dé, la destruction si', () => {
   const monte = (): { defenseur: Combatant; attaquant: Combatant; bt: BladeTrapFreeze } => {
     const lame = { uid: 'w1', label: 'Rapière', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [{ id: 'solide', value: 1 }] } as unknown as Weapon;
-    const attaquant = mk('enemy', 'mercenaire', { weapons: [lame] });
-    const defenseur = mk('hero', 'piegeur', {});
+    const attaquant = mk('ennemi', 'mercenaire', { weapons: [lame] });
+    const defenseur = mk('heros', 'piegeur', {});
     setBattle([attaquant, defenseur], [defenseur]);
     // marge nette = defenderSL + defSL − attackerSL = 6 → Succès Stupéfiant (LDB 62 l.280).
     return { defenseur, attaquant, bt: { attackerId: 'mercenaire', weaponUid: 'w1', defSL: 6, attackerSL: 0 } };
@@ -587,8 +588,8 @@ describe('Piège-lame — le désarmement ne dépend pas du dé, la destruction 
     const lame = { uid: 'w1', label: 'Rapière', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [{ id: 'solide', value: 1 }] } as unknown as Weapon;
     // Un porteur qui tient son arme par un ItemInstance : `recomputeLoadout` RECONSTRUIT `weapons`
     // après la casse, et le `Weapon` capturé avant devient une lecture périmée.
-    const attaquant = mk('enemy', 'mercenaire', { weapons: [lame], items: [{ uid: 'w1', id: 'rapiere', label: 'Rapière', kind: 'weapon', weapon: { label: 'Rapière', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [{ id: 'solide', value: 1 }] } }] as never });
-    const defenseur = mk('hero', 'piegeur', {});
+    const attaquant = mk('ennemi', 'mercenaire', { weapons: [lame], items: [{ uid: 'w1', id: 'rapiere', label: 'Rapière', kind: 'weapon', weapon: { label: 'Rapière', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [{ id: 'solide', value: 1 }] } }] as never });
+    const defenseur = mk('heros', 'piegeur', {});
     setBattle([attaquant, defenseur], [defenseur]);
     applyBladeTrap(banc.getState, banc.setState, defenseur, { attackerId: 'mercenaire', weaponUid: 'w1', defSL: 6, attackerSL: 0 }, 0);
     poser(8); // < 9+ : la sauvegarde a manqué
@@ -612,8 +613,8 @@ describe('Piège-lame — le désarmement ne dépend pas du dé, la destruction 
 // `LDB 60 l.50`, `LDB 14 l.34` ; repli : `engine/items.mainsNuesSiDesarme` (`LDB 62 l.28`).
 describe('l’arme BRISÉE quitte les mains — un ennemi à arme de statbloc, sans ItemInstance', () => {
   const monte = (arme: Weapon): { brute: Combatant; cible: Combatant } => {
-    const brute = mk('enemy', 'brute', { weapons: [arme], pos: { x: 1, y: 0 } });
-    const cible = mk('hero', 'cible', { pos: { x: 0, y: 0 } });
+    const brute = mk('ennemi', 'brute', { weapons: [arme], pos: { x: 1, y: 0 } });
+    const cible = mk('heros', 'cible', { pos: { x: 0, y: 0 } });
     setBattle([brute, cible], [cible]);
     return { brute, cible };
   };
@@ -633,7 +634,7 @@ describe('l’arme BRISÉE quitte les mains — un ennemi à arme de statbloc, s
   });
 
   it('Incident de tir : l’arme à feu détruite quitte les mains, les Mains nues la remplacent', () => {
-    const pistolet = ({ label: 'Pistolet', type: 'ranged', subType: 'poudre-noire', damage: { plusBF: false, flat: 8 }, range: 20, qualities: [] }) as unknown as Weapon;
+    const pistolet = ({ label: 'Pistolet', type: 'distance', subType: 'poudre-noire', damage: { plusBF: false, flat: 8 }, range: 20, qualities: [] }) as unknown as Weapon;
     const { brute, cible } = monte(pistolet);
     applyOups(banc.getState, banc.setState, brute, pistolet, INCIDENT);
     expect(brises(), lignesLues().join(' | ')).toHaveLength(1);
@@ -651,7 +652,7 @@ describe('Épée + Cornes : l’épée casse → Mains nues, pour un statbloc co
 
   it('statbloc (armes sans objet)', () => {
     const epee = ({ uid: 'epee-e', label: 'Épée bâclée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [{ id: 'bacle' }] }) as unknown as Weapon;
-    const brute = mk('enemy', 'brute', { weapons: [epee, cornes()] });
+    const brute = mk('ennemi', 'brute', { weapons: [epee, cornes()] });
     setBattle([brute]);
     applyOups(banc.getState, banc.setState, brute, epee, MALADRESSE);
     expect(brisee(epee)).toBe(true);
@@ -661,9 +662,9 @@ describe('Épée + Cornes : l’épée casse → Mains nues, pour un statbloc co
   it('héros (arme dérivée de son objet)', () => {
     const base = itemFromTrappingById('arme-simple', idsDeTest)!;
     const objet = { ...base, uid: 'epee-h', equipped: true, qualities: [...(base.qualities ?? []), { id: 'bacle' }] };
-    const hero = mk('hero', 'bretteur', { items: [objet], activeEffects: [{ id: 'fx-cornes', naturalWeapon: cornes() }] } as never);
+    const hero = mk('heros', 'bretteur', { items: [objet], activeEffects: [{ id: 'fx-cornes', naturalWeapon: cornes() }] } as never);
     recomputeLoadout(hero);
-    setBattle([hero, mk('enemy', 'adversaire')], [hero]);
+    setBattle([hero, mk('ennemi', 'adversaire')], [hero]);
     const epee = hero.weapons.find((w) => w.uid === 'epee-h')!;
     expect(epee, 'l’épée est tenue au départ').toBeDefined();
     applyOups(banc.getState, banc.setState, hero, epee, MALADRESSE);
@@ -676,8 +677,8 @@ describe('Épée + Cornes : l’épée casse → Mains nues, pour un statbloc co
 describe('désarmé de sa SEULE arme : l’ennemi frappe ensuite aux Mains nues', () => {
   it('le Piège-lame arrache la lame, l’attaque suivante ne lève pas', () => {
     const lame = ({ uid: 'lame-e', label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] }) as unknown as Weapon;
-    const brute = mk('enemy', 'brute', { weapons: [lame], pos: { x: 1, y: 0 } });
-    const cible = mk('hero', 'cible', { pos: { x: 0, y: 0 } });
+    const brute = mk('ennemi', 'brute', { weapons: [lame], pos: { x: 1, y: 0 } });
+    const cible = mk('heros', 'cible', { pos: { x: 0, y: 0 } });
     setBattle([brute, cible], [cible]);
     applyBladeTrap(banc.getState, banc.setState, cible, { attackerId: 'brute', weaponUid: 'lame-e', defSL: 0, attackerSL: 0 }, 2);
     expect(lignesLues().some((l) => /arrachée/.test(l)), lignesLues().join(' | ')).toBe(true);
@@ -692,11 +693,11 @@ describe('désarmé de sa SEULE arme : l’ennemi frappe ensuite aux Mains nues'
 describe('pièce SERVIE abîmée d’un Dégât : le chef de statbloc tient la pièce abîmée', () => {
   it('l’arme de la pièce porte le Dégât, et l’épée du statbloc est toujours là', () => {
     const epee = ({ uid: 'epee-s', label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] }) as unknown as Weapon;
-    const chef = mk('enemy', 'canonnier', { weapons: [epee] });
+    const chef = mk('ennemi', 'canonnier', { weapons: [epee] });
     const poste = hydratePoste({ trappingId: 'canon-a-repetition' } as never, 'poste-de-test');
     poste.crewIds = ['canonnier'];
     serveChef(chef, poste);
-    setBattle([chef, mk('hero', 'cible')]);
+    setBattle([chef, mk('heros', 'cible')]);
     const piece = chef.weapons.find((w) => w.uid === poste.item.uid)!;
     expect(piece.damageTaken ?? 0).toBe(0);
     applyOups(banc.getState, banc.setState, chef, piece, { roll: 55, kind: 'weaponDamageActLast', label: 'Arme abîmée' });
@@ -710,11 +711,11 @@ describe('pièce SERVIE abîmée d’un Dégât : le chef de statbloc tient la p
 describe('héros désarmé par Piège-lame : la lame quitte tous les sets et tombe à sa case', () => {
   it('aucun set ne la référence, recomputeLoadout ne la rend pas, l’objet gît au sol', () => {
     const objet = { ...itemFromTrappingById('arme-simple', idsDeTest)!, uid: 'lame-h', equipped: true };
-    const heros = mk('hero', 'bretteur', { items: [objet], pos: { x: 1, y: 0 } });
+    const heros = mk('heros', 'bretteur', { items: [objet], pos: { x: 1, y: 0 } });
     heros.loadouts = [{ id: 'l1', main: 'lame-h' }, { id: 'l2', main: 'lame-h' }];
     heros.activeLoadoutId = 'l1';
     recomputeLoadout(heros);
-    const piegeur = mk('enemy', 'piegeur', { pos: { x: 0, y: 0 } });
+    const piegeur = mk('ennemi', 'piegeur', { pos: { x: 0, y: 0 } });
     setBattle([heros, piegeur], [heros]);
     applyBladeTrap(banc.getState, banc.setState, piegeur, { attackerId: 'bretteur', weaponUid: 'lame-h', defSL: 0, attackerSL: 0 }, 2);
     expect(lignesLues().some((l) => /arrachée/.test(l)), lignesLues().join(' | ')).toBe(true);

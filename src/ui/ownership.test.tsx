@@ -20,7 +20,7 @@ import { ownsLocalNet, useOwns, type NetView } from './ownership';
 import { intentAllowedFor, ownsLocal, ownsGroupDecision } from '../noyau/netOwnership';
 import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 
-const HEROS = [combattantDeTest({ id: 'h1', kind: 'hero' }), combattantDeTest({ id: 'h2', kind: 'hero' })];
+const HEROS = [combattantDeTest({ id: 'h1', kind: 'heros' }), combattantDeTest({ id: 'h2', kind: 'heros' })];
 
 /** État réseau minimal : `h1` non attribué (⇒ hôte, siège 0), `h2` au siège 1. */
 const net = (over: Partial<GameState['net']>): GameState['net'] =>
@@ -104,7 +104,7 @@ describe('#1262 L1 — `useOwns` : le prédicat MONTÉ dans une fenêtre (rendu 
  * réseau EN PROP (seam SSR, sans store) et REFAISAIENT le prédicat à la main. Ils passent par
  * `ownsLocalNet`. Ce que ce test FIGE, et qui est une MESURE, pas une promesse : le verdict d'un
  * HÉROS est son siège d'attribution — le rôle MJ (`gmSeat`) n'y change RIEN, parce que la branche
- * `gmSeat` de `seatOwns` (sieges) ne concerne que les combattants `kind:'enemy'` PRÉSENTS
+ * `gmSeat` de `seatOwns` (sieges) ne concerne que les combattants `kind:'ennemi'` PRÉSENTS
  * dans `battle`, et qu'il n'y a pas de combat sur ces écrans. La migration est donc une unification
  * de FORME à verdict constant : l'équivalence avec les deux recopies retirées est rejouée ici,
  * siège par siège.

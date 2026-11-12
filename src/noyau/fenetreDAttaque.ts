@@ -118,7 +118,7 @@ export interface FenetreDAttaque {
 
 /** Fiche Codex du NOM du jet d'attaque, même source que son libellé (`attackTestOf`) : la Caractéristique qui
  *  résout une Résolution alternative, sinon la Compétence lancée. */
-function refDuNomDuJet(attaquant: Combatant, arme: Weapon | undefined, kind: 'melee' | 'ranged'): RollLabelRef {
+function refDuNomDuJet(attaquant: Combatant, arme: Weapon | undefined, kind: 'melee' | 'distance'): RollLabelRef {
   const test = attackTestOf(attaquant, arme, kind);
   const label = testSkillLabel(test);
   return test.skill
@@ -140,13 +140,13 @@ export function fenetreDAttaque(s: Jeu): FenetreDAttaque | null {
   const intitule = armeTenue ? libelleDuJet('attaque') : arme.label;
   const res = pa.result;
   const jete = !!res;
-  const tir = arme.type === 'ranged';
+  const tir = arme.type === 'distance';
   const auxArmes = armeTenue ? attaquant.weapons.filter((w) => !isUnarmed(w) && !!w.uid) : [];
   // LDB 14 l.78
   const penaliteSecondaire = penaliteDeMainSecondaire(attaquant);
   const victime = victimeDuCoup(battle, cible, pa);
   const coup = res ? issueAuJet(victime, coupAApplique(res, pa.grapple, victime), arme, attaquant) : null;
-  const heros = attaquant.kind === 'hero';
+  const heros = attaquant.kind === 'heros';
   // LDB 10 l.767-773
   const deuxArmesPossibles = !res && armeTenue && heros && attackModesFor(attaquant).includes('dual-wield')
     && attaquant.weapons.some((w) => w.hand === 'main' && w.type === 'melee' && (w.hands ?? 1) === 1)
@@ -190,7 +190,7 @@ export function fenetreDAttaque(s: Jeu): FenetreDAttaque | null {
     attaquantId: attaquant.id,
     cibleId: cible.id,
     intitule,
-    sousTitre: composeRollLabel(attaquant, intitule, attackTestOf(attaquant, arme, tir ? 'ranged' : 'melee')),
+    sousTitre: composeRollLabel(attaquant, intitule, attackTestOf(attaquant, arme, tir ? 'distance' : 'melee')),
     arme: arme.label,
     degats: apercu ? apercu.dmg : null,
     jete,
@@ -257,7 +257,7 @@ export function fenetreDAttaque(s: Jeu): FenetreDAttaque | null {
       : (!bloque && defenseAnnoncee ? { pending: defenseAnnoncee } : null),
     influences: {
       relancee: !!pa.rerolled,
-      sombrePacte: FLOWS.attaque.fermetures(get).darkPact !== 'jetImpose',
+      sombrePacte: FLOWS.attaque.fermetures(get).pactiser !== 'jetImpose',
       sansDeForce: isHelplessTarget(cible),
       inversion,
     },
@@ -268,7 +268,7 @@ export function fenetreDAttaque(s: Jeu): FenetreDAttaque | null {
     defenseAttendue,
     attente: res && defenseAttendue ? t('defense.awaiting', { cible: cible.label }) : null,
     // LDB 17 l.68 ; #1595 c.6226467544, c.6228496170 R1.
-    critiqueALocaliser: res && pa.forced && coup?.compte.relance
+    critiqueALocaliser: res && pa.forcee && coup?.compte.relance
       ? choix('localisationDuCritique', res.critLocation ?? null, LOCALISATIONS_A_L_ECRAN.map((l) => ({ valeur: l, libelle: locationLabel(l, cible.bodyShape) })))
       : null,
     annulation: refusDAnnulerLAttaque(pa),

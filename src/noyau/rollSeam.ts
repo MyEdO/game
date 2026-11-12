@@ -32,6 +32,7 @@
  *     DÉJÀ CHIFFRÉS par le flux propriétaire via `meta` NEUTRE (`aggregateFlatDR`/`aggregateCapTo`/
  *     `aggregateOpposeSl`, `CascadeStepMeta`) ; par défaut 0/absent.
  */
+import type { IconId } from '../data/icons';
 import type { Get, Set } from './flowTypes';
 import type { Jeu } from './etat';
 import type { Combatant, CharKey, Difficulty, Weapon, ContexteDeTest } from '../engine/types';
@@ -231,7 +232,7 @@ export function rollTitle(get: Get, req: RollRequest): string {
  */
 export type Consequence =
   | { ops: GameOp[]; tone?: RecapTone }
-  | { say: OutKey; vars?: OutVars; tone?: RecapTone; icon?: string };
+  | { say: OutKey; vars?: OutVars; tone?: RecapTone; icon?: IconId };
 
 /** Ligne d'un `GameOp` DÉJÀ appliqué — le montant est un LITTÉRAL résolu par l'applier (jamais une
  *  `Formula` à re-tirer ici : `resultLine` ne reçoit ni cible ni RNG, cf. Décision 1b). Étend au fil
@@ -248,9 +249,9 @@ function opConsequenceLine(op: GameOp): string {
 /** Ton PAR DÉFAUT d'une conséquence `ops` sans `tone` explicite — dérivé du GameOp lui-même (soin =
  *  positif, Blessures/État = négatif), jamais deviné au call-site. */
 function defaultOpsTone(ops: GameOp[]): RecapTone {
-  if (ops.some((o) => o.op === 'heal')) return 'ok';
-  if (ops.some((o) => o.op === 'wounds' || o.op === 'condition')) return 'bad';
-  return 'info';
+  if (ops.some((o) => o.op === 'heal')) return 'reussite';
+  if (ops.some((o) => o.op === 'wounds' || o.op === 'condition')) return 'echec';
+  return 'neutre';
 }
 
 /**
@@ -260,7 +261,7 @@ function defaultOpsTone(ops: GameOp[]): RecapTone {
  *
  * Le TON reste celui qui a été AUTHORÉ (#1078 LOT B2) : une conséquence `say` sans `tone` n'en reçoit
  * pas — dans le cadre d'issue d'une modale de jet, elle se rend donc à PLEINE couleur, comme les
- * lignes de `recapLineOfEvent`. L'atténuation (`tone: 'info'`) est une décision de site, jamais un
+ * lignes de `recapLineOfEvent`. L'atténuation (`tone: 'neutre'`) est une décision de site, jamais un
  * défaut technique. Une conséquence `ops`, elle, DÉRIVE son ton de l'op appliquée (soin/dégâts).
  */
 export function resultLines(cons: Consequence[]): RecapLine[] {
@@ -283,17 +284,17 @@ export function resultLine(cons: Consequence[]): string {
 /** Une entrée `freeCons` : un texte SIMPLE (repli neutre) ou une ligne déjà TONÉE/ICÔNÉE (#349, dette
  *  1 — le flux DÉRIVE le ton depuis ce qu'il vient de résoudre, ex. `step.result.success`, au lieu de
  *  composer une chaîne muette). */
-export type FreeConsLine = string | { text: string; tone?: RecapTone; icon?: string };
+export type FreeConsLine = string | { text: string; tone?: RecapTone; icon?: IconId };
 
 /** Enveloppe des lignes de conséquence DÉJÀ composées (sans roll/target/sl du jet visible) en
  *  `Consequence[]` (#295 Lot 1, `out.free` passthrough) — SOURCE UNIQUE, réutilisée par tous les
  *  appliers de cascade migrés (river/travel/sea/shipwreck/pursuit/combat/rest). */
 export const freeCons = (texts: FreeConsLine[]): Consequence[] => texts
-  .map((x): { text: string; tone?: RecapTone; icon?: string } => (typeof x === 'string' ? { text: x } : x))
+  .map((x): { text: string; tone?: RecapTone; icon?: IconId } => (typeof x === 'string' ? { text: x } : x))
   .filter((x) => x.text.length > 0)
   .map(({ text, tone, icon }) => ({ say: 'out.free' as OutKey, vars: { text }, tone, icon }));
 
-/** Résout le côté d'un jet MONO (`hero-test`/`enemy`/`subi` non-`batch`) en acteur + éventuelle valeur
+/** Résout le côté d'un jet MONO (`actorId` ou `partyBest`, jamais `participants`) en acteur + éventuelle valeur
  *  DÉJÀ CALCULÉE (mandat coordinateur — le call-site ne calcule plus rien) :
  *   - `actorId` : l'acteur désigné, valeur = `testValue` (calculée par `effectiveTarget`, pas ici) ;
  *   - `partyBest` : le meilleur PJ du groupe pour la compétence/carac (`partyAssisted` par défaut —
@@ -444,7 +445,7 @@ export interface BandSpec {
   /** Intitulé de la SITUATION. Absent : l'étape n'en porte pas, et la fenêtre qui l'accueille prend
    *  son repli (`cascade.ts` : « Conséquences »). Une chaîne VIDE, elle, s'affiche vide. */
   label?: PlayerText;
-  icon?: string;
+  icon?: IconId;
   /** Défaut `'none'` : les rangées d'une bande sont des jets INDÉPENDANTS (#351). */
   aggregate?: RollAggregate;
   stake?: StakeRef;
@@ -557,7 +558,7 @@ export function bandCommonMeta(metas: readonly (CascadeStepMeta | undefined)[]):
  *  fraîchement construite, peuplés sur une étape venue d'une sauvegarde. */
 const ROW_DEPUIS_ETAPE = [
   'base', 'target', 'mods', 'clamped', 'difficulty', 'menace', 'skill',
-  'rerolled', 'forced', 'fixed', 'outcome',
+  'rerolled', 'forcee', 'fixed', 'outcome',
 ] as const;
 
 /** RANGÉE dérivée d'une étape MONO — le jet descend, la situation reste à la bande. Le `meta` ENTIER
@@ -659,7 +660,7 @@ function competenceDuTest(test: SujetDuJet | undefined): { skill?: RefDesignee }
   return test?.skill ? { skill: structuredClone(test.skill) } : {}; // #2097
 }
 
-/** Résout un test skill/characteristic SIMPLE (mono, `hero-test`/`enemy`/`subi` à `actorId`) en `CascadeStep`
+/** Résout un test skill/characteristic SIMPLE (mono, côté `actorId`) en `CascadeStep`
  *  prêt pour `startCascade`/`runCascadeImmediate` — calque `openSkillTest` (`combatEffects.ts:308-392`)
  *  réduit au cas générique (pas de candidats/mod social : hors périmètre du seam Ronde 0). */
 function buildMonoStep(get: Get, req: RollRequest, kind: GenreDEtape, meta?: CascadeStepMeta): CascadeStep {
@@ -955,7 +956,7 @@ export interface ChoiceSpec {
   id: string;
   kind: GenreDEtape;
   label: PlayerText;
-  icon?: string;
+  icon?: IconId;
   /** PORTEUR de la décision, REQUIS : l'arbitre (`modalArbiter`) route la fenêtre à son siège. Sans
    *  lui l'owner serait `undefined` — fenêtre à l'HÔTE SEUL, qui trancherait la voie d'autrui. Une
    *  étape de choix n'a donc QUE cette possession (cf. `groupOwner` ci-dessous). */
@@ -1049,7 +1050,7 @@ export interface QuantitySpec {
   id: string;
   kind: GenreDEtape;
   label: PlayerText;
-  icon?: string;
+  icon?: IconId;
   /** PORTEUR de la saisie, REQUIS : l'arbitre (`modalArbiter`) route la fenêtre à son siège. */
   actorId: string;
   /** POSSESSION DE GROUPE REFUSÉE AU TYPE — calque de `ChoiceSpec.groupOwner` : sous owner `'*'`,
@@ -1114,7 +1115,7 @@ interface MonoBase {
   id: string;
   kind: GenreDEtape;
   label: PlayerText;
-  icon?: string;
+  icon?: IconId;
   difficulty: Difficulty;
   /** Libellé de la COMPÉTENCE lancée. Absent : dérivé du catalogue (`testSkillLabel`), à défaut `label`. */
   rollLabel?: string;
@@ -1229,7 +1230,7 @@ export interface TableSpec {
   id: string;
   kind: GenreDeCascade;
   label: PlayerText;
-  icon?: string;
+  icon?: IconId;
   /** PORTEUR du tirage : l'arbitre route la fenêtre à son siège (un d100 subi a son sujet). Absent
    *  UNIQUEMENT sur une table de MONDE (`worldOwner`), où aucun personnage n'est concerné. */
   actorId?: string;
@@ -1372,7 +1373,7 @@ interface DisplayBase {
   id: string;
   kind: GenreDeCascade;
   label: PlayerText;
-  icon?: string;
+  icon?: IconId;
   /** Ce qui vient d'arriver, en lignes déjà écrites (`RecapLine[]`), rendues par le renderer partagé. */
   outcome?: RecapLine[];
   /** CHARGE de l'applier « reprise de fuite » (`combatFlow`) : qui fuit, devant qui, et combien de
@@ -1424,7 +1425,7 @@ export interface WorldStepSpec {
   id: string;
   kind: GenreDEtape;
   label: PlayerText;
-  icon?: string;
+  icon?: IconId;
   /** Le NOMBRE VISÉ du pourcentage (`dé ≤ cible`). Aucune Difficulté ne s'y applique : ce n'est pas un Test. */
   cible: number;
   /** Ce que la rangée DIT selon l'issue (#2389) — exigé par `LectureDuDe`. */
@@ -1473,7 +1474,7 @@ export interface DieStepSpec {
   id: string;
   kind: GenreDEtape;
   label: PlayerText;
-  icon?: string;
+  icon?: IconId;
   /** Les DÉS — REQUIS ici (à la différence de la déclaration persistée, où une table donne les
    *  siens) : un dé nu sans dés serait une étape prête d'office, validée sans qu'aucun dé ne tombe. */
   spec: DiceSpec;
@@ -1574,7 +1575,7 @@ interface HostBase {
   id: string;
   kind: GenreDeCascade;
   label?: PlayerText;
-  icon?: string;
+  icon?: IconId;
   stake?: StakeRef;
   meta?: CascadeStepMeta;
 }
@@ -1653,7 +1654,7 @@ export function hostStep(get: Get, spec: HostSpec): BuiltCascadeStep | undefined
  */
 export function openSequence(get: Get, set: Set, opts: {
   title: string;
-  icon?: string;
+  icon?: IconId;
   purpose: PendingCascade['purpose'];
   steps: readonly BuiltCascadeStep[];
   log?: string[];

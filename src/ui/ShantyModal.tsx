@@ -55,15 +55,15 @@ export function ShantyModal() {
   });
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' },
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
+    { key: 'abandonner', label: t('verbe.annuler'), onClick: cancel, verbe: 'annuler' },
+    { key: 'confirmer', label: t('verbe.valider'), onClick: confirm, verbe: 'valider' },
   ];
 
   return (
     <RollShell
       flowKey="chansonDeMarin"
       stake={flowStakeRef('chanson-de-marin-test', p.shantyId ? { entryId: p.shantyId } : undefined)}
-      title={<><Icon id="audio/music" size="sm" /> Chanson de marin</>}
+      title={<><Icon id="son/musique" size="sm" /> Chanson de marin</>}
       /* Z1 : acteur + le BÉNÉFICIAIRE, qui n'a de portrait nulle part (l'équipage entier). La
          Compétence est le label de la ligne (`Divertissement (Chant)`) — jamais redite ici. */
       subtitle={<><strong>{singer.label}</strong> — pour tout l’équipage</>}
@@ -94,8 +94,8 @@ export function ShantyModal() {
       outcome={r && chosen
         ? resultLines(freeCons(r.success
             ? [
-                { text: t('crew.shantyPorte', { shanty: chosen.label, min: dureeDeChanson(r.sl), desc: chosen.desc }), icon: 'audio/music', tone: 'ok' as const },
-                ...(chosen.note ? [{ text: `— ${chosen.note}`, tone: 'info' as const }] : []),
+                { text: t('crew.shantyPorte', { shanty: chosen.label, min: dureeDeChanson(r.sl), desc: chosen.desc }), icon: 'son/musique', tone: 'reussite' as const },
+                ...(chosen.note ? [{ text: `— ${chosen.note}`, tone: 'neutre' as const }] : []),
               ]
             : [t('crew.shantyAPlat')]))
         : undefined}

@@ -32,7 +32,7 @@ describe('crewedPenalty — table de sous-effectif d’une Arme d’équipe (MDG
 });
 
 const cannon = (over: Partial<Weapon> = {}): Weapon =>
-  ({ label: 'Canon', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 100,
+  ({ label: 'Canon', type: 'distance', damage: { plusBF: false, flat: 9 }, range: 100,
     qualities: [{ id: 'arme-d-equipe', value: 3 }], subType: 'poudre-noire', reload: 3, ...over }) as Weapon;
 const hasQ = (w: Weapon, id: string) => w.qualities.some((q) => q.id === id);
 
@@ -87,18 +87,18 @@ describe('crewedFireWeapon — Défauts de sous-effectif BAKÉS sur l’arme tir
 
 describe('attackModifiers — le −10 du Défaut redoublé apparaît sur le Test de tir (MDG 12 l.460)', () => {
   const shooter = (): Combatant =>
-    ({ id: 's', name: 'S', kind: 'hero', advantage: 0, conditions: [], skills: [], size: 3, weapons: [] }) as unknown as Combatant;
-  const mark = (): Combatant => ({ id: 't', name: 'T', kind: 'enemy', advantage: 0, conditions: [], size: 3 }) as unknown as Combatant;
+    ({ id: 's', name: 'S', kind: 'heros', advantage: 0, conditions: [], skills: [], size: 3, weapons: [] }) as unknown as Combatant;
+  const mark = (): Combatant => ({ id: 't', name: 'T', kind: 'ennemi', advantage: 0, conditions: [], size: 3 }) as unknown as Combatant;
   const sousEffectif = { category: 'qualities', id: 'arme-d-equipe' };
 
   it('un canon Imprécise manié seul → ligne « Sous-effectif » à −10 dans les modificateurs de touche', () => {
     const w = crewedFireWeapon(cannon({ qualities: [{ id: 'arme-d-equipe', value: 3 }, { id: 'imprecise' }] }), 1);
-    const line = ligneDe(attackModifiers(shooter(), mark(), w, { kind: 'ranged' }), sousEffectif);
+    const line = ligneDe(attackModifiers(shooter(), mark(), w, { kind: 'distance' }), sousEffectif);
     expect(line?.value).toBe(-10);
   });
 
   it('équipage complet → aucune ligne « Sous-effectif »', () => {
     const w = crewedFireWeapon(cannon({ qualities: [{ id: 'arme-d-equipe', value: 3 }, { id: 'imprecise' }] }), 3);
-    expect(ligneDe(attackModifiers(shooter(), mark(), w, { kind: 'ranged' }), sousEffectif)).toBeUndefined();
+    expect(ligneDe(attackModifiers(shooter(), mark(), w, { kind: 'distance' }), sousEffectif)).toBeUndefined();
   });
 });

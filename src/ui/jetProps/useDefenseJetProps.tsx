@@ -127,7 +127,7 @@ export function useDefenseJetProps(): ComponentProps<typeof RollShell> | null {
   });
 
   const actions: RollAction[] = [
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
+    { key: 'confirmer', label: t('verbe.valider'), onClick: confirm, verbe: 'valider' },
   ];
 
   return {
@@ -163,7 +163,7 @@ export function useDefenseJetProps(): ComponentProps<typeof RollShell> | null {
                   <option key={o.valeur ?? ''} value={o.valeur ?? ''}>{o.libelle}</option>
                 ))}
               </select>
-              <CodexRef category="regles" id="main-secondaire" label="Attaque de la main secondaire" className="ab-codex-info"><Icon id="journal/info" size="sm" /></CodexRef>
+              <CodexRef category="regles" id="main-secondaire" label="Attaque de la main secondaire" className="ab-codex-info"><Icon id="journal/information" size="sm" /></CodexRef>
             </div>
           )}
           {porteBouclier}

@@ -35,7 +35,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const C = (over: Partial<Combatant>): Combatant =>
   (blessuresSurLeProfil({
-    id: 'X', name: 'X', kind: 'hero',
+    id: 'X', name: 'X', kind: 'heros',
     characteristics: { 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 35, endurance: 35, initiative: 35, agilite: 35, dexterite: 35, intelligence: 35, 'force-mentale': 35, sociabilite: 35 },
     wounds: blessuresDeBase(14), advantage: 0, conditions: [], traumas: [],
     weapons: [{ name: 'Épée', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [] }],
@@ -45,8 +45,8 @@ const C = (over: Partial<Combatant>): Combatant =>
   })) as unknown as Combatant;
 
 /** Héros « A » avec 1 Point de Chance (l'observable) ; l'ennemi « B » adjacent. */
-const hero = (over: Partial<Combatant> = {}): Combatant => C({ id: 'A', label: 'A', kind: 'hero', fortune: 1, resilience: 1, ...over });
-const foe = (over: Partial<Combatant> = {}): Combatant => C({ id: 'B', label: 'B', kind: 'enemy', fortune: 0, resilience: 0, pos: { x: 1, y: 0 }, ...over });
+const hero = (over: Partial<Combatant> = {}): Combatant => C({ id: 'A', label: 'A', kind: 'heros', fortune: 1, resilience: 1, ...over });
+const foe = (over: Partial<Combatant> = {}): Combatant => C({ id: 'B', label: 'B', kind: 'ennemi', fortune: 0, resilience: 0, pos: { x: 1, y: 0 }, ...over });
 const arena = (extra: Combatant[] = []) => ({ combatants: [hero(), foe(), ...extra], log: [] });
 
 /** Jets propres PERDANT / GAGNANT réutilisés partout (verdict `evaluateTest`, LDB 12 l.25-28). */
@@ -79,7 +79,7 @@ const FIXTURES: Partial<Record<FlowKey, Fix>> = {
   // ── Attaque / défense / piétinement (issue = `attackerDetail.success` / `def.success`) ──
   attaque: { make: (win) => ({
     battle: arena(), scene: testScene(), // resolveAttack (re-résolution) lit la scène (LdV/couvert) sans garde
-    pendingAttack: { attackerId: 'A', targetId: 'B', location: null, result: { hit: win, attackerRoll: win ? 20 : 88, netSL: win ? 2 : -4, critical: false, advantageTo: win ? 'attacker' : 'defender', defenderDefeated: false, log: '', attackerDetail: atkDetail(win) } },
+    pendingAttack: { attackerId: 'A', targetId: 'B', location: null, result: { hit: win, attackerRoll: win ? 20 : 88, netSL: win ? 2 : -4, critical: false, advantageTo: win ? 'attaquant' : 'defenseur', defenderDefeated: false, log: '', attackerDetail: atkDetail(win) } },
   }) },
   defense: { make: (win) => ({
     battle: { combatants: [hero({ pos: { x: 1, y: 0 } }), foe({ pos: { x: 0, y: 0 } })], log: [] },
@@ -87,7 +87,7 @@ const FIXTURES: Partial<Record<FlowKey, Fix>> = {
       attackerId: 'B', defenderId: 'A', weapon: { name: 'Gourdin', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [] },
       location: null, atk: { roll: 30, target: 45, success: true, sl: 1, isDouble: false }, mode: 'esquive',
       def: win ? WIN : LOSE,
-      result: { hit: !win, attackerRoll: 30, netSL: win ? -1 : 5, critical: false, advantageTo: win ? 'defender' : 'attacker', defenderDefeated: false, log: '', attackerDetail: { label: 'Corps à corps', base: 45, modifier: 0, target: 45, roll: 30, success: true, sl: 1 }, defenderDetail: { label: 'Esquive', base: 40, modifier: 0, target: 40, roll: win ? 8 : 95, success: win, sl: win ? 3 : -5 } },
+      result: { hit: !win, attackerRoll: 30, netSL: win ? -1 : 5, critical: false, advantageTo: win ? 'defenseur' : 'attaquant', defenderDefeated: false, log: '', attackerDetail: { label: 'Corps à corps', base: 45, modifier: 0, target: 45, roll: 30, success: true, sl: 1 }, defenderDetail: { label: 'Esquive', base: 40, modifier: 0, target: 40, roll: win ? 8 : 95, success: win, sl: win ? 3 : -5 } },
       suite: { mode: 'machine', coup: {} },
     },
   }) },
@@ -119,7 +119,7 @@ const FIXTURES: Partial<Record<FlowKey, Fix>> = {
   fuite: { pid: 'A', make: (win) => ({
     battle: arena(),
     pendingDisengage: { moverId: 'A', foeId: 'B', fuir: { participants: [
-      { id: 'B', kind: 'backstab', interactive: false, result: { hit: true, attackerRoll: 30, netSL: 1, location: 'corps', damage: 4, woundsLost: 4, critical: false, advantageTo: 'attacker', defenderDefeated: false, log: '', attackerDetail: atkDetail(true) } },
+      { id: 'B', kind: 'backstab', interactive: false, result: { hit: true, attackerRoll: 30, netSL: 1, location: 'corps', damage: 4, woundsLost: 4, critical: false, advantageTo: 'attaquant', defenderDefeated: false, log: '', attackerDetail: atkDetail(true) } },
       { id: 'A', kind: 'touche', interactive: true, test: testDeRegle('fuite', 'touche-en-fuyant'), jet: win ? WIN : LOSE },
     ] } },
   }) },
@@ -134,7 +134,7 @@ const FIXTURES: Partial<Record<FlowKey, Fix>> = {
   protection: { make: (win) => ({ battle: arena(), pendingWard: { attackerId: 'A', result: win ? WIN : LOSE } }) },
   // ── Tests numériques « jet propre » (soin/rechargement/évaluation/corruption/activité/test) ──
   rechargement: { make: (win) => ({ battle: arena(), pendingReload: { actorId: 'A', skillValue: 40, difficulty: 'intermediaire', roll: win ? 8 : 95, target: 40, sl: win ? 3 : -5, success: win } }) },
-  mainEnsanglantee: { make: (win) => ({ battle: arena(), pendingHandGate: { attackerId: 'A', actorName: 'A', hand: 'main', ligne: { base: 40, mods: [], target: 60, difficulty: 'accessible' }, roll: win ? 8 : 95, target: 60, sl: win ? 3 : -5, success: win, pa: { attackerId: 'A', targetId: 'B', location: null, result: null }, title: 'Attaque', icon: 'action/attack' } }) },
+  mainEnsanglantee: { make: (win) => ({ battle: arena(), pendingHandGate: { attackerId: 'A', actorName: 'A', hand: 'main', ligne: { base: 40, mods: [], target: 60, difficulty: 'accessible' }, roll: win ? 8 : 95, target: 60, sl: win ? 3 : -5, success: win, pa: { attackerId: 'A', targetId: 'B', location: null, result: null }, title: 'Attaque', icon: 'action/attaquer' } }) },
   soins: { make: (win) => ({ battle: arena(), pendingHeal: { healerId: 'A', mode: 'first-aid', test: 'guerison', bandagesDe: null, skillValue: 40, difficulty: 'intermediaire', roll: win ? 8 : 95, target: 40, sl: win ? 3 : -5, success: win } }) },
   chirurgie: { make: (win) => ({ battle: arena(), pendingSurgery: { healerId: 'A', ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, roll: win ? 8 : 95, target: 40, sl: win ? 3 : -5, success: win } }) },
   evaluation: { make: (win) => ({ battle: arena(), pendingAppraise: { actorId: 'A', ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, roll: win ? 8 : 95, target: 40, sl: win ? 3 : -5, success: win } }) },
@@ -150,7 +150,7 @@ const FIXTURES: Partial<Record<FlowKey, Fix>> = {
   chansonDeMarin: { make: (win) => ({ battle: arena(), pendingShanty: { singerId: 'A', shantyId: 'x', result: win ? WIN : LOSE } }) },
   // ── Opposés « joueur vs figé » avec re-résolution dédiée (récupération / marchandage) ──
   recuperation: { make: (win) => ({ battle: arena(), pendingStateRecovery: { actorId: 'A', skillValue: 40, difficulty: 'intermediaire', opposed: false, roll: win ? WIN : LOSE, netSL: win ? 3 : 0, success: win } }) },
-  marchandage: { make: (win) => ({ battle: arena(), pendingBargain: { playerId: 'A', playerSkill: 40, contrepartie: { kind: 'marchand', mode: 'achat', titre: t('out.bargainTitreAchat') }, opposant: { label: 'Marchand', valeur: 40 }, roll: win ? WIN : LOSE, merchantRoll: { roll: 50, target: 40, success: false, sl: -1, isDouble: false }, result: { winner: win ? 'attacker' : 'defender', attackerWins: win, netSL: win ? 2 : -2 } } }) },
+  marchandage: { make: (win) => ({ battle: arena(), pendingBargain: { playerId: 'A', playerSkill: 40, contrepartie: { kind: 'marchand', mode: 'achat', titre: t('out.bargainTitreAchat') }, opposant: { label: 'Marchand', valeur: 40 }, roll: win ? WIN : LOSE, merchantRoll: { roll: 50, target: 40, success: false, sl: -1, isDouble: false }, result: { winner: win ? 'attaquant' : 'defenseur', attackerWins: win, netSL: win ? 2 : -2 } } }) },
   // ── MULTI (participant/round/étape « A ») ──
   contreSort: { pid: 'A', make: (win) => ({
     battle: arena(),
@@ -168,7 +168,7 @@ const FIXTURES: Partial<Record<FlowKey, Fix>> = {
   }) },
   testEtendu: { pid: 'r1', make: (win) => ({
     battle: arena(),
-    pendingExtendedTest: { actorId: 'A', label: 'x', skillLabel: 'x', target: 40, targetDR: 5, total: 0, rounds: [{ id: 'r1', result: { roll: win ? 8 : 95, target: 40, sl: win ? 3 : -5, success: win } }] },
+    pendingExtendedTest: { actorId: 'A', label: 'x', skillLabel: 'x', target: 40, drCible: 5, total: 0, rounds: [{ id: 'r1', result: { roll: win ? 8 : 95, target: 40, sl: win ? 3 : -5, success: win } }] },
   }) },
   enfoncerLaPorte: { pid: 'A', make: (win) => ({
     battle: arena(),

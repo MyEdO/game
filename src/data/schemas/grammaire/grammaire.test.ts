@@ -154,7 +154,7 @@ describe('document() — enveloppe posée par la fabrique', () => {
   it('EXIGE une exposition Codex/éditeur déclarée (clés, ou exemption motivée)', () => {
     expect(() =>
       // @ts-expect-error — `codex` vide : ni `keys` ni `exempt`.
-      document('jouet', 'entite', { max: z.number() }, { max: { label: 'Max' } }, { codex: {}, edit: { object: 'single' } }),
+      document('jouet', 'entite', { max: z.number() }, { max: { label: 'Max' } }, { codex: {}, edit: { object: 'unique' } }),
     ).toThrow(/`codex` exige/);
     expect(() =>
       // @ts-expect-error — `edit` vide : ni `dataset`, ni `object`, ni `niche`, ni `none`.
@@ -576,17 +576,9 @@ describe('defs/ — forme de FICHIER et EXPOSITION déclarée (#1472 sous-lot A)
   });
 });
 
-describe('contrats d’enveloppe REQUIS dans les defs `entite` — la métrique qui justifie `exiges`', () => {
-  // MESUREUR : « requis » = `shape[k].safeParse(undefined)` ROUGE au schéma d'entrée du def (jamais une
-  // regex de source, qui sous-compte les déclarations indentées autrement). Les defs DÉJÀ adoptés par
-  // `document()` rendent un nœud SCELLÉ sans `.shape` : ils ne sont pas mesurables ici — et n'ont plus
-  // rien à perdre, leur enveloppe est celle de la fabrique. Ce compte est ce que le flip-entite doit
-  // reporter en `options.exiges`, def par def : il DÉCROÎT à mesure que les defs sont adoptés.
-  //
-  // Au 2026-08-28, `scelles` = 77 defs `entite`, TOUS adoptés — et la population MESURÉE est VIDE.
-  // `oups.json` est le dernier entré (V-UNION) : ses deux formes (bande d100 `min`/`max`/`kind` vs
-  // Incident de Tir `kind: 'misfire'`) tiennent en UNE entrée dont un refine ⟺ porte la disjonction,
-  // si bien qu'il n'a plus besoin d'une classe « union » hors des vagues d'adoption.
+describe('tout def `entite` tient son enveloppe de `document()`', () => {
+  // Un def adopté par `document()` rend un nœud SCELLÉ, sans `.shape` : son enveloppe est celle de la fabrique, et
+  // ses exigences se lisent au verrou ci-dessous. Un def qui expose encore une `.shape` écrit son enveloppe à la main.
   const noeudInterne = (n: unknown): unknown => {
     const type = defDe(n)?.type;
     if (type === undefined || type === 'pipe' || type === 'lazy') return undefined;
@@ -602,109 +594,17 @@ describe('contrats d’enveloppe REQUIS dans les defs `entite` — la métrique 
     return undefined;
   };
 
-  const mesure = { desc: 0, source: 0, icon: 0, scelles: 0, mesures: 0 };
-  for (const def of SCHEMA_DEFS.filter((d) => d.famille === 'entite')) {
-    const shape = shapeDe(def.schema);
-    if (!shape) {
-      mesure.scelles++;
-      continue;
-    }
-    mesure.mesures++;
-    for (const k of ['desc', 'source', 'icon'] as const) {
-      if (shape[k] && shape[k].safeParse(undefined).success === false) mesure[k]++;
-    }
-  }
-
-  /**
-   * TÉMOIN DU DÉTECTEUR — la population mesurée étant VIDE, les trois compteurs valent 0 ; un
-   * `shapeDe` cassé rendrait EXACTEMENT le même 0. Ce zéro n'a de sens que si l'instrument mord
-   * encore : on lui donne ici un schéma NON adopté (la forme que portaient les defs avant la
-   * fabrique) et on exige qu'il y VOIE les trois clés requises.
-   */
-  const NON_ADOPTE = z.array(z.strictObject({ desc: z.string(), source: z.string(), icon: z.string() }));
-
   it('le DÉTECTEUR mord encore — sur un schéma NON adopté, il VOIT les trois clés requises', () => {
-    const shape = shapeDe(NON_ADOPTE);
+    const shape = shapeDe(z.array(z.strictObject({ desc: z.string(), source: z.string(), icon: z.string() })));
     expect(shape, '`shapeDe` ne descend plus jusqu’à la forme d’un def non adopté').toBeDefined();
     const requises = (['desc', 'source', 'icon'] as const).filter((k) => shape![k] && !shape![k].safeParse(undefined).success);
     expect(requises).toEqual(['desc', 'source', 'icon']);
   });
 
-  it('compte les clés d’enveloppe REQUISES que l’adoption relâcherait sans `exiges`', () => {
-    // #1467 L1b V-FLIP-ENTITE, vagues 11a puis 11b (2026-08-28) : 42 defs `entite` ont adopté
-    // `document()` — ils rendent un nœud SCELLÉ, donc ils quittent la population MESURÉE pour la
-    // population SCELLÉE (75 → 33, 2 → 44). Ce que la mesure perd, `options.exiges` le PORTE
-    // au def, et le verrou d'exigence ci-dessous le prouve entrée par entrée.
-    //   11a : desc −5 (astrology, classes, crew-roles, peripeties, sea-shanties),
-    //         source −3 (astrology, classes, sea-shanties), icon −1 (calendarPhases).
-    //   11b : desc −6 (careers, characteristics, interludeEvents, mutations, qualities, regles),
-    //         source −7 (careers, characteristics, locations, qualities, regles, stars, voyage-stakes).
-    //   12  : desc −9 (etats, maladies, naval-traits, skills, steam-breakdown, symptoms, talents,
-    //                  traits, traumas),
-    //         source −9 (combat-stakes, etats, flow-stakes, maneuvers, naval-ports, skills,
-    //                    structures, talents, traits) — 21 defs quittent la mesure (33 → 12, 44 → 65).
-    //   12b : desc −4 (psychology, species, spells, tavernGames),
-    //         source −8 (activities, creatures, night-stakes, psychology, species, spells,
-    //                    tavernGames, trappings),
-    //         icon −2 (actions, activities) — les 12 DERNIERS defs `entite` quittent la mesure
-    //         (12 → 0, 65 → 77). La population MESURÉE est ÉTEINTE : plus AUCUN def `entite` ne
-    //         porte son enveloppe à la main.
-    //   14  : `oups` (V-UNION) était DÉJÀ compté en `scelles` — son union n'avait pas plus de
-    //         `.shape` que le nœud scellé qu'il rend — donc le total ne bouge PAS (77).
-    //         Ce qu'il gagne, c'est d'y être pour la BONNE raison, et son `source` exigée au verrou.
-    // L'ADOPTION est la cause du recalage, pas une dérive du détecteur — le témoin ci-dessus le
-    // prouve en faisant mordre l'instrument sur un schéma non adopté.
-    //
-    // DEUX ÉCARTS entre ce que la mesure PERD et ce que `exiges` REPREND, tous deux de la MÊME
-    // classe — une entrée MÉTA ou sans prose citable dont la `desc: ""` est purgée, si bien
-    // qu'exiger `desc` la refuserait :
-    //   • vague 12  : `talents` (187ᵉ entrée `talent-aleatoire`, vocabulaire de tirage LDB 05 l.484,
-    //     exemptée d'obtenabilité par `codexOnly`), purgée par la migration 12a ;
-    //   • vague 12b : `species` (5ᵉ entrée `humains-tileens`), purgée par la migration 12b.
-    // Les deux renvois viennent NOMMÉMENT de `2026-08-27-l1b-3h-desc-null.mjs:25-28`, verbatim :
-    // « Les deux autres — `species.json[4]` et `talents.json[0]` — sont déclarés `desc: z.string()`
-    // REQUIS […] Ils meurent avec le lot qui posera `min(1)` sur ces deux defs, pas ici. » Les deux
-    // sont morts (12a puis 12b) : le renvoi de 3h est INTÉGRALEMENT soldé. Les écarts sont
-    // ici, pas dans un silence.
-    //   #677 : `reseau-routier` est un def `entite` NEUF, adopté dès sa création et `source` exigée
-    //         — il naît donc dans la population SCELLÉE (77 → 78), sans jamais passer par la mesure.
-    //   #1654 : `miscast` déclare la famille `entite` (son fichier porte une LISTE de 5 documents,
-    //         chacun à sa charge `entries` par `options.rangee`) — un def SCELLÉ de plus dans la
-    //         population de ce mesureur, qui GAGNE là une couverture (78 → 79) : la famille qu'il
-    //         portait sortait ce def de tout filtre `entite` de ce fichier.
-    //   #1657 : `criticals` fait de même (79 → 80) — les deux racines-objet `criticals`/
-    //         `aa-criticals` fusionnent en UNE liste de 8 documents-tables, famille `entite` à charge
-    //         `entries` ; le def d'`aa-criticals` meurt, celui de `criticals` entre dans la population.
-    //   #1657 : `ship-stations` naît SCELLÉ (80 → 81) — catalogue FERMÉ des présences à bord
-    //         que les livres nomment, `exiges: ['desc']` dès sa première écriture.
-    //   #1686 : `propMaterials`/`roofMaterials`/`reliefMaterials` fusionnent en UN def
-    //         `materials` (81 → 79) — trois defs SCELLÉS en deviennent un, la population perd 2.
-    //   #1690 : `terrains` naît SCELLÉ (79 → 80) — le registre TS des 25 sols devient un dataset.
-    //   #1715 : `buildings` naît SCELLÉ (80 → 81) — le registre TS des 7 types de bâtiment devient un dataset.
-    //   #2948 : `apparences` naît SCELLÉ (81 → 82) — le catalogue des apparences d'objet devient un dataset.
-    //   #2972 : `gabarits` naît SCELLÉ (82 → 83) — le registre TS des carrures devient un dataset.
-    //   #3114 : `garde-robe` naît SCELLÉ (83 → 84) — la garde-robe des éléments 3D devient un dataset.
-    //   #3086 : `presets-de-personnage` naît SCELLÉ (84 → 85) — les presets de personnage entier deviennent un dataset.
-    //   #1665 : `montures` passe de la famille `config` à `entite` (85 → 86) — ses 8 profils de voyage deviennent la liste du fichier.
-    //   #1681 : les quatre defs d'enjeux fusionnent en UN def `stakes` (86 → 83).
-    //   #1684 : le catalogue des cargaisons naît en def `entite` `cargoes`, `source` exigée (83 → 84).
-    //   #1667 : `oups`, `interludeEvents`, `steam-breakdown`, `stars` et `peripeties` deviennent des
-    //         documents mono-tables `config` (84 → 79) — leurs lignes passent en `rangee`.
-    //   #2993 : `planDeBestiaire` naît SCELLÉ (79 → 80) — le plan de bestiaire devient un dataset.
-    //   #3771 : `rendus` naît SCELLÉ (80 → 81) — le catalogue des rendus des coups et des incantations.
-    //   #3578 : `talents-aleatoires` naît en def `entite` à charge `entries` (81 → 82) — la colonne
-    //         `talents[].rand` devient le document TABLE du Tableau des Talents aléatoires.
-    //   #3578 L2a : `carrieres-aleatoires` naît en def `entite` à charge `entries` (82 → 83) — la colonne
-    //         `careers[].rand` devient les documents TABLE du Tableau des Classes et Carrières aléatoires.
-    //   #3578 L3 : `eyes` et `hairs` deviennent des documents mono-tables `config` (83 → 81) — leurs
-    //         lignes passent en `rangee`.
-    //   #3578 L4 : `especes-aleatoires` naît en def `entite` à charge `entries` (81 → 82) — la colonne
-    //         `species[].rand` devient les documents TABLE du Tableau des Races aléatoires.
-    //   #3578 L5 : `cargaisons-aleatoires` naît en def `entite` à charge `entries` (82 → 83) — la
-    //         disponibilité `cargoes[].avail` devient les documents TABLE du Tableau des cargaisons.
-    expect(mesure).toEqual({ desc: 0, source: 0, icon: 0, scelles: 83, mesures: 0 });
+  it('aucun def `entite` n’écrit son enveloppe à la main', () => {
+    const aLaMain = SCHEMA_DEFS.filter((d) => d.famille === 'entite' && shapeDe(d.schema)).map((d) => d.file);
+    expect(aLaMain).toEqual([]);
   });
-
 });
 
 /**
@@ -985,13 +885,15 @@ describe('document() — verrous d’ENVELOPPE paramétrés (#1467 L1b V-P0c)', 
     const strict = document('fiche-jouet', 'entite', { max: z.number() }, { max: { label: 'Max' } }, EXPOSITION, {
       exiges: ['icon', 'alsoIn'],
     });
-    const base = { ...ENV('fiche-jouet'), max: 2, icon: 'epee', alsoIn: [{ book: 'aux-armes', page: 12 }] };
+    const sansIcone = { ...ENV('fiche-jouet'), max: 2, alsoIn: [{ book: 'aux-armes', page: 12 }] };
+    const base = { ...sansIcone, icon: 'melee/au-contact' };
     expect(strict.entree.safeParse(base).success).toBe(true);
     expect(strict.entree.safeParse({ ...base, icon: '' }).success).toBe(false);
     expect(strict.entree.safeParse({ ...base, alsoIn: [] }).success).toBe(false);
-    // Non exigées, ces mêmes clés gardent leur forme d'origine (l'option n'est pas un durcissement global).
+    // Non exigées, ces mêmes clés restent optionnelles et `alsoIn` admet `[]` (l'option n'est pas un durcissement global).
     const libre = document('fiche-jouet', 'entite', { max: z.number() }, { max: { label: 'Max' } }, EXPOSITION);
-    expect(libre.entree.safeParse({ ...base, icon: '', alsoIn: [] }).success).toBe(true);
+    expect(libre.entree.safeParse({ ...sansIcone, alsoIn: [] }).success).toBe(true);
+    expect(strict.entree.safeParse(sansIcone).success).toBe(false);
   });
 
   it('`idDocument` qui admettrait la CHAÎNE VIDE est REFUSÉ à la déclaration', () => {

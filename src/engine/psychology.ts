@@ -4,6 +4,7 @@
  * P1 = Peur (Indice) / Terreur (Indice). Cf. spec :
  * docs/superpowers/specs/2026-06-07-psychologie-design.md
  */
+import type { IconId } from '../data/icons';
 import { Combatant, DIFFICULTE_PAR_DEFAUT, type Difficulty, type EffectSource, type TerreurSubie } from './types';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { t } from '../i18n';
@@ -81,9 +82,9 @@ export interface PsychAffliction {
 /** Libellés (icône + nom) des Traits psy ciblés — DÉRIVÉS de `psychology.json` (SOURCE UNIQUE, comme
  *  `etats.json` pour les États — même champ `icon` du registre `<Icon>`, id `famille/nom`). Partagé
  *  par les modales psy (combat + rencontre) et la narration. */
-export const cibleLabel = (type: string): { icon: string; label: string } | undefined => {
+export const cibleLabel = (type: string): { icon?: IconId; label: string } | undefined => {
   const p = findPsychologyById(type);
-  return p?.cibles ? { icon: p.icon ?? '', label: p.label } : undefined;
+  return p?.cibles ? { ...(p.icon ? { icon: p.icon } : {}), label: p.label } : undefined;
 };
 
 /** Ce qui peut déclencher, ou subir, un Trait psy ciblé : un combattant, l'interlocuteur d'un Test social
@@ -133,7 +134,7 @@ const RELATIFS: Record<Relatif, (s: SourcePsy, porteur: Combatant, lecture: Lect
   // Q15 A, #3045
   etrangersAuPorteur: (s, porteur, lecture) =>
     !lieAuPorteur(s, porteur, lecture) &&
-    (s.genre !== 'combattant' || relationBetween({ id: s.c.id, camp: campOf(s.c) }, { id: porteur.id, camp: campOf(porteur) }) === 'opponent'),
+    (s.genre !== 'combattant' || relationBetween({ id: s.c.id, camp: campOf(s.c) }, { id: porteur.id, camp: campOf(porteur) }) === 'adversaire'),
   // LDB 19 l.152 ; EDOC 12 l.219 ; #3045
   autresRacesQueLePorteur: (s, porteur, lecture) => {
     const siennes = racesDe(groupesDe(porteur));
@@ -186,7 +187,7 @@ export function agressifEnvers(
 ): boolean {
   if (source.id === cible.id) return false;
   const [cs, cc] = [campOf(source), campOf(cible)];
-  if (cs !== 'neutral' && cc !== 'neutral' && relationBetween({ id: source.id, camp: cs }, { id: cible.id, camp: cc }) === 'opponent') return true;
+  if (cs !== 'neutre' && cc !== 'neutre' && relationBetween({ id: source.id, camp: cs }, { id: cible.id, camp: cc }) === 'adversaire') return true;
   return !!source.engagedWith?.includes(cible.id)
     || !!cible.engagedWith?.includes(source.id)
     || !!source.attackedThisRound?.includes(cible.id);
@@ -226,7 +227,7 @@ export function fearSourceFor(self: Combatant, s: SourcePsy, selfSizeForSize?: S
 
 /** Mode de RÉSOLUTION d'un état psy + ses conséquences d'échec, lus en DONNÉES (`psychology.json`) — SOURCE
  *  UNIQUE de l'applier `psychologieDeCombat` et du picker de Round : plus de `kind === 'terreur'` codé par-nom. */
-export function psychResolution(kind: PsychType): { mode?: 'extended' | 'terreur' | 'binary'; failCondition?: string; failAmount?: { base?: 'indice' | number; perDegreeOfFailure?: number }; becomes?: PsychType } {
+export function psychResolution(kind: PsychType): { mode?: 'etendu' | 'terreur' | 'simple'; failCondition?: string; failAmount?: { base?: 'indice' | number; perDegreeOfFailure?: number }; becomes?: PsychType } {
   const d = findPsychologyById(kind);
   return { mode: d?.resolution, failCondition: d?.failCondition?.id, failAmount: d?.failAmount, becomes: d?.becomes?.id as PsychType | undefined };
 }
@@ -729,7 +730,7 @@ export function psychBranchOps(
  *  résolution connaît (DR cumulé du Test étendu, n° de Round) en est absent : l'annonce ne porte
  *  que ce qui est certain. */
 export function psychBranchFlow(stake: PsychStake, success: boolean): Flow {
-  return { kind: 'do', effect: { type: 'ops', on: 'target', ops: psychBranchOps(stake, { success }) } };
+  return { kind: 'effet', effet: { type: 'ops', on: 'target', ops: psychBranchOps(stake, { success }) } };
 }
 
 // ---------------------------------------------------------------------------

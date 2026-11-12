@@ -21,7 +21,7 @@ const rangees = () => CRITIQUE_DOCS.flatMap((d) => d.entries);
 
 function mk(): Combatant {
   return blessuresSurLeProfil({
-    id: 'x', name: 'X', kind: 'hero', characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
+    id: 'x', name: 'X', kind: 'heros', characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     conditions: [], activeEffects: [], skills: [], talents: [], traits: [], weapons: [], armour: [],
     wounds: blessuresDeBase(10), advantage: 0,
   }) as unknown as Combatant;
@@ -133,8 +133,8 @@ describe('Données — verrous & escapeStrength câblés (RAW)', () => {
     type Op = { op: string; id?: { id: string }; unlockBy?: string };
     const opsOf = (id: string, cond: string): Op | undefined => {
       const e = rangees().find((x) => x.id === id)!;
-      // L'effet peut vivre dans l'effet IMMÉDIAT ou dans la branche `fail` du nœud `test` de la rangée.
-      return [...((e.ops ?? []) as Op[]), ...(spellOps(e.test?.fail, 'target') as unknown as Op[])]
+      // L'effet peut vivre dans l'effet IMMÉDIAT ou dans la branche `echec` du nœud `test` de la rangée.
+      return [...((e.ops ?? []) as Op[]), ...(spellOps(e.test?.echec, 'target') as unknown as Op[])]
         .find((o) => o.op === 'condition' && o.id?.id === cond);
     };
     // œil (Aveuglé), thorax (Sonné), clavicule (Inconscient) — LDB + jumeaux AA aa-tete-41/aa-corps-91/aa-corps-96.

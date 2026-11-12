@@ -47,7 +47,7 @@ const noeud = (file: string, champ: string): z.ZodType => {
 
 const plancher = { op: 'charMod', characteristic: 'intelligence', mod: -40, min: 10 };
 const sansPlancher = { op: 'charMod', characteristic: 'intelligence', mod: -40 };
-const effetPortant = (op: unknown) => [{ trigger: 'onDayStart', on: 'self', flow: { kind: 'do', effect: { type: 'ops', on: 'target', ops: [op] } } }];
+const effetPortant = (op: unknown) => [{ trigger: 'onDayStart', on: 'soi', flow: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [op] } } }];
 
 describe('champ RÉSERVÉ au porteur — `charMod.min`, plancher de mutation (EDO 11 l.190 ; #1853)', () => {
   it('les champs réservés sont DÉRIVÉS des déclarations d’op ; `charMod` est typé', () => {
@@ -79,7 +79,7 @@ const haine = { op: 'grantPsychTrait', psychType: { id: 'haine' } };
 const envers = { ...haine, envers: 'personneChoisie' };
 const duree = { ...haine, durationHours: 2 };
 const resistance = { skill: { id: 'calme' }, difficulty: 'accessible' };
-const effetDeSort = (op: unknown) => ({ kind: 'do', effect: { type: 'ops', on: 'target', ops: [op] } });
+const effetDeSort = (op: unknown) => ({ kind: 'effet', effet: { type: 'ops', on: 'target', ops: [op] } });
 
 describe('champs RÉSERVÉS aux Sorts — `grantPsychTrait` envers, résistance, durée (VDM 10 l.324-327 ; #1463)', () => {
   it('contrat positif : ADMIS dans les `effects` d’un Sort', () => {
@@ -107,7 +107,7 @@ describe('champs RÉSERVÉS aux Sorts — `grantPsychTrait` envers, résistance,
 describe('fin d’une affliction ciblée — `endPsych.instance` et Condition `cibleEnVue` réservées à `psychology.effects` (LDB 21 l.19, l.39, l.48)', () => {
   const finDInstance = { op: 'endPsych', instance: 'courante' };
   const siPlusEnVue = (cond: unknown, op: unknown = { op: 'endPsych', type: { id: 'haine' } }) =>
-    [{ trigger: 'onRoundEnd', on: 'self', flow: { kind: 'if', cond: { kind: 'not', of: cond }, then: { kind: 'do', effect: { type: 'ops', on: 'target', ops: [op] } } } }];
+    [{ trigger: 'onRoundEnd', on: 'soi', flow: { kind: 'si', condition: { kind: 'not', of: cond }, alors: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [op] } } } }];
 
   it('contrat positif : ADMISES dans les `effects` d’un Trait psychologique', () => {
     const effets = noeud('psychology.json', 'effects');

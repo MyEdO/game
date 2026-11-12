@@ -12,7 +12,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const HIT: AttackResult = {
   hit: true, attackerRoll: 40, netSL: 1, location: 'corps', damage: 3, woundsLost: 3,
-  critical: false, advantageTo: 'attacker', defenderDefeated: false, log: '',
+  critical: false, advantageTo: 'attaquant', defenderDefeated: false, log: '',
 };
 
 /**
@@ -29,9 +29,9 @@ describe('Tir immobile (tirImmobile)', () => {
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const E = b.combatants.find((c) => c.kind === 'enemy')!;
-    H.weapons = [{ label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [] }] as never;
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const E = b.combatants.find((c) => c.kind === 'ennemi')!;
+    H.weapons = [{ label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 8 }, range: 60, qualities: [] }] as never;
     H.pos = { x: 6, y: 10 };
     E.pos = { x: 12, y: 10 }; // à distance → arme à distance employée
     return { H, E };

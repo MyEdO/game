@@ -132,7 +132,7 @@ export const libelleDeLAttaqueFigee = (pd: Pick<PendingDefense, 'suite' | 'weapo
 
 /** La graphie du seuil d'un dé (#1508). */
 export const libelleDuSeuil = (seuil: SeuilDeSauvegarde): string =>
-  `${formatWardSave(seuil.source, seuil.indice)}${seuil.dome ? t('cf.wardFromDome') : ''}`;
+  `${formatWardSave(seuil.source, seuil.indice)}${seuil.dome ? t('cf.sauvegardeDuDome') : ''}`;
 
 /** Ce qui se tire d'un dé nu, et ses dés (« Hauteur de chute (2d10) »). */
 export const libelleDuDe = (s: CascadeStep): string => `${s.label ?? ''} (${s.de ? formatDice(specDeEtape(s.de)) : ''})`.trim();
@@ -373,7 +373,7 @@ const LECTEURS: Record<FlowKey, (s: Jeu) => JetEnVue | null> = {
     if (pa.target2 != null && pa.skill2) lignes.push(ligne(pa.heroId, pa.skill2, pa.roll != null ? { roll: pa.roll, target: pa.target2, sl: pa.sl2 ?? 0, success: pa.success2 } : null, pa.target2));
     const ennemi = r && pa.enemyValue != null && pa.enemyRoll != null && s.massBattle ? evaluateTest(pa.enemyRoll, pa.enemyValue) : null;
     if (!ennemi) return vue('activite', lignes);
-    lignes.push(ligne(null, libelleDePuissance(s.massBattle!.enemy.label), ennemi));
+    lignes.push(ligne(null, libelleDePuissance(s.massBattle!.ennemi.label), ennemi));
     return vue('activite', lignes, { gagnante: pa.success ? 0 : lignes.length - 1, drNet: Math.abs(pa.enemySL ?? 0) });
   },
   marchandage: (s) => {
@@ -382,7 +382,7 @@ const LECTEURS: Record<FlowKey, (s: Jeu) => JetEnVue | null> = {
     const revele = jetFigeRevele(s, JET_FIGE.marchandage(pb));
     const lignes = [ligne(pb.playerId, libelleDeTest('marchandage'), pb.roll), ligne(null, libelleDeTest('marchandage'), revele ? pb.merchantRoll : null)];
     const o = revele && pb.roll ? pb.result : null;
-    return vue('marchandage', lignes, o ? { gagnante: o.winner === 'tie' ? null : o.attackerWins ? 0 : 1, drNet: o.netSL } : null);
+    return vue('marchandage', lignes, o ? { gagnante: o.winner === 'egalite' ? null : o.attackerWins ? 0 : 1, drNet: o.netSL } : null);
   },
   evaluation: (s) => {
     const p = s.pendingAppraise;

@@ -18,20 +18,20 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  */
 const chars = (end: number) => ({ 'capacite-de-combat': 30, 'capacite-de-tir': 40, force: 30, endurance: end, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 });
 const artilleur = (id: string): Combatant => combattantDeTest({
-  id, label: 'Artilleur ' + id, kind: 'hero', characteristics: chars(30), wounds: blessuresDeBase(10), advantage: 0, conditions: [], fortune: 2, resilience: 1,
+  id, label: 'Artilleur ' + id, kind: 'heros', characteristics: chars(30), wounds: blessuresDeBase(10), advantage: 0, conditions: [], fortune: 2, resilience: 1,
   skills: [{ id: 'projectiles', spec: 'poudre-noire', characteristic: 'capacite-de-tir', advances: 30 }], talents: [], weapons: [],
   armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, pos: { x: 5, y: 5 },
 });
 const piece = (uid: string, servant: string): ShipPoste => ({
-  side: 'tribord', item: { uid, label: 'Canon moyen', kind: 'ranged', subType: 'armes-de-siege', damage: { flat: 14, plusBF: false }, range: 75, qualities: [{ id: 'recharge', value: 6 }] }, crewIds: [servant],
+  side: 'tribord', item: { uid, label: 'Canon moyen', kind: 'distance', subType: 'armes-de-siege', damage: { flat: 14, plusBF: false }, range: 75, qualities: [{ id: 'recharge', value: 6 }] }, crewIds: [servant],
 }) as unknown as ShipPoste;
 const fregate = (): Combatant => combattantDeTest({
-  id: 'ship', label: 'Frégate', kind: 'npc', bodyShape: 'vehicule', creatureId: 'bateau-de-patrouille', crewIds: ['g1', 'g2'],
+  id: 'ship', label: 'Frégate', kind: 'pnj', bodyShape: 'vehicule', creatureId: 'bateau-de-patrouille', crewIds: ['g1', 'g2'],
   postes: [piece('c1', 'g1'), piece('c2', 'g2')], pos: { x: 5, y: 5 }, wounds: blessuresDeBase(60), conditions: [], weapons: [],
 });
 /** BE 3, PA 2 partout. */
 const pirate = (blessures: number, p: Partial<Combatant> = {}): Combatant => combattantDeTest({
-  id: 'target', label: 'Pirate', kind: 'enemy', pos: { x: 9, y: 5 }, wounds: blessuresDeBase(30, blessures), advantage: 0, characteristics: chars(30),
+  id: 'target', label: 'Pirate', kind: 'ennemi', pos: { x: 9, y: 5 }, wounds: blessuresDeBase(30, blessures), advantage: 0, characteristics: chars(30),
   armour: { tete: 2, brasG: 2, brasD: 2, corps: 2, jambeG: 2, jambeD: 2 }, conditions: [], traits: [], talents: [], skills: [], weapons: [], ...p,
 });
 const mer = () => ({ id: 's', name: 's', dimensions: { w: 20, h: 20 }, ambiance: 'jour', metresPerTile: 10, layers: [{ z: 0, tiles: new Array(400).fill('eau') }], entities: [], dialogues: [], triggers: [], encounters: [] });

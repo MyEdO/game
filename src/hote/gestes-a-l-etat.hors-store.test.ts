@@ -44,12 +44,12 @@ describe('une fenêtre ouverte n’offre que ce que son verbe accepte', () => {
   it('Début du round (dome) : promouvoir et préempter n’offrent que des héros, chacun nommé', { timeout: 120_000 }, () => {
     auDebutDuRound((etat) => {
       const b = etat.battle!;
-      expect(b.combatants.some((c) => c.kind !== 'hero'), 'témoin : le dome a des ennemis').toBe(true);
+      expect(b.combatants.some((c) => c.kind !== 'heros'), 'témoin : le dome a des ennemis').toBe(true);
       const camp = (id: unknown) => b.combatants.find((c) => c.id === id)?.kind;
       const promouvoir = argumentDe(etat, 'fenetreChoisir@debutDuRound#promouvoir', 'valeur');
       expect(promouvoir.saisie).toBe('choix');
       expect(promouvoir.valeurs!.length, 'témoin : un héros peut agir en premier').toBeGreaterThan(0);
-      expect(promouvoir.valeurs!.map((v) => camp(v.valeur)), 'promouvoir offre un non-héros').toEqual(promouvoir.valeurs!.map(() => 'hero'));
+      expect(promouvoir.valeurs!.map((v) => camp(v.valeur)), 'promouvoir offre un non-héros').toEqual(promouvoir.valeurs!.map(() => 'heros'));
       expect(promouvoir.valeurs!.every((v) => v.libelle === b.combatants.find((c) => c.id === v.valeur)!.label)).toBe(true);
       expect(argumentDe(etat, 'fenetreChoisir@debutDuRound#viser', 'valeur').valeurs, 'sans tireur, aucune visée ne s’offre').toEqual([]);
       expect(fenetreADessiner(etat)!.gestes.find((g) => g.verbe === 'fenetreValider')!.rendu).toBe('bouton');
@@ -76,7 +76,7 @@ describe('une fenêtre de combat ne désigne que les combattants que son verbe a
   /** Le duel au contact : le héros `H` face à l'ennemi `E`, les autres ennemis hors de combat. */
   function leDuel() {
     const ouverture = creerPartie(etatInitialDuJeu(), ENTREES);
-    ouverture.lancer({ party: [heroDuDuel()], scene: testScene(), combatDirect: 'enc-mutants' });
+    ouverture.lancer({ party: [heroDuDuel()], scene: testScene(), projet: null, combatDirect: 'enc-mutants' });
     ouverture.envoyer({ type: 'fenetreValider', args: ['debutDuRound'] });
     const garde = ouverture.etat();
     ouverture.fermer();
@@ -87,7 +87,7 @@ describe('une fenêtre de combat ne désigne que les combattants que son verbe a
 
   it('le combat monté vise le cavalier ou sa monture, rien d’autre', { timeout: 120_000 }, () => {
     const { E, etat } = leDuel();
-    const monture = etat.battle!.combatants.find((c) => c.kind === 'enemy' && c.id !== E.id)!;
+    const monture = etat.battle!.combatants.find((c) => c.kind === 'ennemi' && c.id !== E.id)!;
     const couple: Jeu = { ...etat, pendingMountTarget: { riderId: E.id, mountId: monture.id } };
     expect(valeurs(argumentDe(couple, 'fenetreChoisir', 'valeur'))).toEqual(['choix', [[E.id, E.label], [monture.id, monture.label]]]);
   });
@@ -122,7 +122,7 @@ describe('un argument qui désigne une ligne se choisit parmi les lignes que sa 
       const manquee = [{ uid: 'L0', label: 'Épée', magic: false, effect: { type: 'giveTrapping', trappingId: 'epee', identified: false, appraiseTriedDay: jour } }, { uid: 'L1', label: 'Bouclier', magic: false, effect: { type: 'giveTrapping', trappingId: 'bouclier', identified: false } }] as never;
       const butin: Jeu = { ...etat, pendingRoundStart: null, battle: null, pendingLoot: { title: 'Coffre', gear: manquee } };
       expect(butin.party.some((h) => (h.talents ?? []).some((x) => x.talentId === 'detection-d-artefact')), 'témoin : aucun détecteur').toBe(false);
-      expect(argumentDe(butin, 'evaluerLObjet', 'aEvaluer').valeurs!.map((v) => [v.valeur, v.refus])).toEqual([['L0', t('mf.appraiseRetenter', { label: 'Épée', jours: 1 })], ['L1', null]]);
+      expect(argumentDe(butin, 'evaluerLObjet', 'aEvaluer').valeurs!.map((v) => [v.valeur, v.refus])).toEqual([['L0', t('mf.evaluationARetenter', { label: 'Épée', jours: 1 })], ['L1', null]]);
     });
   });
 
@@ -147,7 +147,7 @@ describe('un argument qui désigne une ligne se choisit parmi les lignes que sa 
     auDebutDuRound((etat) => {
       const plaies: Trauma[] = [{ uid: 'bras', label: 'Bras broyé', location: 'brasG', needsSurgery: true }, { uid: 'crane', label: 'Crâne fendu', location: 'tete', needsSurgery: true }, { uid: 'doigt', label: 'Doigt perdu', location: 'brasD' }];
       const patient = { ...etat.party[0], traumas: plaies };
-      const operation = { kind: 'chirurgie', difficulty: 'intermediaire', healerName: 'Berta', skill: 40, intBonus: 3, traumaUid: 'crane', targetDR: 5, cumDR: 0, stake: {} } as never;
+      const operation = { kind: 'chirurgie', difficulty: 'intermediaire', healerName: 'Berta', skill: 40, intBonus: 3, traumaUid: 'crane', drCible: 5, cumDR: 0, stake: {} } as never;
       const infirmerie: Jeu = { ...etat, pendingRoundStart: null, battle: null, party: [patient, ...etat.party.slice(1)], medic: { patientId: patient.id, surgery: operation } };
       const plaie = argumentDe(infirmerie, 'fenetreChoisir@infirmerie#plaie', 'valeur');
       expect(lignes(plaie)).toEqual(['choix', [['bras', t('medic.plaie', { plaie: 'Bras broyé', localisation: locationLabel('brasG') })], ['crane', t('medic.plaie', { plaie: 'Crâne fendu', localisation: locationLabel('tete') })]]]);
@@ -232,7 +232,7 @@ describe('un verbe de jet que son flux ferme ne se dessine pas, et dit pourquoi 
 
   it('attaque du duel : avant le jet, ni clôture ni dé fixé ; après, ni jet ni Localisation', { timeout: 120_000 }, () => {
     const ouverture = creerPartie(etatInitialDuJeu(), ENTREES);
-    ouverture.lancer({ party: [heroDuDuel()], scene: testScene(), combatDirect: 'enc-mutants' });
+    ouverture.lancer({ party: [heroDuDuel()], scene: testScene(), projet: null, combatDirect: 'enc-mutants' });
     ouverture.envoyer({ type: 'fenetreValider', args: ['debutDuRound'] });
     const garde = ouverture.etat();
     ouverture.fermer();

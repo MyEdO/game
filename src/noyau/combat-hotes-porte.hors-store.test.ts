@@ -40,13 +40,13 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const chars = { 'capacite-de-combat': 45, 'capacite-de-tir': 50, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 
-const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, weapons: Weapon[]): Combatant =>
+const mk = (id: string, kind: 'heros' | 'ennemi', pos: { x: number; y: number }, weapons: Weapon[]): Combatant =>
   (blessuresSurLeProfil({ id, name: id, label: id, kind, characteristics: { ...chars }, conditions: [], engagedWith: [], skills: [], talents: [],
      weapons, advantage: 0, size: 'moyenne', pos, wounds: blessuresDeBase(18),
      armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4 }) as unknown as Combatant);
 
 const sword: Weapon = { name: 'Épée', label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, uid: 'sw', qualities: [] } as unknown as Weapon;
-const bow: Weapon = { name: 'Arc', label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 4 }, range: 60, qualities: [], uid: 'bw' } as unknown as Weapon;
+const bow: Weapon = { name: 'Arc', label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 4 }, range: 60, qualities: [], uid: 'bw' } as unknown as Weapon;
 
 /** Deux sièges : l'HÔTE (0) joue, le héros appartient à l'INVITÉ (1) — la seule configuration où la
  *  possession d'une fenêtre est OBSERVABLE (en local, tout siège possède tout). */
@@ -54,8 +54,8 @@ const COOP = { mode: 'hote' as const, mySeat: 0, gmSeat: undefined, ownership: {
 
 function setup(enemyPos: { x: number; y: number }, enemyWeapons: Weapon[], net: Partial<ReturnType<typeof banc.getState>['net']> = COOP) {
   seedBattleRng(7);
-  const enemy = mk('e', 'enemy', enemyPos, enemyWeapons);
-  const hero = mk('h', 'hero', { x: 0, y: 0 }, [sword]);
+  const enemy = mk('e', 'ennemi', enemyPos, enemyWeapons);
+  const hero = mk('h', 'heros', { x: 0, y: 0 }, [sword]);
   const battle: BattleState = {
     combatants: [enemy, hero], order: [enemy.id, hero.id], baseOrder: [enemy.id, hero.id],
     turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(),
@@ -105,7 +105,7 @@ describe('#1262 lot 5a — DÉFENSE : la fenêtre naît du pending, et va au si�
 
   it('interposition du chemin PILOTÉ (`openSurfacedDefense`) : l’attaque qu’aucun humain ne tient, jouée d’office (#3892), interpose la Défense du héros — étape hôte + pending cohérents', () => {
     const { enemy, hero } = setup({ x: 1, y: 0 }, [sword]);
-    openAttackCascade(banc.getState, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
+    openAttackCascade(banc.getState, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attaquer');
     expect(etape('attaque')!.committed, 'l’attaque a été lancée et validée par ses verbes').toBe(true);
     expect(banc.getState().pendingDefense).not.toBeNull();
     expect(etape('defense')!.actorId).toBe(hero.id);
@@ -115,7 +115,7 @@ describe('#1262 lot 5a — DÉFENSE : la fenêtre naît du pending, et va au si�
 describe('#1262 lot 5a — ATTAQUE : l’étape hôte suit son `pendingAttack`', () => {
   it('l’étape `attack-jet` est mintée sur le pending posé, et porte l’ATTAQUANT', () => {
     const { hero, enemy } = setup({ x: 1, y: 0 }, [sword]);
-    openAttackCascade(banc.getState, banc.setState, { attackerId: hero.id, targetId: enemy.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
+    openAttackCascade(banc.getState, banc.setState, { attackerId: hero.id, targetId: enemy.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attaquer');
     expect(banc.getState().pendingAttack).not.toBeNull();
     const st = etape('attaque')!;
     expect(st.id).toBe('attack-jet-0'); // id DÉRIVÉ du compteur de la séquence d'accueil (#1852)
@@ -125,7 +125,7 @@ describe('#1262 lot 5a — ATTAQUE : l’étape hôte suit son `pendingAttack`',
 
   it('COOP : l’attaque d’un héros de l’INVITÉ s’ouvre à SON siège', () => {
     const { hero, enemy } = setup({ x: 1, y: 0 }, [sword]);
-    openAttackCascade(banc.getState, banc.setState, { attackerId: hero.id, targetId: enemy.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
+    openAttackCascade(banc.getState, banc.setState, { attackerId: hero.id, targetId: enemy.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attaquer');
     expect(modalOwnerOf(banc.getState())).toBe(hero.id);
     expect(seatOwns(banc.getState(), 1, hero.id)).toBe(true);
   });
@@ -173,8 +173,8 @@ describe('#1262 lot 5a — INCANTATION : `groupOwner` ne se pose QUE par le mint
   /** Deux HÉROS de sièges distincts : la cible du Sort est JOUÉE, donc sa rangée d'opposition est
    *  interactive — la seule configuration où `shareCastStep` bascule sur le chemin RÉEL. */
   function deuxHeros() {
-    const wiz = mk('h', 'hero', { x: 0, y: 0 }, [sword]);
-    const cible = mk('h2', 'hero', { x: 1, y: 0 }, [sword]);
+    const wiz = mk('h', 'heros', { x: 0, y: 0 }, [sword]);
+    const cible = mk('h2', 'heros', { x: 1, y: 0 }, [sword]);
     const battle = {
       combatants: [wiz, cible], order: [wiz.id, cible.id], baseOrder: [wiz.id, cible.id],
       turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(),
@@ -278,7 +278,7 @@ describe('#1262 lot 5a — AFFICHAGES adossés aux situations de combat', () => 
     avanceEtapeCascade(banc.getState); // le dé du Tableau tombe à son étape → la révélation suit
     const st = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'incantationImparfaite')!;
     expect(st.label).toBe('Imparfaite');
-    expect(st.icon).toBe('fire/blast');
+    expect(st.icon).toBe('feu/explosif');
     expect(st.actorId).toBe(hero.id);
     expect(st.reveal!.title, 'la CHARGE garde son titre long').toBe('Incantation Imparfaite');
     expect(st.outcome!.length).toBeGreaterThan(0);
@@ -291,15 +291,15 @@ describe('#1262 lot 5a — AFFICHAGES adossés aux situations de combat', () => 
     avanceEtapeCascade(banc.getState);
     const st = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'incantationImparfaite')!;
     expect(st.label).toBe('Colère des dieux');
-    expect(st.icon).toBe('magic/power');
+    expect(st.icon).toBe('magie/puissance');
   });
 
   it('Critique de Structure : table RÉSOLUE + charge riche, enjeu DESCENDU à la ligne tirée', () => {
     const { hero } = setup({ x: 1, y: 0 }, [sword]);
     seedBattleRng(11);
-    const structure = mk('s', 'enemy', { x: 2, y: 0 }, []);
+    const structure = mk('s', 'ennemi', { x: 2, y: 0 }, []);
     const log: string[] = [];
-    applyStructureCriticalToTarget(idsDeTest, banc.setState, structure, { attackerId: hero.id, attackerKind: 'hero', weapon: 'Épée' }, log, { forcedRoll: 42 });
+    applyStructureCriticalToTarget(idsDeTest, banc.setState, structure, { attackerId: hero.id, attackerKind: 'heros', weapon: 'Épée' }, log, { forcedRoll: 42 });
     const st = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'critique')!;
     expect(st.actorId).toBe(structure.id);
     expect(st.table!.result!.roll, 'le dé est POSÉ : la fenêtre ne le re-jette pas').toBe(42);

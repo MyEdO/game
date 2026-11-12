@@ -22,7 +22,7 @@ describe('pénalité d’incantation : sa pastille d’état mène à la fiche d
     applyCast(useGame.getState, useGame.setState, lanceur, cible, findSpellById('couronne-de-flammes')!, reussi, false, false);
 
     const touchee = useGame.getState().party.find((c) => c.id === cible.id)!;
-    expect(touchee.castPenalties?.map((p) => p.source)).toEqual([{ kind: 'spell', id: 'couronne-de-flammes' }]);
+    expect(touchee.castPenalties?.map((p) => p.source)).toEqual([{ kind: 'sort', id: 'couronne-de-flammes' }]);
 
     const pastille = pastilleDePenalite(renderToStaticMarkup(<EtatPanel hero={touchee} />));
     expect(pastille, 'la pastille de pénalité n’est pas rendue').toBeDefined();

@@ -32,7 +32,7 @@ export const scenario: TestScenario = {
   id: 'entre-deux-aventures',
   order: 63,
   category: 'marche',
-  icon: 'scenario/market',
+  icon: 'scenario/marche',
   title: 'Entre deux aventures',
   tests: 'Interlude ouvert au lancement : Activités par héros, ouvrage d’Artisanat à engager (Atouts et Défauts), dépôt en banque (investir, planquer).',
   partyNote: 'Durin (forgeron, Métier) · Hilde (marchande, Statut Argent)',

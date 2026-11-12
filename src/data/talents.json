@@ -260,10 +260,10 @@
     "effects": [
       {
         "trigger": "onHit",
-        "on": "self",
+        "on": "soi",
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "caster",
             "ops": [
@@ -271,7 +271,7 @@
                 "op": "grantFreeAttack",
                 "weapon": "held",
                 "when": "immediate",
-                "advantageOrMovement": true
+                "avantageOuMouvement": true
               }
             ]
           }
@@ -1020,7 +1020,7 @@
     "effects": [
       {
         "trigger": "onRoundEnd",
-        "on": "self",
+        "on": "soi",
         "optional": true,
         "flow": {
           "kind": "test",
@@ -1037,9 +1037,9 @@
               "value": "frenesie"
             }
           },
-          "success": {
-            "kind": "do",
-            "effect": {
+          "reussite": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "target",
               "ops": [
@@ -1058,9 +1058,9 @@
               ]
             }
           },
-          "fail": {
-            "kind": "seq",
-            "steps": []
+          "echec": {
+            "kind": "sequence",
+            "etapes": []
           }
         }
       }
@@ -2059,21 +2059,21 @@
     "effects": [
       {
         "trigger": "onCharged",
-        "on": "self",
+        "on": "soi",
         "flow": {
-          "kind": "choice",
-          "prompt": "Frappe réactive",
-          "icon": "action/free-attack",
-          "yes": {
+          "kind": "choix",
+          "invite": "Frappe réactive",
+          "icon": "action/attaque-gratuite",
+          "oui": {
             "kind": "test",
             "test": {
               "characteristic": "initiative",
               "difficulty": "intermediaire",
               "label": "Frappe réactive"
             },
-            "success": {
-              "kind": "do",
-              "effect": {
+            "reussite": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "on": "caster",
                 "ops": [
@@ -2086,14 +2086,14 @@
                 ]
               }
             },
-            "fail": {
-              "kind": "seq",
-              "steps": []
+            "echec": {
+              "kind": "sequence",
+              "etapes": []
             }
           },
-          "no": {
-            "kind": "seq",
-            "steps": []
+          "non": {
+            "kind": "sequence",
+            "etapes": []
           }
         }
       }
@@ -2702,7 +2702,7 @@
       {
         "trigger": "onGainCondition",
         "condition": "sonne",
-        "on": "self",
+        "on": "soi",
         "flow": {
           "kind": "test",
           "test": {
@@ -2711,9 +2711,9 @@
             },
             "difficulty": "intermediaire"
           },
-          "success": {
-            "kind": "do",
-            "effect": {
+          "reussite": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "caster",
               "ops": [
@@ -2731,9 +2731,9 @@
               ]
             }
           },
-          "fail": {
-            "kind": "seq",
-            "steps": []
+          "echec": {
+            "kind": "sequence",
+            "etapes": []
           }
         }
       }

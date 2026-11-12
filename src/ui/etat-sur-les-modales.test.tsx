@@ -71,7 +71,7 @@ describe('chip d’État sur les modales de Test, avant et après le jet (LDB 16
     const A = sonne(combattantDeModale('A'));
     const att = cible(A, FM, 'accessible');
     expect(att, 'Sonné ×3 : −30').toBe(clampTarget(cibleDuTest(effectiveChar(A, 'force-mentale') - 30, 'accessible')).target);
-    useGame.setState({ battle: { combatants: [A, combattantDeModale('Cible', 'enemy')], log: [] }, pendingWard: { attackerId: 'A', targetId: 'Cible', targetName: 'Cible', result: null } } as never);
+    useGame.setState({ battle: { combatants: [A, combattantDeModale('Cible', 'ennemi')], log: [] }, pendingWard: { attackerId: 'A', targetId: 'Cible', targetName: 'Cible', result: null } } as never);
     act(() => root.render(createElement(WardModal)));
     nommeLEtat('avant', att);
     act(() => { g().jetLancer('protection'); });
@@ -93,7 +93,7 @@ describe('chip d’État sur les modales de Test, avant et après le jet (LDB 16
 
   it('Main ensanglantée', () => {
     const { H, E } = heroFaceAUnEnnemi(); sonne(H); H.handGates = ['main'];
-    openAttackCascade(g, useGame.setState, { attackerId: H.id, targetId: E.id, location: null, result: null }, 'Attaque', 'action/attack');
+    openAttackCascade(g, useGame.setState, { attackerId: H.id, targetId: E.id, location: null, result: null }, 'Attaque', 'action/attaquer');
     const att = cible(H, { characteristic: 'dexterite' }, 'accessible');
     act(() => root.render(createElement(HandGateModal)));
     nommeLEtat('avant', att);
@@ -106,7 +106,7 @@ describe('chip d’État sur les modales de Test, avant et après le jet (LDB 16
     const H = sonne(combattantDeModale('H'));
     const test = testDeRegle('calme-d-approche', 'se-rapprocher');
     const att = cible(H, test, test.difficulty);
-    useGame.setState({ battle: { combatants: [H, combattantDeModale('Ogre', 'enemy')], log: [] },
+    useGame.setState({ battle: { combatants: [H, combattantDeModale('Ogre', 'ennemi')], log: [] },
       pendingApproach: { combatantId: 'H', test, sourceId: 'Ogre', sourceName: 'Ogre', intent: { kind: 'tile', pt: { x: 1, y: 0 } }, result: null } } as never);
     act(() => root.render(createElement(ApproachModal)));
     nommeLEtat('avant', att);
@@ -159,7 +159,7 @@ describe('chip d’État sur les modales de Test, avant et après le jet (LDB 16
     const test = testDeRegle('fuite', 'touche-en-fuyant');
     const F = sonne(combattantDeModale('Héros'));
     const att = cible(F, test, test.difficulty);
-    useGame.setState({ battle: { combatants: [F, combattantDeModale('Brute', 'enemy')], log: [], order: ['Héros', 'Brute'], turn: 0, round: 1 } as never,
+    useGame.setState({ battle: { combatants: [F, combattantDeModale('Brute', 'ennemi')], log: [], order: ['Héros', 'Brute'], turn: 0, round: 1 } as never,
       pendingDisengage: { moverId: 'Héros', foeId: 'Brute', canSacrifice: false, phase: 'fuir', atk: null, def: null, result: null,
         fuir: { participants: [
           { id: 'Brute', kind: 'backstab', interactive: true, result: { hit: true, woundsLost: 3, attackerDetail: testBreakdown('Corps à corps', 65, { roll: 20, target: 65, sl: 4, success: true }) } },

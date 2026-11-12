@@ -19,7 +19,7 @@ describe('buildEncounter — authoring terse → entités + members canoniques',
   });
 
   it("hidden (rencontre) → toutes les entités cachées jusqu'au combat (embuscade)", () => {
-    const { entities } = buildEncounter({ id: 'amb', hidden: true, surprise: 'party', enemies: [{ creature: { id: 'gor' }, pos: { x: 1, y: 1 } }] });
+    const { entities } = buildEncounter({ id: 'amb', hidden: true, surprise: 'groupe', enemies: [{ creature: { id: 'gor' }, pos: { x: 1, y: 1 } }] });
     expect(entities[0].combat).toEqual({ hiddenUntilCombat: true });
   });
 
@@ -34,32 +34,32 @@ describe('buildEncounter — authoring terse → entités + members canoniques',
 
   it('camp/monture préservés ; rides (index) → ridesEntityId (réf stable)', () => {
     const { encounter } = buildEncounter({ id: 'e', enemies: [
-      { creature: { id: 'cheval' }, pos: { x: 0, y: 0 }, mount: true, side: 'ally' },
+      { creature: { id: 'cheval' }, pos: { x: 0, y: 0 }, mount: true, side: 'allie' },
       { creature: { id: 'humain' }, pos: { x: 0, y: 0 }, rides: 0 },
     ] });
     const [cheval, bandit] = encounter.members!;
-    expect(cheval).toEqual({ entityId: 'enemy-e-0', side: 'ally', mount: true });
+    expect(cheval).toEqual({ entityId: 'enemy-e-0', side: 'allie', mount: true });
     expect(bandit).toEqual({ entityId: 'enemy-e-1', ridesEntityId: 'enemy-e-0' });
   });
 
   it('surprise + onVictory (Flow) passent sur la rencontre', () => {
     const onV = flowFromEffects([{ type: 'giveXp', amount: 10 }]);
-    const { encounter } = buildEncounter({ id: 'e', surprise: 'enemies', onVictory: onV, enemies: [{ creature: { id: 'orc' }, pos: { x: 1, y: 1 } }] });
-    expect(encounter.surprise).toBe('enemies');
+    const { encounter } = buildEncounter({ id: 'e', surprise: 'ennemis', onVictory: onV, enemies: [{ creature: { id: 'orc' }, pos: { x: 1, y: 1 } }] });
+    expect(encounter.surprise).toBe('ennemis');
     expect(encounter.onVictory).toEqual(onV);
   });
 
   it('maneuverability/threat/terrain (Avantage initial, AA 11 l.53-65) passent sur la rencontre — parité avec surprise', () => {
     const { encounter } = buildEncounter({
       id: 'e',
-      maneuverability: 'party',
-      threat: { camp: 'enemies', tier: 'tresDangereuse' },
-      terrain: { camp: 'party', heavy: true },
+      maneuverability: 'groupe',
+      threat: { camp: 'ennemis', tier: 'tresDangereuse' },
+      terrain: { camp: 'groupe', heavy: true },
       enemies: [{ creature: { id: 'orc' }, pos: { x: 1, y: 1 } }],
     });
-    expect(encounter.maneuverability).toBe('party');
-    expect(encounter.threat).toEqual({ camp: 'enemies', tier: 'tresDangereuse' });
-    expect(encounter.terrain).toEqual({ camp: 'party', heavy: true });
+    expect(encounter.maneuverability).toBe('groupe');
+    expect(encounter.threat).toEqual({ camp: 'ennemis', tier: 'tresDangereuse' });
+    expect(encounter.terrain).toEqual({ camp: 'groupe', heavy: true });
   });
 
   it('maneuverability/threat/terrain absents → absents sur la rencontre (comme surprise)', () => {

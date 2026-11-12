@@ -28,7 +28,7 @@ beforeAll(() => {
 
 const C = (over: Partial<Combatant>): Combatant =>
   (blessuresSurLeProfil({
-    id: 'X', name: 'X', label: 'X', kind: 'hero',
+    id: 'X', name: 'X', label: 'X', kind: 'heros',
     characteristics: { 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], traumas: [],
     species: 'humains-reiklander',
@@ -39,7 +39,7 @@ const C = (over: Partial<Combatant>): Combatant =>
   })) as unknown as Combatant;
 
 const ATT = C({ id: 'A', label: 'Att', resilience: 2 });
-const DEF = C({ id: 'B', label: 'Cible', kind: 'enemy', pos: { x: 1, y: 0 } });
+const DEF = C({ id: 'B', label: 'Cible', kind: 'ennemi', pos: { x: 1, y: 0 } });
 
 /** Attaque NON LANCÉE (aucun résultat) : l'état exact d'une rangée pré-jet. */
 function setupPreRoll() {
@@ -57,7 +57,7 @@ function resolveRoll() {
     pendingAttack: {
       ...p,
       result: {
-        hit: false, attackerRoll: 88, netSL: -4, critical: false, advantageTo: 'defender',
+        hit: false, attackerRoll: 88, netSL: -4, critical: false, advantageTo: 'defenseur',
         defenderDefeated: false, log: 'raté',
         attackerDetail: { label: 'Corps à corps', base: 45, modifier: 0, target: 45, roll: 88, success: false, sl: -4 },
       },
@@ -694,7 +694,7 @@ describe('« Tout lancer » d’une fenêtre MULTI — chaque rangée consomme S
           title="Test d’équipage"
           rolled={false}
           rows={[mkRow('a', 'Voile'), mkRow('b', 'Ramer'), mkRow('c', 'Perception')]}
-          actions={[{ key: 'rollAll', label: 'Tout lancer', onClick: () => { for (const id of ['a', 'b', 'c']) rolls.push(`${id}:naturel`); } }]}
+          actions={[{ key: 'lancerLesRangees', label: 'Tout lancer', onClick: () => { for (const id of ['a', 'b', 'c']) rolls.push(`${id}:naturel`); } }]}
           onCancel={() => {}}
         />,
       );
@@ -790,7 +790,7 @@ describe('ORDRE RÉEL blur → clic : les 3 hôtes consomment quand même le dé
       root.render(
         <RollShell flowKey="manoeuvreDuNavire" title="Test d’équipage" rolled={false}
           rows={[mkRow('a', 'Voile'), mkRow('b', 'Ramer')]}
-          actions={[{ key: 'rollAll', label: 'Tout lancer', onClick: () => { rolls.push('a:naturel'); rolls.push('b:naturel'); } }]}
+          actions={[{ key: 'lancerLesRangees', label: 'Tout lancer', onClick: () => { rolls.push('a:naturel'); rolls.push('b:naturel'); } }]}
           onCancel={() => {}} />,
       );
     });

@@ -181,7 +181,7 @@ describe('armes dessinées — mains et candidats (#2948)', () => {
 
 describe('armes dessinées — armes rangées (#2948)', () => {
   const heros = (...ids: string[]): Combatant => {
-    const c = porteur({ kind: 'hero', items: ids.map((id) => ({ ...porte(id), uid: id })) });
+    const c = porteur({ kind: 'heros', items: ids.map((id) => ({ ...porte(id), uid: id })) });
     recomputeLoadout(c);
     return c;
   };
@@ -218,7 +218,7 @@ describe('armes dessinées — armes rangées (#2948)', () => {
 
   it('un set inactif qui désigne une machine à Équipe (état de sauvegarde, sans recalcul) : la machine n’est pas rangée', () => {
     const c = porteur({
-      kind: 'hero', items: [{ ...porte('arme-simple'), uid: 'arme-simple' }, { ...porte('baliste'), uid: 'baliste' }],
+      kind: 'heros', items: [{ ...porte('arme-simple'), uid: 'arme-simple' }, { ...porte('baliste'), uid: 'baliste' }],
       loadouts: [{ id: 'a', main: 'arme-simple' }, { id: 'b', main: 'baliste' }], activeLoadoutId: 'a',
     });
     expect(rangees(c)).toEqual([['base', false]]);

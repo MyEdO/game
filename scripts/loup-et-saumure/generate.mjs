@@ -165,10 +165,10 @@ scenes.push(scene({
       usable: { actions: [{
         id: 'fouiller',
         flow: {
-          kind: 'if', cond: flagWhen('ls_commission_acceptee'),
-          then: flowOf([{ type: 'openWorldMap' }]),
+          kind: 'si', condition: flagWhen('ls_commission_acceptee'),
+          alors: flowOf([{ type: 'openWorldMap' }]),
           // Refus VISIBLE (modale) : « personne ne lit le journal » — le maître de quai barre la passerelle.
-          else: flowOf([remetLeDocument(DOCUMENTS.passerelle)]),
+          sinon: flowOf([remetLeDocument(DOCUMENTS.passerelle)]),
         },
         unique: true,
       }] },
@@ -415,20 +415,20 @@ scenes.push(scene({
       // Surprise NAVALE → avantage de POSITION (couche Mer : pas d'État Surpris sur une coque) : si la vigie n'a
       // pas repéré la voile (Perception ratée → `noSurprise:false`), la Dent de Manann surgit plus PRÈS, bordée
       // déjà alignée (`applyNavalSurprisePosition`). Repérée → placement authoré (~150 m, aucun avantage).
-      surprise: 'party',
+      surprise: 'groupe',
       // Reddition à mi-coque (#215) : la Dent de Manann amène son pavillon quand la coque `cogue` tombe
       // à 50 % de ses Blessures ou moins — la victoire se déclenche à la reddition, pas au naufrage.
       victoryCondition: { type: 'woundsThreshold', targetId: 'cogue', atOrBelowPercent: 50 },
       members: [
-        { entityId: 'grimm', side: 'ally' },
-        { entityId: 'aldo-crew', side: 'ally' },
-        { entityId: 'griet-crew', side: 'ally' },
-        { entityId: 'cogue', side: 'enemy' },
-        { entityId: 'pirate-1', side: 'enemy' },
-        { entityId: 'pirate-2', side: 'enemy' },
-        { entityId: 'chef-cogue', side: 'enemy' },
-        { entityId: 'cogue-helm', side: 'enemy' },
-        { entityId: 'cogue-gun', side: 'enemy' },
+        { entityId: 'grimm', side: 'allie' },
+        { entityId: 'aldo-crew', side: 'allie' },
+        { entityId: 'griet-crew', side: 'allie' },
+        { entityId: 'cogue', side: 'ennemi' },
+        { entityId: 'pirate-1', side: 'ennemi' },
+        { entityId: 'pirate-2', side: 'ennemi' },
+        { entityId: 'chef-cogue', side: 'ennemi' },
+        { entityId: 'cogue-helm', side: 'ennemi' },
+        { entityId: 'cogue-gun', side: 'ennemi' },
       ],
       onVictory: flowOf([
         { type: 'setFlag', flag: 'ls_cogue_vaincue' },
@@ -537,7 +537,7 @@ scenes.push(scene({
           {
             id: 'superviser-reparation',
             label: 'Superviser la réparation',
-            flow: flowOf([{ type: 'extendedTest', skill: { id: 'metier', spec: 'charpentier' }, difficulty: 'intermediaire', label: 'Réparation temporaire du Grimm', targetDR: 5, flag: 'ls_coque_reparee' }]),
+            flow: flowOf([{ type: 'extendedTest', skill: { id: 'metier', spec: 'charpentier' }, difficulty: 'intermediaire', label: 'Réparation temporaire du Grimm', drCible: 5, flag: 'ls_coque_reparee' }]),
             next: { id: 'rp1' },
           },
           { id: 'plus-tard', label: 'Plus tard', flow: flowOf([{ type: 'endDialogue' }]) },
@@ -592,23 +592,23 @@ scenes.push(scene({
       id: 'enc-olg',
       // Surprise navale = avantage de POSITION (couche Mer, cf. scène 1) : Perception ratée → le langskip surgit
       // plus près, bordée alignée ; repéré → ~150 m sans avantage.
-      surprise: 'party',
+      surprise: 'groupe',
       // Reddition à mi-coque (#215), comme la Dent de Manann : le Serpent-de-Sel amène son pavillon quand
       // la coque `serpent-de-sel` tombe à 50 % de ses Blessures ou moins — la victoire = la reddition (texte VRAI),
       // pas le naufrage. `targetId` référence la coque ENNEMIE réelle enrôlée dans cette scène.
       victoryCondition: { type: 'woundsThreshold', targetId: 'serpent-de-sel', atOrBelowPercent: 50 },
       members: [
-        { entityId: 'grimm2', side: 'ally' },
-        { entityId: 'aldo-crew-2', side: 'ally' },
-        { entityId: 'griet-crew-2', side: 'ally' },
-        { entityId: 'serpent-de-sel', side: 'enemy' },
-        { entityId: 'norse-1', side: 'enemy' },
-        { entityId: 'norse-2', side: 'enemy' },
-        { entityId: 'olg', side: 'enemy' },
-        { entityId: 'serpent-helm', side: 'enemy' },
-        { entityId: 'serpent-gun', side: 'enemy' },
+        { entityId: 'grimm2', side: 'allie' },
+        { entityId: 'aldo-crew-2', side: 'allie' },
+        { entityId: 'griet-crew-2', side: 'allie' },
+        { entityId: 'serpent-de-sel', side: 'ennemi' },
+        { entityId: 'norse-1', side: 'ennemi' },
+        { entityId: 'norse-2', side: 'ennemi' },
+        { entityId: 'olg', side: 'ennemi' },
+        { entityId: 'serpent-helm', side: 'ennemi' },
+        { entityId: 'serpent-gun', side: 'ennemi' },
       ],
-      threat: { camp: 'enemies', tier: 'dangereuse' },
+      threat: { camp: 'ennemis', tier: 'dangereuse' },
       onVictory: flowOf([
         { type: 'setFlag', flag: 'ls_olg_vaincu' },
         { type: 'giveXp', amount: 250 },

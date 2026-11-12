@@ -1,7 +1,7 @@
 import { nommerChamps } from '../grammaire/meta';
 /** LDB 18 ; LDB 65 */
 import { z } from 'zod';
-import { bornesSchema, ecartDeCoPresenceDesBornes, enumNomme, ruleValueSchema } from '../grammaire/valeurs';
+import { bornesSchema, ecartDeCoPresenceDesBornes, enumNomme, idDIconeSchema, ruleValueSchema } from '../grammaire/valeurs';
 import { document } from '../grammaire/document';
 
 export const file = 'reglesOptionnelles.json';
@@ -22,7 +22,7 @@ const doc = document(
       .strictObject({
         when: ruleValueSchema,
         label: z.string().min(1),
-        icon: z.string().min(1),
+        icon: idDIconeSchema,
         run: z.string().min(1),
       }), {
       when: { label: 'Condition' },

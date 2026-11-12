@@ -2,8 +2,9 @@
  * LE LANCEMENT D'UN SCÉNARIO (#2898) : ce qu'un hôte lance (`LancementDeScenario`, le contenu construit d'un
  * scénario de test et ses réglages de lancement) et l'UNIQUE séquence qui le joue, en deux temps, sur les actions
  * du noyau : la pose (`poserLeLancement`), puis le démarrage (`demarrerLeLancement`). La partie la joue par
- * `Partie.lancer` (`partie.ts`). Le noyau ne lit ni le registre des
- * scénarios ni leur fiche : l'hôte construit le lancement (`lancementDuScenario`, `scenes/test-scenarios/_shared.ts`).
+ * `Partie.lancer` (`partie.ts`). Le noyau ne lit ni le registre des scénarios, ni leur fiche, ni le catalogue des
+ * campagnes : l'hôte construit le lancement (`lancementDuScenario`, `scenes/test-scenarios/_shared.ts` ;
+ * `lancementDeLaCampagne`, `scenes/campaign.ts`), celui d'un projet par `lancementDuProjet`.
  */
 import { entreesDeRegles, setRule, type RegleOptionnelleId, type RuleValue } from '../engine/policy';
 import type { Combatant } from '../engine/types';
@@ -12,7 +13,7 @@ import type { Money } from '../engine/money';
 import type { Scene } from './monde/scene';
 import type { WorldMap } from './worldMap';
 import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
-import type { CampaignVessel } from './etat';
+import type { CampaignDoc, CampaignVessel } from './etat';
 import type { Get, Set } from './flowTypes';
 import { creditBourse } from './bourseFlow';
 
@@ -34,20 +35,37 @@ export interface ContenuDeScenario {
   vessel?: CampaignVessel;
 }
 
-/** Le contenu construit, plus ce que le lancement règle : les règles optionnelles pré-activées, la bourse du
- *  meneur, le combat direct et les semaines d'interlude ouvertes avant la bataille de masse (ADE II 8 l.65). */
+/** Le contenu construit, plus ce que le lancement règle : l'identité du document de projet lancé, les règles
+ *  optionnelles pré-activées, la bourse du meneur, le combat direct et les semaines d'interlude ouvertes avant la
+ *  bataille de masse (ADE II 8 l.65). */
 export interface LancementDeScenario extends ContenuDeScenario {
+  /** L'identité du document de projet lancé (`CampaignDoc.projet`) : celle d'une campagne, `null` pour un scénario de
+   *  test ou l'essai d'une scène éditée. */
+  projet: CampaignDoc['projet'];
   regles?: Readonly<Partial<Record<RegleOptionnelleId, RuleValue>>>;
   bourse?: Money;
   combatDirect?: string;
   semainesDInterlude?: number;
 }
 
+/** Le lancement du projet `projet` joué par le groupe `party`, sa scène `entree` à l'entrée, sous l'identité
+ *  `identite` (`LancementDeScenario.projet`) : constructeur UNIQUE du lancement d'un paquet de scènes, celui d'une
+ *  campagne (`lancementDeLaCampagne`, `scenes/campaign.ts`) comme celui de l'essai d'une scène éditée
+ *  (`essaiDeLaScene`, `edition/session.ts`). */
+export function lancementDuProjet(projet: { scenes: Scene[]; worldMap?: WorldMap | null; narratif?: NarratifBlock }, party: Combatant[], entree: string, identite: CampaignDoc['projet']): LancementDeScenario {
+  const scene = projet.scenes.find((s) => s.id === entree);
+  if (!scene) throw new Error(`lancementDuProjet : scène d’entrée « ${entree} » absente (${projet.scenes.map((s) => s.id).join(', ')})`);
+  return {
+    party, scene, extraScenes: projet.scenes.filter((s) => s !== scene),
+    ...(projet.worldMap ? { worldMap: projet.worldMap } : {}), narratif: projet.narratif, projet: identite,
+  };
+}
+
 /** POSE du lancement : règles, groupe, projet ou scène. */
 export function poserLeLancement(get: Get, l: LancementDeScenario): void {
   if (l.regles) for (const [id, v] of entreesDeRegles(l.regles)) setRule(id, v);
   get().fixerLeGroupe(l.party);
-  if (l.extraScenes?.length || l.worldMap || l.narratif) get().chargerLeProjet({ scenes: [l.scene, ...(l.extraScenes ?? [])], entryId: l.scene.id, worldMap: l.worldMap ?? null, narratif: l.narratif, projet: null });
+  if (l.projet || l.extraScenes?.length || l.worldMap || l.narratif) get().chargerLeProjet({ scenes: [l.scene, ...(l.extraScenes ?? [])], entryId: l.scene.id, worldMap: l.worldMap ?? null, narratif: l.narratif, projet: l.projet });
   else get().lancerLaScene(l.scene);
 }
 

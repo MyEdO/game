@@ -60,7 +60,7 @@ describe('humanizeOp — les ops de la donnée réelle', () => {
     for (const o of OPS) {
       if (o.op === 'diseaseTestMod') {
         const verbe = o.amount >= 0 ? 'gagne' : 'subit';
-        expect(humanizeOp(o).startsWith(t(`codex.op.diseaseTestMod.${verbe}`, { mod: '' }).split(' ')[0]), JSON.stringify(o)).toBe(true);
+        expect(humanizeOp(o).startsWith(t(`codex.op.modificateurDeTestDeMaladie.${verbe}`, { mod: '' }).split(' ')[0]), JSON.stringify(o)).toBe(true);
       }
       if (o.op === 'statusMod' && typeof o.amount === 'number') {
         expect(humanizeOp(o).split(' ')[0], JSON.stringify(o)).toBe(o.amount < 0 ? 'perd' : 'gagne');

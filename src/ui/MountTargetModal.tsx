@@ -38,8 +38,8 @@ export function MountTargetModal() {
       <div className="rm-options">
         <PortraitPicker
           choices={[
-            { c: mount, caption: <><Icon id="travel/mount" size="sm" /> Monture</>, nom: `${mount.label} — l'abattre désarçonne le cavalier` },
-            { c: rider, caption: <><Icon id="action/attack" size="sm" /> Cavalier</>, nom: `${rider.label} — −10 si vous êtes plus petit que la monture` },
+            { c: mount, caption: <><Icon id="voyage/en-selle" size="sm" /> Monture</>, nom: `${mount.label} — l'abattre désarçonne le cavalier` },
+            { c: rider, caption: <><Icon id="action/attaquer" size="sm" /> Cavalier</>, nom: `${rider.label} — −10 si vous êtes plus petit que la monture` },
           ]}
           onPick={(id) => choisir('cibleDeMonture', 'cible', id)}
         />
