@@ -4,7 +4,7 @@
   { "nom": "outil-mess-des-officiers", "regard": "immersion", "case": { "x": 4, "y": 4 }, "etage": 2, "lacet": 90, "tangage": -10 },
   { "nom": "outil-quartiers-des-officiers", "regard": "immersion", "case": { "x": 7, "y": 5 }, "etage": 2, "lacet": 270, "tangage": -15 },
   { "nom": "outil-quartiers-du-timonier", "regard": "immersion", "case": { "x": 5, "y": 3 }, "etage": 2, "lacet": 270, "tangage": -15 },
-  { "nom": "outil-batterie", "regard": "immersion", "case": { "x": 16, "y": 4 }, "etage": 1, "lacet": 270, "tangage": -5 },
-  { "nom": "outil-batterie-echelle", "regard": "immersion", "case": { "x": 16, "y": 4 }, "etage": 1, "lacet": 300, "tangage": -10 },
+  { "nom": "outil-batterie", "regard": "immersion", "case": { "x": 17, "y": 4 }, "etage": 1, "lacet": 270, "tangage": -5 },
+  { "nom": "outil-batterie-echelle", "regard": "immersion", "case": { "x": 17, "y": 4 }, "etage": 1, "lacet": 300, "tangage": -10 },
   { "nom": "outil-infirmerie", "regard": "immersion", "case": { "x": 6, "y": 5 }, "etage": 0, "lacet": 90, "tangage": -15 }
 ]

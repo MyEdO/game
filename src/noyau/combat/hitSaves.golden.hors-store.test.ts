@@ -29,7 +29,7 @@ const CHARS = { 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 40, endu
 
 const hero = (p: Partial<Combatant>): Combatant =>
   (blessuresSurLeProfil({
-    id: 'h1', label: 'Hardi', kind: 'hero', characteristics: CHARS,
+    id: 'h1', label: 'Hardi', kind: 'heros', characteristics: CHARS,
     wounds: blessuresDeBase(15), advantage: 0, conditions: [], movement: 4, skills: [], talents: [],
     engagedWith: [], pos: { x: 0, y: 0 }, size: 'moyenne', weapons: [], items: [], fate: 0,
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -38,7 +38,7 @@ const hero = (p: Partial<Combatant>): Combatant =>
 
 const enemy = (p: Partial<Combatant>): Combatant =>
   (blessuresSurLeProfil({
-    id: 'e1', label: 'Démon', kind: 'enemy', characteristics: CHARS,
+    id: 'e1', label: 'Démon', kind: 'ennemi', characteristics: CHARS,
     wounds: blessuresDeBase(20), advantage: 0, conditions: [], movement: 4, skills: [], talents: [],
     engagedWith: [], pos: { x: 1, y: 0 }, size: 'moyenne',
     weapons: [{ label: 'Griffes', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [] } as Weapon], items: [],

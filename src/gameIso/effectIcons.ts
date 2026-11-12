@@ -5,6 +5,7 @@
  */
 import { CHAR_LABELS, DIFFICULTY_LABELS, CATEGORY_BY_SOURCE_KIND, type ConditionInstance, type ActiveEffect, type CharKey, type Combatant, type EffectSource } from '../engine/types';
 import type { IconId } from '../data/icons';
+import type { VerrouDesMots } from '../noyau/fabriquesDuNoyau';
 import {
   conditionLabel, findConditionById, findPsychologyById, findSpellById, refLabel,
   creatures, maladies, maneuvers, mutations, qualities, regles, symptoms, talents, findTrappingById, traits,
@@ -27,10 +28,10 @@ export interface EffectChip {
   /** Id d'icône du registre `src/data/icons/` — rendu par `<Icon>` (HTML) ou `<IconG>` (SVG). */
   icon: IconId;
   label: string;
-  /** malus = État négatif ; buff = effet temporisé (activeEffects) ; state = état-drapeau (Frénésie…). */
-  kind: 'malus' | 'buff' | 'state';
+  /** malus = État négatif ; effet = effet temporisé (activeEffects) ; etat = état-drapeau (Frénésie…). */
+  kind: 'malus' | 'effet' | 'etat';
   /** id STABLE de l'État (malus) pour la résolution Codex par id — `ConditionInstance.name` (slug
-   *  d'etats.json). Absent sur buff/état-drapeau (hors catalogue États). */
+   *  d'etats.json). Absent sur effet/état-drapeau (hors catalogue États). */
   condId?: string;
   /** id STABLE du sort/prière SOURCE d'un buff (`ActiveEffect.sourceSpellId`) — résolution Codex Sorts. */
   sourceSpellId?: string;
@@ -65,6 +66,10 @@ export interface EffectChip {
   bonus?: number;
   characteristic?: CharKey;
 }
+
+/** VERROU : le genre d'une puce ne prend que des mots du lexique (#3977). */
+const verrouDuGenreDePuce: VerrouDesMots<EffectChip['kind']> = true;
+void verrouDuGenreDePuce;
 
 interface CondMeta { icon: IconId; severity: number; important: boolean; }
 
@@ -138,7 +143,7 @@ function buffChips(effects: ActiveEffect[]): EffectChip[] {
       ...detail,
       icon: buffIcon(e),
       label: e.label,
-      kind: 'buff',
+      kind: 'effet',
       severity: 50,
       rounds: e.duration.scale === 'rounds' ? e.duration.left : undefined,
       sourceSpellId: e.sourceSpellId,
@@ -248,7 +253,7 @@ export function chipCodex(c: EffectChip): ChipCodex | null {
 
   const flag = c.flagId ? FLAG_CODEX[c.flagId] : undefined;
   if (flag) return at(flag.category, flag.id, withDetail ?? c.label);
-  if (c.kind !== 'buff') return at('etats', c.condId, withDetail);
+  if (c.kind !== 'effet') return at('etats', c.condId, withDetail);
   const bySource = c.source ? at(CATEGORY_BY_SOURCE_KIND[c.source.kind], c.source.id, withDetail) : null;
   if (bySource) return bySource;
   const bySpell = at('spells', c.sourceSpellId, withDetail);
@@ -286,14 +291,14 @@ export function combatantFlags(c: Combatant): EffectFlags {
 
 function flagChips(flags?: EffectFlags): EffectChip[] {
   const out: EffectChip[] = [];
-  if (flags?.frenzied) out.push({ key: 'f-frenzied', flagId: 'frenzied', icon: 'drapeau/frenesie', label: 'Frénésie', kind: 'state', severity: 68 });
-  if (flags?.defensiveStance) out.push({ key: 'f-def', flagId: 'defensiveStance', icon: 'drapeau/posture-defensive', label: 'Sur la défensive (+20 en défense)', kind: 'state', severity: 60 });
-  if (flags?.aiming) out.push({ key: 'f-aim', flagId: 'aiming', icon: 'action/viser', label: 'En joue (+20 au prochain tir)', kind: 'state', severity: 55 });
-  if (flags?.focusDr != null) out.push({ key: 'f-focus', flagId: 'focusDr', icon: 'drapeau/focalisation', label: `Focalisation (DR ${flags.focusDr})`, kind: 'state', severity: 50, count: flags.focusDr, indice: flags.focusDr });
+  if (flags?.frenzied) out.push({ key: 'f-frenzied', flagId: 'frenzied', icon: 'drapeau/frenesie', label: 'Frénésie', kind: 'etat', severity: 68 });
+  if (flags?.defensiveStance) out.push({ key: 'f-def', flagId: 'defensiveStance', icon: 'drapeau/posture-defensive', label: 'Sur la défensive (+20 en défense)', kind: 'etat', severity: 60 });
+  if (flags?.aiming) out.push({ key: 'f-aim', flagId: 'aiming', icon: 'action/viser', label: 'En joue (+20 au prochain tir)', kind: 'etat', severity: 55 });
+  if (flags?.focusDr != null) out.push({ key: 'f-focus', flagId: 'focusDr', icon: 'drapeau/focalisation', label: `Focalisation (DR ${flags.focusDr})`, kind: 'etat', severity: 50, count: flags.focusDr, indice: flags.focusDr });
   if (flags?.hunger) {
     const h = flags.hunger;
     out.push({
-      key: 'f-hunger', flagId: 'hunger', icon: 'drapeau/affame', kind: 'state', severity: 62,
+      key: 'f-hunger', flagId: 'hunger', icon: 'drapeau/affame', kind: 'etat', severity: 62,
       label: `Affamé (${h.days} j sans manger${h.failures >= 2 ? ' — −10 à toutes les Caractéristiques' : h.failures === 1 ? ' — −10 Force/Endurance' : ''}) : pas de récupération naturelle`,
     });
   }
@@ -301,7 +306,7 @@ function flagChips(flags?: EffectFlags): EffectChip[] {
     const approche = testDeRegle('calme-d-approche', 'se-rapprocher');
     const vaincre = psychTest('peur');
     out.push({
-      key: 'f-fear', flagId: 'fear', icon: 'drapeau/peur', kind: 'state', severity: 66, indice: flags.fear,
+      key: 'f-fear', flagId: 'fear', icon: 'drapeau/peur', kind: 'etat', severity: 66, indice: flags.fear,
       label: `Peur (Indice ${flags.fear}) — −1 DR contre la source ; approcher exige un Test ${deElide(refLabel('skills', approche.skill))} ${DIFFICULTY_LABELS[approche.difficulty]} ; Test étendu ${deElide(refLabel('skills', vaincre.skill))} en fin de Round pour la vaincre`,
     });
   }

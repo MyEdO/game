@@ -7,7 +7,7 @@
 ## l'interface laisse au monde (`cadre`), de biais en tactique, à la verticale et sans perspective au plateau ; et l'œil
 ## du regard `immersion`, posé par qui l'instancie (`poser_l_oeil`), qui marche sur le sol touché sous lui (`sol_sous`).
 ## Le clavier ne mène rien pendant une saisie (`clavier_libre`), ni d'une touche qu'une fenêtre incrustée a prise
-## (`forces_du_clavier`). Il rend la caméra posée (`camera`), la case du triangle que le rayon du pointeur touche, hors
+## (`forces_du_clavier`). Il rend la caméra posée (`camera`), le lieu qu'elle suit (`lieu_suivi`), la case du triangle que le rayon du pointeur touche, hors
 ## des cases que le masque du volume retire, et le point de la carte touché, et le point de l'écran d'un lieu ; il pose les plaques de surbrillance et les
 ## noms que lui passe qui l'instancie, l'arête choisie, les nappes de toit du volume, chacune levée quand le groupe est
 ## dessous, ses couronnes crénelées, chacune cachée quand son mur tombe, ses arêtes dégagées, abattues sous le cran de
@@ -140,8 +140,8 @@ func _forme_de(morceau: Dictionary) -> CollisionShape3D:
 
 ## La météo du regard (`meteo`, `CONTRAT.md`, section « Monde ») dans le volume, à la place de la précédente : une
 ## averse de particules par boîte de `pluie.averses`, étirées dans le sens de leur chute et effacées près de la caméra,
-## et chaque nappe de brume, plate et translucide, et son son en boucle (#3834), que le même son laisse jouer ; rien
-## sans météo.
+## et chaque nappe de brume, plate et translucide, et son son en boucle (#3834) sur le bus de son canal, que le même
+## son laisse jouer ; rien sans météo.
 func poser_la_meteo(meteo: Variant) -> void:
 	for posee in _meteo.get_children():
 		_meteo.remove_child(posee)
@@ -156,7 +156,8 @@ func poser_la_meteo(meteo: Variant) -> void:
 		_meteo.add_child(_nappe_de_brume(nappe))
 
 
-## Le son `son` de la météo (`null` : aucun) joué partout en boucle, à la place du précédent s'il en diffère.
+## Le son `son` de la météo (`null` : aucun) joué partout en boucle, sur le bus de son canal (`son.canal`), à la place
+## du précédent s'il en diffère.
 func _entendre_la_meteo(son: Variant) -> void:
 	var voulu: String = "" if son == null else son.id
 	var joue: String = "" if _son_de_la_meteo == null else _son_de_la_meteo.get_meta("son")
@@ -172,6 +173,7 @@ func _entendre_la_meteo(son: Variant) -> void:
 	_son_de_la_meteo.set_meta("son", son.id)
 	_son_de_la_meteo.stream = Effets.variante_du_son(son, true)
 	_son_de_la_meteo.volume_db = linear_to_db(son.volume)
+	_son_de_la_meteo.bus = son.canal
 	_son_de_la_meteo.autoplay = true
 	add_child(_son_de_la_meteo, true)
 
@@ -462,6 +464,11 @@ func suivre(lieu: Vector3) -> void:
 		return
 	_suivi_lieu = lieu
 	_rejoindre(lieu)
+
+
+## Le lieu que la caméra suit (`suivre`), `null` tant qu'elle n'en suit aucun.
+func lieu_suivi() -> Variant:
+	return _suivi_lieu
 
 
 func _rejoindre(lieu: Vector3) -> void:

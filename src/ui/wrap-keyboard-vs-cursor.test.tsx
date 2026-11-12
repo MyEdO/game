@@ -27,7 +27,7 @@ const dispatchBinding = (code: string, s: ReturnType<typeof useGame.getState>, c
  *  `push-keyboard-commit.test.ts` : c'est le contexte où la course avait lieu. */
 const combatState = () => ({
   ...useGame.getState(), mode: 'battle',
-  battle: { over: null, action: null, order: ['chef'], turn: 0, combatants: [combattantDeTest({ id: 'chef', kind: 'hero' })], movementUsed: 0 },
+  battle: { over: null, action: null, order: ['chef'], turn: 0, combatants: [combattantDeTest({ id: 'chef', kind: 'heros' })], movementUsed: 0 },
   combatCursor: null, net: { mode: 'local', mySeat: 0 }, dialogue: null,
 }) as never;
 

@@ -6,7 +6,7 @@
  * `scripts/docs/build-hote-texte.mjs`). Chaque champ est une donnée, que chaque hôte met en forme à sa façon.
  */
 import { garanti } from '../lib/garanti';
-import { activeCombatant, offreArmee, mouvementDuTour, fenetreDuJeu, combatDistance, etatDeLaBarre, offresDeLActif, validTargets, endTurnArmed, porteeDuCombattant, vehiculeDuCombattant, porteurParId, gestesDExploration, jetsEnVue, capDuGroupe, stepInteraction, porteesDuTour, tileFromKey, estPoseParSesPonts, fermeturesDeLaFenetre, libelleDeLaFermeture, type Combatant, type EtatDeLaBarre, type GesteDExploration, type GesteDuJeu, type GesteDuNoyau, type Jeu, type JetEnVue, type Offre, type PorteeDeComposition, type Pt, type VehiculeDuCombattant } from '../noyau/index';
+import { activeCombatant, offreArmee, mouvementDuTour, fenetreDuJeu, combatDistance, etatDeLaBarre, offresDeLActif, validTargets, endTurnArmed, porteeDuCombattant, vehiculeDuCombattant, gestesDExploration, jetsEnVue, capDuGroupe, stepInteraction, porteesDuTour, tileFromKey, estPoseParSesPonts, fermeturesDeLaFenetre, libelleDeLaFermeture, combattantEnVue, entiteConnue, nomEnVue, porteurEnVue, type Combatant, type EtatDeLaBarre, type GesteDExploration, type GesteDuJeu, type GesteDuNoyau, type Jeu, type JetEnVue, type Offre, type PorteeDeComposition, type Pt, type VehiculeDuCombattant } from '../noyau/index';
 
 /** Un combattant projeté. */
 export interface CombattantProjete {
@@ -17,9 +17,9 @@ export interface CombattantProjete {
   avantage: number;
   /** Sa case et sa couche (`Combatant.pos`, `z` absent : 0) ; `null` sans position. */
   pos: [x: number, y: number, z: number] | null;
-  /** Distance de l'actif, en cases (`combatDistance`) ; `null` sans position. */
+  /** Distance de l'actif en vue, en cases (`combatDistance`) ; `null` sans position ou sans actif en vue. */
   distance: number | null;
-  /** Engagé avec l'actif (`engagedWith`). */
+  /** Engagé avec l'actif en vue (`engagedWith`). */
   engage: boolean;
   /** Ses États (`conditions`), chacun avec sa valeur. */
   etats: { id: string; valeur: number }[];
@@ -92,10 +92,13 @@ export interface Projection {
   jets: JetEnVue[];
   combat: null | {
     round: number;
-    /** Le rang du tour dans le round, `null` avant le premier. */
+    /** Le rang de l'actif dans l'ordre du tour en vue (`ordreEnVue`), `null` avant le premier tour ou quand l'actif
+     *  n'est pas en vue. */
     tour: number | null;
+    /** Les combattants de l'ordre du tour en vue (`ordreEnVue`). */
     tours: number;
     fin: NonNullable<Jeu['battle']>['over'];
+    /** L'actif, `null` quand il n'est pas en vue (`combattantEnVue`). */
     actif: (CombattantProjete & { action: 'libre' | 'prise'; mouvement: [restant: number, total: number] }) | null;
     /** L'aperçu du premier clic du champ (`battle.preview`), que le second confirme. */
     apercu: Apercu | null;
@@ -106,7 +109,8 @@ export interface Projection {
     cibles: { liste: string[]; enPlus: number };
     /** Les offres ouvertes de l'actif ; `null` : la barre n'est pas ouverte. */
     offres: { liste: OffreEnVue[]; enPlus: number } | null;
-    /** L'actif, ses engagés, puis au plus `BornesDeLaProjection.autres` autres, par distance croissante. */
+    /** Les combattants en vue (`combattantsTries`) : l'actif, ses engagés, puis au plus `BornesDeLaProjection.autres`
+     *  autres, par distance croissante. */
     voisins: { liste: CombattantProjete[]; enPlus: number };
   };
   exploration: null | {
@@ -118,8 +122,8 @@ export interface Projection {
     heros: CombattantProjete[];
     /** Ce que le groupe peut jouer depuis sa case, chaque geste prêt à jouer (`gestesDExploration`). */
     gestes: { liste: GesteDExploration[]; enPlus: number };
-    /** Les entités de la scène (`scene.entities`), chacune à sa case : décors, PNJ, objets ; hors des navires posés par
-     *  leurs ponts (`estPoseParSesPonts`), qui ne tiennent aucune case. */
+    /** Les entités de la scène que le groupe connaît (`entiteConnue`), chacune à sa case : décors, PNJ, objets ; hors
+     *  des navires posés par leurs ponts (`estPoseParSesPonts`), qui ne tiennent aucune case. */
     entites: { liste: EntiteProjetee[]; enPlus: number };
   };
   refus: { texte: string; nonce: number } | null;
@@ -139,12 +143,15 @@ export interface Apercu {
 export type ProprietaireDeLaFenetre = { genre: 'tous' } | { genre: 'aucun' } | { genre: 'porteur'; nom: string | null };
 
 /** Le propriétaire d'une fenêtre (`fenetreDuJeu`) : `'*'`, tous ; sans id, aucun (`modalOwnerOf`) ; un id, son porteur
- *  (`porteurParId`). */
+ *  (`nomEnVue`). */
 export const proprietaireDeLaFenetre = (etat: Jeu, id: string | undefined | null): ProprietaireDeLaFenetre => {
   if (id == null) return { genre: 'aucun' };
   if (id === '*') return { genre: 'tous' };
-  return { genre: 'porteur', nom: porteurParId(etat, id)?.label ?? null };
+  return { genre: 'porteur', nom: nomEnVue(etat, id) };
 };
+
+/** `c` est hors du combat : mort, ou sorti de la rencontre. */
+export const horsCombat = (c: Combatant): boolean => !!c.dead || !!c.outOfRencontre;
 
 function combattant(c: Combatant, actif: Combatant | undefined, facing: Jeu['facing']): CombattantProjete {
   const d = actif ? combatDistance(actif, c) : Infinity;
@@ -158,20 +165,30 @@ function combattant(c: Combatant, actif: Combatant | undefined, facing: Jeu['fac
     distance: Number.isFinite(d) ? d : null,
     engage: !!actif && c.id !== actif.id && !!actif.engagedWith?.includes(c.id),
     etats: c.conditions.map((e) => ({ id: e.id, valeur: e.value })),
-    horsCombat: !!c.dead || !!c.outOfRencontre,
+    horsCombat: horsCombat(c),
     portee: porteeDuCombattant(c),
     vehicule: vehiculeDuCombattant(c, facing[c.id]),
   };
 }
 
-/** Tous les combattants projetés : l'actif, ses engagés, puis par distance croissante. */
+/** L'actif du combat, s'il est en vue (`combattantEnVue`). */
+const actifEnVue = (etat: Jeu): Combatant | undefined => {
+  const actif = etat.battle && activeCombatant(etat.battle);
+  return actif && combattantEnVue(etat, actif) ? actif : undefined;
+};
+
+/** Les combattants en vue (`combattantEnVue`), projetés : l'actif, ses engagés, puis par distance croissante de l'actif
+ *  en vue. */
 export function combattantsTries(etat: Jeu): CombattantProjete[] {
   const b = etat.battle;
   if (!b) return [];
-  const actif = activeCombatant(b);
+  const actif = actifEnVue(etat);
   const rangDe = (c: CombattantProjete): number => (c.id === actif?.id ? -2 : c.engage ? -1 : (c.distance ?? Infinity));
-  return b.combatants.map((c) => combattant(c, actif, etat.facing)).sort((x, y) => rangDe(x) - rangDe(y));
+  return b.combatants.filter((c) => combattantEnVue(etat, c)).map((c) => combattant(c, actif, etat.facing)).sort((x, y) => rangDe(x) - rangDe(y));
 }
+
+/** L'ordre du tour (`battle.order`) réduit aux combattants en vue (`porteurEnVue`). */
+export const ordreEnVue = (etat: Jeu): string[] => (etat.battle?.order ?? []).filter((id) => porteurEnVue(etat, id));
 
 /** Les gestes de la fenêtre que son jet ferme maintenant (`fermeturesDeLaFenetre`), par leur identité (`cleDuGeste`),
  *  chacun avec sa raison en mots du joueur. */
@@ -196,7 +213,7 @@ function offresEnVue(etat: Jeu, offres: readonly Offre[]): OffreEnVue[] {
     const armee = offreArmee(etat, o.def, o.args);
     vue.armee ||= armee;
     if (Object.keys(o.args).length) {
-      const nom = o.candidat ?? (o.porteurId === undefined ? undefined : porteurParId(etat, o.porteurId)?.label);
+      const nom = o.candidat ?? (o.porteurId === undefined ? undefined : nomEnVue(etat, o.porteurId));
       vue.candidats.push({ nom: garanti(nom, o.actionId, 'nom du candidat de l’offre'), ctx: o.args, geste: o.geste, refus, armee });
     } else vue.geste = o.geste;
     if (o.gate.ok) {
@@ -239,7 +256,8 @@ export function casesAtteignables(etat: Jeu, monTour = etatDeLaBarre(etat).forme
 /** La projection de l'état après `pas` gestes, sur un journal de `journal` lignes, chaque liste à ses `bornes`. */
 export function projeter(etat: Jeu, pas: number, journal: number, bornes: BornesDeLaProjection): Projection {
   const b = etat.battle;
-  const actif = b ? activeCombatant(b) : undefined;
+  const actif = actifEnVue(etat);
+  const ordre = ordreEnVue(etat);
   const fenetre = fenetreDuJeu(etat);
   const barre = etatDeLaBarre(etat);
   const offres = barre.forme === 'ouverte' ? offresDeLaBarreOuverte(etat, barre) : null;
@@ -256,8 +274,8 @@ export function projeter(etat: Jeu, pas: number, journal: number, bornes: Bornes
     combat: b
       ? {
           round: b.round,
-          tour: b.turn < 0 ? null : b.turn + 1,
-          tours: b.order.length,
+          tour: b.turn < 0 || !actif ? null : ordre.indexOf(actif.id) + 1,
+          tours: ordre.length,
           fin: b.over,
           actif: actif && mvt ? { ...combattant(actif, actif, etat.facing), action: b.acted ? 'prise' : 'libre', mouvement: [mvt.restant, mvt.total] } : null,
           apercu: apercuDe(etat),
@@ -277,7 +295,7 @@ export function projeter(etat: Jeu, pas: number, journal: number, bornes: Bornes
           cap: capDuGroupe(etat),
           heros: etat.party.map((h) => ({ ...combattant(h, undefined, etat.facing), pos: [etat.partyPos.x, etat.partyPos.y, etat.partyPos.z ?? 0] })),
           gestes: tranche(gestesDExploration(etat), bornes.gestes),
-          entites: tranche(etat.scene.entities.filter((e) => !estPoseParSesPonts(etat.scene!, e.id)).map((e) => ({ id: e.id, genre: e.kind, nom: e.label ?? null, pos: [e.pos.x, e.pos.y, e.z ?? 0] })), bornes.entites),
+          entites: tranche(etat.scene.entities.filter((e) => !estPoseParSesPonts(etat.scene!, e.id) && entiteConnue(etat, e)).map((e) => ({ id: e.id, genre: e.kind, nom: e.label ?? null, pos: [e.pos.x, e.pos.y, e.z ?? 0] })), bornes.entites),
         },
     refus: etat.refus,
     journal,

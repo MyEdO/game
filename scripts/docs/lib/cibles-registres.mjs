@@ -62,6 +62,16 @@ export const REGISTRIES = [
     vocabulaire: { nom: 'fonds', id: 'id', libelle: 'label' },
   },
   {
+    // Couches de paysage (dessin SVG que l'hôte trace à ses couleurs, empilées en un paysage) : 1 famille = 1 fichier defs/.
+    dir: 'src/data/paysages/defs',
+    out: 'src/data/paysages/_registry.generated.ts',
+    exportName: 'couches',
+    arrayName: 'FAMILLES_DE_COUCHES',
+    type: 'FamilleDeCouches',
+    typeFrom: './types',
+    idUnion: { typeName: 'IdDeCoucheGenere', field: 'id', out: 'src/data/paysages.generated.ts' },
+  },
+  {
     // Sons (assets CC0) : 1 son (avec variantes) = 1 fichier defs/ ; vocabulaire `sons`, que désigne un effet.
     dir: 'src/data/sons/defs',
     out: 'src/data/sons/_registry.generated.ts',

@@ -43,8 +43,8 @@ const doc = document(
     }).optional(),
     combatAdvantage: nommerChamps(z.strictObject({ cap: charKeySchema }), { cap: { label: 'Plafond' } }).optional(),
     combatSubstitute: nommerChamps(z.strictObject({
-      role: z.enum(['defense', 'attack', 'both']),
-      gate: z.literal('fear'),
+      role: z.enum(['defense', 'attaque', 'lesDeux']),
+      gate: z.literal('peur'),
     }), { role: { label: 'Rôle' }, gate: { label: 'Condition d’accès' } }).optional(),
     /** `capability` = clé de `ItemCapabilities` (`src/data/index.ts`) — sac de flags fermé côté TS ;
      *  laissé en `z.string()` ici (référence croisée hors périmètre d'un seul dataset, cf. `tool.json`

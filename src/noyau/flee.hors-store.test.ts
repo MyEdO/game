@@ -45,15 +45,15 @@ describe('Fuite intégrée à la modale (store)', () => {
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const E = b.combatants.find((c) => c.kind === 'enemy')!;
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const E = b.combatants.find((c) => c.kind === 'ennemi')!;
     E.characteristics['capacite-de-combat'] = 90; // le coup dans le dos (+20) touche à coup sûr
     H.wounds = blessuresDeBase(40, 40, H);
     H.engagedWith = [E.id];
     E.engagedWith = [H.id];
     banc.setState({
       battle: { ...b },
-      pendingDisengage: { moverId: H.id, foeId: E.id, canSacrifice: false, phase: 'choice', atk: null, def: null, result: null },
+      pendingDisengage: { moverId: H.id, foeId: E.id, canSacrifice: false, phase: 'choix', atk: null, def: null, result: null },
     });
 
     banc.getState().jetRegler('desengagement', 'fuir', true);
@@ -92,8 +92,8 @@ describe('Fuite intégrée à la modale (store)', () => {
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const E = b.combatants.find((c) => c.kind === 'enemy')!;
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const E = b.combatants.find((c) => c.kind === 'ennemi')!;
     H.fortune = 2;
     H.wounds = blessuresDeBase(40, 40, H);
     H.engagedWith = [E.id];
@@ -143,7 +143,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('debutDuRound');
     const b = banc.getState().battle!;
-    const heroes = b.combatants.filter((c) => c.kind === 'hero');
+    const heroes = b.combatants.filter((c) => c.kind === 'heros');
     const frappeur = heroes.find((c) => c.label === 'A')!;
     const fuyard = heroes.find((c) => c.label === 'B')!;
     frappeur.pos = { x: 6, y: 10 };
@@ -153,7 +153,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     fuyard.items = (fuyard.items ?? []).filter((i) => i.kind !== 'armor'); fuyard.armour = { tete: 0, corps: 0, brasG: 0, brasD: 0, jambeG: 0, jambeD: 0 } as never;
     banc.setState({
       battle: { ...b },
-      pendingDisengage: { moverId: fuyard.id, foeId: frappeur.id, canSacrifice: false, phase: 'choice', atk: null, def: null, result: null },
+      pendingDisengage: { moverId: fuyard.id, foeId: frappeur.id, canSacrifice: false, phase: 'choix', atk: null, def: null, result: null },
     });
     return { frappeur, fuyard };
   }
@@ -229,7 +229,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
 
     // (b) frappeur ENNEMI (IA) : rangée TÉMOIN, jet auto-roulé à l'ouverture (le fuyard garde le sien).
     const b = banc.getState().battle!;
-    const E = b.combatants.find((c) => c.kind === 'enemy')!;
+    const E = b.combatants.find((c) => c.kind === 'ennemi')!;
     const H = live(fuyard.id);
     H.engagedWith = [E.id];
     E.engagedWith = [H.id];
@@ -237,7 +237,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     E.characteristics['capacite-de-combat'] = 90; // touche à coup sûr → le slot du Test `fuite` reste dû
     banc.setState({
       battle: { ...b },
-      pendingDisengage: { moverId: H.id, foeId: E.id, canSacrifice: false, phase: 'choice', atk: null, def: null, result: null },
+      pendingDisengage: { moverId: H.id, foeId: E.id, canSacrifice: false, phase: 'choix', atk: null, def: null, result: null },
     });
     banc.getState().jetRegler('desengagement', 'fuir', true);
     const pdB = banc.getState().pendingDisengage!;
@@ -255,7 +255,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const [E1, E2] = b.combatants.filter((c) => c.kind === 'enemy');
+    const [E1, E2] = b.combatants.filter((c) => c.kind === 'ennemi');
     E1.pos = { x: 16, y: 11 };
     E2.pos = { x: 17, y: 11 };
     E1.engagedWith = [E2.id];
@@ -263,7 +263,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     E2.characteristics['capacite-de-combat'] = 90; // le coup dans le dos (+20) touche à coup sûr
     banc.setState({
       battle: { ...b },
-      pendingDisengage: { moverId: E1.id, foeId: E2.id, canSacrifice: false, phase: 'choice', atk: null, def: null, result: null },
+      pendingDisengage: { moverId: E1.id, foeId: E2.id, canSacrifice: false, phase: 'choix', atk: null, def: null, result: null },
     });
     const before = live(E1.id).wounds.current;
 
@@ -290,9 +290,9 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const [E1, E2] = b.combatants.filter((c) => c.kind === 'enemy');
-    b.combatants.filter((c) => c.kind === 'enemy').slice(2).forEach((e) => (e.dead = true));
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const [E1, E2] = b.combatants.filter((c) => c.kind === 'ennemi');
+    b.combatants.filter((c) => c.kind === 'ennemi').slice(2).forEach((e) => (e.dead = true));
     H.size = 'grande';
     H.characteristics['capacite-de-combat'] = 90;
     H.pos = { x: 6, y: 10 };
@@ -304,7 +304,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     E2.engagedWith = [H.id];
     banc.setState({
       battle: { ...b, turn: b.order.indexOf(E1.id), acted: false },
-      pendingDisengage: { moverId: E1.id, foeId: H.id, canSacrifice: false, phase: 'choice', atk: null, def: null, result: null },
+      pendingDisengage: { moverId: E1.id, foeId: H.id, canSacrifice: false, phase: 'choix', atk: null, def: null, result: null },
     });
     let restitutions = 0;
     const unsub = banc.subscribe((st, prev) => { if (prev.battle?.acted === true && st.battle?.acted === false) restitutions++; });
@@ -337,9 +337,9 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('debutDuRound');
     const b = banc.getState().battle!;
-    const [fuyard, voisin] = b.combatants.filter((c) => c.kind === 'hero');
-    const [E] = b.combatants.filter((c) => c.kind === 'enemy');
-    b.combatants.filter((c) => c.kind === 'enemy' && c.id !== E.id).forEach((e) => (e.dead = true));
+    const [fuyard, voisin] = b.combatants.filter((c) => c.kind === 'heros');
+    const [E] = b.combatants.filter((c) => c.kind === 'ennemi');
+    b.combatants.filter((c) => c.kind === 'ennemi' && c.id !== E.id).forEach((e) => (e.dead = true));
     E.size = 'enorme';
     E.characteristics['capacite-de-combat'] = 90;
     E.pos = { x: 6, y: 10 };
@@ -351,7 +351,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     voisin.engagedWith = [E.id];
     banc.setState({
       battle: { ...b, turn: b.order.indexOf(fuyard.id), acted: false },
-      pendingDisengage: { moverId: fuyard.id, foeId: E.id, canSacrifice: false, phase: 'choice', atk: null, def: null, result: null },
+      pendingDisengage: { moverId: fuyard.id, foeId: E.id, canSacrifice: false, phase: 'choix', atk: null, def: null, result: null },
     });
     banc.getState().jetRegler('desengagement', 'fuir', true);
     const pd = banc.getState().pendingDisengage!;
@@ -463,7 +463,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
   it('MJ (gmSeat) : le coup dans le dos d’un ENNEMI reste témoin auto-roulé — aucune impasse', () => {
     const { fuyard } = duelHeros(9);
     const b = banc.getState().battle!;
-    const E = b.combatants.find((c) => c.kind === 'enemy')!;
+    const E = b.combatants.find((c) => c.kind === 'ennemi')!;
     const H = live(fuyard.id);
     H.engagedWith = [E.id];
     E.engagedWith = [H.id];
@@ -472,7 +472,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     banc.setState({
       net: { ...banc.getState().net, mode: 'hote', mySeat: 0, gmSeat: 0 },
       battle: { ...b },
-      pendingDisengage: { moverId: H.id, foeId: E.id, canSacrifice: false, phase: 'choice', atk: null, def: null, result: null },
+      pendingDisengage: { moverId: H.id, foeId: E.id, canSacrifice: false, phase: 'choix', atk: null, def: null, result: null },
     });
 
     banc.getState().jetRegler('desengagement', 'fuir', true);

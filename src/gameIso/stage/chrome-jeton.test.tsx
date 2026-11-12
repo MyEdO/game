@@ -41,7 +41,7 @@ const PV = { current: 3, max: 12 };
 
 function hero(id: string, pos: { x: number; y: number }): Combatant {
   return blessuresSurLeProfil({
-    id, label: id, kind: 'hero', pos, size: 'moyenne',
+    id, label: id, kind: 'heros', pos, size: 'moyenne',
     wounds: blessuresDeBase(12), weapons: [],
     characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, 'intelligence': 30, 'force-mentale': 30, sociabilite: 30 },
     advantage: 0, conditions: [], armour: {},
@@ -56,7 +56,7 @@ function combatChromé(): BattleState {
   return {
     combatants: [
       blessuresSurLeProfil({ ...hero('h1', { x: 3, y: 3 }), wounds: PV, defensiveStance: true, aiming: true, focus: { dr: 2 }, hunger: { days: 2, failures: 0 }, psychState: [{ type: 'frenesie' }] }),
-      { ...hero('e1', { x: 5, y: 3 }), kind: 'enemy', dead: true },
+      { ...hero('e1', { x: 5, y: 3 }), kind: 'ennemi', dead: true },
     ],
     order: ['h1', 'e1'],
     turn: 0,
@@ -216,7 +216,7 @@ describe('Chrome des jetons — la dérivation PURE, mesurée hors écran (#1176
   });
 
   it('survolé : la couleur de RELATION, jamais une couleur d’équipe', () => {
-    const ennemi = { ...c(), id: 'e1', kind: 'enemy' } as Combatant;
+    const ennemi = { ...c(), id: 'e1', kind: 'ennemi' } as Combatant;
     expect(tokenChrome(ennemi, { ...vide, hoveredId: 'e1' }).highlight).toBe(ENEMY_TINT);
     expect(tokenChrome(ennemi, vide).highlight).toBeNull();
   });

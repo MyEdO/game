@@ -205,7 +205,7 @@ describe('__wfrp.killEnemies — commande de recette (élimine les ennemis, vict
     expect(out).toContain('✓');
     const b = useGame.getState().battle!;
     expect(b.over).toBe('victoire');
-    expect(b.combatants.filter((c) => c.kind === 'enemy').every((c) => isOutOfAction(c))).toBe(true);
+    expect(b.combatants.filter((c) => c.kind === 'ennemi').every((c) => isOutOfAction(c))).toBe(true);
     expect(useGame.getState().pendingVictory).toBeTruthy();
   });
 });
@@ -272,7 +272,7 @@ describe('__wfrp — autres commandes de recette', () => {
     useGame.getState().fenetreValider('debutDuRound');
     vi.clearAllTimers();
     const relu = (id: string) => useGame.getState().battle!.combatants.find((c) => c.id === id)!;
-    const ennemi = useGame.getState().battle!.combatants.find((c) => c.kind === 'enemy')!;
+    const ennemi = useGame.getState().battle!.combatants.find((c) => c.kind === 'ennemi')!;
     expect(buildApi().trait(ennemi.id, 'creature-marine')).toMatch(/^✓/);
     expect(relu(ennemi.id).traits?.some((t) => t.id === 'creature-marine')).toBe(true);
     expect(buildApi().trait(hero.id, 'creature-marine')).toMatch(/^✓/);
@@ -603,7 +603,7 @@ describe('__wfrp — setups qui écrivent un héros, joués EN COMBAT (#2198, #2
     ouvrirLeRoundAuHeros(api);
     const g = useGame.getState;
     const ici = combattant().pos!;
-    for (const e of g().battle!.combatants.filter((c) => c.kind === 'enemy')) e.pos = { x: ici.x + 12, y: ici.y + 12 };
+    for (const e of g().battle!.combatants.filter((c) => c.kind === 'ennemi')) e.pos = { x: ici.x + 12, y: ici.y + 12 };
     g().ouvrirLaCourse({ x: ici.x + 3, y: ici.y });
     g().jetLancer('course');
     g().jetValider('course');
@@ -618,7 +618,7 @@ describe('__wfrp — setups qui écrivent un héros, joués EN COMBAT (#2198, #2
     expect(api.combatEnd({ corruption: true as never })).toMatch(/^✗ corruption « true »/);
     expect(api.combatEnd({ corruption: 'Modérée' }), 'le libellé n’est pas l’id').toMatch(/^✗ corruption « Modérée »/);
     expect(useGame.getState().battle!.over).toBeNull();
-    expect(useGame.getState().battle!.combatants.filter((c) => c.kind === 'enemy').every((c) => !c.dead)).toBe(true);
+    expect(useGame.getState().battle!.combatants.filter((c) => c.kind === 'ennemi').every((c) => !c.dead)).toBe(true);
   });
 
   it('dealDamage : des Dégâts qui ne sont pas un nombre fini sont refusés, nommés, sans rien infliger', () => {
@@ -635,7 +635,7 @@ describe('__wfrp — setups qui écrivent un héros, joués EN COMBAT (#2198, #2
   it('attaque / turn pendant la pause de début de Round : refus nommés, la pause garde turn -1', () => {
     const api = buildApi();
     expect(useGame.getState().pendingRoundStart, 'le combat s’ouvre sur la pause').not.toBeNull();
-    const mutant = useGame.getState().battle!.combatants.find((c) => c.kind === 'enemy')!;
+    const mutant = useGame.getState().battle!.combatants.find((c) => c.kind === 'ennemi')!;
     expect(api.attaque(mutant.id, heroId)).toMatch(/^✗ pause de début de Round/);
     expect(api.turn(mutant.id)).toMatch(/^✗ pause de début de Round/);
     expect(useGame.getState().battle!.turn).toBe(-1);
@@ -644,7 +644,7 @@ describe('__wfrp — setups qui écrivent un héros, joués EN COMBAT (#2198, #2
   it('attaque pendant un tour d’IA en vol (minuteurs avancés) : refus nommé, rien n’est posé', () => {
     const api = buildApi();
     useGame.getState().fenetreValider('debutDuRound');
-    const mutant = useGame.getState().battle!.combatants.find((c) => c.kind === 'enemy')!;
+    const mutant = useGame.getState().battle!.combatants.find((c) => c.kind === 'ennemi')!;
     expect(api.turn(mutant.id)).toMatch(/^✓/);
     vi.advanceTimersByTime(10);
     expect(api.attaque(mutant.id, heroId)).toMatch(/^✗ tour de .*piloté par l'IA/);
@@ -654,7 +654,7 @@ describe('__wfrp — setups qui écrivent un héros, joués EN COMBAT (#2198, #2
   it('attaque : pose l’attaque de l’IA sur le héros et OUVRE sa modale de Défense, au tour de l’attaquant', () => {
     const api = buildApi();
     ouvrirLeRoundAuHeros(api);
-    const mutant = useGame.getState().battle!.combatants.find((c) => c.kind === 'enemy')!;
+    const mutant = useGame.getState().battle!.combatants.find((c) => c.kind === 'ennemi')!;
     expect(api.attaque(mutant.id, heroId), 'mutant loin du héros').toMatch(/^✗ .*pas au contact/);
     expect(useGame.getState().pendingDefense).toBeNull();
     const h = combattant().pos!;
@@ -670,7 +670,7 @@ describe('__wfrp — setups qui écrivent un héros, joués EN COMBAT (#2198, #2
   it('attaque : défenseur non surfacé (piloté par l’IA) → refus nommé, aucune fenêtre', () => {
     const api = buildApi();
     ouvrirLeRoundAuHeros(api);
-    const [m1, m2] = useGame.getState().battle!.combatants.filter((c) => c.kind === 'enemy');
+    const [m1, m2] = useGame.getState().battle!.combatants.filter((c) => c.kind === 'ennemi');
     api.place(m2.id, { x: m1.pos!.x + 1, y: m1.pos!.y });
     expect(api.attaque(m1.id, m2.id)).toMatch(/^✗ .*n'est pas surfacé/);
     expect(useGame.getState().pendingDefense).toBeNull();
@@ -679,7 +679,7 @@ describe('__wfrp — setups qui écrivent un héros, joués EN COMBAT (#2198, #2
   it('attaqueGratuite : la file de production des gratuites d’IA OUVRE la modale de Défense du héros, refus nommés sinon', () => {
     const api = buildApi();
     ouvrirLeRoundAuHeros(api);
-    const mutant = useGame.getState().battle!.combatants.find((c) => c.kind === 'enemy')!;
+    const mutant = useGame.getState().battle!.combatants.find((c) => c.kind === 'ennemi')!;
     expect(api.attaqueGratuite(mutant.id, heroId), 'aucun trait d’attaque gratuite').toMatch(/^✗ .*aucune attaque gratuite disponible/);
     expect(api.trait(mutant.id, 'morsure', { value: 7 })).toMatch(/^✓/);
     expect(api.attaqueGratuite(mutant.id, heroId, 'caudale')).toMatch(/^✗ « caudale » .*disponibles : morsure/);
@@ -703,7 +703,7 @@ describe('__wfrp — setups qui écrivent un héros, joués EN COMBAT (#2198, #2
   it('attaqueGratuite : la file vise un AUTRE adversaire au contact, la gratuite part et se suspend sur sa sauvegarde → ✓', () => {
     const api = buildApi();
     ouvrirLeRoundAuHeros(api);
-    const mutant = useGame.getState().battle!.combatants.find((c) => c.kind === 'enemy')!;
+    const mutant = useGame.getState().battle!.combatants.find((c) => c.kind === 'ennemi')!;
     expect(api.trait(mutant.id, 'morsure', { value: 7 })).toMatch(/^✓/);
     const h = combattant().pos!;
     api.place(mutant.id, { x: h.x + 1, y: h.y });
@@ -724,7 +724,7 @@ describe('__wfrp — setups qui écrivent un héros, joués EN COMBAT (#2198, #2
 
   const mutantMordantAuContact = (api: ReturnType<typeof buildApi>) => {
     ouvrirLeRoundAuHeros(api);
-    const mutant = useGame.getState().battle!.combatants.find((c) => c.kind === 'enemy')!;
+    const mutant = useGame.getState().battle!.combatants.find((c) => c.kind === 'ennemi')!;
     expect(api.trait(mutant.id, 'morsure', { value: 7 })).toMatch(/^✓/);
     const h = combattant().pos!;
     api.place(mutant.id, { x: h.x + 1, y: h.y });
@@ -771,7 +771,7 @@ describe('__wfrp — setups qui écrivent un héros, joués EN COMBAT (#2198, #2
   it('attaqueGratuite : la file du noyau compte le plafond par tour — une Morsure déjà déclarée ce tour n’est plus disponible (LDB 85 l.237)', () => {
     const api = buildApi();
     ouvrirLeRoundAuHeros(api);
-    const mutant = useGame.getState().battle!.combatants.find((c) => c.kind === 'enemy')!;
+    const mutant = useGame.getState().battle!.combatants.find((c) => c.kind === 'ennemi')!;
     expect(api.trait(mutant.id, 'morsure', { value: 7 })).toMatch(/^✓/);
     const h = combattant().pos!;
     api.place(mutant.id, { x: h.x + 1, y: h.y });
@@ -797,7 +797,7 @@ describe('__wfrp — setups qui écrivent un héros, joués EN COMBAT (#2198, #2
 
   it('piegeALame : l’étape de choix est celle du flux de la mêlée (`choixPiegeLame`), lignes de portée et d’issue comprises', () => {
     const api = buildApi();
-    const attaquant = useGame.getState().battle!.combatants.find((c) => c.kind === 'enemy')!;
+    const attaquant = useGame.getState().battle!.combatants.find((c) => c.kind === 'ennemi')!;
     expect(api.piegeALame(heroId, attaquant.id, 3)).toMatch(/^✓/);
     const etape = useGame.getState().pendingCascade!.participants.find((p) => p.kind === 'piegeALame')!;
     const pbt = etape.piegeLame!;
@@ -822,7 +822,7 @@ describe('__wfrp — setups qui écrivent un héros, joués EN COMBAT (#2198, #2
   it('gesteCarteAttendu : pose de zone, pilonnage, choix de cibles — lus aux prédicats du jeu', () => {
     const api = buildApi();
     expect(api.gesteCarteAttendu()).toBeNull();
-    const mutant = useGame.getState().battle!.combatants.find((c) => c.kind === 'enemy')!;
+    const mutant = useGame.getState().battle!.combatants.find((c) => c.kind === 'ennemi')!;
     useGame.setState({ pendingCast: { casterId: heroId, spellId: 'sort-fictif', zone: { center: null, radius: 2, placing: true } } as never });
     expect(api.gesteCarteAttendu()).toEqual({ kind: 'zone', label: 'sort-fictif', casterId: heroId, radius: 2, rangeTiles: null });
     useGame.setState({ pendingCast: { casterId: heroId, spellId: 'sort-fictif', pickingTargets: true, extraTargetIds: [mutant.id] } as never });
@@ -863,10 +863,10 @@ describe('__wfrp.place — piège composite (coque à postes / membre de crew)',
   const CHARS = { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 40, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
   const mkPoste = (crewIds: string[]): ShipPoste => ({ item: itemFromTrappingById('belier-ade2', idsDeTest)!, crewIds });
   const mkHull = (poste: ShipPoste, pos = { x: 5, y: 5 }): Combatant =>
-    combattantDeTest({ id: 'hull', label: 'Bélier', kind: 'enemy', pos, conditions: [], weapons: [],
+    combattantDeTest({ id: 'hull', label: 'Bélier', kind: 'ennemi', pos, conditions: [], weapons: [],
       inert: true, wounds: blessuresDeBase(0), advantage: 0, postes: [poste] });
   const mkServant = (id: string, pos: { x: number; y: number }): Combatant =>
-    combattantDeTest({ id, label: id, kind: 'npc', characteristics: CHARS, wounds: blessuresDeBase(8), advantage: 0,
+    combattantDeTest({ id, label: id, kind: 'pnj', characteristics: CHARS, wounds: blessuresDeBase(8), advantage: 0,
       conditions: [], skills: [], talents: [], weapons: [],
       armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, pos });
 
@@ -959,8 +959,8 @@ describe('__wfrp.fastForward — avance-rapide des tours IA (garde anti-boucle, 
 
   it('s’arrête au tour d’un combattant piloté humain (les mutants, loin du héros, se contentent de bouger)', async () => {
     const b = useGame.getState().battle!;
-    const heroId = b.combatants.find((c) => c.kind === 'hero')!.id;
-    const enemyIds = b.combatants.filter((c) => c.kind === 'enemy').map((c) => c.id);
+    const heroId = b.combatants.find((c) => c.kind === 'heros')!.id;
+    const enemyIds = b.combatants.filter((c) => c.kind === 'ennemi').map((c) => c.id);
     // Ordre forcé : les 3 Mutants d'abord — ils sont loin du héros (fixture) → pas de jet d'attaque (juste
     // du mouvement), donc pas d'issue RNG-dépendante (pas de risque de cascade de fin de combat).
     useGame.setState({ battle: { ...b, order: [...enemyIds, heroId], baseOrder: [...enemyIds, heroId], turn: -1 } });
@@ -978,14 +978,14 @@ describe('__wfrp.fastForward — avance-rapide des tours IA (garde anti-boucle, 
     const after = useGame.getState().battle;
     if (after && !after.over) {
       const active = after.combatants.find((c) => c.id === after.order[after.turn]);
-      expect(active?.kind).toBe('hero'); // rendu au tour du héros (piloté humain)
+      expect(active?.kind).toBe('heros'); // rendu au tour du héros (piloté humain)
     }
   });
 
   it('chaîne ARRÊTÉE (beats purgés) : `fastForward` la RAMORCE et rend la main au héros', async () => {
     const b = useGame.getState().battle!;
-    const heroId = b.combatants.find((c) => c.kind === 'hero')!.id;
-    const enemyIds = b.combatants.filter((c) => c.kind === 'enemy').map((c) => c.id);
+    const heroId = b.combatants.find((c) => c.kind === 'heros')!.id;
+    const enemyIds = b.combatants.filter((c) => c.kind === 'ennemi').map((c) => c.id);
     useGame.setState({ battle: { ...b, order: [...enemyIds, heroId], baseOrder: [...enemyIds, heroId], turn: -1 } });
     useGame.getState().fenetreValider('debutDuRound');
     vi.clearAllTimers(); // PLUS AUCUN beat en vol : c'est `fastForward` SEUL qui doit ramorcer (#1852)
@@ -997,20 +997,20 @@ describe('__wfrp.fastForward — avance-rapide des tours IA (garde anti-boucle, 
     expect(msg, msg).toContain('✓');
     const after = useGame.getState().battle;
     if (after && !after.over) {
-      expect(after.combatants.find((c) => c.id === after.order[after.turn])?.kind).toBe('hero');
+      expect(after.combatants.find((c) => c.id === after.order[after.turn])?.kind).toBe('heros');
     }
   });
 
   it('fenêtre OUVERTE : `fastForward` rend la main en la NOMMANT, sans rien décider à la place du joueur', async () => {
     const b = useGame.getState().battle!;
-    const hero = b.combatants.find((c) => c.kind === 'hero')!;
-    const enemyId = b.combatants.find((c) => c.kind === 'enemy')!.id;
+    const hero = b.combatants.find((c) => c.kind === 'heros')!;
+    const enemyId = b.combatants.find((c) => c.kind === 'ennemi')!.id;
     useGame.setState({
       // Tour de l'IA (sinon `fastForward` rend la main pour la bonne autre raison : « tour piloté »),
       // mais la fenêtre du défenseur est ouverte.
       battle: { ...b, order: [enemyId, hero.id], baseOrder: [enemyId, hero.id], turn: 0 },
       // Une fenêtre de défense VIVANTE, sur son étape : la main appartient au joueur.
-      pendingDefense: { attackerId: b.combatants.find((c) => c.kind === 'enemy')!.id, defenderId: hero.id, weapon: hero.weapons[0], mode: 'parade', def: null, result: null } as never,
+      pendingDefense: { attackerId: b.combatants.find((c) => c.kind === 'ennemi')!.id, defenderId: hero.id, weapon: hero.weapons[0], mode: 'parade', def: null, result: null } as never,
       pendingCascade: cascadeDeTest([{ id: 'defense-jet-0', kind: 'jetDeDefense', jet: 'defense', actorId: hero.id }], { title: 'Défense', purpose: 'combat' }),
     });
 
@@ -1024,7 +1024,7 @@ describe('__wfrp.fastForward — avance-rapide des tours IA (garde anti-boucle, 
 
   it('borne à maxIters (garde-fou anti-boucle infinie) si rien ne progresse jamais vers un tour humain', async () => {
     const b = useGame.getState().battle!;
-    const enemyId = b.combatants.find((c) => c.kind === 'enemy')!.id;
+    const enemyId = b.combatants.find((c) => c.kind === 'ennemi')!.id;
     // Tour figé sur un Ennemi SANS jamais lancer lancerLeRound/maybeRunEnemyTurn nous-mêmes au préalable
     // — mais fastForward RELANCE la machinerie à chaque scrutation (maybeRunEnemyTurn) : avec maxIters=0,
     // la borne mord dès la 1ʳᵉ scrutation, AVANT toute action IA — vérifie que la borne est bien respectée.

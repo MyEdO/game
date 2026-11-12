@@ -31,8 +31,8 @@ describe('Battement & Distraire — flux HÉROS (par modale, pas l’IA)', () =>
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
     enemies.slice(1).forEach((e) => (e.dead = true));
     const E = enemies[0];
     H.pos = { x: 10, y: 10 };
@@ -127,8 +127,8 @@ describe('Battement & Distraire — le verdict d’offre porte la condition de C
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
     enemies.slice(1).forEach((e) => (e.dead = true));
     const E = enemies[0];
     H.pos = { x: 5, y: 10 };
@@ -161,7 +161,7 @@ describe('Battement & Distraire — le verdict d’offre porte la condition de C
     expect(banc.getState().pendingDistraire?.foeId, 'le dispatcher ouvre bien sur cet adversaire').toBe(E.id);
     banc.getState().jetAnnuler('distraire');
     const b2 = banc.getState().battle!;
-    b2.combatants.filter((c) => c.kind === 'enemy').forEach((c) => (c.dead = true));
+    b2.combatants.filter((c) => c.kind === 'ennemi').forEach((c) => (c.dead = true));
     banc.setState({ battle: { ...b2 } });
     const refus = actionGate('distraire', ctx(H));
     expect(refus.ok, 'plus aucun adversaire actif : le dispatcher n’aurait rien à traiter').toBe(false);

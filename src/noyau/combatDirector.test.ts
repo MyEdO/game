@@ -5,7 +5,7 @@ import { ev } from './combatLog';
 import type { Get } from './flowTypes';
 
 const cs = [
-  { id: 'h1', name: 'Bidule', kind: 'hero' },
+  { id: 'h1', name: 'Bidule', kind: 'heros' },
   { id: 'e1', name: 'Machin', kind: 'monster' },
 ];
 const fakeGet = (log: unknown[]): Get => (() => ({ battle: { log, combatants: cs } } as never));

@@ -35,11 +35,11 @@
   background: var(--chip-malus-bg);
   border-color: var(--chip-malus-border);
 }
-.fx-chip.buff {
+.fx-chip.effet {
   background: var(--chip-buff-bg);
   border-color: var(--chip-buff-border);
 }
-.fx-chip.state {
+.fx-chip.etat {
   background: rgba(224, 151, 63, 0.18);
   border-color: var(--chip-state-border);
 }

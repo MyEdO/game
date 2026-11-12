@@ -450,7 +450,7 @@ describe('entrainementOptions — Compétences/Caractéristiques HORS carrière 
   it('exclut les Caractéristiques DE la carrière (Soldat : CC/End/FM), inclut les autres, PX déjà doublé hors carrière (LDB 07 l.91)', () => {
     const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     const opts = entrainementOptions(h);
-    const chars = opts.filter((o) => o.kind === 'characteristic');
+    const chars = opts.filter((o) => o.kind === 'caracteristique');
     expect(chars.every((o) => !o.advanced)).toBe(true);
     // Capacité de Combat/Endurance/Force Mentale SONT de la carrière du Soldat (careerLevels.json) : absentes ici.
     expect(chars.some((o) => o.id === 'capacite-de-combat')).toBe(false);
@@ -464,7 +464,7 @@ describe('entrainementOptions — Compétences/Caractéristiques HORS carrière 
   it('marque `advanced` pour les Compétences Avancées, jamais pour une Compétence de Base', () => {
     const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     const opts = entrainementOptions(h);
-    const skillOpts = opts.filter((o) => o.kind === 'skill');
+    const skillOpts = opts.filter((o) => o.kind === 'competence');
     expect(skillOpts.length).toBeGreaterThan(0);
     const advanced = skillOpts.find((o) => o.advanced);
     expect(advanced).toBeTruthy();

@@ -24,7 +24,7 @@ afterEach(() => {
   setDataset('talents', TALENTS_LIVRES);
 });
 
-const heros = { id: 'h', kind: 'hero', skills: [], talents: [{ talentId: 'artiste', times: 1 }] } as unknown as Combatant;
+const heros = { id: 'h', kind: 'heros', skills: [], talents: [{ talentId: 'artiste', times: 1 }] } as unknown as Combatant;
 
 describe('ajout de Compétence à `choix` en liste — dépliage sur la liste', () => {
   it('admet chaque spécialisation de la liste', () => {

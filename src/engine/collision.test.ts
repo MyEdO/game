@@ -6,7 +6,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testki
 /** Coque minimale (forme d'un Combattant-coque) : seuls Endurance + Blessures restantes sont lus par collisionIndex. */
 const mkHull = (E: number, wounds: number): Combatant =>
   (blessuresSurLeProfil({
-    id: 'h', name: 'coque', kind: 'npc',
+    id: 'h', name: 'coque', kind: 'pnj',
     characteristics: { 'capacite-de-combat': 0, 'capacite-de-tir': 0, force: 0, endurance: E, initiative: 0, agilite: 0, dexterite: 0, intelligence: 0, 'force-mentale': 0, sociabilite: 0 },
     wounds: blessuresDeBase(wounds), advantage: 0,
     conditions: [], weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },

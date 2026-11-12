@@ -19,7 +19,7 @@ import type { TriggeredEffect } from '../data/schemas/defs-scenes/effets';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 const mk = (over: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
-  id: 'c', label: 'C', kind: 'enemy',
+  id: 'c', label: 'C', kind: 'ennemi',
   characteristics: { 'capacite-de-combat': 35, 'capacite-de-tir': 25, force: 35, endurance: 35, initiative: 30, agilite: 30, dexterite: 30, intelligence: 25, 'force-mentale': 25, sociabilite: 25 },
   wounds: blessuresDeBase(30), advantage: 0, conditions: [], skills: [], talents: [],
   weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, items: [],
@@ -65,7 +65,7 @@ describe('manœuvres = donnée éditable (GameOp)', () => {
   it('ÉDITER les effects d’une ManeuverDef CHANGE la résolution (recréable depuis le Codex)', () => {
     const avant = [...maneuvers];
     const edited: TriggeredEffect[] = [
-      { trigger: 'onHit', on: 'victim', flow: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'empoisonne' } }] } } },
+      { trigger: 'onHit', on: 'victime', flow: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'empoisonne' } }] } } },
     ];
     try {
       setDataset('maneuvers', maneuvers.map((m) => (m.id === 'souffle' ? { ...m, effects: edited } : m))); // « édition » : Empoisonné, sans Dégâts

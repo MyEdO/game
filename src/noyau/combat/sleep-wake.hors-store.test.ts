@@ -13,7 +13,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDe
  * quand on l'attaque (pas de coup de grâce), la seconde reste un Inconscient achevable (LDB 16 l.113).
  */
 const mk = (over: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
-  id: 's', name: 'Dormeur', kind: 'hero', conditions: [{ id: 'inconscient', value: 1, roundsLeft: 3 }],
+  id: 's', name: 'Dormeur', kind: 'heros', conditions: [{ id: 'inconscient', value: 1, roundsLeft: 3 }],
   wounds: blessuresDeBase(12), traits: [], weapons: [], armour: { corps: 0 }, advantage: 0,
   characteristics: {} as never, skills: [], talents: [],
   ...over,
@@ -43,7 +43,7 @@ describe('isMagicallyAsleep — dormeur ≠ KO', () => {
 });
 
 describe('wake-sleeper (modifier de touche)', () => {
-  const foe = (traits: { id: string }[] = []): Combatant => ({ id: 'a', name: 'Brute', kind: 'enemy', traits } as unknown as Combatant);
+  const foe = (traits: { id: string }[] = []): Combatant => ({ id: 'a', name: 'Brute', kind: 'ennemi', traits } as unknown as Combatant);
 
   it('une attaque NORMALE réveille le dormeur et ANNULE le coup de grâce (il encaisse, ne meurt pas)', () => {
     const target = mk();

@@ -49,8 +49,8 @@ describe('Psychologie de combat héros — cascade de Round (Peur/Terreur)', () 
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const heroes = b.combatants.filter((c) => c.kind === 'hero');
-    const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+    const heroes = b.combatants.filter((c) => c.kind === 'heros');
+    const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
     const E = enemies[0];
     enemies.slice(1).forEach((e) => (e.dead = true)); // une seule source
     E.size = enemySize;
@@ -276,8 +276,8 @@ describe('Psychologie de combat — regroupement en BANDES', () => {
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const [A, B] = b.combatants.filter((c) => c.kind === 'hero');
-    const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+    const [A, B] = b.combatants.filter((c) => c.kind === 'heros');
+    const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
     const [E1, E2] = enemies;
     enemies.slice(2).forEach((e) => (e.dead = true));
     A.pos = { x: 10, y: 10 };
@@ -310,7 +310,7 @@ describe('Psychologie de combat — regroupement en BANDES', () => {
     banc.getState().jetValider('cascade');
     expect(banc.getState().pendingCascade).toBeNull();
     const psy = banc.getState().battle!.combatants
-      .filter((x) => x.kind === 'hero')
+      .filter((x) => x.kind === 'heros')
       .map((h) => (h.psychState ?? []).filter((p) => p.type === 'animosite').length);
     expect(psy).toEqual([1, 1]); // chaque rangée a reçu SA conséquence
   });

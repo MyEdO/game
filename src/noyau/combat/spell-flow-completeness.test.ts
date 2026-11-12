@@ -34,7 +34,7 @@ describe('Complétude : tout sort porte ses effets dans un Flow exécutable (Spe
   });
 
   it('runPureFlowLines EXÉCUTE réellement les ops d’un sort sur la cible (wounds + condition)', () => {
-    const target = combattantDeTest({ id: 't', label: 'Cible', kind: 'enemy', dead: false, wounds: blessuresDeBase(20) });
+    const target = combattantDeTest({ id: 't', label: 'Cible', kind: 'ennemi', dead: false, wounds: blessuresDeBase(20) });
     // un « sort » minimal : 6 Blessures + En flammes — exprimé en Flow EffectOp.
     const flow: Flow = { kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'wounds', amount: 6 }, { op: 'condition', id: { id: 'en-flammes' } }] } }] };
     const lines = runPureFlowLines(target, undefined, flow, { idNeuf: idsDeTest, rng: desDuTest, label: 'Test' });

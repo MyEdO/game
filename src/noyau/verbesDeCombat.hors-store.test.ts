@@ -162,7 +162,7 @@ describe('Course : un seul verdict pour l’offre, le geste et la zone (`refusDe
     const partie = creerPartie(etatInitialDuJeu(), ENTREES);
     try {
       jouer(partie, partie.lancer({ ...lancementDuScenario(testScenarios.find((s) => s.id === 'entrainement')!, idsDeTest), combatDirect: 'enc-entrainement' }));
-      for (let pas = 0; pas < 40 && !(activeCombatant(partie.etat().battle!)?.kind === 'hero'); pas++) {
+      for (let pas = 0; pas < 40 && !(activeCombatant(partie.etat().battle!)?.kind === 'heros'); pas++) {
         const e = partie.etat();
         const intentions: Intention[] = e.pendingDefense
           ? [{ type: 'jetLancer', args: ['defense'] }, { type: 'jetValider', args: ['defense'] }]
@@ -265,7 +265,7 @@ describe('Désengagement (LDB 15 l.43-49) : une option par verdict', () => {
       envoyer(partie, 'rompreLEngagement');
       expect(partie.etat().pendingDisengage).toMatchObject({ canSacrifice: false, refusEsquive: t('agate.unableToAct'), canFuir: true });
       envoyer(partie, 'jetLancer', 'desengagement');
-      expect(partie.etat().pendingDisengage, 'l’Esquive fermée s’est jouée').toMatchObject({ phase: 'choice', def: null });
+      expect(partie.etat().pendingDisengage, 'l’Esquive fermée s’est jouée').toMatchObject({ phase: 'choix', def: null });
     } finally {
       partie.fermer();
     }

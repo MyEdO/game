@@ -49,7 +49,7 @@ theme_type_variation = &"RangeeAeree"
 [node name="Zone" type="Node" parent="Colonne/Armees"]
 script = ExtResource("1_zone")
 source = "fenetre.corps"
-ids = PackedStringArray("armee/ally", "armee/enemy")
+ids = PackedStringArray("armee/allie", "armee/ennemi")
 
 [node name="Defilement" type="ScrollContainer" parent="Colonne"]
 size_flags_vertical = 3

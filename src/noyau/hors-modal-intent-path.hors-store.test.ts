@@ -35,7 +35,7 @@ const W = (uid: string, hand: Main): Weapon =>
   ({ uid, name: hand === 'main' ? 'Épée' : 'Dague', label: hand === 'main' ? 'Épée' : 'Dague', type: 'melee',
      damage: { plusBF: true, flat: 0, bare: true }, qualities: [], hand, hands: 1 } as unknown as Weapon);
 
-const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }): Combatant =>
+const mk = (id: string, kind: 'heros' | 'ennemi', pos: { x: number; y: number }): Combatant =>
   (blessuresSurLeProfil({ id, name: id, label: id, kind, characteristics: { ...CHARS }, conditions: [], engagedWith: [], skills: [], talents: [],
      weapons: [W('m', 'main'), W('o', 'secondaire')], advantage: 0, size: 'moyenne', pos, wounds: blessuresDeBase(18),
      resolve: 2, fortune: 2, armour: ARM(), movement: 4 }) as unknown as Combatant);
@@ -45,10 +45,10 @@ const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }): 
  *  combattant actif — l'état RÉEL pendant `pendingRoundStart`. */
 function setup(net: Record<string, unknown> = {}, turn = 0) {
   seedBattleRng(7);
-  const h2 = mk('h2', 'hero', { x: 0, y: 0 });
-  const h3 = mk('h3', 'hero', { x: 5, y: 5 });
-  const e1 = mk('e1', 'enemy', { x: 1, y: 0 });
-  const e2 = mk('e2', 'enemy', { x: 0, y: 1 });
+  const h2 = mk('h2', 'heros', { x: 0, y: 0 });
+  const h3 = mk('h3', 'heros', { x: 5, y: 5 });
+  const e1 = mk('e1', 'ennemi', { x: 1, y: 0 });
+  const e2 = mk('e2', 'ennemi', { x: 0, y: 1 });
   const battle: BattleState = {
     combatants: [h2, e1, e2, h3], order: ['h2', 'e1', 'e2', 'h3'], baseOrder: ['h2', 'e1', 'e2', 'h3'],
     turn, round: 2, action: null, selectedSpellId: null, reachable: new Map(),

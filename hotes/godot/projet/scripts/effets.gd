@@ -1,14 +1,16 @@
-## Les effets d'un appel (`suite.effets`, `pont/CONTRAT.md`, section « Effets ») rendus au plateau, tels que le noyau les
-## résout : chaque coup part de l'attaquant (sa phase de départ), son projectile vole jusqu'à la cible le temps et sur la
-## cloche de son `trajet`, puis sa phase d'arrivée joue sur la cible ; chaque incantation joue son départ au lanceur,
-## puis, réussie, son arrivée sur sa cible ; chaque zone (#3783) joue son départ à son auteur, son jet jusqu'au centre,
-## puis sa nappe sur chacune de ses cases et son son au centre ; chaque son joue partout, autant de fois que l'effet le
-## dit (les pas d'un déplacement, #3825). Les flottants d'un coup ou d'une incantation montent de sa cible à son arrivée,
-## l'un après l'autre ; un flottant seul monte de son combattant ou de sa case. Une phase dessine son visuel, la scène
-## de son id sous `res://effets/visuels/` (`eclater`), et joue son son, une de ses variantes à son tour
-## (`variante_du_son`), à son point. Chaque déplacement (#3822) part aussitôt, tous ensemble : le chemin de son
-## combattant, le lieu de chacune de ses cases et ses mètres, va à qui le parcourt (`deplacement`). Les autres effets d'un
-## même appel se suivent, `ECART_S` secondes l'un après l'autre.
+## Les effets d'un appel (`suite.effets`, `pont/CONTRAT.md`, section « Effets ») rendus au plateau, tels que le noyau
+## les résout : chaque coup part de l'attaquant (sa phase de départ), son projectile vole jusqu'à la cible le temps et
+## sur la cloche de son `trajet`, puis sa phase d'arrivée joue sur la cible ; chaque incantation joue son départ au
+## lanceur, puis, réussie, son arrivée sur sa cible ; chaque zone (#3783) joue son départ à son auteur, son jet jusqu'au
+## centre, puis sa nappe sur chacune de ses cases et son son au centre ; sans auteur (`de` nul), seules l'arrivée ou la
+## nappe jouent ; chaque son joue partout, autant de fois que l'effet le dit (les pas d'un déplacement, #3825). Les
+## flottants d'un coup ou d'une incantation montent de sa cible à son arrivée, l'un après l'autre ; un flottant seul
+## monte de son combattant ou de sa case. Une phase dessine son visuel, la scène de son id sous
+## `res://effets/visuels/` (`eclater`), et joue son son, une de ses variantes à son tour (`variante_du_son`), à son
+## point, sur le bus de son canal (`son.canal`) ; l'arrivée sonore d'un coup et la nappe sonore d'une zone atténuent la
+## musique (`Musique.attenuer`). Chaque déplacement (#3822) part aussitôt, tous ensemble : le chemin de son combattant,
+## le lieu de chacune de ses cases et ses mètres, va à qui le parcourt (`deplacement`). Les autres effets d'un même
+## appel se suivent, `ECART_S` secondes l'un après l'autre.
 class_name Effets
 extends Node3D
 
@@ -16,10 +18,14 @@ extends Node3D
 ## Le plateau (`projet/scripts/plateau.gd`) rend `suite.effets` par son nœud `Effets` (`projet/scripts/effets.gd`),
 ## chaque déplacement aussitôt, tous ensemble, puis les autres l'un après l'autre : chaque visuel est la scène de son id
 ## (`res://effets/visuels/<visuel>.tscn`), teinte de la couleur de l'effet, au point de sa phase ; chaque projectile,
-## celle de son id sous `res://effets/projectiles/` ; chaque son joue en 3D à son point. Au départ d'un coup ou d'une
-## incantation, l'auteur se tourne vers sa cible et joue son clip d'attaque ; à l'arrivée d'un coup qui touche, la cible
-## accuse le coup. La recette `projet/recettes/effets.gd` les vérifie, et `projet/recettes/chemin-du-groupe.gd` le
-## parcours d'un déplacement.
+## celle de son id sous `res://effets/projectiles/` ; chaque son joue en 3D à son point, sur le bus d'`AudioServer`
+## nommé par son `canal` (`projet/default_bus_layout.tres`), et la phase d'arrivée sonore d'un coup ou la nappe sonore
+## d'une zone atténue la musique (section « Musique »). Au départ d'un coup ou d'une incantation, l'auteur se tourne
+## vers sa cible et joue son clip d'attaque ; à l'arrivée d'un coup qui touche, la cible accuse le coup. Un coup, une
+## incantation ou une zone sans auteur (`de` nul) n'a ni départ ni trajet : son arrivée ou sa nappe joue seule, et
+## personne ne s'anime à son départ. La recette `projet/recettes/effets.gd` les vérifie,
+## `projet/recettes/chemin-du-groupe.gd` le parcours d'un déplacement, et `projet/recettes/vision-du-combat.gd` l'effet
+## sans auteur.
 
 ## Un coup, une incantation ou une zone part de son auteur `de` (son id), vers le point au sol `vers`.
 signal depart(de: String, vers: Vector3)
@@ -107,53 +113,57 @@ func _point(sol: Vector3) -> Vector3:
 	return MiseEnPage.point_du_coup(sol, _metres_par_case)
 
 
+## Le coup `effet` : son départ (`_partir`), puis son arrivée et ses flottants sur sa cible.
 func _coup(effet: Dictionary, lieux: Dictionary) -> void:
-	depart.emit(effet.de, lieux[effet.vers])
-	var de := _point(lieux[effet.de])
-	var vers := _point(lieux[effet.vers])
+	var sol: Vector3 = lieux[effet.vers]
 	var teinte := Color(effet.couleur)
-	_phase(effet.depart, de, teinte)
-	if effet.trajet != null:
-		await _voler(effet.trajet, de, vers, teinte)
-	else:
-		await get_tree().create_timer(ELAN_S).timeout
-	_phase(effet.arrivee, vers, teinte)
-	_flotter(effet.flottants, lieux[effet.vers])
+	await _partir(effet, lieux, sol, teinte)
+	_phase(effet.arrivee, _point(sol), teinte)
+	if effet.arrivee != null and effet.arrivee.son != null:
+		Musique.attenuer(get_tree())
+	_flotter(effet.flottants, sol)
 	arrivee.emit(effet.vers, effet.issue == "touche" or effet.issue == "critique")
 
 
+## L'incantation `effet` : son départ au lanceur (`_partir`), puis son arrivée et ses flottants sur sa cible.
 func _incantation(effet: Dictionary, lieux: Dictionary) -> void:
-	depart.emit(effet.de, lieux[effet.vers])
-	var de := _point(lieux[effet.de])
-	var vers := _point(lieux[effet.vers])
+	var sol: Vector3 = lieux[effet.vers]
 	var teinte := Color(effet.couleur)
-	_phase(effet.depart, de, teinte)
-	await get_tree().create_timer(ELAN_S).timeout
-	_phase(effet.arrivee, vers, teinte)
-	_flotter(effet.flottants, lieux[effet.vers])
+	await _partir(effet, lieux, sol, teinte)
+	_phase(effet.arrivee, _point(sol), teinte)
+	_flotter(effet.flottants, sol)
 	arrivee.emit(effet.vers, false)
 
 
-## La zone `effet` : son départ à son auteur, qui se tourne vers son centre, son jet jusqu'au centre (aucun : un élan),
-## puis sa nappe, son visuel sur chaque case et son son au centre.
+## La zone `effet` : son départ vers son centre (`_partir`), puis sa nappe, son visuel sur chaque case et son son au
+## centre.
 func _zone(effet: Dictionary, lieux: Dictionary) -> void:
 	var teinte := Color(effet.couleur)
 	var sol_du_centre: Vector3 = lieux[cle_de_case(effet.centre)]
-	depart.emit(effet.de, sol_du_centre)
-	var de := _point(lieux[effet.de])
-	var centre := _point(sol_du_centre)
-	_phase(effet.depart, de, teinte)
-	if effet.trajet != null:
-		await _voler(effet.trajet, de, centre, teinte)
-	else:
-		await get_tree().create_timer(ELAN_S).timeout
+	await _partir(effet, lieux, sol_du_centre, teinte)
 	if effet.nappe == null:
 		return
 	if effet.nappe.visuel != null:
 		for case: Dictionary in effet.cases:
 			eclater(effet.nappe.visuel, lieux[cle_de_case(case)], teinte)
 	if effet.nappe.son != null:
-		_jouer_le_son(effet.nappe.son, centre)
+		_jouer_le_son(effet.nappe.son, _point(sol_du_centre))
+		Musique.attenuer(get_tree())
+
+
+## Le départ de `effet` (un coup, une incantation, une zone) vers le sol `sol` : son auteur s'y tourne, sa phase de départ
+## joue à l'auteur, puis le projectile de son `trajet` vole jusqu'au point de `sol` (aucun : un élan). Sans auteur
+## (`de` nul, `CONTRAT.md`, section « Effets »), rien : son arrivée ou sa nappe joue seule.
+func _partir(effet: Dictionary, lieux: Dictionary, sol: Vector3, teinte: Color) -> void:
+	if effet.de == null:
+		return
+	depart.emit(effet.de, sol)
+	var de := _point(lieux[effet.de])
+	_phase(effet.depart, de, teinte)
+	if effet.get("trajet") != null:
+		await _voler(effet.trajet, de, _point(sol), teinte)
+	else:
+		await get_tree().create_timer(ELAN_S).timeout
 
 
 ## Le flottant `effet` au-dessus de son combattant (`sur`) ou de sa case, sauf hors des lieux dessinés.
@@ -315,10 +325,11 @@ func projectile_de(nom: String, teinte: Color) -> Node3D:
 	return projectile
 
 
-## L'une des variantes du son `son` (`{ id, fichiers, volume }`), celui de ses fichiers de `res://sons/` (Ogg Vorbis, ou
-## MP3 pour une musique) qui vient à son tour (`au_tour`), en boucle avec `boucle`. Un flux de fichier se joue en
-## échantillon sous le Web, par le navigateur et hors de l'image (`AudioStreamPlayer.playback_type`, Godot 4.7) ; un flux
-## composé (`AudioStreamRandomizer`, `AudioStreamSynchronized`) se mixe à chaque image et saccade dès qu'une image tarde.
+## L'une des variantes du son `son` (`{ id, fichiers, volume, canal }`), celui de ses fichiers de `res://sons/` (Ogg
+## Vorbis, ou MP3 pour une musique) qui vient à son tour (`au_tour`), en boucle avec `boucle`. Un flux de fichier se
+## joue en échantillon sous le Web, par le navigateur et hors de l'image (`AudioStreamPlayer.playback_type`, Godot
+## 4.7) ; un flux composé (`AudioStreamRandomizer`, `AudioStreamSynchronized`) se mixe à chaque image et saccade dès
+## qu'une image tarde.
 static func variante_du_son(son: Dictionary, boucle: bool) -> AudioStream:
 	var flux: AudioStream = load("res://sons/%s" % au_tour(son.fichiers))
 	if boucle:
@@ -337,20 +348,21 @@ static func au_tour(liste: Array) -> Variant:
 	return tour.back()
 
 
-## Le lecteur du son `son` (`{ id, fichiers, volume }`) qui joue en boucle à son point dès sa pose : une flamme, une
-## zone qui dure, la marque d'un État.
+## Le lecteur du son `son` (`{ id, fichiers, volume, canal }`) qui joue en boucle à son point dès sa pose, sur le bus de
+## son canal : une flamme, une zone qui dure, la marque d'un État.
 static func son_en_boucle(son: Dictionary) -> AudioStreamPlayer3D:
 	var lecteur := AudioStreamPlayer3D.new()
 	lecteur.name = "son-%s" % son.id
 	lecteur.stream = variante_du_son(son, true)
 	lecteur.volume_db = linear_to_db(son.volume)
+	lecteur.bus = son.canal
 	lecteur.unit_size = PORTEE_DU_SON
 	lecteur.autoplay = true
 	return lecteur
 
 
-## Le son `son` (`{ id, fichiers, volume }`), l'une de ses variantes à son tour, au point `point`, ou partout (`null`) ;
-## retiré une fois joué.
+## Le son `son` (`{ id, fichiers, volume, canal }`), l'une de ses variantes à son tour, au point `point`, ou partout
+## (`null`), sur le bus de son canal ; retiré une fois joué.
 func _jouer_le_son(son: Dictionary, point: Variant) -> Node:
 	var variante := variante_du_son(son, false)
 	var lecteur: Node
@@ -358,12 +370,14 @@ func _jouer_le_son(son: Dictionary, point: Variant) -> Node:
 		var plat := AudioStreamPlayer.new()
 		plat.stream = variante
 		plat.volume_db = linear_to_db(son.volume)
+		plat.bus = son.canal
 		plat.finished.connect(plat.queue_free)
 		lecteur = plat
 	else:
 		var spatial := AudioStreamPlayer3D.new()
 		spatial.stream = variante
 		spatial.volume_db = linear_to_db(son.volume)
+		spatial.bus = son.canal
 		spatial.unit_size = PORTEE_DU_SON
 		spatial.position = point
 		spatial.finished.connect(spatial.queue_free)

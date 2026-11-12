@@ -86,7 +86,7 @@ function construireScene(): Scene {
           },
           flowFromEffects([{ type: 'journal', desc: 'Un déclic — vous vous figez juste à temps, les piques claquent dans le vide.' }]),
           flowFromEffects([
-            { type: 'ops', on: 'party', ops: [{ op: 'wounds', amount: 5 }, { op: 'condition', id: { id: 'a-terre' } }] },
+            { type: 'ops', on: 'groupe', ops: [{ op: 'wounds', amount: 5 }, { op: 'condition', id: { id: 'a-terre' } }] },
             { type: 'setFlag', flag: 'alarme' },
             { type: 'journal', desc: 'Les piques jaillissent ! Dans le fracas, une cloche d’alarme retentit — la herse se verrouille.' },
           ]),

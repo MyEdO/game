@@ -15,7 +15,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testki
 
 /** Construit un `TriggeredEffect` onHit→victim portant `ops` (forme unifiée des onHit d'arme). */
 const onHitFlow = (ops: unknown[]): TriggeredEffect =>
-  ({ trigger: 'onHit', on: 'victim', flow: { kind: 'effet', effet: { type: 'ops', on: 'victim', ops } as never } });
+  ({ trigger: 'onHit', on: 'victime', flow: { kind: 'effet', effet: { type: 'ops', on: 'victim', ops } as never } });
 
 /**
  * Enchantement d'arme (op `augmentWeapon`) : B. de Droiture (Magique), Marteau ardent de Sigmar
@@ -26,7 +26,7 @@ const onHitFlow = (ops: unknown[]): TriggeredEffect =>
  */
 const dummy = (p: Partial<Combatant> = {}): Combatant =>
   (blessuresSurLeProfil({
-    id: 'x', label: 'X', kind: 'hero',
+    id: 'x', label: 'X', kind: 'heros',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 45 },
     wounds: blessuresDeBase(20), advantage: 0, conditions: [], skills: [], talents: [],
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -133,7 +133,7 @@ describe('augmentWeapon — enchantement porté par l’arme, replié dans c.wea
     const c = wielder(weaponItem('w', 'Épée', '+BF+4'));
     applyOps(c, [{
       op: 'augmentWeapon', addQualities: ['magique'],
-      onHitEffects: [{ trigger: 'onHit', on: 'victim', flow: justiceTest }],
+      onHitEffects: [{ trigger: 'onHit', on: 'victime', flow: justiceTest }],
     }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Épée de justice', defaultDurationRounds: 4 });
     const node = c.weapons[0].onHitEffects![0].flow;
     expect(node.kind).toBe('test');

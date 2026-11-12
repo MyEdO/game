@@ -14,14 +14,14 @@ afterEach(() => vi.restoreAllMocks());
 const CHARS = { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 40, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 
 const mk = (p: Partial<Combatant>): Combatant => (blessuresSurLeProfil({
-  id: 'a', name: 'X', kind: 'hero', characteristics: CHARS,
+  id: 'a', name: 'X', kind: 'heros', characteristics: CHARS,
   wounds: blessuresDeBase(20), advantage: 0, conditions: [], movement: 4, skills: [], talents: [],
   engagedWith: [], pos: { x: 0, y: 0 }, size: 'moyenne', weapons: [], items: [],
   armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
   ...p,
 }) as unknown as Combatant);
 
-const target = mk({ id: 't', kind: 'enemy', pos: { x: 1, y: 0 } });
+const target = mk({ id: 't', kind: 'ennemi', pos: { x: 1, y: 0 } });
 
 const harpoon = armeDeTest('lance-harpon', { uid: 'hp' });
 const harpoonItem = objetDeTest('lance-harpon', { uid: 'hp', equipped: true });

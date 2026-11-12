@@ -17,7 +17,7 @@ describe('rollSansPilote — porte de repli sans-pilote (#918)', () => {
 
   const mk = (over: Partial<Combatant>): Combatant =>
     combattantDeTest({
-      id: 'X', label: 'Sujet', kind: 'hero',
+      id: 'X', label: 'Sujet', kind: 'heros',
       characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 40, endurance: 40, initiative: 40, agilite: 40, dexterite: 40, intelligence: 40, 'force-mentale': 40, sociabilite: 40 },
       skills: [], conditions: [], talents: [],
       ...over,
@@ -33,7 +33,7 @@ describe('rollSansPilote — porte de repli sans-pilote (#918)', () => {
   const prendreLeSiegeMJ = (seat: number) => banc.setState({ net: poserLeSiegeMJ(banc.getState().net, seat) });
 
   it('acteur NON piloté (ennemi, aucun siège MJ) → le jet est rendu, sans bruit', () => {
-    const e = mk({ id: 'E', label: 'Ennemi', kind: 'enemy' });
+    const e = mk({ id: 'E', label: 'Ennemi', kind: 'ennemi' });
     banc.setState({ party: [e] });
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
     const res = rollSansPilote(banc.getState, e, 45, 'intermediaire', rng());
@@ -46,7 +46,7 @@ describe('rollSansPilote — porte de repli sans-pilote (#918)', () => {
    *  MJ (bac-à-sable, `netOwnership.pilotedByHuman`). Le même acteur bascule donc de repli légitime à
    *  jet silencieux par la seule prise du siège — sans que rien ne change côté combattant. */
   it('ennemi SOUS siège MJ, cadence manuelle → humanControlled : THROW en DEV', () => {
-    const e = mk({ id: 'E', label: 'Ennemi', kind: 'enemy' });
+    const e = mk({ id: 'E', label: 'Ennemi', kind: 'ennemi' });
     banc.setState({ party: [e] });
     prendreLeSiegeMJ(0);
     vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -55,7 +55,7 @@ describe('rollSansPilote — porte de repli sans-pilote (#918)', () => {
   });
 
   it('ennemi SOUS siège MJ mais cadence Auto → repli légitime (le MJ ne lance pas non plus)', () => {
-    const e = mk({ id: 'E', label: 'Ennemi', kind: 'enemy' });
+    const e = mk({ id: 'E', label: 'Ennemi', kind: 'ennemi' });
     banc.setState({ party: [e] });
     prendreLeSiegeMJ(0);
     setCadence('auto');
@@ -101,7 +101,7 @@ describe('rollSansPilote — porte de repli sans-pilote (#918)', () => {
   });
 
   it('modificateur et difficulté sont passés tels quels à rollTest (forme de engine/tests)', () => {
-    const e = mk({ id: 'E', label: 'Ennemi', kind: 'enemy' });
+    const e = mk({ id: 'E', label: 'Ennemi', kind: 'ennemi' });
     banc.setState({ party: [e] });
     expect(rollSansPilote(banc.getState, e, 40, 'facile', rng()).target).toBe(80); // +40
     expect(rollSansPilote(banc.getState, e, 40, 'intermediaire', rng(), -10).target).toBe(30);

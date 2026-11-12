@@ -13,10 +13,12 @@ const arme = (w: Partial<Weapon>): Weapon => ({ label: 'arme', type: 'melee', da
 const coup = (r: Partial<AttackResult>): AttackResult => ({ hit: true, critical: false, ...r }) as AttackResult;
 const incantation = (r: Partial<MissileResult>): CastResult & Partial<MissileResult> => ({ cast: true, roll: 10, target: 50, sl: 4, isCritical: false, isFumble: false, log: '', ...r }) as CastResult & Partial<MissileResult>;
 const emis = (payload: ChargeDAttaque): Evenement => ({ type: 'emis', evt: 'anim_attack', payload });
-/** Un combat : `a` à 5 cases de `b` (10 m sur une scène de 2 m par case), `loin` à 500 cases, `hors` hors du plateau ;
- *  sa scène de 3 × 1 cases, au sol à 0 m sur la couche 0, et sur la couche 1 un pont à 3 m au-dessus de sa dernière case. */
+/** Un combat du groupe, chacun en vue (`campOf`, `src/noyau/visionDuGroupe.ts`) : `a` à 5 cases de `b` (10 m sur une
+ *  scène de 2 m par case), `loin` à 500 cases, `hors` hors du plateau ; sa scène de 3 × 1 cases, au sol à 0 m sur la
+ *  couche 0, et sur la couche 1 un pont à 3 m au-dessus de sa dernière case. Ce que le groupe ne voit pas :
+ *  `visionDuGroupe.hors-store.test.ts`. */
 const SCENE = { metresPerTile: 2, dimensions: { w: 3, h: 1 }, layers: [{ z: 0, height: [0, 0, 0] }, { z: 1, height: [0, 0, 3] }] };
-const ETAT = { party: [], scene: SCENE, battle: { combatants: [{ id: 'a', pos: { x: 0, y: 0 } }, { id: 'b', pos: { x: 3, y: 4 } }, { id: 'loin', pos: { x: 300, y: 400 } }, { id: 'hors', pos: undefined }] } } as unknown as Jeu;
+const ETAT = { party: [], scene: SCENE, battle: { combatants: [{ id: 'a', kind: 'heros', pos: { x: 0, y: 0 } }, { id: 'b', kind: 'heros', pos: { x: 3, y: 4 } }, { id: 'loin', kind: 'heros', pos: { x: 300, y: 400 } }, { id: 'hors', kind: 'heros', pos: undefined }] } } as unknown as Jeu;
 const unSeul = (e: Evenement): Effet => {
   const effets = effetsDeLAppel(ETAT, [e]);
   expect(effets).toHaveLength(1);
@@ -61,7 +63,7 @@ describe('effetsDeLAppel — le rendu de chaque coup, incantation et son de l’
   });
 
   it('un son de scène : le son du registre ; l’attaque spéciale d’une créature sur elle-même ne rend aucun coup', () => {
-    expect(effetsDeLAppel(ETAT, [{ type: 'emis', evt: 'sfx', payload: { id: 'porte-ouvre' } }])).toEqual([{ quoi: 'son', son: { id: 'porte-ouvre', fichiers: expect.any(Array), volume: expect.any(Number) }, fois: 1, ecartS: 0 }]);
+    expect(effetsDeLAppel(ETAT, [{ type: 'emis', evt: 'sfx', payload: { id: 'porte-ouvre' } }])).toEqual([{ quoi: 'son', son: { id: 'porte-ouvre', fichiers: expect.any(Array), volume: expect.any(Number), canal: 'effets' }, fois: 1, ecartS: 0 }]);
     expect(effetsDeLAppel(ETAT, [emis({ kind: 'creature', from: 'a', to: 'a', defense: 'aucune', result: { hit: true }, creatureAttack: 'hurlement' })])).toEqual([]);
   });
 
@@ -84,9 +86,8 @@ describe('effetsDeLAppel — le rendu de chaque coup, incantation et son de l’
     expect(unSeul(emis({ kind: 'spell', projectile: true, from: 'a', to: 'b', defense: 'aucune', result: incantation({ hit: true, woundsLost: 6 }), spell: 'cauteriser' }))).toMatchObject({ flottants: [{ genre: 'blessures', texte: '-6' }] });
   });
 
-  it('un flottant du bus au-dessus de son combattant ou de sa case', () => {
+  it('un flottant du bus au-dessus de son combattant', () => {
     expect(unSeul({ type: 'emis', evt: 'anim_float', payload: { to: 'b', text: '+2', kind: 'soin' } })).toEqual({ quoi: 'flottant', sur: 'b', case: null, flottant: { genre: 'soin', texte: '+2', couleur: TEINTE_DU_FLOTTANT.soin, critique: false } });
-    expect(unSeul({ type: 'emis', evt: 'anim_float', payload: { pos: { x: 2, y: 3 }, text: '⤬ dévie', kind: 'rate' } })).toMatchObject({ sur: null, case: { x: 2, y: 3 } });
   });
 
   it('les pas d’un déplacement, un par deux cases, quatre au plus ; le heurt d’un pas refusé, le gong de la victoire, les dés', () => {

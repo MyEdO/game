@@ -164,8 +164,8 @@ describe('Colère des dieux — 76-80 « Vous avez péché contre moi » (LDB 40
 
   it('l\'IA sous pénitence ne choisit qu\'une Prière (ou son Mouvement), jamais une attaque', () => {
     const { H, E } = penitent(5);
-    const pretreIA = { ...structuredClone(H), kind: 'enemy' as const, pos: { x: 1, y: 1 } };
-    const proie = { ...structuredClone(E), kind: 'hero' as const, pos: { x: 2, y: 1 } };
+    const pretreIA = { ...structuredClone(H), kind: 'ennemi' as const, pos: { x: 1, y: 1 } };
+    const proie = { ...structuredClone(E), kind: 'heros' as const, pos: { x: 2, y: 1 } };
     const sortDe = (id: string): CastableSpell => {
       const data = findSpellById(id)!;
       return { id, data, cn: data.cn ?? 0, range: null, shape: 'single', landProb: 1, focusState: 'none', active: false };

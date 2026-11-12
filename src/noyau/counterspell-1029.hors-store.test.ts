@@ -43,8 +43,8 @@ function setup() {
   banc.getState().lancerLeCombat('enc-mutants');
   banc.getState().fenetreValider('debutDuRound');
   const b = banc.getState().battle!;
-  const heroes = b.combatants.filter((c) => c.kind === 'hero');
-  const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+  const heroes = b.combatants.filter((c) => c.kind === 'heros');
+  const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
   enemies.slice(2).forEach((e) => (e.dead = true));
   const [E, E2] = enemies;
   for (const e of [E, E2]) {
@@ -262,7 +262,7 @@ describe('#1029/#1040 — le Contre-sort au RAW : moment, verrous, hostilité, N
     castSpell(banc.getState, banc.setState, H, E, 'flechette');
     banc.getState().jetForcerLaReussite('incantation'); // avant le jet : le geste lance puis force (`auJetDu`)
     const pc = banc.getState().pendingCast!;
-    expect(pc.forced, 'la réussite est achetée par la Résilience').toBe(true);
+    expect(pc.forcee, 'la réussite est achetée par la Résilience').toBe(true);
     // L'aiguillage a vu le résultat FINAL : soit il a routé (non-critique), soit il attend le choix
     // d'effet (Critique) — jamais une Dissipation jouée sur le jet naturel intermédiaire.
     expect(pc.result!.isCritical ? !pc.counterspellRouted : pc.counterspellRouted).toBe(true);

@@ -47,8 +47,8 @@ function setupCoop(opts: { heros?: number; invites?: number[] } = {}): { H: Comb
   g().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = g().battle!;
-  const H = b.combatants.filter((c) => c.kind === 'hero');
-  const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+  const H = b.combatants.filter((c) => c.kind === 'heros');
+  const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
   enemies.slice(1).forEach((e) => (e.dead = true));
   const E = enemies.slice(0, 1);
   H.forEach((h, i) => (h.pos = { x: 10, y: 10 + i }));

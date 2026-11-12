@@ -258,7 +258,8 @@ const cliquer = (s: SessionDEdition, x: number, y: number): SessionDEdition => j
  *  sur un personnage de
  *  la première des `FICHES` posé dans la scène `A_DIALOGUE`, et sur la coque
  *  `COQUE`, sélectionnée ; chacun
- *  joué à son inspecteur (`jouerLInspecteur`). */
+ *  joué à son inspecteur (`jouerLInspecteur`) : un porteur de plus n'y joue que ce que son contexte offre de neuf, ses
+ *  seules branches (`FICHES`, `ENROLE`, `COQUE`…) et les offres d'empreinte encore jamais jouée (`empreinte`). */
 export function ecrituresJouees(): EcritureJouee[] {
   const out: EcritureJouee[] = [];
   let s = presser(ouvrirLEdition(paquetDuJeu(allBuiltinCampaigns[0]), false), 'scenes/ajouter');

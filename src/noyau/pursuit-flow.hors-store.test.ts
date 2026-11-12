@@ -60,9 +60,9 @@ function doneRound(party: { id: string }[], sl: number): MancheClose {
  *  charge utile ; les formules de score de camp (l.93) sont des PARAMÈTRES, comme à l'ouverture. */
 function pursuitSeq(p: Partial<PursuitPayload> & { foes: PursuitFoe[] }): EtatDeFamille<'pursuit'> {
   return {
-    def: 'pursuit', round: p.manche ?? 1, cum: {},
-    params: { score: { fleeing: 'min', pursuers: 'max' } },
-    payload: {
+    definition: 'pursuit', manche: p.manche ?? 1, cumuls: {},
+    parametres: { score: { fleeing: 'min', pursuers: 'max' } },
+    chargeUtile: {
       partyRole: 'fleeing', distance: 4, escapeAt: 10, skill: 'athletisme',
       policy: { ...PURSUIT_POLICY_DEFAUT }, manche: 1, phase: 'course', retires: [],
       ...p,
@@ -264,7 +264,7 @@ describe('Poursuite terrestre (#95)', () => {
       banc.setState({ sequence: null, pendingCascade: null });
       startGroundPursuit(banc.getState, banc.setState, { distance: 5, skill: 'athletisme', foes: [{ ref: { id: 'humain' } }], ...p });
       const a = sequenceAbandonOf(banc.getState)!;
-      return [a.label, a.title, a.outcome];
+      return [a.label, a.title, a.issue];
     };
     expect(libelles({ partyRole: 'pursuing' })).toEqual(['Abandonner la poursuite', 'Le groupe renonce à traquer sa proie — la poursuite est perdue.', 'abandon']);
     expect(libelles({ partyRole: 'fleeing', encounter: 'embuscade' })).toEqual(['Abandonner la fuite', 'Le groupe cesse de fuir et fait face — les poursuivants fondent sur lui.', 'abandon']);
