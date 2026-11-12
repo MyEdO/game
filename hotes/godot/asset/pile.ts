@@ -9,8 +9,8 @@
  * poids de peau qu'elle a une fois résolue, tout entier jusqu'à `SERRAGE_M` d'elle, de moins en moins jusqu'à
  * `PORTEE_DE_COUVERTURE_M`. Elle ne le retient pas si elle flotte sur une chaîne plus que lui (`FLOTTEMENT`), ni si elle tient à
  * une autre partie du corps que lui (`PARENTE`). Les points de sa pièce à moins de `HALO_M` d'un point plus retenu
- * qu'eux le suivent, en fondu avec la distance, et des points que leur auteur a liés aux mêmes poids restent liés
- * pareil.
+ * qu'eux le suivent, en fondu avec la distance, ses voisins d'arête aussi quelle que soit la longueur de l'arête, à
+ * `SAUT_D_ARETE` de poids déplacés près, et des points que leur auteur a liés aux mêmes poids restent liés pareil.
  *
  * Un point retenu devant sa couverture, ou à moins de `JEU_M` derrière elle, recule à `JEU_M`, et ses voisins d'arête
  * reculent avec lui sans qu'aucun triangle se retourne (`ENTRAINEMENT`). Un triangle dont les trois points sont retenus
@@ -31,6 +31,8 @@ export const SERRAGE_M = 0.01;
 export const JEU_M = 0.003;
 /** La distance, en mètres, jusqu'à laquelle un point suit un point retenu de sa pièce. */
 export const HALO_M = 0.03;
+/** La part de poids que sa couverture déplace à un point sans que ses voisins d'arête le suivent. */
+export const SAUT_D_ARETE = 1 / 3;
 /** L'écart de poids de chaîne, couverture moins sujet, à partir duquel la couverture flotte et ne retient rien. */
 export const FLOTTEMENT = 0.5;
 /** La part des poids d'un point et de sa couverture portée par les mêmes os, un os et son parent comptant pour moitié,
@@ -414,9 +416,13 @@ const LIBRE: Reprise = { poids: new Map(), part: 0 };
 
 /** Ce que chaque point de `points` reprend d'une couverture qui retient `tenues` : ce qu'elle en retient, ou, s'ils
  *  sont retenus plus que lui, les poids des points retenus à moins de `HALO_M` de lui, chacun pesé par sa proximité,
- *  pour la plus grande part que l'un d'eux lui laisse, la sienne éteinte avec leur distance : deux voisins ne sont pas
- *  retenus d'un écart plus grand que ce fondu. */
-function reprendre(points: readonly Point[], tenues: ReadonlyMap<Point, Reprise>): Map<Point, Reprise> {
+ *  pour la plus grande part que l'un d'eux lui laisse, la sienne éteinte avec leur distance. Une arête plus longue que
+ *  ce fondu ne porte pas tout l'écart : les voisins d'arête (`voisins`) d'un point en reprennent les poids pour sa
+ *  part, moins ce qu'il faut pour que la part de ses poids `propres` déplacée sans eux tienne en `SAUT_D_ARETE`. */
+function reprendre(
+  points: readonly Point[], tenues: ReadonlyMap<Point, Reprise>, voisins: ReadonlyMap<Point, ReadonlyMap<Point, number>>,
+  propres: ReadonlyMap<Point, ReadonlyMap<string, number>>,
+): Map<Point, Reprise> {
   const cellule = (x: number): number => Math.floor(x / HALO_M);
   const grille = new Map<number, Point[]>();
   for (const q of tenues.keys()) {
@@ -447,6 +453,20 @@ function reprendre(points: readonly Point[], tenues: ReadonlyMap<Point, Reprise>
     for (const [nom, pk] of poids) poids.set(nom, (pk / somme) * (part - propre.part) / part);
     for (const [nom, pk] of propre.poids) poids.set(nom, (poids.get(nom) ?? 0) + pk * propre.part / part);
     reprises.set(q, { poids, part });
+  }
+  for (const [q, { poids, part }] of [...reprises].sort(([, a], [, b]) => b.part - a.part)) {
+    let memes = 0;
+    for (const [nom, pk] of propres.get(q) as ReadonlyMap<string, number>) memes += Math.min(pk, poids.get(nom) ?? 0);
+    if (part * (1 - memes) <= SAUT_D_ARETE) continue;
+    const due = part - SAUT_D_ARETE / (1 - memes);
+    for (const v of voisins.get(q)?.keys() ?? []) {
+      const propre = reprises.get(v) ?? LIBRE;
+      if (propre.part >= due) continue;
+      const melange = new Map<string, number>();
+      for (const [nom, pk] of propre.poids) melange.set(nom, pk * propre.part / due);
+      for (const [nom, pk] of poids) melange.set(nom, (melange.get(nom) ?? 0) + pk * (due - propre.part) / due);
+      reprises.set(v, { poids: melange, part: due });
+    }
   }
   return reprises;
 }
@@ -621,6 +641,9 @@ export function resoudreLaPile<P extends PieceDePile>(pieces: readonly P[], couv
     const propres = new Map(points.map((q) => [q, poidsParNom(...q.membres[0])]));
     const repris = new Map<Point, Map<string, number>>(), restes = new Map<Point, number>(), reculs = new Map<Point, Vecteur>();
     const tenus = new Set<Point>(), pleins = new Set<Point>(), laisses = new Set<Point>();
+    const pointDe = new Map<MaillageDePile, Point[]>(piece.maillages.map((m) => [m, new Array<Point>(m.positions.length / 3)]));
+    for (const q of points) for (const [m, s] of q.membres) (pointDe.get(m) as Point[])[s] = q;
+    const voisins = voisinsDe(piece, pointDe);
     for (const couvrants of couvertures) {
       const tenues = new Map<Point, Reprise>();
       for (const q of points) {
@@ -634,7 +657,7 @@ export function resoudreLaPile<P extends PieceDePile>(pieces: readonly P[], couv
         const pas = part * Math.min(0, e - JEU_M), deja = reculs.get(q);
         if (pas < 0 && (!deja || -pas > Math.hypot(...deja))) reculs.set(q, [pas * n[0], pas * n[1], pas * n[2]]);
       }
-      for (const [q, { poids, part }] of reprendre(points, tenues)) {
+      for (const [q, { poids, part }] of reprendre(points, tenues, voisins, propres)) {
         const reste = restes.get(q) ?? 1;
         const melange = repris.get(q) ?? new Map<string, number>();
         for (const [nom, pk] of poids) melange.set(nom, (melange.get(nom) ?? 0) + reste * part * pk);
@@ -644,9 +667,6 @@ export function resoudreLaPile<P extends PieceDePile>(pieces: readonly P[], couv
     }
     for (const q of laisses) if (!tenus.has(q)) flottants++;
     if (!repris.size) { retenir(piece); continue; }
-    const pointDe = new Map<MaillageDePile, Point[]>(piece.maillages.map((m) => [m, new Array<Point>(m.positions.length / 3)]));
-    for (const q of points) for (const [m, s] of q.membres) (pointDe.get(m) as Point[])[s] = q;
-    const voisins = voisinsDe(piece, pointDe);
     entrainer(reculs, voisins);
     apaiser(reculs, voisins);
     for (const bloc of blocsRigides(voisins, propres)) {

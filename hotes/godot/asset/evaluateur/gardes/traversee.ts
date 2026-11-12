@@ -10,8 +10,11 @@
  *
  * Au repos, chaque sommet se lie au triangle couvrant le plus proche dont il est derrière : le point lié p, aux
  * coordonnées barycentriques de la projection, suit la couverture. À chaque échantillon, l'écart signé e(v) = (p − v)·n,
- * n la normale du triangle posé : `couche-traversee` si un sommet a e(v) < −`ECART_DE_SUIVI_M`, un écart par (sujet,
- * couverture, clip), à son pire instant.
+ * n la normale de la couverture posée au point lié : `couche-traversee` si un sommet a e(v) < −`ECART_DE_SUIVI_M`, un
+ * écart par (sujet, couverture, clip), à son pire instant. Cette normale est celle de la surface, les normales de
+ * sommet de l'endroit fondues aux barycentres (`normaleFondue`), là où au repos elle regarde du côté du triangle lié
+ * (`SURFACE_LISSE`) : un triangle qui se couche ou se retourne seul en pose ne fait passer devant lui rien de ce qu'il
+ * couvre. Sur une arête vive, c'est la normale du triangle.
  *
  * Au repos neutre, une arête du sujet qui traverse l'endroit de sa couverture un nombre impair de fois en sort par un
  * bout (`croiserLaCouverture`). Ce bout est percé s'il est à plus de `ECART_DE_SUIVI_M` devant son triangle couvrant
@@ -37,6 +40,10 @@ export interface LiaisonDeCouches {
   readonly sommets: Uint32Array;
   readonly triangles: Uint32Array;
   readonly barycentres: Float32Array;
+  /** Par sommet lié, 1 si la couverture est lisse à son point lié (`SURFACE_LISSE`), 0 sinon. */
+  readonly lisses: Uint8Array;
+  /** Les triangles de l'endroit de la couverture, par trois indices. */
+  readonly endroit: ArrayLike<number>;
 }
 
 /** Les sommets d'un sujet percés au repos par sa couverture : leur nombre et l'écart signé le plus négatif. */
@@ -73,7 +80,7 @@ export function indicesDe(m: Mesh, n: number): ArrayLike<number> {
   return index ? index.array : Uint32Array.from({ length: n }, (_, i) => i);
 }
 
-const forme = new Triangle(), normale = new Vector3(), v = new Vector3(), projection = new Vector3();
+const forme = new Triangle(), normale = new Vector3(), v = new Vector3(), projection = new Vector3(), fondue = new Vector3(), sommet = new Vector3();
 
 function poserTriangle(p: Float32Array, a: number, b: number, c: number): boolean {
   forme.a.set(p[a * 3], p[a * 3 + 1], p[a * 3 + 2]);
@@ -87,10 +94,23 @@ function poserTriangle(p: Float32Array, a: number, b: number, c: number): boolea
 /** Les normales de sommet de `m` aux positions `p` (`normalesDesSommets`). */
 export const normalesDe = (m: Mesh, p: Float32Array): Float32Array => normalesDesSommets({ positions: p, indices: indicesDe(m, p.length / 3) });
 
+/** La normale de la surface au point de barycentres (u, w, x) du triangle (a, b, c) : ses normales de sommet `ns`
+ *  (`normalesDesSommets` de son endroit), unitaires et fondues. */
+function normaleFondue(ns: Float32Array, a: number, b: number, c: number, u: number, w: number, x: number): Vector3 {
+  fondue.set(0, 0, 0);
+  for (const [s, part] of [[a, u], [b, w], [c, x]] as const) fondue.addScaledVector(sommet.set(ns[s * 3], ns[s * 3 + 1], ns[s * 3 + 2]).normalize(), part);
+  return fondue.normalize();
+}
+
+/** Le cosinus, entre la normale d'un triangle au repos et celle de sa surface (`normaleFondue`), à partir duquel la
+ *  surface est lisse à cet endroit. */
+export const SURFACE_LISSE = 0.5;
+
 /** Ce que `couverture`, d'endroit `surface`, fait des sommets de `sujet`, de dehors `ns`, dans la pose `repos`. */
 function releverSous(sujet: Mesh, ns: Float32Array, couverture: SkinnedMesh, surface: Couverture, repos: Pick<Pose, 'positions'>): ReleveSous {
   const ps = positionsDe(repos, sujet), n = ps.length / 3;
-  const sommets: number[] = [], triangles: number[] = [], barycentres: number[] = [];
+  const pc = surface.positions, nc = normalesDesSommets(surface);
+  const sommets: number[] = [], triangles: number[] = [], barycentres: number[] = [], lisses: number[] = [];
   const devant = new Float32Array(n).fill(-Infinity);
   for (let s = 0; s < n; s++) {
     let retenu = -1, auPlusPresDerriere = Infinity, bx = 0, by = 0, bz = 0;
@@ -99,9 +119,11 @@ function releverSous(sujet: Mesh, ns: Float32Array, couverture: SkinnedMesh, sur
       if (e < 0 && e > devant[s]) devant[s] = e;
     });
     if (retenu < 0) continue;
+    const [a, b, c] = [surface.indices[retenu], surface.indices[retenu + 1], surface.indices[retenu + 2]];
     sommets.push(s);
-    triangles.push(surface.indices[retenu], surface.indices[retenu + 1], surface.indices[retenu + 2]);
+    triangles.push(a, b, c);
     barycentres.push(bx, by, bz);
+    lisses.push(poserTriangle(pc, a, b, c) && normaleFondue(nc, a, b, c, bx, by, bz).dot(normale) >= SURFACE_LISSE ? 1 : 0);
   }
   const sortis = new Set<number>(), vues = new Set<number>();
   const ind = indicesDe(sujet, n);
@@ -121,7 +143,7 @@ function releverSous(sujet: Mesh, ns: Float32Array, couverture: SkinnedMesh, sur
   let perces = 0, pire = 0;
   for (const s of sortis) if (devant[s] < -ECART_DE_SUIVI_M && devant[s] > -Infinity) { perces++; pire = Math.min(pire, devant[s]); }
   return {
-    liaison: sommets.length ? { sujet, couverture, sommets: Uint32Array.from(sommets), triangles: Uint32Array.from(triangles), barycentres: Float32Array.from(barycentres) } : null,
+    liaison: sommets.length ? { sujet, couverture, sommets: Uint32Array.from(sommets), triangles: Uint32Array.from(triangles), barycentres: Float32Array.from(barycentres), lisses: Uint8Array.from(lisses), endroit: surface.indices } : null,
     percement: perces ? { sujet, couverture, sommets: perces, pire } : null,
   };
 }
@@ -188,14 +210,18 @@ export function lierLesCouches<E extends { readonly meshes: readonly SkinnedMesh
 
 /** La traversée de chaque liaison dans l'échantillon `e` ; une liaison sans sommet au-delà de la tolérance n'y figure pas. */
 export function mesurerTraversee(liaisons: readonly LiaisonDeCouches[], e: Echantillon): TraverseeDUnEchantillon[] {
+  const normales = new Map<Mesh, Float32Array>();
   return liaisons.flatMap((liaison) => {
     const ps = positionsDe(e, liaison.sujet), pc = positionsDe(e, liaison.couverture);
+    const nc = normales.get(liaison.couverture) ?? normalesDesSommets({ positions: pc, indices: liaison.endroit });
+    normales.set(liaison.couverture, nc);
     let sommets = 0, pire = 0;
     liaison.sommets.forEach((s, i) => {
       const [a, b, c] = [liaison.triangles[i * 3], liaison.triangles[i * 3 + 1], liaison.triangles[i * 3 + 2]];
       if (!poserTriangle(pc, a, b, c)) return;
       const [u, w, x] = [liaison.barycentres[i * 3], liaison.barycentres[i * 3 + 1], liaison.barycentres[i * 3 + 2]];
       projection.set(0, 0, 0).addScaledVector(forme.a, u).addScaledVector(forme.b, w).addScaledVector(forme.c, x);
+      if (liaison.lisses[i]) normale.copy(normaleFondue(nc, a, b, c, u, w, x));
       const ecart = projection.sub(v.set(ps[s * 3], ps[s * 3 + 1], ps[s * 3 + 2])).dot(normale);
       if (ecart >= -ECART_DE_SUIVI_M) return;
       sommets++;

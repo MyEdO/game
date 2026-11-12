@@ -1,6 +1,6 @@
 // La pile des couches résolue au montage (#3842) : la couche du dessous cède à celle qui la couvre.
 import { describe, expect, it } from 'vitest';
-import { ENTRAINEMENT, HALO_M, JEU_M, PERCEE_M, PORTEE_DE_COUVERTURE_M, SERRAGE_M, ordreDesCouches, resoudreLaPile, type CoucheDePile, type MaillageDePile, type PieceDePile } from './pile.ts';
+import { ENTRAINEMENT, HALO_M, JEU_M, PERCEE_M, PORTEE_DE_COUVERTURE_M, SAUT_D_ARETE, SERRAGE_M, ordreDesCouches, resoudreLaPile, type CoucheDePile, type MaillageDePile, type PieceDePile } from './pile.ts';
 
 /** Une nappe carrée de `cote` mètres centrée en (`cx`, 0) à la hauteur `z`, en grille de `n` × `n` mailles, tournée vers
  *  +Z. Elle est tout entière sur l'os `os`, ou, avec `vers`, passe de `os` à `vers` par des poids tous différents d'un
@@ -102,6 +102,27 @@ describe('resoudreLaPile', () => {
     const t = pas / HALO_M;
     expect(1 - poidsSur(dessous, tenu, 'avant_bras') / auteurTenu).toBeCloseTo(1, 6);
     expect(1 - poidsSur(dessous, voisin, 'avant_bras') / auteurVoisin).toBeCloseTo(1 - t * t * (3 - 2 * t), 4);
+  });
+
+  it('sur une arête plus longue que le halo, les voisins d’un point suivent les poids que sa couverture lui déplace, au saut près', () => {
+    const pas = 0.1;
+    const sous = (cx: number, sens: number) => {
+      const dessous = nappe(0, 'bras', 4 * pas, 4, 0, 'avant_bras');
+      const sommets = [sommetEn(dessous, cx), sommetEn(dessous, cx + sens * pas), sommetEn(dessous, cx + 2 * sens * pas)];
+      const auteur = sommets.map((s) => poidsSur(dessous, s, 'avant_bras'));
+      empiler([piece(dessous), piece(nappe(SERRAGE_M, 'bras', pas, 8, cx))]);
+      return { deplace: auteur[0], suivi: sommets.map((s, k) => 1 - poidsSur(dessous, s, 'avant_bras') / auteur[k]) };
+    };
+    const beaucoup = sous(pas, -1);
+    expect(pas).toBeGreaterThan(HALO_M);
+    expect(beaucoup.deplace).toBeGreaterThan(SAUT_D_ARETE);
+    expect(beaucoup.suivi[0]).toBeCloseTo(1, 5);
+    expect(beaucoup.suivi[1]).toBeCloseTo(1 - SAUT_D_ARETE / beaucoup.deplace, 5);
+    expect(beaucoup.suivi[2]).toBeCloseTo(0, 5);
+    const peu = sous(-pas, 1);
+    expect(peu.deplace).toBeLessThan(SAUT_D_ARETE);
+    expect(peu.suivi[0]).toBeCloseTo(1, 5);
+    expect(peu.suivi[1]).toBeCloseTo(0, 5);
   });
 
   it('un bloc que son auteur lie aux mêmes poids ne cède qu’autant que le moins retenu de ses points', () => {

@@ -73,6 +73,42 @@ describe('traversee', () => {
     expect(ecarts[0].valeur).toBeCloseTo(-0.03, 6);
   });
 
+  describe('la normale de la couverture au point lié', () => {
+    /** Le mesh de `Type` aux sommets `points` et aux triangles `faces`. */
+    const mesh = <M extends Mesh>(Type: new (g: BufferGeometry) => M, points: number[][], faces: number[]): M => {
+      const g = new BufferGeometry();
+      g.setAttribute('position', new BufferAttribute(Float32Array.from(points.flat()), 3));
+      g.setIndex(faces);
+      return new Type(g);
+    };
+    /** Trois sommets d'un sujet à la hauteur `z`, sous le triangle effilé de l'éventail. */
+    const sous = (z: number) => Float32Array.from([[-0.01, -0.097, z], [0.01, -0.097, z], [0, -0.094, z]].flat());
+    const sujet = mesh(Mesh, [[0, 0, 0], [0, 0, 0], [0, 0, 0]], [0, 1, 2]);
+    /** Un carré de 0,2 m en éventail autour du sommet 4, à la hauteur 0,02 : posé en (0, `y`), il effile le triangle (0, 1, 4) du bord y = −0,1. */
+    const eventail = (y: number) => Float32Array.from([[-0.1, -0.1, 0.02], [0.1, -0.1, 0.02], [0.1, 0.1, 0.02], [-0.1, 0.1, 0.02], [0, y, 0.02]].flat());
+
+    it('surface lisse : un triangle effilé qui se retourne seul en pose ne fait rien passer devant lui ; ce qui passe devant la surface reste un écart', () => {
+      const nappe = mesh(SkinnedMesh, [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]], [0, 1, 4, 1, 2, 4, 2, 3, 4, 3, 0, 4]);
+      const liaisons = lierSous(sujet, nappe, new Map<Mesh, Float32Array>([[sujet, sous(0)], [nappe, eventail(-0.09)]]));
+      expect(liaisons.map((l) => [...l.lisses])).toEqual([[1, 1, 1]]);
+      expect(mesurerTraversee(liaisons, echantillon(new Map<Mesh, Float32Array>([[sujet, sous(0)], [nappe, eventail(-0.11)]])))).toEqual([]);
+      const devant = mesurerTraversee(liaisons, echantillon(new Map<Mesh, Float32Array>([[sujet, sous(0.04)], [nappe, eventail(-0.11)]])));
+      expect(devant.map((m) => [m.sommets, m.pire])).toEqual([[3, expect.closeTo(-0.02, 6)]]);
+    });
+
+    it('arête vive : sous la pointe d’une pyramide, la normale du triangle lié fait foi', () => {
+      /** Quatre faces à 75° de l'horizontale autour de la pointe (0, 0, 0,2). */
+      const pyramide = Float32Array.from([[-0.05, -0.05, 0.0134], [0.05, -0.05, 0.0134], [0.05, 0.05, 0.0134], [-0.05, 0.05, 0.0134], [0, 0, 0.2]].flat());
+      const pointe = mesh(SkinnedMesh, [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]], [0, 1, 4, 1, 2, 4, 2, 3, 4, 3, 0, 4]);
+      /** Trois sommets du sujet à la hauteur `z`, autour de l'axe de la pyramide. */
+      const dans = (z: number) => Float32Array.from([[-0.002, -0.001, z], [0.002, -0.001, z], [0, 0.002, z]].flat());
+      const liaisons = lierSous(sujet, pointe, new Map<Mesh, Float32Array>([[sujet, dans(0.18)], [pointe, pyramide]]));
+      expect(liaisons.map((l) => [...l.lisses])).toEqual([[0, 0, 0]]);
+      expect(mesurerTraversee(liaisons, echantillon(new Map<Mesh, Float32Array>([[sujet, dans(0.18)], [pointe, pyramide]])))).toEqual([]);
+      expect(mesurerTraversee(liaisons, echantillon(new Map<Mesh, Float32Array>([[sujet, dans(0.26)], [pointe, pyramide]]))).map((m) => m.sommets)).toEqual([3]);
+    });
+  });
+
   it('ROUGE : au repos, une couche qui traverse sa couverture la perce des bouts d’arête sortis au-delà de la tolérance ; VERT : dans la tolérance, ou devant elle sans la traverser', () => {
     const auRepos = (p: Float32Array) => ({ positions: new Map([[peau, p], [tissu, carre(0.01)]]) });
     const perce = (p: Float32Array) => lier([peau], [element(1, [tissu], auRepos(p))], auRepos(p)).percements;

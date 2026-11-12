@@ -443,7 +443,8 @@ rejoue par `--silhouettes nom=poids`, et `--clips` borne un essai aux clips faut
 Ne pas valider une matrice entière avec le seul cas neutre.
 La porte mesure la tenue telle que le montage la pose : elle résout d'abord la pile des couches (section 3), et son
 rapport en donne le bilan (`mesures.pile` : points retenus, suiveurs, reculés, triangles masqués).
-La porte nomme trois écarts de couches. `couche-traversee` : en clip, une couche passe devant celle qui la couvre.
+La porte nomme trois écarts de couches. `couche-traversee` : en clip, une couche passe devant la surface de celle qui
+la couvre ; un triangle de la couverture qui se couche seul en pose ne fait rien passer devant lui.
 `couche-percee-au-repos` : au repos neutre, une arête d'une couche traverse l'endroit de celle qui la couvre et en
 sort devant. `membre-dans-un-vetement` : en clip, un membre du corps passe à travers un vêtement d'une zone ni la sienne ni voisine, comme la main à travers la
 manche de l'autre bras. Le tissu pincé n'en est pas : là où le vêtement repose sur le corps d'une autre zone,
