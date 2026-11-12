@@ -69,8 +69,10 @@ function litteral(noeud, ou) {
 
 /** La PROVENANCE de chaque champ de la projection (`projeter`, src/hote/projection.ts) : le lecteur du noyau qui le rend. */
 const PROVENANCE = [
-  ['combat.round, combat.tour, combat.fin', 'battle.round, battle.turn, battle.over'],
-  ['combat.actif', 'activeCombatant'],
+  ['combat.round, combat.fin', 'battle.round, battle.over'],
+  ['combat.tour, combat.tours', 'battle.turn, ordreEnVue (battle.order réduit aux combattants en vue, porteurEnVue)'],
+  ['combat.actif', 'activeCombatant, s’il est en vue (combattantEnVue)'],
+  ['combat.voisins, carte', 'les combattants en vue (combattantEnVue)'],
   ['combat.actif.mouvement', 'mouvementDuTour (le restant et le total que la jauge de la console montre)'],
   ['combat.actif.action', 'battle.acted'],
   ['combat.voisins, carte : distance', 'combatDistance (empreinte et relief, comme le ciblage)'],
@@ -81,7 +83,7 @@ const PROVENANCE = [
   ['jets', 'jetsEnVue : les lignes de jet de la fenêtre (Test, table, dé), jetées ou à jeter, la gagnante et le DR net d’un Test opposé (netSL, le badge « DR net » du web)'],
   ['combat.apercu', 'battle.preview (l’aperçu du premier clic)'],
   ['cases', 'porteesDuTour (displayedReach, computeRunReach, intentReach : la surbrillance du champ)'],
-  ['exploration.entites, carte hors combat', 'Scene.entities, hors des navires posés par leurs ponts (estPoseParSesPonts)'],
+  ['exploration.entites, carte hors combat', 'Scene.entities que le groupe connaît (entiteConnue), hors des navires posés par leurs ponts (estPoseParSesPonts)'],
   ['combat.barre', 'etatDeLaBarre (le verdict que lit la console)'],
   ['combat.offres', 'offresDeLActif (l’énumération que lit la console)'],
   ['combat.cibles', 'validTargets'],
@@ -90,6 +92,7 @@ const PROVENANCE = [
   ['exploration.etage, exploration.cap', 'partyPos.z, capDuGroupe'],
   ['jouer : levé', 'Jeu.localIntent, battle.preview, endTurnArmed, lus avant et après chaque geste'],
   ['erreur permission', 'quiTientLaMain, siegeDe'],
+  ['fiche', 'refusée hors de la vue du groupe (porteurEnVue)'],
   ['fiche : armure', 'effectiveArmourAt, par LOCALISATIONS_DE_COUP'],
   ['refus', 'Jeu.refus (texte et nonce)'],
 ]

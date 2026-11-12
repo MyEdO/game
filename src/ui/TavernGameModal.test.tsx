@@ -93,7 +93,7 @@ describe('Taverne — l’habitué joue une FICHE : un profil standard choisi (L
     expect(doc.body.textContent).toContain(`${elfe.label} : valeur de jeu ${tavernGameValue(elfe, jeu)} (de sa fiche).`);
     act(() => { bouton(doc, 'Jouer')!.click(); });
     const seq = activeSequence<{ opponentName: string; opponentValue: number }>(g)!;
-    expect(seq.payload).toMatchObject({ opponentName: elfe.label, opponentValue: tavernGameValue(elfe, jeu) });
+    expect(seq.chargeUtile).toMatchObject({ opponentName: elfe.label, opponentValue: tavernGameValue(elfe, jeu) });
   });
 });
 
@@ -136,7 +136,7 @@ describe('Taverne — la mise en sous de cuivre et l’effectif de table : l’�
     expect(jouer.getAttribute('aria-disabled')).toBeNull();
     act(() => { jouer.click(); });
     const seq = activeSequence<{ stakeBrass: number; seats: unknown[] }>(g);
-    expect(seq?.payload.stakeBrass).toBe(11);
-    expect(seq?.payload.seats).toHaveLength(12);
+    expect(seq?.chargeUtile.stakeBrass).toBe(11);
+    expect(seq?.chargeUtile.seats).toHaveLength(12);
   });
 });

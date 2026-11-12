@@ -4,7 +4,7 @@
  * `keybindings`/le hook les consomment via `effectiveCodes`). `id de raccourci → event.code`.
  */
 import { lireDictionnaire } from '../lib/stockage';
-import { stockageWeb } from '../web/stockageWeb';
+import { stockageWeb } from '../hote/stockageWeb';
 
 const OVERRIDES_KEY = 'wfrp4.keys';
 

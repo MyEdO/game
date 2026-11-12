@@ -3,7 +3,7 @@ import { useGame } from '../state/store';
 import { stockageDesSauvegardes } from '../state/saves';
 import {
   listerLesSauvegardes, lireLaSauvegarde, retirerLaSauvegarde, prendreLesRetraitsDeSauvegardes,
-  SAVE_SLOTS, AUTO_SLOT, type SaveSlot, type AnySlot, type RetraitDeSave,
+  SAVE_SLOTS, AUTO_SLOT, MESSAGE_DU_RETRAIT, nomDEmplacement, type SaveSlot, type AnySlot, type RetraitDeSave,
 } from '../hote/sauvegardes';
 import { exporterLaSauvegarde, metaDeSave, type ObsoleteCause, type SaveMeta } from '../noyau/persistance/save';
 import { downloadText } from '../web/fileIo';
@@ -24,18 +24,6 @@ const autoMetaOf = (): SaveMeta | null => {
   const s = lireLaSauvegarde(stockageDesSauvegardes(), AUTO_SLOT);
   return s ? metaDeSave(s) : null;
 };
-
-/** Message du joueur par CAUSE de rejet (`ObsoleteCause`) : l'autre format et le contenu illisible ne
- *  se disent pas d'un même mot. */
-const OBSOLETE_MSG: Record<ObsoleteCause, MsgKey> = {
-  autreFormat: 'saveload.error.autreFormat',
-  illisible: 'saveload.error.unreadable',
-  sceneInvalide: 'saveload.error.sceneInvalide',
-};
-
-/** Le nom, dans un message, d'un emplacement de sauvegarde. */
-const nomDEmplacement = (slot: AnySlot): string =>
-  (slot === AUTO_SLOT ? t('saveload.slot.auto.nom') : t('saveload.slot.label', { n: slot }));
 
 /** Le message d'un import refusé, par cause. */
 const IMPORT_MSG: Record<ObsoleteCause, MsgKey> = {
@@ -137,7 +125,7 @@ export function SaveLoadModal({ mode, onClose }: { mode: 'save' | 'load'; onClos
       {(retraits.length > 0 || error) && (
         <Stack>
           {retraits.map((r) => (
-            <ChipDeRefus key={String(r.slot)} refus={{ message: t(OBSOLETE_MSG[r.cause], { emplacement: nomDEmplacement(r.slot) }) }} />
+            <ChipDeRefus key={String(r.slot)} refus={{ message: t(MESSAGE_DU_RETRAIT[r.cause], { emplacement: nomDEmplacement(r.slot) }) }} />
           ))}
           {error && <ChipDeRefus refus={{ message: error }} />}
         </Stack>

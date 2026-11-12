@@ -97,10 +97,10 @@ qui le rend inutile.
 | `data` | base app-owned et son chargement | `engine`, feuilles | oui |
 | `noyau` | orchestration pure : (état, intention) → (état, journal, événements) ; modèle du monde (`noyau/monde/`) ; outils d'auteur purs que lisent le contenu et l'éditeur ; modèles-vues que tout hôte dessine | `engine`, `data`, feuilles | oui |
 | `scenes` | contenu de campagne | `noyau`, `data`, `engine`, feuilles | oui |
-| `hote` | module commun aux hôtes du noyau | la porte du noyau, `scenes`, feuilles | oui |
+| `hote` | module commun aux hôtes du noyau, et leurs services d'hôte : entropie, stockage web | la porte du noyau, `scenes`, feuilles | oui |
 | `hoteTexte`, `hotes` (`hotes/`) | hôte texte (MCP), hôte Godot | les droits de `hote`, et `hote` | oui |
-| `web` | services d'exécution du navigateur : minuteries, IndexedDB, stockage local, fichiers | feuilles | non |
-| `net`, `audio` | services de l'hôte web | feuilles (`net` : et `hote` en type ; `audio` : et `web`, `data`) | non |
+| `web` | services d'exécution du navigateur : minuteries, IndexedDB, fichiers | feuilles | non |
+| `net`, `audio` | services de l'hôte web | feuilles (`net` : et `hote` en type ; `audio` : et `hote`, `data`) | non |
 | `state` | adaptateur du store web : pose le résultat du noyau, sélectionne pour l'affichage, persiste | tout ce qui précède hors `hoteTexte` et `hotes` (`hote` compris) ; `ui` en type seul | non |
 | `ui`, `gameIso` | présentation de l'hôte web, deux zones qui s'importent l'une l'autre | tout ce qui précède hors `hoteTexte` et `hotes` (`hote` : `ui` seule) | non |
 | racine de `src/` | entrée de l'hôte web (`main.tsx`) et tests transverses | tout | non |
@@ -322,9 +322,9 @@ src/lib/                     Couche NEUTRE, feuille de `COUCHES`, en amont de to
                             posé en `localStorage`).
                             `base64.ts` : le base64 des octets dans les deux sens (`enBase64`, `depuisBase64`),
                             seul site de `btoa` et `atob` (`murs/base64`, #3948).
-src/web/                     Services d'exécution du NAVIGATEUR (`window`, `document`, `localStorage`,
-                            `indexedDB`, `setTimeout`, `navigator`), feuille de `COUCHES` : `state`,
-                            `audio` et la présentation l'importent, ni `noyau` ni `data`.
+src/web/                     Services d'exécution du NAVIGATEUR (`window`, `document`,
+                            `indexedDB`, `setTimeout`, `navigator`), feuille de `COUCHES` : `state`
+                            et la présentation l'importent, ni `noyau` ni `data`.
                             `indexedDb.ts` : bases IndexedDB DÉCLARÉES `{ nom, magasins: { [nom]:
                             { keyPath } } }`, ouvertes SANS version (#2404) : une base neuve reçoit ses
                             magasins de la déclaration, une base existante qui s'en écarte (magasin
@@ -337,18 +337,6 @@ src/web/                     Services d'exécution du NAVIGATEUR (`window`, `doc
                             `scheduleFlowTimer`, `clearTrackedTimer`, état d'un timer `timerEnVol`), vidé au teardown de test
                             (`clearTrackedTimers`, #405) ; seul lieu de `src/state`, `src/noyau`, `src/lib` et `src/web` où
                             `setTimeout`/`setInterval` s'écrivent (mur `murs/minuteries`, #415).
-                            `stockageWeb.ts` : accès protégé au `localStorage` et au `sessionStorage`
-                            (`stockageWeb`) ; un dictionnaire persisté s'y relit par `lireDictionnaire` (`lib/stockage.ts`),
-                            chaque VALEUR validée par son lecteur contre son registre (#2404). Les clés
-                            de stockage ne portent aucun numéro de version (`wfrp4.prefs`, pas
-                            `wfrp4.prefs.v1`).
-                            `entropie.ts` : le seul site de `Math.random` de `src/` (mur
-                            `murs/entropie`, #2817) — entier de présentation (`entierDEntropie`),
-                            graine (`graineDEntropie` : RNG de bataille posé par `seedBattleRng` au
-                            branchement du store, brouillon de création, générateur de nom), id
-                            d'entité unique d'un projet à l'autre (`idDEntropie` : scène, carte,
-                            projet, lieu, trajet, héros de roster — `emptyScene(id)`/`emptyWorldMap(id)` le reçoivent
-                            de l'hôte) ; `src/engine` et `src/noyau` n'en tirent jamais.
                             `fileIo.ts` : téléchargement d'un texte (`downloadText`), nom de fichier
                             sûr (`fileSlug`).
                             `fsPersist.ts` : persistance des datasets édités au Codex (File System
@@ -631,7 +619,18 @@ src/hote/                   COMMUN AUX HÔTES du noyau (#2928) : ce qu'un hôte 
                             `protocol.ts`, les messages et leur validation, `session.ts`, `HostSession`/`GuestSession`
                             hôte-autoritaires, dont le paquet de campagne : envoyé au join, rattrapé à la diffusion
                             qui suit son chargement, ses scènes enregistrées chez l'invité ; `transport.ts`, le port
-                            `Transport`, et sa paire en mémoire de test `transport.testkit.ts`). `ouvrirLaPartie` reçoit le `persisterLeHeros` de l'hôte. Entrée d'un hôte
+                            `Transport`, et sa paire en mémoire de test `transport.testkit.ts`),
+                            `stockageWeb.ts` (accès protégé au `localStorage` et au `sessionStorage`, `stockageWeb`,
+                            pour l'hôte web comme pour la page de l'hôte Godot ; un dictionnaire persisté s'y relit par
+                            `lireDictionnaire` de `lib/stockage.ts`, chaque VALEUR validée par son lecteur contre son
+                            registre, #2404 ; les clés de stockage ne portent aucun numéro de version : `wfrp4.prefs`,
+                            pas `wfrp4.prefs.v1`), `entropie.ts` (le seul site de `Math.random` des zones, mur
+                            `murs/entropie`, #2817 : entier de présentation `entierDEntropie`, graine
+                            `graineDEntropie` — RNG de bataille posé par `seedBattleRng` au branchement du store,
+                            dés d'une partie que le pont Godot ouvre ou charge, brouillon de création, générateur de
+                            nom —, id d'entité unique d'un projet à l'autre `idDEntropie` : scène, carte, projet, lieu,
+                            trajet, héros de roster, que `emptyScene(id)`/`emptyWorldMap(id)` reçoivent de l'hôte ;
+                            `src/engine` et `src/noyau` n'en tirent jamais). `ouvrirLaPartie` reçoit le `persisterLeHeros` de l'hôte. Entrée d'un hôte
                             servi ou bâti par
                             Vite : `scripts/entree-d-hote.mjs`.
 src/hoteTexte/              HÔTE TEXTE du noyau (#2898) : une partie pilotable par un serveur MCP, sans store
@@ -642,8 +641,9 @@ src/hoteTexte/              HÔTE TEXTE du noyau (#2898) : une partie pilotable 
                             outils et leur schéma), `serveur.ts` (ce qu'ils font) ; servi par
                             `scripts/hote-texte.mjs` (SDK MCP, stdio), déclaré par `.mcp.json`.
 hotes/godot/                HÔTE GODOT du noyau (#2928, zone `hotes`) : le pont JSON que Godot appelle, dans la page de
-                            l'export web ou, hors d'une page, par un processus Node (`vivant.mjs`, #3945 : `npm run
-                            godot:ouvrir` ouvre l'éditeur Godot sur le projet, qui y joue sur le noyau vivant).
+                            l'export web ou, hors d'une page, par un processus Node (`processus.mjs` : `vivant.mjs`
+                            sous l'éditeur, #3945, que `npm run godot:ouvrir` ouvre sur le projet ; `embarque.mjs`,
+                            empaqueté à côté de l'exécutable de bureau, #3951).
                             `pont/pont.ts` (une méthode = une chaîne JSON en entrée, une en sortie, jamais une levée ;
                             gestes par le module commun, vue faite des lecteurs du noyau, jetons tenus par numéro ; la
                             porte `appelerEnOctets` des transports de Godot passe les tableaux de `morceaux` en un
@@ -668,7 +668,14 @@ hotes/godot/                HÔTE GODOT du noyau (#2928, zone `hotes`) : le pont
                             l'export Web et, à côté, chaque modèle en scène que l'éditeur fabrique de son GLB
                             (`projet/outils/fabrique_de_modeles.gd`, textures compressées avec mipmaps, #3946), que
                             `recette.mjs` joue au navigateur : un tour complet, l'atelier, ou les vues
-                            nommées d'une scène (`--parcours cadrages`, `cadrages/`).
+                            nommées d'une scène (`--parcours cadrages`, `cadrages/`). `--bureau --sortie <dossier>`
+                            (`npm run godot:bureau`, #3951) produit l'exécutable de bureau de la plateforme, son noyau
+                            embarqué (`noyau/` : Node, le bundle, le point d'entrée) et ses modèles en scène, puis lui
+                            fait jouer une partie ; le workflow `bureau.yml`, lancé à la main, le fait sous Linux et
+                            sous Windows et en garde le dossier en artefact. Deux rendus dessinent les mêmes scènes : Forward+ hors d'une page,
+                            le rendu de compatibilité dans la page ou en repli ; `--rendus` (`npm run godot:rendus`,
+                            étape de la CI) joue en rendu réel, sous chacun des deux, les recettes déclarant
+                            `const RECETTE_RENDUE := true`.
   etalons/                  les planches (`planches/<nom>.json`, un état de partie enregistré depuis le pont par
                             `etalons.mjs --enregistrer`, que le jeu montre à `?planche=<nom>`), l'étalon de chacune
                             (`<nom>.png`, sa capture) et `valides.json` (l'empreinte des étalons validés). `npm run

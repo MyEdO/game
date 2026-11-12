@@ -1,12 +1,11 @@
 /**
  * Schéma de `classes.json` — dérivé du contenu RÉEL et de `ClassData`
- * (`src/data/index.ts`). `trappings` = `TrappingRef[]` (id catalogue + quantité, ou texte
- * flavor hors catalogue) — MÊME forme que `careerLevels.trappings`/`species`, PROMUE dans `grammaire/reference.ts`.
+ * (`src/data/index.ts`). `trappings` : `dotationSansTexteSchema` (`grammaire/reference.ts`). #4053
  * L'`id` est le slug du libellé — cible de `CareerData.class`.
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { trappingRefSchema } from '../grammaire/reference';
+import { dotationSansTexteSchema } from '../grammaire/reference';
 import { refs } from '../grammaire/ref';
 import { DECLARABLE_PAR_UN_PORTEUR } from '../grammaire/sousListes';
 
@@ -21,7 +20,7 @@ const doc = document(
      *  Absent = la Classe n'ouvre aucun Groupe d'appartenance. */
     grantGroups: refs('groupe', { sousListe: DECLARABLE_PAR_UN_PORTEUR }).optional(),
     /** Possessions de départ. */
-    trappings: z.array(trappingRefSchema),
+    trappings: z.array(dotationSansTexteSchema),
   },
   {
     grantGroups: { label: 'Groupes accordés', hint: 'Groupes d’appartenance accordés à tout titulaire d’une carrière de cette Classe' },

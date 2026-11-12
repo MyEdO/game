@@ -197,6 +197,7 @@ const champs = {
     }),
     entretienCrewTestDR: z.number(),
     constructeurLocal: z.number().int().min(1),
+    joursDePose: tirageSchema,
     maison: maisonSchema,
   }), {
     portCostGoldPerWound: { label: 'Coût au port par Blessure (co)' },
@@ -208,6 +209,7 @@ const champs = {
     temporaire: { label: 'Temporaire' },
     entretienCrewTestDR: { label: 'DR du Test d’entretien de l’équipage' },
     constructeurLocal: { label: 'Métier (Constructeur de navires) du constructeur local' },
+    joursDePose: { label: 'Durée de pose d’une Amélioration (jours)' },
     maison: { label: 'Arbitrage maison' },
   }),
 };

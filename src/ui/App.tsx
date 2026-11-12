@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect } from 'react';
 import { useGame } from '../state/store';
 import { chargerLesReglesMaisonWeb } from '../state/reglesMaison';
 import { chargerLesPreferences } from '../hote/preferences';
-import { stockageWeb } from '../web/stockageWeb';
+import { stockageWeb } from '../hote/stockageWeb';
 import { MainMenu } from './MainMenu';
 import { PartyScreen } from './PartyScreen';
 import { CharacterCreator } from './creator/CharacterCreator';

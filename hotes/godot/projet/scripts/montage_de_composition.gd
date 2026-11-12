@@ -32,8 +32,10 @@ const MAILLAGES := &"maillages_de_pile"
 ## Le rang de la couche `peau` dans `couches` de `modeles` (`COUCHES`, `asset/element.ts`) : ses éléments montés qui
 ## couvrent une zone sont de la peau de la tenue (`_empiler`, #3842).
 const RANG_DE_LA_PEAU := 0
-## Le calque d'une pièce dessinée seule ; une pièce fondue (`refondre`) n'est sur aucun.
-const CALQUE := 1
+## Le calque des corps, la troisième couche de rendu (`VisualInstance3D.layers`) : celui d'une pièce dessinée seule et
+## de la fusion ; une pièce fondue (`refondre`) n'est sur aucun. La lampe d'une source portée l'exclut de son ombre
+## (`Foyer`).
+const CALQUE := 4
 ## Les poids d'un sommet d'une pièce rigide fondue : tout sur son os.
 const POIDS_RIGIDE := [1.0, 0.0, 0.0, 0.0]
 ## Les canaux libres d'un mesh (`Mesh.ARRAY_CUSTOM0` à `3`), qu'aucun `BaseMaterial3D` ne lit : une pièce fondue les
@@ -1351,6 +1353,7 @@ func refondre() -> void:
 	fusion.name = "Fusion"
 	fusion.mesh = mesh
 	fusion.skin = skin
+	fusion.layers = CALQUE
 	squelette.add_child(fusion)
 	fusion.skeleton = fusion.get_path_to(squelette)
 

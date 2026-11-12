@@ -98,7 +98,7 @@ describe('table de taverne — `refusDeJouer` (NADJ 16 l.17)', () => {
     const partie = alZahr({ stakeBrass: 11, tablePlayers: 3 });
     expect(refusDeJouer(get(), a.id, partie)).toBeNull();
     get().jouerALaTaverne(a.id, partie);
-    expect((get().sequence!.payload as { stakeBrass: number }).stakeBrass).toBe(11);
+    expect((get().sequence!.chargeUtile as { stakeBrass: number }).stakeBrass).toBe(11);
   });
 
   it('table de 12 joueurs : acceptée, douze sièges', () => {
@@ -106,7 +106,7 @@ describe('table de taverne — `refusDeJouer` (NADJ 16 l.17)', () => {
     setBourseBrass(a, 11, idsDeTest);
     banc.setState({ party: [a] });
     get().jouerALaTaverne(a.id, alZahr({ stakeBrass: 1, tablePlayers: 12 }));
-    expect((get().sequence!.payload as { seats: unknown[] }).seats).toHaveLength(12);
+    expect((get().sequence!.chargeUtile as { seats: unknown[] }).seats).toHaveLength(12);
   });
 
   it('sans mise : le verdict et le geste disent le même texte', () => {
