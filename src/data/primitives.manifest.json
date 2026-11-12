@@ -1637,6 +1637,15 @@
     "verrou": "garde de partage après chaque test (`src/test-setup.ts`, #2097)"
   },
   {
+    "id": "memoByRef",
+    "type": "primitives.manifest",
+    "label": "memoByRef/memoByRefDeps/memoByDeps",
+    "fichier": "src/noyau/monde/sceneMemo.ts",
+    "concept": "mémoïsation par IDENTITÉ, sans invalidation manuelle : `memoByRef` par référence de la clé (gelée en développement), `memoByDeps` d'une variante par jeu de dépendances comparées par `===` position par position, dont le constructeur reçoit la variante précédente, `memoByRefDeps` un `memoByDeps` par clé",
+    "perimetre": "tout cache dérivé de la `Scene` ou d'un objet de donnée (volume du monde, toits, arêtes, opacité, cuisson du rendu web), et tout calcul qui reprend sa variante précédente",
+    "verrou": "src/noyau/monde/sceneMemo.test.ts ; mémo nourri d'un corpus refusé (`MEMOS`, `scripts/guards/lib/analyseRetenue.mjs`, `src/analyse-retention-guard.test.ts`)"
+  },
+  {
     "id": "echapperRegex",
     "type": "primitives.manifest",
     "label": "echapperRegex",

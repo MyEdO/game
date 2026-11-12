@@ -381,10 +381,12 @@ const manifesteDe = ({ metresParCase, hauteurs, morceaux }: VolumeDuMonde): Mani
 /** La clé et l'empreinte de chacun de `contenus`. */
 const empreintesDe = (contenus: readonly EmpreinteDuMonde[]): EmpreinteDuMonde[] => contenus.map(({ cle, empreinte }) => ({ cle, empreinte }));
 
-/** Ceux de `contenus` dont la clé est dans `cles`, dans l'ordre de `contenus`. */
-const parCles = <T extends EmpreinteDuMonde>(contenus: readonly T[], cles: readonly string[]): T[] => {
+/** Ceux de `contenus()` dont la clé est dans `cles`, dans l'ordre de `contenus()` ; `contenus` n'est pas appelé si
+ *  `cles` est vide. */
+const parCles = <T extends EmpreinteDuMonde>(contenus: () => readonly T[], cles: readonly string[]): T[] => {
+  if (!cles.length) return [];
   const voulues = new Set(cles);
-  return contenus.filter(({ cle }) => voulues.has(cle));
+  return contenus().filter(({ cle }) => voulues.has(cle));
 };
 
 /**
@@ -785,8 +787,8 @@ export function creerPont() {
      * toit et des couronnes crénelées
      *
      * @returns `{ volume, toits, couronnes }` (`MorceauxDuPont`) : la géométrie de chaque clé demandée, dans l'ordre du
-     * manifeste, une clé absente de la scène omise ; refusé sans scène de la partie (`partie`) ou sans carte ouverte
-     * (`edition`).
+     * manifeste, une clé absente de la scène omise ; une liste de clés vide rend un tableau vide sans rien calculer ;
+     * refusé sans scène de la partie (`partie`) ou sans carte ouverte (`edition`).
      * Par `appelerEnOctets`, l'en-tête d'`enOctets` : chaque tableau en `[debut, fin]` dans `octets()`.
      */
     morceaux(json): MorceauxDuPont {
@@ -801,9 +803,9 @@ export function creerPont() {
       }
       valider(scene, 'morceaux : aucune scène');
       return {
-        volume: parCles(volumeDuMonde(scene!).morceaux, e.volume as string[]),
-        toits: parCles(toitsDuMonde(scene!), e.toits as string[]),
-        couronnes: parCles(couronnesDuMonde(scene!), e.couronnes as string[]),
+        volume: parCles(() => volumeDuMonde(scene!).morceaux, e.volume as string[]),
+        toits: parCles(() => toitsDuMonde(scene!), e.toits as string[]),
+        couronnes: parCles(() => couronnesDuMonde(scene!), e.couronnes as string[]),
       };
     },
     /**
