@@ -1,0 +1,63 @@
+[gd_scene format=3]
+
+[ext_resource type="QuadMesh" path="res://effets/particule_mate.tres" id="1_g3273"]
+
+[sub_resource type="Gradient" id="Gradient_o41tv"]
+colors = PackedColorArray(0.6039216, 0.5411765, 0.4392157, 0.6, 0.6039216, 0.5411765, 0.4392157, 0)
+
+[sub_resource type="Animation" id="Animation_lnfsu"]
+length = 1.1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Gerbe1:emitting")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [true]
+}
+tracks/1/type = "method"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath(".")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(1.1),
+"transitions": PackedFloat32Array(1),
+"values": [{
+"args": [],
+"method": &"queue_free"
+}]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_ds0wt"]
+_data = {
+&"eclat": SubResource("Animation_lnfsu")
+}
+
+[node name="poussiere" type="Node3D" unique_id=1620148613]
+
+[node name="Gerbe1" type="CPUParticles3D" parent="." unique_id=1106049211]
+cast_shadow = 0
+amount = 16
+lifetime = 0.9
+one_shot = true
+explosiveness = 1.0
+local_coords = true
+mesh = ExtResource("1_g3273")
+direction = Vector3(0, 1, 0)
+spread = 70.0
+gravity = Vector3(0, -1, 0)
+initial_velocity_min = 0.5
+initial_velocity_max = 1.5
+scale_amount_min = 0.6
+scale_amount_max = 1.1
+color_ramp = SubResource("Gradient_o41tv")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=457961996]
+libraries/ = SubResource("AnimationLibrary_ds0wt")
+autoplay = &"eclat"
