@@ -1615,7 +1615,7 @@ const CODEX_SPECS = {
       sub: libelleDeValeur(attackKindSchema, m.kind), desc: traitProjectingManeuver(m.id)?.desc,
       meta: facts(
         fact(tr('codex.fiche.activation'), valeurFR('maneuvers.json', 'activation', m.activation)),
-        fact(tr('codex.fiche.coutAv'), m.advantageCost),
+        fact(tr('codex.fiche.coutAv'), m.coutEnAvantage),
         fact(tr('codex.fiche.portee'), m.range ? formatManeuverMeasure(m.range) : null),
         fact(tr('codex.fiche.cible'), valeurFR('maneuvers.json', 'targeting', m.targeting)),
       ),

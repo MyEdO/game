@@ -1258,7 +1258,7 @@
         "desc": "Vaisseau fantôme (littéralement). Votre vigie repère un vaisseau d'un vert fluorescent à l'horizon. C'est un mauvais présage. Vous pouvez soit changer de cap et réduire votre Mouvement de 2 pour un jour de voyage, soit continuer et perdre 2d10 Moral.",
         "consequence": {
           "kind": "choix",
-          "prompt": "Changer de cap",
+          "invite": "Changer de cap",
           "oui": {
             "kind": "effet",
             "effet": {
@@ -1342,7 +1342,7 @@
         "desc": "Vaisseau de pestiférés. Vous repérez une cogue apparemment abandonnée dérivant sur les flots. Si vous l'abordez, elle contient du butin composé de 2d10 caisses d'une cargaison choisie au hasard, d'1d100 jours de rations de biscuits de mer, de 2d10 tonneaux d'eau et de 3d10 CO. Quelques membres d'équipage sont également encore présents à bord, mais ils ne sont qu'à moitié conscients, car ils subissent un stade avancé de la peste noire (voir page 187 de WFJDR). Quiconque monte à bord du bateau est mordu par des puces et doit effectuer un Test de Résistance Accessible (+20) pour éviter de contracter la maladie.",
         "consequence": {
           "kind": "choix",
-          "prompt": "Aborder la cogue",
+          "invite": "Aborder la cogue",
           "oui": {
             "kind": "sequence",
             "etapes": [
@@ -1654,7 +1654,7 @@
         "desc": "Message dans une bouteille. Quelqu'un aperçoit une bouteille en verre ballottée par la houle près du navire. Elle contient un message d'un marin coincé sur une île déserte. S'il est trouvé et secouru, il se montre reconnaissant envers ses sauveurs et, une fois qu'il a récupéré physiquement, il jure de servir comme fidèle membre de l'équipage pendant un an sans paie.",
         "consequence": {
           "kind": "choix",
-          "prompt": "Secourir le naufragé",
+          "invite": "Secourir le naufragé",
           "oui": {
             "kind": "effet",
             "effet": {
@@ -1683,7 +1683,7 @@
         "desc": "Autres voyageurs. Vous repérez un autre navire à l'horizon. Il signale qu'il veut s'approcher. À vous de choisir si vous le laissez faire ou non. Le bateau pourrait vous poser des problèmes, mais les opportunités qu'il représente devraient l'emporter sur la menace potentielle. Au strict minimum, il est prêt à faire du commerce, partager les dernières rumeurs et vous prévenir des dangers plus loin sur la mer.",
         "consequence": {
           "kind": "choix",
-          "prompt": "Laisser le navire approcher",
+          "invite": "Laisser le navire approcher",
           "oui": {
             "kind": "effet",
             "effet": {
@@ -1737,7 +1737,7 @@
         "desc": "Débris marins. Vous apercevez des caisses qui flottent dans l'eau. Si vous les repêchez, elles contiennent 1d100 points d'Encombrement d'une cargaison choisie au hasard.",
         "consequence": {
           "kind": "choix",
-          "prompt": "Repêcher les caisses",
+          "invite": "Repêcher les caisses",
           "oui": {
             "kind": "effet",
             "effet": {
@@ -1820,7 +1820,7 @@
         "desc": "Canot de sauvetage. Vous voyez une petite embarcation flottant sur l'océan. Si vous la récupérez, lancez 1d10 pour déterminer ce qu'elle contient (1 à 3 : deux Marins ; 4 à 6 : un Marin ; 7 : un Officier ; 8 : un Nautonier ; 9 : un Médecin de bord ; 10 : un chat de navire). Ces rescapés venant d'un vaisseau qui a sombré seront très reconnaissants s'ils sont sauvés. Ils serviront parmi l'équipage gratuitement jusqu'à ce que le bateau arrive au prochain port, après quoi ils seront prêts à rejoindre l'équipage pour une paie normale (ou en échange d'un petit poisson et d'une soucoupe d'eau douce une fois par jour dans le cas du chat).",
         "consequence": {
           "kind": "choix",
-          "prompt": "Recueillir les rescapés",
+          "invite": "Recueillir les rescapés",
           "oui": {
             "kind": "effet",
             "effet": {
@@ -1984,7 +1984,7 @@
         "desc": "Île inconnue. Vous repérez une île qui n'apparaît pas sur les cartes. Des dangers peuvent se trouver à proximité, par exemple des bancs de sable ou des créatures marines dangereuses, mais elle devrait offrir davantage en termes de récompenses que de périls. Vous pouvez puiser de l'eau douce dans ses sources et cueillir des plantes comestibles et chasser des animaux sur sa plage.",
         "consequence": {
           "kind": "choix",
-          "prompt": "Accoster sur l’île",
+          "invite": "Accoster sur l’île",
           "oui": {
             "kind": "effet",
             "effet": {
@@ -2051,7 +2051,7 @@
         "desc": "Vaisseau fantôme (figurativement). Vous apercevez un bateau qui dérive sans aucun signe de vie à bord. À vous de choisir si vous voulez monter à bord ou non. Vous y trouverez 2d100 points d'Encombrement d'une cargaison choisie au hasard.",
         "consequence": {
           "kind": "choix",
-          "prompt": "Monter à bord",
+          "invite": "Monter à bord",
           "oui": {
             "kind": "effet",
             "effet": {
@@ -2370,7 +2370,7 @@
             },
             {
               "kind": "choix",
-              "prompt": "Tenter de récupérer l’équipage enlevé",
+              "invite": "Tenter de récupérer l’équipage enlevé",
               "oui": {
                 "kind": "test",
                 "test": {
@@ -2399,7 +2399,7 @@
                   },
                   "alors": {
                     "kind": "choix",
-                    "prompt": "Payer la rançon",
+                    "invite": "Payer la rançon",
                     "oui": {
                       "kind": "sequence",
                       "etapes": [
@@ -2456,7 +2456,7 @@
                     },
                     "non": {
                       "kind": "choix",
-                      "prompt": "Les libérer en douce",
+                      "invite": "Les libérer en douce",
                       "oui": {
                         "kind": "test",
                         "test": {
@@ -2516,7 +2516,7 @@
                   },
                   "sinon": {
                     "kind": "choix",
-                    "prompt": "Les libérer en douce",
+                    "invite": "Les libérer en douce",
                     "oui": {
                       "kind": "test",
                       "test": {
@@ -2625,7 +2625,7 @@
           },
           "alors": {
             "kind": "choix",
-            "prompt": "Payer la bénédiction",
+            "invite": "Payer la bénédiction",
             "icon": "foi/trident",
             "oui": {
               "kind": "effet",
@@ -2753,7 +2753,7 @@
             },
             "alors": {
               "kind": "choix",
-              "prompt": "Verser le pot-de-vin",
+              "invite": "Verser le pot-de-vin",
               "oui": {
                 "kind": "effet",
                 "effet": {
@@ -2800,7 +2800,7 @@
                 },
                 "alors": {
                   "kind": "choix",
-                  "prompt": "Payer les droits de douane",
+                  "invite": "Payer les droits de douane",
                   "oui": {
                     "kind": "effet",
                     "effet": {
@@ -2871,7 +2871,7 @@
               },
               "alors": {
                 "kind": "choix",
-                "prompt": "Payer les droits de douane",
+                "invite": "Payer les droits de douane",
                 "oui": {
                   "kind": "effet",
                   "effet": {
@@ -2936,7 +2936,7 @@
             },
             "alors": {
               "kind": "choix",
-              "prompt": "Payer les droits de douane",
+              "invite": "Payer les droits de douane",
               "oui": {
                 "kind": "effet",
                 "effet": {
@@ -3052,7 +3052,7 @@
         "taillePortMax": 2,
         "consequence": {
           "kind": "choix",
-          "prompt": "Fouiller le port",
+          "invite": "Fouiller le port",
           "oui": {
             "kind": "effet",
             "effet": {
@@ -3298,7 +3298,7 @@
           },
           "reussite": {
             "kind": "choix",
-            "prompt": "Garder le passager à bord",
+            "invite": "Garder le passager à bord",
             "oui": {
               "kind": "effet",
               "effet": {
@@ -3583,7 +3583,7 @@
         "desc": "Offre de mission. Une personne qui dissimule son identité vous offre 200 CO pour livrer un « colis » sans l'ouvrir dans un port choisi au hasard. Le MJ détermine la description détaillée et les dimensions du colis.",
         "consequence": {
           "kind": "choix",
-          "prompt": "Accepter le colis",
+          "invite": "Accepter le colis",
           "oui": {
             "kind": "effet",
             "effet": {

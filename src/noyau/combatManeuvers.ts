@@ -129,7 +129,7 @@ export function cibleDEcartDeTaille(battle: BattleState, c: Combatant, ecart: nu
 /** PRIX d'une attaque gratuite `def` pour `c` — SOURCE UNIQUE lue par `availableAttacks` (option du héros,
  *  débitée au commit) et par l'IA (`aiCreatureFreeAttacks`). LDB 85 l.387 ; LDB 85 l.314 */
 export function freeAttackCost(battle: BattleState, c: Combatant, def: ManeuverDef): { advantage: number; movement: boolean } {
-  return maneuverPaidByMovement(c.traits, def.id) && battle.movementUsed === 0 ? { advantage: 0, movement: true } : { advantage: def.advantageCost, movement: false };
+  return maneuverPaidByMovement(c.traits, def.id) && battle.movementUsed === 0 ? { advantage: 0, movement: true } : { advantage: def.coutEnAvantage, movement: false };
 }
 
 /** PLAFOND par tour d'une attaque gratuite de créature, DÉRIVÉ de la donnée : `count` pour une attaque

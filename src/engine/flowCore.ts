@@ -594,7 +594,7 @@ export type Flow<E = EffectOp> =
   | { kind: 'effet'; effet: E }
   | { kind: 'si'; condition: Condition; alors: Flow<E>; sinon?: Flow<E> }
   | { kind: 'test'; test: FlowTest; reussite: Flow<E>; echec: Flow<E> }
-  | { kind: 'choix'; prompt: string; source?: SourceRef; adapteDe?: SourceRef; advantageCost?: number | IndiceTemplate; icon?: IconId; oui: Flow<E>; non?: Flow<E> };
+  | { kind: 'choix'; invite: string; source?: SourceRef; adapteDe?: SourceRef; coutEnAvantage?: number | IndiceTemplate; icon?: IconId; oui: Flow<E>; non?: Flow<E> };
 
 /** TEMPLATE d'instance du coût d'Avantage d'un `choix` : l'Indice de l'entité PORTEUSE (Taillade 1A/2A,
  *  `AA 08 l.87`), substitué par `withArg` (`noyau/triggeredEffects`) avant exécution. Resté tel quel, le

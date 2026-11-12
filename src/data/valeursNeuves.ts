@@ -122,6 +122,6 @@ export function blocNeuf(kind: Exclude<Flow['kind'], 'sequence' | 'effet'>): Flo
   switch (kind) {
     case 'si': return { kind: 'si', condition: { kind: 'flag', expr: '' }, alors: EMPTY_FLOW };
     case 'test': return noeudTestNeuf();
-    case 'choix': return { kind: 'choix', prompt: '', oui: EMPTY_FLOW };
+    case 'choix': return { kind: 'choix', invite: '', oui: EMPTY_FLOW };
   }
 }

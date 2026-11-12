@@ -1646,8 +1646,7 @@ export function notifySlain(get: Get, set: SetFn, c: Combatant): string[] {
   c.slainNotified = true;
   releaseSeatsOfDowned(get, set); // un corps mis hors d'action ne tient plus sa chaise
   const lines: string[] = [];
-  const battle = get().battle;
-  if (battle) emitCombatEvent('onSlain', { get, set, battle, self: c, sink: (line) => lines.push(line), triggerCtx: { rng: battleRng() } });
+  emitCombatEvent('onSlain', { get, set, battle: get().battle, self: c, sink: (line) => lines.push(line), triggerCtx: { rng: battleRng() } });
   // Ops IMPURES « à la mort » (Gardien éternel : reconstitution ; toute zone laissée en mourant) — inertes dans
   // applyOps, résolues ici (grille/initiative) comme au lancement d'un sort d'invocation/zone.
   lines.push(...resolveTriggerImpureOps(get, set, c, 'onSlain'));
@@ -2749,13 +2748,13 @@ function appliquerLaTouche(
   // d'attaque (`weapon.type`) voyage dans le contexte ; un effet peut s'y restreindre (`attackType`).
   // Dispatcher générique (noyau/triggeredEffects) : l'effet est authoré en donnée sur l'entité.
   if (res.hit && res.woundsLost) {
-    if (battle) emitCombatEvent('onWoundLoss', { get, set, battle, self: target, sink: (line) => critLog.push(line), triggerCtx: { rng: battleRng(), attackType: weapon.type, woundsDealt: res.woundsLost } });
+    emitCombatEvent('onWoundLoss', { get, set, battle, self: target, sink: (line) => critLog.push(line), triggerCtx: { rng: battleRng(), attackType: weapon.type, woundsDealt: res.woundsLost } });
     // Chanson de marin (MDG 09 l.38) : « Si le Personnage subit des Dégâts …, sa Chanson de marin prend fin. »
     if (target.singingShanty) critLog.push(...endShanty(get, target));
   }
   // Effet déclenché « à la mise hors de combat d'un adversaire » authoré (Affamé : Test de FM ou
   // festoie — perd Action + Mouvement) — dispatcher générique (noyau/triggeredEffects).
-  if (battle && res.hit && isOutOfAction(target) && !isOutOfAction(attacker)) {
+  if (res.hit && isOutOfAction(target) && !isOutOfAction(attacker)) {
     emitCombatEvent('onKill', { get, set, battle, self: attacker, sink: (line) => critLog.push(line), triggerCtx: { rng: battleRng() } });
   }
   // Effet « à la mort » du SLAIN lui-même (Démoniaque banni…) — pour TOUT chemin de mort de cette
@@ -2843,7 +2842,7 @@ function appliquerLaTouche(
   // Atouts de l'arme (Assommante, Immobilisante…) et Enchantements actifs — agrégés et appliqués par UN
   // dispatcher générique (noyau/triggeredEffects). `location` (Assommante Tête) et `woundsDealt` (Venin
   // sur PB) alimentent les Conditions Flow de gating. LDB 85 l.98, l.278 ; LDB 14 l.159
-  if (battle && toucheNonIgnoree(res)) emitCombatEvent('onHit', { get, set, battle, self: attacker, sink: (line) => log.push(ev('etat', line, target.id)), triggerCtx: { victim: target, weapon, woundsDealt: res.woundsLost, margin: res.netSL, location: res.location, attackKind: creatureAttackKind(weapon), attackType: weapon.type, rng: battleRng() } });
+  if (toucheNonIgnoree(res)) emitCombatEvent('onHit', { get, set, battle, self: attacker, sink: (line) => log.push(ev('etat', line, target.id)), triggerCtx: { victim: target, weapon, woundsDealt: res.woundsLost, margin: res.netSL, location: res.location, attackKind: creatureAttackKind(weapon), attackType: weapon.type, rng: battleRng() } });
   // Combat de masse (ADE II 08 l.139/145) : une Scène de COMBAT compte les touches des PJ sur l'ennemi
   // (−1/touche) ; no-op hors bataille de masse. Réduction PUIS résolue à la victoire (massBattleResumeCombat).
   if (res.hit) massBattleTrackHit(get, set, attacker, target);
@@ -2867,7 +2866,7 @@ function appliquerLaTouche(
   // haut dans cette résolution) → foldées dans le MÊME `log` réécrit, avant que ce `set` ne le clobbere.
   // Effet déclenché « après résolution de l'attaque » (touche OU raté) — dispatcher générique via le bus.
   // Point d'émission = fin de résolution d'attaque (LDB 14, Test de combat résolu). Inerte sans donnée.
-  if (battle) emitCombatEvent('onAttackResolved', { get, set, battle, self: attacker, sink: (line) => log.push(ev('etat', line, target.id)), triggerCtx: { victim: target, weapon, woundsDealt: res.woundsLost, margin: res.netSL, location: res.location, attackKind: creatureAttackKind(weapon), attackType: weapon.type, rng: battleRng() } });
+  emitCombatEvent('onAttackResolved', { get, set, battle, self: attacker, sink: (line) => log.push(ev('etat', line, target.id)), triggerCtx: { victim: target, weapon, woundsDealt: res.woundsLost, margin: res.netSL, location: res.location, attackKind: creatureAttackKind(weapon), attackType: weapon.type, rng: battleRng() } });
   // SEAM `onOwnTestFailed` (MSRC 16 — Crampes) : le PORTEUR qui ÉCHOUE son PROPRE Test réagit. Une passe
   // d'armes porte DEUX Tests du porteur : (a) l'ATTAQUANT rate son jet d'attaque CC/CT (`attackerDetail`) ;
   // (b) le DÉFENSEUR rate sa Parade/Esquive (`defenderDetail`, Test opposé). PAS la défense adverse d'un
@@ -3839,12 +3838,16 @@ export function poursuivreLaSerie(get: Get, set: SetFn): Applique {
   return get().serieSubie ? poursuivreLaSerie(get, set) : undefined;
 }
 
-/** Ferme la série d'attaques subies, sa sortie unique : le héros rendu au groupe par la couture de retour
- *  (`sortieDeRencontre`) et la série vidée, la défaite du groupe constatée (`checkPartyWiped`, qui purge la suite),
- *  PUIS sa suite jouée (`jouerLesClotures`). Dans cet ordre : la suite s'applique au héros rendu, que la sortie
- *  n'écrase plus, et hors de toute série, qu'elle peut rouvrir. */
+/** Ferme la série d'attaques subies, sa sortie unique : la fin de rencontre décidée sur ses combattants, le héros et
+ *  l'assaillant (`ouvrirLaFinDeRencontre`), puis le héros rendu au groupe par la couture de retour
+ *  (`sortieDeRencontre`) et la série vidée, la défaite du groupe constatée (`checkPartyWiped`, qui purge la suite et les
+ *  Tests ouverts), PUIS sa suite jouée (`jouerLesClotures`), qui n'attend pas ces Tests. Dans cet ordre : la décision
+ *  lit les marqueurs de rencontre que la sortie efface, la suite s'applique au héros rendu, que la sortie n'écrase
+ *  plus, et hors de toute série, qu'elle peut rouvrir. LDB 18 l.171 ; LDB 20 l.25, l.90 */
 export function fermerLaSerieSubie(get: Get, set: SetFn): void {
   const serie = garanti(get().serieSubie, 'serieSubie', 'série d’attaques subies');
+  const heros = garanti(get().party.find((h) => h.id === serie.cibleId), serie.cibleId, 'cible de la série d’attaques subies');
+  ouvrirLaFinDeRencontre(get, set, [heros, serie.assaillant], {});
   set((s: Jeu) => ({ party: s.party.map((h) => (h.id === serie.cibleId ? sortieDeRencontre(serie.avant, h) : h)), serieSubie: null }));
   if (checkPartyWiped(get, set)) return;
   jouerLesClotures(get, set, serie.apresSuite ?? []);
@@ -4139,9 +4142,9 @@ function applyTalentFreeAttack(get: Get, set: SetFn, actor: Combatant, op: Extra
   const ck = `${fa.key}:${target.id}`;
   if (op.perChargerOncePerRound && (uses[ck] ?? 0) >= 1) return undefined; // 1 riposte par chargeur (Frappe réactive)
   const solde = spendableAdvantage(get().battle, actor); // ce que `campSpend` débite (AA 11 l.30-38)
-  if (op.advantageCost != null && solde < op.advantageCost) return undefined; // Avantage insuffisant
+  if (op.coutEnAvantage != null && solde < op.coutEnAvantage) return undefined; // Avantage insuffisant
   if (op.advantageOrMovement && solde <= 0) return undefined; // LDB 10 l.78 : seule la dépense d'Avantage est jouée
-  if (op.advantageCost != null) campSpend(get, actor, op.advantageCost); // réserve du camp en mode groupe (AA 11 l.30-38) / le combattant (LDB)
+  if (op.coutEnAvantage != null) campSpend(get, actor, op.coutEnAvantage); // réserve du camp en mode groupe (AA 11 l.30-38) / le combattant (LDB)
   else if (op.advantageOrMovement) campSpend(get, actor, 1);
   actor.freeAttacksThisTurn = { ...uses, [fa.key]: (uses[fa.key] ?? 0) + 1, ...(op.perChargerOncePerRound ? { [ck]: 1 } : {}) };
   const prevActed = get().battle?.acted ?? false; // gratuite : Action préservée
@@ -6670,7 +6673,7 @@ export function domainCastBonus(s: Jeu, caster: Combatant, spell: { domainId?: {
 export function castNearCorruption(get: Get): boolean {
   if (get().flags['corruption']) return true;
   const battle = get().battle;
-  if (battle && worstCorruptionExposure(battle)) return true;
+  if (battle && worstCorruptionExposure(battle.combatants)) return true;
   const combatants = battle ? battle.combatants : get().party;
   return combatants.some((c) => !!malepierreItemOf(c));
 }
@@ -6814,11 +6817,11 @@ export function ouvrirLesContagions(get: Get, set: SetFn, ids: readonly string[]
   }
 }
 
-/** Pire Degré d'EXPOSITION à la Corruption des créatures affrontées (LDB 85 l.87 → LDB 19), désigné par
- *  l'id de son Trait, avec le libellé de son registre — `null` si aucune créature corrompue. Le niveau
- *  s'applique à TOUS les héros survivants (avoir affronté). */
-function worstCorruptionExposure(battle: BattleState): { level: ExposureLevel; label: string } | null {
-  const rangs = battle.combatants
+/** Pire Degré d'EXPOSITION à la Corruption des créatures affrontées parmi les `combattants` de la rencontre (LDB 85
+ *  l.87 → LDB 19), désigné par l'id de son Trait, avec le libellé de son registre — `null` si aucune créature
+ *  corrompue. Le niveau s'applique à TOUS les héros survivants (avoir affronté). */
+function worstCorruptionExposure(combattants: readonly Combatant[]): { level: ExposureLevel; label: string } | null {
+  const rangs = combattants
     .filter((c) => c.kind !== 'hero')
     .flatMap((c) => (c.traits ?? []).filter((t) => t.id === 'corruption').map((t) => EXPOSURE_LADDER.indexOf(t.arg as ExposureLevel)));
   const pire = Math.max(-1, ...rangs);
@@ -6850,8 +6853,25 @@ function routeBandByPilot(
 }
 
 /**
- * CASCADE de fin de combat (LDB 18/19/20) — extrait les JETS de PERSONNAGE de fin de combat de
- * `finalizeBattle` pour les rendre cadence-aware AVANT l'écran de victoire.
+ * CASCADE de fin de combat (LDB 18/19/20) : les télégraphes de la bataille s'effacent, la fin de rencontre se décide
+ * sur ses combattants (`ouvrirLaFinDeRencontre`), puis la séquence RÉELLEMENT ouverte porte `combatEndBoundary` : à
+ * sa fermeture, le store enchaîne sur `finishCombatEnd` (writeback + écran de victoire).
+ */
+export function openCombatEndCascade(get: Get, set: SetFn): void {
+  const battle = get().battle;
+  if (!battle) return;
+  // La fin du combat est conclue : un geste différé encore en attente ne partira plus, ses télégraphes s'effacent (#3058).
+  for (const c of battle.combatants) effacerLesTelegraphes(get, set, c.id);
+  ouvrirLaFinDeRencontre(get, set, battle.combatants, { combatEndBoundary: true });
+  // Un Test d'amputation surfacé peut l'avoir ouverte à lui seul (`startCascade` renonce sur `steps` vide).
+  // Sans la borne, sa fermeture rappellerait `openCombatEndCascade` et rejouerait l'Exposition à la
+  // Corruption, dont le Degré n'est pas un marqueur.
+  bornerLaSequenceOuverte(get, set, 'combatEndBoundary');
+}
+
+/**
+ * DÉCISION de fin de RENCONTRE (LDB 18/19/20) sur ses `combattants` — la bataille, ou la série d'attaques subies
+ * (`fermerLaSerieSubie`) : elle PRÉCÈDE le report (`sortieDeRencontre`), qui perd les marqueurs de rencontre.
  *
  * « Une situation = une fenêtre » (#1117 L4) : les Tests dus sont bâtis pour TOUS les PERSONNAGES
  * vivants (héros, ou combattant flagué #143 `followsCharacterRules` — PAS un proxy `kind`), puis
@@ -6861,28 +6881,24 @@ function routeBandByPilot(
  * pilotées à la main dans la cascade influençable (Chance/Résilience offertes, conséquence à la
  * validation), les autres résolues d'office.
  *
- * Les marqueurs sont CONSOMMÉS ici (source unique). La cascade ouverte porte `combatEndBoundary:true` :
- * à sa fermeture, le store enchaîne sur `finishCombatEnd` (writeback + écran de victoire).
+ * Les marqueurs sont CONSOMMÉS ici (source unique). `bornes` : celles que la séquence ouverte porte.
  */
-export function openCombatEndCascade(get: Get, set: SetFn): void {
-  const battle = get().battle;
-  if (!battle) return;
-  // La fin du combat est conclue : un geste différé encore en attente ne partira plus, ses télégraphes s'effacent (#3058).
-  for (const c of battle.combatants) effacerLesTelegraphes(get, set, c.id);
-  const corr = worstCorruptionExposure(battle);
+function ouvrirLaFinDeRencontre(get: Get, set: SetFn, combattants: readonly Combatant[], bornes: { combatEndBoundary?: boolean }): void {
+  const corr = worstCorruptionExposure(combattants);
   const steps: BuiltCascadeStep[] = [];
   const monos: BuiltCascadeStep[] = [];
   const inlineLines: string[] = [];
   // Amputations DIFFÉRÉES à la fin de la rencontre (LDB 18 l.171 : « Une fois la rencontre terminée… ») :
   // le nœud ARMÉ au critique (`Trauma.pendingAmputation`, enjeu posé) part par la PORTE canonique — porteur
   // SURFACÉ : étape influençable APPENDÉE à la cascade 'combat' de fin de combat (`startCascade` OU-e la
-  // borne quand `openSequence` suit) ; sinon voie inline de la porte, dont le journal est drainé ici.
-  for (const c of battle.combatants) {
+  // borne quand `openSequence` suit) — hors bataille, la modale de jet du héros (`openSkillTest`) ; sinon voie
+  // inline de la porte, dont le journal est drainé ici.
+  for (const c of combattants) {
     if (c.dead) continue;
     for (const a of prendreAmputationsDifferees(c)) routeTriggeredTest(get, set, c, c, a.flow, { idNeuf: get().forgerUnId, rng: battleRng(), label: a.label });
   }
   inlineLines.push(...drainPendingLog(get, set).map((e) => e.text));
-  for (const c of battle.combatants) {
+  for (const c of combattants) {
     if (!followsCharacterRules(c) || c.dead) continue; // #143 : RAW « Personnage » (LDB 18 l.5, LDB 20 l.14/206) — les créatures génériques et les défaits n'ont pas de jet de maladie/Corruption de fin de combat
     const decided = decideCombatEndHeroTests(c, corr?.level ?? null);
     const resVal = combatEndResistVal(c);
@@ -6935,11 +6951,7 @@ export function openCombatEndCascade(get: Get, set: SetFn): void {
   // TOUTE la séquence est MINTÉE : les jets bâtis ici (`monoStep`, `combatEndBands`/`splitBandRows` →
   // `bandStep`) comme ceux venus de la file, qui est elle-même typée à la marque (#1262 V2) — la dernière
   // ouverture de combat par littéral passe donc par la porte.
-  if (steps.length) openSequence(get, set, { title: tr('step.consequencesDuCombat'), icon: 'etat/hemorragique', purpose: 'combat', steps, combatEndBoundary: true });
-  // Un Test d'amputation surfacé peut l'avoir ouverte à lui seul (`startCascade` renonce sur `steps` vide).
-  // Sans la borne, sa fermeture rappellerait `openCombatEndCascade` et rejouerait l'Exposition à la
-  // Corruption, dont le Degré n'est pas un marqueur.
-  bornerLaSequenceOuverte(get, set, 'combatEndBoundary');
+  if (steps.length) openSequence(get, set, { title: tr('step.consequencesDuCombat'), icon: 'etat/hemorragique', purpose: 'combat', steps, ...bornes });
 }
 
 /** La BORNE de dénouement porte sur la séquence RÉELLEMENT ouverte, quels que soient son `purpose` et le site

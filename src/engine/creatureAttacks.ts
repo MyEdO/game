@@ -37,7 +37,7 @@ export interface CreatureAttack {
   indice: number;
   /** Comment l'attaque se déclenche (dérivé de `def.activation`). */
   trigger: AttackTrigger;
-  /** Coût en Avantage de l'Attaque gratuite (dérivé de `def.advantageCost`). */
+  /** Coût en Avantage de l'Attaque gratuite (dérivé de `def.coutEnAvantage`). */
   avantage: number;
   /** Caractéristique du jet d'attaquant (capacite-de-combat mêlée / capacite-de-tir distance·zone) ;
    *  absent = pas de jet d'attaquant (Hurlement : chaque cible teste sa Résistance). */
@@ -155,7 +155,7 @@ export function creatureAttacks(traits: TraitList): CreatureAttack[] {
       const indice = inst.value ?? 0;
       out.push({
         cle: def.id, kind: def.kind, label: traitLisible(inst), bonus: indice, indice, type: inst.arg, def,
-        trigger: def.activation, avantage: def.advantageCost,
+        trigger: def.activation, avantage: def.coutEnAvantage,
         ...(def.stat ? { stat: def.stat } : {}), ...(def.advantageMode ? { advantageMode: def.advantageMode } : {}),
         ...(inst.count != null ? { count: inst.count } : {}),
         ...(def.targeting === 'zone' ? { aoe: true } : {}), ...(def.magic ? { magic: true } : {}),
@@ -187,7 +187,7 @@ export const attaqueDeCle = (traits: TraitList, cle: string): CreatureAttack | u
  *  aucune instance n'en module l'Indice. LDB 85 l.387 ; LDB 85 l.344 */
 function attaqueDEcart(def: ManeuverDef): CreatureAttack {
   return {
-    cle: def.id, kind: def.kind, label: def.label, bonus: 0, indice: 0, def, trigger: def.activation, avantage: def.advantageCost,
+    cle: def.id, kind: def.kind, label: def.label, bonus: 0, indice: 0, def, trigger: def.activation, avantage: def.coutEnAvantage,
     ...(def.stat ? { stat: def.stat } : {}), ...(def.advantageMode ? { advantageMode: def.advantageMode } : {}),
   };
 }

@@ -1,0 +1,19 @@
+[gd_scene format=3]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_2q27i"]
+albedo_color = Color(0.41960785, 0.2901961, 0.16470589, 1)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_ktaaw"]
+material = SubResource("StandardMaterial3D_2q27i")
+top_radius = 0.012
+bottom_radius = 0.012
+height = 0.75
+
+[node name="fleche" type="Node3D" unique_id=1490737717]
+
+[node name="Corps" type="Node3D" parent="." unique_id=538433222]
+
+[node name="Maille" type="MeshInstance3D" parent="Corps" unique_id=1595086770]
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0)
+cast_shadow = 0
+mesh = SubResource("CylinderMesh_ktaaw")

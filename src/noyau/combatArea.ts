@@ -126,7 +126,7 @@ function hitSecondary(
   // Une arme à Dégâts « Spéciaux » (Canon à flammes nain, ADE II 8 l.243) applique donc son État à 0 Blessure ;
   // les effets qui EXIGENT une Blessure se gardent EUX-MÊMES (Condition Flow `woundsDealt > 0` : Venin/Empoisonnement).
   if (!isOutOfAction(victim))
-    emitCombatEvent('onHit', { get, set, battle: get().battle!, self: hit.attacker, sink: (line) => lines.push(line), triggerCtx: { victim, weapon: hit.weapon, woundsDealt: wl, margin: hit.margin, location: hit.location, attackType: hit.weapon.type, rng } });
+    emitCombatEvent('onHit', { get, set, battle: get().battle, self: hit.attacker, sink: (line) => lines.push(line), triggerCtx: { victim, weapon: hit.weapon, woundsDealt: wl, margin: hit.margin, location: hit.location, attackType: hit.weapon.type, rng } });
   return lines;
 }
 
