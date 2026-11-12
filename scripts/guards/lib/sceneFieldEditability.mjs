@@ -14,7 +14,10 @@ import { SymbolFlags, TypeFlags } from 'typescript/unstable/sync';
 //     champ qui porte le type. Aucune liste de types recopiée à la main.
 //  2. CRÉDIT RATTACHÉ AU TYPE. Un écrivain ne compte que si le champ qu'il écrit REMONTE
 //     à la déclaration exacte du champ dans `scene.ts` — pour une propriété synthétique, au type
-//     mappé qui la porte et à son nom (`idsOf`). Un `{ once: … }` d'un
+//     mappé qui la porte et à son nom (`idsOf`). Une propriété PRODUITE PAR UNE FABRIQUE (déclarée dans le corps d'une
+//     fonction nommée de la grammaire : `objetDeRef`, `proseNommee`…) n'a qu'une déclaration pour autant de produits
+//     que d'appels : elle se nomme, comme la synthétique, par son PORTEUR (le type du produit) et son nom
+//     (`produitDeFabrique`, #3606 D1). Un `{ once: … }` d'un
 //     symptôme de maladie, un `{ window: … }` de condition temporelle ou un `{ flags }` passé en
 //     lecture à un contexte d'évaluation ne créditent rien : leur type porteur n'est pas celui du
 //     document de scène.
@@ -26,7 +29,8 @@ import { SymbolFlags, TypeFlags } from 'typescript/unstable/sync';
 //  4. CRÉDIT PAR ALLER-RETOUR. Une écriture générique (le geste `valeur` du formulaire tiré du schéma, à clé calculée,
 //     que le scan ne voit pas) crédite le dernier pas d'un chemin qu'un aller-retour a JOUÉ en jouant `editer`, et, d'un
 //     objet ou d'une liste écrits entiers, chaque clé qu'ils portent, de proche en proche (`cheminsEcrits`), comme le scan
-//     crédite chaque propriété d'un littéral
+//     crédite chaque propriété d'un littéral, ainsi que chaque pas du chemin que l'écriture a CRÉÉ, absent avant elle et
+//     présent après (`pasCrees` : le choix d'une variante d'une Condition absente crée la Condition)
 //     (`ecrituresJouees` d'`auditSceneFieldEditability`) : le document a changé à ce chemin, la valeur relue est la
 //     valeur jouée, la saisie n'est pas du JSON (`ecritureCreditee`). Le chemin se joint au périmètre en marchant le
 //     type `Scene` (`idsDuChemin`, par `idsOf`) : aucun second nommage.
@@ -39,10 +43,11 @@ import { SymbolFlags, TypeFlags } from 'typescript/unstable/sync';
 // types encore MANUSCRITS (`src/noyau/monde/scene.ts`). Une frontière posée sur le MODULE perdrait ces
 // feuilles dès qu'un corps manuscrit passe en `z.infer` (`DialogueChoice.cost.{gold,silver,brass}`, déclarés par
 // `grammaire/valeurs.ts:moneyPartialSchema`).
-// La marche S'ARRÊTE aux nœuds-frontière, désignés eux aussi par IDENTITÉ (module + nom du
-// `export const`) : `conditionSchema`, `gameOpSchema`, `flowTestSchema`, `sceneFlowSchema`,
-// `effectSchema` — du vocabulaire PARTAGÉ, qui a ses propres primitives d'édition (`FlowEditor`, `GameOpEditor`). Un `z.custom<T>()` est une
-// frontière STRUCTURELLE (aucun shape à marcher), détectée et jamais listée.
+// La marche suit chaque identifiant jusqu'à sa déclaration : le schéma d'un `const`, et le CORPS d'une fabrique (une
+// fonction de la grammaire, `conditionDe`, `arbreDeFlow`, `objetDeRef`…), dont les shapes sont ceux de ses produits.
+// Aucun nœud listé ne l'arrête ; seul un `z.custom<T>()` est une frontière, STRUCTURELLE (aucun shape à marcher),
+// détectée et jamais listée. Un type encore MANUSCRIT du moteur (`Condition`, `Flow`, `GameOp`, `FlowTest`) déclare
+// ses propriétés hors de tout shape : son intérieur reste hors du périmètre tant qu'il n'est pas la sortie de son schéma.
 // Le niveau importe : le SYMBOLE d'un type inféré d'un schéma zod est anonyme et déclaré dans
 // `zod/v4/core/util.d.cts`, alors que ses PROPRIÉTÉS pointent la ligne exacte du shape. Une
 // frontière posée sur le type lâcherait donc en silence dès qu'un corps manuscrit passe en
@@ -134,15 +139,6 @@ const SCENE_FILE = 'src/noyau/monde/scene.ts';
 const SCHEMA_FILE = 'src/data/schemas/defs-scenes/scene.ts';
 const SCHEMA_ROOT = 'sceneSchema';
 
-/** Nœuds-FRONTIÈRE par IDENTITÉ — `[module, nom du export const]`. Cf. FRONTIÈRE en tête. */
-const FRONTIERE = [
-  ['src/data/schemas/grammaire/mecanique.ts', 'conditionSchema'],
-  ['src/data/schemas/grammaire/mecanique.ts', 'gameOpSchema'],
-  ['src/data/schemas/grammaire/mecanique.ts', 'flowTestSchema'],
-  ['src/data/schemas/defs-scenes/effets.ts', 'sceneFlowSchema'],
-  ['src/data/schemas/defs-scenes/effets.ts', 'effectSchema'],
-];
-
 /** Nom du `export const xSchema` dont le shape porte cette déclaration de propriété — chaînes
  *  `.optional()`/`.array()` traversées. Un littéral INLINE ne nomme rien. */
 const schemaConstName = (decl) => {
@@ -172,9 +168,21 @@ const schemaCompose = (decl) => {
   return base.charAt(0).toUpperCase() + base.slice(1);
 };
 
-/** Clé d'identité d'un champ : sa déclaration, ou pour une propriété synthétique d'un type mappé, l'id
- *  de ce type et son nom. */
-export const cleDuChamp = (e) => (e.synthetique ? `${e.synthetique.porteur}#${e.field}` : e.decl);
+/** Une FABRIQUE : une fonction NOMMÉE (déclarée, ou affectée à un `const`), que chaque appel rejoue ; un rappel passé
+ *  en argument (`z.lazy(() => …)`) n'en est pas une. */
+const estFabrique = (n) =>
+  ts.isFunctionDeclaration(n) || ts.isMethodDeclaration(n) || ((ts.isArrowFunction(n) || ts.isFunctionExpression(n)) && ts.isVariableDeclaration(n.parent));
+
+/** La déclaration est-elle celle d'une propriété PRODUITE PAR UNE FABRIQUE : une seule déclaration pour chacun de ses
+ *  produits ? */
+const produitDeFabrique = (decl) => {
+  for (let n = decl.parent; n; n = n.parent) if (estFabrique(n)) return true;
+  return false;
+};
+
+/** Clé d'identité d'un champ : sa déclaration ; ou, pour une propriété sans déclaration propre (synthétique d'un type
+ *  mappé, produit de fabrique), l'id de son porteur et son nom. */
+export const cleDuChamp = (e) => (e.porteur !== undefined ? `${e.porteur}#${e.field}` : e.decl);
 
 const norm = (p) => p.replace(/\\/g, '/');
 
@@ -210,9 +218,9 @@ function sceneSourceFile(program, root) {
   return program.program.getSourceFileNames().map((file) => program.program.getSourceFile(file)).find((sf) => norm(sf.fileName) === want);
 }
 
-/** `VariableDeclaration`s auxquelles un identifiant se résout — alias d'import traversés. Résolution
- *  par SYMBOLE : un homonyme d'un autre module ne fait entrer personne dans le périmètre. */
-function variableDeclarationsOf(checker, id) {
+/** Déclarations de `const` et de fonction (une fabrique, à corps) auxquelles un identifiant se résout — alias d'import
+ *  traversés. Résolution par SYMBOLE : un homonyme d'un autre module ne fait entrer personne dans le périmètre. */
+function declarationsMarchees(checker, id) {
   let sym = checker.getSymbolAtLocation(id);
   if (!sym) return [];
   if (sym.flags & SymbolFlags.Alias) {
@@ -222,7 +230,7 @@ function variableDeclarationsOf(checker, id) {
       return [];
     }
   }
-  return (sym.declarations ?? []).map((d) => d.resolve()).filter(ts.isVariableDeclaration);
+  return (sym.declarations ?? []).map((d) => d.resolve()).filter((d) => ts.isVariableDeclaration(d) || (ts.isFunctionDeclaration(d) && !!d.body));
 }
 
 const isCustomSchema = (init) =>
@@ -233,7 +241,7 @@ const isCustomSchema = (init) =>
 
 /**
  * ENSEMBLE D'IDENTITÉS du document : les `PropertyAssignment` des shapes atteints depuis
- * `sceneSchema`, frontières exclues (cf. FRONTIÈRE en tête). Vide si le module de schémas n'est pas
+ * `sceneSchema`, corps des fabriques compris, `z.custom` exclu (cf. FRONTIÈRE en tête). Vide si le module de schémas n'est pas
  * dans le programme — les programmes VIRTUELS des preuves ne déclarent que `src/noyau/monde/scene.ts`.
  * @returns {Set<import('typescript/unstable/ast').Node>}
  */
@@ -244,13 +252,10 @@ export function documentDeclarations(program, root) {
   const noeuds = new Set();
   if (!sf) return noeuds;
 
-  const frontiere = new Set(FRONTIERE.map(([f, n]) => `${norm(path.resolve(root, f))}#${n}`));
-  const idOf = (d) => `${norm(d.getSourceFile().fileName)}#${ts.isIdentifier(d.name) ? d.name.text : ''}`;
-
   const vues = new Set();
   const file = [];
   const enfiler = (d) => {
-    if (!d || vues.has(d) || frontiere.has(idOf(d)) || isCustomSchema(d.initializer)) return;
+    if (!d || vues.has(d) || (ts.isVariableDeclaration(d) && isCustomSchema(d.initializer))) return;
     vues.add(d);
     file.push(d);
   };
@@ -264,10 +269,11 @@ export function documentDeclarations(program, root) {
   for (let i = 0; i < file.length; i++) {
     const visiter = (n) => {
       if (ts.isPropertyAssignment(n) || ts.isShorthandPropertyAssignment(n)) noeuds.add(n);
-      if (ts.isIdentifier(n)) for (const d of variableDeclarationsOf(checker, n)) enfiler(d);
+      if (ts.isIdentifier(n)) for (const d of declarationsMarchees(checker, n)) enfiler(d);
       n.forEachChild(visiter);
     };
-    if (file[i].initializer) visiter(file[i].initializer);
+    const corps = ts.isFunctionDeclaration(file[i]) ? file[i].body : file[i].initializer;
+    if (corps) visiter(corps);
   }
   return noeuds;
 }
@@ -308,9 +314,8 @@ export function sceneScope(program, root) {
     const idx = checker.getIndexInfosOfType(type).find((info) => info.keyType.flags & TypeFlags.String);
     if (idx) visit(idx.valueType, ownerPath, parentDecl);
 
-    // FRONTIÈRE (par PROPRIÉTÉ) : un objet dont aucune propriété n'est déclarée par un module du
-    // document est du vocabulaire PARTAGÉ (Flow/Condition/GameOp…),
-    // on ne descend pas.
+    // Un objet dont aucune propriété n'est déclarée par le document (un type MANUSCRIT du moteur, cf. FRONTIÈRE en
+    // tête) : on ne descend pas.
     // Un champ dont le type est UN SEUL littéral de chaîne (le discriminant d'un document qui
     // S'ANNONCE : `Scene.type: 'scene'`, #1552) n'a pas de contrôle d'auteur PAR CONSTRUCTION — il n'a
     // qu'une valeur, il n'y a rien à choisir. Exclusion STRUCTURELLE (la forme du type), jamais par
@@ -329,7 +334,7 @@ export function sceneScope(program, root) {
       const id = `${owner}.${prop.name}`;
       if (!seenIds.has(id)) {
         seenIds.add(id);
-        out.push({ id, owner, field: prop.name, decl: parentDecl, synthetique: { porteur: type.id } });
+        out.push({ id, owner, field: prop.name, decl: parentDecl, porteur: type.id });
       }
       visit(checker.getTypeOfSymbolAtLocation(prop, parentDecl), id, parentDecl);
     }
@@ -345,7 +350,7 @@ export function sceneScope(program, root) {
       const id = `${owner}.${prop.name}`;
       if (!seenIds.has(id)) {
         seenIds.add(id);
-        out.push({ id, owner, field: prop.name, decl });
+        out.push({ id, owner, field: prop.name, decl, ...(produitDeFabrique(decl) ? { porteur: type.id } : {}) });
       }
       visit(checker.getTypeOfSymbolAtLocation(prop, decl), id, decl);
     }
@@ -372,7 +377,7 @@ function flatten(type, acc = []) {
 }
 
 /** Ids de champ du périmètre (`cles`, par `cleDuChamp`) auxquels la propriété `name` de `type` se rattache : sa
- *  déclaration, ou pour une propriété synthétique d'un type mappé, ce type et son nom. */
+ *  déclaration, ou pour une propriété synthétique d'un type mappé ou produite par une fabrique, ce type et son nom. */
 export function idsOf(checker, cles, type, name) {
   const ids = new Set();
   for (const t of flatten(type)) {
@@ -382,7 +387,8 @@ export function idsOf(checker, cles, type, name) {
     const id = decls.length ? undefined : cles.get(`${t.id}#${name}`);
     if (id) ids.add(id);
     for (const d of decls) {
-      const id = cles.get(d.resolve());
+      const decl = d.resolve();
+      const id = cles.get(produitDeFabrique(decl) ? `${t.id}#${name}` : decl);
       if (id) ids.add(id);
     }
   }
@@ -413,7 +419,10 @@ export function idsDuChemin(checker, cles, scene, doc, chemin) {
       const prop = checker.getPropertyOfType(t, pas);
       if (prop) {
         for (const id of idsOf(checker, cles, t, pas)) ids.add(id);
-        for (const d of prop.declarations ?? []) suivants.push(checker.getTypeOfSymbolAtLocation(prop, d.resolve()));
+        const decls = prop.declarations ?? [];
+        // Une clé synthétique d'un type mappé n'a pas de déclaration où lire son type : le symbole le porte.
+        if (decls.length === 0) suivants.push(checker.getTypeOfSymbol(prop));
+        for (const d of decls) suivants.push(checker.getTypeOfSymbolAtLocation(prop, d.resolve()));
         continue;
       }
       const idx = checker.getIndexInfosOfType(t).find((i) => i.keyType.flags & TypeFlags.String);
@@ -437,6 +446,10 @@ const cheminsEcrits = (chemin, valeur) =>
   valeur !== null && typeof valeur === 'object'
     ? [chemin, ...Object.entries(valeur).flatMap(([cle, v]) => cheminsEcrits([...chemin, Array.isArray(valeur) ? Number(cle) : cle], v))]
     : [chemin];
+
+/** Les préfixes du chemin `chemin` que l'écriture a CRÉÉS : absents du document `avant`, présents dans `apres`. */
+export const pasCrees = ({ avant, apres, chemin }) =>
+  chemin.slice(0, -1).map((_, i) => chemin.slice(0, i + 1)).filter((p) => lireAuChemin(avant, p) === undefined && lireAuChemin(apres, p) !== undefined);
 
 /** Une écriture jouée crédite-t-elle son dernier pas ? Le document a changé à son chemin, la valeur relue est la valeur
  *  jouée, et la saisie n'est pas du JSON (`saisieJson`). */
@@ -791,7 +804,7 @@ export function auteurReachableScopes(checker, program, root) {
  * Audite le dépôt : pour chaque champ du document de scène, qui l'écrit et par quel chemin. Une écriture jouée par
  * l'éditeur (`ecrituresJouees`, un aller-retour qui joue `editer` : le document avant et après, le chemin écrit depuis
  * la scène, la valeur jouée et sa saisie) crédite, quand `ecritureCreditee`, le dernier pas de chacun des chemins qu'elle
- * écrit (`cheminsEcrits`, `idsDuChemin`), sous la marque `ALLER_RETOUR`.
+ * écrit (`cheminsEcrits`) ou crée (`pasCrees`, `idsDuChemin`), sous la marque `ALLER_RETOUR`.
  * @param {string} root racine du dépôt
  * @param {import('./tsProgram.mjs').SessionProgramme} [program] programme déjà construit — absent, bâti pour CET appel
  * @param {{ ecrituresJouees?: { avant: unknown, apres: unknown, chemin: (string | number)[], valeur: unknown, saisie: string }[] }} [options]
@@ -848,7 +861,7 @@ export function auditSceneFieldEditability(root, program, { ecrituresJouees = []
   }
   const scene = sceneType(program, root);
   for (const e of ecrituresJouees.filter(ecritureCreditee))
-    for (const id of cheminsEcrits(e.chemin, e.valeur).flatMap((chemin) => [...idsDuChemin(checker, cles, scene, e.apres, chemin)])) {
+    for (const id of [...pasCrees(e), ...cheminsEcrits(e.chemin, e.valeur)].flatMap((chemin) => [...idsDuChemin(checker, cles, scene, e.apres, chemin)])) {
       const row = rows.get(id);
       if (row && !row.authors.includes(ALLER_RETOUR)) row.authors.push(ALLER_RETOUR);
     }
