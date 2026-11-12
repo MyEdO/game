@@ -117,10 +117,11 @@ const empreintesJouees = new WeakMap<EcritureJouee[], Set<string>>();
 
 /** La session `s` où chaque offre du geste `valeur` de son inspecteur est jouée une fois, celles qui emportent des champs
  *  après les autres, la plus profonde d'abord, jusqu'à ce qu'aucune ne reste ; le choix d'une autre variante rouvre les
- *  offres de ses champs ; seules jouent les offres dont l'id commence par l'une des `branches` (toutes, par défaut), et
- *  dont l'empreinte (`empreinte`) n'a pas déjà été jouée dans la partie ; chaque écriture, avec son chemin depuis la
- *  scène, s'ajoute à `out` : le choix d'une variante écrit son discriminant (l'id de son choix,
- *  `valeur/<chemin>/<discriminant>`). */
+ *  offres de ses champs ; seules jouent les offres dont l'id commence par l'une des `branches` (toutes, par défaut) ;
+ *  chaque écriture, avec son chemin depuis la scène, s'ajoute à `out` : le choix d'une variante écrit son discriminant
+ *  (l'id de son choix, `valeur/<chemin>/<discriminant>`). Une offre dont l'empreinte (`empreinte`) a déjà été jouée dans
+ *  la partie ne s'y ajoute pas ; elle se joue encore si sa valeur est un objet ou une liste, qui ouvre les offres de
+ *  ses champs. */
 function jouerLInspecteur(depart: SessionDEdition, out: EcritureJouee[], branches: readonly string[] = ['']): SessionDEdition {
   let s = depart;
   const jouees = new Set<string>();
@@ -136,7 +137,8 @@ function jouerLInspecteur(depart: SessionDEdition, out: EcritureJouee[], branche
       const geste = gesteDuJeu(zones, offre.jeu);
       if (geste?.geste !== 'valeur') throw new Error(`l’offre ${offre.id} ne joue pas le geste valeur`);
       const cle = empreinte(s, geste, offre.saisie);
-      if (deja.has(cle)) continue;
+      const neuve = !deja.has(cle);
+      if (!neuve && !estObjet(geste.valeur) && !Array.isArray(geste.valeur)) continue;
       deja.add(cle);
       // Une autre variante choisie rouvre les champs qu'elle porte, homonymes de ceux de la variante quittée.
       if (offre.emporte && offre.saisie === 'saisieChoix') {
@@ -144,7 +146,7 @@ function jouerLInspecteur(depart: SessionDEdition, out: EcritureJouee[], branche
         for (const id of jouees) if (id !== offre.id && id.startsWith(sous)) jouees.delete(id);
       }
       const discriminant = offre.emporte && offre.saisie === 'saisieChoix' ? offre.id.slice(`valeur/${geste.chemin.join('/')}/`.length) : undefined;
-      s = ecrire(s, geste, offre.saisie, out, discriminant);
+      s = neuve ? ecrire(s, geste, offre.saisie, out, discriminant) : jouer(s, geste);
       break;
     }
   }
@@ -198,10 +200,11 @@ function jouerLesVariantes(s: SessionDEdition, id: string, out: EcritureJouee[])
   }
 }
 
-/** Les fiches du Bestiaire des personnages posés : la Vouivre (ZI), dont les options portent des Traits facultatifs et
- *  une note « swap » qui octroie des Caractéristiques et une Compétence, jouée à tout son inspecteur ; l'Ombre du fleuve,
- *  dont les Miracles de Taal ouvrent des sorts à choisir (`listesDeSorts`), jouée à ces seules branches. Un personnage
- *  rejoué ailleurs ne joue que les branches qu'il est seul à écrire : chaque geste de l'inspecteur rebâtit ses zones. */
+/** Les fiches du Bestiaire des personnages posés, chacune jouée aux branches de son inspecteur qu'elle seule écrit : la
+ *  Vouivre (ZI), dont les options portent des Traits facultatifs et une note « swap » qui octroie des Caractéristiques
+ *  et une Compétence, à tout son inspecteur ; l'Ombre du fleuve, dont les Miracles de Taal ouvrent des sorts à choisir
+ *  (`listesDeSorts`), à son profil de combat et à ses sorts. Le reste de son inspecteur rejouerait celui de la Vouivre ;
+ *  chaque porteur joué seul n'ajoute rien à l'audit (`ecrituresDesPorteursSeuls`). */
 const FICHES = [['vouivre-zoo-imperial', ['']], ['l-ombre-du-fleuve', ['valeur/combat/ajouter', 'valeur/combat/spells']]] as const;
 
 /** La fiche d'un personnage enrôlé dans une rencontre neuve : son arme simple admet d'autres apparences que sa forme
@@ -249,6 +252,25 @@ const point = (x: number, y: number) => ({ case: { x, y }, f: { x, y } });
 /** La session `s` où l'outil actif clique la case `(x, y)`. */
 const cliquer = (s: SessionDEdition, x: number, y: number): SessionDEdition => jouer(jouer(s, { geste: 'appui', point: point(x, y) }), { geste: 'relache', point: point(x, y) });
 
+/** La session `s` où un personnage de la fiche `fiche` est posé à la case `(x, y)`, à l'outil Personnage. */
+const poserPersonnage = (s: SessionDEdition, fiche: string, x: number, y: number): SessionDEdition => cliquer(presser(presser(s, 'outil/personnage'), `personnage/${fiche}`), x, y);
+
+/** Le paquet du projet du jeu d'id `id`. */
+function projetDuJeu(id: string): ReturnType<typeof paquetDuJeu> {
+  const c = allBuiltinCampaigns.find((x) => x.id === id);
+  if (!c) throw new Error(`aucune campagne ${id}`);
+  return paquetDuJeu(c);
+}
+
+/** Une scène neuve du `PROJET_A_PRESETS`, le manifeste du `Source/` servi. */
+const sceneAPresets = (): SessionDEdition => presser(ouvrirLEdition(projetDuJeu(PROJET_A_PRESETS), false, undefined, manifesteDe(CORPUS_DISQUE)), 'scenes/ajouter');
+
+/** Le personnage posé dans la scène `A_DIALOGUE`. */
+const personnageDuDialogue = (): SessionDEdition => poserPersonnage(presser(ouvrirLEdition(projetDuJeu(A_DIALOGUE.campagne), false), `scenes/${A_DIALOGUE.scene}`), FICHES[0][0], A_DIALOGUE.case.x, A_DIALOGUE.case.y);
+
+/** La `COQUE`, sélectionnée. */
+const coqueChoisie = (): SessionDEdition => cliquer(presser(presser(ouvrirLEdition(projetDuJeu(COQUE.campagne), false), `scenes/${COQUE.scene}`), 'outil/select'), COQUE.case.x, COQUE.case.y);
+
 /** Les écritures jouées sur une zone d'effet neuve, un déclencheur neuf et un personnage de chacune des `FICHES` d'une
  *  scène neuve de la première campagne du jeu, chacun posé à son outil (Zone, Personnage), et un personnage d'`ENROLE`
  *  enrôlé dans une rencontre neuve ; puis sur un personnage de la
@@ -258,8 +280,8 @@ const cliquer = (s: SessionDEdition, x: number, y: number): SessionDEdition => j
  *  sur un personnage de
  *  la première des `FICHES` posé dans la scène `A_DIALOGUE`, et sur la coque
  *  `COQUE`, sélectionnée ; chacun
- *  joué à son inspecteur (`jouerLInspecteur`) : un porteur de plus n'y joue que ce que son contexte offre de neuf, ses
- *  seules branches (`FICHES`, `ENROLE`, `COQUE`…) et les offres d'empreinte encore jamais jouée (`empreinte`). */
+ *  joué à son inspecteur (`jouerLInspecteur`), aux seules branches que donne sa constante (`FICHES`, `ENROLE`,
+ *  `BRANCHES_DU_PRESET`, `A_DIALOGUE`, `COQUE`), une écriture d'empreinte déjà jouée dans la partie ne s'y ajoutant pas. */
 export function ecrituresJouees(): EcritureJouee[] {
   const out: EcritureJouee[] = [];
   let s = presser(ouvrirLEdition(paquetDuJeu(allBuiltinCampaigns[0]), false), 'scenes/ajouter');
@@ -267,12 +289,9 @@ export function ecrituresJouees(): EcritureJouee[] {
     s = presser(presser(s, 'outil/zone'), `zone/${sorte}`);
     s = jouerLInspecteur(jouer(jouer(s, { geste: 'appui', point: point(de, de) }), { geste: 'relache', point: point(a, a) }), out);
   }
-  FICHES.forEach(([fiche, branches], rang) => { s = jouerLInspecteur(cliquer(presser(presser(s, 'outil/personnage'), `personnage/${fiche}`), 5 + rang, 5), out, branches); });
-  s = jouerLInspecteur(presser(cliquer(presser(presser(s, 'outil/personnage'), `personnage/${ENROLE.fiche}`), 5 + FICHES.length, 5), 'rencontre/neuve'), out, ENROLE.branches);
-  const aPresets = allBuiltinCampaigns.find((c) => c.id === PROJET_A_PRESETS);
-  if (!aPresets) throw new Error(`aucune campagne ${PROJET_A_PRESETS}`);
-  const neuve = presser(ouvrirLEdition(paquetDuJeu(aPresets), false, undefined, manifesteDe(CORPUS_DISQUE)), 'scenes/ajouter');
-  const pnj = jouerLInspecteur(cliquer(presser(presser(neuve, 'outil/personnage'), `personnage/${FICHES[0][0]}`), 5, 5), out, BRANCHES_DU_PRESET);
+  FICHES.forEach(([fiche, branches], rang) => { s = jouerLInspecteur(poserPersonnage(s, fiche, 5 + rang, 5), out, branches); });
+  s = jouerLInspecteur(presser(poserPersonnage(s, ENROLE.fiche, 5 + FICHES.length, 5), 'rencontre/neuve'), out, ENROLE.branches);
+  const pnj = jouerLInspecteur(poserPersonnage(sceneAPresets(), FICHES[0][0], 5, 5), out, BRANCHES_DU_PRESET);
   const decor = jouerLInspecteur(cliquer(presser(presser(pnj, 'outil/prop'), `prop/${DECOR}`), 3, 3), out);
   const action = presser(decor, choixDeLInspecteur(zonesDeLEditeur(decor), ACTION_DU_DECOR).valeurs[0].id);
   jouerLInspecteur(action, out);
@@ -286,13 +305,26 @@ export function ecrituresJouees(): EcritureJouee[] {
   const rang = (ajout.valeur as unknown[]).length - 1;
   const cellule = ecrire(adresse, ajout, 'saisieChoix', out);
   ecrire(cellule, gesteDuChoix(cellule, `${PROSE_DU_DECOR.adresse}parts/${rang}/table`, () => true), 'saisieChoix', out);
-  const aDialogue = allBuiltinCampaigns.find((c) => c.id === A_DIALOGUE.campagne);
-  if (!aDialogue) throw new Error(`aucune campagne ${A_DIALOGUE.campagne}`);
-  const dialogues = presser(presser(ouvrirLEdition(paquetDuJeu(aDialogue), false), `scenes/${A_DIALOGUE.scene}`), 'outil/personnage');
-  jouerLInspecteur(cliquer(presser(dialogues, `personnage/${FICHES[0][0]}`), A_DIALOGUE.case.x, A_DIALOGUE.case.y), out, A_DIALOGUE.branches);
-  const campagne = allBuiltinCampaigns.find((c) => c.id === COQUE.campagne);
-  if (!campagne) throw new Error(`aucune campagne ${COQUE.campagne}`);
-  const barge = presser(presser(ouvrirLEdition(paquetDuJeu(campagne), false), `scenes/${COQUE.scene}`), 'outil/select');
-  jouerLInspecteur(cliquer(barge, COQUE.case.x, COQUE.case.y), out, COQUE.branches);
+  jouerLInspecteur(personnageDuDialogue(), out, A_DIALOGUE.branches);
+  jouerLInspecteur(coqueChoisie(), out, COQUE.branches);
   return out;
+}
+
+/** Les écritures de chaque porteur joué à ses branches (`FICHES`, `ENROLE`, `BRANCHES_DU_PRESET`, `A_DIALOGUE`, `COQUE`),
+ *  SEUL : posé dans une scène où rien n'est joué avant lui, sa partie à lui. Ce qu'elles créditent, `ecrituresJouees` le
+ *  crédite déjà, ou une écriture sautée par empreinte cachait une offre. */
+export function ecrituresDesPorteursSeuls(): EcritureJouee[] {
+  const arene = presser(ouvrirLEdition(paquetDuJeu(allBuiltinCampaigns[0]), false), 'scenes/ajouter');
+  const seuls: [SessionDEdition, readonly string[]][] = [
+    ...FICHES.map(([fiche, branches]): [SessionDEdition, readonly string[]] => [poserPersonnage(arene, fiche, 5, 5), branches]),
+    [presser(poserPersonnage(arene, ENROLE.fiche, 5, 5), 'rencontre/neuve'), ENROLE.branches],
+    [poserPersonnage(sceneAPresets(), FICHES[0][0], 5, 5), BRANCHES_DU_PRESET],
+    [personnageDuDialogue(), A_DIALOGUE.branches],
+    [coqueChoisie(), COQUE.branches],
+  ];
+  return seuls.flatMap(([s, branches]) => {
+    const out: EcritureJouee[] = [];
+    jouerLInspecteur(s, out, branches);
+    return out;
+  });
 }

@@ -15,7 +15,7 @@ import {
 } from '../scripts/guards/lib/sceneFieldEditability.mjs';
 import { repoProgram, virtualProgram, VIRTUAL_ROOT } from '../scripts/guards/lib/tsProgram.mjs';
 import { detenteur } from './lib/detenteur.testkit';
-import { ecrituresJouees } from './ecrituresJouees.testkit';
+import { ecrituresDesPorteursSeuls, ecrituresJouees } from './ecrituresJouees.testkit';
 
 /**
  * GARDE #841 — « toute donnée de la scène s'édite au clic, sans dépendre d'une IA » (directive
@@ -85,7 +85,8 @@ describe('#841 — chaque champ du document de scène a un chemin d’écriture 
   // scripts/guards/lib/tsProgram.mjs ; src/analyse-retention-guard.test.ts
   const perimetre = detenteur(() => programmeDuPerimetre(ROOT), (session) => session.dispose());
   /** L'audit du dépôt, les écritures que l'aller-retour de l'éditeur Godot joue comprises (`ecrituresJouees`). */
-  const auditReel = detenteur(() => auditSceneFieldEditability(ROOT, perimetre(), { ecrituresJouees: ecrituresJouees() }));
+  const ecritures = detenteur(() => ecrituresJouees());
+  const auditReel = detenteur(() => auditSceneFieldEditability(ROOT, perimetre(), { ecrituresJouees: ecritures() }));
 
   it('aucun champ n’est joignable seulement par le pipeline d’authoring, hors cliquet nommé', { timeout: 120_000 }, () => {
     const orphelins = orphanFields(auditReel());
@@ -94,6 +95,14 @@ describe('#841 — chaque champ du document de scène a un chemin d’écriture 
       .map((r) => `${r.id} (${r.at}) — écrivains : ${r.pipeline.join(', ') || 'AUCUN'}`)
       .join('\n');
     expect(ids(orphelins).sort(), detail).toEqual([...TROUS_CONNUS].sort());
+  });
+
+  it('l’aller-retour partagé crédite tout ce que crédite chaque porteur joué SEUL à ses branches', { timeout: 120_000 }, () => {
+    // Un porteur rejoué ne s'ajoute pas à `out` aux empreintes déjà jouées (`ecrituresJouees.testkit.ts`) : une offre ainsi
+    // sautée ne doit cacher aucune des offres qu'elle ouvre (`SceneEntity.combat.spells` sous `combat/ajouter`).
+    const ligne = (r: { id: string; authors: string[] }) => `${r.id} ← ${r.authors.join(', ')}`;
+    const avecLesSeuls = auditSceneFieldEditability(ROOT, perimetre(), { ecrituresJouees: [...ecritures(), ...ecrituresDesPorteursSeuls()] });
+    expect(avecLesSeuls.map(ligne)).toEqual(auditReel().map(ligne));
   });
 
   it('crédite une écriture qui traverse `Array.map` — sonde réelle : `SceneEffectZone.tiles` ← `mapSpec.ts`', { timeout: 120_000 }, () => {
