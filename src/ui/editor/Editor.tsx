@@ -53,7 +53,7 @@ import { useLowerLayerOpacity, setLowerLayerOpacity, useLowerLayerMode, setLower
 import { useEditorLayers } from './editorLayers';
 import { LayerField, sceneLayerZs } from './LayerField';
 import { OptionChooser } from '../OptionChooser';
-import { idDEntropie } from '../../web/entropie';
+import { idDEntropie } from '../../hote/entropie';
 import { lireBlocsAvances } from '../../data/schemas/blocsAvances';
 
 /** Titres des gestes du menu Fichier dont le refus n'a aucune modale à lui (`refusDuGeste`) : le

@@ -902,7 +902,7 @@ export const DEFAULT_TERRAIN: Terrain = semencesDeScene.terrain.id;
  *  ce module ne choisit plus ni matière, ni terrain, ni échelle. `ambientLight` ABSENT de la semence
  *  vaut `auto` — la sentinelle est l’absence côté semence (champ typé `idDe('lightLevel')`), et la
  *  scène produite la porte EN CLAIR, comme avant #1716. L'`id` vient de l'appelant : l'hôte le forge
- *  unique (`idDEntropie`, `src/web/entropie.ts`, #2817). */
+ *  unique (`idDEntropie`, `src/hote/entropie.ts`, #2817). */
 /** Le sol d'une scène neuve : une couche au terrain de la semence (`semences-de-scene.json`). */
 function coucheDeSemence(w: number, h: number): Scene['layers'] {
   return [{ z: 0, tiles: new Array<Terrain>(w * h).fill(semencesDeScene.terrain.id) }];

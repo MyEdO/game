@@ -82,8 +82,10 @@
 // - `campagne` (#3009) : « Jouer » ouvre une partie au groupe, sans scène : les pré-tirés à recruter, les campagnes du
 //   jeu, dont « Lancer » ne se joue pas groupe vide ; deux pré-tirés recrutés à leur bouton, chacun en carte au pied de
 //   l'écran, son recrutement refusé ensuite ; « Lancer » de la Diligence pose sa scène d'entrée, le groupe composé au
-//   monde, sa fenêtre d'ouverture en main ; « Quitter la partie » rend le menu, le pont sans partie ; « Jouer » de
-//   nouveau, un pré-tiré recruté, l'Arène lancée sans recharger la page.
+//   monde, sa fenêtre d'ouverture en main ; « Sauvegardes » ouvre le panneau des emplacements, l'emplacement 1 écrit à
+//   son bouton ; « Quitter la partie » rend le menu, le pont sans partie ; la page rechargée, « Reprendre » montre
+//   l'emplacement 1 et l'automatique gardé en quittant, l'emplacement 1 chargé rend la partie, son groupe et sa scène ;
+//   quittée, « Jouer » de nouveau, un pré-tiré recruté, l'Arène lancée sans recharger la page.
 // - `editeur` (#3508), servi avec une copie des projets manuscrits du dépôt (`servir.mjs`, `depot`) : « Éditeur » ouvre la
 //   Diligence telle que le dépôt la sert, sur sa couche 0, rien à enregistrer ; l'outil Hauteur, « Haute (4 m) » et le
 //   pinceau 3×3 choisis à leurs boutons, un glissé de deux cases sur la carte : bouton tenu, la surcouche couvre
@@ -1338,6 +1340,10 @@ async function lancerLaCampagne(id) {
   await attendreLeMonde()
   return vue()
 }
+/** Attend que l'écran publie le bouton qui dessine l'élément `element`. */
+const attendreLeBouton = (element) => waitFor(session, `!!globalThis.wfrpEcran && wfrpEcran.boutons.some((b) => b.element === ${JSON.stringify(element)})`, { timeoutMs: 30000, evaluerMs: FIL_DE_LA_PAGE_MS })
+/** Attend le menu d'entrée : « Jouer » publié, aucun plateau. */
+const attendreLeMenu = () => waitFor(session, '!!globalThis.wfrpEcran && !wfrpEcran.cases && wfrpEcran.boutons.some((b) => b.texte === "Jouer")', { timeoutMs: 120000, evaluerMs: FIL_DE_LA_PAGE_MS })
 async function parcoursCampagne() {
   let v = await ouvrirAuGroupe()
   assert.equal(v.projection.scene, null, 'la partie ouverte au groupe n’a pas de scène')
@@ -1358,16 +1364,38 @@ async function parcoursCampagne() {
   assert.deepEqual([zone(v, 'groupe.pretires'), zone(v, 'groupe.campagnes')], [[], []], 'la composition se ferme, la partie en cours')
   noter(`campagne lancée : scène ${v.projection.scene.nom}, fenêtre « ${zone(v, 'fenetre.titre')[0].texte} »`)
   await capturer('3009-campagne-3-lancee')
+  await cliquerBouton({ element: 'bouton/sauvegardes' })
+  await attendreLeBouton('bouton/sauvegarder/1')
+  await cliquerBouton({ element: 'bouton/sauvegarder/1' })
+  await attendreLeBouton('bouton/charger/1')
+  await capturer('3009-campagne-4-sauvegardee')
+  await cliquerBouton({ element: 'bouton/fermer' })
+  await waitFor(session, '!!globalThis.wfrpEcran && !wfrpEcran.boutons.some((b) => b.element === "bouton/fermer")', { timeoutMs: 30000, evaluerMs: FIL_DE_LA_PAGE_MS })
   await cliquerBouton({ element: 'bouton/quitter' })
-  await waitFor(session, '!!globalThis.wfrpEcran && !wfrpEcran.cases && wfrpEcran.boutons.some((b) => b.texte === "Jouer")', { timeoutMs: 30000, evaluerMs: FIL_DE_LA_PAGE_MS })
+  await attendreLeMenu()
   assert.equal(JSON.parse(await lire(`wfrpPont.appeler('vue')`)).ok, false, 'la partie quittée, le pont n’en tient plus')
-  noter('« Quitter la partie » rend le menu')
+  noter('partie écrite à l’emplacement 1 ; « Quitter la partie » rend le menu')
+  await session.rpc('Page.reload')
+  await attendreLeMenu()
+  await cliquerBouton('Reprendre')
+  await attendreLeBouton('bouton/charger/1')
+  assert.ok(trouver((await ecran()).boutons, { element: 'bouton/charger/auto' }), 'la partie quittée s’est gardée à l’emplacement automatique')
+  await capturer('3009-campagne-5-reprendre')
+  await cliquerBouton({ element: 'bouton/charger/1' })
+  await attendreLaVue('v.projection.scene && v.plateau', 120000)
+  await attendreLeMonde()
+  const reprise = await vue()
+  assert.deepEqual([reprise.projection.scene.id, zone(reprise, 'groupe.heros').map((e) => e.nom)], [v.projection.scene.id, groupe], 'la partie reprise après le rechargement de la page : sa scène, son groupe')
+  noter(`page rechargée, emplacement 1 chargé : scène ${reprise.projection.scene.nom}, groupe ${groupe.join(', ')}`)
+  await capturer('3009-campagne-6-reprise')
+  await cliquerBouton({ element: 'bouton/quitter' })
+  await attendreLeMenu()
   v = await ouvrirAuGroupe()
   assert.deepEqual(zone(v, 'groupe.heros'), [], 'la partie suivante s’ouvre sur un groupe vide')
   await recruterLePretire(2)
   v = await lancerLaCampagne('arene')
   noter(`seconde partie sans recharger : scène ${v.projection.scene.nom}`)
-  await capturer('3009-campagne-4-seconde-partie')
+  await capturer('3009-campagne-7-seconde-partie')
 }
 
 /** Le bouton de la vue d'id `id` dans la zone `z` pressé à l'écran, puis la vue que le pont rend. */

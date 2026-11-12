@@ -4,6 +4,8 @@ extends PontDuNoyau.Transport
 ## @contrat Transport
 ## Hors d'une page, Godot lance `node <pont>` au premier `rejoindre` (`projet/scripts/transport_du_processus.gd`),
 ## `<pont>` le paramètre `--pont=<chemin>` du lancement, à défaut `hotes/godot/vivant.mjs`, par un tuyau bloquant.
+## Il lui passe `--stockage=<fichier>`, le fichier où vivent les sauvegardes : le paramètre `--stockage=<fichier>` du
+## lancement, à défaut `stockage.json` sous le dossier des données de l'utilisateur (`user://`).
 ## La sortie standard du processus est faite de lignes terminées par `\n` : d'abord l'annonce `{"url":"http://127.0.0.1:<port>/"}`,
 ## l'adresse du serveur du jeu, attendue `ATTENTE_S` au plus, puis une ligne par requête, la chaîne que rend
 ## `wfrpPont.appeler(methode, json)`. Son entrée standard reçoit une ligne par requête, `[methode, json|null]`.
@@ -75,7 +77,11 @@ func ouvrir() -> bool:
 	if _pid != 0:
 		return await _ouvert
 	var pont := parametre("pont")
-	var lance := OS.execute_with_pipe("node", PackedStringArray([pont if pont != "" else ProjectSettings.globalize_path("res://../vivant.mjs")]), true)
+	var stockage := parametre("stockage")
+	var lance := OS.execute_with_pipe("node", PackedStringArray([
+		pont if pont != "" else ProjectSettings.globalize_path("res://../vivant.mjs"),
+		"--stockage=" + (stockage if stockage != "" else ProjectSettings.globalize_path("user://stockage.json")),
+	]), true)
 	if lance.is_empty():
 		_mort = true
 		panne.emit("node ne se lance pas : est-il sur le PATH ?")

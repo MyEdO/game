@@ -4,7 +4,7 @@
 // (`entreeDHote`, `scripts/entree-d-hote.mjs` : le gel du catalogue, puis `hotes/godot/pont/entree.ts`, avec le greffon
 // `proseSource()`) ; le bundle tient seul dans une page et expose `globalThis.wfrpPont` (`hotes/godot/pont/CONTRAT.md`).
 // Il dit sa taille, puis l'EXÉCUTE dans un `node:vm` qui ne porte que les API de navigateur déclarées
-// (`API_DU_NAVIGATEUR`) : `demarrer` et `vue` répondent `ok: true`, un second `demarrer` `ok: false`, sinon le code de
+// (`API_DU_NAVIGATEUR`) : `demarrer`, `vue` et `sauvegardes` répondent `ok: true`, un second `demarrer` `ok: false`, sinon le code de
 // sortie est 1 ; `--sortie <dossier>` l'y écrit, sans quoi rien ne s'écrit. La CI le joue (`npm run pont:godot`), pour
 // qu'un changement du moteur qui casse le bundle de navigateur, à sa construction comme à son évaluation, ne passe pas
 // vert. `--sonde` importe le projet (`hotes/godot/projet/`) par l'éditeur épinglé (`EDITEUR`), puis contrôle chaque
@@ -42,6 +42,7 @@ import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { chargerAssets } from './asset/charger.mjs'
 import { deposerLesModeles, listage } from './listage.mjs'
 import { deposerLesPlanches } from './planches.mjs'
+import { stockageDuProcessus } from './stockage.mjs'
 
 let assetsCharges = null
 /** Les assets que `--sonde`, `--export` et `--ouvrir` lisent (`chargerAssets`), chargés à la première demande, jamais à l'import. */
@@ -116,15 +117,17 @@ export async function empaqueter(sortie) {
 }
 
 /** Les API de navigateur que le bundle lit, et que la page de Godot porte : chacune prise au global de Node, rien de plus. */
-const API_DU_NAVIGATEUR = ['structuredClone', 'console', 'performance', 'URL', 'atob', 'btoa', 'setTimeout', 'clearTimeout', 'queueMicrotask']
+const API_DU_NAVIGATEUR = ['structuredClone', 'console', 'performance', 'URL', 'atob', 'btoa', 'setTimeout', 'clearTimeout', 'queueMicrotask', 'localStorage']
 
 /** Le scénario que l'exécution démarre : le combat des tests du pont (`hotes/godot/pont/tour.hors-store.test.ts`). */
 const SCENARIO = 'dome'
 
 /** Le pont du bundle `code` évalué comme dans la page de Godot : dans un contexte qui ne porte que `API_DU_NAVIGATEUR`,
- *  chacune prise au global de Node sauf `console`, celle donnée. Lève si l'évaluation lève. */
-export function pontDuBundle(code, console) {
-  const page = createContext(tableTotale(API_DU_NAVIGATEUR, (nom) => (nom === 'console' ? console : globalThis[nom])))
+ *  chacune prise au global de Node sauf `console` et `localStorage`, ceux donnés (`stockage` : `stockageDuProcessus`,
+ *  `stockage.mjs`). Lève si l'évaluation lève. */
+export function pontDuBundle(code, console, stockage) {
+  const donnees = { console, localStorage: stockage }
+  const page = createContext(tableTotale(API_DU_NAVIGATEUR, (nom) => (nom in donnees ? donnees[nom] : globalThis[nom])))
   runInContext(code, page, { filename: PONT })
   return page.wfrpPont
 }
@@ -134,7 +137,7 @@ export function pontDuBundle(code, console) {
 function executer(code) {
   let pont
   try {
-    pont = pontDuBundle(code, console)
+    pont = pontDuBundle(code, console, stockageDuProcessus(null))
   } catch (erreur) {
     return [`l’évaluation lève : ${erreur}`]
   }
@@ -147,6 +150,7 @@ function executer(code) {
     ['demarrer', { scenario: SCENARIO }, (r) => r.ok === true && r.vue?.projection != null && r.vue?.corps != null],
     ['vue', undefined, (r) => r.ok === true && r.vue?.projection != null && r.vue?.corps != null],
     ['demarrer', { scenario: SCENARIO }, (r) => r.ok === false && r.erreur?.categorie === 'validation'],
+    ['sauvegardes', undefined, (r) => r.ok === true && Array.isArray(r.zones?.['sauvegardes.emplacements'])],
     ['erreursGlobales', undefined, (r) => r.ok === true && Array.isArray(r.erreurs) && r.erreurs.length === 0],
   ]
   return attendus.flatMap(([methode, entree, tient]) => {
@@ -339,7 +343,8 @@ function surUneCopie(binaire, figerLesDessins, faire) {
  *  `recettes/vues/decor.json`, le chemin du groupe figé (`figerLeChemin`) sous `recettes/vues/chemin.json`, l'éditeur
  *  du navire figé (`figerLEditeurDuNavire`) sous `recettes/vues/editeur-navire.json` et le dégagement du combat figé
  *  (`figerLeDegagement`) sous `recettes/vues/degagement.json`, que lisent leurs recettes ; chaque recette reçoit
- *  `--pont=<VIVANT>`, que la copie ne porte pas sous `res://../vivant.mjs`. */
+ *  `--pont=<VIVANT>`, que la copie ne porte pas sous `res://../vivant.mjs`, et `--stockage=<fichier de la copie>`,
+ *  pour qu'aucune ne touche aux sauvegardes de l'utilisateur. */
 function sonder(binaire, { DOSSIER_DES_MODELES, figerVuesDeLEcran, figerLeVehicule, figerLeRepos, figerLeDecor, figerLeChemin, figerLEditeurDuNavire, figerLeDegagement, figerLesDessins }) {
   return surUneCopie(binaire, figerLesDessins, (copie) => {
     mkdirSync(join(copie, 'recettes', 'vues'), { recursive: true })
@@ -360,7 +365,7 @@ function sonder(binaire, { DOSSIER_DES_MODELES, figerVuesDeLEcran, figerLeVehicu
       /^const RECETTE_AUTONOME := true\s*$/m.test(readFileSync(join(copie, script.slice('res://'.length)), 'utf8')))
     for (const recette of recettes) {
       console.log(`[godot] recette autonome : ${recette}`)
-      const resultat = godot(binaire, copie, ['--script', recette, '--', `--pont=${VIVANT}`])
+      const resultat = godot(binaire, copie, ['--script', recette, '--', `--pont=${VIVANT}`, `--stockage=${join(copie, 'stockage.json')}`])
       console.log(resultat.lignes.join('\n'))
       erreurs.push(...resultat.erreurs)
     }
@@ -411,7 +416,7 @@ async function pont(sortie) {
     console.error(`[pont] le bundle exécuté (API : ${API_DU_NAVIGATEUR.join(', ')}) ne tient pas son contrat :\n  ${ecarts.join('\n  ')}`)
     return 1
   }
-  console.log(`[pont] exécuté (API : ${API_DU_NAVIGATEUR.join(', ')}) : demarrer ${SCENARIO} et vue ok, second demarrer refusé, erreursGlobales vide`)
+  console.log(`[pont] exécuté (API : ${API_DU_NAVIGATEUR.join(', ')}) : demarrer ${SCENARIO}, vue et sauvegardes ok, second demarrer refusé, erreursGlobales vide`)
   return 0
 }
 

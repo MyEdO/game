@@ -8,6 +8,8 @@ import { join } from 'node:path';
 import { expect } from 'vitest';
 import { listage } from '../listage.mjs';
 import { tableTotale } from '../../../src/lib/tableTotale';
+import type { Stockage } from '../../../src/lib/stockage';
+import { stockageEnMemoire } from '../../../src/lib/stockage.testkit';
 import { creerPont, type MondeDuPont, type MorceauxDuPont, type Pont, type Suite, type VueDuPont } from './pont';
 import { gestesDessines } from './dessines';
 export { enFocus, gestesDessines } from './dessines';
@@ -19,15 +21,16 @@ import type { Bouton, Choix, Element, Formulaire, Jeu, Ligne, Plan, Saisie } fro
 /** Une réponse décodée. */
 export type Reponse = ({ ok: true } & Partial<Suite> & Record<string, unknown>) | { ok: false; erreur: { categorie: CategorieDuPont; message: string } };
 
-/** Un pont neuf, et ses appels : `entree` passe en JSON, absente sans entrée. */
-export function table() {
-  const pont: Pont = creerPont();
+/** Un pont neuf sur le stockage `stockage`, en mémoire et vide par défaut, et ses appels : `entree` passe en JSON,
+ *  absente sans entrée. */
+export function table(stockage: Stockage = stockageEnMemoire()) {
+  const pont: Pont = creerPont(stockage);
   const appel = (methode: string, entree?: unknown): Reponse => {
     const brut = pont.appeler(methode, entree === undefined ? undefined : JSON.stringify(entree));
     expect(typeof brut, 'le pont rend une chaîne JSON').toBe('string');
     return JSON.parse(brut) as Reponse;
   };
-  return { pont, appel };
+  return { pont, appel, stockage };
 }
 
 /** Le manifeste du monde de la partie (`monde`). */

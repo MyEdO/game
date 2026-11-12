@@ -9,7 +9,7 @@
  * forme stockée — booléen, nombre, id d'énumération ou objet JSON.
  */
 import { useSyncExternalStore } from 'react';
-import { stockageWeb } from '../web/stockageWeb';
+import { stockageWeb } from '../hote/stockageWeb';
 
 export interface PersistedAtom<T> {
   /** Valeur courante (lecture hors React : garde, sérialisation, test). */

@@ -29,6 +29,10 @@ var essai := false
 ## Si la partie à ouvrir est une partie au groupe (`ouvrir`), que le joueur compose puis lance sur une campagne du jeu
 ## (`lancer`), plutôt qu'un scénario de test : « Jouer » de l'accueil le pose.
 var au_groupe := false
+## Si le combat s'ouvre sur les sauvegardes à charger (`sauvegardes`), sans partie : « Reprendre » de l'accueil le pose.
+var reprise := false
+## L'emplacement de la sauvegarde que le combat charge à son ouverture (`charger`), `null` sans chargement demandé.
+var a_charger: Variant = null
 ## Si une recette pilote le jeu (`PARAMETRE_DE_RECETTE`) : l'écran se publie (`publier_l_ecran`), une image ne se dessine
 ## que si l'écran a changé (`OS.low_processor_usage_mode`), sans anticrénelage multiéchantillon (`Viewport.msaa_3d`), car
 ## dans l'export Web chaque image tient le fil de la page où la recette lit l'écran publié et où arrive chacun de ses

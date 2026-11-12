@@ -4,16 +4,21 @@
  * - Le pont du processus, `hotes/godot/vivant.mjs` (#3945), bâtit le bundle en mémoire et en tire le pont comme la page
  *   (`empaqueter`, `pontDuBundle`, `construire.mjs`), sa `console` sur la sortie d'erreur : sa sortie standard ne porte
  *   que les lignes du protocole. Son serveur (`servir.mjs`, sans export) ne sert que `modeles/` et `depot/`.
+ * - Son stockage, où vivent les sauvegardes, est le fichier de son option `--stockage=<fichier>` (`stockageDuProcessus`,
+ *   `stockage.mjs`), relu à l'ouverture et réécrit à chaque changement ; sans elle, il ne dure que le processus.
  * - `resoudreLaPile` va à `pont.resoudreLaPile`, qui rend sur-le-champ sans `Worker` (`pont/pileEnFond.ts`) : les réponses
  *   sortent dans l'ordre des requêtes.
  * - Une ligne illisible sur son entrée le tue ; la fin de son entrée ferme le serveur, et il sort en 0.
  */
 import { Console } from 'node:console'
 import { fileURLToPath } from 'node:url'
+import { parseArgs } from 'node:util'
 import { empaqueter, pontDuBundle } from './construire.mjs'
 import { servir } from './servir.mjs'
+import { stockageDuProcessus } from './stockage.mjs'
 
-const pont = pontDuBundle(await empaqueter(null), new Console(process.stderr))
+const { values: options } = parseArgs({ options: { stockage: { type: 'string' } } })
+const pont = pontDuBundle(await empaqueter(null), new Console(process.stderr), stockageDuProcessus(options.stockage ?? null))
 const { url, fermer } = await servir({ depot: fileURLToPath(new URL('../..', import.meta.url)) })
 process.stdout.write(`${JSON.stringify({ url })}\n`)
 // L'entrée découpée aux seuls `\n`, jamais aux U+2028 et U+2029 que le `JSON.stringify` de Godot laisse bruts.

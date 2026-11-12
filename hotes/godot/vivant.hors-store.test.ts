@@ -12,6 +12,7 @@ import { PassThrough } from 'node:stream';
 import { fileURLToPath } from 'node:url';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { pontDuBundle } from './construire.mjs';
+import { stockageDuProcessus } from './stockage.mjs';
 import { LISTAGE } from './listage.mjs';
 import type { MaillageDeLaPile, PileDemandee } from './pont/pile';
 
@@ -98,7 +99,7 @@ describe('vivant', () => {
 describe('pontDuBundle', () => {
   it('la console du bundle est celle donnée', () => {
     const flux = new PassThrough();
-    const pont = pontDuBundle("globalThis.wfrpPont = { appeler: () => (console.log('du noyau'), '{}') }", new Console(flux));
+    const pont = pontDuBundle("globalThis.wfrpPont = { appeler: () => (console.log('du noyau'), '{}') }", new Console(flux), stockageDuProcessus(null));
     pont.appeler('vue');
     flux.end();
     expect(String(flux.read())).toBe('du noyau\n');

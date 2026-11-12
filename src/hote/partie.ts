@@ -7,7 +7,7 @@
  */
 import {
   creerPartie, etatInitialDuJeu, preferenceDef, refusDesSurcharges, valeurDEntree,
-  type Cadence, type EntreesDeLaPartie, type FabriqueDId, type LancementDeScenario, type IdDePreference, type PrefValue, type Jeton, type Partie, type Programme, type ResultatDeLAppel,
+  type Cadence, type EntreesDeLaPartie, type EtatDeJeu, type FabriqueDId, type LancementDeScenario, type IdDePreference, type PrefValue, type Jeton, type Partie, type Programme, type ResultatDeLAppel,
 } from '../noyau/index';
 import { lancementDuScenario, type TestScenario } from '../scenes/test-scenarios/_shared';
 import { testScenarios } from '../scenes/test-scenarios';
@@ -124,12 +124,12 @@ export function ouvrirLaPartie(entete: Entete, persisterLeHeros: EntreesDeLaPart
   return ouvrirLeLancement(entete, (idNeuf) => lancementDuScenario(scenario, idNeuf), persisterLeHeros, premierJeton);
 }
 
-/** Ouvre la partie des entrées `entrees` au groupe : la partie du noyau sur l'état initial (`creerPartie`), sans scène
- *  ni lancement, le héros persisté par le service `persisterLeHeros` de l'hôte (`EntreesDeLaPartie`), ses jetons
- *  numérotés à partir de `premierJeton`. Son groupe se compose par les verbes du noyau, puis elle se lance
- *  (`Partie.lancer`). */
-export function ouvrirAuGroupe(entrees: EntreesDeLEntete, persisterLeHeros: EntreesDeLaPartie['persisterLeHeros'], premierJeton = 0): PartieAuGroupe {
-  const partie = creerPartie(etatInitialDuJeu(), {
+/** Ouvre la partie des entrées `entrees` sur l'état `etat` (`creerPartie`) : l'état initial, au groupe, sans scène ni
+ *  lancement, dont le groupe se compose par les verbes du noyau avant de se lancer (`Partie.lancer`) ; ou l'état d'une
+ *  sauvegarde chargée (`chargerLaSave`). Le héros est persisté par le service `persisterLeHeros` de l'hôte
+ *  (`EntreesDeLaPartie`), ses jetons numérotés à partir de `premierJeton`. */
+export function ouvrirAuGroupe(entrees: EntreesDeLEntete, persisterLeHeros: EntreesDeLaPartie['persisterLeHeros'], premierJeton = 0, etat: EtatDeJeu = etatInitialDuJeu()): PartieAuGroupe {
+  const partie = creerPartie(etat, {
     graine: entrees.graine,
     reglesMaison: entrees.regles,
     cadence: entrees.cadence,
