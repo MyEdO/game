@@ -3,9 +3,11 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { initialNet } from './etat';
 import { openSequence, displayStep, monoStep } from './rollSeam';
-import { startCascade, advanceCascade, resumeSuspendedCascade, sortirDeLHote } from './cascade';
-import { runFlow } from './combatEffects';
+import { startCascade, advanceCascade, resumeSuspendedCascade, sortirDeLHote, suspendActiveCascade, setClotureDeCascade } from './cascade';
+import { runFlow, pushReveal } from './combatEffects';
+import { dispatchCascadeDone } from './combatSlice';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
+import type { Set as SetFn } from './flowTypes';
 import { seedBattleRng } from './battleRng';
 import { setCadence } from '../engine/cadence';
 import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
@@ -47,22 +49,41 @@ const KIND_INERTE = cleDeFixture('sonde-1479-inerte');
 const KIND_OUVRE_COMBAT = cleDeFixture('sonde-1479-ouvre-combat');
 const KIND_JET = cleDeFixture('sonde-1479-jet');
 const KIND_OUVRE_FLOW = cleDeFixture('sonde-4006-ouvre-flow');
+const KIND_REVELE = cleDeFixture('sonde-4006-revele');
+const KIND_REVELE_A_PART = cleDeFixture('sonde-4006-revele-a-part');
+const KIND_OUVRE_FLOW_PUIS_REVELE = cleDeFixture('sonde-4006-ouvre-flow-puis-revele');
+const KIND_OUVRE_FLOW_PUIS_COMBAT = cleDeFixture('sonde-4006-ouvre-flow-puis-combat');
 
 /** Le Flow que joue l'applier `KIND_OUVRE_FLOW`, posé par chaque test. */
 let flowOuvert: Flow = { kind: 'sequence', etapes: [] };
 /** Les clôtures `testRateDeLActeur` jouées, avec la profondeur de pile qu'elles voient. */
 let ratesVus: { actorId: string; parquees: number }[] = [];
 
+/** Le combat que voit la garde `combatALEntree` : elle lit `get().battle`, un combat complet est inutile. */
+const COMBAT = { combatants: [], order: [], turn: 0, round: 1, log: [], over: null } as never;
+/** Une révélation par l'émetteur unique (`pushReveal`) : elle rejoint la séquence en vol, ou ouvre la sienne (`own`). */
+const reveler = (s: SetFn, own: boolean): void => pushReveal(s, { kind: 'effet', title: fixtureText('Révélation'), lines: [] }, { own });
+
 let apples = 0;
 beforeEach(() => { avecLesTables({ appliers: { ...tablesDuJeu().appliers, [KIND_INERTE]: () => { apples++; return {}; }, [KIND_OUVRE_COMBAT]: (_get, setter) => {
   apples++;
   // Ce que fait `lancerLeCombat` du point de vue de la garde : le slot appartient désormais à un AUTRE
   // contexte. La garde lit `get().battle` — inutile de monter un combat complet pour la mesurer.
-  setter({ battle: { combatants: [], order: [], turn: 0, round: 1, log: [], over: null } as never });
+  setter({ battle: COMBAT });
   return {};
 }, [KIND_JET]: () => ({}), [KIND_OUVRE_FLOW]: (g, s) => {
   apples++;
   runFlow(g, s, flowOuvert);
+  return {};
+}, [KIND_REVELE]: (_g, s) => { apples++; reveler(s, false); return {}; },
+[KIND_REVELE_A_PART]: (_g, s) => { apples++; reveler(s, true); return {}; },
+[KIND_OUVRE_FLOW_PUIS_REVELE]: (g, s) => { apples++; runFlow(g, s, flowOuvert); reveler(s, true); return {}; },
+[KIND_OUVRE_FLOW_PUIS_COMBAT]: (g, s) => {
+  apples++;
+  runFlow(g, s, flowOuvert);
+  // `lancerLeCombat` du point de vue du slot et de la garde : la séquence en vol est parquée, le combat est ouvert.
+  suspendActiveCascade(g, s);
+  s({ battle: COMBAT });
   return {};
 } }, clotures: { ...tablesDuJeu().clotures, testRateDeLActeur: (g, s, c) => {
   ratesVus.push({ actorId: c.actorId, parquees: g().suspendedCascades.length });
@@ -123,7 +144,7 @@ describe('#1479 — `openSequence` ne rend JAMAIS un préfixe pour une séquence
 
 describe('#1595 — un combat DÉJÀ ouvert n’interrompt pas le pilote immédiat', () => {
   it('séquence de plusieurs étapes jouée en combat : toutes appliquées, rien n’est parqué', () => {
-    set({ battle: { combatants: [], order: [], turn: 0, round: 1, log: [], over: null } as never });
+    set({ battle: COMBAT });
     openSequence(get, set, { title: 'Sonde', purpose: 'test', steps: sequenceDe(KIND_INERTE) });
     expect(apples, 'chaque étape est appliquée une fois').toBe(2);
     expect(get().suspendedCascades, 'aucune étape n’est parquée derrière le combat en cours').toEqual([]);
@@ -153,15 +174,17 @@ describe('#1479 — PARITÉ DE TRACE : le dé posé d’office par le curseur a 
   });
 });
 
+const posee = (flag: string): Flow => ({ kind: 'effet', effet: { type: 'setFlag', flag } });
+/** Le groupe : `Meneur` tenu par le siège local (le Test de Force est le sien), `Automate` conduit par l'IA
+ *  (le Test d'Agilité est le sien, joué d'office). */
+function groupe(): void {
+  const [a, b] = tousLesHerosDeScenario(idsDeTest).slice(0, 2);
+  const meneur = { ...a, aiControlled: false, characteristics: { ...a.characteristics, force: 8, agilite: 5 } };
+  const automate = { ...b, aiControlled: true, characteristics: { ...b.characteristics, force: 4, agilite: 60 } };
+  set({ party: [meneur, automate], flags: {}, pendingTest: null, pendingExtendedTest: null, pendingForceDoor: null } as never);
+}
+
 describe('#4006 — la sortie d’hôte d’un Test de scène reprend la séquence qu’il a parquée', () => {
-  const posee = (flag: string): Flow => ({ kind: 'effet', effet: { type: 'setFlag', flag } });
-  /** Le groupe : `Meneur` tenu par le siège local, `Automate` conduit par l'IA. */
-  function groupe(): void {
-    const [a, b] = tousLesHerosDeScenario(idsDeTest).slice(0, 2);
-    const meneur = { ...a, aiControlled: false, characteristics: { ...a.characteristics, force: 8, agilite: 5 } };
-    const automate = { ...b, aiControlled: true, characteristics: { ...b.characteristics, force: 4, agilite: 60 } };
-    set({ party: [meneur, automate], flags: {}, pendingTest: null, pendingExtendedTest: null, pendingForceDoor: null } as never);
-  }
   /** Une séquence TENUE AU SLOT dont la 1ʳᵉ étape ouvre `flow` : validée, son applier la parque derrière l'hôte. */
   function parquerSous(flow: Flow): void {
     flowOuvert = flow;
@@ -246,11 +269,119 @@ describe('#4006 — la sortie d’hôte d’un Test de scène reprend la séquen
 
   it('garde — une sortie d’hôte EN COMBAT ne reprend rien', () => {
     parquerSous({ kind: 'test', test: { characteristic: 'force' }, reussite: posee('branche'), echec: posee('branche') });
-    set({ battle: { combatants: [], order: [], turn: 0, round: 1, log: [], over: null } as never });
+    set({ battle: COMBAT });
     let suite = 0;
     sortirDeLHote(get, set, { pendingTest: null }, () => { suite++; });
     expect(suite, 'la suite est jouée').toBe(1);
     expect(get().pendingCascade, 'le slot est libéré').toBeNull();
     expect(get().suspendedCascades.map((c) => c.title), 'la séquence parquée reste au teardown du combat').toEqual(['Parquée']);
+  });
+});
+
+describe('#4006 — le pilote immédiat à contexte parque au rang ce que son applier ouvre', () => {
+  /** Les dénouements de séquence (`clotureDeCascade`), dans l'ordre : la clôture que le jeu branche, observée. */
+  let denouements: string[] = [];
+  beforeEach(() => {
+    groupe();
+    denouements = [];
+    setClotureDeCascade((done) => { denouements.push(done.title); dispatchCascadeDone(get, set, done); });
+  });
+  const testDeForce: Flow = { kind: 'test', test: { characteristic: 'force' }, reussite: posee('force'), echec: posee('force') };
+  /** La séquence du pilote, portée par l'Automate (aucun siège ne la tient : `openSequence` la pilote d'office). */
+  function piloter(premierKind: GenreDeCascade): ReturnType<typeof openSequence> {
+    const automate = get().party[1];
+    return openSequence(get, set, { title: 'Journée', purpose: 'travelDay', steps: [
+      displayStep({ id: 'j1', kind: premierKind, actorId: automate.id, label: fixtureText('Étape 1') })!,
+      displayStep({ id: 'j2', kind: KIND_INERTE, actorId: automate.id, label: fixtureText('Étape 2') })!,
+    ] });
+  }
+  const pile = () => get().suspendedCascades.map((c) => c.title);
+  /** Le Test de Force du Meneur, ouvert par l'applier, joué puis validé par son siège. */
+  function jouerLeTestDeForce(): void {
+    expect(get().pendingTest?.actorId, 'le Test ouvert est celui du Meneur').toBe(get().party[0].id);
+    get().jetLancer('test');
+    get().jetValider('test');
+    expect(get().flags.force, 'la branche du Test est jouée').toBe(true);
+  }
+  /** La journée reprise une fois depuis son curseur, son dénouement joué une fois. */
+  function journeeDenouee(): void {
+    expect(apples, 'l’étape jouée n’est pas rejouée, la suivante est jouée une fois').toBe(2);
+    expect(denouements, 'le dénouement de la journée est joué une fois').toEqual(['Journée']);
+    expect(get().suspendedCascades, 'la pile est vide').toEqual([]);
+  }
+
+  it('slot nul, l’applier ouvre une séquence : la journée est parquée entière, reprise une fois à sa clôture, dénouée une fois', () => {
+    flowOuvert = testDeForce;
+    expect(piloter(KIND_OUVRE_FLOW), 'rien n’est rendu').toBeUndefined();
+    expect(apples, 'la suite n’est pas jouée par-dessus le Test').toBe(1);
+    expect(pile(), 'la journée est parquée sous le Test').toEqual(['Journée']);
+    const [parquee] = get().suspendedCascades;
+    expect(parquee.participants.map((s) => s.id), 'la séquence ENTIÈRE est parquée').toEqual(['j1', 'j2']);
+    expect(parquee.cursor, 'le curseur est posé derrière l’étape jouée').toBe(1);
+    expect(parquee.piloteImmediat, 'le pilote la reprendra').toBeTruthy();
+    expect(denouements, 'aucun dénouement avant la clôture du Test').toEqual([]);
+    jouerLeTestDeForce();
+    journeeDenouee();
+  });
+
+  it('slot vivant, l’applier ouvre une séquence d’un autre purpose : pile [slot d’entrée, journée], l’ouverte au slot', () => {
+    flowOuvert = testDeForce;
+    const meneur = get().party[0];
+    startCascade(get, set, { title: 'Vivante', purpose: 'affichage', steps: [displayStep({ id: 'v1', kind: KIND_INERTE, actorId: meneur.id, label: fixtureText('Vivante') })!] });
+    expect(piloter(KIND_OUVRE_FLOW), 'rien n’est rendu').toBeUndefined();
+    expect(pile(), 'la journée est parquée au-dessus du slot d’entrée').toEqual(['Vivante', 'Journée']);
+    expect(get().pendingCascade?.purpose, 'le Test ouvert tient le slot').toBe('test');
+    expect(apples).toBe(1);
+  });
+
+  it('garde — séquence ouverte et close dans l’applier (Test joué d’office) : rien n’est parqué, la journée va au bout', () => {
+    flowOuvert = { kind: 'test', test: { characteristic: 'agilite' }, reussite: posee('agilite'), echec: posee('agilite') };
+    const resolues = piloter(KIND_OUVRE_FLOW);
+    expect(get().flags.agilite, 'le Test d’office est joué dans l’applier').toBe(true);
+    expect(resolues?.map((s) => s.id), 'la journée est rendue résolue').toEqual(['j1', 'j2']);
+    expect(get().suspendedCascades).toEqual([]);
+    expect(get().pendingCascade).toBeNull();
+  });
+
+  it('garde (doc de `clotureHorsCombat`) — slot vivant et append : le fait n’est pas levé, la journée va au bout, rien n’est rendu', () => {
+    const meneur = get().party[0];
+    startCascade(get, set, { title: 'Vivante', purpose: 'affichage', steps: [displayStep({ id: 'v1', kind: KIND_INERTE, actorId: meneur.id, label: fixtureText('Vivante') })!] });
+    expect(piloter(KIND_REVELE), 'le slot a été réécrit : aucun dénouement à enchaîner').toBeUndefined();
+    expect(apples, 'la journée est jouée en entier').toBe(2);
+    expect(get().suspendedCascades, 'rien n’est parqué').toEqual([]);
+    expect(get().pendingCascade?.participants.map((s) => s.label), 'la révélation rejoint le slot vivant').toEqual(['Vivante', 'Révélation']);
+  });
+
+  it('deux ouvertures dans un applier : la seconde, puis la première, puis la journée, une fois', () => {
+    flowOuvert = testDeForce;
+    expect(piloter(KIND_OUVRE_FLOW_PUIS_REVELE)).toBeUndefined();
+    expect(pile(), 'la journée sous le Test, sous la révélation qui tient le slot').toEqual(['Journée', expect.any(String)]);
+    expect(get().pendingCascade?.purpose).toBe('affichage');
+    get().jetValider('cascade');
+    expect(get().pendingCascade?.purpose, 'la révélation close, le Test revient au slot').toBe('test');
+    expect(pile()).toEqual(['Journée']);
+    expect(apples).toBe(1);
+    jouerLeTestDeForce();
+    journeeDenouee();
+  });
+
+  it('une ouverture puis un combat : la journée sous le Test derrière le combat ; le Test d’abord, puis la journée, une fois', () => {
+    flowOuvert = testDeForce;
+    expect(piloter(KIND_OUVRE_FLOW_PUIS_COMBAT)).toBeUndefined();
+    expect(get().suspendedCascades.map((c) => c.purpose), 'pile [journée, Test] derrière le combat').toEqual(['travelDay', 'test']);
+    set({ battle: null } as never);
+    expect(resumeSuspendedCascade(get, set), 'le teardown du combat reprend la tête de pile').toBe(true);
+    expect(get().pendingCascade?.purpose, 'le Test revient au slot avant la journée').toBe('test');
+    expect(apples).toBe(1);
+    jouerLeTestDeForce();
+    journeeDenouee();
+  });
+
+  it('garde — lancée en combat, une séquence ouverte par l’applier n’arrête pas la journée', () => {
+    set({ battle: COMBAT });
+    expect(piloter(KIND_REVELE_A_PART)).toBeUndefined();
+    expect(apples, 'la journée est jouée en entier').toBe(2);
+    expect(get().suspendedCascades, 'rien n’est parqué').toEqual([]);
+    expect(get().pendingCascade?.purpose, 'la révélation tient le slot').toBe('affichage');
   });
 });
