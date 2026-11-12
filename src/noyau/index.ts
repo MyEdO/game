@@ -98,7 +98,7 @@ export { isRoomZone } from './monde/rooms';
 export { sceneZoneTiles } from './monde/zones';
 export { capDeLEntite, capsOfferts, effectZoneRect, entiteDeLaSelection, ficheEditee, FACES_D_ARETE, fichesDePersonnage, libelleDeStructure, lumiereAllumee, poigneeDeLaSelection, sameSel, segmentDeLaSelection, selRect, structuresCrenelables, structuresDeLArete, type Sel, type WallPaint, ZONE_VARIANTS } from './sceneEditLecture';
 export { lumiereDeLaScene, type LumiereDeLaScene } from './lumiereDeLaScene';
-export { effetsDeLAppel, vitrineDesEffets, zonesQuiDurent, type Effet, type VitrineDesEffets, type ZoneQuiDure } from './effetsDeLAppel';
+export { effetsDeLAppel, vitrineDesEffets, zonesQuiDurentEnVue, type Effet, type VitrineDesEffets, type ZoneQuiDure } from './effetsDeLAppel';
 export { cleDeLaVision, combattantEnVue, entiteConnue, nomEnVue, porteurEnVue, visionDuMonde, type VisionDuMonde } from './visionDuGroupe';
 export { marquesDesEtats, type MarqueDEtat } from './marquesDesEtats';
 export { musiqueDeLaPartie, type MusiqueDeLaPartie } from './musiqueDeLaPartie';

@@ -32,6 +32,7 @@ export const JEUX_DU_PARCOURS = {
   bataille: { bataille: ['--scenario', 'bataille-de-masse'] },
   exploration: { exploration: ['--scenario', 'porte-close'] },
   relief: { relief: ['--scenario', 'grimpant'] },
+  murs: { murs: ['--scenario', 'zones-pieces'] },
   etage: { etage: ['--scenario', 'fenetre-ecuries'] },
   regards: { regards: ['--scenario', 'fenetre-ecuries'] },
   meteo: { meteo: ['--scenario', 'voyage'] },
