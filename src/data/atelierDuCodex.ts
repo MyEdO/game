@@ -30,7 +30,7 @@ export const REF_LIST_DATASET: Record<string, DatasetKey> = {
 };
 
 /** ids d'un champ-liste de refs — descend dans les branches `of` d'un `{pick}` (`AdvancementRef`) et
- *  dans le `choice` d'une `TrappingRef` ; ignore les `{text}` narratifs et jokers. Une CHAÎNE BRUTE (ex.
+ *  dans le `choice` d'une `TrappingRef` ; ignore les formes sans id (somme, mention, `{text}`) et les jokers. Une CHAÎNE BRUTE (ex.
  *  `criticalsTete.traumas: string[]`) est traitée comme un id DIRECT (#173 : ces listes référencent
  *  leur dataset par id, jamais par libellé). */
 function refIdsIn(v: unknown): string[] {
