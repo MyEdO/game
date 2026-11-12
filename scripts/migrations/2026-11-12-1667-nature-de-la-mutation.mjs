@@ -46,7 +46,7 @@ const DOCUMENTS = [
   document('haut-elfe', 'Haut-elfe', 0, LDB),
   document('elfe-sylvain', 'Elfe sylvain', 0, LDB),
   document('ogre', 'Ogre', 10, { book: 'archives-de-l-empire-2', page: 18, note: 'Ogres et Mutations, ADE II 02 l.172-177' }),
-  document('gnome', 'Gnome', 50, { book: 'nuits-agitees-et-dures-journees', page: 91, note: 'Gnomes et Corruption, NADJ 15 l.173' }),
+  document('gnome', 'Gnome', 50, { book: 'nuits-agitees-et-dures-journees', page: 90, note: 'Gnomes et Corruption, NADJ 15 l.173' }),
 ];
 
 const arrets = [];
