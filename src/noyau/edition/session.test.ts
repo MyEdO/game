@@ -13,6 +13,7 @@
  * de `refusDeLEntite`.
  */
 import { describe, expect, it } from 'vitest';
+import type { SourceDeLEdition } from './adresseDeProse';
 import { emptyNarratif } from '../monde/campaignNarratif';
 import { emptyScene, heightAt, isWalkable, type Scene } from '../monde/scene';
 import { buildScene, type MapSpec } from '../mapSpec';
@@ -51,8 +52,11 @@ import areneProjet from '../../scenes/arene/arene-projet.json';
 /** Un narratif vide : aucun preset de PNJ, aucune entrée à référencer. */
 const NARRATIF_VIDE = emptyNarratif();
 
+/** Aucun `Source/` servi : aucun chapitre. */
+const SANS_SOURCE: SourceDeLEdition = { manifeste: null, chapitres: {} };
+
 /** Le cadre d'un porteur d'une scène vide, au narratif `narratif`. */
-const cadre = (narratif = NARRATIF_VIDE): CadreDuPorteur => ({ scene: emptyScene('c', 4, 4), projet: { scenes: [], narratif } });
+const cadre = (narratif = NARRATIF_VIDE): CadreDuPorteur => ({ scene: emptyScene('c', 4, 4), projet: { scenes: [], narratif }, source: SANS_SOURCE });
 
 const ouverteSur = (scene: Scene, duDepot = false, narratif = NARRATIF_VIDE): SessionDEdition => ouvrirLEdition({ scenes: [scene], narratif } as unknown as Parameters<typeof ouvrirLEdition>[0], duDepot);
 const ouverte = (duDepot = false): SessionDEdition => ouverteSur(emptyScene('session', 4, 4), duDepot);
@@ -500,7 +504,7 @@ describe('le porteur `entite` du geste `valeur` (#3606 M1a à M1d)', () => {
     const hub = areneProjet.scenes.find((sc) => sc.id === 'arene-hub')! as unknown as Scene;
     const offerts = (effect: Effect, champ: string) => {
       const declencheur = { id: 't', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: { kind: 'seq' as const, steps: [{ kind: 'do' as const, effect }] } };
-      return choixDuChamp('declencheur', declencheur, ['flow', 'steps', 0, 'effect', champ, 'id'], { scene: hub, projet: { scenes: areneProjet.scenes as unknown as Scene[], narratif: NARRATIF_VIDE } })!.map((c) => c.valeur);
+      return choixDuChamp('declencheur', declencheur, ['flow', 'steps', 0, 'effect', champ, 'id'], { scene: hub, projet: { scenes: areneProjet.scenes as unknown as Scene[], narratif: NARRATIF_VIDE }, source: SANS_SOURCE })!.map((c) => c.valeur);
     };
     expect(offerts({ type: 'transition', scene: { id: 'arene-hub' } }, 'scene')).toEqual(areneProjet.scenes.map((sc) => sc.id));
     const personnages = hub.entities.filter((e) => e.kind === 'personnage');

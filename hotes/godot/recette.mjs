@@ -107,6 +107,9 @@
 //   « Nouvelle masse de toiture » y pose une masse, que « +1 » monte à deux niveaux. L'outil Sélection, un clic sur la
 //   case voisine du décor choisit le déclencheur qui la couvre : à son inspecteur, sa condition « TOUS (ET) » choisie en
 //   liste, puis « Ajouter » lui donne une condition dans son contenu ; « Annuler » deux fois la retire.
+//   Au flux du même déclencheur, un pas d'effet « journal » : son adresse de prose (#3606 M2g) se désigne par des choix
+//   seuls, le livre, le chapitre que Godot charge à la demande (`source/`), une cellule ajoutée, sa ligne choisie : le
+//   passage désigné se lit à l'inspecteur, l'empreinte jamais offerte ; « Annuler » rend le flux d'avant.
 //   « Charger une planche… » ouvre le choix d'un fichier de la page, que la recette remplit d'une planche quadrillée : le
 //   calque se pose sur toute la carte ; « Caler par deux points », puis le centre d'une case comme premier point de
 //   l'image, son coin comme son nœud, et le centre de la case quatre plus loin comme second point, le coin de la case
@@ -1977,6 +1980,36 @@ async function parcoursEditeur() {
   await cliquerPoint(...cases[`${dx + 1},${dy}`])
   await waitFor(session, montre('valeur/when/kind'))
   assert.deepEqual(etatDuDeclencheur(await editeur()), declencheurAvant, '« Annuler » trois fois, le déclencheur recliqué : rendu à sa condition d’avant la Bourse')
+  await ajouterLePas('valeur/flow', rangDuPas, 'do', `valeur/flow/steps/${rangDuPas}/effect/flag`)
+  e = await editeur()
+  const adresse = `${pasDOps}/descRef`
+  await choisirALaListe(`${pasDOps}/type`, inspecte(e, `${pasDOps}/type`).valeurs.find((b) => b.jeu.args[2]?.type === 'journal').id, 'editeur.inspecteur', montre(`${adresse}/ajouter`))
+  const ligneDeLAdresse = `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((el) => el.id === '${adresse}/etat')?.texte ?? ''`
+  /** La valeur du champ `id` de l'inspecteur dont la valeur jouée satisfait `voulue`, choisie en liste ou au clic,
+   *  jusqu'à l'état `attendu`. */
+  const choisirAuChamp = async (id, voulue, attendu) => {
+    const champ = inspecte(await editeur(), id)
+    const valeur = champ.valeurs.find((b) => voulue(b.jeu.args[2]))
+    if (champ.type === 'liste') await choisirALaListe(id, valeur.id, 'editeur.inspecteur', attendu)
+    else await cliquerAuPanneau({ element: `bouton/${valeur.id}` })
+    await waitFor(session, attendu, { timeoutMs: 30000 })
+  }
+  await choisirAuChamp(`${adresse}/ajouter`, (v) => v.book === 'livre-de-base', montre(`${adresse}/ch`))
+  await choisirAuChamp(`${adresse}/ch`, (v) => v === '64', `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((el) => el.id === '${adresse}/ch')?.valeurs.find((b) => b.presse)?.jeu.args[2] === '64'`)
+  await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((el) => el.id === '${adresse}/parts/ajouter')?.valeurs ?? []).some((b) => b.jeu.args[2]?.at(-1)?.kind === 'cellule')`, { timeoutMs: 30000 })
+  await choisirAuChamp(`${adresse}/parts/ajouter`, (v) => v.at(-1).kind === 'cellule', montre(`${adresse}/parts/0/row`))
+  e = await editeur()
+  const ligneVoulue = inspecte(e, `${adresse}/parts/0/row`).valeurs.find((b) => !b.presse && b.refus === null)
+  await choisirAuChamp(`${adresse}/parts/0/row`, (v) => v === ligneVoulue.jeu.args[2], `(${ligneDeLAdresse}).startsWith('Passage : ') && globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((el) => el.id === '${adresse}/parts/0/row')?.valeurs.find((b) => b.presse)?.libelle === ${JSON.stringify(ligneVoulue.libelle)}`)
+  e = await editeur()
+  assert.ok(!e.zones['editeur.inspecteur'].some((el) => el.id.startsWith(`${adresse}/parts/0/sum`)), 'l’empreinte du fragment n’est jamais offerte')
+  noter(`le flux du même déclencheur, un pas d’effet « ${pressee(`${pasDOps}/type`)} » : son adresse de prose, livre « ${pressee(`${adresse}/book`)} », chapitre « ${pressee(`${adresse}/ch`)} » chargé à la demande, une cellule ajoutée, la ligne « ${pressee(`${adresse}/parts/0/row`)} » à la colonne « ${pressee(`${adresse}/parts/0/col`)} » : ${inspecte(e, `${adresse}/etat`).texte}`)
+  await capturer('3606-m2g-1-cellule')
+  for (let n = 0; n < 7; n++) await cliquerAuPanneau({ element: 'bouton/annuler' })
+  await waitFor(session, `!(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id.startsWith('valeur/flow/steps/${rangDuPas}/'))`)
+  await cliquerPoint(...cases[`${dx + 1},${dy}`])
+  await waitFor(session, montre('valeur/when/kind'))
+  assert.deepEqual(etatDuDeclencheur(await editeur()), declencheurAvant, '« Annuler » sept fois, le déclencheur recliqué : rendu à son flux d’avant l’adresse')
   const planche = join(depot, 'planche.png')
   ecrirePlanche(planche)
   await session.rpc('Page.setInterceptFileChooserDialog', { enabled: true })
