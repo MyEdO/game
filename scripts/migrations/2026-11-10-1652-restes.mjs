@@ -40,7 +40,7 @@ const CO = 240;
 
 const INITIES = { op: 'narrative', text: "combien d'initiés sensibles à ses paroles il a rassemblés", nombre: d10 };
 const DECOUVERTE = { op: 'narrative', text: 'vous découvrez sa présence' };
-const COMMISSION = { kind: 'choix', prompt: 'Accepter le colis', oui: { kind: 'effet', effet: { type: 'ops', on: 'navire', ops: [{ op: 'commission', montant: { brass: 200 * CO } }] } } };
+const COMMISSION = { kind: 'choix', invite: 'Accepter le colis', oui: { kind: 'effet', effet: { type: 'ops', on: 'navire', ops: [{ op: 'commission', montant: { brass: 200 * CO } }] } } };
 const VOILE_SANS_PROFIL = 51;
 const MAISON_DE_LA_POURSUITE = "Un navire hostile dont ni le chef ni l'équipage n'ont de profil à Voile (MDG 15 l.150, l.171 n'en donnent pas) mène sa Poursuite avec la Voile 51 du profil Marin (MDG 14 l.321).";
 

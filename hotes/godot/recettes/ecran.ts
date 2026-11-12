@@ -183,7 +183,7 @@ function figerLEcran(listage: Listage | null): { vues: VueFigee[]; planches: Pla
       }, s.programmes).vider();
       return s;
     };
-    return { appeler, jouer, planche, fermer: pont.fermer };
+    return { appeler, jouer, planche, fermer: (): void => void appeler('quitter', {}) };
   };
   /** La suite `s` de la partie de `p` figée : sa vue, nommée `titre`, et sa planche, nommée `nom`. */
   const figer = (p: ReturnType<typeof unPont>, nom: string, titre: string, s: Suite) => {
@@ -370,7 +370,7 @@ function figerLEcran(listage: Listage | null): { vues: VueFigee[]; planches: Pla
     'fenetre.titre': [], 'fenetre.etape': [], 'fenetre.corps': [], 'fenetre.reglages': [], 'fenetre.gestes': [],
     'combat.tour': [], 'combat.ordre': [], 'combat.actif': [], 'combat.avis': [], 'combat.apercu': [], 'combat.offres': [], 'exploration.gestes': [], 'dialogue.orateur': [], 'dialogue.replique': [], 'dialogue.reponses': [], 'journal.titre': [],
     'groupe.heros': [], 'fiche.porteur': [], 'fiche.gestes': [], 'fiche.profil': [], 'fiche.sections': [], 'fiche.source': [], 'fiche.objet': [],
-    'groupe.gestes': [], 'creation.titre': [], 'creation.corps': [], 'creation.gestes': [],
+    'groupe.gestes': [], 'creation.titre': [], 'creation.corps': [], 'creation.gestes': [], 'groupe.pretires': [], 'groupe.campagnes': [], 'partie.gestes': [],
   };
   const atelier = unPont([]);
   s = viderLesFenetres(atelier.jouer, atelier.jouer('demarrer', { scenario: 'marche-equipement', graine: 7 }));

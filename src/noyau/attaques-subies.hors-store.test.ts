@@ -30,6 +30,7 @@ import { resetRule, setRule } from '../engine/policy';
 afterEach(() => {
   vi.restoreAllMocks();
   resetRule('combat-cible-inconsciente');
+  resetRule('maladie-mode');
 });
 
 const rats = { type: 'statblock', label: 'Rats géants', char: { 'capacite-de-combat': 35 }, traits: [{ id: 'arme', value: 5 }] };
@@ -233,6 +234,56 @@ describe('série d’attaques subies hors bataille (#3892)', () => {
     expect(s.party[0].criticalWounds ?? 0).toBe(0);
     expect(s.serieSubie).toBeNull();
     expect(s.party[0].wounds.current).toBe(H.wounds.current - coup.woundsLost! - 3);
+  });
+
+  /** La série de 2 attaques d'où le héros sort après un Critique encaissé (« Subir ») à la première, la sévérité POSÉE à
+   *  `severite`, la localisation au d100 `lieu`, sa révélation validée, la seconde attaque parée : la série fermée. */
+  function serieFermeeApresUnCritique(severite: number, lieu: number) {
+    const { banc, H } = serieOuverte([22, 23, lieu, 20], 2);
+    defendre(banc, 97);
+    const etape = trancherLeCritique(banc, severite, 'subir');
+    const pc = banc.getState().pendingCascade!;
+    if (pc.participants[pc.cursor].kind === 'critique') banc.getState().jetValider('cascade');
+    expect(defendre(banc, 5).hit).toBe(false);
+    expect(banc.getState().serieSubie).toBeNull();
+    return { banc, H, etape };
+  }
+
+  /** Les étapes de fin de rencontre ouvertes (Contraction, Exposition à la Corruption). */
+  const etapesDeFinDeRencontre = (s: ReturnType<Banc['getState']>) =>
+    (s.pendingCascade?.participants ?? []).filter((x) => x.kind === 'maladieDeFinDeCombat' || x.kind === 'corruptionDeFinDeCombat');
+
+  it('Critique encaissé pendant la série, maladies « full » : l’Infection mineure s’ouvre à la fermeture et frappe le héros rendu au groupe : LDB 20 l.90', () => {
+    setRule('maladie-mode', 'full');
+    const { banc, H } = serieFermeeApresUnCritique(1, 50);
+    const [etape, ...autres] = etapesDeFinDeRencontre(banc.getState());
+    expect(autres).toEqual([]);
+    expect(etape).toMatchObject({ kind: 'maladieDeFinDeCombat', meta: { entry: 'infection', disease: 'infection-mineure' } });
+    expect(etape.participants!.map((p) => p.id)).toEqual([H.id]);
+    expect(banc.getState().party[0].tookCriticalThisFight).toBeUndefined();
+    imposerLesD100(99);
+    banc.getState().jetLancer('cascadeEnBande', H.id);
+    banc.getState().jetValider('cascade');
+    expect(banc.getState().party[0].diseases?.map((d) => d.id)).toContain('infection-mineure');
+  });
+
+  it('« Coupure à l’orteil » encaissée pendant la série : le Test d’amputation s’ouvre à la fermeture, sur le héros rendu au groupe : LDB 18 l.171', () => {
+    setRule('maladie-mode', 'off');
+    const { banc, H, etape } = serieFermeeApresUnCritique(46, 85);
+    expect(etape.table?.result?.id).toBe('coupure-a-l-orteil');
+    const s = banc.getState();
+    expect(s.pendingTest).toMatchObject({ actorId: H.id, difficulty: 'intermediaire' });
+    expect(s.party[0].traumas?.some((t) => t.pendingAmputation)).toBe(false);
+  });
+
+  it('série sans Critique : aucune étape de fin de rencontre', () => {
+    setRule('maladie-mode', 'full');
+    const { banc } = serieOuverte([20, 23], 1);
+    expect(defendre(banc, 5).hit).toBe(false);
+    const s = banc.getState();
+    expect(s.serieSubie).toBeNull();
+    expect(etapesDeFinDeRencontre(s)).toEqual([]);
+    expect(s.pendingTest).toBeNull();
   });
 
   /** Un Critique LÉTAL encaissé pendant la série (sévérité 100, « Subir ») au héros à Destin : la mort suspendue au

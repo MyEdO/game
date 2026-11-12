@@ -10,7 +10,7 @@ import { battleRng } from './battleRng';
 import { applyAttackResult } from './combatFlow';
 import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 import { resolveMelee } from '../engine/combat';
-import type { Combatant } from '../engine/types';
+import type { Combatant, Weapon } from '../engine/types';
 import type { Scene } from './monde/scene';
 
 /** Le héros du groupe, `scene` lancée (la scène de fixture, que le noyau n'importe pas), aucune bataille ; l'assaillant,
@@ -23,9 +23,8 @@ export function horsBataille(scene: Scene): { banc: Banc; H: Combatant; E: Comba
   return { banc, H: banc.getState().party[0], E: combattantDeTest({ id: 'assaillant', kind: 'enemy', label: 'Assaillant' }) };
 }
 
-/** Le coup de `attaquant` sur `cible`, résolu par le moteur aux d100 imposés, puis appliqué ; l'arme est celle du héros. */
-export function frapper(banc: Banc, attaquant: Combatant, cible: Combatant, des: number[]) {
-  const arme = banc.getState().party[0].weapons[0];
+/** Le coup de `attaquant` sur `cible`, résolu par le moteur aux d100 imposés, puis appliqué ; l'arme, celle du héros par défaut. */
+export function frapper(banc: Banc, attaquant: Combatant, cible: Combatant, des: number[], arme: Weapon = banc.getState().party[0].weapons[0]) {
   imposerLesD100(...des);
   const res = resolveMelee(attaquant, cible, arme, battleRng());
   applyAttackResult(banc.getState, banc.setState, attaquant, cible, arme, res);

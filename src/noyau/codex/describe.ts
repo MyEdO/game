@@ -61,10 +61,10 @@ function flowSummary(f: Flow, etats: readonly EtatDeclare[]): string {
       return t('codex.tech.jet', { oppose, sujet, ok: flowSummary(f.reussite, etats), ko: flowSummary(f.echec, etats) });
     }
     case 'choix': {
-      const cout = coutAvantageTexte(f.advantageCost);
+      const cout = coutAvantageTexte(f.coutEnAvantage);
       return t('codex.tech.choix', {
         cout: cout ? t('codex.tech.choix.cout', { cout }) : '',
-        prompt: f.prompt,
+        invite: f.invite,
         oui: flowSummary(f.oui, etats),
         non: flowMuet(f.non) ? '' : t('codex.tech.choix.non', { non: flowSummary(f.non!, etats) }),
       });

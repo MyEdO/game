@@ -589,7 +589,7 @@ describe('l’éditeur de carte par le pont, l’essai', () => {
     const partie = appel('demarrer', { essai: true }) as Reponse & { vue?: { projection: { scene: { id: string } | null } } };
     expect(partie.ok).toBe(true);
     expect(partie.vue!.projection.scene, 'la partie s’ouvre sur la scène éditée, à jour').toEqual({ id: seconde.id.slice('scenes/'.length), nom: 'Relais de poste' });
-    expect(erreurDe(appel('demarrer', { essai: true })).message).toMatch(/^demarrer : une partie par page/);
+    expect(erreurDe(appel('demarrer', { essai: true })).message).toBe('demarrer : une partie est ouverte ; quitter d’abord');
   });
 });
 

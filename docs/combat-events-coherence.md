@@ -55,7 +55,8 @@ couvert). Ajouter une source = l'ajouter **dans `fireTriggers`**, jamais un nouv
 **Le bus** : `emitCombatEvent(event, ctx)` (`src/noyau/combatEvents.ts`) — à chaque moment canonique,
 (a) joue les abonnés MACHINERIE (table `crochetsDeCombat`, lue par `combatHooks`, ordonnés par `order`) PUIS (b) diffuse
 l'événement aux TRIGGERS DE DONNÉES de `ctx.audience` via `fireTriggers`. Les deux journalisent via le
-même `sink`.
+même `sink`. `ctx.battle` est nullable : hors bataille (coup encaissé hors bataille, #3984), (a) ne joue
+pas, (b) joue.
 
 **Attaques gratuites — un seul émetteur, kind-agnostique.** Un Flow qui porte `grantFreeAttack`
 (`flowHasFreeAttack`) est SAUTÉ par le bus (`applyTriggeredEffects`) et joué ENTIER par

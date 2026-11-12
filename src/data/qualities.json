@@ -638,9 +638,9 @@
         "on": "victim",
         "flow": {
           "kind": "choix",
-          "prompt": "Renverser",
+          "invite": "Renverser",
           "icon": "etat/a-terre",
-          "advantageCost": 2,
+          "coutEnAvantage": 2,
           "oui": {
             "kind": "test",
             "test": {
@@ -722,9 +722,9 @@
             },
             {
               "kind": "choix",
-              "prompt": "Ouvrir la plaie",
+              "invite": "Ouvrir la plaie",
               "icon": "etat/hemorragique",
-              "advantageCost": "$indice",
+              "coutEnAvantage": "$indice",
               "oui": {
                 "kind": "effet",
                 "effet": {
