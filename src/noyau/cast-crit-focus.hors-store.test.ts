@@ -200,7 +200,7 @@ describe('Focalisation CRITIQUE (l.185-186)', () => {
 describe('Interruption de Focalisation (l.142-144) — cadence-aware', () => {
   /** Place le focaliseur dans un combat minimal (un ennemi figurant) → le routage cadence s'applique. */
   function inCombat(w: Combatant, foe?: Combatant): Combatant {
-    const enemy = foe ?? ({ ...wiz(), id: 'foe', label: 'Brute', kind: 'enemy' } as Combatant);
+    const enemy = foe ?? ({ ...wiz(), id: 'foe', label: 'Brute', kind: 'ennemi' } as Combatant);
     const battle = {
       combatants: [w, enemy], order: [w.id, enemy.id], turn: 0, round: 1,
       action: null, selectedSpellId: null, reachable: new Map(), movementUsed: 0, movedPreAction: false,
@@ -260,7 +260,7 @@ describe('Interruption de Focalisation (l.142-144) — cadence-aware', () => {
   });
 
   it('ENNEMI focaliseur frappé → Test `interruption-de-focalisation` résolu INLINE, et son contrecoup tiré D’OFFICE', () => {
-    const foe = { ...wiz(), id: 'caster-foe', label: 'Sorcier ennemi', kind: 'enemy' } as Combatant;
+    const foe = { ...wiz(), id: 'caster-foe', label: 'Sorcier ennemi', kind: 'ennemi' } as Combatant;
     foe.characteristics['force-mentale'] = 1; // FM 1 : Test de la fiche du jeu raté → conséquence inline
     foe.focus = { spell: 'armure-aethyrique', dr: 2 };
     const w = wiz();
@@ -291,7 +291,7 @@ describe('Convergence de Domaine (+1 Avantage, l.176)', () => {
   it('2ᵉ sort du même Vent sur la même cible dans le Round → +1 Avantage au lanceur', () => {
     const w = wiz();
     const w2 = { ...wiz(), id: 'w2', label: 'Apprentie' } as Combatant;
-    const target = { ...wiz(), id: 't', label: 'Cible', kind: 'enemy' } as Combatant;
+    const target = { ...wiz(), id: 't', label: 'Cible', kind: 'ennemi' } as Combatant;
     const battle = {
       combatants: [w, w2, target], order: [w.id, w2.id, target.id], turn: 0, round: 1,
       action: null, selectedSpellId: null, reachable: new Map(), movementUsed: 0, movedPreAction: false,

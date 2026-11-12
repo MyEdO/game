@@ -28,9 +28,9 @@ describe('Traits psy ciblés en combat — cascade de DÉBUT de Round (LDB 21)',
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const E = b.combatants.find((c) => c.kind === 'enemy')!;
-    b.combatants.filter((c) => c.kind === 'enemy' && c.id !== E.id).forEach((e) => (e.dead = true));
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const E = b.combatants.find((c) => c.kind === 'ennemi')!;
+    b.combatants.filter((c) => c.kind === 'ennemi' && c.id !== E.id).forEach((e) => (e.dead = true));
     H.pos = { x: 10, y: 10 };
     E.pos = { x: 11, y: 10 }; // Ligne de Vue dégagée
     H.size = 'moyenne';

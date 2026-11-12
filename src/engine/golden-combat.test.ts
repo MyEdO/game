@@ -9,7 +9,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testki
 function mk(name: string, chars: Partial<Characteristics>, weapon: Weapon, armourCorps = 0): Combatant {
   const base: Characteristics = { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 35, endurance: 35, initiative: 30, agilite: 35, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
   return blessuresSurLeProfil({
-    id: name, name, kind: 'enemy',
+    id: name, name, kind: 'ennemi',
     characteristics: { ...base, ...chars },
     wounds: blessuresDeBase(25),
     advantage: 0, conditions: [],

@@ -166,7 +166,7 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
     banc.abandonner();
     const b = banc.getState().battle!;
     const scene = banc.getState().scene!;
-    const hero = b.combatants.find((c) => c.kind === 'hero' && !c.aiControlled && !c.inert)!;
+    const hero = b.combatants.find((c) => c.kind === 'heros' && !c.aiControlled && !c.inert)!;
     // Placement PRODUCTION : `placeCombatant` stampe la hauteur métrique `pos.h` (= 4 m, chemin de ronde z1).
     hero.pos = { x: 8, y: MOUTH_ROW, z: 1 };          // sur le chemin de ronde, au-dessus de la courtine
     placeCombatant(hero, scene, hero.pos);            // RAFRAÎCHIT pos.h depuis le relief (4 m) — comme en production
@@ -275,10 +275,10 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
     banc.abandonner();
     const b = banc.getState().battle!;
     // Archers défenseurs = héros pilotés par l'IA, armés d'un arc, sur le chemin de ronde (z1).
-    const archers = b.combatants.filter((c) => c.aiControlled && c.kind === 'hero' && !c.inert && !c.mannedPoste);
+    const archers = b.combatants.filter((c) => c.aiControlled && c.kind === 'heros' && !c.inert && !c.mannedPoste);
     expect(archers.length).toBe(5); // 4 archers 'A' + 1 guetteur 'G'
     for (const archer of archers) {
-      expect(archer.kind).toBe('hero');         // côté héros
+      expect(archer.kind).toBe('heros');         // côté héros
       expect(archer.aiControlled).toBe(true);    // … mais piloté par l'IA (le joueur ne le micro-gère pas)
       expect(archer.weapons.some((w) => w.type === 'distance')).toBe(true); // armé d'un arc
       expect(b.order).toContain(archer.id);      // … et l'archer allié-IA A un tour

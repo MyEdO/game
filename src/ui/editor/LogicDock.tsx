@@ -414,12 +414,12 @@ function EncountersTab({
           <div className="mini-title">Surprise (embuscade, LDB 13)</div>
           <select
             value={enc.surprise ?? ''}
-            onChange={(e) => upd({ surprise: (e.target.value || undefined) as 'party' | 'enemies' | undefined })}
+            onChange={(e) => upd({ surprise: (e.target.value || undefined) as 'groupe' | 'ennemis' | undefined })}
             title="Camp pris en embuscade au début du combat : Test opposé Perception vs Discrétion ; les vaincus gagnent l'État Surpris."
           >
             <option value="">Aucune surprise</option>
-            <option value="enemies">Les ennemis sont surpris (le groupe embusque)</option>
-            <option value="party">Le groupe est surpris (les ennemis embusquent)</option>
+            <option value="ennemis">Les ennemis sont surpris (le groupe embusque)</option>
+            <option value="groupe">Le groupe est surpris (les ennemis embusquent)</option>
           </select>
           <div className="mini-title">Avantage initial — Manœuvrabilité / Menace / Terrain (AA 11 l.53-65)</div>
           <div className="enemy-mount">
@@ -427,11 +427,11 @@ function EncountersTab({
               Manœuvrabilité{' '}
               <select
                 value={enc.maneuverability ?? ''}
-                onChange={(e) => upd({ maneuverability: (e.target.value || undefined) as 'party' | 'enemies' | undefined })}
+                onChange={(e) => upd({ maneuverability: (e.target.value || undefined) as 'groupe' | 'ennemis' | undefined })}
               >
                 <option value="">Aucune</option>
-                <option value="party">Le groupe</option>
-                <option value="enemies">Les ennemis</option>
+                <option value="groupe">Le groupe</option>
+                <option value="ennemis">Les ennemis</option>
               </select>
             </label>
           </div>
@@ -441,13 +441,13 @@ function EncountersTab({
               <select
                 value={enc.threat?.camp ?? ''}
                 onChange={(e) => {
-                  const camp = e.target.value as 'party' | 'enemies' | '';
+                  const camp = e.target.value as 'groupe' | 'ennemis' | '';
                   upd({ threat: camp ? { camp, tier: enc.threat?.tier ?? 'dangereuse' } : undefined });
                 }}
               >
                 <option value="">Aucune</option>
-                <option value="party">Le groupe</option>
-                <option value="enemies">Les ennemis</option>
+                <option value="groupe">Le groupe</option>
+                <option value="ennemis">Les ennemis</option>
               </select>
             </label>
             {enc.threat && (
@@ -467,13 +467,13 @@ function EncountersTab({
               <select
                 value={enc.terrain?.camp ?? ''}
                 onChange={(e) => {
-                  const camp = e.target.value as 'party' | 'enemies' | '';
+                  const camp = e.target.value as 'groupe' | 'ennemis' | '';
                   upd({ terrain: camp ? { camp, heavy: enc.terrain?.heavy } : undefined });
                 }}
               >
                 <option value="">Aucun</option>
-                <option value="party">Le groupe</option>
-                <option value="enemies">Les ennemis</option>
+                <option value="groupe">Le groupe</option>
+                <option value="ennemis">Les ennemis</option>
               </select>
             </label>
             {enc.terrain && (
@@ -548,11 +548,11 @@ function EncountersTab({
                 <label>
                   Camp{' '}
                   <select
-                    value={vc.camp ?? 'party'}
-                    onChange={(e) => upd({ victoryCondition: { type: 'reachZone', rect: vc.rect, camp: e.target.value as 'party' | 'enemies' } })}
+                    value={vc.camp ?? 'groupe'}
+                    onChange={(e) => upd({ victoryCondition: { type: 'reachZone', rect: vc.rect, camp: e.target.value as 'groupe' | 'ennemis' } })}
                   >
-                    <option value="party">Le groupe</option>
-                    <option value="enemies">Les ennemis</option>
+                    <option value="groupe">Le groupe</option>
+                    <option value="ennemis">Les ennemis</option>
                   </select>
                 </label>
               </div>

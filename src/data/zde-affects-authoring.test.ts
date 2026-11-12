@@ -32,10 +32,10 @@ const actor = (o: { id: string; camp: Camp; talents?: { id: string; spec?: strin
 });
 
 /** Le lanceur : héros, donc camp `party` (`campOf`, `src/engine/relations.ts`). */
-const CASTER = actor({ id: 'lanceur', camp: 'party' });
-const ALLY = actor({ id: 'allie', camp: 'party' });
+const CASTER = actor({ id: 'lanceur', camp: 'groupe' });
+const ALLY = actor({ id: 'allie', camp: 'groupe' });
 const FOE = actor({ id: 'ennemi', camp: 'hostile' });
-const NEUTRAL = actor({ id: 'neutre', camp: 'neutral' });
+const NEUTRAL = actor({ id: 'neutre', camp: 'neutre' });
 
 /** Le candidat entre-t-il en zone ? — MÊME appel que `castCommitZone` : `target` = le candidat. */
 const retient = (affects: Condition | undefined, candidate: ActorView): boolean => {
@@ -49,7 +49,7 @@ const verdict = (affects: Condition | undefined) => ({
   ennemi: retient(affects, FOE), neutre: retient(affects, NEUTRAL),
 });
 
-/** ZdE dont la source réserve le ciblage aux ALLIÉS du lanceur, lanceur EXCLU (`self` ≠ `ally`). */
+/** ZdE dont la source réserve le ciblage aux ALLIÉS du lanceur, lanceur EXCLU (`soi` ≠ `allie`). */
 const ALLIES_SEULS = [
   'prouesses-martiales', // AA 06 l.541-543
   'obstination-du-boeuf', // VDM 11 l.386
@@ -76,7 +76,7 @@ const SANS_FILTRE = [
 describe("`affects` — ZdE réservées aux ALLIÉS du lanceur", () => {
   it.each(ALLIES_SEULS)('%s : retient les alliés seuls (lanceur, ennemi et neutre écartés)', (id) => {
     const area = areaOf(id);
-    expect(area.affects).toEqual({ kind: 'relation', who: 'target', is: 'ally' });
+    expect(area.affects).toEqual({ kind: 'relation', who: 'target', is: 'allie' });
     expect(verdict(area.affects)).toEqual({ lanceur: false, allie: true, ennemi: false, neutre: false });
   });
 });
@@ -84,7 +84,7 @@ describe("`affects` — ZdE réservées aux ALLIÉS du lanceur", () => {
 describe("`affects` — ZdE réservées aux ENNEMIS du lanceur", () => {
   it.each(ADVERSAIRES_SEULS)('%s : retient tout candidat d’un autre camp (lanceur et allié écartés)', (id) => {
     const area = areaOf(id);
-    expect(area.affects).toEqual({ kind: 'relation', who: 'target', is: 'opponent' });
+    expect(area.affects).toEqual({ kind: 'relation', who: 'target', is: 'adversaire' });
     expect(verdict(area.affects)).toEqual({ lanceur: false, allie: false, ennemi: true, neutre: true });
   });
 });
@@ -94,7 +94,7 @@ describe("`affects` — les formes que le verbatim rend PARTICULIÈRES", () => {
     const area = areaOf('les-lunes-du-chasseur');
     expect(area.affects).toEqual({
       kind: 'any',
-      of: [{ kind: 'relation', who: 'target', is: 'self' }, { kind: 'relation', who: 'target', is: 'ally' }],
+      of: [{ kind: 'relation', who: 'target', is: 'soi' }, { kind: 'relation', who: 'target', is: 'allie' }],
     });
     expect(verdict(area.affects)).toEqual({ lanceur: true, allie: true, ennemi: false, neutre: false });
   });
@@ -104,14 +104,14 @@ describe("`affects` — les formes que le verbatim rend PARTICULIÈRES", () => {
     expect(area.affects).toEqual({
       kind: 'all',
       of: [
-        { kind: 'relation', who: 'target', is: 'ally' },
+        { kind: 'relation', who: 'target', is: 'allie' },
         { kind: 'not', of: { kind: 'has', who: 'target', what: 'talent', value: 'magie-des-arcanes', spec: 'cieux' } },
       ],
     });
     expect(verdict(area.affects)).toEqual({ lanceur: false, allie: true, ennemi: false, neutre: false });
     // La spec est comparée à l'identique (`flowCore.ts:339`) : l'id de Domaine de `domains.json`.
-    const celeste = actor({ id: 'celeste', camp: 'party', talents: [{ id: 'magie-des-arcanes', spec: 'cieux' }] });
-    const pyromancien = actor({ id: 'pyro', camp: 'party', talents: [{ id: 'magie-des-arcanes', spec: 'feu' }] });
+    const celeste = actor({ id: 'celeste', camp: 'groupe', talents: [{ id: 'magie-des-arcanes', spec: 'cieux' }] });
+    const pyromancien = actor({ id: 'pyro', camp: 'groupe', talents: [{ id: 'magie-des-arcanes', spec: 'feu' }] });
     expect(retient(area.affects, celeste)).toBe(false);
     expect(retient(area.affects, pyromancien)).toBe(true);
   });

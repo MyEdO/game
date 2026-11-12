@@ -415,7 +415,7 @@ scenes.push(scene({
       // Surprise NAVALE → avantage de POSITION (couche Mer : pas d'État Surpris sur une coque) : si la vigie n'a
       // pas repéré la voile (Perception ratée → `noSurprise:false`), la Dent de Manann surgit plus PRÈS, bordée
       // déjà alignée (`applyNavalSurprisePosition`). Repérée → placement authoré (~150 m, aucun avantage).
-      surprise: 'party',
+      surprise: 'groupe',
       // Reddition à mi-coque (#215) : la Dent de Manann amène son pavillon quand la coque `cogue` tombe
       // à 50 % de ses Blessures ou moins — la victoire se déclenche à la reddition, pas au naufrage.
       victoryCondition: { type: 'woundsThreshold', targetId: 'cogue', atOrBelowPercent: 50 },
@@ -592,7 +592,7 @@ scenes.push(scene({
       id: 'enc-olg',
       // Surprise navale = avantage de POSITION (couche Mer, cf. scène 1) : Perception ratée → le langskip surgit
       // plus près, bordée alignée ; repéré → ~150 m sans avantage.
-      surprise: 'party',
+      surprise: 'groupe',
       // Reddition à mi-coque (#215), comme la Dent de Manann : le Serpent-de-Sel amène son pavillon quand
       // la coque `serpent-de-sel` tombe à 50 % de ses Blessures ou moins — la victoire = la reddition (texte VRAI),
       // pas le naufrage. `targetId` référence la coque ENNEMIE réelle enrôlée dans cette scène.
@@ -608,7 +608,7 @@ scenes.push(scene({
         { entityId: 'serpent-helm', side: 'ennemi' },
         { entityId: 'serpent-gun', side: 'ennemi' },
       ],
-      threat: { camp: 'enemies', tier: 'dangereuse' },
+      threat: { camp: 'ennemis', tier: 'dangereuse' },
       onVictory: flowOf([
         { type: 'setFlag', flag: 'ls_olg_vaincu' },
         { type: 'giveXp', amount: 250 },

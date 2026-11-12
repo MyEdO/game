@@ -33,8 +33,8 @@ function engage(tourDe: 'heros' | 'creature', o: { tailleE: SizeCategory; taille
   g().lancerLeCombat('enc-mutants');
   g().fenetreValider('debutDuRound');
   const b = g().battle!;
-  const H = b.combatants.find((c) => c.kind === 'hero')!;
-  const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+  const H = b.combatants.find((c) => c.kind === 'heros')!;
+  const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
   enemies.slice(1).forEach((e) => (e.dead = true));
   const E = enemies[0];
   H.pos = { x: 10, y: 10 }; E.pos = { x: 11, y: 10 };

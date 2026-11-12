@@ -7736,7 +7736,7 @@
        "entityId": "enemy-enc-ruines-tresor-2"
       }
      ],
-     "surprise": "enemies",
+     "surprise": "ennemis",
      "onVictory": {
       "kind": "sequence",
       "etapes": [
@@ -9799,7 +9799,7 @@
        "entityId": "enemy-enc-zone4-6"
       }
      ],
-     "surprise": "party",
+     "surprise": "groupe",
      "onVictory": {
       "kind": "sequence",
       "etapes": [
@@ -12031,7 +12031,7 @@
        "entityId": "enemy-enc-zone6-6"
       }
      ],
-     "surprise": "party",
+     "surprise": "groupe",
      "onVictory": {
       "kind": "sequence",
       "etapes": [
@@ -22760,7 +22760,7 @@
        "entityId": "enemy-enc-foret-harde-7"
       }
      ],
-     "surprise": "party",
+     "surprise": "groupe",
      "onVictory": {
       "kind": "sequence",
       "etapes": [
@@ -24179,7 +24179,7 @@
        "entityId": "enemy-enc-marais-3"
       }
      ],
-     "surprise": "party",
+     "surprise": "groupe",
      "onVictory": {
       "kind": "sequence",
       "etapes": [
@@ -26818,7 +26818,7 @@
        "entityId": "enemy-enc-embuscade-3"
       }
      ],
-     "surprise": "party",
+     "surprise": "groupe",
      "onVictory": {
       "kind": "sequence",
       "etapes": [

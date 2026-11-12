@@ -22,6 +22,8 @@ const PAS_S := 1.0 / 60.0
 const IMAGES_D_ATTENTE := 600
 ## L'écart (rad) sous lequel deux poses d'os sont la même.
 const MEME_POSE := 0.0001
+## Un gabarit qui abaisse le haut de la tête de la base (`gabarit` de `composer`).
+const GABARIT := {racine = {os = "root", echelle = 0.74}, enfantsDe = {thigh_l = 0.62, calf_l = 0.62, thigh_r = 0.62, calf_r = 0.62}, pieds = ["foot_l", "foot_r"], jambes = ["thigh_l", "calf_l", "thigh_r", "calf_r"], clipsPlantes = []}
 const CLIPS_DU_VEHICULE := {repos = "v_repos", marche = "v_marche", melee = "v_melee", tir = "v_tir", coup = "v_coup", mort = "v_mort"}
 var _fautes: Array[String] = []
 var _arbre: AnimationTree = null
@@ -250,22 +252,26 @@ func _poser_un_vehicule(combattant: Combattant) -> MontageDeVehicule:
 	return vehicule
 
 
-## Le studio des portraits : dix images après la pose de sa photo (`_photographier`, au terme du repos d'un corps vêtu ;
-## le rendu headless ne publie aucune image, `frame_post_draw`), la pose du corps n'a pas bougé.
+## Le studio des portraits : sa photo se pose (`_photographier`) à la première image où son corps est monté en entier,
+## son gabarit mesuré ; dix images après (le rendu headless ne publie aucune image, `frame_post_draw`), la pose du corps
+## n'a pas bougé, ni le haut de sa tête, que sa caméra cadre.
 func _studio() -> void:
 	var studio := StudioDePortraits.studio()
 	await process_frame
-	var posee := []
-	studio._repos.timeout.connect(func() -> void: posee.append(true))
-	studio.photographier({base = BASE})
-	await _attendre(func() -> bool: return not posee.is_empty())
-	var squelette: Skeleton3D = studio.get_node("Monde/Combattant/Modele").squelette
-	var a_la_photo := _rotations(squelette)
+	studio.photographier({base = BASE, gabarit = GABARIT})
+	await _attendre(func() -> bool: return studio._etape == StudioDePortraits.Etape.PHOTO)
+	var combattant: Combattant = studio.get_node("Monde/Combattant")
+	var montage: MontageDeComposition = combattant.get_node("Modele")
+	var a_la_photo := _rotations(montage.squelette)
+	var tete := combattant.hauteur_de_la_tete()
 	for i in 10:
 		await process_frame
-	var ecart := _ecart(a_la_photo, _rotations(squelette))
+	var ecart := _ecart(a_la_photo, _rotations(montage.squelette))
 	_verifier(ecart < MEME_POSE, "studio : la pose repart de %.4f rad dix images après la photo" % ecart)
-	print("[arbre-d-etats] studio : écart de pose dix images après la photo %.6f rad" % ecart)
+	var cadrage := MiseEnPage.cadrage_en_buste(combattant.hauteur_de_la_tete())
+	var cadree := (studio.get_node("Monde/Camera") as Camera3D).position.is_equal_approx(Vector3(0.0, cadrage.x, cadrage.y))
+	_verifier(not montage.gabarit.mesures().is_empty() and is_equal_approx(tete, combattant.hauteur_de_la_tete()) and cadree, "studio : la photo part avant la mesure du gabarit (tête à %.4f à la photo, %.4f dix images après)" % [tete, combattant.hauteur_de_la_tete()])
+	print("[arbre-d-etats] studio : écart de pose dix images après la photo %.6f rad, tête à %.4f" % [ecart, tete])
 	studio.queue_free()
 	await process_frame
 

@@ -22,7 +22,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 const MELEE: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
 const BOW: Weapon = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 7 }, range: 30, qualities: [] };
 
-function mk(id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, opts: Partial<Combatant> = {}): Combatant {
+function mk(id: string, kind: 'heros' | 'ennemi', pos: { x: number; y: number }, opts: Partial<Combatant> = {}): Combatant {
   return blessuresSurLeProfil({
     id, label: id, kind, pos,
     wounds: blessuresDeBase(10), weapons: [MELEE], characteristics: {} as never,
@@ -43,36 +43,36 @@ function grappled(e: Combatant, hId: string): void {
 
 describe('IA — Empoignade : agir quand on est Empoigné (LDB 14 l.161)', () => {
   it('Empoigné → Action « grapple » (Test opposé de Force), JAMAIS « recover empetre »', () => {
-    const e = mk('e', 'enemy', { x: 5, y: 5 }); grappled(e, 'h');
-    const h = mk('h', 'hero', { x: 5, y: 6 }, { advantage: 0 }); // adjacent → mêlée possible, mais la lutte préempte
+    const e = mk('e', 'ennemi', { x: 5, y: 5 }); grappled(e, 'h');
+    const h = mk('h', 'heros', { x: 5, y: 6 }, { advantage: 0 }); // adjacent → mêlée possible, mais la lutte préempte
     const a = chooseEnemyAction(input(e, [h], { movement: 0 }));
     expect(a).toEqual({ kind: 'empoignade', targetId: 'h', resolution: 'test' });
   });
 
   it('mêleeur avec Avantage SUPÉRIEUR → reste en lutte (resolution:test) : il GAGNE à rester Empoigné', () => {
-    const e = mk('e', 'enemy', { x: 5, y: 5 }, { advantage: 3 }); grappled(e, 'h');
-    const h = mk('h', 'hero', { x: 5, y: 6 }, { advantage: 0 });
+    const e = mk('e', 'ennemi', { x: 5, y: 5 }, { advantage: 3 }); grappled(e, 'h');
+    const h = mk('h', 'heros', { x: 5, y: 6 }, { advantage: 0 });
     const a = chooseEnemyAction(input(e, [h], { movement: 0 }));
     expect(a).toEqual({ kind: 'empoignade', targetId: 'h', resolution: 'test' });
   });
 
   it('tireur avec Avantage SUPÉRIEUR → BRISE pour regagner sa distance (resolution:break)', () => {
-    const e = mk('e', 'enemy', { x: 5, y: 5 }, { advantage: 3, weapons: [BOW] }); grappled(e, 'h');
-    const h = mk('h', 'hero', { x: 5, y: 6 }, { advantage: 0 });
+    const e = mk('e', 'ennemi', { x: 5, y: 5 }, { advantage: 3, weapons: [BOW] }); grappled(e, 'h');
+    const h = mk('h', 'heros', { x: 5, y: 6 }, { advantage: 0 });
     const a = chooseEnemyAction(input(e, [h], { movement: 0 }));
     expect(a).toEqual({ kind: 'empoignade', targetId: 'h', resolution: 'briser' });
   });
 
   it('tireur SANS Avantage supérieur (égalité) → ne PEUT pas briser → Test opposé (resolution:test)', () => {
-    const e = mk('e', 'enemy', { x: 5, y: 5 }, { advantage: 1, weapons: [BOW] }); grappled(e, 'h');
-    const h = mk('h', 'hero', { x: 5, y: 6 }, { advantage: 1 }); // égalité : pas STRICTEMENT supérieur
+    const e = mk('e', 'ennemi', { x: 5, y: 5 }, { advantage: 1, weapons: [BOW] }); grappled(e, 'h');
+    const h = mk('h', 'heros', { x: 5, y: 6 }, { advantage: 1 }); // égalité : pas STRICTEMENT supérieur
     const a = chooseEnemyAction(input(e, [h], { movement: 0 }));
     expect(a).toEqual({ kind: 'empoignade', targetId: 'h', resolution: 'test' });
   });
 
   it('Empêtré SANS lien d’Empoignade (filet/sort) → recover empetre : la garde ne capture QUE `grapplingWith`', () => {
-    const e = mk('e', 'enemy', { x: 5, y: 5 }, { conditions: [{ id: 'empetre', value: 1, sourceId: 'h' }] }); // pas de grapplingWith
-    const h = mk('h', 'hero', { x: 9, y: 9 });
+    const e = mk('e', 'ennemi', { x: 5, y: 5 }, { conditions: [{ id: 'empetre', value: 1, sourceId: 'h' }] }); // pas de grapplingWith
+    const h = mk('h', 'heros', { x: 9, y: 9 });
     const a = chooseEnemyAction(input(e, [h], { movement: 0 }));
     expect(a).toEqual({ kind: 'liberation', state: 'empetre' });
   });
@@ -87,7 +87,7 @@ describe('IA Empoignade — dispatch (runEnemyAI) : l’Empoigné LUTTE, le tire
   /** Arène à 2 combattants adjacents (e Engagé/Empoigné avec h), tour sur `e`. */
   function arena(): { e: Combatant; h: Combatant } {
     const e = spawnEnemy({ ref: 'humain' }, 'e', { x: 5, y: 5 });
-    e.kind = 'enemy'; e.movement = 4; e.engagedWith = ['h'];
+    e.kind = 'ennemi'; e.movement = 4; e.engagedWith = ['h'];
     e.grapplingWith = ['h'];
     e.conditions = [{ id: 'empetre', value: 1, sourceId: 'h' }];
     const h = herosDeScenario(idsDeTest, 'sorcier');

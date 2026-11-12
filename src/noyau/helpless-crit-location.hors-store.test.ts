@@ -32,8 +32,8 @@ describe('#124 — cible Inconsciente : choix de Localisation (RAW-2 gratuit, LD
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const E = b.combatants.find((c) => c.kind === 'enemy')!;
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const E = b.combatants.find((c) => c.kind === 'ennemi')!;
     H.pos = { x: 10, y: 10 };
     E.pos = { x: 11, y: 10 }; // adjacent → frappe directe, pas de charge/approche
     E.wounds = blessuresDeBase(30, 30, E);

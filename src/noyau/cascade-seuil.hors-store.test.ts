@@ -86,7 +86,7 @@ describe('le seuil DÉCLARÉ à la porte voyage jusqu’à l’étape', () => {
  */
 describe('F — le dénouement d’un dé joué EN COMBAT se montre dans le journal de COMBAT', () => {
   const PORTEUR: Combatant = blessuresSurLeProfil({
-    id: 'ilyanwe', label: 'Ilyanwe la Voilée', kind: 'hero',
+    id: 'ilyanwe', label: 'Ilyanwe la Voilée', kind: 'heros',
     characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], traumas: [], criticalWounds: 0,
     weapons: [], items: [], skills: [], talents: [], traits: [], movement: 4, bodyShape: 'humanoide',

@@ -140,17 +140,17 @@ export interface EncounterSpec {
   id: string;
   enemies?: AuthoredEnemy[];
   members?: EncounterMember[];
-  surprise?: 'party' | 'enemies';
+  surprise?: 'groupe' | 'ennemis';
   onVictory?: Flow;
   /** Rencontre invisible en exploration jusqu'au combat (embuscade visuelle) — pose `combat.hiddenUntilCombat`
    *  sur les entités enrôlées via `enemies`. Défaut false (visibles, RAW). */
   hidden?: boolean;
   /** Avantage initial — Manœuvrabilité (AA 11 l.53-65), cf. `EncounterDef.maneuverability`. */
-  maneuverability?: 'party' | 'enemies';
+  maneuverability?: 'groupe' | 'ennemis';
   /** Avantage initial — Menace (AA 11 l.53-65), cf. `EncounterDef.threat`. */
-  threat?: { camp: 'party' | 'enemies'; tier: ThreatTier };
+  threat?: { camp: 'groupe' | 'ennemis'; tier: ThreatTier };
   /** Avantage initial — Terrain (AA 11 l.53-65), cf. `EncounterDef.terrain`. */
-  terrain?: { camp: 'party' | 'enemies'; heavy?: boolean };
+  terrain?: { camp: 'groupe' | 'ennemis'; heavy?: boolean };
   /** Objectif de victoire (#197), cf. `EncounterDef.victoryCondition`. Absent = `allEnemiesDead`. */
   victoryCondition?: VictoryCondition;
   /** Rencontre de SIÈGE, cf. `EncounterDef.siege`. Absent = false (l'IA ne cible aucune structure). */
@@ -839,7 +839,7 @@ export function buildScene(spec: MapSpec): Scene {
     for (const [propId, parMeuble] of Object.entries(spec.seatAssignments)) {
       exigeFixe(propId, 'le décor');
       for (const occupant of Object.values(parMeuble))
-        if (occupant.kind === 'entity') exigeFixe(occupant.entityId, "l'occupant");
+        if (occupant.kind === 'entite') exigeFixe(occupant.entityId, "l'occupant");
     }
     s = { ...s, seatAssignments: spec.seatAssignments };
     const defauts = seatAssignmentDefects(s);

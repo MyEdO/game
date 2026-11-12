@@ -9,7 +9,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testki
 /** Combatant minimal : seuls `characteristics` et `activeEffects` importent ici (pool non-cumul). */
 function mk(activeEffects: { characteristic: CharKey; bonus: number; label?: string; source?: EffectSource }[] = [], F = 40, over: Partial<Combatant> = {}): Combatant {
   return blessuresSurLeProfil({
-    id: 'c', label: 'c', kind: 'enemy', advantage: 0, conditions: [],
+    id: 'c', label: 'c', kind: 'ennemi', advantage: 0, conditions: [],
     characteristics: { force: F, agilite: 30, 'capacite-de-combat': 40 } as never,
     activeEffects: activeEffects.map((e) => ({ label: e.label ?? 'Effet', ...e })) as never,
     psychState: [], psychTraits: [], groups: [], weapons: [], armour: {} as never,

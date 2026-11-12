@@ -26,13 +26,13 @@ const TABLE = 'table-ronde-4-tabourets';
 const PROP = 'table-1';
 /** Table en (5,5) au cap N : abord nord déclaré en (5,4). */
 const ABORD_NORD = { x: 5, y: 4 };
-const MENEUR: SeatOccupant = { kind: 'party', rang: 1 };
+const MENEUR: SeatOccupant = { kind: 'groupe', rang: 1 };
 
 const hero = (id: string, wounds: number, talents: { talentId: string; times: number }[] = []): Combatant =>
   combattantDeTest({
     id,
     label: id.toUpperCase(),
-    kind: 'hero',
+    kind: 'heros',
     species: 'humains-reiklander',
     xp: 0,
     wounds: blessuresDeBase(12, wounds),
@@ -164,7 +164,7 @@ describe('le cap du GROUPE traverse le combat', () => {
     banc.getState().pivoterLeGroupe(1);
     const capAvant = capDuGroupe(banc.getState());
     const heros = banc.getState().party.map((h, i) => ({ ...h, pos: { x: 1 + i, y: 1 } }));
-    const orc = combattantDeTest({ id: 'orc', label: 'Orc', kind: 'enemy', wounds: blessuresDeBase(8), conditions: [], pos: { x: 5, y: 1 } });
+    const orc = combattantDeTest({ id: 'orc', label: 'Orc', kind: 'ennemi', wounds: blessuresDeBase(8), conditions: [], pos: { x: 5, y: 1 } });
     banc.setState({ battle: { combatants: [...heros, orc] } as never });
     banc.getState().orienterLesCombattants();
 

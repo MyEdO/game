@@ -4,14 +4,16 @@
  *  - ANIM_ATTACK (mémorise le contexte) + ANIM_IMPACT → impact/tranche/sort, parade, critique ;
  *  - ANIM_MOVE → pas espacés le long du chemin ; MOVE_BLOCKED → heurt sourd (#792) ;
  *  - BATTLE_OVER (victoire) → gong ;
- *  - écran/mode/scène (store) → sélection musicale (`musicSelectionOf`) → canal musique (`audio/engine.ts`).
+ *  - écran/mode/scène (store) → sélection musicale (`musicSelectionOf`) → canal musique (`audio/engine.ts`) ;
+ *  - le volume de chaque canal, lu dans la table des préférences (`noyau/volumes.ts`).
  * Ajouter un son = 1 def dans `data/sons/defs/` + (si nouvel événement) une ligne ici.
  */
 import { bus, EVT } from '../noyau/bus';
 import { selectionDeLaMusique, type EtatDeLaMusique } from '../noyau/musiqueDeLaPartie';
 import { useGame } from './store';
 import { scheduleFlowTimer } from '../web/minuteries';
-import { playSfx, playMusic } from '../audio/engine';
+import { brancherLeVolumeDesCanaux, playSfx, playMusic } from '../audio/engine';
+import { volumeDuCanal } from '../noyau/volumes';
 import type { MusicSelection } from '../data/sons/musique';
 
 /** Tranche minimale d'état nécessaire (évite de dépendre du store — testable à sec). */
@@ -20,7 +22,7 @@ export interface MusicStateSlice extends EtatDeLaMusique {
 }
 
 /** La musique depuis l'état du jeu : celle de la partie (`selectionDeLaMusique`), en jeu seulement (vue campagne), le
- *  seul écran qui expose les contrôles audio (☰ → volume/sourdine) ; tout autre écran est silencieux (demande
+ *  seul écran qui expose les contrôles audio (☰ → sourdine, volumes) ; tout autre écran est silencieux (demande
  *  utilisateur 2026-06-11). */
 export function musicSelectionOf(s: MusicStateSlice): MusicSelection {
   return s.screen === 'campaign' ? selectionDeLaMusique(s) : null;
@@ -31,14 +33,16 @@ let lastAttackKind: 'melee' | 'distance' | 'spell' = 'melee';
 let heurtSonne = false;
 
 export function initAudioWiring(): void {
+  brancherLesSons();
   // Musique de fond pilotée par l'état (`musicSelectionOf`) : silence hors écran `campaign`.
   playMusic(musicSelectionOf(useGame.getState()));
   useGame.subscribe((s) => playMusic(musicSelectionOf(s)));
-  brancherLesSons();
 }
 
-/** Les sons ponctuels branchés sur le bus ; rend le geste qui les débranche tous. */
+/** Les sons ponctuels branchés sur le bus, joués au volume de leur canal (`noyau/volumes.ts`) ; rend le geste qui
+ *  les débranche tous. */
 export function brancherLesSons(): () => void {
+  brancherLeVolumeDesCanaux(volumeDuCanal);
   const offs = [
     bus.on(EVT.DICE_ROLL, () => playSfx('des')),
     bus.on(EVT.SFX, (p) => playSfx(p.id)),

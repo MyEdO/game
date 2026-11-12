@@ -33,7 +33,7 @@ export interface Station {
   ref: StationRef;
 }
 
-const FACTION: Record<Combatant['kind'], Station['faction']> = { hero: 'allie', enemy: 'ennemi', npc: 'neutre' };
+const FACTION: Record<Combatant['kind'], Station['faction']> = { heros: 'allie', ennemi: 'ennemi', pnj: 'neutre' };
 
 /**
  * Indexe en Stations chaque poste des Combattants-coque (coque navale OU emplacement de siège — indifférent).
@@ -75,8 +75,8 @@ export function postesToStations(
  * vient de l'ancre AUTHORÉE (`scene.stations`) ; à défaut, un repli DÉTERMINISTE l'étale (la démo reste
  * jouable sans authoring d'ancres). L'AFFECTATION explicite (`assignment[sceneId]` = ids des PJ postés,
  * Scène MULTI-PJ ADE II 8) alimente `assignedIds`/`manned` — une Scène postée s'affiche « servie ». Une Scène inconnue du catalogue
- * (`battleSceneById` undefined) est ignorée. Faction : `enemy` pour une Scène MENACE (`threat`, elle
- * s'impose au camp allié), `neutral` sinon (l'action se joue au contact, pas un camp fixe). PUR.
+ * (`battleSceneById` undefined) est ignorée. Faction : `ennemi` pour une Scène MENACE (`threat`, elle
+ * s'impose au camp allié), `neutre` sinon (l'action se joue au contact, pas un camp fixe). PUR.
  */
 export function battleScenesToStations(
   situation: string[],

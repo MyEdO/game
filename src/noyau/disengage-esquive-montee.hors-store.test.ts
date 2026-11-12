@@ -18,8 +18,8 @@ describe('Désengagement : Esquive du cavalier', () => {
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const [E, ...rest] = b.combatants.filter((c) => c.kind === 'enemy');
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const [E, ...rest] = b.combatants.filter((c) => c.kind === 'ennemi');
     rest.forEach((e) => (e.dead = true));
     H.size = 'moyenne'; E.size = 'moyenne';
     H.engagedWith = [E.id]; E.engagedWith = [H.id];

@@ -53,8 +53,8 @@ function setupCoop(opts: { gmSeat?: number; vivants?: number } = {}): { H: Comba
   g().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = g().battle!;
-  const H = b.combatants.find((c) => c.kind === 'hero')!;
-  const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+  const H = b.combatants.find((c) => c.kind === 'heros')!;
+  const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
   enemies.slice(opts.vivants ?? 1).forEach((e) => (e.dead = true));
   const vivants = enemies.slice(0, opts.vivants ?? 1);
   H.pos = { x: 10, y: 10 };
@@ -77,7 +77,7 @@ beforeEach(() => { seedBattleRng(4); });
 describe('#1262 lot 3 — une BANDE nomme son porteur (sinon sa fenêtre échoit à l’hôte seul)', () => {
   it('Surprise d’embuscade (LDB 13 l.77) : bande à UN guetteur du siège MJ → l’étape porte SON `actorId`', () => {
     const { E } = setupCoop({ gmSeat: 1 });
-    applySurprise(g, banc.setState, 'enemies'); // les héros embusquent : les guetteurs sont les ennemis
+    applySurprise(g, banc.setState, 'ennemis'); // les héros embusquent : les guetteurs sont les ennemis
 
     const step = bande();
     expect(step, 'les guetteurs conduits par le MJ forment bien une bande').toBeTruthy();
@@ -93,7 +93,7 @@ describe('#1262 lot 3 — une BANDE nomme son porteur (sinon sa fenêtre échoit
 
   it('Surprise d’embuscade : bande à DEUX guetteurs → `groupOwner` (chaque siège tient SA rangée)', () => {
     setupCoop({ gmSeat: 1, vivants: 2 });
-    applySurprise(g, banc.setState, 'enemies');
+    applySurprise(g, banc.setState, 'ennemis');
 
     const step = bande();
     expect(step!.participants).toHaveLength(2);
@@ -129,7 +129,7 @@ describe('#1262 lot 3 — un Test déclenché HORS fin de Round ne se roule pas 
     expect(humanControlled(g(), H), 'chez l’hôte, il ne pilote pas ce héros…').toBe(false);
     expect(surfaceOf(g, H.id), '…mais un siège humain le tient : son jet doit remonter').toBe(true);
 
-    applySurprise(g, banc.setState, 'party'); // les ennemis embusquent : le héros est le guetteur
+    applySurprise(g, banc.setState, 'groupe'); // les ennemis embusquent : le héros est le guetteur
 
     const h = g().battle!.combatants.find((c) => c.id === H.id)!;
     expect(hasCondition(h, COND.surpris), 'aucune Surprise prononcée en silence chez l’hôte').toBe(false);
@@ -160,7 +160,7 @@ describe('#1262 lot 3 — un Test déclenché HORS fin de Round ne se roule pas 
     const { H } = setupCoop();
     addCondition(H, COND.inconscient, 1);
     const eff = {
-      trigger: 'onWoundLoss', on: 'self',
+      trigger: 'onWoundLoss', on: 'soi',
       // `source` : l'entité porteuse, telle que `withSource` la tague au dispatcher — c'est d'elle que
       // l'étape DÉRIVE son enjeu (#1262 V2 L6d). Une fixture sans porteur ne serait pas le chemin réel.
       source: { kind: 'etat', id: 'empoisonne' },
@@ -209,7 +209,7 @@ describe('#1262 lot 3 — un « Vous pouvez… » ne se tranche pas chez l’hô
   it('dispatcher : un effet OPT-IN atteint le porteur d’un autre siège au lieu d’être jeté', () => {
     const { H } = setupCoop();
     const eff = {
-      trigger: 'onHit', on: 'self', optional: true,
+      trigger: 'onHit', on: 'soi', optional: true,
       flow: { kind: 'test', test: { skill: 'calme', difficulty: 'intermediaire', label: 'Se ressaisir' }, reussite: { kind: 'sequence', etapes: [] }, echec: { kind: 'sequence', etapes: [] } },
     } as unknown as TriggeredEffect;
 

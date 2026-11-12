@@ -96,7 +96,7 @@ export function buildHighlights(scene: Scene, battle: BattleState, view: Highlig
       for (let dy = 0; dy < fp; dy++) {
         const x = c.pos.x + dx, y = c.pos.y + dy;
         if (!inScene(x, y)) continue; // une empreinte N×N débordant le bord ne peint que ses cases de carte
-        out.push({ key: `tt${c.id}-${dx}-${dy}`, cell: { x, y, z: cz }, h: hAt(x, y, cz), kind: 'equipe', hero: c.kind === 'hero', active });
+        out.push({ key: `tt${c.id}-${dx}-${dy}`, cell: { x, y, z: cz }, h: hAt(x, y, cz), kind: 'equipe', hero: c.kind === 'heros', active });
       }
   }
   // Zones persistantes (L11) : fumée opaque / feu translucide — l'occupant voit le danger, à la

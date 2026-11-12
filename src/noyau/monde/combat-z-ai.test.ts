@@ -18,7 +18,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDe
 const scene = () =>
   ({ id: 's', label: '', dimensions: { w: 30, h: 21 }, layers: [{ z: 0, tiles: Array(630).fill('herbe') }], entities: [], dialogues: [], triggers: [], encounters: [], flags: {} } as never);
 
-const C = (kind: 'hero' | 'enemy', id: string, pos: { x: number; y: number; z?: number; h?: number }): Combatant =>
+const C = (kind: 'heros' | 'ennemi', id: string, pos: { x: number; y: number; z?: number; h?: number }): Combatant =>
   (blessuresSurLeProfil({
     id, name: id, kind, pos, movement: 4,
     characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
@@ -27,8 +27,8 @@ const C = (kind: 'hero' | 'enemy', id: string, pos: { x: number; y: number; z?: 
   })) as unknown as Combatant;
 
 function actionFor(heroH?: number) {
-  const enemy = C('enemy', 'e', { x: 2, y: 10 }); // sol (h = 0)
-  const hero = C('hero', 'h', { x: 3, y: 10, ...(heroH ? { h: heroH } : {}) }); // 2D-adjacent
+  const enemy = C('ennemi', 'e', { x: 2, y: 10 }); // sol (h = 0)
+  const hero = C('heros', 'h', { x: 3, y: 10, ...(heroH ? { h: heroH } : {}) }); // 2D-adjacent
   const input: EnemyTurnInput = { enemy, heroes: [hero], scene: scene(), blocked: new Set(['3,10']), movement: 4, spells: [] };
   return chooseEnemyAction(input);
 }
@@ -55,8 +55,8 @@ function etage(): Scene {
 
 function approche(z: 0 | 1) {
   const h = z ? { z, h: 4 } : {};
-  const enemy = C('enemy', 'e', { x: 1, y: 1, ...h });
-  const hero = C('hero', 'h', { x: 5, y: 1, ...h });
+  const enemy = C('ennemi', 'e', { x: 1, y: 1, ...h });
+  const hero = C('heros', 'h', { x: 5, y: 1, ...h });
   const input: EnemyTurnInput = { enemy, heroes: [hero], scene: etage(), blocked: new Set([tileKey(5, 1, z)]), movement: 4, spells: [] };
   return { hero, action: chooseEnemyAction(input) };
 }
@@ -94,10 +94,10 @@ function estrade(plat: boolean): Scene {
 
 function cibleChoisie(plat: boolean) {
   const sur = plat ? {} : { h: 4 };
-  const enemy = C('enemy', 'e', { x: 1, y: 2 });
-  const haut = C('hero', 'haut', { x: 6, y: 2, ...sur });
+  const enemy = C('ennemi', 'e', { x: 1, y: 2 });
+  const haut = C('heros', 'haut', { x: 6, y: 2, ...sur });
   haut.wounds.current = 1;
-  const bas = C('hero', 'bas', { x: 1, y: 4 });
+  const bas = C('heros', 'bas', { x: 1, y: 4 });
   const input: EnemyTurnInput = { enemy, heroes: [haut, bas], scene: estrade(plat), blocked: new Set(['6,2', '1,4']), movement: 4, spells: [] };
   const action = chooseEnemyAction(input);
   return { input, haut, action, ...aiApproachPlan(input, enemy, action, makeRNG(3)) };
@@ -125,8 +125,8 @@ describe('chooseEnemyAction — une case candidate se juge à SA hauteur (#2139)
 });
 
 function chargeVersEstrade(plat: boolean) {
-  const enemy = C('enemy', 'e', { x: 0, y: 0 });
-  const haut = C('hero', 'haut', { x: 6, y: 2, ...(plat ? {} : { h: 4 }) });
+  const enemy = C('ennemi', 'e', { x: 0, y: 0 });
+  const haut = C('heros', 'haut', { x: 6, y: 2, ...(plat ? {} : { h: 4 }) });
   const input: EnemyTurnInput = { enemy, heroes: [haut], scene: estrade(plat), blocked: new Set(['6,2']), movement: 4, spells: [] };
   return { input, haut, ...aiApproachPlan(input, enemy, chooseEnemyAction(input), makeRNG(3)) };
 }

@@ -7,7 +7,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testki
 /** Combatant minimal : Int 30 ≠ E 40 → la valeur de Test révèle quelle Caractéristique a servi. */
 function mk(opts: Partial<Combatant> = {}): Combatant {
   return blessuresSurLeProfil({
-    id: 'c', label: 'c', kind: 'enemy', advantage: 0, conditions: [],
+    id: 'c', label: 'c', kind: 'ennemi', advantage: 0, conditions: [],
     characteristics: { intelligence: 30, endurance: 40, sociabilite: 20, 'force-mentale': 25 } as never,
     psychState: [], psychTraits: [], groups: [], weapons: [], armour: {} as never,
     skills: [], talents: [], movement: 4, wounds: blessuresDeBase(10), ...opts,

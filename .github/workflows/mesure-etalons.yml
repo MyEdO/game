@@ -1,7 +1,8 @@
 name: Mesure du banc des étalons
 
-# Mesure jetable (#3935, lot 0) : l'écart de rendu entre le conteneur qui a posé les étalons et un runner, et la
-# durée du banc sur un runner. Cette branche ne fusionne pas.
+# Mesure jetable (#3935, lot 0) : le banc sur un runner, après le correctif du studio des portraits, contre les étalons
+# posés dans le conteneur ; quatre tirages de machine, pour en trouver une sans AVX-512 (le premier joue toujours, les
+# autres seulement sans AVX-512). Cette branche ne fusionne pas.
 on:
   push:
     branches: ['claude/project-thread-k424a0']
@@ -11,42 +12,48 @@ permissions:
 
 jobs:
   mesure:
+    strategy:
+      fail-fast: false
+      matrix:
+        tirage: [1, 2, 3, 4]
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Machine
+        id: machine
+        run: |
+          nproc && free -m && lscpu | grep 'Model name'
+          if lscpu | grep -q avx512f; then AVX=oui; else AVX=non; fi
+          echo "AVX-512 : $AVX"
+          if [ "$AVX" = non ] || [ "${{ matrix.tirage }}" = 1 ]; then echo "jouer=oui" >> "$GITHUB_OUTPUT"; else echo "jouer=non" >> "$GITHUB_OUTPUT"; fi
+      - if: steps.machine.outputs.jouer == 'oui'
+        uses: actions/checkout@v4
+      - if: steps.machine.outputs.jouer == 'oui'
+        uses: actions/setup-node@v4
         with:
           node-version-file: package.json
           check-latest: true
           cache: npm
-      - run: npm ci
-      - uses: ./.github/actions/caches-3d
-      - name: Machine
-        run: nproc && free -m && lscpu | grep -E 'Model name|Flags' | cut -c1-400
-      - name: Chromium du conteneur (Playwright 1.63.0, build 1243)
+      - if: steps.machine.outputs.jouer == 'oui'
+        run: npm ci
+      - if: steps.machine.outputs.jouer == 'oui'
+        uses: ./.github/actions/caches-3d
+      - name: Chromium épinglé (Playwright 1.63.0, build 1243), sans les paquets du système, et son bac à sable
+        if: steps.machine.outputs.jouer == 'oui'
         run: |
           date +%s > /tmp/t0
-          npx -y playwright@1.63.0 install --with-deps chromium
+          npx -y playwright@1.63.0 install chromium
           echo "PLAYWRIGHT_BROWSERS_PATH=$HOME/.cache/ms-playwright" >> "$GITHUB_ENV"
-          ls "$HOME/.cache/ms-playwright"
-          echo "installation du navigateur : $(( $(date +%s) - $(cat /tmp/t0) )) s"
-      - name: Bac à sable de Chromium (Ubuntu 24.04 refuse les espaces de noms non privilégiés)
-        run: |
-          sysctl kernel.apparmor_restrict_unprivileged_userns || true
-          CHROME="$(ls -d "$HOME"/.cache/ms-playwright/chromium-*/chrome-linux*/chrome | head -1)"
-          "$CHROME" --headless=new --dump-dom about:blank 2>&1 | tail -5 || echo "sans réglage : code $?"
           sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
-          "$CHROME" --version
-          "$CHROME" --headless=new --dump-dom about:blank 2>&1 | tail -5
+          echo "installation du navigateur : $(( $(date +%s) - $(cat /tmp/t0) )) s"
       - name: Export Web
+        if: steps.machine.outputs.jouer == 'oui'
         run: |
           date +%s > /tmp/t0
           node hotes/godot/construire.mjs --export --sortie dist/godot
           echo "export : $(( $(date +%s) - $(cat /tmp/t0) )) s"
       - name: Banc, deux processus, sans rapport
-        id: banc
-        continue-on-error: true
+        if: steps.machine.outputs.jouer == 'oui'
         run: |
           date +%s > /tmp/t0
           mapfile -t NOMS < <(ls hotes/godot/etalons/planches/*.json | xargs -n1 basename | sed 's/\.json$//')
@@ -59,15 +66,3 @@ jobs:
           cat /tmp/banc-a.log /tmp/banc-b.log
           echo "banc : $(( $(date +%s) - $(cat /tmp/t0) )) s, codes $CA et $CB"
           test "$CA" = 0 && test "$CB" = 0
-      - name: Seconde passe sur le même runner, avec les rendus des planches aux portraits douteux
-        continue-on-error: true
-        run: |
-          date +%s > /tmp/t0
-          node hotes/godot/etalons.mjs --web dist/godot --planche repit --planche lieu --planche port --planche carte-du-monde --rapport /tmp/rapport
-          echo "quatre planches avec rapport : $(( $(date +%s) - $(cat /tmp/t0) )) s"
-      - uses: actions/upload-artifact@v4
-        with:
-          name: rapport-etalons
-          path: /tmp/rapport
-      - name: Verdict
-        run: test "${{ steps.banc.outcome }}" = success

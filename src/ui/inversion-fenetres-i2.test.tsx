@@ -66,7 +66,7 @@ describe('Activité — bouton « Inverser »', () => {
 describe('Battement — bouton « Inverser »', () => {
   const ouvrir = (jeton: boolean) => {
     const h = heros('H1', false);
-    const e = { ...heros('E1', false), id: 'E1', kind: 'enemy' as const };
+    const e = { ...heros('E1', false), id: 'E1', kind: 'ennemi' as const };
     h.pos = { x: 1, y: 1 }; e.pos = { x: 2, y: 1 };
     if (jeton) applyOps(h, [{ op: 'grantReverseToken', skill: { id: 'corps-a-corps' } }], { idNeuf: idsDeTest, rng: makeRNG(1), label: 'Entraînement au Combat' });
     useGame.setState({

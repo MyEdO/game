@@ -22,7 +22,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 /** Sociabilité 30 + 5 avances d'Intimidation = valeur de Test 35. */
 const hero = (scarId?: string): Combatant =>
   (blessuresSurLeProfil({
-    id: 'H', label: 'Héros', kind: 'hero',
+    id: 'H', label: 'Héros', kind: 'heros',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 45, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(10), advantage: 0, conditions: [], talents: [], items: [], traits: [], weapons: [],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4,

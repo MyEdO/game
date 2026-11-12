@@ -27,7 +27,7 @@ export function ShipStationsPanel({ traits }: {
 }) {
   const party = useGame((s) => s.party);
   const affecterALaStation = useGame((s) => s.affecterALaStation);
-  const heroes = party.filter((h) => !h.dead && !h.outOfRencontre && h.kind === 'hero');
+  const heroes = party.filter((h) => !h.dead && !h.outOfRencontre && h.kind === 'heros');
   return (
     <PostesRoster
       title="Stations à bord"

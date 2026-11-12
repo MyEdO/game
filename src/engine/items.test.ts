@@ -73,7 +73,7 @@ describe('mutateurs de loadout (purs)', () => {
   const w = (uid: string, name: string, p: Partial<ItemInstance> = {}): ItemInstance =>
     ({ uid, label: name, kind: 'melee', qualities: [], enc: 1, equipped: true, hands: 1, ...p } as ItemInstance);
   const hero = (items: ItemInstance[]): Combatant =>
-    ({ id: 'h', label: 'H', kind: 'hero', items, loadouts: [], activeLoadoutId: undefined } as unknown as Combatant);
+    ({ id: 'h', label: 'H', kind: 'heros', items, loadouts: [], activeLoadoutId: undefined } as unknown as Combatant);
 
   it('loadoutCreate ajoute un loadout vide et le rend actif', () => {
     const c = hero([w('e', 'Epee')]);
@@ -177,7 +177,7 @@ describe('unarmedWeapon (Mains nues canoniques, LDB 62 l.28)', () => {
 
 describe('activeLoadout', () => {
   const base = (over: Partial<Combatant>): Combatant =>
-    ({ id: 'h', label: 'H', kind: 'hero', items: [], ...over } as unknown as Combatant);
+    ({ id: 'h', label: 'H', kind: 'heros', items: [], ...over } as unknown as Combatant);
 
   it('aucun loadout → null (chemin legacy)', () => {
     expect(activeLoadout(base({}))).toBeNull();
@@ -194,7 +194,7 @@ describe('activeLoadout', () => {
 
 describe('recomputeLoadout piloté par loadout', () => {
   const heroWith = (items: ItemInstance[], lo?: { loadouts: any[]; activeLoadoutId: string }): Combatant =>
-    (blessuresSurLeProfil({ id: 'h', label: 'H', kind: 'hero', characteristics: { force: 30, endurance: 30 } as any, items,
+    (blessuresSurLeProfil({ id: 'h', label: 'H', kind: 'heros', characteristics: { force: 30, endurance: 30 } as any, items,
        talents: [], skills: [], conditions: [], wounds: blessuresDeBase(10), advantage: 0, ...lo }) as unknown as Combatant);
   const w = (uid: string, name: string, p: Partial<ItemInstance> = {}): ItemInstance =>
     ({ uid, label: name, kind: 'melee', qualities: [], enc: 1, equipped: true, ...p } as ItemInstance);
@@ -237,7 +237,7 @@ describe('recomputeLoadout piloté par loadout', () => {
 
 describe('warMachineResolveChar (DÉRIVÉ, via recomputeLoadout) — bélier → Force (ADE II 8 l.233)', () => {
   const heroWith = (items: ItemInstance[], lo?: { loadouts: any[]; activeLoadoutId: string }): Combatant =>
-    (blessuresSurLeProfil({ id: 'h', label: 'H', kind: 'hero', characteristics: { force: 30, endurance: 30 } as any, items,
+    (blessuresSurLeProfil({ id: 'h', label: 'H', kind: 'heros', characteristics: { force: 30, endurance: 30 } as any, items,
        talents: [], skills: [], conditions: [], wounds: blessuresDeBase(10), advantage: 0, ...lo }) as unknown as Combatant);
   const w = (uid: string, name: string, p: Partial<ItemInstance> = {}): ItemInstance =>
     ({ uid, label: name, kind: 'melee', qualities: [], enc: 1, equipped: true, ...p } as ItemInstance);
@@ -266,7 +266,7 @@ describe('warMachineResolveChar (DÉRIVÉ, via recomputeLoadout) — bélier →
 
 describe('machine de guerre (Qualité `equipe` — ADE II 8 l.233) : jamais en loadout SOLO', () => {
   const heroWith = (items: ItemInstance[], lo?: { loadouts: any[]; activeLoadoutId: string }): Combatant =>
-    (blessuresSurLeProfil({ id: 'h', label: 'H', kind: 'hero', characteristics: { force: 30, endurance: 30 } as any, items,
+    (blessuresSurLeProfil({ id: 'h', label: 'H', kind: 'heros', characteristics: { force: 30, endurance: 30 } as any, items,
        talents: [], skills: [], conditions: [], wounds: blessuresDeBase(10), advantage: 0, ...lo }) as unknown as Combatant);
 
   it('belier-ade2 (subType armes-de-siege) en `items` équipé : PAS d’arme dérivée — Mains nues seulement', () => {
@@ -319,7 +319,7 @@ describe('ensureDefaultLoadout', () => {
   const w = (uid: string, name: string, p: Partial<ItemInstance> = {}): ItemInstance =>
     ({ uid, label: name, kind: 'melee', qualities: [], enc: 1, equipped: true, damage: { plusBF: true, flat: 4 }, ...p } as ItemInstance);
   const hero = (items: ItemInstance[]): Combatant =>
-    ({ id: 'h', label: 'H', kind: 'hero', items } as unknown as Combatant);
+    ({ id: 'h', label: 'H', kind: 'heros', items } as unknown as Combatant);
 
   it('crée « Set I » = meilleure arme de mêlée en main, bouclier en secondaire', () => {
     const c = hero([
@@ -752,7 +752,7 @@ const mutationAP = (id: string, amount: number, noDeviation?: boolean): Mutation
 /** LDB 85 l.325, l.447 ; LDB 63 l.19 ; LDB 62 l.135 */
 describe('endommagerLEquipementPorte — toutes les Armures et Armes portées subissent 1 Dégât', () => {
   const porteur = (items: ItemInstance[], main?: string, off?: string): Combatant => {
-    const c = (blessuresSurLeProfil({ id: 'h', label: 'H', kind: 'hero', characteristics: { force: 30, endurance: 30 } as any, items, armour: emptyArmour(),
+    const c = (blessuresSurLeProfil({ id: 'h', label: 'H', kind: 'heros', characteristics: { force: 30, endurance: 30 } as any, items, armour: emptyArmour(),
       talents: [], skills: [], conditions: [], wounds: blessuresDeBase(10), advantage: 0,
       loadouts: [{ id: 'l1', name: 'set', main, secondaire: off }], activeLoadoutId: 'l1' }) as unknown as Combatant);
     recomputeLoadout(c);
@@ -839,7 +839,7 @@ describe('endommagerLEquipementPorte — toutes les Armures et Armes portées su
 /** LDB 63 l.19, l.30 ; EDO App.2 l.196 */
 describe('damageArmour — armure dérivée d’un héros sans pièce à la Localisation', () => {
   const heros = (mutations: Mutation[]): Combatant => {
-    const c = (blessuresSurLeProfil({ id: 'h', label: 'H', kind: 'hero', characteristics: { force: 30, endurance: 30 } as any, items: [], armour: emptyArmour(),
+    const c = (blessuresSurLeProfil({ id: 'h', label: 'H', kind: 'heros', characteristics: { force: 30, endurance: 30 } as any, items: [], armour: emptyArmour(),
       talents: [], skills: [], conditions: [], wounds: blessuresDeBase(10), advantage: 0, mutations }) as unknown as Combatant);
     recomputeLoadout(c);
     return c;
@@ -1071,7 +1071,7 @@ describe('lacherLArme — idempotent sur les Mains nues', () => {
   it('tientUneArme([Mains nues]) est faux, et deux lâchers rendent [Mains nues]', () => {
     expect(tientUneArme([unarmedWeapon()])).toBe(false);
     const epee = { uid: 'sb-1', label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] } as unknown as Weapon;
-    const c = { id: 'e', kind: 'enemy', items: [], weapons: [epee] } as unknown as Combatant;
+    const c = { id: 'e', kind: 'ennemi', items: [], weapons: [epee] } as unknown as Combatant;
     lacherLArme(c, epee);
     lacherLArme(c, epee);
     expect(c.weapons.map((w) => w.label)).toEqual(['Mains nues']);
@@ -1082,7 +1082,7 @@ describe('lacherLArme — idempotent sur les Mains nues', () => {
 describe('arme dérivée (Crochet) — objet source et destruction', () => {
   it('l’arme porte `derivedFromItem`, et un Crochet détruit n’est plus dérivé', () => {
     const crochet = { ...itemFromTrappingById('crochet', idsDeTest)!, uid: 'crochet-1', equipped: true };
-    const c = { id: 'h', kind: 'hero', items: [crochet], weapons: [], traits: [], activeEffects: [] } as unknown as Combatant;
+    const c = { id: 'h', kind: 'heros', items: [crochet], weapons: [], traits: [], activeEffects: [] } as unknown as Combatant;
     recomputeLoadout(c);
     expect(c.weapons.find((w) => w.label === 'Crochet')?.derivedFromItem).toBe('crochet-1');
     crochet.destroyed = true;
@@ -1094,7 +1094,7 @@ describe('arme dérivée (Crochet) — objet source et destruction', () => {
 // LDB 62 l.143 « Quand elles ne sont pas utilisées ainsi, toutes les armes à deux mains issues du Groupe d'armes de Cavalerie sont aussi considérées comme des armes à Deux Mains ».
 describe('Cavalerie (2M) tenue par un cavalier MONTÉ', () => {
   const cavalier = (monte: boolean): Combatant => {
-    const c = { id: 'h', kind: 'hero', label: 'Cavalier', characteristics: {}, conditions: [], traits: [], activeEffects: [], weapons: [], items: [{ ...itemFromTrappingById('marteau-a-bec-de-corbin', idsDeTest)!, uid: 'm1', equipped: true }, { ...itemFromTrappingById('bouclier', idsDeTest)!, uid: 'b1', equipped: true }], loadouts: [{ id: 'lo', secondaire: 'b1' }], activeLoadoutId: 'lo' } as unknown as Combatant;
+    const c = { id: 'h', kind: 'heros', label: 'Cavalier', characteristics: {}, conditions: [], traits: [], activeEffects: [], weapons: [], items: [{ ...itemFromTrappingById('marteau-a-bec-de-corbin', idsDeTest)!, uid: 'm1', equipped: true }, { ...itemFromTrappingById('bouclier', idsDeTest)!, uid: 'b1', equipped: true }], loadouts: [{ id: 'lo', secondaire: 'b1' }], activeLoadoutId: 'lo' } as unknown as Combatant;
     if (monte) c.mountId = 'cheval';
     return c;
   };
@@ -1119,7 +1119,7 @@ describe('Cavalerie (2M) tenue par un cavalier MONTÉ', () => {
 /** LDB 62 : la Portée d'une arme de jet est BF × N ; la munition sélectionnée la module. */
 describe('porteeDeTir — la Portée de l’arme aux mains de SON tireur', () => {
   const tireur = (items: Combatant['items']): Combatant => blessuresSurLeProfil({
-    id: 'h', label: 'T', kind: 'hero',
+    id: 'h', label: 'T', kind: 'heros',
     characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 40, endurance: 40, initiative: 40, agilite: 40, dexterite: 40, intelligence: 40, 'force-mentale': 40, sociabilite: 40 },
     wounds: blessuresDeBase(12), advantage: 0, conditions: [],
     weapons: [], armour: emptyArmour(), skills: [], talents: [], movement: 4, items,
