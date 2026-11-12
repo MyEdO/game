@@ -14,7 +14,8 @@
 ## Son onglet Effets montre la vitrine des effets que le jeu joue (#3777, `vitrine`, `CONTRAT.md`, section « Effets ») :
 ## chaque variante de chaque rendu d'arme, de chaque Domaine et de la Prière, chaque son et chaque flottant, rejoués par
 ## son nœud `Effets` de l'auteur posé à l'origine vers la cible (`Cible`), et chaque musique, jouée par sa `Musique`
-## jusqu'à ce que son bouton se relâche (#3825) ; son onglet Animation, le déplacement de la vitrine, que la base posée
+## jusqu'à ce que son bouton se relâche (#3825), et chaque météo, posée par son nœud `Meteo` avec son son jusqu'à ce
+## que son bouton se relâche (#4081) ; son onglet Animation, le déplacement de la vitrine, que la base posée
 ## parcourt (#3822).
 ## Le modèle se choisit en tête du panneau ; chaque onglet, et ce qu'il porte, se montre si le modèle posé lui offre
 ## quelque chose (#3792, `_adapter_les_onglets`, `.claude/rules/hote-godot.md`).
@@ -73,6 +74,8 @@ var _musique := Musique.new()
 ## La zone qui dure de la vitrine posée autour de la cible, et les marques d'États posées sur elle (#3834).
 var _zones := ZonesQuiDurent.new()
 var _marques := MarquesDEtats.new()
+## La météo de la vitrine posée sur la bande de l'auteur à la cible (#4081).
+var _meteo := Meteo.new()
 @onready var _etat: Label = %Etat
 @onready var _choix_du_modele: VBoxContainer = %ChoixDuModele
 @onready var _panneau_des_emplacements: VBoxContainer = %Emplacements
@@ -157,6 +160,8 @@ func _ready() -> void:
 	add_child(_musique)
 	_zones.name = "ZonesQuiDurent"
 	add_child(_zones)
+	_meteo.name = "Meteo"
+	add_child(_meteo)
 	_marques.name = "Marques"
 	_cible.add_child(_marques)
 	_recueil = _erreurs
@@ -1111,7 +1116,8 @@ func _onglets_offerts() -> Array[String]:
 ## Chaque bascule d'onglet montrée si le modèle posé offre son onglet (`_onglets_offerts`), l'onglet montré remplacé par
 ## le premier offert s'il ne l'est plus ; à l'onglet Couleurs, la rangée de chaque emplacement de la palette posée ; à
 ## l'onglet Animation, « Attaquer » si l'engin posé attaque, « Parcourir un chemin » si la base posée marche
-## (`_parcourt`), et « Actions » s'il porte l'un d'eux ; à l'onglet Outils, chaque aide dont le modèle porte un repère.
+## (`_parcourt`), et « Actions » s'il porte l'un d'eux ; à l'onglet Effets, « Météo » si la vitrine en sert une ; à
+## l'onglet Outils, chaque aide dont le modèle porte un repère.
 func _adapter_les_onglets() -> void:
 	var offerts := _onglets_offerts()
 	for onglet in _onglets:
@@ -1125,6 +1131,8 @@ func _adapter_les_onglets() -> void:
 	%Attaquer.visible = _attaque_de_l_engin() != null
 	%Parcourir.visible = _parcourt()
 	%Actions.visible = %Attaquer.visible or %Parcourir.visible
+	%TitreMeteos.visible = not _vitrine.get("meteos", []).is_empty()
+	%VitrineMeteos.visible = %TitreMeteos.visible
 	for aide in _cases_des_aides:
 		_cases_des_aides[aide].visible = not _reperes[aide].is_empty()
 	%TitreAides.visible = _reperes.values().any(func(reperes: Array) -> bool: return not reperes.is_empty())
@@ -1151,7 +1159,8 @@ func _palette_posee() -> Dictionary:
 ## La vitrine des effets (`vitrine`) : la cible posée à sa distance, puis, par rendu d'arme et par sort, une rangée à son
 ## `label` qui porte un bouton par variante, un bouton par manœuvre de zone et par Type de Souffle (#3783), un bouton par
 ## son et par flottant, un bouton par ton de lumière, qui pose son foyer sur la cible, un bouton à bascule par musique
-## (#3825), par zone qui dure, qui la pose autour de la cible, et par État, qui pose sa marque sur la cible (#3834).
+## (#3825), par zone qui dure, qui la pose autour de la cible, par État, qui pose sa marque sur la cible (#3834), et par
+## météo, qui la pose sur la bande de l'auteur à la cible (#4081).
 func _poser_la_vitrine() -> void:
 	var reponse := _pont.appeler("vitrine")
 	if reponse.get("ok") != true:
@@ -1202,6 +1211,13 @@ func _poser_la_vitrine() -> void:
 		bouton.set_meta("marque", marque.marque)
 		bouton.toggled.connect(_marquer.unbind(1))
 		%VitrineMarques.add_child(bouton)
+	for meteo in _vitrine.meteos:
+		var bouton := Button.new()
+		bouton.text = meteo.label
+		bouton.toggle_mode = true
+		bouton.set_meta("cle", "meteo/%s" % meteo.id)
+		bouton.toggled.connect(_faire_tomber.bind(meteo.meteo, bouton))
+		%VitrineMeteos.add_child(bouton)
 
 
 ## La zone qui dure `zone` de la vitrine posée autour de la cible quand son bouton `bouton` s'enfonce (`allume`), les
@@ -1212,6 +1228,15 @@ func _faire_durer(allume: bool, zone: Dictionary, bouton: Button) -> void:
 			autre.set_pressed_no_signal(false)
 	var lieu := func(case: Dictionary) -> Vector3: return MiseEnPage.lieu_de_la_case_de_vitrine(case.x, case.y, _vitrine.metresParCase)
 	_zones.poser([zone] if allume else [], lieu, METRES_PAR_UNITE)
+
+
+## La météo `meteo` de la vitrine posée quand son bouton `bouton` s'enfonce (`allume`), les autres relâchés ; retirée,
+## son son compris, quand il se relâche.
+func _faire_tomber(allume: bool, meteo: Dictionary, bouton: Button) -> void:
+	for autre: Button in %VitrineMeteos.get_children():
+		if autre != bouton:
+			autre.set_pressed_no_signal(false)
+	_meteo.poser(meteo if allume else null)
 
 
 ## Les marques des États dont le bouton est enfoncé, posées sur la cible dans leur ordre.

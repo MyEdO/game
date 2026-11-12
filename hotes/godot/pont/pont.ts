@@ -1254,7 +1254,7 @@ export function creerPont(stockage: Stockage | null) {
      * aucune
      *
      * @returns `{ de, vers, distanceM, metresParCase, armes, sorts, manoeuvres, souffles, sons, flottants, musiques,
-     * lumieres, attaques, deplacement }` : la vitrine des effets que le jeu joue (`vitrineDesEffets`, surface du noyau, section « Effets ») ; avant ou
+     * lumieres, attaques, zonesQuiDurent, marques, meteos, deplacement }` : la vitrine des effets que le jeu joue (`vitrineDesEffets`, surface du noyau, section « Effets ») ; avant ou
      * après `demarrer`
      */
     vitrine(json): VitrineDesEffets {

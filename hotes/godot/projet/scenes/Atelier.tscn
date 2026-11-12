@@ -463,6 +463,16 @@ text = "Marques des États"
 unique_name_in_owner = true
 layout_mode = 2
 
+[node name="TitreMeteos" type="Label" parent="Interface/Panneau/Racine/DefilementEffets/Colonne"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"HeaderSmall"
+text = "Météo"
+
+[node name="VitrineMeteos" type="HFlowContainer" parent="Interface/Panneau/Racine/DefilementEffets/Colonne"]
+unique_name_in_owner = true
+layout_mode = 2
+
 [node name="DefilementOutils" type="ScrollContainer" parent="Interface/Panneau/Racine"]
 unique_name_in_owner = true
 visible = false

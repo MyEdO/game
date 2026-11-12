@@ -18,7 +18,8 @@ extends SceneTree
 ## qui est un bus (#3949) ; le coup d'un canon y part de
 ## l'auteur, le souffle de feu pose sa nappe sur chaque case, la flamme son foyer sur la cible, le flottant critique
 ## monte, une musique joue, cède la place à une autre et se tait, la zone de feu dure sur ses cases, les marques des
-## États se posent sur la cible et se retirent (#3834) ; le trébuchet choisi, sans place ni Amélioration à
+## États se posent sur la cible et se retirent (#3834), chaque météo enfoncée pose ses averses et ses nappes et fait jouer
+## son son sur un bus, relâche la précédente, et relâchée les retire (#4081) ; le trébuchet choisi, sans place ni Amélioration à
 ## monter, n'offre pas Équipement et attaque depuis l'onglet Animation : son clip de tir joue et sa pierre vole.
 
 const RECETTE_AUTONOME := true
@@ -118,6 +119,10 @@ func _vitrine(atelier: Node, pont: PontFige, cles: Array, lu: Dictionary) -> voi
 		_verifier(marque.marque.visuel == null or ResourceLoader.exists(Effets.chemin_de_l_effet(Effets.FAMILLE_DES_FLAMMES, marque.marque.visuel)), "visuel de marque inconnu de Godot : %s" % marque.marque.visuel)
 		if marque.marque.son != null:
 			_connu({quoi = "son", son = marque.marque.son})
+	for meteo in vitrine.meteos:
+		cles_des_boutons.append("meteo/%s" % meteo.id)
+		if meteo.meteo.son != null:
+			_connu({quoi = "son", son = meteo.meteo.son})
 	for musique in vitrine.musiques:
 		cles_des_boutons.append("musique/%s" % musique.id)
 		for piste in musique.musique.pistes:
@@ -142,6 +147,7 @@ func _vitrine(atelier: Node, pont: PontFige, cles: Array, lu: Dictionary) -> voi
 	_verifier(noeud_des_effets.get_children().any(func(n: Node) -> bool: return n is Label3D), "le flottant critique de la vitrine ne monte pas")
 	await _ecouter(atelier, vitrine.musiques)
 	await _durer_et_marquer(atelier)
+	await _faire_tomber(atelier, vitrine.meteos)
 	var foyers := atelier.get_node("Cible").get_children().filter(func(n: Node) -> bool: return n is Foyer)
 	_verifier(foyers.size() == 1 and foyers[0].get_node_or_null("feu") != null and foyers[0].get_node_or_null("son-crepitement") != null, "la flamme de la vitrine : un seul foyer, son feu et son crépitement attendus sur la cible, posés %s" % [foyers.map(func(f: Node) -> Array: return f.get_children().map(func(n: Node) -> String: return n.name))])
 	_choisir(atelier, "modele/vehicule", "trebuchet-ade2")
@@ -174,6 +180,35 @@ func _durer_et_marquer(atelier: Node) -> void:
 	en_flammes.button_pressed = false
 	_verifier(textes.call() == ["Sonné"], "la marque relâchée reste posée : %s" % [textes.call()])
 	(_controle(atelier, "marque/sonne") as Button).button_pressed = false
+	await create_timer(Foyer.SON_LIBERE_S).timeout
+
+
+## Chaque météo `meteos` de la vitrine à son bouton à bascule : enfoncée, son nœud `Meteo` pose une averse, instance de
+## sa scène, par boîte de sa pluie et une nappe par nappe de brume, et joue son son sur le bus de son canal, la météo
+## précédente relâchée ; relâchée, plus rien n'est posé ni ne s'entend.
+func _faire_tomber(atelier: Node, meteos: Array) -> void:
+	var noeud := atelier.get_node("Meteo") as Meteo
+	_verifier(_controle_par_nom(atelier, "TitreMeteos").visible and _controle_par_nom(atelier, "VitrineMeteos").visible, "la section « Météo » de la vitrine est cachée")
+	var precedent: Button = null
+	for meteo in meteos:
+		var bouton := _controle(atelier, "meteo/%s" % meteo.id) as Button
+		bouton.button_pressed = true
+		await process_frame
+		var averses := noeud.get_children().filter(func(n: Node) -> bool: return n.scene_file_path == Meteo.AVERSE.resource_path)
+		var nappes := noeud.get_children().filter(func(n: Node) -> bool: return n.scene_file_path == Meteo.NAPPE.resource_path)
+		var attendues: Array = [] if meteo.meteo.pluie == null else meteo.meteo.pluie.averses
+		_verifier(averses.map(func(a: CPUParticles3D) -> int: return a.amount) == attendues.map(func(a: Dictionary) -> int: return int(a.nombre)), "la météo « %s » de la vitrine : averses %s, attendu %s" % [meteo.label, averses.map(func(a: CPUParticles3D) -> int: return a.amount), attendues])
+		_verifier(nappes.size() == meteo.meteo.nappes.size(), "la météo « %s » de la vitrine : %d nappes, attendu %d" % [meteo.label, nappes.size(), meteo.meteo.nappes.size()])
+		var son := noeud.son()
+		if meteo.meteo.son == null:
+			_verifier(son == null, "la météo « %s » de la vitrine joue un son qu'elle n'a pas" % meteo.label)
+		else:
+			_verifier(son != null and son.playing and son.bus == StringName(meteo.meteo.son.canal) and AudioServer.get_bus_index(son.bus) != -1, "la météo « %s » de la vitrine ne joue pas son son sur le bus %s" % [meteo.label, meteo.meteo.son.canal])
+		_verifier(precedent == null or not precedent.button_pressed, "la météo « %s » de la vitrine ne relâche pas la précédente" % meteo.label)
+		precedent = bouton
+	precedent.button_pressed = false
+	await process_frame
+	_verifier(noeud.get_child_count() == 0 and noeud.son() == null, "la météo relâchée de la vitrine reste posée : %s" % [noeud.get_children().map(func(n: Node) -> String: return n.name)])
 	await create_timer(Foyer.SON_LIBERE_S).timeout
 
 

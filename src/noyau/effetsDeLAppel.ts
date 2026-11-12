@@ -7,7 +7,9 @@
  * celui de son Type. L'hôte ne décide rien : il dessine la phase et joue le son qu'il reçoit. Aucune conséquence de règle.
  */
 import { allMusicDefs } from '../data/sons/musique';
-import { breathTypes, conditionLabel, domains, etats, findDomainById, findRenduById, findSpellById, findTrappingById, findWeaponGroupById, lightTones, maneuvers, rendus, siegeEngines, type DomainData, type ManeuverDef, type Projectile, type RenduDef, type VisuelDEffet } from '../data';
+import { sceneWeatherSchema } from '../data/schemas/defs-scenes/scene';
+import { libelleDeValeur } from '../data/schemas/grammaire/meta';
+import { ambiance, breathTypes, conditionLabel, domains, etats, findDomainById, findRenduById, findSpellById, findTrappingById, findWeaponGroupById, lightTones, maneuvers, rendus, siegeEngines, type DomainData, type ManeuverDef, type Projectile, type RenduDef, type VisuelDEffet } from '../data';
 import { sonDEffet, sonsDEffet, type SonDEffet } from '../data/sons/registre';
 import { castInfoIsPrayer } from '../engine/magic';
 import type { Weapon } from '../engine/types';
@@ -19,6 +21,7 @@ import { porteurParId } from './monde/combatants';
 import { musiqueDeLaSelection, type MusiqueDeLaPartie } from './musiqueDeLaPartie';
 import { marquesDesEtats, type MarqueDEtat } from './marquesDesEtats';
 import { hauteurDe, sceneMetresPerTile } from './monde/scene';
+import { meteoSurLesBandes, type MeteoDuRegard } from './monde/meteo';
 import { FLAME_LIFT_M } from './monde/vision';
 import { discTiles, type BattleZone } from './monde/zones';
 import { spaceCellKey } from './monde/volume/architectureVisibility';
@@ -513,6 +516,12 @@ export interface VitrineDesEffets {
   /** chaque État (`{ id, label, marque }`), sa marque à la valeur 1, comme `vue.marques` (#3834) ; */
   marques: { id: string; label: string; marque: MarqueDEtat }[];
   /**
+   * chaque météo du catalogue (`{ id, label, meteo }`), dans son ordre,
+   * `meteo` comme `monde.meteo` au regard `tactique` (section « Monde »),
+   * sur la bande de cases de l'auteur à la cible, au sol plat à ciel ouvert (#4081) ;
+   */
+  meteos: { id: string; label: string; meteo: MeteoDuRegard }[];
+  /**
    * le déplacement de l'auteur sur un chemin qui tourne depuis sa case, que la base posée parcourt à « Parcourir un
    * chemin » (onglet Animation).
    */
@@ -627,5 +636,11 @@ export function vitrineDesEffets(): VitrineDesEffets {
     zone: zonesQuiDurent([{ label: r.label, tiles: casesDeLaZone, rounds: 1, rendu: { id: r.id } }])[0],
   }));
   const marques = etats.map((e) => ({ id: e.id, label: e.label, marque: marquesDesEtats([{ id: e.id, valeur: 1 }])[0] }));
-  return { de, vers, distanceM, metresParCase, armes, sorts, manoeuvres, souffles, sons, lumieres, attaques, flottants, musiques, zonesQuiDurent: zones, marques, deplacement: deplacement(de, CHEMIN_DE_LA_VITRINE, metresParCase, () => 0) };
+  const bande = [{ y: caseDeLAuteur.y, x0: caseDeLAuteur.x, x1: caseDeLaCible.x }];
+  const meteos = Object.entries(ambiance.iso.weather).map(([id, fx]) => ({
+    id,
+    label: libelleDeValeur(sceneWeatherSchema, id),
+    meteo: meteoSurLesBandes(fx, bande, metresParCase, { groundM: 0, topGroundM: 0 }, 'tactique'),
+  }));
+  return { de, vers, distanceM, metresParCase, armes, sorts, manoeuvres, souffles, sons, lumieres, attaques, flottants, musiques, zonesQuiDurent: zones, marques, meteos, deplacement: deplacement(de, CHEMIN_DE_LA_VITRINE, metresParCase, () => 0) };
 }
