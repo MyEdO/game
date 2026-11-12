@@ -8,7 +8,7 @@
  * plus proche au plus lointain. Ce qui ne se joue pas depuis sa case se rejoint par le chemin du groupe (`exploreMovePlan`), joué par
  * le clic de sa case (`cliquerLaCase`), comme un saut.
  */
-import { aretesUtilisables } from './aretes';
+import { aretesUtilisables, casesADenivele } from './aretes';
 import { aretesOffertes, GESTES_DEPLACANTS, gesteDeDenivele, gesteDeLArete, gestesDeplacantsOuverts } from './gesteDArete';
 import { cheminMarchable, marcheOuverte } from './marcheDuGroupe';
 import { triggersEnJeu } from './monde/decouvertePorteSecrete';
@@ -79,16 +79,14 @@ export function gestesDExploration(s: Jeu): GesteDExploration[] {
   if (!gestesDeplacantsOuverts(s)) return out;
   const bordees = new Set(duGroupe.map((a) => a.cle));
   const ailleurs: (GesteDExploration & { pas: number; arete: string })[] = [];
-  for (let y = 0; y < scene.dimensions.h; y++) {
-    for (let x = 0; x < scene.dimensions.w; x++) {
-      if (x === partyPos.x && y === partyPos.y) continue;
-      for (const arete of aretesUtilisables({ scene, visible, controleur: { x, y, z }, activeZ: z }, GESTES_DEPLACANTS)) {
-        const geste = gesteDeDenivele(arete);
-        if (!geste || bordees.has(arete.cle)) continue;
-        bordees.add(arete.cle);
-        const marche = marcheVers(s, chemins, arete.ancrage);
-        if (marche) ailleurs.push({ libelle: t('exploration.ailleurs', { geste: arete.libelle, x, y }), gestes: [...marche.gestes, geste], pas: marche.pas, arete: arete.libelle });
-      }
+  for (const { x, y } of casesADenivele(scene, z)) {
+    if (x === partyPos.x && y === partyPos.y) continue;
+    for (const arete of aretesUtilisables({ scene, visible, controleur: { x, y, z }, activeZ: z }, GESTES_DEPLACANTS)) {
+      const geste = gesteDeDenivele(arete);
+      if (!geste || bordees.has(arete.cle)) continue;
+      bordees.add(arete.cle);
+      const marche = marcheVers(s, chemins, arete.ancrage);
+      if (marche) ailleurs.push({ libelle: t('exploration.ailleurs', { geste: arete.libelle, x, y }), gestes: [...marche.gestes, geste], pas: marche.pas, arete: arete.libelle });
     }
   }
   const plusProches = new Map<string, GesteDExploration>();

@@ -8,7 +8,7 @@ import { indiceStadeSchema, documentNarratifSchema } from '../defs-scenes/narrat
 import { designerHerosSchema, ouvertureSchema, sousTitreOuvertureSchema, sousTitreClotureSchema } from './campagne';
 import { massBattleSpecSchema, setObjectiveSchema, grantFavorSchema, journalSchema, sceneFlowSchema } from '../defs-scenes/effets';
 import { dialogueNodeSchema, messageIntroductionSchema } from '../defs-scenes/scene';
-import { refusRouteSchema } from '../defs-scenes/worldmap';
+import { mapPlaceSchema, refusRouteSchema } from '../defs-scenes/worldmap';
 import { authoredStakeSchema, OP_DEFS, gameOpSchema, OPS_NON_TYPEES } from './mecanique';
 import { coDescendre, descendre, enfantsDe, declarationDEnfants, defDe } from './descente';
 import { fautesProseFinale, classificationsProseLocale } from '../../../../scripts/guards/lib/proseNommee.mjs';
@@ -27,6 +27,7 @@ const SITES: Record<keyof typeof PROSES_NOMMEES, { schema: z.ZodType; nu: Record
   'massBattle.terrain': { schema: massBattleSpecSchema, nu: { allyMight: 50, enemyMight: 50, terrain: 'Texte.' } },
   'scenes[].startMessage.texte': { schema: messageIntroductionSchema, nu: { texte: 'Texte.' } },
   'worldMap.routes[].refus.texte': { schema: refusRouteSchema, nu: { texte: 'Texte.' } },
+  'worldMap.places[].prose': { schema: mapPlaceSchema, nu: { id: 'lieu', label: 'Lieu', pos: { x: 10, y: 10 }, scene: { id: 's1' }, prose: 'Texte.' } },
   'narratif.ouverture.sousTitre.texte': { schema: sousTitreOuvertureSchema, nu: { texte: 'Texte.' } },
   'narratif.cloture.sousTitre.texte': { schema: sousTitreClotureSchema, nu: { texte: 'Texte.' } },
   'setObjective.desc': { schema: setObjectiveSchema, nu: { type: 'setObjective', id: 'objectif', desc: 'Texte.' } },
