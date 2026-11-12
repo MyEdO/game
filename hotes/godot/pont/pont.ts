@@ -34,6 +34,7 @@ import { apresLaCreation, boutonDeLaCreation } from '../../../src/hote/creation'
 import { boutonDeLEdition, calqueAffiche, cheminDeLaPlanche, estLIssueDUnChargement, gesteDuFormulaire, estLIssueDUnEnregistrement, estUnGesteDuPointeur, memoireDesCalques, refusDeLaValeurDit, surcoucheDeLEdition, zonesDeLEditeur } from '../../../src/hote/editeur';
 import { allBuiltinCampaigns, campagneDuJeu, lancementDeLaCampagne, paquetDuJeu } from '../../../src/scenes/campaign';
 import { zonesDesScenarios } from '../../../src/hote/scenarios';
+import { enOctets } from './octets';
 
 /** Le service `persisterLeHeros` du pont : il ne persiste aucun héros, l'hôte Godot n'a pas de stockage (#3041). */
 const sansRoster = (): void => {};
@@ -421,6 +422,8 @@ export interface MondeDuPont {
 /**
  * @contrat Monde
  * La réponse de `morceaux` : la géométrie de chaque clé demandée, une clé absente de la scène omise.
+ * Par `appeler`, ses tableaux en nombres.
+ * Par `appelerEnOctets`, l'en-tête d'`enOctets` (`EnteteDesMorceaux`, `pont/octets.ts`) : ses tableaux en bornes.
  */
 export interface MorceauxDuPont {
   /** les morceaux du volume demandés (`MorceauDuMonde`). */
@@ -767,7 +770,8 @@ export function creerPont() {
      *
      * @returns `{ volume, toits, couronnes }` (`MorceauxDuPont`) : la géométrie de chaque clé demandée, dans l'ordre du
      * manifeste, une clé absente de la scène omise ; refusé sans scène de la partie (`partie`) ou sans carte ouverte
-     * (`edition`)
+     * (`edition`).
+     * Par `appelerEnOctets`, l'en-tête d'`enOctets` : chaque tableau en `[debut, fin]` dans `octets()`.
      */
     morceaux(json): MorceauxDuPont {
       const e = entreeDe('morceaux', json, ['source', 'volume', 'toits', 'couronnes']);
@@ -1180,14 +1184,20 @@ export function creerPont() {
 
   /**
    * @contrat Transport
-   * - `wfrpPont.appeler(methode, entree?)` est la fonction du pont que Godot appelle, hors du choix d'une image sur le
-   *   disque de l'auteur (`wfrpPont.choisirUneImage(rendre)`, section « Éditeur »), qui lit le document de la page et
-   *   `FileReader` à son appel seulement, hors de l'exécution de la construction. `methode` est le nom d'une méthode ;
-   *   `entree` est une chaîne JSON qui encode un objet, ou rien (absente ou `null`) pour une méthode sans entrée. Elle
-   *   rend toujours une chaîne JSON.
+   * - `wfrpPont.appeler(methode, entree?)` est la porte des outils (tests, vues figées, `recette.mjs`) ; Godot
+   *   appelle `appelerEnOctets`, hors du choix d'une image sur le disque de l'auteur
+   *   (`wfrpPont.choisirUneImage(rendre)`, section « Éditeur »), qui lit le document de la page et `FileReader` à son
+   *   appel seulement, hors de l'exécution de la construction. `methode` est le nom d'une méthode ; `entree` est une
+   *   chaîne JSON qui encode un objet, ou rien (absente ou `null`) pour une méthode sans entrée. Elle rend toujours
+   *   une chaîne JSON.
    * - La réponse vaut `{ "ok": true, … }` ou `{ "ok": false, "erreur": { "categorie", "message" } }`. `appeler` ne lève
    *   jamais.
    * - Une clé de l'entrée que la méthode ne lit pas se refuse.
+   * - `wfrpPont.appelerEnOctets(methode, entree?)` est la porte des transports de Godot.
+   * - Elle rend la chaîne d'`appeler`, sauf pour une réponse réussie de `morceaux`.
+   * - Celle-ci est l'en-tête d'`enOctets` (`pont/octets.ts`) : ses tableaux en bornes, `octets` sa longueur.
+   * - `wfrpPont.octets()` rend un `ArrayBuffer`, les octets de la dernière réponse d'`appelerEnOctets`.
+   * - Il vaut `null` quand elle n'en porte pas : autre méthode, ou refus.
    */
   /**
    * @contrat Erreurs
@@ -1223,18 +1233,40 @@ export function creerPont() {
    * Les trois premières catégories sont celles du module commun (`CategorieDErreur`, `src/hote/partie.ts`) ; le texte
    * de chaque message vient de lui ou du noyau.
    */
-  /** Appelle la méthode `methode` sur l'entrée `json` : la réponse en JSON, jamais une levée. */
-  function appeler(methode: string, json?: string | null): string {
+  /** La réponse de la méthode `methode` sur l'entrée `json`, jamais une levée. */
+  function repondre(methode: string, json?: string | null): Reponse {
     try {
       const faire = Object.prototype.hasOwnProperty.call(methodes, methode) ? methodes[methode] : null;
       if (!faire) throw new ErreurDeGeste('validation', `méthode inconnue : ${String(methode)} (méthodes : ${Object.keys(methodes).join(', ')})`);
-      return JSON.stringify({ ok: true, ...faire(json) } satisfies Reponse);
+      return { ok: true, ...faire(json) };
     } catch (erreur) {
-      const reponse: Reponse = erreur instanceof ErreurDeGeste
+      return erreur instanceof ErreurDeGeste
         ? { ok: false, erreur: { categorie: erreur.categorie, message: erreur.message } }
         : { ok: false, erreur: { categorie: 'interne', message: erreur instanceof Error ? erreur.message : String(erreur) } };
-      return JSON.stringify(reponse);
     }
+  }
+
+  /** Appelle la méthode `methode` sur l'entrée `json` : la réponse en JSON, jamais une levée. */
+  function appeler(methode: string, json?: string | null): string {
+    return JSON.stringify(repondre(methode, json));
+  }
+
+  /** Les octets de la dernière réponse d'`appelerEnOctets`, `null` sans octets. */
+  let tenus: ArrayBuffer | null = null;
+
+  /** Appelle comme `appeler` ; une réponse réussie de `morceaux` rend l'en-tête d'`enOctets` et tient ses octets. */
+  function appelerEnOctets(methode: string, json?: string | null): string {
+    const reponse = repondre(methode, json);
+    tenus = null;
+    if (methode !== 'morceaux' || !reponse.ok) return JSON.stringify(reponse);
+    const { entete, octets } = enOctets(reponse as unknown as MorceauxDuPont);
+    tenus = octets;
+    return JSON.stringify({ ok: true, ...entete } satisfies Reponse);
+  }
+
+  /** Les octets de la dernière réponse d'`appelerEnOctets`, `null` si elle n'en porte pas. */
+  function octets(): ArrayBuffer | null {
+    return tenus;
   }
 
   /**
@@ -1244,7 +1276,7 @@ export function creerPont() {
    * `quitter` la ferme, et une autre s'ouvre ensuite sous le même pont, sans recharger la page. Un `demarrer` ou un
    * `ouvrir` refusé n'ouvre rien.
    */
-  return { appeler };
+  return { appeler, appelerEnOctets, octets };
 }
 
 /** Le pont que la page expose à Godot. */

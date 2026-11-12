@@ -61,7 +61,7 @@ function boutonDe(r: Reponse, id: string): Bouton {
  *  vers le ciel à sa couche la plus haute, hors des colonnes où se tient un décor, que le rayon toucherait d'abord. */
 function casesDuPontDuDessus(morceaux: readonly MorceauDuMonde[]) {
   const triangles = morceaux.flatMap(({ surfaces, cases, normales }) => surfaces.flatMap(({ debut, fin, navire, matiere }) =>
-    Array.from({ length: (fin - debut) / 3 }, (_, i) => ({ case: cases[debut / 3 + i], haut: normales[(debut + 3 * i) * 3 + 1] > 0.99, navire, decor: matiere.startsWith('prop--') }))));
+    Array.from({ length: (fin - debut) / 3 }, (_, i) => ({ case: cases.slice(debut + 3 * i, debut + 3 * i + 3), haut: normales[(debut + 3 * i) * 3 + 1] > 0.99, navire, decor: matiere.startsWith('prop--') }))));
   const du = triangles.filter(({ navire }) => navire !== undefined);
   const haut = Math.max(...du.map((t) => t.case[2]));
   const decors = new Set(triangles.filter(({ decor }) => decor).map((t) => `${t.case[0]},${t.case[1]}`));
