@@ -987,7 +987,7 @@ describe('(xii) ROUTE RÉELLE : la chute d’un Test RATÉ passe par la porte, d
 
   /** Monte la bande d'Athlétisme du `crewHit` — le geste EXACT des deux routes du jeu :
    *  combat `combatFlow.applyHullCriticalToTarget` (`pushCombatStep`) et voyage
-   *  `seaVoyageFlow.applyVesselCritical:2334` (`pushStep(…, 'travelDay')`). */
+   *  `seaVoyageFlow.applyVesselCritical` (`pushStep(…, revealPurpose('travelDay', false))`). */
   const ouvrirLaBande = (victimes: Combatant[], purpose: 'combat' | 'travelDay'): void => {
     const { test, label } = noeudCrewHit();
     const bande = (index: number) => bandeTriggeredTest(
