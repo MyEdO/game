@@ -14,7 +14,9 @@ import { emptyNarratif } from '../monde/campaignNarratif';
 import { emptyScene, type Scene } from '../monde/scene';
 import { addEffectZone, addTrigger, avecLaValeur, gestesDeLaListe, type Segment } from '../sceneEdit';
 import { formulaireDe, type CadreDuPorteur } from '../sceneEditLecture';
-import { newOp, valeurNeuveDe, variantesAChoisir } from '../valeursNeuves';
+import { newEffect, newOp, valeurNeuveDe, variantesAChoisir } from '../valeursNeuves';
+import seaEventsJson from '../../data/sea-events.json';
+import { givePossessionSchema } from '../../data/schemas/defs-scenes/effets';
 import { bornesAuPoint, champDeLElement, champsDeclares, champsDuRecord, champsOfferts, choixDuNoeud, cleOfferte, elementDuNoeud, formeAuPoint, inferFields, kindDuNoeud, recordDuNoeud, unionDuNoeud, varianteCourante, type FieldDesc } from '../codex/editFields';
 import { ouverts } from '../../data/schemas/grammaire/descente';
 import { tableTotale } from '../../lib/tableTotale';
@@ -22,11 +24,11 @@ import { editer, ouvrirLEdition, refusDeLaValeur, sceneEditee, type GesteDEditio
 import { conditionSchema, flowTestSchema, OP_DEFS, OP_LABEL, OPS_NON_TYPEES } from '../../data/schemas/grammaire/mecanique';
 import { idDe, idsDe, idsDeLaSousListe, refOuSpec } from '../../data/schemas/grammaire/ref';
 import { CIBLE_D_APPARTENANCE } from '../../data/schemas/grammaire/sousListes';
-import { CONDITION_TOUJOURS, recast } from '../../data/valeursNeuves';
+import { CONDITION_TOUJOURS, recast, statblockDeLaCreature } from '../../data/valeursNeuves';
 import { DIFFICULTY_LABELS } from '../../engine/types';
 import type { Condition } from '../../engine/flowCore';
 import type { GameOp } from '../../engine/ops';
-import { choixDeLaFeuilleDId } from '../../data';
+import { choixDeLaFeuilleDId, creatureSemee, findCreatureById } from '../../data';
 import { especeDApparenceSchema, tenueFermeeSchema } from '../../data/schemas/grammaire/valeurs';
 import { optionalEntrySchema } from '../../data/schemas/defs/creatures';
 
@@ -84,7 +86,7 @@ describe('la description du formulaire d’une zone d’effet', () => {
     expect(unionDuNoeud(champ(champs, z, 'crossTest', 'gate').noeud)?.discriminant).toBe('kind');
     expect(valeurNeuveDe(elementDuNoeud(champ(champs, z, 'crossTest', 'difficultyBy').noeud))).toEqual({ cond: CONDITION_TOUJOURS, difficulty: 'tresFacile' });
     const enjeu = champ(champs, z, 'crossTest', 'stake');
-    expect([champsDeclares(enjeu.noeud), unionDuNoeud(enjeu.noeud)?.variantes.map((v) => v.cle), elementDuNoeud(enjeu.noeud)], 'une union sans discriminant se choisit à la clé propre de ses branches').toEqual([undefined, ['key', 'authored', 'from'], undefined]);
+    expect([champsDeclares(enjeu.noeud), unionDuNoeud(enjeu.noeud)?.variantes.map((v) => v.cle), elementDuNoeud(enjeu.noeud)], 'une union sans discriminant se choisit par ses branches, de clé leur rang').toEqual([undefined, ['0', '1', '2'], undefined]);
   });
 
   it('une référence se choisit dans la sous-liste que sa feuille déclare', () => {
@@ -361,6 +363,55 @@ describe('une union se lit à la présence de son discriminant : les options d�
   });
 });
 
+/** La première Condition « Bourse ≥ » de `sea-events.json`, d'où se lit une valeur liée réelle (MDG 15 l.245-247). */
+function bourseLiee(): Condition {
+  const pile: unknown[] = [seaEventsJson];
+  for (let v = pile.pop(); v !== undefined; v = pile.pop()) {
+    if (v !== null && typeof v === 'object' && (v as { kind?: unknown }).kind === 'money') return v as Condition;
+    if (v !== null && typeof v === 'object') pile.push(...Object.values(v));
+  }
+  throw new Error('aucune Condition « money » dans sea-events.json');
+}
+
+describe('une union sans discriminant se lit à la forme de ses branches : la Bourse et la référence d’une possession (#3606 M2e2)', () => {
+  it('la Bourse ≥ offre « Montant » et « Valeur liée », qui partagent `brass` ; la courante est celle dont la valeur a la forme', () => {
+    const montant = recast(CONDITION_TOUJOURS, 'money');
+    const liee = bourseLiee();
+    expect([montant, liee].map((c) => (c as { atLeast: unknown }).atLeast)).toEqual([{ gold: 1 }, { brass: { tire: expect.any(String) } }]);
+    const noeud = (c: Condition) => { const d = declencheur(c); return champ(formulaireDe('declencheur', d, CADRE_VIDE), d, 'when', 'atLeast').noeud; };
+    const u = unionDuNoeud(noeud(liee))!;
+    expect(u.variantes.map((v) => [v.cle, v.libelle])).toEqual([['0', 'Montant'], ['1', 'Valeur liée']]);
+    expect([montant, liee].map((c) => varianteCourante(u, (c as { atLeast: unknown }).atLeast)?.libelle)).toEqual(['Montant', 'Valeur liée']);
+    for (const [actuelle, vers] of [[liee, 'Montant'], [montant, 'Valeur liée']] as const) {
+      const choisie = variantesAChoisir(noeud(actuelle), (actuelle as { atLeast: unknown }).atLeast)!.find((v) => v.libelle === vers)!;
+      const ecrite = avecLaValeur(conditionSchema, actuelle, ['atLeast'], choisie.valeur);
+      if (!ecrite.ok) throw new Error(`${vers} : ${ecrite.refus}`);
+      expect(varianteCourante(u, ecrite.valeur.atLeast)?.libelle, `${vers} : courante une fois écrite`).toBe(vers);
+      const issues = conditionSchema.safeParse(ecrite.valeur).error?.issues.map((i) => [i.code, i.path.join('.')]) ?? [];
+      expect(issues, `${vers} : le parse n’y refuse que la valeur liée encore vide`).toEqual(vers === 'Montant' ? [] : [['too_small', 'atLeast.brass.tire']]);
+    }
+  });
+
+  it('la référence d’une possession offre « Créature ou véhicule », elle-même union discriminée, et « profil personnalisé » ; la courante est celle dont la valeur a la forme', () => {
+    const effet = newEffect('givePossession') as Extract<ReturnType<typeof newEffect>, { type: 'givePossession' }>;
+    const statbloc = { custom: statblockDeLaCreature(findCreatureById(creatureSemee())!) };
+    const parStatbloc = { ...effet, ref: statbloc };
+    const d = (e: unknown) => ({ ...declencheur(), flow: { kind: 'do', effect: e } } as Declencheur);
+    const noeud = (e: unknown) => champ(formulaireDe('declencheur', d(e), CADRE_VIDE), d(e), 'flow', 'effect', 'ref').noeud;
+    const u = unionDuNoeud(noeud(effet))!;
+    expect(u.variantes.map((v) => [v.cle, v.libelle])).toEqual([['0', 'Créature ou véhicule'], ['1', 'profil personnalisé']]);
+    expect(unionDuNoeud(u.variantes[0].noeud)?.discriminant, 'la référence se choisit encore par son type').toBe('type');
+    expect([effet.ref, statbloc].map((r) => varianteCourante(u, r)?.cle)).toEqual(['0', '1']);
+    expect(givePossessionSchema.safeParse(parStatbloc).success, 'le statbloc réel parse').toBe(true);
+    for (const [actuelle, vers] of [[effet, '1'], [parStatbloc, '0']] as const) {
+      const choisie = variantesAChoisir(noeud(actuelle), actuelle.ref)!.find((v) => v.cle === vers)!;
+      const ecrite = avecLaValeur(givePossessionSchema, actuelle, ['ref'], choisie.valeur);
+      if (!ecrite.ok) throw new Error(`${vers} : ${ecrite.refus}`);
+      expect([varianteCourante(u, ecrite.valeur.ref)?.cle, givePossessionSchema.safeParse(ecrite.valeur).success], `${vers} : courante et admise par le parse`).toEqual([vers, true]);
+    }
+  });
+});
+
 /** La saisie que l'hôte rend à chaque chemin des formulaires tirés du schéma (`FORMULAIRES`), toutes branches ouvertes,
  *  sans valeur, comme le descend `elementsDuChamp` (`src/hote/editeur.ts`) : `variantes` d'une union nommée, `ajouter`
  *  ou `json` d'une liste, `json` d'une op sans forme déclarée, sinon celle de la feuille (`choix`, `nombre`, `texte`,
@@ -436,14 +487,12 @@ describe('chaque feuille des formulaires tirés du schéma a un contrôle typé 
     expect(Object.keys(attendues)).toHaveLength(17);
     expect(tableTotale(Object.keys(attendues), (c) => saisies.get(c))).toEqual(attendues);
     const horsObjet = ['zone/crossTest/gate<kind=partyDead>/who', 'zone/onCross/0<op=condition>/resolveWindow', 'zone/onCross/0<op=navireMod>/jusqua', 'zone/onCross/0<op=augmentWeapon>/onHitEffects/0/on'];
-    expect(horsObjet.map((c) => saisies.get(`${c}<forme=>`)), 'la variante hors objet se choisit parmi ses valeurs').toEqual(horsObjet.map(() => 'choix'));
+    expect(horsObjet.map((c) => saisies.get(`${c}<forme=0>`)), 'la variante hors objet se choisit parmi ses valeurs').toEqual(horsObjet.map(() => 'choix'));
   });
 
-  it('se saisissent encore en JSON EXACTEMENT : l’enjeu de Bourse, la référence d’une possession, les valeurs d’un enjeu au catalogue, les rencontres d’une bataille rangée, et chaque op non typée', () => {
+  it('se saisissent encore en JSON EXACTEMENT : les valeurs d’un enjeu au catalogue, les rencontres d’une bataille rangée, et chaque op non typée', () => {
     expect([...saisies].filter(([, s]) => s === 'json').map(([c]) => c).sort()).toEqual([
-      'zone/crossTest/gate<kind=money>/atLeast',
-      'declencheur/flow<kind=do>/effect<type=givePossession>/ref',
-      'zone/crossTest/stake<forme=key>/values',
+      'zone/crossTest/stake<forme=0>/values',
       'declencheur/flow<kind=do>/effect<type=startMassBattle>/battle/sceneEncounters',
       ...OPS_NON_TYPEES.map((op) => `zone/onCross/0<op=${op}>`),
     ].sort());
