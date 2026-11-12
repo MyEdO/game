@@ -42,6 +42,7 @@ export const JEUX_DU_PARCOURS = {
   fiche: { fiche: [] },
   inventaire: { inventaire: ['--scenario', 'porte-close'] },
   creation: { creation: ['--scenario', 'marche-equipement'] },
+  campagne: { campagne: [] },
   editeur: { editeur: [] },
   atelier: { atelier: [] },
   composition: {},
