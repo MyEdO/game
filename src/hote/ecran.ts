@@ -384,7 +384,7 @@ function ecranDuLieu(etat: Jeu): Element[] {
   const l = lieuEnVue(etat);
   if (!l) return [];
   return [
-    ...(l.description ? [ligne('lieu/description', l.description)] : []),
+    ...(l.prose ? [ligne('lieu/description', l.prose)] : []),
     planDeLaCarte('lieu/plan', l.plan, () => []),
     boutonDeGeste('lieu/carte', l.carte.libelle, l.carte.geste, l.carte.refus),
     ...(l.services.length || l.pointsDInteret.length ? [ligne('lieu/services', t('ecran.lieu.services'))] : []),
