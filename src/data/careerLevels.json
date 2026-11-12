@@ -61,7 +61,8 @@
         "id": "clou"
       },
       {
-        "text": "Pile de prospectus"
+        "id": "tract",
+        "spec": "pile de prospectus"
       }
     ],
     "characteristics": [
@@ -555,7 +556,8 @@
         "text": "Hébergement"
       },
       {
-        "text": "Bonnes chaussures"
+        "id": "chaussures",
+        "spec": "bonnes"
       }
     ],
     "characteristics": [
@@ -627,7 +629,7 @@
         "id": "plume-d-oie"
       },
       {
-        "text": "Encre"
+        "id": "encre"
       }
     ],
     "characteristics": [
@@ -817,13 +819,13 @@
         "id": "huile-de-lampe"
       },
       {
-        "text": "Journal"
+        "id": "journal"
       },
       {
         "id": "plume-d-oie"
       },
       {
-        "text": "Encre"
+        "id": "encre"
       }
     ],
     "characteristics": [
@@ -888,7 +890,7 @@
         "id": "arme-simple"
       },
       {
-        "text": "Loupe"
+        "id": "loupe"
       },
       {
         "id": "outils-de-crochetage"
@@ -1062,7 +1064,7 @@
     ],
     "trappings": [
       {
-        "text": "Bouiller"
+        "id": "boulier"
       },
       {
         "id": "mule",
@@ -1347,7 +1349,8 @@
     ],
     "trappings": [
       {
-        "text": "Couverture de mauvaise qualité"
+        "id": "couverture",
+        "spec": "de mauvaise qualité"
       },
       {
         "id": "tasse"
@@ -2424,7 +2427,7 @@
     ],
     "trappings": [
       {
-        "text": "Livrée"
+        "id": "livree"
       }
     ],
     "characteristics": [
@@ -2891,7 +2894,7 @@
         "id": "veste-de-cuir"
       },
       {
-        "text": "Livrée"
+        "id": "livree"
       },
       {
         "id": "etui-a-parchemin"
@@ -2958,7 +2961,7 @@
         "id": "plume-d-oie"
       },
       {
-        "text": "Encre"
+        "id": "encre"
       },
       {
         "id": "feuille-de-parchemin",
@@ -3148,13 +3151,15 @@
         "id": "besace"
       },
       {
-        "text": "Tenue vestimantaire différente",
+        "id": "vetements",
+        "spec": "différentes",
         "count": {
           "fixed": 2
         }
       },
       {
-        "text": "Cape à capuchon"
+        "id": "cape",
+        "spec": "à capuchon"
       }
     ],
     "characteristics": [
@@ -3294,7 +3299,7 @@
         "id": "plume-d-oie"
       },
       {
-        "text": "Encre"
+        "id": "encre"
       }
     ],
     "characteristics": [
@@ -3422,7 +3427,7 @@
         "id": "huile-de-lampe"
       },
       {
-        "text": "Livrée"
+        "id": "livree"
       }
     ],
     "characteristics": [
@@ -4039,7 +4044,7 @@
     ],
     "trappings": [
       {
-        "text": "Livrée"
+        "id": "livree"
       }
     ],
     "characteristics": [
@@ -4363,7 +4368,8 @@
     ],
     "trappings": [
       {
-        "text": "Echarpe (Symbole de fonction)"
+        "id": "echarpe",
+        "spec": "Symbole de fonction"
       }
     ],
     "characteristics": [
@@ -5286,7 +5292,7 @@
         "id": "dague"
       },
       {
-        "text": "Gros morceau de viande"
+        "id": "gros-morceau-de-viande"
       },
       {
         "text": "Envie de voyager"
@@ -5551,7 +5557,8 @@
         "id": "symbole-religieux"
       },
       {
-        "text": "Toges"
+        "id": "robes",
+        "spec": "toges"
       }
     ],
     "characteristics": [
@@ -7101,7 +7108,8 @@
         "id": "sac-a-dos"
       },
       {
-        "text": "Cape à capuche"
+        "id": "cape",
+        "spec": "à capuche"
       },
       {
         "id": "arc-long"
@@ -7365,10 +7373,12 @@
     ],
     "trappings": [
       {
-        "text": "Manteau chaud"
+        "id": "manteau",
+        "spec": "chaud"
       },
       {
-        "text": "Gants chauds"
+        "id": "gants",
+        "spec": "chauds"
       },
       {
         "id": "fouet"
@@ -7891,7 +7901,8 @@
         "id": "fleau"
       },
       {
-        "text": "Robes en lambeaux"
+        "id": "robes",
+        "spec": "en lambeaux"
       }
     ],
     "characteristics": [
@@ -8139,7 +8150,8 @@
         "id": "arme-simple"
       },
       {
-        "text": "Haillons"
+        "id": "vetements",
+        "spec": "haillons"
       }
     ],
     "characteristics": [
@@ -9171,7 +9183,8 @@
         "id": "tente"
       },
       {
-        "text": "Carte de la région"
+        "id": "carte",
+        "spec": "de la région"
       },
       {
         "id": "fronde"
@@ -9183,7 +9196,8 @@
         }
       },
       {
-        "text": "Outils professionnels (même spécialisation que Métier)"
+        "id": "outils-professionnels",
+        "spec": "même spécialisation que Métier"
       }
     ],
     "characteristics": [
@@ -9425,7 +9439,7 @@
         "id": "arme-simple"
       },
       {
-        "text": "Instruments de torture"
+        "id": "instruments-de-torture"
       }
     ],
     "characteristics": [
@@ -9950,7 +9964,8 @@
     ],
     "trappings": [
       {
-        "text": "Livre (Vierge)"
+        "id": "livre",
+        "spec": "vierge"
       },
       {
         "id": "potion-de-guerison"
@@ -10206,7 +10221,8 @@
     ],
     "trappings": [
       {
-        "text": "Tablier de boucher"
+        "id": "tablier",
+        "spec": "de boucher"
       },
       {
         "choice": [
@@ -10472,13 +10488,13 @@
     ],
     "trappings": [
       {
-        "text": "Alcool"
+        "id": "alcool"
       },
       {
-        "text": "Livre"
+        "id": "livre"
       },
       {
-        "text": "Lettre de recommandation"
+        "id": "lettre-de-recommandation"
       },
       {
         "id": "necessaire-d-ecriture"
@@ -10978,7 +10994,7 @@
         "id": "livre-loi"
       },
       {
-        "text": "Loupe"
+        "id": "loupe"
       }
     ],
     "characteristics": [
@@ -12452,7 +12468,14 @@
         "id": "grand-sac"
       },
       {
-        "text": "Masque ou Écharpe"
+        "choice": [
+          {
+            "id": "masque"
+          },
+          {
+            "id": "echarpe"
+          }
+        ]
       },
       {
         "id": "boite-a-amadou"
@@ -12957,13 +12980,13 @@
     ],
     "trappings": [
       {
-        "text": "Sceau"
+        "id": "seau"
       },
       {
-        "text": "Canne à pêche"
+        "id": "canne-a-peche"
       },
       {
-        "text": "Appâts"
+        "id": "appats"
       },
       {
         "id": "jambieres-en-cuir"
@@ -13209,10 +13232,10 @@
     ],
     "trappings": [
       {
-        "text": "Sceau"
+        "id": "seau"
       },
       {
-        "text": "Brosse"
+        "id": "brosse"
       },
       {
         "id": "serpillere"
@@ -14992,10 +15015,11 @@
         "type": "vehicle"
       },
       {
-        "text": "Cape à capuchon"
+        "id": "cape",
+        "spec": "à capuche"
       },
       {
-        "text": "Bâche en toile"
+        "id": "bache-de-toile"
       }
     ],
     "characteristics": [
@@ -15830,7 +15854,7 @@
         "id": "sac"
       },
       {
-        "text": "Assortiment d'herbes"
+        "id": "assortiment-d-herbes"
       },
       {
         "id": "outils-professionnels-herboriste"
@@ -15891,7 +15915,7 @@
         "text": "Cape avec de nombreuses poches"
       },
       {
-        "text": "Porte-bonheur"
+        "id": "porte-bonheur"
       }
     ],
     "characteristics": [
@@ -16252,7 +16276,7 @@
         "id": "arme-simple"
       },
       {
-        "text": "Caissette"
+        "id": "caissette"
       }
     ],
     "characteristics": [
@@ -16500,7 +16524,8 @@
     ],
     "trappings": [
       {
-        "text": "Assortiment de différents pièges à animaux"
+        "id": "piege-a-animaux",
+        "spec": "assortiment de différents"
       },
       {
         "id": "arme-simple"
@@ -16509,7 +16534,8 @@
         "id": "bottes"
       },
       {
-        "text": "Cape épaisse"
+        "id": "cape",
+        "spec": "épaisse"
       },
       {
         "id": "fronde"
@@ -16773,7 +16799,8 @@
         "id": "veste-de-cuir"
       },
       {
-        "text": "Bottes robustes"
+        "id": "bottes",
+        "spec": "robustes"
       },
       {
         "id": "cape"
@@ -17308,7 +17335,7 @@
         "id": "besace"
       },
       {
-        "text": "Assortiment d'herbes"
+        "id": "assortiment-d-herbes"
       }
     ],
     "characteristics": [
@@ -17561,7 +17588,8 @@
         "id": "batonnet-de-fusain"
       },
       {
-        "text": "Carte grossière"
+        "id": "carte",
+        "spec": "grossière"
       },
       {
         "id": "casserole"
@@ -17812,7 +17840,8 @@
     ],
     "trappings": [
       {
-        "text": "Bijoux de pacotille"
+        "id": "bijoux",
+        "spec": "de pacotille"
       },
       {
         "choice": [
@@ -18052,7 +18081,7 @@
     ],
     "trappings": [
       {
-        "text": "Porte-bonheurs",
+        "id": "porte-bonheur",
         "count": {
           "roll": {
             "n": 1,
@@ -19950,7 +19979,8 @@
     ],
     "trappings": [
       {
-        "text": "Icône de Myrmidia"
+        "id": "symbole-religieux",
+        "spec": "Myrmidia"
       },
       {
         "id": "justaucorps-de-cuir"
@@ -19959,10 +19989,12 @@
         "id": "lance"
       },
       {
-        "text": "Livre Sacré de Myrmidia"
+        "id": "livre-religion",
+        "spec": "saint myrmidéen"
       },
       {
-        "text": "Robes blanches"
+        "id": "robes",
+        "spec": "blanches"
       }
     ],
     "characteristics": [
@@ -20214,10 +20246,10 @@
         }
       },
       {
-        "text": "Paquetage"
+        "id": "paquetage"
       },
       {
-        "text": "Carquois"
+        "id": "carquois"
       },
       {
         "id": "uniforme"
@@ -20994,7 +21026,7 @@
     ],
     "trappings": [
       {
-        "text": "Plastron d'acier"
+        "id": "plastron"
       },
       {
         "id": "uniforme"
@@ -21535,7 +21567,8 @@
         "id": "calotte-de-cuir"
       },
       {
-        "text": "Chapeau à plume"
+        "id": "chapeau",
+        "spec": "à plumes"
       },
       {
         "id": "carreau",
@@ -21819,7 +21852,7 @@
         "id": "sac-de-couchage"
       },
       {
-        "text": "Paquetage"
+        "id": "paquetage"
       }
     ],
     "characteristics": [
@@ -22068,7 +22101,7 @@
         "id": "necessaire-d-ecriture"
       },
       {
-        "text": "Parchemin de vélin"
+        "id": "velin"
       }
     ],
     "characteristics": [
@@ -22322,7 +22355,8 @@
     ],
     "trappings": [
       {
-        "text": "Tablier de cuir"
+        "id": "tablier",
+        "spec": "de cuir"
       }
     ],
     "characteristics": [
@@ -22595,7 +22629,7 @@
     ],
     "trappings": [
       {
-        "text": "Hamac"
+        "id": "hamac"
       },
       {
         "id": "seau"
@@ -22849,10 +22883,11 @@
     ],
     "trappings": [
       {
-        "text": "Chapeau de pluie"
+        "id": "chapeau",
+        "spec": "de pluie"
       },
       {
-        "text": "Instrument de musique"
+        "id": "instrument"
       }
     ],
     "characteristics": [
@@ -23086,7 +23121,8 @@
     ],
     "trappings": [
       {
-        "text": "Brosse à reluire"
+        "id": "brosse",
+        "spec": "à reluire"
       },
       {
         "id": "seau"
@@ -24092,10 +24128,12 @@
         "spec": "Coutelas"
       },
       {
-        "text": "Symbole de Manann"
+        "id": "symbole-religieux",
+        "spec": "Manann"
       },
       {
-        "text": "Toge de prêtre bleue, verte ou turquoise"
+        "id": "robes",
+        "spec": "toge de prêtre bleue, verte ou turquoise"
       }
     ],
     "characteristics": [
@@ -24352,10 +24390,10 @@
     ],
     "trappings": [
       {
-        "text": "Filet de pêche"
+        "id": "filet-de-peche"
       },
       {
-        "text": "Sac à cordons"
+        "id": "sac-a-cordons"
       }
     ],
     "characteristics": [
@@ -24886,7 +24924,8 @@
     ],
     "trappings": [
       {
-        "text": "Livre (vierge)"
+        "id": "livre",
+        "spec": "vierge"
       },
       {
         "id": "justaucorps-de-cuir"
@@ -24895,10 +24934,13 @@
         "id": "pilon-et-mortier"
       },
       {
-        "text": "Éprouvettes et alambic"
+        "id": "eprouvettes"
       },
       {
-        "text": "Trépied"
+        "id": "alambic"
+      },
+      {
+        "id": "trepied"
       },
       {
         "id": "necessaire-d-ecriture"
@@ -25022,7 +25064,8 @@
         "text": "Apprenti"
       },
       {
-        "text": "Livre (Alchimie)"
+        "id": "livre",
+        "spec": "Alchimie"
       },
       {
         "text": "Laboratoire"
@@ -25149,7 +25192,8 @@
     ],
     "trappings": [
       {
-        "text": "Uniforme aux couleurs de la faculté"
+        "id": "uniforme",
+        "spec": "aux couleurs de la faculté"
       }
     ],
     "characteristics": [
@@ -25388,13 +25432,17 @@
     ],
     "trappings": [
       {
-        "text": "Sac à dos avec une tente"
+        "id": "sac-a-dos"
+      },
+      {
+        "id": "tente"
       },
       {
         "id": "dague"
       },
       {
-        "text": "Vêtements d'extérieur pratiques"
+        "id": "vetements",
+        "spec": "d'extérieur pratiques"
       }
     ],
     "characteristics": [
@@ -25629,7 +25677,11 @@
     ],
     "trappings": [
       {
-        "text": "Porte-bougie et chandelle"
+        "id": "porte-bougie"
+      },
+      {
+        "id": "bougie",
+        "spec": "chandelle"
       },
       {
         "id": "grimoire"
@@ -26179,7 +26231,8 @@
     ],
     "trappings": [
       {
-        "text": "Faucille en cuivre"
+        "id": "faucille",
+        "spec": "en cuivre"
       },
       {
         "id": "grimoire"
@@ -26446,7 +26499,7 @@
         "id": "baton-de-combat"
       },
       {
-        "text": "Guide de l'observateur des étoiles"
+        "id": "guide-de-l-observateur-des-etoiles"
       }
     ],
     "characteristics": [
@@ -26977,7 +27030,8 @@
     ],
     "trappings": [
       {
-        "text": "Première Clef des Secrets"
+        "id": "clef-des-secrets",
+        "spec": "première"
       },
       {
         "id": "grimoire"
@@ -27245,7 +27299,8 @@
     ],
     "trappings": [
       {
-        "text": "Grimoire (souvent sous forme d'os ou de dents gravés)"
+        "id": "grimoire",
+        "spec": "souvent sous forme d'os ou de dents gravés"
       },
       {
         "id": "baton-de-combat"
