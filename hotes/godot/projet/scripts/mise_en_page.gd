@@ -7,8 +7,9 @@
 ## d'un point, la largeur d'un texte de bulle replié, le point où se dit le nom de ce qui occupe une case, la pose
 ## d'une arête (mur ou porte) sur le côté de sa case et l'échelle d'une pièce du kit qui s'y pose, l'échelle métrique d'un modèle et d'une hauteur sur le plateau et
 ## la hauteur d'un point du corps à son gabarit, le point d'un lieu sur le plan et le coin de ce qui se pose sous lui, la
-## coupe d'un navire, le compte des triangles d'une géométrie, le texel d'une case au masque du retrait et à celui de la
-## vision, la part d'un fondu de la vision après un pas de temps, et l'abscisse
+## coupe d'un navire, le compte des triangles d'une géométrie, le texel d'une case au masque du retrait (celle d'un
+## morceau ou d'une nappe) et à celui de la vision, la part d'un fondu de la vision après un pas de temps, l'état fondu
+## d'une case et le plus grand de deux, la teinte d'instance d'un état, et l'abscisse
 ## sur un rayon d'un point, d'un point au-delà de celui qu'il touche et du bout de chaque tronçon dont il reprend. Seul
 ## script où l'arithmétique et la mesure sont permises (`scripts/guards/lib/gdscriptSansRegle.mjs`) : des constantes et
 ## des fonctions statiques, chacune typée et sur au plus un vecteur, sans état.
@@ -261,6 +262,13 @@ static func texel_du_masque(case: Vector2i, rangee: int) -> Vector2i:
 	return Vector2i(case.x, case.y + rangee)
 
 
+## Le texel, dans le masque du retrait (`RetraitDuMonde`, deux plans de `rangees_par_plan` rangées par couche), de la
+## case `case` d'une nappe de toit ou d'une couronne (`NappeDuMonde`) de la couche d'indice `couche` : au plan `sol` de
+## sa couche, celui que le shader de monde lit pour sa vision (`art/monde.gdshader`, `vision_premiere_rangee`).
+static func texel_de_nappe(case: Vector2i, couche: int, rangees_par_plan: int) -> Vector2i:
+	return texel_du_masque(case, 2 * couche * rangees_par_plan)
+
+
 ## Le texel, dans le masque de la vision (`VisionDuMonde`, un plan de `rangees_par_plan` rangées par couche), de la case
 ## `case` de la couche d'indice `couche`.
 static func texel_de_vision(case: Vector2i, couche: int, rangees_par_plan: int) -> Vector2i:
@@ -270,6 +278,26 @@ static func texel_de_vision(case: Vector2i, couche: int, rangees_par_plan: int) 
 ## La part, de 0 à 1, d'un fondu de `duree` secondes parvenu à la part `part`, `secondes` secondes plus tard.
 static func part_du_fondu(part: float, secondes: float, duree: float) -> float:
 	return minf(1.0, part + secondes / duree)
+
+
+## L'état, de 0 à 1, d'une case dont l'octet de la vision (0 inconnue, 128 explorée, 255 vue) passe de `avant` à `neuf`,
+## à la part `part` du fondu (`art/monde.gdshader`, `fragment`).
+static func etat_fondu(avant: int, neuf: int, part: float) -> float:
+	return lerpf(avant / 255.0, neuf / 255.0, part)
+
+
+## Le plus grand des états `etat` et `autre`.
+static func plus_grand_etat(etat: float, autre: float) -> float:
+	return maxf(etat, autre)
+
+
+## La teinte, en sRGB, de l'instance d'une pièce à l'état `etat` (de 0 à 1) sous les teintes `teintes` (inconnue,
+## explorée, vue) : sa part de lumière (`art/monde.gdshader`, `part_de_lumiere`) portée en sRGB (`en_srgb`).
+static func teinte_d_instance(etat: float, teintes: Vector3) -> float:
+	var exploree := 128.0 / 255.0
+	var sous := lerpf(teintes.x, teintes.y, clampf(etat / exploree, 0.0, 1.0))
+	var dessus := lerpf(teintes.y, teintes.z, clampf((etat - exploree) / (1.0 - exploree), 0.0, 1.0))
+	return Color(sous, sous, sous).linear_to_srgb().r if etat < exploree else Color(dessus, dessus, dessus).linear_to_srgb().r
 
 
 ## L'abscisse du point `point` sur le rayon de sens `-rayon.z` (unitaire), comptée depuis l'abscisse `depuis`.

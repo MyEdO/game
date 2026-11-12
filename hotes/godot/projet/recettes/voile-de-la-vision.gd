@@ -8,6 +8,9 @@ extends SceneTree
 ## sous chacun des trois regards ; une vision neuve se fond depuis la précédente (à mi-fondu, entre les deux), une
 ## vision reçue pendant un fondu attend sa fin ; sans vision (`voir(null)`), chaque pixel est celui du témoin.
 ##
+## La part se lit en lumière linéaire, l'environnement de la recette en tonemap linéaire : la teinte du noyau est une
+## part de lumière linéaire, que la courbe filmique, transformation d'affichage, abaisserait encore sur les pixels sombres.
+##
 ## Rendu réel, hors de `npm run godot:sonde` : la sonde joue ses recettes en `--headless`, dont le rendu ne peint aucune
 ## image, et ne joue donc pas celle-ci (elle n'en contrôle que l'analyse). Elle se joue sous un écran virtuel :
 ##   xvfb-run -a -s "-screen 0 640x480x24" <godot> --path hotes/godot/projet --rendering-driver opengl3 \
@@ -26,9 +29,7 @@ const INCONNUE := 0
 ## L'état de chaque colonne de chaque couche : la couche 0 vue, explorée, inconnue, explorée (plan `pose`), puis vue
 ## sous la couche 1 ; la couche 1 inconnue sous la couche 0, puis vue, explorée, inconnue, inconnue.
 const COLONNES := [[VUE, EXPLOREE, INCONNUE, EXPLOREE, VUE, VUE, VUE, VUE], [INCONNUE, INCONNUE, INCONNUE, INCONNUE, VUE, EXPLOREE, INCONNUE, INCONNUE]]
-## L'écart toléré entre la part de lumière lue et l'attendue, sous l'éclairage du jeu (`scenes/Lumiere.tscn`) : le
-## rendu de compatibilité somme la lumière ambiante et celle du soleil en sRGB, puis la courbe filmique les tasse ; la
-## part d'une teinte de 0,42 s'y lit 0,39 (#3950).
+## L'écart toléré entre la part de lumière lue et l'attendue, sous l'éclairage du jeu (`scenes/Lumiere.tscn`).
 const TOLERANCE := 0.04
 var _fautes: Array[String] = []
 
@@ -41,6 +42,7 @@ func _recetter() -> void:
 	print("[voile-de-la-vision] version=", Engine.get_version_info().string, " rendu=", RenderingServer.get_current_rendering_method())
 	var monde: Monde = (load("res://scenes/Monde.tscn") as PackedScene).instantiate()
 	root.add_child(monde)
+	(monde.get_node("Lumiere/Environnement") as WorldEnvironment).environment.tonemap_mode = Environment.TONE_MAPPER_LINEAR
 	var morceaux := [
 		_dalles("sol/0/0/0", 0, 3, 0, 0, 0.0),
 		_dalles("pose/0/0/0", 3, 4, 0, HAUTEUR, 0.04),
@@ -170,7 +172,7 @@ func _dalles(cle: String, x0: int, x1: int, couche: int, rangee: int, hauteur: f
 				positions.append_array([(x + coin[0]) * METRES_PAR_CASE, hauteur, (y + coin[1]) * METRES_PAR_CASE])
 				normales.append_array([0.0, 1.0, 0.0])
 				couleurs.append_array([0.5, 0.5, 0.5, 1.0])
-			cases.append_array([[x, y, couche], [x, y, couche]])
+			cases.append_array([x, y, couche, x, y, couche])
 	return {cle = cle, empreinte = cle, rangee = rangee, positions = positions, normales = normales, couleurs = couleurs, cases = cases,
 		surfaces = [{debut = 0, fin = positions.size() / 3, matiere = "terrain--sol-d-essai"}]}
 

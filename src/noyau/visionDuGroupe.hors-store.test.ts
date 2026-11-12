@@ -13,6 +13,7 @@ import { depuisBase64 } from '../lib/base64';
 import { t } from '../i18n';
 import { combattantEnVue, connaissanceDuGroupe, cleDeLaVision, entiteConnue, nomEnVue, visionDuMonde } from './visionDuGroupe';
 import { effetsDeLAppel, type Effet } from './effetsDeLAppel';
+import { lumiereDeLaScene } from './lumiereDeLaScene';
 import type { AttackResult } from '../engine/combat';
 import type { Combatant, Weapon } from '../engine/types';
 import type { SceneEntity } from './monde/scene';
@@ -174,5 +175,27 @@ describe('effetsDeLAppel — ce que le groupe voit, lu sur l’état d’après 
     expect([hors, a, b].map((c) => connue(cle(c))), 'témoin : aucun ancrage du chemin n’est vu').not.toContain('visible');
     expect(combattantEnVue(etat(), parId(PIRATE)), 'témoin : son corps, ancré au bout, est en vue').toBe(true);
     expect(effets(marche(PIRATE, [hors, a, b]))[0]).toMatchObject({ quoi: 'deplacement', qui: PIRATE, cases: [{ ...a, metres: 0 }, b] });
+  });
+});
+
+describe('lumiereDeLaScene — les foyers tels que le groupe les voit', () => {
+  const sources = () => lumiereDeLaScene(avecScene(), 'tactique').sources;
+  const torche = [{ light: { radiusM: 4 } }] as unknown as Combatant['activeEffects'];
+
+  it('la source portée d’un porteur hors de vue n’est pas servie ; celle d’un héros l’est', () => {
+    poserLesCombattants({ [PIRATE]: { activeEffects: torche }, [SOLDAT]: { activeEffects: torche } });
+    expect(combattantEnVue(etat(), parId(PIRATE)), 'témoin : le pirate éclairé reste hors de vue').toBe(false);
+    expect(sources().map((s) => s.cle).filter((c) => c.startsWith('portee/'))).toEqual([`portee/${SOLDAT}`]);
+  });
+
+  it('une source posée sur une case non vue garde sa lampe, sans flamme ni son ; sur une case vue, les deux', () => {
+    const lampe = (id: string, c: Case): SceneEntity => ({ id, kind: 'prop', pos: { x: c.x, y: c.y }, light: { radiusM: 4 } }) as SceneEntity;
+    const scene = etat().scene!;
+    banc.setState({ scene: { ...scene, entities: [...scene.entities, lampe('lampe-vue', VUE_LIBRE), lampe('lampe-cachee', NON_VUE)] } });
+    const connue = connaissanceDuGroupe(etat());
+    expect([connue(cle(VUE_LIBRE)), connue(cle(NON_VUE))], 'témoin : la case de chaque lampe').toEqual(['visible', 'unknown']);
+    const [vue, cachee] = ['posee/lampe-vue', 'posee/lampe-cachee'].map((k) => sources().find((s) => s.cle === k));
+    expect(vue).toMatchObject({ visuel: 'feu', son: { id: 'crepitement' } });
+    expect(cachee, 'sa lampe, sans flamme ni son').toMatchObject({ x: NON_VUE.x, y: NON_VUE.y, energie: vue!.energie, rayonCases: vue!.rayonCases, visuel: null, son: null });
   });
 });

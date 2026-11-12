@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { effetsDeLAppel, zonesQuiDurent, SONS_DE_LA_PARTIE, TEINTE_DU_CRITIQUE, TEINTE_DU_FLOTTANT, type Effet } from './effetsDeLAppel';
-import { findDomainById, findSpellById } from '../data';
+import { effetsDeLAppel, SONS_DE_LA_PARTIE, TEINTE_DU_CRITIQUE, TEINTE_DU_FLOTTANT, type Effet } from './effetsDeLAppel';
 import { sonDEffet } from '../data/sons/registre';
 import type { ChargeDAttaque } from './bus';
 import type { Evenement } from './partie';
@@ -103,21 +102,6 @@ describe('effetsDeLAppel — le rendu de chaque coup, incantation et son de l’
 
   it('un État gagné flotte sur son porteur, à son nom', () => {
     expect(unSeul({ type: 'etatGagne', porteur: 'b', etat: 'en-flammes' })).toEqual({ quoi: 'flottant', sur: 'b', case: null, flottant: { genre: 'etat', texte: 'En flammes', couleur: TEINTE_DU_FLOTTANT.etat, critique: false } });
-  });
-
-  it('les zones qui durent : celle d’un sort au rendu de son Domaine, une fumée au sien, une zone sans rendu cachée', () => {
-    const cases = [{ x: 1, y: 1 }, { x: 2, y: 1 }, { x: 3, y: 1 }];
-    const sort = findSpellById('mur-de-feu')!;
-    const [feu, fumee, seconde] = zonesQuiDurent([
-      { label: 'Mur', tiles: cases, rounds: 3, source: { kind: 'sort', id: sort.id } },
-      { label: 'Fumée', tiles: cases, rounds: 2, blocksLoS: true, rendu: { id: 'souffle-de-fumee' } },
-      { label: 'Piège', tiles: cases, rounds: 1, permanent: true, perRound: [] },
-      { label: 'Fumée', tiles: cases, rounds: 2, rendu: { id: 'souffle-de-fumee' } },
-    ]);
-    expect(feu).toMatchObject({ cases, centre: { x: 2, y: 1 }, couleur: findDomainById(sort.domainId!.id)!.couleur, visuel: 'nappe-de-flammes', boucle: { id: 'crepitement' } });
-    expect(fumee).toMatchObject({ visuel: 'nuage', boucle: null });
-    expect(seconde.cle, 'deux zones au même rendu et au même centre gardent chacune sa clé').not.toBe(fumee.cle);
-    expect(zonesQuiDurent([{ label: 'Piège', tiles: cases, rounds: 1 }])).toEqual([]);
   });
 
   it('un déplacement rend son chemin, avant ses pas : chaque case à sa couche, les mètres qui la séparent de la précédente, pont et saut compris (#3822)', () => {
