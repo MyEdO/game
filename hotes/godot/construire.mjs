@@ -11,8 +11,8 @@
 // script (`--check-only`) et joue les recettes déclarant `const RECETTE_AUTONOME := true` sous `recettes/`, les vues
 // de l'écran figées par le pont (`hotes/godot/recettes/ecran.ts`), le véhicule, le repos et les échantillons de
 // l'atelier figés (`hotes/godot/recettes/vehicule.ts`, `hotes/godot/recettes/atelier.ts`,
-// `hotes/godot/recettes/decor.ts`), le chemin du groupe (`hotes/godot/recettes/chemin.ts`) et l'éditeur du navire
-// (`hotes/godot/recettes/editeur.ts`) écrits dans la copie ; la CI la joue
+// `hotes/godot/recettes/decor.ts`), le chemin du groupe (`hotes/godot/recettes/chemin.ts`), l'éditeur du navire
+// (`hotes/godot/recettes/editeur.ts`) et le dégagement du combat (`hotes/godot/recettes/degagement.ts`) écrits dans la copie ; la CI la joue
 // (`npm run godot:sonde`). `--export --sortie <dossier>` y écrit le bundle,
 // puis l'export Web du projet (`export_presets.cfg`) et, à côté, le dossier des modèles et son listage
 // (`deposerLesModeles`, #3778), chaque modèle en scène que l'éditeur fabrique de son GLB (`fabriquer`, #3946), et les
@@ -39,13 +39,14 @@ import { chargerAssets } from './asset/charger.mjs'
 import { deposerLesModeles, listage } from './listage.mjs'
 import { deposerLesPlanches } from './planches.mjs'
 
-const { DOSSIER_DES_MODELES, enCacheOuTire, recupererModeles, recupererEpingles, verifierSomme, figerVuesDeLEcran, figerLeVehicule, figerLeRepos, figerLeDecor, figerLeChemin, figerLEditeurDuNavire } = await chargerAssets([
+const { DOSSIER_DES_MODELES, enCacheOuTire, recupererModeles, recupererEpingles, verifierSomme, figerVuesDeLEcran, figerLeVehicule, figerLeRepos, figerLeDecor, figerLeChemin, figerLEditeurDuNavire, figerLeDegagement } = await chargerAssets([
   "export { figerVuesDeLEcran } from '/hotes/godot/recettes/ecran.ts';",
   "export { figerLeVehicule } from '/hotes/godot/recettes/vehicule.ts';",
   "export { figerLeRepos } from '/hotes/godot/recettes/atelier.ts';",
   "export { figerLeDecor } from '/hotes/godot/recettes/decor.ts';",
   "export { figerLeChemin } from '/hotes/godot/recettes/chemin.ts';",
   "export { figerLEditeurDuNavire } from '/hotes/godot/recettes/editeur.ts';",
+  "export { figerLeDegagement } from '/hotes/godot/recettes/degagement.ts';",
   "export { recupererEpingles } from '/hotes/godot/asset/epingles.ts';",
 ])
 
@@ -309,8 +310,9 @@ function surUneCopie(binaire, faire) {
  *  l'écran figées (`figerVuesDeLEcran`) écrites sous `recettes/vues/ecran.json` de la copie, et le véhicule de l'atelier
  *  figé sur le listage des modèles du projet (`figerLeVehicule`) sous `recettes/vues/vehicule.json`, l'atelier du
  *  repos (`figerLeRepos`) sous `recettes/vues/repos.json`, les échantillons de l'atelier figés (`figerLeDecor`) sous
- *  `recettes/vues/decor.json`, le chemin du groupe figé (`figerLeChemin`) sous `recettes/vues/chemin.json` et l'éditeur
- *  du navire figé (`figerLEditeurDuNavire`) sous `recettes/vues/editeur-navire.json`, que lisent leurs recettes. */
+ *  `recettes/vues/decor.json`, le chemin du groupe figé (`figerLeChemin`) sous `recettes/vues/chemin.json`, l'éditeur
+ *  du navire figé (`figerLEditeurDuNavire`) sous `recettes/vues/editeur-navire.json` et le dégagement du combat figé
+ *  (`figerLeDegagement`) sous `recettes/vues/degagement.json`, que lisent leurs recettes. */
 function sonder(binaire) {
   return surUneCopie(binaire, (copie) => {
     mkdirSync(join(copie, 'recettes', 'vues'), { recursive: true })
@@ -321,6 +323,7 @@ function sonder(binaire) {
     writeFileSync(join(copie, 'recettes', 'vues', 'decor.json'), JSON.stringify(figerLeDecor(modeles)))
     writeFileSync(join(copie, 'recettes', 'vues', 'chemin.json'), JSON.stringify(figerLeChemin(modeles)))
     writeFileSync(join(copie, 'recettes', 'vues', 'editeur-navire.json'), JSON.stringify(figerLEditeurDuNavire(modeles)))
+    writeFileSync(join(copie, 'recettes', 'vues', 'degagement.json'), JSON.stringify(figerLeDegagement(modeles)))
     const scripts = scriptsDe(copie)
     if (!scripts.length) return [`aucun script sous ${PROJET}`]
     const erreurs = scripts.flatMap((script) => godot(binaire, copie, ['--check-only', '--script', script]).erreurs)
