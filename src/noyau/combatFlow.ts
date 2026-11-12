@@ -123,7 +123,7 @@ import { beginShipwreck } from './shipwreck';
 import { isInanimate, isStructure, structureAimCell, ramVsNonDoor } from '../engine/structures';
 import { rollStructureCritical, structureCollapseLog, tableDesCritiquesDeStructure, type StructureCriticalResolved } from '../engine/structureCritical';
 import { structureCriticalsDie } from '../data/structureCriticals';
-import { actorIn, auContactDeLaSerie, ecrireActeur, inBattleId } from './monde/combatants';
+import { actorIn, auContactDeLaSerie, ecrireActeur, inBattleId, porteurParId } from './monde/combatants';
 import type { IdDeCombattant } from './designations';
 import { nomDIndividu } from './monde/sceneNpc';
 import { garanti } from '../lib/garanti';
@@ -2887,17 +2887,19 @@ function appliquerLaTouche(
  * lui confie la queue au temps SUIVANT (le curseur) et rend `true`. Le temps `suite` est le dernier : ce
  * qu'il ouvre (fenêtre de défense du maillon suivant) porte sa PROPRE reprise (`PendingDefense.suite`),
  * et sa suspension remonte de même.
+ * Hors bataille (série d'attaques subies, `serieSubie`), les combattants se lisent dans tout l'univers de jeu
+ * (`porteurParId`) et l'après-coup part de son temps `suite` : #3892.
  */
 export function jouerLApresCoup(get: Get, set: SetFn, q: QueueDuCoup): boolean {
-  const battle = get().battle;
-  if (!battle) return false;
-  const attacker = inBattleId(battle, q.attackerId);
-  const target = inBattleId(battle, q.targetId);
+  const s = get();
+  const combattant = (id: string): Combatant | undefined => (s.battle ? inBattleId(s.battle, id) : porteurParId(s, id));
+  const attacker = combattant(q.attackerId);
+  const target = combattant(q.targetId);
   if (!attacker || !target) {
     journaliser(get, set, [tr('cascade.cibleDisparue', { label: q.weapon.label })], 'information');
     return false;
   }
-  for (let i = APRES_COUP.indexOf(q.depuis); i < APRES_COUP.length; i++) {
+  for (let i = APRES_COUP.indexOf(s.battle ? q.depuis : 'suite'); i < APRES_COUP.length; i++) {
     const suivant: QueueDuCoup = { ...q, depuis: APRES_COUP[i + 1] ?? APRES_COUP[i] };
     switch (APRES_COUP[i]) {
       case 'oupsAttaquant':
@@ -3746,7 +3748,7 @@ export function aiHandGate(get: Get, set: SetFn, attacker: Combatant, weaponUid?
   return true;
 }
 
-export function doAttack(get: Get, set: SetFn, attacker: Combatant, target: Combatant): Applique {
+export function doAttack(get: Get, set: SetFn, attacker: Combatant, target: Combatant, enchainement?: EnchainementDuCoup): Applique {
   // Bénédiction de Protection (LDB 41 — L13) : Test de FM Accessible (+20) pour oser attaquer le
   // béni ; échec → l'IA renonce à CE coup (simplification : pas de re-ciblage, documentée).
   const ward = attackWardGate(attacker, target, battleRng());
@@ -3757,7 +3759,7 @@ export function doAttack(get: Get, set: SetFn, attacker: Combatant, target: Comb
   // cette cible ; Échec → l'arme glisse et il renonce à CE coup (une pièce servie hors loadout n'est jamais gatée).
   if (!aiHandGate(get, set, attacker, firedWeapon(attacker, target).uid)) return undefined;
   // Coup PRINCIPAL : ses gratuites `onHit` (LDB 10 l.72) suivent la touche, comme celles du héros (`jetValider('attaque')`).
-  const suite: SuiteDeCoup = { gratuitesALaTouche: true };
+  const suite: SuiteDeCoup = { gratuitesALaTouche: true, ...(enchainement ? { enchainement } : {}) };
   if (maybeOpenDefense(get, set, attacker, target, undefined, suite, attacker.chargedThisTurn)) return OPS_DIFFEREES; // suspendu : reprise via jetValider('defense')/jetAnnuler('defense') ; `chargedThisTurn` = le MÊME `fromCharge` que le `resolveAttack` ci-dessous
   // Tir ennemi : l'annoncer dans le journal de COMBAT (battle.log → fil + tiroir) DÈS la décision — un tir
   // n'ouvre pas de modale de défense, donc « on ne savait jamais sur qui il tirait » (#12d). Avant, l'annonce
@@ -3796,12 +3798,40 @@ export function ouvrirLeNombreDAttaquesSubies(set: SetFn, cible: Combatant, op: 
 
 /** Ouvre la SÉRIE D'ATTAQUES SUBIES de `op` sur le héros `cible`, hors bataille : l'assaillant naît de son statbloc
  *  (`spawnEnemy`, sans case), le héros entre dans la rencontre (`entreeEnRencontre`), `restantes` est le dé tombé
- *  à la porte, puis la première attaque part par `doAttack`. MDG 15 l.163-164, l.177-178 */
+ *  à la porte, puis la première attaque part par `doAttack`, sa suite déclarée `subie` (`poursuivreLaSerie`).
+ *  MDG 15 l.163-164, l.177-178 */
 export function ouvrirLaSerieSubie(get: Get, set: SetFn, cible: Combatant, op: Extract<GameOp, { op: 'attaquesSubies' }>, restantes: number): Applique {
   const assaillant = spawnEnemy({ statblock: op.assaillant.statblock }, get().forgerUnId('assaillant'), undefined);
   const heros = entreeEnRencontre(cible);
   set((s: Jeu) => ({ party: s.party.map((h) => (h.id === cible.id ? heros : h)), serieSubie: { assaillant, cibleId: cible.id, avant: cible, restantes } }));
-  return doAttack(get, set, assaillant, heros);
+  return doAttack(get, set, assaillant, heros, { mode: 'subie' });
+}
+
+/** Le temps `suite` d'un coup de la série d'attaques subies (`enchainement: 'subie'`). `restantes` compte les attaques
+ *  NON ACHEVÉES, le coup qui s'achève compris : il se décompte ICI, seule écriture. Tant que le Destin du héros est
+ *  ouvert (`pendingFateSave`), le coup n'est pas achevé : la série attend. La dernière attaque achevée ou la cible hors
+ *  d'action, la série se ferme (`fermerLaSerieSubie`) ; sinon l'assaillant qui perd son Action (`loseNextAction`) la
+ *  voit décomptée sans être jouée (LDB 14 l.28), et l'attaque suivante part par `doAttack`. Une attaque à laquelle
+ *  l'assaillant renonce (`doAttack` sans après-coup) est achevée de même. Rend `true` quand une fenêtre tient la main.
+ *  MDG 15 l.163-164, l.177-178 */
+export function poursuivreLaSerie(get: Get, set: SetFn): boolean {
+  if (get().pendingFateSave) return true;
+  const serie = garanti(get().serieSubie, 'serieSubie', 'série d’attaques subies');
+  const restantes = serie.restantes - 1;
+  const cible = garanti(get().party.find((h) => h.id === serie.cibleId), serie.cibleId, 'cible de la série d’attaques subies');
+  if (restantes <= 0 || isOutOfAction(cible)) {
+    fermerLaSerieSubie(get, set);
+    return false;
+  }
+  const { assaillant } = serie;
+  if (assaillant.loseNextAction) {
+    set({ serieSubie: { ...serie, restantes, assaillant: { ...assaillant, loseNextAction: false } } });
+    get().ecrireAuJournal(tr('cf.perdLAction', { name: assaillant.label }));
+    return poursuivreLaSerie(get, set);
+  }
+  set({ serieSubie: { ...serie, restantes } });
+  if (doAttack(get, set, assaillant, cible, { mode: 'subie' }) === OPS_DIFFEREES) return true;
+  return get().serieSubie ? poursuivreLaSerie(get, set) : false;
 }
 
 /** Ferme la série d'attaques subies : le héros rendu au groupe par la couture de retour (`sortieDeRencontre`). */
@@ -4017,6 +4047,7 @@ function jouerLaSuiteDuCoup(get: Get, set: SetFn, attacker: Combatant, target: C
     case 'tirRapide': suspendu = runPreemptShots(get, set, enchainement.faits); break; // la boucle des tireurs reprend (#997)
     case 'aucun': break; // le site d'origine a tranché : aucun balayage ne suit ce coup
     case 'apresCoup': suspendu = jouerLApresCoup(get, set, enchainement.queue); break; // LDB 10 l.1037 ; LDB 85 l.71
+    case 'subie': suspendu = poursuivreLaSerie(get, set); break; // MDG 15 l.163-164, l.177-178
   }
   if (suspendu) return true;
   if (restitution && !portee) set({ battle: { ...get().battle!, acted: restitution.prevActed } });

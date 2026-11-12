@@ -1018,6 +1018,8 @@ export interface ToucheDeProjectile {
  *  - `bordee` : les coups RESTANTS d'une bordée (MDG 14 l.128), posés par `jouerLesTirsDeBordee` ;
  *  - `apresCoup` : la frappe passive d'un défenseur (`jouerLaFrappePassive`) rend la main à l'après-coup
  *    du coup qui l'a provoquée, au temps porté par `queue`. LDB 10 l.1037 ; LDB 85 l.71.
+ *  - `subie` : les attaques RESTANTES de la série d'attaques subies hors bataille (`EtatDeJeu.serieSubie`),
+ *    posé sur chacun de ses coups par `ouvrirLaSerieSubie` puis `poursuivreLaSerie`. MDG 15 l.163-164, l.177-178.
  */
 export type EnchainementDuCoup =
   | { mode: 'hero'; wasChain: boolean }
@@ -1026,7 +1028,8 @@ export type EnchainementDuCoup =
   | { mode: 'auto' }
   | { mode: 'tirRapide'; faits: string[] }
   | { mode: 'aucun' }
-  | { mode: 'apresCoup'; queue: QueueDuCoup };
+  | { mode: 'apresCoup'; queue: QueueDuCoup }
+  | { mode: 'subie' };
 
 /** Tirs d'une bordée dont le coup reste à faire naître, dans l'ordre des pièces (MDG 14 l.128). `actedAvant` : l'`acted` du
  *  navire avant la bordée, rendu après chaque coup — la bordée est une tâche d'équipage (MDG 14 l.37). */

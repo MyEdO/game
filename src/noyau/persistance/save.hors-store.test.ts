@@ -142,10 +142,10 @@ describe('chargerLaSave — l’état de jeu à ouvrir, ses règles, ses retrait
 
 describe('refusDeSauvegarde — l’hôte hors combat seul écrit la save', () => {
   it('en combat : `combat` ; d’un autre siège que l’hôte : `invite` ; sinon rien', () => {
-    const enCombat = { battle: {} as BattleState };
+    const enCombat = { battle: {} as BattleState, serieSubie: null };
     expect(refusDeSauvegarde(enCombat, 0)).toBe('combat');
     expect(refusDeSauvegarde(enCombat, 2)).toBe('combat');
-    expect(refusDeSauvegarde({ battle: null }, 2)).toBe('invite');
-    expect(refusDeSauvegarde({ battle: null }, 0)).toBeNull();
+    expect(refusDeSauvegarde({ battle: null, serieSubie: null }, 2)).toBe('invite');
+    expect(refusDeSauvegarde({ battle: null, serieSubie: null }, 0)).toBeNull();
   });
 });

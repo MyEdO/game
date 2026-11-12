@@ -8,10 +8,14 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { horsBataille } from './coupHorsBataille.testkit';
 import { imposerLesD100 } from './battleRng.testkit';
+import { battleRng } from './battleRng';
 import { applyEffects, EFFECT_HANDLERS, type EffectRefCtx } from './combatEffects';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { heroFaceAUnEnnemi } from './combatDeTest.testkit';
 import { fermerLaSerieSubie } from './combatFlow';
+import { refusDeSauvegarde } from './persistance/save';
+import { applyOps } from '../engine/ops';
+import { touchActors } from './combatOrParty';
 import { fenetreDeDefense } from './fenetreDeDefense';
 import { porteurParId } from './monde/combatants';
 import { testScene } from '../scenes/test-fixture';
@@ -38,11 +42,11 @@ function deOuvert() {
   return { banc, H, etape: banc.getState().pendingCascade!.participants[0] };
 }
 
-/** La série ouverte : le dé `nombre` POSÉ à 7 à la porte, les d100 de la première attaque imposés (`des`). */
-function serieOuverte(des: number[] = [65, 23]) {
+/** La série ouverte : le dé `nombre` POSÉ à `nombre` (7) à la porte, les d100 de la série imposés (`des`). */
+function serieOuverte(des: number[] = [65, 23], nombre = 7) {
   const { banc, H, etape } = deOuvert();
   imposerLesD100(...des);
-  banc.getState().jetImposerLeResultat('cascadeTirage', 7, etape.id);
+  banc.getState().jetImposerLeResultat('cascadeTirage', nombre, etape.id);
   banc.getState().jetValider('cascade');
   return { banc, H };
 }
@@ -148,8 +152,8 @@ describe('série d’attaques subies hors bataille (#3892)', () => {
     expect(res.hit && !!res.woundsLost).toBe(true);
     expect(s.party[0].wounds.current).toBe(avant - res.woundsLost!);
     expect(s.journal).toContain(ligneDuCoup(res));
-    expect(s.pendingDefense).toBeNull();
-    expect(s.serieSubie).toMatchObject({ cibleId: H.id, restantes: 7 });
+    expect(s.serieSubie).toMatchObject({ cibleId: H.id, restantes: 6 });
+    expect(s.pendingDefense).toMatchObject({ attackerId: s.serieSubie!.assaillant.id, defenderId: H.id });
   });
 
   it('Défense surfacée gagnée : aucune Blessure, la ligne du coup au journal', () => {
@@ -160,8 +164,54 @@ describe('série d’attaques subies hors bataille (#3892)', () => {
     expect(res.hit).toBe(false);
     expect(s.party[0].wounds.current).toBe(avant);
     expect(s.journal).toContain(ligneDuCoup(res));
+    expect(s.serieSubie).toMatchObject({ cibleId: H.id, restantes: 6 });
+    expect(s.pendingDefense).toMatchObject({ attackerId: s.serieSubie!.assaillant.id, defenderId: H.id });
+  });
+
+  it('série de 3 attaques jusqu’à son terme : une Défense par attaque, puis le héros rendu au groupe, Blessures reportées', () => {
+    const { banc, H } = serieOuverte([20, 20, 20], 3);
+    const perdue = defendre(banc, 97);
+    expect(banc.getState().serieSubie).toMatchObject({ restantes: 2 });
+    expect(defendre(banc, 5).hit).toBe(false);
+    expect(banc.getState().serieSubie).toMatchObject({ restantes: 1 });
+    expect(defendre(banc, 5).hit).toBe(false);
+    const s = banc.getState();
+    expect(perdue.hit && !!perdue.woundsLost).toBe(true);
+    expect(s.serieSubie).toBeNull();
     expect(s.pendingDefense).toBeNull();
-    expect(s.serieSubie).toMatchObject({ cibleId: H.id, restantes: 7 });
+    expect(s.party[0].engagedWith).toEqual(H.engagedWith);
+    expect(s.party[0].wounds.current).toBe(H.wounds.current - perdue.woundsLost!);
+  });
+
+  it('l’assaillant qui perd son Action (`loseTurn`) : l’attaque suivante est décomptée sans être jouée', () => {
+    const { banc } = serieOuverte([20, 20], 3);
+    applyOps(banc.getState().serieSubie!.assaillant, [{ op: 'loseTurn', what: 'action' }], { idNeuf: banc.getState().forgerUnId, rng: battleRng() });
+    banc.setState(touchActors(banc.getState()));
+    defendre(banc, 5);
+    const s = banc.getState();
+    expect(s.serieSubie).toMatchObject({ restantes: 1 });
+    expect(s.serieSubie!.assaillant.loseNextAction).toBe(false);
+    expect(s.journal).toContain(t('cf.perdLAction', { name: s.serieSubie!.assaillant.label }));
+    expect(s.pendingDefense).not.toBeNull();
+    defendre(banc, 5);
+    expect(banc.getState().serieSubie).toBeNull();
+  });
+
+  it('la cible hors d’action avant la fin : la série se ferme au terme du coup en cours', () => {
+    const { banc, H } = serieOuverte([20, 20]);
+    const inconscient = gameOpSchema.parse({ op: 'condition', id: { id: 'inconscient' }, value: 1 });
+    applyEffects(banc.getState, banc.setState, [{ type: 'ops', on: 'hero', heroId: H.id, ops: [inconscient] }]);
+    expect(banc.getState().serieSubie).toMatchObject({ restantes: 7 });
+    defendre(banc, 5);
+    const s = banc.getState();
+    expect(s.serieSubie).toBeNull();
+    expect(s.pendingDefense).toBeNull();
+    expect(s.party[0].conditions).toContainEqual({ id: 'inconscient', value: 1 });
+  });
+
+  it('la sauvegarde est refusée pendant la série', () => {
+    const { banc } = serieOuverte();
+    expect(refusDeSauvegarde(banc.getState(), 0)).toBe('combat');
   });
 
   it('héros qui ne peut pas se défendre (Inconscient, mort-auto) : aucune fenêtre, le coup résolu hors bataille : LDB 16 l.113', () => {
