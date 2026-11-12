@@ -774,9 +774,10 @@ export function resolveAttack(
   armeDuCoup?: Weapon, // arme résolue par l'appelant piloté (`attackWeaponOf`, #1026) ; absente = auto-choix
   withhold?: boolean, // LDB 18 l.30 ; AA 07 l.59
 ): { res: AttackResult; weapon: Weapon; victim?: Combatant } | null {
-  const battle = get().battle!;
+  // Hors bataille (série d'attaques subies, `serieSubie`), aucune file de combat.
+  const battle = get().battle;
   const mpt = sceneMetresPerTile(get().scene);
-  const weapon = armeDuCoup ?? firedWeapon(attacker, target, undefined, battle.combatants); // arme choisie + munition + sous-effectif du poste servi
+  const weapon = armeDuCoup ?? firedWeapon(attacker, target, undefined, battle?.combatants); // arme choisie + munition + sous-effectif du poste servi
   // Restriction d'armes à distance de la rencontre (#471, `EncounterDef.banRanged`, NADJ 06 l.181) —
   // convergence UNIQUE joueur ET IA (tout tir passe par `resolveAttack`) : refus AVANT le jet, même
   // chemin de refus silencieux que la LdV bloquée ci-dessous (`blocked`). Défaut effectif : `banRangedActive`.
@@ -785,12 +786,17 @@ export function resolveAttack(
   // (cavalier/cible monté — sinon une attaque de charge qui rapproche la MONTURE au contact serait jugée
   // hors d'allonge sur le cavalier 1×1 → `null`, cascade d'attaque ORPHELINE) OU de la COQUE SEULEMENT si
   // `weapon` est la pièce de mêlée servie — jamais pour une arme personnelle (`attackGeomOf`).
-  const dist = combatDistance(attackGeomOf(battle, attacker, weapon), combatGeomOf(battle, target));
-  if (dist > reachTiles(weapon) && weapon.type === 'melee') return null; // hors de portée de mêlée (Allonge incluse, RAW-3)
+  const distanceSur = (grille: BattleState) => combatDistance(attackGeomOf(grille, attacker, weapon), combatGeomOf(grille, target));
+  // La série d'attaques subies déclare le contact de mêlée, sans case (MDG 15 l.163-164) ; hors d'elle, la grille de
+  // la bataille le mesure (Allonge incluse, RAW-3).
+  if (weapon.type === 'melee' && !auContactDeLaSerie(get(), attacker, target)
+    && distanceSur(garanti(battle, attacker.id, 'combat de la mêlée')) > reachTiles(weapon)) return null;
   // (Sonné → +1 Avantage à l'attaquant en mêlée, LDB 16 l.125 : DÉJÀ géré par le flux d'attaque existant.)
   const { env, blocked, inMelee, crowd, cm, flankRear } = attackEnv(get, attacker, target, weapon, { dansLeTas, tirImmobile });
   if (blocked) return null; // pas de Ligne de Vue (mur/décor/fumée) → pas de tir (LDB 13 l.114)
   if (weapon.type === 'ranged') {
+    const grille = garanti(battle, attacker.id, 'combat du tir');
+    const dist = distanceSur(grille);
     // « Tirer dans le tas » (LDB 14 l.106) : un ennemi AU HASARD est touché ; succès dû au seul bonus = 0 DR.
     if (dansLeTas) {
       const res = resolveRanged(attacker, target, weapon, battleRng(), dist, location, env, undefined, mpt, withhold);
@@ -821,7 +827,7 @@ export function resolveAttack(
     // Tir dans la mêlée (LDB 14 l.116) : si sa pénalité a transformé une réussite en échec, le tir dévie
     // et frappe un allié intercalé (touche acquise, dégâts recalculés sur l'allié).
     if (inMelee && !res.hit) {
-      const ally = strayShotVictim(res, attacker, target, battle, battleRng());
+      const ally = strayShotVictim(res, attacker, target, grille, battleRng());
       if (ally) {
         const stray = resolveStrayRangedHit(attacker, ally, weapon, res.attackerRoll, res.attackerDetail!.target - modDeRegle('tir-dans-un-combat-au-corps-a-corps', 'tir-dans-la-melee'), { rng: battleRng() }, res.attackerDetail, withhold);
         stray.ajouts = [tr('cf.touchePerdueEnMelee', { name: ally.label })];
@@ -832,7 +838,7 @@ export function resolveAttack(
   }
   // Charge montée (LDB 14 l.183) : pour les DÉGÂTS, on substitue la Force (Bonus) et la Taille de la monture.
   // Combat monté (l.184) : un défenseur à cheval subit −20 à l'Esquive (sauf Acrobaties équestres) → dodgeMods.
-  const dmgProxy = chargeDmgProxy(battle.combatants, attacker, fromCharge);
+  const dmgProxy = chargeDmgProxy(battle?.combatants, attacker, fromCharge);
   // Défenseur SURFACÉ (`defenseSurfaced`) : sa défense se joue dans SA fenêtre, jamais ici — on résout le
   // seul jet d'ATTAQUANT (`defense:'none'`) et l'interposition (`openSurfacedDefense`, chemin piloté) ou la
   // fenêtre réactive (`maybeOpenDefense`, chemin IA) opposera le jet de défense au jet figé.
