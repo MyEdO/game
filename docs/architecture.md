@@ -875,7 +875,10 @@ src/noyau/monde/asciiMap.ts       AUTHORING de map en ASCII pour les scénarios 
 src/net/                    compress.ts : la compression de l'hôte web (CompressionStream), port `Compression` du relay
 src/hote/coop/              Coop en ligne, plateforme injectée : protocol.ts, session.ts, relay.ts (RelayClient
                             heartbeat/backoff, RoomHost = un Transport virtuel par siège, RoomGuest), salon.ts
-                            (politique de session) ; `src/state/netFlow.ts` en branche les ports web
+                            (politique de session) ; `src/state/netFlow.ts` en branche les ports web.
+                            L'attribution des sièges (héros, emplacement, rôle MJ) n'y vit pas : trois verbes
+                            `hôte` du noyau (`src/noyau/reseau.ts`, `affecter…`) sur les fonctions pures
+                            de `src/noyau/sieges.ts`
                             — codes de room 6 chars, reconnexion auto par token (grace 2 min)
                             Reprise du lien invité ou retour de l'hôte (host-up) : GuestSession.rejoin
                             relance le handshake, puis reçoit campagne et snapshot autoritaire frais.

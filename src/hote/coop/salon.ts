@@ -13,11 +13,7 @@
  * stockage du jeton et l'abonnement aux écritures de l'état. Le salon lit l'état par `get` et l'écrit par la machinerie
  * du noyau (`poserLeReseau`, `transmettreLesIntentions`, `restaurerLesIntentions`).
  */
-import {
-  appliquerLIntentionDUnSiege, attribuerLEmplacement, attribuerLeHeros, buildDeLaCoop, fermerLeSiege,
-  initialNet, instantaneDeLaCoop, poserLeSiegeMJ, refusDAttribuerLEmplacement, refusDAttribuerLeHeros,
-  refusDuSiegeMJ, refuserGesteDuSiege, type Get, type NetState, type Set,
-} from '../../noyau/index';
+import { appliquerLIntentionDUnSiege, buildDeLaCoop, fermerLeSiege, initialNet, instantaneDeLaCoop, type Get } from '../../noyau/index';
 import { t } from '../../i18n';
 import { RoomGuest, RoomHost, type PortsDuRelais } from './relay';
 import { GuestSession, HostSession } from './session';
@@ -62,34 +58,6 @@ export interface PortsDuSalon extends PortsDuRelais {
 function siegeFerme(get: Get, seat: number): void {
   get().poserLeReseau(fermerLeSiege(get().net, seat));
   get().ecrireAuJournal(t('coop.seatClosed'));
-}
-
-/** Pose le réseau `apres(net)`, sauf si `refus` tombe : le refus se dit alors au siège qui décide
- *  (`refuserGesteDuSiege`) et `net` reste inchangé. */
-function attribuerAuSiege(get: Get, set: Set, refus: string | null, apres: (net: NetState) => NetState): void {
-  if (refus !== null) {
-    refuserGesteDuSiege(get, set, refus);
-    return;
-  }
-  const net = apres(get().net);
-  if (net !== get().net) set({ net });
-}
-
-/** `attribuerLeHeros` (`noyau/sieges.ts`), refusé par `refusDAttribuerLeHeros`. */
-export function netAssign(get: Get, set: Set, heroId: string, seat: number): void {
-  const { net, party } = get();
-  attribuerAuSiege(get, set, refusDAttribuerLeHeros(net, party, heroId, seat), (n) => attribuerLeHeros(n, party, heroId, seat));
-}
-
-/** `poserLeSiegeMJ` (`noyau/sieges.ts`), refusé par `refusDuSiegeMJ`. */
-export function setGmSeat(get: Get, set: Set, seat: number | null): void {
-  attribuerAuSiege(get, set, refusDuSiegeMJ(get().net, seat), (n) => poserLeSiegeMJ(n, seat));
-}
-
-/** `attribuerLEmplacement` (`noyau/sieges.ts`), refusé par `refusDAttribuerLEmplacement`. */
-export function netAssignSlot(get: Get, set: Set, slot: number, seat: number): void {
-  const { net, party } = get();
-  attribuerAuSiege(get, set, refusDAttribuerLEmplacement(net, party, slot, seat), (n) => attribuerLEmplacement(n, party, slot, seat));
 }
 
 /** Un salon : au plus une session à la fois, hôte ou invité. Ses objets réseau vivants (sessions, sockets) restent

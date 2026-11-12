@@ -182,6 +182,15 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
    *  transférée au siège qui possédait `heroId` ; ne touche pas la bourse) — créateur (édition) et bouton « Remplacer »
    *  du slot. */
   remplacerLeHeros: (heroId: IdDeHeros, heros: HerosEngage) => void;
+  /** Coop : attribue le héros `heroId` au siège `siege` (`attribuerLeHeros`) ; refusé, et dit, par
+   *  `refusDAttribuerLeHeros` (`noyau/sieges.ts`). */
+  affecterLeHerosAuSiege: (heroId: IdDeHeros, siege: number) => void;
+  /** Coop : attribue l'emplacement `emplacement` de l'écran d'équipe au siège `siege` (`attribuerLEmplacement`) ;
+   *  refusé, et dit, par `refusDAttribuerLEmplacement` (`noyau/sieges.ts`). */
+  affecterLEmplacementAuSiege: (emplacement: number, siege: number) => void;
+  /** Pose le rôle MJ au siège `siege` (`null` : l'IA) (`poserLeSiegeMJ`) ; refusé, et dit, par `refusDuSiegeMJ`
+   *  (`noyau/sieges.ts`). */
+  affecterLeSiegeMJ: (siege: number | null) => void;
   equiperLObjet: (uid: IdDObjet) => void;
   /** Range (`containerUid`) ou sort (null) un objet de son porteur d'un contenant (LDB 64). */
   rangerLObjet: (uid: IdDObjet, containerUid: IdDObjet | null) => void;

@@ -133,6 +133,8 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   installerLAmelioration: 'hôte', recruterLEquipage: 'hôte', renvoyerLEquipage: 'hôte', avitaillerLeNavire: 'hôte', recueillirLesRumeurs: 'hôte',
   // ── Navire / rôles / conseil de bord ──────────────────────────────────────────────────────────
   affecterAuRoleABord: 'hôte', affecterALaStation: 'hôte', affecterAuRoleDeMarche: 'hôte', approvisionnerLaPiece: 'hôte',
+  // ── Sièges de la coop : l'attribution des héros, des emplacements et du rôle MJ (`noyau/sieges.ts`) ──────────
+  affecterLeHerosAuSiege: 'hôte', affecterLEmplacementAuSiege: 'hôte', affecterLeSiegeMJ: 'hôte',
   // ── Décisions de GROUPE (taverne, poursuite) ──────────────────────────────────────────────────
   jouerALaTaverne: 'hôte', ouvrirLesJeux: 'hôte',
   // ── Repos / butin / victoire / défaite ────────────────────────────────────────────────────────

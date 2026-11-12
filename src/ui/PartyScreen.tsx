@@ -77,7 +77,7 @@ export function PartyScreen() {
   const refusDeComposition = useGame(refusComposition);
   const refusDAjout = useGame((s) => refusDAjoutAuGroupe(s, undefined, s.net.mySeat));
   const setEditingHero = useGame((s) => s.setEditingHero);
-  const assignSlot = useGame((s) => s.netAssignSlot);
+  const assignSlot = useGame((s) => s.affecterLEmplacementAuSiege);
   const leave = useGame((s) => s.netLeave);
   const openPossessionsScreen = useGame((s) => s.openPossessionsScreen);
   const [campaignPick, setCampaignPick] = useState(false);

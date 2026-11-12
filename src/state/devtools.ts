@@ -338,7 +338,7 @@ function routesRendues(map: WorldMap, lieu: string | null): { route: MapRoute; o
  *                           dégâts) — `dealShipDamage(999)` est EFFACÉ par la Réparation de fortune du
  *                           MÊME jour (la garde de naufrage n'est évaluée qu'à l'ENTRÉE de `runSeaDay`,
  *                           `seaVoyageFlow.ts` : piège d'ordonnancement, cf. `docs/recette-navigateur.md`)
- *   __wfrp.gmSeat(bool)  → flip du siège MJ solo (`setGmSeat`) — setup légitime ; le siège SURVIT à
+ *   __wfrp.gmSeat(bool)  → flip du siège MJ solo (`affecterLeSiegeMJ`) — setup légitime ; le siège SURVIT à
  *                           `scenario()` (le retirer à la main entre deux) ; la VALIDATION du flux
  *                           reste la checkbox réelle, ce helper n'économise que la mise en place
  *   __wfrp.fillCreatorDefaults(uptoStep?) → remplit le brouillon du CRÉATEUR OUVERT (écran Roster →
@@ -750,7 +750,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     /** RECETTE COOP : la vue RÉSEAU du siège local — `state()` n'expose RIEN de `net`, alors qu'une
      *  recette à deux navigateurs se juge siège par siège (qui est qui, qui possède quoi). Copie en
      *  LECTURE : muter le retour ne touche pas le store. `gmSeat` absent = camp ennemi conduit par
-     *  l'IA ; `presence` est la vue HÔTE des sièges en reconnexion (`netFlow.NetState`). */
+     *  l'IA ; `presence` est la vue HÔTE des sièges en reconnexion (`NetState`, `noyau/etat.ts`). */
     net: () => {
       const n = g().net;
       return {
@@ -1821,14 +1821,14 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       return `✓ Moral d'équipage → ${n}`;
     },
 
-    /** RECETTE #332 : flip du siège MJ SOLO (`setGmSeat`, bac-à-sable local, siège 0) — setup légitime
+    /** RECETTE #332 : flip du siège MJ SOLO (`affecterLeSiegeMJ`, bac-à-sable local, siège 0) — setup légitime
      *  (3 clics réels × N scénarios par recette). `gmSeat()` sans argument bascule l'état courant ;
      *  `gmSeat(true)`/`gmSeat(false)` force. ATTENTION : le siège SURVIT à `scenario()` (mesuré #1028 : aucun
      *  chemin de lancement ne touche `net.gmSeat`) — le retirer EXPLICITEMENT entre deux scénarios.
      *  La VALIDATION du flux MJ reste la checkbox RÉELLE de l'UI — ce helper économise la mise en place, pas le test. */
     gmSeat: (on?: boolean) => {
       const v = on ?? g().net.gmSeat == null;
-      g().setGmSeat(v ? 0 : null);
+      g().affecterLeSiegeMJ(v ? 0 : null);
       return v ? '✓ siège MJ posé (siège 0)' : '✓ siège MJ retiré (IA)';
     },
 

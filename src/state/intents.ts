@@ -17,11 +17,9 @@ export const CLASSE_DES_ACTIONS_DE_L_ADAPTATEUR = {
   setSheetTab: 'local', setSheetScroll: 'local', setSheetId: 'local', setSheetAlarmsSeen: 'local',
   setEditingHero: 'local', openPossessionsScreen: 'local', closePossessionsScreen: 'local',
   // ═══ hôte : persistance et session réseau ═══
-  // `net*` de session : le client gère SA connexion ; l'attribution de sièges et le rôle MJ sont
-  // hôte-autoritaires.
+  // `net*` de session : le client gère SA connexion.
   saveGame: 'hôte', loadGame: 'hôte', importGame: 'hôte',
   netHostStart: 'local', netJoin: 'local', netLeave: 'local',
-  netAssign: 'hôte', netAssignSlot: 'hôte', setGmSeat: 'hôte',
   // La campagne choisie au menu (`pendingCampaign`), avant tout siège.
   setPendingCampaign: 'hôte',
   // ── Vue et curseur clavier (registre `state/clavier/keybindings.ts`) ─────────────────────────────────

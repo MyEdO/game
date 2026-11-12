@@ -7,9 +7,9 @@
  */
 export { creerPartie, type Partie, type Intention, type EntreesDeLaPartie, type ResultatDeLAppel, type LigneDuJournal } from './partie';
 export type { LancementDeScenario } from './lancementDeScenario';
-export { etatInitialDuJeu, initialNet, type EtatDeJeu, type Jeu, type NetState } from './etat';
+export { etatInitialDuJeu, initialNet, type EtatDeJeu, type Jeu } from './etat';
 export type { JeuDuNoyau } from './machinerieDuNoyau';
-export type { Get, Set } from './flowTypes';
+export type { Get } from './flowTypes';
 export type { Jeton } from './plateforme';
 export { horlogeVirtuelle, type Programme } from './horlogeVirtuelle';
 export { argsAvecIntentionLocale, porteesDuTour } from './localIntent';
@@ -58,10 +58,9 @@ export type { ModLine, RollBreakdown } from '../engine/combat';
 export { validTargets } from './targeting';
 export { endTurnArmed } from './endTurnGuard';
 export { quiTientLaMain } from './netOwnership';
-export { attribuerLEmplacement, attribuerLeHeros, fermerLeSiege, poserLeSiegeMJ, refusDAttribuerLEmplacement, refusDAttribuerLeHeros, refusDuSiegeMJ, siegeDe } from './sieges';
+export { fermerLeSiege, siegeDe } from './sieges';
 export { buildDeLaCoop, instantaneDeLaCoop } from './coop';
 export { appliquerLIntentionDUnSiege } from './intentionsDeSiege';
-export { refuserGesteDuSiege } from './refusVisible';
 export { DESIGNATIONS } from './designations';
 export { gestesDExploration, type GesteDExploration } from './gestesDExploration';
 export { CLIC_DU_CHAMP, type GesteDuNoyau, type GesteFermable } from './actionsDuNoyau';

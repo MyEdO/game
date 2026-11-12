@@ -57,10 +57,10 @@ describe('Sièges en coop : la même lecture chez l’hôte et chez l’invité'
     expect(lecture(hote.getState()).refus).toBeNull();
   });
 
-  it('un `netAssignSlot` émis par l’invité est refusé : les emplacements ne bougent pas', () => {
+  it('un `affecterLEmplacementAuSiege` émis par l’invité est refusé : les emplacements ne bougent pas', () => {
     const { hote, host, guest } = table();
     const avant = hote.getState().net.slots;
-    guest.sendIntent('netAssignSlot', [3, 1]);
+    guest.sendIntent('affecterLEmplacementAuSiege', [3, 1]);
     host.broadcastSnapshot();
     expect(hote.getState().net.slots).toEqual(avant);
   });

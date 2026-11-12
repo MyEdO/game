@@ -888,7 +888,7 @@ pas la cible d'UX.
 | `giveTrapping(heroId, trappingId, qty?)` | donne un objet de CATALOGUE à un héros (défaut : le 1er), par le VRAI pipeline `giveTrapping` du store (`applyEffects` → `itemFromGive` : item bien formé, qualités du catalogue, rangement/Encombrement recalculés) | `trappingId` inconnu → message `✗` ; `qty` fixe la quantité de l'instance (ex. `giveTrapping('hero-1','boulet-et-poudre',6)` charge le coffre d'un canon) — ⚠ munitions ≠ rations (achat au marchand : la munition d'artillerie/à distance est un article SÉPARÉ des vivres, jamais suggéré à la place) |
 | `flags()` / `flag('id', value=true)` | lit/force un drapeau de scénario | id de règle optionnelle refusé avec renvoi à `rules(id, value)` |
 | `setMorale(n)` | pose directement `vessel.morale.score` (setup, MÊME patron que `flag()`) | pas le pipeline hebdomadaire (`recalcMorale`) — sert à rendre la désertion à quai (bande ≤75, `moraleBand(score).desertionRoll`) observable sans dérouler des semaines de facteurs ; `✗` sans `state.vessel` |
-| `gmSeat(bool?)` | flip du siège MJ SOLO (`setGmSeat`, siège 0) — sans argument : BASCULE | ⚠ **`scenario()` ne RÉINITIALISE PAS le siège MJ** (mesuré #1028 : `net.gmSeat` survit à `fixerLeGroupe`/`lancerLaScene`/`chargerLeProjet` — seuls `setGmSeat` et la fermeture d'un siège `netSeatClosed` y touchent) : appeler `gmSeat(false)` EXPLICITEMENT entre deux scénarios, sinon le 2ᵉ hérite du siège MJ (ennemis conduits à la main, jets surfacés qu'on croyait auto). La VALIDATION du flux MJ reste la checkbox RÉELLE de l'UI (§ Pièges vécus ci-dessous), ce helper économise seulement la mise en place |
+| `gmSeat(bool?)` | flip du siège MJ SOLO (`affecterLeSiegeMJ`, siège 0) — sans argument : BASCULE | ⚠ **`scenario()` ne RÉINITIALISE PAS le siège MJ** (mesuré #1028 : `net.gmSeat` survit à `fixerLeGroupe`/`lancerLaScene`/`chargerLeProjet` — seuls `affecterLeSiegeMJ` et la fermeture d'un siège `fermerLeSiege` y touchent) : appeler `gmSeat(false)` EXPLICITEMENT entre deux scénarios, sinon le 2ᵉ hérite du siège MJ (ennemis conduits à la main, jets surfacés qu'on croyait auto). La VALIDATION du flux MJ reste la checkbox RÉELLE de l'UI (§ Pièges vécus ci-dessous), ce helper économise seulement la mise en place |
 | `time(minutes=60)` / `rest(days=1)` | avance l'horloge / dort N jours par le chemin EAGER | ⚠ **`rest()` n'ouvre AUCUNE modale de nuit** : il route `reposerLeGroupe` → `restFlow.sleepParty`, qui résout la nuit ENTIÈRE d'un coup (triche d'avancement). Le VRAI chemin joueur — la cascade influençable, une étape à la fois — est le bouton « Dormir » de l'auberge/du camp (`fenetreValider('repos')` → `openRestNight` → `pendingRest`) : pour recetter un jet de nuit (Faim, Récupération, Exposition, maladie…), passer par CE bouton, jamais par `rest()`. ⚠ **NE PILOTE PAS non plus une traversée EN MER** : découplé de `travelPlan.sea` (`noyau/seaVoyageFlow.ts`), il avance l'horloge SANS faire progresser le navire sur sa route (désynchronise `gameTime` du voyage). Pour accélérer une traversée COMMANDÉE, voir « Voyage en mer » ci-dessous |
 | `chantier('reparer'\|'carener'\|upgradeId, units?)` | services du chantier naval au port | hors combat, navire de campagne requis |
 | `massBattle(ally?, enemy?, rounds?)` | lance une bataille de masse de démo | la scène courante doit porter les rencontres attendues |
@@ -1660,8 +1660,8 @@ try {
 | Lire le code | hôte | code à 6 caractères + « Lien d'invitation » (`CoopRoomPanel`, `src/ui/CoopPanels.tsx`) | `__wfrp.net().roomCode` (`state()` n'expose pas `net`) |
 | Rejoindre | invité | même écran → code + nom → **« Rejoindre »** | AUX CLICS : `typeInField` sur le sélecteur que `champParLibelle` rend pour « Votre nom », puis sur `.coop-code-input`, et `clickButtonByText` sur « Rejoindre ». Raccourci : ouvrir l'app sur `?join=<CODE>` (bascule sur l'écran `coop`, code pré-rempli, `src/ui/App.tsx`) puis `netJoin` |
 | Contrôler la liaison | les deux | liste « Joueurs connectés » (`CoopSeatList`) | `__wfrp.net()` des deux côtés : `mode` = `hote`/`invite`, `mySeat` = 0/1, `seatNames` = les deux noms |
-| Composer le groupe | hôte | **« Composer le groupe → »** → écran d'équipe : l'hôte attribue les EMPLACEMENTS (`netAssignSlot`), chaque joueur remplit les siens | poser le groupe d'un coup par un scénario (ci-dessous) |
-| Attribuer les héros | hôte | rubrique « Attribution des héros » (`CoopAssignList`, un `<select>` par héros ; `GmSeatSelect` y pose le rôle MJ) — lobby ET menu ☰ en partie (`CoopMenuSection`) | `__wfrp.store.getState().netAssign(heroId, 1)` (hôte-autoritaire : refusé en mode invité) |
+| Composer le groupe | hôte | **« Composer le groupe → »** → écran d'équipe : l'hôte attribue les EMPLACEMENTS (`affecterLEmplacementAuSiege`), chaque joueur remplit les siens | poser le groupe d'un coup par un scénario (ci-dessous) |
+| Attribuer les héros | hôte | rubrique « Attribution des héros » (`CoopAssignList`, un `<select>` par héros ; `GmSeatSelect` y pose le rôle MJ) — lobby ET menu ☰ en partie (`CoopMenuSection`) | `__wfrp.store.getState().affecterLeHerosAuSiege(heroId, 1)` (verbe `hôte` : sans effet en mode invité) |
 | Jouer | hôte | tout le pilotage de MISE EN PLACE | `scenario`, `goto`, `fight`, `turn`, `combatEnd`… **depuis l'HÔTE uniquement** |
 
 ⚠ **Ne jamais mettre en place depuis l'invité** : `transmettreLesIntentions` (`src/noyau/reseau.ts`)
@@ -1706,9 +1706,9 @@ suivant. Ce qui ressemble à « ça a marché puis c'est revenu en arrière » n
   valeurs, rangées déjà roulées) entre deux clics, et **drainer jusqu'à disparition de la fenêtre** des
   DEUX côtés — jamais un nombre de clôtures présumé. Chaque étape est possédée par le siège de son
   acteur : une cascade qui « ne se ferme pas » chez l'hôte attend souvent une clôture chez l'invité.
-- **`__wfrp.gmSeat` ne sert QUE le solo/l'hôte** : il pose le siège **0** (`setGmSeat(0)`). En coop, le
+- **`__wfrp.gmSeat` ne sert QUE le solo/l'hôte** : il pose le siège **0** (`affecterLeSiegeMJ(0)`). En coop, le
   MJ se désigne par siège au `<select>` « Maître du Jeu » (`GmSeatSelect`) ou par
-  `store.getState().setGmSeat(1)` côté hôte. Le siège MJ SURVIT à `scenario()` (piège mesuré #1028
+  `store.getState().affecterLeSiegeMJ(1)` côté hôte. Le siège MJ SURVIT à `scenario()` (piège mesuré #1028
   ci-dessus) : le remettre à zéro entre deux recettes.
 - **Reprise de siège** : le token vit en `sessionStorage` par room — un reload de l'onglet invité
   reprend le MÊME siège, un Chrome au profil NEUF prend un siège NEUF. `netJoin` refuse hors mode
@@ -1739,7 +1739,7 @@ Déroulé : étapes 1-6 sur `embuscade` (choix de groupe), étape 7 sur `entrain
 3. HÔTE : `__wfrp.scenario('embuscade')` → groupe de 4 posé, scène chargée ; l'invité la reçoit au
    snapshot (contrôler `__wfrp.state().sceneId === 'ambush-test'` chez l'INVITÉ).
 4. HÔTE : relever les ids (`__wfrp.state().party`) et attribuer le 2ᵉ héros au siège 1 :
-   `__wfrp.store.getState().netAssign('<id>', 1)`. Contrôler chez l'invité :
+   `__wfrp.store.getState().affecterLeHerosAuSiege('<id>', 1)`. Contrôler chez l'invité :
    `net.ownership['<id>'] === 1`.
 5. HÔTE : `__wfrp.goto({ x: 9, y: 6 })` — la zone `approche` déclenche le dialogue `dlg-ambush`.
    **Choix de GROUPE** : `state().inDialogue` doit passer à `true` des DEUX côtés (invariant 3).
@@ -1749,7 +1749,7 @@ Déroulé : étapes 1-6 sur `embuscade` (choix de groupe), étape 7 sur `entrain
    côtés.
 7. **Jet SOLO d'invité — basculer sur `entrainement`** (chemin court, mesuré en exécution). HÔTE :
    `__wfrp.scenario('entrainement')` → scène `terrain-entrainement` ; le groupe est DIFFÉRENT (héros
-   dédiés du scénario) → **refaire l'étape 4** : relever les nouveaux ids et `netAssign` du 2ᵉ héros au
+   dédiés du scénario) → **refaire l'étape 4** : relever les nouveaux ids et `affecterLeHerosAuSiege` du 2ᵉ héros au
    siège 1. Puis HÔTE : `__wfrp.goto({ x: 9, y: 8 })` — franchir la bande `entrer-en-lice` (x=7) lance
    `enc-entrainement`, SANS Surprise. **Ready-check** : cliquer « Prêt » sur CHAQUE page (piège
    ci-dessus) — sinon aucun tour ne s'ouvre et on croit le combat gelé ; l'ouverture s'observe par

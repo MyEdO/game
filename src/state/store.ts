@@ -10,7 +10,6 @@ import { viewYawDeg } from './stageYaw';
 import { resetStagePan } from './stagePan';
 import { resetStageGestes } from './stageGestes';
 import * as netFlow from './netFlow';
-import { netAssign, netAssignSlot, setGmSeat } from '../hote/coop/salon';
 import { stockageDesSauvegardes } from './saves';
 import { ecrireLaSauvegarde, lireLaSauvegarde, AUTO_SLOT, MESSAGE_DU_REFUS, type SaveSlot, type AnySlot } from '../hote/sauvegardes';
 import { chargerLaSave, lireSave, refusDeSauvegarde, snapshotSave, type ObsoleteCause, type SaveGame } from '../noyau/persistance/save';
@@ -158,11 +157,6 @@ export interface ActionsDeLAdaptateur {
   netHostStart: (name: string) => Promise<boolean>;
   /** Rejoint une room par code. Résout null si connecté, sinon le message d'erreur à afficher. */
   netJoin: (code: string, name: string) => Promise<string | null>;
-  netAssign: (heroId: string, seat: number) => void;
-  /** Pose/retire le rôle MJ (bac-à-sable) : `seat` conduit les ennemis + le monde, `null` = IA. */
-  setGmSeat: (seat: number | null) => void;
-  /** Attribue un EMPLACEMENT (0-3) de l'écran d'équipe à un siège (hôte). */
-  netAssignSlot: (slot: number, seat: number) => void;
   netLeave: () => void;
   /** Sauvegarde la partie dans un slot localStorage (Jalon 5), sauf `refusDeSauvegarde`. */
   saveGame: (slot: SaveSlot) => boolean;
@@ -293,9 +287,6 @@ export const useGame = create<GameState>((set, get) => ({
 
   netHostStart: (name) => netFlow.salon.heberger(get, name),
   netJoin: (code, name) => netFlow.salon.rejoindre(get, (data) => netFlow.applyNetSnapshot(set, data), code, name),
-  netAssign: (heroId, seat) => netAssign(get, set, heroId, seat),
-  setGmSeat: (seat) => setGmSeat(get, set, seat),
-  netAssignSlot: (slot, seat) => netAssignSlot(get, set, slot, seat),
   netLeave: () => netFlow.salon.quitter(get),
 
   // ── Sauvegarde / chargement (Jalon 5) — `noyau/persistance/save.ts` ──

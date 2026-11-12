@@ -7,7 +7,7 @@
  * (`decidingSeat`) — le siège de l'intent pendant son application, jamais le seul `net.mySeat` de l'HÔTE.
  * L'intent acceptée d'un invité sur son PROPRE héros agit : le pending est posé.
  *
- * Ce test exerce la chaîne de `appliquerLIntentionDUnSiege` (celle que `netFlow` appelle), sur DEUX
+ * Ce test exerce la chaîne de `appliquerLIntentionDUnSiege` (celle que le salon appelle, `hote/coop/salon.ts`), sur DEUX
  * verbes ouvreurs de la barre : `faireUnBattement` (offre `battement`, exposé par #1017) et `rompreLEngagement` (offre
  * `disengage`, d'une autre famille — la même garde les sert, ce qui prouve que la CLASSE est fermée, pas un cas).
  */
@@ -62,7 +62,7 @@ function setup(net: Record<string, unknown> = {}) {
   return { hero, enemy };
 }
 
-/** L'intention d'un siège, appliquée chez l'hôte par la fonction du noyau qu'appelle `netFlow`. */
+/** L'intention d'un siège, appliquée chez l'hôte par la fonction du noyau qu'appelle le salon (`hote/coop/salon.ts`). */
 const applyIntent = (seat: number, action: string, args: unknown[] = []) => appliquerLIntentionDUnSiege(banc.getState, seat, action, args);
 
 describe('#1017 — chemin intent invité : l’action AGIT, pas seulement l’allowlist', () => {
@@ -110,7 +110,7 @@ describe('appliquerLIntentionDUnSiege — allowlist, possession, siège du trans
   it('hors allowlist : ignorée en silence, sans effet ni ligne de journal', () => {
     setup();
     banc.setState({ journal: [] });
-    expect(applyIntent(1, 'setGmSeat', [1])).toBe('hors-allowlist');
+    expect(applyIntent(1, 'affecterLeSiegeMJ', [1])).toBe('hors-allowlist');
     expect(banc.getState().net.gmSeat, 'l’action hors liste a atteint le store de l’hôte').toBeUndefined();
     expect(banc.getState().journal).toEqual([]);
   });
@@ -174,7 +174,7 @@ describe('appliquerLIntentionDUnSiege — allowlist, possession, siège du trans
 /**
  * #2903 — « Annuler » un jet, demandé par un siège : le PORTEUR du jet le referme, un autre siège ne
  * le referme pas. Contrat de possession de la clôture d'un flux de jet (`FLOW_VERBS`), joué par
- * `appliquerLIntentionDUnSiege` comme `netFlow` le joue chez l'hôte.
+ * `appliquerLIntentionDUnSiege` comme le salon le joue chez l'hôte.
  */
 describe('#2903 — Annuler un jet par intention : seul le siège du porteur referme', () => {
   /** Interlude coop : le héros du siège 1 ouvre son Activité « Revenus » par SA propre intention. */

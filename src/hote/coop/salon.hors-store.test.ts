@@ -1,17 +1,15 @@
 /**
  * LE SALON COOP (#3556) sur ports factices (`relay.testkit.ts`) et le banc du noyau : création et échec de la room,
  * format du code et délai de connexion, reprise par jeton, grâce et présence, diffusion lissée sous backpressure,
- * enrobage des intentions de l'invité, attribution des sièges au lobby.
+ * enrobage des intentions de l'invité.
  */
-import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { BUFFER_MAX, GRACE_MS, cleDuJeton, creerLeSalon, netAssign, netAssignSlot, setGmSeat, type PortsDuSalon, type ReponseDuRelais, type Salon } from './salon';
+import { BUFFER_MAX, GRACE_MS, cleDuJeton, creerLeSalon, type PortsDuSalon, type ReponseDuRelais, type Salon } from './salon';
 import { FakeSocket, portsDuTest } from './relay.testkit';
 import { PROTOCOL_VERSION, serializeMessage } from './protocol';
 import { ouvrirLeBanc, type Banc } from '../../noyau/banc.testkit';
 import { buildDeLaCoop } from '../../noyau/coop';
-import { initialNet, type NetState } from '../../noyau/etat';
-import { tousLesHerosDeScenario } from '../../scenes/test-scenarios/_heros';
+import { initialNet } from '../../noyau/etat';
 import { t } from '../../i18n';
 
 const BASE = 'http://localhost:8787';
@@ -161,31 +159,5 @@ describe('salon — l’invité', () => {
     salon.quitter(banc.getState);
     expect(banc.getState().marquerLesIndices, 'les actions d’origine ne sont pas restaurées').toBe(banc.actions.marquerLesIndices);
     expect(banc.getState().net).toEqual(initialNet());
-  });
-});
-
-describe('salon — lobby : une attribution refusée laisse `net` inchangé et dit son refus (#3059 F10)', () => {
-  const hote = (): NetState => ({ ...initialNet(), mode: 'hote', roomCode: 'ABC234', seatNames: { 0: 'Hôte', 1: 'Anna' }, rangs: { h: 0 } });
-  beforeEach(() => { banc.setState({ net: hote(), party: [{ ...tousLesHerosDeScenario(idsDeTest)[0], id: 'h' }], battle: null }); });
-
-  it('netAssignSlot vers un emplacement occupé, puis hors de la table ; netAssign et setGmSeat hors de la table', () => {
-    const avant = banc.getState().net;
-    const journal = banc.getState().journal.length;
-    netAssignSlot(banc.getState, banc.setState, 0, 1);
-    netAssignSlot(banc.getState, banc.setState, 1, 7);
-    netAssign(banc.getState, banc.setState, 'h', 7);
-    netAssign(banc.getState, banc.setState, 'absent', 1);
-    setGmSeat(banc.getState, banc.setState, 7);
-    expect(banc.getState().net).toBe(avant);
-    expect(banc.getState().journal.slice(journal)).toEqual([
-      t('coop.assign.slotTaken'), t('coop.assign.seatUnknown'), t('coop.assign.seatUnknown'), t('coop.assign.heroAbsent'), t('coop.assign.seatUnknown'),
-    ]);
-  });
-
-  it('les mêmes gestes vers un emplacement vide et un siège de la table s’appliquent', () => {
-    netAssignSlot(banc.getState, banc.setState, 1, 1);
-    netAssign(banc.getState, banc.setState, 'h', 1);
-    setGmSeat(banc.getState, banc.setState, 1);
-    expect(banc.getState().net).toMatchObject({ slots: [0, 1, 0, 0], ownership: { h: 1 }, gmSeat: 1 });
   });
 });

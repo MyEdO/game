@@ -2,7 +2,8 @@
  * LE RÉSEAU DE L'INVITÉ (#3009) : `transmettreLesIntentions` enrobe dans l'état les actions de l'allowlist
  * (`GUEST_INTENTS`) ; un appel par l'état part en intention (`emettreIntentInvite`, `sanitizeIntentArgs`), sauf l'élection
  * locale ; `restaurerLesIntentions` rend les actions d'origine. Le sort d'une action (`emettreIntentInvite`) : l'élection
- * locale, le carnet, les clics du champ, le verbe d'une offre.
+ * locale, le carnet, les clics du champ, le verbe d'une offre. L'attribution des sièges (`affecterLeHerosAuSiege`,
+ * `affecterLEmplacementAuSiege`, `affecterLeSiegeMJ`) et ses refus.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -12,7 +13,8 @@ import { GUEST_INTENTS } from './intentionsDeSiege';
 import { tableDeDissipation } from './tableDeDissipation.testkit';
 import { applyEffects } from './combatEffects';
 import { affichés, narratif, hero as heroDesIndices, fixtureScene } from './monde/clues.fixture';
-import { initialNet } from './etat';
+import { initialNet, type NetState } from './etat';
+import { t } from '../i18n';
 import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { spawnEnemy } from './monde/spawn';
 
@@ -169,6 +171,36 @@ describe('emettreIntentInvite — le verbe de l’offre d’un invité : il part
     expect(envoyer.mock.calls).toEqual([['armerLAttaque', ['arme']]]);
     expect(armeeALEnvoi, 'l’intention n’était pas armée quand l’offre est partie').toEqual(['attaque']);
     expect(local, 'le corps s’est joué chez l’émetteur').not.toHaveBeenCalled();
+  });
+});
+
+describe('les sièges de la coop : une attribution refusée laisse `net` inchangé et dit son refus (#3059 F10)', () => {
+  let banc: Banc;
+  const hote = (): NetState => ({ ...initialNet(), mode: 'hote', roomCode: 'ABC234', seatNames: { 0: 'Hôte', 1: 'Anna' }, rangs: { h: 0 } });
+  beforeEach(() => {
+    banc = ouvrirLeBanc();
+    banc.setState({ net: hote(), party: [{ ...tousLesHerosDeScenario(idsDeTest)[0], id: 'h' }], battle: null });
+  });
+
+  it('un emplacement occupé, puis un siège hors de la table ; un héros et le rôle MJ hors de la table, un héros absent', () => {
+    const avant = banc.getState().net;
+    const journal = banc.getState().journal.length;
+    banc.getState().affecterLEmplacementAuSiege(0, 1);
+    banc.getState().affecterLEmplacementAuSiege(1, 7);
+    banc.getState().affecterLeHerosAuSiege('h', 7);
+    banc.getState().affecterLeHerosAuSiege('absent', 1);
+    banc.getState().affecterLeSiegeMJ(7);
+    expect(banc.getState().net).toBe(avant);
+    expect(banc.getState().journal.slice(journal)).toEqual([
+      t('coop.assign.slotTaken'), t('coop.assign.seatUnknown'), t('coop.assign.seatUnknown'), t('coop.assign.heroAbsent'), t('coop.assign.seatUnknown'),
+    ]);
+  });
+
+  it('les mêmes gestes vers un emplacement vide et un siège de la table s’appliquent', () => {
+    banc.getState().affecterLEmplacementAuSiege(1, 1);
+    banc.getState().affecterLeHerosAuSiege('h', 1);
+    banc.getState().affecterLeSiegeMJ(1);
+    expect(banc.getState().net).toMatchObject({ slots: [0, 1, 0, 0], ownership: { h: 1 }, gmSeat: 1 });
   });
 });
 

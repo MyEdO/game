@@ -1,12 +1,17 @@
 /**
- * LE RÉSEAU DU PROPRIÉTAIRE DE L'ÉTAT (#3009) : la session coop qu'il tient (`net`) et, chez l'INVITÉ, l'enrobage des
- * actions de l'allowlist (`GUEST_INTENTS`) qui les fait partir en intention vers l'hôte (`emettreIntentInvite`). Les
- * actions d'origine vivent dans la fermeture de la fabrique, jamais dans l'état.
+ * LE RÉSEAU DU PROPRIÉTAIRE DE L'ÉTAT (#3009) : la session coop qu'il tient (`net`), l'attribution de ses sièges
+ * (`sieges.ts`) et, chez l'INVITÉ, l'enrobage des actions de l'allowlist (`GUEST_INTENTS`) qui les fait partir en
+ * intention vers l'hôte (`emettreIntentInvite`). Les actions d'origine vivent dans la fermeture de la fabrique, jamais
+ * dans l'état.
  */
 import type { Get, SetDesClesReservees } from './flowTypes';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
-import type { Jeu } from './etat';
+import type { Jeu, NetState } from './etat';
 import { GUEST_INTENTS } from './intentionsDeSiege';
+import { refuserGesteDuSiege } from './refusVisible';
+import {
+  attribuerLEmplacement, attribuerLeHeros, poserLeSiegeMJ, refusDAttribuerLEmplacement, refusDAttribuerLeHeros, refusDuSiegeMJ,
+} from './sieges';
 import { argsAvecIntentionLocale, preparerLIntentLocal } from './localIntent';
 import { intentEluLocalement } from './targetingModes';
 
@@ -54,10 +59,29 @@ export function sanitizeIntentArgs(args: unknown[]): unknown[] {
 
 export function creerActionsDuReseau(get: Get, set: SetDesClesReservees) {
   let originaux: Partial<Jeu> | null = null;
+  const poserLeReseau = (net: NetState) => {
+    if (net !== get().net) set({ net });
+  };
+  /** Pose le réseau `apres(net)`, sauf si `refus` tombe : il se dit alors au siège qui décide (`refuserGesteDuSiege`)
+   *  et `net` reste inchangé. */
+  const affecter = (refus: string | null, apres: (net: NetState) => NetState) => {
+    if (refus !== null) {
+      refuserGesteDuSiege(get, set, refus);
+      return;
+    }
+    poserLeReseau(apres(get().net));
+  };
   return {
-    poserLeReseau: (net) => {
-      if (net !== get().net) set({ net });
+    poserLeReseau,
+    affecterLeHerosAuSiege: (heroId, siege) => {
+      const { net, party } = get();
+      affecter(refusDAttribuerLeHeros(net, party, heroId, siege), (n) => attribuerLeHeros(n, party, heroId, siege));
     },
+    affecterLEmplacementAuSiege: (emplacement, siege) => {
+      const { net, party } = get();
+      affecter(refusDAttribuerLEmplacement(net, party, emplacement, siege), (n) => attribuerLEmplacement(n, party, emplacement, siege));
+    },
+    affecterLeSiegeMJ: (siege) => affecter(refusDuSiegeMJ(get().net, siege), (n) => poserLeSiegeMJ(n, siege)),
     transmettreLesIntentions: (envoyer) => {
       if (originaux) return;
       const etat = get() as unknown as Record<string, unknown>;
