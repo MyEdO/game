@@ -25,12 +25,12 @@
 import { execFileSync } from 'node:child_process'
 import { etapeProfilee } from '../etape-profilee.mjs'
 import { etapeHeritee } from '../git-hooks/journal.mjs'
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { binLocal, envIsole, resoudreOutilLocal } from '../lancer-local.mjs'
-import { correspondGlob, listerArbre } from '../guards/lib/lister.mjs'
+import { correspondGlob, listerArbre, listerDossier } from '../guards/lib/lister.mjs'
 import { execFileResilient } from '../guards/lib/spawnResilient.mjs'
 import { CODE_DIFFERE } from '../guards/lib/codesDeSortie.mjs'
 import { prendreVerrou, tenantEnUneLigne } from '../test/verrou.mjs'
@@ -99,14 +99,18 @@ export function ignoresHorsCibles(cwd, chemins, generateurs = GENERATORS) {
 
 /**
  * Retire du disque les cibles ORPHELINES (#4007) : les fichiers non suivis que le bloc « Cibles PURES » ignore et
- * qu'aucun générateur ne déclare, restes d'une cible que `GENERATORS` ne produit plus. REND leurs chemins.
+ * qu'aucun générateur ne déclare, restes d'une cible que `GENERATORS` ne produit plus, et les dossiers qu'elles laissent
+ * vides, dont aucune passe ne capture le listing (`certifierGenerateur`). REND leurs chemins.
  */
 function retirerLesCiblesOrphelines(cwd, generateurs) {
   const racines = [...new Set([...blocDesCiblesPures(cwd).values()].map((motif) => motif.split('/').find(Boolean)))]
   if (!racines.length) return []
   const ignores = execFileSync('git', ['-c', 'core.quotepath=false', 'ls-files', '-z', '--others', '--ignored', '--exclude-standard', '--', ...racines], { cwd, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe'] }).split('\0').filter(Boolean)
   const orphelines = ignoresHorsCibles(cwd, ignores, generateurs)
-  for (const orpheline of orphelines) rmSync(path.join(cwd, orpheline), { force: true })
+  for (const orpheline of orphelines) {
+    rmSync(path.join(cwd, orpheline), { force: true })
+    for (let dossier = path.dirname(orpheline); dossier !== '.' && !listerDossier(path.join(cwd, dossier)).length; dossier = path.dirname(dossier)) rmdirSync(path.join(cwd, dossier))
+  }
   return orphelines
 }
 
