@@ -133,18 +133,18 @@ function finishDefenseResult(attacker: Combatant, defender: Combatant, p: Pendin
  * s'annulent : personne ne gagne d'office, les deux Points restent brûlés, le Test se résout aux
  * dés (arbitrage utilisateur 2026-07-31 [entériné 2026-08-03], verbatim au ticket #1000).
  * Le dé posé et la localisation restent (RAW).
- * `attaquantForce` = forçage de l'attaquant (voyage sur l'attaque figée) ; `p.forced` = forçage du
+ * `attaquantForce` = forçage de l'attaquant (voyage sur l'attaque figée) ; `p.forcee` = forçage du
  * défenseur — `defenderForcing` couvre le forçage EN COURS, dont le drapeau n'est posé qu'APRÈS le
  * patch (`opForceSuccess`).
  */
 export function opposedForcingCancelled(p: PendingDefense, defenderForcing = false): boolean {
-  return attaquantForce(p) && (defenderForcing || !!p.forced);
+  return attaquantForce(p) && (defenderForcing || !!p.forcee);
 }
 /** L'ATTAQUANT a-t-il dépensé « Je ne faillirai pas ! » (LDB 17 l.68) sur le jet figé de cette fenêtre ?
  *  Le forçage vit sur l'attaque elle-même, que seule la suite PILOTÉE porte — une frappe de la machine
  *  n'a pas d'attaque en attente, donc pas de garantie à honorer ici. */
 function attaquantForce(p: PendingDefense): boolean {
-  return p.suite.mode === 'pilotee' && !!p.suite.pa.forced;
+  return p.suite.mode === 'pilotee' && !!p.suite.pa.forcee;
 }
 /** Ligne factuelle rendue au joueur qui dépense le SECOND Point (#1000) — l'annulation n'est jamais
  *  silencieuse. Consommateur : la fenêtre de défense (`useDefenseJetProps`). */
@@ -154,7 +154,7 @@ export const OPPOSED_FORCING_CANCELLED_NOTE = 'Les deux Résiliences s’annulen
  *  opposé, vous l'emportez avec au moins DR +1 ») → DR de l'opposant + 1, au minimum 1 : c'est la
  *  garantie elle-même qui fonde ce minimum. Garanties ANNULÉES (#1000) → plancher NUL : le dé posé
  *  s'évalue au naturel, DR 0 compris (LDB 12 l.94). */
-function opposedForcedFloor(opponentSL: number, cancelled: boolean): number {
+function plancherOpposeForce(opponentSL: number, cancelled: boolean): number {
   return cancelled ? 0 : Math.max(opponentSL + 1, 1);
 }
 
@@ -544,7 +544,7 @@ function opposedBinaryFlow<P extends import('./rollFlowFactory').PendingBase & {
       // au titre de la Résilience passe par le socle : sans ce plancher, la ré-opposition contre le jet
       // FIGÉ de l'adversaire DÉTRUIRAIT la réussite déjà payée par le point.
       // `cancelled:false` STRUCTUREL : le foe est figé, aucun verbe ne lui ouvre de forçage (#1000).
-      floorSL: (p) => opposedForcedFloor(cfg.foeTR(p)?.sl ?? 0, false),
+      floorSL: (p) => plancherOpposeForce(cfg.foeTR(p)?.sl ?? 0, false),
       forceWin: (slot, _actor, tr) => (slot.result && tr ? ({ result: 'reussite' } as Partial<P>) : null),
     },
   });
@@ -645,7 +645,7 @@ function refusDuJetDeChute(s: Jeu, pid: string): string | null {
   const p = s.pendingFall;
   const part = p?.participants.find((x) => x.id === pid);
   if (!p || !part) return null;
-  if (phaseDeChute(p) === 'choice') return refusDesDeclarationsDues(s, p);
+  if (phaseDeChute(p) === 'choix') return refusDesDeclarationsDues(s, p);
   return part.attempt === true ? null : t('fall.refus.sansTest', { tombant: tombantsNommes(s, [part]) });
 }
 
@@ -733,7 +733,7 @@ export const FLOWS = paresseux({
         return actor && t ? { result: rederiveAttack(actor, t, p, tr, s.battle?.combatants) } : null;
       },
       // Test opposé : « vous l'emportez avec au moins DR +1 » (LDB 17 l.68) — cf. INVARIANT de `resolve`.
-      floorSL: (p) => opposedForcedFloor(p.result?.defenderDetail?.sl ?? 0, false),
+      floorSL: (p) => plancherOpposeForce(p.result?.defenderDetail?.sl ?? 0, false),
     },
     resolve: (s, p, actor, get, forced) => {
       const target = actorIn(s, p.targetId);
@@ -749,7 +749,7 @@ export const FLOWS = paresseux({
         // Dé PAR DÉFAUT : « vous choisissez le résultat » (LDB 17 l.68) = LE MEILLEUR (`bestForcedRoll`,
         // policy-aware), jamais le dé raté courant. Test opposé : « vous l'emportez avec au moins DR +1 ».
         const aDie = bestForcedRoll(ad.target);
-        const atk2 = forcedTR(aDie, cibleBrute(ad), Math.max(evaluateTest(aDie, cibleBrute(ad)).sl, opposedForcedFloor(defSL, false)), ad.base);
+        const atk2 = forcedTR(aDie, cibleBrute(ad), Math.max(evaluateTest(aDie, cibleBrute(ad)).sl, plancherOpposeForce(defSL, false)), ad.base);
         return { result: rederiveAttack(actor, target, p, atk2, s.battle?.combatants) };
       }
       const battle = s.battle;
@@ -856,7 +856,7 @@ export const FLOWS = paresseux({
       },
       // Test opposé : le défenseur forcé l'emporte avec au moins DR +1 (LDB 17 l.68) — sauf annulation
       // mutuelle (#1000 : `opposedForcingCancelled`), le dé CHOISI restant posé.
-      floorSL: (p) => opposedForcedFloor(p.atk.sl, opposedForcingCancelled(p)),
+      floorSL: (p) => plancherOpposeForce(p.atk.sl, opposedForcingCancelled(p)),
     },
     resolve: (s, p, actor, _get, forced) => {
       const attacker = porteurParId(s, p.attackerId);
@@ -869,12 +869,12 @@ export const FLOWS = paresseux({
         // les DEUX garanties s'éteignent (`opposedForcingCancelled`, lue aussi par `forcedOpposedAtk` via
         // le `forced` que la fabrique posera juste après ce patch — transmis ici en avance).
         const cancelled = opposedForcingCancelled(p, true);
-        const pForced: PendingDefense = { ...p, forced: true };
+        const pForced: PendingDefense = { ...p, forcee: true };
         // Dé PAR DÉFAUT : « vous choisissez le résultat » (LDB 17 l.68) = LE MEILLEUR (`bestForcedRoll`,
         // policy-aware), jamais le dé raté courant. Le plancher est celui de `opposedForcedFloor` : la
         // garantie (LDB 17 l.68) si elle vit encore, RIEN si elle est annulée (#1000).
         const dDie = bestForcedRoll(p.def.target);
-        const def2 = forcedTR(dDie, cibleBrute(p.def), Math.max(evaluateTest(dDie, cibleBrute(p.def)).sl, opposedForcedFloor(p.atk.sl, cancelled)), p.def.base);
+        const def2 = forcedTR(dDie, cibleBrute(p.def), Math.max(evaluateTest(dDie, cibleBrute(p.def)).sl, plancherOpposeForce(p.atk.sl, cancelled)), p.def.base);
         return { def: def2, result: finishDefenseResult(attacker, actor, pForced, def2, defenseDodgeMods(s, actor), mpt) };
       }
       // Rapide : −10 à la parade d'une arme non-Rapide (LDB 62 l.298-302).
@@ -1258,7 +1258,7 @@ export const FLOWS = paresseux({
       // Dé CHOISI au titre de la Résilience sur une étape OPPOSÉE : le DR est planché À EMPORTER
       // (LDB 17 l.68 « S'il s'agit d'un Test opposé, vous l'emportez avec au moins DR +1 ») — sans ce
       // plancher, la ré-opposition ci-dessus rendrait la réussite ACHETÉE au dé, donc au hasard.
-      floorSL: (st) => { const opp = stepOpposedFreeze(st); return opp ? opposedForcedFloor(opp.aT.sl, false) : 1; },
+      floorSL: (st) => { const opp = stepOpposedFreeze(st); return opp ? plancherOpposeForce(opp.aT.sl, false) : 1; },
     },
     resolve: (_s, st, _actor, _get, forced) => {
       if (st.target == null) return null; // étape sans jet → rien à lancer
@@ -1452,9 +1452,9 @@ export const FLOWS = paresseux({
     actorTR: (p) => p.def, putActorTR: (tr) => ({ def: tr }),
     foeTR: (p) => p.atk, // jet du foe FIGÉ (LDB 15 l.43-68)
     // « Esquiver » : au menu seulement, option fermée par `refusDEsquiveDeDesengagement`.
-    ouvrirLeJet: (s, p) => (s.battle && p.phase === 'choice' && !p.refusEsquive ? { phase: 'esquive' } : null),
+    ouvrirLeJet: (s, p) => (s.battle && p.phase === 'choix' && !p.refusEsquive ? { phase: 'esquive' } : null),
     // LDB 15 l.49, l.63
-    refusDAnnuler: (s, p) => (p.phase !== 'choice' ? refusDeRenoncer(s, p.moverId) : null),
+    refusDAnnuler: (s, p) => (p.phase !== 'choix' ? refusDeRenoncer(s, p.moverId) : null),
   }),
 
   /**
@@ -1711,11 +1711,11 @@ export const FLOWS = paresseux({
     // Plus rien n'est dû : chaque tombant a déclaré, et chacun qui TENTE le Test l'a lancé (LDB 15 l.82).
     jetPose: (p) => rangeesDuesDeChute(p).length === 0,
     clotures: { valider: 'toujours' },
-    cloture: (p) => (phaseDeChute(p) === 'choice' ? 'declarationsDues' : rangeesDuesDeChute(p).length ? 'jetNonLance' : null),
+    cloture: (p) => (phaseDeChute(p) === 'choix' ? 'declarationsDues' : rangeesDuesDeChute(p).length ? 'jetNonLance' : null),
     actor: (s, part) => actorIn(s, part.id),
     caps: { forcer: true },
     resolve: (_s, part, actor, _get, forced, p) => {
-      if (!actor || !p || part.attempt !== true || phaseDeChute(p) !== 'roll') return null;
+      if (!actor || !p || part.attempt !== true || phaseDeChute(p) !== 'jet') return null;
       const metres = metresRetenus(p, part);
       if (forced) {
         if (part.result?.success) return null; // rien à forcer si déjà réussi
@@ -1776,7 +1776,7 @@ export const FLOWS = paresseux({
       // l'opposition (LDB 17 l.68), il ne la retente pas.
       floorSL: (_r: BatchParticipant, _a: Combatant | undefined, p: PendingCascade) => {
         const opp = stepOpposedFreeze(p.participants[p.cursor]);
-        return opp ? opposedForcedFloor(opp.aT.sl, false) : 1;
+        return opp ? plancherOpposeForce(opp.aT.sl, false) : 1;
       },
     },
     multi: {
@@ -2024,10 +2024,10 @@ export const FLOWS = paresseux({
         // min(cibles) (`bestForcedRoll(min)`) → niveau `full` ; en tenue, le PJ l'emporte sur l'opposition.
         if (p.target2 != null) {
           const die2 = bestForcedRoll(Math.min(p.target, p.target2));
-          return { roll: die2, success: true, sl: Math.max(evaluateTest(die2, p.target).sl, 1), success2: true, sl2: Math.max(evaluateTest(die2, p.target2).sl, 1), combinedLevel: 'full' as const, forced: true };
+          return { roll: die2, success: true, sl: Math.max(evaluateTest(die2, p.target).sl, 1), success2: true, sl2: Math.max(evaluateTest(die2, p.target2).sl, 1), combinedLevel: 'full' as const, forcee: true };
         }
         const die = bestForcedRoll(effTarget);
-        const primary = { roll: die, target: effTarget, success: true, sl: Math.max(evaluateTest(die, effTarget).sl, 1), forced: true };
+        const primary = { roll: die, target: effTarget, success: true, sl: Math.max(evaluateTest(die, effTarget).sl, 1), forcee: true };
         if (p.battle === 'round' && p.enemyValue != null) return { ...primary, enemySL: Math.min(-1, (p.enemySL ?? 0)) };
         return primary;
       }
@@ -2203,7 +2203,7 @@ export const FLOWS = paresseux({
         return {
           roll: die, success: true,
           sl: Math.max(evaluateTest(die, p.target).sl + tDR + capDR, p.requireSL, 1),
-          forced: true,
+          forcee: true,
         };
       }
       const res = rollTest(p.skillValue, p.difficulty, battleRng());
@@ -2290,7 +2290,7 @@ export const FLOWS = paresseux({
       ...trDie<PendingBargain>(),
       // Test opposé vs un marchand FIGÉ : le plancher RAW est « l'emporter d'au moins DR +1 » (LDB 17 l.68).
       // `cancelled:false` STRUCTUREL : le marchand est figé, aucun verbe ne lui ouvre de forçage (#1000).
-      floorSL: (p) => opposedForcedFloor(p.merchantRoll?.sl ?? 0, false),
+      floorSL: (p) => plancherOpposeForce(p.merchantRoll?.sl ?? 0, false),
       resilience: (_s, p, _a, _g, chosen) => {
         if (p.merchantRoll == null) return null;
         const tr = bargainPlayerTR(p, chosen);

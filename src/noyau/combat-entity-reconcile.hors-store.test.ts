@@ -123,7 +123,7 @@ describe('removeEntities — retrait par lot (brique partagée)', () => {
   });
 
   it('une suppression NETTOIE l’assise dans la MÊME écriture de scène (meuble ou corps)', () => {
-    const assis = { kind: 'entity' as const, entityId: 'pnj-1' };
+    const assis = { kind: 'entite' as const, entityId: 'pnj-1' };
     const fixture = (): Scene => ({
       type: 'scene', id: 's', label: '', dimensions: { w: 6, h: 6 }, reliefDefaults: structuredClone(DEFAULT_RELIEF_DEFAULTS), roofDefaults: structuredClone(DEFAULT_ROOF_DEFAULTS),
       layers: [{ z: 0, tiles: new Array(36).fill('herbe') }],
@@ -161,8 +161,8 @@ describe('ouverture de combat — un PNJ enrôlé ASSIS se lève', () => {
       { id: 'table-1', kind: 'prop', pos: table, decor: { id: 'table-ronde-4-tabourets' }, facing: 'N' },
       { id: 'badaud', kind: 'personnage', pos: { x: table.x, y: table.y - 1 }, creature: { id: 'mutant' } },
     ];
-    const combattant = { kind: 'entity' as const, entityId: enrole };
-    const badaud = { kind: 'entity' as const, entityId: 'badaud' };
+    const combattant = { kind: 'entite' as const, entityId: enrole };
+    const badaud = { kind: 'entite' as const, entityId: 'badaud' };
     banc.setState({ scene: { ...sc, entities, seatAssignments: { 'table-1': { 'place-3': combattant, 'place-1': badaud } } } });
     // Les deux attablés sont bien posés sur l'abord de LEUR place (le document est sain).
     for (const [slotId, o] of [['place-3', combattant], ['place-1', badaud]] as const) {

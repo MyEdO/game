@@ -499,7 +499,7 @@ export const LEGACY_VOCAB_SITES = [
   {
     fichier: "src/i18n/messages/fr.ts",
     motif: "désormais",
-    ancre: "arrivé le premier sous `rv.loc*` ; le moteur en porte désormais les HUIT, la navigation",
+    ancre: "arrivé le premier sous `fleuve.localisation*` ; le moteur en porte désormais les HUIT, la navigation",
     lot: "L7 désormais",
     date: "2026-09-26",
   },

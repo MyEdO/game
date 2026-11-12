@@ -132,7 +132,7 @@ sur un grand diff dilue l'attention.
   hors périmètre ; chaque juge reçoit les verdicts précédents et la barre FIGÉE, et l'interdit de
   l'élargir. Un « 0 occurrence » qui ne réimplémente pas la garde étendue ne prouve rien (#1765). Une
   ALERTE d'une règle prudente n'est pas un site perdu tant que ses appelants n'ont pas été relus
-  (`.claude/soldes/1765.md:34`).
+  (`.claude/soldes/1765.md`, « Rectificatif »).
 - **Au plus 3 agents en vol** (#2683) : lots par FICHIERS disjoints, le reste en FILE, retouches comprises, chemin
   critique d'abord, preuves différées en série. Type épinglé, modèle non forcé (`.agents/skills/orchestrer-des-agents/calibrage.md`).
 
@@ -176,7 +176,7 @@ test:perimetre` avant commit, revue du diff, UI → tests DOM, sans recette ni c
   la recette la traverse (garde `src/data/tables.test.ts`).
 - **Les CLAIMS ARCHITECTURAUX se contre-grep** ; exiger la SORTIE BRUTE des
   portes au rendu ; un vert ne vaut que s'il porte un compte de tests > 0 (les enfants Vitest tournent
-  en `--passWithNoTests`, `scripts/test/partition.mjs:303`). **Une trouvaille de SONDE devient un test committé** dans le commit de fix.
+  en `--passWithNoTests`, `scripts/test/partition.mjs`). **Une trouvaille de SONDE devient un test committé** dans le commit de fix.
 - **Friction de recette MESURÉE par script = hypothèse** ; seule la capture vaut fait. Avant tout brief de
   correction, le recetteur la re-mesure isolément (sonde discriminante nommée, tableau brut).
 - **Livraison d'ÉCRAN → trois passes** : recette fonctionnelle (DoD), jugement d'écran (captures → juge

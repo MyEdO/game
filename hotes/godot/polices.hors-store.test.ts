@@ -97,4 +97,8 @@ describe('la police de l’hôte Godot (#3498)', () => {
     for (const [fichier, { sha256 }] of Object.entries(provenance))
       expect(createHash('sha256').update(lire(`polices/${fichier}`)).digest('hex'), fichier).toBe(sha256);
   });
+
+  it('le projet s’importe sur un seul fil, les polices comprises (#3951)', () => {
+    expect(lire('project.godot').toString('utf8')).toMatch(/^import\/use_multiple_threads=false$/m);
+  });
 });

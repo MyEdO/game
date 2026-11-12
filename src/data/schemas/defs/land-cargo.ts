@@ -116,7 +116,7 @@ const doc = document(
     ragot: { label: 'Ragot', hint: 'Difficulté et modificateur du Test de Ragot préalable à la vente' },
     rumeurs: { label: 'Rumeurs', hint: 'Table de tirage de rumeurs commerciales' },
   },
-  { codex: { keys: ['landCargo'] }, edit: { object: 'single' } },
+  { codex: { keys: ['landCargo'] }, edit: { object: 'unique' } },
 );
 
 export const schema = doc.schema;

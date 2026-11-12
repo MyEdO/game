@@ -142,7 +142,7 @@ describe('franchirLArete, escalade — combat', () => {
   it('la chute de combat (échec d’Escalade) ramène le faller nommé au pied et lui coûte des Blessures', () => {
     const { H } = setup({ kind: 'surface' }, top); // héros hissé au sommet (état optimiste)
     const before = banc.getState().battle!.combatants.find((c) => c.id === H.id)!.wounds.current;
-    applyEffects(banc.getState, banc.setState, [{ type: 'fall', target: 'hero', heroId: H.id, metres: 4, to: { x: 2, y: 1, z: 0 } }]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'fall', target: 'heros', heroId: H.id, metres: 4, to: { x: 2, y: 1, z: 0 } }]);
     const hc = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(hc.pos).toMatchObject({ x: 2, y: 1 }); // retombé au pied
     // Le 1d10 des Dégâts tombe à la PORTE (#1508) : l'étape à dé nu appendue le montre et le pose.

@@ -160,7 +160,7 @@ describe('#1262 lot 3 — un Test déclenché HORS fin de Round ne se roule pas 
     const { H } = setupCoop();
     addCondition(H, COND.inconscient, 1);
     const eff = {
-      trigger: 'onWoundLoss', on: 'self',
+      trigger: 'onWoundLoss', on: 'soi',
       // `source` : l'entité porteuse, telle que `withSource` la tague au dispatcher — c'est d'elle que
       // l'étape DÉRIVE son enjeu (#1262 V2 L6d). Une fixture sans porteur ne serait pas le chemin réel.
       source: { kind: 'etat', id: 'empoisonne' },
@@ -209,7 +209,7 @@ describe('#1262 lot 3 — un « Vous pouvez… » ne se tranche pas chez l’hô
   it('dispatcher : un effet OPT-IN atteint le porteur d’un autre siège au lieu d’être jeté', () => {
     const { H } = setupCoop();
     const eff = {
-      trigger: 'onHit', on: 'self', optional: true,
+      trigger: 'onHit', on: 'soi', optional: true,
       flow: { kind: 'test', test: { skill: 'calme', difficulty: 'intermediaire', label: 'Se ressaisir' }, reussite: { kind: 'sequence', etapes: [] }, echec: { kind: 'sequence', etapes: [] } },
     } as unknown as TriggeredEffect;
 

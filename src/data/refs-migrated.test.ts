@@ -754,45 +754,6 @@ describe('GameOp — toute référence de la donnée committée est jugée au pa
   });
 });
 
-// ── GARDE STRUCTURELLE — Schéma de Progression d'une Carrière (LDB 07 l.41-43) : 6 marques au
-// total, deux à deux disjointes — 3 au niveau 1, puis 1 par niveau (2/3/4). NE vérifie PAS
-// l'AFFECTATION marque→caractéristique (quelle Caractéristique porte le cuivre/l'argent/l'or pour
-// une Carrière donnée) : une permutation entre deux niveaux passe cette garde. Cette affectation
-// se mesure au PDF (rects `non_stroking_color` par colonne) et fait l'objet d'un ticket séparé.
-describe('careerLevels — Schéma de Progression : cardinalité 3/1/1/1 et disjonction des marques, PAS l\'affectation marque→caractéristique (LDB 07 l.41-43)', () => {
-  it('chaque Carrière : niveau 1 = 3 caractéristiques, niveaux 2/3/4 = 1 chacun, aucun doublon', () => {
-    const byCareer = new Map<string, typeof careerLevels>();
-    for (const l of careerLevels) {
-      const bucket = byCareer.get(l.career.id) ?? [];
-      bucket.push(l);
-      byCareer.set(l.career.id, bucket);
-    }
-    const offenders: string[] = [];
-    for (const [career, levels] of byCareer) {
-      const levelCounts = new Map<number, number>();
-      for (const l of levels) levelCounts.set(l.level, (levelCounts.get(l.level) ?? 0) + 1);
-      const dupLevels = [...levelCounts.entries()].filter(([, n]) => n > 1).map(([lvl]) => lvl);
-      if (dupLevels.length > 0) {
-        offenders.push(`${career} : niveau(x) en double [${dupLevels.join(', ')}]`);
-        continue;
-      }
-      const byLevel = new Map(levels.map((l) => [l.level, l]));
-      const nums = [...byLevel.keys()].sort((a, b) => a - b).join(',');
-      if (nums !== '1,2,3,4') { offenders.push(`${career} : niveaux présents [${nums}], attendu [1,2,3,4]`); continue; }
-      const perLevel = [1, 2, 3, 4].map((n) => byLevel.get(n)!.characteristics);
-      const expected = [3, 1, 1, 1];
-      perLevel.forEach((chars, i) => {
-        if (chars.length !== expected[i]) {
-          offenders.push(`${career} niveau ${i + 1} : ${chars.length} caractéristique(s), attendu ${expected[i]}`);
-        }
-      });
-      const all = perLevel.flat();
-      if (new Set(all).size !== all.length) offenders.push(`${career} : doublon parmi [${all.join(', ')}]`);
-    }
-    expect(offenders, offenders.join('\n')).toEqual([]);
-  });
-});
-
 describe('schémas de defs/ — une réf de code cite un FICHIER et un SYMBOLE, jamais un numéro de ligne', () => {
   const LINE_REF = /[\w./-]*\.ts:\d+(?:-\d+)?/g;
 

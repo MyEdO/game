@@ -29,7 +29,7 @@ function monter(scene: Scene) {
         root.render(
           <Palette
             scene={scene}
-            tool={{ mode: 'entity', kind: 'prop', ref: 'tonneau' }}
+            tool={{ mode: 'entite', kind: 'prop', ref: 'tonneau' }}
             setTool={() => {}}
             brush={1}
             setBrush={() => {}}
@@ -47,7 +47,7 @@ function monter(scene: Scene) {
             architectureMode={false}
             architectureBodyId={null}
             architectureStoreyId={null}
-            architectureAction="select"
+            architectureAction="selection"
             onArchitectureMode={() => {}}
             onArchitectureBody={() => {}}
             onArchitectureStorey={() => {}}

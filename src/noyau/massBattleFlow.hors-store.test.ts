@@ -39,7 +39,7 @@ function start(
     party, battle: null,
     interlude: left > 0 ? { weeks: 3, phase: 'activities', perHero } as any : null,
   });
-  banc.getState().amorcerLaBataille({ allyMight: 50, enemyMight: 55, plannedRounds: 3, ...spec });
+  banc.getState().amorcerLaBataille({ puissanceAlliee: 50, puissanceEnnemie: 55, plannedRounds: 3, ...spec });
 }
 
 /** Le groupe doté de Savoir (Guerre) — Compétence Avancée que la Planification exige (LDB 09 l.30). */
@@ -104,7 +104,7 @@ describe('amorcerLaBataille / état', () => {
 
   it('refuse de s\'ouvrir en plein combat tactique', () => {
     banc.setState({ massBattle: null, battle: { combatants: [] } as any });
-    banc.getState().amorcerLaBataille({ allyMight: 40, enemyMight: 40 });
+    banc.getState().amorcerLaBataille({ puissanceAlliee: 40, puissanceEnnemie: 40 });
     expect(banc.getState().massBattle).toBeNull();
   });
 
@@ -154,11 +154,11 @@ describe('Discours inspirant (l.71)', () => {
   it('sa Difficulté est DÉRIVÉE de l’écart de Puissance (l.71), par le canal générique des Activités', () => {
     // Armée alliée devant de +30 → Test plus FACILE ; derrière de −30 → plus DUR. Le Discours n'a pas de
     // porte à lui : c'est l'entrée qui déclare `difficultyFrom`, lue à l'ouverture comme au pré-jet.
-    start({ allyMight: 70, enemyMight: 40 });
+    start({ puissanceAlliee: 70, puissanceEnnemie: 40 });
     prep('inspire');
     expect(pending()?.difficulty).toBe('facile');
 
-    start({ allyMight: 30, enemyMight: 60 });
+    start({ puissanceAlliee: 30, puissanceEnnemie: 60 });
     prep('inspire');
     expect(pending()?.difficulty).toBe('tresDifficile');
   });
@@ -171,7 +171,7 @@ describe('Activités de bataille pré-combat (l.79-106)', () => {
     expect(pending()?.activityId).toBe('planification');
     resolveBattleTest({ roll: 10, success: true, sl: 3 });
     const mb = mbState();
-    expect(mb.allyMod).toBe(10); // Succès (DR 3 < 6) → +10 (l.81)
+    expect(mb.modificateurAllie).toBe(10); // Succès (DR 3 < 6) → +10 (l.81)
     expect(mb.planned).toBe(true);
     expect(mb.activitiesDone).toContain('planification');
   });
@@ -180,7 +180,7 @@ describe('Activités de bataille pré-combat (l.79-106)', () => {
     start({}, partyWithWarLore());
     prep('planification');
     resolveBattleTest({ roll: 3, success: true, sl: 6 });
-    expect(mbState().allyMod).toBe(20);
+    expect(mbState().modificateurAllie).toBe(20);
   });
 
   it('Sabotage requiert le Repérage ; réduit la Puissance ennemie de départ (l.104-106)', () => {
@@ -200,7 +200,7 @@ describe('Activités de bataille pré-combat (l.79-106)', () => {
   });
 
   it('Rassembler des forces (l.96) : Stupéfiant → +10 de Puissance de DÉPART (le plafond suit)', () => {
-    start({ allyMight: 50 });
+    start({ puissanceAlliee: 50 });
     prep('rassembler-des-forces');
     resolveBattleTest({ roll: 3, success: true, sl: 6 });
     expect(armyStartMight(mbState().allie)).toBe(60);
@@ -284,9 +284,9 @@ describe('Test combiné d\'Activité (l.75/102) — un jet vs deux compétences'
     const pa = pending()!;
     expect(pa.activityId).toBe('infiltration');
     expect(pa.target2).toBeGreaterThan(0);
-    const modBefore = mbState().allyMod;
+    const modBefore = mbState().modificateurAllie;
     resolveBattleTest({ roll: 40, success: true, sl: 1, success2: false, sl2: -1, combinedLevel: 'partial' });
-    expect(mbState().allyMod).toBe(modBefore); // aucun gain
+    expect(mbState().modificateurAllie).toBe(modBefore); // aucun gain
     expect(mbState().activitiesDone).toContain('infiltration');
   });
 });
@@ -539,7 +539,7 @@ describe('Tenez votre position (l.161) — Point de rupture + bonus cumulatif', 
    *  ces Rounds (ADE II 8 l.163 : « −2 de Puissance » par Round tenu) et son jet reçoit le bonus
    *  cumulatif de +10 par Round — la fixture est celle d'une partie réelle, pas un `held` posé nu. */
   function openHold(heldRounds: number): PendingActivity {
-    start({ situations: [['tenez-votre-position']], enemyMight: 55 - 2 * heldRounds });
+    start({ situations: [['tenez-votre-position']], puissanceEnnemie: 55 - 2 * heldRounds });
     auRound();
     const mb0 = mbState();
     banc.setState({ massBattle: { ...mb0, sceneState: { 'tenez-votre-position': { breakpoint: 0, held: heldRounds, broken: false } } } });
@@ -941,7 +941,7 @@ describe('Test spectaculaire, avancement & issue (l.120/124)', () => {
   });
 
   it('une armée réduite à 0 est détruite immédiatement', () => {
-    start({ plannedRounds: 5, enemyMight: 5 });
+    start({ plannedRounds: 5, puissanceEnnemie: 5 });
     auRound();
     seedBattleRng(9);
     banc.getState().fenetreChoisir('batailleDeMasse', 'engager', true);
@@ -954,7 +954,7 @@ describe('Test spectaculaire, avancement & issue (l.120/124)', () => {
 
 describe('Modèle Combattant-armée (Blessures = Puissance)', () => {
   it('l\'armée est un Combattant INANIMÉ : PB courantes = Puissance, PB max = départ, inerte', () => {
-    start({ allyMight: 50, enemyMight: 55 });
+    start({ puissanceAlliee: 50, puissanceEnnemie: 55 });
     const ally = mbState().allie.combatant;
     expect(ally.wounds.current).toBe(50);
     expect(ally.wounds.max).toBe(50);
@@ -963,7 +963,7 @@ describe('Modèle Combattant-armée (Blessures = Puissance)', () => {
   });
 
   it('un gain de Scène est plafonné NATURELLEMENT à la Puissance de départ (l.135)', () => {
-    start({ allyMight: 50, situations: [['motivation']] });
+    start({ puissanceAlliee: 50, situations: [['motivation']] });
     auRound();
     banc.getState().fenetreChoisir('batailleDeMasse', 'scene', 'motivation');
     resolveBattleTest({ roll: 10, success: true, sl: 4 }); // +4 tenté, déjà à 50/50
@@ -971,7 +971,7 @@ describe('Modèle Combattant-armée (Blessures = Puissance)', () => {
   });
 
   it('après une perte, un gain de Scène ne remonte pas au-delà du départ', () => {
-    start({ allyMight: 50, plannedRounds: 3, situations: [['motivation'], ['motivation']] });
+    start({ puissanceAlliee: 50, plannedRounds: 3, situations: [['motivation'], ['motivation']] });
     auRound();
     seedBattleRng(7);
     banc.getState().fenetreChoisir('batailleDeMasse', 'engager', true);

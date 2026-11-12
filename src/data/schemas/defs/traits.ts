@@ -161,7 +161,7 @@ const doc = document(
     aura: nommerChamps(z
       .strictObject({
         rangeChar: charKeySchema,
-        affects: z.enum(['enemies', 'allies', 'all']).optional(),
+        affects: z.enum(['ennemis', 'allies', 'tous']).optional(),
         passive: passifsDe(),
       }), {
       rangeChar: { label: 'Caractéristique de portée' },

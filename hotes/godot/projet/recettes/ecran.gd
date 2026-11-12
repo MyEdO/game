@@ -1,6 +1,7 @@
 ## LA RECETTE DE L'ÉCRAN (#3328) : chaque vue que la sonde fige (`hotes/godot/recettes/ecran.ts`, écrite sous
 ## `VUES` dans la copie qu'elle importe) montrée par la scène `Ecran` comme le routeur `combat.gd` la montre, dans la
-## disposition qu'elle nomme. Chaque zone de la scène lit une source de la vue et chaque source a sa zone ; chaque
+## disposition qu'elle nomme. Chaque zone de la scène lit une source de la vue et chaque source a sa zone, hors des
+## zones d'un panneau que la disposition cache (le journal sous une scène qui le tient, `Disposition.journal`) ; chaque
 ## élément a son composant, dans l'ordre de la zone qui le range, et aucun ne reste sans zone ; chaque texte qu'il dit
 ## (`DITS`) se lit à l'écran, ou au survol de son contrôle ; chaque geste pressé joue l'intention que l'élément porte,
 ## un formulaire celle que la vue attend ; le geste en focus le prend. Remontrée, une vue garde ses nœuds ; vidée, une
@@ -21,6 +22,8 @@ var _fautes: Array[String] = []
 var _joues: Array = []
 var _presses: Array[String] = []
 var _posees := {}
+## Le panneau du journal de l'écran (`Disposition.journal`), que la disposition posée cache quand elle le tient.
+var _journal: Control
 
 
 func _initialize() -> void:
@@ -57,6 +60,7 @@ func _disposer(ecran: Node, disposition: Variant) -> Array[Zone]:
 	var posee := ecran.get_node(SCENE + "/Disposition") as Disposition
 	posee.disposer(disposition)
 	_posees[posee.scene] = true
+	_journal = posee.journal
 	var zones := Zone.racines(ecran)
 	for zone in zones:
 		if zone.geste.get_connections().is_empty():
@@ -80,6 +84,7 @@ func _recetter_la_vue(zones: Array[Zone], vue: Dictionary) -> void:
 	for source in vue.zones:
 		_verifier(_zone_de(zones, source) != null, "%s : la source %s n'a pas de zone" % [vue.nom, source])
 	Zone.montrer_toutes(zones, vue.zones)
+	zones = zones.filter(func(zone: Zone) -> bool: return _journal.visible or not _journal.is_ancestor_of(zone))
 	var noeuds := {}
 	for zone in zones:
 		_verifier(vue.zones.has(zone.source), "%s : la zone %s ne lit aucune source de la vue" % [vue.nom, zone.source])

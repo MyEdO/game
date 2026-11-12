@@ -213,7 +213,7 @@ describe('INVARIANT #2 — un seul seam d’assise pour toute mutation d’entit
         // L'emplacement passe par le builder de production `siegeEmplacementEntity`.
         affutDeFixture('affut-1', 'canon-petit', { x: 4, y: 4 }),
       ];
-      s.seatAssignments = { 'table-1': { 'place-1': { kind: 'entity', entityId: 'pnj-1' } } };
+      s.seatAssignments = { 'table-1': { 'place-1': { kind: 'entite', entityId: 'pnj-1' } } };
       return s;
     }
     const HORS_PARTIE = 0; // l'éditeur n'a pas de groupe : les emplacements ne tiennent personne
@@ -227,7 +227,7 @@ describe('INVARIANT #2 — un seul seam d’assise pour toute mutation d’entit
       'deleteSel — retire le corps': (s) => deleteSel(s, { type: 'entity', id: 'pnj-1' }),
       'removeEntity — retire le meuble': (s) => removeEntity(s, 'table-1'),
       'eraseAt — gomme le meuble': (s) => eraseAt(s, { x: 2, y: 2 }),
-      'placeEntity — pose un décor neuf sur l’abord de la place': (s) => placeEntity(s, { mode: 'entity', kind: 'prop', ref: 'tonneau' }, { x: 2, y: 1 }).scene,
+      'placeEntity — pose un décor neuf sur l’abord de la place': (s) => placeEntity(s, { mode: 'entite', kind: 'prop', ref: 'tonneau' }, { x: 2, y: 1 }).scene,
       'changePropRef — le nouveau type n’offre plus de place': (s) => changePropRef(s, 'table-1', 'tonneau'),
       // Cap CARDINAL : le seul qu'un décor VOLUMIQUE accepte (#1680 ligne 3). Le cas diagonal est
       // sous contrat juste après cette table — il n'a rien à faire ici, où la règle est « 0 erreur ».
@@ -238,7 +238,7 @@ describe('INVARIANT #2 — un seul seam d’assise pour toute mutation d’entit
       'setPosteCrew — arme l’affût': (s) => setPosteCrew(s, 'affut-1', ['pnj-1']),
       'setPosteSide — pose l’arc de tir': (s) => setPosteSide(s, 'affut-1', 'babord'),
       'setPosteEngine — change l’engin': (s) => setPosteEngine(s, 'affut-1', 'canon-petit'),
-      'seatOccupant — rassoit le corps': (s) => seatOccupant(s, 'table-1', 'place-2', { kind: 'entity', entityId: 'pnj-1' }, HORS_PARTIE).scene,
+      'seatOccupant — rassoit le corps': (s) => seatOccupant(s, 'table-1', 'place-2', { kind: 'entite', entityId: 'pnj-1' }, HORS_PARTIE).scene,
     };
 
     // Sans cela, un « 0 erreur » ne prouverait rien : la scène de départ doit déjà être valide.

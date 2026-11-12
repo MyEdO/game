@@ -240,7 +240,7 @@ export function nextExposureWave(get: Get, band: CascadeStep, steps: CascadeStep
   const rows = (band.participants ?? []).map((row) => {
     const hero = actorIn(get(), row.id);
     const meta = { ...row.meta, priorFails: hero ? exposurePriorFails(steps, hero, kind) : 0 };
-    return { ...row, result: null, outcome: undefined, rerolled: undefined, forced: undefined, immune: undefined, fixed: undefined, meta };
+    return { ...row, result: null, outcome: undefined, rerolled: undefined, forcee: undefined, immune: undefined, fixed: undefined, meta };
   });
   const suivante = bandStep({
     ...bandSpecOf(band),
