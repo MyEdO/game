@@ -38,7 +38,7 @@ describe('dégâts (LDB 10) — Coup puissant / Tir précis / Combat déloyal / 
   it('talentDamageBonus par contexte d’arme', () => {
     const c = mk([{ name: 'Coup puissant', times: 2 }, { name: 'Tir précis', times: 1 }, { name: 'Combat déloyal', times: 1 }, { name: 'Charge berserk', times: 3 }]);
     expect(talentDamageBonus(c, w(), false)).toBe(2); // mêlée
-    expect(talentDamageBonus(c, w({ type: 'ranged' }), false)).toBe(1); // distance
+    expect(talentDamageBonus(c, w({ type: 'distance' }), false)).toBe(1); // distance
     expect(talentDamageBonus(c, w({ subType: 'bagarre' }), false)).toBe(3); // mêlée + Bagarre (id de Groupe)
     expect(talentDamageBonus(c, w(), true)).toBe(5); // mêlée + Charge berserk 3
   });
@@ -68,13 +68,13 @@ describe('modificateurs de Test (LDB 10)', () => {
   it('Tir mortel : pas de −20 de Localisation à distance', () => {
     const c = mk([{ name: 'Tir mortel', times: 1 }]);
     const tgt = mk([], { id: 't' });
-    const mods = attackModifiers(c, tgt, w({ type: 'ranged', range: 30 }), { kind: 'ranged', location: 'tete', distanceTiles: 5 });
+    const mods = attackModifiers(c, tgt, w({ type: 'distance', range: 30 }), { kind: 'distance', location: 'tete', distanceTiles: 5 });
     expect(ligneDe(mods, refDeRegle('viser-une-localisation'))).toBeUndefined();
   });
   it('Tireur d’élite : ignore la Taille de la cible ; Tireur embusqué : Longue 0 / Extrême ÷2', () => {
     const c = mk([{ name: "Tireur d'élite", times: 1 }]);
     const grand = mk([], { id: 't', size: 'enorme' });
-    const mods = attackModifiers(c, grand, w({ type: 'ranged', range: 30 }), { kind: 'ranged', distanceTiles: 5 });
+    const mods = attackModifiers(c, grand, w({ type: 'distance', range: 30 }), { kind: 'distance', distanceTiles: 5 });
     expect(ligneDe(mods, RULE_REF['taille-cible-au-tir'])).toBeUndefined();
     const sniper = mk([{ name: 'Tireur embusqué', times: 1 }]);
     expect(sniperRangeAdjust(sniper, 'longue', modDeRegle('portee-d-une-arme', 'longue'))).toBe(0);
@@ -87,14 +87,14 @@ describe('initiative / économie d’action (LDB 10)', () => {
   it('Combat instinctif +10×niveau ; Tir rapide pré-empte avec une arme chargée', () => {
     expect(talentInitiativeBonus(mk([{ name: 'Combat instinctif', times: 2 }]))).toBe(20);
     // L'état de charge vit sur l'ARME : c'est ELLE qui est chargée ou non (LDB 62 l.335).
-    const tir = (loaded: boolean) => mk([{ name: 'Tir rapide', times: 1 }], { weapons: [w({ type: 'ranged', reload: 1, loaded })] });
+    const tir = (loaded: boolean) => mk([{ name: 'Tir rapide', times: 1 }], { weapons: [w({ type: 'distance', reload: 1, loaded })] });
     expect(canPreemptRanged(tir(true))).toBe(true);
     expect(canPreemptRanged(tir(false))).toBe(false);
   });
   it('Rechargement rapide (toutes) / Artilleur (Poudre noire seulement)', () => {
     const c = mk([{ name: 'Rechargement rapide', times: 1 }, { name: 'Artilleur', times: 2 }]);
-    expect(reloadDRBonus(c, w({ type: 'ranged', subType: 'arbalete' }))).toBe(1);
-    expect(reloadDRBonus(c, w({ type: 'ranged', subType: 'poudre-noire' }))).toBe(3);
+    expect(reloadDRBonus(c, w({ type: 'distance', subType: 'arbalete' }))).toBe(1);
+    expect(reloadDRBonus(c, w({ type: 'distance', subType: 'poudre-noire' }))).toBe(3);
   });
   it('Sprinter / Fuite ! / Vigilance / Maîtrise du combat', () => {
     expect(runMovementBonus(mk([{ name: 'Sprinter', times: 1 }]))).toBe(1);

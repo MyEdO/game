@@ -45,7 +45,7 @@ const sword = {
 const bow = {
   name: 'Arc',
   label: 'Arc',
-  type: 'ranged',
+  type: 'distance',
   damage: { plusBF: false, flat: 8 },
   range: 60,
   uid: 'bow',

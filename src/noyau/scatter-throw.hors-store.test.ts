@@ -35,8 +35,8 @@ const enemy = (p: Partial<Combatant>): Combatant =>
     ...p,
   }) as unknown as Combatant);
 
-const thrown: Weapon = { label: 'Hache de jet', type: 'ranged', damage: { plusBF: true, flat: 0, bare: true }, range: { bf: 3 }, qualities: [] } as Weapon;
-const bow: Weapon = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 6 }, range: 30, qualities: [] } as Weapon;
+const thrown: Weapon = { label: 'Hache de jet', type: 'distance', damage: { plusBF: true, flat: 0, bare: true }, range: { bf: 3 }, qualities: [] } as Weapon;
+const bow: Weapon = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 6 }, range: 30, qualities: [] } as Weapon;
 
 const missRes = (): AttackResult => ({
   hit: false, attackerRoll: 88, netSL: -3, critical: false, advantageTo: null, defenderDefeated: false, log: 'manque sa cible.',

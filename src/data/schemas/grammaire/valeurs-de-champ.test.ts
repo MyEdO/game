@@ -170,7 +170,8 @@ const NOMMES = [
   'incantation|focalisation|dissipation',
   'ingestion|immersion',
   'ligne-de-force|pierre-gardienne|vortex|nexus|appui-arcanique|tempete|corruption|site',
-  'melee|ranged|ammunition|armor|trapping',
+  'melee|distance',
+  'melee|distance|ammunition|armor|trapping',
   'metal|nonMagic',
   'might|startMight|allyTestMod|firstRoundBonus|planningBonus',
   'plus2|plus1|normal|minus1|half',
@@ -202,7 +203,7 @@ const NOMMES = [
   // Payloads d'`OP_DEFS` : `armourBypassCategorieSchema`, `loseTurnWhatSchema`, `zoneShapeSchema`
   // (`grammaire/mecanique.ts`) ;
   // `porteeDAssautSchema` (`grammaire/mecanique.ts`), source du type moteur `PorteeDAssaut`.
-  'melee|ranged|all',
+  'melee|distance|all',
   'action|movement',
   'all|metal|nonMagic|nonMetal',
   // `matiereDArmureSchema` (#1463) : la matière d'une armure, Groupe d'une pièce (`weaponGroups.material`) et Trait Armure posé.
@@ -288,7 +289,7 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'enemies|allies|all',
   'equipage|avirons|greement|coque|equipements|cargaison|gouvernail|superstructure',
   'exact|correct|derive-mineure|derive|derive-majeure',
-  'extended|terreur|binary',
+  'etendu|terreur|simple',
   'fleeing|pursuing',
   'froid|chaleur',
   'tirImmobile|dansLeTas',
@@ -317,7 +318,7 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'nuit|voyage|meteo|flux|activite|combat',
   'none|half|crawl',
   'normale|pietre',
-  'opposed|extended',
+  'oppose|etendu',
   'party|enemies',
   'party|hero',
   'pas|trot|galop',

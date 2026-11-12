@@ -44,7 +44,7 @@ describe('mountedWeaponBears — une pièce montée porte-t-elle sur la cible ?'
 });
 
 describe('applyShipPostes — pose mannedPoste sur le chef de pièce de chaque poste de la coque (kind-agnostique)', () => {
-  const poste = (crew: string[]): ShipPoste => ({ item: { uid: 'c', name: 'Canon', kind: 'ranged', damage: { plusBF: false, flat: 14 }, qualities: [], enc: 0 } as never, side: 'tribord', crewIds: crew });
+  const poste = (crew: string[]): ShipPoste => ({ item: { uid: 'c', name: 'Canon', kind: 'distance', damage: { plusBF: false, flat: 14 }, qualities: [], enc: 0 } as never, side: 'tribord', crewIds: crew });
 
   it('chaque poste pose son arme sur crewIds[0] (chef de pièce), pas sur les aides', () => {
     const h = { id: 'cogue', crewIds: ['chef', 'aide'], postes: [poste(['chef', 'aide'])] } as unknown as Combatant;

@@ -20,7 +20,7 @@ describe('reachTiles — Allonge d’engagement', () => {
     expect(reachTiles(w({ reach: 'Très courte' }))).toBe(1);
   });
   it('arme à distance, sans Allonge, ou absente → 1', () => {
-    expect(reachTiles(w({ type: 'ranged', reach: null }))).toBe(1);
+    expect(reachTiles(w({ type: 'distance', reach: null }))).toBe(1);
     expect(reachTiles(w({ reach: null }))).toBe(1);
     expect(reachTiles(undefined)).toBe(1);
   });
@@ -28,7 +28,7 @@ describe('reachTiles — Allonge d’engagement', () => {
 
 describe('meleeReachTiles — Allonge de l’arme de mêlée d’un combattant', () => {
   it('prend l’arme de MÊLÉE (ignore l’arme à distance)', () => {
-    expect(meleeReachTiles([w({ type: 'ranged' }), w({ reach: 'Très longue' })])).toBe(2);
+    expect(meleeReachTiles([w({ type: 'distance' }), w({ reach: 'Très longue' })])).toBe(2);
   });
   it('arme de mêlée normale → 1 ; aucune arme → 1', () => {
     expect(meleeReachTiles([w({ reach: 'Moyenne' })])).toBe(1);
@@ -62,7 +62,7 @@ describe('meleeReachRank — rang du combat de mêlée (Mains nues incluses)', (
     expect(meleeReachRank(w({ reach: null }))).toBeNull();
   });
   it('arme à DISTANCE → null (l’Allonge est une longueur de mêlée)', () => {
-    expect(meleeReachRank(w({ type: 'ranged', reach: 'Longue' }))).toBeNull();
+    expect(meleeReachRank(w({ type: 'distance', reach: 'Longue' }))).toBeNull();
   });
 });
 

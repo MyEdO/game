@@ -80,6 +80,11 @@
 // - `creation` (`--scenario marche-equipement`) : l'entrée de la scène poursuivie à l'Entrée, « Nouveau héros » ouvre
 //   la création sur la race, sans résultat ni suivante avant le d100 ; le d100 tiré, la suivante à l'Entrée ; la
 //   carrière tirée, puis les Caractéristiques ; « Nouveau héros » pressé ferme la création sans héros nouveau.
+// - `campagne` (#3009) : « Jouer » ouvre une partie au groupe, sans scène : les pré-tirés à recruter, les campagnes du
+//   jeu, dont « Lancer » ne se joue pas groupe vide ; deux pré-tirés recrutés à leur bouton, chacun en carte au pied de
+//   l'écran, son recrutement refusé ensuite ; « Lancer » de la Diligence pose sa scène d'entrée, le groupe composé au
+//   monde, sa fenêtre d'ouverture en main ; « Quitter la partie » rend le menu, le pont sans partie ; « Jouer » de
+//   nouveau, un pré-tiré recruté, l'Arène lancée sans recharger la page.
 // - `editeur` (#3508), servi avec une copie des projets manuscrits du dépôt (`servir.mjs`, `depot`) : « Éditeur » ouvre la
 //   Diligence telle que le dépôt la sert, sur sa couche 0, rien à enregistrer ; l'outil Hauteur, « Haute (4 m) » et le
 //   pinceau 3×3 choisis à leurs boutons, un glissé de deux cases sur la carte : bouton tenu, la surcouche couvre
@@ -162,6 +167,7 @@
 //   node hotes/godot/recette.mjs --parcours etage --scenario fenetre-ecuries --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours regards --scenario fenetre-ecuries --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours creation --scenario marche-equipement --web <export> --captures <dossier>
+//   node hotes/godot/recette.mjs --parcours campagne --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours vehicule --scenario caraque --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours cadrages --scenario a-bord-de-la-caraque --vues hotes/godot/cadrages/a-bord-de-la-caraque.json
 //     --web <export> --captures <dossier>
@@ -218,7 +224,7 @@ const { values: o } = parseArgs({
   options: { parcours: { type: 'string', default: 'combat' }, web: chaine, captures: chaine, scenario: { type: 'string', default: 'dome' }, graine: { type: 'string', default: '7' }, modeles: chaine, base: chaine, element: chaine, reexport: chaine, piece: chaine, vues: chaine, route: chaine, preset: chaine, clip: { type: 'string', default: 'Sword_Attack' }, statique: { type: 'boolean' } },
 })
 if (o.statique && o.modeles) throw new Error('--statique sert les modèles déposés dans l’export : --modeles hors de propos')
-if (!o.web || !o.captures) throw new Error('usage : node hotes/godot/recette.mjs --web <dossier de l’export> --captures <dossier> [--parcours combat|critique|fin|dialogue|exploration|relief|etage|regards|meteo|vehicule|cadrages|bord --route <route.json>|brume|fiche|inventaire|creation|editeur|atelier|composition|preset]')
+if (!o.web || !o.captures) throw new Error('usage : node hotes/godot/recette.mjs --web <dossier de l’export> --captures <dossier> [--parcours combat|critique|fin|dialogue|exploration|relief|etage|regards|meteo|vehicule|cadrages|bord --route <route.json>|brume|fiche|inventaire|creation|campagne|editeur|atelier|composition|preset]')
 if (o.parcours === 'atelier' && o.modeles && !(o.base && o.element && o.reexport)) throw new Error('--parcours atelier avec --modeles <dossier neuf> attend --base, --element et --reexport <dossier de production>')
 if (o.parcours === 'cadrages' && !o.vues) throw new Error('--parcours cadrages attend --vues <fichier JSON des vues nommées>')
 if (o.parcours === 'composition' && !(o.modeles && o.base && o.piece)) throw new Error('--parcours composition attend --modeles <dossier neuf>, --base et --piece <production skinnée>')
@@ -1310,6 +1316,63 @@ async function parcoursInventaire() {
   v = await vue()
   noter(`possession choisie : ${zone(v, 'fiche.objet')[0].elements.map((e) => e.libelle).join(' | ')}`)
   await capturer('3328-inventaire-3-consommable')
+}
+
+/** Le bouton d'id `<prefixe>/…` de l'entité `id` de la zone `z` de la vue `v`. */
+const boutonDeLEntite = (v, z, id, prefixe) => element(v, z, id).elements.find((e) => e.type === 'bouton' && e.id.startsWith(`${prefixe}/`))
+/** « Jouer » pressé au menu : la partie ouverte au groupe, ses pré-tirés et ses campagnes montrés ; sa vue. */
+async function ouvrirAuGroupe() {
+  await cliquerBouton('Jouer')
+  await waitFor(session, '!!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.some((b) => b.element?.startsWith("bouton/recruter/"))', { timeoutMs: 120000, evaluerMs: FIL_DE_LA_PAGE_MS })
+  return vue()
+}
+/** Le pré-tiré de rang `rang` de la zone `groupe.pretires` recruté à son bouton ; la vue d'après, son héros au groupe. */
+async function recruterLePretire(rang) {
+  const v = await vue()
+  const carte = zone(v, 'groupe.pretires')[rang]
+  await cliquerBouton(bouton(boutonDeLEntite(v, 'groupe.pretires', carte.id, 'recruter')))
+  const apres = await vue()
+  assert.equal(zone(apres, 'groupe.heros').at(-1).nom, carte.nom, `${carte.nom} recruté entre au groupe`)
+  assert.ok(boutonDeLEntite(apres, 'groupe.pretires', carte.id, 'recruter').refus, `${carte.nom} au groupe ne se recrute plus`)
+  return apres
+}
+/** La campagne `id` lancée à son bouton de la zone `groupe.campagnes` ; la vue d'après, sa scène d'entrée posée. */
+async function lancerLaCampagne(id) {
+  await cliquerBouton(bouton(boutonDeLEntite(await vue(), 'groupe.campagnes', `campagne/${id}`, 'lancer')))
+  await attendreLaVue('v.projection.scene && v.plateau')
+  await attendreLeMonde()
+  return vue()
+}
+async function parcoursCampagne() {
+  let v = await ouvrirAuGroupe()
+  assert.equal(v.projection.scene, null, 'la partie ouverte au groupe n’a pas de scène')
+  assert.deepEqual(zone(v, 'groupe.heros'), [], 'ni de héros')
+  const diligence = boutonDeLEntite(v, 'groupe.campagnes', 'campagne/la-diligence', 'lancer')
+  assert.ok(diligence.refus, 'groupe vide, la campagne ne se lance pas')
+  assert.equal(trouver((await ecran()).boutons, bouton(diligence)), undefined, 'son bouton refusé ne se joue pas')
+  noter(`au groupe : ${zone(v, 'groupe.pretires').length} pré-tirés, campagnes ${zone(v, 'groupe.campagnes').map((e) => e.nom).join(' · ')} ; « ${diligence.libelle} » refusé : ${diligence.refus}`)
+  await capturer('3009-campagne-1-groupe-vide')
+  await recruterLePretire(0)
+  v = await recruterLePretire(1)
+  const groupe = zone(v, 'groupe.heros').map((e) => e.nom)
+  noter(`groupe composé : ${groupe.join(', ')}`)
+  await capturer('3009-campagne-2-groupe-compose')
+  v = await lancerLaCampagne('la-diligence')
+  assert.equal(v.projection.fenetre?.cle, 'ouverture', 'la Diligence s’ouvre sur sa fenêtre d’ouverture')
+  assert.deepEqual(zone(v, 'groupe.heros').map((e) => e.nom), groupe, 'le groupe composé entre en scène')
+  assert.deepEqual([zone(v, 'groupe.pretires'), zone(v, 'groupe.campagnes')], [[], []], 'la composition se ferme, la partie en cours')
+  noter(`campagne lancée : scène ${v.projection.scene.nom}, fenêtre « ${zone(v, 'fenetre.titre')[0].texte} »`)
+  await capturer('3009-campagne-3-lancee')
+  await cliquerBouton({ element: 'bouton/quitter' })
+  await waitFor(session, '!!globalThis.wfrpEcran && !wfrpEcran.cases && wfrpEcran.boutons.some((b) => b.texte === "Jouer")', { timeoutMs: 30000, evaluerMs: FIL_DE_LA_PAGE_MS })
+  assert.equal(JSON.parse(await lire(`wfrpPont.appeler('vue')`)).ok, false, 'la partie quittée, le pont n’en tient plus')
+  noter('« Quitter la partie » rend le menu')
+  v = await ouvrirAuGroupe()
+  assert.deepEqual(zone(v, 'groupe.heros'), [], 'la partie suivante s’ouvre sur un groupe vide')
+  await recruterLePretire(2)
+  v = await lancerLaCampagne('arene')
+  noter(`seconde partie sans recharger : scène ${v.projection.scene.nom}`)
+  await capturer('3009-campagne-4-seconde-partie')
 }
 
 /** Le bouton de la vue d'id `id` dans la zone `z` pressé à l'écran, puis la vue que le pont rend. */
@@ -2931,7 +2994,7 @@ async function parcoursPreset() {
   }
 }
 
-const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, dialogue: parcoursDialogue, document: parcoursDocument, incantation: parcoursIncantation, soin: parcoursSoin, voyage: parcoursVoyage, marche: parcoursMarche, repos: parcoursRepos, repit: parcoursRepit, ouvrage: parcoursOuvrage, bataille: parcoursBataille, exploration: parcoursExploration, relief: parcoursRelief, etage: parcoursEtage, regards: parcoursRegards, meteo: parcoursMeteo, vehicule: parcoursVehicule, cadrages: parcoursCadrages, bord: parcoursBord, brume: parcoursBrume, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, editeur: parcoursEditeur, atelier: parcoursAtelier, composition: parcoursComposition, preset: parcoursPreset }
+const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, dialogue: parcoursDialogue, document: parcoursDocument, incantation: parcoursIncantation, soin: parcoursSoin, voyage: parcoursVoyage, marche: parcoursMarche, repos: parcoursRepos, repit: parcoursRepit, ouvrage: parcoursOuvrage, bataille: parcoursBataille, exploration: parcoursExploration, relief: parcoursRelief, etage: parcoursEtage, regards: parcoursRegards, meteo: parcoursMeteo, vehicule: parcoursVehicule, cadrages: parcoursCadrages, bord: parcoursBord, brume: parcoursBrume, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, campagne: parcoursCampagne, editeur: parcoursEditeur, atelier: parcoursAtelier, composition: parcoursComposition, preset: parcoursPreset }
 if (!(o.parcours in PARCOURS)) throw new Error(`--parcours ${o.parcours} : ${Object.keys(PARCOURS).join(' ou ')} attendu`)
 
 let echec = null

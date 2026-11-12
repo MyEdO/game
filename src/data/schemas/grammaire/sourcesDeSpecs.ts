@@ -35,7 +35,7 @@ export const LIBELLE_AU_LABEL = { champs: ['label'] } as const satisfies Libelle
  *  Cibles psy : `LDB 21 l.19`, `l.75` ; Groupes d'appartenance (`CIBLE_D_APPARTENANCE`) : `LDB 10 l.1051`, #3045. */
 export const SOURCES_DE_SPECS = {
   weaponGroupsMelee: { univers: 'weaponGroups.json?combat=melee', libelle: LIBELLE_AU_LABEL },
-  weaponGroupsRanged: { univers: 'weaponGroups.json?combat=ranged', libelle: LIBELLE_AU_LABEL },
+  weaponGroupsRanged: { univers: 'weaponGroups.json?combat=distance', libelle: LIBELLE_AU_LABEL },
   winds: { univers: 'domains.json', pool: 'domains.json?wind', libelle: { champs: ['wind', 'label'] } },
   arcaneDomains: { univers: 'domains.json', pool: 'domains.json?arcane', libelle: LIBELLE_AU_LABEL },
   cultBlessings: { univers: 'gods.json', pool: 'gods.json?blessings', libelle: LIBELLE_AU_LABEL },
@@ -50,7 +50,7 @@ export const SOURCES_DE_SPECS = {
   breathTypes: { univers: 'breath-types.json', libelle: LIBELLE_AU_LABEL },
   damageTypes: { univers: 'damage-types.json', libelle: LIBELLE_AU_LABEL },
   weaponsMelee: { univers: 'trappings.json?categorie=melee', libelle: LIBELLE_AU_LABEL },
-  weaponsRanged: { univers: 'trappings.json?categorie=ranged', libelle: LIBELLE_AU_LABEL },
+  weaponsRanged: { univers: 'trappings.json?categorie=distance', libelle: LIBELLE_AU_LABEL },
   exposureLevels: { univers: 'vocabulaire:expositions', libelle: { vocabulaire: 'expositions' } },
   difficulties: { univers: 'vocabulaire:difficultes', libelle: { vocabulaire: 'difficultes' } },
 } as const satisfies Record<SpecsSource, SourceDeSpecs>;

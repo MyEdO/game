@@ -169,7 +169,7 @@ describe('Catalogue d’Activités d’interlude (ACE Annexe I, data-driven)', (
     forceRoll(96, false, -3);
     expect(hero().masteredWeapons ?? []).toEqual([]);
     // Une arme SANS requiresMastery n'est pas une cible d'entraînement.
-    const ordinary = hero().items!.find((i) => i.uid !== 'wm1' && (i.kind === 'melee' || i.kind === 'ranged'));
+    const ordinary = hero().items!.find((i) => i.uid !== 'wm1' && (i.kind === 'melee' || i.kind === 'distance'));
     if (ordinary) {
       pratiquer(banc.getState, hero().id, 'entrainement-arme-inhabituelle', { itemUid: ordinary.uid });
       expect(banc.getState().pendingActivity).toBeNull();

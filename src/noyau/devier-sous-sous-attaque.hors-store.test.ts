@@ -56,7 +56,7 @@ const etapes = () => (banc.getState().pendingCascade?.participants ?? []).filter
 const choix = (cle: 'devier' | 'subir') => () => cle;
 
 // ── Bordée (MDG 14 l.128) ────────────────────────────────────────────────────────────────────────
-const canon: Weapon = { label: 'Canon', type: 'ranged', damage: { plusBF: false, flat: 8 }, qualities: [] } as unknown as Weapon;
+const canon: Weapon = { label: 'Canon', type: 'distance', damage: { plusBF: false, flat: 8 }, qualities: [] } as unknown as Weapon;
 const jetDeBordee = (roll: number, sl: number): RollBreakdown => ({ label: 'Tir de batterie', base: 0, modifier: 0, target: 0, roll, success: true, sl });
 /** Double réussi : Coup Critique (LDB 13 l.183). */
 const coupCritique = (): RollBreakdown => jetDeBordee(55, 4);

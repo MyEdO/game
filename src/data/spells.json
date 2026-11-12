@@ -17278,7 +17278,7 @@
                 "passive": [
                   {
                     "op": "weaponRollMod",
-                    "phase": "attack",
+                    "phase": "attaque",
                     "drMod": -1
                   }
                 ]

@@ -13,7 +13,7 @@
     "passive": [
       {
         "op": "weaponRollMod",
-        "phase": "parryAgainstAttacker",
+        "phase": "paradeAdverse",
         "drMod": -1
       }
     ]
@@ -117,7 +117,7 @@
     "passive": [
       {
         "op": "weaponRollMod",
-        "phase": "parryByDefender",
+        "phase": "paradeDuDefenseur",
         "drMod": 1
       }
     ]
@@ -195,7 +195,7 @@
       {
         "trigger": "onCrit",
         "on": "victim",
-        "attackType": "ranged",
+        "attackType": "distance",
         "coupCritique": true,
         "flow": {
           "kind": "effet",
@@ -571,7 +571,7 @@
     "passive": [
       {
         "op": "weaponRollMod",
-        "phase": "attackSuccess",
+        "phase": "attaqueReussie",
         "drMod": 1
       }
     ]
@@ -590,7 +590,7 @@
     "passive": [
       {
         "op": "weaponRollMod",
-        "phase": "attack",
+        "phase": "attaque",
         "flatMod": 10
       }
     ]
@@ -811,7 +811,7 @@
     "passive": [
       {
         "op": "weaponRollMod",
-        "phase": "parryByDefender",
+        "phase": "paradeDuDefenseur",
         "drMod": -1
       }
     ]
@@ -878,7 +878,7 @@
     "passive": [
       {
         "op": "weaponRollMod",
-        "phase": "attack",
+        "phase": "attaque",
         "drMod": -1
       }
     ],
@@ -920,7 +920,7 @@
     "passive": [
       {
         "op": "weaponRollMod",
-        "phase": "vsDefense",
+        "phase": "defenseAdverse",
         "drMod": 1
       }
     ],
@@ -1053,7 +1053,7 @@
     "passive": [
       {
         "op": "weaponRollMod",
-        "phase": "testFail",
+        "phase": "testRate",
         "drMod": 1
       }
     ]
@@ -1132,7 +1132,7 @@
     "passive": [
       {
         "op": "weaponRollMod",
-        "phase": "testFail",
+        "phase": "testRate",
         "drMod": -1
       }
     ]

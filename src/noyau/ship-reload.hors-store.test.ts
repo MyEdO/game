@@ -25,7 +25,7 @@ const marin = (id: string, pos = { x: 5, y: 5 }): Combatant =>
 /** Un poste de canon (Recharge 6) qui A TIRÉ : déchargé, à 5 DR de recharge cumulés (proche de la cible). */
 const firedPoste = (over: Partial<ShipPoste> = {}): ShipPoste =>
   ({ side: 'tribord', loaded: false, reloadProgress: 5, crewIds: ['gunner'],
-    item: { uid: 'canon', label: 'Canon moyen', kind: 'ranged', subType: 'armes-de-siege', weaponGroup: 'poudre-noire', damage: { flat: 14, plusBF: false }, range: 75, qualities: [{ id: 'recharge', value: 6 }] }, ...over }) as unknown as ShipPoste;
+    item: { uid: 'canon', label: 'Canon moyen', kind: 'distance', subType: 'armes-de-siege', weaponGroup: 'poudre-noire', damage: { flat: 14, plusBF: false }, range: 75, qualities: [{ id: 'recharge', value: 6 }] }, ...over }) as unknown as ShipPoste;
 
 const ship = (poste: ShipPoste): Combatant =>
   combattantDeTest({ id: 'ship', label: 'Frégate', kind: 'hero', bodyShape: 'vehicule', creatureId: 'bateau-de-patrouille',
@@ -109,7 +109,7 @@ describe('cycle bordée → recharge → re-bordée (MDG 12-14)', () => {
       armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, pos: { x: 5, y: 5 } });
   const onePoste = (): ShipPoste =>
     ({ side: 'tribord', loaded: true, crewIds: ['gunner'],
-      item: { uid: 'canon', label: 'Pierrier', kind: 'ranged', subType: 'armes-de-siege', damage: { flat: 14, plusBF: false }, range: 75, qualities: [{ id: 'recharge', value: 1 }] } }) as unknown as ShipPoste;
+      item: { uid: 'canon', label: 'Pierrier', kind: 'distance', subType: 'armes-de-siege', damage: { flat: 14, plusBF: false }, range: 75, qualities: [{ id: 'recharge', value: 1 }] } }) as unknown as ShipPoste;
   const cycleShip = (): Combatant =>
     combattantDeTest({ id: 'ship', label: 'Frégate', kind: 'hero', bodyShape: 'vehicule', creatureId: 'bateau-de-patrouille',
       crewIds: ['gunner'], postes: [onePoste()], pos: { x: 5, y: 5 }, conditions: [], weapons: [],

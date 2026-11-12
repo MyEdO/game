@@ -134,7 +134,7 @@ describe('Les dominos — NADJ 16 l.105', () => {
   /** Toute entrée `opposed` ouvre la MÊME séquence, paramétrée par sa SEULE donnée. */
   it('ZÉRO CÉRÉMONIE : toute entrée `opposed` du catalogue ouvre la séquence, paramétrée par sa SEULE donnée', () => {
     const a = heros();
-    for (const jeu of TAVERN_GAMES.filter((g) => g.mode === 'opposed')) {
+    for (const jeu of TAVERN_GAMES.filter((g) => g.mode === 'oppose')) {
       banc.setState({ party: [a], sequence: null, pendingCascade: null, tavernGames: null });
       get().jouerALaTaverne(a.id, { gameId: jeu.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' }, ...(jeu.team ? { allyProfil: 'elfe-haut-et-sylvain' } : {}) });
       const seq = get().sequence;

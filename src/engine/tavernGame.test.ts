@@ -11,7 +11,7 @@ describe('Jeux de taverne — moteur générique (NADJ 16)', () => {
       expect(g.source.book).toBe('nuits-agitees-et-dures-journees');
       // Un jeu de MISE ne se résout pas au Test : il ne déclare aucun mode, mais ses règles de pot.
       if (g.pot) expect(g.mode).toBeUndefined();
-      else expect(['opposed', 'extended']).toContain(g.mode);
+      else expect(['oppose', 'etendu']).toContain(g.mode);
     }
   });
 
@@ -47,7 +47,7 @@ describe('Jeux de taverne — moteur générique (NADJ 16)', () => {
    */
   it('mode ÉTENDU (Bras de fer, l.34) : le DR de chaque manche s’AJOUTE AVEC SON SIGNE, le TOTAL est planché (LDB 12 l.174)', () => {
     const bras = findTavernGameById('bras-de-fer')!;
-    expect(bras.mode).toBe('extended');
+    expect(bras.mode).toBe('etendu');
     expect(bras.target).toBe(10);
     const manches = [4, 3, -3, 2]; // DR de manche POSÉS : aucun dé, l'arithmétique seule est en cause
     let total = 0;

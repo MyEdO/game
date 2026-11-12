@@ -22,7 +22,7 @@ const des = (...d: number[]): RNG => desEnSuite(d);
 describe('le log né au jet est la ligne de `issueAuJet`', () => {
   it('double 22, Localisation relancée au d100 5 : la Tête, jamais le Bras gauche de l’inversion', () => {
     const a = combattant('A'), d = combattant('D');
-    const res = resolveMelee(a, d, epee, des(22, 5), { defense: 'none' });
+    const res = resolveMelee(a, d, epee, des(22, 5), { defense: 'aucune' });
     expect(hitLocationByShape(reverseRoll(22))).toBe('brasG');
     expect(res.critLocation).toBe('tete');
     const { ligne } = issueAuJet(d, res, epee, a);

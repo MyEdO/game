@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://scripts/zone.gd" id="1_zone"]
 [ext_resource type="Script" path="res://scripts/disposition.gd" id="2_disposition"]
@@ -9,6 +9,7 @@
 [ext_resource type="Theme" path="res://art/ecran.tres" id="t_ecran"]
 [ext_resource type="Theme" path="res://art/entites_en_cartes.tres" id="t_en_cartes"]
 [ext_resource type="Theme" path="res://art/discret.tres" id="t_discret"]
+[ext_resource type="Theme" path="res://art/cartes.tres" id="t_cartes"]
 
 [node name="Ecran" type="Node"]
 
@@ -215,6 +216,49 @@ script = ExtResource("1_zone")
 source = "dialogue.reponses"
 masque = NodePath("../../..")
 
+[node name="Groupe" type="PanelContainer" parent="Interface/Ossature/Colonne/Milieu/Scene"]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 24.0
+offset_top = 24.0
+offset_right = -24.0
+offset_bottom = -24.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("t_cartes")
+theme_type_variation = &"Fenetre"
+
+[node name="Colonnes" type="HBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Groupe"]
+theme_type_variation = &"RangeeAeree"
+
+[node name="Pretires" type="ScrollContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Groupe/Colonnes"]
+size_flags_horizontal = 3
+horizontal_scroll_mode = 0
+
+[node name="Cartes" type="VBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Groupe/Colonnes/Pretires"]
+theme_type_variation = &"PileSerree"
+size_flags_horizontal = 3
+
+[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene/Groupe/Colonnes/Pretires/Cartes" node_paths=PackedStringArray("masque")]
+script = ExtResource("1_zone")
+source = "groupe.pretires"
+masque = NodePath("../../../..")
+
+[node name="Campagnes" type="ScrollContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Groupe/Colonnes"]
+size_flags_horizontal = 3
+horizontal_scroll_mode = 0
+
+[node name="Cartes" type="VBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene/Groupe/Colonnes/Campagnes"]
+theme_type_variation = &"PileSerree"
+size_flags_horizontal = 3
+
+[node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene/Groupe/Colonnes/Campagnes/Cartes" node_paths=PackedStringArray("masque")]
+script = ExtResource("1_zone")
+source = "groupe.campagnes"
+masque = NodePath("../../../..")
+
 [node name="Pied" type="PanelContainer" parent="Interface/Ossature/Colonne"]
 visible = false
 theme_type_variation = &"Pied"
@@ -286,6 +330,14 @@ alignment = 2
 [node name="Zone" type="Node" parent="Interface/Ossature/Droite/Pile/Gestes"]
 script = ExtResource("1_zone")
 source = "groupe.gestes"
+
+[node name="Partie" type="HBoxContainer" parent="Interface/Ossature/Droite/Pile"]
+theme = ExtResource("t_discret")
+alignment = 2
+
+[node name="Zone" type="Node" parent="Interface/Ossature/Droite/Pile/Partie"]
+script = ExtResource("1_zone")
+source = "partie.gestes"
 
 [node name="Apercu" type="PanelContainer" parent="Interface"]
 visible = false

@@ -1418,7 +1418,7 @@
     "passive": [
       {
         "op": "incomingAttackMod",
-        "mode": "ranged",
+        "mode": "distance",
         "amount": 40
       }
     ]
