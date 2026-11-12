@@ -25,9 +25,9 @@ const LAYER_LABEL: Record<keyof Layers, string> = {
 /** Libellé humain de l'outil actif. */
 export function toolLabel(tool: Tool): ReactNode {
   switch (tool.mode) {
-    case 'select': return '↖ Sélection';
-    case 'tile': return <><Icon id="outil-de-carte/peindre" size="sm" /> {terrainLabel(tool.terrain)}</>;
-    case 'entity':
+    case 'selection': return '↖ Sélection';
+    case 'terrain': return <><Icon id="outil-de-carte/peindre" size="sm" /> {terrainLabel(tool.terrain)}</>;
+    case 'entite':
       if (tool.kind === 'prop') return <><Icon id="outil-de-carte/decor" size="sm" /> {garanti(findPropById(tool.ref), tool.ref, 'décor de la palette').label}</>;
       if (tool.kind === 'personnage') return <><Icon id="outil-de-carte/personnage" size="sm" /> {creatureLabel(tool.ref)}</>;
       return <><Icon id="outil-de-carte/depart" size="sm" /> {libelleDeValeur(entityKindSchema, tool.kind)}</>;
@@ -35,15 +35,15 @@ export function toolLabel(tool: Tool): ReactNode {
       : tool.zone === 'trigger' ? <><Icon id="outil-de-carte/zone" size="sm" /> Zone trigger</>
       : tool.zone === 'rest' ? <><Icon id="repos/campement" size="sm" /> Zone de repos</>
       : <><Icon id="interface/attention" size="sm" /> Piège / hasard</>;
-    case 'zoneTiles': return <><Icon id="outil-de-carte/zone" size="sm" /> Emprise · {tool.paint === 'add' ? 'ajouter' : 'retirer'}</>;
-    case 'entry': return <><Icon id="navigation/point-d-entree" size="sm" /> Point d’entrée</>;
-    case 'encounter': return <><Icon id="action/attaquer" size="sm" /> Placer des ennemis</>;
+    case 'casesDeZone': return <><Icon id="outil-de-carte/zone" size="sm" /> Emprise · {tool.paint === 'add' ? 'ajouter' : 'retirer'}</>;
+    case 'entree': return <><Icon id="navigation/point-d-entree" size="sm" /> Point d’entrée</>;
+    case 'rencontre': return <><Icon id="action/attaquer" size="sm" /> Placer des ennemis</>;
     case 'emplacement': return <><Icon id="scenario/siege" size="sm" /> {garanti(siegeEngines().find((t) => t.id === tool.trappingId), tool.trappingId, 'engin de la palette').label}</>;
-    case 'wall': return tool.paint === 'door' ? <><Icon id="outil-de-carte/porte" size="sm" /> Porte</> : tool.paint === 'diagBack' || tool.paint === 'diagFwd' ? <><Icon id="outil-de-carte/mur" size="sm" /> Diagonale</> : <><Icon id="outil-de-carte/mur" size="sm" /> Cloison</>;
-    case 'height': return <><Icon id="outil-de-carte/hauteur" size="sm" /> Hauteur {tool.metres} m</>;
-    case 'stair': return <>↗ Volée → {layerLabel(tool.toZ)}</>;
-    case 'crenellated': return <><Icon id="outil-de-carte/crenelage" size="sm" /> Crénelage{tool.structure ? '' : ' (gomme)'}</>;
-    case 'erase': return <><Icon id="outil-de-carte/gomme" size="sm" /> Gomme</>;
+    case 'arete': return tool.paint === 'door' ? <><Icon id="outil-de-carte/porte" size="sm" /> Porte</> : tool.paint === 'diagBack' || tool.paint === 'diagFwd' ? <><Icon id="outil-de-carte/mur" size="sm" /> Diagonale</> : <><Icon id="outil-de-carte/mur" size="sm" /> Cloison</>;
+    case 'hauteur': return <><Icon id="outil-de-carte/hauteur" size="sm" /> Hauteur {tool.metres} m</>;
+    case 'escalier': return <>↗ Volée → {layerLabel(tool.toZ)}</>;
+    case 'crenelage': return <><Icon id="outil-de-carte/crenelage" size="sm" /> Crénelage{tool.structure ? '' : ' (gomme)'}</>;
+    case 'gomme': return <><Icon id="outil-de-carte/gomme" size="sm" /> Gomme</>;
   }
 }
 

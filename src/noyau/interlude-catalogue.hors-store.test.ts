@@ -219,7 +219,7 @@ describe('Faveur Importante', () => {
 describe('Préparation de bataille', () => {
   it('déjà faite : refusée et dite, rien en attente', () => {
     const { banc, heroId } = auLieu();
-    banc.actions.amorcerLaBataille({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
+    banc.actions.amorcerLaBataille({ puissanceAlliee: 50, puissanceEnnemie: 55, plannedRounds: 3 });
     banc.actions.menerLActionDeBataille(heroId, 'inspire');
     expect(banc.getState().pendingActivity?.activityId, 'témoin : le Discours s’ouvre').toBe('inspire');
     banc.setState((s) => ({ pendingActivity: { ...s.pendingActivity!, roll: 20, success: true, sl: 2 } }));

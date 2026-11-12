@@ -97,8 +97,8 @@ describe('Le Cerevis — la donnée porte la règle, et dit ce qui est maison', 
     expect(CEREVIS.difficulty, '« Pari Accessible (+20) »').toBe('accessible');
     expect(CEREVIS.skill).toEqual({ id: 'pari' });
     expect(CEREVIS.combined?.second, '« un Test combiné d’Initiative et de… »').toEqual({ characteristic: 'initiative' });
-    expect(CEREVIS.combined?.failEvery, '« Pour chaque 3 Tests d’Initiative auxquels vous échouez »').toBe(3);
-    expect(CEREVIS.combined?.eraseEvery, '« pour chaque 2 chouettes que vous effacez »').toBe(2);
+    expect(CEREVIS.combined?.echecsParEcheance, '« Pour chaque 3 Tests d’Initiative auxquels vous échouez »').toBe(3);
+    expect(CEREVIS.combined?.effacementsParEcheance, '« pour chaque 2 chouettes que vous effacez »').toBe(2);
     expect(CEREVIS.combined?.markLoser, '« Le joueur qui a obtenu le moins de DR […] doit marquer une chouette »').toBe(true);
     expect(CEREVIS.combined?.ops, 'le Tableau Ivre passe par l’op qui le porte (LDB 09 l.475)').toEqual([{ op: 'intoxicate' }]);
     // `NADJ 16 l.90` s'achève sur le Tableau Ivre : aucune fin de partie n'y est écrite. Le nombre

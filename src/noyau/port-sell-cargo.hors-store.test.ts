@@ -163,7 +163,7 @@ describe('la vente de cargaison au port — cascade Ragot → acheteur → March
 
 /**
  * ACHAT au port (le choix `acheter`, #266) — le Marchandage d'achat est SURFACÉ par la même cascade
- * `openRoll` (hero-test) que la vente, jamais résolu en silence. Chaque test contrôle l'offre + le parti.
+ * `openRoll` (jet de héros) que la vente, jamais résolu en silence. Chaque test contrôle l'offre + le parti.
  */
 function setupBuy(party: Combatant[], offerEnc = 20, basePrice = 10): void {
   seedBattleRng(1);

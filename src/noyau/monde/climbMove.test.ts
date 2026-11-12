@@ -70,7 +70,7 @@ describe('planClimb', () => {
     if (plan?.kind !== 'test' || plan.flow.kind !== 'test') throw new Error('attendu test');
     const fail = plan.flow.echec;
     if (fail.kind !== 'sequence' || fail.etapes[0]?.kind !== 'effet') throw new Error('attendu seq/do');
-    expect(fail.etapes[0].effet).toMatchObject({ type: 'fall', target: 'hero', heroId: 'hero-7' });
+    expect(fail.etapes[0].effet).toMatchObject({ type: 'fall', target: 'heros', heroId: 'hero-7' });
   });
 
   // Grimpant (LDB 85 l.160-162) : `autoSucceed` — aucun jet, même sur une paroi exigeant le Talent Grimpeur.

@@ -31,8 +31,8 @@ import { Split } from './Layout';
  * localisations — arbitrage USER). La fiche de combat `PosteSheet` (postes/manœuvre) reste distincte.
  */
 
-/** Humeur de Manann (MDG 15) → ton par SIGNE : favorable = ok, courroucée = danger, neutre = neutral. */
-const manannTone = (score: number): GaugeTone => (score > 0 ? 'ok' : score < 0 ? 'danger' : 'neutral');
+/** Humeur de Manann (MDG 15) → ton par SIGNE : favorable = ok, courroucée = danger, neutre = neutre. */
+const manannTone = (score: number): GaugeTone => (score > 0 ? 'ok' : score < 0 ? 'danger' : 'neutre');
 
 /** Surcharge de soute (MDG 12 l.70-75) : au-delà de la Contenance = surcharge (danger), proche = warn. */
 const cargoTone = (enc: number, cap: number): GaugeTone => {

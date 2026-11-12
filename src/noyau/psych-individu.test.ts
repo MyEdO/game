@@ -212,7 +212,7 @@ describe('l’op psy de donnée : sa Cible est un Groupe, dans tout document', (
     const personnage = scene.entities[0].id;
     scene.entities.push({ id: 'pnj-cible', kind: 'personnage', pos: { x: 1, y: 1 }, statblock: statblocAvec(`@${personnage}`) });
     expect(projetDoc.schema.safeParse(projet).success).toBe(true);
-    scene.triggers.push({ id: 'pose-cible', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: { kind: 'effet', effet: { type: 'ops', on: 'party', ops: [{ op: 'grantPsychTrait', psychType: { id: mixte!.id }, cible: { personnage } }] } } });
+    scene.triggers.push({ id: 'pose-cible', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: { kind: 'effet', effet: { type: 'ops', on: 'groupe', ops: [{ op: 'grantPsychTrait', psychType: { id: mixte!.id }, cible: { personnage } }] } } });
     expect(projetDoc.schema.safeParse(projet).success).toBe(false);
   });
 

@@ -1,7 +1,9 @@
 /**
- * LA TABLE DES PRÉFÉRENCES de confort (#3041) : chaque entrée porte sa forme de contrôle, son défaut, et la lecture
- * et l'écriture de sa valeur, qui vit dans son module du moteur. Leur persistance est à l'hôte
- * (`hote/preferences.ts`) ; l'effet d'un changement JOUEUR sur l'affichage est à l'hôte qui affiche.
+ * LA TABLE DES PRÉFÉRENCES de confort (#3041) : chaque entrée porte sa forme de contrôle (`flag` booléen, `mode` l'une
+ * de ses `options`, `param` nombre entre `min` et `max`, mêmes formes que les règles optionnelles), son défaut, et la
+ * lecture et l'écriture de sa valeur, qui vit dans son module feuille (`engine/cadence.ts`, `noyau/volumes.ts`…).
+ * Leur persistance est à l'hôte (`hote/preferences.ts`) ; l'effet d'un changement JOUEUR sur l'affichage est à
+ * l'hôte qui affiche.
  *
  * Ce n'est PAS le registre des règles optionnelles (`engine/policy.ts`, dont chaque entrée cite un folio d'un livre
  * autorisé et dont le moteur reconstruit l'état de combat) : ces réglages ne changent aucun état de jeu déjà
@@ -12,9 +14,11 @@
 import { CADENCE_DEFAULT, CADENCE_MODES, cadence, setCadence, type Cadence } from '../engine/cadence';
 import { DES_FIXES_DEFAULT, desFixes, setDesFixes } from '../engine/fixedDie';
 import { valeurConforme } from '../engine/policy';
+import { CANAUX_DE_SON, type CanalDeSon } from '../data/sons/types';
+import { VOLUME_DEFAUT, reglerLeVolume, volumeDuCanal } from './volumes';
 
 export type PrefValue = boolean | number | string;
-export type PrefKind = 'flag' | 'mode';
+export type PrefKind = 'flag' | 'mode' | 'param';
 
 /** La forme d'une entrée de la table. */
 interface FormeDePreference {
@@ -23,16 +27,40 @@ interface FormeDePreference {
   label: string;
   /** Aide courte (infobulle). */
   hint?: string;
-  /** Forme du contrôle auto-rendu : flag=case à cocher, mode=liste. */
+  /** Forme du contrôle auto-rendu : flag=case à cocher, mode=liste, param=nombre borné. */
   kind: PrefKind;
   /** Valeurs possibles (kind='mode'). */
   options?: readonly string[];
+  /** Bornes et pas (kind='param'). */
+  min?: number;
+  max?: number;
+  step?: number;
   default: PrefValue;
-  /** Lecture de la valeur effective, dans son module du moteur. */
+  /** Lecture de la valeur effective, dans son module feuille. */
   get(): PrefValue;
   /** Écriture de la valeur, sans effet de bord. */
   set(value: PrefValue): void;
 }
+
+const LIBELLES_DES_VOLUMES: Record<CanalDeSon, string> = {
+  musique: 'Volume de la musique',
+  ambiance: 'Volume des ambiances',
+  effets: 'Volume des effets',
+  interface: 'Volume de l’interface',
+};
+
+/** L'entrée du volume du canal `canal` (`noyau/volumes.ts`). */
+const volume = <C extends CanalDeSon>(canal: C) => ({
+  id: `volume-${canal}` as const,
+  label: LIBELLES_DES_VOLUMES[canal],
+  kind: 'param' as const,
+  min: 0,
+  max: 1,
+  step: 0.05,
+  default: VOLUME_DEFAUT,
+  get: () => volumeDuCanal(canal),
+  set: (v: PrefValue) => reglerLeVolume(canal, v as number),
+});
 
 const TABLE = [
   {
@@ -54,6 +82,7 @@ const TABLE = [
     get: desFixes,
     set: (v) => setDesFixes(v === true),
   },
+  ...CANAUX_DE_SON.map(volume),
 ] as const satisfies readonly FormeDePreference[];
 
 /** Les ids des préférences, dérivés de la table : la clé de persistance, et la clé des effets qu'un hôte déclare par
