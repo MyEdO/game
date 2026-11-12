@@ -31,7 +31,7 @@ import {
   type SeatOccupant,
 } from './monde/seating';
 import { METRES_PER_LEVEL } from './monde/relief';
-import { entityKindSchema, typeNonNomme, type Terrain, type SceneRoofDefaults, type ReliefDefaults, PENTE_TOIT_DEG } from '../data/schemas/defs-scenes/scene';
+import { entityKindSchema, refusDeLEntite, typeNonNomme, type Terrain, type SceneRoofDefaults, type ReliefDefaults, PENTE_TOIT_DEG } from '../data/schemas/defs-scenes/scene';
 import { champsDeclares, choixDuNoeud, cleOfferte, elementDuNoeud, formeAuPoint, recordDuNoeud, unionDuNoeud, varianteCourante, videDuNoeud, type ChoixDuContexte, type ContexteDuChamp } from './codex/editFields';
 import { gestesDeLaListe, valeurNeuveDe, variantesAChoisir } from './valeursNeuves';
 import { jsonCanonique } from '../lib/jsonCanonique.mjs';
@@ -47,7 +47,7 @@ import { appuiSous, emporterLesObjets, normaliserLesAppuis, poseDeLAncre } from 
 import { entitesEnCaseEtage } from './monde/decorIndex';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { sitesDeLaScene } from '../data/schemas/defs-scenes/sites-de-paquet';
-import { cheminOffert, choixDuChamp, ecritureOfferte, formeDuPorteur, type CadreDuPorteur, type DonneeDuPorteur, type SorteDePorteur, type EntityTool, type Sel, type Tool, EFFECT_ZONE_SEEDS, canonEdge, dansLaCarte, edgeWallState, effectZoneArea, effectZoneRect, empriseDuPinceau, entityAt, selPos, selRect } from './sceneEditLecture';
+import { cheminOffert, choixDuChamp, ecritureOfferte, FORMULAIRES, formeDuPorteur, porteursDeLaScene, type CadreDuPorteur, type DonneeDuPorteur, type SorteDePorteur, type EntityTool, type Sel, type Tool, EFFECT_ZONE_SEEDS, canonEdge, dansLaCarte, edgeWallState, effectZoneArea, effectZoneRect, empriseDuPinceau, entityAt, selPos, selRect } from './sceneEditLecture';
 import { estObjet } from '../lib/objet.mjs';
 import { adresseRecalee, adresseRescellee, adressesScellees, estCheminDerive } from './edition/adresseDeProse';
 
@@ -1181,6 +1181,46 @@ export function avecLAdresseRescellee<S extends SorteDePorteur>(sorte: S, donnee
   return rescellee === undefined ? { ok: false, refus: 'nonOffert' } : { ok: true, valeur: rescellee as DonneeDuPorteur[S] };
 }
 
+/** La scène `scene` où le porteur de sorte `sorte` d'identifiant `id` est remplacé par `donnee`, dans sa collection
+ *  (`porteursDeLaScene`). */
+function porteurRemplace<S extends SorteDePorteur>(scene: Scene, sorte: S, id: string, donnee: DonneeDuPorteur[S]): Scene {
+  return { ...scene, [FORMULAIRES[sorte].collection]: porteursDeLaScene(scene, sorte).map((d) => (d.id === id ? donnee : d)) };
+}
+
+/** La scène `scene` où l'entité `avant` devient `apres`, chaque champ de premier niveau qui change posé par sa porte
+ *  (`editEntity`) ; ou son refus, dit : la règle qu'enfreint l'entité écrite et que l'entité d'avant n'enfreignait pas
+ *  (`TypeNonNomme`, `refusDeLEntite`), une entité déjà fautive restant éditable. */
+function sceneAvecLEntite(scene: Scene, avant: SceneEntity, apres: SceneEntity): EcritureDeValeur<Scene> {
+  const cles = new Set([...Object.keys(avant), ...Object.keys(apres)]);
+  const patch = Object.fromEntries([...cles].flatMap((cle) => {
+    const v = (apres as unknown as Record<string, unknown>)[cle];
+    return v === (avant as unknown as Record<string, unknown>)[cle] ? [] : [[cle, v]];
+  })) as Partial<SceneEntity>;
+  let ecrite: Scene;
+  try {
+    ecrite = editEntity(scene, avant.id, patch);
+  } catch (e) {
+    if (e instanceof TypeNonNomme) return { ok: false, refus: { regle: e.message } };
+    throw e;
+  }
+  const deja = new Set(refusDeLEntite(avant).map((f) => f.message));
+  const neuve = ecrite.entities.filter((e) => e.id === avant.id).flatMap(refusDeLEntite).find((f) => !deja.has(f.message));
+  return neuve ? { ok: false, refus: { regle: neuve.message } } : { ok: true, valeur: ecrite };
+}
+
+/** Ce que la table d'écriture d'une sorte de porteur déclare : la scène où sa donnée `avant` devient `apres`, ou son refus. */
+interface EcritureDuPorteur<D> {
+  ecrire: (scene: Scene, avant: D, apres: D) => EcritureDeValeur<Scene>;
+}
+
+/** La table d'écriture des porteurs de formulaire, par sorte : d'une zone d'effet ou d'un déclencheur, le remplacement
+ *  dans sa collection (`porteurRemplace`) ; d'une entité, sa porte (`sceneAvecLEntite`). */
+export const ECRITURES_DES_PORTEURS: { readonly [S in SorteDePorteur]: EcritureDuPorteur<DonneeDuPorteur[S]> } = {
+  zone: { ecrire: (scene, avant, apres) => ({ ok: true, valeur: porteurRemplace(scene, 'zone', avant.id, apres) }) },
+  declencheur: { ecrire: (scene, avant, apres) => ({ ok: true, valeur: porteurRemplace(scene, 'declencheur', avant.id, apres) }) },
+  entite: { ecrire: sceneAvecLEntite },
+};
+
 /** La liste ou le record `v` d'un patch, `undefined` (son absence, `champ`) quand il est vide ou `null`. */
 export const sansVide = <T extends object>(v: T | null): T | undefined => (v && Object.keys(v).length ? v : undefined);
 
@@ -1234,7 +1274,7 @@ export function patchZone(scene: Scene, sel: Sel, patch: PatchDeZone): Scene {
   }
   if (sel?.type === 'effectZone') {
     const zone = scene.effectZones?.find((z) => z.id === sel.id);
-    return zone ? replaceEffectZone(scene, sel.id, zoneDEffetPatchee(zone, patch)) : scene;
+    return zone ? porteurRemplace(scene, 'zone', sel.id, zoneDEffetPatchee(zone, patch)) : scene;
   }
   return scene;
 }
@@ -1242,6 +1282,9 @@ export function patchZone(scene: Scene, sel: Sel, patch: PatchDeZone): Scene {
 /** CONTENU DE NAISSANCE d'une zone d'effet : ce que l'outil qui la dessine lui donne (pièce, piège,
  *  barrière…). `id`, `area` et `z` restent au créateur — ils viennent du geste, pas de l'appelant. */
 export type EffectZoneSeed = Partial<Omit<SceneEffectZone, 'id' | 'area' | 'z'>>;
+
+/** Remplace la zone d'effet `id` par `zone` (`porteurRemplace`). */
+export const replaceEffectZone = (scene: Scene, id: string, zone: SceneEffectZone): Scene => porteurRemplace(scene, 'zone', id, zone);
 
 /** Crée une ZONE D'EFFET sur `rect`, à l'étage `z` (id frais pour le rendu/sélection). Tout ce que la
  *  zone PORTE vient de `seed` : sans seed, elle naît DESCRIPTIVE (`isDescriptiveZone`) et libellée par
@@ -1253,11 +1296,6 @@ export function addEffectZone(scene: Scene, rect: Rect, z = 0, seed: EffectZoneS
     { label: id, ...seed, id, area: { kind: 'rect' as const, ...rect }, ...(z ? { z } : {}) },
   ];
   return { scene: { ...scene, effectZones: zones }, id };
-}
-
-/** Remplace la zone d'effet `id` par `zone`. */
-export function replaceEffectZone(scene: Scene, id: string, zone: SceneEffectZone): Scene {
-  return { ...scene, effectZones: (scene.effectZones ?? []).map((z) => (z.id === id ? zone : z)) };
 }
 
 /** Renomme l'id d'une ZONE D'EFFET (référencée par `FacadeSection.roomZoneIds` — lien Façade↔Pièce) et

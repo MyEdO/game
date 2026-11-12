@@ -11,7 +11,7 @@
 import type { FabriqueDId } from '../../engine/fabriqueDId';
 import type { ArchitectureBody, ArchitectureStorey, BuildingMass, FacadeFeature, RoofDefaults, Scene, SceneEntity, SceneStationAnchor, WallSecret, WallSeg } from '../monde/scene';
 import { apparencesDeLOuverture } from '../monde/facades';
-import { refusDeLEntite, type ReliefDefaults, type SceneRoofDefaults } from '../../data/schemas/defs-scenes/scene';
+import { type ReliefDefaults, type SceneRoofDefaults } from '../../data/schemas/defs-scenes/scene';
 import { inventaireApres, type IntentionDObjet } from '../../engine/items';
 import { PARTS_RELIEF } from '../../data/materials.types';
 import type { Dir4, Dir8 } from '../../geometry/dir8';
@@ -20,8 +20,8 @@ import type { ParcoursDeCarriere } from '../../engine/pnjDeCarriere';
 import type { SeatOccupant } from '../monde/seating';
 import { documentDeProjet, parseProject, ProjetRefuse, texteDuDepot, type ProjectDoc } from '../worldMap';
 import { refusDeLaPorteDuProjet, type GesteDePorte } from '../persistance/refusDeLaPorte';
-import { addArchitectureBody, addArchitecturePart, addBuildingMass, addFacadeFeature, addRoofExclusion, patchBuildingMass, poseToitureDuCorps, rectFrom, removeRoofExclusion, addLayer, patchSceneRoofDefaults, removeSceneFlag, resizeGrid, setNorthDeg, setReliefDefault, setSceneFlags, setSceneLabel, setSceneRest, setSceneScalaires, type ScalairesDeScene, addProjectScene, deleteProjectScene, duplicateProjectScene, renameScene, switchProjectScene, type ProjectScenes, addMember, addStoreyAbove, patchArchitectureBody, patchArchitectureStorey, patchFacadeFeature, patchFacadeSection, removeFacadeFeature, setFacadeSectionZ, assoirALaPlace, deleteSel, dupliquerLEntite, poserUneTroupe, coucheEcrite, editEntity, editEntry, pasteEntity, sansVide, TypeNonNomme, patchMember, patchWall, patchZone, propRefPatch, removeLayer, removeMember, renameActionAuthoree, renameEffectZone, replaceEffectZone, avecLaValeurDuPorteur, avecLAdresseRescellee, type EcritureDeValeur, type RefusDeValeur, type Segment, renameEntry, renameTrigger, setPosteCrew, setPosteEngine, setPosteSide, addStation, patchStation, removeStation, setSceneMusic, setStartMessageTexte, type PatchDeZone, type Pt } from '../sceneEdit';
-import { FORMULAIRES, entiteDeLaSelection, etageSuivant, poigneeDeLaSelection, segmentDeLaSelection, type CadreDuPorteur, type DonneeDuPorteur, type Layers, type Sel, type SorteDePorteur, type Tool } from '../sceneEditLecture';
+import { addArchitectureBody, addArchitecturePart, addBuildingMass, addFacadeFeature, addRoofExclusion, patchBuildingMass, poseToitureDuCorps, rectFrom, removeRoofExclusion, addLayer, patchSceneRoofDefaults, removeSceneFlag, resizeGrid, setNorthDeg, setReliefDefault, setSceneFlags, setSceneLabel, setSceneRest, setSceneScalaires, type ScalairesDeScene, addProjectScene, deleteProjectScene, duplicateProjectScene, renameScene, switchProjectScene, type ProjectScenes, addMember, addStoreyAbove, patchArchitectureBody, patchArchitectureStorey, patchFacadeFeature, patchFacadeSection, removeFacadeFeature, setFacadeSectionZ, assoirALaPlace, deleteSel, dupliquerLEntite, poserUneTroupe, coucheEcrite, editEntity, editEntry, ECRITURES_DES_PORTEURS, pasteEntity, sansVide, patchMember, patchWall, patchZone, propRefPatch, removeLayer, removeMember, renameActionAuthoree, renameEffectZone, avecLaValeurDuPorteur, avecLAdresseRescellee, type EcritureDeValeur, type RefusDeValeur, type Segment, renameEntry, renameTrigger, setPosteCrew, setPosteEngine, setPosteSide, addStation, patchStation, removeStation, setSceneMusic, setStartMessageTexte, type PatchDeZone, type Pt } from '../sceneEdit';
+import { FORMULAIRES, entiteDeLaSelection, porteursDeLaScene, etageSuivant, poigneeDeLaSelection, segmentDeLaSelection, type CadreDuPorteur, type DonneeDuPorteur, type Layers, type Sel, type SorteDePorteur, type Tool } from '../sceneEditLecture';
 import { applyStairFlight, planStairFlight, type StairFlightPlan } from '../stairFlight';
 import { poserLesNavires, poserUnNavire } from '../planDeNavire';
 import { jsonCanonique } from '../../lib/jsonCanonique.mjs';
@@ -650,22 +650,6 @@ function revenir(s: SessionDEdition, historique: Historique): SessionDEdition {
   return { ...s, historique, z, sel: null, geste: null, brouillon: null };
 }
 
-/** La scène `scene` où l'entité `ent` porte le champ de premier niveau `cle` de `ecrite`, par sa porte (`editEntity`) ;
- *  ou son refus, dit : la règle qu'enfreint l'entité écrite et que l'entité d'avant n'enfreignait pas (`TypeNonNomme`,
- *  `refusDeLEntite`), une entité déjà fautive restant éditable. */
-function sceneAvecLEntite(scene: Scene, ent: SceneEntity, cle: string, ecrite: SceneEntity): EcritureDeValeur<Scene> {
-  let apres: Scene;
-  try {
-    apres = editEntity(scene, ent.id, Object.fromEntries([[cle, Object.entries(ecrite).find(([k]) => k === cle)?.[1]]]) as Partial<SceneEntity>);
-  } catch (e) {
-    if (e instanceof TypeNonNomme) return { ok: false, refus: { regle: e.message } };
-    throw e;
-  }
-  const avant = new Set(refusDeLEntite(ent).map((f) => f.message));
-  const neuve = apres.entities.filter((e) => e.id === ent.id).flatMap(refusDeLEntite).find((f) => !avant.has(f.message));
-  return neuve ? { ok: false, refus: { regle: neuve.message } } : { ok: true, valeur: apres };
-}
-
 /** Le cadre où vit un porteur de formulaire de la session `s` : sa scène éditée, son projet et le `Source/` que l'hôte
  *  sert. */
 export const cadreDeLaSession = (s: SessionDEdition): CadreDuPorteur => ({ scene: sceneEditee(s), projet: s.projet, source: { manifeste: s.manifeste, chapitres: s.chapitres } });
@@ -674,31 +658,24 @@ export const cadreDeLaSession = (s: SessionDEdition): CadreDuPorteur => ({ scene
 type EcritureDuPorteur = <S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], cadre: CadreDuPorteur) => EcritureDeValeur<DonneeDuPorteur[S]>;
 
 /** La scène éditée de la session `s` où `ecriture` écrit au formulaire du porteur `porteur`, dans son cadre
- *  (`cadreDeLaSession`) : la zone d'effet ou le déclencheur remplacé, le champ de premier niveau `cle` de l'entité posé
- *  par sa porte (`sceneAvecLEntite`) ; ou son refus, un porteur absent n'offrant aucun chemin. */
-function sceneAvecLePorteur(s: SessionDEdition, porteur: { sorte: SorteDePorteur; id: string }, cle: string, ecriture: EcritureDuPorteur): EcritureDeValeur<Scene> {
+ *  (`cadreDeLaSession`), par la table d'écriture de sa sorte (`ECRITURES_DES_PORTEURS`) ; ou son refus, un porteur absent
+ *  de sa collection (`porteursDeLaScene`) n'offrant aucun chemin. */
+function sceneAvecLePorteur<S extends SorteDePorteur>(s: SessionDEdition, porteur: { sorte: S; id: string }, ecriture: EcritureDuPorteur): EcritureDeValeur<Scene> {
   const cadre = cadreDeLaSession(s);
-  const { scene } = cadre;
-  if (porteur.sorte === 'entite') {
-    const ent = scene.entities.find((e) => e.id === porteur.id);
-    if (!ent) return { ok: false, refus: 'nonOffert' };
-    const ecrite = ecriture('entite', ent, cadre);
-    return ecrite.ok ? sceneAvecLEntite(scene, ent, cle, ecrite.valeur) : ecrite;
-  }
-  if (porteur.sorte === 'zone') {
-    const zone = (scene.effectZones ?? []).find((z) => z.id === porteur.id);
-    const ecrite = zone ? ecriture('zone', zone, cadre) : { ok: false as const, refus: 'nonOffert' as const };
-    return ecrite.ok ? { ok: true, valeur: replaceEffectZone(scene, zone!.id, ecrite.valeur) } : ecrite;
-  }
-  const declencheur = scene.triggers.find((t) => t.id === porteur.id);
-  const ecrit = declencheur ? ecriture('declencheur', declencheur, cadre) : { ok: false as const, refus: 'nonOffert' as const };
-  return ecrit.ok ? { ok: true, valeur: { ...scene, triggers: scene.triggers.map((t) => (t === declencheur ? ecrit.valeur : t)) } } : ecrit;
+  const avant = porteursDeLaScene(cadre.scene, porteur.sorte).find((d) => d.id === porteur.id);
+  if (!avant) return { ok: false, refus: 'nonOffert' };
+  const ecrite = ecriture(porteur.sorte, avant, cadre);
+  const table: { ecrire: (scene: Scene, avant: DonneeDuPorteur[S], apres: DonneeDuPorteur[S]) => EcritureDeValeur<Scene> } = ECRITURES_DES_PORTEURS[porteur.sorte];
+  return ecrite.ok ? table.ecrire(cadre.scene, avant, ecrite.valeur) : ecrite;
 }
+
+/** Les collections des porteurs de formulaire de la scène `sc` (`FORMULAIRES`). */
+const collectionsDesPorteurs = (sc: Scene) => Object.values(FORMULAIRES).map((f) => sc[f.collection]);
 
 /** La scène éditée de la session `s` où le geste `g` écrit sa valeur au formulaire de son porteur
  *  (`avecLaValeurDuPorteur`, `sceneAvecLePorteur`), ou son refus. */
 const sceneAvecLaValeur = (s: SessionDEdition, g: Extract<GesteDEdition, { geste: 'valeur' }>): EcritureDeValeur<Scene> =>
-  sceneAvecLePorteur(s, g.porteur, String(g.chemin[0]), (sorte, donnee, cadre) => avecLaValeurDuPorteur(sorte, donnee, g.chemin, g.valeur, cadre));
+  sceneAvecLePorteur(s, g.porteur, (sorte, donnee, cadre) => avecLaValeurDuPorteur(sorte, donnee, g.chemin, g.valeur, cadre));
 
 /** Pourquoi la session `s` n'écrit pas la valeur du geste `g` (`RefusDeValeur`) ; `null` si elle l'écrit. */
 export function refusDeLaValeur(s: SessionDEdition, g: Extract<GesteDEdition, { geste: 'valeur' }>): RefusDeValeur | null {
@@ -799,11 +776,11 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
       return ecrireSurLaSelection(s, patchZone(scene, s.sel, g.patch), zonesDe);
     case 'valeur': {
       const ecrite = sceneAvecLaValeur(s, g);
-      return ecrite.ok ? ecrireSurLaSelection(s, ecrite.valeur, (sc) => [sc.effectZones, sc.triggers, sc.entities]) : s;
+      return ecrite.ok ? ecrireSurLaSelection(s, ecrite.valeur, collectionsDesPorteurs) : s;
     }
     case 'resceller': {
-      const ecrite = sceneAvecLePorteur(s, g.porteur, String(g.chemin[0]), (sorte, donnee, cadre) => avecLAdresseRescellee(sorte, donnee, g.chemin, cadre));
-      return ecrite.ok ? ecrireSurLaSelection(s, ecrite.valeur, (sc) => [sc.effectZones, sc.triggers, sc.entities]) : s;
+      const ecrite = sceneAvecLePorteur(s, g.porteur, (sorte, donnee, cadre) => avecLAdresseRescellee(sorte, donnee, g.chemin, cadre));
+      return ecrite.ok ? ecrireSurLaSelection(s, ecrite.valeur, collectionsDesPorteurs) : s;
     }
     case 'nommer': {
       const ent = entiteDeLaSelection(scene, s.sel);

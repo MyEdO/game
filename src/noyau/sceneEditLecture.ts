@@ -437,9 +437,13 @@ type CheminsOfferts = readonly (readonly string[])[];
  *  `Source/` que ses adresses de prose désignent (`SourceDeLEdition`). */
 export interface CadreDuPorteur { scene: Scene; projet: Pick<ProjectDoc, 'scenes' | 'narratif'>; source: SourceDeLEdition }
 
-/** Ce qu'un porteur de formulaire tiré du schéma déclare : le nœud de sa donnée, les champs qu'il offre, et les choix que
- *  son contexte pose à un chemin de sa donnée (`choixDuChamp`), dans son cadre. */
+/** La clé de `Scene` dont la collection, présente ou non, a pour élément exactement `D`. */
+type CollectionDe<D> = { [K in keyof Scene]-?: NonNullable<Scene[K]> extends readonly (infer E)[] ? ([E] extends [D] ? ([D] extends [E] ? K : never) : never) : never }[keyof Scene];
+
+/** Ce qu'un porteur de formulaire tiré du schéma déclare : la collection de la scène où il vit, le nœud de sa donnée,
+ *  les champs qu'il offre, et les choix que son contexte pose à un chemin de sa donnée (`choixDuChamp`), dans son cadre. */
 interface FormulaireDuPorteur<D> {
+  collection: CollectionDe<D>;
   schema: unknown;
   champs: (donnee: D, cadre: CadreDuPorteur) => CheminsOfferts;
   choix?: (donnee: D, chemin: readonly Segment[], cadre: CadreDuPorteur) => readonly ChoixDuContexte[] | undefined;
@@ -623,7 +627,7 @@ function choixDuDecor(ent: SceneEntity, chemin: readonly Segment[]): readonly Ch
 /** Le formulaire d'une entité, par son type : d'un personnage, ses champs (`champsDuPersonnage`), aux choix de son
  *  contexte (`choixDuPersonnage`) ; d'un décor, ses actions authorées (`ACTIONS_DU_DECOR`), aux choix de son contexte
  *  (`choixDuDecor`), son assise s'écrivant à ses places ; d'un départ de héros, aucun champ. */
-const FORMULAIRE_DU_TYPE: { readonly [K in EntityKind]: Omit<FormulaireDuPorteur<SceneEntity>, 'schema'> } = {
+const FORMULAIRE_DU_TYPE: { readonly [K in EntityKind]: Omit<FormulaireDuPorteur<SceneEntity>, 'collection' | 'schema'> } = {
   personnage: { champs: champsDuPersonnage, choix: choixDuPersonnage },
   prop: { champs: () => [ACTIONS_DU_DECOR], choix: choixDuDecor },
   heroStart: { champs: () => [] },
@@ -633,14 +637,19 @@ const FORMULAIRE_DU_TYPE: { readonly [K in EntityKind]: Omit<FormulaireDuPorteur
  *  traversée, ses effets à la traversée et à chaque Round, son rendu tant qu'elle dure (#3834) ; d'un déclencheur, sa
  *  condition d'entrée et son flux ; d'une entité, celui de son type (`FORMULAIRE_DU_TYPE`). */
 export const FORMULAIRES: { readonly [S in SorteDePorteur]: FormulaireDuPorteur<DonneeDuPorteur[S]> } = {
-  zone: { schema: sceneEffectZoneSchema, champs: () => [['crossTest'], ['onCross'], ['perRound'], ['rendu']] },
-  declencheur: { schema: triggerSchema, champs: () => [['when'], ['flow']] },
+  zone: { collection: 'effectZones', schema: sceneEffectZoneSchema, champs: () => [['crossTest'], ['onCross'], ['perRound'], ['rendu']] },
+  declencheur: { collection: 'triggers', schema: triggerSchema, champs: () => [['when'], ['flow']] },
   entite: {
+    collection: 'entities',
     schema: sceneEntitySchema,
     champs: (ent, cadre) => FORMULAIRE_DU_TYPE[ent.kind].champs(ent, cadre),
     choix: (ent, chemin, cadre) => FORMULAIRE_DU_TYPE[ent.kind].choix?.(ent, chemin, cadre),
   },
 };
+
+/** Les porteurs de sorte `sorte` de la scène `scene`, dans sa collection (`FORMULAIRES`), absente lue vide. */
+export const porteursDeLaScene = <S extends SorteDePorteur>(scene: Scene, sorte: S): readonly DonneeDuPorteur[S][] =>
+  (scene[FORMULAIRES[sorte].collection] ?? []) as unknown as readonly DonneeDuPorteur[S][];
 
 /** `a` est-il un préfixe du chemin `b` ? */
 const prefixe = (a: readonly Segment[], b: readonly Segment[]): boolean => a.length <= b.length && a.every((p, i) => p === b[i]);
