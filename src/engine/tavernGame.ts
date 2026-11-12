@@ -254,7 +254,7 @@ export function resolveTavernRound(
   const opp = resolveOpposed({ ...playerTR, sl: ps }, { ...opponentTR, sl: os });
   // NADJ 16 l.105 ; #1921 c.6233078802.
   const departageGeneral = game.tieBreak === undefined || opp.decidedBy === 'dr';
-  const winner = !departageGeneral || opp.winner === 'tie' ? 'tie' : opp.winner === 'attacker' ? 'player' : 'opponent';
+  const winner = !departageGeneral || opp.winner === 'egalite' ? 'tie' : opp.winner === 'attaquant' ? 'player' : 'opponent';
   return { winner, playerSL: ps, opponentSL: os };
 }
 

@@ -36,7 +36,7 @@ describe('Étape à DÉ NU — le tirage dont le total est la conséquence (#150
 
   const chute = (id: string, over: Partial<Parameters<typeof dieStep>[0]> = {}) =>
     dieStep({
-      id, kind: cleDeFixture('deSpy'), label: fixtureText('Hauteur de chute'), icon: 'nav/dice',
+      id, kind: cleDeFixture('deSpy'), label: fixtureText('Hauteur de chute'), icon: 'navigation/des',
       spec: { n: 2, sides: 10 }, unite: 'm', worldOwner: true, ...over,
     })!;
 

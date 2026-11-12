@@ -89,7 +89,7 @@ describe('Test étendu — bouton « Inverser »', () => {
   const ouvrir = (studieux: boolean) => {
     const h = heros('H1', studieux);
     useGame.setState({ party: [h], battle: null, pendingCascade: null });
-    useGame.getState().ouvrirLeTestEtendu({ actorId: h.id, label: 'Fouiller les archives', skillLabel: 'Recherche', skill: { id: 'recherche' }, target: 55, targetDR: 5 });
+    useGame.getState().ouvrirLeTestEtendu({ actorId: h.id, label: 'Fouiller les archives', skillLabel: 'Recherche', skill: { id: 'recherche' }, target: 55, drCible: 5 });
     const p = useGame.getState().pendingExtendedTest!;
     useGame.setState({ pendingExtendedTest: { ...p, rounds: [{ ...p.rounds[0], result: { roll: 64, sl: -1, success: false } }] } });
     act(() => { root.render(<CascadeBody />); });

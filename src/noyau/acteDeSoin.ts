@@ -54,7 +54,7 @@ export interface MedicState {
     /** La Blessure Critique visée, parmi `plaiesDeLOperation` ; absente quand l'opération n'en vise aucune (verrous
      *  d'État seuls). */
     traumaUid?: IdDePlaieDeLOperation;
-    targetDR: number;
+    drCible: number;
     cumDR: number;
     /** ENJEU d'une passe (#1117) — posé à l'ARMEMENT, où le `kind` et la cible de DR sont connus :
      *  opérer et rééduquer ne mettent pas la même chose en jeu (`stakes.json`, `chirurgie-test` vs
@@ -196,7 +196,7 @@ export function passeDeLOperation(s: Pick<Jeu, 'medic' | 'party'>): PendingSurge
   const ligne = ligneDuSoigneur({ skill: sg.skill, support: sg.support }, sg.difficulty);
   return {
     healerId: sg.healerId ?? 'pnj-soigneur', healerName: sg.healerName, targetId: patient.id, targetName: patient.label,
-    intBonus: sg.intBonus, ligne, ...cibleMesuree(ligne), roll: null, success: false, sl: 0, targetDR: sg.targetDR, cumDR: sg.cumDR,
+    intBonus: sg.intBonus, ligne, ...cibleMesuree(ligne), roll: null, success: false, sl: 0, drCible: sg.drCible, cumDR: sg.cumDR,
   };
 }
 
@@ -206,5 +206,5 @@ export function cibleDeLOperation(s: Pick<Jeu, 'party'>, p: Pick<PendingHeal, 't
   if (kind === 'chirurgie') return 7;
   const patient = garanti(s.party.find((h) => h.id === p.targetId), p.targetId, 'patient de l’opération');
   const aReeduquer = recoverableTraumas(patient);
-  return garanti(aReeduquer.find((x) => x.uid === p.plaie) ?? aReeduquer[0], patient.id, 'membre à rééduquer').targetDR;
+  return garanti(aReeduquer.find((x) => x.uid === p.plaie) ?? aReeduquer[0], patient.id, 'membre à rééduquer').drCible;
 }

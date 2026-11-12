@@ -477,10 +477,10 @@ describe('Codex registry — LOT 1 #422 (famille NAVALE : Ports, Progression, Na
   });
 
   it('« Changement de cap » (MDG 13 l.324-331) : le titre porte le dé ET le bonus de dérive majeure qui mène ses bandes au-delà de 10', () => {
-    const n = datasetObject('seaNavigation') as { orientation: { driftMajorBonus: number; changementDeCap: { die: string; entries: { max: number }[] } } };
+    const n = datasetObject('seaNavigation') as { orientation: { bonusDeDeriveMajeure: number; changementDeCap: { die: string; entries: { max: number }[] } } };
     const sec = categoryByKey('seaNavigation')!.items[0].sections!.find((s) => s.title.startsWith('Changement de cap'))!;
-    expect(sec.title.startsWith(`Changement de cap (1d10, +${n.orientation.driftMajorBonus} à DR `), sec.title).toBe(true);
-    expect(Math.max(...n.orientation.changementDeCap.entries.map((r) => r.max))).toBe(facesDuDe(deDeLaTableTiree(n.orientation.changementDeCap)) + n.orientation.driftMajorBonus);
+    expect(sec.title.startsWith(`Changement de cap (1d10, +${n.orientation.bonusDeDeriveMajeure} à DR `), sec.title).toBe(true);
+    expect(Math.max(...n.orientation.changementDeCap.entries.map((r) => r.max))).toBe(facesDuDe(deDeLaTableTiree(n.orientation.changementDeCap)) + n.orientation.bonusDeDeriveMajeure);
   });
 
   it('la fiche « Périls en mer » (dataset-OBJET, MDG 13) projette Dangers flottants + Détroits + Tourbillons', () => {

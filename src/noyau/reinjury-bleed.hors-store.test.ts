@@ -45,7 +45,7 @@ describe('#190 — réouverture par Dégât localisé au point d’application (
   /** Touche NON-critique, sans overkill, à la localisation `loc` (2 PB perdus). */
   const hit = (loc: string): AttackResult => ({
     hit: true, attackerRoll: 40, netSL: 1, location: loc as never, damage: 2, woundsLost: 2,
-    critical: false, advantageTo: 'attacker', defenderDefeated: false, log: '',
+    critical: false, advantageTo: 'attaquant', defenderDefeated: false, log: '',
   });
 
   it('nouveau Dégât à la MÊME Localisation → +N États Hémorragique', () => {

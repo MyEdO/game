@@ -195,12 +195,12 @@ export function CandidateCard({
           <span className="candidate-tools">
             {onExport && (
               <button className="btn small ghost" onClick={onExport} title={t('picker.hero.export.title')} aria-label={t('picker.hero.export')}>
-                <Icon id="file/export" size="sm" />
+                <Icon id="fichier/exporter" size="sm" />
               </button>
             )}
             {onDelete && (
               <button className="btn small ghost danger" onClick={onDelete} title={t('picker.hero.delete')} aria-label={t('picker.hero.delete')}>
-                <Icon id="ui/delete" size="sm" />
+                <Icon id="interface/supprimer" size="sm" />
               </button>
             )}
           </span>

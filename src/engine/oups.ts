@@ -90,7 +90,7 @@ const deSolide = (cle: string, indice: number, arme: string): DemandeDeCasse =>
 export function ligneDeSolide(arme: string, seuil: { indice: number; source: SourceDeSauvegarde }, de?: number): string {
   const trait = formatWardSave(seuil.source, seuil.indice);
   if (de == null) return t('cf.solideImperdable', { weapon: arme, trait });
-  return t(de >= seuil.indice ? 'cf.solideResists' : 'cf.solideBreaks', { weapon: arme, roll: de, trait });
+  return t(de >= seuil.indice ? 'cf.solideResiste' : 'cf.solideSeBrise', { weapon: arme, roll: de, trait });
 }
 
 /**
@@ -131,5 +131,5 @@ export function casseSurMaladresse(weapon: Weapon, r: OupsResolved): boolean {
  */
 export function desDeBrisDeLame(porteur: Combatant, weapon: Weapon): DemandeDeCasse[] {
   const indice = seuilSolide(porteur, weapon);
-  return indice == null ? [] : [deSolide('bladetrap-solide', indice, weapon.label)];
+  return indice == null ? [] : [deSolide('piege-a-lame-solide', indice, weapon.label)];
 }

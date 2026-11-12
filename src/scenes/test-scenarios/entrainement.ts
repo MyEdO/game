@@ -159,7 +159,7 @@ export const scenario: TestScenario = {
   id: 'entrainement',
   order: 1,
   category: 'combat',
-  icon: 'scenario/training',
+  icon: 'scenario/entrainement',
   title: "Terrain d'entraînement",
   tests:
     'Sandbox : tir + rechargement & ciblage/LdV (cible derrière un muret, cible au loin dans le brouillard), ' +

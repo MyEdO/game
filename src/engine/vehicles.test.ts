@@ -41,9 +41,9 @@ describe('catalogue véhicules (data-driven)', () => {
   it('libellés et pictogrammes de mode viennent de la donnée', () => {
     expect(travelModeLabels().pied).toBe('À pied');
     expect(travelModeLabels().diligence).toBe('Diligence');
-    expect(travelModeIcon('pied')).toBe('travel/foot');
-    expect(travelModeIcon('diligence')).toBe('travel/coach');
-    expect(travelModeIcon('barge')).toBe('travel/barge');
+    expect(travelModeIcon('pied')).toBe('voyage/a-pied');
+    expect(travelModeIcon('diligence')).toBe('voyage/diligence');
+    expect(travelModeIcon('barge')).toBe('voyage/barge');
   });
 });
 

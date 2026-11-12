@@ -58,9 +58,9 @@ export function InspectPanel({ combatant, onClose }: { combatant: Combatant; onC
       <div className="insp-head">
         <CharFrame c={c} variant={hull ? 'full' : 'vital'} size="lg" />
         <div className="insp-id">
-          {/* PB en tête sans libellé texte : l'icône `resource/wounds` porte le sens (choix DÉLIBÉRÉ
+          {/* PB en tête sans libellé texte : l'icône `ressource/blessures` porte le sens (choix DÉLIBÉRÉ
               du site d'appel — le badge, lui, rend seulement la valeur). */}
-          {!hull && <span className="insp-pv-num"><Icon id="resource/wounds" size="sm" /> <WoundsBadge wounds={c.wounds} /></span>}
+          {!hull && <span className="insp-pv-num"><Icon id="ressource/blessures" size="sm" /> <WoundsBadge wounds={c.wounds} /></span>}
         </div>
       </div>
 
@@ -72,13 +72,13 @@ export function InspectPanel({ combatant, onClose }: { combatant: Combatant; onC
           {(c.causesTerreur || c.causesPeur || c.psychImmune || isFrenzied(c) || estLanceur(c)) && (
             <div className="insp-badges">
               {c.causesTerreur ? (
-                <span className="insp-badge foe"><Icon id="flag/fear" size="sm" /> Terreur {c.causesTerreur}</span>
+                <span className="insp-badge foe"><Icon id="drapeau/peur" size="sm" /> Terreur {c.causesTerreur}</span>
               ) : c.causesPeur ? (
-                <span className="insp-badge foe"><Icon id="flag/fear" size="sm" /> Peur {c.causesPeur}</span>
+                <span className="insp-badge foe"><Icon id="drapeau/peur" size="sm" /> Peur {c.causesPeur}</span>
               ) : null}
-              {c.psychImmune && <span className="insp-badge"><Icon id="char/int" size="sm" /> Immunité psy</span>}
-              {isFrenzied(c) && <span className="insp-badge foe"><Icon id="flag/frenzy" size="sm" /> Frénésie</span>}
-              {estLanceur(c) && <span className="insp-badge foe"><Icon id="action/cast" size="sm" /> Lanceur de sorts</span>}
+              {c.psychImmune && <span className="insp-badge"><Icon id="caracteristique/int" size="sm" /> Immunité psy</span>}
+              {isFrenzied(c) && <span className="insp-badge foe"><Icon id="drapeau/frenesie" size="sm" /> Frénésie</span>}
+              {estLanceur(c) && <span className="insp-badge foe"><Icon id="action/incanter" size="sm" /> Lanceur de sorts</span>}
             </div>
           )}
 

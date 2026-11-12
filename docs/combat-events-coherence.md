@@ -136,7 +136,7 @@ incrémentant `target.criticalWounds` (`noyau/combatFlow.ts`), **sans mourir** t
 (Inconscient ET `crit > BE`) n'est pas franchie, hors ligne mortelle du Tableau des Critiques.
 
 ### 4b. Suspecté (non clos par lecture statique) : « X est hors combat » puis ils continuent (#2661)
-- La ligne de journal `cf.outOfAction` n'est émise que si `isOutOfAction(target)` est vrai (plusieurs
+- La ligne de journal `cf.horsDeCombat` n'est émise que si `isOutOfAction(target)` est vrai (plusieurs
   sites de `noyau/combatFlow.ts`).
 - Un héros à Destin : `finalizeHeroDeath` pose `pendingFateSave` et **suspend** sans tuer.
 - Or Inconscient ⇒ `isOutOfAction` ⇒ devrait être filtré du ciblage. **S'ils continuent**, un invariant

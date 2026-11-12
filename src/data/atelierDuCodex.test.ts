@@ -118,12 +118,12 @@ describe('enregistrerEntree — les tables tirées s’éditent et le lecteur su
   });
 
   it('miscast VDM : une rangée puis le dé édités changent ce que tire le lecteur', () => {
-    const rangees = datasetArray('miscastMinorVdm') as unknown as Entree[];
+    const rangees = datasetArray('imparfaiteMineureVdm') as unknown as Entree[];
     // Lecture AVANT l'édition : le lecteur mémoïsé est construit, l'édition doit l'invalider.
     expect(miscastRowAt('miscast-mineure-vdm', 1).label).toBe(rangees[0].label);
-    expect(enregistrerEntree('miscastMinorVdm', { ...rangees[0], label: 'Contrecoup édité' }, 0).ok).toBe(true);
+    expect(enregistrerEntree('imparfaiteMineureVdm', { ...rangees[0], label: 'Contrecoup édité' }, 0).ok).toBe(true);
     expect(miscastRowAt('miscast-mineure-vdm', 1).label).toBe('Contrecoup édité');
-    expect(enregistrerEntree('miscastMinorVdm', rangees[1], 1, [{ ancetre: '[miscast-mineure-vdm]', champ: 'die', valeur: '2d50' }]).ok).toBe(true);
+    expect(enregistrerEntree('imparfaiteMineureVdm', rangees[1], 1, [{ ancetre: '[miscast-mineure-vdm]', champ: 'die', valeur: '2d50' }]).ok).toBe(true);
     expect(miscastDie('miscast-mineure-vdm')).toMatchObject({ n: 2, sides: 50 });
   });
 

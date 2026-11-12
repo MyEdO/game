@@ -34,7 +34,7 @@ function verbeDuCycle(flux: FlowKey, g: GesteDuJeu): { verbe: RollVerb; enFenetr
  *  (`resolveRemainingCascade`), ou au bilan. */
 function fermetureDeToutResoudre(s: Jeu, pc: PendingCascade): FermetureDuJet | null {
   const etape = pc.participants[pc.cursor];
-  return !etape || stepInteraction(etape) === 'choix' ? fermeturesDuFlux(s, 'cascade').confirm : null;
+  return !etape || stepInteraction(etape) === 'choix' ? fermeturesDuFlux(s, 'cascade').valider : null;
 }
 
 /** Les fermetures des gestes qu'une fenêtre juge elle-même, par l'identité de chacun (`cleDuGeste`). */

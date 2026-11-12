@@ -34,7 +34,7 @@ export function ObjectiveBanner({ objectives, now }: { objectives: Objective[]; 
   const rest = objectives.slice(0, -1);
   const head = (
     <>
-      <Icon id="map-tool/start-flag" size="sm" />
+      <Icon id="outil-de-carte/depart" size="sm" />
       <span className="objective-text">{mdToText(nommer(current.text, identites))}</span>
       {current.deadline != null && (
         <span className="objective-deadline" title={formatImperial(current.deadline)}>

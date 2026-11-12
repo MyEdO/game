@@ -153,21 +153,21 @@ export function CreatorSummary({ d, step = 0 }: { d: CreatorDraft; step?: number
           </div>
           <div className="creator-derived" style={started ? undefined : DIM}>
             <span>
-              <Icon id="resource/wounds" size="sm" /> Blessures <b>—</b>
+              <Icon id="ressource/blessures" size="sm" /> Blessures <b>—</b>
             </span>
             <span>
-              <Icon id="resource/movement" size="sm" /> Mouvement <b>{sp?.movement ?? '—'}</b>
+              <Icon id="ressource/mouvement" size="sm" /> Mouvement <b>{sp?.movement ?? '—'}</b>
             </span>
             <span>
-              <Icon id="resource/fate" size="sm" /> Destin <b>{sp?.fate.fate ?? '—'}</b> · Chance <b>—</b>
+              <Icon id="ressource/destin" size="sm" /> Destin <b>{sp?.fate.fate ?? '—'}</b> · Chance <b>—</b>
             </span>
             <span>
-              <Icon id="resource/resilience" size="sm" /> Résilience <b>{sp?.fate.resilience ?? '—'}</b> · Déterm. <b>—</b>
+              <Icon id="ressource/resilience" size="sm" /> Résilience <b>{sp?.fate.resilience ?? '—'}</b> · Déterm. <b>—</b>
             </span>
           </div>
           <div className="creator-derived" style={started ? undefined : DIM}>
             <span>
-              <Icon id="resource/gold-purse" size="sm" /> Bourse <b>{wealth ? <Coins money={wealth} /> : '—'}</b>
+              <Icon id="ressource/bourse" size="sm" /> Bourse <b>{wealth ? <Coins money={wealth} /> : '—'}</b>
             </span>
           </div>
         </>

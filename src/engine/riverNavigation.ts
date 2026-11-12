@@ -29,10 +29,10 @@ import riverNavJson from '../data/river-navigation.json';
 import type { RiverNavigationData } from '../data/schemas/defs/river-navigation';
 import riverPerilsJson from '../data/river-perils.json';
 import { RIVER_CRIT_SET, type ShipCritKey } from '../data/shipCriticals';
-import { findTableEntry } from './tables';
+import { deDeLaTableTiree, findTableEntry } from './tables';
 import { basculesDeForce } from './forceDuVent';
 import { memoParVersion } from '../data/versionDataset';
-import { d10, d100, parseDiceRequired, rollDice, tirer, type RNG, type Tirage } from './dice';
+import { d10, d100, rollDice, tirer, type RNG, type Tirage } from './dice';
 import { bonus } from './characteristics';
 import type { Combatant, Difficulty } from './types';
 import { RULE_REF } from './ruleRefs';
@@ -51,7 +51,7 @@ export interface RiverWindEffect {
   /** % de vitesse (peut être négatif : vent contraire). */
   pct?: number;
   /** Calme (l.29) : le bateau dérive en aval à 25 % ; Tests de Navigation −10 (note 2, l.38). */
-  drift?: boolean;
+  derive?: boolean;
   /** Vent de côté Modéré/Fort (note 3, l.39) : le +% n'est acquis qu'en louvoyant (Navigation Accessible +20). */
   tack?: boolean;
   /** Très fort de côté (note 4, l.40) : retirer la voile ou chavirer. */
@@ -82,8 +82,8 @@ export const riverDirLabel = (id: RiverWindDirId): string => DATA.windDirections
 export function rollRiverWind(rng: RNG): { force: RiverWindForceId; dir: RiverWindDirId } {
   const { windForces, windDirections } = DATA;
   return {
-    force: findTableEntry(windForces.entries, rollDice(parseDiceRequired(windForces.die, 'river-navigation › windForces.die'), rng)).id as RiverWindForceId,
-    dir: findTableEntry(windDirections.entries, rollDice(parseDiceRequired(windDirections.die, 'river-navigation › windDirections.die'), rng)).id as RiverWindDirId,
+    force: findTableEntry(windForces.entries, rollDice(deDeLaTableTiree(windForces), rng)).id as RiverWindForceId,
+    dir: findTableEntry(windDirections.entries, rollDice(deDeLaTableTiree(windDirections), rng)).id as RiverWindDirId,
   };
 }
 

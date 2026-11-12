@@ -116,7 +116,7 @@ export function collectHeroRoundEndUpkeep(get: Get, c: Combatant): BuiltCascadeS
   //    le héros manuel). Le résolveur générique de cascade tire le Test sur `target` ; l'applier applique.
   if (rule('combat-aa-blessures') === 'aa' && aaBleedUnconsciousDue(c)) {
     const step = monoStep({
-      id: `aaBleed-${c.id}`, kind: 'hemorragieInconscient', icon: 'condition/bleeding', label: t('step.perteDeSang'),
+      id: `aaBleed-${c.id}`, kind: 'hemorragieInconscient', icon: 'etat/hemorragique', label: t('step.perteDeSang'),
       actor: c, ligne: { test: { skill: { id: 'resistance' } } }, difficulty: 'intermediaire',
       stake: combatStakeRef('combat-aa-hemorragie'),
     });
@@ -130,7 +130,7 @@ export function collectHeroRoundEndUpkeep(get: Get, c: Combatant): BuiltCascadeS
   //    n'émet l'étape que si le seuil est atteint (Test de Résistance différé).
   if (rule('combat-se-fatiguer') && (c.effortRounds ?? 0) >= fatigueThreshold(c)) {
     const step = monoStep({
-      id: `fatigue-${c.id}`, kind: 'fatigue', icon: 'condition/fatigued', label: t('step.effortSoutenu'),
+      id: `fatigue-${c.id}`, kind: 'fatigue', icon: 'etat/extenue', label: t('step.effortSoutenu'),
       actor: c, ligne: { test: { skill: { id: 'resistance' } } }, difficulty: 'intermediaire',
       stake: combatStakeRef('combat-fatigue'),
     });
@@ -145,7 +145,7 @@ export function collectHeroRoundEndUpkeep(get: Get, c: Combatant): BuiltCascadeS
     if (!spellId) continue; // pas de sort source identifiable — jamais atteint (spellDurationPlusSource l'exige déjà)
     const choix = choiceStep({
       id: `sortProlongeChoix-${c.id}-${spellId}`, kind: 'sortProlongeChoix', actorId: c.id,
-      icon: 'ui/think', label: stepProlonger(dataLabel(e.label), true),
+      icon: 'interface/reflexion', label: stepProlonger(dataLabel(e.label), true),
       options: [{ key: 'oui', label: t('opt.tenterProlonger', { de: deElide(testSkillLabel(TEST_PROLONGATION)!), quoi: e.label }) }, { key: 'non', label: t('opt.renoncer') }],
       defaultChoice: 'non',
       meta: { sourceSpellId: spellId },
@@ -207,7 +207,7 @@ export const TABLES = {
         pushMono(set, {
           id: `sortProlongeTest-${hero.id}-${spellId}`, kind: 'sortProlongeTest',
           actor: hero, ligne: { test: TEST_PROLONGATION }, difficulty: 'intermediaire',
-          icon: 'nav/dice', label: stepProlonger(dataLabel(effect.label)),
+          icon: 'navigation/des', label: stepProlonger(dataLabel(effect.label)),
           meta: { sourceSpellId: spellId }, stake: combatStakeRef('combat-sort-prolonge', { entryId: spellId }),
         });
         return;

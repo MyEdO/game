@@ -13,7 +13,8 @@ import { libelleDeValeur } from '../../../data/schemas/grammaire/meta';
 import { chaosAlignSchema, contexteDeTestSchema, exposureLevelSchema } from '../../../data/schemas/grammaire/valeurs';
 import { zoneShapeSchema } from '../../../data/schemas/grammaire/mecanique';
 import { CHAR_LABELS } from '../../../engine/types';
-import { formatDice, formatEffetSigne, parseDiceRequired } from '../../../engine/dice';
+import { formatDice, formatEffetSigne } from '../../../engine/dice';
+import { deDeLaTableTiree } from '../../../engine/tables';
 import { shipLocationLabel } from '../../../engine/shipCritical';
 import { deElide } from '../../../i18n';
 import { giveTrappingLabel } from '../../../engine/items';
@@ -161,7 +162,7 @@ export function opSummary(o: GameOp): string {
     case 'loseTurn': return 'saute le tour';
     case 'removeShipPoste': return 'retire un poste de navire';
     case 'rollThreshold': return `1d${o.sides} → ${o.thresholds.length} palier(s)`;
-    case 'rollTable': return `${'tableId' in o ? `table « ${o.tableId} »` : `${formatDice(parseDiceRequired(o.die, 'rollTable.die'))} → ${o.entries.length} rangée(s)`}${o.addNegativeSL ? ' (+|DR néga.|)' : ''}${o.extraRollsPerStep ? ` +${o.extraRollsPerStep} jet/pas Surinc. (Durée)` : ''}`;
+    case 'rollTable': return `${'tableId' in o ? `table « ${o.tableId} »` : `${formatDice(deDeLaTableTiree(o))} → ${o.entries.length} rangée(s)`}${o.addNegativeSL ? ' (+|DR néga.|)' : ''}${o.extraRollsPerStep ? ` +${o.extraRollsPerStep} jet/pas Surinc. (Durée)` : ''}`;
     case 'rollMutation': return `mutation ← « ${o.table} »${o.duration === 'permanent' ? ' (perm.)' : ''}`;
     case 'narrative': return `${o.text ? `« ${coupeAuMot(o.text, 40)} »` : '(vide)'}${o.nombre !== undefined ? ` : ${formulaSummary(o.nombre)}` : ''}`;
     case 'shipMorale': return `Moral ${formatEffetSigne(o.delta)}`;
@@ -174,7 +175,7 @@ export function opSummary(o: GameOp): string {
     case 'provisions': return o.gateesPct !== undefined ? `${o.gateesPct} % des provisions gâtées` : o.rations !== undefined ? `+${formulaSummary(o.rations)} ration(s)` : o.eauTonneaux !== undefined ? `+${formulaSummary(o.eauTonneaux)} tonneau(x) d’eau` : `+${formulaSummary(o.jours)} j de vivres`;
     case 'perilDeMer': return o.collision !== undefined ? `Collision : ${o.collision.id}` : `Tourbillon : ${o.tourbillon.id}`;
     case 'navireHostile': return `${refLabel('vehicles', o.navire)} · ${o.equipage.nombre} × ${refLabel('creatures', o.equipage)}${o.exigence === 'fouille' ? ' · fouille' : ''}`;
-    case 'infestation': return `${refLabel('crewTestTypes', o.crewTestType)} · ${o.targetDR} DR`;
+    case 'infestation': return `${refLabel('crewTestTypes', o.crewTestType)} · ${o.drCible} DR`;
     case 'commission': return `colis livré contre ${formulaSummary(o.montant.brass)} sous de cuivre`;
     case 'constructeurDEscale': return `Constructeur de navires ${o.competence} · ${formulaSummary(o.duree)} j`;
     case 'rationsDEscale': return `ration-jour de cale à ${formulaSummary(o.montant.brass)} sous de cuivre`;

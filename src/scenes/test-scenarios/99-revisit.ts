@@ -67,7 +67,7 @@ export const scenario: TestScenario = {
   id: 'revisit',
   order: 26,
   category: 'scenarios',
-  icon: 'nav/campaign',
+  icon: 'navigation/campagne',
   title: 'Revisite (persistance de scène)',
   tests:
     'Persistance d’état au revisit (#707, couche `sceneInstances`) : fouiller le coffre `interact.consume` ' +

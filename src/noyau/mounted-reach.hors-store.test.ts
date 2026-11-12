@@ -49,7 +49,7 @@ describe('portée de mêlée d’un cavalier = empreinte de la monture', () => {
   it('attackPlan : cible adjacente à la MONTURE → attaque directe (pas Charge ni blocage)', () => {
     const { hero, foe } = setup();
     const plan = attackPlan(() => banc.getState(), hero, foe);
-    expect(plan.kind).toBe('attack');
+    expect(plan.kind).toBe('attaque');
   });
 
   it('previewAttack : la cible est À PORTÉE de mêlée pour le cavalier monté', () => {

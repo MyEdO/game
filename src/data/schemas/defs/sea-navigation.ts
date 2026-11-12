@@ -92,8 +92,8 @@ const champs = {
         source: { label: 'Source' },
       }),
     ),
-    driftMajorBonus: z.number(),
-    driftSide: nommerChamps(z.strictObject({ tribordMax: z.number() }), { tribordMax: { label: 'Maximum vers tribord' } }),
+    bonusDeDeriveMajeure: z.number(),
+    coteDeLaDerive: nommerChamps(z.strictObject({ tribordMax: z.number() }), { tribordMax: { label: 'Maximum vers tribord' } }),
     /** MDG 13 l.326 */
     changementDeCap: tableTiree(
       nommerChamps(tableRange.extend({
@@ -115,8 +115,8 @@ const champs = {
     testsPerDay: { label: 'Tests par jour' },
     source: { label: 'Source' },
     reperes: { label: 'Repères' },
-    driftMajorBonus: { label: 'Bonus de dérive majeure' },
-    driftSide: { label: 'Côté de dérive' },
+    bonusDeDeriveMajeure: { label: 'Bonus de dérive majeure' },
+    coteDeLaDerive: { label: 'Côté de dérive' },
     changementDeCap: { label: 'Changement de cap' },
   }),
   phares: nommerChamps(z.strictObject({
@@ -246,7 +246,7 @@ const doc = document(
           [['orientation', 'reperes'], d.orientation?.reperes ?? [], 'ouverte', 'ouverte'],
           [['poursuite', 'drDeltas'], d.poursuite?.drDeltas ?? [], 'ouverte', 'ouverte'],
           [['phares', 'voirLaLumiere'], d.phares?.voirLaLumiere ?? [], 'ouverte', 15],
-          ...(cap && deDuCap ? [[['orientation', 'changementDeCap', 'entries'], cap.entries, totalDuDe(deDuCap, deDuCap.n), facesDuDe(deDuCap) + (d.orientation?.driftMajorBonus ?? 0)] as [string[], Bande[], number, number]] : []),
+          ...(cap && deDuCap ? [[['orientation', 'changementDeCap', 'entries'], cap.entries, totalDuDe(deDuCap, deDuCap.n), facesDuDe(deDuCap) + (d.orientation?.bonusDeDeriveMajeure ?? 0)] as [string[], Bande[], number, number]] : []),
         ];
         for (const [path, bandes, depuis, jusqua] of tables) {
           const ecarts = ecartsDeCouverture(bandes, depuis, jusqua, (b) => `la rangée n° ${bandes.indexOf(b) + 1}`);

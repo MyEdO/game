@@ -46,7 +46,7 @@ const INVERSE = { roll: 46, sl: 1, success: true };
 
 describe('Test étendu : le Round s’inverse sur la Compétence du Test', () => {
   const etendu = (skill?: PendingExtendedTest['skill']): PendingExtendedTest => ({
-    actorId: 'H', label: 'Recherche', skillLabel: 'Recherche', ...(skill ? { skill } : { characteristic: 'force' }), target: 55, targetDR: 5, total: 0,
+    actorId: 'H', label: 'Recherche', skillLabel: 'Recherche', ...(skill ? { skill } : { characteristic: 'force' }), target: 55, drCible: 5, total: 0,
     rounds: [{ id: 'round-1', interactive: true, result: { ...RATE } }],
   });
 

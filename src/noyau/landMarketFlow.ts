@@ -321,8 +321,8 @@ export function acheterALaHalle(get: Get, set: Set, porteurId: IdDePorteurDeCarg
   if (best) {
     const opp = bargainOpposed(best, merchant, rng);
     const netSL = opp.netSL;
-    if (opp.winner === 'attacker') pct = -bargainPct(true, netSL, hasBargainBonus(best.actor)); // remise à l'acheteur
-    else if (opp.winner === 'defender') pct = bargainPct(true, netSL, false); // le marchand monte le prix
+    if (opp.winner === 'attaquant') pct = -bargainPct(true, netSL, hasBargainBonus(best.actor)); // remise à l'acheteur
+    else if (opp.winner === 'defenseur') pct = bargainPct(true, netSL, false); // le marchand monte le prix
     bargainLine = `${best.actor.label} — Marchandage (${opp.attacker.roll} vs ${opp.defender.roll}) : ${pct === 0 ? 'prix inchangé' : pct < 0 ? `remise de ${-pct} %` : `surcoût de ${pct} %`}.`;
   }
   const price = prixDuLotDeCargaison(want, offer.basePrice, partial, pct);
@@ -392,8 +392,8 @@ function finishLandSale(get: Get, set: Set, lotId: IdDeCargaison, sellEnc: numbe
   if (best) {
     const opp = bargainOpposed(best, merchant, rng);
     const netSL = opp.netSL;
-    if (opp.winner === 'attacker') bargainPctVal = bargainPct(true, netSL, hasBargainBonus(best.actor)); // le PJ monte le prix
-    else if (opp.winner === 'defender') bargainPctVal = -bargainPct(true, netSL, false); // l'acheteur le baisse
+    if (opp.winner === 'attaquant') bargainPctVal = bargainPct(true, netSL, hasBargainBonus(best.actor)); // le PJ monte le prix
+    else if (opp.winner === 'defenseur') bargainPctVal = -bargainPct(true, netSL, false); // l'acheteur le baisse
     bargainLine = `${best.actor.label} — Marchandage (${opp.attacker.roll} vs ${opp.defender.roll}) : ${bargainPctVal === 0 ? 'sans effet' : bargainPctVal > 0 ? `+${bargainPctVal} %` : `${bargainPctVal} %`}.`;
   }
   // Rumeur commerciale (l.180) : une rumeur du board visant CE Lieu et CE bien le fait vendre au DOUBLE du

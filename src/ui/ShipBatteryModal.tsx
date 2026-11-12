@@ -46,19 +46,19 @@ export function ShipBatteryModal() {
   });
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' },
-    ...(rollAll ? [{ key: 'rollAll', label: <><Icon id="nav/dice" size="sm" /> Tout lancer</>, onClick: rollAll, verbe: 'roll' as const }] : []),
-    { key: 'confirm', label: <><Icon id="fire/flame" size="sm" /> Feu !</>, onClick: confirm, verbe: 'confirm' },
+    { key: 'cancel', label: t('verbe.annuler'), onClick: cancel, verbe: 'annuler' },
+    ...(rollAll ? [{ key: 'rollAll', label: <><Icon id="navigation/des" size="sm" /> Tout lancer</>, onClick: rollAll, verbe: 'lancer' as const }] : []),
+    { key: 'valider', label: <><Icon id="feu/flamme" size="sm" /> Feu !</>, onClick: confirm, verbe: 'valider' },
   ];
 
   return (
     <RollShell
       flowKey="tirDeBatterie"
-      title={<><Icon id="action/aim" size="sm" /> Tir de batterie — Test d’équipage</>}
+      title={<><Icon id="action/viser" size="sm" /> Tir de batterie — Test d’équipage</>}
       subtitle={<><strong>{ship.label}</strong> — bordée {p.side} sur <strong>{target.label}</strong> ({postes.length} pièce{plural(postes.length)})</>}
       extra={
         <div className="rm-note" data-ton="menace">
-          <Icon id="action/aim" size="sm" /> {target.label} — Coque {target.wounds.current}/{target.wounds.max}. {postes.length} pièce{plural(postes.length)} : {postes.map((pp) => pp.item.label).join(' · ')}.
+          <Icon id="action/viser" size="sm" /> {target.label} — Coque {target.wounds.current}/{target.wounds.max}. {postes.length} pièce{plural(postes.length)} : {postes.map((pp) => pp.item.label).join(' · ')}.
         </div>
       }
       rows={rows}

@@ -2,7 +2,7 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** NADJ 16 l.11 */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { charKeySchema, difficultySchema, maisonSchema, plageSchema } from '../grammaire/valeurs';
+import { charKeySchema, deDeTirageSchema, difficultySchema, maisonSchema, plageSchema } from '../grammaire/valeurs';
 import { executeesDe, fixerLeTest, flowTestSchema, jetSchema, sujetDuJetSchema } from '../grammaire/mecanique';
 import { specialSchema } from '../grammaire/jeu-de-taverne';
 import { DEPARTAGES, EFFETS_DE_POT, LANCERS, SCORES_DE_SEQUENCE } from '../../../engine/sequenceVocab';
@@ -206,7 +206,8 @@ const doc = document(
      *  effet de pot DÉCLARÉ (table `effetsDePot`), jamais un id de jeu — la clé nomme donc
      *  ce qu'elle porte : une CLÉ DE REGISTRE, ni de la prose ni l'issue du tour. */
     pot: nommerChamps(z.strictObject({
-      dice: nommerChamps(z.strictObject({ count: z.number(), faces: z.number() }), { count: { label: 'Nombre' }, faces: { label: 'Faces' } }),
+      /** NADJ 16 l.17 */
+      die: deDeTirageSchema,
       targetRange: plageSchema.optional(),
       manchesPerPlayer: z.number().optional(),
       /** Unité de borne de la famille : tours qu'une manche peut prendre (anti-boucle, pas une règle). */
@@ -224,7 +225,7 @@ const doc = document(
         label: { label: 'Libellé' },
       })),
     }), {
-      dice: { label: 'Dés' },
+      die: { label: 'Dé de tirage', hint: 'Expression du dé lancé à chaque tour (ex. « 2d10 »)' },
       targetRange: { label: 'Plage cible' },
       manchesPerPlayer: { label: 'Manches par joueur' },
       roundsPerManche: { label: 'Rounds par manche' },

@@ -599,8 +599,8 @@ describe('Atelier de dialogue — ICÔNE d’un choix (`DialogueChoice.icon`, #8
 
     const icone = Array.from(container.querySelectorAll('select'))
       .find((el) => el.closest('label')?.title.includes('affordance')) as HTMLSelectElement;
-    await setSelect(icone, 'resource/gold-purse');
-    expect(latest.nodes[0].choices[0].icon).toBe('resource/gold-purse');
+    await setSelect(icone, 'ressource/bourse');
+    expect(latest.nodes[0].choices[0].icon).toBe('ressource/bourse');
 
     expect((await renderDialogueBox(latest)).querySelector('button.dlg-choice svg.icon')).not.toBeNull();
 

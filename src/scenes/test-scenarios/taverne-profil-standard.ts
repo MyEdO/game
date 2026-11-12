@@ -49,7 +49,7 @@ function construireScene(): Scene {
             id: 'defi',
             desc: '« Un bras de fer, étranger ? Le perdant paie la tournée. »',
             choices: [
-              { id: 'relever-defi', label: 'Relever le défi.', icon: 'nav/dice', flow: flowFromEffects([{ type: 'openTavernGames' }]) },
+              { id: 'relever-defi', label: 'Relever le défi.', icon: 'navigation/des', flow: flowFromEffects([{ type: 'openTavernGames' }]) },
               { id: 'partir', label: 'Une autre fois. (Partir)', flow: flowFromEffects([{ type: 'endDialogue' }]) },
             ],
           },
@@ -63,7 +63,7 @@ export const scenario: TestScenario = {
   id: 'taverne-profil-standard',
   order: 8,
   category: 'marche',
-  icon: 'scenario/market',
+  icon: 'scenario/marche',
   title: 'Taverne — un PNJ à profil standard',
   tests:
     // LDB 77

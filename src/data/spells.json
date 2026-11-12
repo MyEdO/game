@@ -16050,7 +16050,7 @@
         {
           "kind": "choice",
           "prompt": "Chaque +1 DR : ajouter un État Empêtré à la cible (sinon, la faire léviter de 2 mètres de plus, jusqu'à 10 mètres)",
-          "yes": {
+          "oui": {
             "kind": "do",
             "effect": {
               "type": "ops",
@@ -16073,7 +16073,7 @@
               ]
             }
           },
-          "no": {
+          "non": {
             "kind": "do",
             "effect": {
               "type": "ops",
@@ -16730,7 +16730,7 @@
           "fail": {
             "kind": "choice",
             "prompt": "Déclarer, au lancement, l'intention d'étouffer les cibles : les mains les entraînent sous terre (Suffocation)",
-            "yes": {
+            "oui": {
               "kind": "do",
               "effect": {
                 "type": "ops",
@@ -16742,7 +16742,7 @@
                 ]
               }
             },
-            "no": {
+            "non": {
               "kind": "do",
               "effect": {
                 "type": "ops",
@@ -17396,7 +17396,7 @@
         {
           "kind": "choice",
           "prompt": "Le Sort est-il lancé sur un objet magique que vous touchez ?",
-          "yes": {
+          "oui": {
             "kind": "do",
             "effect": {
               "type": "ops",
@@ -17684,7 +17684,7 @@
         {
           "kind": "choice",
           "prompt": "+2 DR obtenus : accorder aussi une relance au Test de la Compétence choisie ?",
-          "yes": {
+          "oui": {
             "kind": "do",
             "effect": {
               "type": "ops",
@@ -19887,7 +19887,7 @@
         {
           "kind": "choice",
           "prompt": "La cible est réticente : elle peut éviter les effets (Test d'Esquive Facile (+40))",
-          "yes": {
+          "oui": {
             "kind": "test",
             "test": {
               "skill": {
@@ -19926,7 +19926,7 @@
               }
             }
           },
-          "no": {
+          "non": {
             "kind": "do",
             "effect": {
               "type": "ops",
@@ -20052,10 +20052,10 @@
         {
           "kind": "choice",
           "prompt": "Augmenter ou réduire le charme de la cible (Sociabilité de + ou − 10)",
-          "yes": {
+          "oui": {
             "kind": "choice",
             "prompt": "Augmenter le charme (+10 de Sociabilité) ; sinon le réduire (−10)",
-            "yes": {
+            "oui": {
               "kind": "do",
               "effect": {
                 "type": "ops",
@@ -20072,7 +20072,7 @@
                 ]
               }
             },
-            "no": {
+            "non": {
               "kind": "do",
               "effect": {
                 "type": "ops",
@@ -20090,10 +20090,10 @@
               }
             }
           },
-          "no": {
+          "non": {
             "kind": "choice",
             "prompt": "La cible semble être morte ; sinon elle devient méconnaissable",
-            "yes": {
+            "oui": {
               "kind": "do",
               "effect": {
                 "type": "ops",
@@ -20106,7 +20106,7 @@
                 ]
               }
             },
-            "no": {
+            "non": {
               "kind": "do",
               "effect": {
                 "type": "ops",
@@ -21508,7 +21508,7 @@
         {
           "kind": "choice",
           "prompt": "Contraindre les esprits : soumettre les esprits présents à vos ordres (sinon : arracher des fantômes au voile de la mort)",
-          "yes": {
+          "oui": {
             "kind": "if",
             "cond": {
               "kind": "all",
@@ -21554,7 +21554,7 @@
               }
             }
           },
-          "no": {
+          "non": {
             "kind": "seq",
             "steps": [
               {
@@ -22787,7 +22787,7 @@
           "then": {
             "kind": "choice",
             "prompt": "Soumettre la cible à la Haine pendant (Bonus de Force Mentale) semaines ?",
-            "yes": {
+            "oui": {
               "kind": "do",
               "effect": {
                 "type": "ops",
@@ -22817,10 +22817,10 @@
                 ]
               }
             },
-            "no": {
+            "non": {
               "kind": "choice",
               "prompt": "Amener la cible à l'Animosité pendant (Bonus de Force Mentale) jours, plutôt qu'au Préjugé ?",
-              "yes": {
+              "oui": {
                 "kind": "do",
                 "effect": {
                   "type": "ops",
@@ -22850,7 +22850,7 @@
                   ]
                 }
               },
-              "no": {
+              "non": {
                 "kind": "do",
                 "effect": {
                   "type": "ops",
@@ -22887,7 +22887,7 @@
             "then": {
               "kind": "choice",
               "prompt": "Amener la cible à l'Animosité pendant (Bonus de Force Mentale) jours, plutôt qu'au Préjugé ?",
-              "yes": {
+              "oui": {
                 "kind": "do",
                 "effect": {
                   "type": "ops",
@@ -22917,7 +22917,7 @@
                   ]
                 }
               },
-              "no": {
+              "non": {
                 "kind": "do",
                 "effect": {
                   "type": "ops",
@@ -24713,7 +24713,7 @@
         {
           "kind": "choice",
           "prompt": "Vaporisation de musc : asperger une cible, ou marquer un territoire ?",
-          "yes": {
+          "oui": {
             "kind": "do",
             "effect": {
               "type": "ops",
@@ -24726,7 +24726,7 @@
               ]
             }
           },
-          "no": {
+          "non": {
             "kind": "do",
             "effect": {
               "type": "ops",

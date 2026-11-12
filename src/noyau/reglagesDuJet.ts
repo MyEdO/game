@@ -263,7 +263,7 @@ export const declarationDuReglage = (flux: unknown, reglage: unknown): Declarati
 /** Les réglages du flux `flux`, dans leur ordre de déclaration ; aucun pour un flux qui n'en a pas. */
 export const reglagesDuFlux = (flux: string): readonly ReglageDuJet[] => (estFluxRegle(flux) ? Object.keys(REGLAGES_DU_JET[flux]) as ReglageDuJet[] : []);
 
-/** Ce qui ferme maintenant un réglage de phase `phase`, d'après ce qui ferme le lancer de son jet (`roll`, `null` :
+/** Ce qui ferme maintenant un réglage de phase `phase`, d'après ce qui ferme le lancer de son jet (`lancer`, `null` :
  *  le dé reste à lancer) ; `null` : il se joue. */
 export function fermetureDeLaPhase(phase: PhaseDuReglage, roll: FermetureDuJet | null): FermetureDuJet | null {
   if (roll === 'sansJet') return roll;

@@ -34,14 +34,14 @@ export function setEncounters(scene: Scene, list: AuthoredEncounter[]): void {
 /** Sections du menu des scénarios de test : clé (portée par la donnée) → libellé + icône
  *  (id du registre src/data/icons), dans l'ordre d'affichage. */
 export const SCENARIO_SECTIONS = [
-  { key: 'combat', label: 'Combat', icon: 'action/attack' },
-  { key: 'magie', label: 'Magie', icon: 'action/cast' },
-  { key: 'creatures', label: 'Créatures', icon: 'scenario/bestiary' },
-  { key: 'survie', label: 'Survie', icon: 'scenario/travel' },
-  { key: 'marche', label: 'Marché', icon: 'scenario/market' },
-  { key: 'scenarios', label: 'Scénarios complets', icon: 'nav/campaign' },
+  { key: 'combat', label: 'Combat', icon: 'action/attaquer' },
+  { key: 'magie', label: 'Magie', icon: 'action/incanter' },
+  { key: 'creatures', label: 'Créatures', icon: 'scenario/bestiaire' },
+  { key: 'survie', label: 'Survie', icon: 'scenario/voyage' },
+  { key: 'marche', label: 'Marché', icon: 'scenario/marche' },
+  { key: 'scenarios', label: 'Scénarios complets', icon: 'navigation/campagne' },
   { key: 'naval', label: 'Naval', icon: 'scenario/naval' },
-  { key: 'rendu', label: 'Rendu', icon: 'scenario/gallery' },
+  { key: 'rendu', label: 'Rendu', icon: 'scenario/galerie' },
 ] as const satisfies readonly { key: string; label: string; icon: IconIdGenerated }[];
 
 export type ScenarioCategory = (typeof SCENARIO_SECTIONS)[number]['key'];

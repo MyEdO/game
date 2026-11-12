@@ -2,7 +2,7 @@
  "id": "la-diligence",
  "type": "projet",
  "label": "L’Ennemi Intérieur — chapitre 1 : la route d’Altdorf",
- "icon": "scenario/travel",
+ "icon": "scenario/voyage",
  "desc": "Les Personnages se forment à l’auberge-relais La Diligence, à deux jours d’Altdorf, et cherchent une place à bord d’une diligence pour la capitale.",
  "versionContenu": 2,
  "source": {
@@ -41312,7 +41312,7 @@
     "scene": {
      "id": "la-diligence"
     },
-    "icon": "scenario/hamlet",
+    "icon": "scenario/hameau",
     "prose": "Une auberge-relais ceinte d’un mur, sur la route de Delbren, dont le portail reste ouvert pendant la journée. La cour fourmille d’activité et sent le crottin frais ; devant les écuries, deux palefreniers bouchonnent un attelage de quatre chevaux. De l’auberge s’échappent des effluves de cuisine et des éclats de rire.",
     "adapteDe": {
      "book": "ennemi-dans-l-ombre",
@@ -41330,7 +41330,7 @@
     "scene": {
      "id": "route-principale-virage"
     },
-    "icon": "scenario/travel",
+    "icon": "scenario/voyage",
     "prose": "La route de Middenheim à Altdorf, deux heures après le croisement où une borne annonçait : « Altdorf, 180 km ». Ici, la chaussée tourne entre les arbres.",
     "adapteDe": {
      "book": "ennemi-dans-l-ombre",
@@ -41348,7 +41348,7 @@
     "scene": {
      "id": "auberge-des-sept-rayons"
     },
-    "icon": "scenario/hamlet",
+    "icon": "scenario/hameau",
     "prose": "Une auberge-relais liée aux Lignes du Rochet, disposée comme La Diligence. Trois diligences s’y sont arrêtées pour la nuit et les lieux sont bondés ; on y colporte toutes les rumeurs de la route.",
     "adapteDe": {
      "book": "ennemi-dans-l-ombre",

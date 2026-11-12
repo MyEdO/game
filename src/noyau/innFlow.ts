@@ -67,7 +67,7 @@ export const TABLES = {
       }
       const def = activityById(ACTIVITY_ID);
       // EDOC 8 l.153 : aucune rumeur récoltée — branche d'ÉCHEC (#349, dette 1 : ton dérivé, pas une chaîne muette).
-      const cons = freeCons([{ text: 'Personne ne semble savoir grand-chose ce soir-là.', tone: 'bad' }]);
+      const cons = freeCons([{ text: 'Personne ne semble savoir grand-chose ce soir-là.', tone: 'echec' }]);
       if (def?.failExtenue && hero) {
         const op: GameOp = { op: 'condition', id: { id: 'extenue' }, value: 1 }; // EDOC 8 l.133
         applyOps(hero, [op], { idNeuf: get().forgerUnId, rng: battleRng(), source: { kind: 'activity', id: ACTIVITY_ID } });

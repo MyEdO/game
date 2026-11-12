@@ -87,10 +87,10 @@ export function LogicDock({
 
   const errors = warnings.filter((w) => w.level === 'error').length;
   const tabs: { key: LogicTab; label: string | JSX.Element; count: number; alert?: boolean }[] = [
-    { key: 'triggers', label: <><Icon id="map-tool/zone" size="sm" /> Triggers</>, count: scene.triggers.length },
-    { key: 'dialogues', label: <><Icon id="merchant/haggle" size="sm" /> Dialogues</>, count: scene.dialogues.length },
-    { key: 'encounters', label: <><Icon id="action/attack" size="sm" /> Rencontres</>, count: scene.encounters.length },
-    { key: 'validation', label: <><Icon id="ui/warning" size="sm" /> Validation</>, count: warnings.length, alert: errors > 0 },
+    { key: 'triggers', label: <><Icon id="outil-de-carte/zone" size="sm" /> Triggers</>, count: scene.triggers.length },
+    { key: 'dialogues', label: <><Icon id="marchand/marchander" size="sm" /> Dialogues</>, count: scene.dialogues.length },
+    { key: 'encounters', label: <><Icon id="action/attaquer" size="sm" /> Rencontres</>, count: scene.encounters.length },
+    { key: 'validation', label: <><Icon id="interface/attention" size="sm" /> Validation</>, count: warnings.length, alert: errors > 0 },
   ];
   /** Cliquer l'onglet DÉPLIÉ le replie — c'est le seul geste de repli, il n'en existe pas d'autre. */
   const clickTab = (t: LogicTab) => setTab(t === tab ? null : t);
@@ -180,7 +180,7 @@ function TriggersTab({
         >
           + Nouveau trigger
         </button>
-        <p className="hint">Astuce : outil <Icon id="map-tool/zone" size="sm" /> → glisser sur la carte pour dessiner la zone directement.</p>
+        <p className="hint">Astuce : outil <Icon id="outil-de-carte/zone" size="sm" /> → glisser sur la carte pour dessiner la zone directement.</p>
       </div>
       {t ? (
         <div className="logic-detail" key={cles[scene.triggers.indexOf(t)]}>
@@ -336,7 +336,7 @@ function EncountersTab({
         >
           + Nouvelle rencontre
         </button>
-        <p className="hint">Astuce : outil <Icon id="action/attack" size="sm" /> pour poser les combattants directement sur la carte.</p>
+        <p className="hint">Astuce : outil <Icon id="action/attaquer" size="sm" /> pour poser les combattants directement sur la carte.</p>
       </div>
       {enc ? (
         <div className="logic-detail">
@@ -374,7 +374,7 @@ function EncountersTab({
                     <ListRow
                       onClick={() => onSelectEntity(m.entityId)}
                       title="Sélectionner sur la carte → éditer le profil/apparence dans l'inspecteur"
-                      label={e ? `${nomDEntite(e, presetDuNarratif(ctx.narratif)) ?? m.entityId} · (${e.pos.x},${e.pos.y})` : <><Icon id="ui/warning" size="sm" /> {m.entityId} (entité manquante)</>}
+                      label={e ? `${nomDEntite(e, presetDuNarratif(ctx.narratif)) ?? m.entityId} · (${e.pos.x},${e.pos.y})` : <><Icon id="interface/attention" size="sm" /> {m.entityId} (entité manquante)</>}
                     />
                     <button className="btn small danger" onClick={() => setScene(removeMember(scene, enc.id, m.entityId))} title="Retirer de la rencontre (l'entité reste sur la carte)">
                       ✕
@@ -382,7 +382,7 @@ function EncountersTab({
                   </div>
                   <div className="enemy-mount">
                     <label title="Cette créature est une monture rideable (peut être enfourchée — LDB 14).">
-                      <input type="checkbox" checked={!!m.mount} onChange={(e2) => setScene(patchMember(scene, enc.id, m.entityId, { mount: e2.target.checked || undefined }))} /> <Icon id="travel/mount" size="sm" /> Monture
+                      <input type="checkbox" checked={!!m.mount} onChange={(e2) => setScene(patchMember(scene, enc.id, m.entityId, { mount: e2.target.checked || undefined }))} /> <Icon id="voyage/en-selle" size="sm" /> Monture
                     </label>
                     <label title="Monture (de cette rencontre) que cet acteur chevauche au spawn (référence stable par entité).">
                       Chevauche{' '}
@@ -407,7 +407,7 @@ function EncountersTab({
               );
             })}
             <p className="hint">
-              Un combattant se pose SUR LA CARTE, à la case voulue : outil <Icon id="action/attack" size="sm" /> de
+              Un combattant se pose SUR LA CARTE, à la case voulue : outil <Icon id="action/attaquer" size="sm" /> de
               la palette, rencontre cible = <b>{enc.id}</b>.
             </p>
           </div>

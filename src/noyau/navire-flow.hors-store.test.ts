@@ -71,7 +71,7 @@ describe('runFlow — nœud `choice` (#1652 G1)', () => {
 
   const flux: Flow = {
     kind: 'seq',
-    steps: [{ kind: 'choice', prompt: 'Payer', yes: drapeau('oui'), no: drapeau('non') }, drapeau('suite')],
+    steps: [{ kind: 'choice', prompt: 'Payer', oui: drapeau('oui'), non: drapeau('non') }, drapeau('suite')],
   };
 
   it('ouvre une décision au meneur ; la suite attend la décision', () => {
@@ -92,7 +92,7 @@ describe('runFlow — nœud `choice` (#1652 G1)', () => {
   });
 
   it('un coût d’Avantage n’est pas offert hors combat (LDB 14 l.219) : la branche « non » se joue', () => {
-    jouerFlowEntier(runFlow(get, set, { kind: 'choice', prompt: 'Payer', advantageCost: 1, yes: drapeau('oui'), no: drapeau('non') }, 'Décision'));
+    jouerFlowEntier(runFlow(get, set, { kind: 'choice', prompt: 'Payer', advantageCost: 1, oui: drapeau('oui'), non: drapeau('non') }, 'Décision'));
     expect(get().pendingCascade).toBeNull();
     expect(get().flags).toEqual({ non: true });
   });
@@ -185,7 +185,7 @@ describe('Escale : une `consequence` qui suspend reprend AVANT l’arrivée au l
   afterEach(() => resetData());
 
   it('le choix de l’événement se tranche, PUIS le groupe arrive au port', () => {
-    const choix: Flow = { kind: 'choice', prompt: 'Payer', yes: drapeau('paye') };
+    const choix: Flow = { kind: 'choice', prompt: 'Payer', oui: drapeau('paye') };
     setDataset('seaPortEvents', PORT_EVENTS.map(({ min, max, id, label, desc }) => ({ min, max, id, label, desc, consequence: choix })) as never);
     finalizePortArrivalTo(get, set, carte.places[1], true);
     expect(get().pendingCascade?.participants[0].kind).toBe('choixDeFlux');
@@ -375,8 +375,8 @@ describe('Ressources de bord en grammaire (#1652 lot 3 — MDG 15)', () => {
 
   it('la donnée porte la RAW : débris 1d100, épave 2d100 sur décision ; pénurie la moitié ; manne 1d10 jours et +2d10 Moral', () => {
     const navire = (ops: unknown[]) => ({ kind: 'do', effect: { type: 'ops', on: 'navire', ops } });
-    expect(consequence('debris-marins')).toEqual({ kind: 'choice', prompt: 'Repêcher les caisses', yes: navire([{ op: 'cargaison', enc: { dice: { n: 1, sides: 100 } } }]) });
-    expect(consequence('vaisseau-fantome-figurativement')).toEqual({ kind: 'choice', prompt: 'Monter à bord', yes: navire([{ op: 'cargaison', enc: { dice: { n: 2, sides: 100 } } }]) });
+    expect(consequence('debris-marins')).toEqual({ kind: 'choice', prompt: 'Repêcher les caisses', oui: navire([{ op: 'cargaison', enc: { dice: { n: 1, sides: 100 } } }]) });
+    expect(consequence('vaisseau-fantome-figurativement')).toEqual({ kind: 'choice', prompt: 'Monter à bord', oui: navire([{ op: 'cargaison', enc: { dice: { n: 2, sides: 100 } } }]) });
     expect(consequence('penurie-de-nourriture')).toEqual(navire([{ op: 'provisions', gateesPct: 50 }]));
     expect(consequence('manne-de-manann')).toEqual(navire([
       { op: 'provisions', jours: { dice: { n: 1, sides: 10 } } },
@@ -386,7 +386,7 @@ describe('Ressources de bord en grammaire (#1652 lot 3 — MDG 15)', () => {
 
   it.each([['debris-marins'], ['vaisseau-fantome-figurativement']])('%s : repêcher charge une cargaison tirée, à son prix de base (l.209-210, l.224-225)', (id) => {
     const c = consequence(id) as Extract<Flow, { kind: 'choice' }>;
-    consequenceDeBord(id, { ...c, yes: { kind: 'do', effect: surLeNavire([{ op: 'cargaison', enc: 37 }]) as never } });
+    consequenceDeBord(id, { ...c, oui: { kind: 'do', effect: surLeNavire([{ op: 'cargaison', enc: 37 }]) as never } });
     jour(id);
     expect(get().pendingCascade?.participants.some((s) => s.kind === 'choixDeFlux')).toBe(true);
     expect(get().vessel!.cargo ?? []).toHaveLength(0);
@@ -491,7 +491,7 @@ describe('Équipage recueilli et pertes au port (#1652 lot 3 — MDG 15, valeurs
   it('Canot de sauvetage : la donnée porte les rescapés du livre et leur rôle maison (l.213-218)', () => {
     const c = consequence('canot-de-sauvetage') as Extract<Flow, { kind: 'choice' }>;
     expect(c.prompt).toBe('Recueillir les rescapés');
-    const table = (c.yes as Extract<Flow, { kind: 'do' }>).effect.ops[0] as Extract<GameOp, { op: 'rollTable'; entries: unknown }>;
+    const table = (c.oui as Extract<Flow, { kind: 'do' }>).effect.ops[0] as Extract<GameOp, { op: 'rollTable'; entries: unknown }>;
     expect(table.die).toBe('1d10');
     expect(table.entries.map((r) => [r.min, r.max, r.ops])).toEqual([
       [1, 3, [{ op: 'equipage', delta: 2 }]],
@@ -979,18 +979,18 @@ describe('Nœuds hors combat (#1652 lot 7 — MDG 15 l.159-164, l.174-178, l.194
 
   it('Infestations : la donnée porte la RAW (Complexe 25 DR / 3d10 Enc / 30 % ; Intermédiaire 10 DR / 1d10 Enc / 15 %)', () => {
     const geants = JSON.stringify(consequence('infestation-de-rats-geants'));
-    expect(geants).toContain('"crewTestType":{"id":"extermination-nuisibles"},"difficulty":"complexe","targetDR":25');
+    expect(geants).toContain('"crewTestType":{"id":"extermination-nuisibles"},"difficulty":"complexe","drCible":25');
     expect(geants).toContain('{"op":"cargaison","perdueEnc":{"dice":{"n":3,"sides":10}}}');
     expect(geants).toContain('{"min":1,"max":30,"ops":[{"op":"exposeDisease","disease":"fievre-du-rongeur"}]}');
     const rats = JSON.stringify(consequence('infestation-de-rats'));
-    expect(rats).toContain('"crewTestType":{"id":"extermination-nuisibles"},"difficulty":"intermediaire","targetDR":10');
+    expect(rats).toContain('"crewTestType":{"id":"extermination-nuisibles"},"difficulty":"intermediaire","drCible":10');
     expect(rats).toContain('{"op":"cargaison","perdueEnc":{"dice":{"n":1,"sides":10}}}');
     expect(rats).toContain('{"min":1,"max":15,"ops":[{"op":"exposeDisease","disease":"fievre-du-rongeur"}]}');
   });
 
   it('Extermination : chaque étape cumule ses DR jusqu’au total, et l’infestation tombe (MDG 14 l.98-104)', () => {
     jouerFlowEntier(runFlow(get, set, consequence('infestation-de-rats'), 'Infestation de rats'));
-    expect(get().vessel!.infestation?.targetDR).toBe(10);
+    expect(get().vessel!.infestation?.drCible).toBe(10);
     set({ travelPlan: buildSeaPlan(get, 'r1', 'A', 'B', carte.routes[0])! });
     const appliquer = (sl: number) => applierDe('equipage-extermination')!(get, set, { id: 'equipage-extermination', kind: 'equipage-extermination', label: fixtureText('extermination'), result: { roll: 0, target: 0, sl, success: sl >= 0 } } as never, undefined, { steps: [], index: 0 });
     appliquer(6);
@@ -1482,7 +1482,7 @@ describe('Événements laissés au MJ et marché du port (#1652 lot 9 — MDG 15
   it('Île inconnue : accoster remplit les tonneaux et la cale, et les bancs de sable menacent sur 1-2 (l.221-223)', () => {
     expect(deBord('ile-inconnue').consequence).toEqual({
       kind: 'choice', prompt: 'Accoster sur l’île',
-      yes: { kind: 'do', effect: { type: 'ops', on: 'navire', ops: [
+      oui: { kind: 'do', effect: { type: 'ops', on: 'navire', ops: [
         { op: 'provisions', eauTonneaux: { dice: { n: 2, sides: 10 } } },
         { op: 'provisions', jours: { dice: { n: 1, sides: 10 } } },
         { op: 'rollTable', die: '1d10', entries: [{ min: 1, max: 2, ops: [{ op: 'perilDeMer', collision: { id: 'bas-fonds' } }] }, { min: 3, max: 10, ops: [] }] },

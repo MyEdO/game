@@ -54,7 +54,7 @@ function setup(o: { talents?: { talentId: string; times: number }[]; reserve: nu
 
 /** Parade au Bouclier, Test opposé GAGNÉ par la défense au jet `roll`, DR opposé 3. */
 const defenseGagnee = (roll = 24): AttackResult => ({
-  hit: false, attackerRoll: 64, defenderRoll: roll, netSL: 3, critical: false, advantageTo: 'defender', defenderDefeated: false, log: 'Attaquant manque Défenseur.',
+  hit: false, attackerRoll: 64, defenderRoll: roll, netSL: 3, critical: false, advantageTo: 'defenseur', defenderDefeated: false, log: 'Attaquant manque Défenseur.',
   parryWeapon: SHIELD,
   defenderDetail: { label: 'Corps à corps', base: 50, target: 50, roll, success: true, sl: 2, mods: [], mode: 'parade' },
   attackerDetail: { label: 'Corps à corps', base: 50, target: 50, roll: 64, success: false, sl: -1, mods: [] },
@@ -62,7 +62,7 @@ const defenseGagnee = (roll = 24): AttackResult => ({
 
 /** Parade au Bouclier, Test opposé PERDU : l'attaquant touche. */
 const defensePerdue = (): AttackResult => ({
-  hit: true, attackerRoll: 24, defenderRoll: 64, netSL: 2, critical: false, advantageTo: 'attacker', defenderDefeated: false, location: 'corps', damage: 6, woundsLost: 2,
+  hit: true, attackerRoll: 24, defenderRoll: 64, netSL: 2, critical: false, advantageTo: 'attaquant', defenderDefeated: false, location: 'corps', damage: 6, woundsLost: 2,
   log: 'Attaquant touche Défenseur.', parryWeapon: SHIELD,
   defenderDetail: { label: 'Corps à corps', base: 50, target: 50, roll: 64, success: false, sl: -1, mods: [], mode: 'parade' },
   attackerDetail: { label: 'Corps à corps', base: 50, target: 50, roll: 24, success: true, sl: 2, mods: [] },

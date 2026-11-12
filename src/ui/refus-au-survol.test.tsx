@@ -132,7 +132,7 @@ describe('#1689 T2 — la raison d’un refus a UNE forme (GatedAction)', () => 
   it('ActivityPane : quand la BANNIÈRE porte la raison, l’action s’y LIE — le texte n’est pas redit', () => {
     const html = renderToStaticMarkup(
       <ActivityPane
-        id="pane-t" icon="nav/activity" title="Banque"
+        id="pane-t" icon="navigation/activite" title="Banque"
         blocked={<>Dépôt au-delà de votre bourse.</>}
         actions={<GatedAction id="t-dep" reasonId={idBlocage('pane-t')} label="Investir" enabled={false} onClick={() => {}} />}
       />,
@@ -233,7 +233,7 @@ describe('#1689 T2 — écrans migrés', () => {
     const rienASoigner = renderToStaticMarkup(<MedicModal />);
     expect(rienASoigner, 'un héros indemne : rien à soigner').toContain(`${sain.label} — ${t('medic.patientSansSoin')}`);
     expect(rienASoigner, 'un blessé se choisit : son nom seul').not.toContain(`${patient.label} — `);
-    const operation = { kind: 'chirurgie', difficulty: 'intermediaire', healerName: sain.label, skill: 40, intBonus: 3, traumaIdx: 0, targetDR: 5, cumDR: 0, stake: {} };
+    const operation = { kind: 'chirurgie', difficulty: 'intermediaire', healerName: sain.label, skill: 40, intBonus: 3, traumaIdx: 0, drCible: 5, cumDR: 0, stake: {} };
     Object.assign(useGame.getInitialState() as unknown as Record<string, unknown>, { medic: { patientId: patient.id, surgery: operation } });
     const soinEnCours = renderToStaticMarkup(<MedicModal />);
     expect(soinEnCours, 'une opération en cours : chaque patient verrouillé').toContain(`${patient.label} — ${t('jet.ferme.soinEnCours')}`);

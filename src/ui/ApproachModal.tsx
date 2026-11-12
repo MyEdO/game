@@ -55,14 +55,14 @@ export function ApproachModal() {
   });
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' },
-    { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
+    { key: 'cancel', label: t('verbe.annuler'), onClick: cancel, verbe: 'annuler' },
+    { key: 'confirm', label: t('verbe.valider'), onClick: confirm, verbe: 'valider' },
   ];
 
   return (
     <RollShell
       flowKey="approche"
-      title={<><Icon id="flag/fear" size="sm" /> Affronter sa Peur</>}
+      title={<><Icon id="drapeau/peur" size="sm" /> Affronter sa Peur</>}
       subtitle={
         <>
           <strong>{c.label}</strong> ose approcher {pa.sourceName}

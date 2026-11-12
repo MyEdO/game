@@ -503,11 +503,11 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                               frenzy/approach/test/heal + reload/recover/activity/corruption/appraise/
                               bargain) — un nouveau jet = 1 spec + 1 corps de clôture. Résilience « Je ne
                               faillirai pas ! » (LDB 17 l.68, GLOBALE) : mécanisme UNIQUE (factory
-                              `forceSuccess`/`setForcedRoll` + UI `ForcedRollPicker`). Un flux qui
+                              `forcerLaReussite`/`imposerLeResultat` + UI `ForcedRollPicker`). Un flux qui
                               l'offre déclare `caps: { forced: true }` ; son `resolve(s,p,actor,get,
                               forced?)` porte alors LES TROIS cas dans UN seul résolveur : `forced`
-                              absent = jet normal (RNG) ; `{}` = `forceSuccess` (dé par défaut : 01→DR
-                              max, ou opposé→jet courant forcé à ≥ DR+1) ; `{ roll }` = `setForcedRoll`
+                              absent = jet normal (RNG) ; `{}` = `forcerLaReussite` (dé par défaut : 01→DR
+                              max, ou opposé→jet courant forcé à ≥ DR+1) ; `{ roll }` = `imposerLeResultat`
                               (dé choisi, doit rester une réussite). PLUS de dérives `force`/`forceRoll`
                               séparées (l'ancien « code dérivé ») — la résolution forcée VIT dans le
                               résolveur du Test, à côté du jet normal. La localisation suit le dé inversé
@@ -639,7 +639,9 @@ src/hoteTexte/              HÔTE TEXTE du noyau (#2898) : une partie pilotable 
                             virtuelle), `vue.ts` (projection à ses bornes et rendus bornés), `outils.ts` (les trois
                             outils et leur schéma), `serveur.ts` (ce qu'ils font) ; servi par
                             `scripts/hote-texte.mjs` (SDK MCP, stdio), déclaré par `.mcp.json`.
-hotes/godot/                HÔTE GODOT du noyau (#2928, zone `hotes`) : le pont JSON que l'export web de Godot appelle.
+hotes/godot/                HÔTE GODOT du noyau (#2928, zone `hotes`) : le pont JSON que Godot appelle, dans la page de
+                            l'export web ou, hors d'une page, par un processus Node (`vivant.mjs`, #3945 : `npm run
+                            godot:ouvrir` ouvre l'éditeur Godot sur le projet, qui y joue sur le noyau vivant).
                             `pont/pont.ts` (une méthode = une chaîne JSON en entrée, une en sortie, jamais une levée ;
                             gestes par le module commun, vue faite des lecteurs du noyau, jetons tenus par numéro),
                             `pont/entree.ts` (`globalThis.wfrpPont`), contrat `pont/CONTRAT.md` ; `construire.mjs
@@ -656,7 +658,7 @@ hotes/godot/                HÔTE GODOT du noyau (#2928, zone `hotes`) : le pont
                             `scripts/guards/lib/gdscriptSansRegle.mjs`) ;
                             jetons armés en minuteurs. `construire.mjs --sonde` importe une copie du projet, contrôle
                             chaque script puis exécute les recettes sous `recettes/` déclarant au premier niveau
-                            `const RECETTE_AUTONOME := true`, sans argument externe ; `equipement.gd`, qui attend une
+                            `const RECETTE_AUTONOME := true`, avec `--pont=<vivant.mjs>` pour seul argument ; `equipement.gd`, qui attend une
                             vue JSON, ne porte pas cette déclaration. L'éditeur est épinglé (`npm run godot:sonde`,
                             étape scripts et recettes autonomes de la CI). `--export --sortie <dossier>` produit
                             l'export Web et, à côté, chaque modèle en scène que l'éditeur fabrique de son GLB

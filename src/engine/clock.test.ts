@@ -102,7 +102,7 @@ describe('clock — phases du jour & obscurité (#T1c)', () => {
     expect(isNight(at(21, 59))).toBe(false);
   });
   it('dayPhase expose label/icon et isNight', () => {
-    expect(dayPhase(at(12))).toMatchObject({ id: 'midi', icon: 'time/noon', isNight: false });
+    expect(dayPhase(at(12))).toMatchObject({ id: 'midi', icon: 'temps/midi', isNight: false });
     expect(dayPhase(at(23))).toMatchObject({ id: 'nuit', isNight: true });
   });
   // #1666 : les phases sont des PALIERS (`findTierEntry`) — l'ordre du fichier ne décide de rien, des

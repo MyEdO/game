@@ -9,7 +9,7 @@ const F = 'fill="currentColor" stroke="none"';
 
 export const icons: IconFamily = [
   {
-    id: 'medical/tear',
+    id: 'medical/dechirure',
     label: 'Déchirure musculaire',
     // Jambe (cuisse/mollet) marquée d'une déchirure en zigzag.
     svg:
@@ -27,7 +27,7 @@ export const icons: IconFamily = [
       `<path ${KF} d="M5.5 5.6 L5.9 6 M4.7 6.4 L5.1 6.8"/>`,
   },
   {
-    id: 'medical/crutch',
+    id: 'medical/bequille',
     label: 'Séquelle / trauma',
     // Béquille d'aisselle.
     svg:
@@ -46,7 +46,7 @@ export const icons: IconFamily = [
       `<circle ${F} cx="13.6" cy="13.1" r="0.7"/>`,
   },
   {
-    id: 'medical/aid',
+    id: 'medical/soins-payants',
     label: 'Soins payants',
     // Croix de secours cerclée (PNJ soigneur/guérisseur).
     svg:

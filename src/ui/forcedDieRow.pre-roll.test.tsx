@@ -57,7 +57,7 @@ function resolveRoll() {
     pendingAttack: {
       ...p,
       result: {
-        hit: false, attackerRoll: 88, netSL: -4, critical: false, advantageTo: 'defender',
+        hit: false, attackerRoll: 88, netSL: -4, critical: false, advantageTo: 'defenseur',
         defenderDefeated: false, log: 'raté',
         attackerDetail: { label: 'Corps à corps', base: 45, modifier: 0, target: 45, roll: 88, success: false, sl: -4 },
       },

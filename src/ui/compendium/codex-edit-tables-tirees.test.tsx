@@ -77,13 +77,13 @@ describe('atelier du Codex — tables tirées', () => {
   });
 
   it('une rangée d’Incantation Imparfaite révisée offre le dé de son document et s’enregistre par le seam', async () => {
-    const rangee = (datasetArray('miscastMinorVdm') as { id: string }[])[0];
-    monter('miscastMinorVdm', rangee.id);
+    const rangee = (datasetArray('imparfaiteMineureVdm') as { id: string }[])[0];
+    monter('imparfaiteMineureVdm', rangee.id);
     const de = container.querySelector<HTMLInputElement>('input[aria-label="Dé de tirage"]')!;
     expect(de.value).toBe('d100');
     saisir(de, '2d50');
     await enregistrer();
-    expect(deDeLaTable('miscastMinorVdm')).toBe('2d50');
+    expect(deDeLaTable('imparfaiteMineureVdm')).toBe('2d50');
   });
 
   it('un palier du Voyage rapide offre l’éditeur de sa conséquence et le dé de sa table, enregistré par le seam', async () => {

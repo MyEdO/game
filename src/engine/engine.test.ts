@@ -95,9 +95,9 @@ describe("Atouts d'arme (LDB Les armes)", () => {
     const base = duel([], 50, 50, 44); // DR 1 contre DR 1
     expect([base.hit, base.netSL, base.advantageTo]).toEqual([false, 0, null]);
     const pointue = duel(['Pointue'], 50, 50, 44); // DR 2 contre DR 1
-    expect([pointue.hit, pointue.netSL, pointue.advantageTo]).toEqual([true, 1, 'attacker']);
+    expect([pointue.hit, pointue.netSL, pointue.advantageTo]).toEqual([true, 1, 'attaquant']);
     const imprecise = duel(['Imprécise'], 50, 50, 44); // DR 0 contre DR 1 (LDB 62 l.323)
-    expect([imprecise.hit, imprecise.netSL, imprecise.advantageTo]).toEqual([false, 1, 'defender']);
+    expect([imprecise.hit, imprecise.netSL, imprecise.advantageTo]).toEqual([false, 1, 'defenseur']);
   });
   it('Pointue : MUET sur un Test d’attaque RATÉ (CC 40 vs CC 30, jet 45 — l’attaquant l’emporte en échouant)', () => {
     expect(duel([], 40, 30, 45).netSL).toBe(1);
@@ -492,7 +492,7 @@ describe('Test opposé (départage canon, LDB 12 l.160)', () => {
     const def = evaluateTest(70, 70, 30); // DR 0
     const r = resolveOpposed(att, def);
     expect(att.sl).toBe(def.sl);
-    expect(r.winner).toBe('attacker');
+    expect(r.winner).toBe('attaquant');
     expect(r.decidedBy).toBe('valeur');
   });
   it('égalité de DR : à valeurs nues égales, la cible modifiée ne départage PAS → tie', () => {
@@ -500,7 +500,7 @@ describe('Test opposé (départage canon, LDB 12 l.160)', () => {
     const def = evaluateTest(41, 45, 45); // Compétence 45, cible 45 — même DR
     const r = resolveOpposed(att, def);
     expect(att.sl).toBe(def.sl);
-    expect(r.winner).toBe('tie');
+    expect(r.winner).toBe('egalite');
     expect(r.decidedBy).toBe('egalite');
     expect(r.attackerWins).toBe(false);
   });
@@ -508,7 +508,7 @@ describe('Test opposé (départage canon, LDB 12 l.160)', () => {
     const att = evaluateTest(23, 45, 45); // DR 2
     const def = evaluateTest(21, 45, 45); // DR 2
     const r = resolveOpposed(att, def);
-    expect(r.winner).toBe('tie');
+    expect(r.winner).toBe('egalite');
     expect(r.decidedBy).toBe('egalite');
     expect(r.attackerWins).toBe(false);
   });
@@ -517,7 +517,7 @@ describe('Test opposé (départage canon, LDB 12 l.160)', () => {
     const def = evaluateTest(31, 55, 90); // DR 2, Compétence nue 90 (la plus haute)
     const r = resolveOpposed(att, def);
     expect(att.sl).toBeGreaterThan(def.sl);
-    expect(r.winner).toBe('attacker');
+    expect(r.winner).toBe('attaquant');
     expect(r.decidedBy).toBe('dr');
   });
   it('valeur nue ABSENTE des deux côtés (jet réhydraté) : la cible sert de repli', () => {
@@ -525,7 +525,7 @@ describe('Test opposé (départage canon, LDB 12 l.160)', () => {
     const def = evaluateTest(23, 55);
     const r = resolveOpposed(att, def);
     expect(att.sl).toBe(def.sl);
-    expect(r.winner).toBe('defender');
+    expect(r.winner).toBe('defenseur');
     expect(r.decidedBy).toBe('valeur');
   });
   it('valeur nue d’UN SEUL côté : tout-ou-rien — on compare les deux CIBLES, jamais nue vs cible', () => {
@@ -533,7 +533,7 @@ describe('Test opposé (départage canon, LDB 12 l.160)', () => {
     const def = evaluateTest(70, 70);     // réhydraté sans valeur nue, cible 70
     const r = resolveOpposed(att, def);
     expect(att.sl).toBe(def.sl);
-    expect(r.winner).toBe('defender'); // cible 70 > cible 25 — la nue 45 n'affronte pas une cible
+    expect(r.winner).toBe('defenseur'); // cible 70 > cible 25 — la nue 45 n'affronte pas une cible
     expect(r.decidedBy).toBe('valeur');
   });
 });

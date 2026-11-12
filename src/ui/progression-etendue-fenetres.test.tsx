@@ -71,7 +71,7 @@ describe('barre de DR des fenêtres de Test étendu', () => {
     setRule('test-etendu-dr-minimum', true);
     const w = heros();
     useGame.setState({ party: [w], battle: null });
-    useGame.getState().ouvrirLeTestEtendu({ actorId: w.id, label: 'Serrure', skillLabel: 'Crochetage', target: 40, targetDR: 5 });
+    useGame.getState().ouvrirLeTestEtendu({ actorId: w.id, label: 'Serrure', skillLabel: 'Crochetage', target: 40, drCible: 5 });
     const p = useGame.getState().pendingExtendedTest!;
     useGame.setState({ pendingExtendedTest: { ...p, total: 2, rounds: [{ ...p.rounds[0], result: { roll: 40, sl: 0, success: true } }] } as never });
     act(() => { root.render(<CascadeBody />); });

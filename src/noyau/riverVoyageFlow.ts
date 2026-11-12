@@ -260,7 +260,7 @@ function resolveRiverDay(get: Get, set: Set, route: MapRoute): void {
 function riverNavTest(river: RiverVoyageState, eff: ReturnType<typeof riverWindEffect>): { difficulty: Difficulty; mods: ModLine[] } {
   return {
     difficulty: navBaseDifficulty(),
-    mods: navPenaltyMods({ drift: !!eff.drift || !!river.broken, outOfControl: !!river.outOfControl }),
+    mods: navPenaltyMods({ drift: !!eff.derive || !!river.broken, outOfControl: !!river.outOfControl }),
   };
 }
 
@@ -326,7 +326,7 @@ export function buildRiverDayCascade(get: Get, set: Set, route: MapRoute): { ste
   // CONTEXTE DE VITESSE du jour (relu à la clôture) : dérive déjà certaine (Calme/hors-contrôle/brisé),
   // % de vent, louvoyage requis. Les appliers le complètent (perte de contrôle, chavirage → dérive).
   const dayCtx: RiverDayContext = {
-    baseKm, windPct: eff.pct ?? 0, forceDrift: !!eff.drift || !!river.outOfControl || !!river.broken,
+    baseKm, windPct: eff.pct ?? 0, forceDrift: !!eff.derive || !!river.outOfControl || !!river.broken,
     tack: !!eff.tack, journalMark: get().journal.length,
   };
   set({ travelPlan: { ...get().travelPlan!, river: { ...river, day: dayCtx } } });
@@ -341,7 +341,7 @@ export function buildRiverDayCascade(get: Get, set: Set, route: MapRoute): { ste
   // 1. Réparation du gréement/avirons brisés d'une étape précédente (l.78-82 / note 5) : rend le contrôle.
   if ((river.broken || river.outOfControl)) {
     const repair = bestShipwright(get);
-    if (repair) pousseSi(steps, riverStep('river-repair', 'fleuveReparationDeCommande', repair.actor, t('step.riverRepair'), 'travel/repair',
+    if (repair) pousseSi(steps, riverStep('river-repair', 'fleuveReparationDeCommande', repair.actor, t('step.riverRepair'), 'voyage/reparer',
       refLabel('skills', { id: 'metier' }), repair.ligne, TEMPORARY_REPAIR.difficulty, undefined,
       { stake: voyageStakeRef('fleuve-reparation-greement', { driftPenalty: driftNavPenalty(), outOfControlPenalty: OUT_OF_CONTROL.navPenalty }) }));
     else logs.push(t('rv.riggingNoRepairman'));
@@ -352,7 +352,7 @@ export function buildRiverDayCascade(get: Get, set: Set, route: MapRoute): { ste
   if (pilot) {
     const savoir = savoirVoiesFluvialesBonus(pilot.actor);
     const navTest = riverNavTest(river, eff);
-    pousseSi(steps, riverStep('fleuve-navigation', 'fleuveNavigation', pilot.actor, composeRollLabel(undefined, t('step.navigation'), { skill: competence }), 'travel/sail-ship',
+    pousseSi(steps, riverStep('fleuve-navigation', 'fleuveNavigation', pilot.actor, composeRollLabel(undefined, t('step.navigation'), { skill: competence }), 'voyage/navire-a-voile',
       refLabel('skills', competence), { ...pilotLigne!, surLaCible: navTest.mods }, navTest.difficulty, { savoir },
       { stake: voyageStakeRef('fleuve-navigation', { driftKm: Math.round(riverDriftKm(baseKm)), driftPct: driftPctOfSpeed() }) }));
   } else {
@@ -363,7 +363,7 @@ export function buildRiverDayCascade(get: Get, set: Set, route: MapRoute): { ste
   }
 
   // 3. LOUVOYAGE (note 3, l.39) : le +% de vent de côté Modéré/Fort n'est acquis qu'avec un Test réussi.
-  if (eff.tack && pilot) pousseSi(steps, riverStep('fleuve-louvoyage', 'fleuveVirementDeBord', pilot.actor, t('step.fleuveVirementDeBord'), 'nautical/tack',
+  if (eff.tack && pilot) pousseSi(steps, riverStep('fleuve-louvoyage', 'fleuveVirementDeBord', pilot.actor, t('step.fleuveVirementDeBord'), 'nautique/louvoyage',
     refLabel('skills', competence), pilotLigne!, tackDifficulty(), { savoir: savoirVoiesFluvialesBonus(pilot.actor) },
     { stake: voyageStakeRef('fleuve-louvoyage', { windPct: eff.pct ?? 0 }) }));
 
@@ -371,14 +371,14 @@ export function buildRiverDayCascade(get: Get, set: Set, route: MapRoute): { ste
   if (eff.capsizeRisk) {
     // `pilotValue` = la valeur FONDUE du barreur, portée en DONNÉE : le redressement qui suit un
     // chavirage (`fleuveChavirage` → `rightingStep`) en dérive sa cible, et la `base` de l'étape est nue.
-    if (pilot) pousseSi(steps, riverStep('fleuve-chavirage', 'fleuveChavirage', pilot.actor, t('step.fleuveChavirage'), 'nautical/wind',
+    if (pilot) pousseSi(steps, riverStep('fleuve-chavirage', 'fleuveChavirage', pilot.actor, t('step.fleuveChavirage'), 'nautique/vent',
       refLabel('skills', competence), pilotLigne!, CAPSIZE.removeSailDifficulty,
       { savoir: savoirVoiesFluvialesBonus(pilot.actor), pilotValue: pilot.value },
       { stake: voyageStakeRef('fleuve-chavirage', { rounds: Math.max(1, capsizeSinkTurns(effectiveChar(coque, 'endurance'))) }) }));
     else { sinkBoat(get, set, (l) => logs.push(...l), t('rv.capsizeNoPilot')); }
   }
   if (eff.riggingRisk) {
-    if (pilot) pousseSi(steps, riverStep('fleuve-preserver-greement', 'fleuveGreement', pilot.actor, t('step.fleuveGreement'), 'nautical/wind',
+    if (pilot) pousseSi(steps, riverStep('fleuve-preserver-greement', 'fleuveGreement', pilot.actor, t('step.fleuveGreement'), 'nautique/vent',
       refLabel('skills', competence), pilotLigne!, CAPSIZE.removeSailDifficulty, { savoir: savoirVoiesFluvialesBonus(pilot.actor) },
       { stake: voyageStakeRef('fleuve-preserver-greement', { outOfControlPenalty: OUT_OF_CONTROL.navPenalty }) }));
     else { steps.push(...applyBoatCriticalNoPilot(get, set, coque, (l) => logs.push(...l))); }
@@ -399,10 +399,10 @@ export function buildRiverDayCascade(get: Get, set: Set, route: MapRoute): { ste
     const peril = findRiverPeril(spawn.perilId);
     if (!peril) continue;
     const commun = {
-      id: `river-peril-${i}`, kind: 'fleuveTestDePeril' as const, icon: 'ui/warning', label: dataLabel(peril.label),
+      id: `river-peril-${i}`, kind: 'fleuveTestDePeril' as const, icon: 'interface/attention', label: dataLabel(peril.label),
       meta: { perilId: spawn.perilId, chancePct: spawn.chancePct, savoir: pilot ? savoirVoiesFluvialesBonus(pilot.actor) : 0,
         hasPilot: !!pilot,
-        navDrift: !!eff.drift || !!river.broken, navOutOfControl: !!river.outOfControl,
+        navDrift: !!eff.derive || !!river.broken, navOutOfControl: !!river.outOfControl,
         // Libellé de la LIGNE du Test d'évitement inséré par l'applier : la compétence du barreur
         // (l.15), RÉSOLUE par la couture id→label du catalogue et portée en donnée — l'applier n'a
         // plus à la deviner.
@@ -572,7 +572,7 @@ function rightingStep(get: Get, source: CascadeStep, round: number, be: number):
     return undefined;
   }
   return monoStep({
-    id: `${source.id}-right-${round}`, kind: 'fleuveRedressement', actor: porteur, icon: 'nautical/tack',
+    id: `${source.id}-right-${round}`, kind: 'fleuveRedressement', actor: porteur, icon: 'nautique/louvoyage',
     label: stepDetail(t('step.fleuveRedressement'), t('step.round', { n: round + 1, total: rounds })),
     rollLabel: source.rollLabel ?? t('rv.navigation'),
     difficulty: capsizeRightDifficulty(),
@@ -662,7 +662,7 @@ function holeBoat(get: Get, set: Set, plan: TravelPlan, tell: (l: string[]) => v
   if (repair && surfaceOf(get, repair.actor.id)) {
     tell([t('rv.holed', { min: minutes })]);
     const st = monoStep({
-      id: `${idPrefix}-hole`, kind: 'fleuveReparationDeBreche', actor: repair.actor, icon: 'travel/repair',
+      id: `${idPrefix}-hole`, kind: 'fleuveReparationDeBreche', actor: repair.actor, icon: 'voyage/reparer',
       label: t('step.fleuveReparationDeBreche'), rollLabel: refLabel('skills', { id: 'metier' }), difficulty: TEMPORARY_REPAIR.difficulty,
       ligne: repair.ligne,
       stake: voyageStakeRef('fleuve-calfatage', { minutes }),
@@ -726,7 +726,7 @@ function resolveRiverPerilConsequence(get: Get, set: Set, peril: NonNullable<Ret
       j.push(t('rv.pilotKnows', { peril: peril.label }));
     } else if (pilot && surfaceOf(get, pilot.id)) {
       const st = monoStep({
-        id: `${step.id}-detect`, kind: 'fleuveDetectionDePeril', actor: pilot, icon: 'nautical/snag', label: stepDetail(dataLabel(peril.label), t('step.detection')),
+        id: `${step.id}-detect`, kind: 'fleuveDetectionDePeril', actor: pilot, icon: 'nautique/bois-flottant', label: stepDetail(dataLabel(peril.label), t('step.detection')),
         rollLabel: t('char.agilite'), difficulty: 'intermediaire',
         ligne: { test: { characteristic: 'agilite' } },
         stake: voyageStakeRef('fleuve-peril-detection', { damage: peril.onHit.hullDamage }),
@@ -789,7 +789,7 @@ function applyEchouageSteps(get: Get, set: Set, idPrefix: string, j: import('./r
   const { penalite } = echouagePenalty(get);
   j.push(t('rv.grounded', { dmg: echouageDamage(), suite: t('rv.fragDot') }));
   const st = monoStep({
-    id: `${idPrefix}-echouage`, kind: 'fleuveEchouageForce', actor: force.actor, icon: 'travel/repair',
+    id: `${idPrefix}-echouage`, kind: 'fleuveEchouageForce', actor: force.actor, icon: 'voyage/reparer',
     label: t('step.riverEchouage'), rollLabel: t('char.force'), difficulty: ECHOUAGE_DIFFICULTY,
     ligne: { test: { characteristic: 'force' }, valeur: force.value, soutien: force.support, ...(penalite ? { surLaCible: [penalite] } : {}) },
     stake: voyageStakeRef('fleuve-renflouage'),
@@ -853,7 +853,7 @@ export const TABLES = {
   appliers: {
     [RIVER_EXPOSURE_KIND]: (get, set, step) => {
       if (!step.result) return {};
-      if (!step.result.success) return { consequences: freeCons([{ text: t('rv.exposureNone'), tone: 'info' }]) };
+      if (!step.result.success) return { consequences: freeCons([{ text: t('rv.exposureNone'), tone: 'neutre' }]) };
       const mode = step.meta?.exposureMode as import('../data').WaterExposureMode;
       const source = step.meta?.exposureSource as string | undefined;
       openWaterExposure(get, set, effectTargets(get, 'party'), { mode, source }, 'fleuveExposition');
@@ -866,8 +866,8 @@ export const TABLES = {
       if (step.result.success) set({ travelPlan: { ...get().travelPlan!, river: { ...get().travelPlan!.river!, broken: false, outOfControl: false } } });
       const name = garanti(hero, step.actorId, 'charpentier').label;
       return { consequences: freeCons([step.result.success
-        ? { text: t('rv.repairOk', { name }), tone: 'ok' }
-        : { text: t('rv.repairKo', { name }), tone: 'bad' }]) };
+        ? { text: t('rv.repairOk', { name }), tone: 'reussite' }
+        : { text: t('rv.repairKo', { name }), tone: 'echec' }]) };
     },
     /** Navigation de l'étape (l.15) : perte de contrôle (échec non rattrapé par Savoir) → dérive. */
     fleuveNavigation: (get, set, step, hero) => {
@@ -878,7 +878,7 @@ export const TABLES = {
       const savoirNote = savoir > 0 ? t('rv.fragSavoir', { n: savoir }) : '';
       return { consequences: freeCons([{
         text: t('rv.navLine', { who: garanti(hero, step.actorId, 'pilote').label, savoir: savoirNote, issue: controlLabel(kept, step.result.success) }),
-        tone: step.result.success ? 'ok' : kept ? 'info' : 'bad',
+        tone: step.result.success ? 'reussite' : kept ? 'neutre' : 'echec',
       }]) };
     },
     /** Louvoyage (note 3, l.39) : le +% de vent n'est acquis qu'avec un Test réussi. */
@@ -889,8 +889,8 @@ export const TABLES = {
       const windPct = get().travelPlan?.river?.day?.windPct ?? 0;
       if (!ok) patchDay(get, set, { windPct: 0 });
       return { consequences: freeCons([ok
-        ? { text: t('rv.tackOk', { pct: windPct }), tone: 'ok' }
-        : { text: t('rv.tackKo'), tone: 'bad' }]) };
+        ? { text: t('rv.tackOk', { pct: windPct }), tone: 'reussite' }
+        : { text: t('rv.tackKo'), tone: 'echec' }]) };
     },
     /** Chavirage (note 4, l.40) : voile retirée à temps → dérive ; sinon le redressement s'ouvre Round par
      *  Round (une étape INFLUENÇABLE par Round, jusqu'à BE Rounds) ou le bateau coule. Le bateau ne fait au
@@ -898,11 +898,11 @@ export const TABLES = {
     fleuveChavirage: (get, set, step) => {
       if (!step.result) return;
       patchDay(get, set, { forceDrift: true });
-      if (step.result.success) return { consequences: freeCons([{ text: t('rv.capsizeAvoided'), tone: 'ok' }]) };
+      if (step.result.success) return { consequences: freeCons([{ text: t('rv.capsizeAvoided'), tone: 'reussite' }]) };
       const be = capsizeSinkTurns(effectiveChar(get().travelPlan!.vehicle!, 'endurance'));
       const premier = rightingStep(get, step, 0, be);
       return {
-        consequences: freeCons([{ text: t('rv.capsizeHappens'), tone: 'bad' }]),
+        consequences: freeCons([{ text: t('rv.capsizeHappens'), tone: 'echec' }]),
         ...(premier ? { insert: [premier] } : {}),
       };
     },
@@ -917,12 +917,12 @@ export const TABLES = {
       const savoir = Number(step.meta?.savoir ?? 0);
       const savoirNote = savoir > 0 ? t('rv.fragSavoir', { n: savoir }) : '';
       if (riverControlKept(step.result.success, step.result.sl, savoir)) {
-        return { consequences: freeCons([{ text: t('rv.righted', { n: round + 1, savoir: savoirNote }), tone: 'ok' }]) };
+        return { consequences: freeCons([{ text: t('rv.righted', { n: round + 1, savoir: savoirNote }), tone: 'reussite' }]) };
       }
       if (round + 1 < be) {
         const suivant = rightingStep(get, { ...step, id: step.id.replace(/-right-\d+$/, '') }, round + 1, be);
         return {
-          consequences: freeCons([{ text: t('rv.stillOnSide', { n: round + 1, be }), tone: 'bad' }]),
+          consequences: freeCons([{ text: t('rv.stillOnSide', { n: round + 1, be }), tone: 'echec' }]),
           ...(suivant ? { insert: [suivant] } : {}),
         };
       }
@@ -934,8 +934,8 @@ export const TABLES = {
     /** Gréement en péril (note 5, l.41) : Test raté → Critique au gréement + dérive hors de contrôle. */
     fleuveGreement: (get, set, step) => {
       if (!step.result) return;
-      if (step.result.success) return { consequences: freeCons([{ text: t('rv.riggingHolds'), tone: 'ok' }]) };
-      const j: import('./rollSeam').FreeConsLine[] = [{ text: t('rv.riggingCrit'), tone: 'bad' }];
+      if (step.result.success) return { consequences: freeCons([{ text: t('rv.riggingHolds'), tone: 'reussite' }]) };
+      const j: import('./rollSeam').FreeConsLine[] = [{ text: t('rv.riggingCrit'), tone: 'echec' }];
       const insert = applyBoatCritical(get, set, get().travelPlan!, get().travelPlan!.river!, get().travelPlan!.vehicle!, 'greement', (l) => j.push(...l), battleRng(), step.id);
       set({ travelPlan: { ...get().travelPlan!, river: { ...get().travelPlan!.river!, outOfControl: true } } });
       patchDay(get, set, { forceDrift: true });
@@ -970,7 +970,7 @@ export const TABLES = {
         const onFail = peril.onFail;
         if (!onFail) return resolveRiverPerilConsequence(get, set, peril, { ...step, result: null }, rng);
         const st = monoStep({
-          id: `${step.id}-nav`, kind: 'fleuvePerilNavigation', actor: pilot.actor, icon: 'nautical/snag', label: stepDetail(dataLabel(peril.label), t('step.evitement')),
+          id: `${step.id}-nav`, kind: 'fleuvePerilNavigation', actor: pilot.actor, icon: 'nautique/bois-flottant', label: stepDetail(dataLabel(peril.label), t('step.evitement')),
           rollLabel: String(step.meta?.navLabel ?? riverPilotSkillLabel(get)), difficulty: navBaseDifficulty(),
           ligne: {
             test: { skill: competence }, valeur: pilot.value, soutien: pilot.support,
@@ -993,7 +993,7 @@ export const TABLES = {
           ?? partyAssisted(get().party, { characteristic: 'force' })?.actor.id
           ?? get().party.find((h) => !h.dead)?.id ?? '';
         const st = choiceStep({
-          id: `${step.id}-obstacle`, kind: 'fleuveChoixDObstacle', actorId: decideur, icon: 'ui/warning',
+          id: `${step.id}-obstacle`, kind: 'fleuveChoixDObstacle', actorId: decideur, icon: 'interface/attention',
           label: stepDetail(stepPrecision(dataLabel(peril.label), t('step.obstacleStats', { endurance: b.endurance, blessures: b.wounds })), t('step.forcerOuDeblayer')),
           options: [
             { key: 'deblayer', label: t('opt.deblayer'), detail: t('rv.obstacleClearDetail') },
@@ -1042,9 +1042,9 @@ export const TABLES = {
         const healed = Math.min(plan.vehicle!.wounds.max - plan.vehicle!.wounds.current, tirer(TEMPORARY_REPAIR.woundsPerRepair, battleRng()));
         healVesselHull(get, set, plan.vehicle!, healed);
         set({ travelPlan: { ...get().travelPlan!, river: { ...get().travelPlan!.river!, holed: false } } });
-        return { consequences: freeCons([{ text: t('rv.holeRepairOk', { name, n: healed }), tone: 'ok' }]) };
+        return { consequences: freeCons([{ text: t('rv.holeRepairOk', { name, n: healed }), tone: 'reussite' }]) };
       }
-      const j: import('./rollSeam').FreeConsLine[] = [{ text: t('rv.holeRepairKo', { name }), tone: 'bad' }];
+      const j: import('./rollSeam').FreeConsLine[] = [{ text: t('rv.holeRepairKo', { name }), tone: 'echec' }];
       // MSRC 7 l.103
       sinkBoat(get, set, (l) => j.push(...l), t('rv.sinkLeak'));
       return { consequences: freeCons(j) };
@@ -1055,8 +1055,8 @@ export const TABLES = {
     fleuveDetectionDePeril: (get, set, step) => {
       const peril = findRiverPeril(String(step.meta?.perilId ?? ''));
       if (!step.result || !peril?.onHit) return;
-      if (step.result.success) return { consequences: freeCons([{ text: t('rv.perilAvoided', { peril: peril.label }), tone: 'ok' }]) };
-      const j: import('./rollSeam').FreeConsLine[] = [{ text: t('rv.perilImpact', { peril: peril.label }), tone: 'bad' }];
+      if (step.result.success) return { consequences: freeCons([{ text: t('rv.perilAvoided', { peril: peril.label }), tone: 'reussite' }]) };
+      const j: import('./rollSeam').FreeConsLine[] = [{ text: t('rv.perilImpact', { peril: peril.label }), tone: 'echec' }];
       const rng = battleRng();
       const impact = resolveRiverImpact(peril.onHit, rng);
       const plan = get().travelPlan!;
@@ -1073,8 +1073,8 @@ export const TABLES = {
       if (!step.result) return;
       const name = garanti(hero, step.actorId, 'renfloueur').label;
       return { consequences: freeCons([step.result.success
-        ? { text: t('rv.refloatedOk', { name }), tone: 'ok' }
-        : { text: t('rv.refloatedKo', { name }), tone: 'bad' }]) };
+        ? { text: t('rv.refloatedOk', { name }), tone: 'reussite' }
+        : { text: t('rv.refloatedKo', { name }), tone: 'echec' }]) };
     },
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
 } satisfies FragmentDeTables;

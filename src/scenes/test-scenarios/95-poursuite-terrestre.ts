@@ -60,7 +60,7 @@ export const scenario: TestScenario = {
   id: 'poursuite-terrestre',
   order: 3,
   category: 'combat',
-  icon: 'scenario/travel',
+  icon: 'scenario/voyage',
   title: 'Poursuite terrestre',
   tests:
     // LDB 15 l.88-108

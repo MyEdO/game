@@ -15,7 +15,7 @@ import { SearchFilterField, useFilteredList } from '../SearchFilterField';
 /** Options du picker d'icône (#361) : catalogue COMPLET `src/data/icons` — un id du registre, jamais
  *  un emoji libre. Composition MediaSelect + Icon (patron `ItemIcon`/`MediaSelect`). */
 const ICON_OPTIONS: MediaOption[] = [
-  { key: '', media: <Icon id="map-tool/pin" size="sm" />, label: 'Épingle par défaut' },
+  { key: '', media: <Icon id="outil-de-carte/epingle" size="sm" />, label: 'Épingle par défaut' },
   ...Object.values(ICON_DEFS)
     .sort((a, b) => a.id.localeCompare(b.id))
     .map((d) => ({ key: d.id, media: <Icon id={d.id} size="sm" />, label: d.label, sub: d.id })),

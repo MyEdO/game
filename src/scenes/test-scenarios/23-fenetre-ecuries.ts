@@ -156,7 +156,7 @@ export const scenario: TestScenario = {
   id: 'fenetre-ecuries',
   order: 27,
   category: 'scenarios',
-  icon: 'scenario/hamlet',
+  icon: 'scenario/hameau',
   title: 'La fenêtre sur les écuries',
   tests:
     // EDO 01 l.229-231

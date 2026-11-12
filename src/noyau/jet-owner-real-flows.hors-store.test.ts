@@ -63,11 +63,11 @@ const geste = (cle: string): [string, unknown[]] => {
 /** Verdict des 3 sièges pour un geste : [hôte, joueur, MJ]. */
 const seats = (cle: string) => [0, 1, 2].map((seat) => intentAllowedFor(g(), seat, ...geste(cle)));
 
-const INFLUENCE: RollVerb[] = ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'];
-const CORRUPTION_VERBS = verbs('corruption', [...INFLUENCE, 'resist']);
+const INFLUENCE: RollVerb[] = ['lancer', 'relancer', 'ajouterUnDR', 'pactiser', 'forcerLaReussite', 'imposerLeResultat'];
+const CORRUPTION_VERBS = verbs('corruption', [...INFLUENCE, 'resister']);
 const HEAL_VERBS = verbs('soins', INFLUENCE);
-const RUN_VERBS = verbs('course', ['roll', 'reroll', 'bonusSL', 'forceSuccess', 'setForcedRoll', 'darkPact']);
-const DISENGAGE_VERBS = verbs('desengagement', ['reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll']);
+const RUN_VERBS = verbs('course', ['lancer', 'relancer', 'ajouterUnDR', 'forcerLaReussite', 'imposerLeResultat', 'pactiser']);
+const DISENGAGE_VERBS = verbs('desengagement', ['relancer', 'ajouterUnDR', 'pactiser', 'forcerLaReussite', 'imposerLeResultat']);
 const ACTIVITY_VERBS = verbs('activite', INFLUENCE);
 
 describe('#1015 — sonde 1 : `corruption` sous une fenêtre PRIORITAIRE d’un autre siège', () => {
@@ -83,7 +83,7 @@ describe('#1015 — sonde 1 : `corruption` sous une fenêtre PRIORITAIRE d’un 
     // …puis une fenêtre d'ATTAQUE du héros `b` (siège 1) s'ouvre PAR-DESSUS : `corruption` est la
     // dernière entrée de `MODAL_DEFS`, la cascade lui prend le owner de modale.
     banc.setState({ battle: { ...g().battle!, turn: 1 } });
-    openAttackCascade(g, banc.setState, { attackerId: 'b', targetId: 'e', location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
+    openAttackCascade(g, banc.setState, { attackerId: 'b', targetId: 'e', location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attaquer');
     expect(modalOwnerOf(g()), 'précondition : la fenêtre ACTIVE est celle d’un AUTRE acteur').toBe('b');
     for (const i of CORRUPTION_VERBS) {
       expect(seats(i), `${i} : la Corruption du corrompu ne se dépense que depuis SON siège`).toEqual([true, false, false]);

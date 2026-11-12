@@ -165,7 +165,7 @@ const construireCarte = (): WorldMap => ({
   places: [
     { id: 'p-village', label: 'Weiler', pos: { x: 24, y: 62 }, scene: { id: 'test-voyage-village' }, icon: 'scenario/village',
       prose: 'Une rue de boue, un puits, une auberge dont l’enseigne grince. Weiler vit de ses champs et de ceux qui passent : la piste s’enfonce sous les arbres vers Federholz, la route descend vers le bourg de Steinbruck.' },
-    { id: 'p-hameau', label: 'Federholz', pos: { x: 72, y: 30 }, scene: { id: 'test-voyage-hameau' }, icon: 'scenario/hamlet',
+    { id: 'p-hameau', label: 'Federholz', pos: { x: 72, y: 30 }, scene: { id: 'test-voyage-hameau' }, icon: 'scenario/hameau',
       prose: 'Quelques toits de chaume serrés contre la lisière. Les bûcherons de Federholz regardent passer les étrangers sans hâte ; après la dernière clôture commence la longue route d’Altdorf.' },
     { id: 'p-bourg', label: 'Steinbruck', pos: { x: 70, y: 78 }, scene: { id: 'test-voyage-bourg' }, icon: 'scenario/port', services: [{ kind: { id: 'auberge' }, rest: { auberge: true } }, { kind: { id: 'forgeron' } }],
       prose: 'Un bourg de pierre grise au carrefour des routes, où les diligences changent de chevaux. L’auberge et la forge se font face sur la place, et l’on entend le marteau jusque dans la cour du relais.' },
@@ -216,7 +216,7 @@ export const scenario: TestScenario = {
   id: 'voyage',
   order: 6,
   category: 'survie',
-  icon: 'scenario/travel',
+  icon: 'scenario/voyage',
   title: 'Voyage & temps long',
   tests:
     'Carte du monde, voyage à pied/diligence, postes d’Étapes PERSISTANTS par héros (Plein air/Aguets/Cartes/' +

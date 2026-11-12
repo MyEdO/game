@@ -99,7 +99,7 @@ describe('#989 — quadrant siège MJ : attaque PILOTÉE → la défense s’int
   it('gmSeat mêlée sur héros : jetLancer@attaque→jetValider@attaque interpose la fenêtre ; jetValider@defense ne fait PAS avancer le tour', () => {
     const { enemy, hero } = setup({ x: 1, y: 0 }, [sword], { gmSeat: 0 });
     const g = banc.getState;
-    openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
+    openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attaquer');
     expect(g().pendingAttack, 'la cascade d’attaque est ouverte').toBeTruthy();
     g().jetLancer('attaque');
     expect(g().pendingAttack!.result!.defenderDetail, 'aucune défense roulée en silence au jet d’attaque').toBeUndefined();
@@ -120,7 +120,7 @@ describe('#989 — quadrant siège MJ : attaque PILOTÉE → la défense s’int
     const { enemy, hero } = setup({ x: 1, y: 0 }, [sword], { gmSeat: 0 });
     const g = banc.getState;
     banc.setState({ battle: { ...g().battle!, turn: 1 } }); // tour du héros
-    openAttackCascade(g, banc.setState, { attackerId: hero.id, targetId: enemy.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
+    openAttackCascade(g, banc.setState, { attackerId: hero.id, targetId: enemy.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attaquer');
     g().jetLancer('attaque');
     g().jetValider('attaque');
     const pd = g().pendingDefense;
@@ -146,7 +146,7 @@ describe('#1142 — la valeur NUE traverse la fenêtre de défense, dé POSÉ co
     enemy.advantage = 1; // +10 à l'attaque (Avantage) : la cible (55) s'écarte de la valeur nue (45)
     hero.characteristics['capacite-de-combat'] = 25; // Esquive (Agilité 40) = sa meilleure défense
     const g = banc.getState as unknown as () => Record<string, (...a: unknown[]) => void>;
-    openAttackCascade(banc.getState, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
+    openAttackCascade(banc.getState, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attaquer');
     g().jetLancer('attaque');
     g().jetImposerLeResultat('attaque', 21); // DR 3 côté attaque (cible 55)
     g().jetValider('attaque');
@@ -188,9 +188,9 @@ describe('#989 LOT 0 — fermeture du siège MJ : `gmSeat` est PURGÉ', () => {
 function playWindow(seed: number, pa: Partial<PendingAttack>, opts?: { force?: boolean }): AttackResult {
   const { enemy, hero } = setup({ x: 1, y: 0 }, [sword], { gmSeat: 0 });
   const g = banc.getState;
-  if (opts?.force) enemy.resilience = 1; // la Résilience est une RESSOURCE : sans point, `forceSuccess` est un no-op
+  if (opts?.force) enemy.resilience = 1; // la Résilience est une RESSOURCE : sans point, `forcerLaReussite` est un no-op
   seedBattleRng(seed);
-  openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw', ...pa }, 'Attaque', 'action/attack');
+  openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw', ...pa }, 'Attaque', 'action/attaquer');
   // « au lieu de lancer les dés pour un Test, vous choisissez le résultat » (LDB 17 l.68)
   if (opts?.force) g().jetForcerLaReussite('attaque'); else g().jetLancer('attaque');
   g().jetValider('attaque');
@@ -216,7 +216,7 @@ describe('#989 R1 — le contexte d’opposition TRAVERSE la fenêtre (pas de D�
     const { enemy, hero } = setup({ x, y: 0 }, [bow], { gmSeat: 0 });
     const g = banc.getState;
     seedBattleRng(seed);
-    openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'bw', ...pa }, 'Attaque', 'action/attack');
+    openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'bw', ...pa }, 'Attaque', 'action/attaquer');
     g().jetLancer('attaque');
     const passif = g().pendingAttack!.result!;
     if (x > 1) return passif;
@@ -285,7 +285,7 @@ describe('#989 R4 — Maladresse du défenseur : UN helper, MÊME ordre (après 
     hero.wounds.current = wounds;
     const g = banc.getState;
     seedBattleRng(seed);
-    openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
+    openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attaquer');
     g().jetLancer('attaque'); g().jetValider('attaque'); g().jetLancer('defense');
     const res = g().pendingDefense!.result!;
     return { hero, res, confirm: () => g().jetValider('defense'), state: g };
@@ -375,7 +375,7 @@ function playForcings(seed: number, opts: { atk?: boolean; def?: boolean }) {
   const g = banc.getState;
   enemy.resilience = 1; hero.resilience = 1;
   seedBattleRng(seed);
-  openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
+  openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attaquer');
   // Chaque forçage remplace le jet de son camp (LDB 17 l.68)
   if (opts.atk) g().jetForcerLaReussite('attaque'); else g().jetLancer('attaque');
   g().jetValider('attaque');
@@ -393,7 +393,7 @@ function playPosed(opts: { forceAtk?: boolean; forceDef?: boolean; atkDie?: numb
   const g = banc.getState;
   enemy.resilience = 1; hero.resilience = 1;
   seedBattleRng(opts.seed ?? 3);
-  openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
+  openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attaquer');
   // Chaque forçage remplace le jet de son camp (LDB 17 l.68)
   if (opts.forceAtk) g().jetForcerLaReussite('attaque'); else g().jetLancer('attaque');
   // « pire » = la réussite la MOINS bonne (DR naturel minimal) : sans garantie, ce dé perd l'opposition.

@@ -102,7 +102,7 @@ function opsDesBranches(f: Flow | undefined, out: GameOp[] = []): GameOp[] {
   if (f.kind === 'seq') { f.steps.forEach((s) => opsDesBranches(s, out)); return out; }
   if (f.kind === 'if') { opsDesBranches(f.then, out); opsDesBranches(f.else, out); return out; }
   if (f.kind === 'test') { opsDesBranches(f.success, out); opsDesBranches(f.fail, out); return out; }
-  opsDesBranches(f.yes, out); opsDesBranches(f.no, out);
+  opsDesBranches(f.oui, out); opsDesBranches(f.non, out);
   return out;
 }
 

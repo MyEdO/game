@@ -12,7 +12,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const HIT: AttackResult = {
   hit: true, attackerRoll: 40, netSL: 1, location: 'corps', damage: 3, woundsLost: 3,
-  critical: false, advantageTo: 'attacker', defenderDefeated: false, log: '',
+  critical: false, advantageTo: 'attaquant', defenderDefeated: false, log: '',
 };
 
 /**

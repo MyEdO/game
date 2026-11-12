@@ -310,7 +310,7 @@ export function CampaignView() {
             /* Carte du monde (#T2) : la scène est un lieu connu, ou un voyage interrompu attend. */
             worldMap={worldMap && (lieu || travelPlan) ? { onOpen: ouvrirLaCarte, interrupted: !!travelPlan?.interrupted } : undefined}
             /* Hub de ville (#343) : à un lieu offrant au moins un service, ou un couchage sur place. */
-            hub={hubPlace ? { label: hubPlace.label, icon: hubPlace.icon ?? 'nav/campaign', onOpen: ouvrirLeLieu } : undefined}
+            hub={hubPlace ? { label: hubPlace.label, icon: hubPlace.icon ?? 'navigation/campagne', onOpen: ouvrirLeLieu } : undefined}
             /* Dormir ici HORS lieu (route, camp sauvage) — l'offre vient de la ZONE où se tient le
                groupe, sinon de la scène. À un lieu, le repos vit DANS le hub. */
             rest={!travelPlan && restHere && !hubPlace
@@ -386,7 +386,7 @@ export function CampaignView() {
                   onClick={() => setDossierOpen(true)}
                   title="Dossier du navire — état, cargaison, équipage"
                 >
-                  <Icon id="travel/sail-ship" size="lg" />
+                  <Icon id="voyage/navire-a-voile" size="lg" />
                 </button>
               )}
               <LogDrawer battle={battle ? { log: battle.log, combatants: battle.combatants } : null} journal={journal} />

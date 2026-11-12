@@ -32,7 +32,7 @@ export const PENDING_BY_JET = {
 } as const satisfies Record<HostJet, PendingKey | null>;
 
 /** Les pendings porteurs d'une étape-jet : l'arbitre les rend sous la cascade, et leur annulation
- *  ferme aussi la cascade-hôte (`rollFlowFactory`, teardown de `cancel`). */
+ *  ferme aussi la cascade-hôte (`rollFlowFactory`, teardown de `annuler`). */
 export type PorteurDEtape = Exclude<(typeof PENDING_BY_JET)[HostJet], null>;
 export const PORTEURS_D_ETAPE: readonly PorteurDEtape[] = Object.values(PENDING_BY_JET).filter((k): k is PorteurDEtape => k != null);
 

@@ -12,14 +12,14 @@ const F = 'fill="currentColor" stroke="none"';
 
 export const icons: IconFamily = [
   {
-    id: 'creature/bite',
+    id: 'creature/morsure',
     label: 'Morsure',
     svg:
       `<path ${F} d="M4.2 8.8 C5.2 4.9 18.8 4.9 19.8 8.8 L18 8.8 L16.5 11.9 L15 8.8 L13 8.8 L11.5 11.9 L10 8.8 L8 8.8 L6.5 11.9 L5 8.8 Z"/>` +
       `<path ${F} d="M4.8 15.4 C5.8 19.3 18.2 19.3 19.2 15.4 L17.2 15.4 L15.7 12.5 L14.2 15.4 L11.7 15.4 L10.2 12.5 L8.7 15.4 Z"/>`,
   },
   {
-    id: 'creature/tail',
+    id: 'creature/caudale',
     label: 'Caudale',
     svg:
       `<path ${F} d="M3.6 21 C4.6 15.8 7.4 11.6 12 8.7 C14.8 6.9 17 5.4 18.9 3.6 C18.2 6.6 16.2 8.9 12.9 11.1 C9.3 13.5 7 16.8 6.6 21.2 Z"/>` +
@@ -27,7 +27,7 @@ export const icons: IconFamily = [
       `<path ${KF} d="M17.7 14.7 C19.4 13.4 20.9 11.9 22 10.2"/>`,
   },
   {
-    id: 'creature/horns',
+    id: 'creature/cornes',
     label: 'Cornes',
     svg:
       `<path ${F} d="M10.8 19.2 C6.8 17.6 4.6 13.6 4.9 8.6 C5 7 5.4 5.5 6.2 4.1 C6.3 6 6.9 7.6 8 9.1 C10 11.7 11 14.8 10.8 19.2 Z"/>` +
@@ -35,7 +35,7 @@ export const icons: IconFamily = [
       `<path ${KF} d="M10.6 20 C11.5 20.5 12.5 20.5 13.4 20"/>`,
   },
   {
-    id: 'creature/breath',
+    id: 'creature/souffle',
     label: 'Souffle',
     svg:
       // Gueule béante (deux mâchoires courbes) + éventail de trois jets divergents.
@@ -46,7 +46,7 @@ export const icons: IconFamily = [
       `<path ${K} d="M10.4 13.6 C13.6 15.2 16.9 16.3 20.6 16.9"/>`,
   },
   {
-    id: 'creature/vomit',
+    id: 'creature/vomi',
     label: 'Vomi',
     svg:
       `<path ${F} d="M3.4 4.8 L11.2 8.6 L4 9.6 Z"/>` +
@@ -56,7 +56,7 @@ export const icons: IconFamily = [
       `<circle ${F} cx="16.6" cy="19.2" r="0.7"/>`,
   },
   {
-    id: 'creature/tentacles',
+    id: 'creature/tentacules',
     label: 'Tentacules',
     svg:
       `<path ${F} d="M5 21 C4.4 15.6 5.8 10.8 9 7.4 C10.4 5.9 12 5.2 13.2 5.8 C12.4 6.3 11.5 7 10.7 7.9 C7.9 11.2 6.8 15.6 7.6 20.9 Z"/>` +
@@ -68,7 +68,7 @@ export const icons: IconFamily = [
       `<circle ${F} cx="17.9" cy="14.6" r="0.55"/>`,
   },
   {
-    id: 'creature/squeeze',
+    id: 'creature/etreinte',
     label: 'Étreinte',
     svg:
       `<ellipse ${K} cx="12" cy="7" rx="5.4" ry="2.2"/>` +
@@ -77,7 +77,7 @@ export const icons: IconFamily = [
       `<circle ${F} cx="17.6" cy="5.6" r="1.3"/>`,
   },
   {
-    id: 'creature/gaze',
+    id: 'creature/regard',
     label: 'Regard',
     svg:
       `<path ${K} d="M3.6 13.2 C6.2 9.2 9 7.3 12 7.3 C15 7.3 17.8 9.2 20.4 13.2 C17.8 17.2 15 19.1 12 19.1 C9 19.1 6.2 17.2 3.6 13.2 Z"/>` +
@@ -85,7 +85,7 @@ export const icons: IconFamily = [
       `<path ${K} d="M12 4.9 V2.6 M6.6 6.4 L5.2 4.6 M17.4 6.4 L18.8 4.6"/>`,
   },
   {
-    id: 'creature/tongue',
+    id: 'creature/langue',
     label: 'Langue',
     svg:
       `<path ${F} d="M3.4 7.8 L10.2 10.9 L4 11.7 Z"/>` +
@@ -94,7 +94,7 @@ export const icons: IconFamily = [
       `<circle ${F} cx="19.9" cy="4" r="1.15"/>`,
   },
   {
-    id: 'creature/scream',
+    id: 'creature/hurlement',
     label: 'Hurlement',
     svg:
       `<path ${F} d="M3.4 5.8 L11 10.8 L4 11.5 Z"/>` +

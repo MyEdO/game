@@ -53,7 +53,7 @@ describe('Editor v2 (rendu)', () => {
     expect(html).toContain('↶');
     expect(html).toContain('↷');
     expect(html).toContain('Scène active'); // aria-label du sélecteur de scènes
-    expect(html).toContain('Monde'); // bouton « <Icon nav/campaign> Monde » (préfixe 🗺️ migré en icône)
+    expect(html).toContain('Monde'); // bouton « <Icon navigation/campagne> Monde » (préfixe 🗺️ migré en icône)
     expect(html).toContain('▶ Tester');
   });
 
@@ -81,9 +81,9 @@ describe('Editor v2 (rendu)', () => {
 
   it('rend la barre de statut (calques) et le dock Logique (onglets + compteurs)', () => {
     expect(html).toContain('Calques');
-    expect(html).toContain('Triggers'); // onglet « <Icon map-tool/zone> Triggers »
-    expect(html).toContain('Dialogues'); // onglet « <Icon merchant/haggle> Dialogues »
-    expect(html).toContain('Rencontres'); // onglet « <Icon action/attack> Rencontres » (préfixe ⚔️ migré)
+    expect(html).toContain('Triggers'); // onglet « <Icon outil-de-carte/zone> Triggers »
+    expect(html).toContain('Dialogues'); // onglet « <Icon marchand/marchander> Dialogues »
+    expect(html).toContain('Rencontres'); // onglet « <Icon action/attaquer> Rencontres » (préfixe ⚔️ migré)
     expect(html).toContain('Validation');
   });
 

@@ -3474,7 +3474,7 @@ describe('CombatConsole — geste secondaire de l’alvéole (Focaliser)', () =>
 
   it('DEUX gestes secondaires sur le même hôte (entrée FABRIQUÉE) : panneau ancré, 2 candidats, Échap gratuit', () => {
     const fabrique: ActionDef = {
-      id: 'test-geste-2e-fabrique' as ActionId, label: 'Geste fabriqué', icon: 'flag/focus',
+      id: 'test-geste-2e-fabrique' as ActionId, label: 'Geste fabriqué', icon: 'drapeau/focalisation',
       surface: 'geste-secondaire', hote: { id: 'incantation' }, gate: 'toujours',
       run: 'focaliserLeSort', candidates: 'sorts-du-heros', coutAction: 'gratuit',
     };
@@ -3515,7 +3515,7 @@ describe('CombatConsole — geste secondaire de l’alvéole (Focaliser)', () =>
 
   it('APPUI LONG puis `contextmenu` NATIF : UN seul déclenchement (le doigt ne bascule pas le panneau)', () => {
     const fabrique: ActionDef = {
-      id: 'test-geste-2e-fabrique' as ActionId, label: 'Geste fabriqué', icon: 'flag/focus',
+      id: 'test-geste-2e-fabrique' as ActionId, label: 'Geste fabriqué', icon: 'drapeau/focalisation',
       surface: 'geste-secondaire', hote: { id: 'incantation' }, gate: 'toujours',
       run: 'focaliserLeSort', candidates: 'sorts-du-heros', coutAction: 'gratuit',
     };
@@ -3612,7 +3612,7 @@ describe('CombatConsole — geste secondaire de l’alvéole (Focaliser)', () =>
 
   it('CLIC DROIT MAINTENU (contextmenu À L’APPUI, macOS/Linux) : le minuteur d’appui long ne rejoue pas le geste', () => {
     const fabrique: ActionDef = {
-      id: 'test-geste-2e-fabrique' as ActionId, label: 'Geste fabriqué', icon: 'flag/focus',
+      id: 'test-geste-2e-fabrique' as ActionId, label: 'Geste fabriqué', icon: 'drapeau/focalisation',
       surface: 'geste-secondaire', hote: { id: 'incantation' }, gate: 'toujours',
       run: 'focaliserLeSort', candidates: 'sorts-du-heros', coutAction: 'gratuit',
     };
@@ -3661,7 +3661,7 @@ describe('CombatConsole — geste secondaire de l’alvéole (Focaliser)', () =>
       return h;
     };
     const fabrique: ActionDef = {
-      id: 'test-geste-2e-rechargement' as ActionId, label: 'Geste de recharge', icon: 'flag/focus',
+      id: 'test-geste-2e-rechargement' as ActionId, label: 'Geste de recharge', icon: 'drapeau/focalisation',
       surface: 'geste-secondaire', hote: { id: 'rechargement' }, gate: 'toujours',
       run: 'rechargerLArme', candidates: 'armes-a-distance', coutAction: 'gratuit',
     };

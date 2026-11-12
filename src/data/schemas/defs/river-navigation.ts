@@ -15,13 +15,13 @@ const bandRow = nommerChamps(z.strictObject({ ...plageSchema.shape, id: z.string
 /** `RiverWindEffect` (`src/engine/riverNavigation.ts`). */
 const riverWindEffect = nommerChamps(z.strictObject({
   pct: z.number().optional(),
-  drift: z.boolean().optional(),
+  derive: z.boolean().optional(),
   tack: z.boolean().optional(),
   capsizeRisk: z.boolean().optional(),
   riggingRisk: z.boolean().optional(),
 }), {
   pct: { label: 'Pourcentage' },
-  drift: { label: 'Dérive' },
+  derive: { label: 'Dérive' },
   tack: { label: 'Louvoyage' },
   capsizeRisk: { label: 'Risque de chavirage' },
   riggingRisk: { label: 'Risque pour le gréement' },

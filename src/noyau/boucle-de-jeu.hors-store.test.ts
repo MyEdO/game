@@ -259,19 +259,19 @@ describe('Boucle de jeu (store)', () => {
     banc.setState({
       battle, mode: 'battle',
       pendingAttack: { attackerId: 'h1', targetId: 'e1', location: null, result: res },
-      pendingCascade: cascadeDeTest([{ id: 'attack-jet', kind: 'jetDAttaque', jet: 'attaque', actorId: 'h1' }], { title: 'Attaque', icon: 'action/attack', purpose: 'combat' }),
+      pendingCascade: cascadeDeTest([{ id: 'attack-jet', kind: 'jetDAttaque', jet: 'attaque', actorId: 'h1' }], { title: 'Attaque', icon: 'action/attaquer', purpose: 'combat' }),
     });
   }
 
   it('Attaque (jet = étape 0) : une touche simple clôt la séquence (jet seul → resume)', () => {
-    mkAttackSeq({ hit: true, attackerRoll: 23, netSL: 2, location: 'corps', damage: 5, woundsLost: 3, critical: false, advantageTo: 'attacker', defenderDefeated: false, log: 'Touché' });
+    mkAttackSeq({ hit: true, attackerRoll: 23, netSL: 2, location: 'corps', damage: 5, woundsLost: 3, critical: false, advantageTo: 'attaquant', defenderDefeated: false, log: 'Touché' });
     banc.getState().jetValider('attaque');
     expect(banc.getState().pendingAttack).toBeNull();
     expect(banc.getState().pendingCascade).toBeNull(); // aucune conséquence empilée → séquence finalisée
   });
 
   it('Attaque (jet = étape 0) : un Coup Critique s’empile DANS la même séquence (pas de 2ᵉ fenêtre)', () => {
-    mkAttackSeq({ hit: true, attackerRoll: 24, netSL: 4, location: 'corps', critLocation: 'corps', damage: 9, woundsLost: 4, critical: true, advantageTo: 'attacker', defenderDefeated: false, log: 'Coup Critique' });
+    mkAttackSeq({ hit: true, attackerRoll: 24, netSL: 4, location: 'corps', critLocation: 'corps', damage: 9, woundsLost: 4, critical: true, advantageTo: 'attaquant', defenderDefeated: false, log: 'Coup Critique' });
     banc.getState().jetValider('attaque');
     const seq = banc.getState().pendingCascade;
     expect(seq?.purpose).toBe('combat');
@@ -492,7 +492,7 @@ describe('Boucle de jeu (store)', () => {
         suite: { mode: 'machine', coup: {} },
       },
       // La défense est une étape de cascade combat (Lot 1) → on la pose comme en jeu (maybeOpenDefense).
-      pendingCascade: cascadeDeTest([{ id: 'defense-jet', kind: 'jetDeDefense', jet: 'defense', actorId: h.id }], { title: 'Défense', icon: 'action/defend', purpose: 'combat' }),
+      pendingCascade: cascadeDeTest([{ id: 'defense-jet', kind: 'jetDeDefense', jet: 'defense', actorId: h.id }], { title: 'Défense', icon: 'action/se-defendre', purpose: 'combat' }),
     });
     banc.getState().jetValider('defense');
     const st = banc.getState();
@@ -533,7 +533,7 @@ describe('Boucle de jeu (store)', () => {
         def: { roll: 60, target: 40, success: false, sl: 0, isDouble: false }, result,
         suite: { mode: 'machine', coup: {} },
       },
-      pendingCascade: cascadeDeTest([{ id: 'defense-jet', kind: 'jetDeDefense', jet: 'defense', actorId: h.id }], { title: 'Défense', icon: 'action/defend', purpose: 'combat' }),
+      pendingCascade: cascadeDeTest([{ id: 'defense-jet', kind: 'jetDeDefense', jet: 'defense', actorId: h.id }], { title: 'Défense', icon: 'action/se-defendre', purpose: 'combat' }),
     });
     banc.getState().jetValider('defense');
     const st = banc.getState();
@@ -3422,7 +3422,7 @@ describe('Marchand — ouvrirLeMarchand / achat et vente au panier (#2)', () => 
     const pb = banc.getState().pendingBargain!;
     const win = { roll: 10, target: 40, success: true, sl: 3, isDouble: false };
     const lose = { roll: 80, target: 45, success: false, sl: -3, isDouble: false };
-    banc.setState({ pendingBargain: { ...pb, roll: win, merchantRoll: lose, result: { attacker: win, defender: lose, winner: 'attacker', attackerWins: true, netSL: 6, decidedBy: 'dr' } } });
+    banc.setState({ pendingBargain: { ...pb, roll: win, merchantRoll: lose, result: { attacker: win, defender: lose, winner: 'attaquant', attackerWins: true, netSL: 6, decidedBy: 'dr' } } });
     banc.getState().jetValider('marchandage');
     expect(banc.getState().pendingBargain).toBeNull();
     expect(banc.getState().merchant!.bargainBuy).toEqual({ won: true, drNet: 6, negotiator: false });
@@ -3440,7 +3440,7 @@ describe('Marchand — ouvrirLeMarchand / achat et vente au panier (#2)', () => 
     const pb = banc.getState().pendingBargain!;
     const lose = { roll: 90, target: 40, success: false, sl: -5, isDouble: false };
     const win = { roll: 10, target: 45, success: true, sl: 3, isDouble: false };
-    banc.setState({ pendingBargain: { ...pb, roll: lose, merchantRoll: win, result: { attacker: lose, defender: win, winner: 'defender', attackerWins: false, netSL: 8, decidedBy: 'dr' } } });
+    banc.setState({ pendingBargain: { ...pb, roll: lose, merchantRoll: win, result: { attacker: lose, defender: win, winner: 'defenseur', attackerWins: false, netSL: 8, decidedBy: 'dr' } } });
     banc.getState().jetValider('marchandage');
     expect(banc.getState().merchant!.soured).toBe(true);
     banc.getState().fenetreChoisir('marchand', 'marchander', 'vente'); // marchand méfiant → toute négociation bloquée

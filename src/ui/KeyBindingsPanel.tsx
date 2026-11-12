@@ -70,7 +70,7 @@ export function KeyBindingsPanel() {
                     {bindingLabel(b)}
                     {shared && (
                       <span className="opt-key-shared" title={shared}>
-                        <Icon id="ui/warning" size="sm" />
+                        <Icon id="interface/attention" size="sm" />
                       </span>
                     )}
                   </span>

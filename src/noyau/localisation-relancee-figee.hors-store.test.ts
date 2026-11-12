@@ -124,7 +124,7 @@ describe('Localisation relancée — défense pilotée, `openSurfacedDefense` (T
     for (let seed = 1; seed <= 300; seed++) {
       const { enemy, hero } = duel(seed, 0);
       const g = banc.getState;
-      openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
+      openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attaquer');
       g().jetLancer('attaque');
       const ouverture = g().pendingAttack?.result?.critLocation;
       g().jetValider('attaque');

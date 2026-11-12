@@ -67,11 +67,11 @@ describe('issue d’un jet — pleine couleur par DÉFAUT', () => {
 
   it('un ton AUTHORÉ est respecté : `ok` colore, `info` atténue', () => {
     const lines = resultLines(freeCons([
-      { text: 'La chanson porte', tone: 'ok' as const },
-      { text: '— une précision de second plan', tone: 'info' as const },
+      { text: 'La chanson porte', tone: 'reussite' as const },
+      { text: '— une précision de second plan', tone: 'neutre' as const },
     ]));
     act(() => root.render(<RollShell title="T" rows={[rolledRow()]} rolled outcome={lines} actions={[]} />));
-    expect(issueClasses()).toEqual(['recap-line ok', 'recap-line info']);
+    expect(issueClasses()).toEqual(['recap-line reussite', 'recap-line neutre']);
     expect([...host.querySelectorAll('.rm-journal .recap-line')].map(e => e.textContent)).toEqual(['La chanson porte', '— une précision de second plan']);
   });
 });
@@ -86,6 +86,6 @@ describe('Chanson de marin — la note d’arbitrage porte son ton AU SITE', () 
       pendingShanty: { singerId: singer.id, shantyId: 'tous-a-la-vigie', result: { roll: 12, target: 45, sl: 3, success: true } },
     } as never);
     act(() => root.render(<ShantyModal />));
-    expect(issueClasses(), 'l’effet obtenu coloré, la note atténuée — les deux ÉCRITS').toEqual(['recap-line ok', 'recap-line info']);
+    expect(issueClasses(), 'l’effet obtenu coloré, la note atténuée — les deux ÉCRITS').toEqual(['recap-line reussite', 'recap-line neutre']);
   });
 });
