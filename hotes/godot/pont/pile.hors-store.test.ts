@@ -17,8 +17,8 @@ function carre(z: number, os: string, zNeutre?: number): MaillageDeLaPile {
     os: base64De(new Int32Array(16)), poids: base64De(Float32Array.from([1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0])), noms: [os],
   };
 }
-const resoudre = (pieces: PileDemandee['pieces']) =>
-  JSON.parse(resoudreLaPileDUneTenue(JSON.stringify({ pieces, parents: { manche: 'bras' }, osDeChaine: [] } satisfies PileDemandee))) as PileResolue & { ok: true };
+const resoudre = (pieces: PileDemandee['pieces'], peau: PileDemandee['peau'] = []) =>
+  JSON.parse(resoudreLaPileDUneTenue(JSON.stringify({ pieces, peau, parents: { manche: 'bras' }, osDeChaine: [] } satisfies PileDemandee))) as PileResolue & { ok: true };
 /** Le poids du premier sommet de `m` sur l'os `nom`. */
 const poidsSur = (m: MaillageDeLaPile, nom: string): number => flottants(m.poids).slice(0, 4).reduce((t, p, k) => t + (m.noms[entiers(m.os)[k]] === nom ? p : 0), 0);
 
@@ -42,6 +42,22 @@ describe('resoudreLaPileDUneTenue', () => {
     ]).pieces.map((p) => entiers(p.maillages[0].indices).length);
     expect(tenue(0)).toEqual([0, 6]);
     expect(tenue(2 * SERRAGE_M)).toEqual([6, 0]);
+  });
+
+  describe('la peau de la tenue (#3842)', () => {
+    const nappes = (): PileDemandee['pieces'] => [
+      { rang: 1, accessoire: false, maillages: [carre(0.01, 'bras')] },
+      { rang: 1, accessoire: false, maillages: [carre(0.02, 'manche')] },
+    ];
+    const peauSous = carre(0, 'bras').positions;
+
+    it('sous deux nappes de même couche, la nappe du dessus couvre l’autre', () => {
+      expect(resoudre(nappes(), [{ positions: peauSous }]).bilan.couverts).toBeGreaterThan(0);
+    });
+
+    it('l’ordre se vote sur la peau sans forme : au-dessus des nappes au repos neutre, aucune ne couvre l’autre', () => {
+      expect(resoudre(nappes(), [{ positions: peauSous, neutres: carre(0.07, 'bras').positions }]).bilan.couverts).toBe(0);
+    });
   });
 
   it('refuse une demande illisible', () => {

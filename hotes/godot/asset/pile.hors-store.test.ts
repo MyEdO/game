@@ -1,6 +1,6 @@
 // La pile des couches résolue au montage (#3842) : la couche du dessous cède à celle qui la couvre.
 import { describe, expect, it } from 'vitest';
-import { ENTRAINEMENT, HALO_M, JEU_M, PERCEE_M, PORTEE_DE_COUVERTURE_M, SERRAGE_M, ordreDesCouches, resoudreLaPile, type CoucheDePile, type MaillageDePile, type PieceDePile } from './pile.ts';
+import { couvertureDe, endroitDe, ENTRAINEMENT, HALO_M, JEU_M, PERCEE_M, PORTEE_DE_COUVERTURE_M, SAUT_D_ARETE, SERRAGE_M, ordreDesCouches, resoudreLaPile, type CoucheDePile, type MaillageDePile, type PieceDePile, visiterLaCouverture } from './pile.ts';
 
 /** Une nappe carrée de `cote` mètres centrée en (`cx`, 0) à la hauteur `z`, en grille de `n` × `n` mailles, tournée vers
  *  +Z. Elle est tout entière sur l'os `os`, ou, avec `vers`, passe de `os` à `vers` par des poids tous différents d'un
@@ -33,9 +33,11 @@ const sommetEn = (m: MaillageDePile, x: number, y = 0): number => {
 };
 /** Les parents des os des fixtures. */
 const PARENTS = new Map([['manche', 'bras'], ['avant_bras', 'bras'], ['bras', 'epaule'], ['epaule', 'torse'], ['jupe_1', 'bassin'], ['jupe_2', 'jupe_1'], ['jambe', 'bassin']]);
-/** La pile de `pieces`, de la plus intérieure à la plus extérieure. */
-const empiler = (pieces: readonly PieceDePile[], osDeChaine: readonly string[] = []) =>
-  resoudreLaPile(pieces, (e, f) => pieces.indexOf(e) > pieces.indexOf(f), { parents: PARENTS, osDeChaine: new Set(osDeChaine) });
+/** La nappe `m` retournée, tournée vers −Z. */
+const retournee = (m: MaillageDePile): MaillageDePile => ({ ...m, indices: m.indices.map((_, i, t) => t[i - (i % 3) + [0, 2, 1][i % 3]]) });
+/** La pile de `pieces`, de la plus intérieure à la plus extérieure, sur la peau de positions `peaux`. */
+const empiler = (pieces: readonly PieceDePile[], osDeChaine: readonly string[] = [], peaux: readonly Float32Array[] = []) =>
+  resoudreLaPile(pieces, (e, f) => pieces.indexOf(e) > pieces.indexOf(f), { parents: PARENTS, osDeChaine: new Set(osDeChaine) }, peaux);
 
 describe('resoudreLaPile', () => {
   it('un point couvert reprend les poids de sa couverture, et son triangle ne se dessine plus', () => {
@@ -100,6 +102,27 @@ describe('resoudreLaPile', () => {
     const t = pas / HALO_M;
     expect(1 - poidsSur(dessous, tenu, 'avant_bras') / auteurTenu).toBeCloseTo(1, 6);
     expect(1 - poidsSur(dessous, voisin, 'avant_bras') / auteurVoisin).toBeCloseTo(1 - t * t * (3 - 2 * t), 4);
+  });
+
+  it('sur une arête plus longue que le halo, les voisins d’un point suivent les poids que sa couverture lui déplace, au saut près', () => {
+    const pas = 0.1;
+    const sous = (cx: number, sens: number) => {
+      const dessous = nappe(0, 'bras', 4 * pas, 4, 0, 'avant_bras');
+      const sommets = [sommetEn(dessous, cx), sommetEn(dessous, cx + sens * pas), sommetEn(dessous, cx + 2 * sens * pas)];
+      const auteur = sommets.map((s) => poidsSur(dessous, s, 'avant_bras'));
+      empiler([piece(dessous), piece(nappe(SERRAGE_M, 'bras', pas, 8, cx))]);
+      return { deplace: auteur[0], suivi: sommets.map((s, k) => 1 - poidsSur(dessous, s, 'avant_bras') / auteur[k]) };
+    };
+    const beaucoup = sous(pas, -1);
+    expect(pas).toBeGreaterThan(HALO_M);
+    expect(beaucoup.deplace).toBeGreaterThan(SAUT_D_ARETE);
+    expect(beaucoup.suivi[0]).toBeCloseTo(1, 5);
+    expect(beaucoup.suivi[1]).toBeCloseTo(1 - SAUT_D_ARETE / beaucoup.deplace, 5);
+    expect(beaucoup.suivi[2]).toBeCloseTo(0, 5);
+    const peu = sous(-pas, 1);
+    expect(peu.deplace).toBeLessThan(SAUT_D_ARETE);
+    expect(peu.suivi[0]).toBeCloseTo(1, 5);
+    expect(peu.suivi[1]).toBeCloseTo(0, 5);
   });
 
   it('un bloc que son auteur lie aux mêmes poids ne cède qu’autant que le moins retenu de ses points', () => {
@@ -178,6 +201,95 @@ describe('resoudreLaPile', () => {
     }
     expect(recul(sommetEn(dessous, 0.19))).toBe(0);
   });
+
+  it('sous une couverture confondue avec lui, chaque point recule de même au bruit près, le long du faîte compris (#3842)', () => {
+    /** La nappe de `cote` mètres sur l'os `os`, pliée en toit de faîte x = 0, chaque point déplacé de `bruit(s, axe)`. */
+    const toit = (os: string, bruit: (s: number, axe: number) => number): MaillageDePile => {
+      const m = nappe(0, os);
+      for (let s = 0; s < m.positions.length / 3; s++) {
+        m.positions[s * 3 + 2] = 0.5 * (0.1 - Math.abs(m.positions[s * 3]));
+        for (let axe = 0; axe < 3; axe++) m.positions[s * 3 + axe] += bruit(s, axe);
+      }
+      return m;
+    };
+    /** Un bruit de `signe` × 1e-6 m, de signe tiré par sommet et par axe de la graine `graine`. */
+    const bruite = (signe: number, graine: number) => (s: number, axe: number) => {
+      const h = Math.sin(s * 12.9898 + axe * 78.233 + graine * 37.719) * 43758.5453;
+      return signe * 1e-6 * (h - Math.floor(h) < 0.5 ? -1 : 1);
+    };
+    const resolu = (signe: number, graine: number) => {
+      const sujet = toit('bras', () => 0);
+      const avant = Float32Array.from(sujet.positions);
+      empiler([piece(sujet), piece(toit('manche', bruite(signe, graine)))]);
+      return { avant, apres: sujet.positions };
+    };
+    const [plus, moins] = [resolu(1, 1), resolu(-1, 2)];
+    const sommets = plus.avant.length / 3;
+    for (let s = 0; s < sommets; s++) {
+      for (const { avant, apres } of [plus, moins]) {
+        expect(Math.hypot(apres[s * 3] - avant[s * 3], apres[s * 3 + 1] - avant[s * 3 + 1], apres[s * 3 + 2] - avant[s * 3 + 2])).toBeGreaterThan(JEU_M / 2);
+      }
+      for (let axe = 0; axe < 3; axe++) expect(Math.abs(plus.apres[s * 3 + axe] - moins.apres[s * 3 + axe])).toBeLessThanOrEqual(1e-5);
+    }
+  });
+});
+
+describe('visiterLaCouverture', () => {
+  const couverture = couvertureDe(Float32Array.from([0, 0, 0, 0.1, 0, 0, 0, 0.1, 0]), [0, 1, 2]);
+  /** Les triangles visités depuis le point au-dessus du sommet (0, 0) du triangle, décalé de `d` mètres vers son dehors. */
+  const visites = (d: number) => {
+    const t: number[] = [];
+    visiterLaCouverture(-d / Math.SQRT2, -d / Math.SQRT2, 0.005, 0, 0, 1, couverture, (_e, triangle) => t.push(triangle));
+    return t;
+  };
+
+  it('une projection à la soudure près d’un sommet, hors du triangle, y tombe ; au-delà, non (#3842)', () => {
+    expect(visites(1e-6)).toEqual([0]);
+    expect(visites(1e-3)).toEqual([]);
+  });
+});
+
+describe('endroitDe', () => {
+  const surface = nappe(0, 'bras');
+  const triangles = surface.indices.length;
+  /** Une peau faite des points de `surface`, décalés de `z` le long de sa normale. */
+  const peauDecalee = (z: number) => nappe(z, 'bras').positions;
+
+  it('une peau dans le plan de la nappe à la soudure près laisse tous ses triangles à l’endroit, de part et d’autre (#3842)', () => {
+    expect(endroitDe(surface, [peauDecalee(1e-6)])).toHaveLength(triangles);
+    expect(endroitDe(surface, [peauDecalee(-1e-6)])).toHaveLength(triangles);
+  });
+
+  it('une peau devant la nappe, du côté de sa normale, n’en laisse aucun à l’endroit', () => {
+    expect(endroitDe(surface, [peauDecalee(1e-3)])).toHaveLength(0);
+  });
+});
+
+describe('la double nappe', () => {
+  const peau = nappe(0, 'bras');
+  /** Une double nappe sur l'os `os` : sa doublure à la hauteur `z`, tournée vers le corps, son endroit `epaisseur` au-delà. */
+  const doubleNappe = (z: number, epaisseur: number, os: string, cote?: number) => [retournee(nappe(z, os, cote)), nappe(z + epaisseur, os, cote)] as const;
+
+  it('la doublure de la couverture ne couvre rien : celle du dessous, sous elle, ne recule pas ; l’endroit de la couverture retient les deux nappes du dessous', () => {
+    const [doublure, endroit] = doubleNappe(0.004, 0.002, 'bras', 0.1), [envers, dessus] = doubleNappe(0.008, 0.004, 'manche');
+    const bilan = empiler([piece(peau), piece(doublure, endroit), piece(envers, dessus)], [], [peau.positions]);
+    for (let s = 0; s < doublure.positions.length / 3; s++) {
+      expect(doublure.positions[s * 3 + 2]).toBeCloseTo(0.004, 6);
+      expect(poidsSur(doublure, s, 'manche')).toBeCloseTo(1, 6);
+      expect(poidsSur(endroit, s, 'manche')).toBeCloseTo(1, 6);
+    }
+    expect(bilan.recules).toBe(0);
+    expect([doublure.indices.length, endroit.indices.length]).toEqual([0, 0]);
+  });
+
+  it('à couche égale, deux doubles nappes se votent de leurs endroits : la plus extérieure couvre', () => {
+    const couche = (z: number): CoucheDePile => ({ rang: 1, accessoire: false, neutres: [...doubleNappe(z, 0.002, 'bras')] });
+    const [dessous, dessus] = [couche(0.004), couche(0.01)];
+    const couvre = ordreDesCouches([peau.positions]);
+    expect([couvre(dessus, dessous), couvre(dessous, dessus)]).toEqual([true, false]);
+    const sansPeau = ordreDesCouches([]);
+    expect([sansPeau(dessus, dessous), sansPeau(dessous, dessus)]).toEqual([false, false]);
+  });
 });
 
 describe('ordreDesCouches', () => {
@@ -187,24 +299,24 @@ describe('ordreDesCouches', () => {
 
   it('une couche plus extérieure couvre, même placée dessous ; une pièce ne se couvre pas elle-même', () => {
     const [dedans, dehors] = [couche(1, [[0.01, 0]]), couche(2, [[0, 0]])];
-    const couvre = ordreDesCouches();
+    const couvre = ordreDesCouches([]);
     expect([couvre(dehors, dedans), couvre(dedans, dehors), couvre(dehors, dehors)]).toEqual([true, false, false]);
   });
 
   it('à couche égale, un accessoire couvre ce qui n’en est pas un, quel que soit le côté', () => {
     const [accessoire, vetement] = [couche(1, [[0, 0]], true), couche(1, [[0.01, 0]])];
-    const couvre = ordreDesCouches();
+    const couvre = ordreDesCouches([]);
     expect([couvre(accessoire, vetement), couvre(vetement, accessoire)]).toEqual([true, false]);
   });
 
   it('à couche et catégorie égales, celle dont les sommets sont devant l’autre au repos neutre la couvre', () => {
     const [dessus, dessous] = [couche(1, [[0.01, 0]]), couche(1, [[0.005, 0]])];
-    const couvre = ordreDesCouches();
+    const couvre = ordreDesCouches([]);
     expect([couvre(dessus, dessous), couvre(dessous, dessus)]).toEqual([true, false]);
   });
 
   it('sans sommet de l’une à portée de l’autre, ou à égalité des voix, aucune ne couvre l’autre', () => {
-    const couvre = ordreDesCouches();
+    const couvre = ordreDesCouches([]);
     const [ici, loin] = [couche(1, [[0.01, 0]]), couche(1, [[0.01 - PORTEE_DE_COUVERTURE_M * 1.1, 0]])];
     expect([couvre(ici, loin), couvre(loin, ici)]).toEqual([false, false]);
     const [a, b] = [couche(1, [[0.01, 0], [0, 1]]), couche(1, [[0, 0], [0.01, 1]])];
