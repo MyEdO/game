@@ -1120,12 +1120,32 @@ export type RefusDeValeur = 'nonOffert' | 'horsSorte' | 'illisible' | { regle: s
 /** Ce qu'écrit une valeur : la donnée écrite, ou son refus. */
 export type EcritureDeValeur<T> = { ok: true; valeur: T } | { ok: false; refus: RefusDeValeur };
 
+/** Les fautes du parse de l'objet de schéma `objet` sur `donnee`, chacune par son message et son chemin, ses rangs
+ *  effacés : un retrait décale les rangs des éléments qui le suivent. */
+const fautesDuParse = (objet: unknown, donnee: unknown): { cle: string; message: string }[] =>
+  ((objet as { safeParse: (v: unknown) => { error?: { issues: { path: PropertyKey[]; message: string }[] } } }).safeParse(donnee).error?.issues ?? [])
+    .map((i) => ({ cle: jsonCanonique([i.path.map((p) => (typeof p === 'number' ? '#' : String(p))), i.message]), message: i.message }));
+
+/** Le message de la première faute du parse de `objet` sur `apres` qui n'était pas déjà sur `avant`, compte tenu des
+ *  fautes égales (`fautesDuParse`) ; `undefined` sans faute neuve. */
+function fauteNeuve(objet: unknown, avant: unknown, apres: unknown): string | undefined {
+  const deja = new Map<string, number>();
+  for (const { cle } of fautesDuParse(objet, avant)) deja.set(cle, (deja.get(cle) ?? 0) + 1);
+  for (const { cle, message } of fautesDuParse(objet, apres)) {
+    const reste = deja.get(cle) ?? 0;
+    if (!reste) return message;
+    deja.set(cle, reste - 1);
+  }
+  return undefined;
+}
+
 /** La donnée `donnee` de l'objet de schéma `objet` où `valeur` s'écrit au chemin `chemin` (`ecrit`), le champ retiré si
  *  elle vaut `undefined` (l'entrée d'un record partiel ou à clé ouverte, `recordDuNoeud`, se retire toujours), une liste
  *  vidée retirée si son nœud admet l'absence ; ou son refus : un pas que le formulaire n'offre pas (`noeudDuPas`), une
  *  valeur qui n'est pas l'un des choix admis que le contexte de son porteur y pose (`choix`, qui, d'un record, pose ses
- *  clés), ou, sans eux, pas de la sorte du champ (`admise`). Le schéma entier ne se vérifie qu'à l'enregistrement et à
- *  l'essai. */
+ *  clés), ou, sans eux, pas de la sorte du champ (`admise`) ; un retrait (le champ retiré, la liste raccourcie) dont
+ *  l'objet écrit porte une faute de son parse que la donnée ne portait pas (`fauteNeuve`), dite. Hors retrait, le schéma
+ *  entier ne se vérifie qu'à l'enregistrement et à l'essai (#3606, décision 3). */
 export function avecLaValeur(objet: unknown, donnee: Objet, chemin: readonly Segment[], valeur: unknown, choix: ContexteDuChamp['choix'] = () => undefined): EcritureDeValeur<Objet> {
   const noeuds: unknown[] = [];
   let point: unknown = donnee;
@@ -1142,7 +1162,10 @@ export function avecLaValeur(objet: unknown, donnee: Objet, chemin: readonly Seg
   const entreeRetiree = ecrite === undefined && recordDuNoeud(noeuds.length > 1 ? noeuds[noeuds.length - 2] : objet) !== undefined;
   const ecrivable = poses ? poses.some((c) => c.refus === null && jsonCanonique(c.valeur) === jsonCanonique(ecrite)) : entreeRetiree || admise(dernier, point, ecrite);
   if (!ecrivable) return { ok: false, refus: valeur === null ? 'illisible' : 'horsSorte' };
-  return { ok: true, valeur: ecrit(donnee, chemin, ecrite, (rang) => retirable(noeuds[rang])) as Objet };
+  const apres = ecrit(donnee, chemin, ecrite, (rang) => retirable(noeuds[rang])) as Objet;
+  const retrait = ecrite === undefined || (Array.isArray(point) && Array.isArray(ecrite) && ecrite.length < point.length);
+  const faute = retrait ? fauteNeuve(objet, donnee, apres) : undefined;
+  return faute === undefined ? { ok: true, valeur: apres } : { ok: false, refus: { regle: faute } };
 }
 
 /** La donnée `donnee` du porteur de sorte `sorte` où `valeur` s'écrit au chemin `chemin` de son formulaire

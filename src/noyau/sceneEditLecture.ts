@@ -667,35 +667,40 @@ export function formeDuPorteur<S extends SorteDePorteur>(sorte: S, donnee: Donne
 const estReferenceNarrative = (cle: Segment | undefined): cle is CleDeReferenceNarrative =>
   typeof cle === 'string' && Object.prototype.hasOwnProperty.call(REFERENCES_NARRATIVES, cle);
 
-/** Les objets du cadre `cadre` qui ouvrent des portées locales (`ouvrirPortees`), chacun avec son nœud : sa scène et son
- *  projet. */
-const ouvreursDuCadre = ({ scene, projet }: CadreDuPorteur): readonly (readonly [unknown, unknown])[] => [[sceneSchema, scene], [projetSchema, projet]];
+/** Un objet qui ouvre des portées locales (`ouvrirPortees`), avec son nœud : son schéma et sa valeur. */
+type Ouvreur = readonly [unknown, unknown];
 
-/** Les ids qu'admet la portée de la feuille locale parmi `noeuds` (`porteeDeLaFeuille`), résolus dans le cadre `cadre`
- *  par le parse (`idsDeLaPortee`) ; `undefined` sans feuille locale, ou si aucun objet du cadre n'ouvre sa portée. */
-function idsDeLaFeuilleLocale(noeuds: readonly unknown[], cadre: CadreDuPorteur): readonly string[] | undefined {
+/** Les objets qui ouvrent des portées locales aux feuilles du porteur `porteur` du cadre `cadre` : lui-même, sa scène
+ *  et son projet. */
+const ouvreursDuCadre = (porteur: Ouvreur, { scene, projet }: CadreDuPorteur): readonly Ouvreur[] => [porteur, [sceneSchema, scene], [projetSchema, projet]];
+
+/** Les ids qu'admet la portée de la feuille locale parmi `noeuds` (`porteeDeLaFeuille`), résolus par le parse
+ *  (`idsDeLaPortee`) sur le premier des `ouvreurs` qui l'ouvre ; `undefined` sans feuille locale, ou si aucun ne l'ouvre. */
+function idsDeLaFeuilleLocale(noeuds: readonly unknown[], ouvreurs: readonly Ouvreur[]): readonly string[] | undefined {
   const portee = noeuds.map(porteeDeLaFeuille).find((p) => p !== undefined);
-  return portee && ouvreursDuCadre(cadre).map(([ouvreur, valeur]) => idsDeLaPortee(ouvreur, valeur, portee)).find((ids) => ids !== undefined);
+  return portee && ouvreurs.map(([ouvreur, valeur]) => idsDeLaPortee(ouvreur, valeur, portee)).find((ids) => ids !== undefined);
 }
 
-/** Les choix d'une référence LOCALE aux nœuds `noeuds`, dans le cadre `cadre` : d'une feuille locale, chaque id que sa
- *  portée admet ; d'une référence `{ id }` dont l'identifiant en est une, chacun posé entier ; `undefined` sinon. */
-function choixDeLaReferenceLocale(noeuds: readonly unknown[], cadre: CadreDuPorteur): readonly ChoixDuContexte[] | undefined {
-  const ids = idsDeLaFeuilleLocale(noeuds, cadre);
+/** Les choix d'une référence LOCALE aux nœuds `noeuds`, parmi les portées des `ouvreurs` : d'une feuille locale, chaque
+ *  id que sa portée admet ; d'une référence `{ id }` dont l'identifiant en est une, chacun posé entier ; `undefined`
+ *  sinon. */
+function choixDeLaReferenceLocale(noeuds: readonly unknown[], ouvreurs: readonly Ouvreur[]): readonly ChoixDuContexte[] | undefined {
+  const ids = idsDeLaFeuilleLocale(noeuds, ouvreurs);
   if (ids) return ids.map((id) => ({ valeur: id, libelle: id, refus: null }));
-  const emboites = idsDeLaFeuilleLocale(ouverts(pasDeDonnee(noeuds, 'id')), cadre);
+  const emboites = idsDeLaFeuilleLocale(ouverts(pasDeDonnee(noeuds, 'id')), ouvreurs);
   return emboites?.map((id) => ({ valeur: { id }, libelle: id, refus: null }));
 }
 
 /** Les choix que le contexte du porteur de sorte `sorte`, de donnée `donnee`, pose au chemin `chemin` de sa donnée, dans
  *  leur ordre, dans le cadre `cadre` : d'une référence narrative, chaque entrée du registre que son narratif désigne
- *  (`entreesNarratives`) ; d'une référence locale, chaque élément que sa portée admet (`choixDeLaReferenceLocale`) ;
- *  sinon ceux de son porteur (`FORMULAIRES`) ; `undefined` : ceux du nœud. */
+ *  (`entreesNarratives`) ; d'une référence locale, chaque élément que sa portée admet, ouverte par le porteur, sa scène
+ *  ou son projet (`choixDeLaReferenceLocale`, `ouvreursDuCadre`) ; sinon ceux de son porteur (`FORMULAIRES`) ;
+ *  `undefined` : ceux du nœud. */
 export function choixDuChamp<S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], chemin: readonly Segment[], cadre: CadreDuPorteur): readonly ChoixDuContexte[] | undefined {
   const cle = chemin[chemin.length - 1];
   if (estReferenceNarrative(cle)) return entreesNarratives(cadre.projet.narratif, cle).map((e) => ({ valeur: e.id, libelle: e.label, refus: null }));
   const formulaire: FormulaireDuPorteur<DonneeDuPorteur[S]> = FORMULAIRES[sorte];
-  return choixDeLaReferenceLocale(noeudsAuChemin(formulaire.schema, donnee, chemin), cadre) ?? formulaire.choix?.(donnee, chemin, cadre);
+  return choixDeLaReferenceLocale(noeudsAuChemin(formulaire.schema, donnee, chemin), ouvreursDuCadre([formulaire.schema, donnee], cadre)) ?? formulaire.choix?.(donnee, chemin, cadre);
 }
 
 /** Le formulaire du porteur de sorte `sorte`, de donnée `donnee`, dans le cadre `cadre` : le champ de tête de

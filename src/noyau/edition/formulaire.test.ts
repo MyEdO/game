@@ -31,6 +31,8 @@ import type { GameOp } from '../../engine/ops';
 import { choixDeLaFeuilleDId, creatureSemee, findCreatureById } from '../../data';
 import { especeDApparenceSchema, tenueFermeeSchema } from '../../data/schemas/grammaire/valeurs';
 import { optionalEntrySchema } from '../../data/schemas/defs/creatures';
+import { dialogueNodeSchema, dialogueSchema } from '../../data/schemas/defs-scenes/scene';
+import { jsonCanonique } from '../../lib/jsonCanonique.mjs';
 
 /** Un narratif vide : aucun preset de PNJ, aucune entrée à référencer. */
 const NARRATIF_VIDE = emptyNarratif();
@@ -211,6 +213,21 @@ describe('l’écriture bornée par le formulaire', () => {
     expect(avecLaValeur(liste, { l }, ['l'], [{ n: 1 }, { n: 'deux' }])).toEqual({ ok: false, refus: 'horsSorte' });
     expect(avecLaValeur(liste, { l: [{ n: 1 }] }, ['l'], []), 'vidée, la liste dont l’absence est admise part').toEqual({ ok: true, valeur: {} });
     expect(avecLaValeur(z.strictObject({ l: z.array(z.number()) }), { l: [1] }, ['l'], []), 'requise, elle reste vide').toEqual({ ok: true, valeur: { l: [] } });
+  });
+
+  it('un retrait refuse la faute qu’il fait naître au parse de l’objet, dite ; un retrait sans faute neuve et un ajout incomplet s’écrivent (#3606, décision 3)', () => {
+    const noeud = (id: string, next?: string) => ({ ...(valeurNeuveDe(dialogueNodeSchema) as object), id, desc: `Réplique ${id}.`, choices: next ? [{ id: `${id}-suite`, label: 'suite', next: { id: next } }] : [] });
+    const dialogue = { id: 'd', start: { id: 'a' }, nodes: [noeud('a', 'c'), noeud('b'), noeud('c', 'mort')] };
+    const deja = dialogueSchema.safeParse(dialogue).error?.issues.map((i) => i.path.slice(0, 5));
+    expect(deja, 'la référence morte du nœud `c` est une faute préexistante').toEqual([['nodes', 2, 'choices', 0, 'next']]);
+    const gestes = gestesDeLaListe(dialogue.nodes, valeurNeuveDe(dialogueNodeSchema));
+    const [sansA, sansB, sansC] = gestes.elements.map((e) => e.retirer);
+    const fauteAu = (nodes: unknown[], chemin: Segment[]) => dialogueSchema.safeParse({ ...dialogue, nodes }).error!.issues.find((i) => jsonCanonique(i.path.slice(0, chemin.length)) === jsonCanonique(chemin))!.message;
+    expect(avecLaValeur(dialogueSchema, dialogue, ['nodes'], sansA), 'le nœud de départ').toEqual({ ok: false, refus: { regle: fauteAu(sansA, ['start']) } });
+    expect(avecLaValeur(dialogueSchema, dialogue, ['nodes'], sansC), 'le nœud suivant d’une réponse').toEqual({ ok: false, refus: { regle: fauteAu(sansC, ['nodes', 0, 'choices', 0, 'next']) } });
+    expect(avecLaValeur(dialogueSchema, dialogue, ['nodes'], sansB), 'non référencé : la faute de `c` passe du rang 2 au rang 1, déjà là').toEqual({ ok: true, valeur: { ...dialogue, nodes: sansB } });
+    expect(dialogueSchema.safeParse({ ...dialogue, nodes: gestes.ajouter }).error?.issues.length, 'le nœud neuf porte une faute neuve').toBeGreaterThan(deja!.length);
+    expect(avecLaValeur(dialogueSchema, dialogue, ['nodes'], gestes.ajouter)).toEqual({ ok: true, valeur: { ...dialogue, nodes: gestes.ajouter } });
   });
 });
 
