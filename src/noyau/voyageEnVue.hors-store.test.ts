@@ -13,6 +13,6 @@ describe('la voie d’un trajet en vue', () => {
       banc.setState({ worldMap: carte, travelPlan: { routeId: route.id, fromPlaceId: route.a.id, toPlaceId: route.b.id, mode, departAt: 0, hoursPerDay: 6, km: route.km, kmDone: 12, interrupted: false } });
       return voyageEnVue(banc.getState())!.voie;
     };
-    expect([voie('barge'), voie('pied')]).toEqual(['fleuve', 'terre']);
+    expect([voie('barge'), voie('pied')]).toEqual(['fluvial', 'terrestre']);
   });
 });

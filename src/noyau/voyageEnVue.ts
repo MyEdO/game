@@ -13,9 +13,9 @@ import { travelModeLabels, vehicleTravel, type TravelMode } from '../engine/trav
 import { weatherCondition, type Weather } from '../engine/travelStages';
 import { garanti } from '../lib/garanti';
 
-/** La voie d'un trajet : la mer d'une traversée (`TravelPlan.sea`), le fleuve d'une descente (`TravelPlan.river`),
- *  sinon le milieu du passage payé par son véhicule (`VehicleData.travel.medium`), la route sans lui. */
-type VoieDuVoyage = 'terre' | 'fleuve' | 'mer';
+/** La voie d'un trajet, dite dans les milieux d'un passage payé (`VehicleData.travel.medium`) : la mer d'une traversée
+ *  (`TravelPlan.sea`), le fleuve d'une descente (`TravelPlan.river`), sinon le milieu de son véhicule, la route sans lui. */
+type VoieDuVoyage = NonNullable<NonNullable<ReturnType<typeof vehicleTravel>>['medium']>;
 
 /** Le trajet en cours ; `mode` : le moyen par son id, `moyen` : son nom ;
  *  `moment` : son moment du jour ; `meteo` : la météo du jour par son id et son nom, `null` hors d'un jour qui l'a
@@ -39,7 +39,7 @@ export function voyageEnVue(s: Jeu): VoyageEnVue | null {
     de: lieu(plan.fromPlaceId).label, vers: lieu(plan.toPlaceId).label,
     depart: plan.fromPlaceId, arrivee: plan.toPlaceId, route: plan.routeId, carte: planDepuis(s, map, lieu(plan.fromPlaceId), []),
     mode: plan.mode, moyen: garanti(travelModeLabels()[plan.mode], plan.mode, 'mode de voyage'),
-    voie: plan.sea || milieu === 'maritime' ? 'mer' : plan.river || milieu === 'fluvial' ? 'fleuve' : 'terre',
+    voie: plan.sea ? 'maritime' : plan.river ? 'fluvial' : milieu ?? 'terrestre',
     km: Math.round(plan.km), fait: Math.round(plan.kmDone),
     moment: { id: moment.id, nom: moment.label },
     meteo: meteo ? { id: meteo, nom: weatherCondition(meteo).label } : null,

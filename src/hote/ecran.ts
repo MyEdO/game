@@ -579,13 +579,13 @@ const COUCHE_DE_LA_METEO: Record<NonNullable<Voyage['meteo']>['id'], IdDeCouche 
 };
 
 /** Le relief de chaque voie. */
-const RELIEF_DE_LA_VOIE: Record<Voyage['voie'], IdDeCouche> = { terre: 'relief-terre', fleuve: 'relief-fleuve', mer: 'relief-mer' };
+const RELIEF_DE_LA_VOIE: Record<Voyage['voie'], IdDeCouche> = { terrestre: 'relief-terre', fluvial: 'relief-fleuve', maritime: 'relief-mer' };
 
 /** L'équipage d'un trajet, qui nomme sa couche (`equipage-…`) et celle de sa lanterne (`lanterne-…`). */
 type Equipage = 'pied' | 'monture' | 'attelage' | 'barge' | 'navire';
 
 /** L'équipage du trajet : le navire en mer, la barge au fleuve ; sur la route, les marcheurs, les cavaliers ou l'attelage. */
-const equipage = (v: Voyage): Equipage => (v.voie === 'mer' ? 'navire' : v.voie === 'fleuve' ? 'barge' : v.mode === 'pied' ? 'pied' : v.mode === 'monture' ? 'monture' : 'attelage');
+const equipage = (v: Voyage): Equipage => (v.voie === 'maritime' ? 'navire' : v.voie === 'fluvial' ? 'barge' : v.mode === 'pied' ? 'pied' : v.mode === 'monture' ? 'monture' : 'attelage');
 
 /** La tête d'une scène du monde : son paysage, ses couches de la plus lointaine à la plus proche, le jour de jeu,
  *  puis ce qui se dit du moment. */
@@ -608,9 +608,9 @@ function paysageDuVoyage(v: Voyage): IdDeCouche[] {
  *  le bord et ses lanternes sur l'eau du trajet `v`, la mer hors d'un trajet), puis la météo du jour. */
 function paysageDeLaHalte(toit: NonNullable<ReturnType<typeof reposEnVue>>['toit'], v: Voyage | null): IdDeCouche[] {
   const meteo = v?.meteo && COUCHE_DE_LA_METEO[v.meteo.id];
-  const bord = v?.voie === 'fleuve' ? 'barge' : 'navire';
+  const bord = v?.voie === 'fluvial' ? 'barge' : 'navire';
   const halte: IdDeCouche[] = toit === 'bord' ? [`equipage-${bord}`, `lanterne-${bord}`] : [toit === 'campement' ? 'halte-feu' : 'halte-toit'];
-  return ['ciel-nuit', toit === 'bord' ? RELIEF_DE_LA_VOIE[v?.voie === 'fleuve' ? 'fleuve' : 'mer'] : 'relief-terre', 'voile-nuit', ...halte, ...(meteo ? [meteo] : [])];
+  return ['ciel-nuit', toit === 'bord' ? RELIEF_DE_LA_VOIE[v?.voie === 'fluvial' ? 'fluvial' : 'maritime'] : 'relief-terre', 'voile-nuit', ...halte, ...(meteo ? [meteo] : [])];
 }
 
 /** La frise du trajet, en plan d'une seule ligne : le départ, chaque nuit passée en route à son km, là où est le
