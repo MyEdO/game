@@ -100,7 +100,7 @@ import { toMoney, canAfford, formatMoney, fromBrass, type Money } from '../engin
 import { partyMoneyTotal, payFromGroup, refusDeGesteSurLeGroupe, mouvementDeLaBourseDuGroupe } from './bourseFlow';
 import { rollShipCritical, applyCrewHit, exposedCrew, type ShipCriticalResolved } from '../engine/shipCritical';
 import { bandeTriggeredTest } from './combat/triggeredTest';
-import { drainPendingLog, jouerFlowEntier, runFlow } from './combatEffects';
+import { drainPendingLog, jouerFlowEntier, revealPurpose, runFlow } from './combatEffects';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import type { ShipCritKey } from '../data/shipCriticals';
 import { contractDisease, applyContraction, contractionDue, diseaseDefs, maladieDeclaree } from '../engine/disease';
@@ -1288,6 +1288,10 @@ const tableDesEvenementsDeBord = memoParVersion('seaBoardEvents', () => new Map<
   lines: (die) => [t('sv.boardEventLine', { label: findTableEntry(evenementsDeBord(), die).label })],
 }]]));
 
+/** Une JOURNÉE de voyage est en vol : sa séquence `purpose:'travelDay'` tient le slot ou attend en pile
+ *  (`pendingCascade`/`suspendedCascades`, noyau/cascade.ts). */
+const journeeEnVol = (s: Jeu): boolean => [s.pendingCascade, ...s.suspendedCascades].some((c) => c?.purpose === 'travelDay');
+
 /**
  * Boucle maritime — appelée par `runTravelDays`/`reprendreLeVoyage` (plan `sea`) et la reprise de nuit.
  * UN JOUR = périls d'auteur (inline) → événement de bord (inline, peut surfacer) → la CASCADE du jour
@@ -1297,9 +1301,10 @@ const tableDesEvenementsDeBord = memoParVersion('seaBoardEvents', () => new Map<
  */
 export function runSeaDay(get: Get, set: Set): void {
   const plan = get().travelPlan;
-  // Une cascade est déjà active (ou suspendue derrière un combat) : l'arbitre la montre, rien à faire —
-  // `reprendreLeVoyage` (couture d'événement) ne ré-entre dans AUCUNE FSM (#275 Ronde 2 cran 3, Décision c).
-  if (!plan?.sea || plan.interrupted || get().pendingSteamSave || get().pendingCascade) return;
+  // Une cascade est déjà active, ou une journée est en vol (parquée en pile derrière un combat ou une
+  // séquence qu'un de ses appliers a ouverte) : l'arbitre la montre, sa clôture la reprend, rien à faire —
+  // `reprendreLeVoyage` (couture d'événement) ne ré-entre dans AUCUNE FSM (#275 Ronde 2 cran 3, Décision c ; #4006).
+  if (!plan?.sea || plan.interrupted || get().pendingSteamSave || get().pendingCascade || journeeEnVol(get())) return;
   const sea = plan.sea;
   // VOYAGE RAPIDE (MDG 15 l.21-37) : ce plan ne déroule JAMAIS la journée par étape — le palier
   // calculé s'applique en un bloc (`finalizeFastVoyage`, ré-entrant après un abordage ancré).
@@ -2114,7 +2119,8 @@ function openPirateHail(get: Get, set: Set, b: SeaBoarding, fouille: boolean): v
  *  Le coup à l'ÉQUIPAGE de la rangée (MDG 13 l.763) s'applique ICI, en voyage comme en combat :
  *  conséquence certaine appliquée, ÉPREUVE ouverte par la PORTE canonique (bande pour les héros
  *  tenus, voie inline sinon), sur les personnes exposées à bord (#1657 B3-2), sauf `equipageEpargne`
- *  (MDG 15 l.49-51). */
+ *  (MDG 15 l.49-51). La bande rejoint la séquence HÔTE (`revealPurpose`, #4006) : celle en vol (jour, Test
+ *  d'un événement de bord), à défaut celle du combat ou du jour. */
 export function applyVesselCritical(get: Get, set: Set, crit: ShipCriticalResolved, equipageEpargne?: true): void {
   const vessel = get().vessel;
   if (vessel) set({ vessel: { ...vessel, criticals: [...(vessel.criticals ?? []), crit.note] } });
@@ -2132,7 +2138,7 @@ export function applyVesselCritical(get: Get, set: Set, crit: ShipCriticalResolv
   const victimes = coup.victims.map((id) => equipage.find((c) => c.id === id)).filter(Boolean) as Combatant[];
   pushStep(set, (index) => bandeTriggeredTest(
     get, set, victimes, coup.testFlow!, `mer-equipage-touche-${crit.id}-${index}`, { idNeuf: get().forgerUnId, rng: battleRng(), label: crit.label, hull: coque },
-  ), 'travelDay');
+  ), revealPurpose('travelDay', false));
   // Voie INLINE (personne à bord sans siège) : ses lignes partent dans la file différée — la mer n'a
   // pas de `battle.log`, on les déverse dans le journal du voyage (source unique `drainPendingLog`).
   const lignes = drainPendingLog(get, set).map((e) => e.text);

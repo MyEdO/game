@@ -7,7 +7,9 @@ extends SceneTree
 ## emplacements, l'emplacement 1 écrit à son bouton se charge ensuite ; « Quitter la partie » rend l'accueil ;
 ## « Reprendre » montre les sauvegardes, l'automatique gardée en quittant, et l'emplacement 1 chargé rend la partie, son
 ## groupe et sa scène ; quittée, « Jouer » de nouveau, un pré-tiré recruté, l'Arène lancée, sans relancer le processus du
-## noyau ; ni panne ni refus ne se signale. Le code de sortie dit le verdict : 0 tenu, 1 une faute.
+## noyau ; quittée, « Jouer » montre au roster le héros créé et engagé par le pont avant le premier clic, « Recruter »
+## de sa carte le fait entrer au groupe, « Supprimer » le retire du roster ; ni panne ni refus ne se signale. Le code
+## de sortie dit le verdict : 0 tenu, 1 une faute.
 
 const RECETTE_AUTONOME := true
 const ACCUEIL := "res://scenes/Accueil.tscn"
@@ -27,15 +29,17 @@ func _initialize() -> void:
 func _recetter() -> void:
 	print("[campagne] version=", Engine.get_version_info().string)
 	_pont = root.get_node("Pont")
-	_pont.panne.connect(func(message: String) -> void: _signales.append("panne : " + message))
-	_pont.refus.connect(func(message: String) -> void: _signales.append("refus : " + message))
 	_pont.en_recette = true
 	change_scene_to_file(ACCUEIL)
-	if await _jouer_une_campagne(2, "la-diligence") and await _sauvegarder_puis_reprendre():
+	var ouvert := await _pont.rejoindre(func(message: String) -> void: _signales.append("refus : " + message), func(message: String) -> void: _signales.append("panne : " + message))
+	var cree := _creer_un_heros() if ouvert else ""
+	if cree != "" and await _jouer_une_campagne(2, "la-diligence") and await _sauvegarder_puis_reprendre():
 		_cliquer(_publie("bouton/quitter"))
 		if await _attendre(func() -> bool: return _au_menu(), "l'accueil après « Quitter la partie »"):
 			print("[campagne] partie quittée : l'accueil")
-			await _jouer_une_campagne(1, "arene")
+			if await _jouer_une_campagne(1, "arene"):
+				_cliquer(_publie("bouton/quitter"))
+				await _composer_du_roster(cree)
 	_fautes.append_array(_signales)
 	current_scene.queue_free()
 	await create_timer(Foyer.SON_LIBERE_S).timeout
@@ -77,6 +81,106 @@ func _jouer_une_campagne(nombre: int, campagne: String) -> bool:
 	if avis != "":
 		_fautes.append("avis de panne du combat : %s" % avis.left(300))
 	return true
+
+
+## Un héros créé et engagé par le pont, sans l'écran, dans une partie ouverte au groupe puis quittée : chaque page de la
+## création jouée par ses boutons, ses tirages puis chaque choix ouvert tranché par sa première valeur libre. Son nom,
+## vide s'il n'entre pas au groupe.
+func _creer_un_heros() -> String:
+	var zones: Dictionary = _pont.appeler("ouvrir", {graine = 7}).vue.zones
+	zones = _creation(zones, _element(zones["groupe.gestes"], "creation"))
+	for _page in 12:
+		if _element(zones["creation.gestes"], "suivante") == null:
+			break
+		for id: String in ["tirage", "defaut", "bourse", "nom", "physique"]:
+			var tirage: Variant = _element(zones["creation.corps"], id)
+			if tirage != null and tirage.type == "bouton" and tirage.refus == null:
+				zones = _creation(zones, tirage)
+		for e: Dictionary in zones["creation.corps"]:
+			if str(e.id).begins_with("augmentation/"):
+				zones = _creation(zones, e.valeurs.filter(func(b: Dictionary) -> bool: return b.libelle == "5")[0])
+				break
+		var destin: Variant = _element(zones["creation.corps"], "destin")
+		if destin != null:
+			zones = _creation(zones, destin.valeurs.back())
+		for _choix in 40:
+			if _element(zones["creation.gestes"], "suivante").refus == null:
+				break
+			zones = _creation(zones, _a_trancher(zones["creation.corps"]))
+		zones = _creation(zones, _element(zones["creation.gestes"], "suivante"))
+	var engager: Variant = _element(zones["creation.gestes"], "engager")
+	if engager == null or engager.refus != null:
+		_fautes.append("la création par le pont n'atteint pas son engagement : %s" % str(zones["creation.titre"]))
+		return ""
+	var nom: String = zones["creation.corps"][0].libelle
+	zones = _creation(zones, engager)
+	var groupe: Array = zones["groupe.heros"].map(func(e: Dictionary) -> String: return e.nom)
+	_pont.appeler("quitter")
+	if groupe != [nom]:
+		_fautes.append("%s engagé n'est pas au groupe : %s" % [nom, groupe])
+		return ""
+	print("[campagne] %s créé et engagé par le pont, la partie quittée" % nom)
+	return nom
+
+
+## Les zones de la vue après le geste de la création que porte le bouton `b` ; `zones` si le pont le refuse.
+func _creation(zones: Dictionary, b: Dictionary) -> Dictionary:
+	return _pont.appeler("creation", b.jeu).get("vue", {zones = zones}).zones
+
+
+## L'élément d'id `id` de `elements`, `null` s'il n'y est pas.
+func _element(elements: Array, id: String) -> Variant:
+	for e: Dictionary in elements:
+		if e.id == id:
+			return e
+	return null
+
+
+## Le bouton qui solde la page de corps `corps` : la première valeur libre de son premier choix sans valeur pressée,
+## sinon son premier bouton libre qui n'est pas pressé.
+func _a_trancher(corps: Array) -> Dictionary:
+	for e: Dictionary in corps:
+		if e.type in ["choix", "liste"] and not e.valeurs.any(func(b: Dictionary) -> bool: return b.presse):
+			return e.valeurs.filter(func(b: Dictionary) -> bool: return b.refus == null)[0]
+	return corps.filter(func(e: Dictionary) -> bool: return e.type == "bouton" and not e.presse and e.refus == null)[0]
+
+
+## « Jouer » pressé à l'accueil, la carte du héros `nom` au roster : « Recruter » de sa carte le fait entrer au groupe,
+## où il ne se recrute plus, puis « Supprimer » le retire du roster.
+func _composer_du_roster(nom: String) -> bool:
+	if not await _attendre(func() -> bool: return _au_menu(), "l'accueil avant le roster"):
+		return false
+	_cliquer(_texte("Jouer"))
+	if not await _attendre(func() -> bool: return _carte_du_roster(nom) != null and _publie("bouton/recruter/" + _id_au_roster(nom)) != null, "%s au roster, « Recruter » offert" % nom):
+		return false
+	var id := _id_au_roster(nom)
+	if _publie("bouton/exporter/" + id) == null or _publie("bouton/importer") == null:
+		_fautes.append("le roster n'offre pas « Exporter » de %s et « Importer un personnage… »" % nom)
+	print("[campagne] roster : %s" % ", ".join(PackedStringArray(_roster().map(func(e: Dictionary) -> String: return e.nom))))
+	_cliquer(_publie("bouton/recruter/" + id))
+	if not await _attendre(func() -> bool: return _renvois() == 1 and _publie("bouton/recruter/" + id) == null, "%s recruté du roster, son recrutement refusé ensuite" % nom):
+		return false
+	var groupe: Array = current_scene.get("_vue").zones["groupe.heros"].map(func(e: Dictionary) -> String: return e.id)
+	if groupe != ["heros/" + id]:
+		_fautes.append("le héros recruté du roster n'entre pas au groupe sous son id : %s" % str(groupe))
+	_cliquer(_publie("bouton/retirer/" + id))
+	if not await _attendre(func() -> bool: return _carte_du_roster(nom) == null and _publie("bouton/retirer/" + id) == null, "%s retiré du roster" % nom):
+		return false
+	print("[campagne] %s recruté du roster, puis retiré du roster" % nom)
+	return true
+
+
+## La carte du héros `nom` au roster que montre le combat, `null` s'il n'y est pas.
+func _carte_du_roster(nom: String) -> Variant:
+	for e: Dictionary in _roster():
+		if e.nom == nom:
+			return e
+	return null
+
+
+## L'id du héros `nom` au roster, celui que porte sa carte (`roster/<id>`).
+func _id_au_roster(nom: String) -> String:
+	return str(_carte_du_roster(nom).id).trim_prefix("roster/")
 
 
 ## La partie en cours écrite à l'emplacement 1 au panneau des sauvegardes, quittée, puis chargée de cet emplacement
@@ -138,9 +242,17 @@ func _texte(texte: String) -> Variant:
 	return null
 
 
-## Les boutons publiés d'un pré-tiré à recruter.
+## Les boutons publiés qui recrutent un pré-tiré : ceux d'un recrutement, hors ceux des cartes du roster.
 func _recrues() -> Array:
-	return _pont.ecran.get("boutons", []).filter(func(b: Dictionary) -> bool: return str(b.get("element", "")).begins_with("bouton/recruter/"))
+	var du_roster: Array = _roster().map(func(e: Dictionary) -> String: return "bouton/recruter/" + str(e.id).trim_prefix("roster/"))
+	return _pont.ecran.get("boutons", []).filter(func(b: Dictionary) -> bool: return str(b.get("element", "")).begins_with("bouton/recruter/") and not du_roster.has(b.element))
+
+
+## Les cartes de la zone du roster de la vue du combat ; aucune hors du combat.
+func _roster() -> Array:
+	if current_scene == null or current_scene.scene_file_path != COMBAT:
+		return []
+	return current_scene.get("_vue").get("zones", {}).get("groupe.roster", [])
 
 
 ## Le nombre de boutons publiés qui renvoient un héros du groupe.
