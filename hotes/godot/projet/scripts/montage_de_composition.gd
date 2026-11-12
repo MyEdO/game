@@ -1123,7 +1123,7 @@ static func peindre(meshes: Array, surfaces: Array, texture: ImageTexture, palet
 				local.albedo_texture = null
 			if couleur != null:
 				local.albedo_color = Color(couleur)
-			local.normal_scale *= relief
+			local.normal_scale = MiseEnPage.relief_au_facteur(local.normal_scale, relief)
 			if blason:
 				local.detail_enabled = true
 				local.detail_albedo = texture
