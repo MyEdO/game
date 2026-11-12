@@ -1,6 +1,6 @@
 /**
  * LE CONTRAT DU PONT (#2928, `CONTRAT.md`) : la réponse est toujours une chaîne JSON ; une méthode inconnue, une entrée
- * illisible ou hors contrat, un appel avant `demarrer`, un second `demarrer` (un par page, plan M-g) et un jeton inconnu
+ * illisible ou hors contrat, un appel avant `demarrer`, un `demarrer` sur une partie ouverte et un jeton inconnu
  * se refusent en `validation` ; un geste refusé porte la catégorie que le module commun lui donne (`validation`,
  * `permission`, `regle`), une levée qu'aucun contrôle n'attendait la catégorie `interne` ; la vue porte le plateau de
  * la scène, chaque verbe de sa fenêtre en geste prêt à dessiner (`fautesDeLaFenetre`) et les clics du champ ; les
@@ -36,7 +36,7 @@ describe('le pont avant sa partie', () => {
   it('une méthode inconnue se refuse en `validation` et nomme les méthodes du contrat', () => {
     const e = erreurDe(appel('simulerAttaque', {}));
     expect(e.categorie).toBe('validation');
-    expect(e.message).toBe('méthode inconnue : simulerAttaque (méthodes : demarrer, scenarios, vue, monde, morceaux, retrait, vision, aretes, jouer, plan, regarder, fiche, creation, reprendre, modeles, composer, vehicule, catalogues, vitrine, echantillons, echantillon, presetDeComposition, editer, erreursGlobales)');
+    expect(e.message).toBe('méthode inconnue : simulerAttaque (méthodes : demarrer, ouvrir, lancer, quitter, scenarios, vue, monde, morceaux, retrait, vision, aretes, jouer, plan, regarder, fiche, creation, reprendre, modeles, composer, vehicule, catalogues, vitrine, echantillons, echantillon, presetDeComposition, editer, erreursGlobales)');
   });
 
   it('`modeles` rend les modèles de l’atelier sans partie ; une entrée sans `manifestes` ou sans `osDesRigides` se refuse', () => {
@@ -69,7 +69,7 @@ describe('le pont avant sa partie', () => {
 
   it('`vue`, `monde`, `morceaux` de la partie, `retrait`, `vision`, `aretes`, `jouer`, `fiche` et `reprendre` se refusent sans partie', () => {
     for (const [methode, entree] of [['vue', undefined], ['monde', undefined], ['morceaux', { source: 'partie', volume: [], toits: [], couronnes: [] }], ['retrait', undefined], ['vision', undefined], ['aretes', undefined], ['jouer', { type: 'fenetreValider', args: ['debutDuRound'] }], ['fiche', { fiche: null }], ['regarder', { regard: 'plateau' }], ['reprendre', { jeton: 0 }]] as const) {
-      expect(erreurDe(appel(methode, entree)), methode).toEqual({ categorie: 'validation', message: 'aucune partie : demarrer d’abord' });
+      expect(erreurDe(appel(methode, entree)), methode).toEqual({ categorie: 'validation', message: 'aucune partie : demarrer ou ouvrir d’abord' });
     }
   });
 
@@ -82,17 +82,17 @@ describe('le pont avant sa partie', () => {
   it('un scénario inconnu ou une graine non entière se refuse, et ne démarre rien', () => {
     expect(erreurDe(appel('demarrer', { scenario: 'zz-inconnu', graine: 7 }))).toEqual({ categorie: 'validation', message: 'scénario inconnu : zz-inconnu' });
     expect(erreurDe(appel('demarrer', { scenario: 'dome', graine: 1.5 }))).toEqual({ categorie: 'validation', message: 'graine non entière : 1.5' });
-    expect(erreurDe(appel('vue')).message).toBe('aucune partie : demarrer d’abord');
+    expect(erreurDe(appel('vue')).message).toBe('aucune partie : demarrer ou ouvrir d’abord');
   });
 });
 
 describe('le pont et sa partie', () => {
-  it('`demarrer` ouvre la partie une fois par page ; un second appel se refuse', { timeout: 120_000 }, () => {
+  it('`demarrer` ouvre la partie ; un second appel, sur la partie ouverte, se refuse', { timeout: 120_000 }, () => {
     const { suite } = drainer(appel, appel('demarrer', { scenario: 'dome', graine: 7 }));
     expect(suite.vue.projection.fenetre?.gestes.length, 'la vue nomme les gestes de la fenêtre ouverte').toBeGreaterThan(0);
     const e = erreurDe(appel('demarrer', { scenario: 'dome', graine: 7 }));
     expect(e.categorie).toBe('validation');
-    expect(e.message).toMatch(/une partie par page, déjà démarrée/);
+    expect(e.message).toBe('demarrer : une partie est ouverte ; quitter d’abord');
     expect(vue(), '`vue` rend la vue de la dernière suite').toEqual(suite.vue);
   });
 

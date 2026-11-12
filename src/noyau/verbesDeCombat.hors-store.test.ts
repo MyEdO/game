@@ -52,7 +52,7 @@ const courir = (partie: Partie, pt: { x: number; y: number }): void => {
 /** L'état du duel ouvert, le tour au héros, H et E au contact sans être Engagés. */
 function etatDuDuel(): { etat: EtatDeJeu; idDeE: string } {
   const ouverture = creerPartie(etatInitialDuJeu(), ENTREES);
-  ouverture.lancer({ party: [heroDuDuel()], scene: testScene(), combatDirect: 'enc-mutants' });
+  ouverture.lancer({ party: [heroDuDuel()], scene: testScene(), projet: null, combatDirect: 'enc-mutants' });
   ouverture.envoyer({ type: 'fenetreValider', args: ['debutDuRound'] });
   const garde = ouverture.etat();
   ouverture.fermer();

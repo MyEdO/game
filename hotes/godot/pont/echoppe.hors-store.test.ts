@@ -9,7 +9,7 @@ import type { Bouton, Element, Entite, Puce } from '../../../src/hote/elements';
 import type { Pont, Suite } from './pont';
 
 let ouvert: Pont | null = null;
-afterEach(() => { ouvert?.fermer(); ouvert = null; });
+afterEach(() => { ouvert?.appeler('quitter'); ouvert = null; });
 
 /** Une partie du scénario `voyage` arrivée à Steinbruck, l'échoppe du forgeron ouverte. */
 function echoppe() {

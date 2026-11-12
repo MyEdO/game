@@ -33,7 +33,7 @@ const visionDe = (r: Reponse): VisionDuMonde => {
 };
 
 describe('embuscade-fluviale — les ennemis hors de la vue du groupe', () => {
-  const { pont, appel } = table();
+  const { appel } = table();
   let suite: Suite;
   const jouer = (geste: object) => (suite = drainer(appel, appel('jouer', geste)).suite);
   const vue = (): VueDuPont => suite.vue;
@@ -45,7 +45,7 @@ describe('embuscade-fluviale — les ennemis hors de la vue du groupe', () => {
   beforeAll(() => {
     suite = drainer(appel, appel('demarrer', { scenario: 'embuscade-fluviale', graine: 1 })).suite;
   });
-  afterAll(() => pont.fermer());
+  afterAll(() => { appel('quitter'); });
 
   it('ses 5 ennemis ont chacun leur case aux occupants, et ni corps, ni marques, ni rang dans l’ordre du tour', () => {
     expect(horsDeVue().sort(), 'les occupants hors de vue : exactement les 5 ennemis').toEqual(ENNEMIS);
@@ -109,12 +109,12 @@ describe('embuscade-fluviale — les ennemis hors de la vue du groupe', () => {
 });
 
 describe('opera-plan — la vision par couche et pas à pas', () => {
-  const { pont, appel } = table();
+  const { appel } = table();
   let suite: Suite;
   beforeAll(() => {
     suite = drainer(appel, appel('demarrer', { scenario: 'opera-plan', graine: 1 })).suite;
   });
-  afterAll(() => pont.fermer());
+  afterAll(() => { appel('quitter'); });
 
   it('le plan `i` du masque est la couche `hauteurs[i]` du monde : seule celle du groupe a des cases vues, la sienne comprise', () => {
     const { hauteurs } = mondeDe(appel).monde!;
@@ -145,7 +145,7 @@ describe('opera-plan — la vision par couche et pas à pas', () => {
 
 describe('poursuite-terrestre — les embusqués', () => {
   it('ses 3 brigands embusqués ne sont pas aux entités de l’exploration', { timeout: 60_000 }, () => {
-    const { pont, appel } = table();
+    const { appel } = table();
     try {
       const { vue } = drainer(appel, appel('demarrer', { scenario: 'poursuite-terrestre', graine: 1 })).suite;
       const embusques = entitesDe('poursuite-terrestre').filter((e) => e.combat?.hiddenUntilCombat).map((e) => e.id);
@@ -153,14 +153,14 @@ describe('poursuite-terrestre — les embusqués', () => {
       const entites = vue.projection.exploration!.entites.liste.map((e) => e.id);
       expect(entites.filter((id) => embusques.includes(id)), `les entités de l’exploration : ${entites.join(', ')}`).toEqual([]);
     } finally {
-      pont.fermer();
+      appel('quitter');
     }
   });
 });
 
 describe('ecuries-clayonnage — une structure de siège en vue par sa face', () => {
   it('une structure dont l’ancrage n’est pas vu et dont une face l’est est aux voisins', { timeout: 60_000 }, () => {
-    const { pont, appel } = table();
+    const { appel } = table();
     try {
       const { vue } = drainer(appel, appel('demarrer', { scenario: 'ecuries-clayonnage', graine: 1 })).suite;
       const { masque, largeur, rangeesParPlan } = visionDe(appel('vision'));
@@ -170,7 +170,7 @@ describe('ecuries-clayonnage — une structure de siège en vue par sa face', ()
       const ancresNonVues = vue.projection.combat!.voisins.liste.filter((c) => c.camp !== 'hero' && c.pos && octetDe(c.pos) !== 255).map((c) => c.id);
       expect(ancresNonVues.length, `les voisins hors du groupe à l’ancrage non vu : ${ancresNonVues.join(', ')}`).toBeGreaterThan(0);
     } finally {
-      pont.fermer();
+      appel('quitter');
     }
   });
 });
