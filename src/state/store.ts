@@ -291,12 +291,12 @@ export const useGame = create<GameState>((set, get) => ({
   openPossessionsScreen: (uid) => set({ possessionsScreen: { uid: uid ?? null } }),
   closePossessionsScreen: () => set({ possessionsScreen: null }),
 
-  netHostStart: (name) => netFlow.salon.heberger(get, set, name),
-  netJoin: (code, name) => netFlow.salon.rejoindre(get, set, (data) => netFlow.applyNetSnapshot(set, data), code, name),
+  netHostStart: (name) => netFlow.salon.heberger(get, name),
+  netJoin: (code, name) => netFlow.salon.rejoindre(get, (data) => netFlow.applyNetSnapshot(set, data), code, name),
   netAssign: (heroId, seat) => netAssign(get, set, heroId, seat),
   setGmSeat: (seat) => setGmSeat(get, set, seat),
   netAssignSlot: (slot, seat) => netAssignSlot(get, set, slot, seat),
-  netLeave: () => netFlow.salon.quitter(set),
+  netLeave: () => netFlow.salon.quitter(get),
 
   // ── Sauvegarde / chargement (Jalon 5) — `noyau/persistance/save.ts` ──
   saveGame: (slot) => {

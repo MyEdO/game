@@ -28,21 +28,3 @@ export const CLASSE_DES_ACTIONS_DE_L_ADAPTATEUR = {
   rotateCam: 'local', toggleViewMode: 'local', togglePov: 'local', setReveler: 'local', moveCursor: 'local',
   snapCursorToTarget: 'local', commitCursor: 'local', stepPartyDir: 'local',
 } as const satisfies TableDeLAdaptateur;
-
-/** Args JSON-sûrs pour un intent : les handlers React passent parfois l'ÉVÉNEMENT en argument
- *  (`onClick={action}`) — circulaire, il ferait échouer la sérialisation et PERDRAIT l'intent
- *  (bug trouvé à l'audit coop : « Appliquer » d'invité muet). On TRONQUE la queue non
- *  sérialisable (l'événement est toujours en dernier) sans toucher aux vrais arguments. */
-export function sanitizeIntentArgs(args: unknown[]): unknown[] {
-  const jsonSafe = (v: unknown) => {
-    try {
-      JSON.stringify(v);
-      return true;
-    } catch {
-      return false;
-    }
-  };
-  const out = [...args];
-  while (out.length && (!jsonSafe(out[out.length - 1]) || typeof out[out.length - 1] === 'function')) out.pop();
-  return out;
-}

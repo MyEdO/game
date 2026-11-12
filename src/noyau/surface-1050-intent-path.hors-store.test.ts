@@ -1,7 +1,7 @@
 /**
  * #1050 — chemin COMPLET des gestes remis en surface : allowlist (`GUEST_INTENTS`) → possession
  * (`intentAllowedFor`) → action jouée AU NOM du siège (`withActingSeat`) → EFFET dans l'état. Le
- * défaut gardé n'est PAS un refus : hors allowlist, `netFlow` n'enrobe pas l'action, l'invité la
+ * défaut gardé n'est PAS un refus : hors allowlist, `transmettreLesIntentions` n'enrobe pas l'action, l'invité la
  * joue sur SON état local, et le snapshot suivant de l'hôte l'efface — sans message ni journal.
  *
  * Quatre familles, une par cause :

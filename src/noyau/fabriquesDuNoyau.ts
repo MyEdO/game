@@ -49,6 +49,7 @@ import { cloturesDesTestsDeScene, creerActionsDesTestsDeScene, reglagesDesTestsD
 import { cloturesDuLotDEtal } from './etalLotFlow';
 import { choixDeCorruption, cloturesDeCorruption, reglagesDeCorruption } from './corruptionFlow';
 import { creerActionsDuJournal } from './journal';
+import { creerActionsDuReseau } from './reseau';
 import { creerActionsDAvanceeDHorloge, creerActionsDHorloge } from './horloge';
 import { creerFabriqueDIds } from './idsDuMonde';
 import { creerActionsDuVoyage, sortiesDuVoyage, validationsDuVoyage } from './travelFlow';
@@ -457,6 +458,7 @@ export function creerActionsDuNoyau(get: Get<JeuDuNoyau>, set: SetDesClesReserve
     ...creerActionsDeLEquipage(get, set),
     ...creerActionsDesTestsDeScene(get, set),
     ...creerActionsDuJournal(get, set),
+    ...creerActionsDuReseau(get, set),
     ...creerActionsDAvanceeDHorloge(get, set),
     ...creerFabriqueDIds(get, set),
     ...creerActionsDHorloge(get, set),

@@ -1664,7 +1664,7 @@ try {
 | Attribuer les héros | hôte | rubrique « Attribution des héros » (`CoopAssignList`, un `<select>` par héros ; `GmSeatSelect` y pose le rôle MJ) — lobby ET menu ☰ en partie (`CoopMenuSection`) | `__wfrp.store.getState().netAssign(heroId, 1)` (hôte-autoritaire : refusé en mode invité) |
 | Jouer | hôte | tout le pilotage de MISE EN PLACE | `scenario`, `goto`, `fight`, `turn`, `combatEnd`… **depuis l'HÔTE uniquement** |
 
-⚠ **Ne jamais mettre en place depuis l'invité** : `interceptGuestActions` (`src/state/netFlow.ts`)
+⚠ **Ne jamais mettre en place depuis l'invité** : `transmettreLesIntentions` (`src/noyau/reseau.ts`)
 n'enrobe QUE les actions de l'allowlist (`GUEST_INTENTS`, `src/noyau/intentionsDeSiege.ts`) — toute autre action
 (`fixerLeGroupe`, `lancerLaScene`, `scenario`…) s'exécute en LOCAL chez l'invité puis est écrasée au snapshot
 suivant. Ce qui ressemble à « ça a marché puis c'est revenu en arrière » n'est pas un bug.

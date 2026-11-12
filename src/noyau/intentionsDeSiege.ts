@@ -17,10 +17,10 @@
  *  - tout autre verbe : une entrée de `CLASSE_DES_ACTIONS_DU_NOYAU` (verbes de `ActionsDuNoyau`) ou de la
  *    table de l'adaptateur (`state/intents.ts`, ses actions d'interface), tables TOTALES sur
  *    `ActionManuscrite` — une action ajoutée sans classe ne compile pas.
- * `invité` = l'invité la DEMANDE à l'hôte (`netFlow` l'enrobe) ; `hôte` = écran ou décision pilotés
- * par l'hôte ; `local` = état d'écran du client, jamais un intent. La machinerie (`MachinerieDuNoyau`) n'est pas un
- * verbe et n'a pas de classe (#3370). Chez l'invité, une action
- * hors allowlist s'exécute dans son store (`netFlow` n'enrobe que l'allowlist) ; chez l'hôte, toute
+ * `invité` = l'invité la DEMANDE à l'hôte (`transmettreLesIntentions` l'enrobe, `reseau.ts`) ; `hôte` = écran ou
+ * décision pilotés par l'hôte ; `local` = état d'écran du client, jamais un intent. La machinerie (`MachinerieDuNoyau`)
+ * n'est pas un verbe et n'a pas de classe (#3370). Chez l'invité, une action
+ * hors allowlist s'exécute dans son état (`transmettreLesIntentions` n'enrobe que l'allowlist) ; chez l'hôte, toute
  * intention d'un siège passe par `appliquerLIntentionDUnSiege`.
  */
 import { coopFlowIntents, type FLOW_VERBS, type NomDeVerbeDeJet } from './flowVerbs';
@@ -108,7 +108,7 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   // ═══ hôte / local : émis par un écran ═══
   // Élection LOCALE d'écran, hors réseau PAR CONSTRUCTION (même famille que `localIntent`) : le clic
   // qui élit le porteur du mode Dissiper n'engage rien — il ouvre le choix du Sort CHEZ CE JOUEUR.
-  // `emettreIntentInvite` (`hote/coop/salon.ts`) le joue dans le store de l'émetteur et n'envoie aucun intent ; le
+  // `emettreIntentInvite` (`reseau.ts`) le joue dans le store de l'émetteur et n'envoie aucun intent ; le
   // COMMIT, lui (`dissiperLeSort`), est exposé. Voyager le ferait naître chez l'HÔTE.
   designerLeSupport: 'local',
   // ── Exploration (miroir V1) ───────────────────────────────────────────────────────────────────

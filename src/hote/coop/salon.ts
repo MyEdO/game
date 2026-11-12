@@ -4,17 +4,18 @@
  *  - HÔTE : crée une room sur le Worker (code de 6 caractères à partager) ; chaque écriture de l'état arme une
  *    diffusion lissée (`DIFFUSION_MS`) d'un instantané complet, différée tant que l'envoi est saturé (`BUFFER_MAX`) :
  *    seul le DERNIER état part.
- *  - INVITÉ : rejoint par code ; ses actions de l'allowlist partent en intention vers l'hôte (`emettreIntentInvite`),
- *    l'état local n'est que le reflet des instantanés reçus.
+ *  - INVITÉ : rejoint par code ; ses actions de l'allowlist partent en intention vers l'hôte
+ *    (`transmettreLesIntentions`, `noyau/reseau.ts`), l'état local n'est que le reflet des instantanés reçus.
  * Reconnexion (spec v2 §6) : coupure d'un invité → son siège est réservé `GRACE_MS` (présence `away` chez l'hôte), il
  * reprend par token (persisté par room, `cleDuJeton`) ; passé la grâce, ses héros reviennent à l'hôte (`fermerLeSiege`).
  *
  * La plateforme s'injecte (`PortsDuSalon`) : la socket, la minuterie, la compression, l'URL et le `fetch` du relay, le
- * stockage du jeton, l'abonnement aux écritures de l'état et l'enrobage des actions de l'invité.
+ * stockage du jeton et l'abonnement aux écritures de l'état. Le salon lit l'état par `get` et l'écrit par la machinerie
+ * du noyau (`poserLeReseau`, `transmettreLesIntentions`, `restaurerLesIntentions`).
  */
 import {
-  appliquerLIntentionDUnSiege, argsAvecIntentionLocale, attribuerLEmplacement, attribuerLeHeros, buildDeLaCoop, fermerLeSiege,
-  initialNet, instantaneDeLaCoop, intentEluLocalement, poserLeSiegeMJ, preparerLIntentLocal, refusDAttribuerLEmplacement, refusDAttribuerLeHeros,
+  appliquerLIntentionDUnSiege, attribuerLEmplacement, attribuerLeHeros, buildDeLaCoop, fermerLeSiege,
+  initialNet, instantaneDeLaCoop, poserLeSiegeMJ, refusDAttribuerLEmplacement, refusDAttribuerLeHeros,
   refusDuSiegeMJ, refuserGesteDuSiege, type Get, type NetState, type Set,
 } from '../../noyau/index';
 import { t } from '../../i18n';
@@ -55,43 +56,17 @@ export interface PortsDuSalon extends PortsDuRelais {
   stockage: () => StockageDuJeton | null;
   /** Abonne `ecouteur` à chaque écriture de l'état ; rend le désabonnement. */
   abonner: (ecouteur: () => void) => () => void;
-  /** L'enrobage des actions de l'allowlist chez l'invité, et son retrait. */
-  invite: { intercepter(): void; restaurer(): void };
-}
-
-/**
- * Le sort d'UNE action de l'allowlist chez l'invité, dans cet ordre :
- *  - ÉLECTION LOCALE (`intentEluLocalement`) : le clic n'ouvre qu'un CHOIX D'ÉCRAN — le paramètre borné qui reste à
- *    demander — et se joue ENTIER chez le client, par son action locale. Rien ne part : le porteur élu est hors
- *    instantané, l'exécuter chez l'hôte y ferait naître un panneau étranger et n'en montrerait aucun à l'émetteur ;
- *  - sinon l'émetteur PRÉPARE chez lui ce que l'hôte ne pose pas (`preparerLIntentLocal` : l'intention qu'arme une
- *    offre jouée chez l'hôte), puis l'intent PART, avec l'intention ARMÉE ICI (`argsAvecIntentionLocale`) : elle est
- *    locale au client, l'hôte ne peut pas la relire dans son propre état, il la juge.
- */
-export function emettreIntentInvite(
-  get: Get,
-  name: string,
-  local: (...args: unknown[]) => unknown,
-  envoyer: (action: string, args: unknown[]) => void,
-  args: unknown[],
-): void {
-  if (intentEluLocalement(get, name, args)) {
-    local(...args);
-    return;
-  }
-  preparerLIntentLocal(get, name, args);
-  envoyer(name, argsAvecIntentionLocale(get, name, args));
 }
 
 /** HÔTE : siège FERMÉ (départ définitif, fin de grâce) — `fermerLeSiege` (spec §6). */
-function siegeFerme(get: Get, set: Set, seat: number): void {
-  set({ net: fermerLeSiege(get().net, seat) });
+function siegeFerme(get: Get, seat: number): void {
+  get().poserLeReseau(fermerLeSiege(get().net, seat));
   get().ecrireAuJournal(t('coop.seatClosed'));
 }
 
 /** Pose le réseau `apres(net)`, sauf si `refus` tombe : le refus se dit alors au siège qui décide
  *  (`refuserGesteDuSiege`) et `net` reste inchangé. */
-function poserLeReseau(get: Get, set: Set, refus: string | null, apres: (net: NetState) => NetState): void {
+function attribuerAuSiege(get: Get, set: Set, refus: string | null, apres: (net: NetState) => NetState): void {
   if (refus !== null) {
     refuserGesteDuSiege(get, set, refus);
     return;
@@ -103,32 +78,30 @@ function poserLeReseau(get: Get, set: Set, refus: string | null, apres: (net: Ne
 /** `attribuerLeHeros` (`noyau/sieges.ts`), refusé par `refusDAttribuerLeHeros`. */
 export function netAssign(get: Get, set: Set, heroId: string, seat: number): void {
   const { net, party } = get();
-  poserLeReseau(get, set, refusDAttribuerLeHeros(net, party, heroId, seat), (n) => attribuerLeHeros(n, party, heroId, seat));
+  attribuerAuSiege(get, set, refusDAttribuerLeHeros(net, party, heroId, seat), (n) => attribuerLeHeros(n, party, heroId, seat));
 }
 
 /** `poserLeSiegeMJ` (`noyau/sieges.ts`), refusé par `refusDuSiegeMJ`. */
 export function setGmSeat(get: Get, set: Set, seat: number | null): void {
-  poserLeReseau(get, set, refusDuSiegeMJ(get().net, seat), (n) => poserLeSiegeMJ(n, seat));
+  attribuerAuSiege(get, set, refusDuSiegeMJ(get().net, seat), (n) => poserLeSiegeMJ(n, seat));
 }
 
 /** `attribuerLEmplacement` (`noyau/sieges.ts`), refusé par `refusDAttribuerLEmplacement`. */
 export function netAssignSlot(get: Get, set: Set, slot: number, seat: number): void {
   const { net, party } = get();
-  poserLeReseau(get, set, refusDAttribuerLEmplacement(net, party, slot, seat), (n) => attribuerLEmplacement(n, party, slot, seat));
+  attribuerAuSiege(get, set, refusDAttribuerLEmplacement(net, party, slot, seat), (n) => attribuerLEmplacement(n, party, slot, seat));
 }
 
 /** Un salon : au plus une session à la fois, hôte ou invité. Ses objets réseau vivants (sessions, sockets) restent
  *  dans sa fermeture, jamais dans l'état (non sérialisables, jamais dans les instantanés). */
 export interface Salon {
   /** Devient HÔTE : crée la room sur le Worker → code court, attend les invités. false = service injoignable. */
-  heberger(get: Get, set: Set, name: string): Promise<boolean>;
+  heberger(get: Get, name: string): Promise<boolean>;
   /** INVITÉ : rejoint une room par son code. Résout null si connecté, sinon le message d'erreur. Un token stocké
    *  (reload) reprend le MÊME siège tant que la room vit. */
-  rejoindre(get: Get, set: Set, appliquerSnapshot: (data: Record<string, unknown>) => void, codeRaw: string, name: string): Promise<string | null>;
-  /** INVITÉ : envoie l'intention à l'hôte ; inerte hors session. */
-  envoyer(action: string, args: unknown[]): void;
+  rejoindre(get: Get, appliquerSnapshot: (data: Record<string, unknown>) => void, codeRaw: string, name: string): Promise<string | null>;
   /** Quitte la session (les deux rôles) — retour au mode local, actions restaurées. */
-  quitter(set: Set): void;
+  quitter(get: Get): void;
 }
 
 export function creerLeSalon(ports: PortsDuSalon): Salon {
@@ -153,11 +126,11 @@ export function creerLeSalon(ports: PortsDuSalon): Salon {
     }, DIFFUSION_MS);
   }
 
-  function presente(get: Get, set: Set, seat: number, gname: string): void {
-    set({ net: { ...get().net, seatNames: { ...get().net.seatNames, [seat]: gname }, presence: { ...get().net.presence, [seat]: 'present' } } });
+  function presente(get: Get, seat: number, gname: string): void {
+    get().poserLeReseau({ ...get().net, seatNames: { ...get().net.seatNames, [seat]: gname }, presence: { ...get().net.presence, [seat]: 'present' } });
   }
 
-  function quitter(set: Set): void {
+  function quitter(get: Get): void {
     desabonner?.();
     desabonner = null;
     annulerLaDiffusion?.();
@@ -172,11 +145,11 @@ export function creerLeSalon(ports: PortsDuSalon): Salon {
     roomHost = null;
     roomGuest?.close();
     roomGuest = null;
-    ports.invite.restaurer();
-    set({ net: initialNet() });
+    get().restaurerLesIntentions();
+    get().poserLeReseau(initialNet());
   }
 
-  async function heberger(get: Get, set: Set, name: string): Promise<boolean> {
+  async function heberger(get: Get, name: string): Promise<boolean> {
     if (get().net.mode !== 'local') return false;
     let room: { code: string; hostToken: string };
     try {
@@ -193,36 +166,36 @@ export function creerLeSalon(ports: PortsDuSalon): Salon {
       applyIntent: (action, args, seat) => appliquerLIntentionDUnSiege(get, seat, action, args),
       getSnapshot: () => instantaneDeLaCoop(get()),
       campagne: () => get().pendingCampaign,
-      onSeatClosed: (seat) => siegeFerme(get, set, seat),
+      onSeatClosed: (seat) => siegeFerme(get, seat),
     });
     rh.onFatal = () => {
       get().ecrireAuJournal(t('coop.hote.lienPerdu'));
-      quitter(set);
+      quitter(get);
     };
     rh.onJoin = (seat, gname) => {
       host?.addGuest(rh.seatTransport(seat), seat);
-      presente(get, set, seat, gname);
+      presente(get, seat, gname);
     };
     rh.onResume = (seat, gname) => {
       graces.get(seat)?.();
       graces.delete(seat);
       // Revenu APRÈS la grace : son siège a été fermé → re-join sur le même siège.
       if (!host?.seats[seat]) host?.addGuest(rh.seatTransport(seat), seat);
-      presente(get, set, seat, gname);
+      presente(get, seat, gname);
     };
     rh.onGone = (seat) => {
-      set({ net: { ...get().net, presence: { ...get().net.presence, [seat]: 'absent' } } });
+      get().poserLeReseau({ ...get().net, presence: { ...get().net.presence, [seat]: 'absent' } });
       graces.set(seat, ports.minuterie.programmer(() => {
         graces.delete(seat);
         rh.closeSeat(seat); // → onClose du transport virtuel → onSeatClosed (héros à l'hôte)
       }, GRACE_MS));
     };
-    set({ net: { ...initialNet(), mode: 'hote', roomCode: room.code, seatNames: { 0: name } } });
+    get().poserLeReseau({ ...initialNet(), mode: 'hote', roomCode: room.code, seatNames: { 0: name } });
     desabonner = ports.abonner(diffuser);
     return true;
   }
 
-  function rejoindre(get: Get, set: Set, appliquerSnapshot: (data: Record<string, unknown>) => void, codeRaw: string, name: string): Promise<string | null> {
+  function rejoindre(get: Get, appliquerSnapshot: (data: Record<string, unknown>) => void, codeRaw: string, name: string): Promise<string | null> {
     if (get().net.mode !== 'local') return Promise.resolve(t('coop.alreadyInSession'));
     const code = codeRaw.trim().toUpperCase();
     if (!FORMAT_DU_CODE.test(code)) return Promise.resolve(t('coop.badCode'));
@@ -232,7 +205,7 @@ export function creerLeSalon(ports: PortsDuSalon): Salon {
       const fail = (msg: string) => {
         if (settled) return;
         settled = true;
-        quitter(set);
+        quitter(get);
         resolve(msg);
       };
       const annulerLeDelai = ports.minuterie.programmer(() => fail(t('coop.joinFailed')), DELAI_DE_CONNEXION_MS);
@@ -241,16 +214,16 @@ export function creerLeSalon(ports: PortsDuSalon): Salon {
       rg.onFatal = (reason) => {
         if (settled) {
           get().ecrireAuJournal(t('coop.reason', { reason }));
-          quitter(set);
+          quitter(get);
           return;
         }
         fail(reason);
       };
       rg.onHostAway = (away) => {
-        if (get().net.mode === 'invite') set({ net: { ...get().net, hoteAbsent: away } });
+        if (get().net.mode === 'invite') get().poserLeReseau({ ...get().net, hoteAbsent: away });
       };
       rg.onConnState = (s) => {
-        if (get().net.mode === 'invite') set({ net: { ...get().net, connection: s === 'connecte' ? 'connecte' : 'reconnexion' } });
+        if (get().net.mode === 'invite') get().poserLeReseau({ ...get().net, connection: s === 'connecte' ? 'connecte' : 'reconnexion' });
       };
       rg.onReconnected = () => guest?.rejoin();
       rg.onSeated = (seat) => {
@@ -266,10 +239,10 @@ export function creerLeSalon(ports: PortsDuSalon): Salon {
           // qui suit juste après (silencieux, cf. session.ts).
           onProtocolMismatch: (expected, got) => get().ecrireAuJournal(t('coop.protocolMismatch', { got, expected })),
           onFormatMismatch: () => get().ecrireAuJournal(t('coop.formatMismatch')),
-          onClosed: () => quitter(set),
+          onClosed: () => quitter(get),
         });
-        set({ net: { ...initialNet(), mode: 'invite', mySeat: seat, roomCode: code, seatNames: { [seat]: name } } });
-        ports.invite.intercepter();
+        get().poserLeReseau({ ...initialNet(), mode: 'invite', mySeat: seat, roomCode: code, seatNames: { [seat]: name } });
+        get().transmettreLesIntentions((action, args) => guest?.sendIntent(action, args));
         guest.connect(rg);
         resolve(null);
       };
@@ -279,7 +252,6 @@ export function creerLeSalon(ports: PortsDuSalon): Salon {
   return {
     heberger,
     rejoindre,
-    envoyer: (action, args) => guest?.sendIntent(action, args),
     quitter,
   };
 }

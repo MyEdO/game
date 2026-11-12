@@ -150,7 +150,7 @@ export interface TargetingMode {
   commitCombatant?(get: Get, set: Set, active: Combatant, id: string, opts?: BattleClickOpts): void;
   /** Ce clic-token, sur CETTE cible, n'ouvre-t-il qu'un CHOIX D'ÉCRAN — le paramètre borné qui reste
    *  à demander — sans rien commettre au jeu ? PUR. Vrai = le geste se joue ENTIER chez l'ÉMETTEUR :
-   *  `netFlow` ne l'envoie pas à l'hôte (`INTENT_ELECTION_LOCALE`), au même titre que l'intention
+   *  `emettreIntentInvite` (`reseau.ts`) ne l'envoie pas à l'hôte (`INTENT_ELECTION_LOCALE`), au même titre que l'intention
    *  armée est un mode d'écran qui ne voyage pas. Absent = tout clic de ce mode est un geste de jeu. */
   electionLocale?(get: Get, id: string): boolean;
   tileValidAt?(get: Get<Jeu>, active: Combatant, pt: Pt): boolean;
@@ -979,7 +979,7 @@ export function ciblageEntiteArme(get: Get): boolean {
 /**
  * GESTES CONSOMMÉS CHEZ L'ÉMETTEUR (coop) — jumelle de `INTENTION_JOINTE_AUX_ARGS` (`localIntent.ts`) :
  * une action de clic, la façon de savoir si CE clic-là n'est qu'un choix d'ÉCRAN. Table déclarative,
- * jamais un `if (action === …)` au fil de `netFlow` ; les intents absents d'ici voyagent tous.
+ * jamais un `if (action === …)` au fil de `emettreIntentInvite` ; les intents absents d'ici voyagent tous.
  *
  * Le verdict se lit au MODE de ciblage courant (`electionLocale`) : c'est lui qui sait ce que son
  * clic-token fait, et le mode est le même des deux côtés du fil pour un ciblage armé localement.

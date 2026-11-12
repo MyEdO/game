@@ -19,7 +19,7 @@ import type { IdDeCombattant, IdDeHeros, IdDePossession, IdDEntiteDeScene, IdDeT
 import type { OpenRestOpts } from './restFlow';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 import type { BattleClickOpts, OptionsDuClic } from './targetingModes';
-import type { EtatDeJeu, Jeu, PaquetALancer, PendingInteract } from './etat';
+import type { EtatDeJeu, Jeu, NetState, PaquetALancer, PendingInteract } from './etat';
 
 export interface MachinerieDuNoyau {
   // ── Ids du monde ──
@@ -139,6 +139,14 @@ export interface MachinerieDuNoyau {
   /** Action canonique UNIQUE composant `journal` (pousse `msg`, ou toutes les `msg[]` dans l'ordre,
    *  et plafonne à 40 lignes) — ticket #319 : tout site de `journal: [...journal.slice(-40), …]` route ICI. */
   ecrireAuJournal: (msg: string | string[]) => void;
+  // ── Réseau (`reseau.ts`) ──
+  /** Pose la session coop `net` ; rien si c'est déjà elle. */
+  poserLeReseau: (net: NetState) => void;
+  /** INVITÉ : enrobe dans l'état chaque action de `GUEST_INTENTS` (`emettreIntentInvite`), `envoyer` recevant ses
+   *  arguments passés par `sanitizeIntentArgs` ; sans effet si déjà enrobé. */
+  transmettreLesIntentions: (envoyer: (action: string, args: unknown[]) => void) => void;
+  /** Repose les actions d'origine ; sans effet quand rien n'est enrobé. */
+  restaurerLesIntentions: () => void;
   // ── Le clic d'une case en exploration (`cliquerLaCase`) les joue ──
   /** Le pas d'une case du groupe vers `pt`, refusé hors d'une case voisine à pied (`pasDuGroupe`). */
   deplacerLeGroupe: (pt: Pt) => void;

@@ -363,7 +363,7 @@ export interface EtatDeJeu {
    *  à choisir LEQUEL de ses Sorts permanents dissiper — c'est le paramètre que le panneau borné de
    *  la console demande. LOCAL au client au même titre que `localIntent` (aucune ressource engagée,
    *  hors `battle`, hors snapshot). L'élection se joue donc chez l'ÉMETTEUR du clic
-   *  (`emettreIntentInvite`, `hote/coop/salon.ts` ; table `targetingModes.INTENT_ELECTION_LOCALE`) : elle ne part
+   *  (`emettreIntentInvite`, `noyau/reseau.ts` ; table `targetingModes.INTENT_ELECTION_LOCALE`) : elle ne part
    *  JAMAIS en intent — l'exécuter dans le store de l'hôte y ferait naître un panneau étranger, et
    *  l'invité n'en verrait aucun (le snapshot efface ce champ).
    *  null = aucun porteur élu — avant le clic-token, ou après la fermeture du panneau. */
