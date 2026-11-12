@@ -3,7 +3,7 @@
  * celles du noyau (`noyau/preferences.ts`) ; seules les valeurs qui s'écartent de leur défaut s'écrivent. Un stockage
  * absent (`null`) ou qui lève : la valeur reste effective pour la session.
  */
-import { poserLesPreferencesPersistees, preferenceDef, preferencesAPersister, type Preference, type PrefValue } from '../noyau/index';
+import { poserLesPreferencesPersistees, preferenceDef, preferencesAPersister, valeurDEntree, type Preference } from '../noyau/index';
 import { lireDictionnaire, type Stockage } from '../lib/stockage';
 
 const CLE = 'wfrp4.prefs';
@@ -15,11 +15,12 @@ export function chargerLesPreferences(stockage: Stockage | null): void {
 }
 
 /** Écrit `valeur` dans la préférence `id` et persiste la table dans `stockage` ; rend son entrée, `undefined` pour un
- *  id inconnu (rien n'est écrit). */
-export function reglerUnePreference(stockage: Stockage | null, id: string, valeur: PrefValue): Preference | undefined {
+ *  id inconnu ou une valeur que la forme de l'entrée refuse (`valeurDEntree`) : rien n'est alors écrit. */
+export function reglerUnePreference(stockage: Stockage | null, id: string, valeur: unknown): Preference | undefined {
   const def = preferenceDef(id);
-  if (!def) return undefined;
-  def.set(valeur);
+  const conforme = def && valeur !== undefined ? valeurDEntree(def.id, valeur) : undefined;
+  if (!def || conforme === undefined) return undefined;
+  def.set(conforme);
   const persistees = preferencesAPersister();
   try {
     if (Object.keys(persistees).length) stockage?.setItem(CLE, JSON.stringify(persistees));

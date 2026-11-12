@@ -47,7 +47,8 @@ export interface ZonesDeLaPartie {
   'groupe.campagnes': Entite[];
   /**
    * « Sauvegardes », dont le `jeu` `{ sauvegardes: true }` ouvre le panneau des sauvegardes (méthode `sauvegardes`),
-   * puis « Quitter la partie », dont le `jeu` `{ quitter: true }` appelle la méthode `quitter`.
+   * « Options », dont le `jeu` `{ reglages: true }` ouvre le panneau des réglages (méthode `reglages`), puis
+   * « Quitter la partie », dont le `jeu` `{ quitter: true }` appelle la méthode `quitter`.
    */
   'partie.gestes': Bouton[];
 }
@@ -65,6 +66,7 @@ const carte = (id: string, h: { nom: string; espece: string | null; carriere: st
 export function zonesDeLaPartie(etat: Pick<Partie, 'battle' | 'party' | 'net' | 'scene' | 'pendingCampaign'>, roster: RosterMontre): ZonesDeLaPartie {
   const gestes: Bouton[] = [
     { type: 'bouton', id: 'sauvegardes', libelle: t('ecran.partie.sauvegardes'), jeu: { sauvegardes: true }, presse: false, focus: false, refus: null },
+    { type: 'bouton', id: 'reglages', libelle: t('ecran.partie.reglages'), jeu: { reglages: true }, presse: false, focus: false, refus: null },
     { type: 'bouton', id: 'quitter', libelle: t('ecran.partie.quitter'), jeu: { quitter: true }, presse: false, focus: false, refus: null },
   ];
   if (partieEnCours(etat)) return { 'groupe.pretires': [], 'groupe.roster': [], 'groupe.import': [], 'groupe.avis': [], 'groupe.campagnes': [], 'partie.gestes': gestes };

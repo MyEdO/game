@@ -99,6 +99,9 @@
 //   recrutement refusé ensuite ; la Diligence lancée avec lui, puis quittée, il reste au roster ; « Exporter » en
 //   télécharge le fichier ; « Supprimer », puis « Importer un personnage… » sur ce fichier le rend au roster ;
 //   « Supprimer » l'en retire, page rechargée comprise.
+// - `reglages` (#3009) : « Options » du menu ouvre le panneau des réglages ; « Oui » des dés fixés pressé, le pont dit la
+//   préférence réglée ; la page rechargée, elle revient du stockage ; « Jouer », puis « Options » de la partie : le
+//   même panneau, « Non » la remet, « Fermer » rend la partie.
 // - `editeur` (#3508), servi avec une copie des projets manuscrits du dépôt (`servir.mjs`, `depot`) : « Éditeur » ouvre la
 //   Diligence telle que le dépôt la sert, sur sa couche 0, rien à enregistrer ; l'outil Hauteur, « Haute (4 m) » et le
 //   pinceau 3×3 choisis à leurs boutons, un glissé de deux cases sur la carte : bouton tenu, la surcouche couvre
@@ -200,6 +203,7 @@
 //   node hotes/godot/recette.mjs --parcours regards --scenario fenetre-ecuries --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours creation --scenario marche-equipement --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours campagne --web <export> --captures <dossier>
+//   node hotes/godot/recette.mjs --parcours reglages --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours roster --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours vehicule --scenario caraque --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours cadrages --scenario a-bord-de-la-caraque --vues hotes/godot/cadrages/a-bord-de-la-caraque.json
@@ -1681,6 +1685,35 @@ async function lancerLaCampagne(id) {
 const attendreLeBouton = (element) => waitFor(session, `!!globalThis.wfrpEcran && wfrpEcran.boutons.some((b) => b.element === ${JSON.stringify(element)})`, { timeoutMs: 30000, evaluerMs: FIL_DE_LA_PAGE_MS })
 /** Attend le menu d'entrée : « Jouer » publié, aucun plateau. */
 const attendreLeMenu = () => waitFor(session, '!!globalThis.wfrpEcran && !wfrpEcran.cases && wfrpEcran.boutons.some((b) => b.texte === "Jouer")', { timeoutMs: 120000, evaluerMs: FIL_DE_LA_PAGE_MS })
+/** La valeur de chaque préférence de confort que dit le pont, par id. */
+const preferences = async () => JSON.parse(await lire(`wfrpPont.appeler('preferences')`)).preferences
+/** Attend que le pont dise la préférence `id` à `valeur`. */
+const attendreLaPreference = (id, valeur) =>
+  waitFor(session, `JSON.parse(wfrpPont.appeler('preferences')).preferences[${JSON.stringify(id)}] === ${JSON.stringify(valeur)}`, { timeoutMs: 30000, evaluerMs: FIL_DE_LA_PAGE_MS })
+async function parcoursReglages() {
+  const oui = { element: 'bouton/preference/des-fixes/true' }
+  const non = { element: 'bouton/preference/des-fixes/false' }
+  await cliquerBouton('Options')
+  await attendreLeBouton(oui.element)
+  assert.equal((await preferences())['des-fixes'], false, 'les dés fixés à leur défaut')
+  await capturer('3009-reglages-1-au-menu')
+  await cliquerBouton(oui)
+  await attendreLaPreference('des-fixes', true)
+  noter('« Options » au menu : les dés fixés réglés au panneau')
+  await session.rpc('Page.reload')
+  await attendreLeMenu()
+  assert.equal((await preferences())['des-fixes'], true, 'la préférence réglée revient du stockage après le rechargement de la page')
+  await ouvrirAuGroupe()
+  await cliquerBouton({ element: 'bouton/reglages' })
+  await attendreLeBouton(non.element)
+  await capturer('3009-reglages-2-en-partie')
+  await cliquerBouton(non)
+  await attendreLaPreference('des-fixes', false)
+  await cliquerBouton({ element: 'bouton/fermer' })
+  await waitFor(session, `!wfrpEcran.boutons.some((b) => b.element === ${JSON.stringify(non.element)})`, { timeoutMs: 30000, evaluerMs: FIL_DE_LA_PAGE_MS })
+  noter('page rechargée : la préférence revenue du stockage ; « Options » de la partie la remet, « Fermer » rend la partie')
+  await capturer('3009-reglages-3-ferme')
+}
 async function parcoursCampagne() {
   let v = await ouvrirAuGroupe()
   assert.equal(v.projection.scene, null, 'la partie ouverte au groupe n’a pas de scène')
@@ -3483,7 +3516,7 @@ async function parcoursPreset() {
   }
 }
 
-const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, dialogue: parcoursDialogue, document: parcoursDocument, incantation: parcoursIncantation, soin: parcoursSoin, voyage: parcoursVoyage, marche: parcoursMarche, repos: parcoursRepos, repit: parcoursRepit, ouvrage: parcoursOuvrage, bataille: parcoursBataille, exploration: parcoursExploration, relief: parcoursRelief, etage: parcoursEtage, regards: parcoursRegards, meteo: parcoursMeteo, vehicule: parcoursVehicule, cadrages: parcoursCadrages, bord: parcoursBord, brume: parcoursBrume, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, campagne: parcoursCampagne, roster: parcoursRoster, editeur: parcoursEditeur, atelier: parcoursAtelier, composition: parcoursComposition, preset: parcoursPreset, vision: parcoursVision, murs: parcoursMurs }
+const PARCOURS = { reglages: parcoursReglages, combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, dialogue: parcoursDialogue, document: parcoursDocument, incantation: parcoursIncantation, soin: parcoursSoin, voyage: parcoursVoyage, marche: parcoursMarche, repos: parcoursRepos, repit: parcoursRepit, ouvrage: parcoursOuvrage, bataille: parcoursBataille, exploration: parcoursExploration, relief: parcoursRelief, etage: parcoursEtage, regards: parcoursRegards, meteo: parcoursMeteo, vehicule: parcoursVehicule, cadrages: parcoursCadrages, bord: parcoursBord, brume: parcoursBrume, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, campagne: parcoursCampagne, roster: parcoursRoster, editeur: parcoursEditeur, atelier: parcoursAtelier, composition: parcoursComposition, preset: parcoursPreset, vision: parcoursVision, murs: parcoursMurs }
 if (!(o.parcours in PARCOURS)) throw new Error(`--parcours ${o.parcours} : ${Object.keys(PARCOURS).join(' ou ')} attendu`)
 assert.deepEqual(Object.keys(PARCOURS).filter((parcours) => !(parcours in JEUX_DU_PARCOURS)), [], 'chaque parcours déclare ses jeux au lot (`JEUX_DU_PARCOURS`)')
 

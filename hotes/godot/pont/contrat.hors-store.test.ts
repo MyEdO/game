@@ -36,7 +36,7 @@ describe('le pont avant sa partie', () => {
   it('une méthode inconnue se refuse en `validation` et nomme les méthodes du contrat', () => {
     const e = erreurDe(appel('simulerAttaque', {}));
     expect(e.categorie).toBe('validation');
-    expect(e.message).toBe('méthode inconnue : simulerAttaque (méthodes : demarrer, ouvrir, lancer, quitter, sauvegardes, sauvegarder, charger, scenarios, vue, monde, morceaux, retrait, vision, aretes, jouer, plan, regarder, fiche, creation, roster, reprendre, modeles, composer, vehicule, catalogues, vitrine, preferences, echantillons, echantillon, presetDeComposition, editer, erreursGlobales)');
+    expect(e.message).toBe('méthode inconnue : simulerAttaque (méthodes : accueil, demarrer, ouvrir, lancer, quitter, sauvegardes, sauvegarder, charger, scenarios, vue, monde, morceaux, retrait, vision, aretes, jouer, plan, regarder, fiche, creation, roster, reprendre, modeles, composer, vehicule, catalogues, vitrine, preferences, reglages, echantillons, echantillon, presetDeComposition, editer, erreursGlobales)');
   });
 
   it('`preferences` rend sans partie la valeur effective de chaque préférence de la table, par id', () => {
