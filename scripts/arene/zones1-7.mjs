@@ -430,7 +430,7 @@ export function makeZone5() {
         id: 'enc-zone5',
         enemies: [
           // 0 : destrier LIBRE côté héros — enfourchable (vitrine du combat monté).
-          { creature: { id: 'cheval' }, pos: { x: 6, y: 11 }, mount: true, side: 'ally' },
+          { creature: { id: 'cheval' }, pos: { x: 6, y: 11 }, mount: true, side: 'allie' },
           // 1-2 : le champion mutant, pré-monté.
           { creature: { id: 'cheval' }, pos: { x: 22, y: 4 }, mount: true },
           { creature: { id: 'mutant' }, pos: { x: 22, y: 4 }, rides: 1 },

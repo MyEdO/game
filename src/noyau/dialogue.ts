@@ -113,7 +113,7 @@ export function reponsesDuNoeud(s: Jeu): ReponseDeDialogue[] {
   if (!node) return [];
   const get = () => s;
   // Contexte de Condition de SCÈNE par la couture canonique (`bourseFlow.condCtx`) : la Condition
-  // `money` y lit le total des bourses du groupe, comme les triggers et les `if` de scène.
+  // `money` y lit le total des bourses du groupe, comme les triggers et les `si` de scène.
   const cc = condCtx(get);
   const money = partyMoneyTotal(get);
   const decide = ownsGroupDecision(s);
@@ -140,30 +140,30 @@ export function reponsesDuNoeud(s: Jeu): ReponseDeDialogue[] {
 
 /**
  * Le Test que CE flux déclenche, ou rien. Le parcours suit ce qui va RÉELLEMENT s'exécuter : une
- * `seq` dans l'ordre, un `if` par la branche que sa Condition prend, et il s'arrête au PREMIER jet
+ * `sequence` dans l'ordre, un `si` par la branche que sa Condition prend, et il s'arrête au PREMIER jet
  * rencontré — c'est le seul que le joueur déclenche en choisissant la réponse (les branches
- * `success`/`fail` d'un `test` sont APRÈS le jet ; ce qu'elles contiennent n'est pas annoncé).
+ * `reussite`/`echec` d'un `test` sont APRÈS le jet ; ce qu'elles contiennent n'est pas annoncé).
  * Un nœud `test` et un Test étendu s'annoncent par la décision de leur ouvreur (`resoudreFlowTest`, `engine/decisionDuTest`),
- * sur le contexte que l'ouvreur reçoit. Un `choice` est une DÉCISION, pas un jet.
+ * sur le contexte que l'ouvreur reçoit. Un `choix` est une DÉCISION, pas un jet.
  */
 export function testAnnonce(flow: Flow | undefined, ctx: ContexteDuTest): TestAnnonce | undefined {
   if (!flow) return undefined;
   switch (flow.kind) {
-    case 'seq':
-      return flow.steps.reduce<TestAnnonce | undefined>((trouve, step) => trouve ?? testAnnonce(step, ctx), undefined);
-    case 'if':
-      return testAnnonce(evalCondition(flow.cond, ctx.cc) ? flow.then : flow.else, ctx);
+    case 'sequence':
+      return flow.etapes.reduce<TestAnnonce | undefined>((trouve, step) => trouve ?? testAnnonce(step, ctx), undefined);
+    case 'si':
+      return testAnnonce(evalCondition(flow.condition, ctx.cc) ? flow.alors : flow.sinon, ctx);
     case 'test': {
       const decision = resoudreFlowTest(flow.test, ctx);
       return decision.joue ? { ...decision.sujet, difficulty: decision.difficulty } : undefined;
     }
-    case 'do': {
-      const e = flow.effect;
+    case 'effet': {
+      const e = flow.effet;
       if (e.type !== 'extendedTest') return undefined;
       const decision = resoudreFlowTest(e, ctx);
       return decision.joue ? { ...decision.sujet, difficulty: decision.difficulty, drCible: e.drCible } : undefined;
     }
-    case 'choice':
+    case 'choix':
       return undefined;
   }
 }

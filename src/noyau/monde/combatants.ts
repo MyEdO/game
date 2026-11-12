@@ -74,7 +74,22 @@ export function inBattleId(battle: Jeu['battle'], id: string | undefined): Comba
  * et valeur d'un dé ne peuvent pas répondre depuis deux univers différents.
  */
 export function porteurParId(s: Jeu, id: string): Combatant | undefined {
-  return inBattleId(s.battle, id) ?? s.party.find((c) => c.id === id);
+  return inBattleId(s.battle, id) ?? assaillantDeLaSerie(s, id) ?? s.party.find((c) => c.id === id);
+}
+
+/** L'assaillant de la série d'attaques subies (`serieSubie`) s'il porte l'id `id`. */
+function assaillantDeLaSerie(s: Pick<Jeu, 'serieSubie'>, id: string): Combatant | undefined {
+  const a = s.serieSubie?.assaillant;
+  return a?.id === id ? a : undefined;
+}
+
+/** `a` et `b` sont-ils l'assaillant et la cible de la série d'attaques subies, que la série déclare au contact ?
+ *  MDG 15 l.163-164 */
+export function auContactDeLaSerie(s: Pick<Jeu, 'serieSubie'>, a: Combatant, b: Combatant): boolean {
+  const serie = s.serieSubie;
+  if (!serie) return false;
+  const ids = new Set([a.id, b.id]);
+  return ids.has(serie.assaillant.id) && ids.has(serie.cibleId) && a.id !== b.id;
 }
 
 /**

@@ -116,7 +116,7 @@ export const placePoiSchema = nommerChamps(z
   }), { id: { label: "identifiant" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, pos: { label: "position" }, icon: { label: "icône" , texte: { regime: "technique"} }, sceneId: { label: "scène" , texte: { regime: "technique"} }, serviceKind: { label: "type de service" , texte: { regime: "technique"} } });
 
 /** `MapPlace` — lieu posé sur la carte ; être dans `scene` = être à ce lieu. */
-export const mapPlaceSchema = nommerChamps(z.strictObject({
+export const mapPlaceSchema = proseNommee(nommerChamps(z.strictObject({
   id: z.string(),
   label: z.string(),
   /** Position sur la carte du monde. */
@@ -135,7 +135,7 @@ export const mapPlaceSchema = nommerChamps(z.strictObject({
    *  narratif : la destination n'apparaît qu'une fois révélée. Absente = toujours visible. */
   when: conditionCondCtxSchema.optional(),
   couvre: couvreSchema.optional(),
-}), { id: { label: "identifiant" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, pos: { label: "position" }, scene: { label: "scène" , texte: { regime: "technique"} }, entry: { label: "entrée" , texte: { regime: "technique"} }, icon: { label: "icône" , texte: { regime: "technique"} }, port: { label: "port" }, market: { label: "marché" }, services: { label: "services" }, poi: { label: "points d’intérêt" }, backdrop: { label: "fond" }, when: { label: "condition" }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} } });
+}), { id: { label: "identifiant" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, pos: { label: "position" }, scene: { label: "scène" , texte: { regime: "technique"} }, entry: { label: "entrée" , texte: { regime: "technique"} }, icon: { label: "icône" , texte: { regime: "technique"} }, port: { label: "port" }, market: { label: "marché" }, services: { label: "services" }, poi: { label: "points d’intérêt" }, backdrop: { label: "fond" }, when: { label: "condition" }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} } }), 'worldMap.places[].prose');
 
 /** `RoutePeril` — péripétie d'AUTEUR tirée chaque jour de voyage à `chancePct` %. Hors de toute scène, elle en ouvre
  *  les portées VIDES (`ouvrirPortees`, source `'vide'`) : aucune référence locale de la scène n'y résout. */

@@ -27,6 +27,7 @@
  *                    (`assertAuthoredIds`) + schéma de scène (`validerFormeVivante(sceneSchema, …)`) —
  *                    fail-fast, une fois zones/plancher réel connus.
  */
+import type { Equipe } from '../engine/relations';
 import type {
   Scene,
   SceneEntity,
@@ -120,7 +121,7 @@ export type ReliefSpec =
  *  `{emplacement}` (poste d'artillerie), ou un TEMPLATE partiel de `SceneEntity` (posé par `pasteEntity`). */
 /** Enrôle l'entité posée par un marqueur bind dans la rencontre `enc` (côté/IA/monture) — l'id étant
  *  GÉNÉRÉ à la pose (positions venant de l'ASCII), c'est le SEUL moyen de l'ajouter au roster. */
-export type BindMember = { enc: string; side?: 'ally' | 'enemy'; ai?: boolean; mount?: boolean };
+export type BindMember = { enc: string; side?: Equipe; ai?: boolean; mount?: boolean };
 
 export type BindSpec =
   | 'heroStart'

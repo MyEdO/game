@@ -176,7 +176,7 @@ describe('Editor v2 — un renommage au Narratif depuis une scène non-entrée (
     const { container, rendre } = monterRacine(null);
     const cite: Scene = {
       ...emptyScene('scene-test', 4, 4), id: 'a', label: 'A',
-      triggers: [{ id: 't0', rect: { x: 0, y: 0, w: 1, h: 1 }, once: true, flow: { kind: 'do', effect: { type: 'document', documentId: 'document-1' } } }],
+      triggers: [{ id: 't0', rect: { x: 0, y: 0, w: 1, h: 1 }, once: true, flow: { kind: 'effet', effet: { type: 'document', documentId: 'document-1' } } }],
     };
     await act(async () => { rendre(<Editor initialScene={cite} />); });
     const bouton = (texte: string) => [...container.querySelectorAll('button')].find((b) => b.textContent?.includes(texte))!;
@@ -214,7 +214,7 @@ describe('Editor v2 — un renommage au Narratif depuis une scène non-entrée (
     const relu = parseProject(projetsEcrits(base)[0].project);
     expect(relu.scenes.map((s) => [s.id, s.label])).toEqual([[a, 'A'], [b, 'B'], [c, 'A (copie) (copie)']]);
     for (const voisine of [relu.scenes[0], relu.scenes[2]]) {
-      expect(voisine.triggers[0].flow, voisine.id).toEqual({ kind: 'do', effect: { type: 'document', documentId: 'doc-lettre' } });
+      expect(voisine.triggers[0].flow, voisine.id).toEqual({ kind: 'effet', effet: { type: 'document', documentId: 'doc-lettre' } });
     }
   });
 });

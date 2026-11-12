@@ -5,6 +5,7 @@
  *  - Opérations bancaires : LDB 23 l.164-176
  *  - Revenus : LDB 08 l.105-120 (`gainDeStatut`, `engine/money`)
  */
+import type { Equipe } from './relations';
 import type { IconId } from '../data/icons';
 import { RNG, roll, rollDice } from './dice';
 import { Money, fromBrass, toBrass, priceToMoney, gainDeStatut, enPieces, PA_PER_SC, type StatusTier } from './money';
@@ -44,10 +45,6 @@ import { parLibelle } from '../lib/ordre.mjs';
  *  à la demande, un jet indépendant d'une Étape). */
 export type ActivityContext = 'interlude' | 'voyage' | 'mer' | 'bataille' | 'bataille-round' | 'auberge';
 
-/** Camp visé par une issue de bataille (ADE II 8) : `ally` = l'armée des Personnages, `enemy` = l'armée
- *  adverse. */
-export type BattleSide = 'ally' | 'enemy';
-
 /** Cible d'une issue d'Activité/Scène de bataille (ADE II 8) qui porte sur l'ARMÉE, non sur le héros
  *  acteur : `might` = delta de Puissance COURANTE (heal/wounds sur le Combattant-armée, plafonné au
  *  départ, l.135) ; `startMight` = delta de Puissance de DÉPART (`wounds.max`, Rassembler l.96 / Sabotage
@@ -73,7 +70,7 @@ export interface BattleDifficultyFrom {
 export type BattleOutcomeScale = 'fixed' | 'perDR' | 'perHit' | 'perKill';
 export interface BattleOutcome {
   /** `might`/`startMight` portent un `side` (armée visée) ; les modificateurs de Test sont toujours alliés. */
-  side?: BattleSide;
+  side?: Equipe;
   target: BattleOutcomeTarget;
   scale: BattleOutcomeScale;
   /** Montant SIGNÉ (gain +, réduction −). Pour `perDR`/`perHit`/`perKill`, multiplié par le compteur. */

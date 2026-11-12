@@ -29,7 +29,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /** Déclencheur `once` sur la case (x,y) au rez : son drapeau prouve que `checkTriggers` a joué. */
 const piege = (x: number, y: number): Scene['triggers'][number] =>
-  ({ id: 'rue', rect: { x, y, w: 1, h: 1 }, once: true, flow: { kind: 'seq', steps: [] } });
+  ({ id: 'rue', rect: { x, y, w: 1, h: 1 }, once: true, flow: { kind: 'sequence', etapes: [] } });
 
 /** 4×3 : la chambre (1,1) à la couche 1 (4 m), murée sur trois côtés ; croisée E de (1,1) couche 1
  *  sur la rue (2,1) au rez. */

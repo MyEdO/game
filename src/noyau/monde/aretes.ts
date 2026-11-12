@@ -17,7 +17,7 @@ import { spaceCellKey } from './volume/architectureVisibility';
 import type { Rot } from '../../geometry/iso';
 import { cutawayOverhead, frontFacadeCutaway, type ClearedSpace } from './volume/architectureVisibility';
 import { clearedSpace } from './volume/toits';
-import { empreinteDesDecors, octetsDuRetrait, retraitDuMonde, toitsLeves, toutesLesNappes, type RetraitDuMonde } from './volume/volume';
+import { blocDeLaCase, empreinteDesDecors, octetsDuRetrait, retraitDuMonde, toitsLeves, toutesLesNappes, type RetraitDuMonde } from './volume/volume';
 import { meteoDuRegard } from './meteo';
 import { aretesHorsDesNavires, provenanceDesNavires } from '../planDeNavire';
 
@@ -27,8 +27,9 @@ export type PieceDArete = 'mur' | 'porte-fermee' | 'porte-ouverte' | 'fenetre' |
 
 /** Une arête telle qu'un hôte la dessine : sa clé (`edgeKey`), la case du segment, son milieu et son sens en coins de
  *  grille (`wallEnds`), la hauteur (m) d'où elle se dresse (`piedDeLArete`), sa pièce, la famille du kit de son apparence
- *  (`null` pour une apparence hors du catalogue), et sa hauteur en mètres (`wallHeightM`, sinon un étage). */
-export interface AreteDessinee { cle: string; case: Pt; milieu: Pt; sens: Pt; pied: number; piece: PieceDArete; famille: FamilleDuKit | null; hauteurM: number }
+ *  (`null` pour une apparence hors du catalogue), sa hauteur en mètres (`wallHeightM`, sinon un étage), et le bloc de la
+ *  case du segment à sa couche (`blocDeLaCase`). */
+export interface AreteDessinee { cle: string; case: Pt; milieu: Pt; sens: Pt; pied: number; piece: PieceDArete; famille: FamilleDuKit | null; hauteurM: number; bloc: string }
 
 /** Une arête que le groupe dégage : sa clé (`edgeKey`) et les crans de caméra (`Rot`, `Dims.rot`) sous lesquels elle
  *  tombe : tous si l'une des cases qu'elle sépare est au-dessus de la tête d'un allié (`cutawayOverhead`), sinon ceux
@@ -63,6 +64,7 @@ export function areteDessinee(scene: Scene, seg: WallSeg): AreteDessinee {
     piece: pieceDArete(scene, seg),
     famille: apparence?.kit ?? null,
     hauteurM: apparence?.wallHeightM ?? METRES_PER_LEVEL,
+    bloc: blocDeLaCase({ x: seg.x, y: seg.y, z: seg.z ?? 0 }),
   };
 }
 

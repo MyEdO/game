@@ -340,7 +340,7 @@ function rendu() {
 
   // --- population authorée ---
   out += `## Population AUTHORÉE (donnée, pas code)\n\n`
-  out += `**${authoredTests}** nœuds \`test\` (\`{ kind: 'test', test: FlowTest, success, fail }\`) dans **${authoredByFile.length}** documents\n`
+  out += `**${authoredTests}** nœuds \`test\` (\`{ kind: 'test', test: FlowTest, reussite, echec }\`) dans **${authoredByFile.length}** documents\n`
   out += nonRoutesTotal
     ? `de \`src/data\` et \`src/scenes\` : **${authoredTests - nonRoutesTotal} ROUTÉS** par la porte, **${nonRoutesTotal} NON ROUTÉS** (résolus DANS le\nmoteur — mesure ci-dessous). Ce n'est pas un stock : la donnée n'a pas de call-site à router.\n\n`
     : `de \`src/data\` et \`src/scenes\`, **tous ROUTÉS** par la porte. Ce n'est pas un stock : la donnée n'a pas de\ncall-site à router.\n\n`

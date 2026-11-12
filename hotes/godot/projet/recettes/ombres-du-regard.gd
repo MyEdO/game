@@ -8,9 +8,10 @@ extends SceneTree
 ## toutes leur ombre ; chaque sommet vu de l'étage tombe sur une case que le masque lié à sa matière retire, ceux du rez
 ## sur une case qu'il garde, et l'instance en ombre seule de l'étage, entière et jamais masquée, projette ; tout ce qui
 ## projette (l'ombre de l'étage, le toit, les arêtes, leurs couronnes) est dans une matière standard, dont Godot dessine
-## l'ombre comme pour toute matière qui ne déplace pas ses sommets ; de chaque
-## case du sol, le rayon vers le soleil touche le toit et l'étage ; la couronne du mur abattu ne projette rien. Le toit et
-## les arêtes rendus, chacun se montre et projette.
+## l'ombre comme pour toute matière qui ne déplace pas ses sommets ; une arête cachée sort du compte visible des
+## instances vues de son groupe, ses instances en ombre seule entières ; de chaque case du sol, le rayon vers le soleil
+## touche le toit et l'étage ; la couronne du mur abattu ne projette rien. Le toit et les arêtes rendus, chacun se
+## montre et projette.
 
 const RECETTE_AUTONOME := true
 const METRES_PAR_CASE := 2.0
@@ -22,7 +23,7 @@ const SOLS := [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]
 const LARGEUR := 3
 const RANGEES := 12
 const ETAGE_AU_MASQUE := 6
-const ARETE := {milieu = {x = 1.0, y = -0.5}, sens = {x = 1.0, y = 0.0}, pied = 0.0, hauteurM = 3.0, piece = "mur"}
+const ARETE := {milieu = {x = 1.0, y = -0.5}, sens = {x = 1.0, y = 0.0}, pied = 0.0, hauteurM = 3.0, piece = "mur", bloc = "0/0/0"}
 var _fautes: Array[String] = []
 
 
@@ -45,7 +46,7 @@ func _recetter() -> void:
 	masque[ETAGE_AU_MASQUE * LARGEUR] = 255
 	monde.volume.retirer({masque = Marshalls.raw_to_base64(masque), largeur = LARGEUR, rangees = RANGEES})
 	monde.volume.poser_les_aretes([ARETE.merged({cle = "boite", famille = null}), ARETE.merged({cle = "kit", famille = "colombage"})])
-	var degagees := ["boite", "kit"].map(func(cle: String) -> Dictionary: return {cle = cle, abattueSous = [0, 1, 2, 3]})
+	var degagees: Array = JSON.parse_string(JSON.stringify(["boite", "kit"].map(func(cle: String) -> Dictionary: return {cle = cle, abattueSous = [0, 1, 2, 3]})))
 	monde.cacher_le_bati(["maison"], ["abattue"], degagees)
 	var toit: Node3D = monde.get_node("VolumeDeScene/Volume/Toits").get_child(0)
 	var morceaux := monde.get_node("VolumeDeScene/Volume/Morceaux")
@@ -54,9 +55,11 @@ func _recetter() -> void:
 	var ombre_de_l_etage: MeshInstance3D = morceaux.get_node("sol_1_0_0/Ombre")
 	if not ombre_de_l_etage.is_visible_in_tree() or ombre_de_l_etage.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY or ombre_de_l_etage.mesh != (morceaux.get_node("sol_1_0_0/Vu") as MeshInstance3D).mesh or ombre_de_l_etage.material_override != monde.volume.couleur_des_sommets:
 		_fautes.append("l'étage retiré : son instance en ombre seule n'est pas entière, dans la matière d'ombre standard, du même maillage")
+	var groupes := monde.get_node("VolumeDeScene/Aretes").get_children()
+	if groupes.size() != 2:
+		_fautes.append("%d groupes d'arêtes posés, attendu la boîte et la pièce du kit" % groupes.size())
+	_aretes_montrees(groupes, 0, "retirées")
 	var retires := {toit = toit}
-	for arete: Node3D in monde.get_node("VolumeDeScene/Aretes").get_children():
-		retires["arête " + arete.get_meta("cle")] = arete
 	var couronnes := {}
 	for couronne: Node3D in monde.get_node("VolumeDeScene/Volume/Couronnes").get_children():
 		couronnes[couronne.get_meta("cle")] = couronne
@@ -84,6 +87,7 @@ func _recetter() -> void:
 	print("[ombres-du-regard] %d rayons sur 18 du sol vers le soleil arrêtés par le toit et l'étage retirés" % sous_le_toit)
 	retires.erase("ombre de l'étage")
 	monde.cacher_le_bati([], ["abattue"], [])
+	_aretes_montrees(groupes, 1, "rendues")
 	for nom: String in retires:
 		for maillage in _maillages(retires[nom]):
 			if not maillage.is_visible_in_tree() or maillage.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_ON:
@@ -92,6 +96,25 @@ func _recetter() -> void:
 		push_error("[ombres-du-regard] " + faute)
 	print("[ombres-du-regard] erreurs=", _fautes.size())
 	quit(0 if _fautes.is_empty() else 1)
+
+
+## Dans chaque groupe d'arêtes de `groupes`, `montrees` instances vues au compte visible de chaque maillage vu, sans
+## ombre portée, et chaque instance en ombre seule (`SHADOWS_ONLY`) entière, dans une matière standard.
+func _aretes_montrees(groupes: Array, montrees: int, moment: String) -> void:
+	for groupe: Node3D in groupes:
+		var vus := groupe.find_children("Vu_*", "MultiMeshInstance3D", true, false)
+		var ombres := groupe.find_children("Ombre_*", "MultiMeshInstance3D", true, false)
+		if vus.is_empty() or ombres.size() != vus.size():
+			_fautes.append("arêtes %s : le groupe %s n'a pas une instance vue et une en ombre seule par maillage" % [moment, groupe.name])
+		for vu: MultiMeshInstance3D in vus:
+			if not vu.is_visible_in_tree() or vu.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_OFF or vu.multimesh.visible_instance_count != montrees:
+				_fautes.append("arêtes %s : %s/%s montre %d instances (ombre %d), attendu %d sans ombre" % [moment, groupe.name, vu.name, vu.multimesh.visible_instance_count, vu.cast_shadow, montrees])
+		for ombre: MultiMeshInstance3D in ombres:
+			if not ombre.is_visible_in_tree() or ombre.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY or ombre.multimesh.visible_instance_count != -1 or ombre.multimesh.instance_count != 1:
+				_fautes.append("arêtes %s : %s/%s n'est pas en ombre seule entière" % [moment, groupe.name, ombre.name])
+			var matieres := range(ombre.multimesh.mesh.get_surface_count()).map(func(rang: int) -> Material: return ombre.multimesh.mesh.surface_get_material(rang))
+			if ombre.material_override != null or not matieres.all(func(matiere: Material) -> bool: return matiere is BaseMaterial3D):
+				_fautes.append("arêtes %s : %s/%s projette par une matière qui n'est pas standard : %s" % [moment, groupe.name, ombre.name, matieres])
 
 
 ## Deux triangles horizontaux à la hauteur `hauteur` (m), de -10 à 14 m sur X et Z, dans le sens trigonométrique vu d'en

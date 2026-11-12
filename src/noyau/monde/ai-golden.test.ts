@@ -207,7 +207,7 @@ describe('GOLDEN parité Lot 2 — cœur discrétionnaire (enumerate → score �
     const e = mk('e', 'enemy', { x: 5, y: 5 }, { weapons: [] });
     const h1 = mk('h1', 'hero', { x: 5, y: 9 });
     const h2 = mk('h2', 'hero', { x: 6, y: 9 });
-    const areaSp = castable({ id: 'vortex-d-ames', shape: { area: { radius: 1 } }, range: 20, data: spellData({ id: 'vortex-d-ames', effects: { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'wounds', amount: 8 }] } } }) });
+    const areaSp = castable({ id: 'vortex-d-ames', shape: { area: { radius: 1 } }, range: 20, data: spellData({ id: 'vortex-d-ames', effects: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'wounds', amount: 8 }] } } }) });
     const a = chooseEnemyAction(input(e, [h1, h2], { spells: [areaSp] }));
     expect(a.kind).toBe('incantationDeZone');
   });
@@ -216,7 +216,7 @@ describe('GOLDEN parité Lot 2 — cœur discrétionnaire (enumerate → score �
     const e = mk('e', 'enemy', { x: 5, y: 5 }, { weapons: [] });
     const h1 = mk('h1', 'hero', { x: 1, y: 1 });
     const h2 = mk('h2', 'hero', { x: 14, y: 14 });
-    const areaSp = castable({ id: 'vortex-d-ames', shape: { area: { radius: 1 } }, range: 30, data: spellData({ id: 'vortex-d-ames', effects: { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'wounds', amount: 8 }] } } }) });
+    const areaSp = castable({ id: 'vortex-d-ames', shape: { area: { radius: 1 } }, range: 30, data: spellData({ id: 'vortex-d-ames', effects: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'wounds', amount: 8 }] } } }) });
     const a = chooseEnemyAction(input(e, [h1, h2], { spells: [areaSp, castable({ id: 'carreau', range: 40 })] }));
     expect(a.kind).toBe('incantation');
   });

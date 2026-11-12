@@ -134,7 +134,7 @@ export type Sel =
   // l'inspecteur (type, structure destructible). Posée par l'outil murs, sélectionnée à l'outil ↖.
   | { type: 'wall'; x: number; y: number; side: WallSide; z: number };
 
-/** Combien d'EFFETS un Flow authoré porte-t-il, à TOUTE profondeur — les feuilles `do` nichées sous
+/** Combien d'EFFETS un Flow authoré porte-t-il, à TOUTE profondeur — les feuilles `effet` nichées sous
  *  un `si`, un `test` ou un `choix` comptent autant que celles de premier niveau. C'est le nombre que
  *  l'atelier annonce (pastille du dock, bouton « Effets (N) » de l'inspecteur) : un trigger dont tout
  *  l'effet vit dans une branche est un trigger qui AGIT. Distinct de `flowEffects` (moteur), qui
@@ -142,7 +142,7 @@ export type Sel =
 export function flowEffectCount(flow: Flow): number {
   let n = 0;
   walkFlow(flow, (node) => {
-    if (node.kind === 'do') n++;
+    if (node.kind === 'effet') n++;
   });
   return n;
 }

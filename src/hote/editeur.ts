@@ -917,10 +917,10 @@ function rencontres(s: SessionDEdition, ent: Scene['entities'][number]): (Choix 
       return choix(id, t('ecran.editeur.rencontre', { id: enc.id }), [
         bouton(`${id}/enrole`, t('ecran.editeur.rencontre.enrole'), membre({ enrole: !m }), !!m),
         ...(m ? [
-          bouton(`${id}/ennemi`, t('ecran.editeur.rencontre.ennemi'), membre({ camp: 'enemy' }), m.side !== 'ally'),
-          bouton(`${id}/allie`, t('ecran.editeur.rencontre.allie'), membre({ camp: 'ally' }), m.side === 'ally'),
+          bouton(`${id}/ennemi`, t('ecran.editeur.rencontre.ennemi'), membre({ camp: 'ennemi' }), m.side !== 'allie'),
+          bouton(`${id}/allie`, t('ecran.editeur.rencontre.allie'), membre({ camp: 'allie' }), m.side === 'allie'),
         ] : []),
-        ...(m?.side === 'ally' ? [bouton(`${id}/ia`, t('ecran.editeur.rencontre.ia'), membre({ ia: !m.ai }), !!m.ai)] : []),
+        ...(m?.side === 'allie' ? [bouton(`${id}/ia`, t('ecran.editeur.rencontre.ia'), membre({ ia: !m.ai }), !!m.ai)] : []),
       ]);
     }),
     bouton('rencontre/neuve', t('ecran.editeur.rencontre.neuve'), { geste: 'membre', patch: { rencontre: null, enrole: true } }),

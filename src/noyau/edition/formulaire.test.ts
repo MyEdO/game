@@ -400,8 +400,8 @@ describe('une union sans discriminant se lit à la forme de ses branches : la Bo
     const effet = newEffect('givePossession') as Extract<ReturnType<typeof newEffect>, { type: 'givePossession' }>;
     const statbloc = { custom: statblockDeLaCreature(findCreatureById(creatureSemee())!) };
     const parStatbloc = { ...effet, ref: statbloc };
-    const d = (e: unknown) => ({ ...declencheur(), flow: { kind: 'do', effect: e } } as Declencheur);
-    const noeud = (e: unknown) => champ(formulaireDe('declencheur', d(e), CADRE_VIDE), d(e), 'flow', 'effect', 'ref').noeud;
+    const d = (e: unknown) => ({ ...declencheur(), flow: { kind: 'effet', effet: e } } as Declencheur);
+    const noeud = (e: unknown) => champ(formulaireDe('declencheur', d(e), CADRE_VIDE), d(e), 'flow', 'effet', 'ref').noeud;
     const u = unionDuNoeud(noeud(effet))!;
     expect(u.variantes.map((v) => [v.cle, v.libelle])).toEqual([['0', 'Créature ou véhicule'], ['1', 'profil personnalisé']]);
     expect(unionDuNoeud(u.variantes[0].noeud)?.discriminant, 'la référence se choisit encore par son type').toBe('type');
@@ -480,12 +480,12 @@ describe('chaque feuille des formulaires tirés du schéma a un contrôle typé 
   const saisies = saisiesDesFormulaires();
 
   it('le sélecteur de héros, la fenêtre de Détermination, l’échéance d’un modificateur de navire, la cible d’un effet et d’un effet déclenché se choisissent par variante nommée, les fragments d’une adresse de prose s’ajoutent et se choisissent de même', () => {
-    const effets = ['setObjective', 'journal', 'grantFavor'].map((type) => `declencheur/flow<kind=do>/effect<type=${type}>/descRef/parts`);
+    const effets = ['setObjective', 'journal', 'grantFavor'].map((type) => `declencheur/flow<kind=effet>/effet<type=${type}>/descRef/parts`);
     const attendues: Record<string, string> = Object.fromEntries([
       ...['partyDead', 'skill', 'talent', 'career', 'species', 'status'].map((kind) => [`zone/crossTest/gate<kind=${kind}>/who`, 'variantes']),
       ['zone/onCross/0<op=condition>/resolveWindow', 'variantes'],
       ['zone/onCross/0<op=navireMod>/jusqua', 'variantes'],
-      ...['infestation>/chaqueNuit<kind=do>/effect', 'augmentWeapon>/onHitEffects/0', 'grantWeapon>/onHitEffects/0'].map((op) => [`zone/onCross/0<op=${op}/on`, 'variantes']),
+      ...['infestation>/chaqueNuit<kind=effet>/effet', 'augmentWeapon>/onHitEffects/0', 'grantWeapon>/onHitEffects/0'].map((op) => [`zone/onCross/0<op=${op}/on`, 'variantes']),
       ...effets.flatMap((parts) => [[parts, 'ajouter'], [`${parts}/0`, 'variantes']]),
     ]);
     expect(Object.keys(attendues)).toHaveLength(17);
@@ -496,7 +496,7 @@ describe('chaque feuille des formulaires tirés du schéma a un contrôle typé 
 
   it('se saisissent encore en JSON EXACTEMENT : les rencontres d’une bataille rangée, et chaque op non typée', () => {
     expect([...saisies].filter(([, s]) => s === 'json').map(([c]) => c).sort()).toEqual([
-      'declencheur/flow<kind=do>/effect<type=startMassBattle>/battle/sceneEncounters',
+      'declencheur/flow<kind=effet>/effet<type=startMassBattle>/battle/sceneEncounters',
       ...OPS_NON_TYPEES.map((op) => `zone/onCross/0<op=${op}>`),
     ].sort());
   });

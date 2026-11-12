@@ -262,8 +262,8 @@
         "trigger": "onHit",
         "on": "self",
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "caster",
             "ops": [
@@ -1037,9 +1037,9 @@
               "value": "frenesie"
             }
           },
-          "success": {
-            "kind": "do",
-            "effect": {
+          "reussite": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "target",
               "ops": [
@@ -1058,9 +1058,9 @@
               ]
             }
           },
-          "fail": {
-            "kind": "seq",
-            "steps": []
+          "echec": {
+            "kind": "sequence",
+            "etapes": []
           }
         }
       }
@@ -2061,7 +2061,7 @@
         "trigger": "onCharged",
         "on": "self",
         "flow": {
-          "kind": "choice",
+          "kind": "choix",
           "prompt": "Frappe réactive",
           "icon": "action/attaque-gratuite",
           "oui": {
@@ -2071,9 +2071,9 @@
               "difficulty": "intermediaire",
               "label": "Frappe réactive"
             },
-            "success": {
-              "kind": "do",
-              "effect": {
+            "reussite": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "on": "caster",
                 "ops": [
@@ -2086,14 +2086,14 @@
                 ]
               }
             },
-            "fail": {
-              "kind": "seq",
-              "steps": []
+            "echec": {
+              "kind": "sequence",
+              "etapes": []
             }
           },
           "non": {
-            "kind": "seq",
-            "steps": []
+            "kind": "sequence",
+            "etapes": []
           }
         }
       }
@@ -2711,9 +2711,9 @@
             },
             "difficulty": "intermediaire"
           },
-          "success": {
-            "kind": "do",
-            "effect": {
+          "reussite": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "caster",
               "ops": [
@@ -2731,9 +2731,9 @@
               ]
             }
           },
-          "fail": {
-            "kind": "seq",
-            "steps": []
+          "echec": {
+            "kind": "sequence",
+            "etapes": []
           }
         }
       }

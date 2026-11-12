@@ -259,7 +259,7 @@
     "type": "stakes",
     "label": "Réparation du gréement",
     "cascade": "voyage",
-    "template": "Réussi : malus de Navigation levés ({driftPenalty} dérive, {outOfControlPenalty} hors de contrôle).",
+    "template": "Réussi : malus de Navigation levés ({malusDeDerive} dérive, {malusHorsDeControle} hors de contrôle).",
     "form": "descripteur",
     "source": {
       "book": "mort-sur-le-reik-compagnon",
@@ -293,7 +293,7 @@
     "type": "stakes",
     "label": "Louvoyage",
     "cascade": "voyage",
-    "template": "Réussi : +{windPct} % de vitesse ; échec : +0 %.",
+    "template": "Réussi : +{pourcentageDuVent} % de vitesse ; échec : +0 %.",
     "form": "descripteur",
     "source": {
       "book": "mort-sur-le-reik-compagnon",
@@ -327,7 +327,7 @@
     "type": "stakes",
     "label": "Préserver le gréement",
     "cascade": "voyage",
-    "template": "Échec : Coup Critique au gréement, dérive hors de contrôle ({outOfControlPenalty} en Navigation).",
+    "template": "Échec : Coup Critique au gréement, dérive hors de contrôle ({malusHorsDeControle} en Navigation).",
     "form": "descripteur",
     "source": {
       "book": "mort-sur-le-reik-compagnon",

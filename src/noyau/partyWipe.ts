@@ -19,9 +19,11 @@ import type { PendingCascade } from './pendings';
 
 /** Le groupe est-il anéanti HORS COMBAT ? Si oui, présente la défaite (drapeau `partyWiped`) et purge
  *  les flux suspendus (voyage, repos, cascades, Tests d'équipage) — jamais un écran de défaite SOUS une
- *  modale de campement/voyage. Renvoie true si la défaite est (déjà) posée. No-op en combat. */
+ *  modale de campement/voyage. Renvoie true si la défaite est (déjà) posée. No-op en combat et pendant une série
+ *  d'attaques subies. */
 export function checkPartyWiped(get: Get, set: Set): boolean {
-  if (get().battle) return false; // en combat : `checkBattleOver` gère la défaite
+  // En combat, `checkBattleOver` gère la défaite ; pendant une série d'attaques subies, sa fermeture (`fermerLaSerieSubie`).
+  if (get().battle || get().serieSubie) return false;
   if (get().partyWiped) return true;
   if (!groupeNonViable(get)) return false; // au moins un héros ENCORE EN ACTION (même prédicat que la fin de bataille)
   set({

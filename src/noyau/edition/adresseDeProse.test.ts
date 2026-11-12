@@ -31,10 +31,10 @@ const ARMURES: Fragment = { kind: 'blocs', sec: 'les-armures', secOcc: 1, b0: 0,
 const scelle = (f: Fragment): Fragment => ({ ...f, sum: empreinteDe(CHAPITRE, f) as string });
 
 const TRIG = addTrigger(emptyScene('s', 4, 4), { x: 0, y: 0, w: 1, h: 1 }).scene.triggers[0];
-const ICI: Segment[] = ['flow', 'steps', 0, 'effect', 'descRef'];
+const ICI: Segment[] = ['flow', 'etapes', 0, 'effet', 'descRef'];
 /** Le déclencheur dont le flux écrit au journal l'adresse `descRef` (absente : sans adresse). */
-const avecJournal = (descRef?: DescRef): Trigger => ({ ...TRIG, flow: { kind: 'seq', steps: [{ kind: 'do', effect: { type: 'journal', ...(descRef ? { descRef } : {}) } }] } }) as Trigger;
-const effetDe = (t: unknown) => (t as { flow: { steps: { effect: { descRef: DescRef; desc?: string } }[] } }).flow.steps[0].effect;
+const avecJournal = (descRef?: DescRef): Trigger => ({ ...TRIG, flow: { kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'journal', ...(descRef ? { descRef } : {}) } }] } }) as Trigger;
+const effetDe = (t: unknown) => (t as { flow: { etapes: { effet: { descRef: DescRef; desc?: string } }[] } }).flow.etapes[0].effet;
 const adresseDe = (t: unknown): DescRef => effetDe(t).descRef;
 const ecrire = (t: Trigger, chemin: Segment[], valeur: unknown, source = CHARGEE) => avecLaValeurDuPorteur('declencheur', t, chemin, valeur, cadre(source));
 const valeursAuChemin = (t: Trigger, chemin: Segment[], source = CHARGEE) => choixDuChamp('declencheur', t, chemin, cadre(source))?.map((c) => c.valeur);
@@ -79,9 +79,9 @@ describe('l’écriture d’une adresse de prose scelle ses fragments, jamais un
     const FORGEE = 'ffffffffffffffff';
     const scellee = avecJournal({ book: LIVRE, ch: '01', parts: [scelle(DAGUE)] });
     expect(ecrire(scellee, [...ICI, 'parts', 0, 'sum'], FORGEE)).toEqual({ ok: false, refus: 'nonOffert' });
-    expect(ecrire(scellee, ['flow', 'steps', 0, 'effect', 'desc'], 'Prose forgée.'), 'la prose qu’elle résout non plus').toEqual({ ok: false, refus: 'nonOffert' });
+    expect(ecrire(scellee, ['flow', 'etapes', 0, 'effet', 'desc'], 'Prose forgée.'), 'la prose qu’elle résout non plus').toEqual({ ok: false, refus: 'nonOffert' });
     const forgee = { book: LIVRE, ch: '01', parts: [{ ...DAGUE, sum: FORGEE }] };
-    const effet = ecrire(scellee, ['flow', 'steps', 0, 'effect'], { type: 'journal', descRef: forgee });
+    const effet = ecrire(scellee, ['flow', 'etapes', 0, 'effet'], { type: 'journal', descRef: forgee });
     expect(effet.ok && effetDe(effet.valeur), 'le fragment inchangé garde son empreinte').toEqual({ type: 'journal', descRef: { ...forgee, parts: [scelle(DAGUE)] } });
     const flux = ecrire(avecJournal(), ['flow'], avecJournal(forgee).flow);
     expect(flux.ok && adresseDe(flux.valeur).parts, 'le fragment neuf est scellé sur son chapitre').toEqual([scelle(DAGUE)]);

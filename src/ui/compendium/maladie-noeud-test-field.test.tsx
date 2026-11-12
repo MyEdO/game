@@ -85,8 +85,8 @@ describe('atelier du Codex — le cycle d’un symptôme porte un nœud `test`, 
     const apres = symptome('blesse');
     expect(apres.onTick!.test!.kind, 'le nœud a perdu son `kind` (racine `FlowEditor` rebranchée ?)').toBe('test');
     expect(apres.onTick!.test!.test.difficulty, 'la Difficulté choisie n’est pas descendue dans le nœud').toBe('difficile');
-    expect(apres.onTick!.test!.success, 'la branche RÉUSSITE a été perdue').toEqual({ kind: 'seq', steps: [] });
-    expect(apres.onTick!.test!.fail, 'la branche ÉCHEC a été perdue').toEqual(cible.onTick!.test!.fail);
+    expect(apres.onTick!.test!.reussite, 'la branche RÉUSSITE a été perdue').toEqual({ kind: 'sequence', etapes: [] });
+    expect(apres.onTick!.test!.echec, 'la branche ÉCHEC a été perdue').toEqual(cible.onTick!.test!.echec);
     expect(apres.onTick!.ops, 'le cycle a basculé en effet certain').toBeUndefined();
   });
 });

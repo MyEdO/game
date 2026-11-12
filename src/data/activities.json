@@ -1059,7 +1059,7 @@
         "minSL": 6,
         "battle": [
           {
-            "side": "ally",
+            "side": "allie",
             "target": "startMight",
             "scale": "fixed",
             "amount": 10
@@ -1071,7 +1071,7 @@
         "maxSL": 5,
         "battle": [
           {
-            "side": "ally",
+            "side": "allie",
             "target": "startMight",
             "scale": "fixed",
             "amount": 5
@@ -1083,7 +1083,7 @@
         "maxSL": -6,
         "battle": [
           {
-            "side": "ally",
+            "side": "allie",
             "target": "startMight",
             "scale": "fixed",
             "amount": -10
@@ -1174,7 +1174,7 @@
         "minSL": 6,
         "battle": [
           {
-            "side": "enemy",
+            "side": "ennemi",
             "target": "startMight",
             "scale": "fixed",
             "amount": -10
@@ -1186,7 +1186,7 @@
         "maxSL": 5,
         "battle": [
           {
-            "side": "enemy",
+            "side": "ennemi",
             "target": "startMight",
             "scale": "fixed",
             "amount": -5
@@ -1236,7 +1236,7 @@
         "on": "reussite",
         "battle": [
           {
-            "side": "ally",
+            "side": "allie",
             "target": "might",
             "scale": "perDR",
             "amount": 1
@@ -1267,13 +1267,13 @@
         "on": "reussite",
         "battle": [
           {
-            "side": "enemy",
+            "side": "ennemi",
             "target": "might",
             "scale": "perHit",
             "amount": -1
           },
           {
-            "side": "enemy",
+            "side": "ennemi",
             "target": "might",
             "scale": "perKill",
             "amount": -2
@@ -1302,7 +1302,7 @@
         "on": "reussite",
         "battle": [
           {
-            "side": "enemy",
+            "side": "ennemi",
             "target": "might",
             "scale": "fixed",
             "amount": -5
@@ -1350,7 +1350,7 @@
         "on": "reussite",
         "battle": [
           {
-            "side": "enemy",
+            "side": "ennemi",
             "target": "might",
             "scale": "fixed",
             "amount": -2
@@ -1395,7 +1395,7 @@
         "on": "reussite",
         "battle": [
           {
-            "side": "enemy",
+            "side": "ennemi",
             "target": "might",
             "scale": "fixed",
             "amount": -10
@@ -1434,7 +1434,7 @@
         "when": "combatWon",
         "battle": [
           {
-            "side": "ally",
+            "side": "allie",
             "target": "might",
             "scale": "fixed",
             "amount": 10
@@ -1484,7 +1484,7 @@
         "on": "reussite",
         "battle": [
           {
-            "side": "enemy",
+            "side": "ennemi",
             "target": "might",
             "scale": "fixed",
             "amount": -5
@@ -1496,7 +1496,7 @@
         "when": "generalDown",
         "battle": [
           {
-            "side": "enemy",
+            "side": "ennemi",
             "target": "might",
             "scale": "fixed",
             "amount": -5
@@ -1527,7 +1527,7 @@
         "on": "reussite",
         "battle": [
           {
-            "side": "enemy",
+            "side": "ennemi",
             "target": "might",
             "scale": "fixed",
             "amount": -10
@@ -1564,7 +1564,7 @@
         "on": "reussite",
         "battle": [
           {
-            "side": "enemy",
+            "side": "ennemi",
             "target": "might",
             "scale": "fixed",
             "amount": -5
@@ -1576,7 +1576,7 @@
         "when": "generalDown",
         "battle": [
           {
-            "side": "enemy",
+            "side": "ennemi",
             "target": "might",
             "scale": "fixed",
             "amount": -15
@@ -1614,13 +1614,13 @@
         "on": "reussite",
         "battle": [
           {
-            "side": "enemy",
+            "side": "ennemi",
             "target": "might",
             "scale": "perHit",
             "amount": -1
           },
           {
-            "side": "enemy",
+            "side": "ennemi",
             "target": "might",
             "scale": "perKill",
             "amount": -2
@@ -1650,7 +1650,7 @@
         "when": "noIntervention",
         "battle": [
           {
-            "side": "enemy",
+            "side": "ennemi",
             "target": "might",
             "scale": "fixed",
             "amount": -20
@@ -1662,7 +1662,7 @@
         "when": "intervention",
         "battle": [
           {
-            "side": "enemy",
+            "side": "ennemi",
             "target": "might",
             "scale": "fixed",
             "amount": -10
@@ -1677,7 +1677,7 @@
         "when": "combatLost",
         "battle": [
           {
-            "side": "ally",
+            "side": "allie",
             "target": "might",
             "scale": "fixed",
             "amount": -20

@@ -67,6 +67,10 @@ export interface MapPlace {
   /** Bande d'ambiance du hub de ce lieu (id du registre des fonds de l'hôte) — surcharge le défaut
    *  éventuel porté par le service (`lieux-services.json`, ex. auberge). Éditable dans `WorldMapEditor`. */
   backdrop?: { id: string };
+  /** Ce que le groupe voit et sait du lieu en y arrivant, lu à l'écran du lieu. */
+  prose?: string;
+  source?: SourceRef;
+  adapteDe?: SourceRef;
   /** Le lieu EXISTE-t-il sur la carte (algèbre `Condition`, cf. `evalCondition`) — axe NŒUD du gating
    *  narratif : une destination n'apparaît qu'une fois RÉVÉLÉE par le récit (`setFlag`). Absente =
    *  toujours visible. Lue par `visiblePlaces` (le rendu et le cadrage consomment la liste FILTRÉE). */

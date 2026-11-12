@@ -453,8 +453,8 @@
         "label": "Triton !",
         "desc": "Triton ! Manann ne supporte plus que le vaisseau vogue sur sa mer et envoie Triton pour le détruire. La créature apparaît et fait tout son possible pour détruire le navire. Si l'équipage parvient à vaincre Triton, lancez 1d10. Sur 1-5, Manann est impressionné que le bateau ait réussi à l'emporter sur son avatar ; ajoutez 2d10 à son Humeur. Sur 6-10, Manann est courroucé par cette humiliation de son champion ; soustrayez 2d10 à son Humeur.",
         "consequence": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "navire",
             "ops": [
@@ -465,8 +465,8 @@
                   "nombre": 1
                 },
                 "victoire": {
-                  "kind": "do",
-                  "effect": {
+                  "kind": "effet",
+                  "effet": {
                     "type": "ops",
                     "on": "navire",
                     "ops": [
@@ -528,8 +528,8 @@
         "label": "Maelstrom",
         "desc": "Maelstrom. Un grand tourbillon s'ouvre et amène le bateau à la périphérie de sa zone. Pour plus de détails concernant les Tourbillons, reportez-vous à la page 113.",
         "consequence": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "navire",
             "ops": [
@@ -555,8 +555,8 @@
         "label": "Puissant monstre marin",
         "desc": "Puissant monstre marin. Un monstre marin attaque le bateau. Lancez 1d10 pour savoir lequel (1-3 : hydre d'os, 4-5 : sangsue des abysses, 6-9 : gargantuan ou 10 : léviathan noir). La créature peut être repoussée si elle tombe à la moitié de ses Blessures de départ.",
         "consequence": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "navire",
             "ops": [
@@ -652,13 +652,13 @@
               }
             }
           },
-          "success": {
-            "kind": "seq",
-            "steps": []
+          "reussite": {
+            "kind": "sequence",
+            "etapes": []
           },
-          "fail": {
-            "kind": "do",
-            "effect": {
+          "echec": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "navire",
               "ops": [
@@ -684,8 +684,8 @@
         "label": "Puissant vortex",
         "desc": "Puissant vortex. Un tourbillon s'ouvre et amène le bateau à la périphérie de sa zone. Pour plus de détails, reportez-vous à la page 113.",
         "consequence": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "navire",
             "ops": [
@@ -724,8 +724,8 @@
         "label": "Langskip skaeling",
         "desc": "Langskip skaeling. Un langskip avec un équipage de 45 norses apparaît à l'horizon. Si votre navire ressemble à une cible vulnérable, les norses approchent pour répandre le sang de vos marins en l'honneur du dieu du sang.",
         "consequence": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "navire",
             "ops": [
@@ -755,8 +755,8 @@
         "label": "Bateau endommagé",
         "desc": "Bateau endommagé. Quelque chose secoue très rudement le vaisseau et une partie de sa structure rompt au lieu de simplement plier. Le navire subit un Coup Critique sur une localisation aléatoire.",
         "consequence": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "navire",
             "ops": [
@@ -781,8 +781,8 @@
         "label": "Culte de la personnalité",
         "desc": "Culte de la personnalité. Un membre de l'équipage suit un credo extrême et considère le reste des gens à bord comme des recrues potentielles. Lancez 1d10 pour déterminer l'allégeance de ce zélote et un deuxième d10 pour savoir combien d'initiés sensibles à ses paroles il a rassemblés. 1 à 3 : une opinion politique révolutionnaire comme le nouveau millénarisme (voir page 140 de Middenheim) ou le kloszowskisme (voir page 34 d'Altdorf) ; 4 à 6 : une entreprise criminelle, comme la contrebande ; 7 à 9 : le culte de Stromfels ; 10 : le culte de Tzeentch.",
         "consequence": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "navire",
             "ops": [
@@ -858,8 +858,8 @@
         "label": "Infestation de rats géants",
         "desc": "Infestation de rats géants. Des nuisibles anormalement grands sont repérés dans les entrailles du bateau. Jusqu'à ce que l'équipage réussisse un Test d'équipage étendu d'Extermination des nuisibles Complexe (–10) pour un total de 25 DR, les rats gâtent 3d10 Enc de cargaison chaque nuit, et vous avez 30 % de chances qu'un membre d'équipage doive entreprendre un Test pour éviter de contracter la fièvre du rongeur (voir page 186 de WFJDR). Si n'importe laquelle des étapes du Test d'Extermination des nuisibles génère un résultat de DR négatif, un membre d'équipage choisi au hasard est attaqué par les rats ; il subit 1d10 attaques avec CC 35 et le Trait Arme +5. Quiconque est blessé par une telle attaque doit effectuer un Test pour éviter de contracter la fièvre du rongeur.",
         "consequence": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "navire",
             "ops": [
@@ -871,11 +871,11 @@
                 "difficulty": "complexe",
                 "drCible": 25,
                 "chaqueNuit": {
-                  "kind": "seq",
-                  "steps": [
+                  "kind": "sequence",
+                  "etapes": [
                     {
-                      "kind": "do",
-                      "effect": {
+                      "kind": "effet",
+                      "effet": {
                         "type": "ops",
                         "on": "navire",
                         "ops": [
@@ -892,8 +892,8 @@
                       }
                     },
                     {
-                      "kind": "do",
-                      "effect": {
+                      "kind": "effet",
+                      "effet": {
                         "type": "ops",
                         "on": "membreAuHasard",
                         "ops": [
@@ -940,8 +940,8 @@
         "label": "Monstre marin",
         "desc": "Monstre marin. Un monstre marin attaque le vaisseau. Lancez 1d10 pour déterminer son espèce (1-3 : kharibde, 4-5 : nuée d'anguilles mâcheprises, 6-9 : 3 syrènes bleues ou 10 : wyrm des mers). La ou les créatures peuvent être repoussées si elles tombent à la moitié de leurs Blessures de départ.",
         "consequence": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "navire",
             "ops": [
@@ -1029,8 +1029,8 @@
         "label": "Pénurie de nourriture",
         "desc": "Pénurie de nourriture. La nourriture a moisi ou a été infestée par de la vermine pendant le voyage. La moitié des provisions à bord sont gâtées.",
         "consequence": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "navire",
             "ops": [
@@ -1054,8 +1054,8 @@
         "label": "Cogue pirate",
         "desc": "Cogue pirate. Une cogue avec un équipage de 25 personnes et 6 grands canons apparaît à l'horizon. Si votre navire ressemble à une cible vulnérable, les forbans approchent et exigent de pouvoir fouiller la cale et prendre ce qu'ils veulent, sinon ils tueront tous ceux qui s'opposent à eux. Même si leurs demandes sont satisfaites, ils réclament ensuite un prisonnier à sacrifier à Stromfels.",
         "consequence": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "navire",
             "ops": [
@@ -1090,8 +1090,8 @@
         "label": "Infestation de rats",
         "desc": "Infestation de rats. Les rats prolifèrent dans les recoins sombres du bateau. Jusqu'à ce que l'équipage réussisse un Test d'équipage étendu d'Extermination des nuisibles Intermédiaire (+0) pour un total de 10 DR, les rats gâtent 1d10 Enc de cargaison chaque nuit, et vous avez 15 % de chances qu'un membre d'équipage doive entreprendre un Test pour éviter de contracter la fièvre du rongeur (voir page 186 de WFJDR). Si n'importe laquelle des étapes du Test d'Extermination des nuisibles génère un résultat de DR négatif, un membre d'équipage choisi au hasard est attaqué par les rats ; il subit 1d10 attaques avec CC 25 et le Trait Arme +4.",
         "consequence": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "navire",
             "ops": [
@@ -1103,11 +1103,11 @@
                 "difficulty": "intermediaire",
                 "drCible": 10,
                 "chaqueNuit": {
-                  "kind": "seq",
-                  "steps": [
+                  "kind": "sequence",
+                  "etapes": [
                     {
-                      "kind": "do",
-                      "effect": {
+                      "kind": "effet",
+                      "effet": {
                         "type": "ops",
                         "on": "navire",
                         "ops": [
@@ -1124,8 +1124,8 @@
                       }
                     },
                     {
-                      "kind": "do",
-                      "effect": {
+                      "kind": "effet",
+                      "effet": {
                         "type": "ops",
                         "on": "membreAuHasard",
                         "ops": [
@@ -1172,8 +1172,8 @@
         "label": "Figure de proue prophétique",
         "desc": "Figure de proue prophétique. Un membre de l'équipage soutient sincèrement qu'il a vu la figure de proue du navire prendre vie et l'a entendue annoncer le déplaisir de Manann. Réduisez le Moral d'1d10.",
         "consequence": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "navire",
             "ops": [
@@ -1203,8 +1203,8 @@
         "label": "Collision soudaine",
         "desc": "Collision soudaine. Sans prévenir, le bateau se heurte à un rocher. Pour plus de détails concernant les collisions, reportez-vous à la page 111.",
         "consequence": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "navire",
             "ops": [
@@ -1230,8 +1230,8 @@
         "label": "Infestation de crabes boxeurs",
         "desc": "Infestation de crabes boxeurs. Une colonie de larves de crabes boxeurs s'étend sur la coque du bateau. Réduisez le M de 1 et la Man de –1 DR jusqu'à ce que la coque soit raclée.",
         "consequence": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "navire",
             "ops": [
@@ -1257,11 +1257,11 @@
         "label": "Vaisseau fantôme (littéralement)",
         "desc": "Vaisseau fantôme (littéralement). Votre vigie repère un vaisseau d'un vert fluorescent à l'horizon. C'est un mauvais présage. Vous pouvez soit changer de cap et réduire votre Mouvement de 2 pour un jour de voyage, soit continuer et perdre 2d10 Moral.",
         "consequence": {
-          "kind": "choice",
+          "kind": "choix",
           "prompt": "Changer de cap",
           "oui": {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "navire",
               "ops": [
@@ -1276,8 +1276,8 @@
             }
           },
           "non": {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "navire",
               "ops": [
@@ -1308,8 +1308,8 @@
         "label": "Calme plat",
         "desc": "Calme plat. Les vents vous abandonnent pour les prochains 1d10 jours.",
         "consequence": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "navire",
             "ops": [
@@ -1341,14 +1341,14 @@
         "label": "Vaisseau de pestiférés",
         "desc": "Vaisseau de pestiférés. Vous repérez une cogue apparemment abandonnée dérivant sur les flots. Si vous l'abordez, elle contient du butin composé de 2d10 caisses d'une cargaison choisie au hasard, d'1d100 jours de rations de biscuits de mer, de 2d10 tonneaux d'eau et de 3d10 CO. Quelques membres d'équipage sont également encore présents à bord, mais ils ne sont qu'à moitié conscients, car ils subissent un stade avancé de la peste noire (voir page 187 de WFJDR). Quiconque monte à bord du bateau est mordu par des puces et doit effectuer un Test de Résistance Accessible (+20) pour éviter de contracter la maladie.",
         "consequence": {
-          "kind": "choice",
+          "kind": "choix",
           "prompt": "Aborder la cogue",
           "oui": {
-            "kind": "seq",
-            "steps": [
+            "kind": "sequence",
+            "etapes": [
               {
-                "kind": "do",
-                "effect": {
+                "kind": "effet",
+                "effet": {
                   "type": "ops",
                   "on": "navire",
                   "ops": [
@@ -1383,8 +1383,8 @@
                 }
               },
               {
-                "kind": "do",
-                "effect": {
+                "kind": "effet",
+                "effet": {
                   "type": "ops",
                   "on": "party",
                   "ops": [
@@ -1409,8 +1409,8 @@
                 }
               },
               {
-                "kind": "do",
-                "effect": {
+                "kind": "effet",
+                "effet": {
                   "type": "ops",
                   "on": {
                     "volontaires": "Monter à bord"
@@ -1440,8 +1440,8 @@
         "label": "Vents inhabituels",
         "desc": "Vents inhabituels. Les vents soufflent de manière étrange. Les vents dominants normaux changent de direction et soufflent à l'opposé de leur flux normal, ce qui affecte le Mouvement de votre vaisseau pendant 1d10 jours.",
         "consequence": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "navire",
             "ops": [
@@ -1471,13 +1471,13 @@
         "label": "Présage divin",
         "desc": "Présage divin. Un albatros vole en cercle autour du grand mât trois fois dans le sens inverse des aiguilles d'une montre. Le bateau doit immédiatement se mettre dans les bonnes grâces de Manann. Sauf si un Prêtre ou une Nonne de Manann à bord réussit un Test de Prière Complexe (–10), réduisez l'Humeur de Manann de –2d10 et le Moral d'1d10.",
         "consequence": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "talent",
             "id": "beni",
             "spec": "manann"
           },
-          "then": {
+          "alors": {
             "kind": "test",
             "test": {
               "skill": {
@@ -1498,13 +1498,13 @@
                 "spec": "manann"
               }
             },
-            "success": {
-              "kind": "seq",
-              "steps": []
+            "reussite": {
+              "kind": "sequence",
+              "etapes": []
             },
-            "fail": {
-              "kind": "do",
-              "effect": {
+            "echec": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "on": "navire",
                 "ops": [
@@ -1532,9 +1532,9 @@
               }
             }
           },
-          "else": {
-            "kind": "do",
-            "effect": {
+          "sinon": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "navire",
               "ops": [
@@ -1575,8 +1575,8 @@
         "label": "Bruine",
         "desc": "Bruine. Une brume humide enveloppe la mer. Pendant les 1d10 prochains jours, la Visibilité est celle d'une Brume et les Précipitations sont Légères.",
         "consequence": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "navire",
             "ops": [
@@ -1609,8 +1609,8 @@
         "label": "Usure",
         "desc": "Usure. Le bateau subit 1d10 Blessures à cause de l'usure générale du voyage.",
         "consequence": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "navire",
             "ops": [
@@ -1653,11 +1653,11 @@
         "label": "Message dans une bouteille",
         "desc": "Message dans une bouteille. Quelqu'un aperçoit une bouteille en verre ballottée par la houle près du navire. Elle contient un message d'un marin coincé sur une île déserte. S'il est trouvé et secouru, il se montre reconnaissant envers ses sauveurs et, une fois qu'il a récupéré physiquement, il jure de servir comme fidèle membre de l'équipage pendant un an sans paie.",
         "consequence": {
-          "kind": "choice",
+          "kind": "choix",
           "prompt": "Secourir le naufragé",
           "oui": {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "navire",
               "ops": [
@@ -1682,11 +1682,11 @@
         "label": "Autres voyageurs",
         "desc": "Autres voyageurs. Vous repérez un autre navire à l'horizon. Il signale qu'il veut s'approcher. À vous de choisir si vous le laissez faire ou non. Le bateau pourrait vous poser des problèmes, mais les opportunités qu'il représente devraient l'emporter sur la menace potentielle. Au strict minimum, il est prêt à faire du commerce, partager les dernières rumeurs et vous prévenir des dangers plus loin sur la mer.",
         "consequence": {
-          "kind": "choice",
+          "kind": "choix",
           "prompt": "Laisser le navire approcher",
           "oui": {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "navire",
               "ops": [
@@ -1736,11 +1736,11 @@
         "label": "Débris marins",
         "desc": "Débris marins. Vous apercevez des caisses qui flottent dans l'eau. Si vous les repêchez, elles contiennent 1d100 points d'Encombrement d'une cargaison choisie au hasard.",
         "consequence": {
-          "kind": "choice",
+          "kind": "choix",
           "prompt": "Repêcher les caisses",
           "oui": {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "navire",
               "ops": [
@@ -1770,8 +1770,8 @@
         "label": "Rafale de Ghyran",
         "desc": "Rafale de Ghyran. Le Vent de Ghyran est concentré sur cette partie de l'océan. Pendant les 1d10 prochains jours, les Tests de Focalisation (Ghyran), de Guérison et de Résistance bénéficient de +2 DR.",
         "consequence": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "party",
             "pendantJours": {
@@ -1819,11 +1819,11 @@
         "label": "Canot de sauvetage",
         "desc": "Canot de sauvetage. Vous voyez une petite embarcation flottant sur l'océan. Si vous la récupérez, lancez 1d10 pour déterminer ce qu'elle contient (1 à 3 : deux Marins ; 4 à 6 : un Marin ; 7 : un Officier ; 8 : un Nautonier ; 9 : un Médecin de bord ; 10 : un chat de navire). Ces rescapés venant d'un vaisseau qui a sombré seront très reconnaissants s'ils sont sauvés. Ils serviront parmi l'équipage gratuitement jusqu'à ce que le bateau arrive au prochain port, après quoi ils seront prêts à rejoindre l'équipage pour une paie normale (ou en échange d'un petit poisson et d'une soucoupe d'eau douce une fois par jour dans le cas du chat).",
         "consequence": {
-          "kind": "choice",
+          "kind": "choix",
           "prompt": "Recueillir les rescapés",
           "oui": {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "navire",
               "ops": [
@@ -1919,8 +1919,8 @@
         "label": "Beau temps",
         "desc": "Beau temps. Pendant les 1d10 prochains jours, la Température est Médiane.",
         "consequence": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "navire",
             "ops": [
@@ -1952,8 +1952,8 @@
         "label": "Bonne humeur",
         "desc": "Bonne humeur. Les membres de l'équipage s'entendent bien et discutent entre eux de la chance qu'ils ont de servir sur un bateau qui porte bonheur. Gagnez 2d10 Moral.",
         "consequence": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "navire",
             "ops": [
@@ -1983,11 +1983,11 @@
         "label": "Île inconnue",
         "desc": "Île inconnue. Vous repérez une île qui n'apparaît pas sur les cartes. Des dangers peuvent se trouver à proximité, par exemple des bancs de sable ou des créatures marines dangereuses, mais elle devrait offrir davantage en termes de récompenses que de périls. Vous pouvez puiser de l'eau douce dans ses sources et cueillir des plantes comestibles et chasser des animaux sur sa plage.",
         "consequence": {
-          "kind": "choice",
+          "kind": "choix",
           "prompt": "Accoster sur l’île",
           "oui": {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "navire",
               "ops": [
@@ -2050,11 +2050,11 @@
         "label": "Vaisseau fantôme (figurativement)",
         "desc": "Vaisseau fantôme (figurativement). Vous apercevez un bateau qui dérive sans aucun signe de vie à bord. À vous de choisir si vous voulez monter à bord ou non. Vous y trouverez 2d100 points d'Encombrement d'une cargaison choisie au hasard.",
         "consequence": {
-          "kind": "choice",
+          "kind": "choix",
           "prompt": "Monter à bord",
           "oui": {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "navire",
               "ops": [
@@ -2084,8 +2084,8 @@
         "label": "Ciel dégagé",
         "desc": "Ciel dégagé. Les nuages s'écartent et le brouillard se lève. Pendant les 1d10 prochains jours, la Visibilité est toujours celle d'un ciel Dégagé et vous ne subissez Aucune Précipitation.",
         "consequence": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "navire",
             "ops": [
@@ -2118,8 +2118,8 @@
         "label": "Vents favorables",
         "desc": "Vents favorables. Les vents sont vifs et soufflent dans la bonne direction. Augmentez le Mouvement du vaisseau de 1.",
         "consequence": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "navire",
             "ops": [
@@ -2145,8 +2145,8 @@
         "label": "Marsouin amical",
         "desc": "Marsouin amical. Pendant les 1d10 prochains jours, un marsouin suit votre bateau. Il évite soigneusement tout danger comme les rochers ou les bancs de sable.",
         "consequence": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "navire",
             "ops": [
@@ -2182,13 +2182,13 @@
         "label": "Présage divin",
         "desc": "Présage divin. L'équipage voit du feu bleu onduler autour du sommet du mât. Le bateau doit immédiatement tenter d'attirer la faveur de Manann. Si un Prêtre ou une Nonne de Manann à bord réussit un Test de Prière Complexe (–10), augmentez l'Humeur de Manann de 2d10 et le Moral d'1d10.",
         "consequence": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "talent",
             "id": "beni",
             "spec": "manann"
           },
-          "then": {
+          "alors": {
             "kind": "test",
             "test": {
               "skill": {
@@ -2209,9 +2209,9 @@
                 "spec": "manann"
               }
             },
-            "success": {
-              "kind": "do",
-              "effect": {
+            "reussite": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "on": "navire",
                 "ops": [
@@ -2238,9 +2238,9 @@
                 ]
               }
             },
-            "fail": {
-              "kind": "seq",
-              "steps": []
+            "echec": {
+              "kind": "sequence",
+              "etapes": []
             }
           }
         },
@@ -2257,8 +2257,8 @@
         "label": "Chance du navigateur",
         "desc": "Chance du navigateur. Manann semble accorder sa faveur à ce vaisseau. Le capitaine gagne 1 niveau du Talent Chanceux pour les 1d10 prochains jours.",
         "consequence": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": {
               "role": {
@@ -2294,8 +2294,8 @@
         "label": "Manne de Manann",
         "desc": "Manne de Manann. Un banc de stylets saute depuis les vagues et atterrit sur le pont du navire. L'équipage les attrape et en rassemble suffisamment pour se nourrir pendant 1d10 jours. Le Moral augmente de 2d10.",
         "consequence": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "navire",
             "ops": [
@@ -2340,11 +2340,11 @@
         "desc": "Embrigadement. Un bateau manquant de bras pour son équipage a enlevé une partie des vôtres. Vous perdez 2d10 membres d'équipage. Vous pouvez les récupérer en réussissant un Test de Ragot Intermédiaire (+0), puis en payant 2d10 CO ou en réussissant un Test de Discrétion Complexe (–10). En cas d'échec sur n'importe lequel des deux Tests, vous perdez 1d10 membres d'équipage de plus, car votre plan pour libérer vos compagnons tourne mal et l'autre navire prend la mer et quitte le port. Si vous avez refusé la permission de faire relâche à terre à votre équipage, cet événement n'a pas lieu.",
         "relache": true,
         "consequence": {
-          "kind": "seq",
-          "steps": [
+          "kind": "sequence",
+          "etapes": [
             {
-              "kind": "do",
-              "effect": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "on": "navire",
                 "ops": [
@@ -2369,7 +2369,7 @@
               }
             },
             {
-              "kind": "choice",
+              "kind": "choix",
               "prompt": "Tenter de récupérer l’équipage enlevé",
               "oui": {
                 "kind": "test",
@@ -2387,9 +2387,9 @@
                     }
                   }
                 },
-                "success": {
-                  "kind": "if",
-                  "cond": {
+                "reussite": {
+                  "kind": "si",
+                  "condition": {
                     "kind": "money",
                     "atLeast": {
                       "brass": {
@@ -2397,15 +2397,15 @@
                       }
                     }
                   },
-                  "then": {
-                    "kind": "choice",
+                  "alors": {
+                    "kind": "choix",
                     "prompt": "Payer la rançon",
                     "oui": {
-                      "kind": "seq",
-                      "steps": [
+                      "kind": "sequence",
+                      "etapes": [
                         {
-                          "kind": "do",
-                          "effect": {
+                          "kind": "effet",
+                          "effet": {
                             "type": "ops",
                             "on": "party",
                             "ops": [
@@ -2438,8 +2438,8 @@
                           }
                         },
                         {
-                          "kind": "do",
-                          "effect": {
+                          "kind": "effet",
+                          "effet": {
                             "type": "ops",
                             "on": "navire",
                             "ops": [
@@ -2455,7 +2455,7 @@
                       ]
                     },
                     "non": {
-                      "kind": "choice",
+                      "kind": "choix",
                       "prompt": "Les libérer en douce",
                       "oui": {
                         "kind": "test",
@@ -2473,9 +2473,9 @@
                             }
                           }
                         },
-                        "success": {
-                          "kind": "do",
-                          "effect": {
+                        "reussite": {
+                          "kind": "effet",
+                          "effet": {
                             "type": "ops",
                             "on": "navire",
                             "ops": [
@@ -2488,9 +2488,9 @@
                             ]
                           }
                         },
-                        "fail": {
-                          "kind": "do",
-                          "effect": {
+                        "echec": {
+                          "kind": "effet",
+                          "effet": {
                             "type": "ops",
                             "on": "navire",
                             "ops": [
@@ -2514,8 +2514,8 @@
                       }
                     }
                   },
-                  "else": {
-                    "kind": "choice",
+                  "sinon": {
+                    "kind": "choix",
                     "prompt": "Les libérer en douce",
                     "oui": {
                       "kind": "test",
@@ -2533,9 +2533,9 @@
                           }
                         }
                       },
-                      "success": {
-                        "kind": "do",
-                        "effect": {
+                      "reussite": {
+                        "kind": "effet",
+                        "effet": {
                           "type": "ops",
                           "on": "navire",
                           "ops": [
@@ -2548,9 +2548,9 @@
                           ]
                         }
                       },
-                      "fail": {
-                        "kind": "do",
-                        "effect": {
+                      "echec": {
+                        "kind": "effet",
+                        "effet": {
                           "type": "ops",
                           "on": "navire",
                           "ops": [
@@ -2574,9 +2574,9 @@
                     }
                   }
                 },
-                "fail": {
-                  "kind": "do",
-                  "effect": {
+                "echec": {
+                  "kind": "effet",
+                  "effet": {
                     "type": "ops",
                     "on": "navire",
                     "ops": [
@@ -2614,8 +2614,8 @@
         "label": "Prêtre de Manann",
         "desc": "Prêtre de Manann. Un Prêtre de Manann s'avance vers votre vaisseau et s'exclame haut et fort que vous avez courroucé Manann par votre impiété et que votre bateau doit être purifié. Vous pouvez soit payer 1d10 CO plus la Taille du navire en pistoles pour une bénédiction, soit réduire l'Humeur de Manann de 4d10.",
         "consequence": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "money",
             "atLeast": {
               "brass": {
@@ -2623,13 +2623,13 @@
               }
             }
           },
-          "then": {
-            "kind": "choice",
+          "alors": {
+            "kind": "choix",
             "prompt": "Payer la bénédiction",
             "icon": "foi/trident",
             "oui": {
-              "kind": "do",
-              "effect": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "on": "party",
                 "ops": [
@@ -2674,8 +2674,8 @@
               }
             },
             "non": {
-              "kind": "do",
-              "effect": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "on": "navire",
                 "ops": [
@@ -2693,9 +2693,9 @@
               }
             }
           },
-          "else": {
-            "kind": "do",
-            "effect": {
+          "sinon": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "navire",
               "ops": [
@@ -2741,9 +2741,9 @@
               }
             }
           },
-          "success": {
-            "kind": "if",
-            "cond": {
+          "reussite": {
+            "kind": "si",
+            "condition": {
               "kind": "money",
               "atLeast": {
                 "brass": {
@@ -2751,12 +2751,12 @@
                 }
               }
             },
-            "then": {
-              "kind": "choice",
+            "alors": {
+              "kind": "choix",
               "prompt": "Verser le pot-de-vin",
               "oui": {
-                "kind": "do",
-                "effect": {
+                "kind": "effet",
+                "effet": {
                   "type": "ops",
                   "on": "party",
                   "ops": [
@@ -2789,8 +2789,8 @@
                 }
               },
               "non": {
-                "kind": "if",
-                "cond": {
+                "kind": "si",
+                "condition": {
                   "kind": "money",
                   "atLeast": {
                     "brass": {
@@ -2798,12 +2798,12 @@
                     }
                   }
                 },
-                "then": {
-                  "kind": "choice",
+                "alors": {
+                  "kind": "choix",
                   "prompt": "Payer les droits de douane",
                   "oui": {
-                    "kind": "do",
-                    "effect": {
+                    "kind": "effet",
+                    "effet": {
                       "type": "ops",
                       "on": "party",
                       "ops": [
@@ -2831,8 +2831,8 @@
                     }
                   },
                   "non": {
-                    "kind": "do",
-                    "effect": {
+                    "kind": "effet",
+                    "effet": {
                       "type": "ops",
                       "on": "navire",
                       "ops": [
@@ -2844,9 +2844,9 @@
                     }
                   }
                 },
-                "else": {
-                  "kind": "do",
-                  "effect": {
+                "sinon": {
+                  "kind": "effet",
+                  "effet": {
                     "type": "ops",
                     "on": "navire",
                     "ops": [
@@ -2859,9 +2859,9 @@
                 }
               }
             },
-            "else": {
-              "kind": "if",
-              "cond": {
+            "sinon": {
+              "kind": "si",
+              "condition": {
                 "kind": "money",
                 "atLeast": {
                   "brass": {
@@ -2869,12 +2869,12 @@
                   }
                 }
               },
-              "then": {
-                "kind": "choice",
+              "alors": {
+                "kind": "choix",
                 "prompt": "Payer les droits de douane",
                 "oui": {
-                  "kind": "do",
-                  "effect": {
+                  "kind": "effet",
+                  "effet": {
                     "type": "ops",
                     "on": "party",
                     "ops": [
@@ -2896,8 +2896,8 @@
                   }
                 },
                 "non": {
-                  "kind": "do",
-                  "effect": {
+                  "kind": "effet",
+                  "effet": {
                     "type": "ops",
                     "on": "navire",
                     "ops": [
@@ -2909,9 +2909,9 @@
                   }
                 }
               },
-              "else": {
-                "kind": "do",
-                "effect": {
+              "sinon": {
+                "kind": "effet",
+                "effet": {
                   "type": "ops",
                   "on": "navire",
                   "ops": [
@@ -2924,9 +2924,9 @@
               }
             }
           },
-          "fail": {
-            "kind": "if",
-            "cond": {
+          "echec": {
+            "kind": "si",
+            "condition": {
               "kind": "money",
               "atLeast": {
                 "brass": {
@@ -2934,12 +2934,12 @@
                 }
               }
             },
-            "then": {
-              "kind": "choice",
+            "alors": {
+              "kind": "choix",
               "prompt": "Payer les droits de douane",
               "oui": {
-                "kind": "do",
-                "effect": {
+                "kind": "effet",
+                "effet": {
                   "type": "ops",
                   "on": "party",
                   "ops": [
@@ -2961,8 +2961,8 @@
                 }
               },
               "non": {
-                "kind": "do",
-                "effect": {
+                "kind": "effet",
+                "effet": {
                   "type": "ops",
                   "on": "navire",
                   "ops": [
@@ -2974,9 +2974,9 @@
                 }
               }
             },
-            "else": {
-              "kind": "do",
-              "effect": {
+            "sinon": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "on": "navire",
                 "ops": [
@@ -3003,8 +3003,8 @@
         "label": "Tempête",
         "desc": "Tempête. Une tempête s'abat sur le port. Vous ne pouvez plus repartir sans risque avant 1d10 jours. Si vous partez plus tôt, le climat est considéré comme suit jusqu'à ce que les 1d10 jours soient écoulés : Précipitations : Abondantes, Vents : Vent violent, Visibilité : Brouillard. La Température n'est pas affectée. Pour chaque matin de tempête, lancez 1d10. Sur un 8 ou plus, les Vents deviennent une Violente tempête.",
         "consequence": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "navire",
             "ops": [
@@ -3051,11 +3051,11 @@
         "desc": "Port désert. Si le port est un hameau ou un petit village (Taille 1 ou 2), il est mystérieusement désert. La population a totalement disparu. Elle peut être partie en exil à cause d'une famine ou d'une trop grande pauvreté, ou avoir été capturée par des pillards. La plupart des objets de valeur ont été perdus ou volés et l'équipage estime que rester ici va porter malheur. Si le capitaine insiste pour fouiller le port en quête de butin ou de provisions, il peut en trouver, mais le Moral diminue d'1d10.",
         "taillePortMax": 2,
         "consequence": {
-          "kind": "choice",
+          "kind": "choix",
           "prompt": "Fouiller le port",
           "oui": {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "navire",
               "ops": [
@@ -3105,8 +3105,8 @@
         "label": "Gangs des quais",
         "desc": "Gangs des quais. Les dockers locaux font beaucoup de contrebande. Si vous avez de la cargaison à faire décharger ici, 2d10 Enc disparaissent.",
         "consequence": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "navire",
             "ops": [
@@ -3148,8 +3148,8 @@
         "label": "Pénuries",
         "desc": "Pénuries. Une pénurie de marchandises inattendue sévit dans ce port. Les marchandises de la colonne Production (voir Tableau p. 138) ne sont pas disponibles et celles de la colonne Surplus perdent leur statut de Surplus et passent dans la colonne Production.",
         "consequence": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "ops": [
               {
@@ -3185,8 +3185,8 @@
         "label": "Constructeur de navires itinérant",
         "desc": "Constructeur de navires itinérant. Un constructeur de navires talentueux est en ville. Si votre bateau a besoin de réparations, il possède Métier (Charpentier 72, Constructeur de navires 68, Tailleur 63). Il peut aussi ajouter des Améliorations au vaisseau. Chaque réparation ou Amélioration prend 1d10 jours.",
         "consequence": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "navire",
             "ops": [
@@ -3217,8 +3217,8 @@
         "label": "Trop beau pour être vrai ?",
         "desc": "Trop beau pour être vrai ? Un client suspect vous aborde sur les quais et propose de vous vendre jusqu'à 500 points d'Encombrement d'une cargaison choisie au hasard avec une remise incroyable de 50 %. Si vous acceptez l'offre, l'absence de papiers officiels vous encourage à quitter le port rapidement.",
         "consequence": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "ops": [
               {
@@ -3245,8 +3245,8 @@
         "label": "Beau temps",
         "desc": "Beau temps. Le temps est clément pendant les 1d10 prochains jours. Précipitations : Aucune, Température : Médiane, Vents : Brise fraîche, Visibilité : Dégagé.",
         "consequence": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "navire",
             "ops": [
@@ -3296,12 +3296,12 @@
               }
             }
           },
-          "success": {
-            "kind": "choice",
+          "reussite": {
+            "kind": "choix",
             "prompt": "Garder le passager à bord",
             "oui": {
-              "kind": "do",
-              "effect": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "on": "navire",
                 "ops": [
@@ -3384,9 +3384,9 @@
               }
             }
           },
-          "fail": {
-            "kind": "do",
-            "effect": {
+          "echec": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "navire",
               "ops": [
@@ -3513,9 +3513,9 @@
               }
             }
           },
-          "success": {
-            "kind": "do",
-            "effect": {
+          "reussite": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "ops": [
                 {
@@ -3532,9 +3532,9 @@
               ]
             }
           },
-          "fail": {
-            "kind": "seq",
-            "steps": []
+          "echec": {
+            "kind": "sequence",
+            "etapes": []
           }
         },
         "source": {
@@ -3551,8 +3551,8 @@
         "desc": "Fête de Manann. Le port donne actuellement un festival en l'honneur de Manann, qui célèbre son importance pour sa communauté. Si le capitaine autorise son équipage à faire relâche à terre et se joint aux festivités avec sincérité, l'Humeur de Manann augmente de 2d10.",
         "relache": true,
         "consequence": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "navire",
             "ops": [
@@ -3582,11 +3582,11 @@
         "label": "Offre de mission",
         "desc": "Offre de mission. Une personne qui dissimule son identité vous offre 200 CO pour livrer un « colis » sans l'ouvrir dans un port choisi au hasard. Le MJ détermine la description détaillée et les dimensions du colis.",
         "consequence": {
-          "kind": "choice",
+          "kind": "choix",
           "prompt": "Accepter le colis",
           "oui": {
-            "kind": "do",
-            "effect": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "on": "navire",
               "ops": [
@@ -3614,8 +3614,8 @@
         "label": "Bonne pêche",
         "desc": "Bonne pêche. Récemment, les pêcheurs locaux remontent des filets grouillant de poissons ou de crabes. Vous pouvez les acheter en tant que rations pour un jour au prix réduit de 3sc.",
         "consequence": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "navire",
             "ops": [
@@ -3641,8 +3641,8 @@
         "label": "Saturation de produits",
         "desc": "Saturation de produits. Les ballots de cargaison s'entassent dans les entrepôts du rivage. Tous les biens mentionnés dans la colonne Production passent dans la colonne Surplus et gagnent +1. Le nombre de tous les produits déjà mentionnés dans la colonne Surplus double.",
         "consequence": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "ops": [
               {
@@ -3671,8 +3671,8 @@
         "label": "Voyage désastreux",
         "desc": "Voyage désastreux. 50 % des PNJ membres de l'équipage sont manquants. 75 % de la cargaison s'est gâtée ou a été volée. Le vaisseau perd 75 % de ses Blessures et subit 3 Coups Critiques.",
         "consequence": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "navire",
             "ops": [
@@ -3722,8 +3722,8 @@
         "label": "Voyage éreintant",
         "desc": "Voyage éreintant. 20 % des PNJ membres de l'équipage sont perdus. 50 % de la cargaison s'est gâtée ou a été volée. Le vaisseau perd 50 % de ses Blessures et subit 2 Coups Critiques.",
         "consequence": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "navire",
             "ops": [
@@ -3768,8 +3768,8 @@
         "label": "Voyage difficile",
         "desc": "Voyage difficile. 10 % des PNJ membres de l'équipage sont perdus. 25 % de la cargaison s'est gâtée ou a été volée. Le vaisseau perd 25 % de ses Blessures et subit 1 Coup Critique.",
         "consequence": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "navire",
             "ops": [
@@ -3814,8 +3814,8 @@
         "label": "Voyage sans encombre",
         "desc": "Voyage sans encombre. 10 % de la cargaison s'est gâtée.",
         "consequence": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "navire",
             "ops": [

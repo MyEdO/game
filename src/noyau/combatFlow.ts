@@ -123,7 +123,8 @@ import { beginShipwreck } from './shipwreck';
 import { isInanimate, isStructure, structureAimCell, ramVsNonDoor } from '../engine/structures';
 import { rollStructureCritical, structureCollapseLog, tableDesCritiquesDeStructure, type StructureCriticalResolved } from '../engine/structureCritical';
 import { structureCriticalsDie } from '../data/structureCriticals';
-import { actorIn, ecrireActeur, inBattleId } from './monde/combatants';
+import { actorIn, auContactDeLaSerie, ecrireActeur, inBattleId, porteurParId } from './monde/combatants';
+import { checkPartyWiped } from './partyWipe';
 import type { IdDeCombattant } from './designations';
 import { nomDIndividu } from './monde/sceneNpc';
 import { garanti } from '../lib/garanti';
@@ -152,10 +153,10 @@ function critRollTwiceFor(c: Combatant | undefined | null): boolean {
 }
 import { domainOnHitEffects, domainCasterOps, isSorceryDomain, domainEnvironmentBonus } from '../engine/domainAttributes';
 import { decayZones, discTiles, wallTiles, clampZoneTiles, metersToTiles, resolveZoneMeters, type BattleZone } from './monde/zones';
-import { carryOverState } from '../engine/persistence';
+import { entreeEnRencontre, sortieDeRencontre } from '../engine/persistence';
 import { contractionDue, applyContraction, hasActiveCapability, diseaseDefs } from '../engine/disease';
 import { resolveCritique, jeuDeCritique, critiquesDuCoup, relanceLaLocalisation, estUnCoupCritique, type CauseCoupCritique, porteurDeCritique, regimeDePorteur, type OrigineCritique, REGIMES_DE_CRITIQUE, type OptionsCritique, critiqueTriviale, critWoundLocation, critImmediateSummary, opRestitueeParLeBandeau, prendreAmputationsDifferees, critTableKeyFor, critTableRows, type CriticalResolved, type CritTableKey } from '../engine/critical';
-import { facesDuDe, findTableEntry } from '../engine/tables';
+import { deDeLaTableTiree, facesDuDe, findTableEntry } from '../engine/tables';
 import { isFumble, rollOups, desDOups, desDeBrisDeLame, casseSurMaladresse, CLE_SOLIDE, ligneDeSolide, SOURCE_SOLIDE, type OupsResolved, type DemandeDeCasse } from '../engine/oups';
 import { lireSalveMisfire, TABLE_SALVE_MISFIRE } from '../engine/artilleryMisfire';
 import { artilleryMisfireDie } from '../data/artilleryMisfire';
@@ -175,7 +176,7 @@ import { toBrass, fromBrass } from '../engine/money';
 import { partyMoneyTotal, condCtx } from './bourseFlow';
 import { Scene, sceneMetresPerTile, isMerScene, setStructureDown, setTileCollapsed, parapetTilesAbove, heightAt, surfaceDAtterrissage, structureIsDown, climbEdgeBetween, type VictoryCondition } from './monde/scene';
 import { STEP_MAX_M } from './monde/relief';
-import { placeCombatant } from './monde/spawn';
+import { placeCombatant, spawnEnemy } from './monde/spawn';
 import { rollInitiative, combatOrder } from './combatSetup'; // relance d'Initiative par Round (LDB 13 l.43)
 import { sweepDismountDeaths, mountedAttackMods, defenseDodgeMods, mountMovement, mouvementDeCourse, mountOf, chargeDmgProxy, mountUp, mountableNear, movementRemaining, canMove, riderFearSize, combatGeomOf, attackGeomOf, meleeWeaponInRange, pickAttackWeaponList } from './mount';
 import { lineOfSightCover, losClear, tilesBetween, tileSeenByFoe, makeLosMemo } from './monde/lineOfSight';
@@ -231,7 +232,7 @@ export function activeCombatant(battle: BattleState): Combatant | undefined {
 }
 
 import { objetDuNarratif } from './monde/resolveursDuNarratif';
-import { pushReveal, pushCombatStep, applyEffects, gearFromEffects, drainPendingLog, ouvrirChute, cloturer, ctxRepris, revealPurpose, nePeutPasDifferer, jouerFlowEntier, OPS_DIFFEREES, type Applique } from './combatEffects';
+import { pushReveal, pushCombatStep, applyEffects, gearFromEffects, drainPendingLog, ouvrirChute, cloturer, ctxRepris, revealPurpose, nePeutPasDifferer, jouerFlowEntier, jouerLesClotures, OPS_DIFFEREES, type Applique } from './combatEffects';
 import { teamCommandMod } from './monde/commandTeam';
 import { collectHeroRoundEndUpkeep } from './combat/roundHooks';
 import { aiDriven, controlsCombatant, defenseSurfaced } from './netOwnership';
@@ -250,7 +251,7 @@ import { effectiveTalents } from '../engine/talentEffects';
 import { memoParVersion } from '../data/versionDataset';
 import { nightBands, splitBandRows } from './nightBands';
 import { combatEndBands, combatEndRowMeta } from './combatEndBands';
-import type { CascadeStepMeta, ChaineDeBalayage, EnchainementDuCoup, TirsDeBordee, RebondDeChaine, SeuilDeSauvegarde, SauvegardeSuite, SuiteDeCoup, ToucheDeProjectile, PendingCasseDArme, QueueDuCoup } from './pendings';
+import type { CascadeStepMeta, ChaineDeBalayage, EnchainementDuCoup, TirsDeBordee, RebondDeChaine, SeuilDeSauvegarde, SauvegardeSuite, SuiteDeCoup, ToucheDeProjectile, PendingCasseDArme, QueueDuCoup, Suite } from './pendings';
 import { APRES_COUP, type IssueOpposee, type PendingApproach } from './pendings';
 import { refuserGeste, refuserGesteDuSiege } from './refusVisible';
 import { freeCons, resultLines, rollStep, rollSansPilote, surfaceOf, surfaceRow, monoStep, pousseSi, hostStep, idDansLaSequence, openSequence, openBand, pushHost, pushTableDone, pushTable, pushChoice, pushDisplay, pushDie, tableStep, makeBandFactory, stepDetail, stepPrecision, stepPsych, stepSansPeur, type ChoiceSpec, type Consequence, type TableSpec } from './rollSeam';
@@ -489,7 +490,7 @@ export function attackWardGate(attacker: Combatant, target: Combatant, rng: RNG)
  *  une rangée influençable par guetteur dans la MÊME fenêtre) ; les autres (ennemi embusqué, héros en cadence
  *  auto) passent par l'exécuteur cadence-aware (`runCombatFlow`, jet inline) avec le MÊME freeze en
  *  `opposedFreeze`. L'embusqueur (`sneak`) est le `caster` ; Furtif (LDB 85) est baké en `attackerBonusSL`.
- *  Sur défaite d'un guetteur (branche `fail`) : Vigilance (talent, LDB 10) interpose un Test de Perception
+ *  Sur défaite d'un guetteur (branche `echec`) : Vigilance (talent, LDB 10) interpose un Test de Perception
  *  (+0) pour ignorer la Surprise, sinon l'État `Surpris` — la branche est jouée PAR RANGÉE, donc ce second
  *  Test n'est appendu à la cascade que pour le porteur concerné. Appelée APRÈS la pose du `battle` (sujet
  *  HORS-TOUR : Round 1 pas encore commencé) ; à la fermeture de la cascade, `resumeSuspendedAI` est un no-op
@@ -512,11 +513,11 @@ export function applySurprise(get: Get, set: SetFn, surprisedSide: 'party' | 'en
   // spécifiquement défaite, l'ouïe reste le dernier recours ; détonations/rixe = indices sonores). Un guetteur
   // Sourd reste donc VULNÉRABLE par défaut (`senseMatches`, trauma.ts : sens du Test inconnu → pénalité
   // appliquée, conservateur) plutôt qu'exempté en bloc — cohérent avec les scénarios d'embuscade cités.
-  const surprise: Flow = { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: COND.surpris }, value: 1 }] } };
+  const surprise: Flow = { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: COND.surpris }, value: 1 }] } };
   const onLose: Flow = {
-    kind: 'if', cond: { kind: 'has', who: 'target', what: 'talent', value: 'vigilance' },
-    then: testFlow({ skill: { id: 'perception' }, difficulty: 'intermediaire', label: 'Vigilance', stake: combatStakeRef('embuscade-vigilance') }, EMPTY_FLOW, surprise),
-    else: surprise,
+    kind: 'si', condition: { kind: 'has', who: 'target', what: 'talent', value: 'vigilance' },
+    alors: testFlow({ skill: { id: 'perception' }, difficulty: 'intermediaire', label: 'Vigilance', stake: combatStakeRef('embuscade-vigilance') }, EMPTY_FLOW, surprise),
+    sinon: surprise,
   };
   // Embusqueur (Discrétion, FIGÉE comme attaquant opposé) vs guetteurs (Perception, les défenseurs qui jettent).
   const difficulty: Difficulty = 'intermediaire';
@@ -674,15 +675,18 @@ export function attackEnv(
   opts?: { dansLeTas?: boolean; tirImmobile?: boolean },
 ): AttackEnv {
   const scene = get().scene!;
-  // Environnement composé sur le combat où l'attaquant est DÉJÀ à sa case d'attaque (Charge/rejoindre).
-  const battle = withAttackerAt(get().battle!, attacker);
+  // Environnement composé sur le combat où l'attaquant est DÉJÀ à sa case d'attaque (Charge/rejoindre) ; hors
+  // bataille (série d'attaques subies, `serieSubie`), aucune file de combat.
+  const bataille = get().battle;
+  const enBataille = bataille && withAttackerAt(bataille, attacker);
   const sc = sceneCombatModifiers(scene, get().gameTime);
   const dayW = activeDayWeather(get);
   const env: ModLine[] = [];
   // Empoignade (LDB 14 l.169) : un attaquant NON partie à l'Empoignade, mêlée comme tir.
-  const gm = grappleEnvMod(attacker, target, battle.combatants);
+  const gm = grappleEnvMod(attacker, target, enBataille?.combatants ?? []);
   if (gm) env.push(gm);
   if (weapon.type === 'ranged') {
+    const battle = garanti(enBataille, attacker.id, 'combat du tir');
     const occupants = battle.combatants
       .filter((c) => c.id !== attacker.id && c.id !== target.id && !isOutOfAction(c) && c.pos)
       .map((c) => c.pos!);
@@ -751,10 +755,12 @@ export function attackEnv(
   // En contrebas (LDB 14 l.67) : l'attaquant le PLUS BAS est pénalisé (la hauteur ne donne AUCUN bonus
   // « high-ground » — RAW : seul ce malus existe). Comparaison de la hauteur métrique des surfaces.
   if ((target.pos?.h ?? 0) - (attacker.pos?.h ?? 0) > STEP_MAX_M) env.push(ligneDeRegle('cible-en-contrebas', 'en-contrebas'));
-  // Surnombre (LDB 14 l.110) : attaquants du camp de l'attaquant au contact de la cible.
-  const onm = outnumberMod(effectifAuContact(battle, target, attacker.kind));
-  if (onm) env.push(onm);
-  env.push(...mountedAttackMods(battle, attacker, target, 'melee')); // LDB 14 l.180/181
+  if (enBataille) {
+    // Surnombre (LDB 14 l.110) : attaquants du camp de l'attaquant au contact de la cible.
+    const onm = outnumberMod(effectifAuContact(enBataille, target, attacker.kind));
+    if (onm) env.push(onm);
+    env.push(...mountedAttackMods(enBataille, attacker, target, 'melee')); // LDB 14 l.180/181
+  }
   return { env, blocked: false, inMelee: false, crowd: [], cm: null, sc, flankRear };
 }
 
@@ -769,9 +775,10 @@ export function resolveAttack(
   armeDuCoup?: Weapon, // arme résolue par l'appelant piloté (`attackWeaponOf`, #1026) ; absente = auto-choix
   withhold?: boolean, // LDB 18 l.30 ; AA 07 l.59
 ): { res: AttackResult; weapon: Weapon; victim?: Combatant } | null {
-  const battle = get().battle!;
+  // Hors bataille (série d'attaques subies, `serieSubie`), aucune file de combat.
+  const battle = get().battle;
   const mpt = sceneMetresPerTile(get().scene);
-  const weapon = armeDuCoup ?? firedWeapon(attacker, target, undefined, battle.combatants); // arme choisie + munition + sous-effectif du poste servi
+  const weapon = armeDuCoup ?? firedWeapon(attacker, target, undefined, battle?.combatants); // arme choisie + munition + sous-effectif du poste servi
   // Restriction d'armes à distance de la rencontre (#471, `EncounterDef.banRanged`, NADJ 06 l.181) —
   // convergence UNIQUE joueur ET IA (tout tir passe par `resolveAttack`) : refus AVANT le jet, même
   // chemin de refus silencieux que la LdV bloquée ci-dessous (`blocked`). Défaut effectif : `banRangedActive`.
@@ -780,12 +787,17 @@ export function resolveAttack(
   // (cavalier/cible monté — sinon une attaque de charge qui rapproche la MONTURE au contact serait jugée
   // hors d'allonge sur le cavalier 1×1 → `null`, cascade d'attaque ORPHELINE) OU de la COQUE SEULEMENT si
   // `weapon` est la pièce de mêlée servie — jamais pour une arme personnelle (`attackGeomOf`).
-  const dist = combatDistance(attackGeomOf(battle, attacker, weapon), combatGeomOf(battle, target));
-  if (dist > reachTiles(weapon) && weapon.type === 'melee') return null; // hors de portée de mêlée (Allonge incluse, RAW-3)
+  const distanceSur = (grille: BattleState) => combatDistance(attackGeomOf(grille, attacker, weapon), combatGeomOf(grille, target));
+  // La série d'attaques subies déclare le contact de mêlée, sans case (MDG 15 l.163-164) ; hors d'elle, la grille de
+  // la bataille le mesure (Allonge incluse, RAW-3).
+  if (weapon.type === 'melee' && !auContactDeLaSerie(get(), attacker, target)
+    && distanceSur(garanti(battle, attacker.id, 'combat de la mêlée')) > reachTiles(weapon)) return null;
   // (Sonné → +1 Avantage à l'attaquant en mêlée, LDB 16 l.125 : DÉJÀ géré par le flux d'attaque existant.)
   const { env, blocked, inMelee, crowd, cm, flankRear } = attackEnv(get, attacker, target, weapon, { dansLeTas, tirImmobile });
   if (blocked) return null; // pas de Ligne de Vue (mur/décor/fumée) → pas de tir (LDB 13 l.114)
   if (weapon.type === 'ranged') {
+    const grille = garanti(battle, attacker.id, 'combat du tir');
+    const dist = distanceSur(grille);
     // « Tirer dans le tas » (LDB 14 l.106) : un ennemi AU HASARD est touché ; succès dû au seul bonus = 0 DR.
     if (dansLeTas) {
       const res = resolveRanged(attacker, target, weapon, battleRng(), dist, location, env, undefined, mpt, withhold);
@@ -816,7 +828,7 @@ export function resolveAttack(
     // Tir dans la mêlée (LDB 14 l.116) : si sa pénalité a transformé une réussite en échec, le tir dévie
     // et frappe un allié intercalé (touche acquise, dégâts recalculés sur l'allié).
     if (inMelee && !res.hit) {
-      const ally = strayShotVictim(res, attacker, target, battle, battleRng());
+      const ally = strayShotVictim(res, attacker, target, grille, battleRng());
       if (ally) {
         const stray = resolveStrayRangedHit(attacker, ally, weapon, res.attackerRoll, res.attackerDetail!.target - modDeRegle('tir-dans-un-combat-au-corps-a-corps', 'tir-dans-la-melee'), { rng: battleRng() }, res.attackerDetail, withhold);
         stray.ajouts = [tr('cf.touchePerdueEnMelee', { name: ally.label })];
@@ -827,7 +839,7 @@ export function resolveAttack(
   }
   // Charge montée (LDB 14 l.183) : pour les DÉGÂTS, on substitue la Force (Bonus) et la Taille de la monture.
   // Combat monté (l.184) : un défenseur à cheval subit −20 à l'Esquive (sauf Acrobaties équestres) → dodgeMods.
-  const dmgProxy = chargeDmgProxy(battle.combatants, attacker, fromCharge);
+  const dmgProxy = chargeDmgProxy(battle?.combatants, attacker, fromCharge);
   // Défenseur SURFACÉ (`defenseSurfaced`) : sa défense se joue dans SA fenêtre, jamais ici — on résout le
   // seul jet d'ATTAQUANT (`defense:'none'`) et l'interposition (`openSurfacedDefense`, chemin piloté) ou la
   // fenêtre réactive (`maybeOpenDefense`, chemin IA) opposera le jet de défense au jet figé.
@@ -2876,12 +2888,13 @@ function appliquerLaTouche(
  * lui confie la queue au temps SUIVANT (le curseur) et rend `true`. Le temps `suite` est le dernier : ce
  * qu'il ouvre (fenêtre de défense du maillon suivant) porte sa PROPRE reprise (`PendingDefense.suite`),
  * et sa suspension remonte de même.
+ * Les combattants se lisent dans tout l'univers de jeu (`porteurParId`) : hors bataille (série d'attaques subies,
+ * `serieSubie`), les Maladresses se jouent (LDB 14 l.13, l.19) et la réaction n'a pas lieu (#3892, P3).
  */
 export function jouerLApresCoup(get: Get, set: SetFn, q: QueueDuCoup): boolean {
-  const battle = get().battle;
-  if (!battle) return false;
-  const attacker = inBattleId(battle, q.attackerId);
-  const target = inBattleId(battle, q.targetId);
+  const s = get();
+  const attacker = porteurParId(s, q.attackerId);
+  const target = porteurParId(s, q.targetId);
   if (!attacker || !target) {
     journaliser(get, set, [tr('cascade.cibleDisparue', { label: q.weapon.label })], 'information');
     return false;
@@ -2896,6 +2909,7 @@ export function jouerLApresCoup(get: Get, set: SetFn, q: QueueDuCoup): boolean {
         if (maladresseDuDefenseur(get, set, target, q.res, suivant)) return true;
         break;
       case 'reaction':
+        if (!s.battle) break;
         if (riposteDeclaree(attacker, target, q)) return jouerLaFrappePassive(get, set, attacker, target, q, suivant, tr('cf.riposte', { name: target.label }));
         if (reactionDeBouclierEnDegats(get, set, attacker, target, q))
           return jouerLaFrappePassive(get, set, attacker, target, q, suivant, tr('cf.reactionDeBouclierDegats', { name: target.label, foe: attacker.label }));
@@ -2992,7 +3006,7 @@ export function checkFocusInterruption(get: Get, set: SetFn, target: Combatant):
   const flow = testFlow(
     { ...test, stake: combatStakeRef('focalisation-interrompue') },
     EMPTY_FLOW,
-    { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'interruptFocus' }] } },
+    { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'interruptFocus' }] } },
   );
   runCombatFlow({ get, set, target, caster: target, label: test.label }, flow);
   return []; // le journal voyage par la cascade (manuel) ou la file différée (inline) — pas de retour inline
@@ -3050,9 +3064,9 @@ export function inFiringBand(shooter: Combatant, target: Combatant, weapon: Weap
 }
 
 /** Alliés (même camp) encore actifs, hors `c`, et À PORTÉE de `weapon` (LDB 14 l.30 : « à distance »).
- *  Sans position connue (tests), on ne filtre pas. */
-function alliesAtRange(battle: BattleState, c: Combatant, weapon: Weapon, metresPerTile = 2): Combatant[] {
-  return battle.combatants.filter((x) => x.id !== c.id && x.kind === c.kind && !isOutOfAction(x) && inFiringBand(c, x, weapon, metresPerTile));
+ *  Sans position connue (tests), on ne filtre pas. Hors bataille, aucun : #3892 (P2). */
+function alliesAtRange(battle: BattleState | null, c: Combatant, weapon: Weapon, metresPerTile = 2): Combatant[] {
+  return (battle?.combatants ?? []).filter((x) => x.id !== c.id && x.kind === c.kind && !isOutOfAction(x) && inFiringBand(c, x, weapon, metresPerTile));
 }
 
 /**
@@ -3231,7 +3245,7 @@ export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r:
     ouvrirDeDeCasse(set, c, reste[0], { des: [...des], reprise: { mode: 'oups', actorId: c.id, weapon, r, ...(coup ? { coup } : {}) } });
     return OPS_DIFFEREES;
   }
-  const battle = get().battle!;
+  const battle = get().battle;
   const log: string[] = [tr('cf.oups', { name: c.label, effet: r.label })];
   // UNE Sauvegarde Solide par Maladresse (`engine/oups.desDOups`, #1764) : l'issue se DÉCIDE une fois,
   // et chaque cause de cassure la LIT — Bâclé (LDB 60 l.50), Incident de tir (LDB 14 l.34), Salve.
@@ -3293,7 +3307,7 @@ export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r:
       if (hasQuality(weapon, 'arme-d-equipe') && c.mannedPoste) {
         const servants = exposedCrew((c.mannedPoste.crewIds ?? [])
           .filter((id) => id !== c.id)
-          .map((id) => inBattleId(battle, id))
+          .map((id) => porteurParId(get(), id))
           .filter((x): x is Combatant => !!x));
         for (const s of servants) {
           const sLost = woundsFromHit(weapon, s, 'brasD', effectiveWeaponDamage(weapon, force) + units, 0, 1, c.size);
@@ -3316,7 +3330,7 @@ export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r:
         const salveCrew = [c, ...(hasQuality(weapon, 'arme-d-equipe') && c.mannedPoste
           ? exposedCrew((c.mannedPoste.crewIds ?? [])
               .filter((id) => id !== c.id)
-              .map((id) => inBattleId(battle, id))
+              .map((id) => porteurParId(get(), id))
               .filter((x): x is Combatant => !!x))
           : [])];
         for (let i = 0; i < salve.hits; i++) {
@@ -3333,7 +3347,8 @@ export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r:
       break;
     }
   }
-  set({ battle: { ...get().battle!, log: [...get().battle!.log, ...evLines(log, 'information', c.id)] } });
+  journaliser(get, set, log, 'information', { actorId: c.id });
+  set(touchActors(get()));
   bus.emit(EVT.SCENE_DIRTY);
   checkBattleOver(get, set);
   return undefined;
@@ -3344,7 +3359,7 @@ export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r:
 function armeDeLaCasse(get: Get, casse: PendingCasseDArme): Weapon | undefined {
   const reprise = casse.reprise;
   if (reprise.mode === 'oups') return reprise.weapon;
-  const porteur = inBattleId(get().battle, reprise.bt.attackerId);
+  const porteur = porteurParId(get(), reprise.bt.attackerId);
   return porteur?.weapons.find((w) => w.uid === reprise.bt.weaponUid);
 }
 
@@ -3353,11 +3368,11 @@ function armeDeLaCasse(get: Get, casse: PendingCasseDArme): Weapon | undefined {
 function demandesDeLaCasse(get: Get, casse: PendingCasseDArme): DemandeDeCasse[] {
   const reprise = casse.reprise;
   if (reprise.mode === 'piegeALame') {
-    const porteur = inBattleId(get().battle, reprise.bt.attackerId);
+    const porteur = porteurParId(get(), reprise.bt.attackerId);
     const lame = porteur?.weapons.find((w) => w.uid === reprise.bt.weaponUid);
     return porteur && lame ? desDeBrisDeLame(porteur, lame) : [];
   }
-  const c = inBattleId(get().battle, reprise.actorId);
+  const c = porteurParId(get(), reprise.actorId);
   return c ? desDOups(c, reprise.weapon, reprise.r) : [];
 }
 
@@ -3468,7 +3483,7 @@ function verdictDeDefenseReactive(s: Jeu, attacker: Combatant, target: Combatant
     return modesDeTir.length ? { refus: null, modesDeTir } : { refus: 'tir-non-opposable' };
   }
   if (weapon?.type !== 'melee') return { refus: 'sans-arme-de-coup' };
-  if (combatDistance(attacker, target) > reachTiles(weapon)) return { refus: 'hors-allonge' }; // Allonge incluse (RAW-3)
+  if (!auContactDeLaSerie(s, attacker, target) && combatDistance(attacker, target) > reachTiles(weapon)) return { refus: 'hors-allonge' }; // Allonge incluse (RAW-3)
   if (cannotDefend(target)) return { refus: 'ne-peut-se-defendre' }; // LDB 16 l.135
   return { refus: null };
 }
@@ -3522,7 +3537,7 @@ export function maybeOpenDefense(
   const atk = rollMeleeAttacker(attacker, target, weapon, battleRng(), undefined, env, flankRear); // jet d'attaque figé, flanc/dos compris
   // Charge montée (LDB 14 l.183) : Force (Bonus) + Taille de la MONTURE aux DÉGÂTS — la fenêtre porte le
   // proxy, sinon l'opposition différée le perdrait (le chemin inline le passe, resolveAttack).
-  const dmgProxy = chargeDmgProxy(get().battle!.combatants, attacker, fromCharge);
+  const dmgProxy = chargeDmgProxy(get().battle?.combatants, attacker, fromCharge);
   // Composée HORS du littéral, avec les MÊMES options que le jet figé ci-dessus (flanc/dos compris) :
   // la Difficulté affichée après la fenêtre est celle qui a fait la cible, pas une recomposition d'un
   // contexte appauvri.
@@ -3735,7 +3750,7 @@ export function aiHandGate(get: Get, set: SetFn, attacker: Combatant, weaponUid?
   return true;
 }
 
-export function doAttack(get: Get, set: SetFn, attacker: Combatant, target: Combatant): Applique {
+export function doAttack(get: Get, set: SetFn, attacker: Combatant, target: Combatant, enchainement?: EnchainementDuCoup): Applique {
   // Bénédiction de Protection (LDB 41 — L13) : Test de FM Accessible (+20) pour oser attaquer le
   // béni ; échec → l'IA renonce à CE coup (simplification : pas de re-ciblage, documentée).
   const ward = attackWardGate(attacker, target, battleRng());
@@ -3746,7 +3761,7 @@ export function doAttack(get: Get, set: SetFn, attacker: Combatant, target: Comb
   // cette cible ; Échec → l'arme glisse et il renonce à CE coup (une pièce servie hors loadout n'est jamais gatée).
   if (!aiHandGate(get, set, attacker, firedWeapon(attacker, target).uid)) return undefined;
   // Coup PRINCIPAL : ses gratuites `onHit` (LDB 10 l.72) suivent la touche, comme celles du héros (`jetValider('attaque')`).
-  const suite: SuiteDeCoup = { gratuitesALaTouche: true };
+  const suite: SuiteDeCoup = { gratuitesALaTouche: true, ...(enchainement ? { enchainement } : {}) };
   if (maybeOpenDefense(get, set, attacker, target, undefined, suite, attacker.chargedThisTurn)) return OPS_DIFFEREES; // suspendu : reprise via jetValider('defense')/jetAnnuler('defense') ; `chargedThisTurn` = le MÊME `fromCharge` que le `resolveAttack` ci-dessous
   // Tir ennemi : l'annoncer dans le journal de COMBAT (battle.log → fil + tiroir) DÈS la décision — un tir
   // n'ouvre pas de modale de défense, donc « on ne savait jamais sur qui il tirait » (#12d). Avant, l'annonce
@@ -3766,6 +3781,73 @@ export function doAttack(get: Get, set: SetFn, attacker: Combatant, target: Comb
   // r.victim = allié touché par un tir dévié (LDB 14 l.116) ; l'enchaînement non déclaré est le balayage
   // de la machine (`autoCleave`), joué par l'après-coup.
   return applyAttackResult(get, set, attacker, r.victim ?? target, r.weapon, r.res, { suite });
+}
+
+/** OUVRE à la porte le dé `nombre` de l'op `attaquesSubies` sur le héros `cible` (patron `ouvrirChute`) : l'op voyage
+ *  dans le `meta` de l'étape, la cible est son `actorId` ; l'applier `nombreDAttaquesSubies` ouvre la série au dé tombé.
+ *  MDG 15 l.163-164, l.177-178 */
+export function ouvrirLeNombreDAttaquesSubies(set: SetFn, cible: Combatant, op: Extract<GameOp, { op: 'attaquesSubies' }>): void {
+  pushDie(set, {
+    id: `nombreDAttaquesSubies-${cible.id}`,
+    kind: 'nombreDAttaquesSubies',
+    label: tr('step.nombreDAttaquesSubies'),
+    icon: 'action/attaquer',
+    spec: deDeLaTableTiree({ die: op.nombre }),
+    actorId: cible.id,
+    meta: { differeLaSuite: true, attaquesSubies: [op] },
+  }, revealPurpose('sequence', false));
+}
+
+/** Ouvre la SÉRIE D'ATTAQUES SUBIES de `op` sur le héros `cible`, hors bataille : l'assaillant naît de son statbloc
+ *  (`spawnEnemy`, sans case), le héros entre dans la rencontre (`entreeEnRencontre`), `restantes` est le dé tombé
+ *  à la porte, `apresSuite` la suite que ce dé faisait attendre (#1508), gardée par la série jusqu'à sa fermeture ;
+ *  puis la première attaque part par `doAttack`, sa suite déclarée `subie` (`poursuivreLaSerie`).
+ *  MDG 15 l.163-164, l.177-178 */
+export function ouvrirLaSerieSubie(get: Get, set: SetFn, cible: Combatant, op: Extract<GameOp, { op: 'attaquesSubies' }>, restantes: number, apresSuite: Suite | undefined): Applique {
+  const assaillant = spawnEnemy({ statblock: op.assaillant.statblock }, get().forgerUnId('assaillant'), undefined);
+  const heros = entreeEnRencontre(cible);
+  const serieSubie = { assaillant, cibleId: cible.id, avant: cible, restantes, ...(apresSuite ? { apresSuite } : {}) };
+  set((s: Jeu) => ({ party: s.party.map((h) => (h.id === cible.id ? heros : h)), serieSubie }));
+  return doAttack(get, set, assaillant, heros, { mode: 'subie' });
+}
+
+/** Le temps `suite` d'un coup de la série d'attaques subies (`enchainement: 'subie'`). `restantes` compte les attaques
+ *  NON ACHEVÉES, le coup qui s'achève compris : il se décompte ICI, seule écriture. Tant que le Destin du héros est
+ *  ouvert (`pendingFateSave`), le coup n'est pas achevé : la série attend. La dernière attaque achevée ou la cible hors
+ *  d'action, la série se ferme (`fermerLaSerieSubie`) ; sinon l'assaillant qui perd son Action (`loseNextAction`) la
+ *  voit décomptée sans être jouée (LDB 14 l.28), et l'attaque suivante part par `doAttack`. Une attaque à laquelle
+ *  l'assaillant renonce (`doAttack` sans après-coup) est achevée de même. Rend un `Applique` : `OPS_DIFFEREES` quand une
+ *  fenêtre ou le Destin tient la main, `undefined` quand la série s'est fermée.
+ *  MDG 15 l.163-164, l.177-178 */
+export function poursuivreLaSerie(get: Get, set: SetFn): Applique {
+  if (get().pendingFateSave) return OPS_DIFFEREES;
+  const serie = garanti(get().serieSubie, 'serieSubie', 'série d’attaques subies');
+  const restantes = serie.restantes - 1;
+  const cible = garanti(get().party.find((h) => h.id === serie.cibleId), serie.cibleId, 'cible de la série d’attaques subies');
+  if (restantes <= 0 || isOutOfAction(cible)) {
+    fermerLaSerieSubie(get, set);
+    return undefined;
+  }
+  const { assaillant } = serie;
+  if (assaillant.loseNextAction) {
+    set({ serieSubie: { ...serie, restantes, assaillant: { ...assaillant, loseNextAction: false } } });
+    get().ecrireAuJournal(tr('cf.perdLAction', { name: assaillant.label }));
+    return poursuivreLaSerie(get, set);
+  }
+  set({ serieSubie: { ...serie, restantes } });
+  if (doAttack(get, set, assaillant, cible, { mode: 'subie' }) === OPS_DIFFEREES) return OPS_DIFFEREES;
+  return get().serieSubie ? poursuivreLaSerie(get, set) : undefined;
+}
+
+/** Ferme la série d'attaques subies, sa sortie unique : le héros rendu au groupe par la couture de retour
+ *  (`sortieDeRencontre`) et la série vidée, la défaite du groupe constatée (`checkPartyWiped`, qui purge la suite),
+ *  PUIS sa suite jouée (`jouerLesClotures`). Dans cet ordre : la suite s'applique au héros rendu, que la sortie
+ *  n'écrase plus, et hors de toute série, qu'elle peut rouvrir. */
+export function fermerLaSerieSubie(get: Get, set: SetFn): void {
+  const serie = garanti(get().serieSubie, 'serieSubie', 'série d’attaques subies');
+  set((s: Jeu) => ({ party: s.party.map((h) => (h.id === serie.cibleId ? sortieDeRencontre(serie.avant, h) : h)), serieSubie: null }));
+  if (checkPartyWiped(get, set)) return;
+  jouerLesClotures(get, set, serie.apresSuite ?? []);
 }
 
 /**
@@ -3975,6 +4057,7 @@ function jouerLaSuiteDuCoup(get: Get, set: SetFn, attacker: Combatant, target: C
     case 'tirRapide': suspendu = runPreemptShots(get, set, enchainement.faits); break; // la boucle des tireurs reprend (#997)
     case 'aucun': break; // le site d'origine a tranché : aucun balayage ne suit ce coup
     case 'apresCoup': suspendu = jouerLApresCoup(get, set, enchainement.queue); break; // LDB 10 l.1037 ; LDB 85 l.71
+    case 'subie': suspendu = poursuivreLaSerie(get, set) === OPS_DIFFEREES; break; // MDG 15 l.163-164, l.177-178
   }
   if (suspendu) return true;
   if (restitution && !portee) set({ battle: { ...get().battle!, acted: restitution.prevActed } });
@@ -4037,7 +4120,7 @@ export function drainerLesGratuites(get: Get, set: SetFn, actor: Combatant, opts
 // ── Attaques GRATUITES accordées par un TALENT déclenché (Assaut féroce `onHit`, Frappe réactive
 //    `onCharged`) : op `grantFreeAttack{when:'immediate'}` portée en DONNÉE par le talent. Résolution
 //    INSTANTANÉE (motif aiAvailableFreeAttack — pas de modale), arme TENUE, Action PRÉSERVÉE. La frappe est
-//    OUVERTE par `accorderLAttaqueGratuite` que `runCombatFlow` appelle sur le `do`/`grantFreeAttack` — un
+//    OUVERTE par `accorderLAttaqueGratuite` que `runCombatFlow` appelle sur le `effet`/`grantFreeAttack` — un
 //    éventuel jet préalable (Frappe réactive : Test d'Initiative LDB 10 l.496-500) est un nœud Flow
 //    `test` EN AMONT (cadence-aware : héros manuel = jet influençable ; ennemi/auto = inline). ──
 
@@ -4045,7 +4128,7 @@ export function drainerLesGratuites(get: Get, set: SetFn, actor: Combatant, opts
  *  réactive, la victime touchée pour Assaut féroce) : plafond /Round (`fa.cap` = niveau, via
  *  `freeAttacksThisTurn[fa.key]`) + 1× par chargeur ; coût (Avantage) ; puis frappe INSTANTANÉE à l'arme
  *  tenue, Action préservée. Le plafond borne aussi la récursion (un onHit qui touche → +1 attaque, recomptée
- *  → s'arrête au niveau). Appelée par `accorderLAttaqueGratuite` quand `runCombatFlow` exécute le `do`/`grantFreeAttack`
+ *  → s'arrête au niveau). Appelée par `accorderLAttaqueGratuite` quand `runCombatFlow` exécute le `effet`/`grantFreeAttack`
  *  (le Test préalable a déjà réussi en amont, c'est un nœud Flow). */
 function applyTalentFreeAttack(get: Get, set: SetFn, actor: Combatant, op: Extract<GameOp, { op: 'grantFreeAttack' }>, fa: FreeAttackFreeze): Applique {
   const target = inBattleId(get().battle, fa.targetId);
@@ -4078,7 +4161,7 @@ function applyTalentFreeAttack(get: Get, set: SetFn, actor: Combatant, op: Extra
 }
 
 /** Pont exécuteur de Flow → vraie frappe, appelé par `runCombatFlow` (`combat/triggeredTest`) sur un
- *  `do`/`grantFreeAttack`. REND la
+ *  `effet`/`grantFreeAttack`. REND la
  *  suspension de la frappe (#1852) — le dispatcher d'ops s'arrête à la première fenêtre ouverte. */
 export function accorderLAttaqueGratuite(get: Get, set: SetFn, actor: Combatant, op: Extract<GameOp, { op: 'grantFreeAttack' }>, fa: FreeAttackFreeze): Applique {
   return applyTalentFreeAttack(get, set, actor, op, fa);
@@ -4086,8 +4169,8 @@ export function accorderLAttaqueGratuite(get: Get, set: SetFn, actor: Combatant,
 
 /** SEUL émetteur des Flows qui accordent une attaque gratuite (`flowHasFreeAttack`) de `actor` pour
  *  `trigger` (contre `victim`, le tiers threadé dans `ctx.freeAttack`) : le bus les saute
- *  (`applyTriggeredEffects`). Chaque Flow est JOUÉ ENTIER par `runCombatFlow` (nœud `choice`/`test`
- *  cadence-aware, `do`/`grantFreeAttack` qui ouvre la frappe), aux cibles de la MÊME enveloppe que le bus
+ *  (`applyTriggeredEffects`). Chaque Flow est JOUÉ ENTIER par `runCombatFlow` (nœud `choix`/`test`
+ *  cadence-aware, `effet`/`grantFreeAttack` qui ouvre la frappe), aux cibles de la MÊME enveloppe que le bus
  *  (`ciblesDeLEffet`). `ctx` = le contexte de l'événement (arme de la touche, type d'attaque). Vaut héros
  *  ET IA. Rend le nombre de Flows joués ; la file s'arrête à la première défense ouverte. LDB 10 l.500. */
 export function resolveFreeAttacks(
@@ -4326,11 +4409,12 @@ function resumeMeleeAfterSuspension(
   // sans son drapeau infligerait des Dégâts, LDB 14 l.159), et la chaîne de balayage parquée.
   coup: ApplicationDuCoup,
 ): void {
-  const battle = get().battle;
-  if (!battle) return;
-  const attacker = inBattleId(battle, attackerId);
-  const target = inBattleId(battle, targetId);
-  if (!attacker || !target) return;
+  const attacker = porteurParId(get(), attackerId);
+  const target = porteurParId(get(), targetId);
+  if (!attacker || !target) {
+    journaliser(get, set, [tr('cascade.cibleDisparue', { label: weapon.label })], 'information');
+    return;
+  }
   // RE-SUSPENDU par la fenêtre SUIVANTE (sauvegarde ratée → Critique à dévier) : la suite lui est
   // REPASSÉE, elle voyage dans SA charge, et c'est la DERNIÈRE reprise qui la joue — une fois.
   jouerFlowEntier(applyAttackResult(get, set, attacker, target, weapon, res, coup));
@@ -4342,19 +4426,21 @@ function resumeMeleeAfterSuspension(
  *  - `melee` → RÉ-ENTRE `applyAttackResult` avec la décision (son tail décision-indépendant tourne UNE fois) ;
  *  - `self` → le Critique pré-tiré d'`applyCoupCritiqueSec`. */
 export function resolveDeviation(get: Get, set: SetFn, dev: PendingDeviation, deviate: boolean): void {
-  const battle = get().battle;
-  if (!battle) return;
   if (dev.mode !== 'self') {
     reprendreLeCoup(get, set, dev, { crit: dev.crit, deviation: deviate ? 'devier' : 'subir' });
     return;
   }
-  const target = inBattleId(battle, dev.targetId);
-  if (!target) return;
+  const target = porteurParId(get(), dev.targetId);
+  if (!target) {
+    journaliser(get, set, [tr('cascade.cibleDisparue', { label: tr('step.critDevier') })], 'information');
+    return;
+  }
   const log: string[] = [];
   if (deviate) deflectCrit(target, dev.location, log); // −1 PA, Critique ignoré
   else {
-    const lethal = applyCritAndFinalize(get, set, target, dev.location, dev.overkill, dev.origine, log, dev.ctx, inBattleId(get().battle, dev.ctx.attackerId), dev.woundsBefore, dev.crit, true); // Subir : Critique pré-tiré
-    apresLeCritiqueDe({ get, set, auteur: inBattleId(battle, dev.ctx.attackerId), cible: target, lieu: dev.location, log, arme: dev.ctx.weaponObj })(lethal, dev.origine); // #316
+    const auteur = dev.ctx.attackerId ? porteurParId(get(), dev.ctx.attackerId) : undefined;
+    const lethal = applyCritAndFinalize(get, set, target, dev.location, dev.overkill, dev.origine, log, dev.ctx, auteur, dev.woundsBefore, dev.crit, true); // Subir : Critique pré-tiré
+    apresLeCritiqueDe({ get, set, auteur, cible: target, lieu: dev.location, log, arme: dev.ctx.weaponObj })(lethal, dev.origine); // #316
   }
   if (estUnCoupCritique(dev.origine)) breakBacleArmour(target, dev.location, log); // LDB 60 l.50
   // 0 PB → À Terre (LDB 18 l.15).
@@ -4370,10 +4456,7 @@ function cloreLaReprise(get: Get, set: SetFn, target: Combatant, log: string[], 
     clearPsychOf(get().battle?.combatants ?? [], target.id);
     refreshAllDefendedPsych(get().battle?.combatants ?? []); // l’Amour ne se clôt pas à la chute d’UN aimé (l.75) : verdict re-mesuré
   }
-  if (log.length) {
-    const b = get().battle;
-    if (b) set({ battle: { ...b, log: [...b.log, ...evLines(log, 'critique', attackerId, target.id)] } }); // acteur = attaquant, sujet = cible (parité mode melee)
-  }
+  journaliser(get, set, log, 'critique', { actorId: attackerId, targetId: target.id }); // acteur = attaquant, sujet = cible (parité mode melee)
   checkBattleOver(get, set);
 }
 
@@ -4388,13 +4471,16 @@ function reprendreLeCoup(get: Get, set: SetFn, dev: PendingDeviation & CoupSuspe
   }
   if (dev.mode === 'marin') {
     const lignes = encaisserLeCoupDuMarin(get, set, dev.coupDuMarin, critiques);
-    const marin = actorIn(get(), dev.targetId);
+    const marin = porteurParId(get(), dev.targetId);
     if (lignes && marin) cloreLaReprise(get, set, marin, lignes, dev.attackerId);
     return;
   }
   const appliquee = appliquerToucheDeProjectile(get, set, { ...dev.touche, critiques });
-  const target = actorIn(get(), dev.targetId);
-  if (!target) return;
+  const target = porteurParId(get(), dev.targetId);
+  if (!target) {
+    journaliser(get, set, [tr('cascade.cibleDisparue', { label: dev.touche.spell.label })], 'information');
+    return;
+  }
   const log = appliquee.issue === 'appliquee' ? [...appliquee.lignes, ...jouerLeRebond(get, set, dev.touche)] : appliquee.lignes;
   cloreLaReprise(get, set, target, log, dev.attackerId);
 }
@@ -5858,7 +5944,7 @@ function lancerLeSortGaranti(get: Get, set: SetFn, caster: Combatant, target: Co
  * pousse son journal dans la file différée `pendingLogQueue` ; `drainPendingLog` la vide ici et rend les
  * lignes (`.text`) — la file capte AUSSI les lignes des hooks profonds déclenchés par les ops du sort
  * (`onGainCondition` d'un ennemi → Mâchoires), donc elles ne sont plus orphelines. Aucun sort n'ayant
- * ENCORE de nœud Flow `test`, `runCombatFlow` s'exécute de bout en bout (do/if seulement).
+ * ENCORE de nœud Flow `test`, `runCombatFlow` s'exécute de bout en bout (effet/si seulement).
  *
  * L'ENTITÉ PORTEUSE (`source: {kind:'spell', id}`) entre dans l'`opsCtx` ICI, une fois pour les trois
  * appelants : c'est elle que les `ActiveEffect` posés portent, et c'est d'elle que les 46 `FlowTest`
@@ -6986,7 +7072,7 @@ export function finalizeBattle(get: Get, set: SetFn): void {
   // (`outOfRencontre`, LDB 17 l.31) n'en sort pas.
   const newParty = party.map((h) => {
     const c = battle.combatants.find((x) => x.id === h.id && x.kind === 'hero');
-    return c ? { ...h, ...carryOverState(c) } : h;
+    return c ? sortieDeRencontre(h, c) : h;
   });
   set({ party: newParty });
   if (endLines.length) get().ecrireAuJournal(endLines);
@@ -7219,7 +7305,7 @@ export function finishVictory(get: Get, set: SetFn): void {
   // l'écran) ; ceux qui CHANGENT le contexte (téléport/dialogue/combat) sont DIFFÉRÉS au clic « Continuer »
   // (la sortie de la victoire) — sinon le téléport masque l'écran de victoire (cas de l'arène).
   const CONTEXT = new Set(['transition', 'transitionBack', 'startDialogue', 'startCombat']);
-  // onVictory est un Flow (UN format avec triggers/dialogues) — on l'APLATIT ici (les `if` résolus contre
+  // onVictory est un Flow (UN format avec triggers/dialogues) — on l'APLATIT ici (les `si` résolus contre
   // l'état courant) pour garder la partition CONTEXT/immédiat + la mesure de récompense sur la séquence plate.
   const all = battle.onVictory ? flattenFlow(battle.onVictory, condCtx(get)) : [];
   const deferred = all.filter((e) => CONTEXT.has(e.type));
@@ -7269,9 +7355,10 @@ export function finishCombatEnd(get: Get, set: SetFn): void {
  *  de « 1 Round minimum » — il subit alors −20 pendant 1 Round, journalisé par l'appelant) ; false s'il doit
  *  la LÂCHER (aucun gantelet, ou SECOND évènement de lâcher pendant la période). Pose/réarme le marqueur
  *  transitoire `drop.gauntletSavedRound`. */
-function lockedGauntletHolds(wielder: Combatant, drop: Weapon, round: number): boolean {
+function lockedGauntletHolds(wielder: Combatant, drop: Weapon, roundCourant: number | undefined): boolean {
   const hasGauntlet = hasCapability(wielder, 'preventForcedDrop'); // capacité agrégée (gantelet PORTÉ/TENU)
   if (!hasGauntlet) return false;
+  const round = garanti(roundCourant, wielder.id, 'Round du gantelet verrouillé hors bataille (LDB 13 l.13)');
   const saved = drop.gauntletSavedRound;
   if (saved != null && round <= saved + 1) { drop.gauntletSavedRound = undefined; return false; } // 2e évènement dans la période → lâche
   drop.gauntletSavedRound = round; // 1re sauvegarde (ou période écoulée → réarmement) : garde l'arme, −20/1 Round
@@ -7283,15 +7370,13 @@ function lockedGauntletHolds(wielder: Combatant, drop: Weapon, round: number): b
  * `piegeALame`) : l'adversaire est désarmé de la lame visée (`bt.weaponUid`), arrachée de ses mains. Marge
  * NETTE `(DR final du défenseur + bt.defSL) − bt.attackerSL` ≥ 6 (Succès Stupéfiant, LDB 62 l.280) → la lame
  * est BRISÉE à moins qu'elle ne possède l'Atout Incassable (sauvegarde Solide gérée par `wearActiveWeapon`).
- * Échec/égalité au Test ⇒ branche `fail` (pas d'op, l'adversaire libère sa lame) → cette fonction n'est pas
+ * Échec/égalité au Test ⇒ branche `echec` (pas d'op, l'adversaire libère sa lame) → cette fonction n'est pas
  * appelée. La conséquence est EMPILÉE comme étape d'AFFICHAGE propre dans la cascade (`pushDisplay` →
  * `issueDuPiegeALame`, applier muet) — MÊME paradigme que le Coup Critique (une étape visible « l'un sous
  * l'autre », acquittée par « Continuer/Terminer ») plutôt qu'une ligne noyée. `defenderSL` = le DR PROPRE du
  * jet résolu (la marge nette se recompose avec `bt`). */
 export function applyBladeTrap(get: Get, set: SetFn, defender: Combatant, bt: BladeTrapFreeze, defenderSL: number, des: Map<string, number> = new Map()): Applique {
-  const battle = get().battle;
-  if (!battle) return undefined;
-  const attacker = inBattleId(battle, bt.attackerId);
+  const attacker = porteurParId(get(), bt.attackerId);
   if (!attacker || isOutOfAction(attacker)) return undefined;
   const drop = attacker.weapons.find((w) => w.uid === bt.weaponUid);
   if (!drop) return undefined;
@@ -7323,8 +7408,9 @@ export function applyBladeTrap(get: Get, set: SetFn, defender: Combatant, bt: Bl
   // Gantelet verrouillé (AA folio 94) : anti-lâcher — la lame DÉTRUITE échappe à cette grâce (un gantelet
   // ne sauve pas une arme brisée). Sinon, la 1re fois dans la période le porteur GARDE l'arme (−20/1 Round) ;
   // le 2e évènement de lâcher la fait tomber. Capacité lue en DONNÉE (`preventForcedDrop`), jamais par nom.
-  if (!brisee && lockedGauntletHolds(attacker, drop, battle.round)) {
+  if (!brisee && lockedGauntletHolds(attacker, drop, get().battle?.round)) {
     pushDisplay(set, { id: idDansLaSequence(get, `cons-issue-du-piege-a-lame-${defender.id}`, 'combat'), kind: 'issueDuPiegeALame', actorId: defender.id, icon: 'action/se-defendre', label: tr('cf.libelleDuPiegeALame'), outcome: toRecapLines([...usure, tr('cf.ganteletVerrouilleRetient', { name: attacker.label, weapon: drop.label })]) });
+    set(touchActors(get()));
     bus.emit(EVT.SCENE_DIRTY);
     checkBattleOver(get, set);
     return undefined;
@@ -7334,6 +7420,7 @@ export function applyBladeTrap(get: Get, set: SetFn, defender: Combatant, bt: Bl
   // Étape d'AFFICHAGE empilée (comme un Coup Critique) : visible « l'un sous l'autre », acquittée par le
   // joueur. `actorId` = le défenseur piégeur (propriétaire de la modale en coop). Applier muet (préserve `outcome`).
   pushDisplay(set, { id: idDansLaSequence(get, `cons-issue-du-piege-a-lame-${defender.id}`, 'combat'), kind: 'issueDuPiegeALame', actorId: defender.id, icon: 'objet/arme', label: tr('cf.libelleDuPiegeALame'), outcome: toRecapLines([...usure, line]) });
+  set(touchActors(get()));
   bus.emit(EVT.SCENE_DIRTY);
   checkBattleOver(get, set);
   return undefined;
@@ -7899,7 +7986,7 @@ function cleDeTour(battle: BattleState, id: string): string {
  *  CE déplacement et affrontant la MÊME entrée de règle (la Peur de cette source, à cet Indice) forment
  *  UNE BANDE influençable quand ils sont pilotés à la main ; les autres (ennemi, héros auto) restent
  *  résolus INLINE par le même Flow — patron EXACT de la Surprise (`resolveAmbush`). La conséquence PURE
- *  de l'échec (1 État Brisé) est une op `condition` portée par la branche `fail`. */
+ *  de l'échec (1 État Brisé) est une op `condition` portée par la branche `echec`. */
 export function approachFearTrigger(get: Get, set: SetFn, mover: Combatant, fromPos: Pt, toPos?: Pt): void {
   const battle = get().battle;
   const arrivee = toPos ?? mover.pos;
@@ -7922,7 +8009,7 @@ export function approachFearTrigger(get: Get, set: SetFn, mover: Combatant, from
   });
   const branches = {
     onSuccess: EMPTY_FLOW, // réussite : garde son sang-froid, rien à faire
-    onFail: { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: COND.brise }, value: 1 }] } } as Flow,
+    onFail: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: COND.brise }, value: 1 }] } } as Flow,
   };
   const bandes = new Map<number, Combatant[]>();
   for (const d of dues) {
@@ -8771,7 +8858,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
 /** Les genres d'étape que ce module déclare (table `appliers`). */
 export const GENRES_D_ETAPE = [
   'mouvementDeFuite', 'sauvegarde', 'casseDArme', 'deviation', 'tableDIncantationImparfaite', 'maladieDeFinDeCombat',
-  'corruptionDeFinDeCombat', 'issueDuPiegeALame', 'piegeALame', 'psychologieDeCombat',
+  'corruptionDeFinDeCombat', 'issueDuPiegeALame', 'piegeALame', 'psychologieDeCombat', 'nombreDAttaquesSubies',
 ] as const;
 /** Les genres d'étape à pli que ce module déclare (table `plis`). */
 export const PLIS = ['deviation'] as const satisfies readonly (typeof GENRES_D_ETAPE)[number][];
@@ -8848,14 +8935,14 @@ export const TABLES = {
       if (!demande) return dit(); // la grappe a changé sous le dé : rien n'est appliqué au hasard
       des.set(demande.cle, tirage);
       if (casse.reprise.mode === 'piegeALame') {
-        const defenseur = inBattleId(get().battle, casse.reprise.defenderId);
+        const defenseur = porteurParId(get(), casse.reprise.defenderId);
         if (!defenseur) return dit([tr('cascade.cibleDisparue', { label: step.label ?? '' })]);
         // Le seul dé du Piège-lame vient de tomber : l'application n'a plus rien à ouvrir — et si elle le
         // faisait, le fail-fast le dirait plutôt que de laisser la conséquence jouer devant un dé.
         nePeutPasDifferer(applyBladeTrap(get, set, defenseur, casse.reprise.bt, casse.reprise.defenderSL, des), 'reprise du dé de Sauvegarde Solide (Piège-lame)');
         return dit();
       }
-      const c = inBattleId(get().battle, casse.reprise.actorId);
+      const c = porteurParId(get(), casse.reprise.actorId);
       if (!c) return dit([tr('cascade.cibleDisparue', { label: step.label ?? '' })]);
       const issue = applyOups(get, set, c, casse.reprise.weapon, casse.reprise.r, des, casse.reprise.coup);
       // La Maladresse appliquée, l'APRÈS-COUP du coup reprend au temps que le dé avait suspendu.
@@ -8871,9 +8958,20 @@ export const TABLES = {
      *  `resume:false` → la reprise de l'IA part de la FERMETURE de séquence (`jetValider('cascade')`, la sortie du bilan
      *  → `resumeSuspendedAI`). Le reste de l'attaque re-déclenché APPEND ses conséquences à la séquence
      *  (préservées par le liveMerge de commitStep). */
+    /** Le dé `nombre` de l'op `attaquesSubies` est tombé (lancé ou POSÉ) : la série s'ouvre sur le héros de l'étape
+     *  (`ouvrirLaSerieSubie`) et garde la suite de l'étape (`suiteGardee`). Héros introuvable = conséquence PERDUE :
+     *  elle se DIT (patron `chuteDe`). */
+    nombreDAttaquesSubies: (get, set, step, heros) => {
+      const op = step.meta?.attaquesSubies?.[0];
+      if (!op || !step.de?.result) return;
+      if (!heros) return { consequences: freeCons([tr('cascade.cibleDisparue', { label: step.label ?? '' })]) };
+      jouerFlowEntier(ouvrirLaSerieSubie(get, set, heros, op, step.de.result.total, step.meta?.apresSuite));
+      return { consequences: freeCons([]), suiteGardee: true };
+    },
     deviation: (get, set, step) => {
       const dev = step.deviation;
-      if (!dev) return;
+      // Le pli n'a pas posé le Critique : sa cible est introuvable, la conséquence se DIT (patron `sauvegarde`).
+      if (!dev) return step.critSeverity ? { consequences: freeCons([tr('cascade.cibleDisparue', { label: step.label ?? '' })]) } : undefined;
       if (!step.options && dev.mode !== 'self') {
         reprendreLeCoup(get, set, dev, { crit: dev.crit });
         return;
@@ -8954,18 +9052,17 @@ export const TABLES = {
     piegeALame: (get, set, step) => {
       const pbt = step.piegeLame;
       if (!pbt) return;
-      const battle = get().battle;
-      const defender = inBattleId(battle, pbt.defenderId);
-      const attacker = inBattleId(battle, pbt.attackerId);
-      if (!defender || !attacker) return;
+      const defender = porteurParId(get(), pbt.defenderId);
+      const attacker = porteurParId(get(), pbt.attackerId);
+      if (!defender || !attacker) return { consequences: freeCons([tr('cascade.cibleDisparue', { label: step.label ?? '' })]) };
       if (step.chosen !== 'piege') {
         // Coup Critique normal sur la défense (le défenseur place le Critique sur l'attaquant).
         const parryWeaponObj = defender.weapons.find((w) => w.uid === pbt.parryWeaponUid);
         const parryWeaponName = parryWeaponObj?.label ?? 'arme';
         const lines = [tr('cf.critiqueEnDefense', { name: defender.label })];
         applyCoupCritiqueSec(get, set, attacker, pbt.roll, 'double', { attackerId: defender.id, weapon: parryWeaponName, weaponObj: parryWeaponObj }, lines, defender);
-        const b = get().battle!;
-        set({ battle: { ...b, log: [...b.log, ...evLines(lines, 'information', defender.id, attacker.id)] } });
+        journaliser(get, set, lines, 'information', { actorId: defender.id, targetId: attacker.id });
+        set(touchActors(get()));
         bus.emit(EVT.SCENE_DIRTY);
         checkBattleOver(get, set);
         return;
@@ -8981,7 +9078,7 @@ export const TABLES = {
         // `defenderMustWin` : ici « vous » (LDB 62 l.280 « Si vous l'emportez ») est le PIÉGEUR, qui est le
         // jeteur de ce Test — la lame ne s'arrache qu'à SA victoire, jamais sur une égalité.
         { characteristic: 'force', label: 'Piège-lame', stake: combatStakeRef('piege-lame-force'), opposed: { attacker: 'force', bonusSL: pbt.defSL, defenderMustWin: true } },
-        { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'breakBlade' }] } },
+        { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'breakBlade' }] } },
         EMPTY_FLOW,
       );
       runCombatFlow({ get, set, target: defender, caster: attacker, label: 'Piège-lame', piegeALame: bt }, flow);
@@ -9018,7 +9115,7 @@ export const TABLES = {
       const p = step.critSeverity;
       const rolled = step.table?.result;
       if (!p || !rolled) return step;
-      const target = inBattleId(get().battle, p.targetId);
+      const target = porteurParId(get(), p.targetId);
       if (!target) return step;
       const crit = resolveCritique(jeuDeCritique(p.twice), target, p.location, battleRng(), { overkill: p.overkill, twice: p.twice, forcedRoll: rolled.roll });
       const reveal = previewCritEntry(target, crit, p.origine, { attackerId: p.attackerId, weapon: libelleDuCoup(p) });

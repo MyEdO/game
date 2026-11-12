@@ -644,14 +644,14 @@ describe('buildScene — markerFill + emplacement hérite du z du marqueur', () 
     legend: { W: 'pierre' },
     markerFill: { B: 'W' }, // sous B : laisser 'W' (pierre marchable) au lieu d'un trou 'vide'
     relief: [{ rect: [0, 0, 3, 1], height: 4, z: 1 }],
-    bind: { B: { emplacement: 'baliste', facing: 'N', member: { enc: 'def', side: 'ally' } } },
+    bind: { B: { emplacement: 'baliste', facing: 'N', member: { enc: 'def', side: 'allie' } } },
   });
   it('l’affût est posé sur l’étage du marqueur (z1), orienté, et sa case reste marchable', () => {
     const empl = s.entities.find((e) => e.postes?.length)!;
     expect(empl.z).toBe(1); // sur le rempart, pas au sol
     expect(empl.facing).toBe('N');
     expect(layerTiles(s, 1)[0]).toBe('pierre'); // case sous B = pierre (pas 'vide')
-    expect(s.encounters.find((e) => e.id === 'def')!.members).toContainEqual({ entityId: empl.id, side: 'ally' });
+    expect(s.encounters.find((e) => e.id === 'def')!.members).toContainEqual({ entityId: empl.id, side: 'allie' });
   });
 });
 
@@ -660,8 +660,8 @@ describe('buildScene — bind enrôle les entités posées dans une rencontre', 
     id: 'bm', label: 'BM', size: [6, 2],
     levels: { z0: 'k.A...\n......' },
     bind: {
-      k: { emplacement: 'canon-petit', crew: 'crew-0', member: { enc: 'def', side: 'ally' } },
-      A: { entity: { kind: 'personnage', creature: { id: 'brute' } }, member: { enc: 'def', side: 'ally', ai: true } },
+      k: { emplacement: 'canon-petit', crew: 'crew-0', member: { enc: 'def', side: 'allie' } },
+      A: { entity: { kind: 'personnage', creature: { id: 'brute' } }, member: { enc: 'def', side: 'allie', ai: true } },
     },
     encounters: [{ id: 'def' }], // roster vide — rempli par les marqueurs bind
   });
@@ -673,8 +673,8 @@ describe('buildScene — bind enrôle les entités posées dans une rencontre', 
     const def = s.encounters.find((e) => e.id === 'def')!;
     expect(def.members).toEqual(
       expect.arrayContaining([
-        { entityId: empl.id, side: 'ally' },
-        { entityId: garde.id, side: 'ally', ai: true },
+        { entityId: empl.id, side: 'allie' },
+        { entityId: garde.id, side: 'allie', ai: true },
       ]),
     );
   });
@@ -686,13 +686,13 @@ describe('buildScene — encounters à membres PRÉ-DÉCLARÉS (roster mixte)', 
     entities: [{ id: 'pnj-1', kind: 'personnage', pos: { x: 5, y: 3 }, creature: { id: 'brute' }, label: 'Garde' }],
     encounters: [
       // terse (entité fraîche cachée) + membre référençant une entité DÉJÀ posée (visible, dialogue…)
-      { id: 'mix', enemies: [{ creature: { id: 'gobelin' }, pos: { x: 8, y: 3 } }], members: [{ entityId: 'pnj-1', side: 'ally', ai: true }] },
+      { id: 'mix', enemies: [{ creature: { id: 'gobelin' }, pos: { x: 8, y: 3 } }], members: [{ entityId: 'pnj-1', side: 'allie', ai: true }] },
     ],
   });
   it('fusionne les members terse et les members pré-déclarés, sans dupliquer l’entité existante', () => {
     expect(s.encounters[0].members).toEqual([
       { entityId: 'enemy-mix-0' },
-      { entityId: 'pnj-1', side: 'ally', ai: true },
+      { entityId: 'pnj-1', side: 'allie', ai: true },
     ]);
     expect(s.entities.find((e) => e.id === 'enemy-mix-0')?.creature?.id).toBe('gobelin');
     const pnj = s.entities.filter((e) => e.id === 'pnj-1');

@@ -22,9 +22,9 @@ const scene = () => ({
   entities: [{ id: 'e', presetId: 'pnj' }],
   triggers: [{
     id: 't',
-    flow: { kind: 'seq', steps: [
-      { kind: 'do', effect: { type: 'document', documentId: 'doc' } },
-      { kind: 'do', effect: { type: 'revealClue', indiceId: 'ind', stade: 'dechiffree' } },
+    flow: { kind: 'sequence', etapes: [
+      { kind: 'effet', effet: { type: 'document', documentId: 'doc' } },
+      { kind: 'effet', effet: { type: 'revealClue', indiceId: 'ind', stade: 'dechiffree' } },
     ] },
   }],
 });
@@ -33,16 +33,16 @@ const carte = () => ({ routes: [{ perils: [{ effects: [{ type: 'discreditClue', 
 
 const projet = () => ({ scenes: [scene(), { id: 'vide', label: 'Vide', entities: [], triggers: [] }], worldMap: carte(), narratif: narratif() });
 type Projet = ReturnType<typeof projet>;
-const effet = (p: Projet, i: number) => p.scenes[0].triggers[0].flow.steps[i].effect as Record<string, unknown>;
+const effet = (p: Projet, i: number) => p.scenes[0].triggers[0].flow.etapes[i].effet as Record<string, unknown>;
 
 describe('sitesDuProjet — chaque référence, à son chemin', () => {
   it('entité, Flow de scène, péripétie de carte et stade d’indice', () => {
     const sites = sitesDuProjet(projet()).map((s) => `${s.chemin.join('.')}:${s.cle}=${s.id}`);
     expect(sites).toEqual(expect.arrayContaining([
       'scenes.0.entities.0:presetId=pnj',
-      'scenes.0.triggers.0.flow.steps.0.effect:documentId=doc',
-      'scenes.0.triggers.0.flow.steps.1.effect:indiceId=ind',
-      'scenes.0.triggers.0.flow.steps.1.effect:stade=dechiffree',
+      'scenes.0.triggers.0.flow.etapes.0.effet:documentId=doc',
+      'scenes.0.triggers.0.flow.etapes.1.effet:indiceId=ind',
+      'scenes.0.triggers.0.flow.etapes.1.effet:stade=dechiffree',
       'worldMap.routes.0.perils.0.effects.0:indiceId=ind',
       'narratif.indices.0:affaireId=aff',
       'narratif.indices.0.stades.0:documentId=doc',
@@ -59,7 +59,7 @@ describe('referencesA — qui désigne une entrée', () => {
 
   it('un stade : seul le site `stade` de CET indice', () => {
     const sites = referencesA(projet(), { registre: 'indices', id: 'ind', sous: 'dechiffree' });
-    expect(sites.map((s) => s.chemin.join('.'))).toEqual(['scenes.0.triggers.0.flow.steps.1.effect']);
+    expect(sites.map((s) => s.chemin.join('.'))).toEqual(['scenes.0.triggers.0.flow.etapes.1.effet']);
   });
 
   it('une entrée que rien ne désigne : aucun site', () => {
@@ -80,21 +80,21 @@ describe('renommeRef — le renommage propagé, PUR', () => {
 
   it('une valeur d’état renommée : la valeur posée (`poserEtat.valeur`) et comparée (`etat.value`) de CET état bougent, pas une homonyme', () => {
     const p = projet();
-    p.scenes[1].triggers = [{ id: 'u', when: { kind: 'etat', etat: 'issue', value: 'relache' }, flow: { kind: 'seq', steps: [
-      { kind: 'do', effect: { type: 'poserEtat', etat: 'issue', valeur: 'relache' } },
-      { kind: 'do', effect: { type: 'poserEtat', etat: 'autre', valeur: 'relache' } },
+    p.scenes[1].triggers = [{ id: 'u', when: { kind: 'etat', etat: 'issue', value: 'relache' }, flow: { kind: 'sequence', etapes: [
+      { kind: 'effet', effet: { type: 'poserEtat', etat: 'issue', valeur: 'relache' } },
+      { kind: 'effet', effet: { type: 'poserEtat', etat: 'autre', valeur: 'relache' } },
     ] } }] as never;
     expect(referencesA(p, { registre: 'etats', id: 'issue', sous: 'relache' }).map((x) => `${x.chemin.join('.')}:${x.cle}`))
-      .toEqual(['scenes.1.triggers.0.flow.steps.0.effect:valeur', 'scenes.1.triggers.0.when:value']);
+      .toEqual(['scenes.1.triggers.0.flow.etapes.0.effet:valeur', 'scenes.1.triggers.0.when:value']);
     const r = renommeRef(p, { registre: 'etats', id: 'issue', sous: 'relache' }, 'libere');
-    const t = (r.scenes[1].triggers as unknown as { when: unknown; flow: { steps: { effect: unknown }[] } }[])[0];
+    const t = (r.scenes[1].triggers as unknown as { when: unknown; flow: { etapes: { effet: unknown }[] } }[])[0];
     expect(t.when).toEqual({ kind: 'etat', etat: 'issue', value: 'libere' });
-    expect(t.flow.steps.map((x) => x.effect)).toEqual([{ type: 'poserEtat', etat: 'issue', valeur: 'libere' }, { type: 'poserEtat', etat: 'autre', valeur: 'relache' }]);
+    expect(t.flow.etapes.map((x) => x.effet)).toEqual([{ type: 'poserEtat', etat: 'issue', valeur: 'libere' }, { type: 'poserEtat', etat: 'autre', valeur: 'relache' }]);
   });
 
   it('un stade renommé : seul le `stade` de l’Effect bouge', () => {
     const r = renommeRef(projet(), { registre: 'indices', id: 'ind', sous: 'dechiffree' }, 'traduite');
-    expect(r.scenes[0].triggers[0].flow.steps[1].effect).toEqual({ type: 'revealClue', indiceId: 'ind', stade: 'traduite' });
+    expect(r.scenes[0].triggers[0].flow.etapes[1].effet).toEqual({ type: 'revealClue', indiceId: 'ind', stade: 'traduite' });
   });
 });
 
@@ -113,7 +113,7 @@ describe('fautes — la FK de la porte lit le MÊME visiteur', () => {
     p.scenes[0].entities[0].presetId = '';
     (p.narratif.indices[0].stades[0] as Record<string, unknown>).documentId = '';
     effet(p, 0).documentId = '';
-    expect(fautesDeSites(sitesDuProjet(p), narratif()).map((f) => f.chemin.join('.'))).toEqual(['scenes.0.triggers.0.flow.steps.0.effect.documentId']);
+    expect(fautesDeSites(sitesDuProjet(p), narratif()).map((f) => f.chemin.join('.'))).toEqual(['scenes.0.triggers.0.flow.etapes.0.effet.documentId']);
   });
 
   it('stade inconnu de son indice', () => {

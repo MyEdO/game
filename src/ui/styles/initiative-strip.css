@@ -159,10 +159,10 @@
   width: 5px;
   background: linear-gradient(180deg, var(--combat-enemy), var(--blood));
 }
-.is-cell:has(.ptile.team-ally)::before {
+.is-cell:has(.ptile.team-allie)::before {
   background: linear-gradient(180deg, var(--hud-camp-ally-hi), var(--hud-camp-ally-lo));
 }
-.is-cell:not(:has(.ptile.team-ally, .ptile.team-enemy))::before {
+.is-cell:not(:has(.ptile.team-allie, .ptile.team-ennemi))::before {
   display: none;
 }
 /* UN SEUL traitement « au trait » dans la frise : le liseré doré de la vignette active. Le survol

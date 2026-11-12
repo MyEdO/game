@@ -11,7 +11,7 @@
  */
 import {
   ACTIONS, avecSigne, batailleEnVue, fenetreDuJeu, carteEnVue, cleDuGeste, dayIndex, formatImperial, formatJourImperial, marchandEnVue, marcheEnVue, voyageEnVue, VERBE_DE_CHOIX, type AxeDuChoix, type FenetreAChoix, conditionLabel, conversationEnVue, difficultyText, documentEnVue, lieuEnVue, formatMoney, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDuSoin, ficheDuPorteur, gestesDeLObjet, interludeEnVue, jetsEnVue, porteurParId, recitEnVue, reposEnVue, toneOf,
-  type CombatEvent, type EntreeDeLaFiche, type LieuDuPlan, type PlanDeLaCarte, type FicheDuPorteur, type GesteAChoix, type GesteDuNoyau, type GesteFermable, type FenetreDAttaque, type FenetreDIncantation, type Jeu, type JetEnVue, type LigneDeJet, type LigneDuJournal, type ModLine, type RollBreakdown, type TrajetEnVue,
+  type CombatEvent, type Equipe, type EntreeDeLaFiche, type LieuDuPlan, type PlanDeLaCarte, type FicheDuPorteur, type GesteAChoix, type GesteDuNoyau, type GesteFermable, type FenetreDAttaque, type FenetreDIncantation, type Jeu, type JetEnVue, type LigneDeJet, type LigneDuJournal, type ModLine, type RollBreakdown, type TrajetEnVue,
 } from '../noyau/index';
 import { pluriel, t } from '../i18n';
 import { garanti } from '../lib/garanti';
@@ -374,16 +374,17 @@ function trajetsDeLaCarte(etat: Jeu): Element[] {
   ];
 }
 
-/** L'écran du lieu (`lieuEnVue`), dont le nom est le titre de la fenêtre : le plan de la carte vu d'ici (`lieu/plan`,
- *  `planDeLaCarte`, rien sous ses lieux) et le bouton qui ouvre la carte (`lieu/carte`) ; sous leur titre
- *  (`lieu/services`), chacun de ses services en entité, son fond (`fond`), son icône (`icone`), le boniment de son hôte
- *  (`accueil`) et ce qu'on y fait en boutons fermés avec leur raison, chacun des points d'intérêt de son plan et son
+/** L'écran du lieu (`lieuEnVue`), dont le nom est le titre de la fenêtre : sa description (`lieu/description`),
+ *  quand il en a une ; le plan de la carte vu d'ici (`lieu/plan`, `planDeLaCarte`, rien sous ses lieux) et le bouton
+ *  qui ouvre la carte (`lieu/carte`) ; sous leur titre (`lieu/services`), chacun de ses services en entité, son fond
+ *  (`fond`), son icône (`icone`), le boniment de son hôte (`accueil`) et ce qu'on y fait en boutons fermés avec leur raison, chacun des points d'intérêt de son plan et son
  *  entrée ; puis, sous leur titre (`lieu/trajets`), chaque trajet qui en part, sa destination et son départ
  *  (`departDuTrajet`). */
 function ecranDuLieu(etat: Jeu): Element[] {
   const l = lieuEnVue(etat);
   if (!l) return [];
   return [
+    ...(l.prose ? [ligne('lieu/description', l.prose)] : []),
     planDeLaCarte('lieu/plan', l.plan, () => []),
     boutonDeGeste('lieu/carte', l.carte.libelle, l.carte.geste, l.carte.refus),
     ...(l.services.length || l.pointsDInteret.length ? [ligne('lieu/services', t('ecran.lieu.services'))] : []),
@@ -454,7 +455,7 @@ function herosDeLInterlude(etat: Jeu): Element[] {
 }
 
 /** Le ton de l'issue d'une bataille, par le camp qui l'emporte. */
-const TON_DE_L_ISSUE = { ally: 'reussite', enemy: 'echec' } as const satisfies Record<'ally' | 'enemy', Ton>;
+const TON_DE_L_ISSUE = { allie: 'reussite', ennemi: 'echec' } as const satisfies Record<Equipe, Ton>;
 
 /** La bataille de masse ouverte (`batailleEnVue`) : son Round, chaque armée en entité, sa Puissance en jauge et le bonus
  *  de ses Tests ce Round, son terrain et sa Menace, puis chaque Scène en entité, son effet (sa description au détail),
