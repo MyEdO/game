@@ -80,7 +80,7 @@ describe('Régime RAPIDE — la règle optionnelle, DISTINCTE de l’ouverture d
     for (const entree of TAVERN_GAMES) {
       const jeu = findTavernGameById(entree.id)!;
       for (const cle of Object.keys(jeu)) if (!BLANCHE.has(cle)) fuites.push(`${entree.id}.${cle}`);
-      expect(jeu.mode, `${entree.id} : un Test opposé, rien d’autre`).toBe('opposed');
+      expect(jeu.mode, `${entree.id} : un Test opposé, rien d’autre`).toBe('oppose');
       // Aucune famille ne peut s'armer : les paramètres de séquence sont VIDES pour tout jeu.
       expect(tavernParams(jeu, 3), `${entree.id} : aucun paramètre de famille`).toEqual({});
     }

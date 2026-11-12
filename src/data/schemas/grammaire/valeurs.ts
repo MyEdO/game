@@ -107,6 +107,9 @@ export const amateurSchema = enumNomme({
  */
 export const mutationKindSchema = enumNomme({ physique: 'Physique', mentale: 'Mentale' });
 
+/** Le genre d'une arme, d'un Groupe d'arme ou d'une attaque : corps à corps ou à distance (LDB 62). */
+export const genreDArmeSchema = enumNomme({ melee: 'Corps à corps', distance: 'À distance' });
+
 /** Les rôles d'animation d'ambiance d'une entité de scène. */
 export const roleAmbiantSchema = enumNomme({ repas: 'Se nourrit', priere: 'Prie', tapi: 'Se recroqueville', debout: 'Se tient debout', hurlement: 'Hurle' });
 export type RoleAmbiant = z.infer<typeof roleAmbiantSchema>;

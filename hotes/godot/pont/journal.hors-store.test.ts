@@ -8,7 +8,7 @@ import type { Bouton, Ligne } from '../../../src/hote/elements';
 import type { Pont, Suite } from './pont';
 
 let ouvert: Pont | null = null;
-afterEach(() => { ouvert?.fermer(); ouvert = null; });
+afterEach(() => { ouvert?.appeler('quitter'); ouvert = null; });
 
 describe('le journal daté par le pont', () => {
   it('le voyage écrit ses jours, chacun sa date en tête, dans l’ordre', () => {

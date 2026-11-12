@@ -69,7 +69,7 @@ export function gestesDeLObjet(s: Pick<Jeu, 'battle' | 'party' | 'possessions' |
     ...s.party.filter((h) => h.id !== porteurId).map((h): Carrier => ({ kind: 'hero', hero: h })),
     ...s.possessions.filter((p) => p.uid !== porteurId && !p.destroyed).map((p): Carrier => ({ kind: 'possession', possession: p })),
   ].filter((c) => carriersColocated(ici, porteurLocalise(c)));
-  const set = hero && (it.kind === 'melee' || it.kind === 'ranged') ? ((hero.loadouts ?? []).find((l) => l.id === hero.activeLoadoutId) ?? hero.loadouts?.[0]) : undefined;
+  const set = hero && (it.kind === 'melee' || it.kind === 'distance') ? ((hero.loadouts ?? []).find((l) => l.id === hero.activeLoadoutId) ?? hero.loadouts?.[0]) : undefined;
   const main = (slot: Main): MainDuSet => {
     const tenue = set![slot] === uid;
     const vise = tenue ? null : uid;

@@ -57,7 +57,7 @@ describe('Bonus de Force en Frénésie (LDB 21 l.33)', () => {
   it('dégâts appliqués : +1 Blessure en Frénésie au même jet', () => {
     const coup = (fr: boolean) => {
       const { c, w } = heros(fr, 'arme-simple');
-      return resolveMelee(c, combattantDeTest({ id: 't', pos: { x: 1, y: 0 } }), w, deFixe(12), { defense: 'none' });
+      return resolveMelee(c, combattantDeTest({ id: 't', pos: { x: 1, y: 0 } }), w, deFixe(12), { defense: 'aucune' });
     };
     const fr = coup(true), no = coup(false);
     expect(fr.hit && no.hit).toBe(true);
@@ -157,7 +157,7 @@ describe('Arme naturelle dont l’Indice inclut le BF : la part passive s’y aj
 
   it('Arme +8 et Morsure +7 : +1 Blessure appliquée en Frénésie au même jet', () => {
     for (const arme of [(fr: boolean) => creature(fr).arme, () => gratuite('morsure')]) {
-      const coup = (fr: boolean) => resolveMelee(creature(fr).c, cible(), arme(fr), deFixe(12), { defense: 'none' });
+      const coup = (fr: boolean) => resolveMelee(creature(fr).c, cible(), arme(fr), deFixe(12), { defense: 'aucune' });
       const fr = coup(true), no = coup(false);
       expect(fr.hit && no.hit).toBe(true);
       expect((fr.damage ?? 0) - (no.damage ?? 0)).toBe(1);

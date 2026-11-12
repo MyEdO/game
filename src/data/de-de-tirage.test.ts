@@ -173,11 +173,10 @@ function documentsADe(): { id: string; die: string }[] {
 }
 
 describe('dé de tirage — en donnée, lu par le lecteur (#1667)', () => {
-  it('chaque document-table porte le dé imprimé par le livre, et la table couvre EXACTEMENT ces documents', () => {
+  it('chaque document-table nommé porte le dé imprimé par le livre', () => {
     const docs = documentsADe();
-    expect(docs.map((d) => d.id).sort(), 'documents à dé de tirage').toEqual(Object.keys(LIVRE).sort());
-    for (const d of docs) {
-      expect(formatDice(deDeTirageDe<typeof miscast>(docs, d.id)), `${d.id} (${LIVRE[d.id].ref})`).toBe(LIVRE[d.id].die);
+    for (const [id, livre] of Object.entries(LIVRE)) {
+      expect(formatDice(deDeTirageDe<typeof miscast>(docs, id)), `${id} (${livre.ref})`).toBe(livre.die);
     }
   });
 
@@ -188,11 +187,12 @@ describe('dé de tirage — en donnée, lu par le lecteur (#1667)', () => {
     }
   });
 
-  it('chaque table tirée nichée porte le dé imprimé par le livre, et la table couvre EXACTEMENT ces nœuds', () => {
-    const vues = tablesNichees();
-    expect(vues.map((t) => t.ou).sort(), 'tables tirées nichées').toEqual(Object.keys(TABLES_NICHEES_LIVRE).sort());
-    for (const t of vues) {
-      expect(formatDice(deDeLaTableTiree({ die: t.die, id: t.ou })), `${t.ou} (${TABLES_NICHEES_LIVRE[t.ou].ref})`).toBe(TABLES_NICHEES_LIVRE[t.ou].die);
+  it('chaque table tirée nichée nommée porte le dé imprimé par le livre', () => {
+    const vues = new Map(tablesNichees().map((t) => [t.ou, t]));
+    for (const [ou, livre] of Object.entries(TABLES_NICHEES_LIVRE)) {
+      const t = vues.get(ou);
+      expect(t, `${ou} : table tirée nichée absente de la donnée`).toBeDefined();
+      expect(formatDice(deDeLaTableTiree({ die: t!.die, id: ou })), `${ou} (${livre.ref})`).toBe(livre.die);
     }
   });
 

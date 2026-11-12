@@ -251,7 +251,7 @@ export interface PendingReload {
   weaponUid: string; // arme de rechargement (loadout) — résolue en NOM à l'affichage
   reload: number; // Indice DR cible
   progressBefore: number; // DR déjà cumulés (Test étendu)
-  skillValue: number; // combatValue(active, 'ranged')
+  skillValue: number; // combatValue(active, 'distance')
   difficulty: Difficulty; // 'intermediaire' (le canon ne spécifie pas → défaut)
   /** Ligne du jet montée à l'ouverture (`rollLine`, arme bakée et Soutien compris) — lue par la fenêtre. */
   ligne: RollLineParts;
@@ -1775,7 +1775,7 @@ export interface CascadeStepMeta {
   flowLabel?: string;
   flowSl?: number;
   /** Coût d'Avantage d'une étape `choixDeclenche` (dépensé sur OUI si payable) — absent = gratuit. */
-  choiceCost?: number;
+  coutEnAvantage?: number;
   /** Trait psy qu'acquiert le porteur d'une étape `cibleAcquise` (ADE II 09 l.9, l.15), envers la Cible choisie
    *  (`noyau/cibleAcquise.ts`). */
   psychAcquis?: TypeAcquis;

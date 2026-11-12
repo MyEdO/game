@@ -486,7 +486,7 @@ export function spawnEnemy(
   // Arme à distance CHARGÉE au spawn (miroir du héros dans lancerLeCombat) — LDB 62 l.335 : le `loaded` ne gate
   // que les armes à Recharge, un tireur fraîchement engagé peut donc tirer au 1er Round (pas de recharge à vide).
   // Couture UNIQUE : le coup porte SA munition dès le spawn (aucune capture posée ailleurs).
-  const spawnRanged = c.weapons.find((w) => w.type === 'ranged');
+  const spawnRanged = c.weapons.find((w) => w.type === 'distance');
   if (spawnRanged) loadWeapon(c, spawnRanged);
   return structuredClone(c); // #2097
 }

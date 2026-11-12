@@ -71,10 +71,10 @@ type Case = { x: number; y: number; z?: number };
 /** La charge d'`ANIM_ATTACK` : un coup d'arme (l'arme EMPLOYÉE, et celle qui a paré), la touche d'un Projectile ou
  *  l'incantation d'un sort sans projectile (le sort par son id), ou l'attaque spéciale d'une créature, sur elle-même. */
 export type ChargeDAttaque =
-  | { kind: 'melee' | 'ranged'; from: string; to: string; result: AttackResult; defense: 'parade' | 'esquive' | 'none'; weapon: Weapon; parryWeapon?: Weapon; creatureAttack?: string }
-  | { kind: 'spell'; projectile: true; from: string; to: string; result: CastResult & Partial<MissileResult>; spell: string; defense: 'none' }
-  | { kind: 'spell'; projectile: false; from: string; to: string; result: CastResult; spell: string; defense: 'none' }
-  | { kind: 'creature'; from: string; to: string; result: { hit: true }; creatureAttack: AttackKind; defense: 'none' };
+  | { kind: 'melee' | 'distance'; from: string; to: string; result: AttackResult; defense: 'parade' | 'esquive' | 'aucune'; weapon: Weapon; parryWeapon?: Weapon; creatureAttack?: string }
+  | { kind: 'spell'; projectile: true; from: string; to: string; result: CastResult & Partial<MissileResult>; spell: string; defense: 'aucune' }
+  | { kind: 'spell'; projectile: false; from: string; to: string; result: CastResult; spell: string; defense: 'aucune' }
+  | { kind: 'creature'; from: string; to: string; result: { hit: true }; creatureAttack: AttackKind; defense: 'aucune' };
 
 /** La charge d'`ANIM_AOE` (#3783) : la zone d'effet que `de` pose sur `tiles` autour de `centre`, celle du sort d'id
  *  `sort`, ou celle de la manœuvre de rendu `rendu` ; ni l'un ni l'autre pour une zone qu'un déclencheur pose hors d'un

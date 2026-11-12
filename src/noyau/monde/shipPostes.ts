@@ -119,7 +119,7 @@ export function servingCrewPresent(chef: Combatant, combatants: Combatant[]): nu
   if (!poste.item.weaponGroup) return apt.length;
   const engine = mannedPosteWeapon(chef, poste);
   if (!engine) return apt.length;
-  return apt.filter((c) => hasWeaponGroupSkill(c, engine, 'ranged')).length;
+  return apt.filter((c) => hasWeaponGroupSkill(c, engine, 'distance')).length;
 }
 
 /** Un combattant qui SERVIRAIT `poste` (en deviendrait chef) possède-t-il la Compétence Projectiles APPROPRIÉE
@@ -130,7 +130,7 @@ export function servingCrewPresent(chef: Combatant, combatants: Combatant[]): nu
 export function isCrewQualified(actor: Combatant, poste: ShipPoste): boolean {
   if (!poste.item.weaponGroup) return true;
   const engine = mannedPosteWeapon(actor, poste);
-  return !engine || hasWeaponGroupSkill(actor, engine, 'ranged');
+  return !engine || hasWeaponGroupSkill(actor, engine, 'distance');
 }
 
 /** Répartition de l'équipage APTE (vivant + conscient) d'un poste pour l'AFFICHAGE (tooltip d'équipe) :
@@ -148,7 +148,7 @@ export function posteCrewSplit(poste: ShipPoste, combatants: Combatant[]): { qua
   const engine = chef ? mannedPosteWeapon(chef, poste) : undefined;
   if (!engine) return { qualified: apt, aides: [] };
   const qualified: Combatant[] = [], aides: Combatant[] = [];
-  for (const c of apt) (hasWeaponGroupSkill(c, engine, 'ranged') ? qualified : aides).push(c);
+  for (const c of apt) (hasWeaponGroupSkill(c, engine, 'distance') ? qualified : aides).push(c);
   return { qualified, aides };
 }
 

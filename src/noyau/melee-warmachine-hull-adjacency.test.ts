@@ -14,7 +14,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTes
  * Les pièces à DISTANCE (baliste/canon) gardent la géométrie du chef — inchangé.
  */
 const ramWeapon = { uid: 'ram-w', trappingId: 'belier-test', name: 'Bélier', kind: 'melee' as const, damage: { plusBF: true, flat: 10 }, qualities: [{ id: 'equipe', value: 6 }], weaponGroup: 'machine-de-guerre' };
-const cannonWeapon = { uid: 'cannon-w', trappingId: 'canon-test', name: 'Canon', kind: 'ranged' as const, damage: { plusBF: false, flat: 14 }, range: 75, qualities: [{ id: 'equipe', value: 6 }], weaponGroup: 'poudre-noire' };
+const cannonWeapon = { uid: 'cannon-w', trappingId: 'canon-test', name: 'Canon', kind: 'distance' as const, damage: { plusBF: false, flat: 14 }, range: 75, qualities: [{ id: 'equipe', value: 6 }], weaponGroup: 'poudre-noire' };
 
 const ramPoste: ShipPoste = { item: ramWeapon as never, crewIds: ['chef'] };
 const cannonPoste: ShipPoste = { item: cannonWeapon as never, crewIds: ['chef'] };
@@ -71,7 +71,7 @@ describe('#210 — adjacence d\'une pièce de MÊLÉE servie = celle de la COQUE
   it('(d) non-régression PIÈCE À DISTANCE (canon/baliste) : géométrie du CHEF inchangée', () => {
     const chef = combatant({ id: 'chef', pos: { x: 4, y: 0 }, mannedPoste: cannonPoste } as never);
     const far = hull({ x: 0, y: 0 }, cannonPoste); // coque du canon très loin — ne doit RIEN changer
-    expect(isMeleeWarMachine({ type: 'ranged', qualities: cannonWeapon.qualities })).toBe(false);
+    expect(isMeleeWarMachine({ type: 'distance', qualities: cannonWeapon.qualities })).toBe(false);
     expect(meleeWarMachineHullOf(chef, [chef, far])).toBeUndefined();
     expect(combatGeomOf({ combatants: [chef, far] } as never, chef)).toBe(chef);
     expect(combatGeomOfList([chef, far], chef)).toBe(chef);
@@ -117,7 +117,7 @@ describe('pickAttackWeaponList — auto-choix EXCLUT toujours l\'arme du poste s
   it('non-régression ARTILLERIE À DISTANCE (canon servi) : auto-choix (sans weaponUid) prend l\'arme PERSONNELLE (abordage), jamais le canon', () => {
     const target = combatant({ id: 'foe', pos: { x: 1, y: 0 } } as never); // au contact (mêlée personnelle possible)
     const cannonPoste2: ShipPoste = { item: cannonWeapon as never, crewIds: ['gunner'] };
-    const gunner = combatant({ id: 'gunner', pos: { x: 0, y: 0 }, mannedPoste: cannonPoste2, weapons: [dagger, { ...cannonWeapon, type: 'ranged' as const }] } as never);
+    const gunner = combatant({ id: 'gunner', pos: { x: 0, y: 0 }, mannedPoste: cannonPoste2, weapons: [dagger, { ...cannonWeapon, type: 'distance' as const }] } as never);
     const w = pickAttackWeaponList([gunner, target], gunner, target);
     expect(w.uid).not.toBe(cannonWeapon.uid);
     expect(w.uid).toBe(dagger.uid);

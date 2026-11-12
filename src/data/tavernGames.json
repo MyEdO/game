@@ -62,7 +62,7 @@
       "spec": "guerre"
     },
     "characteristic": "intelligence",
-    "mode": "opposed",
+    "mode": "oppose",
     "options": [
       {
         "test": {
@@ -110,7 +110,7 @@
     "type": "tavernGames",
     "label": "Le bras de fer",
     "characteristic": "force",
-    "mode": "extended",
+    "mode": "etendu",
     "target": 10,
     "drBonus": "force",
     "avantage": true,
@@ -148,7 +148,7 @@
       "id": "projectiles"
     },
     "characteristic": "capacite-de-tir",
-    "mode": "opposed",
+    "mode": "oppose",
     "drBonus": "capacite-de-tir",
     "roundShape": "volley",
     "volley": {
@@ -219,7 +219,7 @@
       "id": "projectiles",
       "spec": "lancer"
     },
-    "mode": "opposed",
+    "mode": "oppose",
     "drCap": 6,
     "tieBreak": "nul",
     "campScore": "max",
@@ -243,7 +243,7 @@
       "id": "pari"
     },
     "characteristic": "initiative",
-    "mode": "opposed",
+    "mode": "oppose",
     "difficulty": "accessible",
     "combined": {
       "second": {
@@ -276,7 +276,7 @@
       "id": "projectiles",
       "spec": "lancer"
     },
-    "mode": "opposed",
+    "mode": "oppose",
     "roundShape": "volley",
     "volley": {
       "throws": 3,
@@ -307,7 +307,7 @@
     "skill": {
       "id": "pari"
     },
-    "mode": "opposed",
+    "mode": "oppose",
     "difficulty": "accessible",
     "tieBreak": "units-lowest",
     "desc": "pour jouer, chaque joueur effectue un Test opposé de **Pari Accessible (+20)**. En cas d'égalité, les joueurs comparent le résultat de leur dé d'unités pour ce Test. Celui qui a le nombre le plus bas gagne.",
@@ -324,7 +324,7 @@
       "id": "projectiles",
       "spec": "lancer"
     },
-    "mode": "opposed",
+    "mode": "oppose",
     "team": {
       "size": 12
     },
@@ -387,7 +387,7 @@
       "id": "corps-a-corps",
       "spec": "bagarre"
     },
-    "mode": "opposed",
+    "mode": "oppose",
     "team": {
       "size": 11
     },
@@ -441,7 +441,7 @@
       "id": "projectiles",
       "spec": "lancer"
     },
-    "mode": "opposed",
+    "mode": "oppose",
     "roundShape": "volley",
     "volley": {
       "throws": 5,
@@ -512,7 +512,7 @@
     "type": "tavernGames",
     "label": "Les moulins",
     "characteristic": "intelligence",
-    "mode": "extended",
+    "mode": "etendu",
     "difficulty": "facile",
     "target": 9,
     "drBonus": "intelligence",
@@ -527,7 +527,7 @@
     "type": "tavernGames",
     "label": "Les pierres",
     "characteristic": "intelligence",
-    "mode": "extended",
+    "mode": "etendu",
     "difficulty": "accessible",
     "target": 10,
     "phases": {
