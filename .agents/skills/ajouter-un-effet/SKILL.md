@@ -33,7 +33,7 @@ Contrat : `hotes/godot/pont/CONTRAT.md`, sections « Effets », « Musique » et
   [--filtre <filtres ffmpeg>] [--debut <s>] [--duree <s>]` le convertit en Ogg Vorbis mono 44,1 kHz, le dépose sous
   `hotes/godot/projet/sons/` (ignoré par git) et l'inscrit à `provenance.json` ; elle refuse une autre licence ou un nom
   déjà épinglé. Plusieurs variantes d'un même son : `souffle-1.ogg`, `souffle-2.ogg`…
-- Sa définition sous `src/data/sons/defs/<id>.ts` (`files` : ses variantes, `volume`), puis `npm run gen`.
+- Sa définition sous `src/data/sons/defs/<id>.ts` (`files` : ses variantes, `volume`, `canal` : `ambiance` pour une boucle d'ambiance, `interface` pour un son d'interface, absent pour un effet ; une `music` joue sur `musique`), puis `npm run gen`.
 - Le verser à la Release `modeles-3d` : branche `transfert/<x>` partie de `main`, fichiers ajoutés par `git add -f` ;
   `.github/workflows/transfert.yml` vérifie les empreintes, verse sans écraser et supprime la branche.
 
