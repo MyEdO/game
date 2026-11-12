@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { fileURLToPath } from 'node:url';
 import { effectTables, findEffectTableById, domains, findTalentById } from './index';
 import { computeObtainability } from '../../scripts/data/lib/obtainabilityGraph';
+import { deDeLaTableTiree, facesDuDe } from '../engine/tables';
 
 /**
  * Les 8 tables « MARQUES ARCANIQUES DE <VENT> » (1d10, une par Domaine de Couleur) — `VDM 04 l.156`,
@@ -29,10 +30,10 @@ describe('Marques Arcaniques (VDM) — 8 tables d10, une par Domaine de Couleur'
     }
   });
 
-  it('chaque table : 1d10, 10 rangées 1→10 contiguës, source VDM avec folio', () => {
+  it('chaque table : 1d10, une rangée par face, contiguës depuis 1, source VDM avec folio', () => {
     for (const t of marques) {
       expect(t.die).toBe('d10');
-      expect(t.entries).toHaveLength(10);
+      expect(t.entries).toHaveLength(facesDuDe(deDeLaTableTiree(t)));
       t.entries.forEach((r, i) => {
         expect(r.min, `${t.id} rangée ${i + 1}`).toBe(i + 1);
         expect(r.max, `${t.id} rangée ${i + 1}`).toBe(i + 1);

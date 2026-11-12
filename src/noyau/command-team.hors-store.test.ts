@@ -33,7 +33,7 @@ const CHARS = (over: Partial<Record<string, number>> = {}) =>
 /** Commandant (héros) — porte le Talent + une Compétence de Commandement (Soc). */
 const mkCommander = (id: string, pos: { x: number; y: number }, over: Partial<Record<string, number>> = {}, withTalent = true): Combatant =>
   combattantDeTest({
-    id, label: id, kind: 'hero', characteristics: CHARS(over),
+    id, label: id, kind: 'heros', characteristics: CHARS(over),
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], weapons: [],
     skills: [{ id: 'commandement', characteristic: 'sociabilite', advances: 30 }],
     talents: withTalent ? [{ talentId: 'commandant-d-equipe', times: 1 }] : [],
@@ -43,19 +43,19 @@ const mkCommander = (id: string, pos: { x: number; y: number }, over: Partial<Re
 /** Chef de pièce (héros) servant une Arme d'équipe (baliste : `arme-d-equipe`). */
 const mkChief = (id: string, pos: { x: number; y: number }, over: Partial<Record<string, number>> = {}): Combatant =>
   combattantDeTest({
-    id, label: id, kind: 'hero', characteristics: CHARS(over),
+    id, label: id, kind: 'heros', characteristics: CHARS(over),
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], skills: [], talents: [], weapons: [],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, pos,
   });
 
 const mkEnemy = (id: string, x: number, y: number): Combatant =>
-  combattantDeTest({ id, label: id, kind: 'enemy', pos: { x, y }, conditions: [], weapons: [], skills: [], talents: [],
+  combattantDeTest({ id, label: id, kind: 'ennemi', pos: { x, y }, conditions: [], weapons: [], skills: [], talents: [],
     characteristics: CHARS({ 'capacite-de-tir': 0 }), wounds: blessuresDeBase(60), advantage: 0,
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 } });
 
 /** Emplacement portant la baliste, servie par le chef `crewIds[0]`. */
 const mkEmplacement = (poste: ShipPoste, pos = { x: 7, y: 7 }): Combatant =>
-  combattantDeTest({ id: 'emplacement', label: 'Affût', kind: 'hero', pos, conditions: [], weapons: [], skills: [], talents: [],
+  combattantDeTest({ id: 'emplacement', label: 'Affût', kind: 'heros', pos, conditions: [], weapons: [], skills: [], talents: [],
     wounds: blessuresDeBase(30), advantage: 0, postes: [poste] });
 
 const mkPoste = (engineId: string, crewIds: string[]): ShipPoste =>

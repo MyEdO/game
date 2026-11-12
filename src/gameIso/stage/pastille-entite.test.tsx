@@ -46,7 +46,7 @@ const CHARS = {
 
 const hero = (id: string, pos: { x: number; y: number }, over: Partial<Combatant> = {}): Combatant =>
   combattantDeTest({
-    id, label: id, kind: 'hero', pos, size: 'moyenne', characteristics: CHARS,
+    id, label: id, kind: 'heros', pos, size: 'moyenne', characteristics: CHARS,
     wounds: blessuresDeBase(12), items: [], weapons: [unarmedWeapon()], ...over, // invariant mains nues (`assertAttackWeapon`)
   });
 
@@ -143,7 +143,7 @@ function svgTémoin(el: HTMLElement): { svg: SVGSVGElement; capture: ReturnType<
 const mkPoste = (engineId: string, crewIds: string[]): ShipPoste => ({ item: itemFromTrappingById(engineId, idsDeTest)!, crewIds });
 
 const mkHull = (postes: ShipPoste[], pos = { x: 4, y: 3 }): Combatant =>
-  combattantDeTest({ id: 'hull', label: 'Bélier', kind: 'enemy', pos, inert: true, wounds: blessuresDeBase(0), postes });
+  combattantDeTest({ id: 'hull', label: 'Bélier', kind: 'ennemi', pos, inert: true, wounds: blessuresDeBase(0), postes });
 
 /** Une scène portant un TAS d'objets ramassables adjacent au héros. */
 function sceneAvecTas(nb: number): Scene {
@@ -299,8 +299,8 @@ describe('Pastille d’entité — le geste vit sur ce qui l’offre (#1411 P2-C
   it('POUSSER : la pastille naît de la pièce SERVIE, arme le mode, et le re-clic le désarme (gratuit)', () => {
     const poste = mkPoste('belier-ade2', ['h1', 's1', 's2']);
     const h = hero('h1', { x: 4, y: 4 }, { mannedPoste: poste } as Partial<Combatant>);
-    const s1 = hero('s1', { x: 5, y: 4 }, { kind: 'npc' } as Partial<Combatant>);
-    const s2 = hero('s2', { x: 3, y: 4 }, { kind: 'npc' } as Partial<Combatant>);
+    const s1 = hero('s1', { x: 5, y: 4 }, { kind: 'pnj' } as Partial<Combatant>);
+    const s2 = hero('s2', { x: 3, y: 4 }, { kind: 'pnj' } as Partial<Combatant>);
     const hull = mkHull([poste], { x: 4, y: 3 });
     const el = monter({ party: [h], battle: combat([h, hull, s1, s2]) });
     const btn = boutonDe(el, 'hull')!;
@@ -348,8 +348,8 @@ describe('Pastille d’entité — le geste vit sur ce qui l’offre (#1411 P2-C
     // faisait mentir ce coût déclaré — et rendait le clic MUET.
     const poste = mkPoste('belier-ade2', ['h1', 's1', 's2']);
     const h = hero('h1', { x: 4, y: 4 }, { mannedPoste: poste, conditions: [{ id: 'sonne', stacks: 1 }] } as unknown as Partial<Combatant>);
-    const s1 = hero('s1', { x: 5, y: 4 }, { kind: 'npc' } as Partial<Combatant>);
-    const s2 = hero('s2', { x: 3, y: 4 }, { kind: 'npc' } as Partial<Combatant>);
+    const s1 = hero('s1', { x: 5, y: 4 }, { kind: 'pnj' } as Partial<Combatant>);
+    const s2 = hero('s2', { x: 3, y: 4 }, { kind: 'pnj' } as Partial<Combatant>);
     const hull = mkHull([poste], { x: 4, y: 3 });
     const el = monter({ party: [h], battle: combat([h, hull, s1, s2]) });
     const btn = boutonDe(el, 'hull')!;
@@ -363,8 +363,8 @@ describe('Pastille d’entité — le geste vit sur ce qui l’offre (#1411 P2-C
     // au point du geste, au lieu de laisser le dispatcher rendre en silence.
     const poste = mkPoste('belier-ade2', ['h1', 's1', 's2']);
     const h = hero('h1', { x: 4, y: 4 }, { mannedPoste: poste, conditions: [{ id: 'inconscient', stacks: 1 }] } as unknown as Partial<Combatant>);
-    const s1 = hero('s1', { x: 5, y: 4 }, { kind: 'npc' } as Partial<Combatant>);
-    const s2 = hero('s2', { x: 3, y: 4 }, { kind: 'npc' } as Partial<Combatant>);
+    const s1 = hero('s1', { x: 5, y: 4 }, { kind: 'pnj' } as Partial<Combatant>);
+    const s2 = hero('s2', { x: 3, y: 4 }, { kind: 'pnj' } as Partial<Combatant>);
     const hull = mkHull([poste], { x: 4, y: 3 });
     // Un SECOND héros debout : sans lui, le groupe entier serait hors d'action et le combat se
     // terminerait (défaite) avant qu'aucune affordance ne se peigne — ce n'est pas ce qu'on mesure.
@@ -537,7 +537,7 @@ describe('Pastille d’entité — le REGISTRE est la surface (aucun id d’acti
 
   it('une entrée FABRIQUÉE reçoit sa pastille, avec son libellé et son coût, sans code', () => {
     const h = hero('h1', { x: 3, y: 3 });
-    const cible = hero('cible', { x: 4, y: 3 }, { kind: 'enemy' } as Partial<Combatant>);
+    const cible = hero('cible', { x: 4, y: 3 }, { kind: 'ennemi' } as Partial<Combatant>);
     const el = monter({ party: [h], battle: combat([h, cible]) });
     const btn = boutonDe(el, 'cible');
     expect(btn, 'l’entité désignée par le registre porte la pastille').toBeTruthy();

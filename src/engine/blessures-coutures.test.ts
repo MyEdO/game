@@ -18,7 +18,7 @@ import { blessuresPosees, blessuresReconciliees } from './characteristics';
 const PLUS_3: OpPassive[] = [{ op: 'attrMod', attr: 'wounds', mod: 3 }];
 
 /** Profil à 30 partout : B = 3 + 2×3 + 3 = 12 ; blessé de 2. */
-const blesse = (): Combatant => blesseDeTest(10, { kind: 'hero' });
+const blesse = (): Combatant => blesseDeTest(10, { kind: 'heros' });
 
 const effet = (over: Partial<ActiveEffect>): ActiveEffect => ({ label: 'Effet de test', bonus: 0, duration: { scale: 'permanent' }, ...over });
 
@@ -81,7 +81,7 @@ describe('`applyActiveEffect` et `removeActiveEffects`', () => {
 
 describe('le maximum suit le profil courant : Talent, Caractéristique, Trait (LDB 05 l.1001, LDB 85)', () => {
   /** E 35 (BE 3) : B = 3 + 2×3 + 3 = 12, à 12/12. */
-  const heros = (): Combatant => combattantDeTest({ kind: 'hero', characteristics: { endurance: 35 } });
+  const heros = (): Combatant => combattantDeTest({ kind: 'heros', characteristics: { endurance: 35 } });
 
   it('Talent acquis par une op (`grantTalent` Très résistant, E 35 → 40) : 12 → 14, le courant suit', () => {
     const c = heros();
@@ -120,7 +120,7 @@ describe('la part perdue sous 0 s’éteint dès que le courant remonte au-dessu
   };
 
   it('transformation −6 : 0/6, soigné à 2, frappé à 0, sa fin rend 6/12 et non 1/12', () => {
-    const c = blesseDeTest(1, { kind: 'hero' });
+    const c = blesseDeTest(1, { kind: 'heros' });
     applyActiveEffect(c, effet({ attrMods: { wounds: -6 } }));
     expect(c.wounds).toEqual({ current: 0, max: 6, ecart: 0, perduesSousZero: 5 });
     soigneEtFrappe(c);
@@ -129,7 +129,7 @@ describe('la part perdue sous 0 s’éteint dès que le courant remonte au-dessu
   });
 
   it('effet E −20 (BE 1) : 0/8, soigné à 2, frappé à 0, son expiration en fin de Round rend 4/12', () => {
-    const c = blesseDeTest(1, { kind: 'hero' });
+    const c = blesseDeTest(1, { kind: 'heros' });
     applyActiveEffect(c, effet({ characteristic: 'endurance', bonus: -20, duration: { scale: 'rounds', left: 1 } }));
     expect(c.wounds).toEqual({ current: 0, max: 8, ecart: 0, perduesSousZero: 3 });
     soigneEtFrappe(c);

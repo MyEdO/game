@@ -32,7 +32,7 @@ describe('#38 (d) — gate AA du jet de mort par Hémorragique (AA 07 l.7)', () 
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+    const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
     const E = enemies[0];
     enemies.slice(1).forEach((e) => (e.dead = true)); // une seule source vivante → RNG déterministe
     E.wounds = blessuresDeBase(20, 20, E); // marge : les dégâts d'Hémorragie ne le tuent pas avant le jet

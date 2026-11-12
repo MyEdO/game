@@ -13,8 +13,8 @@ const arena = () => emptyScene('s', 16, 12);
 
 /** Pose le combat par `set`, le tour au premier héros, `over` fusionné au `battle`. */
 export function poserLeCombat(set: (patch: Partial<EtatDeJeu>) => void, over: Record<string, unknown> = {}) {
-  const hero = combattantDeTest({ id: 'h1', label: 'Héros', kind: 'hero', pos: { x: 6, y: 6 }, weapons: [unarmedWeapon()] });
-  const ally = combattantDeTest({ id: 'h2', label: 'Allié', kind: 'hero', pos: { x: 5, y: 6 } });
+  const hero = combattantDeTest({ id: 'h1', label: 'Héros', kind: 'heros', pos: { x: 6, y: 6 }, weapons: [unarmedWeapon()] });
+  const ally = combattantDeTest({ id: 'h2', label: 'Allié', kind: 'heros', pos: { x: 5, y: 6 } });
   const enemy = spawnEnemy({ ref: 'humain' }, 'e1', { x: 7, y: 6 }); // adjacent au héros
   const battle = {
     combatants: [hero, ally, enemy], order: ['h1', 'h2', 'e1'], baseOrder: ['h1', 'h2', 'e1'],

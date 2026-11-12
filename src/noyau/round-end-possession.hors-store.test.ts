@@ -52,8 +52,8 @@ function setupCoop(withTalent = false): Combatant {
   g().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = g().battle!;
-  const H = b.combatants.find((c) => c.kind === 'hero')!;
-  const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+  const H = b.combatants.find((c) => c.kind === 'heros')!;
+  const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
   enemies.slice(1).forEach((e) => (e.dead = true));
   H.pos = { x: 10, y: 10 };
   enemies[0].pos = { x: 30, y: 30 }; // loin : ni Peur de Taille ni Ligne de Vue

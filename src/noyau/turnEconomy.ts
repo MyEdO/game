@@ -17,7 +17,7 @@ import { inBattleId } from './monde/combatants';
  * Pur : les gates consommés ne lisent que l'acteur et son combat.
  */
 export function hasMeaningfulOption(ctx: ActionCtx): boolean {
-  if (ctx.active.kind !== 'hero') return false;
+  if (ctx.active.kind !== 'heros') return false;
   // Action disponible · Mouvement restant · désengagement sans Action (LDB 15 l.47, LDB 85 l.253, l.373-374) · Piétinement gratuit
   // (LDB 85) · attaque d'Arme gratuite de Frénésie (LDB 21 l.33) · Détermination en réserve (LDB 17 l.59-61).
   const gates = [

@@ -26,7 +26,7 @@ const rng: RNG = deFixe(5) as RNG;
 
 function mk(over: Partial<Combatant> = {}): Combatant {
   return blessuresSurLeProfil({
-    id: 'c', name: 'Cobaye', kind: 'enemy', size: 'moyenne', advantage: 0,
+    id: 'c', name: 'Cobaye', kind: 'ennemi', size: 'moyenne', advantage: 0,
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 40, sociabilite: 30 },
     conditions: [], skills: [], talents: [], traits: [], groups: [],
     weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },

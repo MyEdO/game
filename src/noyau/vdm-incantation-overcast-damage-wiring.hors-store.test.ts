@@ -36,7 +36,7 @@ function setup() {
   banc.getState().ensemencerLeTirage(7);
   const b = banc.getState().battle!;
   const heroC = b.combatants.find((c) => c.label === 'W')!;
-  const enemy = b.combatants.find((c) => c.kind === 'enemy')!;
+  const enemy = b.combatants.find((c) => c.kind === 'ennemi')!;
   // Positions/mitigation FIXÉES : même PA/BE des deux côtés du test — seul l'axe Dégâts varie.
   heroC.pos = { x: 10, y: 10 };
   enemy.pos = { x: 12, y: 10 };

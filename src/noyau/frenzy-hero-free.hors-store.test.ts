@@ -27,8 +27,8 @@ describe('Frénésie du héros — attaque de CC GRATUITE chaque Round (LDB 21 l
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const E = b.combatants.find((c) => c.kind === 'enemy')!;
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const E = b.combatants.find((c) => c.kind === 'ennemi')!;
     H.pos = { x: 10, y: 10 };
     E.pos = { x: 11, y: 10 };
     H.talents = [...(H.talents ?? []), { talentId: 'frenesie', times: 1 }]; // octroie l'attaque d'arme libre (donnée)

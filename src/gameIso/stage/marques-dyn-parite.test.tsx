@@ -41,7 +41,7 @@ const TAILLE = { w: 800, h: 600 };
 
 function hero(id: string, pos: { x: number; y: number }): Combatant {
   return blessuresSurLeProfil({
-    id, label: id, kind: 'hero', pos, size: 'moyenne',
+    id, label: id, kind: 'heros', pos, size: 'moyenne',
     wounds: blessuresDeBase(12), weapons: [],
     characteristics: { 'capacite-de-combat': 40, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     advantage: 0, conditions: [], armour: {},
@@ -54,7 +54,7 @@ function combatEngagé(): BattleState {
   return {
     combatants: [
       { ...hero('h1', { x: 3, y: 3 }), engagedWith: ['e1'] },
-      { ...hero('e1', { x: 4, y: 3 }), kind: 'enemy', engagedWith: ['h1'] },
+      { ...hero('e1', { x: 4, y: 3 }), kind: 'ennemi', engagedWith: ['h1'] },
     ],
     order: ['h1', 'e1'],
     turn: 0,
@@ -266,7 +266,7 @@ describe('Marques dynamiques — ALLURE et EXCLUSIVITÉ (#1176 P3-0d)', () => {
       ...combatEngagé(),
       combatants: [
         { ...hero('h1', { x: 3, y: 3 }), engagedWith: ['e1'], footprint: 2 },
-        { ...hero('e1', { x: 5, y: 3 }), kind: 'enemy', engagedWith: ['h1'] },
+        { ...hero('e1', { x: 5, y: 3 }), kind: 'ennemi', engagedWith: ['h1'] },
       ],
     } as unknown as BattleState;
     monter('battle', { battle: gros });
@@ -334,7 +334,7 @@ describe('Marques dynamiques — ALLURE et EXCLUSIVITÉ (#1176 P3-0d)', () => {
   });
 
   it('un meneur npc porte l’anneau hors groupe en trait plein', () => {
-    const escorte = [{ ...hero('h1', { x: 6, y: 6 }), kind: 'npc' } as unknown as Combatant];
+    const escorte = [{ ...hero('h1', { x: 6, y: 6 }), kind: 'pnj' } as unknown as Combatant];
     monter('exploration', { party: escorte });
     const mpt = sceneMetresPerTile(emptyScene('scene-test', 10, 10));
     const rK = teamRingRadiusK(PARTY_TOKEN_BASE);

@@ -18,7 +18,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTes
  */
 
 const foe = (id: string, over: Partial<Combatant> = {}): Combatant =>
-  (blessuresSurLeProfil({ id, name: id, kind: 'enemy', pos: { x: 0, y: 0 }, wounds: blessuresDeBase(10), advantage: 0,
+  (blessuresSurLeProfil({ id, name: id, kind: 'ennemi', pos: { x: 0, y: 0 }, wounds: blessuresDeBase(10), advantage: 0,
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     armour: {} as never, conditions: [], traits: [], talents: [], skills: [], weapons: [] as Weapon[], ...over })) as unknown as Combatant;
 

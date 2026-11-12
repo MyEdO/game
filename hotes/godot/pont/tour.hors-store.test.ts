@@ -69,7 +69,7 @@ describe('un tour complet par le pont', () => {
     ({ suite } = presser(bouton(suite, 'fenetreValider@debutDuRound')));
 
     const heros = actifDe(suite);
-    expect(heros.camp).toBe('hero');
+    expect(heros.camp).toBe('heros');
     expect(suite.vue.projection.combat!.barre).toEqual({ forme: 'ouverte', raison: null });
     expect(suite.vue.champ, 'la barre ouverte, le champ se clique en combat').toBe(CLIC_DU_CHAMP);
     const economie = (id: string) => suite.vue.zones['combat.offres'].find((o): o is Choix => o.type === 'choix' && o.valeurs.some((v) => v.id === id));
@@ -137,7 +137,7 @@ describe('un tour complet par le pont', () => {
     let journal: ReturnType<typeof jouer>['journal'];
     ({ suite, journal } = finirLeTour());
     const adversaire = actifDe(suite);
-    expect(adversaire.camp, 'les jetons repris, le noyau joue l’adversaire').toBe('enemy');
+    expect(adversaire.camp, 'les jetons repris, le noyau joue l’adversaire').toBe('ennemi');
     const defense = suite.vue.projection.fenetre!;
     expect(defense, 'la fenêtre de la Défense : l’étape du jet de Défense de la cascade').toMatchObject({ cle: 'cascade', etape: { genre: 'jetDeDefense' } });
     expect(corpsDe(suite.vue, 'defense/qui'), 'la Défense dit qui attaque').toMatchObject({ type: 'ligne', texte: expect.stringContaining(adversaire.nom) });
@@ -159,7 +159,7 @@ describe('un tour complet par le pont', () => {
     const attaque = evenements.find((l) => l.de === 'combat' && l.evenement.actorId === adversaire.id && l.evenement.targetId);
     expect(attaque, 'l’attaque adverse entre au journal, sa cible nommée').toBeDefined();
     const vise = suite.vue.projection.combat!.voisins.liste.find((v) => attaque!.de === 'combat' && v.id === attaque!.evenement.targetId)!;
-    expect(vise.camp, 'l’adversaire vise un héros').toBe('hero');
+    expect(vise.camp, 'l’adversaire vise un héros').toBe('heros');
     expect(defense.proprietaire, 'la Défense est au héros attaqué').toEqual({ genre: 'porteur', nom: vise.nom });
     expect(etape, 'l’étape nomme le héros qui se défend').toContain(vise.nom);
     expect([...vues], 'les fenêtres du tour, chacune dessinée verbe par verbe').toEqual(expect.arrayContaining(['debutDuRound', 'cascade:jetDAttaque', 'cascade:jetDeDefense']));

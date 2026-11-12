@@ -23,8 +23,8 @@ describe('Désengagement après avoir attaqué (option A — LDB 15 l.47)', () =
     banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('debutDuRound');
     let st = banc.getState();
-    const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
-    const E = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
+    const H = st.battle!.combatants.find((c) => c.kind === 'heros')!;
+    const E = st.battle!.combatants.find((c) => c.kind === 'ennemi')!;
     H.engagedWith = [E.id]; E.engagedWith = [H.id];
     H.advantage = 2; E.advantage = 0;
     const turn = st.battle!.order.indexOf(H.id);

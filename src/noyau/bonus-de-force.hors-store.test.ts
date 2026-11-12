@@ -118,9 +118,9 @@ describe('Tout lecteur du Bonus de Force passe par bonusDe (LDB 21 l.33)', () =>
   it('Souffle : rayon (Bonus de Force de la cible au centre) — 5 m (3 cases) en Frénésie, 4 m (2 cases) sinon', () => {
     const surface = (fr: boolean): boolean => {
       const souffle = [{ id: 'souffle', value: 14, arg: 'feu' }];
-      const E = combattantDeTest({ id: 'e', kind: 'enemy', pos: { x: 0, y: 0 }, traits: souffle, characteristics: { endurance: 40 } });
-      const centre = combattantDeTest({ id: 'c', kind: 'hero', pos: { x: 6, y: 0 }, characteristics: { force: 40 }, conditions: [{ id: 'surpris', value: 1 }], ...frenesie(fr) });
-      const loin = combattantDeTest({ id: 'l', kind: 'hero', pos: { x: 9, y: 0 } });
+      const E = combattantDeTest({ id: 'e', kind: 'ennemi', pos: { x: 0, y: 0 }, traits: souffle, characteristics: { endurance: 40 } });
+      const centre = combattantDeTest({ id: 'c', kind: 'heros', pos: { x: 6, y: 0 }, characteristics: { force: 40 }, conditions: [{ id: 'surpris', value: 1 }], ...frenesie(fr) });
+      const loin = combattantDeTest({ id: 'l', kind: 'heros', pos: { x: 9, y: 0 } });
       const attaque = garanti(creatureAttacks(souffle).find((a) => a.kind === 'souffle'), 'souffle', 'attaque');
       banc.setState({ battle: { ...garanti(banc.getState().battle ?? { combatants: [] }, 'battle', 'banc'), combatants: [E, centre, loin] } as never,
         pendingManeuver: { attackerId: E.id, attaque: attaque.cle, targetId: centre.id, result: { success: true, sl: 2, roll: 10 } } as never });
@@ -134,7 +134,7 @@ describe('Tout lecteur du Bonus de Force passe par bonusDe (LDB 21 l.33)', () =>
 describe('Arme naturelle dont l’Indice inclut le BF : la part passive s’y ajoute (LDB 85 l.35, l.237 ; LDB 21 l.33)', () => {
   const traits = [{ id: 'arme', value: 8 }, { id: 'morsure', value: 7 }, { id: 'langue-prehensile', value: 6, range: 10 }];
   const creature = (fr: boolean): { c: Combatant; arme: Weapon } => {
-    const c = combattant(fr, { kind: 'enemy', traits });
+    const c = combattant(fr, { kind: 'ennemi', traits });
     c.weapons = weaponsFromTraits(traits);
     return { c, arme: garanti(c.weapons.find((w) => w.label === 'Arme'), 'Arme', 'arme du trait') };
   };

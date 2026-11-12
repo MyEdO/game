@@ -754,7 +754,7 @@ function revelationDeLEtape(etat: Jeu): Element[] {
   const r = pc?.participants[pc.cursor]?.reveal;
   if (!r) return [];
   const crit = r.kind === 'critique' ? r.crit : undefined;
-  const ton: Ton = r.subjectId && porteurParId(etat, r.subjectId)?.kind === 'hero' ? 'echec' : 'reussite';
+  const ton: Ton = r.subjectId && porteurParId(etat, r.subjectId)?.kind === 'heros' ? 'echec' : 'reussite';
   const prefixe = crit ? 'critique' : 'revelation';
   return [
     ...(crit ? [
@@ -836,7 +836,7 @@ const ordreDuTour = (etat: Jeu, c: Combat): Puce[] =>
   (etat.battle?.order ?? []).flatMap((id) => {
     const x = porteurParId(etat, id);
     if (!x) return [];
-    return [puce(`ordre/${id}`, x.label, t('ecran.jauge', { courant: x.wounds.current, max: x.wounds.max }), null, id === c.actif?.id ? 'alerte' : x.kind === 'enemy' ? 'echec' : 'neutre')];
+    return [puce(`ordre/${id}`, x.label, t('ecran.jauge', { courant: x.wounds.current, max: x.wounds.max }), null, id === c.actif?.id ? 'alerte' : x.kind === 'ennemi' ? 'echec' : 'neutre')];
   });
 
 /** Le ton de chaque issue du combat. */
@@ -1107,7 +1107,7 @@ const tonDeLEvenement = (etat: Jeu, e: CombatEvent): Ton => {
   if (e.kind === 'round') return 'alerte';
   if (toneOf(e.kind) !== 'grave') return 'neutre';
   const frappe = e.targetId ?? e.actorId;
-  return frappe && porteurParId(etat, frappe)?.kind === 'hero' ? 'echec' : 'reussite';
+  return frappe && porteurParId(etat, frappe)?.kind === 'heros' ? 'echec' : 'reussite';
 };
 
 /** Les lignes que le journal ajoute, numérotées à la suite des `avant` lignes déjà écrites : une par événement, son

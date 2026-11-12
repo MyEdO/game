@@ -19,7 +19,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  */
 const chars = { 'capacite-de-combat': 45, 'capacite-de-tir': 50, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 const sword: Weapon = { name: 'Épée', label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, uid: 'sw', qualities: [] } as unknown as Weapon;
-const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }): Combatant =>
+const mk = (id: string, kind: 'heros' | 'ennemi', pos: { x: number; y: number }): Combatant =>
   (blessuresSurLeProfil({ id, name: id, label: id, kind, characteristics: { ...chars }, conditions: [], engagedWith: [], skills: [], talents: [],
      weapons: [sword], advantage: 0, size: 'moyenne', pos, wounds: blessuresDeBase(200),
      armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4 }) as unknown as Combatant);
@@ -28,10 +28,10 @@ const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }): 
  *  `gmSeat` pose un siège MJ, donc un attaquant PILOTÉ (chemin `openSurfacedDefense`). */
 function setup(acted: boolean, heros = 1, gmSeat?: number) {
   seedBattleRng(7);
-  const enemy = blessuresSurLeProfil({ ...mk('e', 'enemy', { x: 1, y: 0 }), size: 'enorme' as const }); // Taille SUPÉRIEURE : l'Attaque caudale met à Terre (LDB 85 l.47), et le coup BALAIE
+  const enemy = blessuresSurLeProfil({ ...mk('e', 'ennemi', { x: 1, y: 0 }), size: 'enorme' as const }); // Taille SUPÉRIEURE : l'Attaque caudale met à Terre (LDB 85 l.47), et le coup BALAIE
   enemy.characteristics['capacite-de-combat'] = 95;
   const herosList = Array.from({ length: heros }, (_, i) => {
-    const h = mk(i === 0 ? 'h' : `h${i + 1}`, 'hero', { x: i === 0 ? 0 : 1, y: i === 0 ? 0 : i });
+    const h = mk(i === 0 ? 'h' : `h${i + 1}`, 'heros', { x: i === 0 ? 0 : 1, y: i === 0 ? 0 : i });
     h.characteristics['capacite-de-combat'] = 5; h.characteristics.agilite = 5; // la défense échoue
     return h;
   });
@@ -310,10 +310,10 @@ describe('Héros qui balaie sur une gratuite : l’Action d’origine au bout de
   const toucheDuHeros = (cleave: boolean): AttackResult => ({ ...toucheQuiBalaie(), cleave, damage: 1, woundsLost: 1 } as unknown as AttackResult);
   function setupHeros() {
     seedBattleRng(7);
-    const h = mk('h', 'hero', { x: 1, y: 1 });
+    const h = mk('h', 'heros', { x: 1, y: 1 });
     (h as unknown as { psychState: unknown[] }).psychState = [{ type: 'frenesie' }];
-    const e1 = mk('e1', 'enemy', { x: 2, y: 1 });
-    const e2 = mk('e2', 'enemy', { x: 1, y: 2 });
+    const e1 = mk('e1', 'ennemi', { x: 2, y: 1 });
+    const e2 = mk('e2', 'ennemi', { x: 1, y: 2 });
     const combatants = [h, e1, e2];
     const battle = { combatants, order: combatants.map((c) => c.id), baseOrder: combatants.map((c) => c.id),
       turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(),

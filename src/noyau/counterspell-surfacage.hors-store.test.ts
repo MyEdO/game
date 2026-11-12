@@ -34,8 +34,8 @@ function setup() {
   banc.getState().lancerLeCombat('enc-mutants');
   banc.getState().fenetreValider('debutDuRound');
   const b = banc.getState().battle!;
-  const H = b.combatants.find((c) => c.kind === 'hero')!;
-  const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+  const H = b.combatants.find((c) => c.kind === 'heros')!;
+  const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
   enemies.slice(1).forEach((e) => (e.dead = true));
   const E = enemies[0];
   E.characteristics.intelligence = 48; E.characteristics['force-mentale'] = 53;
@@ -140,7 +140,7 @@ describe('#1028 — Contre-sort : la POSSESSION décide du surfaçage, jamais le
     w2.spells = ['flechette'];
     const { H, E } = setup();
     const b = banc.getState().battle!;
-    const h2 = { ...w2, id: 'h2', pos: { x: 10, y: 11 }, kind: 'hero' } as unknown as Combatant;
+    const h2 = { ...w2, id: 'h2', pos: { x: 10, y: 11 }, kind: 'heros' } as unknown as Combatant;
     banc.setState({ battle: { ...b, combatants: [...b.combatants, h2], order: [...b.order, h2.id] } });
     net({ mode: 'hote', mySeat: 0, gmSeat: undefined, ownership: { [h2.id]: 1 }, slots: [0, 1, 0, 0] } as Partial<Jeu['net']>);
     expect(counterspellCandidates(banc.getState().battle, banc.getState().scene, E, H).map((c) => c.id))

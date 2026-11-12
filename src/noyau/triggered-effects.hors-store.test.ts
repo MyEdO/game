@@ -24,7 +24,7 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const mk = (over: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
-  id: 'c', label: 'C', kind: 'enemy',
+  id: 'c', label: 'C', kind: 'ennemi',
   characteristics: { 'capacite-de-combat': 35, 'capacite-de-tir': 25, force: 35, endurance: 35, initiative: 30, agilite: 30, dexterite: 30, intelligence: 25, 'force-mentale': 25, sociabilite: 25 },
   wounds: blessuresDeBase(15), advantage: 0, conditions: [], skills: [], talents: [],
   weapons: [], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, items: [],
@@ -184,7 +184,7 @@ describe('fireTriggers — Traits et Atouts sur le même système flow+déclench
 
   it('Condition `compare` générique : who (cible/lanceur) × donnée/État · opérateur · valeur (const ou acteur)', () => {
     const target = { id: 't', woundsCurrent: 5, woundsMax: 15, size: 2, advantage: 0, camp: 'hostile' as const, groups: ['Morts-vivants'], talents: [], traits: ['mort-vivant'], immunities: ['poison'], conditions: { brise: 3 }, chars: {} as Record<string, number> }; // Petite (2), ennemi mort-vivant (conditions keyées par id)
-    const caster = { id: 'c', woundsCurrent: 12, woundsMax: 12, size: 4, advantage: 1, camp: 'party' as const, groups: [], talents: [{ id: 'magie-des-arcanes', spec: 'Feu' }], traits: [], conditions: {} as Record<string, number>, chars: {} as Record<string, number> }; // Grande (4), mage de Feu
+    const caster = { id: 'c', woundsCurrent: 12, woundsMax: 12, size: 4, advantage: 1, camp: 'groupe' as const, groups: [], talents: [{ id: 'magie-des-arcanes', spec: 'Feu' }], traits: [], conditions: {} as Record<string, number>, chars: {} as Record<string, number> }; // Grande (4), mage de Feu
     const ctx = { flags: {}, gameTime: 0, target, caster };
     expect(evalCondition({ kind: 'compare', subject: { who: 'target', field: 'woundsCurrent' }, op: '>=', value: 1 }, ctx)).toBe(true);
     expect(evalCondition({ kind: 'compare', subject: { who: 'target', condition: 'brise' }, op: '>=', value: 3 }, ctx)).toBe(true); // valeur d'État (stacks)
@@ -195,10 +195,10 @@ describe('fireTriggers — Traits et Atouts sur le même système flow+déclench
     expect(evalCondition({ kind: 'compare', subject: { who: 'target', field: 'woundsCurrent' }, op: '>=', value: 1 }, { flags: {}, gameTime: 0 })).toBe(false); // acteur absent
     // Condition `relation` : camp ABSOLU (kind) + relation RELATIVE au lanceur.
     expect(evalCondition({ kind: 'relation', who: 'target', is: 'hostile' }, ctx)).toBe(true); // la cible EST un ennemi (absolu)
-    expect(evalCondition({ kind: 'relation', who: 'target', is: 'opponent' }, ctx)).toBe(true); // adversaire du lanceur (camp ≠)
-    expect(evalCondition({ kind: 'relation', who: 'target', is: 'ally' }, ctx)).toBe(false);
-    expect(evalCondition({ kind: 'relation', who: 'caster', is: 'party' }, ctx)).toBe(true); // le lanceur est du groupe
-    expect(evalCondition({ kind: 'relation', who: 'target', is: 'self' }, ctx)).toBe(false); // cible ≠ lanceur
+    expect(evalCondition({ kind: 'relation', who: 'target', is: 'adversaire' }, ctx)).toBe(true); // adversaire du lanceur (camp ≠)
+    expect(evalCondition({ kind: 'relation', who: 'target', is: 'allie' }, ctx)).toBe(false);
+    expect(evalCondition({ kind: 'relation', who: 'caster', is: 'groupe' }, ctx)).toBe(true); // le lanceur est du groupe
+    expect(evalCondition({ kind: 'relation', who: 'target', is: 'soi' }, ctx)).toBe(false); // cible ≠ lanceur
     // Condition `has` : appartenance Groupe / Talent (spec) / Trait.
     expect(evalCondition({ kind: 'has', who: 'target', what: 'group', value: 'Morts-vivants' }, ctx)).toBe(true);
     expect(evalCondition({ kind: 'has', who: 'target', what: 'trait', value: 'mort-vivant' }, ctx)).toBe(true);
@@ -300,7 +300,7 @@ describe('Affamé — Test de trigger onKill routé (cadence-aware)', () => {
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const enemies = b.combatants.filter((c) => c.kind === 'enemy');
+    const enemies = b.combatants.filter((c) => c.kind === 'ennemi');
     const hungry = enemies[0];
     enemies.slice(1).forEach((e) => (e.dead = true));
     hungry.traits = [...(hungry.traits ?? []), { id: 'affame' }];
@@ -320,7 +320,7 @@ describe('Affamé — Test de trigger onKill routé (cadence-aware)', () => {
 import { fireOwnTestFailed, effectSourcesOf } from './triggeredEffects';
 
 const withCrampes = (over: Partial<Combatant> = {}): Combatant => mk({
-  id: 'cr', kind: 'hero',
+  id: 'cr', kind: 'heros',
   diseases: [{ id: 'colique', phase: 'active', symptoms: [{ symptomId: 'crampes-abdominales' }], minutesLeft: 100000, durationMinutes: 100000 }],
   ...over,
 } as Partial<Combatant>);
@@ -395,8 +395,8 @@ describe('onOwnTestFailed — cadence-aware + seam central de cascade (correctio
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const E = b.combatants.filter((c) => c.kind === 'enemy');
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const E = b.combatants.filter((c) => c.kind === 'ennemi');
     E.slice(1).forEach((e) => (e.dead = true));
     banc.setState({ battle: { ...b }, pendingCascade: null, pendingLogQueue: [] });
     return { H, E: E[0] };
@@ -468,8 +468,8 @@ describe('onOwnTestFailed — jets d’ATTAQUE (attaquant ET défenseur, MSRC 16
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const E = b.combatants.filter((c) => c.kind === 'enemy');
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const E = b.combatants.filter((c) => c.kind === 'ennemi');
     E.slice(1).forEach((e) => (e.dead = true));
     banc.setState({ battle: { ...b }, pendingCascade: null, pendingLogQueue: [] });
     return { H, E: E[0] };

@@ -26,7 +26,7 @@ const BASE_CHARS = { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30,
 
 const heros = (over: Partial<Combatant>) =>
   (blessuresSurLeProfil({
-    id: 'grimm', name: 'Grimm', label: 'Grimm', kind: 'hero', wounds: blessuresDeBase(12, 8),
+    id: 'grimm', name: 'Grimm', label: 'Grimm', kind: 'heros', wounds: blessuresDeBase(12, 8),
     conditions: [], advantage: 0, weapons: [], skills: [], items: [], movement: 4, talents: [], traumas: [],
     engagedWith: [], size: 'moyenne', species: 'humains-reiklander', bodyShape: 'humanoide',
     pos: { x: 0, y: 0 }, career: 'agitateur',

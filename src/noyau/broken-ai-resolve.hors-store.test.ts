@@ -27,9 +27,9 @@ const CHARS = { 'capacite-de-combat': 35, 'capacite-de-tir': 35, force: 30, endu
 /** Ennemi minimal pour la DÉCISION pure : pos + arme de mêlée + caracs + États/Détermination paramétrés.
  *  (Les caracs servent au cœur de scoring atteint quand l'ennemi n'est PAS verrouillé — `pickDoctrine`.) */
 function foe(over: Partial<Combatant>): Combatant {
-  return blessuresSurLeProfil({ id: 'e', kind: 'enemy', name: 'E', pos: { x: 5, y: 5 }, weapons: sword, characteristics: CHARS, skills: [], conditions: [], wounds: blessuresDeBase(10), advantage: 0, traits: [], size: 'moyenne', engagedWith: [], psychState: [], ...over }) as unknown as Combatant;
+  return blessuresSurLeProfil({ id: 'e', kind: 'ennemi', name: 'E', pos: { x: 5, y: 5 }, weapons: sword, characteristics: CHARS, skills: [], conditions: [], wounds: blessuresDeBase(10), advantage: 0, traits: [], size: 'moyenne', engagedWith: [], psychState: [], ...over }) as unknown as Combatant;
 }
-const hero = (x: number, y: number): Combatant => (blessuresSurLeProfil({ id: 'h', kind: 'hero', name: 'H', pos: { x, y }, wounds: blessuresDeBase(10), conditions: [], characteristics: CHARS, traits: [], size: 'moyenne', advantage: 0, weapons: [], armour: {} }) as unknown as Combatant);
+const hero = (x: number, y: number): Combatant => (blessuresSurLeProfil({ id: 'h', kind: 'heros', name: 'H', pos: { x, y }, wounds: blessuresDeBase(10), conditions: [], characteristics: CHARS, traits: [], size: 'moyenne', advantage: 0, weapons: [], armour: {} }) as unknown as Combatant);
 const decide = (enemy: Combatant, heroes: Combatant[]) =>
   chooseEnemyAction({ enemy, heroes, scene: scene(), blocked: new Set<string>(), movement: 4 } as never);
 
@@ -67,7 +67,7 @@ describe('IA Brisé — dispatch : la dépense retire l\'État puis une vraie ac
 
   it('ennemi Brisé+Détermination, Engagé → depenserLaDetermination retire le Brisé (−1 Détermination), action réelle dispatchée', () => {
     const e = spawnEnemy({ ref: 'humain' }, 'e', { x: 5, y: 5 });
-    e.kind = 'enemy';
+    e.kind = 'ennemi';
     e.conditions = [{ id: 'brise', value: 1 }];
     e.resolve = 1;
     e.engagedWith = ['h'];

@@ -11,7 +11,7 @@ const cond = (name: string, value = 1): ConditionInstance => ({ id: name, value 
 /** Héros minimal, patron `EtatPanel.test.tsx` (mkHero). */
 const mkHero = (mut?: (c: Combatant) => void): Combatant => {
   const c = blessuresSurLeProfil({
-    id: 'h', name: 'H', kind: 'hero', species: 'humains-reiklander', career: 'soldat',
+    id: 'h', name: 'H', kind: 'heros', species: 'humains-reiklander', career: 'soldat',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(12),
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },

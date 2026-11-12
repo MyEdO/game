@@ -46,7 +46,7 @@ export function personnesCandidates(s: EtatDesPersonnes, cible: Combatant): Pers
 
 /** La cible et la personne sont-elles amies (VDM 10 l.327) ? Même camp (`relationBetween`). #3045 */
 export function sontAmis(cible: Combatant, p: Personne): boolean {
-  return relationBetween({ id: cible.id, camp: campOf(cible) }, p) === 'ally';
+  return relationBetween({ id: cible.id, camp: campOf(cible) }, p) === 'allie';
 }
 
 /** La personne que désigne un décideur NON surfacé (VDM 10 l.327, « nommer ou désigner ») : la plus proche

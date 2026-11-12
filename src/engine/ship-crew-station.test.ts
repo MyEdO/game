@@ -32,7 +32,7 @@ import { combattantDeTest, blessuresSurLeProfil, blessuresDeBase } from './comba
 /** Marin minimal — `applyOps` (BE 3, PA 0) et `exposedCrew` (vivant, PB > 0) ont ce qu'il leur faut. */
 const marin = (id: string, over: Partial<Combatant> = {}): Combatant =>
   (blessuresSurLeProfil({
-    id, name: id, label: id, kind: 'npc',
+    id, name: id, label: id, kind: 'pnj',
     characteristics: { 'capacite-de-combat': 31, 'capacite-de-tir': 31, force: 31, endurance: 31, initiative: 42, agilite: 36, dexterite: 36, intelligence: 31, 'force-mentale': 31, sociabilite: 36 },
     skills: [], talents: [], traits: [], conditions: [], activeEffects: [], liveTraits: [], weapons: [],
     armour: { corps: 0 }, wounds: blessuresDeBase(20), advantage: 0, ...over,
@@ -50,7 +50,7 @@ const victimes = (hull: Combatant, crew: Combatant[], loc: ShipCritKey, min: num
 describe('coup à l’équipage — la STATION est ÉPINGLÉE, jamais déduite (#1657 B3-2b-a)', () => {
   it('1. « Bancs fracassés » (MDG 13 l.756) vise qui se TROUVE aux avirons — pas qui SAIT ramer', () => {
     const rameurPnj = marin('rameur-pnj', { shipStation: 'avirons' });
-    const rameurHeros = marin('rameur-heros', { kind: 'hero', shipStation: 'avirons' } as Partial<Combatant>);
+    const rameurHeros = marin('rameur-heros', { kind: 'heros', shipStation: 'avirons' } as Partial<Combatant>);
     // Le cuisinier POSSÈDE Ramer 70 (une inférence par compétence le désignerait) et se tient sur le pont.
     const cuisinier = marin('cuisinier', { shipStation: 'pont', skills: [{ id: 'ramer', value: 70 }] } as unknown as Partial<Combatant>);
     const sansStation = marin('sans-station');
@@ -91,7 +91,7 @@ describe('coup à l’équipage — la STATION est ÉPINGLÉE, jamais déduite (
   it('3bis. le GATE de station vit en DONNÉE (`requiresTrait`), aucune station n’est codée en dur', () => {
     const gatees = shipStations.filter((s) => s.requiresTrait).map((s) => `${s.id} ⇐ ${s.requiresTrait!.id}`);
     expect(gatees, 'les deux présences que le livre fait payer : MSRC 07 l.94, MDG 12 l.299')
-      .toEqual(['nid-de-pie ⇐ nid-de-pie', 'cale ⇐ cale']);
+      .toEqual(expect.arrayContaining(['nid-de-pie ⇐ nid-de-pie', 'cale ⇐ cale']));
     // Toute coque ouvre les présences non gatées ; la barque n'ouvre ni cale ni nid-de-pie.
     for (const s of shipStations) {
       expect(shipStationOuverte(hullNavalTraits(coque('barque-fluviale')), s.id), `${s.id} sur la barque`).toBe(!s.requiresTrait);

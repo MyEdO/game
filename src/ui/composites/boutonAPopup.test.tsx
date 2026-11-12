@@ -153,7 +153,7 @@ describe('Emplacement d’arme de la fiche héros (onglet Possessions)', () => {
   const heros = (): Combatant => {
     setDataset('trappings', [armeDeBanc('arme-de-banc-1', 'Arme de banc 1'), armeDeBanc('arme-de-banc-2', 'Arme de banc 2')]);
     const c = blessuresSurLeProfil({
-      id: 'h', label: 'H', kind: 'hero',
+      id: 'h', label: 'H', kind: 'heros',
       characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
       wounds: blessuresDeBase(12), advantage: 0, conditions: [], skills: [], talents: [], movement: 4, xp: 0,
       items: [

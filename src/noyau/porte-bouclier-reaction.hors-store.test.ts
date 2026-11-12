@@ -31,12 +31,12 @@ const ARM0 = { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 };
 function setup(o: { talents?: { talentId: string; times: number }[]; reserve: number; pbAttaquant?: number; important?: boolean; traitsAttaquant?: { id: string; value?: number }[]; pnj?: boolean }): void {
   seedBattleRng(7);
   const defender = blessuresSurLeProfil({
-    id: 'd1', name: 'Défenseur', label: 'Défenseur', kind: o.pnj ? 'enemy' : 'hero', important: true, characteristics: chars, wounds: blessuresDeBase(30),
+    id: 'd1', name: 'Défenseur', label: 'Défenseur', kind: o.pnj ? 'ennemi' : 'heros', important: true, characteristics: chars, wounds: blessuresDeBase(30),
     advantage: 0, conditions: [], movement: 4, skills: [], talents: o.talents ?? [{ talentId: 'porte-bouclier', times: 1 }], traits: [], engagedWith: ['a1'], pos: { x: 5, y: 5 },
     size: 'moyenne', weapons: [SWORD, SHIELD], armour: ARM0, items: [], fate: 0, criticalWounds: 0, traumas: [],
   }) as unknown as Combatant;
   const attacker = blessuresSurLeProfil({
-    id: 'a1', name: 'Attaquant', label: 'Attaquant', kind: o.pnj ? 'hero' : 'enemy', important: o.important ?? true, characteristics: chars, wounds: blessuresDeBase(20, o.pbAttaquant ?? 20),
+    id: 'a1', name: 'Attaquant', label: 'Attaquant', kind: o.pnj ? 'heros' : 'ennemi', important: o.important ?? true, characteristics: chars, wounds: blessuresDeBase(20, o.pbAttaquant ?? 20),
     advantage: 0, conditions: [], movement: 4, skills: [], talents: [], traits: o.traitsAttaquant ?? [], engagedWith: ['d1'], pos: { x: 4, y: 5 },
     size: 'moyenne', weapons: [SWORD], items: [], criticalWounds: 0, traumas: [], armour: ARM0,
   }) as unknown as Combatant;

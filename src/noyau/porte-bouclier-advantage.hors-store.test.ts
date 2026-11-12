@@ -25,12 +25,12 @@ const SWORD: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, 
 
 function setup(defenderTalents: { talentId: string; times: number }[]): { attacker: Combatant; defender: Combatant } {
   const defender = blessuresSurLeProfil({
-    id: 'd1', label: 'Défenseur', kind: 'enemy', characteristics: chars, wounds: blessuresDeBase(30),
+    id: 'd1', label: 'Défenseur', kind: 'ennemi', characteristics: chars, wounds: blessuresDeBase(30),
     advantage: 0, conditions: [], movement: 4, skills: [], talents: defenderTalents, traits: [], engagedWith: [], pos: { x: 1, y: 0 },
     size: 'moyenne', weapons: [SHIELD], armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, items: [],
   }) as unknown as Combatant;
   const attacker = blessuresSurLeProfil({
-    id: 'a1', label: 'Attaquant', kind: 'hero', characteristics: chars, wounds: blessuresDeBase(20),
+    id: 'a1', label: 'Attaquant', kind: 'heros', characteristics: chars, wounds: blessuresDeBase(20),
     advantage: 0, conditions: [], movement: 4, skills: [], talents: [], traits: [], engagedWith: [], pos: { x: 0, y: 0 },
     size: 'moyenne', weapons: [SWORD], items: [], criticalWounds: 0, fate: 0,
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
