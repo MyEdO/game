@@ -12,8 +12,9 @@ export interface SceneField {
   field: string;
   /** La déclaration du champ ; pour une propriété synthétique, celle du champ qui porte le type mappé. */
   decl: Declaration;
-  /** Clé LITTÉRALE d'un type mappé, sans déclaration : l'id de ce type. */
-  synthetique?: { porteur: number };
+  /** L'id du type PORTEUR d'une propriété sans déclaration propre : clé LITTÉRALE d'un type mappé, ou propriété
+   *  produite par une fabrique (une déclaration pour tous ses produits). */
+  porteur?: number;
 }
 
 export interface FieldEditability {
@@ -31,13 +32,14 @@ export interface FieldEditability {
 }
 
 /** Ensemble d'IDENTITÉS du document : les déclarations de propriété des shapes atteints depuis
- *  `sceneSchema`, nœuds-frontière exclus. */
+ *  `sceneSchema`, corps des fabriques compris, `z.custom` exclu. */
 export function documentDeclarations(program: SessionProgramme, root: string): Set<Node>;
 
 /** Le Program du périmètre de cette garde, bâti à chaque appel : l'appelant le tient et le libère. */
 export function programmeDuPerimetre(root: string): SessionProgramme;
 export function sceneScope(program: SessionProgramme, root: string): SceneField[];
-/** Clé d'identité d'un champ : sa déclaration, ou `id du type mappé#nom` pour une propriété synthétique. */
+/** Clé d'identité d'un champ : sa déclaration, ou `id du porteur#nom` pour une propriété synthétique ou produite par
+ *  une fabrique. */
 export function cleDuChamp(champ: SceneField): Declaration | string;
 /** Portées d'exécution atteintes depuis `src/ui/**` ou la méthode `editer` du pont Godot par fermeture transitive des
  *  appels. */
@@ -58,6 +60,8 @@ export const ALLER_RETOUR: string;
 export function idsOf(checker: Checker, cles: Map<Declaration | string, string>, type: unknown, name: string): Set<string>;
 /** Ids de champ du périmètre que le dernier pas de `chemin` écrit dans `doc`, marché sur le type `Scene`. */
 export function idsDuChemin(checker: Checker, cles: Map<Declaration | string, string>, scene: unknown, doc: unknown, chemin: readonly (string | number)[]): Set<string>;
+/** Les préfixes du chemin d'une écriture jouée qu'elle a créés : absents avant, présents après. */
+export function pasCrees(e: Pick<EcritureJouee, 'avant' | 'apres' | 'chemin'>): (string | number)[][];
 /** Le document a changé au chemin, la valeur relue est la jouée, la saisie n'est pas du JSON. */
 export function ecritureCreditee(e: EcritureJouee): boolean;
 /** `program` absent : bâti pour CET appel (~8 s). `ecrituresJouees` : créditées par aller-retour (`ALLER_RETOUR`). */
