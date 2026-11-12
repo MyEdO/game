@@ -7,7 +7,12 @@ import { edgeKey } from '../facades';
 import { METRES_PER_LEVEL } from '../relief';
 import { couleurDeMatiere, recetteDeMatiere, tintVarFactor } from './matieres';
 import { parseHex } from '../../../lib/couleurHex';
+import { depuisBase64 } from '../../../lib/base64';
 import { triangles, trianglesDuVolume, trianglesMontres } from './volume.testkit';
+import { buildScene } from '../../mapSpec';
+import { poserLesNavires, provenanceDesNavires } from '../../planDeNavire';
+import { capsSolid } from './floors';
+import type { MaterialRef } from '../../../data/materials.types';
 
 function marche(): Scene {
   const s = emptyScene('scene-test', 2, 1);
@@ -181,7 +186,7 @@ describe('les morceaux du volume (#3948)', () => {
 });
 
 describe('retraitDuMonde (#3948)', () => {
-  const octets = (r: RetraitDuMonde) => [...Buffer.from(r.masque, 'base64')];
+  const octets = (r: RetraitDuMonde) => [...depuisBase64(r.masque)];
 
   it('deux plans de h rangées de w octets par couche, rien de retiré sans couche active ni couvercle', () => {
     const s = deuxEtages();
@@ -216,6 +221,70 @@ describe('retraitDuMonde (#3948)', () => {
     expect(vus.some((t) => t.case.join(',') === '1,1,1')).toBe(false);
     expect(vus.some((t) => t.case.join(',') === '0,0,1')).toBe(true);
     expect(vus.some((t) => t.case.join(',') === '1,1,0')).toBe(true);
+  });
+});
+
+describe('volumeDuMonde, les faces hors de la carte (#3948)', () => {
+  /** La caraque posée cap à l'ouest, son ancre en (`x`, 2), dans un bassin de 24 × 24 cases d'eau. */
+  const bassin = (x: number): Scene => poserLesNavires(buildScene({ id: 'bassin', label: 'Bassin', size: [24, 24], terrain: 'eau', entities: [{ id: 'c1', kind: 'personnage', vehicule: { id: 'caraque' }, pos: { x, y: 2 }, facing: 'O' }] }));
+  const surLaCarte = (s: Scene) => ([x, y]: readonly number[]) => x >= 0 && y >= 0 && x < s.dimensions.w && y < s.dimensions.h;
+  /** La couleur d'une face de la matière `matiere` (`<domaine>--<id>`) teintée à la case `cell`. */
+  const teinte = (matiere: string, cell: { x: number; y: number; z: number }): string => {
+    const [domain, id] = matiere.split('--');
+    const m = { domain, id } as MaterialRef;
+    const k = tintVarFactor(recetteDeMatiere(m), cell) / 255;
+    return [...parseHex(couleurDeMatiere(m))!.map((c) => Math.round(Math.min(1, c * k) * 1000) / 1000), 1].join(',');
+  };
+
+  it('un décor hors de la carte va à la case de la carte la plus proche, montré à sa couche', () => {
+    for (const [pos, attendue, cle] of [[{ x: 17, y: 2 }, '15,2,0', 'pose/0/1/0'], [{ x: 2, y: 10 }, '2,8,0', 'pose/0/0/1']] as const) {
+      const s = deuxEtages();
+      s.entities.push({ id: 'tonneau-2', kind: 'prop', decor: { id: 'tonneau' }, pos, z: 0 });
+      const decor = trianglesDuVolume(volumeDuMonde(s)).filter((t) => t.matiere.startsWith('prop--') && t.case[2] === 0);
+      expect(decor.length, `${pos.x},${pos.y}`).toBeGreaterThan(0);
+      expect(new Set(decor.map((t) => `${t.morceau.cle} ${t.case.join(',')}`)), `${pos.x},${pos.y}`).toEqual(new Set([`${cle} ${attendue}`]));
+      expect(trianglesMontres(volumeDuMonde(s), retraitDuMonde(s, 0)).filter((t) => t.matiere.startsWith('prop--')).length, 'montré sous l’étage').toBe(decor.length);
+    }
+  });
+
+  it('un décor d’une couche absente de la scène ne va à aucun morceau', () => {
+    const s = deuxEtages();
+    s.entities.push({ id: 'tonneau-2', kind: 'prop', decor: { id: 'tonneau' }, pos: { x: 2, y: 2 }, z: 3 });
+    const v = volumeDuMonde(s);
+    expect(v.morceaux.map((m) => m.cle.split('/')[1]).sort()).toEqual(expect.arrayContaining(['0', '1']));
+    expect(v.morceaux.every((m) => ['0', '1'].includes(m.cle.split('/')[1]) && Number.isFinite(m.rangee))).toBe(true);
+    expect(trianglesDuVolume(v).some((t) => t.case[2] === 3)).toBe(false);
+  });
+
+  it('un navire posé à cheval sur le bord : ses faces aux cases de la carte, sa mer teintée à ses cases', () => {
+    for (const x of [0, 22]) {
+      const s = bassin(x);
+      const { flottaison } = provenanceDesNavires(s);
+      const horsCarte = [...flottaison.keys()].filter((k) => !surLaCarte(s)(k.split(',').map(Number)));
+      expect(horsCarte.length, `la flottaison sort de la carte en x=${x}`).toBeGreaterThan(0);
+      const v = volumeDuMonde(s);
+      const blocs = Math.ceil(s.dimensions.w / CASES_PAR_MORCEAU);
+      expect(v.morceaux.map((m) => m.cle).filter((cle) => cle.split('/').slice(2).map(Number).some((b) => b < 0 || b >= blocs)), `x=${x}`).toEqual([]);
+      expect(v.morceaux.flatMap((m) => m.cases).filter((c) => !surLaCarte(s)(c)), `x=${x}`).toEqual([]);
+      const mer = trianglesDuVolume(v).filter((t) => t.surface.flottaison);
+      const parCase = mer.length / flottaison.size;
+      expect(Number.isInteger(parCase), 'autant de triangles de mer par case').toBe(true);
+      const compte = (couleurs: string[]) => couleurs.reduce<Record<string, number>>((n, c) => ({ ...n, [c]: (n[c] ?? 0) + 1 }), {});
+      const attendues = [...flottaison.keys()].flatMap((k) => { const [cx, cy, cz] = k.split(',').map(Number); return Array<string>(parCase).fill(teinte(mer[0].matiere, { x: cx, y: cy, z: cz })); });
+      expect(compte(mer.map((t) => t.couleur.join(','))), `x=${x}, chaque case de mer à sa teinte`).toEqual(compte(attendues));
+    }
+  });
+
+  it('la mer d’un navire au-dessus de la couche active est retirée, bloc plein dessous ou non', () => {
+    const s0 = buildScene({ id: 'bassin', label: 'Bassin', size: [24, 24], terrain: 'mur', entities: [{ id: 'c1', kind: 'personnage', vehicule: { id: 'caraque' }, pos: { x: 10, y: 8 }, facing: 'O', z: 1 }] });
+    s0.layers[0].height = Array(24 * 24).fill(0);
+    s0.layers.push({ z: 1, tiles: Array(24 * 24).fill('pierre'), height: Array(24 * 24).fill(0) });
+    const s = poserLesNavires(s0);
+    const { flottaison, cases } = provenanceDesNavires(s);
+    expect([...flottaison.keys()].some((k) => { const [x, y, z] = k.split(',').map(Number); return !cases.has(k) && capsSolid(s, x, y, z); }), 'une mer hors des ponts sur un bloc plein').toBe(true);
+    const v = volumeDuMonde(s);
+    expect(trianglesDuVolume(v).filter((t) => t.surface.flottaison).length, 'la mer au volume').toBeGreaterThan(0);
+    expect(trianglesMontres(v, retraitDuMonde(s, 0)).filter((t) => t.surface.flottaison)).toEqual([]);
   });
 });
 

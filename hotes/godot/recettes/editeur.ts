@@ -9,7 +9,8 @@
  * peindre (`touches`), où la recette lâche son rayon.
  */
 import type { Bouton, Choix } from '../../../src/hote/elements';
-import type { MorceauDuMonde, VolumeDuMonde } from '../../../src/noyau/index';
+import type { MorceauDuMonde } from '../../../src/noyau/index';
+import type { MondeDuPont } from '../pont/pont';
 import { estObjet } from '../../../src/lib/objet.mjs';
 import { figerLAtelier, type Listage } from './atelier';
 import { cleDEntree } from './vehicule';
@@ -36,7 +37,7 @@ const GESTES: readonly (string | ReturnType<typeof pointe>)[] = [
 interface Reponse {
   ok: boolean;
   vue: { zones: Record<string, (Bouton | Choix | { type: string; id: string })[]> };
-  monde?: Pick<VolumeDuMonde, 'metresParCase' | 'hauteurs'> & { morceaux: { cle: string; empreinte: string }[] };
+  monde?: NonNullable<MondeDuPont['monde']>;
   navires?: Record<string, { centre: { x: number; y: number } }>;
 }
 

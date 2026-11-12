@@ -717,7 +717,7 @@ export const BLOCS_LINT = [
   {
     // #3948
     files: CODE_DES_ZONES,
-    excludeFiles: [SOURCE_DU_BASE64, '**/*.test.*', '**/*.bench.*'],
+    excludeFiles: [SOURCE_DU_BASE64],
     rules: {
       'murs/base64': ['error', ...CODECS_BASE64.map((name) => ({ name, message: MSG_BASE64 }))],
       'murs/base64-hote': ['error', ...HOTES.flatMap((object) => CODECS_BASE64.map((property) => ({ object, property, message: MSG_BASE64 })))],

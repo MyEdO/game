@@ -15,7 +15,7 @@ import { facesDuDecor } from './propVolumes';
 import { ancreDuDecor } from '../footprint';
 import { piedDuDecor } from '../poseDuDecor';
 import { matieresDe } from '../../../data';
-import { hash32 } from '../../../data/hash';
+import { hash32, hash32AuMillieme } from '../../../data/hash';
 import { jsonCanonique } from '../../../lib/jsonCanonique.mjs';
 import { enBase64 } from '../../../lib/base64';
 import { couleurDeMatiere, recetteDeMatiere, tintVarFactor } from './matieres';
@@ -49,13 +49,13 @@ interface SurfaceDuVolume extends Provenance {
   fin: number;
 }
 
-/** Une face listée du volume : sa case et sa couche, et sa provenance. */
+/** Une face listée du volume : sa case et sa couche, celle de sa teinte, et sa provenance. */
 interface FaceListee extends Provenance {
   face: Face;
   cell: { x: number; y: number; z: number };
 }
 
-/** Le genre d'un morceau du volume : `sol` (sol, relief, raccords, piliers, mer), `pose` (décors et crêtes). */
+/** Le genre d'un morceau du volume : `sol` (sol, relief, raccords, piliers), `pose` (mer, décors et crêtes). */
 type Genre = 'sol' | 'pose';
 
 /** Le côté, en cases, du bloc carré de cases d'une couche que couvre un morceau du volume. */
@@ -83,7 +83,11 @@ interface GeometrieDuMonde {
   normales: number[];
   /** Couleur sRGB opaque de chaque sommet, canaux dans [0, 1], 4 nombres par sommet (rouge, vert, bleu, alpha). */
   couleurs: number[];
-  /** La case `[x, y, z]` de chaque triangle, sa couche comprise, dans l'ordre des triangles. */
+  /**
+   * La case `[x, y, z]` de chaque triangle, sa couche comprise, dans l'ordre des triangles : toujours sur la carte, la
+   * case de la carte la plus proche pour une face posée hors d'elle (un décor hors de la carte, le pont ou la mer d'un
+   * navire posé au bord).
+   */
   cases: [number, number, number][];
   /**
    * une par matière (et provenance), ses sommets de `debut` à `fin` exclu, dans l'ordre des triangles. Les triangles
@@ -106,17 +110,21 @@ interface GeometrieDuMonde {
 /**
  * @contrat Monde
  * Un morceau du volume (`MorceauDuMonde`) : les faces d'un genre des cases d'un bloc de `CASES_PAR_MORCEAU` ×
- * `CASES_PAR_MORCEAU` cases (8) d'une couche, triangulées avec tout le volume. La face d'une case va au morceau de sa
- * case : le sol, la mer, le décor à sa case d'ancrage, la crête à la case crénelée qu'elle ceinture
- * (`CreteDePerimetre.case`), toujours sur la carte, quand la case de son arête peut en sortir.
+ * `CASES_PAR_MORCEAU` cases d'une couche de la scène, triangulées avec tout le volume. La face d'une case va au morceau
+ * de sa case (`cases`, sur la carte) : le sol, la mer, le décor à sa case d'ancrage, la crête à la case crénelée qu'elle
+ * ceinture (`CreteDePerimetre.case`), quand la case de son arête peut sortir de la carte ; une face d'une couche absente
+ * de la scène (`Scene.layers`) ne va à aucun.
  */
 export interface MorceauDuMonde extends GeometrieDuMonde {
   /**
-   * `<genre>/<z>/<bx>/<by>` : le genre (`sol` : sol, relief, raccords, piliers, mer ; `pose` : décors et crêtes), la
-   * couche, et le bloc, `bx = floor(x / 8)`, `by = floor(y / 8)`.
+   * `<genre>/<z>/<bx>/<by>` : le genre (`sol` : sol, relief, raccords, piliers ; `pose` : mer, décors et crêtes), la
+   * couche, et le bloc, `bx = floor(x / CASES_PAR_MORCEAU)`, `by = floor(y / CASES_PAR_MORCEAU)`.
    */
   cle: string;
-  /** L'empreinte de son contenu (`hash32`, en base 36) : elle ne bouge que si l'une de ses faces change. */
+  /**
+   * L'empreinte de son contenu (`hash32` de ses surfaces et de sa rangée, poursuivi par `hash32AuMillieme` sur ses
+   * tableaux, en base 36) : elle ne bouge que si l'une de ses faces change.
+   */
   empreinte: string;
   /**
    * La première rangée, dans le masque du retrait (`RetraitDuMonde`), du plan de son genre et de sa couche : la case
@@ -157,7 +165,8 @@ export interface VolumeDuMonde {
  * `2·i·h` à `2·i·h + h − 1`, son plan `pose` aux rangées `(2·i + 1)·h` à `(2·i + 2)·h − 1`. Une case retirée vaut
  * 255, une case montrée 0. Au plan `pose`, une case est retirée si elle est au couvercle ou au-dessus de la couche
  * active ; au plan `sol`, si elle est au couvercle, ou au-dessus de la couche active sans coiffer un bloc plein
- * (`capsSolid`, `src/noyau/monde/volume/floors.ts` : le chemin de ronde reste montré).
+ * (`capsSolid`, `src/noyau/monde/volume/floors.ts` : le chemin de ronde reste montré). Le plan `pose` porte la mer
+ * d'un navire : elle suit la couche de son pont, bloc plein dessous ou non.
  */
 export interface RetraitDuMonde {
   /** Les octets du masque, rangée après rangée, en base64. */
@@ -176,7 +185,7 @@ export interface RetraitDuMonde {
 export interface NappeDuMonde extends GeometrieDuMonde {
   /** Sa clé : `nappeKey` pour une nappe, `edgeKey` pour une couronne. */
   cle: string;
-  /** L'empreinte de son contenu (`hash32`, en base 36). */
+  /** L'empreinte de son contenu (`hash32` de ses surfaces, poursuivi par `hash32AuMillieme` sur ses tableaux, en base 36). */
   empreinte: string;
 }
 
@@ -222,7 +231,8 @@ function triangulees<F extends FaceListee>(scene: Scene, listees: readonly F[]):
 }
 
 /** Les faces `faces` déjà triangulées (`triangulees`), orientées (`trianglesOrientes`) et colorées depuis la donnée,
- *  chacune à la variance de teinte de sa case, les triangles d'une même matière à la suite. */
+ *  chacune à la variance de teinte de sa case, rangée à la case de la carte la plus proche (`caseSurLaCarte`), les
+ *  triangles d'une même matière à la suite. */
 function emballer(scene: Scene, faces: readonly (FaceListee & { geom: FaceGeom })[]): GeometrieDuMonde {
   const centre = centreDeLaCarte(scene.dimensions, sceneMetresPerTile(scene));
   const parMatiere = new Map<string, Provenance & { matiere: string; faces: number[] }>();
@@ -244,7 +254,7 @@ function emballer(scene: Scene, faces: readonly (FaceListee & { geom: FaceGeom }
       const [r, v, b] = parseHex(couleurDeMatiere(m)) ?? parseHex(MISSING_TONE)!;
       const k = tintVarFactor(recetteDeMatiere(m), faces[i].cell) / 255;
       const couleur = [...[r, v, b].map((c) => arrondi(Math.min(1, c * k))), 1];
-      const { x, y, z } = faces[i].cell;
+      const { x, y, z } = caseSurLaCarte(scene, faces[i].cell);
       for (const { sommets, normale } of trianglesOrientes(faces[i].geom, centre)) {
         const n = normale ?? { x: 0, y: 1, z: 0 };
         cases.push([x, y, z]);
@@ -260,8 +270,18 @@ function emballer(scene: Scene, faces: readonly (FaceListee & { geom: FaceGeom }
   return { positions, normales, couleurs, cases, surfaces };
 }
 
-/** L'empreinte (`hash32`, en base 36) d'un contenu du monde. */
-const empreinteDe = (contenu: object): string => hash32(jsonCanonique(contenu)).toString(36);
+/** L'empreinte d'une géométrie du monde et de sa rangée au masque, s'il en a une : `hash32` de ses surfaces et de sa
+ *  rangée, poursuivi par `hash32AuMillieme` sur ses positions, ses normales, ses couleurs et ses cases, en base 36. */
+function empreinteDe({ positions, normales, couleurs, cases, surfaces, rangee }: GeometrieDuMonde & { rangee?: number }): string {
+  const h = [positions, normales, couleurs, cases.flat()].reduce((acc, t) => hash32AuMillieme(t, acc), hash32(jsonCanonique(surfaces), rangee ?? ''));
+  return h.toString(36);
+}
+
+/** La case de la carte de `scene` la plus proche de `cell`, à sa couche. */
+const caseSurLaCarte = (scene: Scene, { x, y, z }: { x: number; y: number; z: number }): { x: number; y: number; z: number } => {
+  const { w, h } = scene.dimensions;
+  return { x: Math.min(Math.max(x, 0), w - 1), y: Math.min(Math.max(y, 0), h - 1), z };
+};
 
 /** La rangée du masque où commence le plan du genre `genre` de la couche d'indice `i` (`scene.layers`), pour une scène
  *  de `h` rangées de cases. */
@@ -270,7 +290,8 @@ const rangeeDuPlan = (i: number, genre: Genre, h: number): number => (2 * i + (g
 /** Le volume du monde de `scene`, de toutes ses couches, en morceaux : le sol (terrain, relief, raccords, piliers), la
  *  mer de la flottaison de chaque navire (`MER`, à la hauteur 0, à la place du sol de la scène hors de ses ponts), les
  *  crêtes des zones crénelées (`cretesDePerimetre`) et les décors volumiques (`decorsVolumiques`), triangulés ensemble,
- *  puis rangés au morceau de la case et du genre de chaque face. Le sol et les crêtes d'une case que les ponts d'un
+ *  puis rangés au morceau de la case de la carte la plus proche de chaque face (`caseSurLaCarte`) et de son genre ; une
+ *  face d'une couche absente de la scène ne va à aucun. Le sol et les crêtes d'une case que les ponts d'un
  *  navire posent portent ce navire (`provenanceDesNavires`) ; ses décors, non. Mémoïsé par scène. PUR. */
 export const volumeDuMonde = memoByRef((scene: Scene): VolumeDuMonde => {
   const mpt = sceneMetresPerTile(scene);
@@ -286,7 +307,7 @@ export const volumeDuMonde = memoByRef((scene: Scene): VolumeDuMonde => {
     .flatMap((el) => el.faces.map((face) => ({ face, cell: el.cell, ...duNavire(el.cell), genre: 'sol' as const })));
   const mer = [...flottaison].flatMap(([cle, navire]) => {
     const [x, y, z] = cle.split(',').map(Number);
-    return facesDuDessus({ x, y, h: 0, quarts: [], pente: false, marches: false, divisions: 1 }, MER).map((face) => ({ face, cell: { x, y, z }, flottaison: navire, genre: 'sol' as const }));
+    return facesDuDessus({ x, y, h: 0, quarts: [], pente: false, marches: false, divisions: 1 }, MER).map((face) => ({ face, cell: { x, y, z }, flottaison: navire, genre: 'pose' as const }));
   });
   const cretes = cretesDePerimetre(scene).flatMap((c) => c.faces.map((face) => ({ face, cell: c.case, ...duNavire(c.case), genre: 'pose' as const })));
   const decors = decorsVolumiques(scene, mpt).map((f) => ({ ...f, genre: 'pose' as const }));
@@ -294,7 +315,9 @@ export const volumeDuMonde = memoByRef((scene: Scene): VolumeDuMonde => {
   const indiceDe = new Map(scene.layers.map((l, i) => [l.z, i]));
   const parMorceau = new Map<string, { genre: Genre; z: number; faces: (FaceListee & { geom: FaceGeom })[] }>();
   for (const f of triangulees(scene, [...sol, ...mer, ...cretes, ...decors])) {
-    const { genre, cell: { x, y, z } } = f;
+    const { genre } = f;
+    const { x, y, z } = caseSurLaCarte(scene, f.cell);
+    if (!indiceDe.has(z)) continue;
     const cle = `${genre}/${z}/${Math.floor(x / CASES_PAR_MORCEAU)}/${Math.floor(y / CASES_PAR_MORCEAU)}`;
     (parMorceau.get(cle) ?? parMorceau.set(cle, { genre, z, faces: [] }).get(cle)!).faces.push(f);
   }
@@ -306,10 +329,11 @@ export const volumeDuMonde = memoByRef((scene: Scene): VolumeDuMonde => {
   return { metresParCase: mpt, hauteurs, morceaux };
 });
 
-/** Le masque de ce que le regard retire du volume de `scene` (`volumeDuMonde`) : les cases des couches au-dessus de
- *  `activeZ` (sans lui, la plus haute), hors du sol d'une case qui coiffe un bloc plein (`capsSolid`, le chemin de ronde
- *  reste montré), et celles du `couvercle` (clés `x,y,z`, `spaceCellKey`), chacune dans le plan de son genre. PUR. */
-export function retraitDuMonde(scene: Scene, activeZ = Math.max(...scene.layers.map((l) => l.z)), couvercle: ReadonlySet<string> = new Set()): RetraitDuMonde {
+/** Les octets du masque de ce que le regard retire du volume de `scene` (`volumeDuMonde`, `RetraitDuMonde`) : les cases
+ *  des couches au-dessus de `activeZ` (sans lui, la plus haute), hors du sol d'une case qui coiffe un bloc plein
+ *  (`capsSolid`, le chemin de ronde reste montré), et celles du `couvercle` (clés `x,y,z`, `spaceCellKey`), chacune dans
+ *  le plan de son genre. PUR. */
+export function octetsDuRetrait(scene: Scene, activeZ = Math.max(...scene.layers.map((l) => l.z)), couvercle: ReadonlySet<string> = new Set()): Uint8Array {
   const { w, h } = scene.dimensions;
   const octets = new Uint8Array(2 * scene.layers.length * h * w);
   scene.layers.forEach(({ z }, i) => {
@@ -321,7 +345,12 @@ export function retraitDuMonde(scene: Scene, activeZ = Math.max(...scene.layers.
         if (couverte || (dessus && !capsSolid(scene, x, y, z))) octets[(rangeeDuPlan(i, 'sol', h) + y) * w + x] = RETIREE;
       }
   });
-  return { masque: enBase64(octets), largeur: w, rangees: 2 * scene.layers.length * h };
+  return octets;
+}
+
+/** Le masque de ce que le regard retire du volume de `scene` (`octetsDuRetrait`), en base64. PUR. */
+export function retraitDuMonde(scene: Scene, activeZ?: number, couvercle?: ReadonlySet<string>): RetraitDuMonde {
+  return { masque: enBase64(octetsDuRetrait(scene, activeZ, couvercle)), largeur: scene.dimensions.w, rangees: 2 * scene.layers.length * scene.dimensions.h };
 }
 
 /** Les nappes de toit de `scene`, une par masse de bâtiment (`nappeKey`), chacune de ses pans et de ses pignons, et son

@@ -8,7 +8,8 @@
 import { describe, it, expect } from 'vitest';
 import { drainer, erreurDe, table, enFocus, mondeDe, morceauxDe, vueDe } from './pont.testkit';
 import type { MorceauxDuPont } from './pont';
-import { hash32 } from '../../../src/data/hash';
+import { hash32AuMillieme } from '../../../src/data/hash';
+import { depuisBase64 } from '../../../src/lib/base64';
 import { CLIC_DU_CHAMP, type AreteDessinee, type RetraitDuMonde } from '../../../src/noyau/index';
 import type { Bouton } from '../../../src/hote/elements';
 
@@ -81,7 +82,7 @@ describe('l’exploration par le pont', () => {
     const retrait = appel('retrait') as unknown as RetraitDuMonde;
     const plateau = vueDe(appel('vue')).plateau!;
     expect([retrait.largeur, retrait.rangees]).toEqual([plateau.w, 2 * monde.hauteurs.length * plateau.h]);
-    expect(hash32(retrait.masque).toString(36), 'la clé du retrait est l’empreinte de son masque').toBe(plateau.cleDuRetrait);
+    expect(hash32AuMillieme(depuisBase64(retrait.masque)).toString(36), 'la clé du retrait est l’empreinte des octets de son masque').toBe(plateau.cleDuRetrait);
     expect(erreurDe(appel('retrait', { regard: 'plateau' })).message).toBe('retrait : regard hors de l’entrée (aucune clé)');
   });
 });

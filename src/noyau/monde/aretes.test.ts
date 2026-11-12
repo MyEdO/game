@@ -5,6 +5,7 @@ import type { Pt } from './path';
 import { emptyScene, setDoorOpen, setDoorRevealed, setStructureDown, setTileCollapsed, type Scene, type WallSeg } from './scene';
 import { volumeDuMonde } from './volume/volume';
 import { casesMontrees } from './volume/volume.testkit';
+import { depuisBase64 } from '../../lib/base64';
 import { METRES_PER_LEVEL } from './relief';
 import { structureAppearances } from '../../data';
 
@@ -173,7 +174,7 @@ describe('plateauDeLaScene — ce que chaque regard retire (#3476)', () => {
   it('en immersion, rien ne tombe ni n’est retiré, même sous un étage', () => {
     const plateau = plateauDeLaScene(maison(), [{ x: 1, y: 1 }], 'immersion');
     expect([plateau.aretesDegagees, plateau.toitsLeves]).toEqual([[], []]);
-    expect(Buffer.from(masqueDuRegard(maison(), [{ x: 1, y: 1 }], 'immersion').masque, 'base64').every((o) => o === 0)).toBe(true);
+    expect(depuisBase64(masqueDuRegard(maison(), [{ x: 1, y: 1 }], 'immersion').masque).every((o) => o === 0)).toBe(true);
   });
   it('la clé du monde suit les tuiles effondrées, pas la couche du groupe ; la clé du retrait suit la couche du groupe', () => {
     const rez = plateauDeLaScene(maison(), [{ x: 3, y: 3 }], 'plateau');
@@ -182,12 +183,23 @@ describe('plateauDeLaScene — ce que chaque regard retire (#3476)', () => {
     expect(etage.cleDuRetrait).not.toBe(rez.cleDuRetrait);
     expect(plateauDeLaScene(setTileCollapsed(maison(), 2, 2, 1), [{ x: 3, y: 3 }], 'plateau').cleDuMonde).not.toBe(rez.cleDuMonde);
   });
-  it('le regard publié, l’œil à hauteur d’homme, et une clé de volume par regard', () => {
-    const cles = REGARDS.map((r) => plateauDeLaScene(maison(), [{ x: 1, y: 1 }], r));
-    expect(cles.map((p) => p.regard)).toEqual(REGARDS);
-    expect(cles.map((p) => p.regardSuivant)).toEqual(['plateau', 'immersion', 'tactique']);
-    expect(new Set(cles.map((p) => p.cleDuMonde)).size).toBe(REGARDS.length);
-    expect(cles[0].oeilM).toBe(EYE_H);
+  it('le regard publié et l’œil à hauteur d’homme', () => {
+    const plateaux = REGARDS.map((r) => plateauDeLaScene(maison(), [{ x: 1, y: 1 }], r));
+    expect(plateaux.map((p) => p.regard)).toEqual(REGARDS);
+    expect(plateaux.map((p) => p.regardSuivant)).toEqual(['plateau', 'immersion', 'tactique']);
+    expect(plateaux[0].oeilM).toBe(EYE_H);
+  });
+  it('la clé du monde suit la météo que le regard montre, et elle seule : ni le regard ni la météo d’un intérieur ne la changent', () => {
+    const cle = (s: Scene, r: Regard) => plateauDeLaScene(s, [{ x: 1, y: 1 }], r).cleDuMonde;
+    const sec = cle(maison(), 'tactique');
+    expect(REGARDS.map((r) => cle(maison(), r)), 'sans météo, le regard ne la change pas').toEqual(REGARDS.map(() => sec));
+    for (const weather of ['pluie', 'brouillard'] as const)
+      expect(REGARDS.map((r) => cle({ ...maison(), ambiance: 'interieur', weather }, r)), `${weather} en intérieur`).toEqual(REGARDS.map(() => sec));
+    const pluie: Scene = { ...maison(), weather: 'pluie' };
+    expect(cle(pluie, 'tactique'), 'la pluie montrée').not.toBe(sec);
+    expect(cle(pluie, 'plateau'), 'au plateau, la pluie ne tombe pas').not.toBe(cle(pluie, 'tactique'));
+    expect(cle(pluie, 'immersion'), 'la même pluie montrée, la même clé').toBe(cle(pluie, 'tactique'));
+    expect(cle({ ...maison(), weather: 'brouillard' }, 'tactique'), 'une autre météo montrée').not.toBe(cle(pluie, 'tactique'));
   });
   it('l’immersion cède à la tactique en combat', () => {
     expect(regardDuJeu('immersion', true)).toBe('tactique');

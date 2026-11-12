@@ -3,6 +3,7 @@
  * d'un retrait (`retraitDuMonde`) laisse montrés.
  */
 import type { MorceauDuMonde, RetraitDuMonde, VolumeDuMonde } from './volume';
+import { depuisBase64 } from '../../../lib/base64';
 
 type Geometrie = Pick<MorceauDuMonde, 'positions' | 'normales' | 'couleurs' | 'cases' | 'surfaces'>;
 
@@ -28,7 +29,7 @@ export const trianglesDuVolume = (v: VolumeDuMonde) => v.morceaux.flatMap((m) =>
 
 /** Les triangles du volume `v` que le masque `r` laisse montrés : l'octet de leur case, au plan de leur morceau, vaut 0. */
 export function trianglesMontres(v: VolumeDuMonde, r: RetraitDuMonde) {
-  const octets = Buffer.from(r.masque, 'base64');
+  const octets = depuisBase64(r.masque);
   return trianglesDuVolume(v).filter((t) => octets[(t.morceau.rangee + t.case[1]) * r.largeur + t.case[0]] === 0);
 }
 

@@ -185,7 +185,7 @@ test('les murs mordent dans leur portée et passent leurs témoins neutres ou ex
     ['hotes/godot/pont/parite-base64.ts','export const a=atob(x);','murs/base64',1],
     ['src/net/parite-base64-hote.ts','export const a=globalThis.btoa(x);','murs/base64-hote',1],
     ['src/lib/base64.ts','export const a=btoa(x)+atob(x);','murs/base64',0],
-    ['src/noyau/parite-base64.test.ts','export const a=btoa(x);','murs/base64',0],
+    ['src/noyau/parite-base64.test.ts','export const a=btoa(x);','murs/base64',1],
     ['src/state/parite-minuterie.ts','setTimeout(f,0);','murs/minuteries',1],
     ['src/lib/parite-minuterie.ts','export const id=setInterval(f,9);','murs/minuteries',1],
     ['src/state/parite-minuterie-reference.ts','export const poser=setTimeout;','murs/minuteries',1],

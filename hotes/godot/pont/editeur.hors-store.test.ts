@@ -121,6 +121,27 @@ describe('l’éditeur de carte par le pont', () => {
     expect(boutonDe(annule, 'retablir').refus).toBeNull();
   });
 
+  it('pendant une glisse, morceaux source edition rend la scène du dernier manifeste ; au relâché, celle du neuf', () => {
+    const { appel } = table();
+    const jouer = (edition: unknown) => editionDe(appel('editer', { edition }));
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const ouverte = editionDe(appel('editer', { ouvrir: CAMPAGNE }));
+    const avant = jouer({ geste: 'appui', point: point(1, 1) }).vue.zones['editeur.pointee'][0].texte;
+    jouer({ geste: 'relache', point: point(1, 1) });
+    presser(valeursDe(presser(boutonDe(ouverte, 'outil/tile')), 'terrains').find((b) => !avant.includes(` · ${b.libelle} · `))!);
+    jouer({ geste: 'appui', point: point(1, 1) });
+    const glisse = jouer({ geste: 'glisse', point: point(2, 1) });
+    expect([glisse.monde, glisse.surcouche.cases.length], 'la glisse ne rend que la surcouche').toEqual([undefined, 2]);
+    const cles = ouverte.monde!.morceaux.map((m) => m.cle);
+    const pendant = appel('morceaux', { source: 'edition', volume: cles, toits: [], couronnes: [] }) as unknown as MorceauxDuPont;
+    expect(pendant.volume.map((m) => [m.cle, m.empreinte]), 'les morceaux de l’ouverture').toEqual(ouverte.monde!.morceaux.map((m) => [m.cle, m.empreinte]));
+    const fini = jouer({ geste: 'relache', point: point(2, 1) });
+    const bouges = fini.monde!.morceaux.filter((m) => ouverte.monde!.morceaux.find((o) => o.cle === m.cle)?.empreinte !== m.empreinte);
+    expect(bouges.length, 'le trait relâché change des morceaux').toBeGreaterThan(0);
+    const apres = appel('morceaux', { source: 'edition', volume: bouges.map((m) => m.cle), toits: [], couronnes: [] }) as unknown as MorceauxDuPont;
+    expect(apres.volume.map((m) => [m.cle, m.empreinte]), 'ceux du manifeste neuf').toEqual(bouges.map((m) => [m.cle, m.empreinte]));
+  });
+
   it('un geste que les zones n’offrent pas, ou un point mal formé, se refuse ; un bouton refusé se refuse en règle', () => {
     const { appel } = table();
     appel('editer', { ouvrir: CAMPAGNE });

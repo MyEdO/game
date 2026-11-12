@@ -11,13 +11,14 @@ import { EYE_H, hauteurDeLOeil } from './iso';
 import { METRES_PER_LEVEL } from './relief';
 import { casesDeFace, heightAt, isWalkable, piedDeLArete, porteEnJeu, sceneMetresPerTile, structureIsDown, tuilesEffondreesSignature, wallEnds, wallIsOpen, type Scene, type WallSeg } from './scene';
 import { memoByRef } from './sceneMemo';
-import { hash32 } from '../../data/hash';
+import { hash32, hash32AuMillieme } from '../../data/hash';
 import { jsonCanonique } from '../../lib/jsonCanonique.mjs';
 import { spaceCellKey } from './volume/architectureVisibility';
 import type { Rot } from '../../geometry/iso';
 import { cutawayOverhead, frontFacadeCutaway, type ClearedSpace } from './volume/architectureVisibility';
 import { clearedSpace } from './volume/toits';
-import { empreinteDesDecors, retraitDuMonde, toitsLeves, toutesLesNappes, type RetraitDuMonde } from './volume/volume';
+import { empreinteDesDecors, octetsDuRetrait, retraitDuMonde, toitsLeves, toutesLesNappes, type RetraitDuMonde } from './volume/volume';
+import { meteoDuRegard } from './meteo';
 import { aretesHorsDesNavires, provenanceDesNavires } from '../planDeNavire';
 
 /** La pièce qu'une arête porte : un mur plein, une porte fermée ou ouverte, une fenêtre aux volets ouverts ou clos, ou
@@ -160,6 +161,16 @@ const empreinteDesNavires = (scene: Scene): string => {
   return jsonCanonique([[...cases], [...aretes], [...flottaison]]);
 };
 
+/** La clé du monde de `scene` (`PlateauDeLaScene.cleDuMonde`) sous chaque regard : l'empreinte de ce qui ne tient qu'à
+ *  la scène (ses décors, `empreinteDesDecors`, ses tuiles effondrées, `tuilesEffondreesSignature`, ses navires posés,
+ *  `empreinteDesNavires`), poursuivie par celle de la météo que le regard montre (`meteoDuRegard`). Mémoïsée par scène,
+ *  chaque regard au premier appel. */
+const clesDuMonde = memoByRef((scene: Scene): ((regard: Regard) => string) => {
+  const deLaScene = hash32(empreinteDesDecors(scene), tuilesEffondreesSignature(scene), empreinteDesNavires(scene));
+  const parRegard = new Map<Regard, string>();
+  return (regard) => parRegard.get(regard) ?? parRegard.set(regard, hash32(deLaScene, jsonCanonique(meteoDuRegard(scene, regard))).toString(36)).get(regard)!;
+});
+
 /** La hauteur de l'œil de chaque case marchable de `scene` où elle est plus basse que debout (`hauteurDeLOeil`), par
  *  sa clé `x,y,z` (`spaceCellKey`). Mémoïsée par scène. */
 const oeilsSousPlafond = memoByRef((scene: Scene): Record<string, number> => {
@@ -207,15 +218,16 @@ export interface PlateauDeLaScene {
   /** celui qui le suit dans `REGARDS`. */
   regardSuivant: Regard;
   /**
-   * La clé du monde, une empreinte (`hash32`), change quand le regard change (sa météo), quand la météo de la scène
-   * change, quand un décor naît, sort ou change en jeu (`empreinteDesDecors`, `src/noyau/monde/volume/volume.ts` : un
-   * objet posé au sol, un coffre vidé), quand une tuile s'effondre (`tuilesEffondreesSignature`) et quand un navire
-   * bouge (`provenanceDesNavires`) : le jeu rappelle alors `monde`.
+   * La clé du monde, une empreinte (`hash32`) de ce que `monde` rendrait de neuf, change quand la météo que le regard
+   * montre change (`meteoDuRegard`, `src/noyau/monde/meteo.ts` : un regard ou une météo changés sans météo à montrer,
+   * en intérieur, ne la changent pas), quand un décor naît, sort ou change en jeu (`empreinteDesDecors`,
+   * `src/noyau/monde/volume/volume.ts` : un objet posé au sol, un coffre vidé), quand une tuile s'effondre
+   * (`tuilesEffondreesSignature`) et quand un navire bouge (`provenanceDesNavires`) : le jeu rappelle alors `monde`.
    */
   cleDuMonde: string;
   /**
-   * La clé du retrait, l'empreinte (`hash32`, en base 36) du masque que le regard retire pour le groupe
-   * (`masqueDuRegard`) : le jeu rappelle `retrait` quand elle change.
+   * La clé du retrait, l'empreinte (`hash32AuMillieme`, `src/data/hash.ts`, en base 36) des octets du masque que le
+   * regard retire pour le groupe (`masqueDuRegard`) : le jeu rappelle `retrait` quand elle change.
    */
   cleDuRetrait: string;
   /**
@@ -265,8 +277,8 @@ export const aretesDeLaScene = (scene: Scene): AreteDessinee[] => aretesEtEmprei
  * Le plateau d'une scène tel qu'un hôte le dessine sous le regard `regard` : ses dimensions, l'empreinte de ses arêtes
  * (`cleDesAretes`, `aretesDeLaScene`), son échelle métrique
  * (`sceneMetresPerTile`), la hauteur de l'œil au-dessus du sol debout (`EYE_H`) et sous le plafond de chaque case qui
- * l'abaisse (`oeilsSousPlafond`), le regard et celui qui le suit dans `REGARDS`, la clé du monde (`cleDuMonde` :
- * météo du regard, décors, tuiles effondrées, navires posés), celle du masque du retrait (`cleDuRetrait`,
+ * l'abaisse (`oeilsSousPlafond`), le regard et celui qui le suit dans `REGARDS`, la clé du monde (`cleDuMonde`,
+ * `clesDuMonde` : météo que le regard montre, décors, tuiles effondrées, navires posés), celle du masque du retrait (`cleDuRetrait`,
  * `masqueDuRegard`), ce que le regard retire pour le groupe posé sur `allies` : les nappes de toit (`toitsLeves`
  * : en tactique, celles qu'il dégage ; au plateau, toutes), les arêtes (`aretesDegagees` : en tactique, celles qu'il
  * dégage ; au plateau, celles des couches au-dessus de la sienne, sous tout cran) et le haut des navires
@@ -284,8 +296,8 @@ export function plateauDeLaScene(scene: Scene, allies: readonly Pt[], regard: Re
   };
   return {
     w, h, metresParCase: sceneMetresPerTile(scene), oeilM: EYE_H, oeilsSousPlafond: oeilsSousPlafond(scene), regard, regardSuivant: REGARDS[(REGARDS.indexOf(regard) + 1) % REGARDS.length],
-    cleDuMonde: hash32(regard, scene.weather ?? '', empreinteDesDecors(scene), tuilesEffondreesSignature(scene), empreinteDesNavires(scene)).toString(36),
-    cleDuRetrait: hash32(retraitDuMonde(scene, activeZ, couvercle).masque).toString(36),
+    cleDuMonde: clesDuMonde(scene)(regard),
+    cleDuRetrait: hash32AuMillieme(octetsDuRetrait(scene, activeZ, couvercle)).toString(36),
     cleDesAretes: aretesEtEmpreinte(scene).cle, aretesDegagees: aretesRetirees(),
     toitsLeves: regard === 'tactique' ? toitsLeves(scene, allies) : regard === 'plateau' ? toutesLesNappes(scene) : [],
     couronnesAbattues: couronnesAbattues(scene, dessinees),
