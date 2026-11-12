@@ -13,7 +13,7 @@ const SCENARIO := "dome"
 ## L'attente la plus longue d'un état : le lancement du processus et le démarrage de la partie compris.
 const ATTENTE_S := 120.0
 ## La plus petite pile valide (`PileDemandee`, `hotes/godot/pont/pile.ts`) : aucune pièce.
-const PILE := {pieces = [], parents = {}, osDeChaine = []}
+const PILE := {pieces = [], peau = [], parents = {}, osDeChaine = []}
 var _fautes: Array[String] = []
 ## Chaque panne et chaque refus signalés par le pont.
 var _signales: Array[String] = []
