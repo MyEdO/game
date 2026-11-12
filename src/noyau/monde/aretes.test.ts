@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { areteDessinee, aretesDeLaCouche, plateauDeLaScene, regardDuJeu, REGARDS, volumeDuRegard, type Regard } from './aretes';
+import { areteDessinee, aretesDeLaCouche, aretesDeLaScene, plateauDeLaScene, regardDuJeu, REGARDS, volumeDuRegard, type Regard } from './aretes';
 import { EYE_H } from './iso';
 import type { Pt } from './path';
 import { emptyScene, setDoorOpen, setDoorRevealed, setStructureDown, type Scene, type WallSeg } from './scene';
@@ -69,11 +69,11 @@ describe('aretesDeLaCouche', () => {
   });
 });
 
-describe('plateauDeLaScene — les arêtes de toutes les couches (#3476)', () => {
+describe('aretesDeLaScene — les arêtes de toutes les couches (#3476)', () => {
   it('le mur de l’étage est au plateau, dressé du plancher de l’étage', () => {
     const s = scene([{ x: 0, y: 0, side: 'N' }, { x: 1, y: 1, side: 'E', z: 1 }]);
     s.layers.push({ z: 1, tiles: new Array(16).fill('plancher'), height: new Array(16).fill(METRES_PER_LEVEL) });
-    const aretes = plateauDeLaScene(s, [], 'tactique').aretes;
+    const aretes = aretesDeLaScene(s);
     expect(aretes.map((a) => [a.case, a.pied])).toEqual([[{ x: 0, y: 0 }, 0], [{ x: 1, y: 1 }, METRES_PER_LEVEL]]);
   });
 });

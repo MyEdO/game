@@ -2,6 +2,8 @@ import shipCriticalsJson from './ship-criticals.json';
 import type { Tirage } from '../engine/dice';
 import { deDeLaTableTiree, type DeDeTable } from '../engine/tables';
 import riverCriticalsJson from './river-criticals.json';
+import type * as shipCriticalsDef from './schemas/defs/ship-criticals';
+import type * as riverCriticalsDef from './schemas/defs/river-criticals';
 import type { ShipLocation } from '../engine/combat';
 import type { GameOp, Formula } from '../engine/ops';
 import type { FlowTestNode } from '../engine/flowCore';
@@ -98,8 +100,9 @@ export interface ShipCritSet {
   die: DeDeTable | null;
   /** id STABLE du jeu — la valeur que porte `hull.criticalTable`. */
   id: string;
-  /** Fichier du jeu, racine de l'espace de ses tables (`categorieDeLaNiche`). */
-  fichier: string;
+  /** Fichier du jeu, racine de l'espace de ses tables (`categorieDeLaNiche`), lié par le type au `file`
+   *  de son def. */
+  fichier: typeof shipCriticalsDef.file | typeof riverCriticalsDef.file;
   /** Effet des Éclats — le SEUL jeu qui en porte est MDG (mot-clé « Éclats N », ch.13) ; MSRC ne
    *  l'emploie jamais. Absent ⇒ aucune rangée du jeu ne peut porter d'Indice, et `applyHullCritical`
    *  le dit par une anomalie nommée plutôt que par un repli muet. */
@@ -116,7 +119,7 @@ export interface ShipCritSet {
 /** Jeu MDG (mer, ch.13) — Éclats 9 Dégâts. */
 export const SHIP_CRIT_SET: ShipCritSet = {
   get id() { return shipCriticalsJson.id; },
-  fichier: 'ship-criticals.json',
+  fichier: 'ship-criticals.json' satisfies typeof shipCriticalsDef.file,
   get die() { return deDeLaTableTiree(shipCriticalsJson); },
   get shrapnelHit() { return shipCriticalsJson.shrapnelHit as GameOp[]; },
   get replisSansExpose() { return shipCriticalsJson.replisSansExpose as { cible: ShipCritKey; maison?: string }; },
@@ -127,7 +130,7 @@ export const SHIP_CRIT_SET: ShipCritSet = {
 /** Jeu MSRC (fleuve, ch.5) — Éclats +5 Dégâts, Localisations Gréement/Rames/Gouvernail/Coque/Superstructure. */
 export const RIVER_CRIT_SET: ShipCritSet = {
   get id() { return riverCriticalsJson.id; },
-  fichier: 'river-criticals.json',
+  fichier: 'river-criticals.json' satisfies typeof riverCriticalsDef.file,
   die: null,
   get replisSansExpose() { return riverCriticalsJson.replisSansExpose as { cible: ShipCritKey; maison?: string }; },
   tables: riverCriticalsJson.tables as unknown as Partial<Record<ShipCritKey, ShipCritTable>>,

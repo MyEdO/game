@@ -15,7 +15,7 @@ signal pose
 ## Le monde dont le volume borde la mer de chaque navire.
 @export var monde: Monde
 
-## Le montage qui tire les GLB des navires (`MontageDeComposition.scene_du_glb`) et en recueille les erreurs.
+## Le montage qui tire les modèles des navires (`MontageDeComposition.scene_du_modele`) et en recueille les erreurs.
 @onready var _chargeur: MontageDeComposition = $Chargeur
 
 ## Par id d'entité, le montage de chaque navire, le dernier navire servi, le repère de la scène nue de son modèle et le

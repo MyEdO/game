@@ -1,7 +1,6 @@
 ## Le plateau du jeu : sur le monde de la scène (`Monde`), sous le regard du plateau (`vue.plateau.regard`,
 ## `Monde.regarder`), sa caméra à la suite de l'actif du combat, sinon du groupe (`Monde.suivre`), ou l'œil du meneur
-## (`Immersion`, dont chaque case jouée part en clic), les arêtes du plateau (`vue.plateau`, `VolumeDeScene.poser_les_aretes`),
-## ses nappes de toit retirées (`toitsLeves`), ses arêtes retirées, abattues sous le cran de la caméra
+## (`Immersion`, dont chaque case jouée part en clic), ses nappes de toit retirées (`toitsLeves`), ses arêtes retirées, abattues sous le cran de la caméra
 ## (`aretesDegagees`), et ses couronnes crénelées, tombées avec leur mur (`couronnesAbattues`, `Monde.cacher_le_bati`),
 ## chaque combattant à sa case et sa couche (`voisins`) ou, en exploration, le meneur du groupe à la case du groupe, à
 ## la station d'une case que le modèle d'un navire rogne (`Monde.poser_les_stations`), chacun sous son corps (`vue.corps`,
@@ -76,7 +75,6 @@ func montrer(vue: Dictionary) -> void:
 	if vue.plateau != null:
 		_monde.regarder(vue.plateau.regard)
 		_monde.poser_les_stations(vue.corps.navires)
-		_monde.volume.poser_les_aretes(vue.plateau.aretes)
 		_monde.cacher_le_bati(vue.plateau.toitsLeves, vue.plateau.couronnesAbattues, vue.plateau.aretesDegagees)
 		_combattants.visible = vue.plateau.regard != "immersion"
 		var suivi: Array = dessines.filter(func(c: Dictionary) -> bool: return c.pos != null and (actif == null or c.id == actif))
@@ -326,7 +324,7 @@ func _survoler(case: Variant) -> void:
 ## @contrat Corps d'un combattant
 ## Le combat de Godot tire `GET modeles/listage.json` (section « Atelier 3D ») et appelle `modeles` avec ses
 ## `manifestes` et ses `osDesRigides` avant `demarrer`. Pour chaque corps de la vue, Godot charge la base sous
-## `modeles/` (`glb` de la réponse de `modeles`), la pose à l'échelle du plateau (un mètre du modèle vaut
+## `modeles/` (`fichiers` de la réponse de `modeles`, sous la `forme` du listage), la pose à l'échelle du plateau (un mètre du modèle vaut
 ## `1 / plateau.metresParCase` case) et lui pose son `gabarit`, ses silhouettes (`morphes`), ses `materiaux` et sa
 ## `palette` ; il pose les éléments de `montes` comme l'atelier les monte (section « Atelier 3D »), une entrée sans
 ## élément ne montant rien. L'emblème d'une entrée de `montes` se pose par `MontageDeComposition`

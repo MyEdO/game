@@ -15,7 +15,7 @@ import merchantsJson from '../../merchants.json';
 import skillsJson from '../../skills.json';
 import talentsJson from '../../talents.json';
 import traitsJson from '../../traits.json';
-import { adressesDesEntreesEmbarquees, document, documentDeLEntreePartielle, exclusiviteAdapteDe, CLES_ENVELOPPE, CLES_EXIGIBLES, META_CHARGE, optionsEnum, type Exposition, type CleExigible } from './document';
+import { adressesDesEntreesEmbarquees, document, documentDeLEntreePartielle, exclusiviteAdapteDe, CLES_ENVELOPPE, CLES_EXIGIBLES, META_CHARGE, optionsEnum, type DeclarationExposition, type Exposition, type CleExigible } from './document';
 import { libelleDeValeur, metaDesChamps, valeursDe, nommerNoeud } from './meta';
 import { descRefSchema, enumNomme, sourceRefSchema } from './valeurs';
 import { proseAdressable, versDisque } from './prose';
@@ -46,7 +46,7 @@ const SOURCE_REELLE = { book: 'livre-de-base', page: 118 };
  *  Fixture SYNTHÉTIQUE : `page: 1` est un remplissage de forme, PAS une citation — aucun folio de ce
  *  livre n'est allégué ici. Le livre, lui, est bien VF (AGENTS.md § Sources VF : la VO ne se cite pas). */
 const SOURCE_SANS_EXTRACTION = { book: 'boite-d-initiation', page: 1 };
-const EXPOSITION: Exposition = { codex: { keys: ['talents'] }, edit: { dataset: 'talents.json' } };
+const EXPOSITION: DeclarationExposition = { codex: { keys: ['talents'] }, edit: { dataset: 'talents.json' } };
 
 describe('document() — enveloppe posée par la fabrique', () => {
   const fiche = document(
@@ -161,16 +161,16 @@ describe('document() — enveloppe posée par la fabrique', () => {
       document('jouet', 'entite', { max: z.number() }, { max: { label: 'Max' } }, { codex: { keys: ['x'] }, edit: {} }),
     ).toThrow(/`edit` exige/);
     expect(() =>
-      document('jouet', 'config', { max: z.number() }, { max: { label: 'Max' } }, { codex: { keys: ['x'] }, edit: { niche: { categories: {} } } }),
+      document('jouet', 'config', { max: z.number() }, { max: { label: 'Max' } }, { edit: { niche: { categories: {} } } }),
     ).toThrow(/`edit.niche.categories` exige/);
     const nichee = document(
       'jouet',
       'config',
       { max: z.number() },
       { max: { label: 'Max' } },
-      { codex: { keys: ['x', 'y'] }, edit: { niche: { categories: { x: 'x' } } } },
+      { edit: { niche: { categories: { y: 'y.entries', x: 'x' } } } },
     );
-    expect(nichee.exposition.edit).toEqual({ niche: { categories: { x: 'x' } } });
+    expect(nichee.exposition).toEqual({ codex: { keys: ['y', 'x'] }, edit: { niche: { categories: { y: 'y.entries', x: 'x' } } } });
     const exempte = document(
       'jouet',
       'config',
@@ -201,33 +201,6 @@ describe('document() — enveloppe posée par la fabrique', () => {
         { codex: { exempt: { kind: 'vocabulaire-app-interne', raison: '   interne   ' } }, edit: { none: 'dérivé' } },
       ),
     ).toThrow(/`exempt` motivé \(raison ≥ 10 caractères\)/);
-  });
-
-  it('CROISE `edit.niche.categories` avec `codex.keys` : une catégorie hors Codex est REFUSÉE, en la nommant', () => {
-    expect(() =>
-      document(
-        'jouet',
-        'config',
-        { max: z.number() },
-        { max: { label: 'Max' } },
-        { codex: { keys: ['x'] }, edit: { niche: { categories: { x: 'x', z: 'z' } } } },
-      ),
-    ).toThrow(/`edit.niche.categories` nomme des clés absentes de `codex.keys` : z/);
-  });
-
-  it('REFUSE `edit.niche` sur un document Codex EXEMPT — aucune clé à router', () => {
-    expect(() =>
-      document(
-        'jouet',
-        'config',
-        { max: z.number() },
-        { max: { label: 'Max' } },
-        {
-          codex: { exempt: { kind: 'vocabulaire-app-interne', raison: 'vocabulaire du moteur, jamais lu par le joueur' } },
-          edit: { niche: { categories: { x: 'x' } } },
-        },
-      ),
-    ).toThrow(/`edit.niche` route des catégories alors que `codex` est EXEMPT/);
   });
 
   it('n’expose AUCUN nœud extensible en aval : `.extend` et `.shape` absents AU RUNTIME', () => {
@@ -578,7 +551,7 @@ describe('defs/ — forme de FICHIER et EXPOSITION déclarée (#1472 sous-lot A)
     expect(fautifs).toEqual([]);
   });
 
-  it('chaque def du registre porte une `exposition` conforme (codex, edit, croisement niche×codex)', () => {
+  it('chaque def du registre porte une `exposition` conforme (codex, edit)', () => {
     const fautifs: string[] = [];
     for (const def of SCHEMA_DEFS) {
       const exposition = (def as { file: string; exposition?: Exposition }).exposition;
@@ -596,11 +569,6 @@ describe('defs/ — forme de FICHIER et EXPOSITION déclarée (#1472 sous-lot A)
         const cats = estObjet(carte) ? Object.keys(carte) : [];
         if (!(cats.length && cats.every((k) => k.length && typeof carte![k] === 'string' && (carte![k] as string).length))) {
           fautifs.push(`${def.file} : \`edit.niche.categories\` vide ou mal formée`);
-        } else if (!keys) {
-          fautifs.push(`${def.file} : \`edit.niche\` sur un Codex EXEMPT`);
-        } else {
-          const hors = cats.filter((k) => !keys.includes(k));
-          if (hors.length) fautifs.push(`${def.file} : \`edit.niche.categories\` hors \`codex.keys\` : ${hors.join(', ')}`);
         }
       }
     }

@@ -9,9 +9,9 @@ import type { EntreeDeLivre } from './source/livre-extrait';
 import { t } from '../i18n';
 import type { Sexe, SourceRef, SecondaryRef, RaceKey, DescRef, FoyerDeRegle, Maniement, MatiereDArmure, Settlement } from './schemas/grammaire/valeurs';
 import { dansLaSousListe, espaceDe, idsDe, idsDeLaSousListe, lireLEspace, porteLeMarqueur, type FeuilleDId, type RefASpecialisation, type RefDesignee, type RefTypee, type TypeEntite } from './schemas/grammaire/ref';
-import { cleNichee, libelleDeLElement, lireCleDEspace, retenuParFiltre, suiteAvecPas, suivreLeChemin } from './schemas/grammaire/cle-d-espace';
+import { cleNichee, libelleDeLElement, lireCleDEspace, retenuParFiltre, suivreLeChemin } from './schemas/grammaire/cle-d-espace';
 import { VOCABULAIRES } from './schemas/grammaire/vocabulaires';
-import { CATEGORIE_CODEX_DU_FICHIER, DATASET_DE_LA_CATEGORIE, DATASET_DE_L_ESPACE, type CleDeDataset, type DatasetDeCategorie } from './schemas/_cles-de-dataset.generated';
+import { CATEGORIE_CODEX_DU_FICHIER, DATASET_DE_LA_CATEGORIE, DATASET_DE_L_ESPACE, type CleCodex, type CleDeDataset, type DatasetDeCategorie } from './schemas/_cles-de-dataset.generated';
 import { RACINES_VIVANTES } from './schemas/_racines-vivantes.generated';
 import { INSTANCIABLE_PAR_ID } from './schemas/grammaire/sousListes';
 import type { DotationDePossession } from './schemas/grammaire/reference';
@@ -50,16 +50,16 @@ import traitsJson from './traits.json';
 import qualitiesJson from './qualities.json';
 import mutationsJson from './mutations.json';
 import mutationTablesJson from './mutationTables.json';
-import { critiqueEntries } from './criticals';
-import { SHIP_CRIT_SET, RIVER_CRIT_SET, type ShipCritSet } from './shipCriticals';
-import { STRUCTURE_CRITICALS } from './structureCriticals';
+import { SHIP_CRIT_SET, RIVER_CRIT_SET } from './shipCriticals';
 import structureCriticalsJson from './structure-criticals.json';
-import { ARTILLERY_MISFIRE } from './artilleryMisfire';
-import miscastRawJson from './miscast.json';
 import { deDeTirageDe, rangeesDe, type RangeeDe } from './rangees';
 import type { DocumentARangees } from './schemas/grammaire/document';
 import { deDeLaTableTiree, type DeDeTable } from '../engine/tables';
-import type * as imparfaites from './schemas/defs/miscast';
+import type * as criticalsDef from './schemas/defs/criticals';
+import type * as miscastDef from './schemas/defs/miscast';
+import type * as structureCriticalsDef from './schemas/defs/structure-criticals';
+import type * as artilleryMisfireDef from './schemas/defs/artillery-misfire';
+import type * as crewTestTypesDef from './schemas/defs/crew-test-types';
 import type { VisuelDEffet, Projectile } from './schemas/defs/rendus';
 import type { VisuelDeLumiere } from './schemas/defs/lightTones';
 import type * as signesAstrologiques from './schemas/defs/stars';
@@ -435,12 +435,40 @@ export function cibleCodex(r: RefTypee): { category: string; id: string } {
   return { category, id: r.id };
 }
 
+/** Fichiers à TABLES TIRÉES dont CHAQUE catégorie Codex (`DATASET_DE_LA_CATEGORIE`) est un pool
+ *  d'entrées : le nom est lié par le type au `file` de son def (#3923). */
+const FICHIERS_DES_TABLES_TIREES: readonly string[] = [
+  'criticals.json' satisfies typeof criticalsDef.file,
+  'miscast.json' satisfies typeof miscastDef.file,
+  'structure-criticals.json' satisfies typeof structureCriticalsDef.file,
+  'artillery-misfire.json' satisfies typeof artilleryMisfireDef.file,
+  'crew-test-types.json' satisfies typeof crewTestTypesDef.file,
+  'interludeEvents.json' satisfies typeof tableauDesEvenements.file,
+  SHIP_CRIT_SET.fichier,
+  RIVER_CRIT_SET.fichier,
+];
+
+/** Catégories à pool d'un fichier dont les autres catégories n'en sont pas (`sea-events.json` :
+ *  `seaFastVoyage`, `seaManannFactors`), liées par le type aux clés Codex (#3923). */
+const CATEGORIES_DES_TABLES_TIREES: readonly string[] = [
+  'seaBoardEvents' satisfies CleCodex,
+  'seaPortEvents' satisfies CleCodex,
+];
+
+/** POOLS des tables tirées, une entrée par catégorie de leurs fichiers, lue sur la racine VIVANTE
+ *  (`entreeDeCategorie`) : une édition au Codex y entre. */
+function poolsDesTablesTirees(): Record<string, (id: string) => boolean> {
+  return tableTotale(Object.keys(DATASET_DE_LA_CATEGORIE)
+    .filter((c) => FICHIERS_DES_TABLES_TIREES.includes(DATASET_DE_LA_CATEGORIE[c].fichier) || CATEGORIES_DES_TABLES_TIREES.includes(c)),
+  (c) => (id: string) => entreeDeCategorie(c, id) !== undefined);
+}
+
 /** POOLS d'ids par catégorie Codex, pour les familles dont le foyer DESCEND à l'entrée jouée. Une
- *  catégorie de plus = une ligne ICI (le dataset la NOMME, il ne code pas sa résolution). */
+ *  catégorie de plus = une ligne ICI (le dataset la NOMME, il ne code pas sa résolution), sauf celles
+ *  des tables tirées (`FICHIERS_DES_TABLES_TIREES`, `CATEGORIES_DES_TABLES_TIREES`), qui entrent seules. */
 const STAKE_ENTRY_POOLS: Record<string, (id: string) => boolean> = {
   symptoms: (id) => symptoms.some((s) => s.id === id),
   seaShanties: (id) => !!findSeaShantyById(id),
-  crewTestTypes: (id) => crewTestTypes.some((t) => t.id === id),
   maladies: (id) => !!findDiseaseById(id),
   psychologies: (id) => !!findPsychologyById(id),
   maneuvers: (id) => !!findManeuverById(id),
@@ -448,37 +476,12 @@ const STAKE_ENTRY_POOLS: Record<string, (id: string) => boolean> = {
   // Familles à TABLE (#1117 L2 vague 4b) : la LIGNE tirée est déjà une entrée Codex éditable — son
   // foyer est SA fiche, jamais une fiche de règle doublon (amendement A). La catégorie voyage avec
   // l'id, versée par la re-pose post-tirage (`stakeAtTableRow`, `noyau/cascade.ts`).
-  criticalsTete: (id) => critiqueEntries('criticals-ldb-tete').some((r) => r.id === id),
-  criticalsBras: (id) => critiqueEntries('criticals-ldb-bras').some((r) => r.id === id),
-  criticalsCorps: (id) => critiqueEntries('criticals-ldb-corps').some((r) => r.id === id),
-  criticalsJambe: (id) => critiqueEntries('criticals-ldb-jambe').some((r) => r.id === id),
-  aaCriticalsTete: (id) => critiqueEntries('criticals-aa-tete').some((r) => r.id === id),
-  aaCriticalsBras: (id) => critiqueEntries('criticals-aa-bras').some((r) => r.id === id),
-  aaCriticalsCorps: (id) => critiqueEntries('criticals-aa-corps').some((r) => r.id === id),
-  aaCriticalsJambe: (id) => critiqueEntries('criticals-aa-jambe').some((r) => r.id === id),
-  structureCriticals: (id) => STRUCTURE_CRITICALS.some((r) => r.id === id),
-  // Critiques de COQUE : une catégorie Codex par jeu × Localisation (`registry.ts`, clusters
-  // « Critiques de navire » / « Critiques fluviaux »). Dérivées des jeux CHARGÉS, jamais recopiées :
-  // une Localisation de plus dans un `.json` entre ici sans une ligne de code.
-  ...shipCritPools(SHIP_CRIT_SET),
-  ...shipCritPools(RIVER_CRIT_SET),
-  imparfaiteMineure: (id) => rangeesDe<typeof imparfaites>(miscastRawJson, 'miscast-mineure').some((r) => r.id === id),
-  imparfaiteMajeure: (id) => rangeesDe<typeof imparfaites>(miscastRawJson, 'miscast-majeure').some((r) => r.id === id),
-  imparfaiteMineureVdm: (id) => rangeesDe<typeof imparfaites>(miscastRawJson, 'miscast-mineure-vdm').some((r) => r.id === id),
-  imparfaiteMajeureVdm: (id) => rangeesDe<typeof imparfaites>(miscastRawJson, 'miscast-majeure-vdm').some((r) => r.id === id),
-  colereDesDieux: (id) => rangeesDe<typeof imparfaites>(miscastRawJson, 'miscast-colere').some((r) => r.id === id),
+  ...poolsDesTablesTirees(),
   mutations: (id) => mutations.some((m) => m.id === id),
   mutationTables: (id) => mutationTables.some((t) => t.id === id),
-  interludeEvents: (id) => interludeEvents.some((e) => e.id === id),
-  // Incidents de Tir par Salve (AA 10 l.270-277) : la LIGNE tirée est l'entrée jouée, comme un Critique.
-  artilleryMisfire: (id) => ARTILLERY_MISFIRE.some((e) => e.id === id),
   // Un jeu de taverne PORTE sa règle (sa fiche Codex la recopie verbatim) : c'est le foyer des effets
   // qu'une partie inflige (l'ivresse d'un jeu à boire, NADJ 16 l.90).
   tavernGames: (id) => (tavernGamesJson as { id: string }[]).some((g) => g.id === id),
-  // Un événement de bord ou d'escale PORTE sa `consequence` (sa fiche Codex l'affiche) : le foyer du Test
-  // qu'elle exige, que l'enjeu de la donnée nomme (`entryCategory`/`entryId`). MDG 15 l.197-198, l.230-232, l.258
-  seaBoardEvents: (id) => entreeDeCategorie('seaBoardEvents', id) !== undefined,
-  seaPortEvents: (id) => entreeDeCategorie('seaPortEvents', id) !== undefined,
   // Catégories atteignables par l'ENTITÉ SOURCE d'un effet (`CATEGORY_BY_SOURCE_KIND`, engine/types) —
   // la table est TOTALE côté source, donc le pool l'est aussi : sans elles, un jet exigé par un objet
   // ou un Talent replierait en silence sur le foyer de son `kind`.
@@ -494,15 +497,6 @@ const STAKE_ENTRY_POOLS: Record<string, (id: string) => boolean> = {
   // Intuition/Savoir/Survie/Prière portent chacune SA phrase de combat, LDB 09).
   skills: (id) => !!byId('skill', id),
 };
-
-/** POOLS d'ids d'un jeu de Critiques de coque, une entrée par Localisation exposée au Codex — la clé est
- *  la catégorie de sa table (`categorieDeLaNiche`), celle que lit `shipCritEntryCodexCategory` côté producteur. */
-function shipCritPools(set: ShipCritSet): Record<string, (id: string) => boolean> {
-  return Object.fromEntries(Object.entries(set.tables).flatMap(([loc, rows]) => {
-    const categorie = categorieDeLaNiche(set.fichier, suiteAvecPas('tables', { champ: loc }));
-    return categorie === undefined ? [] : [[categorie, (id: string) => (rows ?? []).some((r) => r.id === id)]];
-  }));
-}
 
 /** CATALOGUE d'ENTRÉES d'un `kind` : où vit la fiche de l'entrée JOUÉE, quand la clé en nomme une.
  *  Déclaratif — ajouter une famille à entrées (tables régionales de Lustrie, périls…) = une ligne ICI,

@@ -48,7 +48,6 @@ const doc = document(
     },
   },
   {
-    codex: { keys: ['crewTestTypes'] },
     edit: { niche: { categories: { crewTestTypes: 'types' } } },
   },
 );

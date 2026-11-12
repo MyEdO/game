@@ -34,7 +34,7 @@ describe('la caraque posée dans la scène À bord de la caraque', () => {
     expect(monde.hauteurs.map((h) => h.z)).toEqual([0, 1, 2, 3]);
     expect(monde.surfaces.filter((s) => s.navire === 'caraque').length).toBeGreaterThan(0);
     expect(monde.surfaces.filter((s) => s.navire === undefined).map((s) => s.matiere)).not.toContain('relief--pilier');
-    expect(vueDe(appel('vue')).plateau!.aretes).toEqual([]);
+    expect((appel('aretes') as unknown as { aretes: unknown[] }).aretes).toEqual([]);
   });
 
   it('le monde peint la mer sur la flottaison du navire ; le navire posé par ses ponts ne tient aucune case', () => {

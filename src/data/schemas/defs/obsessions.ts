@@ -22,7 +22,6 @@ const doc = document(
   {},
   {},
   {
-    codex: { keys: ['obsessions'] },
     edit: { niche: { categories: { obsessions: 'entries' } } },
   },
   { rangee, deDeTirage: true },
