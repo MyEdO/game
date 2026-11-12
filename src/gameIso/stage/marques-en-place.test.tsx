@@ -116,7 +116,7 @@ describe('Marques de cases — le pas ne remonte AUCUN pool (#1176 P3-0c)', () =
 
       const avant = pools();
       expect(avant.get('marques:deplacement')?.count, 'le témoin doit VRAIMENT peindre une portée').toBe(4);
-      expect(avant.get('marques:zoneSmoke')?.count).toBe(1);
+      expect(avant.get('marques:zoneDeFumee')?.count).toBe(1);
       expect(espion.noms.length, 'le montage écrit les instances qu’il vient d’allouer').toBeGreaterThan(0);
 
       // PAS de l'actif : une case de plus dans la portée (même palier de capacité, 32).

@@ -92,7 +92,7 @@ function greementEnPeril(): readonly BuiltCascadeStep[] | undefined {
   const minte = monoStep({
     id: 'fleuve-preserver-greement', kind: 'fleuveGreement', actor: barreur, label: fixtureText('Gréement'),
     difficulty: 'accessible', ligne: { test: { skill: { id: 'voile' } } },
-    stake: voyageStakeRef('fleuve-preserver-greement', { outOfControlPenalty: -20 }),
+    stake: voyageStakeRef('fleuve-preserver-greement', { malusHorsDeControle: -20 }),
   })!;
   const step = { ...minte, result: { roll: 95, target: minte.target!, success: false, sl: -5, crit: false, fumble: false } };
   return applierDe('fleuveGreement')!(get, set, step, barreur, { steps: [step], index: 0 })?.insert;

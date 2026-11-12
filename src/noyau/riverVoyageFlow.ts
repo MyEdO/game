@@ -103,7 +103,7 @@ export interface RiverVoyageState {
   windDir: RiverWindDirId;
   daysAfloat: number;
   /** Bateau hors de contrôle (gréement en péril, note 5 l.41) : dérive + Nav −20 jusqu'à réparation. */
-  outOfControl?: boolean;
+  horsDeControle?: boolean;
   /** Gréement/avirons brisés (Critique `driftUntilRepair`, l.78-82) : dérive jusqu'à réparation. */
   broken?: boolean;
   /** Coque percée (« Y a un trou », l.101) — sink différé si non calfatée. */
@@ -113,7 +113,7 @@ export interface RiverVoyageState {
   /** CONTEXTE TRANSITOIRE du jour EN COURS (posé par `buildRiverDayCascade`, lu et effacé par
    *  `continueRiverDayAfterCascade`) : les entrées de vitesse de la journée que le calcul de km lit
    *  à la clôture de la cascade du jour. Aucune règle propre : les variables du jour
-   *  (baseKm/windPct/drift) y sont mises de côté pour être relues après les jets
+   *  (baseKm/pourcentageDuVent/drift) y sont mises de côté pour être relues après les jets
    *  influençables. Jamais persisté au-delà d'une journée. */
   day?: RiverDayContext;
   /** Facteur de progression du jour EN COURS (déblaiement d'un barrage, MSRC 7 l.128), posé par l'applier
@@ -126,17 +126,17 @@ export interface RiverVoyageState {
 }
 
 /** Entrées de VITESSE d'une journée fluviale, figées au build de la cascade du jour (vent) et
- *  complétées par les appliers (dérive de perte de contrôle, louvoyage manqué → windPct annulé).
- *  Le km final = `riverDayKm(baseKm, windPct, agilityFactor)` ou `riverDriftKm(baseKm)` si dérive —
+ *  complétées par les appliers (dérive de perte de contrôle, louvoyage manqué → pourcentageDuVent annulé).
+ *  Le km final = `riverDayKm(baseKm, pourcentageDuVent, agilityFactor)` ou `riverDriftKm(baseKm)` si dérive —
  *  EXACTEMENT le calcul de l'ancien `resolveRiverDay`. */
 export interface RiverDayContext {
   baseKm: number;
   /** % de vitesse du vent (Tableau des vents) — annulé par un louvoyage manqué (`fleuveVirementDeBord`). */
-  windPct: number;
+  pourcentageDuVent: number;
   /** Dérive DÉJÀ certaine à l'ouverture (Calme/hors de contrôle/gréement brisé) — les appliers la
    *  forcent aussi (perte de contrôle, chavirage, gréement en péril). */
   forceDrift: boolean;
-  /** Le vent impose un louvoyage (Modéré/Fort de côté) : le `windPct` n'est acquis qu'avec `fleuveVirementDeBord` réussi. */
+  /** Le vent impose un louvoyage (Modéré/Fort de côté) : le `pourcentageDuVent` n'est acquis qu'avec `fleuveVirementDeBord` réussi. */
   louvoyage?: boolean;
   /** Longueur du journal au DÉBUT du jour (repère) : le RÉCAP de la halte (`TravelRecapDay.lines`,
    *  affiché en tête de la modale de nuit) = la tranche de journal écrite depuis ce repère. */
@@ -261,7 +261,7 @@ function resolveRiverDay(get: Get, set: Set, route: MapRoute): void {
 function riverNavTest(river: RiverVoyageState, eff: ReturnType<typeof riverWindEffect>): { difficulty: Difficulty; mods: ModLine[] } {
   return {
     difficulty: navBaseDifficulty(),
-    mods: navPenaltyMods({ derive: !!eff.derive || !!river.broken, outOfControl: !!river.outOfControl }),
+    mods: navPenaltyMods({ derive: !!eff.derive || !!river.broken, horsDeControle: !!river.horsDeControle }),
   };
 }
 
@@ -327,7 +327,7 @@ export function buildRiverDayCascade(get: Get, set: Set, route: MapRoute): { ste
   // CONTEXTE DE VITESSE du jour (relu à la clôture) : dérive déjà certaine (Calme/hors-contrôle/brisé),
   // % de vent, louvoyage requis. Les appliers le complètent (perte de contrôle, chavirage → dérive).
   const dayCtx: RiverDayContext = {
-    baseKm, windPct: eff.pourcentage ?? 0, forceDrift: !!eff.derive || !!river.outOfControl || !!river.broken,
+    baseKm, pourcentageDuVent: eff.pourcentage ?? 0, forceDrift: !!eff.derive || !!river.horsDeControle || !!river.broken,
     louvoyage: !!eff.louvoyage, journalMark: get().journal.length,
   };
   set({ travelPlan: { ...get().travelPlan!, river: { ...river, day: dayCtx } } });
@@ -340,11 +340,11 @@ export function buildRiverDayCascade(get: Get, set: Set, route: MapRoute): { ste
     : undefined;
 
   // 1. Réparation du gréement/avirons brisés d'une étape précédente (l.78-82 / note 5) : rend le contrôle.
-  if ((river.broken || river.outOfControl)) {
+  if ((river.broken || river.horsDeControle)) {
     const repair = bestShipwright(get);
     if (repair) pousseSi(steps, riverStep('river-repair', 'fleuveReparationDeCommande', repair.actor, t('step.riverRepair'), 'voyage/reparer',
       refLabel('skills', { id: 'metier' }), repair.ligne, TEMPORARY_REPAIR.difficulty, undefined,
-      { stake: voyageStakeRef('fleuve-reparation-greement', { driftPenalty: driftNavPenalty(), outOfControlPenalty: OUT_OF_CONTROL.navPenalty }) }));
+      { stake: voyageStakeRef('fleuve-reparation-greement', { malusDeDerive: driftNavPenalty(), malusHorsDeControle: OUT_OF_CONTROL.navPenalty }) }));
     else logs.push(t('rv.riggingNoRepairman'));
   }
 
@@ -366,7 +366,7 @@ export function buildRiverDayCascade(get: Get, set: Set, route: MapRoute): { ste
   // 3. LOUVOYAGE (note 3, l.39) : le +% de vent de côté Modéré/Fort n'est acquis qu'avec un Test réussi.
   if (eff.louvoyage && pilot) pousseSi(steps, riverStep('fleuve-louvoyage', 'fleuveVirementDeBord', pilot.actor, t('step.fleuveVirementDeBord'), 'nautique/louvoyage',
     refLabel('skills', competence), pilotLigne!, tackDifficulty(), { savoir: savoirVoiesFluvialesBonus(pilot.actor) },
-    { stake: voyageStakeRef('fleuve-louvoyage', { windPct: eff.pourcentage ?? 0 }) }));
+    { stake: voyageStakeRef('fleuve-louvoyage', { pourcentageDuVent: eff.pourcentage ?? 0 }) }));
 
   // 4. Sauvegardes de VENT (l.40-41).
   if (eff.risqueDeChavirage) {
@@ -381,7 +381,7 @@ export function buildRiverDayCascade(get: Get, set: Set, route: MapRoute): { ste
   if (eff.risqueDeGreement) {
     if (pilot) pousseSi(steps, riverStep('fleuve-preserver-greement', 'fleuveGreement', pilot.actor, t('step.fleuveGreement'), 'nautique/vent',
       refLabel('skills', competence), pilotLigne!, CAPSIZE.removeSailDifficulty, { savoir: savoirVoiesFluvialesBonus(pilot.actor) },
-      { stake: voyageStakeRef('fleuve-preserver-greement', { outOfControlPenalty: OUT_OF_CONTROL.navPenalty }) }));
+      { stake: voyageStakeRef('fleuve-preserver-greement', { malusHorsDeControle: OUT_OF_CONTROL.navPenalty }) }));
     else { steps.push(...applyBoatCriticalNoPilot(get, set, coque, (l) => logs.push(...l))); }
   }
 
@@ -403,7 +403,7 @@ export function buildRiverDayCascade(get: Get, set: Set, route: MapRoute): { ste
       id: `river-peril-${i}`, kind: 'fleuveTestDePeril' as const, icon: 'interface/attention' as const, label: dataLabel(peril.label),
       meta: { perilId: spawn.perilId, chancePct: spawn.chancePct, savoir: pilot ? savoirVoiesFluvialesBonus(pilot.actor) : 0,
         hasPilot: !!pilot,
-        navDrift: !!eff.derive || !!river.broken, navOutOfControl: !!river.outOfControl,
+        navDerive: !!eff.derive || !!river.broken, navHorsDeControle: !!river.horsDeControle,
         // Libellé de la LIGNE du Test d'évitement inséré par l'applier : la compétence du barreur
         // (l.15), RÉSOLUE par la couture id→label du catalogue et portée en donnée — l'applier n'a
         // plus à la deviner.
@@ -423,8 +423,8 @@ export function buildRiverDayCascade(get: Get, set: Set, route: MapRoute): { ste
 function applyBoatCriticalNoPilot(get: Get, set: Set, coque: Combatant, tell: (l: string[]) => void): BuiltCascadeStep[] {
   tell([t('rv.riggingNoPilot')]);
   const insert = applyBoatCritical(get, set, get().travelPlan!, get().travelPlan!.river!, coque, 'greement', tell, battleRng(), 'river-rigging-nopilot');
-  set({ travelPlan: { ...get().travelPlan!, river: { ...get().travelPlan!.river!, outOfControl: true } } });
-  tell([t('rv.outOfControl')]);
+  set({ travelPlan: { ...get().travelPlan!, river: { ...get().travelPlan!.river!, horsDeControle: true } } });
+  tell([t('rv.horsDeControle')]);
   return insert;
 }
 
@@ -448,8 +448,8 @@ export function continueRiverDayAfterCascade(get: Get, set: Set): void {
   const baseKm = ctx?.baseKm ?? 0;
   const kmDay = sunk ? 0
     : ctx?.forceDrift ? riverDriftKm(baseKm)
-    : riverDayKm(baseKm, ctx?.windPct ?? 0, river.dayAgilityFactor ?? 1);
-  if (!sunk) log(get, set, [t('rv.progress', { km: Math.round(kmDay), note: ctx?.forceDrift ? t('rv.fragDrift') : (ctx?.windPct ? t('rv.fragWind', { pct: `${ctx.windPct >= 0 ? '+' : ''}${ctx.windPct}` }) : t('rv.fragDot')) })]);
+    : riverDayKm(baseKm, ctx?.pourcentageDuVent ?? 0, river.dayAgilityFactor ?? 1);
+  if (!sunk) log(get, set, [t('rv.progress', { km: Math.round(kmDay), note: ctx?.forceDrift ? t('rv.fragDrift') : (ctx?.pourcentageDuVent ? t('rv.fragWind', { pct: `${ctx.pourcentageDuVent >= 0 ? '+' : ''}${ctx.pourcentageDuVent}` }) : t('rv.fragDot')) })]);
 
   // RÉCAP du jour (affiché en tête de la halte de nuit) = la tranche de journal écrite depuis le repère.
   const dayLines = ctx ? get().journal.slice(ctx.journalMark) : [];
@@ -864,7 +864,7 @@ export const TABLES = {
     /** Réparation du gréement/avirons (l.78-82 / note 5) : Test de Métier réussi → rend le contrôle. */
     fleuveReparationDeCommande: (get, set, step, hero) => {
       if (!step.result) return;
-      if (step.result.success) set({ travelPlan: { ...get().travelPlan!, river: { ...get().travelPlan!.river!, broken: false, outOfControl: false } } });
+      if (step.result.success) set({ travelPlan: { ...get().travelPlan!, river: { ...get().travelPlan!.river!, broken: false, horsDeControle: false } } });
       const name = garanti(hero, step.actorId, 'charpentier').label;
       return { consequences: freeCons([step.result.success
         ? { text: t('rv.repairOk', { name }), tone: 'reussite' }
@@ -887,10 +887,10 @@ export const TABLES = {
       if (!step.result) return;
       const savoir = Number(step.meta?.savoir ?? 0);
       const ok = step.result.success || (savoir > 0 && step.result.sl + savoir >= 0);
-      const windPct = get().travelPlan?.river?.day?.windPct ?? 0;
-      if (!ok) patchDay(get, set, { windPct: 0 });
+      const pourcentageDuVent = get().travelPlan?.river?.day?.pourcentageDuVent ?? 0;
+      if (!ok) patchDay(get, set, { pourcentageDuVent: 0 });
       return { consequences: freeCons([ok
-        ? { text: t('rv.tackOk', { pct: windPct }), tone: 'reussite' }
+        ? { text: t('rv.tackOk', { pct: pourcentageDuVent }), tone: 'reussite' }
         : { text: t('rv.tackKo'), tone: 'echec' }]) };
     },
     /** Chavirage (note 4, l.40) : voile retirée à temps → dérive ; sinon le redressement s'ouvre Round par
@@ -938,9 +938,9 @@ export const TABLES = {
       if (step.result.success) return { consequences: freeCons([{ text: t('rv.riggingHolds'), tone: 'reussite' }]) };
       const j: import('./rollSeam').FreeConsLine[] = [{ text: t('rv.riggingCrit'), tone: 'echec' }];
       const insert = applyBoatCritical(get, set, get().travelPlan!, get().travelPlan!.river!, get().travelPlan!.vehicle!, 'greement', (l) => j.push(...l), battleRng(), step.id);
-      set({ travelPlan: { ...get().travelPlan!, river: { ...get().travelPlan!.river!, outOfControl: true } } });
+      set({ travelPlan: { ...get().travelPlan!, river: { ...get().travelPlan!.river!, horsDeControle: true } } });
       patchDay(get, set, { forceDrift: true });
-      j.push(t('rv.outOfControl'));
+      j.push(t('rv.horsDeControle'));
       return { consequences: freeCons(j), insert: insert.length ? insert : undefined };
     },
     /** VÉRIFICATION d'occurrence d'un péril (l.119-166) : tire la CHANCE (d100, MÊME position RNG qu'inline —
@@ -975,7 +975,7 @@ export const TABLES = {
           rollLabel: String(step.meta?.navLabel ?? riverPilotSkillLabel(get)), difficulty: navBaseDifficulty(),
           ligne: {
             test: { skill: competence }, valeur: pilot.value, soutien: pilot.support,
-            surLaCible: navPenaltyMods({ derive: !!step.meta?.navDrift, outOfControl: !!step.meta?.navOutOfControl }),
+            surLaCible: navPenaltyMods({ derive: !!step.meta?.navDerive, horsDeControle: !!step.meta?.navHorsDeControle }),
           },
           stake: voyageStakeRef('fleuve-peril-evitement', { hits: onFail.hullHits, damagePerHit: onFail.damagePerHit }),
           contexte: 'perilDesEaux', // Test d'évitement d'un péril de rivière : LDB 10 l.966

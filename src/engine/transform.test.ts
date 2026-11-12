@@ -60,7 +60,7 @@ describe('transform / endTransform — Métamorphose Enfant d’Ulric (delta RAW
   });
 
   it('la manœuvre « forme-hybride-ulric » de la donnée octroie Arme (BF +4) et Morsure (BF +3) (Middenheim 04 l.29)', () => {
-    const transform = findManeuverById('forme-hybride-ulric')!.effects!.flatMap((e) => (e.flow.kind === 'do' && e.flow.effect.type === 'ops' ? e.flow.effect.ops : []))
+    const transform = findManeuverById('forme-hybride-ulric')!.effects!.flatMap((e) => (e.flow.kind === 'effet' && e.flow.effet.type === 'ops' ? e.flow.effet.ops : []))
       .find((o): o is Extract<GameOp, { op: 'transform' }> => o.op === 'transform')!;
     const octroi = (id: string) => transform.ops.find((o): o is Extract<GameOp, { op: 'grantTrait' }> => o.op === 'grantTrait' && o.trait.id === id)?.trait.value;
     expect(octroi('arme')).toEqual({ sum: [{ bonusOf: 'force' }, 4] });

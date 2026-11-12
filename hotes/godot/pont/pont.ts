@@ -755,13 +755,14 @@ export function creerPont() {
      * @returns `{ aretes }` : les arêtes de toutes les couches de la scène en cours hors des ponts de ses navires, que
      * la marche garde et que le modèle du navire montre (`aretesDeLaScene`, `src/noyau/monde/aretes.ts`), vides sans
      * scène ; à rappeler quand `plateau.cleDesAretes` change. Chacune (`areteDessinee`) : `{ cle, case, milieu, sens,
-     * pied, piece, famille, hauteurM }`, sa clé `edgeKey`, la case dont elle borde un côté, son milieu et le sens où
+     * pied, piece, famille, hauteurM, bloc }`, sa clé `edgeKey`, la case dont elle borde un côté, son milieu et le sens où
      * elle court, en coins de grille (`wallEnds`) ; la hauteur en mètres d'où elle se dresse, celle de la plus basse des
      * deux cases qu'elle sépare (`piedDeLArete`, `src/noyau/monde/scene.ts`) ; sa pièce : une porte en jeu fermée ou
      * ouverte, la brèche d'une structure abattue, une fenêtre aux volets ouverts ou clos, sinon un mur ; la famille du
      * kit de son apparence (`kit` de `structureAppearance.json`, l'apparence étant celle du mur de la façade authorée
      * qui régit l'arête, sinon celle du segment : `apparenceDArete`, `src/noyau/monde/facades/`), `null` pour une
-     * apparence hors du catalogue ; la hauteur de son mur en mètres, `wallHeightM` sinon un étage
+     * apparence hors du catalogue ; la hauteur de son mur en mètres, `wallHeightM` sinon un étage ; son bloc
+     * `<z>/<bx>/<by>`, celui de sa case à sa couche (`blocDeLaCase`, `src/noyau/monde/volume/volume.ts`)
      */
     aretes(json): { aretes: AreteDessinee[] } {
       entreeDe('aretes', json, []);

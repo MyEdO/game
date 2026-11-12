@@ -64,6 +64,11 @@ type Genre = 'sol' | 'pose';
 /** Le côté, en cases, du bloc carré de cases d'une couche que couvre un morceau du volume. */
 export const CASES_PAR_MORCEAU = 8;
 
+/** Le bloc `<z>/<bx>/<by>` de la case `c` d'une couche, au grain `CASES_PAR_MORCEAU` (`MorceauDuMonde.cle`, `AreteDessinee.bloc`). */
+export function blocDeLaCase(c: { x: number; y: number; z: number }): string {
+  return `${c.z}/${Math.floor(c.x / CASES_PAR_MORCEAU)}/${Math.floor(c.y / CASES_PAR_MORCEAU)}`;
+}
+
 /** L'octet du masque d'une case retirée ; 0 pour une case montrée. */
 const RETIREE = 255;
 
@@ -124,8 +129,8 @@ interface GeometrieDuMonde {
  */
 export interface MorceauDuMonde extends GeometrieDuMonde {
   /**
-   * `<genre>/<z>/<bx>/<by>` : le genre (`sol` : sol, relief, raccords, piliers ; `pose` : mer, décors et crêtes), la
-   * couche, et le bloc, `bx = floor(x / CASES_PAR_MORCEAU)`, `by = floor(y / CASES_PAR_MORCEAU)`.
+   * `<genre>/<z>/<bx>/<by>` : le genre (`sol` : sol, relief, raccords, piliers ; `pose` : mer, décors et crêtes), puis
+   * le bloc de sa case sur la carte (`blocDeLaCase`).
    */
   cle: string;
   /**
@@ -335,9 +340,8 @@ export const volumeDuMonde = memoByRef((scene: Scene): VolumeDuMonde => {
   for (const f of triangulees(scene, [...sol, ...mer, ...cretes, ...decors])) {
     const surLaCarte = caseSurLaCarte(scene, f.cell);
     if (!surLaCarte) continue;
-    const { x, y, z } = surLaCarte;
-    const cle = `${f.genre}/${z}/${Math.floor(x / CASES_PAR_MORCEAU)}/${Math.floor(y / CASES_PAR_MORCEAU)}`;
-    (parMorceau.get(cle) ?? parMorceau.set(cle, { genre: f.genre, z, faces: [] }).get(cle)!).faces.push({ ...f, surLaCarte });
+    const cle = `${f.genre}/${blocDeLaCase(surLaCarte)}`;
+    (parMorceau.get(cle) ?? parMorceau.set(cle, { genre: f.genre, z: surLaCarte.z, faces: [] }).get(cle)!).faces.push({ ...f, surLaCarte });
   }
   const morceaux = [...parMorceau].map(([cle, { genre, z, faces }]) => {
     const contenu = { ...emballer(scene, faces), rangee: rangeeDuPlan(indiceDe.get(z)!, genre, h) };

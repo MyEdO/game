@@ -92,8 +92,8 @@ it('l’arche respecte le camp résolu par campOf sans surcharge de son hôte', 
     act(() => root.render(<ConsoleArch active={foe('camp-resolu', 2, 2)} move={{ value: 4, max: 4 }} action={{ value: 1, max: 1 }} />));
     const tuile = host.querySelector('.cc-arch .ptile')!;
     expect(tuile).toBeTruthy();
-    expect(tuile.classList.contains('team-enemy')).toBe(false);
-    expect(tuile.classList.contains('team-ally')).toBe(false);
+    expect(tuile.classList.contains('team-ennemi')).toBe(false);
+    expect(tuile.classList.contains('team-allie')).toBe(false);
   } finally {
     camp.mockRestore();
   }
@@ -710,14 +710,14 @@ describe('CombatConsole — micro-rendu (sondes pixel du juge vision, 2026-08-17
     h.conditions = [];
     monter(h, { foes: [foe('e1', 9, 9)] });
     const arch = host.querySelector('.cc-arch')!;
-    expect(arch.querySelectorAll('.team-ally, .team-enemy').length).toBe(1);
-    expect(arch.querySelector('.ptile')!.classList.contains('team-ally')).toBe(true);
+    expect(arch.querySelectorAll('.team-allie, .team-ennemi').length).toBe(1);
+    expect(arch.querySelector('.ptile')!.classList.contains('team-allie')).toBe(true);
     // … et au tour de l'adversaire (forme SPECTATRICE, arbitrage 2026-08-24), l'arche seule porte le
     // camp au même endroit : une seule fois, sur la tuile.
     monter(h, { foes: [foe('e1', 9, 9)], turn: 1 });
     const seule = host.querySelector('.cc-arch')!;
-    expect(seule.querySelectorAll('.team-ally, .team-enemy').length).toBe(1);
-    expect(seule.querySelector('.ptile')!.classList.contains('team-enemy')).toBe(true);
+    expect(seule.querySelectorAll('.team-allie, .team-ennemi').length).toBe(1);
+    expect(seule.querySelector('.ptile')!.classList.contains('team-ennemi')).toBe(true);
   });
 
   // C-4 (R-M2) : « Mouve… », « Déter… » + « 3 » orphelin à 360 — la boîte à deux lignes ne pose son
@@ -2574,7 +2574,7 @@ describe('CombatConsole — COOP : la console suit la POSSESSION, jamais le mode
     // L'arche seule montre l'ALLIÉ que l'autre siège joue (jamais en teinte hostile), et la puce coop
     // reste : c'est elle qui dit QUI joue.
     const arche = host.querySelector('.cc-arch')!;
-    expect(arche.querySelector('.ptile')!.classList.contains('team-enemy')).toBe(false);
+    expect(arche.querySelector('.ptile')!.classList.contains('team-ennemi')).toBe(false);
     expect(arche.querySelector('.ptile-name')!.textContent).toBe('Rolf');
     expect(host.querySelector('.spectator-chip'), 'la puce coop doit rester').not.toBeNull();
   });
@@ -3717,7 +3717,7 @@ describe('CombatConsole — le pont d’OUVERTURE est celui du JOUEUR, et n’of
     // portrait, son nom — jamais l'adversaire qui ouvre l'initiative.
     expect(host.querySelector('.cc-phase'), 'la pause de Round garde son bandeau').toBeTruthy();
     expect(host.querySelector('.ptile-name')?.textContent).toBe('Gunnar');
-    expect(host.querySelector('.cc-arch .ptile')?.classList.contains('team-enemy'),
+    expect(host.querySelector('.cc-arch .ptile')?.classList.contains('team-ennemi'),
       'le cadre du joueur portait un ennemi').toBe(false);
   });
 

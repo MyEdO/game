@@ -229,21 +229,21 @@ export function spec(): MapSpec {
       // Archers défenseurs (z1, arcs) : PNJ alliés-IA (agissent seuls).
       A: {
         entity: { kind: 'personnage', creature: { id: 'brute' }, inventaire: { arc: false }, facing: 'N', z: 1, label: 'Archer du guet' },
-        member: { enc: 'assaut', side: 'ally', ai: true },
+        member: { enc: 'assaut', side: 'allie', ai: true },
       },
       // Guetteur au-dessus du tunnel de la porte (chemin de ronde continu au-dessus de la brèche).
       G: {
         entity: { kind: 'personnage', creature: { id: 'brute' }, inventaire: { arc: false }, facing: 'N', z: 1 },
-        member: { enc: 'assaut', side: 'ally', ai: true },
+        member: { enc: 'assaut', side: 'allie', ai: true },
       },
       // Pièces de REMPART : affûts INERTES (pas d'`ai`), servis par leur équipage QUALIFIÉ (crew), sur le chemin de ronde (z1).
-      B: { emplacement: 'baliste', crew: 'crew-baliste', facing: 'N', member: { enc: 'assaut', side: 'ally' } },
-      K: { emplacement: 'canon-petit', crew: 'crew-canon', facing: 'N', member: { enc: 'assaut', side: 'ally' } },
+      B: { emplacement: 'baliste', crew: 'crew-baliste', facing: 'N', member: { enc: 'assaut', side: 'allie' } },
+      K: { emplacement: 'canon-petit', crew: 'crew-canon', facing: 'N', member: { enc: 'assaut', side: 'allie' } },
       // BATTERIE assaillante (z0) : affûts INERTES servis par les mercenaires-équipage, camp ennemi.
-      k: { emplacement: 'canon-petit', crew: 'brg-canon', facing: 'S', member: { enc: 'assaut', side: 'enemy' } },
-      p: { emplacement: 'catapulte-petite', crew: 'brg-cata', facing: 'S', member: { enc: 'assaut', side: 'enemy' } },
+      k: { emplacement: 'canon-petit', crew: 'brg-canon', facing: 'S', member: { enc: 'assaut', side: 'ennemi' } },
+      p: { emplacement: 'catapulte-petite', crew: 'brg-cata', facing: 'S', member: { enc: 'assaut', side: 'ennemi' } },
       // Fantassins gobelins (z0) : assaut ennemi qui traverse le pont et s'amasse à la porte.
-      o: { entity: { kind: 'personnage', creature: { id: 'gobelin' }, facing: 'S' }, member: { enc: 'assaut', side: 'enemy' } },
+      o: { entity: { kind: 'personnage', creature: { id: 'gobelin' }, facing: 'S' }, member: { enc: 'assaut', side: 'ennemi' } },
       // CAMP assaillant (décor PUR, rangées 0-1) : tentes / braséros / étendards — POSÉS PAR L'ASCII (zéro coordonnée).
       T: { kind: 'prop', decor: { id: 'tente' } },
       F: { kind: 'prop', decor: { id: 'brasero' } },
@@ -259,10 +259,10 @@ export function spec(): MapSpec {
         // AUCUNE structure et ne brècherait jamais la porte — c'est tout le sujet du scénario.
         siege: true,
         members: [
-          { entityId: 'crew-baliste', side: 'ally', ai: true },
-          { entityId: 'crew-canon', side: 'ally', ai: true },
-          { entityId: 'brg-canon', side: 'enemy' },
-          { entityId: 'brg-cata', side: 'enemy' },
+          { entityId: 'crew-baliste', side: 'allie', ai: true },
+          { entityId: 'crew-canon', side: 'allie', ai: true },
+          { entityId: 'brg-canon', side: 'ennemi' },
+          { entityId: 'brg-cata', side: 'ennemi' },
         ],
       },
     ],

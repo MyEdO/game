@@ -267,7 +267,7 @@ export interface PatchDePoste {
 export interface PatchDeMembre {
   rencontre: string | null;
   enrole?: boolean;
-  camp?: 'enemy' | 'ally';
+  camp?: 'ennemi' | 'allie';
   ia?: boolean;
 }
 
@@ -624,9 +624,9 @@ function membrePatche(scene: Scene, id: string, patch: PatchDeMembre): Scene {
   if (enrole.encId === null) return scene;
   const m = enrole.scene.encounters.find((e) => e.id === enrole.encId)?.members?.find((mm) => mm.entityId === id);
   if (!m) return scene;
-  const allie = patch.camp === undefined ? m.side === 'ally' : patch.camp === 'ally';
+  const allie = patch.camp === undefined ? m.side === 'allie' : patch.camp === 'allie';
   const ia = allie && (patch.ia ?? m.ai);
-  return patch.camp === undefined && patch.ia === undefined ? enrole.scene : patchMember(enrole.scene, enrole.encId, id, { side: allie ? 'ally' : undefined, ai: ia || undefined });
+  return patch.camp === undefined && patch.ia === undefined ? enrole.scene : patchMember(enrole.scene, enrole.encId, id, { side: allie ? 'allie' : undefined, ai: ia || undefined });
 }
 
 /** Le patch `patch` de l'inspecteur en patch de segment : chaque `null` retire son champ. */

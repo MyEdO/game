@@ -48,9 +48,9 @@ function effetsDuProjet(doc: Pick<ProjectDoc, 'scenes'>): { sceneId: string; eff
   const out: { sceneId: string; eff: Effect }[] = [];
   const marche = (flow: Flow, sceneId: string): void =>
     walkFlow(flow, (noeud) => {
-      if (noeud.kind !== 'do') return;
-      out.push({ sceneId, eff: noeud.effect });
-      for (const { flow: porte } of carriedFlows(noeud.effect)) marche(porte, sceneId);
+      if (noeud.kind !== 'effet') return;
+      out.push({ sceneId, eff: noeud.effet });
+      for (const { flow: porte } of carriedFlows(noeud.effet)) marche(porte, sceneId);
     });
   for (const sc of doc.scenes) for (const r of racinesDeFlow(sc)) marche(r.flow as Flow, sc.id);
   return out;
@@ -508,8 +508,8 @@ describe('provenance locale, références présentes résolubles et régime docu
     const doc = paquet({ ...NU, ...ADAPTE }, { ...NU, ...ADAPTE }, source);
     doc.scenes[0].triggers.push({
       id: 'bataille', rect: { x: 0, y: 0, w: 1, h: 1 },
-      flow: { kind: 'seq', steps: [{ kind: 'seq', steps: [
-        { kind: 'do', effect: { type: 'startMassBattle', battle: { allyMight: 50, enemyMight: 50, ...battle } } },
+      flow: { kind: 'sequence', etapes: [{ kind: 'sequence', etapes: [
+        { kind: 'effet', effet: { type: 'startMassBattle', battle: { allyMight: 50, enemyMight: 50, ...battle } } },
       ] }] },
     });
     return doc;

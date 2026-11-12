@@ -97,7 +97,7 @@ describe('DialogueBox — résolution du locuteur PAR ID (#669)', () => {
 const dlgTeste: Dialogue = {
   id: 'dlg-tag', start: { id: 'n1' },
   nodes: [{ id: 'n1', desc: 'La cage est là.', choices: [
-    { id: 'crocheter-cage', label: 'Crocheter la cage.', flow: { kind: 'test', test: { skill: { id: 'crochetage' }, difficulty: 'accessible', label: 'Crocheter la cage du garde-manger' }, success: { kind: 'seq', steps: [] }, fail: { kind: 'seq', steps: [] } } },
+    { id: 'crocheter-cage', label: 'Crocheter la cage.', flow: { kind: 'test', test: { skill: { id: 'crochetage' }, difficulty: 'accessible', label: 'Crocheter la cage du garde-manger' }, reussite: { kind: 'sequence', etapes: [] }, echec: { kind: 'sequence', etapes: [] } } },
     { id: 'renoncer', label: 'Renoncer.' },
   ] }],
 } as Dialogue;

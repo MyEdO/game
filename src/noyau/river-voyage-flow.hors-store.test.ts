@@ -679,11 +679,11 @@ describe('Navigation du jour — Difficulté déclarée, malus NOMMÉS (#1112)',
   it('hors de contrôle : la Difficulté RESTE celle du RAW, le −20 est une chip NOMMÉE comprise dans la cible', () => {
     launch(false, 45);
     const plan = buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0])!;
-    set({ travelPlan: { ...plan, river: { ...plan.river!, windForce: 'leger', windDir: 'arriere', outOfControl: true } } });
+    set({ travelPlan: { ...plan, river: { ...plan.river!, windForce: 'leger', windDir: 'arriere', horsDeControle: true } } });
     const built = buildRiverDayCascade(get, set, get().worldMap!.routes[0]);
     const nav = built.steps.find((s) => s.kind === 'fleuveNavigation')!;
     expect(nav.difficulty).toBe('intermediaire'); // le malus n'est PAS une Difficulté
-    expect(malus(nav)).toEqual([{ label: t('rv.modOutOfControl'), value: -20, famille: 'circonstance', ref: RULE_REF['navigation-greement'] }]);
+    expect(malus(nav)).toEqual([{ label: t('rv.modHorsDeControle'), value: -20, famille: 'circonstance', ref: RULE_REF['navigation-greement'] }]);
     // Le malus est compris dans la cible, et la ligne explique TOUT l'écart (cliquet).
     expect(inexplique(nav)).toBe(0);
   });
@@ -699,13 +699,13 @@ describe('péril fluvial — l’évitement porte les malus de dérive/hors-cont
   it('hors de contrôle : l’étape insérée porte la chip NOMMÉE et une cible qui l’inclut', () => {
     launch(false, 45, { riverPerils: [{ perilId: 'debris', chancePct: 100 }] });
     const plan = buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0])!;
-    set({ travelPlan: { ...plan, river: { ...plan.river!, windForce: 'leger', windDir: 'arriere', outOfControl: true } } });
+    set({ travelPlan: { ...plan, river: { ...plan.river!, windForce: 'leger', windDir: 'arriere', horsDeControle: true } } });
     const built = buildRiverDayCascade(get, set, get().worldMap!.routes[0]);
     const check = built.steps.find((s) => s.kind === 'fleuveTestDePeril')!;
     seedBattleRng(2);
     const out = applierDe('fleuveTestDePeril')!(get, set, check, undefined, { steps: [check], index: 0 });
     const nav = (out?.insert ?? []).find((s) => s.kind === 'fleuvePerilNavigation')!;
-    expect(malus(nav)).toEqual([{ label: t('rv.modOutOfControl'), value: -20, famille: 'circonstance', ref: RULE_REF['navigation-greement'] }]);
+    expect(malus(nav)).toEqual([{ label: t('rv.modHorsDeControle'), value: -20, famille: 'circonstance', ref: RULE_REF['navigation-greement'] }]);
     expect(nav.difficulty).toBe('intermediaire'); // le malus n'est pas une Difficulté
     expect(inexplique(nav), 'le malus est compris dans la cible, et TOUT l’écart est nommé').toBe(0);
     // Le Test de Navigation du JOUR et l'évitement voient le MÊME modificateur (une seule règle).

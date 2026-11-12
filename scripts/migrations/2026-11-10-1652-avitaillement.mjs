@@ -29,7 +29,7 @@ const SEA = join(ROOT, 'src/data/sea-events.json');
 const NAV = join(ROOT, 'src/data/sea-navigation.json');
 const CONSIGNE = 'consigne utilisateur 2026-11-07';
 
-const BONNE_PECHE = { kind: 'do', effect: { type: 'ops', on: 'navire', ops: [{ op: 'rationsDEscale', montant: { brass: 3 } }] } };
+const BONNE_PECHE = { kind: 'effet', effet: { type: 'ops', on: 'navire', ops: [{ op: 'rationsDEscale', montant: { brass: 3 } }] } };
 const VIVRES_DE_CALE = { rationDeCale: { id: 'ration-nourriture-preservee' }, tonneauDeCale: { id: 'tonneau-d-eau-douce' } };
 const MAISON_DES_VIVRES = `Les vivres de la cale ne sont pas typés (biscuits de mer, MDG 14 l.166 ; soupe de chou fermenté, MDG 14 l.230) : la cale s'avitaille en ration de nourriture préservée pour un jour (MDG 14 l.251) (${CONSIGNE}).`;
 

@@ -84,11 +84,11 @@ const ENJEU_AU_PRODUCTEUR: Record<string, () => { entryId: string; stake: StakeR
 function noeudsTestDe(f: Flow | undefined): Extract<Flow, { kind: 'test' }>[] {
   if (!f) return [];
   switch (f.kind) {
-    case 'seq': return f.steps.flatMap(noeudsTestDe);
-    case 'if': return [...noeudsTestDe(f.then), ...noeudsTestDe(f.else)];
-    case 'test': return [f, ...noeudsTestDe(f.success), ...noeudsTestDe(f.fail)];
-    case 'choice': return [...noeudsTestDe(f.oui), ...noeudsTestDe(f.non)];
-    case 'do': return [];
+    case 'sequence': return f.etapes.flatMap(noeudsTestDe);
+    case 'si': return [...noeudsTestDe(f.alors), ...noeudsTestDe(f.sinon)];
+    case 'test': return [f, ...noeudsTestDe(f.reussite), ...noeudsTestDe(f.echec)];
+    case 'choix': return [...noeudsTestDe(f.oui), ...noeudsTestDe(f.non)];
+    case 'effet': return [];
   }
 }
 
@@ -124,10 +124,10 @@ const LOC_PAR_TABLE: Record<string, HitLocation> = { tete: 'tete', bras: 'brasD'
 function noeudsDuFlow(f: Flow | undefined): Extract<Flow, { kind: 'test' }>[] {
   if (!f) return [];
   switch (f.kind) {
-    case 'test': return [f, ...noeudsDuFlow(f.success), ...noeudsDuFlow(f.fail)];
-    case 'seq': return f.steps.flatMap(noeudsDuFlow);
-    case 'if': return [...noeudsDuFlow(f.then), ...noeudsDuFlow(f.else)];
-    case 'choice': return [...noeudsDuFlow(f.oui), ...noeudsDuFlow(f.non)];
+    case 'test': return [f, ...noeudsDuFlow(f.reussite), ...noeudsDuFlow(f.echec)];
+    case 'sequence': return f.etapes.flatMap(noeudsDuFlow);
+    case 'si': return [...noeudsDuFlow(f.alors), ...noeudsDuFlow(f.sinon)];
+    case 'choix': return [...noeudsDuFlow(f.oui), ...noeudsDuFlow(f.non)];
     default: return [];
   }
 }
@@ -323,7 +323,7 @@ describe('#1262 V2 L6d — l’enjeu nomme l’entité qui EXIGE le jet, jamais 
   };
 
   /** Le Test « à la touche » authoré par le sort (forme réelle de `morsure-de-l-hiver`). */
-  const testOnHit = { trigger: 'onHit', on: 'victim', flow: { kind: 'test', test: { skill: 'resistance', difficulty: 'intermediaire' }, success: EMPTY_FLOW, fail: EMPTY_FLOW } } as unknown as TriggeredEffect;
+  const testOnHit = { trigger: 'onHit', on: 'victim', flow: { kind: 'test', test: { skill: 'resistance', difficulty: 'intermediaire' }, reussite: EMPTY_FLOW, echec: EMPTY_FLOW } } as unknown as TriggeredEffect;
 
   it('effet FONDU par un sort : l’enjeu nomme le SORT (jamais l’épée qui le porte)', () => {
     const c = porteur();

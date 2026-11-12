@@ -231,9 +231,9 @@ describe('session d’édition', () => {
     const enrole = jouer(pose, { geste: 'membre', patch: { rencontre: null, enrole: true } });
     const enc = sceneEditee(enrole).encounters[0].id;
     expect(membre(enrole)).toEqual({ entityId: id });
-    const allie = jouer(enrole, { geste: 'membre', patch: { rencontre: enc, camp: 'ally' } }, { geste: 'membre', patch: { rencontre: enc, ia: true } });
-    expect(membre(allie)).toMatchObject({ side: 'ally', ai: true });
-    expect(membre(jouer(allie, { geste: 'membre', patch: { rencontre: enc, camp: 'enemy' } })), 'un ennemi n’est pas piloté').toMatchObject({ side: undefined, ai: undefined });
+    const allie = jouer(enrole, { geste: 'membre', patch: { rencontre: enc, camp: 'allie' } }, { geste: 'membre', patch: { rencontre: enc, ia: true } });
+    expect(membre(allie)).toMatchObject({ side: 'allie', ai: true });
+    expect(membre(jouer(allie, { geste: 'membre', patch: { rencontre: enc, camp: 'ennemi' } })), 'un ennemi n’est pas piloté').toMatchObject({ side: undefined, ai: undefined });
     expect(membre(jouer(allie, { geste: 'membre', patch: { rencontre: enc, enrole: false } }))).toBeUndefined();
     expect(jouer(enrole, { geste: 'membre', patch: { rencontre: enc, enrole: true } }), 'déjà membre : aucun cran').toBe(enrole);
   });
@@ -308,7 +308,7 @@ describe('session d’édition', () => {
     const original = entiteDeLaSelection(sceneEditee(decor), decor.sel)!;
     const avant = jouer(decor, { geste: 'entite', patch: { objet: { ajouter: 'arme-simple' } } }, { geste: 'entite', patch: { objet: { porter: 'arme-simple' } } }, { geste: 'membre', patch: { rencontre: null, enrole: true } });
     const enc = sceneEditee(avant).encounters[0].id;
-    const allie = jouer(avant, { geste: 'membre', patch: { rencontre: enc, camp: 'ally' } });
+    const allie = jouer(avant, { geste: 'membre', patch: { rencontre: enc, camp: 'allie' } });
     const troupe = jouer(allie, { geste: 'troupe', nombre: 5 });
     const scene = sceneEditee(troupe);
     const copies = scene.entities.filter((e) => !sceneEditee(allie).entities.some((a) => a.id === e.id));
@@ -317,7 +317,7 @@ describe('session d’édition', () => {
     expect(copies.every((c) => c.creature?.id === 'humain' && c.inventaire?.['arme-simple'] && c.combat?.randomChars)).toBe(true);
     const profils = [original, ...copies].map((c) => JSON.stringify(ficheDEntite(c, () => undefined).characteristics));
     expect(new Set(profils).size, 'chaque copie tire son profil sur son id').toBe(6);
-    expect(scene.encounters[0].members?.filter((m) => copies.some((c) => c.id === m.entityId)).map((m) => m.side)).toEqual(Array(5).fill('ally'));
+    expect(scene.encounters[0].members?.filter((m) => copies.some((c) => c.id === m.entityId)).map((m) => m.side)).toEqual(Array(5).fill('allie'));
     expect(troupe.sel, 'l’original reste sélectionné').toEqual(allie.sel);
     expect(sceneEditee(jouer(troupe, { geste: 'annuler' })), 'une annulation défait la troupe entière').toBe(sceneEditee(allie));
     const serree = jouer(ouverte(), ...poser({ mode: 'entity', kind: 'personnage', ref: 'humain' }, 1, 1), { geste: 'troupe', nombre: 30 });
@@ -499,8 +499,8 @@ describe('le porteur `entite` du geste `valeur` (#3606 M1a à M1d)', () => {
   it('la référence locale d’un effet se choisit parmi exactement sa portée : les scènes du projet, les personnages de la scène, ses marchands (#3606 M2d)', () => {
     const hub = areneProjet.scenes.find((sc) => sc.id === 'arene-hub')! as unknown as Scene;
     const offerts = (effect: Effect, champ: string) => {
-      const declencheur = { id: 't', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: { kind: 'seq' as const, steps: [{ kind: 'do' as const, effect }] } };
-      return choixDuChamp('declencheur', declencheur, ['flow', 'steps', 0, 'effect', champ, 'id'], { scene: hub, projet: { scenes: areneProjet.scenes as unknown as Scene[], narratif: NARRATIF_VIDE } })!.map((c) => c.valeur);
+      const declencheur = { id: 't', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: { kind: 'sequence' as const, etapes: [{ kind: 'effet' as const, effet: effect }] } };
+      return choixDuChamp('declencheur', declencheur, ['flow', 'etapes', 0, 'effet', champ, 'id'], { scene: hub, projet: { scenes: areneProjet.scenes as unknown as Scene[], narratif: NARRATIF_VIDE } })!.map((c) => c.valeur);
     };
     expect(offerts({ type: 'transition', scene: { id: 'arene-hub' } }, 'scene')).toEqual(areneProjet.scenes.map((sc) => sc.id));
     const personnages = hub.entities.filter((e) => e.kind === 'personnage');
@@ -711,7 +711,7 @@ describe('les actions d’un décor au formulaire tiré du schéma (#3606 M1e)',
   const decor = (s: SessionDEdition) => entiteDeLaSelection(sceneEditee(s), s.sel)!;
   const valeur = (s: SessionDEdition, chemin: Segment[], v?: unknown): Extract<GesteDEdition, { geste: 'valeur' }> => ({ geste: 'valeur', porteur: { sorte: 'entite', id: decor(s).id }, chemin, ...(v === undefined ? {} : { valeur: v }) });
   const choixDuDecor = (s: SessionDEdition, chemin: Segment[]) => choixDuChamp('entite', decor(s), chemin, cadreDeLaSession(s))?.map((c) => c.valeur);
-  const fouille = (id: string) => ({ id, flow: { kind: 'seq', steps: [] }, unique: true });
+  const fouille = (id: string) => ({ id, flow: { kind: 'sequence', etapes: [] }, unique: true });
 
   it('une action s’ajoute sous le premier identifiant libre, s’écrit champ par champ, se renomme par son geste dédié sous un identifiant libre seulement ; la dernière retirée, l’utilisable part', () => {
     const pose = poser('brasero');
@@ -722,12 +722,12 @@ describe('les actions d’un décor au formulaire tiré du schéma (#3606 M1e)',
     const deux = jouer(une, valeur(une, ['usable', 'actions'], [fouille('fouiller'), fouille('fouiller-2')]));
     const ecrite = jouer(deux, valeur(deux, ['usable', 'actions', 1, 'label'], 'Ouvrir le coffre'), valeur(deux, ['usable', 'actions', 1, 'consume'], true),
       valeur(deux, ['usable', 'actions', 1, 'unique'], false), valeur(deux, ['usable', 'actions', 1, 'minutes'], 5));
-    expect(decor(ecrite).usable?.actions?.[1]).toEqual({ id: 'fouiller-2', label: 'Ouvrir le coffre', flow: { kind: 'seq', steps: [] }, consume: true, unique: false, minutes: 5 });
+    expect(decor(ecrite).usable?.actions?.[1]).toEqual({ id: 'fouiller-2', label: 'Ouvrir le coffre', flow: { kind: 'sequence', etapes: [] }, consume: true, unique: false, minutes: 5 });
     expect(refusDeLaValeur(ecrite, valeur(ecrite, ['usable', 'actions', 1, 'id'], 'coffre')), 'l’identifiant ne s’écrit qu’à son geste dédié').toBe('nonOffert');
     const pas = flowFromEffects([{ type: 'endDialogue' }]);
     const enchainee = jouer(ecrite, valeur(ecrite, ['usable', 'actions', 1, 'flow'], pas));
     expect(decor(enchainee).usable?.actions?.[1].flow, 'l’enchaînement s’écrit entier').toEqual(pas);
-    expect(refusDeLaValeur(ecrite, valeur(ecrite, ['usable', 'actions', 1, 'flow', 'steps'], [null])), 'un pas que son schéma ne bâtit pas').toBe('horsSorte');
+    expect(refusDeLaValeur(ecrite, valeur(ecrite, ['usable', 'actions', 1, 'flow', 'etapes'], [null])), 'un pas que son schéma ne bâtit pas').toBe('horsSorte');
     const renommee = jouer(ecrite, { geste: 'identifier', action: 'fouiller-2', id: ' coffre ' });
     expect(decor(renommee).usable?.actions?.map((a) => a.id)).toEqual(['fouiller', 'coffre']);
     expect(jouer(renommee, { geste: 'identifier', action: 'coffre', id: 'fouiller' }), 'un identifiant déjà porté : aucun cran').toBe(renommee);

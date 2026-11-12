@@ -156,7 +156,7 @@ describe('Doctrines — comportements distincts vs standard', () => {
     // de POSITIONNEMENT (dangerAvoid/preferredRange/coverGain), pas dans la valeur des sorts.
     const h1 = mk('h1', 'hero', { x: 10, y: 16 }, { weapons: [MELEE] });
     const h2 = mk('h2', 'hero', { x: 11, y: 16 }, { weapons: [MELEE] }); // collés (un centre couvre les 2)
-    const areaSp = castable({ id: 'vortex-d-ames', shape: { area: { radius: 1 } }, range: 30, data: spellData({ id: 'vortex-d-ames', effects: { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'wounds', amount: 8 }] } } }) });
+    const areaSp = castable({ id: 'vortex-d-ames', shape: { area: { radius: 1 } }, range: 30, data: spellData({ id: 'vortex-d-ames', effects: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'wounds', amount: 8 }] } } }) });
     const missileSp = castable({ id: 'carreau', range: 30 });
     const common: Partial<EnemyTurnInput> = { spells: [areaSp, missileSp] };
     // STANDARD (Int 20) ET ARTILLERIE (Int 40) : même décision ZdE (valeur op-driven, pas de poids de doctrine).

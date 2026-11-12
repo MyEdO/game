@@ -397,9 +397,9 @@ function EncountersTab({
                     </label>
                     <label title="Camp au spawn : « Allié » place la créature du côté du groupe (monture libre prêtable). Défaut : Ennemi.">
                       Camp{' '}
-                      <select value={m.side ?? 'enemy'} onChange={(e2) => setScene(patchMember(scene, enc.id, m.entityId, { side: e2.target.value === 'ally' ? 'ally' : undefined }))}>
-                        <option value="enemy">Ennemi</option>
-                        <option value="ally">Allié</option>
+                      <select value={m.side ?? 'ennemi'} onChange={(e2) => setScene(patchMember(scene, enc.id, m.entityId, { side: e2.target.value === 'allie' ? 'allie' : undefined }))}>
+                        <option value="ennemi">Ennemi</option>
+                        <option value="allie">Allié</option>
                       </select>
                     </label>
                   </div>

@@ -132,8 +132,8 @@ export function applyZoneCrossings(get: Get, set: SetFn, mover: Combatant, path:
     bus.emit(EVT.SCENE_DIRTY);
     const caster = resolveCaster(z.casterId) ?? mover;
     const flow: CoreFlow<EffectOp> = {
-      kind: 'test', test: z.crossTest, success: EMPTY_FLOW,
-      fail: z.onCross?.length ? { kind: 'do', effect: { type: 'ops', ops: z.onCross, on: 'target' } } : EMPTY_FLOW,
+      kind: 'test', test: z.crossTest, reussite: EMPTY_FLOW,
+      echec: z.onCross?.length ? { kind: 'effet', effet: { type: 'ops', ops: z.onCross, on: 'target' } } : EMPTY_FLOW,
     };
     // L'ENTITÉ qui a posé la zone voyage avec le Test : la fenêtre dit ce qui barre le passage (#1262 V2 L6d).
     testerLaTraverseeDeZone(get, set, mover, caster, flow, z.label, z.source);
