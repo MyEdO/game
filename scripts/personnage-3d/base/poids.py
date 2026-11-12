@@ -101,14 +101,19 @@ def deformer(w, x, matrices):
 
 
 class GroupePondere(tuple):
-    """`(positions, references, matrices)` d'un jeu de facteurs : par état, ses positions et ses positions de référence
-    sans silhouettes ni clés croisées (`etats_ponderes`) ; `cellules`, sa topologie de silhouettes ; `demandes`, ses
-    états ; `clips`, les longueurs des clips de `matrices` après la clause repos (son premier échantillon). `clauses` : par
-    échantillon, l'indice de sa clause, le repos puis chaque clip (`pas_des_poids.retenir`)."""
+    """`(positions, references, matrices)` d'un jeu de facteurs : par état, ses positions, ses positions de référence
+    sans silhouettes ni clés croisées (`etats_ponderes`) et sa pile de matrices de peau, partagée par référence entre les
+    états de mêmes poids de silhouettes à os ; `cellules`, sa topologie de silhouettes ; `demandes`, ses états ; `clips`,
+    les longueurs des clips des piles après la clause repos (leur premier échantillon). `clauses` : par échantillon,
+    l'indice de sa clause, le repos puis chaque clip (`pas_des_poids.retenir`)."""
 
     def __new__(cls, positions, references, matrices, cellules, demandes, clips):
         objet = super().__new__(cls, (positions, references, matrices))
-        reste = len(matrices) - 1
+        if len(matrices) != len(positions):
+            raise ValueError(f'piles-incoherentes : {len(matrices)} pile(s) pour {len(positions)} état(s)')
+        if len({len(pile) for pile in matrices}) != 1:
+            raise ValueError(f'clips-incoherents : piles de {sorted({len(pile) for pile in matrices})} échantillons')
+        reste = len(matrices[0]) - 1
         clips = tuple(int(n) for n in clips)
         if sum(clips) != reste or any(n < 1 for n in clips):
             raise ValueError(f'clips-incoherents : {list(clips)} pour {reste} échantillon(s) après le repos')
@@ -157,7 +162,7 @@ def extremes(w, aretes, groupes, traces=None, filtrer=True):
     locales = locales.reshape(aretes.shape)
 
     def mesurer_groupe(groupe):
-        positions, _, pile = groupe
+        positions, _, piles = groupe
         cellules = cellules_du_domaine(groupe)
         noms = list(cellules[0]['origine']) if cellules else []
         def vide():
@@ -232,11 +237,11 @@ def extremes(w, aretes, groupes, traces=None, filtrer=True):
                 detail = []
                 extremes(w, aretes[indices], [groupe], detail, filtrer=False)
                 trace = TraceDesExtremes(bas, haut, ib, ih, longueurs_du_groupe, mesures_repos, cotes_repos,
-                    len(pile) > 1, cotes_clip, domaine_repos, domaine_clip, ETIREMENT_DES_CLES)
+                    len(piles[0]) > 1, cotes_clip, domaine_repos, domaine_clip, ETIREMENT_DES_CLES)
                 integrer_trace(trace, detail[0], indices)
                 return trace
         return TraceDesExtremes(bas, haut, ib, ih, longueurs_du_groupe, mesures_repos, cotes_repos,
-            len(pile) > 1, cotes_clip, domaine_repos, domaine_clip, ETIREMENT_DES_CLES)
+            len(piles[0]) > 1, cotes_clip, domaine_repos, domaine_clip, ETIREMENT_DES_CLES)
     mesures = par_groupes(mesurer_groupe, groupes)
     if traces is not None:
         traces.extend(mesures)
@@ -439,8 +444,8 @@ def sommets_des_surfaces(surfaces):
 
 
 def etats_ponderes(x, deltas, groupes):
-    """Les `GroupePondere` des `groupes` `(domaine, matrices, clips)` : les états du domaine sur `x` décalé par `deltas`,
-    les coins de chaque cellule parmi ses états."""
+    """Les `GroupePondere` des `groupes` `(domaine, matrices, clips)`, `matrices` la pile de chaque état du domaine : les
+    états du domaine sur `x` décalé par `deltas`, les coins de chaque cellule parmi ses états."""
     def sous(poids):
         p = x.copy()
         for nom, poids_de_cle in poids.items():

@@ -242,7 +242,11 @@ manifeste, par `Base.transferer(piece, zones)` depuis la copie jointe des zones 
 le plus proche (une liaison de surface tourne l'écart au corps avec sa normale) ; une pièce longue
 dont le corps se tasse sous une clé (robe jusqu'aux chevilles sous `gabarit_legs_moins`) passe ses `bornes`. Une arête
 que la clé retourne est lissée comme une arête hors bornes ; la nappe intérieure d'une double nappe porte les clés de
-sa jumelle extérieure (liées chacune au plus près, elles divergeaient et le lissage gagnait toute la pièce). 
+sa jumelle extérieure (liées chacune au plus près, elles divergeaient et le lissage gagnait toute la pièce).
+Sous une silhouette à os (`gabarit.osDesSilhouettes` du manifeste de base : la carrure écarte les épaules et les
+hanches), les hôtes déplacent les os et compensent les liaisons : au repos, une pièce skinnée vaut son bind plus ses
+clés quels que soient ses poids, et une pièce rigide suit son os. L'élément ne déclare rien : ses clés transférées
+portent le déplacement entier. L'évaluateur et `rendu.py` déplacent les os de la même table.
 
 Une pièce ne se pondère jamais contre une autre pièce : ses poids sont ceux de son porteur, le corps. Le montage résout
 la pile des couches de la tenue réellement portée (`resoudreLaPile`, `hotes/godot/asset/pile.ts`), par les mêmes règles

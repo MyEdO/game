@@ -551,7 +551,7 @@ class DomaineDesSilhouettes(unittest.TestCase):
         self.champs = {'feminin': lo * d, 'carrure_moins': lo * d}
 
     def mesure(self, etats=None, monde=None):
-        return mesurer_domaine(self.w, self.x, self.aretes, [(self.etats if etats is None else etats, self.matrices, ())], numpy.eye(3) if monde is None else monde)
+        return mesurer_domaine(self.w, self.x, self.aretes, [(self.etats if etats is None else etats, pile_partagee(self.etats if etats is None else etats, self.matrices), ())], numpy.eye(3) if monde is None else monde)
 
     def test_un_coin_hors_est_refuse_puis_corrige_collectivement(self):
         sans_coins = {'cellulesSilhouettes': [], 'etats': [e
@@ -562,7 +562,7 @@ class DomaineDesSilhouettes(unittest.TestCase):
         self.assertFalse(any(m.any() for m in self.mesure(sans_coins)(self.champs).values()))
         marques = self.mesure()(self.champs)
         self.assertTrue(all(m.any() for m in marques.values()))
-        groupes = etats_ponderes(self.x, self.champs, [(self.etats, self.matrices, ())])
+        groupes = etats_ponderes(self.x, self.champs, [(self.etats, pile_partagee(self.etats, self.matrices), ())])
         etat = preparer_correction('coin', self.x, self.w, self.noeud, self.aretes, groupes)
         with contextlib.redirect_stdout(io.StringIO()), self.assertRaisesRegex(RuntimeError, 'clause R'):
             verifier_repos_cuit(etat)
@@ -577,7 +577,7 @@ class DomaineDesSilhouettes(unittest.TestCase):
         self.assertFalse(any(m.any() for m in self.mesure()(finis).values()))
         for nom in self.champs:
             self.assertGreater(numpy.abs(finis[nom] - self.champs[nom]).max(), 0)
-        groupes = etats_ponderes(self.x, finis, [(self.etats, self.matrices, ())])
+        groupes = etats_ponderes(self.x, finis, [(self.etats, pile_partagee(self.etats, self.matrices), ())])
         etat = preparer_correction('coin', self.x, self.w, self.noeud, self.aretes, groupes)
         with contextlib.redirect_stdout(io.StringIO()):
             verifier_repos_cuit(etat)
@@ -630,8 +630,8 @@ class DomaineDuGabarit(unittest.TestCase):
         jeux = {}
         for etat in etats['etats']:
             jeux.setdefault(json.dumps(etat['facteurs'], sort_keys=True), []).append(etat)
-        self.groupes = [({'etats': jeu, 'cellulesSilhouettes': etats['cellulesSilhouettes']}, numpy.eye(4)[None, None], ())
-                        for jeu in jeux.values()]
+        self.groupes = [({'etats': jeu, 'cellulesSilhouettes': etats['cellulesSilhouettes']},
+                         pile_partagee({'etats': jeu}, numpy.eye(4)[None, None]), ()) for jeu in jeux.values()]
         self.cles = sorted({nom for e in etats['etats'] for poids in (e['poidsGabarit'], e['poidsReference'])
                             for nom in poids if nom.startswith('gabarit_')})
         self.champs = {n: numpy.zeros_like(self.p) for n in ('feminin', 'carrure_plus')}
@@ -679,8 +679,15 @@ class DomaineDuGabarit(unittest.TestCase):
 
 
 def groupe_a_un_clip(positions, references, matrices, cellules, demandes=()):
-    """`GroupePondere` dont les échantillons de `matrices` après le repos forment un seul clip."""
-    return GroupePondere(positions, references, matrices, cellules, demandes, (len(matrices) - 1,) if len(matrices) > 1 else ())
+    """`GroupePondere` dont tous les états partagent la pile `matrices`, ses échantillons après le repos formant un seul
+    clip."""
+    return GroupePondere(positions, references, [matrices] * len(positions), cellules, demandes,
+                         (len(matrices) - 1,) if len(matrices) > 1 else ())
+
+
+def pile_partagee(domaine, pile):
+    """La pile `pile` partagée par référence entre tous les états de `domaine` (`cuisson_gabarit.groupes_de_peau`)."""
+    return [pile] * len(domaine['etats'])
 
 
 def domaine_a_facteurs_neutres():
@@ -703,7 +710,7 @@ def arete_du_domaine(interieur=True, clip=None, z=.1):
     matrices = numpy.eye(4)[None, None]
     if clip is not None:
         matrices = numpy.concatenate([matrices, clip[None, None]])
-    groupes = etats_ponderes(x, champs, [(demandes, matrices, () if clip is None else (1,))])
+    groupes = etats_ponderes(x, champs, [(demandes, pile_partagee(demandes, matrices), () if clip is None else (1,))])
     return x, w, aretes, demandes, champs, matrices, groupes
 
 
@@ -719,7 +726,7 @@ class MinimumContinu(unittest.TestCase):
         self.assertAlmostEqual(minimum['rapport'], .1 / numpy.sqrt(2.01), places=12)
         self.assertAlmostEqual(minimum['poids']['corpulence'], .5)
         self.assertAlmostEqual(minimum['poids']['carrure_moins'], .5)
-        marques = mesurer_domaine(w, x, aretes, [(demandes, matrices, ())], numpy.eye(3))(champs)
+        marques = mesurer_domaine(w, x, aretes, [(demandes, pile_partagee(demandes, matrices), ())], numpy.eye(3))(champs)
         self.assertTrue(all(m[0] for m in marques.values()))
 
     def test_le_minimum_interieur_de_clip_refuse_malgre_les_coins_valides(self):
@@ -741,15 +748,16 @@ class MinimumContinu(unittest.TestCase):
         clip = numpy.eye(4)
         clip[2, 2] = .01
         x, w, aretes, demandes, champs, matrices, _ = arete_du_domaine(clip=clip, z=.5)
-        au_repos = mesurer_domaine(w, x, aretes, [(demandes, matrices[:1], ())], numpy.eye(3))(champs)
+        au_repos = mesurer_domaine(w, x, aretes, [(demandes, pile_partagee(demandes, matrices[:1]), ())], numpy.eye(3))(champs)
         self.assertFalse(any(m.any() for m in au_repos.values()))
-        en_clip = mesurer_domaine(w, x, aretes, [(demandes, matrices[:1], ()), (demandes, matrices, (1,))], numpy.eye(3))(champs)
+        en_clip = mesurer_domaine(w, x, aretes, [(demandes, pile_partagee(demandes, matrices[:1]), ()),
+                                                 (demandes, pile_partagee(demandes, matrices), (1,))], numpy.eye(3))(champs)
         self.assertTrue(all(m[0] for m in en_clip.values()))
 
     def test_une_topologie_absente_est_un_refus_nomme(self):
         x, _, _, demandes, champs, matrices, _ = arete_du_domaine()
         with self.assertRaisesRegex(RuntimeError, 'topologie-silhouettes-absente'):
-            etats_ponderes(x, champs, [({'etats': demandes['etats']}, matrices, ())])
+            etats_ponderes(x, champs, [({'etats': demandes['etats']}, pile_partagee(demandes, matrices), ())])
 
     def test_un_groupe_sans_topologie_est_un_refus_nomme(self):
         x, w, aretes, _, _, matrices, groupes = arete_du_domaine()
@@ -767,7 +775,7 @@ class MinimumContinu(unittest.TestCase):
         clip[2, 2] = .001
         matrices = numpy.array([[numpy.eye(4)], [clip]])
         traces = []
-        groupes = etats_ponderes(x, champs, [(domaine, matrices, (1,))])
+        groupes = etats_ponderes(x, champs, [(domaine, pile_partagee(domaine, matrices), (1,))])
         extremes(w, aretes, groupes, traces)
         self.assertEqual(traces[0].domaine_clip.cotes[0], 0)
         self.assertTrue(traces[0].domaine_clip.exact[0])
@@ -783,11 +791,11 @@ class MinimumContinu(unittest.TestCase):
         g = groupes[0]
         positions = numpy.concatenate([g[0], g[0] + [3, 0, 0, 0]], axis=1)
         references = numpy.concatenate([g[1], g[1] + [3, 0, 0, 0]], axis=1)
-        matrices = numpy.concatenate([g[2], g[2]], axis=1)
+        pile = numpy.concatenate([g[2][0], g[2][0]], axis=1)
         w = numpy.column_stack([w, numpy.zeros_like(w)])
         w[2:] = [0, 1]
-        matrices[1:, 1] = numpy.eye(4)
-        groupe = GroupePondere(positions, references, matrices, g.cellules, g.demandes, g.clips)
+        pile[1:, 1] = numpy.eye(4)
+        groupe = GroupePondere(positions, references, [pile] * len(positions), g.cellules, g.demandes, g.clips)
         tailles = []
         def melanges(poids, pile):
             tailles.append(len(poids))
@@ -830,7 +838,7 @@ class MinimumContinu(unittest.TestCase):
         x, _, _, demandes, champs, matrices, _ = arete_du_domaine()
         incomplets = {**demandes, 'etats': [e for e in demandes['etats'] if sum(v != 0 for v in e['poidsSilhouettes'].values()) <= 1]}
         with self.assertRaisesRegex(RuntimeError, r"cellule-incomplete : .+ : coin absent .*corpulence.*carrure_moins"):
-            etats_ponderes(x, champs, [(incomplets, matrices, ())])
+            etats_ponderes(x, champs, [(incomplets, pile_partagee(incomplets, matrices), ())])
 
     def test_les_compteurs_suivent_la_remesure_et_la_decoupe(self):
         def mesurer(fixture):

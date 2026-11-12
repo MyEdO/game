@@ -46,8 +46,9 @@ import { FACTEURS_NEUTRES } from './facteursDuGabarit.ts';
  *   les conserve avec chaque groupe pour `etats_ponderes` en Python ; leur absence est refusée par
  *   `topologie-silhouettes-absente`.
  * - `groupes_de_peau` (`scripts/personnage-3d/base/cuisson_gabarit.py`) rend, par jeu de facteurs,
- *   `(états, matrices, longueurs des clips)` : les matrices de peau au repos puis à chaque instant de chaque clip,
- *   lues en memmap. `GroupePondere` en tire la clause de chaque échantillon, le repos puis chaque clip, que la
+ *   `(états, matrices, longueurs des clips)` : par état, sa pile de matrices de peau au repos puis à chaque instant
+ *   de chaque clip, lue en memmap, la même pile partagée entre les états de mêmes poids des silhouettes à os
+ *   (`osDesSilhouettes`). `GroupePondere` en tire la clause de chaque échantillon, le repos puis chaque clip, que la
  *   correction des poids distingue dans ses plans de coupe.
  * - `extremes` est la mesure commune de la finition, de la porte R et de la correction des poids. La finition
  *   applique `etats_ponderes` puis `extremes` aux matrices de repos de chaque jeu de facteurs, et à celles des clips
@@ -224,9 +225,10 @@ export const clipsPlantes = ({ clips, clipsDeuxMains }: Partial<Pick<ManifesteDe
  * indice de sommet livré. La construction les sélectionne avant l'export sur le corps entier par `selectionner_appuis`
  * (`scripts/personnage-3d/base/selection_appuis.py`), qui les copie en repère glTF par `copies_d_appui`. Les matrices
  * de peau proviennent du transport binaire de `groupes_de_peau`, groupées par facteurs ; `matricesDePeauDuGabarit`
- * applique `poserLeGabarit` et `bindsAuGabarit` aux poses de tous les clips, jambes pliées sur les instants des clips
- * plantés (drapeau par échantillon, repos compris, dont le nombre doit égaler celui des poses). Le skinning vectoriel
- * unique de `poids.py` fournit les positions, chaque mélange de matrices servant tous les états de son groupe.
+ * applique `poserLeGabarit` et `bindsAuGabarit`, os déplacés par les silhouettes de l'état compris, aux poses de tous
+ * les clips, jambes pliées sur les instants des clips plantés (drapeau par échantillon, repos compris, dont le nombre
+ * doit égaler celui des poses). Le skinning vectoriel unique de `poids.py` fournit les positions, chaque mélange de
+ * matrices servant tous les états de son groupe qui partagent sa pile.
  * L'évaluateur conserve three pour les mesures. La grille nommée `grilleDesAppuis` vaut G = (∏ k∈{legs,arms,head}
  * ({FACTEURS_NEUTRES[k]} ∪ {c.extremite | c∈sensCuitsDuGabarit(bornes), c.cle=k})) ×
  * `coinsDeSilhouettesAtteignables(manifeste.gabarit, manifeste.silhouettes)` ; la règle « jamais les deux carrures »

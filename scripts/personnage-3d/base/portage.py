@@ -7,13 +7,15 @@
   P(j) = j pour un os sans axe ou rigide ; D_b = D_p sous un parent sans axe ou rigide ; 0 à la racine.
 - Table locale (`table_locale`, `deplacements_du_manifeste`) : champ `osDesSilhouettes` du manifeste, hotes/godot/pont/CONTRAT.md,
   « Gabarit d'une base ».
+- Portage par silhouette (`portages_des_silhouettes`) : C = w @ D de chaque silhouette à os, repère monde ; au repère du
+  mesh par `vers_le_mesh`.
 - Stockage sur l'armature (`ecrire_os_des_silhouettes`, `lire_os_des_silhouettes`) : la table qui a fait les clés.
 """
 import json
 
 import numpy
 
-from anatomie import zone_de_l_os
+from anatomie import cote_de_l_os, zone_de_l_os
 from poids import peau_lineaire
 
 OS_DES_SILHOUETTES = 'osDesSilhouettes'
@@ -21,11 +23,6 @@ OS_DES_SILHOUETTES = 'osDesSilhouettes'
 TRONC = ('torse', 'hanches', 'cou')
 """Les zones (`zone_de_l_os`) dont l'axe de chair est la verticale monde."""
 VERTICALE = numpy.array([0.0, 0.0, 1.0])
-
-
-def lateralise(nom):
-    """Vrai si l'os `nom` porte un côté, suffixe `_l`/`_r` (`anatomie.zone_de_l_os`)."""
-    return '_' in nom and nom.rsplit('_', 1)[-1] in ('l', 'r')
 
 
 def projete(axe, p):
@@ -52,7 +49,7 @@ def axes_de_chair(squelette, corps):
     for nom in propres:
         porteur = squelette.data.bones[nom]
         if zone_de_l_os(nom) in TRONC:
-            while lateralise(porteur.name):
+            while cote_de_l_os(porteur.name):
                 porteur = porteur.parent
         if porteur.name not in propres:
             raise RuntimeError(f'os « {nom} » : ancêtre « {porteur.name} » sans chair, aucun axe de tronc')
@@ -125,6 +122,18 @@ def portage(w, noms, deplacements_monde):
     """C = w @ D : par sommet de poids `w` (sommets, os) sur les os `noms`, la moyenne pondérée des déplacements monde
     `deplacements_monde` (nom d'os -> tête déplacée) de ses os : (sommets, 3)."""
     return numpy.asarray(w, dtype=numpy.float64) @ numpy.array([deplacements_monde[n] for n in noms])
+
+
+def portages_des_silhouettes(squelette, w, noms, tables):
+    """Par silhouette à os de `tables` (`lire_os_des_silhouettes`), le déplacement monde de chaque tête d'os de
+    `squelette` et le portage C (repère monde) des sommets de poids `w` sur les os `noms`."""
+    deplacements = {nom: deplacements_du_manifeste(squelette, table) for nom, table in tables.items()}
+    return {nom: (d, portage(w, noms, d)) for nom, d in deplacements.items()}
+
+
+def vers_le_mesh(objet, decalage):
+    """Le décalage monde `decalage` dans le repère du mesh de `objet`."""
+    return decalage @ numpy.array(objet.matrix_world.inverted().to_3x3()).T
 
 
 def ecrire_os_des_silhouettes(squelette, tables):

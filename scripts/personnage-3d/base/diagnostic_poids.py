@@ -3,7 +3,7 @@ import json
 import os
 from pathlib import Path
 import numpy as np
-from pas_des_poids import appliquer, melanges_par_lots
+from pas_des_poids import appliquer, melanges_par_lots, piles_distinctes
 
 
 def decrire_aretes(aretes, groupes, contexte, traces):
@@ -115,18 +115,26 @@ def sauvegarder(etat, groupes):
         positions, references, matrices = groupe
         cle_positions = f'positions_{i}'
         cle_references = f'references_{i}'
-        identite = id(matrices)
-        if identite not in piles:
-            piles[identite] = f'matrices_{len(piles)}'
-            champs[piles[identite]] = matrices
+        for pile in matrices:
+            if id(pile) not in piles:
+                piles[id(pile)] = len(piles)
+                champs[f'matrices_{piles[id(pile)]}'] = pile
         champs[cle_positions] = positions
         champs[cle_references] = references
         description.append({'positions': cle_positions, 'references': cle_references,
-                            'matrices': piles[identite], 'cellules': groupe.cellules, 'clips': list(groupe.clips)})
+                            'matrices': [piles[id(pile)] for pile in matrices], 'cellules': groupe.cellules,
+                            'clips': list(groupe.clips)})
     champs['configuration'] = np.array(json.dumps({'nom': etat['nom'], 'groupes': description,
         'passe': etat['passe'], 'anneaux': etat['anneau'], 'retouches': sorted(etat['retouches']),
         'pieds': [list(map(int, pied)) for pied in etat['pieds']]}))
     np.savez_compressed(chemin, **champs)
+
+
+def recharger(z, groupe):
+    """Les piles par état d'un groupe de la `configuration` d'un refus sauvegardé (`sauvegarder`) relu en `z` : une
+    même pile pour les états qui la partageaient."""
+    piles = {k: z[f'matrices_{k}'] for k in set(groupe['matrices'])}
+    return [piles[k] for k in groupe['matrices']]
 
 
 def retournes(w, groupes, aretes, faces):
@@ -138,22 +146,23 @@ def retournes(w, groupes, aretes, faces):
     face = locales[aretes.size:].reshape(faces.shape)
     w = w[sommets].astype(np.float64)
     aretes_sorties, faces_sorties = np.zeros(len(aretes), dtype=bool), np.zeros(len(faces), dtype=bool)
-    for positions, _, pile in groupes:
-        for melange in melanges_par_lots(w, pile[1:]):
-            lineaire = melange[:, :, :3, :3]
-            for xs in positions[:, sommets]:
-                p = appliquer(melange, xs)
-                x0 = xs[:, :3].astype(np.float64)
-                vecteur = p[:, arete[:, 0]] - p[:, arete[:, 1]]
-                moyenne = (lineaire[arete[:, 0]] + lineaire[arete[:, 1]]) / 2
-                reference = np.einsum('anij,aj->nai', moyenne, x0[arete[:, 0]] - x0[arete[:, 1]])
-                aretes_sorties |= (np.einsum('nai,nai->na', vecteur, reference) < 0).any(axis=0)
-                if len(faces):
-                    normale = np.cross(p[:, face[:, 1]] - p[:, face[:, 0]], p[:, face[:, 2]] - p[:, face[:, 0]])
-                    moyenne = lineaire[face].sum(axis=1) / 3
-                    n0 = np.cross(x0[face[:, 1]] - x0[face[:, 0]], x0[face[:, 2]] - x0[face[:, 0]])
-                    reference = np.einsum('anij,aj->nai', moyenne, n0)
-                    faces_sorties |= (np.einsum('nai,nai->na', normale, reference) < 0).any(axis=0)
+    for positions, _, piles in groupes:
+        for pile, etats in piles_distinctes(piles):
+            for melange in melanges_par_lots(w, pile[1:]):
+                lineaire = melange[:, :, :3, :3]
+                for xs in positions[etats][:, sommets]:
+                    p = appliquer(melange, xs)
+                    x0 = xs[:, :3].astype(np.float64)
+                    vecteur = p[:, arete[:, 0]] - p[:, arete[:, 1]]
+                    moyenne = (lineaire[arete[:, 0]] + lineaire[arete[:, 1]]) / 2
+                    reference = np.einsum('anij,aj->nai', moyenne, x0[arete[:, 0]] - x0[arete[:, 1]])
+                    aretes_sorties |= (np.einsum('nai,nai->na', vecteur, reference) < 0).any(axis=0)
+                    if len(faces):
+                        normale = np.cross(p[:, face[:, 1]] - p[:, face[:, 0]], p[:, face[:, 2]] - p[:, face[:, 0]])
+                        moyenne = lineaire[face].sum(axis=1) / 3
+                        n0 = np.cross(x0[face[:, 1]] - x0[face[:, 0]], x0[face[:, 2]] - x0[face[:, 0]])
+                        reference = np.einsum('anij,aj->nai', moyenne, n0)
+                        faces_sorties |= (np.einsum('nai,nai->na', normale, reference) < 0).any(axis=0)
     return aretes_sorties, faces_sorties
 
 

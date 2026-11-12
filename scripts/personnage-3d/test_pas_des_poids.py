@@ -19,7 +19,7 @@ from formes import region_locale  # noqa: E402
 from pas_des_poids import Region, corriger_region, plus_proche  # noqa: E402
 from poids import GroupePondere, avancer_correction, ecart_des_aretes, etats_ponderes, extremes, preparer_correction  # noqa: E402
 from seuils import ETIREMENT_DES_CLES, ETIREMENT_EN_CLIP, INFLUENCES_MAX, MAJORITE_DU_POIDS  # noqa: E402
-from test_silhouettes import arete_du_domaine, groupe_a_un_clip  # noqa: E402
+from test_silhouettes import arete_du_domaine, groupe_a_un_clip, pile_partagee  # noqa: E402
 
 BAS, HAUT = ETIREMENT_EN_CLIP
 
@@ -226,7 +226,7 @@ class InterieurDeCellule(unittest.TestCase):
         x, _, aretes, demandes, champs, _, _ = arete_du_domaine(z=.5)
         w = numpy.array([[.002, .998], [.002, .998]], dtype=numpy.float32)
         pile = numpy.array([[numpy.eye(4), numpy.eye(4)], [numpy.eye(4), numpy.diag([1, 1, .01, 1])]], dtype=numpy.float32)
-        groupes = etats_ponderes(x, champs, [(demandes, pile, (1,))])
+        groupes = etats_ponderes(x, champs, [(demandes, pile_partagee(demandes, pile), (1,))])
         etat = preparer_correction('cellule', x, w, numpy.arange(2), aretes, groupes)
         trace = etat['traces'][0]
         self.assertGreaterEqual(float(trace.bas.min()), BAS, 'les états seuls sont dans les bornes')
@@ -327,7 +327,7 @@ def arete_repos_puis_clip(repos, clip_x, clips=(1,), instants_de_clip=1):
     positions[1, 0] = repos
     w = numpy.array([[1, 0], [0, 1]], dtype=numpy.float32)
     pile = deux_os(numpy.eye(4), *[translation(clip_x)] * instants_de_clip)
-    groupe = GroupePondere(positions[None], x[None], pile, [], (), clips)
+    groupe = GroupePondere(positions[None], x[None], [pile], [], (), clips)
     aretes = numpy.array([[0, 1]])
     traces = []
     extremes(w, aretes, [groupe], traces)
@@ -353,7 +353,7 @@ class ClausesDuBalayage(unittest.TestCase):
         w, aretes, groupe, _ = arete_repos_puis_clip(1.0, 4.0, clips=(1, 1), instants_de_clip=2)
         violations = Region(w, [0, 1], aretes, [groupe]).balayer(w)
         self.assertEqual([v.instant for v in violations], [1, 2])
-        groupe = groupe_a_un_clip(*groupe, [])
+        groupe = groupe_a_un_clip(groupe[0], groupe[1], groupe[2][0], [])
         self.assertEqual(groupe.clips, (2,))
         self.assertEqual([v.instant for v in Region(w, [0, 1], aretes, [groupe]).balayer(w)], [1])
 
@@ -486,6 +486,101 @@ class AreteRigideEnClip(unittest.TestCase):
         self.assertFalse(avancer_correction(etat))
         self.assertEqual(etat['anneau'], 1)
         self.assertEqual(int(etat['hors'].sum()), 0)
+
+
+def flechi(angle, tete):
+    """L'os 1 tourné de `angle` degrés autour de z, autour de sa tête `tete` (x, y)."""
+    c, s = numpy.cos(numpy.radians(angle)), numpy.sin(numpy.radians(angle))
+    m = numpy.eye(4)
+    m[:2, :2] = [[c, -s], [s, c]]
+    m[:2, 3] = numpy.array(tete) - m[:2, :2] @ numpy.array(tete)
+    return m
+
+
+def groupe_a_deux_piles(repos_b=None):
+    """Deux états de mêmes facteurs, poids de silhouette `s` 0 et 1 sur deux os, la cellule de coins (0, 1, 0, 1) :
+    pile A (os enfant fléchi de 90° autour de (1, 0)) pour l'état 0, pile B (fléchi de -90° autour de la tête déplacée
+    (1,2455, 0,2545)) pour l'état 1 : au clip, le segment entre leurs vecteurs de (1, 2) passe à 0,006 de l'origine ; `repos_b`, le repos de l'os 1 sous B s'il n'est pas l'identité. (x, w, arêtes, groupe)."""
+    x = numpy.array([[0, 0, 0, 1], [1, 0, 0, 1], [2, 0, 0, 1]], dtype=numpy.float64)
+    w = numpy.array([[1, 0], [1, 0], [0, 1]], dtype=numpy.float64)
+    aretes = numpy.array([[0, 1], [1, 2]])
+    a = numpy.array([[numpy.eye(4), numpy.eye(4)], [numpy.eye(4), flechi(90, (1, 0))]])
+    b = numpy.array([[numpy.eye(4), numpy.eye(4) if repos_b is None else repos_b], [numpy.eye(4), flechi(-90, (1.2455, 0.2545))]])
+    etats = [{'nom': f's{k}', 'poidsSilhouettes': {'s': k}, 'poidsGabarit': {}, 'poidsReference': {}} for k in (0, 1)]
+    cellule = {'nom': 'segment', 'origine': {'s': 0}, 'colonnes': [{'s': 1}, {'s': 0}]}
+    groupes = etats_ponderes(x, {'s': numpy.zeros((3, 3))}, [({'etats': etats, 'cellulesSilhouettes': [cellule]}, [a, b], (1,))])
+    return x, w, aretes, groupes[0]
+
+
+def vecteurs_deformes(w, x, pile, aretes):
+    """Les vecteurs des `aretes` de `x` sous chaque échantillon de `pile`, par `poids.deformer` : (échantillons, arêtes, 3)."""
+    p = poids.deformer(w, x, pile)
+    return p[:, aretes[:, 0]] - p[:, aretes[:, 1]]
+
+
+class PilesParEtat(unittest.TestCase):
+    def test_chaque_etat_est_mesure_sous_sa_pile(self):
+        _, w, aretes, groupe = groupe_a_deux_piles()
+        touches, locales = numpy.unique(aretes, return_inverse=True)
+        locales = locales.reshape(aretes.shape)
+        longueurs = pas_des_poids.longueurs_de_reference(w, groupe, touches, locales)
+        lot, = pas_des_poids.mesurer_par_lots(w, groupe, touches, locales, longueurs)
+        attendus = [vecteurs_deformes(w, groupe[0][e], groupe[2][e], aretes) for e in (0, 1)]
+        self.assertFalse(numpy.allclose(attendus[0][1], attendus[1][1]), 'les deux piles posent l\'arête autrement')
+        for e in (0, 1):
+            numpy.testing.assert_allclose(lot.vecteurs[e], attendus[e], rtol=0, atol=1e-12)
+        self.assertEqual(lot.vecteurs.shape, (2, 2, 2, 3))
+
+    def test_la_cellule_entre_deux_piles_se_mesure_sur_le_segment_des_vecteurs_deformes(self):
+        _, w, aretes, groupe = groupe_a_deux_piles()
+        self.assertEqual(groupe.cellules[0]['coins'], [0, 1, 0, 1])
+        traces = []
+        extremes(w, aretes, [groupe], traces, filtrer=False)
+        e0, e1 = (vecteurs_deformes(w, groupe[0][e], groupe[2][e], aretes)[1, 1] for e in (0, 1))
+        u = numpy.clip(-(e0 @ (e1 - e0)) / ((e1 - e0) @ (e1 - e0)), 0, 1)
+        self.assertGreater(u, 0)
+        self.assertLess(u, 1)
+        self.assertTrue(traces[0].domaine_clip.exact[1])
+        self.assertAlmostEqual(traces[0].domaine_clip.bas[1], numpy.linalg.norm(e0 + u * (e1 - e0)), places=12)
+        self.assertAlmostEqual(traces[0].domaine_clip.poids['s'][1], u, places=12)
+
+    def test_la_longueur_de_reference_d_un_etat_est_posee_par_le_repos_de_sa_pile(self):
+        _, w, aretes, groupe = groupe_a_deux_piles(numpy.diag([3.0, 3.0, 3.0, 1.0]))
+        touches, locales = numpy.unique(aretes, return_inverse=True)
+        longueurs = pas_des_poids.longueurs_de_reference(w, groupe, touches, locales.reshape(aretes.shape))
+        attendues = numpy.array([numpy.linalg.norm(vecteurs_deformes(w, groupe[1][e], groupe[2][e][:1], aretes)[0], axis=1)
+                                 for e in (0, 1)])
+        numpy.testing.assert_allclose(longueurs, attendues, rtol=0, atol=1e-12)
+        self.assertNotAlmostEqual(longueurs[0, 1], longueurs[1, 1])
+
+    def test_les_plans_d_une_violation_posent_chaque_coin_par_sa_pile(self):
+        x, w, aretes, groupe = groupe_a_deux_piles()
+        region = Region(w, [1], aretes, [groupe])
+        violations = [v for v in region.balayer(w) if len(v.coins) == 4]
+        self.assertTrue(violations, 'la cellule sort par le bas au clip')
+        for violation in violations:
+            a, b = aretes[violation.arete]
+            coefficients = (1 - violation.u - violation.v, violation.u, violation.v)
+            poses = [numpy.einsum('o,oij->ij', w[s], groupe[2][e][violation.instant]) for e in (0, 1) for s in (a, b)]
+            par_coin = {e: (poses[2 * e], poses[2 * e + 1]) for e in (0, 1)}
+            n = sum(k * 0.5 * (par_coin[c][0] + par_coin[c][1])[:3, :3] @ (x[a] - x[b])[:3]
+                    for k, c in zip(coefficients, violation.coins[:3]))
+            n = n / numpy.linalg.norm(n)
+            facteur = BAS * pas_des_poids.MARGE_PLAN_BAS
+            plans = region.plans_de(w, violation)
+            self.assertEqual(len(plans), 4)
+            for plan, c in zip(plans, (0, 1, 0, 1)):
+                e = vecteurs_deformes(w, x, groupe[2][c], aretes)[violation.instant, violation.arete]
+                valeur = plan.signe * (plan.os_a @ w[plan.a] - plan.os_b @ w[plan.b])
+                self.assertAlmostEqual(valeur, n @ e - facteur * numpy.linalg.norm(x[a, :3] - x[b, :3]), places=12)
+
+    def test_un_groupe_porte_une_pile_par_etat_de_meme_taille(self):
+        pile = deux_os(numpy.eye(4), translation(1.0))
+        x, _ = chaine_x([0, 1])
+        with self.assertRaisesRegex(ValueError, r'piles-incoherentes : 1 pile\(s\) pour 2 état\(s\)'):
+            GroupePondere(numpy.array([x, x]), numpy.array([x, x]), [pile], [], (), (1,))
+        with self.assertRaisesRegex(ValueError, r'clips-incoherents : piles de \[1, 2\] échantillons'):
+            GroupePondere(numpy.array([x, x]), numpy.array([x, x]), [pile, pile[:1]], [], (), (1,))
 
 
 if __name__ == '__main__':

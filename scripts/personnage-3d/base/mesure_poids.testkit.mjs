@@ -53,7 +53,7 @@ for (const angle of [0, 0, 0.6]) {
   for (const b of bones) poses.push(...b.matrixWorld.clone().transpose().elements);
 }
 restaurer(0);
-const peau = matricesDePeauDuGabarit(skeleton, table, etat.facteurs, new Float32Array(poses), [false, false, false]);
+const peau = matricesDePeauDuGabarit(skeleton, table, etat.facteurs, {}, new Float32Array(poses), [false, false, false]);
 const matrices = Array.from({ length: 3 }, (_, t) => bones.map((_, o) => Array.from({ length: 4 }, (_, r) =>
   Array.from({ length: 4 }, (_, c) => peau[(t * bones.length + o) * 16 + r * 4 + c]))));
 const appuis = { pieds: ['root'], plusBas: [{ position: [0, 0, 0], os: [{ nom: 'root', poids: 1 }], deltas: {} }], vitesseAuSol: 1 };

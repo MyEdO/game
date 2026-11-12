@@ -1,4 +1,4 @@
-import { Matrix4, Vector3, type Skeleton } from 'three';
+import { Matrix4, Vector3, type Object3D, type Skeleton } from 'three';
 import type { GabaritResolu } from '../../../src/noyau/index.ts';
 import { nomDeCleDuGabarit, poseDuGabarit, sensCuitsDuGabarit, type CleDuGabarit, type SensDuGabarit } from '../../../hotes/godot/asset/gabarit.ts';
 import { FACTEURS_NEUTRES } from '../../../hotes/godot/asset/facteursDuGabarit.ts';
@@ -10,12 +10,13 @@ export const REFERENCE_DES_ANCRES = Object.freeze({ ...FACTEURS_NEUTRES, legs: 1
 /** La verticale monde de Blender, repère des poses de la construction. */
 const HAUT = new Vector3(0, 0, 1);
 
-/** #3104 issuecomment-6549354475 ; `plantes`, par échantillon de `poses`, s'il joue un clip planté (#3314). */
-export function matricesDePeauDuGabarit(squelette: Skeleton, table: TableDeGabarit, facteurs: GabaritResolu, poses: Float32Array, plantes: readonly boolean[]): Float32Array {
+/** #3104 issuecomment-6549354475, #4002 issuecomment-6817454030 ; `silhouettes`, les poids des silhouettes de la pose ;
+ *  `plantes`, par échantillon de `poses`, s'il joue un clip planté (#3314). */
+export function matricesDePeauDuGabarit(squelette: Skeleton, table: TableDeGabarit, facteurs: GabaritResolu, silhouettes: Readonly<Record<string, number>>, poses: Float32Array, plantes: readonly boolean[]): Float32Array {
   const bones = squelette.bones, taille = bones.length * 16;
   if (poses.length % taille) throw new Error('gabarit : poses binaires tronquées');
   if (plantes.length !== poses.length / taille) throw new Error(`gabarit : ${plantes.length} drapeau(x) de plantation pour ${poses.length / taille} échantillon(s)`);
-  const pose = poseDuGabarit({ gabarit: table }, facteurs, {});
+  const pose = poseDuGabarit({ gabarit: table }, facteurs, silhouettes);
   const binds = bindsAuGabarit(squelette, pose);
   const trouver = (nom: string) => {
     const b = bones.find((os) => os.name === nom);
@@ -27,22 +28,26 @@ export function matricesDePeauDuGabarit(squelette: Skeleton, table: TableDeGabar
   const racine = bones.find((b) => b.name === pose.racine.os);
   if (!racine) throw new Error('gabarit : racine absente');
   const originales = bones.map((b) => ({ p: b.position.clone(), q: b.quaternion.clone(), s: b.scale.clone() }));
+  const parents = bones.map((b) => bones.indexOf(b.parent as typeof b));
+  const sommets = [...new Set(bones.map((b): Object3D => {
+    let sommet: Object3D = b;
+    while (sommet.parent) sommet = sommet.parent;
+    return sommet;
+  }))];
+  const mettreAJour = () => { for (const sommet of sommets) sommet.updateMatrixWorld(true); };
   const sortie = new Float32Array(poses.length);
-  const monde = new Matrix4(), local = new Matrix4();
+  const mondes = bones.map(() => new Matrix4()), monde = new Matrix4(), local = new Matrix4();
   try {
     for (let offset = 0, k = 0; offset < poses.length; offset += taille, k++) {
-      const mondes = bones.map((_, i) => {
-        const m = new Matrix4();
+      mondes.forEach((m, i) => {
         for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) m.elements[c * 4 + r] = poses[offset + i * 16 + r * 4 + c];
-        return m;
       });
       bones.forEach((b, i) => {
-        const parent = bones.indexOf(b.parent as typeof b);
-        local.copy(parent < 0 ? mondes[i] : monde.copy(mondes[parent]).invert().multiply(mondes[i]));
+        local.copy(parents[i] < 0 ? mondes[i] : monde.copy(mondes[parents[i]]).invert().multiply(mondes[i]));
         local.decompose(b.position, b.quaternion, b.scale);
       });
       poserLeGabarit(racine, pose.racine.echelle, enfants, plantes[k] ? jambes : [], HAUT);
-      for (const b of bones) b.updateWorldMatrix(true, false);
+      mettreAJour();
       bones.forEach((b, i) => {
         monde.copy(b.matrixWorld).multiply(binds[i]);
         for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) sortie[offset + i * 16 + r * 4 + c] = monde.elements[c * 4 + r];
@@ -50,7 +55,7 @@ export function matricesDePeauDuGabarit(squelette: Skeleton, table: TableDeGabar
     }
   } finally {
     bones.forEach((b, i) => { b.position.copy(originales[i].p); b.quaternion.copy(originales[i].q); b.scale.copy(originales[i].s); });
-    for (const b of bones) b.updateWorldMatrix(true, false);
+    mettreAJour();
   }
   return sortie;
 }

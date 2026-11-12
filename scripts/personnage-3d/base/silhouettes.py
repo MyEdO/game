@@ -40,8 +40,8 @@ from formes import (aretes_des_triangles, aux_noeuds, decalages, lier, noms_des_
                     raboter, rapports, transferer_les_cles, transporter, voisins)
 from poids import deformer, etats_ponderes, extremes, jumeaux, peau_lineaire
 from cuisson_gabarit import cuisson_des_champs, groupes_de_peau
-from portage import (axes_de_chair, deplacements_du_manifeste, ecrire_os_des_silhouettes, lire_os_des_silhouettes,
-                     portage, projete, table_locale, tetes_portees)
+from portage import (axes_de_chair, ecrire_os_des_silhouettes, lire_os_des_silhouettes, portages_des_silhouettes, projete,
+                     table_locale, tetes_portees, vers_le_mesh)
 from script_node import lancer
 from seuils import INFLUENCES_MAX, MAJORITE_DU_POIDS, SOL_TOLERANCE_M
 
@@ -150,18 +150,6 @@ def carrure(x, w, noms, axes, rapport):
         if nom in axes:
             centre += w[:, i, None] * projete(axes[nom], x)
     return (rapport - 1.0) * (x - centre)
-
-
-def portages_des_silhouettes(squelette, w, noms, tables):
-    """Par silhouette à os de `tables` (`portage.lire_os_des_silhouettes`), le déplacement monde de chaque tête d'os et
-    le portage C (repère monde) des sommets de poids `w` sur les os `noms`."""
-    deplacements = {nom: deplacements_du_manifeste(squelette, table) for nom, table in tables.items()}
-    return {nom: (d, portage(w, noms, d)) for nom, d in deplacements.items()}
-
-
-def vers_le_mesh(objet, decalage):
-    """Le décalage monde `decalage` dans le repère du mesh de `objet`."""
-    return decalage @ numpy.array(objet.matrix_world.inverted().to_3x3()).T
 
 
 def rapports_de_carrure(bornes):
