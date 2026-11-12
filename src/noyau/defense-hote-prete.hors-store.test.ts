@@ -22,7 +22,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  */
 const g = () => banc.getState();
 
-function setup(seed: number) {
+function setup(seed: number, { destabilisante = true } = {}) {
   seedBattleRng(seed);
   const built = scenario.construire(idsDeTest);
   banc.setState({ battle: null, party: built.party });
@@ -38,9 +38,11 @@ function setup(seed: number) {
   for (const c of b.combatants) if (c !== tireur && c !== autre) { c.pos = { x: 12 + (far % 12), y: 2 * Math.floor(far / 12) }; far++; }
   tireur.pos = { x: 3, y: 8 }; autre.pos = { x: 3, y: 10 };
   const ours = spawnEnemy({ ref: 'ours' }, 'spawn-ours', { x: 4, y: 8 });
-  const destab = parseQualityInstance('Déstabilisante');
-  if (!destab) throw new Error('qualité Déstabilisante introuvable');
-  ours.weapons = ours.weapons.map((w: Weapon, i: number) => (i === 0 ? { ...w, qualities: [...(w.qualities ?? []), destab] } : w));
+  if (destabilisante) {
+    const destab = parseQualityInstance('Déstabilisante');
+    if (!destab) throw new Error('qualité Déstabilisante introuvable');
+    ours.weapons = ours.weapons.map((w: Weapon, i: number) => (i === 0 ? { ...w, qualities: [...(w.qualities ?? []), destab] } : w));
+  }
   ours.advantage = 3;
   const order = [...b.order, ours.id];
   banc.setState({ battle: { ...b, combatants: [...b.combatants, ours], order, turn: order.indexOf(ours.id), acted: false, movementUsed: 0, movedPreAction: false, action: null, tourEnCours: undefined } });
@@ -124,5 +126,26 @@ describe('#1765 — une étape hôte de défense n’est prête que sa défense 
       return;
     }
     throw new Error('aucune graine ne mesure la chaîne déstabilisée');
+  });
+
+  it('« Appliquer » hors de l’étape de défense est refusé : la fenêtre ne se ferme que depuis son étape', () => {
+    // Graine 2, arme sans Déstabilisante : le coup touche, la Déviation se valide, et la défense du maillon
+    // suivant est posée quand le curseur est sur l'étape `critique`.
+    const { tireur, ours } = setup(2, { destabilisante: false });
+    expect(maybeOpenDefense(g, banc.setState, ours, tireur, undefined, undefined, ours.chargedThisTurn)).toBe(true);
+    g().jetLancer('defense');
+    expect(g().pendingDefense?.result?.hit).toBe(true);
+    g().jetValider('defense');
+    expect(etapeCourante()?.kind).toBe('deviation');
+    avanceEtapeCascade(g);
+    const avant = etapeCourante();
+    expect(avant?.kind).toBe('critique');
+    expect(defenseDuMaillon()).toBe(true);
+    g().jetLancer('defense');
+    const pd = g().pendingDefense;
+    expect(pd?.result).toBeTruthy();
+    g().jetValider('defense');
+    expect(g().pendingDefense, 'la défense du maillon vit encore').toBe(pd);
+    expect(etapeCourante(), 'le curseur n’a pas bougé').toBe(avant);
   });
 });
