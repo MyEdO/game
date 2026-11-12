@@ -15,7 +15,7 @@
  * de cases. Chaque vue porte
  * ses zones, les lignes que le combat du dôme a ajoutées au journal sous `journal.lignes` (où le routeur `combat.gd` les range),
  * et l'intention que chaque formulaire joue pressé tel qu'il est dessiné (`attendus`). Chaque vue qu'une partie montre
- * a sa planche (`Planche`, #3935), que `etalons.mjs --enregistrer` écrit sous `hotes/godot/etalons/`.
+ * a sa planche (`Planche`, #3935), que `construire.mjs --export` dépose dans l'export (`deposerLesPlanches`).
  */
 /**
  * La recette native `projet/recettes/ecran.gd` montre les vues que la sonde fige (`hotes/godot/recettes/ecran.ts`, sous
@@ -45,7 +45,7 @@ export interface VueFigee {
 /**
  * Une planche (#3935) : un état de partie tel que le pont le rend, que le jeu montre sans le jouer
  * (`projet/scripts/pont_de_planche.gd`). `nom` la nomme dans l'adresse (`?planche=<nom>`) et dans son fichier
- * (`hotes/godot/etalons/planches/<nom>.json`), `titre` dit ce qu'elle montre, `parametres` porte le scénario de sa
+ * (`<export>/planches/<nom>.json`), `titre` dit ce qu'elle montre, `parametres` porte le scénario de sa
  * partie, que l'adresse d'une partie nomme (`?scenario=`), `demarrer`, `retrait` et `aretes` les réponses du pont à ces
  * trois méthodes : la suite de l'état, sans effet ni jeton, le journal de la partie entier sous `journal.lignes`, le
  * masque du regard et les arêtes de sa scène ; `monde`, le monde de sa scène (`MondeDeLaPlanche`).

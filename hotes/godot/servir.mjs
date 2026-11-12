@@ -2,8 +2,8 @@
 // en statique sur un port libre de la boucle locale (sans export, rien d'autre que les modèles et le dépôt : le pont
 // vivant, `vivant.mjs`), et, à côté de la page, le dossier des modèles : `GET /modeles/listage.json`
 // rend ses manifestes validés contre leur GLB et les os qui en portent les meshes rigides (`listage`), relus à chaque appel,
-// et `GET /modeles/<fichier>` chacun de ses fichiers, en `Cache-Control: no-store`, comme `GET /planches/<fichier>`
-// chaque planche du dépôt (`planches.mjs`, #3935). Avec `--statique`, l'export seul, tel que le site le publie : ses
+// et `GET /modeles/<fichier>` chacun de ses fichiers, en `Cache-Control: no-store` ; tout autre chemin est un fichier de
+// l'export, ses planches comprises (`planches/`, `planches.mjs`, #3935). Avec `--statique`, l'export seul, tel que le site le publie : ses
 // modèles déposés en scènes fabriquées et ses planches (`construire.mjs --export`, #3946). Avec `--depot`, l'éditeur de carte y
 // lit et y écrit les projets manuscrits du dépôt (`pont/CONTRAT.md`, section « Éditeur ») : `GET /depot/<id>` et
 // `PUT /depot/<id>`, et y lit le `Source/` du dépôt : `GET /source/manifest.json` et `GET /source/<livre>/<NNN>.md`
@@ -21,7 +21,6 @@ import { materialiser } from '../../scripts/source/resoudre.mjs'
 import { servirLaSource } from '../../scripts/source/prose-source-plugin.mjs'
 import { ecrireTexteAtomique } from '../../scripts/guards/lib/ecritureJsonAtomique.mjs'
 import { DOSSIER_DES_MODELES, LISTAGE, listage } from './listage.mjs'
-import { DOSSIER_DES_PLANCHES } from './planches.mjs'
 import { ecouter, rendre, TYPES } from './statique.mjs'
 
 /** Le WebGL 2 de l'export, en logiciel dans un Chrome sans GPU, sans l'avertissement de repli. */
@@ -103,9 +102,9 @@ function servirLeDepot(req, res, depot, id) {
   }
 }
 
-/** Sert le dossier `modeles` sous `/modeles/` et les planches du dépôt sous `/planches/`, sur un port libre de
- *  127.0.0.1 ; avec `web`, l'export en statique, sans lui 404 hors de `/modeles/`, `/planches/`, `/depot/` et
- *  `/source/` ; avec `statique`, `web` seul, ses `modeles/` et ses `planches/` déposés compris ; avec `depot`, la racine
+/** Sert le dossier `modeles` sous `/modeles/`, sur un port libre de 127.0.0.1 ; avec `web`, l'export en statique,
+ *  ses `planches/` comprises, sans lui 404 hors de `/modeles/`, `/depot/` et `/source/` ; avec `statique`, `web`
+ *  seul, ses `modeles/` déposés compris ; avec `depot`, la racine
  *  d'un dépôt, ses projets manuscrits sous `/depot/` (`servirLeDepot`), et le `Source/` de ce dépôt-ci sous `/source/`,
  *  son index des chapitres et chacun de ses chapitres (`servirLaSource`), jamais sans lui. */
 export function servir({ web, modeles = DOSSIER_DES_MODELES, depot, statique = false }) {
@@ -118,7 +117,6 @@ export function servir({ web, modeles = DOSSIER_DES_MODELES, depot, statique = f
     const sansCache = { 'Cache-Control': 'no-store' }
     const [base, chemin, entetes] = statique ? [racine, rel || 'index.html', {}]
       : rel.startsWith('modeles/') ? [dossier, rel.slice('modeles/'.length), sansCache]
-      : rel.startsWith('planches/') ? [DOSSIER_DES_PLANCHES, rel.slice('planches/'.length), sansCache]
       : [racine, rel || 'index.html', {}]
     rendre(res, base, chemin, entetes)
   })

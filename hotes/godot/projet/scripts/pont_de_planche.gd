@@ -6,7 +6,7 @@ class_name PontDePlanche
 extends PontDuNoyau
 
 ## @contrat Écran publié
-## Une planche est un état de partie enregistré (`hotes/godot/etalons/planches/<nom>.json`, servi sous
+## Une planche est un état de partie figé par le pont, déposé dans l'export (`construire.mjs --export`) sous
 ## `planches/<nom>.json` : les réponses de `demarrer`, `aretes` et `retrait`), le monde de son scénario sous
 ## `planches/mondes/<scenario>.json` (`{ monde, morceaux }` : la réponse de `monde`, et celle de `morceaux` à toutes ses
 ## clés, que le pont de la planche rend à toute entrée). L'adresse `?planche=<nom>`
