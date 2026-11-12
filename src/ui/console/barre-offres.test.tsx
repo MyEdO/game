@@ -38,7 +38,7 @@ const porteur = (id: string, over: Partial<Combatant> = {}): Combatant =>
 const poste = (): ShipPoste =>
   ({
     side: 'tribord', loaded: false, reloadProgress: 0, crewIds: ['gunner'],
-    item: { uid: 'canon', label: 'Canon moyen', type: 'ranged', damage: { flat: 14, plusBF: false }, range: 75, qualities: [{ id: 'recharge', value: 6 }] },
+    item: { uid: 'canon', label: 'Canon moyen', type: 'distance', damage: { flat: 14, plusBF: false }, range: 75, qualities: [{ id: 'recharge', value: 6 }] },
   }) as unknown as ShipPoste;
 
 /** La coque du groupe (`vehicles.json`, facette `hull`), active, servie par son artilleur. */

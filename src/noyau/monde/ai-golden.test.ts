@@ -17,8 +17,8 @@ import { ciblePsy } from '../../engine/psych/ciblage';
 import { blessuresDeBase, blessuresSurLeProfil } from '../../engine/combattantDeTest.testkit';
 
 const MELEE: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
-const RANGED: Weapon = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [] };
-const CROSSBOW: Weapon = { label: 'Arbalète', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 60, reload: 1, qualities: [] };
+const RANGED: Weapon = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 9 }, range: 60, qualities: [] };
+const CROSSBOW: Weapon = { label: 'Arbalète', type: 'distance', damage: { plusBF: false, flat: 9 }, range: 60, reload: 1, qualities: [] };
 
 /** Sort RÉSOLU minimal (`CastableSpell`) pour les fixtures golden — défaut = Projectile mono-cible. */
 function spellData(over: Partial<SpellData> = {}): SpellData {
@@ -159,7 +159,7 @@ describe('GOLDEN parité Lot 2 — cœur discrétionnaire (enumerate → score �
 
   it('tireur HORS PORTÉE (au-delà de la bande Extrême ×3) → move (approche)', () => {
     // Arc 1 m → Extrême ≤ 3 m = 1,5 case ⇒ une cible à 5 cases est hors de toute bande → on s'approche.
-    const e = mk('e', 'enemy', { x: 0, y: 0 }, { weapons: [{ label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 1, qualities: [] }] });
+    const e = mk('e', 'enemy', { x: 0, y: 0 }, { weapons: [{ label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 8 }, range: 1, qualities: [] }] });
     const h = mk('h', 'hero', { x: 0, y: 5 });
     const a = chooseEnemyAction(input(e, [h]));
     expect(a.kind).toBe('deplacement');
@@ -283,7 +283,7 @@ describe('GOLDEN — extensions op-driven (attaquer prime / pas de move parasite
   // de portée de tir mais à portée de CHARGE, il s'approche à sa DISTANCE DE TIR (standoff) — il ne fonce PAS au
   // contact. (Bug : `isShooterOrCaster` excluait les hybrides via `&& !hasMeleeWeapon` → mêlée au contact.)
   it('hybride (fronde + épée) hors de portée de tir mais mêlée atteignable → STANDOFF (ne charge pas au contact)', () => {
-    const SLING: Weapon = { label: 'Fronde', type: 'ranged', damage: { plusBF: false, flat: 5 }, range: 2, qualities: [] };
+    const SLING: Weapon = { label: 'Fronde', type: 'distance', damage: { plusBF: false, flat: 5 }, range: 2, qualities: [] };
     const e = mk('e', 'enemy', { x: 8, y: 8 }, { weapons: [SLING, MELEE], movement: 4 });
     const h = mk('h', 'hero', { x: 8, y: 12 }); // d=4 : hors bande de la fronde (portée 2) mais atteignable en mêlée (mvt 4)
     const a = chooseEnemyAction(input(e, [h]));

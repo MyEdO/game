@@ -20,7 +20,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * #997, #1765 — combats COMPLETS avec Tir rapide (`LDB 11 l.97-103`) dans les deux camps, sous trois
  * pilotes : IA contre IA, Auto-combat, et manuel avec Destin. Aucun combat ne se fige : chacun va au bout.
  */
-const ARC = (): Weapon => ({ uid: 'arc', label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 6 }, range: 30, qualities: [], loaded: true } as unknown as Weapon);
+const ARC = (): Weapon => ({ uid: 'arc', label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 6 }, range: 30, qualities: [], loaded: true } as unknown as Weapon);
 const g = () => banc.getState();
 const ouverts = () => {
   const s = g() as unknown as Record<string, unknown>;

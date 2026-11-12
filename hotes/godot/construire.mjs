@@ -342,7 +342,9 @@ const erreursDe = (lignes) => lignes.filter((l) => /^(SCRIPT )?ERROR\b/.test(l.t
 
 /** `commande` (l'éditeur, un exécutable du projet, ou l'écran virtuel qui les porte) lancée sur `args` : les lignes de
  *  sa sortie, sans séquences de terminal, dans l'ordre où elle les écrit (sa sortie et sa sortie d'erreur vont au même
- *  fichier), et son échec, s'il y en a un. */
+ *  fichier), et son échec, s'il y en a un : sa cause (le signal qui l'a tuée, ou son code de sortie) et la fin de sa
+ *  sortie (`FIN_DE_SORTIE` lignes). */
+const FIN_DE_SORTIE = 40
 function lancer(commande, args) {
   const dossier = mkdtempSync(join(tmpdir(), 'wfrp-sortie-'))
   const journal = join(dossier, 'sortie.log')
@@ -350,8 +352,8 @@ function lancer(commande, args) {
   try {
     const r = spawnSync(commande, args, { stdio: ['ignore', fd, fd], timeout: 600_000 })
     const lignes = stripVTControlCharacters(readFileSync(journal, 'utf8')).split('\n')
-    const echec = r.error ? r.error.message : r.status !== 0 ? `code de sortie ${r.status}` : null
-    return { lignes, echec: echec ? [`${basename(commande)} ${args.join(' ')} : ${echec}`] : [] }
+    const cause = r.error ? r.error.message : r.signal ? `tué par ${r.signal}` : r.status !== 0 ? `code de sortie ${r.status}` : null
+    return { lignes, echec: cause ? [`${basename(commande)} ${args.join(' ')} : ${cause}\n${lignes.slice(-FIN_DE_SORTIE).join('\n')}`] : [] }
   } finally {
     closeSync(fd)
     rmSync(dossier, { recursive: true, force: true })

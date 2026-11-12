@@ -378,9 +378,9 @@ export function charDRBonusOf(c: Combatant, char: CharKey | undefined): number {
 }
 
 /** Les modificateurs au Test d'un ATTAQUANT visant `c` (op PASSIVE `incomingAttackMod` de ses traits) pour un
- *  mode d'attaque (`melee`/`ranged`, ops `all` comprises), une ligne par trait, à son nom et liée à sa fiche
+ *  mode d'attaque (`melee`/`distance`, ops `all` comprises), une ligne par trait, à son nom et liée à sa fiche
  *  (Parasité LDB 85 l.257, Nuée l.253). Circonstance : une condition de la CIBLE (`LDB 14 l.48`). */
-export function incomingAttackLines(c: Combatant, mode: 'melee' | 'ranged'): ModLine[] {
+export function incomingAttackLines(c: Combatant, mode: 'melee' | 'distance'): ModLine[] {
   const out: ModLine[] = [];
   for (const t of c.traits ?? []) {
     const trait = findTraitById(t.id);
@@ -720,7 +720,7 @@ export type GameOp =
       /** Passifs d'ARME conférés par l'altération — MÊME vocabulaire que le `passive` d'un Atout/Défaut du
        *  registre (`weaponRollMod`/`weaponDamageMod`/`armourPierce`/`critOnRoll`), lu au MÊME point
        *  (`weaponPassiveOps`, engine/qualities/dispatch). VDM 05 Défaut : « −1 DR à tous les Tests pour
-       *  attaquer avec elle » ⇒ `[{op:'weaponRollMod', phase:'attack', drMod:-1}]`. */
+       *  attaquer avec elle » ⇒ `[{op:'weaponRollMod', phase:'attaque', drMod:-1}]`. */
       passive?: OpPassive[];
       /** Effets DÉCLENCHÉS « à la touche » de l'arme enchantée — forme UNIFIÉE (`TriggeredEffect`,
        *  comme les Atouts d'arme et les Traits) : Marteau ardent → En flammes/À Terre ; Épée de
@@ -1198,11 +1198,11 @@ export type GameOp =
   | { op: 'teamCommander'; commanderId: string }
   /** PASSIF d'ARME (Atout/Défaut, LDB 62-63) : modificateur de DR/plat à une PHASE de jet de combat —
    *  Précise (+10 `flatMod` en attaque), Imprécise (−1 DR en attaque), Pointue (+1 DR au Test d'attaque
-   *  RÉUSSI, `phase:'attackSuccess'`, LDB 62 l.288), Défensive (+1 DR parade du défenseur), À Enroulement
+   *  RÉUSSI, `phase:'attaqueReussie'`, LDB 62 l.288), Défensive (+1 DR parade du défenseur), À Enroulement
    *  (−1 DR parade adverse), Lente (+1 DR à TOUTE défense adverse), Pratique/Peu Fiable (±1 DR à
    *  un Test raté). Lu PAR ID par `engine/qualities/dispatch` (attackDRAdjust/parryDRAdjust/vsDefenseDRAdjust/
    *  qualitySum/craftTestDRAdjust). INERTE dans `applyOps`. */
-  | { op: 'weaponRollMod'; phase: 'attack' | 'attackSuccess' | 'parryByDefender' | 'parryAgainstAttacker' | 'vsDefense' | 'testFail'; drMod?: number; flatMod?: number }
+  | { op: 'weaponRollMod'; phase: 'attaque' | 'attaqueReussie' | 'paradeDuDefenseur' | 'paradeAdverse' | 'defenseAdverse' | 'testRate'; drMod?: number; flatMod?: number }
   /** PASSIF d'ARME : modificateur de DÉGÂTS (LDB 62-63) — Dévastatrice (DR = max(DR,
    *  dé des unités), `mode:'maxUnits'`), Percutante (+ dé des unités, `plusUnits`), Inoffensive (annule les
    *  Atouts de Dégâts, `negateAtouts`), Épuisante (`chargeGated` : Percutante/Dévastatrice de l'arme inertes

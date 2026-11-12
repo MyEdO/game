@@ -99,11 +99,11 @@ export function rederiveAttack(attacker: Combatant, target: Combatant, p: Pendin
     // Substitution sociale (Intimidation/Dressage, LDB 09 l.207/287) : base et libelle viennent du jet
     // de defense FIGE. Sans eux, la rangee defenseur repartait sur une Parade a base 0.
     const sub = mode === 'social' ? { base: dd.base, label: dd.label } : undefined;
-    return weapon.type === 'ranged'
+    return weapon.type === 'distance'
       ? finishRanged(attacker, target, weapon, atk2, def, mode, { rng: battleRng(), fige: r.critLocation }, p.distanceTiles, p.location ?? undefined, [], r.parryWeapon, dodge, 2, compo, p.withhold)
       : finishMelee(attacker, target, weapon, atk2, def, mode, { rng: battleRng(), fige: r.critLocation }, p.location ?? undefined, [], dodge, dmgProxy, r.parryWeapon, p.withhold, sub, compo);
   }
-  return rederivePassiveAttack(attacker, target, weapon, atk2, weapon.type === 'ranged' ? 'ranged' : 'melee', { rng: battleRng(), fige: r.critLocation }, p.location ?? undefined, p.withhold, compo, dmgProxy);
+  return rederivePassiveAttack(attacker, target, weapon, atk2, weapon.type === 'distance' ? 'distance' : 'melee', { rng: battleRng(), fige: r.critLocation }, p.location ?? undefined, p.withhold, compo, dmgProxy);
 }
 
 /** Arme avec laquelle cette Défense pare : la DÉCLARÉE (réglage `defense.armeDeParade`), sinon `defaultParryWeapon`. Lue par le jet et par sa fenêtre. */
@@ -122,7 +122,7 @@ function finishDefenseResult(attacker: Combatant, defender: Combatant, p: Pendin
   const tirage = { rng: battleRng(), fige: p.result?.critLocation ?? p.critLocation };
   // La Difficulté de l'attaque a été FIGÉE à l'ouverture de la fenêtre (`atkCompo`) : le jet est
   // antérieur, et son contexte (flanc/dos notamment) ne voyage pas jusqu'ici.
-  return p.weapon.type === 'ranged'
+  return p.weapon.type === 'distance'
     ? finishRanged(attacker, defender, p.weapon, atk, def, p.mode, tirage, p.distanceTiles, p.location ?? undefined, p.env ?? [], parry, dodgeMods, metresPerTile, p.atkCompo, !!p.withhold)
     : finishMelee(attacker, defender, p.weapon, atk, def, p.mode, tirage, p.location ?? undefined, p.env ?? [], dodgeMods, p.dmgProxy, parry, !!p.withhold, sub, p.atkCompo);
 }
@@ -784,7 +784,7 @@ export const FLOWS = paresseux({
         // Le Talent d'Inversion porte sur la COMPETENCE reellement lancee (LDB 23 l.209) : l'arme
         // FIGEE au jet fait foi, jamais un re-choix qui pourrait basculer melee/distance.
         const weapon = p.weapon ?? firedWeapon(actor, target, p.weaponUid, s.battle?.combatants, p.harpoonRopeCut);
-        return attackTestOf(actor, weapon, weapon.type === 'ranged' ? 'ranged' : 'melee'); // Spécialisation comprise (LDB 23 l.209)
+        return attackTestOf(actor, weapon, weapon.type === 'distance' ? 'distance' : 'melee'); // Spécialisation comprise (LDB 23 l.209)
       },
       current: (p) => (p.result?.attackerDetail ? { roll: p.result.attackerDetail.roll, target: p.result.attackerDetail.target } : null),
       evaluate: (s, p, actor, _get, tr) => {

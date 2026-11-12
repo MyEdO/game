@@ -73,7 +73,7 @@ describe('(a) Gate de compétence — Exemple 1 (l.3921) : un servant à Arc ne 
 
     const w = firedWeapon(chefArb, target, poste.item.uid, all);
     expect(w.reload).toBe(6); // Recharge 3 ×2 (sous-effectif : 1 < Indice 2)
-    expect(combatValue(chefArb, 'ranged', w)).toBe(38); // tir à la Projectiles (Arbalète) du chef, pas 55
+    expect(combatValue(chefArb, 'distance', w)).toBe(38); // tir à la Projectiles (Arbalète) du chef, pas 55
     expect(w.qualities.some((q) => q.id === 'pointue')).toBe(false); // 1 servant valide → solo → perd ses Atouts (l.3818)
   });
 
@@ -112,7 +112,7 @@ describe('(b) Poudre noire — Ingénierie qualifie pour un canon (l.3816)', () 
   it('un servant à Ingénierie tire le canon à sa valeur de Projectiles (Ingénierie)', () => {
     const w = engineWeapon('canon-petit');
     const chef = mkGunner('chef', { x: 0, y: 0 }, [proj('ingenierie', 22)]);
-    expect(combatValue(chef, 'ranged', w)).toBe(52); // CT 30 + 22
+    expect(combatValue(chef, 'distance', w)).toBe(52); // CT 30 + 22
   });
 });
 

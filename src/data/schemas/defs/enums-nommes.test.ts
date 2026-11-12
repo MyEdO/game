@@ -89,7 +89,7 @@ const MIGRES: readonly [string, unknown, Record<string, string>][] = [
     regard: 'Regard pétrifiant', langue: 'Langue préhensile', hurlement: 'Hurlement', pietinement: 'Piétinement',
   }],
   ['trappings.categorie', trappingCategorieSchema, {
-    melee: 'Armes de mêlée', ranged: 'Armes à distance', ammunition: 'Munitions',
+    melee: 'Armes de mêlée', distance: 'Armes à distance', ammunition: 'Munitions',
     armor: 'Armures', trapping: 'Équipement',
   }],
   ['criticals.localisation', critTableSchema, {

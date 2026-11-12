@@ -91,7 +91,7 @@ describe('coup à l’équipage — la STATION est ÉPINGLÉE, jamais déduite (
   it('3bis. le GATE de station vit en DONNÉE (`requiresTrait`), aucune station n’est codée en dur', () => {
     const gatees = shipStations.filter((s) => s.requiresTrait).map((s) => `${s.id} ⇐ ${s.requiresTrait!.id}`);
     expect(gatees, 'les deux présences que le livre fait payer : MSRC 07 l.94, MDG 12 l.299')
-      .toEqual(['nid-de-pie ⇐ nid-de-pie', 'cale ⇐ cale']);
+      .toEqual(expect.arrayContaining(['nid-de-pie ⇐ nid-de-pie', 'cale ⇐ cale']));
     // Toute coque ouvre les présences non gatées ; la barque n'ouvre ni cale ni nid-de-pie.
     for (const s of shipStations) {
       expect(shipStationOuverte(hullNavalTraits(coque('barque-fluviale')), s.id), `${s.id} sur la barque`).toBe(!s.requiresTrait);

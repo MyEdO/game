@@ -22,8 +22,8 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 const NAVIGATION = propulsionDuNavire('cogue', undefined, 'maritime')!.competence;
 
 /** MDG 13 l.185-200 · LDB 62 l.180 */
-const PISTOLET = { label: 'Pistolet', type: 'ranged', subType: 'poudre-noire', damage: { plusBF: false, flat: 8 }, range: 20, qualities: [] } as unknown as Weapon;
-const ARC = { label: 'Arc', type: 'ranged', subType: 'arc', damage: { plusBF: true, flat: 3 }, range: 50, qualities: [] } as unknown as Weapon;
+const PISTOLET = { label: 'Pistolet', type: 'distance', subType: 'poudre-noire', damage: { plusBF: false, flat: 8 }, range: 20, qualities: [] } as unknown as Weapon;
+const ARC = { label: 'Arc', type: 'distance', subType: 'arc', damage: { plusBF: true, flat: 3 }, range: 50, qualities: [] } as unknown as Weapon;
 
 const seaPlan = (): TravelPlan => ({
   routeId: 'r', fromPlaceId: 'a', toPlaceId: 'b', mode: 'mer', hoursPerDay: 8, km: 100, kmDone: 0,

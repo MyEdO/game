@@ -184,7 +184,7 @@ export interface HitModifierCtx {
 
 /** Les natures d'attaque qu'une sauvegarde peut distinguer — union FERMÉE : le corps à corps, le tir,
  *  et le Projectile magique (LDB 46), qui n'est porté par aucune arme. */
-export type TypeDAttaque = 'melee' | 'ranged' | 'magique';
+export type TypeDAttaque = 'melee' | 'distance' | 'magique';
 
 /** Un modifier de touche = une sauvegarde NOMMÉE qui TRANSFORME `res`. `order` fixe sa position dans
  *  la séquence (l'ordre RAW est encodé par `order`). `apply` RE-TESTE `ctx.res` et renvoie le `res`
@@ -295,7 +295,7 @@ export const TABLES = {
       id: 'arrow-ward',
       order: 8,
       apply: ({ get, attacker, target, weapon, attaque, res }) => {
-        if (res.hit && attaque === 'ranged' && weapon && organicProjectile(weapon)
+        if (res.hit && attaque === 'distance' && weapon && organicProjectile(weapon)
           && wardedAgainst(get().battle?.combatants ?? [], attacker, target, 'arrowWard', sceneMetresPerTile(get().scene))) {
           res = { ...res, woundsLost: 0, damage: 0, sansPrise: 'bouclier-anti-fleches', touche: undefined, log: t('cf.bouclierAntiFlechesDesagrege', { name: target.label }) };
         }

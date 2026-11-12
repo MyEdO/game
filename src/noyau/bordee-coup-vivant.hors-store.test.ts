@@ -23,7 +23,7 @@ const artilleur = (id: string): Combatant => combattantDeTest({
   armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, pos: { x: 5, y: 5 },
 });
 const piece = (uid: string, servant: string): ShipPoste => ({
-  side: 'tribord', item: { uid, label: 'Canon moyen', kind: 'ranged', subType: 'armes-de-siege', damage: { flat: 14, plusBF: false }, range: 75, qualities: [{ id: 'recharge', value: 6 }] }, crewIds: [servant],
+  side: 'tribord', item: { uid, label: 'Canon moyen', kind: 'distance', subType: 'armes-de-siege', damage: { flat: 14, plusBF: false }, range: 75, qualities: [{ id: 'recharge', value: 6 }] }, crewIds: [servant],
 }) as unknown as ShipPoste;
 const fregate = (): Combatant => combattantDeTest({
   id: 'ship', label: 'Frégate', kind: 'npc', bodyShape: 'vehicule', creatureId: 'bateau-de-patrouille', crewIds: ['g1', 'g2'],

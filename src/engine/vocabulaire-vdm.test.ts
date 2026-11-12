@@ -86,7 +86,7 @@ describe('2 — `augmentWeapon` DÉGRADANT : Défaut (VDM 05)', () => {
 
   it('la donnée porte le retrait des Atouts par TYPE et le passif d’attaque −1 DR', () => {
     const aug = opsOf('defaut-metal').find((o) => o.op === 'augmentWeapon');
-    expect(aug).toEqual({ op: 'augmentWeapon', removeType: 'atout', passive: [{ op: 'weaponRollMod', phase: 'attack', drMod: -1 }] });
+    expect(aug).toEqual({ op: 'augmentWeapon', removeType: 'atout', passive: [{ op: 'weaponRollMod', phase: 'attaque', drMod: -1 }] });
   });
 
   it('« Tous les Atouts de l’arme disparaissent » — le TYPE est lu au registre, pas listé en dur', () => {
