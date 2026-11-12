@@ -10,6 +10,8 @@ import {
   rallyHealAmount, initHoldState, resolveHoldRound, holdEnemyBonus, INSPIRE_BONUS,
 } from './massBattle';
 import { desEnSuite } from './dice.testkit';
+import { facesDuDe } from './tables';
+import { massBattleHazardsDie } from '../data';
 
 /** RNG déterministe : renvoie tour à tour les d100 fournis (bornés à [min,max]). */
 function seqRNG(...vals: number[]): RNG {
@@ -160,7 +162,7 @@ describe('Issue de la bataille (l.124) & aléa (l.309)', () => {
   });
 
   it('facteur environnemental 1d10 (l.311-322) + tables verbatim', () => {
-    expect(BATTLE_HAZARDS).toHaveLength(10);
+    expect(BATTLE_HAZARDS).toHaveLength(facesDuDe(massBattleHazardsDie()));
     expect(battleHazard(1).label).toBe('Tempête');
     expect(battleHazard(10).label).toBe('Peur');
     expect(STRUCTURES.find((s) => s.id === 'mur-en-pierre')).toMatchObject({ be: 12, wounds: 40 });

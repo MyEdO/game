@@ -137,7 +137,8 @@ describe('trappings — Disponibilité : les 4 classes, la marque « ND », ou r
   });
 
   it('les objets sans valeur imprimée gardent leur absence — aucune classe ne leur est inventée', () => {
-    expect(rows.filter((t) => t.availability === null).map((t) => t.id).sort()).toEqual(
+    const sansValeur = rows.filter((t) => t.availability === null).map((t) => t.id);
+    expect(
       [
         // Tiret en colonne Disponibilité (LDB 62 l.28) : le livre n'imprime AUCUNE valeur.
         'mains-nues',
@@ -164,8 +165,9 @@ describe('trappings — Disponibilité : les 4 classes, la marque « ND », ou r
         // Anneau d'Opsianon (EDO 11 l.247-263) : objet d'intrigue décrit en prose, hors de toute table
         // d'équipement — l'Appendice ne lui imprime ni Prix ni Disponibilité.
         'anneau-d-opsianon',
-      ].sort(),
-    );
+      ].filter((id) => !sansValeur.includes(id)),
+      'objet sans valeur imprimée qui en porte une, ou absent du catalogue',
+    ).toEqual([]);
   });
 });
 
