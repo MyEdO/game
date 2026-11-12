@@ -3,6 +3,7 @@
  * pièces que le montage fond (`MontageDeComposition.refondre`), leurs tableaux échangés en base64. La page la résout
  * hors du fil de l'image (`pileEnFond.ts`).
  */
+import { depuisBase64, enBase64 } from '../../../src/lib/base64';
 import { ordreDesCouches, resoudreLaPile, type BilanDePile, type MaillageDePile } from '../asset/pile';
 
 /**
@@ -64,19 +65,11 @@ export type PileResolue =
   /** une demande illisible. */
   | { ok: false; erreur: { categorie: 'validation'; message: string } };
 
-function octetsDe(base64: string): ArrayBuffer {
-  const binaire = atob(base64);
-  const octets = new Uint8Array(binaire.length);
-  for (let i = 0; i < binaire.length; i++) octets[i] = binaire.charCodeAt(i);
-  return octets.buffer;
-}
+/** Les octets du tableau base64 `base64`. */
+const octetsDe = (base64: string): ArrayBuffer => depuisBase64(base64).buffer;
 
-function enBase64(tableau: Float32Array | Int32Array): string {
-  const octets = new Uint8Array(tableau.buffer, tableau.byteOffset, tableau.byteLength);
-  let binaire = '';
-  for (let i = 0; i < octets.length; i += 0x8000) binaire += String.fromCharCode(...octets.subarray(i, i + 0x8000));
-  return btoa(binaire);
-}
+/** Les octets de `tableau` en base64. */
+const enBase64DuTableau = (tableau: Float32Array | Int32Array): string => enBase64(new Uint8Array(tableau.buffer, tableau.byteOffset, tableau.byteLength));
 
 /** Les triangles `indices` tournés dans l'autre sens : du sens horaire de Godot au sens trigonométrique de la pile, et
  *  retour. */
@@ -94,10 +87,10 @@ const lire = (m: MaillageDeLaPile): MaillageDePile => ({
 });
 
 const ecrire = (m: MaillageDePile): MaillageDeLaPile => ({
-  positions: enBase64(m.positions),
-  indices: enBase64(retournes(Int32Array.from(m.indices))),
-  os: enBase64(Int32Array.from(m.os)),
-  poids: enBase64(m.poids),
+  positions: enBase64DuTableau(m.positions),
+  indices: enBase64DuTableau(retournes(Int32Array.from(m.indices))),
+  os: enBase64DuTableau(Int32Array.from(m.os)),
+  poids: enBase64DuTableau(m.poids),
   noms: m.noms,
 });
 
