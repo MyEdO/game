@@ -1918,7 +1918,8 @@ function piloteImmediat(get: Get, set: Set, steps: CascadeStep[], ctx: ContexteD
     // Prédicat UNIQUE de `resolveRemainingCascade` : un choix sans défaut AUTEURISÉ, une fenêtre hôte
     // vivante (#1765). On ne tranche PAS en silence — la cascade s'arrête PENDANTE, surfacée
     // (`pendingCascade`) pour que l'appelant/la modale la reprenne (devtools `advanceRiverDay`/
-    // `skipToArrival`, cadence commandée, tout futur appelant immédiat). Affichage / quantité : rien
+    // `skipToArrival`, cadence commandée, tout futur appelant immédiat) ; une étape hôte qu'aucun humain
+    // ne tient s'y joue ensuite d'office (`jouerLHoteDOffice`, #3892). Affichage / quantité : rien
     // à résoudre avant la conséquence (`quantityStep` naît avec son nombre d'ouverture).
     if (!stepReady(cur[i], get())) {
       parquer(parquee(i, ctx?.title ?? choix.label ?? 'Choix'));

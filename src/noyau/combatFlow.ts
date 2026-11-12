@@ -4956,7 +4956,8 @@ export function castSpell(
   openCastCascade(get, set, caster); // « Une situation = une modale » : hôte la situation d'incantation dans la cascade
   // Lanceur PILOTÉ PAR L'IA : le MOTEUR roule l'incantation (plus de « Lancer » joueur — on ne lance pas
   // le dé d'un combattant automate) ; `jetLancer('incantation')` aiguille ensuite le Contre-sort comme pour tout lanceur.
-  // Sans fenêtre, la modale pré-roulée sert de RÉVÉLATION (résultat + « Appliquer », sans « Lancer »).
+  // Lanceur dont l'étape est tenue (ennemi `groupOwner`, héros en Auto-combat) : sans fenêtre, la modale
+  // pré-roulée sert de RÉVÉLATION (résultat + « Appliquer », sans « Lancer ») ; non tenue, `jouerLHoteDOffice` (#3892).
   if (aiDriven(get(), caster) && get().battle) get().jetLancer('incantation');
 }
 
@@ -7756,7 +7757,8 @@ function jouerLaSuite(get: Get, set: SetFn, acteurId: string, cle: string, n: nu
       const cible = inBattleId(battle, geste.cibleId);
       if (!cible) { advanceTurn(get, set); return; }
       castSpell(get, set, acteur, cible, geste.spellId);
-      // La modale d'incantation témoin (Lancer → Contre-sort → Appliquer) SUSPEND le tour de l'IA : la reprise
+      // Étape tenue (ennemi `groupOwner`, héros en Auto-combat) : la modale d'incantation témoin (Lancer →
+      // Contre-sort → Appliquer) SUSPEND le tour de l'IA ; non tenue, elle se joue d'office (#3892). La reprise
       // est portée par jetValider('incantation')/jetAnnuler('incantation') → resumeEnemyTurn. castSpell peut refuser (contrecoup bloquant,
       // hors de portée…) → pas de modale → l'acteur passe.
       if (!get().pendingCast) armerLaSuite(get, set, acteur, { kind: 'avancer' }, beatHold(get, 'enemyAdvance'));

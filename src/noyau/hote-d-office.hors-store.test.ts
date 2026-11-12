@@ -3,7 +3,7 @@
  * montre au bilan ». Parquée dans le slot par le pilote immédiat, elle se joue par les MÊMES verbes qu'un humain
  * (`jetLancer`/`jetValider` sur son flux, `combatAuto.jouerLaPaireDuJet`) ; tenue, elle reste parquée sur sa fenêtre.
  * Matrice des hôtes atteignables hors bataille par leur producteur réel : Test (`openSkillTest`), Test étendu
- * (`ouvrirLeTestEtendu`), incantation (`incanterLeSort`).
+ * (`ouvrirLeTestEtendu`), incantation (`incanterLeSort`) ; en bataille, l'incantation du héros IA (`runEnemyAI`).
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -14,6 +14,11 @@ import { openSkillTest } from './combatEffects';
 import { condCtx } from './bourseFlow';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import { startCascade } from './cascade';
+import { runEnemyAI } from './combatFlow';
+import { spawnEnemy } from './monde/spawn';
+import { seedBattleRng } from './battleRng';
+import { findSpellById } from '../data';
+import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 import { cleDeFixture } from './noyau.testkit';
 import { fixtureText } from '../i18n/fixtureText';
 import type { Combatant } from '../engine/types';
@@ -98,5 +103,38 @@ describe('Étape hôte hors bataille : tenue, elle parque ; non tenue, ses verbe
     MEMBRES[0].ouvrir(c);
     expect(banc.getState().suspendedCascades.map((x) => x.title)).toEqual(['Autre']);
     expect(banc.getState().pendingTest).toBeNull();
+  });
+});
+
+describe('Étape hôte en bataille : le héros IA qui incante (#3892)', () => {
+  it('cadence manuelle : dégâts appliqués et séquence close au passage de son tour, un seul jetValider', () => {
+    seedBattleRng(17);
+    const c = herosDeScenario(idsDeTest, 'sorcier');
+    c.id = 'caster'; c.aiControlled = true;
+    c.characteristics.intelligence = 70; c.characteristics['force-mentale'] = 70;
+    c.skills = [{ id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 60 } as never];
+    c.spells = [findSpellById('flechette')!.id]; c.pos = { x: 5, y: 5 }; c.advantage = 0;
+    const ennemi = (id: string, x: number): Combatant => {
+      const e = spawnEnemy({ ref: 'humain' }, id, { x, y: 5 });
+      e.kind = 'enemy'; e.skills = []; e.spells = []; e.talents = []; e.wounds = blessuresDeBase(30, 30, e);
+      return e;
+    };
+    const battle = {
+      combatants: [c, ennemi('e1', 8), ennemi('e2', 9)], order: ['caster', 'e1', 'e2'], baseOrder: ['caster', 'e1', 'e2'],
+      turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
+    } as never;
+    const scene = { id: 's', dimensions: { w: 20, h: 20 }, layers: [{ z: 0, tiles: [] }], entities: [], dialogues: [], triggers: [], encounters: [] } as never;
+    banc.setState({ battle, scene, party: [c], partyPos: { x: 0, y: 0 }, actorAoe: null, pendingCast: null });
+    const jetValider = banc.getState().jetValider;
+    const valides: string[] = [];
+    banc.setState({ jetValider: (jet, ...reste) => { valides.push(jet); return jetValider(jet, ...reste); } });
+    runEnemyAI(banc.getState, banc.setState, 'caster');
+    banc.jusquA((e) => e.battle!.turn !== 0, 20);
+    const s = banc.getState();
+    expect(s.pendingCast, 'aucune révélation ne reste ouverte').toBeNull();
+    expect(s.pendingCascade, 'la séquence d’incantation est close').toBeNull();
+    const perdues = ['e1', 'e2'].reduce((n, id) => n + 30 - s.battle!.combatants.find((x) => x.id === id)!.wounds.current, 0);
+    expect(perdues, 'les dégâts du sort sont appliqués').toBeGreaterThan(0);
+    expect(valides.filter((j) => j === 'incantation')).toHaveLength(1);
   });
 });
