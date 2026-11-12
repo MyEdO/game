@@ -2142,7 +2142,7 @@ export function applyCoupCritiqueSec(
   cause: CauseCoupCritique,
   ctx: { attackerId?: string; weapon?: string; weaponObj?: Weapon },
   log: string[],
-  auteur?: Combatant,
+  auteur: Combatant | undefined,
 ): void {
   // LDB 14 l.3 ; LDB 46 l.30 : un seul Critique ; LDB 18 l.44, l.46 (Mort subite).
   const coup = { coupCritique: cause, prise: true, current: victim.wounds.current };
@@ -2157,9 +2157,8 @@ export function applyCoupCritiqueSec(
     return;
   }
   // B. de Sauvagerie (LDB 41) : l'attaquant à l'origine du double tire deux lancers de Critique.
-  const attacker = auteur ?? inBattleId(get().battle, ctx.attackerId);
-  const heroConcerned = victim.kind === 'hero' || attacker?.kind === 'hero';
-  const c2: DeviationCtx = { ...ctx, attackerKind: attacker?.kind, critTwice: attacker ? critRollTwiceFor(attacker) : undefined };
+  const heroConcerned = victim.kind === 'hero' || auteur?.kind === 'hero';
+  const c2: DeviationCtx = { ...ctx, attackerKind: auteur?.kind, critTwice: auteur ? critRollTwiceFor(auteur) : undefined };
   const deviable = !!rule('combat-deviation-critique') && deviatableArmourAt(victim, loc);
   if (deviable && !tenuParUnHumain(get(), victim.id)) {
     if (autoDeviate(set, victim, loc, ctx, roll, log, heroConcerned)) { breakBacleArmour(victim, loc, log); return; }
@@ -2173,9 +2172,9 @@ export function applyCoupCritiqueSec(
     } });
     return;
   }
-  const lethal = applyCritAndFinalize(get, set, victim, loc, 0, entree.origine, log, c2, attacker, victim.wounds.current);
+  const lethal = applyCritAndFinalize(get, set, victim, loc, 0, entree.origine, log, c2, auteur, victim.wounds.current);
   breakBacleArmour(victim, loc, log); // LDB 60 l.50
-  apresLeCritiqueDe({ get, set, auteur: attacker, cible: victim, lieu: loc, log, arme: ctx.weaponObj })(lethal, entree.origine); // #316
+  apresLeCritiqueDe({ get, set, auteur, cible: victim, lieu: loc, log, arme: ctx.weaponObj })(lethal, entree.origine); // #316
 }
 
 /** Ce que lit l'après d'une Blessure critique infligée. */
@@ -2456,7 +2455,7 @@ function cloreLeCoup(get: Get, cible: Combatant, currentBefore: number, log: str
   delierLeHorsDeCombat(get, cible);
 }
 
-/** Les liens de bataille d'une cible hors de combat, levés : LDB 13 ; l'Amour re-mesuré (l.75). */
+/** Les liens de bataille d'une cible hors de combat, levés : LDB 13 ; l'Amour re-mesuré (LDB 21 l.75). */
 function delierLeHorsDeCombat(get: Get, cible: Combatant): void {
   const battle = get().battle;
   if (!battle || !isOutOfAction(cible)) return;
@@ -8960,7 +8959,7 @@ export const TABLES = {
         const parryWeaponObj = defender.weapons.find((w) => w.uid === pbt.parryWeaponUid);
         const parryWeaponName = parryWeaponObj?.label ?? 'arme';
         const lines = [tr('cf.critOnDefense', { name: defender.label })];
-        applyCoupCritiqueSec(get, set, attacker, pbt.roll, 'double', { attackerId: defender.id, weapon: parryWeaponName, weaponObj: parryWeaponObj }, lines);
+        applyCoupCritiqueSec(get, set, attacker, pbt.roll, 'double', { attackerId: defender.id, weapon: parryWeaponName, weaponObj: parryWeaponObj }, lines, defender);
         const b = get().battle!;
         set({ battle: { ...b, log: [...b.log, ...evLines(lines, 'information', defender.id, attacker.id)] } });
         bus.emit(EVT.SCENE_DIRTY);

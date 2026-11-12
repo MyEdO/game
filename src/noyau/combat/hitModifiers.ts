@@ -37,17 +37,17 @@ import { combatDistance } from '../monde/footprint';
 import { porteeEnCases } from '../monde/combatGeometry';
 import { pushBackTiles } from '../combatPlacement';
 import { sceneMetresPerTile } from '../monde/scene';
-import { inBattleId } from '../monde/combatants';
+import { actorIn } from '../monde/combatants';
 import { t } from '../../i18n';
 import type { FragmentDeTables } from '../tablesPosees';
 
 // ── Helpers propres aux sauvegardes ──
 
 /** Martyr (LDB 43 l.99) : le prêtre (vivant, présent) qui encaisse à la place de `target`, ou null. */
-export function martyrGuardOf(battle: Jeu['battle'], target: Combatant): Combatant | null {
+export function martyrGuardOf(etat: Jeu, target: Combatant): Combatant | null {
   const id = (target.activeEffects ?? []).find((e) => e.martyrGuard)?.martyrGuard;
   if (!id || id === target.id) return null;
-  const priest = inBattleId(battle, id);
+  const priest = actorIn(etat, id);
   return priest && !isOutOfAction(priest) && !priest.dead ? priest : null;
 }
 
@@ -309,7 +309,7 @@ export const TABLES = {
       apply: ({ get, attacker, target, weapon, res, encaisse }) => {
         const raw = res.damage ?? res.woundsLost;
         if (res.hit && !res.degatsTransferes && raw) {
-          const priest = martyrGuardOf(get().battle, target);
+          const priest = martyrGuardOf(get(), target);
           if (priest) {
             const loc = res.location ?? 'corps';
             // LDB 13 l.159, LDB 43 l.107.
