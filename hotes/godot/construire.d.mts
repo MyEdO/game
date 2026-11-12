@@ -9,4 +9,5 @@ export function piloter(options: {
   env: Record<string, string>;
   rendu?: string;
   lance: (tuer: () => void) => void;
+  encore: () => boolean;
 }): Promise<{ lignes: string[]; erreurs: string[] }>;

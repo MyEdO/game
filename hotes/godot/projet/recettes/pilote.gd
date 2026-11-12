@@ -12,7 +12,8 @@ extends SceneTree
 ##   à l'appui d'une touche d'un seul caractère ;
 ## - `rappel` et `entree` : le rappel exposé sous ce nom (`Transport.exposer`) appelé, sa réponse rendue ;
 ## - `capture` : l'image de la fenêtre écrite en PNG à ce chemin, `false` sans rendu (`--headless`) ;
-## - `fichier` : le chemin que rend le choix de fichier ouvert (`Transport.choisir_une_image`), attendu ;
+## - `fichier` : le chemin que rend le choix de fichier ouvert (`TransportDuProcessus._choisir_un_chemin`), attendu,
+##   ou, sous ce dossier, le nom que le choix propose ; rend ce chemin, le fichier lu ou écrit ;
 ## - `quitter` : le code de sortie, après la ligne `[pilote] fin`.
 ## Une commande rend `true`, la réponse de son rappel, ou `{ erreur }`.
 
@@ -168,12 +169,18 @@ func _capturer(id: Variant, chemin: String) -> void:
 	_rendus.append([id, true if ecrit == OK else {erreur = "capture %s : %s" % [chemin, error_string(ecrit)]}])
 
 
-## `chemin` rendu par le choix de fichier que le transport ouvre (`TransportDuProcessus.choisir_une_image`), attendu.
+## `chemin` rendu par le choix de fichier que le transport ouvre (`TransportDuProcessus._choisir_un_chemin`), attendu ;
+## si `chemin` est un dossier, le nom que le choix propose, sous lui. Le chemin choisi est rendu une fois le dialogue
+## parti : qui l'attendait a lu ou écrit le fichier.
 func _choisir(id: Variant, chemin: String) -> void:
 	var dialogues: Array[Node] = []
 	while dialogues.is_empty() and not _fini:
 		await process_frame
 		dialogues = _transport.find_children("*", "FileDialog", false, false)
-	if not _fini:
-		(dialogues[0] as FileDialog).file_selected.emit(chemin)
-		_rendus.append([id, true])
+	if _fini:
+		return
+	var dialogue := dialogues[0] as FileDialog
+	var choisi := chemin.path_join(dialogue.current_file) if DirAccess.dir_exists_absolute(chemin) else chemin
+	dialogue.file_selected.emit(choisi)
+	await dialogue.tree_exited
+	_rendus.append([id, choisi])

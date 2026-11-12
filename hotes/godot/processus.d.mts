@@ -11,7 +11,11 @@ export interface PontDuBundle {
   resoudreLaPile(demande: string, rendre: (reponse: string) => void): void;
 }
 
-export function pontDuBundle(code: string, console: Console): PontDuBundle;
+export function pontDuBundle(
+  code: string,
+  console: Console,
+  stockage: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>,
+): PontDuBundle;
 
 export function tenirLeTuyau(code: string, serveur: { url: string; fermer: () => void }): Promise<void>;
 

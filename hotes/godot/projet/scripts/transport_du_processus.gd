@@ -6,6 +6,8 @@ extends PontDuNoyau.Transport
 ## `_lancement`), par un tuyau bloquant : `node <pont>`, `<pont>` le paramètre `--pont=<chemin>` du lancement, à défaut
 ## `hotes/godot/vivant.mjs` sous l'éditeur ; dans un exécutable (#3951), `noyau/node` sur `noyau/vivant.mjs`, à côté de
 ## l'exécutable.
+## Il lui passe `--stockage=<fichier>`, le fichier où vivent les sauvegardes : le paramètre `--stockage=<fichier>` du
+## lancement, à défaut `stockage.json` sous le dossier des données de l'utilisateur (`user://`).
 ## Une ligne se termine par `\n`. Son entrée standard reçoit une ligne par requête, `[methode, json|null]`.
 ## Sa sortie standard porte d'abord la ligne d'annonce `{"url":"http://127.0.0.1:<port>/"}`,
 ## l'adresse du serveur du jeu, attendue `ATTENTE_S` au plus, puis une réponse par requête.
@@ -28,14 +30,14 @@ extends PontDuNoyau.Transport
 ## Sa mort, octets attendus compris, est une panne, qui dit son code de sortie.
 ## Le processus meurt quand le pont quitte l'arbre.
 ## Les paramètres sont ceux du lancement après `--` (`--<cle>=<valeur>`) ;
-## l'image se choisit par le dialogue de fichier natif.
+## un fichier se choisit et s'enregistre par le dialogue de fichier natif.
 
 const ATTENTE_S := 60.0
 ## La pause entre deux lectures d'un tuyau vide, pendant l'attente d'une réponse.
 const PAUSE_US := 200
 ## La ligne qui annonce les octets d'une réponse, suivie de leur nombre.
 const ANNONCE_DES_OCTETS := "octets "
-const TYPES := {png = "image/png", jpg = "image/jpeg", jpeg = "image/jpeg", webp = "image/webp"}
+const TYPES := {png = "image/png", jpg = "image/jpeg", jpeg = "image/jpeg", webp = "image/webp", json = "application/json"}
 
 signal _ouvert(pret: bool)
 
@@ -115,7 +117,12 @@ func ouvrir() -> bool:
 	if _pid != 0:
 		return await _ouvert
 	var lancement := _lancement()
-	var lance := OS.execute_with_pipe(lancement[0], PackedStringArray([lancement[1]]), true)
+	var stockage := parametre("stockage")
+	var options := PackedStringArray([
+		lancement[1],
+		"--stockage=" + (stockage if stockage != "" else ProjectSettings.globalize_path("user://stockage.json")),
+	])
+	var lance := OS.execute_with_pipe(lancement[0], options, true)
 	if lance.is_empty():
 		_mort = true
 		panne.emit("le processus du pont ne se lance pas : %s %s" % [lancement[0], lancement[1]])
@@ -180,12 +187,32 @@ func adresse(relative: String) -> String:
 	return "%s%s" % [_url, relative]
 
 
-func choisir_une_image() -> Dictionary:
+func choisir_un_fichier(genre: Dictionary) -> Dictionary:
+	var chemin := await _choisir_un_chemin(FileDialog.FILE_MODE_OPEN_FILE, genre.filtre, "")
+	var type: String = TYPES.get(chemin.get_extension().to_lower(), "")
+	return {} if type == "" else {octets = FileAccess.get_file_as_bytes(chemin), type = type}
+
+
+func enregistrer_un_fichier(genre: Dictionary, nom: String, texte: String) -> void:
+	var chemin := await _choisir_un_chemin(FileDialog.FILE_MODE_SAVE_FILE, genre.filtre, nom)
+	if chemin == "":
+		return
+	var fichier := FileAccess.open(chemin, FileAccess.WRITE)
+	if fichier == null:
+		panne.emit("%s ne s'écrit pas : %s" % [chemin, error_string(FileAccess.get_open_error())])
+		return
+	fichier.store_string(texte)
+
+
+## Le chemin que le joueur choisit au dialogue de fichier natif, ouvert en `mode` sous le filtre `filtre`, le nom `nom`
+## proposé ; `""` s'il renonce.
+func _choisir_un_chemin(mode: FileDialog.FileMode, filtre: String, nom: String) -> String:
 	var dialogue := FileDialog.new()
-	dialogue.file_mode = FileDialog.FILE_MODE_OPEN_FILE
+	dialogue.file_mode = mode
 	dialogue.access = FileDialog.ACCESS_FILESYSTEM
 	dialogue.use_native_dialog = true
-	dialogue.filters = PackedStringArray(["*.png, *.jpg, *.jpeg, *.webp ; Images PNG, JPEG ou WebP"])
+	dialogue.filters = PackedStringArray([filtre])
+	dialogue.current_file = nom
 	var choisi := []
 	dialogue.file_selected.connect(func(chemin: String) -> void: choisi.append(chemin))
 	dialogue.canceled.connect(func() -> void: choisi.append(""))
@@ -194,8 +221,7 @@ func choisir_une_image() -> Dictionary:
 	while choisi.is_empty():
 		await get_tree().process_frame
 	dialogue.queue_free()
-	var type: String = TYPES.get(str(choisi[0]).get_extension().to_lower(), "")
-	return {} if type == "" else {octets = FileAccess.get_file_as_bytes(choisi[0]), type = type}
+	return choisi[0]
 
 
 func parametre(cle: String) -> String:

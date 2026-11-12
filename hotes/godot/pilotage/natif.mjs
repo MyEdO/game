@@ -14,6 +14,7 @@ import { runInThisContext } from 'node:vm'
 import { empaqueter, piloter } from '../construire.mjs'
 import { pontDuBundle, servirLeCanal } from '../processus.mjs'
 import { servir } from '../servir.mjs'
+import { stockageDuProcessus } from '../stockage.mjs'
 import { ATTENTE_ECHUE, courseContreMontre, sleep } from '../../../scripts/recette/lib.mjs'
 
 export { ATTENTE_ECHUE, clic, sleep } from '../../../scripts/recette/lib.mjs'
@@ -29,7 +30,8 @@ const [MOLETTE_HAUT, MOLETTE_BAS] = [4, 5]
 
 /** Le jeu lancé sans export sur son menu d'entrée, sous `--recette=1` : la session, le serveur du jeu et la garde, qui
  *  relève les erreurs et les avertissements que le pont écrit à sa console et, à la fermeture de la session (`close`),
- *  ceux que Godot écrit. `rendu` le joue en rendu réel sous cette méthode ; sans lui, sans écran. */
+ *  ceux que Godot écrit. `rendu` le joue en rendu réel sous cette méthode ; sans lui, sans écran. Le stockage du pont
+ *  ne dure que ce processus. */
 export async function ouvrir({ modeles, statique, depot, scenario, graine, rendu }) {
   if (statique) throw new Error('--statique sert l’export tel que le site le publie : sans objet hors d’une page')
   const entries = []
@@ -38,8 +40,19 @@ export async function ouvrir({ modeles, statique, depot, scenario, graine, rendu
     entries.push({ type, text: format(...args) })
     ecrire(...args)
   }
-  const pont = pontDuBundle(await empaqueter(null), Object.assign(Object.create(console), { error: relever('error', console.error), warn: relever('warning', console.warn) }))
-  globalThis.wfrpPont = pont
+  const code = await empaqueter(null)
+  const consoleRelevee = Object.assign(Object.create(console), { error: relever('error', console.error), warn: relever('warning', console.warn) })
+  const stockage = stockageDuProcessus(null)
+  /** Les noms que Godot a publiés en global depuis le dernier lancement. */
+  const publies = new Set()
+  let pont
+  /** Le pont tiré du bundle comme à l'ouverture d'une page : ce que Godot avait publié retiré, le stockage gardé. */
+  const poserLePont = () => {
+    for (const nom of publies) delete globalThis[nom]
+    publies.clear()
+    pont = globalThis.wfrpPont = pontDuBundle(code, consoleRelevee, stockage)
+  }
+  poserLePont()
   const srv = await servir({ ...(modeles && { modeles }), ...(depot && { depot }) })
   /** Les commandes que le pilote n'a pas relevées, et celles dont il n'a pas rendu le résultat, par id. */
   const file = []
@@ -58,21 +71,46 @@ export async function ouvrir({ modeles, statique, depot, scenario, graine, rendu
       if (valeur?.erreur) reject(new Error(valeur.erreur))
       else resolve(valeur)
     }
-    return JSON.stringify({ ok: true, commandes: file.splice(0) })
+    return file.splice(0)
   }
   const publier = (json) => {
     const [nom, valeur] = JSON.parse(json)
+    publies.add(nom)
     globalThis[nom] = valeur
     return 'null'
   }
-  const ecoute = createServer((canal) => servirLeCanal(pont, { url: srv.url, fermer: () => mourir('le pont de Godot s’est fermé') }, { entree: canal, sortie: canal }, { publier, commandes }))
+  /** Le canal d'un jeu, en congé dès qu'il relève l'ordre de quitter : sa fermeture n'est plus une panne, et ce qu'il
+   *  publie encore ne compte plus. */
+  const ecoute = createServer((canal) => {
+    let conge = false
+    const methodes = {
+      publier: (json) => (conge ? 'null' : publier(json)),
+      commandes(json) {
+        const relevees = conge ? [] : commandes(json)
+        conge ||= relevees.some((commande) => 'quitter' in commande)
+        return JSON.stringify({ ok: true, commandes: relevees })
+      },
+    }
+    servirLeCanal(pont, { url: srv.url, fermer: () => conge || mourir('le pont de Godot s’est fermé') }, { entree: canal, sortie: canal }, methodes)
+  })
   await new Promise((pret) => ecoute.listen(0, '127.0.0.1', pret))
-  let lance
-  const lancement = new Promise((r) => { lance = r })
-  const joue = piloter({ args: [`--pont=${RELAIS}`, '--recette=1', `--scenario=${scenario}`, `--graine=${graine}`], env: { WFRP_RELAIS: String(ecoute.address().port) }, rendu, lance })
+  const quitter = () => file.push({ id: ++dernier, quitter: 0 })
+  let tuer = null
+  let recharge = false
+  let auLancement
+  const lancement = () => new Promise((r) => { auLancement = r })
+  const premier = lancement()
+  const lance = (t) => {
+    tuer = t
+    if (recharge) poserLePont()
+    recharge = false
+    auLancement()
+  }
+  const joue = piloter({ args: [`--pont=${RELAIS}`, '--recette=1', `--scenario=${scenario}`, `--graine=${graine}`], env: { WFRP_RELAIS: String(ecoute.address().port) }, rendu, lance, encore: () => recharge })
   joue.then(({ erreurs }) => mourir(`Godot a quitté${erreurs.length ? ` :\n${erreurs.join('\n')}` : ''}`))
-  const tuer = await Promise.race([lancement, joue.then(() => { throw new Error(mort) })])
-  process.once('exit', tuer)
+  const lanceOuMort = (attendu) => Promise.race([attendu, joue.then(() => { throw new Error(mort) })])
+  await lanceOuMort(premier)
+  process.once('exit', () => tuer())
   const session = {
     /** La commande `commande` jouée par le pilote : ce qu'elle rend, `COMMANDE_MS` au plus. */
     commander(commande) {
@@ -82,9 +120,18 @@ export async function ouvrir({ modeles, statique, depot, scenario, graine, rendu
       return courseContreMontre(new Promise((resolve, reject) => attendues.set(id, { resolve, reject })), COMMANDE_MS, `commande sans réponse du pilote après ${COMMANDE_MS} ms : ${JSON.stringify(commande)}`)
     },
     mort: () => mort,
+    /** Le jeu quitté puis relancé sur la même copie, son pont tiré de nouveau du bundle : ce qu'une page rechargée
+     *  garde, le stockage, reste. */
+    async recharger() {
+      if (mort) throw new Error(mort)
+      const relance = lancement()
+      recharge = true
+      quitter()
+      await lanceOuMort(relance)
+    },
     async close() {
-      file.push({ id: ++dernier, quitter: 0 })
-      const minuteur = setTimeout(tuer, SORTIE_MS)
+      quitter()
+      const minuteur = setTimeout(() => tuer(), SORTIE_MS)
       const { lignes, erreurs } = await joue
       clearTimeout(minuteur)
       ecoute.close()
@@ -152,6 +199,9 @@ export async function shot(session, name, dir) {
 /** Sans rendu, aucune image à redessiner. */
 export async function enHauteDefinition() {}
 
+/** Le jeu rechargé (`session.recharger`). */
+export const recharger = (session) => session.recharger()
+
 /** Ce que rend à `entree` le rappel que Godot expose sous `nom` (`Transport.exposer`), appelé par le pilote. */
 export const rappeler = (session, nom, entree) => session.commander({ rappel: nom, entree })
 
@@ -159,4 +209,11 @@ export const rappeler = (session, nom, entree) => session.commander({ rappel: no
 export async function choisirLeFichier(session, chemin, presser) {
   await presser()
   await session.commander({ fichier: chemin })
+}
+
+/** Le fichier que `presser()` remet au joueur, reçu sous le dossier `dossier` : son chemin. Le choix de fichier
+ *  l'enregistre sous le nom qu'il propose. */
+export async function recevoirLeFichier(session, dossier, presser) {
+  await presser()
+  return session.commander({ fichier: dossier })
 }

@@ -4,8 +4,9 @@
 // (`entreeDHote`, `scripts/entree-d-hote.mjs` : le gel du catalogue, puis `hotes/godot/pont/entree.ts`, avec le greffon
 // `proseSource()`) ; le bundle tient seul dans une page et expose `globalThis.wfrpPont` (`hotes/godot/pont/CONTRAT.md`).
 // Il dit sa taille, puis l'EXÉCUTE dans un `node:vm` qui ne porte que les API de navigateur déclarées
-// (`API_DU_NAVIGATEUR`) : `demarrer` et `vue` répondent `ok: true`, un second `demarrer` `ok: false`, `morceaux` par
-// `appelerEnOctets` tient les octets que dit son en-tête, sinon le code de sortie est 1 ; `--sortie <dossier>` l'y écrit, sans quoi rien ne s'écrit. La CI le joue (`npm run pont:godot`), pour
+// (`API_DU_NAVIGATEUR`) : `demarrer`, `vue` et `sauvegardes` répondent `ok: true`, un second `demarrer` `ok: false`,
+// `morceaux` par `appelerEnOctets` tient les octets que dit son en-tête, sinon le code de sortie est 1 ;
+// `--sortie <dossier>` l'y écrit, sans quoi rien ne s'écrit. La CI le joue (`npm run pont:godot`), pour
 // qu'un changement du moteur qui casse le bundle de navigateur, à sa construction comme à son évaluation, ne passe pas
 // vert. `--sonde` importe le projet (`hotes/godot/projet/`) par l'éditeur épinglé (`EDITEUR`), puis contrôle chaque
 // script (`--check-only`) et joue les recettes déclarant `const RECETTE_AUTONOME := true` sous `recettes/`, les vues
@@ -48,6 +49,7 @@ import { chargerAssets } from './asset/charger.mjs'
 import { deposerLesModeles, listage } from './listage.mjs'
 import { deposerLesPlanches } from './planches.mjs'
 import { API_DU_NAVIGATEUR, PONT, pontDuBundle } from './processus.mjs'
+import { stockageDuProcessus } from './stockage.mjs'
 
 let assetsCharges = null
 /** Les assets que `--sonde`, `--rendus`, `--export`, `--bureau` et `--ouvrir` lisent (`chargerAssets`), chargés à la première demande, jamais à l'import. */
@@ -154,7 +156,7 @@ const SCENARIO = 'dome'
 function executer(code) {
   let pont
   try {
-    pont = pontDuBundle(code, console)
+    pont = pontDuBundle(code, console, stockageDuProcessus(null))
   } catch (erreur) {
     return [`l’évaluation lève : ${erreur}`]
   }
@@ -167,6 +169,7 @@ function executer(code) {
     ['demarrer', { scenario: SCENARIO }, (r) => r.ok === true && r.vue?.projection != null && r.vue?.corps != null],
     ['vue', undefined, (r) => r.ok === true && r.vue?.projection != null && r.vue?.corps != null],
     ['demarrer', { scenario: SCENARIO }, (r) => r.ok === false && r.erreur?.categorie === 'validation'],
+    ['sauvegardes', undefined, (r) => r.ok === true && Array.isArray(r.zones?.['sauvegardes.emplacements'])],
     ['erreursGlobales', undefined, (r) => r.ok === true && Array.isArray(r.erreurs) && r.erreurs.length === 0],
   ]
   const ecarts = attendus.flatMap(([methode, entree, tient]) => {
@@ -437,7 +440,8 @@ async function surUneCopie(binaire, figerLesDessins, faire) {
  *  `recettes/vues/decor.json`, le chemin du groupe figé (`figerLeChemin`) sous `recettes/vues/chemin.json`, l'éditeur
  *  du navire figé (`figerLEditeurDuNavire`) sous `recettes/vues/editeur-navire.json` et le dégagement du combat figé
  *  (`figerLeDegagement`) sous `recettes/vues/degagement.json`, que lisent leurs recettes ; chaque recette reçoit
- *  `--pont=<VIVANT>`, que la copie ne porte pas sous `res://../vivant.mjs`. */
+ *  `--pont=<VIVANT>`, que la copie ne porte pas sous `res://../vivant.mjs`, et `--stockage=<fichier de la copie>`,
+ *  pour qu'aucune ne touche aux sauvegardes de l'utilisateur. */
 function sonder(binaire, { DOSSIER_DES_MODELES, figerVuesDeLEcran, figerLeVehicule, figerLeRepos, figerLeDecor, figerLeChemin, figerLEditeurDuNavire, figerLeDegagement, figerLesDessins }) {
   return surUneCopie(binaire, figerLesDessins, (copie) => {
     mkdirSync(join(copie, 'recettes', 'vues'), { recursive: true })
@@ -458,7 +462,7 @@ function sonder(binaire, { DOSSIER_DES_MODELES, figerVuesDeLEcran, figerLeVehicu
       /^const RECETTE_AUTONOME := true\s*$/m.test(readFileSync(join(copie, script.slice('res://'.length)), 'utf8')))
     for (const recette of recettes) {
       console.log(`[godot] recette autonome : ${recette}`)
-      const resultat = godot(binaire, copie, ['--script', recette, '--', `--pont=${VIVANT}`])
+      const resultat = godot(binaire, copie, ['--script', recette, '--', `--pont=${VIVANT}`, `--stockage=${join(copie, 'stockage.json')}`])
       console.log(resultat.lignes.join('\n'))
       erreurs.push(...resultat.erreurs)
     }
@@ -509,19 +513,24 @@ const FIN_DU_PILOTE = '[pilote] fin'
 /** Le jeu piloté par une recette (#3945) : le projet importé sur une copie par l'éditeur épinglé (`surUneCopie`), puis
  *  `PILOTE` en boucle principale, `args` passés au jeu après `--` et `env` ajouté à son environnement, sans tenir le
  *  fil ; sans écran, ou, avec `rendu`, en rendu réel sous cette méthode, sur un écran (`ECRAN_VIRTUEL` sans lui).
- *  `lance(tuer)` est appelé une fois le jeu lancé, `tuer()` le tuant. Rend les lignes de sa sortie jusqu'à
- *  `FIN_DU_PILOTE` (ce que le moteur écrit ensuite en se fermant n'en est pas), et ses erreurs : celles de ces lignes,
- *  et son échec. */
-export async function piloter({ args, env, rendu, lance }) {
+ *  `lance(tuer)` est appelé une fois le jeu lancé, `tuer()` le tuant ; à sa sortie, il est relancé sur la même copie
+ *  tant que `encore()` le demande. Rend les lignes de chaque sortie jusqu'à `FIN_DU_PILOTE` (ce que le moteur écrit
+ *  ensuite en se fermant n'en est pas), et ses erreurs : celles de ces lignes, et ses échecs. */
+export async function piloter({ args, env, rendu, lance, encore }) {
   const a = await deposerLesAssets()
   const binaire = await editeur()
-  let lignes = []
+  const lignes = []
   const erreurs = await surUneCopie(binaire, a.figerLesDessins, async (copie) => {
     const [commande, ...prefixe] = rendu ? [...ECRAN_VIRTUEL, binaire, '--rendering-method', rendu, '--audio-driver', 'Dummy'] : [binaire, '--headless']
-    const joue = await lancerSansTenirLeFil(commande, [...prefixe, '--path', copie, '--script', PILOTE, '--', ...args], env, lance)
-    const fin = joue.lignes.findLastIndex((l) => l.trim() === FIN_DU_PILOTE)
-    lignes = fin < 0 ? joue.lignes : joue.lignes.slice(0, fin)
-    return [...erreursDe(lignes), ...joue.echec]
+    const erreurs = []
+    do {
+      const joue = await lancerSansTenirLeFil(commande, [...prefixe, '--path', copie, '--script', PILOTE, '--', ...args], env, lance)
+      const fin = joue.lignes.findLastIndex((l) => l.trim() === FIN_DU_PILOTE)
+      const jouees = fin < 0 ? joue.lignes : joue.lignes.slice(0, fin)
+      lignes.push(...jouees)
+      erreurs.push(...erreursDe(jouees), ...joue.echec)
+    } while (encore())
+    return erreurs
   })
   return { lignes, erreurs }
 }
@@ -570,7 +579,7 @@ async function pont(sortie) {
     console.error(`[pont] le bundle exécuté (API : ${API_DU_NAVIGATEUR.join(', ')}) ne tient pas son contrat :\n  ${ecarts.join('\n  ')}`)
     return 1
   }
-  console.log(`[pont] exécuté (API : ${API_DU_NAVIGATEUR.join(', ')}) : demarrer ${SCENARIO} et vue ok, second demarrer refusé, erreursGlobales vide`)
+  console.log(`[pont] exécuté (API : ${API_DU_NAVIGATEUR.join(', ')}) : demarrer ${SCENARIO}, vue et sauvegardes ok, second demarrer refusé, erreursGlobales vide`)
   return 0
 }
 
@@ -601,16 +610,19 @@ const RECETTE_DE_L_EXECUTABLE = 'PartieVivante'
 
 /** `executable`, l'exécutable de bureau exporté, lancé sans écran avec `RECETTE_DE_L_EXECUTABLE` pour boucle principale
  *  (`application/run/main_loop_type` d'un `override.cfg` posé à côté de lui le temps du lancement, un modèle d'export
- *  ignorant `--script`) : sur son noyau embarqué, il joue une partie. Rend ses erreurs. */
+ *  ignorant `--script`) : sur son noyau embarqué, il joue une partie, son stockage dans un dossier temporaire
+ *  (`--stockage=`), jamais celui du joueur sous `user://`. Rend ses erreurs. */
 function jouerLExecutable(executable) {
   const surcharge = join(dirname(executable), 'override.cfg')
+  const dossier = mkdtempSync(join(tmpdir(), 'wfrp-stockage-'))
   writeFileSync(surcharge, `[application]\n\nrun/main_loop_type=${JSON.stringify(RECETTE_DE_L_EXECUTABLE)}\n`)
   try {
-    const { lignes, echec } = lancer(executable, ['--headless'])
+    const { lignes, echec } = lancer(executable, ['--headless', '--', `--stockage=${join(dossier, 'stockage.json')}`])
     console.log(lignes.join('\n'))
     return [...erreursDe(lignes), ...echec]
   } finally {
     rmSync(surcharge)
+    rmSync(dossier, { recursive: true, force: true })
   }
 }
 
