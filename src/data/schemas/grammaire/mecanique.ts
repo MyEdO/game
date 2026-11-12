@@ -1081,9 +1081,10 @@ export const conditionSchema: z.ZodType<Condition> = conditionDe([]);
 
 
 /** `FlowTest` (`engine/flowCore.ts:335`) — jet différé (→ modale), tout le métier hors branches. */
-/** `CatalogStake` (`src/data/index.ts`) — RÉFÉRENCE d'enjeu vers un DATASET : la clé de la donnée +
- *  les valeurs calculées pour ses trous. Un Flow authoré peut DIRE ce qu'il met en jeu sans qu'aucun
- *  texte n'entre au document (le résolveur reste la seule porte du texte). */
+/** `CatalogStake` (`src/data/index.ts`) — RÉFÉRENCE d'enjeu vers un DATASET, à sa forme AUTHORÉE : la
+ *  clé de la donnée seule. Un Flow authoré peut DIRE ce qu'il met en jeu sans qu'aucun texte n'entre au
+ *  document (le résolveur reste la seule porte du texte). Les `values` des trous sont CALCULÉES par le
+ *  flux (porte `stakeRef`), jamais saisies : elles restent au type runtime, hors du document. */
 export const catalogStakeSchema = nommerChamps(z.strictObject({
   key: nommerChamps(z.strictObject({
     dataset: z.enum(['nuit', 'voyage', 'meteo', 'flux', 'activite', 'combat']),
@@ -1091,8 +1092,7 @@ export const catalogStakeSchema = nommerChamps(z.strictObject({
     entryId: z.string().optional(),
     entryCategory: z.string().optional(),
   }), { dataset: { label: "registre"  }, kind: { label: "type" , texte: { regime: "technique"} }, entryId: { label: "entrée" , texte: { regime: "technique"} }, entryCategory: { label: "catégorie d’entrée" , texte: { regime: "technique"} } }),
-  values: z.record(z.string(), z.union([z.string(), z.number()])).optional(),
-}), { key: { label: "clé" }, values: { label: "valeurs" , texte: { regime: "technique"} } });
+}), { key: { label: "clé" } });
 
 /** `AuthoredStake` (`src/data/index.ts`) — la phrase qu'un DOCUMENT de campagne écrit lui-même
  *  (arbitrage user 2026-08-12, #1262) : elle voyage avec le document et ne pointe aucun dataset. */

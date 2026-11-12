@@ -3,7 +3,7 @@
  * `resolveStake` le résout à `{ dataset: cascade, kind: id }`, et chaque porte typée (`nightStakeRef`,
  * `voyageStakeRef`, `flowStakeRef`, `combatStakeRef`) ne prend que les ids de SA cascade. Fixtures : enjeu
  * résolu par son id, enjeu d'une autre famille refusé à la porte, clé inconnue refusée au typecheck, Test
- * d'équipage sans enjeu refusé au parse.
+ * d'équipage sans enjeu refusé au parse, valeurs calculées d'un enjeu refusées au document.
  */
 import { describe, expect, it } from 'vitest';
 import { STAKES, combatStakeRef, flowStakeRef, nightStakeRef, resolveStake, voyageStakeRef } from './index';
@@ -39,5 +39,13 @@ describe('L19 — un enjeu, une identité : son id', () => {
     expect(r.success).toBe(false);
     expect(r.success ? '' : r.error.issues.map((i) => i.message).join(' ')).toMatch(/Test d’équipage SANS enjeu/);
     expect(flowTestSchema.safeParse({ ...test, stake: voyageStakeRef('equipage-affaler') }).success).toBe(true);
+  });
+
+  it('un document authore la clé d’un enjeu au catalogue, jamais les valeurs de ses trous, que le flux calcule (#3606 M2e3)', () => {
+    const calcule = combatStakeRef('saut-test', { values: { metres: 3 } });
+    const test = { skill: { id: 'athletisme' }, difficulty: 'intermediaire' };
+    const r = flowTestSchema.safeParse({ ...test, stake: calcule });
+    expect(r.success ? [] : r.error.issues.map((i) => [i.code, i.path.join('/'), 'keys' in i ? i.keys : []])).toEqual([['unrecognized_keys', 'stake', ['values']]]);
+    expect(flowTestSchema.safeParse({ ...test, stake: { key: calcule.key } }).success).toBe(true);
   });
 });

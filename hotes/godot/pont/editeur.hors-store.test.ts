@@ -1306,7 +1306,7 @@ describe('l’éditeur de carte par le pont, le formulaire tiré du schéma (#36
     presser('valeur/crossTest/ajouter');
     choisir('valeur/crossTest/characteristic', 'Force');
     choisir('valeur/crossTest/stake/forme', 'clé');
-    expect(formulaire('valeur/crossTest/stake/values').champs[2], 'un record à clé ouverte, sans clé offerte, se saisit en JSON').toMatchObject({ type: 'saisieJson' });
+    expect(inspecteur().filter((el) => el.id.startsWith('valeur/crossTest/stake/key/')).map((el) => [el.id.slice('valeur/crossTest/stake/key/'.length), el.type]), 'la forme authorée d’un enjeu au catalogue est sa clé seule, chaque champ à son contrôle (#3606 M2e3)').toEqual([['dataset', 'choix'], ['kind', 'formulaire'], ['entryId', 'formulaire'], ['entryCategory', 'formulaire']]);
     presser('valeur/crossTest/stake/forme/aucune');
     presser('valeur/onCross/ajouter');
     choisir('valeur/onCross/0/op', 'Points de Corruption');
