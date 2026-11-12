@@ -494,7 +494,7 @@ const DECLARATIONS_D_OPS = {
     op: z.literal('constructeurDEscale'),
     competence: z.number().int().min(1),
     duree: formulaSchema,
-  }), { op: { label: "opération"  }, competence: { label: "Métier (Constructeur de navires)" }, duree: { label: "durée de la réparation (jours)" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
+  }), { op: { label: "opération"  }, competence: { label: "Métier (Constructeur de navires)" }, duree: { label: "durée de chaque réparation ou Amélioration (jours)" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
   /** `rationsDEscale` — MDG 15 l.262 */
   rationsDEscale: nommerChamps(z.strictObject({
     op: z.literal('rationsDEscale'),

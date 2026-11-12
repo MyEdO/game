@@ -42,7 +42,7 @@ import type { CibleEtendue } from '../data/schemas/grammaire/valeurs';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { findVehicleById } from '../data';
 import { profilNavalDe } from './coque';
-import type { ShipSize, NavalInstall, InstallBand } from '../data';
+import type { ShipSize, NavalInstall, InstallBand, InstallBareme } from '../data';
 import type { ProfilDePropulsion } from '../data/schemas/grammaire/valeurs';
 import type { Combatant, NavalTraitRef, VehicleData } from './types';
 import type { ShipRig } from './combat';
@@ -258,7 +258,7 @@ function bandValue(bands: InstallBand[], lengthM: number): number {
  *  `per:'unite'` (× `units`). `'modele'` (Embarcation de bord) → `null` : le prix est celui du modèle
  *  embarqué, résolu par l'appelant. PUR. */
 export function installAmount(
-  part: NonNullable<NavalInstall['installation']>,
+  part: InstallBareme,
   lengthM: number,
   units = 1,
 ): number | null {

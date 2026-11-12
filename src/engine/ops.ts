@@ -1300,7 +1300,8 @@ export type GameOp =
    *  à l'accostage dans ce port, la bourse du groupe reçoit `montant`. Op de NAVIRE. MDG 15 l.261 */
   | { op: 'commission'; montant: { brass: Formula } }
   /** CONSTRUCTEUR DE NAVIRES D'ESCALE : jusqu'à l'appareillage, la réparation au port se teste à Métier (Constructeur
-   *  de navires) `competence` et prend `duree` jours. Op de NAVIRE. MDG 15 l.255 */
+   *  de navires) `competence`, et chaque réparation ou Amélioration prend `duree` jours, tirés au travail. Op de
+   *  NAVIRE. MDG 15 l.255 */
   | { op: 'constructeurDEscale'; competence: number; duree: Formula }
   /** RATIONS D'ESCALE : jusqu'à l'appareillage, la ration-jour de cale s'achète au port à `montant`. Op de NAVIRE.
    *  MDG 15 l.262 */

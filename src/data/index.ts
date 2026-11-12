@@ -2617,9 +2617,12 @@ export interface InstallBand { maxLengthM: number | null; value: number; maison?
  *  `'modele'` = ceux du modèle embarqué (Embarcation de bord). `weightEnc` absent = aucun poids (Lissage).
  *  Donnée consommée par le chantier construction/réparation navale (lot systèmes) — aucune valeur codée en
  *  dur. */
+export type InstallBareme = { bands: InstallBand[]; per?: '5m' | '10m' | 'unite' } | 'modele';
 export interface NavalInstall {
-  installation: { bands: InstallBand[]; per?: '5m' | '10m' | 'unite' } | 'modele';
-  weightEnc?: { bands: InstallBand[]; per?: '5m' | '10m' | 'unite' } | 'modele';
+  installation: InstallBareme;
+  weightEnc?: InstallBareme;
+  /** Durée de la pose (jours) par palier de longueur ; absente : `reparation.joursDePose`. MDG 12 l.230 ; MDG 12 l.293 */
+  jours?: InstallBareme;
 }
 export interface NavalTraitData {
   /** id STABLE (slug) — la clé d'appariement avec `ship.traits`/`Combatant.upgrades` (`NavalTraitRef.id`). */

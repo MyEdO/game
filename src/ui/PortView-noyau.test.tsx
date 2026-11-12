@@ -68,6 +68,17 @@ describe('#3059 — PortView lit les verdicts du noyau', () => {
     expect(geste('coque', `port-upgrade-${trait.id}`)).toEqual({ ferme: 'true', raison: t('sv.upgradeTooExpensive', { label: trait.label, gold }) });
   });
 
+  it('chaque Amélioration affiche la durée de sa pose, celle du devis du noyau (MDG 12 l.230 ; MDG 12 l.293)', () => {
+    const hote = document.createElement('div');
+    const root = createRoot(hote);
+    act(() => root.render(<PortView initialTab="coque" />));
+    const pose = (id: string) => [...hote.querySelectorAll('button')].find((b) => b.getAttribute('aria-describedby') === `port-upgrade-${id}-reason` || b.id === `port-upgrade-${id}`)
+      ?.closest('.port-upgrade')?.querySelector('.port-hint')?.textContent;
+    const lues = { blindage: pose('blindage-fer'), lissage: pose('lissage'), ancre: pose('ancre') };
+    act(() => root.unmount());
+    expect(lues).toEqual({ blindage: 'Pose : 16 jour(s)', lissage: 'Pose : 8 jour(s)', ancre: 'Pose : 1d10 jour(s)' });
+  });
+
   it('bourse vide : l’achat de 5 Enc à 10 CO est fermé sur le plancher de 40 CO (−20 points), le geste n’ouvre aucun Marchandage', () => {
     expect(hasBargainBonus(get().party[0]), 'fixture : le meneur n’est pas Négociateur').toBe(false);
     const texte = t('cargo.bourseSousPlancher', { plancher: '40 CO' });
