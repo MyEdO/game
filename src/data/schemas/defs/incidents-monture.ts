@@ -19,7 +19,6 @@ const doc = document(
   {},
   {},
   {
-    codex: { keys: ['incidentsMonture'] },
     edit: { niche: { categories: { incidentsMonture: 'entries' } } },
   },
   { rangee, deDeTirage: true },

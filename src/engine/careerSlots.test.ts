@@ -19,7 +19,7 @@ import {
   talentSlotsUpTo,
 } from './careerSlots';
 import { CareerLevelData, levelsForCareer, specLabel } from '../data';
-import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
+import { blessuresSurLeProfil, blessuresDeBase, combattantDeTest } from './combattantDeTest.testkit';
 
 
 const hero = (over: Partial<Combatant> = {}): Combatant =>
@@ -130,6 +130,11 @@ describe('scénario complet : Sens aiguisé espèce + emplacements « (Au choix)
 });
 
 describe('Maxi des Talents (LDB 10 « Schéma des Talents »)', () => {
+  it('Maxi en Bonus de Caractéristique : lu avec les charMod permanents des Talents (LDB 10 l.17)', () => {
+    const porteur = combattantDeTest({ characteristics: { endurance: 38 }, talents: [{ talentId: 'tres-resistant', times: 1 }] });
+    expect(talentMaxById(porteur, 'dur-a-cuire')).toBe(4); // E 38 + 5 = 43
+    expect(talentMaxById({ ...porteur, talents: [] }, 'dur-a-cuire')).toBe(3);
+  });
   it('Maxi 1 (Lire/Écrire) : atteint dès la 1re acquisition', () => {
     const h = hero({ talents: [{ talentId: 'lire-ecrire', times: 1 }] });
     expect(talentMaxById(h, 'lire-ecrire')).toBe(1);

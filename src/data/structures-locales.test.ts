@@ -79,9 +79,9 @@ describe('classes d’un nœud de site', () => {
     const rangee = nommerChamps(z.strictObject({ id: z.string(), label: z.string(), sous: nommerChamps(z.strictObject({ y: z.number() }), { y: { label: 'y' } }) }), {
       id: { label: 'id' }, label: { label: 'libellé' }, sous: { label: 'sous' },
     });
-    const monoTable = document('sonde', 'config', {}, {}, { codex: { keys: ['sonde'] }, edit: { niche: { categories: { sonde: 'entries' } } } }, { rangee, deDeTirage: true });
+    const monoTable = document('sonde', 'config', {}, {}, { edit: { niche: { categories: { sonde: 'entries' } } } }, { rangee, deDeTirage: true });
     const lignes = nommerChamps(z.strictObject({ id: z.string(), sous: nommerChamps(z.strictObject({ y: z.number() }), { y: { label: 'y' } }) }), { id: { label: 'id' }, sous: { label: 'sous' } });
-    const reglage = document('reglage', 'config', { lignes: z.array(lignes) }, { lignes: { label: 'lignes' } }, { codex: { keys: ['reglage'] }, edit: { niche: { categories: { reglage: 'lignes' } } } });
+    const reglage = document('reglage', 'config', { lignes: z.array(lignes) }, { lignes: { label: 'lignes' } }, { edit: { niche: { categories: { reglage: 'lignes' } } } });
     const config = (file: string, schema: z.ZodType): SchemaDef => ({ ...def(file, schema), famille: 'config' });
     const auStock = classes([config('sonde.json', monoTable.schema), config('reglage.json', reglage.schema)]).filter((c) => !c.startsWith('G '));
     expect(auStock, 'la même ligne sous un champ de réglage reste un site').toEqual([

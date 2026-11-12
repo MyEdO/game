@@ -144,6 +144,11 @@ export type ExpositionCodex =
   | { readonly keys: readonly string[] }
   | { readonly exempt: { readonly kind: 'vocabulaire-app-interne' | 'dette'; readonly raison: string; readonly ticket?: string } };
 
+type ExpositionEditHorsNiche =
+  | { readonly dataset: string }
+  | { readonly object: 'single' | 'record' }
+  | { readonly none: string; readonly dataset?: string };
+type ExpositionNiche = { readonly niche: { readonly categories: Readonly<Record<string, string>> } };
 /**
  * Ce que l'ÉDITEUR édite : le dataset-liste dont ce document est une entrée, l'OBJET de configuration
  * qu'il forme à lui seul (`single`) ou dont il est une valeur (`record`), les TABLEAUX NICHÉS qu'il
@@ -155,24 +160,25 @@ export type ExpositionCodex =
  * `niche.categories` associe chaque clé de catégorie Codex de CE document routée comme dataset
  * (`CodexEdit.CATEGORY_DATASET`) à la SUITE NICHÉE de la collection qu'elle édite
  * (`grammaire/cle-d-espace.ts`, `entries`, `[criticals-ldb-tete].entries`), jamais le document
- * entier ; le fichier PARENT est réécrit au save. Une clé Codex du document absente de cette carte
- * n'a aucune route d'édition.
+ * entier ; le fichier PARENT est réécrit au save. Ses clés SONT les clés Codex du document : la
+ * fabrique les pose en `codex.keys`, qu'un def à route niche ne déclare pas.
  */
-export type ExpositionEdit =
-  | { readonly dataset: string }
-  | { readonly object: 'single' | 'record' }
-  | { readonly niche: { readonly categories: Readonly<Record<string, string>> } }
-  | { readonly none: string; readonly dataset?: string };
+export type ExpositionEdit = ExpositionEditHorsNiche | ExpositionNiche;
 
-/** EXPOSITION d'un document : où il se lit (Codex) et où il s'édite. */
+/** EXPOSITION d'un document au handle : où il se lit (Codex) et où il s'édite. */
 export interface Exposition {
   readonly codex: ExpositionCodex;
   readonly edit: ExpositionEdit;
 }
 
+/** Ce qu'un def DÉCLARE à `document()` : une route niche ne porte pas de `codex`, la fabrique le pose. */
+export type DeclarationExposition =
+  | { readonly codex: ExpositionCodex; readonly edit: ExpositionEditHorsNiche }
+  | { readonly codex?: never; readonly edit: ExpositionNiche };
+
 /**
  * Options de `document()` — tout ce qui n'est pas la déclaration nue du document, pour garder la
- * signature positionnelle courte (`type, famille, champs, meta, exposition, options?`).
+ * signature positionnelle courte (`type, famille, champs, meta, declaration, options?`).
  */
 export interface OptionsDocument {
   /** Champs qu'une variante réglée republie (`variantOf`, #563/#564). */
@@ -365,37 +371,27 @@ export function optionsEnum(noeud: z.ZodType): readonly string[] | undefined {
   return noyau ? Object.values(defDe(noyau)!.entries as Record<string, string>) : undefined;
 }
 
-function verifieExposition(type: string, exposition: Exposition): void {
-  const c = exposition.codex as { keys?: readonly string[]; exempt?: { raison?: string } };
-  // Une exemption se MOTIVE : un mot ne dit rien — seuil de motif hérité du garde d'exposition (#1472).
-  if (!(Array.isArray(c.keys) && c.keys.length) && (c.exempt?.raison ?? '').trim().length < 10) {
-    throw new Error(
-      `document('${type}') : \`codex\` exige des \`keys\` non vides ou un \`exempt\` motivé (raison ≥ 10 caractères).`,
-    );
-  }
-  const e = exposition.edit as { dataset?: string; object?: string; niche?: { categories?: Readonly<Record<string, unknown>> }; none?: string };
+function poseExposition(type: string, declaration: DeclarationExposition): Exposition {
+  const e = declaration.edit as { dataset?: string; object?: string; niche?: { categories?: Readonly<Record<string, unknown>> }; none?: string };
   if (e.niche) {
     const carte = e.niche.categories;
     const cats = estObjet(carte) ? Object.keys(carte) : [];
     if (!(cats.length && cats.every((d) => d.length && typeof carte![d] === 'string' && (carte![d] as string).length))) {
       throw new Error(`document('${type}') : \`edit.niche.categories\` exige au moins une clé de catégorie routée, chacune vers sa suite nichée (chaînes non vides).`);
     }
-    if (!(Array.isArray(c.keys) && c.keys.length)) {
-      throw new Error(
-        `document('${type}') : \`edit.niche\` route des catégories alors que \`codex\` est EXEMPT — aucune clé Codex à router.`,
-      );
-    }
-    const horsCodex = cats.filter((k) => !c.keys!.includes(k));
-    if (horsCodex.length) {
-      throw new Error(
-        `document('${type}') : \`edit.niche.categories\` nomme des clés absentes de \`codex.keys\` : ${horsCodex.join(', ')}.`,
-      );
-    }
-    return;
+    return { codex: { keys: cats }, edit: declaration.edit };
+  }
+  const c = declaration.codex as { keys?: readonly string[]; exempt?: { raison?: string } } | undefined;
+  // Une exemption se MOTIVE : un mot ne dit rien — seuil de motif hérité du garde d'exposition (#1472).
+  if (!(Array.isArray(c?.keys) && c.keys.length) && (c?.exempt?.raison ?? '').trim().length < 10) {
+    throw new Error(
+      `document('${type}') : \`codex\` exige des \`keys\` non vides ou un \`exempt\` motivé (raison ≥ 10 caractères).`,
+    );
   }
   if (!e.dataset && !e.object && !e.none) {
     throw new Error(`document('${type}') : \`edit\` exige \`dataset\`, \`object\`, \`niche\` ou \`none\` (raison).`);
   }
+  return declaration as Exposition;
 }
 
 /** L'entrée PARTIELLE d'un document → le nœud FINAL `schema` de ce document (marque posée par `document()`). */
@@ -458,9 +454,10 @@ export function refuserSansProvenance(v: Provenance, ctx: z.RefinementCtx, sujet
 
 /**
  * Déclare un document. `champs` = la charge utile propre au type, `meta` = son libellé FR par clé,
- * `exposition` = Codex + éditeur, `options.variantes` = les champs qu'une variante réglée republie —
- * la fabrique compose `variantOf` elle-même, donc un champ hors de cette liste est refusé au parse et
- * un document sans `variantes` n'admet aucun `variants`.
+ * `declaration` = Codex + éditeur (une route niche tire ses clés Codex de ses catégories),
+ * `options.variantes` = les champs qu'une variante réglée republie — la fabrique compose `variantOf`
+ * elle-même, donc un champ hors de cette liste est refusé au parse et un document sans `variantes`
+ * n'admet aucun `variants`.
  *
  * Elle rend AUSSI l'emballage du FICHIER (`schema`, par famille). Sur un document à CHARGE (`record`,
  * ou `options.rangee`), `champs`/`meta` décrivent les champs additionnels éventuels — le contenu,
@@ -472,7 +469,7 @@ export function document<T extends string, C extends Record<string, z.ZodType>>(
   famille: FamilleDocument,
   champs: C & ChampsHorsEnveloppe<C>,
   meta: MetaDesChamps<C>,
-  exposition: Exposition,
+  declaration: DeclarationExposition,
   options: OptionsDocument = {},
 ): DocumentHandle<T> {
   const { variantes, valeurRecord, cleRecord, idDocument, exiges = [], fragmentsAdmis, porteursDeProse, rangee, deDeTirage, affinerEntree, affinerDataset, espace = {} } = options;
@@ -548,7 +545,7 @@ export function document<T extends string, C extends Record<string, z.ZodType>>(
       throw new Error(`document('${type}') : méta d'édition « ${k} » sans champ correspondant.`);
     }
   }
-  verifieExposition(type, exposition);
+  const exposition = poseExposition(type, declaration);
   const nomsEntree = { ...tableTotale(Object.keys(enveloppe(type)) as CleEnveloppe[], k => ({ label: LIBELLES_ENVELOPPE[k] })), ...meta };
   const champsDuDef = champs as Record<string, z.ZodType>;
   const entree = marquerProduit(nommerChamps(z.strictObject({

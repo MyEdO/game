@@ -32,7 +32,6 @@ const doc = document(
   {},
   {},
   {
-    codex: { keys: ['structureCriticals'] },
     edit: { niche: { categories: { structureCriticals: 'entries' } } },
   },
   {

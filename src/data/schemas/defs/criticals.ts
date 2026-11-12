@@ -139,7 +139,6 @@ const doc = document(
     localisation: { label: 'Localisation', hint: 'Famille de Localisation couverte par ce tableau' },
   },
   {
-    codex: { keys: Object.keys(CATEGORIES) },
     edit: {
       niche: {
         categories: Object.fromEntries(Object.entries(CATEGORIES).map(([categorie, id]) => [categorie, suiteDesEntrees(id)])),

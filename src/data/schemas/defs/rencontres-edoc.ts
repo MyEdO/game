@@ -29,7 +29,6 @@ const doc = document(
     tables: { label: 'Rencontres par catégorie', hint: 'Trois tables sœurs : positives, fortuites, dangereuses' },
   },
   {
-    codex: { keys: ['rencontresPositives', 'rencontresFortuites', 'rencontresDangereuses'] },
     edit: { niche: { categories: { rencontresPositives: 'tables.positives', rencontresFortuites: 'tables.fortuites', rencontresDangereuses: 'tables.dangereuses' } } },
   },
 );
