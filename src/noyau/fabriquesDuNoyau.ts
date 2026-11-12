@@ -111,6 +111,8 @@ import type { ActionDArchitecture, OutilDeLEditeur } from './edition/session';
 import type { ContexteDuPointeur } from './edition/pointeur';
 import type { RouteObjet } from '../data/schemas/exposition-derivee';
 import type { advanceCost } from '../engine/advancement';
+import type { SequenceAbandon, SequenceBoard, SequenceCloseCtx, SequenceDef, SequenceRoundActors, SequenceState, SequenceVerdict } from './sequenceContract';
+import type { sequenceCumulsDeLaManche } from './sequenceCore';
 
 /** Les actions du lexique des verbes (#3371 §3.1) : un verbe manuscrit se nomme `<action>` ou `<action><Complément>`, ou
  *  à la forme pronominale (`seRelever`). */
@@ -164,20 +166,20 @@ type MotDuLexique = ActionDuLexique | ActionDeLaMachinerie | ActionDeFenetre | A
   | 'acteur' | 'action' | 'active' | 'activite' | 'activites' | 'adapte' | 'adversaire' | 'adversaires' | 'adverse' | 'affaler' | 'aggrave' | 'agir'
   | 'aide' | 'alea' | 'aleatoire' | 'allie' | 'allies' | 'alors' | 'ambition' | 'amis' | 'amputer' | 'aneantissement' | 'animosite'
   | 'anneau' | 'annulation' | 'apercu' | 'approche' | 'apres' | 'architecture' | 'arete' | 'argent' | 'arme' | 'armee' | 'armes' | 'armure' | 'arriere'
-  | 'aspersion' | 'asphyxie' | 'attaquant' | 'attaque' | 'attaques' | 'attenuation' | 'attenue' | 'attribut' | 'au' | 'auberge' | 'aucun' | 'aucune' | 'aucun' | 'aucune'
+  | 'aspersion' | 'asphyxie' | 'attaquant' | 'attaque' | 'attaques' | 'atteints' | 'attenuation' | 'attenue' | 'attribut' | 'au' | 'auberge' | 'aucun' | 'aucune' | 'aucun' | 'aucune'
   | 'augmentee' | 'auto' | 'autour' | 'avant' | 'avantage' | 'b' | 'baisser' | 'balayage' | 'bandages' | 'bande' | 'bannissement' | 'bas'
   | 'bataille' | 'battement' | 'batterie' | 'benediction' | 'bilan' | 'blessures' | 'bloque' | 'bois' | 'boisson'
   | 'bonus' | 'bord' | 'bordee' | 'bouclier' | 'bourse' | 'bras' | 'breche' | 'brisee' | 'briser' | 'butin' | 'cacher'
-  | 'cadre' | 'camera' | 'camp' | 'campagne' | 'canons' | 'capacite' | 'car' | 'caracteristique' | 'cargaison'
+  | 'cadre' | 'camera' | 'camp' | 'campagne' | 'camps' | 'canons' | 'capacite' | 'car' | 'caracteristique' | 'cargaison'
   | 'carriere' | 'carte' | 'cascade' | 'cases' | 'casse' | 'categorie' | 'cauchemar' | 'caudale' | 'chaine' | 'chanson'
   | 'chapitre' | 'charge' | 'chavirage' | 'chef' | 'chemin' | 'chercher' | 'chirurgie' | 'choisie' | 'choix' | 'chute'
-  | 'cible' | 'cibles' | 'cle' | 'codex' | 'colere' | 'coller' | 'collision' | 'combat' | 'commandant' | 'commande'
+  | 'cible' | 'cibles' | 'cle' | 'clore' | 'close' | 'codex' | 'colere' | 'coller' | 'collision' | 'combat' | 'commandant' | 'commande'
   | 'commandes' | 'commission' | 'commune' | 'competence' | 'complet' | 'concernes' | 'condition' | 'confirmer' | 'conjuree'
   | 'connecte' | 'connexion' | 'connu' | 'conseil' | 'constructeur' | 'contact' | 'contagion' | 'contamine' | 'contour'
   | 'contractee' | 'contre' | 'controle' | 'convalescence' | 'copier' | 'corde' | 'cornes' | 'corps' | 'correct'
   | 'corruption' | 'couchage' | 'coucher' | 'coup' | 'coups' | 'course' | 'courte' | 'cout' | 'creature' | 'crenelage' | 'critique'
-  | 'critiques' | 'curseur' | 'd' | 'dans' | 'de' | 'debout' | 'debris' | 'debut' | 'decaler' | 'declaration'
-  | 'declenche' | 'decor' | 'defaite' | 'defense' | 'defenseur' | 'defensive' | 'degagement' | 'degats' | 'degrade' | 'dehors'
+  | 'critiques' | 'cumuls' | 'curseur' | 'd' | 'dans' | 'de' | 'debout' | 'debris' | 'debut' | 'decaler' | 'declaration'
+  | 'declenche' | 'decor' | 'defaite' | 'defense' | 'defenseur' | 'defensive' | 'definition' | 'degagement' | 'degats' | 'degrade' | 'dehors'
   | 'deja' | 'delestage' | 'demande' | 'depart' | 'depecer' | 'depense' | 'deplacement' | 'depot' | 'derive' | 'des'
   | 'desarmement' | 'desengagement' | 'desertion' | 'designation' | 'dessoulage' | 'destin' | 'detail' | 'detection'
   | 'determination' | 'deux' | 'deviation' | 'dexterite' | 'dialogue' | 'dieux' | 'differe' | 'direction' | 'discret'
@@ -199,24 +201,24 @@ type MotDuLexique = ActionDuLexique | ActionDeLaMachinerie | ActionDeFenetre | A
   | 'jeton' | 'jets' | 'jeu' | 'jeux' | 'joueur' | 'jour' | 'journal' | 'jours' | 'l' | 'la' | 'lame' | 'lanceur'
   | 'langue' | 'le' | 'les' | 'liberation' | 'liberer' | 'lieu' | 'ligne' | 'local' | 'localisation' | 'longue' | 'lot'
   | 'lumiere' | 'm' | 'magie' | 'magique' | 'main' | 'mains' | 'maison' | 'maj' | 'majeure' | 'mal' | 'maladie'
-  | 'maladresse' | 'malus' | 'manann' | 'manoeuvre' | 'marchand' | 'marchandage' | 'marche' | 'marin' | 'martyr'
+  | 'maladresse' | 'malus' | 'manann' | 'manche' | 'manches' | 'manoeuvre' | 'marchand' | 'marchandage' | 'marche' | 'marin' | 'martyr'
   | 'masse' | 'max' | 'mecenat' | 'medicale' | 'melee' | 'membre' | 'menu' | 'mer' | 'mes' | 'metal' | 'meteo' | 'mineure' | 'mise'
   | 'mode' | 'modificateur' | 'moitie' | 'monde' | 'monture' | 'moral' | 'morsure' | 'mort' | 'mortelle' | 'mot'
   | 'motivation' | 'mouvement' | 'munition' | 'mur' | 'mutation' | 'narratif' | 'natation' | 'nature' | 'naturelle' | 'naufrage'
   | 'navigation' | 'navire' | 'negatifs' | 'neutre' | 'nocturne' | 'nombre' | 'non' | 'normal' | 'objet' | 'obstacle'
   | 'octroi' | 'offre' | 'op' | 'operations' | 'oppose' | 'opposition' | 'option' | 'options' | 'or' | 'orientation' | 'oter' | 'oui' | 'ouverture'
-  | 'ouvrage' | 'p' | 'pa' | 'paie' | 'panier' | 'panoplie' | 'panoramique' | 'par' | 'parade' | 'pas' | 'passer'
-  | 'patient' | 'pause' | 'pave' | 'payer' | 'peche' | 'pendant' | 'penurie' | 'perce' | 'perception' | 'perd' | 'perdu'
+  | 'ouvrage' | 'p' | 'pa' | 'paie' | 'panier' | 'panoplie' | 'panoramique' | 'par' | 'parade' | 'parametres' | 'pas' | 'passer'
+  | 'patient' | 'pause' | 'pave' | 'payer' | 'peche' | 'pendant' | 'penurie' | 'perce' | 'perception' | 'perd' | 'perdants' | 'perdu'
   | 'perdue' | 'perdus' | 'peril' | 'permanente' | 'persistance' | 'persistante' | 'personne' | 'personnelle' | 'perte'
-  | 'peur' | 'phare' | 'physique' | 'piece' | 'pied' | 'piege' | 'pietinement' | 'pirates' | 'pires' | 'pitance'
+  | 'peur' | 'phare' | 'phase' | 'physique' | 'piece' | 'pied' | 'piege' | 'pietinement' | 'pirates' | 'pires' | 'pitance'
   | 'pivot' | 'place' | 'plaie' | 'plancher' | 'planque' | 'plateau' | 'plein' | 'pnj' | 'polymorphie' | 'port'
-  | 'porte' | 'portee' | 'porteur' | 'pose' | 'possession' | 'possible' | 'poste' | 'posture' | 'pot' | 'pourcentage' | 'poursuite'
+  | 'porte' | 'portee' | 'porteur' | 'porteurs' | 'pose' | 'possession' | 'possible' | 'poste' | 'posture' | 'pot' | 'pourcentage' | 'poursuite'
   | 'poursuivre' | 'poussee' | 'pratiquer' | 'precedente' | 'present' | 'prevention' | 'priere' | 'privee' | 'prix'
   | 'production' | 'profil' | 'progression' | 'prolonge' | 'promouvoir' | 'protecteur' | 'protection' | 'provisions'
   | 'psychologie' | 'psychologique' | 'puissance' | 'qualite' | 'quantite' | 'quotidien' | 'r' | 'raccourci' | 'ragot'
   | 'rallier' | 'ramassage' | 'rangees' | 'rapide' | 'rate' | 'ration' | 'rations' | 'reaction' | 'reapparition'
   | 'reassigne' | 'recentrer' | 'recevoir' | 'rechargement' | 'recit' | 'reconnexion' | 'recu' | 'recuperation'
-  | 'redressement' | 'reduction' | 'reduit' | 'reeducation' | 'refuser' | 'refute' | 'regard' | 'regle' | 'relache'
+  | 'redressement' | 'reduction' | 'reduit' | 'reeducation' | 'refus' | 'refuser' | 'refute' | 'regard' | 'regle' | 'relache'
   | 'relance' | 'relevement' | 'remise' | 'rencontre' | 'renier' | 'renoncement' | 'reparation' | 'repartition'
   | 'repas' | 'repli' | 'reponse' | 'repos' | 'repousse' | 'repousser' | 'requise' | 'resistance' | 'resoudre'
   | 'ressource' | 'resultat' | 'retablir' | 'retenir' | 'retour' | 'retrait' | 'reussie' | 'reussite' | 'revele' | 'reveler'
@@ -224,12 +226,12 @@ type MotDuLexique = ActionDuLexique | ActionDeLaMachinerie | ActionDeFenetre | A
   | 'saturation' | 'sauvegarde' | 'scene' | 'scorbut' | 'seance' | 'secondaire' | 'seconde' | 'section' | 'selecteur' | 'selection'
   | 'selle' | 'sequence' | 'service' | 'ses' | 'seuil' | 'si' | 'siege' | 'simple' | 'sinon' | 'social' | 'soi' | 'soif' | 'soin'
   | 'soins' | 'sol' | 'solde' | 'solo' | 'sommation' | 'sort' | 'sortie' | 'sorts' | 'souffle' | 'source' | 'sous' | 'soutenu'
-  | 'spirituelle' | 'statut' | 'stock' | 'stupefiant' | 'subi' | 'subie' | 'subies' | 'subit' | 'subjectif' | 'suivante' | 'supplement'
+  | 'spirituelle' | 'statut' | 'stock' | 'stupefiant' | 'subi' | 'subie' | 'subies' | 'subit' | 'subjectif' | 'suite' | 'suivante' | 'supplement'
   | 'supplementaires' | 'suppression' | 'sur' | 'surincantation' | 'surplus' | 'survie' | 'survitesse' | 'survivre'
-  | 'suspendre' | 'symptome' | 'systeme' | 'table' | 'talent' | 'talents' | 'tapi' | 'tas' | 'taverne' | 'teleportation'
+  | 'suspendre' | 'symptome' | 'systeme' | 'table' | 'tableau' | 'talent' | 'talents' | 'tapi' | 'tas' | 'taverne' | 'teleportation'
   | 'temporaire' | 'tentacules' | 'terrain' | 'terre' | 'terreur' | 'test' | 'testeur' | 'tete' | 'tir' | 'tirage' | 'tire' | 'toit'
   | 'tonneau' | 'touche' | 'tour' | 'tourbillon' | 'tous' | 'tout' | 'toutes' | 'trait' | 'transformation' | 'traumatisme'
-  | 'tribut' | 'troc' | 'troquer' | 'trot' | 'un' | 'une' | 'unique' | 'usage' | 'validation' | 'vapeur' | 'variable' | 'vdm' | 'vendre'
+  | 'tribut' | 'troc' | 'troquer' | 'trot' | 'un' | 'une' | 'unique' | 'usage' | 'utile' | 'vainqueurs' | 'validation' | 'vapeur' | 'variable' | 'vdm' | 'vendre'
   | 'vent' | 'vente' | 'victime' | 'victoire' | 'vider' | 'vie' | 'vin' | 'virage' | 'virement' | 'visee' | 'viser' | 'vol'
   | 'volontaire' | 'volontaires' | 'vomi' | 'voyage' | 'vue' | 'zero' | 'zone';
 /** Une clé de libellé, ses segments joints par des tirets. */
@@ -324,7 +326,10 @@ const verrousDuLexique: [
   Verrou<Mots<PendingDisengage['phase'] | PendingAuContact['phase'] | PendingGrapple['phase'] | ReturnType<typeof phaseDeChute>>, MotDuLexique>, // #3977
   Verrou<Mots<Tool['mode'] | OutilDeLEditeur['mode'] | ActionDArchitecture | NonNullable<ContexteDuPointeur['architecture']>['action']>, MotDuLexique>, // #3977
   Verrou<Mots<RouteObjet['mode'] | EntrainementOption['kind'] | Parameters<typeof advanceCost>[1]>, MotDuLexique>, // #3977
-] = [true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true];
+  Verrou<Mots<keyof SequenceState | Exclude<ClesDeLUnion<SequenceVerdict<unknown>>, 'log'> | SequenceVerdict<unknown>['suite'] | keyof SequenceRoundActors
+    | Exclude<keyof SequenceCloseCtx<unknown>, 'get' | 'seq' | 'rng'> | keyof SequenceDef | Exclude<keyof SequenceBoard, 'title' | 'unit'> | Exclude<keyof SequenceAbandon, 'label' | 'title'>
+    | keyof ReturnType<typeof sequenceCumulsDeLaManche>>, MotDuLexique>, // #3977
+] = [true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true];
 void verrousDuLexique;
 
 /** Le corps de la clôture de chaque flux, que seul `jetValider(flux)` appelle : un flux sans clôture ne compile pas. */
