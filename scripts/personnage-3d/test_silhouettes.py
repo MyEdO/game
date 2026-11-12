@@ -219,6 +219,26 @@ class Correction(unittest.TestCase):
         radial /= numpy.linalg.norm(radial, axis=1, keepdims=True)
         self.assertAlmostEqual(float((avec[s] * radial).sum(axis=1).mean()), 0.7 * epais['rayon'], places=9)
 
+    def test_l_epaisseur_visee_et_les_centres_portent_sur_le_champ_fini(self):
+        """#4002 issuecomment-6817454030."""
+        lus = anneaux(self.x, NIVEAUX_DES_ANNEAUX)
+        fixe = 0.03 * self.x * [1.0, 1.0, 0.0] + [0.01, 0.0, 0.02]
+        deplacements = 0.01 * self.rng.standard_normal((len(lus['anneaux']), 3))
+        (d,), _ = correction(self.x, self.aretes, self.noeud, self.fixe, lus)([(self.cle(), 1.7)], None,
+                                                                              [(fixe, deplacements)])
+        fini = fixe + d
+        for anneau, deplacement in zip(lus['anneaux'], deplacements):
+            s = numpy.array([v['indice'] for v in anneau['sommets']])
+            numpy.testing.assert_allclose(fini[s].mean(axis=0), deplacement, rtol=0, atol=TOLERANCE)
+        epais = lus['anneaux'][lus['lePlusEpais']]
+        s = numpy.array([v['indice'] for v in epais['sommets']])
+        axe = numpy.array(epais['axe'])
+        radial = self.x[s] - numpy.array(epais['centre'])
+        radial -= (radial @ axe)[:, None] * axe
+        radial /= numpy.linalg.norm(radial, axis=1, keepdims=True)
+        self.assertGreater(float((fixe[s] * radial).sum(axis=1).mean()), 1e-3)
+        self.assertAlmostEqual(float((fini[s] * radial).sum(axis=1).mean()), 0.7 * epais['rayon'], places=9)
+
     def test_moyenne_aux_noeuds_une_source_non_nulle_aux_fixes_et_discordante_entre_jumeaux(self):
         d0 = self.lisse() + 0.01 * self.rng.standard_normal(self.x.shape)
         jumeaux = numpy.flatnonzero(self.noeud != numpy.arange(len(self.x)))
@@ -277,8 +297,8 @@ class LissageSousCorrection(unittest.TestCase):
         self.vus = []
         corriger = correction(self.x, self.aretes, self.noeud, self.libre == 0, anneaux(self.x, NIVEAUX_DES_ANNEAUX))
 
-        def corriger_et_noter(champs, repartitions=None, centres=None):
-            corriges, sonde = corriger(champs, repartitions, centres)
+        def corriger_et_noter(champs, repartitions=None, portes=None):
+            corriges, sonde = corriger(champs, repartitions, portes)
             self.vus.append(([d for d, _ in champs], corriges))
             return corriges, sonde
 
@@ -307,29 +327,72 @@ class LissageSousCorrection(unittest.TestCase):
     def porte(self):
         """Une silhouette à os sur le cylindre : les sommets tenus (`libre` nul) tout à un os rigide de déplacement
         `RIGIDE`, le portage C ailleurs une rampe le long de l'axe, l'os de chaque anneau déplacé de C au centre de
-        l'anneau. Rend T = C + H, F = (1 − libre)·C, les cibles des centres d'anneaux et le déplacement de leurs os."""
+        l'anneau. Rend T = C + H, C, les sommets de chaque anneau et le déplacement de son os."""
         c = numpy.where((self.libre == 0)[:, None], self.RIGIDE, 0.04 * numpy.outer(self.x[:, 2], [1.0, 0.5, 0.0]))
-        f = (1.0 - self.libre)[:, None] * c
         lus = anneaux(self.x, NIVEAUX_DES_ANNEAUX)
         sommets = [numpy.array([v['indice'] for v in a['sommets']]) for a in lus['anneaux']]
         os_ = numpy.array([c[s].mean(axis=0) + [0.0, 0.0, 0.01] for s in sommets])
-        cibles = numpy.array([len(s) * d - f[s].sum(axis=0) for s, d in zip(sommets, os_)])
-        return c + self.translation(), f, cibles, sommets, os_
+        return c + self.translation(), c, sommets, os_
 
     RIGIDE = numpy.array([0.03, -0.02, 0.01])
 
+    def deux_os(self):
+        """Deux os sur le cylindre, l'enfant (moitié haute) déplacé de `D` sous un parent immobile : C rigide par os.
+        Rend T = C + H, C et le déplacement de l'os de chaque anneau."""
+        c = numpy.where((self.x[:, 2] > HAUTEUR / 2)[:, None], self.D, 0.0)
+        deplacements = numpy.array([self.D if a['centre'][2] > HAUTEUR / 2 else numpy.zeros(3)
+                                    for a in anneaux(self.x, NIVEAUX_DES_ANNEAUX)['anneaux']])
+        return c + self.translation(), c, deplacements
+
+    D = numpy.array([0.05, -0.03, 0.02])
+
     def test_un_sommet_tout_a_un_os_rigide_garde_le_portage_de_son_os_avant_et_apres_finition(self):
-        t, f, cibles, _, _ = self.porte()
+        t, c, _, os_ = self.porte()
         tenus = self.libre == 0
         self.assertTrue(tenus.any())
-        numpy.testing.assert_array_equal((f + self.libre[:, None] * t)[tenus], numpy.tile(self.RIGIDE, (tenus.sum(), 1)))
-        fini = self.finir({'k': (t, None)}, portes={'k': (f, cibles)})['k']
+        numpy.testing.assert_array_equal((c + self.libre[:, None] * (t - c))[tenus],
+                                         numpy.tile(self.RIGIDE, (tenus.sum(), 1)))
+        fini = self.finir({'k': (t, None)}, portes={'k': (c, os_)})['k']
         numpy.testing.assert_allclose(fini[tenus], numpy.tile(self.RIGIDE, (tenus.sum(), 1)), rtol=0, atol=TOLERANCE)
         self.assertEqual(self.hors(fini), 0)
 
+    def test_avant_tout_rabot_le_champ_fini_est_le_fondu_du_portage_et_de_la_cle_corrige(self):
+        """#4002 issuecomment-6817454030."""
+        t, c, deplacements = self.deux_os()
+        bruts = {'k': (t, None), 'carrure': (c + 0.1 * self.x * [1.0, 1.0, 0.0], 1.2)}
+        finis = self.finir(bruts, bornes=(-numpy.inf, numpy.inf), portes={nom: (c, deplacements) for nom in bruts})
+        tenu = (1.0 - self.libre)[:, None] * c
+        attendus, _ = self.corriger([(self.libre[:, None] * d, r) for d, r in bruts.values()], None,
+                                    [(tenu, deplacements)] * len(bruts))
+        tenus = self.libre == 0
+        for nom, attendu in zip(bruts, attendus):
+            numpy.testing.assert_allclose(finis[nom], tenu + attendu, rtol=0, atol=1e-9, err_msg=nom)
+            numpy.testing.assert_array_equal(finis[nom][tenus], c[tenus])
+
+    def test_le_rabot_tire_le_champ_fini_vers_le_portage(self):
+        """#4002 issuecomment-6817454030."""
+        t, c, deplacements = self.deux_os()
+        seuil = 0.01
+        z = self.x[:, 2]
+        dans = ((z > 0.75) & (z < 0.95))[self.aretes].all(axis=1)
+        self.assertEqual(self.libre[self.aretes[dans]].min(), 1.0)
+
+        def hors(finis):
+            return {nom: dans & (numpy.linalg.norm(d - c, axis=1)[self.aretes].max(axis=1) > seuil)
+                    for nom, d in finis.items()}
+
+        self.assertTrue(hors({'k': c + self.libre[:, None] * (t - c)})['k'].any())
+        with contextlib.redirect_stdout(io.StringIO()), mock.patch.object(silhouettes, 'PASSES_DE_RABOT', 80):
+            finis, rabot = raboter_sous_correction({'k': (t, None)}, self.noeud, self.aretes, self.libre,
+                                                   self.corriger, numpy.eye(3), hors, None, {'k': (c, deplacements)})
+        noeuds = numpy.unique(self.aretes[dans])
+        self.assertLess(rabot['k'][noeuds].max(), 1.0)
+        self.assertLessEqual(numpy.linalg.norm(finis['k'][noeuds] - c[noeuds], axis=1).max(), seuil)
+        self.assertGreater(numpy.linalg.norm(finis['k'][noeuds], axis=1).min(), 4 * seuil)
+
     def test_le_centre_de_chaque_anneau_suit_le_deplacement_de_son_os(self):
-        t, f, cibles, sommets, os_ = self.porte()
-        fini = self.finir({'k': (t, None)}, portes={'k': (f, cibles)})['k']
+        t, c, sommets, os_ = self.porte()
+        fini = self.finir({'k': (t, None)}, portes={'k': (c, os_)})['k']
         for s, d in zip(sommets, os_):
             self.assertGreater(numpy.abs(t[s].mean(axis=0) - d).max(), 1e-3)
             numpy.testing.assert_allclose(fini[s].mean(axis=0), d, rtol=0, atol=TOLERANCE)
@@ -360,7 +423,7 @@ class LissageSousCorrection(unittest.TestCase):
         """Un correcteur bouchon qui annule la moitié basse : la bosse qu'il efface ne se rabote pas."""
         bas = self.x[:, 2] < HAUTEUR / 2
 
-        def projeter(champs, repartitions=None, centres=None):
+        def projeter(champs, repartitions=None, portes=None):
             self.vus.append([d.copy() for d, _ in champs])
             return [numpy.where(bas[:, None], 0.0, d) for d, _ in champs], {'bouchon': 'projette'}
 

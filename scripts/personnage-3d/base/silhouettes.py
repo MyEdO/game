@@ -238,14 +238,15 @@ def correction(x, aretes, noeud_de, fixe, anneaux_du_corps):
     """La correction des clés du corps de sommets `x` (repère monde) : la fonction qui rend, pour chaque couple
     (champ d0, rapport) de `champs`, le champ de décalages d = argmin Σ_arêtes |(d − d0)_i − (d − d0)_j|² / ℓ₀² sur les
     arêtes `aretes` (`formes.aretes_des_triangles`), sous : une seule valeur par nœud (`noeud_de`, `poids.jumeaux`),
-    d nul sur chaque nœud qui porte un sommet `fixe`, Σ d sur les sommets de chaque anneau de `anneaux_du_corps`
-    (`anneaux`) égale à sa cible de `centres` (par champ, (anneaux, 3), ou `None` : nulle) et, si `rapport` n'est pas
-    `None`, moyenne de d·u sur l'anneau le plus épais égale à (rapport − 1) × son rayon, u la direction radiale de
-    chaque sommet depuis la droite de son centre et de son axe. Avec `repartitions` (par
-    champ, un facteur par sommet dans ]0, 1], ou `None`), la part de d que les contraintes imposent se répartit au
-    prorata de ce facteur à chaque nœud : un nœud de facteur faible en reçoit peu. Rend aussi le nombre
-    de nœuds libres, de contraintes, et la durée de la résolution de `champs` en secondes. Une composante de nœuds
-    libres sans arête vers un nœud fixe lève `ComposanteSansAppui` ; des contraintes retenues liées (`liees`),
+    d nul sur chaque nœud qui porte un sommet `fixe`, et des contraintes sur le champ fini tenu + d, `portes` donnant
+    par champ `None` (tenu et déplacements nuls) ou (tenu (sommets, 3), déplacements (anneaux, 3)), repère monde :
+    Σ (tenu + d) sur les sommets de chaque anneau de `anneaux_du_corps` (`anneaux`) égale à leur nombre × le
+    déplacement de son os et, si `rapport` n'est pas `None`, moyenne de (tenu + d)·u sur l'anneau le plus épais égale
+    à (rapport − 1) × son rayon, u la direction radiale de chaque sommet depuis la droite de son centre et de son axe.
+    Avec `repartitions` (par champ, un facteur par sommet dans ]0, 1], ou `None`), la part de d que les contraintes
+    imposent se répartit au prorata de ce facteur à chaque nœud : un nœud de facteur faible en reçoit peu. Rend aussi
+    le nombre de nœuds libres, de contraintes, et la durée de la résolution de `champs` en secondes. Une composante de
+    nœuds libres sans arête vers un nœud fixe lève `ComposanteSansAppui` ; des contraintes retenues liées (`liees`),
     `ContraintesLiees`."""
     reps, noeud = numpy.unique(noeud_de, return_inverse=True)
     n = len(reps)
@@ -287,7 +288,7 @@ def correction(x, aretes, noeud_de, fixe, anneaux_du_corps):
     contraintes = numpy.array([*lignes, epaisseur[:, libres].ravel()])
     etiquettes.append(f"{epais['os']} épaisseur")
 
-    def corriger(champs, repartitions=None, centres=None):
+    def corriger(champs, repartitions=None, portes=None):
         debut = time.perf_counter()
         vises = {rapport is not None for _, rapport in champs}
         portees = len(contraintes) if True in vises else len(contraintes) - 1
@@ -314,10 +315,14 @@ def correction(x, aretes, noeud_de, fixe, anneaux_du_corps):
             vise = rapport is not None
             c, zz = retenues[vise]
             cible = numpy.zeros(len(c))
-            if centres is not None and centres[k] is not None:
-                cible[:3 * len(tenus)] = numpy.asarray(centres[k])[tenus].ravel()
+            porte = None if portes is None else portes[k]
+            if porte is not None:
+                tenu, deplacements = numpy.asarray(porte[0]), numpy.asarray(porte[1])
+                for rang, a in enumerate(tenus):
+                    cible[3 * rang:3 * rang + 3] = len(sommets[a]) * deplacements[a] - tenu[sommets[a]].sum(axis=0)
             if vise:
-                cible[-1] = (rapport - 1.0) * epais['rayon']
+                cible[-1] = (rapport - 1.0) * epais['rayon'] - (0.0 if porte is None
+                                                                 else float((radial * tenu[s]).sum()))
             d = valeur[libres].T.ravel() + libres_seuls[:, k].T.ravel()
             if repartitions is None or repartitions[k] is None:
                 d -= zz.T @ (schurs[vise] @ (c @ d - cible))
@@ -334,26 +339,26 @@ def correction(x, aretes, noeud_de, fixe, anneaux_du_corps):
 
 
 def raboter_sous_correction(bruts, groupe, aretes, libre, corriger, vers_le_monde, hors, rabot=None, portes=None):
-    """#3104 ; #3101 issuecomment-6489583109 ; #4002 issuecomment-6817454030. Les champs T′ des `bruts` (nom -> (T au
-    repère du mesh, rapport de `correction` ou `None`)) rabotés ensemble (`formes.raboter`, nœuds `groupe`, arêtes
-    `aretes`, fondu `libre`) jusqu'à ce que leur correction (`corriger`, repère monde `vers_le_monde`, matrice 3×3 à
-    droite) ne laisse plus aucune arête que marque `hors` (nom -> champ fini F + T′ au repère du mesh) ; rend, par nom,
-    le champ fini au repère du mesh. `portes` (nom -> (F au repère du mesh, cibles des centres d'anneaux de
-    `correction`, repère monde)) ; F nul et cibles nulles pour un nom absent. La correction de chaque passe porte le
-    rabot cumulé de chaque clé en `repartitions` : elle ne rend pas aux nœuds rabotés ce que le rabot leur ôte. Le
-    rabot repart du rabot cumulé `rabot` (nom -> facteur par sommet) d'un tour précédent de la construction ; rend
-    aussi le rabot cumulé de ce tour."""
+    """#3104 ; #3101 issuecomment-6489583109 ; #4002 issuecomment-6817454030. Les champs H′ = libre·(T − C) des `bruts`
+    (nom -> (T au repère du mesh, rapport de `correction` ou `None`)) rabotés ensemble (`formes.raboter`, nœuds
+    `groupe`, arêtes `aretes`, fondu `libre`) jusqu'à ce que leur correction (`corriger`, repère monde `vers_le_monde`,
+    matrice 3×3 à droite) ne laisse plus aucune arête que marque `hors` (nom -> champ fini C + H′ au repère du mesh) ;
+    rend, par nom, le champ fini au repère du mesh. `portes` (nom -> (C au repère du mesh, déplacements des os des
+    anneaux de `correction` (anneaux, 3), repère monde)) ; C nul et déplacements nuls pour un nom absent. La
+    correction de chaque passe porte le rabot cumulé de chaque clé en `repartitions` : elle ne rend pas aux nœuds
+    rabotés ce que le rabot leur ôte. Le rabot repart du rabot cumulé `rabot` (nom -> facteur par sommet) d'un tour
+    précédent de la construction ; rend aussi le rabot cumulé de ce tour."""
     inverse = numpy.linalg.inv(vers_le_monde)
     noms = list(bruts)
     portes = portes or {}
     fixes = {nom: portes[nom][0] if nom in portes else 0.0 for nom in noms}
-    centres = [portes[nom][1] if nom in portes else None for nom in noms]
+    au_monde = [(portes[nom][0] @ vers_le_monde, portes[nom][1]) if nom in portes else None for nom in noms]
 
     sondes = []
 
     def mesurer(pile, cumul):
         champs, sonde = corriger([(pile[:, k] @ vers_le_monde, bruts[nom][1]) for k, nom in enumerate(noms)],
-                                 [cumul[:, k] for k in range(len(noms))], centres)
+                                 [cumul[:, k] for k in range(len(noms))], au_monde)
         sondes.append(sonde)
         courants = {nom: d @ inverse for nom, d in zip(noms, champs)}
         finis = {nom: fixes[nom] + d for nom, d in courants.items()}
@@ -366,8 +371,8 @@ def raboter_sous_correction(bruts, groupe, aretes, libre, corriger, vers_le_mond
         return numpy.stack([courants[nom] for nom in noms], axis=1), marques
 
     depart = None if rabot is None else numpy.stack([rabot[nom] for nom in noms], axis=1)
-    pile, passes, cumul = raboter(numpy.stack([bruts[nom][0] for nom in noms], axis=1), groupe, aretes, libre, mesurer,
-                                  PASSES_DE_RABOT, depart)
+    pile, passes, cumul = raboter(numpy.stack([bruts[nom][0] - fixes[nom] for nom in noms], axis=1), groupe, aretes,
+                                  libre, mesurer, PASSES_DE_RABOT, depart)
     print('SILHOUETTES rabot', passes, 'passe(s) ; correction', sondes[-1], flush=True)
     return {nom: fixes[nom] + pile[:, k] for k, nom in enumerate(noms)}, {nom: cumul[:, k] for k, nom in enumerate(noms)}
 
@@ -433,14 +438,8 @@ def finir_les_silhouettes(squelette, corps, secondaires, table, etats, clips, pl
     libre = fondu(w, noms, extremites(squelette), groupe)
     portages = portages_des_silhouettes(squelette, w, noms,
                                         {nom: t for nom, t in lire_os_des_silhouettes(squelette).items() if nom in bruts})
-    sommets_des_anneaux = [numpy.array([v['indice'] for v in a['sommets']], dtype=int) for a in lus['anneaux']]
-    portes, c_au_mesh = {}, {}
-    for nom, (deplacements, c) in portages.items():
-        f = (1.0 - libre)[:, None] * c
-        portes[nom] = (vers_le_mesh(corps, f),
-                       numpy.array([len(s) * deplacements[a['os']] - f[s].sum(axis=0)
-                                    for a, s in zip(lus['anneaux'], sommets_des_anneaux)]))
-        c_au_mesh[nom] = vers_le_mesh(corps, c)
+    portes = {nom: (vers_le_mesh(corps, c), numpy.array([deplacements[a['os']] for a in lus['anneaux']]))
+              for nom, (deplacements, c) in portages.items()}
 
     def groupes(piles, cellules):
         return [({'etats': jeu, 'cellulesSilhouettes': cellules}, matrices, longueurs) for jeu, matrices, longueurs in piles]
@@ -450,14 +449,15 @@ def finir_les_silhouettes(squelette, corps, secondaires, table, etats, clips, pl
         du_repos = groupes(piles, etats['cellulesSilhouettes'])
         domaine = du_repos + groupes(piles_des_clips, etats_des_clips['cellulesSilhouettes'])
         for nom, (brut, _) in bruts.items():
-            r = rapports(repos, brut * libre[:, None] + (portes[nom][0] if nom in portes else 0.0), aretes)
+            c = portes[nom][0] if nom in portes else 0.0
+            r = rapports(repos, c + (brut - c) * libre[:, None], aretes)
             print('SILHOUETTE', nom, 'brute sous le fondu : rapports au repos', round(float(r.min()), 4),
                   round(float(r.max()), 3), flush=True)
         corriger = correction(x[:, :3].astype(numpy.float64), aretes, groupe, libre == 0, lus)
         cuire = cuisson_des_champs(squelette, corps, table)
 
         def derivees(champs):
-            return cuire({nom: d - c_au_mesh[nom] if nom in c_au_mesh else d for nom, d in champs.items()})
+            return cuire({nom: d - portes[nom][0] if nom in portes else d for nom, d in champs.items()})
 
         finis, rabot = raboter_sous_correction(bruts, groupe, aretes, libre, corriger, vers_le_monde,
                                                mesurer_domaine(w, x, aretes, domaine, vers_le_monde, derivees), rabot,
@@ -466,7 +466,8 @@ def finir_les_silhouettes(squelette, corps, secondaires, table, etats, clips, pl
         poser_la_cle(corps, nom, d)
         print('SILHOUETTE', nom, 'amplitude', round(float(numpy.linalg.norm(bruts[nom][0], axis=1).max()), 4), '->',
               round(float(numpy.linalg.norm(d, axis=1).max()), 4), 'm ; tenus hors portage',
-              round(float(numpy.linalg.norm((d - c_au_mesh.get(nom, 0.0))[libre == 0], axis=1).max(initial=0)), 6), 'm',
+              round(float(numpy.linalg.norm((d - (portes[nom][0] if nom in portes else 0.0))[libre == 0],
+                                            axis=1).max(initial=0)), 6), 'm',
               flush=True)
     print('SILHOUETTES sommets invariants', int((libre == 0).sum()), 'en fondu', int(((libre > 0) & (libre < 1)).sum()),
           'sur', len(libre), flush=True)
