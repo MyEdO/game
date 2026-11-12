@@ -10,6 +10,7 @@ import { moraleBand, findMoraleFactor, payChoices, payChoiceCostBrass } from '..
 import { formatEffetSigne } from '../engine/dice';
 import { fromBrass, toBrass } from '../engine/money';
 import { partyMoneyTotal } from '../noyau/bourseFlow';
+import { semainesDuConseil } from '../noyau/shipCrew';
 import { moraleTone } from './shipStatus';
 
 /**
@@ -23,6 +24,7 @@ import { moraleTone } from './shipStatus';
 export function CouncilModal() {
   const p = useGame((s) => s.pendingCouncil);
   const purseBrass = useGame((s) => toBrass(partyMoneyTotal(() => s)));
+  const semaines = useGame(semainesDuConseil);
   const choisir = useGame((s) => s.fenetreChoisir);
   const fermer = useGame((s) => s.fenetreFermer);
   const lever = () => fermer('conseil');
@@ -54,7 +56,7 @@ export function CouncilModal() {
   const money = fromBrass(purseBrass);
   const options = payChoices().map(({ factorId }) => {
     const f = findMoraleFactor(factorId);
-    const costBrass = payChoiceCostBrass(p.wageBrass, factorId);
+    const costBrass = semaines * payChoiceCostBrass(p.wageBrass, factorId);
     const refus = refusDe[factorId];
     return {
       key: factorId,
@@ -75,7 +77,7 @@ export function CouncilModal() {
   return (
     <Modal title={title} className="council-modal" onClose={undefined} etape={p.phase}>
       <p className="port-hint">
-        Solde due (paie régulière) : <b><Coins money={fromBrass(p.wageBrass)} /></b> · Bourse <Coins money={money} />
+        Solde due (paie régulière{semaines > 1 ? `, ${semaines} semaines` : ''}) : <b><Coins money={fromBrass(semaines * p.wageBrass)} /></b> · Bourse <Coins money={money} />
       </p>
       <OptionChooser layout="grid" groupLabel="Paie de la semaine" options={options} />
     </Modal>

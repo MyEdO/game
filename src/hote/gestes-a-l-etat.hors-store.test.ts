@@ -161,7 +161,7 @@ describe('un argument qui désigne une ligne se choisit parmi les lignes que sa 
 
   it('Conseil de bord : la paie se choisit parmi les choix ouverts, chacun nommé par son facteur', { timeout: 120_000 }, () => {
     auDebutDuRound((etat) => {
-      const conseil = (wageBrass: number): Jeu => ({ ...etat, battle: null, pendingRoundStart: null, vessel: { id: 'nef' } as never, pendingCouncil: { phase: 'choix', wageBrass, today: 1 } as never });
+      const conseil = (wageBrass: number): Jeu => ({ ...etat, battle: null, pendingRoundStart: null, vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } } as never, pendingCouncil: { phase: 'choix', wageBrass, today: 7 } as never });
       for (const c of [conseil(0), conseil(1_000_000)]) {
         const paie = argumentDe(c, 'fenetreChoisir', 'valeur');
         expect(paie.saisie).toBe('choix');
