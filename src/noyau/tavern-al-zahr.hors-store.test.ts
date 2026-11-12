@@ -16,6 +16,8 @@ import { creditBourse } from './bourseFlow';
 import { bourseOf } from '../engine/bourse';
 import { seedBattleRng } from './battleRng';
 import { findTavernGameById } from '../engine/tavernGame';
+import { deDeLaTableTiree } from '../engine/tables';
+import { formatDice } from '../engine/dice';
 import { resolveSequencePotTurn, sequenceAbandonEtatOf, sequenceAbandonOf, sequenceBoardOf } from './sequenceCore';
 import { tavernParams, potProchain } from './tavernFlow';
 import type { Combatant } from '../engine/types';
@@ -164,7 +166,7 @@ describe('Al-zahr — les effets de pot (famille 5, socle)', () => {
   it('la donnée porte la règle : dés, plage de cible et manches par joueur', () => {
     const jeu = findTavernGameById('al-zahr')!;
     expect(jeu.pot).toBeTruthy();
-    expect(jeu.pot!.dice).toEqual({ count: 2, faces: 10 });
+    expect(formatDice(deDeLaTableTiree(jeu.pot!)), 'NADJ 16 l.17').toBe('2d10');
     expect(jeu.pot!.targetRange).toEqual({ min: 7, max: 15 });
     expect(jeu.pot!.rows.map((r) => r.potEffectId)).toEqual([
       'quitte-la-manche', 'remise-ou-abandon', 'cible-ou-passe', 'reprend-mise', 'rafle-le-pot',

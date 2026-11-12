@@ -15,8 +15,8 @@
  */
 import landCargoJson from '../data/land-cargo.json';
 import type { LandCargoData } from '../data/schemas/defs/land-cargo';
-import { d100, parseDiceRequired, roll, rollDice, type RNG } from './dice';
-import { findTableEntry, findTableEntryIndex } from './tables';
+import { d100, roll, rollDice, type RNG } from './dice';
+import { deDeLaTableTiree, findTableEntry, findTableEntryIndex } from './tables';
 import type { Difficulty } from './types';
 import type { Season } from './travelStages';
 import { type CargoDef, type Voie, isTradeHubColumn, rollSeasonalCargo, cargoBasePrice, prixParPointDEnc } from './cargo';
@@ -118,8 +118,8 @@ export function rollRandomLandCargo(season: Season, rng: RNG): CargoDef {
  *  en CO par point d'Enc (`prixParPointDEnc`). `bonusEchelons` monte le résultat de N crans dans le tableau.
  *  PUR. MSRC 13 l.91-104 */
 export function rollWineQuality(rng: RNG, bonusEchelons = 0): { roll: number; label: string; price: number } {
-  const { die, entries } = LAND.qualiteDuVin;
-  const tirage = rollDice(parseDiceRequired(die, 'land-cargo › qualiteDuVin.die'), rng);
+  const { entries } = LAND.qualiteDuVin;
+  const tirage = rollDice(deDeLaTableTiree(LAND.qualiteDuVin), rng);
   let idx = findTableEntryIndex(entries, tirage);
   if (idx < 0) idx = 0;
   idx = Math.min(entries.length - 1, idx + Math.max(0, bonusEchelons));
@@ -199,8 +199,7 @@ export const gossipRule = LAND.ragot;
 /** Tire une RUMEUR commerciale (Tableau des rumeurs, l.281-303) : le dé de la table (l.283) → une rumeur
  *  pointant les biens très demandés à un Emplacement. PUR. */
 export function rollTradeRumour(rng: RNG): RumourRow {
-  const { die, entries } = LAND.rumeurs;
-  return structuredClone(findTableEntry(entries, rollDice(parseDiceRequired(die, 'land-cargo › rumeurs.die'), rng))); // #2097
+  return structuredClone(findTableEntry(LAND.rumeurs.entries, rollDice(deDeLaTableTiree(LAND.rumeurs), rng))); // #2097
 }
 
 /** La cargaison `cargoId` correspond-elle à une rumeur (l.180 : « ils peuvent en vendre autant qu'ils le
