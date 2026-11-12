@@ -304,7 +304,12 @@ export function CharacterCreator() {
   };
 
   const create = () => {
-    if (engagerLeHeros(stockageDuRoster(), useGame.getState(), d, idDEntropie, editing?.heroId) === null) closeCreator();
+    const jeu = useGame.getState();
+    const engage = engagerLeHeros(stockageDuRoster(), jeu, d, idDEntropie, editing?.heroId);
+    if ('refus' in engage) return;
+    if (engage.intention.type === 'recruterLeHeros') jeu.recruterLeHeros(...engage.intention.args);
+    else jeu.remplacerLeHeros(...engage.intention.args);
+    closeCreator();
   };
 
   const stepProps: StepProps = { d, setD, skillsSub, setSkillsSub };

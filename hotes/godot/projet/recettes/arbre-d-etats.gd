@@ -9,8 +9,10 @@ extends SceneTree
 ## la mort tient. Le clip de l'état courant est marqué au lecteur (`assigned_animation`), retour automatique compris ;
 ## une hallebarde montée (seconde prise, `clipsDeuxMains`) fait jouer à `role/repos` son clip à deux mains. Un
 ## habillage en pleine marche ne fait pas sauter la pose (`advance(0.0)` après le gabarit) ; un véhicule démonté rend
-## l'arbre au lecteur du corps sans alias périmé ; le studio des portraits fige la pose (`Combattant.figer`) ; un
-## combattant sans corps garde son arbre inactif.
+## l'arbre au lecteur du corps sans alias périmé ; le studio des portraits photographie un corps fini
+## (`Combattant.est_vetu`), son gabarit mesuré, sur la première image de son clip de repos posée sur le repos du
+## squelette, quelle que soit la pose d'avant, et la pose figée (`Combattant.figer`) ne repart pas ; un combattant sans
+## corps garde son arbre inactif.
 
 const RECETTE_AUTONOME := true
 const FIGE := "res://recettes/vues/repos.json"
@@ -22,6 +24,10 @@ const PAS_S := 1.0 / 60.0
 const IMAGES_D_ATTENTE := 600
 ## L'écart (rad) sous lequel deux poses d'os sont la même.
 const MEME_POSE := 0.0001
+## L'angle (rad) dont chaque os est tourné avant la photo du studio : la pose qu'un clip joué avant elle aurait laissée.
+const POSE_D_AVANT := 0.3
+## Un gabarit qui abaisse le haut de la tête de la base (`gabarit` de `composer`).
+const GABARIT := {racine = {os = "root", echelle = 0.74}, enfantsDe = {thigh_l = 0.62, calf_l = 0.62, thigh_r = 0.62, calf_r = 0.62}, pieds = ["foot_l", "foot_r"], jambes = ["thigh_l", "calf_l", "thigh_r", "calf_r"], clipsPlantes = []}
 const CLIPS_DU_VEHICULE := {repos = "v_repos", marche = "v_marche", melee = "v_melee", tir = "v_tir", coup = "v_coup", mort = "v_mort"}
 var _fautes: Array[String] = []
 var _arbre: AnimationTree = null
@@ -250,22 +256,33 @@ func _poser_un_vehicule(combattant: Combattant) -> MontageDeVehicule:
 	return vehicule
 
 
-## Le studio des portraits : dix images après la pose de sa photo (`_photographier`, au terme du repos d'un corps vêtu ;
-## le rendu headless ne publie aucune image, `frame_post_draw`), la pose du corps n'a pas bougé.
+## Le studio des portraits : sa photo se pose (`_photographier`) à la première image où son corps est monté en entier,
+## son gabarit mesuré ; dix images après (le rendu headless ne publie aucune image, `frame_post_draw`), la pose du corps
+## n'a pas bougé, ni le haut de sa tête, que sa caméra cadre.
 func _studio() -> void:
 	var studio := StudioDePortraits.studio()
 	await process_frame
-	var posee := []
-	studio._repos.timeout.connect(func() -> void: posee.append(true))
-	studio.photographier({base = BASE})
-	await _attendre(func() -> bool: return not posee.is_empty())
-	var squelette: Skeleton3D = studio.get_node("Monde/Combattant/Modele").squelette
-	var a_la_photo := _rotations(squelette)
+	var combattant: Combattant = studio.get_node("Monde/Combattant")
+	var montage: MontageDeComposition = combattant.get_node("Modele")
+	(combattant.get_node("Etats") as AnimationTree).callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
+	studio.photographier({base = BASE, gabarit = GABARIT, montes = [{ligne = "main", element = HALLEBARDE}]})
+	await _attendre(func() -> bool: return montage.squelette != null)
+	for os in montage.squelette.get_bone_count():
+		montage.squelette.set_bone_pose_rotation(os, montage.squelette.get_bone_pose_rotation(os) * Quaternion(Vector3.RIGHT, POSE_D_AVANT))
+	await _attendre(func() -> bool: return studio._etape == StudioDePortraits.Etape.PHOTO)
+	var a_la_photo := _rotations(montage.squelette)
+	var marque := montage.lecteur.assigned_animation
+	var hors_du_clip := _ecart(a_la_photo, _premiere_image(montage.squelette, montage.lecteur.get_animation(marque)))
+	_verifier(not montage.seconde_prise.is_empty() and hors_du_clip < MEME_POSE, "studio : la pose de la photo s'écarte de %.4f rad de la première image de %s posée sur le repos" % [hors_du_clip, marque])
+	var tete := combattant.hauteur_de_la_tete()
 	for i in 10:
 		await process_frame
-	var ecart := _ecart(a_la_photo, _rotations(squelette))
+	var ecart := _ecart(a_la_photo, _rotations(montage.squelette))
 	_verifier(ecart < MEME_POSE, "studio : la pose repart de %.4f rad dix images après la photo" % ecart)
-	print("[arbre-d-etats] studio : écart de pose dix images après la photo %.6f rad" % ecart)
+	var cadrage := MiseEnPage.cadrage_en_buste(combattant.hauteur_de_la_tete())
+	var cadree := (studio.get_node("Monde/Camera") as Camera3D).position.is_equal_approx(Vector3(0.0, cadrage.x, cadrage.y))
+	_verifier(not montage.gabarit.mesures().is_empty() and is_equal_approx(tete, combattant.hauteur_de_la_tete()) and cadree, "studio : la photo part avant la mesure du gabarit (tête à %.4f à la photo, %.4f dix images après)" % [tete, combattant.hauteur_de_la_tete()])
+	print("[arbre-d-etats] studio : écart de pose à la première image de %s %.6f rad, dix images après la photo %.6f rad, tête à %.4f" % [marque, hors_du_clip, ecart, tete])
 	studio.queue_free()
 	await process_frame
 
@@ -297,6 +314,19 @@ func _pas(n := 1) -> void:
 	for i in n:
 		_arbre.advance(PAS_S)
 		await process_frame
+
+
+## La rotation de chaque os de `squelette` à la première image de `clip` posée sur son repos : celle de sa piste, ou
+## celle du repos pour un os que le clip n'anime pas.
+func _premiere_image(squelette: Skeleton3D, clip: Animation) -> Array[Quaternion]:
+	var rotations: Array[Quaternion] = []
+	for os in squelette.get_bone_count():
+		rotations.append(squelette.get_bone_rest(os).basis.get_rotation_quaternion())
+	for piste in clip.get_track_count():
+		var os := squelette.find_bone(clip.track_get_path(piste).get_concatenated_subnames())
+		if clip.track_get_type(piste) == Animation.TYPE_ROTATION_3D and os != -1:
+			rotations[os] = clip.rotation_track_interpolate(piste, 0.0)
+	return rotations
 
 
 ## La rotation de la pose de chaque os de `squelette`.
