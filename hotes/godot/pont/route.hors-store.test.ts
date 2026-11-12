@@ -10,7 +10,7 @@ import type { Bouton, Element, Entite, Jauge, Jet, Ligne, Puce } from '../../../
 import type { Pont, Suite } from './pont';
 
 let ouvert: Pont | null = null;
-afterEach(() => { ouvert?.fermer(); ouvert = null; });
+afterEach(() => { ouvert?.appeler('quitter'); ouvert = null; });
 
 /** Une partie du scénario `voyage` partie de Weiler vers Steinbruck : la première vue de la route, et les lignes que le
  *  journal a écrites depuis le départ. */
