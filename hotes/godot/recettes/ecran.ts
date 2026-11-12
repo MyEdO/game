@@ -301,7 +301,7 @@ function figerLEcran(listage: Listage | null): { vues: VueFigee[]; planches: Pla
   for (let pas = 0; !s.vue.zones['fenetre.corps'].some((e) => e.id === 'recit/issue'); pas++) {
     if (pas > 80) throw new Error(`aucun récit de voyage après ${pas} gestes : ${JSON.stringify(s.vue.zones['fenetre.titre'])}`);
     if (pas === 4) figer(voyage, 'voyage-jets-tombes', 'voyage : les jets des héros tombés, la Chance à saisir', s);
-    if (s.vue.zones['fenetre.corps'].some((e) => e.id === `${s.vue.projection.fenetre?.cle}/nuit`)) figer(voyage, 'repos', 'repos, la nuit à régler', s);
+    if (s.vue.disposition === 'repos') figer(voyage, 'repos', 'repos, la nuit à régler', s);
     s = voyage.jouer('jouer', presse(s));
   }
   figer(voyage, 'recit-d-arrivee', 'récit de voyage, arrivée', s);

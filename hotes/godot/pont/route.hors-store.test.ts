@@ -1,12 +1,12 @@
 /**
  * LA JOURNÉE DE ROUTE PAR LE PONT (#3534) : le trajet de Weiler à Steinbruck joué comme Godot le joue. La journée de route ne
  * s'arrête qu'aux vrais choix, les jets des héros ; la météo, le bilan de l'Étape et la Rencontre qu'il fait tirer vont
- * au journal. Chaque arrêt se dessine dans la scène du voyage : l'heure, la météo, les km du trajet, sa frise, et le groupe en
- * cartes, chaque héros son portrait, ses Blessures et son jet.
+ * au journal. Chaque arrêt se dessine dans la scène du voyage : son paysage, le jour, le moment et la météo, la carte du
+ * trajet, ses km, sa frise, et le groupe en cartes, chaque héros son portrait, ses Blessures et son jet.
  */
 import { afterEach, describe, it, expect } from 'vitest';
 import { departDeLaCarte, drainer, gestesDessines, table } from './pont.testkit';
-import type { Bouton, Element, Entite, Jauge, Jet, Ligne, Puce } from '../../../src/hote/elements';
+import type { Bouton, Element, Entite, Jet, Ligne, Paysage, Plan } from '../../../src/hote/elements';
 import type { Pont, Suite } from './pont';
 
 let ouvert: Pont | null = null;
@@ -37,12 +37,21 @@ describe('la journée de route par le pont', () => {
     const { suite, lignes } = enRoute();
     expect(suite.vue.disposition, 'la scène du voyage').toBe('voyage');
     const c = corps(suite);
-    expect((c['voyage/heure'] as Ligne).texte, 'l’heure de jeu').toMatch(/ CI · \d\d:\d\d$/);
-    expect((c['voyage/route'] as Jauge), 'les km du trajet').toMatchObject({ courant: 24, max: 30 });
-    expect(Object.keys(c).filter((id) => id.startsWith('voyage/etape/')), 'la frise : le départ, l’arrivée').toEqual(['voyage/etape/depart', 'voyage/etape/arrivee']);
-    expect([(c['voyage/etape/depart'] as Puce).libelle, (c['voyage/etape/arrivee'] as Puce).libelle]).toEqual(['Weiler', 'Steinbruck']);
+    expect((c['scene/paysage'] as Paysage).paysage, 'le paysage : le ciel du jour, la route, les marcheurs').toEqual(['ciel-jour', 'relief-terre', 'equipage-pied']);
+    expect((c['scene/jour'] as Ligne).texte, 'le jour de jeu, sans l’heure').toMatch(/ CI$/);
+    expect((c['scene/moment'] as Ligne).texte, 'le moment du jour et la météo').toBe('Après-midi · temps sec');
+    expect((c['voyage/route'] as Ligne).texte, 'les km du trajet par son moyen').toBe('À pied · 24 km sur 30');
+    const frise = c['voyage/frise'] as Plan;
+    expect(frise.points.map((p) => [p.id, p.nom, p.x]), 'la frise : le départ, le groupe à son km, l’arrivée').toEqual([['depart', 'Weiler', 0], ['ici', '', 0.8], ['arrivee', 'Steinbruck', 1]]);
+    expect(frise.traits.map((x) => x.ton), 'la route faite, puis celle qui reste').toEqual(['alerte', 'neutre']);
+    const carte = c['voyage/carte'] as Plan;
+    const lieu = (id: string) => carte.points.find((p) => p.id === id)!;
+    const [de, ici, vers] = [lieu('lieu/p-village'), lieu('ici'), lieu('lieu/p-bourg')];
+    expect([ici.x, ici.y], 'le groupe sur sa route, à sa part du trajet').toEqual([de.x + (vers.x - de.x) * 0.8, de.y + (vers.y - de.y) * 0.8]);
+    expect(carte.traits.filter((x) => x.ton === 'alerte'), 'la part faite de la route du trajet').toEqual([{ id: 'fait', de: 'lieu/p-village', vers: 'ici', ton: 'alerte' }]);
     const cartes: Entite[] = suite.vue.zones['groupe.heros'];
     expect(cartes.map((h) => h.nom), 'le groupe en cartes, au pied de l’écran').toEqual(['Bjorn (test)', 'Mira (test)', 'Aldric (test)', 'Greta Hartmann']);
+    expect(cartes.map((h) => h.ton), 'la carte du héros qui doit lancer, en alerte').toEqual(['alerte', 'neutre', 'neutre', 'neutre']);
     for (const h of cartes) {
       const combattant = h.id.slice('heros/'.length);
       expect(h.elements.slice(0, 2), `${h.nom} : son portrait, puis ses Blessures`).toMatchObject([{ type: 'portrait', combattant }, { type: 'jauge', id: 'blessures' }]);
@@ -52,7 +61,6 @@ describe('la journée de route par le pont', () => {
     }
     expect(Object.values(c).some((e) => e.type === 'jet'), 'aucun jet de héros dans le corps de la fenêtre').toBe(false);
     expect(lignes.map((l) => l.texte), 'la météo du jour, tirée sans arrêt').toContain('Météo : Temps sec.');
-    expect(c['voyage/meteo'], 'la météo du jour dans la scène').toMatchObject({ texte: 'Temps sec' });
   });
 
   it('les jets lancés et validés, le bilan de l’Étape puis la Rencontre qu’il fait tirer vont au journal, et la nuit s’ouvre (EDOC 8 l.161, l.182-233)', () => {

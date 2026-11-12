@@ -1,0 +1,25 @@
+[gd_resource type="Theme" load_steps=3 format=3]
+
+[sub_resource type="StyleBoxEmpty" id="Sans_tour"]
+
+[sub_resource type="StyleBoxFlat" id="A_son_tour"]
+draw_center = false
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.741, 0.561, 0.275, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+expand_margin_left = 10.0
+expand_margin_top = 10.0
+expand_margin_right = 12.0
+expand_margin_bottom = 10.0
+
+[resource]
+neutre/base_type = &"Panel"
+neutre/styles/panel = SubResource("Sans_tour")
+alerte/base_type = &"Panel"
+alerte/styles/panel = SubResource("A_son_tour")

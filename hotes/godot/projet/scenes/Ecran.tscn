@@ -102,8 +102,9 @@ masque = NodePath("..")
 size_flags_horizontal = 3
 mouse_filter = 2
 
-[node name="Disposition" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene"]
+[node name="Disposition" type="Node" parent="Interface/Ossature/Colonne/Milieu/Scene" node_paths=PackedStringArray("journal")]
 script = ExtResource("2_disposition")
+journal = NodePath("../../../../Droite")
 
 [node name="Hud" type="VBoxContainer" parent="Interface/Ossature/Colonne/Milieu/Scene"]
 anchors_preset = 15
