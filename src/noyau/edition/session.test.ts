@@ -816,10 +816,10 @@ describe('les postes d’une coque au formulaire tiré du schéma (#3606 M1f)', 
 
 describe('la validation de la session ne se refait que quand le projet change (#3993)', () => {
   it('deux sessions au même projet rendent les mêmes avertissements ; une scène écrite ou un dataset re-daté les refait, au contenu de `validateScene`', () => {
-    const projet = { scenes: [{ ...emptyScene('valide', 4, 4), entities: [{ id: 'p', kind: 'personnage', creature: { id: 'inexistante' }, pos: { x: 1, y: 1 } }] }], narratif: NARRATIF_VIDE } as unknown as Parameters<typeof ouvrirLEdition>[0];
+    const projet = { scenes: [{ ...emptyScene('valide', 4, 4), walls: [{ x: 1, y: 1, side: 'N' }] }], narratif: NARRATIF_VIDE } as unknown as Parameters<typeof ouvrirLEdition>[0];
     const direct = (s: SessionDEdition) => validateScene([sceneEditee(s)], undefined, NARRATIF_VIDE).filter((w) => w.sceneId === s.sceneId || w.scope === 'worldMap');
     const a = avertissementsDeLaSession(ouvrirLEdition(projet, false));
-    expect(a.length, 'la créature inexistante est avertie').toBeGreaterThan(0);
+    expect(a.length, 'le mur en impasse est averti').toBeGreaterThan(0);
     const b = avertissementsDeLaSession(ouvrirLEdition(projet, false));
     b.forEach((w, i) => expect(w).toBe(a[i]));
     expect(b).toEqual(direct(ouvrirLEdition(projet, false)));
