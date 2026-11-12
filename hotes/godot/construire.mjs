@@ -22,9 +22,10 @@
 // travaille que sur une copie du projet sous le dossier temporaire : l'arbre n'en reçoit rien, ni les modèles d'export
 // du profil Godot (`export_templates`). Avant d'ouvrir Godot, `--sonde` et `--export` déposent les GLB, les textures et le
 // kit des arêtes du projet, tirés de la Release des modèles et vérifiés par l'empreinte de leur provenance commitée
-// (`recupererModeles`, #2948 ; `recupererEpingles`, #3476). `--ouvrir` les dépose de même, puis ouvre l'éditeur épinglé
-// sur le projet en place (#3945) : F5 y joue sur le noyau vivant (`vivant.mjs`), qui partage `empaqueter` et
-// `pontDuBundle`. L'import de ce module ne lance rien et ne charge aucun asset.
+// (`recupererModeles`, #2948 ; `recupererEpingles`, #3476), et la copie reçoit le catalogue des dessins
+// (`deposerLesDessins`, #3935). `--ouvrir` dépose de même les GLB, les textures, le kit et le catalogue des dessins, ce
+// dernier dans le projet en place, puis ouvre l'éditeur épinglé sur ce projet (#3945) : F5 y joue sur le noyau vivant
+// (`vivant.mjs`), qui partage `empaqueter` et `pontDuBundle`. L'import de ce module ne lance rien et ne charge aucun asset.
 import { fileURLToPath } from 'node:url'
 import { spawnSync } from 'node:child_process'
 import { chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
@@ -44,6 +45,7 @@ import { deposerLesPlanches } from './planches.mjs'
 let assetsCharges = null
 /** Les assets que `--sonde`, `--export` et `--ouvrir` lisent (`chargerAssets`), chargés à la première demande, jamais à l'import. */
 const assets = () => (assetsCharges ??= chargerAssets([
+  "export { figerLesDessins } from '/hotes/godot/asset/dessins.ts';",
   "export { figerVuesDeLEcran } from '/hotes/godot/recettes/ecran.ts';",
   "export { figerLeVehicule } from '/hotes/godot/recettes/vehicule.ts';",
   "export { figerLeRepos } from '/hotes/godot/recettes/atelier.ts';",
@@ -62,7 +64,7 @@ const USAGE = `Usage : node hotes/godot/construire.mjs --pont-seul [--sortie <do
   --pont-seul         le bundle ${PONT}, sans Godot, bâti puis exécuté
   --sonde             les GLB tirés de la Release, le projet importé, chaque script contrôlé et les recettes autonomes exécutées par l'éditeur Godot épinglé
   --export            le bundle, l'export Web du projet et ses modèles fabriqués en scène, dans --sortie, sur le modèle d'export épinglé (téléchargé au premier appel)
-  --ouvrir            les GLB tirés de la Release, puis l'éditeur Godot épinglé ouvert sur le projet en place, qui y joue sur le noyau vivant
+  --ouvrir            les GLB tirés de la Release et le catalogue des dessins déposés, puis l'éditeur Godot épinglé ouvert sur le projet en place, qui y joue sur le noyau vivant
   --sortie <dossier>  le dossier où les écrire (sans lui, --pont-seul n'écrit rien)
   GODOT=<binaire>     un éditeur Godot de la version épinglée, à la place du téléchargement (le modèle d'export n'en dépend pas)`
 
@@ -309,11 +311,18 @@ function godot(binaire, projet, args) {
   return { erreurs, lignes }
 }
 
-/** Joue `faire(copie)` sur une copie du projet, importée par `binaire`, sous le dossier temporaire ; rend ses erreurs. */
-function surUneCopie(binaire, faire) {
+/** Le catalogue des dessins (`figerLesDessins`) déposé sous `art/dessins.json` du projet `projet`, que lit `projet/scripts/dessin.gd`. */
+function deposerLesDessins(projet, figerLesDessins) {
+  writeFileSync(join(projet, 'art', 'dessins.json'), JSON.stringify(figerLesDessins()))
+}
+
+/** Joue `faire(copie)` sur une copie du projet, le catalogue des dessins déposé (`deposerLesDessins`), importée par
+ *  `binaire`, sous le dossier temporaire ; rend ses erreurs. */
+function surUneCopie(binaire, figerLesDessins, faire) {
   const copie = mkdtempSync(join(tmpdir(), 'wfrp-godot-'))
   try {
     cpSync(PROJET, copie, { recursive: true, filter: (source) => !source.split(sep).includes('.godot') })
+    deposerLesDessins(copie, figerLesDessins)
     const { erreurs } = godot(binaire, copie, ['--import'])
     return erreurs.length ? erreurs : faire(copie)
   } finally {
@@ -328,8 +337,8 @@ function surUneCopie(binaire, faire) {
  *  `recettes/vues/decor.json`, le chemin du groupe figé (`figerLeChemin`) sous `recettes/vues/chemin.json` et l'éditeur
  *  du navire figé (`figerLEditeurDuNavire`) sous `recettes/vues/editeur-navire.json`, que lisent leurs recettes ; chaque
  *  recette reçoit `--pont=<VIVANT>`, que la copie ne porte pas sous `res://../vivant.mjs`. */
-function sonder(binaire, { DOSSIER_DES_MODELES, figerVuesDeLEcran, figerLeVehicule, figerLeRepos, figerLeDecor, figerLeChemin, figerLEditeurDuNavire }) {
-  return surUneCopie(binaire, (copie) => {
+function sonder(binaire, { DOSSIER_DES_MODELES, figerVuesDeLEcran, figerLeVehicule, figerLeRepos, figerLeDecor, figerLeChemin, figerLEditeurDuNavire, figerLesDessins }) {
+  return surUneCopie(binaire, figerLesDessins, (copie) => {
     mkdirSync(join(copie, 'recettes', 'vues'), { recursive: true })
     writeFileSync(join(copie, 'recettes', 'vues', 'ecran.json'), JSON.stringify(figerVuesDeLEcran()))
     const modeles = listage(DOSSIER_DES_MODELES)
@@ -371,17 +380,17 @@ function fabriquer(binaire, copie, modeles) {
 }
 
 /** L'export Web du projet dans `sortie`, sur le modèle `modele` : le préréglage de la copie le reçoit par
- *  `custom_template/release` ; puis, à côté, le dossier des modèles `dossier` déposé, ses scènes fabriquées sur la
- *  même copie. */
-function exporter(binaire, sortie, modele, dossier) {
-  return surUneCopie(binaire, (copie) => {
+ *  `custom_template/release` ; puis, à côté, le dossier des modèles `DOSSIER_DES_MODELES` déposé, ses scènes fabriquées
+ *  sur la même copie. */
+function exporter(binaire, sortie, modele, { DOSSIER_DES_MODELES, figerLesDessins }) {
+  return surUneCopie(binaire, figerLesDessins, (copie) => {
     const presets = join(copie, PRESETS)
     const cfg = readFileSync(presets, 'utf8')
     const release = /^custom_template\/release=.*$/m
     if (!release.test(cfg)) return [`${PRESETS} : custom_template/release absent`]
     writeFileSync(presets, cfg.replace(release, `custom_template/release=${JSON.stringify(modele.split(sep).join('/'))}`))
     const { erreurs } = godot(binaire, copie, ['--export-release', 'Web', join(sortie, 'index.html')])
-    return erreurs.length ? erreurs : deposerLesModeles(dossier, sortie, (modeles) => fabriquer(binaire, copie, modeles))
+    return erreurs.length ? erreurs : deposerLesModeles(DOSSIER_DES_MODELES, sortie, (modeles) => fabriquer(binaire, copie, modeles))
   })
 }
 
@@ -436,14 +445,14 @@ async function principal() {
     return verdict(sonder(await editeur(), a))
   }
   if (options.mode === 'ouvrir') {
-    await deposerLesAssets()
+    deposerLesDessins(PROJET, (await deposerLesAssets()).figerLesDessins)
     return ouvrir(await editeur())
   }
   mkdirSync(options.sortie, { recursive: true })
   const code = await pont(options.sortie)
   if (code) return code
-  const { DOSSIER_DES_MODELES } = await deposerLesAssets()
-  const sortie = verdict(exporter(await editeur(), options.sortie, await modeleWeb(), DOSSIER_DES_MODELES))
+  const a = await deposerLesAssets()
+  const sortie = verdict(exporter(await editeur(), options.sortie, await modeleWeb(), a))
   if (sortie) return sortie
   deposerLesPlanches(options.sortie)
   console.log(`[godot] export Web : ${listerDossier(options.sortie).map((f) => `${f} ${octets(statSync(join(options.sortie, f)).size)}`).join(', ')}`)

@@ -1,0 +1,69 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/liaison.gd" id="1_liaison"]
+[ext_resource type="Script" path="res://scripts/zone.gd" id="2_zone"]
+
+[node name="Service" type="PanelContainer"]
+custom_minimum_size = Vector2(236, 0)
+size_flags_horizontal = 3
+theme_type_variation = &"CarteDeService"
+
+[node name="Pile" type="VBoxContainer" parent="."]
+theme_type_variation = &"OssatureEnColonne"
+
+[node name="Vignette" type="PanelContainer" parent="Pile"]
+clip_children = 2
+theme_type_variation = &"Vignette"
+
+[node name="Zone" type="Node" parent="Pile/Vignette" node_paths=PackedStringArray("masque")]
+script = ExtResource("2_zone")
+source = "elements"
+ids = PackedStringArray("fond")
+masque = NodePath("..")
+
+[node name="Marges" type="MarginContainer" parent="Pile"]
+size_flags_vertical = 3
+theme_type_variation = &"MargesDeCarte"
+
+[node name="Corps" type="VBoxContainer" parent="Pile/Marges"]
+theme_type_variation = &"PileSerree"
+
+[node name="Tete" type="HBoxContainer" parent="Pile/Marges/Corps"]
+theme_type_variation = &"RangeeSerree"
+
+[node name="Medaillon" type="PanelContainer" parent="Pile/Marges/Corps/Tete"]
+size_flags_vertical = 4
+theme_type_variation = &"Medaillon"
+
+[node name="Zone" type="Node" parent="Pile/Marges/Corps/Tete/Medaillon" node_paths=PackedStringArray("masque")]
+script = ExtResource("2_zone")
+source = "elements"
+ids = PackedStringArray("icone")
+masque = NodePath("..")
+
+[node name="Nom" type="Label" parent="Pile/Marges/Corps/Tete"]
+size_flags_horizontal = 3
+theme_type_variation = &"NomDeCarte"
+text_overrun_behavior = 3
+
+[node name="nom" type="Node" parent="Pile/Marges/Corps/Tete/Nom"]
+script = ExtResource("1_liaison")
+champ = "nom"
+
+[node name="Accueil" type="VBoxContainer" parent="Pile/Marges/Corps"]
+
+[node name="Zone" type="Node" parent="Pile/Marges/Corps/Accueil" node_paths=PackedStringArray("masque")]
+script = ExtResource("2_zone")
+source = "elements"
+ids = PackedStringArray("accueil")
+formes = PackedStringArray("ligne:accueil")
+masque = NodePath("..")
+
+[node name="Gestes" type="HFlowContainer" parent="Pile/Marges/Corps"]
+size_flags_vertical = 10
+theme_type_variation = &"FluxSerre"
+
+[node name="Zone" type="Node" parent="Pile/Marges/Corps/Gestes"]
+script = ExtResource("2_zone")
+source = "elements"
+

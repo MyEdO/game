@@ -12,3 +12,5 @@
 /kit/*.png
 /kit/*.import
 /sons/*.import
+# Le catalogue des dessins que `npm run godot:ouvrir` dépose dans le projet en place (`deposerLesDessins`, #3935).
+/art/dessins.json

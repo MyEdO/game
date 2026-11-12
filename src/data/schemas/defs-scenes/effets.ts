@@ -24,7 +24,7 @@ import { idDe, ref, refOuSpec, refTypee } from '../grammaire/ref';
 import { typeDePossessionSchema } from '../grammaire/reference';
 import { INSTANCIABLE_PAR_ID } from '../grammaire/sousListes';
 import { listeCle } from '../grammaire/collection-cle';
-import { customStatblockSchema, ptSchema, SCENES_DU_PROJET, wallSideSchema } from './communs';
+import { customStatblockSchema, DIALOGUES_DE_LA_SCENE, MARCHANDS_DE_LA_SCENE, PERSONNAGES_DE_LA_SCENE, ptSchema, SCENES_DU_PROJET, wallSideSchema } from './communs';
 import { waterAppliesToSchema } from '../defs/water-exposure';
 import type { ChampDeDecision, EffectOp, Flow as CoreFlow, FlowTest, TriggeredEffect as CoreTriggeredEffect } from '../../../engine/flowCore';
 import type { ScheduleSpec } from '../../../engine/clock';
@@ -197,13 +197,13 @@ export const transitionSchema = nommerChamps(z.strictObject({ type: z.literal('t
 /** Retour à la scène précédente (sortie d'intérieur), à la case d'entrée. */
 export const transitionBackSchema = nommerChamps(z.strictObject({ type: z.literal('transitionBack') }), { type: { label: "type"  } });
 
-/** Ouvre le dialogue scripté `dialogue`. `speakerId` (optionnel) = id d'une `SceneEntity` de la
+/** Ouvre le dialogue scripté `dialogue`. `speakerId` (optionnel) désigne une `SceneEntity` de la
  *  scène courante → son PORTRAIT et son NOM (label) pour toute la session de dialogue, tant qu'un
  *  nœud ne porte pas son propre `speakerId` (cf. `DialogueNode.speakerId`). */
 export const startDialogueSchema = nommerChamps(z.strictObject({
   type: z.literal('startDialogue'),
-  dialogue: z.string(),
-  speakerId: z.string().optional(),
+  dialogue: ref(DIALOGUES_DE_LA_SCENE),
+  speakerId: ref(PERSONNAGES_DE_LA_SCENE).optional(),
 }), { type: { label: "type"  }, dialogue: { label: "dialogue" , texte: { regime: "technique"} }, speakerId: { label: "locuteur" , texte: { regime: "technique"} } });
 
 /** Ligne de journal : `descRef` (verbatim) ⊕ `adapteDe` (`grammaire/prose.ts`). */
@@ -247,9 +247,9 @@ export const setTimeSchema = nommerChamps(z
     }
   }), { type: { label: "type"  }, phase: { label: "phase"  }, hour: { label: "heure" }, minute: { label: "minute" } });
 
-/** Ouvre la boutique d'une entité marchande (par son id) — permet d'inclure le Marchand dans un
- *  dialogue (ex. choix « Montrez-moi vos marchandises »). L'entité doit porter `merchant` (#2). */
-export const openMerchantSchema = nommerChamps(z.strictObject({ type: z.literal('openMerchant'), entityId: z.string() }), { type: { label: "type"  }, entityId: { label: "entité" , texte: { regime: "technique"} } });
+/** Ouvre la boutique d'un marchand de la scène (`MARCHANDS_DE_LA_SCENE`) — permet d'inclure le Marchand dans un
+ *  dialogue (ex. choix « Montrez-moi vos marchandises »). #2 */
+export const openMerchantSchema = nommerChamps(z.strictObject({ type: z.literal('openMerchant'), entityId: ref(MARCHANDS_DE_LA_SCENE) }), { type: { label: "type"  }, entityId: { label: "entité" , texte: { regime: "technique"} } });
 
 /** Ouvre le PORT d'un lieu de la carte du monde — SCRIPTÉ (arrivée mise en scène, cinématique
  *  de quête) sur le MÊME chemin que l'accostage en mer (`openPortAt`, noyau/seaVoyageFlow) : avec profil
@@ -264,7 +264,7 @@ export const medicalAidSchema = nommerChamps(z.strictObject({
   acts: z
     .array(nommerChamps(z.strictObject({ act: z.enum(['blessures', 'hemorragie', 'traumatisme', 'chirurgie']), cost: moneyPartialSchema.optional() }), { act: { label: "acte"  }, cost: { label: "coût" } }))
     .optional(),
-  entityId: z.string(),
+  entityId: ref(PERSONNAGES_DE_LA_SCENE),
 }), { type: { label: "type"  }, acts: { label: "actes" }, entityId: { label: "entité" , texte: { regime: "technique"} } });
 
 /** LDB 17 l.41 */

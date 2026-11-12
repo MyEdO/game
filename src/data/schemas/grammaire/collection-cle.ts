@@ -28,7 +28,7 @@ import { z } from 'zod';
 import '../../../lib/zodEnFrancais';
 import { estObjet } from '../../../lib/objet.mjs';
 import { coDescendre, defDe, descendre, enfantsDe, ouverts, pasDeDonnee, type DecisionDeVisite, type PointDeDonnee } from './descente';
-import { baseDe, champsDiscriminants, cleDesLibelles, cleDesSpecs, cleDuVocabulaire, cleNichee, estPrefixeDeSuite, idsDeCollection, libellesDeCollection, lireCleDEspace, pasDeLaSuite, suiteAvecPas, type CleLue, type FiltreDEspace } from './cle-d-espace';
+import { baseDe, champsDiscriminants, cleDesLibelles, cleDesSpecs, cleDuVocabulaire, cleNichee, estPrefixeDeSuite, idsDeCollection, libellesDeCollection, lireCleDEspace, pasDeLaSuite, retenuParFiltre, suiteAvecPas, type CleLue, type FiltreDEspace } from './cle-d-espace';
 import { estFeuilleDId, jugerRefLocale, porteeDeLaFeuille, type PorteeLocale } from './ref';
 import { LIBELLE_AU_LABEL, SOURCES_DE_SPECS, type SourceDeSpecs } from './sourcesDeSpecs';
 
@@ -225,11 +225,33 @@ export function listeCle<E extends z.ZodType>(
 /** Marque de collection portée par un nœud, `undefined` sinon. */
 export const collectionDe = (noeud: unknown): MarqueDeCollection | undefined => (estObjet(noeud) ? COLLECTIONS.get(noeud) : undefined);
 
-/** Les objets construits par `ouvrirPortees`, avec les portées qu'ils ouvrent. */
-const OUVREURS = new WeakMap<object, readonly PorteeLocale[]>();
+/** D'où un ouvreur (`ouvrirPortees`) tire les ids de ses portées : de la collection `portee.collection` de ses champs,
+ *  ou d'aucune, la portée déclarée VIDE (un objet hors de tout porteur de la collection). */
+export type SourceDesPortees = 'collections' | 'vide';
+
+/** Les objets construits par `ouvrirPortees`, avec les portées qu'ils ouvrent et la marque de la collection de chacune,
+ *  `'vide'` pour une portée déclarée vide. */
+const OUVREURS = new WeakMap<object, ReadonlyMap<PorteeLocale, MarqueDeCollection | 'vide'>>();
 
 /** Les portées locales qu'ouvre un objet construit par `ouvrirPortees`, aucune pour tout autre nœud. */
-export const porteesOuvertes = (noeud: unknown): readonly PorteeLocale[] => (estObjet(noeud) ? (OUVREURS.get(noeud) ?? []) : []);
+export const porteesOuvertes = (noeud: unknown): readonly PorteeLocale[] => (estObjet(noeud) ? [...(OUVREURS.get(noeud)?.keys() ?? [])] : []);
+
+/** Les ids qu'admet la portée `portee` sous le schéma `schema`, de valeur `valeur` : ceux des entrées de sa collection,
+ *  sous l'objet qui l'ouvre (`ouvrirPortees`) parmi les nœuds de `schema` que sa valeur ouvre (`ouverts`) ; `undefined`
+ *  si aucun ne l'ouvre, ou si sa collection n'est pas une liste. SEULE lecture des ids d'une portée, celle du parse. */
+export function idsDeLaPortee(schema: unknown, valeur: unknown, portee: PorteeLocale): readonly string[] | undefined {
+  const marque = ouverts([schema], valeur).map((n) => (estObjet(n) ? OUVREURS.get(n)?.get(portee) : undefined)).find((m) => m !== undefined);
+  return idsSousLaMarque(marque, valeur, portee);
+}
+
+/** Les ids de la collection de la portée `portee`, de marque `marque`, dans la valeur `valeur` de l'objet qui l'ouvre :
+ *  ceux des entrées que chacun de ses filtres retient (`retenuParFiltre`) ; aucun pour une portée déclarée vide. */
+function idsSousLaMarque(marque: MarqueDeCollection | 'vide' | undefined, valeur: unknown, portee: PorteeLocale): readonly string[] | undefined {
+  if (marque === 'vide') return [];
+  const collection = estObjet(valeur) ? valeur[portee.collection] : undefined;
+  if (!marque || !Array.isArray(collection)) return undefined;
+  return idsDeCollection(marque, collection.filter((e) => (portee.retient ?? []).every((f) => estObjet(e) && retenuParFiltre(f, e))));
+}
 
 /**
  * Ouvre les PORTÉES LOCALES `portees` sur `objet` : chaque référence `ref(portee)` de son arbre est jugée
@@ -240,11 +262,13 @@ export const porteesOuvertes = (noeud: unknown): readonly PorteeLocale[] => (est
  * mesure, le repère d'une feuille `idDe` de l'arbre en est une (`mesureDuParse`), et une référence locale non
  * jugée ne serait pas comptée. Une collection qui n'est pas une liste, refusée par son propre nœud, ne juge
  * aucune référence de sa portée. La co-descente élague toute valeur dont aucun nœud ne mène à une référence
- * d'une portée ouverte (les PORTEURS, relevés à la construction).
+ * d'une portée ouverte (les PORTEURS, relevés à la construction). Sous la source `'vide'`, chaque portée est déclarée
+ * VIDE, sans collection : toute référence de l'arbre à l'une d'elles est absente de son catalogue.
  */
-export function ouvrirPortees<N extends z.ZodObject<z.ZodRawShape>>(objet: N, portees: readonly PorteeLocale[]): N {
-  const marques = new Map(
+export function ouvrirPortees<N extends z.ZodObject<z.ZodRawShape>>(objet: N, portees: readonly PorteeLocale[], source: SourceDesPortees = 'collections'): N {
+  const marques = new Map<PorteeLocale, MarqueDeCollection | 'vide'>(
     portees.map((portee) => {
+      if (source === 'vide') return [portee, 'vide'] as const;
       const champ = objet.shape[portee.collection];
       const marque = champ === undefined ? undefined : ouverts([champ]).map(collectionDe).find((m) => m !== undefined);
       if (marque?.forme !== 'liste')
@@ -270,7 +294,10 @@ export function ouvrirPortees<N extends z.ZodObject<z.ZodRawShape>>(objet: N, po
     if (!designees.has(portee)) throw new Error(`ouvrirPortees : la portée des ${portee.catalogue} (« ${portee.collection} ») n’a aucune référence \`ref\` dans l’arbre de l’objet.`);
   const ouvreur = objet.superRefine((valeur, ctx) => {
     if (!estObjet(valeur)) return;
-    const ids = new Map([...marques].filter(([portee]) => Array.isArray(valeur[portee.collection])).map(([portee, marque]) => [portee, new Set(idsDeCollection(marque, valeur[portee.collection]))]));
+    const ids = new Map(portees.flatMap((portee) => {
+      const admis = idsSousLaMarque(marques.get(portee), valeur, portee);
+      return admis ? [[portee, new Set(admis)] as const] : [];
+    }));
     coDescendre(objet, valeur, ({ noeuds, valeur: id, chemin }) => {
       if (!noeuds.some((noeud) => porteurs.has(noeud))) return 'elaguer';
       if (typeof id !== 'string') return;
@@ -281,7 +308,7 @@ export function ouvrirPortees<N extends z.ZodObject<z.ZodRawShape>>(objet: N, po
       }
     });
   }, { when: () => true });
-  OUVREURS.set(ouvreur, portees);
+  OUVREURS.set(ouvreur, marques);
   return ouvreur;
 }
 
