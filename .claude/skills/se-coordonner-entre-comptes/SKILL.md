@@ -27,7 +27,11 @@ Un lot est un ticket ; le lot d'une épique que plusieurs fils se partagent a so
 Le lot est au fil que nomme le champ `Tenu par` du ticket tant que son champ `Statut` vaut `En cours`. Un ticket
 ouvert sans ces champs est libre, sauf PR ouverte sur une branche `chantier/<N>…`, dont le fil le tient.
 
-- **Voir ce qui est tenu** : les tickets ouverts filtrés par `Statut` = `En cours`, lus avec leurs champs.
+- **Voir ce qui est tenu** : les tickets ouverts filtrés par `Statut` = `En cours`, lus avec leurs champs. En
+  cloud : `list_issues` (`state: OPEN`, `field_filters: [{ field_name: 'Statut', value: 'En cours' }]`,
+  `fields: ['number', 'title', 'field_values']`) ; un ticket seul : `issue_read` `get`, clé `field_values`, après
+  le corps. Les champs s'écrivent par `issue_write` `issue_fields` : `field_option_name` pour `Statut`, `value`
+  pour `Tenu par`, `delete: true` pour vider.
 - **Libre** : avant d'explorer, mets `Statut` à `En cours` et `Tenu par` à ta signature suivie de ta branche,
   puis relis le ticket. Si `Tenu par` nomme un autre fil, il l'a pris après toi : le lot est à lui.
 - **Tenu par un autre fil** : tu n'écris pas ses champs. Ce que tu en sais lui part en courrier. Le lui retirer,

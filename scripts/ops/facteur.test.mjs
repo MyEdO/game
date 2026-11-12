@@ -112,5 +112,5 @@ test('facteur.yml : se signale, lit main, et n’interpole rien dans un `run:`',
   assert.match(checkouts[0].bloc, /^\s*ref: main\s*$/m)
   assert.match(checkouts[0].bloc, /^\s*persist-credentials: false\s*$/m)
   for (const ligne of corpsRun(yaml)) assert.ok(!ligne.includes('${{'), ligne)
-  assert.ok(corpsRun(yaml).includes('node scripts/ops/facteur.mjs'))
+  assert.ok(corpsRun(yaml).includes('node scripts/ops/facteur.mjs < "$GITHUB_EVENT_PATH"'))
 })

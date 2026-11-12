@@ -2,7 +2,7 @@
 // réveille pas le fil Claude abonné à la PR destinataire ; un commentaire du workflow le réveille. Le facteur
 // relaie donc chaque commentaire de coordination par un commentaire de `github-actions[bot]` sur la ou les PR
 // destinataires (`.github/workflows/facteur.yml`).
-import { readFileSync } from 'node:fs'
+import { text } from 'node:stream/consumers'
 import { DEPOT, appelGhRunner, pagesRest, poserCommentaire } from '../guards/lib/ticketsGh.mjs'
 
 /** Les mots de tête d'un commentaire de coordination. Chacun commence par `**` : le pré-filtre du job de
@@ -88,7 +88,7 @@ export function distribuer({ evenement, appel }) {
 
 if (import.meta.main) {
   try {
-    const evenement = JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8'))
+    const evenement = JSON.parse(await text(process.stdin))
     const { poses, refus, raison } = distribuer({ evenement, appel: appelGhRunner({ cwd: process.cwd() }) })
     if (!poses.length && !refus.length) console.log(`Aucun relais : ${raison}.`)
     for (const numero of poses) console.log(`Relais posé sur #${numero} (${raison}).`)
