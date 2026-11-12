@@ -27,6 +27,9 @@ import { estCibleType, varianteAdmise } from '../../../engine/psych/ciblage';
 export type RegimeDeListe = 'passive' | 'executee';
 const REGIMES_DES_LISTES = new WeakMap<object, RegimeDeListe>();
 
+/** La variante `noeud` d'une union (`Condition`, `Flow`, sélecteur, fenêtre, cible), nommée `label` à l'affichage. */
+const variante = <T extends z.ZodType>(label: string, noeud: T): T => nommerNoeud(noeud, { label });
+
 /** Le régime d'une liste d'ops, `undefined` hors de `passifsDe` et `executeesDe`. */
 export function regimeDeListe(noeud: unknown): RegimeDeListe | undefined {
   return typeof noeud === 'object' && noeud !== null ? REGIMES_DES_LISTES.get(noeud) : undefined;
@@ -60,7 +63,7 @@ export const refDEtatSchema = ref(ouReserve(idDe('etat'), enumNomme(Object.fromE
 
 /** Fenêtre de Détermination d'un État porté en passif (`ResolveWindow`, `engine/ops.ts`). */
 const fenetreDeDeterminationSchema = z.union([
-  z.literal('none'),
+  variante('Sans fenêtre', z.literal('none')),
   nommerChamps(z.strictObject({ scale: z.literal('rounds'), left: formulaSchema }), { scale: { label: 'échelle' }, left: { label: 'Rounds', texte: { regime: 'technique', usage: 'formule mécanique résolue par la grammaire' } } }),
   nommerChamps(z.strictObject({ scale: z.literal('clock'), minutes: formulaSchema }), { scale: { label: 'échelle' }, minutes: { label: 'minutes', texte: { regime: 'technique', usage: 'formule mécanique résolue par la grammaire' } } }),
 ]);
@@ -390,7 +393,7 @@ const DECLARATIONS_D_OPS = {
     m: z.number().int().optional(),
     manDR: z.number().int().optional(),
     evite: z.array(idDe('seaHazard')).min(1).optional(),
-    jusqua: z.union([z.literal('carenage'), z.literal('evenementDeBord'), nommerChamps(z.strictObject({ jours: formulaSchema }), { jours: { label: "jours" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } })]),
+    jusqua: z.union([variante('Échéance de bord', enumNomme({ carenage: 'jusqu’au carénage', evenementDeBord: 'jusqu’au prochain événement de bord' })), nommerChamps(z.strictObject({ jours: formulaSchema }), { jours: { label: "jours" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } })]),
   }).refine((v) => v.m !== undefined || v.manDR !== undefined || v.evite !== undefined, { message: 'navireMod VIDE : nommer « m » (Mouvement), « manDR » (DR de Manœuvre) ou « evite » (périls évités).' }).refine((v) => !(v.evite && v.jusqua === 'evenementDeBord'), { message: 'navireMod : « evite » jusqu’au prochain événement de bord ne voit aucun péril, levé avant la conséquence qui le heurte ; borner en « jours » ou au « carenage ».' }), { op: { label: "opération"  }, m: { label: "Mouvement" }, manDR: { label: "DR de Manœuvre" }, evite: { label: "périls évités" , texte: { regime: "technique"} }, jusqua: { label: "jusqu’à" } }),
   /** `meteoImposee` — MDG 15 l.189, l.196-197, l.199, l.219, l.226-227, l.248, l.257 */
   meteoImposee: nommerChamps(z.strictObject({
@@ -903,7 +906,11 @@ export function sujetsNonGarantis(cond: unknown): string[] {
 
 export const compareOpSchema = z.enum(['>=', '<=', '==', '<', '>']);
 /** ACTEUR désigné par une mécanique. */
-export const actorRefSchema = enumNomme({ target: 'la cible', caster: 'le lanceur' });
+const LIBELLES_D_ACTEUR = { target: 'la cible', caster: 'le lanceur' } as const;
+export const actorRefSchema = enumNomme(LIBELLES_D_ACTEUR);
+
+/** Cibles d'un Effet de SCÈNE nommées par une chaîne (`CIBLES_D_EFFET_DE_SCENE`, `noyau/combatEffects.ts`). */
+export const LIBELLES_DE_CIBLE_DE_SCENE = { party: 'Tout le groupe', hero: 'Un héros', navire: 'Le navire', membreAuHasard: 'Un membre du bord au hasard' } as const;
 
 /** `Relation | Camp` (`src/engine/relations.ts`) — union complète lue par la Condition `relation`.
  *  Resserré depuis `z.string()` (variantes `domains`/`talents`/`etats`/`spells`) : les 9 JSON ne
@@ -928,7 +935,7 @@ export const partyWhoSchema = enumNomme({ any: 'un héros au moins', all: 'tout 
 /** SÉLECTEUR de héros (`PartySelector`, `engine/flowCore.ts`) : le quantificateur, ou le héros que désigne
  *  un état de campagne de forme `heros` (`{ etat }`). */
 export const partySelectorSchema = z.union([
-  partyWhoSchema,
+  variante('Quantificateur du groupe', partyWhoSchema),
   nommerChamps(z.strictObject({ etat: z.string().min(1, 'Sélecteur « etat » : nommez l’état de campagne qui désigne le héros.') }), { etat: { label: "héros désigné par l’état" , texte: { regime: "technique"} } }),
 ]);
 
@@ -995,9 +1002,6 @@ const conditionDeTalentSchema = refOuSpec('talent', {
   kind: nommerNoeud(z.literal('talent'), { nom: 'type' }),
   who: nommerNoeud(partySelectorSchema.optional(), { nom: 'acteur' }),
 }) as z.ZodType<Extract<Condition, { kind: 'talent' }>> & z.core.$ZodTypeDiscriminable;
-
-/** La variante `noeud` d'une union discriminée (`Condition`, `Flow`), nommée `label` à l'affichage. */
-const variante = <T extends z.ZodType>(label: string, noeud: T): T => nommerNoeud(noeud, { label });
 
 /** Les algèbres `Condition` construites, par Conditions réservées admises. */
 const ALGEBRES_DE_CONDITION = new Map<string, z.ZodType<Condition>>();
@@ -1346,7 +1350,7 @@ export const effectOnSchema = enumNomme({
 
 /** `EffectTargeting` (`engine/flowCore.ts:632`). */
 export const effectTargetingSchema = z.union([
-  effectOnSchema,
+  variante('Cible désignée', effectOnSchema),
   nommerChamps(z.strictObject({ near: z.enum(['victim', 'self']), radiusMeters: z.number() }), { near: { label: "près de"  }, radiusMeters: { label: "rayon en mètres" } }),
   nommerChamps(z.strictObject({ pick: z.literal('engaged'), sizeAtMost: z.literal('self').optional(), max: z.number() }), { pick: { label: "sélection"  }, sizeAtMost: { label: "Taille maximale"  }, max: { label: "maximum" } }),
 ]);
@@ -1659,7 +1663,7 @@ function construire(regimes: Regimes) {
   const effectOp = marquerProduit(nommerChamps(z.strictObject({
     type: z.literal('ops'),
     ops: executeesDe(gameOp),
-    on: z.union([z.enum(['party', 'hero', 'navire', 'membreAuHasard', 'caster', 'target']), cibleDeRoleSchema, cibleDeVolontairesSchema]).optional(),
+    on: z.union([variante('Cible désignée', enumNomme({ ...LIBELLES_DE_CIBLE_DE_SCENE, ...LIBELLES_D_ACTEUR })), cibleDeRoleSchema, cibleDeVolontairesSchema]).optional(),
     heroId: z.string().optional(),
     untilTime: z.number().optional(),
     label: z.string().optional(),
