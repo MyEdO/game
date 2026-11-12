@@ -31,6 +31,14 @@ jobs:
           echo "PLAYWRIGHT_BROWSERS_PATH=$HOME/.cache/ms-playwright" >> "$GITHUB_ENV"
           ls "$HOME/.cache/ms-playwright"
           echo "installation du navigateur : $(( $(date +%s) - $(cat /tmp/t0) )) s"
+      - name: Bac à sable de Chromium (Ubuntu 24.04 refuse les espaces de noms non privilégiés)
+        run: |
+          sysctl kernel.apparmor_restrict_unprivileged_userns || true
+          CHROME="$(ls -d "$HOME"/.cache/ms-playwright/chromium-*/chrome-linux*/chrome | head -1)"
+          "$CHROME" --headless=new --dump-dom about:blank 2>&1 | tail -5 || echo "sans réglage : code $?"
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          "$CHROME" --version
+          "$CHROME" --headless=new --dump-dom about:blank 2>&1 | tail -5
       - name: Export Web
         run: |
           date +%s > /tmp/t0
