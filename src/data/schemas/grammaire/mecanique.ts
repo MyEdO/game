@@ -14,7 +14,7 @@ import { CATEGORY_BY_SOURCE_KIND, type EffectSourceKind } from '../../../engine/
 import { trousDeLEnjeu, type StakeRef } from '../../index';
 import { messageRecurrenceHorloge, SELF_REF, type Formula, type GameOp, type OpPassive } from '../../../engine/ops';
 import { NARRATIVE_MARKERS } from '../../../engine/conditions';
-import { ARG_TEMPLATE, CHAMPS_DE_DECISION, INDICE_TEMPLATE, type Condition, type EffectOp, type EffectTrigger, type Flow, type FlowTestNode, type TriggeredEffect } from '../../../engine/flowCore';
+import { ARG_TEMPLATE, CHAMPS_DE_DECISION, INDICE_TEMPLATE, flowHasFreeAttack, walkFlow, type Condition, type EffectOp, type EffectTrigger, type Flow, type FlowTestNode, type TriggeredEffect } from '../../../engine/flowCore';
 import { acteDeDeverrouillageSchema, attackKindSchema, chaosAlignSchema, charKeySchema, cibleEtendueSchema, contexteDeTestSchema, deDeTirageSchema, diceSpecSchema, difficultySchema, effetSigneSchema, idDIconeSchema, enumNomme, shipLocationSchema, exposureLevelSchema, formulaSchema, formuleSansTirageSchema, genreDArmeSchema, hitLocationSchema, mainSchema, messageDeTermeDeJet, meteoImposeeSchema, statutSchema, ouReserve, plageSchema, reachSchema, natureDInfluenceSchema, sizeCategorySchema, symptomSeveritySchema, tirageSchema } from './valeurs';
 import { traitInstanceSchema } from './reference';
 import { idDe, marquerOpAtteinte, ref, refs, refOuSpec, specAuCatalogue, specDe, specFermeeDe, tirageSurTable, type RegimeDePorteur, type TypeEntite } from './ref';
@@ -1610,6 +1610,29 @@ function payloadsDe(regimes: Regimes): Readonly<Record<string, z.ZodType<unknown
  *  non typées (`OPS_NON_TYPEES`), quelle que soit la famille qui l'atteint. */
 const OP_EN_DONNEE = z.looseObject({ op: z.string() });
 
+/**
+ * Une attaque gratuite est le DERNIER geste de son Flow d'effet déclenché (#4011, `runCombatFlow`,
+ * `noyau/combat/triggeredTest.ts`) : refuse une op `grantFreeAttack` suivie d'une op dans sa feuille, et une
+ * étape de `sequence` qui en porte une (`flowHasFreeAttack`, à quelque profondeur de branche) suivie d'une étape.
+ */
+function refuserLaGratuiteNonTerminale(flow: Flow<EffectOp>, ctx: z.RefinementCtx): void {
+  walkFlow(flow, (noeud, chemin) => {
+    if (noeud.kind === 'effet') {
+      noeud.effet.ops.forEach((o, i) => {
+        if (o.op === 'grantFreeAttack' && i < noeud.effet.ops.length - 1) {
+          ctx.addIssue({ code: 'custom', path: ['flow', ...chemin, 'effet', 'ops', i], message: 'attaque gratuite suivie d’une opération : « grantFreeAttack » est la DERNIÈRE opération de sa feuille.' });
+        }
+      });
+    } else if (noeud.kind === 'sequence') {
+      noeud.etapes.forEach((e, i) => {
+        if (i < noeud.etapes.length - 1 && flowHasFreeAttack(e)) {
+          ctx.addIssue({ code: 'custom', path: ['flow', ...chemin, 'etapes', i], message: 'attaque gratuite suivie d’une étape : l’étape qui accorde « grantFreeAttack » est la DERNIÈRE de sa séquence.' });
+        }
+      });
+    }
+  });
+}
+
 /** `Flow<E>` (`engine/flowCore.ts:559`) — arbre récursif ACYCLIQUE (sequence/effet/si/test/choix), paramétré
  *  par sa feuille `effet`, sa `Condition` et le coût d'Avantage de son `choix`. */
 export function arbreDeFlow<E>(feuille: z.ZodType<E>, condition: z.ZodType<Condition>, coutDAvantage: z.ZodType<number | typeof INDICE_TEMPLATE>): z.ZodType<Flow<E>> {
@@ -1696,7 +1719,7 @@ function construire(regimes: Regimes) {
     attackType: genreDArmeSchema.optional(),
     coupCritique: z.boolean().optional(),
     optional: z.boolean().optional(),
-  }), { trigger: { label: "déclenchement"  }, on: { label: "cible"  }, flow: { label: "enchaînement", transparent: true }, condition: { label: "condition" , texte: { regime: "technique"} }, attackType: { label: "type d’attaque"  }, coupCritique: { label: "sur Coup Critique seulement" }, optional: { label: "facultatif" } }), 'construire', 'triggeredEffect');
+  }).superRefine((v, ctx) => refuserLaGratuiteNonTerminale(v.flow, ctx)), { trigger: { label: "déclenchement"  }, on: { label: "cible"  }, flow: { label: "enchaînement", transparent: true }, condition: { label: "condition" , texte: { regime: "technique"} }, attackType: { label: "type d’attaque"  }, coupCritique: { label: "sur Coup Critique seulement" }, optional: { label: "facultatif" } }), 'construire', 'triggeredEffect');
 
   /** Entrée d100 d'une table de voyage (`TravelTableEntry`, `src/engine/travelTables.ts`), partagée par
    *  `rencontres-edoc`/`incidents-monture`/`problemes-vehicule`. */
