@@ -75,6 +75,14 @@ describe('la description du formulaire d’une zone d’effet', () => {
     for (const liste of champs.slice(1, 3)) expect(unionDuNoeud(elementDuNoeud(liste.noeud))?.discriminant, liste.key).toBe('op');
   });
 
+  it('barrée, elle offre aussi les groupes qu’elle bloque, chacun au catalogue des Groupes qu’une appartenance cible', () => {
+    const z = zone({ barrier: {} });
+    const champs = formulaireDe('zone', z, CADRE_VIDE);
+    expect(champs.map((c) => c.key)).toEqual(['crossTest', 'onCross', 'perRound', 'rendu', 'barrier']);
+    const groupes = champ(champs, z, 'barrier', 'blockGroups');
+    expect(choixDuNoeud(elementDuNoeud(groupes.noeud))?.map((o) => o.valeur)).toEqual(idsDeLaSousListe('groupe', CIBLE_D_APPARTENANCE));
+  });
+
   it('décrit le Test présent : la référence de Compétence au catalogue, la caractéristique et la difficulté au choix, les nombres bornés, sa garde en Condition, ses listes, son enjeu choisi par variante', () => {
     const z = zone({ crossTest: { skill: { id: 'athletisme' as never }, characteristic: 'force', requireSL: 2 } });
     const champs = formulaireDe('zone', z, CADRE_VIDE);

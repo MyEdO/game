@@ -675,12 +675,13 @@ const FORMULAIRE_DU_TYPE: { readonly [K in EntityKind]: Omit<FormulaireDuPorteur
 };
 
 /** Les formulaires tirés du schéma, par sorte de porteur (`FormulaireDuPorteur`). D'une zone d'effet, son Test de
- *  traversée, ses effets à la traversée et à chaque Round, son rendu tant qu'elle dure (#3834) ; d'un déclencheur, sa
+ *  traversée, ses effets à la traversée et à chaque Round, son rendu tant qu'elle dure (#3834), et les groupes qu'elle
+ *  bloque quand elle barre le passage (`barrier`) ; d'un déclencheur, sa
  *  condition d'entrée et son flux ; d'une entité, celui de son type (`FORMULAIRE_DU_TYPE`) ; d'un dialogue, son nœud de
  *  départ, ses nœuds et les entrées qu'il couvre, aux choix de son contexte (`choixDuDialogue`) ; d'une rencontre, ses
  *  circonstances, sa fin et les entrées qu'elle couvre, et de ses membres leur seule monture (`CHAMPS_DE_LA_RENCONTRE`). */
 export const FORMULAIRES: { readonly [S in SorteDePorteur]: FormulaireDuPorteur<DonneeDuPorteur[S]> } = {
-  zone: { collection: 'effectZones', sel: 'effectZone', schema: sceneEffectZoneSchema, champs: () => [['crossTest'], ['onCross'], ['perRound'], ['rendu']] },
+  zone: { collection: 'effectZones', sel: 'effectZone', schema: sceneEffectZoneSchema, champs: (zone) => [['crossTest'], ['onCross'], ['perRound'], ['rendu'], ...(zone.barrier ? [['barrier', 'blockGroups']] : [])] },
   declencheur: { collection: 'triggers', sel: 'trigger', schema: triggerSchema, logique: true, champs: () => [['when'], ['flow']] },
   entite: {
     collection: 'entities',

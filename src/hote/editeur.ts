@@ -333,8 +333,9 @@ export interface ZonesDeLEditeur {
    * texte coupé au mot, puis en liste, à retirer, ou une ligne qui dit qu'il n'en couvre aucune, puis, en liste, chaque
    * entrée des fiches commitées qu'il ne couvre pas (`ENTREES_DE_DOSSIER`), à couvrir ;
    *
-   * d'une zone d'effet encore, le formulaire tiré du schéma de son Test de traversée (`crossTest`) et de ses effets à
-   * la traversée (`onCross`) et à chaque Round (`perRound`), d'un déclencheur, celui de sa condition d'entrée (`when`)
+   * d'une zone d'effet encore, le formulaire tiré du schéma de son Test de traversée (`crossTest`), de ses effets à
+   * la traversée (`onCross`) et à chaque Round (`perRound`), et, quand elle barre le passage, des groupes qu'elle bloque
+   * (`barrier.blockGroups`, chacun au catalogue des Groupes), d'un déclencheur, celui de sa condition d'entrée (`when`)
    * et de son flux (`flow`), chaque élément d'id `valeur/<chemin>`, un élément de liste sous le rang de son chemin : un objet
    * présent, sa ligne titre, ses champs, puis « Retirer » si son absence est admise ; absent, « Ajouter », qui pose sa
    * valeur neuve (ses seuls champs requis), ou le choix de l'objet parmi ceux que son contexte pose, absent s'il n'en
@@ -1744,8 +1745,10 @@ function inspecteurDeScene(s: SessionDEdition): (Choix | Ligne | Bouton | Formul
     ], 'liste'),
     ...musiqueDeLaScene(scene),
     formulaireDuMessage(scene),
-    ...PARTS_RELIEF.map((part) => choix(`scene/relief/${part}`, t(`ecran.editeur.scene.relief.${part}`), matieresDe('relief').map((m) =>
-      bouton(`scene/relief/${part}/${m.id}`, m.label, sur({ relief: { [part]: { id: m.id } } }), scene.reliefDefaults[part].id === m.id)), 'liste')),
+    ...PARTS_RELIEF.map((part) => choix(`scene/relief/${part}`, t(`ecran.editeur.scene.relief.${part}`), matieresDe('relief').map((m) => {
+      const matiere: Scene['reliefDefaults'][typeof part] = { id: m.id };
+      return bouton(`scene/relief/${part}/${m.id}`, m.label, sur({ relief: { [part]: matiere } }), scene.reliefDefaults[part].id === m.id);
+    }), 'liste')),
     ligne('scene/toiture', t('ecran.editeur.scene.toiture')),
     choixDeCouverture('scene/toiture/couverture', toit.material, (m) => sur({ toiture: { material: m } }), null),
     ...reglette('scene/toiture/pente', t('ecran.editeur.toiture.pente', { v: toit.pitchDeg }), toit.pitchDeg, PAS_DE_PENTE, (v) => sur({ toiture: { pitchDeg: v } })),

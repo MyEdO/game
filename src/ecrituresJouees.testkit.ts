@@ -1,6 +1,6 @@
 /**
  * L'ALLER-RETOUR DE L'ÉDITEUR GODOT (#3606, garde #841) : les écritures que le formulaire tiré du schéma offre à
- * l'inspecteur d'une zone d'effet, d'un déclencheur, d'un personnage, d'un dialogue, d'une rencontre, d'un décor et d'une coque, jouées comme la méthode `editer` du pont les joue
+ * l'inspecteur d'une zone d'effet, d'un déclencheur, d'un personnage, d'un dialogue, d'une rencontre, d'un décor et d'une coque, et le navire que pose l'outil navire, jouées comme la méthode `editer` du pont les joue
  * (`hotes/godot/pont/pont.ts`) : le jeu d'un élément des zones passé en JSON, validé par `gesteDuFormulaire` ou
  * `boutonDeLEdition`, puis joué par `editer` sur la session d'édition ; le document relu avant et après. Partagé par la garde (`src/scene-field-editability-guard.test.ts`) et par la copie de
  * mesure de #841 ; la garde décide de ce qu'une écriture crédite (`ecritureCreditee`).
@@ -155,8 +155,9 @@ function jouerLInspecteur(depart: SessionDEdition, out: EcritureJouee[], branche
 }
 
 /** La session `s` où le geste `valeur` `geste` est joué (`jouer`), son écriture, avec son chemin depuis la scène et la
- *  saisie `saisie` qui l'a portée, ajoutée à `out` : celle du choix d'une variante qui porte le `discriminant`, son
- *  discriminant et chaque champ qu'elle pose et que la variante quittée ne portait pas. */
+ *  saisie `saisie` qui l'a portée, ajoutée à `out` : celle du choix d'une variante qui porte le `discriminant`, sur une
+ *  variante quittée, son discriminant et chaque champ qu'elle pose et que la variante quittée ne portait pas ; sur un
+ *  champ absent, la variante entière, qui pose le champ. */
 function ecrire(s: SessionDEdition, geste: Extract<GesteDEdition, { geste: 'valeur' }>, saisie: string, out: EcritureJouee[], discriminant?: string): SessionDEdition {
   const avant = sceneEditee(s);
   const apres = sceneEditee(jouer(s, geste));
@@ -165,7 +166,7 @@ function ecrire(s: SessionDEdition, geste: Extract<GesteDEdition, { geste: 'vale
   const rang = porteurs.findIndex((p) => p.id === geste.porteur.id);
   const quittee = geste.chemin.reduce<unknown>((o, pas) => (estObjet(o) || Array.isArray(o) ? (o as Record<Segment, unknown>)[pas] : undefined), porteurs[rang]);
   const variante = discriminant !== undefined && estObjet(geste.valeur) && discriminant in geste.valeur ? geste.valeur : undefined;
-  const ecrits = variante
+  const ecrits = variante && estObjet(quittee)
     ? Object.keys(variante).filter((cle) => cle === discriminant || !(estObjet(quittee) && cle in quittee)).map((cle) => ({ chemin: [...geste.chemin, cle], valeur: variante[cle] }))
     : [{ chemin: geste.chemin, valeur: geste.valeur }];
   for (const ecrit of ecrits) out.push({ avant, apres, chemin: [collection, rang, ...ecrit.chemin], valeur: ecrit.valeur, saisie });
@@ -248,6 +249,10 @@ const FICHES = [['vouivre-zoo-imperial', ['']], ['l-ombre-du-fleuve', ['valeur/c
  *  apparences que sa forme (`EntityAppearance.apparencesObjets`, #2948). */
 const ENROLE = { fiche: 'sergent-du-guet', branches: ['valeur/appearance/ajouter', 'valeur/appearance/apparencesObjets'] } as const;
 
+/** Les zones tracées à l'outil Zone, chacune par sa sorte, de la case `(de, de)` à la case `(a, a)`, et les boutons de
+ *  son inspecteur pressés avant son jeu : la zone d'effet barre le passage (`zone/barrier`). */
+const ZONES = [['effect', 2, 3, ['zone/barrier']], ['trigger', 0, 1, []]] as const;
+
 /** Le nœud du dialogue que la zone Logique ajoute, renommé (`identifier`). */
 const NOEUD_DU_DIALOGUE = { formulaire: 'identifier/noeud/n2', vers: 'noeud-joue' } as const;
 
@@ -325,11 +330,29 @@ const personnageDuDialogue = (): SessionDEdition => poserPersonnage(presser(ouvr
 /** La `COQUE`, sélectionnée. */
 const coqueChoisie = (): SessionDEdition => cliquer(presser(presser(ouvrirLEdition(projetDuJeu(COQUE.campagne), false), `scenes/${COQUE.scene}`), 'outil/select'), COQUE.case.x, COQUE.case.y);
 
-/** Les écritures jouées sur une zone d'effet neuve, un déclencheur neuf et un personnage de chacune des `FICHES` d'une
+/** La case de la scène neuve de la première campagne du jeu, à l'échelle des ponts, où l'outil navire pose un navire
+ *  neuf. */
+const NAVIRE_NEUF = { x: 2, y: 6 } as const;
+
+/** La session `s` où l'outil navire pose un navire à la case `(x, y)`, sélectionné ; l'écriture de son entité, à son
+ *  rang parmi les entités de la scène, s'ajoute à `out`. */
+function poserUnNavire(s: SessionDEdition, x: number, y: number, out: EcritureJouee[]): SessionDEdition {
+  const avant = sceneEditee(s);
+  const suite = jouer(presser(s, 'outil/navire'), { geste: 'appui', point: point(x, y) });
+  const porteur = porteurDeLaSel(suite.sel);
+  const apres = sceneEditee(suite);
+  const rang = apres.entities.findIndex((e) => e.id === porteur?.id);
+  if (porteur?.sorte !== 'entite' || rang < 0 || avant.entities.some((e) => e.id === porteur.id)) throw new Error('l’outil navire n’a pas posé de navire');
+  out.push({ avant, apres, chemin: ['entities', rang], valeur: apres.entities[rang], saisie: 'bouton' });
+  return suite;
+}
+
+/** Les écritures jouées sur une zone d'effet neuve qui barre le passage, un déclencheur neuf (`ZONES`) et un personnage de chacune des `FICHES` d'une
  *  scène neuve de la première campagne du jeu, le manifeste du `Source/` servi, chacun posé à son outil (Zone,
  *  Personnage), un dialogue que la zone Logique y ajoute, dont l'adresse de prose d'un nœud se compose, son nœud renommé (`NOEUD_DU_DIALOGUE`), une rencontre que la zone Logique y ajoute, où un
  *  personnage d'`ENROLE` et un de la première des `FICHES` s'enrôlent (`enroler`), le second fait monture et chevauché
- *  par le premier (`MONTURE`, `CHEVAUCHEE`), puis chacun de ses objectifs de victoire (`VICTOIRE`) ; puis sur un
+ *  par le premier (`MONTURE`, `CHEVAUCHEE`), puis chacun de ses objectifs de victoire (`VICTOIRE`), et un navire que
+ *  l'outil navire y pose (`NAVIRE_NEUF`) ; puis sur un
  *  personnage de la
  *  première des `FICHES` et un décor de type `DECOR` posés dans une scène neuve du `PROJET_A_PRESETS`, puis sur chaque
  *  branche du flux de l'action qu'il reçoit (`ACTION_DU_DECOR`, `FLUX_DU_DECOR`) et sur chaque type d'Effet de sa
@@ -342,9 +365,9 @@ const coqueChoisie = (): SessionDEdition => cliquer(presser(presser(ouvrirLEditi
 export function ecrituresJouees(): EcritureJouee[] {
   const out: EcritureJouee[] = [];
   let s = presser(ouvrirLEdition(paquetDuJeu(allBuiltinCampaigns[0]), false, undefined, manifesteDe(CORPUS_DISQUE)), 'scenes/ajouter');
-  for (const [sorte, de, a] of [['effect', 2, 3], ['trigger', 0, 1]] as const) {
+  for (const [sorte, de, a, boutons] of ZONES) {
     s = presser(presser(s, 'outil/zone'), `zone/${sorte}`);
-    s = jouerLInspecteur(jouer(jouer(s, { geste: 'appui', point: point(de, de) }), { geste: 'relache', point: point(a, a) }), out);
+    s = jouerLInspecteur(boutons.reduce(presser, jouer(jouer(s, { geste: 'appui', point: point(de, de) }), { geste: 'relache', point: point(a, a) })), out);
   }
   FICHES.forEach(([fiche, branches], rang) => { s = jouerLInspecteur(poserPersonnage(s, fiche, 5 + rang, 5), out, branches); });
   s = identifier(jouerLInspecteur(ajouter(s, 'dialogue', out), out), NOEUD_DU_DIALOGUE.formulaire, NOEUD_DU_DIALOGUE.vers, out);
@@ -355,6 +378,7 @@ export function ecrituresJouees(): EcritureJouee[] {
   s = jouerLInspecteur(presser(s, `logique/rencontre/${rencontre}`), out);
   jouerLInspecteur(jouer(s, gesteDuChoix(s, MONTURE, (v) => v === true)), out, [CHEVAUCHEE]);
   jouerLesVariantes(s, VICTOIRE, out);
+  poserUnNavire(s, NAVIRE_NEUF.x, NAVIRE_NEUF.y, out);
   const pnj = jouerLInspecteur(poserPersonnage(sceneAPresets(), FICHES[0][0], 5, 5), out, BRANCHES_DU_PRESET);
   const decor = jouerLInspecteur(cliquer(presser(presser(pnj, 'outil/prop'), `prop/${DECOR}`), 3, 3), out);
   const action = presser(decor, choixDeLInspecteur(inspecteur(decor), ACTION_DU_DECOR).valeurs[0].id);

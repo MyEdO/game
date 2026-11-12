@@ -24,6 +24,8 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { findCreatureById, traits } from '../../../src/data';
 import { parseTraitInstance } from '../../../src/data/refFormatLivre';
+import { idsDeLaSousListe } from '../../../src/data/schemas/grammaire/ref';
+import { CIBLE_D_APPARTENANCE } from '../../../src/data/schemas/grammaire/sousListes';
 import { dossierDesProjetsLivres, listerProjetsLivres, PROJETS_MANUSCRITS } from '../../../scripts/guards/lib/projetsLivres.mjs';
 import { lireProjetLivre } from '../../../scripts/source/projetLivre.mjs';
 import type { Fragment } from '../../../src/data/source/decoupe';
@@ -339,6 +341,8 @@ describe('l’éditeur de carte par le pont, les zones', () => {
     expect(boutonDe(opaque, 'zone/blocksLoS').presse).toBe(true);
     const barree = presser(boutonDe(opaque, 'zone/barrier'));
     expect([boutonDe(barree, 'zone/barrier').presse, boutonDe(presser(boutonDe(barree, 'zone/barrier')), 'zone/barrier').presse]).toEqual([true, false]);
+    expect(valeursDeLInspecteur(barree, 'valeur/barrier/blockGroups/ajouter').map((v) => (v.jeu as { args: unknown[] }).args.slice(1)), 'barrée, elle offre les groupes qu’elle bloque, au catalogue des Groupes d’appartenance').toEqual(idsDeLaSousListe('groupe', CIBLE_D_APPARTENANCE).map((id) => [['barrier', 'blockGroups'], [id]]));
+    expect(inspecteur(opaque).some((el) => el.id.startsWith('valeur/barrier')), 'ouverte, aucun').toBe(false);
 
     expect(inspecteur(posee).find((el) => el.id === 'zone/couvre')).toMatchObject({ type: 'ligne', texte: 'Aucune entrée de fiche couverte.' });
     const offerte = (inspecteur(barree).find((el) => el.id === 'zone/couvre/ajouter') as Choix).valeurs[0];
