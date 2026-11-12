@@ -25,6 +25,7 @@ describe('primitive <Icon>', () => {
   });
 
   it('jette sur un id inconnu en DEV (rien de silencieux)', () => {
+    // @ts-expect-error -- un id hors registre ne compile pas ; le rendu le refuse aussi.
     expect(() => renderToStaticMarkup(React.createElement(Icon, { id: 'nope/inconnu' }))).toThrow(/Icône inconnue/);
   });
 });

@@ -27,7 +27,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const MAIN_SECONDAIRE = refDeRegle('main-secondaire');
 const PLAFOND = RULE_REF['combiner-les-difficultes'];
-const BENEDICTION = { label: 'Bénédiction de Bataille', source: { kind: 'spell' as const, id: 'benediction-de-bataille' } };
+const BENEDICTION = { label: 'Bénédiction de Bataille', source: { kind: 'sort' as const, id: 'benediction-de-bataille' } };
 const BENEDICTION_REF = { category: 'spells', id: BENEDICTION.source.id };
 
 /**

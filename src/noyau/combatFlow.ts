@@ -2,6 +2,7 @@
  * Flux de combat (tour par tour) — module à part du store.
  * Fonctions (get,set) : combat, magie, IA, desengagement, effets. RNG via ./battleRng.
  */
+import type { IconId } from '../data/icons';
 import type { FabriqueDId } from '../engine/fabriqueDId';
 import type { PlayerText } from '../i18n/playerText';
 import type { Jeu, BattleState, ShootingStanceKey, GesteDeSuite, TourEnCours } from './etat';
@@ -1125,25 +1126,25 @@ export function castSightBlocked(get: Get<Jeu>, from: Pt, to: Pt): boolean {
 /** Raisons pour lesquelles `resolveMovement` refuse une case. `course-non-armee` et `frenesie-eloigne`
  *  ne se jugent que si l'appelant fournit l'intention de Course (`resolveMovement(…, { courseArmee })`). */
 export type MovementBlockReason =
-  | 'no-battle'
-  | 'no-scene'
-  | 'combat-over'
-  | 'targeting'
-  | 'no-active'
-  | 'not-controlled'
-  | 'engaged'
-  | 'movement-spent'
-  | 'out-of-range'
-  | 'no-path'
-  | 'course-non-armee'
-  | 'frenesie-eloigne';
+  | 'horsCombat'
+  | 'sansScene'
+  | 'combatFini'
+  | 'designation'
+  | 'sansActeur'
+  | 'nonControle'
+  | 'engage'
+  | 'mouvementEpuise'
+  | 'horsDePortee'
+  | 'sansChemin'
+  | 'courseNonArmee'
+  | 'frenesieEloigne';
 
 export type MovementResolution =
   | { status: 'possible'; kind: 'deplacement' | 'course'; path: Pt[]; cost: number }
   | { status: 'bloque'; reason: MovementBlockReason };
 
 /** Les refus du PRÉFIXE commun à tout déplacement de combat (`mobileDuTour`). */
-export type RefusDuTour = Extract<MovementBlockReason, 'combat-over' | 'targeting' | 'no-active' | 'not-controlled' | 'engaged' | 'movement-spent'>;
+export type RefusDuTour = Extract<MovementBlockReason, 'combatFini' | 'designation' | 'sansActeur' | 'nonControle' | 'engage' | 'mouvementEpuise'>;
 
 /**
  * PRÉFIXE de tout déplacement de combat : le combattant actif, piloté à la main par ce siège, peut-il
@@ -1153,13 +1154,13 @@ export type RefusDuTour = Extract<MovementBlockReason, 'combat-over' | 'targetin
 export function mobileDuTour(s: Jeu, battle: BattleState):
   | { mobile: Combatant; case: Pt }
   | { refus: RefusDuTour; mobile?: Combatant } {
-  if (battle.over) return { refus: 'combat-over' };
-  if (battle.action !== null) return { refus: 'targeting' };
+  if (battle.over) return { refus: 'combatFini' };
+  if (battle.action !== null) return { refus: 'designation' };
   const active = activeCombatant(battle);
-  if (!active?.pos) return { refus: 'no-active' };
-  if (!controlsCombatant(s, active)) return { refus: 'not-controlled', mobile: active };
-  if (isEngaged(active)) return { refus: 'engaged', mobile: active };
-  if (!canMove(battle, active)) return { refus: 'movement-spent', mobile: active };
+  if (!active?.pos) return { refus: 'sansActeur' };
+  if (!controlsCombatant(s, active)) return { refus: 'nonControle', mobile: active };
+  if (isEngaged(active)) return { refus: 'engage', mobile: active };
+  if (!canMove(battle, active)) return { refus: 'mouvementEpuise', mobile: active };
   return { mobile: active, case: active.pos };
 }
 
@@ -1176,20 +1177,20 @@ export function resolveMovement(get: Get, pt: Pt, armement?: { courseArmee: bool
   if (resolution.status !== 'possible' || !armement) return resolution;
   const active = activeCombatant(get().battle!)!;
   const frenetique = isFrenzied(active);
-  if (resolution.kind === 'course' && !armement.courseArmee && !frenetique) return { status: 'bloque', reason: 'course-non-armee' };
+  if (resolution.kind === 'course' && !armement.courseArmee && !frenetique) return { status: 'bloque', reason: 'courseNonArmee' };
   const ft = frenetique ? frenzyTarget(get, active) : null;
-  if (ft?.pos && chebyshev(pt, ft.pos) >= chebyshev(active.pos!, ft.pos)) return { status: 'bloque', reason: 'frenesie-eloigne' };
+  if (ft?.pos && chebyshev(pt, ft.pos) >= chebyshev(active.pos!, ft.pos)) return { status: 'bloque', reason: 'frenesieEloigne' };
   return resolution;
 }
 
 function resoudreLaCase(get: Get, pt: Pt): MovementResolution {
   const battle = get().battle;
   const scene = get().scene;
-  if (!battle) return { status: 'bloque', reason: 'no-battle' };
-  if (!scene) return { status: 'bloque', reason: 'no-scene' };
+  if (!battle) return { status: 'bloque', reason: 'horsCombat' };
+  if (!scene) return { status: 'bloque', reason: 'sansScene' };
   const tour = mobileDuTour(get(), battle);
   // Marche épuisée : la zone de Course reste résoluble (LDB 15 l.41).
-  const courseSeule = 'refus' in tour && tour.refus === 'movement-spent' && tour.mobile && computeRunReach(get).size > 0;
+  const courseSeule = 'refus' in tour && tour.refus === 'mouvementEpuise' && tour.mobile && computeRunReach(get).size > 0;
   if ('refus' in tour && !courseSeule) return { status: 'bloque', reason: tour.refus };
   const active = tour.mobile!;
   const depart = 'case' in tour ? tour.case : active.pos!;
@@ -1197,7 +1198,7 @@ function resoudreLaCase(get: Get, pt: Pt): MovementResolution {
   const reach = displayedReach(get);
   const inWalk = reach.has(k);
   const runReach = inWalk ? null : computeRunReach(get);
-  if (!inWalk && !runReach?.has(k)) return { status: 'bloque', reason: 'out-of-range' };
+  if (!inWalk && !runReach?.has(k)) return { status: 'bloque', reason: 'horsDePortee' };
   const preview = battle.preview;
   if ((preview?.kind === 'deplacement' || preview?.kind === 'course')
     && preview.tile.x === pt.x && preview.tile.y === pt.y && (preview.tile.z ?? 0) === (pt.z ?? 0)) {
@@ -1205,7 +1206,7 @@ function resoudreLaCase(get: Get, pt: Pt): MovementResolution {
   }
   const geom = mountOf(battle, active) ?? active;
   const path = pathTo(scene, depart, pt, moveEnv(battle, geom));
-  if (!path || path.length < 2) return { status: 'bloque', reason: 'no-path' };
+  if (!path || path.length < 2) return { status: 'bloque', reason: 'sansChemin' };
   return { status: 'possible', kind: inWalk ? 'deplacement' : 'course', path, cost: (inWalk ? reach.get(k) : runReach!.get(k)) ?? 0 };
 }
 
@@ -1325,7 +1326,7 @@ export function startAuContact(_get: Get, set: SetFn, mover: Combatant, foe: Com
  *  l'acteur a un Avantage STRICTEMENT supérieur → il peut BRISER l'Empoignade gratuitement, ou tenter le
  *  Test opposé pour son Action (Dégâts / Empêtré). Le VAINQUEUR du Test choisit. */
 /** Ancrage de regle des effets d'Empoignade (LDB 14 l.159-161) — entree `empoignade` de `regles.json`. */
-const GRAPPLE_SOURCE = { kind: 'rule', id: 'empoignade' } as const;
+const GRAPPLE_SOURCE = { kind: 'regle', id: 'empoignade' } as const;
 
 export function startGrapple(_get: Get, set: SetFn, actor: Combatant, foe: Combatant): void {
   const atk = rollGrappleForce(foe, battleRng()); // Force du foe, figée (jamais relancée)
@@ -1425,7 +1426,7 @@ export function computeRunReach(get: Get<Jeu>): Map<string, number> {
   // Mode-CASE (#198, résidus) : Pousser/Téléportation/pose de zone posent LEUR PROPRE ensemble dans
   // `battle.reachable` (déjà priorisé par `displayedReach` ci-dessous) — la zone de Course NOMINALE
   // (Marche+Course normales) n'a pas de sens pendant ces modes et ne doit pas s'y superposer (sinon la
-  // grille 'run', qui porte `data-tile`, ratisse toute la carte au lieu du seul ensemble du mode).
+  // grille 'course', qui porte `data-tile`, ratisse toute la carte au lieu du seul ensemble du mode).
   if (battle.reachable.size > 0) return new Map();
   const active = activeCombatant(battle);
   if (!active || !controlsCombatant(get(), active) || !active.pos) return new Map();
@@ -2513,7 +2514,7 @@ function encaisserLeCoupDuMarin(get: Get, set: SetFn, coup: CoupDuMarin, decides
     deviable: (lieu, n, casse) => deviatableArmourAt(apresDeviations(marin, lieu, n, { casse }), lieu),
   });
   if (!planifie) return null;
-  if (planifie.compte.compte.blessures > 0) lignes.push(tr('op.wounds', { name: marin.label, n: planifie.compte.compte.blessures, mitig: '' }));
+  if (planifie.compte.compte.blessures > 0) lignes.push(tr('op.blessures', { name: marin.label, n: planifie.compte.compte.blessures, mitig: '' }));
   encaisserLeCoup({
     get, set, auteur: attaquant, cible: marin, compte: planifie.compte, plan: planifie.plan, log: lignes, roll: touche.roll, arme: touche.arme,
     ctx: { attackerId: attaquant.id, attackerKind: attaquant.kind, weapon: touche.libelle, ...(touche.arme ? { weaponObj: touche.arme } : {}), critTwice: twice },
@@ -3684,7 +3685,7 @@ function withArmedStance(get: Get, pa: PendingAttack): PendingAttack {
  *
  * RENVOIE si une fenêtre est ouverte (gate de main OU jet d'attaque) : le mint peut REFUSER l'étape
  * hôte, et c'est l'appelant — pas la porte — qui décide de ce qu'on fait d'une Action sans fenêtre. */
-export function openAttackCascade(get: Get, set: SetFn, pa0: PendingAttack, title: string, icon: string, skipGate = false): boolean {
+export function openAttackCascade(get: Get, set: SetFn, pa0: PendingAttack, title: string, icon: IconId, skipGate = false): boolean {
   const pa = withArmedStance(get, pa0);
   const attacker = actorIn(get(), pa.attackerId);
   const hand = !skipGate && attacker ? attackHandGate(attacker, pa.weaponUid) : null; // `skipGate` : gate déjà PASSÉ (reprise `jetValider('mainEnsanglantee')`) → pas de re-test
@@ -3698,7 +3699,7 @@ export function openAttackCascade(get: Get, set: SetFn, pa0: PendingAttack, titl
 /** Pose le Test de Dextérité Accessible (AA 07 l.117) de la main gatée `hand` avant l'Action `pa`, sur sa
  *  valeur de Test (`testValue`, LDB 16 l.125) ; cible montée par le MONTEUR, bornée et mesurée comme au jet
  *  (`FLOWS.mainEnsanglantee`). Mint UNIQUE de `pendingHandGate` : `openAttackCascade` et la 2ᵉ frappe « des deux armes ». */
-export function poserLeTestDeMain(set: SetFn, attacker: Combatant, hand: Main, pa: PendingAttack, title: string, icon: string): void {
+export function poserLeTestDeMain(set: SetFn, attacker: Combatant, hand: Main, pa: PendingAttack, title: string, icon: IconId): void {
   const ligne = rollLine({ actor: attacker, test: { characteristic: 'dexterite' }, difficulty: 'accessible' });
   set({ pendingHandGate: {
     attackerId: attacker.id, actorName: attacker.label, hand, ligne, ...cibleMesuree(ligne),
@@ -3709,7 +3710,7 @@ export function poserLeTestDeMain(set: SetFn, attacker: Combatant, hand: Main, p
 /** Pose `pa` dans son slot et l'étape `attack` qui le rend, appendue à la séquence de combat ouverte ou
  *  dans une séquence neuve. Mint UNIQUE de l'étape d'attaque : `openAttackCascade` et la frappe suivante
  *  d'un enchaînement (`combatSlice.poserLaFrappeSuivante`). */
-export function poserLEtapeDAttaque(get: Get, set: SetFn, pa: PendingAttack, title: string, icon?: string): boolean {
+export function poserLEtapeDAttaque(get: Get, set: SetFn, pa: PendingAttack, title: string, icon?: IconId): boolean {
   set({ pendingAttack: pa });
   // Une chaîne d'attaques (balayage, deux armes, gratuite) rejoint la séquence déjà ouverte : l'id se
   // distingue par le compteur de la séquence d'accueil (#1852).
@@ -5866,7 +5867,7 @@ function ctxDuLancer(get: Get, set: SetFn, t: Combatant, caster: Combatant, spel
   };
 }
 
-/** Lancer GARANTI de l'Effet d'auteur `castSpell` `mode:'forceSuccess'` (#98) : aucun jet, DR = NI ; le
+/** Lancer GARANTI de l'Effet d'auteur `castSpell` `mode:'forcerLaReussite'` (#98) : aucun jet, DR = NI ; le
  *  Flow se joue par le walker (`runCastFlow`), une passe par côté (`spellFlowFor`). */
 function lancerLeSortGaranti(get: Get, set: SetFn, caster: Combatant, target: Combatant, spellId: string): string[] {
   const spell = findSpellById(spellId);
@@ -5899,7 +5900,7 @@ function lancerLeSortGaranti(get: Get, set: SetFn, caster: Combatant, target: Co
  * appelants : c'est elle que les `ActiveEffect` posés portent, et c'est d'elle que les 46 `FlowTest`
  * authorés dans `spells.json` DÉRIVENT leur enjeu (#1262 V2 L6d) — « ce qui se joue » EST le sort. */
 function runCastFlow(get: Get, set: SetFn, target: Combatant, caster: Combatant, flow: Flow, opsCtx: OpsCtx): string[] {
-  const source = opsCtx.source ?? (opsCtx.sourceSpellId ? { kind: 'spell' as const, id: opsCtx.sourceSpellId } : undefined);
+  const source = opsCtx.source ?? (opsCtx.sourceSpellId ? { kind: 'sort' as const, id: opsCtx.sourceSpellId } : undefined);
   const withSpell: OpsCtx = { ...opsCtx, ...(source ? { source } : {}) };
   // Le lancer est un geste délibéré : un effet certain sans objet sur cette cible se DIT, `applyOps` le tait.
   const certaines = certainFlowOps(flow);
@@ -6031,7 +6032,7 @@ function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectil
   {
     const dealt = Math.min(compte.compte.blessures, currentBefore);
     const lifeStealOps = spellOps(spell.effects, 'caster').filter((o) => o.op === 'lifeSteal');
-    if (lifeStealOps.length) lignes.push(...applyOps(caster, lifeStealOps, { idNeuf: get().forgerUnId, rng: battleRng(), caster, label: spell.label, woundsDealt: dealt, source: { kind: 'spell', id: spell.id } }));
+    if (lifeStealOps.length) lignes.push(...applyOps(caster, lifeStealOps, { idNeuf: get().forgerUnId, rng: battleRng(), caster, label: spell.label, woundsDealt: dealt, source: { kind: 'sort', id: spell.id } }));
   }
   // Interruption de Focalisation : un Projectile magique blesse aussi un focaliseur (LDB 46 l.144).
   lignes.push(...checkFocusInterruption(get, set, cible));
@@ -6513,7 +6514,7 @@ function placeSpellZone(
   // Rayon par défaut (si l'op n'a pas de `radiusMeters`) : dérivé de la `target` du sort (« Zone Diamètre
   // BFM m » → rayon BFM/2). Protection de Phâ : Zone centrée sur le lanceur (range self).
   placeZoneFromOp(get, caster, target, pz, spell.label, rounds, sl, (zdeDiameterMeters(spell.target, caster) ?? 4) / 2, logLines,
-    spell.id ? { kind: 'spell', id: spell.id } : undefined);
+    spell.id ? { kind: 'sort', id: spell.id } : undefined);
 }
 
 /** Pose une ZONE persistante depuis un op `zone` (op-based, réutilisable HORS sort : effets déclenchés —
@@ -6547,7 +6548,7 @@ function placeZoneFromOp(get: Get, caster: Combatant, target: Combatant, opDeZon
   };
   battle.zones = [...(battle.zones ?? []), zone];
   logLines.push(tr('cf.zonePersistePlusieursRounds', { spell: label, rounds }));
-  bus.emit(EVT.ANIM_AOE, { de: caster.id, centre: { ...target.pos }, tiles, ...(source?.kind === 'spell' ? { sort: source.id } : {}) });
+  bus.emit(EVT.ANIM_AOE, { de: caster.id, centre: { ...target.pos }, tiles, ...(source?.kind === 'sort' ? { sort: source.id } : {}) });
 }
 
 /** Résout les ops IMPURES (grille/initiative) d'un déclencheur — GÉNÉRIQUE, pas limité à summon : un
@@ -8176,7 +8177,7 @@ function psychRowMeta(part: BatchParticipant): CombatPsychRowMeta {
 
 /** Un Test de Psychologie de combat DÛ par un héros, avant regroupement : la déclaration de règle qui
  *  l'appelle (clé de bande), sa RANGÉE, et la présentation qui en découle (commune à toute la bande). */
-interface CombatPsychDue { decl: CombatPsychDecl; row: BatchParticipant; icon: string; label: PlayerText }
+interface CombatPsychDue { decl: CombatPsychDecl; row: BatchParticipant; icon: IconId; label: PlayerText }
 
 /** Le Test de Psychologie de combat `t` dû à `c` au Round `round`, sous forme de RANGÉE + déclaration de
  *  règle. */
@@ -8350,7 +8351,7 @@ function resolveCombatPsychRow(get: Get, set: SetFn, hero: Combatant, cp: Combat
   // CONSÉQUENCES de la branche réalisée, en ops dérivées de `psychology.json` — les MÊMES que la
   // surface annonce (`meta.onSuccess`/`onFail`). Le DR du jet est versé au contexte : la quantité
   // d'État de l'échec (`valuePerSL{onFailure}`) s'y résout, même arithmétique que `failConditionAmount`.
-  applyOps(hero, psychBranchOps(cp, { success: r.success, calmeDR: pas?.calmeDR, surmontee: pas?.surmontee, sansPeur: rm.sansPeur, round: cp.round }), { idNeuf: get().forgerUnId, rng: battleRng(), sl: r.sl, source: { kind: 'psychology', id: cp.kind } });
+  applyOps(hero, psychBranchOps(cp, { success: r.success, calmeDR: pas?.calmeDR, surmontee: pas?.surmontee, sansPeur: rm.sansPeur, round: cp.round }), { idNeuf: get().forgerUnId, rng: battleRng(), sl: r.sl, source: { kind: 'psychologie', id: cp.kind } });
   if (res.mode === 'terreur') {
     // 1ʳᵉ rencontre (LDB 21 l.54-56) : échec → État `failCondition` = Indice + |DR négatifs| ; devient
     // l'état `becomes` (LDB 21 l.56, INCONDITIONNEL, à PLEIN Indice — #1190). Conséquences en DONNÉES.

@@ -39,6 +39,6 @@ export function applique(
   if (spec.kind === 'maladie-gangrene') return applyDiseaseGangrene(c, String(meta.diseaseName ?? ''), res.success, Number(meta.be ?? 0));
   if (res.success) return []; // `maladie-test-quotidien` : la réussite n'applique RIEN (branche `success` vide au schéma)
   // MÊME ancrage que l'applier de nuit : la maladie est l'entité SOURCE de ce que son échec inflige.
-  const source = { kind: 'disease' as const, id: String(meta.diseaseName ?? '') };
+  const source = { kind: 'maladie' as const, id: String(meta.diseaseName ?? '') };
   return applyOps(c, (meta.opsEchec ?? []) as GameOp[], { idNeuf: idsDeTest, rng, sl, source });
 }

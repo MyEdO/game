@@ -26,6 +26,7 @@ import { tokenizeLinks } from '../noyau/codex/relations';
 import type { Porteur } from '../noyau/codex/porteur';
 import { useIdentites } from './useIdentites';
 import { nommer } from '../noyau/monde/identites';
+import type { RecapTeam } from '../noyau/recapLine';
 import { decodeString } from 'micromark-util-decode-string';
 
 /** Nœud HAST minimal (sous-ensemble manipulé par le plugin d'auto-liage). */
@@ -38,7 +39,7 @@ interface HastNode {
   position?: { start: { offset?: number }; end: { offset?: number } };
 }
 
-export interface AnnotationProse { text: string; team?: 'ally' | 'enemy'; }
+export interface AnnotationProse { text: string; team?: RecapTeam; }
 
 function annoter(tree: HastNode, md: string, segments: readonly AnnotationProse[]): void {
   let offset = 0;
@@ -75,7 +76,7 @@ function annoter(tree: HastNode, md: string, segments: readonly AnnotationProse[
       let position = 0;
       for (const plage of visibles) {
         if (plage.a > position) morceaux.push({ type: 'text', value: decode.slice(position, plage.a) });
-        morceaux.push({ type: 'element', tagName: 'b', properties: { className: plage.team === 'ally' ? 'nm-ally' : 'nm-foe' }, children: [{ type: 'text', value: decode.slice(plage.a, plage.b) }] });
+        morceaux.push({ type: 'element', tagName: 'b', properties: { className: plage.team === 'allie' ? 'nm-ally' : 'nm-foe' }, children: [{ type: 'text', value: decode.slice(plage.a, plage.b) }] });
         position = plage.b;
       }
       if (position < decode.length) morceaux.push({ type: 'text', value: decode.slice(position) });

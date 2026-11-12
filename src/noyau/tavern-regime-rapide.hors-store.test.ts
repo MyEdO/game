@@ -149,7 +149,7 @@ describe('Régime RAPIDE — la règle optionnelle, DISTINCTE de l’ouverture d
     expect(res.rounds, 'une seule manche : le plus de DR l’emporte').toBe(1);
     expect(res.stakeBrass).toBe(0);
     expect(res.netBrass, 'aucun mouvement de bourse : il n’y a pas de mise').toBe(0);
-    expect(['player', 'opponent', 'tie']).toContain(res.winner);
+    expect(['joueur', 'adversaire', 'egalite']).toContain(res.winner);
     expect(get().sequence, 'la partie est dénouée').toBeNull();
   });
 

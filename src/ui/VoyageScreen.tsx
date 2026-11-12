@@ -31,7 +31,7 @@ import { ShoreLeaveBody } from './ShoreLeaveModal';
 import { TravelDayBody } from './TravelRecapModal';
 import { ShipDossier } from './ShipDossier';
 import { Icon } from './Icon';
-import type { IconIdInput } from '../data/icons';
+import type { IconId } from '../data/icons';
 
 /**
  * ÉCRAN-HUB DE VOYAGE (#333) — UN écran paramétré par MODE (mer / terre / fleuve), trois habillages.
@@ -51,7 +51,7 @@ import type { IconIdInput } from '../data/icons';
  *  consultation quand il en existe un. */
 export interface VoyageTile {
   key: string;
-  icon: IconIdInput;
+  icon: IconId;
   label: string;
   value: string;
   gauge?: { value: number; max: number; min?: number; marks?: number[]; tone?: GaugeTone | ((v: number, m: number) => GaugeTone) };

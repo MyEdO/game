@@ -1518,7 +1518,7 @@ function RecapLineDemo() {
     <RecapLineList
       lines={[
         { text: 'Gustav franchit le mur (DR +2).', tone: 'reussite', icon: 'action/enfoncer' },
-        { text: 'Harbull rate son embuscade.', tone: 'echec', segments: [{ text: 'Harbull', team: 'enemy' }, { text: ' rate son embuscade.' }] },
+        { text: 'Harbull rate son embuscade.', tone: 'echec', segments: [{ text: 'Harbull', team: 'ennemi' }, { text: ' rate son embuscade.' }] },
         { text: 'La nuit tombe sur le campement.', tone: 'neutre' },
         { text: '**Gustav** rejoint les compagnons au bord du chemin. La pluie a laissé de longues traces sur les pierres et chacun prend le temps de retrouver ses affaires avant de repartir.\n\nLe groupe observe les maisons, les fenêtres encore éclairées et les silhouettes qui traversent la place. Ce témoin synthétique conserve plusieurs paragraphes pour vérifier la lecture dans une rangée étroite.\n\n- Vérifier le passage près du vieux mur.\n- Rejoindre les compagnons sous le porche.\n- Consulter le [repère de lecture](https://example.com/recette-2001).', tone: 'reussite', icon: 'action/enfoncer' },
       ]}
@@ -1563,7 +1563,7 @@ function RevealBodyDemo() {
 function TeamSegmentsDemo() {
   return (
     <div>
-      <TeamSegments segments={[{ text: 'Gustav', team: 'ally' }, { text: ' frappe ' }, { text: 'le mutant', team: 'enemy' }, { text: ' au bras.' }]} />
+      <TeamSegments segments={[{ text: 'Gustav', team: 'allie' }, { text: ' frappe ' }, { text: 'le mutant', team: 'ennemi' }, { text: ' au bras.' }]} />
     </div>
   );
 }
@@ -1576,7 +1576,7 @@ function CombatBannerDemo() {
         <div key={i} className={`cb-ev ${ton}`}>
           <span className="cb-ic"><Icon id="action/attaquer" size={15} /></span>
           <div className="cb-tx">
-            <TeamSegments segments={[{ text: 'Gustav', team: 'ally' }, { text: ' frappe ' }, { text: 'le mutant', team: 'enemy' }]} />
+            <TeamSegments segments={[{ text: 'Gustav', team: 'allie' }, { text: ' frappe ' }, { text: 'le mutant', team: 'ennemi' }]} />
           </div>
         </div>
       ))}

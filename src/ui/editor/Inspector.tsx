@@ -79,7 +79,7 @@ import { isWallEdgeStructure, isDoorEdgeStructure } from '../../engine/structure
 import { RefField } from '../compendium/refField/RefField';
 import { SearchFilterField, filterByLabel } from '../SearchFilterField';
 import { Icon } from '../Icon';
-import type { IconIdInput } from '../../data/icons';
+import type { IconId } from '../../data/icons';
 import { ListRow } from '../ListRow';
 import { OptionChooser } from '../OptionChooser';
 import { LayerField, LayerChip, sceneLayerZs } from './LayerField';
@@ -151,7 +151,7 @@ function MusicSelect({ label, value, onChange }: { label: string; value: string 
   );
 }
 
-const ENT_ICON: Record<string, IconIdInput> = { heroStart: 'outil-de-carte/depart', personnage: 'outil-de-carte/personnage', prop: 'outil-de-carte/decor' };
+const ENT_ICON: Record<string, IconId> = { heroStart: 'outil-de-carte/depart', personnage: 'outil-de-carte/personnage', prop: 'outil-de-carte/decor' };
 /** Icône d'entité — un emplacement de siège (entité portant un poste) prime sur l'icône de kind. */
 const entIcon = (ent: SceneEntity): JSX.Element => (
   ent.postes?.length ? <Icon id="scenario/siege" size="sm" /> : ENT_ICON[ent.kind] ? <Icon id={ENT_ICON[ent.kind]} size="sm" /> : <>•</>

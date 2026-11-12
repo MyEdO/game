@@ -193,7 +193,7 @@ describe('#1689 T2 — écrans migrés', () => {
         onAddToSellCart={() => {}} onRemoveSellCart={() => {}} onClearSellCart={() => {}} onConfirmSell={() => {}}
       />,
     );
-    attendRefusAtteignable(html, '+ Ajouter', t('mf.purseKo', { label: 'Hallebarde' }));
+    attendRefusAtteignable(html, '+ Ajouter', t('mf.bourseInsuffisante', { label: 'Hallebarde' }));
     expect(html).not.toContain('gated-action-reason'); // jamais la variante INLINE hors opt-in
   });
 

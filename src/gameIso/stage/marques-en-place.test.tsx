@@ -115,7 +115,7 @@ describe('Marques de cases — le pas ne remonte AUCUN pool (#1176 P3-0c)', () =
       act(() => root!.render(<MondeDeCampagne />));
 
       const avant = pools();
-      expect(avant.get('marques:walk')?.count, 'le témoin doit VRAIMENT peindre une portée').toBe(4);
+      expect(avant.get('marques:deplacement')?.count, 'le témoin doit VRAIMENT peindre une portée').toBe(4);
       expect(avant.get('marques:zoneSmoke')?.count).toBe(1);
       expect(espion.noms.length, 'le montage écrit les instances qu’il vient d’allouer').toBeGreaterThan(0);
 
@@ -123,13 +123,13 @@ describe('Marques de cases — le pas ne remonte AUCUN pool (#1176 P3-0c)', () =
       const écritesAvantLePas = espion.noms.length;
       act(() => { useGame.setState({ battle: combatTémoin(PAS_APRÈS) } as never); });
       const après = pools();
-      expect(après.get('marques:walk')?.count, 'la marque neuve est bien dessinée').toBe(5);
+      expect(après.get('marques:deplacement')?.count, 'la marque neuve est bien dessinée').toBe(5);
       for (const [nom, état] of avant) {
         expect(après.get(nom)?.uuid, `pool ${nom} REMONTÉ par un simple pas`).toBe(état.uuid);
         expect(après.get(nom)?.tampon, `tampon de ${nom} RÉALLOUÉ par un simple pas`).toBe(état.tampon);
       }
       expect(espion.noms.length - écritesAvantLePas, 'un pas doit RÉÉCRIRE les instances').toBeGreaterThan(0);
-      expect(espion.noms.slice(écritesAvantLePas)).toContain('marques:walk');
+      expect(espion.noms.slice(écritesAvantLePas)).toContain('marques:deplacement');
 
       // Mise à jour SANS RAPPORT : le survol d'un combattant qui ne porte aucune marque.
       const écritesAvantSurvol = espion.noms.length;

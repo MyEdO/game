@@ -16,7 +16,7 @@ import { ciblePsy } from '../engine/psych/ciblage';
 import type { Combatant } from '../engine/types';
 import type { CascadeStep } from './pendings';
 
-const SOURCE = { kind: 'spell', id: 'colerique' } as const;
+const SOURCE = { kind: 'sort', id: 'colerique' } as const;
 const HEURE = 60;
 
 /** Ce que tranche le joueur : le palier (Haine, Animosité), la personne, le dé du Test de Calme. */

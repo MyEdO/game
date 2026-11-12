@@ -52,7 +52,7 @@ func _recetter() -> void:
 func _le_plateau(lu: Dictionary) -> void:
 	var plateau: Plateau = (load("res://scenes/Plateau.tscn") as PackedScene).instantiate()
 	root.add_child(plateau)
-	plateau.poser_le_monde(lu.monde)
+	plateau.poser_le_monde(lu.monde, lu.morceaux)
 	plateau.montrer(lu.avant.vue)
 	var heros: Dictionary = lu.apres.vue.projection.exploration.heros[0]
 	var meneur: Combattant = plateau.get("_modeles")[heros.id]

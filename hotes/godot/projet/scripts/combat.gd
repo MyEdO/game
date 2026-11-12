@@ -1,8 +1,10 @@
 ## Le combat, hôte du noyau (`hotes/godot/pont/CONTRAT.md`), et le seul lecteur de la vue : il démarre la partie des
 ## paramètres `scenario` et `graine` (`PontDuNoyau.parametre`), la scène que l'éditeur a mise à l'essai (`PontDuNoyau.essai`), ou,
-## sans paramètre `scenario`, le scénario que le joueur choisit au panneau des scénarios (`scenarios`), pose au plateau le monde de sa scène (`monde`), à nouveau chaque
-## fois que la partie change de scène (`vue.projection.scene`) ou que sa clé change (`plateau.cleDuMonde`), et ses arêtes
-## (`aretes`), à nouveau chaque fois que leur empreinte change (`plateau.cleDesAretes`), et applique chaque suite. La vue va au plateau, sa lumière (`vue.lumiere`) à la `Lumiere` du monde, sa musique (`vue.musique`) à la `Musique` ; la fenêtre prend la disposition que la vue nomme (`vue.disposition`,
+## sans paramètre `scenario`, le scénario que le joueur choisit au panneau des scénarios (`scenarios`), pose au plateau le monde de sa scène (son manifeste,
+## `monde`, et les seuls morceaux dont l'empreinte a bougé, `morceaux`), à nouveau chaque fois que la partie change de
+## scène (`vue.projection.scene`) ou que sa clé change (`plateau.cleDuMonde`), ce que le regard en retire (`retrait`), à
+## nouveau chaque fois que l'empreinte du masque change (`plateau.cleDuRetrait`), et ses arêtes (`aretes`), à nouveau
+## chaque fois que leur empreinte change (`plateau.cleDesAretes`), et applique chaque suite. La vue va au plateau, sa lumière (`vue.lumiere`) à la `Lumiere` du monde, sa musique (`vue.musique`) à la `Musique` ; la fenêtre prend la disposition que la vue nomme (`vue.disposition`,
 ## `Disposition`) ; chaque zone de l'écran (`Zone.racines`, scène `Ecran` sans script) reçoit les éléments de sa source
 ## qui lui reviennent (`Zone.montrer_toutes` : `vue.zones`, et ce que la suite ajoute, `zones` : les lignes du journal) ;
 ## le journal va au plateau ; chaque jeton programmé est armé en minuteur et repris à son échéance. Chaque geste du joueur part en intention : celle de l'élément pressé
@@ -64,6 +66,8 @@ var _vue: Dictionary = {}
 var _musique := Musique.new()
 ## La scène et la clé du volume du monde posé au plateau, vide avant le premier.
 var _cle_du_monde := ""
+## La scène et l'empreinte du masque du retrait posé au volume (`plateau.cleDuRetrait`), vide avant le premier.
+var _cle_du_retrait := ""
 ## La scène et l'empreinte des arêtes posées au plateau (`plateau.cleDesAretes`), vide avant les premières.
 var _cle_des_aretes := ""
 var _zones: Array[Zone] = []
@@ -133,6 +137,7 @@ func _suivre(reponse: Dictionary) -> void:
 	_vue = reponse.vue
 	_refus.text = ""
 	_poser_le_monde_de(_vue.projection.scene, _vue.plateau)
+	_poser_le_retrait_de(_vue.projection.scene, _vue.plateau)
 	_poser_les_aretes_de(_vue.projection.scene, _vue.plateau)
 	_plateau.montrer(_vue)
 	_plateau.jouer_les_effets(reponse.effets)
@@ -149,15 +154,37 @@ func _suivre(reponse: Dictionary) -> void:
 
 
 ## Le monde de la scène `scene` (`vue.projection.scene`), sous le regard du plateau (`plateau.cleDuMonde`), au plateau
-## (`Plateau.poser_le_monde`), s'il n'y est pas déjà.
+## (`Plateau.poser_le_monde`), s'il n'y est pas déjà : son manifeste (`monde`), et la géométrie des seules clés dont
+## l'empreinte posée diffère (`VolumeDeScene.manquants`, `morceaux` de la partie), demandée s'il en manque.
 func _poser_le_monde_de(scene: Variant, plateau: Variant) -> void:
 	var cle := "" if scene == null or plateau == null else "%s|%s" % [scene.id, plateau.cleDuMonde]
 	if cle == _cle_du_monde:
 		return
 	_cle_du_monde = cle
 	var monde := _pont.appeler("monde")
-	if monde.get("ok") == true and monde.monde != null:
-		_plateau.poser_le_monde(monde)
+	if monde.get("ok") != true or monde.monde == null:
+		return
+	var manquants := _monde.volume.manquants(monde)
+	var recus := {volume = [], toits = [], couronnes = []}
+	if not manquants.values().all(func(cles: Array) -> bool: return cles.is_empty()):
+		recus = _pont.appeler("morceaux", manquants.merged({source = "partie"}))
+		if recus.get("ok") != true:
+			return
+	_plateau.poser_le_monde(monde, recus)
+
+
+## Ce que le regard de la partie retire du volume du monde (`retrait`) masqué au volume (`VolumeDeScene.retirer`), si le
+## masque de son empreinte (`plateau.cleDuRetrait`) n'y est pas déjà.
+func _poser_le_retrait_de(scene: Variant, plateau: Variant) -> void:
+	var cle := "" if scene == null or plateau == null else "%s|%s" % [scene.id, plateau.cleDuRetrait]
+	if cle == _cle_du_retrait:
+		return
+	_cle_du_retrait = cle
+	if scene == null or plateau == null:
+		return
+	var reponse := _pont.appeler("retrait")
+	if reponse.get("ok") == true:
+		_monde.volume.retirer(reponse)
 
 
 ## Les arêtes de la scène `scene` (`aretes`) sur le volume du monde (`VolumeDeScene.poser_les_aretes`), si celles de

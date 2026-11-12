@@ -15,7 +15,7 @@ import { MINUTES_PER_DAY } from './clock';
 import { ciblePsy } from './psych/ciblage';
 import type { Combatant, EffectSource } from './types';
 
-const SOURCE: EffectSource = { kind: 'activity', id: 'convalescence' };
+const SOURCE: EffectSource = { kind: 'activite', id: 'convalescence' };
 const ctx = (): OpsCtx => ({ idNeuf: idsDeTest, rng: makeRNG(1), source: SOURCE });
 
 const maladie = (minutesLeft: number) => ({ id: 'infection-mineure', symptoms: [], phase: 'active' as const, minutesLeft, durationMinutes: 10 * MINUTES_PER_DAY });

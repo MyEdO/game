@@ -5,7 +5,6 @@ import { spellMoney } from '../engine/money';
 import { t } from '../i18n';
 import { Coins } from './Coins';
 import { Icon } from './Icon';
-import type { IconIdInput } from '../data/icons';
 import { SpeakerBanner } from './SpeakerBanner';
 import { Prose } from './Prose';
 import { SpectatorChip } from './SpectatorChip';
@@ -69,7 +68,7 @@ export function DialogueBox() {
             label={<>
               {/* Le RANG est l'ADRESSE de la réponse à l'écran — c'est lui que frappe la touche. */}
               <span className="dlg-choice-num">{num}</span>
-              {r.icon && <Icon id={r.icon as IconIdInput} size="sm" />}
+              {r.icon && <Icon id={r.icon} size="sm" />}
               {/* Tag et libellé : UN bloc de texte, qui reflue d'un tenant sous le numéro. */}
               <span className="dlg-choice-text">
                 {tag && <><span className="muted">{tag}</span>{' '}</>}

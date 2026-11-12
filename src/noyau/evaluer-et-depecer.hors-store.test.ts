@@ -71,13 +71,13 @@ describe('evaluerLObjet : chaque refus est dit, aucune évaluation ne s’ouvre'
   it('la Détection d’une ligne déjà tentée par le seul détecteur (LDB 10 l.336)', () => {
     banc.setState({ party: [heros('a', DETECTEUR)], pendingLoot: { title: 'Coffre', gear: [ligne('L0', { detectTriedBy: ['a'] })] } } as never);
     g().evaluerLObjet('L0', 'detection');
-    expect([dernier(), g().pendingAppraise]).toEqual([t('mf.detectDejaTentee', { label: 'Épée' }), null]);
+    expect([dernier(), g().pendingAppraise]).toEqual([t('mf.detectionDejaTentee', { label: 'Épée' }), null]);
   });
 
   it('l’Évaluation d’une ligne manquée ce jour, tant que court le délai maison (`marche-evaluation-delai-jours`)', () => {
     banc.setState({ party: [heros('a')], pendingLoot: { title: 'Coffre', gear: [ligne('L0', { appraiseTriedDay: gameDay(g()) })] } } as never);
     g().evaluerLObjet('L0');
-    expect([dernier(), g().pendingAppraise]).toEqual([t('mf.appraiseRetenter', { label: 'Épée', jours: 1 }), null]);
+    expect([dernier(), g().pendingAppraise]).toEqual([t('mf.evaluationARetenter', { label: 'Épée', jours: 1 }), null]);
   });
 });
 
@@ -94,7 +94,7 @@ describe('après un échec d’Évaluation : nouvel essai à DR 0 (LDB 12 l.94),
 
   it('DR négatif : refusé jusqu’au lendemain, puis ouvert', () => {
     manquer(-2);
-    expect([retenter(), dernier()]).toEqual([false, t('mf.appraiseRetenter', { label: 'Épée', jours: 1 })]);
+    expect([retenter(), dernier()]).toEqual([false, t('mf.evaluationARetenter', { label: 'Épée', jours: 1 })]);
     g().avancerLeTemps(24 * 60);
     expect(retenter()).toBe(true);
   });
@@ -108,7 +108,7 @@ describe('après un échec d’Évaluation : nouvel essai à DR 0 (LDB 12 l.94),
     setRule('marche-evaluation-delai-jours', 3);
     manquer(-1);
     g().avancerLeTemps(24 * 60);
-    expect([retenter(), dernier()]).toEqual([false, t('mf.appraiseRetenter', { label: 'Épée', jours: 2 })]);
+    expect([retenter(), dernier()]).toEqual([false, t('mf.evaluationARetenter', { label: 'Épée', jours: 2 })]);
     g().avancerLeTemps(2 * 24 * 60);
     expect(retenter()).toBe(true);
   });
@@ -155,7 +155,7 @@ describe('victory.depecer : la récolte suit le DR du jet, et le récolteur sa m
     g().jetValider('test');
     return (g().pendingLoot?.gear ?? []).map((l) => l.label);
   }
-  const pieces = (creatureId: string, enc: number) => t('eff.harvestPart', { creature: findCreatureById(creatureId)!.label, enc });
+  const pieces = (creatureId: string, enc: number) => t('eff.pieceDeRecolte', { creature: findCreatureById(creatureId)!.label, enc });
 
   it('Énorme à −2 DR : 2 Enc', () => {
     expect(recolter('dragon-de-la-foret', 52, 30)).toEqual([pieces('dragon-de-la-foret', 2)]);

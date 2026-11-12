@@ -60,7 +60,7 @@ describe('résolution canonique du déplacement', () => {
     const active = setup();
     active.engagedWith = ['enemy'];
     const result = resolveMovement(banc.getState, { x: active.pos!.x - 1, y: active.pos!.y });
-    expect(result).toEqual({ status: 'bloque', reason: 'engaged' });
+    expect(result).toEqual({ status: 'bloque', reason: 'engage' });
   });
 
   it('réutilise au commit le chemin et le coût stockés au premier tap', () => {

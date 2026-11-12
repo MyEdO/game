@@ -27,7 +27,7 @@ const CADRE = { mpt: MPT, glide: () => null, groundM: PLAT, kind: 'iso' as const
 const AUCUNE_MARQUE: DynamicMarks = { tethers: [], active: null, party: null, rings: [] };
 const ANNEAU: TeamRing = { id: 'h1', cell: { x: 2, y: 3, z: 0 }, rK: 0.4, color: HERO_RING[0], dash: '5 3' };
 
-const CASE: HighlightEl = { key: 'w:3,2', cell: { x: 3, y: 2, z: 0 }, h: 0, kind: 'walk' };
+const CASE: HighlightEl = { key: 'w:3,2', cell: { x: 3, y: 2, z: 0 }, h: 0, kind: 'deplacement' };
 
 const UTILISABLE: InteractHalo = {
   id: 'coffre',
@@ -55,7 +55,7 @@ describe('poserCompteInstances', () => {
 
 describe('les pools du monde passent par la couture', () => {
   it('marques : montée invisible, visible dès la première écriture, invisible quand la liste se vide', () => {
-    const mesh = buildHighlightMesh('walk', 8);
+    const mesh = buildHighlightMesh('deplacement', 8);
     expect(mesh.visible).toBe(false);
     writeHighlightInstances(mesh, [CASE], MPT);
     expect(mesh.count).toBe(1);

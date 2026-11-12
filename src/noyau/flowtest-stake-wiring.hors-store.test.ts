@@ -74,7 +74,7 @@ describe('l’enjeu d’un `FlowTest` DESCEND jusqu’à l’étape qui lance, v
    */
   it('étage 2 : un jet MUET exigé par une entité DÉRIVE son enjeu du porteur, jusqu’à l’étape', () => {
     routeTriggeredTest(banc.getState, banc.setState, banc.getState().party[0], banc.getState().party[0],
-      testFlow({ skill: { id: 'escalade' }, requireSL: 0 }, EMPTY_FLOW, EMPTY_FLOW), { idNeuf: idsDeTest, rng: desDuTest, source: { kind: 'spell', id: 'chute' } });
+      testFlow({ skill: { id: 'escalade' }, requireSL: 0 }, EMPTY_FLOW, EMPTY_FLOW), { idNeuf: idsDeTest, rng: desDuTest, source: { kind: 'sort', id: 'chute' } });
     const stake = firstStep().stake;
     expect(stake, 'jet muet : le porteur n’a pas été lu').toBeTruthy();
     const resolu = resolveStake(stake!);
@@ -85,7 +85,7 @@ describe('l’enjeu d’un `FlowTest` DESCEND jusqu’à l’étape qui lance, v
   it('étage 1 : l’enjeu DÉCLARÉ prime — la dérivation ne recouvre jamais l’auteur', () => {
     const stake = combatStakeRef('escalade-test', { values: { metres: 4 } });
     routeTriggeredTest(banc.getState, banc.setState, banc.getState().party[0], banc.getState().party[0],
-      testFlow({ skill: { id: 'escalade' }, stake, requireSL: 0 }, EMPTY_FLOW, EMPTY_FLOW), { idNeuf: idsDeTest, rng: desDuTest, source: { kind: 'spell', id: 'chute' } });
+      testFlow({ skill: { id: 'escalade' }, stake, requireSL: 0 }, EMPTY_FLOW, EMPTY_FLOW), { idNeuf: idsDeTest, rng: desDuTest, source: { kind: 'sort', id: 'chute' } });
     expect(firstStep().stake).toEqual(stake);
   });
 

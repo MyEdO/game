@@ -12,6 +12,7 @@
  *  · `testAnnonce` — le Test que le flux d'une réponse DÉCLENCHE, en ids STABLES (jamais un libellé
  *    recopié dans la donnée), que `libelleDuTestAnnonce` résout en libellés au registre.
  */
+import type { IconId } from '../data/icons';
 import type { CharKey, Difficulty } from '../engine/types';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { canAfford, toMoney } from '../engine/money';
@@ -89,7 +90,7 @@ export interface ReponseDeDialogue {
   /** Rang 1..n dans la liste VISIBLE — le numéro affiché, et la touche qui l'adresse. */
   rang: number;
   label: string;
-  icon?: string;
+  icon?: IconId;
   /** Coût normalisé de la réponse payante (affiché, et payé par le choix `dialogue.reponse`). */
   cost?: ReturnType<typeof toMoney>;
   /** La réponse est-elle OFFERTE ? Verdict PARTAGÉ par le clic et par la touche. */

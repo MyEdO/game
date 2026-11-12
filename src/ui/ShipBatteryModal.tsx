@@ -46,8 +46,8 @@ export function ShipBatteryModal() {
   });
 
   const actions: RollAction[] = [
-    { key: 'cancel', label: t('verbe.annuler'), onClick: cancel, verbe: 'annuler' },
-    ...(rollAll ? [{ key: 'rollAll', label: <><Icon id="navigation/des" size="sm" /> Tout lancer</>, onClick: rollAll, verbe: 'lancer' as const }] : []),
+    { key: 'abandonner', label: t('verbe.annuler'), onClick: cancel, verbe: 'annuler' },
+    ...(rollAll ? [{ key: 'lancerLesRangees' as const, label: <><Icon id="navigation/des" size="sm" /> Tout lancer</>, onClick: rollAll, verbe: 'lancer' as const }] : []),
     { key: 'valider', label: <><Icon id="feu/flamme" size="sm" /> Feu !</>, onClick: confirm, verbe: 'valider' },
   ];
 

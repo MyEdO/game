@@ -267,11 +267,11 @@ describe('#1262 V2 L6d — TOUT `FlowTest` de la donnée dit ce qui se joue', ()
    *  producteur (dataset) ou l'auteur (document) a dit lui-même. */
   it('un enjeu DÉCLARÉ sur le nœud prime sur celui du porteur', () => {
     const declare = combatStakeRef('combat-fatigue');
-    const ft = withDerivedStake({ skill: { id: 'resistance' }, label: 'Résister', stake: declare }, { kind: 'condition', id: 'empoisonne' });
+    const ft = withDerivedStake({ skill: { id: 'resistance' }, label: 'Résister', stake: declare }, { kind: 'etat', id: 'empoisonne' });
     expect(ft.stake, 'la dérivation a recouvert un enjeu déclaré').toBe(declare);
 
     const authore = { authored: 'Tenir la corniche, ou tomber.' };
-    const ftA = withDerivedStake({ skill: { id: 'escalade' }, stake: authore }, { kind: 'spell', id: 'chute' });
+    const ftA = withDerivedStake({ skill: { id: 'escalade' }, stake: authore }, { kind: 'sort', id: 'chute' });
     expect(ftA.stake).toBe(authore);
   });
 
@@ -279,16 +279,16 @@ describe('#1262 V2 L6d — TOUT `FlowTest` de la donnée dit ce qui se joue', ()
    *  se TAIT (jamais une phrase qui nommerait un id brut ou renverrait vers un foyer mort). */
   it('sans porteur résoluble, la dérivation se tait (elle n’invente rien)', () => {
     expect(withDerivedStake({ skill: { id: 'resistance' }}, undefined).stake).toBeUndefined();
-    expect(withDerivedStake({ skill: { id: 'resistance' }}, { kind: 'spell', id: 'sort-qui-n-existe-pas' }).stake).toBeUndefined();
+    expect(withDerivedStake({ skill: { id: 'resistance' }}, { kind: 'sort', id: 'sort-qui-n-existe-pas' }).stake).toBeUndefined();
   });
 
   /** Natures sans `case` dans `findById` (#2820) : l'enjeu dérivé nomme le libellé de la fiche, lu par
    *  `entreeDeCategorie` — la règle de l'Empoignade (`GRAPPLE_SOURCE`, `combatFlow.ts`), une Activité,
    *  un jeu de taverne. */
   it.each([
-    ['rule', 'empoignade', regles],
-    ['activity', 'plein-air', ACTIVITIES],
-    ['tavernGame', 'al-zahr', TAVERN_GAMES],
+    ['regle', 'empoignade', regles],
+    ['activite', 'plein-air', ACTIVITIES],
+    ['jeuDeTaverne', 'al-zahr', TAVERN_GAMES],
   ] as const)('nature `%s` : l’enjeu dérivé nomme le libellé de la fiche `%s`', (kind, id, dataset) => {
     const fiche = (dataset as readonly { id: string; label: string }[]).find((e) => e.id === id)!;
     const ft = withDerivedStake({ skill: { id: 'resistance' } }, { kind, id });
@@ -327,10 +327,10 @@ describe('#1262 V2 L6d — l’enjeu nomme l’entité qui EXIGE le jet, jamais 
 
   it('effet FONDU par un sort : l’enjeu nomme le SORT (jamais l’épée qui le porte)', () => {
     const c = porteur();
-    applyOps(c, [{ op: 'augmentWeapon', onHitEffects: [testOnHit] }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Morsure de l’hiver', source: { kind: 'spell', id: 'morsure-de-l-hiver' }, defaultDurationRounds: 4 });
+    applyOps(c, [{ op: 'augmentWeapon', onHitEffects: [testOnHit] }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Morsure de l’hiver', source: { kind: 'sort', id: 'morsure-de-l-hiver' }, defaultDurationRounds: 4 });
     const src = effectSourcesOf(c, c.weapons[0]).find((s) => s.key.startsWith('weapon:'))!;
     const eff = src.effects[0];
-    expect(eff.source, 'la provenance du sort est perdue en route').toEqual({ kind: 'spell', id: 'morsure-de-l-hiver' });
+    expect(eff.source, 'la provenance du sort est perdue en route').toEqual({ kind: 'sort', id: 'morsure-de-l-hiver' });
     const stake = withDerivedStake({ skill: { id: 'resistance' }}, eff.source).stake!;
     const texte = resolveStake(stake).text!;
     expect(texte).toContain(findById('spells', 'morsure-de-l-hiver')!.label);
@@ -340,7 +340,7 @@ describe('#1262 V2 L6d — l’enjeu nomme l’entité qui EXIGE le jet, jamais 
 
   it('effet FONDU par un POISON bu : l’enjeu nomme le poison (même règle, autre nature de source)', () => {
     const c = porteur();
-    applyOps(c, [{ op: 'augmentWeapon', onHitEffects: [testOnHit] }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Lotus noir', source: { kind: 'trapping', id: 'lotus-noir' }, defaultDurationRounds: 4 });
+    applyOps(c, [{ op: 'augmentWeapon', onHitEffects: [testOnHit] }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Lotus noir', source: { kind: 'objet', id: 'lotus-noir' }, defaultDurationRounds: 4 });
     const eff = effectSourcesOf(c, c.weapons[0]).find((s) => s.key.startsWith('weapon:'))!.effects[0];
     const texte = resolveStake(withDerivedStake({ skill: { id: 'resistance' }}, eff.source).stake!).text!;
     expect(texte).toContain(findById('trappings', 'lotus-noir')!.label);
@@ -351,7 +351,7 @@ describe('#1262 V2 L6d — l’enjeu nomme l’entité qui EXIGE le jet, jamais 
     const c = hero();
     const w = { label: 'Déchireur de sociabilité', trappingId: 'dechireur-de-sociabilite', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [], onHitEffects: [testOnHit] } as unknown as Combatant['weapons'][number];
     const eff = effectSourcesOf(c, w).find((s) => s.key.startsWith('weapon:'))!.effects[0];
-    expect(eff.source).toEqual({ kind: 'trapping', id: 'dechireur-de-sociabilite' });
+    expect(eff.source).toEqual({ kind: 'objet', id: 'dechireur-de-sociabilite' });
     expect(resolveStake(withDerivedStake({ skill: { id: 'resistance' }}, eff.source).stake!).text)
       .toContain(findById('trappings', 'dechireur-de-sociabilite')!.label);
   });

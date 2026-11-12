@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Icon } from './Icon';
 import { t } from '../i18n';
-import type { IconIdInput } from '../data/icons';
+import type { IconId } from '../data/icons';
 
 /**
  * PONT D'EXPLORATION — le pendant ALLÉGÉ de `CombatConsole` hors combat (spec
@@ -34,7 +34,7 @@ export type ExplorationDockProps = {
   /** Carte du monde (#T2) — `interrupted` : un voyage attend sa reprise. */
   worldMap?: { onOpen: () => void; interrupted: boolean };
   /** Hub de ville (#343) : le lieu courant porte son libellé et son icône. */
-  hub?: { label: string; icon: IconIdInput; onOpen: () => void };
+  hub?: { label: string; icon: IconId; onOpen: () => void };
   /** Dormir/camper hors lieu — le `title` porte la nuance (auberge / chez soi / belle étoile). */
   rest?: { title: string; onOpen: () => void };
   /** Fouiller la pièce où se tient le groupe (`fouillerLaPiece`) — offert DANS une pièce. */

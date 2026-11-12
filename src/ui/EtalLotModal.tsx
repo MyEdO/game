@@ -30,7 +30,7 @@ export function EtalLotModal() {
   }));
 
   const actions: RollAction[] = [
-    { key: 'confirm', label: 'Ouvrir l’étal', onClick: confirm, verbe: 'valider' },
+    { key: 'confirmer', label: 'Ouvrir l’étal', onClick: confirm, verbe: 'valider' },
   ];
 
   return (

@@ -107,7 +107,7 @@ describe('Engagé (LDB 15 l.43-49) : les TROIS gestes refusent, et se rouvrent a
       c.agir(c.vers);
       expect(aAgi(H.id, c.de)).toBe(false);
       dit('geste.refus.engage', { name: H.label });
-      expect(resolveMovement(g, c.vers)).toEqual({ status: 'bloque', reason: 'engaged' }); // MÊME préfixe
+      expect(resolveMovement(g, c.vers)).toEqual({ status: 'bloque', reason: 'engage' }); // MÊME préfixe
       disengageFrom(H, foe);
       c.agir(c.vers);
       expect(aAgi(H.id, c.de)).toBe(true);
@@ -321,7 +321,7 @@ describe('`computeMoveReach` consomme le préfixe : une action armée éteint la
     expect(computeMoveReach(g).size).toBeGreaterThan(0);
     banc.setState({ battle: { ...g().battle!, action: 'incantation' } });
     expect(computeMoveReach(g).size).toBe(0);
-    expect(resolveMovement(g, { x: 0, y: 1 })).toEqual({ status: 'bloque', reason: 'targeting' });
+    expect(resolveMovement(g, { x: 0, y: 1 })).toEqual({ status: 'bloque', reason: 'designation' });
   });
 });
 
