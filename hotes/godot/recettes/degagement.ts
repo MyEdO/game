@@ -4,9 +4,10 @@
  * partie rendue au noyau (`figerUnePartie`), l'adresse de la partie (`parametres`), puis, sur son pont, « La fenêtre des
  * écuries » jouée comme le combat (`projet/scripts/combat.gd`) la joue : `demarrer`, chaque fenêtre de l'entrée par
  * son geste en focus (`jouer`), chacun sous la clé de l'entrée que Godot envoie ; le manifeste du monde de la scène (`monde`), la géométrie de toutes
- * ses clés (`morceaux`, source `partie`), le masque du regard (`retrait`) et les arêtes (`aretes`) ; puis le clic du
- * champ sur `CASE_DEGAGEE` (`jouer`), qui change l'empreinte du masque (`plateau.cleDuRetrait`) sans changer la clé du
- * monde (`plateau.cleDuMonde`) ni celle des arêtes (`plateau.cleDesAretes`), et le masque d'après (`retraitDuClic`) ;
+ * ses clés (`morceaux`, source `partie`), le masque du regard (`retrait`), la vision du groupe (`vision`) et les arêtes
+ * (`aretes`) ; puis le clic du champ sur `CASE_DEGAGEE` (`jouer`), qui change l'empreinte du masque
+ * (`plateau.cleDuRetrait`) sans changer la clé du monde (`plateau.cleDuMonde`) ni celle des arêtes
+ * (`plateau.cleDesAretes`), le masque d'après (`retraitDuClic`) et la vision d'après (`visionDuClic`) ;
  * enfin une case d'un morceau que le masque d'après retire et que celui d'avant gardait (`retireeParLeClic`), et
  * l'inverse (`rendueParLeClic`), `null` sans elle : `{ case, rangee }`, la rangée du plan de ce morceau. Il
  * lève si l'une des clés bouge avant le clic, si le clic change la scène, la clé du monde ou celle des arêtes, ou s'il
@@ -69,6 +70,7 @@ export function figerLeDegagement(listage: Listage) {
     const entreeDesMorceaux = toutesLesCles(monde);
     const morceaux = appel('morceaux', entreeDesMorceaux) as unknown as MorceauxDuPont;
     const retrait = appel('retrait') as unknown as RetraitDuMonde;
+    const vision = appel('vision');
     const aretes = appel('aretes');
     const occupant = s.vue.occupants[`${CASE_DEGAGEE.x},${CASE_DEGAGEE.y},0`];
     const clic = { type: s.vue.champ, args: occupant ? [CASE_DEGAGEE, occupant] : [CASE_DEGAGEE] };
@@ -80,6 +82,7 @@ export function figerLeDegagement(listage: Listage) {
       throw new Error(`dégagement figé : le clic de ${JSON.stringify(CASE_DEGAGEE)} doit garder le monde et les arêtes et changer le retrait : ${JSON.stringify(cles)} puis ${JSON.stringify(clesDuClic)}`);
     }
     const retraitDuClic = appel('retrait') as unknown as RetraitDuMonde;
+    const visionDuClic = appel('vision');
     const retireeParLeClic = caseRetireeDe(retrait, retraitDuClic, morceaux.volume, apres.vue.plateau!.h);
     if (!retireeParLeClic) throw new Error('dégagement figé : le masque du clic ne retire aucune case qu’il laissait');
     return {
@@ -90,8 +93,10 @@ export function figerLeDegagement(listage: Listage) {
       monde: { null: monde },
       morceaux: { [cleDEntree(entreeDesMorceaux)]: morceaux },
       retrait: { null: retrait },
+      vision: { null: vision },
       aretes: { null: aretes },
       retraitDuClic: { null: retraitDuClic },
+      visionDuClic: { null: visionDuClic },
       case: CASE_DEGAGEE,
       retireeParLeClic,
       rendueParLeClic: caseRetireeDe(retraitDuClic, retrait, morceaux.volume, apres.vue.plateau!.h),

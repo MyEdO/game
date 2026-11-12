@@ -15,6 +15,10 @@ Contrat : `hotes/godot/pont/CONTRAT.md`, sections « Effets », « Musique » et
 - Le lier par `rendu` à ce qui le joue : Groupe d'arme (`weaponGroups.json`), objet du Groupe hétérogène
   `machine-de-guerre` (`trappings.json`), Domaine (`domains.json`), manœuvre (`maneuvers.json`), Type de Souffle
   (`breath-types.json`). La résolution vit dans `src/noyau/effetsDeLAppel.ts` ; ne jamais lire un libellé.
+- Ce que le groupe ne voit pas ne se montre pas (#3950) : `effetsDeLAppel` passe chaque effet par la vision du groupe
+  (`src/noyau/visionDuGroupe.ts`). Un coup, une incantation ou une zone dont l'auteur est hors de vue arrive avec `de`,
+  `depart` et `trajet` à `null` : seule son arrivée ou sa nappe joue. Tout visuel et tout son neufs acceptent donc un
+  effet sans auteur (`Effets._partir`, recette `projet/recettes/vision-du-combat.gd`).
 - Une lumière : son ton (`lightTones.json`) porte `visuel` (feu, flammèche, lueur) et `son` en boucle.
 - Un flottant : son texte est un message de `src/i18n/messages/fr.ts` (clés `fx.*`), sa teinte `TEINTE_DU_FLOTTANT` ;
   un son de la partie (pas, heurt, victoire, dés) : son id dans `SONS_DE_LA_PARTIE` (`effetsDeLAppel.ts`).
