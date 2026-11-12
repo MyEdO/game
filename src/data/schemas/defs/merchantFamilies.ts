@@ -40,6 +40,17 @@ const doc = document(
     },
     edit: { none: 'aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite' },
   },
+  // Repli de `familleDeLArticle` (`FAMILLE_PAR_DEFAUT`, `src/noyau/marchandEnVue.ts`).
+  {
+    affinerDataset: (dataset) =>
+      dataset.superRefine((v, ctx) => {
+        const replis = (v as { id: string; match: { categorie?: string; shield?: boolean; unit?: boolean } }[])
+          .filter((f) => !f.match.categorie && !f.match.shield && !f.match.unit)
+          .map((f) => f.id);
+        if (replis.length !== 1)
+          ctx.addIssue({ code: 'custom', path: [], message: `merchantFamilies.json : EXACTEMENT UNE famille de repli (\`match\` vide) — ${replis.length} mesurée(s)${replis.length ? ` : ${replis.join(', ')}` : ''}.` });
+      }),
+  },
 );
 
 export const schema = doc.schema;

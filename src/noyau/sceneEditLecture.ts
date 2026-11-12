@@ -562,7 +562,7 @@ function choixDesApparencesDObjets(ent: SceneEntity, reste: readonly Segment[], 
 function munitionsDeLaPiece(trappingId: string): ChoixDuContexte[] {
   const piece = { trappingId, subType: findTrappingById(trappingId)?.subType?.id };
   return trappingsInstanciables()
-    .filter((m) => gabaritDObjet(m.id)?.kind === 'ammo' && chargeLArme({ trappingId: m.id, subType: m.subType?.id }, piece))
+    .filter((m) => chargeLArme({ trappingId: m.id, subType: m.subType?.id }, piece) && gabaritDObjet(m.id)?.kind === 'ammo')
     .map((m) => ({ valeur: m.id, libelle: m.label, refus: null }));
 }
 
