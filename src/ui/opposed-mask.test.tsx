@@ -390,7 +390,7 @@ describe('#990 site 4 — Empoignade / Au Contact / Distraire / Désengagement',
 
   it('Empoignade : la Force figée du foe est « ? » avant `jetLancer@empoignade`, exacte après', () => {
     duo();
-    useGame.setState({ pendingGrapple: { actorId: 'h', foeId: 'e', phase: 'roll', canBreak: false, atk: FOE_TR, def: null, result: null } as never });
+    useGame.setState({ pendingGrapple: { actorId: 'h', foeId: 'e', phase: 'jet', canBreak: false, atk: FOE_TR, def: null, result: null } as never });
     act(() => { root.render(<GrappleModal />); });
     expect(dice()[0]).toBe('?');
     expect(verdicts()[0]).toBe('?');
@@ -414,7 +414,7 @@ describe('#990 site 4 — Empoignade / Au Contact / Distraire / Désengagement',
 
   it('Au Contact : le Corps à corps figé du foe est « ? » avant `jetLancer@auContact`, exact après', () => {
     duo();
-    useGame.setState({ pendingAuContact: { moverId: 'h', foeId: 'e', phase: 'roll', atk: FOE_TR, def: null, result: null } as never });
+    useGame.setState({ pendingAuContact: { moverId: 'h', foeId: 'e', phase: 'jet', atk: FOE_TR, def: null, result: null } as never });
     act(() => { root.render(<AuContactModal />); });
     expect(dice()[0]).toBe('?');
 
@@ -425,7 +425,7 @@ describe('#990 site 4 — Empoignade / Au Contact / Distraire / Désengagement',
 
   it('Désengagement : AUCUNE rangée de jet avant la réponse (phase de menu), les deux jets ensuite', () => {
     duo();
-    useGame.setState({ pendingDisengage: { moverId: 'h', foeId: 'e', canSacrifice: false, phase: 'choice', atk: FOE_TR, def: null, result: null } as never });
+    useGame.setState({ pendingDisengage: { moverId: 'h', foeId: 'e', canSacrifice: false, phase: 'choix', atk: FOE_TR, def: null, result: null } as never });
     act(() => { root.render(<DisengageModal />); });
     expect(dice(), 'le jet figé du foe n’est pas à l’écran tant que le mover n’a pas choisi/répondu').toEqual([]);
 

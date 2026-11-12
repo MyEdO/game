@@ -957,9 +957,9 @@ export interface SkillData {
   /** Substitution en COMBAT d'une Compétence sociale à la Compétence de combat (LDB 09) : Intimidation
    *  « à la place de Corps à corps … face à ceux qui ont peur de vous » (l.287), Dressage « au lieu de
    *  Corps à corps » après avoir instillé la peur (l.207). `role` = défense / attaque / les deux ; `gate`
-   *  = condition d'accès (`fear` : l'adversaire est sous une Peur/intimidation SOURCÉE par ce personnage).
+   *  = condition d'accès (`peur` : l'adversaire est sous une Peur/intimidation SOURCÉE par ce personnage).
    *  Lu par `engine/skillCombatApps`. */
-  combatSubstitute?: { role: 'defense' | 'attack' | 'both'; gate: 'fear' };
+  combatSubstitute?: { role: 'defense' | 'attaque' | 'lesDeux'; gate: 'peur' };
   /** OUTIL requis par la Compétence (Crochetage → outils de crochetage, LDB 09 l.168 : « Les Niveaux de
    *  Difficulté supposent l'utilisation d'outils de crochetage. Des crochets improvisés… peuvent être
    *  utilisés avec une pénalité de -10 ») : `capability` = clé `ItemCapabilities` que doit porter un

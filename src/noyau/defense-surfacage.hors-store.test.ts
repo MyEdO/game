@@ -433,7 +433,7 @@ describe('#1000 — les deux camps forcent le MÊME Test opposé : les garanties
     for (const seed of [1, 2, 3, 5, 8]) {
       const { pd, atkResilience, defResilience } = playForcings(seed, { atk: true, def: true });
       expect([atkResilience, defResilience], `graine ${seed} : les deux Points sont brûlés`).toEqual([0, 0]);
-      expect(pd.forced, 'le forçage du défenseur est acquis').toBe(true);
+      expect(pd.forcee, 'le forçage du défenseur est acquis').toBe(true);
       expect(pd.result!.attackerDetail!.sl, `graine ${seed} : le DR de l’attaquant reste celui de SON dé`).toBe(pd.atk.sl);
       expect(pd.result!.defenderDetail!.sl, `graine ${seed} : le DR du défenseur reste celui de SON dé`).toBe(pd.def!.sl);
       expect(pd.def!.sl, `graine ${seed} : DR naturel du dé posé`).toBe(evaluateTest(pd.def!.roll, pd.def!.target).sl);

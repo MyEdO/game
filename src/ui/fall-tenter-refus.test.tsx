@@ -60,7 +60,7 @@ describe('chute volontaire — l’option « Tenter » suit le verdict de `jetRe
     monter(true);
     expect(tenter().getAttribute('aria-disabled')).toBe('true');
     act(() => tenter().click());
-    expect(phaseDeChute(useGame.getState().pendingFall!)).toBe('choice');
+    expect(phaseDeChute(useGame.getState().pendingFall!)).toBe('choix');
   });
 
   it('le refus SUIT le store sans nouveau rendu du parent : l’entrée en combat éteint l’option', () => {
@@ -75,7 +75,7 @@ describe('chute volontaire — l’option « Tenter » suit le verdict de `jetRe
     monter(false);
     expect(tenter().getAttribute('aria-disabled')).not.toBe('true');
     act(() => tenter().click());
-    expect(phaseDeChute(useGame.getState().pendingFall!)).toBe('roll');
+    expect(phaseDeChute(useGame.getState().pendingFall!)).toBe('jet');
   });
 });
 

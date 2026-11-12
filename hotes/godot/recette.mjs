@@ -1929,7 +1929,7 @@ async function parcoursEditeur() {
   await glisserDe(`${zx + 1},${zy}`, `${zx + 2},${zy + 1}`, 'l’exclusion de toiture tirée')
   await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id === 'toiture/exclusion/0')`)
   e = await editeur()
-  assert.equal(boutonDeLEditeur(e, 'architecture/select')?.presse, true, 'l’exclusion tirée, le clic revient à la sélection')
+  assert.equal(boutonDeLEditeur(e, 'architecture/selection')?.presse, true, 'l’exclusion tirée, le clic revient à la sélection')
   noter(`« Tirer une exclusion de toiture », de (${zx + 1}, ${zy}) à (${zx + 2}, ${zy + 1}) : ${inspecte(e, 'toiture/exclusion/0').texte}`)
   await cliquerPoint(...cases[`${zx},${zy}`])
   await cliquerAuPanneau({ element: 'bouton/batir/masse' })

@@ -43,7 +43,7 @@ describe('#835 FU-3 — hitAt/eraseAt filtrent par couche (destructif avant corr
 
   it('placeEntity + pasteEntity : coller reprend la couche ACTIVE, jamais le z SOURCE', () => {
     const s0 = emptyScene('scene-test', 6, 6);
-    const placed = placeEntity(s0, { mode: 'entity', kind: 'prop', ref: 'tonneau' }, { x: 1, y: 1 }, 2); // posée en z2
+    const placed = placeEntity(s0, { mode: 'entite', kind: 'prop', ref: 'tonneau' }, { x: 1, y: 1 }, 2); // posée en z2
     const source = placed.scene.entities[0];
     expect(source.z).toBe(2);
     const pastedSameLayer = pasteEntity(placed.scene, source, { x: 3, y: 3 }, 2);

@@ -33,6 +33,7 @@ export { actionGate, offreArmee, offresDeLActif, offresParPorteur, etatDeLaBarre
 export { ACTIONS } from '../data/index';
 export { CADRE_DES_ICONES, ICON_DEFS } from '../data/icons';
 export { CADRE_DES_FONDS, FONDS } from '../data/fonds';
+export { CADRE_DES_PAYSAGES, COUCHES_DE_PAYSAGE, type IdDeCouche } from '../data/paysages';
 export { ENTREES_DE_DOSSIER } from '../data/dossiers';
 export { findCouleurById, findTeinteById, gardeRobe } from '../data/index';
 export type { EmblemeDef } from '../data/schemas/defs/garde-robe';

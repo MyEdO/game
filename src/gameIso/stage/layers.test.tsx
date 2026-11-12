@@ -29,7 +29,7 @@ describe('couche des murs — la projection porte les vérités du builder', () 
     expect(objs[0].x).toBe(1);
     expect(objs[0].y).toBe(1);
     expect(objs[0].vis).toBe(true); // sans set de visibilité : tout visible (builder)
-    expect(objs[0]).toMatchObject({ kind: 'wall', side: 'N' });
+    expect(objs[0]).toMatchObject({ kind: 'mur', side: 'N' });
   });
 
   it('propage les relations architecturales du mur au stage, et le builder de toits porte les siennes', () => {

@@ -294,7 +294,7 @@ const V8C1: Site[] = [
 ];
 
 /* ── V8c₂ : les cinq fichiers de la tranche 2 rendus au catalogue (invariant ZÉRO) ────────────────
- * `combatEffects` (`eff.*`), `store` (`store.*`), `travelFlow` (`tf.*`), `riverVoyageFlow` (`rv.*`),
+ * `combatEffects` (`eff.*`), `store` (`store.*`), `travelFlow` (`tf.*`), `riverVoyageFlow` (`fleuve.*`),
  * `engine/disease` (`dz.*`). Échantillons pris sur les formes qui se cassent le plus vite : signe
  * porté par l'appelant, pluriels multiples dans UNE phrase, fragments optionnels concaténés, unités
  * accolées, ponctuation typographique (≤, −, ÷, —, …), et les compositions à DEUX clés. */
@@ -396,14 +396,14 @@ const V8C2: Site[] = [
   {
     site: 'riverVoyageFlow.ts:424 — progression du jour (branche DÉRIVE, tiret cadratin + %)',
     avant: `Progression du jour : ${18} km${' (dérive — 25 % de la vitesse).'}`,
-    apres: t('rv.progress', { km: 18, note: t('rv.fragDrift') }),
+    apres: t('fleuve.progression', { km: 18, note: t('fleuve.fragmentDeDerive') }),
   },
   {
     site: 'riverVoyageFlow.ts:962 — échouage + renflouage (suite optionnelle à trois clés imbriquées)',
     avant: `Le bateau s'échoue (coque −${12} Dégâts, l.99)${` — renflouage (Force ${'Intermédiaire (+0)'}${' (malus −24 Enc : 20 bateau + 4 cargaison, l.99)'}) : ${55}/${40} → ${"il faudra s'y reprendre."}`}`,
-    apres: t('rv.grounded', { dmg: 12, suite: t('rv.fragRefloat', {
-      diff: 'Intermédiaire (+0)', enc: t('rv.encMalus', { total: 24, boat: 20, cargo: 4 }),
-      roll: 55, target: 40, issue: t('rv.refloatKo'),
+    apres: t('fleuve.echouage', { dmg: 12, suite: t('fleuve.fragmentDeRenflouage', {
+      diff: 'Intermédiaire (+0)', enc: t('fleuve.malusDEncombrement', { total: 24, boat: 20, cargo: 4 }),
+      roll: 55, target: 40, issue: t('fleuve.renflouageRate'),
     }) }),
   },
   {
@@ -412,12 +412,12 @@ const V8C2: Site[] = [
     // CORRIGÉ (#1595) : la direction se nomme « vent relatif », le terme de l'écran de la mer.
     site: 'riverVoyageFlow.ts:293 — vent du jour (force lue à la DONNÉE + direction en 2ᵉ clé)',
     avant: `Vent du jour : ${'Modéré'} ; vent relatif : ${'vent contraire'}.`,
-    apres: t('rv.windOfDay', { force: riverForceLabel('modere'), dir: t('rv.windContraire') }),
+    apres: t('fleuve.ventDuJour', { force: riverForceLabel('modere'), dir: t('fleuve.ventContraire') }),
   },
   {
     site: 'riverVoyageFlow.ts:935 — détection sans jet (le tiret cadratin TIENT LIEU de valeur)',
     avant: `${'Rochers'} — détection (Agilité +0) : ${'—'} → ${'impact !'}`,
-    apres: t('rv.detectLine', { peril: 'Rochers', roll: t('rv.fragNoRoll'), issue: t('rv.detectKo') }),
+    apres: t('fleuve.ligneDeDetection', { peril: 'Rochers', roll: t('fleuve.fragmentSansJet'), issue: t('fleuve.detectionRatee') }),
   },
 ];
 
