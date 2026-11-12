@@ -176,9 +176,17 @@ mouse_filter = 2
 size_flags_horizontal = 8
 theme = ExtResource("t_discret")
 
-[node name="Zone" type="Node" parent="Cadre/Marges/Scene/Haut/Droite/Groupe"]
+[node name="Heros" type="HBoxContainer" parent="Cadre/Marges/Scene/Haut/Droite/Groupe"]
+
+[node name="Zone" type="Node" parent="Cadre/Marges/Scene/Haut/Droite/Groupe/Heros"]
 script = ExtResource("1_zone")
 source = "groupe.gestes"
+
+[node name="Partie" type="HBoxContainer" parent="Cadre/Marges/Scene/Haut/Droite/Groupe"]
+
+[node name="Zone" type="Node" parent="Cadre/Marges/Scene/Haut/Droite/Groupe/Partie"]
+script = ExtResource("1_zone")
+source = "partie.gestes"
 
 [node name="Frise" type="VBoxContainer" parent="Cadre/Marges/Scene"]
 

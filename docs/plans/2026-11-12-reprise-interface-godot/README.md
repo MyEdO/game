@@ -64,7 +64,7 @@ qu'affichage ne s'arrête pas et va au journal. Plus de « Bilan de l'étape » 
 | #3942 | le banc des étalons : planches, `?planche=<nom>`, `etalons.mjs`, rapport, règle `ecrans-godot.md` | fusionnée le 2026-11-11 |
 | #3976 | l'écran du lieu au fini, le pied des héros, le journal ; `Zone.formes`, `Dessin`, registre des fonds en donnée | fusionnée le 2026-11-12 |
 | #3987 | la description d'un lieu (`prose`), les quatre lieux de la Diligence décrits | fusionnée le 2026-11-12 |
-| #4001 | le voyage et la halte en scène peinte : paysage en couches, tête de scène, carte du trajet, frise, journal dans la scène, jets sur les cartes des héros | ouverte, branche `chantier/3935-voyage`. Sortie deux fois de la file de fusion le 2026-11-12 pour un conflit avec `main` dans `src/hote/ecran.ts` ; `main` y est refusionné deux fois, la recette du voyage corrigée, ses trois planches réenregistrées et leurs étalons reposés, puis remise en file. Vérifier qu'elle a fusionné : `main` avance vite sur ce fichier. |
+| #4001 | le voyage et la halte en scène peinte : paysage en couches, tête de scène, carte du trajet, frise, journal dans la scène, jets sur les cartes des héros | ouverte, branche `chantier/3935-voyage`. Sortie deux fois de la file de fusion le 2026-11-12 pour un conflit avec `main` dans `src/hote/ecran.ts` ; `main` y est refusionné deux fois, la recette du voyage corrigée, ses trois planches réenregistrées et leurs étalons reposés. Ressortie une troisième fois, rouge à l'étape « Godot, scripts et recettes autonomes » : le bouton « Quitter la partie » venu de #4010 vivait dans le panneau du journal, que la scène du voyage cache ; la scène le range maintenant, étalons reposés, remise en file. Vérifier qu'elle a fusionné : `main` avance vite sur ces fichiers. |
 
 Cette branche (`chantier/3935-reprise`) part de la tête de #4001 et n'ajoute que ce dossier.
 
@@ -219,6 +219,9 @@ copier hors du dépôt, lui rendre son nom (`*.sonde.test.ts`, `vitest.config.ts
 - La CI de branche (job « branche ») ne joue pas toute la suite Vitest ; la file de fusion, si. Une garde peut donc
   ne rougir qu'en file : #4001 y a échoué sur `matieres-en-donnee` (un littéral `terre` ; la voie d'un trajet reprend
   maintenant `terrestre | fluvial | maritime`).
+- `npm run godot:sonde` (la recette native de l'écran, entre autres) ne tourne qu'en file de fusion. La rejouer
+  après chaque fusion de `main` : une zone ajoutée par un autre lot dans un panneau que ta disposition cache y fait
+  « n'a aucune zone », et rien d'autre ne le dit avant la file.
 - Activer la fusion automatique juste après un push, avant que GitHub ait calculé la fusionnabilité, sort la PR de la
   file (`INVALID_MERGE_COMMIT`). Attendre la CI de branche verte, ou la réactiver. Une PR sortie de file ne s'y remet
   pas seule.
