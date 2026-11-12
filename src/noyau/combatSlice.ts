@@ -2414,11 +2414,10 @@ export function cloturesDuCombat(get: Get, set: Set) {
     cascade: () => validerLEtape(get, set),
     // Maladresse (LDB 14) : les Oups ! tirés sur l'étape COURANTE (`step.maladresse`) s'appliquent.
     maladresse: () => {
-      const battle = get().battle;
       const step = maladresseCourante(get().pendingCascade);
-      if (!battle || !step) return;
+      if (!step) return;
       const oups = garanti(step.maladresse.result, step.actorId, 'tirage des Oups !');
-      const c = inBattleId(battle, step.actorId);
+      const c = step.actorId ? porteurParId(get(), step.actorId) : undefined;
       // La queue du coup dont cette Maladresse est un temps d'après-coup (#1508 T3b-4) : elle reprend
       // une fois la Maladresse appliquée — ou voyage avec le dé de casse qui la diffère.
       const coup = step.maladresse.coup;

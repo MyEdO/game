@@ -280,6 +280,70 @@ describe('série d’attaques subies hors bataille (#3892)', () => {
     expect(banc.getState().serieSubie).toBeNull();
   });
 
+  /** La ligne d'Oups ! de `nom` pour l'entrée `effet` du Tableau des Oups !. */
+  const ligneDOups = (nom: string, effet: string) => (l: string) => l.startsWith(t('cf.oups', { name: nom, effet: '' })) && l.includes(effet.slice(0, 20));
+
+  it('Maladresse de l’assaillant (66, double raté), Oups ! 75 : son attaque suivante est décomptée sans jet : LDB 14 l.19, l.28', () => {
+    const { banc } = serieOuverte([66, 23, 75], 3);
+    defendre(banc, 5);
+    const s = banc.getState();
+    const nom = s.serieSubie!.assaillant.label;
+    expect(s.journal.some(ligneDOups(nom, 'Vous ne tenez pas votre arme')), s.journal.join(' | ')).toBe(true);
+    expect(s.journal).toContain(t('cf.perdLAction', { name: nom }));
+    expect(s.serieSubie).toMatchObject({ restantes: 1 });
+    expect(s.serieSubie!.assaillant.loseNextAction).toBe(false);
+    expect(s.pendingDefense).toMatchObject({ attackerId: s.serieSubie!.assaillant.id });
+  });
+
+  it('Maladresse de l’assaillant, Oups ! 95, personne à distance : il se frappe et devient Sonné : LDB 14 l.30 ; #3892 P2', () => {
+    const { banc } = serieOuverte([66, 23, 95], 3);
+    defendre(banc, 5);
+    const s = banc.getState();
+    expect(s.journal).toContain(t('cf.maladresseSeSonne'));
+    expect(s.serieSubie!.assaillant.conditions).toContainEqual({ id: 'sonne', value: 1 });
+    expect(s.serieSubie).toMatchObject({ restantes: 2 });
+  });
+
+  /** La Défense du héros perdue sur un double raté (99) : l'étape de Maladresse du héros, son Oups ! lancé au d100 imposé. */
+  function maladresseDuHeros(banc: Banc) {
+    defendre(banc, 99);
+    const pc = banc.getState().pendingCascade!;
+    expect(pc.participants[pc.cursor]).toMatchObject({ jet: 'maladresse', actorId: banc.getState().party[0].id });
+    banc.getState().jetLancer('maladresse');
+    banc.getState().jetValider('maladresse');
+  }
+
+  it('Maladresse du héros sur sa Défense (99, double raté), Oups ! 75 : la ligne s’applique, la série se poursuit : LDB 14 l.13, l.28', () => {
+    const { banc, H } = serieOuverte([20, 23, 75], 3);
+    maladresseDuHeros(banc);
+    const s = banc.getState();
+    expect(s.journal.some(ligneDOups(H.label, 'Vous ne tenez pas votre arme')), s.journal.join(' | ')).toBe(true);
+    expect(s.party[0].loseNextAction).toBe(true);
+    expect(s.serieSubie).toMatchObject({ restantes: 2 });
+    expect(s.pendingDefense).toMatchObject({ attackerId: s.serieSubie!.assaillant.id, defenderId: H.id });
+  });
+
+  it('Maladresse du héros sur une arme Bâclée : le dé de Sauvegarde Solide s’ouvre ; posé à 3, l’arme se brise et la série se poursuit : LDB 60 l.30, l.50', () => {
+    const { banc, H } = horsBataille(testScene());
+    const arme = { ...H.weapons[0], qualities: [{ id: 'bacle' }, { id: 'solide', value: 1 }] };
+    banc.setState({ party: [{ ...H, weapons: [arme, ...H.weapons.slice(1)] }] });
+    applyEffects(banc.getState, banc.setState, [attaques('hero', H.id)]);
+    imposerLesD100(20, 23, 75);
+    banc.getState().jetImposerLeResultat('cascadeTirage', 3, banc.getState().pendingCascade!.participants[0].id);
+    banc.getState().jetValider('cascade');
+    maladresseDuHeros(banc);
+    const pc = banc.getState().pendingCascade!;
+    const casse = pc.participants[pc.cursor];
+    expect(casse).toMatchObject({ kind: 'casseDArme', actorId: H.id, de: { seuil: { indice: 9 } } });
+    expect(banc.getState().serieSubie).toMatchObject({ restantes: 3 });
+    banc.getState().jetImposerLeResultat('cascadeTirage', 3, casse.id);
+    banc.getState().jetValider('cascade');
+    const s = banc.getState();
+    expect(s.journal).toContain(markFixedDie(t('store.toolBroken', { tool: arme.label, name: H.label })));
+    expect(s.serieSubie).toMatchObject({ restantes: 2 });
+    expect(s.pendingDefense).toMatchObject({ attackerId: s.serieSubie!.assaillant.id, defenderId: H.id });
+  });
+
   it('la cible hors d’action avant la fin : la série se ferme au terme du coup en cours', () => {
     const { banc, H } = serieOuverte([20, 20]);
     const inconscient = gameOpSchema.parse({ op: 'condition', id: { id: 'inconscient' }, value: 1 });

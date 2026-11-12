@@ -37,6 +37,7 @@ import { serveChef } from './monde/shipPostes';
 import type { AttackResult } from '../engine/combat';
 import type { OupsResolved } from '../engine/oups';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { markFixedDie } from './fixedDieMark';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -251,7 +252,7 @@ describe('Bâclé — le joueur applique sa Maladresse par le STORE (étape hôt
       expect([...vues.values()], 'UN dé, ouvert sur une arme encore entière — aucun sur une arme brisée').toEqual([false]);
       expect(brisee(arme)).toBe(true);
       expect(journal().filter((l) => /Sauvegarde 1d10/.test(l)), journal().join(' | ')).toHaveLength(1);
-      expect(journal().filter(detruite), journal().join(' | ')).toEqual(['Pistolet bâclé (Bâclé) se brise sur la Maladresse de bretteur.']);
+      expect(journal().filter(detruite), journal().join(' | ')).toEqual([markFixedDie('Pistolet bâclé (Bâclé) se brise sur la Maladresse de bretteur.')]);
     });
   });
 

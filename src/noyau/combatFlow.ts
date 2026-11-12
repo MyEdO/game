@@ -2888,19 +2888,18 @@ function appliquerLaTouche(
  * lui confie la queue au temps SUIVANT (le curseur) et rend `true`. Le temps `suite` est le dernier : ce
  * qu'il ouvre (fenêtre de défense du maillon suivant) porte sa PROPRE reprise (`PendingDefense.suite`),
  * et sa suspension remonte de même.
- * Hors bataille (série d'attaques subies, `serieSubie`), les combattants se lisent dans tout l'univers de jeu
- * (`porteurParId`) et l'après-coup part de son temps `suite` : #3892.
+ * Les combattants se lisent dans tout l'univers de jeu (`porteurParId`) : hors bataille (série d'attaques subies,
+ * `serieSubie`), les Maladresses se jouent (LDB 14 l.13, l.19) et la réaction n'a pas lieu (#3892, P3).
  */
 export function jouerLApresCoup(get: Get, set: SetFn, q: QueueDuCoup): boolean {
   const s = get();
-  const combattant = (id: string): Combatant | undefined => (s.battle ? inBattleId(s.battle, id) : porteurParId(s, id));
-  const attacker = combattant(q.attackerId);
-  const target = combattant(q.targetId);
+  const attacker = porteurParId(s, q.attackerId);
+  const target = porteurParId(s, q.targetId);
   if (!attacker || !target) {
     journaliser(get, set, [tr('cascade.cibleDisparue', { label: q.weapon.label })], 'information');
     return false;
   }
-  for (let i = APRES_COUP.indexOf(s.battle ? q.depuis : 'suite'); i < APRES_COUP.length; i++) {
+  for (let i = APRES_COUP.indexOf(q.depuis); i < APRES_COUP.length; i++) {
     const suivant: QueueDuCoup = { ...q, depuis: APRES_COUP[i + 1] ?? APRES_COUP[i] };
     switch (APRES_COUP[i]) {
       case 'oupsAttaquant':
@@ -2910,6 +2909,7 @@ export function jouerLApresCoup(get: Get, set: SetFn, q: QueueDuCoup): boolean {
         if (maladresseDuDefenseur(get, set, target, q.res, suivant)) return true;
         break;
       case 'reaction':
+        if (!s.battle) break;
         if (riposteDeclaree(attacker, target, q)) return jouerLaFrappePassive(get, set, attacker, target, q, suivant, tr('cf.riposte', { name: target.label }));
         if (reactionDeBouclierEnDegats(get, set, attacker, target, q))
           return jouerLaFrappePassive(get, set, attacker, target, q, suivant, tr('cf.reactionDeBouclierDegats', { name: target.label, foe: attacker.label }));
@@ -3064,9 +3064,9 @@ export function inFiringBand(shooter: Combatant, target: Combatant, weapon: Weap
 }
 
 /** Alliés (même camp) encore actifs, hors `c`, et À PORTÉE de `weapon` (LDB 14 l.30 : « à distance »).
- *  Sans position connue (tests), on ne filtre pas. */
-function alliesAtRange(battle: BattleState, c: Combatant, weapon: Weapon, metresPerTile = 2): Combatant[] {
-  return battle.combatants.filter((x) => x.id !== c.id && x.kind === c.kind && !isOutOfAction(x) && inFiringBand(c, x, weapon, metresPerTile));
+ *  Sans position connue (tests), on ne filtre pas. Hors bataille, aucun : #3892 (P2). */
+function alliesAtRange(battle: BattleState | null, c: Combatant, weapon: Weapon, metresPerTile = 2): Combatant[] {
+  return (battle?.combatants ?? []).filter((x) => x.id !== c.id && x.kind === c.kind && !isOutOfAction(x) && inFiringBand(c, x, weapon, metresPerTile));
 }
 
 /**
@@ -3245,7 +3245,7 @@ export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r:
     ouvrirDeDeCasse(set, c, reste[0], { des: [...des], reprise: { mode: 'oups', actorId: c.id, weapon, r, ...(coup ? { coup } : {}) } });
     return OPS_DIFFEREES;
   }
-  const battle = get().battle!;
+  const battle = get().battle;
   const log: string[] = [tr('cf.oups', { name: c.label, effet: r.label })];
   // UNE Sauvegarde Solide par Maladresse (`engine/oups.desDOups`, #1764) : l'issue se DÉCIDE une fois,
   // et chaque cause de cassure la LIT — Bâclé (LDB 60 l.50), Incident de tir (LDB 14 l.34), Salve.
@@ -3307,7 +3307,7 @@ export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r:
       if (hasQuality(weapon, 'arme-d-equipe') && c.mannedPoste) {
         const servants = exposedCrew((c.mannedPoste.crewIds ?? [])
           .filter((id) => id !== c.id)
-          .map((id) => inBattleId(battle, id))
+          .map((id) => porteurParId(get(), id))
           .filter((x): x is Combatant => !!x));
         for (const s of servants) {
           const sLost = woundsFromHit(weapon, s, 'brasD', effectiveWeaponDamage(weapon, force) + units, 0, 1, c.size);
@@ -3330,7 +3330,7 @@ export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r:
         const salveCrew = [c, ...(hasQuality(weapon, 'arme-d-equipe') && c.mannedPoste
           ? exposedCrew((c.mannedPoste.crewIds ?? [])
               .filter((id) => id !== c.id)
-              .map((id) => inBattleId(battle, id))
+              .map((id) => porteurParId(get(), id))
               .filter((x): x is Combatant => !!x))
           : [])];
         for (let i = 0; i < salve.hits; i++) {
@@ -3347,7 +3347,8 @@ export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r:
       break;
     }
   }
-  set({ battle: { ...get().battle!, log: [...get().battle!.log, ...evLines(log, 'information', c.id)] } });
+  journaliser(get, set, log, 'information', { actorId: c.id });
+  set(touchActors(get()));
   bus.emit(EVT.SCENE_DIRTY);
   checkBattleOver(get, set);
   return undefined;
@@ -3371,7 +3372,7 @@ function demandesDeLaCasse(get: Get, casse: PendingCasseDArme): DemandeDeCasse[]
     const lame = porteur?.weapons.find((w) => w.uid === reprise.bt.weaponUid);
     return porteur && lame ? desDeBrisDeLame(porteur, lame) : [];
   }
-  const c = inBattleId(get().battle, reprise.actorId);
+  const c = porteurParId(get(), reprise.actorId);
   return c ? desDOups(c, reprise.weapon, reprise.r) : [];
 }
 
@@ -8939,7 +8940,7 @@ export const TABLES = {
         nePeutPasDifferer(applyBladeTrap(get, set, defenseur, casse.reprise.bt, casse.reprise.defenderSL, des), 'reprise du dé de Sauvegarde Solide (Piège-lame)');
         return dit();
       }
-      const c = inBattleId(get().battle, casse.reprise.actorId);
+      const c = porteurParId(get(), casse.reprise.actorId);
       if (!c) return dit([tr('cascade.cibleDisparue', { label: step.label ?? '' })]);
       const issue = applyOups(get, set, c, casse.reprise.weapon, casse.reprise.r, des, casse.reprise.coup);
       // La Maladresse appliquée, l'APRÈS-COUP du coup reprend au temps que le dé avait suspendu.
