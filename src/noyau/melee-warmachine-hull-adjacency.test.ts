@@ -21,7 +21,7 @@ const cannonPoste: ShipPoste = { item: cannonWeapon as never, crewIds: ['chef'] 
 
 const combatant = (over: Partial<Combatant>): Combatant =>
   (blessuresSurLeProfil({
-    id: 'chef', name: 'Chef', kind: 'hero',
+    id: 'chef', name: 'Chef', kind: 'heros',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 50, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(12), advantage: 0, conditions: [],
     weapons: [{ name: 'Bélier', type: 'melee', damage: { plusBF: true, flat: 10 }, reach: 'Moyenne', qualities: [{ id: 'equipe', value: 6 }], weaponGroup: 'machine-de-guerre', uid: 'ram-w' }],
@@ -31,10 +31,10 @@ const combatant = (over: Partial<Combatant>): Combatant =>
   })) as unknown as Combatant;
 
 const hull = (pos: { x: number; y: number }, poste: ShipPoste, footprint?: number): Combatant =>
-  ({ id: 'hull', name: 'Affût', kind: 'ally', pos, conditions: [], wounds: { current: 20, max: 20 }, dead: false, postes: [poste], footprint, bodyShape: 'engin', inert: true }) as unknown as Combatant;
+  ({ id: 'hull', name: 'Affût', kind: 'heros', pos, conditions: [], wounds: { current: 20, max: 20 }, dead: false, postes: [poste], footprint, bodyShape: 'engin', inert: true }) as unknown as Combatant;
 
 const door = (pos: { x: number; y: number }): Combatant =>
-  ({ id: 'door', name: 'Porte', kind: 'enemy', pos, conditions: [], wounds: { current: 20, max: 20 }, dead: false, bodyShape: 'structure', inert: true }) as unknown as Combatant;
+  ({ id: 'door', name: 'Porte', kind: 'ennemi', pos, conditions: [], wounds: { current: 20, max: 20 }, dead: false, bodyShape: 'structure', inert: true }) as unknown as Combatant;
 
 const scene = (): Scene =>
   ({ id: 's', name: 's', dimensions: { w: 10, h: 10 }, ambiance: 'jour', layers: [{ z: 0, tiles: new Array(100).fill('herbe') }], entities: [], dialogues: [], triggers: [], encounters: [] }) as unknown as Scene;

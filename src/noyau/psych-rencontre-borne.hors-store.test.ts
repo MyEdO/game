@@ -47,7 +47,7 @@ function phobique(label = 'H') {
   return h;
 }
 
-const C = (o: Partial<Combatant>): Combatant => combattantDeTest({ id: 'x', kind: 'hero', label: 'x', groups: [], psychState: [], wounds: blessuresDeBase(10), ...o });
+const C = (o: Partial<Combatant>): Combatant => combattantDeTest({ id: 'x', kind: 'heros', label: 'x', groups: [], psychState: [], wounds: blessuresDeBase(10), ...o });
 
 beforeEach(() => {
   banc.setState({ battle: null, pendingCascade: null, scene: null, party: [] });
@@ -79,7 +79,7 @@ describe('#1224 — BORNE DE RENCONTRE des afflictions psy (LDB 21 l.9)', () => 
     banc.getState().lancerLaScene(scene('s1', [ARAI('arai')]));
     banc.getState().jetLancer('cascadeEnBande', id);
     banc.getState().jetValider('cascade');
-    const arai = C({ id: 'arai', kind: 'enemy', groups: ['bete'] });
+    const arai = C({ id: 'arai', kind: 'ennemi', groups: ['bete'] });
     expect(psychDRAdjust(banc.getState().party[0], arai), 'précondition : la Peur mord dans SA rencontre').toBe(-1);
 
     banc.getState().lancerLaScene(scene('s5', [ent({ id: 'paysan', statblock: { label: 'Paysan', char: { B: 10 } } as never })]));
@@ -101,7 +101,7 @@ describe('#1224 — BORNE DE RENCONTRE des afflictions psy (LDB 21 l.9)', () => 
 });
 
 describe('#1224 — « tant que vous défendez les êtres aimés » (LDB 21 l.75)', () => {
-  const ogre = () => C({ id: 'o', kind: 'enemy', groups: ['ogres'], causesPeur: 2 });
+  const ogre = () => C({ id: 'o', kind: 'ennemi', groups: ['ogres'], causesPeur: 2 });
   const aimant = () => C({
     id: 'h',
     psychState: [{ type: 'amour', cible: ciblePsy.groupe('humain'), active: true }, { type: 'peur', sourceId: 'o', indice: 2, calmeDR: 0 }],
@@ -125,7 +125,7 @@ describe('#1224 — « tant que vous défendez les êtres aimés » (LDB 21 l.75
     const aime = C({ id: 'fam', groups: ['humain'] });
     expect(refreshAllDefendedPsych([h, aime]), 'rien à éteindre : rien ne change').toBe(false);
     expect(h.psychState!.find((p) => p.type === 'amour')!.active, 'un Test gagné ne se ressuscite pas').toBe(false);
-    expect(psychDRAdjust(h, C({ id: 'o', kind: 'enemy', groups: ['ogres'] })), 'aucun +1 DR non dû').toBe(0);
+    expect(psychDRAdjust(h, C({ id: 'o', kind: 'ennemi', groups: ['ogres'] })), 'aucun +1 DR non dû').toBe(0);
   });
 
   /** Sonde de VIGILANCE du juge : le refresh hors combat n'a d'objet que sur ce qui SURVIT à la borne.
@@ -170,7 +170,7 @@ describe('#1224 — « tant que vous défendez les êtres aimés » (LDB 21 l.75
   /** 2(c) — la porte hors combat et `fearSourceFor` doivent rendre UN SEUL verdict sur la même
    *  situation : l'immunité de Haine (l.41, sans roster) est le témoin le plus net. */
   it('la porte HORS COMBAT rend le MÊME verdict que `fearSourceFor` sur la MÊME situation', () => {
-    const arai = C({ id: 'arai', kind: 'enemy', groups: ['bete'] });
+    const arai = C({ id: 'arai', kind: 'ennemi', groups: ['bete'] });
     const immunise = C({
       id: 'h',
       psychTraits: [{ type: 'phobie', cible: ciblePsy.groupe('bete'), indice: 1 }],

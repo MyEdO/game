@@ -1044,7 +1044,7 @@ export function bleedDeathRoll(c: Combatant, rng: RNG): { died: boolean; log: st
  *  inanimé : AA 10 l.114, MDG 13 l.656, MSRC 07 l.74, EDOC 07 l.334. SOURCE UNIQUE (consommée par
  *  `isOutOfAction`, `endState` et la résolution de Blessure critique). */
 export function usesSuddenDeath(c: Combatant): boolean {
-  if (c.kind === 'hero') return false; // LDB 18 l.46 ; AA 07 l.67
+  if (c.kind === 'heros') return false; // LDB 18 l.46 ; AA 07 l.67
   if (isInanimate(c)) return false;
   const mode = rule('combat-mort-subite');
   if (mode === 'off') return false;

@@ -17,9 +17,9 @@ const base = (over: Partial<Jeu>): Jeu =>
     net: { mode: 'hote', mySeat: 0, seatNames: { 0: 'Hôte', 1: 'Antoine' }, ownership: { h2: 1 }, slots: [0, 0, 0, 0] },
     // `kind` PORTÉ par le groupe (comme tout héros réel, `createHero`) : hors combat, `seatInfluences`
     // résout le porteur d'un jet dans `party` et distingue héros ⇄ ennemi sur ce champ.
-    party: [{ id: 'h1', kind: 'hero' }, { id: 'h2', kind: 'hero' }],
+    party: [{ id: 'h1', kind: 'heros' }, { id: 'h2', kind: 'heros' }],
     battle: { order: ['h1', 'h2'], turn: 0, combatants: [
-      { id: 'h1', kind: 'hero' }, { id: 'h2', kind: 'hero' }, { id: 'e1', kind: 'enemy' },
+      { id: 'h1', kind: 'heros' }, { id: 'h2', kind: 'heros' }, { id: 'e1', kind: 'ennemi' },
     ] },
     ...over,
   }) as unknown as Jeu;
@@ -30,7 +30,7 @@ describe('fermerLeSiege — le départ définitif d’un siège rend ses héros,
     const net = { ...s.net, seatNames: { 0: 'Hôte', 1: 'Antoine', 2: 'Léa' }, presence: { 1: 'absent' as const, 2: 'present' as const }, ownership: { h1: 2, h2: 1 }, slots: [1, 2, 0, 1], gmSeat: 1 };
     const apres = fermerLeSiege(net, 1);
     expect(apres).toMatchObject({ seatNames: { 0: 'Hôte', 2: 'Léa' }, presence: { 2: 'present' }, ownership: { h1: 2, h2: 0 }, slots: [0, 2, 0, 0], gmSeat: undefined });
-    expect(pilotedByHuman({ ...s, net: apres }, { id: 'e1', kind: 'enemy' } as never), 'sans MJ, l’ennemi revient à l’IA').toBe(false);
+    expect(pilotedByHuman({ ...s, net: apres }, { id: 'e1', kind: 'ennemi' } as never), 'sans MJ, l’ennemi revient à l’IA').toBe(false);
     expect(fermerLeSiege(net, 2).gmSeat, 'fermer un autre siège garde le MJ').toBe(1);
   });
 });
@@ -48,7 +48,7 @@ describe('rolledLocally (#990) — « ce siège a-t-il produit CE jet ? », base
   it('allié PNJ `aiControlled` : son jet n’est PAS le mien (l’automate le joue, comme un ennemi IA)', () => {
     const s = base({
       net: { mode: 'local', mySeat: 0, seatNames: {}, ownership: {}, slots: [0, 0, 0, 0] },
-      battle: { order: ['h1', 'h2'], turn: 0, combatants: [{ id: 'h1', kind: 'hero' }, { id: 'h2', kind: 'hero', aiControlled: true }, { id: 'e1', kind: 'enemy' }] },
+      battle: { order: ['h1', 'h2'], turn: 0, combatants: [{ id: 'h1', kind: 'heros' }, { id: 'h2', kind: 'heros', aiControlled: true }, { id: 'e1', kind: 'ennemi' }] },
     } as unknown as Partial<Jeu>);
     expect(rolledLocally(s, 'h2')).toBe(false);
   });
@@ -87,7 +87,7 @@ describe('reponseDonnee et jetFigeRevele (#990) — le calendrier d’un Test op
   const table = (mode: 'hote' | 'invite', mySeat: number): Jeu => base({
     net: net(mode, mySeat),
     battle: { order: ['h1', 'h2', 'h3'], turn: 0, combatants: [
-      { id: 'h1', kind: 'hero' }, { id: 'h2', kind: 'hero' }, { id: 'h3', kind: 'hero' }, { id: 'e1', kind: 'enemy' },
+      { id: 'h1', kind: 'heros' }, { id: 'h2', kind: 'heros' }, { id: 'h3', kind: 'heros' }, { id: 'e1', kind: 'ennemi' },
     ] },
   } as unknown as Partial<Jeu>);
   const hote = table('hote', 0);

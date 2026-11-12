@@ -615,7 +615,7 @@ export interface FinDeSeance {
 }
 
 /** Les héros dont la fin de séance coche les cases. */
-export const herosDeLaSeance = (s: Pick<Jeu, 'party'>): Combatant[] => s.party.filter((h) => h.kind === 'hero');
+export const herosDeLaSeance = (s: Pick<Jeu, 'party'>): Combatant[] => s.party.filter((h) => h.kind === 'heros');
 
 /** Ouvre la fin de séance, aucune case cochée : l'Effet `sessionEnd` (#83), le menu de jeu, le récap de chapitre. */
 export function ouvrirLaFinDeSeance(set: Set): void {

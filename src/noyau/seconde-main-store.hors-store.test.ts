@@ -61,10 +61,10 @@ interface Frappe {
 
 /** La 1ʳᵉ frappe d'un Maniement de deux armes, confirmée par `jetValider('attaque')`. */
 function premiereFrappe({ roll, cible: over = {}, pieces = [], arme = epee, retenu = false, tenu = false, resoudre, opsDuHeros = [] }: Frappe) {
-  const heros = mk('hero', 'bretteur', { weapons: [arme, dague] } as never);
+  const heros = mk('heros', 'bretteur', { weapons: [arme, dague] } as never);
   applyOps(heros, opsDuHeros, { idNeuf: idsDeTest, rng: desDuTest });
-  const cible = mk('enemy', 'cible', { pos: { x: 1, y: 0 }, ...over } as never);
-  const voisin = mk('enemy', 'voisin', { pos: { x: 0, y: 1 } } as never); // LDB 10 l.773
+  const cible = mk('ennemi', 'cible', { pos: { x: 1, y: 0 }, ...over } as never);
+  const voisin = mk('ennemi', 'voisin', { pos: { x: 0, y: 1 } } as never); // LDB 10 l.773
   if (pieces.length) { cible.items = structuredClone(pieces); recomputeLoadout(cible); }
   const battle = {
     combatants: [heros, cible, voisin], order: ['bretteur', 'cible', 'voisin'], baseOrder: ['bretteur', 'cible', 'voisin'],

@@ -58,7 +58,7 @@ function start(scene: Scene = sceneWithParapet()) {
   banc.abandonner();
   const b = banc.getState().battle!;
   const S = b.combatants.find((c) => c.bodyShape === 'structure')!;
-  const foes = b.combatants.filter((c) => c.kind !== 'hero' && c.bodyShape !== 'structure');
+  const foes = b.combatants.filter((c) => c.kind !== 'heros' && c.bodyShape !== 'structure');
   return { S, foes };
 }
 

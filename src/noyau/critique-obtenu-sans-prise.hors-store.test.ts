@@ -63,8 +63,8 @@ beforeEach(() => {
 
 describe('Critique obtenu, touche sans prise', () => {
   it('Éthéré, arme non magique, double : Critique obtenu, sansPrise « ethere », aucun Critique compté', () => {
-    const h = mk('hero', 'h');
-    const spectre = mk('enemy', 'spectre', { pos: { x: 1, y: 0 }, traits: [{ id: 'ethere' }] as never });
+    const h = mk('heros', 'h');
+    const spectre = mk('ennemi', 'spectre', { pos: { x: 1, y: 0 }, traits: [{ id: 'ethere' }] as never });
     setBattle([h, spectre]);
     const res = doubleReussi(h, spectre);
     expect(res).toMatchObject({ hit: true, critical: true, sansPrise: 'ethere', woundsLost: 0 });
@@ -77,8 +77,8 @@ describe('Critique obtenu, touche sans prise', () => {
   });
 
   it('sauvegarde démoniaque réussie sur un double : Critique obtenu, sansPrise « sauvegarde », aucun Critique compté', () => {
-    const h = mk('hero', 'h');
-    const demon = mk('enemy', 'demon', { pos: { x: 1, y: 0 }, traits: [{ id: 'demoniaque', value: 8 }] as never });
+    const h = mk('heros', 'h');
+    const demon = mk('ennemi', 'demon', { pos: { x: 1, y: 0 }, traits: [{ id: 'demoniaque', value: 8 }] as never });
     setBattle([h, demon]);
     const { finale, etapes } = frappe(h, demon, doubleReussi(h, demon));
     expect(etapes).toContain('sauvegarde');
@@ -90,8 +90,8 @@ describe('Critique obtenu, touche sans prise', () => {
   });
 
   it('Empoignade sur un double : le Critique du jet est conservé, sansPrise « empoignade », aucune Blessure', () => {
-    const h = mk('hero', 'h', { engagedWith: ['proie'] as never });
-    const proie = mk('enemy', 'proie', { pos: { x: 1, y: 0 }, engagedWith: ['h'] as never });
+    const h = mk('heros', 'h', { engagedWith: ['proie'] as never });
+    const proie = mk('ennemi', 'proie', { pos: { x: 1, y: 0 }, engagedWith: ['h'] as never });
     setBattle([h, proie]);
     const { finale, etapes } = frappe(h, proie, doubleReussi(h, proie), true);
     expect(finale).toMatchObject({ hit: true, critical: true, sansPrise: 'empoignade', woundsLost: 0 });
@@ -102,8 +102,8 @@ describe('Critique obtenu, touche sans prise', () => {
   });
 
   it('Empoignade déclarée contre une Structure : ignorée, le coup inflige ses Dégâts (#1595 c.6230022636)', () => {
-    const h = mk('hero', 'h');
-    const mur = mk('enemy', 'mur', { pos: { x: 1, y: 0 }, bodyShape: 'structure', important: false });
+    const h = mk('heros', 'h');
+    const mur = mk('ennemi', 'mur', { pos: { x: 1, y: 0 }, bodyShape: 'structure', important: false });
     setBattle([h, mur]);
     const res = rederivePassiveAttack(h, mur, epee, { roll: 21, target: 90, success: true, sl: 6, isDouble: false } as never, 'melee', { rng: makeRNG(1595) }, 'corps');
     const { finale } = frappe(h, mur, res, true);

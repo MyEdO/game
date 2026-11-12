@@ -29,7 +29,7 @@ function duel(turn: 0 | 1) {
   const E: Combatant = JSON.parse(JSON.stringify(H));
   E.id = 'enemy-0';
   E.label = 'Gobelin';
-  E.kind = 'enemy';
+  E.kind = 'ennemi';
   E.pos = { x: 2, y: 0 };
   const battle: BattleState = {
     combatants: [H, E], order: [E.id, H.id], turn, round: 1, action: null, selectedSpellId: null,
@@ -93,7 +93,7 @@ describe('curseurPerime — le curseur suit la fenêtre de geste', () => {
     horse.traits = [{ id: 'nerveux' }, { id: 'taille', arg: 'Grande' }] as never;
     horse.size = 'grande';
     horse.mountable = true;
-    horse.kind = 'hero';
+    horse.kind = 'heros';
     const other = spawnEnemy({ ref: 'humain' }, 'other', { x: 1, y: 1 });
     const battle: BattleState = {
       combatants: [hero, horse, other], order: ['other', 'horse', hero.id], baseOrder: ['other', 'horse', hero.id],

@@ -1063,7 +1063,7 @@ describe('Combat en mer à issue (#1652 lot 8 — MDG 15 l.136-139, l.142-143, l
   const d = (n: number, sides: number) => ({ dice: { n, sides } });
   /** En mer, sur la route `r1` : la coque de campagne porte le pont. */
   const enMer = () => set({ travelPlan: buildSeaPlan(get, 'r1', 'A', 'B', carte.routes[0], { cadence: 'jourParJour' })! });
-  const ennemis = () => get().battle!.combatants.filter((c) => c.kind === 'enemy');
+  const ennemis = () => get().battle!.combatants.filter((c) => c.kind === 'ennemi');
   const aDemi = (c: Combatant) => { c.wounds = { ...c.wounds, current: Math.floor(c.wounds.max / 2) }; };
   const log = () => JSON.stringify(get().battle!.log);
 
@@ -1117,7 +1117,7 @@ describe('Combat en mer à issue (#1652 lot 8 — MDG 15 l.136-139, l.142-143, l
     enMer();
     const avant = vesselManann(get().vessel!).score;
     jouerFlowEntier(runFlow(get, set, consequence('triton')!, 'Triton !'));
-    for (const c of get().battle!.combatants.filter((x) => x.kind === 'hero')) c.dead = true;
+    for (const c of get().battle!.combatants.filter((x) => x.kind === 'heros')) c.dead = true;
     expect(checkBattleOver(get, set)).toBe(true);
     expect(get().battle!.over).toBe('defaite');
     expect(vesselManann(get().vessel!).score).toBe(avant);

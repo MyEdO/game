@@ -24,7 +24,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const hero = (id: string, over: Partial<Combatant> = {}): Combatant =>
   combattantDeTest({
-    id, label: `Héros ${id}`, kind: 'hero',
+    id, label: `Héros ${id}`, kind: 'heros',
     characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 40, endurance: 40, initiative: 40, agilite: 40, dexterite: 40, intelligence: 40, 'force-mentale': 40, sociabilite: 40 },
     skills: [], conditions: [], talents: [], fortune: 2, resilience: 3,
     ...over,

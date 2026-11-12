@@ -18,7 +18,7 @@ import { groups, psychologies } from '../data';
 import { blessuresSurLeProfil, blessuresDeBase, profilDeTest } from './combattantDeTest.testkit';
 
 const porteur = (psychState: PsychAffliction[] = []): Combatant => (blessuresSurLeProfil({
-  id: 'h1', label: 'h1', kind: 'hero', advantage: 0, conditions: [], characteristics: profilDeTest(), psychState, psychTraits: [],
+  id: 'h1', label: 'h1', kind: 'heros', advantage: 0, conditions: [], characteristics: profilDeTest(), psychState, psychTraits: [],
   groups: [], weapons: [], armour: {} as never, skills: [], talents: [], movement: 4, wounds: blessuresDeBase(10),
 }) as unknown as Combatant);
 

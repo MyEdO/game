@@ -23,7 +23,7 @@ const hero = (): Combatant =>
   (blessuresSurLeProfil({
     id: 'h',
     label: 'H',
-    kind: 'hero',
+    kind: 'heros',
     species: 'humains-reiklander',
     career: 'agitateur',
     careerLevel: 1,

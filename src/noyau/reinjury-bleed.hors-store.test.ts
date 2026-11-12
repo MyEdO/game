@@ -33,8 +33,8 @@ describe('#190 — réouverture par Dégât localisé au point d’application (
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'hero')!;
-    const E = b.combatants.find((c) => c.kind === 'enemy')!;
+    const H = b.combatants.find((c) => c.kind === 'heros')!;
+    const E = b.combatants.find((c) => c.kind === 'ennemi')!;
     H.wounds = blessuresDeBase(20, 20, H); // grande réserve : pas de mort ni Critique d'overkill
     H.armour = { tete: 0, corps: 0, brasG: 0, brasD: 0, jambeG: 0, jambeD: 0 } as never;
     H.traumas = [gate];

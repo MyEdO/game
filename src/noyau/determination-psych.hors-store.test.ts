@@ -100,7 +100,7 @@ describe('la Détermination ne lève AUCUNE pénalité de MALADIE (LDB 17 l.59-6
 
 describe('Actions Détermination — immunité psy & ignore-crit (store)', () => {
   function withHero() {
-    const hero = C({ id: 'h', kind: 'hero', label: 'H', resolve: 2, conditions: [], wounds: blessuresDeBase(10) });
+    const hero = C({ id: 'h', kind: 'heros', label: 'H', resolve: 2, conditions: [], wounds: blessuresDeBase(10) });
     banc.setState({ battle: { combatants: [hero], order: ['h'], turn: 0, round: 2, over: false, log: [], acted: false } as never });
     return hero;
   }
@@ -122,7 +122,7 @@ describe('Actions Détermination — immunité psy & ignore-crit (store)', () =>
   });
 
   it('sans Détermination (0) : no-op', () => {
-    const hero = C({ id: 'h', kind: 'hero', label: 'H', resolve: 0, conditions: [], wounds: blessuresDeBase(10) });
+    const hero = C({ id: 'h', kind: 'heros', label: 'H', resolve: 0, conditions: [], wounds: blessuresDeBase(10) });
     banc.setState({ battle: { combatants: [hero], order: ['h'], turn: 0, round: 1, over: false, log: [], acted: false } as never });
     banc.getState().depenserLaDetermination(hero.id, 'immuniserALaPsychologie');
     expect(banc.getState().battle!.combatants[0].activeEffects?.some((e) => e.psychImmune)).toBeFalsy();

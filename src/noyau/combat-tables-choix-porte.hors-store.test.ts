@@ -68,8 +68,8 @@ function combat(nb: number, seed = 7, invites: number[] = []) {
   banc.getState().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = banc.getState().battle!;
-  const H = b.combatants.filter((c) => c.kind === 'hero');
-  const E = b.combatants.filter((c) => c.kind === 'enemy');
+  const H = b.combatants.filter((c) => c.kind === 'heros');
+  const E = b.combatants.filter((c) => c.kind === 'ennemi');
   // Les ids de héros sont ENGENDRÉS : la table de possession se compose après coup, sinon elle
   // désigne des combattants qui n'existent pas et le mode coop ne mesure plus rien.
   const ownership: Record<string, number> = {};

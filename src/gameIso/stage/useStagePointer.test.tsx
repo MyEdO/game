@@ -84,7 +84,7 @@ function heroSauteur(): Combatant {
   return blessuresSurLeProfil({
     id: 'hero',
     label: 'Héros',
-    kind: 'hero',
+    kind: 'heros',
     characteristics: {
       'capacite-de-combat': 30,
       'capacite-de-tir': 30,
@@ -906,7 +906,7 @@ describe('useStagePointer — le décor VOLUMIQUE se désigne, et ne coûte que 
 
   /** Meneur MINIMAL mais JOUABLE : le pointeur mesure son Mouvement (`pathOpts`) avant de planifier. */
   const meneurJouable = (): Combatant => (blessuresSurLeProfil({
-    id: 'h', label: 'H', kind: 'hero', wounds: blessuresDeBase(10), conditions: [], movement: 4,
+    id: 'h', label: 'H', kind: 'heros', wounds: blessuresDeBase(10), conditions: [], movement: 4,
     characteristics: { force: 30, endurance: 30, agilite: 30, initiative: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30, 'capacite-de-combat': 30, 'capacite-de-tir': 30 },
     weapons: [], armour: {}, items: [], skills: [], talents: [],
   }) as unknown as Combatant);

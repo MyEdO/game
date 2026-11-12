@@ -375,10 +375,10 @@ export function hasSurgeryTrauma(c: Combatant): boolean {
 /** Une arme IMPLIQUE-t-elle la main `side` (LDB 18) ? Arme à 2 mains → les DEUX ; arme à 1 main → sa main de
  *  tenue seulement (`hand:'secondaire'` = gauche/secondaire, sinon droite/principale). Base de la pénalité d'amputation
  *  CONTEXTUELLE : une amputation ne grève un jet d'arme que si l'arme tient la main blessée. Pur. */
-export function weaponUsesHand(weapon: Weapon, side: 'left' | 'right'): boolean {
+export function weaponUsesHand(weapon: Weapon, side: 'gauche' | 'droite'): boolean {
   if ((weapon.hands ?? 1) >= 2) return true;
   const inLeft = weapon.hand === 'secondaire';
-  return side === 'left' ? inLeft : !inLeft;
+  return side === 'gauche' ? inLeft : !inLeft;
 }
 
 /** Pénalité d'amputation à un JET D'ARME (attaque/parade) — LDB 18 l.251 (Doigts : −5/doigt aux Tests qui
@@ -398,7 +398,7 @@ export function fingersLost(c: Combatant, loc: HitLocation): number {
  *  lue par `attackerFumbled`/`defenderFumbled` (combatFlow.ts), jamais un recomptage dupliqué. */
 export function maxFingersLostForWeapon(c: Combatant, weapon: Weapon): number {
   let max = 0;
-  for (const [side, loc] of [['left', 'brasG'], ['right', 'brasD']] as const) {
+  for (const [side, loc] of [['gauche', 'brasG'], ['droite', 'brasD']] as const) {
     if (weaponUsesHand(weapon, side)) max = Math.max(max, fingersLost(c, loc));
   }
   return max;
@@ -412,12 +412,12 @@ export function amputationCombatPenalty(c: Combatant, weapon: Weapon): number {
   const rachat = prosthesisPenaltyBuyback(c);
   const mainPerdue = Math.max(0, 20 - rachat);
   let penalty = 0;
-  for (const [side, loc] of [['left', 'brasG'], ['right', 'brasD']] as const) {
+  for (const [side, loc] of [['gauche', 'brasG'], ['droite', 'brasD']] as const) {
     if (!weaponUsesHand(weapon, side)) continue;
     if (handAmputated(loc)) penalty -= mainPerdue;
     else penalty -= 5 * fingersLost(c, loc);
   }
-  if (handAmputated('brasD') && weaponUsesHand(weapon, 'left')) penalty -= mainPerdue; // clause l.263 : main principale perdue → main secondaire à −20
+  if (handAmputated('brasD') && weaponUsesHand(weapon, 'gauche')) penalty -= mainPerdue; // clause l.263 : main principale perdue → main secondaire à −20
   return penalty;
 }
 

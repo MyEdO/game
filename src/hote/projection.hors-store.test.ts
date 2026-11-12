@@ -12,7 +12,7 @@ describe('projection d’un objet de campagne', () => {
     try {
       const base = partie.etat();
       const { hero, narratif, candidats } = porteurDObjetDeCampagne(idsDeTest, 'hache_naine');
-      const ancien = base.battle!.combatants.find((c) => c.kind === 'hero')!;
+      const ancien = base.battle!.combatants.find((c) => c.kind === 'heros')!;
       hero.id = ancien.id;
       hero.pos = ancien.pos;
       const etat = {
@@ -40,8 +40,8 @@ describe('projection des cibles du Tab (`combat.cibles`)', () => {
     const { partie } = ouvrirLaPartie(nouvelEntete('dome', { graine: 7 }), () => {});
     try {
       const base = partie.etat(); // pause de début de Round ouverte : refermée ci-dessous
-      const heros = { ...base.battle!.combatants.find((c) => c.kind === 'hero')!, pos: { x: 6, y: 6 }, engagedWith: [], psychState: [{ type: 'frenesie' }] } as Combatant;
-      const modele = base.battle!.combatants.find((c) => c.kind === 'enemy')!;
+      const heros = { ...base.battle!.combatants.find((c) => c.kind === 'heros')!, pos: { x: 6, y: 6 }, engagedWith: [], psychState: [{ type: 'frenesie' }] } as Combatant;
+      const modele = base.battle!.combatants.find((c) => c.kind === 'ennemi')!;
       const proche = { ...modele, id: 'adverse-est', label: 'Est', pos: { x: 7, y: 6 }, engagedWith: [] } as Combatant;
       const autre = { ...modele, id: 'adverse-ouest', label: 'Ouest', pos: { x: 5, y: 6 }, engagedWith: [] } as Combatant;
       const combatants = [heros, proche, autre];

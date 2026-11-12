@@ -16,7 +16,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTes
 const CHARS = { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 
 const mkCrew = (id: string): Combatant =>
-  (blessuresSurLeProfil({ id, name: id, kind: 'npc', characteristics: CHARS, conditions: [], skills: [], talents: [], weapons: [],
+  (blessuresSurLeProfil({ id, name: id, kind: 'pnj', characteristics: CHARS, conditions: [], skills: [], talents: [], weapons: [],
     wounds: blessuresDeBase(12) })) as unknown as Combatant;
 
 const mkPoste = (engineId: string, crewIds: string[], side?: FireArc): ShipPoste =>
@@ -30,7 +30,7 @@ describe('postesToStations — une Station par poste, ids/assignedIds/side/ref',
   it('coque à 2 postes → 2 Stations avec id `poste:<hull>:<uid>` et le bon détail', () => {
     const p1 = mkPoste('baliste', ['gunner', 's1'], 'tribord');
     const p2 = mkPoste('pierrier', ['g2'], 'babord');
-    const hull = mkHull('emplacement', 'enemy', [p1, p2]);
+    const hull = mkHull('emplacement', 'ennemi', [p1, p2]);
     const stations = postesToStations([hull, mkCrew('gunner'), mkCrew('s1'), mkCrew('g2')]);
 
     expect(stations).toHaveLength(2);
@@ -48,9 +48,9 @@ describe('postesToStations — une Station par poste, ids/assignedIds/side/ref',
 
   it('faction dérivée du kind de la coque : hero→allie, enemy→ennemi, npc→neutre', () => {
     const mk = (kind: Combatant['kind']) => postesToStations([mkHull('h', kind, [mkPoste('baliste', ['c'])])])[0];
-    expect(mk('hero').faction).toBe('allie');
-    expect(mk('enemy').faction).toBe('ennemi');
-    expect(mk('npc').faction).toBe('neutre');
+    expect(mk('heros').faction).toBe('allie');
+    expect(mk('ennemi').faction).toBe('ennemi');
+    expect(mk('pnj').faction).toBe('neutre');
   });
 
   it('un Combattant SANS postes ne produit aucune Station', () => {
@@ -59,19 +59,19 @@ describe('postesToStations — une Station par poste, ids/assignedIds/side/ref',
 
   it('`manned` true quand le chef sert le poste, false quand l’équipage est vide', () => {
     const poste = mkPoste('baliste', ['gunner', 's1']);
-    const hull = mkHull('emplacement', 'enemy', [poste]);
+    const hull = mkHull('emplacement', 'ennemi', [poste]);
     const gunner = mkCrew('gunner');
     const all = [hull, gunner, mkCrew('s1')];
     applyShipPostes(all); // pose mannedPoste sur le chef (crewIds[0])
     expect(postesToStations(all)[0].manned).toBe(true);
 
-    const empty = mkHull('emp2', 'enemy', [mkPoste('baliste', [])]);
+    const empty = mkHull('emp2', 'ennemi', [mkPoste('baliste', [])]);
     expect(postesToStations([empty])[0].manned).toBe(false);
   });
 
   it('ancre par défaut = pos de la coque ; l’injecteur `anchorOf` (posteAnchor) fait foi', () => {
     const poste = mkPoste('baliste', ['g'], 'tribord');
-    const hull = mkHull('h', 'enemy', [poste], { x: 3, y: 4 });
+    const hull = mkHull('h', 'ennemi', [poste], { x: 3, y: 4 });
     expect(postesToStations([hull])[0].pos).toMatchObject({ x: 3, y: 4 }); // défaut = hull.pos
 
     poste.anchor = { x: 20, y: 21 }; // ancre authorée → posteAnchor la retourne
@@ -80,7 +80,7 @@ describe('postesToStations — une Station par poste, ids/assignedIds/side/ref',
   });
 
   it('poste dont l’ancre résout undefined → ignoré', () => {
-    const hull = mkHull('h', 'enemy', [mkPoste('baliste', ['g'])], undefined as never);
+    const hull = mkHull('h', 'ennemi', [mkPoste('baliste', ['g'])], undefined as never);
     delete (hull as { pos?: unknown }).pos; // coque sans position
     expect(postesToStations([hull], (h, p) => posteAnchor(h, p))).toHaveLength(0);
   });
@@ -141,7 +141,7 @@ describe('battleScenesToStations — Scènes de la situation → Stations spatia
 
 describe('posteAnchor — ordre de résolution', () => {
   const hull = (pos: { x: number; y: number; z?: number } | undefined, footprint?: number): Combatant =>
-    ({ id: 'h', name: 'h', kind: 'enemy', pos, ...(footprint ? { footprint } : {}) }) as unknown as Combatant;
+    ({ id: 'h', name: 'h', kind: 'ennemi', pos, ...(footprint ? { footprint } : {}) }) as unknown as Combatant;
 
   it('`poste.anchor` authoré fait foi (par-dessus l’empreinte)', () => {
     const poste: ShipPoste = { item: itemFromTrappingById('baliste', idsDeTest)!, side: 'tribord', anchor: { x: 9, y: 9, z: 1 } };

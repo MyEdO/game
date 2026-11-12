@@ -127,13 +127,13 @@ describe('Boucle de jeu (store)', () => {
     const b = banc.getState().battle!;
     // Héros blessé + 1 État persistant + 1 transitoire + 1 critique ; tous les ennemis hors de combat.
     const combatants = b.combatants.map((c) =>
-      c.kind === 'hero'
+      c.kind === 'heros'
         ? blessuresSurLeProfil({ ...c, wounds: { ...c.wounds, current: 4 }, criticalWounds: 1,
             conditions: [{ id: 'hemorragique', value: 2 }, { id: 'surpris', value: 1 }] })
         : { ...c, dead: true },
     );
-    const heroId = combatants.find((c) => c.kind === 'hero')!.id;
-    const enemyIds = combatants.filter((c) => c.kind === 'enemy').map((c) => c.id);
+    const heroId = combatants.find((c) => c.kind === 'heros')!.id;
+    const enemyIds = combatants.filter((c) => c.kind === 'ennemi').map((c) => c.id);
     // Ordre = ennemis puis héros ; on se place juste AVANT le héros pour que le prochain tour soit le sien
     // (évite un franchissement de Round, donc pas de tick Hémorragique pendant le test).
     const order = [...enemyIds, heroId];
@@ -158,13 +158,13 @@ describe('Boucle de jeu (store)', () => {
     seedBattleRng(424242); // table des Critiques déterministe (branche « Subir »)
     const chars = { 'capacite-de-combat': 40, 'capacite-de-tir': 30, force: 40, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
     const enemy = combattantDeTest({
-      id: 'e1', label: 'Brute', kind: 'enemy', characteristics: chars, wounds: blessuresDeBase(20),
+      id: 'e1', label: 'Brute', kind: 'ennemi', characteristics: chars, wounds: blessuresDeBase(20),
       advantage: 0, conditions: [], movement: 4, skills: [], talents: [], engagedWith: [], pos: { x: 1, y: 0 },
       size: 'moyenne', weapons: [{ label: 'Gourdin', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [] }],
       armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, items: [],
     });
     const hero = combattantDeTest({
-      id: 'h1', label: 'Hardi', kind: 'hero', characteristics: chars, wounds: blessuresDeBase(15),
+      id: 'h1', label: 'Hardi', kind: 'heros', characteristics: chars, wounds: blessuresDeBase(15),
       advantage: 0, conditions: [], movement: 4, skills: [], talents: [], engagedWith: [], pos: { x: 0, y: 0 },
       size: 'moyenne', weapons: [], items: [], criticalWounds: 0, fate: 0,
       armour: { tete: 0, brasG: 0, brasD: 0, corps: 3, jambeG: 0, jambeD: 0 },
@@ -241,12 +241,12 @@ describe('Boucle de jeu (store)', () => {
     seedBattleRng(20260615);
     const chars = { 'capacite-de-combat': 45, 'capacite-de-tir': 30, force: 40, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
     const hero = combattantDeTest({
-      id: 'h1', label: 'Hardi', kind: 'hero', characteristics: chars, wounds: blessuresDeBase(15),
+      id: 'h1', label: 'Hardi', kind: 'heros', characteristics: chars, wounds: blessuresDeBase(15),
       advantage: 0, conditions: [], movement: 4, skills: [], talents: [], engagedWith: [], pos: { x: 0, y: 0 },
       size: 'moyenne', weapons: [{ label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [] }], items: [], fate: 0,
     });
     const enemy = combattantDeTest({
-      id: 'e1', label: 'Brute', kind: 'enemy', important: true, characteristics: chars, wounds: blessuresDeBase(40),
+      id: 'e1', label: 'Brute', kind: 'ennemi', important: true, characteristics: chars, wounds: blessuresDeBase(40),
       advantage: 0, conditions: [], movement: 4, skills: [], talents: [], engagedWith: [], pos: { x: 1, y: 0 },
       size: 'moyenne', weapons: [{ label: 'Gourdin', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [] }],
       armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, items: [], criticalWounds: 0,
@@ -284,7 +284,7 @@ describe('Boucle de jeu (store)', () => {
   it('Effect.test : outil résolu par trappingId (id catalogue) vers pendingTest.itemUid', () => {
     const chars = { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 55, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
     const hero = combattantDeTest(blessuresSurLeProfil({
-      id: 'h1', label: 'Lest', kind: 'hero', characteristics: chars, wounds: blessuresDeBase(10),
+      id: 'h1', label: 'Lest', kind: 'heros', characteristics: chars, wounds: blessuresDeBase(10),
       advantage: 0, conditions: [], movement: 4, skills: [], talents: [],
       armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
       // tool = 'marteau' (id catalogue) ; l'item porte trappingId: 'marteau' → match par id
@@ -300,7 +300,7 @@ describe('Boucle de jeu (store)', () => {
   it('Effect.test : outil résolu par trappingId (2e objet catalogue, id ≠ label)', () => {
     const chars = { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 55, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
     const hero = combattantDeTest(blessuresSurLeProfil({
-      id: 'h1', label: 'Lest', kind: 'hero', characteristics: chars, wounds: blessuresDeBase(10),
+      id: 'h1', label: 'Lest', kind: 'heros', characteristics: chars, wounds: blessuresDeBase(10),
       advantage: 0, conditions: [], movement: 4, skills: [], talents: [],
       armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
       // tool = 'outils-de-crochetage' (id catalogue) ; l'item porte trappingId → match par id, ≠ label 'Rossignols'
@@ -313,7 +313,7 @@ describe('Boucle de jeu (store)', () => {
 
   it('jetLancer@test peuple pendingTest.isDouble (booléen, pour la casse Bâclé)', () => {
     const hero = combattantDeTest({
-      id: 'h1', label: 'Lest', kind: 'hero',
+      id: 'h1', label: 'Lest', kind: 'heros',
       characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 50, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
       wounds: blessuresDeBase(10), advantage: 0, conditions: [], movement: 4, skills: [], talents: [],
       armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, items: [],
@@ -333,7 +333,7 @@ describe('Boucle de jeu (store)', () => {
   // jetValider('test') avec outil : pendingTest injecté à la main (RNG hors combat non seedable → déterministe).
   function mkToolTest(quality: string, over: Partial<import('../noyau/pendings').PendingTest>): Combatant {
     const hero = combattantDeTest({
-      id: 'h1', label: 'Lest', kind: 'hero',
+      id: 'h1', label: 'Lest', kind: 'heros',
       characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 50, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
       wounds: blessuresDeBase(10), advantage: 0, conditions: [], movement: 4, skills: [], talents: [],
       armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
@@ -392,7 +392,7 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
-    const h = banc.getState().battle!.combatants.find((c) => c.kind === 'hero')!;
+    const h = banc.getState().battle!.combatants.find((c) => c.kind === 'heros')!;
     expect(h.conditions.find((x) => x.id === 'hemorragique')?.value).toBe(1); // persistant ré-importé
     expect(h.conditions.some((x) => x.id === 'a-terre')).toBe(false);          // transitoire ignoré
   });
@@ -405,7 +405,7 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
-    const heroes = banc.getState().battle!.combatants.filter((c) => c.kind === 'hero');
+    const heroes = banc.getState().battle!.combatants.filter((c) => c.kind === 'heros');
     expect(heroes.length).toBe(1);
     expect(heroes[0].label).toBe('A');
   });
@@ -418,7 +418,7 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const h = b.combatants.find((c) => c.kind === 'hero')!;
+    const h = b.combatants.find((c) => c.kind === 'heros')!;
     h.wounds.current = 10;
     banc.setState({ battle: { ...b }, pendingCascade: cascadeDeTest([{ id: `cons-maladresse-${h.id}`, kind: 'jetDeMaladresse', jet: 'maladresse', actorId: h.id, maladresse: { weapon: h.weapons[0], result: { roll: 11, kind: 'selfWound', label: 'x' } } }], { title: '', purpose: 'combat' }) });
     banc.getState().jetValider('maladresse');
@@ -435,7 +435,7 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const h = b.combatants.find((c) => c.kind === 'hero')!;
+    const h = b.combatants.find((c) => c.kind === 'heros')!;
     banc.setState({ battle: { ...b }, pendingCascade: cascadeDeTest([{ id: `cons-maladresse-${h.id}`, kind: 'jetDeMaladresse', jet: 'maladresse', actorId: h.id, maladresse: { weapon: h.weapons[0], result: { roll: 85, kind: 'trauma', label: 'x' } } }], { title: '', purpose: 'combat' }) });
     banc.getState().jetValider('maladresse');
     const after = banc.getState().battle!.combatants.find((c) => c.id === h.id)!;
@@ -451,9 +451,9 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const h = b.combatants.find((c) => c.kind === 'hero')!;
+    const h = b.combatants.find((c) => c.kind === 'heros')!;
     h.loseNextAction = true;
-    const enemyIds = b.combatants.filter((c) => c.kind === 'enemy').map((c) => c.id);
+    const enemyIds = b.combatants.filter((c) => c.kind === 'ennemi').map((c) => c.id);
     const order = [...enemyIds, h.id]; // héros en dernier
     banc.setState({ battle: { ...b, order, turn: order.length - 2 } }); // tour juste avant le héros
     advanceTurn(banc.getState, banc.setState); // → advanceTurn → héros : Action perdue consommée
@@ -471,8 +471,8 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const h = b.combatants.find((c) => c.kind === 'hero')!;
-    const e = b.combatants.find((c) => c.kind === 'enemy')!;
+    const h = b.combatants.find((c) => c.kind === 'heros')!;
+    const e = b.combatants.find((c) => c.kind === 'ennemi')!;
     // Résultat d'un Test opposé où la DÉFENSE du héros est ratée sur un double (33).
     const result = {
       hit: false, attackerRoll: 50, netSL: 0, critical: false, advantageTo: null, defenderDefeated: false,
@@ -519,8 +519,8 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
-    const h = b.combatants.find((c) => c.kind === 'hero')!;
-    const e = b.combatants.find((c) => c.kind === 'enemy')!;
+    const h = b.combatants.find((c) => c.kind === 'heros')!;
+    const e = b.combatants.find((c) => c.kind === 'ennemi')!;
     const result = {
       hit: true, attackerRoll: 12, netSL: 4, location: 'corps', critLocation: 'corps', damage: 8, woundsLost: 3,
       critical: true, advantageTo: null, defenderDefeated: false, log: 'Coup Critique (corps)',
@@ -552,7 +552,7 @@ describe('Boucle de jeu (store)', () => {
     banc.abandonner();
     const b = banc.getState().battle!;
     b.combatants.forEach((c) => { c.fortune = 0; }); // neutralise la pré-emption Chance
-    const h = b.combatants.find((c) => c.kind === 'hero')!;
+    const h = b.combatants.find((c) => c.kind === 'heros')!;
     h.actLastNextRound = true;
     const base = [...(b.baseOrder ?? b.order)];
     banc.setState({ battle: { ...b, turn: b.order.length - 1 } }); // au dernier tour → prochain endTurn franchit le Round
@@ -578,7 +578,7 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     let b = banc.getState().battle!;
-    const h = b.combatants.find((c) => c.kind === 'hero')!;
+    const h = b.combatants.find((c) => c.kind === 'heros')!;
     // L'arme tenue = l'ItemInstance source d'un Weapon actif (loadout).
     const witem = h.items!.find((i) => (i.kind === 'melee' || i.kind === 'distance') && h.weapons.some((w) => w.uid === i.uid))!;
     const weapon = h.weapons.find((w) => w.uid === witem.uid) ?? h.weapons[0];
@@ -589,8 +589,8 @@ describe('Boucle de jeu (store)', () => {
     expect(hMid.items!.find((i) => i.label === witem.label)!.damageTaken).toBe(1);
     // (2) Fin de combat (victoire) → writeback vers le groupe.
     b = banc.getState().battle!;
-    const combatants = b.combatants.map((c) => (c.kind === 'hero' ? c : { ...c, dead: true }));
-    const order = [...combatants.filter((c) => c.kind === 'enemy').map((c) => c.id), h.id];
+    const combatants = b.combatants.map((c) => (c.kind === 'heros' ? c : { ...c, dead: true }));
+    const order = [...combatants.filter((c) => c.kind === 'ennemi').map((c) => c.id), h.id];
     banc.setState({ battle: { ...b, combatants, order, turn: order.length - 2 } });
     advanceTurn(banc.getState, banc.setState);
     drainCombatEndCascade(); // mutants Corrompus → cascade de fin de combat AVANT victoire
@@ -600,7 +600,7 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
-    const h2 = banc.getState().battle!.combatants.find((c) => c.kind === 'hero')!;
+    const h2 = banc.getState().battle!.combatants.find((c) => c.kind === 'heros')!;
     expect(h2.items!.find((i) => i.label === witem.label)!.damageTaken).toBe(1);
   });
 
@@ -613,8 +613,8 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('debutDuRound');
     let st = banc.getState();
-    const heroC = st.battle!.combatants.find((c) => c.kind === 'hero')!;
-    const enemy = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
+    const heroC = st.battle!.combatants.find((c) => c.kind === 'heros')!;
+    const enemy = st.battle!.combatants.find((c) => c.kind === 'ennemi')!;
     const turn = st.battle!.order.indexOf(heroC.id);
     banc.setState({ battle: { ...st.battle!, turn, action: 'incantation', selectedSpellId: 'flechette', acted: false } });
     // Flux par modale : cliquer la cible OUVRE l'incantation (jet différé), n'applique rien.
@@ -646,7 +646,7 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('debutDuRound');
     let st = banc.getState();
-    const heroC = st.battle!.combatants.find((c) => c.kind === 'hero')!;
+    const heroC = st.battle!.combatants.find((c) => c.kind === 'heros')!;
     const turn = st.battle!.order.indexOf(heroC.id);
     banc.setState({ battle: { ...st.battle!, turn, action: 'incantation', selectedSpellId: 'benediction-de-bataille', acted: false } });
     cliquerSurLeCombattant(banc.getState, heroC.id); // se cibler soi-même → ouvre la modale
@@ -670,8 +670,8 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('debutDuRound');
     let st = banc.getState();
-    const heroC = st.battle!.combatants.find((c) => c.kind === 'hero')!;
-    const enemy = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
+    const heroC = st.battle!.combatants.find((c) => c.kind === 'heros')!;
+    const enemy = st.battle!.combatants.find((c) => c.kind === 'ennemi')!;
     // Forcer l'adjacence et le tour du héros.
     heroC.pos = { x: enemy.pos!.x - 1, y: enemy.pos!.y };
     const order = st.battle!.order;
@@ -732,8 +732,8 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('debutDuRound');
     let st = banc.getState();
-    const heroC = st.battle!.combatants.find((c) => c.kind === 'hero')!;
-    const enemy = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
+    const heroC = st.battle!.combatants.find((c) => c.kind === 'heros')!;
+    const enemy = st.battle!.combatants.find((c) => c.kind === 'ennemi')!;
     enemy.conditions.push({ id: 'sonne', value: 1 });
     heroC.advantage = 0;
     heroC.pos = { x: enemy.pos!.x - 1, y: enemy.pos!.y }; // adjacent
@@ -754,8 +754,8 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('debutDuRound');
     const st = banc.getState();
-    const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
-    const E = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
+    const H = st.battle!.combatants.find((c) => c.kind === 'heros')!;
+    const E = st.battle!.combatants.find((c) => c.kind === 'ennemi')!;
     H.fortune = 2;
     banc.setState({
       pendingDefense: {
@@ -795,10 +795,10 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner(); // purge le timer d'IA armé par lancerLeCombat → on pilote nous-mêmes l'ordre du tour
     let st = banc.getState();
-    const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
-    const E = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
+    const H = st.battle!.combatants.find((c) => c.kind === 'heros')!;
+    const E = st.battle!.combatants.find((c) => c.kind === 'ennemi')!;
     E.pos = { x: H.pos!.x + 1, y: H.pos!.y }; // adjacent au héros
-    for (const c of st.battle!.combatants) if (c.kind === 'enemy' && c.id !== E.id) c.dead = true; // un seul ennemi vivant
+    for (const c of st.battle!.combatants) if (c.kind === 'ennemi' && c.id !== E.id) c.dead = true; // un seul ennemi vivant
     banc.setState({
       battle: { ...st.battle!, order: [H.id, E.id], turn: 0, action: null, movementUsed: 0, movedPreAction: false, acted: false },
       pendingDefense: null,
@@ -822,13 +822,13 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     let st = banc.getState();
-    const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
-    const E = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
+    const H = st.battle!.combatants.find((c) => c.kind === 'heros')!;
+    const E = st.battle!.combatants.find((c) => c.kind === 'ennemi')!;
     E.pos = { x: H.pos!.x + 1, y: H.pos!.y };
-    for (const c of st.battle!.combatants) if (c.kind === 'enemy' && c.id !== E.id) c.dead = true;
+    for (const c of st.battle!.combatants) if (c.kind === 'ennemi' && c.id !== E.id) c.dead = true;
     // Monture GRANDE sous l'ennemi (Moyenne) : le cavalier frappe le héros (Moyenne < Grande) à +20.
     const horse = combattantDeTest({
-      id: 'horse-test', label: 'Cheval (test)', kind: 'enemy', size: 'grande', movement: 8,
+      id: 'horse-test', label: 'Cheval (test)', kind: 'ennemi', size: 'grande', movement: 8,
       characteristics: { ...E.characteristics }, talents: [], items: [], weapons: [],
       wounds: blessuresDeBase(10), conditions: [], pos: { ...E.pos! },
     });
@@ -855,9 +855,9 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('debutDuRound');
     const st = banc.getState();
-    const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
+    const H = st.battle!.combatants.find((c) => c.kind === 'heros')!;
     H.conditions.push({ id: 'sonne', value: 1 });
-    const E = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
+    const E = st.battle!.combatants.find((c) => c.kind === 'ennemi')!;
     E.pos = { x: H.pos!.x + 1, y: H.pos!.y }; // adjacent : seul le Sonné bloque l'attaque
     const turn = st.battle!.order.indexOf(H.id);
     banc.setState({ battle: { ...st.battle!, turn, action: null, movementUsed: 0, movedPreAction: false, acted: false } });
@@ -875,11 +875,11 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner(); // purge le timer d'IA armé par lancerLeCombat → on pilote nous-mêmes l'ordre du tour
     let st = banc.getState();
-    const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
-    const E = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
+    const H = st.battle!.combatants.find((c) => c.kind === 'heros')!;
+    const E = st.battle!.combatants.find((c) => c.kind === 'ennemi')!;
     E.pos = { x: H.pos!.x + 1, y: H.pos!.y }; // adjacent
     E.conditions.push({ id: 'sonne', value: 1 }); // l'ennemi est Sonné
-    for (const c of st.battle!.combatants) if (c.kind === 'enemy' && c.id !== E.id) c.dead = true;
+    for (const c of st.battle!.combatants) if (c.kind === 'ennemi' && c.id !== E.id) c.dead = true;
     const woundsBefore = H.wounds.current;
     banc.setState({
       battle: { ...st.battle!, order: [H.id, E.id], turn: 0, action: null, movementUsed: 0, movedPreAction: false, acted: false },
@@ -904,8 +904,8 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('debutDuRound');
     let st = banc.getState();
-    const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
-    const E = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
+    const H = st.battle!.combatants.find((c) => c.kind === 'heros')!;
+    const E = st.battle!.combatants.find((c) => c.kind === 'ennemi')!;
     E.wounds = blessuresDeBase(99, 99, E); // survit à la touche → le lien d'engagement reste observable
     H.pos = { x: E.pos!.x - 1, y: E.pos!.y };
     const turn = st.battle!.order.indexOf(H.id);
@@ -927,12 +927,12 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     let st = banc.getState();
-    const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
-    const E = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
+    const H = st.battle!.combatants.find((c) => c.kind === 'heros')!;
+    const E = st.battle!.combatants.find((c) => c.kind === 'ennemi')!;
     H.pos = { x: 6, y: 10 };
     H.advantage = 0;
     E.pos = { x: 8, y: 10 }; // 2 cases à l'est, couloir libre
-    for (const c of st.battle!.combatants) if (c.kind === 'enemy' && c.id !== E.id) c.dead = true;
+    for (const c of st.battle!.combatants) if (c.kind === 'ennemi' && c.id !== E.id) c.dead = true;
     const turn = st.battle!.order.indexOf(H.id);
     banc.setState({ battle: { ...st.battle!, turn, action: null, movementUsed: 0, movedPreAction: false, acted: false } });
     banc.abandonner();
@@ -953,8 +953,8 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('debutDuRound');
     let st = banc.getState();
-    const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
-    const E = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
+    const H = st.battle!.combatants.find((c) => c.kind === 'heros')!;
+    const E = st.battle!.combatants.find((c) => c.kind === 'ennemi')!;
     H.pos = { x: 6, y: 10 };
     H.advantage = 0;
     H.engagedWith = [E.id];
@@ -976,8 +976,8 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('debutDuRound');
     const st = banc.getState();
-    const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
-    const E = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
+    const H = st.battle!.combatants.find((c) => c.kind === 'heros')!;
+    const E = st.battle!.combatants.find((c) => c.kind === 'ennemi')!;
     banc.setState({ pendingAttack: { attackerId: H.id, targetId: E.id, location: null, result: { hit: false } as never, fromCharge: true } });
     banc.getState().jetAnnuler('attaque');
     expect(banc.getState().pendingAttack).not.toBeNull(); // dé lancé → engagé
@@ -991,8 +991,8 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     let st = banc.getState();
-    const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
-    const enemies = st.battle!.combatants.filter((c) => c.kind === 'enemy');
+    const H = st.battle!.combatants.find((c) => c.kind === 'heros')!;
+    const enemies = st.battle!.combatants.filter((c) => c.kind === 'ennemi');
     const mount = enemies[0];
     const rider = enemies[1];
     H.pos = { x: 6, y: 10 };
@@ -1025,8 +1025,8 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('debutDuRound');
     let st = banc.getState();
-    const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
-    const E = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
+    const H = st.battle!.combatants.find((c) => c.kind === 'heros')!;
+    const E = st.battle!.combatants.find((c) => c.kind === 'ennemi')!;
     H.engagedWith = [E.id];
     E.engagedWith = [H.id];
     H.advantage = 2;
@@ -1053,8 +1053,8 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('debutDuRound');
     let st = banc.getState();
-    const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
-    const E = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
+    const H = st.battle!.combatants.find((c) => c.kind === 'heros')!;
+    const E = st.battle!.combatants.find((c) => c.kind === 'ennemi')!;
     H.engagedWith = [E.id];
     E.engagedWith = [H.id];
     const turn = st.battle!.order.indexOf(H.id);
@@ -1086,8 +1086,8 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('debutDuRound');
     let st = banc.getState();
-    const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
-    const E = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
+    const H = st.battle!.combatants.find((c) => c.kind === 'heros')!;
+    const E = st.battle!.combatants.find((c) => c.kind === 'ennemi')!;
     H.engagedWith = [E.id];
     E.engagedWith = [H.id];
     H.advantage = 0;
@@ -1121,8 +1121,8 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('debutDuRound');
     const st = banc.getState();
-    const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
-    const E = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
+    const H = st.battle!.combatants.find((c) => c.kind === 'heros')!;
+    const E = st.battle!.combatants.find((c) => c.kind === 'ennemi')!;
     H.fortune = 2;
     banc.setState({
       pendingDisengage: {
@@ -1149,8 +1149,8 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('debutDuRound');
     let st = banc.getState();
-    const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
-    const E = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
+    const H = st.battle!.combatants.find((c) => c.kind === 'heros')!;
+    const E = st.battle!.combatants.find((c) => c.kind === 'ennemi')!;
     H.engagedWith = [E.id];
     E.engagedWith = [H.id];
     H.advantage = 0;
@@ -1170,8 +1170,8 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('debutDuRound');
     let st = banc.getState();
-    const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
-    const E = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
+    const H = st.battle!.combatants.find((c) => c.kind === 'heros')!;
+    const E = st.battle!.combatants.find((c) => c.kind === 'ennemi')!;
     H.engagedWith = [E.id];
     E.engagedWith = [H.id];
     const turn = st.battle!.order.indexOf(H.id);
@@ -1202,8 +1202,8 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('debutDuRound');
     let st = banc.getState();
-    const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
-    const enemies = st.battle!.combatants.filter((c) => c.kind === 'enemy');
+    const H = st.battle!.combatants.find((c) => c.kind === 'heros')!;
+    const enemies = st.battle!.combatants.filter((c) => c.kind === 'ennemi');
     const [E1, E2] = enemies;
     H.engagedWith = [E1.id, E2.id];
     E1.engagedWith = [H.id];
@@ -1233,8 +1233,8 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('debutDuRound');
     let st = banc.getState();
-    const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
-    const E = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
+    const H = st.battle!.combatants.find((c) => c.kind === 'heros')!;
+    const E = st.battle!.combatants.find((c) => c.kind === 'ennemi')!;
     H.engagedWith = [E.id];
     E.engagedWith = [H.id];
     const turn = st.battle!.order.indexOf(H.id);
@@ -1257,8 +1257,8 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('debutDuRound');
     let st = banc.getState();
-    const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
-    const E = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
+    const H = st.battle!.combatants.find((c) => c.kind === 'heros')!;
+    const E = st.battle!.combatants.find((c) => c.kind === 'ennemi')!;
     H.engagedWith = [E.id];
     E.engagedWith = [H.id];
     E.characteristics['capacite-de-combat'] = 90; // le coup dans le dos (+20) touche à coup sûr → Test `fuite`
@@ -1302,8 +1302,8 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('debutDuRound');
     let st = banc.getState();
-    const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
-    const E = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
+    const H = st.battle!.combatants.find((c) => c.kind === 'heros')!;
+    const E = st.battle!.combatants.find((c) => c.kind === 'ennemi')!;
     H.pos = { x: E.pos!.x - 1, y: E.pos!.y - 1 }; // DIAGONALE : Chebyshev 1, mais manhattan 2
     const turn = st.battle!.order.indexOf(H.id);
     banc.setState({ battle: { ...st.battle!, turn, action: null, movementUsed: 99, movedPreAction: false, acted: false } });
@@ -1321,7 +1321,7 @@ describe('Avancement par PX (store) — câblage moteur', () => {
     combattantDeTest({
       id: 'h',
       label: 'H',
-      kind: 'hero',
+      kind: 'heros',
       species: 'humains-reiklander',
       career: 'agitateur', // Niveau 1 « Pamphlétaire » : caracs CT/Int/Soc, comp. Charme/Ragot, talent Sociable
       careerLevel: 1,
@@ -1608,7 +1608,7 @@ describe('Fouille / butin par objet cherchable (store)', () => {
       combattantDeTest({
         id: 'a',
         label: 'A',
-        kind: 'hero',
+        kind: 'heros',
         characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
         wounds: blessuresDeBase(12),
         advantage: 0,
@@ -1846,7 +1846,7 @@ describe('Déplacement-puis-fouille (move-to-interact, P5)', () => {
 describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation', () => {
   beforeEach(() => reset());
   const looter = (over: Partial<Combatant> = {}): Combatant =>
-    combattantDeTest({ id: 'a', label: 'A', kind: 'hero', xp: 0, wounds: blessuresDeBase(12), conditions: [],
+    combattantDeTest({ id: 'a', label: 'A', kind: 'heros', xp: 0, wounds: blessuresDeBase(12), conditions: [],
       characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 40, agilite: 30, dexterite: 30, intelligence: 40, 'force-mentale': 30, sociabilite: 30 },
       weapons: [], items: [], skills: [{ id: 'evaluation', characteristic: 'intelligence', advances: 5 }], talents: [], movement: 4, ...over });
 
@@ -2005,7 +2005,7 @@ describe('Utiliser un consommable en combat (store) — Action gratuite, LDB 13 
     combattantDeTest({
       id: 'h',
       label: 'H',
-      kind: 'hero',
+      kind: 'heros',
       characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 35, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 }, // BE = 3
       wounds: blessuresDeBase(12, 5),
       advantage: 0,
@@ -2334,7 +2334,7 @@ describe('Chance — 3e usage : pré-emption d’initiative en début de Round (
     const E: Combatant = JSON.parse(JSON.stringify(H));
     E.id = 'enemy-0';
     E.label = 'Gobelin';
-    E.kind = 'enemy';
+    E.kind = 'ennemi';
     E.fortune = 0;
     E.pos = { x: 5, y: 5 };
     const battle: BattleState = {
@@ -2453,7 +2453,7 @@ describe('annulerLeDeplacement — annuler un déplacement décomposé tant qu�
     banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('debutDuRound');
     const st = banc.getState();
-    const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
+    const H = st.battle!.combatants.find((c) => c.kind === 'heros')!;
     const turn = st.battle!.order.indexOf(H.id);
     banc.setState({ battle: { ...st.battle!, turn, action: null, movementUsed: 0, movedPreAction: false, acted: false } });
     return H;
@@ -2502,7 +2502,7 @@ describe('Blessures critiques & mort en combat (LDB 18-Traumatisme)', () => {
     H.fortune = 0; // pas de pré-emption d'initiative dans ces tests
     Object.assign(H, blessuresSurLeProfil({ ...H, ...heroOver }));
     const E: Combatant = JSON.parse(JSON.stringify(H));
-    E.id = 'enemy-0'; E.label = 'Brigand'; E.kind = 'enemy'; E.fortune = 0; Object.assign(E, blessuresSurLeProfil({ ...E, ...enemyOver }));
+    E.id = 'enemy-0'; E.label = 'Brigand'; E.kind = 'ennemi'; E.fortune = 0; Object.assign(E, blessuresSurLeProfil({ ...E, ...enemyOver }));
     const battle: BattleState = {
       combatants: [H, E], order: [H.id, E.id], turn: 0, round: 1, action: null, selectedSpellId: null,
       reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
@@ -2545,7 +2545,7 @@ describe('Destin sacrifié (LDB 17 l.29-32)', () => {
     const H = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 3 });
     H.fortune = 0; H.fate = 1; Object.assign(H, blessuresSurLeProfil({ ...H, ...heroOver }));
     const E: Combatant = JSON.parse(JSON.stringify(H));
-    E.id = 'enemy-0'; E.label = 'Brigand'; E.kind = 'enemy'; E.fortune = 0; E.fate = 0;
+    E.id = 'enemy-0'; E.label = 'Brigand'; E.kind = 'ennemi'; E.fortune = 0; E.fate = 0;
     const battle: BattleState = {
       combatants: [H, E], order: [E.id, H.id], turn: 1, round: 1, action: null, selectedSpellId: null,
       reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
@@ -2629,7 +2629,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     const E: Combatant = JSON.parse(JSON.stringify(H));
     E.id = 'enemy-0';
     E.label = 'Cible';
-    E.kind = 'enemy';
+    E.kind = 'ennemi';
     E.pos = { x: 4, y: 0 };
     E.items = [];
     E.weapons = [{ label: 'Mains nues', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [] }];
@@ -3503,7 +3503,7 @@ describe('Marchand — ouvrirLeMarchand / achat et vente au panier (#2)', () => 
     expect(buyAt(1.5)).toBeGreaterThan(buyAt(1)); // +50 % → coûte plus cher
   });
 
-  const appraiser = (): Combatant => combattantDeTest({ id: 'h', label: 'H', kind: 'hero', characteristics: { intelligence: 30 }, skills: [{ id: 'evaluation', characteristic: 'intelligence', advances: 10 }], talents: [], items: [{ uid: 'm', label: 'Épée', kind: 'melee', qualities: [{ id: 'de-plaies-atroces' }], enc: 1, equipped: false, identified: false }], wounds: blessuresDeBase(10), conditions: [], weapons: [] });
+  const appraiser = (): Combatant => combattantDeTest({ id: 'h', label: 'H', kind: 'heros', characteristics: { intelligence: 30 }, skills: [{ id: 'evaluation', characteristic: 'intelligence', advances: 10 }], talents: [], items: [{ uid: 'm', label: 'Épée', kind: 'melee', qualities: [{ id: 'de-plaies-atroces' }], enc: 1, equipped: false, identified: false }], wounds: blessuresDeBase(10), conditions: [], weapons: [] });
 
   it('evaluerLObjet : crée un pendingAppraise sur l’objet non identifié (#2e)', () => {
     banc.setState({ party: [appraiser()], scene: merchantScene() });

@@ -29,17 +29,17 @@ const mkPoste = (ammo: ItemInstance[], ammoUid?: string): ShipPoste =>
       damage: { flat: 14, plusBF: false }, range: 75, qualities: [{ id: 'arme-d-equipe', value: 2 }, { id: 'recharge', value: 6 }] },
     crewIds: ['chef', 'aide'], ammo, ammoUid }) as unknown as ShipPoste;
 const mkCrew = (id: string, items: ItemInstance[] = []): Combatant =>
-  (blessuresSurLeProfil({ id, name: id, kind: 'hero', characteristics: { ...chars },
+  (blessuresSurLeProfil({ id, name: id, kind: 'heros', characteristics: { ...chars },
     wounds: blessuresDeBase(12), advantage: 0, conditions: [], items,
     skills: [{ id: 'projectiles', spec: 'poudre-noire', characteristic: 'capacite-de-tir', advances: 20 }], talents: [], weapons: [],
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4, pos: { x: 5, y: 5 } })) as unknown as Combatant;
 const mkHull = (poste: ShipPoste): Combatant =>
-  (blessuresSurLeProfil({ id: 'ship', label: 'Frégate', kind: 'hero', bodyShape: 'vehicule', creatureId: 'cogue', crewIds: ['chef', 'aide'],
+  (blessuresSurLeProfil({ id: 'ship', label: 'Frégate', kind: 'heros', bodyShape: 'vehicule', creatureId: 'cogue', crewIds: ['chef', 'aide'],
     postes: [poste], pos: { x: 5, y: 5 }, conditions: [], weapons: [],
     characteristics: { 'capacite-de-combat': 0, 'capacite-de-tir': 0, force: 0, endurance: 40, initiative: 0, agilite: 0, dexterite: 0, intelligence: 0, 'force-mentale': 0, sociabilite: 0 },
     wounds: blessuresDeBase(60), advantage: 0, skills: [], talents: [], armour: { corps: 0 } })) as unknown as Combatant;
 const foeHull = (): Combatant =>
-  (blessuresSurLeProfil({ id: 'target', label: 'Caraque', kind: 'enemy', bodyShape: 'vehicule', creatureId: 'knarr', pos: { x: 9, y: 5 },
+  (blessuresSurLeProfil({ id: 'target', label: 'Caraque', kind: 'ennemi', bodyShape: 'vehicule', creatureId: 'knarr', pos: { x: 9, y: 5 },
     characteristics: { 'capacite-de-combat': 0, 'capacite-de-tir': 0, force: 0, endurance: 40, initiative: 0, agilite: 0, dexterite: 0, intelligence: 0, 'force-mentale': 0, sociabilite: 0 },
     wounds: blessuresDeBase(60), advantage: 0, conditions: [], weapons: [], skills: [], talents: [], armour: { corps: 0 }, crewIds: [] })) as unknown as Combatant;
 

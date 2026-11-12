@@ -18,7 +18,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTes
  *      fondu ET redéclaré) est REFUSÉE au lieu de produire une ligne cohérente et fausse.
  */
 const hero = (over: Partial<Combatant> = {}, adv = 10, skillId = 'ramer'): Combatant => (blessuresSurLeProfil({
-  id: 'h1', label: 'Barreur', kind: 'hero',
+  id: 'h1', label: 'Barreur', kind: 'heros',
   characteristics: {
     'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30,
     agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30,

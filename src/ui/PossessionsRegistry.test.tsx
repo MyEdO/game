@@ -12,7 +12,7 @@ const hero = (id: string): Combatant =>
   (blessuresSurLeProfil({
     id,
     label: 'H',
-    kind: 'hero',
+    kind: 'heros',
     species: 'humains-reiklander',
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(12),

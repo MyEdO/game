@@ -11,7 +11,7 @@ const mk = (_over: Partial<Combatant> = {}): Combatant =>
   (blessuresSurLeProfil({
     id: 'c',
     name: 'C',
-    kind: 'enemy',
+    kind: 'ennemi',
     characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 35, endurance: 35, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(12),
     advantage: 0,

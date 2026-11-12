@@ -16,7 +16,7 @@ import { blessuresSurLeProfil, blessuresDeBase, profilDeTest } from '../engine/c
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 const HERO = blessuresSurLeProfil({
-  id: 'H', name: 'H', label: 'Héros', kind: 'hero', fate: 2,
+  id: 'H', name: 'H', label: 'Héros', kind: 'heros', fate: 2,
   characteristics: profilDeTest({ endurance: 40 }), wounds: blessuresDeBase(12, 0), advantage: 0,
   conditions: [], traumas: [], resilience: 2, fortune: 0, weapons: [], items: [],
   armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },

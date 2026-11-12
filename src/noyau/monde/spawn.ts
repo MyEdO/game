@@ -316,7 +316,7 @@ export function creatureToCombatant(creature: CreatureData, id: string, pos?: { 
     id,
     label: creature.label,
     creatureId: creature.id, // identité bestiaire STABLE, résolue par id (jamais par `name`)
-    kind: 'enemy',
+    kind: 'ennemi',
     ...(optTraits.length ? { liveTraits: optTraits } : {}), // charMods/Mouvement des facultatifs appliqués en direct
     ...(creature.appearance?.species ? { species: creature.appearance.species } : {}), // espèce du record (P2)
     characteristics: chars,
@@ -373,7 +373,7 @@ export function statblockToCombatant(sb: CustomStatblock, id: string, pos?: { x:
   const sansBlessures: Omit<Combatant, 'wounds'> = {
     id,
     label: sb.label,
-    kind: 'enemy',
+    kind: 'ennemi',
     ...(traits.length ? { liveTraits: [...traits] } : {}), // statbloc d'éditeur : tous les traits en direct
     characteristics: chars,
     advantage: 0,
@@ -415,18 +415,18 @@ export class RefIrresoluble extends Error {
  *  (`porterAuParcours`), sa coque, son engin ; lève `RefIrresoluble` hors de son catalogue. */
 function ficheDuCorps(porteur: Extract<PorteurDeFiche, { ref: string } | { vehicule: string } | { engin: string }>, id: string, pos?: { x: number; y: number; z?: number }, opts?: SpawnExtras): Combatant {
   if (porteur.vehicule !== undefined) {
-    // Coque/navire (`vehicles.json` → facette `hull`) comme Combattant à PV (MDG 13). 'enemy' pour être
+    // Coque/navire (`vehicles.json` → facette `hull`) comme Combattant à PV (MDG 13). 'ennemi' pour être
     // une cible ; inerte (pas d'arme/Mouvement, Psychologie ignorée) — sa destruction passe par ses Blessures.
     const coque = findVehicleById(porteur.vehicule);
     const c = coque && vehicleCombatant(coque, id);
     if (!c) throw new RefIrresoluble(porteur.vehicule, id);
-    return { ...c, kind: 'enemy', ...(pos ? { pos: { ...pos } } : {}) };
+    return { ...c, kind: 'ennemi', ...(pos ? { pos: { ...pos } } : {}) };
   }
   if (porteur.engin !== undefined) {
     // AA 10 l.175-193
     const t = findTrappingById(porteur.engin);
     if (!t) throw new RefIrresoluble(porteur.engin, id);
-    return { ...inanimateCombatant({ id, label: t.label, refId: porteur.engin, bodyShape: 'engin', inert: true, footprint: t.siegeFootprint }), kind: 'enemy', ...(pos ? { pos: { ...pos } } : {}) };
+    return { ...inanimateCombatant({ id, label: t.label, refId: porteur.engin, bodyShape: 'engin', inert: true, footprint: t.siegeFootprint }), kind: 'ennemi', ...(pos ? { pos: { ...pos } } : {}) };
   }
   const creature = findCreatureById(porteur.ref);
   if (!creature) throw new RefIrresoluble(porteur.ref, id);

@@ -16,7 +16,7 @@ const shooter = (over: Partial<Combatant> = {}): Combatant =>
   (blessuresSurLeProfil({
     id: 'A',
     name: 'Tireur',
-    kind: 'hero',
+    kind: 'heros',
     characteristics: { 'capacite-de-combat': 40, 'capacite-de-tir': 55, force: 30, endurance: 30, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     wounds: blessuresDeBase(12),
     advantage: 0,
@@ -31,7 +31,7 @@ const shooter = (over: Partial<Combatant> = {}): Combatant =>
   })) as unknown as Combatant;
 
 const target = (over: Partial<Combatant> = {}): Combatant =>
-  ({ ...shooter({ id: 'B', label: 'Cible', kind: 'enemy', weapons: [], pos: { x: 5, y: 0 } }), ...over }) as Combatant;
+  ({ ...shooter({ id: 'B', label: 'Cible', kind: 'ennemi', weapons: [], pos: { x: 5, y: 0 } }), ...over }) as Combatant;
 
 function scene(w: number, tiles?: Record<string, string>): Scene {
   const grid = new Array(w).fill('herbe');
@@ -137,7 +137,7 @@ describe('resolveAttack — Allonge en mêlée (RAW-3, LDB 62 l.163/164)', () =>
 
 describe('strayShotVictim — tir dévié vers un allié (LDB 14 l.116)', () => {
   const att = shooter();
-  const ally = { id: 'ALLY', kind: 'hero', wounds: { current: 10, max: 10 }, conditions: [] } as unknown as Combatant;
+  const ally = { id: 'ALLY', kind: 'heros', wounds: { current: 10, max: 10 }, conditions: [] } as unknown as Combatant;
   const tgt = target({ pos: { x: 6, y: 0 }, engagedWith: ['ALLY'] });
   const battle = { combatants: [att, tgt, ally] } as any;
   const miss = (roll: number, t: number) => ({ hit: false, attackerRoll: roll, attackerDetail: { target: t } }) as any;
@@ -146,7 +146,7 @@ describe('strayShotVictim — tir dévié vers un allié (LDB 14 l.116)', () => 
     expect(strayShotVictim(miss(40, 30), att, tgt, battle, makeRNG(1))?.id).toBe('ALLY'); // 40 ≤ 30+20
   });
   it('trois alliés Engagés : la victime est tirée au hasard, deux graines, deux victimes', () => {
-    const allie = (id: string) => ({ id, kind: 'hero', wounds: { current: 10, max: 10 }, conditions: [] }) as unknown as Combatant;
+    const allie = (id: string) => ({ id, kind: 'heros', wounds: { current: 10, max: 10 }, conditions: [] }) as unknown as Combatant;
     const trois = [allie('A1'), allie('A2'), allie('A3')];
     const cible = target({ pos: { x: 6, y: 0 }, engagedWith: ['A1', 'A2', 'A3'] });
     const b = { combatants: [att, cible, ...trois] } as any;

@@ -36,13 +36,13 @@ function caster(x: number, y: number, spellId: string, id = 'caster'): Combatant
   return h;
 }
 
-const mk = (id: string, kind: 'hero' | 'enemy', x: number, y: number, traits: { id: string }[] = []): Combatant =>
+const mk = (id: string, kind: 'heros' | 'ennemi', x: number, y: number, traits: { id: string }[] = []): Combatant =>
   (blessuresSurLeProfil({ id, label: id, name: id, kind, pos: { x, y, z: 0 }, wounds: blessuresDeBase(40), advantage: 0,
     characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, conditions: [], traits, talents: [], skills: [], weapons: [] })) as unknown as Combatant;
 // Ennemi hors ZdE, présent pour que le combat reste actif (une Victoire immédiate purgerait les
 // `activeEffects` de fin de combat, faussant la mesure).
-const distantFoe = (): Combatant => mk('FOE', 'enemy', 40, 40);
+const distantFoe = (): Combatant => mk('FOE', 'ennemi', 40, 40);
 
 function setupBattle(c: Combatant, others: Combatant[], spellId: string) {
   const battle = {
@@ -83,10 +83,10 @@ describe("castCommitZone — `affects` : qui la Zone d'Effet retient", () => {
     setDataset('spells', original);
   });
 
-  it("affects relation 'ally' : l'allié dans la zone reçoit l'effet, l'ennemi dans la zone ne reçoit rien", () => {
-    setTarget({ ...AREA, affects: { kind: 'relation', who: 'target', is: 'ally' } });
+  it("affects relation 'allie' : l'allié dans la zone reçoit l'effet, l'ennemi dans la zone ne reçoit rien", () => {
+    setTarget({ ...AREA, affects: { kind: 'relation', who: 'target', is: 'allie' } });
     const c = caster(5, 5, SPELL);
-    setupBattle(c, [mk('ALLIE', 'hero', 6, 5), mk('ENNEMI', 'enemy', 4, 5), distantFoe()], SPELL);
+    setupBattle(c, [mk('ALLIE', 'heros', 6, 5), mk('ENNEMI', 'ennemi', 4, 5), distantFoe()], SPELL);
     cast();
     expect(boosted('ALLIE')).toBe(true);
     expect(boosted('ENNEMI')).toBe(false);
@@ -95,7 +95,7 @@ describe("castCommitZone — `affects` : qui la Zone d'Effet retient", () => {
   it('sans affects : allié ET ennemi de la zone reçoivent l\'effet (LDB 47 l.28)', () => {
     setTarget({ ...AREA });
     const c = caster(5, 5, SPELL);
-    setupBattle(c, [mk('ALLIE', 'hero', 6, 5), mk('ENNEMI', 'enemy', 4, 5), distantFoe()], SPELL);
+    setupBattle(c, [mk('ALLIE', 'heros', 6, 5), mk('ENNEMI', 'ennemi', 4, 5), distantFoe()], SPELL);
     cast();
     expect(boosted('ALLIE')).toBe(true);
     expect(boosted('ENNEMI')).toBe(true);
@@ -103,9 +103,9 @@ describe("castCommitZone — `affects` : qui la Zone d'Effet retient", () => {
 
   it("affects camp 'party' + excludesCaster : l'allié reçoit, le lanceur non (les deux filtres se cumulent)", () => {
     // `party` retient TOUT héros — le lanceur compris ; seul `excludesCaster` l'écarte.
-    setTarget({ ...AREA, excludesCaster: true, affects: { kind: 'relation', who: 'target', is: 'party' } });
+    setTarget({ ...AREA, excludesCaster: true, affects: { kind: 'relation', who: 'target', is: 'groupe' } });
     const c = caster(5, 5, SPELL);
-    setupBattle(c, [mk('ALLIE', 'hero', 6, 5), mk('ENNEMI', 'enemy', 4, 5), distantFoe()], SPELL);
+    setupBattle(c, [mk('ALLIE', 'heros', 6, 5), mk('ENNEMI', 'ennemi', 4, 5), distantFoe()], SPELL);
     cast();
     expect(boosted('ALLIE')).toBe(true);
     expect(boosted('caster')).toBe(false);
@@ -115,19 +115,19 @@ describe("castCommitZone — `affects` : qui la Zone d'Effet retient", () => {
   it("affects has trait : seul le porteur du trait reçoit l'effet (forme non-camp — généralité du vocabulaire Condition)", () => {
     setTarget({ ...AREA, affects: { kind: 'has', who: 'target', what: 'trait', value: 'amphibie' } });
     const c = caster(5, 5, SPELL);
-    setupBattle(c, [mk('PORTEUR', 'hero', 6, 5, [{ id: 'amphibie' }]), mk('SANS-TRAIT', 'hero', 4, 5), distantFoe()], SPELL);
+    setupBattle(c, [mk('PORTEUR', 'heros', 6, 5, [{ id: 'amphibie' }]), mk('SANS-TRAIT', 'heros', 4, 5), distantFoe()], SPELL);
     cast();
     expect(boosted('PORTEUR')).toBe(true);
     expect(boosted('SANS-TRAIT')).toBe(false);
     expect(boosted('caster')).toBe(false);
   });
 
-  // CÂBLAGE sur la DONNÉE RÉELLE (aucun `setTarget` ici) : `any(self, ally)` est la seule forme du
+  // CÂBLAGE sur la DONNÉE RÉELLE (aucun `setTarget` ici) : `any(soi, allie)` est la seule forme du
   // catalogue qui retient le LANCEUR — VDM 11 l.351.
   it('les-lunes-du-chasseur (donnée RÉELLE) : lanceur ET allié boostés, ennemi non', () => {
-    expect(JSON.stringify(findSpellById('les-lunes-du-chasseur')!.target)).toContain('"is":"self"');
+    expect(JSON.stringify(findSpellById('les-lunes-du-chasseur')!.target)).toContain('"is":"soi"');
     const c = caster(5, 5, 'les-lunes-du-chasseur');
-    setupBattle(c, [mk('ALLIE', 'hero', 6, 5), mk('ENNEMI', 'enemy', 4, 5), distantFoe()], 'les-lunes-du-chasseur');
+    setupBattle(c, [mk('ALLIE', 'heros', 6, 5), mk('ENNEMI', 'ennemi', 4, 5), distantFoe()], 'les-lunes-du-chasseur');
     cast();
     expect(boosted('caster')).toBe(true);
     expect(boosted('ALLIE')).toBe(true);
