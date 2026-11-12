@@ -43,7 +43,7 @@ function ouvreParadeAuBouclier(seed: number): void {
   }) as unknown as Combatant;
   const battle = {
     combatants: [hero, orque], order: ['a1', 'd1'], baseOrder: ['a1', 'd1'], turn: 0, round: 1, action: null, selectedSpellId: null,
-    reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null, advantagePools: { allies: RESERVE, foes: 0 },
+    reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null, advantagePools: { allies: RESERVE, adversaires: 0 },
   } as unknown as BattleState;
   S({
     battle, mode: 'battle', scene: testScene(), party: [hero], pendingDefense: null, pendingAttack: null, pendingCascade: null,

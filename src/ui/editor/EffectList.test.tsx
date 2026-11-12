@@ -154,7 +154,7 @@ describe('#94 — Effets santé éditables (ambitionLost/inflictThirst/inflictPs
 
   it('inflictThirst : cible + jours (modèle inflictHunger)', () => {
     const html = renderToStaticMarkup(
-      <EffectList effects={[{ type: 'inflictThirst', days: 2, target: 'party' }]} onChange={() => {}} ctx={ctx} />,
+      <EffectList effects={[{ type: 'inflictThirst', days: 2, target: 'groupe' }]} onChange={() => {}} ctx={ctx} />,
     );
     expect(html).toMatch(/Jours assoiffés/);
     expect(html).toContain('Tout le groupe');
@@ -162,7 +162,7 @@ describe('#94 — Effets santé éditables (ambitionLost/inflictThirst/inflictPs
 
   it('inflictPsychology : kind/indice/label/cible rendus', () => {
     const html = renderToStaticMarkup(
-      <EffectList effects={[{ type: 'inflictPsychology', kind: 'terreur', indice: 2, label: 'Un spectre hurlant', target: 'party' }]} onChange={() => {}} ctx={ctx} />,
+      <EffectList effects={[{ type: 'inflictPsychology', kind: 'terreur', indice: 2, label: 'Un spectre hurlant', target: 'groupe' }]} onChange={() => {}} ctx={ctx} />,
     );
     expect(html).toContain('Terreur');
     expect(html).toMatch(/Indice/);
@@ -382,7 +382,7 @@ describe('#1874 C0 — cibles d’un Effet `ops` : la table vient de la racine',
     return f!;
   };
   const selectsDeCible = (c: HTMLElement) =>
-    Array.from(c.querySelectorAll('select')).filter((s) => Array.from(s.options).some((o) => o.value === 'target' || o.value === 'party'));
+    Array.from(c.querySelectorAll('select')).filter((s) => Array.from(s.options).some((o) => o.value === 'target' || o.value === 'groupe'));
   const monte = (effect: Effect, racine: Parameters<typeof ctxDeCatalogue>[0] | 'scene'): HTMLElement => {
     const container = document.createElement('div');
     container.innerHTML = renderToStaticMarkup(
@@ -427,8 +427,8 @@ describe('#1874 C0 — cibles d’un Effet `ops` : la table vient de la racine',
   });
 
   it('racine SCÈNE : six options, groupe, héros, navire, rôle d’équipage, membre au hasard et volontaires', () => {
-    const [sel] = selectsDeCible(monte({ type: 'ops', on: 'party', ops: [] }, 'scene'));
-    expect(Array.from(sel.options).map((o) => o.value)).toEqual(['party', 'hero', 'navire', 'role', 'membreAuHasard', 'volontaires']);
+    const [sel] = selectsDeCible(monte({ type: 'ops', on: 'groupe', ops: [] }, 'scene'));
+    expect(Array.from(sel.options).map((o) => o.value)).toEqual(['groupe', 'heros', 'navire', 'role', 'membreAuHasard', 'volontaires']);
   });
 
   it('racine SCÈNE : la cible « volontaires » s’édite par sa question, posée à chaque héros (MDG 15 l.196)', () => {
@@ -442,7 +442,7 @@ describe('#1874 C0 — cibles d’un Effet `ops` : la table vient de la racine',
     const container = document.createElement('div');
     document.body.appendChild(container);
     const root: Root = createRoot(container);
-    let dernier: Effect = { type: 'ops', on: 'party', ops: [] };
+    let dernier: Effect = { type: 'ops', on: 'groupe', ops: [] };
     function Controle() {
       const [eff, setEff] = useState<Effect>(dernier);
       return <EffectFields effect={eff} ctx={ctx} onChange={(n) => { dernier = n; setEff(n); }} />;

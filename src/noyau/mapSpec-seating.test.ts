@@ -16,7 +16,7 @@ const BASE: MapSpec = { id: 'taverne', label: 'Taverne', size: [8, 8], terrain: 
 /** Table ronde en (2,2) cap `N` → abords : nord (2,1), est (3,2), sud (2,3), ouest (1,2). */
 const TABLE = { id: 'table-1', kind: 'prop', pos: { x: 2, y: 2 }, decor: { id: 'table-ronde-4-tabourets' }, facing: 'N', usable: { assise: true } } as const;
 const AUBERGISTE = { id: 'pnj-aubergiste', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 2, y: 1 }, label: 'Aubergiste' } as const;
-const FIXED_ASSIGNMENT: SeatAssignments = { 'table-1': { 'place-1': { kind: 'entity', entityId: 'pnj-aubergiste' } } };
+const FIXED_ASSIGNMENT: SeatAssignments = { 'table-1': { 'place-1': { kind: 'entite', entityId: 'pnj-aubergiste' } } };
 
 /** Le MÊME meuble posé par un marqueur ASCII plutôt que par `entities`. */
 function specWithBind(char: string, bind: NonNullable<MapSpec['bind']>[string]): MapSpec {
@@ -38,7 +38,7 @@ describe('MapSpec.seatAssignments — le même meuble, mais une assise à ids FI
     expect(() =>
       buildScene({
         ...specWithBind('M', { kind: 'prop', decor: { id: 'table-murale-2-tabourets' }, facing: 'O' }),
-        seatAssignments: { [genere]: { 'place-1': { kind: 'entity', entityId: 'pnj-aubergiste' } } },
+        seatAssignments: { [genere]: { 'place-1': { kind: 'entite', entityId: 'pnj-aubergiste' } } },
       }),
     ).toThrow(/seatAssignments.*ids fixes/);
 
@@ -128,20 +128,20 @@ describe('sceneToAscii — l’export dit ce qu’il ne restitue pas', () => {
 
 describe('MapSpec.seatAssignments — les places de GROUPE s’authorent par EMPLACEMENT', () => {
   it('un rang du groupe canonique se compile tel quel, sans jamais nommer de héros', () => {
-    const s = buildScene({ ...BASE, entities: [{ ...TABLE }], seatAssignments: { 'table-1': { 'place-2': { kind: 'party', rang: 2 } } } });
-    expect(s.seatAssignments).toEqual({ 'table-1': { 'place-2': { kind: 'party', rang: 2 } } });
+    const s = buildScene({ ...BASE, entities: [{ ...TABLE }], seatAssignments: { 'table-1': { 'place-2': { kind: 'groupe', rang: 2 } } } });
+    expect(s.seatAssignments).toEqual({ 'table-1': { 'place-2': { kind: 'groupe', rang: 2 } } });
     expect(validateScene([s]).filter((w) => w.level === 'error')).toEqual([]);
   });
 
   it('un rang HORS du groupe canonique est refusé fail-fast', () => {
     expect(() =>
-      buildScene({ ...BASE, entities: [{ ...TABLE }], seatAssignments: { 'table-1': { 'place-2': { kind: 'party', rang: PARTY_MAX + 1 } } } }),
+      buildScene({ ...BASE, entities: [{ ...TABLE }], seatAssignments: { 'table-1': { 'place-2': { kind: 'groupe', rang: PARTY_MAX + 1 } } } }),
     ).toThrow(new RegExp(`l'emplacement « ${labelEmplacement(PARTY_MAX + 1)} » est hors du groupe`));
   });
 
   it('une place de groupe n’exige AUCUN id fixe : elle ne désigne pas une entité', () => {
     expect(() =>
-      buildScene({ ...BASE, entities: [{ ...TABLE }], seatAssignments: { 'table-1': { 'place-4': { kind: 'party', rang: 1 } } } }),
+      buildScene({ ...BASE, entities: [{ ...TABLE }], seatAssignments: { 'table-1': { 'place-4': { kind: 'groupe', rang: 1 } } } }),
     ).not.toThrow();
   });
 });

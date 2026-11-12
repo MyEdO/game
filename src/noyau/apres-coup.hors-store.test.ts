@@ -76,7 +76,7 @@ function monte(charge: Charge, susp: Suspension | null, temoin = false): void {
     combatants: combattants, order: combattants.map((c) => c.id), baseOrder: combattants.map((c) => c.id),
     turn: combattants.indexOf(attaquant), round: 1, action: null, selectedSpellId: null, reachable: new Map(),
     movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
-    ...(charge === 'reaction' ? { advantagePools: { allies: 3, foes: 0 } } : {}),
+    ...(charge === 'reaction' ? { advantagePools: { allies: 3, adversaires: 0 } } : {}),
   } as unknown as BattleState;
   banc.setState({
     battle, mode: 'battle', scene: testScene(), party: combattants.filter((c) => c.kind === 'heros'),

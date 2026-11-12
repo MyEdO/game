@@ -27,7 +27,7 @@ const ABORD_NORD = { x: 5, y: 4 };
 const hero = (id: string): Combatant =>
   combattantDeTest({ id, label: id.toUpperCase(), kind: 'heros', xp: 0, wounds: blessuresDeBase(12), conditions: [], movement: 4 });
 
-const place = (rang: number): SeatOccupant => ({ kind: 'party', rang });
+const place = (rang: number): SeatOccupant => ({ kind: 'groupe', rang });
 const poseDe = (rang: number) => seatPoseOf(banc.getState().scene!, place(rang));
 
 function scèneDeTaverne(id: string): Scene {
@@ -140,7 +140,7 @@ describe('mort / indisponibilité d’un occupant', () => {
     const sc = banc.getState().scene!;
     const badaud: SceneEntity = { id: 'badaud', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 5, y: 4 } };
     const entities: SceneEntity[] = [...sc.entities, { id: PROP, kind: 'prop', pos: { x: 5, y: 5 }, decor: { id: TABLE }, facing: 'N', usable: { assise: true } }, badaud];
-    const occupant: SeatOccupant = { kind: 'entity', entityId: 'badaud' };
+    const occupant: SeatOccupant = { kind: 'entite', entityId: 'badaud' };
     banc.setState({ scene: { ...sc, entities, seatAssignments: { [PROP]: { 'place-1': occupant } } } });
     expect(seatPoseOf(banc.getState().scene!, occupant)).not.toBeNull();
 

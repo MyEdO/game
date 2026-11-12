@@ -44,7 +44,7 @@ function withSyntheticTrait(id: string, effects: TriggeredEffect[]): Combatant {
   return bare({ traits: [{ id }] } as Partial<Combatant>);
 }
 const SELF_EMPETRE: TriggeredEffect = {
-  trigger: 'onHit', on: 'self',
+  trigger: 'onHit', on: 'soi',
   flow: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'empetre' }, value: 1 }] } },
 };
 
@@ -69,7 +69,7 @@ describe('#316 — triggers orphelins câblés au bus (émission + déclenchemen
     const c = withSyntheticTrait('synth-oncharged', [
       { ...SELF_EMPETRE, trigger: 'onCharged' },
       {
-        trigger: 'onCharged', on: 'self',
+        trigger: 'onCharged', on: 'soi',
         flow: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [
           { op: 'condition', id: { id: 'a-terre' }, value: 1 },
           { op: 'grantFreeAttack', when: 'immediate' } as never,

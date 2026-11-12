@@ -10,16 +10,16 @@ extends SceneTree
 
 const RECETTE_AUTONOME := true
 const METRES_PAR_CASE := 2.0
-const CANON := {id = "canon", fichiers = ["canon-1.ogg", "canon-2.ogg", "canon-3.ogg"], volume = 1.0}
-const EXPLOSION := {id = "explosion", fichiers = ["explosion-1.ogg", "explosion-2.ogg"], volume = 1.0}
-const INCANTATION := {id = "chant-d-incantation", fichiers = ["incantation-1.ogg", "incantation-2.ogg"], volume = 0.8}
-const PORTE := {id = "porte-ouvre", fichiers = ["porte-ouvre.ogg"], volume = 0.7}
-const PAS := {id = "pas", fichiers = ["pas-1.ogg", "pas-2.ogg", "pas-3.ogg"], volume = 0.4}
+const CANON := {id = "canon", fichiers = ["canon-1.ogg", "canon-2.ogg", "canon-3.ogg"], volume = 1.0, canal = "effets"}
+const EXPLOSION := {id = "explosion", fichiers = ["explosion-1.ogg", "explosion-2.ogg"], volume = 1.0, canal = "effets"}
+const INCANTATION := {id = "chant-d-incantation", fichiers = ["incantation-1.ogg", "incantation-2.ogg"], volume = 0.8, canal = "effets"}
+const PORTE := {id = "porte-ouvre", fichiers = ["porte-ouvre.ogg"], volume = 0.7, canal = "effets"}
+const PAS := {id = "pas", fichiers = ["pas-1.ogg", "pas-2.ogg", "pas-3.ogg"], volume = 0.4, canal = "effets"}
 const BLESSURES := {genre = "blessures", texte = "-4", couleur = "#ffd166", critique = true}
 const HORS_DE_COMBAT := {genre = "horsDeCombat", texte = "✦ hors de combat", couleur = "#ff3030", critique = false}
 const SOIN := {genre = "soin", texte = "+2", couleur = "#6fce8e", critique = false}
-const SOUFFLE := {id = "souffle", fichiers = ["souffle-1.ogg", "souffle-2.ogg", "souffle-3.ogg"], volume = 0.9}
-const FLAMMES := {id = "sort-feu", fichiers = ["sort-feu-1.ogg", "sort-feu-2.ogg", "sort-feu-3.ogg"], volume = 0.85}
+const SOUFFLE := {id = "souffle", fichiers = ["souffle-1.ogg", "souffle-2.ogg", "souffle-3.ogg"], volume = 0.9, canal = "effets"}
+const FLAMMES := {id = "sort-feu", fichiers = ["sort-feu-1.ogg", "sort-feu-2.ogg", "sort-feu-3.ogg"], volume = 0.85, canal = "effets"}
 const CASES := [{x = 5, y = 0}, {x = 6, y = 0}, {x = 7, y = 0}]
 const TEINTES_DES_TRAITS := [Color("#3a7fd0"), Color("#c04030")]
 const EFFETS := [

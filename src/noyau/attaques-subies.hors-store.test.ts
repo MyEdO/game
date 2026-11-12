@@ -35,15 +35,15 @@ afterEach(() => {
 
 const rats = { type: 'statblock', label: 'Rats géants', char: { 'capacite-de-combat': 35 }, traits: [{ id: 'arme', value: 5 }] };
 const op = gameOpSchema.parse({ op: 'attaquesSubies', assaillant: { statblock: rats }, nombre: '1d10' });
-const attaques = (on: 'hero' | 'party', heroId?: string): Effect => ({ type: 'ops', on, ...(heroId ? { heroId } : {}), ops: [op] });
+const attaques = (on: 'heros' | 'groupe', heroId?: string): Effect => ({ type: 'ops', on, ...(heroId ? { heroId } : {}), ops: [op] });
 
 /** Trois Blessures au héros `heroId` : l'Effet authoré qui SUIT l'op dans la liste. */
-const troisBlessures = (heroId: string): Effect => ({ type: 'ops', on: 'hero', heroId, ops: [gameOpSchema.parse({ op: 'wounds', amount: 3 })] });
+const troisBlessures = (heroId: string): Effect => ({ type: 'ops', on: 'heros', heroId, ops: [gameOpSchema.parse({ op: 'wounds', amount: 3 })] });
 
 /** Le héros du groupe, aucune bataille, l'op appliquée (puis les Effets `suivants`) : le dé `nombre` ouvert à la porte, non tombé. */
 function deOuvert(suivants: (heroId: string) => Effect[] = () => [], reglesMaison?: EntreesDuBanc['reglesMaison']) {
   const { banc, H } = horsBataille(testScene(), reglesMaison);
-  applyEffects(banc.getState, banc.setState, [attaques('hero', H.id), ...suivants(H.id)]);
+  applyEffects(banc.getState, banc.setState, [attaques('heros', H.id), ...suivants(H.id)]);
   return { banc, H, etape: banc.getState().pendingCascade!.participants[0] };
 }
 
@@ -96,7 +96,7 @@ describe('série d’attaques subies hors bataille (#3892)', () => {
   it('deux cibles (« on: party », deux héros) : refus, aucun état posé', () => {
     const { banc, H } = horsBataille(testScene());
     banc.setState({ party: [H, { ...structuredClone(H), id: 'second', label: 'Second' }] });
-    expect(() => applyEffects(banc.getState, banc.setState, [attaques('party')])).toThrow(t('eff.attaquesSubiesSansCibleUnique', { on: 'party' }));
+    expect(() => applyEffects(banc.getState, banc.setState, [attaques('groupe')])).toThrow(t('eff.attaquesSubiesSansCibleUnique', { on: 'groupe' }));
     const s = banc.getState();
     expect(s.serieSubie).toBeNull();
     expect(s.pendingDefense).toBeNull();
@@ -104,8 +104,8 @@ describe('série d’attaques subies hors bataille (#3892)', () => {
 
   it('`attaquesSubies` accompagnée dans sa feuille : refus, au lancer comme à l’éditeur', () => {
     const { banc, H } = horsBataille(testScene());
-    const feuille: Extract<Effect, { type: 'ops' }> = { type: 'ops', on: 'hero', heroId: H.id, ops: [op, gameOpSchema.parse({ op: 'wounds', amount: 3 })] };
-    const message = t('eff.attaquesSubiesSeuleDansSaFeuille', { on: 'hero', ops: 'attaquesSubies, wounds' });
+    const feuille: Extract<Effect, { type: 'ops' }> = { type: 'ops', on: 'heros', heroId: H.id, ops: [op, gameOpSchema.parse({ op: 'wounds', amount: 3 })] };
+    const message = t('eff.attaquesSubiesSeuleDansSaFeuille', { on: 'heros', ops: 'attaquesSubies, wounds' });
     expect(EFFECT_HANDLERS.ops.refs!(feuille, {} as EffectRefCtx)).toEqual([{ level: 'error', message }]);
     const avant = etatTouche(banc.getState());
     expect(() => applyEffects(banc.getState, banc.setState, [feuille])).toThrow(message);
@@ -116,14 +116,14 @@ describe('série d’attaques subies hors bataille (#3892)', () => {
     const banc = ouvrirLeBanc();
     const { H } = heroFaceAUnEnnemi(banc, testScene());
     const avant = etatTouche(banc.getState());
-    expect(() => applyEffects(banc.getState, banc.setState, [attaques('hero', H.id)])).toThrow(t('eff.attaquesSubiesSerieEngagee'));
+    expect(() => applyEffects(banc.getState, banc.setState, [attaques('heros', H.id)])).toThrow(t('eff.attaquesSubiesSerieEngagee'));
     expect(etatTouche(banc.getState())).toEqual(avant);
   });
 
   it('une série déjà ouverte : refus nommé, la série en cours n’est pas écrasée', () => {
     const { banc, H } = serieOuverte();
     const avant = etatTouche(banc.getState());
-    expect(() => applyEffects(banc.getState, banc.setState, [attaques('hero', H.id)])).toThrow(t('eff.attaquesSubiesSerieEngagee'));
+    expect(() => applyEffects(banc.getState, banc.setState, [attaques('heros', H.id)])).toThrow(t('eff.attaquesSubiesSerieEngagee'));
     expect(etatTouche(banc.getState())).toEqual(avant);
   });
 
@@ -425,7 +425,7 @@ describe('série d’attaques subies hors bataille (#3892)', () => {
     banc.setState({ party: [{ ...H, weapons: [briseEpee, ...H.weapons] }] });
     const coupeJarret = { type: 'statblock', label: 'Coupe-jarret', char: { 'capacite-de-combat': 35 }, traits: [{ id: 'arme', value: 5, arg: 'dague' }] };
     const opDague = gameOpSchema.parse({ op: 'attaquesSubies', assaillant: { statblock: coupeJarret }, nombre: '1d10' });
-    applyEffects(banc.getState, banc.setState, [{ type: 'ops', on: 'hero', heroId: H.id, ops: [opDague] }]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'ops', on: 'heros', heroId: H.id, ops: [opDague] }]);
     imposerLesD100(65, 23);
     banc.getState().jetImposerLeResultat('cascadeTirage', 2, banc.getState().pendingCascade!.participants[0].id);
     banc.getState().jetValider('cascade');
@@ -514,7 +514,7 @@ describe('série d’attaques subies hors bataille (#3892)', () => {
     const { banc, H } = horsBataille(testScene());
     setRule('combat-cible-inconsciente', 'critique');
     const inconscient = gameOpSchema.parse({ op: 'condition', id: { id: 'inconscient' }, value: 1 });
-    applyEffects(banc.getState, banc.setState, [{ type: 'ops', on: 'hero', heroId: H.id, ops: [inconscient] }, attaques('hero', H.id)]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'ops', on: 'heros', heroId: H.id, ops: [inconscient] }, attaques('heros', H.id)]);
     imposerLesD100(20);
     banc.getState().jetImposerLeResultat('cascadeTirage', 2, banc.getState().pendingCascade!.participants[0].id);
     banc.getState().jetValider('cascade');
@@ -602,7 +602,7 @@ describe('série d’attaques subies hors bataille (#3892)', () => {
     const { banc, H } = horsBataille(testScene());
     const arme = { ...H.weapons[0], qualities: [{ id: 'bacle' }, { id: 'solide', value: 1 }] };
     banc.setState({ party: [{ ...H, weapons: [arme, ...H.weapons.slice(1)] }] });
-    applyEffects(banc.getState, banc.setState, [attaques('hero', H.id)]);
+    applyEffects(banc.getState, banc.setState, [attaques('heros', H.id)]);
     imposerLesD100(20, 23, 75);
     banc.getState().jetImposerLeResultat('cascadeTirage', 3, banc.getState().pendingCascade!.participants[0].id);
     banc.getState().jetValider('cascade');
@@ -622,7 +622,7 @@ describe('série d’attaques subies hors bataille (#3892)', () => {
   it('la cible hors d’action avant la fin : la série se ferme au terme du coup en cours', () => {
     const { banc, H } = serieOuverte([20, 20]);
     const inconscient = gameOpSchema.parse({ op: 'condition', id: { id: 'inconscient' }, value: 1 });
-    applyEffects(banc.getState, banc.setState, [{ type: 'ops', on: 'hero', heroId: H.id, ops: [inconscient] }]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'ops', on: 'heros', heroId: H.id, ops: [inconscient] }]);
     expect(banc.getState().serieSubie).toMatchObject({ restantes: 7 });
     defendre(banc, 5);
     const s = banc.getState();
@@ -640,7 +640,7 @@ describe('série d’attaques subies hors bataille (#3892)', () => {
     const { banc, H } = horsBataille(testScene());
     setRule('combat-cible-inconsciente', 'mort-auto');
     const inconscient = gameOpSchema.parse({ op: 'condition', id: { id: 'inconscient' }, value: 1 });
-    applyEffects(banc.getState, banc.setState, [{ type: 'ops', on: 'hero', heroId: H.id, ops: [inconscient] }, attaques('hero', H.id)]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'ops', on: 'heros', heroId: H.id, ops: [inconscient] }, attaques('heros', H.id)]);
     imposerLesD100(20);
     banc.getState().jetImposerLeResultat('cascadeTirage', 7, banc.getState().pendingCascade!.participants[0].id);
     banc.getState().jetValider('cascade');

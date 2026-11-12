@@ -82,7 +82,7 @@ function meublerDeGens(depart: Scene): Scene {
         appearance: { species: convive.species, sex: convive.sex, tenue: convive.tenue },
       };
       scene = { ...scene, entities: [...scene.entities, pnj] };
-      const res = assignSeat(scene, propId, slot.slotId, { kind: 'entity', entityId: convive.id }, 0);
+      const res = assignSeat(scene, propId, slot.slotId, { kind: 'entite', entityId: convive.id }, 0);
       if (!res.ok) throw new Error(`La Diligence — salle pleine : ${convive.id} refusé à ${propId}/${slot.slotId} (${res.reason})`);
       scene = res.scene;
     }

@@ -57,7 +57,7 @@ export interface TemporalCondition {
 export interface EffectOp {
   type: 'ops';
   ops: GameOp[];
-  on?: 'party' | 'hero' | 'navire' | 'membreAuHasard' | 'caster' | 'target' | CibleDeRole | CibleDeVolontaires;
+  on?: 'groupe' | 'heros' | 'navire' | 'membreAuHasard' | 'caster' | 'target' | CibleDeRole | CibleDeVolontaires;
   heroId?: string;
   /** Échéance d'HORLOGE (minute `gameTime`) des effets DURABLES posés par ces ops — BAKÉE sur la feuille
    *  (durée d'un consommable résolue AU BOIRE, `bakeConsumableFlow`) pour SURVIVRE aux suspensions (une
@@ -655,20 +655,20 @@ export type EffectTrigger =
 /** Effet DÉCLENCHÉ authoré (donnée éditable) : un Flow d'ops appliqué à `on` quand `trigger` se produit.
  *  GÉNÉRIQUE — porté indifféremment par `TraitData.effects` (Toile, Sang corrosif…) ET `QualityData.effects`
  *  (Atout d'arme : « à la touche, 1d10 + Empêtré »). Même vocabulaire que les sorts (réutilise
- *  `runPureFlowLines`/`applyOps`), jamais un handler en dur. `on` : le porteur lui-même (`self`), la victime
- *  touchée (`victim`), ou les adversaires Engagés du porteur (`engaged`). */
-/** CIBLE(S) d'un effet déclenché : le porteur (`self`), la victime touchée (`victim`), les adversaires
- *  Engagés (`engaged`), les adversaires que le porteur EMPOIGNE actuellement (`grappled`, = ses
+ *  `runPureFlowLines`/`applyOps`), jamais un handler en dur. `on` : le porteur lui-même (`soi`), la victime
+ *  touchée (`victime`), ou les adversaires Engagés du porteur (`engages`). */
+/** CIBLE(S) d'un effet déclenché : le porteur (`soi`), la victime touchée (`victime`), les adversaires
+ *  Engagés (`engages`), les adversaires que le porteur EMPOIGNE actuellement (`empoigne`, = ses
  *  `grapplingWith` — la « victime absorbée » de l'Absorption pour la digestion/redirection), ou —
  *  géométrie — TOUS les combattants à `radiusMeters` d'un centre (l'arc d'Azyr :
- *  `{ near: 'victim', radiusMeters: 2 }`). Le centre lui-même et le porteur sont exclus.
- *  `{ pick: 'engaged', ... }` : SÉLECTIONNE jusqu'à `max` adversaires Engagés non encore empoignés, les
- *  plus PROCHES d'abord, de Taille ≤ la sienne si `sizeAtMost:'self'` — la capacité restante tient compte
+ *  `{ near: 'victime', radiusMeters: 2 }`). Le centre lui-même et le porteur sont exclus.
+ *  `{ pick: 'engages', ... }` : SÉLECTIONNE jusqu'à `max` adversaires Engagés non encore empoignés, les
+ *  plus PROCHES d'abord, de Taille ≤ la sienne si `sizeAtMost:'soi'` — la capacité restante tient compte
  *  des `grapplingWith` déjà tenus (« elle absorbe un adversaire », Absorption EDO 11 l.222). Réutilisable
  *  par tout effet « happe le plus proche petit ennemi engagé ». */
-export type EffectTargeting = 'self' | 'victim' | 'engaged' | 'grappled'
-  | { near: 'victim' | 'self'; radiusMeters: number }
-  | { pick: 'engaged'; sizeAtMost?: 'self'; max: number };
+export type EffectTargeting = 'soi' | 'victime' | 'engages' | 'empoigne'
+  | { near: 'victime' | 'soi'; radiusMeters: number }
+  | { pick: 'engages'; sizeAtMost?: 'soi'; max: number };
 export interface TriggeredEffect<E = EffectOp> {
   trigger: EffectTrigger;
   on: EffectTargeting;
