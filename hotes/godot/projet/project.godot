@@ -20,6 +20,10 @@ window/size/viewport_height=720
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 
+[editor]
+
+import/use_multiple_threads=false
+
 [gui]
 
 theme/custom="res://art/theme.tres"
