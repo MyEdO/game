@@ -9,6 +9,7 @@ import {
   corruptionGain, corruptionThresholdExceeded, mutationKindFor, mutationLimitExceeded,
   attachMutation, detachMutation, mutationArmourBonus,
 } from './corruption';
+import { natureDeMutationDe } from '../data';
 import { mutationById, rollMutation } from '../data/mutations';
 import { passiveSkillSum, passiveTestMod } from './trauma';
 import { effectiveChar } from './characteristics';
@@ -65,30 +66,34 @@ describe('seuil & limites (l.80/95)', () => {
   });
 });
 
-describe('mutationKindFor — d100 corps/esprit par espèce (data-driven, ids STABLES, l.87-91)', () => {
-  it('Humain (id) : corps 01-50, esprit 51-100 (LDB 19)', () => {
+describe('mutationKindFor — le tableau corps ou esprit de la race de l’espèce (`mutation-nature.json`, ids STABLES)', () => {
+  it('Humain : corps 01-50, esprit 51-100 (LDB 19 l.78-81)', () => {
     expect(mutationKindFor('humains-reiklander', 50)).toBe('physique');
-    expect(mutationKindFor('humains-reiklander', 51)).toBe('mentale');
+    expect(mutationKindFor('humains-middenheim', 51)).toBe('mentale');
   });
-  it('Nain 01-05, Halfling 01-10, Elfe jamais physique (LDB 19)', () => {
+  it('Nain 01-05, Halfling 01-10, Elfe jamais physique (LDB 19 l.78-81)', () => {
     expect(mutationKindFor('nains', 5)).toBe('physique');
-    expect(mutationKindFor('nains', 6)).toBe('mentale');
+    expect(mutationKindFor('nains-norse', 6)).toBe('mentale');
     expect(mutationKindFor('halflings', 10)).toBe('physique');
-    expect(mutationKindFor('halflings', 11)).toBe('mentale');
+    expect(mutationKindFor('halflings-havrebas', 11)).toBe('mentale');
     expect(mutationKindFor('hauts-elfes', 1)).toBe('mentale');
     expect(mutationKindFor('elfes-sylvains', 100)).toBe('mentale');
   });
-  it('Ogre 01-10 (ADE II « Ogres et Mutations ») — corrige le défaut Humain erroné', () => {
+  it('Ogre : corps 01-10, esprit 11-00 (ADE II 02 l.172-177)', () => {
     expect(mutationKindFor('ogres', 10)).toBe('physique');
     expect(mutationKindFor('ogres', 11)).toBe('mentale');
   });
-  it('Gnome = Humain 01-50 (NADJ « Gnomes et Corruption »)', () => {
+  it('Gnome : comme les humains (NADJ 15 l.173)', () => {
     expect(mutationKindFor('gnomes', 50)).toBe('physique');
     expect(mutationKindFor('gnomes', 51)).toBe('mentale');
   });
-  it('espèce inconnue/absente → défaut Humain (50)', () => {
-    expect(mutationKindFor(undefined, 30)).toBe('physique');
-    expect(mutationKindFor('inexistant', 51)).toBe('mentale');
+  it('PNJ dont l’espèce est une clé de race d’apparence : le document de cette race', () => {
+    expect(natureDeMutationDe('nain').id).toBe('mutation-nature-nain');
+    expect(mutationKindFor('nain', 6)).toBe('mentale');
+  });
+  it('espèce absente ou sans race couverte : le document de la race `humain`', () => {
+    expect(natureDeMutationDe(undefined).id).toBe('mutation-nature-humain');
+    expect(natureDeMutationDe('guerrier-du-chaos').id).toBe('mutation-nature-humain');
   });
 });
 

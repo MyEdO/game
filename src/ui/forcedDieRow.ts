@@ -32,7 +32,7 @@ import { canFixDie } from '../noyau/netOwnership';
 import { withPreRollFixedDie } from '../noyau/combatFlow';
 import { useGame } from '../state/store';
 import { FIXED_ROLL_MAX } from '../engine/fixedDie';
-import { liveTableDecl, liveDeDecl, plageNaturelle, specDeEtape, tableSpec } from '../noyau/cascade';
+import { liveTableDecl, liveDeDecl, plageNaturelle, tableSpec } from '../noyau/cascade';
 import type { CascadeStep } from '../noyau/pendings';
 import type { GameState } from '../state/store';
 import type { RollRowProps } from './RollRow';
@@ -183,9 +183,9 @@ export function stepForcedDie(
   if (!decl) return {};
   const mark = !!step.fixed;
   if (!canFixDie(s, step.actorId)) return { fixedMark: mark };
-  // La BORNE se lit sur les DÉS résolus, quel que soit le porteur — une seule expression, deux
-  // résolutions de défaut (le dé nu porte les siens, la table donne le sien).
-  const max = plageNaturelle(step.de ? specDeEtape(decl) : tableSpec(step.table!)).max;
+  // La BORNE se lit sur les DÉS, quel que soit le porteur : le dé nu porte les siens, la table les
+  // siens (#1667).
+  const max = plageNaturelle(step.de ? step.de.spec : tableSpec(step.table!)).max;
   // Dé EFFECTIF servi au champ : le dé qui a résolu la LIGNE (table, borné au plancher par le
   // résolveur) ou le TOTAL (dé nu) — c'est la même grandeur, sous les deux noms de son porteur.
   const effective = decl.result ? ('die' in decl.result ? decl.result.die : decl.result.total) : null;
