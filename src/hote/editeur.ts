@@ -18,7 +18,7 @@ import {
   segmentDeLaSelection, structureAppearances, structuresCrenelables, structuresDeLArete, crenellatedAt, terrainIds, terrainLabel, tileAt,
   ACTIONS_D_ARCHITECTURE, avertissementsDeLaSession, cadreDeLaSession, BORNES_DE_LA_TROUPE, casesDuDefaut, PLAN_DEFECT_FAMILIES, versLaFautive, AMBIANCES, ENVIRONNEMENTS, METEOS, PARTS_RELIEF, lightLevels, matieresDe, reposDeScene, sceneMetresPerTile, matieresCouvrantes, PENTE_TOIT_DEG, PROFILS_DE_TOIT, toitureEffective, BORNES_D_OUVERTURE, buildingsMeta, corpsActif, DEFAUTS_D_OUVERTURE, FACADE_APPEARANCE_IDS, SORTES_D_OUVERTURE, OUVRAGES, refusDOuvrage, selRect, effectZoneRect, ENTREES_DE_DOSSIER, isRoomZone, poigneeDeLaSelection, sameSel, sceneZoneTiles,
   type AreteDessinee, type BrouillonDArete, type Difficulty, type GesteDEdition, type PatchDArete, type PatchDEntite, type PatchDeScene, type PatchDeZone, type Scene, type Sel, type SessionDEdition,
-  type WallPaint, ZONE_VARIANTS, ECRITURES_DES_PORTEURS, FORMULAIRES, accesDe, retraitOffert, porteurDeLaSel, porteurDuProjet, porteursDuProjet, idDuPorteur, choixDuChamp, SOUS_ENTREES, refusDeRetrait, type DonneeDuPorteur, type SorteDePorteur, bornesAuPoint, champDeLElement, champsDeclares, champsDuRecord, champsOfferts, choixDuNoeud, elementDuNoeud, formeAuPoint, recordDuNoeud, formulaireDe, gestesDeLaListe, refusDeLaValeur, unionDuNoeud, valeurNeuveDe, varianteCourante, variantesAChoisir, type FieldDesc, type Segment,
+  type WallPaint, ZONE_VARIANTS, ECRITURES_DES_PORTEURS, FORMULAIRES, accesDe, cleDeLElement, retraitOffert, retraitsDuPorteur, porteurDeLaSel, porteurDuProjet, porteursDuProjet, idDuPorteur, SOUS_ENTREES, refusDeRetrait, type DonneeDuPorteur, type SorteDePorteur, bornesAuPoint, champDeLElement, champsDeclares, champsDuRecord, champsOfferts, choixDuNoeud, elementDuNoeud, formeAuPoint, recordDuNoeud, formulaireDe, gestesDeLaListe, refusDeLaValeur, unionDuNoeud, valeurNeuveDe, varianteCourante, variantesAChoisir, type FieldDesc, type Segment,
   allMusicDefs, apparencesDeLOuverture, ciblesDAncreDeBataille, groupesDuLieu,
   isWearable, objetsDeLInventaire, trappingsInstanciables,
   candidatsDuSlot, carriereActuelle, careers, designationsDeCarriere, dotationsDuPnj, emplacementsDeDotation, estEmplacementRacine, ficheDuCombattant,
@@ -381,15 +381,17 @@ export interface ZonesDeLEditeur {
    * (`SOUS_ENTREES`), le formulaire `identifier/<stade|valeur|repere>/<id>` qui change son identifiant, `{ type:
    * 'identifier', args: [element, id] }`, propagé au projet et, d'un repère, à chaque ligne de l'identité, et
    * `<stade|valeur|repere>/<id>/supprimer`, `{ geste: 'supprimer', element }`, refusé avec sa raison (la dernière
-   * sous-entrée, une sous-entrée qu'une référence désigne, un repère dont une valeur est saisie), puis
-   * `<stade|valeur|repere>/ajouter`, qui écrit au rang neuf la sous-entrée neuve, d'identifiant frais ; le formulaire
+   * sous-entrée, une sous-entrée qu'une référence désigne, un repère dont une valeur est saisie) ; le formulaire
    * tiré du schéma de chacun de ses champs, son identifiant excepté, les champs de ses sous-entrées par rang, sans
-   * l'identifiant ni le raccourcissement de leur liste (ses renvois, parmi les autres indices ; l'identité neuve d'un
-   * état héros et chaque ligne neuve, d'une espèce et d'un sexe libres ; l'apparence des objets d'un PNJ, parmi les armes
-   * de son profil), chaque écriture réécrite par la règle de son registre (le stade couplé à son document, l'identité
-   * couverte) ; la supprimer, refusé avec sa raison tant qu'une référence la désigne (`refusDeRetrait`,
-   * `retireDuProjet`). D'un écart : le formulaire qui change son entrée, son champ `nommer/nom` au choix parmi la sienne
-   * et les entrées libres ; son motif ; le supprimer.
+   * l'identifiant ni le raccourcissement de leur liste, la sous-entrée neuve, d'identifiant frais, ajoutée au rang neuf
+   * de sa liste (ses renvois, parmi les autres indices ; l'identité neuve d'un état héros, puis ses ancres, le fragment de
+   * ses repères, et de chaque ligne, son espèce, son sexe et ses valeurs sans leur repère ; chaque ligne neuve, d'une
+   * espèce et d'un sexe libres ; l'apparence des objets d'un PNJ, parmi les armes de son profil), chaque écriture
+   * réécrite par la règle de son registre (le stade couplé à son document, l'identité couverte) ; de ses retraits
+   * déclarés (l'identité d'un état héros, chacune de ses lignes), `valeur/<chemin>/retirer`, qui le retire entier ;
+   * la supprimer, refusé avec sa raison tant qu'une référence la désigne (`refusDeRetrait`, `retireDuProjet`). D'un
+   * écart : le formulaire qui change son entrée, son champ `nommer/nom` au choix parmi la sienne et les entrées libres ;
+   * son motif ; le supprimer.
    *
    * D'une zone : la poignée qui la redimensionne ; d'un déclencheur, le formulaire qui le renomme ; d'une zone d'effet,
    * le formulaire qui la nomme et celui qui change son identifiant, sa nature (non déclarée, intérieur ou extérieur),
@@ -423,7 +425,9 @@ export interface ZonesDeLEditeur {
    * enfin « Ajouter », qui pose un élément neuf en fin, ou, d'un élément à choix, le choix de l'élément ajouté en fin,
    * parmi ceux que son contexte pose au rang neuf, chacun de ces boutons écrivant la liste entière (`gestesDeLaListe`),
    * et absente, « Ajouter » seul ; une liste que son porteur n'écrit pas entière, sa ligne titre et les éléments de
-   * chaque élément seuls ;
+   * chaque élément seuls, puis `valeur/<chemin>/ajouter`, l'élément neuf que son contexte pose au rang neuf, écrit à ce
+   * rang, de plusieurs leur liste, chacun `valeur/<chemin>/ajouter/<k>` ; l'élément d'une liste à clé, la clé à son
+   * libellé ;
    *
    * un choix, une énumération, un booléen, un littéral ou une référence au catalogue de son type, sa sous-liste
    * comprise, chaque option jouée d'un bouton, en liste au-delà de `CHOIX_EN_BOUTONS`, précédées de « Aucune » si son
@@ -1316,15 +1320,28 @@ const SAISIES_DE_TEXTE: readonly string[] = ['saisieTexte', 'saisieMultiligne'];
 
 /** Les éléments du formulaire tiré du schéma (`formulaireDe`) du porteur `porteur`, de donnée `donnee`, dans le cadre de
  *  la session `s` (`elementsDuFormulaire`), la saisie de texte (`SAISIES_DE_TEXTE`) d'un geste `valeur` optionnelle là où
- *  le retrait de son champ s'écrit (`retraitOffert`) : laissée vide, la valeur part absente, qui le retire. */
+ *  le retrait de son champ s'écrit (`retraitOffert`) : laissée vide, la valeur part absente, qui le retire ; puis, après
+ *  les éléments de chacun de ses retraits déclarés (`retraitsDuPorteur`), « Retirer » (`retraitDeclare`). */
 function formulaireDuPorteur<S extends SorteDePorteur>(s: SessionDEdition, porteur: { sorte: S; id: string }, donnee: DonneeDuPorteur[S]): (Choix | Ligne | Bouton | Formulaire)[] {
   const cadre = cadreDeLaSession(s);
   const retire = retraitOffert(porteur.sorte, donnee, cadre);
-  return elementsDuFormulaire(porteur, formulaireDe(porteur.sorte, donnee, cadre), donnee as unknown as Record<string, unknown>).map((e) => {
+  const elements = elementsDuFormulaire(porteur, formulaireDe(porteur.sorte, donnee, cadre), donnee as unknown as Record<string, unknown>).map((e) => {
     if (e.type !== 'formulaire' || e.verbe !== 'valeur' || !e.champs.some((c) => SAISIES_DE_TEXTE.includes(c.type))) return e;
     const [, chemin] = e.champs;
     return chemin.type === 'fixe' && retire(chemin.valeur as Segment[]) ? { ...e, champs: e.champs.map((c) => (SAISIES_DE_TEXTE.includes(c.type) ? { ...c, optionnel: true } : c)) } : e;
   });
+  return retraitsDuPorteur(porteur.sorte, donnee).reduce((els, chemin) => retraitDeclare(porteur, els, [...chemin]), elements);
+}
+
+/** Les éléments `elements` d'un formulaire du porteur `porteur` où « Retirer » du retrait déclaré au chemin `chemin`,
+ *  d'id `valeur/<chemin>/retirer`, libellé de la ligne de son objet, suit le dernier élément sous ce chemin, jouant
+ *  `{ geste: 'valeur', porteur, chemin }` sans valeur ; tels quels si aucun n'y est. */
+function retraitDeclare(porteur: PorteurDeValeur, elements: (Choix | Ligne | Bouton | Formulaire)[], chemin: Segment[]): (Choix | Ligne | Bouton | Formulaire)[] {
+  const id = `valeur/${chemin.join('/')}`;
+  const tete = elements.find((e): e is Ligne => e.type === 'ligne' && e.id === id);
+  const fin = elements.map((e) => e.id === id || e.id.startsWith(`${id}/`)).lastIndexOf(true);
+  if (!tete || fin < 0) return elements;
+  return [...elements.slice(0, fin + 1), bouton(`${id}/retirer`, t('ecran.editeur.valeur.retirer', { libelle: tete.texte }), ecrireLaValeur(porteur, chemin)), ...elements.slice(fin + 1)];
 }
 
 /** Le geste `valeur` qui écrit `v` au chemin `chemin` du porteur `porteur` (`v` absente : le champ se retire). */
@@ -1440,31 +1457,48 @@ function elementsDeLUnion(porteur: PorteurDeValeur, f: FieldDesc, valeur: unknow
 }
 
 /** Les éléments du champ liste `f` (`elementDuNoeud`), de valeur `valeur`, au chemin `ici` : présente, son libellé puis
- *  chacun de ses éléments, au chemin de son rang (`champDeLElement`), son identifiant à son libellé s'il en porte un
- *  (#3606), ses éléments, « Retirer » et, hors du premier,
+ *  chacun de ses éléments, au chemin de son rang (`champDeLElement`), la clé qui l'identifie à son libellé
+ *  (`cleDeLElement`, sinon son identifiant s'il en porte un, #3606), ses éléments, « Retirer » et, hors du premier,
  *  « Monter » ; puis « Ajouter » (`ajoutALaListe`). Chaque bouton écrit la liste entière (`gestesDeLaListe`). Une liste
  *  à laquelle rien ne s'ajoute (un élément récursif, sans valeur neuve ni choix) : la saisie de sa valeur entière
  *  (`argumentDeValeur`), en JSON. Une liste que son contexte n'écrit pas entière (`ContexteDuChamp.ecrivable`) : son
- *  libellé et les éléments de chacun, sans « Retirer », « Monter » ni « Ajouter ». */
+ *  libellé et les éléments de chacun, la clé qui l'identifie à son libellé, sans « Retirer » ni « Monter », puis
+ *  « Ajouter » au rang qui suit le dernier (`ajoutAuRangNeuf`). */
 function elementsDeLaListe(porteur: PorteurDeValeur, f: FieldDesc, valeur: unknown, ici: Segment[]): (Choix | Ligne | Bouton | Formulaire)[] {
   const id = `valeur/${ici.join('/')}`;
   const liste = Array.isArray(valeur) ? valeur : [];
-  if (!(f.contexte?.ecrivable(ici, valeur) ?? true)) return [ligne(id, f.label), ...liste.flatMap((e, rang) => elementsDuChamp(porteur, champDeLElement(f, rang), e, [...ici, rang]))];
+  const champ = (e: unknown, rang: number): FieldDesc => {
+    const rangee = champDeLElement(f, rang);
+    const cle = cleDeLElement(f.noeud, e) ?? (estObjet(e) && typeof e.id === 'string' ? e.id : undefined);
+    return cle === undefined ? rangee : { ...rangee, label: t('ecran.editeur.valeur.elementCle', { libelle: rangee.label, id: cle }) };
+  };
+  if (!(f.contexte?.ecrivable(ici, valeur) ?? true)) return [ligne(id, f.label), ...liste.flatMap((e, rang) => elementsDuChamp(porteur, champ(e, rang), e, [...ici, rang])), ...ajoutAuRangNeuf(porteur, f, [...ici, liste.length])];
   const element = elementDuNoeud(f.noeud);
   const gestes = gestesDeLaListe(liste, valeurNeuveDe(element));
   const elements = liste.flatMap((e, rang) => {
-    const rangee = champDeLElement(f, rang);
-    const champ = estObjet(e) && typeof e.id === 'string' ? { ...rangee, label: t('ecran.editeur.valeur.elementCle', { libelle: rangee.label, id: e.id }) } : rangee;
+    const { label } = champ(e, rang);
     const { retirer, monter } = gestes.elements[rang];
     return [
-      ...elementsDuChamp(porteur, champ, e, [...ici, rang]),
-      bouton(`${id}/${rang}/retirer`, t('ecran.editeur.valeur.retirer', { libelle: champ.label }), ecrireLaValeur(porteur, ici, retirer)),
-      ...(monter ? [bouton(`${id}/${rang}/monter`, t('ecran.editeur.valeur.monter', { libelle: champ.label }), ecrireLaValeur(porteur, ici, monter))] : []),
+      ...elementsDuChamp(porteur, champ(e, rang), e, [...ici, rang]),
+      bouton(`${id}/${rang}/retirer`, t('ecran.editeur.valeur.retirer', { libelle: label }), ecrireLaValeur(porteur, ici, retirer)),
+      ...(monter ? [bouton(`${id}/${rang}/monter`, t('ecran.editeur.valeur.monter', { libelle: label }), ecrireLaValeur(porteur, ici, monter))] : []),
     ];
   });
   const ajouter = ajoutALaListe(porteur, f, liste, ici, element, gestes.ajouter);
   if (!ajouter) return [elementDeValeur(id, porteur, ici, f, argumentDeValeur(f, valeur, ici))];
   return valeur === undefined ? [ajouter] : [ligne(id, f.label), ...elements, ajouter];
+}
+
+/** « Ajouter » au rang neuf `rangNeuf` de la liste du champ `f`, d'id `valeur/<chemin>/ajouter`, là où son contexte
+ *  l'offre (`ContexteDuChamp.offert`) : l'élément qu'il y pose (`ContexteDuChamp.choix`), écrit à ce rang ; de plusieurs,
+ *  leur liste, chacun `…/ajouter/<k>` à son libellé ; aucun sans eux. */
+function ajoutAuRangNeuf(porteur: PorteurDeValeur, f: FieldDesc, rangNeuf: Segment[]): (Bouton | Choix)[] {
+  const id = `valeur/${rangNeuf.slice(0, -1).join('/')}/ajouter`;
+  const libelle = t('ecran.editeur.valeur.ajouter', { libelle: f.label });
+  const neufs = f.contexte?.offert(rangNeuf) ? f.contexte.choix(rangNeuf) ?? [] : [];
+  const ajout = (c: (typeof neufs)[number], ici: string, texte: string) => bouton(ici, texte, ecrireLaValeur(porteur, rangNeuf, c.valeur), false, c.refus);
+  if (neufs.length === 1) return [ajout(neufs[0], id, libelle)];
+  return neufs.length ? [choix(id, libelle, neufs.map((c, k) => ajout(c, `${id}/${k}`, c.libelle)), 'liste')] : [];
 }
 
 /** « Ajouter » de l'objet absent du champ `f`, au chemin `ici`, d'id `valeur/<chemin>/ajouter` : le choix de l'objet posé
@@ -1769,22 +1803,18 @@ function planDuLieuEnInspecteur(s: SessionDEdition, lieu: DonneeDuPorteur['lieu'
 /** Les éléments propres d'une entrée du registre `registre` du narratif à sous-entrées (`SOUS_ENTREES`), de donnée
  *  `donnee`, dans la session `s` : pour chacune de ses familles dont la sous-collection est présente, de chacune de ses
  *  sous-entrées, le formulaire qui change son identifiant (`identifiantsDesElements`, `renommerElement`) et le bouton
- *  qui la retire (`{ geste: 'supprimer', element }`), refusé avec sa raison (`refusDeRetrait`) ; puis « Ajouter », qui
- *  écrit au rang qui suit la dernière la sous-entrée neuve que son contexte y pose (`choixDuChamp`), sans elle s'il n'en
- *  pose pas. #3606 B8 */
+ *  qui la retire (`{ geste: 'supprimer', element }`), refusé avec sa raison (`refusDeRetrait`) ; la sous-entrée neuve
+ *  s'ajoute au formulaire de sa sous-collection (`ajoutAuRangNeuf`). #3606 B8 */
 function sousEntreesDuRegistre<R extends keyof typeof SOUS_ENTREES>(registre: R) {
   return (s: SessionDEdition, donnee: DonneeDuPorteur[R]): (Choix | Ligne | Bouton | Formulaire)[] => SOUS_ENTREES[registre]!.flatMap(({ chemin, famille }) => {
     const texte = (suffixe: string) => `ecran.editeur.sousEntree.${famille}.${suffixe}` as MsgKey;
     const elements = chemin.reduce<unknown>((o, cle) => (o as Record<Segment, unknown> | undefined)?.[cle], donnee) as readonly { id: string }[] | undefined;
     if (!elements) return [];
-    const rangNeuf = [...chemin, elements.length];
-    const [neuve] = choixDuChamp(registre, donnee, rangNeuf, cadreDeLaSession(s)) ?? [];
     return [
       ...elements.flatMap(({ id }) => [
         ...identifiantsDesElements(famille, [id], (el) => t(texte('identifier'), { id: el })),
         bouton(`${famille}/${id}/supprimer`, t(texte('supprimer'), { id }), { geste: 'supprimer', element: id }, false, refusDeRetrait(s, id)),
       ]),
-      ...(neuve ? [bouton(`${famille}/ajouter`, t(texte('ajouter')), ecrireLaValeur({ sorte: registre, id: donnee.id }, rangNeuf, neuve.valeur))] : []),
     ];
   });
 }

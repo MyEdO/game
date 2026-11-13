@@ -814,6 +814,22 @@ describe('les porteurs du narratif : une entrée de chaque registre créable, un
     expect([valeurs('etats', avec, ['forme', 'identite']), valeurs('etats', avec, ['forme', 'identite', 'reperes', 1])]).toEqual([undefined, [{ id: 'repere-2', fragment: '' }]]);
     expect(avecLaValeurDuPorteur('etats', avec, ['forme', 'identite', 'reperes', 1], { id: 'autre', fragment: '' }, cadre).ok).toBe(false);
   });
+
+  it('l’identité posée s’écrit par ses champs, jamais ses repères ni ses lignes entiers ni le repère d’une valeur ; elle et chacune de ses lignes se retirent entières, déclarées ; un rang non déclaré, non', () => {
+    const identite = { ancres: ['Nom'], reperes: [{ id: 'repere-1', fragment: 'Nom' }], lignes: [{ espece: 'humain', sexe: 'M', valeurs: [{ repere: 'repere-1', valeur: 'Otto' }] }] };
+    const avec = { id: 'elu', label: 'Élu', maison: 'fixture', forme: { kind: 'heros', identite } } as unknown as (typeof NARRATIF.etats)[number];
+    const ici = (...chemin: Segment[]) => ['forme', 'identite', ...chemin];
+    const ecrit = (chemin: Segment[], v?: unknown) => avecLaValeurDuPorteur('etats', avec, chemin, v, cadre);
+    expect([ecrit(ici('ancres'), ['Nom', 'Baron']), ecrit(ici('reperes', 0, 'fragment'), 'Baron Nom'), ecrit(ici('lignes', 0, 'sexe'), 'F'), ecrit(ici('lignes', 0, 'valeurs', 0, 'valeur'), 'Karl')].map((e) => e.ok))
+      .toEqual([true, true, true, true]);
+    expect([ecrit(ici('lignes', 0, 'valeurs', 0, 'repere'), 'autre'), ecrit(ici('reperes'), []), ecrit(ici('lignes'), []), ecrit(ici(), { ...identite, lignes: [] }), ecrit(ici('reperes', 0, 'id'), 'autre')].map((e) => (e.ok ? 'ok' : e.refus)))
+      .toEqual(['nonOffert', 'nonOffert', 'nonOffert', 'nonOffert', 'nonOffert']);
+    const sansLigne = ecrit(ici('lignes', 0));
+    const sansIdentite = ecrit(ici());
+    expect([sansLigne.ok && (sansLigne.valeur.forme as typeof avec.forme & { identite: typeof identite }).identite.lignes, sansIdentite.ok && sansIdentite.valeur.forme]).toEqual([[], { kind: 'heros' }]);
+    const refus = [ecrit(ici('reperes', 0)), avecLaValeurDuPorteur('indices', lettre, ['stades', 0], undefined, cadre)];
+    expect(refus.map((e) => (e.ok ? 'ok' : e.refus)), 'un rang qu’aucun formulaire ne déclare ne se retire pas').toEqual(['requis', 'requis']);
+  });
 });
 
 describe('l’adresse de prose d’un porteur hors scène : le profil d’un PNJ du narratif (#3606 M6)', () => {

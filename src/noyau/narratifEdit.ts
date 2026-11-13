@@ -31,7 +31,7 @@ export interface ProjetEdite {
 type ProjetDesEcrivains = Pick<ProjetEdite, 'scenes' | 'narratif'> & { worldMap?: WorldMap | null };
 
 /** L'identité que porte l'état `etat`, s'il en porte une (forme `heros`). */
-const identiteDe = (etat: EtatNarratif): Identite | undefined => ('identite' in etat.forme ? etat.forme.identite : undefined);
+export const identiteDe = (etat: EtatNarratif): Identite | undefined => ('identite' in etat.forme ? etat.forme.identite : undefined);
 
 /** La famille d'une sous-entrée : le stade d'un indice, la valeur déclarée d'un état, le repère de son identité. */
 type FamilleDeSousEntree = 'stade' | 'valeur' | 'repere';

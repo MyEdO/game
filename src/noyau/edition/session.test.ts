@@ -1595,6 +1595,19 @@ describe('le narratif, document ouvert du menu Fichier, ses registres par la tab
     expect(refusDeRetrait(retire, 'repere-1')).toBe('Une identité garde au moins un repère.');
   });
 
+  it('une ligne de l’identité se retire seule, puis l’identité entière, chacune sur un cran ; l’état change alors de forme', () => {
+    const s = jouer(choisir(ouvert(), 'etats', 'humeur'), { geste: 'forme', kind: 'heros' });
+    const ici = (...chemin: Segment[]) => ['forme', 'identite', ...chemin];
+    const forme = (x: SessionDEdition) => narratif(x).etats[0].forme as { kind: string; identite?: ReturnType<typeof identiteNeuve> };
+    const pose = jouer(s, valeur('etats', 'humeur', ici(), identiteNeuve()), valeur('etats', 'humeur', ici('lignes', 0), { espece: 'humain', sexe: 'M', valeurs: [] }), valeur('etats', 'humeur', ici('lignes', 1), { espece: 'humain', sexe: 'F', valeurs: [] }));
+    const sansLigne = jouer(pose, valeur('etats', 'humeur', ici('lignes', 0)));
+    expect([forme(sansLigne).identite?.lignes, sansLigne.historique.passe.length]).toEqual([[{ espece: 'humain', sexe: 'F', valeurs: [{ repere: 'repere-1', valeur: '' }] }], pose.historique.passe.length + 1]);
+    expect(refusDeLaValeur(sansLigne, valeur('etats', 'humeur', ici('lignes', 0, 'valeurs', 0, 'repere'), 'autre'))).toBe('nonOffert');
+    const sansIdentite = jouer(sansLigne, valeur('etats', 'humeur', ici()));
+    expect([forme(sansIdentite), refusDeForme(projetEdite(sansIdentite), 'humeur')]).toEqual([{ kind: 'heros' }, undefined]);
+    expect(forme(jouer(sansIdentite, { geste: 'forme', kind: 'enum' }))).toEqual({ kind: 'enum', valeurs: [{ id: 'valeur-1', label: 'Valeur 1' }] });
+  });
+
   it('un stade se couple à son document comme à l’éditeur web : sa prose vidée, le document croisé, se retire ; son document retiré sans prose lui rend une prose vide, que le narratif admet', () => {
     const avecDocument = { ...NARRATIF, documents: [{ id: 'doc-lettre', titre: 'La lettre', prose: 'x' }] } as typeof NARRATIF;
     const s = choisir(ouvert(avecDocument), 'indices', 'ind-lettre');

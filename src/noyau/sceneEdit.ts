@@ -1208,15 +1208,31 @@ export function avecLaValeur(objet: unknown, donnee: Objet, chemin: readonly Seg
   return faute === undefined ? { ok: true, valeur: apres } : { ok: false, refus: { regle: faute } };
 }
 
+/** Le retrait déclaré au chemin `chemin` des retraits `retraits` du formulaire (`formeDuPorteur`), de la donnée `donnee` :
+ *  d'un rang, la liste qui le porte, sans l'élément ; d'une clé, l'objet qu'elle porte, par le chemin de son retrait
+ *  `ecrit` (`cheminDuRetrait`), s'il ne remonte pas au-delà ; `undefined` hors d'eux. */
+function retraitDeclare(retraits: readonly (readonly Segment[])[], donnee: unknown, chemin: readonly Segment[], ecrit: readonly Segment[] | 'nonOffert' | 'requis'): { ecrit: readonly Segment[]; valeur: unknown } | undefined {
+  if (!retraits.some((r) => jsonCanonique(r) === jsonCanonique(chemin))) return undefined;
+  const rang = chemin[chemin.length - 1];
+  if (typeof rang === 'string') return typeof ecrit !== 'string' && jsonCanonique(ecrit) === jsonCanonique(chemin) ? { ecrit, valeur: undefined } : undefined;
+  const parent = chemin.slice(0, -1);
+  const liste = parent.reduce<unknown>((o, pas) => (o as Record<Segment, unknown>)[pas], donnee) as readonly unknown[];
+  return { ecrit: parent, valeur: liste.filter((_, i) => i !== rang) };
+}
+
 /** Où s'écrit `valeur` au chemin `chemin` du formulaire `forme` (`formeDuPorteur`) du porteur de sorte `sorte`, de
- *  donnée `donnee`, dans le cadre `cadre` : le chemin, ou, `valeur` absente, celui de son retrait (`cheminDuRetrait`) ;
- *  ou son refus : celui du retrait, une écriture hors de ses champs, ou qui emporte un champ qu'ils n'offrent pas
- *  (`ecritureOfferte`), à ce qu'une adresse de prose dérive (`estCheminDerive`), n'est pas offerte. */
-function ouSEcrit<S extends SorteDePorteur>({ noeud, champs: offerts }: ReturnType<typeof formeDuPorteur>, sorte: S, donnee: DonneeDuPorteur[S], chemin: readonly Segment[], valeur: unknown, cadre: CadreDuPorteur): { ok: true; noeud: unknown; ecrit: readonly Segment[] } | { ok: false; refus: RefusDeValeur } {
-  const ecrit = valeur === undefined ? cheminDuRetrait(noeud, donnee as unknown as Objet, chemin, (ici) => choixDuChamp(sorte, donnee, ici, cadre)) : chemin;
-  if (typeof ecrit === 'string') return { ok: false, refus: ecrit };
+ *  donnée `donnee`, dans le cadre `cadre`, et ce qui s'y écrit : `valeur` au chemin, ou, `valeur` absente, le retrait
+ *  déclaré qu'est ce chemin (`retraitDeclare`), sinon le retrait au chemin du sien (`cheminDuRetrait`) ; ou son refus :
+ *  celui du retrait, une écriture hors de ses champs, ou qui emporte un champ qu'ils n'offrent pas (`ecritureOfferte`),
+ *  hors d'un retrait déclaré, à ce qu'une adresse de prose dérive (`estCheminDerive`), n'est pas offerte. */
+function ouSEcrit<S extends SorteDePorteur>({ noeud, champs: offerts, retraits }: ReturnType<typeof formeDuPorteur>, sorte: S, donnee: DonneeDuPorteur[S], chemin: readonly Segment[], valeur: unknown, cadre: CadreDuPorteur): { ok: true; noeud: unknown; ecrit: readonly Segment[]; valeur: unknown } | { ok: false; refus: RefusDeValeur } {
+  const retrait = valeur === undefined ? cheminDuRetrait(noeud, donnee as unknown as Objet, chemin, (ici) => choixDuChamp(sorte, donnee, ici, cadre)) : chemin;
+  const declare = valeur === undefined ? retraitDeclare(retraits, donnee, chemin, retrait) : undefined;
+  if (!declare && typeof retrait === 'string') return { ok: false, refus: retrait };
+  const ecrit = declare?.ecrit ?? (retrait as readonly Segment[]);
   const actuelle = ecrit.reduce<unknown>((o, pas) => (estObjet(o) || Array.isArray(o) ? (o as Record<Segment, unknown>)[pas] : undefined), donnee);
-  return ecritureOfferte(offerts, ecrit, actuelle) && !estCheminDerive(noeud, donnee, ecrit) ? { ok: true, noeud, ecrit } : { ok: false, refus: 'nonOffert' };
+  const offerte = declare !== undefined || ecritureOfferte(offerts, ecrit, actuelle);
+  return offerte && !estCheminDerive(noeud, donnee, ecrit) ? { ok: true, noeud, ecrit, valeur: declare ? declare.valeur : valeur } : { ok: false, refus: 'nonOffert' };
 }
 
 /** Le retrait de chaque champ, à son chemin, du formulaire du porteur de sorte `sorte`, de donnée `donnee`, dans le
@@ -1235,7 +1251,7 @@ export function avecLaValeurDuPorteur<S extends SorteDePorteur>(sorte: S, donnee
   const ou = ouSEcrit(formeDuPorteur(sorte, donnee, cadre), sorte, donnee, chemin, valeur, cadre);
   if (!ou.ok) return ou;
   const { noeud, ecrit } = ou;
-  const ecrite = avecLaValeur(noeud, donnee as unknown as Objet, ecrit, valeur, (ici) => choixDuChamp(sorte, donnee, ici, cadre));
+  const ecrite = avecLaValeur(noeud, donnee as unknown as Objet, ecrit, ou.valeur, (ici) => choixDuChamp(sorte, donnee, ici, cadre));
   if (!ecrite.ok) return ecrite;
   const scellee = adressesScellees(noeud, donnee, adresseRecalee(noeud, donnee, ecrite.valeur, ecrit), cadre.source);
   return scellee === undefined ? { ok: false, refus: 'nonOffert' } : { ok: true, valeur: scellee as DonneeDuPorteur[S] };

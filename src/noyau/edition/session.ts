@@ -395,7 +395,7 @@ export interface SessionDEdition {
  *  sens (`null`, `orienterRoute`) ; donner à l'état sélectionné du narratif la forme neuve `kind` (`formeChangee`) ; ouvrir le plan du lieu `lieu` de la carte du monde ouverte, sélectionné, ou le fermer (`null`, `planDuLieu`) ; retirer le point
  *  d'intérêt désigné sur ce plan (`retirerPoi`) ; ouvrir le document `document` du projet (`ouvrirLeDocument`) ; écrire
  *  une valeur au chemin `chemin` du formulaire du porteur `porteur` (`formulaireDe`, `undefined`
- *  retire le champ), ou y resceller l'adresse de prose au chemin `chemin` après relecture (`avecLAdresseRescellee`) ; nommer l'entité, l'entrée, le
+ *  retire le champ, ou l'objet ou l'élément d'un retrait déclaré, `retraitsDuPorteur`), ou y resceller l'adresse de prose au chemin `chemin` après relecture (`avecLAdresseRescellee`) ; nommer l'entité, l'entrée, le
  *  déclencheur, le dialogue, la rencontre, la zone d'effet ou le corps sélectionné, ou sans sélection le porteur singulier du
  *  document ouvert qui se nomme (`GESTES_DES_SINGULIERS`, la scène) (`nom` absent : l'entité
  *  reprend le nom de sa fiche ; le déclencheur, le dialogue et la rencontre y prennent leur identifiant, par la table de leur

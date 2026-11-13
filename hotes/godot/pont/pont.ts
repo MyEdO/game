@@ -1352,7 +1352,7 @@ export function creerPont(stockage: Stockage | null) {
      * nœud d'un dialogue), `args` l'élément puis l'identifiant saisi, qui décrit la scène, `args` la description ou rien, ou qui ajoute un
      * drapeau de départ, `args` son nom ; ou `{ type: 'valeur', args: [porteur, chemin, valeur?] }` : un formulaire
      * tiré du schéma, ses deux saisies posées égales en profondeur à celles d'un formulaire des zones, `valeur` absente
-     * pour retirer le champ (section « Éditeur »)
+     * pour retirer le champ, ou, d'un retrait déclaré de son porteur, l'objet ou l'élément entier (section « Éditeur »)
      *
      * @returns `{ vue: { zones, couche }, surcouche, calque, monde?, retrait?, aretes?, navires?, depot?, essai?,
      * planche?, chapitre?, memoire? }` (section « Éditeur »), `chapitre` le `{ book, ch }` du chapitre que la session se

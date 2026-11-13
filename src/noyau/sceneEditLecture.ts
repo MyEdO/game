@@ -10,9 +10,10 @@ import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { dialogueSchema, encounterDefSchema, faceDAreteSchema, optionalDeSceneSchema, sceneEffectZoneSchema, sceneEntitySchema, sceneSchema, triggerSchema, type Terrain } from '../data/schemas/defs-scenes/scene';
 import { projetSchema } from '../data/schemas/defs-scenes/projet';
 import { mapPlaceSchema, mapRouteSchema, placePoiSchema, worldMapSchema } from '../data/schemas/defs-scenes/worldmap';
+import { repereDIdentiteSchema, valeurDIdentiteSchema } from '../data/schemas/grammaire/campagne';
 import { affaireSchema, documentNarratifSchema, ecartSchema, etatNarratifSchema, formeDEtatSchema, indiceSchema, indiceStadeSchema, narratifSchema, presetPnjSchema, valeurDEtatSchema, type EcartDeFiche, type EtatNarratif, type Indice, type NarratifBlock, type PresetPnj } from '../data/schemas/defs-scenes/narratif';
-import { libelleDeLigne } from './narratifEdit';
-import { idFrais, identiteNeuve, lignesNeuves, repereNeuf, type RegistreCreable } from '../data/schemas/defs-scenes/ecritures-du-narratif';
+import { identiteDe, libelleDeLigne } from './narratifEdit';
+import { idFrais, identiteNeuve, lignesNeuves, repereNeuf, type Identite, type RegistreCreable } from '../data/schemas/defs-scenes/ecritures-du-narratif';
 import { FORMES_D_ETAT, valeursDeclarees } from '../data/schemas/defs-scenes/formes-d-etat';
 import { collectionDe, idsDeLaPortee } from '../data/schemas/grammaire/collection-cle';
 import { noeudsAuChemin, ouverts, pasDeDonnee } from '../data/schemas/grammaire/descente';
@@ -526,6 +527,9 @@ interface FormulaireDuPorteur<D> {
    *  s'atteint sur le plan. */
   logique?: true;
   champs: (donnee: D, cadre: CadreDuPorteur) => CheminsOfferts;
+  /** Les chemins de sa donnée qui se retirent entiers sans s'écrire entiers (`avecLaValeurDuPorteur`) : d'une clé,
+   *  l'objet qu'elle porte ; d'un rang, l'élément de sa liste. */
+  retraits?: (donnee: D) => CheminsOfferts;
   choix?: (donnee: D, chemin: readonly Segment[], cadre: CadreDuPorteur) => readonly ChoixDuContexte[] | undefined;
 }
 
@@ -851,14 +855,41 @@ function choixDeLIndice(indice: Indice, chemin: readonly Segment[], { projet: { 
     .map((i) => ({ valeur: i.id, libelle: i.titre || i.id, refus: null }));
 }
 
+/** Les champs d'une valeur d'une ligne d'identité, hors de son repère, que posent la couverture de l'identité
+ *  (`etatCouvert`) et le renommage du repère (`renommeAuProjet`). */
+const CHAMPS_DE_LA_VALEUR_D_IDENTITE = champsSauf(valeurDIdentiteSchema, ['repere']);
+
+/** Les champs qu'offre l'identité `identite` : ses ancres, entières ; ses repères par élément (`champsDesElements`) ; de
+ *  chacune de ses lignes, son espèce, son sexe et, de chacune de ses valeurs, ses champs hors de son repère
+ *  (`CHAMPS_DE_LA_VALEUR_D_IDENTITE`) ; le rang qui suit sa dernière ligne, où la ligne neuve s'ajoute. Ses repères et ses
+ *  lignes entiers ne sont pas offerts : une ligne se retire par son retrait déclaré (`retraitsDeLEtat`). */
+const champsDeLIdentite = (identite: Identite): CheminsOfferts => [
+  [...IDENTITE, 'ancres'],
+  ...champsDesElements(REPERES, repereDIdentiteSchema, identite.reperes),
+  ...identite.lignes.flatMap((l, j) => [
+    [...LIGNES, j, 'espece'],
+    [...LIGNES, j, 'sexe'],
+    ...l.valeurs.flatMap((_, k) => CHAMPS_DE_LA_VALEUR_D_IDENTITE.map(([c]) => [...LIGNES, j, 'valeurs', k, c])),
+  ]),
+  [...LIGNES, identite.lignes.length],
+];
+
 /** Les champs qu'offre le formulaire d'un état : chacun de son schéma hors de son identifiant et de sa forme ; de sa forme
  *  courante (`formeAuPoint`), chaque champ hors de son discriminant, ses valeurs déclarées par élément
- *  (`champsDesElements`). Changer de forme n'y est pas offert. */
+ *  (`champsDesElements`), son identité présente par ses champs (`champsDeLIdentite`), absente entière, où elle se pose.
+ *  Changer de forme n'y est pas offert. */
 function champsDeLEtat(etat: EtatNarratif): CheminsOfferts {
-  const forme = champsSauf(formeAuPoint(formeDEtatSchema, etat.forme)!.noeud, ['kind', 'valeurs']).map((c) => ['forme', ...c]);
+  const identite = identiteDe(etat);
+  const forme = champsSauf(formeAuPoint(formeDEtatSchema, etat.forme)!.noeud, ['kind', 'valeurs', ...(identite ? ['identite'] : [])]).map((c) => ['forme', ...c]);
   const valeurs = FORMES_D_ETAT[etat.forme.kind].valeursDeclarees ? champsDesElements(VALEURS_D_ETAT, valeurDEtatSchema, valeursDeclarees(etat)) : [];
-  return [...champsSauf(etatNarratifSchema, ['id', 'forme']), ...forme, ...valeurs];
+  return [...champsSauf(etatNarratifSchema, ['id', 'forme']), ...forme, ...valeurs, ...(identite ? champsDeLIdentite(identite) : [])];
 }
+
+/** Les retraits déclarés de l'état `etat` : son identité, et chacune de ses lignes. */
+const retraitsDeLEtat = (etat: EtatNarratif): CheminsOfferts => {
+  const identite = identiteDe(etat);
+  return identite ? [IDENTITE, ...identite.lignes.map((_, j) => [...LIGNES, j])] : [];
+};
 
 /** Les choix que le contexte de l'état `etat` pose au chemin `chemin` de sa donnée : au rang qui suit sa dernière valeur
  *  déclarée, la valeur neuve, d'identifiant frais (`idFrais`), libellée de son rang (`NarratifEditor`, « Ajouter une
@@ -870,7 +901,7 @@ function choixDeLEtat(etat: EtatNarratif, chemin: readonly Segment[]): readonly 
   if (FORMES_D_ETAT[etat.forme.kind].valeursDeclarees) {
     return auRangNeuf(chemin, VALEURS_D_ETAT, valeurs.length) ? poseNeuf({ id: idFrais('valeur', valeurs), label: t('ecran.editeur.narratif.valeurNeuve', { n: valeurs.length + 1 }) }) : undefined;
   }
-  const identite = 'identite' in etat.forme ? etat.forme.identite : undefined;
+  const identite = identiteDe(etat);
   if (!identite) return chemin.length === IDENTITE.length && IDENTITE.every((cle, i) => chemin[i] === cle) ? [{ valeur: identiteNeuve(), libelle: t('ecran.editeur.narratif.identiteNeuve'), refus: null }] : undefined;
   if (auRangNeuf(chemin, REPERES, identite.reperes.length)) return poseNeuf(repereNeuf(identite));
   return auRangNeuf(chemin, LIGNES, identite.lignes.length) ? lignesNeuves(identite).map((l) => ({ valeur: l, libelle: libelleDeLigne(l), refus: null })) : undefined;
@@ -893,13 +924,14 @@ const APPARENCES_DU_PRESET = ['apparence', 'apparencesObjets'] as const;
 /** Ce que déclare le formulaire d'une entrée de chaque registre créable du narratif (`RegistreCreable`) : son schéma,
  *  ses champs, chacun hors de son identifiant, que le renommage propage (`renommeAuProjet`), et les choix de son
  *  contexte ; d'un indice, ses champs (`champsDeLIndice`) aux choix de son contexte (`choixDeLIndice`) ; d'un PNJ, les
- *  choix du sien (`choixDuPreset`) ; d'un état, ses champs (`champsDeLEtat`) aux choix du sien (`choixDeLEtat`). */
-const FORMULAIRES_DES_REGISTRES: { readonly [R in RegistreCreable]: Pick<FormulaireDuPorteur<DonneeDuPorteur[R]>, 'schema' | 'champs' | 'choix'> } = {
+ *  choix du sien (`choixDuPreset`) ; d'un état, ses champs (`champsDeLEtat`), ses retraits déclarés (`retraitsDeLEtat`)
+ *  et les choix de son contexte (`choixDeLEtat`). */
+const FORMULAIRES_DES_REGISTRES: { readonly [R in RegistreCreable]: Pick<FormulaireDuPorteur<DonneeDuPorteur[R]>, 'schema' | 'champs' | 'retraits' | 'choix'> } = {
   affaires: { schema: affaireSchema, champs: () => champsSauf(affaireSchema, ['id']) },
   indices: { schema: indiceSchema, champs: champsDeLIndice, choix: choixDeLIndice },
   presetsPnj: { schema: presetPnjSchema, champs: () => champsSauf(presetPnjSchema, ['id']), choix: choixDuPreset },
   documents: { schema: documentNarratifSchema, champs: () => champsSauf(documentNarratifSchema, ['id']) },
-  etats: { schema: etatNarratifSchema, champs: champsDeLEtat, choix: choixDeLEtat },
+  etats: { schema: etatNarratifSchema, champs: champsDeLEtat, retraits: retraitsDeLEtat, choix: choixDeLEtat },
 };
 
 /** Le formulaire d'une entrée de chaque registre créable du narratif (`FORMULAIRES_DES_REGISTRES`) : dans la collection
@@ -1073,10 +1105,25 @@ export function ecritureOfferte(offerts: CheminsOfferts, chemin: readonly Segmen
 }
 
 /** Le formulaire tiré du schéma du porteur de sorte `sorte` (`FORMULAIRES`) : le nœud où s'écrit sa donnée `donnee`, à
- *  travers les unions de son schéma (`formeAuPoint`), et les champs que sa donnée offre dans le cadre `cadre`. */
-export function formeDuPorteur<S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], cadre: CadreDuPorteur): { noeud: unknown; champs: CheminsOfferts } {
+ *  travers les unions de son schéma (`formeAuPoint`), les champs que sa donnée offre dans le cadre `cadre`, et ses
+ *  retraits déclarés, aucun s'il n'en déclare pas. */
+export function formeDuPorteur<S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], cadre: CadreDuPorteur): { noeud: unknown; champs: CheminsOfferts; retraits: CheminsOfferts } {
   const formulaire: FormulaireDuPorteur<DonneeDuPorteur[S]> = FORMULAIRES[sorte];
-  return { noeud: formeAuPoint(formulaire.schema, donnee)?.noeud, champs: formulaire.champs(donnee, cadre) };
+  return { noeud: formeAuPoint(formulaire.schema, donnee)?.noeud, champs: formulaire.champs(donnee, cadre), retraits: retraitsDuPorteur(sorte, donnee) };
+}
+
+/** Les retraits déclarés du porteur de sorte `sorte`, de donnée `donnee` (`FormulaireDuPorteur.retraits`) ; aucun s'il
+ *  n'en déclare pas. */
+export function retraitsDuPorteur<S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S]): CheminsOfferts {
+  const formulaire: FormulaireDuPorteur<DonneeDuPorteur[S]> = FORMULAIRES[sorte];
+  return formulaire.retraits?.(donnee) ?? [];
+}
+
+/** La clé qui identifie l'élément `element` de la liste de nœud `noeud` (`listeCle`, `collectionDe`) ; `undefined` d'une
+ *  liste sans clé. */
+export function cleDeLElement(noeud: unknown, element: unknown): string | undefined {
+  const marque = collectionDe(noeud);
+  return marque?.forme === 'liste' ? marque.de(element) : undefined;
 }
 
 /** La clé `cle` est-elle une référence narrative (`REFERENCES_NARRATIVES`) ? */

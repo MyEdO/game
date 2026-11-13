@@ -83,7 +83,7 @@ export { OUTILS_DE_LA_CARTE, OUTILS_DU_PLAN_DU_LIEU, UNITES_DU_PLAN_DE_CARTE, ty
 export { orienterRoute } from './worldMapEdit';
 export { refusDeForme } from './narratifEdit';
 export { FORMES_D_ETAT, type FormeDEtatKind } from '../data/schemas/defs-scenes/formes-d-etat';
-export { FORMULAIRES, accesDe, formulaireDe, porteurDeLaSel, porteurDuProjet, porteursDuProjet, idDuPorteur, choixDuChamp, SOUS_ENTREES, type DonneeDuPorteur, type SorteDeDocument, type SorteDePorteur } from './sceneEditLecture';
+export { FORMULAIRES, accesDe, cleDeLElement, formulaireDe, retraitsDuPorteur, porteurDeLaSel, porteurDuProjet, porteursDuProjet, idDuPorteur, SOUS_ENTREES, type DonneeDuPorteur, type SorteDeDocument, type SorteDePorteur } from './sceneEditLecture';
 export { PHRASE_REFUS, estChampDAdresse, etatDeLAdresse, type SourceDeLEdition } from './edition/adresseDeProse';
 export { bornesAuPoint, champDeLElement, champsDeclares, champsDuRecord, champsOfferts, choixDuNoeud, elementDuNoeud, formeAuPoint, recordDuNoeud, unionDuNoeud, varianteCourante, type FieldDesc } from './codex/editFields';
 export { gestesDeLaListe, valeurNeuveDe, variantesAChoisir } from './valeursNeuves';

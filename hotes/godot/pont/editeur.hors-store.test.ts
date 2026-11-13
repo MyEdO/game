@@ -2023,7 +2023,7 @@ describe('l’éditeur de carte par le pont, le narratif (#3606 M6)', () => {
   it('un stade s’ajoute, se renomme, se retire ; un stade désigné, comme le dernier, ne se retire pas, dit', () => {
     const { appel, presser, narratif } = surLeNarratif();
     const indice = presser(boutonDe(narratif, 'logique/indices/ind-pont'));
-    const ajoute = presser(boutonDe(indice, 'stade/ajouter'));
+    const ajoute = presser(boutonDe(indice, 'valeur/stades/ajouter'));
     expect(inspecte(ajoute, 'identifier/stade/stade-3')).toMatchObject({ type: 'formulaire' });
     const renomme = editionDe(appel('editer', { type: 'identifier', args: ['stade-3', 'releve'] }));
     expect(erreurDe(appel('editer', { type: 'identifier', args: ['releve', 'vu'] }))).toMatchObject({ categorie: 'regle', message: 'editer : Identifiant « vu » déjà porté par le stade 2' });
@@ -2084,11 +2084,26 @@ describe('l’éditeur de carte par le pont, le narratif (#3606 M6)', () => {
     const etat = presser(boutonDe(narratif, 'logique/etats/ajouter'));
     const identite = presser((inspecte(etat, 'valeur/forme/identite/ajouter') as Choix).valeurs[0]);
     expect(boutonDe(identite, 'repere/repere-1/supprimer').refus).toBe('Une identité garde au moins un repère.');
-    const ajoute = presser(boutonDe(identite, 'repere/ajouter'));
+    const ajoute = presser(boutonDe(identite, 'valeur/forme/identite/reperes/ajouter'));
     expect(inspecte(ajoute, 'identifier/repere/repere-2')).toMatchObject({ type: 'formulaire' });
     const renomme = editionDe(appel('editer', { type: 'identifier', args: ['repere-2', 'titre'] }));
     expect(erreurDe(appel('editer', { type: 'identifier', args: ['titre', 'repere-1'] }))).toMatchObject({ categorie: 'regle', message: 'editer : Identifiant « repere-1 » déjà porté par le repère 1' });
     const retire = presser(boutonDe(renomme, 'repere/titre/supprimer'));
     expect([inspecte(renomme, 'identifier/repere/titre')?.type, inspecte(retire, 'identifier/repere/titre')]).toEqual(['formulaire', undefined]);
+  });
+
+  it('l’identité d’un état héros : une ligne s’ajoute par son espèce et son sexe, se retire par son bouton, l’identité aussi, et l’état change alors de forme ; ni les repères ni le repère d’une valeur ne s’écrivent au formulaire', () => {
+    const { presser, narratif } = surLeNarratif();
+    const etat = presser(boutonDe(narratif, 'logique/etats/ajouter'));
+    const identite = presser((inspecte(etat, 'valeur/forme/identite/ajouter') as Choix).valeurs[0]);
+    const deux = presser((inspecte(presser((inspecte(identite, 'valeur/forme/identite/lignes/ajouter') as Choix).valeurs[0]), 'valeur/forme/identite/lignes/ajouter') as Choix).valeurs[0]);
+    const ids = deux.vue.zones['editeur.inspecteur'].map((el) => el.id);
+    expect(ids.filter((id) => /^valeur\/forme\/identite\/(reperes|lignes)\/\d+\/retirer$|^valeur\/forme\/identite\/retirer$|valeurs\/\d+\/repere/.test(id)), 'les retraits déclarés, seuls')
+      .toEqual(['valeur/forme/identite/lignes/0/retirer', 'valeur/forme/identite/lignes/1/retirer', 'valeur/forme/identite/retirer']);
+    const une = presser(boutonDe(deux, 'valeur/forme/identite/lignes/0/retirer'));
+    expect(une.vue.zones['editeur.inspecteur'].filter((el) => /^valeur\/forme\/identite\/lignes\/\d+\/retirer$/.test(el.id)).map((el) => el.id)).toEqual(['valeur/forme/identite/lignes/0/retirer']);
+    const sans = presser(boutonDe(une, 'valeur/forme/identite/retirer'));
+    expect([boutonDe(sans, 'etat/forme/enum').refus, inspecte(sans, 'valeur/forme/identite/ajouter')?.type]).toEqual([null, 'choix']);
+    expect(boutonDe(presser(boutonDe(sans, 'etat/forme/enum')), 'etat/forme/enum').presse).toBe(true);
   });
 });
