@@ -337,7 +337,8 @@ export const ECRIT_LU = {
         'assets (`asset.hors-store.test.ts`) et la table de test du pont avant de lister les modèles (`modelesCommites`, ' +
         'hotes/godot/pont/pont.testkit.ts, #3945), n’y écrit un `<id>.glb` que s’il y manque ou n’a pas la somme de sa ' +
         'provenance, par temporaire exclusif puis renommage : un lecteur concurrent ne voit jamais un fichier partiel ; ' +
-        '`test:noyau` précède `godot:sonde` dans le job `types` de ci.yml, la même lane, une SÉRIE',
+        '`test:noyau` précède `godot:sonde` dans la lane `types` du rejeu local (`LANE_LOCALE_DE_JOB`), une SÉRIE ; dans ' +
+        'ci.yml, chacune joue dans son job (`types`, `godot`), sur son arbre',
     },
     lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'Source/', 'vitest.noyau.config.ts', 'package.json'],
     raison: RETRAIT_WORKTREE_FERME +
@@ -458,9 +459,9 @@ export const ECRIT_LU = {
         'par temporaire exclusif puis renommage (`ecrireTexteAtomique`) : un lecteur concurrent voit l’absent, l’ancien ou ' +
         'le GLB de somme épinglée, jamais un fichier partiel ; `/modeles/*.glb` est gitignoré (hotes/godot/projet/.gitignore) ' +
         'et sa seule autre gate lectrice du dossier, `personnage-3d:tests` (#3145, ses manifestes), suit `godot:sonde` dans le job ' +
-        '`types` de ci.yml, donc dans la même lane, une SÉRIE dans l’ordre du fichier (`lanesDeCi`) : elle ne lit ' +
-        'qu’après l’écriture ; le lint lit des modules ; la suite du noyau, de la même lane, la précède et y dépose les ' +
-        'mêmes GLB (`ecritFerme` de `test:noyau`)',
+        '`godot` de ci.yml, donc dans la même lane, une SÉRIE dans l’ordre du fichier (`lanesDeCi`) : elle ne lit ' +
+        'qu’après l’écriture ; le lint lit des modules ; la suite du noyau, que la lane locale `types` joue avant elle ' +
+        '(`LANE_LOCALE_DE_JOB`), y dépose les mêmes GLB (`ecritFerme` de `test:noyau`)',
       'src/scenes/':
         'le pont vivant (hotes/godot/vivant.mjs, #3945), que chaque recette reçoit en `--pont=` et que le pont natif lance ' +
         'à son premier `rejoindre`, sert le dépôt réel (`servir({ depot })`) : `servirLeDepot` (hotes/godot/servir.mjs) n’y ' +
@@ -491,7 +492,7 @@ export const ECRIT_LU = {
       'hotes/godot/projet/modeles/':
         'le même dépôt que `godot:sonde` (`deposerLesAssets`, hotes/godot/construire.mjs) : `recupererModeles` n’y écrit ' +
         'un `<id>.glb` que s’il y manque ou n’a pas la somme de sa provenance, par temporaire exclusif puis renommage ; ' +
-        '`godot:rendus` suit `godot:sonde` dans le job `types` de ci.yml, la même lane, une SÉRIE : il ne lui reste rien ' +
+        '`godot:rendus` suit `godot:sonde` dans le job `godot` de ci.yml, la même lane, une SÉRIE : il ne lui reste rien ' +
         'à écrire, et la gate lectrice du dossier, `personnage-3d:tests`, les suit toutes deux',
     },
     lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'Source/', 'tsconfig.json', 'package.json'],

@@ -146,6 +146,10 @@ export const scenario: TestScenario = {
       morale: { score: 75, lastMoraleWeek: 0, factors: [] },
       wounds: { current: 15, max: 50 }, // coque mal en point : entretien chaque nuit, encore à réparer à l'arrivée
       waterLitres: 2900, // 20 tonneaux de 145 L (MDG 14 l.242) — 19 hommes à 3 L/jour, soit ~50 jours d'eau
+      // Valeur d'adaptation (#1652) : une journée de frais pour les 15 PNJ, puis ~50 jours de biscuits de mer ;
+      // la traversée passe aux biscuits dès le deuxième jour, avant le premier recalcul hebdomadaire du Moral.
+      // MDG 14 l.143, l.166, l.250
+      provisions: { 'nourriture-courses-journee': 15, 'ration-biscuits-de-mer': 735 },
     },
   }),
 };

@@ -556,9 +556,8 @@ export const combatFeatureSchema: z.ZodType<unknown> = z.lazy(() =>
 );
 
 /**
- * `RuleValue` (`src/engine/policy.ts`) — valeur effective d'une règle optionnelle du registre
- * `OPTIONAL_RULES` (`src/engine/policy.ts`, lue par `rule(id)`). Union fermée retapée, même raison que
- * `combatFeatureSchema` ci-dessus : le type n'a pas de contrepartie runtime à dériver.
+ * Valeur d'une règle optionnelle du registre `OPTIONAL_RULES` (`src/engine/policy.ts`) SANS sa règle, dont
+ * `RuleValue` dérive ; la valeur d'UNE règle, que rend `rule(id)`, est `ValeurDeRegle[id]` (`_ids.generated.ts`).
  */
 export const ruleValueSchema = z.union([z.boolean(), z.number(), z.string()]);
 

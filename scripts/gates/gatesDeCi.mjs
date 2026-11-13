@@ -75,6 +75,12 @@ export const LANE_LOCALE_DE_JOB = {
       '`test:hooks` (issuecomment-5924305772 de #2178) a son job pour raccourcir le ' +
       'chemin critique de la CI ; le rejeu local tient `PLAFOND_LANES` lanes, et `types` le porte',
   },
+  godot: {
+    lane: 'types',
+    raison:
+      '`godot:sonde`, `godot:rendus` et `personnage-3d:tests` ont leur job pour raccourcir le chemin critique de la CI ' +
+      '(#3412) ; le rejeu local tient `PLAFOND_LANES` lanes, et `types` les porte',
+  },
   corpus: {
     lane: 'types',
     raison:
