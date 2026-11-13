@@ -13,34 +13,25 @@
  */
 import { CADENCE_DEFAULT, CADENCE_MODES, cadence, setCadence, type Cadence } from '../engine/cadence';
 import { DES_FIXES_DEFAULT, desFixes, setDesFixes } from '../engine/fixedDie';
-import { valeurConforme } from '../engine/policy';
+import { valeurConforme, type FormeDeControle } from '../engine/policy';
 import { CANAUX_DE_SON, type CanalDeSon } from '../data/sons/types';
 import { SON_COUPE_DEFAUT, VOLUME_DEFAUT, couperLeSon, reglerLeVolume, sonCoupe, volumeDuCanal } from './volumes';
 
 export type PrefValue = boolean | number | string;
-export type PrefKind = 'flag' | 'mode' | 'param';
 
-/** La forme d'une entrée de la table. */
-interface FormeDePreference {
+/** La forme d'une entrée de la table : ses champs, et la forme de son contrôle. */
+type FormeDePreference = FormeDeControle & {
   id: string;
   /** Libellé affiché. */
   label: string;
   /** Aide courte (infobulle). */
   hint?: string;
-  /** Forme du contrôle auto-rendu : flag=case à cocher, mode=liste, param=nombre borné. */
-  kind: PrefKind;
-  /** Valeurs possibles (kind='mode'). */
-  options?: readonly string[];
-  /** Bornes et pas (kind='param'). */
-  min?: number;
-  max?: number;
-  step?: number;
   default: PrefValue;
   /** Lecture de la valeur effective, dans son module feuille. */
   get(): PrefValue;
   /** Écriture de la valeur, sans effet de bord. */
   set(value: PrefValue): void;
-}
+};
 
 const LIBELLES_DES_VOLUMES: Record<CanalDeSon, string> = {
   musique: 'Volume de la musique',

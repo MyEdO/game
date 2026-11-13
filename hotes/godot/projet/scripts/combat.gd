@@ -371,13 +371,15 @@ func _publier_l_ecran() -> void:
 		_pont.publier_l_ecran(_ecran_publie)
 
 
-## Ce que l'écran porte : ses boutons (`PontDuNoyau.boutons_a_l_ecran`), le point de chaque case du plateau, la part de
+## Ce que l'écran porte : ses boutons (`PontDuNoyau.boutons_a_l_ecran`), les curseurs du panneau des réglages
+## (`PontDuNoyau.curseurs_a_l_ecran`), le point de chaque case du plateau, la part de
 ## l'écran où le monde se voit (`Monde.cadre`), ce que porte le corps de chaque combattant dessiné (`Plateau.corps`) et
 ## les navires posés (`Plateau.navires`).
 func _ecran_publie() -> Dictionary:
 	var cadre := _monde.cadre
 	return {
-		boutons = PontDuNoyau.boutons_a_l_ecran([_ecran, _scenarios, _sauvegardes, _reglages.racine()]), cases = _plateau.points(),
+		boutons = PontDuNoyau.boutons_a_l_ecran([_ecran, _scenarios, _sauvegardes, _reglages.racine()]), curseurs = PontDuNoyau.curseurs_a_l_ecran([_reglages.racine()]),
+		cases = _plateau.points(),
 		cadre = [cadre.position.x, cadre.position.y, cadre.size.x, cadre.size.y], corps = _plateau.corps(), navires = _plateau.navires(),
 	}
 

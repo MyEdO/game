@@ -55,9 +55,16 @@ const doc = document(
     // Le refine du nœud `bornesSchema` ne traverse pas le spread de sa shape : la co-présence des
     // deux bornes se re-branche ICI, sur la MÊME fonction partagée (`ecartDeCoPresenceDesBornes`,
     // `grammaire/valeurs.ts`) — la règle n'a qu'un porteur.
+    // La forme du contrôle (`FormeDeControle`, `engine/policy.ts`) : un `param` porte ses deux bornes, un `mode` ses
+    // `options`.
     affinerEntree: (entree) =>
       entree.superRefine((v, ctx) => {
-        const ecart = ecartDeCoPresenceDesBornes(v as { min?: number; max?: number });
+        const forme = v as { kind: string; min?: number; max?: number; options?: string[] };
+        const manquants = forme.kind === 'param' ? (['min', 'max'] as const).filter((b) => forme[b] === undefined) : forme.kind === 'mode' && forme.options === undefined ? ['options' as const] : [];
+        for (const champ of manquants) {
+          ctx.addIssue({ code: 'custom', path: [champ], message: `reglesOptionnelles.json : une règle \`${forme.kind}\` porte \`${champ}\`` });
+        }
+        const ecart = forme.kind === 'param' ? null : ecartDeCoPresenceDesBornes(forme);
         if (!ecart) return;
         ctx.addIssue({
           code: 'custom',

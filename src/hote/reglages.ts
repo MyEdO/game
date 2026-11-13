@@ -3,10 +3,10 @@
  * (`engine/policy.ts`) en zones, chaque entrée rendue par la forme de son contrôle (`kind`), et le geste qui en règle
  * une, persisté dans le `Stockage` de l'hôte (`hote/preferences.ts`, `hote/reglesMaison.ts`).
  */
-import { OPTIONAL_RULES, PREFERENCES, preferenceDef, refusDesSurcharges, reglesMaisonMutables, nommerLesRetraits, ruleOverrides, type Jeu as Partie, type OptionalRule, type Preference, type PrefValue, type RuleValue } from '../noyau/index';
+import { OPTIONAL_RULES, PREFERENCES, preferenceDef, refusDesSurcharges, reglesMaisonMutables, nommerLesRetraits, ruleOverrides, type Jeu as Partie, type FormeDeControle, type OptionalRule, type PrefValue, type RuleValue } from '../noyau/index';
 import { t } from '../i18n';
 import type { Stockage } from '../lib/stockage';
-import { ligne, SANS_BORNE, type Bouton, type Element, type Entite, type Ligne } from './elements';
+import { ligne, type Bouton, type Element, type Entite, type Ligne } from './elements';
 import { reglerUnePreference } from './preferences';
 import { ErreurDeGeste } from './partie';
 import { prendreLeTemoinDesReglesMaison, reglerUneRegleMaison, remettreUneRegleMaison } from './reglesMaison';
@@ -15,9 +15,9 @@ import { prendreLeTemoinDesReglesMaison, reglerUneRegleMaison, remettreUneRegleM
  * @contrat Vue
  * Les zones des réglages, que la méthode `reglages` rend avec ou sans partie ouverte. Chaque entrée y est rendue par
  * la forme de son contrôle : `flag` en choix « Non » ou « Oui », `mode` en liste de ses options, `param` en
- * formulaire d'une `saisieNombre` à ses bornes et à son pas. Le `jeu` d'une valeur, ou le verbe et les arguments du
- * formulaire, est le geste que la méthode `reglages` reçoit : `{ type: 'preference' | 'regle', args: [id, valeur] }`,
- * la préférence ou la règle maison `id` réglée à `valeur`.
+ * curseur à ses bornes et à son pas. Le `jeu` d'une valeur, ou le geste du curseur, est le geste que la méthode
+ * `reglages` reçoit : `{ type: 'preference' | 'regle', args: [id, valeur] }`, la préférence ou la règle maison `id`
+ * réglée à `valeur`.
  */
 export interface ZonesDesReglages {
   /** chaque préférence de confort de la table du noyau (`PREFERENCES`) : son contrôle, puis son aide en ligne. */
@@ -35,7 +35,7 @@ export interface ZonesDesReglages {
   'reglages.gestes': Bouton[];
 }
 
-type Forme = Pick<Preference, 'label' | 'kind' | 'options' | 'min' | 'max' | 'step'> & { id: string };
+type Forme = FormeDeControle & { id: string; label: string };
 
 /** Le contrôle de l'entrée `f`, de valeur `valeur`, dont le geste est le verbe `verbe` des réglages. */
 function controle(verbe: 'preference' | 'regle', f: Forme, valeur: PrefValue, refus: string | null): Element {
@@ -45,15 +45,9 @@ function controle(verbe: 'preference' | 'regle', f: Forme, valeur: PrefValue, re
     case 'flag':
       return { type: 'choix', id, ton: 'neutre', libelle: f.label, focus: false, refus, valeurs: [valeurDe(false, t('valeur.non')), valeurDe(true, t('valeur.oui'))] };
     case 'mode':
-      return { type: 'liste', id, ton: 'neutre', libelle: f.label, focus: false, refus, valeurs: (f.options ?? []).map((o) => valeurDe(o, o)) };
+      return { type: 'liste', id, ton: 'neutre', libelle: f.label, focus: false, refus, valeurs: f.options.map((o) => valeurDe(o, o)) };
     case 'param':
-      return {
-        type: 'formulaire', id, libelle: t('ecran.reglages.regler'), verbe, focus: false, refus,
-        champs: [
-          { type: 'fixe', id: `${id}/id`, nom: 'id', optionnel: false, valeur: f.id },
-          { type: 'saisieNombre', id: `${id}/valeur`, ton: 'neutre', nom: 'valeur', optionnel: false, libelle: f.label, valeur: valeur as number, min: f.min ?? SANS_BORNE.min, max: f.max ?? SANS_BORNE.max, pas: f.step ?? 1 },
-        ],
-      };
+      return { type: 'curseur', id, ton: 'neutre', libelle: f.label, valeur: valeur as number, min: f.min, max: f.max, pas: f.step ?? 1, verbe, arguments: [f.id], refus };
   }
 }
 

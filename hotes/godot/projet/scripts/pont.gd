@@ -154,8 +154,9 @@ func appeler(methode: String, entree: Variant = null) -> Dictionary:
 ## (#3947). Chaque publication remplace l'objet. À l’atelier, la lecture d’un clip renouvelle aussi cette publication à
 ## chaque image, après mise en page, sans remesurer `peaux`.
 ##
-## - Au menu : `{ boutons: { texte, x, y }[] }`, le texte et le centre de chaque bouton actif.
-## - Au combat : `{ boutons: { texte, x, y, element?, choix?, ids?, retenu? }[], cases: Record<"x,y,z", [x, y]>,
+## - Au menu : `{ boutons: { texte, x, y }[], curseurs: { element, gauche, droite, y, valeur }[] }`, le texte et le
+##   centre de chaque bouton actif, et chaque curseur réglable du panneau des réglages (`PontDuNoyau.curseurs_a_l_ecran`).
+## - Au combat : `{ boutons: { texte, x, y, element?, choix?, ids?, retenu? }[], curseurs, cases: Record<"x,y,z", [x, y]>,
 ##   cadre: [x, y, largeur, hauteur], corps: Record<string, { base: string, elements: string[], emblemes:
 ##   Record<string, string>, couleurs: Record<string, Record<string, string>> }>, navires: string[] }`, plus le
 ##   point de l'écran du sol de chaque case de chaque couche du plateau, à l'écran ou non, la part de l'écran où le
@@ -167,7 +168,8 @@ func appeler(methode: String, entree: Variant = null) -> Dictionary:
 ##   (`MontageDeComposition.couleurs_posees`).
 ##   `element` est l'élément de la vue que dessine le composant qui porte le bouton, `"<type>/<id>"` (`bouton/fin-de-tour`
 ##   pour une offre, `bouton/<clé du geste>` pour un geste de la fenêtre, `bouton/<clé du geste>/<n>` pour la n-ième
-##   valeur d'un choix) ; une liste déroulante publie aussi `choix`, `ids` et `retenu`, comme à l'atelier.
+##   valeur d'un choix) ; une liste déroulante publie aussi `choix`, `ids` et `retenu`, comme à l'atelier ; `curseurs`,
+##   comme au menu.
 ## - À l'éditeur : `{ boutons: { texte, x, y, element?, choix?, ids?, retenu? }[], saisies: { texte, x, y, element? }[],
 ##   panneau: { valeur, contenu, page, haut, bas, boutons, saisies }, cases: Record<"x,y", [x, y]>, editeur: { zones, surcouche, aretes,
 ##   noms, calque, calque_pose } }`, chaque champ de texte éditable à l'écran, son texte et son centre
@@ -351,6 +353,26 @@ static func saisies_a_l_ecran(racines: Array, defiles := false) -> Array:
 					publie.element = champ.owner.get_meta(Zone.META)
 				saisies.append(publie)
 	return saisies
+
+
+## Les curseurs à l'écran sous `racines` : la glissière (`Slider`) réglable et visible de chaque composant qui dessine
+## un élément (`Zone.META`), qu'aucun défilement ne cache, ou, `defiles` vrai, que les défilements cachent aussi, son
+## élément et sa piste (`glissiere_publiee`).
+static func curseurs_a_l_ecran(racines: Array, defiles := false) -> Array:
+	var curseurs := []
+	for racine in racines:
+		for glissiere: Slider in racine.find_children("*", "Slider", true, false):
+			if glissiere.is_visible_in_tree() and glissiere.editable and glissiere.owner != null and glissiere.owner.has_meta(Zone.META) and (defiles or a_l_ecran(glissiere, glissiere.get_global_rect().get_center())):
+				var publie := glissiere_publiee(glissiere)
+				publie.element = glissiere.owner.get_meta(Zone.META)
+				curseurs.append(publie)
+	return curseurs
+
+
+## La piste de `glissiere` à l'écran : son bord gauche, son bord droit, son milieu vertical, et sa valeur.
+static func glissiere_publiee(glissiere: Slider) -> Dictionary:
+	var cadre := glissiere.get_global_rect()
+	return {gauche = cadre.position.x, droite = cadre.end.x, y = cadre.get_center().y, valeur = glissiere.value}
 
 
 ## Le défilement vertical `defilement` : sa position (`valeur`, la valeur de sa barre, `ScrollBar.value`), la hauteur

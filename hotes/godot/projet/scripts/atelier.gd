@@ -1632,7 +1632,7 @@ func _ecran_publie() -> Variant:
 			continue
 		var cadre := glissiere.get_global_rect()
 		if PontDuNoyau.a_l_ecran(glissiere, cadre.get_center()):
-			plages[champ] = {gauche = cadre.position.x, droite = cadre.end.x, y = cadre.get_center().y, valeur = glissiere.value}
+			plages[champ] = PontDuNoyau.glissiere_publiee(glissiere)
 	return {
 		boutons = PontDuNoyau.boutons_a_l_ecran([_interface]),
 		atelier = {

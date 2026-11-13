@@ -108,7 +108,7 @@ import { maneuverShip } from '../noyau/shipManeuver';
 import { etageActif, getViewZ, setViewZ } from './viewLevel';
 import { setRevealAll, computeStateVisible } from '../noyau/visionState';
 import { doorIsOpen, emptyScene, porteEnJeu } from '../noyau/monde/scene';
-import { rule, setRule, ruleDef, OPTIONAL_RULES, type RuleValue } from '../engine/policy';
+import { rule, setRule, ruleDef, OPTIONAL_RULES, type FormeDeControle, type RuleValue } from '../engine/policy';
 import { remettreUneRegleMaisonWeb } from './reglesMaison';
 import { reglesMaisonMutables } from '../noyau/reglesMaison';
 import { cadence } from '../engine/cadence';
@@ -508,10 +508,10 @@ function driveSeaVoyage(stopAtNextDay: boolean, maxIters: number, stopOnEvent = 
 }
 
 /** Réglage auto-rendu par le harnais : une RÈGLE optionnelle (`policy`) ou une PRÉFÉRENCE (`preferences`). */
-type SettingDef = { id: string; label: string; kind: string; options?: readonly string[]; min?: number; max?: number; default: RuleValue };
+type SettingDef = FormeDeControle & { id: string; label: string; default: RuleValue };
 
-const settingShape = (d: { kind: string; options?: readonly string[]; min?: number; max?: number }) =>
-  d.kind === 'mode' ? `{${d.options?.join('|')}}` : d.kind === 'param' ? `[${d.min}…${d.max}]` : '(true|false)';
+const settingShape = (d: FormeDeControle) =>
+  d.kind === 'mode' ? `{${d.options.join('|')}}` : d.kind === 'param' ? `[${d.min}…${d.max}]` : '(true|false)';
 const settingUnknown = (id: string, api: 'rules' | 'prefs') => `réglage inconnu : ${id} — voir __wfrp.${api}()`;
 const settingDetail = (d: SettingDef, val: RuleValue | undefined) =>
   `${d.id} = ${JSON.stringify(val)} · ${d.label} (défaut ${JSON.stringify(d.default)} · ${settingShape(d)})`;
@@ -522,8 +522,8 @@ const settingDone = (id: string, v: RuleValue) => `✓ ${id} → ${JSON.stringif
 function coerceSetting(d: SettingDef, value: RuleValue): { v: RuleValue } | { err: string } {
   if (d.kind === 'flag') return { v: value === true || value === 'true' || value === 'on' };
   if (d.kind === 'param') return { v: Number(value) };
-  if (!d.options?.includes(String(value))) {
-    return { err: `${d.id} : valeur invalide « ${value} » — options : ${d.options?.join(' | ')}` };
+  if (!d.options.includes(String(value))) {
+    return { err: `${d.id} : valeur invalide « ${value} » — options : ${d.options.join(' | ')}` };
   }
   return { v: value };
 }

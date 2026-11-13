@@ -4,7 +4,8 @@
 ## zones d'un panneau que la disposition cache (le journal sous une scène qui le tient, `Disposition.journal`) ; chaque
 ## élément a son composant, dans l'ordre de la zone qui le range, et aucun ne reste sans zone ; chaque texte qu'il dit
 ## (`DITS`) se lit à l'écran, ou au survol de son contrôle ; chaque geste pressé joue l'intention que l'élément porte,
-## un formulaire celle que la vue attend ; le geste en focus le prend. Remontrée, une vue garde ses nœuds ; vidée, une
+## un formulaire celle que la vue attend, un curseur glissé ou réglé par sa boîte à nombre sa valeur (#4081) ; le geste
+## en focus le prend. Remontrée, une vue garde ses nœuds et ne joue rien (sa pose remet chaque curseur) ; vidée, une
 ## zone les quitte et la fenêtre se cache, le journal garde ses lignes. Chaque disposition dédiée (`res://ecrans/`) est
 ## montrée par une vue.
 extends SceneTree
@@ -113,7 +114,9 @@ func _recetter_la_vue(zones: Array[Zone], vue: Dictionary) -> void:
 			var noeud: Node = noeuds.get(_cle("fenetre.gestes", Zone.cle(e)))
 			var attendu: Node = noeud.get_node(FOCUS[e.type])
 			_verifier(focus == attendu, "%s : le geste en focus %s n'a pas le focus (%s)" % [vue.nom, e.id, focus])
+	_joues.clear()
 	Zone.montrer_toutes(zones, vue.zones)
+	_verifier(_joues.is_empty(), "%s : la vue remontrée joue %s" % [vue.nom, _joues])
 	for zone in zones:
 		for n in _dessines(zone):
 			_verifier(noeuds.get(_cle(zone.source, n.get_meta(Zone.META))) == n, "%s : %s redessiné au lieu d'être gardé" % [vue.nom, n.get_meta(Zone.META)])
@@ -205,6 +208,17 @@ func _presser(vue: Dictionary, noeud: Node, e: Dictionary) -> void:
 			_verifier(liste.selected == pressee, "%s, %s : liste choisie à %d, valeur pressée %d" % [vue.nom, e.id, liste.selected, pressee])
 			for i in e.valeurs.size():
 				_attendre(vue, e.valeurs[i].id, func() -> void: liste.item_selected.emit(i), e.valeurs[i].jeu)
+		"curseur":
+			var glissiere := noeud.get_node("Glissiere") as Slider
+			var boite := noeud.get_node("Nombre") as SpinBox
+			_verifier([boite.value, boite.min_value, boite.max_value, boite.step] == [e.valeur, e.min, e.max, e.pas], "%s, %s : la boîte à nombre montre %s" % [vue.nom, e.id, [boite.value, boite.min_value, boite.max_value, boite.step]])
+			_verifier(glissiere.editable == (e.refus == null) and boite.editable == (e.refus == null), "%s, %s : réglable malgré son refus, ou refusé sans lui" % [vue.nom, e.id])
+			var glisser := func() -> void:
+				glissiere.drag_started.emit()
+				glissiere.value = e.min
+				glissiere.drag_ended.emit(true)
+			_attendre(vue, e.id, glisser, {type = e.verbe, args = e.arguments + [e.min]})
+			_attendre(vue, e.id, func() -> void: boite.value = e.max, {type = e.verbe, args = e.arguments + [e.max]})
 		"formulaire":
 			var jouer: Node = noeud.get_node("Jouer")
 			_attendre(vue, e.id, func() -> void: (jouer as BaseButton).pressed.emit(), vue.attendus.get(e.id))
