@@ -39,7 +39,7 @@ export const ANGLES_MORTS_DE_L_INVENTAIRE: readonly string[] = [
   'Un champ NEUF en chaîne nue rempli d’ids ne refuse aucune plage : il entre à l’inventaire (`CASES_DE_REFERENCE`) sans qu’aucune garde ne rougisse, la dette naît au code sans être jugée (L4 #1463, resserrement par construction).',
   'Une forme HISTORIQUE que la donnée cesse d’utiliser sort de l’inventaire alors que son nœud de schéma l’admet encore : la dette du schéma reste sans site, et la donnée peut la réintroduire sans qu’aucune garde ne rougisse (L4 #1463, table concept → nœuds cibles).',
   'Une CASE de `CASES_DE_REFERENCE` est un couple (dataset, champ) : `champ` est la clé qui porte la référence, pas son chemin de schéma, et deux positions de schéma de même clé dans un document partagent une ligne (L3 #1463, site par nœud de schéma).',
-  'Une occurrence de référence SANS CASE (`{random:N}`, `{choice:[…]}`) n’entre à `CASES_DE_REFERENCE` que par sa forme : aucun slot ne peut l’atteindre (`ANGLES_MORTS_SLOTS`, `scripts/docs/lib/structures-lexique.mts`).',
+  'Une occurrence de référence SANS CASE (`{random:N}`, `{pick:N,of:[…]}`) n’entre à `CASES_DE_REFERENCE` que par sa forme : aucun slot ne peut l’atteindre (`ANGLES_MORTS_SLOTS`, `scripts/docs/lib/structures-lexique.mts`).',
 ];
 
 /**

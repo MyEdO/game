@@ -1,6 +1,7 @@
 /**
  * PHASE 2 de `npm run gen` (#1463) — l'INDEX DES IDS (`src/data/schemas/_ids.generated.ts`,
- * `IDS_PAR_ESPACE`), keyé par CLÉ D'ESPACE (`src/data/schemas/grammaire/cle-d-espace.ts`), les CLÉS
+ * `IDS_PAR_ESPACE`), keyé par CLÉ D'ESPACE (`src/data/schemas/grammaire/cle-d-espace.ts`), et dans le même
+ * module le TYPE DE VALEUR de chaque règle optionnelle (`ValeurDeRegle`), les CLÉS
  * DE DATASET (`src/data/schemas/_cles-de-dataset.generated.ts`, `CLES_DE_DATASET`), le domaine de
  * `DATASET_FICHIER_DERIVE` (`src/data/schemas/exposition-derivee.ts`), avec la CATÉGORIE CODEX de chaque
  * fichier qui en déclare exactement une (`CATEGORIE_CODEX_DU_FICHIER`, lue sur l'`exposition.codex` des
@@ -89,6 +90,28 @@ function libellesDesEntreesOuvertes(table: ReadonlyMap<string, readonly string[]
   });
 }
 
+/** Le registre des règles optionnelles (`engine/policy.ts`), dont chaque règle a son TYPE DE VALEUR. */
+const FICHIER_DES_REGLES = 'reglesOptionnelles.json';
+
+/** Ce que le type de valeur d'une règle lit sur son entrée. */
+interface RegleDuRegistre {
+  readonly id: string;
+  readonly kind: 'flag' | 'param' | 'mode';
+  readonly options?: readonly string[];
+}
+
+/** Le TYPE DE VALEUR de la règle `r`, en texte TS : `boolean` (flag), `number` (param), l'union de ses `options` (mode). */
+function typeDeValeur(r: RegleDuRegistre): string {
+  switch (r.kind) {
+    case 'flag':
+      return 'boolean';
+    case 'param':
+      return 'number';
+    case 'mode':
+      return (r.options ?? []).map(litteralJs).join(' | ');
+  }
+}
+
 /** Un document porteur d'une clé de dataset : son `file` et son chemin sous le dépôt (`root`/`file`). */
 interface DocumentDeDataset {
   readonly fichier: string;
@@ -157,7 +180,7 @@ function cheminResolu(
 /** L'INDEX DES IDS (clé d'espace → ids, dans l'ordre de la donnée), les CLÉS DE DATASET et les documents
  *  de leur image. Les modules qui importent l'index se chargent ICI, par `import()` : l'appelant a déjà
  *  rendu l'index chargeable. */
-export async function indexDesIds(): Promise<{ table: Map<string, readonly string[]>; clesDeDataset: string[]; categories: [string, string][]; clesCodex: string[]; collections: CollectionDeCategorie[]; datasetsDeLEspace: [string, { readonly cle: string; readonly fichier: string; readonly chemin: readonly PasResolu[] }][]; racines: DocumentDeDataset[] }> {
+export async function indexDesIds(): Promise<{ table: Map<string, readonly string[]>; clesDeDataset: string[]; categories: [string, string][]; clesCodex: string[]; collections: CollectionDeCategorie[]; datasetsDeLEspace: [string, { readonly cle: string; readonly fichier: string; readonly chemin: readonly PasResolu[] }][]; racines: DocumentDeDataset[]; valeursDeRegle: [string, string][] }> {
   const { SCHEMA_DEFS } = (await import('../src/data/schemas/_registry.generated')) as { SCHEMA_DEFS: SchemaDef[] };
   const { atteindre, cleDesLibellesDeLaSource, collectionsDesDocuments, idsDeLEspace, lectureDeLEspace } = await import('../src/data/schemas/grammaire/collection-cle');
   const { lectureDuVocabulaire } = await import('../src/data/schemas/grammaire/vocabulaires');
@@ -252,6 +275,8 @@ export async function indexDesIds(): Promise<{ table: Map<string, readonly strin
     const lue = lireCleDEspace(source.univers);
     if (lue.niche !== undefined || !datasetsDeLEspace.has(lue.fichier)) throw new Error(`gen-espaces: SOURCES_DE_SPECS.${nom} : le libellé se lit aux champs d'une entrée de la collection de RACINE de son univers (« ${source.univers} »), qui n'en a pas.`);
   }
+  const regles = brutParNom.get(FICHIER_DES_REGLES) as readonly RegleDuRegistre[] | undefined;
+  if (!regles) throw new Error(`gen-espaces: « ${FICHIER_DES_REGLES} » n'est le fichier d'aucun def de SCHEMA_DEFS.`);
   return {
     table: new Map([...table].sort(([a], [b]) => parUnitesDeCode(a, b))),
     clesDeDataset: Object.keys(DATASET_FICHIER_DERIVE).sort(parUnitesDeCode),
@@ -260,6 +285,7 @@ export async function indexDesIds(): Promise<{ table: Map<string, readonly strin
     collections,
     datasetsDeLEspace: [...datasetsDeLEspace].sort(([a], [b]) => parUnitesDeCode(a, b)),
     racines,
+    valeursDeRegle: regles.map((r) => [r.id, typeDeValeur(r)]),
   };
 }
 
@@ -276,7 +302,7 @@ function specificateur(sortie: string, chemin: string): string {
 
 /** Les trois modules de la phase 2, rendus sans écrire, et ce dont leurs statistiques sont faites. */
 async function rendu(): Promise<{ textes: Map<string, string>; table: Map<string, readonly string[]>; clesDeDataset: string[]; racines: DocumentDeDataset[] }> {
-  const { table, clesDeDataset, categories, clesCodex, collections, datasetsDeLEspace, racines } = await indexDesIds();
+  const { table, clesDeDataset, categories, clesCodex, collections, datasetsDeLEspace, racines, valeursDeRegle } = await indexDesIds();
   const body =
     `// GÉNÉRÉ par scripts/gen-espaces.mts (phase 2 de \`npm run gen\`) — NE PAS ÉDITER À LA MAIN.\n` +
     `// Régénérer : \`npm run gen\` (deux exécutions successives rendent le même octet).\n\n` +
@@ -296,7 +322,12 @@ async function rendu(): Promise<{ textes: Map<string, string>; table: Map<string
     `} as const;\n\n` +
     `export const IDS_PAR_ESPACE: Readonly<Record<string, readonly string[]>> = IDS;\n\n` +
     `/** Union LITTÉRALE des ids de chaque espace, dérivée de \`IDS\` : un id absent de la donnée ne compile pas. */\n` +
-    `export type IdsParEspace = { readonly [E in keyof typeof IDS]: (typeof IDS)[E][number] };\n`;
+    `export type IdsParEspace = { readonly [E in keyof typeof IDS]: (typeof IDS)[E][number] };\n\n` +
+    `/** TYPE DE VALEUR de chaque règle optionnelle (\`${FICHIER_DES_REGLES}\`), que rend \`rule(id)\` (\`engine/policy.ts\`) :\n` +
+    ` *  \`boolean\` (flag), \`number\` (param), l'union littérale de ses \`options\` (mode). */\n` +
+    `export type ValeurDeRegle = {\n` +
+    valeursDeRegle.map(([id, type]) => `  readonly ${litteralJs(id)}: ${type};\n`).join('') +
+    `};\n`;
   const cles =
     `// GÉNÉRÉ par scripts/gen-espaces.mts (phase 2 de \`npm run gen\`) — NE PAS ÉDITER À LA MAIN.\n` +
     `// Régénérer : \`npm run gen\` (deux exécutions successives rendent le même octet).\n\n` +

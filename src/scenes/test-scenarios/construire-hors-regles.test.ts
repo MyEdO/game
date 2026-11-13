@@ -6,7 +6,7 @@
 import { fabriqueLocale } from '../../engine/fabriqueDId';
 import { describe, it, expect, afterEach } from 'vitest';
 import { testScenarios } from './index';
-import { entreesDeRegles, resetRule, setRule } from '../../engine/policy';
+import { idsDuJeu, poserLesRegles, resetRule } from '../../engine/policy';
 
 /** Le contenu construit, aux compteurs d'uid près : deux constructions successives numérotent à la suite. */
 const forme = (contenu: unknown): string =>
@@ -16,7 +16,7 @@ const aRegles = testScenarios.filter((sc) => sc.rules);
 
 describe('construire, hors des règles de la fiche', () => {
   afterEach(() => {
-    for (const sc of aRegles) for (const [id] of entreesDeRegles(sc.rules!)) resetRule(id);
+    for (const sc of aRegles) for (const id of idsDuJeu(sc.rules!)) resetRule(id);
   });
 
   it('témoin : des scénarios portent des règles', () => {
@@ -26,7 +26,7 @@ describe('construire, hors des règles de la fiche', () => {
   it.each(aRegles.map((sc) => [sc.id, sc] as const))('%s se construit à l’identique sous ses règles', (_id, sc) => {
     const sansRegles = forme(sc.construire(fabriqueLocale('test')));
     expect(forme(sc.construire(fabriqueLocale('test'))), 'témoin : deux constructions sans règles diffèrent').toBe(sansRegles);
-    for (const [id, v] of entreesDeRegles(sc.rules!)) setRule(id, v);
+    poserLesRegles(sc.rules!);
     expect(forme(sc.construire(fabriqueLocale('test'))), 'la construction lit une règle de la fiche').toBe(sansRegles);
   });
 });

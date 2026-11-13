@@ -998,10 +998,10 @@
   {
     "id": "cascadeSuspension",
     "type": "primitives.manifest",
-    "label": "suspendActiveCascade/resumeSuspendedCascade",
+    "label": "suspendActiveCascade/resumeSuspendedCascade/reprendreLaPile/sortirDeLHote",
     "fichier": "src/noyau/cascade.ts",
-    "concept": "suspendre puis reprendre la cascade active quand un combat ou une transition s’ouvre en plein vol",
-    "perimetre": "ouverture de combat, transition de scène, teardown de victoire ou de défaite",
+    "concept": "suspendre la cascade active quand un combat, une transition ou une autre séquence s’ouvre en plein vol (le pilote immédiat à contexte parque son tableau au rang où le slot l’aurait mis), puis reprendre la tête de pile hors combat, slot libre",
+    "perimetre": "ouverture de combat, transition de scène, ouverture d’une séquence d’un autre purpose, applier d’une étape sous le pilote immédiat à contexte (`jouerLaJournee`, `openSequence`), clôture de cascade, sortie d’hôte d’un Test de scène, clôture hors combat (`clotureHorsCombat`), teardown de victoire ou de défaite",
     "verrou": "pile persistée de cascades suspendues, jamais un checkpoint parallèle ni une purge"
   },
   {

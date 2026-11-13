@@ -28,6 +28,7 @@ import { identiteDeCiblage } from './psych/ciblage';
 import type { OpPassive } from './ops';
 import { traitsOctroyes } from './traitOctroye';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
+import { mutationKindSchema } from '../data/schemas/grammaire/valeurs';
 import type { TriggeredEffect } from './flowCore';
 
 export type ExposureLevel = 'mineure' | 'moderee' | 'majeure';
@@ -140,7 +141,7 @@ export function isProfane(c: Combatant): boolean {
 /** La nature de la mutation que le tirage `roll` désigne au tableau corps ou esprit de la race de l'espèce
  *  (`id` STABLE, `natureDeMutationDe`). LDB 19 l.76-81 */
 export function mutationKindFor(species: string | undefined, roll: number): 'physique' | 'mentale' {
-  return findTableEntry(natureDeMutationDe(species).entries, roll).id;
+  return mutationKindSchema.parse(findTableEntry(natureDeMutationDe(species).entries, roll).id);
 }
 
 /** Mutations comptées par nature et leurs Limites de Corruption. LDB 19 l.87. */

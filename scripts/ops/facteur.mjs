@@ -17,7 +17,7 @@ function refusDEmblee({ comment }) {
   if (comment.user.type === 'Bot') return 'commentaire d’un Bot : aucun relais, pas de boucle'
   if (!AUTEURS_ADMIS.includes(comment.author_association))
     return `auteur ${comment.author_association} hors ${AUTEURS_ADMIS.join(', ')}`
-  if (!MOTS.some((mot) => comment.body.trimStart().startsWith(mot))) return `corps sans mot de tête (${MOTS.join(', ')})`
+  if (!MOTS.some((mot) => comment.body.startsWith(mot))) return `corps sans mot de tête (${MOTS.join(', ')})`
   return null
 }
 
@@ -45,7 +45,7 @@ export function destinataires(evenement, prsOuvertes) {
       .map((pr) => pr.number)
     lieu = `ticket #${issue.number}`
   }
-  const premiere = comment.body.trimStart().split(/\r?\n/, 1)[0]
+  const premiere = comment.body.split(/\r?\n/, 1)[0]
   const retours = new Set([...premiere.matchAll(/réponse sur #(\d+)/gi)].map((m) => Number(m[1])))
   const numeros = [...new Set(visees)].filter((n) => !retours.has(n)).sort((a, b) => a - b)
   return { numeros, raison: numeros.length ? `${lieu} : ${numeros.length} destinataire(s)` : `${lieu} : aucune PR destinataire` }
@@ -86,12 +86,16 @@ export function distribuer({ evenement, appel }) {
   return { poses, refus, raison }
 }
 
+/** La sortie standard du script, que `facteur.yml` verse dans `GITHUB_OUTPUT` : `pose=oui` si ce run a posé un relais. PURE. #4068 */
+export const sortieDuStep = ({ poses }) => (poses.length > 0 ? 'pose=oui\n' : '')
+
 if (import.meta.main) {
   try {
     const evenement = JSON.parse(await text(process.stdin))
     const { poses, refus, raison } = distribuer({ evenement, appel: appelGhRunner({ cwd: process.cwd() }) })
-    if (!poses.length && !refus.length) console.log(`Aucun relais : ${raison}.`)
-    for (const numero of poses) console.log(`Relais posé sur #${numero} (${raison}).`)
+    process.stdout.write(sortieDuStep({ poses }))
+    if (!poses.length && !refus.length) console.error(`Aucun relais : ${raison}.`)
+    for (const numero of poses) console.error(`Relais posé sur #${numero} (${raison}).`)
     for (const r of refus) console.error(`Relais refusé sur #${r.numero} : ${r.raison}`)
     if (refus.length) process.exitCode = 1
   } catch (e) { console.error(e.message); process.exitCode = 1 }

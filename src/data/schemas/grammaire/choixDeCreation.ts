@@ -33,7 +33,7 @@ export const champsDeChoix = {
   talentsRolled: z.boolean().optional(),
   skillAdvances: z.record(z.string(), z.number().int().nonnegative()).optional(),
   speciesSkillAdvances: z.strictObject({ plus5: z.array(refOuSpec('skill')), plus3: z.array(refOuSpec('skill')) }).optional(),
-  /** Branche retenue d'un `{choice}` (son index), objet ou Atout sinon (id), par adresse (`emplacementsDeDotation`). */
+  /** Branche retenue d'un `{pick, of}` (son index), objet ou Atout sinon (id), par adresse (`emplacementsDeDotation`). */
   trappingChoices: parAdresse(z.union([z.number().int().nonnegative(), z.string()])),
   /** Sorts de Magie mineure (`idDe('spell', 'mineure')`), complétés au quota BFM exact (LDB 10 l.714). */
   pettySpells: z.array(idDe('spell', 'mineure')).optional(),
