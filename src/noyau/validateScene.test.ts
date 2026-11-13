@@ -1,10 +1,16 @@
 import { flowFromEffects, testFlow } from './monde/flow';
 import { EMPTY_FLOW } from '../engine/flowCore';
-import { describe, it, expect } from 'vitest';
+import { afterEach, describe, it, expect, vi } from 'vitest';
 import { architectureSelectionForWarning, validateScene, type Warning } from './validateScene';
 import { emptyNarratif } from './monde/campaignNarratif';
-import { resolveStake, matieresDe, findTrappingById } from '../data';
-import { emptyScene, type Scene } from './monde/scene';
+import { resolveStake, matieresDe, findTrappingById, terrains } from '../data';
+import { emptyScene, startOf, type Scene } from './monde/scene';
+import * as zones from './monde/zones';
+import { scenePlanDefects } from './planDefects';
+import { unreachableDescriptiveZones } from './mapQC';
+import { addEntity, deleteSel, paintTiles, setSceneFlags, setSceneLabel, setSceneScalaires, toggleEdgeWall } from './sceneEdit';
+import { resetData, setDataset } from '../data/overrides';
+import { diligenceCampaign, paquetDuJeu } from '../scenes/campaign';
 import { METRES_PER_LEVEL } from './monde/relief';
 import type { WorldMap, MapPlace } from './worldMap';
 import type { SeatAssignments } from './monde/seating';
@@ -720,5 +726,59 @@ describe('architectureSelectionForWarning', () => {
       level: 'error', sceneId: 'scene', scope: 'entity', refId: 'e', message: 'x',
       architectureRef: { type: 'architectureBody', id: 'corps-0' },
     })).toBeNull();
+  });
+});
+
+describe('validateScene — une écriture rend les avertissements d’une validation entière (#4043)', () => {
+  afterEach(() => { resetData(); vi.restoreAllMocks(); });
+
+  /** Les retouches de l'éditeur sur la première scène de La Diligence, par ses écrivains réels, et une écriture au
+   *  catalogue des terrains par le seam (`setDataset`). */
+  const RETOUCHES: readonly [string, (s: Scene) => Scene][] = [
+    ['peindre une case', (s) => paintTiles(s, { x: 1, y: 1 }, 'dalle', 1)],
+    ['poser un mur', (s) => toggleEdgeWall(s, 5, 5, 'E', 0, 'wall')],
+    ['retirer le mur', (s) => toggleEdgeWall(s, 5, 5, 'E', 0, 'wall')],
+    ['poser une entité', (s) => addEntity(s, { id: 'pnj-sonde', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 3, y: 3 } })],
+    ['retirer l’entité', (s) => deleteSel(s, { type: 'entity', id: 'pnj-sonde' })],
+    ['renommer la scène', (s) => setSceneLabel(s, `${s.label} (retouchée)`)],
+    ['décrire', (s) => setSceneScalaires(s, { desc: 'Une description retouchée.' })],
+    ['changer la météo', (s) => setSceneScalaires(s, { weather: 'brouillard' })],
+    ['poser un drapeau', (s) => setSceneFlags(s, { sonde: true })],
+    ['écrire au catalogue des terrains', (s) => {
+      setDataset('terrains', terrains.map((t) => (t.id === 'plancher' ? { ...t, walkable: !t.walkable } : t)));
+      return s;
+    }],
+  ];
+
+  it('après chaque retouche, ceux du projet cloné (identités neuves), ordre compris', () => {
+    const projet = paquetDuJeu(diligenceCampaign);
+    let scenes = projet.scenes;
+    for (const [nom, retouche] of RETOUCHES) {
+      scenes = [retouche(scenes[0]), ...scenes.slice(1)];
+      const clone = structuredClone({ scenes, worldMap: projet.worldMap, narratif: projet.narratif });
+      expect(validateScene(scenes, projet.worldMap, projet.narratif), nom).toEqual(validateScene(clone.scenes, clone.worldMap, clone.narratif));
+    }
+  });
+
+  /** Les cases de zone que lisent les défauts de plan et les pièces inatteignables pendant `f` (`sceneZoneTiles`,
+   *  espionnée sur son namespace) : zéro si aucun des deux audits ne se refait. */
+  function auditsRefaits(f: () => void): number {
+    let n = 0;
+    const ns = zones as unknown as Record<string, unknown>;
+    const vrai = ns.sceneZoneTiles as (...a: unknown[]) => unknown;
+    vi.spyOn(ns, 'sceneZoneTiles', 'get').mockReturnValue((...a: unknown[]) => (n++, vrai(...a)));
+    f();
+    vi.restoreAllMocks();
+    return n;
+  }
+  const audits = (s: Scene) => { scenePlanDefects(s); const depart = startOf(s); if (depart) unreachableDescriptiveZones(s, depart); };
+
+  it('un libellé ne refait ni les défauts de plan ni la connexité ; une case peinte ne refait que ceux de SA scène', () => {
+    const { scenes } = paquetDuJeu(diligenceCampaign);
+    scenes.forEach(audits);
+    expect(auditsRefaits(() => audits(setSceneLabel(scenes[0], 'Renommée'))), 'nommer').toBe(0);
+    const peinte = paintTiles(scenes[0], { x: 1, y: 1 }, 'dalle', 1);
+    expect(auditsRefaits(() => audits(peinte)), 'la scène peinte se refait').toBeGreaterThan(0);
+    expect(auditsRefaits(() => scenes.slice(1).forEach(audits)), 'les autres scènes').toBe(0);
   });
 });
