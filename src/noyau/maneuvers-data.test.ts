@@ -12,6 +12,7 @@ import { breathTypes, maneuvers, findManeuverById, findConditionById, combatStak
 import { DIFFICULTY_LABELS } from '../engine/types';
 import { souffleDuType } from '../engine/creatureAttacks';
 import { setDataset } from '../data/overrides';
+import type { EntreeVivante } from '../data/datasets';
 import { idDeFixture } from '../data/idDeFixture.testkit';
 import { makeRNG } from '../engine/dice';
 import { buildWeapon } from '../engine/items';
@@ -82,7 +83,7 @@ describe('manœuvres = donnée éditable (GameOp)', () => {
 
 /** LDB 85 l.320-329 ; EDOC 13 l.237 ; MDG 16 l.226 ; LDB 16 l.70 */
 describe('Souffle = la manœuvre `souffle` composée avec la règle de son Type', () => {
-  const TYPES: BreathTypeData[] = [
+  const TYPES: EntreeVivante<BreathTypeData>[] = [
     { id: 'perce-fixture', type: 'breath-types', label: 'Perce', ignoreAP: true, etat: idDeFixture('etat', 'empoisonne'), rendu: { id: idDeFixture('rendu', 'souffle') } },
     { id: 'etourdit-fixture', type: 'breath-types', label: 'Étourdit', etat: idDeFixture('etat', 'sonne'), rendu: { id: idDeFixture('rendu', 'souffle') } },
     { id: 'compose-fixture', type: 'breath-types', label: 'Perce et Étourdit', types: [{ id: idDeFixture('breathType', 'perce-fixture') }, { id: idDeFixture('breathType', 'etourdit-fixture') }], rendu: { id: idDeFixture('rendu', 'souffle') } },

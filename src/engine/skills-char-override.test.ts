@@ -1,7 +1,7 @@
 import { tableTotale } from '../lib/tableTotale';
 import { describe, it, expect, afterEach } from 'vitest';
 import { testValue } from './skills';
-import { setRule, resetRule, ruleDef } from './policy';
+import { setRule, surchargerUneSaisie, resetRule, ruleDef } from './policy';
 import type { Combatant } from './types';
 
 /** Combattant nu : seules les caractéristiques comptent (pas d'avances, états, passifs). */
@@ -51,7 +51,7 @@ describe('testValue — Intimidation : caractéristique alternative (LDB 09 l.29
     const regle = ruleDef('test-intimidation-carac')!;
     if (regle.kind !== 'mode') throw new Error('test-intimidation-carac : une règle `mode`');
     const rendu = tableTotale(regle.options, (o) => {
-      setRule('test-intimidation-carac', o);
+      surchargerUneSaisie('test-intimidation-carac', o);
       return testValue(c(), { skill: { id: 'intimidation' } });
     });
     expect(rendu).toEqual({ F: 30, max: 60, FM: 60, Int: 50 });

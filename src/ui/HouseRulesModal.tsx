@@ -76,7 +76,7 @@ export function HouseRulesPanel() {
 }
 
 /**
- * Résout sur le store le nom d'action DÉCLARÉ par une entrée du registre (`RuleAction.run`). Ce nom
+ * Résout sur le store le nom d'action DÉCLARÉ par une entrée du registre (`OptionalRule`, `action.run`). Ce nom
  * traverse une frontière de couches — le moteur, pur, ne peut pas typer les clés du store — d'où la
  * lecture indexée. En DEV, un nom qui ne désigne pas une fonction LÈVE : un renommage du store se
  * voit à la recette au lieu de faire disparaître le bouton en silence (garde statique de la liaison :
@@ -87,7 +87,7 @@ function storeAction(store: object, name: string | undefined): (() => void) | un
   const fn = (store as Record<string, unknown>)[name];
   if (typeof fn === 'function') return fn as () => void;
   if (import.meta.env?.DEV) {
-    throw new Error(`Action de règle inconnue : « ${name} » — aucune fonction de ce nom sur le store (voir RuleAction.run, engine/policy.ts).`);
+    throw new Error(`Action de règle inconnue : « ${name} » — aucune fonction de ce nom sur le store (voir OptionalRule, action.run, engine/policy.ts).`);
   }
   return undefined;
 }

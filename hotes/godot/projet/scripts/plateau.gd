@@ -4,7 +4,7 @@
 ## (`Immersion`, dont chaque case jouée part en clic), ses nappes de toit retirées (`toitsLeves`), ses arêtes retirées, abattues sous le cran de la caméra
 ## (`aretesDegagees`), et ses couronnes crénelées, tombées avec leur mur (`couronnesAbattues`, `Monde.cacher_le_bati`),
 ## chaque combattant que la vue nomme à sa case et sa couche (`voisins`, réconciliés par id : celui qu'elle ne nomme plus
-## quitte l'arbre avec ses marques) ou, en exploration, le meneur du groupe à la case du groupe, à
+## quitte l'arbre avec ses marques), sa case touchable par le rayon même retirée tant qu'il s'y dessine (`Monde.poser_les_corps`) ou, en exploration, le meneur du groupe à la case du groupe, à
 ## la station d'une case que le modèle d'un navire rogne (`Monde.poser_les_stations`), chacun sous son corps (`vue.corps`,
 ## aucun sous son `refus`), son véhicule (`vue.corps.vehicules`) et les marques de ses États (`vue.marques`,
 ## `MarquesDEtats`), les zones qui durent (`vue.zonesQuiDurent`, `ZonesQuiDurent`), chaque navire de la scène sous le modèle
@@ -87,10 +87,12 @@ func montrer(vue: Dictionary) -> void:
 	if vue.plateau != null:
 		_navires.poser(vue.corps.navires, vue.plateau.coupesDesNavires, vue.plateau.metresParCase)
 	var poses := {}
+	var cases: Array[Vector3i] = []
 	for c in dessines:
 		if c.pos == null:
 			continue
 		poses[c.id] = true
+		cases.append(Vector3i(int(c.pos[0]), int(c.pos[1]), int(c.pos[2])))
 		var lieu := _lieu(c.pos)
 		if not _modeles.has(c.id):
 			var modele: Combattant = scene_combattant.instantiate()
@@ -102,6 +104,9 @@ func montrer(vue: Dictionary) -> void:
 		_marquer(c.id, lieu, vue.marques.get(c.id, []), vue.plateau.metresParCase)
 	_retirer_hors_de(_modeles, poses)
 	_retirer_hors_de(_marques, poses)
+	if not _combattants.visible:
+		cases.clear()
+	_monde.poser_les_corps(cases)
 	if vue.plateau != null:
 		_zones.poser(vue.zonesQuiDurent, func(case: Dictionary) -> Vector3: return _lieu([case.x, case.y, case.get("z", 0)]), vue.plateau.metresParCase)
 	_peindre()
