@@ -1,6 +1,9 @@
-const path=require('path');
-const D=path.join(__dirname,'../../src/data/'),E=f=>require(path.join(__dirname,'entrees',f));
-const R=f=>require(D+f+'.json');
+import fs from 'node:fs';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+const ICI=path.dirname(fileURLToPath(import.meta.url)),JSONS={},lire=f=>JSONS[f]??=JSON.parse(fs.readFileSync(f,'utf8'));
+const D=path.join(ICI,'../../src/data/'),E=f=>lire(path.join(ICI,'entrees',f));
+const R=f=>lire(D+f+'.json');
 const CH=["capacite-de-combat","capacite-de-tir","force","endurance","initiative","agilite","dexterite","intelligence","force-mentale","sociabilite"];
 const ci=id=>CH.indexOf(id);
 const specMap=a=>{const m={};(a||[]).forEach(s=>{if(s&&s.id)m[s.id]=s.label});return m};
@@ -60,6 +63,6 @@ out.cr.forEach(c=>c.tr.concat(c.op).forEach(t=>{if(t[4]!=null)out.traits[t[0]].n
 const FFFD=[['imm��diatement','immédiatement'],['suppl��mentaire','supplémentaire'],['derni��re','dernière'],['d��cisions','décisions'],['limit��e','limitée'],['pass��e','passée'],['ét��','été'],['terres. ��','terres. »']];
 let d=JSON.stringify(out);FFFD.forEach(([x,y])=>{d=d.split(x).join(y)});
 if(d.includes('\ufffd'))throw new Error('U+FFFD restant dans les données de l\'atelier');
-const fs=require('fs'),t=fs.readFileSync(path.join(__dirname,'template.html'),'utf8');
+const t=fs.readFileSync(path.join(ICI,'template.html'),'utf8');
 if(t.split('__DATA__').length!==2)throw new Error('template.html doit contenir __DATA__ une seule fois');
-fs.writeFileSync(path.join(__dirname,'atelier-des-pnj.html'),t.replace('__DATA__',()=>d.replace(/<\//g,'<\\/')));
+fs.writeFileSync(path.join(ICI,'atelier-des-pnj.html'),t.replace('__DATA__',()=>d.replace(/<\//g,'<\\/')));
