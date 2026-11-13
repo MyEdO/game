@@ -96,6 +96,24 @@ export const fr = {
   // LDB 18 l.53, l.55 ; AA 07 l.32 ; LDB 17 l.68 — lues par `phraseDeTouche` et `CritLocationPicker`.
   'touche.nouvelleLocalisation': 'nouvelle Localisation : {lieu}',
   'touche.nouvelleLocalisationAuChoix': 'au choix (Je ne faillirai pas !)',
+  // La ligne de touche (`phraseDeTouche`, `engine/combat.ts`), les noms par `nomDe` (#4017). LDB 18 l.53 ; MDG 13 l.605 ; AA 10 l.98.
+  'touche.tete': '{attaquant} touche {cible}',
+  'touche.teteDuSort': '{attaquant} lance {sort} sur {cible}',
+  'touche.localisee': '{tete} ({lieu})',
+  'touche.chiffree': '{tete} : {degats} dégâts − {absorbes} ({mitigation}) = {blessures} Blessures',
+  'touche.critique': '{phrase} — CRITIQUE !',
+  'touche.mitigationStructure': 'BE {be} × {mult} (Taille {taille} contre {tailleAttaquant}) = {total}, +PA',
+  'touche.mitigationNulle': 'rien',
+  // L'issue d'une attaque sans touche (`AttackResult.log`, `engine/combat.ts`). LDB 12 l.160 ; LDB 85 l.134.
+  'touche.rateEtAvantage': '{attaquant} rate son attaque ; {cible} gagne +1 Avantage.',
+  'touche.echangeNeutre': "Échange neutre : ni {attaquant} ni {cible} ne prend l'avantage.",
+  'touche.manque': '{attaquant} manque {cible}.',
+  'touche.horsDePortee': '{attaquant} : cible hors de portée.',
+  'touche.ethere': '{attaquant} touche {cible}… mais le coup passe au travers (Éthéré — seules les attaques magiques la blessent).',
+  // La ligne du Contre-sort (`counterspellOutcomeFrom`, `engine/magic.ts`). LDB 46 l.156.
+  'contreSort.trace': 'Contre-sort de {name}',
+  'contreSort.dissipe': 'le Sort est DISSIPÉ',
+  'contreSort.insuffisant': "insuffisant — l'incantation se résout à DR {dr}",
   // Attente d'une Défense qui va s'interposer (#1004, libellé validé 2026-07-31) — la modale d'attaque
   // tait sa résolution `defense:'none'` tant que le défenseur surfacé n'a pas joué.
   'defense.awaiting': 'En attente de la Défense de {cible}.',
