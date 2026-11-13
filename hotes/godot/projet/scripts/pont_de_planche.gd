@@ -1,13 +1,12 @@
-## Le pont d'une planche (#3935) : il rend à `demarrer`, à `monde`, à `morceaux`, à `retrait` et à `aretes` les réponses
-## enregistrées d'un état de partie (`Planche`, `hotes/godot/recettes/ecran.ts`), et toute autre méthode au pont du
-## noyau. Le combat
-## (`combat.gd`) montre alors cet état comme une partie qu'il démarre, sans la jouer.
+## Le pont d'une planche (#3935) : il rend à `demarrer`, à `monde`, à `morceaux`, à `retrait`, à `aretes` et à `vision`
+## les réponses enregistrées d'un état de partie (`Planche`, `hotes/godot/recettes/ecran.ts`), et toute autre méthode au
+## pont du noyau. Le combat (`combat.gd`) montre alors cet état comme une partie qu'il démarre, sans la jouer.
 class_name PontDePlanche
 extends PontDuNoyau
 
 ## @contrat Écran publié
 ## Une planche est un état de partie enregistré (`hotes/godot/etalons/planches/<nom>.json`, servi sous
-## `planches/<nom>.json` : les réponses de `demarrer`, `aretes` et `retrait`), le monde de son scénario sous
+## `planches/<nom>.json` : les réponses de `demarrer`, `aretes`, `retrait` et `vision`), le monde de son scénario sous
 ## `planches/mondes/<scenario>.json` (`{ monde, morceaux }` : la réponse de `monde`, et celle de `morceaux` à toutes ses
 ## clés, que le pont de la planche rend à toute entrée). L'adresse `?planche=<nom>`
 ## l'ouvre à la place du menu d'entrée : le combat la montre par son routeur, comme la partie de `?scenario=` qu'il
@@ -67,6 +66,8 @@ func appeler(methode: String, entree: Variant = null) -> Dictionary:
 				return _planche.retrait
 			"aretes":
 				return _planche.aretes
+			"vision":
+				return _planche.vision
 	return super(methode, entree)
 
 
