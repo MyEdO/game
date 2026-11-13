@@ -9825,7 +9825,10 @@
       },
       {
         "id": "fleche",
-        "spec": "à l'aspect sinistre"
+        "spec": "à l'aspect sinistre",
+        "count": {
+          "fixed": 12
+        }
       },
       {
         "id": "tatouage",
@@ -12433,7 +12436,8 @@
         "id": "coiffe-de-mailles"
       },
       {
-        "id": "massue-ogre"
+        "id": "arme-simple",
+        "spec": "massue"
       },
       {
         "id": "coup-de-poing"
@@ -12764,10 +12768,12 @@
         "id": "dague"
       },
       {
-        "id": "flasque"
+        "id": "flasque",
+        "spec": "de spiritueux"
       },
       {
-        "id": "gaffe"
+        "id": "arme-simple",
+        "spec": "Gaffe"
       },
       {
         "id": "gants-en-cuir"
@@ -13326,7 +13332,26 @@
         "id": "vision-nocturne"
       }
     ],
-    "trappings": [],
+    "trappings": [
+      {
+        "id": "cotte-de-mailles"
+      },
+      {
+        "id": "chausses-de-mailles"
+      },
+      {
+        "id": "plastron"
+      },
+      {
+        "id": "brassards"
+      },
+      {
+        "id": "jambieres-d-acier"
+      },
+      {
+        "id": "arme-simple"
+      }
+    ],
     "spells": [],
     "desc": "Le Châtelain-Chef de guerre de Sous-Middenheim est un skaven vieux et pernicieux nommé personnellement par un Seigneur de la Ruine du nom de Chef de guerre-Général Paskrit l'Immense. Gnawretch Skrray a le devoir d'attirer la résolution et l'efficacité des habitants de Sous-Middenheim. Il arpente les terriers, revêtu de l'acier rouillé des guerriers d'élite skavens, et quiconque s'attarde sur son chemin reçoit un coup de crochet ou l'atroce douleur de son dard.\n\nGnawretch était autrefois l'incarnation du guerrier skaven : grand, musclé et doté d'une fourrure épaisse et sombre. Réputé pour son impitoyable résilience, notamment lors d'une campagne dans les Montagnes du Bord du Monde où il a souffert de la famine et a dévoré sa propre queue et sa main gauche. Une sombre obstination lui a permis de survivre à ses blessures et d'obtenir le respect des skavens inférieurs. Le Chef de guerre-Général Paskrit a pris Gnawretch à son service, rompant ses liens avec son clan et allongeant son espérance de vie à l'aide d'élixirs de malepierre. Gnawretch s'est fait pousser une nouvelle queue, avec au bout un dard jaune vif. Il n'a pas eu autant de chance pour sa main, et porte une prothèse en forme de crochet.\n\nComme tous les bons tyrans, Gnawretch est un bureaucrate accompli qui adore faire respecter les quotas et les programmes. Si un groupe de recherche de nourriture Scruten revient en retard, ou si des chercheurs Moulder réquisitionnent plus de malepierre que prévu, il consigne ces écarts et distribue des sanctions sans attendre. Curieusement, il aime particulièrement rendre les autres aveugles. Un subalterne qui lui déplait une fois perd son œil gauche, et ceux qui récidivent se retrouvent à tâtonner aveuglément dans les terriers, condamnés à être tués et dévorés par leurs anciens camarades.\n\nGnawretch cherche à gagner de la gloire par le biais d'une gestion efficace de Sous-Middenheim. Il espère qu'un rationnement strict permettra d'augmenter la population. Il envoie des groupes d'éclaireurs du clan Scruten dans la zone environnante pour trouver des éclats de malepierre. Il en consomme la majorité, mais il stocke le reste pour les offrir au clan Skryre dans l'espoir qu'ils soutiennent le projet. En outre, il demande régulièrement au conseil l'autorisation de creuser des fosses de reproduction et un temple dédié au Rat Cornu, dans l'espoir d'améliorer les perspectives et la réputation du repaire.\n\nMais le conseil veut des résultats avant tout. Il souhaite que Gnawretch découvre les sources de la distribution d'eau de Middenheim et ce qui alimente la Flamme éternelle. Gnawretch envoie donc des groupes d'éclaireurs dans les tunnels supérieurs, mais sans succès. Ceux qui explorent les zones les plus intéressantes pour Gnawretch sont attaqués par un adversaire gigantesque que les skavens sont incapables d'identifier. Les rares survivants de ces attaques décrivent une « chose très grande à tête de chèvre ».",
     "source": {
@@ -13430,7 +13455,13 @@
     ],
     "trappings": [
       {
-        "id": "bequille"
+        "id": "bequille",
+        "count": {
+          "fixed": 2
+        }
+      },
+      {
+        "id": "arme-simple"
       }
     ],
     "spells": [
@@ -13563,7 +13594,23 @@
         "id": "vision-nocturne"
       }
     ],
-    "trappings": [],
+    "trappings": [
+      {
+        "id": "arme-simple"
+      },
+      {
+        "id": "lance",
+        "spec": "attrape-homme",
+        "qualities": [
+          {
+            "id": "immobilisante"
+          },
+          {
+            "id": "inoffensive"
+          }
+        ]
+      }
+    ],
     "spells": [],
     "desc": "Skree lui-même ne sait plus lesquelles de ses malformations sont dues à une mutation ou à la chirurgie. Il ressemble davantage à un phacochère à écailles qu'à un rat. Chacune de ses mains possède six doigts et deux pouces. Sa silhouette colossale est habillée de tabliers de cuir avec toutes sortes de boucles et de lanières percées par des rangées de cornes tranchantes qui sortent de son dos voûté.\n\nSkree est le chef du clan skaven Moulder, qui a été envoyé dans Sous-Middenheim depuis Malefosse, une forteresse skaven située au nord dans les Montagnes du Bord du Monde au nord. Les Moulder sont soi-disant venus aider le Châtelain-Chef de guerre Gnawretch pour ses expéditions en lui fournissant des rats pisteurs entraînés en échange de malepierre.\n\nLes maîtres de Malefosse ont des intentions secrètes. Pour eux, Middenheim est associée à des légendes telles que les terribles loups blancs ou des humains qui se transforment en animaux avant de reprendre leur forme originale. La capture et l'étude de ces spécimens est essentielle à Malefosse. Le niveau de tolérance du corps humain à la malepierre les intéresse également. Skree a été chargé d'obtenir des sujets pour mener des expériences. Les négociations avec Gnawretch n'ont rien donné, car le Châtelain-Chef de guerre est trop prudent pour dévoiler son jeu en enlevant directement des Middenheimers.",
     "source": {
@@ -13673,7 +13720,30 @@
         "id": "perseverant"
       }
     ],
-    "trappings": [],
+    "trappings": [
+      {
+        "id": "arme-simple"
+      },
+      {
+        "id": "hallebarde"
+      },
+      {
+        "id": "plastron",
+        "spec": "poli"
+      },
+      {
+        "label": "Remarques acerbes",
+        "nature": "intangible"
+      },
+      {
+        "id": "uniforme",
+        "spec": "bien repassé"
+      },
+      {
+        "label": "Unité de gardes",
+        "nature": "personne"
+      }
+    ],
     "spells": [],
     "desc": "Wolfgard semble l'exemple type du garde honnête et courageux, arborant les tresses dorées d'un héros Teutogen et les splendides moustaches en forme de guidon chères aux officiers à cheval du Reikland. Soldat comptant de nombreuses années de service, son armure est couverte de médailles qui lui ont été décernées pour son service par les Middenmarshalls. Il polit toujours son armure jusqu'à ce qu'elle soit étincelante et s'adresse à ceux qui passent par la porte ouest avec politesse et en respectant autant que possible la procédure.\n\nIl est à la tête de l'équipe de gardes de la porte ouest cinq jours par semaine. Ses soldats maudissent ses ordres, car il se montre consciencieux et exigeant, leur ordonnant souvent de fouiller chaque pièce de chargement entrant dans la cité. Wolfgard insiste également sur la nécessité d'examiner méticuleusement ceux qui y entrent, considérant qu'il s'agit d'un devoir à l'égard du public.\n\nMais Wolfgard n'est pas le professionnel dévoué qu'il paraît être. Lorsqu'il ne travaille pas, il se rend dans l'auberge bretonnienne de l'Altquartier. Il y transmet des informations intéressantes au sujet des nouveaux arrivants à Middenheim au nain Alfric Demi-nez, un courtier en informations pour les Petits Rois. Wolfgard informe Alfric sur les objets précieux qu'il remarque lors de ses fouilles, ou de tout visiteur qui semble pratiquer des activités criminelles. En retour, on lui fournit des données sur les contrebandiers qui devraient arriver à Middenheim, afin qu'il puisse les arrêter, les ignorer ou leur extorquer de l'argent, selon leur affiliation.",
     "source": {
@@ -13799,7 +13869,26 @@
         "id": "renversement"
       }
     ],
-    "trappings": [],
+    "trappings": [
+      {
+        "label": "Attitude sévère",
+        "nature": "intangible"
+      },
+      {
+        "id": "arme-simple"
+      },
+      {
+        "id": "marteau-de-guerre"
+      },
+      {
+        "label": "Regard perçant",
+        "nature": "intangible"
+      },
+      {
+        "label": "Unité de gardes mal à l'aise",
+        "nature": "personne"
+      }
+    ],
     "spells": [],
     "desc": "Wereburga est un sergent vétéran qui dirige les gardes de la porte nord de la cité quatre jours par semaine. Femme imposante proche de la soixantaine, elle est sculpturale et large d'épaules avec un nez anguleux semblable au bec d'un aigle géant. Son regard est si sévère et si perçant que ses soldats racontent des anecdotes selon lesquelles des contrebandiers auraient fait demi-tour avec leur chariot à sa seule vue.\n\nAprès des années à garder les portes, Wereburga est devenue cynique et réactionnaire. Elle soutient le journal Presse Sentinelle et croit en sa vision favorable à une autonomie absolue pour Middenheim. Elle adopte une approche extrêmement étroite d'esprit en ce qui concerne la protection des intérêts de Middenheim. Cela se traduit par l'habitude qu'elle a de faire signe aux visiteurs de passer lorsque ceux-ci proviennent du Nordland ou du Middenland et sont clairement des fidèles d'Ulric. Elle soumet en revanche tous les autres visiteurs à un contrôle sévère et déplaisant, en particulier s'ils viennent des provinces méridionales ou sont manifestement des fidèles de Sigmar.\n\nWereburga fait l'objet de plaintes fréquentes, ceux qui subissent ses contrôles intenses remarquant bien vite qu'ils font l'objet d'un traitement discriminatoire et que les ulricains ont droit à plus d'égards. Jusqu'à présent, personne n'a fait quoi que ce soit pour la réprimander, alimentant les rumeurs selon lesquelles cette attitude est courante au sein de la Garde de la cité dans son ensemble.",
     "source": {
@@ -13991,7 +14080,35 @@
         "id": "tireur-de-precision"
       }
     ],
-    "trappings": [],
+    "trappings": [
+      {
+        "id": "plastron",
+        "spec": "antique"
+      },
+      {
+        "id": "brassards",
+        "spec": "antique"
+      },
+      {
+        "id": "jambieres-d-acier",
+        "spec": "antique"
+      },
+      {
+        "id": "arme-simple",
+        "spec": "usée"
+      },
+      {
+        "id": "lance-de-cavalerie"
+      },
+      {
+        "id": "marteau-a-bec-de-corbin",
+        "spec": "marteau de cavalier"
+      },
+      {
+        "label": "Voix imposante",
+        "nature": "intangible"
+      }
+    ],
     "spells": [],
     "desc": "Moritz est le deuxième fils d'Emil Valgeir et un militaire de Middenheim de longue date. Il a récemment été intronisé dans les rangs des Chevaliers du Loup Blanc, après avoir servi le régiment des Épées d'Ulric. Moritz est un soldat du Nord typique : pilosité faciale exubérante, crâne rasé et regard perçant d'un chevalier né. Son allure noble et sa diction nettement aristocratique en ont fait un meneur naturel sur le champ de bataille, et il a rapidement atteint le rang de capitaine.\n\nDepuis qu'il a rejoint les Loups Blancs, Moritz a du temps libre, puisque les chevaliers attachent plus de valeur aux prouesses individuelles qu'à l'entraînement en groupe. De ce fait, Moritz est devenu un peu dissipé, et passe la majorité de son temps à faire le tour des tavernes de Middenheim. Au cours des dernières semaines, il s'est lié d'amitié avec Wulfric, le fils bon à rien de Wilhelm Tore. Moritz ne réalise pas l'emprise qu'il a sur le jeune homme, et n'imagine pas les dégâts potentiels qu'il pourrait causer en persuadant Wulfric de poursuivre une carrière de soldat.",
     "source": {
@@ -14110,6 +14227,14 @@
       }
     ],
     "trappings": [
+      {
+        "id": "licence-de-guilde",
+        "spec": "héréditaire"
+      },
+      {
+        "label": "Opinions controversées sur les mutants",
+        "nature": "intangible"
+      },
       {
         "id": "outils-professionnels-medecin"
       },
@@ -14249,7 +14374,18 @@
         "id": "perseverant"
       }
     ],
-    "trappings": [],
+    "trappings": [
+      {
+        "id": "massue"
+      },
+      {
+        "label": "Grandes ambitions",
+        "nature": "intangible"
+      },
+      {
+        "id": "veste-de-cuir"
+      }
+    ],
     "spells": [],
     "desc": "Marta arbore la blondeur, les grands yeux bleus et les fossettes d'une chevrière de l'Averland. C'est un bailli inhabituel : elle récupère de l'argent pour la Petite Reine Herla Heiwardt. Herla préfère envoyer un visage amical pour collecter sa redevance, du moins jusqu'à ce que les victimes de ses extorsions de fonds refusent de payer (et là, c'est un gang de coupe-jarrets qui est envoyé). Marta convient bien pour ce rôle : elle est charismatique, attirante et complètement amorale.\n\nMarta est tellement désarmante qu'elle trompe même Herla, et détourne régulièrement son butin pour se remplir les poches. Elle se montre également très futée pour évaluer la véritable valeur de n'importe quel bibelot et artefact que ses cibles entreposent chez elles, et accepte souvent de repartir avec un objet à priori sans valeur à la place d'un vrai paiement. Ces antiquités sont rapidement vendues dans les boutiques de prêteur sur gages. Marta s'assure que les comptes d'Herla sont bien équilibrés, puis met tout le reste de côté pour elle-même. Duper ainsi un baron du crime est très dangereux, mais Marta est rusée et prudente (et, jusqu'à présent, chanceuse). Elle espère un jour hériter de la couronne d'Herla.",
     "source": {
@@ -14546,7 +14682,20 @@
     ],
     "trappings": [
       {
+        "label": "Larmes à la demande",
+        "nature": "intangible"
+      },
+      {
         "id": "necessaire-de-deguisement"
+      },
+      {
+        "monnaie": "silver",
+        "count": {
+          "roll": {
+            "n": 3,
+            "sides": 10
+          }
+        }
       }
     ],
     "spells": [],
@@ -14891,6 +15040,9 @@
       }
     ],
     "trappings": [
+      {
+        "id": "baton-de-combat"
+      },
       {
         "id": "grimoire"
       },
@@ -15596,6 +15748,13 @@
     ],
     "trappings": [
       {
+        "label": "Bonnes oreilles",
+        "nature": "intangible"
+      },
+      {
+        "id": "dague"
+      },
+      {
         "id": "necessaire-d-ecriture"
       }
     ],
@@ -15725,7 +15884,21 @@
         "id": "voyageur-aguerri"
       }
     ],
-    "trappings": [],
+    "trappings": [
+      {
+        "id": "dague"
+      },
+      {
+        "id": "veste-de-cuir"
+      },
+      {
+        "id": "parchemin",
+        "spec": "vieille missive",
+        "count": {
+          "fixed": 2
+        }
+      }
+    ],
     "spells": [],
     "desc": "Agna est un émissaire personnel du Haut Roi des nains, mais son comportement brusque l'a empêchée de se faire une place à la cour de Middenheim au cours des trente dernières années. C'est aujourd'hui une naine malheureuse et sans le sou, que la honte et la peur empêchent de retourner à Karak Kadrin pour faire part de son échec. On la trouve généralement à la taverne des Sous Rutilants, où elle effectue de petits boulots en échange d'une pinte de Bugman XXXXXX.\n\nSi on l'interroge sur son passé, Agna affirme qu'elle est venue à Middenheim pour rassembler des soutiens pour une campagne de reconquête de Karak Khazarak, dans les Monts du Milieu. Cette forteresse a été prise aux nains il y a plusieurs milliers d'années, et depuis elle est dirigée par différents chefs de guerre orcs. Agna reproche aux nains de Middenheim de beaucoup parler de la conquête de la forteresse, sans jamais être prêts à s'y mettre sérieusement.\n\nLorsqu'elle est particulièrement ivre, Agna explique que le Haut Roi prévoit aussi de s'emparer du Fauschlag. Si elle tient de tels propos, les nains qui l'entendent expliquent aux autres personnes présentes que l'alcool lui a fait perdre la tête, et ils l'emmènent rapidement se coucher. Cependant, Agna maintient que le Haut Roi considère la Tour de Grungni comme faisant légitimement partie de son Royaume éternel et qu'il est prêt à affronter quiconque la lui refuserait. Quand elle n'est plus sous l'emprise de la boisson, Agna nie toute connaissance de tels projets.",
     "source": {
@@ -15956,7 +16129,16 @@
     ],
     "trappings": [
       {
-        "id": "symbole-religieux"
+        "label": "Discours moralisateur",
+        "nature": "intangible"
+      },
+      {
+        "label": "Regard accusateur",
+        "nature": "intangible"
+      },
+      {
+        "id": "symbole-religieux",
+        "spec": "de Verena"
       }
     ],
     "spells": [],
@@ -16090,7 +16272,28 @@
         "id": "sociable"
       }
     ],
-    "trappings": [],
+    "trappings": [
+      {
+        "label": "Cœur de pierre",
+        "nature": "intangible"
+      },
+      {
+        "id": "diligence",
+        "type": "vehicle"
+      },
+      {
+        "label": "Conducteur",
+        "nature": "personne"
+      },
+      {
+        "label": "Œil pour le talent",
+        "nature": "intangible"
+      },
+      {
+        "label": "Serviteur qui s'ennuie",
+        "nature": "personne"
+      }
+    ],
     "spells": [],
     "desc": "Silhouette au regard perçant, Andrea déambule dans Middenheim avec son manteau de cuir noir et un grand chapeau à larges bords. Malgré son physique de répurgateur, Andrea travaille pour la Komission pour les Travaux Publics en tant qu'Officier des Festivités. Il est de sa responsabilité de s'assurer que les événements se déroulent sans incident et de gérer les juges de spectacles, qui arbitrent les spectacles de rue du Carnaval.\n\nAndrea est une personne zélée qui ne prend aucun plaisir à faire son travail. Son indifférence peut être un atout lui permettant de se concentrer sur les détails techniques de la gestion du canalisation, mais les artistes se plaignent souvent de son attitude trop froide.\n\nAndrea ne s'implique pas beaucoup dans les festivals religieux, étant donné que les cultes aiment les organiser sans l'intervention de la Komission, mais elle est responsable du Carnaval, de l'anniversaire du Graf et d'autres célébrations laïques.\n\nEn l'absence de festival, Andrea passe son temps à chercher des talents. Si un artiste venait à approcher la Komission afin d'obtenir un boulot lors d'un festival, elle pourrait accepter de lui accorder une brève audience. Toutefois, si l'artiste ne parvenait pas à l'impressionner, faute de décrocher un travail, il recevrait des critiques sévères, mais néanmoins constructives. Elle visite parfois Talabheim ou Altdorf à la recherche de nouveaux talents.",
     "source": {
@@ -16974,16 +17177,41 @@
         "id": "arme-simple"
       },
       {
+        "id": "bourse"
+      },
+      {
+        "monnaie": "silver",
+        "count": {
+          "fixed": 3
+        }
+      },
+      {
         "id": "besace"
       },
       {
-        "id": "bougie"
+        "id": "bougie",
+        "count": {
+          "fixed": 2
+        }
       },
       {
-        "id": "allumette"
+        "id": "allumette",
+        "count": {
+          "fixed": 4
+        }
       },
       {
         "id": "capuchon"
+      },
+      {
+        "id": "marchandises",
+        "spec": "objets volés",
+        "valeur": {
+          "monnaie": "silver",
+          "count": {
+            "fixed": 17
+          }
+        }
       },
       {
         "id": "dague"
@@ -17092,13 +17320,23 @@
     ],
     "trappings": [
       {
+        "id": "bourse"
+      },
+      {
+        "monnaie": "brass",
+        "count": {
+          "fixed": 27
+        }
+      },
+      {
         "id": "cape"
       },
       {
         "id": "dague"
       },
       {
-        "id": "instrument"
+        "id": "instrument",
+        "spec": "luth"
       },
       {
         "id": "sac-a-dos"
@@ -17219,6 +17457,15 @@
     ],
     "trappings": [
       {
+        "id": "bourse"
+      },
+      {
+        "monnaie": "brass",
+        "count": {
+          "fixed": 12
+        }
+      },
+      {
         "id": "cape"
       },
       {
@@ -17238,6 +17485,16 @@
       },
       {
         "id": "tente"
+      },
+      {
+        "id": "marchandises",
+        "spec": "pinces à linge en bois",
+        "valeur": {
+          "monnaie": "brass",
+          "count": {
+            "fixed": 5
+          }
+        }
       },
       {
         "id": "vetements"
@@ -17349,7 +17606,17 @@
         "id": "besace"
       },
       {
-        "id": "flasque"
+        "id": "flasque",
+        "spec": "de spiritueux"
+      },
+      {
+        "id": "bourse"
+      },
+      {
+        "monnaie": "silver",
+        "count": {
+          "fixed": 4
+        }
       },
       {
         "id": "brosse-pour-le-sol"
@@ -21765,6 +22032,18 @@
       },
       {
         "id": "dague"
+      },
+      {
+        "id": "brassards"
+      },
+      {
+        "id": "jambieres-d-acier"
+      },
+      {
+        "id": "heaume"
+      },
+      {
+        "id": "plastron"
       }
     ],
     "spells": [],

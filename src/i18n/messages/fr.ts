@@ -3527,6 +3527,7 @@ export const fr = {
   'sv.upgradeNoPrice': "{label} : pas de tarif d'installation connu.",
   'sv.upgradeEmbedded': "{label} : coût « du modèle embarqué » — passez par l'achat du bateau embarqué.",
   'sv.upgradeTooExpensive': '{label} coûte {gold} CO — la bourse ne suit pas.',
+  'sv.upgradeNeedsShipyard': "{label} ne s'installe que sur un chantier naval spécialisé, et ce port n'en a pas.",
   'sv.upgradeInstalled': '{label} installé ({gold} CO{enc}) en {duree}.',
   'sv.fragUpgradeEnc': ', {enc} Enc',
   'sv.portEvent': 'Événement de port ({die} {roll}) — {label} (dans les {hours} heures)',
