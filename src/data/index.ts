@@ -164,7 +164,8 @@ import namesJson from './names.json';
 import raceAppearanceJson from './raceAppearance.json';
 import gabaritsJson from './gabarits.json';
 import planDeBestiaireJson from './planDeBestiaire.json';
-import type { GabaritDef, GabaritId, SurchargeDeGabarit } from './schemas/defs/gabarits';
+import type * as gabaritsDef from './schemas/defs/gabarits';
+import type { GabaritId, SurchargeDeGabarit } from './schemas/defs/gabarits';
 import gardeRobeJson from './garde-robe.json';
 import { cleDHabille, type EmplacementId, type EnsembleDef, type GardeRobeEntree, type HabilleDEnsemble, type PieceId, type TenueDeGardeRobe } from './schemas/defs/garde-robe';
 import presetsDePersonnageJson from './presets-de-personnage.json';
@@ -2489,7 +2490,7 @@ export const landCargo = landCargoJson as LandCargoData;
  *  marché d'un lieu, qui gardent leur propre schéma riche — id STABLE → libellé/icône d'affichage du hub de lieu. */
 export type LieuServiceData = EntreeDe<typeof lieuxServicesDef>;
 export const lieuxServices = datasetDe<typeof lieuxServicesDef>(lieuxServicesJson);
-const lieuServiceById = new Map(lieuxServices.map((s) => [s.id, s]));
+const lieuServiceById = new Map<string, LieuServiceData>(lieuxServices.map((s) => [s.id, s]));
 export function findLieuServiceById(id: string): LieuServiceData | undefined {
   return lieuServiceById.get(id);
 }
@@ -2714,7 +2715,7 @@ export const planDeBestiaire = planDeBestiaireJson as PlanDEspece[];
 export const findPlanDEspeceById = indexParId('planDeBestiaire', planDeBestiaire);
 export type { GabaritId, SurchargeDeGabarit } from './schemas/defs/gabarits';
 /** Carrures (`gabarits.json`, #2972), résolues par `src/noyau/apparence/gabarit.ts`. */
-export const gabarits = gabaritsJson as GabaritDef[];
+export const gabarits = datasetDe<typeof gabaritsDef>(gabaritsJson);
 export const findGabaritById = indexParId('gabarits', gabarits);
 /** Garde-robe des éléments 3D (`garde-robe.json`, #3114, #3113, #3111, #3116) : têtes, coiffures, tenues, emplacements, pièces, ensembles, emblèmes, variantes. */
 export const gardeRobe = gardeRobeJson as GardeRobeEntree[];
@@ -2848,7 +2849,7 @@ export const peripeties = rangeesDe<typeof tableDesPeripeties>(peripetiesJson) a
  *  se posent sur `inns`/`billets`/`speed`/`km` à l'authoring de carte. */
 export type ReseauRoutierData = EntreeDe<typeof reseauRoutierDef>;
 export const reseauRoutier = datasetDe<typeof reseauRoutierDef>(reseauRoutierJson);
-const reseauRoutierById = new Map(reseauRoutier.map((r) => [r.id, r]));
+const reseauRoutierById = new Map<string, ReseauRoutierData>(reseauRoutier.map((r) => [r.id, r]));
 /** Résout une entrée du réseau routier par son `id` STABLE. */
 export function findReseauRoutierById(id: string): ReseauRoutierData | undefined {
   return reseauRoutierById.get(id);

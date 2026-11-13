@@ -7,6 +7,38 @@ import { document } from '../grammaire/document';
 export const file = 'reglesOptionnelles.json';
 export const famille = 'entite';
 
+/**
+ * Règle optionnelle (V9 #1318) : ses VALEURS (`default`, `action.when`) sont du type que son `kind` promet, celui que
+ * rend `rule(id)` (`ValeurDeRegle`, `engine/policy.ts`). `ruleValueSchema` est l'union booléen|nombre|chaîne : seul ce
+ * jugement refuse `"false"` sur un `flag`. Porté par le schéma au chargement (`affinerEntree`) et par l'atelier du
+ * Codex avant l'enregistrement (`validateEntry`, `atelierDuCodex.ts`), en plus du contrôle typé du formulaire
+ * (`RuleValueField`).
+ */
+export function ecartsDeLaRegle(entry: Readonly<Record<string, unknown>>): string[] {
+  const out: string[] = [];
+  const kind = entry.kind;
+  const options = Array.isArray(entry.options) ? (entry.options as unknown[]).filter((o) => typeof o === 'string') as string[] : [];
+  const check = (champ: string, v: unknown): void => {
+    if (v === undefined) return;
+    if (kind === 'flag' && typeof v !== 'boolean') out.push(`${champ} : un interrupteur (kind « flag ») vaut un booléen, pas ${typeof v === 'string' ? `la chaîne « ${v} »` : String(v)}`);
+    if (kind === 'param' && typeof v !== 'number') out.push(`${champ} : un nombre (kind « param ») vaut un nombre, pas ${typeof v === 'string' ? `la chaîne « ${v} »` : String(v)}`);
+    if (kind === 'mode') {
+      if (typeof v !== 'string') out.push(`${champ} : un choix (kind « mode ») vaut une des valeurs proposées`);
+      else if (options.length > 0 && !options.includes(v)) out.push(`${champ} : « ${v} » n'est pas une des valeurs proposées (${options.join(', ')})`);
+    }
+  };
+  check('default', entry.default);
+  const action = entry.action as { when?: unknown } | undefined;
+  if (action && typeof action === 'object') check('action.when', action.when);
+  if (kind === 'mode' && options.length < 2) out.push('options : un choix (kind « mode ») propose au moins deux valeurs');
+  if (kind === 'param' && (typeof entry.min !== 'number' || typeof entry.max !== 'number')) out.push('min/max : un nombre (kind « param ») déclare ses bornes');
+  if (kind === 'param' && typeof entry.default === 'number' && typeof entry.min === 'number' && typeof entry.max === 'number'
+      && (entry.default < entry.min || entry.default > entry.max)) {
+    out.push(`default : ${entry.default} sort des bornes [${entry.min}, ${entry.max}]`);
+  }
+  return out;
+}
+
 const doc = document(
   'reglesOptionnelles',
   famille,
@@ -57,6 +89,7 @@ const doc = document(
     // `grammaire/valeurs.ts`) — la règle n'a qu'un porteur.
     affinerEntree: (entree) =>
       entree.superRefine((v, ctx) => {
+        for (const message of ecartsDeLaRegle(v)) ctx.addIssue({ code: 'custom', message: `reglesOptionnelles.json « ${String(v.id)} » : ${message}` });
         const ecart = ecartDeCoPresenceDesBornes(v as { min?: number; max?: number });
         if (!ecart) return;
         ctx.addIssue({

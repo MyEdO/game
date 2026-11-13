@@ -6,7 +6,7 @@
  * campagnes : l'hôte construit le lancement (`lancementDuScenario`, `scenes/test-scenarios/_shared.ts` ;
  * `lancementDeLaCampagne`, `scenes/campaign.ts`), celui d'un projet par `lancementDuProjet`.
  */
-import { entreesDeRegles, setRule, type RegleOptionnelleId, type RuleValue } from '../engine/policy';
+import { poserLesRegles, type JeuDeRegles } from '../engine/policy';
 import type { Combatant } from '../engine/types';
 import type { MassBattleSpec } from '../engine/massBattle';
 import type { Money } from '../engine/money';
@@ -44,7 +44,7 @@ export interface LancementDeScenario extends ContenuDeScenario {
   /** L'identité du document de projet lancé (`CampaignDoc.projet`) : celle d'une campagne, `null` pour un scénario de
    *  test ou l'essai d'une scène éditée. */
   projet: CampaignDoc['projet'];
-  regles?: Readonly<Partial<Record<RegleOptionnelleId, RuleValue>>>;
+  regles?: JeuDeRegles;
   bourse?: Money;
   combatDirect?: string;
   semainesDInterlude?: number;
@@ -65,7 +65,7 @@ export function lancementDuProjet(projet: { scenes: Scene[]; worldMap?: WorldMap
 
 /** POSE du lancement : règles, groupe, projet ou scène. */
 export function poserLeLancement(get: Get, l: LancementDeScenario): void {
-  if (l.regles) for (const [id, v] of entreesDeRegles(l.regles)) setRule(id, v);
+  if (l.regles) poserLesRegles(l.regles);
   get().fixerLeGroupe(l.party);
   if (l.projet || l.extraScenes?.length || l.worldMap || l.narratif) get().chargerLeProjet({ scenes: [l.scene, ...(l.extraScenes ?? [])], entryId: l.scene.id, worldMap: l.worldMap ?? null, narratif: l.narratif, projet: l.projet });
   else get().lancerLaScene(l.scene);

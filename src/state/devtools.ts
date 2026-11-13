@@ -108,7 +108,7 @@ import { maneuverShip } from '../noyau/shipManeuver';
 import { etageActif, getViewZ, setViewZ } from './viewLevel';
 import { setRevealAll, computeStateVisible } from '../noyau/visionState';
 import { doorIsOpen, emptyScene, porteEnJeu } from '../noyau/monde/scene';
-import { rule, setRule, ruleDef, OPTIONAL_RULES, type RuleValue } from '../engine/policy';
+import { rule, surchargerUneSaisie, ruleDef, OPTIONAL_RULES, type RuleValue } from '../engine/policy';
 import { remettreUneRegleMaisonWeb } from './reglesMaison';
 import { reglesMaisonMutables } from '../noyau/reglesMaison';
 import { cadence } from '../engine/cadence';
@@ -2114,7 +2114,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       }
       const c = coerceSetting(def, value);
       if ('err' in c) return c.err;
-      setRule(def.id, c.v);
+      surchargerUneSaisie(def.id, c.v);
       return settingDone(id, c.v);
     },
 
