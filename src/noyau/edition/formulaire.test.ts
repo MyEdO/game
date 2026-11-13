@@ -13,8 +13,8 @@ import { z } from 'zod';
 import type { SourceDeLEdition } from './adresseDeProse';
 import { emptyNarratif } from '../monde/campaignNarratif';
 import { emptyScene, type Dialogue, type EncounterDef, type Scene } from '../monde/scene';
-import { addEffectZone, addTrigger, avecLaValeur, type Segment } from '../sceneEdit';
-import { choixDuChamp, ecritureOfferte, formulaireDe, porteurDeLaSel, porteurDuProjet, porteursDuProjet, projetAvecLePorteur, type AccesDuPorteur, type CadreDuPorteur, type ProjetDEdition, type Sel } from '../sceneEditLecture';
+import { addEffectZone, addTrigger, avecLaValeur, avecLaValeurDuPorteur, type Segment } from '../sceneEdit';
+import { choixDuChamp, ecritureOfferte, formulaireDe, porteurDeLaPortee, porteurDeLaSel, porteurDuProjet, porteursDuProjet, projetAvecLePorteur, type AccesDuPorteur, type CadreDuPorteur, type ProjetDEdition, type Sel } from '../sceneEditLecture';
 import { emptyWorldMap, type WorldMap } from '../worldMap';
 import { gestesDeLaListe, newEffect, newOp, valeurNeuveDe, variantesAChoisir } from '../valeursNeuves';
 import seaEventsJson from '../../data/sea-events.json';
@@ -712,5 +712,39 @@ describe('l’accès d’un porteur à son document du projet (#3606)', () => {
     const enrichi = { ...NARRATIF_VIDE, presetsPnj: [] };
     expect(projetAvecLePorteur<Narratif>(LE_NARRATIF, projet(), 'salle', NARRATIF_VIDE, enrichi).narratif).toBe(enrichi);
     expect([porteurDeLaSel(null, 'scene', 'salle'), porteurDeLaSel(null, 'narratif', 'salle')], 'sans sélection, le singulier du document ouvert ; le narratif n’en porte aucun').toEqual([{ sorte: 'scene', id: 'salle' }, undefined]);
+  });
+});
+
+describe('les porteurs de la carte du monde : lieu, route et carte (#3606 M5)', () => {
+  const SALLE: Scene = { ...emptyScene('salle', 4, 4), entryPoints: { porte: { x: 0, y: 0 } } };
+  const POI = { id: 'temple', label: 'Temple', pos: { x: 1, y: 1 }, serviceKind: { id: 'auberge' } };
+  const CARTE: WorldMap = {
+    ...emptyWorldMap('monde'),
+    places: [{ id: 'x', label: 'X', pos: { x: 20, y: 20 }, scene: { id: 'salle' }, poi: [POI] }, { id: 'y', label: 'Y', pos: { x: 60, y: 20 }, scene: { id: 'salle' } }],
+    routes: [{ id: 'r', a: { id: 'x' }, b: { id: 'y' }, km: 1, modes: ['pied'] }],
+  };
+  const projet = { scenes: [SALLE], narratif: NARRATIF_VIDE, worldMap: CARTE } as unknown as ProjetDEdition;
+  const cadre: CadreDuPorteur = { scene: SALLE, projet, source: { manifeste: null, chapitres: {} } };
+  const cles = (fs: FieldDesc[]) => fs.map((f) => f.key);
+
+  it('une sélection d’un lieu ou d’une route désigne son porteur ; sans sélection, la carte ouverte désigne la carte', () => {
+    expect([porteurDeLaSel({ type: 'place', id: 'x' }, 'carte', 'salle'), porteurDeLaSel({ type: 'route', id: 'r' }, 'scene', 'salle'), porteurDeLaSel(null, 'carte', 'salle')])
+      .toEqual([{ sorte: 'lieu', id: 'x' }, { sorte: 'route', id: 'r' }, { sorte: 'carte', id: 'carte' }]);
+  });
+
+  it('le lieu offre chaque champ de son schéma hors de son identifiant, de sa position et de la liste de ses points d’intérêt, dont il offre les champs hors identifiant et position', () => {
+    expect(cles(formulaireDe('lieu', CARTE.places[0], cadre))).toEqual(['label', 'scene', 'entry', 'icon', 'port', 'market', 'services', 'backdrop', 'when', 'couvre', 'prose', 'source', 'adapteDe', 'poi']);
+    const lieu = CARTE.places[0];
+    expect([['poi', 0, 'label'], ['poi', 0, 'pos'], ['poi', 0, 'id'], ['poi']].map((c) => avecLaValeurDuPorteur('lieu', lieu, c as Segment[], c[2] === 'label' ? 'Chapelle' : { x: 2, y: 2 }, cadre).ok)).toEqual([true, false, false, false]);
+  });
+
+  it('la route offre chaque champ de son schéma hors de son identifiant, de ses extrémités et de son sens ; la carte, son libellé, son fond et ses réglages', () => {
+    expect(cles(formulaireDe('route', CARTE.routes[0], cadre))).toEqual(['km', 'modes', 'billets', 'speed', 'perilDie', 'perils', 'ambush', 'inns', 'sea', 'seaHeading', 'river', 'riverPerils', 'when', 'refus', 'riverExposure', 'couvre', 'provenances']);
+    expect(cles(formulaireDe('carte', CARTE, cadre))).toEqual(['label', 'background', 'params']);
+  });
+
+  it('un avertissement de la carte désigne le lieu ou la route qui porte son élément ; sans élément, la carte ; un point d’intérêt, aucun porteur', () => {
+    expect([porteurDeLaPortee('worldMap', 'x', projet, 'salle'), porteurDeLaPortee('worldMap', 'r', projet, 'salle'), porteurDeLaPortee('worldMap', undefined, projet, 'salle'), porteurDeLaPortee('worldMap', 'temple', projet, 'salle')])
+      .toEqual([{ sorte: 'lieu', id: 'x' }, { sorte: 'route', id: 'r' }, { sorte: 'carte', id: 'carte' }, undefined]);
   });
 });

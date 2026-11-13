@@ -1585,7 +1585,7 @@ function inspecteurDArete(s: SessionDEdition): (Choix | Ligne | Bouton)[] {
  *  de ses porteurs dans la scène éditée, chacun en liste, pressé s'il est sélectionné, qui le sélectionne ; « Ajouter »
  *  quand sa sorte se crée par la table (`ECRITURES_DES_PORTEURS`, `creer`). #3606 décision 7 */
 function logique(s: SessionDEdition): (Choix | Ligne | Bouton)[] {
-  const choisi = porteurDeLaSel(s.sel, 'scene', idDeLaSceneEditee(s));
+  const choisi = porteurDeLaSel(s.sel, s.document, idDeLaSceneEditee(s));
   return (Object.keys(FORMULAIRES) as SorteDePorteur[]).filter((sorte) => FORMULAIRES[sorte].logique).flatMap((sorte) => {
     const ids = porteursDuProjet(accesDe(sorte), projetEdite(s), idDeLaSceneEditee(s)).map((d) => d.id);
     const texte = (suffixe: string) => `ecran.editeur.logique.${sorte}${suffixe}` as MsgKey;
@@ -1598,15 +1598,15 @@ function logique(s: SessionDEdition): (Choix | Ligne | Bouton)[] {
   });
 }
 
-/** L'inspecteur du porteur de formulaire `porteur` de la session `s` qui se renomme par la table de sa sorte
- *  (`ECRITURES_DES_PORTEURS`, `renommer`), ses éléments d'id `<prefixe>/…` : le formulaire qui le nomme, de son
- *  identifiant ; ses éléments `propres` ; le formulaire tiré du schéma de sa sorte (`formulaireDe`) ; le supprimer,
- *  refusé avec la raison du retrait (`refusDeRetrait`) quand sa sorte se retire par la table. #3606 */
+/** L'inspecteur du porteur de formulaire `porteur` de la session `s`, ses éléments d'id `<prefixe>/…` : le formulaire
+ *  qui le nomme, de son identifiant, quand sa sorte se renomme par la table (`ECRITURES_DES_PORTEURS`, `renommer`) ; ses
+ *  éléments `propres` ; le formulaire tiré du schéma de sa sorte (`formulaireDe`) ; le supprimer, refusé avec la raison
+ *  du retrait (`refusDeRetrait`) quand sa sorte se retire par la table. #3606 */
 function inspecteurDuPorteur(s: SessionDEdition, prefixe: string, porteur: { sorte: SorteDePorteur; id: string }, propres: (Choix | Ligne | Bouton | Formulaire)[]): (Choix | Ligne | Bouton | Formulaire)[] {
   const donnee = porteurDuProjet(accesDe(porteur.sorte), projetEdite(s), idDeLaSceneEditee(s), porteur.id)!.donnee;
   const refus = ECRITURES_DES_PORTEURS[porteur.sorte].retirer ? refusDeRetrait(s) : null;
   return [
-    formulaireDuNom(porteur.id, false),
+    ...(ECRITURES_DES_PORTEURS[porteur.sorte].renommer ? [formulaireDuNom(porteur.id, false)] : []),
     ...propres,
     ...formulaireDuPorteur(s, porteur, donnee),
     bouton(`${prefixe}/supprimer`, t('ecran.editeur.inspecteur.supprimer'), { geste: 'supprimer' }, false, refus),
@@ -1665,22 +1665,31 @@ function inspecteurDeLaLogique<S extends SorteDePorteur>(s: SessionDEdition, sor
   return inspecteurDuPorteur(s, sorte, { sorte, id: donnee.id }, propres?.(s, donnee) ?? []);
 }
 
-/** L'inspecteur de la sélection de la session `s` (`editeur.inspecteur`) : de l'entité, de l'entrée, de la zone, du
- *  porteur listé à la zone Logique (`inspecteurDeLaLogique`) ou de l'arête sélectionnée ; sans elle, celui de la scène. */
+/** L'inspecteur du porteur singulier d'un document qui en a un propre, par sorte : de la scène, `inspecteurDeScene`. */
+const INSPECTEURS_DES_SINGULIERS: { readonly [S in SorteDePorteur]?: (s: SessionDEdition) => (Choix | Ligne | Bouton | Formulaire)[] } = {
+  scene: inspecteurDeScene,
+};
+
+/** L'inspecteur de la sélection de la session `s` (`editeur.inspecteur`) : de l'entité, de l'entrée, de la zone, d'un
+ *  autre porteur de formulaire du projet (`inspecteurDeLaLogique`), d'un ouvrage d'architecture ou de l'arête
+ *  sélectionnée ; sans elle, celui du porteur singulier du document ouvert (`porteurDeLaSel`), le sien propre
+ *  (`INSPECTEURS_DES_SINGULIERS`), sinon son formulaire tiré du schéma (`formulaireDuPorteur`) ; rien sans lui. */
 export function inspecteurDeLaSession(s: SessionDEdition): (Choix | Ligne | Bouton | Formulaire)[] {
   const scene = sceneEditee(s);
   const ent = entiteDeLaSelection(scene, s.sel);
   const entree = entreeDeLaSelection(s);
   const zone = zonesLues(scene).find((z) => sameSel(z.sel, s.sel));
-  const porteur = porteurDeLaSel(s.sel, 'scene', idDeLaSceneEditee(s));
-  const logique = porteur && FORMULAIRES[porteur.sorte].logique ? porteurDuProjet(accesDe(porteur.sorte), projetEdite(s), idDeLaSceneEditee(s), porteur.id)?.donnee : undefined;
+  const porteur = porteurDeLaSel(s.sel, s.document, idDeLaSceneEditee(s));
+  const donnee = porteur && porteurDuProjet(accesDe(porteur.sorte), projetEdite(s), idDeLaSceneEditee(s), porteur.id)?.donnee;
   if (ent) return inspecteurDEntite(s, ent);
   if (entree) return inspecteurDEntree(s, entree);
   if (zone) return inspecteurDeZone(s, zone);
-  if (porteur && logique) return inspecteurDeLaLogique(s, porteur.sorte, logique);
+  if (s.sel && porteur && donnee) return inspecteurDeLaLogique(s, porteur.sorte, donnee);
   const architecture = inspecteurDArchitecture(s);
   if (architecture.length) return architecture;
-  return s.sel ? inspecteurDArete(s) : inspecteurDeScene(s);
+  if (s.sel) return inspecteurDArete(s);
+  if (!porteur || !donnee) return [];
+  return INSPECTEURS_DES_SINGULIERS[porteur.sorte]?.(s) ?? formulaireDuPorteur(s, porteur, donnee);
 }
 
 /** Les pas des réglettes de la grille, en cases, de l'échelle, en mètres par case, et du nord, en degrés. */
@@ -1967,6 +1976,7 @@ export function zonesDeLEditeur(s: SessionDEdition): ZonesDeLEditeur {
     'editeur.fichier': [
       bouton('enregistrer', t('ecran.editeur.enregistrer'), { geste: 'enregistrer' }, false, refusDEnregistrer(s)),
       bouton('tester', t('ecran.editeur.tester'), { geste: 'tester' }),
+      ...DOCUMENTS_DU_MENU.map((document) => bouton(`document/${document}`, t(`ecran.editeur.document.${document}`), { geste: 'document', document }, s.document === document)),
     ],
     'editeur.pointee': [
       ...(p ? [ligne('pointee', t('ecran.editeur.pointee', { x: p.x, y: p.y, z: p.z, terrain: terrainLabel(tileAt(vue, p.x, p.y, p.z)), hauteur: heightAt(vue, p.x, p.y, p.z) }))] : []),
@@ -1980,6 +1990,9 @@ export function zonesDeLEditeur(s: SessionDEdition): ZonesDeLEditeur {
     'editeur.calque': zoneDuCalque(s),
   };
 }
+
+/** Les documents du projet que le menu Fichier ouvre (`{ geste: 'document' }`) : la scène et la carte du monde. #3606 */
+const DOCUMENTS_DU_MENU = ['scene', 'carte'] as const;
 
 /** Les avertissements que la validation montre d'emblée ; au-delà, leur nombre. */
 const AVERTISSEMENTS_MONTRES = 20;
@@ -1995,7 +2008,7 @@ function validation(s: SessionDEdition): (Ligne | Bouton)[] {
     ligne('validation', t('ecran.editeur.validation', { erreurs, avertissements: ws.length - erreurs })),
     ...ws.slice(0, AVERTISSEMENTS_MONTRES).flatMap((w, rang) => [
       ligne(`validation/${rang}`, t(`ecran.editeur.validation.${w.level}`, { message: w.message })),
-      ...(versLaFautive(w) ? [bouton(`validation/${rang}/aller`, t('ecran.editeur.validation.aller'), { geste: 'avertissement', rang })] : []),
+      ...(versLaFautive(s, w) ? [bouton(`validation/${rang}/aller`, t('ecran.editeur.validation.aller'), { geste: 'avertissement', rang })] : []),
     ]),
     ...(ws.length > AVERTISSEMENTS_MONTRES ? [ligne('validation/reste', t('ecran.editeur.validation.reste', { n: ws.length - AVERTISSEMENTS_MONTRES }))] : []),
   ];

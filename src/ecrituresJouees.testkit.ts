@@ -112,8 +112,8 @@ function empreinte(s: SessionDEdition, geste: Extract<GesteDEdition, { geste: 'v
   return JSON.stringify([geste.porteur.sorte, geste.chemin.map((p) => (typeof p === 'number' ? '#' : p)), saisie, formes, forme(geste.valeur)]);
 }
 
-/** Le porteur de formulaire que désigne la sélection de la session `s`, la scène éditée sans elle (`porteurDeLaSel`). */
-const porteurChoisi = (s: SessionDEdition) => porteurDeLaSel(s.sel, 'scene', idDeLaSceneEditee(s));
+/** Le porteur de formulaire que désigne la sélection de la session `s`, sans elle le singulier du document ouvert (`porteurDeLaSel`). */
+const porteurChoisi = (s: SessionDEdition) => porteurDeLaSel(s.sel, s.document, idDeLaSceneEditee(s));
 
 /** Le porteur `porteur` de la session `s` (`porteurDuProjet`) : sa donnée et son chemin depuis son document. */
 const porteurDu = (s: SessionDEdition, porteur: { sorte: SorteDePorteur; id: string }) => porteurDuProjet(accesDe(porteur.sorte), projetEdite(s), idDeLaSceneEditee(s), porteur.id);

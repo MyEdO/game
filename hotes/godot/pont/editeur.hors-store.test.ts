@@ -512,6 +512,21 @@ describe('l’éditeur de carte par le pont, la rencontre (#3606 M4c)', () => {
   });
 });
 
+describe('l’éditeur de carte par le pont, la carte du monde (#3606 M5)', () => {
+  it('le menu Fichier ouvre la carte du monde, son inspecteur au formulaire de la carte, sans cran ; il rend la scène, à son inspecteur', () => {
+    const { appel } = table();
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const e = editionDe(appel('editer', { ouvrir: CAMPAGNE }));
+    expect(boutonDe(e, 'document/scene').presse).toBe(true);
+    const carte = presser(boutonDe(e, 'document/carte'));
+    const ids = (x: Edition) => x.vue.zones['editeur.inspecteur'].map((el) => el.id);
+    expect([boutonDe(carte, 'document/carte').presse, boutonDe(carte, 'annuler').refus !== null]).toEqual([true, true]);
+    expect(ids(carte).filter((id) => /^valeur\/[^/]+(\/ajouter)?$/.test(id))).toEqual(['valeur/label', 'valeur/background', 'valeur/params/ajouter']);
+    const scene = presser(boutonDe(carte, 'document/scene'));
+    expect([boutonDe(scene, 'document/scene').presse, ids(scene)]).toEqual([true, ids(e)]);
+  });
+});
+
 describe('l’éditeur de carte par le pont, l’architecture', () => {
   it('un corps bâti sur la case pointée se nomme et se type ; un étage au-dessus devient la couche éditée, où se bâtit une partie ; le dernier étage ne se supprime pas', () => {
     const { appel } = table();

@@ -21,7 +21,7 @@ import type { SeatOccupant } from '../monde/seating';
 import { documentDeProjet, parseProject, ProjetRefuse, texteDuDepot, type ProjectDoc } from '../worldMap';
 import { refusDeLaPorteDuProjet, type GesteDePorte } from '../persistance/refusDeLaPorte';
 import { addArchitectureBody, addArchitecturePart, addBuildingMass, addFacadeFeature, addRoofExclusion, patchBuildingMass, poseToitureDuCorps, rectFrom, removeRoofExclusion, addLayer, patchSceneRoofDefaults, removeSceneFlag, resizeGrid, setNorthDeg, setReliefDefault, setSceneFlags, setSceneLabel, setSceneRest, setSceneScalaires, type ScalairesDeScene, addProjectScene, deleteProjectScene, duplicateProjectScene, renameScene, type ProjectScenes, addMember, addStoreyAbove, patchArchitectureBody, patchArchitectureStorey, patchFacadeFeature, patchFacadeSection, removeFacadeFeature, setFacadeSectionZ, assoirALaPlace, deleteSel, dupliquerLEntite, poserUneTroupe, coucheEcrite, editEntity, editEntry, ECRITURES_DES_PORTEURS, projetSansLePorteur, pasteEntity, sansVide, patchMember, patchWall, patchZone, propRefPatch, removeLayer, removeMember, renameEffectZone, avecLaValeurDuPorteur, avecLAdresseRescellee, type EcritureDeValeur, type RefusDeValeur, type Segment, renameEntry, setPosteCrew, setPosteEngine, setPosteSide, addStation, patchStation, removeStation, setSceneMusic, type PatchDeZone, type Pt } from '../sceneEdit';
-import { DOCUMENTS, FORMULAIRES, accesDe, cheminOffert, entiteDeLaSelection, formeDuPorteur, porteurDeLaSel, porteurDuProjet, porteursDuProjet, selDuPorteur, selPos, selZ, etageSuivant, poigneeDeLaSelection, segmentDeLaSelection, type CadreDuPorteur, type DonneeDuPorteur, type Layers, type ProjetDEdition, type Sel, type SorteDePorteur, type Tool } from '../sceneEditLecture';
+import { DOCUMENTS, FORMULAIRES, accesDe, cheminOffert, entiteDeLaSelection, formeDuPorteur, porteurDeLaPortee, porteurDeLaSel, porteurDuProjet, porteursDuProjet, selDuPorteur, selPos, selZ, etageSuivant, poigneeDeLaSelection, segmentDeLaSelection, type CadreDuPorteur, type DonneeDuPorteur, type Layers, type ProjetDEdition, type Sel, type SorteDeDocument, type SorteDePorteur, type Tool, type DocumentDuProjet } from '../sceneEditLecture';
 import { applyStairFlight, planStairFlight, type StairFlightPlan } from '../stairFlight';
 import { poserLesNavires, poserUnNavire } from '../planDeNavire';
 import { jsonCanonique } from '../../lib/jsonCanonique.mjs';
@@ -106,13 +106,14 @@ export function avertissementsDeLaSession(s: SessionDEdition): Warning[] {
     .filter((w) => w.sceneId === idDeLaSceneEditee(s) || w.scope === 'worldMap');
 }
 
-/** La sorte du porteur de formulaire que désigne la portée d'un avertissement (`Warning.scope`). */
-const SORTE_DE_LA_PORTEE: Partial<Record<Warning['scope'], SorteDePorteur>> = { entity: 'entite', trigger: 'declencheur', dialogue: 'dialogue', encounter: 'rencontre' };
+/** Le porteur de formulaire du projet de la session `s` que désigne l'avertissement `w` (`porteurDeLaPortee`). */
+const porteurDeLAvertissement = (s: SessionDEdition, w: Warning) => porteurDeLaPortee(w.scope, w.refId, projetEdite(s), idDeLaSceneEditee(s));
 
-/** L'avertissement `w` désigne-t-il un fautif que l'éditeur sélectionne : un défaut de plan, un ouvrage d'architecture,
- *  une entité, un déclencheur, un dialogue ou une rencontre (`SORTE_DE_LA_PORTEE`) ? Les autres se corrigent ailleurs. */
-export const versLaFautive = (w: Warning): boolean =>
-  !!w.plan || !!architectureSelectionForWarning(w) || (!!w.refId && SORTE_DE_LA_PORTEE[w.scope] !== undefined);
+/** L'avertissement `w` de la session `s` désigne-t-il un fautif que l'éditeur sélectionne : un défaut de plan, un ouvrage
+ *  d'architecture, ou un porteur de formulaire de son projet (`porteurDeLAvertissement`) ? Les autres se corrigent
+ *  ailleurs. */
+export const versLaFautive = (s: SessionDEdition, w: Warning): boolean =>
+  !!w.plan || !!architectureSelectionForWarning(w) || porteurDeLAvertissement(s, w) !== undefined;
 
 /** Les cases du défaut de plan que suit la session `s`, tant que la validation le relève ; aucune sinon. */
 export function casesDuDefaut(s: SessionDEdition): { x: number; y: number; z: number }[] {
@@ -122,8 +123,8 @@ export function casesDuDefaut(s: SessionDEdition): { x: number; y: number; z: nu
 
 /** La session `s` amenée au fautif de l'avertissement `w` de sa scène `scene`, à sa couche : un défaut de plan, suivi,
  *  à l'outil de sélection, sa zone d'effet sélectionnée s'il en vise une ; un ouvrage d'architecture sélectionné à
- *  l'outil d'architecture ; une entité, un déclencheur, un dialogue ou une rencontre sélectionné à l'outil de sélection
- *  (`selDuPorteur`), à sa couche s'il est posé sur la carte (`selPos`, `selZ`). */
+ *  l'outil d'architecture ; un porteur de formulaire (`porteurDeLAvertissement`), son document ouvert, sélectionné à
+ *  l'outil de sélection (`selDuPorteur`), à sa couche s'il est posé sur le plan de la scène (`selPos`, `selZ`). */
 function versLAvertissement(s: SessionDEdition, scene: Scene, w: Warning): SessionDEdition {
   const vers = (z: number | undefined, sel: Sel, outil: OutilDeLEditeur, defaut: string | null = null): SessionDEdition => ({
     ...s, z: z !== undefined && coucheVue(scene, z) ? z : s.z, sel, outil, defaut, geste: null, volee: [], brouillon: null,
@@ -143,8 +144,9 @@ function versLAvertissement(s: SessionDEdition, scene: Scene, w: Warning): Sessi
             : corps?.storeys[0]?.z;
     return vers(z, archi, { mode: 'architecture', action: 'selection' });
   }
-  const sel = selDuPorteur(SORTE_DE_LA_PORTEE[w.scope]!, w.refId!);
-  return vers(selPos(scene, sel) ? selZ(scene, sel) : undefined, sel, { mode: 'selection' });
+  const porteur = porteurDeLAvertissement(s, w)!;
+  const sel = selDuPorteur(porteur.sorte, porteur.id);
+  return { ...vers(selPos(scene, sel) ? selZ(scene, sel) : undefined, sel, { mode: 'selection' }), document: accesDe(porteur.sorte).document };
 }
 
 /** Les scènes du projet de la session `s` autour de la scène éditée. */
@@ -170,6 +172,21 @@ function versLaScene(s: SessionDEdition, p: ProjectScenes | null): SessionDEditi
   if (!p) return s;
   const projet = { ...projetEdite(s), scenes: [...p.avant, p.scene, ...p.apres] };
   return { ...remiseAZero(s), historique: poser(s.historique, { projet, sceneId: p.scene.id }, true) };
+}
+
+/** Le document de sorte `document` du projet édité (`DOCUMENTS`). */
+const documentDe = (document: SorteDeDocument) => DOCUMENTS[document] as unknown as DocumentDuProjet<unknown>;
+
+/** La session `s` où le document `document` du projet est ouvert, remise à zéro (`remiseAZero`), sans cran : une
+ *  navigation ; absent du projet, il y reçoit celui que son document déclare (`DocumentDuProjet.neuf`), sur un cran.
+ *  Telle quelle si `document` est déjà ouvert, ou s'il manque sans document neuf. #3606 */
+function ouvrirLeDocument(s: SessionDEdition, document: SorteDeDocument): SessionDEdition {
+  if (document === s.document) return s;
+  const { lire, ecrire, neuf } = documentDe(document);
+  const { projet, sceneId } = s.historique.present;
+  const ouvert = { ...remiseAZero(s), document };
+  if (lire(projet, sceneId) !== undefined) return ouvert;
+  return neuf ? { ...ouvert, historique: poser(s.historique, { projet: ecrire(projet, sceneId, neuf(projet)), sceneId }, true) } : s;
 }
 
 /** La session `s` qui montre la scène `id` de son projet, sans cran : une navigation, remise à zéro (`remiseAZero`).
@@ -314,6 +331,8 @@ export interface CranDEdition {
 export interface SessionDEdition {
   /** Le projet ouvert et sa scène éditée : le présent de l'historique (`projetEdite`, `sceneEditee`). */
   historique: Historique<CranDEdition>;
+  /** Le document du projet ouvert à l'édition (`DOCUMENTS`) : sans sélection, son porteur singulier s'édite. */
+  document: SorteDeDocument;
   outil: OutilDeLEditeur;
   z: number;
   pinceau: (typeof PINCEAUX)[number];
@@ -355,7 +374,8 @@ export interface SessionDEdition {
  *  son brouillon ; écrire sur l'entité sélectionnée, le poste de l'emplacement de siège sélectionné, une place du décor
  *  sélectionné ou l'appartenance du personnage sélectionné à une rencontre ; écrire sur la zone sélectionnée, ou sur la scène ;
  *  sélectionner le porteur de formulaire `porteur` (`selDuPorteur`) ; en ajouter un neuf de sorte `sorte`, par la table
- *  d'écriture de sa sorte (`ECRITURES_DES_PORTEURS`, `creer`), sélectionné ; écrire
+ *  d'écriture de sa sorte (`ECRITURES_DES_PORTEURS`, `creer`), depuis la sélection, avec l'identifiant `avec` que sa
+ *  table offre (`avecs`), sélectionné ; ouvrir le document `document` du projet (`ouvrirLeDocument`) ; écrire
  *  une valeur au chemin `chemin` du formulaire du porteur `porteur` (`formulaireDe`, `undefined`
  *  retire le champ), ou y resceller l'adresse de prose au chemin `chemin` après relecture (`avecLAdresseRescellee`) ; nommer l'entité, l'entrée, le
  *  déclencheur, le dialogue, la rencontre, la zone d'effet ou le corps sélectionné, ou la scène sans sélection (`nom` absent : l'entité
@@ -386,7 +406,8 @@ export type GesteDEdition =
   | { geste: 'membre'; patch: PatchDeMembre }
   | { geste: 'zone'; patch: PatchDeZone }
   | { geste: 'selectionner'; porteur: { sorte: SorteDePorteur; id: string } }
-  | { geste: 'ajouter'; sorte: SorteDePorteur }
+  | { geste: 'ajouter'; sorte: SorteDePorteur; avec?: string }
+  | { geste: 'document'; document: SorteDeDocument }
   | { geste: 'valeur'; porteur: { sorte: SorteDePorteur; id: string }; chemin: Segment[]; valeur?: unknown }
   | { geste: 'resceller'; porteur: { sorte: SorteDePorteur; id: string }; chemin: Segment[] }
   | { geste: 'corps'; id: string }
@@ -445,7 +466,7 @@ const coucheVue = (scene: Scene, z: number): boolean => poserLesNavires(scene).l
 export function ouvrirLEdition(projet: ProjetDEdition, duDepot: boolean, gardes?: unknown, manifeste: Manifeste | null = null): SessionDEdition {
   const calques = gardes === undefined ? {} : calquesLus(gardes);
   return {
-    historique: historiqueDe({ projet, sceneId: projet.scenes[0].id }), outil: { mode: 'selection' }, z: 0, pinceau: 1, rectangle: false, sel: null, geste: null, volee: [], brouillon: null, pointee: null, presse: null,
+    historique: historiqueDe({ projet, sceneId: projet.scenes[0].id }), document: 'scene', outil: { mode: 'selection' }, z: 0, pinceau: 1, rectangle: false, sel: null, geste: null, volee: [], brouillon: null, pointee: null, presse: null,
     depot: duDepot ? { enregistre: projet, enCours: null } : null,
     calques: calques ?? {}, calage: { step: 'idle' }, chargement: null, ecartes: calques === null, defaut: null,
     manifeste, chapitres: {}, chapitreEnAttente: null,
@@ -702,7 +723,8 @@ const enPatchDeSegment = (patch: PatchDArete): Partial<WallSeg> =>
 /** La session `s` revenue au cran visé par annuler ou rétablir (`sens`), qui montre sa scène. Le cran quitté prend
  *  d'abord la scène du cran visé quand chacune existe des deux côtés : seule une navigation les sépare, et rétablir ou
  *  annuler encore montrera la scène où l'écriture a eu lieu. Une autre scène montrée remet la session à zéro
- *  (`remiseAZero`) ; sinon la couche éditée reste, sauf disparue de sa vue (`coucheVue`), où le rez la remplace. */
+ *  (`remiseAZero`), comme un document ouvert absent du cran visé, qui rend la scène ouverte ; sinon la couche éditée
+ *  reste, sauf disparue de sa vue (`coucheVue`), où le rez la remplace. */
 function revenir(s: SessionDEdition, sens: 'annuler' | 'retablir'): SessionDEdition {
   const h = s.historique;
   const crans = sens === 'annuler' ? h.passe : h.futur;
@@ -710,6 +732,7 @@ function revenir(s: SessionDEdition, sens: 'annuler' | 'retablir'): SessionDEdit
   const { projet, sceneId } = h.present;
   const navigue = vise !== undefined && vise.sceneId !== sceneId && projet.scenes.some((sc) => sc.id === vise.sceneId) && vise.projet.scenes.some((sc) => sc.id === sceneId);
   const historique = (sens === 'annuler' ? annuler : retablir)(navigue ? poser(h, { projet, sceneId: vise.sceneId }, false) : h);
+  if (documentDe(s.document).lire(historique.present.projet, historique.present.sceneId) === undefined) return { ...remiseAZero(s), historique, document: 'scene' };
   if (historique.present.sceneId !== sceneId) return { ...remiseAZero(s), historique };
   const z = coucheVue(sceneDuCran(historique.present), s.z) ? s.z : 0;
   return { ...s, historique, z, sel: null, geste: null, brouillon: null };
@@ -756,7 +779,7 @@ export function refusDeLaValeur(s: SessionDEdition, g: Extract<GesteDEdition, { 
 /** Pourquoi la session `s` ne supprime pas sa sélection : le refus du retrait de son porteur par la table de sa sorte
  *  (`projetSansLePorteur`), dit à l'auteur ; `null` si elle la supprime. #3606 */
 export function refusDeRetrait(s: SessionDEdition): string | null {
-  const porteur = porteurDeLaSel(s.sel, 'scene', idDeLaSceneEditee(s));
+  const porteur = porteurDeLaSel(s.sel, s.document, idDeLaSceneEditee(s));
   const retrait = porteur && projetSansLePorteur(projetEdite(s), idDeLaSceneEditee(s), porteur);
   return retrait && !retrait.ok ? retrait.regle : null;
 }
@@ -872,7 +895,7 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
         const renommee = renameEntry(scene, s.sel.id, g.nom);
         return renommee === scene ? s : ecrire(s, renommee, { type: 'entry', id: g.nom.trim() });
       }
-      const porteur = porteurDeLaSel(s.sel, 'scene', idDeLaSceneEditee(s));
+      const porteur = porteurDeLaSel(s.sel, s.document, idDeLaSceneEditee(s));
       const renommer = porteur && ECRITURES_DES_PORTEURS[porteur.sorte].renommer;
       if (!porteur || !renommer) return s;
       const renomme = renommer(projetEdite(s), idDeLaSceneEditee(s), porteur.id, g.nom);
@@ -883,11 +906,11 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
       return porteurDuProjet(accesDe(sorte), projetEdite(s), idDeLaSceneEditee(s), id) ? { ...s, sel: selDuPorteur(sorte, id), geste: null, brouillon: null } : s;
     }
     case 'ajouter': {
-      const creer = ECRITURES_DES_PORTEURS[g.sorte].creer;
-      if (!creer) return s;
-      const cree = creer(projetEdite(s), idDeLaSceneEditee(s));
-      return ecrireLeProjet(s, cree.projet, selDuPorteur(g.sorte, cree.id));
+      const cree = ECRITURES_DES_PORTEURS[g.sorte].creer?.(projetEdite(s), idDeLaSceneEditee(s), s.sel, g.avec);
+      return cree ? ecrireLeProjet(s, cree.projet, selDuPorteur(g.sorte, cree.id)) : s;
     }
+    case 'document':
+      return ouvrirLeDocument(s, g.document);
     case 'corps': {
       const corps = scene.architecture?.find((c) => c.id === g.id);
       if (!corps) return s;
@@ -906,7 +929,7 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
           : versLaScene(s, (g.quoi === 'ajouter' ? addProjectScene : duplicateProjectScene)(scenesEnProjet(s), nextEntityId('scene', scenesDeLHistorique(s.historique).map((sc) => sc.id))));
     case 'avertissement': {
       const w = avertissementsDeLaSession(s)[g.rang];
-      return w && versLaFautive(w) ? versLAvertissement(s, scene, w) : s;
+      return w && versLaFautive(s, w) ? versLAvertissement(s, scene, w) : s;
     }
     case 'scene': {
       const patchee = scenePatchee(scene, g.patch);
@@ -914,7 +937,7 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
     }
     case 'identifier': {
       if (g.element !== undefined) {
-        const porteur = porteurDeLaSel(s.sel, 'scene', idDeLaSceneEditee(s));
+        const porteur = porteurDeLaSel(s.sel, s.document, idDeLaSceneEditee(s));
         const renommer = porteur && ECRITURES_DES_PORTEURS[porteur.sorte].renommerElement;
         const renomme = porteur && renommer ? renommer(projetEdite(s), idDeLaSceneEditee(s), porteur.id, g.element, g.id) : projetEdite(s);
         return renomme === projetEdite(s) ? s : ecrireLeProjet(s, renomme, s.sel);
@@ -949,7 +972,7 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
       return out?.ids.length ? ecrire(s, out.scene, s.sel) : s;
     }
     case 'supprimer': {
-      const porteur = porteurDeLaSel(s.sel, 'scene', idDeLaSceneEditee(s));
+      const porteur = porteurDeLaSel(s.sel, s.document, idDeLaSceneEditee(s));
       const retrait = porteur && projetSansLePorteur(projetEdite(s), idDeLaSceneEditee(s), porteur);
       if (retrait) return retrait.ok ? ecrireLeProjet(s, retrait.valeur) : s;
       return s.sel ? ecrire(s, deleteSel(scene, s.sel)) : s;
@@ -1003,7 +1026,7 @@ function calquesElagues(s: SessionDEdition): { calques?: CalquesDuProjet } {
  *  (`FORMULAIRES`), sa donnée dans le projet (`porteurDuProjet`) et les champs qu'elle offre dans son cadre
  *  (`formeDuPorteur`) ; `undefined` sans lui ou sans sa donnée. */
 function porteurDeLaSelection(s: SessionDEdition): { schema: unknown; donnee: unknown; champs: ReturnType<typeof formeDuPorteur>['champs'] } | undefined {
-  const porteur = porteurDeLaSel(s.sel, 'scene', idDeLaSceneEditee(s));
+  const porteur = porteurDeLaSel(s.sel, s.document, idDeLaSceneEditee(s));
   const donnee = porteur && porteurDuProjet(accesDe(porteur.sorte), projetEdite(s), idDeLaSceneEditee(s), porteur.id)?.donnee;
   return porteur && donnee && { schema: FORMULAIRES[porteur.sorte].schema, donnee, champs: formeDuPorteur(porteur.sorte, donnee, cadreDeLaSession(s)).champs };
 }

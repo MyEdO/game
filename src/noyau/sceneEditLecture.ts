@@ -9,7 +9,7 @@ import { dialoguesDeLaScene, sceneMetresPerTile, type Dialogue, type DialogueCho
 import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { dialogueSchema, encounterDefSchema, faceDAreteSchema, optionalDeSceneSchema, sceneEffectZoneSchema, sceneEntitySchema, sceneSchema, triggerSchema, type Terrain } from '../data/schemas/defs-scenes/scene';
 import { projetSchema } from '../data/schemas/defs-scenes/projet';
-import { worldMapSchema } from '../data/schemas/defs-scenes/worldmap';
+import { mapPlaceSchema, mapRouteSchema, placePoiSchema, worldMapSchema } from '../data/schemas/defs-scenes/worldmap';
 import { narratifSchema } from '../data/schemas/defs-scenes/narratif';
 import { collectionDe, idsDeLaPortee } from '../data/schemas/grammaire/collection-cle';
 import { noeudsAuChemin, ouverts, pasDeDonnee } from '../data/schemas/grammaire/descente';
@@ -32,7 +32,9 @@ import { t } from '../i18n';
 import { objetDuNarratif, presetDuNarratif, type ResolveurDePreset } from './monde/resolveursDuNarratif';
 import { entreesNarratives, type CleDeReferenceNarrative } from './codex/libellesNarratifs';
 import { REFERENCES_NARRATIVES } from '../data/schemas/defs-scenes/registres-narratifs';
-import type { ProjectDoc } from './worldMap';
+import { marcheNeuf, peripetieNeuve, portNeuf } from './worldMapEdit';
+import { emptyWorldMap, type MapPlace, type MapRoute, type ProjectDoc, type WorldMap } from './worldMap';
+import type { Warning } from './validateScene';
 import { emptyStatblock, statblockDeLaCreature } from '../data/valeursNeuves';
 import { customStatblockSchema } from '../data/schemas/defs-scenes/communs';
 import { parcoursDe } from '../engine/pnjDeCarriere';
@@ -123,8 +125,9 @@ export function structuresDeLArete(paint: WallPaint): StructureData[] {
  *  est leur ENCRE (`zoneInk`, EditorCanvas) : la pièce n'a qu'un liseré, le piège porte l'aplat. */
 export type Layers = { triggers: boolean; spawns: boolean; roofs: boolean; entries: boolean; rest: boolean; zones: boolean };
 
-/** Les types de sélection qui désignent un élément de la scène par son seul identifiant. */
-type TypeDeSelParId = 'entity' | 'trigger' | 'entry' | 'effectZone' | 'dialogue' | 'encounter';
+/** Les types de sélection qui désignent un élément du projet par son seul identifiant : de la scène, ou un lieu et une
+ *  route de la carte du monde. */
+type TypeDeSelParId = 'entity' | 'trigger' | 'entry' | 'effectZone' | 'dialogue' | 'encounter' | 'place' | 'route';
 
 /** Sélection unifiée — une seule chose sélectionnée à la fois, sur la carte comme dans les panneaux. */
 export type Sel =
@@ -431,7 +434,7 @@ export function pickArchitectureEdge(scene: Scene, fx: number, fy: number, z: nu
 export type EntityTool = Extract<Tool, { mode: 'entite' }>;
 
 /** La donnée du porteur de chaque sorte de formulaire tiré du schéma. */
-export interface DonneeDuPorteur { zone: SceneEffectZone; declencheur: Trigger; entite: SceneEntity; dialogue: Dialogue; rencontre: EncounterDef; scene: Scene }
+export interface DonneeDuPorteur { zone: SceneEffectZone; declencheur: Trigger; entite: SceneEntity; dialogue: Dialogue; rencontre: EncounterDef; scene: Scene; lieu: MapPlace; route: MapRoute; carte: WorldMap }
 
 /** La sorte d'un porteur de formulaire tiré du schéma. */
 export type SorteDePorteur = keyof DonneeDuPorteur;
@@ -440,9 +443,9 @@ export type SorteDePorteur = keyof DonneeDuPorteur;
  *  porte. */
 type CheminsOfferts = readonly (readonly Segment[])[];
 
-/** Le cadre où vit un porteur de formulaire tiré du schéma : sa scène, les scènes et le narratif de son projet, et le
- *  `Source/` que ses adresses de prose désignent (`SourceDeLEdition`). */
-export interface CadreDuPorteur { scene: Scene; projet: Pick<ProjectDoc, 'scenes' | 'narratif'>; source: SourceDeLEdition }
+/** Le cadre où vit un porteur de formulaire tiré du schéma : sa scène, les scènes, la carte du monde et le narratif de
+ *  son projet, et le `Source/` que ses adresses de prose désignent (`SourceDeLEdition`). */
+export interface CadreDuPorteur { scene: Scene; projet: Pick<ProjectDoc, 'scenes' | 'narratif' | 'worldMap'>; source: SourceDeLEdition }
 
 /** Le projet édité : le document que tient un cran de l'historique de l'éditeur. */
 export type ProjetDEdition = Omit<ProjectDoc, 'schema'>;
@@ -451,19 +454,22 @@ export type ProjetDEdition = Omit<ProjectDoc, 'schema'>;
 interface TypesDesDocuments { scene: Scene; carte: NonNullable<ProjectDoc['worldMap']>; narratif: ProjectDoc['narratif'] }
 
 /** La sorte d'un document du projet édité. */
-type SorteDeDocument = keyof TypesDesDocuments;
+export type SorteDeDocument = keyof TypesDesDocuments;
 
 /** Ce qu'un document du projet édité déclare : son identifiant dans le projet où la scène `sceneId` est montrée, sa
- *  lecture dans le projet `projet` (`undefined` : absent du projet), le projet où il devient `doc`, et son schéma. */
-interface DocumentDuProjet<T> {
+ *  lecture dans le projet `projet` (`undefined` : absent du projet), le projet où il devient `doc`, son schéma, et, du
+ *  document qui peut manquer au projet, celui qu'il reçoit à son ouverture. */
+export interface DocumentDuProjet<T> {
   id: (sceneId: string) => string;
   lire: (projet: ProjetDEdition, sceneId: string) => T | undefined;
   ecrire: (projet: ProjetDEdition, sceneId: string, doc: T) => ProjetDEdition;
   schema: unknown;
+  neuf?: (projet: ProjetDEdition) => T;
 }
 
 /** Les documents du projet édité : la scène montrée, sous son identifiant, la carte du monde et le narratif, chacun seul
- *  de sa sorte au projet, sous elle. #3606 */
+ *  de sa sorte au projet, sous elle. La carte absente du projet en reçoit une vide (`emptyWorldMap`), sous un identifiant
+ *  qu'aucune de ses scènes ne porte : la validation range ses avertissements sous lui (`Warning.sceneId`). #3606 */
 export const DOCUMENTS: { readonly [K in SorteDeDocument]: DocumentDuProjet<TypesDesDocuments[K]> } = {
   scene: {
     id: (sceneId) => sceneId,
@@ -471,7 +477,13 @@ export const DOCUMENTS: { readonly [K in SorteDeDocument]: DocumentDuProjet<Type
     ecrire: (projet, sceneId, scene) => ({ ...projet, scenes: projet.scenes.map((sc) => (sc.id === sceneId ? scene : sc)) }),
     schema: sceneSchema,
   },
-  carte: { id: () => 'carte', lire: (projet) => projet.worldMap, ecrire: (projet, _sceneId, worldMap) => ({ ...projet, worldMap }), schema: worldMapSchema },
+  carte: {
+    id: () => 'carte',
+    lire: (projet) => projet.worldMap,
+    ecrire: (projet, _sceneId, worldMap) => ({ ...projet, worldMap }),
+    schema: worldMapSchema,
+    neuf: (projet) => emptyWorldMap(nextEntityId('carte', projet.scenes.map((sc) => sc.id))),
+  },
   narratif: { id: () => 'narratif', lire: (projet) => projet.narratif, ecrire: (projet, _sceneId, narratif) => ({ ...projet, narratif }), schema: narratifSchema },
 };
 
@@ -491,12 +503,13 @@ export type AccesDuPorteur<D> = {
 
 /** Ce qu'un porteur de formulaire tiré du schéma déclare : où il vit (`AccesDuPorteur`), le type de la sélection
  *  qui le désigne (`Sel`), absent du porteur singulier d'un document, que désigne l'absence de sélection, le nœud
- *  de sa donnée, les champs qu'il offre, et les choix que son contexte pose à un chemin de sa donnée (`choixDuChamp`),
- *  dans son cadre. */
+ *  de sa donnée, la portée des avertissements de la validation qui le désignent (`Warning.scope`, `porteurDeLaPortee`),
+ *  les champs qu'il offre, et les choix que son contexte pose à un chemin de sa donnée (`choixDuChamp`), dans son cadre. */
 interface FormulaireDuPorteur<D> {
   acces: AccesDuPorteur<D>;
   sel?: TypeDeSelParId;
   schema: unknown;
+  portee?: Warning['scope'];
   /** Le porteur se liste à la zone Logique de l'éditeur, qui le sélectionne ; sinon il s'atteint sur la carte. */
   logique?: true;
   champs: (donnee: D, cadre: CadreDuPorteur) => CheminsOfferts;
@@ -710,6 +723,59 @@ const CHAMPS_DE_LA_RENCONTRE: CheminsOfferts = [['victoryCondition'], ['onVictor
 const champsDeLaRencontre = (enc: EncounterDef): CheminsOfferts =>
   [...CHAMPS_DE_LA_RENCONTRE, ...(enc.members ?? []).flatMap((_, i) => [['members', i, 'mount'], ['members', i, 'ridesEntityId']])];
 
+/** Les clés de premier niveau que déclare le schéma `schema`, hors des clés `exclues`, chacune en champ offert entier. */
+const champsSauf = (schema: unknown, exclues: readonly string[]): CheminsOfferts =>
+  champsDeclares(schema)!.flatMap(([cle]) => (exclues.includes(cle) ? [] : [[cle]]));
+
+/** Les champs qu'offre le formulaire d'un lieu : chacun de son schéma, hors de son identifiant, de sa position sur la
+ *  carte (`pos`, donnée spatiale) et de ses points d'intérêt ; de chacun d'eux, à son rang, chaque champ hors de son
+ *  identifiant et de sa position sur le plan. #3606 */
+const CHAMPS_DU_LIEU = champsSauf(mapPlaceSchema, ['id', 'pos', 'poi']);
+const CHAMPS_DU_POI = champsSauf(placePoiSchema, ['id', 'pos']);
+const champsDuLieu = (lieu: MapPlace): CheminsOfferts =>
+  [...CHAMPS_DU_LIEU, ...(lieu.poi ?? []).flatMap((_, i) => CHAMPS_DU_POI.map(([cle]) => ['poi', i, cle]))];
+
+/** Les champs qu'offre le formulaire d'une route : chacun de son schéma, hors de son identifiant, de ses extrémités et
+ *  de son sens, que pose sa liaison (`lierLieux`). #3606 */
+const CHAMPS_DE_LA_ROUTE = champsSauf(mapRouteSchema, ['id', 'a', 'b', 'from']);
+
+/** Les points d'entrée de la scène `id` du cadre `cadre`, chacun par son nom. */
+const entreesDeLaScene = (id: string | undefined, { projet }: CadreDuPorteur): readonly ChoixDuContexte[] =>
+  Object.keys(projet.scenes.find((sc) => sc.id === id)?.entryPoints ?? {}).map((nom) => ({ valeur: nom, libelle: nom, refus: null }));
+
+/** Les profils neufs qu'un lieu reçoit à son port et à son marché absents (`portNeuf`, `marcheNeuf`), chacun son libellé. */
+const PROFILS_NEUFS_DU_LIEU = {
+  port: { neuf: portNeuf, libelle: 'ecran.editeur.lieu.portNeuf' },
+  market: { neuf: marcheNeuf, libelle: 'ecran.editeur.lieu.marcheNeuf' },
+} as const;
+
+/** Les choix que le contexte du lieu `lieu` pose au chemin `chemin` de sa donnée : à son point d'entrée, ceux de sa
+ *  scène (`entreesDeLaScene`) ; à son port ou à son marché absent, son profil neuf (`PROFILS_NEUFS_DU_LIEU`). #3606 */
+function choixDuLieu(lieu: MapPlace, chemin: readonly Segment[], cadre: CadreDuPorteur): readonly ChoixDuContexte[] | undefined {
+  const [cle, ...reste] = chemin;
+  if (reste.length) return undefined;
+  if (cle === 'entry') return entreesDeLaScene(lieu.scene.id, cadre);
+  if ((cle !== 'port' && cle !== 'market') || lieu[cle] !== undefined) return undefined;
+  const { neuf, libelle } = PROFILS_NEUFS_DU_LIEU[cle];
+  return [{ valeur: neuf(), libelle: t(libelle), refus: null }];
+}
+
+/** Les choix que le contexte de la route `route` pose au chemin `chemin` de sa donnée : au rang qui suit sa dernière
+ *  péripétie, la péripétie neuve (`peripetieNeuve`) ; à son embuscade, de son point d'entrée, ceux de sa scène
+ *  (`entreesDeLaScene`), de sa rencontre, chaque rencontre de sa scène. #3606 */
+function choixDeLaRoute(route: MapRoute, chemin: readonly Segment[], cadre: CadreDuPorteur): readonly ChoixDuContexte[] | undefined {
+  const [ambush, cle, ...reste] = chemin;
+  if (ambush === 'perils' && cle === (route.perils?.length ?? 0) && !reste.length) {
+    const neuve = peripetieNeuve();
+    return [{ valeur: neuve, libelle: neuve.label, refus: null }];
+  }
+  if (ambush !== 'ambush' || reste.length) return undefined;
+  const id = route.ambush?.scene.id;
+  if (cle === 'entry') return entreesDeLaScene(id, cadre);
+  if (cle !== 'encounter') return undefined;
+  return (cadre.projet.scenes.find((sc) => sc.id === id)?.encounters ?? []).map((e) => ({ valeur: e.id, libelle: e.id, refus: null }));
+}
+
 /** Le formulaire d'une entité, par son type : d'un personnage, ses champs (`champsDuPersonnage`), aux choix de son
  *  contexte (`choixDuPersonnage`) ; d'un décor, ses actions authorées (`ACTIONS_DU_DECOR`), aux choix de son contexte
  *  (`choixDuDecor`), son assise s'écrivant à ses places ; d'un départ de héros, aucun champ. */
@@ -725,20 +791,27 @@ const FORMULAIRE_DU_TYPE: { readonly [K in EntityKind]: Omit<FormulaireDuPorteur
  *  condition d'entrée et son flux ; d'une entité, celui de son type (`FORMULAIRE_DU_TYPE`) ; d'un dialogue, son nœud de
  *  départ, ses nœuds et les entrées qu'il couvre, aux choix de son contexte (`choixDuDialogue`) ; d'une rencontre, ses
  *  circonstances, sa fin et les entrées qu'elle couvre, et de ses membres leur seule monture (`CHAMPS_DE_LA_RENCONTRE`) ;
- *  de la scène, porteur singulier de son document, son message de départ. */
+ *  de la scène, porteur singulier de son document, son message de départ ; d'un lieu, ses champs (`champsDuLieu`), aux
+ *  choix de son contexte (`choixDuLieu`) ; d'une route, les siens (`CHAMPS_DE_LA_ROUTE`), aux choix de son contexte
+ *  (`choixDeLaRoute`) ; de la carte, porteur singulier de son document, son libellé, son fond et ses réglages. Chacun
+ *  déclare la portée des avertissements qui le désignent ; ceux de la carte, la portée `worldMap`. */
 export const FORMULAIRES: { readonly [S in SorteDePorteur]: FormulaireDuPorteur<DonneeDuPorteur[S]> } = {
   zone: { acces: { document: 'scene', collection: 'effectZones' }, sel: 'effectZone', schema: sceneEffectZoneSchema, champs: (zone) => [['crossTest'], ['onCross'], ['perRound'], ['rendu'], ...(zone.barrier ? [['barrier', 'blockGroups']] : [])] },
-  declencheur: { acces: { document: 'scene', collection: 'triggers' }, sel: 'trigger', schema: triggerSchema, logique: true, champs: () => [['when'], ['flow']] },
+  declencheur: { acces: { document: 'scene', collection: 'triggers' }, sel: 'trigger', schema: triggerSchema, portee: 'trigger', logique: true, champs: () => [['when'], ['flow']] },
   entite: {
     acces: { document: 'scene', collection: 'entities' },
     sel: 'entity',
+    portee: 'entity',
     schema: sceneEntitySchema,
     champs: (ent, cadre) => FORMULAIRE_DU_TYPE[ent.kind].champs(ent, cadre),
     choix: (ent, chemin, cadre) => FORMULAIRE_DU_TYPE[ent.kind].choix?.(ent, chemin, cadre),
   },
-  dialogue: { acces: { document: 'scene', collection: 'dialogues' }, sel: 'dialogue', schema: dialogueSchema, logique: true, champs: () => [['start'], ['nodes'], ['couvre']], choix: choixDuDialogue },
-  rencontre: { acces: { document: 'scene', collection: 'encounters' }, sel: 'encounter', schema: encounterDefSchema, logique: true, champs: champsDeLaRencontre },
+  dialogue: { acces: { document: 'scene', collection: 'dialogues' }, sel: 'dialogue', schema: dialogueSchema, portee: 'dialogue', logique: true, champs: () => [['start'], ['nodes'], ['couvre']], choix: choixDuDialogue },
+  rencontre: { acces: { document: 'scene', collection: 'encounters' }, sel: 'encounter', schema: encounterDefSchema, portee: 'encounter', logique: true, champs: champsDeLaRencontre },
   scene: { acces: { document: 'scene' }, schema: sceneSchema, champs: () => [['startMessage']] },
+  lieu: { acces: { document: 'carte', collection: 'places' }, sel: 'place', schema: mapPlaceSchema, portee: 'worldMap', champs: champsDuLieu, choix: choixDuLieu },
+  route: { acces: { document: 'carte', collection: 'routes' }, sel: 'route', schema: mapRouteSchema, portee: 'worldMap', champs: () => CHAMPS_DE_LA_ROUTE, choix: choixDeLaRoute },
+  carte: { acces: { document: 'carte' }, schema: worldMapSchema, portee: 'worldMap', champs: () => [['label'], ['background'], ['params']] },
 };
 
 /** Le porteur de formulaire que la sélection `sel` désigne, le document `document` ouvert où la scène d'identifiant
@@ -760,6 +833,18 @@ export function porteurDeLaSel(sel: Sel, document: SorteDeDocument, sceneId: str
 export function selDuPorteur(sorte: SorteDePorteur, id: string): Sel {
   const type = FORMULAIRES[sorte].sel;
   return type ? { type, id } : null;
+}
+
+/** Le porteur de formulaire que désigne un avertissement de portée `scope` et d'élément `refId` (`Warning`), dans le
+ *  projet `projet` où la scène `sceneId` est montrée : parmi les sortes qui déclarent cette portée (`FORMULAIRES`,
+ *  `portee`), celle dont un porteur du projet porte cet identifiant ; sans élément, le porteur singulier de son
+ *  document ; `undefined` sans lui. #3606 */
+export function porteurDeLaPortee(scope: Warning['scope'], refId: string | undefined, projet: ProjetDEdition, sceneId: string): { sorte: SorteDePorteur; id: string } | undefined {
+  const sortes = (Object.keys(FORMULAIRES) as SorteDePorteur[]).filter((k) => FORMULAIRES[k].portee === scope);
+  const sorte = sortes.find((k) => (refId === undefined
+    ? accesDe(k).collection === undefined && DOCUMENTS[accesDe(k).document].lire(projet, sceneId) !== undefined
+    : accesDe(k).collection !== undefined && porteurDuProjet(accesDe(k), projet, sceneId, refId) !== undefined));
+  return sorte && { sorte, id: refId ?? DOCUMENTS[accesDe(sorte).document].id(sceneId) };
 }
 
 /** Où vit le porteur de sorte `sorte` (`FORMULAIRES`). */
@@ -858,9 +943,9 @@ const estReferenceNarrative = (cle: Segment | undefined): cle is CleDeReferenceN
 /** Un objet qui ouvre des portées locales (`ouvrirPortees`), avec son nœud : son schéma et sa valeur. */
 type Ouvreur = readonly [unknown, unknown];
 
-/** Les objets qui ouvrent des portées locales aux feuilles du porteur `porteur` du cadre `cadre` : lui-même, sa scène
- *  et son projet. */
-const ouvreursDuCadre = (porteur: Ouvreur, { scene, projet }: CadreDuPorteur): readonly Ouvreur[] => [porteur, [sceneSchema, scene], [projetSchema, projet]];
+/** Les objets qui ouvrent des portées locales aux feuilles du porteur `porteur` du cadre `cadre` : lui-même, sa scène,
+ *  la carte du monde de son projet et son projet. */
+const ouvreursDuCadre = (porteur: Ouvreur, { scene, projet }: CadreDuPorteur): readonly Ouvreur[] => [porteur, [sceneSchema, scene], [worldMapSchema, projet.worldMap], [projetSchema, projet]];
 
 /** Les ids qu'admet la portée de la feuille locale parmi `noeuds` (`porteeDeLaFeuille`), résolus par le parse
  *  (`idsDeLaPortee`) sur le premier des `ouvreurs` qui l'ouvre ; `undefined` sans feuille locale, ou si aucun ne l'ouvre. */

@@ -26,7 +26,8 @@ import { flowFromEffects } from '../monde/flow';
 import { fauteDAppui } from '../monde/poseDuDecor';
 import type { Effect } from '../../data/schemas/defs-scenes/effets';
 import { garanti } from '../../lib/garanti';
-import { addArchitectureBody, addFacadeFeature, addFacadeSection, avecLaValeurDuPorteur } from '../sceneEdit';
+import { addArchitectureBody, addFacadeFeature, addFacadeSection, avecLaValeurDuPorteur, ECRITURES_DES_PORTEURS } from '../sceneEdit';
+import { peripetieNeuve, portNeuf } from '../worldMapEdit';
 import { ciblesDAncreDeBataille } from '../massBattleFlow';
 import { apparencesDeLOuverture } from '../monde/facades';
 import { allMusicDefs } from '../../data/sons/musique';
@@ -1132,5 +1133,125 @@ describe('l’historique de l’éditeur tient le projet et sa scène montrée (
     const enregistree = jouer(retiree, { geste: 'enregistrer' }, { geste: 'enregistrement', reussi: true });
     expect(Object.keys(enregistree.calques)).toEqual([]);
     expect(Object.keys(jouer(retiree, { geste: 'enregistrer' }, { geste: 'enregistrement', reussi: false }).calques)).toEqual(['a']);
+  });
+});
+
+describe('la carte du monde, document ouvert du menu Fichier, ses lieux et ses routes par la table d’écriture de leur sorte (#3606 M5)', () => {
+  const jouer = (s: SessionDEdition, ...gestes: GesteDEdition[]) => gestes.reduce(editer, s);
+  const BOURG: Scene = { ...emptyScene('bourg', 6, 6), entryPoints: { porte: { x: 0, y: 0 }, quai: { x: 1, y: 0 } }, encounters: [{ id: 'enc-a', members: [] }, { id: 'enc-b', members: [] }] };
+  const VAL: Scene = emptyScene('val', 6, 6);
+  const ouvert = (worldMap?: WorldMap) => ouvrirLEdition({ scenes: [BOURG, VAL], narratif: NARRATIF_VIDE, ...(worldMap ? { worldMap } : {}) } as unknown as Parameters<typeof ouvrirLEdition>[0], false);
+  const valeur = (sorte: SorteDePorteur, id: string, chemin: Segment[], v?: unknown): Extract<GesteDEdition, { geste: 'valeur' }> =>
+    ({ geste: 'valeur', porteur: { sorte, id }, chemin, ...(v === undefined ? {} : { valeur: v }) });
+  const carte = (s: SessionDEdition) => projetEdite(s).worldMap!;
+  /** `x` et `y`, reliés par `r`, à pied et en diligence, le billet de diligence vendu depuis `x`. */
+  const RELIEE: WorldMap = {
+    ...emptyWorldMap('monde'),
+    places: [{ id: 'x', label: 'X', pos: { x: 20, y: 20 }, scene: { id: 'bourg' } }, { id: 'y', label: 'Y', pos: { x: 60, y: 20 }, scene: { id: 'val' } }],
+    routes: [{ id: 'r', a: { id: 'x' }, b: { id: 'y' }, km: 12, modes: ['pied', 'diligence'], billets: { diligence: { prix: {}, depuis: { id: 'x' } } } }],
+  };
+
+  it('ouvrir la carte d’un projet qui n’en a pas la crée vide sur un cran, son singulier édité sans sélection ; annuler la retire et rend la scène ; rouvrir le document ouvert est sans objet', () => {
+    const s = ouvert();
+    const sur = jouer(s, { geste: 'document', document: 'carte' });
+    expect([sur.document, carte(sur), sur.historique.passe.length, porteurDeLaSel(sur.sel, sur.document, idDeLaSceneEditee(sur))])
+      .toEqual(['carte', emptyWorldMap('carte-0'), s.historique.passe.length + 1, { sorte: 'carte', id: 'carte' }]);
+    expect(jouer(sur, { geste: 'document', document: 'carte' })).toBe(sur);
+    const annule = jouer(sur, { geste: 'annuler' });
+    expect([annule.document, projetEdite(annule).worldMap]).toEqual(['scene', undefined]);
+  });
+
+  it('ouvrir la carte d’un projet qui en a une, puis revenir à la scène, navigue sans cran et remet la session à zéro', () => {
+    const s = jouer(ouvert(RELIEE), { geste: 'selectionner', porteur: { sorte: 'entite', id: 'absent' } }, { geste: 'outil', outil: { mode: 'gomme' } });
+    const sur = jouer(s, { geste: 'document', document: 'carte' });
+    expect([sur.document, sur.historique, sur.outil, sur.sel]).toEqual(['carte', s.historique, { mode: 'selection' }, null]);
+    const retour = jouer(sur, { geste: 'selectionner', porteur: { sorte: 'lieu', id: 'x' } }, { geste: 'document', document: 'scene' });
+    expect([retour.document, retour.sel, retour.historique, porteurDeLaSel(retour.sel, retour.document, idDeLaSceneEditee(retour))]).toEqual(['scene', null, s.historique, { sorte: 'scene', id: 'bourg' }]);
+  });
+
+  it('la carte écrit son libellé, son fond et ses réglages, sur un cran ; sa liste de lieux ne s’écrit pas par elle', () => {
+    const s = jouer(ouvert(RELIEE), { geste: 'document', document: 'carte' });
+    const ecrite = jouer(s, valeur('carte', 'carte', ['label'], 'Le Reikland'), valeur('carte', 'carte', ['background'], 'cartes/reikland.png'), valeur('carte', 'carte', ['params'], {}), valeur('carte', 'carte', ['params', 'hoursPerDay'], 8));
+    expect([carte(ecrite).label, carte(ecrite).background, carte(ecrite).params, ecrite.historique.passe.length]).toEqual(['Le Reikland', 'cartes/reikland.png', { hoursPerDay: 8 }, s.historique.passe.length + 4]);
+    expect(refusDeLaValeur(s, valeur('carte', 'carte', ['places'], []))).toBe('nonOffert');
+  });
+
+  it('ajouter un lieu le pose au centre des bornes, décalé s’il en chevauche un, sous un identifiant frais, sélectionné sur un cran ; sa position ne s’écrit pas au formulaire', () => {
+    const s = jouer(ouvert(), { geste: 'document', document: 'carte' });
+    const un = jouer(s, { geste: 'ajouter', sorte: 'lieu' });
+    const deux = jouer(un, { geste: 'ajouter', sorte: 'lieu' });
+    expect([deux.sel, carte(deux).places.map((p) => [p.id, p.pos, p.scene.id]), deux.historique.passe.length])
+      .toEqual([{ type: 'place', id: 'lieu-1' }, [['lieu-0', { x: 50, y: 50 }, 'bourg'], ['lieu-1', { x: 58, y: 50 }, 'bourg']], s.historique.passe.length + 2]);
+    expect([refusDeLaValeur(deux, valeur('lieu', 'lieu-1', ['pos'], { x: 10, y: 10 })), refusDeLaValeur(deux, valeur('lieu', 'lieu-1', ['id'], 'autre'))]).toEqual(['nonOffert', 'nonOffert']);
+    expect(carte(jouer(deux, { geste: 'annuler' })).places.map((p) => p.id)).toEqual(['lieu-0']);
+  });
+
+  it('un lieu écrit son libellé, son port neuf et ses services ; son entrée parmi celles de sa scène ; chaque écriture s’annule', () => {
+    const s = jouer(ouvert(RELIEE), { geste: 'document', document: 'carte' }, { geste: 'selectionner', porteur: { sorte: 'lieu', id: 'x' } });
+    const ecrit = jouer(s,
+      valeur('lieu', 'x', ['label'], 'Ubersreik'),
+      valeur('lieu', 'x', ['port'], portNeuf()),
+      valeur('lieu', 'x', ['services'], [{ kind: { id: 'auberge' } }]),
+      valeur('lieu', 'x', ['entry'], 'quai'));
+    expect(carte(ecrit).places[0]).toEqual({ ...RELIEE.places[0], label: 'Ubersreik', port: portNeuf(), services: [{ kind: { id: 'auberge' } }], entry: 'quai' });
+    expect(choixDuChamp('lieu', carte(s).places[0], ['entry'], cadreDeLaSession(s))?.map((c) => c.valeur)).toEqual(['porte', 'quai']);
+    expect([choixDuChamp('lieu', carte(s).places[0], ['port'], cadreDeLaSession(s))?.map((c) => c.valeur), choixDuChamp('lieu', carte(ecrit).places[0], ['port'], cadreDeLaSession(ecrit))]).toEqual([[portNeuf()], undefined]);
+    expect(refusDeLaValeur(s, valeur('lieu', 'x', ['entry'], 'nulle-part'))).toBe('horsSorte');
+    expect(jouer(s, { geste: 'nommer', nom: 'z' }), 'un lieu ne se renomme pas : aucun écrivain ne propage son identifiant').toBe(s);
+    const annule = jouer(ecrit, { geste: 'annuler' }, { geste: 'annuler' }, { geste: 'annuler' }, { geste: 'annuler' });
+    expect(carte(annule)).toEqual(RELIEE);
+  });
+
+  it('relier deux lieux pose une route depuis le lieu sélectionné vers l’un de ceux qu’il rejoint, sélectionnée sur un cran ; sans lieu offert, c’est sans objet', () => {
+    const s = jouer(ouvert(), { geste: 'document', document: 'carte' }, { geste: 'ajouter', sorte: 'lieu' }, { geste: 'ajouter', sorte: 'lieu' }, { geste: 'selectionner', porteur: { sorte: 'lieu', id: 'lieu-0' } });
+    expect(ECRITURES_DES_PORTEURS.route.avecs!(projetEdite(s), idDeLaSceneEditee(s), s.sel)).toEqual(['lieu-1']);
+    expect(jouer(s, { geste: 'ajouter', sorte: 'route' }), 'sans l’autre lieu').toBe(s);
+    expect(jouer(s, { geste: 'ajouter', sorte: 'route', avec: 'lieu-0' }), 'une boucle').toBe(s);
+    const reliee = jouer(s, { geste: 'ajouter', sorte: 'route', avec: 'lieu-1' });
+    expect([reliee.sel, carte(reliee).routes, reliee.historique.passe.length]).toEqual([{ type: 'route', id: 'trajet-0' }, [{ id: 'trajet-0', a: { id: 'lieu-0' }, b: { id: 'lieu-1' }, km: 10, modes: ['pied'] }], s.historique.passe.length + 1]);
+    const depuis = jouer(reliee, { geste: 'selectionner', porteur: { sorte: 'lieu', id: 'lieu-0' } });
+    expect(ECRITURES_DES_PORTEURS.route.avecs!(projetEdite(depuis), idDeLaSceneEditee(depuis), depuis.sel), 'la paire est reliée dans les deux sens').toEqual([]);
+    expect(carte(jouer(reliee, { geste: 'annuler' })).routes).toEqual([]);
+  });
+
+  it('une route écrit sa distance et gagne une péripétie neuve ; remplacer le mode qui porte un billet est refusé, dit ; ses modes vidés retombent à pied', () => {
+    const s = jouer(ouvert(RELIEE), { geste: 'document', document: 'carte' }, { geste: 'selectionner', porteur: { sorte: 'route', id: 'r' } });
+    expect(carte(jouer(s, valeur('route', 'r', ['km'], 25))).routes[0].km).toBe(25);
+    expect(carte(jouer(s, valeur('route', 'r', ['perils'], [peripetieNeuve()]))).routes[0].perils).toEqual([peripetieNeuve()]);
+    const remplace = valeur('route', 'r', ['modes'], ['pied', 'monture']);
+    expect(refusDeLaValeur(s, remplace)).toEqual({ regle: 'La route « r » garde ses modes : un billet y est posé sur le mode que vous retirez. Retirez d’abord le billet.' });
+    expect(jouer(s, remplace)).toBe(s);
+    const libre = jouer(s, valeur('route', 'r', ['billets']), valeur('route', 'r', ['modes'], []));
+    expect([carte(libre).routes[0].billets, carte(libre).routes[0].modes]).toEqual([undefined, ['pied']]);
+  });
+
+  it('l’embuscade d’une route prend sa scène, puis sa rencontre parmi celles de cette scène ; la rencontre ne se retire plus tant que l’embuscade la lance', () => {
+    const s = jouer(ouvert(RELIEE), { geste: 'document', document: 'carte' }, { geste: 'selectionner', porteur: { sorte: 'route', id: 'r' } });
+    const scene = jouer(s, valeur('route', 'r', ['ambush'], { scene: { id: '' }, encounter: '' }), valeur('route', 'r', ['ambush', 'scene'], { id: 'bourg' }));
+    expect(choixDuChamp('route', carte(scene).routes[0], ['ambush', 'encounter'], cadreDeLaSession(scene))?.map((c) => c.valeur)).toEqual(['enc-a', 'enc-b']);
+    expect(choixDuChamp('route', carte(scene).routes[0], ['ambush', 'entry'], cadreDeLaSession(scene))?.map((c) => c.valeur)).toEqual(['porte', 'quai']);
+    const rencontre = jouer(scene, valeur('route', 'r', ['ambush', 'encounter'], 'enc-b'));
+    expect(carte(rencontre).routes[0].ambush).toEqual({ scene: { id: 'bourg' }, encounter: 'enc-b' });
+    expect(refusDeLaValeur(scene, valeur('route', 'r', ['ambush', 'encounter'], 'enc-ailleurs'))).toBe('horsSorte');
+    const visee = jouer(rencontre, { geste: 'document', document: 'scene' }, { geste: 'selectionner', porteur: { sorte: 'rencontre', id: 'enc-b' } });
+    expect(refusDeRetrait(visee)).toBe('La rencontre « enc-b » est l’embuscade de la route « r » de la carte du monde.');
+  });
+
+  it('supprimer un lieu retire ses routes avec lui, sur un cran ; annuler les rend', () => {
+    const s = jouer(ouvert(RELIEE), { geste: 'document', document: 'carte' }, { geste: 'selectionner', porteur: { sorte: 'lieu', id: 'x' } });
+    const retire = jouer(s, { geste: 'supprimer' });
+    expect([retire.sel, carte(retire).places.map((p) => p.id), carte(retire).routes, retire.historique.passe.length]).toEqual([null, ['y'], [], s.historique.passe.length + 1]);
+    expect(carte(jouer(retire, { geste: 'annuler' }))).toEqual(RELIEE);
+    const route = jouer(s, { geste: 'selectionner', porteur: { sorte: 'route', id: 'r' } }, { geste: 'supprimer' });
+    expect([carte(route).places.length, carte(route).routes]).toEqual([2, []]);
+  });
+
+  it('un avertissement d’un lieu de la carte ouvre la carte et sélectionne ce lieu', () => {
+    const casse: WorldMap = { ...RELIEE, places: [{ ...RELIEE.places[0], scene: { id: 'absente' } }, RELIEE.places[1]] };
+    const s = ouvert(casse);
+    const rang = avertissementsDeLaSession(s).findIndex((w) => w.scope === 'worldMap' && w.refId === 'x');
+    expect(rang).toBeGreaterThanOrEqual(0);
+    const vu = jouer(s, { geste: 'avertissement', rang });
+    expect([vu.document, vu.sel]).toEqual(['carte', { type: 'place', id: 'x' }]);
   });
 });

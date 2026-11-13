@@ -1354,7 +1354,8 @@ export function creerPont(stockage: Stockage | null) {
      * met à attendre, que l'hôte charge (`GET source/<book>/<ch>.md`) puis rend en `{ edition: { geste: 'chapitre', book,
      * ch, texte } }` ; un bouton refusé se refuse en `regle`, avec sa raison (supprimer une rencontre que lance une
      * embuscade de route de la carte du monde), comme un formulaire refusé et un enregistrement que la porte refuse ;
-     * nommer une rencontre que lance une embuscade de route la renomme aussi à cette embuscade
+     * nommer une rencontre que lance une embuscade de route la renomme aussi à cette embuscade ; ouvrir la carte du
+     * monde du menu Fichier (`{ geste: 'document' }`) la crée vide au projet qui n'en a pas
      */
     editer(json) {
       const e = entreeDe('editer', json, (e) => ('ouvrir' in e ? ['ouvrir', 'projet', 'calques', 'manifeste'] : 'type' in e ? ['type', 'args'] : ['edition']));

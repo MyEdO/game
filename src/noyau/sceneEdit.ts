@@ -13,7 +13,8 @@ import type { FireArc, AuthoredShipPoste } from '../engine/types';
 import type { Dir8 } from '../geometry/dir8';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import type { Effect } from '../data/schemas/defs-scenes/effets';
-import type { WorldMap } from './worldMap';
+import type { MapPlace, MapRoute, WorldMap } from './worldMap';
+import { ajouterLieu, BORNES_DE_CARTE, lierLieux, majCarte, majLieu, majRoute, supprimerLieu, supprimerRoute, type PatchDeCarte, type PatchDeRoute } from './worldMapEdit';
 import { t as tr } from '../i18n';
 import { nextEntityId } from '../lib/entityId';
 import { findCreatureById, findPropById, refEstVolumique, semencesDeScene, siegeEngines } from '../data';
@@ -1243,15 +1244,21 @@ export function avecLAdresseRescellee<S extends SorteDePorteur>(sorte: S, donnee
   return rescellee === undefined ? { ok: false, refus: 'nonOffert' } : { ok: true, valeur: rescellee as DonneeDuPorteur[S] };
 }
 
+/** Le patch qui fait de `avant` l'objet `apres` : chaque champ de premier niveau qui change, posé à sa valeur
+ *  d'`apres`, `undefined` s'il en est absent. */
+function patchEntre<T extends object>(avant: T, apres: T): Partial<T> {
+  const cles = new Set([...Object.keys(avant), ...Object.keys(apres)]);
+  return Object.fromEntries([...cles].flatMap((cle) => {
+    const v = (apres as Record<string, unknown>)[cle];
+    return v === (avant as Record<string, unknown>)[cle] ? [] : [[cle, v]];
+  })) as Partial<T>;
+}
+
 /** La scène `scene` où l'entité `avant` devient `apres`, chaque champ de premier niveau qui change posé par sa porte
  *  (`editEntity`) ; ou son refus, dit : la règle qu'enfreint l'entité écrite et que l'entité d'avant n'enfreignait pas
  *  (`TypeNonNomme`, `refusDeLEntite`), une entité déjà fautive restant éditable. */
 function sceneAvecLEntite(scene: Scene, avant: SceneEntity, apres: SceneEntity): EcritureDeValeur<Scene> {
-  const cles = new Set([...Object.keys(avant), ...Object.keys(apres)]);
-  const patch = Object.fromEntries([...cles].flatMap((cle) => {
-    const v = (apres as unknown as Record<string, unknown>)[cle];
-    return v === (avant as unknown as Record<string, unknown>)[cle] ? [] : [[cle, v]];
-  })) as Partial<SceneEntity>;
+  const patch = patchEntre(avant, apres);
   let ecrite: Scene;
   try {
     ecrite = editEntity(scene, avant.id, patch);
@@ -1279,13 +1286,15 @@ interface EcritureDeScene<D> {
 
 /** Ce que la table d'écriture d'une sorte de porteur déclare, sur le projet `projet` où la scène `sceneId` est
  *  montrée : le projet où sa donnée `avant` devient `apres`, ou son refus ; et, pour la sorte qui les a, le projet où un
- *  porteur neuf est créé, sous son identifiant ; celui où le porteur `de` prend l'identifiant `vers`, propagé à ce qui
+ *  porteur neuf est créé depuis la sélection `depuis`, avec l'identifiant `avec` qu'elle offre (`avecs`), sous son
+ *  identifiant (`undefined` : refusé) ; celui où le porteur `de` prend l'identifiant `vers`, propagé à ce qui
  *  le désigne ; celui où le porteur `id` est retiré ; celui où l'élément `de` de la sous-collection à clé du porteur
  *  `id` prend l'identifiant `vers` ; et ce qui refuse le retrait du porteur `id`, dit. Un renommage sous un identifiant
  *  vide ou déjà pris rend le projet tel quel. #3606 */
 interface EcritureDuPorteur<D> {
   ecrire: (projet: ProjetDEdition, sceneId: string, avant: D, apres: D) => EcritureDeValeur<ProjetDEdition>;
-  creer?: (projet: ProjetDEdition, sceneId: string) => { projet: ProjetDEdition; id: string };
+  creer?: (projet: ProjetDEdition, sceneId: string, depuis: Sel, avec?: string) => { projet: ProjetDEdition; id: string } | undefined;
+  avecs?: (projet: ProjetDEdition, sceneId: string, depuis: Sel) => readonly string[];
   renommer?: (projet: ProjetDEdition, sceneId: string, de: string, vers: string) => ProjetDEdition;
   retirer?: (projet: ProjetDEdition, sceneId: string, id: string) => ProjetDEdition;
   renommerElement?: (projet: ProjetDEdition, sceneId: string, id: string, de: string, vers: string) => ProjetDEdition;
@@ -1364,14 +1373,71 @@ function noeudRenomme(scene: Scene, id: string, de: string, vers: string): Scene
   return dialogue && renomme !== dialogue ? replaceDialogue(scene, id, renomme!) : scene;
 }
 
+/** Le projet `projet` dont la carte du monde devient celle que `f` écrit ; tel quel sans carte. */
+function surLaCarte(projet: ProjetDEdition, f: (carte: WorldMap) => WorldMap): ProjetDEdition {
+  const carte = projet.worldMap;
+  return carte ? DOCUMENTS.carte.ecrire(projet, '', f(carte)) : projet;
+}
+
+/** Le projet `projet` où la route `avant` devient `apres` par son écrivain (`majRoute`), du patch qui les sépare
+ *  (`patchEntre`) ; refusé, dit, quand l'écrivain rend la carte telle quelle alors que la route change : elle n'offrirait
+ *  plus le mode d'un de ses billets. #3606 */
+function routeEcrite(projet: ProjetDEdition, _sceneId: string, avant: MapRoute, apres: MapRoute): EcritureDeValeur<ProjetDEdition> {
+  const carte = projet.worldMap!;
+  const ecrite = majRoute(carte, avant.id, patchEntre(avant, apres) as PatchDeRoute);
+  if (ecrite === carte && jsonCanonique(avant) !== jsonCanonique(apres)) return { ok: false, refus: { regle: tr('ecran.editeur.route.modeDuBillet', { id: avant.id }) } };
+  return { ok: true, valeur: DOCUMENTS.carte.ecrire(projet, '', ecrite) };
+}
+
+/** Le lieu sélectionné par `depuis` sur la carte du projet `projet`, `undefined` hors d'un lieu. */
+const lieuDeLaSel = (projet: ProjetDEdition, depuis: Sel): MapPlace | undefined =>
+  (depuis?.type === 'place' ? projet.worldMap?.places.find((p) => p.id === depuis.id) : undefined);
+
+/** Le projet `projet` où un lieu neuf est posé au centre des bornes de sa carte (`ajouterLieu`), sous un identifiant
+ *  qu'aucun de ses lieux ne porte (`nextEntityId`) ; `undefined` sans carte. #3606 */
+function lieuCree(projet: ProjetDEdition): { projet: ProjetDEdition; id: string } | undefined {
+  const carte = projet.worldMap;
+  if (!carte) return undefined;
+  const id = nextEntityId('lieu', carte.places.map((p) => p.id));
+  const centre = { x: (BORNES_DE_CARTE.x.min + BORNES_DE_CARTE.x.max) / 2, y: (BORNES_DE_CARTE.y.min + BORNES_DE_CARTE.y.max) / 2 };
+  return { projet: DOCUMENTS.carte.ecrire(projet, '', ajouterLieu(carte, id, centre, projet.scenes)), id };
+}
+
+/** La route neuve que `lierLieux` pose du lieu sélectionné par `depuis` au lieu `vers` de la carte `carte`, sous un
+ *  identifiant qu'aucune de ses routes ne porte (`nextEntityId`) ; `undefined` si elle la refuse. */
+function routeLiee(carte: WorldMap, depuis: string, vers: string): { carte: WorldMap; id: string } | undefined {
+  const id = nextEntityId('trajet', carte.routes.map((r) => r.id));
+  const liee = lierLieux(carte, id, depuis, vers);
+  return liee === carte ? undefined : { carte: liee, id };
+}
+
+/** Les lieux de la carte du projet `projet` que le lieu sélectionné par `depuis` peut rejoindre par une route neuve
+ *  (`routeLiee`). #3606 */
+function lieuxAJoindre(projet: ProjetDEdition, _sceneId: string, depuis: Sel): readonly string[] {
+  const lieu = lieuDeLaSel(projet, depuis);
+  const carte = projet.worldMap;
+  return lieu && carte ? carte.places.flatMap((p) => (routeLiee(carte, lieu.id, p.id) ? [p.id] : [])) : [];
+}
+
+/** Le projet `projet` où une route neuve relie le lieu sélectionné par `depuis` au lieu `avec` (`routeLiee`) ;
+ *  `undefined` sans lui ou si elle est refusée. #3606 */
+function routeCreee(projet: ProjetDEdition, _sceneId: string, depuis: Sel, avec?: string): { projet: ProjetDEdition; id: string } | undefined {
+  const lieu = lieuDeLaSel(projet, depuis);
+  const liee = lieu && avec !== undefined ? routeLiee(projet.worldMap!, lieu.id, avec) : undefined;
+  return liee && { projet: DOCUMENTS.carte.ecrire(projet, '', liee.carte), id: liee.id };
+}
+
 /** La table d'écriture des porteurs de formulaire, par sorte : d'une zone d'effet, d'un déclencheur, d'un dialogue,
  *  d'une rencontre ou de la scène, le remplacement dans son document (`remplace`) ; d'une entité, sa porte (`sceneAvecLEntite`), et le
  *  renommage d'une action d'un décor (`actionRenommee`) ; d'un déclencheur, son renommage (`renameTrigger`) et son
  *  retrait (`deleteSel`) ; d'un dialogue, sa création (`addDialogue`), son renommage (`renameDialogue`), son retrait
  *  (`removeDialogue`) et le renommage d'un de ses nœuds (`noeudRenomme`) ; d'une rencontre, sa création
  *  (`addEncounter`), son renommage propagé aux embuscades de route (`rencontreRenommee`), son retrait
- *  (`removeEncounter`), refusé tant qu'une embuscade de route la lance (`embuscadesDeLaRencontre`). Les écrivains de
- *  la scène y sont relevés au projet (`deLaScene`). */
+ *  (`removeEncounter`), refusé tant qu'une embuscade de route la lance (`embuscadesDeLaRencontre`) ; d'un lieu, son
+ *  écriture (`majLieu`), sa création (`lieuCree`) et son retrait, ses routes avec lui (`supprimerLieu`) ; d'une route,
+ *  son écriture (`routeEcrite`), sa création depuis le lieu
+ *  sélectionné vers l'un de ceux qu'il rejoint (`routeCreee`, `lieuxAJoindre`) et son retrait (`supprimerRoute`) ; de la
+ *  carte, son écriture (`majCarte`). Les écrivains de la scène y sont relevés au projet (`deLaScene`). */
 export const ECRITURES_DES_PORTEURS: { readonly [S in SorteDePorteur]: EcritureDuPorteur<DonneeDuPorteur[S]> } = {
   zone: { ecrire: remplace('zone') },
   declencheur: { ...deLaScene({ renommer: renameTrigger, retirer: (scene, id) => deleteSel(scene, { type: 'trigger', id }) }), ecrire: remplace('declencheur') },
@@ -1384,6 +1450,18 @@ export const ECRITURES_DES_PORTEURS: { readonly [S in SorteDePorteur]: EcritureD
     refusDeRetirer: embuscadesDeLaRencontre,
   },
   scene: { ecrire: remplace('scene') },
+  lieu: {
+    ecrire: (projet, _sceneId, avant, apres) => ({ ok: true, valeur: surLaCarte(projet, (carte) => majLieu(carte, avant.id, patchEntre(avant, apres))) }),
+    creer: lieuCree,
+    retirer: (projet, _sceneId, id) => surLaCarte(projet, (carte) => supprimerLieu(carte, id)),
+  },
+  route: {
+    ecrire: routeEcrite,
+    creer: routeCreee,
+    avecs: lieuxAJoindre,
+    retirer: (projet, _sceneId, id) => surLaCarte(projet, (carte) => supprimerRoute(carte, id)),
+  },
+  carte: { ecrire: (projet, _sceneId, avant, apres) => ({ ok: true, valeur: surLaCarte(projet, (carte) => majCarte(carte, patchEntre(avant, apres) as PatchDeCarte)) }) },
 };
 
 /** Le projet `projet`, où la scène `sceneId` est montrée, sans le porteur `porteur`, retiré par la table de sa sorte
