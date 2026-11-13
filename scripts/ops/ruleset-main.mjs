@@ -35,10 +35,10 @@ export const DELAI_DE_REPONSE_MINUTES = 2 * TIMEOUT_JOB_MINUTES
  * autre course sautent leurs steps en quelques secondes (#3412, en tête de `ci.yml`) : une course de file
  * en JOUE 10, une course de branche 1 (`JOB_DE_BRANCHE`). Le plan `free` de l'organisation `MyEdO`
  * (`gh api orgs/MyEdO --jq .plan.name`) en sert 20 à la fois (limits.md, tableau « Total concurrent
- * jobs »). Deux entrées de file démarrées ensemble tiennent 2 × 10 = 20 runners, jusqu'à la fin de leurs
- * jobs les plus courts (`migrations` puis `docs-tests`, 1 min 43 et 2 min 05 à la course 43372201282) :
- * une course de branche lancée dans cet intervalle attend qu'un de ces jobs rende son runner. L'attente
- * se mesure `createdAt` → `startedAt` (#2178, design du lot 1b §5).
+ * jobs »). Deux entrées de file démarrées ensemble tiennent 2 × 10 = 20 runners, jusqu'à la fin de leur
+ * job le plus court (`migrations`, 1 min 45 à la course 43424641848) : une course de branche lancée dans
+ * cet intervalle attend qu'il rende son runner. L'attente se mesure `createdAt` → `startedAt` (#2178, design
+ * du lot 1b §5).
  */
 export const PARAMETRES_DE_FILE = Object.freeze({
   check_response_timeout_minutes: DELAI_DE_REPONSE_MINUTES,
