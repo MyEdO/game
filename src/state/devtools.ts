@@ -1472,7 +1472,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       const ship = inBattleId(b, shipId);
       if (!b || !ship) return '✗ navire introuvable (combat uniquement)';
       const before = g().facing[shipId];
-      const r = maneuverShip(() => useGame.getState(), shipId, typeof side === 'number' ? side : side === 'tribord' ? 2 : -2, helmsmanId);
+      const r = maneuverShip(() => useGame.getState(), useGame.setState, shipId, typeof side === 'number' ? side : side === 'tribord' ? 2 : -2, helmsmanId);
       if (!r) return '✗ manœuvre impossible';
       return r.success
         ? `✓ ${ship.label} vire (DR ${r.dr}, barreur ${r.helmsman ?? '—'}) : ${before} → ${g().facing[shipId]}`

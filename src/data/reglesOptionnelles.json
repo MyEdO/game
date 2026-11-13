@@ -1303,6 +1303,62 @@
     "hint": "Chaque semaine en mer, le navire fait un Test de Résistance (MDG 13 l.148) sur son Endurance (MDG 12 l.58) ; chaque échec ajoute un niveau de Salissures. La source ne chiffre pas la Difficulté de ce Test : défaut Intermédiaire (+0)."
   },
   {
+    "id": "mer-reparation-temporaire-difficulte",
+    "type": "reglesOptionnelles",
+    "label": "Réparation temporaire : Difficulté du Test d’Endurance du navire",
+    "ref": "MDG 13 l.651",
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 116,
+      "note": "MDG 13 l.651"
+    },
+    "maison": "MDG 13 l.651 exige un Test d’Endurance du navire par jour de voyage et à chaque Test de Manœuvre après une réparation temporaire, sans en chiffrer la Difficulté : Difficulté maison, défaut Accessible (+20), celle que MSRC 7 l.117 imprime pour le même Test au fleuve.",
+    "group": "Voyage",
+    "kind": "mode",
+    "default": "accessible",
+    "options": [
+      "facile",
+      "accessible",
+      "intermediaire",
+      "complexe",
+      "difficile",
+      "tresDifficile"
+    ],
+    "hint": "Après une réparation temporaire, le navire teste son Endurance chaque jour de voyage et à chaque Test de Manœuvre (MDG 13 l.651) ; chaque échec inflige 1d10–4 Dégâts. La Mer de Griffe ne chiffre pas la Difficulté de ce Test : défaut Accessible (+20), comme au fleuve (MSRC 7 l.117)."
+  },
+  {
+    "id": "fleuve-reparation-temporaire-navigation",
+    "type": "reglesOptionnelles",
+    "label": "Réparation temporaire : Test d’Endurance du bateau à chaque Test de Navigation",
+    "ref": "MSRC 7 l.117",
+    "source": {
+      "book": "mort-sur-le-reik-compagnon",
+      "page": 30,
+      "note": "MSRC 7 l.117"
+    },
+    "maison": "MSRC 7 l.117 laisse au MJ d’exiger d’autres Tests d’Endurance Accessible (+20) du bateau réparé « quand le Personnage au gouvernail doit faire un Test de Navigation, par exemple » : défaut maison activé, chaque Test de Navigation du barreur est suivi de ce Test.",
+    "group": "Voyage",
+    "kind": "flag",
+    "default": true,
+    "hint": "« Le MJ peut exiger d’autres Tests d’Endurance Accessible (+20) quand le bateau subit de nouveaux Dégâts, ou quand il est sollicité par des manœuvres complexes (quand le Personnage au gouvernail doit faire un Test de Navigation, par exemple) » (MSRC 7 l.117). Activé (défaut) : après une réparation temporaire, chaque Test de Navigation du barreur est suivi d’un Test d’Endurance Accessible (+20) du bateau. Désactivé : le Test de Navigation n’en déclenche plus ; restent le Test du jour et, avec la règle sœur, celui des nouveaux Dégâts."
+  },
+  {
+    "id": "fleuve-reparation-temporaire-degats",
+    "type": "reglesOptionnelles",
+    "label": "Réparation temporaire : Test d’Endurance du bateau à chaque nouveau Dégât",
+    "ref": "MSRC 7 l.117",
+    "source": {
+      "book": "mort-sur-le-reik-compagnon",
+      "page": 30,
+      "note": "MSRC 7 l.117"
+    },
+    "maison": "MSRC 7 l.117 laisse au MJ d’exiger d’autres Tests d’Endurance Accessible (+20) du bateau réparé « quand le bateau subit de nouveaux Dégâts » : défaut maison activé, chaque étape qui inflige des Dégâts à la coque est suivie de ce Test.",
+    "group": "Voyage",
+    "kind": "flag",
+    "default": true,
+    "hint": "« Le MJ peut exiger d’autres Tests d’Endurance Accessible (+20) quand le bateau subit de nouveaux Dégâts » (MSRC 7 l.117). Activé (défaut) : après une réparation temporaire, chaque étape qui inflige des Dégâts à la coque (collision, obstacle, échouage) est suivie d’un Test d’Endurance Accessible (+20) du bateau. Désactivé : les nouveaux Dégâts n’en déclenchent plus ; restent le Test du jour et, avec la règle sœur, celui des Tests de Navigation."
+  },
+  {
     "id": "vol-terrestre-fuite-pct",
     "type": "reglesOptionnelles",
     "label": "Vol terrestre — perte de cargaison en cas de FUITE (%)",
