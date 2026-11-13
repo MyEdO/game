@@ -2886,6 +2886,15 @@ async function parcoursCreation() {
   const carriere = element(v, 'creation.corps', 'tirees').valeurs.find((b) => b.presse).libelle
   noter(`carrière tirée : ${carriere}`)
   await capturer('3328-creation-3-carriere-tiree')
+  if (element(v, 'creation.corps', 'variante/0')) {
+    noter(`second lancer offert : ${element(v, 'creation.corps', 'variante/0').libelle}`)
+    v = await presser('creation.corps', 'variante/0')
+    const tirage = element(v, 'creation.corps', 'tirage').resultat
+    assert.match(tirage, /^\d+ → \d+$/, 'le tirage dit le d100 et le second')
+    assert.equal(element(v, 'creation.corps', 'variante/0'), undefined, 'fait, le second lancer ne s’offre plus')
+    noter(`second lancer ${tirage} : ${element(v, 'creation.corps', 'tirees').valeurs.find((b) => b.presse).libelle}`)
+    await capturer('3908-creation-3bis-second-lancer')
+  }
   v = await presser('creation.gestes', 'suivante')
   assert.equal(pageOuverte(v), 'Caractéristiques · 3/10')
   v = await presser('creation.corps', 'tirage')
