@@ -5,6 +5,8 @@ import { testScenarios } from '../../scenes/test-scenarios';
 import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { distanceDeContact } from '../monde/footprint';
 import { isWalkable, wallOnSight, type Scene } from '../monde/scene';
+import { plancherGrimpable } from '../monde/escalade.testkit';
+import { setEncounters } from '../../scenes/test-scenarios/_shared';
 import { reachable, tileKey, type Pt } from '../monde/path';
 import { occupied } from '../monde/combatGeometry';
 import { placeCombatant } from '../monde/spawn';
@@ -119,5 +121,31 @@ describe('#4105 — approche de l’IA derrière un mur plein', () => {
     poser(H, libre!);
     expect(contact(H, E)).toBe(1);
     expect(canMount(scene(), H, E)).toBe(true);
+  });
+});
+
+/** #4156 : `plancherGrimpable`, où l'araignée géante (Trait Grimpant, `creatures.json`) part du rez ; sa cible se tient au
+ *  bout du plancher, hors de la case d'arrivée de l'escalade. */
+function sceneAuPlancherGrimpable(): Scene {
+  const s = plancherGrimpable();
+  setEncounters(s, [{ id: 'enc-plancher', enemies: [{ creature: { id: 'araignee-geante' }, pos: { x: 2, y: 3 }, facing: 'N' }] }]);
+  return s;
+}
+
+describe('#4156 — l’ennemi grimpeur rejoint par l’arête escaladable sa cible de la couche du dessus', () => {
+  it('au rez, il se déplace vers la cible du plancher, sans frapper hors contact, et l’atteint en tours bornés', () => {
+    const { party } = testScenarios.find((s) => s.id === 'grimpant')!.construire(idsDeTest);
+    const { H, E, poser } = ouvrirLeDuel(banc, { scene: sceneAuPlancherGrimpable(), party }, 'enc-plancher');
+    poser(H, { x: 4, y: 0, z: 1 }); poser(E, { x: 2, y: 3, z: 0 });
+    expect([memeCase(H.pos, { x: 4, y: 0, z: 1 }), memeCase(E.pos, { x: 2, y: 3, z: 0 })]).toEqual([true, true]);
+    const rng = makeRNG(3);
+    const actions: string[] = [];
+    while (contact(H, E) > 1 && actions.length < 4) {
+      const { action } = tourDeLEnnemi(E, rng);
+      expect(action, `tour ${actions.length + 1} : aucune frappe hors contact`).not.toBe('melee');
+      actions.push(action);
+    }
+    expect(actions[0]).toBe('deplacement');
+    expect(contact(H, E), `actions ${actions.join(' ')}, E=${JSON.stringify(E.pos)}`).toBeLessThanOrEqual(1);
   });
 });

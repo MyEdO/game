@@ -43,6 +43,14 @@ describe('planClimb', () => {
     expect(fail.etapes[0].effet).toMatchObject({ type: 'fall', metres: 4, to: { x: 2, y: 1, z: 0 } });
   });
 
+  it('paroi en DESCENTE (du sommet vers le pied) → l’échec fait chuter de 4 m au PIED, pas au sommet (#4156)', () => {
+    const plan = planClimb(cliffScene({ kind: 'surface' }), to, from, false);
+    if (plan?.kind !== 'test' || plan.flow.kind !== 'test') throw new Error('attendu test');
+    const fail = plan.flow.echec;
+    if (fail.kind !== 'sequence' || fail.etapes[0]?.kind !== 'effet') throw new Error('attendu seq/do');
+    expect(fail.etapes[0].effet).toMatchObject({ type: 'fall', metres: 4, to: { x: 2, y: 1, z: 0 } });
+  });
+
   it('paroi à difficulté éditée → le Test porte cette difficulté', () => {
     const plan = planClimb(cliffScene({ kind: 'surface', difficulty: 'difficile' }), from, to, false);
     if (plan?.kind !== 'test' || plan.flow.kind !== 'test') throw new Error('attendu test');
