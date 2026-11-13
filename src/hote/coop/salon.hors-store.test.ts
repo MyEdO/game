@@ -319,6 +319,21 @@ describe('salon — une ouverture à la fois, que `quitter` achève', () => {
     expect(vus).toEqual([]);
   });
 
+  it('un invité assis quitte, socket à fermeture différée : un seul `bye`, aucun envoi après `close()`', async () => {
+    salon = creerLeSalon({ ...ports(banc, roomOuverte).p, socket: (url) => new FakeSocket(url, true) });
+    const joining = salon.rejoindre(banc.getState, () => {}, 'ABC234', 'Anna');
+    const ws = FakeSocket.last!;
+    ws.open();
+    ws.receive(JSON.stringify({ evt: 'seated', seat: 2, token: 'TOK' }));
+    expect(await joining).toBeNull();
+    const apresClose: string[] = [];
+    ws.onSend = (d) => { if (ws.closedWith) apresClose.push(d); };
+    salon.quitter(banc.getState);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(ws.sent.filter((d) => d === JSON.stringify({ ctl: 'bye' }))).toHaveLength(1);
+    expect(apresClose).toEqual([]);
+  });
+
   it('quitter pendant le `fetch` de héberger, qui ne se règle jamais : abandonné dans l’appel', async () => {
     salon = creerLeSalon(ports(banc, () => new Promise<ReponseDuRelais>(() => {})).p);
     let issue: string | null | undefined;

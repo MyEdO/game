@@ -166,7 +166,7 @@ export class RelayClient {
   }
 
   sendRaw(text: string): void {
-    if (this.state === 'connecte') this.ws?.send(text);
+    if (!this.closed && this.state === 'connecte') this.ws?.send(text);
   }
 
   /** `close()` est passé : plus rien ne se livre ni ne s'envoie. */

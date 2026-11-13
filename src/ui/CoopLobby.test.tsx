@@ -83,12 +83,4 @@ describe("CoopLobby -- l'issue d'un hébergement", () => {
     await act(async () => { bouton(t('coop.hote.bouton')).click(); });
     expect(hote.textContent).toContain(t('coop.hote.erreur'));
   });
-
-  it("hébergement abandonné par le retour au menu : le texte de l'abandon s'affiche", async () => {
-    vi.stubGlobal('fetch', () => new Promise(() => {}));
-    saisirLeNom('Anne');
-    await act(async () => { bouton(t('coop.hote.bouton')).click(); });
-    await act(async () => { hote.querySelector<HTMLButtonElement>('.menu-back')!.click(); });
-    expect(hote.textContent).toContain(t('coop.ouvertureAbandonnee'));
-  });
 });

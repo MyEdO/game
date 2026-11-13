@@ -2,7 +2,8 @@
  *  sur les minuteurs (factices sous `vi.useFakeTimers`) du test et une panne. */
 import type { Compression, Minuterie, PortsDuRelais, SocketLike } from './relay';
 
-/** Une socket dont le test joue le serveur : `open`, `receive`, `dropFromServer`. */
+/** Une socket dont le test joue le serveur : `open`, `receive`, `dropFromServer`. `fermetureDifferee` : `onclose` suit
+ *  `close()` à la tâche suivante, comme la WebSocket du navigateur. */
 export class FakeSocket implements SocketLike {
   static instances: FakeSocket[] = [];
   static get last(): FakeSocket | undefined {
@@ -16,7 +17,7 @@ export class FakeSocket implements SocketLike {
   onmessage: ((e: { data: unknown }) => void) | null = null;
   onclose: ((e: { code: number; reason: string }) => void) | null = null;
   onerror: (() => void) | null = null;
-  constructor(readonly url: string) {
+  constructor(readonly url: string, private readonly fermetureDifferee = false) {
     FakeSocket.instances.push(this);
   }
   send(d: string): void {
@@ -25,7 +26,9 @@ export class FakeSocket implements SocketLike {
   }
   close(code?: number, reason?: string): void {
     this.closedWith = { code };
-    this.onclose?.({ code: code ?? 1005, reason: reason ?? '' });
+    const fermer = () => this.onclose?.({ code: code ?? 1005, reason: reason ?? '' });
+    if (this.fermetureDifferee) setTimeout(fermer, 0);
+    else fermer();
   }
   open(): void {
     this.onopen?.();
