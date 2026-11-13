@@ -2,8 +2,8 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { initialNet } from './etat';
-import { openSequence, displayStep, monoStep } from './rollSeam';
-import { startCascade, advanceCascade, resumeSuspendedCascade, sortirDeLHote, suspendActiveCascade, dropSceneEntrySteps, setClotureDeCascade } from './cascade';
+import { openSequence, displayStep, monoStep, choiceStep } from './rollSeam';
+import { startCascade, advanceCascade, resolveRemainingCascade, runCascadeImmediate, resumeSuspendedCascade, sortirDeLHote, suspendActiveCascade, dropSceneEntrySteps, setClotureDeCascade } from './cascade';
 import { runFlow, pushReveal } from './combatEffects';
 import { dispatchCascadeDone } from './combatSlice';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
@@ -507,4 +507,27 @@ describe('#4006 — le pilote immédiat à contexte parque au rang ce que son ap
     expect(apples, 'la 2ᵉ étape est jouée une fois').toBe(2);
     expect(get().suspendedCascades, 'la pile est vide').toEqual([]);
   });
+});
+
+describe('#4075 — borne : au slot, une séquence hors du prédicat `sequenceDuPiloteHorsCombat` dont la dernière étape suspend se dénoue au même geste', () => {
+  beforeEach(groupe);
+  /** La dernière étape : un choix sans défaut (le pilote s'y arrête, `cascade.ts › piloteImmediat`) dont l'applier quitte la scène. */
+  const choixQuiQuitte = () => choiceStep({ id: 'q', kind: KIND_QUITTE, actorId: get().party[1].id, label: fixtureText('Quitte'), options: [{ key: 'a', label: fixtureText('A') }] })!;
+  const MONTAGES: { cas: string; poser: () => void; reprise: unknown }[] = [
+    { cas: 'séquence sans pilote', reprise: undefined, poser: () => startCascade(get, set, { title: 'Tenue', purpose: 'travelDay', steps: [choixQuiQuitte()] }) },
+    { cas: 'pilote sans contexte', reprise: { sansContexte: true }, poser: () => { runCascadeImmediate(get, set, [choixQuiQuitte()]); } },
+    { cas: 'pilote à contexte, en combat', reprise: {}, poser: () => { set({ battle: COMBAT }); openSequence(get, set, { title: 'Tenue', purpose: 'travelDay', steps: [choixQuiQuitte()] }); } },
+  ];
+  for (const [geste, jouer] of [['Suivant', advanceCascade], ['Tout résoudre', resolveRemainingCascade]] as const) for (const { cas, poser, reprise } of MONTAGES) {
+    it(`${cas}, par « ${geste} » : la séquence finie est rendue à l’appelant, la pile est vide`, () => {
+      poser();
+      const tenue = get().pendingCascade!;
+      expect([tenue.cursor, tenue.participants.length, tenue.piloteImmediat], `prémisse (${cas}) : le choix tient le slot`).toEqual([0, 1, reprise]);
+      get().jetRegler('cascade', 'choix', 'a', 'q');
+      const done = jouer(get, set);
+      expect(apples, `prémisse (${cas}) : l’étape est jouée une fois`).toBe(1);
+      expect(done?.participants.map((s) => s.id), `la séquence finie est rendue pour son dénouement (${cas})`).toEqual(['q']);
+      expect(get().suspendedCascades, `la pile est vide (${cas})`).toEqual([]);
+    });
+  }
 });

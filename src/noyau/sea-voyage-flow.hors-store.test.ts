@@ -3259,4 +3259,24 @@ describe('Une journée de mer en vol ne se relance pas, la bande d’équipage r
       expect(get().scene!.id).toBe('ilot');
     });
   });
+
+  for (const geste of ['Suivant', 'Tout résoudre'] as const) it(`péril d’auteur [transition] en jour par jour, par « ${geste} », scène d’arrivée sans carte d’entrée ni rencontre : le jour tronqué se dénoue au même geste (#4075)`, () => {
+    const scene = (id: string) => { const s = emptyScene('scene-test', 2, 2); s.id = id; s.label = id; return s; };
+    const vessel = get().vessel;
+    get().chargerLeProjet({ scenes: [scene('port-a'), scene('port-b'), scene('ilot')], entryId: 'port-a', worldMap: { ...seaMap, routes: [{ ...seaMap.routes[0], perils: [{ label: 'Écueil', chancePct: 100, effects: [{ type: 'transition', scene: { id: 'ilot' } }] }] }] }, projet: null });
+    set({ vessel } as never); // lancerLaScene remet le vessel de campagne — repose-le
+    const plan = buildSeaPlan(get, 'r1', 'A', 'B', get().worldMap!.routes[0], { cadence: 'jourParJour' })!;
+    set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysToEvent: 5 } } } as never);
+    runSeaDay(get, set);
+    expect([get().pendingCascade?.purpose, etapeAuSlot()], 'prémisse : le péril tient le slot, en tête du jour').toEqual(['travelDay', 'perilDeScene']);
+    if (geste === 'Suivant') unPas(); else { get().jetLancer('cascade'); banc.reprendreTout(); }
+    expect(get().scene!.id, 'prémisse : la transition mène à la scène d’arrivée').toBe('ilot');
+    expect(get().travelPlan?.interrupted, 'le plan est interrompu').toBe(true);
+    expect(get().pendingCascade?.purpose, 'au slot, l’entretien du soir que le dénouement du jour ouvre').toBe('seaScorbut');
+    expect(pile(), 'la pile est vide : le jour tronqué s’est dénoué au même geste').toEqual([]);
+    expect(get().travelPlan!.sea!.daysAtSea, 'aucune journée comptée sous l’entretien').toBe(0);
+    jusquAuSlotLibre();
+    uneJourneeComptee('jourParJour');
+    expect(get().travelPlan!.interrupted, 'le voyage reste interrompu').toBe(true);
+  });
 });

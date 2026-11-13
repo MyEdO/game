@@ -716,3 +716,48 @@ describe('péril d’auteur dont l’effet ouvre un nœud de scène sous la jour
     expect(get().pendingRest, `la halte de nuit s’ouvre après la clôture (${noeud})`).toBeTruthy();
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+// #4075 — la journée tenue au SLOT (cadence manuelle) suit la règle de son pilote : ce que l'applier de sa
+// DERNIÈRE étape ouvre passe avant son dénouement (`cascade.ts › sequenceDuPiloteHorsCombat`).
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+describe('péril d’auteur, dernière étape du jour tenu au slot, dont l’effet ouvre un nœud (#4075)', () => {
+  beforeEach(() => setRule('priere-petites', true));
+  afterEach(() => setRule('priere-petites', false));
+  const drapeau = (flag: string): Flow => ({ kind: 'effet', effet: { type: 'setFlag', flag } });
+  const priere = (reward: Flow) => [{ type: 'petitePriere', heroId: 'h', reward }];
+  const PERILS: { noeud: string; effects: unknown[] }[] = [
+    { noeud: 'Test d’exposition', effects: [{ type: 'exposureNight', kind: 'froid', count: 1, target: 'groupe' }] },
+    { noeud: 'choix', effects: priere({ kind: 'choix', invite: 'Prier encore', oui: drapeau('branche'), non: drapeau('branche') }) },
+    { noeud: 'Test de scène', effects: priere({ kind: 'test', test: { characteristic: 'force' }, reussite: drapeau('branche'), echec: drapeau('branche') }) },
+    { noeud: 'poursuite', effects: [{ type: 'startPursuit', partyRole: 'fleeing', distance: 4, skill: { id: 'athletisme' }, foes: [{ ref: { id: 'loup' } }], encounter: '' }] },
+  ];
+  const jours = () => get().travelPlan?.log?.length ?? 0;
+  const etat = () => { const s = get(); const p = s.pendingCascade; return `slot=${p ? `${p.purpose}@${p.cursor}/${p.participants.length}` : '-'} test=${!!s.pendingTest} pile=[${s.suspendedCascades.map((c) => `${c.purpose}@${c.cursor}/${c.participants.length}`)}] jours=${jours()} halte=${!!s.pendingRest} combat=${!!s.battle}`; };
+
+  for (const geste of ['Suivant', 'Tout résoudre'] as const) for (const { noeud, effects } of PERILS) {
+    it(`${noeud}, par « ${geste} » : la journée se compte et la halte s’ouvre à la clôture du nœud, une fois`, () => {
+      seedBattleRng(1);
+      const h = hero({ items: [ration('r1')], skills: [{ id: 'priere', characteristic: 'sociabilite', advances: 200 } as any] });
+      setup(map({ km: 30, perils: [{ label: 'Péril', chancePct: 100, effects: effects as any }] }), [h]);
+      get().partirEnVoyage('r1', 'pied');
+      const jour = get().pendingCascade!;
+      expect([jour.purpose, jour.cursor, jour.participants.length], `prémisse : le péril est la seule étape du jour, au slot (${etat()})`).toEqual(['travelDay', 0, 1]);
+      if (geste === 'Suivant') avanceEtapeCascade(get); else get().jetLancer('cascade');
+      banc.reprendreTout();
+      expect(get().pendingCascade?.purpose ?? (get().pendingTest ? 'test' : null), `prémisse : le nœud ouvert tient le slot (${etat()})`).not.toBeNull();
+      let tours = 0;
+      for (; tours < 80 && (get().pendingTest || get().pendingCascade); tours++) {
+        expect(jours(), `aucune journée comptée sous le nœud (${etat()})`).toBe(0);
+        expect(get().pendingRest, `aucune halte sous le nœud (${etat()})`).toBeNull();
+        expect(get().suspendedCascades.map((c) => [c.purpose, c.cursor]), `le jour attend en pile, fini (${etat()})`).toEqual([['travelDay', 1]]);
+        if (get().pendingTest) { get().jetLancer('test'); get().jetValider('test'); } else avanceEtapeCascade(get);
+        banc.reprendreTout();
+      }
+      expect(tours, `le nœud s’est clos (${etat()})`).toBeLessThan(80);
+      expect(get().suspendedCascades, `la pile est vide (${etat()})`).toEqual([]);
+      expect(jours(), `une journée comptée (${etat()})`).toBe(1);
+      expect(get().pendingRest, `la halte s’ouvre après la clôture (${etat()})`).toBeTruthy();
+    });
+  }
+});
