@@ -618,7 +618,8 @@ src/hote/                   COMMUN AUX HÔTES du noyau (#2928) : ce qu'un hôte 
                             la persiste), `accueil.ts` (les entrées de l'hôte avant toute partie, zone
                             `accueil.gestes`), `salon.ts` (`zonesDuSalon` : le salon de la coop en zones `salon.*`,
                             pur de l'état, de l'ouverture que l'hôte tient et du réseau ; les attributions de siège
-                            sont les offres du noyau, `siegesOfferts`),
+                            sont les offres du noyau, `siegesOfferts` ; et `lireUnGesteDuSalon`, le geste de salon
+                            lu dans les zones d'avant le geste, ou refusé),
                             `sauvegardes.ts` (les emplacements de sauvegarde sur le même `Stockage` : écrire, lire, retirer,
                             lister ; une save d'un autre format ou illisible est REJETÉE et RETIRÉE à la lecture,
                             son retrait cumulé dans le témoin, que `prendreLesRetraitsDeSauvegardes` consomme pour

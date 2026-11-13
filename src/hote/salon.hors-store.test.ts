@@ -1,12 +1,11 @@
 /**
  * LE SALON d'un hôte (#3009) : ses zones par état de la partie, de l'ouverture et du réseau ; chaque attribution de
- * siège est l'offre du noyau (`siegesOfferts`), d'un verbe de classe `hôte`.
+ * siège est l'offre du noyau (`siegesOfferts`) ; la lecture d'un geste de salon dans les zones d'avant le geste.
  */
 import { describe, expect, it } from 'vitest';
-import { zonesDuSalon, type OuvertureDuSalon, type ZonesDuSalon } from './salon';
-import type { Element } from './elements';
+import { lireUnGesteDuSalon, zonesDuSalon, type OuvertureDuSalon, type ZonesDuSalon } from './salon';
+import { ErreurDeGeste } from './partie';
 import { initialNet, siegesOfferts, type Jeu as Partie } from '../noyau/index';
-import { CLASSE_DES_ACTIONS_DU_NOYAU } from '../noyau/intentionsDeSiege';
 import { createHero } from '../engine/character';
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { t } from '../i18n';
@@ -86,30 +85,77 @@ describe('zonesDuSalon — par état (Z4)', () => {
   });
 });
 
-describe('zonesDuSalon — éléments et intentions (Z5)', () => {
-  const TYPES_D_ELEMENT = new Set<Element['type']>(['ligne', 'puce', 'jauge', 'jet', 'entite', 'plan', 'portrait', 'icone', 'fond', 'paysage', 'bouton', 'choix', 'liste', 'formulaire', 'fixe', 'saisieChoix', 'saisieCoches', 'saisieNombre', 'saisieTexte', 'saisieMultiligne', 'saisieJson', 'saisieObjet']);
-  const etats: [Pick<Partie, 'net' | 'party'> | null, OuvertureDuSalon, boolean][] = [
-    [null, null, false], [null, null, true], [partie({}), null, true], [partie({}), { enCours: 'heberger' }, true],
-    [null, { echec: 'x' }, true], [hote, null, true], [invite({}), null, true],
+describe('lireUnGesteDuSalon — un geste que les zones d’avant offrent (S-D3)', () => {
+  const echec: OuvertureDuSalon = { echec: 'x' };
+  const etats: [string, Pick<Partie, 'net' | 'party'> | null, OuvertureDuSalon, boolean][] = [
+    ['sans partie ni réseau', null, null, false], ['sans partie', null, null, true], ['partie locale', partie({}), null, true],
+    ['ouverture héberger', partie({}), { enCours: 'heberger' }, true], ['ouverture rejoindre', null, { enCours: 'rejoindre' }, true],
+    ['échec', partie({}), echec, true], ['hôte', hote, null, true],
+    ['invité', invite({}), null, true], ['invité, reconnexion', invite({ connection: 'reconnexion' }), null, true], ['invité, hôte absent', invite({ hoteAbsent: true }), null, true],
   ];
-
-  it('tout élément rendu est d’un type de `Element`, saisies des formulaires comprises', () => {
-    for (const [etat, ouverture, reseau] of etats) {
-      const z = zonesDuSalon(etat, ouverture, reseau);
-      const elements: Element[] = [...z['salon.etat'], ...z['salon.gestes'], ...z['salon.sieges']].flatMap((e): Element[] => [
-        e, ...(e.type === 'formulaire' ? e.champs : []), ...(e.type === 'choix' || e.type === 'liste' ? e.valeurs : []),
-      ]);
-      for (const e of elements) expect(TYPES_D_ELEMENT.has(e.type), e.type).toBe(true);
+  /** L'erreur que lève la lecture de `entree` dans `z` : sa catégorie et son message. */
+  const refus = (z: ZonesDuSalon, entree: unknown) => {
+    try {
+      lireUnGesteDuSalon(z, entree);
+    } catch (e) {
+      if (e instanceof ErreurDeGeste) return [e.categorie, e.message];
+      throw e;
     }
+    return null;
+  };
+  const zHote = zonesDuSalon(hote, null, true);
+  const zLocale = zonesDuSalon(partie({}), null, true);
+
+  it('L1 : chaque geste offert, dans chaque état, est lu tel que l’élément le porte', () => {
+    const sortes = new Set<string>();
+    for (const [cas, etat, ouverture, reseau] of etats) {
+      const z = zonesDuSalon(etat, ouverture, reseau);
+      for (const g of z['salon.gestes']) {
+        if (g.type === 'formulaire' && g.verbe === 'heberger' && g.refus === null) {
+          expect(lireUnGesteDuSalon(z, { type: 'heberger', args: ['Gunnar'] }), cas).toEqual({ sorte: 'heberger', nom: 'Gunnar' });
+          sortes.add('heberger');
+        }
+        if (g.type === 'bouton') {
+          expect(lireUnGesteDuSalon(z, JSON.parse(JSON.stringify(g.jeu))), cas).toEqual({ sorte: 'quitter' });
+          sortes.add('quitter');
+        }
+      }
+      for (const b of z['salon.sieges'].flatMap((c) => c.valeurs)) {
+        const lu = lireUnGesteDuSalon(z, JSON.parse(JSON.stringify(b.jeu)));
+        expect(lu, cas).toEqual({ sorte: 'siege', intention: b.jeu });
+        expect(lu.sorte === 'siege' && lu.intention, cas).toBe(b.jeu);
+        sortes.add('siege');
+      }
+    }
+    expect([...sortes].sort()).toEqual(['heberger', 'quitter', 'siege']);
   });
 
-  it('tout `jeu` d’un bouton de `salon.sieges` est une intention d’un verbe de classe `hôte`', () => {
-    const jeux = zonesDuSalon(hote, null, true)['salon.sieges'].flatMap((c) => c.valeurs.map((b) => b.jeu));
-    expect(jeux.length).toBeGreaterThan(0);
-    for (const jeu of jeux) {
-      expect('type' in jeu && 'args' in jeu, JSON.stringify(jeu)).toBe(true);
-      const verbe = (jeu as { type: string }).type;
-      expect((CLASSE_DES_ACTIONS_DU_NOYAU as Readonly<Record<string, string>>)[verbe], verbe).toBe('hôte');
+  it('L2 : validation, pour un geste non offert', () => {
+    expect(refus(zHote, { type: 'heberger', args: ['Gunnar'] })?.[0]).toBe('validation');
+    expect(refus(zLocale, { salon: 'quitter' })?.[0]).toBe('validation');
+    const offertes = zHote['salon.sieges'].flatMap((c) => c.valeurs.map((b) => b.jeu));
+    expect(offertes).toContainEqual({ type: 'affecterLEmplacementAuSiege', args: [1, 1] });
+    expect(refus(zHote, { type: 'affecterLEmplacementAuSiege', args: [0, 1] })?.[0], 'emplacement occupé').toBe('validation');
+    const mj = { type: 'affecterLeSiegeMJ', args: [0] };
+    expect(lireUnGesteDuSalon(zHote, mj)).toEqual({ sorte: 'siege', intention: mj });
+    expect(refus(zLocale, mj)?.[0], 'rôle MJ après la fin de la session').toBe('validation');
+    expect(refus(zHote, { ...mj, siege: 0 })?.[0], 'une clé de plus').toBe('validation');
+  });
+
+  it('L2 : validation, pour des arguments mal formés et une entrée qui n’est pas un objet', () => {
+    for (const args of [[5], [], ['Gunnar', 'Anna'], 'Gunnar', undefined]) expect(refus(zLocale, { type: 'heberger', args })?.[0], JSON.stringify(args)).toBe('validation');
+    for (const entree of [null, 'heberger', ['heberger', 'Gunnar'], 3]) expect(refus(zLocale, entree)?.[0], JSON.stringify(entree)).toBe('validation');
+  });
+
+  it('L2 : validation, pour `rejoindre` même offert (S-D6)', () => {
+    const z = zonesDuSalon(null, null, true);
+    expect(refusDesFormulaires(z).rejoindre).toBeNull();
+    expect(refus(z, { type: 'rejoindre', args: ['ABC234', 'Anna'] })?.[0]).toBe('validation');
+  });
+
+  it('L3 : règle, avec le texte du formulaire, pour `heberger` offert mais refusé', () => {
+    for (const [etat, reseau, cle] of [[null, true, 'ecran.salon.refus.sansPartie'], [partie({}), false, 'ecran.salon.refus.sansReseau']] as const) {
+      expect(refus(zonesDuSalon(etat, null, reseau), { type: 'heberger', args: ['Gunnar'] })).toEqual(['regle', `salon : ${t(cle)}`]);
     }
   });
 });

@@ -6,7 +6,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { BUFFER_MAX, GRACE_MS, cleDuJeton, creerLeSalon, type AppliquerLIntention, type PortsDuSalon, type ReponseDuRelais, type Salon } from './salon';
-import { FakeSocket, portsDuTest } from './relay.testkit';
+import { FakeSocket, instantanesAuSiege1, portsDuTest, roomOuverte, stockageEnMap } from './relay.testkit';
 import { PROTOCOL_VERSION, parseMessage, serializeMessage } from './protocol';
 import { ouvrirLeBanc, type Banc } from '../../noyau/banc.testkit';
 import { appliquerLInstantane, buildDeLaCoop, instantaneDeLaCoop } from '../../noyau/coop';
@@ -18,18 +18,16 @@ const BASE = 'http://localhost:8787';
 
 /** Les ports factices d'un salon, et ce qu'ils ont vu. */
 function ports(banc: Banc, fetch: PortsDuSalon['fetch'], panne?: PortsDuSalon['panne']) {
-  const stocke = new Map<string, string>();
+  const { stocke, stockage } = stockageEnMap();
   const p: PortsDuSalon = {
     ...portsDuTest(undefined, panne),
     relais: () => BASE,
     fetch,
-    stockage: () => ({ getItem: (k) => stocke.get(k) ?? null, setItem: (k, v) => { stocke.set(k, v); } }),
+    stockage,
     abonner: (ecouteur) => banc.subscribe(ecouteur),
   };
   return { p, stocke };
 }
-
-const roomOuverte = async (): Promise<ReponseDuRelais> => ({ ok: true, json: async () => ({ code: 'ABC234', hostToken: 'HT' }) });
 
 /** Le rappel d'intention de l'hôte web. */
 const appliquerDuBanc: AppliquerLIntention = (action, args, siege) => { appliquerLIntentionDUnSiege(banc.getState, siege, action, args); };
@@ -42,14 +40,6 @@ const instantaneRecu = (gameTime: number, champ: 'data' | 'z' = 'data') => {
   const texte = serializeMessage({ kind: 'snapshot', data: JSON.parse(JSON.stringify(instantaneDeLaCoop({ ...etatInitialDuJeu(), gameTime }))) });
   return JSON.stringify(champ === 'z' ? { z: `z:${texte}` } : { data: texte });
 };
-
-/** Les instantanés que la socket hôte a envoyés au siège 1. */
-const instantanesAuSiege1 = (ws: FakeSocket) => ws.sent.flatMap((raw) => {
-  if (raw === 'ping') return [];
-  const env = JSON.parse(raw) as { to?: number; data?: string; z?: string };
-  const texte = env.data ?? env.z?.slice(2);
-  return env.to === 1 && texte && (JSON.parse(texte) as { kind: string }).kind === 'snapshot' ? [texte] : [];
-});
 
 /** Les intentions que la socket de l'invité a envoyées. */
 const intentionsEmises = (ws: FakeSocket) => ws.sent.flatMap((raw) => {

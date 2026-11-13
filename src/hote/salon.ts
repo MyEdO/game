@@ -5,7 +5,9 @@
  */
 import { siegesDeLaTable, siegesOfferts, type Jeu as Partie } from '../noyau/index';
 import { t } from '../i18n';
-import { ligne, type Bouton, type Choix, type Formulaire, type Ligne, type Saisie } from './elements';
+import { estObjet } from '../lib/objet.mjs';
+import { ligne, type Appel, type Bouton, type Choix, type Formulaire, type Jeu, type Ligne, type Saisie } from './elements';
+import { ErreurDeGeste } from './partie';
 
 /** L'ouverture d'un salon que l'hôte tient : aucune, en cours (héberger ou rejoindre), ou échouée et son texte. */
 export type OuvertureDuSalon = null | { enCours: 'heberger' | 'rejoindre' } | { echec: string };
@@ -70,4 +72,41 @@ export function zonesDuSalon(etat: Pick<Partie, 'net' | 'party'> | null, ouvertu
       valeurs: o.choix.map((c): Bouton => ({ type: 'bouton', id: `${o.id}/${c.siege ?? 'ia'}`, libelle: c.nom, jeu: c.intention, presse: c.tenu, focus: false, refus: null })),
     })),
   };
+}
+
+/** Un geste de salon lu : héberger sous le nom `nom`, quitter le salon, ou l'intention de siège d'une valeur de
+ *  `salon.sieges`, telle que la valeur la porte. */
+export type GesteDuSalon = { sorte: 'heberger'; nom: string } | { sorte: 'quitter' } | { sorte: 'siege'; intention: Appel };
+
+/** `a` et `b` sont-elles la même valeur JSON ? */
+const memeValeur = (a: unknown, b: unknown): boolean => {
+  if (Array.isArray(a)) return Array.isArray(b) && a.length === b.length && a.every((x, i) => memeValeur(x, b[i]));
+  if (!estObjet(a) || !estObjet(b)) return a === b;
+  const cles = Object.keys(a);
+  return cles.length === Object.keys(b).length && cles.every((k) => Object.prototype.hasOwnProperty.call(b, k) && memeValeur(a[k], b[k]));
+};
+
+/** Lit l'entrée `entree` comme un geste que les zones `zones` (celles d'avant le geste) offrent : le formulaire dont le
+ *  `verbe` est son `type`, ses `args` une chaîne par champ, ou le bouton ou la valeur de choix dont le `jeu` est
+ *  `entree`. Lève l'erreur de validation d'un geste que les zones n'offrent pas ou que la lecture ne connaît pas,
+ *  ou d'arguments mal formés, et l'erreur de règle du refus d'un formulaire offert. */
+export function lireUnGesteDuSalon(zones: ZonesDuSalon, entree: unknown): GesteDuSalon {
+  const refuser = (categorie: 'validation' | 'regle', raison: string): never => {
+    throw new ErreurDeGeste(categorie, `salon : ${raison}`);
+  };
+  if (!estObjet(entree)) return refuser('validation', 'un geste est un objet JSON');
+  const formulaire = zones['salon.gestes'].find((g): g is Formulaire => g.type === 'formulaire' && g.verbe === entree.type);
+  if (formulaire) {
+    if (formulaire.verbe !== 'heberger') return refuser('validation', `geste non lu : ${formulaire.verbe}`);
+    const { args } = entree;
+    if (!Array.isArray(args) || args.length !== formulaire.champs.length || !args.every((a): a is string => typeof a === 'string')) return refuser('validation', `args, une chaîne par champ de ${formulaire.verbe}`);
+    if (formulaire.refus !== null) return refuser('regle', formulaire.refus);
+    return { sorte: 'heberger', nom: args[0] };
+  }
+  const boutons = [...zones['salon.gestes'], ...zones['salon.sieges'].flatMap((c) => c.valeurs)].filter((g): g is Bouton => g.type === 'bouton');
+  const jeu: Jeu | undefined = boutons.find((b) => memeValeur(b.jeu, entree))?.jeu;
+  if (jeu === undefined) return refuser('validation', `geste non offert : ${JSON.stringify(entree)}`);
+  if ('salon' in jeu) return { sorte: 'quitter' };
+  if ('type' in jeu) return { sorte: 'siege', intention: jeu };
+  return refuser('validation', `geste non lu : ${JSON.stringify(entree)}`);
 }

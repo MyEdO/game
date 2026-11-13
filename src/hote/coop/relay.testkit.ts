@@ -1,6 +1,8 @@
 /** Les ports factices du relay (#3556) : une socket pilotée par le test, une compression réversible, une minuterie
- *  sur les minuteurs (factices sous `vi.useFakeTimers`) du test et une panne. */
+ *  sur les minuteurs (factices sous `vi.useFakeTimers`) du test et une panne ; ceux du salon : la création d'une room
+ *  qui s'ouvre, un stockage en `Map`, et la lecture des instantanés qu'une socket hôte a émis. */
 import type { Compression, Minuterie, PortsDuRelais, SocketLike } from './relay';
+import type { ReponseDuRelais, StockageDuJeton } from './salon';
 
 /** Une socket dont le test joue le serveur : `open`, `receive`, `dropFromServer`. `fermetureDifferee` : `onclose` suit
  *  `close()` à la tâche suivante, comme la WebSocket du navigateur. */
@@ -60,4 +62,21 @@ export const portsDuTest = (
   panne: PortsDuRelais['panne'] = (erreur) => { throw erreur; },
 ): PortsDuRelais => ({
   socket, minuterie: minuterieDuTest, compression: compressionFactice, panne,
+});
+
+/** Le relay crée la room `ABC234`, de jeton d'hôte `HT`. */
+export const roomOuverte = async (): Promise<ReponseDuRelais> => ({ ok: true, json: async () => ({ code: 'ABC234', hostToken: 'HT' }) });
+
+/** Un stockage du jeton en `Map`, et la `Map` qu'il tient. */
+export function stockageEnMap(): { stocke: Map<string, string>; stockage: () => StockageDuJeton } {
+  const stocke = new Map<string, string>();
+  return { stocke, stockage: () => ({ getItem: (k) => stocke.get(k) ?? null, setItem: (k, v) => { stocke.set(k, v); } }) };
+}
+
+/** Les instantanés que la socket hôte `ws` a envoyés au siège 1. */
+export const instantanesAuSiege1 = (ws: FakeSocket) => ws.sent.flatMap((raw) => {
+  if (raw === 'ping') return [];
+  const env = JSON.parse(raw) as { to?: number; data?: string; z?: string };
+  const texte = env.data ?? env.z?.slice(2);
+  return env.to === 1 && texte && (JSON.parse(texte) as { kind: string }).kind === 'snapshot' ? [texte] : [];
 });
